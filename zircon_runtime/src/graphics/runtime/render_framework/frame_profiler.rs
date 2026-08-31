@@ -1,21 +1,19 @@
 use crate::core::framework::render::{
     RenderBudgetKey, RenderFrameBudget, RenderFrameProfile, RenderGpuTimingStatus,
-    RenderPassPipelineStatistics, RenderPassProfileEntry, RenderStats, RenderSubsystemProfileEntry,
+    RenderPassProfileEntry, RenderStats, RenderSubsystemProfileEntry,
 };
 use crate::graphics::backend::{GpuPipelineStatisticsFrameResult, GpuTimerFrameResult};
 use std::{collections::VecDeque, sync::Arc, time::Instant};
 
-use super::budget::{BudgetDegradeLadder, RenderMemoryBudget};
+use super::budget::{memory_budget_warning_count, BudgetDegradeLadder, GpuMemoryBudget};
+
+mod gpu_resolution;
+mod mesh_submission;
+
+pub(in crate::graphics::runtime::render_framework) use gpu_resolution::FrameProfileWrite;
+use mesh_submission::mesh_submission_profile;
 
 const MAX_PENDING_FRAME_PROFILES: usize = 4;
-
-pub(in crate::graphics::runtime::render_framework) struct FrameProfileWrite {
-    pub(in crate::graphics::runtime::render_framework) capture_profile: Arc<RenderFrameProfile>,
-    pub(in crate::graphics::runtime::render_framework) resolved_gpu_profiles:
-        Vec<Arc<RenderFrameProfile>>,
-    pub(in crate::graphics::runtime::render_framework) resolved_gpu_profile:
-        Option<Arc<RenderFrameProfile>>,
-}
 
 pub(in crate::graphics::runtime::render_framework) struct FrameProfiler {
     budget: RenderFrameBudget,
@@ -49,7 +47,7 @@ impl FrameProfiler {
         gpu_timing_status: RenderGpuTimingStatus,
         gpu_timer_frame_result: Option<&GpuTimerFrameResult>,
         gpu_pipeline_statistics_frame_result: Option<&GpuPipelineStatisticsFrameResult>,
-        memory_budget: &RenderMemoryBudget,
+        memory_budget: &GpuMemoryBudget,
         degrade_ladder: &mut BudgetDegradeLadder,
         store_lint_count: u32,
         persistent_texture_resident_bytes: u64,
@@ -74,6 +72,7 @@ impl FrameProfiler {
                 state_change_count: record.state_change_count,
                 upload_bytes: record.upload_bytes,
                 dispatch_count: record.dispatch_count,
+                native_resource_creates: record.native_resource_creates,
             })
             .collect::<Vec<_>>();
         let staging_total_bytes = passes
@@ -116,6 +115,7 @@ impl FrameProfiler {
                     over_budget: false,
                 })
                 .collect(),
+            mesh_submission: mesh_submission_profile(stats),
             transient_texture_peak_bytes: stats.last_graph_transient_texture_bytes_reserved,
             transient_buffer_peak_bytes: stats.last_graph_transient_buffer_bytes_reserved,
             staging_total_bytes,
@@ -128,7 +128,8 @@ impl FrameProfiler {
             budget_warning_count: 0,
             degrade_step_active: 0,
         };
-        pending_profile.budget_warning_count = memory_budget.warning_count(&pending_profile);
+        pending_profile.budget_warning_count =
+            memory_budget_warning_count(&pending_profile, *memory_budget);
         degrade_ladder.evaluate(&pending_profile, memory_budget);
         pending_profile.degrade_step_active = saturating_u32(degrade_ladder.active_level());
         let pending_profile = Arc::new(pending_profile);
@@ -175,144 +176,10 @@ impl FrameProfiler {
             resolved_gpu_profile,
         }
     }
-
-    fn merge_gpu_timer_result(
-        &mut self,
-        result: &GpuTimerFrameResult,
-        current_frame_generation: u64,
-    ) -> Option<u64> {
-        // A published snapshot is cloned only when a late GPU result still shares it.
-        let profile_index = self
-            .pending_profiles
-            .iter()
-            .position(|profile| profile.frame_generation == result.frame_generation)?;
-        {
-            let profile = Arc::make_mut(&mut self.pending_profiles[profile_index]);
-
-            let mut matched_passes = vec![false; profile.passes.len()];
-            for timing in &result.pass_timings {
-                if let Some(pass_index) = take_next_pass_profile_index(
-                    &profile.passes,
-                    &mut matched_passes,
-                    &timing.pass_name,
-                ) {
-                    profile.passes[pass_index].gpu_time_us = Some(timing.gpu_time_us);
-                }
-            }
-
-            profile.gpu_frame_time_us = (!result.pass_timings.is_empty()).then(|| {
-                result.pass_timings.iter().fold(0_u64, |total, timing| {
-                    total.saturating_add(timing.gpu_time_us)
-                })
-            });
-            profile.profile_latency_frames = saturating_u32_from_u64(
-                current_frame_generation.saturating_sub(result.frame_generation),
-            );
-            if profile.gpu_timing_status != RenderGpuTimingStatus::CapacityExhausted {
-                profile.gpu_timing_status = RenderGpuTimingStatus::Measured;
-            }
-            update_subsystem_gpu_times(profile, &self.budget);
-            profile.budget_warning_count = profile
-                .budget_warning_count
-                .saturating_add(gpu_budget_warning_count(profile, &self.budget));
-        }
-
-        Some(result.frame_generation)
-    }
-
-    fn merge_gpu_pipeline_statistics_result(
-        &mut self,
-        result: &GpuPipelineStatisticsFrameResult,
-        current_frame_generation: u64,
-    ) -> Option<u64> {
-        let profile_index = self
-            .pending_profiles
-            .iter()
-            .position(|profile| profile.frame_generation == result.frame_generation)?;
-        {
-            let profile = Arc::make_mut(&mut self.pending_profiles[profile_index]);
-            let mut matched_passes = vec![false; profile.passes.len()];
-            for statistics in &result.pass_statistics {
-                if let Some(pass_index) = take_next_pass_profile_index(
-                    &profile.passes,
-                    &mut matched_passes,
-                    &statistics.pass_name,
-                ) {
-                    profile.passes[pass_index].pipeline_statistics =
-                        Some(RenderPassPipelineStatistics {
-                            vertex_shader_invocations: statistics
-                                .statistics
-                                .vertex_shader_invocations,
-                            clipper_invocations: statistics.statistics.clipper_invocations,
-                            clipper_primitives_out: statistics.statistics.clipper_primitives_out,
-                            fragment_shader_invocations: statistics
-                                .statistics
-                                .fragment_shader_invocations,
-                            compute_shader_invocations: statistics
-                                .statistics
-                                .compute_shader_invocations,
-                        });
-                }
-            }
-            profile.profile_latency_frames =
-                profile.profile_latency_frames.max(saturating_u32_from_u64(
-                    current_frame_generation.saturating_sub(result.frame_generation),
-                ));
-        }
-        Some(result.frame_generation)
-    }
-}
-
-fn take_next_pass_profile_index(
-    passes: &[RenderPassProfileEntry],
-    matched_passes: &mut [bool],
-    pass_name: &str,
-) -> Option<usize> {
-    for (index, pass) in passes.iter().enumerate() {
-        if !matched_passes[index] && pass.pass_name == pass_name {
-            matched_passes[index] = true;
-            return Some(index);
-        }
-    }
-    None
-}
-
-fn update_subsystem_gpu_times(profile: &mut RenderFrameProfile, budget: &RenderFrameBudget) {
-    let passes = &profile.passes;
-    for subsystem in &mut profile.subsystems {
-        let mut has_gpu_timing = false;
-        let gpu_time_us = passes
-            .iter()
-            .filter(|pass| pass.budget_key == subsystem.key)
-            .filter_map(|pass| pass.gpu_time_us)
-            .inspect(|_| has_gpu_timing = true)
-            .fold(0_u64, u64::saturating_add);
-        subsystem.gpu_time_us = has_gpu_timing.then_some(gpu_time_us);
-        subsystem.over_budget = subsystem
-            .gpu_time_us
-            .is_some_and(|gpu_time_us| gpu_time_us > budget.budget_us(subsystem.key));
-    }
-}
-
-fn gpu_budget_warning_count(profile: &RenderFrameProfile, budget: &RenderFrameBudget) -> u32 {
-    let subsystem_warning_count = profile
-        .subsystems
-        .iter()
-        .filter(|subsystem| subsystem.over_budget)
-        .count();
-    let frame_warning_count = profile
-        .gpu_frame_time_us
-        .is_some_and(|gpu_time_us| gpu_time_us > budget.total_budget_us())
-        as usize;
-    saturating_u32(subsystem_warning_count.saturating_add(frame_warning_count))
 }
 
 fn saturating_u32(value: usize) -> u32 {
     value.min(u32::MAX as usize) as u32
-}
-
-fn saturating_u32_from_u64(value: u64) -> u32 {
-    value.min(u64::from(u32::MAX)) as u32
 }
 
 #[cfg(test)]
@@ -331,7 +198,7 @@ mod tests {
 
     use super::{FrameProfileWrite, FrameProfiler};
     use crate::graphics::runtime::render_framework::budget::{
-        BudgetDegradeLadder, RenderMemoryBudget,
+        BudgetDegradeLadder, GpuMemoryBudget,
     };
 
     fn write_profile(
@@ -359,7 +226,7 @@ mod tests {
         gpu_timing_status: RenderGpuTimingStatus,
         gpu_timer_frame_result: Option<&GpuTimerFrameResult>,
     ) -> FrameProfileWrite {
-        let memory_budget = RenderMemoryBudget::default();
+        let memory_budget = GpuMemoryBudget::default();
         let mut degrade_ladder = BudgetDegradeLadder::default();
         profiler.write_frame_profile(
             stats,
@@ -671,7 +538,7 @@ mod tests {
                 },
             }],
         };
-        let memory_budget = RenderMemoryBudget::default();
+        let memory_budget = GpuMemoryBudget::default();
         let mut degrade_ladder = BudgetDegradeLadder::default();
         let write = profiler.write_frame_profile(
             &mut stats,
@@ -731,7 +598,7 @@ mod tests {
                 },
             }],
         };
-        let memory_budget = RenderMemoryBudget::default();
+        let memory_budget = GpuMemoryBudget::default();
         let mut degrade_ladder = BudgetDegradeLadder::default();
 
         let write = profiler.write_frame_profile(
@@ -802,7 +669,7 @@ mod tests {
                 },
             }],
         };
-        let memory_budget = RenderMemoryBudget::default();
+        let memory_budget = GpuMemoryBudget::default();
         let mut degrade_ladder = BudgetDegradeLadder::default();
 
         let write = profiler.write_frame_profile(
@@ -861,7 +728,7 @@ mod tests {
                 },
             ],
         };
-        let memory_budget = RenderMemoryBudget::default();
+        let memory_budget = GpuMemoryBudget::default();
         let mut degrade_ladder = BudgetDegradeLadder::default();
 
         let resolved = profiler
@@ -903,7 +770,7 @@ mod tests {
             )
             .with_compute_metrics(1, 128)]);
         stats.last_graph_transient_texture_bytes_reserved = 65;
-        let memory_budget = RenderMemoryBudget::new(64, 64, 64);
+        let memory_budget = GpuMemoryBudget::new(64, 64, 64);
         let mut degrade_ladder = BudgetDegradeLadder::with_hysteresis_frames(2);
         let mut profiler = FrameProfiler::default();
 

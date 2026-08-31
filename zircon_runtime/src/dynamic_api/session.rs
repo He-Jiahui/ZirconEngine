@@ -1,7 +1,9 @@
 //! Dynamic runtime session composition and owner routing.
 
+mod composition_receipt;
 mod construction;
 mod diagnostics;
+mod editor_transform;
 mod error;
 mod event_mirror;
 mod events;
@@ -28,6 +30,8 @@ mod state;
 mod status;
 #[cfg(test)]
 mod tests;
+mod ui_extract_cache;
+mod viewport_pick;
 mod world_sync;
 
 use zircon_runtime_interface::{
@@ -43,12 +47,13 @@ use error::RuntimeDynamicSessionResult;
 pub(in crate::dynamic_api) use event_mirror::{
     RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES, RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES,
 };
+pub(super) use ffi::cancel_viewport_pick;
 pub(super) use ffi::{
     bind_viewport_surface, capture_accessibility_tree, capture_frame, create_session,
     destroy_session, drain_host_requests, drain_plugin_events, drain_world_invalidations,
-    handle_event, present_viewport, profile_control, query_world, release_allocation,
-    submit_highlight_set, subscribe_plugin_event, tick_frame, unbind_viewport_surface,
-    unsubscribe_plugin_event, unwatch_world, watch_world,
+    handle_event, poll_viewport_pick, present_viewport, profile_control, query_world,
+    release_allocation, request_viewport_pick, submit_highlight_set, subscribe_plugin_event,
+    tick_frame, unbind_viewport_surface, unsubscribe_plugin_event, unwatch_world, watch_world,
 };
 pub(super) use host_requests::{
     runtime_cursor_host_request, runtime_gamepad_rumble_request, runtime_ime_host_request,

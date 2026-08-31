@@ -563,3 +563,19 @@ Runtime42完成不等于“6个Profile测试通过”，而是满足以下终态
 7. 标准Profile、包装形态、冲突、规模、性能和重载证据均为fresh并绑定plan hash。
 
 在这些条件成立前，当前builtin assembly应视为“有typed基础的过渡composition层”，不能视为已经具备Unreal级module/plugin product assembly，更不能把新增Profile函数、更多hard-coded ID或结构测试数量当作工程化完成度。
+
+## 2026-08-28 Availability Projection Structure Sync
+
+状态：`runtime_06_15_plugin_availability_evaluation_selection_owner_split_static_passed_cargo_deferred`。
+
+当前源码把 `runtime_profile/availability_projection.rs` 的 provider membership/construction、
+availability evaluation 与 manifest/profile selection 分为 291/282/91 行三个 owner；14 个移动块
+相对 `HEAD` 的规范化 SHA-256 14/14 等价。此次仅消除混合职责，不修改 linked ID 与 typed
+registration report 的语义差距，因此 P1-08 保持 open；也不把 metadata/provider membership
+升级为 qualification receipt，capability truth 门禁不变。
+
+本切片没有算法或性能改动，仍是 descriptor/provider/selection 行数线性构建与 lookup；未运行
+Cargo、产品链、CPU/allocation/RSS/power profile，不提供性能收益或跨引擎耗时结论。后续若实现
+typed provider resolution，必须先按本报告冻结 provider row、generation、artifact/diagnostic 与
+qualification 输入，再以固定 1/100/1,000/10,000 plugin 规模测量 build/lookup/materialization、
+allocation、RSS、CPU time 和功耗，不能以本次拆文件替代优化验收。

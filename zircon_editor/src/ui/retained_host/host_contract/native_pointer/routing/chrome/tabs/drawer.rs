@@ -15,8 +15,7 @@ pub(in crate::ui::retained_host::host_contract::native_pointer::routing::chrome)
     y: f32,
 ) -> Option<ChromePointerRoute> {
     let header_origin = translated(header, region.x, region.y);
-    for row in 0..tabs.row_count() {
-        let tab = tabs.row_data(row)?;
+    for (row, tab) in tabs.iter().enumerate() {
         let tab_frame = translated(&tab.frame, header_origin.x, header_origin.y);
         if contains(&tab_frame, x, y) {
             return Some(ChromePointerRoute::DrawerHeaderTab {

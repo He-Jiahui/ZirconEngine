@@ -22,19 +22,24 @@ struct PreparedSdfAtlasText {
 }
 
 impl PreparedSdfAtlasTexts {
-    pub(super) fn matches(&self, texts: &[ScreenSpaceUiTextBatch]) -> bool {
-        self.texts.len() == texts.len()
-            && self
-                .texts
-                .iter()
-                .zip(texts)
-                .all(|(prepared, text)| prepared.matches(text))
+    pub(super) fn matches_iter<'a, Texts>(&self, texts: Texts) -> bool
+    where
+        Texts: IntoIterator<Item = &'a ScreenSpaceUiTextBatch>,
+    {
+        let mut texts = texts.into_iter();
+        self.texts
+            .iter()
+            .all(|prepared| texts.next().is_some_and(|text| prepared.matches(text)))
+            && texts.next().is_none()
     }
 
-    pub(super) fn replace(&mut self, texts: &[ScreenSpaceUiTextBatch]) {
+    pub(super) fn replace_iter<'a, Texts>(&mut self, texts: Texts)
+    where
+        Texts: IntoIterator<Item = &'a ScreenSpaceUiTextBatch>,
+    {
         self.texts.clear();
         self.texts
-            .extend(texts.iter().map(PreparedSdfAtlasText::new));
+            .extend(texts.into_iter().map(PreparedSdfAtlasText::new));
     }
 
     pub(super) fn clear(&mut self) {

@@ -4,10 +4,11 @@ from __future__ import annotations
 SOURCE_FILES = (
     "zircon_runtime_interface/src/buffer.rs",
     "zircon_runtime_interface/src/handles.rs",
-    "zircon_runtime_interface/src/runtime_api/api_table.rs",
-    "zircon_runtime_interface/src/runtime_api/host_requests.rs",
-    "zircon_runtime_interface/src/runtime_api/operation.rs",
-    "zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs",
+    "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
+    "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+    "zircon_runtime_interface/src/runtime_api/frame/viewport_pick.rs",
+    "zircon_runtime_interface/src/runtime_api/session/operation.rs",
+    "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
     "zircon_runtime_interface/src/world_sync/query.rs",
     "zircon_runtime_interface/src/world_sync/watch.rs",
     "zircon_runtime_interface/src/world_sync/invalidation.rs",
@@ -21,6 +22,7 @@ SOURCE_FILES = (
     "zircon_runtime/src/dynamic_api/session/construction.rs",
     "zircon_runtime/src/dynamic_api/session/ffi.rs",
     "zircon_runtime/src/dynamic_api/session/world_sync.rs",
+    "zircon_runtime/src/dynamic_api/session/viewport_pick.rs",
     "zircon_runtime/src/dynamic_api/session/registry/mod.rs",
     "zircon_runtime/src/dynamic_api/session/linked_session.rs",
     "zircon_runtime/src/dynamic_api/session/state.rs",
@@ -41,7 +43,9 @@ SOURCE_FILES = (
     "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
     "zircon_runtime/src/dynamic_api/tests/session_entry_points.rs",
     "zircon_runtime/src/dynamic_api/tests/session_profiles.rs",
-    "zircon_runtime/tests/runtime_owned_result_v7.rs",
+    "zircon_runtime/src/dynamic_api/tests/viewport_pick.rs",
+    "zircon_runtime/src/core/framework/render/viewport_pick.rs",
+    "zircon_runtime/tests/runtime_owned_result_v8.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/headless_profiles.rs",
@@ -62,12 +66,15 @@ SOURCE_FILES = (
     "zircon_runtime_host/src/foreign_output/state.rs",
     "zircon_editor/src/core/gateway/session/gateway.rs",
     "zircon_editor/src/core/gateway/session/output.rs",
+    "zircon_editor/src/core/gateway/session/viewport_pick.rs",
+    "zircon_editor/src/core/gateway/contract.rs",
+    "zircon_editor/src/core/gateway/viewport_pick_route.rs",
 )
-EXPECTED_SOURCE_FILE_COUNT = 60
+EXPECTED_SOURCE_FILE_COUNT = 67
 
 EXPECTED_FUNCTION_TABLES = (
-    ("zircon_runtime_interface/src/runtime_api/api_table.rs", "ZrHostApiV1", 4),
-    ("zircon_runtime_interface/src/runtime_api/api_table.rs", "ZrRuntimeApiV7", 25),
+    ("zircon_runtime_interface/src/runtime_api/abi/api_table.rs", "ZrHostApiV1", 4),
+    ("zircon_runtime_interface/src/runtime_api/abi/api_table.rs", "ZrRuntimeApiV8", 28),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostApiV3", 7),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostApiV4", 7),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostEcsApiV1", 3),
@@ -104,4 +111,7 @@ RUNTIME_SESSION_OPERATIONS = (
     "watch_world",
     "unwatch_world",
     "drain_world_invalidations",
+    "request_viewport_pick",
+    "poll_viewport_pick",
+    "cancel_viewport_pick",
 )

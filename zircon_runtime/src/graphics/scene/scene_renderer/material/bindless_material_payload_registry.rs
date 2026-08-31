@@ -86,12 +86,13 @@ impl BindlessMaterialPayloadRegistry {
             let slot = entry.slot;
             let payload_changed = {
                 let state = &mut self.slots[slot.get() as usize];
-                entry.revision != revision || state.payload != payload
+                let payload_changed = entry.revision != revision || state.payload != payload;
+                if payload_changed {
+                    entry.revision = revision;
+                    state.payload = payload;
+                }
+                payload_changed
             };
-            if payload_changed {
-                entry.revision = revision;
-                self.slots[slot.get() as usize].payload = payload;
-            }
             if payload_changed {
                 self.mark_dirty(slot);
             }
@@ -198,6 +199,9 @@ impl BindlessMaterialPayloadRegistry {
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use crate::core::resource::ResourceId;
 
     use super::{BindlessMaterialPayloadRegistry, BindlessMaterialPayloadSlot};
@@ -248,6 +252,78 @@ mod tests {
         assert!(revised.payload_changed);
         assert_eq!(registry.payload(revised.slot), payload(3));
         assert_eq!(registry.take_dirty_slots(), vec![first.slot]);
+    }
+
+    #[test]
+    fn optimization_batch_20260830es_runtime553_updates_payload_with_one_slot_lookup() {
+        let production = include_str!("bindless_material_payload_registry.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production source");
+        let upsert = production
+            .split("pub(crate) fn upsert")
+            .nth(1)
+            .and_then(|source| source.split("pub(crate) fn release").next())
+            .expect("upsert source");
+
+        assert_eq!(upsert.matches("self.slots[slot.get() as usize]").count(), 1);
+
+        let mut registry = BindlessMaterialPayloadRegistry::default();
+        registry.take_dirty_slots();
+        let first = registry.upsert(resource(10), 4, payload(1));
+        registry.take_dirty_slots();
+
+        let updated = registry.upsert(resource(10), 4, payload(9));
+
+        assert_eq!(updated.slot, first.slot);
+        assert!(updated.payload_changed);
+        assert_eq!(registry.payload(first.slot), payload(9));
+        assert_eq!(registry.take_dirty_slots(), vec![first.slot]);
+    }
+
+    #[test]
+    #[ignore = "deterministic performance marker"]
+    fn optimization_batch_20260830es_runtime553_single_slot_lookup_benchmark() {
+        const UPDATE_COUNT: usize = 2_000_000;
+        const SLOT_COUNT: usize = 4_096;
+        const SAMPLES: usize = 9;
+        let mut legacy_samples = Vec::with_capacity(SAMPLES);
+        let mut optimized_samples = Vec::with_capacity(SAMPLES);
+
+        for _ in 0..SAMPLES {
+            let mut slots = vec![0_u64; SLOT_COUNT];
+            let started = Instant::now();
+            for update in 0..UPDATE_COUNT {
+                let slot = update & (SLOT_COUNT - 1);
+                let changed = slots[slot] != update as u64;
+                if changed {
+                    slots[slot] = update as u64;
+                }
+            }
+            black_box(&slots);
+            legacy_samples.push(started.elapsed());
+
+            let mut slots = vec![0_u64; SLOT_COUNT];
+            let started = Instant::now();
+            for update in 0..UPDATE_COUNT {
+                let slot = update & (SLOT_COUNT - 1);
+                let state = &mut slots[slot];
+                let changed = *state != update as u64;
+                if changed {
+                    *state = update as u64;
+                }
+            }
+            black_box(&slots);
+            optimized_samples.push(started.elapsed());
+        }
+
+        legacy_samples.sort_unstable();
+        optimized_samples.sort_unstable();
+        let legacy = legacy_samples[SAMPLES / 2];
+        let optimized = optimized_samples[SAMPLES / 2];
+        println!(
+            "RUNTIME553_SINGLE_SLOT_LOOKUP_BENCH_V1 legacy={legacy:?} optimized={optimized:?}"
+        );
     }
 
     #[test]

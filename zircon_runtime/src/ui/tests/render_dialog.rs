@@ -152,6 +152,30 @@ fn render_extract_dialog_action_width_uses_runtime_text_measurement() {
 }
 
 #[test]
+fn repeated_dialog_action_measurement_uses_the_surface_frame_owner() {
+    let surface = surface_for_component(
+        "ConfirmDialog",
+        UiFrame::new(80.0, 48.0, 460.0, 210.0),
+        r##"
+open = true
+popup_open = true
+confirm_text = "Same action"
+cancel_text = "Same action"
+"##,
+        visible_state(),
+    );
+
+    assert_eq!(
+        surface
+            .text_measure_cache
+            .frame_measure_dedup_report()
+            .hit_count,
+        1,
+        "confirm and cancel sizing must share the extraction frame's text measurement owner"
+    );
+}
+
+#[test]
 fn render_extract_dialog_consumes_resolved_template_visual_tokens() {
     let commands = commands_for_component(
         "Dialog",
@@ -192,6 +216,18 @@ fn commands_for_component(
     attributes: &str,
     state_flags: UiStateFlags,
 ) -> Vec<UiRenderCommand> {
+    surface_for_component(component, frame, attributes, state_flags)
+        .render_extract
+        .list
+        .commands
+}
+
+fn surface_for_component(
+    component: &str,
+    frame: UiFrame,
+    attributes: &str,
+    state_flags: UiStateFlags,
+) -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new(format!(
         "runtime.ui.render.dialog.{component}"
     )));
@@ -218,7 +254,7 @@ fn commands_for_component(
         )
         .unwrap();
     surface.rebuild();
-    surface.render_extract.list.commands
+    surface
 }
 
 fn dialog_action_command(action: &str) -> UiRenderCommand {

@@ -1,7 +1,8 @@
 use std::sync::OnceLock;
 
-use crate::core::framework::render::{
-    ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef, PostProcessGraphResourceNames,
+use crate::core::framework::render::PostProcessGraphResourceNames;
+use crate::graphics::shader::invocation::{
+    ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef,
     RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind, ShaderDispatchExtent,
     ShaderResourceAccess, ShaderResourceDescriptor, ShaderResourceKind,
 };

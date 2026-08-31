@@ -50,6 +50,8 @@ pub struct RenderSpotLightSnapshot {
 pub struct RenderAmbientLightSnapshot {
     pub color: Vec3,
     pub intensity: Real,
+    /// Whether this source contributes ambient light to meshes with a baked lightmap.
+    pub affects_lightmapped_meshes: bool,
     pub renderer_degraded: bool,
     pub degradation_reason: Option<String>,
 }
@@ -59,6 +61,7 @@ impl Default for RenderAmbientLightSnapshot {
         Self {
             color: Vec3::ZERO,
             intensity: 0.0,
+            affects_lightmapped_meshes: true,
             renderer_degraded: true,
             degradation_reason: Some(
                 "ambient light has no authored scene component yet".to_string(),

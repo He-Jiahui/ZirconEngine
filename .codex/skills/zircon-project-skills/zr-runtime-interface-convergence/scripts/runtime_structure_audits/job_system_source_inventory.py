@@ -5,16 +5,28 @@ from pathlib import Path
 
 JOB_SYSTEM_MODULE_MAX_LINES = 500
 JOB_SYSTEM_MODULES = (
-    "diagnostics",
-    "job_handle",
-    "job_scheduler",
-    "mod",
-    "parallel_for",
-    "pool",
-    "pools",
-    "report",
-    "thread_assignment",
-    "timer",
+    "bounded_stream_io/mod.rs",
+    "callback_dispatcher.rs",
+    "diagnostic_observation/mod.rs",
+    "diagnostics.rs",
+    "task_graph/mod.rs",
+    "job_handle.rs",
+    "job_scheduler.rs",
+    "mod.rs",
+    "parallel_for.rs",
+    "pool.rs",
+    "pools.rs",
+    "report.rs",
+    "retained_byte_budget.rs",
+    "task_cancellation_policy.rs",
+    "task_descriptor.rs",
+    "task_id.rs",
+    "task_pool_descriptor.rs",
+    "task_pool_kind.rs",
+    "task_state.rs",
+    "task_status.rs",
+    "thread_assignment.rs",
+    "timer.rs",
 )
 EXPECTED_JOB_SYSTEM_GUARD_FILE_COUNT = 2
 JOB_SYSTEM_GUARD_FILES = (

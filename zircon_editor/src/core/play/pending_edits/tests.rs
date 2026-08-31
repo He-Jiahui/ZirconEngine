@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 
 use crate::core::editing::operation::{
-    DeferredOperationInvocation, OperationCommand, OperationCommandFactory,
+    DeferredOperationInvocation, EditOperationTarget, OperationCommand, OperationCommandFactory,
     OperationCommandFactoryError, OperationCommandFactoryRegistration, PendingEditRetention,
     PendingEditRetentionError,
 };
@@ -12,8 +12,8 @@ use crate::core::editor_message::DocumentId;
 use crate::core::editor_operation::EditorOperationInvocation;
 
 use super::super::{
-    PlayEditResolutionError, PlayEditRoute, PlayEditRouteError, PlayEditTarget, PlayKind,
-    PlaySessionController, PlaySessionError, PlayStartRequest,
+    PlayEditResolutionError, PlayEditRoute, PlayEditRouteError, PlayKind, PlaySessionController,
+    PlaySessionError, PlayStartRequest,
 };
 use super::*;
 
@@ -29,6 +29,7 @@ fn deferred(
     OperationCommandFactoryRegistration::new(
         invocation.operation_id.clone(),
         "Pending edit test",
+        EditOperationTarget::EditWorkspace,
         Arc::new(PendingEditFixtureFactory),
     )
     .with_pending_edit_retention(retention)
@@ -38,6 +39,56 @@ fn deferred(
 
 fn lossless(name: &str) -> DeferredOperationInvocation {
     deferred(invocation(name), PendingEditRetention::Lossless)
+}
+
+#[test]
+fn optimization_batch_20260826b_editor07_pending_edit_page_reserves_bounded_capacity() {
+    let source = include_str!("queue.rs");
+    let page = source
+        .split_once("pub fn page(")
+        .expect("pending edit page implementation should exist")
+        .1
+        .split_once("pub fn decision_prompt(")
+        .expect("pending edit page implementation should remain bounded")
+        .0;
+
+    assert!(page.contains("let page_capacity = candidates.clone().count().min(limit)"));
+    assert!(page.contains("Vec::with_capacity(page_capacity)"));
+    assert!(page.contains("candidates.by_ref().take(limit)"));
+    assert!(!page.contains("collect::<Vec<_>>()"));
+}
+
+#[test]
+fn optimization_batch_20260826b_editor07_pending_edit_page_preserves_cursor_order() {
+    let queue = PendingEditQueue::default();
+    let ids = (0..130)
+        .map(|index| {
+            queue
+                .enqueue(
+                    EditOperationTarget::EditWorkspace,
+                    lossless(&format!("page_{index}")),
+                )
+                .unwrap()
+                .id
+        })
+        .collect::<Vec<_>>();
+
+    let first = queue.page(None, usize::MAX);
+    let second = queue.page(first.next_cursor, usize::MAX);
+
+    assert_eq!(first.entries.len(), 128);
+    assert_eq!(first.entries.first().unwrap().id, ids[0]);
+    assert_eq!(first.entries.last().unwrap().id, ids[127]);
+    assert_eq!(first.next_cursor.unwrap().id(), ids[127]);
+    assert_eq!(
+        second
+            .entries
+            .iter()
+            .map(|entry| entry.id)
+            .collect::<Vec<_>>(),
+        ids[128..]
+    );
+    assert!(second.next_cursor.is_none());
 }
 
 struct PendingEditFixtureFactory;
@@ -57,7 +108,7 @@ fn latest_retention_coalesces_only_the_same_target_and_operation() {
     let operation = invocation("rename");
     let first = queue
         .enqueue(
-            PlayEditTarget::EditWorkspace,
+            EditOperationTarget::EditWorkspace,
             deferred(
                 operation
                     .clone()
@@ -69,7 +120,7 @@ fn latest_retention_coalesces_only_the_same_target_and_operation() {
         .unwrap();
     let replacement = queue
         .enqueue(
-            PlayEditTarget::EditWorkspace,
+            EditOperationTarget::EditWorkspace,
             deferred(
                 operation
                     .clone()
@@ -81,7 +132,7 @@ fn latest_retention_coalesces_only_the_same_target_and_operation() {
         .unwrap();
     let other_target = queue
         .enqueue(
-            PlayEditTarget::EditDocument(DocumentId::new(11)),
+            EditOperationTarget::EditDocument(DocumentId::new(11)),
             deferred(operation, PendingEditRetention::latest()),
         )
         .unwrap();
@@ -105,15 +156,15 @@ fn latest_retention_coalesces_only_the_same_target_and_operation() {
 fn lossless_retention_preserves_fifo_order_and_retry_authority() {
     let queue = PendingEditQueue::default();
     let first = queue
-        .enqueue(PlayEditTarget::EditWorkspace, lossless("first"))
+        .enqueue(EditOperationTarget::EditWorkspace, lossless("first"))
         .unwrap()
         .id;
     let failed = queue
-        .enqueue(PlayEditTarget::EditWorkspace, lossless("failed"))
+        .enqueue(EditOperationTarget::EditWorkspace, lossless("failed"))
         .unwrap()
         .id;
     let third = queue
-        .enqueue(PlayEditTarget::EditWorkspace, lossless("third"))
+        .enqueue(EditOperationTarget::EditWorkspace, lossless("third"))
         .unwrap()
         .id;
 
@@ -137,11 +188,11 @@ fn lossless_retention_preserves_fifo_order_and_retry_authority() {
 fn budgeted_apply_leaves_unattempted_intents_for_the_next_resolution_turn() {
     let queue = PendingEditQueue::default();
     let first = queue
-        .enqueue(PlayEditTarget::EditWorkspace, lossless("first"))
+        .enqueue(EditOperationTarget::EditWorkspace, lossless("first"))
         .unwrap()
         .id;
     let second = queue
-        .enqueue(PlayEditTarget::EditWorkspace, lossless("second"))
+        .enqueue(EditOperationTarget::EditWorkspace, lossless("second"))
         .unwrap()
         .id;
 
@@ -159,28 +210,84 @@ fn budgeted_apply_leaves_unattempted_intents_for_the_next_resolution_turn() {
 }
 
 #[test]
+fn apply_freezes_the_original_batch_and_keeps_in_flight_capacity_reserved() {
+    let queue = Arc::new(PendingEditQueue::new(PendingEditQueueLimits {
+        max_entries: 2,
+        max_payload_bytes: usize::MAX,
+        max_oldest_age: Duration::from_secs(60),
+    }));
+    queue
+        .enqueue(EditOperationTarget::EditWorkspace, lossless("first"))
+        .unwrap();
+    queue
+        .enqueue(EditOperationTarget::EditWorkspace, lossless("second"))
+        .unwrap();
+
+    let callback_queue = Arc::clone(&queue);
+    let report = queue.apply_with_budget(PendingEditApplyBudget::unlimited(), |intent| {
+        if intent.invocation.operation_id.as_str() == "editor.test.first" {
+            assert!(matches!(
+                callback_queue.enqueue(EditOperationTarget::EditWorkspace, lossless("third")),
+                Err(PendingEditQueueError::EntryLimitReached)
+            ));
+        }
+        Ok::<(), ()>(())
+    });
+
+    assert_eq!(report.applied.len(), 2);
+    assert_eq!(report.remaining.pending_count, 0);
+}
+
+#[test]
+fn apply_callback_panic_requeues_the_in_flight_intent() {
+    let queue = PendingEditQueue::default();
+    let id = queue
+        .enqueue(EditOperationTarget::EditWorkspace, lossless("panic"))
+        .unwrap()
+        .id;
+
+    let panic = catch_unwind(AssertUnwindSafe(|| {
+        queue.apply_with_budget(PendingEditApplyBudget::unlimited(), |_| {
+            panic!("apply callback failed")
+        });
+    }));
+    assert!(panic.is_err());
+    assert_eq!(queue.summary().pending_count, 1);
+
+    let report = queue.apply_with_budget(PendingEditApplyBudget::unlimited(), |intent| {
+        assert_eq!(intent.id, id);
+        Ok::<(), ()>(())
+    });
+    assert_eq!(report.applied, vec![id]);
+    assert_eq!(report.remaining.pending_count, 0);
+}
+
+#[test]
 fn bounded_retention_evicts_only_its_typed_cohort() {
     let queue = PendingEditQueue::default();
     let policy = || PendingEditRetention::bounded(2, 1_024, Duration::from_secs(5)).unwrap();
     let operation = invocation("drag");
     let first = queue
         .enqueue(
-            PlayEditTarget::EditWorkspace,
+            EditOperationTarget::EditWorkspace,
             deferred(operation.clone(), policy()),
         )
         .unwrap();
     let second = queue
         .enqueue(
-            PlayEditTarget::EditWorkspace,
+            EditOperationTarget::EditWorkspace,
             deferred(operation.clone(), policy()),
         )
         .unwrap();
     let third = queue
-        .enqueue(PlayEditTarget::EditWorkspace, deferred(operation, policy()))
+        .enqueue(
+            EditOperationTarget::EditWorkspace,
+            deferred(operation, policy()),
+        )
         .unwrap();
     let other_operation = queue
         .enqueue(
-            PlayEditTarget::EditWorkspace,
+            EditOperationTarget::EditWorkspace,
             deferred(invocation("other-drag"), policy()),
         )
         .unwrap();
@@ -205,7 +312,7 @@ fn bounded_retention_rejects_excess_payload_without_dropping_retained_work() {
 
     let error = queue
         .enqueue(
-            PlayEditTarget::EditWorkspace,
+            EditOperationTarget::EditWorkspace,
             deferred(invocation("large"), policy),
         )
         .unwrap_err();
@@ -224,14 +331,17 @@ fn bounded_retention_rejects_new_work_after_its_own_age_limit() {
     let operation = invocation("drag");
     queue
         .enqueue(
-            PlayEditTarget::EditWorkspace,
+            EditOperationTarget::EditWorkspace,
             deferred(operation.clone(), policy()),
         )
         .unwrap();
     thread::sleep(Duration::from_millis(5));
 
     let error = queue
-        .enqueue(PlayEditTarget::EditWorkspace, deferred(operation, policy()))
+        .enqueue(
+            EditOperationTarget::EditWorkspace,
+            deferred(operation, policy()),
+        )
         .unwrap_err();
     assert!(matches!(
         error,
@@ -252,11 +362,11 @@ fn lossless_admission_respects_global_limits_without_dropping_another_intent() {
         max_oldest_age: Duration::from_secs(60),
     });
     let first = queue
-        .enqueue(PlayEditTarget::EditWorkspace, lossless("first"))
+        .enqueue(EditOperationTarget::EditWorkspace, lossless("first"))
         .unwrap();
 
     assert_eq!(
-        queue.enqueue(PlayEditTarget::EditWorkspace, lossless("second")),
+        queue.enqueue(EditOperationTarget::EditWorkspace, lossless("second")),
         Err(PendingEditQueueError::EntryLimitReached)
     );
     assert_eq!(queue.page(None, 8).entries[0].id, first.id);
@@ -287,7 +397,7 @@ fn queued_route_uses_the_operation_registration_retention_contract() {
 
     let route = controller
         .route_edit(
-            PlayEditTarget::EditWorkspace,
+            EditOperationTarget::EditWorkspace,
             deferred(invocation("rename"), PendingEditRetention::latest()),
         )
         .unwrap();
@@ -302,6 +412,26 @@ fn queued_route_uses_the_operation_registration_retention_contract() {
 }
 
 #[test]
+fn route_rejects_a_target_that_does_not_match_the_operation_registration() {
+    let controller = PlaySessionController::new();
+    controller
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .unwrap();
+    let deferred = deferred(
+        invocation("registered_document"),
+        PendingEditRetention::Lossless,
+    );
+
+    assert_eq!(
+        controller.route_edit(EditOperationTarget::PlayDomain, deferred),
+        Err(PlayEditRouteError::TargetMismatch {
+            requested: EditOperationTarget::PlayDomain,
+            registered: EditOperationTarget::EditWorkspace,
+        })
+    );
+}
+
+#[test]
 fn queued_route_surfaces_declared_bounded_evictions_to_its_caller() {
     let controller = PlaySessionController::new();
     controller
@@ -312,7 +442,7 @@ fn queued_route_surfaces_declared_bounded_evictions_to_its_caller() {
 
     let first = controller
         .route_edit(
-            PlayEditTarget::EditWorkspace,
+            EditOperationTarget::EditWorkspace,
             deferred(operation.clone(), policy()),
         )
         .unwrap();
@@ -329,7 +459,10 @@ fn queued_route_surfaces_declared_bounded_evictions_to_its_caller() {
     };
 
     let replacement = controller
-        .route_edit(PlayEditTarget::EditWorkspace, deferred(operation, policy()))
+        .route_edit(
+            EditOperationTarget::EditWorkspace,
+            deferred(operation, policy()),
+        )
         .unwrap();
     assert!(matches!(
         replacement,
@@ -351,7 +484,7 @@ fn pending_decision_blocks_the_next_play_start_until_queue_resolution() {
         .unwrap();
     controller
         .route_edit(
-            PlayEditTarget::EditDocument(DocumentId::new(11)),
+            EditOperationTarget::EditDocument(DocumentId::new(11)),
             lossless("rename"),
         )
         .unwrap();
@@ -371,7 +504,7 @@ fn playing_cannot_resolve_pending_edits() {
         .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
         .unwrap();
     controller
-        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .route_edit(EditOperationTarget::EditWorkspace, lossless("queued"))
         .unwrap();
 
     assert_eq!(
@@ -388,7 +521,7 @@ fn resolution_in_progress_blocks_play_start() {
         .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
         .unwrap();
     controller
-        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .route_edit(EditOperationTarget::EditWorkspace, lossless("queued"))
         .unwrap();
     controller.request_stop().unwrap();
 
@@ -423,7 +556,7 @@ fn concurrent_resolver_cannot_republish_a_prompt_while_the_queue_is_resolving() 
         .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
         .unwrap();
     controller
-        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .route_edit(EditOperationTarget::EditWorkspace, lossless("queued"))
         .unwrap();
     controller.request_stop().unwrap();
 
@@ -464,7 +597,7 @@ fn concurrent_resolver_reveals_retry_prompt_after_owner_finishes_with_failure() 
         .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
         .unwrap();
     controller
-        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .route_edit(EditOperationTarget::EditWorkspace, lossless("queued"))
         .unwrap();
     controller.request_stop().unwrap();
 
@@ -489,7 +622,7 @@ fn concurrent_resolver_reveals_retry_prompt_after_owner_finishes_with_failure() 
         Err(PlayEditResolutionError::ResolutionInProgress)
     );
     assert_eq!(
-        controller.route_edit(PlayEditTarget::EditWorkspace, lossless("later")),
+        controller.route_edit(EditOperationTarget::EditWorkspace, lossless("later")),
         Err(PlayEditRouteError::PendingResolutionInProgress)
     );
     assert_eq!(
@@ -516,7 +649,7 @@ fn decision_publication_blocks_a_new_resolver_until_the_current_prompt_is_publis
         .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
         .unwrap();
     controller
-        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .route_edit(EditOperationTarget::EditWorkspace, lossless("queued"))
         .unwrap();
     controller.request_stop().unwrap();
 
@@ -542,7 +675,7 @@ fn decision_publication_blocks_a_new_resolver_until_the_current_prompt_is_publis
         Err(PlayEditResolutionError::ResolutionInProgress)
     );
     assert_eq!(
-        controller.route_edit(PlayEditTarget::EditWorkspace, lossless("later")),
+        controller.route_edit(EditOperationTarget::EditWorkspace, lossless("later")),
         Err(PlayEditRouteError::PendingResolutionInProgress)
     );
     assert_eq!(
@@ -569,7 +702,7 @@ fn failed_decision_publication_releases_the_fence_for_a_retry() {
         .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
         .unwrap();
     controller
-        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .route_edit(EditOperationTarget::EditWorkspace, lossless("queued"))
         .unwrap();
     controller.request_stop().unwrap();
 
@@ -594,7 +727,7 @@ fn failed_decision_publication_releases_the_fence_for_a_retry() {
         true
     );
     assert!(!matches!(
-        controller.route_edit(PlayEditTarget::EditWorkspace, lossless("after-retry")),
+        controller.route_edit(EditOperationTarget::EditWorkspace, lossless("after-retry")),
         Err(PlayEditRouteError::PendingResolutionInProgress)
     ));
     assert!(matches!(
@@ -610,7 +743,7 @@ fn panicking_decision_publication_releases_the_fence_for_a_retry() {
         .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
         .unwrap();
     controller
-        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .route_edit(EditOperationTarget::EditWorkspace, lossless("queued"))
         .unwrap();
     controller.request_stop().unwrap();
 

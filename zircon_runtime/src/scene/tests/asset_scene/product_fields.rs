@@ -207,7 +207,9 @@ fn scene_assets_roundtrip_ambient_and_rect_light_product_fields() {
     )
     .unwrap();
 
-    let ambient = world.spawn_node(NodeKind::AmbientLight);
+    let ambient = world
+        .spawn_node(NodeKind::AmbientLight)
+        .expect("test scene spawn should succeed");
     world
         .set_ambient_light(
             ambient,
@@ -219,7 +221,9 @@ fn scene_assets_roundtrip_ambient_and_rect_light_product_fields() {
         )
         .unwrap();
 
-    let rect = world.spawn_node(NodeKind::RectLight);
+    let rect = world
+        .spawn_node(NodeKind::RectLight)
+        .expect("test scene spawn should succeed");
     world
         .set_rect_light(
             rect,

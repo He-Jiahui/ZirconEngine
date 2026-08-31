@@ -58,13 +58,12 @@ fn status_icon_button_border(
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
             palette.border_disabled
         }
+        UiPainterResolvedState::Focused | UiPainterResolvedState::DropHovered => palette.focus_ring,
         UiPainterResolvedState::Selected
         | UiPainterResolvedState::Checked
-        | UiPainterResolvedState::Focused
         | UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Open
-        | UiPainterResolvedState::Dragging
-        | UiPainterResolvedState::DropHovered => palette.focus_ring,
+        | UiPainterResolvedState::Dragging => palette.border,
         UiPainterResolvedState::Hovered | UiPainterResolvedState::Normal => {
             palette.flat_transparent
         }
@@ -83,10 +82,10 @@ fn status_icon_glyph_color(
         | UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
-        | UiPainterResolvedState::DropHovered => palette.focus_ring,
+        | UiPainterResolvedState::DropHovered => palette.accent,
         UiPainterResolvedState::Focused => {
             if status_node_uses_active_glyph(node) {
-                palette.focus_ring
+                palette.accent
             } else if node.hovered {
                 palette.icon_color
             } else {

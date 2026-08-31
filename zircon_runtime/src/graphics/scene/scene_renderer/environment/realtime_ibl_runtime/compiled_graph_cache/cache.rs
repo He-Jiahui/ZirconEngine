@@ -1,10 +1,10 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::core::framework::render::IblBakeArtifactRequest;
-use crate::graphics::scene::scene_renderer::environment::realtime_ibl_graph_plan::append_realtime_ibl_graph_plan;
-use crate::graphics::scene::scene_renderer::environment::realtime_ibl_time_slice::{
-    IblRealtimeBufferSlot, RealtimeIblFrameBatch, RealtimeIblOperation,
+use crate::graphics::scene::scene_renderer::environment::realtime_ibl_graph_plan::{
+    append_realtime_ibl_graph_plan, RealtimeIblGraphTopologyKey,
 };
+use crate::graphics::scene::scene_renderer::environment::realtime_ibl_time_slice::RealtimeIblFrameBatch;
 use crate::render_graph::{RenderGraphBuilder, RenderGraphError};
 
 use super::variant::RealtimeIblCompiledGraphVariant;
@@ -24,23 +24,6 @@ impl RealtimeIblResourceLayout {
             source_mip_count: request.source_mip_count(),
             pmrem_face_size: request.pmrem_face_size(),
             pmrem_mip_count: request.pmrem_mip_count(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct RealtimeIblGraphTopologyKey {
-    ready_slot: IblRealtimeBufferSlot,
-    work_slot: IblRealtimeBufferSlot,
-    operation: RealtimeIblOperation,
-}
-
-impl RealtimeIblGraphTopologyKey {
-    fn from_batch(batch: &RealtimeIblFrameBatch) -> Self {
-        Self {
-            ready_slot: batch.ready_slot(),
-            work_slot: batch.work_slot(),
-            operation: batch.operation(),
         }
     }
 }

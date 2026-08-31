@@ -1,4 +1,11 @@
+use std::sync::Arc;
+
+use zircon_runtime_interface::ui::surface::{
+    UiRenderCommand, UiRenderFrameCommandRef, UiSurfaceFrame,
+};
+
 use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::paint_frame::HostRenderSourceTable;
 
 use super::super::command::{ChromeCommand, ChromeCommandKind};
 use super::geometry::clamp_surface_size;
@@ -13,9 +20,28 @@ pub(in crate::ui::retained_host::host_contract) struct ChromeCommandStream {
     full_rebuild: bool,
     pub(super) commands: Vec<ChromeCommand>,
     image_resources: ChromeImageResources,
+    pub(super) image_resources_compacted: bool,
+    render_sources: HostRenderSourceTable,
 }
 
 impl ChromeCommandStream {
+    pub(in crate::ui::retained_host::host_contract) fn from_extracted_commands(
+        surface_size: (u32, u32),
+        damage: Option<FrameRect>,
+        commands: Vec<ChromeCommand>,
+        render_sources: HostRenderSourceTable,
+    ) -> Self {
+        Self {
+            surface_size: clamp_surface_size(surface_size),
+            full_rebuild: damage.is_none(),
+            damage,
+            commands,
+            image_resources: ChromeImageResources::default(),
+            image_resources_compacted: false,
+            render_sources,
+        }
+    }
+
     pub(in crate::ui::retained_host::host_contract) fn full_rebuild(
         surface_size: (u32, u32),
     ) -> Self {
@@ -25,6 +51,8 @@ impl ChromeCommandStream {
             full_rebuild: true,
             commands: Vec::new(),
             image_resources: ChromeImageResources::default(),
+            image_resources_compacted: false,
+            render_sources: HostRenderSourceTable::default(),
         }
     }
 
@@ -38,6 +66,8 @@ impl ChromeCommandStream {
             full_rebuild: false,
             commands: Vec::new(),
             image_resources: ChromeImageResources::default(),
+            image_resources_compacted: false,
+            render_sources: HostRenderSourceTable::default(),
         }
     }
 
@@ -55,6 +85,25 @@ impl ChromeCommandStream {
 
     pub(in crate::ui::retained_host::host_contract) fn commands(&self) -> &[ChromeCommand] {
         &self.commands
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn resolve_command_source(
+        &self,
+        command_index: usize,
+    ) -> Option<(&Arc<UiSurfaceFrame>, UiRenderFrameCommandRef, u16)> {
+        let source = self.commands.get(command_index)?.source?;
+        let frame = self.render_sources.resolve(source.surface_key)?;
+        Some((frame, source.command_ref, source.fragment_index))
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn resolve_runtime_command_source(
+        &self,
+        command_index: usize,
+    ) -> Option<(&Arc<UiSurfaceFrame>, &UiRenderCommand, u16)> {
+        let source = self.commands.get(command_index)?.source?;
+        let frame = self.render_sources.resolve(source.surface_key)?;
+        let command = frame.render_extract.command_by_ref(source.command_ref)?;
+        Some((frame, command, source.fragment_index))
     }
 
     pub(in crate::ui::retained_host::host_contract) fn image_resource(
@@ -89,6 +138,9 @@ impl ChromeCommandStream {
         &mut self,
         mut is_resident: impl FnMut(&str, u64) -> bool,
     ) {
+        if self.image_resources_compacted {
+            return;
+        }
         let has_uncompacted_resource = self.commands.iter().any(|command| {
             let ChromeCommandKind::Image { payload } = &command.kind else {
                 return false;
@@ -101,6 +153,7 @@ impl ChromeCommandStream {
                         .is_none())
         });
         if !has_uncompacted_resource {
+            self.image_resources_compacted = true;
             return;
         }
         self.image_resources
@@ -108,12 +161,17 @@ impl ChromeCommandStream {
                 &mut self.commands,
                 &mut is_resident,
             ));
+        self.image_resources_compacted = true;
     }
 
     pub(in crate::ui::retained_host::host_contract) fn into_parts(
         self,
-    ) -> (Vec<ChromeCommand>, ChromeImageResources) {
-        (self.commands, self.image_resources)
+    ) -> (
+        Vec<ChromeCommand>,
+        ChromeImageResources,
+        HostRenderSourceTable,
+    ) {
+        (self.commands, self.image_resources, self.render_sources)
     }
 
     #[cfg(test)]
@@ -121,6 +179,7 @@ impl ChromeCommandStream {
         &mut self,
         command: ChromeCommand,
     ) {
+        self.image_resources_compacted = false;
         self.commands.push(command);
     }
 }
@@ -142,6 +201,7 @@ mod tests {
             z_index: 0,
             frame: FrameRect::default(),
             clip: None,
+            source: None,
             kind: ChromeCommandKind::Image {
                 payload: ChromeImagePayload {
                     resource_key: "image://stable".to_string(),
@@ -213,5 +273,48 @@ mod tests {
                 .map(|resource| resource.rgba.as_ref()),
             Some(&[8; 16][..])
         );
+    }
+
+    #[test]
+    fn command_append_reopens_image_resource_compaction() {
+        let image = |generation| ChromeCommand {
+            layer: ChromeCommandLayer::Static,
+            z_index: generation as i32,
+            frame: FrameRect {
+                width: 2.0,
+                height: 2.0,
+                ..FrameRect::default()
+            },
+            clip: None,
+            source: None,
+            kind: ChromeCommandKind::Image {
+                payload: ChromeImagePayload {
+                    resource_key: "image://compaction-state".to_string(),
+                    resource_generation: generation,
+                    width: 2,
+                    height: 2,
+                    upload_bytes: 16,
+                    rgba: Some(vec![generation as u8; 16].into()),
+                    atlas_uv: None,
+                },
+            },
+        };
+        let mut stream = ChromeCommandStream::full_rebuild((64, 64));
+        stream.push_command_for_test(image(1));
+
+        assert!(!stream.image_resources_compacted);
+        stream.compact_image_resources();
+        assert!(stream.image_resources_compacted);
+        assert!(stream
+            .image_resource("image://compaction-state", 1)
+            .is_some());
+
+        stream.push_command_for_test(image(2));
+        assert!(!stream.image_resources_compacted);
+        stream.compact_image_resources();
+        assert!(stream.image_resources_compacted);
+        assert!(stream
+            .image_resource("image://compaction-state", 2)
+            .is_some());
     }
 }

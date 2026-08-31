@@ -62,3 +62,22 @@ tests:
 ## 修复结果与回传
 
 Open state: `待修复`; no pass is claimed.
+
+## 2026-08-27 current-source validation continuation
+
+The canonical static reproduction and the retained ZUI selection contract now pass:
+both selected-surface routes project `surface_entity` from the table's stable
+`selected_row_identity`, the bake route also projects `force_full_rebuild`, and both
+commands remain disabled when no row identity is selected. `rustfmt --check` also
+passes for `bake_panel.rs`, `bake_panel_retained.rs`, and the current shared
+`operation_command.rs` blob.
+
+Managed Windows job `0d26b703ac164fc082c9369ab38a7b6b` entered
+`cargo test -p zircon_plugin_navigation_editor --locked` and was released normally
+with wrapper exit `1` / Cargo exit `101`. Compilation stopped before the Navigation
+editor tests at the foreign lower-layer error
+`zircon_runtime_host/src/foreign_output/item_count.rs:80` (E0004): the current
+`WorldQueryResult::TransformSnapshot` variant is not covered. No diagnostic names a
+Navigation editor source. This is forward validation evidence only; the focused
+Plugins05 test must execute successfully after the RuntimeHost owner repairs that
+mixed blob, so this failure remains `open` and no fixed return is claimed.

@@ -112,6 +112,7 @@ def normalized_native_dynamic_build_features(
     diagnostics: list[str],
 ) -> list[str]:
     result: list[str] = []
+    seen: set[str] = set()
     for index, feature in enumerate(features):
         feature_label = f"NativeDynamic native build features[{index}]"
         if not isinstance(feature, str):
@@ -120,6 +121,8 @@ def normalized_native_dynamic_build_features(
         if not feature or feature.strip() != feature:
             diagnostics.append(f"{feature_label} must be a non-empty trimmed string")
             continue
-        if feature not in result:
-            result.append(feature)
+        if feature in seen:
+            continue
+        seen.add(feature)
+        result.append(feature)
     return result

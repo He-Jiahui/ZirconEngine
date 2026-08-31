@@ -6,17 +6,27 @@ use zircon_runtime::core::framework::render::{
     RenderParticleGpuFrameExtract, RenderParticleGpuReadbackOutputs,
 };
 use zircon_runtime::core::math::Real;
+use zircon_runtime::graphics::{RenderPassBufferUploadSink, RuntimePrepareDeviceEpoch};
 
 use crate::{ParticleEmitterHandle, ParticleSimulationBackend, ParticleSystemAsset};
 
-use super::backend::{ParticleGpuBackend, ParticleGpuBackendError, ParticleGpuBuffers};
-use super::neutral_buffers::ParticleGpuNeutralBuffers;
-use super::planner::{ParticleGpuFrameParams, ParticleGpuFramePlanner};
 use super::ParticleGpuReadbackRequest;
+use super::backend::{
+    ParticleGpuBackend, ParticleGpuBackendError, ParticleGpuBackendFrameCommit, ParticleGpuBuffers,
+};
+use super::neutral_buffers::ParticleGpuNeutralBuffers;
+use super::planner::{ParticleGpuFrameParams, ParticleGpuFramePlanner, ParticleGpuPlannerCommit};
 use crate::service::ParticleGpuRuntimeInstance;
 
 pub struct ParticleGpuRuntimeFrame {
     pub outputs: RenderParticleGpuReadbackOutputs,
+    transaction_id: u64,
+}
+
+impl ParticleGpuRuntimeFrame {
+    pub(crate) fn transaction_id(&self) -> u64 {
+        self.transaction_id
+    }
 }
 
 pub struct ParticleGpuRuntimeBufferBindings<'a> {
@@ -48,6 +58,20 @@ impl ParticleGpuRuntimeOwnerHandle {
             .lock()
             .map_err(|_| ParticleGpuRuntimeOwnerError::Poisoned)
     }
+
+    pub(crate) fn commit_frame_transaction(&self, transaction_id: u64) {
+        self.inner
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .commit_frame_transaction(transaction_id);
+    }
+
+    pub(crate) fn rollback_frame_transaction(&self, transaction_id: u64) {
+        self.inner
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .rollback_frame_transaction(transaction_id);
+    }
 }
 
 #[derive(Debug)]
@@ -55,6 +79,7 @@ pub enum ParticleGpuRuntimeOwnerError {
     Backend(ParticleGpuBackendError),
     Simulation(crate::ParticleSimulationError),
     MissingExecutedBackend,
+    PendingFrameTransaction,
     Poisoned,
 }
 
@@ -65,6 +90,12 @@ impl fmt::Display for ParticleGpuRuntimeOwnerError {
             Self::Simulation(error) => write!(f, "{error}"),
             Self::MissingExecutedBackend => {
                 write!(f, "particle GPU runtime owner has no executed backend")
+            }
+            Self::PendingFrameTransaction => {
+                write!(
+                    f,
+                    "particle GPU runtime owner still has a pending frame transaction"
+                )
             }
             Self::Poisoned => write!(f, "particle GPU runtime owner mutex poisoned"),
         }
@@ -87,36 +118,63 @@ impl From<crate::ParticleSimulationError> for ParticleGpuRuntimeOwnerError {
 
 #[derive(Default)]
 pub struct ParticleGpuRuntimeOwner {
+    active_device_epoch: Option<RuntimePrepareDeviceEpoch>,
     states: BTreeMap<ParticleEmitterHandle, ParticleGpuRuntimeState>,
     aggregate_asset: Option<ParticleSystemAsset>,
     aggregate_backend: Option<ParticleGpuBackend>,
     aggregate_executed: bool,
+    pending_frame: Option<ParticleGpuRuntimePendingFrame>,
+    next_frame_transaction_id: u64,
     neutral_buffers: ParticleGpuNeutralBuffers,
 }
 
+struct ParticleGpuRuntimePendingFrame {
+    transaction_id: u64,
+    backend_commit: ParticleGpuBackendFrameCommit,
+    state_commits: Vec<ParticleGpuRuntimeStateCommit>,
+}
+
+struct ParticleGpuRuntimeStateCommit {
+    handle: ParticleEmitterHandle,
+    planner: ParticleGpuPlannerCommit,
+    last_age_seconds: Real,
+}
+
 impl ParticleGpuRuntimeOwner {
+    pub fn activate_device_epoch(&mut self, device_epoch: RuntimePrepareDeviceEpoch) -> bool {
+        let changed = self.active_device_epoch != Some(device_epoch);
+        if changed {
+            self.release_device_epoch_resources();
+        }
+        self.active_device_epoch = Some(device_epoch);
+        changed
+    }
+
     pub fn prepare_neutral_frame(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        encoder: &mut wgpu::CommandEncoder,
         frame: &RenderParticleGpuFrameExtract,
     ) -> Option<ParticleGpuRuntimeBufferBindings<'_>> {
+        debug_assert!(self.pending_frame.is_none());
         self.aggregate_executed = false;
-        self.neutral_buffers.prepare(device, queue, encoder, frame)
+        self.neutral_buffers.prepare(device, frame)
     }
 
     pub fn deactivate(&mut self) {
+        self.pending_frame = None;
         self.retain_instances(&[]);
     }
 
     pub fn execute_instances(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        buffer_uploads: &mut dyn RenderPassBufferUploadSink,
         encoder: &mut wgpu::CommandEncoder,
         instances: &[ParticleGpuRuntimeInstance],
     ) -> Result<Option<ParticleGpuRuntimeFrame>, ParticleGpuRuntimeOwnerError> {
+        if self.pending_frame.is_some() {
+            return Err(ParticleGpuRuntimeOwnerError::PendingFrameTransaction);
+        }
         self.retain_instances(instances);
         let playing_instances = instances
             .iter()
@@ -149,20 +207,29 @@ impl ParticleGpuRuntimeOwner {
             self.aggregate_executed = false;
         }
 
-        let aggregate_frame = self.aggregate_frame_for(&playing_instances)?;
-        self.aggregate_backend
+        let (aggregate_frame, state_commits) =
+            self.prepare_aggregate_frame_for(&playing_instances)?;
+        let backend_commit = self
+            .aggregate_backend
             .as_mut()
             .ok_or(ParticleGpuRuntimeOwnerError::MissingExecutedBackend)?
             .execute_frame(
-                queue,
+                buffer_uploads,
                 encoder,
                 &aggregate_frame,
                 ParticleGpuReadbackRequest::None,
             )?;
-        self.aggregate_executed = true;
+        self.next_frame_transaction_id = self.next_frame_transaction_id.wrapping_add(1).max(1);
+        let transaction_id = self.next_frame_transaction_id;
+        self.pending_frame = Some(ParticleGpuRuntimePendingFrame {
+            transaction_id,
+            backend_commit,
+            state_commits,
+        });
 
         Ok(Some(ParticleGpuRuntimeFrame {
             outputs: readback_outputs_from_frame(aggregate_frame.expected_frame_extract()),
+            transaction_id,
         }))
     }
 
@@ -172,9 +239,13 @@ impl ParticleGpuRuntimeOwner {
         let backend = self
             .aggregate_backend
             .as_ref()
-            .filter(|_| self.aggregate_executed)
+            .filter(|_| self.pending_frame.is_some() || self.aggregate_executed)
             .ok_or(ParticleGpuRuntimeOwnerError::MissingExecutedBackend)?;
-        Ok(bindings_from_buffers(backend.active_buffers()))
+        let buffers = self.pending_frame.as_ref().map_or_else(
+            || backend.active_buffers(),
+            |pending| backend.prepared_buffers(pending.backend_commit),
+        );
+        Ok(bindings_from_buffers(buffers))
     }
 
     pub fn record_transparent_render(
@@ -182,7 +253,7 @@ impl ParticleGpuRuntimeOwner {
         device: &wgpu::Device,
         scene_layout: &wgpu::BindGroupLayout,
         config: super::ParticleGpuTransparentRenderConfig,
-        queue: &wgpu::Queue,
+        buffer_uploads: &mut dyn RenderPassBufferUploadSink,
         encoder: &mut wgpu::CommandEncoder,
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
@@ -190,26 +261,73 @@ impl ParticleGpuRuntimeOwner {
         params: super::ParticleGpuTransparentRenderParams,
         render_region: zircon_runtime::graphics::ViewportRenderRegion,
     ) -> Result<bool, ParticleGpuRuntimeOwnerError> {
-        let Some(backend) = self
-            .aggregate_backend
-            .as_mut()
-            .filter(|_| self.aggregate_executed)
-        else {
+        let prepared_output_buffer_index = self
+            .pending_frame
+            .as_ref()
+            .map(|pending| pending.backend_commit.output_buffer_index());
+        if prepared_output_buffer_index.is_none() && !self.aggregate_executed {
+            return Ok(false);
+        }
+        let Some(backend) = self.aggregate_backend.as_mut() else {
             return Ok(false);
         };
         if !backend.transparent_render_enabled() {
             backend.enable_transparent_rendering(device, scene_layout, config);
         }
+        let output_buffer_index =
+            prepared_output_buffer_index.unwrap_or_else(|| backend.active_buffer_index());
         backend.record_transparent_render(
-            queue,
+            buffer_uploads,
             encoder,
             color_view,
             depth_view,
             scene_bind_group,
             params,
             render_region,
+            output_buffer_index,
         )?;
         Ok(true)
+    }
+
+    pub(crate) fn commit_frame_transaction(&mut self, transaction_id: u64) {
+        let Some(pending) = self.pending_frame.take() else {
+            debug_assert!(false, "particle GPU frame transaction is missing at commit");
+            return;
+        };
+        if pending.transaction_id != transaction_id {
+            debug_assert_eq!(pending.transaction_id, transaction_id);
+            self.pending_frame = Some(pending);
+            return;
+        }
+
+        for state_commit in pending.state_commits {
+            let Some(state) = self.states.get_mut(&state_commit.handle) else {
+                debug_assert!(
+                    false,
+                    "particle GPU runtime state disappeared before commit"
+                );
+                continue;
+            };
+            state.planner.commit_prepared_state(state_commit.planner);
+            state.last_age_seconds = state_commit.last_age_seconds;
+        }
+        let backend_committed = self
+            .aggregate_backend
+            .as_mut()
+            .is_some_and(|backend| backend.commit_prepared_frame(pending.backend_commit));
+        debug_assert!(backend_committed);
+        self.aggregate_executed = backend_committed;
+    }
+
+    pub(crate) fn rollback_frame_transaction(&mut self, transaction_id: u64) {
+        let should_rollback = self
+            .pending_frame
+            .as_ref()
+            .is_some_and(|pending| pending.transaction_id == transaction_id);
+        debug_assert!(should_rollback || self.pending_frame.is_none());
+        if should_rollback {
+            self.pending_frame = None;
+        }
     }
 
     fn retain_instances(&mut self, instances: &[ParticleGpuRuntimeInstance]) {
@@ -222,10 +340,22 @@ impl ParticleGpuRuntimeOwner {
         }
     }
 
-    fn aggregate_frame_for(
-        &mut self,
+    fn release_device_epoch_resources(&mut self) {
+        self.pending_frame = None;
+        self.states.clear();
+        self.aggregate_asset = None;
+        self.aggregate_backend = None;
+        self.aggregate_executed = false;
+        self.neutral_buffers = ParticleGpuNeutralBuffers::default();
+    }
+
+    fn prepare_aggregate_frame_for(
+        &self,
         instances: &[&ParticleGpuRuntimeInstance],
-    ) -> Result<ParticleGpuFrameParams, ParticleGpuRuntimeOwnerError> {
+    ) -> Result<
+        (ParticleGpuFrameParams, Vec<ParticleGpuRuntimeStateCommit>),
+        ParticleGpuRuntimeOwnerError,
+    > {
         let layout = &self
             .aggregate_backend
             .as_ref()
@@ -233,6 +363,7 @@ impl ParticleGpuRuntimeOwner {
             .program()
             .layout;
         let mut emitters = Vec::with_capacity(layout.emitter_count as usize);
+        let mut state_commits = Vec::with_capacity(instances.len());
         let mut aggregate_emitter_index = 0usize;
         let mut max_dt: Real = 0.0;
         let mut max_age_seconds: Real = 0.0;
@@ -240,12 +371,9 @@ impl ParticleGpuRuntimeOwner {
         for instance in instances {
             let state = self
                 .states
-                .get_mut(&instance.handle)
+                .get(&instance.handle)
                 .ok_or(ParticleGpuRuntimeOwnerError::MissingExecutedBackend)?;
-            let dt = state.frame_delta(instance.age_seconds);
-            let frame = state
-                .planner
-                .build_frame(dt, instance.component.transform)?;
+            let (frame, planner_commit, last_age_seconds) = state.prepare_frame(instance)?;
             max_dt = max_dt.max(frame.dt);
             max_age_seconds = max_age_seconds.max(frame.age_seconds);
 
@@ -261,13 +389,21 @@ impl ParticleGpuRuntimeOwner {
                 emitters.push(emitter);
                 aggregate_emitter_index += 1;
             }
+            state_commits.push(ParticleGpuRuntimeStateCommit {
+                handle: instance.handle,
+                planner: planner_commit,
+                last_age_seconds,
+            });
         }
 
-        Ok(ParticleGpuFrameParams {
-            dt: max_dt,
-            age_seconds: max_age_seconds,
-            emitters,
-        })
+        Ok((
+            ParticleGpuFrameParams {
+                dt: max_dt,
+                age_seconds: max_age_seconds,
+                emitters,
+            },
+            state_commits,
+        ))
     }
 }
 
@@ -297,15 +433,25 @@ impl ParticleGpuRuntimeState {
         self.last_age_seconds = 0.0;
     }
 
-    fn frame_delta(&mut self, age_seconds: Real) -> Real {
-        let age_seconds = age_seconds.max(0.0);
-        if age_seconds < self.last_age_seconds {
-            self.planner.reset();
-            self.last_age_seconds = 0.0;
-        }
-        let dt = age_seconds - self.last_age_seconds;
-        self.last_age_seconds = age_seconds;
-        dt
+    fn prepare_frame(
+        &self,
+        instance: &ParticleGpuRuntimeInstance,
+    ) -> Result<
+        (ParticleGpuFrameParams, ParticleGpuPlannerCommit, Real),
+        crate::ParticleSimulationError,
+    > {
+        let age_seconds = instance.age_seconds.max(0.0);
+        let prepared = if age_seconds < self.last_age_seconds {
+            ParticleGpuFramePlanner::new(self.asset.clone())
+                .prepare_frame(age_seconds, instance.component.transform)?
+        } else {
+            self.planner.prepare_frame(
+                age_seconds - self.last_age_seconds,
+                instance.component.transform,
+            )?
+        };
+        let (frame, planner_commit) = prepared.into_parts();
+        Ok((frame, planner_commit, age_seconds))
     }
 }
 
@@ -357,5 +503,37 @@ fn bindings_from_buffers(buffers: ParticleGpuBuffers<'_>) -> ParticleGpuRuntimeB
         indirect_draw_args: buffers.indirect_draw_args,
         counters: buffers.counters,
         debug_readback: buffers.debug_readback,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zircon_runtime::rhi::{DeviceGeneration, DeviceId};
+
+    fn epoch(generation: u64) -> RuntimePrepareDeviceEpoch {
+        RuntimePrepareDeviceEpoch::new(DeviceId::new(17), DeviceGeneration::new(generation))
+    }
+
+    #[test]
+    fn device_epoch_change_releases_persistent_particle_gpu_state() {
+        let mut owner = ParticleGpuRuntimeOwner::default();
+        assert!(owner.activate_device_epoch(epoch(3)));
+        owner.aggregate_asset = Some(ParticleSystemAsset::new("device-epoch-test"));
+        owner.aggregate_executed = true;
+        owner.next_frame_transaction_id = 41;
+
+        assert!(!owner.activate_device_epoch(epoch(3)));
+        assert!(owner.aggregate_asset.is_some());
+        assert!(owner.aggregate_executed);
+
+        assert!(owner.activate_device_epoch(epoch(4)));
+        assert_eq!(owner.active_device_epoch, Some(epoch(4)));
+        assert!(owner.states.is_empty());
+        assert!(owner.aggregate_asset.is_none());
+        assert!(owner.aggregate_backend.is_none());
+        assert!(!owner.aggregate_executed);
+        assert!(owner.pending_frame.is_none());
+        assert_eq!(owner.next_frame_transaction_id, 41);
     }
 }

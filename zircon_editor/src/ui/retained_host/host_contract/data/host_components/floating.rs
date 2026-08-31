@@ -10,6 +10,7 @@ pub(crate) struct FloatingWindowData {
     pub frame: FrameRect,
     pub header_nodes: ModelRc<TemplatePaneNodeData>,
     pub header_frame: FrameRect,
+    pub overflow_frame: FrameRect,
     pub tab_frames: ModelRc<HostChromeTabData>,
     pub target_group: SharedString,
     pub left_edge_target_group: SharedString,

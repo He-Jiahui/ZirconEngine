@@ -6,8 +6,12 @@ use super::super::ui_asset_editor_session::{
 use super::{
     reconcile_selected_palette_index, v2_projection::v2_document_to_legacy_projection_document,
 };
-use crate::ui::asset_editor::palette::UiAssetPaletteCatalog;
+use crate::ui::asset_editor::palette::{UiAssetPaletteCatalog, UiAssetPaletteEntry};
 use zircon_runtime_interface::ui::{template::UiAssetDocument, v2::UiV2AssetDocument};
+
+#[cfg(test)]
+#[path = "palette_catalog/selection_fast_path_tests.rs"]
+mod selection_fast_path_tests;
 
 pub(super) fn build_layout(
     document: &UiAssetDocument,
@@ -66,16 +70,29 @@ fn v2_palette_reference_imports(
     Ok(references)
 }
 
+fn selected_palette_entry_index(
+    entries: &[UiAssetPaletteEntry],
+    selected_entry: &UiAssetPaletteEntry,
+    previous_index: Option<usize>,
+) -> Option<usize> {
+    if let Some(previous_index) = previous_index {
+        if entries.get(previous_index) == Some(selected_entry) {
+            return Some(previous_index);
+        }
+    }
+    entries.iter().position(|entry| entry == selected_entry)
+}
+
 pub(super) fn reconcile_palette_catalog_selection(session: &mut UiAssetEditorSession) {
-    session.selected_palette_index = session
+    let selected_palette_index = session
         .selected_palette_entry
         .as_ref()
         .and_then(|selected_entry| {
-            session
-                .palette_catalog
-                .entries()
-                .iter()
-                .position(|entry| entry == selected_entry)
+            selected_palette_entry_index(
+                session.palette_catalog.entries(),
+                selected_entry,
+                session.selected_palette_index,
+            )
         })
         .or_else(|| {
             reconcile_selected_palette_index(
@@ -83,6 +100,7 @@ pub(super) fn reconcile_palette_catalog_selection(session: &mut UiAssetEditorSes
                 session.selected_palette_index,
             )
         });
+    session.selected_palette_index = selected_palette_index;
     session.selected_palette_entry = session
         .selected_palette_index
         .and_then(|index| session.palette_catalog.entry(index).cloned());

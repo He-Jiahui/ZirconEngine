@@ -1,14 +1,15 @@
 use super::support::*;
 
 #[test]
-fn child_window_viewport_pointer_event_focuses_source_window_before_runtime_dispatch() {
+fn child_window_scene_viewport_pointer_event_focuses_source_window_before_runtime_dispatch() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_child_window_viewport_dispatch");
     let child = harness.detach_view_to_child_window("editor.scene#1", "window:scene");
     let baseline = harness.journal_len();
 
-    pane_surface_host(&child).invoke_viewport_pointer_event(0, 1, 24.0, 32.0, 0.0, false, false);
+    pane_surface_host(&child)
+        .invoke_scene_viewport_pointer_event(0, 1, 24.0, 32.0, 0.0, false, false);
 
     assert_eq!(
         harness.delta_events_since(baseline),

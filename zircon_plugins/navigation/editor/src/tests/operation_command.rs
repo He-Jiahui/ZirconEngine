@@ -4,12 +4,13 @@ use std::error::Error;
 use std::sync::{Arc, Mutex};
 
 use zircon_editor::core::editing::engine::{
-    CommandEffect, EditCommand, EditCommandError, EditContext, EditorTransactionEngine,
-    HistoryContextId, MergeMode, SelectionSnapshot,
+    CommandEffect, EditCommand, EditCommandError, EditContext, EditWorldRoute,
+    EditorTransactionEngine, HistoryContextId, MergeMode, SelectionSnapshot,
 };
 use zircon_editor::core::gateway::{
-    EditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError,
+    EditorRuntimeGateway, EditorRuntimeGatewayHandle, EditorRuntimeOperationRoute, GatewayError,
 };
+use zircon_editor::core::play::WorldDomain;
 use zircon_runtime::core::framework::navigation::{
     NavMeshAsset, NavMeshBakeRequest, NavigationGeneratedBakeChange,
     NavigationGeneratedBakeSnapshot, NAVIGATION_BAKE_SCENE_OPERATION,
@@ -279,19 +280,75 @@ impl EditorRuntimeGateway for RecordingGateway {
 
 struct GatewayEditContext {
     gateway: EditorRuntimeGatewayHandle,
+    active_route: Option<EditWorldRoute>,
+}
+
+impl GatewayEditContext {
+    fn new(gateway: EditorRuntimeGatewayHandle) -> Self {
+        Self {
+            gateway,
+            active_route: None,
+        }
+    }
 }
 
 impl EditContext for GatewayEditContext {
+    fn capture_world_route(
+        &self,
+        world_domain: WorldDomain,
+    ) -> Result<EditWorldRoute, EditCommandError> {
+        if world_domain != WorldDomain::Edit {
+            return Err(EditCommandError::WorldRouteUnavailable { world_domain });
+        }
+        Ok(EditWorldRoute::runtime(
+            world_domain,
+            self.gateway.identity(),
+        ))
+    }
+
+    fn activate_world_route(&mut self, route: &EditWorldRoute) -> Result<(), EditCommandError> {
+        if self.capture_world_route(route.world_domain())? != *route {
+            return Err(EditCommandError::WorldRouteStale {
+                world_domain: route.world_domain(),
+            });
+        }
+        self.active_route = Some(route.clone());
+        Ok(())
+    }
+
+    fn retire_world_route(&mut self, world_domain: WorldDomain) -> Result<(), EditCommandError> {
+        if self
+            .active_route
+            .as_ref()
+            .is_some_and(|route| route.world_domain() == world_domain)
+        {
+            return Err(EditCommandError::InvariantViolation {
+                invariant: "the active fixture world route cannot be retired",
+            });
+        }
+        Ok(())
+    }
+
+    fn runtime_operations(&self) -> Result<EditorRuntimeOperationRoute, EditCommandError> {
+        let identity = self
+            .active_route
+            .as_ref()
+            .and_then(EditWorldRoute::gateway_identity)
+            .cloned()
+            .unwrap_or_else(|| self.gateway.identity());
+        EditorRuntimeOperationRoute::capture_at_identity(&self.gateway, &identity).map_err(
+            |source| EditCommandError::ExternalEffect {
+                source: Box::new(source),
+            },
+        )
+    }
+
     fn selection_snapshot(&self) -> SelectionSnapshot {
         SelectionSnapshot::default()
     }
 
     fn restore_selection(&mut self, _snapshot: &SelectionSnapshot) -> Result<(), EditCommandError> {
         Ok(())
-    }
-
-    fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle {
-        &self.gateway
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -315,11 +372,40 @@ fn error_chain_contains(error: &(dyn Error + 'static), needle: &str) -> bool {
 }
 
 #[test]
+fn runtime_operation_route_keeps_one_gateway_generation_for_the_whole_chain() {
+    let first = Arc::new(RecordingGateway::new());
+    let replacement = Arc::new(RecordingGateway::new());
+    let gateway = EditorRuntimeGatewayHandle::new(first.clone());
+    let route = EditorRuntimeOperationRoute::capture_at_identity(&gateway, &gateway.identity())
+        .expect("the initial runtime operation route should capture");
+    gateway
+        .replace(replacement.clone())
+        .expect("the stable gateway handle should accept a replacement");
+
+    let handle = route
+        .submit_operation(ZrRuntimeOperationSubmitRequestV1::new(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            NAVIGATION_BAKE_SCENE_OPERATION,
+            serde_json::to_value(NavMeshBakeRequest::default()).unwrap(),
+        ))
+        .expect("the pinned route should submit through its captured generation");
+    route
+        .poll_operation(handle)
+        .expect("the pinned route should poll the same generation");
+    route
+        .harvest_operation(handle)
+        .expect("the pinned route should harvest the same generation");
+
+    assert!(first.current().asset.is_some());
+    assert!(replacement.current().asset.is_none());
+}
+
+#[test]
 fn navigation_operation_command_undo_and_redo_restore_snapshots_without_rebake() {
     let gateway = Arc::new(RecordingGateway::new());
-    let engine = EditorTransactionEngine::new(GatewayEditContext {
-        gateway: EditorRuntimeGatewayHandle::new(gateway.clone()),
-    });
+    let engine = EditorTransactionEngine::new(GatewayEditContext::new(
+        EditorRuntimeGatewayHandle::new(gateway.clone()),
+    ));
     let command = NavigationOperationCommand::new(ZrRuntimeOperationSubmitRequestV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         NAVIGATION_BAKE_SCENE_OPERATION,
@@ -357,9 +443,7 @@ fn navigation_operation_command_undo_and_redo_restore_snapshots_without_rebake()
 #[test]
 fn navigation_operation_command_marks_post_submit_protocol_failure_as_applied() {
     let gateway = Arc::new(RecordingGateway::with_foreign_progress());
-    let mut context = GatewayEditContext {
-        gateway: EditorRuntimeGatewayHandle::new(gateway.clone()),
-    };
+    let mut context = GatewayEditContext::new(EditorRuntimeGatewayHandle::new(gateway.clone()));
     let mut command = NavigationOperationCommand::new(ZrRuntimeOperationSubmitRequestV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         NAVIGATION_BAKE_SCENE_OPERATION,
@@ -375,9 +459,7 @@ fn navigation_operation_command_marks_post_submit_protocol_failure_as_applied() 
 #[test]
 fn navigation_operation_command_marks_terminal_runtime_failure_as_applied() {
     let gateway = Arc::new(RecordingGateway::with_failed_result());
-    let mut context = GatewayEditContext {
-        gateway: EditorRuntimeGatewayHandle::new(gateway.clone()),
-    };
+    let mut context = GatewayEditContext::new(EditorRuntimeGatewayHandle::new(gateway.clone()));
     let mut command = NavigationOperationCommand::new(ZrRuntimeOperationSubmitRequestV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         NAVIGATION_BAKE_SCENE_OPERATION,
@@ -393,9 +475,9 @@ fn navigation_operation_command_marks_terminal_runtime_failure_as_applied() {
 #[test]
 fn navigation_post_submit_failure_faults_transaction_engine_when_rollback_is_unknown() {
     let gateway = Arc::new(RecordingGateway::with_failed_result());
-    let engine = EditorTransactionEngine::new(GatewayEditContext {
-        gateway: EditorRuntimeGatewayHandle::new(gateway.clone()),
-    });
+    let engine = EditorTransactionEngine::new(GatewayEditContext::new(
+        EditorRuntimeGatewayHandle::new(gateway.clone()),
+    ));
     let command = NavigationOperationCommand::new(ZrRuntimeOperationSubmitRequestV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         NAVIGATION_BAKE_SCENE_OPERATION,
@@ -422,9 +504,7 @@ fn navigation_post_submit_failure_faults_transaction_engine_when_rollback_is_unk
 #[test]
 fn navigation_operation_command_rejects_progress_with_foreign_abi() {
     let gateway = Arc::new(RecordingGateway::with_wrong_progress_abi());
-    let mut context = GatewayEditContext {
-        gateway: EditorRuntimeGatewayHandle::new(gateway),
-    };
+    let mut context = GatewayEditContext::new(EditorRuntimeGatewayHandle::new(gateway));
     let mut command = NavigationOperationCommand::new(ZrRuntimeOperationSubmitRequestV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         NAVIGATION_BAKE_SCENE_OPERATION,
@@ -440,9 +520,7 @@ fn navigation_operation_command_rejects_progress_with_foreign_abi() {
 #[test]
 fn navigation_operation_command_rejects_result_with_foreign_abi() {
     let gateway = Arc::new(RecordingGateway::with_wrong_result_abi());
-    let mut context = GatewayEditContext {
-        gateway: EditorRuntimeGatewayHandle::new(gateway),
-    };
+    let mut context = GatewayEditContext::new(EditorRuntimeGatewayHandle::new(gateway));
     let mut command = NavigationOperationCommand::new(ZrRuntimeOperationSubmitRequestV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         NAVIGATION_BAKE_SCENE_OPERATION,

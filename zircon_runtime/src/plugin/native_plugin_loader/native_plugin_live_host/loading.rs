@@ -257,9 +257,9 @@ impl NativePluginLiveHost {
             loaded_plugin_ids.push(plugin_id);
         }
 
-        loaded_plugin_ids.sort();
+        loaded_plugin_ids.sort_unstable();
         loaded_plugin_ids.dedup();
-        diagnostics.sort();
+        diagnostics.sort_unstable();
         diagnostics.dedup();
         Ok(NativePluginLiveHostLoadReport {
             module_kind,

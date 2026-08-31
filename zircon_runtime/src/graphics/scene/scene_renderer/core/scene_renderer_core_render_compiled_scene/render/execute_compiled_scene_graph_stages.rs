@@ -1,10 +1,10 @@
-use std::borrow::Cow;
-
 use crate::core::TaskPool;
-use crate::graphics::backend::OffscreenTarget;
+use crate::core::framework::render::RenderPipelinePhase;
+use crate::graphics::CompiledRenderPipeline;
+use crate::graphics::backend::{OffscreenTarget, ViewportSurface};
 use crate::graphics::debug_markers::{
-    insert_marker, pop_group, push_group, RENDERDOC_MARKER_HISTORY_COPY,
-    RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_PREPASS,
+    RENDERDOC_MARKER_HISTORY_COPY, RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_PREPASS,
+    insert_marker, pop_group, push_group,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -12,23 +12,25 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     FrameCommandEncoderSet, RenderPassExecutorRegistry, RenderPassMeshCommandLists,
     RenderPassPostProcessStackContext,
 };
-use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
+use crate::graphics::scene::scene_renderer::history::{
+    SceneFrameHistoryTextures, SceneHistoryAvailability, SceneHistoryFrameTransaction,
+};
 use crate::graphics::scene::scene_renderer::overlay::PreparedOverlayBuffers;
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::shadow::ShadowFramePlan;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
-use crate::graphics::CompiledRenderPipeline;
 
 use super::super::super::scene_renderer_core::SceneRendererCore;
-use super::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
+use super::RenderGraphPassFrameServices;
+use super::execute_graph_stage::{RenderGraphStageExecution, execute_graph_stage};
 
-const EARLY_GRAPH_STAGES: &[RenderPassStage] = &[
-    RenderPassStage::DepthPrepass,
-    RenderPassStage::Shadow,
-    RenderPassStage::AmbientOcclusion,
-];
+pub(super) const EARLY_GRAPH_STAGES: &[RenderPassStage] =
+    &[RenderPassStage::DepthPrepass, RenderPassStage::Shadow];
 
-const LATE_GRAPH_STAGES: &[RenderPassStage] = &[
+pub(super) const FORWARD_PRE_SCENE_GRAPH_STAGES: &[RenderPassStage] =
+    &[RenderPassStage::AmbientOcclusion, RenderPassStage::Lighting];
+
+pub(super) const LATE_GRAPH_STAGES: &[RenderPassStage] = &[
     RenderPassStage::Ui,
     RenderPassStage::Overlay,
     RenderPassStage::Debug,
@@ -36,18 +38,22 @@ const LATE_GRAPH_STAGES: &[RenderPassStage] = &[
 
 pub(super) struct CompiledSceneGraphStageContext<'a, 'graph, 'mesh> {
     pub(super) device: &'a wgpu::Device,
-    pub(super) queue: &'a wgpu::Queue,
     pub(super) command_encoders: &'a mut FrameCommandEncoderSet,
     pub(super) streamer: &'a ResourceStreamer,
     pub(super) frame: &'a ViewportRenderFrame,
+    pub(super) surface_frame: Option<(
+        &'a ViewportSurface,
+        &'a zr_rhi_wgpu::WgpuNativeSurfaceFrameTarget,
+    )>,
     pub(super) target: &'a mut OffscreenTarget,
     pub(super) pipeline: &'a CompiledRenderPipeline,
     pub(super) render_pass_executors: &'a RenderPassExecutorRegistry,
     pub(super) runtime_features: SceneRuntimeFeatureFlags,
     pub(super) graph_execution: &'a mut RenderGraphStageExecution<'graph>,
     pub(super) mesh_draw_lists: RenderPassMeshCommandLists<'mesh>,
-    pub(super) history_textures: Option<&'a mut SceneFrameHistoryTextures>,
-    pub(super) history_available: bool,
+    pub(super) history_textures: Option<&'a SceneFrameHistoryTextures>,
+    pub(super) history_frame_transaction: &'a mut SceneHistoryFrameTransaction,
+    pub(super) history_availability: SceneHistoryAvailability,
     pub(super) material_gbuffer_valid: bool,
     pub(super) taa_history_enabled: bool,
     pub(super) screen_space_reflection_history_enabled: bool,
@@ -66,10 +72,10 @@ impl SceneRendererCore {
     ) -> Result<(), GraphicsError> {
         let CompiledSceneGraphStageContext {
             device,
-            queue,
             command_encoders,
             streamer,
             frame,
+            surface_frame,
             target,
             pipeline,
             render_pass_executors,
@@ -77,7 +83,8 @@ impl SceneRendererCore {
             graph_execution,
             mesh_draw_lists,
             history_textures,
-            history_available,
+            history_frame_transaction,
+            history_availability,
             material_gbuffer_valid,
             taa_history_enabled,
             screen_space_reflection_history_enabled,
@@ -92,22 +99,13 @@ impl SceneRendererCore {
         let scene_clear = self.scene_clear.as_ref().ok_or_else(|| {
             GraphicsError::Asset("compiled scene graph requires scene-clear resources".to_owned())
         })?;
-        scene_clear.record_frame_clear(
-            queue,
+        let mut scene_clear_uploads = scene_clear.record_frame_clear(
             command_encoders.serial_encoder(device),
             &target.scene_color_view,
             &target.depth_view,
             frame,
         );
-        let early_post_process_stack = RenderPassPostProcessStackContext::new(
-            &self.post_process,
-            &*target,
-            streamer,
-            runtime_features,
-            history_textures.as_deref(),
-            history_available,
-        )
-        .with_material_gbuffer_valid(material_gbuffer_valid);
+        graph_execution.append_buffer_uploads(&mut scene_clear_uploads);
         for stage in EARLY_GRAPH_STAGES {
             let is_depth_prepass = *stage == RenderPassStage::DepthPrepass;
             let is_shadow = *stage == RenderPassStage::Shadow;
@@ -124,38 +122,48 @@ impl SceneRendererCore {
             } else {
                 None
             };
+            let early_post_process_stack = RenderPassPostProcessStackContext::new(
+                &self.post_process,
+                streamer,
+                runtime_features,
+                history_textures,
+                history_availability,
+            )
+            .with_material_gbuffer_valid(material_gbuffer_valid);
             let stage_result = execute_graph_stage(
                 pipeline,
                 render_pass_executors,
                 *stage,
-                device,
-                queue,
-                command_encoders,
-                frame,
-                &self.scene_bind_group_layout,
-                self.scene_color_format,
-                self.depth_format,
-                &self.scene_bind_group,
-                None,
-                Some(early_post_process_stack),
-                None,
-                None,
-                None,
-                None,
-                None,
-                stage_streamer,
-                stage_mesh_pipelines,
-                Some(&mut self.ibl_bake_pipeline_cache),
-                uses_mesh_pipeline_context.then_some(mesh_draw_lists),
-                self.hzb_occlusion_culler.as_ref(),
-                if is_shadow {
-                    self.shadow_map_renderer.as_ref()
-                } else {
-                    None
+                RenderGraphPassFrameServices {
+                    device,
+                    command_encoders,
+                    frame,
+                    scene_bind_group_layout: &self.scene_bind_group_layout,
+                    target_format: self.scene_color_format,
+                    depth_format: self.depth_format,
+                    scene_bind_group: &self.scene_bind_group,
+                    surface_frame: None,
+                    screen_space_ui_renderer: None,
+                    post_process_stack: Some(early_post_process_stack),
+                    overlay_renderer: None,
+                    prepared_overlays: None,
+                    deferred: None,
+                    particle_renderer: None,
+                    sprite_renderer: None,
+                    streamer: stage_streamer,
+                    ibl_bake_pipeline_cache: Some(&mut self.ibl_bake_pipeline_cache),
+                    mesh_pipelines: stage_mesh_pipelines,
+                    mesh_draw_lists: uses_mesh_pipeline_context.then_some(mesh_draw_lists),
+                    hzb_occlusion_culler: self.hzb_occlusion_culler.as_ref(),
+                    shadow_map_renderer: if is_shadow {
+                        self.shadow_map_renderer.as_ref()
+                    } else {
+                        None
+                    },
+                    shadow_atlas_resources: Some(&self.shadow_atlas_resources),
+                    shadow_frame_plan: is_shadow.then_some(shadow_frame_plan),
+                    parallel_recording,
                 },
-                Some(&self.shadow_atlas_resources),
-                is_shadow.then_some(shadow_frame_plan),
-                parallel_recording,
                 graph_execution,
             );
             if is_depth_prepass {
@@ -164,112 +172,108 @@ impl SceneRendererCore {
             stage_result?;
         }
         if !runtime_features.deferred_lighting_enabled {
-            execute_graph_stage(
-                pipeline,
-                render_pass_executors,
-                RenderPassStage::Lighting,
-                device,
-                queue,
-                command_encoders,
-                frame,
-                &self.scene_bind_group_layout,
-                self.scene_color_format,
-                self.depth_format,
-                &self.scene_bind_group,
-                None,
-                Some(early_post_process_stack),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                Some(&mut self.ibl_bake_pipeline_cache),
-                None,
-                None,
-                None,
-                Some(&self.shadow_atlas_resources),
-                None,
-                parallel_recording,
-                graph_execution,
-            )?;
+            for stage in FORWARD_PRE_SCENE_GRAPH_STAGES {
+                let early_post_process_stack = RenderPassPostProcessStackContext::new(
+                    &self.post_process,
+                    streamer,
+                    runtime_features,
+                    history_textures,
+                    history_availability,
+                )
+                .with_material_gbuffer_valid(material_gbuffer_valid);
+                execute_graph_stage(
+                    pipeline,
+                    render_pass_executors,
+                    *stage,
+                    RenderGraphPassFrameServices {
+                        device,
+                        command_encoders,
+                        frame,
+                        scene_bind_group_layout: &self.scene_bind_group_layout,
+                        target_format: self.scene_color_format,
+                        depth_format: self.depth_format,
+                        scene_bind_group: &self.scene_bind_group,
+                        surface_frame: None,
+                        screen_space_ui_renderer: None,
+                        post_process_stack: Some(early_post_process_stack),
+                        overlay_renderer: None,
+                        prepared_overlays: None,
+                        deferred: None,
+                        particle_renderer: None,
+                        sprite_renderer: None,
+                        streamer: None,
+                        ibl_bake_pipeline_cache: Some(&mut self.ibl_bake_pipeline_cache),
+                        mesh_pipelines: None,
+                        mesh_draw_lists: None,
+                        hzb_occlusion_culler: None,
+                        shadow_map_renderer: None,
+                        shadow_atlas_resources: Some(&self.shadow_atlas_resources),
+                        shadow_frame_plan: None,
+                        parallel_recording,
+                    },
+                    graph_execution,
+                )?;
+            }
         }
         self.render_scene_passes(
             device,
-            queue,
             command_encoders,
             streamer,
             frame,
-            target,
             runtime_features,
             pipeline,
             render_pass_executors,
             graph_execution,
             mesh_draw_lists,
-            history_textures.as_deref(),
-            history_available,
+            history_textures,
+            history_availability,
             parallel_recording,
         )?;
-        let runtime_frame = if history_available {
-            Cow::Borrowed(frame)
-        } else {
-            let mut historyless_frame = frame.clone();
-            let historyless_stack = historyless_frame
-                .extract
-                .post_process
-                .stack
-                .without_history_resources();
-            let historyless_graph = historyless_stack.validated_graph();
-            let extract = historyless_frame.extract_mut();
-            extract.post_process.stack = historyless_stack;
-            extract.post_process.graph = historyless_graph;
-            Cow::Owned(historyless_frame)
-        };
         insert_marker(
             command_encoders.serial_encoder(device),
             RENDERDOC_MARKER_POST_PROCESS,
         );
         let post_process_stack = RenderPassPostProcessStackContext::new(
             &self.post_process,
-            &*target,
             streamer,
             runtime_features,
-            history_textures.as_deref(),
-            history_available,
+            history_textures,
+            history_availability,
         )
         .with_material_gbuffer_valid(material_gbuffer_valid);
         execute_graph_stage(
             pipeline,
             render_pass_executors,
             RenderPassStage::PostProcess,
-            device,
-            queue,
-            command_encoders,
-            runtime_frame.as_ref(),
-            &self.scene_bind_group_layout,
-            self.scene_color_format,
-            self.depth_format,
-            &self.scene_bind_group,
-            None,
-            Some(post_process_stack),
-            None,
-            None,
-            None,
-            None,
-            None,
-            Some(streamer),
-            Some(&mut self.mesh_pipelines),
-            Some(&mut self.ibl_bake_pipeline_cache),
-            Some(mesh_draw_lists),
-            self.hzb_occlusion_culler.as_ref(),
-            None,
-            Some(&self.shadow_atlas_resources),
-            None,
-            parallel_recording,
+            RenderGraphPassFrameServices {
+                device,
+                command_encoders,
+                frame,
+                scene_bind_group_layout: &self.scene_bind_group_layout,
+                target_format: self.scene_color_format,
+                depth_format: self.depth_format,
+                scene_bind_group: &self.scene_bind_group,
+                surface_frame: None,
+                screen_space_ui_renderer: None,
+                post_process_stack: Some(post_process_stack),
+                overlay_renderer: None,
+                prepared_overlays: None,
+                deferred: None,
+                particle_renderer: None,
+                sprite_renderer: None,
+                streamer: Some(streamer),
+                ibl_bake_pipeline_cache: Some(&mut self.ibl_bake_pipeline_cache),
+                mesh_pipelines: Some(&mut self.mesh_pipelines),
+                mesh_draw_lists: Some(mesh_draw_lists),
+                hzb_occlusion_culler: self.hzb_occlusion_culler.as_ref(),
+                shadow_map_renderer: None,
+                shadow_atlas_resources: Some(&self.shadow_atlas_resources),
+                shadow_frame_plan: None,
+                parallel_recording,
+            },
             graph_execution,
         )?;
-        graph_execution.record_post_process_graph(&runtime_frame.extract.post_process.graph);
+        graph_execution.record_post_process_graph(&frame.post_process().graph);
         let history_copy_required = history_textures.is_some()
             && (taa_history_enabled
                 || runtime_features.hybrid_global_illumination_enabled
@@ -284,19 +288,27 @@ impl SceneRendererCore {
                 RENDERDOC_MARKER_HISTORY_COPY,
             );
         }
-        let history_copy_report = self.copy_history_textures(
-            command_encoders.serial_encoder(device),
-            target,
-            runtime_frame.render_region(),
-            &*graph_execution.resources,
-            history_textures,
-            runtime_features,
-            taa_history_enabled,
-            screen_space_reflection_history_enabled,
-            hzb_history_enabled,
-            exposure_history_enabled,
-            volumetric_history_enabled,
-        );
+        let scene_linear_region = frame
+            .render_region_for_phase(RenderPipelinePhase::SceneLinear)
+            .unwrap_or_else(|| frame.render_region());
+        let (history_copy_report, history_write_intent) = self
+            .copy_history_textures(
+                command_encoders.serial_encoder(device),
+                target,
+                scene_linear_region,
+                &*graph_execution.resources,
+                pipeline.history_epilogue_plan(),
+                graph_execution.history_writes(),
+                history_textures,
+                runtime_features,
+                taa_history_enabled,
+                screen_space_reflection_history_enabled,
+                hzb_history_enabled,
+                exposure_history_enabled,
+                volumetric_history_enabled,
+            )
+            .map_err(GraphicsError::Asset)?;
+        history_frame_transaction.absorb_writes(history_write_intent);
         graph_execution
             .record
             .set_history_copy_report(history_copy_report);
@@ -317,130 +329,78 @@ impl SceneRendererCore {
                 pipeline,
                 render_pass_executors,
                 stage,
-                device,
-                queue,
-                command_encoders,
-                frame,
-                &self.scene_bind_group_layout,
-                self.final_color_format,
-                self.depth_format,
-                &self.scene_bind_group,
-                screen_space_ui_renderer,
-                None,
-                overlay_renderer,
-                prepared_overlay_buffers,
-                None,
-                None,
-                None,
-                Some(streamer),
-                None,
-                Some(&mut self.ibl_bake_pipeline_cache),
-                None,
-                None,
-                None,
-                Some(&self.shadow_atlas_resources),
-                None,
-                parallel_recording,
+                RenderGraphPassFrameServices {
+                    device,
+                    command_encoders,
+                    frame,
+                    scene_bind_group_layout: &self.scene_bind_group_layout,
+                    target_format: self.final_color_format,
+                    depth_format: self.depth_format,
+                    scene_bind_group: &self.scene_bind_group,
+                    surface_frame: None,
+                    screen_space_ui_renderer,
+                    post_process_stack: None,
+                    overlay_renderer,
+                    prepared_overlays: prepared_overlay_buffers,
+                    deferred: None,
+                    particle_renderer: None,
+                    sprite_renderer: None,
+                    streamer: Some(streamer),
+                    ibl_bake_pipeline_cache: Some(&mut self.ibl_bake_pipeline_cache),
+                    mesh_pipelines: None,
+                    mesh_draw_lists: None,
+                    hzb_occlusion_culler: None,
+                    shadow_map_renderer: None,
+                    shadow_atlas_resources: Some(&self.shadow_atlas_resources),
+                    shadow_frame_plan: None,
+                    parallel_recording,
+                },
                 graph_execution,
             )?;
         }
+        if surface_frame.is_some() || frame.output_target().texture_handle().is_some() {
+            execute_graph_stage(
+                pipeline,
+                render_pass_executors,
+                RenderPassStage::Present,
+                RenderGraphPassFrameServices {
+                    device,
+                    command_encoders,
+                    frame,
+                    scene_bind_group_layout: &self.scene_bind_group_layout,
+                    target_format: self.final_color_format,
+                    depth_format: self.depth_format,
+                    scene_bind_group: &self.scene_bind_group,
+                    surface_frame,
+                    screen_space_ui_renderer: None,
+                    post_process_stack: None,
+                    overlay_renderer: None,
+                    prepared_overlays: None,
+                    deferred: None,
+                    particle_renderer: None,
+                    sprite_renderer: None,
+                    streamer: Some(streamer),
+                    ibl_bake_pipeline_cache: None,
+                    mesh_pipelines: None,
+                    mesh_draw_lists: None,
+                    hzb_occlusion_culler: None,
+                    shadow_map_renderer: None,
+                    shadow_atlas_resources: None,
+                    shadow_frame_plan: None,
+                    parallel_recording: None,
+                },
+                graph_execution,
+            )?;
+        }
+        graph_execution.validate_graph_execution(pipeline)?;
         Ok(())
     }
 }
 
-fn active_late_graph_stages(
+pub(super) fn active_late_graph_stages(
     pipeline: &CompiledRenderPipeline,
 ) -> impl Iterator<Item = RenderPassStage> + '_ {
     pipeline
-        .stages
-        .iter()
-        .copied()
+        .execution_stages_in_graph_order()
         .filter(|stage| LATE_GRAPH_STAGES.contains(stage))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{active_late_graph_stages, EARLY_GRAPH_STAGES, LATE_GRAPH_STAGES};
-    use crate::core::framework::render::RenderPipelineHandle;
-    use crate::graphics::pipeline::RenderPassStage;
-    use crate::graphics::CompiledRenderPipeline;
-    use crate::render_graph::RenderGraphBuilder;
-
-    #[test]
-    fn compiled_scene_graph_stage_lists_keep_early_and_late_boundaries() {
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::Opaque2d));
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::AlphaMask2d));
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::Transparent2d));
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::Deferred));
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::Lighting));
-        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::AlphaMask3d));
-        assert!(LATE_GRAPH_STAGES.contains(&RenderPassStage::Ui));
-        assert!(LATE_GRAPH_STAGES.contains(&RenderPassStage::Overlay));
-        assert!(LATE_GRAPH_STAGES.contains(&RenderPassStage::Debug));
-    }
-
-    #[test]
-    fn compiled_scene_stage_execution_borrows_stable_frame_and_late_stage_iterator() {
-        let source = include_str!("execute_compiled_scene_graph_stages.rs");
-        let borrowed_frame = ["Cow::Borrowed(", "frame)"].concat();
-        let iterator_return = ["-> impl ", "Iterator<Item = RenderPassStage>"].concat();
-
-        assert!(source.contains(&borrowed_frame));
-        assert!(source.contains(&iterator_return));
-    }
-
-    #[test]
-    fn active_late_graph_stages_follow_compiled_pipeline_order() {
-        let default_3d = compiled_pipeline_with_stages(vec![
-            RenderPassStage::DepthPrepass,
-            RenderPassStage::PostProcess,
-            RenderPassStage::Overlay,
-            RenderPassStage::Debug,
-            RenderPassStage::Ui,
-        ]);
-        assert_eq!(
-            active_late_graph_stages(&default_3d).collect::<Vec<_>>(),
-            vec![
-                RenderPassStage::Overlay,
-                RenderPassStage::Debug,
-                RenderPassStage::Ui
-            ]
-        );
-
-        let core2d = compiled_pipeline_with_stages(vec![
-            RenderPassStage::Opaque2d,
-            RenderPassStage::PostProcess,
-            RenderPassStage::Ui,
-            RenderPassStage::Overlay,
-            RenderPassStage::Debug,
-        ]);
-        assert_eq!(
-            active_late_graph_stages(&core2d).collect::<Vec<_>>(),
-            vec![
-                RenderPassStage::Ui,
-                RenderPassStage::Overlay,
-                RenderPassStage::Debug
-            ]
-        );
-    }
-
-    fn compiled_pipeline_with_stages(stages: Vec<RenderPassStage>) -> CompiledRenderPipeline {
-        CompiledRenderPipeline::from_parts(crate::graphics::pipeline::CompiledRenderPipelineParts {
-            handle: RenderPipelineHandle::new(100),
-            name: "stage-order-test".to_string(),
-            renderer_name: "stage-order-test".to_string(),
-            stages,
-            pass_stages: Vec::new(),
-            enabled_features: Vec::new(),
-            required_extract_sections: Vec::new(),
-            capability_requirements: Vec::new(),
-            history_bindings: Vec::new(),
-            environment_ibl_bake_request: None,
-            half_resolution_transparency_depth_sigma:
-                crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
-            graph: RenderGraphBuilder::new("stage-order-test")
-                .compile()
-                .expect("stage order test graph"),
-        })
-    }
 }

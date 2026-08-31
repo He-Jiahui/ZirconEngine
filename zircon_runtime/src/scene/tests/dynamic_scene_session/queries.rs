@@ -59,7 +59,9 @@ fn runtime_session_archive_updated_slot_queries_use_secondary_indexes_without_se
 #[test]
 fn runtime_session_archive_loads_statistics_from_path() {
     let mut source = World::empty();
-    source.spawn_node(crate::scene::NodeKind::Mesh);
+    source
+        .spawn_node(crate::scene::NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let archive = RuntimeSessionArchive::from_slots(vec![
         RuntimeSessionSlot::from_world_with_metadata(
             "manual",
@@ -150,15 +152,16 @@ fn runtime_session_archive_reads_slot_summaries_directly_from_path() {
 #[test]
 fn runtime_session_archive_diffs_slot_from_path_without_mutating_target() {
     let mut source = World::empty();
-    let saved_entity = source.spawn_node(crate::scene::NodeKind::Mesh);
+    let saved_entity = source
+        .spawn_node(crate::scene::NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     source
         .rename_node(saved_entity, "Saved Mesh")
         .expect("source entity should be named");
-    let archive =
-        RuntimeSessionArchive::from_slots(vec![
-            RuntimeSessionSlot::from_world("manual", &source).expect("manual slot should capture")
-        ])
-        .expect("archive should validate");
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world("manual", &source).expect("manual slot should capture"),
+    ])
+    .expect("archive should validate");
     let root = unique_temp_root("runtime_session_path_diff");
     let path = root.join("sessions").join("archive.zrsession.json");
     archive
@@ -166,7 +169,9 @@ fn runtime_session_archive_diffs_slot_from_path_without_mutating_target() {
         .expect("archive should save before path diff");
 
     let mut target = source.clone();
-    let target_entity = target.spawn_node(crate::scene::NodeKind::Camera);
+    let target_entity = target
+        .spawn_node(crate::scene::NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     target
         .rename_node(target_entity, "Extra Camera")
         .expect("target entity should be named");

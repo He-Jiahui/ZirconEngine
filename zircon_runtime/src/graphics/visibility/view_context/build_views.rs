@@ -1,20 +1,20 @@
 use std::collections::BTreeSet;
 use std::f32::consts::{FRAC_PI_2, PI};
 
+use crate::core::TaskPool;
 use crate::core::framework::render::{
     CameraRenderDescriptor, LightShadowSettings, LightingExtract, ProjectionMode,
     RenderCameraTarget, RenderDirectionalLightSnapshot, RenderPointLightSnapshot,
     RenderSpotLightSnapshot, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::EntityId;
-use crate::core::math::{is_finite_vec3, Real, Transform, Vec3};
-use crate::core::TaskPool;
+use crate::core::math::{Real, Transform, Vec3, is_finite_vec3};
 use crate::graphics::scene::{
-    cascade_shadow_bounds_from_camera_slice, compute_cascade_ranges, CascadeRange,
-    CascadeSplitConfig,
+    CascadeRange, CascadeSplitConfig, cascade_shadow_bounds_from_camera_slice,
+    compute_cascade_ranges,
 };
 
-use super::super::culling::parallel_frustum::{mesh_frustum_visibility, MeshFrustumCandidate};
+use super::super::culling::parallel_frustum::{MeshFrustumCandidate, mesh_frustum_visibility};
 use super::super::declarations::{VisibilityBvhInstance, VisibilityRelevanceEntry};
 use super::{FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityViewKey};
 
@@ -130,7 +130,7 @@ fn custom_target_view_from_camera(
     let camera = descriptor.as_effective_camera();
     let frustum_visibility = mesh_frustum_visibility(candidates, &camera, task_pool);
 
-    let mut visible = Vec::new();
+    let mut visible = Vec::with_capacity(visible_index_capacity(frame_visibility));
     let mut layer_filtered_count = 0usize;
     let mut frustum_culled_count = 0usize;
     for (index, (relevance, render_layers)) in frame_visibility
@@ -239,7 +239,7 @@ fn shadow_view_from_camera(
 ) -> ViewVisibilityContext {
     let frustum_visibility = mesh_frustum_visibility(candidates, &camera, task_pool);
 
-    let mut visible = Vec::new();
+    let mut visible = Vec::with_capacity(visible_index_capacity(frame_visibility));
     let mut relevance_filtered_count = 0usize;
     let mut frustum_culled_count = 0usize;
     for (index, relevance) in frame_visibility.relevance.iter().enumerate() {
@@ -284,6 +284,10 @@ fn build_frustum_candidates(frame_visibility: &FrameVisibility) -> Vec<MeshFrust
             bounds: *bounds,
         })
         .collect()
+}
+
+fn visible_index_capacity(frame_visibility: &FrameVisibility) -> usize {
+    frame_visibility.relevance.len()
 }
 
 fn extra_view_capacity(
@@ -454,3 +458,7 @@ mod tests {
         assert_eq!(source.matches(builder).count(), 1);
     }
 }
+
+#[cfg(test)]
+#[path = "build_views/capacity_tests.rs"]
+mod capacity_tests;

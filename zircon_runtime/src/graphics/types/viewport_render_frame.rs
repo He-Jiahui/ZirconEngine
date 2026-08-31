@@ -1,16 +1,43 @@
 use crate::core::framework::render::{
-    CameraRenderDescriptor, RenderFrameExtract, RenderOverlayExtract,
-    RenderPreparedRuntimeSidebands, RenderSceneSnapshot, RenderVirtualGeometryDebugSnapshot,
-    ShaderQualityTier, ViewportCameraSnapshot,
+    CameraRenderDescriptor, PostProcessExtract, RenderFrameExtract, RenderOverlayExtract,
+    RenderParticlePreviousSpriteSnapshot, RenderPipelinePhase, RenderPreparedRuntimeSidebands,
+    RenderSceneSnapshot, RenderViewFamilyPipeline, RenderVirtualGeometryDebugSnapshot,
+    ShaderQualityTier, SourceCubemapEnvironment, UiRenderSubmission, ViewportCameraSnapshot,
+    VolumetricFogSettings,
 };
 use crate::core::math::UVec2;
 use crate::graphics::visibility::FrameVisibility;
 use std::sync::Arc;
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::{
     ViewportCameraStackAttachmentPolicy, ViewportCameraStackOutputPolicy, ViewportRenderRegion,
 };
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct RendererPostProcessSnapshot {
+    post_process: PostProcessExtract,
+    volumetric_fog: VolumetricFogSettings,
+}
+
+impl RendererPostProcessSnapshot {
+    pub(crate) fn new(
+        post_process: PostProcessExtract,
+        volumetric_fog: VolumetricFogSettings,
+    ) -> Self {
+        Self {
+            post_process,
+            volumetric_fog,
+        }
+    }
+
+    pub(crate) fn post_process(&self) -> &PostProcessExtract {
+        &self.post_process
+    }
+
+    pub(crate) fn volumetric_fog(&self) -> VolumetricFogSettings {
+        self.volumetric_fog
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct ViewportRenderFrame {
@@ -21,12 +48,16 @@ pub struct ViewportRenderFrame {
     pub(crate) texture_mip_bias: u8,
     pub(crate) texture_max_anisotropy: u8,
     /// Screen-space runtime UI payload selected for this viewport target.
-    pub ui: Option<UiRenderExtract>,
+    pub ui: Option<Arc<UiRenderSubmission>>,
     pub(crate) output_target: super::ViewportRenderOutputTarget,
     pub(crate) previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
     pub(crate) frame_visibility: Option<FrameVisibility>,
     pub(crate) virtual_geometry_debug_snapshot: Option<Arc<RenderVirtualGeometryDebugSnapshot>>,
     pub(crate) runtime_overlay_override: Option<RenderOverlayExtract>,
+    pub(crate) post_process_override: Option<Arc<RendererPostProcessSnapshot>>,
+    pub(crate) environment_source_cubemap_override: Option<SourceCubemapEnvironment>,
+    pub(crate) particle_previous_sprites_override:
+        Option<Vec<RenderParticlePreviousSpriteSnapshot>>,
     pub(crate) prepared_runtime_sidebands: RenderPreparedRuntimeSidebands,
     pub(crate) camera_stack_attachment_policy: ViewportCameraStackAttachmentPolicy,
     pub(crate) camera_stack_output_policy: ViewportCameraStackOutputPolicy,
@@ -34,8 +65,75 @@ pub struct ViewportRenderFrame {
 }
 
 impl ViewportRenderFrame {
-    pub(crate) fn extract_mut(&mut self) -> &mut RenderFrameExtract {
-        Arc::make_mut(&mut self.extract)
+    pub(in crate::graphics) fn select_camera_descriptor(&mut self, camera: CameraRenderDescriptor) {
+        self.extract = Arc::new(self.extract.for_camera_submission(camera));
+    }
+
+    pub(crate) fn with_post_process_override(
+        mut self,
+        post_process: Arc<RendererPostProcessSnapshot>,
+    ) -> Self {
+        self.post_process_override = Some(post_process);
+        self
+    }
+
+    pub(crate) fn post_process(&self) -> &PostProcessExtract {
+        self.post_process_override
+            .as_deref()
+            .map(RendererPostProcessSnapshot::post_process)
+            .unwrap_or(&self.extract.post_process)
+    }
+
+    pub(crate) fn volumetric_fog(&self) -> VolumetricFogSettings {
+        if let Some(snapshot) = self.post_process_override.as_deref() {
+            return snapshot.volumetric_fog();
+        }
+        if let Some(settings) = self.extract.lighting.advanced_lighting.volumetric {
+            return settings;
+        }
+        let camera = self.extract.view.selected_effective_camera();
+        self.extract
+            .post_process
+            .resolved_settings_for_camera(
+                camera.transform.translation,
+                self.extract.view.selected_camera_volume_layers(),
+            )
+            .map(|settings| settings.volumetric_fog)
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn with_environment_source_cubemap_override(
+        mut self,
+        source_cubemap: Option<SourceCubemapEnvironment>,
+    ) -> Self {
+        self.environment_source_cubemap_override = source_cubemap;
+        self
+    }
+
+    pub(crate) fn source_cubemap_environment(&self) -> Option<&SourceCubemapEnvironment> {
+        self.environment_source_cubemap_override
+            .as_deref()
+            .or_else(|| self.extract.environment.skybox.source_cubemap_environment())
+    }
+
+    pub(crate) fn previous_particle_sprites(&self) -> &[RenderParticlePreviousSpriteSnapshot] {
+        self.particle_previous_sprites_override
+            .as_deref()
+            .unwrap_or(&self.extract.particles.previous_sprites)
+    }
+
+    pub(crate) fn with_particle_previous_sprites_override(
+        mut self,
+        previous_sprites: Option<Vec<RenderParticlePreviousSpriteSnapshot>>,
+    ) -> Self {
+        self.particle_previous_sprites_override = previous_sprites;
+        self
+    }
+
+    pub(crate) fn take_particle_previous_sprites_override(
+        &mut self,
+    ) -> Option<Vec<RenderParticlePreviousSpriteSnapshot>> {
+        self.particle_previous_sprites_override.take()
     }
 
     pub(crate) fn prepared_runtime_sidebands(&self) -> &RenderPreparedRuntimeSidebands {
@@ -96,6 +194,19 @@ impl ViewportRenderFrame {
         self.render_region
     }
 
+    pub(crate) fn view_family_pipeline(&self) -> &RenderViewFamilyPipeline {
+        self.extract.view.view_family_pipeline()
+    }
+
+    pub(crate) fn render_region_for_phase(
+        &self,
+        phase: RenderPipelinePhase,
+    ) -> Option<ViewportRenderRegion> {
+        self.view_family_pipeline()
+            .output_target_for_phase(phase)
+            .map(ViewportRenderRegion::from_view_family_target)
+    }
+
     pub(crate) fn frame_visibility(&self) -> Option<&FrameVisibility> {
         self.frame_visibility.as_ref()
     }
@@ -133,7 +244,7 @@ impl ViewportRenderFrame {
     }
 
     pub(crate) fn preview(&self) -> &crate::core::framework::render::PreviewEnvironmentExtract {
-        &self.extract.post_process.preview
+        &self.post_process().preview
     }
 
     pub(crate) fn environment(&self) -> &crate::core::framework::render::EnvironmentExtract {

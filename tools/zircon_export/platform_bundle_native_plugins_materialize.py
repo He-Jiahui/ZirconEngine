@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import stat
 from pathlib import Path
 
 from .export_template_manifest import resolve_bundle_child
@@ -19,7 +20,17 @@ def materialize_platform_bundle_native_plugins(
     plugins_destination = resolve_bundle_child(bundle_root, "plugins", diagnostics)
     if not plugins_destination:
         return True, None, copied_template_files
-    if not native_plugins_dir.exists() or not native_plugins_dir.is_dir():
+    try:
+        native_plugins_metadata = native_plugins_dir.stat()
+    except FileNotFoundError:
+        diagnostics.append(f"native plugins directory {native_plugins_dir} does not exist")
+        return True, None, copied_template_files
+    except OSError as error:
+        diagnostics.append(
+            f"native plugins directory {native_plugins_dir} could not be inspected: {error}"
+        )
+        return True, None, copied_template_files
+    if not stat.S_ISDIR(native_plugins_metadata.st_mode):
         diagnostics.append(f"native plugins directory {native_plugins_dir} does not exist")
         return True, None, copied_template_files
 
@@ -73,22 +84,28 @@ def copy_platform_bundle_native_plugins_dir(
             f"native plugins directory {destination} could not be created: {error}"
         )
         return False
+    copied = True
     try:
-        children = list(source.iterdir())
+        for child in source.iterdir():
+            target = destination / child.name
+            if child.is_dir():
+                if not copy_platform_bundle_native_plugins_dir(
+                    child,
+                    target,
+                    diagnostics,
+                ):
+                    copied = False
+            elif not copy_platform_bundle_native_plugins_file(
+                child,
+                target,
+                diagnostics,
+            ):
+                copied = False
     except OSError as error:
         diagnostics.append(
             f"native plugins directory {source} could not be listed: {error}"
         )
         return False
-
-    copied = True
-    for child in children:
-        target = destination / child.name
-        if child.is_dir():
-            if not copy_platform_bundle_native_plugins_dir(child, target, diagnostics):
-                copied = False
-        elif not copy_platform_bundle_native_plugins_file(child, target, diagnostics):
-            copied = False
     return copied
 
 

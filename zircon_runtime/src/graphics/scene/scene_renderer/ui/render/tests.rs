@@ -1,8 +1,10 @@
 use super::*;
+use std::sync::Arc;
+
 use crate::core::framework::render::{
     EnvironmentExtract, GridOverlayExtract, PreviewEnvironmentExtract, RenderFrameExtract,
     RenderOverlayExtract, RenderParticleGpuFrameExtract, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderSceneSnapshot, RenderWorldSnapshotHandle, UiRenderSubmission, ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
 use crate::graphics::types::ViewportRenderFrame;
@@ -23,7 +25,10 @@ mod distance_field_effects;
 mod fallback_provenance;
 mod glyph_artifacts;
 mod parity;
+mod plan_cache;
+mod rich_artifact_routes;
 mod rich_inline;
+mod rich_projection_admission;
 mod rich_table;
 mod text_style_decorations;
 
@@ -48,6 +53,181 @@ fn screen_space_ui_vertex_buffer_writes_only_for_new_payloads_or_reallocation() 
     assert!(record::screen_space_ui_vertex_buffer_write_required(
         false, None, payload
     ));
+}
+
+#[test]
+fn screen_space_ui_rounded_geometry_carries_analytic_shape_parameters() {
+    let mut vertices = Vec::new();
+    geometry::push_rect_with_radius(
+        &mut vertices,
+        UiFrame::new(8.25, 12.5, 120.0, 36.0),
+        [1.0, 1.0, 1.0, 1.0],
+        8.0,
+        UiFrame::new(0.0, 0.0, 200.0, 100.0),
+    );
+
+    assert_eq!(vertices.len(), 6);
+    assert!(vertices.iter().all(|vertex| {
+        vertex.corner_radius == 8.0
+            && vertex.half_extent == [60.0, 18.0]
+            && vertex.local_position[0].is_finite()
+            && vertex.local_position[1].is_finite()
+    }));
+    let shader = include_str!("../shaders/screen_space_ui.wgsl");
+    assert!(shader.contains("rounded_box_distance"));
+    assert!(shader.contains("fwidth(outer_distance)"));
+    assert!(shader.contains("let sample_offsets = array<vec2<f32>, 16>"));
+    assert!(shader.contains("let subpixel_filter_scale = 0.25"));
+    assert!(shader.contains("let coverage_guard = distance_width * 0.75"));
+    assert!(shader.contains("return vec2<f32>(outer_coverage_sum, inner_coverage_sum) * 0.0625"));
+    assert!(!shader.contains("fwidth(sample_outer_distance)"));
+    assert!(shader.contains("input.color.a * coverage"));
+    naga::front::wgsl::parse_str(shader).expect("screen-space UI WGSL must parse");
+}
+
+#[test]
+fn screen_space_ui_fractional_border_reserves_the_analytic_coverage_fringe() {
+    let mut vertices = Vec::new();
+    geometry::push_border_with_radius(
+        &mut vertices,
+        UiFrame::new(8.0, 12.0, 120.0, 36.0),
+        0.625,
+        [1.0, 1.0, 1.0, 1.0],
+        0.0,
+        UiFrame::new(0.0, 0.0, 200.0, 100.0),
+    );
+
+    assert_eq!(vertices.len(), 6);
+    assert!(vertices.iter().all(|vertex| vertex.border_width == 0.625));
+    assert!(vertices
+        .iter()
+        .any(|vertex| vertex.local_position[0].abs() > 60.0));
+    assert!(vertices
+        .iter()
+        .any(|vertex| vertex.local_position[1].abs() > 18.0));
+}
+
+#[test]
+fn screen_space_ui_plan_partitions_rounded_fill_and_border_in_one_coverage_quad() {
+    let plan = plan_screen_space_ui_batches(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui.rounded-plan"),
+            list: UiRenderList {
+                commands: vec![UiRenderCommand {
+                    node_id: UiNodeId::new(7),
+                    kind: UiRenderCommandKind::Quad,
+                    frame: UiFrame::new(8.25, 12.5, 120.0, 36.0),
+                    clip_frame: None,
+                    z_index: 0,
+                    style: UiResolvedStyle {
+                        background_color: Some("#112233".to_string()),
+                        border_color: Some("#ddeeff".to_string()),
+                        corner_radius: 8.0,
+                        border_width: 0.625,
+                        ..UiResolvedStyle::default()
+                    },
+                    text_layout: None,
+                    text: None,
+                    image: None,
+                    opacity: 1.0,
+                }],
+            },
+            raster_scale: 1.0,
+        },
+        UVec2::new(200, 100),
+    );
+
+    assert_eq!(plan.vertices.len(), 6);
+    assert!(plan.vertices.iter().all(|vertex| {
+        vertex.corner_radius == 8.0
+            && vertex.border_width == 0.625
+            && vertex.color == [221.0 / 255.0, 238.0 / 255.0, 1.0, 1.0]
+            && vertex.fill_color == [17.0 / 255.0, 34.0 / 255.0, 51.0 / 255.0, 1.0]
+            && vertex.local_position.iter().all(|value| value.is_finite())
+    }));
+    let shader = include_str!("../shaders/screen_space_ui.wgsl");
+    assert!(shader.contains("let fill_alpha = input.fill_color.a * inner_coverage"));
+    assert!(shader.contains("let border_alpha = input.color.a * border_coverage"));
+}
+
+#[test]
+fn screen_space_ui_analytic_quad_scissor_includes_the_coverage_fringe() {
+    let plan = plan_screen_space_ui_batches(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui.analytic-scissor"),
+            list: UiRenderList {
+                commands: vec![UiRenderCommand {
+                    node_id: UiNodeId::new(8),
+                    kind: UiRenderCommandKind::Quad,
+                    frame: UiFrame::new(8.25, 12.5, 120.0, 36.0),
+                    clip_frame: None,
+                    z_index: 0,
+                    style: UiResolvedStyle {
+                        background_color: Some("#112233".to_string()),
+                        corner_radius: 8.0,
+                        ..UiResolvedStyle::default()
+                    },
+                    text_layout: None,
+                    text: None,
+                    image: None,
+                    opacity: 1.0,
+                }],
+            },
+            raster_scale: 1.0,
+        },
+        UVec2::new(200, 100),
+    );
+
+    assert_eq!(plan.draws.len(), 1);
+    assert_eq!(
+        (
+            plan.draws[0].scissor.x,
+            plan.draws[0].scissor.y,
+            plan.draws[0].scissor.width,
+            plan.draws[0].scissor.height,
+        ),
+        (7, 11, 122, 38)
+    );
+}
+
+#[test]
+fn screen_space_ui_analytic_scissor_stays_inside_parent_clip() {
+    let plan = plan_screen_space_ui_batches(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui.analytic-clip"),
+            list: UiRenderList {
+                commands: vec![UiRenderCommand {
+                    node_id: UiNodeId::new(9),
+                    kind: UiRenderCommandKind::Quad,
+                    frame: UiFrame::new(8.25, 12.5, 120.0, 36.0),
+                    clip_frame: Some(UiFrame::new(20.0, 15.0, 40.0, 20.0)),
+                    z_index: 0,
+                    style: UiResolvedStyle {
+                        background_color: Some("#112233".to_string()),
+                        corner_radius: 8.0,
+                        ..UiResolvedStyle::default()
+                    },
+                    text_layout: None,
+                    text: None,
+                    image: None,
+                    opacity: 1.0,
+                }],
+            },
+            raster_scale: 1.0,
+        },
+        UVec2::new(200, 100),
+    );
+
+    assert_eq!(plan.draws.len(), 1);
+    assert_eq!(
+        (
+            plan.draws[0].scissor.x,
+            plan.draws[0].scissor.y,
+            plan.draws[0].scissor.width,
+            plan.draws[0].scissor.height,
+        ),
+        (20, 15, 40, 20)
+    );
 }
 
 #[test]
@@ -87,7 +267,7 @@ fn screen_space_ui_plan_keeps_text_batches_for_quad_commands() {
 
     assert_eq!(plan.draws.len(), 1);
     assert_eq!(plan.native_texts.len(), 1);
-    assert_eq!(plan.native_texts[0].language.as_deref(), Some("zh-hans-cn"));
+    assert_eq!(plan.native_texts[0].language.as_deref(), Some("zh-Hans-CN"));
     assert_eq!(plan.native_texts[0].font_weight, 650);
     assert_eq!(
         plan.native_texts[0].background_color,
@@ -132,6 +312,39 @@ fn screen_space_ui_plan_carries_extract_raster_scale_to_native_text() {
 
     assert_eq!(plan.native_texts.len(), 1);
     assert_eq!(plan.native_texts[0].raster_scale, 2.0);
+}
+
+#[test]
+fn screen_space_ui_plan_never_rasterizes_native_text_below_physical_resolution() {
+    let plan = plan_screen_space_ui_batches(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui.physical-raster-floor"),
+            list: UiRenderList {
+                commands: vec![UiRenderCommand {
+                    node_id: UiNodeId::new(1),
+                    kind: UiRenderCommandKind::Text,
+                    frame: UiFrame::new(8.0, 12.0, 120.0, 36.0),
+                    clip_frame: None,
+                    z_index: 0,
+                    style: UiResolvedStyle {
+                        font_size: 18.0,
+                        line_height: 22.0,
+                        text_render_mode: UiTextRenderMode::Native,
+                        ..UiResolvedStyle::default()
+                    },
+                    text_layout: None,
+                    text: Some("Physical resolution floor".to_string()),
+                    image: None,
+                    opacity: 1.0,
+                }],
+            },
+            raster_scale: 0.75,
+        },
+        UVec2::new(200, 100),
+    );
+
+    assert_eq!(plan.native_texts.len(), 1);
+    assert_eq!(plan.native_texts[0].raster_scale, 1.0);
 }
 
 #[test]
@@ -376,29 +589,30 @@ fn screen_space_ui_plan_keeps_transparent_text_background_unknown_with_prior_qua
 
 #[test]
 fn screen_space_ui_plan_infers_text_background_from_framebuffer_background() {
-    let plan = plan_screen_space_ui_batches_with_framebuffer_background(
-        &UiRenderExtract {
-            tree_id: UiTreeId::new("runtime.ui"),
-            list: UiRenderList {
-                commands: vec![UiRenderCommand {
-                    node_id: UiNodeId::new(19),
-                    kind: UiRenderCommandKind::Text,
-                    frame: UiFrame::new(16.0, 12.0, 80.0, 20.0),
-                    clip_frame: None,
-                    z_index: 0,
-                    style: UiResolvedStyle {
-                        foreground_color: Some("#ddeeff".to_string()),
-                        text_render_mode: UiTextRenderMode::Native,
-                        ..UiResolvedStyle::default()
-                    },
-                    text_layout: None,
-                    text: Some("Clear label".to_string()),
-                    image: None,
-                    opacity: 1.0,
-                }],
-            },
-            raster_scale: 1.0,
+    let submission = UiRenderSubmission::single(Arc::new(UiRenderExtract {
+        tree_id: UiTreeId::new("runtime.ui"),
+        list: UiRenderList {
+            commands: vec![UiRenderCommand {
+                node_id: UiNodeId::new(19),
+                kind: UiRenderCommandKind::Text,
+                frame: UiFrame::new(16.0, 12.0, 80.0, 20.0),
+                clip_frame: None,
+                z_index: 0,
+                style: UiResolvedStyle {
+                    foreground_color: Some("#ddeeff".to_string()),
+                    text_render_mode: UiTextRenderMode::Native,
+                    ..UiResolvedStyle::default()
+                },
+                text_layout: None,
+                text: Some("Clear label".to_string()),
+                image: None,
+                opacity: 1.0,
+            }],
         },
+        raster_scale: 1.0,
+    }));
+    let plan = plan_screen_space_ui_batches_with_framebuffer_background(
+        submission.as_ref(),
         UVec2::new(200, 100),
         Some([0.02, 0.03, 0.04, 1.0]),
     );
@@ -411,47 +625,53 @@ fn screen_space_ui_plan_infers_text_background_from_framebuffer_background() {
 }
 
 #[test]
-fn screen_space_ui_plan_blocks_framebuffer_background_after_transparent_overlay() {
-    let plan = plan_screen_space_ui_batches_with_framebuffer_background(
-        &UiRenderExtract {
-            tree_id: UiTreeId::new("runtime.ui"),
-            list: UiRenderList {
-                commands: vec![
-                    UiRenderCommand {
-                        node_id: UiNodeId::new(20),
-                        kind: UiRenderCommandKind::Quad,
-                        frame: UiFrame::new(0.0, 0.0, 180.0, 60.0),
-                        clip_frame: None,
-                        z_index: 0,
-                        style: UiResolvedStyle {
-                            background_color: Some("#ffffff80".to_string()),
-                            ..UiResolvedStyle::default()
-                        },
-                        text_layout: None,
-                        text: None,
-                        image: None,
-                        opacity: 1.0,
-                    },
-                    UiRenderCommand {
-                        node_id: UiNodeId::new(21),
-                        kind: UiRenderCommandKind::Text,
-                        frame: UiFrame::new(16.0, 12.0, 80.0, 20.0),
-                        clip_frame: None,
-                        z_index: 1,
-                        style: UiResolvedStyle {
-                            foreground_color: Some("#ddeeff".to_string()),
-                            text_render_mode: UiTextRenderMode::Native,
-                            ..UiResolvedStyle::default()
-                        },
-                        text_layout: None,
-                        text: Some("Overlay label".to_string()),
-                        image: None,
-                        opacity: 1.0,
-                    },
-                ],
-            },
-            raster_scale: 1.0,
+fn screen_space_ui_plan_blocks_framebuffer_background_across_segments() {
+    let overlay = Arc::new(UiRenderExtract {
+        tree_id: UiTreeId::new("runtime.ui.overlay"),
+        list: UiRenderList {
+            commands: vec![UiRenderCommand {
+                node_id: UiNodeId::new(20),
+                kind: UiRenderCommandKind::Quad,
+                frame: UiFrame::new(0.0, 0.0, 180.0, 60.0),
+                clip_frame: None,
+                z_index: 0,
+                style: UiResolvedStyle {
+                    background_color: Some("#ffffff80".to_string()),
+                    ..UiResolvedStyle::default()
+                },
+                text_layout: None,
+                text: None,
+                image: None,
+                opacity: 1.0,
+            }],
         },
+        raster_scale: 1.0,
+    });
+    let label = Arc::new(UiRenderExtract {
+        tree_id: UiTreeId::new("runtime.ui.label"),
+        list: UiRenderList {
+            commands: vec![UiRenderCommand {
+                node_id: UiNodeId::new(21),
+                kind: UiRenderCommandKind::Text,
+                frame: UiFrame::new(16.0, 12.0, 80.0, 20.0),
+                clip_frame: None,
+                z_index: 1,
+                style: UiResolvedStyle {
+                    foreground_color: Some("#ddeeff".to_string()),
+                    text_render_mode: UiTextRenderMode::Native,
+                    ..UiResolvedStyle::default()
+                },
+                text_layout: None,
+                text: Some("Overlay label".to_string()),
+                image: None,
+                opacity: 1.0,
+            }],
+        },
+        raster_scale: 1.0,
+    });
+    let submission = UiRenderSubmission::from_segments(vec![overlay, label]);
+    let plan = plan_screen_space_ui_batches_with_framebuffer_background(
+        submission.as_ref(),
         UVec2::new(200, 100),
         Some([0.02, 0.03, 0.04, 1.0]),
     );
@@ -535,104 +755,6 @@ fn screen_space_ui_plan_keeps_auto_text_in_a_separate_batch() {
 }
 
 #[test]
-fn screen_space_ui_plan_splits_rich_text_runs_from_shared_paint() {
-    let plan = plan_screen_space_ui_batches(
-        &UiRenderExtract {
-            tree_id: UiTreeId::new("runtime.ui"),
-            list: UiRenderList {
-                commands: vec![UiRenderCommand {
-                    node_id: UiNodeId::new(6),
-                    kind: UiRenderCommandKind::Text,
-                    frame: UiFrame::new(10.0, 20.0, 150.0, 18.0),
-                    clip_frame: None,
-                    z_index: 0,
-                    style: UiResolvedStyle {
-                        foreground_color: Some("#ffffff".to_string()),
-                        font_size: 10.0,
-                        font_weight: 500,
-                        line_height: 12.0,
-                        text_render_mode: UiTextRenderMode::Native,
-                        rich_text_format: UiRichTextFormat::Markdown,
-                        ..UiResolvedStyle::default()
-                    },
-                    text_layout: Some(UiResolvedTextLayout {
-                        text_align: UiTextAlign::Left,
-                        wrap: UiTextWrap::None,
-                        direction: UiTextDirection::LeftToRight,
-                        writing_mode: UiTextWritingMode::HorizontalTb,
-                        overflow: UiTextOverflow::Clip,
-                        font_size: 10.0,
-                        line_height: 12.0,
-                        measured_width: 150.0,
-                        measured_height: 12.0,
-                        source_range: UiTextRange { start: 0, end: 15 },
-                        lines: vec![UiResolvedTextLine {
-                            text: "Alpha Beta Code".to_string(),
-                            frame: UiFrame::new(10.0, 20.0, 150.0, 12.0),
-                            source_range: UiTextRange { start: 0, end: 15 },
-                            visual_range: UiTextRange { start: 0, end: 15 },
-                            measured_width: 150.0,
-                            glyph_advances: vec![],
-                            baseline: 8.0,
-                            direction: UiTextDirection::LeftToRight,
-                            runs: vec![
-                                UiResolvedTextRun {
-                                    kind: UiTextRunKind::Plain,
-                                    text: "Alpha ".to_string(),
-                                    source_range: UiTextRange { start: 0, end: 6 },
-                                    visual_range: UiTextRange { start: 0, end: 6 },
-                                    direction: UiTextDirection::LeftToRight,
-                                },
-                                UiResolvedTextRun {
-                                    kind: UiTextRunKind::Strong,
-                                    text: "Beta".to_string(),
-                                    source_range: UiTextRange { start: 6, end: 10 },
-                                    visual_range: UiTextRange { start: 6, end: 10 },
-                                    direction: UiTextDirection::LeftToRight,
-                                },
-                                UiResolvedTextRun {
-                                    kind: UiTextRunKind::Code,
-                                    text: " Code".to_string(),
-                                    source_range: UiTextRange { start: 10, end: 15 },
-                                    visual_range: UiTextRange { start: 10, end: 15 },
-                                    direction: UiTextDirection::LeftToRight,
-                                },
-                            ],
-                            ellipsized: false,
-                        }],
-                        boxes: Vec::new(),
-                        overflow_clipped: false,
-                        editable: None,
-                        rich_text_artifact: None,
-                    }),
-                    text: Some("Alpha Beta Code".to_string()),
-                    image: None,
-                    opacity: 1.0,
-                }],
-            },
-            raster_scale: 1.0,
-        },
-        UVec2::new(220, 80),
-    );
-
-    assert_eq!(plan.native_texts.len(), 3);
-    assert_eq!(plan.native_texts[0].text, "Alpha ");
-    assert_eq!(plan.native_texts[1].text, "Beta");
-    assert_eq!(plan.native_texts[2].text, " Code");
-    assert_eq!(
-        plan.native_texts[0].frame,
-        UiFrame::new(10.0, 20.0, 60.0, 12.0)
-    );
-    assert_eq!(
-        plan.native_texts[1].frame,
-        UiFrame::new(70.0, 20.0, 40.0, 12.0)
-    );
-    assert!(plan.native_texts[1].style.strong);
-    assert!(plan.native_texts[2].style.code);
-    assert!(plan.native_texts.iter().all(|text| text.font_weight == 500));
-}
-
-#[test]
 fn screen_space_ui_plan_uses_shared_text_decorations_as_pre_and_post_text_draws() {
     let plan = plan_screen_space_ui_batches(
         &UiRenderExtract {
@@ -680,6 +802,7 @@ fn screen_space_ui_plan_uses_shared_text_decorations_as_pre_and_post_text_draws(
                         }),
                         lines: vec![UiResolvedTextLine {
                             text: "Hello".to_string(),
+                            placement_frame: UiFrame::default(),
                             frame: UiFrame::new(10.0, 20.0, 50.0, 12.0),
                             source_range: UiTextRange { start: 0, end: 5 },
                             visual_range: UiTextRange { start: 0, end: 5 },
@@ -716,12 +839,13 @@ fn screen_space_ui_plan_uses_shared_text_decorations_as_pre_and_post_text_draws(
 }
 
 #[test]
-fn ui_plan_projects_paint_elements_once_per_command() {
+fn ui_plan_projects_transient_paint_elements_once_per_command() {
     let source = include_str!("../render.rs");
     let text_paint_source = include_str!("text_paint.rs");
 
-    assert!(source.contains("let paint_elements = command.to_paint_elements(0);"));
-    assert!(!source.contains("for element in command.to_paint_elements(0)"));
+    assert!(source.contains("let paint_elements = command.to_transient_paint_elements(0);"));
+    assert!(!source.contains("command.to_paint_elements(0)"));
+    assert!(source.contains(".unwrap_or_else(|| command.cache_generation())"));
     assert!(source.contains("paint_elements: &[UiPaintElement]"));
     assert!(!text_paint_source.contains("to_paint_elements"));
     assert!(text_paint_source.contains("paint_elements: &[UiPaintElement]"));

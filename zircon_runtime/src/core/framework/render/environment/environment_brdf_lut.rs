@@ -1,8 +1,8 @@
 use crate::core::math::Real;
 
-pub const ENVIRONMENT_BRDF_LUT_WIDTH: u32 = 128;
-pub const ENVIRONMENT_BRDF_LUT_HEIGHT: u32 = 32;
-pub const ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT: u32 = 128;
+use super::environment_pbr_recipe::{
+    ENVIRONMENT_BRDF_LUT_HEIGHT, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT, ENVIRONMENT_BRDF_LUT_WIDTH,
+};
 
 pub type EnvironmentBrdfLutTexel = [Real; 2];
 
@@ -65,8 +65,8 @@ pub fn environment_brdf_lut_integrate(
         let no_l = light[2].max(0.0);
         let no_h = half_vector[2].max(0.0);
         if no_l > 0.0 && no_h > 0.0 && view_dot_half > 0.0 {
-            let geometry = geometry_smith_ibl(no_v, no_l, roughness);
-            let geometry_visibility = geometry * view_dot_half / (no_h * no_v).max(0.001);
+            let visibility = visibility_smith_joint_approx(no_v, no_l, roughness);
+            let geometry_visibility = no_l * visibility * (4.0 * view_dot_half / no_h);
             let fresnel = (1.0 - view_dot_half).clamp(0.0, 1.0).powi(5);
             scale += (1.0 - fresnel) * geometry_visibility;
             bias += fresnel * geometry_visibility;
@@ -100,13 +100,11 @@ fn importance_sample_ggx(xi: [Real; 2], alpha_squared: Real) -> [Real; 3] {
     [sin_theta * phi.cos(), sin_theta * phi.sin(), cos_theta]
 }
 
-fn geometry_smith_ibl(no_v: Real, no_l: Real, roughness: Real) -> Real {
-    geometry_schlick_ggx_ibl(no_v, roughness) * geometry_schlick_ggx_ibl(no_l, roughness)
-}
-
-fn geometry_schlick_ggx_ibl(no: Real, roughness: Real) -> Real {
-    let k = roughness * roughness * 0.5;
-    no / (no * (1.0 - k) + k).max(0.001)
+fn visibility_smith_joint_approx(no_v: Real, no_l: Real, roughness: Real) -> Real {
+    let alpha = roughness * roughness;
+    let visibility_v = no_l * (no_v * (1.0 - alpha) + alpha);
+    let visibility_l = no_v * (no_l * (1.0 - alpha) + alpha);
+    0.5 / (visibility_v + visibility_l)
 }
 
 fn normalize_or_zero(value: [Real; 3]) -> [Real; 3] {
@@ -138,6 +136,23 @@ mod tests {
 
         let rough_normal = environment_brdf_lut_integrate(1.0, 1.0, 1024);
         assert!(rough_normal[0] + rough_normal[1] < 0.5, "{rough_normal:?}");
+    }
+
+    #[test]
+    fn environment_brdf_lut_matches_unreal_joint_smith_reference_anchors() {
+        for (no_v, roughness, expected) in [
+            (0.1, 1.0, [0.754189, 0.025194]),
+            (0.5, 0.6, [0.671656, 0.013660]),
+        ] {
+            let actual =
+                environment_brdf_lut_integrate(no_v, roughness, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT);
+            for channel in 0..2 {
+                assert!(
+                    (actual[channel] - expected[channel]).abs() <= 0.001,
+                    "NoV={no_v}, roughness={roughness}, actual={actual:?}, expected={expected:?}"
+                );
+            }
+        }
     }
 
     #[test]
@@ -193,9 +208,9 @@ mod tests {
         }
 
         let mean_error = total_error / channel_count as Real;
-        assert!(mean_error <= 0.003, "mean absolute error={mean_error}");
+        assert!(mean_error <= 0.0031, "mean absolute error={mean_error}");
         assert!(
-            maximum_error <= 0.02,
+            maximum_error <= 0.023,
             "maximum absolute error={maximum_error}"
         );
     }

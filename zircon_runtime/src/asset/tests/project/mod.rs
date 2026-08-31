@@ -18,5 +18,10 @@ pub(crate) fn unique_temp_project_root(label: &str) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    std::env::temp_dir().join(format!("zircon_asset_{label}_{unique}"))
+    let output_root = std::env::var_os("CARGO_TARGET_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"));
+    output_root
+        .join("zircon-test-output")
+        .join(format!("zircon_asset_{label}_{unique}"))
 }

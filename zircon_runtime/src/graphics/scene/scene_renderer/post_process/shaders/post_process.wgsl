@@ -688,17 +688,9 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
     let scene_color = load_scene_color(coord_i32, viewport_size);
     var color = scene_color.rgb;
 
-    if (params.feature_flags.x != 0u || params.lighting_flags.x != 0u) {
-        var occlusion_factor = 1.0;
-        if (params.feature_flags.x != 0u) {
-            let ao = textureLoad(ambient_occlusion_tex, physical_coord_i32(coord_i32), 0).r;
-            occlusion_factor = occlusion_factor * max(ao * ao, 0.12);
-        }
-        if (params.lighting_flags.x != 0u) {
-            let contact_shadow = textureLoad(contact_shadow_tex, coord_i32, 0).r;
-            occlusion_factor = occlusion_factor * max(contact_shadow, 0.18);
-        }
-        color = color * occlusion_factor;
+    if (params.lighting_flags.x != 0u) {
+        let contact_shadow = textureLoad(contact_shadow_tex, coord_i32, 0).r;
+        color = color * max(contact_shadow, 0.18);
     }
 
     if (params.feature_flags.y != 0u) {

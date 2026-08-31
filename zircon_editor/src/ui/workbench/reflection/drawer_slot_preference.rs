@@ -8,8 +8,6 @@ pub(super) fn drawer_slot_preference(slot: ActivityDrawerSlot) -> ActivityDrawer
         ActivityDrawerSlot::LeftBottom => ActivityDrawerSlotPreference::LeftBottom,
         ActivityDrawerSlot::RightTop => ActivityDrawerSlotPreference::RightTop,
         ActivityDrawerSlot::RightBottom => ActivityDrawerSlotPreference::RightBottom,
-        ActivityDrawerSlot::Bottom
-        | ActivityDrawerSlot::BottomLeft
-        | ActivityDrawerSlot::BottomRight => ActivityDrawerSlotPreference::Bottom,
+        ActivityDrawerSlot::Bottom => ActivityDrawerSlotPreference::Bottom,
     }
 }

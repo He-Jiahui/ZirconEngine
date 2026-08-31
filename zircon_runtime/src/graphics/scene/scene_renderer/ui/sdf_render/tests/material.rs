@@ -1,8 +1,8 @@
 use super::super::material::{
-    aligned_uniform_stride, fragment_screen_px_range, mtsdf_glow_coverage, sdf_effect_coverage,
-    shadow_sample_uv, straight_alpha_over, SdfScreenPxRangeMode, SdfTextMaterial,
-    SdfTextMaterialDrawPlan, SdfTextMaterialUniform, SDF_TEXT_EFFECT_GLOW, SDF_TEXT_EFFECT_OUTLINE,
-    SDF_TEXT_EFFECT_SHADOW,
+    SDF_TEXT_EFFECT_GLOW, SDF_TEXT_EFFECT_OUTLINE, SDF_TEXT_EFFECT_SHADOW, SdfScreenPxRangeMode,
+    SdfTextMaterial, SdfTextMaterialDrawPlan, SdfTextMaterialUniform, aligned_uniform_stride,
+    fragment_screen_px_range, mtsdf_glow_coverage, sdf_effect_coverage, shadow_sample_uv,
+    straight_alpha_over,
 };
 use super::*;
 use crate::graphics::scene::scene_renderer::ui::render::text_effects::{

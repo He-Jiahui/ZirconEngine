@@ -6,6 +6,12 @@ use super::{
 };
 use crate::core::framework::render::material::readiness_report::RenderMaterialReadinessStatus;
 
+#[cfg(test)]
+#[path = "query_filters/capacity_tests.rs"]
+mod capacity_tests;
+
+const ACTIVE_QUERY_FILTER_MAX_COUNT: usize = 3;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RenderMaterialManagementQueryFilterKind {
@@ -68,7 +74,7 @@ impl RenderMaterialManagementQueryFilter {
 
 impl RenderMaterialManagementQuery {
     pub fn active_filters(&self) -> Vec<RenderMaterialManagementQueryFilter> {
-        let mut filters = Vec::new();
+        let mut filters = Vec::with_capacity(ACTIVE_QUERY_FILTER_MAX_COUNT);
         if let Some(status) = self.status {
             filters.push(RenderMaterialManagementQueryFilter::status(
                 status,

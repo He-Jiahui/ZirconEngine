@@ -40,10 +40,8 @@ fn migrate_project_assets_inner(
         }
     })?;
     let roots = migration_roots(&paths, &manifest.asset_roots);
-    let root_paths = roots
-        .iter()
-        .map(|(_, path)| path.clone())
-        .collect::<Vec<_>>();
+    let mut root_paths = Vec::with_capacity(roots.len());
+    root_paths.extend(roots.iter().map(|(_, path)| path.clone()));
     let mut report = AssetMigrationReport::new(options.mode);
     let inventory =
         MigrationInventory::build(&roots).map_err(|source| AssetMigrationError::Scan {
@@ -137,14 +135,12 @@ fn migrate_project_assets_inner(
 }
 
 fn migration_roots(paths: &ProjectPaths, roots: &[RelPath]) -> Vec<(RelPath, PathBuf)> {
-    roots
-        .iter()
-        .cloned()
-        .map(|root| {
-            let path = paths.asset_root(&root);
-            (root, path)
-        })
-        .collect()
+    let mut migration_roots = Vec::with_capacity(roots.len());
+    migration_roots.extend(roots.iter().cloned().map(|root| {
+        let path = paths.asset_root(&root);
+        (root, path)
+    }));
+    migration_roots
 }
 
 #[cfg(test)]
@@ -224,6 +220,10 @@ pub(crate) fn migrate_project_assets_with_stage_fault(
     };
     migrate_project_assets_inner(options, fault)
 }
+
+#[cfg(test)]
+#[path = "run/optimization_tests.rs"]
+mod optimization_tests;
 
 #[cfg(test)]
 pub(crate) fn migrate_project_assets_with_commit_window_fault(

@@ -3,7 +3,9 @@ use super::*;
 #[test]
 fn render_product_sprite_world_frame_extract_exposes_runtime_sprite_components() {
     let mut world = World::empty();
-    let camera = world.spawn_node(NodeKind::Camera);
+    let camera = world
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     world
         .insert(
             camera,
@@ -14,7 +16,9 @@ fn render_product_sprite_world_frame_extract_exposes_runtime_sprite_components()
             },
         )
         .unwrap();
-    let sprite_entity = world.spawn_node(NodeKind::Mesh);
+    let sprite_entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .remove::<crate::scene::components::MeshRenderer>(sprite_entity)
         .unwrap();
@@ -108,7 +112,9 @@ fn render_product_sprite_world_frame_extract_exposes_runtime_sprite_components()
 #[test]
 fn render_product_sprite_world_frame_extract_filters_by_camera_layers() {
     let mut world = World::empty();
-    let camera = world.spawn_node(NodeKind::Camera);
+    let camera = world
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     world
         .insert(
             camera,
@@ -121,8 +127,12 @@ fn render_product_sprite_world_frame_extract_filters_by_camera_layers() {
         .unwrap();
     world.set_render_layer_mask(camera, 0b0010).unwrap();
 
-    let visible_sprite = world.spawn_node(NodeKind::Mesh);
-    let hidden_sprite = world.spawn_node(NodeKind::Mesh);
+    let visible_sprite = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let hidden_sprite = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .remove::<crate::scene::components::MeshRenderer>(visible_sprite)
         .unwrap();
@@ -152,33 +162,41 @@ fn render_product_sprite_world_frame_extract_filters_by_camera_layers() {
 
     let extract = world.to_render_frame_extract();
 
-    assert!(extract
-        .sprites
-        .sprites
-        .iter()
-        .any(|sprite| sprite.entity == visible_sprite));
-    assert!(extract
-        .sprites
-        .sprites
-        .iter()
-        .all(|sprite| sprite.entity != hidden_sprite));
+    assert!(
+        extract
+            .sprites
+            .sprites
+            .iter()
+            .any(|sprite| sprite.entity == visible_sprite)
+    );
+    assert!(
+        extract
+            .sprites
+            .sprites
+            .iter()
+            .all(|sprite| sprite.entity != hidden_sprite)
+    );
     assert!(extract.sprites.sprites.iter().all(|sprite| {
         sprite
             .common
             .layer_mask
             .intersects_scene_schema_v1_mask(0b0010)
     }));
-    assert!(extract
-        .visibility
-        .dynamic_entities
-        .contains(&visible_sprite));
+    assert!(
+        extract
+            .visibility
+            .dynamic_entities
+            .contains(&visible_sprite)
+    );
     assert!(!extract.visibility.dynamic_entities.contains(&hidden_sprite));
 }
 
 #[test]
 fn render_product_sprite_world_frame_extract_projects_static_mobility_into_common() {
     let mut world = World::empty();
-    let camera = world.spawn_node(NodeKind::Camera);
+    let camera = world
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     world
         .insert(
             camera,
@@ -190,7 +208,9 @@ fn render_product_sprite_world_frame_extract_projects_static_mobility_into_commo
         )
         .unwrap();
 
-    let sprite_entity = world.spawn_node(NodeKind::Mesh);
+    let sprite_entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .remove::<crate::scene::components::MeshRenderer>(sprite_entity)
         .unwrap();
@@ -226,7 +246,9 @@ fn render_product_sprite_world_frame_extract_projects_static_mobility_into_commo
 #[test]
 fn render_product_sprite_mesh2d_component_does_not_count_as_particle_sprite() {
     let mut world = World::empty();
-    let camera = world.spawn_node(NodeKind::Camera);
+    let camera = world
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     world
         .insert(
             camera,
@@ -237,7 +259,9 @@ fn render_product_sprite_mesh2d_component_does_not_count_as_particle_sprite() {
             },
         )
         .unwrap();
-    let mesh2d_entity = world.spawn_node(NodeKind::Mesh);
+    let mesh2d_entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .insert(
             mesh2d_entity,

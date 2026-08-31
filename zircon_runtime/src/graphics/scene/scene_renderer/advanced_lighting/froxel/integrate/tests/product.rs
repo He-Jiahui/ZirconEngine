@@ -10,15 +10,15 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Mat4, UVec2, Vec3, Vec4};
 
+use super::super::super::GpuFroxelTemporalReprojection;
 use super::super::super::light_scatter::{FroxelLightScatterPipeline, FroxelLightScatterRequest};
 use super::super::super::media_inject::{FroxelMediaInjectPipeline, FroxelMediaInjectRequest};
-use super::super::super::GpuFroxelTemporalReprojection;
 use super::super::{FroxelIntegratePipeline, FroxelIntegrateRequest};
 use super::fixture::{
-    clear_shadow_atlas, create_lighting_resources, create_rgba16f_3d_texture,
-    create_shadow_resources, d3_view_descriptor, test_froxel_view, write_shadow_occluder_depth,
-    READBACK_BYTES_PER_ROW, TEST_GRID, TEST_OUTPUT, TEST_SHADOWED_RECEIVER_DEPTH,
-    TEST_SHADOW_OCCLUDER_DEPTH,
+    READBACK_BYTES_PER_ROW, TEST_GRID, TEST_OUTPUT, TEST_SHADOW_OCCLUDER_DEPTH,
+    TEST_SHADOWED_RECEIVER_DEPTH, clear_shadow_atlas, create_lighting_resources,
+    create_rgba16f_3d_texture, create_shadow_resources, d3_view_descriptor, test_froxel_view,
+    write_shadow_occluder_depth,
 };
 use super::support::{f16_bits_to_f32, render_test_output_dir, test_device, write_output_png};
 
@@ -159,10 +159,10 @@ fn run_volumetric_chain(
     write_shadow_occluder_depth(&mut encoder, &shadow_atlas_view);
 
     let media_pipeline = FroxelMediaInjectPipeline::new(device);
+    let mut media_recording = (device, &mut encoder);
     let media_dispatch = media_pipeline
         .encode(
-            device,
-            &mut encoder,
+            &mut media_recording,
             &media_view,
             FroxelMediaInjectRequest {
                 settings: VolumetricFogSettings {
@@ -183,10 +183,10 @@ fn run_volumetric_chain(
         .unwrap();
 
     let scatter_pipeline = FroxelLightScatterPipeline::new(device);
+    let mut scatter_recording = (device, &mut encoder);
     let scatter_dispatch = scatter_pipeline
         .encode(
-            device,
-            &mut encoder,
+            &mut scatter_recording,
             FroxelLightScatterRequest {
                 grid,
                 view: test_froxel_view(),
@@ -205,9 +205,21 @@ fn run_volumetric_chain(
                 ),
                 light_buffer: &lighting.light_buffer,
                 light_count: 1,
-                light_grid_params_buffer: &lighting.params_buffer,
-                light_zbins_buffer: &lighting.zbins_buffer,
-                light_tile_masks_buffer: &lighting.tile_masks_buffer,
+                light_grid_params_buffer: wgpu::BufferBinding {
+                    buffer: &lighting.params_buffer,
+                    offset: 0,
+                    size: None,
+                },
+                light_zbins_buffer: wgpu::BufferBinding {
+                    buffer: &lighting.zbins_buffer,
+                    offset: 0,
+                    size: None,
+                },
+                light_tile_masks_buffer: wgpu::BufferBinding {
+                    buffer: &lighting.tile_masks_buffer,
+                    offset: 0,
+                    size: None,
+                },
                 shadow_atlas_view: &shadow_atlas_view,
                 shadow_sampler: &shadow_sampler,
                 shadow_slots_buffer: &shadow_slots,
@@ -218,10 +230,10 @@ fn run_volumetric_chain(
         .unwrap();
 
     let integrate_pipeline = FroxelIntegratePipeline::new(device);
+    let mut integrate_recording = (device, &mut encoder);
     let integrate_dispatch = integrate_pipeline
         .encode(
-            device,
-            &mut encoder,
+            &mut integrate_recording,
             FroxelIntegrateRequest {
                 grid,
                 view: test_froxel_view(),

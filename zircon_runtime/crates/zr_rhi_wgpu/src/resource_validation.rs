@@ -1,11 +1,11 @@
 use std::collections::BTreeSet;
 
 use zr_rhi::{
-    BindGroupLayoutDesc, BufferDesc, BufferUsage, RhiError, SamplerDesc, TextureDesc,
-    TextureDimension, TextureUsage,
+    BindGroupLayoutDesc, BindingResourceType, BufferDesc, BufferUsage, RhiError, SamplerDesc,
+    TextureDesc, TextureDimension, TextureUsage,
 };
 
-pub(super) fn ensure_buffer_usage(
+pub(crate) fn ensure_buffer_usage(
     handle: u64,
     desc: &BufferDesc,
     required: BufferUsage,
@@ -21,7 +21,7 @@ pub(super) fn ensure_buffer_usage(
     }
 }
 
-pub(super) fn ensure_texture_usage(
+pub(crate) fn ensure_texture_usage(
     handle: u64,
     desc: &TextureDesc,
     required: TextureUsage,
@@ -37,14 +37,14 @@ pub(super) fn ensure_texture_usage(
     }
 }
 
-pub(super) fn texture_storage_size(desc: &TextureDesc) -> u64 {
+pub(crate) fn texture_storage_size(desc: &TextureDesc) -> u64 {
     if desc.is_sparse_reserved() {
         return 0;
     }
     desc.checked_storage_size_bytes().unwrap_or(u64::MAX)
 }
 
-pub(super) fn validate_buffer_desc(desc: &BufferDesc) -> Result<(), RhiError> {
+pub(crate) fn validate_buffer_desc(desc: &BufferDesc) -> Result<(), RhiError> {
     if desc.size_bytes == 0 {
         return Err(RhiError::InvalidBufferDescriptor {
             label: desc.label.clone(),
@@ -60,7 +60,7 @@ pub(super) fn validate_buffer_desc(desc: &BufferDesc) -> Result<(), RhiError> {
     Ok(())
 }
 
-pub(super) fn validate_texture_desc(
+pub(crate) fn validate_texture_desc(
     desc: &TextureDesc,
     supports_sparse_texture: bool,
 ) -> Result<(), RhiError> {
@@ -88,6 +88,7 @@ pub(super) fn validate_texture_desc(
             reason: "usage must not be empty".to_string(),
         });
     }
+    validate_texture_view_formats(desc)?;
     match desc.dimension {
         TextureDimension::D1 => {
             if desc.height != 1 || desc.depth != 1 {
@@ -161,7 +162,34 @@ pub(super) fn validate_texture_desc(
     Ok(())
 }
 
-pub(super) fn validate_sampler_desc(desc: &SamplerDesc) -> Result<(), RhiError> {
+fn validate_texture_view_formats(desc: &TextureDesc) -> Result<(), RhiError> {
+    for (index, view_format) in desc.view_formats.iter().enumerate() {
+        if *view_format == desc.format {
+            return Err(RhiError::InvalidTextureDescriptor {
+                label: desc.label.clone(),
+                reason: format!("view format {view_format:?} repeats the parent texture format"),
+            });
+        }
+        if desc.view_formats[..index].contains(view_format) {
+            return Err(RhiError::InvalidTextureDescriptor {
+                label: desc.label.clone(),
+                reason: format!("view format {view_format:?} is declared more than once"),
+            });
+        }
+        if !desc.format.supports_alternate_view_format(*view_format) {
+            return Err(RhiError::InvalidTextureDescriptor {
+                label: desc.label.clone(),
+                reason: format!(
+                    "view format {view_format:?} cannot reinterpret parent texture format {:?}",
+                    desc.format
+                ),
+            });
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_sampler_desc(desc: &SamplerDesc) -> Result<(), RhiError> {
     if !desc.lod_min_clamp.is_finite() || !desc.lod_max_clamp.is_finite() {
         return Err(RhiError::InvalidSamplerDescriptor {
             label: desc.label.clone(),
@@ -193,6 +221,31 @@ pub(super) fn validate_bind_group_layout_desc(desc: &BindGroupLayoutDesc) -> Res
 
     let mut seen_bindings = BTreeSet::new();
     for entry in &desc.entries {
+        let buffer_binding = matches!(
+            entry.resource_type,
+            BindingResourceType::UniformBuffer | BindingResourceType::StorageBuffer
+        );
+        if (entry.has_dynamic_offset || entry.min_binding_size.is_some()) && !buffer_binding {
+            return Err(RhiError::InvalidBindGroupLayoutDescriptor {
+                label: desc.label.clone(),
+                reason: format!(
+                    "binding {} buffer binding options require a uniform or storage buffer",
+                    entry.binding
+                ),
+            });
+        }
+        if entry.min_binding_size == Some(0) {
+            return Err(RhiError::InvalidBindGroupLayoutDescriptor {
+                label: desc.label.clone(),
+                reason: format!(
+                    "binding {} min_binding_size must be greater than zero",
+                    entry.binding
+                ),
+            });
+        }
+        if let BindingResourceType::StorageTexture(storage) = entry.resource_type {
+            validate_storage_texture_layout_entry(desc, entry.binding, storage)?;
+        }
         if !seen_bindings.insert(entry.binding) {
             return Err(RhiError::InvalidBindGroupLayoutDescriptor {
                 label: desc.label.clone(),
@@ -216,5 +269,37 @@ pub(super) fn validate_bind_group_layout_desc(desc: &BindGroupLayoutDesc) -> Res
         }
     }
 
+    Ok(())
+}
+
+fn validate_storage_texture_layout_entry(
+    layout: &BindGroupLayoutDesc,
+    binding: u32,
+    storage: zr_rhi::StorageTextureBindingDesc,
+) -> Result<(), RhiError> {
+    if !storage.format.supports_write_only_storage() {
+        return Err(RhiError::InvalidBindGroupLayoutDescriptor {
+            label: layout.label.clone(),
+            reason: format!(
+                "binding {binding} storage texture format {:?} is not supported by the MVP storage texture ABI",
+                storage.format
+            ),
+        });
+    }
+    if !matches!(
+        storage.view_dimension,
+        zr_rhi::TextureViewDimension::D1
+            | zr_rhi::TextureViewDimension::D2
+            | zr_rhi::TextureViewDimension::D2Array
+            | zr_rhi::TextureViewDimension::D3
+    ) {
+        return Err(RhiError::InvalidBindGroupLayoutDescriptor {
+            label: layout.label.clone(),
+            reason: format!(
+                "binding {binding} storage texture view dimension {:?} is not supported by the MVP storage texture ABI",
+                storage.view_dimension
+            ),
+        });
+    }
     Ok(())
 }

@@ -68,13 +68,15 @@ doc_type: module-detail
 
 The Asset project subtree owns the filesystem-backed `ProjectManifest`, loading, migration, validation, and save behavior. Shared `plugins`, `export_profiles`, packaging/platform policy, and runtime-profile id fields use the single neutral owner under `core/framework/project`; Asset no longer imports Plugin facade schema. The module is folder-backed: `manifest.rs` is wiring only, while declarations and I/O have focused owners.
 
-Version 2 adds `engine_version_req: Option<String>`, `asset_roots: Vec<RelPath>`, and `settings: Option<RelPath>`. Missing roots migrate/default to `assets`. Structural `format_version` and content `library_version` remain intentionally independent.
+Version 3 requires a non-nil `project_guid` as the persisted project identity. `engine_version_req: Option<String>`, `asset_roots: Vec<RelPath>`, and `settings: Option<RelPath>` remain part of the current document. Structural `format_version` and content `library_version` remain intentionally independent. Legacy v1/v2 documents are preflight-only migration inputs; no runtime load synthesizes a GUID or opens them.
 
 ## Load and Save Flow
 
-`from_toml_str` delegates TOML value migration to `zircon_runtime_interface::project`, deserializes only the resulting v2 value into the runtime type, then validates cross-field invariants such as non-empty unique roots. `load_with_report` preserves the migration source version. `load` returns the current manifest for existing runtime consumers but uses the same migrating path; it is not a legacy parser.
+`from_toml_str` delegates TOML value parsing and migration reporting to `zircon_runtime_interface::project`, then rejects any `migrated_from` value with `ProjectManifestError::MigrationRequired`. It deserializes and validates only an original v3 document, including its persisted `project_guid` and cross-field invariants such as non-empty unique roots. The data-only summary parser remains the preflight owner for migration decisions; `load_with_report` and `load` are current-runtime APIs, not legacy parsers.
 
-Save validates the manifest, forces `format_version = 2` on the serialized copy, creates the parent directory, and writes pretty TOML. It never emits a v1 document.
+Editor preflight combines the runtime-resolved physical descriptor, current `project_guid`, and manifest digest into the neutral `ProjectIdentity` value before admission. A migration candidate has no complete `ProjectIdentity`, so it cannot cross the runtime-open boundary.
+
+Save validates the manifest, forces `format_version = 3` on the serialized copy, preserves `project_guid`, creates the parent directory, and writes pretty TOML. It never emits a legacy document.
 
 ## Root Registration and Scanning
 
@@ -123,13 +125,13 @@ it cannot panic or silently reopen the path.
 - The root vector cannot be empty or contain duplicates after normalization.
 - Lexically resolved and canonical roots must remain below the corresponding project root; links and junctions cannot escape it.
 - Two physical sources cannot silently claim the same `res://` URI.
-- Production manifest code contains no v1 DTO, panic/expect/unwrap fallback, or alternate migration chain.
+- Production manifest code contains no v1/v2 DTO, `schema_version` alias, panic/expect/unwrap fallback, or alternate migration chain.
 
 ## Test Coverage and Status
 
-Manifest tests cover a real v1 migration report, future rejection, stable v2 persistence, and equality with the interface summary projection. Project tests cover default and explicit ordered root registration, canonical link escape rejection, successful two-root scan, duplicate URI rejection, and a real watcher event emitted from the second root. The current source-index regression additionally deletes a source after full scan and requires locator lookup to return the indexed generation path without stat. Editor tests cover animation derivatives remaining beside a model in a non-primary root and typed project-path error sources. The interface managed build/test gate passes 212/212 plus doc-tests. Current-source Runtime/Editor focused Cargo evidence for the 2026-07-18 source-index slice remains pending and is not inferred from historical binaries; targeted import remains a separate open acceptance item.
+Manifest tests cover data-only v1/v2 migration receipts, direct runtime rejection until explicit migration, future rejection, stable v3 persistence with a GUID, and equality with the interface summary projection. Project tests cover default and explicit ordered root registration, canonical link escape rejection, successful two-root scan, duplicate URI rejection, and a real watcher event emitted from the second root. The current source-index regression additionally deletes a source after full scan and requires locator lookup to return the indexed generation path without stat. Editor tests cover animation derivatives remaining beside a model in a non-primary root and typed project-path error sources. Current-source Runtime/Editor focused Cargo evidence for the 2026-07-18 source-index slice remains pending and is not inferred from historical binaries; targeted import remains a separate open acceptance item.
 
-The Runtime10 foundation contract `project_session_startup_reuses_one_prepared_project_manager_snapshot`
+The Runtime10 records below describe the earlier prepared-project ownership work and are historical only; they do not validate the current v3 manifest hard cut. The Runtime10 foundation contract `project_session_startup_reuses_one_prepared_project_manager_snapshot`
 locks the abstract single prepare/transfer route and rejects a second scene open/scan.
 `project_startup_snapshot_survives_disk_manifest_rewrite_before_activation` rewrites the disk
 manifest after preparation and verifies that startup consumers retain the first validated scene
@@ -137,7 +139,7 @@ selection; `project_startup_snapshot_survives_disk_manifest_rewrite_after_activa
 same mutation after real trait activation and verifies that the service snapshot still observes the
 activated revision. The shared `project_startup_snapshot_survives_disk_manifest_rewrite` filter
 runs both behavior cases in one focused lib-test invocation.
-The managed Windows production check passes. The focused default-feature lib-test executes both
+The historical managed Windows production check passed. The focused default-feature lib-test executed both
 disk-rewrite cases and reports 2 passed / 0 failed / 8185 filtered; exact job and run identifiers are
 recorded in Runtime10 status. The earlier independently owned Text fixture compile failure is kept
 as historical failed-attempt evidence and is not used as acceptance.

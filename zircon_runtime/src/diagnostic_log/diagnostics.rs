@@ -8,11 +8,14 @@ use crate::core::diagnostics::{
 use super::sink::write_log_lazy;
 
 pub const DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT: Duration = Duration::from_secs(1);
+const NANOS_PER_SECOND: u128 = 1_000_000_000;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiagnosticStoreLogSchedule {
     wait_duration: Duration,
     elapsed: Duration,
+    last_periods_due: u64,
+    coalesced_periods: u64,
     enabled: bool,
 }
 
@@ -61,6 +64,8 @@ impl DiagnosticStoreLogSchedule {
         Self {
             wait_duration: Duration::ZERO,
             elapsed: Duration::ZERO,
+            last_periods_due: 0,
+            coalesced_periods: 0,
             enabled: false,
         }
     }
@@ -69,6 +74,8 @@ impl DiagnosticStoreLogSchedule {
         Self {
             wait_duration,
             elapsed: Duration::ZERO,
+            last_periods_due: 0,
+            coalesced_periods: 0,
             enabled: true,
         }
     }
@@ -85,12 +92,22 @@ impl DiagnosticStoreLogSchedule {
         self.elapsed
     }
 
+    pub const fn last_periods_due(&self) -> u64 {
+        self.last_periods_due
+    }
+
+    pub const fn coalesced_periods(&self) -> u64 {
+        self.coalesced_periods
+    }
+
     pub fn tick(&mut self, delta: Duration) -> bool {
+        self.last_periods_due = 0;
         if !self.enabled {
             return false;
         }
         if self.wait_duration.is_zero() {
             self.elapsed = Duration::ZERO;
+            self.last_periods_due = 1;
             return true;
         }
 
@@ -98,11 +115,28 @@ impl DiagnosticStoreLogSchedule {
         if self.elapsed < self.wait_duration {
             return false;
         }
-        while self.elapsed >= self.wait_duration {
-            self.elapsed -= self.wait_duration;
-        }
+
+        let elapsed_nanos = self.elapsed.as_nanos();
+        let wait_nanos = self.wait_duration.as_nanos();
+        let periods_due = elapsed_nanos / wait_nanos;
+        self.elapsed = duration_from_nanos(elapsed_nanos % wait_nanos);
+        self.last_periods_due = saturating_u128_to_u64(periods_due);
+        self.coalesced_periods = self
+            .coalesced_periods
+            .saturating_add(saturating_u128_to_u64(periods_due.saturating_sub(1)));
         true
     }
+}
+
+fn duration_from_nanos(nanos: u128) -> Duration {
+    Duration::new(
+        (nanos / NANOS_PER_SECOND) as u64,
+        (nanos % NANOS_PER_SECOND) as u32,
+    )
+}
+
+fn saturating_u128_to_u64(value: u128) -> u64 {
+    value.min(u64::MAX as u128) as u64
 }
 
 fn format_diagnostic_series(series: &DiagnosticSeriesSnapshot) -> Option<String> {

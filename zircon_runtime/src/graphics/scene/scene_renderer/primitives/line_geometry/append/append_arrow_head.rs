@@ -2,6 +2,8 @@ use crate::core::math::{Vec3, Vec4};
 
 use crate::graphics::scene::scene_renderer::primitives::LineVertex;
 
+pub(crate) const ARROW_HEAD_VERTEX_CAPACITY: usize = 4;
+
 pub(crate) fn append_arrow_head(
     vertices: &mut Vec<LineVertex>,
     start: Vec3,
@@ -25,4 +27,19 @@ pub(crate) fn append_arrow_head(
     vertices.push(LineVertex::new(base + right * head_width, color));
     vertices.push(LineVertex::new(end, color));
     vertices.push(LineVertex::new(base - right * head_width, color));
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::math::{Vec3, Vec4};
+
+    use super::{ARROW_HEAD_VERTEX_CAPACITY, append_arrow_head};
+
+    #[test]
+    fn arrow_head_capacity_matches_non_degenerate_output() {
+        let mut vertices = Vec::new();
+        append_arrow_head(&mut vertices, Vec3::ZERO, Vec3::X, Vec4::ONE);
+
+        assert_eq!(vertices.len(), ARROW_HEAD_VERTEX_CAPACITY);
+    }
 }

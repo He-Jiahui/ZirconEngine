@@ -54,6 +54,10 @@ fn play_mode_menu_action_bindings_roundtrip_through_headless_dispatch() {
             r#"WorkbenchMenuBar/EnterPlayMode:onClick(MenuAction("workbench.play_mode.enter"))"#,
         ),
         (
+            MenuAction::KeepPlayChanges,
+            r#"WorkbenchMenuBar/KeepPlayChanges:onClick(MenuAction("workbench.play_mode.keep_changes"))"#,
+        ),
+        (
             MenuAction::ExitPlayMode,
             r#"WorkbenchMenuBar/ExitPlayMode:onClick(MenuAction("workbench.play_mode.exit"))"#,
         ),

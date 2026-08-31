@@ -1,8 +1,8 @@
 use super::*;
 use crate::asset::artifact::resolve_ibl_bake_artifact_runtime_dispatch;
 use crate::core::framework::render::{
-    build_source_cubemap_from_equirect, build_source_cubemap_irradiance_cube,
-    IblBakeArtifactContents,
+    IblBakeArtifactContents, build_source_cubemap_from_equirect,
+    build_source_cubemap_irradiance_cube,
 };
 use crate::core::framework::render::{RenderFramework, RenderViewportDescriptor};
 use crate::graphics::scene::{
@@ -15,12 +15,13 @@ mod pbr_matrix;
 mod reflection_probe_product;
 
 use pbr_matrix::{
-    assert_pbr_matrix_environment_response, assert_real_hdri_reflection_response,
-    assert_source_cubemap_product_capture_response, build_pbr_matrix_product_capture_snapshot,
-    ibl_executor_count, plan11_ibl_product_capture_quality_profile,
-    polyhaven_lakes_source_cubemap_environment, render_pbr_matrix_frame_with_environment,
-    render_test_output_dir, runtime_ibl_cache_source_cubemap_environment, shader_test_output_dir,
-    visible_luma_range, write_pbr_matrix_project, PBR_MATRIX_OUTPUT_SIZE,
+    PBR_MATRIX_OUTPUT_SIZE, assert_pbr_matrix_environment_response,
+    assert_real_hdri_reflection_response, assert_source_cubemap_product_capture_response,
+    build_pbr_matrix_product_capture_snapshot, ibl_executor_count,
+    plan11_ibl_product_capture_quality_profile, polyhaven_lakes_source_cubemap_environment,
+    render_pbr_matrix_frame_with_environment, render_test_output_dir,
+    runtime_ibl_cache_source_cubemap_environment, shader_test_output_dir, visible_luma_range,
+    write_pbr_matrix_project,
 };
 
 fn render_snapshot_through_framework(
@@ -134,10 +135,11 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
 
     let background = [20_u8, 23_u8, 28_u8, 255_u8];
     assert!(frame.rgba.chunks_exact(4).any(|pixel| pixel != background));
-    assert!(frame
-        .rgba
-        .chunks_exact(4)
-        .any(|pixel| { pixel[3] == 255 && (pixel[0] > 200 || pixel[1] > 200 || pixel[2] > 200) }));
+    assert!(
+        frame.rgba.chunks_exact(4).any(|pixel| {
+            pixel[3] == 255 && (pixel[0] > 200 || pixel[1] > 200 || pixel[2] > 200)
+        })
+    );
 
     let _ = fs::remove_dir_all(root);
 }

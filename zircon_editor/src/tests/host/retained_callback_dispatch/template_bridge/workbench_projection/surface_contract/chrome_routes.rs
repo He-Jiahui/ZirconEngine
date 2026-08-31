@@ -194,24 +194,14 @@ fn componentized_workbench_window_template_bridge_projects_chrome_and_core_route
         module_workspace.control_id.as_str(),
         "WorkbenchMainBandModuleWorkspace"
     );
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchEffectRulesTab")
-        .expect("effect rules tab projection")
-        .routes
-        .iter()
-        .any(|route| route.binding_id == "WorkbenchModule/EffectRulesTab"
-            && route.event_kind == UiEventKind::Click));
-    assert!(bridge
-        .host_projection()
-        .node_by_control_id("WorkbenchMaterialGraphTab")
-        .expect("material graph tab projection")
-        .routes
-        .iter()
-        .any(
-            |route| route.binding_id == "WorkbenchModule/MaterialGraphTab"
-                && route.event_kind == UiEventKind::Click
-        ));
+    for control_id in ["WorkbenchEffectTitle", "WorkbenchMaterialTitle"] {
+        assert!(bridge
+            .host_projection()
+            .node_by_control_id(control_id)
+            .unwrap_or_else(|| panic!("missing fixed core workspace title: {control_id}"))
+            .routes
+            .is_empty());
+    }
     assert!(bridge
         .host_projection()
         .node_by_control_id("WorkbenchAssetsImportButton")

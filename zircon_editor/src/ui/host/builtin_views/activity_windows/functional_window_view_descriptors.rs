@@ -5,8 +5,8 @@ use crate::ui::workbench::view::{
     ActivityWindowTemplateSpec, ViewDescriptor, ViewDescriptorId, ViewKind, WorkbenchSlot,
 };
 
-pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
-    vec![
+pub(super) fn functional_window_view_descriptors() -> [ViewDescriptor; 7] {
+    [
         ViewDescriptor::new(
             ViewDescriptorId::new("editor.scene_game_window"),
             ViewKind::ActivityWindow,

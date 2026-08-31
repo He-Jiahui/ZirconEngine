@@ -1,11 +1,4 @@
-use std::sync::OnceLock;
-
-use crate::core::framework::render::{
-    build_environment_brdf_lut_with_extent, EnvironmentBrdfLutTexel, ENVIRONMENT_BRDF_LUT_HEIGHT,
-    ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT, ENVIRONMENT_BRDF_LUT_WIDTH,
-};
-
-use super::half_float::push_f16_le_bytes;
+use crate::graphics::backend::SystemTextureGenerationLease;
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneEnvironmentBrdfLut {
     texture: wgpu::Texture,
@@ -13,57 +6,13 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneEnvironmentBrdf
 }
 
 impl SceneEnvironmentBrdfLut {
-    pub(in crate::graphics::scene::scene_renderer::core) fn new(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+    pub(in crate::graphics::scene::scene_renderer::core) fn from_system_textures(
+        system_textures: &SystemTextureGenerationLease,
     ) -> Self {
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-scene-environment-brdf-lut"),
-            size: wgpu::Extent3d {
-                width: ENVIRONMENT_BRDF_LUT_WIDTH,
-                height: ENVIRONMENT_BRDF_LUT_HEIGHT,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rg16Float,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-        let view = texture.create_view(&wgpu::TextureViewDescriptor {
-            label: Some("zircon-scene-environment-brdf-lut-view"),
-            format: Some(wgpu::TextureFormat::Rg16Float),
-            dimension: Some(wgpu::TextureViewDimension::D2),
-            usage: Some(wgpu::TextureUsages::TEXTURE_BINDING),
-            aspect: wgpu::TextureAspect::All,
-            base_mip_level: 0,
-            mip_level_count: Some(1),
-            base_array_layer: 0,
-            array_layer_count: Some(1),
-        });
-
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            cached_environment_brdf_lut_rg16float_bytes(),
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(ENVIRONMENT_BRDF_LUT_WIDTH * 4),
-                rows_per_image: Some(ENVIRONMENT_BRDF_LUT_HEIGHT),
-            },
-            wgpu::Extent3d {
-                width: ENVIRONMENT_BRDF_LUT_WIDTH,
-                height: ENVIRONMENT_BRDF_LUT_HEIGHT,
-                depth_or_array_layers: 1,
-            },
-        );
-
-        Self { texture, view }
+        Self {
+            texture: system_textures.brdf_lut_texture().clone(),
+            view: system_textures.brdf_lut_view().clone(),
+        }
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) fn texture_layout_entry(
@@ -86,69 +35,28 @@ impl SceneEnvironmentBrdfLut {
     ) -> wgpu::BindingResource<'_> {
         wgpu::BindingResource::TextureView(&self.view)
     }
-}
 
-fn cached_environment_brdf_lut_rg16float_bytes() -> &'static [u8] {
-    static ENCODED_BYTES: OnceLock<Vec<u8>> = OnceLock::new();
-    cache_environment_brdf_lut_bytes(&ENCODED_BYTES, || {
-        let texels = build_environment_brdf_lut_with_extent(
-            ENVIRONMENT_BRDF_LUT_WIDTH,
-            ENVIRONMENT_BRDF_LUT_HEIGHT,
-            ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
-        );
-        rg16float_texels(&texels)
-    })
-}
-
-fn cache_environment_brdf_lut_bytes<'a>(
-    cache: &'a OnceLock<Vec<u8>>,
-    build: impl FnOnce() -> Vec<u8>,
-) -> &'a [u8] {
-    cache.get_or_init(build).as_slice()
-}
-
-fn rg16float_texels(texels: &[EnvironmentBrdfLutTexel]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(texels.len() * 4);
-    for texel in texels {
-        for channel in texel {
-            push_f16_le_bytes(&mut bytes, *channel);
-        }
+    pub(in crate::graphics::scene::scene_renderer::core) fn texture(&self) -> &wgpu::Texture {
+        &self.texture
     }
-    bytes
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn view(&self) -> &wgpu::TextureView {
+        &self.view
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-
     #[test]
-    fn immutable_lut_byte_cache_builds_once() {
-        let cache = OnceLock::new();
-        let builds = AtomicUsize::new(0);
+    fn scene_brdf_binding_is_a_read_only_generation_lease_projection() {
+        let source = include_str!("environment_brdf_lut.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap_or_default();
 
-        let first = cache_environment_brdf_lut_bytes(&cache, || {
-            builds.fetch_add(1, Ordering::Relaxed);
-            vec![1, 2, 3, 4]
-        });
-        let second = cache_environment_brdf_lut_bytes(&cache, || {
-            builds.fetch_add(1, Ordering::Relaxed);
-            vec![5, 6, 7, 8]
-        });
-
-        assert_eq!(first, [1, 2, 3, 4]);
-        assert_eq!(second, [1, 2, 3, 4]);
-        assert!(std::ptr::eq(first.as_ptr(), second.as_ptr()));
-        assert_eq!(builds.load(Ordering::Relaxed), 1);
-    }
-
-    #[test]
-    fn rg16float_texels_encode_two_channels_per_texel() {
-        let bytes = rg16float_texels(&[[1.0, 0.0], [0.5, 0.25]]);
-        assert_eq!(bytes.len(), 8);
-        assert_eq!(u16::from_le_bytes([bytes[0], bytes[1]]), 0x3c00);
-        assert_eq!(u16::from_le_bytes([bytes[2], bytes[3]]), 0x0000);
-        assert_eq!(u16::from_le_bytes([bytes[4], bytes[5]]), 0x3800);
-        assert_eq!(u16::from_le_bytes([bytes[6], bytes[7]]), 0x3400);
+        assert!(production.contains("from_system_textures"));
+        assert!(production.contains("system_textures.brdf_lut_texture().clone()"));
+        assert!(production.contains("system_textures.brdf_lut_view().clone()"));
+        assert!(!production.contains("create_texture"));
+        assert!(!production.contains("write_texture"));
+        assert!(!production.contains("wgpu::Queue"));
     }
 }

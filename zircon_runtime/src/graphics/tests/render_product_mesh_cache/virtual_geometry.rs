@@ -4,8 +4,8 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    cook_virtual_geometry_from_mesh, AssetUri, MaterialAsset, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset, VirtualGeometryCookConfig,
+    AssetUri, MaterialAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+    VirtualGeometryCookConfig, cook_virtual_geometry_from_mesh,
 };
 use crate::core::framework::render::{
     CameraRenderDescriptor, CapturedFrame, DisplayMode, GeometryExtract, ProjectionMode,
@@ -279,7 +279,7 @@ fn static_cache_virtual_geometry_extract(world: u64) -> RenderFrameExtract {
         RenderWorldSnapshotHandle::new(world),
         snapshot_with_projection_for_mesh_cache_tests(ProjectionMode::Perspective),
     );
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![static_cache_virtual_geometry_visibility_mesh()],
     );
@@ -490,7 +490,7 @@ fn automatic_virtual_geometry_model_extract(
     extract.view.select_camera_descriptor(descriptor);
     extract.debug.overlays.display_mode = DisplayMode::Shaded;
     extract.post_process.display_mode = DisplayMode::Shaded;
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![automatic_virtual_geometry_model_mesh(model_id, material_id)],
     );

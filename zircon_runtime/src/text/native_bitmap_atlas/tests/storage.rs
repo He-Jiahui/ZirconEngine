@@ -1,85 +1,60 @@
 use super::*;
-use crate::text::atlas::{
-    glyph_atlas_bitmap_page_shadow_commit, glyph_atlas_bitmap_render_submission_plan,
-    glyph_atlas_bitmap_render_submission_plan_with_atlas, GlyphAtlasBitmapUploadSourceBytes,
-    GlyphAtlasUploadMode, GlyphHintingMode, GlyphRasterKey, GlyphSmoothingMode,
-    SyntheticGlyphStyle,
-};
 use crate::text::InstancedFaceId;
+use crate::text::atlas::{
+    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasRect, GlyphHintingMode, GlyphRasterKey,
+    GlyphSmoothingMode, SyntheticGlyphStyle, glyph_atlas_bitmap_page_shadow_commit,
+    glyph_atlas_bitmap_render_submission_plan,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas,
+};
 
 #[test]
-fn native_bitmap_atlas_storage_split_does_not_promote_later_alpha_to_full_page() {
-    let first_alpha = GlyphAtlasBitmapSource {
-        raster_key: None,
-        format: GlyphAtlasFormat::AlphaMask,
-        content_size: UVec2::new(8, 8),
-        screen_rect: GlyphAtlasScreenRect::new(4.0, 4.0, 8.0, 8.0),
-        foreground_color: [1.0, 1.0, 1.0, 1.0],
-        background_color: [0.0, 0.0, 0.0, 1.0],
-        source_byte_len: 64,
-    };
-    let color = GlyphAtlasBitmapSource {
-        raster_key: None,
-        format: GlyphAtlasFormat::Color,
-        content_size: UVec2::new(8, 8),
-        screen_rect: GlyphAtlasScreenRect::new(18.0, 4.0, 8.0, 8.0),
-        foreground_color: [1.0, 1.0, 1.0, 1.0],
-        background_color: [0.0, 0.0, 0.0, 1.0],
-        source_byte_len: 256,
-    };
-    let second_alpha = GlyphAtlasBitmapSource {
-        raster_key: None,
-        format: GlyphAtlasFormat::AlphaMask,
-        content_size: UVec2::new(54, 64),
-        screen_rect: GlyphAtlasScreenRect::new(30.0, 4.0, 54.0, 64.0),
-        foreground_color: [1.0, 1.0, 1.0, 1.0],
-        background_color: [0.0, 0.0, 0.0, 1.0],
-        source_byte_len: 54 * 64,
-    };
-    let frame = test_frame(
-        test_submission([first_alpha, color, second_alpha]),
-        vec![
-            test_source_image(first_alpha, vec![0xA5; 64]),
-            test_source_image(color, vec![0xCC; 256]),
-            test_source_image(second_alpha, vec![0x5A; 54 * 64]),
-        ],
-        3,
-        0,
-        0,
-    );
-    let storage_submissions = frame.storage_submissions();
+fn native_bitmap_atlas_interleaved_storage_uses_one_canonical_frame_plan() {
+    let [alpha, color, later_alpha] = interleaved_sources();
+    let frame = interleaved_frame(alpha, color, later_alpha);
 
-    assert_eq!(storage_submissions.len(), 3);
-    let first_alpha_submission = &storage_submissions[0].submission;
-    let second_alpha_submission = &storage_submissions[2].submission;
-    assert_eq!(
-        first_alpha_submission.run.glyphs[0].page_key,
-        second_alpha_submission.run.glyphs[0].page_key,
-        "the split alpha runs must share one page for this replay regression",
-    );
-    assert_eq!(first_alpha_submission.run.upload_commands.len(), 1);
-    assert_eq!(second_alpha_submission.run.upload_commands.len(), 1);
-    assert_eq!(
-        second_alpha_submission.run.upload_commands[0].mode,
-        GlyphAtlasUploadMode::PartialRect,
-    );
-    assert_eq!(
-        second_alpha_submission.run.upload_commands[0].rect,
-        second_alpha_submission.run.upload_copies[0].atlas_rect,
-    );
+    let report = frame.prepare_report();
 
-    let second_prepared =
-        second_alpha_submission.prepared_upload(storage_submissions[2].source_bytes());
-    assert!(!second_prepared.has_failures());
-    assert_eq!(
-        second_prepared.staging.pages[0].target_rect,
-        second_alpha_submission.run.upload_copies[0].atlas_rect,
-    );
-    assert_eq!(second_prepared.staging.pages[0].bytes[0], 0x5A);
+    assert_eq!(frame.canonical_frame_plan_count(), 1);
+    assert_eq!(frame.storage_resource_count(), 2);
+    assert_eq!(frame.ordered_draw_segment_count(), 3);
+    assert_eq!(report.storage_submission_count, 1);
+    assert_eq!(report.storage_submission_visible_glyph_count, 3);
 }
 
 #[test]
-fn native_bitmap_atlas_storage_split_does_not_replay_stale_shadow_over_new_alpha() {
+fn native_bitmap_atlas_canonical_frame_plan_prepares_interleaved_sources_once() {
+    let [alpha, color, later_alpha] = interleaved_sources();
+    let frame = interleaved_frame(alpha, color, later_alpha);
+    let prepared_upload = frame.submission.prepared_upload(frame.source_bytes());
+
+    assert!(!prepared_upload.has_failures());
+    assert_eq!(frame.submission.run.upload_copies.len(), 3);
+    assert!(
+        prepared_upload
+            .staged_uploads
+            .uploads
+            .iter()
+            .any(|upload| upload.command.page_key.format == GlyphAtlasFormat::AlphaMask)
+    );
+    assert!(
+        prepared_upload
+            .staged_uploads
+            .uploads
+            .iter()
+            .any(|upload| upload.command.page_key.format == GlyphAtlasFormat::Color)
+    );
+
+    let first_alpha = &frame.submission.run.glyphs[0];
+    let second_alpha = &frame.submission.run.glyphs[2];
+    assert_eq!(first_alpha.page_key, second_alpha.page_key);
+    assert!(rectangles_are_disjoint(
+        first_alpha.atlas_rect,
+        second_alpha.atlas_rect
+    ));
+}
+
+#[test]
+fn native_bitmap_atlas_canonical_frame_plan_keeps_persistent_alpha_shadow_safe() {
     let cached_alpha = persistent_alpha_source(301, UVec2::new(8, 8), 4.0, 4.0);
     let first_submission = glyph_atlas_bitmap_render_submission_plan(
         [cached_alpha],
@@ -128,39 +103,21 @@ fn native_bitmap_atlas_storage_split_does_not_replay_stale_shadow_over_new_alpha
         0,
         0,
     );
-    let storage_submissions = frame.storage_submissions();
+    let prepared_upload = frame.submission.prepared_upload(frame.source_bytes());
 
-    assert_eq!(storage_submissions.len(), 3);
-    let first_alpha_submission = &storage_submissions[0].submission;
-    let later_alpha_submission = &storage_submissions[2].submission;
-    assert_eq!(
-        first_alpha_submission.run.glyphs[1].page_key,
-        later_alpha_submission.run.glyphs[0].page_key,
-        "the new alpha slots must share a page across separated storage splits",
+    assert!(!prepared_upload.has_failures());
+    assert_eq!(frame.canonical_frame_plan_count(), 1);
+    assert!(
+        prepared_upload
+            .staged_uploads
+            .uploads
+            .iter()
+            .any(|upload| upload.command.page_key.format == GlyphAtlasFormat::AlphaMask)
     );
-    assert_eq!(later_alpha_submission.run.upload_commands.len(), 1);
-    assert_eq!(
-        later_alpha_submission.run.upload_commands[0].mode,
-        GlyphAtlasUploadMode::PartialRect,
-    );
-    assert_eq!(
-        later_alpha_submission.run.upload_commands[0].rect,
-        later_alpha_submission.run.upload_copies[0].atlas_rect,
-    );
-
-    let later_prepared =
-        later_alpha_submission.prepared_upload(storage_submissions[2].source_bytes());
-    assert!(!later_prepared.has_failures());
-    assert_eq!(
-        later_prepared.staging.pages[0].target_rect,
-        later_alpha_submission.run.upload_copies[0].atlas_rect,
-    );
-    assert_eq!(later_prepared.staging.pages[0].bytes[0], 0x5A);
 }
 
-#[test]
-fn native_bitmap_atlas_storage_submissions_keep_repeated_format_slots_disjoint() {
-    let first_alpha = GlyphAtlasBitmapSource {
+fn interleaved_sources() -> [GlyphAtlasBitmapSource; 3] {
+    let alpha = GlyphAtlasBitmapSource {
         raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
         content_size: UVec2::new(8, 8),
@@ -170,127 +127,41 @@ fn native_bitmap_atlas_storage_submissions_keep_repeated_format_slots_disjoint()
         source_byte_len: 64,
     };
     let color = GlyphAtlasBitmapSource {
-        raster_key: None,
         format: GlyphAtlasFormat::Color,
-        content_size: UVec2::new(8, 8),
         screen_rect: GlyphAtlasScreenRect::new(18.0, 4.0, 8.0, 8.0),
-        foreground_color: [1.0, 1.0, 1.0, 1.0],
-        background_color: [0.0, 0.0, 0.0, 1.0],
         source_byte_len: 256,
+        ..alpha
     };
-    let second_alpha = GlyphAtlasBitmapSource {
+    let later_alpha = GlyphAtlasBitmapSource {
         screen_rect: GlyphAtlasScreenRect::new(30.0, 4.0, 8.0, 8.0),
-        ..first_alpha
+        ..alpha
     };
-    let frame = test_frame(
-        test_submission([first_alpha, color, second_alpha]),
+    [alpha, color, later_alpha]
+}
+
+fn interleaved_frame(
+    alpha: GlyphAtlasBitmapSource,
+    color: GlyphAtlasBitmapSource,
+    later_alpha: GlyphAtlasBitmapSource,
+) -> NativeBitmapAtlasFrame {
+    test_frame(
+        test_submission([alpha, color, later_alpha]),
         vec![
-            test_source_image(first_alpha, vec![255; 64]),
+            test_source_image(alpha, vec![255; 64]),
             test_source_image(color, vec![255; 256]),
-            test_source_image(second_alpha, vec![127; 64]),
+            test_source_image(later_alpha, vec![127; 64]),
         ],
         3,
         0,
         0,
-    );
-    let storage_submissions = frame.storage_submissions();
+    )
+}
 
-    assert_eq!(storage_submissions.len(), 3);
-    assert_eq!(
-        storage_submissions
-            .iter()
-            .map(|submission| submission.atlas_format)
-            .collect::<Vec<_>>(),
-        vec![
-            GlyphAtlasFormat::AlphaMask,
-            GlyphAtlasFormat::Color,
-            GlyphAtlasFormat::AlphaMask,
-        ]
-    );
-    let first_alpha_glyph = &storage_submissions[0].submission.run.glyphs[0];
-    let second_alpha_glyph = &storage_submissions[2].submission.run.glyphs[0];
-    assert_eq!(
-        first_alpha_glyph.atlas_rect,
-        frame.submission.run.glyphs[0].atlas_rect
-    );
-    assert_eq!(
-        second_alpha_glyph.atlas_rect,
-        frame.submission.run.glyphs[2].atlas_rect
-    );
-    assert_eq!(first_alpha_glyph.page_key, second_alpha_glyph.page_key);
-    assert!(
-        first_alpha_glyph
-            .atlas_rect
-            .x
-            .saturating_add(first_alpha_glyph.atlas_rect.width)
-            <= second_alpha_glyph.atlas_rect.x
-            || second_alpha_glyph
-                .atlas_rect
-                .x
-                .saturating_add(second_alpha_glyph.atlas_rect.width)
-                <= first_alpha_glyph.atlas_rect.x
-            || first_alpha_glyph
-                .atlas_rect
-                .y
-                .saturating_add(first_alpha_glyph.atlas_rect.height)
-                <= second_alpha_glyph.atlas_rect.y
-            || second_alpha_glyph
-                .atlas_rect
-                .y
-                .saturating_add(second_alpha_glyph.atlas_rect.height)
-                <= first_alpha_glyph.atlas_rect.y
-    );
-    assert_eq!(storage_submissions[0].source_bytes()[0].bytes[0], 255);
-    assert_eq!(storage_submissions[1].source_bytes()[0].bytes[0], 255);
-    assert_eq!(storage_submissions[2].source_bytes()[0].bytes[0], 127);
-    assert_eq!(
-        storage_submissions
-            .iter()
-            .map(|submission| submission.submission.run.upload_copies.len())
-            .collect::<Vec<_>>(),
-        vec![1, 1, 1]
-    );
-
-    let prepared_uploads = storage_submissions
-        .iter()
-        .map(|submission| {
-            submission
-                .submission
-                .prepared_upload(submission.source_bytes())
-        })
-        .collect::<Vec<_>>();
-    assert!(prepared_uploads
-        .iter()
-        .all(|prepared_upload| !prepared_upload.has_failures()));
-    assert_eq!(
-        prepared_uploads
-            .iter()
-            .map(|prepared_upload| prepared_upload.staging.pages.len())
-            .collect::<Vec<_>>(),
-        vec![1, 1, 1]
-    );
-    assert_eq!(
-        prepared_uploads
-            .iter()
-            .map(|prepared_upload| prepared_upload.staged_uploads.uploads.len())
-            .collect::<Vec<_>>(),
-        vec![1, 1, 1]
-    );
-
-    for ((submission, prepared_upload), expected_byte) in storage_submissions
-        .iter()
-        .zip(&prepared_uploads)
-        .zip([255, 255, 127])
-    {
-        let upload_copy = submission.submission.run.upload_copies[0];
-        let staging_page = &prepared_upload.staging.pages[0];
-        assert_eq!(staging_page.target_rect, upload_copy.atlas_rect);
-        assert_eq!(staging_page.bytes[0], expected_byte);
-
-        let staged_upload = prepared_upload.staged_uploads.uploads[0];
-        assert_eq!(staged_upload.command.page_key, upload_copy.page_key);
-        assert_eq!(staged_upload.command.rect, upload_copy.atlas_rect);
-    }
+fn rectangles_are_disjoint(left: GlyphAtlasRect, right: GlyphAtlasRect) -> bool {
+    left.x.saturating_add(left.width) <= right.x
+        || right.x.saturating_add(right.width) <= left.x
+        || left.y.saturating_add(left.height) <= right.y
+        || right.y.saturating_add(right.height) <= left.y
 }
 
 fn persistent_alpha_source(

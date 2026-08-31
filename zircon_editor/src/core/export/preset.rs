@@ -194,19 +194,21 @@ struct PresetWriteTransaction {
 
 impl PresetWriteTransaction {
     fn new(destination: PathBuf) -> Self {
-        let nonce = format!("{}-{}", std::process::id(), thread_nonce());
         let file_name = destination
             .file_name()
             .and_then(|value| value.to_str())
-            .unwrap_or("preset.zpreset")
-            .to_owned();
+            .unwrap_or("preset.zpreset");
         let directory = destination
             .parent()
-            .expect("export preset destination always has a parent")
-            .to_owned();
+            .expect("export preset destination always has a parent");
+        let staging = directory.join(preset_staging_file_name(
+            file_name,
+            std::process::id(),
+            thread_nonce(),
+        ));
         Self {
             destination,
-            staging: directory.join(format!(".{file_name}.{nonce}.staging")),
+            staging,
         }
     }
 
@@ -243,6 +245,10 @@ impl PresetWriteTransaction {
         sync_parent_directory(self.destination.parent());
         Ok(())
     }
+}
+
+fn preset_staging_file_name(file_name: &str, process_id: u32, nonce: u64) -> String {
+    format!(".{file_name}.{process_id}-{nonce}.staging")
 }
 
 impl Drop for PresetWriteTransaction {
@@ -328,3 +334,7 @@ fn sync_parent_directory(parent: Option<&Path>) {
 
 #[cfg(not(unix))]
 fn sync_parent_directory(_parent: Option<&Path>) {}
+
+#[cfg(test)]
+#[path = "preset/single_buffer_staging_name_tests.rs"]
+mod single_buffer_staging_name_tests;

@@ -1,4 +1,5 @@
 use super::super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
+use crate::graphics::types::ViewportRenderRegion;
 
 pub(super) fn record_pass(
     resources: &ScenePostProcessResources,
@@ -6,6 +7,7 @@ pub(super) fn record_pass(
     final_color_view: &wgpu::TextureView,
     global_illumination_view: &wgpu::TextureView,
     bind_group: &wgpu::BindGroup,
+    render_region: ViewportRenderRegion,
 ) {
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("PostProcessPass"),
@@ -34,6 +36,9 @@ pub(super) fn record_pass(
         timestamp_writes: None,
         multiview_mask: None,
     });
+    if !render_region.apply_local_to_render_pass(&mut pass) {
+        return;
+    }
     pass.set_pipeline(&resources.post_process_pipeline);
     pass.set_bind_group(0, bind_group, &[]);
     pass.draw(0..3, 0..1);

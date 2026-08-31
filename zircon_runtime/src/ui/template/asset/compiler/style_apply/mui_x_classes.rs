@@ -237,7 +237,7 @@ fn append_picker_slot_state_classes(
             {
                 append_class(
                     &mut child.classes,
-                    format!("MuiPickersLayout-{}", pascal_case(&variant)),
+                    format!("MuiPickersLayout-{}", pascal_case(variant)),
                 );
             }
             if array_attribute_any_non_empty_from_attributes(owner_attributes, &["views"]) {
@@ -306,7 +306,7 @@ fn append_chart_slot_state_classes(
             {
                 append_class(
                     &mut child.classes,
-                    format!("MuiChartsTooltip-interaction{}", pascal_case(&interaction)),
+                    format!("MuiChartsTooltip-interaction{}", pascal_case(interaction)),
                 );
             }
             if owner_component == "Gauge"
@@ -571,17 +571,16 @@ fn map_attribute_any_non_empty_from_attributes(
     })
 }
 
-fn string_attribute_any_from_attributes(
-    attributes: &BTreeMap<String, Value>,
+fn string_attribute_any_from_attributes<'a>(
+    attributes: &'a BTreeMap<String, Value>,
     names: &[&str],
-) -> Option<String> {
+) -> Option<&'a str> {
     names.iter().find_map(|name| {
         attributes
             .get(*name)
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|value| !value.is_empty())
-            .map(str::to_string)
     })
 }
 
@@ -603,3 +602,7 @@ fn number_attribute_any_from_attributes(
             .is_some_and(|value| value.as_float().is_some() || value.as_integer().is_some())
     })
 }
+
+#[cfg(test)]
+#[path = "mui_x_classes/borrowed_owner_attribute_tests.rs"]
+mod borrowed_owner_attribute_tests;

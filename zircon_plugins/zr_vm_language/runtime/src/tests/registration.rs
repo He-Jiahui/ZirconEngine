@@ -32,8 +32,8 @@ impl zircon_runtime::script::VmBackendFamily for BudgetRecordingFamily {
         }))
     }
 
-    fn selectors(&self) -> Vec<String> {
-        vec!["budget-recording:test".to_string()]
+    fn visit_selectors(&self, visitor: &mut dyn FnMut(&str)) {
+        visitor("budget-recording:test");
     }
 }
 

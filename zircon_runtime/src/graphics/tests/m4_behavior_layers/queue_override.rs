@@ -1,7 +1,7 @@
-use super::{average_channel_in_region, centered_quad_transform, RenderFixture};
+use super::{RenderFixture, average_channel_in_region, centered_quad_transform};
+use crate::asset::AssetUri;
 use crate::asset::assets::{AlphaMode, MaterialAsset};
 use crate::asset::pipeline::manager::AssetManager;
-use crate::asset::AssetUri;
 use crate::core::framework::render::{
     CorePipelineKind, GeometryExtract, GeometryPhaseInput, RenderFramework, RenderLayerSet,
     RenderMaterialAlphaMode, RenderMeshSnapshot, RenderPhase, RenderPhaseMeshSource,
@@ -11,7 +11,7 @@ use crate::core::math::{UVec2, Vec4};
 use crate::core::resource::{
     MaterialMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
 };
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 
 #[test]
 fn render_product_queue_override_reorders_draws() {
@@ -33,7 +33,7 @@ fn render_product_queue_override_reorders_draws() {
     );
 
     let mut extract = fixture.frame_extract(Vec::new(), Vec::new(), |_| {});
-    extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
+    *extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
         CorePipelineKind::Core3d,
         vec![
             queue_product_mesh(
@@ -97,9 +97,11 @@ fn render_product_queue_override_reorders_draws() {
             .with_anti_alias(false),
     );
     let stats = server.query_stats().unwrap();
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"mesh.transparent".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"mesh.transparent".to_string())
+    );
 
     let sample_origin = UVec2::new(
         fixture.viewport_size.x / 2 - 12,

@@ -93,6 +93,15 @@ impl WeightHeatmapGeometry {
     }
 }
 
+pub(super) fn has_paintable_weight_heatmap_extent(frame: &FrameRect) -> bool {
+    frame.x.is_finite()
+        && frame.y.is_finite()
+        && frame.width.is_finite()
+        && frame.height.is_finite()
+        && frame.width > 0.0
+        && frame.height > 0.0
+}
+
 fn finite_non_negative(value: f32) -> f32 {
     if value.is_finite() {
         value.max(0.0)
@@ -111,7 +120,7 @@ fn finite_coordinate(value: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::WeightHeatmapGeometry;
+    use super::{has_paintable_weight_heatmap_extent, WeightHeatmapGeometry};
     use crate::ui::retained_host::host_contract::data::FrameRect;
 
     #[test]
@@ -158,5 +167,43 @@ mod tests {
         assert_eq!(geometry.plot.height, 0.0);
         assert_eq!(geometry.legend.width, 0.0);
         assert_eq!(geometry.legend_label_frame(20.0, 4.0, 10.0).width, 0.0);
+    }
+
+    #[test]
+    fn paintable_extent_requires_finite_positive_frame_dimensions() {
+        assert!(has_paintable_weight_heatmap_extent(&FrameRect {
+            x: 1.0,
+            y: 2.0,
+            width: 32.0,
+            height: 24.0,
+        }));
+        for frame in [
+            FrameRect {
+                x: f32::NAN,
+                y: 0.0,
+                width: 32.0,
+                height: 24.0,
+            },
+            FrameRect {
+                x: 0.0,
+                y: f32::INFINITY,
+                width: 32.0,
+                height: 24.0,
+            },
+            FrameRect {
+                x: 0.0,
+                y: 0.0,
+                width: 0.0,
+                height: 24.0,
+            },
+            FrameRect {
+                x: 0.0,
+                y: 0.0,
+                width: 32.0,
+                height: -1.0,
+            },
+        ] {
+            assert!(!has_paintable_weight_heatmap_extent(&frame));
+        }
     }
 }

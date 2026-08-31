@@ -24,14 +24,11 @@ impl RetainedEditorHost {
             };
             self.sync_browser_asset_details_pointer_layout(snapshot.as_ref());
         }
-        match self
+        if self
             .browser_asset_details_scroll_surface
             .handle_scroll(UiPoint::new(x, y), delta)
         {
-            Ok(()) => {
-                self.apply_browser_asset_details_pointer_state_to_ui();
-            }
-            Err(error) => self.set_status_line(error),
+            self.apply_browser_asset_details_pointer_state_to_ui();
         }
     }
 }

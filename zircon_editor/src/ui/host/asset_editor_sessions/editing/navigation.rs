@@ -1,5 +1,16 @@
 use super::*;
 
+fn apply_external_effect_batch<T, U, E>(
+    effects: &[T],
+    mut apply: impl FnMut(&T) -> Result<U, E>,
+) -> Result<Vec<U>, E> {
+    let mut affected_asset_ids = Vec::with_capacity(effects.len());
+    for effect in effects {
+        affected_asset_ids.push(apply(effect)?);
+    }
+    Ok(affected_asset_ids)
+}
+
 impl EditorUiHost {
     pub fn undo_ui_asset_editor(&self, instance_id: &ViewInstanceId) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
@@ -20,11 +31,10 @@ impl EditorUiHost {
                             .to_string(),
                     )
                 })?;
-                let mut affected_asset_ids = Vec::new();
-                for effect in &replay.external_effects {
-                    affected_asset_ids
-                        .push(self.apply_ui_asset_editor_external_effect(&project, effect)?);
-                }
+                let affected_asset_ids =
+                    apply_external_effect_batch(&replay.external_effects, |effect| {
+                        self.apply_ui_asset_editor_external_effect(&project, effect)
+                    })?;
                 self.refresh_ui_asset_workspace_for_changes(affected_asset_ids)?;
             }
             self.hydrate_ui_asset_editor_imports(instance_id)?;
@@ -52,11 +62,10 @@ impl EditorUiHost {
                             .to_string(),
                     )
                 })?;
-                let mut affected_asset_ids = Vec::new();
-                for effect in &replay.external_effects {
-                    affected_asset_ids
-                        .push(self.apply_ui_asset_editor_external_effect(&project, effect)?);
-                }
+                let affected_asset_ids =
+                    apply_external_effect_batch(&replay.external_effects, |effect| {
+                        self.apply_ui_asset_editor_external_effect(&project, effect)
+                    })?;
                 self.refresh_ui_asset_workspace_for_changes(affected_asset_ids)?;
             }
             self.hydrate_ui_asset_editor_imports(instance_id)?;
@@ -129,3 +138,7 @@ impl EditorUiHost {
         self.sync_ui_asset_editor_instance(instance_id)
     }
 }
+
+#[cfg(test)]
+#[path = "navigation/capacity_tests.rs"]
+mod capacity_tests;

@@ -2,6 +2,7 @@ use super::super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::{intersect, is_visible_frame};
 use super::super::super::paint_primitives::draw_rect;
+use super::super::super::paint_theme::current_host_palette;
 
 pub(super) fn draw_resize_layer(
     frame: &mut HostRgbaFrame,
@@ -9,6 +10,7 @@ pub(super) fn draw_resize_layer(
 ) {
     zircon_runtime::profile_scope!("editor", "host_painter", "painter_resize_layer");
     let resize = &presentation.host_scene_data.resize_layer;
+    let splitter_color = current_host_palette().separator_strong;
     for splitter in [
         &resize.left_splitter_frame,
         &resize.right_splitter_frame,
@@ -19,7 +21,7 @@ pub(super) fn draw_resize_layer(
                 .paint_clip()
                 .is_none_or(|damage| intersect(splitter, damage).is_some())
         {
-            draw_rect(frame, splitter_visual_frame(splitter), [42, 50, 56, 255]);
+            draw_rect(frame, splitter_visual_frame(splitter), splitter_color);
         }
     }
 }

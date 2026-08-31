@@ -3,8 +3,11 @@ use std::path::{Path, PathBuf};
 
 use super::support::collect_rust_files;
 use std::collections::BTreeMap;
-use zircon_runtime::ui::v2::UiZuiAssetLoader;
+use zircon_runtime::ui::v2::{UiV2PrototypeStoreFileCache, UiZuiAssetLoader};
+use zircon_runtime_interface::ui::component::UiComponentEventKind;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
+
+mod product_binding_fixture;
 
 fn source(relative: &str) -> String {
     fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
@@ -684,7 +687,8 @@ fn critical_editor_shells_are_hard_cut_to_zui_assets() {
 #[test]
 fn welcome_startup_demo_routes_to_component_showcase_window() {
     let welcome_asset = source("assets/ui/editor/welcome.zui");
-    assert!(welcome_asset.contains("text = \"Component Showcase\""));
+    assert!(welcome_asset.contains("text = \"Showcase\""));
+    assert!(welcome_asset.contains("tooltip = \"Open UI Component Showcase\""));
     assert!(welcome_asset.contains("id = \"Welcome/OpenStartupDemo\""));
     assert!(welcome_asset.contains("route = \"workbench.welcome.open_startup_demo\""));
 
@@ -1556,5 +1560,79 @@ fn workbench_projection_uses_editor_assets_without_generated_host_dto_imports() 
             "workbench projection internals should not import generated host DTOs: {:?}",
             path.file_name().expect("file name")
         );
+    }
+}
+
+#[test]
+fn typed_component_event_product_assets_declare_lower_snake_routes() {
+    let expectations = [
+        (
+            "assets/ui/editor/components/showcase/showcase_collections_section.zui",
+            "UiComponentShowcase/GroupToggled",
+            UiComponentEventKind::ToggleExpanded,
+        ),
+        (
+            "assets/ui/editor/components/showcase/showcase_collections_section.zui",
+            "UiComponentShowcase/ContextActionMenuOpenAt",
+            UiComponentEventKind::OpenPopupAt,
+        ),
+        (
+            "assets/ui/editor/components/showcase/showcase_input_section.zui",
+            "UiComponentShowcase/NumberFieldLargeDragUpdate",
+            UiComponentEventKind::LargeDragDelta,
+        ),
+        (
+            "assets/ui/editor/components/showcase/showcase_input_section.zui",
+            "UiComponentShowcase/TextFieldCommitted",
+            UiComponentEventKind::Commit,
+        ),
+        (
+            "assets/ui/editor/components/showcase/showcase_input_section.zui",
+            "UiComponentShowcase/TabChanged",
+            UiComponentEventKind::ValueChanged,
+        ),
+        (
+            "assets/ui/editor/components/showcase/showcase_input_section.zui",
+            "UiComponentShowcase/TabStripChanged",
+            UiComponentEventKind::ValueChanged,
+        ),
+        (
+            "assets/ui/editor/components/showcase/showcase_selection_section.zui",
+            "UiComponentShowcase/SearchSelectQueryChanged",
+            UiComponentEventKind::ValueChanged,
+        ),
+        (
+            "assets/ui/editor/components/showcase/showcase_selection_section.zui",
+            "UiComponentShowcase/AssetFieldDropHovered",
+            UiComponentEventKind::DropHover,
+        ),
+        (
+            "assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui",
+            "ComponentLab/ButtonDropdownOpen",
+            UiComponentEventKind::OpenPopup,
+        ),
+        (
+            "assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui",
+            "ComponentLab/InputSearchCommit",
+            UiComponentEventKind::Commit,
+        ),
+    ];
+
+    let mut cache = UiV2PrototypeStoreFileCache::new();
+    for (relative, binding_id, expected_event) in expectations {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(relative);
+        let outcome = cache
+            .load_store(std::iter::once(path))
+            .unwrap_or_else(|error| panic!("load and compile `{relative}`: {error}"));
+        let document = outcome.root_document;
+        let binding = document
+            .nodes
+            .values()
+            .flat_map(|node| &node.events)
+            .find(|binding| binding.id == binding_id)
+            .unwrap_or_else(|| panic!("`{relative}` missing binding `{binding_id}`"));
+        let route = binding.route.as_deref().expect("product binding route");
+        assert_eq!(route, route.to_ascii_lowercase());
+        assert_eq!(binding.component_event, Some(expected_event));
     }
 }

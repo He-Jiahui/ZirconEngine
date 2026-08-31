@@ -6,15 +6,17 @@ use zr_rhi::{
 };
 
 use super::batching::ImageUploadSource;
-use super::shared_image_registry::{SharedImagePrepareResult, WgpuUiSharedImageRegistry};
+use super::color_space::encode_linear_premultiplied_srgba8;
+use super::shared_image_registry::{
+    SharedImagePrepareResult, WgpuUiImageAllocationSet, WgpuUiImageInFlightPins,
+    WgpuUiSharedImageRegistry,
+};
 use super::{WgpuUiExternalImage, WgpuUiSurfaceExternalImageProvider};
 
 mod resource;
 
 pub(super) use resource::WgpuUiImageResource;
 
-// Editor image bytes are byte-space UI colors; avoid sRGB decode on the direct swapchain path.
-pub(super) const UI_IMAGE_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 const MAX_UI_IMAGE_CACHE_ENTRIES: usize = 256;
 const MAX_UI_IMAGE_CACHE_BYTES: u64 = 64 * 1024 * 1024;
 
@@ -34,13 +36,23 @@ pub(super) struct WgpuUiImageResourceStats {
     pub(super) shared_upload_write_count: u64,
     pub(super) shared_upload_bytes: u64,
     pub(super) shared_resident_bytes: u64,
+    pub(super) device_allocation_count: u64,
+    pub(super) device_allocation_bytes: u64,
+    pub(super) registry_evicted_pinned_bytes: u64,
+    pub(super) surface_pin_count: u64,
+    pub(super) in_flight_present_pin_count: u64,
+    pub(super) eviction_completion_count: u64,
 }
 
 #[derive(Default)]
 pub(super) struct WgpuUiImageCache {
     resources: HashMap<String, BTreeMap<u64, WgpuUiImageResource>>,
+    entry_count: usize,
     resident_bytes: u64,
-    cpu_resident_bytes: u64,
+    prepared_generation: Option<u64>,
+    prepared_source_count: u64,
+    prepared_allocation_set: WgpuUiImageAllocationSet,
+    resolved_external_source_indices: Vec<usize>,
 }
 
 impl WgpuUiImageCache {
@@ -57,31 +69,53 @@ impl WgpuUiImageCache {
     }
 
     fn insert(&mut self, resource_key: String, generation: u64, resource: WgpuUiImageResource) {
-        self.resources
+        let replaced = self
+            .resources
             .entry(resource_key)
             .or_default()
             .insert(generation, resource);
+        if let Some(replaced) = replaced {
+            self.resident_bytes = self.resident_bytes.saturating_sub(replaced.byte_size);
+        } else {
+            self.entry_count = self.entry_count.saturating_add(1);
+        }
     }
 
     fn entry_count(&self) -> usize {
-        self.resources.values().map(BTreeMap::len).sum()
+        self.entry_count
     }
 
     pub(super) fn residency_stats(
         &self,
         shared_images: &WgpuUiSharedImageRegistry,
     ) -> WgpuUiImageResourceStats {
+        let allocation_stats = shared_images.allocation_stats();
         WgpuUiImageResourceStats {
             cache_resident_bytes: self.resident_bytes,
-            cpu_resident_bytes: self.cpu_resident_bytes,
             shared_resident_bytes: shared_images.resident_bytes(),
+            device_allocation_count: allocation_stats.allocation_count,
+            device_allocation_bytes: allocation_stats.unique_allocation_bytes,
+            registry_evicted_pinned_bytes: allocation_stats.registry_evicted_pinned_bytes,
+            surface_pin_count: allocation_stats.surface_pin_count,
+            in_flight_present_pin_count: allocation_stats.in_flight_present_pin_count,
+            eviction_completion_count: allocation_stats.eviction_completion_count,
             ..WgpuUiImageResourceStats::default()
         }
+    }
+
+    pub(super) fn pin_prepared_allocations_for_submission(
+        &self,
+    ) -> Option<WgpuUiImageInFlightPins> {
+        self.prepared_allocation_set.begin_in_flight()
     }
 
     pub(super) fn is_resident(&self, resource_key: &str, generation: u64) -> bool {
         self.get(resource_key, generation)
             .is_some_and(|resource| resource.last_uploaded_generation == Some(generation))
+    }
+
+    pub(super) fn resolved_external_source_indices(&self) -> &[usize] {
+        &self.resolved_external_source_indices
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -98,10 +132,27 @@ impl WgpuUiImageCache {
         shared_images: &WgpuUiSharedImageRegistry,
         image_resources: &mut UiSurfaceImageResourceTable,
     ) -> WgpuUiImageResourceStats {
+        // Provider readiness can change without a new draw-list generation.
+        self.resolved_external_source_indices.clear();
+        let external_images_present = external_images.is_some();
+        let had_staged_resources = !image_resources.is_empty();
+        if let Some(generation) =
+            reusable_image_prepare_generation(draw_list, image_resources, external_images_present)
+        {
+            if self.prepared_generation == Some(generation) {
+                let mut stats = self.residency_stats(shared_images);
+                stats.prepare_cache_hit_count = self.prepared_source_count;
+                return stats;
+            }
+        }
+        self.prepared_generation = None;
+        self.prepared_source_count = 0;
+        self.prepared_allocation_set = WgpuUiImageAllocationSet::default();
         let mut stats = WgpuUiImageResourceStats::default();
         let max_texture_dimension_2d = device.limits().max_texture_dimension_2d;
         let mut entry_saturated_at_count = None;
-        'source: for image_upload_source in image_upload_sources {
+        'source: for (source_index, image_upload_source) in image_upload_sources.iter().enumerate()
+        {
             let cache_key = image_upload_source.resource_key.as_str();
             let image_generation = image_upload_source.resource_generation;
             if cache_key.is_empty() {
@@ -111,7 +162,7 @@ impl WgpuUiImageCache {
                 .and_then(|provider| provider.resolve(cache_key, image_generation))
                 .filter(|image| image.matches_generation(image_generation))
             {
-                self.prepare_external_image(
+                if self.prepare_external_image(
                     device,
                     image_bind_group_layout,
                     image_sampler,
@@ -122,7 +173,9 @@ impl WgpuUiImageCache {
                     image_upload_sources,
                     &mut entry_saturated_at_count,
                     &mut stats,
-                );
+                ) {
+                    self.resolved_external_source_indices.push(source_index);
+                }
                 continue;
             }
             let mut staged_image_resource = image_resources.remove(cache_key, image_generation);
@@ -134,6 +187,7 @@ impl WgpuUiImageCache {
                         .image_resource(cache_key, image_generation)
                         .map(|resource| (resource.width, resource.height, resource.rgba.len()))
                 });
+            let mut invalidate_size_mismatch = false;
             if let Some(resource) = self.get_mut(cache_key, image_generation) {
                 let resource_size_matches = image_metadata
                     .map_or(true, |(width, height, _)| resource.size == (width, height));
@@ -147,6 +201,10 @@ impl WgpuUiImageCache {
                     stats.prepare_cache_hit_count = stats.prepare_cache_hit_count.saturating_add(1);
                     continue;
                 }
+                invalidate_size_mismatch = !resource_size_matches;
+            }
+            if invalidate_size_mismatch {
+                self.invalidate(cache_key, image_generation);
             }
             if let Some(shared_image) =
                 shared_images
@@ -158,7 +216,7 @@ impl WgpuUiImageCache {
                     })
             {
                 stats.shared_resolve_count = stats.shared_resolve_count.saturating_add(1);
-                if self.prepare_external_image(
+                self.prepare_external_image(
                     device,
                     image_bind_group_layout,
                     image_sampler,
@@ -169,9 +227,8 @@ impl WgpuUiImageCache {
                     image_upload_sources,
                     &mut entry_saturated_at_count,
                     &mut stats,
-                ) {
-                    continue;
-                }
+                );
+                continue;
             }
             let command_indices = if image_metadata.is_some() {
                 image_upload_source
@@ -219,7 +276,7 @@ impl WgpuUiImageCache {
                     self.invalidate(cache_key, image_generation);
                     continue;
                 }
-                let Some(mut source_pixels) = take_image_source_pixels(
+                let Some(source_pixels) = take_image_source_pixels(
                     &mut staged_image_resource,
                     draw_list,
                     cache_key,
@@ -231,7 +288,7 @@ impl WgpuUiImageCache {
                     self.invalidate(cache_key, image_generation);
                     continue;
                 };
-                source_pixels = premultiply_straight_rgba8(source_pixels);
+                let source_pixels = encode_linear_premultiplied_srgba8(source_pixels);
                 match shared_images.prepare_pixels(
                     device,
                     queue,
@@ -243,7 +300,7 @@ impl WgpuUiImageCache {
                 ) {
                     SharedImagePrepareResult::Cached(image) => {
                         stats.shared_resolve_count = stats.shared_resolve_count.saturating_add(1);
-                        if self.prepare_external_image(
+                        self.prepare_external_image(
                             device,
                             image_bind_group_layout,
                             image_sampler,
@@ -254,9 +311,8 @@ impl WgpuUiImageCache {
                             image_upload_sources,
                             &mut entry_saturated_at_count,
                             &mut stats,
-                        ) {
-                            continue 'source;
-                        }
+                        );
+                        continue 'source;
                     }
                     SharedImagePrepareResult::Uploaded {
                         image,
@@ -268,7 +324,7 @@ impl WgpuUiImageCache {
                             stats.shared_upload_write_count.saturating_add(1);
                         stats.shared_upload_bytes =
                             stats.shared_upload_bytes.saturating_add(upload_bytes);
-                        if self.prepare_external_image(
+                        self.prepare_external_image(
                             device,
                             image_bind_group_layout,
                             image_sampler,
@@ -279,118 +335,52 @@ impl WgpuUiImageCache {
                             image_upload_sources,
                             &mut entry_saturated_at_count,
                             &mut stats,
-                        ) {
-                            continue 'source;
-                        }
+                        );
+                        continue 'source;
                     }
-                    SharedImagePrepareResult::Rejected => {}
-                }
-                let cached_size = self
-                    .get(cache_key, image_generation)
-                    .map(|resource| resource.size);
-                let replace = cached_size != Some((width, height))
-                    || self
-                        .get(cache_key, image_generation)
-                        .is_some_and(|resource| resource.is_external);
-                if replace {
-                    if !self.admit(
-                        cache_key,
-                        image_generation,
-                        layout.expected_len as u64,
-                        image_upload_sources,
-                        cached_size.is_none(),
-                        &mut entry_saturated_at_count,
-                        &mut stats,
-                    ) {
+                    SharedImagePrepareResult::Rejected => {
+                        stats.cache_admission_reject_count =
+                            stats.cache_admission_reject_count.saturating_add(1);
                         self.invalidate(cache_key, image_generation);
-                        continue;
+                        continue 'source;
                     }
-                    let resource = WgpuUiImageResource::new(
-                        device,
-                        image_bind_group_layout,
-                        image_sampler,
-                        (width, height),
-                        layout.expected_len as u64,
-                        std::mem::replace(&mut source_pixels, Arc::from([])),
-                        present_index,
-                    );
-                    let new_cpu_bytes = resource.cpu_rgba.len() as u64;
-                    if cached_size.is_some() {
-                        let (replaced_bytes, replaced_cpu_bytes) = {
-                            let cached = self
-                                .get_mut(cache_key, image_generation)
-                                .expect("admission retains the replacement target");
-                            let replaced_bytes = cached.byte_size;
-                            let replaced_cpu_bytes = cached.cpu_rgba.len() as u64;
-                            *cached = resource;
-                            (replaced_bytes, replaced_cpu_bytes)
-                        };
-                        self.resident_bytes = self
-                            .resident_bytes
-                            .saturating_sub(replaced_bytes)
-                            .saturating_add(layout.expected_len as u64);
-                        update_resident_bytes(
-                            &mut self.cpu_resident_bytes,
-                            replaced_cpu_bytes,
-                            new_cpu_bytes,
-                        );
-                    } else {
-                        self.resident_bytes =
-                            self.resident_bytes.saturating_add(resource.byte_size);
-                        self.cpu_resident_bytes =
-                            self.cpu_resident_bytes.saturating_add(new_cpu_bytes);
-                        self.insert(cache_key.to_owned(), image_generation, resource);
-                        stats.cache_key_allocation_count =
-                            stats.cache_key_allocation_count.saturating_add(1);
-                    }
-                }
-                let updated_cpu_rgba = (!replace).then_some(source_pixels);
-                let mut cpu_byte_change = None;
-                if let Some(resource) = self.get_mut(cache_key, image_generation) {
-                    resource.last_touched_present = present_index;
-                    if image_upload_needs_write(
-                        Some(image_generation),
-                        resource.last_uploaded_generation,
-                    ) {
-                        if let Some(cpu_rgba) = updated_cpu_rgba {
-                            cpu_byte_change =
-                                Some((resource.cpu_rgba.len() as u64, cpu_rgba.len() as u64));
-                            resource.cpu_rgba = cpu_rgba;
-                        }
-                        queue.write_texture(
-                            resource.texture.as_image_copy(),
-                            resource.cpu_rgba.as_ref(),
-                            wgpu::TexelCopyBufferLayout {
-                                offset: 0,
-                                bytes_per_row: Some(layout.bytes_per_row),
-                                rows_per_image: Some(height),
-                            },
-                            wgpu::Extent3d {
-                                width,
-                                height,
-                                depth_or_array_layers: 1,
-                            },
-                        );
-                        resource.last_uploaded_generation = Some(image_generation);
-                        stats.upload_write_count = stats.upload_write_count.saturating_add(1);
-                        stats.upload_bytes = stats
-                            .upload_bytes
-                            .saturating_add(layout.expected_len as u64);
-                    }
-                }
-                if let Some((old_bytes, new_bytes)) = cpu_byte_change {
-                    update_resident_bytes(&mut self.cpu_resident_bytes, old_bytes, new_bytes);
-                }
-                if self.get(cache_key, image_generation).is_some() {
-                    break;
                 }
             }
         }
         *image_resources = UiSurfaceImageResourceTable::default();
+        self.prepared_allocation_set = WgpuUiImageAllocationSet::from_surface_pins(
+            image_upload_sources
+                .iter()
+                .filter_map(|source| {
+                    self.get(&source.resource_key, source.resource_generation)
+                        .and_then(|resource| resource.shared_allocation_pin.as_ref())
+                        .cloned()
+                })
+                .collect(),
+        );
+        let all_sources_resident = !external_images_present
+            && image_upload_sources
+                .iter()
+                .all(|source| self.is_resident(&source.resource_key, source.resource_generation));
+        self.prepared_generation = committed_image_prepare_generation(
+            draw_list.generation(),
+            all_sources_resident,
+            external_images_present,
+            had_staged_resources,
+        );
+        if self.prepared_generation.is_some() {
+            self.prepared_source_count = image_upload_sources.len() as u64;
+        }
         let residency = self.residency_stats(shared_images);
         stats.cache_resident_bytes = residency.cache_resident_bytes;
         stats.cpu_resident_bytes = residency.cpu_resident_bytes;
         stats.shared_resident_bytes = residency.shared_resident_bytes;
+        stats.device_allocation_count = residency.device_allocation_count;
+        stats.device_allocation_bytes = residency.device_allocation_bytes;
+        stats.registry_evicted_pinned_bytes = residency.registry_evicted_pinned_bytes;
+        stats.surface_pin_count = residency.surface_pin_count;
+        stats.in_flight_present_pin_count = residency.in_flight_present_pin_count;
+        stats.eviction_completion_count = residency.eviction_completion_count;
         stats
     }
 
@@ -417,17 +407,11 @@ impl WgpuUiImageCache {
             self.invalidate(cache_key, generation);
             return false;
         };
-        let cached = self.get(cache_key, generation).map(|resource| {
-            (
-                resource.is_external,
-                resource.size,
-                resource.last_uploaded_generation,
-            )
-        });
-        if cached.is_some_and(|(is_external, size, uploaded_generation)| {
-            is_external
-                && size == (image.width, image.height)
-                && uploaded_generation == Some(generation)
+        let cached = self
+            .get(cache_key, generation)
+            .map(|resource| (resource.size, resource.last_uploaded_generation));
+        if cached.is_some_and(|(size, uploaded_generation)| {
+            size == (image.width, image.height) && uploaded_generation == Some(generation)
         }) {
             if let Some(resource) = self.get_mut(cache_key, generation) {
                 resource.last_touched_present = present_index;
@@ -435,7 +419,7 @@ impl WgpuUiImageCache {
             stats.prepare_cache_hit_count = stats.prepare_cache_hit_count.saturating_add(1);
             return true;
         }
-        let cached_size = cached.map(|(_, size, _)| size);
+        let cached_size = cached.map(|(size, _)| size);
         if !self.admit(
             cache_key,
             generation,
@@ -456,31 +440,23 @@ impl WgpuUiImageCache {
             layout.expected_len as u64,
             present_index,
         );
-        let new_cpu_bytes = resource.cpu_rgba.len() as u64;
         if cached_size.is_some() {
-            let (replaced_bytes, replaced_cpu_bytes) = {
+            let replaced_bytes = {
                 let cached = self
                     .get_mut(cache_key, generation)
                     .expect("admission retains the replacement target");
                 let replaced_bytes = cached.byte_size;
-                let replaced_cpu_bytes = cached.cpu_rgba.len() as u64;
                 *cached = resource;
-                (replaced_bytes, replaced_cpu_bytes)
+                replaced_bytes
             };
             self.resident_bytes = self
                 .resident_bytes
                 .saturating_sub(replaced_bytes)
                 .saturating_add(layout.expected_len as u64);
-            update_resident_bytes(
-                &mut self.cpu_resident_bytes,
-                replaced_cpu_bytes,
-                new_cpu_bytes,
-            );
         } else {
             self.resident_bytes = self
                 .resident_bytes
                 .saturating_add(layout.expected_len as u64);
-            self.cpu_resident_bytes = self.cpu_resident_bytes.saturating_add(new_cpu_bytes);
             self.insert(cache_key.to_owned(), generation, resource);
             stats.cache_key_allocation_count = stats.cache_key_allocation_count.saturating_add(1);
         }
@@ -563,54 +539,128 @@ impl WgpuUiImageCache {
         let Some(resource) = remove_cached_image(&mut self.resources, cache_key, generation) else {
             return false;
         };
+        self.entry_count = self.entry_count.saturating_sub(1);
         self.resident_bytes = self.resident_bytes.saturating_sub(resource.byte_size);
-        update_resident_bytes(
-            &mut self.cpu_resident_bytes,
-            resource.cpu_rgba.len() as u64,
-            0,
-        );
         true
     }
 }
 
-fn update_resident_bytes(total: &mut u64, replaced_bytes: u64, new_bytes: u64) {
-    *total = total
-        .saturating_sub(replaced_bytes)
-        .saturating_add(new_bytes);
+fn reusable_image_prepare_generation(
+    draw_list: &UiSurfaceDrawList,
+    image_resources: &UiSurfaceImageResourceTable,
+    external_images_present: bool,
+) -> Option<u64> {
+    (!external_images_present && image_resources.is_empty())
+        .then(|| draw_list.generation())
+        .flatten()
+}
+
+fn committed_image_prepare_generation(
+    generation: Option<u64>,
+    all_sources_resident: bool,
+    external_images_present: bool,
+    had_staged_resources: bool,
+) -> Option<u64> {
+    (!external_images_present && !had_staged_resources && all_sources_resident)
+        .then_some(generation)
+        .flatten()
 }
 
 #[cfg(test)]
 mod residency_tests {
     use std::sync::Arc;
 
-    use super::{premultiply_straight_rgba8, update_resident_bytes};
+    use super::{
+        committed_image_prepare_generation, encode_linear_premultiplied_srgba8,
+        reusable_image_prepare_generation,
+    };
+    use zr_rhi::{UiSurfaceDrawList, UiSurfaceImageResource, UiSurfaceImageResourceTable};
 
     #[test]
-    fn local_external_and_evicted_transitions_keep_cpu_residency_exact() {
-        let mut resident_bytes = 0;
+    fn image_prepare_generation_cache_requires_empty_staged_resources() {
+        let draw_list = UiSurfaceDrawList::with_generation((64, 32), None, Vec::new(), 17);
+        let mut staged = UiSurfaceImageResourceTable::default();
 
-        update_resident_bytes(&mut resident_bytes, 0, 64);
-        assert_eq!(resident_bytes, 64);
-        update_resident_bytes(&mut resident_bytes, 64, 0);
-        assert_eq!(resident_bytes, 0);
-        update_resident_bytes(&mut resident_bytes, 0, 32);
-        update_resident_bytes(&mut resident_bytes, 32, 0);
-        assert_eq!(resident_bytes, 0);
+        assert_eq!(
+            reusable_image_prepare_generation(&draw_list, &staged, false),
+            Some(17)
+        );
+        assert_eq!(
+            reusable_image_prepare_generation(&draw_list, &staged, true),
+            None,
+            "external providers may publish a newer GPU product within the same UI generation"
+        );
+
+        staged.insert(
+            "icon://changed".to_string(),
+            UiSurfaceImageResource {
+                generation: 17,
+                width: 1,
+                height: 1,
+                upload_bytes: 4,
+                rgba: Arc::from([255, 255, 255, 255]),
+            },
+        );
+        assert_eq!(
+            reusable_image_prepare_generation(&draw_list, &staged, false),
+            None
+        );
     }
 
     #[test]
-    fn straight_rgba_is_premultiplied_once_before_linear_gpu_sampling() {
+    fn image_prepare_generation_cache_commits_only_complete_residency() {
+        assert_eq!(
+            committed_image_prepare_generation(Some(17), true, false, false),
+            Some(17)
+        );
+        assert_eq!(
+            committed_image_prepare_generation(Some(17), false, false, false),
+            None
+        );
+        assert_eq!(
+            committed_image_prepare_generation(Some(17), true, true, false),
+            None,
+            "external provider readiness is not versioned by the draw-list generation"
+        );
+        assert_eq!(
+            committed_image_prepare_generation(Some(17), true, false, true),
+            None,
+            "a prepare that consumed staged resources must not publish a reusable generation"
+        );
+        assert_eq!(
+            committed_image_prepare_generation(None, true, false, false),
+            None
+        );
+    }
+
+    #[test]
+    fn straight_srgba_is_linear_premultiplied_before_srgb_gpu_sampling() {
         let source = Arc::<[u8]>::from([
             255, 0, 0, 0, // transparent red must contribute no filtered color
             0, 0, 255, 128, // half-transparent blue
             40, 80, 120, 255, // opaque pixels remain byte-identical
         ]);
 
-        let premultiplied = premultiply_straight_rgba8(source);
+        let premultiplied = encode_linear_premultiplied_srgba8(source);
 
         assert_eq!(
             premultiplied.as_ref(),
-            &[0, 0, 0, 0, 0, 0, 128, 128, 40, 80, 120, 255]
+            &[0, 0, 0, 0, 0, 0, 188, 128, 40, 80, 120, 255]
+        );
+    }
+
+    #[test]
+    fn opaque_srgb_byte_lattice_remains_byte_exact() {
+        let source = Arc::<[u8]>::from(
+            (0_u8..=u8::MAX)
+                .flat_map(|value| [value, value, value, u8::MAX])
+                .collect::<Vec<_>>(),
+        );
+
+        assert_eq!(
+            encode_linear_premultiplied_srgba8(Arc::clone(&source)),
+            source,
+            "linear-light texture admission must not shift opaque UI palette bytes"
         );
     }
 }
@@ -643,16 +693,6 @@ pub(super) fn take_image_source_pixels(
     }
     let rgba = payload_rgba?;
     rgba.get(..expected_len).map(Arc::from)
-}
-
-pub(super) fn premultiply_straight_rgba8(mut rgba: Arc<[u8]>) -> Arc<[u8]> {
-    for pixel in Arc::make_mut(&mut rgba).chunks_exact_mut(4) {
-        let alpha = u16::from(pixel[3]);
-        for channel in &mut pixel[..3] {
-            *channel = ((u16::from(*channel) * alpha + 127) / 255) as u8;
-        }
-    }
-    rgba
 }
 
 pub(super) fn image_upload_needs_write(

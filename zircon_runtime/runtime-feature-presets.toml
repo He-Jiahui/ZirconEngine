@@ -41,6 +41,11 @@ id = "scene"
 rust_variant = "Scene"
 
 [[builtin_modules]]
+id = "text"
+rust_variant = "Text"
+required_feature = "text"
+
+[[builtin_modules]]
 id = "graphics"
 rust_variant = "Graphics"
 required_feature = "graphics"
@@ -120,6 +125,7 @@ builtin_modules = [
     "input",
     "asset",
     "scene",
+    "text",
     "graphics",
     "script",
 ]
@@ -189,6 +195,7 @@ builtin_modules = [
     "input",
     "asset",
     "scene",
+    "text",
     "graphics",
     "script",
 ]
@@ -271,6 +278,7 @@ builtin_modules = [
     "input",
     "asset",
     "scene",
+    "text",
     "graphics",
     "script",
 ]
@@ -339,6 +347,7 @@ builtin_modules = [
     "input",
     "asset",
     "scene",
+    "text",
     "graphics",
     "script",
 ]

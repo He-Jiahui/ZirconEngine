@@ -14,23 +14,28 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_ho
     }
 
     record_current_ui_perf_counter(UiPerfCounter::FallbackSortCount, 1.0);
-    let mut ordered = {
-        zircon_runtime::profile_scope!("editor", "host_painter", "paint_commands_collect_order");
-        commands.iter().enumerate().collect::<Vec<_>>()
-    };
-    {
-        zircon_runtime::profile_scope!("editor", "host_painter", "paint_commands_sort");
-        ordered.sort_by_key(|(index, command)| (command.z_index, *index));
-    }
+    let ordered = fallback_ordered_commands(commands);
 
     let mut drew_any = false;
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "paint_commands_draw_ordered");
-        for (_, command) in ordered {
+        for command in ordered {
             drew_any |= draw_host_paint_command(frame, command);
         }
     }
     drew_any
+}
+
+fn fallback_ordered_commands(commands: &[HostPaintCommand]) -> Vec<&HostPaintCommand> {
+    let mut ordered = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "paint_commands_collect_order");
+        commands.iter().collect::<Vec<_>>()
+    };
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "paint_commands_sort");
+        ordered.sort_by_key(|command| command.z_index);
+    }
+    ordered
 }
 
 fn z_indices_are_ordered(mut indices: impl Iterator<Item = i32>) -> bool {
@@ -59,3 +64,7 @@ mod tests {
         assert!(!z_indices_are_ordered([0, 4, 3, 8].into_iter()));
     }
 }
+
+#[cfg(test)]
+#[path = "ordering/stable_z_sort_tests.rs"]
+mod stable_z_sort_tests;

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder};
+use image::{ExtendedColorType, ImageEncoder, codecs::png::PngEncoder};
 use zircon_runtime::core::resource::io::atomic_write;
 
 pub(super) fn write_product_framebuffer_png(

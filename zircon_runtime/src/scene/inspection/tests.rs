@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use serde_json::json;
 use zircon_runtime_interface::world_sync::{
-    ComponentSelector, QueryFilter, WorldQuery, WorldQueryResult,
+    ComponentSelector, ComponentWorldQuery, QueryFilter, WorldQuery, WorldQueryResult,
 };
 
 use crate::core::framework::scene::{
@@ -11,16 +11,33 @@ use crate::core::framework::scene::{
 };
 use crate::core::math::{Transform, Vec3};
 use crate::scene::components::{MeshRenderer, Name};
-use crate::scene::{EntityId, NodeKind, World, WorldInspection};
+use crate::scene::{EntityId, NodeKind, World, WorldInspectionHierarchyRow};
 
 mod sparse_artifact;
 
+#[test]
+fn inspection_runtime_contract_has_no_legacy_editor_snapshot_or_focus_state() {
+    let module = include_str!("mod.rs");
+    let snapshot = include_str!("snapshot.rs");
+    let hierarchy = include_str!("hierarchy.rs");
+
+    assert!(!module.contains("snapshot::WorldInspection"));
+    assert!(!snapshot.contains("struct WorldInspection"));
+    assert!(!snapshot.contains("fn inspect_world("));
+    assert!(!snapshot.contains("fn inspect_hierarchy("));
+    assert!(!snapshot.contains("fn inspect_fields("));
+    assert!(!hierarchy.contains("focused: bool"));
+}
+
 fn hashes_by_entity(world: &World) -> BTreeMap<EntityId, u64> {
-    world
-        .inspect_hierarchy()
+    inspection_rows(world)
         .into_iter()
         .map(|row| (row.entity, row.subtree_hash))
         .collect()
+}
+
+fn inspection_rows(world: &World) -> Vec<WorldInspectionHierarchyRow> {
+    world.inspection_artifact().hierarchy_rows().to_vec()
 }
 
 fn world_with_serialized_parents(world: &World, parents: &[(EntityId, Option<EntityId>)]) -> World {
@@ -40,63 +57,69 @@ fn world_with_serialized_parents(world: &World, parents: &[(EntityId, Option<Ent
 }
 
 #[test]
-fn split_inspection_entries_compose_to_the_world_snapshot() {
+fn inspection_artifacts_project_hierarchy_and_entity_fields_without_focus_state() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
-    let mut hierarchy_rows = world.inspect_hierarchy();
-    for row in &mut hierarchy_rows {
-        row.focused = row.entity == entity;
-    }
-    let fields = world.inspect_fields(entity);
+    let hierarchy = world.inspection_artifact();
+    let fields = world
+        .inspection_fields_artifact(entity)
+        .expect("an existing entity should project fields");
 
-    assert_eq!(
-        WorldInspection::from_world(&world, Some(entity)),
-        WorldInspection {
-            generation: world.world_generation(),
-            focused_entity: Some(entity),
-            hierarchy_rows,
-            fields,
-        }
-    );
-    assert!(world.inspect_fields(entity + 1).is_empty());
+    assert_eq!(hierarchy.generation(), world.world_generation());
+    assert_eq!(hierarchy.hierarchy_rows().len(), 1);
+    assert_eq!(hierarchy.hierarchy_rows()[0].entity, entity);
+    assert_eq!(fields.generation(), world.world_generation());
+    assert_eq!(fields.entity(), entity);
+    assert!(!fields.fields().is_empty());
+    assert!(world.inspection_fields_artifact(entity + 1).is_none());
 }
 
 #[test]
 fn world_query_filters_editor_visible_components_and_short_circuits_by_generation() {
     let mut world = World::empty();
-    let first = world.spawn_node(NodeKind::Empty);
-    let second = world.spawn_node(NodeKind::Cube);
+    let first = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let second = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let component_type = world
-        .inspect_fields(first)
-        .into_iter()
+        .inspection_fields_artifact(first)
+        .expect("default nodes expose reflected editor fields")
+        .fields()
+        .iter()
         .next()
         .expect("default nodes expose reflected editor fields")
-        .component_type_path;
-    let query = WorldQuery {
+        .component_type_path
+        .clone();
+    let query = WorldQuery::Components(ComponentWorldQuery {
         filter: QueryFilter {
             with: vec![component_type.clone()],
             without: Vec::new(),
         },
         select: vec![ComponentSelector::new(component_type.clone())],
         generation_hint: None,
-    };
+    });
 
-    let WorldQueryResult::Rows(rows) = world.query_world(&query) else {
+    let WorldQueryResult::ComponentRows { generation, rows } = world.query_world(&query) else {
         panic!("query without a generation hint must materialize rows");
     };
+    assert_eq!(generation, world.world_generation());
     assert_eq!(
         rows.iter().map(|row| row.entity).collect::<Vec<_>>(),
         vec![first, second]
     );
-    assert!(rows
-        .iter()
-        .all(|row| row.components.contains_key(&component_type)));
+    assert!(
+        rows.iter()
+            .all(|row| row.components.contains_key(&component_type))
+    );
 
-    let not_modified = WorldQuery {
-        generation_hint: Some(world.world_generation()),
-        ..query.clone()
-    };
+    let not_modified = query
+        .clone()
+        .with_generation_hint(Some(world.world_generation()));
     assert_eq!(
         world.query_world(&not_modified),
         WorldQueryResult::NotModified {
@@ -104,23 +127,136 @@ fn world_query_filters_editor_visible_components_and_short_circuits_by_generatio
         }
     );
 
-    let excluded = WorldQuery {
+    let excluded = WorldQuery::Components(ComponentWorldQuery {
         filter: QueryFilter {
             with: Vec::new(),
             without: vec![component_type],
         },
-        ..query
-    };
+        ..ComponentWorldQuery::default()
+    });
     assert_eq!(
         world.query_world(&excluded),
-        WorldQueryResult::Rows(Vec::new())
+        WorldQueryResult::ComponentRows {
+            generation: world.world_generation(),
+            rows: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn hierarchy_world_query_reuses_generation_qualified_inspection_rows() {
+    let mut world = World::empty();
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene root should spawn");
+    let child = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene child should spawn");
+    world
+        .set_parent(child, Some(root))
+        .expect("test hierarchy should accept the child");
+    let artifact = world.inspection_artifact();
+    let expected_rows = artifact.hierarchy_rows().to_vec();
+    let query = WorldQuery::hierarchy(None);
+
+    assert_eq!(
+        world.query_world(&query),
+        WorldQueryResult::HierarchyRows {
+            generation: artifact.generation(),
+            rows: expected_rows.clone(),
+        }
+    );
+    assert_eq!(
+        world.query_world(
+            &query
+                .clone()
+                .with_generation_hint(Some(artifact.generation()))
+        ),
+        WorldQueryResult::NotModified {
+            generation: artifact.generation(),
+        }
+    );
+
+    let error = world
+        .query_world_bounded(
+            &query,
+            zircon_runtime_interface::ZrRuntimePayloadLimitV1::new(
+                1024 * 1024,
+                expected_rows.len() - 1,
+                100_000,
+            ),
+        )
+        .expect_err("hierarchy rows must observe the producer item budget");
+    assert_eq!(
+        error,
+        crate::scene::WorldQueryBudgetError::Items {
+            observed: expected_rows.len(),
+            limit: expected_rows.len() - 1,
+        }
+    );
+}
+
+#[test]
+fn focused_inspector_query_reuses_generation_qualified_field_artifacts() {
+    let mut world = World::empty();
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene entity should spawn");
+    let artifact = world
+        .inspection_fields_artifact(entity)
+        .expect("existing entity should expose Inspector fields");
+    let query = WorldQuery::inspection_fields(entity, None);
+
+    assert_eq!(
+        world.query_world(&query),
+        WorldQueryResult::InspectionFields {
+            generation: artifact.generation(),
+            entity,
+            fields: artifact.fields().to_vec(),
+        }
+    );
+    assert_eq!(
+        world.query_world(&WorldQuery::inspection_fields(
+            entity,
+            Some(artifact.generation())
+        )),
+        WorldQueryResult::NotModified {
+            generation: artifact.generation(),
+        }
+    );
+    assert_eq!(
+        world.query_world(&WorldQuery::inspection_fields(entity + 1, None)),
+        WorldQueryResult::EntityMissing {
+            generation: world.world_generation(),
+            entity: entity + 1,
+        }
+    );
+
+    let error = world
+        .query_world_bounded(
+            &query,
+            zircon_runtime_interface::ZrRuntimePayloadLimitV1::new(
+                1024 * 1024,
+                artifact.fields().len() - 1,
+                100_000,
+            ),
+        )
+        .expect_err("Inspector fields must observe the producer item budget");
+    assert_eq!(
+        error,
+        crate::scene::WorldQueryBudgetError::Items {
+            observed: artifact.fields().len(),
+            limit: artifact.fields().len() - 1,
+        }
     );
 }
 
 #[test]
 fn bounded_world_query_stops_before_materializing_rows_above_the_item_budget() {
     let mut world = World::empty();
-    world.spawn_node(NodeKind::Empty);
+    world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let query = WorldQuery::default();
 
     let error = world
@@ -142,7 +278,9 @@ fn bounded_world_query_stops_before_materializing_rows_above_the_item_budget() {
 #[test]
 fn bounded_world_query_stops_before_retaining_rows_above_the_byte_budget() {
     let mut world = World::empty();
-    world.spawn_node(NodeKind::Empty);
+    world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let query = WorldQuery::default();
 
     let error = world
@@ -162,7 +300,11 @@ fn bounded_world_query_stops_before_retaining_rows_above_the_byte_budget() {
 fn bounded_world_query_accounts_for_the_empty_rows_envelope() {
     let world = World::empty();
     let query = WorldQuery::default();
-    let encoded = serde_json::to_vec(&WorldQueryResult::Rows(Vec::new())).unwrap();
+    let encoded = serde_json::to_vec(&WorldQueryResult::ComponentRows {
+        generation: world.world_generation(),
+        rows: Vec::new(),
+    })
+    .unwrap();
 
     let error = world
         .query_world_bounded(
@@ -184,10 +326,7 @@ fn bounded_world_query_accounts_for_the_empty_rows_envelope() {
 fn bounded_world_query_accounts_for_the_not_modified_envelope() {
     let world = World::empty();
     let generation = world.world_generation();
-    let query = WorldQuery {
-        generation_hint: Some(generation),
-        ..WorldQuery::default()
-    };
+    let query = WorldQuery::default().with_generation_hint(Some(generation));
     let encoded = serde_json::to_vec(&WorldQueryResult::NotModified { generation }).unwrap();
 
     let error = world
@@ -209,22 +348,27 @@ fn bounded_world_query_accounts_for_the_not_modified_envelope() {
 #[test]
 fn bounded_world_query_rejects_an_oversized_selected_field_before_retaining_the_row() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let component_type = world
-        .inspect_fields(entity)
-        .into_iter()
+        .inspection_fields_artifact(entity)
+        .expect("empty nodes expose a reflected Name field")
+        .fields()
+        .iter()
         .find(|field| field.component_type_path.ends_with("::Name"))
         .expect("empty nodes expose a reflected Name field")
-        .component_type_path;
+        .component_type_path
+        .clone();
     world.rename_node(entity, "x".repeat(4 * 1024)).unwrap();
-    let query = WorldQuery {
+    let query = WorldQuery::Components(ComponentWorldQuery {
         filter: QueryFilter {
             with: vec![component_type.clone()],
             without: Vec::new(),
         },
         select: vec![ComponentSelector::new(component_type)],
         generation_hint: None,
-    };
+    });
 
     let error = world
         .query_world_bounded(
@@ -242,7 +386,9 @@ fn bounded_world_query_rejects_an_oversized_selected_field_before_retaining_the_
 #[test]
 fn inspection_artifact_reuses_its_arc_until_the_world_generation_changes() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
     let first = world.inspection_artifact();
     let initial_diagnostics = world.inspection_artifact_diagnostics();
@@ -264,8 +410,12 @@ fn inspection_artifact_reuses_its_arc_until_the_world_generation_changes() {
 #[test]
 fn inspection_artifact_looks_up_hierarchy_rows_by_stable_entity_identity() {
     let mut world = World::empty();
-    let parent = world.spawn_node(NodeKind::Empty);
-    let child = world.spawn_node(NodeKind::Cube);
+    let parent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(child, Some(parent)).unwrap();
 
     let artifact = world.inspection_artifact();
@@ -284,7 +434,9 @@ fn inspection_artifact_looks_up_hierarchy_rows_by_stable_entity_identity() {
 #[test]
 fn summary_component_change_rebuilds_the_hierarchy_artifact() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let initial = world.inspection_artifact();
     assert_eq!(initial.summary().mesh_count(), 0);
 
@@ -301,7 +453,9 @@ fn summary_component_change_rebuilds_the_hierarchy_artifact() {
 #[test]
 fn property_edit_publishes_a_generation_without_rebuilding_unchanged_hierarchy_rows() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let initial = world.inspection_artifact();
     let initial_fields = world
         .inspection_fields_artifact(entity)
@@ -309,9 +463,11 @@ fn property_edit_publishes_a_generation_without_rebuilding_unchanged_hierarchy_r
     let initial_diagnostics = world.inspection_artifact_diagnostics();
     let render_queue = ComponentPropertyPath::parse("MeshRenderer.render_queue").unwrap();
 
-    assert!(world
-        .set_property(entity, &render_queue, ScenePropertyValue::Integer(1))
-        .unwrap());
+    assert!(
+        world
+            .set_property(entity, &render_queue, ScenePropertyValue::Integer(1))
+            .unwrap()
+    );
     let current = world.inspection_artifact();
     let current_fields = world
         .inspection_fields_artifact(entity)
@@ -346,16 +502,20 @@ fn direct_dynamic_component_mutations_publish_fresh_field_artifacts() {
                 .with_property("coverage", "Scalar", true),
         )
         .expect("dynamic descriptor should register");
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let initial = world.inspection_artifact();
     let initial_fields = world
         .inspection_fields_artifact(entity)
         .expect("empty node should expose reflected fields");
     let initial_diagnostics = world.inspection_artifact_diagnostics();
 
-    assert!(world
-        .set_dynamic_component(entity, DYNAMIC_TYPE_PATH, json!({ "coverage": 0.75 }))
-        .expect("direct dynamic component insertion should succeed"));
+    assert!(
+        world
+            .set_dynamic_component(entity, DYNAMIC_TYPE_PATH, json!({ "coverage": 0.75 }))
+            .expect("direct dynamic component insertion should succeed")
+    );
     let added = world.inspection_artifact();
     let added_fields = world
         .inspection_fields_artifact(entity)
@@ -366,21 +526,27 @@ fn direct_dynamic_component_mutations_publish_fresh_field_artifacts() {
         world.inspection_artifact_diagnostics().hierarchy_builds(),
         initial_diagnostics.hierarchy_builds()
     );
-    assert!(added
-        .published_delta_from(initial.generation())
-        .expect("the adjacent generation should publish a delta")
-        .changed_rows()
-        .is_empty());
-    assert!(added_fields
-        .delta_from(&initial_fields)
-        .changed_fields()
-        .iter()
-        .any(|field| field.component_type_path == DYNAMIC_TYPE_PATH
-            && field.field_name == "coverage"));
+    assert!(
+        added
+            .published_delta_from(initial.generation())
+            .expect("the adjacent generation should publish a delta")
+            .changed_rows()
+            .is_empty()
+    );
+    assert!(
+        added_fields
+            .delta_from(&initial_fields)
+            .changed_fields()
+            .iter()
+            .any(|field| field.component_type_path == DYNAMIC_TYPE_PATH
+                && field.field_name == "coverage")
+    );
 
-    assert!(world
-        .remove_dynamic_component(entity, DYNAMIC_TYPE_PATH)
-        .expect("direct dynamic component removal should succeed"));
+    assert!(
+        world
+            .remove_dynamic_component(entity, DYNAMIC_TYPE_PATH)
+            .expect("direct dynamic component removal should succeed")
+    );
     let removed = world.inspection_artifact();
     let removed_fields = world
         .inspection_fields_artifact(entity)
@@ -391,19 +557,25 @@ fn direct_dynamic_component_mutations_publish_fresh_field_artifacts() {
         world.inspection_artifact_diagnostics().hierarchy_builds(),
         initial_diagnostics.hierarchy_builds()
     );
-    assert!(removed_fields
-        .delta_from(&added_fields)
-        .removed_fields()
-        .iter()
-        .any(|field| field.component_type_path() == DYNAMIC_TYPE_PATH
-            && field.field_name() == "coverage"));
+    assert!(
+        removed_fields
+            .delta_from(&added_fields)
+            .removed_fields()
+            .iter()
+            .any(|field| field.component_type_path() == DYNAMIC_TYPE_PATH
+                && field.field_name() == "coverage")
+    );
 }
 
 #[test]
 fn removing_a_parent_invalidates_the_orphaned_child_field_artifact() {
     let mut world = World::empty();
-    let parent = world.spawn_node(NodeKind::Empty);
-    let child = world.spawn_node(NodeKind::Empty);
+    let parent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(child, Some(parent)).unwrap();
 
     let initial_fields = world
@@ -439,8 +611,12 @@ fn removing_a_parent_invalidates_the_orphaned_child_field_artifact() {
 #[test]
 fn active_parent_mutation_invalidates_descendant_field_artifacts() {
     let mut world = World::empty();
-    let parent = world.spawn_node(NodeKind::Empty);
-    let child = world.spawn_node(NodeKind::Empty);
+    let parent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(child, Some(parent)).unwrap();
 
     let initial_fields = world
@@ -477,19 +653,25 @@ fn active_parent_mutation_invalidates_descendant_field_artifacts() {
 #[test]
 fn unrelated_transform_change_reuses_the_focused_field_payload() {
     let mut world = World::empty();
-    let focused = world.spawn_node(NodeKind::Empty);
-    let changed = world.spawn_node(NodeKind::Empty);
+    let focused = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let changed = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let initial_fields = world
         .inspection_fields_artifact(focused)
         .expect("focused entity should expose reflected fields");
     let initial_diagnostics = world.inspection_artifact_diagnostics();
 
-    assert!(world
-        .update_transform(
-            changed,
-            Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)),
-        )
-        .expect("unrelated transform update should succeed"));
+    assert!(
+        world
+            .update_transform(
+                changed,
+                Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)),
+            )
+            .expect("unrelated transform update should succeed")
+    );
     let current_fields = world
         .inspection_fields_artifact(focused)
         .expect("focused entity should remain inspectable");
@@ -509,8 +691,12 @@ fn unrelated_transform_change_reuses_the_focused_field_payload() {
 #[test]
 fn focused_field_artifact_reuses_its_arc_and_reports_property_changes() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
-    let other_entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let other_entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
 
     let first = world.inspection_fields_artifact(entity).unwrap();
     let stable = world.inspection_fields_artifact(entity).unwrap();
@@ -550,8 +736,12 @@ fn focused_field_artifact_reuses_its_arc_and_reports_property_changes() {
 #[test]
 fn focused_field_cache_retains_only_the_current_primary_selection() {
     let mut world = World::empty();
-    let first_entity = world.spawn_node(NodeKind::Empty);
-    let second_entity = world.spawn_node(NodeKind::Empty);
+    let first_entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let second_entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
     let first = world
         .inspection_fields_artifact(first_entity)
@@ -586,7 +776,9 @@ fn stable_thousand_node_inspection_reuses_the_initial_hierarchy_build() {
 
     let mut world = World::empty();
     for _ in 0..NODE_COUNT {
-        world.spawn_node(NodeKind::Empty);
+        world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
     }
 
     let initial = world.inspection_artifact();
@@ -608,13 +800,19 @@ fn stable_thousand_node_inspection_reuses_the_initial_hierarchy_build() {
 #[test]
 fn inspection_artifact_delta_is_entity_addressable() {
     let mut world = World::empty();
-    let renamed = world.spawn_node(NodeKind::Empty);
-    let removed = world.spawn_node(NodeKind::Empty);
+    let renamed = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let removed = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let initial = world.inspection_artifact();
 
     world.rename_node(renamed, "Renamed").unwrap();
     world.remove_entity(removed).unwrap();
-    let added = world.spawn_node(NodeKind::Cube);
+    let added = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let current = world.inspection_artifact();
     let delta = current.delta_from(&initial);
 
@@ -643,7 +841,9 @@ fn inspection_artifact_delta_is_entity_addressable() {
 #[test]
 fn published_inspection_delta_reuses_the_immediately_preceding_generation() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let initial = world.inspection_artifact();
 
     world.rename_node(entity, "Renamed").unwrap();
@@ -671,9 +871,13 @@ fn name_delta_full_row_materialization_is_explicitly_counted_once() {
     const NODE_COUNT: usize = 1_000;
 
     let mut world = World::empty();
-    let renamed = world.spawn_node(NodeKind::Empty);
+    let renamed = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     for _ in 1..NODE_COUNT {
-        world.spawn_node(NodeKind::Empty);
+        world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
     }
     let initial = world.inspection_artifact();
     let before = world.inspection_artifact_diagnostics();
@@ -709,9 +913,13 @@ fn cloned_world_keeps_hierarchy_materialization_diagnostics_isolated() {
     const NODE_COUNT: usize = 1_000;
 
     let mut source = World::empty();
-    let renamed = source.spawn_node(NodeKind::Empty);
+    let renamed = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     for _ in 1..NODE_COUNT {
-        source.spawn_node(NodeKind::Empty);
+        source
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
     }
     source.inspection_artifact();
     source.rename_node(renamed, "Clone-isolated delta").unwrap();
@@ -748,9 +956,13 @@ fn cloned_world_reuses_materialized_rows_without_double_counting() {
     const NODE_COUNT: usize = 1_000;
 
     let mut source = World::empty();
-    let renamed = source.spawn_node(NodeKind::Empty);
+    let renamed = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     for _ in 1..NODE_COUNT {
-        source.spawn_node(NodeKind::Empty);
+        source
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
     }
     source.inspection_artifact();
     source
@@ -784,9 +996,15 @@ fn inspection_projection_avoids_redundant_focus_and_field_key_work() {
 #[test]
 fn subtree_hash_propagates_descendant_name_changes_without_touching_unrelated_roots() {
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
-    let child = world.spawn_node(NodeKind::Empty);
-    let unrelated = world.spawn_node(NodeKind::Empty);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let unrelated = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(child, Some(root)).unwrap();
 
     let before = hashes_by_entity(&world);
@@ -804,9 +1022,15 @@ fn subtree_hash_propagates_descendant_name_changes_without_touching_unrelated_ro
 #[test]
 fn subtree_hash_tracks_parent_child_identity_without_changing_the_moved_subtree() {
     let mut world = World::empty();
-    let first_parent = world.spawn_node(NodeKind::Empty);
-    let second_parent = world.spawn_node(NodeKind::Empty);
-    let child = world.spawn_node(NodeKind::Empty);
+    let first_parent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let second_parent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(child, Some(first_parent)).unwrap();
     let before = hashes_by_entity(&world);
 
@@ -823,8 +1047,12 @@ fn subtree_hash_tracks_parent_child_identity_without_changing_the_moved_subtree(
 #[test]
 fn subtree_hash_encodes_cycle_edges_even_when_the_child_was_already_visited() {
     let mut source = World::empty();
-    let first = source.spawn_node(NodeKind::Empty);
-    let second = source.spawn_node(NodeKind::Empty);
+    let first = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let second = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let missing_parent = second + 100;
 
     let cycle =
@@ -835,16 +1063,14 @@ fn subtree_hash_encodes_cycle_edges_even_when_the_child_was_already_visited() {
     );
 
     assert_eq!(
-        cycle
-            .inspect_hierarchy()
+        inspection_rows(&cycle)
             .iter()
             .map(|row| row.entity)
             .collect::<Vec<_>>(),
         vec![first, second]
     );
     assert_eq!(
-        broken_cycle
-            .inspect_hierarchy()
+        inspection_rows(&broken_cycle)
             .iter()
             .map(|row| row.entity)
             .collect::<Vec<_>>(),
@@ -858,16 +1084,20 @@ fn deep_hierarchy_inspection_is_iterative_and_deterministic() {
     const DEPTH: usize = 5_000;
 
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mut parent = root;
     for _ in 1..DEPTH {
-        let child = world.spawn_node(NodeKind::Empty);
+        let child = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world.set_parent_checked(child, Some(parent)).unwrap();
         parent = child;
     }
 
-    let first = world.inspect_hierarchy();
-    let second = world.inspect_hierarchy();
+    let first = inspection_rows(&world);
+    let second = inspection_rows(&world);
 
     assert_eq!(first.len(), DEPTH);
     assert_eq!(first, second);

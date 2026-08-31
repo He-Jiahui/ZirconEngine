@@ -67,7 +67,7 @@ doc_type: module-detail
 
 ## Generic Click And Edit
 
-`app/pane_surface_actions/click.rs` owns generic pane-surface click dispatch. It focuses the callback source window, asks the Workbench surface bridge first, forwards module-plugin, Build/Export, and profiling actions to their owners, then falls back to built-in pane surface and template bindings before applying host dispatch results.
+`app/pane_surface_actions/click.rs` owns generic pane-surface click dispatch. It focuses the callback source window, asks the Workbench surface bridge first, forwards module-plugin, Build/Export, and profiling actions to their owners, then falls back to built-in pane surface and template bindings before applying host dispatch results. Template table selection must retain the projected `pane_id`: a uniquely matched visible active drawer invalidates through the scoped shell-content transaction, while document/floating panes, missing committed state, and ambiguous matches explicitly fall back to full presentation invalidation.
 
 `app/pane_surface_actions/edit.rs` owns generic pane-surface edit dispatch. It routes Workbench and UI Asset detail edit callbacks, resolves built-in pane bridge binding ids, falls back to template bindings, and formats dispatch errors into the retained status line.
 
@@ -99,6 +99,7 @@ The generic click/edit children keep the high-level pane-surface callback entry 
 
 - Keep `app/pane_surface_actions.rs` as a structural module entry that only declares the pane-surface action family and imports the parent app scope required by legacy child modules.
 - Keep generic pane surface control click routing, feature forwarding, built-in pane surface fallback, template binding fallback, and result application in `app/pane_surface_actions/click.rs`.
+- Keep template table selection target preservation in `app/pane_surface_actions/click.rs`; do not widen a known active drawer pane to host-wide presentation, and do not claim shell-content coverage for document/floating panes.
 - Keep generic pane surface edit routing, Workbench/UI Asset edit forwarding, built-in pane bridge lookup, template binding fallback, and edit error formatting in `app/pane_surface_actions/edit.rs`.
 - Keep shared route predicates such as Build/Export action detection in `app/pane_surface_actions/routing.rs`.
 - Keep UI Asset detail edit binding parsing in `app/pane_surface_actions/ui_asset_detail.rs`.

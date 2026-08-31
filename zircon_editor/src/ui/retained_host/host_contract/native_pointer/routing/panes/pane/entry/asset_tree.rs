@@ -3,7 +3,9 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, PaneData};
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::asset_content_layout::{AssetContentPaintMetadata, AssetContentSurface};
 
-use super::super::super::super::{geometry::contains, PanePointerRoute, PanePointerTarget};
+use super::super::super::super::{
+    geometry::contains, PaneAssetSurface, PanePointerRoute, PanePointerTarget,
+};
 
 pub(super) fn route_browser_asset_tree_hit(
     pane: &PaneData,
@@ -16,7 +18,12 @@ pub(super) fn route_browser_asset_tree_hit(
     }
     let panel = browser_sources_panel_frame(&pane.asset_browser.nodes, body)?;
     contains(&panel, x, y).then(|| {
-        PanePointerRoute::new(PanePointerTarget::AssetTree("browser".into()), &panel, x, y)
+        PanePointerRoute::new(
+            PanePointerTarget::AssetTree(PaneAssetSurface::Browser),
+            &panel,
+            x,
+            y,
+        )
     })
 }
 
@@ -79,6 +86,7 @@ mod tests {
                     ..TemplatePaneNodeData::default()
                 },
             ]),
+            ..AssetBrowserPaneData::default()
         };
         let body = FrameRect {
             x: 100.0,

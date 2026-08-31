@@ -6,10 +6,10 @@ fn default_preview_fixture_loads_shared_workbench_state() {
     let fixture = default_preview_fixture();
 
     assert_eq!(fixture.layout.active_main_page, MainPageId::workbench());
-    assert_eq!(fixture.layout.drawers.len(), 6);
+    assert_eq!(fixture.layout.active_activity_window_drawers().len(), 5);
     assert!(fixture
         .layout
-        .drawers
+        .active_activity_window_drawers()
         .contains_key(&ActivityDrawerSlot::LeftTop));
     assert!(fixture
         .descriptors

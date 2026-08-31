@@ -59,7 +59,15 @@ class EditorContributionFixtureContractTests(unittest.TestCase):
         contributions = payload["contributions"]
         self.assertEqual(
             {contribution["kind"] for contribution in contributions},
-            {"view", "drawer", "menu", "command", "asset_type", "settings_page"},
+            {
+                "view",
+                "drawer",
+                "menu",
+                "command",
+                "asset_type",
+                "localization_bundle",
+                "settings_page",
+            },
         )
         expected_schema_by_kind = {
             "view": "zircon.editor.view/1",
@@ -67,7 +75,8 @@ class EditorContributionFixtureContractTests(unittest.TestCase):
             "menu": "zircon.editor.menu/1",
             "command": "zircon.editor.command/1",
             "asset_type": "zircon.editor.asset-type/1",
-            "settings_page": "zircon.editor.settings-page/1",
+            "localization_bundle": "zircon.editor.localization-bundle/1",
+            "settings_page": "zircon.editor.settings-page/2",
         }
         self.assertEqual(len(contributions), len(expected_schema_by_kind))
         for contribution in contributions:

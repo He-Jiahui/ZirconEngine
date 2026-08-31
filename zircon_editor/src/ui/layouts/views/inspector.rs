@@ -10,10 +10,12 @@ use zircon_runtime_interface::ui::layout::UiSize;
 use super::ViewTemplateNodeData;
 
 const INSPECTOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/inspector.zui";
-const INSPECTOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
-const INSPECTOR_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
 const INSPECTOR_EMPTY_STATE_CONTROL_ID: &str = "InspectorEmptyState";
 const INSPECTOR_EMPTY_STATE_MESSAGE_CONTROL_ID: &str = "InspectorEmptyStateMessage";
+const INSPECTOR_NAME_VALUE_CONTROL_ID: &str = "InspectorNameValue";
+const INSPECTOR_PARENT_VALUE_CONTROL_ID: &str = "InspectorParentValue";
+const INSPECTOR_POSITION_VALUE_CONTROL_ID: &str = "InspectorPositionValue";
+const INSPECTOR_COMPONENTS_VALUE_CONTROL_ID: &str = "InspectorComponentsValue";
 
 pub(crate) fn inspector_pane_nodes(
     inspector: Option<&InspectorSnapshot>,
@@ -21,39 +23,33 @@ pub(crate) fn inspector_pane_nodes(
 ) -> ModelRc<ViewTemplateNodeData> {
     let mut text_overrides = BTreeMap::new();
     text_overrides.insert(
-        "InspectorHeaderPanel".to_string(),
+        INSPECTOR_NAME_VALUE_CONTROL_ID.to_string(),
         inspector
-            .map(|inspector| format!("Inspector • {}", inspector.name))
-            .unwrap_or_else(|| "Inspector • No selection".to_string()),
+            .map(|inspector| inspector.name.clone())
+            .unwrap_or_else(|| "-".to_string()),
     );
     text_overrides.insert(
-        "InspectorNameRow".to_string(),
+        INSPECTOR_PARENT_VALUE_CONTROL_ID.to_string(),
         inspector
-            .map(|inspector| format!("Name • {}", inspector.name))
-            .unwrap_or_else(|| "Name • -".to_string()),
+            .map(|inspector| inspector.parent.clone())
+            .unwrap_or_else(|| "-".to_string()),
     );
     text_overrides.insert(
-        "InspectorParentRow".to_string(),
-        inspector
-            .map(|inspector| format!("Parent • {}", inspector.parent))
-            .unwrap_or_else(|| "Parent • -".to_string()),
-    );
-    text_overrides.insert(
-        "InspectorPositionRow".to_string(),
+        INSPECTOR_POSITION_VALUE_CONTROL_ID.to_string(),
         inspector
             .map(|inspector| {
                 format!(
-                    "Position • {}, {}, {}",
+                    "{}, {}, {}",
                     inspector.translation[0], inspector.translation[1], inspector.translation[2]
                 )
             })
-            .unwrap_or_else(|| "Position • -, -, -".to_string()),
+            .unwrap_or_else(|| "-".to_string()),
     );
     text_overrides.insert(
-        "InspectorActionsRow".to_string(),
+        INSPECTOR_COMPONENTS_VALUE_CONTROL_ID.to_string(),
         inspector
-            .map(|inspector| format!("{} components", inspector.plugin_components.len()))
-            .unwrap_or_else(|| "No components".to_string()),
+            .map(|inspector| inspector.plugin_components.len().to_string())
+            .unwrap_or_else(|| "-".to_string()),
     );
     text_overrides.insert(
         INSPECTOR_EMPTY_STATE_MESSAGE_CONTROL_ID.to_string(),
@@ -66,7 +62,7 @@ pub(crate) fn inspector_pane_nodes(
     let Ok(projection) = build_view_template_node_projection_with_patches(
         "inspector.template_projection",
         INSPECTOR_LAYOUT_ASSET_PATH,
-        &[(INSPECTOR_STYLE_ASSET_ID, INSPECTOR_STYLE_ASSET_PATH)],
+        &[],
         size,
         &text_overrides,
         &node_patches,
@@ -78,30 +74,24 @@ pub(crate) fn inspector_pane_nodes(
 
 fn inspector_visual_state_patches(has_selection: bool) -> BTreeMap<String, ViewTemplateNodePatch> {
     let mut patches = BTreeMap::new();
-    mark_panel(&mut patches, "InspectorHeaderPanel", has_selection);
-    mark_panel(&mut patches, "InspectorActionsRow", has_selection);
-    mark_row(&mut patches, "InspectorNameRow", has_selection);
-    mark_row(&mut patches, "InspectorParentRow", has_selection);
-    mark_row(&mut patches, "InspectorPositionRow", has_selection);
-    mark_row(&mut patches, "InspectorSeparatorRow", has_selection);
+    mark_readout(&mut patches, INSPECTOR_NAME_VALUE_CONTROL_ID, has_selection);
+    mark_readout(
+        &mut patches,
+        INSPECTOR_PARENT_VALUE_CONTROL_ID,
+        has_selection,
+    );
+    mark_readout(
+        &mut patches,
+        INSPECTOR_POSITION_VALUE_CONTROL_ID,
+        has_selection,
+    );
+    mark_readout(
+        &mut patches,
+        INSPECTOR_COMPONENTS_VALUE_CONTROL_ID,
+        has_selection,
+    );
     mark_empty_state(&mut patches, has_selection);
     patches
-}
-
-fn mark_panel(
-    patches: &mut BTreeMap<String, ViewTemplateNodePatch>,
-    control_id: &str,
-    active: bool,
-) {
-    patches.insert(
-        control_id.to_string(),
-        ViewTemplateNodePatch::visual_state(
-            active,
-            false,
-            if active { "panel" } else { "inset" },
-            if active { "default" } else { "muted" },
-        ),
-    );
 }
 
 fn mark_empty_state(patches: &mut BTreeMap<String, ViewTemplateNodePatch>, has_selection: bool) {
@@ -110,17 +100,28 @@ fn mark_empty_state(patches: &mut BTreeMap<String, ViewTemplateNodePatch>, has_s
         ViewTemplateNodePatch {
             selected: Some(false),
             focused: Some(false),
-            surface_variant: Some(if has_selection { "frame_only" } else { "inset" }.to_string()),
+            surface_variant: Some(
+                if has_selection {
+                    "transparent"
+                } else {
+                    "inset"
+                }
+                .to_string(),
+            ),
             ..ViewTemplateNodePatch::default()
         },
     );
 }
 
-fn mark_row(patches: &mut BTreeMap<String, ViewTemplateNodePatch>, control_id: &str, active: bool) {
+fn mark_readout(
+    patches: &mut BTreeMap<String, ViewTemplateNodePatch>,
+    control_id: &str,
+    active: bool,
+) {
     patches.insert(
         control_id.to_string(),
         ViewTemplateNodePatch {
-            selected: Some(active),
+            selected: Some(false),
             text_tone: Some(if active { "default" } else { "muted" }.to_string()),
             ..ViewTemplateNodePatch::default()
         },
@@ -163,15 +164,16 @@ mod tests {
         let Some(empty_state) = node_by_control_id(&nodes, "InspectorEmptyState") else {
             return;
         };
-        let Some(name) = node_by_control_id(&nodes, "InspectorNameRow") else {
+        let Some(name) = node_by_control_id(&nodes, INSPECTOR_NAME_VALUE_CONTROL_ID) else {
             return;
         };
         let Some(message) = node_by_control_id(&nodes, "InspectorEmptyStateMessage") else {
             return;
         };
 
-        assert_eq!(header.text.to_string(), "Inspector • No selection");
-        assert_eq!(header.text_tone.to_string(), "muted");
+        assert_eq!(header.text.to_string(), "Inspector");
+        assert_eq!(header.text_tone.to_string(), "default");
+        assert_eq!(header.surface_variant.to_string(), "transparent");
         assert!(!header.selected);
         assert!(!header.focused);
         assert_eq!(
@@ -179,6 +181,8 @@ mod tests {
             EditorDensityTokens::WORKBENCH_ROW_HEIGHT
         );
         assert_eq!(name.frame.height, EditorDensityTokens::WORKBENCH_ROW_HEIGHT);
+        assert!(!name.selected);
+        assert_eq!(name.value_text.to_string(), "-");
         assert_eq!(empty_state.surface_variant.to_string(), "inset");
         assert_eq!(message.text.to_string(), "No object selected");
         assert_eq!(message.text_align.to_string(), "center");
@@ -193,6 +197,7 @@ mod tests {
             parent: "Root".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
             scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
+            render_layer_mask: 1,
             plugin_components: Vec::new(),
         };
         let nodes = projected_nodes(Some(&inspector));
@@ -207,9 +212,25 @@ mod tests {
             return;
         };
 
-        assert!(header.selected);
+        assert!(!header.selected);
         assert!(!header.focused);
-        assert_eq!(empty_state.surface_variant.to_string(), "frame_only");
+        assert_eq!(empty_state.surface_variant.to_string(), "transparent");
         assert!(message.text.is_empty());
+
+        for (control_id, expected_value) in [
+            (INSPECTOR_NAME_VALUE_CONTROL_ID, "Camera"),
+            (INSPECTOR_PARENT_VALUE_CONTROL_ID, "Root"),
+            (INSPECTOR_POSITION_VALUE_CONTROL_ID, "1.0, 2.0, 3.0"),
+            (INSPECTOR_COMPONENTS_VALUE_CONTROL_ID, "0"),
+        ] {
+            let Some(readout) = node_by_control_id(&nodes, control_id) else {
+                return;
+            };
+            assert_eq!(readout.value_text.to_string(), expected_value);
+            assert!(
+                !readout.selected,
+                "{control_id} must not impersonate selection"
+            );
+        }
     }
 }

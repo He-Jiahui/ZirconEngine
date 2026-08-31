@@ -12,10 +12,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn bool_va
     value: &str,
 ) -> bool {
     let value = value.trim();
-    value == "1"
-        || ["true", "on", "yes", "check", "checked"]
-            .iter()
-            .any(|candidate| value.eq_ignore_ascii_case(candidate))
+    match value.len() {
+        1 => value == "1",
+        2 => value.eq_ignore_ascii_case("on"),
+        3 => value.eq_ignore_ascii_case("yes"),
+        4 => value.eq_ignore_ascii_case("true"),
+        5 => value.eq_ignore_ascii_case("check"),
+        7 => value.eq_ignore_ascii_case("checked"),
+        _ => false,
+    }
 }
 
 #[cfg(test)]
@@ -36,5 +41,6 @@ mod tests {
             .next()
             .expect("production source");
         assert!(!production.contains("to_ascii_lowercase"));
+        assert!(!production.contains(".iter().any"));
     }
 }

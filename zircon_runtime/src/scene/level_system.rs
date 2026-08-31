@@ -1,10 +1,11 @@
 //! Runtime level instance wrapping one ECS world plus lifecycle metadata.
 
+use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use zircon_runtime_interface::world_sync::{
-    InvalidationBatch, WatchRegistration, WatchToken, WorldFact,
+    InvalidationBatch, WatchRegistration, WatchToken, WorldFact, WorldQuery, WorldQueryResult,
 };
 
 use crate::core::framework::animation::{
@@ -12,12 +13,18 @@ use crate::core::framework::animation::{
 };
 use crate::core::framework::render::{HighlightSet, ViewportHighlightSet, ViewportHighlightStore};
 use crate::core::framework::scene::WorldHandle;
+use crate::core::framework::time::{TimePolicy, TimePolicyError, TimePolicyTransaction};
 use crate::core::math::Real;
-use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
+use crate::core::{CoreError, CoreHandle, FrameTimeSnapshot};
+use crate::scene::world_time::{
+    FixedInterpolationContext, WorldFixedStep, WorldFixedStepError, WorldTimeAdvanceError,
+    WorldTimeControlError, WorldTimeController, WorldTimeSnapshot,
+};
 use crate::scene::{
-    EntityId, EntityRemap, WORLD_DRIVER_NAME, WorldDriver,
+    EntityId, EntityRemap, LevelTickError, WORLD_DRIVER_NAME, WorldDriver, WorldTimePolicyReceipt,
+    WorldTimeState,
     dynamic_scene::{CompiledSceneSpawn, DynamicScene, DynamicSceneError},
-    ecs::RuntimeSceneSystemContext,
+    ecs::{RuntimeSceneSystemContext, SystemTickContext},
     inspection::SubscriptionTable,
     world::World,
 };
@@ -66,6 +73,7 @@ pub struct LevelSystem {
     frame_state: Arc<Mutex<Arc<LevelFrameStateSnapshot>>>,
     world_subscriptions: Arc<Mutex<SubscriptionTable>>,
     viewport_highlights: Arc<Mutex<ViewportHighlightStore>>,
+    world_time: Arc<Mutex<WorldTimeController>>,
     metadata: Arc<Mutex<LevelMetadata>>,
     lifecycle: Arc<Mutex<LevelLifecycleState>>,
     subsystems: Arc<Mutex<Arc<[String]>>>,
@@ -110,6 +118,7 @@ impl LevelSystem {
             )))),
             world_subscriptions,
             viewport_highlights: Arc::new(Mutex::new(ViewportHighlightStore::default())),
+            world_time: Arc::new(Mutex::new(WorldTimeController::default())),
             metadata: Arc::new(Mutex::new(metadata)),
             lifecycle: Arc::new(Mutex::new(LevelLifecycleState::Loaded)),
             subsystems: Arc::new(Mutex::new(Arc::default())),
@@ -141,10 +150,95 @@ impl LevelSystem {
         self.with_world(World::world_generation)
     }
 
+    /// Returns an immutable copy of this Level's virtual and fixed clocks.
+    pub fn world_time(&self) -> WorldTimeState {
+        lock_poison_recovered(&self.world_time).state()
+    }
+
+    /// Returns interpolation evidence built only from committed fixed states.
+    pub fn fixed_interpolation_context(&self) -> FixedInterpolationContext {
+        lock_poison_recovered(&self.world_time).fixed_interpolation_context()
+    }
+
+    pub fn time_policy(&self) -> TimePolicy {
+        lock_poison_recovered(&self.world_time).time_policy()
+    }
+
+    pub fn apply_time_policy(
+        &self,
+        transaction: TimePolicyTransaction,
+    ) -> Result<WorldTimePolicyReceipt, TimePolicyError> {
+        lock_poison_recovered(&self.world_time).apply_time_policy(transaction)
+    }
+
+    /// Installs the policy selected before this Level is published to callers.
+    pub(crate) fn initialize_time_policy(&self, policy: TimePolicy) -> Result<(), TimePolicyError> {
+        *lock_poison_recovered(&self.world_time) = WorldTimeController::new(policy)?;
+        Ok(())
+    }
+
+    pub fn pause_virtual_time(&self) {
+        lock_poison_recovered(&self.world_time).pause_virtual_time();
+    }
+
+    pub fn unpause_virtual_time(&self) {
+        lock_poison_recovered(&self.world_time).unpause_virtual_time();
+    }
+
+    pub fn request_single_step(&self) -> Result<(), WorldTimeControlError> {
+        lock_poison_recovered(&self.world_time).request_single_step()
+    }
+
+    pub(crate) fn advance_world_time(
+        &self,
+        outer: FrameTimeSnapshot,
+    ) -> Result<WorldTimeSnapshot, WorldTimeAdvanceError> {
+        lock_poison_recovered(&self.world_time).advance(outer)
+    }
+
+    pub(crate) fn begin_fixed_step(
+        &self,
+        world_generation: u64,
+    ) -> Result<WorldFixedStep, WorldFixedStepError> {
+        lock_poison_recovered(&self.world_time).begin_fixed_step(world_generation)
+    }
+
+    pub(crate) fn commit_fixed_step(
+        &self,
+        expected_world_generation: u64,
+        step: &WorldFixedStep,
+    ) -> Result<(), WorldFixedStepError> {
+        let world = self.lock_world();
+        let actual_world_generation = world.world_generation();
+        if actual_world_generation != expected_world_generation {
+            return Err(WorldFixedStepError::WorldGenerationChanged {
+                expected: expected_world_generation,
+                actual: actual_world_generation,
+            });
+        }
+        lock_poison_recovered(&self.world_time).commit_fixed_step(step)
+    }
+
+    pub(crate) fn abort_fixed_step(&self, step: WorldFixedStep) -> Result<(), WorldFixedStepError> {
+        lock_poison_recovered(&self.world_time).abort_fixed_step(step)
+    }
+
     /// Captures the identity of the installed World after any replacement reset completes.
     pub fn capture_world_replacement_epoch(&self) -> u64 {
         let _world = self.lock_world();
         self.world_replacement_epoch.load(Ordering::Acquire)
+    }
+
+    fn advance_world_replacement_epoch(&self) -> u64 {
+        let previous = self
+            .world_replacement_epoch
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |epoch| {
+                epoch.checked_add(1)
+            })
+            .expect("world replacement epoch exhausted");
+        previous
+            .checked_add(1)
+            .expect("world replacement epoch was checked before publication")
     }
 
     /// Mutates the World only if it is still the instance identified by `replacement_epoch`.
@@ -302,11 +396,12 @@ impl LevelSystem {
             if actual_generation != expected_generation {
                 return Err(actual_generation);
             }
-            self.world_replacement_epoch.fetch_add(1, Ordering::AcqRel);
+            let replacement_epoch = self.advance_world_replacement_epoch();
             current.clear_all_events();
             let retired = current.commit_staged_scene_state(world);
             current.attach_world_sync_subscriptions(Arc::clone(&self.world_subscriptions));
             self.reset_runtime_state_after_world_replacement(&mut current);
+            current.record_world_fact(WorldFact::WorldReplaced { replacement_epoch });
             retired
         };
         drop(retired);
@@ -316,7 +411,7 @@ impl LevelSystem {
     pub fn replace_world_and_reset_runtime_state(&self, world: World) {
         let retired = {
             let mut current = self.lock_world();
-            self.world_replacement_epoch.fetch_add(1, Ordering::AcqRel);
+            let replacement_epoch = self.advance_world_replacement_epoch();
             let mut world = world;
             world.advance_dynamic_component_generations_after(&current);
             world.advance_scene_binding_generations_after(&current);
@@ -324,6 +419,7 @@ impl LevelSystem {
             let retired = std::mem::replace(&mut *current, world);
             current.attach_world_sync_subscriptions(Arc::clone(&self.world_subscriptions));
             self.reset_runtime_state_after_world_replacement(&mut current);
+            current.record_world_fact(WorldFact::WorldReplaced { replacement_epoch });
             retired
         };
         drop(retired);
@@ -347,6 +443,7 @@ impl LevelSystem {
             *frame_state = Arc::new(LevelFrameStateSnapshot::new(world_generation));
         }
         drop(frame_state);
+        lock_poison_recovered(&self.world_time).reset_after_world_replacement();
         self.lock_physics_state().reset_after_world_replacement();
         #[cfg(feature = "animation")]
         {
@@ -360,38 +457,79 @@ impl LevelSystem {
         read(&world)
     }
 
+    /// Runs one transport-neutral query against a single World replacement identity.
+    pub fn query_world(&self, query: &WorldQuery) -> WorldQueryResult {
+        self.with_world_and_replacement_epoch(|world, replacement_epoch| {
+            world.query_world_at_replacement_epoch(query, replacement_epoch)
+        })
+    }
+
+    pub(crate) fn with_world_and_replacement_epoch<R>(
+        &self,
+        read: impl FnOnce(&World, u64) -> R,
+    ) -> R {
+        let world = self.lock_world();
+        let replacement_epoch = self.world_replacement_epoch.load(Ordering::Acquire);
+        read(&world, replacement_epoch)
+    }
+
     pub fn with_world_mut<R>(&self, write: impl FnOnce(&mut World) -> R) -> R {
         let mut world = self.lock_world();
         write(&mut world)
     }
 
-    pub fn tick(&self, core: &CoreHandle, advance: RuntimeTimeAdvance) -> Result<(), CoreError> {
+    pub(crate) fn with_world_mut_and_replacement_epoch<R>(
+        &self,
+        write: impl FnOnce(&mut World, u64) -> R,
+    ) -> R {
+        let mut world = self.lock_world();
+        let replacement_epoch = self.world_replacement_epoch.load(Ordering::Acquire);
+        write(&mut world, replacement_epoch)
+    }
+
+    pub(crate) fn tick(
+        &self,
+        core: &CoreHandle,
+        snapshot: FrameTimeSnapshot,
+    ) -> Result<(), LevelTickError> {
         let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
-        driver.tick_level(core, self, advance)
+        driver.tick_level(core, self, snapshot)
     }
 
     pub(crate) fn run_runtime_scene_system(
         &self,
         core: &CoreHandle,
         id: &str,
-        delta_seconds: Real,
+        tick: SystemTickContext,
     ) -> Result<bool, CoreError> {
-        let Some(mut system) =
-            self.with_world_mut(|world| world.schedule_mut().take_runtime_system(id))
-        else {
+        let (system, replacement_epoch) =
+            self.with_world_mut_and_replacement_epoch(|world, replacement_epoch| {
+                (
+                    world.schedule_mut().take_runtime_system(id),
+                    replacement_epoch,
+                )
+            });
+        let Some(mut system) = system else {
             return Ok(false);
         };
 
-        let result = system.run(RuntimeSceneSystemContext::new(core, self, delta_seconds));
-        self.with_world_mut(|world| world.schedule_mut().restore_runtime_system(system));
-        result.map(|_| true)
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            system.run(RuntimeSceneSystemContext::new(core, self, tick))
+        }));
+        let _ = self.with_world_mut_if_replacement_epoch(replacement_epoch, move |world| {
+            world.schedule_mut().restore_runtime_system(system);
+        });
+        match result {
+            Ok(result) => result.map(|_| true),
+            Err(payload) => resume_unwind(payload),
+        }
     }
 
     pub fn animation_pose(&self, entity: EntityId) -> Option<AnimationPoseOutput> {
         self.frame_state_snapshot()
             .animation_poses()
             .get(&entity)
-            .cloned()
+            .map(|pose| pose.as_ref().clone())
     }
 
     pub(crate) fn frame_state_snapshot(&self) -> Arc<LevelFrameStateSnapshot> {
@@ -447,10 +585,6 @@ impl std::fmt::Debug for LevelSystem {
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "animation")]
-    use std::collections::BTreeMap;
-    use std::panic::{AssertUnwindSafe, catch_unwind};
-
-    #[cfg(feature = "animation")]
     use crate::core::framework::animation::AnimationClipEventSamplingRange;
     use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
     #[cfg(feature = "animation")]
@@ -475,7 +609,11 @@ mod tests {
         );
 
         poison_mutex(&level.inner);
-        let entity = level.with_world_mut(|world| world.spawn_node(crate::scene::NodeKind::Cube));
+        let entity = level.with_world_mut(|world| {
+            world
+                .spawn_node(crate::scene::NodeKind::Cube)
+                .expect("test scene spawn should succeed")
+        });
         assert!(level.snapshot().contains_entity(entity));
 
         #[cfg(feature = "animation")]
@@ -485,7 +623,7 @@ mod tests {
             level.record_animation_requires_continuous_frame(true);
             assert!(level.animation_requires_continuous_frame());
             let replacement_epoch = level.capture_world_replacement_epoch();
-            assert!(level.record_animation_poses(replacement_epoch, BTreeMap::new()));
+            assert!(level.record_animation_pose_snapshot(replacement_epoch, Arc::default()));
         }
 
         poison_mutex(&level.frame_state);
@@ -526,8 +664,12 @@ mod tests {
     #[test]
     fn world_replacement_advances_generation_past_both_worlds() {
         let mut current = World::empty();
-        current.spawn_node(crate::scene::NodeKind::Empty);
-        current.spawn_node(crate::scene::NodeKind::Empty);
+        current
+            .spawn_node(crate::scene::NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        current
+            .spawn_node(crate::scene::NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         let current_generation = current.world_generation();
         let level = LevelSystem::new(
             WorldHandle::new(7),
@@ -536,7 +678,9 @@ mod tests {
         );
 
         let mut replacement = World::empty();
-        replacement.spawn_node(crate::scene::NodeKind::Empty);
+        replacement
+            .spawn_node(crate::scene::NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         let replacement_generation = replacement.world_generation();
         level.replace(replacement);
 
@@ -549,8 +693,12 @@ mod tests {
     #[test]
     fn world_replacement_stales_compiled_binding_when_entity_ids_are_reused() {
         let mut current = World::empty();
-        let root = current.spawn_node(crate::scene::NodeKind::Empty);
-        let hero = current.spawn_node(crate::scene::NodeKind::Mesh);
+        let root = current
+            .spawn_node(crate::scene::NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        let hero = current
+            .spawn_node(crate::scene::NodeKind::Mesh)
+            .expect("test scene spawn should succeed");
         current.rename_node(root, "Root").unwrap();
         current.rename_node(hero, "Hero").unwrap();
         current.set_parent_checked(hero, Some(root)).unwrap();
@@ -568,8 +716,12 @@ mod tests {
         );
 
         let mut replacement = World::empty();
-        let replacement_root = replacement.spawn_node(crate::scene::NodeKind::Empty);
-        let replacement_hero = replacement.spawn_node(crate::scene::NodeKind::Mesh);
+        let replacement_root = replacement
+            .spawn_node(crate::scene::NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        let replacement_hero = replacement
+            .spawn_node(crate::scene::NodeKind::Mesh)
+            .expect("test scene spawn should succeed");
         assert_eq!(root, replacement_root);
         assert_eq!(hero, replacement_hero);
         replacement.rename_node(replacement_root, "Root").unwrap();

@@ -19,7 +19,9 @@ fn sdf_renderer_uses_persistent_capacity_managed_vertex_buffer() {
     assert!(!renderer.contains("prepare_text_runs_cpu_for_frame"));
     assert!(renderer.contains("atlas_bake: &SdfAtlasBake"));
     assert!(text_system.contains("let mut sdf_atlas_bake = self.text_state.build_sdf_atlas("));
-    assert!(text_system.contains("record_generation_failures(&sdf_atlas_bake.generation_failures)"));
+    assert!(
+        text_system.contains("record_generation_failures(&sdf_atlas_bake.generation_failures)")
+    );
     assert!(text_system.contains("self.sdf_cpu_frame.prepare("));
     assert!(text_system.contains("self.sdf_cpu_frame.invalidate();"));
     assert!(cpu_frame.contains("prepared_sdf_texts"));
@@ -43,6 +45,8 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
         resident_font_count: 1,
         loaded_font_count: 1,
         generation_failure_count: 0,
+        resident_font_asset_error_count: 0,
+        resident_font_asset_no_registered_faces_count: 0,
         r8_byte_len: 512 * 512,
         rgba_byte_len: 0,
         offline_glyph_count: 0,
@@ -135,6 +139,7 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
         1,
         bake_report,
         upload_report,
+        false,
         12,
         SdfVertexBufferWriteReport {
             capacity_byte_len: 4 * 1024,
@@ -162,6 +167,7 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
             bake: bake_report,
             atlas_upload_byte_len: 512 * 512,
             atlas_upload_full_texture: true,
+            atlas_upload_preparation_failed: false,
             atlas_upload: SdfAtlasUploadReport {
                 mode: SdfAtlasUploadMode::FullTexture,
                 byte_len: 512 * 512,

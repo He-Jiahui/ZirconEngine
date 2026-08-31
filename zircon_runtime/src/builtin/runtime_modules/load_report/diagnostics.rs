@@ -10,6 +10,7 @@ pub enum RuntimeModuleLoadDiagnostic {
     UnknownPlugin { id: String, required: bool },
     FeatureBlocked(RuntimePluginFeatureBlock),
     FeatureDefinition(String),
+    RuntimePluginPlan { message: String, fatal: bool },
     AssetImporter(AssetImporterRegistryError),
 }
 
@@ -19,6 +20,7 @@ impl RuntimeModuleLoadDiagnostic {
             Self::Core(_) | Self::FeatureDefinition(_) | Self::AssetImporter(_) => true,
             Self::UnknownPlugin { required, .. } => *required,
             Self::FeatureBlocked(blocked) => blocked.required,
+            Self::RuntimePluginPlan { fatal, .. } => *fatal,
         }
     }
 
@@ -30,6 +32,7 @@ impl RuntimeModuleLoadDiagnostic {
             }
             Self::FeatureBlocked(blocked) => blocked.to_diagnostic(),
             Self::FeatureDefinition(diagnostic) => diagnostic.clone(),
+            Self::RuntimePluginPlan { message, .. } => message.clone(),
             Self::AssetImporter(error) => {
                 format!("asset importer registration failed: {error}")
             }
@@ -38,50 +41,51 @@ impl RuntimeModuleLoadDiagnostic {
 }
 
 impl RuntimeModuleLoadReport {
-    pub fn required_missing(&self) -> &[RuntimePluginAvailabilityEntry] {
-        &self.runtime_plugin_availability.missing_required
+    pub(in crate::builtin::runtime_modules) fn has_fatal_diagnostics(&self) -> bool {
+        has_fatal_diagnostics(&self.runtime_plugin_availability, self.diagnostics())
     }
+}
 
-    pub fn required_missing_summary(&self) -> String {
-        self.required_missing()
-            .iter()
-            .map(required_plugin_missing_message)
-            .collect::<Vec<_>>()
-            .join("; ")
-    }
-
-    pub fn warning_messages(&self) -> Vec<String> {
-        optional_unavailable_entries(&self.runtime_plugin_availability)
-            .map(optional_plugin_unavailable_message)
-            .chain(
-                self.diagnostics()
-                    .iter()
-                    .filter(|diagnostic| !diagnostic.is_fatal())
-                    .map(RuntimeModuleLoadDiagnostic::message),
-            )
-            .collect()
-    }
-
-    pub fn fatal_messages(&self) -> Vec<String> {
-        self.required_missing()
-            .iter()
-            .map(required_plugin_missing_message)
-            .chain(
-                self.diagnostics()
-                    .iter()
-                    .filter(|diagnostic| diagnostic.is_fatal())
-                    .map(RuntimeModuleLoadDiagnostic::message),
-            )
-            .collect()
-    }
-
-    pub fn has_fatal_diagnostics(&self) -> bool {
-        !self.required_missing().is_empty()
-            || self
-                .diagnostics()
+pub(in crate::builtin::runtime_modules) fn warning_messages(
+    availability: &crate::plugin::RuntimePluginAvailabilityReport,
+    diagnostics: &[RuntimeModuleLoadDiagnostic],
+) -> Vec<String> {
+    optional_unavailable_entries(availability)
+        .map(optional_plugin_unavailable_message)
+        .chain(
+            diagnostics
                 .iter()
-                .any(RuntimeModuleLoadDiagnostic::is_fatal)
-    }
+                .filter(|diagnostic| !diagnostic.is_fatal())
+                .map(RuntimeModuleLoadDiagnostic::message),
+        )
+        .collect()
+}
+
+pub(in crate::builtin::runtime_modules) fn fatal_messages(
+    availability: &crate::plugin::RuntimePluginAvailabilityReport,
+    diagnostics: &[RuntimeModuleLoadDiagnostic],
+) -> Vec<String> {
+    availability
+        .missing_required
+        .iter()
+        .map(required_plugin_missing_message)
+        .chain(
+            diagnostics
+                .iter()
+                .filter(|diagnostic| diagnostic.is_fatal())
+                .map(RuntimeModuleLoadDiagnostic::message),
+        )
+        .collect()
+}
+
+pub(in crate::builtin::runtime_modules) fn has_fatal_diagnostics(
+    availability: &crate::plugin::RuntimePluginAvailabilityReport,
+    diagnostics: &[RuntimeModuleLoadDiagnostic],
+) -> bool {
+    !availability.missing_required.is_empty()
+        || diagnostics
+            .iter()
+            .any(RuntimeModuleLoadDiagnostic::is_fatal)
 }
 
 fn required_plugin_missing_message(entry: &RuntimePluginAvailabilityEntry) -> String {

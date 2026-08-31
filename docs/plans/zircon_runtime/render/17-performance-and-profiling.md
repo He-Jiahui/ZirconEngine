@@ -5,6 +5,8 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/update.rs
   - zircon_runtime/src/graphics/runtime/render_framework/graphics_debugger_capture/environment.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler/gpu_resolution.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
@@ -28,6 +30,10 @@ plan_sources:
 # 计划 17:性能体系与优化(profiling / 并行 / 预算 / 防回归)
 
 本计划是骨架层与能力层之上的横切层:为计划 01–16 的产出提供统一的观测底座、CPU 并行化骨架、内存/带宽预算治理与性能回归基线。跨计划契约名一律原样引用、只消费不重定义:计划 01 `RgTextureHandle`/`TransientResourcePool`/`CompiledGraphCache`;计划 02 `MeshDrawCommand`/`CachedMeshDrawCommands`;计划 03 `GpuScene`/`IndirectDrawBatcher`;计划 04 `ViewVisibilityContext`/`HzbBuilder`;计划 08 `ShaderVariantKey`;计划 09 `CameraRenderDescriptor`;计划 16 `ComputePassDescriptor`/`GpuReadbackQueue`。index.md §6 全局边界约束与 §8 全局工程约定全部适用;`sort_key` 位段归计划 09,本计划不触碰。
+
+2026-08-30 standalone UI submission/completion owner增量：Runtime90 SUI-0至SUI-3已把standalone/offscreen device收敛到同一initial profile factory，native UI context必有typed `Arc<WgpuRenderDevice>`；standalone present删除raw submit并保留真实ticket，local frame在surface acquire前唯一poll，旧readback只作after-poll collect。UI image pin随native packet进入ticket-keyed有界退休表，由唯一submission completion callback或fault terminalization锁外释放；device poll error同批终结submission、diagnostic和surface frame。当前只有failing-first/static contract、精确rustfmt、scoped diff、locked metadata与结构证据；真实窗口、PNG/RDC、300帧profile、显存和功耗仍待完成，状态`render17_standalone_ui_sui_0_through_sui_3_source_implemented_static_checks_passed_dynamic_validation_pending`。
+
+2026-08-30 product raw queue authority增量：Runtime90 PFO-4d4b删除scene resource/material frame preparation的无行为queue透传，并让product GPU timer从唯一`WgpuRenderDevice`读取启动时固化的timestamp period。该切片只收窄权限，不改变upload batch、native submit、query routing或缓存算法；failing-first 0/5转为扩展合同7/7。其余raw Device/Queue consumer、真实WGPU、PNG/RDC、300帧profile、显存和功耗仍待完成，状态`render17_pfo_4d4b_source_implemented_static_checks_passed_dynamic_validation_pending`。
 
 ## 目标
 
@@ -292,7 +298,8 @@ pub(crate) struct RenderThreadHandle {
 pub(crate) struct RenderThreadFrame {
     pub(crate) viewport: RenderViewportHandle,
     pub(crate) extract: RenderFrameExtract,
-    pub(crate) ui: Option<UiRenderExtract>,
+    // UI paint products are generation-owned and shared across session/queue/render stages.
+    pub(crate) ui: Option<Arc<UiRenderExtract>>,
 }
 // Drop 语义对齐 bevy:先关 submit_tx,recv 排空 feedback,join 线程,
 // 保证 wgpu 资源在 render 线程析构。
@@ -462,6 +469,11 @@ PF-M4:
 
 ## 性能审阅交接
 
+- 2026-08-30 texture mip preservation typed boundary（P0-5源码闭合、动态采集待办）：resident-mip replacement的旧mip copy必须先于新mip queue write，现由`RenderFrameSubmissionBoundaryReason::TextureMipPreservationBeforeUpload`随success/failure frame receipt发布；copy/post tickets不误标。producer/reason配对由独立record owner校验，错误配对在transaction变更前返回typed error，receipt重建时再次fail closed。该切片没有重排submit。先用11.8的frame interval metrics采集同帧0/1/N个replacement时的physical submit、ticket、upload bytes和CPU/GPU时间，再决定是否把多个texture work收集为“all pre-copy commands -> one boundary -> merged uploads -> post commands”；没有profile前禁止实施该结构优化。状态：`render17_texture_mip_preservation_typed_boundary_source_implemented_static_checks_passed_dynamic_validation_pending`。
+- 2026-08-30 frame submission interval观测（P0-5源码闭合、动态采集待办）：`RenderFrameSubmissionReceipt`现可选携带backend-neutral `RenderFrameSubmissionMetrics`，区分frame-owned logical packets、flush submitted tickets、physical backend submits及buffer/texture upload batch/write/payload bytes。compiled/legacy owner均在poll后且资源准备前取baseline，在terminal scene ticket后封口；owner改变或单调计数回退时不发布样本。该切片不新增flush/poll/wait/queue work，也未运行真实WGPU。Render17后续须对普通单viewport、resident-mip迁移、diagnostic/capture、environment capture、hit proxy和retained UI分别采集至少300个steady-state frame的计数分布，再以RenderDoc事件/提交对拍；当前没有“一帧一次submit”或性能收益结论。状态：`render17_frame_submission_interval_metrics_source_implemented_static_checks_passed_dynamic_validation_pending`。
+- 2026-08-27 forward receiver binding观测（PFO-4d2e源码闭合、动态采集待办）：standard receiver与包含graph transient资源的full receiver现分别拥有逐成功帧native bind-group create counter和独立CPU scope；direct/compiled入口清零、唯一成功出口上报。该切片没有实现缓存或改变绑定行为。必须先采集environment-only/full deferred、1/4/16/64 shadow slot和transparent/OIT组合的至少300帧p50/p95/p99，再决定是否建立generation snapshot cache；源码调用次数不得作为瓶颈结论。
+- 2026-08-27 RDG transient pool观测（PFO-4d3b源码闭合、动态采集待办）：completion collection和frame-end maintenance拥有独立CPU scope；texture/buffer completion status query、stale scan、budget accounting与over-budget sort candidate共8条work counter已进入既有RenderStats diagnostics。计数复用原遍历点且没有改变容器、淘汰顺序或submission语义。必须对deferred/forward/shadow-heavy/resize-device-recovery各采集至少300个steady-state frame的p50/p95/p99、allocator/RSS与submission数据，再判断ticket coalescing、age bucket、retained-byte ledger或bounded eviction queue；当前没有瓶颈或性能收益结论。
+
 - 2026-07-18 core diagnostics交接：`render_stats_store/**` 30/30文件确认一次采集约写541条series；四类helper、5条遗漏product leaf与collect root 5条metric现均走static metadata快路。Render17仍须联动Runtime07交付RenderStats整体/domain generation、dense token、packed delta与editor同generation snapshot缓存，避免可见pane按UI刷新率重复全批；预算与证据见PERF-MVP-324及`docs/plans/performance/01/2026-07-18-runtime-core-render-stats-store-static-review.md`。
 - 2026-07-18 profiler本身性能交接：capture inactive的recorder锁/静态name/动态payload和frame stream临时key已止损；active scope/frame/counter仍由单个全局Mutex串行，snapshot/hotspot/Perfetto/Markdown导出仍深clone、全排序并同步写盘。Render17需联动Runtime07把采集改为thread-local bounded chunks+static IDs，封存后后台聚合/导出，并记录observer overhead、drop和frame-thread I/O；见PERF-MVP-326及`docs/plans/performance/01/2026-07-18-runtime-core-profiling-static-review.md`。
 - 2026-07-18 gizmo overlay交接：framework extract的per-endpoint matrix、circle/sphere temp points及line realloc已直接止损，但framework gizmos尚无生产caller，Editor05仍有独立interaction/gizmo extract。Render17需先会签唯一overlay owner，再以generation-compiled retained geometry、可复用line-list/strip buffers和transform instancing消除stable rebuild/upload；RenderDoc稳定帧必须记录line upload bytes、draw/pass与1/1k/100k instances，不以未接产品的microbench替代。见PERF-MVP-333及`docs/plans/performance/01/2026-07-18-runtime-core-framework-camera-gizmos-static-review.md`。
@@ -564,3 +576,19 @@ PF-M4:
 - 2026-07-22 root/project/UI/sound asset观测补充：Render17联动Runtime04/11、Editor09/10、EditorUI09与Plugins02记录TOML/Value/DTO/string owners、Data text/JSON owners、UI DOM/locator/sprite-index visits、audio source/PCM/decode-ring bytes及caller/audio-thread stall。PERF-MVP-524..526当前局部临时分配已止损；527..529最终stable build/parse/decode=0且峰值受预算。CPU/allocator/I/O/audio trace为主，只有sprite/preview真实resident与draw再用DX12 RenderDoc对拍。
 - 2026-07-22 plugin control-plane观测补充：Render17联动Plugins01/11、Runtime06/11与Editor12记录bridge status/snapshot/String/key-resolve、extension family/owner scans、freeze/thaw/hash/key clone、world plan/system factory build、callback mutex wait/hold、availability reason/id clone与generation hit。PERF-MVP-530/531当前局部冗余为0；532..534最终stable control-plane build=0、per-run shared callback lock=0、changed近owner slots。该路径以CPU/lock/allocator/WPR为主，不误列无GPU工作的RenderDoc证据。
 - 2026-07-31 PF-M2 prepare/queue 前置交接：当前 Render02 command builder 将 variant id 分配、cache mutation 与 command 生成耦合在可变循环中；Render17 已完成 bounded pipelined submission，但不会以 mutex 假装 rayon 并行。见 [`02/failure-2026-07-31-parallel-mesh-command-preparation-contract.md`](02/failure-2026-07-31-parallel-mesh-command-preparation-contract.md)（open/待修复）。
+
+## 2026-08-27 FrameProfiler GPU Resolution Owner Split
+
+状态：`runtime_17_15_frame_profiler_gpu_resolution_owner_split_static_passed_cargo_profile_deferred`。
+
+PF-M1 的 `FrameProfiler` 当前结构切片把延迟 GPU timer/pipeline-statistics 结果归并、重复 pass
+occurrence 匹配、subsystem GPU budget 投影和 warning 计数迁入 153 行的
+`frame_profiler/gpu_resolution.rs`。796 行父 owner 继续唯一拥有 current-frame 组装、4-frame
+pending ring 与 profile publication；`FrameProfileWrite` 只在既有 crate-private 范围由父 owner
+精选投影，未形成第二条诊断或调度路径。7 个迁移项与 `HEAD` 规范化等价，结构/status guard
+2/2、定向格式与 diff check 通过。
+
+这只是使 profiling 基础设施可审查的 owner 收敛，不是 profiler 算法优化。pending ring、
+late-result matching、copy-on-write 和 budget 计算均未修改，当前没有产品 CPU/GPU timestamp、
+allocator/RSS、功耗、WGPU/RenderDoc 或像素数据。必须先完成本计划既定 product-observability
+gate，才能据数据提出算法变更；当前不声明 PF-M1、Render17 或 Runtime15 acceptance。

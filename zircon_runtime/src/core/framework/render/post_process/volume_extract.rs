@@ -6,6 +6,8 @@ use crate::core::math::{Quat, Real, Vec3};
 
 use super::VolumeParamValue;
 
+const EFFECT_STACK_PROFILE_OVERRIDE_COUNT: usize = 11;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum VolumeShapeExtract {
     Global,
@@ -79,7 +81,8 @@ impl VolumeComponentOverride {
     }
 
     pub fn from_profile(profile: &RenderPostProcessVolumeProfile) -> Vec<Self> {
-        let mut overrides = Vec::new();
+        let override_count = profile_override_count(profile);
+        let mut overrides = Vec::with_capacity(override_count);
         if let Some(volumetric_fog) = profile.volumetric_fog {
             overrides.push(Self::from_values(
                 VOLUMETRIC_FOG_COMPONENT_ID,
@@ -91,6 +94,21 @@ impl VolumeComponentOverride {
                     VolumeParamValue::Float(volumetric_fog.scattering_intensity),
                     VolumeParamValue::Float(volumetric_fog.depth_distribution_exp),
                     VolumeParamValue::Bool(volumetric_fog.temporal),
+                ],
+            ));
+        }
+        if let Some(ambient_occlusion) = profile.ambient_occlusion {
+            overrides.push(Self::from_values(
+                "post.ambient-occlusion",
+                [
+                    VolumeParamValue::Float(ambient_occlusion.intensity),
+                    VolumeParamValue::Float(ambient_occlusion.radius_meters),
+                    VolumeParamValue::Float(ambient_occlusion.thickness_meters),
+                    VolumeParamValue::Float(ambient_occlusion.depth_bias_meters),
+                    VolumeParamValue::Float(ambient_occlusion.falloff_start_meters),
+                    VolumeParamValue::Enum(ambient_occlusion.quality.stable_id()),
+                    VolumeParamValue::Bool(ambient_occlusion.half_resolution),
+                    VolumeParamValue::Bool(ambient_occlusion.temporal),
                 ],
             ));
         }
@@ -173,38 +191,41 @@ impl PostProcessVolumeExtract {
     }
 }
 
+fn profile_override_count(profile: &RenderPostProcessVolumeProfile) -> usize {
+    profile.volumetric_fog.is_some() as usize
+        + profile.ambient_occlusion.is_some() as usize
+        + profile.bloom.is_some() as usize
+        + profile.color_grading.is_some() as usize
+        + profile.effect_stack.is_some() as usize * EFFECT_STACK_PROFILE_OVERRIDE_COUNT
+}
+
 fn push_effect_stack_overrides(
     overrides: &mut Vec<VolumeComponentOverride>,
     effect_stack: RenderPostProcessEffectStackSettings,
 ) {
-    overrides.push(EffectStackOverride::depth_of_field(effect_stack).into_override());
-    overrides.push(EffectStackOverride::motion_blur(effect_stack).into_override());
-    overrides.push(EffectStackOverride::screen_space_reflection(effect_stack).into_override());
-    overrides.push(EffectStackOverride::screen_space_fog(effect_stack).into_override());
-    overrides.push(EffectStackOverride::tonemap(effect_stack).into_override());
-    overrides.push(EffectStackOverride::vignette(effect_stack).into_override());
-    overrides.push(EffectStackOverride::grain(effect_stack).into_override());
-    overrides.push(EffectStackOverride::dither(effect_stack).into_override());
-    overrides.push(EffectStackOverride::chromatic_aberration(effect_stack).into_override());
-    overrides.push(EffectStackOverride::color_lookup(effect_stack).into_override());
-    overrides.push(EffectStackOverride::blur(effect_stack).into_override());
+    overrides.push(EffectStackOverride::depth_of_field(effect_stack));
+    overrides.push(EffectStackOverride::motion_blur(effect_stack));
+    overrides.push(EffectStackOverride::screen_space_reflection(effect_stack));
+    overrides.push(EffectStackOverride::screen_space_fog(effect_stack));
+    overrides.push(EffectStackOverride::tonemap(effect_stack));
+    overrides.push(EffectStackOverride::vignette(effect_stack));
+    overrides.push(EffectStackOverride::grain(effect_stack));
+    overrides.push(EffectStackOverride::dither(effect_stack));
+    overrides.push(EffectStackOverride::chromatic_aberration(effect_stack));
+    overrides.push(EffectStackOverride::color_lookup(effect_stack));
+    overrides.push(EffectStackOverride::blur(effect_stack));
 }
 
-struct EffectStackOverride {
-    component_id: &'static str,
-    values: Vec<VolumeParamValue>,
-}
+struct EffectStackOverride;
 
 impl EffectStackOverride {
-    fn into_override(self) -> VolumeComponentOverride {
-        VolumeComponentOverride::from_values(self.component_id, self.values)
-    }
-
-    fn depth_of_field(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn depth_of_field(
+        effect_stack: RenderPostProcessEffectStackSettings,
+    ) -> VolumeComponentOverride {
         let settings = effect_stack.depth_of_field;
-        Self {
-            component_id: "post.depth-of-field",
-            values: vec![
+        VolumeComponentOverride::from_values(
+            "post.depth-of-field",
+            [
                 VolumeParamValue::Float(settings.focus_distance),
                 VolumeParamValue::Float(settings.focus_range),
                 VolumeParamValue::Float(settings.aperture),
@@ -213,25 +234,27 @@ impl EffectStackOverride {
                 VolumeParamValue::Uint(settings.bokeh_blade_count),
                 VolumeParamValue::Float(settings.bokeh_rotation_radians),
             ],
-        }
+        )
     }
 
-    fn motion_blur(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn motion_blur(effect_stack: RenderPostProcessEffectStackSettings) -> VolumeComponentOverride {
         let settings = effect_stack.motion_blur;
-        Self {
-            component_id: "post.motion-blur",
-            values: vec![
+        VolumeComponentOverride::from_values(
+            "post.motion-blur",
+            [
                 VolumeParamValue::Float(settings.shutter_angle),
                 VolumeParamValue::Uint(settings.samples),
             ],
-        }
+        )
     }
 
-    fn screen_space_reflection(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn screen_space_reflection(
+        effect_stack: RenderPostProcessEffectStackSettings,
+    ) -> VolumeComponentOverride {
         let settings = effect_stack.screen_space_reflection;
-        Self {
-            component_id: "post.screen-space-reflection",
-            values: vec![
+        VolumeComponentOverride::from_values(
+            "post.screen-space-reflection",
+            [
                 VolumeParamValue::Float(settings.intensity),
                 VolumeParamValue::Float(settings.thickness),
                 VolumeParamValue::Float(settings.max_ray_distance),
@@ -239,97 +262,101 @@ impl EffectStackOverride {
                 VolumeParamValue::Float(settings.temporal_blend_factor),
                 VolumeParamValue::Float(settings.roughness_mip_bias),
             ],
-        }
+        )
     }
 
-    fn screen_space_fog(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn screen_space_fog(
+        effect_stack: RenderPostProcessEffectStackSettings,
+    ) -> VolumeComponentOverride {
         let settings = effect_stack.fog;
-        Self {
-            component_id: "post.screen-space-fog",
-            values: vec![
+        VolumeComponentOverride::from_values(
+            "post.screen-space-fog",
+            [
                 VolumeParamValue::Float(settings.density),
                 VolumeParamValue::Float(settings.height_falloff),
                 VolumeParamValue::Vec3(settings.color),
             ],
-        }
+        )
     }
 
-    fn tonemap(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn tonemap(effect_stack: RenderPostProcessEffectStackSettings) -> VolumeComponentOverride {
         let settings = effect_stack.tonemap;
-        Self {
-            component_id: "post.tonemap",
-            values: vec![
+        VolumeComponentOverride::from_values(
+            "post.tonemap",
+            [
                 VolumeParamValue::Enum(tonemap_operator_id(settings.operator)),
                 VolumeParamValue::Float(settings.exposure_bias),
                 VolumeParamValue::Float(settings.white_point),
             ],
-        }
+        )
     }
 
-    fn vignette(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn vignette(effect_stack: RenderPostProcessEffectStackSettings) -> VolumeComponentOverride {
         let settings = effect_stack.vignette;
-        Self {
-            component_id: "post.vignette",
-            values: vec![
+        VolumeComponentOverride::from_values(
+            "post.vignette",
+            [
                 VolumeParamValue::Float(settings.intensity),
                 VolumeParamValue::Float(settings.smoothness),
                 VolumeParamValue::Float(settings.roundness),
             ],
-        }
+        )
     }
 
-    fn grain(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn grain(effect_stack: RenderPostProcessEffectStackSettings) -> VolumeComponentOverride {
         let settings = effect_stack.grain;
-        Self {
-            component_id: "post.grain",
-            values: vec![
+        VolumeComponentOverride::from_values(
+            "post.grain",
+            [
                 VolumeParamValue::Float(settings.intensity),
                 VolumeParamValue::Float(settings.response),
             ],
-        }
+        )
     }
 
-    fn dither(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn dither(effect_stack: RenderPostProcessEffectStackSettings) -> VolumeComponentOverride {
         let settings = effect_stack.dither;
-        Self {
-            component_id: "post.dither",
-            values: vec![
+        VolumeComponentOverride::from_values(
+            "post.dither",
+            [
                 VolumeParamValue::Float(settings.intensity),
                 VolumeParamValue::Float(settings.scale),
             ],
-        }
+        )
     }
 
-    fn chromatic_aberration(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn chromatic_aberration(
+        effect_stack: RenderPostProcessEffectStackSettings,
+    ) -> VolumeComponentOverride {
         let settings = effect_stack.chromatic_aberration;
-        Self {
-            component_id: "post.chromatic-aberration",
-            values: vec![
+        VolumeComponentOverride::from_values(
+            "post.chromatic-aberration",
+            [
                 VolumeParamValue::Float(settings.intensity),
                 VolumeParamValue::Float(settings.sample_spread),
             ],
-        }
+        )
     }
 
-    fn color_lookup(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn color_lookup(effect_stack: RenderPostProcessEffectStackSettings) -> VolumeComponentOverride {
         let settings = effect_stack.color_lookup;
         let (layout_id, size) = color_lookup_layout_ids(settings.texture_layout);
-        Self {
-            component_id: "post.color-lookup",
-            values: vec![
+        VolumeComponentOverride::from_values(
+            "post.color-lookup",
+            [
                 VolumeParamValue::Enum(layout_id),
                 VolumeParamValue::Uint(size),
                 VolumeParamValue::Float(settings.intensity),
             ],
-        }
+        )
     }
 
-    fn blur(effect_stack: RenderPostProcessEffectStackSettings) -> Self {
+    fn blur(effect_stack: RenderPostProcessEffectStackSettings) -> VolumeComponentOverride {
         let settings = effect_stack.blur;
-        Self {
-            component_id: "post.blur",
-            values: vec![VolumeParamValue::Float(settings.radius)],
-        }
+        VolumeComponentOverride::from_values(
+            "post.blur",
+            [VolumeParamValue::Float(settings.radius)],
+        )
     }
 }
 
@@ -369,8 +396,8 @@ fn saturate(value: Real) -> Real {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderBloomSettings, RenderColorGradingSettings, RenderLayerSet,
-        RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile,
+        AoQualityTier, AoSourceSettings, RenderBloomSettings, RenderColorGradingSettings,
+        RenderLayerSet, RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile,
         RenderTonemapOperator, RenderTonemapSettings,
     };
     use crate::core::math::{Quat, Vec3};
@@ -383,6 +410,11 @@ mod tests {
     fn render_volume_extract_maps_profile_to_component_overrides() {
         let overrides = VolumeComponentOverride::from_profile(
             &RenderPostProcessVolumeProfile::default()
+                .with_ambient_occlusion(AoSourceSettings {
+                    intensity: 0.6,
+                    quality: AoQualityTier::Ultra,
+                    ..AoSourceSettings::default()
+                })
                 .with_bloom(RenderBloomSettings {
                     intensity: 0.75,
                     ..RenderBloomSettings::default()
@@ -403,6 +435,9 @@ mod tests {
 
         assert!(overrides
             .iter()
+            .any(|override_entry| override_entry.component_id == "post.ambient-occlusion"));
+        assert!(overrides
+            .iter()
             .any(|override_entry| override_entry.component_id == "post.bloom"));
         assert!(overrides
             .iter()
@@ -413,6 +448,42 @@ mod tests {
             .expect("effect stack profile should emit tonemap override");
         assert_eq!(tonemap.values[0], Some(VolumeParamValue::Enum(2)));
         assert_eq!(tonemap.values[1], Some(VolumeParamValue::Float(0.25)));
+    }
+
+    #[test]
+    fn render_volume_extract_profile_override_order_is_stable() {
+        let overrides = VolumeComponentOverride::from_profile(
+            &RenderPostProcessVolumeProfile::default()
+                .with_ambient_occlusion(AoSourceSettings::default())
+                .with_bloom(RenderBloomSettings::default())
+                .with_color_grading(RenderColorGradingSettings::default())
+                .with_effect_stack(RenderPostProcessEffectStackSettings::default()),
+        );
+
+        let component_ids = overrides
+            .iter()
+            .map(|override_entry| override_entry.component_id.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            component_ids,
+            [
+                "post.ambient-occlusion",
+                "post.bloom",
+                "post.color-grading",
+                "post.depth-of-field",
+                "post.motion-blur",
+                "post.screen-space-reflection",
+                "post.screen-space-fog",
+                "post.tonemap",
+                "post.vignette",
+                "post.grain",
+                "post.dither",
+                "post.chromatic-aberration",
+                "post.color-lookup",
+                "post.blur",
+            ]
+        );
     }
 
     #[test]

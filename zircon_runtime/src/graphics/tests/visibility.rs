@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
-    render_mesh_stable_instance_key, RenderLayerSet, RenderVirtualGeometryCluster,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
-    VisibilityRenderableInput,
+    RenderLayerSet, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryPage, VisibilityRenderableInput,
+    render_mesh_stable_instance_key,
 };
 use crate::core::math::{Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
@@ -18,14 +18,18 @@ fn visibility_context_partitions_static_and_dynamic_meshes() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let static_mesh = world.spawn_mesh_node(
-        model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.zmaterial"),
-    );
-    let dynamic_mesh = world.spawn_mesh_node(
-        model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.zmaterial"),
-    );
+    let static_mesh = world
+        .spawn_mesh_node(
+            model_handle("res://models/tree.obj"),
+            material_handle("res://materials/tree.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
+    let dynamic_mesh = world
+        .spawn_mesh_node(
+            model_handle("res://models/crate.obj"),
+            material_handle("res://materials/crate.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .set_mobility(static_mesh, Mobility::Static)
         .expect("static mobility assignment should succeed");
@@ -51,22 +55,30 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let crate_a = world.spawn_mesh_node(
-        model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.zmaterial"),
-    );
-    let statue = world.spawn_mesh_node(
-        model_handle("res://models/statue.obj"),
-        material_handle("res://materials/statue.zmaterial"),
-    );
-    let crate_b = world.spawn_mesh_node(
-        model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.zmaterial"),
-    );
-    let tree = world.spawn_mesh_node(
-        model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.zmaterial"),
-    );
+    let crate_a = world
+        .spawn_mesh_node(
+            model_handle("res://models/crate.obj"),
+            material_handle("res://materials/crate.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
+    let statue = world
+        .spawn_mesh_node(
+            model_handle("res://models/statue.obj"),
+            material_handle("res://materials/statue.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
+    let crate_b = world
+        .spawn_mesh_node(
+            model_handle("res://models/crate.obj"),
+            material_handle("res://materials/crate.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
+    let tree = world
+        .spawn_mesh_node(
+            model_handle("res://models/tree.obj"),
+            material_handle("res://materials/tree.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .set_render_layer_mask(crate_a, 0x0000_0001)
         .expect("render layer assignment should succeed");
@@ -139,14 +151,18 @@ fn visibility_context_filters_visible_batches_through_camera_frustum() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let visible = world.spawn_mesh_node(
-        model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.zmaterial"),
-    );
-    let culled = world.spawn_mesh_node(
-        model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.zmaterial"),
-    );
+    let visible = world
+        .spawn_mesh_node(
+            model_handle("res://models/crate.obj"),
+            material_handle("res://materials/crate.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
+    let culled = world
+        .spawn_mesh_node(
+            model_handle("res://models/crate.obj"),
+            material_handle("res://materials/crate.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .update_transform(visible, Transform::from_translation(Vec3::ZERO))
         .expect("visible mesh transform should update");
@@ -181,14 +197,18 @@ fn visibility_context_without_history_marks_bvh_full_rebuild() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let crate_entity = world.spawn_mesh_node(
-        model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.zmaterial"),
-    );
-    let tree_entity = world.spawn_mesh_node(
-        model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.zmaterial"),
-    );
+    let crate_entity = world
+        .spawn_mesh_node(
+            model_handle("res://models/crate.obj"),
+            material_handle("res://materials/crate.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
+    let tree_entity = world
+        .spawn_mesh_node(
+            model_handle("res://models/tree.obj"),
+            material_handle("res://materials/tree.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .set_mobility(tree_entity, Mobility::Static)
         .expect("static mobility assignment should succeed");
@@ -203,14 +223,18 @@ fn visibility_context_without_history_marks_bvh_full_rebuild() {
         context.bvh_update_plan.inserted_stable_instance_keys,
         vec![stable_key(crate_entity), stable_key(tree_entity)]
     );
-    assert!(context
-        .bvh_update_plan
-        .updated_stable_instance_keys
-        .is_empty());
-    assert!(context
-        .bvh_update_plan
-        .removed_stable_instance_keys
-        .is_empty());
+    assert!(
+        context
+            .bvh_update_plan
+            .updated_stable_instance_keys
+            .is_empty()
+    );
+    assert!(
+        context
+            .bvh_update_plan
+            .removed_stable_instance_keys
+            .is_empty()
+    );
     assert_eq!(context.bvh_instances.len(), 2);
     assert_eq!(context.history_snapshot.instances.len(), 2);
     assert_eq!(
@@ -232,14 +256,18 @@ fn visibility_context_with_history_tracks_bvh_dirty_entities() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let moving = world.spawn_mesh_node(
-        model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.zmaterial"),
-    );
-    let removed = world.spawn_mesh_node(
-        model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.zmaterial"),
-    );
+    let moving = world
+        .spawn_mesh_node(
+            model_handle("res://models/crate.obj"),
+            material_handle("res://materials/crate.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
+    let removed = world
+        .spawn_mesh_node(
+            model_handle("res://models/tree.obj"),
+            material_handle("res://materials/tree.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     let previous_context = VisibilityContext::from(&world.to_render_frame_extract());
 
     world
@@ -249,10 +277,12 @@ fn visibility_context_with_history_tracks_bvh_dirty_entities() {
         )
         .expect("moving mesh transform should update");
     world.remove_entity(removed).unwrap();
-    let inserted = world.spawn_mesh_node(
-        model_handle("res://models/statue.obj"),
-        material_handle("res://materials/statue.zmaterial"),
-    );
+    let inserted = world
+        .spawn_mesh_node(
+            model_handle("res://models/statue.obj"),
+            material_handle("res://materials/statue.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
 
     let context = VisibilityContext::from_extract_with_history(
         &world.to_render_frame_extract(),
@@ -294,14 +324,18 @@ fn visibility_context_without_history_marks_particle_emitters_dirty() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let emitter_a = world.spawn_mesh_node(
-        model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.zmaterial"),
-    );
-    let emitter_b = world.spawn_mesh_node(
-        model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.zmaterial"),
-    );
+    let emitter_a = world
+        .spawn_mesh_node(
+            model_handle("res://models/crate.obj"),
+            material_handle("res://materials/crate.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
+    let emitter_b = world
+        .spawn_mesh_node(
+            model_handle("res://models/tree.obj"),
+            material_handle("res://materials/tree.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     let mut extract = world.to_render_frame_extract();
     extract.particles.emitters = vec![emitter_a, emitter_b];
 
@@ -323,22 +357,28 @@ fn visibility_context_with_history_tracks_particle_upload_changes() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let emitter_a = world.spawn_mesh_node(
-        model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.zmaterial"),
-    );
-    let removed_emitter = world.spawn_mesh_node(
-        model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.zmaterial"),
-    );
+    let emitter_a = world
+        .spawn_mesh_node(
+            model_handle("res://models/crate.obj"),
+            material_handle("res://materials/crate.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
+    let removed_emitter = world
+        .spawn_mesh_node(
+            model_handle("res://models/tree.obj"),
+            material_handle("res://materials/tree.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     let mut previous_extract = world.to_render_frame_extract();
     previous_extract.particles.emitters = vec![emitter_a, removed_emitter];
     let previous_context = VisibilityContext::from(&previous_extract);
 
-    let inserted_emitter = world.spawn_mesh_node(
-        model_handle("res://models/statue.obj"),
-        material_handle("res://materials/statue.zmaterial"),
-    );
+    let inserted_emitter = world
+        .spawn_mesh_node(
+            model_handle("res://models/statue.obj"),
+            material_handle("res://materials/statue.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     let mut current_extract = world.to_render_frame_extract();
     current_extract.particles.emitters = vec![emitter_a, inserted_emitter];
 
@@ -411,10 +451,12 @@ fn visibility_context_preserves_multi_primitive_stable_instance_keys() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let entity = world.spawn_mesh_node(
-        model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.zmaterial"),
-    );
+    let entity = world
+        .spawn_mesh_node(
+            model_handle("res://models/crate.obj"),
+            material_handle("res://materials/crate.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .update_transform(entity, Transform::from_translation(Vec3::ZERO))
         .expect("visible primitive transform should update");
@@ -478,10 +520,12 @@ fn virtual_geometry_visibility_keeps_same_entity_primitives_separate_by_stable_i
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let entity = world.spawn_mesh_node(
-        model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.zmaterial"),
-    );
+    let entity = world
+        .spawn_mesh_node(
+            model_handle("res://models/virtual_geometry.obj"),
+            material_handle("res://materials/virtual_geometry.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .update_transform(entity, Transform::from_translation(Vec3::ZERO))
         .expect("visible primitive transform should update");

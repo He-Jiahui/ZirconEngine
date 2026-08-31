@@ -48,15 +48,9 @@ impl<T> Events<T> {
     where
         I: IntoIterator<Item = T>,
     {
-        let events = events.into_iter();
-        let (lower_bound, _) = events.size_hint();
-        self.next.reserve(lower_bound);
-
-        let mut written = 0;
-        for event in events {
-            self.next.push(event);
-            written += 1;
-        }
+        let before = self.next.len();
+        self.next.extend(events);
+        let written = self.next.len() - before;
         if written > 0 {
             self.record_next_queue_len();
         }
@@ -188,6 +182,40 @@ impl<T> Events<T> {
 #[cfg(test)]
 mod tests {
     use super::Events;
+
+    #[test]
+    fn runtime60_batch_specialized_batch_extend_preserves_order_and_count() {
+        let mut events = Events::default();
+
+        assert_eq!(events.send_batch(10_u32..14), 4);
+        events.update();
+
+        assert_eq!(events.iter().copied().collect::<Vec<_>>(), [10, 11, 12, 13]);
+    }
+
+    #[test]
+    fn runtime60_batch_specialized_batch_extend_accepts_non_exact_iterators() {
+        let mut events = Events::default();
+
+        assert_eq!(
+            events.send_batch((0_u32..8).filter(|value| value % 2 == 0)),
+            4
+        );
+        events.update();
+
+        assert_eq!(events.iter().copied().collect::<Vec<_>>(), [0, 2, 4, 6]);
+    }
+
+    #[test]
+    fn runtime60_batch_empty_batch_does_not_raise_the_high_water_mark() {
+        let mut events = Events::<u32>::default();
+
+        assert_eq!(events.send_batch(std::iter::empty()), 0);
+
+        let metrics = events.capacity_metrics();
+        assert_eq!(metrics.next_len, 0);
+        assert_eq!(metrics.high_water_len, 0);
+    }
 
     #[test]
     fn event_queue_equality_ignores_reader_generation_metadata() {

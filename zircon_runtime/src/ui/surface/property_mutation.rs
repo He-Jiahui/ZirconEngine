@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::binding::{
-    component_state_value_update, reflected_property_update,
+    component_state_value_update, reflected_property_source_kind, reflected_property_update,
     reflected_property_update_with_source_kind,
 };
 
@@ -71,6 +71,13 @@ impl UiPropertyMutationRequest {
         Self::new(node_id, property, value)
             .with_binding_source_kind(UiBindingSourceKind::AccessibilityAction)
     }
+
+    pub(crate) const fn effective_binding_source_kind(&self) -> UiBindingSourceKind {
+        if let Some(kind) = self.binding_source_kind {
+            return kind;
+        }
+        reflected_property_source_kind(self.source)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -93,7 +100,7 @@ pub struct UiPropertyMutationReport {
 }
 
 impl UiPropertyMutationReport {
-    fn accepted(
+    pub(crate) fn accepted(
         request: &UiPropertyMutationRequest,
         previous: Option<UiValue>,
         dirty: UiDirtyFlags,
@@ -116,7 +123,10 @@ impl UiPropertyMutationReport {
         }
     }
 
-    fn unchanged(request: &UiPropertyMutationRequest, previous: Option<UiValue>) -> Self {
+    pub(crate) fn unchanged(
+        request: &UiPropertyMutationRequest,
+        previous: Option<UiValue>,
+    ) -> Self {
         Self {
             node_id: request.node_id,
             property: request.property.clone(),
@@ -135,7 +145,10 @@ impl UiPropertyMutationReport {
         }
     }
 
-    fn rejected(request: &UiPropertyMutationRequest, message: impl Into<String>) -> Self {
+    pub(crate) fn rejected(
+        request: &UiPropertyMutationRequest,
+        message: impl Into<String>,
+    ) -> Self {
         let message = message.into();
         Self {
             node_id: request.node_id,
@@ -531,7 +544,7 @@ fn normalize_token(value: &str) -> String {
 }
 
 fn mark_dirty(node: &mut zircon_runtime_interface::ui::tree::UiTreeNode, dirty: UiDirtyFlags) {
-    if dirty.text && !node.dirty.text {
+    if dirty.text {
         node.layout_cache.advance_text_layout_revision();
     }
     node.dirty.layout |= dirty.layout;

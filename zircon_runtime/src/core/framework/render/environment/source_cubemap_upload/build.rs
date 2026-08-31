@@ -22,7 +22,7 @@ pub fn build_source_cubemap_upload_artifact(
             mip_chain.pmrem_mip_count(),
             mip_chain.pmrem_texels(),
         ),
-        irradiance_cube.map(encode_irradiance_mip),
+        irradiance_cube.map_or_else(encode_default_irradiance_mip, encode_irradiance_mip),
     )
 }
 
@@ -70,6 +70,20 @@ fn encode_irradiance_mip(irradiance_cube: &SourceCubemapIrradianceCube) -> Sourc
             append_rgb_as_rgba16f_texels(&mut bytes, row, 1.0);
             bytes.resize(bytes.len() + bytes_per_row as usize - row.len() * 8, 0);
         }
+    }
+    SourceCubemapUploadMip::new(0, face_size, bytes_per_row, bytes)
+}
+
+fn encode_default_irradiance_mip() -> SourceCubemapUploadMip {
+    let face_size = 1;
+    let bytes_per_row = padded_bytes_per_row(face_size);
+    let mut bytes = Vec::with_capacity(bytes_per_row as usize * CubemapFace::ALL.len());
+    for _ in CubemapFace::ALL {
+        append_rgba16f_texels(&mut bytes, &[[0.0, 0.0, 0.0, 1.0]]);
+        bytes.resize(
+            bytes.len() + bytes_per_row as usize - RGBA16F_BYTES_PER_TEXEL as usize,
+            0,
+        );
     }
     SourceCubemapUploadMip::new(0, face_size, bytes_per_row, bytes)
 }

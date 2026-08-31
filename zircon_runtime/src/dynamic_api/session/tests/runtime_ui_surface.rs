@@ -8,7 +8,8 @@ use zircon_runtime_interface::ui::accessibility::{
 use zircon_runtime_interface::{
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_TOUCH_PHASE_ENDED_V1,
     ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZrByteSlice, ZrRuntimeAccessibilityTreeRequestV1,
-    ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatusCode,
+    ZrRuntimeEventV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZrStatusCode,
 };
 
 use crate::asset::AssetUri;
@@ -188,16 +189,19 @@ fn woc_project_ui_surface_runtime_round_trip() {
     let fixture = RuntimeUiFixture::create("round-trip");
     let mut session = runtime_session(&fixture);
 
-    let extract = session
-        .current_ui_extract()
+    let submission = session
+        .current_ui_submission()
         .expect("build declared project UI render extract")
         .expect("declared project UI root should produce a render extract");
-    assert_eq!(extract.tree_id.0, "zircon-runtime-project-ui");
     assert!(
-        extract
-            .list
-            .commands
+        submission
+            .segments()
             .iter()
+            .all(|segment| segment.route_tree_id().as_ref() == "zircon-runtime-project-ui")
+    );
+    assert!(
+        submission
+            .commands()
             .any(|command| command.text.as_deref() == Some("Inventory"))
     );
 
@@ -250,15 +254,13 @@ fn woc_project_ui_input_render_accessibility_share_surface() {
         "the dynamic runtime ABI must route an accessibility action into the live project UI surface"
     );
 
-    let extract = session
-        .current_ui_extract()
+    let submission = session
+        .current_ui_submission()
         .expect("rebuild the acted-on project UI surface")
         .expect("the acted-on project surface should remain renderable");
     assert!(
-        extract
-            .list
-            .commands
-            .iter()
+        submission
+            .commands()
             .any(|command| command.node_id == action_target)
     );
 
@@ -272,22 +274,18 @@ fn project_runtime_ui_merges_multiple_manifest_roots_without_node_id_collisions(
     fixture.add_ui_view("overlay.zui", RUNTIME_UI_OVERLAY_VIEW);
     let mut session = runtime_session(&fixture);
 
-    let extract = session
-        .current_ui_extract()
+    let submission = session
+        .current_ui_submission()
         .expect("build project UI roots")
         .expect("project UI roots should render");
     assert!(
-        extract
-            .list
-            .commands
-            .iter()
+        submission
+            .commands()
             .any(|command| command.text.as_deref() == Some("Inventory"))
     );
     assert!(
-        extract
-            .list
-            .commands
-            .iter()
+        submission
+            .commands()
             .any(|command| command.text.as_deref() == Some("Overlay"))
     );
 
@@ -322,15 +320,13 @@ fn project_runtime_ui_expands_imported_component_assets_from_project_uris() {
     let fixture = RuntimeUiFixture::create("imported-component");
     let mut session = runtime_session(&fixture);
 
-    let extract = session
-        .current_ui_extract()
+    let submission = session
+        .current_ui_submission()
         .expect("build project UI with imported component")
         .expect("imported component root should render");
     assert!(
-        extract
-            .list
-            .commands
-            .iter()
+        submission
+            .commands()
             .any(|command| command.text.as_deref() == Some("Inventory"))
     );
 
@@ -354,15 +350,13 @@ fn project_runtime_ui_ignores_unreferenced_assets_with_missing_imports() {
     fixture.write_ui_asset("unused_invalid.zui", RUNTIME_UI_UNUSED_INVALID_VIEW);
     let mut session = runtime_session(&fixture);
 
-    let extract = session
-        .current_ui_extract()
+    let submission = session
+        .current_ui_submission()
         .expect("unreferenced invalid UI must not block a declared runtime root")
         .expect("declared runtime root should still render");
     assert!(
-        extract
-            .list
-            .commands
-            .iter()
+        submission
+            .commands()
             .any(|command| command.text.as_deref() == Some("Inventory"))
     );
 
@@ -395,8 +389,31 @@ fn project_runtime_ui_product_surface_routes_touch_and_extracts_action_inventory
         );
     }
 
-    let extract = session
-        .current_ui_extract()
+    let action_output = session
+        .prepare_host_request_output()
+        .expect("encode runtime UI action host request");
+    session.rollback_host_request_output();
+    let retried_action_output = session
+        .prepare_host_request_output()
+        .expect("retry runtime UI action host request after rollback");
+    assert_eq!(retried_action_output, action_output);
+    let action_batch: ZrRuntimeHostRequestBatchV1 = serde_json::from_slice(&retried_action_output)
+        .expect("decode runtime UI action host request");
+    let action = action_batch
+        .requests
+        .iter()
+        .find_map(|request| match request {
+            ZrRuntimeHostRequestV1::UiAction(request) => Some(request),
+            _ => None,
+        })
+        .expect("touch activation should leave the dynamic session as a typed UI action");
+    assert_eq!(action.target_surface, 1);
+    assert_eq!(action.invocation.target_id(), "runtime.play.inventory");
+    assert!(action.secure_value.is_none());
+    session.commit_host_request_output();
+
+    let submission = session
+        .current_ui_submission()
         .expect("build product runtime UI render extract")
         .expect("product runtime UI root should render");
     for label in [
@@ -408,10 +425,8 @@ fn project_runtime_ui_product_surface_routes_touch_and_extracts_action_inventory
         "Touch Action",
     ] {
         assert!(
-            extract
-                .list
-                .commands
-                .iter()
+            submission
+                .commands()
                 .any(|command| command.text.as_deref() == Some(label)),
             "product UI render extract should include {label}"
         );

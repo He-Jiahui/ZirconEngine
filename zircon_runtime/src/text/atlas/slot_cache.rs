@@ -20,7 +20,7 @@ pub(crate) struct GlyphAtlasPersistentSlot {
 pub(super) struct GlyphAtlasSlotCache {
     slots: HashMap<GlyphRasterKey, GlyphAtlasPersistentSlot>,
     page_slots: HashMap<GlyphAtlasPageKey, HashSet<GlyphRasterKey>>,
-    allocators: BTreeMap<GlyphAtlasPageKey, GlyphAtlasShelfAllocator>,
+    allocators: HashMap<GlyphAtlasPageKey, GlyphAtlasShelfAllocator>,
 }
 
 impl GlyphAtlasSlotCache {
@@ -115,3 +115,7 @@ impl GlyphAtlasSlotCache {
 #[cfg(test)]
 #[path = "slot_cache/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "slot_cache/hash_allocator_tests.rs"]
+mod hash_allocator_tests;

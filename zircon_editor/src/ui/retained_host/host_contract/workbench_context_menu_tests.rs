@@ -23,11 +23,11 @@ fn scene_tree_hit_projects_scene_node_context_menu() {
     assert!(request
         .menu_items
         .iter()
-        .any(|item| item.as_str() == "Rename|icon=edit"));
+        .any(|item| item.as_str() == "Rename|action=menu.item.rename,icon=edit"));
     assert!(request
         .menu_items
         .iter()
-        .any(|item| item.as_str() == "Delete|danger,icon=trash"));
+        .any(|item| item.as_str() == "Delete|action=menu.item.delete,danger,icon=trash"));
 }
 
 #[test]

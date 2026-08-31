@@ -12,6 +12,10 @@ use super::error::RuntimeSessionArchiveError;
 use super::metadata::RuntimeSessionMetadata;
 use super::slot::RuntimeSessionSlot;
 
+mod secondary_index;
+
+use self::secondary_index::{index_secondary_entries, remove_secondary_entries};
+
 pub const RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION: u32 = 1;
 
 static NEXT_RUNTIME_SESSION_ARCHIVE_GENERATION: AtomicU64 = AtomicU64::new(1);
@@ -96,41 +100,39 @@ impl RuntimeSessionArchivePayload {
     }
 
     fn replace_slot_metadata(&mut self, slot_index: usize, metadata: RuntimeSessionMetadata) {
-        let previous = self.slots[slot_index].clone();
-        self.remove_slot_secondary_entries(&previous);
-        self.slots[slot_index].metadata = metadata;
+        let previous_metadata = std::mem::replace(&mut self.slots[slot_index].metadata, metadata);
+        let previous_update_key = (
+            previous_metadata.updated_at_unix_millis.unwrap_or(0),
+            self.slots[slot_index].slot_id.clone(),
+        );
+        remove_secondary_entries(
+            &mut self.updated_slot_indices,
+            &mut self.tag_slot_indices,
+            &previous_update_key,
+            &previous_metadata.tags,
+        );
         self.index_slot_secondary_entries(slot_index);
     }
 
     fn index_slot_secondary_entries(&mut self, slot_index: usize) {
-        let update_key = slot_update_key(&self.slots[slot_index]);
-        self.updated_slot_indices
-            .insert(update_key.clone(), slot_index);
-        let tags = self.slots[slot_index].metadata.tags.clone();
-        for tag in tags {
-            self.tag_slot_indices
-                .entry(tag)
-                .or_default()
-                .insert(update_key.clone(), slot_index);
-        }
+        let slot = &self.slots[slot_index];
+        index_secondary_entries(
+            &mut self.updated_slot_indices,
+            &mut self.tag_slot_indices,
+            slot_index,
+            slot_update_key(slot),
+            &slot.metadata.tags,
+        );
     }
 
     fn remove_slot_secondary_entries(&mut self, slot: &RuntimeSessionSlot) {
         let update_key = slot_update_key(slot);
-        self.updated_slot_indices.remove(&update_key);
-        let mut empty_tags = Vec::new();
-        for tag in &slot.metadata.tags {
-            let Some(tag_indices) = self.tag_slot_indices.get_mut(tag) else {
-                continue;
-            };
-            tag_indices.remove(&update_key);
-            if tag_indices.is_empty() {
-                empty_tags.push(tag.clone());
-            }
-        }
-        for tag in empty_tags {
-            self.tag_slot_indices.remove(&tag);
-        }
+        remove_secondary_entries(
+            &mut self.updated_slot_indices,
+            &mut self.tag_slot_indices,
+            &update_key,
+            &slot.metadata.tags,
+        );
     }
 
     fn indexed_slot(&self, slot_id: &str) -> Option<&RuntimeSessionSlot> {
@@ -238,9 +240,38 @@ pub(super) struct RuntimeSessionArchiveGenerationState {
     pub(super) generation: u64,
     pub(super) lineage: u64,
     pub(super) revision: u64,
+    pub(super) publication: Arc<RuntimeSessionArchivePublicationState>,
     pub(super) counters: Arc<RuntimeSessionArchiveStageCounters>,
     pub(super) validation_gate: Mutex<()>,
     pub(super) sealed: Mutex<RuntimeSessionArchiveSealState>,
+}
+
+#[derive(Debug)]
+pub(super) struct RuntimeSessionArchivePublicationState {
+    next_revision: AtomicU64,
+    pub(super) published_revision: AtomicU64,
+    pub(super) gate: Mutex<()>,
+}
+
+impl Default for RuntimeSessionArchivePublicationState {
+    fn default() -> Self {
+        Self {
+            next_revision: AtomicU64::new(1),
+            published_revision: AtomicU64::new(0),
+            gate: Mutex::new(()),
+        }
+    }
+}
+
+impl RuntimeSessionArchivePublicationState {
+    fn allocate_revision(&self) -> u64 {
+        self.next_revision
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |revision| {
+                revision.checked_add(1)
+            })
+            .expect("runtime session archive lineage revision exhausted")
+            + 1
+    }
 }
 
 #[derive(Debug, Default)]
@@ -275,10 +306,6 @@ impl RuntimeSessionArchive {
 
     pub fn revision(&self) -> u64 {
         self.state.revision
-    }
-
-    pub(super) fn lineage(&self) -> u64 {
-        self.state.lineage
     }
 
     pub(in crate::scene::dynamic_scene::session) fn record_capture(&self) {
@@ -524,6 +551,7 @@ fn new_lineage_state() -> Arc<RuntimeSessionArchiveGenerationState> {
         generation: NEXT_RUNTIME_SESSION_ARCHIVE_GENERATION.fetch_add(1, Ordering::AcqRel),
         lineage: NEXT_RUNTIME_SESSION_ARCHIVE_LINEAGE.fetch_add(1, Ordering::AcqRel),
         revision: 1,
+        publication: Arc::new(RuntimeSessionArchivePublicationState::default()),
         counters: Arc::new(RuntimeSessionArchiveStageCounters::default()),
         validation_gate: Mutex::new(()),
         sealed: Mutex::new(RuntimeSessionArchiveSealState::Open),
@@ -536,7 +564,8 @@ fn next_revision_state(
     Arc::new(RuntimeSessionArchiveGenerationState {
         generation: NEXT_RUNTIME_SESSION_ARCHIVE_GENERATION.fetch_add(1, Ordering::AcqRel),
         lineage: current.lineage,
-        revision: current.revision.saturating_add(1),
+        revision: current.publication.allocate_revision(),
+        publication: Arc::clone(&current.publication),
         counters: Arc::new(RuntimeSessionArchiveStageCounters::default()),
         validation_gate: Mutex::new(()),
         sealed: Mutex::new(RuntimeSessionArchiveSealState::Open),

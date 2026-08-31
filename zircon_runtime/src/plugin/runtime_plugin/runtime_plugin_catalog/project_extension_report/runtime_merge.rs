@@ -1,25 +1,24 @@
-use std::collections::HashSet;
-
-use crate::core::CoreError;
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::RuntimeExtensionRegistry;
 
-use super::super::extension_merge::merge_runtime_extensions;
-use super::super::registration::order::order_runtime_plugin_registration_report_refs;
+use super::super::extension_merge::merge_runtime_extensions_for_target;
 use super::super::RuntimePluginRegistrationReport;
 
-pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_enabled_runtime_extensions(
+pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_selected_runtime_extensions(
     registrations: &[RuntimePluginRegistrationReport],
-    enabled_plugin_ids: &HashSet<String>,
+    selected_registration_indices: &[usize],
+    target: RuntimeTargetMode,
     registry: &mut RuntimeExtensionRegistry,
     diagnostics: &mut Vec<String>,
     fatal_diagnostics: &mut Vec<String>,
-) -> Result<(), CoreError> {
-    let registrations = registrations
-        .iter()
-        .filter(|registration| enabled_plugin_ids.contains(&registration.package_manifest.id))
-        .collect::<Vec<_>>();
-    for registration in order_runtime_plugin_registration_report_refs(registrations)? {
-        merge_runtime_extensions(registration, registry, diagnostics, fatal_diagnostics);
+) {
+    for index in selected_registration_indices {
+        merge_runtime_extensions_for_target(
+            &registrations[*index],
+            target,
+            registry,
+            diagnostics,
+            fatal_diagnostics,
+        );
     }
-    Ok(())
 }

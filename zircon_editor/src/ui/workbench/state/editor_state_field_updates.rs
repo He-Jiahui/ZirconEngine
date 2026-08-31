@@ -28,34 +28,37 @@ impl EditorState {
         self.inspector_dynamic_fields.insert(field_id.into(), value);
     }
 
-    pub(crate) fn can_edit_dynamic_component_field(&self, field_id: &str) -> bool {
+    pub(crate) fn can_edit_dynamic_component_field(
+        &self,
+        field_id: &str,
+    ) -> Result<bool, crate::core::editing::authoring_world::AuthoringWorldAccessError> {
         let Some((component_type_path, field_name)) = field_id.rsplit_once('.') else {
-            return false;
+            return Ok(false);
         };
         let Some(selected) = self.viewport_controller.selection().active_primary() else {
-            return false;
+            return Ok(false);
         };
-        self.world
-            .try_with_world(|scene| {
+        Ok(self
+            .world
+            .with_world(|scene| {
                 let Ok(schema) = scene.reflect_schema(component_type_path) else {
                     return false;
                 };
-                let field_editable = schema.type_info.fields.iter().any(|field| {
+                let Some(field) = schema.type_info.fields.iter().find(|field| {
                     field.name == field_name && field.editor_visible && field.editable
-                });
-                if !field_editable {
+                }) else {
                     return false;
-                }
+                };
 
                 let Ok(address) = ReflectObjectAddress::component(selected, component_type_path)
                 else {
                     return false;
                 };
                 scene
-                    .reflect_read(ReflectReadRequest::new(address, field_name))
+                    .reflect_read(ReflectReadRequest::new(address, field.id))
                     .is_ok()
-            })
-            .unwrap_or(false)
+            })?
+            .unwrap_or(false))
     }
 
     pub fn set_mesh_import_path(&mut self, value: String) {

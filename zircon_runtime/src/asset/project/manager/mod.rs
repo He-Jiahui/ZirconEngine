@@ -6,11 +6,15 @@ use crate::asset::{ArtifactStore, AssetImporter};
 use scan_and_import::ShaderImportDependencyIndex;
 use std::sync::Arc;
 
-use super::{PackageAssetRegistry, ProjectCatalogInputGeneration, ProjectManifest, ProjectPaths};
+use super::{
+    PackageAssetRegistry, ProjectCatalogInputGeneration, ProjectManifest, ProjectPaths,
+    ProjectReferenceDiagnosticsStore,
+};
 
 mod artifact_access;
 mod asset_kind;
 mod collect_files;
+mod deletion;
 mod durable_transaction;
 mod hash_bytes;
 mod importer_access;
@@ -21,21 +25,26 @@ mod open;
 mod package_assets;
 mod persisted_reference;
 mod registry_access;
+mod relocation;
 mod scan_and_import;
 mod source_mtime_unix_ms;
 mod source_path_for_uri;
 mod source_uri_for_path;
 
+pub(crate) use deletion::PreparedProjectSourceDeletion;
 pub(crate) use load_or_create_meta::mint_meta_for_migration;
+pub(crate) use relocation::PreparedProjectSourceRelocation;
+pub(crate) use scan_and_import::ImportSourceWatchEcho;
 
 #[derive(Clone, Debug)]
 pub struct ProjectManager {
     paths: ProjectPaths,
     manifest: ProjectManifest,
     registry: ResourceRegistry,
-    asset_registry: AssetRegistryIndex,
+    asset_registry: Arc<AssetRegistryIndex>,
     package_assets: PackageAssetRegistry,
     catalog_input_generation: Arc<ProjectCatalogInputGeneration>,
+    reference_diagnostics: Arc<ProjectReferenceDiagnosticsStore>,
     importer: AssetImporter,
     artifact_store: ArtifactStore,
     shader_import_dependencies: ShaderImportDependencyIndex,

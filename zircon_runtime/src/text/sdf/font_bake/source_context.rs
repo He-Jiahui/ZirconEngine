@@ -3,10 +3,10 @@ use std::sync::Arc;
 
 use crate::text::font::FontDatabase;
 use crate::text::sdf::{
-    sdf_variation_hash, SdfGenerationSourceContext, SdfGenerationSourceHandle,
-    SdfGlyphGenerationError,
+    SdfGenerationSourceContext, SdfGenerationSourceHandle, SdfGlyphGenerationError,
+    sdf_variation_hash,
 };
-use crate::text::{FontFaceId, InstancedFaceId};
+use crate::text::{FontFaceId, InstancedFaceId, StableContentDigest};
 
 use super::SdfAtlasGlyphKey;
 
@@ -16,13 +16,13 @@ const MAX_RESIDENT_SOURCE_BYTE_COUNT: usize = 128 * 1024 * 1024;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct SdfGenerationSourceKey {
     face: FontFaceId,
-    variation_hash: [u8; 32],
+    variation_hash: StableContentDigest,
 }
 
 #[derive(Clone)]
 struct SdfGenerationFontSource {
     bytes: Arc<[u8]>,
-    source_hash: [u8; 32],
+    source_hash: StableContentDigest,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

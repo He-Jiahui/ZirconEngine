@@ -19,23 +19,22 @@ fn pipeline_has_active_sprite_stage(
     pipeline: &CompiledRenderPipeline,
     stage: RenderPassStage,
 ) -> bool {
-    pipeline
-        .pass_stages
-        .iter()
-        .filter(|stage_entry| stage_entry.stage == stage)
-        .any(|stage_entry| {
-            pipeline
-                .graph()
-                .pass(stage_entry.pass_id)
-                .is_some_and(|pass| {
-                    pass.name == stage_entry.pass_name
-                        && !pass.culled
-                        && pass
-                            .executor_id
+    pipeline.execution_batches_for_stage(stage).any(|batch| {
+        pipeline
+            .execution_passes_for_batch(batch)
+            .filter(|execution_pass| execution_pass.stage == stage)
+            .any(|execution_pass| {
+                pipeline
+                    .graph()
+                    .passes()
+                    .get(execution_pass.graph_pass_index)
+                    .is_some_and(|pass| {
+                        pass.executor_id
                             .as_deref()
                             .is_some_and(|executor_id| executor_id.starts_with("sprite."))
-                })
-        })
+                    })
+            })
+    })
 }
 
 #[cfg(test)]
@@ -43,7 +42,7 @@ mod tests {
     use super::{SPRITE_GRAPH_STAGES, active_sprite_graph_stages};
     use crate::core::framework::render::RenderPipelineHandle;
     use crate::graphics::pipeline::RenderPassStage;
-    use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
+    use crate::graphics::pipeline::{CompiledRenderPipeline, RenderGraphExecutionPassMetadata};
     use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder};
 
     #[test]
@@ -86,7 +85,7 @@ mod tests {
         passes: [(RenderPassStage, &str, &str); N],
     ) -> CompiledRenderPipeline {
         let mut graph = RenderGraphBuilder::new("sprite-stage-test");
-        let mut pass_stages = Vec::new();
+        let mut execution_pass_metadata = Vec::new();
         for (stage, pass_name, executor_id) in passes {
             let pass =
                 graph.add_pass_with_executor(pass_name, QueueLane::Graphics, Some(executor_id));
@@ -100,23 +99,24 @@ mod tests {
                     },
                 )
                 .expect("sprite stage test root");
-            pass_stages.push(CompiledRenderPipelinePassStage::new(pass, pass_name, stage));
+            execution_pass_metadata.push(RenderGraphExecutionPassMetadata::new(pass, stage));
         }
 
         CompiledRenderPipeline::from_parts(crate::graphics::pipeline::CompiledRenderPipelineParts {
             handle: RenderPipelineHandle::new(99),
             name: "sprite-stage-test".to_string(),
             renderer_name: "sprite-stage-test".to_string(),
-            stages: SPRITE_GRAPH_STAGES.to_vec(),
-            pass_stages,
+            execution_pass_metadata,
             enabled_features: Vec::new(),
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            ambient_occlusion_profile: None,
             half_resolution_transparency_depth_sigma:
                 crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
             graph: graph.compile().expect("sprite stage test graph"),
         })
+        .expect("sprite stage execution packet")
     }
 }

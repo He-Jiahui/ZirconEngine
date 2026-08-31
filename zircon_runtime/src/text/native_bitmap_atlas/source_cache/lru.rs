@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use glyphon::CacheKey;
-
 use crate::text::atlas::GlyphRasterKey;
 
 use super::NativeBitmapAtlasCachedGlyphImage;
@@ -10,14 +8,14 @@ use super::NativeBitmapAtlasCachedGlyphImage;
 pub(super) struct NativeBitmapAtlasSourceCacheEntry {
     pub(super) image: NativeBitmapAtlasCachedGlyphImage,
     pub(super) raster_key: Option<GlyphRasterKey>,
-    previous: Option<CacheKey>,
-    next: Option<CacheKey>,
+    previous: Option<GlyphRasterKey>,
+    next: Option<GlyphRasterKey>,
 }
 
 #[derive(Debug, Default)]
 pub(super) struct NativeBitmapAtlasSourceLru {
-    head: Option<CacheKey>,
-    tail: Option<CacheKey>,
+    head: Option<GlyphRasterKey>,
+    tail: Option<GlyphRasterKey>,
 }
 
 impl NativeBitmapAtlasSourceLru {
@@ -28,8 +26,8 @@ impl NativeBitmapAtlasSourceLru {
 
     pub(super) fn remove(
         &mut self,
-        entries: &mut HashMap<CacheKey, NativeBitmapAtlasSourceCacheEntry>,
-        cache_key: CacheKey,
+        entries: &mut HashMap<GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry>,
+        cache_key: GlyphRasterKey,
     ) -> (Option<NativeBitmapAtlasSourceCacheEntry>, bool) {
         if !entries.contains_key(&cache_key) {
             return (None, false);
@@ -40,8 +38,8 @@ impl NativeBitmapAtlasSourceLru {
 
     pub(super) fn insert_most_recent(
         &mut self,
-        entries: &mut HashMap<CacheKey, NativeBitmapAtlasSourceCacheEntry>,
-        cache_key: CacheKey,
+        entries: &mut HashMap<GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry>,
+        cache_key: GlyphRasterKey,
         image: NativeBitmapAtlasCachedGlyphImage,
     ) -> bool {
         let replaced = entries.insert(
@@ -64,8 +62,11 @@ impl NativeBitmapAtlasSourceLru {
 
     pub(super) fn pop_least_recent(
         &mut self,
-        entries: &mut HashMap<CacheKey, NativeBitmapAtlasSourceCacheEntry>,
-    ) -> (Option<NativeBitmapAtlasSourceCacheEntry>, bool) {
+        entries: &mut HashMap<GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry>,
+    ) -> (
+        Option<(GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry)>,
+        bool,
+    ) {
         let mut repaired = false;
         let cache_key = match self.head {
             Some(cache_key) if entries.contains_key(&cache_key) => cache_key,
@@ -88,13 +89,16 @@ impl NativeBitmapAtlasSourceLru {
             }
         };
         repaired |= self.detach_or_repair(entries, cache_key);
-        (entries.remove(&cache_key), repaired)
+        (
+            entries.remove(&cache_key).map(|entry| (cache_key, entry)),
+            repaired,
+        )
     }
 
     pub(super) fn touch(
         &mut self,
-        entries: &mut HashMap<CacheKey, NativeBitmapAtlasSourceCacheEntry>,
-        cache_key: CacheKey,
+        entries: &mut HashMap<GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry>,
+        cache_key: GlyphRasterKey,
     ) -> (Option<NativeBitmapAtlasCachedGlyphImage>, bool) {
         let Some(image) = entries.get(&cache_key).map(|entry| entry.image.clone()) else {
             return (None, false);
@@ -110,8 +114,8 @@ impl NativeBitmapAtlasSourceLru {
 
     fn detach_or_repair(
         &mut self,
-        entries: &mut HashMap<CacheKey, NativeBitmapAtlasSourceCacheEntry>,
-        cache_key: CacheKey,
+        entries: &mut HashMap<GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry>,
+        cache_key: GlyphRasterKey,
     ) -> bool {
         if self.detach_once(entries, cache_key).is_ok() {
             return false;
@@ -123,8 +127,8 @@ impl NativeBitmapAtlasSourceLru {
 
     fn move_to_most_recent_after_rebuild(
         &mut self,
-        entries: &mut HashMap<CacheKey, NativeBitmapAtlasSourceCacheEntry>,
-        cache_key: CacheKey,
+        entries: &mut HashMap<GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry>,
+        cache_key: GlyphRasterKey,
     ) {
         let _ = self.detach_once(entries, cache_key);
         let _ = self.attach_once(entries, cache_key);
@@ -132,8 +136,8 @@ impl NativeBitmapAtlasSourceLru {
 
     fn attach_once(
         &mut self,
-        entries: &mut HashMap<CacheKey, NativeBitmapAtlasSourceCacheEntry>,
-        cache_key: CacheKey,
+        entries: &mut HashMap<GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry>,
+        cache_key: GlyphRasterKey,
     ) -> Result<(), ()> {
         let Some(entry) = entries.get(&cache_key) else {
             return Err(());
@@ -174,8 +178,8 @@ impl NativeBitmapAtlasSourceLru {
 
     fn detach_once(
         &mut self,
-        entries: &mut HashMap<CacheKey, NativeBitmapAtlasSourceCacheEntry>,
-        cache_key: CacheKey,
+        entries: &mut HashMap<GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry>,
+        cache_key: GlyphRasterKey,
     ) -> Result<(), ()> {
         let Some((previous, next)) = entries
             .get(&cache_key)
@@ -221,7 +225,10 @@ impl NativeBitmapAtlasSourceLru {
         Ok(())
     }
 
-    fn rebuild(&mut self, entries: &mut HashMap<CacheKey, NativeBitmapAtlasSourceCacheEntry>) {
+    fn rebuild(
+        &mut self,
+        entries: &mut HashMap<GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry>,
+    ) {
         let cache_keys = entries.keys().copied().collect::<Vec<_>>();
         self.clear();
         for entry in entries.values_mut() {
@@ -237,7 +244,7 @@ impl NativeBitmapAtlasSourceLru {
     }
 
     #[cfg(test)]
-    pub(super) fn corrupt_tail_for_test(&mut self, cache_key: CacheKey) {
+    pub(super) fn corrupt_tail_for_test(&mut self, cache_key: GlyphRasterKey) {
         self.tail = Some(cache_key);
     }
 }

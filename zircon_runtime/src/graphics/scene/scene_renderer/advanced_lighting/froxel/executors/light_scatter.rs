@@ -4,20 +4,22 @@ use crate::core::framework::render::{
     FroxelGridParams, FroxelGridQuality, PostProcessGraphResourceNames,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::{
-    RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassDeviceEpochCache, RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassGpuRecordingContext,
 };
+use crate::graphics::scene::scene_renderer::history::SceneHistoryDomain;
 use crate::render_graph::RenderGraphResourceAccessKind;
 
 use super::super::{
-    resolved_volumetric_fog_settings, volumetric_ambient_radiance, FroxelLightScatterPipeline,
-    FroxelLightScatterRequest, FroxelViewReconstruction, GpuFroxelTemporalReprojection,
-    VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL, VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE,
+    FroxelLightScatterPipeline, FroxelLightScatterRequest, FroxelViewReconstruction,
+    GpuFroxelTemporalReprojection, VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL,
+    VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE, volumetric_ambient_radiance,
 };
-use super::{validate_compute_context, VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID};
+use super::{VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID, validate_compute_context};
 
 #[derive(Default)]
 pub(super) struct VolumetricLightScatterExecutor {
-    pipeline: Mutex<Option<FroxelLightScatterPipeline>>,
+    pipeline: Mutex<RenderPassDeviceEpochCache<(), FroxelLightScatterPipeline>>,
 }
 
 impl RenderPassExecutor for VolumetricLightScatterExecutor {
@@ -26,8 +28,13 @@ impl RenderPassExecutor for VolumetricLightScatterExecutor {
         let pass_name = context.pass_name.clone();
         let executor_id = context.executor_id.as_str().to_string();
         let gpu = context.require_gpu()?;
+        let device_epoch = gpu.device_epoch().ok_or_else(|| {
+            "volumetric light scatter requires a materialized device epoch before pipeline recording"
+                .to_string()
+        })?;
         let extract = gpu.frame_extract();
-        let settings = resolved_volumetric_fog_settings(extract)?;
+        let preview_lighting_enabled = gpu.post_process().preview.lighting_enabled;
+        let settings = gpu.volumetric_fog();
         let camera = extract.view.selected_effective_camera();
         let viewport_size = gpu.viewport_size();
         let quality = FroxelGridQuality::from_shader_quality(gpu.shader_quality());
@@ -79,24 +86,18 @@ impl RenderPassExecutor for VolumetricLightScatterExecutor {
                 RenderGraphResourceAccessKind::Read,
             )?
             .clone();
-        let light_grid_params = gpu
-            .require_buffer(
-                PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
-                RenderGraphResourceAccessKind::Read,
-            )?
-            .clone();
-        let light_zbins = gpu
-            .require_buffer(
-                PostProcessGraphResourceNames::LIGHT_ZBINS,
-                RenderGraphResourceAccessKind::Read,
-            )?
-            .clone();
-        let light_tile_masks = gpu
-            .require_buffer(
-                PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
-                RenderGraphResourceAccessKind::Read,
-            )?
-            .clone();
+        let light_grid_params = gpu.require_buffer_binding(
+            PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let light_zbins = gpu.require_buffer_binding(
+            PostProcessGraphResourceNames::LIGHT_ZBINS,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let light_tile_masks = gpu.require_buffer_binding(
+            PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let shadow_atlas_view = gpu
             .require_texture_view(
                 PostProcessGraphResourceNames::SHADOW_ATLAS,
@@ -109,40 +110,41 @@ impl RenderPassExecutor for VolumetricLightScatterExecutor {
         let shadow_sampler = shadow_resources.compare_sampler().clone();
         let shadow_slots_buffer = shadow_resources.slot_buffer().clone();
         let shadow_globals_buffer = shadow_resources.globals_buffer().clone();
-        let mut pipeline = self
-            .pipeline
-            .lock()
-            .map_err(|_| "volumetric light scatter pipeline cache lock poisoned".to_string())?;
-        if pipeline.is_none() {
-            *pipeline = Some(FroxelLightScatterPipeline::new(gpu.device));
-        }
-        let dispatch = pipeline.as_ref().unwrap().encode(
-            gpu.device,
-            gpu.encoder,
-            FroxelLightScatterRequest {
-                grid,
-                view,
-                phase_g: settings.phase_g,
-                ambient_radiance: volumetric_ambient_radiance(
-                    &extract.lighting.ambient_lights,
-                    extract.post_process.preview.lighting_enabled,
-                ),
-                viewport_size: [viewport_size.x, viewport_size.y],
-                media_view: &media,
-                history_view: history.as_ref().unwrap_or(&media),
-                temporal,
-                light_buffer: &light_buffer,
-                light_count,
-                light_grid_params_buffer: &light_grid_params,
-                light_zbins_buffer: &light_zbins,
-                light_tile_masks_buffer: &light_tile_masks,
-                shadow_atlas_view: &shadow_atlas_view,
-                shadow_sampler: &shadow_sampler,
-                shadow_slots_buffer: &shadow_slots_buffer,
-                shadow_globals_buffer: &shadow_globals_buffer,
-                output_view: &output,
-            },
-        )?;
+        let ambient_radiance =
+            volumetric_ambient_radiance(&extract.lighting.ambient_lights, preview_lighting_enabled);
+        let dispatch = {
+            let mut native = gpu.native_context();
+            let mut pipeline_cache = self
+                .pipeline
+                .lock()
+                .map_err(|_| "volumetric light scatter pipeline cache lock poisoned".to_string())?;
+            let pipeline = pipeline_cache.get_or_try_insert_with(device_epoch, (), || {
+                Ok(FroxelLightScatterPipeline::new(native.resource_factory()))
+            })?;
+            pipeline.encode(
+                &mut native,
+                FroxelLightScatterRequest {
+                    grid,
+                    view,
+                    phase_g: settings.phase_g,
+                    ambient_radiance,
+                    viewport_size: [viewport_size.x, viewport_size.y],
+                    media_view: &media,
+                    history_view: history.as_ref().unwrap_or(&media),
+                    temporal,
+                    light_buffer: &light_buffer,
+                    light_count,
+                    light_grid_params_buffer: light_grid_params,
+                    light_zbins_buffer: light_zbins,
+                    light_tile_masks_buffer: light_tile_masks,
+                    shadow_atlas_view: &shadow_atlas_view,
+                    shadow_sampler: &shadow_sampler,
+                    shadow_slots_buffer: &shadow_slots_buffer,
+                    shadow_globals_buffer: &shadow_globals_buffer,
+                    output_view: &output,
+                },
+            )
+        }?;
         gpu.record_compute_dispatch_with_uploaded_bytes(
             pass_name,
             executor_id,
@@ -152,6 +154,7 @@ impl RenderPassExecutor for VolumetricLightScatterExecutor {
             FroxelLightScatterPipeline::UPLOADED_BYTES_PER_DISPATCH,
             vec![PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING.to_string()],
         );
+        gpu.record_history_write(SceneHistoryDomain::VolumetricScattering);
         Ok(())
     }
 }

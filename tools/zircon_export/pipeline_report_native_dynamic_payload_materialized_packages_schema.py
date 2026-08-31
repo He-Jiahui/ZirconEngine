@@ -11,12 +11,7 @@ from .pipeline_report_native_dynamic_payload_schema_helpers import (
     object_array_unique_string_field_schema_diagnostics,
 )
 from .pipeline_report_native_dynamic_payload_string_array_schema_helpers import (
-    object_array_integer_matches_string_array_length_schema_diagnostics,
-    object_array_loadable_artifacts_schema_diagnostics,
-    object_array_string_array_no_blank_entries_schema_diagnostics,
-    object_array_string_array_safe_relative_path_schema_diagnostics,
-    object_array_string_array_trimmed_non_empty_entries_schema_diagnostics,
-    object_array_string_array_unique_entries_schema_diagnostics,
+    materialized_package_loadable_artifact_schema_diagnostics,
 )
 from .pipeline_report_schema_table import object_array_schema_diagnostics
 
@@ -84,13 +79,19 @@ def native_dynamic_materialized_packages_schema_diagnostics(
         ),
         require_present=True,
     )
-    diagnostics.extend(
-        object_array_loadable_artifacts_schema_diagnostics(
+    loadable_artifact_diagnostics = (
+        materialized_package_loadable_artifact_schema_diagnostics(
             label,
             payload,
             "materialized_packages",
+            "loadable_artifact_count",
+            "loadable_artifacts",
         )
     )
+    loadable_artifact_type_diagnostics, loadable_artifact_value_diagnostics = (
+        loadable_artifact_diagnostics
+    )
+    diagnostics.extend(loadable_artifact_type_diagnostics)
     diagnostics.extend(
         object_array_required_non_empty_string_schema_diagnostics(
             label,
@@ -123,45 +124,5 @@ def native_dynamic_materialized_packages_schema_diagnostics(
             NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_INTEGER_FIELDS,
         )
     )
-    diagnostics.extend(
-        object_array_string_array_no_blank_entries_schema_diagnostics(
-            label,
-            payload,
-            "materialized_packages",
-            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_ARRAY_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        object_array_string_array_trimmed_non_empty_entries_schema_diagnostics(
-            label,
-            payload,
-            "materialized_packages",
-            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_ARRAY_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        object_array_string_array_safe_relative_path_schema_diagnostics(
-            label,
-            payload,
-            "materialized_packages",
-            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_ARRAY_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        object_array_string_array_unique_entries_schema_diagnostics(
-            label,
-            payload,
-            "materialized_packages",
-            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_ARRAY_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        object_array_integer_matches_string_array_length_schema_diagnostics(
-            label,
-            payload,
-            "materialized_packages",
-            "loadable_artifact_count",
-            "loadable_artifacts",
-        )
-    )
+    diagnostics.extend(loadable_artifact_value_diagnostics)
     return diagnostics

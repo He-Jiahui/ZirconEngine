@@ -13,9 +13,19 @@ pub(crate) fn binding_value_to_string(
         UiBindingValue::Float(value) => Ok(value.to_string()),
         UiBindingValue::Bool(value) => Ok(value.to_string()),
         UiBindingValue::Null => Ok(String::new()),
-        UiBindingValue::Array(_) => Err(EditorBindingDispatchError::InvalidInspectorFieldValue {
-            field_id: field_id.to_string(),
-        }),
+        UiBindingValue::Asset(value) => Ok(value.locator().to_string()),
+        UiBindingValue::Optional(Some(value)) => binding_value_to_string(value, field_id),
+        UiBindingValue::Optional(None) => Ok(String::new()),
+        UiBindingValue::Array(_)
+        | UiBindingValue::Record(_)
+        | UiBindingValue::Map(_)
+        | UiBindingValue::Enum(_)
+        | UiBindingValue::Entity(_)
+        | UiBindingValue::CollectionView(_) => {
+            Err(EditorBindingDispatchError::InvalidInspectorFieldValue {
+                field_id: field_id.to_string(),
+            })
+        }
     }
 }
 

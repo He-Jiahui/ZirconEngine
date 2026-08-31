@@ -13,13 +13,14 @@ mod commands;
 mod state;
 
 use self::colors::{
-    alert_action_color, alert_border_color, alert_mark_color, alert_surface_color,
+    AlertTone, alert_action_color, alert_border_color, alert_mark_color, alert_surface_color,
     alert_text_color, toast_action_color, toast_border_color, toast_mark_color,
     toast_surface_color, toast_text_color, tooltip_body_color, tooltip_border_color,
-    tooltip_icon_color, tooltip_surface_color, tooltip_title_color, AlertTone,
+    tooltip_icon_color, tooltip_surface_color, tooltip_title_color,
 };
 use self::commands::{icon_command, quad_command, text_command};
 use self::state::{FeedbackKind, FeedbackRenderState};
+use super::popup_position::{PopupPlacement, resolve_anchored_popup_geometry};
 
 const TOOLTIP_PADDING_X: f32 = 8.0;
 const TOOLTIP_TITLE_TOP: f32 = 7.0;
@@ -70,6 +71,7 @@ pub(super) fn feedback_render_commands(
     state_flags: &UiStateFlags,
     component_state: Option<&UiComponentState>,
     frame: UiFrame,
+    popup_anchor_frame: Option<UiFrame>,
     clip_frame: Option<UiFrame>,
     z_index: i32,
     opacity: f32,
@@ -83,6 +85,9 @@ pub(super) fn feedback_render_commands(
     if frame.width <= 1.0 || frame.height <= 1.0 {
         return Vec::new();
     }
+
+    let (frame, clip_frame) =
+        positioned_feedback_frame(kind, metadata, frame, popup_anchor_frame, clip_frame);
 
     let state = FeedbackRenderState::resolve(kind, metadata, state_flags, component_state);
     match kind {
@@ -99,6 +104,30 @@ pub(super) fn feedback_render_commands(
             node_id, metadata, &state, frame, clip_frame, z_index, opacity,
         ),
     }
+}
+
+fn positioned_feedback_frame(
+    kind: FeedbackKind,
+    metadata: &UiTemplateNodeMetadata,
+    frame: UiFrame,
+    anchor_frame: Option<UiFrame>,
+    clip_frame: Option<UiFrame>,
+) -> (UiFrame, Option<UiFrame>) {
+    if kind != FeedbackKind::Tooltip {
+        return (frame, clip_frame);
+    }
+    let placement_gap = number_attribute(metadata, "popup_gap")
+        .or_else(|| number_attribute(metadata, "arrow_size"))
+        .unwrap_or(8.0)
+        .max(0.0);
+    resolve_anchored_popup_geometry(
+        metadata,
+        frame,
+        anchor_frame,
+        clip_frame,
+        PopupPlacement::Top,
+        placement_gap,
+    )
 }
 
 fn feedback_kind(metadata: &UiTemplateNodeMetadata) -> Option<FeedbackKind> {

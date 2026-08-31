@@ -108,16 +108,13 @@ where
 }
 
 fn take_named_fields(fields: &mut toml::Table, names: &[&str]) -> Option<toml::Table> {
-    if !names.iter().any(|name| fields.contains_key(*name)) {
-        return None;
-    }
     let mut reference = toml::Table::new();
     for name in names {
         if let Some(value) = fields.remove(*name) {
             reference.insert((*name).to_owned(), value);
         }
     }
-    Some(reference)
+    (!reference.is_empty()).then_some(reference)
 }
 
 pub(in crate::asset::assets) fn deserialize_material(
@@ -177,6 +174,10 @@ fn map_references<A, B>(
         _rest: document._rest,
     })
 }
+
+#[cfg(test)]
+#[path = "material/single_pass_field_tests.rs"]
+mod single_pass_field_tests;
 
 #[cfg(test)]
 mod tests {

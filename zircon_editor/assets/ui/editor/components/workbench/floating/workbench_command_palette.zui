@@ -11,7 +11,6 @@ widgets = [
 ]
 styles = [
   "res://ui/theme/editor_workbench_strict.zui",
-  "res://ui/editor/theme/editor_tokens.zui",
 ]
 
 [components.WorkbenchCommandPalette]
@@ -22,8 +21,8 @@ default_classes = ["workbench-floating", "workbench-command-palette"]
 component = "Panel"
 control_id = "WorkbenchCommandPalette"
 classes = ["workbench-floating", "workbench-command-palette"]
-style = { self = { background = { color = "$editor.surface.1" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.large" } } }
-layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 520.0, preferred = 640.0, max = 760.0, stretch = "Fixed" }, height = { min = 120.0, preferred = 320.0, max = 520.0, stretch = "Fixed" } }
+style = { self = { background = { color = "$editor.surface.1" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.panel" } } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = "$editor.density.command_palette.min_width", preferred = "$editor.density.command_palette.preferred_width", max = "$editor.density.command_palette.max_width", stretch = "Fixed" }, height = { min = "$editor.density.command_palette.min_height", preferred = "$editor.density.command_palette.preferred_height", max = "$editor.density.command_palette.max_height", stretch = "Fixed" } }
 children = [{ node = "search" }, { node = "first_result" }]
 
 [nodes.search]

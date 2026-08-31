@@ -1,8 +1,8 @@
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct HierarchyPointerLayout {
     pub pane_width: f32,
     pub pane_height: f32,
-    pub node_ids: Vec<String>,
+    pub item_count: usize,
 }
 
 impl Default for HierarchyPointerLayout {
@@ -10,7 +10,7 @@ impl Default for HierarchyPointerLayout {
         Self {
             pane_width: 0.0,
             pane_height: 0.0,
-            node_ids: Vec::new(),
+            item_count: 0,
         }
     }
 }

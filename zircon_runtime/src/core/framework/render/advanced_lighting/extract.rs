@@ -50,15 +50,13 @@ impl AdvancedLightingExtract {
         quality.dimensions()
     }
 
-    pub fn fog_volumes_for_layers(
-        &self,
-        render_layers: &crate::core::framework::render::RenderLayerSet,
-    ) -> Vec<FogVolumeData> {
+    pub fn fog_volumes_for_layers<'a>(
+        &'a self,
+        render_layers: &'a crate::core::framework::render::RenderLayerSet,
+    ) -> impl Iterator<Item = &'a FogVolumeData> + 'a {
         self.fog_volumes
             .iter()
-            .filter(|volume| volume.layer_mask.intersects(render_layers))
-            .cloned()
-            .collect()
+            .filter(move |volume| volume.layer_mask.intersects(render_layers))
     }
 
     pub fn light_participates_in_volumetrics(&self, light_id: u64) -> bool {

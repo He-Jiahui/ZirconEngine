@@ -27,6 +27,8 @@ pub(in crate::dynamic_api) const RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES: us
 
 pub(super) struct RuntimePluginEventSubscriptionState {
     subscription: RuntimeEventMirrorSubscription,
+    event_id_json: Box<[u8]>,
+    payload_schema_json: Box<[u8]>,
     sequence: u64,
     pending_page: Option<RuntimeEventMirrorDrainPage>,
     in_flight_delivery_count: usize,
@@ -51,6 +53,8 @@ impl RuntimeDynamicSession {
         let next_handle = handle_raw
             .checked_add(1)
             .ok_or_else(|| "runtime plugin event subscription handle overflowed".to_string())?;
+        let event_id_json = encode_plugin_event_descriptor(&request.event_id)?;
+        let payload_schema_json = encode_plugin_event_descriptor(&request.payload_schema)?;
         let subscription = self
             .level
             .with_world_mut(|world| {
@@ -63,6 +67,8 @@ impl RuntimeDynamicSession {
             handle.raw(),
             RuntimePluginEventSubscriptionState {
                 subscription,
+                event_id_json,
+                payload_schema_json,
                 sequence: 0,
                 pending_page: None,
                 in_flight_delivery_count: 0,
@@ -140,13 +146,12 @@ impl RuntimeDynamicSession {
             return Ok(Vec::new());
         }
 
-        let descriptor = state.subscription.descriptor();
         let (bytes, delivery_count) = encode_largest_plugin_event_prefix(
             play_session_id,
             handle,
             state.sequence,
-            &descriptor.event_id,
-            &descriptor.payload_schema,
+            &state.event_id_json,
+            &state.payload_schema_json,
             page,
         )?;
         state.in_flight_delivery_count = delivery_count;
@@ -194,6 +199,12 @@ impl RuntimeDynamicSession {
     }
 }
 
+fn encode_plugin_event_descriptor(value: &str) -> Result<Box<[u8]>, String> {
+    serde_json::to_vec(value)
+        .map(Vec::into_boxed_slice)
+        .map_err(|error| format!("failed to encode runtime plugin event descriptor: {error}"))
+}
+
 fn plugin_event_queue_error(error: RuntimeEventMirrorError) -> BoundedJsonError {
     match error {
         RuntimeEventMirrorError::PayloadTooLarge {
@@ -223,8 +234,8 @@ fn encode_largest_plugin_event_prefix(
     play_session_id: u64,
     handle: ZrRuntimePluginEventSubscriptionHandle,
     sequence: u64,
-    event_id: &str,
-    payload_schema: &str,
+    event_id_json: &[u8],
+    payload_schema_json: &[u8],
     page: &RuntimeEventMirrorDrainPage,
 ) -> Result<(Vec<u8>, usize), BoundedJsonError> {
     let started = Instant::now();
@@ -233,8 +244,8 @@ fn encode_largest_plugin_event_prefix(
         play_session_id,
         handle,
         sequence,
-        event_id,
-        payload_schema,
+        event_id_json,
+        payload_schema_json,
         &page.payloads,
         page.remaining_deliveries,
         page.oldest_pending_age_millis,
@@ -249,8 +260,8 @@ fn encode_largest_plugin_event_prefix(
         play_session_id,
         handle,
         sequence,
-        event_id,
-        payload_schema,
+        event_id_json,
+        payload_schema_json,
         &page.payloads[..1],
         page.remaining_deliveries
             .saturating_add(u32::try_from(delivery_count - 1).unwrap_or(u32::MAX)),
@@ -269,8 +280,8 @@ fn encode_largest_plugin_event_prefix(
             play_session_id,
             handle,
             sequence,
-            event_id,
-            payload_schema,
+            event_id_json,
+            payload_schema_json,
             &page.payloads[..candidate],
             remaining,
             page.oldest_pending_age_millis,
@@ -293,20 +304,27 @@ fn encode_plugin_event_prefix(
     play_session_id: u64,
     handle: ZrRuntimePluginEventSubscriptionHandle,
     sequence: u64,
-    event_id: &str,
-    payload_schema: &str,
+    event_id_json: &[u8],
+    payload_schema_json: &[u8],
     payloads: &[RuntimeEventMirrorPayload],
     remaining_deliveries: u32,
     oldest_pending_age_millis: u64,
     started: Instant,
 ) -> Result<Vec<u8>, BoundedJsonError> {
     check_plugin_event_encoding_deadline(started)?;
+    crate::profile_counter!("runtime", "plugin_event.page_encode_attempt", 1);
     let payload_capacity = payloads
         .iter()
         .map(|payload| payload.json_bytes().len())
         .sum::<usize>();
-    let mut bytes =
-        BoundedJsonWriter::with_capacity(ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1, payload_capacity);
+    let descriptor_capacity = event_id_json
+        .len()
+        .saturating_add(payload_schema_json.len())
+        .saturating_mul(payloads.len());
+    let mut bytes = BoundedJsonWriter::with_capacity(
+        ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1,
+        payload_capacity.saturating_add(descriptor_capacity),
+    );
     let result = (|| -> std::io::Result<()> {
         bytes.write_all(br#"{"abiVersion":"#)?;
         write_json_integer(&mut bytes, u64::from(ZIRCON_RUNTIME_ABI_VERSION_V1))?;
@@ -323,9 +341,9 @@ fn encode_plugin_event_prefix(
             bytes.write_all(br#","subscription":"#)?;
             write_json_integer(&mut bytes, handle.raw())?;
             bytes.write_all(br#","eventId":"#)?;
-            serde_json::to_writer(&mut bytes, event_id).map_err(std::io::Error::other)?;
+            bytes.write_all(event_id_json)?;
             bytes.write_all(br#","payloadSchema":"#)?;
-            serde_json::to_writer(&mut bytes, payload_schema).map_err(std::io::Error::other)?;
+            bytes.write_all(payload_schema_json)?;
             bytes.write_all(br#","sequence":"#)?;
             write_json_integer(&mut bytes, sequence)?;
             bytes.write_all(br#","payload":"#)?;

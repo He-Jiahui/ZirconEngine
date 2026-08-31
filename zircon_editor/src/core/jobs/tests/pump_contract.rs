@@ -56,7 +56,7 @@ fn worker_events_enter_the_editor_bus_only_when_the_main_thread_pumps() {
 
 #[test]
 fn editor_context_jobs_publish_to_the_context_bus() {
-    let context = EditorContextBuilder::new(test_job_scheduler()).build();
+    let context = EditorContextBuilder::new(test_job_scheduler(), test_job_scheduler()).build();
     let topic = EditorTopic::parse(TOPIC_JOB).unwrap();
     let subscriber = context.bus().register_subscriber([topic]).unwrap();
 

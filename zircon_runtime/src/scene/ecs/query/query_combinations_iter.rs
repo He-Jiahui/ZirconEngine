@@ -5,7 +5,7 @@ use crate::scene::ecs::{
 };
 use crate::scene::{EntityId, World};
 
-use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
+use super::query_state::{CachedArchetypePlan, find_cached_archetype_plan};
 
 /// Read-only K-combination iterator over a stable snapshot of matching scene entities.
 pub struct QueryCombinationIter<'world, 'state, D, F = (), const K: usize = 2>

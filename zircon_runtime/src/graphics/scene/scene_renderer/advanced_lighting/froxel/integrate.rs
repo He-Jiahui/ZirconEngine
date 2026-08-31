@@ -1,7 +1,9 @@
 use bytemuck::{Pod, Zeroable};
-use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::FroxelGridParams;
+use crate::graphics::scene::scene_renderer::graph_execution::{
+    RenderPassGpuRecordingContext, RenderPassGpuResourceFactory,
+};
 
 use super::{FroxelViewReconstruction, GpuFroxelViewParams};
 
@@ -30,43 +32,44 @@ impl FroxelIntegratePipeline {
     pub(crate) const UPLOADED_BYTES_PER_DISPATCH: u64 =
         std::mem::size_of::<GpuIntegrateParams>() as u64;
 
-    pub(crate) fn new(device: &wgpu::Device) -> Self {
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("zircon-volumetric-integrate-bind-group-layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+    pub(crate) fn new<F: RenderPassGpuResourceFactory + ?Sized>(factory: &F) -> Self {
+        let bind_group_layout =
+            factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("zircon-volumetric-integrate-bind-group-layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                sampled_texture_layout_entry(1, wgpu::TextureViewDimension::D3),
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::StorageTexture {
-                        access: wgpu::StorageTextureAccess::WriteOnly,
-                        format: wgpu::TextureFormat::Rgba16Float,
-                        view_dimension: wgpu::TextureViewDimension::D3,
+                    sampled_texture_layout_entry(1, wgpu::TextureViewDimension::D3),
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::StorageTexture {
+                            access: wgpu::StorageTextureAccess::WriteOnly,
+                            format: wgpu::TextureFormat::Rgba16Float,
+                            view_dimension: wgpu::TextureViewDimension::D3,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-            ],
-        });
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                ],
+            });
+        let shader = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("zircon-volumetric-integrate-shader"),
             source: wgpu::ShaderSource::Wgsl(INTEGRATE_SHADER.into()),
         });
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        let pipeline_layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-volumetric-integrate-pipeline-layout"),
             bind_group_layouts: &[Some(&bind_group_layout)],
             immediate_size: 0,
         });
-        let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        let pipeline = factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some(VOLUMETRIC_INTEGRATE_PIPELINE_LABEL),
             layout: Some(&pipeline_layout),
             module: &shader,
@@ -80,10 +83,9 @@ impl FroxelIntegratePipeline {
         }
     }
 
-    pub(crate) fn encode(
+    pub(crate) fn encode<C: RenderPassGpuRecordingContext>(
         &self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
+        context: &mut C,
         request: FroxelIntegrateRequest<'_>,
     ) -> Result<[u32; 2], String> {
         let grid = request.grid.sanitized();
@@ -96,37 +98,44 @@ impl FroxelIntegratePipeline {
             ],
             view: GpuFroxelViewParams::new(request.view, grid)?,
         };
-        let params_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("zircon-volumetric-integrate-params"),
-            contents: bytemuck::bytes_of(&params),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("zircon-volumetric-integrate-bind-group"),
-            layout: &self.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: params_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(request.scattering_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::TextureView(request.output_view),
-                },
-            ],
-        });
+        let params_buffer =
+            context
+                .resource_factory()
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("zircon-volumetric-integrate-params"),
+                    contents: bytemuck::bytes_of(&params),
+                    usage: wgpu::BufferUsages::UNIFORM,
+                });
+        let bind_group = context
+            .resource_factory()
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("zircon-volumetric-integrate-bind-group"),
+                layout: &self.bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: params_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(request.scattering_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::TextureView(request.output_view),
+                    },
+                ],
+            });
         let dispatch = [
             grid.dimensions[0].div_ceil(VOLUMETRIC_INTEGRATE_WORKGROUP_SIZE[0]),
             grid.dimensions[1].div_ceil(VOLUMETRIC_INTEGRATE_WORKGROUP_SIZE[1]),
         ];
-        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-            label: Some("VolumetricIntegratePass"),
-            timestamp_writes: None,
-        });
+        let mut pass = context
+            .command_encoder()
+            .begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("VolumetricIntegratePass"),
+                timestamp_writes: None,
+            });
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.dispatch_workgroups(dispatch[0], dispatch[1], 1);

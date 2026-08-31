@@ -1,5 +1,8 @@
 use crate::ui::{
-    surface::{debug_hit_test_surface_frame_with_query, hit_test_surface_frame, UiSurface},
+    surface::{
+        debug_hit_test_surface_frame_with_query, hit_test_surface_frame,
+        hit_test_surface_frame_with_query, UiSurface,
+    },
     tree::UiRuntimeTreeScrollExt,
 };
 use zircon_runtime_interface::ui::dispatch::{UiPointerId, UiSurfaceId, UiUserId, UiWindowId};
@@ -274,6 +277,57 @@ fn exact_hit_wins_over_nearby_cursor_radius_candidates() {
 }
 
 #[test]
+fn dense_radius_query_reuses_generation_scratch_with_linear_dedupe_probes() {
+    const ENTRY_COUNT: usize = 256;
+    const CELL_COUNT: usize = 4;
+
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.dense-radius"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 128.0, 128.0))
+            .with_input_policy(UiInputPolicy::Ignore),
+    );
+    for index in 0..ENTRY_COUNT {
+        let node_id = UiNodeId::new(index as u64 + 2);
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                UiTreeNode::new(node_id, UiNodePath::new(format!("root/item_{index}")))
+                    .with_frame(UiFrame::new(0.0, 0.0, 128.0, 128.0))
+                    .with_input_policy(UiInputPolicy::Receive)
+                    .with_state_flags(pointer_state()),
+            )
+            .unwrap();
+    }
+    surface.rebuild();
+
+    let query = UiHitTestQuery::new(UiPoint::new(64.0, 64.0)).with_cursor_radius(64.0);
+    let frame_hit = hit_test_surface_frame_with_query(&surface.surface_frame(), query.clone());
+    let first_hit = surface.hit_test_with_query(query.clone());
+    let first_stats = surface.hit_test.query_scratch_stats();
+    let second_hit = surface.hit_test_with_query(query);
+    let second_stats = surface.hit_test.query_scratch_stats();
+
+    assert_eq!(frame_hit, first_hit);
+    assert_eq!(first_hit, second_hit);
+    assert_eq!(first_hit.stacked.len(), ENTRY_COUNT);
+    assert_eq!(first_stats.unique_candidates, ENTRY_COUNT);
+    assert_eq!(first_stats.dedupe_probes, ENTRY_COUNT * CELL_COUNT);
+    assert_eq!(second_stats.unique_candidates, ENTRY_COUNT);
+    assert_eq!(second_stats.dedupe_probes, ENTRY_COUNT * CELL_COUNT);
+    assert!(second_stats.sort_comparisons > 0);
+    assert!(second_stats.sort_comparisons <= ENTRY_COUNT * 32);
+    assert_eq!(second_stats.generation, first_stats.generation + 1);
+    assert_eq!(second_stats.mark_capacity, first_stats.mark_capacity);
+    assert_eq!(
+        second_stats.candidate_capacity,
+        first_stats.candidate_capacity
+    );
+    assert!(second_stats.retained_bytes <= second_stats.retained_byte_budget);
+}
+
+#[test]
 fn virtual_pointer_query_maps_custom_3d_hits_into_surface_local_hit_path() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
     surface.tree.insert_root(
@@ -303,7 +357,7 @@ fn virtual_pointer_query_maps_custom_3d_hits_into_surface_local_hit_path() {
     assert_eq!(hit.top_hit, Some(UiNodeId::new(2)));
     assert_eq!(hit.path.virtual_pointer, Some(virtual_pointer));
     assert_eq!(
-        hit.path.bubble_route,
+        hit.path.bubble_route().collect::<Vec<_>>(),
         vec![UiNodeId::new(2), UiNodeId::new(1)]
     );
 }

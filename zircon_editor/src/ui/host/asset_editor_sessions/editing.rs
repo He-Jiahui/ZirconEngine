@@ -6,14 +6,14 @@ mod palette;
 mod source;
 mod style;
 
-use std::fs;
 use std::path::PathBuf;
 
 use zircon_runtime::asset::project::ProjectManager;
 
-use super::super::editor_error::EditorError;
+use super::super::editor_error::{EditorError, UiAssetSaveStage};
 use super::super::editor_ui_host::EditorUiHost;
 use crate::core::commands::DocumentKind;
+use crate::core::extension::DocumentSourceWritePublication;
 use crate::ui::asset_editor::{
     UiAssetEditorCommand, UiAssetEditorExternalEffect, UiAssetEditorMode, UiAssetPreviewPreset,
     UiDesignerToolMode,
@@ -68,22 +68,48 @@ impl EditorUiHost {
             UiAssetEditorExternalEffect::UpsertAssetSource { asset_id, source }
             | UiAssetEditorExternalEffect::RestoreAssetSource { asset_id, source } => {
                 let source_path = ui_asset_effect_source_path(project, asset_id)?;
-                if let Some(parent) = source_path.parent() {
-                    fs::create_dir_all(parent)
-                        .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+                let publication = self
+                    .document_toolkits
+                    .with_source_write(project.paths().root(), &source_path, |source_write| {
+                        source_write.replace(source.as_bytes()).into_publication()
+                    })
+                    .map_err(|source| EditorError::UiAssetSaveIo {
+                        stage: UiAssetSaveStage::AtomicCommit,
+                        source_path: source_path.clone(),
+                        source,
+                    })?
+                    .map_err(|source| EditorError::UiAssetSaveIo {
+                        stage: UiAssetSaveStage::AtomicCommit,
+                        source_path: source_path.clone(),
+                        source,
+                    })?;
+                if let DocumentSourceWritePublication::PublishedNotDurable(source) = publication {
+                    return Err(EditorError::UiAssetSaveIo {
+                        stage: UiAssetSaveStage::DurabilityBarrier,
+                        source_path,
+                        source,
+                    });
                 }
-                fs::write(&source_path, source)
-                    .map_err(|error| EditorError::UiAsset(error.to_string()))?;
                 let normalized = normalize_ui_asset_asset_id(asset_id).to_string();
                 let _ = self.asset_manager()?.import_asset(&normalized);
                 Ok(normalized)
             }
             UiAssetEditorExternalEffect::RemoveAssetSource { asset_id } => {
                 let source_path = ui_asset_effect_source_path(project, asset_id)?;
-                if source_path.exists() {
-                    fs::remove_file(&source_path)
-                        .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-                }
+                self.document_toolkits
+                    .with_source_write(project.paths().root(), &source_path, |source_write| {
+                        source_write.remove_if_exists()
+                    })
+                    .map_err(|source| EditorError::UiAssetSaveIo {
+                        stage: UiAssetSaveStage::SourceRemoval,
+                        source_path: source_path.clone(),
+                        source,
+                    })?
+                    .map_err(|source| EditorError::UiAssetSaveIo {
+                        stage: UiAssetSaveStage::SourceRemoval,
+                        source_path: source_path.clone(),
+                        source,
+                    })?;
                 let _ = self.asset_manager()?.reimport_all();
                 Ok(normalize_ui_asset_asset_id(asset_id).to_string())
             }

@@ -242,7 +242,7 @@ pub fn synchronize_manifest(
     package_version: &str,
     sdk_api_version: &str,
 ) -> Result<String, ManifestSyncError> {
-    let mut manifest: Value = existing.parse()?;
+    let mut manifest: Value = toml::from_str(existing)?;
     let root = manifest
         .as_table_mut()
         .ok_or_else(|| ManifestSyncError::new("plugin manifest root must be a TOML table"))?;
@@ -277,8 +277,8 @@ pub fn synchronize_manifest_file(
     let declaration = PluginDeclarationProjection::parse(&source)?;
     let synchronized =
         synchronize_manifest(&existing, &declaration, package_version, sdk_api_version)?;
-    let existing_value: Value = existing.parse()?;
-    let synchronized_value: Value = synchronized.parse()?;
+    let existing_value: Value = toml::from_str(&existing)?;
+    let synchronized_value: Value = toml::from_str(&synchronized)?;
     if existing.starts_with(GENERATED_MANIFEST_HEADER) && existing_value == synchronized_value {
         return Ok(SyncOutcome::Unchanged);
     }
@@ -438,6 +438,10 @@ fn synchronize_modules(
         .as_deref()
         .filter(|dist_crate| *dist_crate != declaration.crate_name());
     let has_separate_dist_module = separate_dist_crate.is_some();
+    let primary_kind_count = modules
+        .iter()
+        .filter(|module| module.get("kind").and_then(Value::as_str) == Some(primary_kind))
+        .count();
     let mut found_primary = false;
     let primary_capabilities = declaration.capabilities_for_module_kind(primary_kind);
     let dist_capabilities =
@@ -451,6 +455,8 @@ fn synchronize_modules(
         let matches_primary = module.get("name").and_then(Value::as_str)
             == Some(declaration.module_name())
             || (module.get("crate_name").and_then(Value::as_str) == Some(declaration.crate_name())
+                && module.get("kind").and_then(Value::as_str) == Some(primary_kind))
+            || (primary_kind_count == 1
                 && module.get("kind").and_then(Value::as_str) == Some(primary_kind));
         if matches_primary {
             insert_string(module, "name", declaration.module_name());
@@ -548,7 +554,7 @@ fn collect_declaration_paths(
 }
 
 pub(crate) fn read_workspace_version(repo_root: &Path) -> Result<String, ManifestSyncError> {
-    let cargo: Value = fs::read_to_string(repo_root.join("Cargo.toml"))?.parse()?;
+    let cargo: Value = toml::from_str(&fs::read_to_string(repo_root.join("Cargo.toml"))?)?;
     cargo
         .get("workspace")
         .and_then(|workspace| workspace.get("package"))

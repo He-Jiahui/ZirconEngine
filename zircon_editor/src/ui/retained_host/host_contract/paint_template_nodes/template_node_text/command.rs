@@ -1,4 +1,5 @@
 use super::super::super::data::FrameRect;
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::metrics::template_node_text_line_height;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -14,10 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
     text_style: UiTextRunPaintStyle,
     opacity: f32,
 ) {
-    if label.trim().is_empty()
-        || !is_paintable_text_rect(text_rect)
-        || !is_paintable_font(font_size)
-    {
+    if !is_paintable_text_slot(text_rect, clip, font_size) || label.trim().is_empty() {
         return;
     }
     commands.push(HostPaintCommand::wrapped_text(
@@ -36,6 +34,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
         text_style,
         opacity,
     ));
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_paintable_text_slot(
+    text_rect: &FrameRect,
+    clip: &FrameRect,
+    font_size: f32,
+) -> bool {
+    is_paintable_text_rect(text_rect)
+        && is_paintable_font(font_size)
+        && intersect(text_rect, clip).is_some()
 }
 
 fn is_paintable_text_rect(rect: &FrameRect) -> bool {
@@ -134,6 +142,37 @@ mod tests {
             &populated_rect,
             8,
             String::new(),
+            [226, 230, 232, 255],
+            10.666_667,
+            UiTextRunPaintStyle::default(),
+            1.0,
+        );
+
+        assert!(commands.is_empty());
+    }
+
+    #[test]
+    fn text_outside_clip_does_not_emit_a_command() {
+        let mut commands = Vec::new();
+        let rect = FrameRect {
+            x: 20.0,
+            y: 20.0,
+            width: 10.0,
+            height: 10.0,
+        };
+        let clip = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 10.0,
+            height: 10.0,
+        };
+
+        push_text_command(
+            &mut commands,
+            &rect,
+            &clip,
+            7,
+            "Outside".to_string(),
             [226, 230, 232, 255],
             10.666_667,
             UiTextRunPaintStyle::default(),

@@ -1,14 +1,14 @@
 use std::sync::{Arc, Mutex};
 
-use crate::core::framework::render::{
-    resolve_subsurface_profile_table, PostProcessGraphResourceNames, ViewProjectionMatrixPair,
-};
+use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::scene::scene_renderer::graph_execution::{
-    RenderPassExecutionContext, RenderPassExecutor, RenderPassExecutorRegistration,
+    RenderPassDeviceEpoch, RenderPassDeviceEpochCache, RenderPassExecutionContext,
+    RenderPassExecutor, RenderPassExecutorRegistration, RenderPassGpuRecordingContext,
 };
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 
 use super::pipelines::SubsurfacePipelines;
+use super::prepared_frame::PreparedSubsurfaceFrame;
 use super::{
     SSS_RECOMBINE_EXECUTOR_ID, SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
     SSS_SETUP_PIPELINE_LABEL, SSS_TILE_SIZE,
@@ -16,27 +16,29 @@ use super::{
 
 #[derive(Default)]
 struct SubsurfaceExecutor {
-    pipelines: Mutex<Option<SubsurfacePipelines>>,
+    pipelines: Mutex<RenderPassDeviceEpochCache<wgpu::TextureFormat, SubsurfacePipelines>>,
 }
 
 impl SubsurfaceExecutor {
-    fn with_pipelines<T>(
+    fn with_pipelines<T, C: RenderPassGpuRecordingContext>(
         &self,
-        device: &wgpu::Device,
+        context: &mut C,
+        device_epoch: RenderPassDeviceEpoch,
         target_format: wgpu::TextureFormat,
-        use_pipeline: impl FnOnce(&SubsurfacePipelines) -> Result<T, String>,
+        use_pipeline: impl FnOnce(&SubsurfacePipelines, &mut C) -> Result<T, String>,
     ) -> Result<T, String> {
-        let mut pipelines = self
+        let mut pipeline_cache = self
             .pipelines
             .lock()
             .map_err(|_| "subsurface pipeline cache lock poisoned".to_string())?;
-        if pipelines
-            .as_ref()
-            .is_none_or(|pipelines| pipelines.target_format() != target_format)
-        {
-            *pipelines = Some(SubsurfacePipelines::new(device, target_format));
-        }
-        use_pipeline(pipelines.as_ref().unwrap())
+        let pipelines =
+            pipeline_cache.get_or_try_insert_with(device_epoch, target_format, || {
+                Ok(SubsurfacePipelines::new(
+                    context.resource_factory(),
+                    target_format,
+                ))
+            })?;
+        use_pipeline(pipelines, context)
     }
 }
 
@@ -50,44 +52,51 @@ impl RenderPassExecutor for SetupExecutor {
         let pass_name = context.pass_name.clone();
         let executor_id = context.executor_id.as_str().to_string();
         let gpu = context.require_gpu()?;
+        let device_epoch = gpu.device_epoch().ok_or_else(|| {
+            "subsurface setup requires a materialized device epoch before pipeline recording"
+                .to_string()
+        })?;
         let material = texture(gpu, PostProcessGraphResourceNames::GBUFFER_MATERIAL, true)?;
         let normal = texture(gpu, PostProcessGraphResourceNames::GBUFFER_NORMAL, true)?;
         let tile_list = buffer(gpu, PostProcessGraphResourceNames::SSS_TILE_LIST, false)?;
         let indirect_args = buffer(gpu, PostProcessGraphResourceNames::SSS_INDIRECT_ARGS, false)?;
+        let params = buffer(gpu, PostProcessGraphResourceNames::SSS_PARAMS, false)?;
+        let profiles = buffer(gpu, PostProcessGraphResourceNames::SSS_PROFILES, false)?;
+        let params_buffer = params.buffer.clone();
+        let profiles_buffer = profiles.buffer.clone();
         let size = gpu.viewport_size();
-        let profiles = &gpu
-            .frame_extract()
-            .lighting
-            .advanced_lighting
-            .subsurface_profiles;
-        let table = resolve_subsurface_profile_table(profiles);
-        let inverse_view_projection = inverse_view_projection(gpu, size);
-        let dispatch = [size.x.max(1).div_ceil(8), size.y.max(1).div_ceil(8), 1];
-        self.0
-            .with_pipelines(gpu.device, gpu.target_format(), |pipelines| {
-                pipelines.encode_setup(
-                    gpu.device,
-                    gpu.queue,
-                    gpu.encoder,
-                    size,
-                    &material,
-                    &normal,
-                    &tile_list,
-                    &indirect_args,
-                    table.profiles.len() as u32,
-                    table.active_profile_mask,
-                    inverse_view_projection,
-                    dispatch,
-                );
-                Ok(())
-            })?;
+        let prepared = PreparedSubsurfaceFrame::prepare(gpu.frame_extract(), size)?;
+        let dispatch = prepared.dispatch();
+        let target_format = gpu.target_format();
+        {
+            let mut native = gpu.native_context();
+            self.0.with_pipelines(
+                &mut native,
+                device_epoch,
+                target_format,
+                |pipelines, native| {
+                    pipelines.encode_setup(
+                        native,
+                        &material,
+                        &normal,
+                        tile_list,
+                        indirect_args,
+                        params,
+                        dispatch,
+                    );
+                    Ok(())
+                },
+            )?;
+        }
+        let mut uploads = prepared.buffer_uploads(params_buffer, profiles_buffer)?;
+        gpu.append_pre_submit_buffer_uploads(&mut uploads);
         gpu.record_compute_dispatch_with_uploaded_bytes(
             pass_name,
             executor_id,
             SSS_SETUP_PIPELINE_LABEL,
             SSS_TILE_SIZE,
             dispatch,
-            16,
+            PreparedSubsurfaceFrame::uploaded_byte_len(),
             vec![
                 PostProcessGraphResourceNames::SSS_TILE_LIST.to_string(),
                 PostProcessGraphResourceNames::SSS_INDIRECT_ARGS.to_string(),
@@ -103,6 +112,10 @@ impl RenderPassExecutor for ScatterExecutor {
         let pass_name = context.pass_name.clone();
         let executor_id = context.executor_id.as_str().to_string();
         let gpu = context.require_gpu()?;
+        let device_epoch = gpu.device_epoch().ok_or_else(|| {
+            "subsurface scatter requires a materialized device epoch before pipeline recording"
+                .to_string()
+        })?;
         let diffuse = texture(gpu, PostProcessGraphResourceNames::SSS_DIFFUSE, true)?;
         let depth = texture(gpu, PostProcessGraphResourceNames::SCENE_DEPTH, true)?;
         let material = texture(gpu, PostProcessGraphResourceNames::GBUFFER_MATERIAL, true)?;
@@ -110,31 +123,32 @@ impl RenderPassExecutor for ScatterExecutor {
         let scattered = texture(gpu, PostProcessGraphResourceNames::SSS_SCATTERED, false)?;
         let tile_list = buffer(gpu, PostProcessGraphResourceNames::SSS_TILE_LIST, true)?;
         let indirect_args = buffer(gpu, PostProcessGraphResourceNames::SSS_INDIRECT_ARGS, true)?;
-        let profiles = gpu
-            .frame_extract()
-            .lighting
-            .advanced_lighting
-            .subsurface_profiles
-            .clone();
-        let size = gpu.viewport_size();
-        let inverse_view_projection = inverse_view_projection(gpu, size);
-        self.0
-            .with_pipelines(gpu.device, gpu.target_format(), |pipelines| {
-                pipelines.encode_scatter(
-                    gpu.device,
-                    gpu.encoder,
-                    size,
-                    &profiles,
-                    inverse_view_projection,
-                    &diffuse,
-                    &depth,
-                    &material,
-                    &normal,
-                    &tile_list,
-                    &indirect_args,
-                    &scattered,
-                )
-            })?;
+        let params = buffer(gpu, PostProcessGraphResourceNames::SSS_PARAMS, true)?;
+        let profiles = buffer(gpu, PostProcessGraphResourceNames::SSS_PROFILES, true)?;
+        let target_format = gpu.target_format();
+        {
+            let mut native = gpu.native_context();
+            self.0.with_pipelines(
+                &mut native,
+                device_epoch,
+                target_format,
+                |pipelines, native| {
+                    pipelines.encode_scatter(
+                        native,
+                        &diffuse,
+                        &depth,
+                        &material,
+                        &normal,
+                        tile_list,
+                        indirect_args,
+                        profiles,
+                        params,
+                        &scattered,
+                    );
+                    Ok(())
+                },
+            )?;
+        }
         gpu.record_indirect_compute_dispatch(
             pass_name,
             executor_id,
@@ -146,33 +160,29 @@ impl RenderPassExecutor for ScatterExecutor {
     }
 }
 
-fn inverse_view_projection(
-    gpu: &crate::graphics::scene::scene_renderer::graph_execution::RenderPassGpuExecutionContext<
-        '_,
-    >,
-    size: crate::core::math::UVec2,
-) -> crate::core::math::Mat4 {
-    let camera = gpu.frame_extract().view.selected_effective_camera();
-    ViewProjectionMatrixPair::from_camera(&camera, size)
-        .clip_from_world_jittered
-        .inverse()
-}
-
 impl RenderPassExecutor for RecombineExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         validate_context(context, SSS_RECOMBINE_EXECUTOR_ID, QueueLane::Graphics)?;
         let gpu = context.require_gpu()?;
+        let device_epoch = gpu.device_epoch().ok_or_else(|| {
+            "subsurface recombine requires a materialized device epoch before pipeline recording"
+                .to_string()
+        })?;
         let scattered = texture(gpu, PostProcessGraphResourceNames::SSS_SCATTERED, true)?;
         let specular = texture(gpu, PostProcessGraphResourceNames::SSS_SPECULAR, true)?;
         let material = texture(gpu, PostProcessGraphResourceNames::GBUFFER_MATERIAL, true)?;
         let scene_color = texture(gpu, PostProcessGraphResourceNames::SCENE_COLOR, false)?;
         let render_region =
             gpu.render_region_for_write_resource(PostProcessGraphResourceNames::SCENE_COLOR);
-        self.0
-            .with_pipelines(gpu.device, gpu.target_format(), |pipelines| {
+        let target_format = gpu.target_format();
+        let mut native = gpu.native_context();
+        self.0.with_pipelines(
+            &mut native,
+            device_epoch,
+            target_format,
+            |pipelines, native| {
                 pipelines.encode_recombine(
-                    gpu.device,
-                    gpu.encoder,
+                    native,
                     render_region,
                     &scattered,
                     &specular,
@@ -180,7 +190,8 @@ impl RenderPassExecutor for RecombineExecutor {
                     &scene_color,
                 );
                 Ok(())
-            })
+            },
+        )
     }
 }
 
@@ -240,14 +251,14 @@ fn texture(
     .cloned()
 }
 
-fn buffer(
+fn buffer<'a>(
     gpu: &crate::graphics::scene::scene_renderer::graph_execution::RenderPassGpuExecutionContext<
-        '_,
+        'a,
     >,
     name: &str,
     read: bool,
-) -> Result<wgpu::Buffer, String> {
-    gpu.require_buffer(
+) -> Result<wgpu::BufferBinding<'a>, String> {
+    gpu.require_buffer_binding(
         name,
         if read {
             RenderGraphResourceAccessKind::Read
@@ -255,5 +266,4 @@ fn buffer(
             RenderGraphResourceAccessKind::Write
         },
     )
-    .cloned()
 }

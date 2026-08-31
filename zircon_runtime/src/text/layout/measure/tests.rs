@@ -20,7 +20,7 @@ fn measured_width_sums_source_subranges() {
 fn measured_width_uses_absolute_source_ranges() {
     let style = test_style();
     let source = "xxWi";
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         &source[2..],
         &style,
         TextDirection::LeftToRight,
@@ -62,13 +62,18 @@ fn measured_grapheme_widths_projects_visual_glyphs_into_source_order() {
     let shaped = ShapedGlyphRun {
         source_text: std::sync::Arc::from("abc"),
         source_range: TextRange { start: 0, end: 3 },
+        unicode_data_snapshot: crate::text::compiled_unicode_data_snapshot_id(),
+        primary_face_id: None,
         direction: TextDirection::LeftToRight,
         orientation: crate::text::TextOrientation::Horizontal,
         vertical_mode: crate::text::VerticalMode::Mixed,
         include_kerning: true,
         measured_width: 50.0,
         measured_height: 12.0,
-        lines: vec![crate::text::ShapedTextLine {
+        horizontal_composition_receipt: None,
+        horizontal_line_raw_metrics: Vec::new(),
+        horizontal_glyph_metric_spans: Vec::new(),
+        lines: vec![crate::text::ShapedHardLine {
             line_index: 0,
             source_range: TextRange { start: 0, end: 3 },
             visual_range: TextRange { start: 0, end: 3 },
@@ -80,37 +85,109 @@ fn measured_grapheme_widths_projects_visual_glyphs_into_source_order() {
     };
 
     assert_eq!(
-        measured_grapheme_widths_from_shaped(&shaped, "abc"),
+        measured_grapheme_widths_from_shaped(&shaped, "abc")
+            .expect("valid measured grapheme projection"),
         vec![10.0, 10.0, 30.0]
     );
 }
 
 #[test]
-fn measured_grapheme_widths_distributes_a_multi_grapheme_cluster_once_per_glyph() {
+fn measured_grapheme_geometry_marks_a_multi_grapheme_cluster_atomic() {
+    let mut glyph = test_glyph(0, 4, 40.0);
+    glyph.cluster_flags.cluster_start = true;
+    glyph.cluster_flags.break_safety = crate::text::ShapedGlyphBreakSafety::RequiresReshape;
     let shaped = ShapedGlyphRun {
         source_text: std::sync::Arc::from("abcd"),
         source_range: TextRange { start: 0, end: 4 },
+        unicode_data_snapshot: crate::text::compiled_unicode_data_snapshot_id(),
+        primary_face_id: None,
         direction: TextDirection::LeftToRight,
         orientation: crate::text::TextOrientation::Horizontal,
         vertical_mode: crate::text::VerticalMode::Mixed,
         include_kerning: true,
         measured_width: 40.0,
         measured_height: 12.0,
-        lines: vec![crate::text::ShapedTextLine {
+        horizontal_composition_receipt: None,
+        horizontal_line_raw_metrics: Vec::new(),
+        horizontal_glyph_metric_spans: Vec::new(),
+        lines: vec![crate::text::ShapedHardLine {
             line_index: 0,
             source_range: TextRange { start: 0, end: 4 },
             visual_range: TextRange { start: 0, end: 4 },
             measured_width: 40.0,
             baseline: 9.0,
             line_height: 12.0,
-            glyphs: vec![test_glyph(0, 4, 40.0)],
+            glyphs: vec![glyph],
         }],
     };
 
     assert_eq!(
-        measured_grapheme_widths_from_shaped(&shaped, "abcd"),
+        measured_grapheme_widths_from_shaped(&shaped, "abcd")
+            .expect("valid measured grapheme projection"),
         vec![10.0, 10.0, 10.0, 10.0]
     );
+    assert_eq!(
+        measured_grapheme_geometry_from_shaped(&shaped, "abcd")
+            .expect("valid measured grapheme projection")
+            .glyph_clusters,
+        vec![MeasuredGlyphCluster {
+            source_range: TextRange { start: 0, end: 4 },
+            advance: 40.0,
+            caret_policy: MeasuredClusterCaretPolicy::AtomicCluster,
+            break_safety: crate::text::ShapedGlyphBreakSafety::RequiresReshape,
+        }]
+    );
+}
+
+#[test]
+fn measured_grapheme_geometry_rejects_non_boundary_glyph_ranges() {
+    let glyph = test_glyph(1, 2, 20.0);
+    let shaped = ShapedGlyphRun {
+        source_text: std::sync::Arc::from("é"),
+        source_range: TextRange {
+            start: 0,
+            end: "é".len(),
+        },
+        unicode_data_snapshot: crate::text::compiled_unicode_data_snapshot_id(),
+        primary_face_id: None,
+        direction: TextDirection::LeftToRight,
+        orientation: crate::text::TextOrientation::Horizontal,
+        vertical_mode: crate::text::VerticalMode::Mixed,
+        include_kerning: true,
+        measured_width: 20.0,
+        measured_height: 12.0,
+        horizontal_composition_receipt: None,
+        horizontal_line_raw_metrics: Vec::new(),
+        horizontal_glyph_metric_spans: Vec::new(),
+        lines: vec![crate::text::ShapedHardLine {
+            line_index: 0,
+            source_range: TextRange {
+                start: 0,
+                end: "é".len(),
+            },
+            visual_range: TextRange {
+                start: 0,
+                end: "é".len(),
+            },
+            measured_width: 20.0,
+            baseline: 9.0,
+            line_height: 12.0,
+            glyphs: vec![glyph],
+        }],
+    };
+
+    assert_eq!(
+        measured_grapheme_geometry_from_shaped(&shaped, "é"),
+        Err(crate::core::framework::text::TextLayoutError::LayoutFailed)
+    );
+}
+
+#[test]
+fn measured_width_rejects_non_boundary_requested_ranges() {
+    let shaped = shape_unconstrained_line("é", &test_style());
+
+    assert_eq!(measured_width(&shaped, 1, 2, true), 0.0);
+    assert!(measured_width(&shaped, 0, "é".len(), true) > 0.0);
 }
 
 #[test]
@@ -118,13 +195,18 @@ fn measured_grapheme_widths_shapes_the_complete_text_once() {
     let shaped = Arc::new(ShapedGlyphRun {
         source_text: std::sync::Arc::from("abcd"),
         source_range: TextRange { start: 0, end: 4 },
+        unicode_data_snapshot: crate::text::compiled_unicode_data_snapshot_id(),
+        primary_face_id: None,
         direction: TextDirection::LeftToRight,
         orientation: crate::text::TextOrientation::Horizontal,
         vertical_mode: crate::text::VerticalMode::Mixed,
         include_kerning: true,
         measured_width: 40.0,
         measured_height: 12.0,
-        lines: vec![crate::text::ShapedTextLine {
+        horizontal_composition_receipt: None,
+        horizontal_line_raw_metrics: Vec::new(),
+        horizontal_glyph_metric_spans: Vec::new(),
+        lines: vec![crate::text::ShapedHardLine {
             line_index: 0,
             source_range: TextRange { start: 0, end: 4 },
             visual_range: TextRange { start: 0, end: 4 },
@@ -135,14 +217,20 @@ fn measured_grapheme_widths_shapes_the_complete_text_once() {
         }],
     });
     let mut provider = CountingShapeRunProvider {
-        shaped,
+        shaped: Arc::clone(&shaped),
         shape_calls: 0,
     };
 
+    let measured = measure_line_with_provider("abcd", &test_style(), &mut provider)
+        .into_result()
+        .expect("measure one final physical line");
+
+    assert_eq!(measured.grapheme_advances, vec![10.0, 10.0, 10.0, 10.0]);
     assert_eq!(
-        measured_grapheme_widths_with_provider("abcd", &test_style(), &mut provider),
-        vec![10.0, 10.0, 10.0, 10.0]
+        measured.glyph_clusters[0].caret_policy,
+        MeasuredClusterCaretPolicy::AtomicCluster
     );
+    assert!(Arc::ptr_eq(&measured.shaped, &shaped));
     assert_eq!(provider.shape_calls, 1);
 }
 
@@ -181,13 +269,16 @@ fn grapheme_projection_scale_evidence_reports_p50_p95() {
 
             for _ in 0..SAMPLE_COUNT {
                 let started = Instant::now();
-                let advances = measured_grapheme_widths_from_shaped(&shaped, &source);
+                let advances = measured_grapheme_widths_from_shaped(&shaped, &source)
+                    .expect("valid measured grapheme projection");
                 samples.push(started.elapsed().as_nanos());
 
                 assert_eq!(advances.len(), grapheme_count);
-                assert!(advances
-                    .iter()
-                    .all(|advance| advance.is_finite() && *advance >= 0.0));
+                assert!(
+                    advances
+                        .iter()
+                        .all(|advance| advance.is_finite() && *advance >= 0.0)
+                );
             }
 
             samples.sort_unstable();
@@ -226,8 +317,13 @@ fn grapheme_projection_scale_evidence_reports_p50_p95() {
 #[test]
 fn measure_text_size_preserves_a_trailing_empty_line() {
     let style = test_style();
-    let line_metrics = line_metrics_with_provider(&style, &mut DirectTextShapeRunProvider);
-    let measured = measure_text_size("line\n", &style);
+    let line_metrics =
+        line_metrics_with_provider(&style, &mut DirectTextShapeRunProvider::default())
+            .into_result()
+            .expect("measure line metrics");
+    let measured = measure_text_size("line\n", &style)
+        .into_result()
+        .expect("measure text size");
 
     assert!((measured.height - line_metrics.line_height * 2.0).abs() < 0.1);
 }
@@ -235,8 +331,13 @@ fn measure_text_size_preserves_a_trailing_empty_line() {
 #[test]
 fn measure_text_size_preserves_consecutive_trailing_empty_lines() {
     let style = test_style();
-    let line_metrics = line_metrics_with_provider(&style, &mut DirectTextShapeRunProvider);
-    let measured = measure_text_size("line\n\n", &style);
+    let line_metrics =
+        line_metrics_with_provider(&style, &mut DirectTextShapeRunProvider::default())
+            .into_result()
+            .expect("measure line metrics");
+    let measured = measure_text_size("line\n\n", &style)
+        .into_result()
+        .expect("measure text size");
 
     assert!((measured.height - line_metrics.line_height * 3.0).abs() < 0.1);
 }
@@ -244,11 +345,23 @@ fn measure_text_size_preserves_consecutive_trailing_empty_lines() {
 #[test]
 fn measure_text_size_uses_all_mandatory_unicode_separators() {
     let style = test_style();
-    let line_metrics = line_metrics_with_provider(&style, &mut DirectTextShapeRunProvider);
-    let measured = measure_text_size("line\r\n\u{2028}", &style);
+    let line_metrics =
+        line_metrics_with_provider(&style, &mut DirectTextShapeRunProvider::default())
+            .into_result()
+            .expect("measure line metrics");
+    let measured = measure_text_size("line\r\n\u{2028}", &style)
+        .into_result()
+        .expect("measure text size");
 
     assert!((measured.height - line_metrics.line_height * 3.0).abs() < 0.1);
-    assert!((measured.width - measure_line_width("line", &style)).abs() < 0.1);
+    assert!(
+        (measured.width
+            - measure_line_width("line", &style)
+                .into_result()
+                .expect("measure line width"))
+        .abs()
+            < 0.1
+    );
 }
 
 #[test]
@@ -257,8 +370,12 @@ fn measure_source_range_can_request_unkerned_backend_shape() {
     let range = TextRange { start: 0, end: 2 };
     let kerned = shape_unconstrained_line_with_kerning("AV", &style, true);
     let unkerned = shape_unconstrained_line_with_kerning("AV", &style, false);
-    let kerned_width = measure_text_source_range_width_with_kerning("AV", &style, range, true);
-    let unkerned_width = measure_text_source_range_width_with_kerning("AV", &style, range, false);
+    let kerned_width = measure_text_source_range_width_with_kerning("AV", &style, range, true)
+        .into_result()
+        .expect("measure kerned source range");
+    let unkerned_width = measure_text_source_range_width_with_kerning("AV", &style, range, false)
+        .into_result()
+        .expect("measure unkerned source range");
 
     assert!(kerned.include_kerning);
     assert!(!unkerned.include_kerning);
@@ -306,15 +423,15 @@ struct CountingShapeRunProvider {
 }
 
 impl TextShapeRunProvider for CountingShapeRunProvider {
-    fn shape_horizontal_line_with_kerning(
+    fn shape_horizontal_range_with_kerning(
         &mut self,
         _text: &str,
         _style: &TextStyle,
         _direction: TextDirection,
         _source_range: TextRange,
         _include_kerning: bool,
-    ) -> Arc<ShapedGlyphRun> {
+    ) -> crate::text::shaping::TextShapingOutcome {
         self.shape_calls += 1;
-        Arc::clone(&self.shaped)
+        crate::text::shaping::TextShapingOutcome::Ready(Arc::clone(&self.shaped))
     }
 }

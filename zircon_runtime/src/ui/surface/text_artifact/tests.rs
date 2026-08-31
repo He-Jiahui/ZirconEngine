@@ -9,8 +9,8 @@ use zircon_runtime_interface::ui::surface::{
 use super::*;
 use crate::core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation};
 use crate::text::{
-    build_resolved_text_glyph_artifact, register_resolved_text_glyph_artifact,
     ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, SharedTextLayoutSession,
+    build_resolved_text_glyph_artifact, register_resolved_text_glyph_artifact,
 };
 
 #[test]
@@ -22,12 +22,14 @@ fn artifact_line_view_borrows_only_an_exact_current_layout_line() {
         source_text: Arc::from("Text"),
         source_text_origin: 0,
         font_generation: crate::text::font::shared_font_database_generation(),
+        font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
         style: UiResolvedStyle::default(),
         writing_mode: UiTextWritingMode::HorizontalTb,
         lines: vec![Some(ResolvedTextGlyphArtifactLine {
             glyphs,
             layout_line: line.clone(),
         })],
+        logical_virtual_line_sequences: None,
     });
     let layout = UiResolvedTextLayout {
         font_size: 16.0,
@@ -70,12 +72,14 @@ fn artifact_line_view_rejects_a_stale_font_generation() {
         source_text: Arc::from("Text"),
         source_text_origin: 0,
         font_generation: crate::text::font::shared_font_database_generation().wrapping_add(1),
+        font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
         style: UiResolvedStyle::default(),
         writing_mode: UiTextWritingMode::HorizontalTb,
         lines: vec![Some(ResolvedTextGlyphArtifactLine {
             glyphs: vec![test_glyph()],
             layout_line: line.clone(),
         })],
+        logical_virtual_line_sequences: None,
     });
     let layout = UiResolvedTextLayout {
         font_size: 16.0,
@@ -92,29 +96,18 @@ fn artifact_line_view_rejects_a_stale_font_generation() {
 }
 
 #[test]
-fn artifact_line_view_drops_its_slice_after_its_generation_is_stale() {
+fn artifact_line_view_retains_its_exact_font_generation_after_publication() {
     let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
-    let line = test_line();
-    let current_generation = crate::text::font::shared_font_database_generation();
-    let artifact = Arc::new(ResolvedTextGlyphArtifact {
-        source_text: Arc::from("Text"),
-        source_text_origin: 0,
-        font_generation: current_generation,
-        style: UiResolvedStyle::default(),
-        writing_mode: UiTextWritingMode::HorizontalTb,
-        lines: vec![Some(ResolvedTextGlyphArtifactLine {
-            glyphs: vec![test_glyph()],
-            layout_line: line,
-        })],
-    });
-    let stale_view = UiResolvedTextGlyphArtifactLine {
-        artifact,
-        line_index: 0,
-        font_generation: current_generation.wrapping_add(1),
-    };
+    let view = built_runtime_artifact_view();
+    let leased_generation = view.font_generation();
+    let (_, database) = crate::text::font::shared_font_database_snapshot();
+    let published_generation = crate::text::font::force_publish_shared_font_database(&database);
 
-    assert!(stale_view.glyphs().is_none());
-    assert!(stale_view.layout_line().is_none());
+    assert!(published_generation > leased_generation);
+    assert!(view.glyphs().is_some());
+    assert!(view.layout_line().is_some());
+    assert_eq!(view.font_generation(), leased_generation);
+    assert!(view.raster_faces().is_some());
 }
 
 #[test]
@@ -351,6 +344,8 @@ fn built_runtime_artifact_view() -> UiResolvedTextGlyphArtifactLine {
     let mut provider = SharedTextLayoutSession::new();
     let artifact = Arc::new(
         build_resolved_text_glyph_artifact("Text", &style, &layout, &mut provider)
+            .into_result()
+            .expect("canonical text artifact shaping")
             .expect("canonical text artifact"),
     );
     layout.rich_text_artifact = Some(register_resolved_text_glyph_artifact(artifact));
@@ -366,11 +361,11 @@ fn built_face_free_runtime_artifact_view() -> UiResolvedTextGlyphArtifactLine {
             glyph.requires_rasterization = false;
         }
     }
-    let font_generation = artifact.font_generation;
     UiResolvedTextGlyphArtifactLine {
         artifact: Arc::new(artifact),
         line_index: 0,
-        font_generation,
+        font_collection: source.font_collection,
+        font_handles: source.font_handles,
     }
 }
 
@@ -410,22 +405,26 @@ fn built_two_line_runtime_artifact_views() -> (
 fn artifact_line_view_rejects_a_raster_glyph_without_a_runtime_font_face() {
     let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
     let line = test_line();
-    let current_generation = crate::text::font::shared_font_database_generation();
+    let font_collection = crate::text::font::shared_font_collection_snapshot();
+    let font_handles = crate::text::font::font_handle_resolver_snapshot(&font_collection);
     let artifact = Arc::new(ResolvedTextGlyphArtifact {
         source_text: Arc::from("Text"),
         source_text_origin: 0,
-        font_generation: current_generation,
+        font_generation: font_collection.generation(),
+        font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
         style: UiResolvedStyle::default(),
         writing_mode: UiTextWritingMode::HorizontalTb,
         lines: vec![Some(ResolvedTextGlyphArtifactLine {
             glyphs: vec![test_glyph()],
             layout_line: line,
         })],
+        logical_virtual_line_sequences: None,
     });
     let view = UiResolvedTextGlyphArtifactLine {
         artifact,
         line_index: 0,
-        font_generation: current_generation,
+        font_collection,
+        font_handles,
     };
 
     assert!(view.raster_faces().is_none());
@@ -434,6 +433,7 @@ fn artifact_line_view_rejects_a_raster_glyph_without_a_runtime_font_face() {
 fn test_line() -> UiResolvedTextLine {
     UiResolvedTextLine {
         text: "Text".to_owned(),
+        placement_frame: UiFrame::default(),
         frame: UiFrame::new(4.0, 8.0, 32.0, 20.0),
         source_range: UiTextRange { start: 0, end: 4 },
         visual_range: UiTextRange { start: 0, end: 4 },

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "registry_kind": "zircon.mvp-build-gate-registry",
+  "summaries": [
+    {
+      "summary_kind": "profile-contract",
+      "gates": [
+        {
+          "gate_id": "zircon-app-target-server",
+          "cargo_arguments": ["check", "-p", "zircon_app", "--no-default-features", "--features", "target-server", "--locked"]
+        },
+        {
+          "gate_id": "zircon-app-target-client-platform",
+          "cargo_arguments": ["check", "-p", "zircon_app", "--bin", "zircon_runtime", "--no-default-features", "--features", "target-client,platform-winit,input-gamepad,gamepad-gilrs", "--locked"]
+        },
+        {
+          "gate_id": "zircon-app-target-editor-host",
+          "cargo_arguments": ["check", "-p", "zircon_app", "--bin", "zircon_editor", "--no-default-features", "--features", "target-editor-host", "--locked"]
+        },
+        {
+          "gate_id": "zircon-app-target-client-shader-pbr-viewer",
+          "cargo_arguments": ["check", "-p", "zircon_app", "--bin", "zircon_shader_pbr_viewer", "--no-default-features", "--features", "target-client,platform-winit,input-gamepad,gamepad-gilrs", "--locked"]
+        },
+        {
+          "gate_id": "zircon-runtime-target-client",
+          "cargo_arguments": ["check", "-p", "zircon_runtime", "--no-default-features", "--features", "target-client", "--locked"]
+        },
+        {
+          "gate_id": "zircon-runtime-target-editor-host",
+          "cargo_arguments": ["check", "-p", "zircon_runtime", "--no-default-features", "--features", "target-editor-host", "--locked"]
+        },
+        {
+          "gate_id": "zircon-runtime-target-server",
+          "cargo_arguments": ["check", "-p", "zircon_runtime", "--no-default-features", "--features", "target-server", "--locked"]
+        }
+      ]
+    },
+    {
+      "summary_kind": "workspace",
+      "gates": [
+        {
+          "gate_id": "workspace-build",
+          "cargo_arguments": ["build", "--workspace", "--locked"]
+        },
+        {
+          "gate_id": "workspace-test",
+          "cargo_arguments": ["test", "--workspace", "--locked"]
+        }
+      ]
+    }
+  ]
+}

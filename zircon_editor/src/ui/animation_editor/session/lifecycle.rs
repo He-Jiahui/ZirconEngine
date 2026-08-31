@@ -1,78 +1,53 @@
+#[cfg(test)]
 use std::path::Path;
 
-use zircon_runtime::core::framework::animation::{
-    AnimationGraphAsset, AnimationSequenceAsset, AnimationStateMachineAsset,
-};
+#[cfg(test)]
+use zircon_runtime::asset::AssetUri;
 
-use super::support::duration_frames;
-use super::{
-    AnimationEditorDocument, AnimationEditorSession, AnimationEditorSessionError,
-    AnimationSequenceDocument,
+#[cfg(test)]
+use crate::core::editing::animation_document::{
+    AnimationAuthoringAsset, AnimationAuthoringDocument, AnimationAuthoringDocumentKind,
+    AnimationAuthoringDocumentReadHandle,
 };
+#[cfg(test)]
+use crate::core::editor_message::DocumentId;
+
+use super::{AnimationEditorSession, AnimationEditorSessionError};
 
 impl AnimationEditorSession {
-    pub fn from_path(path: &Path) -> Result<Self, AnimationEditorSessionError> {
-        let bytes =
-            std::fs::read(path).map_err(|error| AnimationEditorSessionError(error.to_string()))?;
-        let asset_path = path.to_string_lossy().into_owned();
+    #[cfg(test)]
+    pub(super) fn from_path(path: &Path) -> Result<Self, AnimationEditorSessionError> {
+        let asset_path = path.to_string_lossy();
         let lowered = asset_path.to_ascii_lowercase();
-        if lowered.ends_with(".sequence.zranim") {
-            let asset = AnimationSequenceAsset::from_bytes(&bytes)
-                .map_err(|error| AnimationEditorSessionError(error.to_string()))?;
-            let timeline_end_frame =
-                duration_frames(asset.duration_seconds, asset.frames_per_second);
-            return Ok(Self {
-                asset_path,
-                document: AnimationEditorDocument::Sequence(AnimationSequenceDocument {
-                    asset,
-                    current_frame: 0,
-                    timeline_start_frame: 0,
-                    timeline_end_frame,
-                    selected_span: None,
-                    playing: false,
-                    looping: false,
-                    speed: 1.0,
-                }),
-                dirty: false,
-            });
-        }
-        if lowered.ends_with(".graph.zranim") {
-            let asset = AnimationGraphAsset::from_bytes(&bytes)
-                .map_err(|error| AnimationEditorSessionError(error.to_string()))?;
-            return Ok(Self {
-                asset_path,
-                document: AnimationEditorDocument::Graph(asset),
-                dirty: false,
-            });
-        }
-        if lowered.ends_with(".state_machine.zranim") {
-            let asset = AnimationStateMachineAsset::from_bytes(&bytes)
-                .map_err(|error| AnimationEditorSessionError(error.to_string()))?;
-            return Ok(Self {
-                asset_path,
-                document: AnimationEditorDocument::StateMachine(asset),
-                dirty: false,
-            });
-        }
-        Err(AnimationEditorSessionError(format!(
-            "unsupported animation editor asset {}",
-            path.display()
-        )))
+        let document_kind = if lowered.ends_with(".sequence.zranim") {
+            AnimationEditorDocumentKind::Sequence
+        } else if lowered.ends_with(".graph.zranim") {
+            AnimationEditorDocumentKind::Graph
+        } else if lowered.ends_with(".state_machine.zranim") {
+            AnimationEditorDocumentKind::StateMachine
+        } else {
+            return Err(AnimationEditorSessionError::new(format!(
+                "unsupported animation editor asset {}",
+                path.display()
+            )));
+        };
+        let bytes = std::fs::read(path)
+            .map_err(|error| AnimationEditorSessionError::new(error.to_string()))?;
+        let asset = AnimationAuthoringAsset::from_bytes(document_kind, &bytes)
+            .map_err(AnimationEditorSessionError::from_animation_asset_error)?;
+        let document = AnimationAuthoringDocument::new(
+            DocumentId::new(1),
+            AssetUri::parse("res://tests/animation.zranim")
+                .expect("test animation locator must be valid"),
+            asset,
+        );
+        Ok(Self::new(
+            path.to_string_lossy().into_owned(),
+            AnimationAuthoringDocumentReadHandle::detached_for_test(document),
+        ))
     }
 
     pub fn asset_path(&self) -> &str {
         &self.asset_path
-    }
-
-    pub fn is_dirty(&self) -> bool {
-        self.dirty
-    }
-
-    pub fn save(&mut self) -> Result<(), AnimationEditorSessionError> {
-        let bytes = self.document_bytes()?;
-        std::fs::write(&self.asset_path, bytes)
-            .map_err(|error| AnimationEditorSessionError(error.to_string()))?;
-        self.dirty = false;
-        Ok(())
     }
 }

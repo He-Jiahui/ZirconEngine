@@ -346,8 +346,8 @@ mod tests {
     use crate::core::resource::{AssetReference, ResourceLocator};
 
     use super::{
-        AnimationClipEventSamplingLimits, EventCandidate, event_candidate,
-        sample_clip_events_budgeted, take_candidate_comparisons,
+        event_candidate, sample_clip_events_budgeted, take_candidate_comparisons,
+        AnimationClipEventSamplingLimits, EventCandidate,
     };
 
     #[test]

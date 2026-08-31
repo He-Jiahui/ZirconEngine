@@ -211,14 +211,7 @@ fn compressed_subresource_reason(
         }
         *seen_slot = true;
     }
-    if seen.into_iter().all(|present| present) {
-        None
-    } else {
-        Some(format!(
-            "container texture payload format {} omits a compressed subresource",
-            plan.format
-        ))
-    }
+    None
 }
 
 #[derive(Clone, Copy)]
@@ -293,6 +286,10 @@ fn unsupported_feature_reason(
         TextureUploadCompressionFamily::Astc => None,
     }
 }
+
+#[cfg(test)]
+#[path = "compressed/redundant_coverage_scan_tests.rs"]
+mod redundant_coverage_scan_tests;
 
 const fn mip_extent(value: u32, level: u32) -> u32 {
     let shifted = if level >= u32::BITS {

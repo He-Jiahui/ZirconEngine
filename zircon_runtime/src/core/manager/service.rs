@@ -2,24 +2,34 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::core::runtime::{CoreHandle, RegisteredServiceIdentity, RegistryName};
+use crate::core::runtime::{CoreHandle, CoreWeak, RegisteredServiceIdentity, RegistryName};
 use crate::core::CoreError;
 
 pub struct ManagerServiceHandle<T: ?Sized> {
-    pub index: u32,
-    pub generation: u32,
-    pub service: RegistryName,
+    pub(crate) index: u32,
+    pub(crate) generation: u32,
+    pub(crate) service: RegistryName,
+    runtime: CoreWeak,
     marker: PhantomData<fn() -> T>,
 }
 
 impl<T: ?Sized> ManagerServiceHandle<T> {
-    pub(crate) fn from_identity(identity: RegisteredServiceIdentity) -> Self {
+    pub(crate) fn from_identity(runtime: CoreWeak, identity: RegisteredServiceIdentity) -> Self {
         Self {
             index: identity.index(),
             generation: identity.generation(),
             service: identity.service().clone(),
+            runtime,
             marker: PhantomData,
         }
+    }
+
+    pub fn service_name(&self) -> &RegistryName {
+        &self.service
+    }
+
+    fn belongs_to(&self, core: &CoreHandle) -> bool {
+        std::ptr::eq(self.runtime.inner.as_ptr(), Arc::as_ptr(&core.inner))
     }
 
     fn into_identity(self) -> RegisteredServiceIdentity {
@@ -33,6 +43,7 @@ impl<T: ?Sized> Clone for ManagerServiceHandle<T> {
             index: self.index,
             generation: self.generation,
             service: self.service.clone(),
+            runtime: self.runtime.clone(),
             marker: PhantomData,
         }
     }
@@ -54,6 +65,7 @@ impl<T: ?Sized> PartialEq for ManagerServiceHandle<T> {
         self.index == other.index
             && self.generation == other.generation
             && self.service == other.service
+            && std::ptr::eq(self.runtime.inner.as_ptr(), other.runtime.inner.as_ptr())
     }
 }
 
@@ -91,7 +103,7 @@ pub fn manager_service_handle<T: ?Sized>(
     service_name: &str,
 ) -> Result<ManagerServiceHandle<T>, CoreError> {
     core.registered_manager_identity(service_name)
-        .map(ManagerServiceHandle::from_identity)
+        .map(|identity| ManagerServiceHandle::from_identity(core.downgrade(), identity))
 }
 
 pub fn resolve_manager_service<T: ?Sized + Send + Sync + 'static>(
@@ -106,6 +118,11 @@ impl ManagerServiceResolver for CoreHandle {
         &self,
         handle: ManagerServiceHandle<T>,
     ) -> Result<Arc<T>, CoreError> {
+        if !handle.belongs_to(self) {
+            return Err(CoreError::ServiceUnavailable(
+                handle.service_name().to_string(),
+            ));
+        }
         let identity = handle.into_identity();
         let registered =
             self.resolve_registered_manager::<RegisteredManagerService<T>>(&identity)?;

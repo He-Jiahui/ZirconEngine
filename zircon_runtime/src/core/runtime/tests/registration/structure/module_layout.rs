@@ -4,6 +4,7 @@ use super::registration_sources;
 fn registration_source_preserves_module_layout() {
     let sources = registration_sources();
 
+    assert!(sources.registration_mod.contains("mod commit;"));
     assert!(sources.registration_mod.contains("mod descriptor_entries;"));
     assert!(sources
         .registration_mod
@@ -21,6 +22,11 @@ fn registration_source_preserves_module_layout() {
     assert!(sources.registration_mod.contains("mod validation;"));
     assert!(!sources.registration_mod.contains("use "));
     assert!(!sources.registration_mod.contains("impl CoreHandle"));
+    assert!(!sources.commit.contains("impl CoreHandle"));
+    assert!(sources
+        .commit
+        .contains("pub(super) fn commit_module_registration<P>("));
+    assert!(sources.commit.contains("fn assign_service_indices<'a>("));
     assert!(sources.register_module.contains("impl CoreHandle"));
     assert!(sources.register_module.contains("pub fn register_module("));
     assert!(sources

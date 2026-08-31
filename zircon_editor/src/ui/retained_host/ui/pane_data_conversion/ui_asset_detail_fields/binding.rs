@@ -2,10 +2,15 @@ use crate::ui::asset_editor;
 
 use super::row_model::{push_detail_row, UiAssetDetailFieldRow};
 
+#[cfg(test)]
+mod capacity_tests;
+
+const BINDING_DETAIL_ROW_CAPACITY: usize = 5;
+
 pub(super) fn binding_detail_rows(
     data: &asset_editor::UiAssetEditorPanePresentation,
 ) -> Vec<UiAssetDetailFieldRow> {
-    let mut rows = Vec::new();
+    let mut rows = Vec::with_capacity(BINDING_DETAIL_ROW_CAPACITY);
     push_detail_row(
         &mut rows,
         "Binding ID",

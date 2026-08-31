@@ -1,48 +1,29 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$script:MvpProductInputSchemaVersion = 1
-$script:MvpGitHashObjectBatchArgumentBudget = 24576
-$script:MvpProductInputSpecifications = @(
-    [ordered]@{
-        logical_id = 'runtime-executable'
-        package = 'zircon_app'
-        bin = 'zircon_runtime'
-        features = 'target-client,platform-winit,input-gamepad,gamepad-gilrs'
-        output_group = 'runtime'
-        artifact_name = 'zircon_runtime.exe'
-    },
-    [ordered]@{
-        logical_id = 'runtime-library/runtime'
-        package = 'zircon_runtime'
-        bin = $null
-        features = 'target-client,platform-winit,input-gamepad,gamepad-gilrs'
-        output_group = 'runtime'
-        artifact_name = 'zircon_runtime.dll'
-    },
-    [ordered]@{
-        logical_id = 'editor-executable'
-        package = 'zircon_app'
-        bin = 'zircon_editor'
-        features = 'target-editor-host'
-        output_group = 'editor'
-        artifact_name = 'zircon_editor.exe'
-    },
-    [ordered]@{
-        logical_id = 'runtime-library/editor'
-        package = 'zircon_runtime'
-        bin = $null
-        features = 'target-editor-host'
-        output_group = 'editor'
-        artifact_name = 'zircon_runtime.dll'
-    }
-)
+$script:MvpProductInputSchemaVersion = 2
+$script:MvpProductInputUpperHexDigits = [char[]]'0123456789ABCDEF'
 
 $moduleRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+Import-Module (Join-Path $PSScriptRoot 'MvpProductProfileRegistry.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $moduleRepoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 
 function Get-MvpProductInputSpecifications {
-    return @($script:MvpProductInputSpecifications | ForEach-Object { [pscustomobject]$_ })
+    param([AllowNull()]$RegistrySnapshot)
+
+    return @(Get-MvpProductProfileSpecifications -RegistrySnapshot $RegistrySnapshot)
+}
+
+function ConvertTo-MvpProductInputUpperHex {
+    param([Parameter(Mandatory)][byte[]]$Bytes)
+
+    $characters = [char[]]::new($Bytes.Length * 2)
+    for ($index = 0; $index -lt $Bytes.Length; $index++) {
+        $value = $Bytes[$index]
+        $characters[$index * 2] = $script:MvpProductInputUpperHexDigits[$value -shr 4]
+        $characters[$index * 2 + 1] = $script:MvpProductInputUpperHexDigits[$value -band 0x0F]
+    }
+    return [string]::new($characters)
 }
 
 function Get-MvpProductInputFileSha256 {
@@ -51,7 +32,7 @@ function Get-MvpProductInputFileSha256 {
     $stream = [IO.File]::OpenRead($Path)
     $hasher = [Security.Cryptography.SHA256]::Create()
     try {
-        return -join ($hasher.ComputeHash($stream) | ForEach-Object { $_.ToString('X2') })
+        return ConvertTo-MvpProductInputUpperHex -Bytes $hasher.ComputeHash($stream)
     }
     finally {
         $hasher.Dispose()
@@ -64,234 +45,10 @@ function Get-MvpProductInputBytesSha256 {
 
     $hasher = [Security.Cryptography.SHA256]::Create()
     try {
-        return -join ($hasher.ComputeHash($Bytes) | ForEach-Object { $_.ToString('X2') })
+        return ConvertTo-MvpProductInputUpperHex -Bytes $hasher.ComputeHash($Bytes)
     }
     finally {
         $hasher.Dispose()
-    }
-}
-
-function Invoke-MvpSourceGit {
-    param(
-        [Parameter(Mandatory)][string]$GitPath,
-        [Parameter(Mandatory)][string]$WorkingDirectory,
-        [Parameter(Mandatory)][string[]]$Arguments
-    )
-
-    $startInfo = [Diagnostics.ProcessStartInfo]::new()
-    $startInfo.FileName = $GitPath
-    $startInfo.WorkingDirectory = $WorkingDirectory
-    $startInfo.Arguments = $Arguments -join ' '
-    $startInfo.UseShellExecute = $false
-    $startInfo.CreateNoWindow = $true
-    $startInfo.RedirectStandardOutput = $true
-    $startInfo.RedirectStandardError = $true
-    $process = [Diagnostics.Process]::new()
-    $process.StartInfo = $startInfo
-    $stdoutStream = [IO.MemoryStream]::new()
-    try {
-        if (-not $process.Start()) {
-            throw "Could not start git source fingerprint command '$($Arguments -join ' ')'."
-        }
-        $stdoutTask = $process.StandardOutput.BaseStream.CopyToAsync($stdoutStream)
-        $stderrTask = $process.StandardError.ReadToEndAsync()
-        $process.WaitForExit()
-        [Threading.Tasks.Task]::WaitAll(@($stdoutTask, $stderrTask))
-        if ($process.ExitCode -ne 0) {
-            $detail = $stderrTask.Result.Trim()
-            if ([string]::IsNullOrWhiteSpace($detail)) {
-                $detail = 'no stderr output'
-            }
-            throw "Git source fingerprint command '$($Arguments -join ' ')' failed with exit code $($process.ExitCode): $detail"
-        }
-        Write-Output -NoEnumerate ([byte[]]$stdoutStream.ToArray())
-    }
-    finally {
-        $stdoutStream.Dispose()
-        $process.Dispose()
-    }
-}
-
-function Add-MvpTrackedSourceContentHashBatch {
-    param(
-        [Parameter(Mandatory)][string]$GitPath,
-        [Parameter(Mandatory)][string]$RepositoryRoot,
-        [Parameter(Mandatory)][Text.Encoding]$Encoding,
-        [Parameter(Mandatory)][Collections.Generic.List[string]]$Paths,
-        [Parameter(Mandatory)][AllowEmptyCollection()][Collections.Generic.List[object]]$Records
-    )
-
-    $arguments = [Collections.Generic.List[string]]::new()
-    $arguments.AddRange([string[]]@('hash-object', '--no-filters', '--'))
-    foreach ($relativePath in $Paths) {
-        if ($relativePath.Contains('"')) {
-            throw "Tracked source input '$relativePath' contains a double quote and cannot be supplied to git hash-object safely."
-        }
-        # ProcessStartInfo parses this command-line string directly; Windows file names cannot
-        # contain double quotes, so quoting preserves spaces without a shell interpretation.
-        $arguments.Add(('"{0}"' -f $relativePath))
-    }
-    [byte[]]$hashOutputBytes = Invoke-MvpSourceGit `
-        -GitPath $GitPath `
-        -WorkingDirectory $RepositoryRoot `
-        -Arguments $arguments.ToArray()
-    $hashes = @($Encoding.GetString($hashOutputBytes).Split("`n") | ForEach-Object { $_.Trim() } | Where-Object {
-            -not [string]::IsNullOrWhiteSpace($_)
-        })
-    if ($hashes.Count -ne $Paths.Count) {
-        throw "Git source fingerprint hash-object output count ($($hashes.Count)) does not match tracked source inputs ($($Paths.Count))."
-    }
-    for ($index = 0; $index -lt $Paths.Count; $index++) {
-        $hash = $hashes[$index]
-        if ($hash -notmatch '^[0-9a-fA-F]+$') {
-            throw "Git source fingerprint hash-object returned an invalid object id for '$($Paths[$index])'."
-        }
-        $Records.Add([pscustomobject]@{
-                relative_path = $Paths[$index]
-                object_hash = $hash.ToUpperInvariant()
-            })
-    }
-}
-
-function Get-MvpTrackedSourceContentHashes {
-    param(
-        [Parameter(Mandatory)][string]$GitPath,
-        [Parameter(Mandatory)][string]$RepositoryRoot,
-        [Parameter(Mandatory)][byte[]]$TrackedPathBytes
-    )
-
-    # `powershell.exe` must not emit an UTF-8 preamble into git's line-oriented
-    # --stdin-paths protocol; the preamble would become part of the first path.
-    $encoding = [Text.UTF8Encoding]::new($false)
-    $trackedPaths = @($encoding.GetString($TrackedPathBytes).Split([char]0) | Where-Object {
-            $_.Length -gt 0
-        } | Sort-Object -Unique)
-    $existingPaths = [System.Collections.Generic.List[string]]::new()
-    foreach ($relativePath in $trackedPaths) {
-        if ($relativePath.Contains("`n") -or $relativePath.Contains("`r")) {
-            throw "Tracked source input '$relativePath' contains a newline and cannot be supplied to git hash-object safely."
-        }
-        $path = (Resolve-ZirconWindowsPath `
-                -Path (Join-ZirconWindowsPath -Path $RepositoryRoot -ChildPath $relativePath)).OperationalPath
-        if ([IO.File]::Exists($path)) {
-            $existingPaths.Add($relativePath)
-        }
-        elseif ([IO.Directory]::Exists($path)) {
-            throw "Tracked source input '$relativePath' is a directory; source fingerprinting requires a file identity."
-        }
-    }
-    if ($existingPaths.Count -eq 0) {
-        return @()
-    }
-
-    $records = [System.Collections.Generic.List[object]]::new()
-    $batchPaths = [System.Collections.Generic.List[string]]::new()
-    $batchArgumentLength = 'hash-object --no-filters --'.Length
-    foreach ($relativePath in $existingPaths) {
-        $argumentLength = $relativePath.Length + 3
-        if ($argumentLength -gt $script:MvpGitHashObjectBatchArgumentBudget) {
-            throw "Tracked source input '$relativePath' exceeds the Git hash-object command-line budget."
-        }
-        if ($batchPaths.Count -gt 0 -and
-            ($batchArgumentLength + $argumentLength) -gt $script:MvpGitHashObjectBatchArgumentBudget) {
-            Add-MvpTrackedSourceContentHashBatch `
-                -GitPath $GitPath `
-                -RepositoryRoot $RepositoryRoot `
-                -Encoding $encoding `
-                -Paths $batchPaths `
-                -Records $records
-            $batchPaths.Clear()
-            $batchArgumentLength = 'hash-object --no-filters --'.Length
-        }
-        $batchPaths.Add($relativePath)
-        $batchArgumentLength += $argumentLength
-    }
-    if ($batchPaths.Count -gt 0) {
-        Add-MvpTrackedSourceContentHashBatch `
-            -GitPath $GitPath `
-            -RepositoryRoot $RepositoryRoot `
-            -Encoding $encoding `
-            -Paths $batchPaths `
-            -Records $records
-    }
-    return @($records)
-}
-
-function Add-MvpFingerprintSegment {
-    param(
-        [Parameter(Mandatory)][IO.Stream]$Stream,
-        [Parameter(Mandatory)][AllowEmptyCollection()][byte[]]$Bytes
-    )
-
-    [byte[]]$length = [BitConverter]::GetBytes([Int64]$Bytes.LongLength)
-    $Stream.Write($length, 0, $length.Length)
-    $Stream.Write($Bytes, 0, $Bytes.Length)
-}
-
-function Get-MvpSourceFingerprint {
-    param([string]$RepositoryRoot = $moduleRepoRoot)
-
-    $repoRoot = (Resolve-ZirconWindowsPath -Path $RepositoryRoot).OperationalPath
-    $git = Get-Command git -ErrorAction SilentlyContinue
-    if ($null -eq $git) {
-        throw 'Could not resolve git for the MVP source fingerprint.'
-    }
-
-    [byte[]]$commitBytes = Invoke-MvpSourceGit `
-            -GitPath $git.Source `
-            -WorkingDirectory $repoRoot `
-            -Arguments @('rev-parse', 'HEAD')
-    $commit = [Text.Encoding]::ASCII.GetString($commitBytes).Trim()
-    if ([string]::IsNullOrWhiteSpace($commit)) {
-        throw 'Could not resolve the current source commit for the MVP source fingerprint.'
-    }
-    # Raw diff carries every tracked path, status, and mode without materializing a full binary
-    # patch. The corresponding working-tree bytes are hashed below with git hash-object.
-    [byte[]]$trackedDiffBytes = Invoke-MvpSourceGit `
-        -GitPath $git.Source `
-        -WorkingDirectory $repoRoot `
-        -Arguments @('diff', '--no-ext-diff', '--raw', '--no-abbrev', '-z', 'HEAD')
-    [byte[]]$trackedPathBytes = Invoke-MvpSourceGit `
-        -GitPath $git.Source `
-        -WorkingDirectory $repoRoot `
-        -Arguments @('diff', '--no-ext-diff', '--name-only', '-z', 'HEAD')
-    $trackedContentHashes = Get-MvpTrackedSourceContentHashes `
-        -GitPath $git.Source `
-        -RepositoryRoot $repoRoot `
-        -TrackedPathBytes $trackedPathBytes
-    [byte[]]$untrackedOutputBytes = Invoke-MvpSourceGit `
-        -GitPath $git.Source `
-        -WorkingDirectory $repoRoot `
-        -Arguments @('ls-files', '-z', '--others', '--exclude-standard')
-    $untrackedEncoding = [Text.UTF8Encoding]::new($false)
-    $untrackedPaths = @($untrackedEncoding.GetString($untrackedOutputBytes).Split([char[]]@([char]0)) | Where-Object {
-            $_.Length -gt 0
-        })
-
-    $material = [IO.MemoryStream]::new()
-    try {
-        $encoding = [Text.UTF8Encoding]::new($false)
-        Add-MvpFingerprintSegment -Stream $material -Bytes $encoding.GetBytes('zircon-mvp-source-fingerprint-v3')
-        Add-MvpFingerprintSegment -Stream $material -Bytes $encoding.GetBytes($commit)
-        Add-MvpFingerprintSegment -Stream $material -Bytes $trackedDiffBytes
-        foreach ($tracked in $trackedContentHashes) {
-            Add-MvpFingerprintSegment -Stream $material -Bytes $encoding.GetBytes($tracked.relative_path)
-            Add-MvpFingerprintSegment -Stream $material -Bytes $encoding.GetBytes($tracked.object_hash)
-        }
-        Add-MvpFingerprintSegment -Stream $material -Bytes $untrackedOutputBytes
-        foreach ($relativePath in ($untrackedPaths | Sort-Object)) {
-            $path = (Resolve-ZirconWindowsPath `
-                -Path (Join-ZirconWindowsPath -Path $repoRoot -ChildPath $relativePath)).OperationalPath
-            if (-not [IO.File]::Exists($path)) {
-                throw "Untracked source input '$relativePath' does not exist or is not a file."
-            }
-            Add-MvpFingerprintSegment -Stream $material -Bytes $encoding.GetBytes($relativePath)
-            Add-MvpFingerprintSegment -Stream $material -Bytes $encoding.GetBytes((Get-MvpProductInputFileSha256 -Path $path))
-        }
-        return Get-MvpProductInputBytesSha256 -Bytes $material.ToArray()
-    }
-    finally {
-        $material.Dispose()
     }
 }
 
@@ -307,6 +64,64 @@ function Get-MvpProductInputManifestProperty {
         throw "$Label is missing required property '$Name'."
     }
     return $property.Value
+}
+
+function Resolve-MvpProductInputBuildSet {
+    param(
+        [Parameter(Mandatory)]$Manifest,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    $property = $Manifest.PSObject.Properties['build_set']
+    if ($null -eq $property) {
+        return $null
+    }
+    $buildSet = $property.Value
+    if ($null -eq $buildSet -or $buildSet -is [Array]) {
+        throw "ProductInputManifest '$Path' build_set must contain one JSON object."
+    }
+    $buildSetId = [string](Get-MvpProductInputManifestProperty `
+            -Value $buildSet `
+            -Name 'build_set_id' `
+            -Label 'ProductInputManifest build_set')
+    if ($buildSetId -notmatch '^[0-9A-F]{64}$') {
+        throw "ProductInputManifest '$Path' build_set_id must be an uppercase SHA-256."
+    }
+    $gitRevision = [string](Get-MvpProductInputManifestProperty `
+            -Value $buildSet `
+            -Name 'git_revision' `
+            -Label 'ProductInputManifest build_set')
+    if ($gitRevision -notmatch '^[0-9a-f]{40}$') {
+        throw "ProductInputManifest '$Path' build_set git_revision must be a lowercase Git object ID."
+    }
+    $dirtyOverlaySha256 = [string](Get-MvpProductInputManifestProperty `
+            -Value $buildSet `
+            -Name 'dirty_overlay_sha256' `
+            -Label 'ProductInputManifest build_set')
+    if ($dirtyOverlaySha256 -notmatch '^[0-9A-F]{64}$') {
+        throw "ProductInputManifest '$Path' build_set dirty_overlay_sha256 must be an uppercase SHA-256."
+    }
+    $manifestRelativePath = [string](Get-MvpProductInputManifestProperty `
+            -Value $buildSet `
+            -Name 'manifest_relative_path' `
+            -Label 'ProductInputManifest build_set')
+    $pathSegments = @($manifestRelativePath.Split('/'))
+    $invalidPathSegments = @($pathSegments | Where-Object {
+            [string]::IsNullOrWhiteSpace($_) -or $_ -in @('.', '..')
+        })
+    if ([string]::IsNullOrWhiteSpace($manifestRelativePath) -or
+        [IO.Path]::IsPathRooted($manifestRelativePath) -or
+        $manifestRelativePath.IndexOf([char]92) -ge 0 -or
+        $manifestRelativePath.IndexOf([char]58) -ge 0 -or
+        $invalidPathSegments.Count -ne 0) {
+        throw "ProductInputManifest '$Path' build_set manifest_relative_path must be a non-rooted, slash-delimited path below the product-input manifest."
+    }
+    return [ordered]@{
+        build_set_id = $buildSetId
+        git_revision = $gitRevision
+        dirty_overlay_sha256 = $dirtyOverlaySha256
+        manifest_relative_path = $manifestRelativePath
+    }
 }
 
 function Resolve-MvpProductInputManifest {
@@ -336,13 +151,23 @@ function Resolve-MvpProductInputManifest {
     if ($sourceFingerprint -notmatch '^[0-9A-F]{64}$') {
         throw "ProductInputManifest '$Path' must contain an uppercase SHA-256 source_fingerprint."
     }
+    $productProfileRegistrySnapshot = Get-MvpProductProfileRegistrySnapshot
+    $productProfileRegistryReceipt = Assert-MvpProductProfileRegistryReceipt `
+        -Receipt (Get-MvpProductInputManifestProperty -Value $manifest -Name 'product_profile_registry' -Label 'ProductInputManifest') `
+        -ExpectedSnapshot $productProfileRegistrySnapshot
+    $productInputSpecifications = @(Get-MvpProductInputSpecifications -RegistrySnapshot $productProfileRegistrySnapshot)
+    $buildSet = Resolve-MvpProductInputBuildSet -Manifest $manifest -Path $Path
+    if ($null -ne $buildSet -and
+        -not $sourceFingerprint.Equals([string]$buildSet.build_set_id, [StringComparison]::Ordinal)) {
+        throw "ProductInputManifest '$Path' source_fingerprint must equal its BuildSetId."
+    }
     $artifacts = @(Get-MvpProductInputManifestProperty -Value $manifest -Name 'artifacts' -Label 'ProductInputManifest')
-    if ($artifacts.Count -ne $script:MvpProductInputSpecifications.Count) {
-        throw "ProductInputManifest '$Path' must contain exactly $($script:MvpProductInputSpecifications.Count) product artifacts."
+    if ($artifacts.Count -ne $productInputSpecifications.Count) {
+        throw "ProductInputManifest '$Path' must contain exactly $($productInputSpecifications.Count) product artifacts."
     }
 
     $resolvedArtifacts = [ordered]@{}
-    foreach ($specification in $script:MvpProductInputSpecifications) {
+    foreach ($specification in $productInputSpecifications) {
         $matches = @($artifacts | Where-Object {
             ([string](Get-MvpProductInputManifestProperty -Value $_ -Name 'LogicalId' -Label 'Product artifact')) -eq $specification.logical_id
         })
@@ -359,7 +184,7 @@ function Resolve-MvpProductInputManifest {
                 'OutputGroup' { 'output_group' }
                 'ArtifactName' { 'artifact_name' }
             }
-            $expected = $specification[$expectedName]
+            $expected = $specification.PSObject.Properties[$expectedName].Value
             if ($null -eq $expected) {
                 if ($null -ne $actual -and -not [string]::IsNullOrWhiteSpace([string]$actual)) {
                     throw "Product artifact '$($specification.logical_id)' has unexpected $propertyName '$actual'."
@@ -400,6 +225,8 @@ function Resolve-MvpProductInputManifest {
         bytes = [Int64]$manifestBytes.LongLength
         sha256 = Get-MvpProductInputBytesSha256 -Bytes $manifestBytes
         source_fingerprint = $sourceFingerprint
+        product_profile_registry = $productProfileRegistryReceipt
+        build_set = $buildSet
         artifacts = $resolvedArtifacts
     }
 }
@@ -407,6 +234,6 @@ function Resolve-MvpProductInputManifest {
 Export-ModuleMember -Function @(
     'Get-MvpProductInputSpecifications',
     'Get-MvpProductInputFileSha256',
-    'Get-MvpSourceFingerprint',
+    'Get-MvpProductInputBytesSha256',
     'Resolve-MvpProductInputManifest'
 )

@@ -27,7 +27,9 @@ fn render_product_submit_default_profile_accepts_default_3d_ui_and_2d_sprite_pat
         .submit_frame_extract_with_ui(
             viewport,
             default_core3d_acceptance_extract(),
-            Some(runtime_ui_acceptance_extract()),
+            Some(UiRenderSubmission::single(Arc::new(
+                runtime_ui_acceptance_extract(),
+            ))),
         )
         .unwrap();
     let core3d_stats = framework.query_stats().unwrap();
@@ -184,8 +186,8 @@ fn default_core2d_sprite_acceptance_extract() -> RenderFrameExtract {
         snapshot_with_projection(ProjectionMode::Orthographic),
     );
     extract.apply_viewport_size(UVec2::new(320, 240));
-    extract.geometry = GeometryExtract::from_meshes(CorePipelineKind::Core2d, Vec::new());
-    extract.sprites = SpriteExtract::from_sprites(
+    *extract.geometry = GeometryExtract::from_meshes(CorePipelineKind::Core2d, Vec::new());
+    *extract.sprites = SpriteExtract::from_sprites(
         CorePipelineKind::Core2d,
         vec![RenderSpriteSnapshot {
             entity: 501,

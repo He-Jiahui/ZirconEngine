@@ -1,6 +1,6 @@
 use super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlot,
-    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
+    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionSlot,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn empty() -> RuntimeSessionArchive {

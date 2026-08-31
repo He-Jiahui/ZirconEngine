@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::sync::Arc;
 
 use zircon_runtime::ui::v2::UiV2SurfaceBuilder;
 use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiSize};
@@ -147,12 +146,7 @@ fn build_view_template_node_projection_from_v2_asset(
                     outcome.compiled.as_ref(),
                 )?;
                 surface.compute_layout(size)?;
-                let resource_generation = Arc::as_ptr(&outcome.compiled) as usize as u64;
-                let materialization = view_template_nodes_from_surface(
-                    &surface,
-                    &BTreeMap::new(),
-                    resource_generation,
-                );
+                let materialization = view_template_nodes_from_surface(&surface, &BTreeMap::new());
                 Ok((surface, materialization))
             },
         )?
@@ -160,5 +154,6 @@ fn build_view_template_node_projection_from_v2_asset(
     Ok(ViewTemplateNodeProjection {
         base_rows: projection.base_rows,
         row_patches: projection.row_patches,
+        source_frame: Some(projection.source_frame),
     })
 }

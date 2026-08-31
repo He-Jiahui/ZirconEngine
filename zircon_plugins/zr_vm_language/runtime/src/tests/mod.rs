@@ -5,3 +5,5 @@ mod registration;
 mod real_backend;
 #[cfg(feature = "backend-zr-vm")]
 mod support;
+#[cfg(feature = "backend-zr-vm")]
+mod vampire_product;

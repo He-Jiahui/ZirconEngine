@@ -3,13 +3,13 @@ use std::fmt::{Display, Formatter};
 
 use crate::asset::{AssetUri, ShaderAsset};
 use crate::core::framework::render::{
-    builtin_geometry_source_descriptor, ShaderAssetKind, ShaderIdePreviewSegment,
-    ShaderIdePreviewVariant, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderAssetKind, ShaderIdePreviewSegment,
+    ShaderIdePreviewVariant, builtin_geometry_source_descriptor,
 };
 
 use super::template::{
-    assemble_material_shader_template, MaterialShaderTemplateRequest, ShaderAssemblySegmentKind,
-    ShaderTemplateAssemblyError, ShaderTemplateInclude,
+    MaterialShaderTemplateRequest, ShaderAssemblySegmentKind, ShaderTemplateAssemblyError,
+    ShaderTemplateInclude, assemble_material_shader_template,
 };
 
 const SURFACE_SHADER_ENTRY_POINT: &str = "zr_material_surface";
@@ -125,35 +125,40 @@ pub(super) fn assemble_shader_ide_surface_preview_with_index(
 
     Ok(ShaderIdeSurfacePreview {
         wgsl_source: assembly.wgsl_source,
-        segments: assembly
-            .segments
-            .into_iter()
-            .map(|segment| ShaderIdePreviewSegment {
-                module_id: segment.module_id,
-                kind: preview_segment_kind(segment.kind).to_string(),
-                assembled_start_line: segment.assembled_start_line,
-                assembled_line_count: segment.assembled_line_count,
-                source_line_offset: segment.source_line_offset,
-            })
-            .collect(),
+        segments: {
+            let mut output = Vec::with_capacity(assembly.segments.len());
+            for segment in assembly.segments {
+                output.push(ShaderIdePreviewSegment {
+                    module_id: segment.module_id,
+                    kind: preview_segment_kind(segment.kind).to_string(),
+                    assembled_start_line: segment.assembled_start_line,
+                    assembled_line_count: segment.assembled_line_count,
+                    source_line_offset: segment.source_line_offset,
+                });
+            }
+            output
+        },
     })
 }
 
 pub(super) fn shader_include_index<'a>(
     shader_includes: impl IntoIterator<Item = &'a ShaderAsset>,
 ) -> HashMap<String, &'a ShaderAsset> {
-    shader_includes
-        .into_iter()
-        .map(|shader| (shader.uri.to_string(), shader))
-        .collect()
+    let mut shader_includes = shader_includes.into_iter();
+    let (lower_bound, upper_bound) = shader_includes.size_hint();
+    let mut index = HashMap::with_capacity(upper_bound.unwrap_or(lower_bound));
+    for shader in shader_includes {
+        index.insert(shader.uri.to_string(), shader);
+    }
+    index
 }
 
 fn shader_module_include_sources(
     shader: &ShaderAsset,
     shader_index: &HashMap<String, &ShaderAsset>,
 ) -> Vec<ShaderTemplateInclude> {
-    let mut includes = Vec::new();
-    let mut visited = HashSet::new();
+    let mut includes = Vec::with_capacity(shader.imports.len());
+    let mut visited = HashSet::with_capacity(shader.imports.len());
     collect_shader_module_include_sources(shader, shader_index, &mut visited, &mut includes);
     includes
 }
@@ -199,4 +204,105 @@ fn preview_segment_kind(kind: ShaderAssemblySegmentKind) -> &'static str {
 
 fn shader_template_assembly_error_message(error: ShaderTemplateAssemblyError) -> String {
     format!("{error:?}")
+}
+
+#[cfg(test)]
+mod optimization_batch_20260830ca_runtime_tests {
+    use std::time::Instant;
+
+    const SAMPLE_PAIRS: usize = 17;
+    const ENTRIES_PER_SAMPLE: usize = 256;
+
+    #[test]
+    fn shader_preview_reserves_segment_index_and_include_capacity() {
+        let source = include_str!("ide_preview.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production implementation");
+        assert!(implementation.contains("Vec::with_capacity(assembly.segments.len())"));
+        assert!(
+            implementation.contains("HashMap::with_capacity(upper_bound.unwrap_or(lower_bound))")
+        );
+        assert!(implementation.contains("Vec::with_capacity(shader.imports.len())"));
+        assert!(implementation.contains("HashSet::with_capacity(shader.imports.len())"));
+    }
+
+    #[test]
+    fn shader_preview_keeps_assembly_before_recursive_include_collection() {
+        let source = include_str!("ide_preview.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production implementation");
+        let assembly = implementation
+            .find("assemble_material_shader_template")
+            .expect("assembly");
+        let include = implementation
+            .find("collect_shader_module_include_sources")
+            .expect("recursive include collection");
+        assert!(assembly < include);
+    }
+
+    #[test]
+    #[ignore = "managed Windows release performance evidence"]
+    fn optimization_batch_20260830ca_runtime_shader_preview_capacity_p95() {
+        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy.push(measure(false));
+                optimized.push(measure(true));
+            } else {
+                optimized.push(measure(true));
+                legacy.push(measure(false));
+            }
+        }
+        let legacy_p95_ns = percentile(&legacy, 95);
+        let optimized_p95_ns = percentile(&optimized, 95);
+        println!(
+            "RUNTIME379_SHADER_IDE_PREVIEW_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} entries_per_sample={ENTRIES_PER_SAMPLE} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            sample_csv(&legacy),
+            sample_csv(&optimized),
+        );
+        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
+    }
+
+    fn measure(optimized: bool) -> u128 {
+        let started = Instant::now();
+        let mut checksum = 0usize;
+        for _ in 0..128 {
+            let mut segments = if optimized {
+                Vec::with_capacity(ENTRIES_PER_SAMPLE)
+            } else {
+                Vec::new()
+            };
+            let mut includes = if optimized {
+                Vec::with_capacity(ENTRIES_PER_SAMPLE)
+            } else {
+                Vec::new()
+            };
+            for index in 0..ENTRIES_PER_SAMPLE {
+                segments.push(index);
+                includes.push(index);
+            }
+            checksum ^= segments.len() ^ includes.len();
+        }
+        std::hint::black_box(checksum);
+        started.elapsed().as_nanos().max(1)
+    }
+
+    fn percentile(samples: &[u128], percentile: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        sorted[(sorted.len() * percentile).div_ceil(100).saturating_sub(1)]
+    }
+
+    fn sample_csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    }
 }

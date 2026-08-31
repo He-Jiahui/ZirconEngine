@@ -324,10 +324,15 @@ class ManagedArtifactReceiptService:
             relative_path = cls._manifest_path(path)
             if source_hash is None:
                 normalized[relative_path] = None
-            elif isinstance(source_hash, str) and _SHA256.fullmatch(
-                source_hash.casefold()
-            ):
-                normalized[relative_path] = source_hash.casefold()
+            elif isinstance(source_hash, str):
+                folded_source_hash = source_hash.casefold()
+                if _SHA256.fullmatch(folded_source_hash) is None:
+                    raise CoordinatorError(
+                        "managed_artifact_source_manifest_invalid",
+                        "Validation ticket source hashes must be SHA-256 or null",
+                        details={"path": relative_path},
+                    )
+                normalized[relative_path] = folded_source_hash
             else:
                 raise CoordinatorError(
                     "managed_artifact_source_manifest_invalid",

@@ -42,13 +42,13 @@ pub(in super::super) const EXPECTED_RUNTIME_10_BEHAVIOR_TEST_ANCHORS: &[(&str, &
         &["profile_control_runtime_diagnostics_snapshot_returns_store_and_scene_reload_report"],
     ),
     (
-        "zircon_runtime/tests/runtime_owned_result_v7.rs",
+        "zircon_runtime/tests/runtime_owned_result_v8.rs",
         &[
-            "runtime_v7_owned_results_require_opaque_exactly_once_release",
-            "runtime_v7_release_is_concurrent_and_exactly_once",
-            "runtime_v7_destroy_is_retryable_after_outstanding_result_release",
-            "runtime_v7_release_rejects_a_different_session_without_changing_owner_census",
-            "runtime_v7_release_performance_acceptance",
+            "runtime_v8_owned_results_require_opaque_exactly_once_release",
+            "runtime_v8_release_is_concurrent_and_exactly_once",
+            "runtime_v8_destroy_is_retryable_after_outstanding_result_release",
+            "runtime_v8_release_rejects_a_different_session_without_changing_owner_census",
+            "runtime_v8_release_performance_acceptance",
         ],
     ),
 ];

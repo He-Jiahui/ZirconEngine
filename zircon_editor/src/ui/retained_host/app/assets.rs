@@ -9,10 +9,18 @@ use super::RetainedEditorHost;
 
 mod bridge;
 mod controls;
+mod deletion;
 mod refresh;
+mod relocation;
 mod workspace;
 
+pub(super) use deletion::PendingAssetDeletion;
 pub(super) use refresh::{AssetRefreshAccumulator, AssetRefreshQueueAgeState};
+pub(super) use relocation::PendingAssetRelocation;
+pub(super) use workspace::{
+    ActiveSceneReloadAdmissionState, ActiveSceneReloadConflict, PendingActiveSceneReload,
+    PendingModelImport,
+};
 
 impl RetainedEditorHost {
     fn asset_manager_at_use_point(

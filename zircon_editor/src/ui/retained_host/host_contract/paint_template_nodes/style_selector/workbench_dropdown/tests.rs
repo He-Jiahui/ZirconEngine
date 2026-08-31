@@ -12,6 +12,7 @@ fn dropdown_palette_projects_from_host_appearance_tokens() {
     tokens.palette.surface_recessed = UiRgbaColor::from_u8(6, 8, 10, 255);
     tokens.palette.surface_hover = UiRgbaColor::from_u8(12, 14, 16, 255);
     tokens.palette.accent_soft = UiRgbaColor::from_u8(18, 20, 22, 255);
+    tokens.palette.accent = UiRgbaColor::from_u8(20, 120, 220, 255);
     tokens.palette.popup = UiRgbaColor::from_u8(36, 38, 40, 255);
     tokens.palette.surface[3] = UiRgbaColor::from_u8(42, 44, 46, 255);
     tokens.palette.surface_disabled = UiRgbaColor::from_u8(24, 26, 28, 255);
@@ -38,7 +39,8 @@ fn dropdown_palette_projects_from_host_appearance_tokens() {
     assert_eq!(palette.placeholder, [92, 100, 108, 255]);
     assert_eq!(palette.disabled_text, [92, 100, 108, 255]);
     assert_eq!(palette.chevron, [144, 152, 160, 255]);
-    assert_eq!(palette.active_chevron, [42, 180, 210, 255]);
+    assert_eq!(palette.active_chevron, [20, 120, 220, 255]);
+    assert_ne!(palette.active_chevron, palette.focus_border);
 }
 
 #[test]
@@ -140,8 +142,10 @@ fn dropdown_dynamic_borders_ignore_normal_border_overrides() {
     assert_eq!(checked_style.border, [93, 97, 101, 255]);
     assert_eq!(hovered_style.border, palette.hover_border);
     assert_eq!(focused_style.border, palette.focus_border);
-    assert_eq!(open_style.border, palette.focus_border);
-    assert_eq!(pressed_style.border, palette.focus_border);
+    assert_eq!(open_style.border, palette.border);
+    assert_eq!(pressed_style.border, palette.border);
+    assert_ne!(open_style.border, palette.focus_border);
+    assert_ne!(pressed_style.border, palette.focus_border);
     assert_eq!(invalid_style.border, palette.error_border);
 }
 

@@ -1,7 +1,6 @@
 use zircon_runtime::core::framework::navigation::{
-    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+    NavigationRuntimeStats, NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
     NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
-    NavigationRuntimeStats,
 };
 use zircon_runtime::scene::World;
 
@@ -55,9 +54,8 @@ mod tests {
 
     use serde_json::json;
     use zircon_runtime::core::framework::navigation::{
-        NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+        NavigationRuntimeStats, NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
         NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
-        NavigationRuntimeStats,
     };
     use zircon_runtime::scene::{NodeKind, World};
 

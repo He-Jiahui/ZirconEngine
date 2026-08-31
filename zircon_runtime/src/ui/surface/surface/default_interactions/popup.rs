@@ -394,5 +394,5 @@ fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> bool {
 }
 
 fn pointer_route_is_inside_popup(route: &UiPointerRoute, popup_node_id: UiNodeId) -> bool {
-    route.bubbled.contains(&popup_node_id) || route.stacked.contains(&popup_node_id)
+    route.routing_root_to_leaf().contains(&popup_node_id) || route.stacked.contains(&popup_node_id)
 }

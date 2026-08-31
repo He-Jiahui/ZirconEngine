@@ -25,7 +25,7 @@ impl Virtual {
         self.max_delta
     }
 
-    pub fn set_max_delta(&mut self, max_delta: Duration) {
+    pub(crate) fn set_max_delta(&mut self, max_delta: Duration) {
         assert_ne!(max_delta, Duration::ZERO, "max delta must be non-zero");
         self.max_delta = max_delta;
     }
@@ -46,7 +46,7 @@ impl Virtual {
         self.relative_speed
     }
 
-    pub fn set_relative_speed_f64(&mut self, speed: f64) {
+    pub(crate) fn set_relative_speed_f64(&mut self, speed: f64) {
         assert!(speed.is_finite(), "relative speed must be finite");
         assert!(
             speed.is_sign_positive() || speed == 0.0,

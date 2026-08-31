@@ -8,7 +8,10 @@ use zircon_runtime_interface::ui::{
     widget::UiWidgetBehavior,
 };
 
-use crate::ui::surface::{ui_surface_effective_disabled, UiSurface};
+use crate::ui::{
+    surface::{UiSurface, editable_text_input_is_secure, ui_surface_effective_disabled},
+    text::clamp_grapheme_boundary,
+};
 
 use super::widget_behavior;
 
@@ -215,6 +218,9 @@ pub(super) fn value_state_for(
     role: UiA11yRole,
 ) -> Option<String> {
     let metadata = metadata?;
+    if role == UiA11yRole::TextInput && editable_text_input_is_secure(surface, node.node_id) {
+        return None;
+    }
     value_attribute_text(metadata, role)
         .or_else(|| component_state_value_text(surface, node.node_id, metadata, role))
         .or_else(|| {
@@ -259,6 +265,9 @@ pub(super) fn text_selection_state_for(
     if role != UiA11yRole::TextInput {
         return None;
     }
+    if editable_text_input_is_secure(surface, node.node_id) {
+        return None;
+    }
     let metadata = metadata?;
     let value_text = value_text.unwrap_or_default();
     let component_state = surface.component_states.get(node.node_id);
@@ -272,9 +281,9 @@ pub(super) fn text_selection_state_for(
             .unwrap_or(caret);
 
     Some(UiA11yTextSelection {
-        caret: clamp_text_byte_offset(value_text, caret),
-        anchor: clamp_text_byte_offset(value_text, anchor),
-        focus: clamp_text_byte_offset(value_text, focus),
+        caret: clamp_grapheme_boundary(value_text, caret),
+        anchor: clamp_grapheme_boundary(value_text, anchor),
+        focus: clamp_grapheme_boundary(value_text, focus),
     })
 }
 
@@ -308,14 +317,6 @@ fn usize_component_state_value(state: &UiComponentState, property: &str) -> Opti
         Some(UiValue::String(value)) => value.parse::<usize>().ok(),
         _ => None,
     }
-}
-
-fn clamp_text_byte_offset(text: &str, offset: usize) -> usize {
-    let mut offset = offset.min(text.len());
-    while offset > 0 && !text.is_char_boundary(offset) {
-        offset -= 1;
-    }
-    offset
 }
 
 fn bool_component_state_value(state: &UiComponentState, property: &str) -> Option<bool> {

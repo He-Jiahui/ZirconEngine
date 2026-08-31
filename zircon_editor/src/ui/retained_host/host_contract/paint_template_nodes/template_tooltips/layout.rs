@@ -57,8 +57,8 @@ fn tooltip_bubble_width(
     rect: &FrameRect,
     metrics: super::metrics::WorkbenchTooltipMetrics,
 ) -> f32 {
-    let title_width = measure_runtime_text_width(&tooltip_title(node), metrics.title_font_size);
-    let body_width = measure_runtime_text_width(&tooltip_body(node), metrics.body_font_size);
+    let title_width = measure_runtime_text_width(tooltip_title(node), metrics.title_font_size);
+    let body_width = measure_runtime_text_width(tooltip_body(node), metrics.body_font_size);
     let desired_width = title_width.max(body_width) + metrics.text_left * 2.0;
     let available_width = rect.width.max(0.0);
     let maximum_width = metrics
@@ -71,15 +71,28 @@ fn tooltip_bubble_width(
     desired_width.clamp(minimum_width, maximum_width)
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paint_rect(
     rect: &FrameRect,
 ) -> FrameRect {
-    let x = rect.x.ceil();
-    let y = rect.y.ceil();
-    FrameRect {
-        x,
-        y,
-        width: ((rect.x + rect.width).floor() - x).max(0.0),
-        height: ((rect.y + rect.height).floor() - y).max(0.0),
+    rect.clone()
+}
+
+#[cfg(test)]
+mod fractional_geometry_tests {
+    use super::*;
+
+    #[test]
+    fn tooltip_paint_rect_preserves_fractional_post_dpi_geometry() {
+        let rect = paint_rect(&FrameRect {
+            x: 14.25,
+            y: 19.5,
+            width: 176.75,
+            height: 64.25,
+        });
+
+        assert_eq!(rect.x, 14.25);
+        assert_eq!(rect.y, 19.5);
+        assert_eq!(rect.width, 176.75);
+        assert_eq!(rect.height, 64.25);
     }
 }

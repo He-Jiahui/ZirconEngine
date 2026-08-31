@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
-use std::collections::{btree_map, BTreeMap, BinaryHeap, HashMap};
+use std::collections::{BTreeMap, BinaryHeap, HashMap, btree_map};
 
-use crate::scene::ecs::{ArchetypeId, EntityLocation, InternalEntity, StableEntityLocation};
 use crate::scene::EntityId;
+use crate::scene::ecs::{ArchetypeId, EntityLocation, InternalEntity, StableEntityLocation};
 
 /// Keeps the stable world order separately from swap-remove archetype rows.
 ///

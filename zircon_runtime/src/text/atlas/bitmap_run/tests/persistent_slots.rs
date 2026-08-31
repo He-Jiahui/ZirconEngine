@@ -1,10 +1,10 @@
 use super::*;
-use crate::text::atlas::{
-    glyph_atlas_bitmap_render_submission_plan,
-    glyph_atlas_bitmap_render_submission_plan_with_atlas, GlyphAtlasRect, GlyphHintingMode,
-    GlyphRasterKey, GlyphSmoothingMode, SyntheticGlyphStyle,
-};
 use crate::text::InstancedFaceId;
+use crate::text::atlas::{
+    GlyphAtlasRect, GlyphHintingMode, GlyphRasterKey, GlyphSmoothingMode, SyntheticGlyphStyle,
+    glyph_atlas_bitmap_render_submission_plan,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas,
+};
 
 #[test]
 fn render_perf_text_atlas_reuses_persistent_slot_without_upload() {
@@ -245,6 +245,45 @@ fn render_text_atlas_full_page_replay_preserves_existing_persistent_slot() {
             - 1],
         0xA5,
     );
+}
+
+#[test]
+fn physical_texture_replacement_replays_stable_committed_page_shadow() {
+    let key = raster_key(25);
+    let source = keyed_source(key, GlyphAtlasFormat::AlphaMask, UVec2::new(8, 8), 4.0, 64);
+    let first = glyph_atlas_bitmap_run_plan_with_padding([source], UVec2::new(32, 32), 45, 1, 0);
+    let first_prepared = glyph_atlas_bitmap_prepared_upload_plan(
+        &first,
+        [GlyphAtlasBitmapUploadSourceBytes::new(0, &[0xA5; 64])],
+    );
+    let first_shadow_commit = glyph_atlas_bitmap_page_shadow_commit(&first, first_prepared, true);
+    let mut atlas = first.atlas;
+    atlas.commit_bitmap_page_shadow(first_shadow_commit);
+
+    let stable = glyph_atlas_bitmap_run_plan_with_atlas_and_padding(
+        atlas,
+        [source],
+        UVec2::new(32, 32),
+        46,
+        1,
+        0,
+    );
+    assert_eq!(stable.slot_cache_hit_count, 1);
+    assert!(stable.upload_commands.is_empty());
+
+    let replay = glyph_atlas_bitmap_prepared_upload_plan_with_full_shadow_replay(
+        &stable,
+        std::iter::empty::<GlyphAtlasBitmapUploadSourceBytes<'_>>(),
+    );
+
+    assert!(!replay.has_failures());
+    assert_eq!(replay.staging.pages.len(), 1);
+    assert_eq!(replay.staged_uploads.uploads.len(), 1);
+    assert_eq!(
+        replay.staged_uploads.uploads[0].command.mode,
+        GlyphAtlasUploadMode::FullPage
+    );
+    assert_eq!(replay.staging.pages[0].bytes[0], 0xA5);
 }
 
 #[test]

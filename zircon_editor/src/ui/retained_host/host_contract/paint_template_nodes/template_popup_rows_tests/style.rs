@@ -27,8 +27,6 @@ fn popup_row_metrics_project_from_host_control_metrics() {
     assert_eq!(metrics.text_right, 10.0);
     assert_eq!(metrics.text_top, 2.0);
     assert_eq!(metrics.text_bottom, 5.0);
-    assert_eq!(metrics.shortcut_left_ratio, 0.58);
-    assert_eq!(metrics.shortcut_width_ratio, 0.38);
     assert_eq!(metrics.surface_radius, 4.0);
     assert_eq!(metrics.outline_width, 2.0);
     assert_eq!(metrics.adornment_right, 13.0);

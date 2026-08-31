@@ -11,6 +11,9 @@ pub(in crate::manager) struct NetReplicationInterpolationSample {
     pub bytes: Vec<u8>,
 }
 
+type NetReplicationFieldSamples = HashMap<String, Vec<NetReplicationInterpolationSample>>;
+type NetReplicationObjectSamples = HashMap<NetObjectId, NetReplicationFieldSamples>;
+
 #[derive(Debug, Default)]
 pub(in crate::manager) struct NetReplicationRuntimeState {
     pub(in crate::manager) descriptors: HashMap<String, SyncComponentDescriptor>,
@@ -18,8 +21,7 @@ pub(in crate::manager) struct NetReplicationRuntimeState {
     pub(in crate::manager) sequences: HashMap<(NetObjectId, String), u64>,
     pub(in crate::manager) interests: HashMap<NetSessionId, SyncInterestDescriptor>,
     pub(in crate::manager) last_replication_ms: HashMap<(NetSessionId, NetObjectId, String), u64>,
-    pub(in crate::manager) interpolation_samples:
-        HashMap<(NetObjectId, String, String), Vec<NetReplicationInterpolationSample>>,
+    pub(in crate::manager) interpolation_samples: HashMap<String, NetReplicationObjectSamples>,
 }
 
 impl NetReplicationRuntimeState {
@@ -28,9 +30,15 @@ impl NetReplicationRuntimeState {
         object: NetObjectId,
         component_type: &str,
     ) {
-        self.interpolation_samples
-            .retain(|(sample_object, sample_component, _), _| {
-                *sample_object != object || sample_component != component_type
+        let remove_component = self
+            .interpolation_samples
+            .get_mut(component_type)
+            .is_some_and(|objects| {
+                objects.remove(&object);
+                objects.is_empty()
             });
+        if remove_component {
+            self.interpolation_samples.remove(component_type);
+        }
     }
 }

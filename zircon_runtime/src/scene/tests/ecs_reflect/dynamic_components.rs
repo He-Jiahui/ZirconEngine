@@ -1,9 +1,9 @@
 use serde_json::json;
 use std::path::{Path, PathBuf};
 use zircon_runtime_interface::reflect::{
-    ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue, ReflectObjectAddress,
-    ReflectReadRequest, ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypeKind,
-    ReflectTypePath, ReflectTypeRegistration, ReflectWriteRequest, ReflectedValue,
+    ReflectEditorHint, ReflectError, ReflectFieldId, ReflectFieldInfo, ReflectFieldValue,
+    ReflectObjectAddress, ReflectReadRequest, ReflectSerializationStrategy, ReflectTypeInfo,
+    ReflectTypeKind, ReflectTypePath, ReflectTypeRegistration, ReflectWriteRequest, ReflectedValue,
 };
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
@@ -21,21 +21,20 @@ fn dynamic_component_descriptor_registers_reflected_json_component() {
     let registration = world
         .reflect_schema("weather.Component.CloudLayer")
         .expect("dynamic schema should be reflected");
-    assert_eq!(registration.type_path.type_path, descriptor.type_id);
-    assert_eq!(registration.type_path.short_type_path, "CloudLayer");
+    assert_eq!(registration.type_path.type_path(), descriptor.type_id);
+    assert_eq!(registration.type_path.short_type_path(), "CloudLayer");
     assert_eq!(
-        registration.type_path.plugin_id,
+        registration.type_path.plugin_id(),
         Some("weather".to_string())
     );
     assert_eq!(registration.display_name, "Cloud Layer");
     assert_eq!(registration.type_info.kind, ReflectTypeKind::Json);
-    assert!(registration.is_component);
-    assert!(!registration.is_resource);
-    assert!(registration.plugin_owned);
+    assert!(registration.is_component());
+    assert!(!registration.is_resource());
+    assert!(registration.is_plugin_owned());
     assert!(registration.serializable);
     assert!(registration.editor_visible);
     assert!(registration.remote_visible);
-    assert_eq!(registration.plugin_id, Some("weather".to_string()));
     assert_eq!(registration.type_info.fields.len(), 2);
     assert_eq!(registration.type_info.fields[0].name, "coverage");
     assert_eq!(registration.type_info.fields[0].display_name, "coverage");
@@ -46,7 +45,9 @@ fn dynamic_component_descriptor_registers_reflected_json_component() {
     assert_eq!(registration.type_info.fields[1].value_type_path, "String");
     assert!(!registration.type_info.fields[1].editable);
 
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let adapter = world
         .type_registry()
         .runtime_registration("CloudLayer")
@@ -103,13 +104,13 @@ fn dynamic_component_reflection_field_info_uses_constructor_display_name() {
         .expect("read dynamic component field descriptor projection body");
 
     assert!(
-        field_builder.contains("ReflectFieldInfo::new(")
+        field_builder.contains("ReflectFieldInfo::from_stable_keys(")
             && field_builder.contains("descriptor.name.clone(),")
             && field_builder.contains("descriptor.value_type.clone(),")
             && field_builder.contains("ReflectEditorHint::None")
             && field_builder.contains(".with_editable(descriptor.editable)")
             && !field_builder.contains(".with_display_name("),
-        "dynamic component reflection fields must rely on ReflectFieldInfo::new for same-as-name display labels instead of cloning and overwriting the display name"
+        "dynamic component reflection fields must use the stable-key constructor for canonical identity and same-as-name display labels"
     );
 }
 
@@ -139,32 +140,28 @@ fn dynamic_component_reflection_short_type_path_uses_direct_split_branch() {
 }
 
 #[test]
-fn dynamic_component_reflection_read_fields_pre_sizes_result_vector() {
+fn world_reflection_dense_bulk_read_pre_sizes_result_vector() {
     let source = read_source(
         &manifest_dir()
             .join("src")
             .join("scene")
             .join("reflect")
-            .join("dynamic_component.rs"),
+            .join("world_reflection.rs"),
     );
     let read_fields = source
-        .split("fn read_fields")
+        .split("fn read_schema_fields_by_slot")
         .nth(1)
-        .and_then(|text| text.split("fn write_field").next())
-        .expect("read dynamic component reflection read_fields body");
+        .expect("read schema-order dense bulk reflection body");
 
     assert!(
-        read_fields.contains("let fields = &registration.type_info.fields;")
-            && read_fields.contains("let mut values = Vec::with_capacity(fields.len());")
-            && read_fields.contains("for field in fields")
-            && read_fields
-                .contains("let value = read_field(world, entity, type_path, &field.name)?;")
-            && read_fields
-                .contains("values.push(ReflectFieldValue::new(field.name.clone(), value));")
+        read_fields.contains("let mut values = Vec::with_capacity(fields.len());")
+            && read_fields.contains("for (slot, field) in fields.iter().enumerate()")
+            && read_fields.contains("let value = read(slot)?;")
+            && read_fields.contains("field.id,")
             && read_fields.contains("Ok(values)")
             && !read_fields.contains(".collect()")
-            && !read_fields.contains(".map(|field|"),
-        "dynamic component reflection read_fields must pre-size reflected field results and push directly instead of relying on collect growth"
+            && !read_fields.contains("field.name =="),
+        "bulk reflection must enumerate admitted schema order and read dense slots without rebuilding a name index"
     );
 }
 
@@ -207,7 +204,7 @@ fn dynamic_component_reflection_read_helpers_use_direct_success_branches() {
     let read_field = source
         .split("fn read_field")
         .nth(1)
-        .and_then(|text| text.split("fn read_fields").next())
+        .and_then(|text| text.split("fn read_dense_slot").next())
         .expect("read dynamic component reflection read_field body");
     let ensure_dynamic_component = source
         .split("fn ensure_dynamic_component")
@@ -270,8 +267,10 @@ fn dynamic_component_descriptor_duplicate_uses_reflection_preflight_error() {
         world
             .type_registry()
             .iter()
-            .filter(|registration| registration.registration.type_path.type_path
-                == "weather.Component.CloudLayer")
+            .filter(
+                |registration| registration.registration.type_path.type_path()
+                    == "weather.Component.CloudLayer"
+            )
             .count(),
         1
     );
@@ -280,7 +279,9 @@ fn dynamic_component_descriptor_duplicate_uses_reflection_preflight_error() {
 #[test]
 fn dynamic_component_reflection_reads_json_property_through_facade() {
     let mut world = world_with_cloud_layer_descriptor();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -291,11 +292,18 @@ fn dynamic_component_reflection_reads_json_property_through_facade() {
     let address = cloud_layer_address(entity);
 
     let read = world
-        .reflect_read(ReflectReadRequest::new(address.clone(), "coverage"))
+        .reflect_read(ReflectReadRequest::new(
+            address.clone(),
+            cloud_layer_field_id("coverage"),
+        ))
         .expect("dynamic field should read through reflection");
     assert_eq!(
         read.field,
-        ReflectFieldValue::new("coverage", ReflectedValue::Scalar(0.75))
+        ReflectFieldValue::new(
+            cloud_layer_field_id("coverage"),
+            "coverage",
+            ReflectedValue::Scalar(0.75),
+        )
     );
     let fields = world
         .reflect_fields(zircon_runtime_interface::reflect::ReflectFieldsRequest::new(address))
@@ -304,8 +312,16 @@ fn dynamic_component_reflection_reads_json_property_through_facade() {
     assert_eq!(
         fields,
         vec![
-            ReflectFieldValue::new("coverage", ReflectedValue::Scalar(0.75)),
-            ReflectFieldValue::new("label", ReflectedValue::String("storm front".to_string())),
+            ReflectFieldValue::new(
+                cloud_layer_field_id("coverage"),
+                "coverage",
+                ReflectedValue::Scalar(0.75),
+            ),
+            ReflectFieldValue::new(
+                cloud_layer_field_id("label"),
+                "label",
+                ReflectedValue::String("storm front".to_string()),
+            ),
         ]
     );
 }
@@ -313,7 +329,9 @@ fn dynamic_component_reflection_reads_json_property_through_facade() {
 #[test]
 fn dynamic_component_reflection_writes_json_property_through_facade() {
     let mut world = world_with_cloud_layer_descriptor();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -326,7 +344,7 @@ fn dynamic_component_reflection_writes_json_property_through_facade() {
     let response = world
         .reflect_write(ReflectWriteRequest::new(
             cloud_layer_address(entity),
-            "coverage",
+            cloud_layer_field_id("coverage"),
             ReflectedValue::Scalar(0.9),
         ))
         .expect("editable dynamic field should write through reflection");
@@ -334,7 +352,11 @@ fn dynamic_component_reflection_writes_json_property_through_facade() {
     assert!(response.changed);
     assert_eq!(
         response.field,
-        ReflectFieldValue::new("coverage", ReflectedValue::Scalar(0.9))
+        ReflectFieldValue::new(
+            cloud_layer_field_id("coverage"),
+            "coverage",
+            ReflectedValue::Scalar(0.9),
+        )
     );
     assert_eq!(
         world.dynamic_component(entity, "weather.Component.CloudLayer"),
@@ -345,7 +367,7 @@ fn dynamic_component_reflection_writes_json_property_through_facade() {
     let unchanged = world
         .reflect_write(ReflectWriteRequest::new(
             cloud_layer_address(entity),
-            "coverage",
+            cloud_layer_field_id("coverage"),
             ReflectedValue::Scalar(0.9),
         ))
         .expect("identical dynamic field write should be accepted");
@@ -362,7 +384,9 @@ fn vm_dynamic_component_reflection_write_advances_generation_once_per_change() {
             VmTypeBacking::DynamicComponent,
         )
         .expect("VM-backed dynamic descriptor should register");
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -377,7 +401,7 @@ fn vm_dynamic_component_reflection_write_advances_generation_once_per_change() {
     let changed = world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "coverage",
+            cloud_layer_field_id("coverage"),
             ReflectedValue::Scalar(0.9),
         ))
         .expect("VM dynamic field should write through reflection");
@@ -387,7 +411,7 @@ fn vm_dynamic_component_reflection_write_advances_generation_once_per_change() {
     let unchanged = world
         .reflect_write(ReflectWriteRequest::new(
             address,
-            "coverage",
+            cloud_layer_field_id("coverage"),
             ReflectedValue::Scalar(0.9),
         ))
         .expect("identical VM dynamic field write should be accepted");
@@ -398,7 +422,9 @@ fn vm_dynamic_component_reflection_write_advances_generation_once_per_change() {
 #[test]
 fn dynamic_component_reflection_rejects_non_editable_property() {
     let mut world = world_with_cloud_layer_descriptor();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -410,7 +436,7 @@ fn dynamic_component_reflection_rejects_non_editable_property() {
     let error = world
         .reflect_write(ReflectWriteRequest::new(
             cloud_layer_address(entity),
-            "label",
+            cloud_layer_field_id("label"),
             ReflectedValue::String("cold front".to_string()),
         ))
         .expect_err("read-only dynamic field should be rejected");
@@ -431,8 +457,12 @@ fn dynamic_component_reflection_rejects_non_editable_property() {
 #[test]
 fn dynamic_component_reflection_unknown_type_and_field_are_structured_errors() {
     let mut world = world_with_cloud_layer_descriptor();
-    let entity = world.spawn_node(NodeKind::Mesh);
-    let missing_component_entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let missing_component_entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -440,13 +470,14 @@ fn dynamic_component_reflection_unknown_type_and_field_are_structured_errors() {
             json!({ "coverage": 0.75, "label": "storm front" }),
         )
         .expect("dynamic component should attach");
+    let density_field_id = cloud_layer_field_id("density");
 
     assert_eq!(
         world
             .reflect_read(ReflectReadRequest::new(
                 ReflectObjectAddress::component(entity, "weather.Component.Unknown")
                     .expect("address should be valid"),
-                "coverage",
+                cloud_layer_field_id("coverage"),
             ))
             .expect_err("unknown reflected dynamic type should be structured"),
         ReflectError::UnknownType {
@@ -457,19 +488,19 @@ fn dynamic_component_reflection_unknown_type_and_field_are_structured_errors() {
         world
             .reflect_read(ReflectReadRequest::new(
                 cloud_layer_address(entity),
-                "density"
+                density_field_id
             ))
             .expect_err("undeclared dynamic field should be structured"),
         ReflectError::UnknownField {
             type_path: "weather.Component.CloudLayer".to_string(),
-            field_name: "density".to_string(),
+            field_name: density_field_id.to_string(),
         }
     );
     assert_eq!(
         world
             .reflect_read(ReflectReadRequest::new(
                 cloud_layer_address(missing_component_entity),
-                "coverage",
+                cloud_layer_field_id("coverage"),
             ))
             .expect_err("missing dynamic component should be structured"),
         ReflectError::MissingComponent {
@@ -482,7 +513,9 @@ fn dynamic_component_reflection_unknown_type_and_field_are_structured_errors() {
 #[test]
 fn legacy_declared_field_missing_from_json_is_unknown_field() {
     let mut world = world_with_cloud_layer_descriptor();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -495,7 +528,7 @@ fn legacy_declared_field_missing_from_json_is_unknown_field() {
         world
             .reflect_read(ReflectReadRequest::new(
                 cloud_layer_address(entity),
-                "coverage",
+                cloud_layer_field_id("coverage"),
             ))
             .expect_err("a declared but absent JSON key must remain UnknownField"),
         ReflectError::UnknownField {
@@ -508,7 +541,9 @@ fn legacy_declared_field_missing_from_json_is_unknown_field() {
 #[test]
 fn plugin_unload_guard_still_counts_reflected_dynamic_components() {
     let mut world = world_with_cloud_layer_descriptor();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -541,9 +576,15 @@ fn dynamic_component_rows_are_type_scoped_and_stably_sorted() {
         ))
         .expect("second dynamic descriptor should register");
 
-    let first = world.spawn_node(NodeKind::Mesh);
-    let unrelated = world.spawn_node(NodeKind::Mesh);
-    let last = world.spawn_node(NodeKind::Mesh);
+    let first = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let unrelated = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let last = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             first,
@@ -613,20 +654,36 @@ fn vm_cloud_layer_registration() -> ReflectTypeRegistration {
             .expect("VM test type path should be valid"),
         "VM Cloud Layer",
         ReflectTypeInfo::json_with_fields(vec![
-            ReflectFieldInfo::new("coverage", "Scalar", ReflectEditorHint::Scalar),
-            ReflectFieldInfo::new("label", "String", ReflectEditorHint::String)
-                .with_editable(false),
+            ReflectFieldInfo::from_stable_keys(
+                "weather.Component.CloudLayer",
+                "coverage",
+                "coverage",
+                "Scalar",
+                ReflectEditorHint::Scalar,
+            ),
+            ReflectFieldInfo::from_stable_keys(
+                "weather.Component.CloudLayer",
+                "label",
+                "label",
+                "String",
+                ReflectEditorHint::String,
+            )
+            .with_editable(false),
         ]),
         ReflectSerializationStrategy::Json,
     )
     .as_component()
-    .with_plugin_owned(true)
     .with_plugin_id("weather")
+    .expect("test plugin id should be valid")
 }
 
 fn cloud_layer_address(entity: u64) -> ReflectObjectAddress {
     ReflectObjectAddress::component(entity, "weather.Component.CloudLayer")
         .expect("dynamic component address should be valid")
+}
+
+fn cloud_layer_field_id(field_key: &str) -> ReflectFieldId {
+    ReflectFieldId::from_stable_keys("weather.Component.CloudLayer", field_key)
 }
 
 fn manifest_dir() -> PathBuf {

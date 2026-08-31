@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/handles.rs
   - zircon_runtime_interface/src/manifest.rs
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime_interface/src/status.rs
   - zircon_runtime_interface/src/version.rs
   - zircon_runtime_interface/src/lib.rs

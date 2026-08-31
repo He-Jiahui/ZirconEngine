@@ -11,9 +11,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolve
             || node.enter_pressed
             || matches!(style_state, ButtonInteractionState::Pressed),
         focused: node.focused || matches!(style_state, ButtonInteractionState::Focused),
-        // The committed editor node contract does not yet carry input modality. M4 replaces
-        // this legacy fallback with the retained runtime focus-visible projection.
-        focus_visible: node.focused || matches!(style_state, ButtonInteractionState::Focused),
+        // Runtime focus modality is authoritative once projected. Legacy/static previews retain
+        // their authored focus appearance until a live pointer or keyboard cause is known.
+        focus_visible: focus_visible_for_node(node),
         disabled: node.disabled
             || node.button_style.disabled
             || matches!(style_state, ButtonInteractionState::Disabled),
@@ -24,5 +24,57 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolve
         drop_hovered: node.drop_hovered || node.active_drag_target,
         loading: node.button_style.loading
             || matches!(style_state, ButtonInteractionState::Loading),
+    }
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn focus_visible_for_node(
+    node: &TemplatePaneNodeData,
+) -> bool {
+    if node.focus_visible_known {
+        node.focus_visible
+    } else {
+        node.focus_visible
+            || node.focused
+            || matches!(
+                node.button_style.interaction_state,
+                ButtonInteractionState::Focused
+            )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn runtime_pointer_focus_remains_semantic_without_drawing_keyboard_focus() {
+        let node = TemplatePaneNodeData {
+            focused: true,
+            focus_visible: false,
+            focus_visible_known: true,
+            ..TemplatePaneNodeData::default()
+        };
+
+        let state = resolved_state_for_node(&node);
+
+        assert!(state.focused);
+        assert!(!state.focus_visible);
+    }
+
+    #[test]
+    fn runtime_keyboard_focus_and_static_preview_keep_visible_focus() {
+        let keyboard = TemplatePaneNodeData {
+            focused: true,
+            focus_visible: true,
+            focus_visible_known: true,
+            ..TemplatePaneNodeData::default()
+        };
+        let static_preview = TemplatePaneNodeData {
+            focus_visible: true,
+            ..TemplatePaneNodeData::default()
+        };
+
+        assert!(resolved_state_for_node(&keyboard).focus_visible);
+        assert!(resolved_state_for_node(&static_preview).focus_visible);
     }
 }

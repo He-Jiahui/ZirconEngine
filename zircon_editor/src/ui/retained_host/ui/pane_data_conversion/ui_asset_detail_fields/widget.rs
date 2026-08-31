@@ -74,18 +74,35 @@ fn sanitized_prop_state_control_suffix(
     row: &asset_editor::UiAssetEditorWidgetPropStateItem,
     row_index: usize,
 ) -> String {
-    let mut suffix = format!("{}{}", row.kind, row.path)
-        .chars()
-        .map(|character| {
-            if character.is_ascii_alphanumeric() {
-                character
-            } else {
-                '_'
-            }
-        })
-        .collect::<String>();
+    let mut suffix = String::with_capacity(row.kind.len() + row.path.len());
+    append_sanitized_control_suffix(&mut suffix, &row.kind);
+    append_sanitized_control_suffix(&mut suffix, &row.path);
     if suffix.is_empty() {
         suffix = row_index.to_string();
     }
     suffix
 }
+
+fn append_sanitized_control_suffix(output: &mut String, value: &str) {
+    if value.is_ascii() {
+        output.extend(value.bytes().map(|byte| {
+            if byte.is_ascii_alphanumeric() {
+                char::from(byte)
+            } else {
+                '_'
+            }
+        }));
+    } else {
+        output.extend(value.chars().map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character
+            } else {
+                '_'
+            }
+        }));
+    }
+}
+
+#[cfg(test)]
+#[path = "widget/suffix_single_allocation_tests.rs"]
+mod suffix_single_allocation_tests;

@@ -11,6 +11,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/assets/refresh/events/runtime.rs
   - zircon_editor/src/ui/retained_host/app/assets/refresh/events/startup.rs
   - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs
+  - zircon_editor/src/ui/retained_host/app/assets/relocation.rs
   - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
   - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
@@ -25,6 +26,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/assets/refresh/events/runtime.rs
   - zircon_editor/src/ui/retained_host/app/assets/refresh/events/startup.rs
   - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs
+  - zircon_editor/src/ui/retained_host/app/assets/relocation.rs
   - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
   - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
 plan_sources:
@@ -59,6 +61,11 @@ doc_type: module-detail
 
 `app/assets/workspace.rs` owns project-level asset side effects. It reloads the default scene from the current project, imports staged model assets and derived animation assets, resolves the default project material, imports the mesh into the runtime viewport, and provides the asset workspace sync entry point used by startup and import flows.
 
+`app/assets/relocation.rs` owns the retained-host lifecycle for one in-flight asset rename or move.
+It submits the editor asset manager ticket, polls completion from the host tick, refreshes the
+catalog after durable commit, and coordinates project close. It never owns filesystem or registry
+mutation logic.
+
 ## Refresh
 
 `app/assets/refresh.rs` owns the runtime-facing asset refresh execution path. It asks the refresh event child for drained asset/resource events, refreshes the editor asset manager for runtime-project asset changes, asks `backend_refresh` for the refresh plan, records refresh-plan counters, and delegates the resulting side effects to the apply child.
@@ -83,6 +90,7 @@ Methods that are called from app siblings use `pub(in crate::ui::retained_host::
 - Keep asset surface bridge creation and runtime surface callback dispatch in `app/assets/bridge.rs`.
 - Keep asset UI action-id mapping and click/change argument construction in `app/assets/controls.rs`.
 - Keep model import, animation derivation dispatch, default material resolution, default-scene reload, and project-level asset workspace sync entry in `app/assets/workspace.rs`.
+- Keep asset relocation ticket submission, completion polling, and project-close coordination in `app/assets/relocation.rs`; Runtime owns the transaction.
 - Keep refresh event collection, runtime-project editor asset refresh, refresh-plan construction, and refresh-plan counter recording in `app/assets/refresh.rs`.
 - Keep refresh-plan application, catalog/resource/detail/preview sync dispatch, invalidation, default-scene reload dispatch, and paint-only redraw orchestration in `app/assets/refresh/apply.rs`.
 - Keep `app/assets/refresh/events.rs` as the structural refresh event DTO entry only.

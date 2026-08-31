@@ -2,9 +2,10 @@ use serde_json::{Map, Value};
 
 use crate::serialization::{Loaded, MigrateError, MigrationChain, MigrationStep, SchemaId};
 
-use super::ProjectManifestSummaryError;
+use super::{admission::validate_toml_complexity, ProjectManifestSummaryError};
 
-pub const PROJECT_MANIFEST_FORMAT_VERSION: u32 = 2;
+pub const PROJECT_MANIFEST_FORMAT_VERSION: u32 = 3;
+const PROJECT_MANIFEST_V2_FORMAT_VERSION: u32 = 2;
 const PROJECT_MANIFEST_SCHEMA: SchemaId = SchemaId::new("zircon.project-manifest");
 
 struct ProjectManifestValue;
@@ -12,6 +13,7 @@ struct ProjectManifestValue;
 static PROJECT_MANIFEST_MIGRATIONS: MigrationChain<ProjectManifestValue> = MigrationChain::new(&[
     MigrationStep::new(0, migrate_v0_to_v1),
     MigrationStep::new(1, migrate_v1_to_v2),
+    MigrationStep::new(2, migrate_v2_to_v3),
 ]);
 
 /// Parses TOML into the shared JSON value domain and applies the validated manifest chain.
@@ -20,6 +22,7 @@ pub fn load_project_manifest_value_from_toml_str(
 ) -> Result<Loaded<Value>, ProjectManifestSummaryError> {
     let toml_value = toml::from_str::<toml::Value>(document)
         .map_err(|source| ProjectManifestSummaryError::InvalidToml { source })?;
+    validate_toml_complexity(&toml_value)?;
     let value = serde_json::to_value(toml_value)
         .map_err(|source| ProjectManifestSummaryError::InvalidShape { source })?;
     let source_version = source_version(&value)?;
@@ -64,7 +67,7 @@ fn migrate_v1_to_v2(mut value: Value) -> Result<Value, MigrateError> {
     let object = manifest_object(&mut value, 1)?;
     object.insert(
         "format_version".to_string(),
-        Value::from(PROJECT_MANIFEST_FORMAT_VERSION),
+        Value::from(PROJECT_MANIFEST_V2_FORMAT_VERSION),
     );
     object
         .entry("engine_version_req".to_string())
@@ -73,6 +76,15 @@ fn migrate_v1_to_v2(mut value: Value) -> Result<Value, MigrateError> {
         .entry("asset_roots".to_string())
         .or_insert_with(|| Value::Array(vec![Value::String("assets".to_string())]));
     object.entry("settings".to_string()).or_insert(Value::Null);
+    Ok(value)
+}
+
+fn migrate_v2_to_v3(mut value: Value) -> Result<Value, MigrateError> {
+    let object = manifest_object(&mut value, PROJECT_MANIFEST_V2_FORMAT_VERSION)?;
+    object.insert(
+        "format_version".to_string(),
+        Value::from(PROJECT_MANIFEST_FORMAT_VERSION),
+    );
     Ok(value)
 }
 

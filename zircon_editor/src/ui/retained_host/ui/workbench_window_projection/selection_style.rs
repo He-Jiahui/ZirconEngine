@@ -124,6 +124,16 @@ fn is_workbench_toggle_control(node: &RetainedUiHostNodeModel, component_role: &
 
 fn set_toml_string_aliases(values: &mut BTreeMap<String, toml::Value>, keys: &[&str], value: &str) {
     for key in keys {
-        values.insert((*key).to_string(), toml::Value::String(value.to_string()));
+        match values.get_mut(*key) {
+            Some(current) if current.as_str() == Some(value) => {}
+            Some(current) => *current = toml::Value::String(value.to_string()),
+            None => {
+                values.insert((*key).to_string(), toml::Value::String(value.to_string()));
+            }
+        }
     }
 }
+
+#[cfg(test)]
+#[path = "selection_style/stable_alias_tests.rs"]
+mod stable_alias_tests;

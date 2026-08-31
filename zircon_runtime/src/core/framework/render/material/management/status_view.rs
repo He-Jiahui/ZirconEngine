@@ -37,7 +37,7 @@ impl RenderMaterialManagementStatusView {
         status: RenderMaterialReadinessStatus,
         sort_order: RenderMaterialManagementSortOrder,
     ) -> Self {
-        Self::from_records(records, status).sorted(sort_order)
+        Self::from_records(records, status).into_sorted(sort_order)
     }
 
     pub fn from_overview(
@@ -58,7 +58,7 @@ impl RenderMaterialManagementStatusView {
         status: RenderMaterialReadinessStatus,
         sort_order: RenderMaterialManagementSortOrder,
     ) -> Self {
-        Self::from_overview(overview, status).sorted(sort_order)
+        Self::from_overview(overview, status).into_sorted(sort_order)
     }
 
     pub fn from_record_set(
@@ -73,7 +73,7 @@ impl RenderMaterialManagementStatusView {
         status: RenderMaterialReadinessStatus,
         sort_order: RenderMaterialManagementSortOrder,
     ) -> Self {
-        Self::from_record_set(record_set, status).sorted(sort_order)
+        Self::from_record_set(record_set, status).into_sorted(sort_order)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -90,6 +90,18 @@ impl RenderMaterialManagementStatusView {
         Self::from_overview_records(records, self.status)
     }
 
+    fn into_sorted(mut self, sort_order: RenderMaterialManagementSortOrder) -> Self {
+        self.records = sort_owned_values(self.records, |records| {
+            sort_order.sort_overview_records(records)
+        });
+        self.material_ids = self
+            .records
+            .iter()
+            .map(|record| record.material_id)
+            .collect();
+        self
+    }
+
     fn from_overview_records(
         records: Vec<RenderMaterialManagementOverviewRecord>,
         status: RenderMaterialReadinessStatus,
@@ -102,3 +114,12 @@ impl RenderMaterialManagementStatusView {
         }
     }
 }
+
+fn sort_owned_values<T>(mut values: Vec<T>, sort: impl FnOnce(&mut [T])) -> Vec<T> {
+    sort(&mut values);
+    values
+}
+
+#[cfg(test)]
+#[path = "status_view/owned_sort_tests.rs"]
+mod owned_sort_tests;

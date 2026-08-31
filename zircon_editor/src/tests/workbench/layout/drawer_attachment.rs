@@ -42,7 +42,10 @@ fn attach_view_to_same_drawer_reorders_it_to_the_end_and_keeps_it_active() {
         )
         .unwrap();
 
-    let drawer = layout.drawers.get(&ActivityDrawerSlot::RightTop).unwrap();
+    let drawer = layout
+        .active_activity_window_drawers()
+        .get(&ActivityDrawerSlot::RightTop)
+        .unwrap();
     assert_eq!(drawer.tab_stack.tabs, vec![second, first.clone()]);
     assert_eq!(drawer.tab_stack.active_tab.as_ref(), Some(&first));
     assert_eq!(drawer.active_view.as_ref(), Some(&first));
@@ -91,7 +94,7 @@ fn attach_view_to_drawer_inserts_before_anchor_and_keeps_it_active() {
         .unwrap();
 
     let drawer = layout
-        .drawers
+        .active_activity_window_drawers()
         .get(&ActivityDrawerSlot::RightBottom)
         .unwrap();
     assert_eq!(drawer.tab_stack.tabs, vec![first, inserted.clone(), second]);
@@ -150,7 +153,10 @@ fn drawer_selection_is_normalized_to_one_active_item_after_layout_commands() {
         )
         .unwrap();
 
-    let drawer = layout.drawers.get(&ActivityDrawerSlot::RightTop).unwrap();
+    let drawer = layout
+        .active_activity_window_drawers()
+        .get(&ActivityDrawerSlot::RightTop)
+        .unwrap();
     assert_eq!(drawer.tab_stack.active_tab.as_ref(), Some(&first));
     assert_eq!(
         drawer.active_view.as_ref(),

@@ -15,7 +15,7 @@ pub(super) fn validate_runtime_plugin_module_target_mode_row(
     manifest_label: &str,
     module: &PluginModuleManifest,
     target_mode: RuntimeTargetMode,
-    seen: &mut Vec<RuntimeTargetMode>,
+    seen: &mut u8,
     target_coverage: Option<(&str, &[RuntimeTargetMode])>,
     diagnostics: &mut Vec<String>,
 ) {

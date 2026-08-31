@@ -2,7 +2,8 @@ use image::{Rgba, RgbaImage, imageops};
 use serde::Deserialize;
 use zircon_runtime::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, CUBEMAP_FACE_COUNT, CubemapAsset,
-    CubemapSourceLayout, TextureAsset, TextureAssetDescriptor,
+    CubemapSourceLayout, TextureAsset, TextureAssetDescriptor, is_zcube_source_cubemap_bytes,
+    texture_asset_from_encoded_source_cubemap_zcube,
 };
 use zircon_runtime::core::framework::render::{
     CubemapFace, RenderImageDimension, cubemap_texel_direction, equirect_uv_from_direction,
@@ -18,9 +19,22 @@ struct CubemapManifest {
     sources: Vec<String>,
 }
 
-pub fn import_cubemap_manifest(
+pub fn import_cubemap(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
+    if is_zcube_source_cubemap_bytes(&context.source_bytes) {
+        let texture = texture_asset_from_encoded_source_cubemap_zcube(
+            context.uri.clone(),
+            context.source_bytes.clone(),
+        )
+        .map_err(|error| {
+            AssetImportError::Parse(format!(
+                "decode binary source cubemap {}: {error}",
+                context.source_path.display()
+            ))
+        })?;
+        return Ok(texture_import_outcome(context, texture, Vec::new()));
+    }
     let manifest: CubemapManifest = toml::from_str(&context.source_text()?).map_err(|error| {
         AssetImportError::Parse(format!(
             "parse cubemap manifest {}: {error}",
@@ -171,24 +185,30 @@ fn equirectangular_faces(
         .collect()
 }
 
-fn sample_equirect_bilinear(image: &RgbaImage, uv: [f32; 2]) -> Rgba<u8> {
+pub(crate) fn sample_equirect_bilinear(image: &RgbaImage, uv: [f32; 2]) -> Rgba<u8> {
     let width = image.width().max(1);
     let height = image.height().max(1);
     let x = uv[0].rem_euclid(1.0) * width as f32 - 0.5;
     let y = uv[1].clamp(0.0, 1.0) * height as f32 - 0.5;
-    let x0 = x.floor() as i64;
-    let y0 = y.floor() as i64;
-    let tx = x - x.floor();
-    let ty = y - y.floor();
+    let x_floor = x.floor();
+    let y_floor = y.floor();
+    let x0 = x_floor as i64;
+    let y0 = y_floor as i64;
+    let tx = x - x_floor;
+    let ty = y - y_floor;
+    let pixel = |sx: i64, sy: i64| {
+        let wrapped_x = sx.rem_euclid(width as i64) as u32;
+        let clamped_y = sy.clamp(0, height as i64 - 1) as u32;
+        image.get_pixel(wrapped_x, clamped_y).0
+    };
+    let top_left = pixel(x0, y0);
+    let top_right = pixel(x0 + 1, y0);
+    let bottom_left = pixel(x0, y0 + 1);
+    let bottom_right = pixel(x0 + 1, y0 + 1);
     let mut result = [0_u8; 4];
     for (channel, value) in result.iter_mut().enumerate() {
-        let sample = |sx: i64, sy: i64| {
-            let wrapped_x = sx.rem_euclid(width as i64) as u32;
-            let clamped_y = sy.clamp(0, height as i64 - 1) as u32;
-            image.get_pixel(wrapped_x, clamped_y)[channel] as f32
-        };
-        let top = sample(x0, y0) * (1.0 - tx) + sample(x0 + 1, y0) * tx;
-        let bottom = sample(x0, y0 + 1) * (1.0 - tx) + sample(x0 + 1, y0 + 1) * tx;
+        let top = top_left[channel] as f32 * (1.0 - tx) + top_right[channel] as f32 * tx;
+        let bottom = bottom_left[channel] as f32 * (1.0 - tx) + bottom_right[channel] as f32 * tx;
         *value = (top * (1.0 - ty) + bottom * ty).round() as u8;
     }
     Rgba(result)

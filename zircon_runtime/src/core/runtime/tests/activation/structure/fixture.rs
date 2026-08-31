@@ -61,6 +61,7 @@ pub(super) fn registration_source() -> String {
         include_str!("../../../handle/registration/entry.rs"),
         include_str!("../../../handle/registration/service_lists/mod.rs"),
         include_str!("../../../handle/registration/service_lists/multi.rs"),
+        include_str!("../../../handle/registration/service_lists/selection.rs"),
         include_str!("../../../handle/registration/service_lists/shutdown.rs"),
         include_str!("../../../handle/registration/service_lists/specialized.rs"),
         include_str!("../../../handle/registration/service_lists/types.rs"),

@@ -15,14 +15,28 @@ pub enum AiBlackboardValueType {
 
 impl AiBlackboardValueType {
     pub fn parse(value: &str) -> Option<Self> {
-        match value.trim().to_ascii_lowercase().as_str() {
-            "bool" | "boolean" => Some(Self::Bool),
-            "integer" | "int" | "i64" => Some(Self::Integer),
-            "scalar" | "float" | "real" | "f32" => Some(Self::Scalar),
-            "string" | "str" => Some(Self::String),
-            "vec3" | "vector3" => Some(Self::Vec3),
-            "entity" | "entity_id" => Some(Self::Entity),
-            _ => None,
+        let value = value.trim();
+        if value.eq_ignore_ascii_case("bool") || value.eq_ignore_ascii_case("boolean") {
+            Some(Self::Bool)
+        } else if value.eq_ignore_ascii_case("integer")
+            || value.eq_ignore_ascii_case("int")
+            || value.eq_ignore_ascii_case("i64")
+        {
+            Some(Self::Integer)
+        } else if value.eq_ignore_ascii_case("scalar")
+            || value.eq_ignore_ascii_case("float")
+            || value.eq_ignore_ascii_case("real")
+            || value.eq_ignore_ascii_case("f32")
+        {
+            Some(Self::Scalar)
+        } else if value.eq_ignore_ascii_case("string") || value.eq_ignore_ascii_case("str") {
+            Some(Self::String)
+        } else if value.eq_ignore_ascii_case("vec3") || value.eq_ignore_ascii_case("vector3") {
+            Some(Self::Vec3)
+        } else if value.eq_ignore_ascii_case("entity") || value.eq_ignore_ascii_case("entity_id") {
+            Some(Self::Entity)
+        } else {
+            None
         }
     }
 

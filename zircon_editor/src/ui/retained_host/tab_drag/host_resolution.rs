@@ -3,6 +3,9 @@ use crate::ui::workbench::layout::{
 };
 use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
+#[cfg(test)]
+mod preferred_drawer_scan_tests;
+
 pub(crate) fn drop_host_for_group(
     layout: &WorkbenchLayout,
     target_group: &str,
@@ -87,36 +90,66 @@ fn preferred_drawer_slot(
     fallback: ActivityDrawerSlot,
 ) -> ActivityDrawerSlot {
     let active_drawers = layout.active_activity_window_drawers();
-    slots
-        .iter()
-        .copied()
-        .find(|slot| {
-            active_drawers
-                .get(slot)
-                .is_some_and(|drawer| drawer.visible && drawer.active_view.is_some())
-        })
-        .or_else(|| {
-            slots.iter().copied().find(|slot| {
-                active_drawers
-                    .get(slot)
-                    .is_some_and(|drawer| drawer.visible && drawer.tab_stack.active_tab.is_some())
-            })
-        })
-        .or_else(|| {
-            slots.iter().copied().find(|slot| {
-                active_drawers
-                    .get(slot)
-                    .is_some_and(|drawer| drawer.visible && !drawer.tab_stack.tabs.is_empty())
-            })
-        })
-        .or_else(|| {
-            slots.iter().copied().find(|slot| {
-                active_drawers
-                    .get(slot)
-                    .is_some_and(|drawer| drawer.visible)
-            })
-        })
-        .unwrap_or(fallback)
+    preferred_drawer_slot_from_candidates(
+        slots.iter().copied().map(|slot| {
+            let preference = active_drawers
+                .get(&slot)
+                .map(drawer_preference)
+                .unwrap_or(DrawerPreference::Unavailable);
+            (slot, preference)
+        }),
+        fallback,
+    )
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DrawerPreference {
+    Unavailable,
+    Visible,
+    Populated,
+    ActiveTab,
+    ActiveView,
+}
+
+fn drawer_preference(
+    drawer: &crate::ui::workbench::layout::ActivityDrawerLayout,
+) -> DrawerPreference {
+    if !drawer.visible {
+        DrawerPreference::Unavailable
+    } else if drawer.active_view.is_some() {
+        DrawerPreference::ActiveView
+    } else if drawer.tab_stack.active_tab.is_some() {
+        DrawerPreference::ActiveTab
+    } else if !drawer.tab_stack.tabs.is_empty() {
+        DrawerPreference::Populated
+    } else {
+        DrawerPreference::Visible
+    }
+}
+
+fn preferred_drawer_slot_from_candidates(
+    candidates: impl IntoIterator<Item = (ActivityDrawerSlot, DrawerPreference)>,
+    fallback: ActivityDrawerSlot,
+) -> ActivityDrawerSlot {
+    let mut active_tab = None;
+    let mut populated = None;
+    let mut visible = None;
+    for (slot, preference) in candidates {
+        match preference {
+            DrawerPreference::ActiveView => return slot,
+            DrawerPreference::ActiveTab => {
+                active_tab.get_or_insert(slot);
+            }
+            DrawerPreference::Populated => {
+                populated.get_or_insert(slot);
+            }
+            DrawerPreference::Visible => {
+                visible.get_or_insert(slot);
+            }
+            DrawerPreference::Unavailable => {}
+        }
+    }
+    active_tab.or(populated).or(visible).unwrap_or(fallback)
 }
 
 fn preferred_workspace_path(node: &DocumentNode) -> Option<Vec<usize>> {
@@ -147,18 +180,17 @@ fn preferred_workspace_path(node: &DocumentNode) -> Option<Vec<usize>> {
 fn find_instance_host(layout: &WorkbenchLayout, instance_id: &ViewInstanceId) -> Option<ViewHost> {
     for (slot, drawer) in layout.active_activity_window_drawers() {
         if drawer.tab_stack.tabs.contains(instance_id) {
-            return Some(ViewHost::Drawer(slot));
+            return Some(ViewHost::Drawer(*slot));
         }
     }
 
     for page in &layout.main_pages {
         match page {
-            MainHostPageLayout::WorkbenchPage {
-                id,
-                document_workspace,
-                ..
-            } => {
-                if let Some(path) = find_document_path(document_workspace, instance_id) {
+            MainHostPageLayout::WorkbenchPage { id, .. } => {
+                let Some(content_workspace) = layout.content_workspace_for_page(id) else {
+                    continue;
+                };
+                if let Some(path) = find_document_path(content_workspace, instance_id) {
                     return Some(ViewHost::Document(id.clone(), path));
                 }
             }
@@ -217,11 +249,7 @@ fn host_group(host: &ViewHost) -> Option<&'static str> {
         ViewHost::Drawer(ActivityDrawerSlot::RightTop | ActivityDrawerSlot::RightBottom) => {
             Some("right")
         }
-        ViewHost::Drawer(
-            ActivityDrawerSlot::Bottom
-            | ActivityDrawerSlot::BottomLeft
-            | ActivityDrawerSlot::BottomRight,
-        ) => Some("bottom"),
+        ViewHost::Drawer(ActivityDrawerSlot::Bottom) => Some("bottom"),
         ViewHost::Document(..) => Some("document"),
         ViewHost::FloatingWindow(..) | ViewHost::ExclusivePage(..) => None,
     }

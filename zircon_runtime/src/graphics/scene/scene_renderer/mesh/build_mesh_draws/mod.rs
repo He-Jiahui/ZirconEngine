@@ -4,7 +4,12 @@ mod indexed_indirect_args;
 mod raster_draws_for_mesh;
 
 pub(crate) use build::{
-    build_mesh_draws, BuiltMeshDraws, PendingMeshCommandCacheExtractionContext,
-    PendingMeshCommandCacheExtractionStats, PendingMeshCommandCachePlanStats,
+    BuiltMeshDraws, MaterialPipelineFeatureSet, MaterialPipelineRequirementCensus,
+    PendingMeshCommandCacheExtractionContext, PendingMeshCommandCacheExtractionStats,
+    PendingMeshCommandCachePlanStats, build_mesh_draws,
 };
 pub(crate) use indexed_indirect_args::IndexedIndirectArgs;
+
+pub(crate) trait MeshHitProxyTokenSource {
+    fn token_for_instance(&self, stable_instance_key: u64) -> Option<u32>;
+}

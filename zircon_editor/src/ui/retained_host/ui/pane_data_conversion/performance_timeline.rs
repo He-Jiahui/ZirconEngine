@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::windows::workbench_host_window::{
     PaneContentSize, PaneData, PerformanceTimelineCaptureControlViewData,
@@ -215,8 +217,12 @@ fn frame_row_nodes(
     list_frame: &host_contract::TemplateNodeFrameData,
     list_width: f32,
 ) -> Vec<host_contract::TemplatePaneNodeData> {
-    let mut nodes = Vec::new();
-    for (row, frame) in data.frame_rows.iter().enumerate() {
+    let visible_rows = visible_row_range(data.frame_rows.row_count(), list_frame.y, list_frame);
+    let mut nodes = Vec::with_capacity(visible_rows.len().saturating_mul(4));
+    for row in visible_rows {
+        let Some(frame) = data.frame_rows.row_data(row) else {
+            continue;
+        };
         let y = list_frame.y + row as f32 * (ROW_HEIGHT + ROW_GAP);
         let mut track = timeline_node(
             format!("performance_timeline_frame_track_{row}"),
@@ -318,8 +324,12 @@ fn span_row_nodes(
     start_y: f32,
     list_width: f32,
 ) -> Vec<host_contract::TemplatePaneNodeData> {
-    let mut nodes = Vec::new();
-    for (row, span) in data.span_rows.iter().enumerate() {
+    let visible_rows = visible_row_range(data.span_rows.row_count(), start_y, list_frame);
+    let mut nodes = Vec::with_capacity(visible_rows.len());
+    for row in visible_rows {
+        let Some(span) = data.span_rows.row_data(row) else {
+            continue;
+        };
         let y = start_y + row as f32 * (ROW_HEIGHT + ROW_GAP);
         let mut node = timeline_node(
             format!("performance_timeline_span_{row}"),
@@ -348,8 +358,12 @@ fn hotspot_row_nodes(
     start_y: f32,
     list_width: f32,
 ) -> Vec<host_contract::TemplatePaneNodeData> {
-    let mut nodes = Vec::new();
-    for (row, hotspot) in data.hotspot_rows.iter().enumerate() {
+    let visible_rows = visible_row_range(data.hotspot_rows.row_count(), start_y, list_frame);
+    let mut nodes = Vec::with_capacity(visible_rows.len());
+    for row in visible_rows {
+        let Some(hotspot) = data.hotspot_rows.row_data(row) else {
+            continue;
+        };
         let y = start_y + row as f32 * (ROW_HEIGHT + ROW_GAP);
         let mut node = timeline_node(
             format!("performance_timeline_hotspot_{row}"),
@@ -377,6 +391,32 @@ fn hotspot_row_nodes(
         nodes.push(node);
     }
     nodes
+}
+
+fn visible_row_range(
+    row_count: usize,
+    start_y: f32,
+    clip: &host_contract::TemplateNodeFrameData,
+) -> Range<usize> {
+    let row_stride = ROW_HEIGHT + ROW_GAP;
+    let clip_start = clip.y;
+    let clip_end = clip.y + clip.height.max(0.0);
+    if row_count == 0
+        || row_stride <= 0.0
+        || !start_y.is_finite()
+        || !clip_start.is_finite()
+        || !clip_end.is_finite()
+        || clip_end <= clip_start
+    {
+        return 0..0;
+    }
+
+    // Row i intersects the clip when row_end > clip_start and row_start < clip_end.
+    let first =
+        (((clip_start - start_y - ROW_HEIGHT) / row_stride).floor() as isize + 1).max(0) as usize;
+    let end = (((clip_end - start_y) / row_stride).ceil() as isize).max(0) as usize;
+    let first = first.min(row_count);
+    first..end.min(row_count).max(first)
 }
 
 fn timeline_node(
@@ -481,6 +521,49 @@ mod tests {
                 | "PerformanceTimelineSession"
                 | "PerformanceTimelineOutput"
         )));
+    }
+
+    #[test]
+    fn large_timeline_materializes_only_rows_intersecting_the_list_clip() {
+        const LOGICAL_ROWS: usize = 10_000;
+        let frame_rows = (0..LOGICAL_ROWS)
+            .map(|frame_index| PerformanceTimelineFrameRowViewData {
+                stream: "editor".into(),
+                name: "retained_host_tick".into(),
+                frame_index: frame_index as u64,
+                duration_label: "1.00 ms".into(),
+                budget_label: "16.67 ms budget".into(),
+                budget_usage_label: "6% budget".into(),
+                duration_ratio: 0.06,
+                bar_fill_ratio: 0.06,
+                budget_marker_ratio: 1.0,
+                over_budget: false,
+            })
+            .collect();
+        let data = PerformanceTimelinePaneViewData {
+            frame_rows: model_rc(frame_rows),
+            ..PerformanceTimelinePaneViewData::default()
+        };
+
+        let nodes = performance_timeline_nodes(&data, &[], PaneContentSize::new(240.0, 160.0));
+
+        assert_eq!(data.frame_rows.row_count(), LOGICAL_ROWS);
+        assert!(
+            nodes.len() < 100,
+            "visible timeline nodes were {}",
+            nodes.len()
+        );
+        assert!(find_node(&nodes, "PerformanceTimelineFrameLabel.0")
+            .text
+            .as_str()
+            .contains("#0"));
+        assert!(nodes.iter().all(|node| {
+            !node
+                .control_id
+                .as_str()
+                .starts_with("PerformanceTimelineFrameLabel.")
+                || node.frame.y < 160.0
+        }));
     }
 
     fn template_node(control_id: &str, text: &str) -> host_contract::TemplatePaneNodeData {

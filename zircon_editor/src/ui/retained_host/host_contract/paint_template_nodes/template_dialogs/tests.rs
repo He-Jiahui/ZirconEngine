@@ -1,7 +1,7 @@
 use super::super::render_commands::HostPaintCommandKind;
 use super::commands::push_dialog_commands;
 use super::identity::{dialog_paint_state, DialogKind, DialogPaintState};
-use super::layout::{body_rect, dialog_has_visible_area, pixel_aligned_rect};
+use super::layout::{body_rect, dialog_has_visible_area, paint_rect};
 use super::metrics::dialog_metrics_from_host;
 use super::style::{dialog_border_color, dialog_palette_from_host};
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
@@ -36,7 +36,7 @@ fn dialog_metrics_project_from_host_control_metrics() {
     assert_eq!(metrics.body_font_size, 8.0);
     assert_eq!(metrics.body_line_height, 10.0);
     assert_eq!(metrics.severity_mark_width, 6.0);
-    assert_eq!(metrics.radius, 8.0);
+    assert_eq!(metrics.radius, 10.0);
     assert_eq!(metrics.border_width, 1.5);
     assert_eq!(metrics.action_bottom, 10.5);
     assert_eq!(metrics.legacy_action_bottom, 22.0);
@@ -85,7 +85,6 @@ fn dialog_palette_projects_from_host_palette() {
 
     assert_eq!(palette.surface, [10, 11, 12, 255]);
     assert_eq!(palette.border, [20, 21, 22, 255]);
-    assert_eq!(palette.active_border, [30, 31, 32, 255]);
     assert_eq!(palette.title, [40, 41, 42, 255]);
     assert_eq!(palette.body, [50, 51, 52, 255]);
     assert_eq!(palette.action, [60, 61, 62, 255]);
@@ -112,25 +111,27 @@ fn focused_dialog_keeps_neutral_border() {
 }
 
 #[test]
-fn pressed_dialog_uses_active_border() {
+fn pressed_dialog_keeps_neutral_shell_border() {
     let mut node = TemplatePaneNodeData::default();
     node.focused = true;
     node.pressed = true;
 
     let border = dialog_border_color(&node, DialogKind::Dialog, false);
 
-    assert_eq!(border, PALETTE.focus_ring);
+    assert_eq!(border, PALETTE.border);
+    assert_ne!(border, PALETTE.focus_ring);
 }
 
 #[test]
-fn open_dialog_uses_active_border() {
+fn open_dialog_keeps_neutral_shell_border() {
     let mut node = TemplatePaneNodeData::default();
     node.focused = true;
     node.popup_open = true;
 
     let border = dialog_border_color(&node, DialogKind::Dialog, false);
 
-    assert_eq!(border, PALETTE.focus_ring);
+    assert_eq!(border, PALETTE.border);
+    assert_ne!(border, PALETTE.focus_ring);
 }
 
 #[test]
@@ -242,7 +243,7 @@ fn alert_dialog_retains_its_separate_legacy_identity_and_body_offset() {
 }
 
 #[test]
-fn collapsed_dialog_extent_stays_collapsed_after_pixel_alignment() {
+fn dialog_paint_rect_preserves_fractional_geometry_and_collapsed_extent() {
     let rect = FrameRect {
         x: 12.4,
         y: 18.6,
@@ -250,8 +251,10 @@ fn collapsed_dialog_extent_stays_collapsed_after_pixel_alignment() {
         height: 0.0,
     };
 
-    let aligned = pixel_aligned_rect(&rect);
+    let aligned = paint_rect(&rect);
 
+    assert_eq!(aligned.x, 12.4);
+    assert_eq!(aligned.y, 18.6);
     assert_eq!(aligned.width, 0.0);
     assert_eq!(aligned.height, 0.0);
     assert!(!dialog_has_visible_area(&aligned));
@@ -289,6 +292,35 @@ fn dialog_root_must_stay_fully_within_its_clip_before_emitting_commands() {
     ));
 
     assert!(commands.is_empty());
+}
+
+#[test]
+fn dialog_chrome_prefers_the_projected_panel_radius() {
+    let node = TemplatePaneNodeData {
+        role: "Dialog".to_string(),
+        popup_open: true,
+        corner_radius: 14.0,
+        ..TemplatePaneNodeData::default()
+    };
+    let root = FrameRect {
+        x: 20.0,
+        y: 20.0,
+        width: 240.0,
+        height: 160.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_dialog_commands(
+        &mut commands,
+        &node,
+        &root,
+        &root,
+        0,
+        1.0,
+    ));
+
+    assert!(matches!(commands[0].kind, HostPaintCommandKind::Quad));
+    assert_eq!(commands[0].corner_radius, 14.0);
 }
 
 #[test]

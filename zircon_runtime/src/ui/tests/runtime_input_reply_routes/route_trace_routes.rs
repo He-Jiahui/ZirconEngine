@@ -95,7 +95,15 @@ fn raw_mouse_motion_is_unrouted_by_surface_hit_testing() {
     );
     assert_eq!(result.diagnostics.routed, false);
     assert_eq!(result.diagnostics.route_target, None);
-    assert_eq!(result.diagnostics.route_trace.target, None);
+    let trace = &result.diagnostics.route_trace;
+    assert!(trace.preview_tunnel.is_empty());
+    assert_eq!(trace.direct_target, None);
+    assert_eq!(trace.target, None);
+    assert!(trace.bubble_path.is_empty());
+    assert!(trace.focus_path.is_empty());
+    assert_eq!(trace.capture_target, None);
+    assert!(trace.root_targets.is_empty());
+    assert!(trace.popup_stack.is_empty());
     assert!(result.diagnostics.route_steps.is_empty());
     assert!(result
         .diagnostics

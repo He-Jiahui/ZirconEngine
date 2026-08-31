@@ -8,25 +8,22 @@ pub(in crate::ui::retained_host::host_contract::native_pointer::routing::chrome)
     y: f32,
 ) -> Option<ChromePointerRoute> {
     let tabs = &page_chrome.tab_frames;
-    for row in 0..tabs.row_count() {
-        let tab = tabs.row_data(row)?;
+    for (row, tab) in tabs.iter().enumerate() {
+        if contains(&tab.close_frame, x, y) {
+            return Some(ChromePointerRoute::HostPageTab {
+                index: row,
+                close: true,
+            });
+        }
         if contains(&tab.frame, x, y) {
             return Some(ChromePointerRoute::HostPageTab {
                 index: row,
-                tab_x: tab.frame.x,
-                tab_width: tab.frame.width,
-                local_x: x - tab.frame.x,
-                local_y: y - tab.frame.y,
+                close: false,
             });
         }
     }
     if contains(&page_chrome.overflow_frame, x, y) {
-        return Some(ChromePointerRoute::HostPageOverflow {
-            tab_x: page_chrome.overflow_frame.x,
-            tab_width: page_chrome.overflow_frame.width,
-            local_x: x - page_chrome.overflow_frame.x,
-            local_y: y - page_chrome.overflow_frame.y,
-        });
+        return Some(ChromePointerRoute::HostPageOverflow);
     }
     None
 }

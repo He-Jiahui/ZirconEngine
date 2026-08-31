@@ -615,6 +615,7 @@ fn hot_reload_coordinator_accessors_recover_poisoned_slot_table_lock() {
     assert!(coordinator.list_slots().is_empty());
 }
 
+mod dispatch;
 mod gc;
 mod reflection;
 mod state_migration;

@@ -1,6 +1,5 @@
 use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
-const RADIUS_BORDER_MULTIPLIER: f32 = 2.0;
 const CONTENT_TOP_ROW_MULTIPLIER: f32 = 2.0;
 const ACTION_MIN_WIDTH_ROW_MULTIPLIER: f32 = 2.0;
 
@@ -55,7 +54,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_
         body_font_size,
         body_line_height: metrics.line_height(body_font_size),
         severity_mark_width: metrics.selection_indicator_width * 2.0,
-        radius: metrics.radius_control + metrics.border_width * RADIUS_BORDER_MULTIPLIER,
+        radius: metrics.radius_control + metrics.gap_s,
         border_width: metrics.border_width,
         action_bottom: metrics.gap_m + metrics.border_width,
         legacy_action_bottom: metrics.gap_l + metrics.gap_m,

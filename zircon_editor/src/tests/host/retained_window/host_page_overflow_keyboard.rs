@@ -258,11 +258,10 @@ fn host_page_overflow_window_with_hidden_tab_count(
 fn capture_host_page_clicks(ui: &UiHostWindow) -> Rc<RefCell<Vec<i32>>> {
     let clicks = Rc::new(RefCell::new(Vec::new()));
     let callback_clicks = clicks.clone();
-    ui.global::<UiHostContext>().on_host_page_pointer_clicked(
-        move |index, _tab_x, _tab_width, _point_x, _point_y| {
+    ui.global::<UiHostContext>()
+        .on_host_page_pointer_clicked(move |index, _close| {
             callback_clicks.borrow_mut().push(index);
-        },
-    );
+        });
     clicks
 }
 

@@ -5,8 +5,7 @@ impl RetainedEditorHost {
         let (summaries, mut changed) = self.desktop_export_jobs.poll_updates();
         for summary in summaries {
             let message = summary.status_message();
-            self.desktop_export_reports
-                .insert(summary.profile_name.clone(), summary);
+            super::insert_desktop_export_report(&mut self.desktop_export_reports, summary);
             self.set_status_line(message);
         }
         if let Some(started) = self

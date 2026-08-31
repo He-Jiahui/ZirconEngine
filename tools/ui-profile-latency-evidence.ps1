@@ -1,5 +1,6 @@
 $script:ZirconInputToDamageP95BudgetUs = 1000.0
 $script:ZirconDamageToSubmitP95BudgetUs = 8000.0
+$script:ZirconInputToPresentP95BudgetUs = 9000.0
 
 function Get-ZirconLatencyPercentiles {
     param([object[]]$Samples)
@@ -133,12 +134,74 @@ function Get-ZirconTypedInputOutcomeEvidence {
             kind = $kind
             counter_index = $index
             timestamp_us = [uint64]$sample.timestamp_us
+            input_to_damage_us = $null
+            input_to_damage_counter_name = $null
         }
     }
 
     $outcomeGroups = @($outcomes | Group-Object -Property sequence)
     if (@($outcomeGroups | Where-Object Count -ne 1).Count -gt 0) {
         $valid = $false
+    }
+    $coalescedRangeCounterCount = @($counters | Where-Object {
+            $_.name -match '^ui\.input\.outcome\.coalesced_(first_sequence|last_sequence|count)$'
+        }).Count
+    $coalescedRanges = @()
+    $coalescedOutcomeCount = [uint64]0
+    $previousCoalescedLastSequence = $null
+    for ($index = 0; $index -lt $counters.Count; $index++) {
+        if ($counters[$index].name -ne 'ui.input.outcome.coalesced_first_sequence') {
+            continue
+        }
+        if (($index + 2) -ge $counters.Count) {
+            $valid = $false
+            continue
+        }
+        $firstSample = $counters[$index]
+        $lastSample = $counters[$index + 1]
+        $countSample = $counters[$index + 2]
+        $firstSequence = ConvertTo-ZirconInputSequence -Value $firstSample.value
+        $lastSequence = ConvertTo-ZirconInputSequence -Value $lastSample.value
+        $count = ConvertTo-ZirconInputSequence -Value $countSample.value
+        $hasRangeShape = $lastSample.name -eq 'ui.input.outcome.coalesced_last_sequence' -and
+            $countSample.name -eq 'ui.input.outcome.coalesced_count' -and
+            $null -ne $firstSample.PSObject.Properties['timestamp_us'] -and
+            $null -ne $lastSample.PSObject.Properties['timestamp_us'] -and
+            $null -ne $countSample.PSObject.Properties['timestamp_us'] -and
+            [uint64]$firstSample.timestamp_us -eq [uint64]$lastSample.timestamp_us -and
+            [uint64]$firstSample.timestamp_us -eq [uint64]$countSample.timestamp_us
+        if (-not $hasRangeShape -or $null -eq $firstSequence -or $null -eq $lastSequence -or
+            $null -eq $count -or $count -eq 0 -or $firstSequence -gt $lastSequence -or
+            [uint64]($lastSequence - $firstSequence + 1) -ne $count -or
+            ($null -ne $previousCoalescedLastSequence -and
+                $firstSequence -le $previousCoalescedLastSequence)) {
+            $valid = $false
+            continue
+        }
+        $coalescedRanges += [pscustomobject]@{
+            first_sequence = $firstSequence
+            last_sequence = $lastSequence
+            count = $count
+        }
+        $coalescedOutcomeCount += $count
+        $previousCoalescedLastSequence = $lastSequence
+    }
+    if ($coalescedRangeCounterCount -ne ($coalescedRanges.Count * 3)) {
+        $valid = $false
+    }
+    $sequenceClaims = @($outcomes | ForEach-Object {
+            [pscustomobject]@{
+                first_sequence = $_.sequence
+                last_sequence = $_.sequence
+            }
+        }) + @($coalescedRanges)
+    $previousClaimLastSequence = $null
+    foreach ($claim in @($sequenceClaims | Sort-Object -Property first_sequence, last_sequence)) {
+        if ($null -ne $previousClaimLastSequence -and
+            [uint64]$claim.first_sequence -le [uint64]$previousClaimLastSequence) {
+            $valid = $false
+        }
+        $previousClaimLastSequence = [uint64]$claim.last_sequence
     }
     $damagedOutcomes = @($outcomes | Where-Object kind -eq 'damaged')
     $quietOutcomes = @($outcomes | Where-Object kind -eq 'intentionally_no_damage')
@@ -151,7 +214,22 @@ function Get-ZirconTypedInputOutcomeEvidence {
             $null -eq $counters[$latencyIndex].PSObject.Properties['timestamp_us'] -or
             [uint64]$counters[$latencyIndex].timestamp_us -ne [uint64]$outcome.timestamp_us) {
             $valid = $false
+            continue
         }
+        try {
+            $inputToDamageUs = [double]$counters[$latencyIndex].value
+        }
+        catch {
+            $valid = $false
+            continue
+        }
+        if ([double]::IsNaN($inputToDamageUs) -or
+            [double]::IsInfinity($inputToDamageUs) -or $inputToDamageUs -lt 0.0) {
+            $valid = $false
+            continue
+        }
+        $outcome.input_to_damage_us = $inputToDamageUs
+        $outcome.input_to_damage_counter_name = [string]$counters[$latencyIndex].name
     }
     if ($inputLatencySamples.Count -ne $damagedOutcomes.Count) {
         $valid = $false
@@ -164,6 +242,7 @@ function Get-ZirconTypedInputOutcomeEvidence {
     $damagedMembership = @{}
     $presentBatchCount = 0
     $presentBatchDamagedCount = [uint64]0
+    $inputToPresentSamples = [System.Collections.Generic.List[object]]::new()
     $previousLastSequence = $null
     for ($index = 0; $index -lt $counters.Count; $index++) {
         if ($counters[$index].name -ne 'ui.input.present_batch.first_sequence') {
@@ -212,6 +291,30 @@ function Get-ZirconTypedInputOutcomeEvidence {
                 0
             }
             $damagedMembership[$key] = 1 + $currentMembership
+            $presentTimestampUs = [uint64]$firstSample.timestamp_us
+            $damageTimestampUs = [uint64]$member.timestamp_us
+            if ($presentTimestampUs -lt $damageTimestampUs -or
+                $null -eq $member.input_to_damage_us -or
+                [string]::IsNullOrWhiteSpace([string]$member.input_to_damage_counter_name)) {
+                $valid = $false
+                continue
+            }
+            $inputToPresentUs = [double]($presentTimestampUs - $damageTimestampUs) +
+                [double]$member.input_to_damage_us
+            if ([double]::IsNaN($inputToPresentUs) -or
+                [double]::IsInfinity($inputToPresentUs) -or $inputToPresentUs -lt 0.0) {
+                $valid = $false
+                continue
+            }
+            $inputToPresentSamples.Add([pscustomobject]@{
+                    sequence = [uint64]$member.sequence
+                    name = ([string]$member.input_to_damage_counter_name).Replace(
+                        '.input_to_damage_us',
+                        '.input_to_present_us'
+                    )
+                    value = $inputToPresentUs
+                    timestamp_us = $presentTimestampUs
+                })
         }
         $presentBatchCount++
         $presentBatchDamagedCount += $damagedCount
@@ -233,17 +336,23 @@ function Get-ZirconTypedInputOutcomeEvidence {
             $valid = $false
         }
     }
-    if ($outcomes.Count -eq 0) {
+    $inputOutcomeCount = [uint64]$outcomes.Count + $coalescedOutcomeCount
+    if ($inputOutcomeCount -eq 0) {
+        $valid = $false
+    }
+    if ($inputToPresentSamples.Count -ne $damagedOutcomes.Count) {
         $valid = $false
     }
 
     return [pscustomobject]@{
-        input_outcome_count = $outcomes.Count
+        input_outcome_count = $inputOutcomeCount
         damaged_input_outcome_count = $damagedOutcomes.Count
         intentionally_no_damage_input_outcome_count = $quietOutcomes.Count
         rejected_input_outcome_count = $rejectedOutcomes.Count
+        coalesced_input_outcome_count = $coalescedOutcomeCount
         present_batch_count = $presentBatchCount
         present_batch_damaged_count = $presentBatchDamagedCount
+        input_to_present_samples = @($inputToPresentSamples)
         typed_input_outcome_complete = $valid
     }
 }
@@ -274,9 +383,11 @@ function Export-ZirconUiSurfacePresentOutcomeEvidence {
             Where-Object { $_.name -match '^ui\.[^.]+\.damage_to_submit_us$' })
     $retention = Get-ZirconRecorderRetentionEvidence -Snapshot $snapshot
     $typedOutcomes = Get-ZirconTypedInputOutcomeEvidence -Snapshot $snapshot
+    $inputToPresentStats = Get-ZirconLatencyPercentiles `
+        -Samples @($typedOutcomes.input_to_present_samples)
 
     $artifact = [ordered]@{
-        schema_version = 5
+        schema_version = 6
         source = 'timeline.zrtrace.json'
         submitted_count = $submittedCount
         retryable_no_submit_count = $retryableNoSubmitCount
@@ -294,6 +405,11 @@ function Export-ZirconUiSurfacePresentOutcomeEvidence {
         damage_to_submit_p95_us = $damageToSubmitStats.p95_us
         damage_to_submit_p99_us = $damageToSubmitStats.p99_us
         damage_to_submit_max_us = $damageToSubmitStats.max_us
+        input_to_present_sample_count = $inputToPresentStats.sample_count
+        input_to_present_p50_us = $inputToPresentStats.p50_us
+        input_to_present_p95_us = $inputToPresentStats.p95_us
+        input_to_present_p99_us = $inputToPresentStats.p99_us
+        input_to_present_max_us = $inputToPresentStats.max_us
         retry_observed = $retryableNoSubmitCount -gt 0
     }
     foreach ($property in $retention.PSObject.Properties) {
@@ -304,13 +420,14 @@ function Export-ZirconUiSurfacePresentOutcomeEvidence {
     }
     [pscustomobject]$artifact | ConvertTo-Json -Depth 6 |
         Set-Content -Path (Join-Path $ProfileDir 'ui_surface_present_outcomes.json') -Encoding UTF8
-    Write-Host ("- surface_submitted={0} retryable_no_submit={1} retention_sources={2} retention_complete={3} counter_overwritten={4} input_outcomes={5} damaged_outcomes={6} present_batches={7} typed_complete={8} input_to_damage_samples={9} input_to_damage_p95_us={10} damage_to_submit_samples={11} damage_to_submit_p95_us={12}" -f `
+    Write-Host ("- surface_submitted={0} retryable_no_submit={1} retention_sources={2} retention_complete={3} counter_overwritten={4} input_outcomes={5} damaged_outcomes={6} present_batches={7} typed_complete={8} input_to_damage_samples={9} input_to_damage_p95_us={10} damage_to_submit_samples={11} damage_to_submit_p95_us={12} input_to_present_samples={13} input_to_present_p95_us={14}" -f `
             $submittedCount, $retryableNoSubmitCount, $retention.retention_source_count,
             $retention.retention_complete, $retention.counter_overwritten,
             $typedOutcomes.input_outcome_count, $typedOutcomes.damaged_input_outcome_count,
             $typedOutcomes.present_batch_count, $typedOutcomes.typed_input_outcome_complete,
             $inputToDamageStats.sample_count, $inputToDamageStats.p95_us,
-            $damageToSubmitStats.sample_count, $damageToSubmitStats.p95_us)
+            $damageToSubmitStats.sample_count, $damageToSubmitStats.p95_us,
+            $inputToPresentStats.sample_count, $inputToPresentStats.p95_us)
 }
 
 function Test-ZirconUiSurfaceLatencyEvidenceGate {
@@ -320,7 +437,8 @@ function Test-ZirconUiSurfaceLatencyEvidenceGate {
         [string]$InteractionScenarioName,
         [int]$AutoClickCount,
         [int]$AutoPointerMoveCount,
-        [int]$AutoWheelCount
+        [int]$AutoWheelCount,
+        [int]$AutoResizeStepCount
     )
 
     $normalizedScenario = $ScenarioName.Trim().ToLowerInvariant()
@@ -329,7 +447,10 @@ function Test-ZirconUiSurfaceLatencyEvidenceGate {
         $AutoPointerMoveCount -gt 0
     $requiresWheelLatency = $normalizedScenario -in @('hierarchy_scroll', 'welcome_recent_scroll') -and
         $AutoWheelCount -gt 0
-    if (-not $requiresClickLatency -and -not $requiresPointerLatency -and -not $requiresWheelLatency) {
+    $requiresResizeLatency = $normalizedScenario -eq 'window_resize' -and
+        $AutoResizeStepCount -gt 0
+    if (-not $requiresClickLatency -and -not $requiresPointerLatency -and
+        -not $requiresWheelLatency -and -not $requiresResizeLatency) {
         return $true
     }
 
@@ -339,8 +460,8 @@ function Test-ZirconUiSurfaceLatencyEvidenceGate {
         return $false
     }
     $artifact = Get-Content -Path $artifactPath -Raw | ConvertFrom-Json
-    if ([int]$artifact.schema_version -lt 5) {
-        Write-Warning 'Interaction latency gate requires surface outcome schema 5 with typed input outcomes.'
+    if ([int]$artifact.schema_version -lt 6) {
+        Write-Warning 'Interaction latency gate requires surface outcome schema 6 with sequence-bound input-to-present evidence.'
         return $false
     }
     if ([int64]$artifact.retention_source_count -le 0 -or
@@ -374,7 +495,7 @@ function Test-ZirconUiSurfaceLatencyEvidenceGate {
         return $false
     }
 
-    foreach ($stage in @('input_to_damage', 'damage_to_submit')) {
+    foreach ($stage in @('input_to_damage', 'damage_to_submit', 'input_to_present')) {
         $sampleCountProperty = $artifact.PSObject.Properties["${stage}_sample_count"]
         $p50Property = $artifact.PSObject.Properties["${stage}_p50_us"]
         $p95Property = $artifact.PSObject.Properties["${stage}_p95_us"]
@@ -404,20 +525,60 @@ function Test-ZirconUiSurfaceLatencyEvidenceGate {
     if ([int64]$artifact.input_to_damage_sample_count -ne
             [int64]$artifact.damaged_input_outcome_count -or
         [int64]$artifact.damage_to_submit_sample_count -ne
-            [int64]$artifact.present_batch_count) {
-        Write-Warning 'Interaction latency gate requires one input latency per damaged outcome and one submit latency per present batch.'
+            [int64]$artifact.present_batch_count -or
+        [int64]$artifact.input_to_present_sample_count -ne
+            [int64]$artifact.damaged_input_outcome_count) {
+        Write-Warning 'Interaction latency gate requires one input and end-to-end latency per damaged outcome and one submit latency per present batch.'
         return $false
     }
+    if ($requiresResizeLatency) {
+        $interactionPath = Join-Path $ProfileDir 'ui_interaction_evidence.json'
+        if (-not (Test-Path $interactionPath)) {
+            Write-Warning 'Window resize latency gate requires ui_interaction_evidence.json.'
+            return $false
+        }
+        $interactionEvidence = Get-Content -Path $interactionPath -Raw | ConvertFrom-Json
+        $expectedResizeEventProperty =
+            $interactionEvidence.interaction.PSObject.Properties['expected_resize_event_count']
+        $resizeSamples = @($artifact.input_to_present_samples | Where-Object {
+                $_.name -eq 'ui.window_resize.input_to_present_us'
+            })
+        if ($null -eq $expectedResizeEventProperty -or
+            [int64]$expectedResizeEventProperty.Value -le 0 -or
+            $resizeSamples.Count -ne [int64]$expectedResizeEventProperty.Value) {
+            Write-Warning 'Window resize latency gate requires one sequence-bound input-to-present sample per changed requested extent.'
+            return $false
+        }
+        try {
+            $resizeInputToPresentStats = Get-ZirconLatencyPercentiles -Samples $resizeSamples
+        }
+        catch {
+            Write-Warning 'Window resize latency gate could not parse its scenario-specific input-to-present samples.'
+            return $false
+        }
+        $resizeInputToPresentP95Us = [double]$resizeInputToPresentStats.p95_us
+        if ([double]::IsNaN($resizeInputToPresentP95Us) -or
+            [double]::IsInfinity($resizeInputToPresentP95Us) -or
+            $resizeInputToPresentP95Us -lt 0.0 -or
+            $resizeInputToPresentP95Us -gt $script:ZirconInputToPresentP95BudgetUs) {
+            Write-Warning ("Window resize input-to-present p95 exceeded budget: {0}/{1}us." -f `
+                    $resizeInputToPresentP95Us, $script:ZirconInputToPresentP95BudgetUs)
+            return $false
+        }
+    }
     if ([double]$artifact.input_to_damage_p95_us -gt $script:ZirconInputToDamageP95BudgetUs -or
-        [double]$artifact.damage_to_submit_p95_us -gt $script:ZirconDamageToSubmitP95BudgetUs) {
-        Write-Warning ("Interaction latency p95 exceeded budgets: input_to_damage={0}/{1}us damage_to_submit={2}/{3}us." -f `
+        [double]$artifact.damage_to_submit_p95_us -gt $script:ZirconDamageToSubmitP95BudgetUs -or
+        [double]$artifact.input_to_present_p95_us -gt $script:ZirconInputToPresentP95BudgetUs) {
+        Write-Warning ("Interaction latency p95 exceeded budgets: input_to_damage={0}/{1}us damage_to_submit={2}/{3}us input_to_present={4}/{5}us." -f `
                 $artifact.input_to_damage_p95_us, $script:ZirconInputToDamageP95BudgetUs,
-                $artifact.damage_to_submit_p95_us, $script:ZirconDamageToSubmitP95BudgetUs)
+                $artifact.damage_to_submit_p95_us, $script:ZirconDamageToSubmitP95BudgetUs,
+                $artifact.input_to_present_p95_us, $script:ZirconInputToPresentP95BudgetUs)
         return $false
     }
 
-    Write-Host ("- latency_gate input_to_damage_p95_us={0}/{1} damage_to_submit_p95_us={2}/{3}" -f `
+    Write-Host ("- latency_gate input_to_damage_p95_us={0}/{1} damage_to_submit_p95_us={2}/{3} input_to_present_p95_us={4}/{5}" -f `
             $artifact.input_to_damage_p95_us, $script:ZirconInputToDamageP95BudgetUs,
-            $artifact.damage_to_submit_p95_us, $script:ZirconDamageToSubmitP95BudgetUs)
+            $artifact.damage_to_submit_p95_us, $script:ZirconDamageToSubmitP95BudgetUs,
+            $artifact.input_to_present_p95_us, $script:ZirconInputToPresentP95BudgetUs)
     return $true
 }

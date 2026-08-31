@@ -445,7 +445,7 @@ M3 extends this to multi-asset imports. `AssetImportOutcome` now owns an entry l
 
 当前 public surface 也已经跟随收束：workspace 调用点统一通过 `zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths}` 访问目录式项目 API，不再从 runtime asset 根模块平铺拿这组三元组。
 
-`ProjectManifest` 的现行文件格式写出 `format_version` 与 `library_version`。读取路径仍接受旧项目 manifest 省略 `format_version` 的文件，并把旧字段名 `schema_version` 作为 `library_version` 的 serde alias 解析；这保证旧 export profile 文件在补充 `runtime_profile_id` 之前仍能加载，缺失的 runtime profile 继续表示为 `None`。
+`ProjectManifest` 的现行文件格式写出 `format_version = 3`、非空 `project_guid` 与 `library_version`。运行时只接受这套结构；v1/v2 只能被数据专用 preflight 读取并形成显式迁移决定，不能借助缺失 `format_version` 或退役 `schema_version` 别名进入运行时。缺失的 export profile `runtime_profile_id` 仍表示为 `None`，但不改变项目清单的版本边界。
 
 Package asset roots are registered on the same `ProjectManager` through `register_package_asset_root(...)` or `register_package_asset_roots(...)`. Plugin assembly composes `PluginPackageManifest::package_id()` from `package_prefix/package_company/package_name`, defaults omitted `asset_roots` to `assets`, and rejects multiple or escaping roots so `package://` has one clear filesystem owner. The package root is resolved once to its physical filesystem identity before registration, so aliases do not leak into `package://` source-path resolution. Registered package files use the same `.zmeta` schema, importer registry, `Project/.zircon/cache/assets` artifact store, UUID index, dependency resolution, and live `ResourceRegistry` as project files; only the URL scheme and package id differ.
 

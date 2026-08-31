@@ -236,16 +236,19 @@ impl BoundedOutputTail {
         self.bytes.extend(bytes.iter().copied());
     }
 
-    fn finish(self) -> String {
+    fn finish(mut self) -> String {
         let mut output = String::with_capacity(self.bytes.len() + 96);
         if self.discarded_bytes > 0 {
-            output.push_str(&format!(
+            std::fmt::Write::write_fmt(
+                &mut output,
+                format_args!(
                 "[output truncated: retained last {} bytes of {} total bytes; discarded {} bytes]\n",
                 self.bytes.len(), self.total_bytes, self.discarded_bytes
-            ));
+                ),
+            )
+            .expect("writing output diagnostics to a String cannot fail");
         }
-        let bytes = self.bytes.into_iter().collect::<Vec<_>>();
-        output.push_str(&String::from_utf8_lossy(&bytes));
+        output.push_str(&String::from_utf8_lossy(self.bytes.make_contiguous()));
         output
     }
 }
@@ -293,6 +296,9 @@ fn invocation_from_status(
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use zircon_runtime::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
 
     use super::*;
@@ -386,6 +392,141 @@ mod tests {
             "[output truncated: retained last 8 bytes of 12 total bytes; discarded 4 bytes]\n"
         ));
         assert!(output.ends_with("456789ab"));
+    }
+
+    fn legacy_finish_output_tail(tail: BoundedOutputTail) -> String {
+        let mut output = String::with_capacity(tail.bytes.len() + 96);
+        if tail.discarded_bytes > 0 {
+            output.push_str(&format!(
+                "[output truncated: retained last {} bytes of {} total bytes; discarded {} bytes]\n",
+                tail.bytes.len(), tail.total_bytes, tail.discarded_bytes
+            ));
+        }
+        let bytes = tail.bytes.into_iter().collect::<Vec<_>>();
+        output.push_str(&String::from_utf8_lossy(&bytes));
+        output
+    }
+
+    fn benchmark_output_tail(max_bytes: usize) -> BoundedOutputTail {
+        let mut tail = BoundedOutputTail::new(max_bytes);
+        let payload = (0..(max_bytes * 2))
+            .map(|index| b'a' + (index % 26) as u8)
+            .collect::<Vec<_>>();
+        tail.append(&payload);
+        tail
+    }
+
+    #[test]
+    fn optimization_batch_ep_cargo_output_finish_avoids_temporary_buffers() {
+        let optimized = benchmark_output_tail(8);
+        let legacy = benchmark_output_tail(8);
+        assert_eq!(optimized.finish(), legacy_finish_output_tail(legacy));
+
+        let mut invalid_optimized = BoundedOutputTail::new(4);
+        invalid_optimized.append(&[b'a', 0xff, b'b', b'c', b'd']);
+        let mut invalid_legacy = BoundedOutputTail::new(4);
+        invalid_legacy.append(&[b'a', 0xff, b'b', b'c', b'd']);
+        assert_eq!(
+            invalid_optimized.finish(),
+            legacy_finish_output_tail(invalid_legacy)
+        );
+
+        let source = include_str!("export_cargo_process.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("Cargo output production implementation");
+        let finish = production
+            .split("impl BoundedOutputTail {")
+            .nth(1)
+            .expect("bounded output implementation")
+            .split("fn finish(")
+            .nth(1)
+            .expect("bounded output finish")
+            .split("fn append_captured_output(")
+            .next()
+            .expect("bounded output finish body");
+        assert!(finish.contains("self.bytes.make_contiguous()"));
+        assert!(!finish.contains("collect::<Vec<_>>()"));
+        assert!(!finish.contains("output.push_str(&format!"));
+    }
+
+    #[test]
+    #[ignore = "release-only allocation-free Cargo output finish benchmark"]
+    fn optimization_batch_ep_allocation_free_cargo_output_finish_release_benchmark_evidence() {
+        const SAMPLE_PAIRS: usize = 17;
+        const FINISHES_PER_SAMPLE: usize = 32;
+        const TAIL_BYTES: usize = 64 * 1_024;
+
+        fn measure(finish: fn(BoundedOutputTail) -> String) -> u128 {
+            let tails = (0..FINISHES_PER_SAMPLE)
+                .map(|_| benchmark_output_tail(TAIL_BYTES))
+                .collect::<Vec<_>>();
+            let started = Instant::now();
+            let mut checksum = 0_usize;
+            for tail in tails {
+                checksum = checksum.wrapping_add(finish(black_box(tail)).len());
+            }
+            black_box(checksum);
+            started.elapsed().as_nanos().max(1)
+        }
+
+        fn optimized_finish_output_tail(tail: BoundedOutputTail) -> String {
+            tail.finish()
+        }
+
+        fn percentile(samples: &[u128], percentile: usize) -> u128 {
+            let mut sorted = samples.to_vec();
+            sorted.sort_unstable();
+            let rank = (sorted.len() * percentile).div_ceil(100);
+            sorted[rank.saturating_sub(1)]
+        }
+
+        fn raw(samples: &[u128]) -> String {
+            samples
+                .iter()
+                .map(u128::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        }
+
+        for _ in 0..4 {
+            black_box(measure(legacy_finish_output_tail));
+            black_box(measure(optimized_finish_output_tail));
+        }
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample in 0..SAMPLE_PAIRS {
+            if sample % 2 == 0 {
+                legacy_samples.push(measure(legacy_finish_output_tail));
+                optimized_samples.push(measure(optimized_finish_output_tail));
+            } else {
+                optimized_samples.push(measure(optimized_finish_output_tail));
+                legacy_samples.push(measure(legacy_finish_output_tail));
+            }
+        }
+
+        let legacy_p50_ns = percentile(&legacy_samples, 50);
+        let optimized_p50_ns = percentile(&optimized_samples, 50);
+        let legacy_p95_ns = percentile(&legacy_samples, 95);
+        let optimized_p95_ns = percentile(&optimized_samples, 95);
+        println!(
+            "EDITOR378_ALLOCATION_FREE_OUTPUT_FINISH_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
+             finishes_per_sample={FINISHES_PER_SAMPLE} tail_bytes={TAIL_BYTES} \
+             pair_order=alternating_legacy_even legacy_temporary_allocations_per_finish=2 \
+             optimized_temporary_allocations_per_finish=0 legacy_p50_ns={legacy_p50_ns} \
+             optimized_p50_ns={optimized_p50_ns} legacy_p95_ns={legacy_p95_ns} \
+             optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            raw(&legacy_samples),
+            raw(&optimized_samples),
+        );
+
+        assert!(
+            optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(75),
+            "allocation-free output finishing must reduce P95 by at least 25%: \
+             legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
+        );
     }
 
     #[test]

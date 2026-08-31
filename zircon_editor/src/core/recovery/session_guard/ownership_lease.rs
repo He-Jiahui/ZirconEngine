@@ -13,7 +13,7 @@ use zircon_runtime::asset::project::ProjectPaths;
 #[cfg(windows)]
 use zircon_runtime_interface::project::session_lock::windows_project_session_mutex_name;
 
-use super::{read_lock, session_lock_directory, SessionGuardError};
+use super::{SessionGuardError, read_lock, session_lock_directory};
 
 /// An operating-system lease serializes every read/replace/remove operation for one project.
 /// It is deliberately separate from the persisted record: process death releases the lease,
@@ -191,18 +191,14 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use super::super::SessionGuardError;
-    use super::{session_mutex_name, SessionOwnershipLease};
+    use super::{SessionOwnershipLease, session_mutex_name};
 
     static NEXT_TEMP_ROOT: AtomicU64 = AtomicU64::new(1);
     const WINDOWS_ERROR_PRIVILEGE_NOT_HELD: i32 = 1314;
 
     #[test]
     fn session_mutex_name_resolves_directory_aliases_through_the_project_resolver() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-editor-session-lease-{}-{}",
-            std::process::id(),
-            NEXT_TEMP_ROOT.fetch_add(1, Ordering::Relaxed)
-        ));
+        let root = temporary_root("lease-alias");
         let physical = root.join("physical-project");
         let alias = root.join("project-alias");
         fs::create_dir_all(&physical).expect("create physical project root");
@@ -218,11 +214,7 @@ mod tests {
 
     #[test]
     fn session_mutex_name_resolves_directory_symbolic_link_aliases_through_the_project_resolver() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-editor-session-lease-symbolic-link-{}-{}",
-            std::process::id(),
-            NEXT_TEMP_ROOT.fetch_add(1, Ordering::Relaxed)
-        ));
+        let root = temporary_root("lease-symbolic-link");
         let physical = root.join("physical-project");
         let alias = root.join("project-alias");
         fs::create_dir_all(&physical).expect("create physical project root");
@@ -251,11 +243,7 @@ mod tests {
 
     #[test]
     fn session_lease_rejects_a_directory_alias_while_the_physical_project_is_held() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon-editor-session-lease-alias-{}-{}",
-            std::process::id(),
-            NEXT_TEMP_ROOT.fetch_add(1, Ordering::Relaxed)
-        ));
+        let root = temporary_root("lease-physical-alias");
         let physical = root.join("physical-project");
         let alias = root.join("project-alias");
         fs::create_dir_all(&physical).expect("create physical project root");
@@ -273,6 +261,17 @@ mod tests {
         drop(lease);
 
         fs::remove_dir_all(&root).expect("remove project alias fixture");
+    }
+
+    fn temporary_root(label: &str) -> std::path::PathBuf {
+        std::env::current_dir()
+            .expect("current directory should be available")
+            .join("target")
+            .join(format!(
+                "zircon-editor-session-{label}-{}-{}",
+                std::process::id(),
+                NEXT_TEMP_ROOT.fetch_add(1, Ordering::Relaxed)
+            ))
     }
 
     fn create_directory_alias(target: &std::path::Path, link: &std::path::Path) {

@@ -10,7 +10,7 @@ use super::{gizmo_axis, projected_ring_segments};
 pub(in crate::scene::viewport::pointer) fn handle_candidate(
     owner: u64,
     element: &HandleElementExtract,
-    projection: &ViewportProjectionContext<'_>,
+    projection: &ViewportProjectionContext,
 ) -> Option<PrecisionCandidate> {
     match element {
         HandleElementExtract::AxisLine {

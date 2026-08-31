@@ -79,15 +79,18 @@ fn componentized_workbench_keeps_host_menu_chrome_above_its_mount() {
 
 #[test]
 fn live_viewport_fallback_filter_keeps_chrome_and_dynamic_overlays() {
-    let presentation = HostWindowPresentationData {
-        viewport_image: Some(HostViewportImageData {
+    let mut presentation = HostWindowPresentationData::default();
+    presentation.host_scene_data.document_dock.pane.kind = "Scene".into();
+    presentation
+        .viewport_images
+        .replace_scene(HostViewportImageData {
             resource_key: "viewport:test".into(),
             width: 1,
             height: 1,
             rgba: Some(vec![255; 4].into()),
-        }),
-        ..HostWindowPresentationData::default()
-    };
+            play_frame_identity: None,
+            overlay: None,
+        });
     let filter = ComponentizedChromeFallbackTransform::from_presentation(&presentation);
     let clip = FrameRect {
         x: 0.0,
@@ -97,7 +100,7 @@ fn live_viewport_fallback_filter_keeps_chrome_and_dynamic_overlays() {
     };
 
     assert!(filter
-        .transform(template_node("WorkbenchViewportBackdrop"), clip.clone())
+        .transform_row(0, template_node("WorkbenchViewportBackdrop"), clip.clone())
         .is_none());
     for control_id in [
         "WorkbenchViewportToolbar",
@@ -107,23 +110,24 @@ fn live_viewport_fallback_filter_keeps_chrome_and_dynamic_overlays() {
         "WorkbenchUnrelatedControl",
     ] {
         assert!(filter
-            .transform(template_node(control_id), clip.clone())
+            .transform_row(0, template_node(control_id), clip.clone())
             .is_some());
     }
 }
 
 #[test]
 fn missing_or_invalid_viewport_image_keeps_the_fallback_scene() {
-    for presentation in [
-        HostWindowPresentationData::default(),
-        HostWindowPresentationData {
-            viewport_image: Some(HostViewportImageData::default()),
-            ..HostWindowPresentationData::default()
-        },
-    ] {
+    let mut missing = HostWindowPresentationData::default();
+    missing.host_scene_data.document_dock.pane.kind = "Scene".into();
+    let mut invalid = missing.clone();
+    invalid
+        .viewport_images
+        .replace_scene(HostViewportImageData::default());
+    for presentation in [missing, invalid] {
         let filter = ComponentizedChromeFallbackTransform::from_presentation(&presentation);
         assert!(filter
-            .transform(
+            .transform_row(
+                0,
                 template_node("WorkbenchViewportBackdrop"),
                 FrameRect {
                     x: 0.0,

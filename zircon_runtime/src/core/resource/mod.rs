@@ -1,46 +1,48 @@
-//! Resource foundation layer: locators, ids, typed handles, registry, and runtime state.
+//! Curated Runtime projection of the canonical Resource foundation.
 
-mod data;
-mod error;
-mod event_stream;
 pub mod io;
-mod lease;
-mod management_generation;
-mod manager;
-mod mutation;
-mod readiness_generation;
-mod registry;
-mod runtime;
-mod snapshot;
 
-pub use data::ResourceData;
-pub use error::{ResourceRegistryError, ResourceResult};
-pub(crate) use event_stream::approximate_event_bytes;
-pub use event_stream::{
+pub use zr_resource::ResourceData;
+pub use zr_resource::ResourceLease;
+pub use zr_resource::ResourceRegistry;
+pub use zr_resource::ResourceSnapshot;
+pub use zr_resource::{
+    AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
+    AnimationStateMachineMarker, DataMarker, FontMarker, MaterialGraphMarker, MaterialMarker,
+    MeshMarker, ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker,
+    PrefabMarker, SceneMarker, ShaderMarker, SoundMarker, TerrainLayerStackMarker, TerrainMarker,
+    TextureMarker, TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
+};
+pub use zr_resource::{
+    AssetReference, AssetUuid, ResourceId, ResourceLocator, ResourceLocatorError, ResourceScheme,
+    STABLE_UUID_ALGORITHM_VERSION,
+};
+pub use zr_resource::{Resource, ResourceRuntimeInfo, RuntimeResourceState};
+pub use zr_resource::{
+    ResourceDiagnostic, ResourceDiagnosticSeverity, ResourceEvent, ResourceEventKind,
+    ResourceHandle, ResourceRecord, ResourceState, UntypedResourceHandle,
+};
+pub use zr_resource::{
     ResourceEventGap, ResourceEventReceiver, ResourceEventRecvError, ResourceEventRecvTimeoutError,
     ResourceEventStreamDiagnostics, ResourceEventTryRecvError,
 };
-pub use io::{ResourceIo, ResourceIoError};
-pub use lease::ResourceLease;
-pub(crate) use management_generation::{resource_management_shard_index, ResourceManagementShard};
-pub use management_generation::{
-    ResourceManagementGeneration, ResourceManagementKindSummary, ResourceManagementPage,
-    ResourceManagementQuery, ResourceManagementRow, ResourceManagementScan,
-    ResourceManagementSummary,
+pub use zr_resource::{ResourceKind, ResourceMarker};
+pub use zr_resource::{
+    ResourceManagementGeneration, ResourceManagementGenerationDiagnostics,
+    ResourceManagementGenerationIdentity, ResourceManagementKindSummary, ResourceManagementPage,
+    ResourceManagementQuery, ResourceManagementRow, ResourceManagementRowIdentity,
+    ResourceManagementScan, ResourceManagementSummary,
 };
-pub(crate) use manager::PreparedResourceMutation;
-pub use manager::{ResourceManager, ResourceRegistryReadGuard};
-pub(crate) use mutation::ResourceMutationOperation;
-pub use mutation::{ResourceMutationBatch, ResourceMutationReceipt};
-pub(crate) use readiness_generation::ResourceReadinessRow;
-pub use readiness_generation::{
-    ResourceReadinessGeneration, ResourceReadinessGenerationDiagnostics, ResourceReadinessState,
+pub use zr_resource::{ResourceManager, ResourceProjectionSnapshot, ResourceRegistryReadGuard};
+pub use zr_resource::{ResourceMutationBatch, ResourceMutationReceipt};
+pub use zr_resource::{
+    ResourceReadinessGeneration, ResourceReadinessGenerationDiagnostics,
+    ResourceReadinessGenerationIdentity, ResourceReadinessRow, ResourceReadinessRowIdentity,
+    ResourceReadinessState,
 };
-pub use registry::ResourceRegistry;
-pub(crate) use registry::ResourceRegistryStaging;
-pub use runtime::{Resource, ResourceRuntimeInfo, RuntimeResourceState};
-pub use snapshot::ResourceSnapshot;
-pub use zircon_runtime_interface::resource::*;
+pub use zr_resource::{ResourceRegistryError, ResourceResult};
 
-#[cfg(test)]
-mod tests;
+pub(crate) use zr_resource::assembly::{
+    PreparedResourceMutation, ResourceManagerAssemblyExt, ResourceReadinessGenerationAssemblyExt,
+    ResourceRegistryAssemblyExt, ResourceRegistryStaging, approximate_event_bytes,
+};

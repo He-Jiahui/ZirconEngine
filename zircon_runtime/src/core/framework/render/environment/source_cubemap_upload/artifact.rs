@@ -41,14 +41,14 @@ impl SourceCubemapUploadMip {
 pub struct SourceCubemapUploadArtifact {
     source_mips: Vec<SourceCubemapUploadMip>,
     pmrem_mips: Vec<SourceCubemapUploadMip>,
-    irradiance_mip: Option<SourceCubemapUploadMip>,
+    irradiance_mip: SourceCubemapUploadMip,
 }
 
 impl SourceCubemapUploadArtifact {
     pub(super) fn new(
         source_mips: Vec<SourceCubemapUploadMip>,
         pmrem_mips: Vec<SourceCubemapUploadMip>,
-        irradiance_mip: Option<SourceCubemapUploadMip>,
+        irradiance_mip: SourceCubemapUploadMip,
     ) -> Self {
         Self {
             source_mips,
@@ -65,7 +65,7 @@ impl SourceCubemapUploadArtifact {
         &self.pmrem_mips
     }
 
-    pub fn irradiance_mip(&self) -> Option<&SourceCubemapUploadMip> {
-        self.irradiance_mip.as_ref()
+    pub const fn irradiance_mip(&self) -> &SourceCubemapUploadMip {
+        &self.irradiance_mip
     }
 }

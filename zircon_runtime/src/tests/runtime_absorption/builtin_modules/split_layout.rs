@@ -35,7 +35,7 @@ fn assert_parent_route_only() {
         "builtin_modules.rs should route child owners instead of owning tests"
     );
     for forbidden in [
-        "builtin_runtime_modules_include_target_client_core_and_required_plugins",
+        "client_runtime_composition_includes_core_and_required_plugins",
         "required_unavailable_runtime_plugin_is_reported_as_fatal_missing",
         "RuntimePluginId::VirtualGeometry",
         "ProjectPluginManifest",
@@ -52,8 +52,8 @@ fn assert_child_owners_are_focused() {
         "core spine child",
         CORE_SPINE_SOURCE,
         &[
-            "builtin_runtime_modules_include_target_client_core_and_required_plugins",
-            "builtin_runtime_modules_keep_client_plugins_after_core_spine",
+            "client_runtime_composition_includes_core_and_required_plugins",
+            "client_runtime_composition_keeps_plugins_after_core_spine",
             "FOUNDATION_MODULE_NAME",
             "GRAPHICS_MODULE_NAME",
             "SCRIPT_MODULE_NAME",

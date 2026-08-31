@@ -45,6 +45,7 @@ fn semantic_tree_view_route_surface() -> UiSurface {
         component: "TreeView".to_string(),
         control_id: Some("AssetTree".to_string()),
         bindings: vec![binding("TreeView/KeyboardAction", UiEventKind::Change)],
+        attributes: toml::from_str(r#"component_role = "tree-view""#).unwrap(),
         ..Default::default()
     });
     surface.rebuild();
@@ -58,6 +59,7 @@ fn semantic_menu_list_text_route_surface() -> UiSurface {
         component: "MenuList".to_string(),
         control_id: Some("SceneMenu".to_string()),
         bindings: vec![binding("MenuList/KeyboardText", UiEventKind::Change)],
+        attributes: toml::from_str(r#"component_role = "menu-list""#).unwrap(),
         ..Default::default()
     });
     surface.rebuild();
@@ -74,7 +76,13 @@ fn semantic_menu_list_typeahead_route_surface() -> UiSurface {
             binding("MenuList/KeyboardText", UiEventKind::Change),
             binding("MenuList/TypeaheadExpired", UiEventKind::Change),
         ],
-        attributes: toml::from_str("typeahead_timeout_ms = 100").unwrap(),
+        attributes: toml::from_str(
+            r#"
+component_role = "menu-list"
+typeahead_timeout_ms = 100
+"#,
+        )
+        .unwrap(),
         ..Default::default()
     });
     surface.rebuild();
@@ -88,7 +96,13 @@ fn semantic_menu_list_submenu_hover_route_surface() -> UiSurface {
         component: "MenuList".to_string(),
         control_id: Some("SceneMenu".to_string()),
         bindings: vec![binding("MenuList/ValueChanged", UiEventKind::Change)],
-        attributes: toml::from_str("submenu_hover_delay_ms = 100").unwrap(),
+        attributes: toml::from_str(
+            r#"
+component_role = "menu-list"
+submenu_hover_delay_ms = 100
+"#,
+        )
+        .unwrap(),
         ..Default::default()
     });
     surface.rebuild();
@@ -107,6 +121,7 @@ fn semantic_snackbar_toast_route_surface() -> UiSurface {
 current_toast_id = "save"
 auto_hide_duration_ms = 4000
 open = true
+component_role = "snackbar"
 "#,
         )
         .unwrap(),

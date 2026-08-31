@@ -5,7 +5,7 @@ use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCo
 
 mod commands;
 
-use commands::paint_chrome_command;
+use commands::{paint_chrome_command, paint_chrome_command_pair};
 
 pub(in crate::ui::retained_host::host_contract) fn paint_chrome_command_stream_to_frame(
     width: u32,
@@ -28,22 +28,44 @@ pub(in crate::ui::retained_host::host_contract) fn repaint_chrome_command_stream
     Some(damage)
 }
 
+fn fallback_ordered_commands(commands: &[super::ChromeCommand]) -> Vec<&super::ChromeCommand> {
+    let mut ordered = commands.iter().collect::<Vec<_>>();
+    ordered.sort_by_key(|command| command.z_index);
+    ordered
+}
+
 fn paint_chrome_command_stream_into_frame(frame: &mut HostRgbaFrame, stream: &ChromeCommandStream) {
     let commands = stream.commands();
     if commands
         .windows(2)
         .all(|pair| pair[0].z_index <= pair[1].z_index)
     {
-        for command in commands {
-            paint_chrome_command(frame, stream, command);
-        }
+        paint_ordered_commands(frame, stream, commands.iter());
         return;
     }
 
     record_current_ui_perf_counter(UiPerfCounter::FallbackSortCount, 1.0);
-    let mut ordered = commands.iter().enumerate().collect::<Vec<_>>();
-    ordered.sort_by_key(|(index, command)| (command.z_index, *index));
-    for (_, command) in ordered {
+    paint_ordered_commands(frame, stream, fallback_ordered_commands(commands));
+}
+
+fn paint_ordered_commands<'a>(
+    frame: &mut HostRgbaFrame,
+    stream: &ChromeCommandStream,
+    commands: impl IntoIterator<Item = &'a super::ChromeCommand>,
+) {
+    let mut commands = commands.into_iter().peekable();
+    while let Some(command) = commands.next() {
+        if commands
+            .peek()
+            .is_some_and(|next| paint_chrome_command_pair(frame, command, next))
+        {
+            commands.next();
+            continue;
+        }
         paint_chrome_command(frame, stream, command);
     }
 }
+
+#[cfg(test)]
+#[path = "replay/stable_z_sort_tests.rs"]
+mod stable_z_sort_tests;

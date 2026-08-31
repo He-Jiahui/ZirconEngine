@@ -27,7 +27,8 @@ impl EditorChromeTokens {
             top_bar_height: 25.0,
             host_bar_height: 32.0,
             status_bar_height: 24.0,
-            panel_header_height: 25.0,
+            // The clipped header must contain 28px dense and 30px compact children.
+            panel_header_height: 30.0,
             document_header_height: 31.0,
             viewport_toolbar_height: 28.0,
             activity_rail_width: 34.0,

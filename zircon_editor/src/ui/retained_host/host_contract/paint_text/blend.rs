@@ -1,3 +1,4 @@
+use super::super::paint_color::{blend_srgb_pixel_linear, blend_srgb_pixel_linear_channels};
 use super::super::paint_frame::HostRgbaFrame;
 
 pub(in crate::ui::retained_host::host_contract) fn blend_pixel(
@@ -16,14 +17,7 @@ pub(in crate::ui::retained_host::host_contract) fn blend_pixel(
         return;
     }
 
-    let alpha = color[3] as u32;
-    let inverse = 255 - alpha;
-    for channel in 0..3 {
-        let source = color[channel] as u32;
-        let destination = bytes[offset + channel] as u32;
-        bytes[offset + channel] = ((source * alpha + destination * inverse) / 255) as u8;
-    }
-    bytes[offset + 3] = 255;
+    blend_srgb_pixel_linear(&mut bytes[offset..offset + 4], color, 1.0);
 }
 
 pub(in crate::ui::retained_host::host_contract) fn blend_pixel_channel_coverage(
@@ -39,14 +33,7 @@ pub(in crate::ui::retained_host::host_contract) fn blend_pixel_channel_coverage(
 
     let offset = ((y as usize * frame.width() as usize) + x as usize) * 4;
     let bytes = frame.as_bytes_mut();
-    for channel in 0..3 {
-        let alpha = (coverage[channel] as u32 * color[3] as u32) / 255;
-        let inverse = 255 - alpha;
-        let source = color[channel] as u32;
-        let destination = bytes[offset + channel] as u32;
-        bytes[offset + channel] = ((source * alpha + destination * inverse) / 255) as u8;
-    }
-    bytes[offset + 3] = 255;
+    blend_srgb_pixel_linear_channels(&mut bytes[offset..offset + 4], color, coverage);
 }
 
 #[inline]

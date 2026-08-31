@@ -138,6 +138,12 @@ selected scope 指纹为 `cacb85cf3e816073beed52f4c8354668ad728fccc9a1949388b8d3
 
 `CanonicalObject` 的 `BTreeMap<String, CanonicalObjectEntry>` 为每个 value 创建 `TempSpool`，而 `TempSpool` 持有 open `File` 直到对象 emission/drop。大量短字段可在远小于 64 MiB 时打开海量文件；递归对象还会叠加 spools。全局 temp 的 `zircon-canonical-{pid}-{counter}.tmp` 只有 32 次 collision retry 和 best-effort drop，没有 entry/depth/open-file/spool-byte budget、attempt directory 或 crash sweep。应先加硬 entry/depth/open-spool/total-spool-byte limit，再改为 bounded arena + sorted runs/外排或内存阈值切换；所有临时文件归属一次 save attempt 目录和 journal，commit/abort/crash recovery 有确定清理。
 
+状态（2026-08-30，source implemented / managed Cargo pending）：canonical writer 已增加 128 层 nesting、16,384 object entries、8,191 attempt spill files、512 MiB 累计 spool work 四项 typed hard limit；spill file 上限由 `512 MiB / (64 KiB + 1)` 固化，避免以后调整计费路径时丢失文件数 authority。不超过 64 KiB 的 value 留在内存，大 value 才进入 attempt-owned directory，并在 value serialization 结束后关闭 writer。小字段对象的 spool file/open handle 数从每 entry 1 个降为 0；大 value 的 retained writer 数不再随 object entry 数增长。独立 F 盘 release `rustc` harness 覆盖 entry/depth/file-count/output-budget 拒绝、内存阈值、spill 关句柄、journal recovery evidence/rollback、96 KiB value canonical 等价与小对象资源报告，最新 `10/10` 通过。显式把 scratch root 固定到 F 盘后的 16,384 小字段准入/拒绝路径最新 21 samples：P50 `31,357,600 ns`，P95 `57,347,900 ns`，实际 `disk_spool_files=0`、`retained_open_spool_handles=0`；运行后 F 盘 scratch root 为 `0 files / 0 child directories`，系统临时目录 `zircon-canonical-*` 残留为 `0`。该状态不等于 P0-02 完成：managed crate gate、bounded arena/sorted runs 与 runtime-owned crash sweep 仍 pending；当前数据也不是整帧耗时或功耗验收。
+
+结构复核（2026-08-30，journal/crash-recovery slice）：当前 encoder 只在第一个大 value spill 时惰性创建 attempt directory，正常 `Drop` 已能删除本 attempt；但目录身份只有 PID 与进程内 counter，底层 writer 无法可靠判定另一个进程是否仍活跃，也无法抵抗 PID reuse。仓库内 durable resource transaction 由 `zircon_runtime::core::resource::io::transaction` 的持久化 owner 执行 recovery，Unreal DDC `DerivedDataBuildWorker` 同样用 GUID 隔离 scratch，并由拥有者发布或删除。由此拒绝在 interface encoder 内加入 TTL/PID 推测式全局 sweep：该做法可能删除并发 Editor/cook/runtime 正在使用的目录。
+
+本切片已建立恢复所需但不越权的证据层：attempt directory 创建后、任何 `value-*.tmp` 出现前，写入一次固定 magic/version、owner PID 与 attempt id 的小 journal；journal 创建失败则立即回滚整个 directory，normal drop 仍删除 journal 与 values。journal 不在 per-entry/per-chunk 热路径。F 盘隔离 I/O 微基准独立运行两次，每次 5 warmups、21 samples、每 sample 64 attempts：无 journal 的 attempt create/value create/remove P50 为 `2,760,779..3,637,754 ns`，增加 journal 后为 `5,228,206..6,994,015 ns`，绝对增加 `2,467,427..3,356,261 ns`；P95 分别为 `6,809,901..7,513,012 ns` 与 `10,247,712..13,073,276 ns`。这是每个发生 spill 的 canonical document 一次的 F 盘文件系统成本，不是每 value 成本，也不是全序列化/整帧/功耗数据。后续 crash sweep 必须由持有独占 scratch-root admission 与可靠 process-instance identity/liveness 的 runtime persistence service 调用，并对未知版本、缺失/损坏 journal fail closed；在该 owner 与 fault-injection gate 落地前，P0-02 的 crash sweep 不标完成。
+
 #### P0-03 · `ResourceLocator` 的平台依赖规范化参与 stable ID，同一逻辑资源可跨目标分裂
 
 locator 交给宿主 `Path::components`；Windows 把反斜杠视为 separator/prefix，Unix 可把它当普通字符。`to_string()` 后的 canonical locator 又进入 P0-01 的 ID 生成，因此跨平台 cook、Hub、Editor、CI 和 runtime 可能为同一输入产生不同 ID，或一端拒绝而另一端接受。必须用与 OS path API 无关的 UTF-8 grammar/parser，明确 separator、package/source/label、percent encoding、Unicode normalization、case policy、长度和 reserved chars；先 canonicalize 再 hash。跨平台 vector 必须 byte-for-byte 相等，旧 locator 写入需要迁移诊断而非静默重算。
@@ -152,6 +158,8 @@ runtime `World::query_world` 调用 `node_records()`，为每个实体建立 fie
 
 constructor 是 `const &'static str`，但 Deserialize 直接接受任意 owned String。空白、超长、大小写/Unicode 变体和重复 ownership 都能进入 header。建立 generated Schema Catalog，规定反向域名/engine namespace、长度、ASCII/Unicode policy、owner、current/min reader/min writer 和 retired IDs；startup/CI 拒绝 collision。
 
+状态（2026-08-30，grammar source implemented / catalog pending）：`SchemaId` 已收敛为单一 const/runtime validator，wire grammar 为 1-128 ASCII bytes、至少两个 dot-separated namespace segments、segment 以 lowercase letter 开始且仅允许 lowercase/digit/interior hyphen；空段、大小写、非 ASCII、非法字符、段首尾 hyphen 与超长输入均返回 typed `SchemaIdError`，serde 不再接受任意 owned String。当前 7 个 production `SchemaId::new` 均符合该 grammar，F 盘独立 release harness `4/4` 通过。对照 Unreal `FCustomVersionRegistration` 的 GUID key + version + friendly name + central duplicate-registration check，本切片仍缺 generated catalog、stable numeric/GUID identity、owner/current/min reader/min writer、retired IDs 和 collision gate，因此 P1-01 继续保持 in progress，managed crate gate pending。
+
 #### P1-02 · `PayloadHeader` 只有 schema ID 与 u32 version
 
 它不说明 wire format revision、encoding、compression、feature/profile、producer build、payload digest、required capability、flags 或 schema fingerprint。内容格式和 domain schema 应分离版本；未知 required flag 必须拒绝，optional flag 可保留，完整 header 进入 digest/receipt。
@@ -163,6 +171,8 @@ constructor 是 `const &'static str`，但 Deserialize 直接接受任意 owned 
 #### P1-04 · generic text loader 将所有 unwrapped JSON 解释为 schema version 0
 
 这会把“忘记 envelope”“其他 JSON 文件”与真正 legacy v0 混为一谈。是否接受 legacy 必须由 schema policy 显式声明，并给 sunset/version probe；新格式默认 hard-cut，legacy adapter 在独立入口输出 migration receipt。
+
+状态（2026-08-30，default hard-cut source implemented / managed Cargo pending）：`load_versioned` 的 text policy 已从 implicit schema-zero 改为 Reject，缺少 `$zircon` 时在 payload materialization 前返回 typed `MissingTextEnvelope`；新增 `load_versioned_legacy_schema_zero` 作为唯一显式 legacy adapter。源码逐 schema 复核后，仅 `DynamicScene`（v0→v1→v2）与 `ReflectedJsonDocument`（v0→v1）路由到 legacy adapter；Settings/EditorWorkspace/LayoutPreset 各自已声明 v0 retired，继续使用 default hard-cut，ExportPreset 继续使用 envelope alias。F 盘 focused release harness 覆盖 default reject + explicit legacy accept 以及 ExportPreset 行为，`5/5` 通过。migration receipt 目前仍只有 `Loaded::migrated_from`，尚缺 sunset/catalog policy 与完整 receipt，因此 P1-04 保持 in progress。
 
 #### P1-05 · `$zircon` envelope detection 与 domain object 的保留 key 没有完整规则
 
@@ -187,6 +197,8 @@ magic/format version是好基础，但没有语言无关字段说明、canonical
 #### P1-10 · public `write_canonical_text_to` 明确无总大小限制，调用约束只存在于注释
 
 runtime-owned archive caller可以把任意对象写入 Vec/文件。API应要求显式 `SerializationBudget`，不存在“unbounded”生产默认；可信离线工具也使用配置化高上限并记录实际用量。
+
+状态（2026-08-30，source implemented / managed Cargo pending）：新增无 `Default` 的 caller-owned `SerializationBudget`，`write_canonical_text_to(value, sink, budget)` 和内部 canonical writer 都必须取得显式 `max_output_bytes`；production `write_canonical_text_unbounded` 已删除，源码扫描为 `0`。唯一 production caller `RuntimeSessionArchive` 将其既有 `limit_bytes` 同时传给 encoder 与 bounded sink，encoder 的 `OutputTooLarge` 统一映射为领域 `ArtifactTooLarge`，不再依赖下游 Vec 拒写后才发现超限。设计对照 Unreal `FArchive::ArMaxSerializeSize/GetMaxSerializeSize()` 的 archive-owned maximum；F 盘 release harness 包含 encoder-side 小预算拒绝并 `8/8` 通过。managed interface/runtime crate gate仍 pending，因此本项保持 in progress。
 
 #### P1-11 · canonical spool 没有 save attempt identity、journal 与 stale cleanup
 
@@ -228,6 +240,12 @@ summary只检查trim后非空，而template和project-name模块另有约束。�
 
 大量roots会扩大解析、pairwise比较和后续scan成本。TOML入口先限bytes/depth/table/items，roots canonical sort后线性前缀检查；重复、嵌套、case-fold collision与filesystem alias均结构化报告。
 
+优化记录（2026-08-30，baseline captured / implementation next）：current-source 等价 F 盘 release harness 对 4,096 个互不重叠 roots 执行 `BTreeSet` duplicate pass 加 pairwise overlap pass，共 8,386,560 pairs；21 samples 为 P50 `217,578,200 ns`、P95 `335,529,800 ns`。这证明主要成本是 O(n²) 结构，而非 `strip_prefix` 细节。对照 Unreal `FLongPackagePathsSingleton` 以 `TDirectoryTree` 持有 RootPath/ContentPath 层级查询并以 `TSet` 持有 mount identity；Zircon manifest 是一次性 admission，不需要复制常驻树，拟采用 component-lexicographic sort + adjacent prefix scan，把 duplicate/overlap validation 收敛为 O(n log n) time / O(n) borrowed-index space，并先加明确 root-count admission。该微基准不包含 TOML parse、filesystem alias、case-fold/Unicode 或整项目打开耗时。
+
+状态（2026-08-30，algorithm/budget source implemented / managed Cargo pending）：manifest-summary owner 新增 4 MiB `MAX_PROJECT_MANIFEST_BYTES` 与 4,096 `MAX_PROJECT_ASSET_ROOTS` admission，duplicate/overlap 从 stringly `InvalidValue` 收敛为 typed errors。production validator 复制 borrowed root references、按 `/` components 排序并只扫描相邻项，正确捕获 raw string ordering 会漏掉的 `a`, `a-b`, `a/child`。同机交错 21-sample release 对比中，4,096 roots 的旧/新 P50 为 `133,777,200 / 313,800 ns`（`426.31x`，`-99.77%`），P95 为 `189,681,100 / 479,700 ns`（`395.42x`，`-99.75%`）；直接 include production `parse.rs`/`limits.rs` 的 F 盘 harness 对 component overlap、duplicate、root-count、document-byte budget `2/2` 通过。TOML depth/table/item budget 已在下述 follow-up 实现；尚缺 case-fold/Unicode collision、filesystem alias 与 managed crate gate，因此 P1-20 保持 in progress。本数据不是完整 manifest parse 或 project-open 端到端耗时。
+
+后续架构复核与实现（2026-08-30，TOML complexity admission source implemented / managed Cargo pending）：current source 原先在 4 MiB byte gate 后直接物化 `toml::Value`，随后进入 JSON 投影与 migration，没有项目域的 container complexity contract。当前 workspace 的 `toml 1.1.2` 由 `toml_parser::RecursionGuard` 在 parser event 层限制 80 层，因此没有另写 TOML scanner；新增 `manifest_summary/admission.rs` 在结构化 parse 后、JSON 投影前用显式栈执行第二层 domain admission：最大 nesting depth 32、累计 table entries 16,384、累计 array items 65,536，超限返回 typed `max/found` error。遍历为 O(nodes) time / O(frontier) borrowed space，不递归、不复制 key/value。Unreal `FPackageName::IsValidTextForLongPackageName` 同样把 lexical admission 与 mounted identity 分离；Zircon 此切片只拥有 document complexity，case-fold/Unicode/filesystem alias 继续归 portable path 与 I/O authority。TDD red 先得到三个缺失常量的 `E0432`；随后 F 盘 release harness 直接 include production `admission.rs` 并覆盖边界深度、三种超限以及三次真实 TOML parse-to-admission，结果 `7/7`。两次独立进程、每次 5 次预热后的 21-sample 最大允许结构 scan：16,384-entry table P50 `135,900..161,600 ns`、P95 `264,800..468,500 ns`；65,536-item array P50 `539,500..544,600 ns`、P95 `600,600..603,800 ns`。这是 Value 后置 admission 的绝对扫描开销，不是完整 TOML parse、project-open 或功耗结论。focused rustfmt/diff check 通过，managed crate gate 未执行。
+
 #### P1-21 · summary故意忽略完整manifest未知字段，却没有“部分验证”能力声明
 
 Hub读取summary可能给用户“项目有效”的错觉，实际上plugin/platform/editor字段从未验证。返回 `ManifestProbe { core_status, deferred_sections, required_capabilities }`，UI不得把summary parse success等同完整admission。
@@ -247,6 +265,10 @@ rendered entries只是RelPath+bytes，无法证明模板来源、迁移或复现
 #### P1-25 · retired asset-reference migration递归遍历任意 JSON且按形状全局改写
 
 公开函数接受programmatically constructed `Value`，没有node/depth budget，极深结构可stack overflow；任何恰为 `{uuid,url}` 的domain object都会被改写。迁移必须由schema field path驱动，使用显式stack和budget，输出changed paths/diagnostics/receipt并保证二次执行幂等。
+
+结构与性能复核（2026-08-30，source implemented / managed Cargo pending）：current source 已把匹配收紧为 exactly-two-field `{ uuid, url }`，并提供不遍历 container 的 single-reference primitive；asset migration 已在已知 TOML schema path 上使用该 primitive。仍在使用 whole-value walker 的 production owners 只有 DynamicScene v0 与 ReflectedJson v0。原 walker 递归调用并为所有 array/object 重新 collect container；F 盘 release allocation baseline 对 16,384 个两字段普通对象执行无变化遍历，5 warmups 后 21 samples 为 P50 `10,127,200 ns`、P95 `28,769,800 ns`，每次固定产生 `32,768` allocation calls / `14,024,704` allocated bytes，证明瓶颈来自结构性 container rebuild，不是 reference resolver。
+
+新 walker 先以只读 iterator-frame state machine 完成 admission，再以可变 iterator-frame state machine 原地 rewrite；resolver 在完整 admission 前不会执行，算法为 O(nodes) time / O(depth) auxiliary space。标准 hard limits 为 depth 128、nodes 2,000,000、retired references 1,000,000，另有 caller-owned `RetiredAssetRefMigrationBudget` 入口；超限返回 typed `resource/max/found`。生产源码直连 F 盘 release harness 覆盖 depth/node/reference pre-resolution rejection、exact migration、二次幂等、lookalike、malformed exact shape 与 builtin 分流，最终 `8/8` 通过；runtime asset-migration 的 exhaustive error mapper 已增加明确 resource-limit issue arm，没有 wildcard suppression。两次同进程交错 old/new、每次 5 warmups + 21 samples：P50 `8,545,500 -> 7,538,100 ns`（`-11.79%`）与 `9,553,000 -> 6,957,900 ns`（`-27.17%`）；P95 `14,015,900 -> 12,488,700 ns`（`-10.90%`）与 `12,809,200 -> 10,413,300 ns`（`-18.70%`）。allocation calls `32,768 -> 4`、allocated bytes `14,024,704 -> 760`，均下降 `99.99%`。Unreal `FCoreRedirects::RedirectNameAndValuesUnderReadLock` 对 registered typed name/value rule 迭代到 fixed point 并检测冲突，不把任意 object shape 当成 schema；DynamicScene/ReflectedJson 的最终 schema-path rule、changed-path receipt 与 redirect conflict catalog 仍 pending，因此 P1-25 保持 in progress。
 
 #### P1-26 · project session lock用调用方原始路径构造Windows mutex identity
 
@@ -292,6 +314,10 @@ event kind/record不足以判断漏事件、乱序、旧import完成覆盖新att
 
 空白/空字符串和无效short path可直接反序列化；`with_module_path/with_plugin_id`也接受未验证字符串。使用custom Deserialize和统一TypeIdentity parser，明确crate/module/plugin/generic参数grammar和长度。
 
+结构准入复核（2026-08-30，source implemented / managed Cargo pending）：原 current source 的 `new` 只检查两段文本 trim 后非空，derived Deserialize、`with_module_path`、`with_plugin_id` 三条入口均绕过同一语义；仓库现有 full path 同时存在 Rust `::` 与 VM `.` 两种 wire family，未发现 generic argument wire。对照 Unreal `FTopLevelAssetPath` 将 package/asset 拆成私有 component、所有 string/component constructor 都进入 `TrySetPath` 且解析失败时 reset/fail，Zircon 已收敛到一个 parser：full path 最大 512 bytes，只允许全 `::` 或全 `.`、禁止 mixed/empty segment；Rust family 每段为 ASCII identifier，VM family 的 namespace 段为 ASCII key token（与 canonical plugin ID 的数字/`-`能力兼容）、terminal type 段仍为 identifier。short path 最大 128 bytes、必须是 full path terminal segment；module path 最大 384 bytes、若存在必须是 full path 的完整 prefix；plugin id 最大 128 bytes、必须是 canonical lowercase ASCII key。generic 参数在当前 revision 明确拒绝，未来必须先引入 schema/versioned TypeIdentity grammar，不能让不同 consumer 自行解析。
+
+调用面量化与 hard cut：`ReflectTypePath::new` 约 30 个 source call sites，`with_plugin_id/with_module_path` 13 个调用点，原 full/short/plugin public-field access 超过 70 处。复核确认生产 consumer 都是只读，只有两个 registry 故障注入测试直接写 plugin projection；因此四个字段现已私有化，读路径统一迁到 borrowed accessor，外部 `ReflectTypePath { .. }` struct literal 为 `0`。custom Deserialize 使用 `deny_unknown_fields` 并复用 constructor/parser，builders 改为 fallible；`ReflectTypeRegistration` 只在 nested path validation 成功后写 canonical plugin owner，顶层 duplicate 已由下述 P1-38 hard cut 删除。`ReflectObjectAddress` 也删除较弱的 non-empty-only validator。约 200 行纯 grammar 已提取到 `type_path/validation.rs` owner，DTO 根只保留构造/accessor/serde/builder 协调。focused crate tests覆盖 invalid wire/unknown field/mixed separator/leaf mismatch/module/plugin/roundtrip；旧 current-source F 盘 probe 已先复现非法 wire 被 derived Deserialize 接受的红灯，随后直接 include production validation owner 的 F 盘 release `rustc` harness `21/21` 通过，其中包含 numeric/`-` plugin namespace 与 terminal identifier 分离。serde 依赖缓存被外部清理，故 custom Deserialize 和 cross-crate accessor 的 current-source managed crate gate仍 pending。P1-36 的 string invariant source closure已完成；stable schema identity/alias/revision归 Tooling reflection identity，不能用本项替代。
+
 #### P1-37 · `ReflectObjectAddress` 同样可绕过constructor，且entity只是裸u64
 
 serde可构造空type path；component address没有world/session/epoch/generation，entity slot复用后可写错对象。地址包含session/world snapshot、entity generation和stable type ID，decode后统一validate。
@@ -300,25 +326,37 @@ serde可构造空type path；component address没有world/session/epoch/generati
 
 `type_path.plugin_id`与registration顶层`plugin_id`可在deserialize后分裂。只保留一个canonical owner key，其他投影由registry计算；registration admission验证package/version/capability。
 
+状态（2026-08-30，source implemented / managed Cargo pending）：顶层 `ReflectTypeRegistration::plugin_id` 原 current source 只有 5 个直接 consumer；serialized registration 同时写顶层与 nested key。VM registry replacement 比较 duplicated registration field，`validate_vm_registration` 先读取顶层再与 nested 比较，VM package catalog 也连续验证两份相同 owner，说明第二份没有独立语义，只增加 split-brain 状态。Unreal `FAssetData` 的 identity 由 `PackageName + AssetName`/`FTopLevelAssetPath` component 构成，plugin/mount access 由 package/mount policy查询，不在 identity DTO 再存一份 plugin owner。Zircon 已 hard cut 选择 `ReflectTypePath::plugin_id` 为唯一 serialized owner：registration 顶层字段和全部 5 个 consumer 已删除，replacement/package validation 只读 canonical owner，registration serde `deny_unknown_fields` 明确拒绝旧双字段 wire，`with_plugin_id` 只更新 nested owner。VM registry 对 full/short/plugin 的重复 trim 检查也已删除，只保留 display-name 与 package-prefix/capability 语义 admission；源码 gate 的 registration-level plugin owner/direct multiline nested-field bypass 均为 `0`。focused wire test 已写入，managed serde/cross-crate gate pending。此项不把 `plugin_owned` bool 与 capability sum type 的 P1-39 一并伪装完成；package version/capability admission仍由 plugin package/registry owner负责。
+
 #### P1-39 · `serialization` strategy与`serializable` bool可互相矛盾
 
 类似的plugin_owned/plugin_id、is_component/is_resource、editor/remote/script visibility也可形成不可能组合。用sum type/validated capabilities表达状态，拒绝矛盾registration而非让consumer猜优先级。
+
+结构准入复核（2026-08-30，source implemented / managed Cargo pending）：current source 中 `serializable=false` 与非 `None` strategy 被 runtime reflection macro 和 VM state migration 有意用作“内部具备 codec、但不允许进入持久化/迁移出口”的 admission policy；`editor_visible`、`remote_visible`、`script_visibility` 也分别由 inspector、remote schema 与 script catalog 独立消费。对照 Unreal `EPropertyFlags` 将 `CPF_Transient`/`CPF_SkipSerialization`、`CPF_Edit`、Blueprint/network access 保持为正交 flags，本项不会错误地把这些能力压成一个互斥枚举。真正不可表示的状态有两类：其一，registration-level `plugin_owned` 与 canonical `ReflectTypePath::plugin_id` 重复，12 个 source files/22 lines 的读写中没有第二种生产语义；其二，`is_component/is_resource` 两个 bool 在 13/10 个 files 中被所有 adapter 和 registry 当作互斥分类，registry 还必须显式拒绝 `(true, true)`。hard cut 已删除 `plugin_owned` wire/builder/derive attribute，使用 `is_plugin_owned()` 从 validated `type_path.plugin_id` 只读投影；`ReflectTypeRole::{Value, Component, Resource}` 单字段已替换双 bool，serde wire 只接受一个 `role`，旧三字段由 `deny_unknown_fields` 拒绝。derive 仍在 attribute admission 阶段拒绝 component/resource 同时声明，consumer 只读取 canonical role。focused interface wire 与 derive retired-attribute regression 已写入；27 个受影响 Rust 文件通过 parser-only rustfmt，旧 builder、registration raw bool/plugin projection 和双布尔字段声明 source gates 均为 `0`，scoped diff check 通过。serialization eligibility 与三条 visibility 保留为独立 policy；managed serde/derive/cross-crate gate pending。
 
 #### P1-40 · `ReflectFieldInfo` 没有字段唯一性与类型一致性验证
 
 空/重复field name、无效type path、default value类型不符、enum option重复、numeric range附在非数值字段均可进入schema。registry admission对整个type做原子validate，错误包含type/field/stable ID。
 
+状态（2026-08-30，source implemented / managed Cargo pending）：已完成 current-source review，并写入 `review-2026-08-30-reflect-field-admission.md`。Runtime `TypeRegistry` 现在在任何 publication 前一次性验证每个字段：字段/枚举数量预算、canonical key/text、唯一性、有界声明语法、default representation、editor hint、numeric metadata、enum option 唯一性及 enum default membership；失败使用带 `type_path`/`field_name`/`reason` 的 `InvalidFieldRegistration`，整个 registration 保持原子拒绝。`DeclaredValueType` 由一个 owner 提供 general native 与 strict VM 两种 policy，拥有 256-byte/16-depth 限制和 checked depth；native 保留 `MeshRenderer` 明确声明的动态 `List`，VM 继续只接受 typed `List<T>`/`Map<String, T>`。VM register/sync 已从同一 schema 的两次 validation/descriptor construction 收敛为一次预检结果，identical upsert 不推进 catalog generation；derive 将 `Vec<T>` 递归推断为 `List<T>`，未知 element 不再降级为裸 `List`。F 盘 release parser harness 30/30 通过；21 个独立进程样本、每样本 1,000,000 次 `List<Map<String, List<Scalar>>>` strict parse 为 P50 `482.6 ns/parse`、P95 `516.2 ns/parse`（范围 `435.3..628.4`）。focused source gates 证明 world 不再自行构造第二份 VM descriptor，scoped rustfmt/diff-check 通过。stable field ID 属于 P1-43，递归 value budget 属于 P1-42，本项不伪造 vector slot 为稳定 identity；managed interface/runtime/derive tests 仍待受管 lane。
+
 #### P1-41 · numeric range不验证finite、min <= max与step > 0
 
 NaN、反向范围、零/负step会让Inspector和script各自兜底。newtype constructor/custom Deserialize强制finite和单位语义，允许open bound用显式Option，不用NaN sentinel。
+
+状态（2026-08-30，source implemented / managed Cargo pending）：`ReflectNumericRange` 已从混合 `editor_hint.rs` 拆到独立 `numeric_range.rs` owner，字段私有，唯一 constructor 返回 typed `ReflectNumericRangeError`；custom Deserialize 复用同一 finite、`min <= max`、`step > 0` admission，open bound 继续使用 `Option`。RuntimeInterface current source 除测试外无旧 infallible constructor/public-field consumer；F 盘 release harness `1/1` 通过。range 与 field kind/type/default 的一致性仍归 P1-40 registry admission，故本状态不关闭 P1-40，也不替代 managed reflect contract gate。
 
 #### P1-42 · `ReflectedValue` 是无预算递归树并可携带任意JSON
 
 除通用JSON parser默认递归外没有type-level node/string/container budget；通过非JSON serializer还可能进入非有限float。所有remote/editor/script边界使用`ReflectValueBudget`和finite validator，大blob/array改成paged/bulk handle。
 
+状态（2026-08-30，source implemented / managed Cargo and product evidence pending）：已完成 current-source、仓库既有 budget 与本地 Unreal `FArchive`/JSON stack 重审，并写入 `review-2026-08-30-reflected-value-budget.md`。RuntimeInterface 现在提供 caller-owned `ReflectValueBudget`、typed `ReflectValueValidationError` 和非递归 flat-work-stack validator；统一统计 tagged/embedded-JSON node、depth、Map/object key 与 payload UTF-8 bytes、单容器 entries，并拒绝 Scalar/Vec/Quaternion 非有限分量。Runtime 唯一 policy 为 depth 128、nodes 16,384、累计字符串 1 MiB、单容器 4,096；`TypeRegistry` default、`WorldReflection` read/fields/write、world-query inspection、dynamic JSON component admission、dynamic-scene capture/spawn、reflected JSON read/write、VM reflected object 与 schema default 均在 publication/mutation/serialization 前复用该 owner。旧递归 finite walker 已删除。F 盘生产源码 harness 3/3；1,153-node/6,784-string-byte mixed tree 的 21 个独立 release 进程样本为 P50 `37.3 us/validation`、P95 `54.2 us/validation`（P50 `32.3 ns/node`，范围 `25.7..113.9 us`）。scoped rustfmt 与 diff-check 通过。该数据不是产品 latency/RSS/power 或 Unreal 横向数据；outer DTO/envelope byte/item/time budget 与 paged/bulk handle 仍是独立 owner，managed interface/runtime tests 与产品 workload 证据待受管 lane。
+
 #### P1-43 · field读写主要依赖字符串名称，没有稳定field ID
 
 rename会变成delete+add，旧scene/script/editor state无法可靠迁移。schema codegen生成stable type/field/variant IDs、aliases和migration metadata；显示名与identity分离。
+
+状态（2026-08-31，field public DTO/VM/editor journal/dynamic scene v3 source implemented / descriptor-type-variant identity and managed-product gates pending）：已完成当前 reflection/runtime/scene/VM/editor 字符串身份消费面、本地 Unreal `FPropertyTag`/`PropertyGuid`/redirect 路径与候选算法重审，详见 `review-2026-08-30-stable-reflect-field-identity.md`。RuntimeInterface 新增非 nil canonical `ReflectFieldId`，`ReflectFieldInfo` 强制携带 ID/current name/display name/aliases；native/script derive 生成显式可保留 identity key，拒绝未 trim key。RuntimeInterface schema catalog 原子拒绝 ID/name/alias collision，并拥有唯一 adaptive immutable ID-to-slot index：`<=512` 为 sorted binary，`>512` 为 hash；Runtime `TypeRegistry` 只保留 adapter projection，并同步 catalog 的 register/VM replacement/remove/clear。Public `ReflectReadRequest`/`ReflectWriteRequest` 直接携带 ID，`ReflectFieldValue` 只把 current name 保留为诊断 metadata；WorldReflection component/resource 单字段与批量枚举统一调用 dense slot adapter。VM reflected state 已硬切为 `VmStateFieldValue { field_id, value }` 和默认 V3，删除 `VmStateFieldRename`。Editor command 在 capture 时解析 ID，journal/apply/undo 只消费 ID。Dynamic scene v3 保存 stable ID，显式 v2 importer 从历史 type/name 生成初始 ID，capture/load 采用 schema-order fast path 和 catalog fallback，并在 mutation 前拒绝 unknown/duplicate ID。最终结构 owner 为 `field_index.rs`、schema catalog 与 Runtime adapter projection。F 盘 direct-production-source gate 覆盖 0/1/16/512/513/4096 字段；最新 15-sample source benchmark 中 512 字段 P50 从 `3034.09` 降至 `23.60 ns/probe`（`128.6x`），4096 字段从 `20721.64` 降至 `72.44 ns/probe`（`286.0x`）。descriptor-only plugin 的 `ComponentPropertyDescriptor` 尚无显式 field ID，受 Runtime42 活跃 owner 阻塞；generated type/variant ID 仍 pending。快照 `2422`、manifest `fc579de87232fdc876330d0e31e270ba304bb7763bdd61931a960d7ef03aedb8` 的四组 Windows release managed tickets 已排队：`3701010c374d4a6281ec42715ea4488a`、`b28e2941ebad4b03b46254834cdbaa15`、`c2ab992d9af84cfc8f016f3c41322630`、`efe405cfaae046b680b8cfb15e41cf1f`；排队不等于通过。该 harness 不是完整产品/功耗结论；P1-43 保持进行中，managed Cargo 与产品 workload/RSS/power 待受管 lane。
 
 #### P1-44 · reflection write没有revision/CAS、transaction、permission和correlation
 
@@ -327,6 +365,15 @@ rename会变成delete+add，旧scene/script/editor state无法可靠迁移。sch
 #### P1-45 · interface没有权威 Reflection Registry 与依赖闭包
 
 Tooling 04已确认derive/script/runtime多条authority；DTO本身也无registration set fingerprint、duplicate full path、short-name ambiguity和field ID collision gate。建立单一generated schema IR/registry，像Bevy一样登记依赖并显式保留ambiguous short names，runtime/editor/script都消费同一snapshot。
+
+状态（2026-08-30）：`catalog_and_runtime_projection_source_foundation_implemented /
+generated_dependency_persistence_managed_product_validation_pending`。RuntimeInterface 已拥有 bounded
+catalog admission、全局 field ID collision gate、scoped legacy alias、dependency closure/order、
+versioned BLAKE3 fingerprint 与受验证 snapshot；Runtime `TypeRegistry` 已删除重复 short/ambiguous/
+field-slot owner，schema response 携带全 catalog fingerprint，dynamic-scene descriptor batch 在当前
+catalog clone 上预检。derive/script dependency edge、public value/request stable-ID wire、scene/VM legacy
+import、managed Windows 与产品 profile 仍开放；详见
+`review-2026-08-30-reflection-schema-catalog-redirect-authority.md`。
 
 #### P1-46 · world query type name/filter/select没有validate或canonicalize
 
@@ -359,6 +406,8 @@ lexical path key和ASCII case fold不足以处理symlink/UNC/volume identity；t
 #### P1-53 · ExportPreset validation远未覆盖实际语义，strict load又完整解析两次
 
 features key/value、filters、scene/keep duplicates、customized conflicts、server/client约束和package naming均未验证；先解析`StrictPresetDocument<Value>`再generic load造成双倍解析/分配。由schema probe一次解析typed envelope，调用generated validator并输出all diagnostics；执行消费问题继续归Tooling 03。
+
+状态（2026-08-30，single-materialization source implemented / semantic validation pending）：serialization owner 新增 `load_versioned_envelope` 与 typed `LoadError::MissingTextEnvelope`，复用既有 borrowed `RawValue` probe；`load_export_preset` 删除 `StrictPresetDocument<Value>`、header DTO 和第一次完整 payload materialization，schema/future-version/public envelope error class及 unknown-field fail-closed 行为保留。F 盘 release focused harness 行为 `4/4` 通过。4,194,477-byte preset、21 samples 微基准中，旧/新 P50 为 `206,887,400 / 189,994,400 ns`（`-8.17%`），P95 为 `353,533,400 / 294,738,200 ns`（`-16.63%`），allocation bytes P50 为 `8,390,031 / 4,194,355`（`-50.01%`），allocation calls P50 为 `16 / 5`（`-68.75%`）。这是 loader 局部结构证据，不是整 crate、整帧或功耗验收；features/filter/scene/keep/customized/server-client/package grammar 与 generated all-diagnostics validator仍 pending，P1-53 继续 in progress。
 
 #### P1-54 · export digest/report不是自描述、可审计的stage receipt
 

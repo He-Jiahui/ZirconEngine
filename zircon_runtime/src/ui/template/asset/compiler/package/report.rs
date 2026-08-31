@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::template::{
-    UiActionPolicyReport, UiCompiledAssetDependencyManifest, UiCompiledAssetHeader,
-    UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
+    UiActionPolicyReport, UiBindingPackageLifecycleStage, UiCompiledAssetDependencyManifest,
+    UiCompiledAssetHeader, UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
     UiCompiledAssetPackageValidationReport, UiInvalidationReport, UiLocalizationReport,
 };
 
@@ -19,6 +19,7 @@ pub(super) fn build_package_validation_report(
         dependencies,
         retained_sections,
         stripped_sections,
+        binding_lifecycle_stage: UiBindingPackageLifecycleStage::Compiled,
         invalidation_report,
         action_policy_report,
         localization_report,

@@ -1,6 +1,8 @@
 use std::{path::Path, sync::Mutex};
 
-use zircon_runtime::plugin::native::{NativePluginHostHandle, NativePluginRuntimePlayModeSnapshot};
+use zircon_runtime::plugin::native::{
+    host::NativePluginHostHandle, NativePluginRuntimePlayModeSnapshot,
+};
 use zircon_runtime::plugin::RuntimePluginBridgeLifecycleState;
 
 use super::{PluginBridgeActivation, PluginBridgeActivationReport};

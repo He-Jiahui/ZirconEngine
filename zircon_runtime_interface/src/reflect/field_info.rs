@@ -1,11 +1,16 @@
 use serde::{Deserialize, Serialize};
 
-use super::{ReflectEditorHint, ReflectEnumOption, ReflectNumericRange, ReflectedValue};
+use super::{
+    ReflectEditorHint, ReflectEnumOption, ReflectFieldId, ReflectNumericRange, ReflectedValue,
+};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ReflectFieldInfo {
+    pub id: ReflectFieldId,
     pub name: String,
     pub display_name: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub aliases: Vec<String>,
     pub value_type_path: String,
     pub editable: bool,
     pub serializable: bool,
@@ -23,14 +28,17 @@ pub struct ReflectFieldInfo {
 
 impl ReflectFieldInfo {
     pub fn new(
+        id: ReflectFieldId,
         name: impl Into<String>,
         value_type_path: impl Into<String>,
         editor_hint: ReflectEditorHint,
     ) -> Self {
         let name = name.into();
         Self {
+            id,
             display_name: name.clone(),
             name,
+            aliases: Vec::new(),
             value_type_path: value_type_path.into(),
             editable: true,
             serializable: true,
@@ -43,8 +51,28 @@ impl ReflectFieldInfo {
         }
     }
 
+    pub fn from_stable_keys(
+        owner_key: &str,
+        field_key: &str,
+        name: impl Into<String>,
+        value_type_path: impl Into<String>,
+        editor_hint: ReflectEditorHint,
+    ) -> Self {
+        Self::new(
+            ReflectFieldId::from_stable_keys(owner_key, field_key),
+            name,
+            value_type_path,
+            editor_hint,
+        )
+    }
+
     pub fn with_display_name(mut self, display_name: impl Into<String>) -> Self {
         self.display_name = display_name.into();
+        self
+    }
+
+    pub fn with_aliases(mut self, aliases: Vec<String>) -> Self {
+        self.aliases = aliases;
         self
     }
 

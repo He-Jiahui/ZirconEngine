@@ -1,16 +1,19 @@
+use std::sync::OnceLock;
+
 use crate::core::editor_event::{
     EditorEvent, EditorEventEffect, EditorEventRecord, EditorEventSource, EditorEventTransient,
     EditorViewportEvent, ViewInstanceId,
 };
 use crate::core::editor_message::{
-    EditorMessage, EditorTopic, EditorUiDeltaBarrierKind, EditorViewInvalidationMask,
-    EditorViewRefreshReport,
+    EditorMessage, EditorMessageSchemaId, EditorTopic, EditorUiDeltaBarrierKind,
+    EditorViewInvalidationMask, EditorViewRefreshReport,
 };
 use crate::core::extension::{CapabilitySet, FieldEditorContainer, InspectorCustomizationChain};
+use crate::core::i18n::{EditorI18nService, EditorLocale};
 use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome;
-use crate::ui::host::editor_activity_log::activity_log_console_output;
+use crate::ui::host::editor_activity_log::activity_log_console_output_for_shell;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::reflection::{
@@ -25,13 +28,25 @@ use zircon_runtime_interface::ui::event_ui::{UiNodePath, UiReflectionNodePatch};
 const WORKBENCH_ROOT_VIEW_INSTANCE_ID: &str = "workbench.root";
 const VIEW_INVALIDATED_TOPIC: &str = "view.invalidated";
 
+fn debug_text_schema_id() -> &'static EditorMessageSchemaId {
+    static SCHEMA_ID: OnceLock<EditorMessageSchemaId> = OnceLock::new();
+    SCHEMA_ID.get_or_init(|| {
+        EditorMessageSchemaId::editor("debug-text")
+            .expect("the built-in debug-text schema id is valid")
+    })
+}
+
 impl EditorHostEventController {
     pub(crate) fn refresh_reflection(&self) {
         let mut shell = self.shell().lock();
         let commands = self.commands().lock();
+        let i18n = self.context().i18n();
+        let locale = i18n.active_locale();
         Self::refresh_reflection_for_shell(
             &mut shell,
             &commands,
+            i18n,
+            &locale,
             self.context().command_eval(),
             self.play_sessions().mode(),
         );
@@ -40,6 +55,8 @@ impl EditorHostEventController {
     pub(crate) fn refresh_reflection_for_shell(
         shell: &mut WorkbenchShellStateData,
         commands: &crate::core::commands::EditorCommandRegistry,
+        i18n: &EditorI18nService,
+        locale: &EditorLocale,
         command_eval: &crate::core::commands::CommandEvalSnapshotHandle,
         play_mode: crate::core::play::PlayModeKind,
     ) {
@@ -58,6 +75,7 @@ impl EditorHostEventController {
             .cloned()
             .collect::<CapabilitySet>();
         let contributions = shell.contributions.snapshot();
+        let focused_toolkit = shell.manager.focused_document_toolkit();
         shell
             .state
             .viewport_controller
@@ -70,11 +88,16 @@ impl EditorHostEventController {
                 enabled_capabilities.clone(),
             ));
         command_eval.replace(eval_context.clone());
+        let keymap = shell.manager.keymap();
         let view_model = WorkbenchViewModel::build_with_contributions_and_context(
             commands,
+            &keymap,
+            i18n,
+            locale,
             &chrome,
             &contributions,
             &contribution_capabilities,
+            focused_toolkit.as_ref(),
             &eval_context,
         );
         let model = register_workbench_reflection_routes(
@@ -100,7 +123,7 @@ impl EditorHostEventController {
             return;
         }
         let message = EditorMessage::custom(
-            "zircon.editor.debug-text",
+            debug_text_schema_id().clone(),
             serde_json::Value::String(view.0.clone()),
         )
         .with_dirty(view.clone(), mask);
@@ -193,12 +216,17 @@ impl EditorHostEventController {
         let mut editor_snapshot = shell
             .state
             .snapshot_with_inspector_customizations(&inspector_customizations, &field_editors);
-        Self::project_asset_type_registry_for_shell(shell, &mut editor_snapshot);
-        editor_snapshot.console_output = activity_log_console_output(
-            shell.manager.context().logs(),
-            shell.console_message_filter,
-            shell.console_source_filter,
-        );
+        if let Err(error) = Self::project_asset_type_registry_for_shell(shell, &mut editor_snapshot)
+        {
+            Self::present_asset_type_registry_projection_error(&mut editor_snapshot, error);
+        }
+        if !shell.state.is_playing() {
+            if let Some(history) = shell.manager.focused_animation_history_status() {
+                editor_snapshot.can_undo = history.can_undo;
+                editor_snapshot.can_redo = history.can_redo;
+            }
+        }
+        editor_snapshot.console_output = activity_log_console_output_for_shell(shell);
         EditorChromeSnapshot::build(
             editor_snapshot,
             &shell.manager.current_layout(),
@@ -270,11 +298,15 @@ fn invalidation_mask_for_effects(effects: &[EditorEventEffect]) -> EditorViewInv
             EditorEventEffect::PresentWelcomeRequested
             | EditorEventEffect::ProjectOpenRequested
             | EditorEventEffect::ProjectSaveRequested
+            | EditorEventEffect::DocumentSaveAllRequested
             | EditorEventEffect::ProjectCloseRequested
             | EditorEventEffect::AssetDetailsRefreshRequested
             | EditorEventEffect::AssetPreviewRefreshRequested
             | EditorEventEffect::ImportModelRequested
+            | EditorEventEffect::AssetRelocationRequested { .. }
+            | EditorEventEffect::AssetDeletionRequested { .. }
             | EditorEventEffect::CommandPaletteOpenRequested
+            | EditorEventEffect::SettingsWindowOpenRequested
             | EditorEventEffect::OpenScenePickerRequested
             | EditorEventEffect::CreateScenePickerRequested => {
                 mask.insert(EditorViewInvalidationMask::PRESENTATION_DATA);

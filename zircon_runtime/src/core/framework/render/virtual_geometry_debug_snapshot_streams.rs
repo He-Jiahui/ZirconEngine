@@ -27,7 +27,22 @@ pub use diagnostics::{
 };
 
 mod types;
-pub use types::*;
+pub use types::{
+    RenderVirtualGeometryDebugSnapshotDecodedStreams,
+    RenderVirtualGeometryDebugSnapshotReadbackStreamDecodeError,
+    RenderVirtualGeometryDebugSnapshotReadbackStreamFootprint,
+    RenderVirtualGeometryDebugSnapshotReadbackStreamReport,
+    RenderVirtualGeometryDebugSnapshotReadbackStreamSummary,
+    RenderVirtualGeometryDebugSnapshotReadbackStreams,
+    RenderVirtualGeometryNodeAndClusterCullDecodedStreams,
+    RenderVirtualGeometryNodeAndClusterCullWordStreamDecodeError,
+    RenderVirtualGeometryNodeAndClusterCullWordStreams,
+    RenderVirtualGeometryRenderPathDecodedStreams,
+    RenderVirtualGeometryRenderPathWordStreamDecodeError,
+    RenderVirtualGeometryRenderPathWordStreams, RenderVirtualGeometryVisBuffer64DecodedStream,
+    RenderVirtualGeometryVisBuffer64ReadbackStream,
+    RenderVirtualGeometryVisBuffer64ReadbackStreamDecodeError,
+};
 
 impl RenderVirtualGeometryDebugSnapshot {
     pub fn debug_readback_streams(&self) -> RenderVirtualGeometryDebugSnapshotReadbackStreams {

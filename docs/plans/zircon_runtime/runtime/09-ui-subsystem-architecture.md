@@ -19,11 +19,33 @@ related_code:
   - zircon_runtime/src/ui/surface/navigation
   - zircon_runtime/src/ui/surface/render/collection_rows/table.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
+  - zircon_runtime/src/ui/surface/surface/rebuild.rs
+  - zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs
+  - zircon_runtime/src/ui/surface/surface/property_transaction.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions.rs
+  - zircon_runtime/src/ui/tests/widget_menu_behavior.rs
+  - zircon_runtime/src/ui/tests/widget_menu_behavior/control_anchored_overlays.rs
+  - tools/tests/test_runtime_widget_menu_behavior_test_structure.py
+  - tools/tests/test_runtime_ui_surface_incremental_rebuild_owner_structure.py
+  - tools/tests/test_runtime_ui_surface_property_transaction_owner_structure.py
+  - tools/tests/test_runtime_ui_pointer_component_state_owner_structure.py
+  - tools/tests/test_runtime_ui_pointer_template_action_owner_structure.py
   - zircon_runtime/src/ui/accessibility/extract.rs
   - zircon_runtime/src/ui/surface/ecs_projection.rs
   - zircon_runtime/src/ui/template
+  - zircon_runtime/src/ui/template/asset/surface_index.rs
+  - zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs
   - zircon_runtime/src/ui/template/build/interaction.rs
+  - tools/tests/test_runtime_ui_asset_surface_node_resource_owner_structure.py
+  - zircon_runtime/src/ui/platform_input/winit_translation.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation/keyboard.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation/pointer.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation/ime.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation/window.rs
+  - tools/tests/test_runtime_ui_winit_translation_owner_structure.py
   - zircon_runtime/src/ui/v2
   - zircon_runtime/src/ui/dispatch
   - zircon_runtime_interface/src/ui
@@ -163,7 +185,7 @@ editor_layout/(规范/契约,DTO 落 zircon_runtime_interface) → editor_ui/(�
 #### 切片 2.2 virtualization / scroll 边界声明
 
 - 目标文件：`ui/layout/virtualization.rs`、`ui/layout/scroll.rs` + 文档。
-- 改动形态：声明虚拟化窗口与滚动偏移的 owner 与失效时机（数据变更/视口变更）；补行为测试：`virtualized_list_only_materializes_visible_window`、`scroll_offset_invalidates_virtualization_window`、`non_virtualized_scroll_offset_keeps_full_window_dirty_domain`（名按实仓 API 定稿）。
+- 改动形态：声明虚拟化窗口与滚动偏移的 owner 与失效时机（数据变更/视口变更）；补行为测试：`retained_virtual_list_only_arranges_visible_window`、`scroll_offset_invalidates_virtualization_window`、`non_virtualized_scroll_offset_keeps_full_window_dirty_domain`。首项只声明 retained-child geometry windowing，不声明实例物化已被限制。
 - 调用方迁移：无公共面变化。
 - 验收：两测试绿。
 - DoD：边界文档 + 测试落地。
@@ -246,3 +268,124 @@ editor_layout/(规范/契约,DTO 落 zircon_runtime_interface) → editor_ui/(�
 - 2026-07-23 surface clean合同交接：interface `ui/surface/**` tracked-clean 30/47确认arranged lookup线性、surface frame/debug/timeline持wide全量artifact、route/focus保留多份路径和无界历史、brush/resource/style存在重复owner；文本source-map与shaped→paint投影还有grapheme/run重复扫描。Runtime09让surface发布generation-owned arranged/frame/render/text handles与compact current state，stable access/build/clone=0；分别回链PERF-MVP-254/277/278/280/282/288/289/292/293/296，并交给EditorUI03。9个dirty tracked与8个foreign untracked文件仍由原owner独立验收。
 - 2026-07-23 clean contract tests性能交接：interface本批22个clean测试强覆盖serde/ABI/default/order/error语义，但ECS/layout/v2/surface fixture多为1–3项，只有pipeline测试100次pointer move零layout，未覆盖allocation/retained bytes/p95。Runtime09在PERF-MVP-263/274/278/312的既有门禁补1/1k/10k/100k nodes、stable 300 frames及changed-row比例，记录passes/visits/BTree+Vec alloc/published bytes；stable generation build/clone/heap=0，delta成本随changed rows。world-sync NotModified测试仍先构造rows，PERF-MVP-563须增加unchanged generation row build/visit/bytes=0断言。
 - 2026-07-23 interface current-source收口交接：UI 218/218、tests 31/31已静态读完。`UiRenderCommand`当前已做到每conversion只用一次无临时Vec JSON hash，但stable command仍全序列化，Runtime09按PERF-MVP-178让mutation owner发布typed generation，paint不得由DTO serde求generation。foreign `UiBatchPlan`尚无runtime submit caller；产品Runtime Diagnostics已用它构造cache/parity/visualizer，出现重复key/resource/effect clone、paint→batch线性membership与O(P³..P⁴) overdraw。按280发布single render generation artifact+paint→batch index+bounded spatial debug sections，接入submit前与Render17共用同一batch authority；debug off工作=0，不能让interface DTO成为第二套renderer。
+
+## 2026-08-27 Widget Menu Control-Anchored Test Owner Split
+
+状态：`runtime_09_15_widget_menu_control_anchored_test_owner_split_static_passed_cargo_deferred`。
+
+当前非算法结构切片把 `ui/tests/widget_menu_behavior.rs` 中 5 个 control-anchored
+popup/dropdown overlay、frame hit authority、incremental input-policy 与 focus restoration 测试
+原样迁入 folder-backed `widget_menu_behavior/control_anchored_overlays.rs`。父 owner 从 861 行
+降到 625 行并保留 11 个 menu/popup dismissal tests 与共享 surface fixtures；child 为 239 行
+和 5 个测试。另一会话新增的 typed component event 与 binding mode 字段仍位于父级共享
+`binding(...)` helper，两个锚均由静态回归锁定。
+
+Python 结构回归 1/1、定向 Rust `rustfmt --check`、迁移测试体规范化 SHA-256 等价与
+scoped diff check 通过。popup stack、hit-test grid、input-policy patch、focus 和 dispatch
+算法均未修改；Cargo 未执行，因此不声明 Runtime09/15 或 UI 产品验收，也未触发 milestone
+commit/企微同步。
+
+## 2026-08-27 UiSurface Incremental Rebuild Owner Split
+
+状态：`runtime_09_15_ui_surface_incremental_rebuild_owner_split_static_passed_cargo_profile_deferred`。
+
+当前非算法结构切片先复审 `UiSurface` rebuild 全路径与 Unreal Slate invalidation root/widget
+list/heap/index 边界，再把 1194 行 `ui/surface/surface/rebuild.rs` 中完整 `rebuild_dirty`、增量
+布局降级阈值和 layout-engine report patch/merge helper 硬切到 folder-backed
+`rebuild/incremental.rs`。父 owner 现为 500 行，只保留 full rebuild、render extract、dirty
+mutation 与 `compute_layout`；incremental child 为 711 行，继续修改同一 `UiSurface`，没有增加
+facade、第二棵 tree、第二份 invalidation state 或兼容路由。
+
+Python RED 先以父 owner 1194 行超预算失败，拆分后 production-owner guard 1/1 通过；移动的
+4 个核心项 whitespace-normalized SHA-256 4/4 与拆分前一致，定向 rustfmt 和 scoped diff
+check 通过。字体代次失效、1/4/256 降级阈值、arranged/hit/render 局部 patch、导航索引和
+surface-frame publication 均保持原逻辑。P1-9 的 full-subtree frontier、P1-10 的 patch/rebuilt
+诊断失真以及 persistent Taffy 仍开放；未生成 CPU/allocation/RSS/power 样本。Cargo、UI 产品
+路径和 profile 验证延后，因此不声明 Runtime09/15 acceptance、瓶颈消失或算法最优，也未触发
+milestone commit/企微同步。
+
+## 2026-08-27 UiSurface Property Transaction Owner Split
+
+状态：`runtime_09_15_ui_surface_property_transaction_owner_split_static_passed_cargo_profile_deferred`。
+
+继续按 Unreal Slate attribute descriptor/value-change 到 typed invalidation reason 的职责边界，
+把 959 行 `ui/surface/surface.rs` 中 surface property transaction 硬切到 folder-backed
+`surface/property_transaction.rs`。该事务统一拥有 tree property、component state、runtime style、
+focus/popup、editable text、clipboard revision 与 invalidation 的原子同步；483 行父 owner 继续
+拥有 `UiSurface` 状态、构造、invalidation transaction、runtime style、hit/accessibility/debug
+查询和 route projection，485 行 child 仍直接修改同一 surface，没有第二份 property store、
+popup stack、edit state 或 invalidation truth。
+
+Python RED 先以 959 行父 owner 超预算失败，拆分后 production-owner guard 1/1 通过；12 个
+移动方法/helper 的 whitespace-normalized SHA-256 12/12 与拆分前一致，定向 rustfmt 与 scoped
+diff check 通过。另一会话已有的 compiled binding event index、font generation、arranged
+visibility、virtual-list materialization、hot-reload state、editable-text clipboard invalidation 和
+runtime-anchored popup 命名均保留。本切片未改变 property/popup/text/focus 算法，也没有性能或
+功耗样本；Cargo/UI 产品/profile 验证延后，不声明 Runtime09/15 acceptance 或瓶颈消失。
+
+## 2026-08-27 UI Pointer Component State Owner Split
+
+状态：`runtime_09_15_ui_pointer_component_state_owner_split_static_passed_cargo_profile_deferred`。
+
+当前非算法结构切片复审 887 行 `surface/pointer_component_events.rs` 与 Unreal
+`SlateApplication` 输入路由、`SWidget` hover/invalidation 状态分工后，把 hover/pressed/focus
+component state、runtime pseudo-style propagation、render dirty 与 minimal ancestor-root helper
+硬切到 226 行 folder-backed `pointer_component_events/state_invalidation.rs`。674 行父 owner
+继续拥有 pointer component event、damage、compiled binding 与 template-action payload 投影；child
+仍修改同一 surface/component state/style/invalidation owner，没有第二事件路由或 state cache。
+
+Python RED 先以 887 行父 owner 超预算失败，迁移后 production-owner guard 1/1 通过；7 个
+移动方法/helper 的 whitespace-normalized SHA-256 7/7 与拆分前一致，定向 rustfmt 与 scoped
+diff check 通过。本切片未改变 ancestor walk、style subtree propagation、dirty domain、event
+ordering、binding 或 payload 算法，也没有 CPU/allocation/RSS/power 样本。Cargo/UI 产品/profile
+验证延后，不声明 Runtime09/15 acceptance、规模最优或瓶颈消失。
+
+## 2026-08-28 UI Pointer Template Action Owner Split
+
+状态：`runtime_09_15_ui_pointer_template_action_owner_split_static_passed_cargo_profile_deferred`。
+
+继续对照 Unreal `SlateApplication` 的 pointer routing 与 `Framework/Commands/UIAction.h` 的
+action contract 分工，将 binding handle 校验、声明式 action/route 选择、missing-value policy、
+payload expression/property resolution 迁入 folder-backed
+`pointer_component_events/template_action.rs`。426 行父 owner 只保留 route-derived component
+event、focus event、damage 与 binding event envelope；262 行 action child 继续读取同一 tree、
+compiled binding、control index 与 component-state authority，没有第二 dispatch/action registry。
+
+结构 RED 先以父 owner 674 行超出 550 行边界失败；迁移后 9 个方法规范化 SHA-256 9/9 与
+拆分前一致。事件顺序、handle 映射、missing-value policy、expression evaluation 和 payload
+allocation 算法均未改变；Cargo/UI 产品与 CPU/allocation/RSS/power profile 延后，不声明
+Runtime09/15 acceptance、性能收益、瓶颈消失或算法最优。
+
+## 2026-08-28 UI Asset Surface Node Resource Owner Split
+
+状态：`runtime_09_15_ui_asset_surface_node_resource_owner_split_static_passed_cargo_profile_deferred`。
+
+复审 918 行 `ui/template/asset/surface_index.rs` 后，将 retained tree node metadata 的容错资源
+URI/fallback 投影迁入 175 行 folder-backed
+`surface_index/node_resource_registration.rs`；758 行根 owner 继续拥有 surface/tree 的正反向
+索引、资源反向边、受影响 surface 选择与 hot-reload targeting。编译期严格 schema 诊断仍由
+`ui/template/asset/resource_ref/collect.rs` 单独拥有，不把两个生命周期和错误合同错误合并。
+
+结构 RED 先以 918 行根 owner 超过 800 行边界失败；迁移后 11 个方法/helper 的
+whitespace-normalized SHA-256 11/11 与拆分前一致。该边界对照 Unreal UMG generated asset
+metadata 与运行时 brush resource access，并以 Slint compiler resource embedding 交叉检查。
+本切片未改变 parser、schema、fallback、去重、反向索引或 hot-reload 算法；Cargo/UI 产品与
+CPU/allocation/RSS/power profile 延后，不声明 Runtime09/15 acceptance、性能收益或瓶颈消失。
+
+## 2026-08-28 Winit Translation Domain Owner Split
+
+状态：`runtime_09_15_winit_translation_domain_owner_split_static_passed_cargo_product_profile_deferred`。
+
+复审 785 行 `ui/platform_input/winit_translation.rs` 及 Unreal `SlateApplication` 的平台事件
+分派边界后，将键盘、指针、IME 和窗口事件包装分别硬切到 folder-backed
+`winit_translation/{keyboard,pointer,ime,window}.rs`。530 行根 owner 保留唯一
+`WindowEvent` 路由、公开 `translate_winit_modifiers` 路径与既有内联行为测试；四个生产 child
+分别为 40/161/52/51 行，继续直接生成同一 `UiWindowInputPumpEvent` 合同，没有增加输入队列、
+窗口状态、dispatch authority 或兼容路径。Fyrox `process_os_event` 作为 Rust 交叉检查。
+
+Python RED 先以 785 行根 owner 超过预估结构预算失败；保留约 430 行既有测试后，最终预算按
+540 行锁定，生产路由约 100 行。拆分后 source/status guard 2/2 通过；17 个移动函数体相对
+`HEAD` 的去空白 SHA-256 17/17 等价，定向 rustfmt 与 scoped diff check 通过。事件顺序、
+synthetic 标志、touch ID、0.1 pixel-scroll 比例、IME byte clamp、窗口 metadata/metrics 和
+normalize 算法均未改变。Cargo、UI 产品路径及 CPU/allocation/RSS/power profile 延后，不声明
+Runtime09/15 acceptance、性能收益、瓶颈消失或算法最优，也未触发 milestone commit/企微同步。

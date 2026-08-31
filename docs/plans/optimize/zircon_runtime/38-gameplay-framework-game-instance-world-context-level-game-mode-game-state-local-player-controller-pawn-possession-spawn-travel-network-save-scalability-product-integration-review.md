@@ -35,8 +35,8 @@ related_code:
   - zircon_runtime/src/core/framework/net/manager.rs
   - zircon_runtime/src/core/framework/net/session.rs
   - zircon_runtime/src/core/framework/net/sync.rs
-  - zircon_runtime_interface/src/runtime_api/host_requests.rs
-  - zircon_runtime_interface/src/runtime_api/session.rs
+  - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/session/session.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/runtime_entry_app/mod.rs
   - zircon_app/src/entry/runtime_entry_app/construct.rs

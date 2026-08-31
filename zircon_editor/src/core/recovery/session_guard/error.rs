@@ -3,14 +3,14 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
-use super::SessionLockRecord;
+use super::ProjectSessionAdmissionRecordV1;
 
 #[derive(Debug, Error)]
 pub enum SessionGuardError {
     #[error("session lock already exists at `{path}`")]
     AlreadyHeld {
         path: PathBuf,
-        record: Option<SessionLockRecord>,
+        record: Option<ProjectSessionAdmissionRecordV1>,
     },
     #[error("session lock at `{path}` is no longer owned by this editor instance")]
     OwnershipLost { path: PathBuf },
@@ -25,6 +25,8 @@ pub enum SessionGuardError {
     },
     #[error("system clock is before the Unix epoch")]
     ClockBeforeUnixEpoch,
+    #[error("project session generation counter is exhausted")]
+    SessionGenerationExhausted,
     #[error("project session ownership is not implemented for this platform")]
     PlatformUnsupported,
 }

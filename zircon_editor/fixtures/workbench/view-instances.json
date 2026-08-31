@@ -74,7 +74,7 @@
     "serializable_payload": null,
     "dirty": false,
     "host": {
-      "Drawer": "BottomLeft"
+      "Drawer": "Bottom"
     }
   },
   {
@@ -84,7 +84,7 @@
     "serializable_payload": null,
     "dirty": false,
     "host": {
-      "Drawer": "BottomRight"
+      "Drawer": "Bottom"
     }
   },
   {
@@ -104,7 +104,7 @@
     "serializable_payload": null,
     "dirty": false,
     "host": {
-      "Drawer": "BottomRight"
+      "Drawer": "Bottom"
     }
   }
 ]

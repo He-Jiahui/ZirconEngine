@@ -13,6 +13,8 @@ const DEPTH_BIAS_PROPERTY: &str = "depth_bias";
 const TAA_REACTIVE_MASK_STRENGTH_PROPERTY: &str = "taa_reactive_mask_strength";
 /// Canonical material property used for glTF occlusion texture strength.
 pub const STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY: &str = "occlusion_strength";
+/// Canonical material property used for glTF tangent-space normal texture scale.
+pub const STANDARD_MATERIAL_NORMAL_SCALE_PROPERTY: &str = "normal_scale";
 const SEPARATE_TRANSLUCENCY_PROPERTY: &str = "separate_translucency";
 const SUBSURFACE_PROFILE_PROPERTY: &str = "subsurface_profile";
 const SUBSURFACE_SCATTER_RADIUS_PROPERTY: &str = "subsurface_scatter_radius";
@@ -58,6 +60,10 @@ pub(super) fn occlusion_strength(values: &BTreeMap<String, toml::Value>) -> Opti
         .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
 }
 
+pub(super) fn normal_scale(values: &BTreeMap<String, toml::Value>) -> Option<f32> {
+    override_f32(values, STANDARD_MATERIAL_NORMAL_SCALE_PROPERTY).filter(|value| value.is_finite())
+}
+
 pub(super) fn separate_translucency(values: &BTreeMap<String, toml::Value>) -> Option<bool> {
     override_bool(values, SEPARATE_TRANSLUCENCY_PROPERTY)
 }
@@ -99,6 +105,10 @@ pub(super) fn validation_errors(
     errors.extend(normalized_f32_override_validation_errors(
         values,
         STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY,
+    ));
+    errors.extend(finite_f32_override_validation_errors(
+        values,
+        STANDARD_MATERIAL_NORMAL_SCALE_PROPERTY,
     ));
     errors.extend(bool_override_validation_errors(
         values,
@@ -171,6 +181,13 @@ pub(super) fn sync_material_control_overrides(
         occlusion_strength(source_values),
         1.0,
     );
+    sync_f32_override(
+        overrides,
+        source_values,
+        STANDARD_MATERIAL_NORMAL_SCALE_PROPERTY,
+        normal_scale(source_values),
+        1.0,
+    );
     sync_default_false_bool_override(
         overrides,
         source_values,
@@ -190,6 +207,7 @@ pub(super) fn is_material_owned_property(name: &str) -> bool {
             | DEPTH_BIAS_PROPERTY
             | TAA_REACTIVE_MASK_STRENGTH_PROPERTY
             | STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY
+            | STANDARD_MATERIAL_NORMAL_SCALE_PROPERTY
             | SEPARATE_TRANSLUCENCY_PROPERTY
             | SUBSURFACE_PROFILE_PROPERTY
             | SUBSURFACE_SCATTER_RADIUS_PROPERTY
@@ -325,6 +343,20 @@ fn normalized_f32_override_validation_errors(
         Vec::new()
     } else {
         type_mismatch_error(property, "number in 0..=1")
+    }
+}
+
+fn finite_f32_override_validation_errors(
+    values: &BTreeMap<String, toml::Value>,
+    property: &str,
+) -> Vec<RenderMaterialValidationError> {
+    let Some(_) = values.get(property) else {
+        return Vec::new();
+    };
+    if override_f32(values, property).is_some_and(f32::is_finite) {
+        Vec::new()
+    } else {
+        type_mismatch_error(property, "finite number")
     }
 }
 

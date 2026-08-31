@@ -26,8 +26,41 @@ pub enum ReadbackError {
     FrameNotActive { requested: u64 },
     #[error("readback requests require an active prepared frame")]
     NoActiveFrame,
+    #[error("readback frame {frame_index} is already encoded and cannot accept more requests")]
+    FrameRequestsSealed { frame_index: u64 },
+    #[error("readback request of {requested_bytes} bytes exceeds configured limit {limit_bytes}")]
+    RequestBytesExceeded {
+        requested_bytes: u64,
+        limit_bytes: u64,
+    },
+    #[error("readback frame request count {current_requests} exceeds configured limit {limit}")]
+    FrameRequestLimitExceeded {
+        current_requests: usize,
+        limit: usize,
+    },
+    #[error("readback frame bytes {current_bytes} plus {requested_bytes} exceed configured limit {limit_bytes}")]
+    FrameBytesExceeded {
+        current_bytes: u64,
+        requested_bytes: u64,
+        limit_bytes: u64,
+    },
+    #[error("readback pending request count {current_requests} exceeds configured limit {limit}")]
+    PendingRequestLimitExceeded {
+        current_requests: usize,
+        limit: usize,
+    },
+    #[error("readback pending bytes {current_bytes} plus {requested_bytes} exceed configured limit {limit_bytes}")]
+    PendingBytesExceeded {
+        current_bytes: u64,
+        requested_bytes: u64,
+        limit_bytes: u64,
+    },
     #[error("readback frame {frame_index} was aborted before completion")]
     FrameAborted { frame_index: u64 },
+    #[error("readback request {ticket:?} was cancelled before completion")]
+    Cancelled { ticket: ReadbackTicket },
+    #[error("readback queue shut down before completion")]
+    Shutdown,
     #[error("readback source offset {source_offset} is not aligned to {alignment}")]
     UnalignedSourceOffset { source_offset: u64, alignment: u64 },
     #[error("readback staging slot {slot_index} is busy; this frame was not admitted")]
@@ -36,6 +69,24 @@ pub enum ReadbackError {
     CapacityOverflow,
     #[error("texture readback extent {width}x{height} is invalid")]
     InvalidTextureExtent { width: u32, height: u32 },
+    #[error("texture readback requires format {expected:?}, got {actual:?}")]
+    TextureFormatMismatch {
+        expected: wgpu::TextureFormat,
+        actual: wgpu::TextureFormat,
+    },
+    #[error("texture readback requires a 2D texture, got {actual:?}")]
+    UnsupportedTextureDimension { actual: wgpu::TextureDimension },
+    #[error("texture readback requires one sample, got {sample_count}")]
+    UnsupportedTextureSampleCount { sample_count: u32 },
+    #[error("texture readback requires COPY_SRC usage, got {actual:?}")]
+    TextureMissingCopySourceUsage { actual: wgpu::TextureUsages },
+    #[error("texture coordinate ({x}, {y}) is outside the readback extent {width}x{height}")]
+    TextureCoordinateOutOfBounds {
+        x: u32,
+        y: u32,
+        width: u32,
+        height: u32,
+    },
     #[error(
         "readback frame {frame_index} has no staging buffer in slot {slot_index} after encoding"
     )]

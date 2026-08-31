@@ -4,7 +4,7 @@ use super::*;
 fn runtime_15_scene_render_layer_schema_v1_masks_use_versioned_names() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let camera_source = read_text(
-        &manifest_root.join("src/core/framework/render/camera.rs"),
+        &manifest_root.join("src/core/framework/render/camera/layer_set.rs"),
         "render camera source should be readable",
     );
     let scene_render_files = [

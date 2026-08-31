@@ -58,13 +58,14 @@ impl EditorJobBatchAdmissionReservation {
         let reservation_id = self
             .reservation_id
             .expect("batch admission reservations commit at most once");
+        let specs = submissions
+            .iter()
+            .map(|(spec, _, _, _)| spec)
+            .collect::<Vec<_>>();
         let tickets = {
             let mut state = self.jobs.inner.lock_state();
-            let specs = submissions
-                .iter()
-                .map(|(spec, _, _, _)| spec)
-                .collect::<Vec<_>>();
             let reserved = state.commit_batch_admission_reservation(reservation_id, &specs)?;
+            drop(specs);
             let mut tickets = Vec::with_capacity(submissions.len());
             for ((id, admitted_at), (spec, task, cancel_task, receiver)) in
                 reserved.into_iter().zip(submissions.drain(..))
@@ -100,7 +101,10 @@ impl Drop for EditorJobBatchAdmissionReservation {
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::sync::Mutex;
     use std::time::Duration;
+    use std::time::Instant;
 
     use crate::core::jobs::{
         test_job_system_with_limits, EditorJob, EditorJobAdmissionLimits,
@@ -173,5 +177,153 @@ mod tests {
             )
             .unwrap();
         assert_eq!(ticket.wait(), Ok(2));
+    }
+
+    #[test]
+    fn optimization_batch_fo_editor401_collects_batch_specs_before_locking_state() {
+        let source = include_str!("admission_reservation.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("admission reservation production source");
+        let specs = production
+            .find("let specs = submissions")
+            .expect("batch specs must be collected once");
+        let lock = production
+            .find("let mut state = self.jobs.inner.lock_state()")
+            .expect("batch commit must lock scheduler state");
+
+        assert!(specs < lock);
+        assert!(production.contains("drop(specs);"));
+        assert_eq!(production.matches("collect::<Vec<_>>()").count(), 2);
+    }
+
+    #[test]
+    #[ignore = "release performance gate"]
+    fn optimization_batch_fo_editor401_precomputed_batch_specs_lock_hold_benchmark() {
+        const SAMPLE_PAIRS: usize = 17;
+        const SPEC_COUNT: usize = 128;
+        const COLLECTIONS_PER_SAMPLE: usize = 4_096;
+
+        let specs = (0..SPEC_COUNT)
+            .map(|index| {
+                EditorJobSpec::new(
+                    format!("optimization-batch-fo-job-{index:03}"),
+                    JobCategory::InteractiveSave,
+                )
+            })
+            .collect::<Vec<_>>();
+        let state_lock = Mutex::new(());
+
+        for _ in 0..4 {
+            black_box(measure_legacy_lock_hold(
+                &state_lock,
+                &specs,
+                COLLECTIONS_PER_SAMPLE,
+            ));
+            black_box(measure_optimized_lock_hold(
+                &state_lock,
+                &specs,
+                COLLECTIONS_PER_SAMPLE,
+            ));
+        }
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair_index in 0..SAMPLE_PAIRS {
+            if pair_index % 2 == 0 {
+                legacy_samples.push(measure_legacy_lock_hold(
+                    &state_lock,
+                    &specs,
+                    COLLECTIONS_PER_SAMPLE,
+                ));
+                optimized_samples.push(measure_optimized_lock_hold(
+                    &state_lock,
+                    &specs,
+                    COLLECTIONS_PER_SAMPLE,
+                ));
+            } else {
+                optimized_samples.push(measure_optimized_lock_hold(
+                    &state_lock,
+                    &specs,
+                    COLLECTIONS_PER_SAMPLE,
+                ));
+                legacy_samples.push(measure_legacy_lock_hold(
+                    &state_lock,
+                    &specs,
+                    COLLECTIONS_PER_SAMPLE,
+                ));
+            }
+        }
+
+        let legacy_p95 = nearest_rank_p95(&legacy_samples);
+        let optimized_p95 = nearest_rank_p95(&optimized_samples);
+        let improvement_percent =
+            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
+        println!(
+            "EDITOR401_PRECOMPUTED_BATCH_SPECS_LOCK_HOLD_BENCH_V1 sample_pairs={SAMPLE_PAIRS} spec_count={SPEC_COUNT} collections_per_sample={COLLECTIONS_PER_SAMPLE} legacy_allocations_under_lock_per_sample={COLLECTIONS_PER_SAMPLE} optimized_allocations_under_lock_per_sample=0 deallocations_under_lock_per_sample={COLLECTIONS_PER_SAMPLE} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=25",
+            csv(&legacy_samples),
+            csv(&optimized_samples),
+        );
+        assert!(
+            optimized_p95 <= legacy_p95.saturating_mul(75) / 100,
+            "precomputed batch specs must reduce isolated lock-hold P95 by at least 25%"
+        );
+    }
+
+    fn measure_legacy_lock_hold(
+        state_lock: &Mutex<()>,
+        specs: &[EditorJobSpec],
+        collections: usize,
+    ) -> u128 {
+        let mut held_ns = 0_u128;
+        let mut checksum = 0_usize;
+        for _ in 0..collections {
+            let guard = state_lock.lock().unwrap();
+            let started = Instant::now();
+            let collected = black_box(specs).iter().collect::<Vec<_>>();
+            checksum = checksum.wrapping_add(collected.len());
+            black_box(&collected);
+            drop(collected);
+            held_ns = held_ns.saturating_add(started.elapsed().as_nanos());
+            drop(guard);
+        }
+        black_box(checksum);
+        held_ns.max(1)
+    }
+
+    fn measure_optimized_lock_hold(
+        state_lock: &Mutex<()>,
+        specs: &[EditorJobSpec],
+        collections: usize,
+    ) -> u128 {
+        let mut held_ns = 0_u128;
+        let mut checksum = 0_usize;
+        for _ in 0..collections {
+            let collected = black_box(specs).iter().collect::<Vec<_>>();
+            let guard = state_lock.lock().unwrap();
+            let started = Instant::now();
+            checksum = checksum.wrapping_add(black_box(collected.len()));
+            drop(collected);
+            held_ns = held_ns.saturating_add(started.elapsed().as_nanos());
+            drop(guard);
+        }
+        black_box(checksum);
+        held_ns.max(1)
+    }
+
+    fn nearest_rank_p95(samples: &[u128]) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = (sorted.len() * 95).div_ceil(100);
+        sorted[rank.saturating_sub(1)]
+    }
+
+    fn csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 }

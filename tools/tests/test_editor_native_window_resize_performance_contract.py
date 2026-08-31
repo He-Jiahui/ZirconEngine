@@ -10,6 +10,9 @@ GPU_LIFECYCLE = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/lifecycle.rs"
 )
 WGPU_SURFACE = REPO_ROOT / "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs"
+EVENT_LOOP_LIFECYCLE = REPO_ROOT / (
+    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs"
+)
 
 
 def function_body(source: str, signature: str, next_signature: str) -> str:
@@ -17,7 +20,16 @@ def function_body(source: str, signature: str, next_signature: str) -> str:
 
 
 class EditorNativeWindowResizePerformanceContract(unittest.TestCase):
-    def test_duplicate_native_size_is_rejected_before_reflow_queueing(self) -> None:
+    def test_about_to_wait_does_not_poll_native_window_metrics(self) -> None:
+        source = EVENT_LOOP_LIFECYCLE.read_text(encoding="utf-8")
+        body = function_body(source, "fn about_to_wait_impl", "fn schedule_due_surface_present_retry")
+
+        self.assertNotIn("sync_host_window_state", body)
+        self.assertNotIn("window.surface_size()", body)
+        self.assertNotIn("window.outer_position()", body)
+        self.assertNotIn("window.is_maximized()", body)
+
+    def test_duplicate_native_size_is_rejected_before_frame_queueing(self) -> None:
         source = RESIZE_EVENTS.read_text(encoding="utf-8")
         body = function_body(
             source,
@@ -28,11 +40,11 @@ class EditorNativeWindowResizePerformanceContract(unittest.TestCase):
         duplicate_gate = body.index("physical_size == self.host.window().size()")
         mutate_scale = body.index(".set_scale_factor(metrics.scale_factor as f32)")
         mutate_size = body.index("self.host.window().set_size")
-        queue_reflow = body.index("self.queue_resize_reflow")
+        queue_frame = body.index("self.queue_resize_frame")
         self.assertIn("(!duplicate_size).then_some(physical_size)", body)
         self.assertLess(duplicate_gate, mutate_scale)
         self.assertLess(duplicate_gate, mutate_size)
-        self.assertLess(duplicate_gate, queue_reflow)
+        self.assertLess(duplicate_gate, queue_frame)
 
     def test_editor_presenter_keeps_cache_on_same_size_resize(self) -> None:
         source = GPU_LIFECYCLE.read_text(encoding="utf-8")
@@ -44,22 +56,22 @@ class EditorNativeWindowResizePerformanceContract(unittest.TestCase):
         self.assertLess(duplicate_gate, surface_resize)
         self.assertLess(duplicate_gate, invalidate)
 
-    def test_duplicate_scale_factor_does_not_restart_resize_reflow(self) -> None:
+    def test_duplicate_scale_factor_does_not_queue_a_resize_frame(self) -> None:
         source = RESIZE_EVENTS.read_text(encoding="utf-8")
         body = function_body(
             source,
             "fn handle_window_scale_factor_changed",
-            "fn queue_resize_reflow",
+            "fn queue_resize_frame",
         )
 
         duplicate_gate = body.index(
             "scale_factor.to_bits() == self.host.window().scale_factor().to_bits()"
         )
         mutate_scale = body.index("set_scale_factor")
-        queue_reflow = body.index("self.queue_resize_reflow")
+        queue_frame = body.index("self.queue_resize_frame")
         self.assertLess(duplicate_gate, mutate_scale)
-        self.assertLess(duplicate_gate, queue_reflow)
-        self.assertIn("self.queue_resize_reflow(None)", body)
+        self.assertLess(duplicate_gate, queue_frame)
+        self.assertIn("self.queue_resize_frame(None)", body)
 
     def test_wgpu_presenter_does_not_reconfigure_an_unchanged_extent(self) -> None:
         source = WGPU_SURFACE.read_text(encoding="utf-8")

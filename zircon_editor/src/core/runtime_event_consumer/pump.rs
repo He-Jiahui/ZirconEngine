@@ -56,6 +56,72 @@ impl Default for EditorRuntimeEventPumpBudget {
     }
 }
 
+/// Runtime backlog evidence accumulated from the consumers sampled during one pump.
+///
+/// The remaining-delivery total is a lower bound whenever one or more active consumers have
+/// not been sampled. This keeps known runtime pressure observable without overstating it as a
+/// complete snapshot.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct EditorRuntimeEventBacklogObservation {
+    known_remaining_deliveries_lower_bound: usize,
+    sampled_consumer_count: usize,
+    unknown_consumer_count: usize,
+    max_oldest_pending_age_millis: Option<u64>,
+    max_observation_age: Option<Duration>,
+}
+
+impl EditorRuntimeEventBacklogObservation {
+    pub const fn known_remaining_deliveries_lower_bound(self) -> usize {
+        self.known_remaining_deliveries_lower_bound
+    }
+
+    pub const fn sampled_consumer_count(self) -> usize {
+        self.sampled_consumer_count
+    }
+
+    pub const fn unknown_consumer_count(self) -> usize {
+        self.unknown_consumer_count
+    }
+
+    pub const fn max_oldest_pending_age_millis(self) -> Option<u64> {
+        self.max_oldest_pending_age_millis
+    }
+
+    pub const fn max_observation_age(self) -> Option<Duration> {
+        self.max_observation_age
+    }
+
+    pub const fn is_complete(self) -> bool {
+        self.unknown_consumer_count == 0
+    }
+
+    pub(super) fn record_sample(
+        &mut self,
+        remaining_deliveries: usize,
+        oldest_pending_age_millis: u64,
+        observation_age: Duration,
+    ) {
+        self.known_remaining_deliveries_lower_bound = self
+            .known_remaining_deliveries_lower_bound
+            .saturating_add(remaining_deliveries);
+        self.sampled_consumer_count = self.sampled_consumer_count.saturating_add(1);
+        self.max_oldest_pending_age_millis = Some(
+            self.max_oldest_pending_age_millis
+                .unwrap_or_default()
+                .max(oldest_pending_age_millis),
+        );
+        self.max_observation_age = Some(
+            self.max_observation_age
+                .unwrap_or_default()
+                .max(observation_age),
+        );
+    }
+
+    pub(super) fn record_unknown_consumer(&mut self) {
+        self.unknown_consumer_count = self.unknown_consumer_count.saturating_add(1);
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct EditorRuntimeEventPumpReport {
     applied: usize,
@@ -68,13 +134,12 @@ pub struct EditorRuntimeEventPumpReport {
     deferred: usize,
     dropped: usize,
     slow_callbacks: usize,
+    stale_consumers: usize,
     queue_depth: usize,
     pending_sequence_span: u64,
     pending_encoded_bytes_upper_bound: usize,
     pending_oldest_age: Duration,
-    last_observed_runtime_remaining_deliveries: Option<usize>,
-    last_observed_runtime_oldest_pending_age_millis: Option<u64>,
-    last_observed_runtime_backlog_observation_age: Option<Duration>,
+    runtime_backlog_observation: EditorRuntimeEventBacklogObservation,
 }
 
 impl EditorRuntimeEventPumpReport {
@@ -118,6 +183,11 @@ impl EditorRuntimeEventPumpReport {
         self.slow_callbacks
     }
 
+    /// Number of active consumers retired because their origin transport was replaced.
+    pub const fn stale_consumers(self) -> usize {
+        self.stale_consumers
+    }
+
     pub const fn queue_depth(self) -> usize {
         self.queue_depth
     }
@@ -138,22 +208,8 @@ impl EditorRuntimeEventPumpReport {
         self.pending_oldest_age
     }
 
-    /// Total runtime backlog from the last complete per-consumer observation.
-    ///
-    /// A pump which only consumes editor-resident pending deliveries has not sampled runtime
-    /// state again, so callers must not treat this value as a current runtime count.
-    pub const fn last_observed_runtime_remaining_deliveries(self) -> Option<usize> {
-        self.last_observed_runtime_remaining_deliveries
-    }
-
-    /// Oldest runtime backlog age reported with the last complete observation.
-    pub const fn last_observed_runtime_oldest_pending_age_millis(self) -> Option<u64> {
-        self.last_observed_runtime_oldest_pending_age_millis
-    }
-
-    /// Elapsed time since the oldest per-consumer runtime backlog observation in this report.
-    pub const fn last_observed_runtime_backlog_observation_age(self) -> Option<Duration> {
-        self.last_observed_runtime_backlog_observation_age
+    pub const fn runtime_backlog_observation(self) -> EditorRuntimeEventBacklogObservation {
+        self.runtime_backlog_observation
     }
 
     pub(super) fn record_drained_page(
@@ -186,6 +242,10 @@ impl EditorRuntimeEventPumpReport {
         self.dropped = self.dropped.saturating_add(count);
     }
 
+    pub(super) fn record_stale_consumer(&mut self) {
+        self.stale_consumers = self.stale_consumers.saturating_add(1);
+    }
+
     pub(super) fn set_queue_pressure(
         &mut self,
         queue_depth: usize,
@@ -200,21 +260,11 @@ impl EditorRuntimeEventPumpReport {
         self.pending_oldest_age = pending_oldest_age;
     }
 
-    pub(super) fn set_last_observed_runtime_backlog(
+    pub(super) fn set_runtime_backlog_observation(
         &mut self,
-        last_observed_runtime_backlog: Option<(usize, u64, Duration)>,
+        runtime_backlog_observation: EditorRuntimeEventBacklogObservation,
     ) {
-        let Some((remaining_deliveries, oldest_pending_age_millis, observation_age)) =
-            last_observed_runtime_backlog
-        else {
-            self.last_observed_runtime_remaining_deliveries = None;
-            self.last_observed_runtime_oldest_pending_age_millis = None;
-            self.last_observed_runtime_backlog_observation_age = None;
-            return;
-        };
-        self.last_observed_runtime_remaining_deliveries = Some(remaining_deliveries);
-        self.last_observed_runtime_oldest_pending_age_millis = Some(oldest_pending_age_millis);
-        self.last_observed_runtime_backlog_observation_age = Some(observation_age);
+        self.runtime_backlog_observation = runtime_backlog_observation;
     }
 
     pub(super) fn set_drain_percentiles(

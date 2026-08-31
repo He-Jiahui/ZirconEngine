@@ -6,7 +6,47 @@ mod images;
 mod shapes;
 
 use images::paint_image_command;
-use shapes::{paint_border_command, paint_quad_command};
+use shapes::{paint_border_command, paint_quad_command, paint_rounded_box_commands};
+
+pub(super) fn paint_chrome_command_pair(
+    frame: &mut HostRgbaFrame,
+    fill: &ChromeCommand,
+    border: &ChromeCommand,
+) -> bool {
+    let (
+        ChromeCommandKind::Quad {
+            color: fill_color,
+            corner_radius,
+        },
+        ChromeCommandKind::Border {
+            color: border_color,
+            width,
+            corner_radius: border_radius,
+        },
+    ) = (&fill.kind, &border.kind)
+    else {
+        return false;
+    };
+    if fill_color[3] == 0
+        || border_color[3] == 0
+        || !width.is_finite()
+        || *width <= 0.0
+        || fill.frame != border.frame
+        || fill.clip != border.clip
+        || corner_radius.to_bits() != border_radius.to_bits()
+    {
+        return false;
+    }
+    paint_rounded_box_commands(
+        frame,
+        fill,
+        *fill_color,
+        *border_color,
+        *width,
+        *corner_radius,
+    );
+    true
+}
 
 pub(super) fn paint_chrome_command(
     frame: &mut HostRgbaFrame,

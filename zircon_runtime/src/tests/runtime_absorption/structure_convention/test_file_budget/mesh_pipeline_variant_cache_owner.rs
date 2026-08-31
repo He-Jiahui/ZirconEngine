@@ -10,6 +10,8 @@ fn runtime_15_non_base_mesh_variant_cache_owner_is_wired() {
     let registry = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs",
     );
+    let pipeline_key = read_runtime_src("graphics/scene/resources/pipeline/pipeline_key.rs");
+    let prewarm_contract = read_runtime_src("core/framework/render/shader/variant_prewarm.rs");
     let depth = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs",
     );
@@ -74,12 +76,32 @@ fn runtime_15_non_base_mesh_variant_cache_owner_is_wired() {
             "ShaderPassType::TaaReactiveMask",
         ],
     );
+    for (label, source) in [
+        ("PipelineKey", pipeline_key.as_str()),
+        ("runtime prewarm pipeline state", prewarm_contract.as_str()),
+    ] {
+        for binding_presence in [
+            "has_base_color_texture",
+            "has_metallic_roughness_texture",
+            "has_occlusion_texture",
+            "has_emissive_texture",
+        ] {
+            assert!(
+                !source.contains(binding_presence),
+                "{label} must not treat fallback-backed `{binding_presence}` as pipeline identity",
+            );
+        }
+    }
+    assert!(
+        !registry.contains("has_texture_presence_equivalent_variant"),
+        "mesh pipeline identity must normalize binding presence before lookup instead of scanning 16 equivalent keys",
+    );
 
     assert_non_base_pass_cache_owner(
         "GBuffer pass cache owner",
         &gbuffer,
-        "fn ensure_gbuffer_pipeline<'a>(",
-        "pub(crate) fn ensure_gbuffer_pipeline_for_variant<'a>(",
+        "fn ensure_gbuffer_pipeline(",
+        "pub(crate) fn ensure_gbuffer_pipeline_admission_for_variant(",
         "MeshPassPipelineKind::GBuffer",
         "gbuffer_mesh_shader_key(shader_variant_key, &shader_source.source_hash)",
         "self.gbuffer_mesh_pipelines.insert(variant_id, pipeline)",
@@ -141,7 +163,7 @@ fn runtime_15_non_base_mesh_variant_cache_owner_is_wired() {
         "render pass execution calls only variant-aware non-Base pass entries",
         &non_base_render_paths,
         &[
-            "ensure_gbuffer_pipeline_for_variant(device, streamer, gbuffer_variant_id)",
+            "ensure_gbuffer_pipeline_admission_for_variant",
             "ensure_depth_prepass_pipeline_for_variant",
             "ensure_taa_reactive_mask_pipeline_for_variant",
             ".ensure_shadow_pipeline_for_variant(",

@@ -1,6 +1,7 @@
 use crate::asset::{
-    SceneAsset, SceneBloomSettingsAsset, SceneCameraAsset, SceneColorGradingSettingsAsset,
-    SceneEntityAsset, SceneFogSettingsAsset, SceneMobilityAsset, ScenePostProcessEffectStackAsset,
+    SceneAmbientOcclusionSettingsAsset, SceneAoQualityTierAsset, SceneAsset,
+    SceneBloomSettingsAsset, SceneCameraAsset, SceneColorGradingSettingsAsset, SceneEntityAsset,
+    SceneFogSettingsAsset, SceneMobilityAsset, ScenePostProcessEffectStackAsset,
     ScenePostProcessSettingsAsset, ScenePostProcessVolumeAsset, ScenePostProcessVolumeProfileAsset,
     SceneTonemapOperatorAsset, SceneTonemapSettingsAsset, SceneVignetteSettingsAsset,
     TransformAsset,
@@ -20,6 +21,8 @@ use crate::scene::components::{
 };
 use crate::scene::World;
 
+mod volumetric_fog;
+
 #[test]
 fn scene_asset_post_process_settings_feed_render_extract() {
     let project_root = super::support::unique_temp_project_root(
@@ -38,6 +41,16 @@ fn scene_asset_post_process_settings_feed_render_extract() {
                 mobility: SceneMobilityAsset::Dynamic,
                 camera: Some(SceneCameraAsset {
                     post_process_settings: Some(ScenePostProcessSettingsAsset {
+                        ambient_occlusion: SceneAmbientOcclusionSettingsAsset {
+                            intensity: 0.8,
+                            radius_meters: 1.5,
+                            thickness_meters: 0.2,
+                            depth_bias_meters: 0.025,
+                            falloff_start_meters: 0.75,
+                            quality: SceneAoQualityTierAsset::Ultra,
+                            half_resolution: false,
+                            temporal: false,
+                        },
                         bloom: SceneBloomSettingsAsset {
                             threshold: 0.25,
                             intensity: 0.4,
@@ -113,6 +126,11 @@ fn scene_asset_post_process_settings_feed_render_extract() {
                     weight: 0.5,
                     blend_distance: 0.0,
                     profile: ScenePostProcessVolumeProfileAsset {
+                        ambient_occlusion: Some(SceneAmbientOcclusionSettingsAsset {
+                            intensity: 0.4,
+                            radius_meters: 2.0,
+                            ..SceneAmbientOcclusionSettingsAsset::default()
+                        }),
                         volumetric_fog: None,
                         bloom: Some(SceneBloomSettingsAsset {
                             threshold: 0.2,
@@ -153,6 +171,8 @@ fn scene_asset_post_process_settings_feed_render_extract() {
     ));
 
     assert_eq!(extract.view.scene_camera_entity, Some(1));
+    assert_near(extract.post_process.ambient_occlusion.intensity, 0.8);
+    assert_near(extract.post_process.ambient_occlusion.radius_meters, 1.5);
     assert_near(extract.post_process.bloom.intensity, 0.4);
     assert_near(extract.post_process.color_grading.saturation, 0.75);
     assert_eq!(
@@ -164,6 +184,8 @@ fn scene_asset_post_process_settings_feed_render_extract() {
     assert_eq!(extract.post_process.volumes.len(), 1);
 
     let resolved = resolved_post_process_settings(&extract);
+    assert_near(resolved.ambient_occlusion.intensity, 0.6);
+    assert_near(resolved.ambient_occlusion.radius_meters, 1.75);
     assert_near(resolved.bloom.intensity, 0.7);
     assert_eq!(
         resolved.effect_stack.tonemap.operator,
@@ -281,31 +303,6 @@ fn explicit_request_camera_uses_volume_mask_for_post_process_volumes() {
     assert_near(
         resolved_post_process_settings(&extract).bloom.intensity,
         1.0,
-    );
-}
-
-#[test]
-fn render_volumetric_explicit_camera_uses_culling_mask_for_local_fog_volumes() {
-    let mut world = World::empty();
-    let volume = spawn_local_volumetric_box(&mut world, 0b0010, Vec3::ZERO, Vec3::ONE, 1.0);
-
-    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
-        RenderWorldSnapshotHandle::new(813),
-        SceneViewportExtractRequest {
-            camera: Some(camera_descriptor_with_culling_and_volume_layers(
-                0b0010, 0b0100,
-            )),
-            ..SceneViewportExtractRequest::default()
-        },
-    ));
-
-    assert!(extract.post_process.volumes.is_empty());
-    assert_eq!(extract.lighting.advanced_lighting.fog_volumes.len(), 1);
-    let fog = &extract.lighting.advanced_lighting.fog_volumes[0];
-    assert_eq!(fog.volume_id, volume);
-    assert_eq!(
-        fog.layer_mask,
-        RenderLayerSet::from_scene_schema_v1_mask(0b0010)
     );
 }
 
@@ -480,83 +477,6 @@ fn local_capsule_post_process_volume_is_not_projected_to_planned_extract() {
 }
 
 #[test]
-fn render_volumetric_scene_local_profile_and_light_marker_feed_advanced_extract() {
-    let mut world = World::empty();
-    spawn_camera_on_layer(&mut world, 0b0010);
-    let volume = spawn_local_volumetric_box(
-        &mut world,
-        0b0010,
-        Vec3::new(2.0, 3.0, 4.0),
-        Vec3::new(1.0, 2.0, 3.0),
-        0.5,
-    );
-
-    let light_entity = world.spawn_node(NodeKind::DirectionalLight);
-    world
-        .insert(
-            light_entity,
-            DirectionalLight {
-                volumetric: true,
-                ..DirectionalLight::default()
-            },
-        )
-        .unwrap();
-    world.set_render_layer_mask(light_entity, 0b0010).unwrap();
-
-    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
-        RenderWorldSnapshotHandle::new(901),
-        SceneViewportExtractRequest::default(),
-    ));
-
-    assert_eq!(
-        extract.lighting.advanced_lighting.volumetric_light_ids,
-        vec![light_entity]
-    );
-    assert_eq!(extract.lighting.advanced_lighting.fog_volumes.len(), 1);
-    let fog = &extract.lighting.advanced_lighting.fog_volumes[0];
-    assert_eq!(fog.volume_id, volume);
-    assert_eq!(fog.bounds_min, Vec3::new(1.0, 1.0, 1.0));
-    assert_eq!(fog.bounds_max, Vec3::new(3.0, 5.0, 7.0));
-    assert_near(fog.density, 0.1);
-    assert_eq!(fog.albedo, Vec3::new(0.4, 0.6, 0.8));
-    assert!(extract.post_process.volumes[0]
-        .overrides
-        .iter()
-        .all(|entry| entry.component_id != VOLUMETRIC_FOG_COMPONENT_ID));
-    assert_eq!(
-        resolved_post_process_settings(&extract).volumetric_fog,
-        VolumetricFogSettings::default()
-    );
-}
-
-#[test]
-fn render_volumetric_local_volume_rejects_invalid_bounds() {
-    let mut world = World::empty();
-    spawn_camera_on_layer(&mut world, 0b0010);
-    spawn_local_volumetric_box(
-        &mut world,
-        0b0010,
-        Vec3::ZERO,
-        Vec3::new(0.0, 1.0, 1.0),
-        1.0,
-    );
-    spawn_local_volumetric_box(
-        &mut world,
-        0b0010,
-        Vec3::ZERO,
-        Vec3::new(f32::NAN, 1.0, 1.0),
-        1.0,
-    );
-
-    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
-        RenderWorldSnapshotHandle::new(902),
-        SceneViewportExtractRequest::default(),
-    ));
-
-    assert!(extract.lighting.advanced_lighting.fog_volumes.is_empty());
-}
-
-#[test]
 fn local_physics_only_collider_shapes_are_not_silently_downgraded_to_volume_shapes() {
     let mesh = AssetReference::from_locator(
         ResourceLocator::parse("res://physics/post_process_test.physics_mesh").unwrap(),
@@ -702,7 +622,9 @@ fn spawn_local_volume(
     blend_distance: f32,
     collider_shape: Option<ColliderShape>,
 ) -> crate::scene::EntityId {
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let _ = world.remove::<MeshRenderer>(entity).unwrap();
     world
         .update_transform(entity, Transform::from_translation(translation))
@@ -737,50 +659,10 @@ fn spawn_local_volume(
     entity
 }
 
-fn spawn_local_volumetric_box(
-    world: &mut World,
-    layer_mask: u32,
-    translation: Vec3,
-    half_extents: Vec3,
-    weight: f32,
-) -> crate::scene::EntityId {
-    let entity = world.spawn_node(NodeKind::Empty);
-    world
-        .update_transform(entity, Transform::from_translation(translation))
-        .unwrap();
-    world
-        .insert(
-            entity,
-            PostProcessVolumeComponent::local(
-                1.0,
-                weight,
-                0.0,
-                RenderPostProcessVolumeProfile::default().with_volumetric_fog(
-                    VolumetricFogSettings {
-                        density: 0.2,
-                        albedo: Vec3::new(0.4, 0.6, 0.8),
-                        ..VolumetricFogSettings::default()
-                    },
-                ),
-            ),
-        )
-        .unwrap();
-    world
-        .insert(
-            entity,
-            ColliderComponent {
-                shape: ColliderShape::Box { half_extents },
-                sensor: true,
-                ..ColliderComponent::default()
-            },
-        )
-        .unwrap();
-    world.set_render_layer_mask(entity, layer_mask).unwrap();
-    entity
-}
-
 fn spawn_global_volume_on_layer(world: &mut World, layer_mask: u32) -> crate::scene::EntityId {
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .insert(
             entity,
@@ -798,7 +680,9 @@ fn spawn_global_volume_on_layer(world: &mut World, layer_mask: u32) -> crate::sc
 }
 
 fn spawn_camera_on_layer(world: &mut World, layer_mask: u32) -> crate::scene::EntityId {
-    let camera = world.spawn_node(NodeKind::Camera);
+    let camera = world
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     world.set_active_camera(camera);
     world.set_render_layer_mask(camera, layer_mask).unwrap();
     assert!(world.get::<CameraComponent>(camera).is_some());

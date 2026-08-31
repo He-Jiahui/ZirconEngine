@@ -48,6 +48,10 @@ impl CompiledDiagnosticLogFilter {
     }
 
     fn filter_for_scope(&self, scope: &str) -> DiagnosticLogFilter {
+        if self.nodes.len() == 1 {
+            return self.minimum;
+        }
+
         let mut filter = self.minimum;
         let mut node_index = 0;
         for byte in scope.as_bytes() {

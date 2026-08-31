@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::RenderHybridGiPreparedTraceRegionSceneData;
 use crate::core::math::{Mat4, UVec2, Vec3};
@@ -41,12 +41,13 @@ pub(in super::super) fn encode_hybrid_gi_trace_regions(
     else {
         return (trace_regions, 0);
     };
-    let scene_data_by_id = prepared_frame
-        .trace_region_scene_data
-        .iter()
-        .map(|region| (region.region_id, region))
-        .collect::<BTreeMap<_, _>>();
-    let mut encoded_region_ids = BTreeSet::new();
+    let scene_data_by_id = trace_region_scene_data_by_id(&prepared_frame.trace_region_scene_data);
+    let mut encoded_region_ids = HashSet::with_capacity(
+        prepared_frame
+            .scheduled_trace_region_ids
+            .len()
+            .min(MAX_HYBRID_GI_TRACE_REGIONS),
+    );
     let camera = &frame.extract.view.camera;
     let view_proj = view_projection(camera, viewport_size);
     let camera_position = camera.transform.translation;
@@ -73,6 +74,15 @@ pub(in super::super) fn encode_hybrid_gi_trace_regions(
     }
 
     (trace_regions, count as u32)
+}
+
+fn trace_region_scene_data_by_id(
+    regions: &[RenderHybridGiPreparedTraceRegionSceneData],
+) -> HashMap<u32, &RenderHybridGiPreparedTraceRegionSceneData> {
+    regions
+        .iter()
+        .map(|region| (region.region_id, region))
+        .collect()
 }
 
 fn project_prepared_hybrid_gi_trace_region(
@@ -205,3 +215,7 @@ mod tests {
         extract
     }
 }
+
+#[cfg(test)]
+#[path = "encode/hash_index_tests.rs"]
+mod hash_index_tests;

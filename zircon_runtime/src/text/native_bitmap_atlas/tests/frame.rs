@@ -1,17 +1,10 @@
 use super::*;
-use crate::text::raster::SwashRasterRequest;
-use glyphon::{Color, TextBounds};
 
 #[path = "frame/missing_raster.rs"]
 mod missing_raster;
 
-const TEST_FRAME_FONT_BYTES: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/assets/fonts/FiraSans-Regular.ttf"
-));
-
 #[test]
-fn native_bitmap_atlas_frame_replaces_glyphon_only_when_alpha_sources_cover_visible_glyphs() {
+fn native_bitmap_atlas_frame_supports_native_submission_only_with_alpha_source_coverage() {
     let source = GlyphAtlasBitmapSource {
         raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
@@ -30,7 +23,7 @@ fn native_bitmap_atlas_frame_replaces_glyphon_only_when_alpha_sources_cover_visi
         0,
     );
 
-    assert!(frame.replaces_glyphon());
+    assert!(frame.supports_native_submission());
     assert_eq!(frame.atlas_layer_count(), 1);
     assert_eq!(
         frame.atlas_storage_format(),
@@ -61,9 +54,9 @@ fn native_bitmap_atlas_frame_replaces_glyphon_only_when_alpha_sources_cover_visi
             retry_submission: GlyphAtlasBitmapRetryFrameSubmissionReport::default(),
             retry_state: GlyphAtlasBitmapRetryFrameStateReport::default(),
             discarded_stale_retry_glyph_count: 0,
-            glyphon_fallback_reason: None,
+            native_degradation_reason: None,
             first_frame_degradation: None,
-            replaces_glyphon: true,
+            native_submission_ready: true,
             submission: frame.submission.submission_report(),
         }
     );
@@ -72,58 +65,22 @@ fn native_bitmap_atlas_frame_replaces_glyphon_only_when_alpha_sources_cover_visi
         unsupported_glyph_count: 1,
         ..frame
     };
-    assert!(!unsupported.replaces_glyphon());
+    assert!(!unsupported.supports_native_submission());
 }
 
 #[test]
-fn native_bitmap_atlas_frame_reuses_approximate_bucket_while_exact_worker_is_pending() {
-    let mut font_system = FontSystem::new_with_fonts([fontdb::Source::Binary(
-        std::sync::Arc::new(TEST_FRAME_FONT_BYTES.to_vec()),
-    )]);
-    let mut buffer = Buffer::new(&mut font_system, Metrics::new(16.0, 20.0));
-    buffer.set_size(&mut font_system, Some(128.0), Some(32.0));
-    buffer.set_text(
-        &mut font_system,
-        "P",
-        &Attrs::new(),
-        Shaping::Advanced,
-        None,
-    );
-    buffer.shape_until_scroll(&mut font_system, false);
-    let text_area = TextArea {
-        buffer: &buffer,
-        left: 4.0,
-        top: 6.0,
-        scale: 1.0,
-        bounds: TextBounds {
-            left: 0,
-            top: 0,
-            right: 128,
-            bottom: 64,
-        },
-        default_color: Color::rgba(255, 255, 255, 255),
-        custom_glyphs: &[],
+fn native_bitmap_atlas_frame_does_not_schedule_offscreen_approximate_worker() {
+    let (font_database, instance) = test_font_database_with_fira();
+    let requested_key = GlyphRasterKey {
+        face: instance,
+        glyph_id: 47,
+        vertical_subpixel_bin: 0,
+        ..test_cache_key(47)
     };
-    let requested_key = text_area
-        .buffer
-        .layout_runs()
-        .flat_map(|run| run.glyphs.iter())
-        .next()
-        .expect("test text should shape one glyph")
-        .physical((text_area.left, text_area.top), text_area.scale)
-        .cache_key;
-    let face_index = font_system
-        .db()
-        .face(requested_key.font_id)
-        .expect("test font face should be available")
-        .index as usize;
-    let mut approximate_key = requested_key;
-    approximate_key.y_bin = if requested_key.y_bin == SubpixelBin::Zero {
-        SubpixelBin::One
-    } else {
-        SubpixelBin::Zero
+    let approximate_key = GlyphRasterKey {
+        vertical_subpixel_bin: 1,
+        ..requested_key
     };
-    let bitmap_text_area = NativeBitmapAtlasTextArea::new(&text_area, None);
     let worker_pool = TextRasterWorkerPool::new_without_workers_for_test(
         TextRasterWorkerPoolOptions::new(1).with_queue_depth(4),
     );
@@ -132,15 +89,64 @@ fn native_bitmap_atlas_frame_reuses_approximate_bucket_while_exact_worker_is_pen
     let mut retry_state = GlyphAtlasBitmapRetryFrameState::new();
 
     let frame = native_bitmap_atlas_frame(
-        &mut font_system,
-        &FontDatabase::default(),
+        &font_database,
         Some(&worker_pool),
         &mut source_cache,
         &mut retry_state,
         GlyphAtlasSet::default(),
         test_viewport_size(),
         TEST_BITMAP_ATLAS_FRAME_INDEX,
-        &[bitmap_text_area],
+        &[test_glyph_run_with_key(
+            requested_key,
+            GlyphAtlasScreenRect::new(0.0, 0.0, 1.0, 1.0),
+        )],
+    );
+    let report = frame.prepare_report();
+
+    assert_eq!(report.missing_raster_image_count, 0);
+    assert_eq!(report.approximate_raster_image_count, 0);
+    assert_eq!(report.visible_raster_glyph_count, 0);
+    assert_eq!(report.source_image_count, 0);
+    assert_eq!(report.source_cache.approximate_hit_count, 1);
+    assert_eq!(report.source_cache.worker_request_submitted_count, 0);
+    assert_eq!(report.submission.visible_placeholder_count, 0);
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::NoVisibleGlyphs
+    );
+    assert_eq!(report.first_frame_degradation, None);
+    assert!(worker_pool.try_recv_request_for_test().is_none());
+}
+
+#[test]
+fn native_bitmap_atlas_frame_reuses_approximate_bucket_and_requests_the_exact_instance() {
+    let (font_database, instance) = test_font_database_with_fira();
+    let requested_key = GlyphRasterKey {
+        face: instance,
+        glyph_id: 47,
+        vertical_subpixel_bin: 0,
+        ..test_cache_key(47)
+    };
+    let approximate_key = GlyphRasterKey {
+        vertical_subpixel_bin: 1,
+        ..requested_key
+    };
+    let worker_pool = TextRasterWorkerPool::new_without_workers_for_test(
+        TextRasterWorkerPoolOptions::new(1).with_queue_depth(4),
+    );
+    let mut source_cache = NativeBitmapAtlasSourceCache::with_capacity(4);
+    source_cache.insert_test_image(approximate_key, test_cached_image(7));
+    let mut retry_state = GlyphAtlasBitmapRetryFrameState::new();
+
+    let frame = native_bitmap_atlas_frame(
+        &font_database,
+        Some(&worker_pool),
+        &mut source_cache,
+        &mut retry_state,
+        GlyphAtlasSet::default(),
+        test_viewport_size(),
+        TEST_BITMAP_ATLAS_FRAME_INDEX,
+        &[test_glyph_run_with_key(requested_key, test_clip_rect())],
     );
     let report = frame.prepare_report();
 
@@ -161,96 +167,19 @@ fn native_bitmap_atlas_frame_reuses_approximate_bucket_while_exact_worker_is_pen
     let work = worker_pool
         .try_recv_request_for_test()
         .expect("approximate bucket should still enqueue the exact glyph worker");
+    assert_eq!(work.request.glyph_id, requested_key.glyph_id as u16);
+    assert_eq!(work.request.offset.y, 0.0);
     assert_eq!(
-        work.request,
-        SwashRasterRequest::glyphon_cache_key(
-            face_index,
-            CacheKey {
-                x_bin: SubpixelBin::Zero,
-                ..requested_key
-            }
-        )
-        .with_font_identity([source_cache.face_epoch(), 1])
+        work.request.font_identity,
+        Some([source_cache.face_epoch(), 1])
     );
-}
-
-#[test]
-fn native_bitmap_atlas_frame_does_not_schedule_offscreen_approximate_worker() {
-    let mut font_system = FontSystem::new_with_fonts([fontdb::Source::Binary(
-        std::sync::Arc::new(TEST_FRAME_FONT_BYTES.to_vec()),
-    )]);
-    let mut buffer = Buffer::new(&mut font_system, Metrics::new(16.0, 20.0));
-    buffer.set_size(&mut font_system, Some(128.0), Some(32.0));
-    buffer.set_text(
-        &mut font_system,
-        "P",
-        &Attrs::new(),
-        Shaping::Advanced,
-        None,
-    );
-    buffer.shape_until_scroll(&mut font_system, false);
-    let text_area = TextArea {
-        buffer: &buffer,
-        left: 32.0,
-        top: 16.0,
-        scale: 1.0,
-        bounds: TextBounds {
-            left: 0,
-            top: 0,
-            right: 1,
-            bottom: 1,
-        },
-        default_color: Color::rgba(255, 255, 255, 255),
-        custom_glyphs: &[],
-    };
-    let requested_key = text_area
-        .buffer
-        .layout_runs()
-        .flat_map(|run| run.glyphs.iter())
-        .next()
-        .expect("test text should shape one glyph")
-        .physical((text_area.left, text_area.top), text_area.scale)
-        .cache_key;
-    let mut approximate_key = requested_key;
-    approximate_key.y_bin = if requested_key.y_bin == SubpixelBin::Zero {
-        SubpixelBin::One
-    } else {
-        SubpixelBin::Zero
-    };
-    let bitmap_text_area = NativeBitmapAtlasTextArea::new(&text_area, None);
-    let worker_pool = TextRasterWorkerPool::new_without_workers_for_test(
-        TextRasterWorkerPoolOptions::new(1).with_queue_depth(4),
-    );
-    let mut source_cache = NativeBitmapAtlasSourceCache::with_capacity(4);
-    source_cache.insert_test_image(approximate_key, test_cached_image(7));
-    let mut retry_state = GlyphAtlasBitmapRetryFrameState::new();
-
-    let frame = native_bitmap_atlas_frame(
-        &mut font_system,
-        &FontDatabase::default(),
-        Some(&worker_pool),
-        &mut source_cache,
-        &mut retry_state,
-        GlyphAtlasSet::default(),
-        test_viewport_size(),
-        TEST_BITMAP_ATLAS_FRAME_INDEX,
-        &[bitmap_text_area],
-    );
-    let report = frame.prepare_report();
-
-    assert_eq!(report.missing_raster_image_count, 0);
-    assert_eq!(report.approximate_raster_image_count, 0);
-    assert_eq!(report.visible_raster_glyph_count, 0);
-    assert_eq!(report.source_image_count, 0);
-    assert_eq!(report.source_cache.approximate_hit_count, 1);
-    assert_eq!(report.source_cache.worker_request_submitted_count, 0);
-    assert_eq!(report.submission.visible_placeholder_count, 0);
     assert_eq!(
-        native_bitmap_atlas_handoff_for_report(&report),
-        NativeBitmapAtlasHandoff::NoVisibleGlyphs
+        work.request.variations.as_ref(),
+        &font_database
+            .font_instance(instance)
+            .expect("exact text instance must remain registered")
+            .variations
     );
-    assert_eq!(report.first_frame_degradation, None);
-    assert!(worker_pool.try_recv_request_for_test().is_none());
 }
 
 #[test]
@@ -318,19 +247,11 @@ fn native_bitmap_atlas_frame_reports_face_validity_from_source_epochs() {
 
     assert_eq!(frame.source_bytes().next().unwrap().face_epoch, 0);
     assert_eq!(frame.face_validity(), GlyphAtlasBitmapFaceValidity::Valid);
-    assert_eq!(
-        frame.storage_submissions()[0].face_validity(),
-        GlyphAtlasBitmapFaceValidity::Valid
-    );
 
     frame.face_epoch = 1;
 
     assert_eq!(
         frame.face_validity(),
-        GlyphAtlasBitmapFaceValidity::Invalidated
-    );
-    assert_eq!(
-        frame.storage_submissions()[0].face_validity(),
         GlyphAtlasBitmapFaceValidity::Invalidated
     );
 }
@@ -367,41 +288,22 @@ fn native_bitmap_atlas_frame_marks_contiguous_mixed_storage_ready_for_renderer_h
         0,
     );
 
-    let (report, storage_submissions) = frame.prepare_report_with_storage_submissions();
+    let report = frame.prepare_report();
 
-    assert!(!frame.replaces_glyphon());
+    assert!(!frame.supports_native_submission());
     assert_eq!(frame.atlas_storage_format(), None);
     assert!(report.mixed_atlas_storage_format);
-    assert_eq!(report.storage_submission_count, 2);
+    assert_eq!(frame.canonical_frame_plan_count(), 1);
+    assert_eq!(frame.storage_resource_count(), 2);
+    assert_eq!(frame.ordered_draw_segment_count(), 2);
+    assert_eq!(report.storage_submission_count, 1);
     assert_eq!(report.storage_submission_visible_glyph_count, 2);
     assert!(report.mixed_storage_replacement_ready);
     assert!(!report.requires_background_composite);
-    assert!(!report.replaces_glyphon);
+    assert!(!report.native_submission_ready);
     assert_eq!(report.submission.visible_glyph_count, 2);
-    assert_eq!(storage_submissions.len(), 2);
-    assert_eq!(
-        storage_submissions[0].storage_format,
-        GlyphAtlasStorageFormat::R8Unorm
-    );
-    assert_eq!(
-        storage_submissions[1].storage_format,
-        GlyphAtlasStorageFormat::Rgba8Unorm
-    );
-    assert_eq!(
-        storage_submissions
-            .iter()
-            .map(|submission| submission.atlas_format)
-            .collect::<Vec<_>>(),
-        vec![GlyphAtlasFormat::AlphaMask, GlyphAtlasFormat::Color]
-    );
-    assert_eq!(storage_submissions[0].source_bytes()[0].source_index, 0);
-    assert_eq!(storage_submissions[0].source_bytes()[0].bytes.len(), 64);
-    assert_eq!(storage_submissions[1].source_bytes()[0].source_index, 0);
-    assert_eq!(storage_submissions[1].source_bytes()[0].bytes.len(), 256);
-    assert_eq!(storage_submissions[0].visible_glyph_count(), 1);
-    assert_eq!(storage_submissions[1].visible_glyph_count(), 1);
-    assert_eq!(storage_submissions[0].atlas_layer_count(), 1);
-    assert_eq!(storage_submissions[1].atlas_layer_count(), 1);
+    assert_eq!(frame.source_bytes().count(), 2);
+    assert_eq!(frame.submission.gpu_draw.visible_glyph_count, 2);
 }
 
 #[test]
@@ -436,7 +338,6 @@ fn native_bitmap_atlas_frame_separates_same_storage_format_atlas_layers() {
     );
     frame.background_composite_glyph_count = 1;
 
-    let storage_submissions = frame.storage_submissions();
     let report = frame.prepare_report();
 
     assert_eq!(
@@ -444,31 +345,20 @@ fn native_bitmap_atlas_frame_separates_same_storage_format_atlas_layers() {
         Some(GlyphAtlasStorageFormat::Rgba8Unorm)
     );
     assert_eq!(frame.atlas_format(), None);
-    assert!(!frame.replaces_glyphon());
+    assert!(!frame.supports_native_submission());
     assert!(!report.mixed_atlas_storage_format);
     assert!(report.mixed_storage_replacement_ready);
     assert_eq!(
         native_bitmap_atlas_handoff_for_report(&report),
         NativeBitmapAtlasHandoff::MixedStorageReplacement
     );
-    assert_eq!(storage_submissions.len(), 2);
-    assert_eq!(
-        storage_submissions
-            .iter()
-            .map(|submission| submission.atlas_format)
-            .collect::<Vec<_>>(),
-        vec![GlyphAtlasFormat::SubpixelMask, GlyphAtlasFormat::Color]
-    );
-    assert!(storage_submissions
-        .iter()
-        .all(|submission| submission.storage_format == GlyphAtlasStorageFormat::Rgba8Unorm));
-    assert!(storage_submissions
-        .iter()
-        .all(|submission| submission.atlas_layer_count() == 1));
+    assert_eq!(frame.canonical_frame_plan_count(), 1);
+    assert_eq!(frame.storage_resource_count(), 2);
+    assert_eq!(frame.ordered_draw_segment_count(), 2);
 }
 
 #[test]
-fn native_bitmap_atlas_storage_submissions_inherit_persistent_frame_atlas() {
+fn native_bitmap_atlas_canonical_frame_plan_inherits_persistent_frame_atlas() {
     let alpha = GlyphAtlasBitmapSource {
         raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
@@ -527,13 +417,10 @@ fn native_bitmap_atlas_storage_submissions_inherit_persistent_frame_atlas() {
         .map(|page| page.generation)
         .unwrap();
 
-    let storage_submissions = frame.storage_submissions();
-
     assert_eq!(frame_alpha_generation, 12);
     assert_eq!(frame_color_generation, 24);
-    assert_eq!(storage_submissions.len(), 2);
     assert_eq!(
-        storage_submissions[0]
+        frame
             .submission
             .run
             .atlas
@@ -542,7 +429,7 @@ fn native_bitmap_atlas_storage_submissions_inherit_persistent_frame_atlas() {
         Some(frame_alpha_generation)
     );
     assert_eq!(
-        storage_submissions[1]
+        frame
             .submission
             .run
             .atlas
@@ -550,20 +437,12 @@ fn native_bitmap_atlas_storage_submissions_inherit_persistent_frame_atlas() {
             .map(|page| page.generation),
         Some(frame_color_generation)
     );
-    assert_eq!(
-        storage_submissions[0].submission.run.glyphs[0].atlas_rect,
-        frame.submission.run.glyphs[0].atlas_rect
-    );
-    assert_eq!(
-        storage_submissions[1].submission.run.glyphs[0].atlas_rect,
-        frame.submission.run.glyphs[1].atlas_rect
-    );
-    assert_eq!(storage_submissions[0].submission.run.upload_copies.len(), 1);
-    assert_eq!(storage_submissions[1].submission.run.upload_copies.len(), 1);
+    assert_eq!(frame.canonical_frame_plan_count(), 1);
+    assert_eq!(frame.submission.run.upload_copies.len(), 2);
 }
 
 #[test]
-fn native_bitmap_atlas_frame_replaces_glyphon_for_single_color_storage_submission() {
+fn native_bitmap_atlas_frame_supports_native_submission_for_single_color_storage() {
     let color = GlyphAtlasBitmapSource {
         raster_key: None,
         format: GlyphAtlasFormat::Color,
@@ -583,7 +462,7 @@ fn native_bitmap_atlas_frame_replaces_glyphon_for_single_color_storage_submissio
     );
     let report = frame.prepare_report();
 
-    assert!(frame.replaces_glyphon());
+    assert!(frame.supports_native_submission());
     assert_eq!(
         frame.atlas_storage_format(),
         Some(GlyphAtlasStorageFormat::Rgba8Unorm)
@@ -593,11 +472,11 @@ fn native_bitmap_atlas_frame_replaces_glyphon_for_single_color_storage_submissio
     assert_eq!(report.storage_submission_visible_glyph_count, 1);
     assert!(!report.mixed_storage_replacement_ready);
     assert!(!report.requires_background_composite);
-    assert!(report.replaces_glyphon);
+    assert!(report.native_submission_ready);
 }
 
 #[test]
-fn native_bitmap_atlas_frame_keeps_glyphon_for_subpixel_background_composite() {
+fn native_bitmap_atlas_frame_degrades_for_missing_subpixel_background_composite() {
     let subpixel = GlyphAtlasBitmapSource {
         raster_key: None,
         format: GlyphAtlasFormat::SubpixelMask,
@@ -619,7 +498,7 @@ fn native_bitmap_atlas_frame_keeps_glyphon_for_subpixel_background_composite() {
     frame.missing_background_composite_glyph_count = 1;
     let report = frame.prepare_report();
 
-    assert!(!frame.replaces_glyphon());
+    assert!(!frame.supports_native_submission());
     assert_eq!(
         frame.atlas_storage_format(),
         Some(GlyphAtlasStorageFormat::Rgba8Unorm)
@@ -627,12 +506,12 @@ fn native_bitmap_atlas_frame_keeps_glyphon_for_subpixel_background_composite() {
     assert!(report.requires_background_composite);
     assert!(!report.background_composite_replacement_ready);
     assert_eq!(
-        report.glyphon_fallback_reason,
-        Some(NativeBitmapAtlasGlyphonFallbackReason::MissingBackgroundCompositeInput)
+        report.native_degradation_reason,
+        Some(NativeBitmapAtlasDegradationReason::MissingBackgroundCompositeInput)
     );
     assert_eq!(report.background_composite_glyph_count, 1);
     assert_eq!(report.missing_background_composite_glyph_count, 1);
-    assert!(!report.replaces_glyphon);
+    assert!(!report.native_submission_ready);
     assert_eq!(report.storage_submission_count, 1);
     assert_eq!(report.storage_submission_visible_glyph_count, 1);
     assert!(!report.mixed_storage_replacement_ready);
@@ -640,7 +519,7 @@ fn native_bitmap_atlas_frame_keeps_glyphon_for_subpixel_background_composite() {
 }
 
 #[test]
-fn native_bitmap_atlas_frame_replaces_glyphon_for_known_subpixel_background_composite() {
+fn native_bitmap_atlas_frame_supports_native_submission_for_known_subpixel_background_composite() {
     let subpixel = GlyphAtlasBitmapSource {
         raster_key: None,
         format: GlyphAtlasFormat::SubpixelMask,
@@ -661,7 +540,7 @@ fn native_bitmap_atlas_frame_replaces_glyphon_for_known_subpixel_background_comp
     frame.background_composite_glyph_count = 1;
     let report = frame.prepare_report();
 
-    assert!(frame.replaces_glyphon());
+    assert!(frame.supports_native_submission());
     assert_eq!(
         frame.atlas_storage_format(),
         Some(GlyphAtlasStorageFormat::Rgba8Unorm)
@@ -670,7 +549,7 @@ fn native_bitmap_atlas_frame_replaces_glyphon_for_known_subpixel_background_comp
     assert!(report.background_composite_replacement_ready);
     assert_eq!(report.background_composite_glyph_count, 1);
     assert_eq!(report.missing_background_composite_glyph_count, 0);
-    assert!(report.replaces_glyphon);
+    assert!(report.native_submission_ready);
     assert_eq!(report.storage_submission_count, 1);
     assert_eq!(report.storage_submission_visible_glyph_count, 1);
 }

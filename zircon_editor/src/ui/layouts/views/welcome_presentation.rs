@@ -41,6 +41,7 @@ pub(crate) fn welcome_presentation(snapshot: &WelcomePaneSnapshot) -> WelcomePre
 fn recent_validation_label(validation: RecentProjectValidation) -> &'static str {
     match validation {
         RecentProjectValidation::Valid => "",
+        RecentProjectValidation::RequiresMigration => "Migration Required",
         RecentProjectValidation::Missing => "Missing",
         RecentProjectValidation::InvalidManifest => "Manifest Error",
         RecentProjectValidation::InvalidProject => "Invalid Project",

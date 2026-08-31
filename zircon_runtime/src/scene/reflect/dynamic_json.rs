@@ -11,7 +11,8 @@ pub(in crate::scene) fn ensure_json_value_type(
     expected: &str,
     value: &Value,
 ) -> Result<(), ReflectError> {
-    reflected_value_from_json(type_path, field_name, expected, value).map(|_| ())
+    let reflected = reflected_value_from_json(type_path, field_name, expected, value)?;
+    super::validate_reflected_value(type_path, field_name, &reflected)
 }
 
 pub(in crate::scene) fn reflected_value_from_json(

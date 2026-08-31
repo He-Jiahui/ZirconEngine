@@ -1,12 +1,32 @@
+use crate::core::{math::Vec2, resource::ResourceId};
 use crate::text::TextAlign;
-use crate::text::{FontFamilyName, InlineBaseline, InlineObjectRef, RichTextFormat, StyleOverride};
+use crate::text::{
+    FontFamilyName, InlineBaseline, InlineObjectRef, RichIconAssetId, RichParseBudget,
+    RichParseResult, RichTextAuthoringDiagnosticCode, RichTextAuthoringDiagnosticSeverity,
+    RichTextAuthoringRecovery, RichTextFormat, RichTextParseError, StyleOverride,
+};
 
 use super::{
     RichTextDecoration, RichTextDecorator, RichTextDecoratorRegistrationError, RichTextParser,
     parser_registry::{
-        compile_rich_text, lookup_compiled_rich_text, parse_rich_text, shared_builtin_parser,
+        compile_rich_text, lookup_compiled_rich_text, parse_rich_text as try_parse_rich_text,
+        shared_builtin_parser,
     },
 };
+
+fn parse_rich_text(markup: &str, format: RichTextFormat) -> RichParseResult {
+    try_parse_rich_text(markup, format).expect("test rich source fits parser budgets")
+}
+
+fn parse_with_parser(
+    parser: &RichTextParser,
+    markup: &str,
+    format: RichTextFormat,
+) -> RichParseResult {
+    parser
+        .parse(markup, format)
+        .expect("test rich source fits parser budgets")
+}
 
 struct AccentDecorator;
 
@@ -33,12 +53,16 @@ impl RichTextDecorator for BadgeDecorator {
     }
 
     fn decorate(&self, value: Option<&str>, decoration: &mut RichTextDecoration) -> bool {
-        let Some(glyph) = value.and_then(|value| value.chars().next()) else {
+        let Some(alternative_text) = value else {
             return false;
         };
         decoration.inline = Some(InlineObjectRef::Icon {
-            glyph,
-            font: FontFamilyName::from("Zircon Icons"),
+            asset: RichIconAssetId::from_resource_id(ResourceId::from_stable_label(
+                "res://icons/custom-badge.png",
+            )),
+            size: Vec2::new(16.0, 16.0),
+            baseline: InlineBaseline::Baseline,
+            alternative_text: Some(alternative_text.to_owned()),
         });
         true
     }
@@ -46,7 +70,7 @@ impl RichTextDecorator for BadgeDecorator {
 
 #[test]
 fn text_rich_bbcode_nested_styles_flatten_to_runs() {
-    let parsed = parse_rich_text("[b]a[i]b[/i][/b]", RichTextFormat::BbCode);
+    let parsed = parse_rich_text("[b]a[i]b[/i][/b]", RichTextFormat::BbCodeV1);
 
     assert_eq!(parsed.text.as_ref(), "ab");
     assert_eq!(parsed.runs.len(), 2);
@@ -62,7 +86,7 @@ fn text_rich_bbcode_nested_styles_flatten_to_runs() {
 fn text_rich_color_size_font_overrides() {
     let parsed = parse_rich_text(
         "[color=#f00][size=24][font=Inter]red[/font][/size][/color] plain",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "red plain");
@@ -85,7 +109,7 @@ fn text_rich_color_size_font_overrides() {
 
 #[test]
 fn text_rich_run_boundaries_respect_clusters() {
-    let parsed = parse_rich_text("a[b]\u{0301}[/b]x", RichTextFormat::BbCode);
+    let parsed = parse_rich_text("a[b]\u{0301}[/b]x", RichTextFormat::BbCodeV1);
 
     assert_eq!(parsed.text.as_ref(), "a\u{0301}x");
     assert_eq!(parsed.runs.len(), 1);
@@ -94,8 +118,11 @@ fn text_rich_run_boundaries_respect_clusters() {
 }
 
 #[test]
-fn text_rich_markdown_compat_unchanged() {
-    let parsed = parse_rich_text("plain **bold** *italic* `code`", RichTextFormat::Markdown);
+fn text_rich_markdown_inline_v1_contract() {
+    let parsed = parse_rich_text(
+        "plain **bold** *italic* `code`",
+        RichTextFormat::MarkdownInlineV1,
+    );
 
     assert_eq!(parsed.text.as_ref(), "plain bold italic code");
     assert_eq!(parsed.runs.len(), 6);
@@ -105,231 +132,33 @@ fn text_rich_markdown_compat_unchanged() {
 }
 
 #[test]
-fn text_rich_unterminated_marker_corpus_finishes_at_scale() {
-    const MARKER_COUNT: usize = 100_000;
+fn text_rich_html_and_bbcode_links_preserve_shared_tooltips() {
+    let html = parse_rich_text(
+        "<a href=\"res://docs/help.md\" title=\"Open help\">Help</a>",
+        RichTextFormat::HtmlSubsetV1,
+    );
+    let bbcode = parse_rich_text(
+        "[url href='res://docs/help.md' title='Open help']Help[/url]",
+        RichTextFormat::BbCodeV1,
+    );
 
-    for (marker, format) in [('<', RichTextFormat::Html), ('[', RichTextFormat::BbCode)] {
-        let markup = marker.to_string().repeat(MARKER_COUNT);
-        let parsed = RichTextParser::default().parse(&markup, format);
-
-        assert_eq!(parsed.text.as_ref(), markup.as_str());
-    }
-
-    let markdown = "*".repeat(MARKER_COUNT);
-    let parsed = RichTextParser::default().parse(&markdown, RichTextFormat::Markdown);
-    assert!(parsed.text.len() <= markdown.len());
-}
-
-#[test]
-fn text_rich_adjacent_malformed_marker_corpus_finishes_at_scale() {
-    const MARKER_COUNT: usize = 100_000;
-
-    for (marker, closer, format) in [
-        ('<', '>', RichTextFormat::Html),
-        ('[', ']', RichTextFormat::BbCode),
-    ] {
-        let markup = format!("{}{}", marker.to_string().repeat(MARKER_COUNT), closer);
-        let parsed = RichTextParser::default().parse(&markup, format);
-
-        assert_eq!(parsed.text.as_ref(), markup.as_str());
+    for parsed in [&html, &bbcode] {
+        let link = parsed.runs[0]
+            .link
+            .as_ref()
+            .expect("compiled link metadata");
+        assert!(link.target.matches_display("res://docs/help.md"));
+        assert_eq!(link.tooltip.as_deref(), Some("Open help"));
     }
 }
 
-#[test]
-#[ignore = "release performance evidence"]
-fn text_rich_unterminated_marker_release_benchmark_evidence() {
-    use std::{hint::black_box, time::Instant};
-
-    const MARKER_COUNT: usize = 20_000;
-    const SAMPLE_PAIRS: usize = 21;
-
-    for (marker, closer, format, format_name) in [
-        (b'<', '>', RichTextFormat::Html, "html"),
-        (b'[', ']', RichTextFormat::BbCode, "bbcode"),
-    ] {
-        let markup = char::from(marker).to_string().repeat(MARKER_COUNT);
-        let mut legacy_us = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut frontier_us = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut legacy_scan_visits = 0_u64;
-
-        for sample_index in 0..SAMPLE_PAIRS {
-            if sample_index % 2 == 0 {
-                let started = Instant::now();
-                legacy_scan_visits = legacy_unterminated_marker_scan(&markup, marker, closer);
-                legacy_us.push(started.elapsed().as_micros());
-
-                let parser = RichTextParser::default();
-                let started = Instant::now();
-                let parsed = parser.parse(black_box(&markup), format);
-                frontier_us.push(started.elapsed().as_micros());
-                assert_eq!(parsed.text.as_ref(), markup.as_str());
-            } else {
-                let parser = RichTextParser::default();
-                let started = Instant::now();
-                let parsed = parser.parse(black_box(&markup), format);
-                frontier_us.push(started.elapsed().as_micros());
-                assert_eq!(parsed.text.as_ref(), markup.as_str());
-
-                let started = Instant::now();
-                legacy_scan_visits = legacy_unterminated_marker_scan(&markup, marker, closer);
-                legacy_us.push(started.elapsed().as_micros());
-            }
-        }
-
-        let legacy_p95_us = nearest_rank_percentile(&legacy_us, 95);
-        let frontier_p95_us = nearest_rank_percentile(&frontier_us, 95);
-
-        println!(
-            "RICH_UNTERMINATED_MARKER_BENCH_V1 format={format_name} marker_count={MARKER_COUNT} sample_pairs={SAMPLE_PAIRS} legacy_scan_visits={legacy_scan_visits} frontier_scan_visits={MARKER_COUNT} legacy_p95_us={legacy_p95_us} frontier_p95_us={frontier_p95_us} legacy_us={} frontier_us={}",
-            join_samples(&legacy_us),
-            join_samples(&frontier_us),
-        );
-        assert!(
-            frontier_p95_us.saturating_mul(4) <= legacy_p95_us,
-            "frontier P95 {frontier_p95_us}us must be at most 25% of legacy P95 {legacy_p95_us}us"
-        );
-    }
-}
-
-#[test]
-fn text_rich_mismatched_close_corpus_keeps_the_active_style_at_scale() {
-    const DEPTH: usize = 10_000;
-
-    for (open, mismatched_close, format) in [
-        ("<b>", "</i>", RichTextFormat::Html),
-        ("[b]", "[/i]", RichTextFormat::BbCode),
-    ] {
-        let markup = format!("{}{}x", open.repeat(DEPTH), mismatched_close.repeat(DEPTH));
-        let parsed = RichTextParser::default().parse(&markup, format);
-
-        assert_eq!(parsed.text.as_ref(), "x");
-        assert_eq!(parsed.runs.len(), 1);
-        assert_eq!(parsed.runs[0].style.weight, Some(700));
-    }
-}
-
-#[test]
-fn text_rich_deep_duplicate_closes_keep_the_active_tag_index_consistent() {
-    const DEPTH: usize = 40;
-
-    for (open, close, format) in [
-        ("<b>", "</b>", RichTextFormat::Html),
-        ("[b]", "[/b]", RichTextFormat::BbCode),
-    ] {
-        let markup = format!("{}{}x", open.repeat(DEPTH), close.repeat(DEPTH));
-        let parsed = RichTextParser::default().parse(&markup, format);
-
-        assert_eq!(parsed.text.as_ref(), "x");
-        assert_eq!(parsed.runs.len(), 1);
-        assert_eq!(parsed.runs[0].style, StyleOverride::default());
-    }
-}
-
-#[test]
-#[ignore = "release performance evidence"]
-fn text_rich_active_tag_index_release_benchmark_evidence() {
-    use std::{hint::black_box, time::Instant};
-
-    const DEPTH: usize = 5_000;
-    const SAMPLE_PAIRS: usize = 21;
-
-    for (open, mismatched_close, format, format_name) in [
-        ("<b>", "</i>", RichTextFormat::Html, "html"),
-        ("[b]", "[/i]", RichTextFormat::BbCode, "bbcode"),
-    ] {
-        let markup = format!("{}{}x", open.repeat(DEPTH), mismatched_close.repeat(DEPTH));
-        let mut legacy_us = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut indexed_us = Vec::with_capacity(SAMPLE_PAIRS);
-        let mut legacy_tag_visits = 0_u64;
-
-        for sample_index in 0..SAMPLE_PAIRS {
-            if sample_index % 2 == 0 {
-                let started = Instant::now();
-                legacy_tag_visits = legacy_mismatched_close_scan(DEPTH, DEPTH);
-                legacy_us.push(started.elapsed().as_micros());
-
-                let parser = RichTextParser::default();
-                let started = Instant::now();
-                let parsed = parser.parse(black_box(&markup), format);
-                indexed_us.push(started.elapsed().as_micros());
-                assert_eq!(parsed.text.as_ref(), "x");
-                assert_eq!(parsed.runs[0].style.weight, Some(700));
-            } else {
-                let parser = RichTextParser::default();
-                let started = Instant::now();
-                let parsed = parser.parse(black_box(&markup), format);
-                indexed_us.push(started.elapsed().as_micros());
-                assert_eq!(parsed.text.as_ref(), "x");
-                assert_eq!(parsed.runs[0].style.weight, Some(700));
-
-                let started = Instant::now();
-                legacy_tag_visits = legacy_mismatched_close_scan(DEPTH, DEPTH);
-                legacy_us.push(started.elapsed().as_micros());
-            }
-        }
-
-        let legacy_p95_us = nearest_rank_percentile(&legacy_us, 95);
-        let indexed_p95_us = nearest_rank_percentile(&indexed_us, 95);
-
-        println!(
-            "RICH_ACTIVE_TAG_BENCH_V1 format={format_name} depth={DEPTH} mismatched_closes={DEPTH} sample_pairs={SAMPLE_PAIRS} legacy_tag_visits={legacy_tag_visits} index_build_tag_visits={DEPTH} indexed_close_lookups={DEPTH} legacy_p95_us={legacy_p95_us} indexed_p95_us={indexed_p95_us} legacy_us={} indexed_us={}",
-            join_samples(&legacy_us),
-            join_samples(&indexed_us),
-        );
-        assert!(
-            indexed_p95_us.saturating_mul(4) <= legacy_p95_us,
-            "indexed P95 {indexed_p95_us}us must be at most 25% of legacy P95 {legacy_p95_us}us"
-        );
-    }
-}
-
-fn legacy_unterminated_marker_scan(input: &str, marker: u8, closer: char) -> u64 {
-    use std::hint::black_box;
-
-    let mut scan_visits = 0_u64;
-    for (index, byte) in input.bytes().enumerate() {
-        if byte != marker {
-            continue;
-        }
-        let suffix = &input[index..];
-        scan_visits = scan_visits.saturating_add(suffix.len() as u64);
-        black_box(suffix.find(closer));
-    }
-    scan_visits
-}
-
-fn legacy_mismatched_close_scan(depth: usize, close_count: usize) -> u64 {
-    use std::hint::black_box;
-
-    let tags = vec!["b"; depth];
-    for _ in 0..close_count {
-        black_box(tags.iter().rposition(|name| *name == "i"));
-    }
-    (depth as u64).saturating_mul(close_count as u64)
-}
-
-fn join_samples(samples: &[u128]) -> String {
-    samples
-        .iter()
-        .map(u128::to_string)
-        .collect::<Vec<_>>()
-        .join(",")
-}
-
-fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
-    assert!(!samples.is_empty());
-    assert!((1..=100).contains(&percentile));
-    let mut ordered = samples.to_vec();
-    ordered.sort_unstable();
-    let index = (ordered.len() * percentile).div_ceil(100) - 1;
-    ordered[index]
-}
+mod parser_performance;
 
 #[test]
 fn text_rich_html_whitelist_drops_unknown_tags() {
     let parsed = parse_rich_text(
         "<script onclick=\"run()\">keep</script><b data-x=\"ignored\">bold</b>",
-        RichTextFormat::Html,
+        RichTextFormat::HtmlSubsetV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "keepbold");
@@ -339,10 +168,236 @@ fn text_rich_html_whitelist_drops_unknown_tags() {
 }
 
 #[test]
+fn text_rich_html_subset_reports_deterministic_structural_recovery() {
+    let source = "<script>x</script></b><b><i>y</b>";
+    let parsed = parse_rich_text(source, RichTextFormat::HtmlSubsetV1);
+
+    assert_eq!(parsed.text.as_ref(), "xy");
+    assert_eq!(
+        parsed
+            .authoring_diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.code)
+            .collect::<Vec<_>>(),
+        vec![
+            RichTextAuthoringDiagnosticCode::UnsupportedTag,
+            RichTextAuthoringDiagnosticCode::UnsupportedTag,
+            RichTextAuthoringDiagnosticCode::UnmatchedClosingTag,
+            RichTextAuthoringDiagnosticCode::ImplicitlyClosedTag,
+        ]
+    );
+    assert_eq!(
+        parsed
+            .authoring_diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.source_range)
+            .collect::<Vec<_>>(),
+        vec![(0, 8), (9, 18), (18, 22), (29, 33)]
+    );
+    assert!(
+        parsed.authoring_diagnostics.iter().all(|diagnostic| {
+            diagnostic.severity == RichTextAuthoringDiagnosticSeverity::Warning
+        })
+    );
+    assert_eq!(
+        parsed.authoring_diagnostics[0].recovery,
+        RichTextAuthoringRecovery::DroppedMarkup
+    );
+    assert_eq!(
+        parsed.authoring_diagnostics[3].recovery,
+        RichTextAuthoringRecovery::ImplicitlyClosed
+    );
+    assert!(!parsed.authoring_diagnostics_truncated);
+}
+
+#[test]
+fn text_rich_html_subset_bounds_diagnostics_and_publishes_truncation_receipt() {
+    let parser =
+        RichTextParser::with_budget(RichParseBudget::default().with_max_authoring_diagnostics(2));
+    let parsed = parse_with_parser(
+        &parser,
+        "<one>x</one><two>y</two><three>z</three>",
+        RichTextFormat::HtmlSubsetV1,
+    );
+
+    assert_eq!(parsed.text.as_ref(), "xyz");
+    assert_eq!(parsed.authoring_diagnostics.len(), 2);
+    assert!(parsed.authoring_diagnostics_truncated);
+}
+
+#[test]
+fn text_rich_html_subset_reports_unclosed_opening_source() {
+    let parsed = parse_rich_text("<b>open", RichTextFormat::HtmlSubsetV1);
+
+    assert_eq!(parsed.text.as_ref(), "open");
+    assert_eq!(parsed.authoring_diagnostics.len(), 1);
+    let diagnostic = parsed.authoring_diagnostics[0];
+    assert_eq!(
+        diagnostic.code,
+        RichTextAuthoringDiagnosticCode::UnclosedTag
+    );
+    assert_eq!(diagnostic.source_range, (0, 3));
+    assert_eq!(
+        diagnostic.recovery,
+        RichTextAuthoringRecovery::ClosedAtEndOfInput
+    );
+}
+
+#[test]
+fn text_rich_authoring_diagnostic_codes_and_catalog_keys_are_stable_and_unique() {
+    let codes = [
+        RichTextAuthoringDiagnosticCode::UnsupportedTag,
+        RichTextAuthoringDiagnosticCode::UnmatchedClosingTag,
+        RichTextAuthoringDiagnosticCode::ImplicitlyClosedTag,
+        RichTextAuthoringDiagnosticCode::UnclosedTag,
+        RichTextAuthoringDiagnosticCode::UnsupportedAttribute,
+        RichTextAuthoringDiagnosticCode::MalformedAttribute,
+        RichTextAuthoringDiagnosticCode::InvalidAttributeValue,
+        RichTextAuthoringDiagnosticCode::UnsupportedStyleProperty,
+        RichTextAuthoringDiagnosticCode::MalformedTag,
+        RichTextAuthoringDiagnosticCode::UnterminatedQuotedAttribute,
+        RichTextAuthoringDiagnosticCode::MalformedEntity,
+        RichTextAuthoringDiagnosticCode::UnrecognizedEntity,
+        RichTextAuthoringDiagnosticCode::BidirectionalMark,
+        RichTextAuthoringDiagnosticCode::BidirectionalEmbedding,
+        RichTextAuthoringDiagnosticCode::BidirectionalOverride,
+        RichTextAuthoringDiagnosticCode::BidirectionalIsolate,
+    ];
+    let diagnostic_codes = codes.map(RichTextAuthoringDiagnosticCode::diagnostic_code);
+    let message_keys = codes.map(RichTextAuthoringDiagnosticCode::message_key);
+
+    for (index, diagnostic_code) in diagnostic_codes.iter().enumerate() {
+        assert!(diagnostic_code.starts_with("ZR-TEXT-RICH-AUTHOR-"));
+        assert!(!diagnostic_codes[..index].contains(diagnostic_code));
+    }
+    for (index, message_key) in message_keys.iter().enumerate() {
+        assert!(message_key.starts_with("text.rich.author."));
+        assert!(!message_keys[..index].contains(message_key));
+    }
+}
+
+#[test]
+fn text_rich_html_subset_reports_attribute_and_style_recovery_in_one_parse() {
+    let source = concat!(
+        "<b onclick=\"run\">a</b>",
+        "<font size=\"-2\">b</font>",
+        "<span style=\"position:absolute;color:nope\">c</span>",
+        "<img src=\"https://example.com/a.png\">"
+    );
+    let parsed = parse_rich_text(source, RichTextFormat::HtmlSubsetV1);
+
+    assert_eq!(parsed.text.as_ref(), "abc");
+    assert_eq!(
+        parsed
+            .authoring_diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.code)
+            .collect::<Vec<_>>(),
+        vec![
+            RichTextAuthoringDiagnosticCode::UnsupportedAttribute,
+            RichTextAuthoringDiagnosticCode::InvalidAttributeValue,
+            RichTextAuthoringDiagnosticCode::UnsupportedStyleProperty,
+            RichTextAuthoringDiagnosticCode::InvalidAttributeValue,
+            RichTextAuthoringDiagnosticCode::InvalidAttributeValue,
+        ]
+    );
+    assert!(parsed.authoring_diagnostics.iter().all(|diagnostic| {
+        let range = diagnostic.source_range.0 as usize..diagnostic.source_range.1 as usize;
+        source
+            .get(range)
+            .is_some_and(|token| token.starts_with('<'))
+    }));
+}
+
+#[test]
+fn text_rich_html_subset_reports_malformed_attribute_recovery() {
+    let parsed = parse_rich_text("<b =x>value</b>", RichTextFormat::HtmlSubsetV1);
+
+    assert_eq!(parsed.text.as_ref(), "value");
+    assert!(parsed.authoring_diagnostics.iter().any(|diagnostic| {
+        diagnostic.code == RichTextAuthoringDiagnosticCode::MalformedAttribute
+            && diagnostic.recovery == RichTextAuthoringRecovery::IgnoredAttribute
+    }));
+}
+
+#[test]
+fn text_rich_html_subset_preserves_malformed_markup_and_entity_source() {
+    let source = concat!(
+        "before<b@>x",
+        "<b title=\"unterminated>after ",
+        "&bogus; &#xZZ; &tail"
+    );
+    let parsed = parse_rich_text(source, RichTextFormat::HtmlSubsetV1);
+
+    assert_eq!(parsed.text.as_ref(), source);
+    assert_eq!(
+        parsed
+            .authoring_diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.code)
+            .collect::<Vec<_>>(),
+        vec![
+            RichTextAuthoringDiagnosticCode::MalformedTag,
+            RichTextAuthoringDiagnosticCode::UnterminatedQuotedAttribute,
+            RichTextAuthoringDiagnosticCode::UnrecognizedEntity,
+            RichTextAuthoringDiagnosticCode::MalformedEntity,
+        ]
+    );
+    assert!(parsed.authoring_diagnostics.iter().all(|diagnostic| {
+        diagnostic.recovery == RichTextAuthoringRecovery::PreservedAsText
+            && diagnostic.source_range.0 < diagnostic.source_range.1
+    }));
+}
+
+#[test]
+fn text_rich_html_subset_does_not_diagnose_plain_less_than_text() {
+    let parsed = parse_rich_text("one < two", RichTextFormat::HtmlSubsetV1);
+
+    assert_eq!(parsed.text.as_ref(), "one < two");
+    assert!(parsed.authoring_diagnostics.is_empty());
+}
+
+#[test]
+fn text_rich_html_subset_orders_entity_before_eof_malformed_tag() {
+    let source = "&bogus; <b";
+    let parsed = parse_rich_text(source, RichTextFormat::HtmlSubsetV1);
+
+    assert_eq!(parsed.text.as_ref(), source);
+    assert_eq!(
+        parsed
+            .authoring_diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.code)
+            .collect::<Vec<_>>(),
+        vec![
+            RichTextAuthoringDiagnosticCode::UnrecognizedEntity,
+            RichTextAuthoringDiagnosticCode::MalformedTag,
+        ]
+    );
+}
+
+#[test]
+fn text_rich_html_subset_reports_eof_unterminated_attribute_quote() {
+    let source = "before<b title=\"unterminated";
+    let parsed = parse_rich_text(source, RichTextFormat::HtmlSubsetV1);
+
+    assert_eq!(parsed.text.as_ref(), source);
+    assert_eq!(parsed.authoring_diagnostics.len(), 1);
+    assert_eq!(
+        parsed.authoring_diagnostics[0].code,
+        RichTextAuthoringDiagnosticCode::UnterminatedQuotedAttribute
+    );
+    assert_eq!(
+        parsed.authoring_diagnostics[0].recovery,
+        RichTextAuthoringRecovery::PreservedAsText
+    );
+}
+
+#[test]
 fn text_rich_html_entities_decode() {
     let parsed = parse_rich_text(
         "A &amp; B &#x4E2D; &#25991; &lt;ok&gt;",
-        RichTextFormat::Html,
+        RichTextFormat::HtmlSubsetV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "A & B 中 文 <ok>");
@@ -352,7 +407,7 @@ fn text_rich_html_entities_decode() {
 
 #[test]
 fn text_rich_html_br_forces_break() {
-    let parsed = parse_rich_text("first<br>second<br/>third", RichTextFormat::Html);
+    let parsed = parse_rich_text("first<br>second<br/>third", RichTextFormat::HtmlSubsetV1);
 
     assert_eq!(parsed.text.as_ref(), "first\nsecond\nthird");
     assert_eq!(parsed.runs.len(), 1);
@@ -362,7 +417,7 @@ fn text_rich_html_br_forces_break() {
 fn text_rich_html_span_style_accepts_only_controlled_properties() {
     let parsed = parse_rich_text(
         "<span style=\"color:#0f0; font-size:18px; font-weight:650; font-style:italic; text-decoration:underline line-through; background:url(evil)\">safe</span>",
-        RichTextFormat::Html,
+        RichTextFormat::HtmlSubsetV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "safe");
@@ -378,89 +433,10 @@ fn text_rich_html_span_style_accepts_only_controlled_properties() {
 }
 
 #[test]
-fn text_rich_inline_image_parses_placeholder_metric_contract() {
-    let parsed = parse_rich_text(
-        "before<img src=\"res://icons/star.png\" width=\"16\" height=\"24\" baseline=\"baseline\">after",
-        RichTextFormat::Html,
-    );
-
-    assert_eq!(parsed.text.as_ref(), "before\u{fffc}after");
-    let image_run = parsed
-        .runs
-        .iter()
-        .find(|run| run.inline.is_some())
-        .expect("inline image run");
-    assert_eq!(image_run.byte_range, (6, 9));
-    assert!(matches!(
-        image_run.inline.as_ref(),
-        Some(InlineObjectRef::Image {
-            size,
-            baseline: InlineBaseline::Baseline,
-            ..
-        }) if size.to_array() == [16.0, 24.0]
-    ));
-}
-
-#[test]
-fn text_rich_hyperlink_carries_href_and_hit_range() {
-    let parsed = parse_rich_text(
-        "go <a href=\"res://docs/help\">help</a> now",
-        RichTextFormat::Html,
-    );
-
-    assert_eq!(parsed.text.as_ref(), "go help now");
-    let link = parsed
-        .runs
-        .iter()
-        .find(|run| run.link.is_some())
-        .expect("hyperlink run");
-    assert_eq!(link.byte_range, (3, 7));
-    assert_eq!(
-        link.link.as_ref().map(|link| link.href.as_str()),
-        Some("res://docs/help")
-    );
-    assert_eq!(link.style.underline, Some(true));
-    assert!(link.style.color.is_some());
-}
-
-#[test]
-fn text_rich_bbcode_image_and_url_share_inline_contracts() {
-    let parsed = parse_rich_text(
-        "[img=res://icons/star.png][url=res://docs/help]help[/url]",
-        RichTextFormat::BbCode,
-    );
-
-    assert_eq!(parsed.text.as_ref(), "\u{fffc}help");
-    assert!(parsed.runs[0].inline.is_some());
-    assert_eq!(
-        parsed.runs[1].link.as_ref().map(|link| link.href.as_str()),
-        Some("res://docs/help")
-    );
-}
-
-#[test]
-fn text_rich_inline_resources_reject_network_and_escape_paths() {
-    let parsed = parse_rich_text(
-        "<img src=\"https://example.com/a.png\"><img src=\"res://../secret.png\"><a href=\"https://example.com\">plain</a>",
-        RichTextFormat::Html,
-    );
-
-    assert_eq!(parsed.text.as_ref(), "plain");
-    assert!(parsed.runs.iter().all(|run| run.inline.is_none()));
-    assert!(parsed.runs.iter().all(|run| run.link.is_none()));
-    assert!(
-        parsed
-            .runs
-            .iter()
-            .all(|run| run.style.underline != Some(true))
-    );
-}
-
-#[test]
 fn text_rich_bbcode_block_alignment_emits_paragraph_overrides() {
     let parsed = parse_rich_text(
         "[center]alpha\nbeta[/center][right]gamma[/right]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "alpha\nbeta\ngamma");
@@ -475,7 +451,7 @@ fn text_rich_bbcode_block_alignment_emits_paragraph_overrides() {
 fn text_rich_bbcode_left_and_fill_emit_shared_paragraph_overrides() {
     let parsed = parse_rich_text(
         "[left]alpha[/left][fill]beta[/fill]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "alpha\nbeta");
@@ -488,12 +464,34 @@ fn text_rich_bbcode_left_and_fill_emit_shared_paragraph_overrides() {
 fn text_rich_bbcode_literal_and_bidi_control_tags_emit_unicode_text() {
     let parsed = parse_rich_text(
         "[lb]tag[rb][br][lri]עברית[pdi][shy]word",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(
         parsed.text.as_ref(),
         "[tag]\n\u{2066}עברית\u{2069}\u{00ad}word"
+    );
+    assert_eq!(
+        parsed
+            .authoring_diagnostics
+            .iter()
+            .map(|diagnostic| (diagnostic.code, diagnostic.source_range))
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                RichTextAuthoringDiagnosticCode::BidirectionalIsolate,
+                (15, 20)
+            ),
+            (
+                RichTextAuthoringDiagnosticCode::BidirectionalIsolate,
+                (30, 35)
+            ),
+        ]
+    );
+    assert!(
+        parsed.authoring_diagnostics.iter().all(|diagnostic| {
+            diagnostic.recovery == RichTextAuthoringRecovery::PreservedAsText
+        })
     );
 }
 
@@ -504,9 +502,10 @@ fn text_rich_custom_decorator_registration_applies_style_without_parser_branch()
         .register_decorator(AccentDecorator)
         .expect("custom decorator registration");
 
-    let parsed = parser.parse(
+    let parsed = parse_with_parser(
+        &parser,
         "plain [accent=strong]custom[/accent] tail",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "plain custom tail");
@@ -526,7 +525,7 @@ fn text_rich_custom_decorator_can_emit_inline_object_contract() {
         .register_decorator(BadgeDecorator)
         .expect("badge decorator registration");
 
-    let parsed = parser.parse("a[badge=★]b", RichTextFormat::BbCode);
+    let parsed = parse_with_parser(&parser, "a[badge=★]b", RichTextFormat::BbCodeV1);
 
     assert_eq!(parsed.text.as_ref(), "a\u{fffc}b");
     let inline = parsed
@@ -536,8 +535,10 @@ fn text_rich_custom_decorator_can_emit_inline_object_contract() {
         .expect("custom inline run");
     assert!(matches!(
         inline,
-        InlineObjectRef::Icon { glyph: '★', font }
-            if font.as_str() == "Zircon Icons"
+        InlineObjectRef::Icon {
+            alternative_text: Some(alternative_text),
+            ..
+        } if alternative_text == "★"
     ));
 }
 
@@ -636,9 +637,10 @@ fn text_rich_rejected_custom_decorator_preserves_inner_text_without_style() {
         .register_decorator(AccentDecorator)
         .expect("custom decorator registration");
 
-    let parsed = parser.parse(
+    let parsed = parse_with_parser(
+        &parser,
         "before [accent=weak]safe[/accent] after",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "before safe after");
@@ -647,32 +649,8 @@ fn text_rich_rejected_custom_decorator_preserves_inner_text_without_style() {
 }
 
 #[test]
-fn text_rich_bbcode_builtin_icon_emits_inline_metric_contract() {
-    let parsed = parse_rich_text("before[icon=★|Zircon Icons]after", RichTextFormat::BbCode);
-
-    assert_eq!(parsed.text.as_ref(), "before\u{fffc}after");
-    assert!(matches!(
-        parsed.runs[1].inline.as_ref(),
-        Some(InlineObjectRef::Icon { glyph: '★', font })
-            if font.as_str() == "Zircon Icons"
-    ));
-}
-
-#[test]
-fn text_rich_bbcode_builtin_widget_emits_sized_placeholder_contract() {
-    let parsed = parse_rich_text("a[widget=42|24x16]b", RichTextFormat::BbCode);
-
-    assert_eq!(parsed.text.as_ref(), "a\u{fffc}b");
-    assert!(matches!(
-        parsed.runs[1].inline.as_ref(),
-        Some(InlineObjectRef::Widget { id: 42, size })
-            if size.to_array() == [24.0, 16.0]
-    ));
-}
-
-#[test]
 fn text_rich_bbcode_known_emoji_shortcode_expands_inside_active_style() {
-    let parsed = parse_rich_text("[b]go :rocket:[/b]", RichTextFormat::BbCode);
+    let parsed = parse_rich_text("[b]go :rocket:[/b]", RichTextFormat::BbCodeV1);
 
     assert_eq!(parsed.text.as_ref(), "go 🚀");
     assert_eq!(parsed.runs.len(), 1);
@@ -683,7 +661,7 @@ fn text_rich_bbcode_known_emoji_shortcode_expands_inside_active_style() {
 fn text_rich_bbcode_unknown_emoji_shortcode_is_preserved() {
     let parsed = parse_rich_text(
         "keep :zircon_unknown: then :rocket:",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "keep :zircon_unknown: then 🚀");
@@ -697,17 +675,19 @@ fn text_rich_custom_emoji_shortcode_registration_is_parser_local() {
         .expect("custom shortcode registration");
 
     assert_eq!(
-        parser
-            .parse(":zircon:", RichTextFormat::BbCode)
+        parse_with_parser(&parser, ":zircon:", RichTextFormat::BbCodeV1)
             .text
             .as_ref(),
         "💎"
     );
     assert_eq!(
-        RichTextParser::default()
-            .parse(":zircon:", RichTextFormat::BbCode)
-            .text
-            .as_ref(),
+        parse_with_parser(
+            &RichTextParser::default(),
+            ":zircon:",
+            RichTextFormat::BbCodeV1,
+        )
+        .text
+        .as_ref(),
         ":zircon:"
     );
 }
@@ -730,15 +710,16 @@ fn text_rich_convenience_parser_reuses_builtin_registries() {
 #[test]
 fn text_rich_consumers_can_only_lookup_an_existing_compiled_artifact() {
     let markup = "[b]shared consumer artifact[/b]";
-    let compiled = compile_rich_text(markup, RichTextFormat::BbCode);
-    let looked_up = lookup_compiled_rich_text(markup, RichTextFormat::BbCode)
+    let compiled = compile_rich_text(markup, RichTextFormat::BbCodeV1)
+        .expect("test rich source fits parser budgets");
+    let looked_up = lookup_compiled_rich_text(markup, RichTextFormat::BbCodeV1)
         .expect("the UI-owned compiled artifact should be available");
 
     assert!(std::sync::Arc::ptr_eq(&compiled, &looked_up));
     assert!(
         lookup_compiled_rich_text(
             "[b]consumer lookup cannot compile this missing document[/b]",
-            RichTextFormat::BbCode,
+            RichTextFormat::BbCodeV1,
         )
         .is_none()
     );
@@ -746,12 +727,12 @@ fn text_rich_consumers_can_only_lookup_an_existing_compiled_artifact() {
 
 #[test]
 fn text_rich_grapheme_alignment_uses_a_monotonic_run_cursor() {
-    let source = include_str!("parser.rs");
+    let source = include_str!("parser/run_alignment.rs");
     let start = source
-        .find("fn align_runs_to_graphemes")
+        .find("fn align_runs_to_graphemes_bounded")
         .expect("alignment function");
     let end = source[start..]
-        .find("\nfn range_contains")
+        .find("\nfn ascii_runs_are_canonical")
         .map(|offset| start + offset)
         .expect("alignment function end");
     let body = &source[start..end];
@@ -769,7 +750,9 @@ fn text_rich_plain_segments_borrow_when_no_replacement_is_needed() {
     ));
     let emoji = super::emoji_shortcode::EmojiShortcodeRegistry::with_builtins();
     assert!(matches!(
-        emoji.expand("plain text"),
+        emoji
+            .expand("plain text", 0, usize::MAX)
+            .expect("plain text fits output budget"),
         std::borrow::Cow::Borrowed("plain text")
     ));
 }

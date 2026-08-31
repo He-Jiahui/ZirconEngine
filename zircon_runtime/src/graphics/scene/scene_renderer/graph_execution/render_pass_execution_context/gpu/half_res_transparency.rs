@@ -87,11 +87,10 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         )?;
         let render_region =
             self.render_region_for_write_resource(PostProcessGraphResourceNames::SCENE_COLOR);
-        stack
+        let mut params_uploads = stack
             .post_process()
             .execute_half_resolution_transparency_composite(
                 self.device,
-                self.queue,
                 self.encoder,
                 half_color_view,
                 half_depth_view,
@@ -101,6 +100,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 attachment_ops,
                 self.half_resolution_transparency_depth_sigma,
             );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 }
@@ -114,5 +114,6 @@ mod tests {
         assert!(source.contains("HALF_RES_TRANSPARENCY_COLOR"));
         assert!(source.contains("HALF_RES_TRANSPARENCY_DEPTH"));
         assert!(source.contains("RenderGraphResourceAccessKind::Write"));
+        assert!(source.contains("self.append_pre_submit_buffer_uploads("));
     }
 }

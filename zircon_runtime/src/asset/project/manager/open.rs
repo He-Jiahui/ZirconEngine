@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::core::resource::ResourceRegistry;
 use crate::core::runtime::tasks::TaskPool;
@@ -43,9 +44,10 @@ impl ProjectManager {
             paths,
             manifest,
             registry: ResourceRegistry::default(),
-            asset_registry,
+            asset_registry: Arc::new(asset_registry),
             package_assets,
             catalog_input_generation,
+            reference_diagnostics: Arc::new(Default::default()),
             importer: AssetImporter::default(),
             artifact_store: ArtifactStore::default(),
             shader_import_dependencies: Default::default(),

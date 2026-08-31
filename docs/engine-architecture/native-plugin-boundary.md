@@ -31,6 +31,7 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay/error.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
@@ -219,6 +220,12 @@ watch registry or worker.
 
 ## Current Audit
 
+### Current ABI Hard Cut (2026-08-24)
+
+Descriptor and entry remain V3, while behavior callbacks remain V4. The behavior callback byte transport now has one physical V3 definition for byte slices, owned buffers, callback status, and related callback signatures. The loader, SDK, native fixtures, and first-party native consumers contain no V2 descriptor/entry or byte-transport symbols, no V3-to-V2 aliases, and no `abi_v2_only` fixture feature. `NativeHostApiV3RegistrationScope` is retired; `NativeHostApiV4RegistrationPolicy` and `NativeHostApiV4RegistrationScope` are the only public registration owner. A deliberately invalid version remains covered through the V3 descriptor's `abi_version` field, so rejection does not require an older descriptor export.
+
+This source-level hard cut is separate from the existing public-surface classification and root-import audit drift, and does not claim the pending managed Cargo/native validation result.
+
 The structural audit now includes `native_plugin_public_surface`. Its scan, classification, and M4 gate implementation is folder-backed in `runtime_structure_audits/native_plugin_public_surface.py`; Markdown rendering is split into `runtime_structure_audits/native_plugin_public_surface_markdown.py`, so M4 native loader isolation evidence and output formatting have separate owners while the main audit script remains an orchestration boundary.
 
 Current evidence:
@@ -283,6 +290,8 @@ The Runtime 06 plan-status guard `runtime_06_plugin_surface_lifecycle_gate_stays
 
 `plugin_surface_lifecycle_boundary` now mirrors the wider Runtime 06 state through the Python structural audit, while `plugin_surface_lifecycle_markdown.py` owns the Markdown renderer. Current evidence: Runtime 06 source 14/14, mirror docs 5/5, `expected_source_file_count = 14`, `expected_doc_file_count = 5`, frontmatter `in_progress`, `last_refined = 2026-07-01`, `plugin_surface_lifecycle_boundary.py = 450`, `plugin_surface_lifecycle_markdown.py = 144`, native root re-export 0/0, native namespace re-export 64/64, M4 gate `classified-and-clear`, debt groups 0/0, native namespace symbol groups 5/5, unclassified native root symbols 0/0, unclassified native namespace symbols 0/0, root public native re-export locations 0/0, public native namespace re-export locations 1/1, app NativePlugin current call-site files: 7, native loader V1/V2 implementation files 0/0, `zircon_plugins` V1/V2 usage files 0/0, export_build_plan V1/V2 usage 0/0, native loader test files 4/4, native test namespace import files 3/3, native test root import leaks 0/0, fallback lifecycle failure tests 4/4, unknown ABI rejection, hot reload failure injection, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts`, `runtime_06_native_loader_tests_use_isolated_plugin_native_namespace`, and `runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed` keep this document aligned with Runtime 06, the runtime index, runtime-interface convergence, and the M0 review.
 
+2026-08-24 Runtime 06 native namespace static sync assigns discovery/load commands to `plugin::native::discovery` and stable live-host handles to `plugin::native::host`; no plugin-root loader forwarder or flat discovery/handle caller remains. `plugin_surface_lifecycle_boundary` now reports `expected_source_file_count = 20`, `expected_doc_file_count = 5`, `root_reexport_count = 0`, `native_namespace_reexport_count = 68`, native root re-export 0/0, native namespace re-export 68/68, native namespace symbol groups 6/6, app NativePlugin current call-site files: 7, and `risks = []`. This records source structure only; managed Cargo/native validation remains pending.
+
 ## Distribution Compatibility Diagnostics
 
 2026-07-22 public-surface sync supersedes the older 64-symbol snapshots for the current tree. `NativePluginCallbackDiagnostics` and `NativePluginLiveHostDiagnostics` belong to the native behavior/report diagnostics group; `NativePluginLoadProjection` belongs to loader/discovery; `ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH` belongs to the ABI contract. The public seat remains exclusively `zircon_runtime::plugin::native`: `root_reexport_count = 0`, `native_namespace_reexport_count = 68`, native root re-export 0/0, native namespace re-export 68/68, M4 gate `classified-and-clear`, debt groups 0/0, native namespace symbol groups 5/5, unclassified native root symbols 0/0, unclassified native namespace symbols 0/0, root public native re-export locations 0/0, public native namespace re-export locations 1/1, app NativePlugin current call-site files: 7, native loader V1/V2 implementation files 0/0, `zircon_plugins` V1/V2 usage files 0/0, export_build_plan V1/V2 usage 0/0, unknown ABI rejection, hot reload failure injection, native loader test files 4/4, native test namespace import files 3/3, native test root import leaks 0/0, fallback lifecycle failure tests 4/4, `runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed`, `runtime_06_native_loader_tests_use_isolated_plugin_native_namespace`, `mirror_docs_guard_present = true`, `risks = []`, and `runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts`.
@@ -332,6 +341,14 @@ Runtime 15 records the native live-host behavior diagnostics follow-up as `Runti
 Runtime 15 records the native live-host lifecycle follow-up as `Runtime 15 F5 native live-host lifecycle typed errors` / `runtime_15_native_live_host_lifecycle_typed_errors_static_passed_cargo_deferred`. `plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs` now reports unload and hot-reload lifecycle internals through `NativePluginLiveHostLifecycleError`, including `NativePluginLiveHostLifecycleError::HotReloadDidNotLoad`, `HotReloadSnapshot`, `HotReloadRestore`, `RuntimeBridgeMethodBindings`, and `UnsupportedLiveHostModuleKind`. Public unload/hot-reload APIs and export-root hot-update reports still format typed errors at their diagnostic boundary, so native live-host lifecycle keeps string diagnostics at public live-host and hot-update report boundaries. Hot reload rollback behavior, bridge binding semantics, lifecycle report schema, and the NativeDynamic public namespace are unchanged; `review_f5_native_live_host_lifecycle_uses_typed_error` locks the boundary with the other live-host guards.
 
 Runtime 15 records the native live-host bridge lifecycle follow-up as `Runtime 15 F5 native live-host bridge lifecycle typed errors` / `runtime_15_native_live_host_bridge_lifecycle_typed_errors_static_passed_cargo_deferred`. `plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs` now reports load/hot-reload/unload wrapper failures through `NativePluginBridgeLifecycleError`, including `NativePluginBridgeLifecycleError::BridgeLifecycleRejected` and `UnloadRollback`. Public bridge-lifecycle live-host APIs still format typed errors at their diagnostic boundary, so native live-host bridge lifecycle keeps string diagnostics at public live-host boundaries. Bridge lifecycle report shape, provider transition behavior, and the NativeDynamic public namespace are unchanged; `review_f5_native_live_host_bridge_lifecycle_uses_typed_error` locks the boundary in a separate live-host child owner to keep review guard files below budget.
+
+The 2026-08-27 registration replay owner split keeps orchestration, generation/cache publication,
+manifest parsing and system registration in `native_plugin_live_host/registration_replay.rs`, while
+`registration_replay/error.rs` owns `NativePluginRegistrationReplayError`, its complete Display policy
+and nested `Error::source` chain. The parent retains only a `pub(super) use`, preserving the existing
+module-local test path without expanding the public native namespace. The F5 structure guard reads both
+physical owners. Status:
+`runtime_06_15_native_registration_replay_error_owner_split_static_passed_cargo_deferred`.
 
 ## M4 Decision Rules
 

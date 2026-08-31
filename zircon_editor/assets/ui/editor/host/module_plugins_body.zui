@@ -25,7 +25,7 @@ component = "IconButton"
 control_id = "FocusModulePlugins"
 props = { label = "Focus Plugins", icon = "editor_pages/build_plugins/plugins/plugin.svg", icon_placement = "leading" }
 layout = { width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "ModulePluginsPaneBody/FocusModulePlugins", event = "Click", route = "workbench.dock.focus_view" }]
+events = [{ id = "ModulePluginsPaneBody/FocusModulePlugins", event = "Click", route = "workbench.pane.module_plugins.focus" }]
 
 [nodes.summary]
 component = "Text"

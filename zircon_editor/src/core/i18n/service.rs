@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::settings::SettingsAuthority;
 
-use super::{EditorI18nCatalog, EditorI18nError, EditorLocale};
+use super::{EditorI18nCatalog, EditorI18nError, EditorLocale, EditorLocalizationBundle};
 
 pub(super) const MAX_PENDING_LOCALE_EVENTS: usize = 32;
 pub(super) const MAX_PENDING_LOCALE_EVENT_BYTES: usize = 64;
@@ -195,6 +195,23 @@ impl EditorI18nService {
 
     pub fn translate_for_locale(&self, locale: &EditorLocale, key: &str) -> Arc<str> {
         self.catalog.translate_for_locale(locale, key)
+    }
+
+    /// Resolves a ticket-owned plugin bundle through the canonical locale fallback chain.
+    pub fn translate_bundle_for_locale(
+        &self,
+        bundle: &EditorLocalizationBundle,
+        locale: &EditorLocale,
+        key: &str,
+    ) -> Arc<str> {
+        bundle
+            .translation(locale, key)
+            .or_else(|| {
+                (locale.as_str() != EditorLocale::english_tag())
+                    .then(|| bundle.translation_for_locale_tag(EditorLocale::english_tag(), key))
+                    .flatten()
+            })
+            .unwrap_or_else(|| Arc::from(key))
     }
 
     pub fn embedded_bundle_error(&self) -> Option<&str> {

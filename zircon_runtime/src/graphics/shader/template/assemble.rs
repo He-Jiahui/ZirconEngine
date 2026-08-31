@@ -1,21 +1,21 @@
 use std::num::NonZeroU32;
 
 use crate::core::framework::render::{
-    strip_wgsl_include_directives, wgsl_include_paths, GeometrySourceDescriptor,
-    RenderShaderDefinitionValue, ShaderFeatureBits, ShaderPassType, ShadingModelDescriptor,
-    GENERATED_MATERIAL_MODULE_IMPORT_PATH,
+    GENERATED_MATERIAL_MODULE_IMPORT_PATH, GeometrySourceDescriptor, RenderShaderDefinitionValue,
+    ShaderFeatureBits, ShaderPassType, ShadingModelDescriptor, strip_wgsl_include_directives,
+    wgsl_include_paths,
 };
 use crate::graphics::material::ShadingModelIncludeSourceSet;
 
 use super::material_surface::STANDARD_MATERIAL_SURFACE_ENTRY_POINT;
 use super::module_registry::{
-    bindless_material_include, geometry_source_include_for, gpu_scene_include,
-    scene_runtime_include, shading_model_forward_include_for, shading_model_forward_include_token,
-    surface_types_include, ShaderModuleRegistry, ShaderModuleResolutionError,
-    ShaderTemplateInclude, ShaderTemplateIncludeRegistry,
+    ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
+    ShaderTemplateIncludeRegistry, bindless_material_include, geometry_source_include_for,
+    gpu_scene_include, pbr_common_include, scene_runtime_include,
+    shading_model_forward_include_for, shading_model_forward_include_token, surface_types_include,
 };
 use super::pass_specialization::{
-    pass_template_for_shading_model, MATERIAL_SHADER_TEMPLATE_REVISION,
+    MATERIAL_SHADER_TEMPLATE_REVISION, pass_template_for_shading_model,
 };
 
 const MATERIAL_SURFACE_ENTRY_POINT: &str = "zr_material_surface";
@@ -275,6 +275,7 @@ pub(crate) enum ShaderTemplateAssemblyError {
 pub(crate) fn assemble_material_shader_template(
     request: MaterialShaderTemplateRequest,
 ) -> Result<MaterialShaderTemplateAssembly, ShaderTemplateAssemblyError> {
+    crate::profile_scope!("render", "shader_pipeline", "template_assembly");
     let bindless_material_requested = request
         .features
         .contains(ShaderFeatureBits::BINDLESS_MATERIAL);
@@ -311,6 +312,7 @@ pub(crate) fn assemble_material_shader_template(
     if bindless_material_requested {
         push_include_chunk(&mut registry, &mut builder, bindless_material_include());
     }
+    push_include_chunk(&mut registry, &mut builder, pbr_common_include());
     push_include_chunk(&mut registry, &mut builder, surface_types_include());
 
     let geometry_include =
@@ -597,13 +599,13 @@ fn declared_functions(source: &str) -> impl Iterator<Item = &str> {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        builtin_geometry_source_descriptor, ShaderPassType, GENERATED_MATERIAL_MODULE_IMPORT_PATH,
-        GEOMETRY_SOURCE_ID_STATIC_MESH,
+        GENERATED_MATERIAL_MODULE_IMPORT_PATH, GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderPassType,
+        builtin_geometry_source_descriptor,
     };
 
     use super::{
+        MATERIAL_SURFACE_ENTRY_POINT, MaterialShaderTemplateRequest, ShaderAssemblySegmentKind,
         assemble_material_shader_template, shader_assembly_source_location_for_line,
-        MaterialShaderTemplateRequest, ShaderAssemblySegmentKind, MATERIAL_SURFACE_ENTRY_POINT,
     };
 
     const GENERATED_MATERIAL: &str = r#"
@@ -670,5 +672,19 @@ fn user_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
             ShaderAssemblySegmentKind::UserMaterialSurface
         );
         assert_eq!(surface_location.local_line, 2);
+    }
+
+    #[test]
+    fn all_material_template_domains_publish_the_same_assembly_profile_stage() {
+        let forward = include_str!("assemble.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("forward template test boundary");
+        let deferred = include_str!("deferred_gbuffer.rs");
+        let taa = include_str!("taa_reactive_mask.rs");
+
+        for source in [forward, deferred, taa] {
+            assert!(source.contains("\"shader_pipeline\", \"template_assembly\""));
+        }
     }
 }

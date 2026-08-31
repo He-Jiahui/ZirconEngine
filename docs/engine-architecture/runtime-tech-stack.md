@@ -154,7 +154,7 @@ Runtime text currently has three separate responsibilities:
 
 | Layer | Current owner | Current state |
 |---|---|---|
-| Layout and measurement | `zircon_runtime::ui::text::UiTextShaper` | Active backend is `SharedTextService`; `shared_text_shaper_matches_public_layout_entrypoint` and `text_shaper_stack_uses_shared_text_service_for_font_backends` lock that behavior. |
+| Layout and measurement | `zircon_runtime::ui::text::UiTextShaper` | Active adapter is `UiSharedTextShaper`; `shared_text_shaper_matches_public_layout_entrypoint` and `shared_text_shaper_matches_public_measurement_entrypoint` lock public parity. The former one-member `UiTextShaperStack` wrapper was removed. |
 | Font/raster policy | `zircon_runtime::ui::text` | Font registry and raster policy exist; SDF/native layout backends are not connected yet. |
 | GPU/native submission | runtime graphics/UI render paths with `glyphon` | Render-side dependency exists; Native/SDF render modes currently consume shared layout metrics until a future text milestone swaps the `UiTextShaper` implementation. |
 

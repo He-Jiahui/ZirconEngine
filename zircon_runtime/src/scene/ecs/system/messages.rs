@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 
+use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, Message, MessageCursor, MessageId, MessageReadIter, MessageStore,
     SystemParam, SystemParamAccess, SystemParamError,
 };
-use crate::scene::World;
 
 pub struct MessageReaderParam<T>(PhantomData<fn() -> T>);
 
@@ -30,7 +30,7 @@ impl<'world, T> MessageReader<'world, T>
 where
     T: Message,
 {
-    pub fn read(&mut self) -> MessageReadIter<'world, T> {
+    pub fn read<'reader>(&'reader mut self) -> MessageReadIter<'reader, T> {
         self.cursor.read(self.messages)
     }
 

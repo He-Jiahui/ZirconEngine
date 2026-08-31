@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 use std::mem;
-use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 use zircon_runtime::asset::{AssetUri, AssetUuid};
@@ -33,6 +33,10 @@ impl ImportGenerationKey {
             .saturating_add(self.uri.path().len())
             .saturating_add(self.uri.label().map(str::len).unwrap_or_default())
             .saturating_add(self.source_digest.len())
+    }
+
+    fn uri(&self) -> &AssetUri {
+        self.uri.as_ref()
     }
 }
 
@@ -407,7 +411,6 @@ impl ImportFlowState {
 #[derive(Default)]
 pub(super) struct ImportFlowSharedState {
     state: Mutex<ImportFlowState>,
-    changed: Condvar,
 }
 
 impl ImportFlowSharedState {
@@ -417,24 +420,17 @@ impl ImportFlowSharedState {
         reason: EditorAssetImportReason,
         limits: EditorAssetImportAdmissionLimits,
     ) -> Result<ImportReservation, EditorAssetImportSubmitError> {
-        let mut state = self.lock();
-        loop {
-            match state.reserve(key.clone(), reason, Instant::now(), limits)? {
-                ReserveAttempt::Ready(reservation) => return Ok(reservation),
-                ReserveAttempt::UuidTransitionPending => {
-                    state = self
-                        .changed
-                        .wait(state)
-                        .unwrap_or_else(|poisoned| poisoned.into_inner());
-                }
+        let uri = key.uri().clone();
+        match self.lock().reserve(key, reason, Instant::now(), limits)? {
+            ReserveAttempt::Ready(reservation) => Ok(reservation),
+            ReserveAttempt::UuidTransitionPending => {
+                Err(EditorAssetImportSubmitError::UuidLifecycleTransitionPending { uri })
             }
         }
     }
 
     pub(super) fn mark_uuid_ready(&self, token: UuidLifecycleToken) -> bool {
-        let marked = self.lock().mark_uuid_ready(token);
-        self.changed.notify_all();
-        marked
+        self.lock().mark_uuid_ready(token)
     }
 
     pub(super) fn abort_unsubmitted(
@@ -442,9 +438,7 @@ impl ImportFlowSharedState {
         key: &ImportGenerationKey,
         identity: FlightIdentity,
     ) -> ImportFinishAction {
-        let action = self.lock().abort_unsubmitted(key, identity);
-        self.changed.notify_all();
-        action
+        self.lock().abort_unsubmitted(key, identity)
     }
 
     pub(super) fn finish(
@@ -455,22 +449,18 @@ impl ImportFlowSharedState {
         completed_result_bytes: usize,
         limits: EditorAssetImportAdmissionLimits,
     ) -> ImportFinishAction {
-        let action = self.lock().finish(
+        self.lock().finish(
             key,
             identity,
             successful,
             completed_result_bytes,
             limits,
             Instant::now(),
-        );
-        self.changed.notify_all();
-        action
+        )
     }
 
     pub(super) fn complete_uuid_clear(&self, token: UuidLifecycleToken) -> bool {
-        let cleared = self.lock().complete_uuid_clear(token);
-        self.changed.notify_all();
-        cleared
+        self.lock().complete_uuid_clear(token)
     }
 
     fn lock(&self) -> MutexGuard<'_, ImportFlowState> {

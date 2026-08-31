@@ -7,6 +7,12 @@ use super::resolution::{
     UiAssetPaletteTargetFrame,
 };
 
+#[cfg(test)]
+#[path = "flow_slots/capacity_tests.rs"]
+mod capacity_tests;
+
+const FLOW_SLOT_TARGET_COUNT: usize = 6;
+
 pub(super) fn flow_slot_target_overlays(
     frame: UiAssetPaletteTargetFrame,
     selected_slot: &BTreeMap<String, Value>,
@@ -75,7 +81,7 @@ pub(super) fn flow_slot_targets(
     hover: UiAssetPaletteHoverContext,
 ) -> Vec<UiAssetPaletteNativeSlotTarget> {
     let alignments = ["Start", "Center", "End"];
-    let mut targets = Vec::new();
+    let mut targets = Vec::with_capacity(FLOW_SLOT_TARGET_COUNT);
     for row in 0..2 {
         for (column, alignment) in alignments.iter().enumerate() {
             let break_before = row == 1;

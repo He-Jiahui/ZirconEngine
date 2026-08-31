@@ -11,8 +11,9 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
 
     PanePayload::BuildExportV1(BuildExportPanePayload {
         diagnostics: data.diagnostics.to_string(),
-        targets: (0..data.targets.row_count())
-            .filter_map(|row| data.targets.row_data(row))
+        targets: data
+            .targets
+            .iter()
             .map(|target| BuildExportTargetPayload {
                 profile_name: target.profile_name.to_string(),
                 platform: target.platform.to_string(),

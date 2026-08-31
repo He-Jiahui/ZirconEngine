@@ -9,24 +9,29 @@ pub(in crate::plugin::runtime_plugin::registration_report) fn validate_runtime_p
     extensions: &RuntimeExtensionRegistry,
     diagnostics: &mut Vec<String>,
 ) {
-    let exported_interfaces = extensions
-        .plugin_interfaces()
-        .filter_map(|(owner, export)| {
-            let module_name = extensions.plugin_module_name(owner)?;
-            projection
-                .is_runtime_module(module_name)
-                .then_some(export.interface_id())
-        })
-        .collect::<HashSet<_>>();
-    let imported_interfaces = extensions
-        .plugin_interface_imports()
-        .filter_map(|(owner, import)| {
-            let module_name = extensions.plugin_module_name(owner)?;
-            projection
-                .is_runtime_module(module_name)
-                .then_some(import.interface_id())
-        })
-        .collect::<HashSet<_>>();
+    let exported_interface_rows = extensions.plugin_interfaces();
+    let (exported_interface_capacity, _) = exported_interface_rows.size_hint();
+    let mut exported_interfaces = HashSet::with_capacity(exported_interface_capacity);
+    for (owner, export) in exported_interface_rows {
+        let Some(module_name) = extensions.plugin_module_name(owner) else {
+            continue;
+        };
+        if projection.is_runtime_module(module_name) {
+            exported_interfaces.insert(export.interface_id());
+        }
+    }
+
+    let imported_interface_rows = extensions.plugin_interface_imports();
+    let (imported_interface_capacity, _) = imported_interface_rows.size_hint();
+    let mut imported_interfaces = HashSet::with_capacity(imported_interface_capacity);
+    for (owner, import) in imported_interface_rows {
+        let Some(module_name) = extensions.plugin_module_name(owner) else {
+            continue;
+        };
+        if projection.is_runtime_module(module_name) {
+            imported_interfaces.insert(import.interface_id());
+        }
+    }
 
     for interface_id in projection.provided_interface_ids() {
         if !exported_interfaces.contains(interface_id) {
@@ -140,6 +145,18 @@ mod tests {
             &mut diagnostics,
         );
         assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    }
+
+    #[test]
+    fn preallocated_interface_sets_preserve_registration_validation_contract() {
+        let source = include_str!("interfaces.rs");
+        let preallocated_set = ["HashSet::with_", "capacity"].concat();
+        let capacity_hint = [".size_", "hint()"].concat();
+        let unbounded_collect = ["collect::<HashSet", "<_>>()"].concat();
+
+        assert_eq!(source.matches(&preallocated_set).count(), 2);
+        assert_eq!(source.matches(&capacity_hint).count(), 2);
+        assert!(!source.contains(&unbounded_collect));
     }
 
     fn package_manifest(declare_import: bool) -> PluginPackageManifest {

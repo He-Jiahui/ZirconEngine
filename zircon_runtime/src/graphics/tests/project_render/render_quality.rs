@@ -1,9 +1,9 @@
 use std::fs;
 
+use crate::asset::AssetUri;
 use crate::asset::pipeline::manager::AssetManager;
 use crate::asset::project::ProjectManager;
 use crate::asset::project::{ProjectManifest, ProjectPaths};
-use crate::asset::AssetUri;
 use crate::core::framework::render::{
     PostProcessGraphResourceNames, RenderDirectionalLightSnapshot, RenderFramework, RenderLayerSet,
     RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderStats,
@@ -12,12 +12,12 @@ use crate::core::framework::render::{
 use crate::core::math::{UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker};
 use crate::graphics::WgpuRenderFramework;
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 
 use super::super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
 use super::{
-    average_channel, average_channel_in_region, average_luma, build_snapshot,
-    dominant_green_pixels, fullscreen_quad_transform, offset_quad_transform,
+    average_channel, average_channel_in_region, build_snapshot, dominant_green_pixels,
+    fullscreen_quad_transform, offset_quad_transform,
     project_asset_manager_with_first_wave_plugin_importers, resource_handle, submit_snapshot,
     unique_temp_project_root, write_checker_png, write_flat_color_wgsl, write_material,
     write_material_with_base_color_and_texture, write_quad_obj, write_scene, write_solid_png,
@@ -219,7 +219,7 @@ fn temporal_history_rotates_history_when_scene_material_changes() {
 }
 
 #[test]
-fn ssao_quality_profile_darkens_scene_when_enabled() {
+fn ssao_product_default_is_fail_closed_and_preserves_scene_output() {
     let root = unique_temp_project_root("graphics_ssao");
     let paths = ProjectPaths::from_root(&root).unwrap();
     paths
@@ -325,20 +325,26 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
         Vec::new(),
     )
     .unwrap();
-    let ao_viewport = server
+    let requested_ao_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
     server
         .set_quality_profile(
-            ao_viewport,
-            RenderQualityProfile::new("ao-on")
+            requested_ao_viewport,
+            RenderQualityProfile::new("ao-requested")
                 .with_clustered_lighting(false)
-                .with_temporal_history(false),
+                .with_temporal_history(false)
+                .with_screen_space_ambient_occlusion(true),
         )
         .unwrap();
-    let ao_frame = submit_snapshot(&server, ao_viewport, snapshot.clone());
-    let ao_stats = server.query_stats().unwrap();
-    assert_ssao_shared_hzb_product_path(&ao_stats);
+    let requested_ao_frame = submit_snapshot(&server, requested_ao_viewport, snapshot.clone());
+    let requested_ao_stats = server.query_stats().unwrap();
+    assert!(
+        requested_ao_stats
+            .last_graph_executed_passes
+            .iter()
+            .all(|pass| pass != "ssao-evaluate")
+    );
 
     let no_ao_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -354,38 +360,12 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
         .unwrap();
     let no_ao_frame = submit_snapshot(&server, no_ao_viewport, snapshot);
 
-    let ao_luma = average_luma(&ao_frame.rgba);
-    let no_ao_luma = average_luma(&no_ao_frame.rgba);
-    assert!(
-        ao_luma + 5.0 < no_ao_luma,
-        "expected SSAO-enabled output to be darker; ao luma={ao_luma:.2}, no-ao luma={no_ao_luma:.2}"
+    assert_eq!(
+        requested_ao_frame.rgba, no_ao_frame.rgba,
+        "the product-default SSAO request must remain fail-closed until the qualified GTAO and indirect-diffuse composition path is available"
     );
 
     let _ = fs::remove_dir_all(root);
-}
-
-fn assert_ssao_shared_hzb_product_path(stats: &RenderStats) {
-    assert_graph_pass_executed(stats, "hzb-build");
-    assert_graph_pass_executed(stats, "ssao-evaluate");
-    assert_graph_executor_executed(stats, "visibility.hzb-build");
-    assert_graph_executor_executed(stats, "compute.generic");
-    assert!(
-        stats.last_hzb_mip_count > 1,
-        "SSAO product path should build a shared HZB mip chain; stats={stats:?}"
-    );
-    assert!(
-        stats.last_hzb_graph_executed_pass_count > 0,
-        "SSAO product path should execute HZB graph work; stats={stats:?}"
-    );
-    assert_texture_alias_recorded(stats, PostProcessGraphResourceNames::HZB_FURTHEST);
-    let materialization = stats.last_graph_materialization_report;
-    assert!(
-        materialization.missing_texture_count == 0
-            && materialization.missing_buffer_count == 0
-            && materialization.missing_required_external_count == 0
-            && materialization.stale_binding_count() == 0,
-        "SSAO shared HZB graph should bind all required resources; report={materialization:?}"
-    );
 }
 
 fn assert_graph_pass_executed(stats: &RenderStats, pass_name: &str) {

@@ -56,4 +56,20 @@ tests:
 
 ## 修复结果与回传
 
-Open state: `待 Runtime10 建立typed bounded host-request batch、direct wake owner、owned-output exactly-once free与failed-destroy有界回收，并回传ABI/压力证据`。
+Open state: `direct host wake owner 源码已硬切并静态通过；typed bounded host-request batch、完整
+owned-output/failed-destroy 生命周期收敛、受管 Cargo 与 ABI/压力证据仍待 Runtime10 完成`。
+
+## 2026-08-26 direct host wake owner 前向修复
+
+`RuntimeWakeRegistration` 现在同时保存 token 与 owned `EventLoopProxy`。host-owned
+`RuntimeSession::wake_host` 继续调用同一 registration API，但 `wake()` 已直接触发 owned proxy，
+不再取得 process-global wake registry mutex、不做 HashMap lookup 或 proxy clone。DLL FFI callback
+仍只携带 token，因此 `runtime_wake_trampoline` 保留 registry lookup 与 panic containment；
+`unregister()` 后 direct host 与 stale callback 两条路径均 no-op，不增加第二份 registry、cache、线程或
+兼容入口。
+
+架构、UE direct wake owner 对照、复杂度与待测矩阵见
+`docs/plans/optimize/zircon_runtime/10/2026-08-26-direct-host-wake-owner.md`。源码
+`rustfmt` 1/1、static contracts 8/8，owner 155 行，scoped diff check 通过；Runtime10/App Cargo、
+1/1k/100k wake storm、lock/latency/CPU/WPR/功耗均未执行。本 failure 保持 open，不能据此宣称
+typed host-request、failed-destroy quarantine 或完整 PERF-MVP-425/574 已完成。

@@ -1,5 +1,6 @@
 use crate::core::editor_message::{DocumentId, SelectionDomain};
 use crate::core::jobs::{JobEventKind, JobId};
+use crate::core::play::WorldDomain;
 
 use super::{
     DocumentMessage, EditorMessage, EditorMessagePayload, EditorMessageProtocol, FocusMessage,
@@ -19,7 +20,7 @@ pub(super) enum EditorMessageCoalescingKey {
     DocumentFocus,
     SceneMode,
     Selection(SelectionDomain),
-    FocusObject,
+    FocusObject(WorldDomain),
     JobProgress(JobId),
     SceneInspection,
 }
@@ -50,6 +51,7 @@ pub(super) fn editor_message_retention(
             | JobEventKind::Failed { .. }
             | JobEventKind::Cancelled => EditorMessageRetention::Lossless,
         },
+        EditorMessagePayload::JobJournalGap(_) => EditorMessageRetention::Lossless,
         EditorMessagePayload::Custom { .. } => EditorMessageRetention::Bounded,
     }
 }
@@ -82,8 +84,8 @@ fn focus_retention(message: &FocusMessage) -> EditorMessageRetention {
         FocusMessage::SelectionChanged { domain, .. } => {
             EditorMessageRetention::Latest(EditorMessageCoalescingKey::Selection(*domain))
         }
-        FocusMessage::FocusObject { .. } => {
-            EditorMessageRetention::Latest(EditorMessageCoalescingKey::FocusObject)
+        FocusMessage::FocusObject { domain, .. } => {
+            EditorMessageRetention::Latest(EditorMessageCoalescingKey::FocusObject(*domain))
         }
     }
 }

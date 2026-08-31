@@ -4,7 +4,7 @@ use crate::ui::workbench::layout::{
     MainHostPageLayout, MainPageId, RestorePolicy, WorkbenchLayout,
 };
 use crate::ui::workbench::project::ProjectEditorWorkspace;
-use crate::ui::workbench::view::{ViewDescriptor, ViewInstance, ViewInstanceId};
+use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
 use crate::ui::workbench::window_registry::EditorWindowRegistry;
 
 use super::asset_editor_sessions::UI_ASSET_EDITOR_DESCRIPTOR_ID;
@@ -25,9 +25,10 @@ fn active_main_page_view(session: &EditorSessionState) -> Option<ViewInstanceId>
         .iter()
         .find(|page| page.id() == &session.layout.active_main_page)
         .and_then(|page| match page {
-            MainHostPageLayout::WorkbenchPage {
-                document_workspace, ..
-            } => active_tab_from_document(document_workspace),
+            MainHostPageLayout::WorkbenchPage { id, .. } => session
+                .layout
+                .content_workspace_for_page(id)
+                .and_then(active_tab_from_document),
             MainHostPageLayout::ExclusiveActivityWindowPage {
                 window_instance, ..
             } => Some(window_instance.clone()),
@@ -49,6 +50,17 @@ impl EditorUiHost {
 
     pub(super) fn current_focused_view(&self) -> Option<ViewInstanceId> {
         self.lock_session().focused_view.clone()
+    }
+
+    pub(super) fn current_focused_view_matches(&self, descriptor_id: &ViewDescriptorId) -> bool {
+        let session = self.lock_session();
+        let Some(focused) = session.focused_view.as_ref() else {
+            return false;
+        };
+        session
+            .open_view_instances
+            .get(focused)
+            .is_some_and(|instance| &instance.descriptor_id == descriptor_id)
     }
 
     pub(super) fn update_view_instance_metadata(
@@ -178,7 +190,6 @@ impl EditorUiHost {
     pub(super) fn project_workspace(&self) -> ProjectEditorWorkspace {
         let session = self.lock_session();
         ProjectEditorWorkspace {
-            layout_version: 1,
             workbench: session.layout.clone(),
             open_view_instances: session.open_view_instances.values().cloned().collect(),
             focused_view: session.focused_view.clone(),
@@ -242,8 +253,8 @@ impl EditorUiHost {
         session.active_drawers = session
             .layout
             .active_activity_window_drawers()
-            .into_iter()
-            .filter_map(|(slot, drawer)| drawer.visible.then_some(slot))
+            .iter()
+            .filter_map(|(slot, drawer)| drawer.visible.then_some(*slot))
             .collect();
         if session
             .focused_view

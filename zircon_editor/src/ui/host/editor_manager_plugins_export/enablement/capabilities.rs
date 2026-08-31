@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::super::super::editor_capabilities::EditorCapabilitySnapshot;
 use super::super::super::editor_manager::EditorManager;
 use super::super::super::runtime_services::EditorCapabilityConfiguration;
@@ -39,17 +41,8 @@ impl EditorManager {
             .capability_configuration()
             .map_err(|error| error.to_string())?;
         let previous_capabilities = configuration.enabled_subsystems();
-        let mut capabilities = previous_capabilities.clone();
-        capabilities.retain(|existing| {
-            !target_capabilities
-                .iter()
-                .any(|capability| capability == existing)
-        });
-        if enabled {
-            capabilities.extend(target_capabilities.iter().cloned());
-            capabilities.sort();
-            capabilities.dedup();
-        }
+        let capabilities =
+            project_editor_capabilities(&previous_capabilities, target_capabilities, enabled);
         configuration.store_enabled_subsystems(&capabilities);
         match self
             .host
@@ -118,3 +111,29 @@ impl EditorManager {
         Ok(snapshot)
     }
 }
+
+fn project_editor_capabilities(
+    previous: &[String],
+    targets: &[String],
+    enabled: bool,
+) -> Vec<String> {
+    let target_index: HashSet<&str> = targets.iter().map(String::as_str).collect();
+    let extra_capacity = if enabled { targets.len() } else { 0 };
+    let mut capabilities = Vec::with_capacity(previous.len() + extra_capacity);
+    capabilities.extend(
+        previous
+            .iter()
+            .filter(|existing| !target_index.contains(existing.as_str()))
+            .cloned(),
+    );
+    if enabled {
+        capabilities.extend(targets.iter().cloned());
+        capabilities.sort();
+        capabilities.dedup();
+    }
+    capabilities
+}
+
+#[cfg(test)]
+#[path = "capabilities/indexed_projection_tests.rs"]
+mod indexed_projection_tests;

@@ -2,18 +2,18 @@ use zircon_editor::core::asset::{
     AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
     AssetTypePresentation, ThumbnailProviderDescriptor,
 };
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use zircon_editor::core::editor_extension::{
-    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
-    EditorUiTemplateDescriptor, ViewDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError, EditorUiTemplateDescriptor,
+    ViewDescriptor,
 };
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
-    EditorAuthoringExtensions, EditorAuthoringSurface, register_authoring_extensions,
-    register_authoring_surface,
+    register_authoring_extensions, register_authoring_surface, EditorAuthoringExtensions,
+    EditorAuthoringSurface,
 };
-use zircon_plugin_sdk::{EditorPluginDeclaration, authoring_plugin};
+use zircon_plugin_sdk::{authoring_plugin, EditorPluginDeclaration};
 
 use crate::capability::{EDITOR_CAPABILITIES, PLUGIN_ID};
 use crate::extension_ids::{
@@ -54,7 +54,6 @@ fn register_physics_authoring_extensions(
                 PHYSICS_AUTHORING_VIEW_ID,
                 "Physics",
                 "World",
-                "Plugins/Physics",
             )],
         },
     )?;
@@ -69,7 +68,6 @@ fn register_physics_authoring_extensions(
             PHYSICS_DIAGNOSTICS_VIEW_ID,
             "Physics Diagnostics",
             "Diagnostics",
-            "Plugins/Physics/Diagnostics",
         ),
     )?;
     register_ragdoll_profile_editor(registry)
@@ -89,17 +87,17 @@ fn register_physics_debug_overlay(
         "plugins://physics/editor/debug_overlay.zui",
     ))?;
     registry.register_command(
-        EditorCommandDescriptor::operation(operation.clone(), "Toggle Physics Overlay")
-            .with_menu_path("View/Debug Overlays/Physics")
+        EditorCommandDescriptor::operation(operation.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &operation,
+                "view",
+                &["debug_overlays"],
+            ))
             .with_callable_from_remote(false)
             .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY])
             .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
                 ViewDescriptorId::new(PHYSICS_DEBUG_VIEW_ID),
             ))),
-    )?;
-    registry.register_menu_item(
-        EditorMenuItemDescriptor::new("View/Debug Overlays/Physics", operation.clone())
-            .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
     )?;
     Ok(())
 }
@@ -117,7 +115,6 @@ fn register_ragdoll_profile_editor(
             PHYSICS_RAGDOLL_PROFILE_VIEW_ID,
             "Ragdoll Profile",
             "Physics",
-            "Plugins/Physics/Ragdoll Profile",
         ),
     )?;
     let open_operation = parse_operation(&format!("view.{PHYSICS_RAGDOLL_PROFILE_VIEW_ID}.open"))?;
@@ -125,15 +122,12 @@ fn register_ragdoll_profile_editor(
 
     let create_operation = parse_operation(PHYSICS_CREATE_RAGDOLL_PROFILE_OPERATION)?;
     registry.register_command(
-        EditorCommandDescriptor::operation(
-            create_operation.clone(),
-            "Generate Ragdoll Profile From Skeleton",
-        )
-        .with_callable_from_remote(false)
-        .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY])
-        .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
-            ViewDescriptorId::new(PHYSICS_RAGDOLL_PROFILE_VIEW_ID),
-        ))),
+        EditorCommandDescriptor::operation(create_operation.clone())
+            .with_callable_from_remote(false)
+            .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY])
+            .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
+                ViewDescriptorId::new(PHYSICS_RAGDOLL_PROFILE_VIEW_ID),
+            ))),
     )?;
     registry.register_asset_type_contribution(
         AssetTypeContribution::define(

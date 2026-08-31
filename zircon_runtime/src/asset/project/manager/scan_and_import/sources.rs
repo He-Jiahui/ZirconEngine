@@ -9,10 +9,10 @@ use crate::asset::{AssetImportError, AssetUri};
 use crate::core::resource::ResourceScheme;
 
 use super::super::{
+    ProjectManager,
     collect_files::{collect_files, collect_matching_files},
     meta_path_for_source::meta_path_for_source,
     source_mtime_unix_ms::source_mtime_unix_ms,
-    ProjectManager,
 };
 
 pub(super) struct AssetImportSource {
@@ -23,6 +23,28 @@ pub(super) struct AssetImportSource {
     pub(super) included_files: Vec<AssetUri>,
     pub(super) included_paths: Vec<PathBuf>,
     pub(super) compound_root: Option<PathBuf>,
+    pub(super) source_snapshot: Option<AssetImportSourceSnapshot>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct AssetImportSourceSnapshot {
+    pub(crate) source_bytes: Vec<u8>,
+    pub(crate) source_mtime_unix_ms: u64,
+    pub(crate) source_file_snapshots: BTreeMap<PathBuf, Vec<u8>>,
+}
+
+impl AssetImportSource {
+    pub(crate) fn with_source_snapshot(mut self, snapshot: AssetImportSourceSnapshot) -> Self {
+        self.source_snapshot = Some(snapshot);
+        self
+    }
+
+    pub(super) fn source_file_snapshots(&self) -> BTreeMap<PathBuf, Vec<u8>> {
+        self.source_snapshot
+            .as_ref()
+            .map(|snapshot| snapshot.source_file_snapshots.clone())
+            .unwrap_or_default()
+    }
 }
 
 impl ProjectManager {
@@ -41,6 +63,7 @@ impl ProjectManager {
                 included_files: Vec::new(),
                 included_paths: Vec::new(),
                 compound_root: None,
+                source_snapshot: None,
             });
         }
 
@@ -71,6 +94,7 @@ impl ProjectManager {
             included_files,
             included_paths,
             compound_root: Some(indexed_path.to_path_buf()),
+            source_snapshot: None,
         })
     }
 
@@ -173,6 +197,7 @@ impl ProjectManager {
                 included_files: Vec::new(),
                 included_paths: Vec::new(),
                 compound_root: None,
+                source_snapshot: None,
             });
         }
 
@@ -228,6 +253,7 @@ impl ProjectManager {
                 included_files,
                 included_paths,
                 compound_root: Some(compound_root),
+                source_snapshot: None,
             });
         }
 
@@ -281,6 +307,9 @@ fn compound_root_for_meta_path(meta_path: &Path) -> Option<PathBuf> {
 pub(super) fn source_bytes_for_import(
     source: &AssetImportSource,
 ) -> Result<Vec<u8>, AssetImportError> {
+    if let Some(snapshot) = &source.source_snapshot {
+        return Ok(snapshot.source_bytes.clone());
+    }
     let mut bytes = fs::read(&source.path)?;
     let Some(compound_root) = &source.compound_root else {
         return Ok(bytes);
@@ -298,12 +327,66 @@ pub(super) fn source_bytes_for_import(
     Ok(bytes)
 }
 
+pub(super) fn take_source_bytes_for_import(
+    source: &mut AssetImportSource,
+) -> Result<Vec<u8>, AssetImportError> {
+    if let Some(snapshot) = &mut source.source_snapshot {
+        return Ok(std::mem::take(&mut snapshot.source_bytes));
+    }
+    source_bytes_for_import(source)
+}
+
 pub(super) fn source_mtime_unix_ms_for_import(
     source: &AssetImportSource,
 ) -> Result<u64, AssetImportError> {
+    if let Some(snapshot) = &source.source_snapshot {
+        return Ok(snapshot.source_mtime_unix_ms);
+    }
     let mut mtime = source_mtime_unix_ms(&source.path)?;
     for included_path in &source.included_paths {
         mtime = mtime.max(source_mtime_unix_ms(included_path)?);
     }
     Ok(mtime)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generated_source_snapshot_moves_primary_bytes_without_cloning() {
+        let mut source = AssetImportSource {
+            path: PathBuf::from("generated.zcube"),
+            uri: AssetUri::parse("res://generated.zcube").unwrap(),
+            meta_path: PathBuf::from("generated.zcube.zmeta"),
+            unit: AssetSourceUnit::Single,
+            included_files: Vec::new(),
+            included_paths: Vec::new(),
+            compound_root: None,
+            source_snapshot: Some(AssetImportSourceSnapshot {
+                source_bytes: vec![1, 2, 3, 4],
+                source_mtime_unix_ms: 17,
+                source_file_snapshots: BTreeMap::new(),
+            }),
+        };
+        let original = source
+            .source_snapshot
+            .as_ref()
+            .expect("source snapshot")
+            .source_bytes
+            .as_ptr();
+
+        let bytes = take_source_bytes_for_import(&mut source).unwrap();
+
+        assert_eq!(bytes, [1, 2, 3, 4]);
+        assert_eq!(bytes.as_ptr(), original);
+        assert!(
+            source
+                .source_snapshot
+                .as_ref()
+                .expect("source snapshot metadata remains available")
+                .source_bytes
+                .is_empty()
+        );
+    }
 }

@@ -3,6 +3,10 @@ use std::borrow::Cow;
 use super::host_menu_pointer_layout::HostMenuPointerLayout;
 use super::menu_item_spec::MenuItemSpec;
 
+#[cfg(test)]
+#[path = "menu_items_for_layout/preset_capacity_tests.rs"]
+mod preset_capacity_tests;
+
 pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout<'a>(
     layout: &'a HostMenuPointerLayout,
     menu_index: usize,
@@ -48,16 +52,16 @@ pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout<'a>(
             menu_action("view.prefab.open", true),
         ],
         5 => {
-            let mut items = vec![
-                menu_action(
-                    format!(
-                        "workbench.layout.preset.save.{}",
-                        layout.resolved_preset_name
-                    ),
-                    true,
+            let mut items =
+                Vec::with_capacity(menu_preset_item_capacity(layout.preset_names.len()));
+            items.push(menu_action(
+                format!(
+                    "workbench.layout.preset.save.{}",
+                    layout.resolved_preset_name
                 ),
-                menu_action("window.layout.reset", true),
-            ];
+                true,
+            ));
+            items.push(menu_action("window.layout.reset", true));
             items.extend(
                 layout.preset_names.iter().map(|preset| {
                     menu_action(format!("workbench.layout.preset.load.{preset}"), true)
@@ -69,6 +73,10 @@ pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout<'a>(
         6 => vec![menu_action("view.asset_browser.open", true)],
         _ => Vec::new(),
     })
+}
+
+fn menu_preset_item_capacity(preset_count: usize) -> usize {
+    preset_count.saturating_add(3)
 }
 
 fn menu_action(action_id: impl Into<String>, enabled: bool) -> MenuItemSpec {

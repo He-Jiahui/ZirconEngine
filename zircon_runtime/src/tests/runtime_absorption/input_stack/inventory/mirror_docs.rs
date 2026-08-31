@@ -7,8 +7,8 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
 
     for required_anchor in [
         "input_stack_boundary",
-        "expected_runtime_module_count = 19",
-        "expected_framework_module_count = 26",
+        "expected_runtime_module_count = 27",
+        "expected_framework_module_count = 44",
         "expected_test_module_count = 7",
         "expected_guard_file_count = 6",
         "ActionEvaluationGeneration",
@@ -23,8 +23,8 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     }
 
     for current_anchor in [
-        "expected_runtime_module_count = 19",
-        "expected_framework_module_count = 26",
+        "expected_runtime_module_count = 27",
+        "expected_framework_module_count = 44",
     ] {
         assert_eq!(
             input_doc.matches(current_anchor).count(),

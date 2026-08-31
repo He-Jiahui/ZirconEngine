@@ -9,16 +9,11 @@ pub(in crate::ui::retained_host::host_contract) enum ChromePointerRoute {
     },
     HostPageTab {
         index: usize,
-        tab_x: f32,
-        tab_width: f32,
-        local_x: f32,
-        local_y: f32,
+        close: bool,
     },
-    HostPageOverflow {
-        tab_x: f32,
-        tab_width: f32,
-        local_x: f32,
-        local_y: f32,
+    HostPageOverflow,
+    DockOverflow {
+        surface_key: SharedString,
     },
     DocumentTab {
         surface_key: SharedString,

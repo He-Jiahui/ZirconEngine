@@ -21,10 +21,9 @@ impl ProjectAssetManager {
         mut project: ProjectManager,
     ) -> Result<ProjectInfo, CoreError> {
         let preparation_epoch = self.begin_project_preparation();
+        self.clear_transaction_watch_echoes();
         let installed_importers = self.importer_registry_read().clone();
-        project
-            .register_asset_importers_from_registry(&installed_importers)
-            .map_err(asset_error)?;
+        *project.importer_mut().registry_mut() = installed_importers;
         project.set_environment_ibl_parallel_executor(self.worker_task_pool.clone());
         let prepared_watchers = self.prepare_project_watchers(&project)?;
         let (imported, prepared_files) =

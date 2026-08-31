@@ -1,16 +1,16 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::identity::is_add_component_button;
 use super::metrics::{button_geometry_metrics, button_geometry_metrics_from_host};
-use crate::ui::retained_host::host_contract::paint_geometry::{
-    corner_radius_for_frame, inward_pixel_aligned_rect,
-};
+use crate::ui::retained_host::host_contract::paint_geometry::corner_radius_for_frame;
 use crate::ui::retained_host::host_contract::paint_theme::HostControlMetrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_paint_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
 ) -> FrameRect {
-    let mut rect = inward_pixel_aligned_rect(rect);
+    // Keep the post-DPI fractional frame. The rasterizer applies physical-pixel coverage at the
+    // final target; snapping the whole control here makes rounded corners visibly stair-step.
+    let mut rect = rect.clone();
     rect.x += node.layout_offset_x;
     rect.y += node.layout_offset_y;
     if is_add_component_button(node) {

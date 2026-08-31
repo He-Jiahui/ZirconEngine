@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use zircon_runtime_interface::ZrRuntimeSessionHandle;
+use zircon_runtime_interface::{GatewaySessionIdentity, ZrRuntimeSessionHandle};
 
 use crate::core::gateway::{
     EditorRuntimeGateway, GatewayError, PluginActivationState, SessionGateway, SessionProfileKind,
@@ -12,10 +12,11 @@ use super::fixture::{api_table, capabilities, gateway};
 fn session_gateway_rejects_an_invalid_session_handle() {
     let owner: Arc<dyn Send + Sync> = Arc::new(());
     let error = unsafe {
-        SessionGateway::new(
+        SessionGateway::new_with_identity(
             owner,
             api_table(),
             ZrRuntimeSessionHandle::invalid(),
+            GatewaySessionIdentity::new(1, ZrRuntimeSessionHandle::invalid(), 1, None),
             capabilities(),
             Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )
@@ -32,10 +33,11 @@ fn session_gateway_rejects_a_foreign_runtime_api_version() {
     api.abi_version += 1;
     let foreign_version = api.abi_version;
     let error = unsafe {
-        SessionGateway::new(
+        SessionGateway::new_with_identity(
             owner,
             api,
             ZrRuntimeSessionHandle::new(17),
+            GatewaySessionIdentity::new(17, ZrRuntimeSessionHandle::new(17), 1, None),
             capabilities(),
             Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )
@@ -48,9 +50,32 @@ fn session_gateway_rejects_a_foreign_runtime_api_version() {
     assert_eq!(
         message,
         format!(
-            "session gateway requires runtime API V6, received version {}",
+            "runtime API V8 requires version 8, received version {}",
             foreign_version
         )
+    );
+}
+
+#[test]
+fn session_gateway_rejects_an_identity_for_a_different_abi_session() {
+    let owner: Arc<dyn Send + Sync> = Arc::new(());
+    let error = unsafe {
+        SessionGateway::new_with_identity(
+            owner,
+            api_table(),
+            ZrRuntimeSessionHandle::new(17),
+            GatewaySessionIdentity::new(18, ZrRuntimeSessionHandle::new(18), 1, None),
+            capabilities(),
+            Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
+        )
+        .expect_err("an identity for another ABI session cannot back this gateway")
+    };
+
+    assert_eq!(
+        error,
+        GatewayError::Protocol {
+            message: "gateway session identity does not match the ABI session handle".to_owned(),
+        }
     );
 }
 

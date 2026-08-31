@@ -40,12 +40,9 @@ impl ProgressObserverDispatch {
         self.resynchronize_queued = true;
     }
 
-    fn pop_front(&mut self) -> Option<ProgressObserverEvent> {
-        let event = self.events.pop_front()?;
-        if matches!(event, ProgressObserverEvent::Resynchronize) {
-            self.resynchronize_queued = false;
-        }
-        Some(event)
+    fn take_all(&mut self) -> VecDeque<ProgressObserverEvent> {
+        self.resynchronize_queued = false;
+        std::mem::take(&mut self.events)
     }
 }
 
@@ -64,7 +61,7 @@ impl EditorJobSystemInner {
         let Some(observer) = &self.progress_observer else {
             return;
         };
-        {
+        let mut events = {
             let mut dispatch = self
                 .progress_observer_dispatch
                 .lock()
@@ -73,53 +70,58 @@ impl EditorJobSystemInner {
                 return;
             }
             dispatch.delivering = true;
-        }
+            dispatch.take_all()
+        };
         let mut delivery_guard = ProgressObserverDeliveryGuard {
             dispatch: &self.progress_observer_dispatch,
             armed: true,
         };
         loop {
-            let event = {
-                let mut dispatch = self
-                    .progress_observer_dispatch
-                    .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner());
-                let Some(event) = dispatch.pop_front() else {
-                    dispatch.delivering = false;
-                    delivery_guard.disarm();
-                    return;
-                };
-                event
-            };
-            let callback_result = catch_unwind(AssertUnwindSafe(|| match event {
-                ProgressObserverEvent::Admitted(id) => observer.job_admitted(id, &self.progress),
-                ProgressObserverEvent::Finished(id) => observer.job_finished(id, &self.progress),
-                ProgressObserverEvent::Resynchronize => {
-                    observer.jobs_resynchronized(&self.progress)
-                }
-            }));
-            if let Err(payload) = callback_result {
-                tracing::error!(
-                    panic = %panic_message(payload),
-                    "editor job progress observer callback panicked"
-                );
-                let recovered = catch_unwind(AssertUnwindSafe(|| {
-                    observer.jobs_resynchronized(&self.progress)
+            while let Some(event) = events.pop_front() {
+                let callback_result = catch_unwind(AssertUnwindSafe(|| match event {
+                    ProgressObserverEvent::Admitted(id) => {
+                        observer.job_admitted(id, &self.progress)
+                    }
+                    ProgressObserverEvent::Finished(id) => {
+                        observer.job_finished(id, &self.progress)
+                    }
+                    ProgressObserverEvent::Resynchronize => {
+                        observer.jobs_resynchronized(&self.progress)
+                    }
                 }));
-                if let Err(payload) = recovered {
+                if let Err(payload) = callback_result {
                     tracing::error!(
                         panic = %panic_message(payload),
-                        "editor job progress observer resynchronization panicked"
+                        "editor job progress observer callback panicked"
                     );
-                    let mut dispatch = self
-                        .progress_observer_dispatch
-                        .lock()
-                        .unwrap_or_else(|poisoned| poisoned.into_inner());
-                    dispatch.request_resynchronize();
-                    dispatch.delivering = false;
-                    delivery_guard.disarm();
-                    return;
+                    let recovered = catch_unwind(AssertUnwindSafe(|| {
+                        observer.jobs_resynchronized(&self.progress)
+                    }));
+                    if let Err(payload) = recovered {
+                        tracing::error!(
+                            panic = %panic_message(payload),
+                            "editor job progress observer resynchronization panicked"
+                        );
+                        let mut dispatch = self
+                            .progress_observer_dispatch
+                            .lock()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner());
+                        dispatch.request_resynchronize();
+                        dispatch.delivering = false;
+                        delivery_guard.disarm();
+                        return;
+                    }
                 }
+            }
+            let mut dispatch = self
+                .progress_observer_dispatch
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            events = dispatch.take_all();
+            if events.is_empty() {
+                dispatch.delivering = false;
+                delivery_guard.disarm();
+                return;
             }
         }
     }
@@ -159,7 +161,11 @@ fn panic_message(payload: Box<dyn Any + Send>) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::time::{Duration, Instant};
+
     use super::*;
+
+    const MAX_BATCH_TRANSFER_LATENCY: Duration = Duration::from_millis(10);
 
     #[test]
     fn observer_event_backlog_collapses_to_one_authoritative_resynchronization() {
@@ -176,12 +182,64 @@ mod tests {
 
         dispatch.push(ProgressObserverEvent::Finished(JobId::new(1)));
         assert_eq!(dispatch.events.len(), 1);
+        let mut batch = dispatch.take_all();
         assert!(matches!(
-            dispatch.pop_front(),
+            batch.pop_front(),
             Some(ProgressObserverEvent::Resynchronize)
         ));
 
         dispatch.push(ProgressObserverEvent::Finished(JobId::new(2)));
         assert_eq!(dispatch.events.len(), 1);
+    }
+
+    #[test]
+    fn observer_events_transfer_as_one_ordered_batch() {
+        let mut dispatch = ProgressObserverDispatch::default();
+        for id in 0..MAX_PROGRESS_OBSERVER_EVENTS {
+            dispatch.push(ProgressObserverEvent::Admitted(JobId::new(id as u64)));
+        }
+
+        let batch = dispatch.take_all();
+
+        assert_eq!(batch.len(), MAX_PROGRESS_OBSERVER_EVENTS);
+        assert!(dispatch.events.is_empty());
+        assert!(matches!(
+            batch.front(),
+            Some(ProgressObserverEvent::Admitted(id)) if id.value() == 0
+        ));
+        assert!(matches!(
+            batch.back(),
+            Some(ProgressObserverEvent::Admitted(id))
+                if id.value() == (MAX_PROGRESS_OBSERVER_EVENTS - 1) as u64
+        ));
+    }
+
+    #[test]
+    #[ignore = "managed Editor09 performance evidence"]
+    fn editor09_observer_batch_transfer_evidence() {
+        let mut dispatch = ProgressObserverDispatch::default();
+        for id in 0..MAX_PROGRESS_OBSERVER_EVENTS {
+            dispatch.push(ProgressObserverEvent::Admitted(JobId::new(id as u64)));
+        }
+
+        let started = Instant::now();
+        let batch = dispatch.take_all();
+        let elapsed = started.elapsed();
+
+        assert_eq!(batch.len(), MAX_PROGRESS_OBSERVER_EVENTS);
+        assert!(elapsed <= MAX_BATCH_TRANSFER_LATENCY);
+        let lock_acquisitions_before = MAX_PROGRESS_OBSERVER_EVENTS + 2;
+        let lock_acquisitions_after = 2;
+        let reduction_percent =
+            (1.0 - lock_acquisitions_after as f64 / lock_acquisitions_before as f64) * 100.0;
+        println!(
+            "EDITOR_JOB_BENCH_V1 kind=observer_batch_transfer events={} dispatch_lock_acquisitions_before={} dispatch_lock_acquisitions_after={} lock_reduction_percent={:.4} elapsed_ns={} target_ns={}",
+            MAX_PROGRESS_OBSERVER_EVENTS,
+            lock_acquisitions_before,
+            lock_acquisitions_after,
+            reduction_percent,
+            elapsed.as_nanos(),
+            MAX_BATCH_TRANSFER_LATENCY.as_nanos(),
+        );
     }
 }

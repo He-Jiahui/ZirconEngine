@@ -9,6 +9,7 @@ related_code:
   - zircon_runtime/src/core/framework/tasks/mod.rs
   - zircon_runtime/src/core/runtime/tasks/report.rs
   - zircon_runtime/src/core/runtime/time.rs
+  - zircon_runtime/src/core/runtime/clock_source.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
   - zircon_runtime/src/input/mod.rs
   - zircon_runtime/src/platform/mod.rs
@@ -16,7 +17,7 @@ related_code:
   - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
   - zircon_runtime/src/core/framework/time/mod.rs
-  - zircon_runtime/src/core/framework/state/mod.rs
+  - zircon_runtime/src/core/runtime/state_machine/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/mod.rs
   - zircon_runtime/src/diagnostic_log/mod.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
@@ -59,9 +60,9 @@ doc_type: module-detail
 
 ## Ownership Boundary
 
-- `zircon_runtime::core` owns lifecycle, descriptors, runtime handles, event/config primitives, `FrameClock`, runtime-owned `RuntimeTimeClocks`, the compatibility `JobScheduler`, and runtime-owned `TaskPools`.
-- `zircon_runtime::core::state` owns the M3 runtime-wide state contracts and transition hooks.
-- `zircon_runtime::core::framework::time` owns the Bevy-inspired `Time<Real>`, `Time<Virtual>`, and `Time<Fixed>` contracts.
+- `zircon_runtime::core` owns lifecycle, descriptors, runtime handles, event/config primitives, `FrameClock`, outer-frame time handoff/default World policy, the compatibility `JobScheduler`, and runtime-owned `TaskPools`.
+- `zircon_runtime::core::runtime::state_machine` owns the runtime-wide state types, registry, and transition hooks; `core` and the prelude provide explicit product projections.
+- `zircon_runtime::core::framework::time` owns the Bevy-inspired `Time<MonotonicReal>`, `Time<Virtual>`, and `Time<Fixed>` contracts plus the versioned `ClockDomainRegistry`/`ClockDomainStamp` taxonomy. `MonotonicReal` is the frame-source domain, not UTC or calendar wall-clock time.
 - `zircon_runtime::core::diagnostics` and `zircon_runtime::diagnostic_log` own diagnostic snapshots, stores, paths, and log filters.
 - `zircon_runtime::platform` owns target capability declarations for windows, event-loop policy, desktop/mobile/browser/headless target modes, and backend status reporting.
 - `zircon_runtime::core::framework::window` owns neutral window descriptors, resolution, resize constraints, position, mode, present mode, and primary-window handle DTOs.
@@ -78,12 +79,12 @@ The runtime prelude exports:
 
 - core runtime types such as `CoreRuntime`, `CoreHandle`, `ModuleDescriptor`, `RegistryName`, `DependencySpec`, `StartupMode`, and `LifecycleState`,
 - module/service helper contracts such as `EngineModule`, `EngineService`, `EngineDriver`, `EngineManager`, and descriptor-construction helpers,
-- current foundation utilities such as `JobScheduler`, `TaskPools`, `TaskPoolKind`, `FrameClock`, `FoundationModule`, and core descriptor modules for log, tasks, time, frame count, diagnostics, and development log diagnostics,
+- current foundation utilities such as `JobScheduler`, `TaskPools`, `TaskPoolKind`, `ClockSource`, `FrameClock`, `FrameClockRebaseReceipt`, `FrameClockRebaseCause`, `FrameClockFirstTickPolicy`, `ClockDiscontinuity`, `ClockLifecycleTransition`, `FoundationModule`, and core descriptor modules for log, tasks, time, frame count, diagnostics, and development log diagnostics,
 - platform/window/input contracts such as `PlatformCapabilityMatrix`, `PlatformFeatureSelection`, `PlatformTarget`, `PlatformConfig`, `PLATFORM_CONFIG_KEY`, `WindowBackend`, `WindowDescriptor`, `WindowResolution`, `WindowResizeConstraints`, `WindowPresentMode`, `PrimaryWindowHandle`, `PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY`, `InputBackend`, `GamepadBackend`, `PlatformModule`, `InputModule`, `InputEvent`, `InputButton`, `InputFrameSnapshot`, and `DefaultInputManager`,
 - mouse-wheel input helpers such as `MouseScrollUnit`, `MouseWheelEvent`, and the line-delta conversion scalar `PIXEL_SCROLL_LINE_DELTA_SCALE`,
 - state contracts `StateSpec`, `State`, `NextState`, `StateTransitionEvent`, `OnEnter`, `OnExit`, and `OnTransition`,
-- time contracts and runtime clock snapshots such as `Time`, `Real`, `Virtual`, `Fixed`, `FixedStepPlan`, `RuntimeTimeClocks`, and `RuntimeTimeAdvance`,
-- Bevy-style runtime Time diagnostic path constants such as `TIME_FRAME_COUNT_DIAGNOSTIC`, `TIME_FIXED_STEPS_DIAGNOSTIC`, `TIME_FRAME_TIME_DIAGNOSTIC`, and `TIME_FPS_DIAGNOSTIC`,
+- time contracts and outer-frame snapshots such as `ClockDomainRegistry`, `ClockDomainId`, `ClockDomainDescriptor`, `ClockDomainMarker`, `ClockDomainStamp`, `ClockDomainUnit`, `Time`, `MonotonicReal`, `Virtual`, `Fixed`, `FixedStepPlan`, `FrameTimeSnapshot`, and `FrameTimeDiscontinuity`, plus `TimePolicy`, `TimePolicyTransaction`, `TimePolicyError`, and `TimePolicyReceipt` for atomically configuring the default policy for subsequently created Worlds; the neutral `ProductTimePolicy`, `ProductTimeProfile`, and `ProductTimePolicyError` DTO contracts are paired with runtime-owned `ProductTimePolicies` preset selection and `ProductTimePolicyDigest`,
+- Bevy-style real-frame Time diagnostic path constants such as `TIME_FRAME_COUNT_DIAGNOSTIC`, `TIME_FRAME_TIME_DIAGNOSTIC`, and `TIME_FPS_DIAGNOSTIC`,
 - diagnostics and log filter types such as `DiagnosticStore`, `DiagnosticPath`, `RuntimeDiagnosticsSnapshot`, `DiagnosticLogFilter`, `DiagnosticLogLevel`, `DiagnosticLogSettings` / `LogSettings`, diagnostic-store log formatting helpers, `DiagnosticStoreLogSchedule`, and the `ZIRCON_LOG_FILTER` / `ZIRCON_LOG` / `RUST_LOG` environment constant names,
 - runtime profile and target selection types such as `RuntimeProfileDescriptor`, `RuntimeProfileId`, `RuntimeCoreProfile`, `EditorCoreProfile`, `PluginMaturity`, `RuntimePluginId`, and `RuntimeTargetMode`.
 - runtime module assembly helpers such as `runtime_modules_for_target(...)`, profile assembly helpers, manifest baseline helpers, and `RuntimeModuleLoadReport`, all re-exported from the builtin owner instead of the crate root.
@@ -109,6 +110,9 @@ Current coverage includes:
 - runtime profile diagnostics for `RuntimeProfileDescriptor`, `RuntimeCoreProfile`, and `PluginMaturity`;
 - state transition exports for `State`, `NextState`, `OnEnter`, and `StateTransitionEvent`;
 - Time diagnostic path constants for frame count, fixed steps, frame time, and FPS, matching the runtime-owned Time diagnostics recorded by `CoreHandle::advance_time_by(...)`.
+- Time-policy transaction exports for successful generation receipts and typed invalid-policy rejection.
+- Product-time-policy exports for versioned fixed-step budgets and stable policy digests.
+- Frame-clock rebase exports for activation and lifecycle/window discontinuity causes, baseline receipts, and first-tick strategy.
 
 Milestone acceptance still needs the repository validation gate from `.github/workflows/ci.yml` once concurrent workspace builds are clear. During implementation, formatting and diff hygiene checks are the lightweight guard for this prelude slice.
 

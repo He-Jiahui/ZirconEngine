@@ -63,10 +63,10 @@ impl RuntimeEntryApp {
                 self.report_fatal_failure(
                     "runtime_surface_present",
                     format!(
-                        "fallback_presenter size={}x{}",
+                        "reference_cpu_presenter size={}x{}",
                         viewport_size.width, viewport_size.height
                     ),
-                    format!("fallback presenter resize failed: {error}"),
+                    format!("reference CPU presenter resize failed: {error}"),
                     "verify the graphics adapter and window surface, then restart zircon_runtime",
                 );
                 event_loop.exit();

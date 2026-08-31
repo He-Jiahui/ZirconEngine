@@ -43,12 +43,14 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_anchor_inventory.py
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
-  - zircon_runtime_interface/src/runtime_api/events.rs
-  - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/session/events.rs
+  - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
+  - zircon_runtime/src/dynamic_api/session/events/keyboard_ime.rs
+  - zircon_runtime/src/dynamic_api/session/events/gamepad.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_runtime/src/dynamic_api/tests/host_requests.rs
@@ -130,10 +132,10 @@ implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_anchor_inventory.py
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
-  - zircon_runtime_interface/src/runtime_api/events.rs
-  - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/session/events.rs
+  - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
@@ -236,7 +238,7 @@ doc_type: module-detail
 
 # Runtime Input State
 
-Runtime 12 current child-owner inventory: the current `input_stack_boundary` source manifest contains `expected_runtime_module_count = 19`, `expected_framework_module_count = 26`, `expected_test_module_count = 7`, and `expected_guard_file_count = 6`. `ActionEvaluationGeneration`, `ActionEvaluationWorkspace`, and `FrameAxisIndex` are dedicated evaluator child owners: generation owns immutable map-change-time lookup data, workspace owns reusable evaluator-local frame state, and the axis index owns reusable per-frame axis lookup. Each binding's axes use one `evaluate_binding_axes` pass while the evaluator filters caller-supplied UI-consumed axes before value and edge projection. The runtime prelude plus framework input-manager contract remain explicitly wired and inventoried. The 2026-07-18 M4 acceptance record remains historical evidence for the prior 18-module layout; it does not validate this later internal split. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps this current owner inventory synchronized, while the protected parent plan and runtime index remain outside this business manifest and are not claimed as current mirror authorities.
+Runtime 12 current child-owner inventory: the current `input_stack_boundary` source manifest contains `expected_runtime_module_count = 27`, `expected_framework_module_count = 44`, `expected_test_module_count = 7`, and `expected_guard_file_count = 6`. The runtime inventory includes the public `input/camera_controller/{free,orbit,pan}` implementations, while `ActionEvaluationGeneration`, `ActionEvaluationWorkspace`, and `FrameAxisIndex` remain dedicated evaluator child owners: generation owns immutable map-change-time lookup data, workspace owns reusable evaluator-local frame state, and the axis index owns reusable per-frame axis lookup. Each binding's axes use one `evaluate_binding_axes` pass while the evaluator filters caller-supplied UI-consumed axes before value and edge projection. The runtime prelude plus framework input-manager contract remain explicitly wired and inventoried. The 2026-07-18 M4 acceptance record remains historical evidence for the prior 18-module layout; it does not validate this later internal split. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps this current owner inventory synchronized, while the protected parent plan and runtime index remain outside this business manifest and are not claimed as current mirror authorities.
 
 Earlier accepted/deferred slice anchors remain discoverable as `input_frame_contract_static_passed_cargo_pending`, `arbitration_judgement_documented_static_passed`, `action_contract_static_passed_cargo_pending`, `action_evaluator_static_passed_cargo_pending`, `action_context_static_passed_cargo_pending`, `input_recording_replay_static_passed_cargo_deferred`, `gamepad_bridge_static_passed_cargo_pending`, and `runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation`.
 
@@ -470,3 +472,13 @@ Current intentional gaps are browser Gamepad API support, additional non-mouse d
 Plan sources are Runtime09, Runtime12, Runtime15, and Plan09 numbered output records. The current guard implementation files are `tests/runtime_absorption/input_stack/**`, `tests/runtime_absorption/naming_boundary/runtime_15_m2/{input,ui}/**`, `tests/runtime_absorption/ui_architecture/legacy_renames.rs`, and the scene-world production-budget guard. No input production behavior changed in this reconciliation.
 
 The dated 2026-07-10 structure audit reported runtime/framework/test/guard counts 12/20/7/6, with empty missing/risk lists. Its input-stack 11/11, input naming 3/3, Runtime09 route/name 11/11, and scene-world visibility 1/1 results remain historical evidence only; current inventory and validation are recorded in the unique current block above and the Runtime 12 numbered output.
+
+## 2026-08-27 Dynamic Input Adapter Ownership
+
+The ABI event route is now folder-backed by input domain. `events/keyboard_ime.rs` owns keyboard and
+IME payload conversion; `events/gamepad.rs` owns gamepad conversion plus UI navigation/analog mapping;
+`events.rs` retains pointer/window/lifecycle coordination and the shared dispatch methods. This is a
+physical owner split only: the same session input manager and UI surface receive the same current
+events in the same order, and no queue, action-map, coalescing, threshold, UTF-8, or payload-budget
+policy changed. Status:
+`runtime_10_12_15_dynamic_event_keyboard_ime_gamepad_owner_split_static_passed_cargo_deferred`.

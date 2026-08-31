@@ -62,7 +62,7 @@ fn additive_clip_uses_bind_pose_as_reference_for_unkeyed_and_absolute_channels()
                 entity,
                 Some(AnimationGraphPlayerComponent {
                     graph: ResourceHandle::<AnimationGraphMarker>::new(graph_id),
-                    parameters: BTreeMap::new(),
+                    parameters: BTreeMap::new().into(),
                     playing: true,
                 }),
             )

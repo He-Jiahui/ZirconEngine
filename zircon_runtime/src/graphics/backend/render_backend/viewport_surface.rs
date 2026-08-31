@@ -1,13 +1,16 @@
-use std::num::NonZeroIsize;
+use std::sync::Arc;
 
 use crate::core::framework::render::RenderViewportSurfaceDescriptor;
 use crate::core::math::UVec2;
 use crate::graphics::types::GraphicsError;
-use crate::rhi::RenderNativeSurfaceTarget;
+use crate::rhi::{
+    PresentMode, RenderDevice, RenderSurfaceDescriptor, SubmissionTicket, SurfaceAcquireOutcome,
+    SurfaceSessionCreateOutcome, SurfaceSessionReceipt, SwapchainDesc, TextureFormat,
+};
+use zr_rhi_wgpu::{WgpuNativeSurfaceFrameTarget, WgpuRenderDevice};
 
 use super::render_backend::RenderBackend;
 
-const SURFACE_FRAME_LATENCY: u32 = 2;
 const PRESENT_BLIT_SHADER: &str = r#"
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
@@ -43,54 +46,178 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 "#;
 
 pub(crate) struct ViewportSurface {
-    surface: wgpu::Surface<'static>,
-    config: wgpu::SurfaceConfiguration,
+    render_device: Arc<WgpuRenderDevice>,
+    session: SurfaceSessionReceipt,
     blit: SurfaceBlitResources,
+}
+
+pub(crate) struct ViewportSurfacePresentFailure {
+    source: GraphicsError,
+    submission: Option<SubmissionTicket>,
+}
+
+impl ViewportSurfacePresentFailure {
+    pub(crate) fn before_submission(source: impl Into<GraphicsError>) -> Self {
+        Self {
+            source: source.into(),
+            submission: None,
+        }
+    }
+
+    pub(crate) fn after_submission(
+        source: impl Into<GraphicsError>,
+        submission: SubmissionTicket,
+    ) -> Self {
+        Self {
+            source: source.into(),
+            submission: Some(submission),
+        }
+    }
+
+    pub(crate) fn into_parts(self) -> (GraphicsError, Option<SubmissionTicket>) {
+        (self.source, self.submission)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ViewportSurfacePresentOutcome {
+    Presented(SubmissionTicket),
+    Reconfigured,
+    DeferredTimeout,
+    DeferredOccluded,
+}
+
+pub(crate) enum ViewportSurfaceFrameAcquire {
+    Acquired(WgpuNativeSurfaceFrameTarget),
+    NoSubmit(ViewportSurfacePresentOutcome),
+}
+
+impl ViewportSurfacePresentOutcome {
+    pub(crate) const fn submission_ticket(self) -> Option<SubmissionTicket> {
+        match self {
+            Self::Presented(ticket) => Some(ticket),
+            Self::Reconfigured | Self::DeferredTimeout | Self::DeferredOccluded => None,
+        }
+    }
 }
 
 impl ViewportSurface {
     pub(crate) fn size(&self) -> UVec2 {
-        UVec2::new(self.config.width, self.config.height)
+        UVec2::new(self.session.swapchain.width, self.session.swapchain.height)
     }
 
-    pub(crate) fn present_texture(
+    pub(crate) fn acquire_frame_target(
         &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        source_view: &wgpu::TextureView,
-    ) -> Result<(), GraphicsError> {
-        let surface_texture = match self.surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(surface_texture)
-            | wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
-            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
-                self.surface.configure(device, &self.config);
-                return Ok(());
+    ) -> Result<ViewportSurfaceFrameAcquire, ViewportSurfacePresentFailure> {
+        let frame = match self
+            .render_device
+            .acquire_surface_frame(self.session.session())
+            .map_err(ViewportSurfacePresentFailure::before_submission)?
+        {
+            SurfaceAcquireOutcome::Acquired(frame) => frame,
+            SurfaceAcquireOutcome::Retryable { reason, .. } => {
+                let outcome = match reason {
+                    crate::rhi::SurfaceRetryReason::Timeout => {
+                        ViewportSurfacePresentOutcome::DeferredTimeout
+                    }
+                    crate::rhi::SurfaceRetryReason::Occluded => {
+                        ViewportSurfacePresentOutcome::DeferredOccluded
+                    }
+                };
+                return Ok(ViewportSurfaceFrameAcquire::NoSubmit(outcome));
             }
-            wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
-                return Ok(());
+            SurfaceAcquireOutcome::ReconfigureRequired { .. } => {
+                self.reconfigure_session()?;
+                return Ok(ViewportSurfaceFrameAcquire::NoSubmit(
+                    ViewportSurfacePresentOutcome::Reconfigured,
+                ));
             }
-            wgpu::CurrentSurfaceTexture::Validation => {
-                return Err(GraphicsError::SurfaceStatus("surface validation error"));
+            SurfaceAcquireOutcome::NonRenderable { .. } => {
+                return Ok(ViewportSurfaceFrameAcquire::NoSubmit(
+                    ViewportSurfacePresentOutcome::Reconfigured,
+                ));
             }
         };
-        let target_view = surface_texture
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-        self.blit
-            .blit(device, queue, source_view, &target_view, self.size());
-        surface_texture.present();
-        Ok(())
+        self.render_device
+            .prepare_native_surface_frame_target(frame)
+            .map(ViewportSurfaceFrameAcquire::Acquired)
+            .map_err(ViewportSurfacePresentFailure::before_submission)
     }
 
-    pub(crate) fn resize(&mut self, device: &wgpu::Device, size: UVec2) {
-        let size = clamp_surface_size(size);
-        if self.size() == size {
-            return;
-        }
+    pub(crate) fn record_frame_target_blit(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        source_view: &wgpu::TextureView,
+        target: &WgpuNativeSurfaceFrameTarget,
+    ) -> Result<(), GraphicsError> {
+        target.record(
+            self.render_device.as_ref(),
+            encoder,
+            |device, target_view, encoder| {
+                self.blit.record(
+                    device,
+                    encoder,
+                    source_view,
+                    target_view,
+                    self.size(),
+                    self.session.swapchain.format,
+                )
+            },
+        )
+    }
 
-        self.config.width = size.x;
-        self.config.height = size.y;
-        self.surface.configure(device, &self.config);
+    pub(crate) fn present_frame_target(
+        &self,
+        mut target: WgpuNativeSurfaceFrameTarget,
+        submission: SubmissionTicket,
+    ) -> Result<ViewportSurfacePresentOutcome, ViewportSurfacePresentFailure> {
+        match target.present(submission) {
+            Ok(_) => Ok(ViewportSurfacePresentOutcome::Presented(submission)),
+            Err(source) => {
+                let source = GraphicsError::from(source);
+                let source = match target.discard() {
+                    Ok(()) => source,
+                    Err(cleanup) => GraphicsError::SurfaceFrameCleanupFailed {
+                        cleanup: cleanup.to_string(),
+                        source: Box::new(source),
+                    },
+                };
+                Err(ViewportSurfacePresentFailure::after_submission(
+                    source, submission,
+                ))
+            }
+        }
+    }
+
+    pub(crate) fn discard_frame_target(
+        &self,
+        target: WgpuNativeSurfaceFrameTarget,
+        source: GraphicsError,
+    ) -> GraphicsError {
+        match target.discard() {
+            Ok(()) => source,
+            Err(cleanup) => GraphicsError::SurfaceFrameCleanupFailed {
+                cleanup: cleanup.to_string(),
+                source: Box::new(source),
+            },
+        }
+    }
+
+    fn reconfigure_session(&mut self) -> Result<(), ViewportSurfacePresentFailure> {
+        let outcome = self
+            .render_device
+            .reconfigure_surface_session(self.session.session(), &self.session.swapchain)
+            .map_err(ViewportSurfacePresentFailure::before_submission)?;
+        self.session = surface_session_receipt(outcome);
+        Ok(())
+    }
+}
+
+impl Drop for ViewportSurface {
+    fn drop(&mut self) {
+        let _ = self
+            .render_device
+            .destroy_surface_session(self.session.session());
     }
 }
 
@@ -99,62 +226,39 @@ impl RenderBackend {
         &self,
         descriptor: RenderViewportSurfaceDescriptor,
     ) -> Result<ViewportSurface, GraphicsError> {
-        let surface = self.create_surface(descriptor.target)?;
-        let config = configure_surface(&surface, &self.adapter, &self.device, descriptor.size)?;
-        let blit = SurfaceBlitResources::new(&self.device, config.format);
+        let size = clamp_surface_size(descriptor.size);
+        let surface_descriptor = RenderSurfaceDescriptor::new(
+            "zircon-viewport-surface",
+            descriptor.target,
+            SwapchainDesc {
+                width: size.x,
+                height: size.y,
+                present_mode: PresentMode::Fifo,
+                format: TextureFormat::Bgra8UnormSrgb,
+            },
+        );
+        let session = surface_session_receipt(
+            self.render_device
+                .create_surface_session(&surface_descriptor)?,
+        );
+        let blit = SurfaceBlitResources::new(&self.device)?;
         Ok(ViewportSurface {
-            surface,
-            config,
+            render_device: Arc::clone(&self.render_device),
+            session,
             blit,
         })
-    }
-
-    #[cfg(target_os = "windows")]
-    fn create_surface(
-        &self,
-        target: RenderNativeSurfaceTarget,
-    ) -> Result<wgpu::Surface<'static>, GraphicsError> {
-        match target {
-            RenderNativeSurfaceTarget::Win32 { hwnd, hinstance } => {
-                let hwnd = required_nonzero_isize(hwnd, "invalid win32 hwnd")?;
-                let mut window = wgpu::rwh::Win32WindowHandle::new(hwnd);
-                window.hinstance = optional_nonzero_isize(hinstance)?;
-                let raw_window_handle = wgpu::rwh::RawWindowHandle::Win32(window);
-                let raw_display_handle =
-                    wgpu::rwh::RawDisplayHandle::Windows(wgpu::rwh::WindowsDisplayHandle::new());
-                let target = wgpu::SurfaceTargetUnsafe::RawHandle {
-                    raw_display_handle: Some(raw_display_handle),
-                    raw_window_handle,
-                };
-                // The app owns the native window and unbinds/drops the runtime surface before
-                // the window is destroyed. The ABI carries raw handles, so wgpu must receive the
-                // unsafe raw-handle target instead of a borrowed winit window object.
-                unsafe { self.instance.create_surface_unsafe(target) }.map_err(Into::into)
-            }
-        }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    fn create_surface(
-        &self,
-        target: RenderNativeSurfaceTarget,
-    ) -> Result<wgpu::Surface<'static>, GraphicsError> {
-        match target {
-            RenderNativeSurfaceTarget::Win32 { .. } => Err(GraphicsError::SurfaceStatus(
-                "win32 viewport surfaces are only supported on windows",
-            )),
-        }
     }
 }
 
 struct SurfaceBlitResources {
     sampler: wgpu::Sampler,
     bind_group_layout: wgpu::BindGroupLayout,
-    pipeline: wgpu::RenderPipeline,
+    bgra_pipeline: wgpu::RenderPipeline,
+    rgba_pipeline: wgpu::RenderPipeline,
 }
 
 impl SurfaceBlitResources {
-    fn new(device: &wgpu::Device, target_format: wgpu::TextureFormat) -> Self {
+    fn new(device: &wgpu::Device) -> Result<Self, GraphicsError> {
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("zircon-present-blit-sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
@@ -195,47 +299,62 @@ impl SurfaceBlitResources {
             label: Some("zircon-present-blit-shader"),
             source: wgpu::ShaderSource::Wgsl(PRESENT_BLIT_SHADER.into()),
         });
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("zircon-present-blit-pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_main"),
-                compilation_options: Default::default(),
-                buffers: &[],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs_main"),
-                compilation_options: Default::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: target_format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: None,
-            cache: None,
-        });
+        let create_pipeline = |target_format| {
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("zircon-present-blit-pipeline"),
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: Some("vs_main"),
+                    compilation_options: Default::default(),
+                    buffers: &[],
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: Some("fs_main"),
+                    compilation_options: Default::default(),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: target_format,
+                        blend: Some(wgpu::BlendState::REPLACE),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                }),
+                primitive: wgpu::PrimitiveState::default(),
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                multiview_mask: None,
+                cache: None,
+            })
+        };
+        let bgra_pipeline = create_pipeline(wgpu_surface_format(TextureFormat::Bgra8UnormSrgb)?);
+        let rgba_pipeline = create_pipeline(wgpu_surface_format(TextureFormat::Rgba8UnormSrgb)?);
 
-        Self {
+        Ok(Self {
             sampler,
             bind_group_layout,
-            pipeline,
-        }
+            bgra_pipeline,
+            rgba_pipeline,
+        })
     }
 
-    fn blit(
+    fn record(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
         source_view: &wgpu::TextureView,
         target_view: &wgpu::TextureView,
         size: UVec2,
-    ) {
+        target_format: TextureFormat,
+    ) -> Result<(), GraphicsError> {
+        let pipeline = match target_format {
+            TextureFormat::Bgra8UnormSrgb => &self.bgra_pipeline,
+            TextureFormat::Rgba8UnormSrgb => &self.rgba_pipeline,
+            _ => {
+                return Err(GraphicsError::SurfaceStatus(
+                    "neutral viewport surface negotiated a non-SDR format",
+                ));
+            }
+        };
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-present-blit-bind-group"),
             layout: &self.bind_group_layout,
@@ -249,9 +368,6 @@ impl SurfaceBlitResources {
                     resource: wgpu::BindingResource::Sampler(&self.sampler),
                 },
             ],
-        });
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("zircon-present-blit-encoder"),
         });
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -270,70 +386,19 @@ impl SurfaceBlitResources {
                 occlusion_query_set: None,
                 multiview_mask: None,
             });
-            pass.set_pipeline(&self.pipeline);
+            pass.set_pipeline(pipeline);
             pass.set_bind_group(0, &bind_group, &[]);
             pass.set_viewport(0.0, 0.0, size.x as f32, size.y as f32, 0.0, 1.0);
             pass.draw(0..3, 0..1);
         }
-        queue.submit(Some(encoder.finish()));
+        Ok(())
     }
 }
 
-fn configure_surface(
-    surface: &wgpu::Surface<'static>,
-    adapter: &wgpu::Adapter,
-    device: &wgpu::Device,
-    size: UVec2,
-) -> Result<wgpu::SurfaceConfiguration, GraphicsError> {
-    let size = clamp_surface_size(size);
-    let caps = surface.get_capabilities(adapter);
-    let Some(format) = choose_surface_format(&caps.formats) else {
-        return Err(GraphicsError::SurfaceStatus(
-            "surface has no compatible formats",
-        ));
-    };
-    let Some(present_mode) = choose_present_mode(&caps.present_modes) else {
-        return Err(GraphicsError::SurfaceStatus(
-            "surface has no compatible present modes",
-        ));
-    };
-    let config = wgpu::SurfaceConfiguration {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        format,
-        width: size.x,
-        height: size.y,
-        present_mode,
-        desired_maximum_frame_latency: SURFACE_FRAME_LATENCY,
-        alpha_mode: caps
-            .alpha_modes
-            .first()
-            .copied()
-            .unwrap_or(wgpu::CompositeAlphaMode::Auto),
-        view_formats: vec![],
-    };
-    surface.configure(device, &config);
-    Ok(config)
-}
-
-fn choose_surface_format(formats: &[wgpu::TextureFormat]) -> Option<wgpu::TextureFormat> {
-    [
-        wgpu::TextureFormat::Bgra8UnormSrgb,
-        wgpu::TextureFormat::Rgba8UnormSrgb,
-        wgpu::TextureFormat::Bgra8Unorm,
-        wgpu::TextureFormat::Rgba8Unorm,
-    ]
-    .into_iter()
-    .find(|format| formats.contains(format))
-    .or_else(|| formats.first().copied())
-}
-
-fn choose_present_mode(present_modes: &[wgpu::PresentMode]) -> Option<wgpu::PresentMode> {
-    if present_modes.contains(&wgpu::PresentMode::AutoVsync) {
-        Some(wgpu::PresentMode::AutoVsync)
-    } else if present_modes.contains(&wgpu::PresentMode::Fifo) {
-        Some(wgpu::PresentMode::Fifo)
-    } else {
-        present_modes.first().copied()
+fn surface_session_receipt(outcome: SurfaceSessionCreateOutcome) -> SurfaceSessionReceipt {
+    match outcome {
+        SurfaceSessionCreateOutcome::Renderable(receipt)
+        | SurfaceSessionCreateOutcome::NonRenderable(receipt) => receipt,
     }
 }
 
@@ -341,23 +406,23 @@ fn clamp_surface_size(size: UVec2) -> UVec2 {
     UVec2::new(size.x.max(1), size.y.max(1))
 }
 
-fn required_nonzero_isize(value: u64, error: &'static str) -> Result<NonZeroIsize, GraphicsError> {
-    if value == 0 || value > isize::MAX as u64 {
-        return Err(GraphicsError::SurfaceStatus(error));
+fn wgpu_surface_format(format: TextureFormat) -> Result<wgpu::TextureFormat, GraphicsError> {
+    match format {
+        TextureFormat::Bgra8UnormSrgb => Ok(wgpu::TextureFormat::Bgra8UnormSrgb),
+        TextureFormat::Rgba8UnormSrgb => Ok(wgpu::TextureFormat::Rgba8UnormSrgb),
+        _ => Err(GraphicsError::SurfaceStatus(
+            "neutral viewport surface negotiated a non-SDR format",
+        )),
     }
-    Ok(NonZeroIsize::new(value as isize).expect("value checked above"))
-}
-
-fn optional_nonzero_isize(value: Option<u64>) -> Result<Option<NonZeroIsize>, GraphicsError> {
-    value
-        .map(|value| required_nonzero_isize(value, "invalid win32 hinstance"))
-        .transpose()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{choose_present_mode, choose_surface_format, clamp_surface_size};
+    use super::{ViewportSurfacePresentOutcome, clamp_surface_size, wgpu_surface_format};
     use crate::core::math::UVec2;
+    use crate::rhi::{
+        DeviceGeneration, DeviceId, RenderQueueClass, SubmissionTicket, TextureFormat,
+    };
 
     #[test]
     fn graphics_surface_backend_clamps_zero_descriptor_size() {
@@ -367,35 +432,71 @@ mod tests {
     }
 
     #[test]
-    fn graphics_surface_backend_prefers_supported_srgb_format() {
+    fn graphics_surface_backend_accepts_only_neutral_srgb_formats() {
         assert_eq!(
-            choose_surface_format(&[
-                wgpu::TextureFormat::Rgba16Float,
-                wgpu::TextureFormat::Bgra8UnormSrgb,
-            ]),
-            Some(wgpu::TextureFormat::Bgra8UnormSrgb)
+            wgpu_surface_format(TextureFormat::Bgra8UnormSrgb).unwrap(),
+            wgpu::TextureFormat::Bgra8UnormSrgb
         );
         assert_eq!(
-            choose_surface_format(&[wgpu::TextureFormat::Rgba16Float]),
-            Some(wgpu::TextureFormat::Rgba16Float)
+            wgpu_surface_format(TextureFormat::Rgba8UnormSrgb).unwrap(),
+            wgpu::TextureFormat::Rgba8UnormSrgb
         );
-        assert_eq!(choose_surface_format(&[]), None);
+        assert!(wgpu_surface_format(TextureFormat::Rgba16Float).is_err());
     }
 
     #[test]
-    fn graphics_surface_backend_chooses_advertised_present_mode() {
+    fn graphics_surface_backend_uses_the_neutral_surface_transaction_owner() {
+        let source = include_str!("viewport_surface.rs");
+        let production = source
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("surface source must retain its test-module boundary");
+
+        assert!(production.contains(".create_surface_session(&surface_descriptor)"));
+        assert!(production.contains("SurfaceBlitResources::new(&self.device)?"));
+        assert!(!production.contains("BGRA8 sRGB is part of the neutral surface contract"));
+        assert!(!production.contains("RGBA8 sRGB is part of the neutral surface contract"));
+        assert!(production.contains(".acquire_surface_frame(self.session.session())"));
+        assert!(production.contains("ViewportSurfacePresentOutcome::Presented(submission)"));
+        assert!(!production.contains("queue.submit("));
+        assert!(!production.contains("get_current_texture"));
+        assert!(production.contains("prepare_native_surface_frame_target(frame)"));
+        assert!(production.contains("target.record("));
+        assert!(production.contains("self.render_device.as_ref(),"));
+        assert!(production.contains("target.present(submission)"));
+        assert!(production.contains("match target.discard()"));
+        assert!(production.contains("fn discard_frame_target("));
+        assert!(production.contains("GraphicsError::SurfaceFrameCleanupFailed"));
+        assert!(!production.contains("present_texture("));
+        assert!(!production.contains("submit_native_surface_recording_packet"));
+        assert!(!production.contains("surface.configure"));
+        assert!(!production.contains("surface_texture.present"));
+    }
+
+    #[test]
+    fn only_presented_surface_outcomes_expose_a_submission_ticket() {
+        let ticket = SubmissionTicket::new(
+            DeviceId::new(3),
+            DeviceGeneration::new(2),
+            RenderQueueClass::Graphics,
+            41,
+        );
+
         assert_eq!(
-            choose_present_mode(&[wgpu::PresentMode::Fifo]),
-            Some(wgpu::PresentMode::Fifo)
+            ViewportSurfacePresentOutcome::Presented(ticket).submission_ticket(),
+            Some(ticket)
         );
         assert_eq!(
-            choose_present_mode(&[wgpu::PresentMode::Mailbox, wgpu::PresentMode::AutoVsync]),
-            Some(wgpu::PresentMode::AutoVsync)
+            ViewportSurfacePresentOutcome::Reconfigured.submission_ticket(),
+            None
         );
         assert_eq!(
-            choose_present_mode(&[wgpu::PresentMode::Mailbox]),
-            Some(wgpu::PresentMode::Mailbox)
+            ViewportSurfacePresentOutcome::DeferredTimeout.submission_ticket(),
+            None
         );
-        assert_eq!(choose_present_mode(&[]), None);
+        assert_eq!(
+            ViewportSurfacePresentOutcome::DeferredOccluded.submission_ticket(),
+            None
+        );
     }
 }

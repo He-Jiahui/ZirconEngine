@@ -24,12 +24,24 @@ fn image_candidates_from_asset_root(source: &str, assets: &std::path::Path) -> V
     candidates
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn template_image_candidates(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn preview_artifact_candidates(
     source: &str,
-    icon_name: &str,
 ) -> Vec<PathBuf> {
-    let mut candidates = image_candidates(source);
-    for candidate in icon_candidates(icon_name) {
+    let source = source.trim();
+    if source.is_empty() {
+        return Vec::new();
+    }
+
+    let source_path = PathBuf::from(source);
+    let mut candidates = Vec::new();
+    if source_path.is_absolute() {
+        push_candidate(&mut candidates, source_path);
+        return candidates;
+    }
+    if !source.contains("://") {
+        push_candidate(&mut candidates, workspace_root().join(source_path));
+    }
+    for candidate in image_candidates(source) {
         push_candidate(&mut candidates, candidate);
     }
     candidates
@@ -69,9 +81,12 @@ fn icon_candidates_from_asset_root(
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
-    use super::{icon_candidates_from_asset_root, image_candidates_from_asset_root};
+    use super::{
+        icon_candidates_from_asset_root, image_candidates_from_asset_root,
+        preview_artifact_candidates,
+    };
 
     #[test]
     fn packaged_image_candidates_remain_inside_the_selected_asset_root() {
@@ -82,6 +97,19 @@ mod tests {
         assert!(candidates
             .iter()
             .all(|candidate| candidate.starts_with(root)));
+    }
+
+    #[test]
+    fn generated_preview_artifacts_preserve_their_absolute_source_identity() {
+        #[cfg(windows)]
+        let source = r"E:\project\.zircon\cache\editor-previews\grid.png";
+        #[cfg(not(windows))]
+        let source = "/project/.zircon/cache/editor-previews/grid.png";
+
+        assert_eq!(
+            preview_artifact_candidates(source).first(),
+            Some(&PathBuf::from(source))
+        );
     }
 
     #[test]

@@ -1,5 +1,15 @@
 use crate::ui::retained_host::SceneViewportChromeData;
 
+/// Keep this key limited to fields read by `viewport_toolbar_hit_control_id`.
+pub(super) fn viewport_toolbar_hit_route_key(viewport: &SceneViewportChromeData) -> [&str; 4] {
+    [
+        viewport.mode.as_str(),
+        viewport.transform_space.as_str(),
+        viewport.projection_mode.as_str(),
+        viewport.view_orientation.as_str(),
+    ]
+}
+
 pub(super) fn viewport_toolbar_hit_control_id(
     viewport: &SceneViewportChromeData,
     projection_control_id: &str,
@@ -10,6 +20,7 @@ pub(super) fn viewport_toolbar_hit_control_id(
     }
     let control_id = match projection_control_id {
         "SetTransformSpace" => transform_space_action_id(viewport.transform_space.as_str()),
+        "SetPivotMode" => Some("pivot.cycle"),
         "SetProjectionMode" => Some(projection_mode_action_id(viewport.projection_mode.as_str())),
         "AlignView" => Some(align_view_action_id(viewport.view_orientation.as_str())),
         "SetDisplayMode" => Some("display.cycle"),

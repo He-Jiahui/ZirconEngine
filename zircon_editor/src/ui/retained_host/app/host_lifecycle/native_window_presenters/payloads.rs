@@ -18,18 +18,18 @@ impl RetainedEditorHost {
         model: &WorkbenchViewModel,
         chrome: &EditorChromeSnapshot,
     ) -> NativeWindowPanePayloads {
-        let module_plugins = if pane_payload_visibility::should_collect_payload_for_kind(
-            model,
-            ViewContentKind::ModulePlugins,
-        ) {
+        let (module_plugins_visible, build_export_visible) =
+            pane_payload_visibility::payload_visibility_for_pair(
+                model,
+                ViewContentKind::ModulePlugins,
+                ViewContentKind::BuildExport,
+            );
+        let module_plugins = if module_plugins_visible {
             self.module_plugins_pane_data(chrome)
         } else {
             ModulePluginsPaneViewData::default()
         };
-        let build_export = if pane_payload_visibility::should_collect_payload_for_kind(
-            model,
-            ViewContentKind::BuildExport,
-        ) {
+        let build_export = if build_export_visible {
             self.build_export_pane_data(chrome)
         } else {
             BuildExportPaneViewData::default()

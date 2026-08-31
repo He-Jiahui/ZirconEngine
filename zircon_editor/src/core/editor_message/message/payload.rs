@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::jobs::JobEvent;
+use crate::core::jobs::{EditorJobEventJournalGap, JobEvent};
 
 use super::{
-    DocumentMessage, FocusMessage, ModeMessage, SceneInspectionMessage, ToolMessage,
-    TransactionMessage,
+    DocumentMessage, EditorMessageSchemaId, FocusMessage, ModeMessage, SceneInspectionMessage,
+    ToolMessage, TransactionMessage,
 };
 
 /// Small, cloneable editor facts. Heavy state remains behind query owners.
@@ -17,8 +17,9 @@ pub enum EditorMessagePayload {
     SceneInspection(SceneInspectionMessage),
     Tool(ToolMessage),
     Job(JobEvent),
+    JobJournalGap(EditorJobEventJournalGap),
     Custom {
-        schema_id: String,
+        schema_id: EditorMessageSchemaId,
         payload: serde_json::Value,
     },
 }

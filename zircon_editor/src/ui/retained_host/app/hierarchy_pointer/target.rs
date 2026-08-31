@@ -21,7 +21,7 @@ impl RetainedEditorHost {
         let scene_entries = Arc::clone(&self.hierarchy_scene_entries);
         if self.hierarchy_pointer_size != target_size {
             self.hierarchy_pointer_size = target_size;
-            self.sync_hierarchy_pointer_layout(scene_entries.as_ref());
+            self.sync_hierarchy_pointer_layout(Arc::clone(&scene_entries));
         }
         if focus_source_window {
             self.focus_callback_source_window();

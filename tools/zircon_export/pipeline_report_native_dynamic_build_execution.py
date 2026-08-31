@@ -121,7 +121,9 @@ def native_dynamic_build_execution_artifact_diagnostics(
         materialized_packages,
         plugins_dir,
     )
-    current_file_paths = native_dynamic_file_manifest_paths(current_file_manifest)
+    current_file_path_index = native_dynamic_file_manifest_path_index(
+        current_file_manifest
+    )
     diagnostics: list[str] = []
     for package in packages:
         if not isinstance(package, dict):
@@ -181,7 +183,7 @@ def native_dynamic_build_execution_artifact_diagnostics(
                 continue
             if not native_dynamic_file_manifest_contains_path_or_directory(
                 copied_sidecar_path,
-                current_file_paths,
+                current_file_path_index,
             ):
                 diagnostics.append(
                     "native_dynamic report native_build_execution package "
@@ -214,12 +216,13 @@ def materialized_package_native_dir_paths(
     plugins_dir: Path,
 ) -> dict[str, str]:
     package_native_dirs: dict[str, str] = {}
+    plugins_dir_resolved = plugins_dir.resolve()
     for package in materialized_packages:
         package_id = str(package["package_id"])
         destination = Path(str(package["destination"])).expanduser()
         try:
             relative_destination = destination.resolve().relative_to(
-                plugins_dir.resolve(),
+                plugins_dir_resolved,
             )
         except (OSError, ValueError):
             continue
@@ -229,24 +232,29 @@ def materialized_package_native_dir_paths(
     return package_native_dirs
 
 
-def native_dynamic_file_manifest_paths(
+def native_dynamic_file_manifest_path_index(
     file_manifest: list[dict[str, object]],
 ) -> set[str]:
-    return {
-        str(entry["path"])
-        for entry in file_manifest
-        if isinstance(entry.get("path"), str)
-    }
+    path_index: set[str] = set()
+    for entry in file_manifest:
+        path = entry.get("path")
+        if not isinstance(path, str):
+            continue
+        indexed_path = path.rstrip("/")
+        while indexed_path:
+            path_index.add(indexed_path)
+            parent, separator, _ = indexed_path.rpartition("/")
+            if not separator:
+                break
+            indexed_path = parent.rstrip("/")
+    return path_index
 
 
 def native_dynamic_file_manifest_contains_path_or_directory(
     bundle_path: str,
-    file_manifest_paths: set[str],
+    file_manifest_path_index: set[str],
 ) -> bool:
-    normalized_path = bundle_path.rstrip("/")
-    return normalized_path in file_manifest_paths or any(
-        path.startswith(f"{normalized_path}/") for path in file_manifest_paths
-    )
+    return bundle_path.rstrip("/") in file_manifest_path_index
 
 
 def native_dynamic_command_array_is_schema_clean(value: object) -> bool:

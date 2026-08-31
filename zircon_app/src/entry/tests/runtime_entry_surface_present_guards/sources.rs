@@ -35,7 +35,7 @@ pub(super) fn runtime_surface_present_source() -> String {
         include_str!("../../runtime_entry_app/surface_present/mod.rs"),
         include_str!("../../runtime_entry_app/surface_present/binding.rs"),
         include_str!("../../runtime_entry_app/surface_present/lifecycle.rs"),
-        include_str!("../../runtime_entry_app/surface_present/fallback.rs"),
+        include_str!("../../runtime_entry_app/surface_present/reference_cpu.rs"),
         include_str!("../../runtime_entry_app/surface_present/redraw.rs"),
         include_str!("../../runtime_entry_app/surface_present/resize.rs"),
     ]

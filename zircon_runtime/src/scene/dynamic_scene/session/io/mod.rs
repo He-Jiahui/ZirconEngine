@@ -1,6 +1,7 @@
 mod atomic;
 mod load_save;
 mod mutation;
+mod reader;
 mod support;
 mod writer;
 
@@ -10,6 +11,12 @@ pub(super) use load_save::{
 };
 pub(super) use mutation::{
     mutate_archive_at_path_atomically, mutate_archive_at_path_with_report_atomically,
+};
+pub use reader::{
+    RuntimeSessionArchiveReadArtifact, RuntimeSessionArchiveReadOutcome,
+    RuntimeSessionArchiveReadSubmission, RuntimeSessionArchiveReader,
+    RuntimeSessionArchiveReaderDiagnostics, RuntimeSessionArchiveReaderLimits,
+    RuntimeSessionArchiveReaderSubmitError,
 };
 pub use writer::{
     RuntimeSessionArchiveWriteSubmission, RuntimeSessionArchiveWriter,

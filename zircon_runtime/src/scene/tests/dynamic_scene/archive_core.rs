@@ -3,7 +3,9 @@ use super::*;
 #[test]
 fn runtime_session_archive_roundtrips_slots_and_restores_world() {
     let mut source = World::empty();
-    let entity = source.spawn_node(NodeKind::Mesh);
+    let entity = source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     source
         .rename_node(entity, "Saved Mesh")
         .expect("source entity should be named");
@@ -83,7 +85,7 @@ fn runtime_session_archive_embeds_schema_header_without_inner_scene_version() {
 
     let document: serde_json::Value = serde_json::from_str(&json).unwrap();
     let scene_document = &document["slots"][0]["scene"]["$zircon"];
-    assert_eq!(scene_document["header"]["schema_version"], 2);
+    assert_eq!(scene_document["header"]["schema_version"], 3);
     assert!(scene_document["payload"].get("format_version").is_none());
     let decoded =
         RuntimeSessionArchive::from_versioned_json(&json).expect("versioned archive should reload");
@@ -102,9 +104,11 @@ fn runtime_session_archive_push_and_upsert_keep_scene_payload_versionless() {
         .expect("push_slot should accept a current typed scene envelope");
     let push_json = push_archive.to_versioned_json_pretty().unwrap();
     let push_document: serde_json::Value = serde_json::from_str(&push_json).unwrap();
-    assert!(push_document["slots"][0]["scene"]["$zircon"]["payload"]
-        .get("format_version")
-        .is_none());
+    assert!(
+        push_document["slots"][0]["scene"]["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
 
     let mut upsert_archive = RuntimeSessionArchive::empty();
     let upsert_slot =
@@ -115,9 +119,11 @@ fn runtime_session_archive_push_and_upsert_keep_scene_payload_versionless() {
         .expect("upsert_slot should accept a current typed scene envelope");
     let upsert_json = upsert_archive.to_versioned_json_pretty().unwrap();
     let upsert_document: serde_json::Value = serde_json::from_str(&upsert_json).unwrap();
-    assert!(upsert_document["slots"][0]["scene"]["$zircon"]["payload"]
-        .get("format_version")
-        .is_none());
+    assert!(
+        upsert_document["slots"][0]["scene"]["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
 }
 
 #[test]

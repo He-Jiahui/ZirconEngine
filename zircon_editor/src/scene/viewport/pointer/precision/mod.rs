@@ -12,4 +12,6 @@ pub(in crate::scene::viewport::pointer) use candidate_score::CandidateScore;
 pub(in crate::scene::viewport::pointer) use precision_candidate::PrecisionCandidate;
 pub(in crate::scene::viewport::pointer) use precision_shape::PrecisionShape;
 pub(in crate::scene::viewport::pointer) use renderer_visible_spatial_pick_source::RendererVisibleSpatialPickSource;
-pub(in crate::scene::viewport::pointer) use shared_resolution_state::SharedResolutionState;
+pub(in crate::scene::viewport::pointer) use shared_resolution_state::{
+    lock_shared_resolution_state, SharedResolutionState,
+};

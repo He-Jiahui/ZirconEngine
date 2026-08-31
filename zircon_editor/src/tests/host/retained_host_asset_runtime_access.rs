@@ -26,11 +26,18 @@ fn retained_host_asset_services_do_not_leak_a_generic_runtime_resolver() {
     );
     assert!(
         access_source.contains("struct RetainedHostAssetRuntimeAccess")
-            && access_source.contains("resolver: ManagerResolver")
+            && access_source.contains("core: CoreWeak")
+            && access_source.contains("resource_manager_handle(core)?")
             && access_source.contains("fn asset_manager(")
             && access_source.contains("fn editor_asset_manager(")
             && access_source.contains("fn resource_manager(")
+            && access_source.contains("resolve_manager_service(&core, self.asset_manager.clone())")
+            && access_source
+                .contains("resolve_manager_service(&core, self.editor_asset_manager.clone())")
+            && access_source
+                .contains("resolve_manager_service(&core, self.resource_manager.clone())")
+            && !access_source.contains("ManagerResolver")
             && !access_source.contains("fn resolve<"),
-        "the retained host must contain its generic resolver in a single named asset access leaf"
+        "the retained host must resolve only its three typed asset services from a weak runtime leaf"
     );
 }

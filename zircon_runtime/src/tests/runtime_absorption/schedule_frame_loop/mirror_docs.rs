@@ -29,13 +29,13 @@ fn assert_mirror_docs_match_structure_audit() {
     ] {
         for required_anchor in [
             "schedule_frame_loop_boundary",
-            "source files 19/19",
+            "source files 22/22",
             "guard/test files 11/11",
             "`SystemStage` count and variants 9/9",
             "fixed-loop stages 3/3",
             "dynamic-session `.tick_time(...)` calls 1/1",
             "Runtime 03 guard anchors 14/14",
-            "behavior_test_anchor_count = 13",
+            "behavior_test_anchor_count = 14",
             "missing_behavior_test_anchors = []",
             "doc_anchors = 10/10",
             "no `WorldDriver` second `advance_time_by(...)` references",

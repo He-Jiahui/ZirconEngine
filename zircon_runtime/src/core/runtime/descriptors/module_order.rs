@@ -54,12 +54,21 @@ impl FrozenModuleGraph {
     }
 
     pub(crate) fn module_activation_closure(&self, module_name: &str) -> CoreResult<Vec<String>> {
-        if !self.module_dependencies.contains_key(module_name) {
+        let Some((registered_name, _)) = self.module_dependencies.get_key_value(module_name) else {
             return Err(CoreError::MissingModule(module_name.to_owned()));
+        };
+        let mut closure: HashSet<&str> = HashSet::new();
+        let mut pending = vec![registered_name.as_str()];
+        while let Some(current) = pending.pop() {
+            if !closure.insert(current) {
+                continue;
+            }
+            let dependencies = self
+                .module_dependencies
+                .get(current)
+                .expect("validated module graph must contain every dependency node");
+            pending.extend(dependencies.iter().map(String::as_str));
         }
-
-        let mut closure = HashSet::new();
-        self.collect_module_dependencies(module_name, &mut closure);
         Ok(self
             .module_activation_order
             .iter()
@@ -70,12 +79,24 @@ impl FrozenModuleGraph {
 
     /// Lists all transitively dependent modules in stable activation order.
     pub(crate) fn module_dependent_closure(&self, module_name: &str) -> CoreResult<Vec<String>> {
-        if !self.module_dependents.contains_key(module_name) {
+        let Some((_, direct_dependents)) = self.module_dependents.get_key_value(module_name) else {
             return Err(CoreError::MissingModule(module_name.to_owned()));
+        };
+        let mut closure: HashSet<&str> = HashSet::new();
+        let mut pending = direct_dependents
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>();
+        while let Some(current) = pending.pop() {
+            if !closure.insert(current) {
+                continue;
+            }
+            let dependents = self
+                .module_dependents
+                .get(current)
+                .expect("validated module graph must contain every dependent node");
+            pending.extend(dependents.iter().map(String::as_str));
         }
-
-        let mut closure = HashSet::new();
-        self.collect_module_dependents(module_name, &mut closure);
         Ok(self
             .module_activation_order
             .iter()
@@ -88,31 +109,6 @@ impl FrozenModuleGraph {
         self.module_services
             .get(module_name)
             .ok_or_else(|| CoreError::MissingModule(module_name.to_owned()))
-    }
-
-    fn collect_module_dependencies(&self, module_name: &str, closure: &mut HashSet<String>) {
-        if !closure.insert(module_name.to_owned()) {
-            return;
-        }
-        let dependencies = self
-            .module_dependencies
-            .get(module_name)
-            .expect("validated module graph must contain the selected module");
-        for dependency in dependencies.iter() {
-            self.collect_module_dependencies(dependency, closure);
-        }
-    }
-
-    fn collect_module_dependents(&self, module_name: &str, closure: &mut HashSet<String>) {
-        let dependents = self
-            .module_dependents
-            .get(module_name)
-            .expect("validated module graph must contain the selected module");
-        for dependent in dependents.iter() {
-            if closure.insert(dependent.clone()) {
-                self.collect_module_dependents(dependent, closure);
-            }
-        }
     }
 }
 
@@ -143,6 +139,22 @@ struct ServiceGraphNode {
 enum VisitState {
     Visiting,
     Visited,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct TraversalFrame {
+    node_index: usize,
+    next_dependency_index: usize,
+}
+
+/// Sorted service dependency indices used only while computing lifecycle order.
+///
+/// Service declarations retain their authored dependency order for validation so
+/// diagnostics report the first invalid declaration. The traversal needs its
+/// own deterministic lexical view after that validation has succeeded.
+struct ServiceTraversalEdges {
+    starts: Vec<usize>,
+    targets: Vec<usize>,
 }
 
 pub fn sort_module_activation_order(descriptors: &[ModuleDescriptor]) -> CoreResult<Vec<String>> {
@@ -185,15 +197,18 @@ pub fn sort_module_activation_order(descriptors: &[ModuleDescriptor]) -> CoreRes
     traversal.sort_by_key(|&index| (descriptors[index].init_level, index));
 
     let mut states = vec![None; descriptors.len()];
-    let mut stack = Vec::new();
+    let mut frames = Vec::new();
     let mut order = Vec::with_capacity(descriptors.len());
     for index in traversal {
-        visit_module(
+        if states[index].is_some() {
+            continue;
+        }
+        visit_module_iterative(
             index,
             descriptors,
             &by_name,
             &mut states,
-            &mut stack,
+            &mut frames,
             &mut order,
         )?;
     }
@@ -373,49 +388,133 @@ fn service_kind_rank(kind: ServiceKind) -> u8 {
 fn sort_service_activation_order(
     nodes: &BTreeMap<String, ServiceGraphNode>,
 ) -> CoreResult<Vec<RegistryName>> {
-    let mut states = HashMap::with_capacity(nodes.len());
-    let mut stack = Vec::with_capacity(nodes.len());
+    let names = nodes.keys().map(String::as_str).collect::<Vec<_>>();
+    let by_name = names
+        .iter()
+        .enumerate()
+        .map(|(index, name)| (*name, index))
+        .collect::<HashMap<_, _>>();
+    let traversal_edges = sorted_service_traversal_edges(&names, nodes, &by_name);
+    let mut states = vec![None; names.len()];
+    let mut frames = Vec::new();
     let mut order = Vec::with_capacity(nodes.len());
-    for name in nodes.keys() {
-        visit_service(name, nodes, &mut states, &mut stack, &mut order)?;
+    for index in 0..names.len() {
+        if states[index].is_some() {
+            continue;
+        }
+        visit_service_iterative(
+            index,
+            &names,
+            &traversal_edges,
+            nodes,
+            &mut states,
+            &mut frames,
+            &mut order,
+        )?;
     }
     Ok(order)
 }
 
-fn visit_service(
-    name: &str,
+fn sorted_service_traversal_edges(
+    names: &[&str],
     nodes: &BTreeMap<String, ServiceGraphNode>,
-    states: &mut HashMap<String, VisitState>,
-    stack: &mut Vec<String>,
+    by_name: &HashMap<&str, usize>,
+) -> ServiceTraversalEdges {
+    let dependency_count = nodes
+        .values()
+        .map(|node| node.dependencies.len())
+        .sum::<usize>();
+    let mut starts = Vec::with_capacity(names.len() + 1);
+    let mut targets = Vec::with_capacity(dependency_count);
+
+    for name in names {
+        let start = targets.len();
+        starts.push(start);
+        let node = nodes
+            .get(*name)
+            .expect("validated service graph must contain every traversal node");
+        targets.extend(node.dependencies.iter().map(|dependency| {
+            *by_name
+                .get(dependency.as_str())
+                .expect("validated service graph must contain every dependency")
+        }));
+        targets[start..].sort_unstable_by(|left, right| names[*left].cmp(names[*right]));
+    }
+    starts.push(targets.len());
+
+    ServiceTraversalEdges { starts, targets }
+}
+
+fn visit_service_iterative(
+    root_index: usize,
+    names: &[&str],
+    traversal_edges: &ServiceTraversalEdges,
+    nodes: &BTreeMap<String, ServiceGraphNode>,
+    states: &mut [Option<VisitState>],
+    frames: &mut Vec<TraversalFrame>,
     order: &mut Vec<RegistryName>,
 ) -> CoreResult<()> {
-    match states.get(name) {
-        Some(VisitState::Visited) => return Ok(()),
-        Some(VisitState::Visiting) => {
-            let cycle_start = stack
-                .iter()
-                .position(|candidate| candidate == name)
-                .expect("visiting service must be present in traversal stack");
-            let mut path = stack[cycle_start..].to_vec();
-            path.push(name.to_owned());
-            return Err(CoreError::ServiceDependencyCycle { path });
+    states[root_index] = Some(VisitState::Visiting);
+    frames.push(TraversalFrame {
+        node_index: root_index,
+        next_dependency_index: 0,
+    });
+
+    while !frames.is_empty() {
+        let dependency_index = {
+            let frame = frames
+                .last_mut()
+                .expect("a non-empty traversal frame stack must have a service frame");
+            let index = frame.node_index;
+            let start = traversal_edges.starts[index];
+            let end = traversal_edges.starts[index + 1];
+            let dependency_index = (start + frame.next_dependency_index < end).then(|| {
+                let dependency_index = traversal_edges.targets[start + frame.next_dependency_index];
+                frame.next_dependency_index += 1;
+                dependency_index
+            });
+            dependency_index
+        };
+        if let Some(dependency_index) = dependency_index {
+            match states[dependency_index] {
+                Some(VisitState::Visited) => continue,
+                Some(VisitState::Visiting) => {
+                    let cycle_start = frames
+                        .iter()
+                        .position(|entry| entry.node_index == dependency_index)
+                        .expect("visiting service must be present in the traversal frames");
+                    let mut path = frames[cycle_start..]
+                        .iter()
+                        .map(|entry| names[entry.node_index].to_owned())
+                        .collect::<Vec<_>>();
+                    path.push(names[dependency_index].to_owned());
+                    return Err(CoreError::ServiceDependencyCycle { path });
+                }
+                None => {
+                    states[dependency_index] = Some(VisitState::Visiting);
+                    frames.push(TraversalFrame {
+                        node_index: dependency_index,
+                        next_dependency_index: 0,
+                    });
+                }
+            }
+            continue;
         }
-        None => {}
+
+        let completed_index = frames
+            .pop()
+            .expect("a non-empty traversal frame stack must pop a service frame")
+            .node_index;
+        states[completed_index] = Some(VisitState::Visited);
+        order.push(
+            nodes
+                .get(names[completed_index])
+                .expect("validated service graph must contain every traversal node")
+                .name
+                .clone(),
+        );
     }
 
-    let node = nodes
-        .get(name)
-        .expect("validated service graph must contain every traversal node");
-    states.insert(name.to_owned(), VisitState::Visiting);
-    stack.push(name.to_owned());
-    let mut dependencies = node.dependencies.iter().collect::<Vec<_>>();
-    dependencies.sort_by(|left, right| left.as_str().cmp(right.as_str()));
-    for dependency in dependencies {
-        visit_service(dependency.as_str(), nodes, states, stack, order)?;
-    }
-    stack.pop();
-    states.insert(name.to_owned(), VisitState::Visited);
-    order.push(node.name.clone());
     Ok(())
 }
 
@@ -462,239 +561,79 @@ fn module_service_plans(
         .collect()
 }
 
-fn visit_module(
-    index: usize,
+fn visit_module_iterative(
+    root_index: usize,
     descriptors: &[ModuleDescriptor],
     by_name: &HashMap<&str, usize>,
     states: &mut [Option<VisitState>],
-    stack: &mut Vec<usize>,
+    frames: &mut Vec<TraversalFrame>,
     order: &mut Vec<String>,
 ) -> CoreResult<()> {
-    match states[index] {
-        Some(VisitState::Visited) => return Ok(()),
-        Some(VisitState::Visiting) => {
-            let name = &descriptors[index].name;
-            let mut path = match stack.iter().position(|&candidate| candidate == index) {
-                Some(cycle_start) => stack[cycle_start..]
-                    .iter()
-                    .map(|&module_index| descriptors[module_index].name.clone())
-                    .collect(),
-                None => Vec::new(),
+    states[root_index] = Some(VisitState::Visiting);
+    frames.push(TraversalFrame {
+        node_index: root_index,
+        next_dependency_index: 0,
+    });
+
+    while !frames.is_empty() {
+        let (index, next_dependency_index) = {
+            let frame = frames
+                .last_mut()
+                .expect("a non-empty traversal frame stack must have a module frame");
+            let index = frame.node_index;
+            let next_dependency_index = descriptors[index]
+                .module_dependencies
+                .get(frame.next_dependency_index)
+                .map(|_| frame.next_dependency_index);
+            if next_dependency_index.is_some() {
+                frame.next_dependency_index += 1;
+            }
+            (index, next_dependency_index)
+        };
+        if let Some(next_dependency_index) = next_dependency_index {
+            let dependency = &descriptors[index].module_dependencies[next_dependency_index];
+            let Some(&dependency_index) = by_name.get(dependency.module_name.as_str()) else {
+                return Err(CoreError::MissingModuleDependency {
+                    module: descriptors[index].name.clone(),
+                    dependency: dependency.module_name.clone(),
+                });
             };
-            path.push(name.clone());
-            return Err(CoreError::ModuleDependencyCycle { path });
+            match states[dependency_index] {
+                Some(VisitState::Visited) => continue,
+                Some(VisitState::Visiting) => {
+                    let cycle_start = frames
+                        .iter()
+                        .position(|entry| entry.node_index == dependency_index)
+                        .expect("visiting module must be present in the traversal frames");
+                    let mut path = frames[cycle_start..]
+                        .iter()
+                        .map(|entry| descriptors[entry.node_index].name.clone())
+                        .collect::<Vec<_>>();
+                    path.push(descriptors[dependency_index].name.clone());
+                    return Err(CoreError::ModuleDependencyCycle { path });
+                }
+                None => {
+                    states[dependency_index] = Some(VisitState::Visiting);
+                    frames.push(TraversalFrame {
+                        node_index: dependency_index,
+                        next_dependency_index: 0,
+                    });
+                }
+            }
+            continue;
         }
-        None => {}
+
+        let completed_index = frames
+            .pop()
+            .expect("a non-empty traversal frame stack must pop a module frame")
+            .node_index;
+        states[completed_index] = Some(VisitState::Visited);
+        order.push(descriptors[completed_index].name.clone());
     }
 
-    states[index] = Some(VisitState::Visiting);
-    stack.push(index);
-    for dependency in &descriptors[index].module_dependencies {
-        let Some(&dependency_index) = by_name.get(dependency.module_name.as_str()) else {
-            return Err(CoreError::MissingModuleDependency {
-                module: descriptors[index].name.clone(),
-                dependency: dependency.module_name.clone(),
-            });
-        };
-        visit_module(dependency_index, descriptors, by_name, states, stack, order)?;
-    }
-    stack.pop();
-    states[index] = Some(VisitState::Visited);
-    order.push(descriptors[index].name.clone());
     Ok(())
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn activation_sort_borrows_names_and_stacks_indices() {
-        let source = include_str!("module_order.rs");
-        let implementation = source
-            .split("#[cfg(test)]")
-            .next()
-            .expect("module order implementation");
-
-        assert!(implementation.contains("HashMap<&str, usize>"));
-        assert!(implementation.contains("stack: &mut Vec<usize>"));
-        assert!(implementation.contains("stack.push(index);"));
-        assert!(!implementation.contains("descriptor.name.clone(), index"));
-    }
-}
-
-#[cfg(test)]
-mod graph_tests {
-    use std::sync::Arc;
-
-    use super::super::{
-        DependencySpec, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
-        PluginDescriptor, ServiceObject,
-    };
-    use super::*;
-
-    fn manager_descriptor(
-        name: RegistryName,
-        dependencies: Vec<DependencySpec>,
-    ) -> ManagerDescriptor {
-        ManagerDescriptor::new(
-            name,
-            StartupMode::Immediate,
-            dependencies,
-            Arc::new(|_| Ok(Arc::new(()) as ServiceObject)),
-        )
-    }
-
-    fn plugin_descriptor(
-        name: RegistryName,
-        dependencies: Vec<DependencySpec>,
-    ) -> PluginDescriptor {
-        PluginDescriptor::new(
-            name,
-            StartupMode::Immediate,
-            dependencies,
-            Arc::new(|_| Ok(Arc::new(()) as ServiceObject)),
-        )
-    }
-
-    #[test]
-    fn same_kind_service_dependencies_shutdown_in_reverse_topological_order() {
-        let first =
-            RegistryName::from_parts("FrozenGraphModule", ServiceKind::Manager, "FirstManager");
-        let second =
-            RegistryName::from_parts("FrozenGraphModule", ServiceKind::Manager, "SecondManager");
-        let graph = FrozenModuleGraph::freeze(&[ModuleDescriptor::new(
-            "FrozenGraphModule",
-            "same-kind ordering",
-        )
-        .with_manager(manager_descriptor(first.clone(), Vec::new()))
-        .with_manager(manager_descriptor(
-            second.clone(),
-            vec![DependencySpec::named(first.clone())],
-        ))])
-        .expect("same-kind manager dependency should be a valid frozen graph");
-
-        let services = graph
-            .module_services("FrozenGraphModule")
-            .expect("frozen graph module services");
-        assert_eq!(
-            services
-                .service_names()
-                .iter()
-                .map(RegistryName::as_str)
-                .collect::<Vec<_>>(),
-            vec![first.as_str(), second.as_str()]
-        );
-        assert_eq!(
-            services
-                .shutdown_service_names()
-                .iter()
-                .map(RegistryName::as_str)
-                .collect::<Vec<_>>(),
-            vec![second.as_str(), first.as_str()]
-        );
-    }
-
-    #[test]
-    fn manager_to_plugin_dependency_is_rejected_before_lifecycle_callbacks() {
-        let plugin =
-            RegistryName::from_parts("FrozenGraphModule", ServiceKind::Plugin, "LatePlugin");
-        let manager_name =
-            RegistryName::from_parts("FrozenGraphModule", ServiceKind::Manager, "EarlyManager");
-        let descriptor = ModuleDescriptor::new("FrozenGraphModule", "kind validation")
-            .with_manager(manager_descriptor(
-                manager_name,
-                vec![DependencySpec::named(plugin.clone())],
-            ))
-            .with_plugin(plugin_descriptor(plugin, Vec::new()));
-
-        assert!(matches!(
-            FrozenModuleGraph::freeze(&[descriptor]),
-            Err(CoreError::InvalidServiceDependencyKind {
-                service_kind: ServiceKind::Manager,
-                dependency_kind: ServiceKind::Plugin,
-                ..
-            })
-        ));
-    }
-
-    #[test]
-    fn cross_module_service_dependency_requires_an_explicit_module_edge() {
-        let provider =
-            RegistryName::from_parts("GraphProvider", ServiceKind::Manager, "ProviderManager");
-        let consumer =
-            RegistryName::from_parts("GraphConsumer", ServiceKind::Plugin, "ConsumerPlugin");
-        let provider_descriptor = ModuleDescriptor::new("GraphProvider", "provider")
-            .with_manager(manager_descriptor(provider.clone(), Vec::new()));
-        let consumer_descriptor =
-            ModuleDescriptor::new("GraphConsumer", "consumer").with_plugin(plugin_descriptor(
-                consumer.clone(),
-                vec![DependencySpec::named(provider.clone())],
-            ));
-
-        assert!(matches!(
-            FrozenModuleGraph::freeze(&[provider_descriptor, consumer_descriptor]),
-            Err(CoreError::UndeclaredCrossModuleServiceDependency {
-                service,
-                service_module,
-                dependency,
-                dependency_module,
-            }) if service == consumer.as_str()
-                && service_module == "GraphConsumer"
-                && dependency == provider.as_str()
-                && dependency_module == "GraphProvider"
-        ));
-    }
-
-    #[test]
-    fn duplicate_module_dependencies_are_rejected_before_graph_traversal() {
-        let provider = ModuleDescriptor::new("DuplicateEdgeProvider", "provider");
-        let consumer = ModuleDescriptor::new("DuplicateEdgeConsumer", "consumer")
-            .with_module_dependency(ModuleDependencySpec::named("DuplicateEdgeProvider"))
-            .with_module_dependency(ModuleDependencySpec::named("DuplicateEdgeProvider"));
-
-        assert!(matches!(
-            FrozenModuleGraph::freeze(&[provider, consumer]),
-            Err(CoreError::DuplicateModuleDependency { module, dependency })
-                if module == "DuplicateEdgeConsumer" && dependency == "DuplicateEdgeProvider"
-        ));
-    }
-
-    #[test]
-    fn service_cycle_diagnostic_preserves_the_complete_stable_cycle_path() {
-        let first =
-            RegistryName::from_parts("CycleGraphModule", ServiceKind::Manager, "FirstManager");
-        let second =
-            RegistryName::from_parts("CycleGraphModule", ServiceKind::Manager, "SecondManager");
-        let descriptor = ModuleDescriptor::new("CycleGraphModule", "service cycle")
-            .with_manager(manager_descriptor(
-                first.clone(),
-                vec![DependencySpec::named(second.clone())],
-            ))
-            .with_manager(manager_descriptor(
-                second.clone(),
-                vec![DependencySpec::named(first.clone())],
-            ));
-
-        assert!(matches!(
-            FrozenModuleGraph::freeze(&[descriptor]),
-            Err(CoreError::ServiceDependencyCycle { path })
-                if path == vec![first.to_string(), second.to_string(), first.to_string()]
-        ));
-    }
-
-    #[test]
-    fn module_activation_closure_filters_the_global_order_to_declared_dependencies() {
-        let provider = ModuleDescriptor::new("ClosureProvider", "provider");
-        let consumer = ModuleDescriptor::new("ClosureConsumer", "consumer")
-            .with_module_dependency(ModuleDependencySpec::named("ClosureProvider"));
-        let unrelated = ModuleDescriptor::new("ClosureUnrelated", "unrelated");
-        let graph = FrozenModuleGraph::freeze(&[consumer, unrelated, provider])
-            .expect("declared closure should produce a frozen graph");
-
-        assert_eq!(
-            graph
-                .module_activation_closure("ClosureConsumer")
-                .expect("consumer closure"),
-            vec!["ClosureProvider", "ClosureConsumer"]
-        );
-    }
-}
+#[path = "module_order_tests.rs"]
+mod tests;

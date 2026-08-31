@@ -5,7 +5,7 @@ use crate::core::framework::text::TextDirection;
 use crate::text::shaping::TextShapeRunProvider;
 use crate::text::{
     ShapedGlyph, ShapedGlyphClusterFlags, ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript,
-    ShapedTextLine, TextOrientation, TextRange, TextStyle, VerticalMode,
+    ShapedHardLine, TextOrientation, TextRange, TextStyle, VerticalMode,
 };
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -29,13 +29,33 @@ fn long_line_correction_shapes_only_bounded_edge_contexts() {
         TextDirection::LeftToRight,
         None,
         &mut provider,
-    );
+    )
+    .into_result()
+    .expect("correct line advance");
 
     assert!((corrected - 1_003.0).abs() < 0.01);
     assert_eq!(provider.shape_calls, 2);
     assert!(
         provider.max_shaped_graphemes <= BOUNDARY_SHAPING_CONTEXT_GRAPHEMES * 2,
         "boundary correction must not rebuild a complete growing line"
+    );
+}
+
+#[test]
+fn boundary_budget_snapshot_matches_the_actual_correction_bounds() {
+    let budget = boundary_shaping_budget_snapshot();
+
+    assert_eq!(
+        budget.context_graphemes_per_edge,
+        BOUNDARY_SHAPING_CONTEXT_GRAPHEMES
+    );
+    assert_eq!(
+        budget.max_reshaped_graphemes,
+        BOUNDARY_SHAPING_CONTEXT_GRAPHEMES * 2
+    );
+    assert_eq!(
+        budget.max_correction_steps,
+        BOUNDARY_SHAPING_CONTEXT_GRAPHEMES
     );
 }
 
@@ -59,7 +79,9 @@ fn short_line_correction_shapes_soft_hyphen_suffix_with_the_line_tail() {
         TextDirection::LeftToRight,
         Some("-"),
         &mut provider,
-    );
+    )
+    .into_result()
+    .expect("correct soft-hyphen line advance");
 
     assert!((corrected - 23.0).abs() < 0.01);
     assert_eq!(provider.shape_calls, 1);
@@ -90,7 +112,9 @@ fn glyph_range_planner_moves_an_overflowing_corrected_boundary_left() {
         20.0,
         20.0,
         &mut provider,
-    );
+    )
+    .into_result()
+    .expect("plan corrected glyph ranges");
 
     assert_eq!(ranges, vec![(0, 1), (1, 3)]);
     assert!(provider.max_shaped_graphemes <= BOUNDARY_SHAPING_CONTEXT_GRAPHEMES * 2);
@@ -121,7 +145,9 @@ fn glyph_range_planner_keeps_backend_calls_linear_through_ten_thousand_graphemes
             80.0,
             80.0,
             &mut provider,
-        );
+        )
+        .into_result()
+        .expect("plan corrected glyph ranges");
 
         let calls_per_line_limit = (2 * BOUNDARY_SHAPING_CONTEXT_GRAPHEMES + 1).saturating_mul(2);
         assert!(
@@ -177,7 +203,9 @@ fn boundary_scale_evidence_reports_p50_p95() {
                 80.0,
                 80.0,
                 &mut provider,
-            );
+            )
+            .into_result()
+            .expect("plan boundary scale ranges");
             durations.push(started.elapsed().as_nanos());
             backend_calls = provider.shape_calls;
             line_count = ranges.len();
@@ -201,17 +229,21 @@ struct EdgeShapeProvider {
 }
 
 impl TextShapeRunProvider for EdgeShapeProvider {
-    fn shape_horizontal_line_with_kerning(
+    fn shape_horizontal_range_with_kerning(
         &mut self,
         text: &str,
         _style: &TextStyle,
         direction: TextDirection,
         source_range: TextRange,
         _include_kerning: bool,
-    ) -> Arc<ShapedGlyphRun> {
+    ) -> crate::text::shaping::TextShapingOutcome {
         self.shape_calls = self.shape_calls.saturating_add(1);
         self.max_shaped_graphemes = self.max_shaped_graphemes.max(text.graphemes(true).count());
-        Arc::new(shaped_run(text, direction, source_range))
+        crate::text::shaping::TextShapingOutcome::Ready(Arc::new(shaped_run(
+            text,
+            direction,
+            source_range,
+        )))
     }
 }
 
@@ -236,13 +268,18 @@ fn shaped_run(text: &str, direction: TextDirection, source_range: TextRange) -> 
     ShapedGlyphRun {
         source_text: std::sync::Arc::from(text),
         source_range,
+        unicode_data_snapshot: crate::text::compiled_unicode_data_snapshot_id(),
+        primary_face_id: None,
         direction,
         orientation: TextOrientation::Horizontal,
         vertical_mode: VerticalMode::Mixed,
         include_kerning: true,
         measured_width,
         measured_height: 12.0,
-        lines: vec![ShapedTextLine {
+        horizontal_composition_receipt: None,
+        horizontal_line_raw_metrics: Vec::new(),
+        horizontal_glyph_metric_spans: Vec::new(),
+        lines: vec![ShapedHardLine {
             line_index: 0,
             source_range,
             visual_range: source_range,

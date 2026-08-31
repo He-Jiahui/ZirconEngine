@@ -46,6 +46,12 @@ Zircon 当前不是完全没有 GPU UI 基础。游戏/runtime scene 路径已�
 
 问题在于这些能力没有组成一个产品级 UI renderer，而是形成两套互不兼容的终端：游戏视口由 `ScreenSpaceUiRenderer` 消费 `UiRenderExtract`，Editor native window 由 `WgpuUiSurfaceRenderer` 消费另一套 `UiSurfaceDrawList`。两者不共享 ordered draw-op、brush/material、clip、font owner、icon atlas、image residency、cache generation、color space、device lifetime 或统计合同。`zircon_runtime_interface` 中更完整的 `UiBatchPlan`、`UiRenderCachePlan`、rounded/gradient/vector/material brush、stencil clip 和 draw effect 主要停留在 DTO、测试、debug visualizer；产品 scene renderer 仍从每个 legacy command 临时展开 paint element，再按形状、图片、三类文字、文字后装饰分桶提交。
 
+2026-08-29 text-owner correction：screen-space product renderer 与 dynamic Runtime UI surface 现共享 Core
+`TextModule` 提供的 `FontCollectionService`；动态 UI 在首次布局前完成 font asset admission，renderer plan
+不再调用进程级 text layout service，raw batch 仅在 prepare 阶段按 collection revision fallback shape。
+这只关闭了 font-owner/首帧时序的结构缺口；Editor native window、PIE 注入、统一 ordered draw-op 以及
+受管 WGPU/PNG/power 对拍仍开放，不能把该切片表述为完整产品 renderer 收敛。
+
 本轮确认三项 P0。第一，游戏/runtime UI 的 painter order 会被按资源类别重新分组：全部 solid 先画、全部 image 后画、文字又按 Glyphon -> bitmap atlas -> SDF 固定顺序画，最后统一画 caret/underline 等装饰；原本按 `(z_index, paint_order, node_id)` 排好的命令顺序因此失效。第二，runtime component 广泛发出的 `UiVisualAssetRef::Icon` 没有生产 renderer，实际被画成居中的实心矩形；已有 `UiIconAtlasBuilder` 只生成 CPU 计划，既不栅格化也不上传，且没有 production consumer。第三，Editor damage patch 在 retained texture 上使用 `Load` 和 premultiplied alpha 直接重放脏区，却没有先恢复背景或清除目标区域；重复半透明 patch 会累积变深，删除/移动内容可留下旧像素，而当前 GPU 测试只覆盖不暴露问题的 opaque patch。
 
 性能方面也不能用“已有 batch/cache”笼统宣称完成。Editor RHI 的 dependency batching 是真实基础，但日常 Editor `present()` 故意生成无 producer generation 的 live full/damage draw list，现有 compiled-plan/text cache 因而不命中；generation 主要用于 native resize snapshot 等特殊路径。游戏 UI 则每帧重建七类 `Vec`、逐 command 构造 paint payload、以 JSON 序列化计算 generation、重建 CPU quad、对全部 vertex bytes 做 BLAKE3，再按 command/scissor 或 image 单独 draw。4K Editor retained path 还会在每次无效化后把整张约 31.64 MiB RGBA texture 复制到 swapchain，damage 只减少重画，不减少最终 copy 带宽。
@@ -459,3 +465,21 @@ Gate：先达到正确性和功能parity，再以P50/P95/P99及最坏帧证明�
 8. 同画质Unreal Slate对照记录CPU/GPU/带宽/VRAM和P50/P95/P99，结论由数据支持。
 
 本轮只完成current-source静态审查和重构规划，没有修改生产代码，也没有生成GPU动态验收artifact。当前状态必须保持`review_complete / implementation pending / source_recheck_required`。
+
+2026-08-28 current-source correction：SDF atlas retained frame assembly 已拥有 iterator-based glyph-key
+collector，但 cache discard 与 standalone plan 曾继续调用变为 `cfg(test)` 的旧 slice wrapper，导致 default
+Runtime production compile missing symbol。两个入口现直接传 `texts.iter()` 到唯一 iterator owner；未恢复
+production facade，未创建 flattened text-batch vector，也未改变 key、slot、page、eviction 或 draw-order
+算法。该修正只关闭 cutover compile path，不能改变本报告的 GPU 产品结论；managed Runtime、WGPU、
+RenderDoc、功耗与 PNG 仍开放。状态：
+`sdf_atlas_iterator_owner_cutover_static / managed_gpu_product_validation_pending`。
+
+2026-08-29 text-owner lifecycle correction：screen-space renderer now holds a non-Clone
+`RuntimeFontAssetClaimScope` from Text Core, reconciles dependency membership before refreshing its explicit
+collection, and removes released identities from its local ready/missing/error admission cache. Text Core batches
+last-scope owner retirement into one database publication, preserving shared HUD/menu owners. This is a static
+ownership and retry correction only; it does not implement GPU atlas residency, upload, device-loss recovery,
+batch/clip submission, or any timing/power claim. Managed Runtime/WGPU/PNG, profile and Unreal same-load evidence
+remain open. Changed/new font admissions are coalesced with release into one collection publication; GPU and
+managed evidence remain open. The
+report stays `review_complete / implementation pending / source_recheck_required`.

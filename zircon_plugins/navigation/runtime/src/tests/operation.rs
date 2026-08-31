@@ -4,7 +4,8 @@ use zircon_runtime::core::framework::navigation::{
     NAVIGATION_CLEAR_SURFACE_OPERATION, NAVIGATION_RESTORE_BAKE_OPERATION,
     NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
-use zircon_runtime::core::runtime::CoreRuntime;
+use zircon_runtime::core::runtime::{CoreRuntime, TasksModule};
+use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::navigation::register_navigation_operation_handlers;
 use zircon_runtime::operation::{RuntimeOperationContext, RuntimeOperationService};
 use zircon_runtime::scene::components::NodeKind;
@@ -16,6 +17,7 @@ use crate::{module_descriptor, navigation_component_descriptors, DefaultNavigati
 #[test]
 fn runtime_operation_bake_clear_and_restore_owns_real_generated_navmesh_state() {
     let runtime = CoreRuntime::new();
+    runtime.register_module(TasksModule.descriptor()).unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     let core = runtime.handle();
     let manager = core

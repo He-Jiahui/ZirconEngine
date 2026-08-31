@@ -1,12 +1,17 @@
+use std::collections::BTreeMap;
+
 use indexmap::IndexSet;
 use zircon_runtime::core::framework::scene::EntityId;
 
-use super::{domain_selection::DomainSelection, SelectionMutation, WorldDomain};
+use crate::core::play::{PlayInstanceId, WorldDomain};
+
+use super::{domain_selection::DomainSelection, SelectionMutation};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SelectionModel {
     edit: DomainSelection,
-    play: DomainSelection,
+    play: BTreeMap<PlayInstanceId, DomainSelection>,
+    empty: DomainSelection,
     active_domain: WorldDomain,
     revision: u64,
 }
@@ -17,7 +22,7 @@ impl SelectionModel {
     }
 
     pub fn set_active_domain(&mut self, domain: WorldDomain) -> bool {
-        if self.active_domain == domain {
+        if self.active_domain == domain || self.domain(domain).is_none() {
             return false;
         }
         self.active_domain = domain;
@@ -25,8 +30,38 @@ impl SelectionModel {
         true
     }
 
+    pub fn activate_play_domain(&mut self, instance: PlayInstanceId) -> bool {
+        let inserted = if self.play.contains_key(&instance) {
+            false
+        } else {
+            self.play.insert(instance, self.edit.clone());
+            true
+        };
+        let domain = WorldDomain::Play(instance);
+        let activated = self.active_domain != domain;
+        if activated {
+            self.active_domain = domain;
+        }
+        if inserted || activated {
+            self.bump_revision();
+        }
+        inserted || activated
+    }
+
+    pub fn retire_play_domain(&mut self, instance: PlayInstanceId) -> bool {
+        let removed = self.play.remove(&instance).is_some();
+        let activated_edit = self.active_domain == WorldDomain::Play(instance);
+        if activated_edit {
+            self.active_domain = WorldDomain::Edit;
+        }
+        if removed || activated_edit {
+            self.bump_revision();
+        }
+        removed || activated_edit
+    }
+
     pub fn items(&self, domain: WorldDomain) -> &IndexSet<EntityId> {
-        self.domain(domain).items()
+        self.domain(domain).unwrap_or(&self.empty).items()
     }
 
     pub fn active_items(&self) -> &IndexSet<EntityId> {
@@ -34,7 +69,7 @@ impl SelectionModel {
     }
 
     pub fn primary(&self, domain: WorldDomain) -> Option<EntityId> {
-        self.domain(domain).primary()
+        self.domain(domain).and_then(DomainSelection::primary)
     }
 
     pub fn active_primary(&self) -> Option<EntityId> {
@@ -42,7 +77,17 @@ impl SelectionModel {
     }
 
     pub fn generation(&self, domain: WorldDomain) -> u64 {
-        self.domain(domain).generation()
+        self.domain(domain)
+            .map(DomainSelection::generation)
+            .unwrap_or(0)
+    }
+
+    pub fn total_item_count(&self) -> usize {
+        self.play
+            .values()
+            .fold(self.edit.items().len(), |count, selection| {
+                count.saturating_add(selection.items().len())
+            })
     }
 
     pub fn revision(&self) -> u64 {
@@ -97,7 +142,7 @@ impl SelectionModel {
     where
         I: IntoIterator<Item = EntityId>,
     {
-        let items = items.into_iter().collect::<Vec<_>>();
+        let items = items.into_iter().collect::<IndexSet<_>>();
         match mutation {
             SelectionMutation::Replace => {
                 let primary = items.last().copied();
@@ -118,17 +163,17 @@ impl SelectionModel {
         self.clear(self.active_domain)
     }
 
-    fn domain(&self, domain: WorldDomain) -> &DomainSelection {
+    fn domain(&self, domain: WorldDomain) -> Option<&DomainSelection> {
         match domain {
-            WorldDomain::Edit => &self.edit,
-            WorldDomain::Play => &self.play,
+            WorldDomain::Edit => Some(&self.edit),
+            WorldDomain::Play(instance) => self.play.get(&instance),
         }
     }
 
-    fn domain_mut(&mut self, domain: WorldDomain) -> &mut DomainSelection {
+    fn domain_mut(&mut self, domain: WorldDomain) -> Option<&mut DomainSelection> {
         match domain {
-            WorldDomain::Edit => &mut self.edit,
-            WorldDomain::Play => &mut self.play,
+            WorldDomain::Edit => Some(&mut self.edit),
+            WorldDomain::Play(instance) => self.play.get_mut(&instance),
         }
     }
 
@@ -137,7 +182,10 @@ impl SelectionModel {
         domain: WorldDomain,
         mutation: impl FnOnce(&mut DomainSelection) -> bool,
     ) -> bool {
-        let changed = mutation(self.domain_mut(domain));
+        let Some(selection) = self.domain_mut(domain) else {
+            return false;
+        };
+        let changed = mutation(selection);
         if changed {
             self.bump_revision();
         }

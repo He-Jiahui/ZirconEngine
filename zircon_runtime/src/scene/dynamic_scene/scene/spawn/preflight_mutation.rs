@@ -1,7 +1,7 @@
+use crate::scene::World;
 use crate::scene::ecs::TransferredResourceRow;
 use crate::scene::reflect::ReflectResource;
 use crate::scene::world::{PreflightComponentRow, PreflightDynamicComponent};
-use crate::scene::World;
 
 use super::resource::transfer_preflight_resource_writes;
 use super::transaction::PreparedSceneSpawnCommit;

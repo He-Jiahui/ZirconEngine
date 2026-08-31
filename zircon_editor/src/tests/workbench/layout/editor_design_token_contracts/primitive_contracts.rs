@@ -370,16 +370,21 @@ fn floating_composites_inherit_shared_spacing_and_control_height_tokens() {
 
     for required in [
         "container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }",
-        "container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.xsmall\" }",
-        "container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }",
-        "min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\"",
-        "min = \"$editor.control.height.default\", preferred = \"$editor.control.height.default\", max = \"$editor.control.height.default\"",
+        "selected_category_id = \"\"",
+        "categories = []",
+        "settings = []",
+        "plugin_pages = []",
     ] {
         assert!(
             preferences.contains(required),
-            "preferences must inherit shared floating-window metric `{required}`"
+            "preferences must retain dynamic settings-window contract `{required}`"
         );
     }
+    assert!(
+        !preferences.contains("WorkbenchPreferencesGeneral")
+            && !preferences.contains("WorkbenchPreferencesLayout"),
+        "preferences must not retain fixed legacy category rows"
+    );
     for fixed_metric in [
         "container = { kind = \"HorizontalBox\", gap = 8.0 }",
         "container = { kind = \"VerticalBox\", gap = 2.0 }",
@@ -507,7 +512,7 @@ fn menu_and_collection_composites_share_editor_tokens() {
                 "$editor.density.gap.small",
                 "$editor.control.height.dense",
                 "$editor.control.border_width",
-                "$editor.control.radius.small",
+                "$editor.control.radius.panel",
             ],
         ),
         (
@@ -518,7 +523,7 @@ fn menu_and_collection_composites_share_editor_tokens() {
                 "$editor.density.gap.small",
                 "$editor.control.height.dense",
                 "$editor.control.border_width",
-                "$editor.control.radius.small",
+                "$editor.control.radius.panel",
             ],
         ),
         (
@@ -529,7 +534,7 @@ fn menu_and_collection_composites_share_editor_tokens() {
                 "$editor.density.gap.small",
                 "$editor.control.height.dense",
                 "$editor.control.border_width",
-                "$editor.control.radius.small",
+                "$editor.control.radius.panel",
             ],
         ),
         (

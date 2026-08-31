@@ -1,7 +1,7 @@
 use super::support::*;
 
 #[test]
-fn editor_ui_host_runtime_projects_pane_surface_controls_through_material_button() {
+fn editor_ui_host_runtime_projects_an_empty_fallback_pane_shell() {
     let template = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("assets/ui/editor/host/pane_surface_controls.zui"),
@@ -36,24 +36,8 @@ fn editor_ui_host_runtime_projects_pane_surface_controls_through_material_button
         "res://ui/editor/host/pane_surface_controls.zui"
     );
     assert_eq!(projection.root.component, "HorizontalGroup");
-    assert_eq!(
-        projection
-            .root
-            .children
-            .iter()
-            .map(|node| node.control_id.as_deref().unwrap_or_default())
-            .collect::<Vec<_>>(),
-        vec!["TriggerAction"]
-    );
-
-    let trigger = projection
-        .bindings
-        .iter()
-        .find(|binding| binding.binding_id == "PaneSurface/TriggerAction")
-        .unwrap();
-    assert_eq!(trigger.binding.path().event_kind, UiEventKind::Click);
-    assert_eq!(trigger.binding.path().view_id, "PaneSurface");
-    assert_eq!(trigger.binding.path().control_id, "TriggerAction");
+    assert!(projection.root.children.is_empty());
+    assert!(projection.bindings.is_empty());
 
     let mut surface = runtime
         .build_shared_surface("res://ui/editor/host/pane_surface_controls.zui")
@@ -68,33 +52,5 @@ fn editor_ui_host_runtime_projects_pane_surface_controls_through_material_button
         .expect("pane surface controls root should remain a host container");
     assert_eq!(root.component, "HorizontalGroup");
     assert_eq!(root.frame, UiFrame::new(0.0, 0.0, 300.0, 32.0));
-
-    let button = host_model
-        .node_by_control_id("TriggerAction")
-        .expect("pane trigger action should project as an authored icon button");
-    assert_eq!(button.component, "IconButton");
-    assert_eq!(button.frame, UiFrame::new(0.0, 0.0, 300.0, 32.0));
-    assert_eq!(
-        button.attributes.get("label").and_then(Value::as_str),
-        Some("Action")
-    );
-    assert_eq!(
-        button.attributes.get("icon").and_then(Value::as_str),
-        Some("flash-outline")
-    );
-    assert!(button.bindings.iter().any(|binding| {
-        binding.binding_id == "PaneSurface/TriggerAction"
-            && binding.event_kind == UiEventKind::Click
-    }));
-
-    assert!(
-        template.contains(
-            "layout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }"
-        ),
-        "a sole pane action must consume the full responsive row width"
-    );
-    assert!(
-        !template.contains("preferred = 92.0"),
-        "a sole pane action must not retain a desktop-only fixed width"
-    );
+    assert!(host_model.node_by_control_id("TriggerAction").is_none());
 }

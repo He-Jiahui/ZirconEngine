@@ -4,9 +4,7 @@ use zircon_runtime::core::framework::render::{
 
 use super::super::virtual_geometry_executed_cluster_selection_pass::VirtualGeometryExecutedClusterSelectionPassOutput;
 use super::buffer::create_visbuffer64_buffer;
-use super::entries::{
-    collect_execution_visbuffer64_entries_from_pass, pack_execution_visbuffer64_entries,
-};
+use super::entries::collect_and_pack_execution_visbuffer64_entries_from_pass;
 use super::output::VirtualGeometryVisBuffer64PassOutput;
 
 pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual_geometry_visbuffer64_pass(
@@ -14,8 +12,8 @@ pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual
     pass_enabled: bool,
     executed_cluster_selection_pass: &VirtualGeometryExecutedClusterSelectionPassOutput,
 ) -> VirtualGeometryVisBuffer64PassOutput {
-    let entries = collect_execution_visbuffer64_entries_from_pass(executed_cluster_selection_pass);
-    let packed_words = pack_execution_visbuffer64_entries(&entries);
+    let (entries, packed_words) =
+        collect_and_pack_execution_visbuffer64_entries_from_pass(executed_cluster_selection_pass);
     VirtualGeometryVisBuffer64PassOutput::new(
         RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE,
         entries,

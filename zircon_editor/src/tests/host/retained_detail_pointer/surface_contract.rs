@@ -51,33 +51,32 @@ fn shared_detail_scroll_surfaces_keep_scroll_authority_in_rust() {
 }
 
 #[test]
-fn detail_scroll_pointer_bridge_uses_route_intent_only() {
+fn detail_scroll_pointer_bridge_uses_direct_scalar_routing_only() {
     let bridge = source("src/ui/retained_host/detail_pointer/scroll_surface_pointer_bridge.rs");
-    let rebuild = source("src/ui/retained_host/detail_pointer/rebuild_surface.rs");
     let scroll = source("src/ui/retained_host/detail_pointer/handle_scroll.rs");
 
-    assert!(bridge.contains("route_intents: EditorRouteIntentMap"));
-    assert!(rebuild.contains("EditorRouteIntent::Detail"));
-    assert!(rebuild.contains("route_intents.bind_node"));
-    assert!(scroll.contains("detail_route_for_pointer_dispatch"));
-    for forbidden in ["map_route", "handled_by", "route.target"] {
+    for forbidden in [
+        "UiSurface",
+        "UiPointerDispatcher",
+        "EditorRouteIntentMap",
+        "route_intents",
+    ] {
         assert!(
-            !bridge.contains(forbidden)
-                && !rebuild.contains(forbidden)
-                && !scroll.contains(forbidden),
-            "detail scroll pointer bridge should not keep old route marker `{forbidden}`"
+            !bridge.contains(forbidden),
+            "detail scroll pointer bridge should not keep mirror marker `{forbidden}`"
         );
     }
+    assert!(scroll.contains("viewport_frame(&self.layout).contains_point(point)"));
+    assert!(scroll.contains("self.clamp_scroll_offset()"));
+    assert!(scroll.contains("changed:"));
 }
 
 #[test]
-fn detail_scroll_offset_does_not_recreate_the_pointer_surface() {
+fn detail_scroll_offset_has_no_pointer_surface_to_recreate() {
     let scroll = source("src/ui/retained_host/detail_pointer/handle_scroll.rs");
 
-    assert!(
-        !scroll.contains("self.rebuild_surface()"),
-        "the runtime scroll fallback already mutates viewport scroll state; detail scrolling must not recreate the two-node surface"
-    );
+    assert!(!scroll.contains("self.rebuild_surface()"));
+    assert!(!scroll.contains("dispatch_pointer_event"));
 }
 
 #[test]

@@ -1,4 +1,4 @@
-use std::{error::Error, path::Path, str::FromStr};
+use std::{error::Error, path::Path, str::FromStr, sync::OnceLock};
 
 use zircon_editor::{
     core::commandlet::{parse_commandlet_args, CommandletReport, CommandletRequest},
@@ -8,9 +8,19 @@ use zircon_runtime::{
     asset::{project::ProjectPaths, AssetUri},
     diagnostic_log::DiagnosticLogFilterConfig,
 };
-use zircon_runtime_interface::hub_protocol::{HubSessionToken, HUB_PROTOCOL_VERSION_V1};
+use zircon_runtime_interface::{
+    hub_protocol::{HubSessionToken, HUB_PROTOCOL_VERSION_V1},
+    project::{
+        ProjectActivationOperationId, ProjectActivationOperationIdGenerator,
+        ProjectLaunchInstanceId, ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource,
+        ProjectLaunchTarget, ProjectTemplateId,
+    },
+};
 
 use crate::entry::cli::parse_diagnostic_log_startup_args;
+
+static CLI_PROJECT_LAUNCH_OPERATION_IDS: OnceLock<ProjectActivationOperationIdGenerator> =
+    OnceLock::new();
 
 /// The complete typed routing decision for the editor executable. Diagnostic arguments are
 /// parsed first so process logging is initialized before the selected route can load a host.
@@ -166,6 +176,7 @@ impl EditorGuiStartupRequestArgs {
     {
         let mut args = args.into_iter();
         let mut project_path = None;
+        let mut project_launch_intent = None;
         let mut builtin_view = None;
         let mut create_project = false;
         let mut project_name = None;
@@ -179,6 +190,20 @@ impl EditorGuiStartupRequestArgs {
 
         while let Some(arg) = args.next() {
             match arg.as_str() {
+                "--project-launch-intent" => {
+                    if project_launch_intent.is_some() {
+                        return Err("--project-launch-intent was provided more than once".into());
+                    }
+                    let Some(value) = args.next() else {
+                        return Err("--project-launch-intent requires a JSON payload".into());
+                    };
+                    project_launch_intent = Some(serde_json::from_str(&value).map_err(|error| {
+                        format!(
+                            "--project-launch-intent requires a valid supported project launch intent: {error}"
+                        )
+                    })?);
+                    saw_gui_arg = true;
+                }
                 "--project" => {
                     if project_path.is_some() {
                         return Err("--project was provided more than once".into());
@@ -325,8 +350,48 @@ impl EditorGuiStartupRequestArgs {
             (None, true) => return Err("--hub-protocol requires --hub-session".into()),
             (None, false) => None,
         };
-        if hub_handshake.is_some() && project_path.is_none() {
-            return Err("--hub-session requires --project".into());
+        if project_launch_intent.is_some()
+            && (project_path.is_some()
+                || create_project
+                || project_name.is_some()
+                || location.is_some()
+                || template.is_some()
+                || builtin_view.is_some())
+        {
+            return Err(
+                "--project-launch-intent cannot be combined with --project, --create-project, --project-name, --location, --template, or --builtin-view"
+                    .into(),
+            );
+        }
+        if let Some(project_launch_intent) = project_launch_intent {
+            if hub_handshake.is_some() && project_launch_intent.source() != ProjectLaunchSource::Hub
+            {
+                return Err(
+                    "--hub-session requires a Hub-originated --project-launch-intent".into(),
+                );
+            }
+            if startup_scene_uri.is_some()
+                && !matches!(
+                    project_launch_intent.target(),
+                    ProjectLaunchTarget::OpenExisting { .. }
+                )
+            {
+                return Err("--scene requires an existing project launch target".into());
+            }
+            return Ok(EditorGuiLaunchIntent::new(
+                Some(EditorGuiStartupRequest::project(project_launch_intent)),
+                startup_scene_uri,
+                layout_preset,
+                hub_handshake,
+            ));
+        }
+        let project_launch_source = if hub_handshake.is_some() {
+            ProjectLaunchSource::Hub
+        } else {
+            ProjectLaunchSource::Cli
+        };
+        if hub_handshake.is_some() {
+            return Err("--hub-session requires --project-launch-intent".into());
         }
         if startup_scene_uri.is_some() && project_path.is_none() {
             return Err("--scene requires --project".into());
@@ -346,11 +411,16 @@ impl EditorGuiStartupRequestArgs {
             if template.as_deref() != Some("renderable-empty") {
                 return Err("--create-project requires --template renderable-empty".into());
             }
+            let project_intent = ProjectLaunchIntent::create_project(
+                next_project_launch_operation_id()?,
+                project_launch_source,
+                ProjectLaunchProfile::Normal,
+                project_name,
+                location,
+                ProjectTemplateId::RenderableEmpty,
+            )?;
             return Ok(EditorGuiLaunchIntent::new(
-                Some(EditorGuiStartupRequest::create_renderable_empty(
-                    project_name,
-                    location,
-                )),
+                Some(EditorGuiStartupRequest::project(project_intent)),
                 startup_scene_uri,
                 layout_preset,
                 hub_handshake,
@@ -380,13 +450,26 @@ impl EditorGuiStartupRequestArgs {
                 hub_handshake,
             ));
         };
+        let project_intent = ProjectLaunchIntent::open_existing(
+            next_project_launch_operation_id()?,
+            project_launch_source,
+            ProjectLaunchProfile::Normal,
+            project_path,
+        )?;
         Ok(EditorGuiLaunchIntent::new(
-            Some(EditorGuiStartupRequest::open_project(project_path)),
+            Some(EditorGuiStartupRequest::project(project_intent)),
             startup_scene_uri,
             layout_preset,
             hub_handshake,
         ))
     }
+}
+
+fn next_project_launch_operation_id() -> Result<ProjectActivationOperationId, std::io::Error> {
+    CLI_PROJECT_LAUNCH_OPERATION_IDS
+        .get_or_init(|| ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new()))
+        .allocate()
+        .ok_or_else(|| std::io::Error::other("project launch operation sequence is exhausted"))
 }
 
 pub(crate) fn editor_startup_argument_error(
@@ -424,12 +507,18 @@ fn editor_startup_argument_summary(args: &[String]) -> String {
     }
 
     let mut display_path_next = false;
+    let mut redact_project_intent_next = false;
     args.iter()
         .map(|argument| {
+            if redact_project_intent_next {
+                redact_project_intent_next = false;
+                return "<project-launch-intent>".to_string();
+            }
             if display_path_next {
                 display_path_next = false;
                 return editor_startup_path_display(argument);
             }
+            redact_project_intent_next = argument == "--project-launch-intent";
             display_path_next = editor_startup_argument_is_path_flag(argument);
             argument.clone()
         })
@@ -439,11 +528,16 @@ fn editor_startup_argument_summary(args: &[String]) -> String {
 
 fn redact_editor_startup_argument_cause(args: &[String], mut cause: String) -> String {
     let mut display_path_next = false;
+    let mut redact_project_intent_next = false;
     for argument in args {
-        if display_path_next {
+        if redact_project_intent_next {
+            cause = cause.replace(argument, "<project-launch-intent>");
+            redact_project_intent_next = false;
+        } else if display_path_next {
             cause = cause.replace(argument, &editor_startup_path_display(argument));
             display_path_next = false;
         } else {
+            redact_project_intent_next = argument == "--project-launch-intent";
             display_path_next = editor_startup_argument_is_path_flag(argument);
         }
     }
@@ -470,6 +564,16 @@ mod tests {
         EditorGuiStartupRequest,
     };
     use zircon_runtime::diagnostic_log::{DiagnosticLogFilter, DiagnosticLogLevel};
+    use zircon_runtime_interface::project::{
+        ProjectActivationOperationId, ProjectActivationOperationIdGenerator,
+        ProjectLaunchInstanceId, ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource,
+    };
+
+    fn next_test_project_operation_id() -> ProjectActivationOperationId {
+        ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new())
+            .allocate()
+            .expect("fresh test operation identity")
+    }
 
     #[test]
     fn unified_launch_args_route_run_to_the_editor_core_commandlet() {
@@ -557,7 +661,7 @@ mod tests {
         assert_eq!(intent.layout_preset(), Some("debug"));
         assert!(matches!(
             intent.into_parts().0,
-            Some(EditorGuiStartupRequest::OpenProject { .. })
+            Some(EditorGuiStartupRequest::Project { .. })
         ));
     }
 
@@ -585,17 +689,24 @@ mod tests {
         );
         assert!(matches!(
             intent.into_parts().0,
-            Some(EditorGuiStartupRequest::OpenProject { .. })
+            Some(EditorGuiStartupRequest::Project { .. })
         ));
     }
 
     #[test]
     fn unified_launch_args_carry_a_verified_hub_handshake_to_the_gui_host() {
+        let transmitted = ProjectLaunchIntent::open_existing(
+            next_test_project_operation_id(),
+            ProjectLaunchSource::Hub,
+            ProjectLaunchProfile::Normal,
+            "fixture-project",
+        )
+        .unwrap();
         let route = EditorLaunchArgs::parse([
             "--hub-protocol",
             "1",
-            "--project",
-            "fixture-project",
+            "--project-launch-intent",
+            &serde_json::to_string(&transmitted).unwrap(),
             "--hub-session",
             "0d9a5890-0e44-4e2a-b77e-3e5d4fdf1e52",
         ])
@@ -614,7 +725,7 @@ mod tests {
         );
         assert!(matches!(
             intent.into_parts().0,
-            Some(EditorGuiStartupRequest::OpenProject { .. })
+            Some(EditorGuiStartupRequest::Project { intent }) if intent == transmitted
         ));
     }
 
@@ -652,7 +763,7 @@ mod tests {
                     "--hub-protocol".to_string(),
                     "1".to_string(),
                 ],
-                "--hub-session requires --project",
+                "--hub-session requires --project-launch-intent",
             ),
         ] {
             let error = EditorGuiStartupRequestArgs::parse_intent(args).unwrap_err();
@@ -671,6 +782,80 @@ mod tests {
         assert!(error
             .to_string()
             .starts_with("--hub-session requires a canonical UUID v4 token:"));
+    }
+
+    #[test]
+    fn hub_handshake_preserves_the_transmitted_project_operation_id() {
+        let transmitted = ProjectLaunchIntent::open_existing(
+            next_test_project_operation_id(),
+            ProjectLaunchSource::Hub,
+            ProjectLaunchProfile::Safe,
+            "E:/Projects/My Game",
+        )
+        .unwrap();
+        let payload = serde_json::to_string(&transmitted).unwrap();
+
+        let parsed = EditorGuiStartupRequestArgs::parse_intent([
+            "--project-launch-intent".to_string(),
+            payload,
+            "--hub-session".to_string(),
+            "0d9a5890-0e44-4e2a-b77e-3e5d4fdf1e52".to_string(),
+            "--hub-protocol".to_string(),
+            "1".to_string(),
+        ])
+        .unwrap();
+
+        let Some(EditorGuiStartupRequest::Project { intent }) = parsed.into_parts().0 else {
+            panic!("a Hub launch should preserve its project launch intent");
+        };
+        assert_eq!(intent.operation_id(), transmitted.operation_id());
+        assert_eq!(intent.profile(), ProjectLaunchProfile::Safe);
+    }
+
+    #[test]
+    fn hub_handshake_rejects_legacy_project_arguments() {
+        let error = EditorGuiStartupRequestArgs::parse_intent([
+            "--project".to_string(),
+            "fixture-project".to_string(),
+            "--hub-session".to_string(),
+            "0d9a5890-0e44-4e2a-b77e-3e5d4fdf1e52".to_string(),
+            "--hub-protocol".to_string(),
+            "1".to_string(),
+        ])
+        .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "--hub-session requires --project-launch-intent"
+        );
+    }
+
+    #[test]
+    fn hub_intent_diagnostics_redact_the_serialized_project_payload() {
+        let transmitted = ProjectLaunchIntent::open_existing(
+            next_test_project_operation_id(),
+            ProjectLaunchSource::Cli,
+            ProjectLaunchProfile::Normal,
+            "E:/Private Projects/Secret Game",
+        )
+        .unwrap();
+        let payload = serde_json::to_string(&transmitted).unwrap();
+
+        let error = EditorLaunchArgs::parse([
+            "--project-launch-intent".to_string(),
+            payload,
+            "--hub-session".to_string(),
+            "0d9a5890-0e44-4e2a-b77e-3e5d4fdf1e52".to_string(),
+            "--hub-protocol".to_string(),
+            "1".to_string(),
+        ])
+        .unwrap()
+        .route()
+        .unwrap_err();
+
+        let diagnostic = error.to_string();
+        assert!(diagnostic.contains("--project-launch-intent <project-launch-intent>"));
+        assert!(!diagnostic.contains("E:/Private Projects/Secret Game"));
     }
 
     #[test]

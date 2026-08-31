@@ -5,21 +5,47 @@ use crate::ui::workbench::autolayout::{ShellFrame, ShellRegionId, WorkbenchChrom
 use crate::ui::workbench::layout::{
     ActivityDrawerMode, ActivityDrawerSlot, TabInsertionAnchor, TabInsertionSide, WorkspaceTarget,
 };
-use crate::ui::workbench::model::{
-    DocumentTabModel, PaneTabModel, ToolWindowStackModel, WorkbenchViewModel,
-};
+use crate::ui::workbench::model::{DocumentTabModel, PaneTabModel, WorkbenchViewModel};
 use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::resolved_drop::ResolvedTabDrop;
 use super::tab_width::{estimate_dock_tab_width, estimate_document_tab_width};
 
-#[derive(Clone)]
-struct StripTabEntry {
-    instance_id: ViewInstanceId,
-    title: String,
+#[derive(Clone, Copy)]
+struct StripTabRef<'a> {
+    instance_id: &'a ViewInstanceId,
+    title: &'a str,
     closeable: bool,
-    host: ViewHost,
+    host: StripTabHost<'a>,
+}
+
+#[derive(Clone, Copy)]
+enum StripTabHost<'a> {
+    Drawer(ActivityDrawerSlot),
+    Document {
+        target: &'a WorkspaceTarget,
+        workspace_path: &'a [usize],
+    },
+}
+
+impl StripTabHost<'_> {
+    fn materialize(self) -> ViewHost {
+        match self {
+            Self::Drawer(slot) => ViewHost::Drawer(slot),
+            Self::Document {
+                target,
+                workspace_path,
+            } => match target {
+                WorkspaceTarget::MainPage(page_id) => {
+                    ViewHost::Document(page_id.clone(), workspace_path.to_vec())
+                }
+                WorkspaceTarget::FloatingWindow(window_id) => {
+                    ViewHost::FloatingWindow(window_id.clone(), workspace_path.to_vec())
+                }
+            },
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -28,6 +54,7 @@ enum StripStyle {
     Document,
 }
 
+#[derive(Clone, Copy)]
 struct TabStripHitBox {
     style: StripStyle,
     start_x: f32,
@@ -35,7 +62,15 @@ struct TabStripHitBox {
     y: f32,
     height: f32,
     spacing: f32,
-    tabs: Vec<StripTabEntry>,
+}
+
+impl TabStripHitBox {
+    fn tab_width(self, tab: StripTabRef<'_>) -> f32 {
+        match self.style {
+            StripStyle::Dock => estimate_dock_tab_width(tab.title),
+            StripStyle::Document => estimate_document_tab_width(tab.title, tab.closeable),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -84,57 +119,104 @@ pub(super) fn precise_drop_target_with_workbench_layout_frames(
         return None;
     }
 
-    let tabs: Vec<_> = strip
-        .tabs
-        .into_iter()
-        .filter(|tab| tab.instance_id.0 != dragging_id)
-        .collect();
-    if tabs.is_empty() {
-        return None;
+    match target_group {
+        "left" => precise_drop_in_tabs(
+            strip,
+            dragging_id,
+            pointer_x,
+            [ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom]
+                .into_iter()
+                .filter_map(|slot| model.tool_windows.get(&slot))
+                .flat_map(|stack| {
+                    stack
+                        .tabs
+                        .iter()
+                        .map(move |tab| strip_tab_from_pane(tab, stack.slot))
+                }),
+        ),
+        "right" => precise_drop_in_tabs(
+            strip,
+            dragging_id,
+            pointer_x,
+            [
+                ActivityDrawerSlot::RightTop,
+                ActivityDrawerSlot::RightBottom,
+            ]
+            .into_iter()
+            .filter_map(|slot| model.tool_windows.get(&slot))
+            .flat_map(|stack| {
+                stack
+                    .tabs
+                    .iter()
+                    .map(move |tab| strip_tab_from_pane(tab, stack.slot))
+            }),
+        ),
+        "bottom" => precise_drop_in_tabs(
+            strip,
+            dragging_id,
+            pointer_x,
+            [ActivityDrawerSlot::Bottom]
+                .into_iter()
+                .filter_map(|slot| model.tool_windows.get(&slot))
+                .flat_map(|stack| {
+                    stack
+                        .tabs
+                        .iter()
+                        .map(move |tab| strip_tab_from_pane(tab, stack.slot))
+                }),
+        ),
+        "document" => precise_drop_in_tabs(
+            strip,
+            dragging_id,
+            pointer_x,
+            model.document_tabs.iter().map(strip_tab_from_document),
+        ),
+        _ => None,
     }
+}
 
+fn precise_drop_in_tabs<'a>(
+    strip: TabStripHitBox,
+    dragging_id: &str,
+    pointer_x: f32,
+    tabs: impl Iterator<Item = StripTabRef<'a>>,
+) -> Option<ResolvedTabDrop> {
     let mut cursor_x = strip.start_x;
-    for tab in &tabs {
-        let width = match strip.style {
-            StripStyle::Dock => estimate_dock_tab_width(&tab.title),
-            StripStyle::Document => estimate_document_tab_width(&tab.title, tab.closeable),
-        };
+    let mut last = None;
+    for tab in tabs {
+        if tab.instance_id.0 == dragging_id {
+            continue;
+        }
+        last = Some(tab);
+        let width = strip.tab_width(tab);
         let tab_end = cursor_x + width;
         let midpoint = cursor_x + width / 2.0;
         if pointer_x <= tab_end {
-            return Some(ResolvedTabDrop {
-                host: tab.host.clone(),
-                anchor: Some(TabInsertionAnchor {
-                    target_id: tab.instance_id.clone(),
-                    side: if pointer_x < midpoint {
-                        TabInsertionSide::Before
-                    } else {
-                        TabInsertionSide::After
-                    },
-                }),
-            });
+            let side = if pointer_x < midpoint {
+                TabInsertionSide::Before
+            } else {
+                TabInsertionSide::After
+            };
+            return Some(resolved_drop_for_tab(tab, side));
         }
         let gap_end = tab_end + strip.spacing;
         if pointer_x < gap_end {
-            return Some(ResolvedTabDrop {
-                host: tab.host.clone(),
-                anchor: Some(TabInsertionAnchor {
-                    target_id: tab.instance_id.clone(),
-                    side: TabInsertionSide::After,
-                }),
-            });
+            return Some(resolved_drop_for_tab(tab, TabInsertionSide::After));
         }
         cursor_x = gap_end;
     }
 
-    let last = tabs.last()?;
-    Some(ResolvedTabDrop {
-        host: last.host.clone(),
+    Some(resolved_drop_for_tab(last?, TabInsertionSide::After))
+}
+
+fn resolved_drop_for_tab(tab: StripTabRef<'_>, side: TabInsertionSide) -> ResolvedTabDrop {
+    ResolvedTabDrop {
+        host: tab.host.materialize(),
         anchor: Some(TabInsertionAnchor {
-            target_id: last.instance_id.clone(),
-            side: TabInsertionSide::After,
+            target_id: tab.instance_id.clone(),
+            side,
         }),
-    })
+    }
 }
 
 fn strip_hit_box(
@@ -186,20 +268,6 @@ fn tool_strip_hit_box(
         return None;
     }
 
-    let tabs = slots
-        .iter()
-        .filter_map(|slot| model.tool_windows.get(slot))
-        .flat_map(|stack| {
-            stack
-                .tabs
-                .iter()
-                .map(move |tab| strip_tab_from_pane(tab, stack))
-        })
-        .collect::<Vec<_>>();
-    if tabs.is_empty() {
-        return None;
-    }
-
     let start_x = if rail_on_left {
         frame.x + metrics.rail_width + metrics.separator_thickness + 6.0
     } else {
@@ -217,7 +285,6 @@ fn tool_strip_hit_box(
         y: frame.y + 2.0,
         height: 22.0,
         spacing: 4.0,
-        tabs,
     })
 }
 
@@ -235,20 +302,6 @@ fn bottom_strip_hit_box(
         return None;
     }
 
-    let tabs = [ActivityDrawerSlot::Bottom]
-        .into_iter()
-        .filter_map(|slot| model.tool_windows.get(&slot))
-        .flat_map(|stack| {
-            stack
-                .tabs
-                .iter()
-                .map(move |tab| strip_tab_from_pane(tab, stack))
-        })
-        .collect::<Vec<_>>();
-    if tabs.is_empty() {
-        return None;
-    }
-
     Some(TabStripHitBox {
         style: StripStyle::Dock,
         start_x: frame.x + 6.0,
@@ -256,7 +309,6 @@ fn bottom_strip_hit_box(
         y: frame.y + 2.0,
         height: (metrics.panel_header_height - 3.0).max(22.0),
         spacing: 4.0,
-        tabs,
     })
 }
 
@@ -275,12 +327,7 @@ fn document_strip_hit_box(
         return None;
     }
 
-    let tabs = model
-        .document_tabs
-        .iter()
-        .map(strip_tab_from_document)
-        .collect::<Vec<_>>();
-    if tabs.is_empty() {
+    if model.document_tabs.is_empty() {
         return None;
     }
     let resolved_center_band_frame =
@@ -298,7 +345,6 @@ fn document_strip_hit_box(
             .map(|frame| frame.height.max(0.0))
             .unwrap_or(30.0),
         spacing: 2.0,
-        tabs,
     })
 }
 
@@ -322,29 +368,24 @@ fn visible_workbench_shell_frame(frame: Option<UiFrame>) -> Option<ShellFrame> {
     frame.filter(ui_frame_is_visible).map(shell_frame)
 }
 
-fn strip_tab_from_pane(tab: &PaneTabModel, stack: &ToolWindowStackModel) -> StripTabEntry {
-    StripTabEntry {
-        instance_id: tab.instance_id.clone(),
-        title: tab.title.clone(),
+fn strip_tab_from_pane(tab: &PaneTabModel, slot: ActivityDrawerSlot) -> StripTabRef<'_> {
+    StripTabRef {
+        instance_id: &tab.instance_id,
+        title: tab.title.as_str(),
         closeable: tab.closeable,
-        host: ViewHost::Drawer(stack.slot),
+        host: StripTabHost::Drawer(slot),
     }
 }
 
-fn strip_tab_from_document(tab: &DocumentTabModel) -> StripTabEntry {
-    let host = match &tab.workspace {
-        WorkspaceTarget::MainPage(page_id) => {
-            ViewHost::Document(page_id.clone(), tab.workspace_path.clone())
-        }
-        WorkspaceTarget::FloatingWindow(window_id) => {
-            ViewHost::FloatingWindow(window_id.clone(), tab.workspace_path.clone())
-        }
-    };
-    StripTabEntry {
-        instance_id: tab.instance_id.clone(),
-        title: tab.title.clone(),
+fn strip_tab_from_document(tab: &DocumentTabModel) -> StripTabRef<'_> {
+    StripTabRef {
+        instance_id: &tab.instance_id,
+        title: tab.title.as_str(),
         closeable: tab.closeable,
-        host,
+        host: StripTabHost::Document {
+            target: &tab.workspace,
+            workspace_path: &tab.workspace_path,
+        },
     }
 }
 

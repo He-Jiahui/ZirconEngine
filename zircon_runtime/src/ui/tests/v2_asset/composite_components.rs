@@ -3,6 +3,130 @@ use crate::ui::v2::UiV2PrototypeStoreBuilder;
 use zircon_runtime_interface::ui::layout::UiSlotKind;
 
 #[test]
+fn ui_v2_component_params_resolve_repeated_instance_props_and_bindings() {
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/component_params.v2.ui"
+version = 2
+
+[root]
+node = "root"
+
+[components.BindingRow]
+root = "binding_row_root"
+
+[components.BindingRow.params.initial_label]
+type = "string"
+
+[components.BindingRow.params.applied_label]
+type = "string"
+
+[components.BindingRow.params.enabled]
+type = "bool"
+
+[nodes.binding_row_root]
+component = "Button"
+props = { text = "$param.initial_label" }
+events = [{ id = "BindingRow/Commit", event = "Click", action = { route = "binding.row.commit", payload = { label = "=param.applied_label" } }, targets = [{ target = { kind = "prop", name = "text" }, expression = "param.applied_label" }, { target = { kind = "enabled" }, expression = "param.enabled" }] }]
+
+[nodes.primary]
+component = "BindingRow"
+control_id = "PrimaryBindingRow"
+params = { initial_label = "Primary ready", applied_label = "Primary applied", enabled = true }
+
+[nodes.secondary]
+component = "BindingRow"
+control_id = "SecondaryBindingRow"
+params = { initial_label = "Secondary ready", applied_label = "Secondary applied", enabled = false }
+
+[nodes.root]
+component = "VerticalGroup"
+children = [{ node = "primary" }, { node = "secondary" }]
+"#,
+    )
+    .unwrap();
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let primary = compiled
+        .arena
+        .nodes
+        .iter()
+        .find(|node| node.control_id.as_deref() == Some("PrimaryBindingRow"))
+        .expect("primary repeated instance");
+    let secondary = compiled
+        .arena
+        .nodes
+        .iter()
+        .find(|node| node.control_id.as_deref() == Some("SecondaryBindingRow"))
+        .expect("secondary repeated instance");
+
+    assert_eq!(
+        primary.props.get("text").and_then(Value::as_str),
+        Some("Primary ready")
+    );
+    assert_eq!(
+        secondary.props.get("text").and_then(Value::as_str),
+        Some("Secondary ready")
+    );
+    assert_eq!(
+        primary.events[0].targets[0].expression,
+        r#""Primary applied""#
+    );
+    assert_eq!(primary.events[0].targets[1].expression, "true");
+    assert_eq!(
+        primary.events[0]
+            .action
+            .as_ref()
+            .and_then(|action| action.payload.get("label"))
+            .and_then(Value::as_str),
+        Some("Primary applied")
+    );
+    assert_eq!(secondary.events[0].targets[1].expression, "false");
+}
+
+#[test]
+fn ui_v2_component_params_reject_invalid_instance_override_kind() {
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/component_param_type_error.v2.ui"
+version = 2
+
+[root]
+node = "root"
+
+[components.BindingRow]
+root = "binding_row_root"
+
+[components.BindingRow.params.enabled]
+type = "bool"
+
+[nodes.binding_row_root]
+component = "Button"
+events = [{ id = "BindingRow/Commit", event = "Click", targets = [{ target = { kind = "enabled" }, expression = "param.enabled" }] }]
+
+[nodes.root]
+component = "BindingRow"
+params = { enabled = "not-a-bool" }
+"#,
+    )
+    .unwrap();
+
+    let error = UiV2DocumentCompiler::compile(&document)
+        .expect_err("invalid product component param override must fail closed");
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { asset_id, detail }
+            if asset_id == "asset://ui/tests/component_param_type_error.v2.ui"
+                && detail.contains("cannot be represented as Bool")
+    ));
+}
+
+#[test]
 fn ui_v2_composite_component_patches_root_props_and_fills_slots() {
     let document = UiV2AssetLoader::load_toml_str(
         r#"

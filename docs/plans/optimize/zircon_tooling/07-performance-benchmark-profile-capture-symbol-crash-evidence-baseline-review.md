@@ -72,7 +72,7 @@ ZirconEngine 已积累大量性能计划、手工 profile、截图、RenderDoc c
 
 `docs/plans/performance` 的规模本身已经成为治理信号：562 个文件、40,057 行、4,096,858 bytes，其中 541 个以日期命名；主审计文档单文件 1,594 行、783,692 bytes，包含连续 634 个 `PERF-MVP` finding，但 25 个 checklist 只有 4 个完成。`review.md` 的 accepted table 仍为空，`pending.md` 与 `review.md` 的 Rust 文件总数分别停在 17,106 与 17,013，而当前 tracked、可见 untracked 合并口径为 17,261。这里不是“报告不够多”，而是报告尚未投影为机器可判定的性能资产与验收状态。
 
-采集链存在两个立即阻断可信度的 P0。第一，`ui-profile-capture.ps1` 把未校验的 `Scenario`/`ScenarioList` 原样拼入 `SessionId`，再用于 profile、project、日志和 tracked screenshot 目录；例如 `alpha\..\..\escape` 可把目标解析到 `E:\escape-measured-01`，越出默认 `E:\zircon-profiles`。第二，PBR build provenance writer 与 capture script 明确使用 schema 2 / `zircon_managed_viewer_artifact_provenance`，最终 Python summarizer 却强制 schema 1 / `zircon_local_viewer_capture_provenance`。因此当前合法 managed capture 必然在最终汇总阶段失败；21 项 Python unit tests 仍构造旧 schema，形成 false green。
+采集链仍存在两个立即阻断可信度的 P0。第一，`ui-profile-capture.ps1` 把未校验的 `Scenario`/`ScenarioList` 原样拼入 `SessionId`，再用于 profile、project、日志和 tracked screenshot 目录；例如 `alpha\..\..\escape` 可把目标解析到 `E:\escape-measured-01`，越出默认 `E:\zircon-profiles`。第二，PBR build provenance 曾出现 writer/capture 使用 schema 2 / `zircon_managed_viewer_artifact_provenance`、Python summarizer 强制 schema 1 / `zircon_local_viewer_capture_provenance` 的断链。2026-08-24 已将 summarizer 硬切到 schema 2，并离线绑定完整 managed artifact receipt、viewer fingerprint、source-validation ticket 和 allow-listed Cargo command；旧 local schema 仅以显式拒绝测试保留。真实 writer→capture→summarizer 已在 `E:` 临时目录通过，但原子 completion receipt 仍未实现；且本机完整 Python 批次未取得终态回传，不能据此形成可晋升的性能证据。
 
 崩溃与符号链相对 Unreal/Godot 的差距更大。当前产品级能力只有 Rust panic hook 在两个 binary 中先 bounded flush 已排队日志，再调用默认 hook；panic message/backtrace 本身不会进入 file-backed diagnostic log。仓库未找到 minidump、Crashpad/Breakpad、Windows SEH、Unix signal/core、hang watchdog、GPU crash、线程栈、Crash Reporter、symbol server 或自动 symbolication owner。build/export 会复制相邻 `.pdb`/`.dbg`/`.dSYM`，但没有 build/debug ID 索引、独立受控 symbol bundle、上传/保留策略或 crash-to-symbol binding。
 
@@ -136,7 +136,7 @@ ZirconEngine 已积累大量性能计划、手工 profile、截图、RenderDoc c
 
 ### TOOL-PERF-P0-002 · PBR provenance schema 使合法 managed capture 必然汇总失败
 
-`write_zircon_shader_pbr_build_provenance.ps1:76-77` 生成schema 2 / `zircon_managed_viewer_artifact_provenance`，capture在`zircon_profile_shader_pbr_viewer.ps1:135`明确只接受该组合；但最终必调的 `zircon_summarize_shader_pbr_profile.py:436-437` 只接受schema 1 / `zircon_local_viewer_capture_provenance`。必须定义单一versioned provenance schema与generated decoder，先让summarizer兼容并验证schema 2完整字段，再硬切旧local schema。加入writer→capture contract→summarizer的真实临时目录集成测试；发布前必须原子写completion receipt，失败目录标为incomplete。
+`write_zircon_shader_pbr_build_provenance.ps1:76-77` 生成schema 2 / `zircon_managed_viewer_artifact_provenance`，capture在`zircon_profile_shader_pbr_viewer.ps1:135`明确只接受该组合；历史 summarizer 却只接受schema 1 / `zircon_local_viewer_capture_provenance`。2026-08-24 已将 summarizer 硬切到 schema 2，校验 binary、repository root、source manifest、passed validation ticket 以及完整 managed artifact receipt（receipt/job/run identity、input/source manifest hash、target path、binary digest/length 和 allow-listed Cargo command）；旧 local schema 被显式拒绝。该实现还修正 PowerShell 的文化相关 source-manifest 排序，使其与 Coordinator 的 casefold canonical JSON 一致。Python 5 项 focused contract、一个实际 writer→capture→summarizer 的 `E:` 临时目录用例，以及 PowerShell 11 项 writer/capture contract 测试均通过。PBR capture 现将全部 raw/derived artifact 保留在唯一 `.staging/<profile-id>`，在 Python analysis validator 成功后逐项 SHA-256 并以 create-new 写入 `.completed/<profile-id>.json`；任一失败会在 staging root 写入不可覆盖的 `profile_incomplete.json`。新增 publication 3 项与 viewer capture 12 项 PowerShell 契约均通过；本地完整 summarizer Python suite 28 项通过。上述本地验证不替代真实 viewer/GPU capture 或 Coordinator 对已归属快照的批次终态验证。
 
 ### TOOL-PERF-P0-003 · 没有可接受的性能基线却允许形成性能完成结论
 
@@ -236,7 +236,7 @@ UI链至少8处直接 `Set-Content`/`Add-Content`，并在同一目录逐步写m
 
 ### TOOL-PERF-P1-022 · 缺少完整机器与负载清单
 
-capture option记录了操作参数，却未形成CPU/GPU/内存、BIOS、OS build、driver、显示模式、电源计划、温度/频率、后台负载与虚拟化状态的强制manifest。无法在机器间比较，也无法识别thermal throttling。
+历史 capture option 只记录操作参数，未形成 CPU/GPU/内存、BIOS、OS build、driver、显示模式、电源计划、温度/频率、后台负载与虚拟化状态的强制 manifest。2026-08-24 PBR 路径已在 profile manifest 中绑定 `zircon_performance_machine_snapshot`：十个类别均必须存在且显式标为 `captured` 或带原因的 `unavailable`，`all_required_observed` 由类别状态重新计算；摘要器会拒绝类别缺失、非法状态或资格位篡改。标准 Windows probe 记录可获取的 CIM、display、powercfg、process 与 thermal/frequency 数据，但没有传感器或主机权限时保持 unavailable，因此该 profile 不能作为完整机器可比基线。Pester 的 machine/publication/toolchain/viewer 合同 21 项、完整 PBR summarizer Python suite 28 项通过。UI 与 Render19 sidecar 尚未接入同一 schema，跨机器 baseline promotion 仍需 Coordinator-owned machine identity binding。
 
 ## 6. PBR 与 RenderExtract 采集差距
 
@@ -250,7 +250,7 @@ UI/PBR helper把dirty identity建立在porcelain状态行，内容变化但path/
 
 ### TOOL-PERF-P1-025 · PBR多文件输出没有原子完成协议
 
-PowerShell `Set-Content` 与Python `write_text` 逐项发布，schema P0触发时会留下partial profile。所有raw/derived artifact先写unique staging root，逐个hash，最后以create-new completion receipt提交。
+PowerShell `Set-Content` 与Python `write_text` 曾逐项发布，schema P0触发时会留下partial profile。2026-08-24 的 PBR 路径已改为所有 raw/derived artifact 先写唯一 `.staging/<profile-id>`，通过 analysis validator 后逐项 hash，最后以 create-new `.completed/<profile-id>.json` completion receipt 提交；失败目录以不可覆盖 `profile_incomplete.json` 标记。publication 3 项与 capture contract 12 项 PowerShell 测试、完整 summarizer Python suite 28 项均通过。真实 viewer/GPU 运行、跨工具统一 publication 和 Coordinator 已归属快照的批次验证仍待完成。
 
 ### TOOL-PERF-P1-026 · PBR的WPR同样没有全局lease
 
@@ -258,11 +258,11 @@ PBR脚本虽在请求WPR时fail closed，但仍直接控制系统级WPR session�
 
 ### TOOL-PERF-P1-027 · RenderDoc定位与图形API策略硬编码
 
-默认RenderDoc DLL依赖本机D盘路径，采集固定DX12，缺少tool package digest、版本兼容表和Vulkan/其他backend policy。工具必须由versioned toolchain manifest解析，capture记录实际API/device/driver。
+历史默认 RenderDoc DLL 依赖本机 D 盘路径，采集固定 DX12，缺少 tool package digest 和 Vulkan/其他 backend policy。2026-08-24 PBR capture 已改为要求版本化 `zircon_shader_pbr_capture_toolchain` manifest：resolver 绑定 manifest 与可选 RenderDoc DLL 的 path/SHA-256/byte length，拒绝 DLL 替换，并要求 selected WGPU backend 同时处于 permitted 而不处于 unsupported 集合。capture 以清单的 backend 设置 WGPU 与 ready-sidecar expectation，将 sidecar 中实际 backend、toolchain manifest fingerprint 与 graphics policy 写入 run/profile artifact；离线 summarizer 会重新验证该 manifest fingerprint，篡改后拒绝汇总。Pester 的 publication/toolchain/viewer 18 项与 Python 8 项目标用例通过。viewer sidecar 尚未提供所选 adapter/driver identity，PowerShell 不能把 Windows 设备枚举伪造成实际选择；该 runtime 证据字段、工具版本兼容矩阵和非 DX12 真实 capture 仍是未完成缺口。
 
 ### TOOL-PERF-P1-028 · cold/warm cache语义不完整
 
-PBR明确不清理driver/DX12 cache，这是诚实披露，但现有名称仍不足以比较“cold”。定义engine cache、shader cache、OS file cache、driver cache四层状态；无法控制的层标为observed/uncontrolled，不进入严格cold claim。
+PBR明确不清理driver/DX12 cache，这是诚实披露，但历史名称仍不足以比较“cold”。2026-08-24 capture manifest 已定义 engine、shader、OS file 与 driver 四层缓存状态：caller-owned engine/IBL cache 为 controlled，其他三层为 uncontrolled；`strict_cold_eligible=false` 且 comparison scope 限定为 `process_and_caller_owned_engine_cache`。离线 summarizer 会输出该 scoped contract，并拒绝任何仍有 uncontrolled layer 的 strict-cold 篡改声明；缺少该结构的历史 manifest 只能标为 `legacy_unqualified`。PowerShell capture contract 13 项、Python strict-cold rejection 与实际 writer→manifest→summarizer 集成测试已通过。这不是 OS/driver cache reset，也不构成跨机器性能比较或性能达标证据。
 
 ### TOOL-PERF-P1-029 · PBR evidence继承Coordinator ticket信任缺口
 
@@ -270,11 +270,11 @@ capture校验ticket与artifact receipt是优点，但Coordinator报告06已确�
 
 ### TOOL-PERF-P1-030 · 单元测试固化旧provenance schema
 
-21项summarizer测试全部通过，却只构造schema 1 local provenance，未调用当前writer/capture contract。增加跨语言contract fixture与真实脚本集成测试，并为旧schema只保留显式migration test。
+历史 21 项 summarizer 测试只构造 schema 1 local provenance，未调用当前 writer/capture contract。2026-08-24 已使默认 fixture 构造完整 schema 2 managed provenance，并将旧 schema 限制为显式拒绝用例；receipt/ticket 与 command 篡改也有离线拒绝覆盖。新增的跨语言用例在 `E:` 临时目录实际调用 writer、`Export-ZirconShaderPbrProfileManifest` 与 Python summarizer，并以完整的本地 coordinator test double 绑定同一 source manifest 和 viewer。它不替代 worker-signed 的真实 receipt，也不证明原子 publication。
 
 ### TOOL-PERF-P1-031 · offline summarizer没有独立验证artifact receipt
 
-PowerShell capture检查Coordinator receipt，Python summarizer单独运行时只检查旧provenance字段；移动/替换文件后仍可能被汇总。summarizer必须验证同一Build Set receipt、artifact digest、tool identity与run manifest。
+PowerShell capture检查 Coordinator receipt；历史 Python summarizer 单独运行时只检查旧 provenance 字段。2026-08-24 起 summarizer 离线验证持久化 receipt 与 passed validation ticket 的身份、source manifest hash、artifact digest/length、target path 和 producing command，移动/替换 binary 会被拒绝。它仍不能替代 Coordinator 的权威 worker-signed、candidate-bound receipt 查询，也尚未把 capture run manifest 纳入同一不可变 Build Set；这两个信任根缺口仍待解决。
 
 ### TOOL-PERF-P1-032 · RenderExtract场景集固定且覆盖面窄
 

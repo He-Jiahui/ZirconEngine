@@ -3,13 +3,14 @@ use crate::ui::retained_host::{
     paint_template_nodes_for_test_with_background, template_node_command_summary_for_test,
 };
 use crate::ui::workbench::snapshot::{AssetViewMode, AssetWorkspaceSnapshot};
+use zircon_runtime_interface::ui::design_tokens::EditorPaletteTokens;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::template_node_conversion::to_host_contract_template_nodes;
 
 const NARROW_ASSET_BROWSER_WIDTH: u32 = 420;
 const NARROW_ASSET_BROWSER_HEIGHT: u32 = 360;
-const NARROW_ASSET_BROWSER_BACKGROUND: [u8; 4] = [17, 20, 22, 255];
+const NARROW_ASSET_BROWSER_BACKGROUND: [u8; 4] = EditorPaletteTokens::WORKBENCH_SURFACE[0];
 
 #[test]
 fn narrow_asset_browser_projection_paints_direct_icon_actions() {

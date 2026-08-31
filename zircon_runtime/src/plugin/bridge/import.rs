@@ -41,7 +41,7 @@ where
             binding: Arc::clone(&binding),
         };
         let erased = InterfaceImport {
-            interface_id: T::INTERFACE_ID.to_string(),
+            interface_id: T::INTERFACE_ID,
             update: Arc::new(move |table| {
                 binding.store(
                     table
@@ -69,13 +69,13 @@ where
 
 #[derive(Clone)]
 pub(crate) struct InterfaceImport {
-    interface_id: String,
+    interface_id: &'static str,
     update: Arc<dyn Fn(Option<&FrozenBridgeTable>) + Send + Sync>,
 }
 
 impl InterfaceImport {
     pub(crate) fn interface_id(&self) -> &str {
-        &self.interface_id
+        self.interface_id
     }
 
     pub(crate) fn bind(&self, table: &FrozenBridgeTable) {
@@ -93,5 +93,33 @@ impl fmt::Debug for InterfaceImport {
             .debug_struct("InterfaceImport")
             .field("interface_id", &self.interface_id)
             .finish_non_exhaustive()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BridgeImport;
+    use crate::core::framework::bridge::PluginInterface;
+
+    struct StaticInterface;
+
+    impl PluginInterface for StaticInterface {
+        const INTERFACE_ID: &'static str = "zircon.fixture.static-interface.v1";
+    }
+
+    #[test]
+    fn erased_import_clones_share_static_interface_identity() {
+        let (_, erased) = BridgeImport::<StaticInterface>::new();
+        let cloned = erased.clone();
+
+        assert_eq!(erased.interface_id(), StaticInterface::INTERFACE_ID);
+        assert!(std::ptr::eq(
+            erased.interface_id().as_ptr(),
+            StaticInterface::INTERFACE_ID.as_ptr(),
+        ));
+        assert!(std::ptr::eq(
+            erased.interface_id().as_ptr(),
+            cloned.interface_id().as_ptr(),
+        ));
     }
 }

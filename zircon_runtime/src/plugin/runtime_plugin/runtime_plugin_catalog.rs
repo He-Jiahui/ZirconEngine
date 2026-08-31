@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::sync::{atomic::AtomicU64, Arc, Mutex};
+use std::sync::{Arc, Mutex};
 
 use crate::core::CoreError;
 
@@ -9,6 +8,7 @@ mod access;
 mod bridge_dependencies;
 mod bridge_lifecycle;
 mod bridge_lifecycle_state;
+mod candidate;
 mod contributions;
 mod derived_projection;
 mod descriptor_contributions;
@@ -29,15 +29,19 @@ mod feature_status;
 mod feature_status_record;
 mod feature_support;
 mod features;
+mod generation;
 mod package_feature_definitions;
 mod project;
 mod project_extension_report;
 mod project_manifest;
+mod publication;
 mod registration;
 #[cfg(feature = "graphics")]
 mod render_contributions;
 mod runtime_extensions;
 mod runtime_feature_definitions;
+mod runtime_module_target;
+mod snapshot;
 mod status;
 
 pub use bridge_dependencies::{RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker};
@@ -49,41 +53,33 @@ pub use bridge_lifecycle_state::{
     RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
     RuntimePluginBridgeLifecycleState,
 };
+pub use candidate::{
+    RuntimePluginCatalogCandidate, RuntimePluginCatalogPreparationError,
+    RuntimePluginCatalogPreparedGeneration,
+};
 pub use derived_projection::RuntimePluginCatalogProjectionMetrics;
 pub use extension_report::RuntimeExtensionCatalogReport;
 pub use feature_report::{RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport};
-pub use project::RuntimePluginCatalogProjectPlanMetrics;
+pub use generation::PluginCatalogGeneration;
+pub use project::{
+    CompiledProjectPluginPlan, RuntimePluginCatalogProjectPlanCacheMetrics,
+    RuntimePluginCatalogProjectPlanMetrics, RuntimePluginModuleProposal,
+};
+pub use publication::{RuntimePluginCatalogAuthority, RuntimePluginCatalogPublicationError};
 pub use registration::{
     RuntimePluginCatalogUpdate, RuntimePluginCatalogUpdateMetrics,
     RuntimePluginCatalogUpdateOutcome,
 };
+pub use snapshot::RuntimePluginCatalogSnapshot;
 
 #[derive(Debug, Default)]
 pub struct RuntimePluginCatalog {
     registrations: Vec<RuntimePluginRegistrationReport>,
     feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
     projection: Arc<derived_projection::RuntimePluginCatalogProjection>,
-    catalog_generation: u64,
+    catalog_generation: PluginCatalogGeneration,
     projection_builds: u64,
-    // Serializes cache misses so one catalog generation builds each frozen plan once.
-    project_plans: Mutex<HashMap<u8, Arc<project::CompiledProjectPluginPlan>>>,
-    project_plan_builds: AtomicU64,
+    project_plans: Mutex<project::ProjectPlanCache>,
     module_order_error: Option<Arc<CoreError>>,
     diagnostics: Vec<String>,
-}
-
-impl Clone for RuntimePluginCatalog {
-    fn clone(&self) -> Self {
-        Self {
-            registrations: self.registrations.clone(),
-            feature_registrations: self.feature_registrations.clone(),
-            projection: Arc::clone(&self.projection),
-            catalog_generation: self.catalog_generation,
-            projection_builds: self.projection_builds,
-            project_plans: Mutex::new(HashMap::new()),
-            project_plan_builds: AtomicU64::new(0),
-            module_order_error: self.module_order_error.clone(),
-            diagnostics: self.diagnostics.clone(),
-        }
-    }
 }

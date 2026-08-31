@@ -52,14 +52,20 @@ fn componentized_workbench_window_projection_exports_dropdown_and_popup_rows() {
     assert_eq!(popup_menu.structured_menu_items.row_count(), 5);
 
     let delete = template_contract_menu_item(&popup_menu.structured_menu_items, 3);
-    assert_eq!(delete.raw.as_str(), "Delete|danger,hovered,icon=trash");
+    assert_eq!(
+        delete.raw.as_str(),
+        "Delete|action=menu.item.delete,danger,hovered,icon=trash"
+    );
     assert_eq!(delete.label.as_str(), "Delete");
     assert_eq!(delete.action_id.as_str(), "menu.item.delete");
     assert!(delete.hovered);
     assert!(!delete.disabled);
 
     let more_tools = template_contract_menu_item(&popup_menu.structured_menu_items, 4);
-    assert_eq!(more_tools.raw.as_str(), "More Tools|submenu");
+    assert_eq!(
+        more_tools.raw.as_str(),
+        "More Tools|action=menu.item.more_tools,icon=more"
+    );
     assert_eq!(more_tools.label.as_str(), "More Tools");
     assert_eq!(more_tools.action_id.as_str(), "menu.item.more_tools");
     assert!(!more_tools.hovered);
@@ -264,7 +270,10 @@ fn componentized_workbench_popup_menu_item_selection_updates_value_and_projectio
     let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
     let popup_menu = template_contract_node(&nodes, "WorkbenchPopupMenu");
     let delete = template_contract_menu_item(&popup_menu.structured_menu_items, 3);
-    assert_eq!(delete.raw.as_str(), "Delete|danger,icon=trash");
+    assert_eq!(
+        delete.raw.as_str(),
+        "Delete|action=menu.item.delete,danger,icon=trash"
+    );
     assert_eq!(delete.action_id.as_str(), "menu.item.delete");
     assert!(!delete.hovered);
     assert!(!delete.pressed);
@@ -305,7 +314,10 @@ fn componentized_workbench_popup_cancel_closes_menu_without_selecting_item() {
     let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
     let popup_menu = template_contract_node(&nodes, "WorkbenchPopupMenu");
     let delete = template_contract_menu_item(&popup_menu.structured_menu_items, 3);
-    assert_eq!(delete.raw.as_str(), "Delete|danger,icon=trash");
+    assert_eq!(
+        delete.raw.as_str(),
+        "Delete|action=menu.item.delete,danger,icon=trash"
+    );
     assert_eq!(delete.action_id.as_str(), "menu.item.delete");
     assert!(!delete.focused);
     assert!(!delete.hovered);

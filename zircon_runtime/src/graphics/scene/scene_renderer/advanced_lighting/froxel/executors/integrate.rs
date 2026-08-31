@@ -4,20 +4,20 @@ use crate::core::framework::render::{
     FroxelGridParams, FroxelGridQuality, PostProcessGraphResourceNames,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::{
-    RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassDeviceEpochCache, RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassGpuRecordingContext,
 };
 use crate::render_graph::RenderGraphResourceAccessKind;
 
 use super::super::{
-    resolved_volumetric_fog_settings, FroxelIntegratePipeline, FroxelIntegrateRequest,
-    FroxelViewReconstruction, VOLUMETRIC_INTEGRATE_PIPELINE_LABEL,
-    VOLUMETRIC_INTEGRATE_WORKGROUP_SIZE,
+    FroxelIntegratePipeline, FroxelIntegrateRequest, FroxelViewReconstruction,
+    VOLUMETRIC_INTEGRATE_PIPELINE_LABEL, VOLUMETRIC_INTEGRATE_WORKGROUP_SIZE,
 };
-use super::{validate_compute_context, VOLUMETRIC_INTEGRATE_EXECUTOR_ID};
+use super::{VOLUMETRIC_INTEGRATE_EXECUTOR_ID, validate_compute_context};
 
 #[derive(Default)]
 pub(super) struct VolumetricIntegrateExecutor {
-    pipeline: Mutex<Option<FroxelIntegratePipeline>>,
+    pipeline: Mutex<RenderPassDeviceEpochCache<(), FroxelIntegratePipeline>>,
 }
 
 impl RenderPassExecutor for VolumetricIntegrateExecutor {
@@ -26,8 +26,12 @@ impl RenderPassExecutor for VolumetricIntegrateExecutor {
         let pass_name = context.pass_name.clone();
         let executor_id = context.executor_id.as_str().to_string();
         let gpu = context.require_gpu()?;
+        let device_epoch = gpu.device_epoch().ok_or_else(|| {
+            "volumetric integrate requires a materialized device epoch before pipeline recording"
+                .to_string()
+        })?;
         let extract = gpu.frame_extract();
-        let settings = resolved_volumetric_fog_settings(extract)?;
+        let settings = gpu.volumetric_fog();
         let camera = extract.view.selected_effective_camera();
         let viewport_size = gpu.viewport_size();
         let grid = FroxelGridParams::for_quality(
@@ -49,23 +53,25 @@ impl RenderPassExecutor for VolumetricIntegrateExecutor {
                 RenderGraphResourceAccessKind::Write,
             )?
             .clone();
-        let mut pipeline = self
-            .pipeline
-            .lock()
-            .map_err(|_| "volumetric integrate pipeline cache lock poisoned".to_string())?;
-        if pipeline.is_none() {
-            *pipeline = Some(FroxelIntegratePipeline::new(gpu.device));
-        }
-        let dispatch = pipeline.as_ref().unwrap().encode(
-            gpu.device,
-            gpu.encoder,
-            FroxelIntegrateRequest {
-                grid,
-                view,
-                scattering_view: &scattering,
-                output_view: &output,
-            },
-        )?;
+        let dispatch = {
+            let mut native = gpu.native_context();
+            let mut pipeline_cache = self
+                .pipeline
+                .lock()
+                .map_err(|_| "volumetric integrate pipeline cache lock poisoned".to_string())?;
+            let pipeline = pipeline_cache.get_or_try_insert_with(device_epoch, (), || {
+                Ok(FroxelIntegratePipeline::new(native.resource_factory()))
+            })?;
+            pipeline.encode(
+                &mut native,
+                FroxelIntegrateRequest {
+                    grid,
+                    view,
+                    scattering_view: &scattering,
+                    output_view: &output,
+                },
+            )
+        }?;
         gpu.record_compute_dispatch_with_uploaded_bytes(
             pass_name,
             executor_id,

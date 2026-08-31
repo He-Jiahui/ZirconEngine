@@ -5,30 +5,21 @@ fn zr_standard_pbr_light_radiance(light: ZrGpuLightData) -> vec3<f32> {
 }
 
 fn zr_standard_pbr_diffuse_color(surface: ZrSurfaceOutput) -> vec3<f32> {
+    if (surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID) {
+        return zr_pbr_base_color(surface.base_color.rgb);
+    }
     return surface.base_color.rgb;
 }
 
-fn zr_standard_pbr_diffuse_energy_scale(surface: ZrSurfaceOutput) -> f32 {
+fn zr_standard_pbr_ambient_diffuse_energy_scale(
+    surface: ZrSurfaceOutput,
+) -> vec3<f32> {
     if (surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID) {
-        return zr_surface_metallic_diffuse_energy_scale(surface.metallic);
+        return vec3<f32>(
+            zr_surface_metallic_diffuse_energy_scale(surface.metallic),
+        );
     }
-    return 1.0;
-}
-
-fn zr_scene_view_dir_ws(position_ws: vec3<f32>) -> vec3<f32> {
-    let camera_direction_weight = clamp(scene.camera_view_direction.w, 0.0, 1.0);
-    if (camera_direction_weight <= 0.0) {
-        return zr_normalize_or_zero(scene.camera_world_position.xyz - position_ws);
-    }
-    if (camera_direction_weight >= 1.0) {
-        return zr_normalize_or_zero(scene.camera_view_direction.xyz);
-    }
-    let perspective_view_dir = zr_normalize_or_zero(scene.camera_world_position.xyz - position_ws);
-    return zr_normalize_or_zero(mix(
-        perspective_view_dir,
-        scene.camera_view_direction.xyz,
-        camera_direction_weight,
-    ));
+    return vec3<f32>(1.0);
 }
 
 fn zr_standard_pbr_shade_standard_light_vector_normalized(
@@ -72,10 +63,10 @@ fn zr_standard_pbr_shade_light_vector_normalized(
     radiance: vec3<f32>,
     surface: ZrSurfaceOutput,
     diffuse_color: vec3<f32>,
+    direct_diffuse_brdf: vec3<f32>,
     world_normal: vec3<f32>,
     world_view: vec3<f32>,
     direct_f0: vec3<f32>,
-    direct_diffuse_brdf: vec3<f32>,
 ) -> vec3<f32> {
     if (surface.shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
         return zr_standard_pbr_shade_blinn_phong_light_vector_normalized(
@@ -126,12 +117,12 @@ fn zr_standard_pbr_shade_gpu_light_index(
     light_index: u32,
     surface: ZrSurfaceOutput,
     diffuse_color: vec3<f32>,
+    direct_diffuse_brdf: vec3<f32>,
     ctx: ZrShadingContext,
     view_z: f32,
     world_normal: vec3<f32>,
     world_view: vec3<f32>,
     direct_f0: vec3<f32>,
-    direct_diffuse_brdf: vec3<f32>,
 ) -> vec3<f32> {
     if (light_index >= zr_gpu_scene_light_count()) {
         return vec3<f32>(0.0);
@@ -158,10 +149,10 @@ fn zr_standard_pbr_shade_gpu_light_index(
             radiance,
             surface,
             diffuse_color,
+            direct_diffuse_brdf,
             world_normal,
             world_view,
             direct_f0,
-            direct_diffuse_brdf,
         );
     }
 
@@ -188,10 +179,10 @@ fn zr_standard_pbr_shade_gpu_light_index(
         base_radiance * visibility * shadow_visibility,
         surface,
         diffuse_color,
+        direct_diffuse_brdf,
         world_normal,
         world_view,
         direct_f0,
-        direct_diffuse_brdf,
     );
 }
 
@@ -214,16 +205,17 @@ fn zr_standard_pbr_gpu_light_lighting(
     }
 
     var direct_f0 = vec3<f32>(0.0);
-    var direct_diffuse_brdf = vec3<f32>(0.0);
+    var direct_diffuse_brdf = diffuse_color / ZR_PBR_EXTRAS_PI;
     if (surface.shading_model_id != ZR_SHADING_MODEL_BLINN_PHONG_ID) {
         let direct_metallic = clamp(surface.metallic, 0.0, 1.0);
-        direct_f0 = mix(
-            vec3<f32>(0.04),
-            max(surface.base_color.rgb, vec3<f32>(0.0)),
+        direct_f0 = zr_pbr_material_f0(
+            surface.dielectric_f0,
+            diffuse_color,
             direct_metallic,
         );
-        direct_diffuse_brdf =
-            diffuse_color * (1.0 - direct_metallic) / ZR_PBR_EXTRAS_PI;
+        direct_diffuse_brdf = diffuse_color
+            * zr_surface_metallic_diffuse_energy_scale(direct_metallic)
+            / ZR_PBR_EXTRAS_PI;
     }
     let tile_base = zr_light_tile_base(ctx.frag_coord, zr_light_grid_params);
     var accumulated = vec3<f32>(0.0);
@@ -236,12 +228,12 @@ fn zr_standard_pbr_gpu_light_lighting(
                 light_index,
                 surface,
                 diffuse_color,
+                direct_diffuse_brdf,
                 ctx,
                 view_z,
                 world_normal,
                 world_view,
                 direct_f0,
-                direct_diffuse_brdf,
             );
             mask = mask & (mask - 1u);
         }
@@ -253,10 +245,13 @@ fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
     if (surface.shading_model_id == ZR_SHADING_MODEL_UNLIT_ID) {
         return surface.base_color.rgb + surface.emissive;
     }
-    let ambient = scene.ambient_color.rgb * surface.occlusion;
+    let ambient = zr_scene_ambient_color(
+        zr_gpu_scene_has_lightmap(ctx.instance_index),
+    ) * surface.occlusion;
     let diffuse_color = zr_standard_pbr_diffuse_color(surface);
-    let view_dir_ws = zr_scene_view_dir_ws(ctx.position_ws);
+    let view_dir_ws = zr_pbr_view_direction_ws(ctx.position_ws);
     let world_normal = zr_normalize_or_zero(surface.normal_ws);
+    let ambient_diffuse_energy = zr_standard_pbr_ambient_diffuse_energy_scale(surface);
     let direct_lights = zr_standard_pbr_gpu_light_lighting(
         surface,
         diffuse_color,
@@ -264,18 +259,19 @@ fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
         view_dir_ws,
         world_normal,
     );
-    let environment_lights = zr_environment_pbr_indirect_normalized(
+    let environment_lights = zr_environment_pbr_indirect_with_dielectric_f0_normalized(
         ctx.position_ws,
         world_normal,
         view_dir_ws,
         surface.roughness,
         surface.metallic,
         diffuse_color,
-        surface.base_color.rgb,
+        diffuse_color,
+        surface.dielectric_f0,
         surface.occlusion,
         surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,
     );
-    return diffuse_color * zr_standard_pbr_diffuse_energy_scale(surface) * ambient
+    return diffuse_color * ambient_diffuse_energy * ambient
         + direct_lights
         + environment_lights
         + surface.emissive;

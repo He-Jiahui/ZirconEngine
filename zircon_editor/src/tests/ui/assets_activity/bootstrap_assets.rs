@@ -96,22 +96,10 @@ fn assets_activity_bootstrap_layout_self_hosts_shell_sections() {
         "toolbar_subtitle_text",
         "toolbar_search_row",
         "toolbar_search_field",
+        "toolbar_filter_row",
+        "toolbar_kind_filter_dropdown",
         "toolbar_view_mode_list_button",
         "toolbar_view_mode_thumb_button",
-        "toolbar_kind_primary_row",
-        "toolbar_kind_all_chip",
-        "toolbar_kind_texture_chip",
-        "toolbar_kind_material_chip",
-        "toolbar_kind_scene_chip",
-        "toolbar_kind_model_chip",
-        "toolbar_kind_shader_chip",
-        "toolbar_kind_secondary_row",
-        "toolbar_kind_physics_chip",
-        "toolbar_kind_skeleton_chip",
-        "toolbar_kind_clip_chip",
-        "toolbar_kind_sequence_chip",
-        "toolbar_kind_graph_chip",
-        "toolbar_kind_state_chip",
         "main_panel",
         "tree_panel",
         "tree_header_panel",
@@ -325,10 +313,10 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
         .iter()
         .find(|node| node.control_id == "AssetsActivityReferencesTabButton")
         .expect("references tab node");
-    let texture_chip = nodes
+    let kind_filter = nodes
         .iter()
-        .find(|node| node.control_id == "AssetsActivityKindTextureChip")
-        .expect("texture chip node");
+        .find(|node| node.control_id == "AssetsActivityKindFilterDropdown")
+        .expect("kind filter dropdown node");
 
     assert_eq!(title.text.to_string(), "Assets");
     assert_eq!(tree_title.text.to_string(), "Folders");
@@ -421,18 +409,24 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
         "AssetSurface/SetUtilityTab"
     );
     assert_eq!(references_tab.value_text.to_string(), "references");
-    assert!(texture_chip.selected);
-    assert_eq!(texture_chip.surface_variant.to_string(), "inset");
-    assert_eq!(texture_chip.dispatch_kind.to_string(), "asset");
+    assert_eq!(kind_filter.role.to_string(), "Dropdown");
+    assert_eq!(kind_filter.component_role.to_string(), "dropdown");
+    assert_eq!(kind_filter.value_text.to_string(), "Textures");
+    assert_eq!(kind_filter.dispatch_kind.to_string(), "asset");
+    assert_eq!(kind_filter.options.row_count(), 16);
+    assert!(kind_filter
+        .options
+        .iter()
+        .any(|option| option.as_str() == "Texture|label=Textures,selected"));
+    assert_eq!(kind_filter.action_id.to_string(), "");
     assert_eq!(
-        texture_chip.action_id.to_string(),
-        "workbench.asset.kind_filter.set"
-    );
-    assert_eq!(
-        texture_chip.binding_id.to_string(),
+        kind_filter.binding_id.to_string(),
         "AssetSurface/SetKindFilter"
     );
-    assert_eq!(texture_chip.value_text.to_string(), "Texture");
+    assert_eq!(
+        kind_filter.edit_action_id.to_string(),
+        "AssetSurface/SetKindFilter"
+    );
     assert!(references_right.frame.width > 0.0 && references_right.frame.height > 0.0);
 }
 
@@ -460,11 +454,9 @@ fn assets_activity_regular_drawer_compacts_toolbar_and_reclaims_content_width() 
     let toolbar = node("AssetsActivityToolbarPanel");
     let browser = node("OpenAssetBrowser");
     let search = node("SearchEdited");
+    let kind_filter = node("AssetsActivityKindFilterDropdown");
     let list = node("AssetsActivityViewModeListButton");
     let thumb = node("AssetsActivityViewModeThumbButton");
-    let all = node("AssetsActivityKindAllChip");
-    let texture = node("AssetsActivityKindTextureChip");
-    let material = node("AssetsActivityKindMaterialChip");
     let tree = node("AssetsActivityTreePanel");
     let content = node("AssetsActivityContentPanel");
     let main = node("AssetsActivityMainPanel");
@@ -476,16 +468,26 @@ fn assets_activity_regular_drawer_compacts_toolbar_and_reclaims_content_width() 
     assert_eq!(list.frame.width, 28.0);
     assert_eq!(thumb.frame.width, 28.0);
     assert_eq!(thumb.text.to_string(), "");
-    assert_eq!(texture.text.to_string(), "Tex");
+    assert_eq!(kind_filter.value_text.to_string(), "Textures");
+    assert_eq!(kind_filter.options.row_count(), 16);
+    assert!(kind_filter
+        .options
+        .iter()
+        .any(|option| option.as_str() == "Texture|label=Textures,selected"));
     assert_eq!(preview.text.to_string(), "Preview");
     assert!(preview.selected);
     assert!(toolbar.frame.height <= 68.0);
     assert!(search.frame.x + search.frame.width <= browser.frame.x);
+    assert!(kind_filter.frame.x + kind_filter.frame.width <= list.frame.x);
     assert!(list.frame.x + list.frame.width <= thumb.frame.x);
-    assert!(thumb.frame.x + thumb.frame.width <= all.frame.x);
-    assert!(all.frame.x + all.frame.width <= texture.frame.x);
     for control in [
-        browser, search, list, thumb, all, texture, preview, references,
+        browser,
+        search,
+        kind_filter,
+        list,
+        thumb,
+        preview,
+        references,
     ] {
         assert!(
             control.frame.width > 0.0,
@@ -496,7 +498,6 @@ fn assets_activity_regular_drawer_compacts_toolbar_and_reclaims_content_width() 
             "compact control should stay inside the drawer: {control:?}"
         );
     }
-    assert_eq!(material.frame.width, 0.0);
     assert_eq!(tree.frame.width, 0.0);
     assert!(content.frame.width >= 210.0);
     assert!(main.frame.height >= 120.0);
@@ -645,7 +646,8 @@ fn assets_activity_content_rows_share_the_activity_pointer_geometry() {
                 ResourceKind::UiLayout,
                 true,
             ),
-        ],
+        ]
+        .into(),
         ..AssetWorkspaceSnapshot::default()
     };
     let pane = assets_activity_pane_data(&snapshot, UiSize::new(226.0, 346.0));
@@ -723,7 +725,8 @@ fn short_assets_activity_drawer_preserves_one_complete_asset_row_before_preview(
             "workbench_page_chrome.zui",
             ResourceKind::UiLayout,
             true,
-        )],
+        )]
+        .into(),
         ..AssetWorkspaceSnapshot::default()
     };
     let pane = assets_activity_pane_data(&snapshot, UiSize::new(226.0, 224.0));

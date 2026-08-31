@@ -25,7 +25,7 @@ component = "IconButton"
 control_id = "FocusDiagnostics"
 props = { label = "Focus Diagnostics", icon = "editor_pages/console_profiler/diagnostics/watch.svg", icon_placement = "icon_only" }
 layout = { width = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "RuntimeDiagnosticsPaneBody/FocusDiagnostics", event = "Click", route = "workbench.dock.focus_view" }]
+events = [{ id = "RuntimeDiagnosticsPaneBody/FocusDiagnostics", event = "Click", route = "workbench.pane.runtime_diagnostics.focus" }]
 
 [nodes.summary]
 component = "Text"

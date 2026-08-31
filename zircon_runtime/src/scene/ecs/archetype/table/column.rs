@@ -1,8 +1,8 @@
-use std::alloc::{alloc, dealloc, handle_alloc_error, realloc, Layout};
+use std::alloc::{Layout, alloc, dealloc, handle_alloc_error, realloc};
 use std::ptr::NonNull;
 
 use crate::scene::ecs::component::TableColumnLayout;
-use crate::scene::ecs::{storage::StoredComponent, ChangeTick, ComponentTicks};
+use crate::scene::ecs::{ChangeTick, ComponentTicks, storage::StoredComponent};
 
 /// Owns the contiguous body and tick rows for exactly one registered table component.
 pub(super) struct ArchetypeColumn {

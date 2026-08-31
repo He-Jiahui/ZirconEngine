@@ -125,7 +125,7 @@ fn editor_ui_host_uses_typed_runtime_services_instead_of_a_core_locator() {
         "fn asset_manager(",
         "fn editor_asset_manager(",
         "fn config_manager(",
-        "fn create_runtime_level(",
+        "fn prepare_authoring_world(",
         "fn vm_host_capabilities(",
         "fn vm_plugin_manager(",
     ] {
@@ -401,8 +401,10 @@ fn editor_ui_host_owns_layout_project_and_workspace_orchestration() {
     let project_wrapper = std::fs::read_to_string(host_root.join("editor_manager_project.rs"))
         .expect("editor manager project wrapper");
     for required in [
-        "self.open_project_document(path)",
-        "self.host.save_project(path, world)",
+        "self.open_project_document_with_admission(path, &admission)",
+        "self.preflight_existing_project_launch(&intent, path.as_ref())",
+        "self.session_admission_request(&intent)",
+        "save_active_scene(&project_root, &scene_uri, world)",
         "self.host.prepare_authoring_world(scene)",
     ] {
         assert!(
@@ -599,9 +601,10 @@ fn editor_ui_host_owns_startup_and_welcome_orchestration() {
     let startup_wrapper = std::fs::read_to_string(host_root.join("editor_manager_startup.rs"))
         .expect("startup wrapper");
     for required in [
-        "resolve_startup_session_with_project_open(|path| self.open_project(path))",
-        "self.open_project_and_remember_with_session(path)",
-        "self.create_project_and_open_with_session(draft)",
+        "self.host.resolve_startup_session()",
+        "self.execute_project_launch_intent(self.local_open_project_intent(path.as_ref())?)",
+        "SessionAdmissionRequest::from_launch_intent",
+        "project admission requires the BuildSet App authenticated during startup",
         "self.host.recent_projects_snapshot()",
         "self.host.forget_recent_project(path)",
         "self.host.update_recent_project(path)",
@@ -613,6 +616,14 @@ fn editor_ui_host_owns_startup_and_welcome_orchestration() {
             "expected startup wrapper to stay thin for `{required}`"
         );
     }
+    assert!(
+        !startup_wrapper.contains("resolve_startup_session_with_project_open"),
+        "startup resolution must not retain a callback path that opens a recent project"
+    );
+    assert!(
+        !startup_wrapper.contains("self.open_project_and_remember_with_session(path)"),
+        "startup must route direct UI opens through a versioned ProjectLaunchIntent"
+    );
 }
 
 #[test]

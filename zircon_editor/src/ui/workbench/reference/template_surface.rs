@@ -118,6 +118,7 @@ pub struct EditorWorkbenchTemplateSurface {
     host_projection_topology: HashMap<UiNodeId, HostProjectionNodeIdentity>,
     host_projection_roots: Vec<UiNodeId>,
     pending_host_projection_patch_indices: BTreeSet<usize>,
+    pending_host_projection_has_semantic_changes: bool,
     host_projection_full_refresh_pending: bool,
     #[cfg(test)]
     host_projection_full_rebuild_count: u64,
@@ -127,6 +128,10 @@ pub struct EditorWorkbenchTemplateSurface {
     last_host_projection_semantic_patch_count: usize,
     #[cfg(test)]
     last_host_projection_geometry_patch_count: usize,
+    #[cfg(test)]
+    frames_extract_count: u64,
+    #[cfg(test)]
+    frames_extract_skip_count: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -200,7 +205,7 @@ impl EditorWorkbenchTemplateSurface {
             self.layout_pass_count = self.layout_pass_count.saturating_add(1);
         }
         self.layout_size = size;
-        self.refresh_projection(runtime, &workset)
+        self.refresh_projection(runtime, &workset, true)
     }
 
     pub(crate) fn refresh_after_state_change(
@@ -224,12 +229,24 @@ impl EditorWorkbenchTemplateSurface {
                 self.layout_pass_count = self.layout_pass_count.saturating_add(1);
             }
         }
-        self.refresh_projection(runtime, &workset)
+        // Pointer feedback and other render/input-only mutations leave the control geometry
+        // authoritative. Reuse the previously extracted frame snapshot until layout runs.
+        self.refresh_projection(runtime, &workset, report.layout_recomputed)
     }
 
     #[cfg(test)]
     pub(crate) fn layout_pass_count(&self) -> u64 {
         self.layout_pass_count
+    }
+
+    #[cfg(test)]
+    pub(crate) fn frames_extract_count(&self) -> u64 {
+        self.frames_extract_count
+    }
+
+    #[cfg(test)]
+    pub(crate) fn frames_extract_skip_count(&self) -> u64 {
+        self.frames_extract_skip_count
     }
 
     pub fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
@@ -258,8 +275,9 @@ impl EditorWorkbenchTemplateSurface {
         &mut self,
         runtime: &EditorUiHostRuntime,
         workset: &HostProjectionRefreshWorkset,
+        refresh_frames: bool,
     ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
-        {
+        if refresh_frames {
             zircon_runtime::profile_scope!(
                 "editor",
                 "retained_host",
@@ -267,6 +285,25 @@ impl EditorWorkbenchTemplateSurface {
             );
             self.frames =
                 EditorWorkbenchTemplateFrames::from_surface(&self.surface, &self.control_nodes)?;
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.workbench_template.frames_extract_count",
+                1
+            );
+            #[cfg(test)]
+            {
+                self.frames_extract_count = self.frames_extract_count.saturating_add(1);
+            }
+        } else {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.workbench_template.frames_extract_skip_count",
+                1
+            );
+            #[cfg(test)]
+            {
+                self.frames_extract_skip_count = self.frames_extract_skip_count.saturating_add(1);
+            }
         }
         {
             zircon_runtime::profile_scope!(
@@ -338,6 +375,8 @@ impl EditorWorkbenchTemplateSurface {
                 self.host_projection.nodes[index] = node;
                 self.pending_host_projection_patch_indices.insert(index);
             }
+            self.pending_host_projection_has_semantic_changes |=
+                !workset.semantic_node_ids.is_empty();
             for patch in &geometry_patches {
                 let node = &mut self.host_projection.nodes[patch.index];
                 node.frame = patch.frame;
@@ -387,7 +426,7 @@ impl EditorWorkbenchTemplateSurface {
             let Some(previous_identity) = self.host_projection_topology.get(node_id) else {
                 return false;
             };
-            if previous_identity != &HostProjectionNodeIdentity::from_surface_node(node) {
+            if !previous_identity.matches_surface_node(node) {
                 return false;
             }
             self.host_projection_node_indices
@@ -408,6 +447,7 @@ impl EditorWorkbenchTemplateSurface {
         self.host_projection_topology = topology;
         self.host_projection_roots = self.surface.tree.roots.clone();
         self.pending_host_projection_patch_indices.clear();
+        self.pending_host_projection_has_semantic_changes = false;
         self.host_projection_full_refresh_pending = true;
         zircon_runtime::profile_counter!(
             "editor",
@@ -490,13 +530,46 @@ impl EditorWorkbenchTemplateSurface {
         )
     }
 
+    pub(crate) fn pending_host_projection_geometry_patch_indices(&self) -> Option<Vec<usize>> {
+        if self.host_projection_full_refresh_pending
+            || self.pending_host_projection_has_semantic_changes
+        {
+            return None;
+        }
+        Some(
+            self.pending_host_projection_patch_indices
+                .iter()
+                .copied()
+                .collect(),
+        )
+    }
+
+    pub(crate) fn has_pending_host_projection_commit(&self) -> bool {
+        self.host_projection_full_refresh_pending
+            || !self.pending_host_projection_patch_indices.is_empty()
+    }
+
     pub(crate) fn mark_host_projection_committed(&mut self) {
         self.pending_host_projection_patch_indices.clear();
+        self.pending_host_projection_has_semantic_changes = false;
         self.host_projection_full_refresh_pending = false;
     }
 }
 
 impl HostProjectionNodeIdentity {
+    fn matches_surface_node(&self, node: &zircon_runtime_interface::ui::tree::UiTreeNode) -> bool {
+        let (component, control_id) = node
+            .template_metadata
+            .as_ref()
+            .map(|metadata| (metadata.component.as_str(), metadata.control_id.as_deref()))
+            .unwrap_or_default();
+        self.node_path == node.node_path.0
+            && self.parent == node.parent
+            && self.children == node.children
+            && self.component == component
+            && self.control_id.as_deref() == control_id
+    }
+
     fn from_surface_node(node: &zircon_runtime_interface::ui::tree::UiTreeNode) -> Self {
         let (component, control_id) = node
             .template_metadata
@@ -563,6 +636,7 @@ pub fn build_editor_workbench_template_surface(
         host_projection_topology,
         host_projection_roots,
         pending_host_projection_patch_indices: BTreeSet::new(),
+        pending_host_projection_has_semantic_changes: false,
         host_projection_full_refresh_pending: true,
         #[cfg(test)]
         host_projection_full_rebuild_count: 1,
@@ -572,6 +646,10 @@ pub fn build_editor_workbench_template_surface(
         last_host_projection_semantic_patch_count: 0,
         #[cfg(test)]
         last_host_projection_geometry_patch_count: 0,
+        #[cfg(test)]
+        frames_extract_count: 1,
+        #[cfg(test)]
+        frames_extract_skip_count: 0,
     })
 }
 

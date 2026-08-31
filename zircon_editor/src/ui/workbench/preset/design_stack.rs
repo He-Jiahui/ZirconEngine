@@ -45,7 +45,43 @@ impl EditorUiDesignStack {
     }
 
     pub fn panel(&self, view_id: &str) -> Option<&FyroxPanelPreset> {
-        self.panels.iter().find(|panel| panel.view_id == view_id)
+        panel_by_default_index(&self.panels, view_id)
+    }
+}
+
+fn panel_by_default_index<'a>(
+    panels: &'a [FyroxPanelPreset],
+    view_id: &str,
+) -> Option<&'a FyroxPanelPreset> {
+    default_panel_index(view_id)
+        .and_then(|expected_index| panels.get(expected_index))
+        .filter(|panel| panel.view_id == view_id)
+        .or_else(|| panels.iter().find(|panel| panel.view_id == view_id))
+}
+
+const fn default_panel_index(view_id: &str) -> Option<usize> {
+    match view_id.as_bytes() {
+        b"editor.scene" => Some(0),
+        b"editor.game" => Some(1),
+        b"editor.hierarchy" => Some(2),
+        b"editor.inspector" => Some(3),
+        b"editor.assets" => Some(4),
+        b"editor.console" => Some(5),
+        b"editor.runtime_diagnostics" => Some(6),
+        b"editor.build_export_desktop" => Some(7),
+        b"editor.module_plugins" => Some(8),
+        b"editor.prefab.viewport" => Some(9),
+        b"editor.prefab.inspector" => Some(10),
+        b"editor.material.graph" => Some(11),
+        b"editor.material.preview" => Some(12),
+        b"editor.ui.designer" => Some(13),
+        b"editor.ui.source" => Some(14),
+        b"editor.animation.timeline" => Some(15),
+        b"editor.animation.graph" => Some(16),
+        b"editor.asset_browser" => Some(17),
+        b"editor.asset_preview" => Some(18),
+        b"editor.asset_metadata" => Some(19),
+        _ => None,
     }
 }
 
@@ -461,3 +497,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "design_stack/default_panel_index_tests.rs"]
+mod default_panel_index_tests;

@@ -4,6 +4,14 @@ use std::io::Cursor;
 use thiserror::Error;
 
 use super::FontAssetSourceFormat;
+pub use budget::FontSourceBudgetError;
+use budget::{
+    validate_decoded_bytes, validate_font_metadata_with_budget, validate_source_bytes,
+    validate_source_file_len, validate_standalone_face_bytes_with_budget,
+    validate_woff2_declared_decoded_bytes, FontSourceBudget, FONT_SOURCE_BUDGET,
+};
+
+mod budget;
 
 const SFNT_CHECKSUM_MAGIC: u32 = 0xB1B0_AFBA;
 
@@ -32,6 +40,8 @@ impl DecodedFontSource {
 /// contains malformed-input panics at the decoder isolation boundary.
 #[derive(Debug, Error)]
 pub enum FontSourceDecodeError {
+    #[error(transparent)]
+    Budget(#[from] FontSourceBudgetError),
     #[error("WOFF2 font source decode failed: {source}")]
     Decoder {
         #[source]
@@ -60,6 +70,8 @@ pub struct FontMetadataParseError {
 
 #[derive(Debug, Error)]
 pub(crate) enum FontFaceExtractionError {
+    #[error(transparent)]
+    Budget(#[from] FontSourceBudgetError),
     #[error("font face {face_index} is invalid: {source}")]
     InvalidFace {
         face_index: u32,
@@ -81,6 +93,13 @@ impl FontMetadataParseError {
         }
     }
 
+    pub(crate) fn budget(source: FontSourceBudgetError) -> Self {
+        Self {
+            face_index: source.face_index().unwrap_or(0),
+            source: Box::new(source),
+        }
+    }
+
     pub fn face_index(&self) -> u32 {
         self.face_index
     }
@@ -91,22 +110,52 @@ impl FontMetadataParseError {
 pub(crate) fn decode_font_source(
     bytes: Vec<u8>,
 ) -> Result<DecodedFontSource, FontSourceDecodeError> {
+    decode_font_source_with_budget(bytes, FONT_SOURCE_BUDGET)
+}
+
+fn decode_font_source_with_budget(
+    bytes: Vec<u8>,
+    budget: FontSourceBudget,
+) -> Result<DecodedFontSource, FontSourceDecodeError> {
+    validate_source_bytes(&bytes, budget)?;
     if !woff2_patched::decode::is_woff2(&bytes) {
+        validate_decoded_bytes(&bytes, budget)?;
         return Ok(DecodedFontSource {
             bytes,
             source_format: FontAssetSourceFormat::Sfnt,
         });
     }
+    validate_woff2_declared_decoded_bytes(&bytes, budget)?;
 
     let decoded = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         woff2_patched::convert_woff2_to_ttf(&mut Cursor::new(bytes))
     }))
     .map_err(|_| FontSourceDecodeError::DecoderPanic)?
     .map_err(FontSourceDecodeError::new)?;
+    validate_decoded_bytes(&decoded, budget)?;
     Ok(DecodedFontSource {
         bytes: decoded,
         source_format: FontAssetSourceFormat::Woff2,
     })
+}
+
+pub(crate) fn validate_font_metadata_budget(bytes: &[u8]) -> Result<(), FontSourceBudgetError> {
+    validate_font_metadata_with_budget(bytes, FONT_SOURCE_BUDGET)
+}
+
+pub(crate) fn validate_font_source_file_len(file_len: u64) -> Result<(), FontSourceBudgetError> {
+    validate_source_file_len(file_len)
+}
+
+pub(crate) fn font_cmap_range_budget() -> usize {
+    budget::max_cmap_ranges()
+}
+
+pub(crate) fn validate_standalone_face_bytes(
+    bytes: &[u8],
+    face_index: u32,
+) -> Result<(), FontSourceBudgetError> {
+    validate_standalone_face_bytes_with_budget(bytes, face_index, FONT_SOURCE_BUDGET)
 }
 
 /// Materialize one TTC face as a standalone SFNT buffer for backends that do
@@ -116,6 +165,8 @@ pub(crate) fn standalone_sfnt_face(
     bytes: &[u8],
     face_index: u32,
 ) -> Result<Vec<u8>, FontFaceExtractionError> {
+    validate_font_metadata_budget(bytes).map_err(FontFaceExtractionError::Budget)?;
+    validate_standalone_face_bytes(bytes, face_index).map_err(FontFaceExtractionError::Budget)?;
     ttf_parser::Face::parse(bytes, face_index).map_err(|source| {
         FontFaceExtractionError::InvalidFace {
             face_index,
@@ -249,3 +300,6 @@ fn sfnt_checksum(bytes: &[u8]) -> u32 {
         checksum.wrapping_add(u32::from_be_bytes(word))
     })
 }
+
+#[cfg(test)]
+mod tests;

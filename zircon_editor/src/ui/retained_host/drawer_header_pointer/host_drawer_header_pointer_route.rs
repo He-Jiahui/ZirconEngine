@@ -1,9 +1,7 @@
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum HostDrawerHeaderPointerRoute {
     Tab {
-        surface_key: String,
+        surface_index: usize,
         item_index: usize,
-        slot: String,
-        instance_id: String,
     },
 }

@@ -14,8 +14,7 @@ impl UiV2AssetLoader {
     pub fn load_toml_str(input: &str) -> Result<UiV2AssetDocument, UiV2AssetError> {
         let document: UiV2AssetDocument =
             toml::from_str(input).map_err(|error| UiV2AssetError::ParseToml(error.to_string()))?;
-        validate_version(&document)?;
-        Ok(document)
+        validate_version(document)
     }
 
     pub fn load_toml_file<P: AsRef<Path>>(path: P) -> Result<UiV2AssetDocument, UiV2AssetError> {
@@ -41,15 +40,22 @@ impl UiZuiAssetLoader {
     }
 }
 
-fn validate_version(document: &UiV2AssetDocument) -> Result<(), UiV2AssetError> {
+fn validate_version(document: UiV2AssetDocument) -> Result<UiV2AssetDocument, UiV2AssetError> {
     if document.asset.version != UI_V2_ASSET_SCHEMA_VERSION {
-        return Err(UiV2AssetError::UnsupportedSchemaVersion {
-            asset_id: document.asset.id.clone(),
-            version: document.asset.version,
-            expected: UI_V2_ASSET_SCHEMA_VERSION,
-        });
+        return Err(unsupported_schema_error(
+            document.asset.id,
+            document.asset.version,
+        ));
     }
-    Ok(())
+    Ok(document)
+}
+
+fn unsupported_schema_error(asset_id: String, version: u32) -> UiV2AssetError {
+    UiV2AssetError::UnsupportedSchemaVersion {
+        asset_id,
+        version,
+        expected: UI_V2_ASSET_SCHEMA_VERSION,
+    }
 }
 
 fn validate_zui_document_profile(document: &UiV2AssetDocument) -> Result<(), UiV2AssetError> {
@@ -142,3 +148,7 @@ fn validate_zui_style_profile(document: &UiV2AssetDocument) -> Result<(), UiV2As
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "loader/owned_schema_error_tests.rs"]
+mod owned_schema_error_tests;

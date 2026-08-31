@@ -4,6 +4,7 @@ mod category;
 mod context;
 mod error;
 mod event;
+mod event_journal;
 mod event_sink;
 mod id;
 mod job;
@@ -25,6 +26,9 @@ pub use category::{JobCategory, JobPriority};
 pub use context::JobContext;
 pub use error::{JobAdmissionKeyError, JobError, JobFailure, JobSubmitError, MutexGroupError};
 pub use event::{JobEvent, JobEventKind};
+pub use event_journal::{
+    EditorJobEventJournalGap, EditorJobEventJournalLimits, EditorJobEventJournalSnapshot,
+};
 pub use id::JobId;
 pub use job::EditorJob;
 pub use limits::{EditorJobAdmissionLimits, EditorJobAdmissionSnapshot, EditorJobLimits};

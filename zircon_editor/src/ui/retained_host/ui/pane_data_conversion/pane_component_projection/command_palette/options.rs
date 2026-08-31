@@ -16,7 +16,15 @@ pub(in crate::ui::retained_host::ui) fn projected_command_palette_options(
     component_role: &str,
     attributes: &BTreeMap<String, Value>,
 ) -> Option<Vec<String>> {
-    projected_command_palette_option_rows(component_role, attributes).map(|(options, _)| options)
+    if !is_command_palette(component_role) {
+        return None;
+    }
+    Some(
+        projected_command_entries(attributes)
+            .into_iter()
+            .map(|entry| entry.label)
+            .collect(),
+    )
 }
 
 pub(in crate::ui::retained_host::ui) fn projected_command_palette_structured_options(
@@ -66,3 +74,7 @@ pub(in crate::ui::retained_host::ui) fn projected_command_palette_option_rows(
 fn is_command_palette(component_role: &str) -> bool {
     component_role == "command-palette"
 }
+
+#[cfg(test)]
+#[path = "options/label_only_tests.rs"]
+mod label_only_tests;

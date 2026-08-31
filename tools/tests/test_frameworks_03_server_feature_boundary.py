@@ -25,6 +25,7 @@ RHI_BOUNDARY_TEST = (
     / "boundary.rs"
 )
 APP_MANIFEST = REPO_ROOT / "zircon_app" / "Cargo.toml"
+EDITOR_MANIFEST = REPO_ROOT / "zircon_editor" / "Cargo.toml"
 APP_PLUGIN_GROUPS = REPO_ROOT / "zircon_app" / "src" / "plugins" / "groups.rs"
 APP_PLUGIN_GROUP_RESOLUTION = (
     REPO_ROOT / "zircon_app" / "src" / "plugins" / "groups" / "resolution.rs"
@@ -306,6 +307,7 @@ class Frameworks03ServerFeatureBoundaryTests(unittest.TestCase):
         cls.root_source = RUNTIME_ROOT.read_text(encoding="utf-8")
         cls.rhi_boundary_test = RHI_BOUNDARY_TEST.read_text(encoding="utf-8")
         cls.app_manifest = tomllib.loads(APP_MANIFEST.read_text(encoding="utf-8"))
+        cls.editor_manifest = tomllib.loads(EDITOR_MANIFEST.read_text(encoding="utf-8"))
         cls.app_plugin_groups = APP_PLUGIN_GROUPS.read_text(encoding="utf-8")
         cls.app_plugin_group_resolution = APP_PLUGIN_GROUP_RESOLUTION.read_text(
             encoding="utf-8"
@@ -506,6 +508,45 @@ class Frameworks03ServerFeatureBoundaryTests(unittest.TestCase):
             ("target-editor-host",),
         )
         self.assertIn("zircon_editor", editor_packages)
+
+    def test_editor_host_closure_does_not_enable_runtime_client_default(self) -> None:
+        editor_runtime = self.editor_manifest["dependencies"]["zircon_runtime"]
+        self.assertIsInstance(editor_runtime, dict)
+        self.assertFalse(
+            editor_runtime.get("default-features", True),
+            "zircon_editor must not enable zircon_runtime's target-client default",
+        )
+
+        reachable_features, reachable_packages = reachable_feature_graph(
+            APP_MANIFEST,
+            ("target-editor-host",),
+        )
+        self.assertIn("zircon_editor", reachable_packages)
+        self.assertIn(("zircon_runtime", "target-editor-host"), reachable_features)
+        self.assertNotIn(("zircon_runtime", "target-client"), reachable_features)
+
+    def test_product_profiles_resolve_exactly_one_role_per_package(self) -> None:
+        product_roles = {
+            "target-client",
+            "target-server",
+            "target-editor-host",
+        }
+        for requested_profile in sorted(product_roles):
+            reachable_features, _ = reachable_feature_graph(
+                APP_MANIFEST,
+                (requested_profile,),
+            )
+            for package in ("zircon_app", "zircon_runtime"):
+                actual_roles = {
+                    feature
+                    for feature_package, feature in reachable_features
+                    if feature_package == package and feature in product_roles
+                }
+                self.assertEqual(
+                    actual_roles,
+                    {requested_profile},
+                    f"{package} {requested_profile} must resolve exactly one product role",
+                )
 
     def test_feature_closure_follows_activated_local_path_dependencies(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -271,6 +271,7 @@ class RetentionService:
 
     def recover_interrupted(self) -> tuple[str, ...]:
         """Restore pre-commit GC quarantine and discard post-commit residue."""
+        self.object_store.reconcile_orphan_files()
         trash_parent = self.object_store.root.parent / "gc-trash"
         if not trash_parent.is_dir():
             return ()
@@ -330,9 +331,16 @@ class RetentionService:
                 """
                 SELECT snapshots.snapshot_id, snapshots.manifest_json,
                        snapshots.created_at AS snapshot_created_at,
-                       sessions.status, sessions.completed_at, sessions.archived_at
+                       sessions.status, sessions.completed_at, sessions.archived_at,
+                       active_ticket.ticket_id AS active_validation_ticket_id
                 FROM snapshots
                 JOIN sessions ON sessions.session_id = snapshots.session_id
+                LEFT JOIN validation_tickets AS active_ticket
+                  ON snapshots.purpose IN (
+                       'validation-ticket-source:' || active_ticket.ticket_id,
+                       'validation-ticket-external:' || active_ticket.ticket_id
+                  )
+                 AND active_ticket.status IN ('queued', 'materializing', 'running')
                 ORDER BY snapshots.snapshot_id
                 """
         ).fetchall()
@@ -344,7 +352,9 @@ class RetentionService:
             status = row["status"]
             snapshot_created_at = datetime.fromisoformat(row["snapshot_created_at"])
             expired = False
-            if status == "archived" and row["archived_at"]:
+            if row["active_validation_ticket_id"] is not None:
+                expired = False
+            elif status == "archived" and row["archived_at"]:
                 expired = (
                     datetime.fromisoformat(row["archived_at"]) <= archived_cutoff
                     and snapshot_created_at <= archived_cutoff
@@ -1291,6 +1301,7 @@ class CleanupService:
             if not reserved:
                 continue
             deletion_error: BaseException | None = None
+            target_deleted = False
             try:
                 if not target.exists():
                     denied.append(
@@ -1299,6 +1310,7 @@ class CleanupService:
                 else:
                     shutil.rmtree(target)
                     deleted.append(target_text)
+                    target_deleted = True
             except BaseException as error:
                 deletion_error = error
                 if isinstance(error, OSError):
@@ -1315,7 +1327,7 @@ class CleanupService:
                                WHERE target_key = ? AND reservation_kind='cargo'""",
                             (key,),
                         )
-                    if deletion_error is None and target_text in deleted:
+                    if deletion_error is None and target_deleted:
                         connection.execute(
                             """
                             UPDATE cargo_jobs SET cleanup_status='deleted', cleanup_error=NULL
@@ -1335,7 +1347,7 @@ class CleanupService:
                         "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
                         (
                             "cleanup.cargo_lane_deleted"
-                            if deletion_error is None and target_text in deleted
+                            if deletion_error is None and target_deleted
                             else "cleanup.cargo_lane_retained",
                             json.dumps(
                                 {
@@ -1352,7 +1364,7 @@ class CleanupService:
                         deletion_evidence,
                         result=(
                             "deleted"
-                            if deletion_error is None and target_text in deleted
+                            if deletion_error is None and target_deleted
                             else "failed" if deletion_error is not None else "retained"
                         ),
                         error=str(deletion_error) if deletion_error else None,

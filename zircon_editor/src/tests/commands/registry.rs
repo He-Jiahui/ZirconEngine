@@ -14,7 +14,6 @@ fn command_registry_rejects_duplicate_operation_path_ids() {
     let descriptor = || {
         EditorCommandDescriptor::new(
             id.clone(),
-            "Duplicate",
             EditorCommandCategory::Command,
             EditorCommandAction::Emit(EditorEvent::Transient(
                 EditorEventTransient::OpenCommandPalette,

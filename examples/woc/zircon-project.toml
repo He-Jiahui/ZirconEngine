@@ -1,5 +1,6 @@
 name = "World of Claudecraft"
-format_version = 1
+format_version = 3
+project_guid = "28be8619-648f-45e4-9513-e02fb909ea9c"
 default_scene = "res://scenes/bootstrap.scene.toml"
 library_version = 3
 

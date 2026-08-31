@@ -6,9 +6,11 @@ use super::super::{
     PlayPendingEditDecisionAdapter, PlayPendingEditDecisionOutcome,
     PLAY_PENDING_EDITS_APPLY_OPTION, PLAY_PENDING_EDITS_DISCARD_OPTION,
 };
+use super::support::first_pending_selection;
 use crate::core::i18n::{EditorI18nService, EditorLocale};
 use crate::core::notifications::{DecisionCenterConfig, DecisionNotificationCenter};
 use crate::core::play::{PendingEditDecisionPrompt, PendingEditQueueSummary};
+use crate::ui::activity::activity_decision_options;
 
 #[test]
 fn publishes_one_decision_with_stable_apply_and_discard_rows() {
@@ -30,19 +32,27 @@ fn publishes_one_decision_with_stable_apply_and_discard_rows() {
         .expect("repeated lifecycle observation should reuse the decision");
 
     assert_eq!(center.pending_snapshot().len(), 1);
-    let options = adapter.pending_options(&center, &i18n);
+    let options = activity_decision_options(&center.pending_snapshot(), &i18n);
     assert_eq!(options.len(), 2);
     assert_eq!(
-        options[0].option_id().as_str(),
+        options[0]
+            .selection_id()
+            .selection()
+            .unwrap()
+            .option_id()
+            .as_str(),
         PLAY_PENDING_EDITS_APPLY_OPTION
     );
     assert_eq!(
-        options[1].option_id().as_str(),
+        options[1]
+            .selection_id()
+            .selection()
+            .unwrap()
+            .option_id()
+            .as_str(),
         PLAY_PENDING_EDITS_DISCARD_OPTION
     );
     assert_ne!(options[0].selection_id(), options[1].selection_id());
-    assert!(adapter.selection(options[0].selection_id()).is_some());
-    assert!(adapter.selection(options[1].selection_id()).is_some());
 }
 
 #[test]
@@ -90,7 +100,7 @@ fn concurrent_prompt_publication_keeps_one_pending_decision() {
 }
 
 #[test]
-fn pending_options_reproject_core_decision_when_locale_changes() {
+fn activity_projection_reprojects_core_decision_when_locale_changes() {
     let center = DecisionNotificationCenter::new(DecisionCenterConfig::default())
         .expect("decision center should construct");
     let adapter = PlayPendingEditDecisionAdapter::default();
@@ -104,9 +114,9 @@ fn pending_options_reproject_core_decision_when_locale_changes() {
     adapter
         .publish(&center, &prompt)
         .expect("pending edits should publish a decision");
-    let english = adapter.pending_options(&center, &i18n);
-    let ticket = english[0].selection().ticket().clone();
-    let selection_id = english[0].selection_id().to_string();
+    let english = activity_decision_options(&center.pending_snapshot(), &i18n);
+    let (ticket, option) = first_pending_selection(&center);
+    let selection_id = english[0].selection_id().as_str().to_string();
     assert_eq!(english[0].title(), "Unsaved changes");
     assert_eq!(
         english[0].message(),
@@ -115,11 +125,10 @@ fn pending_options_reproject_core_decision_when_locale_changes() {
 
     i18n.set_active_locale(EditorLocale::parse("zh-CN").unwrap())
         .unwrap();
-    let chinese = adapter.pending_options(&center, &i18n);
+    let chinese = activity_decision_options(&center.pending_snapshot(), &i18n);
 
     assert_eq!(chinese.len(), 2);
-    assert_eq!(chinese[0].selection_id(), selection_id);
-    assert_eq!(chinese[0].selection().ticket(), &ticket);
+    assert_eq!(chinese[0].selection_id().as_str(), selection_id);
     assert_eq!(chinese[0].title(), "未保存的更改");
     assert_eq!(
         chinese[0].message(),
@@ -127,19 +136,18 @@ fn pending_options_reproject_core_decision_when_locale_changes() {
     );
     assert_eq!(center.pending_snapshot()[0].ticket(), &ticket);
 
-    let resolved = adapter
-        .resolve(&center, &selection_id)
+    let resolved = center
+        .resolve(&ticket, &option)
         .expect("localized presentation must preserve the actionable receipt route");
     assert!(resolved.newly_resolved());
     assert_eq!(resolved.receipt().ticket(), &ticket);
 }
 
 #[test]
-fn receipt_selection_remains_addressable_for_idempotent_resolution() {
+fn core_receipt_remains_idempotent_without_a_play_selection_map() {
     let center = DecisionNotificationCenter::new(DecisionCenterConfig::default())
         .expect("decision center should construct");
     let adapter = PlayPendingEditDecisionAdapter::default();
-    let i18n = EditorI18nService::default();
 
     adapter
         .publish(
@@ -151,22 +159,17 @@ fn receipt_selection_remains_addressable_for_idempotent_resolution() {
             }),
         )
         .expect("pending edits should publish a decision");
-    let option = adapter
-        .pending_options(&center, &i18n)
-        .into_iter()
-        .next()
-        .expect("apply option should be available");
-    let first = adapter
-        .resolve(&center, option.selection_id())
+    let (ticket, option) = first_pending_selection(&center);
+    let first = center
+        .resolve(&ticket, &option)
         .expect("first selection should resolve");
-    let repeated = adapter
-        .resolve(&center, option.selection_id())
+    let repeated = center
+        .resolve(&ticket, &option)
         .expect("repeated selection should return the same receipt");
 
     assert!(first.newly_resolved());
     assert!(!repeated.newly_resolved());
     assert_eq!(first.receipt(), repeated.receipt());
-    assert!(adapter.selection(option.selection_id()).is_some());
 }
 
 #[test]
@@ -174,7 +177,6 @@ fn resolved_receipt_is_not_republished_until_the_adapter_consumes_it() {
     let center = DecisionNotificationCenter::new(DecisionCenterConfig::default())
         .expect("decision center should construct");
     let adapter = PlayPendingEditDecisionAdapter::default();
-    let i18n = EditorI18nService::default();
     let prompt = PendingEditDecisionPrompt::new(PendingEditQueueSummary {
         pending_count: 1,
         payload_bytes: 128,
@@ -184,14 +186,9 @@ fn resolved_receipt_is_not_republished_until_the_adapter_consumes_it() {
     adapter
         .publish(&center, &prompt)
         .expect("pending edits should publish a decision");
-    let selection = adapter
-        .pending_options(&center, &i18n)
-        .into_iter()
-        .next()
-        .expect("apply option should be available")
-        .selection();
+    let (ticket, option) = first_pending_selection(&center);
     center
-        .resolve(selection.ticket(), selection.option_id())
+        .resolve(&ticket, &option)
         .expect("headless receipt should resolve the original Decision");
 
     adapter

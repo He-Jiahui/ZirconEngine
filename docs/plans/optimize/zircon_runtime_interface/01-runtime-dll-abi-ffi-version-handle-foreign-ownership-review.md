@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime_interface/src/runtime_api
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/handles.rs

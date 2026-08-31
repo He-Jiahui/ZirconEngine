@@ -10,12 +10,15 @@ use serde::{Serialize, Serializer};
 use super::binary::encode_binary_payload;
 use super::text::{
     canonical_writer::{
-        write_canonical_text, write_canonical_text_unbounded, SERDE_JSON_RAW_VALUE_TOKEN,
+        write_canonical_text, write_canonical_text_with_budget, SERDE_JSON_RAW_VALUE_TOKEN,
     },
     document::TextDocument,
     envelope::TextEnvelope,
 };
-use super::{CanonicalTextWriteError, Format, PayloadHeader, VersionedSchema, WriteError};
+use super::{
+    CanonicalTextWriteError, Format, PayloadHeader, SerializationBudget, VersionedSchema,
+    WriteError,
+};
 
 /// Encodes a payload with the current schema header and canonical text rules.
 pub fn write_versioned<T>(value: &T, format: Format) -> Result<Vec<u8>, WriteError>
@@ -88,6 +91,17 @@ where
                 found,
             }
         }
+        CanonicalTextWriteError::ResourceLimitExceeded {
+            resource,
+            max,
+            found,
+        } => WriteError::TextResourceLimitExceeded {
+            schema_id: T::SCHEMA.as_str().to_string(),
+            schema_version: T::VERSION,
+            resource,
+            max,
+            found,
+        },
         CanonicalTextWriteError::Io { operation, source } => WriteError::TextWrite {
             schema_id: T::SCHEMA.as_str().to_string(),
             schema_version: T::VERSION,
@@ -104,12 +118,13 @@ where
 pub fn write_canonical_text_to<T, W>(
     value: &T,
     sink: &mut W,
+    budget: SerializationBudget,
 ) -> Result<usize, CanonicalTextWriteError>
 where
     T: ?Sized + Serialize,
     W: Write + ?Sized,
 {
-    write_canonical_text_unbounded(value, sink)
+    write_canonical_text_with_budget(value, sink, budget)
 }
 
 fn encode_binary_payload_value<T>(value: &T) -> Result<serde_json::Value, WriteError>

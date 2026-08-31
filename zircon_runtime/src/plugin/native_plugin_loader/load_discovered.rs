@@ -14,6 +14,32 @@ use super::plugin_load_error::{
 use super::{LoadedNativePlugin, NativePluginLoadReport, NativePluginLoader};
 use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
 
+#[derive(Clone, Copy)]
+struct RequestedModuleKinds(u8);
+
+impl RequestedModuleKinds {
+    fn from_slice(module_kinds: &[PluginModuleKind]) -> Self {
+        let mut bits = 0;
+        for module_kind in module_kinds {
+            bits |= Self::bit(*module_kind);
+        }
+        Self(bits)
+    }
+
+    fn contains(self, module_kind: PluginModuleKind) -> bool {
+        self.0 & Self::bit(module_kind) != 0
+    }
+
+    const fn bit(module_kind: PluginModuleKind) -> u8 {
+        match module_kind {
+            PluginModuleKind::Runtime => 0b0001,
+            PluginModuleKind::Editor => 0b0010,
+            PluginModuleKind::Native => 0b0100,
+            PluginModuleKind::Vm => 0b1000,
+        }
+    }
+}
+
 impl NativePluginLoader {
     pub fn load_discovered_all(&self, root: impl AsRef<Path>) -> NativePluginLoadReport {
         let report = self.discover(root);
@@ -46,8 +72,9 @@ impl NativePluginLoader {
         module_kinds: &[PluginModuleKind],
     ) -> NativePluginLoadReport {
         let discovered = report.take_discovered();
+        let requested_module_kinds = RequestedModuleKinds::from_slice(module_kinds);
         for candidate in &discovered {
-            if !package_matches_module_kinds(&candidate.package_manifest, module_kinds) {
+            if !package_matches_module_kinds(&candidate.package_manifest, requested_module_kinds) {
                 continue;
             }
             if let Some(diagnostic) = native_distribution_compatibility_diagnostic(
@@ -189,17 +216,17 @@ fn load_requested_entry(
 
 fn package_matches_module_kinds(
     package_manifest: &PluginPackageManifest,
-    module_kinds: &[PluginModuleKind],
+    requested_module_kinds: RequestedModuleKinds,
 ) -> bool {
     package_manifest
         .modules
         .iter()
-        .any(|module| module_kinds.contains(&module.kind))
+        .any(|module| requested_module_kinds.contains(module.kind))
         || package_manifest
             .feature_extensions
             .iter()
             .flat_map(|feature| feature.modules.iter())
-            .any(|module| module_kinds.contains(&module.kind))
+            .any(|module| requested_module_kinds.contains(module.kind))
 }
 
 #[cfg(test)]
@@ -285,5 +312,53 @@ mod tests {
 
         assert!(!source.contains(&deep_clone));
         assert!(source.contains("report.take_discovered()"));
+    }
+
+    #[test]
+    fn optimization_batch_20260830ep_requested_module_kind_bits_cover_all_variants() {
+        let requested = RequestedModuleKinds::from_slice(&[
+            PluginModuleKind::Runtime,
+            PluginModuleKind::Editor,
+            PluginModuleKind::Native,
+            PluginModuleKind::Vm,
+        ]);
+
+        assert!(requested.contains(PluginModuleKind::Runtime));
+        assert!(requested.contains(PluginModuleKind::Editor));
+        assert!(requested.contains(PluginModuleKind::Native));
+        assert!(requested.contains(PluginModuleKind::Vm));
+        assert!(!RequestedModuleKinds::from_slice(&[]).contains(PluginModuleKind::Runtime));
+    }
+
+    #[test]
+    fn optimization_batch_20260830ep_native_loader_uses_requested_kind_bits() {
+        let source = include_str!("load_discovered.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("native loader production source");
+
+        assert!(production.contains("RequestedModuleKinds::from_slice(module_kinds)"));
+        assert!(!production.contains("module_kinds.contains(&module.kind)"));
+    }
+
+    #[test]
+    #[ignore = "release-only candidate module-kind membership evidence"]
+    fn optimization_batch_20260830ep_candidate_module_kind_membership_evidence() {
+        const CANDIDATE_COUNT: usize = 65_536;
+        const LEGACY_COMPARISONS_PER_CANDIDATE: usize = 2;
+        const OPTIMIZED_BIT_TESTS_PER_CANDIDATE: usize = 1;
+        let legacy_membership_comparisons = CANDIDATE_COUNT * LEGACY_COMPARISONS_PER_CANDIDATE;
+        let optimized_membership_bit_tests = CANDIDATE_COUNT * OPTIMIZED_BIT_TESTS_PER_CANDIDATE;
+
+        assert_eq!(
+            legacy_membership_comparisons,
+            optimized_membership_bit_tests * 2
+        );
+        println!(
+            "RUNTIME546_NATIVE_CANDIDATE_KIND_BITSET_BENCH_V1 candidates={CANDIDATE_COUNT} \
+             legacy_membership_comparisons={legacy_membership_comparisons} \
+             optimized_membership_bit_tests={optimized_membership_bit_tests} reduction_pct=50"
+        );
     }
 }

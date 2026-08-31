@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/11
 fixing_child_dir: docs/plans/zircon_runtime/runtime/10
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime_interface/src/runtime_api/operation.rs
+  - zircon_runtime_interface/src/runtime_api/session/operation.rs
   - zircon_runtime/src/dynamic_api/session/operation.rs
   - zircon_runtime/src/operation
   - zircon_runtime/src/navigation/operation/handler.rs

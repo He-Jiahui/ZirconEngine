@@ -13,6 +13,12 @@ pub enum CanonicalTextWriteError {
     PayloadEncode { reason: String },
     #[error("canonical text exceeds the {max}-byte wire limit (found at least {found} bytes)")]
     OutputTooLarge { max: usize, found: usize },
+    #[error("canonical text {resource} exceeds the limit {max} (found {found})")]
+    ResourceLimitExceeded {
+        resource: &'static str,
+        max: usize,
+        found: usize,
+    },
     #[error("canonical text {operation} failed: {source}")]
     Io {
         operation: &'static str,
@@ -60,6 +66,16 @@ pub enum WriteError {
     TextDocumentTooLarge {
         schema_id: String,
         schema_version: u32,
+        max: usize,
+        found: usize,
+    },
+    #[error(
+        "schema {schema_id} version {schema_version} canonical text {resource} exceeds the limit {max} (found {found})"
+    )]
+    TextResourceLimitExceeded {
+        schema_id: String,
+        schema_version: u32,
+        resource: &'static str,
         max: usize,
         found: usize,
     },

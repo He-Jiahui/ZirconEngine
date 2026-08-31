@@ -16,6 +16,7 @@ pub use layout::{ToolkitArea, ToolkitAreaSlot, ToolkitLayout, ToolkitLayoutError
 pub use registry::DocumentToolkitRegistry;
 pub use registry_error::ToolkitRegistryError;
 pub use save::{DocumentSaveReport, SaveContextError, SaveCtx, SaveError, SaveReason};
+pub(crate) use save::{DocumentSourceWritePublication, DocumentSourceWriteReceipt};
 pub use snapshot::DocumentToolkitSnapshot;
 
 #[cfg(test)]

@@ -8,9 +8,10 @@ use crate::core::editor_operation::EditorOperationPath;
 
 use super::io::PreparedSettingsWrite;
 use super::{
-    SettingChange, SettingValue, SettingsChangeCursor, SettingsChangeDelta, SettingsError,
-    SettingsKey, SettingsLoad, SettingsRegistry, SettingsScope, SettingsSnapshot, SettingsStore,
-    SettingsStoreError, SettingsUserLayerLoad,
+    ResolvedSettingSnapshot, ResolvedSettingsBatch, SettingChange, SettingValue,
+    SettingsChangeCursor, SettingsChangeDelta, SettingsError, SettingsKey, SettingsLoad,
+    SettingsRegistry, SettingsScope, SettingsSnapshot, SettingsStore, SettingsStoreError,
+    SettingsUserLayerLoad,
 };
 
 /// Consumes published settings changes after the authority has released its mutable state lock.
@@ -96,6 +97,29 @@ impl SettingsAuthority {
 
     pub fn user_layer_load(&self) -> Option<&SettingsUserLayerLoad> {
         self.user_layer_load.as_ref()
+    }
+
+    /// Reads one effective setting without cloning the registry or its immutable catalog.
+    pub fn resolved_setting(
+        &self,
+        key: &SettingsKey,
+    ) -> Result<ResolvedSettingSnapshot, SettingsError> {
+        let state = self.lock_state();
+        let (value, source) = state.registry.resolve_with_source(key)?;
+        Ok(ResolvedSettingSnapshot::new(
+            state.registry.revision,
+            value.clone(),
+            source,
+        ))
+    }
+
+    /// Reads a selected set of effective values under one lock and one exact generation.
+    pub fn resolved_settings(
+        &self,
+        keys: &[SettingsKey],
+    ) -> Result<ResolvedSettingsBatch, SettingsError> {
+        let state = self.lock_state();
+        ResolvedSettingsBatch::from_registry(&state.registry, keys)
     }
 
     /// Configures the one contextual hot-apply subscriber for this authority.

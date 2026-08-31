@@ -15,23 +15,33 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn inspect
 
     let label = node.text.trim();
     let value = node.value_text.trim();
-    if label.eq_ignore_ascii_case("Lighting") && value.is_empty() {
-        return Some(InspectorRowKind::Disclosure);
+    inspector_row_kind_from_text(label, value)
+}
+
+fn inspector_row_kind_from_text(label: &str, value: &str) -> Option<InspectorRowKind> {
+    if value.is_empty() {
+        return label
+            .eq_ignore_ascii_case("Lighting")
+            .then_some(InspectorRowKind::Disclosure);
     }
-    if label.eq_ignore_ascii_case("Mesh") && !value.is_empty() {
+    if label.eq_ignore_ascii_case("Mesh") {
         return Some(InspectorRowKind::Resource(InspectorResourceKind::Mesh));
     }
-    if matches_ignore_ascii_case(label, &["Material", "Materials"]) && !value.is_empty() {
+    if matches_ignore_ascii_case(label, &["Material", "Materials"]) {
         return Some(InspectorRowKind::Resource(InspectorResourceKind::Material));
     }
-    if label.eq_ignore_ascii_case("Cast Shadows") && !value.is_empty() {
+    if label.eq_ignore_ascii_case("Cast Shadows") {
         return Some(InspectorRowKind::ShadowSelect);
     }
-    if label.eq_ignore_ascii_case("Receive Shadows") && !value.is_empty() {
+    if label.eq_ignore_ascii_case("Receive Shadows") {
         return Some(InspectorRowKind::ShadowCheck);
     }
     None
 }
+
+#[cfg(test)]
+#[path = "classifier/empty_value_short_circuit_tests.rs"]
+mod empty_value_short_circuit_tests;
 
 fn is_inspector_property_row(node: &TemplatePaneNodeData) -> bool {
     matches!(

@@ -1,15 +1,15 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiClipboardRequest, UiClipboardRequestKind, UiDispatchEffect, UiInputMethodRequest,
-        UiInputMethodRequestKind,
+        UiClipboardRequest, UiClipboardRequestKind, UiClipboardTransferIntent, UiDispatchEffect,
+        UiInputMethodRequest, UiInputMethodRequestKind,
     },
     event_ui::UiNodeId,
 };
 
 use super::super::super::surface::UiSurface;
 use super::super::{
-    require_valid_input_owner, text_state::editable_text_input_is_secure,
-    UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
+    UiSurfaceInputEffectError, UiSurfaceInputEffectResult, require_valid_input_owner,
+    text_state::editable_text_input_is_secure,
 };
 
 pub(super) fn apply_text_service_effect(
@@ -68,9 +68,30 @@ fn apply_clipboard_request(
     request: &UiClipboardRequest,
 ) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     require_valid_input_owner(surface, request.owner)?;
+    if !request.transfer_id.is_valid() {
+        return Err(UiSurfaceInputEffectError::ClipboardTransferIdMissing);
+    }
+    let intent_matches_kind = matches!(
+        (request.intent, request.kind),
+        (
+            UiClipboardTransferIntent::Copy | UiClipboardTransferIntent::Cut,
+            UiClipboardRequestKind::WriteText
+        ) | (
+            UiClipboardTransferIntent::Paste,
+            UiClipboardRequestKind::ReadText
+        )
+    );
+    if !intent_matches_kind {
+        return Err(UiSurfaceInputEffectError::ClipboardTransferIntentMismatch);
+    }
     match request.kind {
         UiClipboardRequestKind::ReadText if request.text.is_some() => {
             Err(UiSurfaceInputEffectError::ClipboardReadRequestCarriesText)
+        }
+        UiClipboardRequestKind::WriteText
+            if editable_text_input_is_secure(surface, request.owner) =>
+        {
+            Err(UiSurfaceInputEffectError::ClipboardWriteDisabledForSecureTextInput)
         }
         UiClipboardRequestKind::WriteText if request.text.is_none() => {
             Err(UiSurfaceInputEffectError::ClipboardWriteRequestMissingText)

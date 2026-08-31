@@ -11,7 +11,8 @@ use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     template::{
-        UiActionRef, UiAssetDocument, UiBindingRef, UiNodeDefinition, UiNodeDefinitionKind,
+        UiActionPayloadFieldName, UiActionRef, UiAssetDocument, UiBindingRef,
+        UiBindingSchemaNameKind, UiNodeDefinition, UiNodeDefinitionKind,
     },
 };
 
@@ -53,6 +54,8 @@ enum UiBindingActionKind {
 }
 
 impl UiBindingActionKind {
+    const ALL: [Self; 3] = [Self::None, Self::Route, Self::Action];
+
     fn label(self) -> &'static str {
         match self {
             Self::None => "None",
@@ -62,7 +65,7 @@ impl UiBindingActionKind {
     }
 
     fn all_labels() -> Vec<String> {
-        [Self::None, Self::Route, Self::Action]
+        Self::ALL
             .into_iter()
             .map(|kind| kind.label().to_string())
             .collect()
@@ -74,6 +77,14 @@ impl UiBindingActionKind {
             "Route" => Some(Self::Route),
             "Action" => Some(Self::Action),
             _ => None,
+        }
+    }
+
+    fn schema_name_kind(self) -> Option<UiBindingSchemaNameKind> {
+        match self {
+            Self::None => None,
+            Self::Route => Some(UiBindingSchemaNameKind::Route),
+            Self::Action => Some(UiBindingSchemaNameKind::Action),
         }
     }
 }
@@ -211,6 +222,81 @@ pub(crate) fn build_binding_fields(
     fields
 }
 
+pub(crate) fn selected_binding_count(
+    document: &UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+) -> usize {
+    selected_node(document, selection).map_or(0, |node| node.bindings.len())
+}
+
+pub(crate) fn binding_event_option(index: usize) -> Option<&'static str> {
+    BINDING_EVENT_ORDER
+        .get(index)
+        .map(|event| event.native_name())
+}
+
+pub(crate) fn binding_action_kind_option(index: usize) -> Option<&'static str> {
+    UiBindingActionKind::ALL.get(index).map(|kind| kind.label())
+}
+
+pub(crate) fn selected_binding_route_suggestion(
+    document: &UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+    selected_index: Option<usize>,
+    suggestion_index: usize,
+) -> Option<String> {
+    let node = selected_node(document, selection)?;
+    let index = selected_binding_index_for_node(node, selected_index)?;
+    let binding = node.bindings.get(index)?;
+    binding_route_suggestions(node, binding)
+        .into_iter()
+        .nth(suggestion_index)
+}
+
+pub(crate) fn selected_binding_action_suggestion(
+    document: &UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+    selected_index: Option<usize>,
+    suggestion_index: usize,
+) -> Option<String> {
+    let node = selected_node(document, selection)?;
+    let index = selected_binding_index_for_node(node, selected_index)?;
+    let binding = node.bindings.get(index)?;
+    binding_action_suggestions(node, binding)
+        .into_iter()
+        .nth(suggestion_index)
+}
+
+pub(crate) fn selected_binding_payload_key(
+    document: &UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+    selected_index: Option<usize>,
+    item_index: usize,
+) -> Option<String> {
+    let node = selected_node(document, selection)?;
+    let index = selected_binding_index_for_node(node, selected_index)?;
+    let binding = node.bindings.get(index)?;
+    binding_payload_item_entries(binding)
+        .into_iter()
+        .nth(item_index)
+        .map(|(key, _)| key)
+}
+
+pub(crate) fn selected_binding_payload_suggestion(
+    document: &UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+    selected_index: Option<usize>,
+    selected_payload_key: Option<&str>,
+    suggestion_index: usize,
+) -> Option<(String, Value)> {
+    let node = selected_node(document, selection)?;
+    let index = selected_binding_index_for_node(node, selected_index)?;
+    let binding = node.bindings.get(index)?;
+    binding_payload_suggestions(binding, selected_payload_key)
+        .into_iter()
+        .nth(suggestion_index)
+}
+
 pub(crate) fn reconcile_selected_binding_index(
     document: &UiAssetDocument,
     selection: &UiDesignerSelectionModel,
@@ -241,8 +327,10 @@ pub(crate) fn add_default_binding(
     let node = editable_selected_node_mut(document, selection)?;
     let next_index = node.bindings.len();
     node.bindings.push(UiBindingRef {
+        component_event: None,
         id: default_id,
         event: UiEventKind::Click,
+        mode: Default::default(),
         route: None,
         action: None,
         targets: Vec::new(),
@@ -332,7 +420,9 @@ pub(crate) fn set_selected_binding_action_kind(
     apply_binding_action_state(
         binding,
         next_kind,
-        normalized_binding_target(&current_target),
+        next_kind
+            .schema_name_kind()
+            .and_then(|kind| normalized_binding_target(&current_target, kind)),
         payload,
     );
     *binding != previous
@@ -372,7 +462,7 @@ pub(crate) fn set_selected_binding_route_target(
     apply_binding_action_state(
         binding,
         UiBindingActionKind::Route,
-        normalized_binding_target(value),
+        normalized_binding_target(value, UiBindingSchemaNameKind::Route),
         payload,
     );
     *binding != previous
@@ -394,7 +484,7 @@ pub(crate) fn set_selected_binding_action_target(
     apply_binding_action_state(
         binding,
         UiBindingActionKind::Action,
-        normalized_binding_target(value),
+        normalized_binding_target(value, UiBindingSchemaNameKind::Action),
         payload,
     );
     *binding != previous
@@ -472,81 +562,6 @@ pub(crate) fn delete_selected_binding_payload(
         compact_binding_action(binding);
     }
     removed
-}
-
-pub(crate) fn apply_selected_binding_payload_suggestion(
-    document: &mut UiAssetDocument,
-    selection: &UiDesignerSelectionModel,
-    selected_index: Option<usize>,
-    selected_payload_key: Option<&str>,
-    suggestion_index: usize,
-) -> Option<String> {
-    let Some((payload_key, payload_value)) = selected_node(document, selection).and_then(|node| {
-        let index = selected_binding_index_for_node(node, selected_index)?;
-        let binding = node.bindings.get(index)?;
-        binding_payload_suggestions(binding, selected_payload_key)
-            .into_iter()
-            .nth(suggestion_index)
-    }) else {
-        return None;
-    };
-
-    upsert_selected_binding_payload(
-        document,
-        selection,
-        selected_index,
-        selected_payload_key,
-        &payload_key,
-        &payload_value.to_string(),
-    )
-}
-
-pub(crate) fn apply_selected_binding_route_suggestion(
-    document: &mut UiAssetDocument,
-    selection: &UiDesignerSelectionModel,
-    selected_index: Option<usize>,
-    suggestion_index: usize,
-) -> bool {
-    let Some(node) = selected_node(document, selection) else {
-        return false;
-    };
-    let Some(index) = selected_binding_index_for_node(node, selected_index) else {
-        return false;
-    };
-    let Some(binding) = node.bindings.get(index) else {
-        return false;
-    };
-    let Some(target) = binding_route_suggestions(node, binding)
-        .into_iter()
-        .nth(suggestion_index)
-    else {
-        return false;
-    };
-    set_selected_binding_route_target(document, selection, selected_index, &target)
-}
-
-pub(crate) fn apply_selected_binding_action_suggestion(
-    document: &mut UiAssetDocument,
-    selection: &UiDesignerSelectionModel,
-    selected_index: Option<usize>,
-    suggestion_index: usize,
-) -> bool {
-    let Some(node) = selected_node(document, selection) else {
-        return false;
-    };
-    let Some(index) = selected_binding_index_for_node(node, selected_index) else {
-        return false;
-    };
-    let Some(binding) = node.bindings.get(index) else {
-        return false;
-    };
-    let Some(target) = binding_action_suggestions(node, binding)
-        .into_iter()
-        .nth(suggestion_index)
-    else {
-        return false;
-    };
-    set_selected_binding_action_target(document, selection, selected_index, &target)
 }
 
 fn selected_node<'a>(
@@ -692,23 +707,21 @@ fn binding_payload_map(binding: &UiBindingRef) -> BTreeMap<String, Value> {
         .unwrap_or_default()
 }
 
-fn binding_payload_entries(binding: &UiBindingRef) -> Vec<(String, Value)> {
+fn binding_payload_entries<'a>(
+    binding: &'a UiBindingRef,
+) -> impl Iterator<Item = (&'a String, &'a Value)> {
     binding
         .action
-        .as_ref()
-        .map(|action| {
-            action
-                .payload
-                .iter()
-                .map(|(key, value)| (key.clone(), value.clone()))
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default()
+        .iter()
+        .flat_map(|action| action.payload.iter())
 }
 
-fn binding_payload_item_entries(binding: &UiBindingRef) -> Vec<(String, Value)> {
-    let payload_root = binding_payload_root_value(binding);
+fn binding_payload_item_entries<'a>(binding: &'a UiBindingRef) -> Vec<(String, &'a Value)> {
     let mut entries = Vec::new();
-    collect_binding_payload_item_entries(&payload_root, None, &mut entries);
+    if let Some(action) = binding.action.as_ref() {
+        for (key, value) in &action.payload {
+            collect_binding_payload_item_entries(value, Some(key.as_str()), &mut entries);
+        }
+    }
     entries
 }

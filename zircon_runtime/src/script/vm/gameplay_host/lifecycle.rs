@@ -20,16 +20,20 @@ pub(super) fn spawn_empty(
     let position = expect_vec3_json(context, 1)?;
     let runtime = runtime_context_for_frame(context)?;
     with_string(context, 0, |name: &str| {
-        let entity = runtime.level.with_world_mut(|world| {
-            let entity = world.spawn_node(NodeKind::Empty);
-            let mut transform = Transform::default();
-            transform.translation = position;
-            let _ = world.update_transform(entity, transform);
-            ScriptHostHotPathMetrics::record_guest_string_copy(name.len());
-            let _ = world.insert(entity, crate::scene::components::Name(name.to_owned()));
-            entity
-        });
-        Ok(ScriptHostValue::Int(entity as i64))
+        let entity = runtime
+            .level
+            .with_world_mut(|world| -> GameplayHostResult<u64> {
+                let entity = world.spawn_node(NodeKind::Empty)?;
+                let mut transform = Transform::default();
+                transform.translation = position;
+                world.update_transform(entity, transform)?;
+                ScriptHostHotPathMetrics::record_guest_string_copy(name.len());
+                world.insert(entity, crate::scene::components::Name(name.to_owned()))?;
+                Ok(entity)
+            });
+        entity
+            .map(|entity| ScriptHostValue::Int(entity as i64))
+            .map_err(ScriptHostError::from)
     })
 }
 
@@ -48,7 +52,7 @@ pub(super) fn spawn_model(
                     let entity = runtime
                         .level
                         .with_world_mut(|world| -> GameplayHostResult<u64> {
-                            let entity = world.spawn_node(NodeKind::Mesh);
+                            let entity = world.spawn_node(NodeKind::Mesh)?;
                             let mut transform = Transform::default();
                             transform.translation = position;
                             world.update_transform(entity, transform)?;

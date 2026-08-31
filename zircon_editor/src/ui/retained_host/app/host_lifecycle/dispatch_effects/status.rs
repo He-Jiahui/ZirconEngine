@@ -8,7 +8,7 @@ impl RetainedEditorHost {
         message: impl Into<String>,
     ) {
         let message = message.into();
-        if !self.runtime.set_retained_status_line(message.clone()) {
+        if !self.runtime.set_retained_status_line(&message) {
             return;
         }
         if !self.active_activity_window_template_document_is(WORKBENCH_WINDOW_DOCUMENT_ID) {

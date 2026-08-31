@@ -1,6 +1,12 @@
 use toml::Value;
 
-use crate::ui::asset_editor::value_path::{get_value_at_path, parse_value_path};
+use crate::ui::asset_editor::value_path::{
+    get_value_at_path, parse_value_path, UiAssetTomlPathSegment,
+};
+
+#[cfg(test)]
+#[path = "payload_suggestions/borrowed_root_tests.rs"]
+mod borrowed_root_tests;
 
 pub(super) fn contextual_binding_payload_suggestions(
     root_suggestions: &[(String, Value)],
@@ -13,11 +19,25 @@ pub(super) fn contextual_binding_payload_suggestions(
     }
 
     let selected_path = parse_value_path(selected_payload_key)?;
-    let suggestion_root = Value::Table(root_suggestions.iter().cloned().collect());
-    let selected_value = get_value_at_path(&suggestion_root, &selected_path)?;
+    let selected_value = borrowed_suggestion_value(root_suggestions, &selected_path)?;
     let current_selected_value = get_value_at_path(current_payload_root, &selected_path);
     let suggestions = immediate_nested_suggestions(selected_value, current_selected_value);
     (!suggestions.is_empty()).then_some(suggestions)
+}
+
+fn borrowed_suggestion_value<'a>(
+    root_suggestions: &'a [(String, Value)],
+    path: &[UiAssetTomlPathSegment],
+) -> Option<&'a Value> {
+    let (head, tail) = path.split_first()?;
+    let UiAssetTomlPathSegment::Key(root_key) = head else {
+        return None;
+    };
+    let root_value = root_suggestions
+        .iter()
+        .rev()
+        .find_map(|(key, value)| (key == root_key).then_some(value))?;
+    get_value_at_path(root_value, tail)
 }
 
 fn immediate_nested_suggestions(

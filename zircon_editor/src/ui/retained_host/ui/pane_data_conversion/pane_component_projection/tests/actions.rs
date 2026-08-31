@@ -2,9 +2,9 @@ use super::*;
 
 #[test]
 fn runtime_component_projection_preserves_primary_click_binding_id() {
-    let mut button = projected_node("Button", [("text", Value::String("Apply".to_owned()))]);
+    let mut button = projected_node("Button", [("text", Value::String("Select".to_owned()))]);
     button.bindings.push(RetainedUiHostBindingProjection {
-        binding_id: "InspectorPaneBody/ApplyDraft".to_owned(),
+        binding_id: "HierarchyPaneBody/SelectRoot".to_owned(),
         action_id: String::new(),
         event_kind: UiEventKind::Click,
         route_id: None,
@@ -17,7 +17,7 @@ fn runtime_component_projection_preserves_primary_click_binding_id() {
 
     assert_eq!(
         projected.binding_id.as_str(),
-        "InspectorPaneBody/ApplyDraft"
+        "HierarchyPaneBody/SelectRoot"
     );
     assert_eq!(projected.action_id.as_str(), "");
 }

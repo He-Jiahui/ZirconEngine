@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use crate::{
     asset::{AssetEvent, SceneAsset},
-    core::framework::tasks::{AsyncTaskDescriptor, AsyncTaskState, AsyncTaskStatus},
+    core::{TaskDescriptor, TaskState, TaskStatus},
     scene::dynamic_scene::DynamicSceneSpawnTask,
 };
 
@@ -52,15 +52,15 @@ impl DynamicSceneAssetReloadTask {
 #[derive(Clone, Debug, PartialEq)]
 pub struct DynamicSceneAssetReloadPendingTaskSnapshot {
     event: AssetEvent<SceneAsset>,
-    descriptor: AsyncTaskDescriptor,
-    status: AsyncTaskStatus,
+    descriptor: TaskDescriptor,
+    status: TaskStatus,
 }
 
 impl DynamicSceneAssetReloadPendingTaskSnapshot {
     pub fn new(
         event: AssetEvent<SceneAsset>,
-        descriptor: AsyncTaskDescriptor,
-        status: AsyncTaskStatus,
+        descriptor: TaskDescriptor,
+        status: TaskStatus,
     ) -> Self {
         Self {
             event,
@@ -73,15 +73,15 @@ impl DynamicSceneAssetReloadPendingTaskSnapshot {
         &self.event
     }
 
-    pub fn descriptor(&self) -> &AsyncTaskDescriptor {
+    pub fn descriptor(&self) -> &TaskDescriptor {
         &self.descriptor
     }
 
-    pub fn status(&self) -> &AsyncTaskStatus {
+    pub fn status(&self) -> &TaskStatus {
         &self.status
     }
 
-    pub fn state(&self) -> AsyncTaskState {
+    pub fn state(&self) -> TaskState {
         self.status.state
     }
 

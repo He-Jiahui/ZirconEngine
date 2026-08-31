@@ -4,10 +4,10 @@ use crate::ui::workbench::asset_content_layout::{
     BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID, BROWSER_CONTENT_TABLE_HEADER_HEIGHT,
 };
 
-use super::table_nodes::{asset_table_row_control_id, asset_table_row_index};
+use super::table_nodes::asset_table_row_index;
 
 pub(super) fn collapse_compact_table_nodes(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32) {
-    for node in nodes {
+    for node in nodes.iter_mut() {
         if node.control_id == BROWSER_CONTENT_TABLE_CONTROL_ID
             || node.control_id == BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID
             || asset_table_row_index(node.control_id.as_str()).is_some()
@@ -28,40 +28,30 @@ pub(super) fn apply_compact_table_layout(
     height: f32,
     row_count: usize,
 ) {
-    set_frame(
-        nodes,
-        BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
-        x,
-        y,
-        width,
-        BROWSER_CONTENT_TABLE_HEADER_HEIGHT,
-    );
-    for index in 0..row_count {
-        let row_y = y
-            + BROWSER_CONTENT_TABLE_HEADER_HEIGHT
-            + BROWSER_CONTENT_LIST_ROW_HEIGHT * index as f32;
-        let available_row_height = finite_non_negative(
-            height
-                - BROWSER_CONTENT_TABLE_HEADER_HEIGHT
-                - BROWSER_CONTENT_LIST_ROW_HEIGHT * index as f32,
-        );
-        let row_height = (available_row_height >= BROWSER_CONTENT_LIST_ROW_HEIGHT)
-            .then_some(BROWSER_CONTENT_LIST_ROW_HEIGHT)
-            .unwrap_or(0.0);
-        set_frame(
-            nodes,
-            &asset_table_row_control_id(index),
-            x,
-            row_y,
-            width,
-            row_height,
-        );
-    }
-    if let Some(panel) = nodes
-        .iter_mut()
-        .find(|node| node.control_id == BROWSER_CONTENT_TABLE_CONTROL_ID)
-    {
-        panel.value_number = BROWSER_CONTENT_LIST_ROW_HEIGHT * row_count as f32;
+    let x = finite_coordinate(x);
+    let y = finite_coordinate(y);
+    let width = finite_non_negative(width);
+    let height = finite_non_negative(height);
+    for node in nodes.iter_mut() {
+        if node.control_id == BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID {
+            node.frame.x = x;
+            node.frame.y = y;
+            node.frame.width = width;
+            node.frame.height = BROWSER_CONTENT_TABLE_HEADER_HEIGHT;
+        } else if node.control_id == BROWSER_CONTENT_TABLE_CONTROL_ID {
+            node.value_number = BROWSER_CONTENT_LIST_ROW_HEIGHT * row_count as f32;
+        } else if let Some(index) = asset_table_row_index(node.control_id.as_str()) {
+            let row_offset = BROWSER_CONTENT_LIST_ROW_HEIGHT * index as f32;
+            let available_row_height =
+                finite_non_negative(height - BROWSER_CONTENT_TABLE_HEADER_HEIGHT - row_offset);
+            node.frame.x = x;
+            node.frame.y = y + BROWSER_CONTENT_TABLE_HEADER_HEIGHT + row_offset;
+            node.frame.width = width;
+            node.frame.height = (index < row_count
+                && available_row_height >= BROWSER_CONTENT_LIST_ROW_HEIGHT)
+                .then_some(BROWSER_CONTENT_LIST_ROW_HEIGHT)
+                .unwrap_or(0.0);
+        }
     }
 }
 
@@ -81,22 +71,6 @@ pub(super) fn asset_table_row_count(nodes: &[ViewTemplateNodeData]) -> usize {
         .iter()
         .filter(|node| asset_table_row_index(node.control_id.as_str()).is_some())
         .count()
-}
-
-fn set_frame(
-    nodes: &mut [ViewTemplateNodeData],
-    control_id: &str,
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-) {
-    if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
-        node.frame.x = finite_coordinate(x);
-        node.frame.y = finite_coordinate(y);
-        node.frame.width = finite_non_negative(width);
-        node.frame.height = finite_non_negative(height);
-    }
 }
 
 fn finite_non_negative(value: f32) -> f32 {

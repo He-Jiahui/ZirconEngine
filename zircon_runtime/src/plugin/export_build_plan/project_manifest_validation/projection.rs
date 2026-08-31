@@ -9,6 +9,10 @@ use crate::core::framework::project::{
 
 use super::identity::{project_plugin_feature_id_is_valid, project_plugin_package_id_is_valid};
 
+#[cfg(test)]
+#[path = "projection/capacity_tests.rs"]
+mod capacity_tests;
+
 /// Per-generation facts for a plugin manifest.  The projection owns its keys so callers may
 /// sanitize a clone of the manifest after validation without retaining a borrow into it.
 ///
@@ -95,7 +99,8 @@ impl ProjectPluginManifestValidationProjection {
         observe_projection_build();
 
         let mut selections = Vec::with_capacity(manifest.selections.len());
-        let mut selection_indices = HashMap::<String, Vec<usize>>::new();
+        let mut selection_indices =
+            HashMap::<String, Vec<usize>>::with_capacity(manifest.selections.len());
         let mut feature_locations = HashMap::<String, Vec<FeatureLocation>>::new();
 
         for (selection_index, selection) in manifest.selections.iter().enumerate() {
@@ -104,8 +109,9 @@ impl ProjectPluginManifestValidationProjection {
                 .or_default()
                 .push(selection_index);
 
-            let mut feature_indices = HashMap::<String, Vec<usize>>::new();
-            let mut feature_ids = HashSet::new();
+            let mut feature_indices =
+                HashMap::<String, Vec<usize>>::with_capacity(selection.features.len());
+            let mut feature_ids = HashSet::with_capacity(selection.features.len());
             let mut short_feature_ids = HashSet::new();
             let mut features = Vec::with_capacity(selection.features.len());
             for (feature_index, feature) in selection.features.iter().enumerate() {
@@ -150,7 +156,7 @@ impl ProjectPluginManifestValidationProjection {
             selections,
             selection_indices,
             feature_locations,
-            enabled_provider_package_ids: HashSet::new(),
+            enabled_provider_package_ids: HashSet::with_capacity(manifest.selections.len()),
             #[cfg(test)]
             selection_rows_indexed: manifest.selections.len(),
             #[cfg(test)]
@@ -178,7 +184,8 @@ impl ProjectPluginManifestValidationProjection {
     ) {
         debug_assert_eq!(self.selections.len(), manifest.selections.len());
         self.enabled_provider_package_ids.clear();
-        let mut seen_selection_ids = HashMap::<&str, bool>::new();
+        let mut seen_selection_ids =
+            HashMap::<&str, bool>::with_capacity(manifest.selections.len());
 
         for (selection_index, selection) in manifest.selections.iter().enumerate() {
             #[cfg(test)]
@@ -200,7 +207,8 @@ impl ProjectPluginManifestValidationProjection {
                     .insert(selection.id.clone());
             }
 
-            let mut seen_feature_ids = HashMap::<&str, bool>::new();
+            let mut seen_feature_ids =
+                HashMap::<&str, bool>::with_capacity(selection.features.len());
             for (feature_index, feature) in selection.features.iter().enumerate() {
                 #[cfg(test)]
                 self.feature_rows_refreshed

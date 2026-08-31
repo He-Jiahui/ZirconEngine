@@ -2,6 +2,15 @@ use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::{InitLevel, ModuleDependencySpec};
 use zircon_runtime::plugin::{PluginModuleKind, PluginModuleManifest};
 
+fn join_module_metadata(parts: &[&str]) -> String {
+    let capacity = parts.iter().map(|part| part.len()).sum();
+    let mut joined = String::with_capacity(capacity);
+    for part in parts {
+        joined.push_str(part);
+    }
+    joined
+}
+
 #[derive(Clone, Debug)]
 pub struct PluginModuleBuilder {
     module: PluginModuleManifest,
@@ -10,7 +19,7 @@ pub struct PluginModuleBuilder {
 impl PluginModuleBuilder {
     pub fn runtime(package_id: impl AsRef<str>, crate_name: impl Into<String>) -> Self {
         Self::new(
-            format!("{}.runtime", package_id.as_ref()),
+            join_module_metadata(&[package_id.as_ref(), ".runtime"]),
             PluginModuleKind::Runtime,
             crate_name,
         )
@@ -18,7 +27,7 @@ impl PluginModuleBuilder {
 
     pub fn editor(package_id: impl AsRef<str>, crate_name: impl Into<String>) -> Self {
         Self::new(
-            format!("{}.editor", package_id.as_ref()),
+            join_module_metadata(&[package_id.as_ref(), ".editor"]),
             PluginModuleKind::Editor,
             crate_name,
         )
@@ -27,7 +36,7 @@ impl PluginModuleBuilder {
 
     pub fn native(package_id: impl AsRef<str>, crate_name: impl Into<String>) -> Self {
         Self::new(
-            format!("{}.native", package_id.as_ref()),
+            join_module_metadata(&[package_id.as_ref(), ".native"]),
             PluginModuleKind::Native,
             crate_name,
         )
@@ -35,7 +44,7 @@ impl PluginModuleBuilder {
 
     pub fn vm(package_id: impl AsRef<str>, crate_name: impl Into<String>) -> Self {
         Self::new(
-            format!("{}.vm", package_id.as_ref()),
+            join_module_metadata(&[package_id.as_ref(), ".vm"]),
             PluginModuleKind::Vm,
             crate_name,
         )
@@ -49,7 +58,7 @@ impl PluginModuleBuilder {
         let name = name.into();
         Self {
             module: PluginModuleManifest {
-                description: format!("Plugin module {name}"),
+                description: join_module_metadata(&["Plugin module ", &name]),
                 name,
                 kind,
                 crate_name: crate_name.into(),
@@ -124,5 +133,31 @@ impl PluginModuleBuilder {
 
     pub fn build(self) -> PluginModuleManifest {
         self.module
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exact_module_metadata_preserves_builtin_names_and_descriptions() {
+        let modules = [
+            PluginModuleBuilder::runtime("weather", "weather_runtime").build(),
+            PluginModuleBuilder::editor("weather", "weather_editor").build(),
+            PluginModuleBuilder::native("weather", "weather_native").build(),
+            PluginModuleBuilder::vm("weather", "weather_vm").build(),
+        ];
+        let expected_names = [
+            "weather.runtime",
+            "weather.editor",
+            "weather.native",
+            "weather.vm",
+        ];
+
+        for (module, expected_name) in modules.iter().zip(expected_names) {
+            assert_eq!(module.name, expected_name);
+            assert_eq!(module.description, format!("Plugin module {expected_name}"));
+        }
     }
 }

@@ -52,7 +52,7 @@ fn queued_phase_index_retains_live_admissions_until_deadline_arming_completes() 
 
 #[test]
 fn operation_maintenance_timer_is_service_scoped_and_rearms_deadlines_and_ttl() {
-    let service_source = include_str!("../service.rs");
+    let task_state_source = include_str!("../service/task_state.rs");
     let source = include_str!("../maintenance.rs");
     let start = source
         .find("fn refresh_operation_maintenance_alarm(")
@@ -63,8 +63,8 @@ fn operation_maintenance_timer_is_service_scoped_and_rearms_deadlines_and_ttl() 
         .expect("maintenance deadline selection boundary");
     let maintenance_source = &source[start..end];
 
-    assert!(service_source.contains("maintenance_subscription: Option<TaskTimerSubscription>"));
-    assert!(service_source.contains("maintenance_deadline: Option<Instant>"));
+    assert!(task_state_source.contains("maintenance_subscription: Option<TaskTimerSubscription>"));
+    assert!(task_state_source.contains("maintenance_deadline: Option<Instant>"));
     assert!(maintenance_source.contains("TaskTimer::process_default()"));
     assert!(maintenance_source.contains("Arc::downgrade(state)"));
     assert!(maintenance_source.contains("expire_due_deadlines_in_state"));
@@ -74,15 +74,11 @@ fn operation_maintenance_timer_is_service_scoped_and_rearms_deadlines_and_ttl() 
 
 #[test]
 fn raw_admission_release_preserves_exact_count_and_byte_invariants() {
-    let source = include_str!("../service.rs");
+    let source = include_str!("../service/admission.rs");
     let start = source
         .find("fn consume_raw_admission(")
         .expect("raw admission release owner");
-    let end = source[start..]
-        .find("struct JsonByteCounter")
-        .map(|offset| start + offset)
-        .expect("raw admission release boundary");
-    let release_source = &source[start..end];
+    let release_source = &source[start..];
 
     assert!(release_source.contains("checked_sub(1)"));
     assert!(release_source.contains("checked_sub(reservation.bytes)"));
@@ -169,4 +165,29 @@ fn operation_task_uses_registered_canonical_id_instead_of_request_owned_text() {
     assert!(submit_source.contains(".get_key_value(&request.operation_id)"));
     assert!(task_source.contains("operation_id,"));
     assert!(!task_source.contains("operation_id: request.operation_id"));
+}
+
+#[test]
+fn dynamic_submit_admits_raw_bytes_before_bounded_json_decode() {
+    let source = include_str!("../../dynamic_api/session/operation.rs");
+    let start = source
+        .find("pub(crate) unsafe fn submit_operation(")
+        .expect("dynamic operation submit owner");
+    let end = source[start..]
+        .find("pub(crate) unsafe fn poll_operation(")
+        .map(|offset| start + offset)
+        .expect("dynamic operation poll boundary");
+    let submit_source = &source[start..end];
+    let admission = submit_source
+        .find("submit_with_raw_admission(")
+        .expect("dynamic submit raw admission");
+    let decode = submit_source
+        .find("bounded_json::decode")
+        .expect("dynamic submit bounded decoder");
+
+    assert!(admission < decode);
+    assert!(submit_source.contains("request_json.len()"));
+    assert!(submit_source.contains("request_json.len() > maximum"));
+    assert!(submit_source.contains("Ok(Err(error)) => operation_error_status(error)"));
+    assert!(!submit_source.contains("runtime.operations.submit(request)"));
 }

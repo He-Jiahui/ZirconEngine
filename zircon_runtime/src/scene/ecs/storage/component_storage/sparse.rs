@@ -2,17 +2,18 @@ use crate::scene::ecs::{ChangeTick, ComponentTicks, InternalEntity};
 
 use super::entry::{RawRemoveResult, StoredComponent};
 
+#[path = "sparse/locator.rs"]
+mod locator;
+
+#[cfg(test)]
+use locator::SPARSE_LOCATOR_PAGE_SLOTS;
+use locator::{SparseRowLocation, SparseRowLocator};
+
 #[derive(Default)]
 pub(in crate::scene::ecs::storage) struct SparseComponentStorage {
     entities: Vec<InternalEntity>,
     entries: Vec<SparseEntry>,
-    sparse_rows: Vec<Option<SparseRowLocation>>,
-}
-
-#[derive(Clone, Copy)]
-struct SparseRowLocation {
-    generation: u32,
-    dense_row: usize,
+    locator: SparseRowLocator,
 }
 
 struct SparseEntry {
@@ -162,29 +163,73 @@ impl SparseComponentStorage {
     }
 
     fn dense_row(&self, entity: InternalEntity) -> Option<usize> {
-        let location = self.sparse_rows.get(entity.index() as usize)?.as_ref()?;
-        (location.generation == entity.generation()).then_some(location.dense_row)
+        let location = self.locator.get(entity.index())?;
+        (location.generation() == entity.generation()).then(|| location.dense_row())
     }
 
     fn set_sparse_row(&mut self, entity: InternalEntity, dense_row: usize) {
-        let index = entity.index() as usize;
-        if self.sparse_rows.len() <= index {
-            self.sparse_rows.resize(index + 1, None);
-        }
-        self.sparse_rows[index] = Some(SparseRowLocation {
-            generation: entity.generation(),
-            dense_row,
-        });
+        self.locator.insert(
+            entity.index(),
+            SparseRowLocation::new(entity.generation(), dense_row),
+        );
     }
 
     fn remove_sparse_row(&mut self, entity: InternalEntity) -> Option<usize> {
-        let index = entity.index() as usize;
-        let location = self.sparse_rows.get(index)?.as_ref()?;
-        if location.generation != entity.generation() {
+        let location = self.locator.get(entity.index())?;
+        if location.generation() != entity.generation() {
             return None;
         }
-        self.sparse_rows[index]
-            .take()
-            .map(|location| location.dense_row)
+        self.locator
+            .remove(entity.index())
+            .map(SparseRowLocation::dense_row)
+    }
+
+    #[cfg(test)]
+    fn locator_page_count(&self) -> usize {
+        self.locator.page_count()
+    }
+
+    #[cfg(test)]
+    fn locator_slot_capacity(&self) -> usize {
+        self.locator.page_count() * SPARSE_LOCATOR_PAGE_SLOTS
+    }
+
+    #[cfg(test)]
+    fn locator_allocated_bytes(&self) -> usize {
+        self.locator.allocated_bytes()
+    }
+
+    #[cfg(test)]
+    fn locator_flat_prefix_slots(&self) -> usize {
+        self.locator.flat_prefix_slots()
+    }
+
+    #[cfg(test)]
+    fn locator_flat_location_count(&self) -> usize {
+        self.locator.flat_location_count()
+    }
+
+    #[cfg(test)]
+    fn locator_flat_window_base(&self) -> u32 {
+        self.locator.flat_window_base()
+    }
+
+    #[cfg(test)]
+    fn locator_flat_window_slots(&self) -> usize {
+        self.locator.flat_window_slots()
+    }
+
+    #[cfg(test)]
+    fn locator_sparse_page_count(&self) -> usize {
+        self.locator.sparse_page_count()
+    }
+
+    #[cfg(test)]
+    fn locator_sparse_directory_capacity(&self) -> usize {
+        self.locator.sparse_directory_capacity()
     }
 }
+
+#[cfg(test)]
+#[path = "sparse/tests.rs"]
+mod tests;

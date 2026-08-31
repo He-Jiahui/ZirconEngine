@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use super::{
-    committed_text_for_input_method, line_height_for_metadata, range_rects_for_text,
-    surrounding_text_for_state, visual_line_column_for_offset, FontMetrics,
+    FontMetrics, committed_text_for_input_method, line_height_for_metadata, range_rects_for_text,
+    surrounding_text_for_state, visual_line_column_for_offset,
 };
 use zircon_runtime_interface::ui::{
     layout::UiFrame,

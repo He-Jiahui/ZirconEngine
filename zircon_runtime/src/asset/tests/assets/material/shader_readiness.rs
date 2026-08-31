@@ -106,6 +106,39 @@ roughness = 0.08
 }
 
 #[test]
+fn material_asset_rejects_a_ready_generic_shader_module() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 2
+name = "Wrong Shader Domain"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/generic.wgsl"
+"#,
+    )
+    .unwrap();
+    let mut shader = shader_contract();
+    shader.kind = crate::core::framework::render::ShaderAssetKind::Module;
+    shader.shading_model = None;
+
+    assert!(shader.readiness_report().is_ready());
+    let report = material.readiness_report_with_shader_contract(&shader, |_| true, |_| true);
+
+    assert!(!report.is_ready());
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::ShaderReadinessDiagnostic {
+            source,
+            path,
+            diagnostic,
+        } if *source == RenderMaterialDiagnosticSource::ShaderReadiness
+            && path == "shader.kind"
+            && diagnostic.contains("requires a surface shader, found module")
+    )));
+}
+
+#[test]
 fn material_asset_reports_missing_required_shader_texture_slot() {
     let material = MaterialAsset::from_toml_str(
         r#"
@@ -301,6 +334,7 @@ url = "res://shaders/custom.zshader"
         slot.transform = Some(RenderMaterialTextureTransform {
             scale: [4.0, 4.0],
             offset: [0.125, 0.25],
+            rotation: 0.5,
         });
         slot.uv_channel = 1;
         slot
@@ -329,7 +363,43 @@ url = "res://shaders/custom.zshader"
         RenderMaterialTextureTransform {
             scale: [4.0, 4.0],
             offset: [0.125, 0.25],
+            rotation: 0.5,
         }
     );
     assert_eq!(shader_descriptor.base_color_texture_uv_channel, 1);
+}
+
+#[test]
+fn standard_pbr_readiness_rejects_texture_coordinates_outside_the_vertex_abi() {
+    let texture = AssetReference::new(
+        AssetUuid::from_stable_label("unsupported-uv-set"),
+        AssetUri::parse("res://textures/unsupported-uv.png").unwrap(),
+    );
+    let mut material = MaterialAsset::from_toml_str(
+        r#"
+version = 2
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+"#,
+    )
+    .unwrap();
+    material.base_color_texture = Some(texture.clone());
+    material.texture_slots.insert("base_color".to_string(), {
+        let mut slot = MaterialTextureSlotValue::new(texture);
+        slot.uv_channel = 2;
+        slot
+    });
+
+    let report = material.readiness_report_with_resolution(|_| true, |_| true);
+
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::UnsupportedTextureUvChannel {
+            slot,
+            channel: 2,
+            supported_channel_count: 2,
+        } if slot == "base_color"
+    )));
 }

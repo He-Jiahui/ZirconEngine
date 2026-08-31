@@ -7,11 +7,11 @@ mod service;
 mod ticket;
 mod work;
 
-pub(crate) use contract::{
-    NativePluginDiscoveryInputIdentity, NativePluginDiscoveryRefreshBudget,
-    NativePluginDiscoveryRefreshBudgetKind, NativePluginDiscoveryRefreshError,
-    NativePluginDiscoveryRefreshInput, NativePluginDiscoveryRoot, NativePluginDiscoverySnapshot,
+pub use contract::{
+    NativePluginDiscoveryInputIdentity, NativePluginDiscoveryRefreshBudgetKind,
+    NativePluginDiscoveryRefreshError, NativePluginDiscoveryRoot, NativePluginDiscoverySnapshot,
 };
+pub(crate) use contract::{NativePluginDiscoveryRefreshBudget, NativePluginDiscoveryRefreshInput};
 pub(crate) use contract::{
     NativePluginDiscoveryRefreshCandidateReservation,
     NativePluginDiscoveryRefreshDiagnosticReservation, NativePluginDiscoveryRefreshReadReservation,
@@ -19,7 +19,7 @@ pub(crate) use contract::{
     NativePluginDiscoveryRefreshSink,
 };
 pub(crate) use service::NativePluginDiscoveryRefreshService;
-pub(crate) use ticket::{NativePluginDiscoveryRefreshTerminal, NativePluginDiscoveryRefreshTicket};
+pub use ticket::{NativePluginDiscoveryRefreshTerminal, NativePluginDiscoveryRefreshTicket};
 pub(super) use work::{NativePluginDiscoveryManifestAction, NativePluginDiscoveryRefreshWork};
 
 #[cfg(test)]

@@ -16,6 +16,7 @@ pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
         "workbench.scene.open" => Some(MenuAction::OpenScene),
         "workbench.scene.create" => Some(MenuAction::CreateScene),
         "workbench.project.save" => Some(MenuAction::SaveProject),
+        "workbench.document.save_all" => Some(MenuAction::SaveAllDocuments),
         "workbench.project.close" => Some(MenuAction::CloseProject),
         "workbench.layout.save" => Some(MenuAction::SaveLayout),
         "workbench.layout.reset" => Some(MenuAction::ResetLayout),
@@ -58,6 +59,7 @@ pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
             Some(MenuAction::SelectPlayMode(PlayKind::Simulate))
         }
         "workbench.play_mode.enter" => Some(MenuAction::EnterPlayMode),
+        "workbench.play_mode.keep_changes" => Some(MenuAction::KeepPlayChanges),
         "workbench.play_mode.exit" => Some(MenuAction::ExitPlayMode),
         "workbench.history.undo" => Some(MenuAction::Undo),
         "workbench.history.redo" => Some(MenuAction::Redo),
@@ -66,6 +68,7 @@ pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
         "OpenScene" => Some(MenuAction::OpenScene),
         "CreateScene" => Some(MenuAction::CreateScene),
         "SaveProject" => Some(MenuAction::SaveProject),
+        "SaveAllDocuments" => Some(MenuAction::SaveAllDocuments),
         "CloseProject" => Some(MenuAction::CloseProject),
         "SaveLayout" => Some(MenuAction::SaveLayout),
         "ResetLayout" => Some(MenuAction::ResetLayout),
@@ -73,6 +76,7 @@ pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
         "SelectPlayMode.Play" => Some(MenuAction::SelectPlayMode(PlayKind::Play)),
         "SelectPlayMode.Simulate" => Some(MenuAction::SelectPlayMode(PlayKind::Simulate)),
         "EnterPlayMode" => Some(MenuAction::EnterPlayMode),
+        "KeepPlayChanges" => Some(MenuAction::KeepPlayChanges),
         "ExitPlayMode" => Some(MenuAction::ExitPlayMode),
         "Undo" => Some(MenuAction::Undo),
         "Redo" => Some(MenuAction::Redo),

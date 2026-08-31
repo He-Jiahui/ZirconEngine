@@ -1,10 +1,10 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::{Arc, Condvar, Mutex};
 
 use super::{
     dirty_batch, ActiveOperationGroup, CommandBox, DetachedTransactionEventSink, DocumentId,
-    EditCommandError, EditContext, HistoryContextId, HistoryStore, TransactionEventSink,
-    TransactionId,
+    EditCommandError, EditContext, EditWorldRoute, HistoryContextId, HistoryStore,
+    TransactionEventSink, TransactionId,
 };
 
 const DEFAULT_HISTORY_CAPACITY: usize = 128;
@@ -25,6 +25,7 @@ pub(super) struct ActiveTransaction {
     pub(super) commands: Vec<CommandBox>,
     pub(super) participants: BTreeSet<DocumentId>,
     pub(super) selection_before: super::SelectionSnapshot,
+    pub(super) route: EditWorldRoute,
     pub(super) merge_mode: MergeMode,
     pub(super) root: bool,
 }
@@ -32,7 +33,7 @@ pub(super) struct ActiveTransaction {
 pub(super) struct EngineState {
     // The context is taken out while client code runs so no engine lock crosses a callback.
     pub(super) context: Option<Box<dyn EditContext>>,
-    pub(super) histories: BTreeMap<HistoryContextId, HistoryStore>,
+    pub(super) histories: HashMap<HistoryContextId, HistoryStore>,
     pub(super) history_generations: BTreeMap<HistoryContextId, u64>,
     pub(super) history_dirty: dirty_batch::HistoryDirtyJournal,
     pub(super) active: Vec<ActiveTransaction>,
@@ -87,7 +88,7 @@ impl EditorTransactionEngine {
         Self {
             state: Mutex::new(EngineState {
                 context: Some(Box::new(context)),
-                histories: BTreeMap::new(),
+                histories: HashMap::new(),
                 history_generations: BTreeMap::new(),
                 history_dirty: dirty_batch::HistoryDirtyJournal::default(),
                 active: Vec::new(),
@@ -157,3 +158,7 @@ impl EditorTransactionEngine {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+#[path = "engine_state/hash_index_tests.rs"]
+mod hash_index_tests;

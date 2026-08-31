@@ -63,9 +63,7 @@ impl ScriptBridgeMethodDescriptor {
     }
 
     pub fn with_required_capability(mut self, capability: impl Into<String>) -> Self {
-        self.required_capabilities.push(capability.into());
-        self.required_capabilities.sort();
-        self.required_capabilities.dedup();
+        insert_required_capability(&mut self.required_capabilities, capability.into());
         self
     }
 
@@ -84,6 +82,12 @@ impl ScriptBridgeMethodDescriptor {
 
     pub const fn method_slot(&self) -> u32 {
         self.method_slot
+    }
+}
+
+fn insert_required_capability(required_capabilities: &mut Vec<String>, capability: String) {
+    if let Err(index) = required_capabilities.binary_search(&capability) {
+        required_capabilities.insert(index, capability);
     }
 }
 
@@ -191,3 +195,7 @@ where
     bridge_table.record_enabled_call(slot);
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "bridge_host_module/capability_insert_tests.rs"]
+mod capability_insert_tests;

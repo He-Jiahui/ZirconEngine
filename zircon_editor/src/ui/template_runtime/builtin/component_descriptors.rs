@@ -476,11 +476,11 @@ mod tests {
                 "menu_items",
                 "text_list",
                 EditorPropLiteral::TextList(vec![
-                    "New|icon=plus".to_string(),
-                    "Open|icon=folder".to_string(),
-                    "Save|icon=save".to_string(),
-                    "Delete|danger,icon=trash".to_string(),
-                    "More Tools|submenu".to_string(),
+                    "New|action=menu.item.new,icon=plus".to_string(),
+                    "Open|action=menu.item.open,icon=folder".to_string(),
+                    "Save|action=menu.item.save,icon=save".to_string(),
+                    "Delete|action=menu.item.delete,danger,icon=trash".to_string(),
+                    "More Tools|action=menu.item.more_tools,icon=more".to_string(),
                 ]),
             ),
             (

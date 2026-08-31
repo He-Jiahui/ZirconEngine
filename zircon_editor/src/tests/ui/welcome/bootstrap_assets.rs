@@ -7,6 +7,14 @@ const WELCOME_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/assets/ui/editor/welcome.zui"
 ));
+const WORKBENCH_BUTTON_TOML: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui"
+));
+const WORKBENCH_FIELD_TOML: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui"
+));
 const WELCOME_MAIN_COLUMN_RS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/main_column.rs"
@@ -248,8 +256,8 @@ fn welcome_mvp_columns_prioritize_project_actions_before_recent_history_width() 
         let recent = node("WelcomeRecentPanel");
         let main = node("WelcomeMainPanel");
 
-        assert!(recent.frame.width >= 220.0 - EPSILON);
-        assert!(recent.frame.width <= 320.0 + EPSILON);
+        assert!(recent.frame.width >= 184.0 - EPSILON);
+        assert!(recent.frame.width <= 240.0 + EPSILON);
         assert!(
             main.frame.width >= 280.0 - EPSILON,
             "project actions need at least 280px at {viewport:?}"
@@ -262,7 +270,7 @@ fn welcome_mvp_columns_prioritize_project_actions_before_recent_history_width() 
 }
 
 #[test]
-fn welcome_mvp_recent_section_uses_starship_vertical_rhythm() {
+fn welcome_mvp_recent_section_uses_workbench_vertical_rhythm() {
     const EPSILON: f32 = 0.01;
     let pane = welcome_pane_nodes(UiSize::new(560.0, 384.0));
     let nodes = (0..pane.row_count())
@@ -279,12 +287,12 @@ fn welcome_mvp_recent_section_uses_starship_vertical_rhythm() {
     let list = node("WelcomeRecentListPanel");
 
     assert!((header.frame.y - recent.frame.y - 18.0).abs() <= EPSILON);
-    assert!((header.frame.height - 46.0).abs() <= EPSILON);
+    assert!((header.frame.height - 30.0).abs() <= EPSILON);
     assert!((list.frame.y - header.frame.y - header.frame.height - 8.0).abs() <= EPSILON);
 }
 
 #[test]
-fn welcome_mvp_fields_and_actions_use_starship_control_density() {
+fn welcome_mvp_fields_and_actions_use_shared_workbench_control_density() {
     let layout = UiV2AssetLoader::load_toml_str(WELCOME_LAYOUT_TOML).expect("welcome layout");
 
     for field_id in ["project_name_field", "location_field"] {
@@ -292,15 +300,25 @@ fn welcome_mvp_fields_and_actions_use_starship_control_density() {
             .nodes
             .get(field_id)
             .unwrap_or_else(|| panic!("welcome layout should contain `{field_id}`"));
-        assert_eq!(numeric_prop(field.props.get("corner_radius")), Some(4.0));
-        assert_eq!(numeric_prop(field.props.get("height")), Some(44.0));
+        assert_eq!(field.component, "WorkbenchField");
+        assert!(
+            !field.props.contains_key("corner_radius"),
+            "Welcome field `{field_id}` must inherit the shared component radius"
+        );
+        assert_eq!(
+            field.props.get("height").and_then(toml::Value::as_str),
+            Some("$editor.control.height.default")
+        );
         let height = field
             .layout
             .as_ref()
             .and_then(|layout| layout.get("height"))
             .and_then(toml::Value::as_table)
             .unwrap_or_else(|| panic!("`{field_id}` should define a height layout constraint"));
-        assert_eq!(numeric_prop(height.get("preferred")), Some(44.0));
+        assert_eq!(
+            height.get("preferred").and_then(toml::Value::as_str),
+            Some("$editor.control.height.default")
+        );
     }
 
     for button_id in ["open_existing_button", "create_project_button"] {
@@ -308,8 +326,34 @@ fn welcome_mvp_fields_and_actions_use_starship_control_density() {
             .nodes
             .get(button_id)
             .unwrap_or_else(|| panic!("welcome layout should contain `{button_id}`"));
-        assert_eq!(numeric_prop(button.props.get("corner_radius")), Some(4.0));
-        assert_eq!(numeric_prop(button.props.get("height")), Some(32.0));
+        assert_eq!(button.component, "WorkbenchButton");
+        assert!(
+            !button.props.contains_key("corner_radius"),
+            "Welcome button `{button_id}` must inherit the shared component radius"
+        );
+        assert_eq!(
+            button.props.get("height").and_then(toml::Value::as_str),
+            Some("$editor.control.height.default")
+        );
+    }
+
+    for (component_name, component_source) in [
+        ("WorkbenchButton", WORKBENCH_BUTTON_TOML),
+        ("WorkbenchField", WORKBENCH_FIELD_TOML),
+    ] {
+        let component = UiV2AssetLoader::load_toml_str(component_source)
+            .unwrap_or_else(|error| panic!("{component_name} component: {error}"));
+        let root = component
+            .nodes
+            .get("root")
+            .unwrap_or_else(|| panic!("{component_name} component should contain `root`"));
+        assert_eq!(
+            root.props
+                .get("corner_radius")
+                .and_then(toml::Value::as_str),
+            Some("$editor.control.radius.control"),
+            "{component_name} must own the shared control radius token"
+        );
     }
 }
 
@@ -371,10 +415,10 @@ fn welcome_standard_controls_are_owned_by_template_painter_not_native_overlays()
     let layout = UiV2AssetLoader::load_toml_str(WELCOME_LAYOUT_TOML).expect("welcome layout");
 
     for (node_id, component) in [
-        ("project_name_field", "TextField"),
-        ("location_field", "TextField"),
-        ("open_existing_button", "Button"),
-        ("create_project_button", "Button"),
+        ("project_name_field", "WorkbenchField"),
+        ("location_field", "WorkbenchField"),
+        ("open_existing_button", "WorkbenchButton"),
+        ("create_project_button", "WorkbenchButton"),
     ] {
         assert_eq!(
             layout

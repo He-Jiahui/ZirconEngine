@@ -2,51 +2,49 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime_interface::project::session_lock::ProjectSessionAdmissionLifecycleV1;
 
 use super::{
-    create_lock, inspect_lock, new_record, read_lock, remove_lock, replace_lock, session_lock_path,
-    unix_millis, SessionGuardError, SessionLockDurability, SessionLockInspection,
-    SessionLockRecord, SessionOwnershipLease,
+    ProjectSessionAdmissionRecordV1, SessionAdmissionRequest, SessionGuardError,
+    SessionLockDurability, SessionLockInspection, SessionOwnershipLease, create_lock, inspect_lock,
+    new_record, next_session_generation, read_lock, remove_lock, replace_lock, session_lock_path,
+    unix_millis,
 };
 
 /// Owns one project session lock until normal shutdown explicitly releases it.
 #[derive(Debug)]
 pub struct SessionGuard {
     path: PathBuf,
-    record: SessionLockRecord,
+    record: ProjectSessionAdmissionRecordV1,
     durability: SessionLockDurability,
     ownership: Option<SessionOwnershipLease>,
     released: bool,
 }
 
 impl SessionGuard {
-    pub fn acquire(project_root: impl AsRef<Path>) -> Result<Self, SessionGuardError> {
-        Self::acquire_at(project_root, SystemTime::now())
-    }
-
-    pub fn acquire_at(
-        project_root: impl AsRef<Path>,
-        now: SystemTime,
-    ) -> Result<Self, SessionGuardError> {
-        let root = resolve_project_root(project_root.as_ref())?;
-        let path = session_lock_path(&root);
-        let ownership = SessionOwnershipLease::acquire(&root, &path)?;
-        Self::create_with_owned_lease(path, ownership, now)
-    }
-
     /// Claims the project admission boundary without implicitly replacing a residual lock.
     pub fn claim(
         project_root: impl AsRef<Path>,
+        admission: &SessionAdmissionRequest,
     ) -> Result<super::SessionGuardAdmission, SessionGuardError> {
-        super::liveness::claim(project_root)
+        Self::claim_at(project_root, admission, SystemTime::now())
+    }
+
+    pub fn claim_at(
+        project_root: impl AsRef<Path>,
+        admission: &SessionAdmissionRequest,
+        now: SystemTime,
+    ) -> Result<super::SessionGuardAdmission, SessionGuardError> {
+        super::liveness::claim(project_root, admission, now)
     }
 
     pub(super) fn create_with_owned_lease(
         path: PathBuf,
         ownership: SessionOwnershipLease,
+        admission: &SessionAdmissionRequest,
         now: SystemTime,
     ) -> Result<Self, SessionGuardError> {
-        let record = new_record(now)?;
+        let record = new_record(admission, now)?;
         let durability = create_lock(&path, &record)?;
         Ok(Self {
             path,
@@ -72,22 +70,24 @@ impl SessionGuard {
     /// the selected record between this check and the new record publication.
     pub fn replace_residual_at(
         project_root: impl AsRef<Path>,
-        expected: &SessionLockRecord,
+        expected: &ProjectSessionAdmissionRecordV1,
+        admission: &SessionAdmissionRequest,
         now: SystemTime,
     ) -> Result<Self, SessionGuardError> {
         let root = resolve_project_root(project_root.as_ref())?;
         let path = session_lock_path(&root);
         let ownership = SessionOwnershipLease::acquire(&root, &path)?;
-        Self::replace_with_owned_lease(path, expected.clone(), ownership, now)
+        Self::replace_with_owned_lease(path, expected.clone(), ownership, admission, now)
     }
 
     pub(super) fn replace_with_owned_lease(
         path: PathBuf,
-        expected: SessionLockRecord,
+        expected: ProjectSessionAdmissionRecordV1,
         ownership: SessionOwnershipLease,
+        admission: &SessionAdmissionRequest,
         now: SystemTime,
     ) -> Result<Self, SessionGuardError> {
-        let record = new_record(now)?;
+        let record = new_record(admission, now)?;
         let current = read_lock(&path)?;
         if current.as_ref() != Some(&expected) {
             return Err(SessionGuardError::OwnershipLost { path });
@@ -102,7 +102,7 @@ impl SessionGuard {
         })
     }
 
-    pub fn record(&self) -> &SessionLockRecord {
+    pub fn record(&self) -> &ProjectSessionAdmissionRecordV1 {
         &self.record
     }
 
@@ -142,12 +142,81 @@ impl SessionGuard {
         Ok(durability)
     }
 
+    /// Records that the data-only project receipt was accepted under this lease.
+    pub fn mark_preflight_approved(&mut self) -> Result<SessionLockDurability, SessionGuardError> {
+        self.transition_to(ProjectSessionAdmissionLifecycleV1::PreflightApproved)
+    }
+
+    /// Records the start of effectful project activation after approved preflight.
+    pub fn begin_activation(&mut self) -> Result<SessionLockDurability, SessionGuardError> {
+        self.transition_to(ProjectSessionAdmissionLifecycleV1::Activating)
+    }
+
+    /// Commits the generation that Hub and focus consumers may subsequently address.
+    pub fn commit_ready(&mut self) -> Result<SessionLockDurability, SessionGuardError> {
+        self.ensure_owned()?;
+        let record = self
+            .record
+            .commit_ready(next_session_generation()?)
+            .map_err(|error| self.invalid_lifecycle(error))?;
+        self.replace_record(record)
+    }
+
+    /// Retains the OS lease while a failed activation still needs recovery or operator action.
+    pub fn mark_recovery_required(&mut self) -> Result<SessionLockDurability, SessionGuardError> {
+        if self.record.lifecycle() == ProjectSessionAdmissionLifecycleV1::RecoveryRequired {
+            return Ok(self.durability);
+        }
+        self.transition_to(ProjectSessionAdmissionLifecycleV1::RecoveryRequired)
+    }
+
+    /// Stops Ready-only consumers before teardown starts while retaining exclusive ownership.
+    pub fn begin_close(&mut self) -> Result<SessionLockDurability, SessionGuardError> {
+        if self.record.lifecycle() == ProjectSessionAdmissionLifecycleV1::Closing {
+            return Ok(self.durability);
+        }
+        self.transition_to(ProjectSessionAdmissionLifecycleV1::Closing)
+    }
+
+    /// Persists a residual recovery marker and relinquishes only the live ownership lease.
+    ///
+    /// Unlike normal `release`, this deliberately retains `session.lock`. A later process must
+    /// observe it as a residual record and pass the explicit recovery takeover policy before it
+    /// can establish a new writer session.
+    pub fn release_ownership_for_recovery(
+        &mut self,
+    ) -> Result<SessionLockDurability, SessionGuardError> {
+        if self.released {
+            return if self.record.lifecycle()
+                == ProjectSessionAdmissionLifecycleV1::RecoveryRequired
+            {
+                Ok(self.durability)
+            } else {
+                Err(SessionGuardError::OwnershipLost {
+                    path: self.path.clone(),
+                })
+            };
+        }
+        self.ensure_owned()?;
+        self.mark_recovery_required()?;
+        self.released = true;
+        self.ownership.take();
+        Ok(self.durability)
+    }
+
     /// Normal shutdown must call this explicitly so an I/O failure cannot be silently discarded.
     pub fn release(&mut self) -> Result<SessionLockDurability, SessionGuardError> {
         if self.released {
             return Ok(self.durability);
         }
         self.ensure_owned()?;
+        if !matches!(
+            self.record.lifecycle(),
+            ProjectSessionAdmissionLifecycleV1::Closing
+                | ProjectSessionAdmissionLifecycleV1::RecoveryRequired
+        ) {
+            self.begin_close()?;
+        }
         let durability = remove_lock(&self.path)?;
         self.released = true;
         self.durability = durability;
@@ -165,6 +234,38 @@ impl SessionGuard {
             });
         }
         Ok(())
+    }
+
+    fn transition_to(
+        &mut self,
+        lifecycle: ProjectSessionAdmissionLifecycleV1,
+    ) -> Result<SessionLockDurability, SessionGuardError> {
+        self.ensure_owned()?;
+        let record = self
+            .record
+            .transition_to(lifecycle)
+            .map_err(|error| self.invalid_lifecycle(error))?;
+        self.replace_record(record)
+    }
+
+    fn replace_record(
+        &mut self,
+        record: ProjectSessionAdmissionRecordV1,
+    ) -> Result<SessionLockDurability, SessionGuardError> {
+        let durability = replace_lock(&self.path, &record)?;
+        self.record = record;
+        self.durability = durability;
+        Ok(durability)
+    }
+
+    fn invalid_lifecycle(
+        &self,
+        error: zircon_runtime_interface::project::session_lock::ProjectSessionAdmissionRecordError,
+    ) -> SessionGuardError {
+        SessionGuardError::InvalidRecord {
+            path: self.path.clone(),
+            message: error.to_string(),
+        }
     }
 }
 

@@ -2,17 +2,20 @@
 owner_plan: docs/plans/zircon_editor/editor/09-editor-asset-management.md
 milestone: M3
 slice: dirty-registry-saved-top-projection
-status: source_complete_static_green_review_clean_cargo_blocked
+status: implementation_complete_static_validation_complete_managed_validation_blocked
 related_code:
   - zircon_editor/src/core/asset/mod.rs
   - zircon_editor/src/core/asset/dirty/mod.rs
   - zircon_editor/src/core/asset/dirty/error.rs
   - zircon_editor/src/core/asset/dirty/external_effect_id.rs
   - zircon_editor/src/core/asset/dirty/registry.rs
+  - zircon_editor/src/ui/host/editor_save_batch.rs
+  - zircon_editor/src/ui/retained_host/app/document_save.rs
 tests:
   - zircon_editor/tests/editor_asset_facade.rs
   - zircon_editor/src/core/asset/dirty/tests.rs
   - tools/tests/test_editor09_dirty_registry_contract.py
+  - zircon_editor/src/ui/retained_host/app/tests/document_save.rs
 ---
 
 # Editor09 M3.1 DirtyRegistry Saved-Top Projection
@@ -119,3 +122,24 @@ Editor03 提供同锁 compare-and-mark typed token。Editor09 不以 UI 单线�
   `VecDeque::range(start..)`，在真实 iterator yield 中计数，并修正 `pub(super)`。两路最终复审均为
   `0/0/0`，专项静态 8/8、相关 Editor03/09 静态 48/48、exact rustfmt/diff-check GREEN；Cargo/产品
   trace/fixed return/commit 继续 pending。
+- 2026-08-23：状态 `implementation_complete_static_validation_complete_managed_validation_blocked`。新增
+  `ui/host/editor_save_batch.rs` 作为唯一产品 batch coordinator：从同一份 toolkit snapshot 建立
+  `SaveDirtyViewsRequest`，以 DirtyRegistry save token 和 dirty generation 驱动既有
+  `SaveDirtyViewsJobAdapter`，worker 只调用 DocumentToolkit 的 write hook，完成后才统一
+  compare-and-mark/清 external effect 并刷新 workbench dirty projection。native close prompt 的 Save
+  改为异步提交和 tick 回收；保存中拒绝重复动作，完成后重新查询当前 target 的 dirty views，只有集合为空
+  才提交关闭，failed/cancelled/stale 或新 generation 均回到可重试提示。close-prompt UI asset 回归已改为
+  验证“点击后窗口仍打开，tick 后才关闭”。受影响 Rust 文件 `rustfmt --check` 与 scoped
+  `git diff --check` 通过（仅 LF/CRLF 提示）。当前 coordinator 仍因外部未登记 D/E/F Cargo target
+  被 managed validation 拒绝，未运行 Cargo 或声明运行时通过；全局 Save All 命令 consumer 尚未接线，
+  因此 M3 和本 failure 不标记 accepted/completed。
+- 2026-08-23：状态 `implementation_complete_static_validation_complete_managed_validation_blocked`。全局
+  `Save All Documents` 已作为独立 `MenuAction::SaveAllDocuments` 与
+  `EditorEventEffect::DocumentSaveAllRequested` 接入 command registry、workbench ID 映射、runtime
+  reflection、retained-host effect owner 和 tick completion polling；它只调度上述唯一 document batch
+  coordinator，不把旧 `Save Project` 的场景文件 I/O 伪装成 document save。关闭询问保存中的 batch 与
+  Save All 双向互斥，避免两个 UI 路径争用 `SaveDirtyViewsJobAdapter` 的单一完成队列；主窗口与浮动窗口
+  均会在 Save All 未完成时保持可见。新增 retained-host 回归覆盖异步 Save All 与 close-prompt ownership
+  guard。受影响 Rust 文件已执行 `rustfmt --check` 与 scoped `git diff --check`；受管 Cargo 仍因外部未登记
+  D/E/F target 被 coordinator 拒绝，未将本条写作运行时通过或 M3 accepted。场景尚未成为
+  `DocumentToolkit`，故旧 `Save Project` 的场景保存 hard cut 仍是后续工作项。

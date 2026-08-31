@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 use zircon_runtime::core::resource::io::atomic_write;
-use zircon_runtime_interface::hub_protocol::{HubEditorMailboxV1, HubSessionToken};
+use zircon_runtime_interface::hub_protocol::{
+    HubEditorMailboxV1, HubEditorReadyReceiptV1, HubEditorStartupFailureCodeV1, HubSessionToken,
+};
 
 const ZIRCON_DIRECTORY: &str = ".zircon";
 const HUB_DIRECTORY: &str = "hub";
@@ -34,15 +36,18 @@ impl HubEditorHandshake {
         handshake_mailbox_path(&self.project_root, self.session)
     }
 
-    pub(crate) fn publish_ready(&self, process_id: u32) -> Result<(), HubHandshakeError> {
-        self.publish(HubEditorMailboxV1::ready(process_id, &self.project_root))
+    pub(crate) fn publish_ready(
+        &self,
+        receipt: HubEditorReadyReceiptV1,
+    ) -> Result<(), HubHandshakeError> {
+        self.publish(HubEditorMailboxV1::ready(self.session, receipt))
     }
 
     pub(crate) fn publish_failed(
         &self,
-        reason: impl Into<String>,
+        code: HubEditorStartupFailureCodeV1,
     ) -> Result<(), HubHandshakeError> {
-        self.publish(HubEditorMailboxV1::failed(reason))
+        self.publish(HubEditorMailboxV1::failed(self.session, code))
     }
 
     fn publish(&self, mailbox: HubEditorMailboxV1) -> Result<(), HubHandshakeError> {
@@ -91,9 +96,11 @@ pub(crate) enum HubHandshakeError {
 mod tests {
     use std::str::FromStr;
 
-    use zircon_runtime_interface::hub_protocol::{HubEditorMailboxV1, HubSessionToken};
+    use zircon_runtime_interface::hub_protocol::{
+        HubEditorMailboxV1, HubEditorReadyReceiptV1, HubSessionToken,
+    };
 
-    use super::{handshake_mailbox_path, HubEditorHandshake};
+    use super::{HubEditorHandshake, handshake_mailbox_path};
 
     #[test]
     fn handshake_mailbox_is_scoped_to_the_project_and_typed_session() {
@@ -124,12 +131,16 @@ mod tests {
             .expect("valid test session");
         let handshake = HubEditorHandshake::new(&directory, session);
 
-        handshake.publish_ready(913).expect("publish ready mailbox");
+        let receipt =
+            HubEditorReadyReceiptV1::after_first_present(913, "913-42", 1).expect("ready receipt");
+        handshake
+            .publish_ready(receipt.clone())
+            .expect("publish ready mailbox");
 
         let bytes = std::fs::read(handshake.mailbox_path()).expect("read ready mailbox");
         assert_eq!(
             serde_json::from_slice::<HubEditorMailboxV1>(&bytes).expect("decode ready mailbox"),
-            HubEditorMailboxV1::ready(913, &directory)
+            HubEditorMailboxV1::ready(session, receipt)
         );
         std::fs::remove_dir_all(&directory).expect("remove temporary project root");
     }

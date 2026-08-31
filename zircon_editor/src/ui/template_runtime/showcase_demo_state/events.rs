@@ -505,20 +505,7 @@ fn context_action_menu_option_id(encoded: &str) -> Option<String> {
         return None;
     }
     if let Some(action_segment) = encoded.strip_prefix("menu.item.") {
-        return Some(
-            action_segment
-                .split('_')
-                .filter(|segment| !segment.is_empty())
-                .map(|segment| {
-                    let mut chars = segment.chars();
-                    let Some(first) = chars.next() else {
-                        return String::new();
-                    };
-                    format!("{}{}", first.to_ascii_uppercase(), chars.as_str())
-                })
-                .collect::<Vec<_>>()
-                .join(" "),
-        );
+        return Some(humanize_menu_action_segment(action_segment));
     }
     let mut parts = encoded.split('|');
     let label = parts.next()?.trim();
@@ -529,6 +516,24 @@ fn context_action_menu_option_id(encoded: &str) -> Option<String> {
     Some(label.to_string())
 }
 
+fn humanize_menu_action_segment(action_segment: &str) -> String {
+    let mut label = String::with_capacity(action_segment.len());
+    for segment in action_segment
+        .split('_')
+        .filter(|segment| !segment.is_empty())
+    {
+        if !label.is_empty() {
+            label.push(' ');
+        }
+        let mut chars = segment.chars();
+        if let Some(first) = chars.next() {
+            label.push(first.to_ascii_uppercase());
+            label.push_str(chars.as_str());
+        }
+    }
+    label
+}
+
 fn value_property_for_action(action: &str) -> &'static str {
     match action.rsplit_once('.').map(|(_, component)| component) {
         Some("SearchSelectQuery") => "query",
@@ -537,3 +542,7 @@ fn value_property_for_action(action: &str) -> &'static str {
         _ => "value",
     }
 }
+
+#[cfg(test)]
+#[path = "events/menu_action_label_tests.rs"]
+mod menu_action_label_tests;

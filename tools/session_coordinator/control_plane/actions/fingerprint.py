@@ -187,17 +187,13 @@ class ActionFingerprinter:
                 for patch in patches
                 for path in json.loads(str(patch["targets_json"]))
             }
-            leases = [dict(row) for row in connection.execute(
-                "SELECT display_path, session_id, expires_at FROM leases ORDER BY path_key"
-            ) if str(row["display_path"]).casefold() in target_paths]
+            leases = self._leases_for_path_keys(connection, target_paths)
         if spec.kind is ActionKind.LEASE_CLAIM and session_id:
             row = connection.execute(
                 "SELECT write_scope_json FROM sessions WHERE session_id = ?", (session_id,)
             ).fetchone()
             scope = {str(path).casefold() for path in json.loads(row[0] or "[]")} if row else set()
-            leases = [dict(item) for item in connection.execute(
-                "SELECT display_path, session_id, expires_at FROM leases ORDER BY path_key"
-            ) if str(item["display_path"]).casefold() in scope]
+            leases = self._leases_for_path_keys(connection, scope)
         if spec.kind is ActionKind.LEASE_RELEASE and session_id:
             leases = [dict(row) for row in connection.execute(
                 """SELECT display_path, session_id, expires_at FROM leases
@@ -385,6 +381,20 @@ class ActionFingerprinter:
             "supervision": supervision,
             "benchmarkSourceSession": benchmark_source_session,
         }
+
+    @staticmethod
+    def _leases_for_path_keys(connection, path_keys: set[str]) -> list[dict[str, object]]:
+        if not path_keys:
+            return []
+        return [
+            dict(row)
+            for row in connection.execute(
+                """SELECT display_path, session_id, expires_at FROM leases
+                   WHERE path_key IN (SELECT value FROM json_each(?))
+                   ORDER BY path_key""",
+                (json.dumps(sorted(path_keys)),),
+            )
+        ]
 
     @staticmethod
     def _resource_impact(resources: dict[str, object]) -> tuple[str, ...]:

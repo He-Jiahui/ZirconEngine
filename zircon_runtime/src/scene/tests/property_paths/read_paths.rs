@@ -14,8 +14,11 @@ fn world_property_uses_direct_static_dispatch_without_inspector_enumeration() {
     assert!(read_source.contains("self.mesh_renderer_property_value(entity, segments)"));
     assert!(read_source.contains("self.physics_property_value(entity, component, segments)"));
     assert!(read_source.contains("return Ok(value);"));
-    assert!(read_source
-        .contains("if let Some(value) = self.dynamic_component_property(entity, property_path)"));
+    assert!(
+        read_source.contains(
+            "if let Some(value) = self.dynamic_component_property(entity, property_path)"
+        )
+    );
     assert!(read_source.contains(") -> SceneResult<ScenePropertyValue>"));
     assert!(read_source.contains("SceneError::PropertyUnavailable"));
     assert!(read_source.contains("property_path: property_path.to_string()"));
@@ -35,32 +38,42 @@ fn world_property_uses_direct_static_dispatch_without_inspector_enumeration() {
     assert!(!read_source.contains("entries\n            .into_iter()"));
     assert!(!read_source.contains("fn property_path_matches_normalized("));
     assert!(!read_source.contains("fn property_segments_match_normalized("));
-    assert!(!entries_source
-        .contains("let mut push = |path: &str, value: ScenePropertyValue, animatable: bool|"));
+    assert!(
+        !entries_source
+            .contains("let mut push = |path: &str, value: ScenePropertyValue, animatable: bool|")
+    );
     assert!(!read_source.contains("use super::value_conversion::normalized_identifier;"));
     assert!(!read_source.contains("let target_component = normalized_identifier("));
-    assert!(!read_source
-        .contains(".or_else(|| self.dynamic_component_property(entity, property_path))"));
+    assert!(
+        !read_source
+            .contains(".or_else(|| self.dynamic_component_property(entity, property_path))")
+    );
     assert!(!read_source.contains(".ok_or_else(||"));
     assert!(!read_source.contains(
         ".property_segments()\n                        .iter()\n                        .map(|segment| normalized_identifier(segment))\n                        .collect::<Vec<_>>()"
     ));
     assert!(!read_source.contains(".map(|segment| normalized_identifier(segment))"));
     assert!(!read_source.contains(".collect::<Vec<_>>()"));
-    assert!(!read_source
-        .contains("normalized_identifier(property_path.component()) == target_component"));
+    assert!(
+        !read_source
+            .contains("normalized_identifier(property_path.component()) == target_component")
+    );
     assert!(
         !read_source.contains("normalized_identifier(&segments[index]) != target_segments[index]")
     );
     assert!(!read_source.contains(".zip(target_segments)"));
-    assert!(!read_source
-        .contains(".all(|(segment, target)| normalized_identifier(segment) == *target)"));
+    assert!(
+        !read_source
+            .contains(".all(|(segment, target)| normalized_identifier(segment) == *target)")
+    );
 }
 
 #[test]
 fn world_property_materializes_only_the_requested_entry() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.rename_node(entity, "Target").unwrap();
     world
         .update_transform(
@@ -85,7 +98,9 @@ fn world_property_materializes_only_the_requested_entry() {
 #[test]
 fn world_property_rejects_removed_entity_before_static_dispatch() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.remove_entity(entity).unwrap();
 
     let hierarchy_parent = ComponentPropertyPath::parse("Hierarchy.parent").unwrap();
@@ -107,7 +122,9 @@ fn world_property_direct_dispatch_preserves_nested_shape_and_sequence_fields() {
     };
 
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_collider(
             entity,
@@ -210,22 +227,30 @@ fn world_entity_path_resolution_compares_target_segments_directly() {
     let path_resolution_source = include_str!("../../world/property_access/path_resolution.rs");
     let old_entity_path_lookup = ["resolve", "entity", "path"].join("_");
 
-    assert!(path_resolution_source
-        .contains("pub fn get_entity_by_path(&self, path: &EntityPath) -> Option<EntityId>"));
+    assert!(
+        path_resolution_source
+            .contains("pub fn get_entity_by_path(&self, path: &EntityPath) -> Option<EntityId>")
+    );
     assert!(!path_resolution_source.contains(&format!("pub fn {old_entity_path_lookup}")));
     assert!(path_resolution_source.contains("let target_segments = path.segments();"));
     assert!(path_resolution_source.contains("let mut entity_index = 0;"));
     assert!(path_resolution_source.contains("while entity_index < self.entities.len()"));
     assert!(path_resolution_source.contains("let entity = self.entities[entity_index];"));
-    assert!(path_resolution_source
-        .contains("if self.entity_matches_path_segments(entity, target_segments)"));
+    assert!(
+        path_resolution_source
+            .contains("if self.entity_matches_path_segments(entity, target_segments)")
+    );
     assert!(path_resolution_source.contains("return Some(entity);"));
     assert!(path_resolution_source.contains("entity_index += 1;"));
     assert!(path_resolution_source.contains("\n        None\n"));
-    assert!(path_resolution_source
-        .contains("Vec::with_capacity(self.entity_path_segment_capacity(entity))"));
-    assert!(path_resolution_source
-        .contains("fn entity_path_segment_capacity(&self, entity: EntityId) -> usize"));
+    assert!(
+        path_resolution_source
+            .contains("Vec::with_capacity(self.entity_path_segment_capacity(entity))")
+    );
+    assert!(
+        path_resolution_source
+            .contains("fn entity_path_segment_capacity(&self, entity: EntityId) -> usize")
+    );
     assert!(path_resolution_source.contains("capacity += 1;"));
     assert!(path_resolution_source.contains(
         "fn entity_matches_path_segments(&self, entity: EntityId, target_segments: &[String])"
@@ -253,10 +278,14 @@ fn world_entity_path_resolution_compares_target_segments_directly() {
     assert!(path_resolution_source.contains("while candidate_index < self.entities.len()"));
     assert!(path_resolution_source.contains("let candidate = self.entities[candidate_index];"));
     assert!(path_resolution_source.contains("candidate_index += 1;"));
-    assert!(path_resolution_source
-        .contains("if candidate == entity || self.parent_of(candidate) != parent"));
-    assert!(path_resolution_source
-        .contains("let Some(candidate_name) = self.get::<Name>(candidate) else"));
+    assert!(
+        path_resolution_source
+            .contains("if candidate == entity || self.parent_of(candidate) != parent")
+    );
+    assert!(
+        path_resolution_source
+            .contains("let Some(candidate_name) = self.get::<Name>(candidate) else")
+    );
     assert!(path_resolution_source.contains("if candidate_name.0.trim() == name"));
     assert!(path_resolution_source.contains("return true;"));
     assert!(path_resolution_source.contains("\n        false\n"));
@@ -270,8 +299,10 @@ fn world_entity_path_resolution_compares_target_segments_directly() {
     assert!(!path_resolution_source.contains(".any(|candidate| {"));
     assert!(!path_resolution_source.contains(".find(|entity| self.entity_matches_path_segments"));
     assert!(!path_resolution_source.contains("for candidate in self.entities.iter().copied()"));
-    assert!(!path_resolution_source
-        .contains("self.entities\n            .iter()\n            .copied()"));
+    assert!(
+        !path_resolution_source
+            .contains("self.entities\n            .iter()\n            .copied()")
+    );
 }
 
 #[test]
@@ -296,15 +327,21 @@ fn world_property_entries_pre_size_projection_vector() {
     assert!(physics_entries_source.contains("pub(super) fn visit_physics_property_entries"));
     assert!(physics_entries_source.contains("pub(super) fn physics_property_entry_capacity_hint"));
     assert!(physics_entries_source.contains("capacity += 17;"));
-    assert!(physics_entries_source
-        .contains("if let Some(collider) = self.get::<ColliderComponent>(entity)"));
-    assert!(physics_entries_source
-        .contains("capacity += collider_shape_property_entry_capacity(&collider.shape);"));
+    assert!(
+        physics_entries_source
+            .contains("if let Some(collider) = self.get::<ColliderComponent>(entity)")
+    );
+    assert!(
+        physics_entries_source
+            .contains("capacity += collider_shape_property_entry_capacity(&collider.shape);")
+    );
     assert!(collider_shape_entries_source.contains(
         "pub(super) fn collider_shape_property_entry_capacity(shape: &ColliderShape) -> usize"
     ));
-    assert!(collider_shape_entries_source
-        .contains("3 + collider_shape_property_entry_capacity(child_shape.as_ref())"));
+    assert!(
+        collider_shape_entries_source
+            .contains("3 + collider_shape_property_entry_capacity(child_shape.as_ref())")
+    );
     assert!(entries_source.contains("capacity += 2 + player.parameters.len();"));
     assert!(entries_source.contains("capacity += 3 + player.parameters.len();"));
     assert!(entries_source.contains("match &player.active_state"));
@@ -335,8 +372,11 @@ fn world_property_entries_pre_size_projection_vector() {
         entries_source.contains("String::with_capacity(prefix_len + decimal_digit_count(index))")
     );
     assert!(entries_source.contains("path.push_str(MESH_RENDERER_MORPH_WEIGHT_PATH_PREFIX);"));
-    assert!(entries_source
-        .contains("write!(&mut path, \"{index}\").expect(\"writing to a String cannot fail\");"));
+    assert!(
+        entries_source.contains(
+            "write!(&mut path, \"{index}\").expect(\"writing to a String cannot fail\");"
+        )
+    );
     assert!(!entries_source.contains("let mut entries = Vec::new();"));
     assert!(
         !entries_source.contains("for (index, weight) in mesh.morph_weights.iter().enumerate()")
@@ -365,7 +405,9 @@ fn world_property_dynamic_json_number_projection_uses_direct_branches() {
     assert!(json_projection_source.contains("if let Some(value) = value.as_u64()"));
     assert!(json_projection_source.contains("return Some(ScenePropertyValue::Unsigned(value));"));
     assert!(json_projection_source.contains("if let Some(value) = value.as_f64()"));
-    assert!(json_projection_source.contains("return Some(ScenePropertyValue::Scalar(value as _));"));
+    assert!(
+        json_projection_source.contains("return Some(ScenePropertyValue::Scalar(value as _));")
+    );
     assert!(!json_projection_source.contains(".map(ScenePropertyValue::Integer)"));
     assert!(!json_projection_source.contains(".or_else(||"));
 }
@@ -373,8 +415,12 @@ fn world_property_dynamic_json_number_projection_uses_direct_branches() {
 #[test]
 fn compiled_scene_property_target_reuses_normalized_component_field_identity() {
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
-    let hero = world.spawn_node(NodeKind::Mesh);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let hero = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.rename_node(root, "Root").unwrap();
     world.rename_node(hero, "Hero").unwrap();
     world.set_parent_checked(hero, Some(root)).unwrap();
@@ -398,7 +444,11 @@ fn compiled_scene_property_target_reuses_normalized_component_field_identity() {
 #[test]
 fn compiled_sequence_apply_keeps_path_resolution_and_string_dispatch_at_compile_boundary() {
     let compiled_binding_facade = include_str!("../../world/compiled_binding/mod.rs");
-    let property_writer_source = include_str!("../../world/compiled_binding/property_path.rs");
+    let property_writer_facade = include_str!("../../world/compiled_binding/property_path.rs");
+    let property_writer_model = include_str!("../../world/compiled_binding/property_path/model.rs");
+    let property_writer_compile =
+        include_str!("../../world/compiled_binding/property_path/compile.rs");
+    let property_writer_write = include_str!("../../world/compiled_binding/property_path/write.rs");
     let transaction_source = include_str!("../../world/transaction.rs");
     let level_system_source = include_str!("../../level_system.rs");
     let animation_apply_source = include_str!("../../../animation/sequence/compiled.rs");
@@ -411,24 +461,35 @@ fn compiled_sequence_apply_keeps_path_resolution_and_string_dispatch_at_compile_
     assert!(compiled_binding_facade.contains("pub use property_path::{"));
     assert!(!compiled_binding_facade.contains("impl "));
     assert!(!compiled_binding_facade.contains(" fn "));
-    assert!(property_writer_source.contains("pub struct PathId"));
-    assert!(property_writer_source.contains("pub struct ComponentFieldId"));
-    assert!(property_writer_source.contains("pub fn compile_scene_property_writer("));
-    assert!(property_writer_source.contains("pub fn write_compiled_scene_property("));
+    assert!(property_writer_facade.contains("mod compile;"));
+    assert!(property_writer_facade.contains("mod model;"));
+    assert!(property_writer_facade.contains("mod read;"));
+    assert!(property_writer_facade.contains("mod write;"));
+    assert!(property_writer_facade.contains("pub use model::{"));
+    assert!(!property_writer_facade.contains("impl "));
+    assert!(!property_writer_facade.contains(" fn "));
+    assert!(property_writer_model.contains("pub struct PathId"));
+    assert!(property_writer_model.contains("pub struct ComponentFieldId"));
+    assert!(property_writer_compile.contains("pub fn compile_scene_property_writer("));
+    assert!(property_writer_write.contains("pub fn write_compiled_scene_property("));
     assert!(
-        property_writer_source.contains("pub(crate) fn compile_scene_property_writer_for_entity(")
+        property_writer_compile.contains("pub(crate) fn compile_scene_property_writer_for_entity(")
     );
-    assert!(property_writer_source.contains("canonical_entity_path: &EntityPath"));
+    assert!(property_writer_compile.contains("canonical_entity_path: &EntityPath"));
     assert!(animation_apply_source.contains("world.entity_path(entity)"));
     assert!(animation_apply_source.contains("compile_scene_property_writer_for_entity("));
     assert!(transaction_source.contains("staged.advance_scene_binding_generations_after(self);"));
-    assert!(transaction_source
-        .contains("staged.advance_world_generation_after(self.world_generation());"));
+    assert!(
+        transaction_source
+            .contains("staged.advance_world_generation_after(self.world_generation());")
+    );
     assert!(
         level_system_source.contains("world.advance_scene_binding_generations_after(&current);")
     );
-    assert!(level_system_source
-        .contains("world.advance_world_generation_after(current.world_generation());"));
+    assert!(
+        level_system_source
+            .contains("world.advance_world_generation_after(current.world_generation());")
+    );
     assert!(!apply_source.contains("get_entity_by_path"));
     assert!(!apply_source.contains("set_property("));
     assert!(!apply_source.contains("AnimationTrackPath::new"));

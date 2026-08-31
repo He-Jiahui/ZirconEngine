@@ -8,18 +8,12 @@ use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 const MATERIAL_THEME_ZUI: &str = "res://ui/theme/editor_material.zui";
+const STRICT_WORKBENCH_THEME_ZUI: &str = "res://ui/theme/editor_workbench_strict.zui";
 const EDITOR_BASE_THEME_ZUI: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/assets/ui/theme/editor_base.zui"
 ));
 const PRIMARY_EDITOR_PANE_TEMPLATES: &[(&str, &str)] = &[
-    (
-        "animation editor",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/animation_editor.zui"
-        )),
-    ),
     (
         "console",
         include_str!(concat!(
@@ -70,8 +64,20 @@ fn editor_base_control_geometry_uses_central_design_tokens() {
 }
 
 #[test]
-fn primary_editor_panes_use_shared_control_and_text_tokens() {
+fn primary_editor_panes_use_strict_workbench_theme_and_shared_tokens() {
     for (name, template) in PRIMARY_EDITOR_PANE_TEMPLATES {
+        assert!(
+            template.contains(STRICT_WORKBENCH_THEME_ZUI),
+            "{name} pane must import the strict Workbench theme"
+        );
+        assert!(
+            !template.contains("res://ui/theme/editor_base.zui"),
+            "{name} pane must not retain the legacy Editor base theme"
+        );
+        assert!(
+            template.contains("classes = [\"workbench-shell-root\"]"),
+            "{name} pane root must use the strict Workbench shell role"
+        );
         for token in [
             "$editor.control.border_width",
             "$editor.control.radius.small",
@@ -89,10 +95,7 @@ fn primary_editor_panes_use_shared_control_and_text_tokens() {
         }
     }
 
-    for (name, template) in PRIMARY_EDITOR_PANE_TEMPLATES
-        .iter()
-        .filter(|(name, _)| *name != "animation editor")
-    {
+    for (name, template) in PRIMARY_EDITOR_PANE_TEMPLATES {
         for token in [
             "$editor.density.row_height",
             "$editor.typography.strong.weight",
@@ -114,13 +117,13 @@ fn primary_editor_panes_use_shared_control_and_text_tokens() {
 }
 
 #[test]
-fn global_material_surface_assets_follow_responsive_contracts() {
+fn global_editor_design_system_assets_follow_responsive_contracts() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let assets_root = repo.join("assets/ui");
     let files = collect_ui_files(&repo);
     assert_eq!(
         files.len(),
-        41,
+        42,
         "Current .zui view surface inventory changed; update the acceptance inventory and this conformance test together"
     );
 
@@ -135,11 +138,11 @@ fn global_material_surface_assets_follow_responsive_contracts() {
         if is_component_library(&relative, document) {
             continue;
         }
-        if !imports_material_theme(&relative, &import_graph)
+        if !imports_editor_design_system_theme(&relative, &import_graph)
             && !is_material_import_pending_surface(&relative)
         {
             failures.push(format!(
-                "{} must import Material theme directly or through another imported asset",
+                "{} must import the Material or strict Workbench theme directly or through another imported asset",
                 relative
             ));
         }
@@ -188,7 +191,7 @@ fn global_material_surface_assets_follow_responsive_contracts() {
 }
 
 #[test]
-fn material_import_graph_uses_normalized_res_paths() {
+fn editor_design_system_import_graph_uses_normalized_res_paths() {
     let mut graph = BTreeMap::new();
     graph.insert(
         "editor/welcome.zui".to_string(),
@@ -199,7 +202,19 @@ fn material_import_graph_uses_normalized_res_paths() {
         vec![MATERIAL_THEME_ZUI.to_string()],
     );
 
-    assert!(imports_material_theme("editor/welcome.zui", &graph));
+    assert!(imports_editor_design_system_theme(
+        "editor/welcome.zui",
+        &graph
+    ));
+
+    graph.insert(
+        "editor/hierarchy.zui".to_string(),
+        vec![STRICT_WORKBENCH_THEME_ZUI.to_string()],
+    );
+    assert!(imports_editor_design_system_theme(
+        "editor/hierarchy.zui",
+        &graph
+    ));
 }
 
 #[test]
@@ -373,7 +388,10 @@ fn import_graph(
         .collect()
 }
 
-fn imports_material_theme(relative: &str, graph: &BTreeMap<String, Vec<String>>) -> bool {
+fn imports_editor_design_system_theme(
+    relative: &str,
+    graph: &BTreeMap<String, Vec<String>>,
+) -> bool {
     let mut pending = vec![relative.to_string()];
     let mut visited = BTreeSet::new();
     while let Some(current) = pending.pop() {
@@ -381,7 +399,7 @@ fn imports_material_theme(relative: &str, graph: &BTreeMap<String, Vec<String>>)
             continue;
         }
         for import in graph.get(&current).into_iter().flatten() {
-            if import == MATERIAL_THEME_ZUI {
+            if import == MATERIAL_THEME_ZUI || import == STRICT_WORKBENCH_THEME_ZUI {
                 return true;
             }
             if let Some(next) = import.strip_prefix("res://ui/") {

@@ -1,4 +1,4 @@
-use super::super::data::{FrameRect, HostWindowPresentationData};
+use super::super::data::{FrameRect, HostPresentationGenerationCursor, HostWindowPresentationData};
 use super::super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
 use super::error::HostPresenterResult;
 
@@ -11,6 +11,7 @@ pub(in crate::ui::retained_host::host_contract) trait HostChromePresenter {
     fn present(
         &mut self,
         presentation: &HostWindowPresentationData,
+        presentation_cursor: HostPresentationGenerationCursor,
         damage: Option<FrameRect>,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics>;
@@ -18,9 +19,10 @@ pub(in crate::ui::retained_host::host_contract) trait HostChromePresenter {
     fn present_during_native_resize(
         &mut self,
         presentation: &HostWindowPresentationData,
+        presentation_cursor: HostPresentationGenerationCursor,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
-        self.present(presentation, None, invalidation)
+        self.present(presentation, presentation_cursor, None, invalidation)
     }
 
     fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics;

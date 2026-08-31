@@ -25,6 +25,34 @@ pub(super) fn record_depth_clear_pass(
 }
 
 impl<'a> RenderPassGpuExecutionContext<'a> {
+    pub(in crate::graphics::scene::scene_renderer) fn record_surface_present(
+        &mut self,
+        source_resource_name: &str,
+    ) -> Result<(), String> {
+        let source_view = Self::require_texture_view_by_name(
+            self.resources,
+            self.resource_resolver,
+            source_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let Some((surface, surface_target)) = self.surface_frame else {
+            let error = crate::graphics::types::GraphicsError::SurfaceStatus(
+                "surface-present graph pass requires an acquired surface frame target",
+            );
+            let reason = error.to_string();
+            self.surface_present_error = Some(error);
+            return Err(reason);
+        };
+        match surface.record_frame_target_blit(self.encoder, source_view, surface_target) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                let reason = error.to_string();
+                self.surface_present_error = Some(error);
+                Err(reason)
+            }
+        }
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn record_transmission_scene_color_copy(
         &mut self,
         source_resource_name: &str,
@@ -178,18 +206,16 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        let screen_space_ui_renderer = self
+        let mut prepared_upload = self
             .screen_space_ui_renderer
             .as_deref_mut()
             .ok_or_else(|| {
                 format!(
                     "screen-space UI graph executor for resource `{resource_name}` requires UI renderer context"
                 )
-            })?;
-        screen_space_ui_renderer
+            })?
             .record(
                 self.device,
-                self.queue,
                 self.encoder,
                 color_view,
                 self.frame,
@@ -197,6 +223,22 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 self.streamer,
             )
             .map_err(|error| error.to_string())?;
+        let appended = self
+            .screen_space_ui_renderer
+            .as_deref()
+            .is_some_and(|renderer| {
+                prepared_upload.append_to(
+                    renderer,
+                    &mut self.buffer_uploads,
+                    &mut self.texture_uploads,
+                )
+            });
+        if !appended {
+            return Err(format!(
+                "screen-space UI graph executor for resource `{resource_name}` could not attach its resource upload transaction"
+            ));
+        }
+        self.push_screen_space_ui_upload_commit(prepared_upload);
         Ok(())
     }
 
@@ -208,11 +250,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         color_attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
-        if self.overlay_renderer.is_none() {
-            return Err(format!(
-                "preview sky graph executor for pass `{pass_name}` requires preview sky renderer context"
-            ));
-        }
         let resources = &*self.resources;
         let resource_resolver = self.resource_resolver;
         let color_view = Self::require_texture_view_by_name(
@@ -234,10 +271,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             RenderGraphResourceAccessKind::Read,
         )?;
         let render_region = self.render_region_for_write_resource(color_resource_name);
-        let overlay_renderer = self
-            .overlay_renderer
-            .as_deref_mut()
-            .expect("preview sky renderer context was checked before resource resolution");
+        let overlay_renderer = self.overlay_renderer.as_deref_mut().ok_or_else(|| {
+            format!(
+                "preview sky graph executor for pass `{pass_name}` requires preview sky renderer context"
+            )
+        })?;
         overlay_renderer.record_preview_sky_with_attachment_ops(
             self.encoder,
             self.device,

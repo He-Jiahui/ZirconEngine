@@ -1,9 +1,11 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
-use crate::text::layout::{measure_line_width_with_provider, tab_interval_width};
-use crate::text::ParagraphOverride;
-use crate::text::SharedTextLayoutSession;
+use crate::text::layout::{
+    checked_source_range, measure_line_width_with_provider, tab_interval_width,
+};
+use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
+use crate::text::{ParagraphOverride, SharedTextLayoutSession, TextAlign};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextRange,
@@ -46,7 +48,15 @@ pub(super) type ResolvedParagraphLineConstraints = ResolvedParagraphConstraints<
 #[derive(Clone, Debug)]
 struct ResolvedPhysicalParagraphOverride {
     range: UiTextRange,
-    paragraph: ParagraphOverride,
+    layout: ResolvedParagraphLayoutOverride,
+}
+
+#[derive(Clone, Debug, Default)]
+struct ResolvedParagraphLayoutOverride {
+    indent_level: Option<u16>,
+    indent: Option<f32>,
+    align: Option<TextAlign>,
+    list_prefix: Option<UiTextRange>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -172,10 +182,10 @@ impl<T: Copy> ResolvedParagraphConstraints<T> {
 }
 
 pub(super) fn has_block_layout(parsed: &UiParsedText) -> bool {
-    parsed.paragraphs().any(|(_, paragraph, _)| {
+    parsed.paragraphs().any(|(_, paragraph, list_prefix)| {
         paragraph.indent.is_some()
             || paragraph.indent_level.is_some()
-            || paragraph.list_prefix.is_some()
+            || list_prefix.is_some()
             || paragraph.align.is_some()
     })
 }
@@ -185,37 +195,48 @@ pub(super) fn resolve_paragraph_column_constraints_with_provider(
     style: &UiResolvedStyle,
     frame_height: f32,
     provider: &mut SharedTextLayoutSession,
-) -> ResolvedParagraphColumnConstraints {
-    let paragraphs = resolved_physical_paragraph_overrides(parsed)
-        .into_iter()
-        .map(|paragraph| ResolvedPhysicalParagraphColumns {
+) -> TextLayoutOutcome<ResolvedParagraphColumnConstraints> {
+    let mut paragraphs = Vec::new();
+    let resolved = resolved_physical_paragraph_overrides(parsed);
+    for paragraph in resolved {
+        let first = match column_constraints_for_paragraph_with_provider(
+            parsed.text(),
+            style,
+            frame_height,
+            &paragraph.layout,
+            true,
+            provider,
+        ) {
+            TextShapingOutcome::Ready(constraints) => constraints,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
+        let continuation = match column_constraints_for_paragraph_with_provider(
+            parsed.text(),
+            style,
+            frame_height,
+            &paragraph.layout,
+            false,
+            provider,
+        ) {
+            TextShapingOutcome::Ready(constraints) => constraints,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
+        paragraphs.push(ResolvedPhysicalParagraphColumns {
             range: paragraph.range,
-            first: column_constraints_for_paragraph_with_provider(
-                parsed.text(),
-                style,
-                frame_height,
-                &paragraph.paragraph,
-                true,
-                provider,
-            ),
-            continuation: column_constraints_for_paragraph_with_provider(
-                parsed.text(),
-                style,
-                frame_height,
-                &paragraph.paragraph,
-                false,
-                provider,
-            ),
-        })
-        .collect();
-    ResolvedParagraphColumnConstraints {
+            first,
+            continuation,
+        });
+    }
+    TextShapingOutcome::Ready(ResolvedParagraphColumnConstraints {
         paragraphs,
         fallback: ColumnConstraints {
             inset: 0.0,
             max_height: frame_height.max(0.0),
             align: style.text_align,
         },
-    }
+    })
 }
 
 pub(super) fn resolve_paragraph_line_constraints_with_provider(
@@ -223,37 +244,55 @@ pub(super) fn resolve_paragraph_line_constraints_with_provider(
     style: &UiResolvedStyle,
     frame_width: f32,
     provider: &mut SharedTextLayoutSession,
-) -> ResolvedParagraphLineConstraints {
-    let paragraphs = resolved_physical_paragraph_overrides(parsed)
-        .into_iter()
-        .map(|paragraph| ResolvedPhysicalParagraphLines {
+) -> TextLayoutOutcome<ResolvedParagraphLineConstraints> {
+    let mut paragraphs = Vec::new();
+    let resolved = resolved_physical_paragraph_overrides(parsed);
+    for paragraph in resolved {
+        let first = match line_constraints_for_paragraph_with_provider(
+            parsed.text(),
+            style,
+            frame_width,
+            &paragraph.layout,
+            true,
+            provider,
+        ) {
+            TextShapingOutcome::Ready(constraints) => constraints,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
+        let continuation = match line_constraints_for_paragraph_with_provider(
+            parsed.text(),
+            style,
+            frame_width,
+            &paragraph.layout,
+            false,
+            provider,
+        ) {
+            TextShapingOutcome::Ready(constraints) => constraints,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
+        paragraphs.push(ResolvedPhysicalParagraphLines {
             range: paragraph.range,
-            first: line_constraints_for_paragraph_with_provider(
-                parsed.text(),
-                style,
-                frame_width,
-                &paragraph.paragraph,
-                true,
-                provider,
-            ),
-            continuation: line_constraints_for_paragraph_with_provider(
-                parsed.text(),
-                style,
-                frame_width,
-                &paragraph.paragraph,
-                false,
-                provider,
-            ),
-        })
-        .collect();
-    ResolvedParagraphLineConstraints {
+            first,
+            continuation,
+        });
+    }
+    // Keep profiling capture bounded: this reports the two logical inset lookups per
+    // physical paragraph without emitting one allocated span for every lookup.
+    crate::profile_counter!(
+        "runtime",
+        "paragraph_constraint_inset_resolution_count",
+        paragraphs.len().saturating_mul(2),
+    );
+    TextShapingOutcome::Ready(ResolvedParagraphLineConstraints {
         paragraphs,
         fallback: LineConstraints {
             inset: 0.0,
             max_width: frame_width.max(0.0),
             align: style.text_align,
         },
-    }
+    })
 }
 
 pub(super) fn aligned_column_y(
@@ -275,15 +314,19 @@ pub(super) fn wrap_block_paragraphs_with_provider(
     style: &UiResolvedStyle,
     frame_width: f32,
     provider: &mut SharedTextLayoutSession,
-) -> Vec<CandidateLine> {
+) -> TextLayoutOutcome<Vec<CandidateLine>> {
     let mut lines = Vec::new();
     let mut run_cursor = 0;
-    for ResolvedPhysicalParagraphOverride { range, paragraph } in
-        resolved_physical_paragraph_overrides(parsed)
-    {
+    let paragraphs = resolved_physical_paragraph_overrides(parsed);
+    for ResolvedPhysicalParagraphOverride { range, layout } in &paragraphs {
+        let range = *range;
         let (first_inset, continuation_inset) =
-            paragraph_insets(parsed.text(), &paragraph, style, provider);
-        let mut paragraph_lines = wrap_source_run_range_with_line_widths_provider(
+            match paragraph_insets(parsed.text(), layout, style, provider) {
+                TextShapingOutcome::Ready(insets) => insets,
+                TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+            };
+        let mut paragraph_lines = match wrap_source_run_range_with_line_widths_provider(
             &parsed.runs,
             range,
             &mut run_cursor,
@@ -292,7 +335,11 @@ pub(super) fn wrap_block_paragraphs_with_provider(
             available_width(frame_width, continuation_inset),
             style,
             provider,
-        );
+        ) {
+            TextShapingOutcome::Ready(lines) => lines,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
         if paragraph_lines.is_empty() {
             paragraph_lines.push(CandidateLine::empty());
         }
@@ -303,51 +350,66 @@ pub(super) fn wrap_block_paragraphs_with_provider(
         }
         lines.extend(paragraph_lines);
     }
-    lines
+    // One aggregate counter preserves the O(paragraphs) work signal while avoiding
+    // per-paragraph trace allocation in large-document profiles.
+    crate::profile_counter!(
+        "runtime",
+        "paragraph_wrap_inset_resolution_count",
+        paragraphs.len(),
+    );
+    TextShapingOutcome::Ready(lines)
 }
 
 fn column_constraints_for_paragraph_with_provider(
     text: &str,
     style: &UiResolvedStyle,
     frame_height: f32,
-    paragraph: &ParagraphOverride,
+    layout: &ResolvedParagraphLayoutOverride,
     first_physical_column: bool,
     provider: &mut SharedTextLayoutSession,
-) -> ColumnConstraints {
-    let (first_inset, continuation_inset) = paragraph_insets(text, paragraph, style, provider);
+) -> TextLayoutOutcome<ColumnConstraints> {
+    let (first_inset, continuation_inset) = match paragraph_insets(text, layout, style, provider) {
+        TextShapingOutcome::Ready(insets) => insets,
+        TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+        TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+    };
     let inset = if first_physical_column {
         first_inset
     } else {
         continuation_inset
     };
     let inset = resolved_inset(frame_height, inset);
-    ColumnConstraints {
+    TextShapingOutcome::Ready(ColumnConstraints {
         inset,
         max_height: available_width(frame_height, inset),
-        align: paragraph.align.map(Into::into).unwrap_or(style.text_align),
-    }
+        align: layout.align.map(Into::into).unwrap_or(style.text_align),
+    })
 }
 
 fn line_constraints_for_paragraph_with_provider(
     text: &str,
     style: &UiResolvedStyle,
     frame_width: f32,
-    paragraph: &ParagraphOverride,
+    layout: &ResolvedParagraphLayoutOverride,
     first_physical_line: bool,
     provider: &mut SharedTextLayoutSession,
-) -> LineConstraints {
-    let (first_inset, continuation_inset) = paragraph_insets(text, paragraph, style, provider);
+) -> TextLayoutOutcome<LineConstraints> {
+    let (first_inset, continuation_inset) = match paragraph_insets(text, layout, style, provider) {
+        TextShapingOutcome::Ready(insets) => insets,
+        TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+        TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+    };
     let inset = if first_physical_line {
         first_inset
     } else {
         continuation_inset
     };
     let inset = resolved_inset(frame_width, inset);
-    LineConstraints {
+    TextShapingOutcome::Ready(LineConstraints {
         inset,
         max_width: available_width(frame_width, inset),
-        align: paragraph.align.map(Into::into).unwrap_or(style.text_align),
-    }
+        align: layout.align.map(Into::into).unwrap_or(style.text_align),
+    })
 }
 
 pub(super) fn conservative_rich_width_with_provider(
@@ -355,18 +417,21 @@ pub(super) fn conservative_rich_width_with_provider(
     style: &UiResolvedStyle,
     frame_width: f32,
     provider: &mut SharedTextLayoutSession,
-) -> f32 {
+) -> TextLayoutOutcome<f32> {
     let spans = paragraph_override_spans(parsed);
     let ranges = spans.iter().map(|span| span.range).collect();
-    let maximum_inset = resolve_physical_paragraph_override_spans(ranges, spans)
-        .into_iter()
-        .map(|paragraph| {
-            let (first, continuation) =
-                paragraph_insets(parsed.text(), &paragraph.paragraph, style, provider);
-            first.max(continuation)
-        })
-        .fold(0.0_f32, f32::max);
-    available_width(frame_width, maximum_inset)
+    let mut maximum_inset = 0.0_f32;
+    let resolved = resolve_physical_paragraph_override_spans(ranges, spans);
+    for paragraph in resolved {
+        let (first, continuation) =
+            match paragraph_insets(parsed.text(), &paragraph.layout, style, provider) {
+                TextShapingOutcome::Ready(insets) => insets,
+                TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+            };
+        maximum_inset = maximum_inset.max(first.max(continuation));
+    }
+    TextShapingOutcome::Ready(available_width(frame_width, maximum_inset))
 }
 
 #[cfg(test)]
@@ -390,29 +455,47 @@ pub(super) fn inset_logical_start(
 
 fn paragraph_insets(
     text: &str,
-    paragraph: &ParagraphOverride,
+    layout: &ResolvedParagraphLayoutOverride,
     style: &UiResolvedStyle,
     provider: &mut SharedTextLayoutSession,
-) -> (f32, f32) {
-    let indent_level = paragraph.indent_level.unwrap_or_default();
-    let first_indent = paragraph.indent.unwrap_or_default().max(0.0);
-    if indent_level == 0 && paragraph.list_prefix.is_none() {
-        return (first_indent, 0.0);
+) -> TextLayoutOutcome<(f32, f32)> {
+    let indent_level = layout.indent_level.unwrap_or_default();
+    let first_indent = layout.indent.unwrap_or_default().max(0.0);
+    if indent_level == 0 && layout.list_prefix.is_none() {
+        return TextShapingOutcome::Ready((first_indent, 0.0));
     }
 
     let neutral_style = text_style(style);
     let level_indent = if indent_level == 0 {
         0.0
     } else {
-        let space_width = measure_line_width_with_provider(" ", &neutral_style, provider);
+        let space_width = match measure_line_width_with_provider(" ", &neutral_style, provider) {
+            TextShapingOutcome::Ready(width) => width,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
         f32::from(indent_level) * tab_interval_width(&neutral_style, space_width)
     };
-    let prefix_width = paragraph
-        .list_prefix
-        .and_then(|range| text.get(range.0 as usize..range.1 as usize))
-        .map(|prefix| measure_line_width_with_provider(prefix, &neutral_style, provider))
-        .unwrap_or_default();
-    (level_indent + first_indent, level_indent + prefix_width)
+    let prefix_width = match layout.list_prefix {
+        Some(range) => {
+            let (start, end) = match checked_source_range(text, range) {
+                Ok(range) => range,
+                Err(error) => return TextShapingOutcome::failed(error),
+            };
+            let Some(prefix) = text.get(start..end) else {
+                return TextShapingOutcome::failed(
+                    crate::core::framework::text::TextLayoutError::LayoutFailed,
+                );
+            };
+            match measure_line_width_with_provider(prefix, &neutral_style, provider) {
+                TextShapingOutcome::Ready(width) => width,
+                TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+            }
+        }
+        None => 0.0,
+    };
+    TextShapingOutcome::Ready((level_indent + first_indent, level_indent + prefix_width))
 }
 
 fn resolved_physical_paragraph_overrides(
@@ -485,22 +568,20 @@ fn resolve_physical_paragraph_override_spans(
         discard_expired_owners(&mut align_owners, &spans, range.start);
         discard_expired_owners(&mut prefix_owners, &spans, range.start);
 
-        let mut paragraph = ParagraphOverride::default();
-        paragraph.indent_level = (indent_level > 0).then_some(
+        let mut layout = ResolvedParagraphLayoutOverride::default();
+        layout.indent_level = (indent_level > 0).then_some(
             u16::try_from(indent_level)
                 .unwrap_or(MAX_RESOLVED_INDENT_LEVEL)
                 .min(MAX_RESOLVED_INDENT_LEVEL),
         );
-        paragraph.indent = (first_indent > 0.0).then_some(first_indent);
-        paragraph.align = align_owners
+        layout.indent = (first_indent > 0.0).then_some(first_indent);
+        layout.align = align_owners
             .peek()
             .and_then(|owner| spans[owner.span_index].paragraph.align);
-        paragraph.list_prefix = prefix_owners.peek().and_then(|owner| {
-            spans[owner.span_index]
-                .list_prefix
-                .map(|prefix| (to_u32(prefix.start), to_u32(prefix.end)))
-        });
-        resolved.push(ResolvedPhysicalParagraphOverride { range, paragraph });
+        layout.list_prefix = prefix_owners
+            .peek()
+            .and_then(|owner| spans[owner.span_index].list_prefix);
+        resolved.push(ResolvedPhysicalParagraphOverride { range, layout });
     }
     resolved
 }
@@ -516,10 +597,6 @@ fn discard_expired_owners(
     {
         owners.pop();
     }
-}
-
-fn to_u32(value: usize) -> u32 {
-    u32::try_from(value).unwrap_or(u32::MAX)
 }
 
 fn physical_paragraph_ranges(text: &str) -> Vec<UiTextRange> {

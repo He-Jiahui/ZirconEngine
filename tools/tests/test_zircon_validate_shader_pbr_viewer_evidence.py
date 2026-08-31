@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import struct
@@ -9,6 +10,7 @@ from io import StringIO
 from pathlib import Path
 from unittest import mock
 
+from tools.zircon_shader_pbr_evidence_identity import normalize_evidence_path
 from tools.zircon_validate_shader_pbr_viewer_evidence import (
     _CURRENT_IBL_BAKE_ALGORITHM_VERSION,
     main,
@@ -17,6 +19,16 @@ from tools.zircon_validate_shader_pbr_viewer_evidence import (
 
 
 class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
+    def test_v15_identity_paths_normalize_windows_verbatim_prefixes(self):
+        self.assertEqual(
+            Path(r"E:\profile\ready.png"),
+            normalize_evidence_path(r"\\?\E:\profile\ready.png"),
+        )
+        self.assertEqual(
+            Path(r"\\host\share\ready.png"),
+            normalize_evidence_path(r"\\?\UNC\host\share\ready.png"),
+        )
+
     def test_validates_ready_frame_png_and_v2_provenance_sidecar(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             png_path = Path(temp_dir) / "pbr-ready.png"
@@ -45,6 +57,50 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             self.assertEqual("environment_only_pbr_preview", evidence.render_profile)
             self.assertEqual(4, evidence.distinct_rgba_colors)
             self.assertGreaterEqual(evidence.non_black_pixel_count, 1)
+
+    def test_v14_offscreen_diagnostic_provenance_rejects_a_native_claim(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            png_path = Path(temp_dir) / "pbr-ready.png"
+            _write_rgba_png(
+                png_path,
+                2,
+                2,
+                [(32, 64, 96, 255), (64, 96, 128, 255)] * 2,
+            )
+            fields = {
+                "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v14",
+                "interactive_direct_present_enabled": "false",
+                "environment_only_base_prewarm_pipeline_ready": "true",
+                "environment_only_base_pipeline_ready_at_capture": "true",
+                **_v11_ibl_staging_fields(),
+                **_v12_shader_pipeline_metrics(),
+                **_v13_brdf_lut_startup_metrics(),
+                **_v14_host_capability_fields(),
+            }
+            _write_sidecar(png_path, **fields)
+
+            evidence = validate_ready_frame_evidence(
+                png_path,
+                required_schema="zircon_shader_pbr_viewer_ready_frame_evidence_v14",
+                expected_host_mode="offscreen-diagnostic",
+            )
+            self.assertEqual("offscreen-diagnostic", evidence.metadata["host_mode"])
+
+            _write_sidecar(
+                png_path,
+                **{
+                    **fields,
+                    "host_mode": "native-present",
+                    "capture_target": "native-viewport-surface",
+                    "gpu_scene_surface_present_count": "1",
+                },
+            )
+            with self.assertRaisesRegex(RuntimeError, "offscreen-diagnostic"):
+                validate_ready_frame_evidence(
+                    png_path,
+                    required_schema="zircon_shader_pbr_viewer_ready_frame_evidence_v14",
+                    expected_host_mode="offscreen-diagnostic",
+                )
 
     def test_v3_provenance_requires_startup_pipeline_ready_state(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -162,7 +218,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "duration hierarchy"):
                 validate_ready_frame_evidence(png_path)
 
-    def test_cli_requires_v12_schema_and_shader_pipeline_metrics_unless_legacy_read_is_explicit(
+    def test_cli_requires_v17_schema_and_identity_binding_unless_legacy_read_is_explicit(
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -173,7 +229,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
                 2,
                 [(32, 64, 96, 255), (64, 96, 128, 255)] * 2,
             )
-            for legacy_schema_version in range(2, 12):
+            for legacy_schema_version in range(2, 13):
                 legacy_ibl_fields = _legacy_ibl_staging_fields(legacy_schema_version)
                 _write_sidecar(
                     png_path,
@@ -193,7 +249,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
                 ):
                     self.assertEqual(1, main())
                 self.assertIn(
-                    "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v12",
+                    "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v17",
                     stderr.getvalue(),
                 )
 
@@ -234,7 +290,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             ):
                 self.assertEqual(1, main())
             self.assertIn(
-                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v12",
+                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v17",
                 stderr.getvalue(),
             )
             with (
@@ -247,25 +303,95 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
 
             _write_sidecar(
                 png_path,
-                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v12",
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v13",
                 environment_only_base_prewarm_pipeline_ready="true",
                 environment_only_base_pipeline_ready_at_capture="true",
                 **_v11_ibl_staging_fields(),
+                **_v12_shader_pipeline_metrics(),
             )
             with self.assertRaisesRegex(
                 RuntimeError,
-                "v12 provenance sidecar is missing required fields: "
-                "registered_pipeline_variant_count",
+                "v13 provenance sidecar is missing required fields: "
+                "scene_startup_renderer_environment_brdf_lut_payload_cache_built",
             ):
                 validate_ready_frame_evidence(png_path)
 
             _write_sidecar(
                 png_path,
-                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v12",
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v13",
                 environment_only_base_prewarm_pipeline_ready="true",
                 environment_only_base_pipeline_ready_at_capture="true",
                 **_v11_ibl_staging_fields(),
                 **_v12_shader_pipeline_metrics(),
+                **_v13_brdf_lut_startup_metrics(),
+            )
+            stderr = StringIO()
+            with (
+                mock.patch("sys.argv", ["validator", str(png_path)]),
+                redirect_stderr(stderr),
+            ):
+                self.assertEqual(1, main())
+            self.assertIn(
+                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                stderr.getvalue(),
+            )
+            with (
+                mock.patch(
+                    "sys.argv", ["validator", "--allow-legacy-schema", str(png_path)]
+                ),
+                redirect_stdout(StringIO()),
+                ):
+                    self.assertEqual(0, main())
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v16",
+                interactive_direct_present_enabled="false",
+                material_fixture="metal-mirror",
+                required_material_base_pipeline_kind="environment-only-pbr-base",
+                required_material_base_pipeline_ready_at_capture="true",
+                environment_only_base_prewarm_requested="true",
+                environment_only_base_prewarm_pipeline_ready="true",
+                environment_only_base_pipeline_ready_at_capture="true",
+                **_v11_ibl_staging_fields(),
+                **_v12_shader_pipeline_metrics(),
+                **_v13_brdf_lut_startup_metrics(),
+                **_v14_host_capability_fields(),
+                **_ready_frame_identity_fields(png_path, policy_version=16),
+            )
+            stderr = StringIO()
+            with (
+                mock.patch("sys.argv", ["validator", str(png_path)]),
+                redirect_stderr(stderr),
+            ):
+                self.assertEqual(1, main())
+            self.assertIn(
+                "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                stderr.getvalue(),
+            )
+            with (
+                mock.patch(
+                    "sys.argv", ["validator", "--allow-legacy-schema", str(png_path)]
+                ),
+                redirect_stdout(StringIO()),
+            ):
+                self.assertEqual(0, main())
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                interactive_direct_present_enabled="false",
+                material_fixture="metal-mirror",
+                required_material_base_pipeline_kind="environment-only-pbr-base",
+                required_material_base_pipeline_ready_at_capture="true",
+                environment_only_base_prewarm_requested="true",
+                environment_only_base_prewarm_pipeline_ready="true",
+                environment_only_base_pipeline_ready_at_capture="true",
+                **_v11_ibl_staging_fields(),
+                **_v12_shader_pipeline_metrics(),
+                **_v17_brdf_lut_startup_metrics(),
+                **_v14_host_capability_fields(),
+                **_ready_frame_identity_fields(png_path),
             )
             stdout = StringIO()
             with (
@@ -333,12 +459,20 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
 
             _write_sidecar(
                 png_path,
-                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v12",
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                interactive_direct_present_enabled="false",
+                material_fixture="metal-mirror",
+                required_material_base_pipeline_kind="environment-only-pbr-base",
+                required_material_base_pipeline_ready_at_capture="true",
+                environment_only_base_prewarm_requested="true",
                 environment_only_base_prewarm_pipeline_ready="true",
                 environment_only_base_pipeline_ready_at_capture="true",
                 ibl_bake_algorithm_version="202607310004",
                 **_v11_ibl_staging_fields(),
                 **_v12_shader_pipeline_metrics(),
+                **_v17_brdf_lut_startup_metrics(),
+                **_v14_host_capability_fields(),
+                **_ready_frame_identity_fields(png_path),
             )
             stderr = StringIO()
             with (
@@ -347,16 +481,69 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             ):
                 self.assertEqual(1, main())
             self.assertIn(
-                "requires IBL bake algorithm version=202608090006", stderr.getvalue()
+                f"requires IBL bake algorithm version={_CURRENT_IBL_BAKE_ALGORITHM_VERSION}",
+                stderr.getvalue(),
             )
 
-            with (
-                mock.patch(
-                    "sys.argv", ["validator", "--allow-legacy-schema", str(png_path)]
-                ),
-                redirect_stdout(StringIO()),
-            ):
-                self.assertEqual(0, main())
+    def test_v17_dielectric_ior_fixture_requires_its_generic_forward_gate(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            png_path = Path(temp_dir) / "pbr-ready.png"
+            _write_rgba_png(
+                png_path,
+                2,
+                2,
+                [(32, 64, 96, 255), (64, 96, 128, 255)] * 2,
+            )
+            fields = {
+                "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                "interactive_direct_present_enabled": "false",
+                "material_fixture": "dielectric-ior",
+                "required_material_base_pipeline_kind": "generic-forward-pbr-ior",
+                "required_material_base_pipeline_ready_at_capture": "true",
+                "environment_only_base_prewarm_requested": "false",
+                "environment_only_base_prewarm_pipeline_ready": "false",
+                "environment_only_base_pipeline_ready_at_capture": "false",
+                "environment_only_base_prewarm_cache_hit": "false",
+                "environment_only_base_prewarm_cache_scope": "not_requested",
+                "environment_only_base_prewarm_shader_source_resolution_ns": "0",
+                "environment_only_base_prewarm_pipeline_creation_ns": "0",
+                "environment_only_base_prewarm_elapsed_ns": "0",
+                **_v11_ibl_staging_fields(),
+                **_v12_shader_pipeline_metrics(),
+                **_v17_brdf_lut_startup_metrics(),
+                **_v14_host_capability_fields(),
+                **_ready_frame_identity_fields(png_path),
+            }
+            _write_sidecar(png_path, **fields)
+
+            evidence = validate_ready_frame_evidence(
+                png_path,
+                required_schema="zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+            )
+            self.assertEqual("dielectric-ior", evidence.metadata["material_fixture"])
+
+            _write_sidecar(
+                png_path,
+                **{
+                    **fields,
+                    "required_material_base_pipeline_kind": "environment-only-pbr-base",
+                },
+            )
+            with self.assertRaisesRegex(RuntimeError, "fixture does not match"):
+                validate_ready_frame_evidence(png_path)
+
+            _write_sidecar(
+                png_path,
+                **{
+                    **fields,
+                    "environment_only_base_prewarm_requested": "true",
+                    "environment_only_base_prewarm_cache_scope": "process_local_mesh_pipeline_cache",
+                    "environment_only_base_prewarm_pipeline_ready": "true",
+                    "environment_only_base_pipeline_ready_at_capture": "true",
+                },
+            )
+            with self.assertRaisesRegex(RuntimeError, "only permits the specialized"):
+                validate_ready_frame_evidence(png_path)
 
     def test_v9_provenance_requires_ready_timing_and_ibl_staging_phases(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -454,11 +641,15 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
                 )
                 _write_sidecar(
                     png_path,
-                    schema="zircon_shader_pbr_viewer_ready_frame_evidence_v12",
+                    schema="zircon_shader_pbr_viewer_ready_frame_evidence_v13",
                     environment_only_base_prewarm_pipeline_ready="true",
                     environment_only_base_pipeline_ready_at_capture="true",
                     **_v11_ibl_staging_fields(),
-                    **{**_v12_shader_pipeline_metrics(), **overrides},
+                    **{
+                        **_v12_shader_pipeline_metrics(),
+                        **_v13_brdf_lut_startup_metrics(),
+                        **overrides,
+                    },
                 )
 
                 with self.assertRaisesRegex(RuntimeError, expected_error):
@@ -597,7 +788,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             )
 
             with mock.patch(
-                "tools.zircon_validate_shader_pbr_viewer_evidence._MAX_ENCODED_PNG_BYTES",
+                "tools.zircon_pbr_visual_oracle._MAX_ENCODED_PNG_BYTES",
                 1,
             ):
                 with self.assertRaisesRegex(RuntimeError, "encoded evidence budget"):
@@ -614,7 +805,7 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             )
 
             with mock.patch(
-                "tools.zircon_validate_shader_pbr_viewer_evidence._MAX_PNG_CHUNKS",
+                "tools.zircon_pbr_visual_oracle._MAX_PNG_CHUNKS",
                 2,
             ):
                 with self.assertRaisesRegex(RuntimeError, "chunk budget"):
@@ -726,7 +917,7 @@ def _write_sidecar(png_path: Path, **overrides: str) -> None:
         "viewport": "2x2",
         "camera_yaw_degrees": "12.500",
         "camera_pitch_degrees": "-7.000",
-        "ibl_bake_algorithm_version": "202608090006",
+        "ibl_bake_algorithm_version": _CURRENT_IBL_BAKE_ALGORITHM_VERSION,
         "ibl_staging_status": "Reused",
         "ibl_staging_elapsed_ns": "8000000",
         "ibl_total_elapsed_ns": "12000000",
@@ -803,7 +994,110 @@ def _v12_shader_pipeline_metrics() -> dict[str, str]:
     }
 
 
+def _v13_brdf_lut_startup_metrics() -> dict[str, str]:
+    return {
+        "scene_startup_renderer_environment_brdf_lut_payload_cache_built": "true",
+        "scene_startup_renderer_environment_brdf_lut_payload_cache_wait_ns": "8000000",
+        "scene_startup_renderer_environment_brdf_lut_payload_build_ns": "7000000",
+        "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns": "1000000",
+    }
+
+
+def _v17_brdf_lut_startup_metrics() -> dict[str, str]:
+    return {
+        "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized": "true",
+        "scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait_ns": "8000000",
+        "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization_ns": "7000000",
+        "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns": "1000000",
+    }
+
+
+def _v14_host_capability_fields() -> dict[str, str]:
+    return {
+        "host_mode": "offscreen-diagnostic",
+        "host_composition_id": "zircon_shader_pbr_viewer_standalone_diagnostic_v1",
+        "scene_id": "single_pbr_mirror_sphere",
+        "capture_target": "offscreen-scene-renderer-cpu-readback",
+        "gpu_scene_surface_present_count": "0",
+    }
+
+
+
+
+def _ready_frame_identity_fields(
+    png_path: Path, *, policy_version: int = 17
+) -> dict[str, str]:
+    viewer_path = png_path.with_name("zircon_shader_pbr_viewer.exe")
+    hdri_path = png_path.with_name("lakes.hdr")
+    provenance_path = png_path.with_name("viewer-build-provenance.json")
+    identity_path = png_path.with_name("evidence_identity.json")
+    source_manifest_sha256 = "c" * 64
+    viewer_path.write_bytes(b"viewer binary fixture")
+    hdri_path.write_bytes(b"HDRI fixture")
+    provenance_path.write_text(
+        json.dumps(
+            {
+                "source_validation_ticket": {
+                    "source_manifest_hash": source_manifest_sha256,
+                }
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    viewer = _evidence_fingerprint(viewer_path)
+    hdri = _evidence_fingerprint(hdri_path)
+    build_provenance = _evidence_fingerprint(provenance_path)
+    validation_policy = f"zircon_shader_pbr_viewer_ready_frame_v{policy_version}"
+    identity_path.write_text(
+        json.dumps(
+            {
+                "schema": "zircon_shader_pbr_viewer_evidence_identity_v1",
+                "run_id": "shader-pbr-test-ready-frame",
+                "validation_policy": validation_policy,
+                "source_manifest_sha256": source_manifest_sha256,
+                "viewer_binary": viewer,
+                "hdri": hdri,
+                "build_provenance": build_provenance,
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    identity = _evidence_fingerprint(identity_path)
+    screenshot = _evidence_fingerprint(png_path)
+    return {
+        "screenshot_sha256": screenshot["sha256"],
+        "screenshot_byte_length": str(screenshot["byte_length"]),
+        "evidence_identity_schema": "zircon_shader_pbr_viewer_evidence_identity_v1",
+        "evidence_run_id": "shader-pbr-test-ready-frame",
+        "evidence_validation_policy": validation_policy,
+        "evidence_identity_path": identity["path"],
+        "evidence_identity_sha256": identity["sha256"],
+        "evidence_identity_byte_length": str(identity["byte_length"]),
+        "viewer_binary_path": viewer["path"],
+        "viewer_binary_sha256": viewer["sha256"],
+        "viewer_binary_byte_length": str(viewer["byte_length"]),
+        "hdri_sha256": hdri["sha256"],
+        "hdri_byte_length": str(hdri["byte_length"]),
+        "build_provenance_path": build_provenance["path"],
+        "build_provenance_sha256": build_provenance["sha256"],
+        "build_provenance_byte_length": str(build_provenance["byte_length"]),
+        "source_manifest_sha256": source_manifest_sha256,
+    }
+
+
+def _evidence_fingerprint(path: Path) -> dict[str, str | int]:
+    return {
+        "path": str(path),
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "byte_length": path.stat().st_size,
+    }
+
+
 def _legacy_ibl_staging_fields(schema_version: int) -> dict[str, str]:
+    if schema_version == 12:
+        return {**_v11_ibl_staging_fields(), **_v12_shader_pipeline_metrics()}
     if schema_version == 11:
         return _v11_ibl_staging_fields()
     if schema_version == 10:

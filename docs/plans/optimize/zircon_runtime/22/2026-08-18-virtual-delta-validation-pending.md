@@ -14,16 +14,17 @@ leak through the pause. Diagnostic systems had no explicit way to opt into real 
 
 ## Change
 
-- `RuntimeTimeAdvance` now carries real delta, virtual delta, virtual pause state, and the fixed
-  step plan as one authoritative handoff.
+- `FrameTimeSnapshot` carries only outer-frame real-time evidence, discontinuity, and the accepted
+  fixed-step budget. `WorldTimeController` consumes that snapshot and owns Level-local virtual
+  pause/scale plus fixed debt and committed clock state.
 - Paused virtual time neither accumulates nor drains fixed overstep. Existing debt, fixed elapsed
   time, and fixed frame index remain unchanged until virtual time resumes.
 - Native, builtin, and runtime scene systems default to the `Virtual` clock domain and do not run
   while virtual time is paused. Pending derived-state work is retained for the resumed frame.
-- Systems explicitly registered in the `Real` domain continue with the unclamped real delta.
-  Scaled virtual systems receive the scaled virtual delta.
-- Runtime and plugin-SDK builders reject `Real` for `FixedFirst`, `FixedUpdate`, and
-  `FixedPostUpdate`; fixed-loop stages remain governed only by the drained fixed-step plan.
+- Systems explicitly registered with the `MonotonicReal` tick policy continue with the raw real
+  delta. Scaled virtual systems receive the Level-local scaled virtual delta.
+- Runtime and plugin-SDK builders reject `MonotonicReal` for `FixedFirst`, `FixedUpdate`, and
+  `FixedPostUpdate`; fixed-loop stages remain governed only by the active Level transaction.
 
 ## Deterministic Performance Evidence
 
@@ -42,17 +43,13 @@ The exact output row is `PERF_RESULT runtime22_clock_domain` with
 
 ## Acceptance
 
-- `core_runtime_virtual_pause_scale_and_clamp_feed_fixed_time`
-- `core_runtime_virtual_pause_preserves_existing_fixed_overstep`
 - `world_driver_pauses_virtual_systems_and_runs_explicit_real_time_systems`
-- `runtime_registration_rejects_real_clock_domain_for_fixed_stages`
+- the World-time pause/debt contracts and runtime-registration fixed-stage policy rejection tests
 - The Runtime22 clock-domain child covers runtime tests, world-driver tests, public plugin-SDK
   registration defaults, typed fixed-stage rejection, and the performance row above.
-- Runtime22 and Runtime01 share the single five-Cargo-group parent validator
-  `zircon-validation-runtime01-runtime22-batch.ps1`, SHA-256
-  `BDFA5754B2C85973AECBAD3A5039D4E23EBFEDB7889E3C8EFBECAF6BFC2FE9B6`.
 - The earlier ticket `c3b54e583afb476e980e529d5a6b47e7` compiled against a stale Main baseline
-  and is not acceptance evidence. The combined batch will be rematerialized from post-Main HEAD.
+  and is not acceptance evidence. Current-source managed revalidation remains pending; no deleted
+  validator script or historical ticket is treated as current acceptance.
 
 ## Remaining Scope
 

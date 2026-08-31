@@ -46,7 +46,7 @@ mod tests {
     };
 
     use crate::dynamic_events::handlers::{
-        DynamicEventHandlerRegistry, dynamic_event_handler_dispatch_order,
+        dynamic_event_handler_dispatch_order, DynamicEventHandlerRegistry,
     };
 
     use super::dispatch_dynamic_events;

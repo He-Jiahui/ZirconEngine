@@ -39,7 +39,7 @@ pub fn validate_plugin_manifest(
     manifest_text: &str,
     package_root: Option<&Path>,
 ) -> Vec<PluginDiagnostic> {
-    let manifest: Value = match manifest_text.parse() {
+    let manifest: Value = match toml::from_str(manifest_text) {
         Ok(manifest) => manifest,
         Err(error) => {
             return vec![PluginDiagnostic::new(
@@ -470,7 +470,7 @@ fn package_contains_crate(package_root: &Path, crate_name: &str) -> bool {
     ["dist", "native", "runtime", "editor"]
         .into_iter()
         .filter_map(|owner| fs::read_to_string(package_root.join(owner).join("Cargo.toml")).ok())
-        .filter_map(|cargo| cargo.parse::<Value>().ok())
+        .filter_map(|cargo| toml::from_str::<Value>(&cargo).ok())
         .any(|cargo| {
             cargo
                 .get("package")
@@ -618,7 +618,7 @@ mod tests {
 
     use toml::Value;
 
-    use super::validate_entry_name;
+    use super::native_artifact::validate_entry_name;
 
     #[test]
     fn native_entry_name_validation_covers_absent_unexpected_missing_drift_and_match() {

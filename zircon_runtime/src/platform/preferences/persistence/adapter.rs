@@ -15,7 +15,7 @@ use crate::core::runtime::{
     BoundedKeyedIoDiagnostics, BoundedKeyedIoFence, BoundedKeyedIoLane, BoundedKeyedIoLimits,
     BoundedKeyedIoShutdownGuard, BoundedKeyedIoShutdownReport, BoundedKeyedIoTicket,
     BoundedKeyedIoWaitResult, BoundedKeyedIoWorkDeadline, GlobalAdmissionEpoch, JobScheduler,
-    TaskPools,
+    TaskPool,
 };
 use crate::platform::preferences::{PreferenceStorageBackend, PreferenceStorageBackendDiagnostics};
 
@@ -167,12 +167,23 @@ pub struct PreferencePersistenceAdapter {
 }
 
 impl PreferencePersistenceAdapter {
-    pub fn new(
+    pub(crate) fn with_default_limits_on_pool(
+        backend: Arc<dyn PreferenceStorageBackend>,
+        pool: TaskPool,
+    ) -> Self {
+        Self::from_validated(
+            backend,
+            PreferencePersistenceLimits::default(),
+            JobScheduler::from_pool(pool),
+        )
+    }
+
+    pub(crate) fn with_pool(
         backend: Arc<dyn PreferenceStorageBackend>,
         limits: PreferencePersistenceLimits,
+        pool: TaskPool,
     ) -> Result<Self, PreferencePersistenceLimitsError> {
-        let scheduler = JobScheduler::from_pool(TaskPools::process_default().io().clone());
-        Self::with_scheduler(backend, limits, scheduler)
+        Self::with_scheduler(backend, limits, JobScheduler::from_pool(pool))
     }
 
     pub(super) fn with_scheduler(
@@ -186,7 +197,15 @@ impl PreferencePersistenceAdapter {
                 hard_max_value_bytes: MAX_PREFERENCE_VALUE_BYTES,
             });
         }
-        Ok(Self {
+        Ok(Self::from_validated(backend, limits, scheduler))
+    }
+
+    fn from_validated(
+        backend: Arc<dyn PreferenceStorageBackend>,
+        limits: PreferencePersistenceLimits,
+        scheduler: JobScheduler,
+    ) -> Self {
+        Self {
             backend: RwLock::new(backend),
             submission: Mutex::new(()),
             lane: BoundedKeyedIoLane::new(
@@ -200,7 +219,7 @@ impl PreferencePersistenceAdapter {
             limits,
             metrics: PreferencePersistenceMetrics::default(),
             shutdown_guard: Mutex::new(None),
-        })
+        }
     }
 
     pub fn backend_kind(&self) -> PreferenceStorageBackendKind {
@@ -311,6 +330,11 @@ impl PreferencePersistenceAdapter {
             caller_filesystem_wall: Duration::ZERO,
             backend: self.backend().diagnostics(),
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shares_execution_owner_with(&self, pool: &TaskPool) -> bool {
+        self.lane.shares_execution_owner_with(pool)
     }
 
     pub(crate) fn shutdown_until(

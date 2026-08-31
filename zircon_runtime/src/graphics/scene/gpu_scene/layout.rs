@@ -1,8 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 
 pub(crate) const GPU_PRIMITIVE_DATA_STRIDE: usize = 96;
-pub(crate) const GPU_PRIMITIVE_DATA_BOUNDS_CENTER_OFFSET: usize = 0;
-pub(crate) const GPU_PRIMITIVE_DATA_BOUNDS_RADIUS_OFFSET: usize = 12;
+pub(crate) const GPU_PRIMITIVE_DATA_LOCAL_BOUNDS_CENTER_OFFSET: usize = 0;
+pub(crate) const GPU_PRIMITIVE_DATA_LOCAL_BOUNDS_RADIUS_OFFSET: usize = 12;
 pub(crate) const GPU_PRIMITIVE_DATA_TINT_OFFSET: usize = 16;
 pub(crate) const GPU_PRIMITIVE_DATA_SHADOW_PARAMS_OFFSET: usize = 32;
 pub(crate) const GPU_PRIMITIVE_DATA_MOTION_PARAMS_OFFSET: usize = 48;
@@ -11,8 +11,9 @@ pub(crate) const GPU_PRIMITIVE_DATA_FIRST_INSTANCE_INDEX_OFFSET: usize = 68;
 pub(crate) const GPU_PRIMITIVE_DATA_INSTANCE_COUNT_OFFSET: usize = 72;
 pub(crate) const GPU_PRIMITIVE_DATA_PAYLOAD_SLOT_OFFSET: usize = 76;
 pub(crate) const GPU_PRIMITIVE_DATA_MATERIAL_PAYLOAD_SLOT_OFFSET: usize = 80;
+pub(crate) const GPU_PRIMITIVE_DATA_HIT_PROXY_TOKEN_OFFSET: usize = 84;
 
-pub(crate) const GPU_INSTANCE_DATA_STRIDE: usize = 176;
+pub(crate) const GPU_INSTANCE_DATA_STRIDE: usize = 192;
 pub(crate) const GPU_INSTANCE_DATA_WORLD_FROM_LOCAL_OFFSET: usize = 0;
 pub(crate) const GPU_INSTANCE_DATA_PREV_WORLD_FROM_LOCAL_OFFSET: usize = 64;
 pub(crate) const GPU_INSTANCE_DATA_PRIMITIVE_INDEX_OFFSET: usize = 128;
@@ -21,6 +22,7 @@ pub(crate) const GPU_INSTANCE_DATA_PAYLOAD_SLOT_OFFSET: usize = 136;
 pub(crate) const GPU_INSTANCE_DATA_MORPH_PAYLOAD_SLOT_OFFSET: usize = 140;
 pub(crate) const GPU_INSTANCE_DATA_LIGHTMAP_UV_RECT_OFFSET: usize = 144;
 pub(crate) const GPU_INSTANCE_DATA_LIGHTMAP_PARAMS_OFFSET: usize = 160;
+pub(crate) const GPU_INSTANCE_DATA_SKINNING_PALETTE_PARAMS_OFFSET: usize = 176;
 
 pub(crate) const GPU_MORPH_PAYLOAD_STRIDE: usize = 16;
 pub(crate) const GPU_MORPH_DELTA_STRIDE: usize = 16;
@@ -34,9 +36,20 @@ pub(crate) const GPU_VIRTUAL_GEOMETRY_PAGE_FLAGS_OFFSET: usize = 12;
 pub(crate) const GPU_VIRTUAL_GEOMETRY_CLUSTER_WORD_STRIDE: usize = 16;
 
 pub(crate) const GPU_SCENE_INVALID_PAYLOAD_SLOT: u32 = u32::MAX;
+/// The vertex normal needs the affine inverse-transpose path rather than the
+/// normalized world linear transform.
+pub(crate) const GPU_INSTANCE_FLAG_GENERAL_NORMAL_TRANSFORM: u32 = 1 << 0;
+/// The affine linear transform reverses orientation and must flip TBN handedness.
+pub(crate) const GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT: u32 = 1 << 1;
+/// The affine normal transform is non-finite or singular; shaders return zero.
+pub(crate) const GPU_INSTANCE_FLAG_DEGENERATE_NORMAL_TRANSFORM: u32 = 1 << 2;
+/// The linear transform contains shear, so the orthogonal-axis sphere scale is unsafe.
+pub(crate) const GPU_INSTANCE_FLAG_NON_ORTHOGONAL_TRANSFORM: u32 = 1 << 3;
 pub(crate) const GPU_PRIMITIVE_FLAG_VISIBLE: u32 = 1 << 0;
 pub(crate) const GPU_PRIMITIVE_FLAG_CAST_SHADOWS: u32 = 1 << 1;
 pub(crate) const GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM: u32 = 1 << 2;
+/// HZB must retain this primitive until a conservative temporal bounds history exists.
+pub(crate) const GPU_PRIMITIVE_FLAG_FORCE_HZB_VISIBLE: u32 = 1 << 3;
 pub(crate) const GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT: u32 = 1 << 0;
 pub(crate) const GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX: u32 = 4;
 
@@ -48,8 +61,8 @@ pub(crate) const GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX: u32 = 4;
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
 pub(crate) struct GpuPrimitiveData {
-    pub(crate) bounds_center: [f32; 3],
-    pub(crate) bounds_radius: f32,
+    pub(crate) local_bounds_center: [f32; 3],
+    pub(crate) local_bounds_radius: f32,
     pub(crate) tint: [f32; 4],
     pub(crate) shadow_params: [f32; 4],
     pub(crate) motion_params: [f32; 4],
@@ -58,8 +71,9 @@ pub(crate) struct GpuPrimitiveData {
     pub(crate) instance_count: u32,
     pub(crate) payload_slot: u32,
     pub(crate) material_payload_slot: u32,
-    // Explicitly model the storage-array stride tail so this type remains Pod.
-    pub(crate) material_payload_padding: [u32; 3],
+    pub(crate) hit_proxy_token: u32,
+    // Explicitly model the remaining storage-array stride tail so this type remains Pod.
+    pub(crate) material_payload_padding: [u32; 2],
 }
 
 impl GpuPrimitiveData {
@@ -89,6 +103,8 @@ pub(crate) struct GpuInstanceData {
     pub(crate) morph_payload_slot: u32,
     pub(crate) lightmap_uv_rect: [f32; 4],
     pub(crate) lightmap_params: [u32; 4],
+    /// [current matrix base, current joint count, previous matrix base, previous joint count].
+    pub(crate) skinning_palette_params: [u32; 4],
 }
 
 impl GpuInstanceData {
@@ -249,12 +265,12 @@ mod tests {
     fn render_gpu_scene_layout_matches_wgsl_offsets() {
         assert_eq!(size_of::<GpuPrimitiveData>(), GPU_PRIMITIVE_DATA_STRIDE);
         assert_eq!(
-            offset_of!(GpuPrimitiveData, bounds_center),
-            GPU_PRIMITIVE_DATA_BOUNDS_CENTER_OFFSET
+            offset_of!(GpuPrimitiveData, local_bounds_center),
+            GPU_PRIMITIVE_DATA_LOCAL_BOUNDS_CENTER_OFFSET
         );
         assert_eq!(
-            offset_of!(GpuPrimitiveData, bounds_radius),
-            GPU_PRIMITIVE_DATA_BOUNDS_RADIUS_OFFSET
+            offset_of!(GpuPrimitiveData, local_bounds_radius),
+            GPU_PRIMITIVE_DATA_LOCAL_BOUNDS_RADIUS_OFFSET
         );
         assert_eq!(
             offset_of!(GpuPrimitiveData, tint),
@@ -287,6 +303,10 @@ mod tests {
         assert_eq!(
             offset_of!(GpuPrimitiveData, material_payload_slot),
             GPU_PRIMITIVE_DATA_MATERIAL_PAYLOAD_SLOT_OFFSET
+        );
+        assert_eq!(
+            offset_of!(GpuPrimitiveData, hit_proxy_token),
+            GPU_PRIMITIVE_DATA_HIT_PROXY_TOKEN_OFFSET
         );
 
         assert_eq!(size_of::<GpuInstanceData>(), GPU_INSTANCE_DATA_STRIDE);
@@ -321,6 +341,10 @@ mod tests {
         assert_eq!(
             offset_of!(GpuInstanceData, lightmap_params),
             GPU_INSTANCE_DATA_LIGHTMAP_PARAMS_OFFSET
+        );
+        assert_eq!(
+            offset_of!(GpuInstanceData, skinning_palette_params),
+            GPU_INSTANCE_DATA_SKINNING_PALETTE_PARAMS_OFFSET
         );
 
         assert_eq!(size_of::<GpuMorphPayload>(), GPU_MORPH_PAYLOAD_STRIDE);
@@ -357,10 +381,55 @@ mod tests {
     fn render_gpu_scene_wgsl_primitive_tail_preserves_the_rust_storage_stride() {
         let source = include_str!("../scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
 
-        assert!(source.contains("material_payload_padding_0: u32,"));
+        assert!(source.contains("local_bounds_center: vec3<f32>,"));
+        assert!(source.contains("local_bounds_radius: f32,"));
+        assert!(!source.contains("\n    bounds_center: vec3<f32>,"));
+        assert!(!source.contains("\n    bounds_radius: f32,"));
+        assert!(source.contains("hit_proxy_token: u32,"));
         assert!(source.contains("material_payload_padding_1: u32,"));
         assert!(source.contains("material_payload_padding_2: u32,"));
+        assert!(!source.contains("material_payload_padding_0: u32,"));
         assert!(!source.contains("material_payload_padding: vec3<u32>"));
+    }
+
+    #[test]
+    fn render_gpu_scene_wgsl_flags_match_the_rust_abi() {
+        let source = include_str!("../scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+        let expected = [
+            (
+                "ZR_GPU_INSTANCE_FLAG_GENERAL_NORMAL_TRANSFORM",
+                GPU_INSTANCE_FLAG_GENERAL_NORMAL_TRANSFORM,
+            ),
+            (
+                "ZR_GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT",
+                GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT,
+            ),
+            (
+                "ZR_GPU_INSTANCE_FLAG_DEGENERATE_NORMAL_TRANSFORM",
+                GPU_INSTANCE_FLAG_DEGENERATE_NORMAL_TRANSFORM,
+            ),
+            (
+                "ZR_GPU_INSTANCE_FLAG_NON_ORTHOGONAL_TRANSFORM",
+                GPU_INSTANCE_FLAG_NON_ORTHOGONAL_TRANSFORM,
+            ),
+            ("ZR_GPU_PRIMITIVE_FLAG_VISIBLE", GPU_PRIMITIVE_FLAG_VISIBLE),
+            (
+                "ZR_GPU_PRIMITIVE_FLAG_CAST_SHADOWS",
+                GPU_PRIMITIVE_FLAG_CAST_SHADOWS,
+            ),
+            (
+                "ZR_GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM",
+                GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM,
+            ),
+            (
+                "ZR_GPU_PRIMITIVE_FLAG_FORCE_HZB_VISIBLE",
+                GPU_PRIMITIVE_FLAG_FORCE_HZB_VISIBLE,
+            ),
+        ];
+
+        for (name, value) in expected {
+            assert!(source.contains(&format!("const {name}: u32 = {value}u;")));
+        }
     }
 
     #[test]

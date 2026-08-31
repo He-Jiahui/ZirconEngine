@@ -321,6 +321,12 @@ impl HubActionRequest {
         }
     }
 
+    #[cfg(test)]
+    pub(in crate::tauri_app) fn parse(&self) -> Result<HubAction, HubError> {
+        let action_id = self.action()?;
+        self.parse_as(action_id)
+    }
+
     pub(crate) fn project_target_payload(
         &self,
     ) -> Result<Option<ProjectTargetActionPayload>, HubError> {

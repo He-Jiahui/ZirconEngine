@@ -1,6 +1,9 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::backend::RenderBackend;
-use crate::render_graph::{CompiledRenderGraph, PassFlags, QueueLane, RenderGraphBuilder};
+use crate::render_graph::{
+    CompiledRenderGraph, PassFlags, QueueLane, RenderGraphBuilder, RenderGraphResource,
+    RenderGraphResourceAccessKind, RenderGraphTextureSubresourceRange,
+};
 use crate::rhi::{
     BufferDesc, BufferUsage, TextureDesc, TextureDimension, TextureFormat, TextureUsage,
 };
@@ -9,20 +12,16 @@ use super::super::render_graph_execution_resources::RenderGraphExecutionResource
 use super::*;
 
 #[test]
-fn non_storage_texture_formats_do_not_request_storage_binding() {
+fn non_storage_texture_formats_reject_declared_storage_usage() {
     for format in [
         TextureFormat::R8Unorm,
         TextureFormat::R16Float,
         TextureFormat::Rg16Float,
         TextureFormat::Rg11b10Ufloat,
     ] {
-        let usages = storage_requested_usages_for(format);
+        let error = storage_requested_usages_for(format).unwrap_err();
 
-        assert!(usages.contains(wgpu::TextureUsages::RENDER_ATTACHMENT));
-        assert!(usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
-        assert!(!usages.contains(wgpu::TextureUsages::STORAGE_BINDING));
-        assert!(usages.contains(wgpu::TextureUsages::COPY_SRC));
-        assert!(usages.contains(wgpu::TextureUsages::COPY_DST));
+        assert!(error.contains("does not support declared STORAGE usage"));
     }
 }
 
@@ -34,13 +33,13 @@ fn storage_texture_formats_request_storage_binding() {
         TextureFormat::Rgba16Float,
         TextureFormat::Rgba32Float,
     ] {
-        let usages = storage_requested_usages_for(format);
+        let usages = storage_requested_usages_for(format).unwrap();
 
         assert!(usages.contains(wgpu::TextureUsages::STORAGE_BINDING));
     }
 }
 
-fn storage_requested_usages_for(format: TextureFormat) -> wgpu::TextureUsages {
+fn storage_requested_usages_for(format: TextureFormat) -> Result<wgpu::TextureUsages, String> {
     wgpu_texture_usages(
         format,
         TextureUsage::RENDER_ATTACHMENT
@@ -52,16 +51,8 @@ fn storage_requested_usages_for(format: TextureFormat) -> wgpu::TextureUsages {
 }
 
 #[test]
-fn materialization_creates_dense_transients_and_skips_sparse_reservations() {
-    let backend = RenderBackend::new_offscreen().unwrap();
-    let mut builder = RenderGraphBuilder::new("materialization");
-    let shadow = builder.create_texture(TextureDesc::new(
-        "shadow-atlas",
-        64,
-        64,
-        TextureFormat::Depth32Float,
-        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-    ));
+fn materialization_rejects_sparse_reservations_before_backend_allocation() {
+    let mut builder = RenderGraphBuilder::new("sparse-materialization-rejection");
     let sparse = builder.create_texture(
         TextureDesc::new(
             "sparse-pages",
@@ -72,11 +63,6 @@ fn materialization_creates_dense_transients_and_skips_sparse_reservations() {
         )
         .with_sparse_residency(),
     );
-    let scratch = builder.create_buffer(BufferDesc::new(
-        "scratch",
-        16,
-        BufferUsage::STORAGE | BufferUsage::COPY_DST,
-    ));
     let pass = builder.add_pass("materialize", QueueLane::Graphics);
     builder
         .set_pass_flags(
@@ -87,36 +73,12 @@ fn materialization_creates_dense_transients_and_skips_sparse_reservations() {
             },
         )
         .unwrap();
-    builder.write_texture(pass, shadow).unwrap();
     builder.write_storage_texture(pass, sparse).unwrap();
-    builder.write_buffer(pass, scratch).unwrap();
-    let graph = builder.compile().unwrap();
-    let mut resources = RenderGraphExecutionResources::new();
-
-    materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
-
-    assert!(resources.has_texture_view("shadow-atlas"));
-    assert!(
-        !resources.has_texture_view("sparse-pages"),
-        "sparse reservations must not be silently backed by a dense WGPU texture"
-    );
-    assert!(resources.has_buffer("scratch"));
-    assert!(resources.has_bound_resource("shadow-atlas"));
-    assert!(resources.has_bound_resource("scratch"));
-    assert!(!resources.has_bound_resource("sparse-pages"));
-    assert_eq!(
-        resources.resource_report(),
-        crate::core::framework::render::RenderGraphExecutionResourceReport::new(1, 0, 1, 1)
-    );
-    let materialization_report = resources
-        .validate_materialized_graph_resources(&graph)
-        .unwrap();
-    assert_eq!(materialization_report.required_texture_count, 1);
-    assert_eq!(materialization_report.bound_texture_count, 1);
-    assert_eq!(materialization_report.required_buffer_count, 1);
-    assert_eq!(materialization_report.bound_buffer_count, 1);
-    assert_eq!(materialization_report.sparse_texture_reservation_count, 1);
-    assert_eq!(materialization_report.missing_resource_count(), 0);
+    assert!(matches!(
+        builder.compile(),
+        Err(crate::render_graph::RenderGraphError::SparseTextureUnsupported { resource })
+            if resource == "sparse-pages"
+    ));
 }
 
 #[test]
@@ -137,7 +99,7 @@ fn materialization_aliases_compatible_transient_texture_slots() {
         TextureFormat::Rgba8Unorm,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
     let first_write = builder.add_pass("first-write", QueueLane::Graphics);
     let first_read = builder.add_pass("first-read", QueueLane::Graphics);
     let second_write = builder.add_pass("second-write", QueueLane::Graphics);
@@ -153,7 +115,7 @@ fn materialization_aliases_compatible_transient_texture_slots() {
     let graph = builder.compile().unwrap();
     let mut resources = RenderGraphExecutionResources::new();
 
-    materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
+    materialize_with_transient_pool(&mut resources, &backend, &graph).unwrap();
 
     assert_eq!(graph.transient_allocation_plan().texture_slot_count, 1);
     assert!(resources.has_texture_view("first-color"));
@@ -171,10 +133,133 @@ fn materialization_aliases_compatible_transient_texture_slots() {
     let first_alias = texture_alias_for(&alias_report, "first-color");
     let second_alias = texture_alias_for(&alias_report, "second-color");
     assert_eq!(first_alias.backing_name, second_alias.backing_name);
-    assert!(first_alias
-        .backing_name
-        .starts_with("rg-transient-texture-bucket-"));
-    assert!(first_alias.backing_name.ends_with("-slot-0"));
+    assert!(
+        first_alias
+            .backing_name
+            .starts_with("rg-transient-texture-allocation-")
+    );
+}
+
+#[test]
+fn materialization_allocates_graph_owned_persistent_texture_outside_alias_slots() {
+    let backend = RenderBackend::new_offscreen().unwrap();
+    let mut builder = RenderGraphBuilder::new("persistent-texture-materialization");
+    let history_source = builder.create_texture(TextureDesc::new(
+        "history-source",
+        32,
+        32,
+        TextureFormat::Rgba16Float,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
+    ));
+    builder.mark_persistent(history_source).unwrap();
+    let write = builder.add_pass("write-history-source", QueueLane::Graphics);
+    let read = builder.add_pass("read-history-source", QueueLane::Graphics);
+    builder.write_texture(write, history_source).unwrap();
+    builder.read_texture(read, history_source).unwrap();
+    builder.add_dependency(write, read).unwrap();
+    builder
+        .set_pass_flags(
+            read,
+            crate::render_graph::PassFlags {
+                has_side_effects: true,
+                ..crate::render_graph::PassFlags::default()
+            },
+        )
+        .unwrap();
+    let graph = builder.compile().unwrap();
+    let write_access = graph.access_id_at(write, 0).unwrap();
+    let read_access = graph.access_id_at(read, 0).unwrap();
+    let mut resources = RenderGraphExecutionResources::new();
+
+    materialize_with_transient_pool(&mut resources, &backend, &graph).unwrap();
+
+    assert_eq!(graph.transient_allocation_plan().texture_slot_count, 0);
+    assert!(resources.has_texture_view("history-source"));
+    assert!(resources.owned_texture("history-source").is_some());
+    assert_eq!(resources.resource_report().owned_texture_count, 1);
+    assert_eq!(resources.persistent_texture_access_binding_count(), 2);
+    assert_eq!(resources.persistent_texture_backing_count(), 1);
+    assert!(
+        resources
+            .graph_owned_texture_for_access(write_access)
+            .is_ok()
+    );
+    assert!(
+        resources
+            .graph_owned_texture_for_access(read_access)
+            .is_ok()
+    );
+    assert_eq!(
+        texture_alias_for(&resources.resource_alias_report(), "history-source").backing_name,
+        "rg-persistent-texture-history-source"
+    );
+}
+
+#[test]
+fn materialization_prebuilds_persistent_texture_views_for_exact_mip_accesses() {
+    let backend = RenderBackend::new_offscreen().unwrap();
+    let mut builder = RenderGraphBuilder::new("persistent-texture-access-views");
+    let history_source = builder.create_texture(
+        TextureDesc::new(
+            "history-mips",
+            32,
+            32,
+            TextureFormat::Rgba16Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        )
+        .with_mip_levels(4),
+    );
+    builder.mark_persistent(history_source).unwrap();
+    let write = builder.add_pass("write-history-mip", QueueLane::Graphics);
+    let read = builder.add_pass("read-history-mip", QueueLane::Graphics);
+    let written_version = builder
+        .write_texture_with_access_versioned(
+            write,
+            history_source,
+            RenderGraphTextureSubresourceRange::single_mip(2),
+            crate::render_graph::RenderGraphResourceAccessIntent::ColorAttachment,
+            Some(crate::render_graph::RenderGraphAttachmentOps::clear_store()),
+        )
+        .unwrap();
+    builder
+        .read_texture_with_access_from_version(
+            read,
+            written_version,
+            RenderGraphTextureSubresourceRange::single_mip(2),
+            crate::render_graph::RenderGraphResourceAccessIntent::sampled_texture(
+                crate::render_graph::RenderGraphShaderStages::FRAGMENT,
+            ),
+        )
+        .unwrap();
+    builder
+        .set_pass_flags(
+            read,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
+    let graph = builder.compile().unwrap();
+    let write_access = graph.access_id_at(write, 0).unwrap();
+    let read_access = graph.access_id_at(read, 0).unwrap();
+    let mut resources = RenderGraphExecutionResources::new();
+
+    materialize_with_transient_pool(&mut resources, &backend, &graph).unwrap();
+
+    assert!(
+        resources
+            .persistent_texture_view_for_access(write_access)
+            .is_ok()
+    );
+    assert!(
+        resources
+            .persistent_texture_view_for_access(read_access)
+            .is_ok()
+    );
+    assert_eq!(resources.persistent_texture_access_binding_count(), 2);
+    assert_eq!(resources.persistent_texture_view_count(), 2);
+    assert_eq!(resources.persistent_texture_backing_count(), 1);
 }
 
 #[test]
@@ -195,7 +280,7 @@ fn materialization_receives_incompatible_texture_resources_in_separate_graph_slo
         TextureFormat::Rgba8Unorm,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
     let large_write = builder.add_pass("large-write", QueueLane::Graphics);
     let large_read = builder.add_pass("large-read", QueueLane::Graphics);
     let small_write = builder.add_pass("small-write", QueueLane::Graphics);
@@ -211,7 +296,7 @@ fn materialization_receives_incompatible_texture_resources_in_separate_graph_slo
     let graph = builder.compile().unwrap();
     let mut resources = RenderGraphExecutionResources::new();
 
-    materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
+    materialize_with_transient_pool(&mut resources, &backend, &graph).unwrap();
 
     assert_eq!(
         graph.transient_allocation_plan().texture_slot_count,
@@ -234,12 +319,16 @@ fn materialization_receives_incompatible_texture_resources_in_separate_graph_slo
         large_alias.backing_name, small_alias.backing_name,
         "different descriptor buckets can both use slot zero but must materialize distinct WGPU backings"
     );
-    assert!(large_alias
-        .backing_name
-        .starts_with("rg-transient-texture-bucket-"));
-    assert!(small_alias
-        .backing_name
-        .starts_with("rg-transient-texture-bucket-"));
+    assert!(
+        large_alias
+            .backing_name
+            .starts_with("rg-transient-texture-bucket-")
+    );
+    assert!(
+        small_alias
+            .backing_name
+            .starts_with("rg-transient-texture-bucket-")
+    );
 }
 
 #[test]
@@ -274,7 +363,8 @@ fn materialization_overrides_preimported_terminal_aa_output_with_owned_transient
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let output = builder.import_external_resource(PostProcessGraphResourceNames::FINAL_COLOR);
+    let output =
+        builder.import_present_external_resource(PostProcessGraphResourceNames::FINAL_COLOR);
     let fxaa = builder.add_pass("fxaa", QueueLane::Graphics);
     let output_transfer = builder.add_pass("output-transfer", QueueLane::Graphics);
     builder.read_texture(fxaa, tonemapped).unwrap();
@@ -291,7 +381,7 @@ fn materialization_overrides_preimported_terminal_aa_output_with_owned_transient
         &final_alias,
     );
 
-    materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
+    materialize_with_transient_pool(&mut resources, &backend, &graph).unwrap();
 
     assert!(
         resources
@@ -336,12 +426,14 @@ fn materialization_preserves_imported_persistent_texture_without_pool_backing() 
     let mut resources = RenderGraphExecutionResources::new();
     resources.import_texture_alias("history.current.scene-color", &history_texture);
 
-    materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
+    materialize_with_transient_pool(&mut resources, &backend, &graph).unwrap();
 
     assert!(resources.has_texture_view("history.current.scene-color"));
-    assert!(resources
-        .owned_texture("history.current.scene-color")
-        .is_none());
+    assert!(
+        resources
+            .owned_texture("history.current.scene-color")
+            .is_none()
+    );
     let report = resources.resource_report();
     assert_eq!(report.owned_texture_count, 0);
     assert_eq!(report.external_texture_view_count, 1);
@@ -361,7 +453,7 @@ fn materialization_aliases_transient_buffer_slots() {
         64,
         BufferUsage::STORAGE | BufferUsage::COPY_DST,
     ));
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
     let first_write = builder.add_pass("first-buffer-write", QueueLane::Graphics);
     let first_read = builder.add_pass("first-buffer-read", QueueLane::Graphics);
     let second_write = builder.add_pass("second-buffer-write", QueueLane::Graphics);
@@ -377,7 +469,7 @@ fn materialization_aliases_transient_buffer_slots() {
     let graph = builder.compile().unwrap();
     let mut resources = RenderGraphExecutionResources::new();
 
-    materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
+    materialize_with_transient_pool(&mut resources, &backend, &graph).unwrap();
 
     assert_eq!(graph.transient_allocation_plan().buffer_slot_count, 1);
     assert!(resources.has_buffer("first-indirect"));
@@ -393,10 +485,220 @@ fn materialization_aliases_transient_buffer_slots() {
     let first_alias = buffer_alias_for(&alias_report, "first-indirect");
     let second_alias = buffer_alias_for(&alias_report, "second-indirect");
     assert_eq!(first_alias.backing_name, second_alias.backing_name);
-    assert!(first_alias
-        .backing_name
-        .starts_with("rg-transient-buffer-bucket-"));
-    assert!(first_alias.backing_name.ends_with("-slot-0"));
+    assert!(
+        first_alias
+            .backing_name
+            .starts_with("rg-transient-buffer-allocation-")
+    );
+}
+
+#[test]
+fn materialization_binds_only_transient_exact_accesses_to_device_resources() {
+    let backend = RenderBackend::new_offscreen().unwrap();
+    let mut builder = RenderGraphBuilder::new("exact-transient-access-bindings");
+    let pyramid = builder.create_texture(
+        TextureDesc::new(
+            "reflection-pyramid",
+            64,
+            32,
+            TextureFormat::Rgba16Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        )
+        .with_mip_levels(3),
+    );
+    let coarse = builder
+        .create_texture_view_alias(
+            "reflection-pyramid-coarse",
+            pyramid,
+            RenderGraphTextureSubresourceRange::single_mip(1),
+        )
+        .expect("declare coarse reflection view");
+    let clusters = builder.create_buffer(BufferDesc::new(
+        "visible-clusters",
+        256,
+        BufferUsage::STORAGE | BufferUsage::COPY_DST,
+    ));
+    let history = builder.create_texture(TextureDesc::new(
+        "history-color",
+        64,
+        32,
+        TextureFormat::Rgba16Float,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    builder.mark_persistent(history).unwrap();
+    let output = builder.import_present_external_resource("viewport-output");
+    let build = builder.add_pass("build", QueueLane::Graphics);
+    let resolve = builder.add_pass("resolve-coarse", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+    builder.write_texture(build, pyramid).unwrap();
+    builder.write_buffer(build, clusters).unwrap();
+    builder.write_texture(build, history).unwrap();
+    builder.read_texture(resolve, pyramid).unwrap();
+    builder.write_texture(resolve, coarse).unwrap();
+    builder.read_texture(present, coarse).unwrap();
+    builder.read_buffer(present, clusters).unwrap();
+    builder.write_external(present, output).unwrap();
+    builder.add_dependency(build, resolve).unwrap();
+    builder.add_dependency(resolve, present).unwrap();
+
+    let graph = builder.compile().expect("compile exact access graph");
+    let alias_write = graph
+        .access_id_for(
+            resolve,
+            RenderGraphResource::TransientTexture(coarse),
+            RenderGraphResourceAccessKind::Write,
+        )
+        .expect("alias write access");
+    let buffer_read = graph
+        .access_id_for(
+            present,
+            RenderGraphResource::TransientBuffer(clusters),
+            RenderGraphResourceAccessKind::Read,
+        )
+        .expect("buffer read access");
+    let persistent_write = graph
+        .access_id_for(
+            build,
+            RenderGraphResource::TransientTexture(history),
+            RenderGraphResourceAccessKind::Write,
+        )
+        .expect("persistent write access");
+    let output_write = graph
+        .access_id_for(
+            present,
+            RenderGraphResource::External(output),
+            RenderGraphResourceAccessKind::Write,
+        )
+        .expect("external output access");
+    let mut resources = RenderGraphExecutionResources::new();
+
+    materialize_with_transient_pool(&mut resources, &backend, &graph)
+        .expect("materialize exact transient access bindings");
+
+    assert_eq!(resources.transient_access_binding_count(), 6);
+    assert_eq!(resources.transient_texture_backing_count(), 1);
+    let report = resources.resource_report();
+    assert_eq!(
+        report.access_binding_report.transient_access_binding_count,
+        6
+    );
+    assert_eq!(
+        report
+            .access_binding_report
+            .transient_texture_access_binding_count,
+        4
+    );
+    assert_eq!(
+        report
+            .access_binding_report
+            .transient_buffer_access_binding_count,
+        2
+    );
+    assert_eq!(report.access_binding_report.unique_texture_view_count, 2);
+    assert_eq!(report.access_binding_report.reused_texture_view_count, 2);
+    assert!(
+        resources
+            .transient_texture_view_for_access(alias_write)
+            .is_ok()
+    );
+    assert!(resources.transient_texture_for_access(alias_write).is_ok());
+    assert_eq!(
+        resources.transient_access_key(alias_write),
+        graph.versioned_access_key(alias_write)
+    );
+    assert_eq!(
+        resources.transient_physical_allocation_for_access(alias_write),
+        graph.physical_allocation_id_for_access(alias_write)
+    );
+    assert!(
+        resources
+            .transient_buffer_slice_for_access(buffer_read)
+            .is_ok()
+    );
+    assert!(
+        resources
+            .transient_texture_view_for_access(persistent_write)
+            .is_err()
+    );
+    assert!(
+        resources
+            .transient_texture_for_access(persistent_write)
+            .is_err()
+    );
+    assert!(
+        resources
+            .persistent_texture_for_access(persistent_write)
+            .is_ok()
+    );
+    assert!(
+        resources
+            .graph_owned_texture_for_access(persistent_write)
+            .is_ok()
+    );
+    assert_eq!(resources.persistent_texture_access_binding_count(), 1);
+    assert_eq!(resources.persistent_texture_backing_count(), 1);
+    assert!(
+        resources
+            .transient_texture_view_for_access(output_write)
+            .is_err()
+    );
+}
+
+#[test]
+fn materialization_does_not_bind_diagnostic_accesses_from_culled_passes() {
+    let backend = RenderBackend::new_offscreen().unwrap();
+    let mut builder = RenderGraphBuilder::new("culled-exact-access-bindings");
+    let culled_scratch = builder.create_texture(TextureDesc::new(
+        "culled-scratch",
+        32,
+        32,
+        TextureFormat::Rgba8Unorm,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let live_color = builder.create_texture(TextureDesc::new(
+        "live-color",
+        32,
+        32,
+        TextureFormat::Rgba8Unorm,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let output = builder.import_present_external_resource("viewport-output");
+    let culled = builder.add_pass("culled-scratch-writer", QueueLane::Graphics);
+    let live = builder.add_pass("live-writer", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+    builder.write_texture(culled, culled_scratch).unwrap();
+    builder.write_texture(live, live_color).unwrap();
+    builder.read_texture(present, live_color).unwrap();
+    builder.write_external(present, output).unwrap();
+    builder.add_dependency(live, present).unwrap();
+
+    let graph = builder.compile().expect("compile culled access graph");
+    let culled_access = graph
+        .access_id_for(
+            culled,
+            RenderGraphResource::TransientTexture(culled_scratch),
+            RenderGraphResourceAccessKind::Write,
+        )
+        .expect("culled writer should retain a diagnostic access ID");
+    assert!(graph.versioned_access_key(culled_access).is_some());
+    assert!(graph.access_allocation_binding(culled_access).is_none());
+
+    let mut resources = RenderGraphExecutionResources::new();
+    materialize_with_transient_pool(&mut resources, &backend, &graph)
+        .expect("materialize live transient exact access bindings");
+
+    assert_eq!(resources.transient_access_binding_count(), 2);
+    assert!(!resources.has_texture_view("culled-scratch"));
+    assert!(
+        resources
+            .transient_texture_view_for_access(culled_access)
+            .is_err()
+    );
+    assert!(
+        resources
+            .transient_physical_allocation_for_access(culled_access)
+            .is_none()
+    );
 }
 
 #[test]
@@ -427,12 +729,14 @@ fn materialization_exposes_owned_texture_mip_views() {
     let graph = builder.compile().unwrap();
     let mut resources = RenderGraphExecutionResources::new();
 
-    materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
+    materialize_with_transient_pool(&mut resources, &backend, &graph).unwrap();
 
     assert!(resources.has_texture_view("mipped-pyramid"));
-    assert!(resources
-        .owned_texture_mip_view("mipped-pyramid", 1)
-        .is_ok());
+    assert!(
+        resources
+            .owned_texture_mip_view("mipped-pyramid", 1)
+            .is_ok()
+    );
     assert_eq!(
         resources
             .owned_texture_mip_view("mipped-pyramid", 3)
@@ -471,7 +775,7 @@ fn materialization_exposes_owned_cube_storage_texture_array_views() {
     let graph = builder.compile().unwrap();
     let mut resources = RenderGraphExecutionResources::new();
 
-    materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
+    materialize_with_transient_pool(&mut resources, &backend, &graph).unwrap();
 
     assert!(
         resources
@@ -522,12 +826,12 @@ fn ibl_pmrem_storage_view_descriptor(mip_level: u32) -> wgpu::TextureViewDescrip
 }
 
 #[test]
-fn materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view() {
+fn materialization_aliases_declared_texture_view_to_parent_mip() {
     let backend = RenderBackend::new_offscreen().unwrap();
-    let mut builder = RenderGraphBuilder::new("ssr-mip-aliases");
+    let mut builder = RenderGraphBuilder::new("declared-mip-aliases");
     let reflection_pyramid = builder.create_texture(
         TextureDesc::new(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+            "arbitrary-pyramid",
             64,
             32,
             TextureFormat::Rgba16Float,
@@ -535,14 +839,14 @@ fn materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view() {
         )
         .with_mip_levels(3),
     );
-    let reflection_pyramid_coarse = builder.create_texture(TextureDesc::new(
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
-        32,
-        16,
-        TextureFormat::Rgba16Float,
-        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-    ));
-    let output = builder.import_external_resource("viewport-output");
+    let reflection_pyramid_coarse = builder
+        .create_texture_view_alias(
+            "arbitrary-pyramid-coarse",
+            reflection_pyramid,
+            RenderGraphTextureSubresourceRange::single_mip(1),
+        )
+        .expect("declare arbitrary parent mip alias");
+    let output = builder.import_present_external_resource("viewport-output");
     let reflection_pass = builder.add_pass("reflection-pyramid", QueueLane::Graphics);
     builder
         .write_texture(reflection_pass, reflection_pyramid)
@@ -562,76 +866,20 @@ fn materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view() {
     let graph = builder.compile().unwrap();
     let mut resources = RenderGraphExecutionResources::new();
 
-    materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
+    materialize_with_transient_pool(&mut resources, &backend, &graph).unwrap();
 
-    assert!(resources.has_texture_view(
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
-    ));
-    assert!(resources.has_texture_view(
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
-    ));
-    assert!(resources
-        .owned_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID)
-        .is_some());
-    assert!(resources
-        .owned_texture(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
-        )
-        .is_none());
+    assert!(resources.has_texture_view("arbitrary-pyramid"));
+    assert!(resources.has_texture_view("arbitrary-pyramid-coarse"));
+    assert!(resources.owned_texture("arbitrary-pyramid").is_some());
+    assert!(
+        resources
+            .owned_texture("arbitrary-pyramid-coarse")
+            .is_none()
+    );
     let report = resources.resource_report();
     assert_eq!(report.external_texture_view_count, 0);
     assert_eq!(report.owned_texture_count, 1);
     assert_eq!(report.texture_view_count, 2);
-}
-
-#[test]
-fn materialization_allocates_ssr_reflection_coarse_resource_when_parent_has_no_coarse_mip() {
-    let backend = RenderBackend::new_offscreen().unwrap();
-    let mut builder = RenderGraphBuilder::new("ssr-small-pyramid");
-    let reflection_pyramid = builder.create_texture(TextureDesc::new(
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
-        1,
-        1,
-        TextureFormat::Rgba16Float,
-        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-    ));
-    let reflection_pyramid_coarse = builder.create_texture(TextureDesc::new(
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
-        1,
-        1,
-        TextureFormat::Rgba16Float,
-        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-    ));
-    let output = builder.import_external_resource("viewport-output");
-    let reflection_pass = builder.add_pass("reflection-pyramid", QueueLane::Graphics);
-    builder
-        .write_texture(reflection_pass, reflection_pyramid)
-        .unwrap();
-    let reflection_coarse_pass = builder.add_pass("reflection-pyramid-coarse", QueueLane::Graphics);
-    builder
-        .read_texture(reflection_coarse_pass, reflection_pyramid)
-        .unwrap();
-    builder
-        .write_texture(reflection_coarse_pass, reflection_pyramid_coarse)
-        .unwrap();
-    let output_pass = builder.add_pass("output", QueueLane::Graphics);
-    builder
-        .read_texture(output_pass, reflection_pyramid_coarse)
-        .unwrap();
-    builder.write_external(output_pass, output).unwrap();
-    let graph = builder.compile().unwrap();
-    let mut resources = RenderGraphExecutionResources::new();
-
-    materialize_with_transient_pool(&mut resources, &backend.device, &graph).unwrap();
-
-    assert!(resources
-        .owned_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID)
-        .is_some());
-    assert!(resources
-        .owned_texture(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
-        )
-        .is_some());
 }
 
 fn texture_alias_for<'a>(
@@ -647,12 +895,17 @@ fn texture_alias_for<'a>(
 
 fn materialize_with_transient_pool(
     resources: &mut RenderGraphExecutionResources,
-    device: &wgpu::Device,
+    backend: &RenderBackend,
     graph: &CompiledRenderGraph,
 ) -> Result<(), String> {
     let mut pool = TransientResourcePool::default();
-    pool.begin_frame();
-    resources.materialize_transient_resources_with_pool(device, graph, &mut pool)
+    pool.begin_frame(backend.device_profile());
+    resources.materialize_transient_resources_with_pool(
+        &backend.device,
+        backend.device_profile(),
+        graph,
+        &mut pool,
+    )
 }
 
 fn buffer_alias_for<'a>(

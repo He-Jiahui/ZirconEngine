@@ -5,7 +5,7 @@ use crate::ui::host::editor_error::EditorError;
 use crate::ui::host::editor_ui_host::EditorUiHost;
 use crate::ui::workbench::view::ViewInstanceId;
 
-use super::super::{ui_asset_source_hash, UiAssetDiffSnapshot};
+use super::super::{ui_asset_source_digest, UiAssetDiffSnapshot};
 use super::normalize::rebuild_ui_asset_session_from_source;
 
 impl EditorUiHost {
@@ -85,7 +85,7 @@ impl EditorUiHost {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
         entry.session = session;
-        entry.disk_source_hash = ui_asset_source_hash(&source);
+        entry.disk_source_digest = ui_asset_source_digest(&source);
         entry.disk_source = source;
         entry.conflict = None;
         entry.diff_snapshot = None;

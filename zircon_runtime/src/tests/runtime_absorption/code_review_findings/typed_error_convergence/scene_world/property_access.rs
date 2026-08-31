@@ -3,9 +3,25 @@ fn review_f5_scene_property_access_uses_scene_error() {
     let world_error = include_str!("../../../../../scene/world/error.rs");
     let read = include_str!("../../../../../scene/world/property_access/read.rs");
     let write = include_str!("../../../../../scene/world/property_access/write.rs");
+    let write_animation =
+        include_str!("../../../../../scene/world/property_access/write/animation.rs");
+    let write_camera = include_str!("../../../../../scene/world/property_access/write/camera.rs");
+    let write_lighting =
+        include_str!("../../../../../scene/world/property_access/write/lighting.rs");
+    let write_mesh = include_str!("../../../../../scene/world/property_access/write/mesh.rs");
     let write_physics = include_str!("../../../../../scene/world/property_access/write/physics.rs");
-    let value_conversion =
+    let value_conversion_facade =
         include_str!("../../../../../scene/world/property_access/value_conversion.rs");
+    let value_conversion_compiled =
+        include_str!("../../../../../scene/world/property_access/value_conversion/compiled.rs");
+    let value_conversion_domain =
+        include_str!("../../../../../scene/world/property_access/value_conversion/domain.rs");
+    let value_conversion_errors =
+        include_str!("../../../../../scene/world/property_access/value_conversion/errors.rs");
+    let value_conversion_identifiers =
+        include_str!("../../../../../scene/world/property_access/value_conversion/identifiers.rs");
+    let value_conversion_values =
+        include_str!("../../../../../scene/world/property_access/value_conversion/values.rs");
     let read_path_tests = include_str!("../../../../../scene/tests/property_paths/read_paths.rs");
     let review_findings = concat!(
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
@@ -43,8 +59,20 @@ fn review_f5_scene_property_access_uses_scene_error() {
     for (label, source) in [
         ("property read", read),
         ("property write", write),
+        ("property animation write", write_animation),
+        ("property camera write", write_camera),
+        ("property lighting write", write_lighting),
+        ("property mesh write", write_mesh),
         ("property physics write", write_physics),
-        ("property conversion", value_conversion),
+        ("property conversion facade", value_conversion_facade),
+        ("property compiled conversion", value_conversion_compiled),
+        ("property domain conversion", value_conversion_domain),
+        ("property error conversion", value_conversion_errors),
+        (
+            "property identifier conversion",
+            value_conversion_identifiers,
+        ),
+        ("property value conversion", value_conversion_values),
     ] {
         for forbidden in [
             "Result<ScenePropertyValue, String>",
@@ -69,6 +97,14 @@ fn review_f5_scene_property_access_uses_scene_error() {
             "property read should contain typed error anchor `{required}`"
         );
     }
+    let property_write_owners = [
+        write,
+        write_animation,
+        write_camera,
+        write_lighting,
+        write_mesh,
+        write_physics,
+    ];
     for required in [
         "pub fn set_property(",
         ") -> SceneResult<bool>",
@@ -78,12 +114,23 @@ fn review_f5_scene_property_access_uses_scene_error() {
         "self.set_dynamic_component_property(entity, property_path, value)",
     ] {
         assert!(
-            write.contains(required) || write_physics.contains(required),
+            property_write_owners
+                .iter()
+                .any(|source| source.contains(required)),
             "property writer should contain typed error anchor `{required}`"
         );
     }
+    let property_conversion_owners = [
+        value_conversion_facade,
+        value_conversion_compiled,
+        value_conversion_domain,
+        value_conversion_errors,
+        value_conversion_identifiers,
+        value_conversion_values,
+        write_physics,
+    ];
     for required in [
-        "pub(super) fn expect_segment_count",
+        "fn expect_segment_count",
         "SceneError::PropertySegmentCount",
         "SceneError::PropertyTypeMismatch",
         "SceneError::UnknownPropertyAxis",
@@ -92,7 +139,9 @@ fn review_f5_scene_property_access_uses_scene_error() {
         ") -> SceneResult<bool>",
     ] {
         assert!(
-            value_conversion.contains(required) || write_physics.contains(required),
+            property_conversion_owners
+                .iter()
+                .any(|source| source.contains(required)),
             "property conversion should contain typed error anchor `{required}`"
         );
     }

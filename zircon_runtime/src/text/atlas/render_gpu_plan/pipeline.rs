@@ -1,6 +1,6 @@
-use super::bind_group::{glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuBindGroupLayout};
+use super::bind_group::{GlyphAtlasGpuBindGroupLayout, glyph_atlas_gpu_bind_group_layout};
 use super::draw_command::GlyphAtlasGpuPrimitiveTopology;
-use super::instance::{glyph_atlas_gpu_instance_buffer_layout, GlyphAtlasGpuInstanceBufferLayout};
+use super::instance::{GlyphAtlasGpuInstanceBufferLayout, glyph_atlas_gpu_instance_buffer_layout};
 use crate::text::atlas::render_contract::{GlyphAtlasRenderContract, GlyphAtlasShaderEntryPoints};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

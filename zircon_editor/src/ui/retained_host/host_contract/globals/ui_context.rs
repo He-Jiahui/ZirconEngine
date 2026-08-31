@@ -2,12 +2,13 @@ use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
+use crate::ui::retained_host::host_contract::WorkbenchTooltipPointerTarget;
 use crate::ui::retained_host::primitives::SharedString;
-use zircon_runtime_interface::ui::dispatch::UiKeyboardInputEvent;
+use zircon_runtime_interface::ui::dispatch::{UiKeyboardInputEvent, UiPointerInputEvent};
 
 use super::super::data::{
-    HostDragStateData, HostMenuStateData, HostPageOverflowMenuStateData, HostResizeStateData,
-    HostTextInputFocusData,
+    HostDockOverflowMenuStateData, HostDragStateData, HostMenuStateData,
+    HostPageOverflowMenuStateData, HostResizeStateData, HostTextInputFocusData,
 };
 use super::state::{HostContractGlobal, HostContractState};
 
@@ -27,13 +28,37 @@ impl<'a> HostContractGlobal for UiHostContext<'a> {
 
 impl UiHostContext<'_> {
     pub(crate) fn set_menu_state(&self, value: HostMenuStateData) {
-        self.state.borrow_mut().replace_menu_state(value);
+        let mut state = self.state.borrow_mut();
+        if value.open_menu_index >= 0 {
+            state.replace_page_overflow_menu_state(HostPageOverflowMenuStateData::default());
+            state.replace_dock_overflow_menu_state(HostDockOverflowMenuStateData::default());
+        }
+        state.replace_menu_state(value);
     }
 
     pub(crate) fn set_host_page_overflow_menu_state(&self, value: HostPageOverflowMenuStateData) {
-        self.state
-            .borrow_mut()
-            .replace_page_overflow_menu_state(value);
+        let mut state = self.state.borrow_mut();
+        if value.open {
+            state.replace_menu_state(HostMenuStateData::default());
+            state.replace_dock_overflow_menu_state(HostDockOverflowMenuStateData::default());
+        }
+        state.replace_page_overflow_menu_state(value);
+    }
+
+    pub(crate) fn set_host_dock_overflow_menu_state(&self, value: HostDockOverflowMenuStateData) {
+        let mut state = self.state.borrow_mut();
+        if value.open {
+            state.replace_menu_state(HostMenuStateData::default());
+            state.replace_page_overflow_menu_state(HostPageOverflowMenuStateData::default());
+        }
+        state.replace_dock_overflow_menu_state(value);
+    }
+
+    pub(crate) fn host_popup_occludes_workbench_tooltip(&self) -> bool {
+        let state = self.state.borrow();
+        state.menu_state.open_menu_index >= 0
+            || state.host_page_overflow_menu_state.open
+            || state.host_dock_overflow_menu_state.open
     }
 
     pub(crate) fn get_drag_state(&self) -> HostDragStateData {
@@ -44,12 +69,67 @@ impl UiHostContext<'_> {
         self.state.borrow_mut().drag_state = value;
     }
 
+    pub(crate) fn drag_pointer_snapshot(&self) -> Option<(bool, f32, f32)> {
+        let state = self.state.borrow();
+        (!state.drag_state.drag_tab_id.is_empty()).then_some((
+            state.drag_state.drag_active,
+            state.drag_state.drag_pointer_x,
+            state.drag_state.drag_pointer_y,
+        ))
+    }
+
+    pub(crate) fn set_drag_pointer_position(&self, x: f32, y: f32) {
+        let mut state = self.state.borrow_mut();
+        state.drag_state.drag_pointer_x = x;
+        state.drag_state.drag_pointer_y = y;
+    }
+
+    pub(crate) fn activate_drag_at(&self, x: f32, y: f32) {
+        let mut state = self.state.borrow_mut();
+        state.drag_state.drag_active = true;
+        state.drag_state.drag_pointer_x = x;
+        state.drag_state.drag_pointer_y = y;
+    }
+
+    pub(crate) fn drag_target_group_matches(&self, matches: impl FnOnce(&str) -> bool) -> bool {
+        matches(
+            self.state
+                .borrow()
+                .drag_state
+                .active_drag_target_group
+                .as_str(),
+        )
+    }
+
+    pub(crate) fn set_drag_target_group(&self, value: SharedString) {
+        self.state.borrow_mut().drag_state.active_drag_target_group = value;
+    }
+
     pub(crate) fn get_resize_state(&self) -> HostResizeStateData {
         self.state.borrow().resize_state.clone()
     }
 
     pub(crate) fn set_resize_state(&self, value: HostResizeStateData) {
         self.state.borrow_mut().resize_state = value;
+    }
+
+    pub(crate) fn update_resize_pointer_if_active(&self, x: f32, y: f32) -> Option<bool> {
+        let mut state = self.state.borrow_mut();
+        let resize = &mut state.resize_state;
+        if !resize.resize_active {
+            return None;
+        }
+        if resize.resize_pointer_x == x && resize.resize_pointer_y == y {
+            return Some(false);
+        }
+        resize.resize_pointer_x = x;
+        resize.resize_pointer_y = y;
+        Some(true)
+    }
+
+    pub(crate) fn pointer_move_requires_immediate_dispatch(&self) -> bool {
+        let state = self.state.borrow();
+        state.resize_state.resize_active || !state.drag_state.drag_tab_id.is_empty()
     }
 
     pub(crate) fn clear_resize_state(&self) {
@@ -77,12 +157,35 @@ impl UiHostContext<'_> {
         frame_requested,
         ()
     );
+    callback_methods!(
+        ui_callbacks,
+        on_interactive_frame_requested,
+        invoke_interactive_frame_requested,
+        interactive_frame_requested,
+        ()
+    );
+    callback_methods!(ui_callbacks, on_workbench_pointer_input, invoke_workbench_pointer_input, workbench_pointer_input, (pointer: UiPointerInputEvent, target: Option<WorkbenchTooltipPointerTarget>));
+    callback_methods!(
+        ui_callbacks,
+        on_workbench_input_activity,
+        invoke_workbench_input_activity,
+        workbench_input_activity,
+        ()
+    );
     callback_methods!(ui_callbacks, on_close_prompt_action_clicked, invoke_close_prompt_action_clicked, close_prompt_action_clicked, (action_id: SharedString));
+    callback_methods!(
+        ui_callbacks,
+        on_asset_deletion_blocker_closed,
+        invoke_asset_deletion_blocker_closed,
+        asset_deletion_blocker_closed,
+        ()
+    );
     callback_methods!(ui_callbacks, on_menu_pointer_clicked, invoke_menu_pointer_clicked, menu_pointer_clicked, (x: f32, y: f32));
     callback_methods!(ui_callbacks, on_menu_pointer_moved, invoke_menu_pointer_moved, menu_pointer_moved, (x: f32, y: f32));
     callback_methods!(ui_callbacks, on_menu_pointer_scrolled, invoke_menu_pointer_scrolled, menu_pointer_scrolled, (x: f32, y: f32, delta: f32));
+    callback_methods!(ui_callbacks, on_settings_window_scrolled, invoke_settings_window_scrolled, settings_window_scrolled, (category_scroll_offset: f32, setting_scroll_offset: f32));
     callback_methods!(ui_callbacks, on_activity_rail_pointer_clicked, invoke_activity_rail_pointer_clicked, activity_rail_pointer_clicked, (side: SharedString, x: f32, y: f32));
-    callback_methods!(ui_callbacks, on_host_page_pointer_clicked, invoke_host_page_pointer_clicked, host_page_pointer_clicked, (tab_index: i32, tab_x: f32, tab_width: f32, point_x: f32, point_y: f32));
+    callback_methods!(ui_callbacks, on_host_page_pointer_clicked, invoke_host_page_pointer_clicked, host_page_pointer_clicked, (tab_index: i32, close: bool));
     callback_methods!(ui_callbacks, on_document_tab_pointer_clicked, invoke_document_tab_pointer_clicked, document_tab_pointer_clicked, (surface_key: SharedString, tab_index: i32, tab_x: f32, tab_width: f32, point_x: f32, point_y: f32));
     callback_methods!(ui_callbacks, on_document_tab_close_pointer_clicked, invoke_document_tab_close_pointer_clicked, document_tab_close_pointer_clicked, (surface_key: SharedString, tab_index: i32, tab_x: f32, tab_width: f32, point_x: f32, point_y: f32));
     callback_methods!(ui_callbacks, on_floating_window_header_pointer_clicked, invoke_floating_window_header_pointer_clicked, floating_window_header_pointer_clicked, (x: f32, y: f32));

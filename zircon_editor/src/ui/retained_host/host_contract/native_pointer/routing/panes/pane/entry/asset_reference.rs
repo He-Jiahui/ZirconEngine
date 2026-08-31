@@ -6,7 +6,10 @@ use crate::ui::workbench::asset_content_layout::{
     BrowserAssetReferenceListKind,
 };
 
-use super::super::super::super::{geometry::contains, PanePointerRoute, PanePointerTarget};
+use super::super::super::super::{
+    geometry::contains, PaneAssetReferenceList, PaneAssetSurface, PanePointerRoute,
+    PanePointerTarget,
+};
 
 pub(super) fn route_asset_reference_hit(
     pane: &PaneData,
@@ -28,8 +31,14 @@ fn route_activity_asset_reference_hit(
     y: f32,
 ) -> Option<PanePointerRoute> {
     for (list_kind, callback_kind) in [
-        (ActivityAssetReferenceListKind::References, "references"),
-        (ActivityAssetReferenceListKind::UsedBy, "used_by"),
+        (
+            ActivityAssetReferenceListKind::References,
+            PaneAssetReferenceList::References,
+        ),
+        (
+            ActivityAssetReferenceListKind::UsedBy,
+            PaneAssetReferenceList::UsedBy,
+        ),
     ] {
         let Some(panel) =
             activity_reference_panel_frame(&pane.assets_activity.nodes, body, list_kind)
@@ -38,7 +47,7 @@ fn route_activity_asset_reference_hit(
         };
         if contains(&panel, x, y) {
             return Some(PanePointerRoute::new(
-                PanePointerTarget::AssetReference("activity".into(), callback_kind.into()),
+                PanePointerTarget::AssetReference(PaneAssetSurface::Activity, callback_kind),
                 &panel,
                 x,
                 y,
@@ -55,8 +64,14 @@ fn route_browser_asset_reference_hit(
     y: f32,
 ) -> Option<PanePointerRoute> {
     for (list_kind, callback_kind) in [
-        (BrowserAssetReferenceListKind::References, "references"),
-        (BrowserAssetReferenceListKind::UsedBy, "used_by"),
+        (
+            BrowserAssetReferenceListKind::References,
+            PaneAssetReferenceList::References,
+        ),
+        (
+            BrowserAssetReferenceListKind::UsedBy,
+            PaneAssetReferenceList::UsedBy,
+        ),
     ] {
         let Some(panel) = browser_reference_panel_frame(&pane.asset_browser.nodes, body, list_kind)
         else {
@@ -64,7 +79,7 @@ fn route_browser_asset_reference_hit(
         };
         if contains(&panel, x, y) {
             return Some(PanePointerRoute::new(
-                PanePointerTarget::AssetReference("browser".into(), callback_kind.into()),
+                PanePointerTarget::AssetReference(PaneAssetSurface::Browser, callback_kind),
                 &panel,
                 x,
                 y,
@@ -148,6 +163,7 @@ mod tests {
                 },
                 ..TemplatePaneNodeData::default()
             }]),
+            ..AssetBrowserPaneData::default()
         };
         let body = FrameRect {
             x: 100.0,
@@ -187,6 +203,7 @@ mod tests {
                 },
                 ..TemplatePaneNodeData::default()
             }]),
+            ..AssetBrowserPaneData::default()
         };
         let body = FrameRect {
             x: 100.0,
@@ -224,6 +241,7 @@ mod tests {
                 },
                 ..TemplatePaneNodeData::default()
             }]),
+            ..AssetBrowserPaneData::default()
         };
         let body = FrameRect {
             x: 100.0,
@@ -263,6 +281,7 @@ mod tests {
                 },
                 ..TemplatePaneNodeData::default()
             }]),
+            ..AssetsActivityPaneData::default()
         };
         let body = FrameRect {
             x: 100.0,

@@ -1,23 +1,27 @@
 use std::collections::hash_map::DefaultHasher;
 use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 use std::sync::{MutexGuard, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::asset::project::ProjectGenerationPhase;
+use crate::asset::project::{ImportSourceWatchEcho, ProjectGenerationPhase};
 use crate::asset::{AssetImporterRegistry, AssetUri, ProjectManager};
-use crate::core::CoreError;
 use crate::core::framework::channel::{ChannelSender, ChannelWakeCallback};
+use crate::core::CoreError;
 
 use super::super::errors::asset_error;
-use super::ProjectAssetManager;
+use super::management_generation::ProjectAssetManagementGeneration;
 use super::project_asset_manager::{
     ProjectAssetChangeSubscriber, ProjectAssetGenerationWakeSubscriber, ProjectSourcePathIndex,
     ProjectWatcherActivation, ProjectWatcherActivationState, ProjectWatcherLifecycle,
 };
 use super::resource_publication::PreparedWatchProjectResourceSync;
+use super::source_write_watch_echo::TransactionWatchEchoes;
+use super::ProjectAssetManager;
 use crate::asset::watch::{AssetChange, AssetWatchBatch, AssetWatchError, AssetWatcher};
-use crate::core::resource::{ResourceMutationBatch, ResourceRecord, ResourceScheme};
+use crate::core::resource::{ResourceMutationBatch, ResourceScheme};
 
 pub(in crate::asset::pipeline::manager) struct PreparedProjectWatchers {
     watchers: Vec<AssetWatcher>,
@@ -25,6 +29,67 @@ pub(in crate::asset::pipeline::manager) struct PreparedProjectWatchers {
 }
 
 const WATCH_GENERATION_RETRY_LIMIT: usize = 3;
+
+/// An immutable view of the active project and the identity required to commit work derived from
+/// it. Expensive preparation may use the cloned project without retaining the generation gate.
+#[derive(Clone, Debug)]
+pub struct ProjectAssetGenerationSnapshot {
+    project: ProjectManager,
+    token: ProjectAssetGenerationToken,
+}
+
+impl ProjectAssetGenerationSnapshot {
+    pub fn project(&self) -> &ProjectManager {
+        &self.project
+    }
+
+    pub fn into_parts(self) -> (ProjectManager, ProjectAssetGenerationToken) {
+        (self.project, self.token)
+    }
+}
+
+/// Runtime-issued identity for work prepared from one active project generation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProjectAssetGenerationToken {
+    project_root: PathBuf,
+    catalog_sequence: u64,
+}
+
+impl ProjectAssetGenerationToken {
+    pub fn project_root(&self) -> &Path {
+        &self.project_root
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ProjectGenerationCommitOutcome<T> {
+    Committed(T),
+    Superseded { newer_same_project_generation: bool },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProjectGenerationMatch {
+    Current,
+    Superseded { newer_same_project_generation: bool },
+}
+
+fn project_generation_match(
+    project: Option<&ProjectManager>,
+    expected: &ProjectAssetGenerationToken,
+) -> ProjectGenerationMatch {
+    let same_project =
+        project.is_some_and(|project| project.paths().root() == expected.project_root);
+    let current_catalog_sequence =
+        project.map(|project| project.catalog_input_generation().sequence());
+    if same_project && current_catalog_sequence == Some(expected.catalog_sequence) {
+        ProjectGenerationMatch::Current
+    } else {
+        ProjectGenerationMatch::Superseded {
+            newer_same_project_generation: same_project
+                && current_catalog_sequence != Some(expected.catalog_sequence),
+        }
+    }
+}
 
 impl ProjectWatcherActivation {
     pub(super) fn lock_state(&self) -> MutexGuard<'_, ProjectWatcherActivationState> {
@@ -58,6 +123,60 @@ impl ProjectWatcherActivation {
 }
 
 impl ProjectAssetManager {
+    /// Captures the active project and its commit identity under one generation read fence.
+    pub fn current_project_generation_snapshot(&self) -> Option<ProjectAssetGenerationSnapshot> {
+        let _generation = self.project_generation_read();
+        let project = self.project_read();
+        let project = project.as_ref()?;
+        let token = ProjectAssetGenerationToken {
+            project_root: project.paths().root().to_path_buf(),
+            catalog_sequence: project.catalog_input_generation().sequence(),
+        };
+        Some(ProjectAssetGenerationSnapshot {
+            project: project.clone(),
+            token,
+        })
+    }
+
+    /// Classifies prepared work without holding the generation fence across caller preparation.
+    /// A terminal mutation must still use `commit_if_project_generation` after this precheck.
+    pub fn check_project_generation(
+        &self,
+        expected: &ProjectAssetGenerationToken,
+    ) -> ProjectGenerationMatch {
+        let _generation = self.project_generation_read();
+        let project = self.project_read();
+        project_generation_match(project.as_ref(), expected)
+    }
+
+    /// Commits prepared work only while its source generation is still active.
+    ///
+    /// The callback must stay short and must not perform file or asset preparation. The retained
+    /// generation read fence prevents a newer project generation from publishing between the
+    /// identity check and the callback's terminal state transition.
+    pub fn commit_if_project_generation<T>(
+        &self,
+        expected: &ProjectAssetGenerationToken,
+        commit: impl FnOnce() -> T,
+    ) -> ProjectGenerationCommitOutcome<T> {
+        let generation = self.project_generation_read();
+        let project = self.project_read();
+        let generation_match = project_generation_match(project.as_ref(), expected);
+        drop(project);
+        if let ProjectGenerationMatch::Superseded {
+            newer_same_project_generation,
+        } = generation_match
+        {
+            drop(generation);
+            return ProjectGenerationCommitOutcome::Superseded {
+                newer_same_project_generation,
+            };
+        }
+        let committed = commit();
+        drop(generation);
+        ProjectGenerationCommitOutcome::Committed(committed)
+    }
+
     pub(in crate::asset::pipeline::manager) fn begin_project_preparation(&self) -> u64 {
         self.project_preparation_epoch
             .fetch_add(1, Ordering::AcqRel)
@@ -107,6 +226,32 @@ impl ProjectAssetManager {
         self.project_generation_gate
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(crate) fn current_asset_management_generation(
+        &self,
+    ) -> Arc<ProjectAssetManagementGeneration> {
+        let _generation = self.project_generation_read();
+        self.asset_management_generation_snapshot()
+    }
+
+    pub(super) fn asset_management_generation_snapshot(
+        &self,
+    ) -> Arc<ProjectAssetManagementGeneration> {
+        self.asset_management_generation
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+    }
+
+    pub(super) fn install_asset_management_generation(
+        &self,
+        generation: ProjectAssetManagementGeneration,
+    ) {
+        *self
+            .asset_management_generation
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Arc::new(generation);
     }
 
     pub(in crate::asset::pipeline::manager) fn project_read(
@@ -290,6 +435,7 @@ impl ProjectAssetManager {
         changes: Vec<AssetChange>,
     ) {
         let _phase = ProjectGenerationPhase::GenerationPublish.enter();
+        self.refresh_asset_management_generation();
         self.broadcast(changes);
         self.publish_generation_wake();
         drop(generation);
@@ -389,6 +535,17 @@ impl ProjectAssetManager {
         self.project_source_paths_write().clear();
     }
 
+    pub(in crate::asset::pipeline::manager) fn register_transaction_watch_echoes(
+        &self,
+        echoes: impl IntoIterator<Item = ImportSourceWatchEcho>,
+    ) {
+        self.lock_transaction_watch_echoes().register(echoes);
+    }
+
+    pub(in crate::asset::pipeline::manager) fn clear_transaction_watch_echoes(&self) {
+        self.lock_transaction_watch_echoes().clear();
+    }
+
     pub(super) fn process_watch_batch_in_generation(&self, batch: AssetWatchBatch) {
         self.record_asset_watch_batch(&batch);
         let AssetWatchBatch {
@@ -396,6 +553,7 @@ impl ProjectAssetManager {
             requires_reconciliation,
             diagnostics: _,
         } = batch;
+        let changes = self.lock_transaction_watch_echoes().filter(changes);
         if changes.is_empty() && !requires_reconciliation {
             return;
         }
@@ -409,7 +567,7 @@ impl ProjectAssetManager {
                 expected_preparation_epoch,
                 expected_root,
                 watch_error_root,
-                previous_locators,
+                previous_project_identities,
                 previous_source_records,
                 mut candidate,
             ) = {
@@ -426,7 +584,7 @@ impl ProjectAssetManager {
                         .primary_project_asset_root()
                         .unwrap_or_else(|_| active_project.paths().root())
                         .to_path_buf(),
-                    super::super::resource_sync::project_locators(active_project),
+                    super::super::resource_sync::project_resource_identities(active_project),
                     changes
                         .iter()
                         .flat_map(|change| {
@@ -495,12 +653,11 @@ impl ProjectAssetManager {
                 } else {
                     let resource_sync = match prepared {
                         PreparedWatchProjectResourceSync::Reconciliation(prepared) => {
-                            let batch =
-                                super::super::resource_sync::clear_removed_project_resources(
-                                    ResourceMutationBatch::new(),
-                                    &previous_locators,
-                                    &candidate,
-                                );
+                            let batch = super::super::resource_sync::reconcile_project_resources(
+                                ResourceMutationBatch::new(),
+                                &previous_project_identities,
+                                &candidate,
+                            );
                             self.commit_project_resource_sync(
                                 prepared,
                                 batch,
@@ -586,6 +743,12 @@ impl ProjectAssetManager {
                 ));
             }
         }
+    }
+
+    fn lock_transaction_watch_echoes(&self) -> MutexGuard<'_, TransactionWatchEchoes> {
+        self.transaction_watch_echoes
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 

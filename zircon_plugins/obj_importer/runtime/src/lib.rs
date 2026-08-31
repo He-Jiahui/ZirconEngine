@@ -1,8 +1,10 @@
+use std::borrow::Cow;
+
 use zircon_runtime::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, AssetReference, ImportedAsset,
-    ImportedAssetEntry, MeshAsset, MeshSdfCookBudget, MeshSdfCookSettings, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset, VirtualGeometryCookConfig, cook_mesh_sdf_or_fallback,
-    cook_virtual_geometry_from_mesh,
+    cook_mesh_sdf_or_fallback, cook_virtual_geometry_from_mesh, AssetImportContext,
+    AssetImportError, AssetImportOutcome, AssetReference, ImportedAsset, ImportedAssetEntry,
+    MeshAsset, MeshSdfCookBudget, MeshSdfCookSettings, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+    VirtualGeometryCookConfig,
 };
 use zircon_runtime::core::math::{Vec2, Vec3};
 
@@ -15,10 +17,10 @@ pub use capability::{
     PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
 pub use plugin::{
-    OBJ_IMPORTER_DIST_CRATE_NAME, OBJ_IMPORTER_DIST_RUNTIME_ENTRY, ObjImporterRuntimePlugin,
     asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
     plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
     runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
+    ObjImporterRuntimePlugin, OBJ_IMPORTER_DIST_CRATE_NAME, OBJ_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 pub fn import_obj(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
@@ -110,45 +112,8 @@ fn primitive_from_indexed_mesh(
             "vertex positions were not a multiple of 3".to_string(),
         ));
     }
-    let vertex_count = positions.len() / 3;
-    let mut computed_normals = if normals.is_empty() {
-        generate_normals(positions, indices)?
-    } else {
-        validate_triangle_indices(indices, vertex_count)?;
-        normals.to_vec()
-    };
-    if computed_normals.len() < vertex_count * 3 {
-        computed_normals.resize(vertex_count * 3, 0.0);
-    }
-
-    let vertices: Vec<MeshVertex> = (0..vertex_count)
-        .map(|index| {
-            let position = Vec3::new(
-                positions[index * 3],
-                positions[index * 3 + 1],
-                positions[index * 3 + 2],
-            );
-            let normal = Vec3::new(
-                computed_normals[index * 3],
-                computed_normals[index * 3 + 1],
-                computed_normals[index * 3 + 2],
-            );
-            let uv = if texcoords.len() >= (index + 1) * 2 {
-                Vec2::new(texcoords[index * 2], texcoords[index * 2 + 1])
-            } else {
-                Vec2::ZERO
-            };
-            MeshVertex::new(
-                position,
-                if normal.length_squared() <= f32::EPSILON {
-                    Vec3::Y
-                } else {
-                    normal.normalize_or_zero()
-                },
-                uv,
-            )
-        })
-        .collect();
+    let computed_normals = prepare_vertex_normals(positions, normals, indices)?;
+    let vertices = vertices_from_attributes(positions, computed_normals.as_ref(), texcoords);
 
     let virtual_geometry = cook_virtual_geometry_from_mesh(
         &vertices,
@@ -172,6 +137,61 @@ fn primitive_from_indexed_mesh(
         mesh_sdf,
         virtual_geometry,
     })
+}
+
+fn prepare_vertex_normals<'a>(
+    positions: &[f32],
+    normals: &'a [f32],
+    indices: &[u32],
+) -> Result<Cow<'a, [f32]>, AssetImportError> {
+    let vertex_count = positions.len() / 3;
+    if normals.is_empty() {
+        return generate_normals(positions, indices).map(Cow::Owned);
+    }
+    validate_triangle_indices(indices, vertex_count)?;
+    let required_normal_count = vertex_count * 3;
+    if normals.len() >= required_normal_count {
+        return Ok(Cow::Borrowed(normals));
+    }
+
+    let mut padded = normals.to_vec();
+    padded.resize(required_normal_count, 0.0);
+    Ok(Cow::Owned(padded))
+}
+
+fn vertices_from_attributes(
+    positions: &[f32],
+    normals: &[f32],
+    texcoords: &[f32],
+) -> Vec<MeshVertex> {
+    (0..positions.len() / 3)
+        .map(|index| {
+            let position = Vec3::new(
+                positions[index * 3],
+                positions[index * 3 + 1],
+                positions[index * 3 + 2],
+            );
+            let normal = Vec3::new(
+                normals[index * 3],
+                normals[index * 3 + 1],
+                normals[index * 3 + 2],
+            );
+            let uv = if texcoords.len() >= (index + 1) * 2 {
+                Vec2::new(texcoords[index * 2], texcoords[index * 2 + 1])
+            } else {
+                Vec2::ZERO
+            };
+            MeshVertex::new(
+                position,
+                if normal.length_squared() <= f32::EPSILON {
+                    Vec3::Y
+                } else {
+                    normal.normalize_or_zero()
+                },
+                uv,
+            )
+        })
+        .collect()
 }
 
 fn validate_triangle_indices(indices: &[u32], vertex_count: usize) -> Result<(), AssetImportError> {
@@ -231,23 +251,21 @@ fn generate_normals(positions: &[f32], indices: &[u32]) -> Result<Vec<f32>, Asse
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::hint::black_box;
+    use std::time::Instant;
 
     #[test]
     fn package_declares_obj_importer() {
         let manifest = package_manifest();
 
         assert_eq!(manifest.id, PLUGIN_ID);
-        assert!(
-            manifest
-                .capabilities
-                .contains(&RUNTIME_CAPABILITY.to_string())
-        );
-        assert!(
-            manifest
-                .asset_importers
-                .iter()
-                .any(|importer| importer.source_extensions.contains(&"obj".to_string()))
-        );
+        assert!(manifest
+            .capabilities
+            .contains(&RUNTIME_CAPABILITY.to_string()));
+        assert!(manifest
+            .asset_importers
+            .iter()
+            .any(|importer| importer.source_extensions.contains(&"obj".to_string())));
     }
 
     #[test]
@@ -309,21 +327,15 @@ mod tests {
         assert!(dist_module.target_modes.contains(
             &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
         ));
-        assert!(
-            dist_module.target_modes.contains(
-                &zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost
-            )
-        );
-        assert!(
-            dist_module
-                .capabilities
-                .contains(&RUNTIME_CAPABILITY.to_string())
-        );
-        assert!(
-            dist_module
-                .capabilities
-                .contains(&IMPORTER_CAPABILITY.to_string())
-        );
+        assert!(dist_module
+            .target_modes
+            .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));
+        assert!(dist_module
+            .capabilities
+            .contains(&RUNTIME_CAPABILITY.to_string()));
+        assert!(dist_module
+            .capabilities
+            .contains(&IMPORTER_CAPABILITY.to_string()));
     }
 
     #[test]
@@ -331,21 +343,17 @@ mod tests {
         let report = plugin_registration();
 
         assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(
-            report
-                .extensions
-                .modules()
-                .iter()
-                .any(|module| module.name == MODULE_NAME)
-        );
-        assert!(
-            report
-                .extensions
-                .asset_importers()
-                .descriptors()
-                .iter()
-                .any(|importer| importer.id == "obj_importer.obj")
-        );
+        assert!(report
+            .extensions
+            .modules()
+            .iter()
+            .any(|module| module.name == MODULE_NAME));
+        assert!(report
+            .extensions
+            .asset_importers()
+            .descriptors()
+            .iter()
+            .any(|importer| importer.id == "obj_importer.obj"));
     }
 
     #[test]
@@ -395,13 +403,11 @@ f 1/1/1 2/2/1 3/3/1
         let mesh_uri =
             zircon_runtime::asset::AssetUri::parse("res://models/triangle.obj#Mesh0/Primitive0")
                 .unwrap();
-        assert!(
-            outcome
-                .root_entry()
-                .expect("root obj asset entry")
-                .dependencies
-                .contains(&mesh_uri)
-        );
+        assert!(outcome
+            .root_entry()
+            .expect("root obj asset entry")
+            .dependencies
+            .contains(&mesh_uri));
         let mesh_entry = outcome
             .entries
             .iter()
@@ -516,6 +522,154 @@ f 4 5 6
             AssetImportError::Parse(message)
                 if message.contains("mesh index 3") && message.contains("vertex count 3")
         ));
+    }
+
+    #[test]
+    fn plugins07_importer_hotpath_obj_borrows_complete_normals_and_preserves_vertices() {
+        let positions = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0];
+        let normals = [0.0, 0.0, 2.0, 0.0, 0.0, 2.0, 0.0, 0.0, 2.0];
+        let texcoords = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0];
+        let indices = [0, 1, 2];
+
+        let prepared = prepare_vertex_normals(&positions, &normals, &indices).unwrap();
+
+        assert!(matches!(&prepared, std::borrow::Cow::Borrowed(_)));
+        assert_eq!(
+            vertices_from_attributes(&positions, prepared.as_ref(), &texcoords),
+            legacy_vertices_from_attributes(&positions, &normals, &texcoords)
+        );
+
+        let padded = prepare_vertex_normals(&positions, &normals[..3], &indices).unwrap();
+        assert!(matches!(&padded, std::borrow::Cow::Owned(_)));
+        assert_eq!(
+            padded.as_ref(),
+            &[0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        );
+    }
+
+    #[test]
+    #[ignore = "release performance gate; run through the Plugins07 coordinator validator"]
+    fn plugins07_importer_hotpath_release_obj_borrowed_normals_p95_gate() {
+        const SAMPLE_PAIRS: usize = 21;
+        const NORMAL_VALUES: usize = 524_288;
+        const ITERATIONS: usize = 16;
+        const THRESHOLD_PERCENT: u128 = 80;
+        let normals = vec![0.25_f32; NORMAL_VALUES];
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            let legacy = || measure_normal_clone(&normals, ITERATIONS);
+            let optimized = || measure_normal_borrow(&normals, ITERATIONS);
+            if pair % 2 == 0 {
+                legacy_samples.push(legacy());
+                optimized_samples.push(optimized());
+            } else {
+                optimized_samples.push(optimized());
+                legacy_samples.push(legacy());
+            }
+        }
+
+        emit_obj_performance_gate(
+            &legacy_samples,
+            &optimized_samples,
+            THRESHOLD_PERCENT,
+            &format!(
+                "normal_values={NORMAL_VALUES} iterations_per_sample={ITERATIONS} legacy_cloned_bytes_per_sample={} optimized_cloned_bytes_per_sample=0",
+                NORMAL_VALUES * ITERATIONS * std::mem::size_of::<f32>()
+            ),
+        );
+    }
+
+    fn legacy_vertices_from_attributes(
+        positions: &[f32],
+        normals: &[f32],
+        texcoords: &[f32],
+    ) -> Vec<MeshVertex> {
+        (0..positions.len() / 3)
+            .map(|index| {
+                let position = Vec3::new(
+                    positions[index * 3],
+                    positions[index * 3 + 1],
+                    positions[index * 3 + 2],
+                );
+                let normal = Vec3::new(
+                    normals[index * 3],
+                    normals[index * 3 + 1],
+                    normals[index * 3 + 2],
+                );
+                let uv = if texcoords.len() >= (index + 1) * 2 {
+                    Vec2::new(texcoords[index * 2], texcoords[index * 2 + 1])
+                } else {
+                    Vec2::ZERO
+                };
+                MeshVertex::new(
+                    position,
+                    if normal.length_squared() <= f32::EPSILON {
+                        Vec3::Y
+                    } else {
+                        normal.normalize_or_zero()
+                    },
+                    uv,
+                )
+            })
+            .collect()
+    }
+
+    fn measure_normal_clone(normals: &[f32], iterations: usize) -> u128 {
+        let started = Instant::now();
+        let mut values = 0_usize;
+        for _ in 0..iterations {
+            let owned = black_box(normals).to_vec();
+            values += black_box(owned.as_slice()).len();
+        }
+        black_box(values);
+        started.elapsed().as_nanos()
+    }
+
+    fn measure_normal_borrow(normals: &[f32], iterations: usize) -> u128 {
+        let started = Instant::now();
+        let mut values = 0_usize;
+        for _ in 0..iterations {
+            let borrowed: Cow<'_, [f32]> = Cow::Borrowed(black_box(normals));
+            values += black_box(borrowed.as_ref()).len();
+        }
+        black_box(values);
+        started.elapsed().as_nanos()
+    }
+
+    fn emit_obj_performance_gate(
+        legacy_samples: &[u128],
+        optimized_samples: &[u128],
+        threshold_percent: u128,
+        workload: &str,
+    ) {
+        let legacy_p95 = nearest_rank_obj_p95(legacy_samples);
+        let optimized_p95 = nearest_rank_obj_p95(optimized_samples);
+        let improvement_percent =
+            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
+        println!(
+            "PERF_RESULT plugins07_obj_borrowed_normals sample_pairs=21 order=alternating_legacy_first_even {workload} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={threshold_percent}",
+            obj_samples_csv(legacy_samples),
+            obj_samples_csv(optimized_samples),
+        );
+        assert!(
+            improvement_percent >= threshold_percent,
+            "OBJ borrowed normals must improve P95 by at least {threshold_percent}% (legacy={legacy_p95}ns optimized={optimized_p95}ns improvement={improvement_percent}%)"
+        );
+    }
+
+    fn nearest_rank_obj_p95(samples: &[u128]) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        sorted[(sorted.len() * 95).div_ceil(100).saturating_sub(1)]
+    }
+
+    fn obj_samples_csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 
     fn obj_label_uri(

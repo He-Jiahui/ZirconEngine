@@ -1,5 +1,6 @@
 #[cfg(test)]
 use std::cell::Cell;
+use std::cell::OnceCell;
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
@@ -10,6 +11,8 @@ use zircon_runtime::core::framework::sound::{
 
 use super::graph_validation::validate_graph;
 
+#[cfg(test)]
+mod performance_tests;
 mod routes;
 
 use routes::expanded_post_effect_sends;
@@ -108,6 +111,61 @@ impl GraphSyncPlan {
 
     pub(crate) fn diff(&self) -> &GraphDiff {
         &self.diff
+    }
+}
+
+struct TrackHierarchyIndex {
+    parents: HashMap<SoundTrackId, Option<SoundTrackId>>,
+    children: HashMap<SoundTrackId, Vec<SoundTrackId>>,
+}
+
+impl TrackHierarchyIndex {
+    fn new(graph: &SoundMixerGraph) -> Self {
+        let mut parents = HashMap::with_capacity(graph.tracks.len());
+        let mut children = HashMap::<SoundTrackId, Vec<SoundTrackId>>::new();
+        for track in &graph.tracks {
+            parents.insert(track.id, track.parent);
+            if let Some(parent) = track.parent {
+                children.entry(parent).or_default().push(track.id);
+            }
+        }
+        Self { parents, children }
+    }
+
+    fn depth(&self, track: SoundTrackId) -> usize {
+        let mut depth = 0;
+        let mut cursor = self.parents.get(&track).copied().flatten();
+        while let Some(parent) = cursor {
+            depth += 1;
+            cursor = self.parents.get(&parent).copied().flatten();
+        }
+        depth
+    }
+
+    fn has_ancestor_in(&self, track: SoundTrackId, candidates: &HashSet<SoundTrackId>) -> bool {
+        let mut cursor = self.parents.get(&track).copied().flatten();
+        while let Some(parent) = cursor {
+            if candidates.contains(&parent) {
+                return true;
+            }
+            cursor = self.parents.get(&parent).copied().flatten();
+        }
+        false
+    }
+
+    fn subtree_ids(&self, root: SoundTrackId) -> HashSet<SoundTrackId> {
+        let mut subtree = HashSet::from([root]);
+        let mut stack = vec![root];
+        while let Some(parent) = stack.pop() {
+            if let Some(children) = self.children.get(&parent) {
+                for child in children {
+                    if subtree.insert(*child) {
+                        stack.push(*child);
+                    }
+                }
+            }
+        }
+        subtree
     }
 }
 
@@ -263,18 +321,32 @@ fn diff_compiled_graphs(
             Some(_) => {}
         }
     }
+    let before_hierarchy = OnceCell::<TrackHierarchyIndex>::new();
+    let after_hierarchy = OnceCell::<TrackHierarchyIndex>::new();
     let rebuilt_roots = structural_candidates
         .iter()
         .copied()
-        .filter(|candidate| !has_ancestor_in(after, *candidate, &structural_candidates))
+        .filter(|candidate| {
+            !after_hierarchy
+                .get_or_init(|| TrackHierarchyIndex::new(after))
+                .has_ancestor_in(*candidate, &structural_candidates)
+        })
         .collect::<HashSet<_>>();
     let rebuilt_before = rebuilt_roots
         .iter()
-        .flat_map(|root| subtree_ids(before, *root))
+        .flat_map(|root| {
+            before_hierarchy
+                .get_or_init(|| TrackHierarchyIndex::new(before))
+                .subtree_ids(*root)
+        })
         .collect::<HashSet<_>>();
     let rebuilt_after = rebuilt_roots
         .iter()
-        .flat_map(|root| subtree_ids(after, *root))
+        .flat_map(|root| {
+            after_hierarchy
+                .get_or_init(|| TrackHierarchyIndex::new(after))
+                .subtree_ids(*root)
+        })
         .collect::<HashSet<_>>();
     let mut actions = Vec::new();
 
@@ -285,7 +357,13 @@ fn diff_compiled_graphs(
             !after_tracks.contains_key(&track.id) && !rebuilt_before.contains(&track.id)
         })
         .collect::<Vec<_>>();
-    removed.sort_by_key(|track| std::cmp::Reverse(track_depth(before, track.id)));
+    removed.sort_by_key(|track| {
+        std::cmp::Reverse(
+            before_hierarchy
+                .get_or_init(|| TrackHierarchyIndex::new(before))
+                .depth(track.id),
+        )
+    });
     actions.extend(
         removed
             .into_iter()
@@ -293,7 +371,11 @@ fn diff_compiled_graphs(
     );
 
     let mut roots = rebuilt_roots.iter().copied().collect::<Vec<_>>();
-    roots.sort_by_key(|track| track_depth(after, *track));
+    roots.sort_by_key(|track| {
+        after_hierarchy
+            .get_or_init(|| TrackHierarchyIndex::new(after))
+            .depth(*track)
+    });
     actions.extend(
         roots
             .into_iter()
@@ -378,7 +460,11 @@ fn diff_compiled_graphs(
         .filter(|track| !before_tracks.contains_key(&track.id))
         .cloned()
         .collect::<Vec<_>>();
-    added.sort_by_key(|track| track_depth(after, track.id));
+    added.sort_by_key(|track| {
+        after_hierarchy
+            .get_or_init(|| TrackHierarchyIndex::new(after))
+            .depth(track.id)
+    });
     actions.extend(
         added
             .into_iter()
@@ -458,61 +544,6 @@ fn parameter_tween() -> Tween {
         duration: PARAMETER_TWEEN_DURATION,
         easing: Easing::Linear,
         ..Tween::default()
-    }
-}
-
-fn track_depth(graph: &SoundMixerGraph, track: SoundTrackId) -> usize {
-    let parents = graph
-        .tracks
-        .iter()
-        .map(|candidate| (candidate.id, candidate.parent))
-        .collect::<HashMap<_, _>>();
-    let mut depth = 0;
-    let mut cursor = parents.get(&track).copied().flatten();
-    while let Some(parent) = cursor {
-        depth += 1;
-        cursor = parents.get(&parent).copied().flatten();
-    }
-    depth
-}
-
-fn has_ancestor_in(
-    graph: &SoundMixerGraph,
-    track: SoundTrackId,
-    candidates: &HashSet<SoundTrackId>,
-) -> bool {
-    let parents = graph
-        .tracks
-        .iter()
-        .map(|candidate| (candidate.id, candidate.parent))
-        .collect::<HashMap<_, _>>();
-    let mut cursor = parents.get(&track).copied().flatten();
-    while let Some(parent) = cursor {
-        if candidates.contains(&parent) {
-            return true;
-        }
-        cursor = parents.get(&parent).copied().flatten();
-    }
-    false
-}
-
-fn subtree_ids(graph: &SoundMixerGraph, root: SoundTrackId) -> HashSet<SoundTrackId> {
-    let parents = graph
-        .tracks
-        .iter()
-        .map(|track| (track.id, track.parent))
-        .collect::<HashMap<_, _>>();
-    let mut subtree = HashSet::from([root]);
-    loop {
-        let before = subtree.len();
-        for (track, parent) in &parents {
-            if parent.is_some_and(|parent| subtree.contains(&parent)) {
-                subtree.insert(*track);
-            }
-        }
-        if subtree.len() == before {
-            return subtree;
-        }
     }
 }
 

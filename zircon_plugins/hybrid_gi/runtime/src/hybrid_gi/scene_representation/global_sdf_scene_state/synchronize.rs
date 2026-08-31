@@ -4,9 +4,9 @@ use zircon_runtime::core::framework::render::RenderMeshBounds;
 use zircon_runtime::core::math::Vec3;
 
 use super::declarations::{
-    GLOBAL_SDF_CLIPMAP_COUNT, GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT, GLOBAL_SDF_PAGES_PER_EDGE,
     HybridGiGlobalSdfClipmapBounds, HybridGiGlobalSdfPageKey, HybridGiGlobalSdfResidentPage,
-    HybridGiGlobalSdfSceneState,
+    HybridGiGlobalSdfSceneState, GLOBAL_SDF_CLIPMAP_COUNT, GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT,
+    GLOBAL_SDF_PAGES_PER_EDGE,
 };
 
 impl HybridGiGlobalSdfSceneState {

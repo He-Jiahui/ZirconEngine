@@ -4,19 +4,15 @@ fn source(relative: &str) -> String {
 }
 
 #[test]
-fn shared_document_tab_surfaces_use_rust_owned_pointer_callbacks() {
+fn shared_document_tab_callbacks_consume_the_committed_receipt_projection() {
     let globals = source("src/ui/retained_host/host_contract/globals.rs");
     let wiring = source("src/ui/retained_host/app/callback_wiring/host_shell/chrome.rs");
     let pointer_layout = source("src/ui/retained_host/app/pointer_layout/shell_chrome.rs");
     let document_tab_sync = pointer_layout
         .split("fn sync_document_tab_pointer_layout")
         .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn sync_drawer_header_pointer_layout_with_workbench_layout_frames")
-                .next()
-        })
-        .expect("document tab pointer sync function should exist");
+        .and_then(|source| source.split("fn sync_drawer_header_pointer_layout").next())
+        .expect("document tab receipt sync function should exist");
 
     for required in [
         "on_document_tab_pointer_clicked",
@@ -29,62 +25,58 @@ fn shared_document_tab_surfaces_use_rust_owned_pointer_callbacks() {
             "missing `{required}`"
         );
     }
-    assert!(document_tab_sync.contains("self.workbench_window_bridge.layout_frames()"));
-    assert!(document_tab_sync
-        .contains("build_host_document_tab_pointer_layout_with_workbench_layout_frames("));
-    assert!(!document_tab_sync.contains("self.template_bridge.root_shell_frames()"));
+    assert!(document_tab_sync.contains("build_host_document_tab_pointer_layout(model)"));
+    assert!(!document_tab_sync.contains("workbench_window_bridge.layout_frames()"));
+    assert!(!document_tab_sync.contains("floating_window_projection_bundle"));
 }
 
 #[test]
-fn document_tab_pointer_bridge_uses_route_intent_only() {
+fn document_tab_pointer_consumes_native_action_without_a_mirror_hit_surface() {
+    let native_body = source(
+        "src/ui/retained_host/host_contract/native_pointer/routing/chrome/tabs/document/body.rs",
+    );
+    let native_close = source(
+        "src/ui/retained_host/host_contract/native_pointer/routing/chrome/tabs/document/close.rs",
+    );
     let bridge =
         source("src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs");
-    let rebuild = source(
-        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_rebuild_surface.rs",
+    let activate = source(
+        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_activate.rs",
     );
-    let dispatch = source(
-        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_dispatch_event.rs",
+    let close = source(
+        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_close.rs",
     );
 
-    assert!(bridge.contains("route_intents: EditorRouteIntentMap"));
-    assert!(rebuild.contains("EditorRouteIntent::DocumentTab"));
-    assert!(rebuild.contains("route_intents.bind_node"));
-    assert!(dispatch.contains("document_tab_route_for_pointer_dispatch"));
-    for forbidden in [
-        "targets:",
-        "HostDocumentTabPointerTarget",
-        "handled_by",
-        "route.target",
+    assert!(native_body.contains("ChromePointerRoute::DocumentTab"));
+    assert!(native_body.contains("close: false"));
+    assert!(native_close.contains("ChromePointerRoute::DocumentTab"));
+    assert!(native_close.contains("close: true"));
+    assert!(bridge.contains("route_for_receipt"));
+    assert!(bridge.contains("target_for_route"));
+    for retired in [
+        "UiSurface",
+        "UiPointerDispatcher",
+        "measured_frames",
+        "route_intents",
+        "UiPointerEvent",
+        "dispatch_event",
     ] {
         assert!(
-            !bridge.contains(forbidden)
-                && !rebuild.contains(forbidden)
-                && !dispatch.contains(forbidden),
-            "document tab pointer bridge should not keep old hit target marker `{forbidden}`"
+            !bridge.contains(retired) && !activate.contains(retired) && !close.contains(retired),
+            "document tab receipt path must not retain mirror marker `{retired}`"
         );
     }
 }
 
 #[test]
-fn document_tab_pointer_rebuild_borrows_measured_frames() {
-    let rebuild = source(
-        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_rebuild_surface.rs",
-    );
+fn document_tab_receipt_route_is_compact_and_identity_remains_typed() {
+    let route =
+        source("src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_route.rs");
+    let item =
+        source("src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_item.rs");
 
-    assert!(
-        !rebuild.contains(".cloned()"),
-        "surface rebuild must borrow measured frames instead of cloning the complete frame vector"
-    );
-}
-
-#[test]
-fn repeated_document_tab_measurement_is_a_no_op() {
-    let update = source(
-        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_update_measured_frame.rs",
-    );
-
-    assert!(
-        update.contains("frames[item_index] == Some(measured_frame)"),
-        "repeated tab pointer callbacks must not rebuild an unchanged measured frame"
-    );
+    assert!(route.contains("Clone, Copy"));
+    assert!(!route.contains("String"));
+    assert!(item.contains("instance_id: ViewInstanceId"));
+    assert!(!item.contains("instance_id: String"));
 }

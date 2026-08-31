@@ -10,14 +10,15 @@ pub(super) fn validate_runtime_plugin_descriptor_target_modes(
                 .to_string(),
         );
     }
-    let mut seen = Vec::new();
-    for target_mode in target_modes.iter().copied() {
-        if seen.contains(&target_mode) {
+    for (index, target_mode) in target_modes.iter().copied().enumerate() {
+        if target_modes[..index].contains(&target_mode) {
             diagnostics.push(format!(
                 "runtime plugin descriptor target mode {target_mode:?} must be unique"
             ));
-        } else {
-            seen.push(target_mode);
         }
     }
 }
+
+#[cfg(test)]
+#[path = "target_modes/allocation_tests.rs"]
+mod allocation_tests;

@@ -220,8 +220,6 @@ struct ReparseSafeHandle(isize);
 #[cfg(windows)]
 impl ReparseSafeHandle {
     fn open(path: &Path, allow_shared_writes: bool) -> Result<Self, ProjectAuthorityError> {
-        use std::os::windows::ffi::OsStrExt;
-
         const FILE_READ_ATTRIBUTES: u32 = 0x0080;
         const FILE_SHARE_READ: u32 = 0x0001;
         const FILE_SHARE_WRITE: u32 = 0x0002;
@@ -231,8 +229,7 @@ impl ReparseSafeHandle {
         const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0400;
         const INVALID_HANDLE_VALUE: isize = -1;
 
-        let mut wide_path = path.as_os_str().encode_wide().collect::<Vec<_>>();
-        wide_path.push(0);
+        let wide_path = encode_nul_terminated_path(path);
         let share_mode = if allow_shared_writes {
             FILE_SHARE_READ | FILE_SHARE_WRITE
         } else {
@@ -280,6 +277,16 @@ impl ReparseSafeHandle {
         }
         Ok(Self(handle))
     }
+}
+
+#[cfg(windows)]
+fn encode_nul_terminated_path(path: &Path) -> Vec<u16> {
+    use std::os::windows::ffi::OsStrExt;
+
+    path.as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect()
 }
 
 #[cfg(windows)]
@@ -378,3 +385,7 @@ fn is_windows_reparse_point(metadata: &fs::Metadata) -> bool {
 fn is_windows_reparse_point(_metadata: &fs::Metadata) -> bool {
     false
 }
+
+#[cfg(all(test, windows))]
+#[path = "filesystem/windows_path_encoding_tests.rs"]
+mod windows_path_encoding_tests;

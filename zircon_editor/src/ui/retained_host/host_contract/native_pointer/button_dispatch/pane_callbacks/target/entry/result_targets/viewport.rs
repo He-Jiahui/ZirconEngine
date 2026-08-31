@@ -4,7 +4,7 @@ use super::super::super::viewport::dispatch_viewport_pane_target_button;
 use super::input::ResultPaneTargetInput;
 
 pub(super) fn dispatch_viewport_result_target(
-    input: &ResultPaneTargetInput<'_, '_>,
+    input: &ResultPaneTargetInput<'_, '_, '_>,
 ) -> Option<NativePointerDispatchResult> {
     dispatch_viewport_pane_target_button(
         input.pane_host,

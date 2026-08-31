@@ -123,59 +123,64 @@ fn selected_and_ordinary_points_emit_the_same_unreal_key_geometry() {
         palette,
     );
 
-    assert_eq!(commands.len(), 38);
+    assert_eq!(commands.len(), 6);
     let key_commands = commands
         .iter()
         .filter(|command| command.z_index == 7)
         .collect::<Vec<_>>();
-    assert_eq!(key_commands.len(), (POINT_RADIUS * 2 + 1) as usize * 2);
-    assert!(key_commands.iter().all(|command| {
-        matches!(
-            command.background_color,
-            Some(color) if color == palette.selected_point || color == palette.point
-        )
-    }));
-
-    let key_width_sequences = [palette.selected_point, palette.point].map(|color| {
-        commands
-            .iter()
-            .filter(|command| command.z_index == 7 && command.background_color == Some(color))
-            .map(|command| {
-                assert_eq!(command.frame.height, 1.0);
-                command.frame.width
-            })
-            .collect::<Vec<_>>()
-    });
-    assert_eq!(key_width_sequences[0], key_width_sequences[1]);
+    assert_eq!(key_commands.len(), 2);
+    let key_images = key_commands
+        .iter()
+        .map(|command| {
+            assert_eq!(command.frame.width, (POINT_RADIUS * 2 + 1) as f32);
+            assert_eq!(command.frame.height, (POINT_RADIUS * 2 + 1) as f32);
+            assert_eq!(command.background_color, None);
+            command
+                .image_pixels
+                .as_ref()
+                .expect("each sample point should be one cached anti-aliased image")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(key_images[0].width, POINT_RADIUS as u32 * 2 + 1);
+    assert_eq!(key_images[0].height, POINT_RADIUS as u32 * 2 + 1);
     assert_eq!(
-        key_width_sequences[0],
-        vec![1.0, 3.0, 5.0, 7.0, 9.0, 11.0, 9.0, 7.0, 5.0, 3.0, 1.0]
+        key_images[0]
+            .rgba
+            .chunks_exact(4)
+            .map(|pixel| pixel[3])
+            .collect::<Vec<_>>(),
+        key_images[1]
+            .rgba
+            .chunks_exact(4)
+            .map(|pixel| pixel[3])
+            .collect::<Vec<_>>()
     );
+    assert!(key_images.iter().all(|image| image
+        .resource_key
+        .starts_with("icon-raster:analytic-diamond:11:")));
+    assert!(key_images.iter().all(|image| image
+        .rgba
+        .chunks_exact(4)
+        .any(|pixel| (1..=254).contains(&pixel[3]))));
+
     let center_commands = commands
         .iter()
         .filter(|command| command.z_index == 8)
         .collect::<Vec<_>>();
-    assert_eq!(
-        center_commands.len(),
-        (POINT_INTERIOR_RADIUS * 2 + 1) as usize * 2
-    );
-    assert!(center_commands
-        .iter()
-        .all(|command| command.background_color == Some(palette.plot_surface)));
-    let interior_width_sequences = center_commands
-        .chunks_exact((POINT_INTERIOR_RADIUS * 2 + 1) as usize)
-        .map(|commands| {
-            commands
-                .iter()
-                .map(|command| command.frame.width)
-                .collect::<Vec<_>>()
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(interior_width_sequences[0], interior_width_sequences[1]);
-    assert_eq!(
-        interior_width_sequences[0],
-        vec![1.0, 3.0, 5.0, 7.0, 5.0, 3.0, 1.0]
-    );
+    assert_eq!(center_commands.len(), 2);
+    assert!(center_commands.iter().all(|command| {
+        command.frame.width == (POINT_INTERIOR_RADIUS * 2 + 1) as f32
+            && command.frame.height == (POINT_INTERIOR_RADIUS * 2 + 1) as f32
+            && command.image_pixels.as_ref().is_some_and(|image| {
+                image.width == POINT_INTERIOR_RADIUS as u32 * 2 + 1
+                    && image.height == POINT_INTERIOR_RADIUS as u32 * 2 + 1
+                    && image
+                        .rgba
+                        .chunks_exact(4)
+                        .filter(|pixel| pixel[3] > 0)
+                        .all(|pixel| pixel[..3] == palette.plot_surface[..3])
+            })
+    }));
     assert_eq!(
         commands
             .iter()

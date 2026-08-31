@@ -2,10 +2,14 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $capture = Join-Path $repoRoot 'tools\mvp\Capture-RenderExtractBaseline.ps1'
 $resolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
 $manifestModule = Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1'
+$buildSetModule = Join-Path $repoRoot 'tools\mvp\MvpBuildSet.psm1'
+$artifactStorageModule = Join-Path $repoRoot 'tools\mvp\MvpArtifactStoragePolicy.psm1'
 $originalTestMode = $env:RENDER_EXTRACT_BASELINE_TEST_MODE
 
 Import-Module $resolverModule -Force -Global -ErrorAction Stop
 Import-Module $manifestModule -Force -Global -ErrorAction Stop
+Import-Module $buildSetModule -Force -Global -ErrorAction Stop
+Import-Module $artifactStorageModule -Force -Global -ErrorAction Stop
 
 try {
     $env:RENDER_EXTRACT_BASELINE_TEST_MODE = '1'
@@ -15,10 +19,83 @@ finally {
     $env:RENDER_EXTRACT_BASELINE_TEST_MODE = $originalTestMode
 }
 
+function New-TestRenderExtractBuildSet {
+    param([Parameter(Mandatory)][string]$Root)
+
+    $buildSetRoot = Join-Path $Root 'build-set'
+    $snapshotRoot = Join-Path $buildSetRoot 'source'
+    [IO.Directory]::CreateDirectory($snapshotRoot) | Out-Null
+    $sourcePath = Join-Path $snapshotRoot 'source-marker.txt'
+    [IO.File]::WriteAllText($sourcePath, 'render-extract-build-set', [Text.UTF8Encoding]::new($false))
+    $files = @([ordered]@{
+            relative_path = 'source-marker.txt'
+            sha256 = Get-MvpProductInputFileSha256 -Path $sourcePath
+            byte_length = [int64][IO.FileInfo]::new($sourcePath).Length
+        })
+    $gitRevision = 'c' * 40
+    $dirtyOverlaySha256 = 'D' * 64
+    $material = [IO.MemoryStream]::new()
+    $encoding = [Text.UTF8Encoding]::new($false)
+    try {
+        foreach ($segment in @(
+                'zircon-mvp-build-set-v1',
+                $gitRevision,
+                $dirtyOverlaySha256,
+                $files[0].relative_path,
+                $files[0].sha256,
+                [string]$files[0].byte_length
+            )) {
+            [byte[]]$bytes = $encoding.GetBytes($segment)
+            [byte[]]$length = [BitConverter]::GetBytes([int64]$bytes.LongLength)
+            $material.Write($length, 0, $length.Length)
+            $material.Write($bytes, 0, $bytes.Length)
+        }
+        $hasher = [Security.Cryptography.SHA256]::Create()
+        try {
+            $buildSetId = -join ($hasher.ComputeHash($material.ToArray()) | ForEach-Object { $_.ToString('X2') })
+        }
+        finally {
+            $hasher.Dispose()
+        }
+    }
+    finally {
+        $material.Dispose()
+    }
+
+    $manifestPath = Join-Path $buildSetRoot 'build-set.json'
+    [IO.File]::WriteAllText(
+        $manifestPath,
+        (([ordered]@{
+                    schema_version = 1
+                    build_set_kind = 'zircon_mvp_product_build_set'
+                    status = 'completed'
+                    build_set_id = $buildSetId
+                    created_utc = '2026-08-26T00:00:00.0000000Z'
+                    snapshot_relative_path = 'source'
+                    source_policy = 'tracked_head_plus_tracked_dirty_overlay'
+                    git_revision = $gitRevision
+                    dirty_overlay_sha256 = $dirtyOverlaySha256
+                    files = $files
+                }) | ConvertTo-Json -Depth 5),
+        [Text.UTF8Encoding]::new($false)
+    )
+    return [pscustomobject]@{
+        binding = [ordered]@{
+            build_set_id = $buildSetId
+            git_revision = $gitRevision
+            dirty_overlay_sha256 = $dirtyOverlaySha256
+            manifest_relative_path = 'build-set/build-set.json'
+        }
+        manifest_path = $manifestPath
+        source_path = $sourcePath
+    }
+}
+
 Describe 'Render-extract baseline capture plan' {
     BeforeEach {
         Import-Module $manifestModule -Force -ErrorAction Stop
         Import-Module $resolverModule -Force -ErrorAction Stop
+        Import-Module $artifactStorageModule -Force -ErrorAction Stop
     }
 
     It 'plans runtime cold and steady runs plus an editor cold first-frame run' {
@@ -106,10 +183,12 @@ Describe 'Render-extract baseline capture plan' {
         [IO.File]::WriteAllBytes($runtimeLibraryPath, [byte[]](5, 6, 7, 8, 9))
         [IO.File]::WriteAllBytes($editorExecutablePath, [byte[]](10, 11, 12, 13, 14, 15))
         [IO.File]::WriteAllBytes($editorLibraryPath, [byte[]](16, 17, 18, 19, 20, 21, 22))
+        $buildSet = New-TestRenderExtractBuildSet -Root $artifactDirectory
         $manifestPath = Join-Path $artifactDirectory 'render-extract-profiling-inputs.json'
         $manifest = [ordered]@{
-            schema_version = 2
-            source_fingerprint = ('A' * 64)
+            schema_version = 3
+            source_fingerprint = $buildSet.binding.build_set_id
+            build_set = $buildSet.binding
             cargo_profile = 'profiling'
             artifacts = @(
                 [ordered]@{
@@ -156,17 +235,26 @@ Describe 'Render-extract baseline capture plan' {
         }
         [IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
 
-        $input = Resolve-RenderExtractProfilingInput -ManifestPath $manifestPath -ExpectedSourceFingerprint ('A' * 64)
+        $input = Resolve-RenderExtractProfilingInput -ManifestPath $manifestPath
 
         $input.runtime.executable_path | Should Be (Resolve-ZirconWindowsPath -Path $runtimeExecutablePath).OperationalPath
         $input.runtime.library_path | Should Be (Resolve-ZirconWindowsPath -Path $runtimeLibraryPath).OperationalPath
         $input.editor.executable_path | Should Be (Resolve-ZirconWindowsPath -Path $editorExecutablePath).OperationalPath
         $input.editor.library_path | Should Be (Resolve-ZirconWindowsPath -Path $editorLibraryPath).OperationalPath
         $input.manifest_sha256 | Should Match '^[0-9A-F]{64}$'
+        $input.build_set_id | Should Be $buildSet.binding.build_set_id
+        $input.build_set_manifest_sha256 | Should Be (Get-MvpProductInputFileSha256 -Path $buildSet.manifest_path)
         $input.runtime.executable_sha256 | Should Be $manifest.artifacts[0].sha256
         $input.runtime.library_sha256 | Should Be $manifest.artifacts[1].sha256
         $input.editor.executable_sha256 | Should Be $manifest.artifacts[2].sha256
         $input.editor.library_sha256 | Should Be $manifest.artifacts[3].sha256
+
+        $manifest.source_fingerprint = 'A' * 64
+        [IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
+        { Resolve-RenderExtractProfilingInput -ManifestPath $manifestPath } |
+            Should Throw 'verified BuildSetId'
+        $manifest.source_fingerprint = $buildSet.binding.build_set_id
+        [IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
 
         $otherDirectory = Join-Path $TestDrive 'other-profile-inputs'
         New-Item -ItemType Directory -Path $otherDirectory | Out-Null
@@ -178,7 +266,7 @@ Describe 'Render-extract baseline capture plan' {
 
         $failure = $null
         try {
-            Resolve-RenderExtractProfilingInput -ManifestPath $manifestPath -ExpectedSourceFingerprint ('A' * 64) | Out-Null
+            Resolve-RenderExtractProfilingInput -ManifestPath $manifestPath | Out-Null
         }
         catch {
             $failure = $_
@@ -186,6 +274,10 @@ Describe 'Render-extract baseline capture plan' {
 
         $failure | Should Not BeNullOrEmpty
         $failure.Exception.Message | Should Match 'same directory'
+
+        [IO.File]::WriteAllText($buildSet.source_path, 'tampered', [Text.UTF8Encoding]::new($false))
+        { Resolve-RenderExtractProfilingInput -ManifestPath $manifestPath } |
+            Should Throw 'snapshot file content differs'
     }
 
     It 'requires each product pair to live in its manifest managed product directory' {
@@ -197,10 +289,12 @@ Describe 'Render-extract baseline capture plan' {
         $libraryPath = Join-Path $artifactDirectory 'zircon_runtime.dll'
         [IO.File]::WriteAllBytes($executablePath, [byte[]](1, 2, 3, 4))
         [IO.File]::WriteAllBytes($libraryPath, [byte[]](5, 6, 7, 8))
+        $buildSet = New-TestRenderExtractBuildSet -Root $manifestDirectory
         $manifestPath = Join-Path $manifestDirectory 'render-extract-profiling-inputs.json'
         $manifest = [ordered]@{
-            schema_version = 2
-            source_fingerprint = ('A' * 64)
+            schema_version = 3
+            source_fingerprint = $buildSet.binding.build_set_id
+            build_set = $buildSet.binding
             cargo_profile = 'profiling'
             artifacts = @(
                 [ordered]@{
@@ -247,7 +341,7 @@ Describe 'Render-extract baseline capture plan' {
         }
         [IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
 
-        { Resolve-RenderExtractProfilingInput -ManifestPath $manifestPath -ExpectedSourceFingerprint ('A' * 64) } |
+        { Resolve-RenderExtractProfilingInput -ManifestPath $manifestPath } |
             Should Throw 'managed product directory'
     }
 
@@ -255,6 +349,8 @@ Describe 'Render-extract baseline capture plan' {
         $expected = [pscustomobject]@{
             manifest_path = 'E:\ZirconBuilds\mvp-perf-inputs\run\render-extract-profiling-inputs.json'
             manifest_sha256 = 'A' * 64
+            build_set_id = '1' * 64
+            build_set_manifest_sha256 = '2' * 64
             runtime = [pscustomobject]@{
                 executable_path = 'E:\ZirconBuilds\mvp-perf-inputs\run\runtime\zircon_runtime.exe'
                 executable_sha256 = 'B' * 64
@@ -269,8 +365,7 @@ Describe 'Render-extract baseline capture plan' {
             }
         }
         $actual = $expected.PSObject.Copy()
-        $actual.editor = $expected.editor.PSObject.Copy()
-        $actual.editor.executable_sha256 = 'F' * 64
+        $actual.build_set_id = 'F' * 64
 
         { Assert-RenderExtractProfilingInputIdentity -Expected $expected -Actual $actual } |
             Should Throw 'changed during baseline capture'
@@ -306,6 +401,8 @@ Describe 'Render-extract baseline capture plan' {
         $input = [pscustomobject]@{
             manifest_path = $manifestPath
             manifest_sha256 = Get-MvpProductInputFileSha256 -Path $manifestPath
+            build_set_id = 'A' * 64
+            build_set_manifest_sha256 = 'B' * 64
             runtime = [pscustomobject]@{
                 executable_path = $runtimeExecutablePath
                 executable_sha256 = Get-MvpProductInputFileSha256 -Path $runtimeExecutablePath
@@ -329,6 +426,8 @@ Describe 'Render-extract baseline capture plan' {
 
         $frozenDirectory = Join-Path (Join-Path $TestDrive 'inputs') $invocationId
         $frozen.manifest_path | Should Be (Join-Path $frozenDirectory 'render-extract-profiling-inputs.json')
+        $frozen.build_set_id | Should Be $input.build_set_id
+        $frozen.build_set_manifest_sha256 | Should Be $input.build_set_manifest_sha256
         $frozen.runtime.executable_path | Should Be (Join-Path (Join-Path $frozenDirectory 'runtime') 'zircon_runtime.exe')
         $frozen.runtime.library_path | Should Be (Join-Path (Join-Path $frozenDirectory 'runtime') 'zircon_runtime.dll')
         $frozen.editor.executable_path | Should Be (Join-Path (Join-Path $frozenDirectory 'editor') 'zircon_editor.exe')
@@ -426,7 +525,9 @@ Describe 'Render-extract baseline capture plan' {
         $captureSource | Should Match '\$processId = \[Int64\]\$process.Id'
         $captureSource | Should Match 'process_id = \$processId'
         $captureSource | Should Match 'process_elapsed_ms = \$processElapsedMs'
-        $captureSource | Should Match 'schema_version = 4'
+        $captureSource | Should Match 'schema_version = 5'
+        $captureSource | Should Match 'RenderExtractSourceIdentity\.psm1'
+        $captureSource | Should Not Match 'Get-MvpSourceFingerprint -RepositoryRoot \$repoRoot'
         $assetFreezeIndex = $captureSource.IndexOf('$actualProductHashes = Assert-RenderExtractFrozenProductInput')
         $wprIndex = $captureSource.IndexOf('$wprPath = Start-RenderExtractWprCapture')
         $stopwatchStartIndex = $captureSource.IndexOf('$processStopwatch.Start()')
@@ -440,33 +541,29 @@ Describe 'Render-extract baseline capture plan' {
         $outputDrainIndex | Should BeGreaterThan $processStartIndex
     }
 
-    It 'accepts only an empty physical perf evidence root on the plan-owned E drive' {
-        $accepted = Assert-RenderExtractBaselineOutputDirectory -Path 'E:\ZirconBuilds\mvp-perf\baseline-contract'
-        $resolution = Resolve-ZirconWindowsPath -Path 'E:\ZirconBuilds\mvp-perf\baseline-contract'
+    It 'accepts only an empty physical perf evidence root under an approved artifact root' {
+        $acceptedPath = New-MvpArtifactStoragePath `
+            -NamespaceId 'render-extract-baselines' `
+            -InstanceId 'baseline-contract'
+        $accepted = Assert-RenderExtractBaselineOutputDirectory -Path $acceptedPath
+        $resolution = Resolve-ZirconWindowsPath -Path $acceptedPath
 
         $accepted | Should Be $resolution.OperationalPath
 
         $failure = $null
         try {
-            Assert-RenderExtractBaselineOutputDirectory -Path 'C:\ZirconBuilds\mvp-perf\baseline-contract'
+            Assert-RenderExtractBaselineOutputDirectory -Path 'C:\ZirconBuilds\mvp-render-extract-baseline-contract'
         }
         catch {
             $failure = $_
         }
 
         $failure | Should Not BeNullOrEmpty
-        $failure.Exception.Message | Should Match 'mvp-perf'
+        $failure.Exception.Message | Should Match 'approved.*storage roots'
 
-        $otherDriveFailure = $null
-        try {
-            Assert-RenderExtractBaselineOutputDirectory -Path 'D:\ZirconBuilds\mvp-perf\baseline-contract'
-        }
-        catch {
-            $otherDriveFailure = $_
-        }
-
-        $otherDriveFailure | Should Not BeNullOrEmpty
-        $otherDriveFailure.Exception.Message | Should Match 'E:\\ZirconBuilds\\mvp-perf'
+        $otherDrivePath = 'D:\ZirconBuilds\mvp-render-extract-baseline-contract'
+        Assert-RenderExtractBaselineOutputDirectory -Path $otherDrivePath |
+            Should Be (Resolve-ZirconWindowsPath -Path $otherDrivePath).OperationalPath
     }
 
     It 'rejects the repository source template as a mutable capture project' {
@@ -495,17 +592,17 @@ Describe 'Render-extract baseline capture plan' {
         }
 
         $failure | Should Not BeNullOrEmpty
-        $failure.Exception.Message | Should Match 'approved D:, E:, or F: drive'
+        $failure.Exception.Message | Should Match 'approved.*storage roots'
     }
 
     It 'accepts an ordinary project without generated-scale metadata' {
         $projectDirectory = Join-Path $TestDrive 'ordinary-capture-project'
         [IO.Directory]::CreateDirectory($projectDirectory) | Out-Null
-        [IO.File]::WriteAllText((Join-Path $projectDirectory 'zircon-project.toml'), 'format_version = 2')
+        [IO.File]::WriteAllText((Join-Path $projectDirectory 'zircon-project.toml'), ('format_version = 3' + [Environment]::NewLine + 'project_guid = "6136eb4d-7ea3-446b-99f3-1a48fb269ec9"'))
 
         $metadata = Get-RenderExtractScaleProjectMetadata `
             -ProjectRoot (Resolve-ZirconWindowsPath -Path $projectDirectory) `
-            -ExpectedSourceFingerprint ('A' * 64)
+            -ExpectedBuildSetId ('A' * 64)
 
         $metadata | Should BeNullOrEmpty
     }
@@ -513,12 +610,13 @@ Describe 'Render-extract baseline capture plan' {
     It 'rejects generated-scale metadata from a different source snapshot' {
         $projectDirectory = Join-Path $TestDrive 'stale-scale-capture-project'
         [IO.Directory]::CreateDirectory($projectDirectory) | Out-Null
-        [IO.File]::WriteAllText((Join-Path $projectDirectory 'zircon-project.toml'), 'format_version = 2')
+        [IO.File]::WriteAllText((Join-Path $projectDirectory 'zircon-project.toml'), ('format_version = 3' + [Environment]::NewLine + 'project_guid = "742a3f86-6107-4991-a323-6b76344320cf"'))
         [IO.File]::WriteAllText(
             (Join-Path $projectDirectory 'render-extract-scale-project.json'),
             (([ordered]@{
-                        schema_version = 1
+                        schema_version = 2
                         source_fingerprint = 'B' * 64
+                        build_set_id = 'B' * 64
                         primitive_count = 1000
                         scene_virtual_path = 'res://scenes/main.scene.toml'
                         model_virtual_path = 'assets/models/cube.obj'
@@ -530,8 +628,8 @@ Describe 'Render-extract baseline capture plan' {
         {
             Get-RenderExtractScaleProjectMetadata `
                 -ProjectRoot (Resolve-ZirconWindowsPath -Path $projectDirectory) `
-                -ExpectedSourceFingerprint ('A' * 64)
-        } | Should Throw 'different source snapshot'
+                -ExpectedBuildSetId ('A' * 64)
+        } | Should Throw 'different BuildSet'
     }
 
     It 'does not create a baseline evidence root when profiling input preflight fails' {
@@ -550,7 +648,6 @@ Describe 'Render-extract baseline capture plan' {
                 DisplayPath = 'E:\ZirconBuilds\mvp-perf\capture-preflight-project'
             }
         }
-        Mock Get-MvpSourceFingerprint { 'A' * 64 }
         Mock Resolve-RenderExtractProfilingInput { throw 'profiling input preflight failed' }
         $failure = $null
 
@@ -822,14 +919,19 @@ Describe 'Render-extract baseline capture plan' {
         }
 
         $jobModuleSource = Get-Content -LiteralPath (Join-Path $repoRoot 'tools\mvp\RenderExtractProcessJob.psm1') -Raw
-        $processIndex = $jobModuleSource.IndexOf('process = Process.GetProcessById')
-        $stdoutIndex = $jobModuleSource.IndexOf('stdout = ReaderFromHandle')
-        $stderrIndex = $jobModuleSource.IndexOf('stderr = ReaderFromHandle')
-        $resumeIndex = $jobModuleSource.IndexOf('ResumeThread(processInformation.Thread)')
+        $startAssignedIndex = $jobModuleSource.IndexOf('var assignedProcess = StartSuspendedAssigned(startInfo)')
+        $resumeIndex = $jobModuleSource.IndexOf('assignedProcess.Resume();', $startAssignedIndex)
+        $suspendedFactoryIndex = $jobModuleSource.IndexOf('public RenderExtractSuspendedProcess StartSuspendedAssigned')
+        $processIndex = $jobModuleSource.IndexOf('process = Process.GetProcessById', $suspendedFactoryIndex)
+        $stdoutIndex = $jobModuleSource.IndexOf('stdout = ReaderFromHandle', $suspendedFactoryIndex)
+        $stderrIndex = $jobModuleSource.IndexOf('stderr = ReaderFromHandle', $suspendedFactoryIndex)
+        $assignedWrapperIndex = $jobModuleSource.IndexOf('new RenderExtractSuspendedProcess(', $suspendedFactoryIndex)
+        $startAssignedIndex | Should BeGreaterThan -1
+        $resumeIndex | Should BeGreaterThan $startAssignedIndex
         $processIndex | Should BeGreaterThan -1
         $stdoutIndex | Should BeGreaterThan $processIndex
         $stderrIndex | Should BeGreaterThan $stdoutIndex
-        $resumeIndex | Should BeGreaterThan $stderrIndex
+        $assignedWrapperIndex | Should BeGreaterThan $stderrIndex
     }
 
     It 'waits for the successful product job to become empty before publishing a run' {
@@ -878,6 +980,8 @@ Describe 'Render-extract baseline capture plan' {
             $result = Invoke-RenderExtractBaselineProcess `
                 -ProfilingInput ([pscustomobject]@{
                         manifest_sha256 = 'D' * 64
+                        build_set_id = 'fixture-build-set'
+                        build_set_manifest_sha256 = 'E' * 64
                         runtime = [pscustomobject]@{
                             executable_path = (Join-Path $TestDrive 'placeholder-zircon-runtime.exe')
                             executable_sha256 = 'A' * 64

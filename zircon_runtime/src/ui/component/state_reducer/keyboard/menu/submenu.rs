@@ -27,11 +27,7 @@ pub(in crate::ui::component::state_reducer::keyboard) fn open_focused_submenu(
         return false;
     }
 
-    let option_ids = options
-        .iter()
-        .map(|option| option.id.clone())
-        .collect::<Vec<_>>();
-    let current = super::super::current_index(state, descriptor, &option_ids)
+    let current = current_submenu_option_index(state, descriptor, &options)
         .clamp(0, (options.len() - 1) as i64);
     let option_id = &options[current as usize].id;
     open_submenu_for_option_id(state, descriptor, option_id, current)
@@ -224,6 +220,29 @@ fn clear_submenu_state(state: &mut UiComponentState) {
     );
 }
 
+fn current_submenu_option_index(
+    state: &UiComponentState,
+    descriptor: &UiComponentDescriptor,
+    options: &[super::super::OptionEntry],
+) -> i64 {
+    super::super::int_setting(state, descriptor, "focused_index")
+        .or_else(|| super::super::int_setting(state, descriptor, "selected_index"))
+        .or_else(|| {
+            ["value", "value_text", "group_value"]
+                .into_iter()
+                .filter_map(|property| super::string_setting_ref(state, descriptor, property))
+                .find_map(|value| current_option_id_index(options, value))
+        })
+        .unwrap_or(0)
+}
+
+fn current_option_id_index(options: &[super::super::OptionEntry], value: &str) -> Option<i64> {
+    options
+        .iter()
+        .position(|option| option.id == value)
+        .map(|index| index as i64)
+}
+
 fn submenu_target_for_option_id(
     state: &UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -269,3 +288,7 @@ fn write_submenu_string(state: &mut UiComponentState, property: &str, value: &st
         UiValue::String(value.to_string()),
     );
 }
+
+#[cfg(test)]
+#[path = "submenu/borrowed_current_option_tests.rs"]
+mod borrowed_current_option_tests;

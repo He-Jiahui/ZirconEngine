@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::virtual_geometry::types::{
     VirtualGeometryNodeAndClusterCullChildWorkItem,
     VirtualGeometryNodeAndClusterCullTraversalChildSource,
@@ -9,34 +11,41 @@ pub(super) fn build_node_and_cluster_cull_child_work_items(
     traversal_records: &[VirtualGeometryNodeAndClusterCullTraversalRecord],
     hierarchy_child_ids: &[u32],
 ) -> Vec<VirtualGeometryNodeAndClusterCullChildWorkItem> {
-    traversal_records
+    let capacity = traversal_records
         .iter()
-        .filter(|record| {
-            record.op == VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild
-                && record.child_source
-                    == VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy
-        })
-        .flat_map(|record| {
-            (0..record.child_count).filter_map(move |child_offset| {
-                let child_table_index = record.child_base.saturating_add(child_offset);
-                let child_table_index_usize = usize::try_from(child_table_index).ok()?;
-                let child_node_id = *hierarchy_child_ids.get(child_table_index_usize)?;
+        .filter(|record| authored_child_record(record))
+        .map(|record| available_authored_child_count(record, hierarchy_child_ids.len()))
+        .fold(0_usize, usize::saturating_add);
+    let mut child_work_items = Vec::with_capacity(capacity);
+    for record in traversal_records
+        .iter()
+        .filter(|record| authored_child_record(record))
+    {
+        for child_offset in 0..record.child_count {
+            let child_table_index = record.child_base.saturating_add(child_offset);
+            let Ok(child_table_index_usize) = usize::try_from(child_table_index) else {
+                continue;
+            };
+            let Some(child_node_id) = hierarchy_child_ids.get(child_table_index_usize).copied()
+            else {
+                continue;
+            };
 
-                Some(VirtualGeometryNodeAndClusterCullChildWorkItem {
-                    instance_index: record.instance_index,
-                    entity: record.entity,
-                    parent_cluster_array_index: record.cluster_array_index,
-                    parent_hierarchy_node_id: record.hierarchy_node_id,
-                    child_node_id,
-                    child_table_index,
-                    traversal_index: record.traversal_index,
-                    cluster_budget: record.cluster_budget,
-                    page_budget: record.page_budget,
-                    forced_mip: record.forced_mip,
-                })
-            })
-        })
-        .collect()
+            child_work_items.push(VirtualGeometryNodeAndClusterCullChildWorkItem {
+                instance_index: record.instance_index,
+                entity: record.entity,
+                parent_cluster_array_index: record.cluster_array_index,
+                parent_hierarchy_node_id: record.hierarchy_node_id,
+                child_node_id,
+                child_table_index,
+                traversal_index: record.traversal_index,
+                cluster_budget: record.cluster_budget,
+                page_budget: record.page_budget,
+                forced_mip: record.forced_mip,
+            });
+        }
+    }
+    child_work_items
 }
 
 pub(super) fn build_node_and_cluster_cull_child_visit_records(
@@ -44,11 +53,24 @@ pub(super) fn build_node_and_cluster_cull_child_visit_records(
     hierarchy_nodes: &[RenderVirtualGeometryHierarchyNode],
     first_traversal_index: u32,
 ) -> Vec<VirtualGeometryNodeAndClusterCullTraversalRecord> {
+    if child_work_items.is_empty() {
+        return Vec::new();
+    }
+
+    let mut hierarchy_node_by_key = HashMap::with_capacity(hierarchy_nodes.len());
+    for node in hierarchy_nodes {
+        hierarchy_node_by_key
+            .entry((node.instance_index, node.node_id))
+            .or_insert(*node);
+    }
+
     child_work_items
         .iter()
         .enumerate()
         .map(|(child_index, work_item)| {
-            let node = hierarchy_node_for_child_work_item(*work_item, hierarchy_nodes);
+            let node = hierarchy_node_by_key
+                .get(&(work_item.instance_index, work_item.child_node_id))
+                .copied();
             VirtualGeometryNodeAndClusterCullTraversalRecord {
                 op: VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,
                 child_source: VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
@@ -70,11 +92,26 @@ pub(super) fn build_node_and_cluster_cull_child_visit_records(
         .collect()
 }
 
-fn hierarchy_node_for_child_work_item(
-    work_item: VirtualGeometryNodeAndClusterCullChildWorkItem,
-    hierarchy_nodes: &[RenderVirtualGeometryHierarchyNode],
-) -> Option<RenderVirtualGeometryHierarchyNode> {
-    hierarchy_nodes.iter().copied().find(|node| {
-        node.instance_index == work_item.instance_index && node.node_id == work_item.child_node_id
-    })
+fn authored_child_record(record: &VirtualGeometryNodeAndClusterCullTraversalRecord) -> bool {
+    record.op == VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild
+        && record.child_source
+            == VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy
 }
+
+fn available_authored_child_count(
+    record: &VirtualGeometryNodeAndClusterCullTraversalRecord,
+    hierarchy_child_id_count: usize,
+) -> usize {
+    let Ok(child_base) = usize::try_from(record.child_base) else {
+        return 0;
+    };
+    let Ok(child_count) = usize::try_from(record.child_count) else {
+        return 0;
+    };
+    hierarchy_child_id_count
+        .saturating_sub(child_base)
+        .min(child_count)
+}
+
+#[cfg(test)]
+mod allocation_tests;

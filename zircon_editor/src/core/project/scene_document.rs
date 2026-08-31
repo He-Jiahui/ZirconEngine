@@ -64,11 +64,15 @@ impl ProjectSceneDocument {
     pub(crate) fn world(&self) -> &Scene {
         &self.world
     }
+
+    pub(crate) fn into_world(self) -> Scene {
+        self.world
+    }
 }
 
 /// Owns an unpublished scene staging file until the document route either commits or aborts it.
 pub(crate) struct PreparedSceneCreation {
-    document: ProjectSceneDocument,
+    document: Option<ProjectSceneDocument>,
     staging_path: PathBuf,
     _path_guard: ScenePathGuard,
     published: bool,
@@ -76,11 +80,13 @@ pub(crate) struct PreparedSceneCreation {
 
 impl PreparedSceneCreation {
     pub(crate) fn document(&self) -> &ProjectSceneDocument {
-        &self.document
+        self.document
+            .as_ref()
+            .expect("prepared scene document must remain available until finish")
     }
 
     fn publish(&mut self) -> Result<(), ProjectAuthorityError> {
-        let result = fs::hard_link(&self.staging_path, &self.document.source_path);
+        let result = fs::hard_link(&self.staging_path, self.document().source_path());
         match result {
             Ok(()) => {
                 self.published = true;
@@ -88,12 +94,12 @@ impl PreparedSceneCreation {
             }
             Err(source) if source.kind() == std::io::ErrorKind::AlreadyExists => {
                 Err(ProjectAuthorityError::SceneAlreadyExists {
-                    path: self.document.source_path.clone(),
+                    path: self.document().source_path.clone(),
                 })
             }
             Err(source) => Err(ProjectAuthorityError::io(
                 "publish new scene asset",
-                &self.document.source_path,
+                self.document().source_path(),
                 source,
             )),
         }
@@ -117,10 +123,10 @@ impl PreparedSceneCreation {
 
     pub(crate) fn rollback(&mut self) -> Result<(), ProjectAuthorityError> {
         if self.published {
-            fs::remove_file(&self.document.source_path).map_err(|source| {
+            fs::remove_file(self.document().source_path()).map_err(|source| {
                 ProjectAuthorityError::io(
                     "remove rejected scene asset",
-                    &self.document.source_path,
+                    self.document().source_path(),
                     source,
                 )
             })?;
@@ -131,7 +137,9 @@ impl PreparedSceneCreation {
 
     pub(crate) fn finish(mut self) -> ProjectSceneDocument {
         self.published = false;
-        self.document.clone()
+        self.document
+            .take()
+            .expect("prepared scene document must remain available until finish")
     }
 
     fn remove_staging(&mut self) -> Result<(), ProjectAuthorityError> {
@@ -150,7 +158,9 @@ impl PreparedSceneCreation {
 impl Drop for PreparedSceneCreation {
     fn drop(&mut self) {
         if self.published {
-            let _ = fs::remove_file(&self.document.source_path);
+            if let Some(document) = self.document.as_ref() {
+                let _ = fs::remove_file(&document.source_path);
+            }
         }
         let _ = fs::remove_file(&self.staging_path);
     }
@@ -228,11 +238,11 @@ impl ProjectAuthority {
             return Err(error.into());
         }
         Ok(PreparedSceneCreation {
-            document: ProjectSceneDocument {
+            document: Some(ProjectSceneDocument {
                 scene_uri: request.scene_uri,
                 source_path,
                 world,
-            },
+            }),
             staging_path,
             _path_guard: path_guard,
             published: false,

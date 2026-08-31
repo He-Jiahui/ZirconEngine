@@ -10,7 +10,9 @@ use super::nested_machine_sample::{
     normalized_machine_state_time, sample_machine_state_events, sample_machine_state_pose,
     sample_machine_transition_pose,
 };
-use super::requests::{PendingClipEventSample, PendingStateMachinePoseSample};
+use super::requests::{
+    PendingClipEventSample, PendingStateMachinePoseSample, StateMachineParameterProjection,
+};
 use super::state_machine_cache::resolve_sub_machine_id;
 use super::state_machine_transition::{
     advance_state_machine_transition, begin_state_machine_transition, select_interruption_candidate,
@@ -80,6 +82,7 @@ fn evaluate_layer_pose(
     pending: &PendingStateMachinePoseSample,
     layer: &CompiledStateMachineLayer,
 ) -> Option<(AnimationPoseOutput, Vec<PendingClipEventSample>)> {
+    let parameters = pending.parameter_projection();
     let layer_machine_id = resolve_sub_machine_id(asset_manager, layer.machine())?;
     let base_instance = MachineInstanceKey::root(pending.entity, pending.state_machine_id);
     let layer_instance = base_instance.nested(layer.name(), layer_machine_id)?;
@@ -95,14 +98,14 @@ fn evaluate_layer_pose(
         layer_machine_id,
         active_state,
         active_transition,
-        &pending.parameters,
+        parameters,
         pending.skeleton_id,
         pending.to_time_seconds,
     )?;
     let instance = resolved.instance;
     let machine = resolved.machine;
     let evaluation = resolved.evaluation;
-    let active_state = evaluation.active_state.as_deref()?;
+    let active_state = evaluation.active_state.as_str();
     let mut interrupted_events = Vec::new();
     let mut interrupted_source = None;
     let mut event_start = (pending.from_time_seconds, 0.0);
@@ -112,8 +115,9 @@ fn evaluate_layer_pose(
         let candidate = select_interruption_candidate(
             pipeline,
             asset_manager,
+            &instance,
             machine.as_ref(),
-            &evaluation.parameters,
+            parameters,
             pending.skeleton_id,
             &advanced,
         );
@@ -128,7 +132,7 @@ fn evaluate_layer_pose(
                 asset_manager,
                 &instance,
                 &machine,
-                &evaluation.parameters,
+                parameters,
                 pending.entity,
                 pending.skeleton_id,
                 &advanced,
@@ -142,7 +146,7 @@ fn evaluate_layer_pose(
                     pending,
                     &instance,
                     &machine,
-                    &evaluation.parameters,
+                    parameters,
                     &advanced,
                     event_start,
                 ));
@@ -166,7 +170,7 @@ fn evaluate_layer_pose(
             &instance,
             &machine,
             active_state,
-            &evaluation.parameters,
+            parameters,
             pending.skeleton_id,
             pending.to_time_seconds,
         );
@@ -188,7 +192,7 @@ fn evaluate_layer_pose(
             })
     };
     if let (Some(source), Some(active_transition)) = (interrupted_source, transition.as_ref()) {
-        pipeline.record_interrupted_transition_source(
+        pipeline.record_state_machine_interrupted_transition_source(
             instance.clone(),
             &active_transition.from_state,
             &active_transition.to_state,
@@ -204,15 +208,11 @@ fn evaluate_layer_pose(
                 transition.from_state.clone()
             }
         })
-        .or_else(|| evaluation.active_state.clone())?;
+        .unwrap_or_else(|| evaluation.active_state.clone());
     if resolved.is_nested {
-        pipeline
-            .nested_machine_states
-            .insert(layer_instance, resolved.root_active_state);
+        pipeline.set_nested_machine_state(layer_instance, resolved.root_active_state);
     }
-    pipeline
-        .nested_machine_states
-        .insert(instance.clone(), state_update.clone());
+    pipeline.set_nested_machine_state(instance.clone(), state_update.clone());
 
     if let Some(transition) = transition {
         let active_source = pipeline.interrupted_transition_source(
@@ -225,7 +225,7 @@ fn evaluate_layer_pose(
             asset_manager,
             &instance,
             &machine,
-            &evaluation.parameters,
+            parameters,
             pending.entity,
             pending.skeleton_id,
             &transition,
@@ -238,30 +238,28 @@ fn evaluate_layer_pose(
             pending,
             &instance,
             &machine,
-            &evaluation.parameters,
+            parameters,
             &transition,
             event_start,
         ));
         if transition.elapsed_seconds < transition.duration_seconds {
-            pipeline
-                .nested_machine_transitions
-                .insert(instance, transition);
+            pipeline.set_nested_machine_transition(instance, transition);
         } else {
-            pipeline.nested_machine_transitions.remove(&instance);
-            pipeline.clear_interrupted_transition_source(&instance);
+            pipeline.clear_nested_machine_transition(&instance);
+            pipeline.clear_state_machine_interrupted_transition_source(&instance);
         }
         return Some((pose, interrupted_events));
     }
 
-    pipeline.nested_machine_transitions.remove(&instance);
-    pipeline.clear_interrupted_transition_source(&instance);
+    pipeline.clear_nested_machine_transition(&instance);
+    pipeline.clear_state_machine_interrupted_transition_source(&instance);
     let events = sample_machine_state_events(
         pipeline,
         asset_manager,
         &instance,
         &machine,
         &state_update,
-        &evaluation.parameters,
+        parameters,
         pending.entity,
         pending.skeleton_id,
         pending.from_time_seconds,
@@ -273,7 +271,7 @@ fn evaluate_layer_pose(
         &instance,
         &machine,
         &state_update,
-        &evaluation.parameters,
+        parameters,
         pending.entity,
         pending.skeleton_id,
         pending.to_time_seconds,
@@ -288,7 +286,7 @@ fn sample_layer_transition_events(
     pending: &PendingStateMachinePoseSample,
     instance: &MachineInstanceKey,
     machine: &crate::CompiledAnimationStateMachine,
-    parameters: &zircon_runtime::core::framework::animation::AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     transition: &zircon_runtime::scene::AnimationStateTransitionRuntime,
     start: (
         zircon_runtime::core::math::Real,

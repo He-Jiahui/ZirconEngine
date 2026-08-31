@@ -26,6 +26,7 @@ fn screen_space_ui_plan_routes_virtual_resolved_text_to_sdf_for_exact_advances()
                 source_range: UiTextRange { start: 0, end: 8 },
                 lines: vec![UiResolvedTextLine {
                     text: "\u{0633}\u{0640}\u{0644}\u{0627}\u{0645}".to_string(),
+                    placement_frame: UiFrame::default(),
                     frame: UiFrame::new(10.0, 20.0, 80.0, 16.0),
                     source_range: UiTextRange { start: 0, end: 8 },
                     visual_range: UiTextRange { start: 0, end: 10 },
@@ -73,7 +74,7 @@ fn screen_space_ui_plan_marks_source_isomorphic_wrapped_layout_lines_for_overlay
                 line_height: 16.0,
                 wrap: UiTextWrap::Word,
                 text_render_mode: UiTextRenderMode::Sdf,
-                rich_text_format: UiRichTextFormat::Markdown,
+                rich_text_format: UiRichTextFormat::MarkdownInlineV1,
                 ..UiResolvedStyle::default()
             },
             UiResolvedTextLayout {
@@ -89,6 +90,7 @@ fn screen_space_ui_plan_marks_source_isomorphic_wrapped_layout_lines_for_overlay
                 source_range: UiTextRange { start: 4, end: 8 },
                 lines: vec![UiResolvedTextLine {
                     text: "line".to_string(),
+                    placement_frame: UiFrame::default(),
                     frame: UiFrame::new(10.0, 20.0, 40.0, 16.0),
                     source_range: UiTextRange { start: 4, end: 8 },
                     visual_range: UiTextRange { start: 0, end: 4 },
@@ -135,7 +137,7 @@ fn screen_space_ui_plan_uses_resolved_layout_metadata_for_source_isomorphic_pain
                 text_writing_mode: UiTextWritingMode::HorizontalTb,
                 wrap: UiTextWrap::None,
                 text_render_mode: UiTextRenderMode::Sdf,
-                rich_text_format: UiRichTextFormat::Markdown,
+                rich_text_format: UiRichTextFormat::MarkdownInlineV1,
                 ..UiResolvedStyle::default()
             },
             UiResolvedTextLayout {
@@ -151,6 +153,7 @@ fn screen_space_ui_plan_uses_resolved_layout_metadata_for_source_isomorphic_pain
                 source_range: UiTextRange { start: 0, end: 4 },
                 lines: vec![UiResolvedTextLine {
                     text: "line".to_string(),
+                    placement_frame: UiFrame::default(),
                     frame: UiFrame::new(10.0, 20.0, 16.0, 40.0),
                     source_range: UiTextRange { start: 0, end: 4 },
                     visual_range: UiTextRange { start: 0, end: 4 },
@@ -199,7 +202,7 @@ fn screen_space_ui_plan_rejects_same_length_visual_text_as_overlay_provenance() 
                 line_height: 16.0,
                 wrap: UiTextWrap::Word,
                 text_render_mode: UiTextRenderMode::Sdf,
-                rich_text_format: UiRichTextFormat::Markdown,
+                rich_text_format: UiRichTextFormat::MarkdownInlineV1,
                 ..UiResolvedStyle::default()
             },
             UiResolvedTextLayout {
@@ -215,6 +218,7 @@ fn screen_space_ui_plan_rejects_same_length_visual_text_as_overlay_provenance() 
                 source_range: UiTextRange { start: 0, end: 4 },
                 lines: vec![UiResolvedTextLine {
                     text: "\u{0640}\u{0640}".to_string(),
+                    placement_frame: UiFrame::default(),
                     frame: UiFrame::new(10.0, 20.0, 40.0, 16.0),
                     source_range: UiTextRange { start: 0, end: 4 },
                     visual_range: UiTextRange { start: 0, end: 4 },
@@ -257,7 +261,7 @@ fn screen_space_ui_plan_keeps_split_paint_runs_out_of_wrapped_overlay_provenance
                 line_height: 16.0,
                 wrap: UiTextWrap::Word,
                 text_render_mode: UiTextRenderMode::Sdf,
-                rich_text_format: UiRichTextFormat::Markdown,
+                rich_text_format: UiRichTextFormat::MarkdownInlineV1,
                 ..UiResolvedStyle::default()
             },
             UiResolvedTextLayout {
@@ -273,6 +277,7 @@ fn screen_space_ui_plan_keeps_split_paint_runs_out_of_wrapped_overlay_provenance
                 source_range: UiTextRange { start: 0, end: 5 },
                 lines: vec![UiResolvedTextLine {
                     text: "split".to_string(),
+                    placement_frame: UiFrame::default(),
                     frame: UiFrame::new(10.0, 20.0, 40.0, 16.0),
                     source_range: UiTextRange { start: 0, end: 5 },
                     visual_range: UiTextRange { start: 0, end: 5 },
@@ -311,14 +316,16 @@ fn screen_space_ui_plan_keeps_split_paint_runs_out_of_wrapped_overlay_provenance
 
     assert!(plan.native_texts.is_empty());
     assert_eq!(plan.sdf_texts.len(), 2);
-    assert!(plan
-        .sdf_texts
-        .iter()
-        .all(|text| !text.is_source_isomorphic_layout_line));
-    assert!(plan
-        .sdf_texts
-        .iter()
-        .all(|text| matches!(text.wrap, UiTextWrap::None)));
+    assert!(
+        plan.sdf_texts
+            .iter()
+            .all(|text| !text.is_source_isomorphic_layout_line)
+    );
+    assert!(
+        plan.sdf_texts
+            .iter()
+            .all(|text| matches!(text.wrap, UiTextWrap::None))
+    );
 }
 
 fn text_extract(

@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::core::framework::render::RenderBudgetKey;
+use crate::core::framework::render::{RenderBudgetKey, RenderPassNativeResourceCreateMetrics};
 use crate::core::math::UVec2;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -8,18 +8,50 @@ pub struct RenderGraphTransientPoolReport {
     pub frame_index: u64,
     pub texture_created_count: usize,
     pub texture_reused_count: usize,
+    /// Graph-owned resources held until a cross-frame extraction completes.
+    pub persistent_texture_request_count: usize,
+    pub persistent_texture_requested_bytes: u64,
+    pub persistent_texture_created_count: usize,
+    pub persistent_texture_reused_count: usize,
     pub buffer_created_count: usize,
     pub buffer_reused_count: usize,
     pub texture_pool_entry_count: usize,
     pub buffer_pool_entry_count: usize,
     pub texture_pool_retained_bytes: u64,
     pub buffer_pool_retained_bytes: u64,
+    /// Submitted graph textures awaiting their exact GPU completion ticket.
+    pub pending_retire_texture_count: usize,
+    pub pending_retire_texture_bytes: u64,
+    /// Submitted graph buffers awaiting their exact GPU completion ticket.
+    pub pending_retire_buffer_count: usize,
+    pub pending_retire_buffer_bytes: u64,
+    pub completion_reclaimed_texture_count: usize,
+    pub completion_reclaimed_buffer_count: usize,
+    pub completion_discarded_texture_count: usize,
+    pub completion_discarded_buffer_count: usize,
+    /// Submission status lookups issued while collecting pending textures.
+    pub completion_texture_status_query_count: usize,
+    /// Submission status lookups issued while collecting pending buffers.
+    pub completion_buffer_status_query_count: usize,
+    /// Backings dropped because their WGPU device epoch was retired.
+    pub device_epoch_discarded_texture_count: usize,
+    /// Backings dropped because their WGPU device epoch was retired.
+    pub device_epoch_discarded_buffer_count: usize,
     pub texture_pool_budget_bytes: u64,
     pub buffer_pool_budget_bytes: u64,
     pub evicted_texture_count: usize,
     pub evicted_buffer_count: usize,
     pub budget_evicted_texture_count: usize,
     pub budget_evicted_buffer_count: usize,
+    /// Free allocations visited by frame-age eviction.
+    pub stale_texture_scan_count: usize,
+    pub stale_buffer_scan_count: usize,
+    /// Free allocations visited while computing the retained-byte budget.
+    pub budget_texture_accounted_count: usize,
+    pub budget_buffer_accounted_count: usize,
+    /// LRU candidates materialized and sorted only when a pool exceeds budget.
+    pub budget_texture_sort_candidate_count: usize,
+    pub budget_buffer_sort_candidate_count: usize,
 }
 
 impl RenderGraphTransientPoolReport {
@@ -38,18 +70,40 @@ impl RenderGraphTransientPoolReport {
             frame_index,
             texture_created_count,
             texture_reused_count,
+            persistent_texture_request_count: 0,
+            persistent_texture_requested_bytes: 0,
+            persistent_texture_created_count: 0,
+            persistent_texture_reused_count: 0,
             buffer_created_count,
             buffer_reused_count,
             texture_pool_entry_count,
             buffer_pool_entry_count,
             texture_pool_retained_bytes: 0,
             buffer_pool_retained_bytes: 0,
+            pending_retire_texture_count: 0,
+            pending_retire_texture_bytes: 0,
+            pending_retire_buffer_count: 0,
+            pending_retire_buffer_bytes: 0,
+            completion_reclaimed_texture_count: 0,
+            completion_reclaimed_buffer_count: 0,
+            completion_discarded_texture_count: 0,
+            completion_discarded_buffer_count: 0,
+            completion_texture_status_query_count: 0,
+            completion_buffer_status_query_count: 0,
+            device_epoch_discarded_texture_count: 0,
+            device_epoch_discarded_buffer_count: 0,
             texture_pool_budget_bytes: 0,
             buffer_pool_budget_bytes: 0,
             evicted_texture_count,
             evicted_buffer_count,
             budget_evicted_texture_count: 0,
             budget_evicted_buffer_count: 0,
+            stale_texture_scan_count: 0,
+            stale_buffer_scan_count: 0,
+            budget_texture_accounted_count: 0,
+            budget_buffer_accounted_count: 0,
+            budget_texture_sort_candidate_count: 0,
+            budget_buffer_sort_candidate_count: 0,
         }
     }
 
@@ -82,6 +136,103 @@ impl RenderGraphTransientPoolReport {
         self.budget_evicted_buffer_count = budget_evicted_buffer_count;
         self
     }
+
+    pub const fn with_persistent_extraction(
+        mut self,
+        persistent_texture_request_count: usize,
+        persistent_texture_requested_bytes: u64,
+        persistent_texture_created_count: usize,
+        persistent_texture_reused_count: usize,
+    ) -> Self {
+        self.persistent_texture_request_count = persistent_texture_request_count;
+        self.persistent_texture_requested_bytes = persistent_texture_requested_bytes;
+        self.persistent_texture_created_count = persistent_texture_created_count;
+        self.persistent_texture_reused_count = persistent_texture_reused_count;
+        self
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub const fn with_submission_retirement(
+        mut self,
+        pending_retire_texture_count: usize,
+        pending_retire_texture_bytes: u64,
+        pending_retire_buffer_count: usize,
+        pending_retire_buffer_bytes: u64,
+        completion_reclaimed_texture_count: usize,
+        completion_reclaimed_buffer_count: usize,
+        completion_discarded_texture_count: usize,
+        completion_discarded_buffer_count: usize,
+    ) -> Self {
+        self.pending_retire_texture_count = pending_retire_texture_count;
+        self.pending_retire_texture_bytes = pending_retire_texture_bytes;
+        self.pending_retire_buffer_count = pending_retire_buffer_count;
+        self.pending_retire_buffer_bytes = pending_retire_buffer_bytes;
+        self.completion_reclaimed_texture_count = completion_reclaimed_texture_count;
+        self.completion_reclaimed_buffer_count = completion_reclaimed_buffer_count;
+        self.completion_discarded_texture_count = completion_discarded_texture_count;
+        self.completion_discarded_buffer_count = completion_discarded_buffer_count;
+        self
+    }
+
+    pub const fn with_device_epoch_discards(
+        mut self,
+        device_epoch_discarded_texture_count: usize,
+        device_epoch_discarded_buffer_count: usize,
+    ) -> Self {
+        self.device_epoch_discarded_texture_count = device_epoch_discarded_texture_count;
+        self.device_epoch_discarded_buffer_count = device_epoch_discarded_buffer_count;
+        self
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub const fn with_maintenance_work(
+        mut self,
+        completion_texture_status_query_count: usize,
+        completion_buffer_status_query_count: usize,
+        stale_texture_scan_count: usize,
+        stale_buffer_scan_count: usize,
+        budget_texture_accounted_count: usize,
+        budget_buffer_accounted_count: usize,
+        budget_texture_sort_candidate_count: usize,
+        budget_buffer_sort_candidate_count: usize,
+    ) -> Self {
+        self.completion_texture_status_query_count = completion_texture_status_query_count;
+        self.completion_buffer_status_query_count = completion_buffer_status_query_count;
+        self.stale_texture_scan_count = stale_texture_scan_count;
+        self.stale_buffer_scan_count = stale_buffer_scan_count;
+        self.budget_texture_accounted_count = budget_texture_accounted_count;
+        self.budget_buffer_accounted_count = budget_buffer_accounted_count;
+        self.budget_texture_sort_candidate_count = budget_texture_sort_candidate_count;
+        self.budget_buffer_sort_candidate_count = budget_buffer_sort_candidate_count;
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphExecutionAccessBindingReport {
+    pub transient_access_binding_count: usize,
+    pub transient_texture_access_binding_count: usize,
+    pub transient_buffer_access_binding_count: usize,
+    pub unique_texture_view_count: usize,
+    pub reused_texture_view_count: usize,
+}
+
+impl RenderGraphExecutionAccessBindingReport {
+    pub const fn new(
+        transient_access_binding_count: usize,
+        transient_texture_access_binding_count: usize,
+        transient_buffer_access_binding_count: usize,
+        unique_texture_view_count: usize,
+        reused_texture_view_count: usize,
+    ) -> Self {
+        Self {
+            transient_access_binding_count,
+            transient_texture_access_binding_count,
+            transient_buffer_access_binding_count,
+            unique_texture_view_count,
+            reused_texture_view_count,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -92,6 +243,7 @@ pub struct RenderGraphExecutionResourceReport {
     pub buffer_count: usize,
     pub total_bound_resource_count: usize,
     pub transient_pool_report: RenderGraphTransientPoolReport,
+    pub access_binding_report: RenderGraphExecutionAccessBindingReport,
 }
 
 impl RenderGraphExecutionResourceReport {
@@ -108,6 +260,7 @@ impl RenderGraphExecutionResourceReport {
             buffer_count,
             total_bound_resource_count: texture_view_count + buffer_count,
             transient_pool_report: RenderGraphTransientPoolReport::new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            access_binding_report: RenderGraphExecutionAccessBindingReport::new(0, 0, 0, 0, 0),
         }
     }
 
@@ -116,6 +269,14 @@ impl RenderGraphExecutionResourceReport {
         transient_pool_report: RenderGraphTransientPoolReport,
     ) -> Self {
         self.transient_pool_report = transient_pool_report;
+        self
+    }
+
+    pub const fn with_access_binding_report(
+        mut self,
+        access_binding_report: RenderGraphExecutionAccessBindingReport,
+    ) -> Self {
+        self.access_binding_report = access_binding_report;
         self
     }
 }
@@ -284,6 +445,7 @@ pub struct RenderGraphPassProfileRecord {
     pub state_change_count: u32,
     pub dispatch_count: u32,
     pub upload_bytes: u64,
+    pub native_resource_creates: RenderPassNativeResourceCreateMetrics,
 }
 
 impl RenderGraphPassProfileRecord {
@@ -302,6 +464,7 @@ impl RenderGraphPassProfileRecord {
             state_change_count: 0,
             dispatch_count: 0,
             upload_bytes: 0,
+            native_resource_creates: RenderPassNativeResourceCreateMetrics::default(),
         }
     }
 
@@ -320,6 +483,14 @@ impl RenderGraphPassProfileRecord {
         self.draw_count = metrics.draw_count;
         self.instance_count = metrics.instance_count;
         self.state_change_count = metrics.state_change_count;
+        self
+    }
+
+    pub fn with_native_resource_creates(
+        mut self,
+        metrics: RenderPassNativeResourceCreateMetrics,
+    ) -> Self {
+        self.native_resource_creates = metrics;
         self
     }
 }
@@ -360,6 +531,43 @@ pub struct RenderGraphParallelRecordingReport {
     pub eligible_bucket_count: usize,
     pub executed_stage_count: usize,
     pub executed_bucket_count: usize,
+}
+
+/// Immutable structural counts lowered from the compiled render-graph packet.
+///
+/// These values describe planned batches only. They do not claim that a batch
+/// executed or provide CPU/GPU timing evidence.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphExecutionBatchReport {
+    pub planned_batch_count: usize,
+    pub planned_live_pass_count: usize,
+    pub graphics_batch_count: usize,
+    pub async_compute_batch_count: usize,
+    pub async_copy_batch_count: usize,
+    pub max_passes_per_batch: usize,
+    pub queue_transition_count: usize,
+}
+
+impl RenderGraphExecutionBatchReport {
+    pub const fn new(
+        planned_batch_count: usize,
+        planned_live_pass_count: usize,
+        graphics_batch_count: usize,
+        async_compute_batch_count: usize,
+        async_copy_batch_count: usize,
+        max_passes_per_batch: usize,
+        queue_transition_count: usize,
+    ) -> Self {
+        Self {
+            planned_batch_count,
+            planned_live_pass_count,
+            graphics_batch_count,
+            async_compute_batch_count,
+            async_copy_batch_count,
+            max_passes_per_batch,
+            queue_transition_count,
+        }
+    }
 }
 
 impl RenderGraphParallelRecordingReport {

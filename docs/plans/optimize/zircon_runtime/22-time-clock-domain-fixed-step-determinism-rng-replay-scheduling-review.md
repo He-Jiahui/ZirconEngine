@@ -174,7 +174,7 @@ Fyrox executor用`Instant`、fixed timestep和lag循环驱动插件/脚本/UI，
 | TIME-P1-007 | resume/suspend/occlusion/window recreation没有ClockDiscontinuity | lifecycle hook向ClockAuthority提交typed discontinuity并记录处理策略 |
 | TIME-P1-008 | Virtual speed先乘再clamp，极大有限值可能在clamp前overflow/panic | 先验证有界policy或使用checked/saturating conversion，返回typed config error |
 | TIME-P1-009 | time setters靠assert验证，错误profile或外部值会panic | `TimePolicyTransaction`做validate/prepare/commit/reject并输出generation receipt |
-| TIME-P1-010 | 64Hz、250ms、8 steps等默认值没有BuildSet/profile owner | 由versioned ProductTimePolicy统一生成client/server/editor/test配置与digest |
+| TIME-P1-010 | 64Hz、250ms、8 steps等默认值没有BuildSet/profile owner | 由versioned ProductTimePolicy统一生成client/headless/editor/test配置与digest |
 
 ## 7. P1：Fixed Step、World 与 Schedule 语义
 
@@ -372,3 +372,15 @@ PlatformMonotonicSource     WallUtcSource      External/ReplaySource
 本轮只新增review与索引计划，没有修改Runtime、App、Editor、Plugin、Interface、tests、Cargo manifest、lockfile或workflow。报告保留三时钟、stable schedule、deterministic worker merge和局部seed基础，确认2项产品级P0，并将40项P1、12项P2分配到Clock Authority、Fixed transaction、World/System domain、RNG/Determinism、Replay/Checkpoint和Qualification。
 
 没有运行动态测试。此前Editor、Hub、WOC native/npm和plugin metadata的既有阻断未变化，重跑不能抵达本篇产品行为；`dynamic_api/session/profile.rs`仍是外部在途源码。实施M0时必须先在current BuildSet重取fingerprint，添加两项可失败回归，再按M1-M6逐层验证，不能直接从当前静态报告宣称功能已修复、性能已提升或已超过Unreal。
+
+## Runtime22 managed validation handoff (2026-08-30)
+
+The current focused validation ticket is `82c24ee3a4824e47b193d53e0f1e8fad` for request
+`runtime22-fixed-time-random-wave-20260830-v7`. Its source manifest hash is
+`7533a1a0bb84fc16e22d0f2c7170a1c02d5c8e44e63fd1883b528f1c5c5b2e58` and it includes the
+registry eviction regression `zircon_runtime/src/core/runtime/random/registry/evict_matching_tests.rs`
+(`44e230818fe3a2124284f93abafaaa198c126ae39e27aceb09d9b48135852a08`) plus the compile-time
+resource `zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/external_image_copy.rs`
+(`a1102110c7daee234ea89c1f19491a267e64f7a0e4a2882fa61e1c1c47920606`). The coordinator owns
+release tests, deterministic checkpoint/reseed regression, restore/replay verification, exact
+performance data, review, commit, push, and WeCom publication.

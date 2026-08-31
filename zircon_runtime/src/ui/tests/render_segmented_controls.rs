@@ -11,6 +11,16 @@ use zircon_runtime_interface::ui::{
 #[test]
 fn segmented_rendering_classifies_before_state_and_avoids_selected_lowercase_copy() {
     let source = include_str!("../surface/render/segmented_controls.rs");
+    let owner_source = [
+        source,
+        include_str!("../surface/render/segmented_controls/commands.rs"),
+        include_str!("../surface/render/segmented_controls/metadata.rs"),
+        include_str!("../surface/render/segmented_controls/segments.rs"),
+        include_str!("../surface/render/segmented_controls/state.rs"),
+        include_str!("../surface/render/segmented_controls/style.rs"),
+        include_str!("../surface/render/segmented_controls/tabs.rs"),
+    ]
+    .join("\n");
     let kind = source
         .find("let Some(kind) = control_kind(metadata)")
         .expect("segmented rendering should classify the component");
@@ -23,7 +33,7 @@ fn segmented_rendering_classifies_before_state_and_avoids_selected_lowercase_cop
         "non-segmented nodes should exit before state resolution"
     );
     assert!(
-        !source.contains("to_ascii_lowercase"),
+        !owner_source.contains("to_ascii_lowercase"),
         "selected segment matching should compare borrowed text without allocation"
     );
     for required_token_hook in [
@@ -33,10 +43,24 @@ fn segmented_rendering_classifies_before_state_and_avoids_selected_lowercase_cop
         "default_segmented_visual",
     ] {
         assert!(
-            source.contains(required_token_hook),
+            owner_source.contains(required_token_hook),
             "segmented renderer should resolve {required_token_hook} through the design-token contract"
         );
     }
+    for module in [
+        "mod commands;",
+        "mod metadata;",
+        "mod segments;",
+        "mod state;",
+        "mod style;",
+        "mod tabs;",
+    ] {
+        assert!(source.contains(module), "root should mount {module}");
+    }
+    assert!(
+        source.lines().count() <= 80,
+        "segmented render root should remain a declarative dispatch owner"
+    );
 }
 
 #[test]

@@ -487,6 +487,15 @@ fn input_manager_tracks_ime_preedit_and_frame_commits() {
     assert!(next_frame.ime_delete_surrounding.is_empty());
     assert!(next_frame.ime_host_requests.is_empty());
 
+    input.submit_event(InputEvent::ImeHostRequest(ImeHostRequest::Enable));
+    input.begin_frame();
+    assert!(input.frame_snapshot().ime_host_requests.is_empty());
+    assert_eq!(
+        input.drain_ime_host_requests(),
+        vec![ImeHostRequest::Enable]
+    );
+    assert!(input.drain_ime_host_requests().is_empty());
+
     input.submit_event(InputEvent::Ime(ImeEvent::Preedit(ImePreedit::new(
         "hao", None,
     ))));

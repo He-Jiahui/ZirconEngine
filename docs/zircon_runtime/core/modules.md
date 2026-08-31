@@ -39,7 +39,7 @@ doc_type: module-detail
 The descriptor modules are lifecycle registration markers. They do not install duplicate service instances, spawn threads, initialize global log sinks, or collect diagnostics by themselves.
 
 - `TasksModule` points at the runtime-owned `TaskPools` and `JobScheduler` support.
-- `TimeModule` points at the core time contracts and runtime-owned `RuntimeTimeClocks` surface.
+- `TimeModule` points at the core time contracts, outer-frame handoff, and default World-policy surface.
 - `FrameCountModule` names the frame counter diagnostic slot now populated from runtime time advancement.
 - `DiagnosticsCoreModule` names the runtime-owned diagnostic store and snapshot support.
 - `LogModule` names the process diagnostic log surface initialized by entry runners.

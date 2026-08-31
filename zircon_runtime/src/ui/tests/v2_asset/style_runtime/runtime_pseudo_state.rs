@@ -265,7 +265,11 @@ fn ui_v2_surface_runtime_pseudo_state_restyles_deep_descendant_from_parent_state
                 } else {
                     "Container".to_string()
                 },
-                control_id: is_leaf.then(|| "DeepRuntimeLabel".to_string()),
+                control_id: if index == 0 {
+                    Some("DeepRuntimeHost".to_string())
+                } else {
+                    is_leaf.then(|| "DeepRuntimeLabel".to_string())
+                },
                 classes: if index == 0 {
                     vec!["runtime-host".to_string()]
                 } else if is_leaf {
@@ -283,7 +287,7 @@ fn ui_v2_surface_runtime_pseudo_state_restyles_deep_descendant_from_parent_state
         rules: vec![
             style_rule("Text.deep-label", [("foreground", "#111111")]),
             style_rule(
-                ".runtime-host:hover Text.deep-label",
+                "Container#DeepRuntimeHost.runtime-host:hover Text.deep-label",
                 [("foreground", "#abcdef")],
             ),
         ],

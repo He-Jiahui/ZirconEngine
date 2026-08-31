@@ -11,7 +11,8 @@ use crate::{
             UiSlotSchema, UiValue, UiValueKind,
         },
         dispatch::{
-            UiAnalogInputEvent, UiClipboardRequest, UiClipboardRequestKind,
+            UiAnalogInputEvent, UiClipboardInputEvent, UiClipboardRequest, UiClipboardRequestKind,
+            UiClipboardTransferId, UiClipboardTransferIntent, UiClipboardTransferOutcome,
             UiComponentEmissionPolicy, UiComponentEventReport, UiDeviceId, UiDispatchAppliedEffect,
             UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequest,
             UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchRejectedEffect, UiDispatchReply,
@@ -47,32 +48,34 @@ use crate::{
             UiArrangedNode, UiArrangedTree, UiBackendRenderDebugStats, UiDamageDebugReport,
             UiDebugEventRecord, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind, UiFocusPath,
             UiHitCoordinateSpace, UiHitGridCellDebugRecord, UiHitGridDebugStats, UiHitPath,
-            UiHitTestCell, UiHitTestEntry, UiHitTestGrid, UiHitTestQuery, UiHitTestReject,
-            UiHitTestRejectReason, UiHitTestScope, UiInvalidationDebugReport,
+            UiHitRouteNode, UiHitTestCell, UiHitTestEntry, UiHitTestGrid, UiHitTestQuery,
+            UiHitTestReject, UiHitTestRejectReason, UiHitTestScope, UiInvalidationDebugReport,
             UiMaterialBatchDebugStat, UiNavigationEventKind, UiOverdrawCellDebugRecord,
             UiOverdrawDebugStats, UiPointerButton, UiPointerEventKind, UiRenderCommand,
             UiRenderCommandDebugRecord, UiRenderCommandKind, UiRenderDebugSnapshot,
-            UiRenderDebugStats, UiRenderExtract, UiRenderList, UiResolvedStyle,
-            UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
-            UiSurfaceFrame, UiTextAlign, UiTextWrap, UiTextWritingMode, UiVirtualPointerPosition,
-            UiWidgetReflectorNode, UiWorldHitRay, UI_SURFACE_DEBUG_SCHEMA_VERSION,
+            UiRenderDebugStats, UiRenderExtract, UiRenderFrameExtract, UiRenderList,
+            UiResolvedStyle, UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions,
+            UiSurfaceDebugSnapshot, UiSurfaceFrame, UiTextAlign, UiTextWrap, UiTextWritingMode,
+            UiVirtualPointerPosition, UiWidgetReflectorNode, UiWorldHitRay,
+            UI_SURFACE_DEBUG_SCHEMA_VERSION,
         },
         template::{
-            UiActionHostPolicy, UiActionPolicyReport, UiActionSideEffectClass, UiAssetDocument,
-            UiAssetFingerprint, UiAssetHeader, UiAssetImports, UiAssetKind, UiAssetMigrationReport,
-            UiAssetMigrationStep, UiAssetSchemaDiagnostic, UiAssetSchemaDiagnosticSeverity,
-            UiAssetSchemaSourceKind, UiBindingExpression, UiCompileCacheKey,
-            UiCompiledAssetDependencyManifest, UiCompiledAssetHeader,
+            UiActionHostPolicy, UiActionPolicyReport, UiActionRef, UiActionSideEffectClass,
+            UiAssetDocument, UiAssetFingerprint, UiAssetHeader, UiAssetImports, UiAssetKind,
+            UiAssetMigrationReport, UiAssetMigrationStep, UiAssetSchemaDiagnostic,
+            UiAssetSchemaDiagnosticSeverity, UiAssetSchemaSourceKind, UiBindingExpression,
+            UiBindingMissingValuePolicy, UiBindingPackageLifecycleStage, UiBindingTarget,
+            UiCompileCacheKey, UiCompiledAssetDependencyManifest, UiCompiledAssetHeader,
             UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
             UiCompiledAssetPackageValidationReport, UiLocalizationReport, UiLocalizedTextRef,
-            UiNodeDefinition, UiResourceKind, UiResourceRef, UiTemplateDocument, UiTemplateNode,
-            UiTextDirection, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
-            UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+            UiNodeDefinition, UiResourceKind, UiResourceRef, UiTemplateNode, UiTextDirection,
+            UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
+            UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
         },
         tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiTreeNode, UiVisibility},
     },
     ZrByteSlice, ZrByteSliceError, ZrOwnedByteBuffer, ZrPluginApiV1,
-    ZrPluginEventCallbackRequestV1, ZrPluginEventCallbackResultV1, ZrRuntimeApiV7,
+    ZrPluginEventCallbackRequestV1, ZrPluginEventCallbackResultV1, ZrRuntimeApiV8,
     ZrRuntimeCursorGrabModeV1, ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1,
     ZrRuntimeCursorPositionV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1,
     ZrRuntimeFrameV2, ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
@@ -82,7 +85,7 @@ use crate::{
     ZrRuntimeSessionHandle, ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle,
     ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1, ZrRuntimeWakeSinkV1, ZrStatus,
     ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
-    ZIRCON_RUNTIME_ABI_VERSION_V3, ZIRCON_RUNTIME_API_VERSION_V7,
+    ZIRCON_RUNTIME_ABI_VERSION_V3, ZIRCON_RUNTIME_API_VERSION_V8,
     ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1,
     ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1,
     ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1,
@@ -108,7 +111,8 @@ use crate::{
     ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
-    ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_SURFACE_RECREATED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
     ZR_RUNTIME_WINDOW_THEME_DARK_V1,
 };
 
@@ -174,10 +178,10 @@ fn ui_surface_frame_contract_carries_arranged_render_and_hit_state() {
     };
     let arranged_tree = UiArrangedTree {
         tree_id: UiTreeId::new("ui.surface"),
-        roots: vec![node_id],
-        nodes: vec![arranged.clone()],
-        draw_order: vec![node_id],
-        canvas_layers: Vec::new(),
+        roots: vec![node_id].into(),
+        nodes: vec![arranged.clone()].into(),
+        draw_order: vec![node_id].into(),
+        canvas_layers: Vec::new().into(),
     };
     let hit_grid = UiHitTestGrid {
         bounds: UiFrame::new(4.0, 8.0, 64.0, 20.0),
@@ -185,6 +189,14 @@ fn ui_surface_frame_contract_carries_arranged_render_and_hit_state() {
         columns: 1,
         rows: 1,
         scope: UiHitTestScope::default(),
+        route_nodes: std::sync::Arc::new(vec![UiHitRouteNode {
+            node_id,
+            parent_index: UiHitRouteNode::NO_PARENT_INDEX,
+            effective_input_policy: UiInputPolicy::Receive,
+            pointer_path_visible: true,
+            descendant_pointer_path_visible: true,
+            route_valid: true,
+        }]),
         entries: vec![UiHitTestEntry {
             node_id,
             frame: arranged.frame,
@@ -192,33 +204,36 @@ fn ui_surface_frame_contract_carries_arranged_render_and_hit_state() {
             z_index: arranged.z_index,
             paint_order: arranged.paint_order,
             control_id: arranged.control_id.clone(),
-            effective_input_policy: Some(UiInputPolicy::Receive),
-            bubble_route: vec![node_id],
-        }],
-        cells: vec![UiHitTestCell { entries: vec![0] }],
+            route_node_index: 0,
+        }]
+        .into(),
+        cells: vec![UiHitTestCell {
+            entries: vec![0].into(),
+        }]
+        .into(),
     };
     let frame = UiSurfaceFrame {
         generation: 1,
+        domain_generations: Default::default(),
         tree_id: UiTreeId::new("ui.surface"),
         window_state: Default::default(),
-        arranged_tree,
-        render_extract: UiRenderExtract {
+        arranged_tree: arranged_tree.into(),
+        render_extract: UiRenderFrameExtract::from_extract(&UiRenderExtract {
             tree_id: UiTreeId::new("ui.surface"),
             list: UiRenderList::default(),
             raster_scale: 1.0,
-        },
-        hit_grid,
+        })
+        .into(),
+        hit_grid: hit_grid.into(),
         focus_state: Default::default(),
-        focus_path: UiFocusPath::from_bubble_route(Some(node_id), vec![node_id]),
+        focus_path: UiFocusPath::from_bubble_route(Some(node_id), vec![node_id]).into(),
         last_rebuild: Default::default(),
         layout_engine_report: Default::default(),
         pipeline_report: Default::default(),
-        ecs_projection: Default::default(),
     };
     let hit_path = UiHitPath {
         target: Some(node_id),
         root_to_leaf: vec![node_id],
-        bubble_route: vec![node_id],
         virtual_pointer: None,
     };
     let virtual_pointer =
@@ -736,11 +751,11 @@ fn status_preserves_raw_codes_and_diagnostics() {
 
 #[test]
 fn runtime_api_table_records_size_and_version() {
-    let api = ZrRuntimeApiV7::empty();
+    let api = ZrRuntimeApiV8::empty();
 
-    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V7);
-    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV7>());
-    assert_eq!(core::mem::size_of::<ZrRuntimeApiV7>(), 200);
+    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V8);
+    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV8>());
+    assert_eq!(core::mem::size_of::<ZrRuntimeApiV8>(), 200);
     assert!(api.create_session.is_none());
     assert!(api.release_allocation.is_none());
     assert!(api.capture_frame.is_none());
@@ -762,63 +777,63 @@ fn runtime_api_table_records_size_and_version() {
     assert!(api.unwatch_world.is_none());
     assert!(api.drain_world_invalidations.is_none());
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, bind_viewport_surface),
-        core::mem::offset_of!(ZrRuntimeApiV7, capture_accessibility_tree)
+        core::mem::offset_of!(ZrRuntimeApiV8, bind_viewport_surface),
+        core::mem::offset_of!(ZrRuntimeApiV8, capture_accessibility_tree)
             + core::mem::size_of::<Option<crate::ZrRuntimeCaptureAccessibilityTreeFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, submit_highlight_set),
-        core::mem::offset_of!(ZrRuntimeApiV7, present_viewport)
+        core::mem::offset_of!(ZrRuntimeApiV8, submit_highlight_set),
+        core::mem::offset_of!(ZrRuntimeApiV8, present_viewport)
             + core::mem::size_of::<Option<crate::ZrRuntimePresentViewportFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, profile_control),
-        core::mem::offset_of!(ZrRuntimeApiV7, submit_highlight_set)
+        core::mem::offset_of!(ZrRuntimeApiV8, profile_control),
+        core::mem::offset_of!(ZrRuntimeApiV8, submit_highlight_set)
             + core::mem::size_of_val(&api.submit_highlight_set)
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, tick_frame),
-        core::mem::offset_of!(ZrRuntimeApiV7, profile_control)
+        core::mem::offset_of!(ZrRuntimeApiV8, tick_frame),
+        core::mem::offset_of!(ZrRuntimeApiV8, profile_control)
             + core::mem::size_of::<Option<crate::ZrRuntimeProfileControlFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, drain_host_requests),
-        core::mem::offset_of!(ZrRuntimeApiV7, tick_frame)
+        core::mem::offset_of!(ZrRuntimeApiV8, drain_host_requests),
+        core::mem::offset_of!(ZrRuntimeApiV8, tick_frame)
             + core::mem::size_of::<Option<crate::ZrRuntimeTickFrameFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, subscribe_plugin_event),
-        core::mem::offset_of!(ZrRuntimeApiV7, drain_host_requests)
+        core::mem::offset_of!(ZrRuntimeApiV8, subscribe_plugin_event),
+        core::mem::offset_of!(ZrRuntimeApiV8, drain_host_requests)
             + core::mem::size_of::<Option<crate::ZrRuntimeDrainHostRequestsFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, unsubscribe_plugin_event),
-        core::mem::offset_of!(ZrRuntimeApiV7, subscribe_plugin_event)
+        core::mem::offset_of!(ZrRuntimeApiV8, unsubscribe_plugin_event),
+        core::mem::offset_of!(ZrRuntimeApiV8, subscribe_plugin_event)
             + core::mem::size_of::<Option<crate::ZrRuntimeSubscribePluginEventFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, drain_plugin_events),
-        core::mem::offset_of!(ZrRuntimeApiV7, unsubscribe_plugin_event)
+        core::mem::offset_of!(ZrRuntimeApiV8, drain_plugin_events),
+        core::mem::offset_of!(ZrRuntimeApiV8, unsubscribe_plugin_event)
             + core::mem::size_of::<Option<crate::ZrRuntimeUnsubscribePluginEventFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, query_world),
-        core::mem::offset_of!(ZrRuntimeApiV7, harvest_operation)
+        core::mem::offset_of!(ZrRuntimeApiV8, query_world),
+        core::mem::offset_of!(ZrRuntimeApiV8, harvest_operation)
             + core::mem::size_of::<Option<crate::ZrRuntimeHarvestOperationFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, watch_world),
-        core::mem::offset_of!(ZrRuntimeApiV7, query_world)
+        core::mem::offset_of!(ZrRuntimeApiV8, watch_world),
+        core::mem::offset_of!(ZrRuntimeApiV8, query_world)
             + core::mem::size_of::<Option<crate::ZrRuntimeQueryWorldFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, unwatch_world),
-        core::mem::offset_of!(ZrRuntimeApiV7, watch_world)
+        core::mem::offset_of!(ZrRuntimeApiV8, unwatch_world),
+        core::mem::offset_of!(ZrRuntimeApiV8, watch_world)
             + core::mem::size_of::<Option<crate::ZrRuntimeWatchWorldFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, drain_world_invalidations),
-        core::mem::offset_of!(ZrRuntimeApiV7, unwatch_world)
+        core::mem::offset_of!(ZrRuntimeApiV8, drain_world_invalidations),
+        core::mem::offset_of!(ZrRuntimeApiV8, unwatch_world)
             + core::mem::size_of::<Option<crate::ZrRuntimeUnwatchWorldFnV1>>()
     );
 }
@@ -1261,6 +1276,10 @@ fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         ZrRuntimeViewportHandle::new(2),
     );
+    let window_surface_recreated = ZrRuntimeEventV1::window_surface_recreated(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+    );
 
     assert_eq!(lifecycle.kind, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1);
     assert_eq!(lifecycle.state, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1);
@@ -1321,6 +1340,10 @@ fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
     assert_eq!(
         window_destroyed.state,
         ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1
+    );
+    assert_eq!(
+        window_surface_recreated.state,
+        ZR_RUNTIME_WINDOW_STATUS_SURFACE_RECREATED_V1
     );
     assert_eq!(
         gamepad_connection.kind,
@@ -1793,7 +1816,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
             wrap: UiTextWrap::Word,
             text_direction: crate::ui::surface::UiTextDirection::Auto,
             text_overflow: crate::ui::surface::UiTextOverflow::Ellipsis,
-            rich_text_format: crate::ui::surface::UiRichTextFormat::Markdown,
+            rich_text_format: crate::ui::surface::UiRichTextFormat::MarkdownInlineV1,
             ..UiResolvedStyle::default()
         },
         text_layout: Some(crate::ui::surface::UiResolvedTextLayout {
@@ -1809,6 +1832,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
             source_range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
             lines: vec![crate::ui::surface::UiResolvedTextLine {
                 text: "hello".to_string(),
+                placement_frame: UiFrame::default(),
                 frame,
                 source_range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
                 visual_range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
@@ -1848,47 +1872,43 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
         scroll_delta: 0.0,
         click_count: 1,
     };
+    let route = crate::ui::surface::UiPointerRoute {
+        kind: event.kind,
+        button: event.button,
+        modifiers: Default::default(),
+        activation_phase: crate::ui::surface::UiPointerActivationPhase::Hover,
+        point: event.point,
+        scroll_delta: event.scroll_delta,
+        target: Some(node_id),
+        hit_path: crate::ui::surface::UiHitPath::default(),
+        routing_path: crate::ui::surface::UiPointerRoutingPath::from_root_to_leaf(Vec::new()),
+        stacked: vec![node_id],
+        entered: Vec::new(),
+        left: Vec::new(),
+        captured: None,
+        pressed: None,
+        click_target: None,
+        release_inside_pressed: false,
+        focused: None,
+        fallback_to_root: false,
+        root_targets: vec![node_id],
+    };
     let context = UiPointerDispatchContext {
         node_id,
         phase: UiDispatchPhase::Target,
-        route: crate::ui::surface::UiPointerRoute {
-            kind: event.kind,
-            button: event.button,
-            modifiers: Default::default(),
-            activation_phase: crate::ui::surface::UiPointerActivationPhase::Hover,
-            point: event.point,
-            scroll_delta: event.scroll_delta,
-            target: Some(node_id),
-            hit_path: crate::ui::surface::UiHitPath::default(),
-            bubbled: Vec::new(),
-            stacked: vec![node_id],
-            entered: Vec::new(),
-            left: Vec::new(),
-            captured: None,
-            pressed: None,
-            click_target: None,
-            release_inside_pressed: false,
-            focused: None,
-            fallback_to_root: false,
-            root_targets: vec![node_id],
-        },
+        route: &route,
     };
     let node = UiTreeNode::new(node_id, crate::ui::event_ui::UiNodePath::new("root"))
         .with_frame(frame)
         .with_input_policy(UiInputPolicy::Receive)
         .with_constraints(BoxConstraints::default())
         .with_z_index(1);
-    let mut tree = UiTree {
-        tree_id: tree_id.clone(),
-        roots: vec![node_id],
-        nodes: Default::default(),
-        slots: Vec::new(),
-    };
-    let _ = tree.nodes.insert(node_id, node);
+    let mut tree = UiTree::new(tree_id.clone());
+    tree.insert_root(node);
 
     assert_eq!(extract.list.commands.len(), 1);
     assert_eq!(context.route.point.x, 1.0);
-    let pointer_result = crate::ui::dispatch::UiPointerDispatchResult::new(context.route.clone());
+    let pointer_result = crate::ui::dispatch::UiPointerDispatchResult::new(route);
     assert!(pointer_result.diagnostics.pointer_routed);
     assert!(pointer_result.diagnostics.ignored_same_target_hover);
     assert!(!pointer_result.diagnostics.click_target_resolved);
@@ -2131,7 +2151,7 @@ fn ui_input_event_contract_constructs_every_event_family() {
             kind: UiDragDropInputEventKind::Drop,
             session_id: Some(UiDragSessionId::new(42)),
             point: UiPoint::new(4.0, 8.0),
-            payload: Some(Box::new(payload)),
+            payload: Some(std::sync::Arc::new(payload)),
         }),
         UiInputEvent::Popup(UiPopupInputEvent {
             metadata: metadata.clone(),
@@ -2323,7 +2343,7 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
             pointer_id,
             session_id: Some(UiDragSessionId::new(9)),
             point: Some(UiPoint::new(1.0, 2.0)),
-            payload: Some(payload),
+            payload: Some(std::sync::Arc::new(payload)),
         },
         UiDispatchEffect::RequestNavigation {
             kind: UiNavigationEventKind::Down,
@@ -2353,6 +2373,9 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
         },
         UiDispatchEffect::RequestClipboard {
             request: UiClipboardRequest {
+                transfer_id: UiClipboardTransferId::issue(),
+                intent: UiClipboardTransferIntent::Copy,
+                expected_edit_revision: 0,
                 kind: UiClipboardRequestKind::WriteText,
                 owner: target,
                 text: Some("selected".to_string()),
@@ -2376,6 +2399,7 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
             text: "commit".to_string(),
         }),
         reply,
+        pointer_routing: None,
         diagnostics: UiInputDispatchDiagnostics {
             routed: true,
             handled_phase: Some("bubble".to_string()),
@@ -2399,7 +2423,11 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
                 stopped: true,
             }],
             blocked_by: None,
+            text_constraint: None,
+            clipboard_transfer: None,
+            secure_text_redacted: false,
             notes: vec!["handled".to_string()],
+            ..UiInputDispatchDiagnostics::default()
         },
         applied_effects: vec![UiDispatchAppliedEffect {
             effect_index: 0,
@@ -2427,6 +2455,9 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
             UiDispatchHostRequest {
                 effect_index: 12,
                 request: UiDispatchHostRequestKind::Clipboard(UiClipboardRequest {
+                    transfer_id: UiClipboardTransferId::issue(),
+                    intent: UiClipboardTransferIntent::Copy,
+                    expected_edit_revision: 0,
                     kind: UiClipboardRequestKind::WriteText,
                     owner: target,
                     text: Some("selected".to_string()),
@@ -2434,6 +2465,7 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
                 reason: "clipboard write requested".to_string(),
             },
         ],
+        widget_events: Vec::new(),
         component_events: vec![UiComponentEventReport {
             target,
             event: component_event,
@@ -2591,7 +2623,7 @@ fn ui_input_payloads_round_trip_through_serde() {
         kind: UiDragDropInputEventKind::Over,
         session_id: Some(UiDragSessionId::new(12)),
         point: UiPoint::new(9.0, 10.0),
-        payload: Some(Box::new(UiDragPayload::new(
+        payload: Some(std::sync::Arc::new(UiDragPayload::new(
             UiDragPayloadKind::SceneInstance,
             "scene://entity/hero",
         ))),
@@ -2623,6 +2655,14 @@ fn ui_input_payloads_round_trip_through_serde() {
         target: UiNodeId::new(77),
         toast_id: "save-toast".to_string(),
     });
+    let clipboard_input = UiInputEvent::Clipboard(UiClipboardInputEvent {
+        metadata: sample_ui_input_metadata(),
+        transfer_id: UiClipboardTransferId::issue(),
+        owner: UiNodeId::new(77),
+        outcome: UiClipboardTransferOutcome::ReadText {
+            text: "clipboard result".to_string(),
+        },
+    });
     let input_method_request = UiDispatchEffect::RequestInputMethod {
         request: UiInputMethodRequest {
             kind: UiInputMethodRequestKind::UpdateCursor,
@@ -2634,12 +2674,18 @@ fn ui_input_payloads_round_trip_through_serde() {
     };
     let clipboard_effect = UiDispatchEffect::RequestClipboard {
         request: UiClipboardRequest {
+            transfer_id: UiClipboardTransferId::issue(),
+            intent: UiClipboardTransferIntent::Paste,
+            expected_edit_revision: 0,
             kind: UiClipboardRequestKind::ReadText,
             owner: UiNodeId::new(77),
             text: None,
         },
     };
     let clipboard_host_request = UiDispatchHostRequestKind::Clipboard(UiClipboardRequest {
+        transfer_id: UiClipboardTransferId::issue(),
+        intent: UiClipboardTransferIntent::Copy,
+        expected_edit_revision: 0,
         kind: UiClipboardRequestKind::WriteText,
         owner: UiNodeId::new(77),
         text: Some("clipboard".to_string()),
@@ -2666,6 +2712,7 @@ fn ui_input_payloads_round_trip_through_serde() {
     assert_eq!(ui_input_round_trip(&typeahead), typeahead);
     assert_eq!(ui_input_round_trip(&submenu_hover), submenu_hover);
     assert_eq!(ui_input_round_trip(&toast), toast);
+    assert_eq!(ui_input_round_trip(&clipboard_input), clipboard_input);
     assert_eq!(
         ui_input_round_trip(&input_method_request),
         input_method_request
@@ -2760,13 +2807,9 @@ fn ui_component_template_policy_localization_and_package_contracts_construct() {
             .requires_host_capability(UiHostCapability::PointerInput)
             .requires_render_capability(UiRenderCapability::Text);
     let expression = UiBindingExpression::parse("\"label\"").unwrap();
-    let template = UiTemplateDocument {
-        version: 1,
-        components: Default::default(),
-        root: UiTemplateNode {
-            component: Some("button".to_string()),
-            ..UiTemplateNode::default()
-        },
+    let template_node = UiTemplateNode {
+        component: Some("button".to_string()),
+        ..UiTemplateNode::default()
     };
     let asset = UiAssetDocument {
         asset: UiAssetHeader {
@@ -2821,6 +2864,7 @@ fn ui_component_template_policy_localization_and_package_contracts_construct() {
         dependencies: UiCompiledAssetDependencyManifest::default(),
         retained_sections: vec![UiCompiledAssetPackageSection::RuntimeTemplateTree],
         stripped_sections: vec![UiCompiledAssetPackageSection::AuthoringDiagnostics],
+        binding_lifecycle_stage: UiBindingPackageLifecycleStage::Compiled,
         invalidation_report: Default::default(),
         action_policy_report: UiActionPolicyReport::default(),
         localization_report: UiLocalizationReport::default(),
@@ -2831,7 +2875,8 @@ fn ui_component_template_policy_localization_and_package_contracts_construct() {
         expression,
         UiBindingExpression::Literal(UiValue::String("label".to_string()))
     );
-    assert_eq!(template.root.node_kind_count(), 1);
+    assert_eq!(template_node.component.as_deref(), Some("button"));
+    assert!(template_node.template.is_none() && template_node.slot.is_none());
     assert_eq!(asset.root_node_id(), Some("root"));
     assert!(policy.allows(UiActionSideEffectClass::LocalUi));
     assert_eq!(
@@ -2862,4 +2907,49 @@ fn ui_schema_report_contracts_serialize() {
         round_trip.diagnostics[0].severity,
         UiAssetSchemaDiagnosticSeverity::Warning
     );
+}
+
+#[test]
+fn binding_compile_schema_version_invalidates_unresolved_or_unscoped_artifacts() {
+    assert_eq!(
+        UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, 8,
+        "V2 product ParamRef resolution and control scoping must reject older artifacts"
+    );
+}
+
+#[test]
+fn binding_missing_value_policy_round_trips_every_explicit_outcome() {
+    let policies = [
+        UiBindingMissingValuePolicy::Required,
+        UiBindingMissingValuePolicy::Optional,
+        UiBindingMissingValuePolicy::Default {
+            value: UiValue::String("default".to_string()),
+        },
+        UiBindingMissingValuePolicy::Fallback {
+            value: UiValue::Int(7),
+        },
+        UiBindingMissingValuePolicy::Error,
+    ];
+
+    for policy in policies {
+        let target = UiBindingTarget::prop("text").with_missing_policy(policy.clone());
+        let serialized = toml::to_string(&target).unwrap();
+        let round_trip: UiBindingTarget = toml::from_str(&serialized).unwrap();
+
+        assert_eq!(round_trip.missing_policy, policy);
+        assert!(round_trip.missing_policy.is_well_formed());
+
+        let action = UiActionRef {
+            payload_missing_policy: policy.clone(),
+            ..UiActionRef::default()
+        };
+        let serialized = toml::to_string(&action).unwrap();
+        let round_trip: UiActionRef = toml::from_str(&serialized).unwrap();
+        assert_eq!(round_trip.payload_missing_policy, policy);
+    }
+
+    assert!(!UiBindingMissingValuePolicy::Fallback {
+        value: UiValue::Float(f64::NAN),
+    }
+    .is_well_formed());
 }

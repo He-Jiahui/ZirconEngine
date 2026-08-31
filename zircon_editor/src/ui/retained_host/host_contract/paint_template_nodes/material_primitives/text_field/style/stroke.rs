@@ -1,5 +1,6 @@
 use super::super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::style_selector::focus_visible_for_node;
 use super::super::super::{component_variant_contains, resolved_style_color};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const MUI_FIELD_STANDARD_UNDERLINE: f32 = 1.0;
@@ -26,7 +27,7 @@ fn field_stroke_color_from_host(
     if let Some(color) = resolved_style_color(node.button_style.element.border_color.as_ref()) {
         return color;
     }
-    if node.focused || component_variant_contains(node, "focused") {
+    if focus_visible_for_node(node) || component_variant_contains(node, "focused") {
         return palette.focus_ring;
     }
     palette.border
@@ -39,7 +40,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_s
         .border_width
         .max(node.button_style.element.border_width)
         .max(0.0);
-    if node.focused
+    if focus_visible_for_node(node)
         || component_variant_contains(node, "focused")
         || matches!(node.validation_level.as_str(), "error" | "danger")
         || component_variant_contains(node, "error")

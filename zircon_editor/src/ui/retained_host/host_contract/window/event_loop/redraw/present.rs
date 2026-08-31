@@ -1,7 +1,6 @@
 use winit::event_loop::ActiveEventLoop;
 
 use crate::core::jobs::JobId;
-use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::diagnostics::HostWindowDiagnosticSeverity;
 use crate::ui::retained_host::host_contract::presenter::HostPresenterError;
 use crate::ui::retained_host::host_contract::profiling_artifacts::{
@@ -18,31 +17,31 @@ use super::super::UiHostWindowEventLoop;
 pub(super) fn present_redraw(
     event_loop_state: &mut UiHostWindowEventLoop,
     event_loop: &dyn ActiveEventLoop,
-    damage_region: Option<FrameRect>,
+    redraw: HostRedrawRequest,
     scenario: UiPerfScenario,
 ) {
+    let damage_region = redraw.damage_region().cloned();
     let _present_scenario_guard = enter_ui_perf_scenario(scenario);
     let profile_measurement_active = event_loop_state.profile_measurement_active();
     let Some(presenter) = event_loop_state.presenter.as_mut() else {
         return;
     };
     let generation = event_loop_state.host.get_host_presentation_generation();
+    let presentation_cursor = generation.cursor();
     let _paint_scope = generation.enter_paint_scope();
     let presentation = generation.structure();
     let invalidation = event_loop_state.host.refresh_invalidation_diagnostics();
-    let present_result = if event_loop_state.host.native_resize_reflow_pending() {
-        presenter.present_during_native_resize(presentation, invalidation)
-    } else {
-        presenter.present(presentation, damage_region.clone(), invalidation)
-    };
+    let present_result = presenter.present(
+        presentation,
+        presentation_cursor,
+        damage_region.clone(),
+        invalidation,
+    );
     match present_result {
         Ok(diagnostics) => {
             event_loop_state.reset_surface_present_retry_backoff();
             if let Some(backend) = event_loop_state.presenter_backend.filter(|_| {
-                should_queue_profile_artifacts(
-                    profile_capture_enabled(),
-                    event_loop_state.profile_artifact_capture_requested,
-                )
+                !event_loop_state.profile_artifact_capture_requested && profile_capture_enabled()
             }) {
                 event_loop_state.profile_artifact_capture_requested = true;
                 match event_loop_state.host.profile_artifact_jobs() {
@@ -75,6 +74,16 @@ pub(super) fn present_redraw(
             event_loop_state
                 .host
                 .set_host_refresh_diagnostics_overlay(diagnostics);
+            if let Err(error) = event_loop_state.host.notify_first_presented() {
+                event_loop_state.host.report_fatal_failure(
+                    "editor_host_window",
+                    "first_present_notification",
+                    format!("editor first-present notification failed: {error}"),
+                    "verify the Hub startup mailbox and retry zircon_editor",
+                );
+                event_loop.exit();
+                return;
+            }
             if let Err(error) = event_loop_state.host.capture_first_presented_frame() {
                 event_loop_state
                     .host
@@ -100,7 +109,7 @@ pub(super) fn present_redraw(
                 "ui.surface.retryable_no_submit_count",
                 1_u8
             );
-            let retry = retry_present_request(scenario, damage_region);
+            let retry = retry_present_request(scenario, redraw);
             event_loop_state.defer_surface_present_retry(retry, std::time::Instant::now());
         }
         Err(error) => {
@@ -119,14 +128,8 @@ pub(super) fn present_redraw(
     }
 }
 
-fn retry_present_request(
-    scenario: UiPerfScenario,
-    damage_region: Option<FrameRect>,
-) -> HostRedrawRequest {
-    damage_region.map_or_else(
-        || HostRedrawRequest::full_frame_for_scenario(scenario, false),
-        |damage| HostRedrawRequest::region_for_scenario(scenario, damage),
-    )
+fn retry_present_request(scenario: UiPerfScenario, redraw: HostRedrawRequest) -> HostRedrawRequest {
+    redraw.into_present_retry(scenario)
 }
 
 fn profile_artifact_submission_job_id(
@@ -203,10 +206,6 @@ mod profile_artifact_submission_tests {
     }
 }
 
-fn should_queue_profile_artifacts(capture_enabled: bool, already_requested: bool) -> bool {
-    capture_enabled && !already_requested
-}
-
 fn exit_after_presented_frame(
     enabled: bool,
     host: &super::super::super::UiHostWindow,
@@ -224,10 +223,9 @@ fn first_presented_frame_diagnostic(enabled: bool) -> Option<&'static str> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        first_presented_frame_diagnostic, retry_present_request, should_queue_profile_artifacts,
-    };
+    use super::{first_presented_frame_diagnostic, retry_present_request};
     use crate::ui::retained_host::host_contract::data::FrameRect;
+    use crate::ui::retained_host::host_contract::redraw::HostRedrawRequest;
     use crate::ui::retained_host::ui_perf::UiPerfScenario;
 
     #[test]
@@ -244,13 +242,6 @@ mod tests {
     }
 
     #[test]
-    fn profile_artifacts_are_explicit_and_one_shot() {
-        assert!(!should_queue_profile_artifacts(false, false));
-        assert!(should_queue_profile_artifacts(true, false));
-        assert!(!should_queue_profile_artifacts(true, true));
-    }
-
-    #[test]
     fn retryable_surface_present_requeues_the_same_present_without_a_frame_update() {
         let damage = FrameRect {
             x: 3.0,
@@ -258,19 +249,66 @@ mod tests {
             width: 20.0,
             height: 12.0,
         };
-        let region = retry_present_request(UiPerfScenario::IdleHover, Some(damage.clone()));
+        let region = retry_present_request(
+            UiPerfScenario::IdleHover,
+            HostRedrawRequest::region_for_scenario_with_frame_update(
+                UiPerfScenario::Click,
+                damage.clone(),
+                true,
+            ),
+        );
         assert!(region.request_redraw());
         assert!(region.requires_present());
         assert!(!region.requires_frame_update());
         assert_eq!(region.damage_region(), Some(&damage));
         assert_eq!(region.scenario(), UiPerfScenario::IdleHover);
 
-        let full = retry_present_request(UiPerfScenario::WindowResize, None);
+        let full = retry_present_request(
+            UiPerfScenario::WindowResize,
+            HostRedrawRequest::full_frame_for_scenario(UiPerfScenario::Click, true),
+        );
         assert!(full.request_redraw());
         assert!(full.requires_present());
         assert!(!full.requires_frame_update());
         assert_eq!(full.damage_region(), None);
         assert_eq!(full.scenario(), UiPerfScenario::WindowResize);
+    }
+
+    #[test]
+    fn retryable_surface_present_preserves_bounded_damage_pressure() {
+        let redraw = HostRedrawRequest::region(FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 10.0,
+            height: 10.0,
+        })
+        .merge(HostRedrawRequest::region(FrameRect {
+            x: 20.0,
+            y: 0.0,
+            width: 10.0,
+            height: 10.0,
+        }))
+        .merge(HostRedrawRequest::region(FrameRect {
+            x: 100.0,
+            y: 0.0,
+            width: 10.0,
+            height: 10.0,
+        }))
+        .merge(HostRedrawRequest::region_with_frame_update(FrameRect {
+            x: 32.0,
+            y: 0.0,
+            width: 8.0,
+            height: 10.0,
+        }));
+        let expected_damage = redraw.damage_region().cloned();
+        let expected_metrics = redraw.damage_region_metrics();
+
+        let retry = retry_present_request(UiPerfScenario::IdleHover, redraw);
+
+        assert!(!retry.requires_frame_update());
+        assert_eq!(retry.damage_region(), expected_damage.as_ref());
+        assert_eq!(retry.damage_region_metrics(), expected_metrics);
+        assert_eq!(retry.scenario(), UiPerfScenario::IdleHover);
     }
 
     #[test]
@@ -293,6 +331,28 @@ mod tests {
 
         assert!(success.contains("record_presented_input_batch(scenario)"));
         assert!(!retry.contains("record_presented_input_batch"));
+    }
+
+    #[test]
+    fn first_present_notification_is_emitted_only_from_the_successful_present_branch() {
+        let source = include_str!("present.rs");
+        let success = source
+            .split("Ok(diagnostics) =>")
+            .nth(1)
+            .and_then(|source| {
+                source
+                    .split("Err(HostPresenterError::RetryableSurfacePresent)")
+                    .next()
+            })
+            .expect("successful present branch");
+        let retry = source
+            .split("Err(HostPresenterError::RetryableSurfacePresent) =>")
+            .nth(1)
+            .and_then(|source| source.split("Err(error) =>").next())
+            .expect("retryable present branch");
+
+        assert!(success.contains("notify_first_presented()"));
+        assert!(!retry.contains("notify_first_presented"));
     }
 
     #[test]

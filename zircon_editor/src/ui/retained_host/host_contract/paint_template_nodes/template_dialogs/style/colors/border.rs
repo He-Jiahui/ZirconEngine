@@ -13,8 +13,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_
         palette.disabled_border
     } else if kind.uses_severity_chrome() {
         severity_border_color(node)
-    } else if node.pressed || node.popup_open {
-        palette.active_border
     } else {
         palette.border
     }

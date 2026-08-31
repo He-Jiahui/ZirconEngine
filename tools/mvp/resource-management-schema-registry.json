@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "registry_kind": "zircon.resource-management-schema-registry",
+  "schemas": [
+    {
+      "schema_id": "zircon.resource-management.scale-project",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": null,
+      "identity_value": null
+    },
+    {
+      "schema_id": "zircon.resource-management.change-set",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": null,
+      "identity_value": null
+    },
+    {
+      "schema_id": "zircon.resource-management.baseline-plan",
+      "current_version": 3,
+      "minimum_reader_version": 3,
+      "compatibility": "exact",
+      "identity_property": "workload_family",
+      "identity_value": "resource-management-query"
+    },
+    {
+      "schema_id": "zircon.resource-management.observation",
+      "current_version": 3,
+      "minimum_reader_version": 3,
+      "compatibility": "exact",
+      "identity_property": "workload_family",
+      "identity_value": "resource-management-query"
+    },
+    {
+      "schema_id": "zircon.resource-management.baseline-report",
+      "current_version": 4,
+      "minimum_reader_version": 4,
+      "compatibility": "exact",
+      "identity_property": "workload_family",
+      "identity_value": "resource-management-query"
+    },
+    {
+      "schema_id": "zircon.resource-management.observation-context",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "context_kind",
+      "identity_value": "zircon.resource-management-observation-context"
+    },
+    {
+      "schema_id": "zircon.resource-management.product-receipt",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "receipt_kind",
+      "identity_value": "zircon.mvp-product-receipt"
+    },
+    {
+      "schema_id": "zircon.resource-management.sample-process-context",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "context_kind",
+      "identity_value": "zircon.resource-management-sample-process-context"
+    },
+    {
+      "schema_id": "zircon.resource-management.execution-protocol",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "protocol_kind",
+      "identity_value": "zircon.resource-management-execution-protocol"
+    },
+    {
+      "schema_id": "zircon.resource-management.sample-protocol",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "protocol_kind",
+      "identity_value": "zircon.resource-management-sample-protocol"
+    },
+    {
+      "schema_id": "zircon.resource-management.comparison-policy",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "policy_kind",
+      "identity_value": "resource-management-comparison"
+    },
+    {
+      "schema_id": "zircon.resource-management.comparison-report",
+      "current_version": 3,
+      "minimum_reader_version": 3,
+      "compatibility": "exact",
+      "identity_property": "report_kind",
+      "identity_value": "resource-management-comparison"
+    },
+    {
+      "schema_id": "zircon.resource-management.cohort-comparison",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "comparison_kind",
+      "identity_value": "resource-management-cohort"
+    },
+    {
+      "schema_id": "zircon.resource-management.outlier-receipt",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "policy",
+      "identity_value": "retain-all"
+    },
+    {
+      "schema_id": "zircon.resource-management.workload-registry",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "registry_kind",
+      "identity_value": "zircon.resource-management-workload-registry"
+    },
+    {
+      "schema_id": "zircon.resource-management.workload-profile",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "profile_kind",
+      "identity_value": "zircon.resource-management-workload-profile"
+    },
+    {
+      "schema_id": "zircon.resource-management.approval-trust-registry",
+      "current_version": 1,
+      "minimum_reader_version": 1,
+      "compatibility": "exact",
+      "identity_property": "registry_kind",
+      "identity_value": "zircon.resource-management-approval-trust-registry"
+    },
+    {
+      "schema_id": "zircon.resource-management.approval-receipt",
+      "current_version": 2,
+      "minimum_reader_version": 2,
+      "compatibility": "exact",
+      "identity_property": "receipt_kind",
+      "identity_value": "zircon.resource-management-baseline-approval"
+    },
+    {
+      "schema_id": "zircon.resource-management.approval-verification",
+      "current_version": 2,
+      "minimum_reader_version": 2,
+      "compatibility": "exact",
+      "identity_property": "verification_kind",
+      "identity_value": "zircon.resource-management-baseline-approval-verification"
+    }
+  ]
+}

@@ -13,6 +13,22 @@ impl ShaderVariantPrewarmSourceId {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    pub fn from_cache_contract(
+        wgsl_source_hash: &str,
+        include_content_hashes: &[String],
+        template_revision: &str,
+        naga_version: &str,
+        wgpu_version: &str,
+    ) -> Self {
+        Self(source_artifact_hash(
+            wgsl_source_hash,
+            include_content_hashes,
+            template_revision,
+            naga_version,
+            wgpu_version,
+        ))
+    }
 }
 
 /// The one stored WGSL payload shared by every prewarm variant that uses it.
@@ -23,6 +39,8 @@ pub struct ShaderVariantPrewarmSource {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub source_label: String,
     pub wgsl_source: String,
+    #[serde(default)]
+    pub source_hash: String,
     pub include_content_hashes: Vec<String>,
     pub template_revision: String,
     pub naga_version: String,
@@ -63,18 +81,19 @@ impl ShaderVariantPrewarmSource {
         let template_revision = template_revision.into();
         let naga_version = naga_version.into();
         let wgpu_version = wgpu_version.into();
-        let id = ShaderVariantPrewarmSourceId(source_artifact_hash(
-            &source_label,
-            &wgsl_source,
+        let source_hash = shader_source_hash(&wgsl_source);
+        let id = ShaderVariantPrewarmSourceId::from_cache_contract(
+            &source_hash,
             &include_content_hashes,
             &template_revision,
             &naga_version,
             &wgpu_version,
-        ));
+        );
         Self {
             id,
             source_label,
             wgsl_source,
+            source_hash,
             include_content_hashes,
             template_revision,
             naga_version,
@@ -83,15 +102,15 @@ impl ShaderVariantPrewarmSource {
     }
 
     pub fn has_canonical_id(&self) -> bool {
-        self.id.0
-            == source_artifact_hash(
-                &self.source_label,
-                &self.wgsl_source,
-                &self.include_content_hashes,
-                &self.template_revision,
-                &self.naga_version,
-                &self.wgpu_version,
-            )
+        self.source_hash == shader_source_hash(&self.wgsl_source)
+            && self.id
+                == ShaderVariantPrewarmSourceId::from_cache_contract(
+                    &self.source_hash,
+                    &self.include_content_hashes,
+                    &self.template_revision,
+                    &self.naga_version,
+                    &self.wgpu_version,
+                )
     }
 
     pub fn with_source_label(&self, source_label: impl Into<String>) -> Self {
@@ -106,9 +125,7 @@ impl ShaderVariantPrewarmSource {
     }
 
     pub fn source_hash(&self) -> String {
-        blake3::hash(self.wgsl_source.as_bytes())
-            .to_hex()
-            .to_string()
+        self.source_hash.clone()
     }
 
     pub fn resident_bytes(&self) -> usize {
@@ -116,6 +133,7 @@ impl ShaderVariantPrewarmSource {
             + self.id.0.capacity()
             + self.source_label.capacity()
             + self.wgsl_source.capacity()
+            + self.source_hash.capacity()
             + self.include_content_hashes.capacity() * std::mem::size_of::<String>()
             + self
                 .include_content_hashes
@@ -129,16 +147,14 @@ impl ShaderVariantPrewarmSource {
 }
 
 fn source_artifact_hash(
-    source_label: &str,
-    wgsl_source: &str,
+    wgsl_source_hash: &str,
     include_content_hashes: &[String],
     template_revision: &str,
     naga_version: &str,
     wgpu_version: &str,
 ) -> String {
     let mut hasher = blake3::Hasher::new();
-    hash_field(&mut hasher, source_label.as_bytes());
-    hash_field(&mut hasher, wgsl_source.as_bytes());
+    hash_field(&mut hasher, wgsl_source_hash.as_bytes());
     hasher.update(&(include_content_hashes.len() as u64).to_le_bytes());
     for include_content_hash in include_content_hashes {
         hash_field(&mut hasher, include_content_hash.as_bytes());
@@ -147,6 +163,10 @@ fn source_artifact_hash(
     hash_field(&mut hasher, naga_version.as_bytes());
     hash_field(&mut hasher, wgpu_version.as_bytes());
     hasher.finalize().to_hex().to_string()
+}
+
+fn shader_source_hash(wgsl_source: &str) -> String {
+    blake3::hash(wgsl_source.as_bytes()).to_hex().to_string()
 }
 
 fn hash_field(hasher: &mut blake3::Hasher, field: &[u8]) {
@@ -183,10 +203,71 @@ mod tests {
             "naga-r1",
             "wgpu-r1",
         );
+        let changed_source = ShaderVariantPrewarmSource::new(
+            "res://shader.wgsl",
+            "fn changed() {}",
+            vec!["include-a".to_string()],
+            "template-r1",
+            "naga-r1",
+            "wgpu-r1",
+        );
+        let changed_template = ShaderVariantPrewarmSource::new(
+            "res://shader.wgsl",
+            "fn main() {}",
+            vec!["include-a".to_string()],
+            "template-r2",
+            "naga-r1",
+            "wgpu-r1",
+        );
+        let changed_naga = ShaderVariantPrewarmSource::new(
+            "res://shader.wgsl",
+            "fn main() {}",
+            vec!["include-a".to_string()],
+            "template-r1",
+            "naga-r2",
+            "wgpu-r1",
+        );
+        let changed_wgpu = ShaderVariantPrewarmSource::new(
+            "res://shader.wgsl",
+            "fn main() {}",
+            vec!["include-a".to_string()],
+            "template-r1",
+            "naga-r1",
+            "wgpu-r2",
+        );
+        let changed_label = source.with_source_label("res://renamed-shader.wgsl");
 
         assert!(source.has_canonical_id());
         assert_ne!(source.id, changed_include.id);
+        assert_ne!(source.id, changed_source.id);
+        assert_ne!(source.id, changed_template.id);
+        assert_ne!(source.id, changed_naga.id);
+        assert_ne!(source.id, changed_wgpu.id);
+        assert_eq!(source.id, changed_label.id);
         assert_eq!(source.id.as_str().len(), 64);
+    }
+
+    #[test]
+    fn legacy_source_without_persisted_hash_parses_but_is_not_canonical() {
+        let source = ShaderVariantPrewarmSource::new(
+            "res://shader.wgsl",
+            "fn main() {}",
+            Vec::new(),
+            "template-r1",
+            "naga-r1",
+            "wgpu-r1",
+        );
+        let mut value = serde_json::to_value(source).expect("serialize source");
+        value
+            .as_object_mut()
+            .expect("source is an object")
+            .remove("source_hash");
+
+        let legacy = serde_json::from_value::<ShaderVariantPrewarmSource>(value)
+            .expect("old manifest source should reach the schema gate");
+
+        assert!(legacy.source_hash.is_empty());
+        assert!(!legacy.has_canonical_id());
     }
 
     #[test]
@@ -292,7 +373,7 @@ mod tests {
             .insert("legacy_sources".to_string(), serde_json::json!([]));
         assert!(
             serde_json::from_value::<ShaderVariantPrewarmManifest>(manifest_value).is_err(),
-            "schema-2 manifests must reject removed compatibility fields"
+            "schema-3 manifests must reject removed compatibility fields"
         );
 
         let source = ShaderVariantPrewarmSource::new(
@@ -313,7 +394,7 @@ mod tests {
             );
         assert!(
             serde_json::from_value::<ShaderVariantPrewarmSource>(source_value).is_err(),
-            "schema-2 sources must reject removed compatibility payload fields"
+            "schema-3 sources must reject removed compatibility payload fields"
         );
 
         let request = ShaderVariantPrewarmRequest {
@@ -339,7 +420,7 @@ mod tests {
             .insert("wgsl_source".to_string(), serde_json::json!("fn old() {}"));
         assert!(
             serde_json::from_value::<ShaderVariantPrewarmRequest>(request_value).is_err(),
-            "schema-2 requests must only reference a source id"
+            "schema-3 requests must only reference a source id"
         );
     }
 }

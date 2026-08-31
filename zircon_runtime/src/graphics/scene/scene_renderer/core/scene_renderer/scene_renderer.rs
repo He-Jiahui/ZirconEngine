@@ -1,18 +1,20 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use crate::core::framework::render::{FrameHistoryHandle, RenderGpuTimingStatus};
+use crate::core::framework::render::{
+    FrameHistoryHandle, RenderFrameSubmissionReceipt, RenderGpuTimingStatus,
+    RenderMeshSubmissionProfile,
+};
 
 use super::super::scene_renderer_core::SceneRendererCore;
+use super::super::scene_submission_completion_journal::SceneSubmissionCompletionJournal;
 use crate::graphics::backend::{
     GpuPassTimer, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsTimer,
     GpuTimerFrameResult, OffscreenTarget, RenderBackend,
 };
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
-use crate::graphics::scene::scene_renderer::mesh::{
-    EnvironmentOnlyPbrBasePipelinePrewarmReport, PreparedMeshQueueStats,
-};
+use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
 use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
 use crate::graphics::types::GraphicsError;
 
@@ -22,7 +24,6 @@ use super::super::super::graph_execution::{
 use super::advanced_plugin_outputs::SceneRendererAdvancedPluginOutputs;
 
 pub struct SceneRenderer {
-    pub(in crate::graphics::scene::scene_renderer::core) backend: RenderBackend,
     pub(in crate::graphics::scene::scene_renderer::core) core: SceneRendererCore,
     pub(in crate::graphics::scene::scene_renderer::core) streamer: ResourceStreamer,
     pub(in crate::graphics::scene::scene_renderer::core) target: Option<OffscreenTarget>,
@@ -31,6 +32,10 @@ pub struct SceneRenderer {
     pub(in crate::graphics::scene::scene_renderer::core) history_targets:
         HashMap<FrameHistoryHandle, SceneFrameHistoryTextures>,
     pub(in crate::graphics::scene::scene_renderer::core) generation: u64,
+    pub(in crate::graphics::scene::scene_renderer::core) last_frame_submission_receipt:
+        Option<RenderFrameSubmissionReceipt>,
+    pub(in crate::graphics::scene::scene_renderer::core) scene_submission_completion_journal:
+        SceneSubmissionCompletionJournal,
     pub(in crate::graphics::scene::scene_renderer::core) gpu_pass_timing_requested: bool,
     pub(in crate::graphics::scene::scene_renderer::core) gpu_pass_timer: Option<GpuPassTimer>,
     pub(in crate::graphics::scene::scene_renderer::core) gpu_pipeline_statistics_timer:
@@ -57,6 +62,8 @@ pub struct SceneRenderer {
         SceneRendererFrameTimingReport,
     pub(in crate::graphics::scene::scene_renderer::core) advanced_plugin_outputs:
         SceneRendererAdvancedPluginOutputs,
+    // The backend owns the submission timeline and device generation, so it must drop last.
+    pub(in crate::graphics::scene::scene_renderer::core) backend: RenderBackend,
 }
 
 /// One resolved GPU timestamp pass from a renderer frame.
@@ -93,6 +100,10 @@ pub struct SceneRendererGpuTimingReport {
     pub(in crate::graphics::scene::scene_renderer::core) timestamp_period_ns_bits: u32,
     pub(in crate::graphics::scene::scene_renderer::core) pass_timings:
         Vec<SceneRendererGpuPassTiming>,
+    /// Frame-qualified submission counters attached only after the framework
+    /// matches this resolved timestamp result to its retained frame profile.
+    pub(in crate::graphics::scene::scene_renderer::core) mesh_submission:
+        Option<RenderMeshSubmissionProfile>,
 }
 
 impl SceneRendererGpuTimingReport {
@@ -105,7 +116,16 @@ impl SceneRendererGpuTimingReport {
             frame_generation,
             timestamp_period_ns_bits: timestamp_period_ns.to_bits(),
             pass_timings: pass_timings.into_iter().collect(),
+            mesh_submission: None,
         }
+    }
+
+    pub fn with_mesh_submission_profile(
+        mut self,
+        mesh_submission: RenderMeshSubmissionProfile,
+    ) -> Self {
+        self.mesh_submission = Some(mesh_submission);
+        self
     }
 
     pub const fn frame_generation(&self) -> u64 {
@@ -122,6 +142,10 @@ impl SceneRendererGpuTimingReport {
 
     pub fn pass_timings(&self) -> &[SceneRendererGpuPassTiming] {
         &self.pass_timings
+    }
+
+    pub fn mesh_submission_profile(&self) -> Option<&RenderMeshSubmissionProfile> {
+        self.mesh_submission.as_ref()
     }
 }
 
@@ -243,6 +267,7 @@ pub struct SceneRendererStartupOptions {
     deferred_lighting_profile: SceneRendererDeferredLightingProfile,
     allow_gpu_timing: bool,
     async_pipeline_compile: bool,
+    environment_only_base_prewarm: bool,
 }
 
 impl SceneRendererStartupOptions {
@@ -251,6 +276,7 @@ impl SceneRendererStartupOptions {
             deferred_lighting_profile: SceneRendererDeferredLightingProfile::StandardPbrPreview,
             allow_gpu_timing: false,
             async_pipeline_compile: false,
+            environment_only_base_prewarm: false,
         }
     }
 
@@ -261,6 +287,7 @@ impl SceneRendererStartupOptions {
                 SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
             allow_gpu_timing: false,
             async_pipeline_compile: false,
+            environment_only_base_prewarm: true,
         }
     }
 
@@ -273,6 +300,14 @@ impl SceneRendererStartupOptions {
     /// Queues Base-pass PSO creation so an interactive host can present while it compiles.
     pub const fn with_async_pipeline_compile(mut self) -> Self {
         self.async_pipeline_compile = true;
+        self
+    }
+
+    /// Retains the light-weight environment-only renderer contract while leaving
+    /// its specialized Base PSO to an explicit owner. This is used when a
+    /// diagnostic fixture submits a different generic Forward material variant.
+    pub const fn without_environment_only_pbr_base_prewarm(mut self) -> Self {
+        self.environment_only_base_prewarm = false;
         self
     }
 
@@ -298,7 +333,8 @@ impl SceneRendererStartupOptions {
         matches!(
             self.deferred_lighting_profile,
             SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
-        ) && !self.async_pipeline_compile
+        ) && self.environment_only_base_prewarm
+            && !self.async_pipeline_compile
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) const fn queues_environment_only_pbr_base_prewarm(
@@ -307,121 +343,15 @@ impl SceneRendererStartupOptions {
         matches!(
             self.deferred_lighting_profile,
             SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
-        ) && self.async_pipeline_compile
+        ) && self.environment_only_base_prewarm
+            && self.async_pipeline_compile
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct SceneRendererStartupReport {
-    pub(in crate::graphics::scene::scene_renderer::core) backend_initialization: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) core_initialization: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) core_startup:
-        SceneRendererCoreStartupReport,
-    pub(in crate::graphics::scene::scene_renderer::core) resource_streamer_initialization: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) environment_only_pbr_base_prewarm:
-        Option<SceneRendererEnvironmentOnlyPbrBasePrewarmReport>,
-}
-
-/// Component timings for the environment-only viewer's Base PSO warmup request.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct SceneRendererEnvironmentOnlyPbrBasePrewarmReport {
-    pipeline_ready: bool,
-    cache_hit: bool,
-    shader_source_resolution: Duration,
-    pipeline_creation: Duration,
-    elapsed: Duration,
-}
-
-impl From<EnvironmentOnlyPbrBasePipelinePrewarmReport>
-    for SceneRendererEnvironmentOnlyPbrBasePrewarmReport
-{
-    fn from(report: EnvironmentOnlyPbrBasePipelinePrewarmReport) -> Self {
-        Self {
-            pipeline_ready: report.pipeline_ready(),
-            cache_hit: report.cache_hit(),
-            shader_source_resolution: report.shader_source_resolution(),
-            pipeline_creation: report.pipeline_creation(),
-            elapsed: report.elapsed(),
-        }
-    }
-}
-
-impl SceneRendererEnvironmentOnlyPbrBasePrewarmReport {
-    /// Whether the Base PSO was ready before renderer construction returned.
-    pub const fn pipeline_ready(self) -> bool {
-        self.pipeline_ready
-    }
-
-    pub const fn cache_hit(self) -> bool {
-        self.cache_hit
-    }
-
-    pub const fn shader_source_resolution(self) -> Duration {
-        self.shader_source_resolution
-    }
-
-    /// Synchronous creation time, or background queue-submission time when `pipeline_ready` is
-    /// false.
-    pub const fn pipeline_creation(self) -> Duration {
-        self.pipeline_creation
-    }
-
-    pub const fn elapsed(self) -> Duration {
-        self.elapsed
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct SceneRendererCoreStartupReport {
-    pub(in crate::graphics::scene::scene_renderer::core) setup: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) mesh_and_environment: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) shadows: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) deferred: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) deferred_lighting_pipelines: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) deferred_lighting_shader_source_assembly:
-        Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) deferred_lighting_pipeline_foundation:
-        Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) deferred_lighting_standard_pipeline:
-        Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) deferred_fallback_resources: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) scene_effects: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) scene_effects_particles: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) scene_effects_sprites: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) scene_effects_hzb: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) scene_effects_post_process: Duration,
-    pub(in crate::graphics::scene::scene_renderer::core) overlay_and_ui: Duration,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SceneRendererFrameTimingReport {
     pub(in crate::graphics::scene::scene_renderer::core) render_submission: Duration,
     pub(in crate::graphics::scene::scene_renderer::core) readback_and_completion: Duration,
-}
-
-impl SceneRendererStartupReport {
-    pub const fn backend_initialization(self) -> Duration {
-        self.backend_initialization
-    }
-
-    pub const fn core_initialization(self) -> Duration {
-        self.core_initialization
-    }
-
-    pub const fn core_startup(self) -> SceneRendererCoreStartupReport {
-        self.core_startup
-    }
-
-    pub const fn resource_streamer_initialization(self) -> Duration {
-        self.resource_streamer_initialization
-    }
-
-    /// The startup cost to prepare or queue the exact environment-only PBR Base PSO.
-    pub const fn environment_only_pbr_base_prewarm(
-        self,
-    ) -> Option<SceneRendererEnvironmentOnlyPbrBasePrewarmReport> {
-        self.environment_only_pbr_base_prewarm
-    }
 }
 
 impl SceneRendererFrameTimingReport {
@@ -434,68 +364,6 @@ impl SceneRendererFrameTimingReport {
     }
 }
 
-impl SceneRendererCoreStartupReport {
-    pub const fn setup(self) -> Duration {
-        self.setup
-    }
-
-    pub const fn mesh_and_environment(self) -> Duration {
-        self.mesh_and_environment
-    }
-
-    pub const fn shadows(self) -> Duration {
-        self.shadows
-    }
-
-    pub const fn deferred(self) -> Duration {
-        self.deferred
-    }
-
-    pub const fn deferred_lighting_pipelines(self) -> Duration {
-        self.deferred_lighting_pipelines
-    }
-
-    pub const fn deferred_lighting_shader_source_assembly(self) -> Duration {
-        self.deferred_lighting_shader_source_assembly
-    }
-
-    pub const fn deferred_lighting_pipeline_foundation(self) -> Duration {
-        self.deferred_lighting_pipeline_foundation
-    }
-
-    pub const fn deferred_lighting_standard_pipeline(self) -> Duration {
-        self.deferred_lighting_standard_pipeline
-    }
-
-    pub const fn deferred_fallback_resources(self) -> Duration {
-        self.deferred_fallback_resources
-    }
-
-    pub const fn scene_effects(self) -> Duration {
-        self.scene_effects
-    }
-
-    pub const fn scene_effects_particles(self) -> Duration {
-        self.scene_effects_particles
-    }
-
-    pub const fn scene_effects_sprites(self) -> Duration {
-        self.scene_effects_sprites
-    }
-
-    pub const fn scene_effects_hzb(self) -> Duration {
-        self.scene_effects_hzb
-    }
-
-    pub const fn scene_effects_post_process(self) -> Duration {
-        self.scene_effects_post_process
-    }
-
-    pub const fn overlay_and_ui(self) -> Duration {
-        self.overlay_and_ui
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -504,18 +372,43 @@ mod tests {
 
     use super::{
         ScenePostProcessStartupMode, SceneRenderer, SceneRendererDeferredLightingProfile,
-        SceneRendererStartupOptions,
+        SceneRendererGpuPassTiming, SceneRendererGpuTimingReport, SceneRendererStartupOptions,
     };
+    use crate::core::framework::render::RenderMeshSubmissionProfile;
+
+    #[test]
+    fn gpu_timing_report_keeps_only_an_explicit_frame_matched_mesh_submission_snapshot() {
+        let mesh_submission = RenderMeshSubmissionProfile {
+            opaque_command_count: 2,
+            advanced_pbr_opaque_command_count: 1,
+            cached_command_hit_count: 4,
+            command_rebuild_count: 0,
+            dynamic_command_count: 1,
+            ..RenderMeshSubmissionProfile::default()
+        };
+        let report = SceneRendererGpuTimingReport::new(
+            7,
+            1.0,
+            [SceneRendererGpuPassTiming::new("direct_scene_content", 42)],
+        )
+        .with_mesh_submission_profile(mesh_submission.clone());
+
+        assert_eq!(report.mesh_submission_profile(), Some(&mesh_submission));
+    }
 
     #[test]
     fn environment_only_pbr_profile_is_the_only_startup_profile_that_prewarm_base() {
         assert!(
             !SceneRendererStartupOptions::default().requires_environment_only_pbr_base_prewarm()
         );
-        assert!(!SceneRendererStartupOptions::standard_pbr_preview()
-            .requires_environment_only_pbr_base_prewarm());
-        assert!(SceneRendererStartupOptions::environment_only_pbr_preview()
-            .requires_environment_only_pbr_base_prewarm());
+        assert!(
+            !SceneRendererStartupOptions::standard_pbr_preview()
+                .requires_environment_only_pbr_base_prewarm()
+        );
+        assert!(
+            SceneRendererStartupOptions::environment_only_pbr_preview()
+                .requires_environment_only_pbr_base_prewarm()
+        );
     }
 
     #[test]
@@ -529,6 +422,21 @@ mod tests {
     }
 
     #[test]
+    fn explicit_generic_forward_owner_can_keep_lightweight_environment_startup_without_unused_prewarm()
+     {
+        let options = SceneRendererStartupOptions::environment_only_pbr_preview()
+            .without_environment_only_pbr_base_prewarm()
+            .with_async_pipeline_compile();
+
+        assert_eq!(
+            options.deferred_lighting_profile(),
+            SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+        );
+        assert!(!options.requires_environment_only_pbr_base_prewarm());
+        assert!(!options.queues_environment_only_pbr_base_prewarm());
+    }
+
+    #[test]
     fn environment_only_pbr_preview_omits_auxiliary_scene_effects() {
         assert!(SceneRendererDeferredLightingProfile::FullScene.uses_auxiliary_scene_effects());
         assert!(
@@ -539,23 +447,31 @@ mod tests {
                 .uses_auxiliary_scene_effects()
         );
         assert!(SceneRendererDeferredLightingProfile::FullScene.uses_full_post_process_resources());
-        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview
-            .uses_full_post_process_resources());
+        assert!(
+            SceneRendererDeferredLightingProfile::StandardPbrPreview
+                .uses_full_post_process_resources()
+        );
         assert!(
             !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
                 .uses_full_post_process_resources()
         );
         assert!(SceneRendererDeferredLightingProfile::FullScene.supports_compiled_scene_graph());
-        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview
-            .supports_compiled_scene_graph());
+        assert!(
+            SceneRendererDeferredLightingProfile::StandardPbrPreview
+                .supports_compiled_scene_graph()
+        );
         assert!(
             !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
                 .supports_compiled_scene_graph()
         );
-        assert!(!SceneRendererDeferredLightingProfile::FullScene
-            .defers_local_reflection_provider_resources());
-        assert!(!SceneRendererDeferredLightingProfile::StandardPbrPreview
-            .defers_local_reflection_provider_resources());
+        assert!(
+            !SceneRendererDeferredLightingProfile::FullScene
+                .defers_local_reflection_provider_resources()
+        );
+        assert!(
+            !SceneRendererDeferredLightingProfile::StandardPbrPreview
+                .defers_local_reflection_provider_resources()
+        );
         assert!(
             SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
                 .defers_local_reflection_provider_resources()
@@ -570,8 +486,10 @@ mod tests {
     #[test]
     fn environment_only_pbr_preview_uses_a_shadow_atlas_placeholder() {
         assert!(SceneRendererDeferredLightingProfile::FullScene.uses_full_shadow_atlas_resources());
-        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview
-            .uses_full_shadow_atlas_resources());
+        assert!(
+            SceneRendererDeferredLightingProfile::StandardPbrPreview
+                .uses_full_shadow_atlas_resources()
+        );
         assert!(
             !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
                 .uses_full_shadow_atlas_resources()
@@ -600,7 +518,9 @@ mod tests {
     #[test]
     fn environment_only_pbr_preview_omits_compiled_scene_shadow_renderer() {
         assert!(SceneRendererDeferredLightingProfile::FullScene.uses_shadow_map_renderer());
-        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview.uses_shadow_map_renderer());
+        assert!(
+            SceneRendererDeferredLightingProfile::StandardPbrPreview.uses_shadow_map_renderer()
+        );
         assert!(
             !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
                 .uses_shadow_map_renderer()
@@ -669,13 +589,20 @@ mod tests {
     #[test]
     fn gpu_timing_resources_require_an_explicit_startup_option() {
         assert!(!SceneRendererStartupOptions::default().allow_gpu_timing());
-        assert!(SceneRendererStartupOptions::default()
-            .with_gpu_timing()
-            .allow_gpu_timing());
+        assert!(
+            SceneRendererStartupOptions::default()
+                .with_gpu_timing()
+                .allow_gpu_timing()
+        );
     }
 }
 
 impl SceneRenderer {
+    /// Shares the backend-owned gate with the framework submission owner.
+    pub(in crate::graphics) fn device_fault_gate(&self) -> std::sync::Arc<zr_rhi::DeviceFaultGate> {
+        self.backend.device_fault_gate()
+    }
+
     pub(crate) fn next_frame_generation(&self) -> u64 {
         self.generation.wrapping_add(1)
     }
@@ -702,7 +629,7 @@ impl SceneRenderer {
     ///
     /// A `false` result means the host should keep its event loop responsive and
     /// request another frame. A terminal background compilation error is returned
-    /// instead of silently capturing the `SkipDraw` placeholder.
+    /// instead of silently capturing a deferred Base draw admission.
     pub fn environment_only_pbr_base_pipeline_ready(&mut self) -> Result<bool, GraphicsError> {
         self.core
             .mesh_pipelines
@@ -717,6 +644,22 @@ impl SceneRenderer {
             .mesh_pipelines
             .queue_environment_only_pbr_base_pipeline(&self.backend.device, &mut self.streamer)?;
         Ok(())
+    }
+
+    /// Reports the generic Forward Base PSO required by a non-default-IOR
+    /// material after it has been explicitly queued by its diagnostic owner.
+    pub fn pbr_ior_forward_base_pipeline_ready(&mut self) -> Result<bool, GraphicsError> {
+        self.core
+            .mesh_pipelines
+            .pbr_ior_forward_base_pipeline_ready()
+    }
+
+    /// Queues nonblocking admission for the static non-default-IOR generic
+    /// Forward Base PSO. Repeated calls retry after bounded compiler backpressure.
+    pub fn queue_pbr_ior_forward_base_pipeline_admission(&mut self) -> Result<(), GraphicsError> {
+        self.core
+            .mesh_pipelines
+            .queue_pbr_ior_forward_base_pipeline(&self.backend.device, &mut self.streamer)
     }
 
     pub(in crate::graphics) fn set_parallel_recording(

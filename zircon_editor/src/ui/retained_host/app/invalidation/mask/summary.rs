@@ -1,12 +1,18 @@
 use super::HostInvalidationMask;
 
+#[cfg(test)]
+#[path = "summary/capacity_tests.rs"]
+mod capacity_tests;
+
+const INVALIDATION_SUMMARY_NAME_COUNT: usize = 11;
+
 impl HostInvalidationMask {
     pub(crate) fn summary(self) -> String {
         if self.is_empty() {
             return "none".to_string();
         }
 
-        let mut names = Vec::new();
+        let mut names = Vec::with_capacity(INVALIDATION_SUMMARY_NAME_COUNT);
         if self.contains(Self::LAYOUT) {
             names.push("layout");
         }

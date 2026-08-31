@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -13,7 +13,10 @@ use crate::asset::{
     AssetId, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor,
     AssetKind, ImportedAsset, ShaderAsset,
 };
-use crate::core::resource::{ResourceDiagnostic, ResourceRecord, ResourceRegistry, ResourceState};
+use crate::core::resource::{
+    ResourceDiagnostic, ResourceRecord, ResourceRegistry, ResourceRegistryAssemblyExt,
+    ResourceState,
+};
 
 use super::dependency_resolution::{
     dependencies_for_entry, merge_handwritten_dependencies_into_meta, resolve_imported_dependencies,
@@ -45,7 +48,7 @@ pub(crate) struct PreparedFullProjectGeneration {
 impl PreparedFullProjectGeneration {
     pub(crate) fn commit(mut self) -> Result<ProjectFileCommitOutcome, AssetImportError> {
         let _phase = ProjectGenerationPhase::FileCommit.enter();
-        let _meta_write_guards = crate::asset::project::lock_meta_document_paths(&self.meta_paths);
+        let _meta_write_guards = crate::asset::project::lock_meta_document_paths(&self.meta_paths)?;
         verify_meta_preconditions(&self.meta_preconditions, &mut self.observation)?;
         let result = commit_prepared_files(
             &self.journal_directory,
@@ -72,7 +75,7 @@ impl PreparedFullProjectGeneration {
         fault: ProjectTransactionFault,
     ) -> Result<ProjectFileCommitOutcome, AssetImportError> {
         let _phase = ProjectGenerationPhase::FileCommit.enter();
-        let _meta_write_guards = crate::asset::project::lock_meta_document_paths(&self.meta_paths);
+        let _meta_write_guards = crate::asset::project::lock_meta_document_paths(&self.meta_paths)?;
         verify_meta_preconditions(&self.meta_preconditions, &mut self.observation)?;
         let result = commit_prepared_files(&self.journal_directory, self.writes, fault);
         if result.is_ok() {
@@ -132,6 +135,7 @@ impl ProjectManager {
         let mut restored_records = Vec::new();
         let mut ready_shaders = Vec::new();
         let mut writes = Vec::new();
+        let mut prepared_ibl_paths = BTreeMap::new();
 
         let _import_phase = ProjectGenerationPhase::Import.enter();
         for source in sources {
@@ -179,11 +183,15 @@ impl ProjectManager {
                 if let Some(asset) = restored_root_asset.as_ref() {
                     merge_handwritten_dependencies_into_meta(meta, asset);
                 }
-                super::stage_environment_ibl_import(
-                    &import_context,
-                    restored_root_asset.as_ref(),
-                    self.paths.cache_root(),
-                    parallel_executor.as_ref(),
+                super::append_prepared_file_writes(
+                    &mut writes,
+                    &mut prepared_ibl_paths,
+                    super::prepare_environment_ibl_import(
+                        &import_context,
+                        restored_root_asset.as_ref(),
+                        self.paths.cache_root(),
+                        parallel_executor.as_ref(),
+                    )?,
                 )?;
                 let direct_references = restored_root_asset
                     .as_ref()
@@ -197,6 +205,7 @@ impl ProjectManager {
                         meta.clone(),
                         source_mtime_unix_ms,
                         direct_references,
+                        Vec::new(),
                     ),
                 );
                 for record in metadata {
@@ -214,10 +223,10 @@ impl ProjectManager {
             }
 
             let import_result = self.importer.import_context(&import_context);
-            let (metadata, direct_references) = match import_result {
+            let (metadata, direct_references, reference_repairs) = match import_result {
                 Ok(outcome) => {
                     let validation = validate_import_entries(&uri, &outcome).and_then(|()| {
-                        super::stage_environment_ibl_import(
+                        super::prepare_environment_ibl_import(
                             &import_context,
                             outcome.root_entry().map(|entry| &entry.asset),
                             self.paths.cache_root(),
@@ -225,7 +234,12 @@ impl ProjectManager {
                         )
                     });
                     match validation {
-                        Ok(()) => {
+                        Ok(prepared_ibl_writes) => {
+                            super::append_prepared_file_writes(
+                                &mut writes,
+                                &mut prepared_ibl_paths,
+                                prepared_ibl_writes,
+                            )?;
                             let mut outcome = outcome;
                             let direct_references = outcome
                                 .root_entry()
@@ -235,6 +249,7 @@ impl ProjectManager {
                                 &mut outcome,
                                 &mut shader_import_paths,
                             );
+                            let reference_repairs = outcome.reference_repairs.clone();
                             let metadata = self.finish_successful_import(
                                 &source,
                                 meta,
@@ -249,7 +264,7 @@ impl ProjectManager {
                                 &mut observation,
                             )?;
                             observation.record_imported_source();
-                            (metadata, direct_references)
+                            (metadata, direct_references, reference_repairs)
                         }
                         Err(error) => {
                             let metadata = self.finish_failed_import(
@@ -265,7 +280,7 @@ impl ProjectManager {
                                 error,
                             )?;
                             observation.record_failed_source();
-                            (metadata, Vec::new())
+                            (metadata, Vec::new(), Vec::new())
                         }
                     }
                 }
@@ -283,7 +298,7 @@ impl ProjectManager {
                         error,
                     )?;
                     observation.record_failed_source();
-                    (metadata, Vec::new())
+                    (metadata, Vec::new(), Vec::new())
                 }
             };
             catalog_inputs.insert(
@@ -294,6 +309,7 @@ impl ProjectManager {
                     meta.clone(),
                     source_mtime_unix_ms,
                     direct_references,
+                    reference_repairs,
                 ),
             );
             for record in metadata {
@@ -372,13 +388,13 @@ impl ProjectManager {
         observation.record_prepared_writes(
             writes.len(),
             writes.iter().fold(0_u64, |total, write| {
-                total.saturating_add(u64::try_from(write.bytes.len()).unwrap_or(u64::MAX))
+                total.saturating_add(u64::try_from(write.bytes().len()).unwrap_or(u64::MAX))
             }),
         );
         observation.mark_prepare_succeeded();
 
         self.registry = registry.finish();
-        self.asset_registry = asset_registry;
+        self.asset_registry = Arc::new(asset_registry);
         self.shader_import_dependencies = shader_import_dependencies;
         self.catalog_input_generation = catalog_input_generation;
         Ok((

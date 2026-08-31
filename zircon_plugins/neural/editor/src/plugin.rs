@@ -6,17 +6,16 @@ use std::sync::Arc;
 use zircon_editor::core::asset::{
     AssetTypeContribution, AssetTypeId, AssetTypePresentation, ThumbnailProviderDescriptor,
 };
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 use zircon_editor::core::editing::engine::{
     CommandExecutionError, EditCommand, EditCommandError, EditContext, HistoryContextId,
 };
 use zircon_editor::core::editing::operation::{
-    OperationCommand, OperationCommandFactory, OperationCommandFactoryError,
+    EditOperationTarget, OperationCommand, OperationCommandFactory, OperationCommandFactoryError,
     OperationCommandFactoryRegistration,
 };
 use zircon_editor::core::editor_extension::{
     AssetImporterDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorMenuItemDescriptor,
 };
 use zircon_editor::core::editor_operation::{EditorOperationInvocation, EditorOperationPath};
 use zircon_editor::{EditorPlugin, EditorPluginDescriptor, EditorPluginRegistrationReport};
@@ -29,7 +28,6 @@ use crate::capability::{EDITOR_CAPABILITIES, EDITOR_CRATE_NAME, PLUGIN_ID};
 const NEURAL_MODEL_ASSET_TYPE_ID: &str = "neural.model";
 const NEURAL_MODEL_IMPORTER_ID: &str = "neural.model.onnx";
 const NEURAL_MODEL_IMPORT_OPERATION: &str = "neural.model.import";
-const NEURAL_MODEL_IMPORT_MENU_PATH: &str = "Assets/Neural/Import ONNX Model";
 
 #[derive(Clone, Debug)]
 pub struct NeuralEditorPlugin {
@@ -85,22 +83,23 @@ fn register_neural_authoring_extensions(
         .map_err(EditorExtensionRegistryError::OperationPath)?;
     let neural_asset_type = AssetTypeId::parse(NEURAL_MODEL_ASSET_TYPE_ID)?;
     registry.register_operation_command(
-        EditorCommandDescriptor::operation(import_operation.clone(), "Import ONNX Model")
-            .with_menu_path(NEURAL_MODEL_IMPORT_MENU_PATH)
+        EditorCommandDescriptor::operation(import_operation.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &import_operation,
+                "assets",
+                &["neural"],
+            ))
             .with_payload_schema_id("neural.model.import.v1")
             .with_callable_from_remote(false)
             .with_required_capabilities([crate::NEURAL_AUTHORING_CAPABILITY]),
         OperationCommandFactoryRegistration::new(
             import_operation.clone(),
             "Import ONNX Model",
+            EditOperationTarget::EditWorkspace,
             Arc::new(NeuralModelImportCommandFactory {
                 operation: import_operation.clone(),
             }),
         ),
-    )?;
-    registry.register_menu_item(
-        EditorMenuItemDescriptor::new(NEURAL_MODEL_IMPORT_MENU_PATH, import_operation.clone())
-            .with_required_capabilities([crate::NEURAL_AUTHORING_CAPABILITY]),
     )?;
     registry.register_asset_importer(
         AssetImporterDescriptor::new(

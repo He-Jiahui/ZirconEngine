@@ -61,15 +61,19 @@ def is_burst_eligible_cpu_check(
 ) -> bool:
     """Keep automatic isolated validation narrow before any resource probe runs."""
 
-    is_check = command[:2] == ("cargo", "check")
+    cargo_arguments = _cargo_arguments(command)
+    if cargo_arguments is None:
+        return False
+    is_check = cargo_arguments[:1] == ("check",)
     has_package = any(
-        part in {"-p", "--package"} or part.startswith("--package=") for part in command
+        part in {"-p", "--package"} or part.startswith("--package=")
+        for part in cargo_arguments
     )
     is_targeted_library_test = (
-        command[:2] == ("cargo", "test")
-        and "--lib" in command
+        cargo_arguments[:1] == ("test",)
+        and "--lib" in cargo_arguments
         and has_package
-        and "--workspace" not in command
+        and "--workspace" not in cargo_arguments
     )
 
     return (
@@ -78,3 +82,12 @@ def is_burst_eligible_cpu_check(
         and target_dir is None
         and (is_check or is_targeted_library_test)
     )
+
+
+def _cargo_arguments(command: tuple[str, ...]) -> tuple[str, ...] | None:
+    if not command or Path(command[0]).name.casefold() not in {"cargo", "cargo.exe"}:
+        return None
+    arguments = command[1:]
+    if arguments and arguments[0].startswith("+"):
+        arguments = arguments[1:]
+    return arguments

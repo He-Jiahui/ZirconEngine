@@ -20,6 +20,31 @@ function Get-ZirconNativeResizeSequence {
     @($steps) + [pscustomobject]@{ width = $Width; height = $Height }
 }
 
+function Get-ZirconNativeResizeExpectedEventCount {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$InitialWidth,
+        [Parameter(Mandatory = $true)]
+        [int]$InitialHeight,
+        [Parameter(Mandatory = $true)]
+        [object[]]$Sequence
+    )
+
+    $expected = 0
+    $priorWidth = $InitialWidth
+    $priorHeight = $InitialHeight
+    foreach ($step in $Sequence) {
+        $width = [int]$step.width
+        $height = [int]$step.height
+        if ($width -ne $priorWidth -or $height -ne $priorHeight) {
+            $expected++
+        }
+        $priorWidth = $width
+        $priorHeight = $height
+    }
+    return $expected
+}
+
 function Measure-ZirconProcessCpuEvidence {
     param(
         [Parameter(Mandatory = $true)]
@@ -124,12 +149,53 @@ function Complete-ZirconProcessQuiescenceEvidence {
     return $Interaction
 }
 
+function Test-ZirconPointerTargetModeEvidence {
+    param(
+        [object[]]$Targets,
+        [ValidateSet("cross_target", "same_target", "spatial_probe")]
+        [string]$TargetMode
+    )
+
+    if ($Targets.Count -lt 2) {
+        return $false
+    }
+
+    $identities = @{}
+    $coordinates = @{}
+    foreach ($target in $Targets) {
+        $targetId = [string]$target.target_id
+        $targetKind = [string]$target.target_kind
+        $targetSurface = [string]$target.target_surface
+        if ([string]::IsNullOrWhiteSpace($targetId) -or
+            [string]::IsNullOrWhiteSpace($targetKind) -or
+            [string]::IsNullOrWhiteSpace($targetSurface) -or
+            $null -eq $target.X -or
+            $null -eq $target.Y) {
+            return $false
+        }
+        $identities["$targetId`0$targetKind`0$targetSurface"] = $true
+        $coordinates["$([int]$target.X),$([int]$target.Y)"] = $true
+    }
+
+    if ($coordinates.Count -lt 2) {
+        return $false
+    }
+    switch ($TargetMode) {
+        "same_target" { return $identities.Count -eq 1 }
+        "cross_target" { return $identities.Count -ge 2 }
+        "spatial_probe" { return $true }
+    }
+    return $false
+}
+
 function Invoke-PointerMoveStorm {
     param(
         [System.Diagnostics.Process]$Process,
         [object[]]$Targets,
         [int]$Count,
-        [int]$DelayMs
+        [int]$DelayMs,
+        [ValidateSet("cross_target", "same_target", "spatial_probe")]
+        [string]$TargetMode
     )
 
     if ($Count -le 0 -or $Targets.Count -eq 0) {
@@ -194,6 +260,7 @@ function Invoke-PointerMoveStorm {
             $cpuEvidence.processor_time_delta_ms)
     [pscustomobject]@{
         scenario = 'pointer_move_storm'
+        target_mode = $TargetMode
         process_id = $Process.Id
         requested_moves = $Count
         completed_moves = $completed
@@ -445,6 +512,10 @@ function Invoke-ZirconNativeResizeInteraction {
             -Width $originalWidth `
             -Height $originalHeight `
             -StepCount $StepCount)
+    $expectedResizeEventCount = Get-ZirconNativeResizeExpectedEventCount `
+        -InitialWidth $originalWidth `
+        -InitialHeight $originalHeight `
+        -Sequence $sequence
     $setWindowPosFlags = 0x0002 -bor 0x0004 -bor 0x0010
     $completed = 0
     $startProcessorTimeMs = [double]$Process.TotalProcessorTime.TotalMilliseconds
@@ -499,6 +570,7 @@ function Invoke-ZirconNativeResizeInteraction {
         process_id = $Process.Id
         requested_steps = $sequence.Count
         completed_steps = $completed
+        expected_resize_event_count = $expectedResizeEventCount
         delay_ms = $DelayMs
         elapsed_ms = [Math]::Round($stopwatch.Elapsed.TotalMilliseconds, 3)
         original_width = $originalWidth

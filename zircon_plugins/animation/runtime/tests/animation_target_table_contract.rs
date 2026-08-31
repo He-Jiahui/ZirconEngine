@@ -103,6 +103,22 @@ fn duplicate_leaf_name_requires_a_full_target_path() {
 }
 
 #[test]
+fn missing_leaf_name_is_reported_as_unresolved() {
+    let skeleton = skeleton(&[("Root", None), ("Hand", Some(0))]);
+    let table = Arc::new(SkeletonTargetTable::compile(&skeleton).unwrap());
+
+    let error = CompiledAnimationClip::compile(table, &[track("Missing", None)]).unwrap_err();
+
+    assert_eq!(
+        error,
+        AnimationClipCompileError::UnresolvedTrack {
+            track_index: 0,
+            target: "Missing".to_string(),
+        }
+    );
+}
+
+#[test]
 fn duplicate_clip_tracks_for_one_target_are_rejected() {
     let skeleton = skeleton(&[("Root", None), ("Hand", Some(0))]);
     let table = Arc::new(SkeletonTargetTable::compile(&skeleton).unwrap());

@@ -1,6 +1,4 @@
-use super::super::super::{
-    pane_payload_visibility, runtime_diagnostics_visibility, RetainedEditorHost,
-};
+use super::super::super::{pane_payload_visibility, RetainedEditorHost};
 use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, ModulePluginsPaneViewData,
 };
@@ -9,11 +7,11 @@ use crate::ui::workbench::snapshot::{EditorChromeSnapshot, ViewContentKind};
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 impl RetainedEditorHost {
-    pub(super) fn collect_runtime_diagnostics_payload(
-        &self,
-        model: &WorkbenchViewModel,
-    ) -> RuntimeDiagnosticsSnapshot {
-        if runtime_diagnostics_visibility::should_collect_runtime_diagnostics(model) {
+    pub(super) fn collect_runtime_diagnostics_payload(&self) -> RuntimeDiagnosticsSnapshot {
+        if self
+            .runtime_diagnostics_refresh_target
+            .should_collect_payload()
+        {
             self.runtime_diagnostics_with_profile()
         } else {
             RuntimeDiagnosticsSnapshot::default()
@@ -48,5 +46,24 @@ impl RetainedEditorHost {
         } else {
             BuildExportPaneViewData::default()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn diagnostics_payload_reuses_the_publication_time_target() {
+        let source = include_str!("workbench_panes.rs");
+        let function = source
+            .split("fn collect_runtime_diagnostics_payload")
+            .nth(1)
+            .and_then(|tail| tail.split("fn collect_module_plugins_pane_payload").next())
+            .expect("diagnostics payload collector");
+
+        assert!(function.contains("self.runtime_diagnostics_refresh_target"));
+        assert!(function.contains("should_collect_payload()"));
+        assert!(!function.contains("RuntimeDiagnosticsRefreshTarget::None"));
+        assert!(!function.contains("runtime_diagnostics_refresh_target("));
+        assert!(!function.contains("tool_windows"));
     }
 }

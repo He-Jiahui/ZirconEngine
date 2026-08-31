@@ -1,4 +1,5 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::fmt;
 
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
@@ -49,9 +50,19 @@ impl NativeWindowRecord {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub(super) struct WindowHostManager {
-    windows: BTreeMap<MainPageId, NativeWindowRecord>,
+    windows: HashMap<MainPageId, NativeWindowRecord>,
+}
+
+impl fmt::Debug for WindowHostManager {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let windows = self.windows.iter().collect::<BTreeMap<_, _>>();
+        formatter
+            .debug_struct("WindowHostManager")
+            .field("windows", &windows)
+            .finish()
+    }
 }
 
 impl WindowHostManager {
@@ -85,19 +96,15 @@ impl WindowHostManager {
     }
 
     pub fn sync_layout_windows(&mut self, layout: &WorkbenchLayout) {
-        let tracked_window_ids = self.windows.keys().cloned().collect::<Vec<_>>();
-        for window_id in tracked_window_ids {
-            if !layout
-                .floating_windows
-                .iter()
-                .any(|window| window.window_id == window_id)
-            {
-                self.close_native_window(&window_id);
-            }
-        }
+        let layout_window_ids = layout
+            .floating_windows
+            .iter()
+            .map(|window| &window.window_id)
+            .collect::<HashSet<_>>();
+        self.windows
+            .retain(|window_id, _| layout_window_ids.contains(window_id));
 
         for window in &layout.floating_windows {
-            self.open_native_window(window.window_id.clone(), None);
             self.sync_window_bounds(
                 &window.window_id,
                 [
@@ -111,7 +118,8 @@ impl WindowHostManager {
     }
 
     pub fn states(&self) -> Vec<NativeWindowHostState> {
-        self.windows
+        let mut states = self
+            .windows
             .iter()
             .map(|(window_id, record)| NativeWindowHostState {
                 window_id: window_id.clone(),
@@ -119,7 +127,9 @@ impl WindowHostManager {
                 bounds: record.bounds,
                 surface_tree_id: record.surface.tree.tree_id.clone(),
             })
-            .collect()
+            .collect::<Vec<_>>();
+        states.sort_unstable_by(|left, right| left.window_id.cmp(&right.window_id));
+        states
     }
 }
 
@@ -232,3 +242,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "window_host_manager/hash_reconcile_tests.rs"]
+mod hash_reconcile_tests;

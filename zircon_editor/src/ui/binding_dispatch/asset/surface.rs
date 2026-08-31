@@ -6,8 +6,8 @@ pub(super) fn parse_asset_surface(
     match surface {
         "activity" => Ok(crate::core::editor_event::EditorAssetSurface::Activity),
         "browser" => Ok(crate::core::editor_event::EditorAssetSurface::Browser),
-        _ => Err(EditorBindingDispatchError::StateMutation(format!(
-            "unknown asset surface {surface}"
-        ))),
+        _ => Err(EditorBindingDispatchError::UnknownAssetSurface(
+            surface.to_string(),
+        )),
     }
 }

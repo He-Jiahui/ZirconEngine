@@ -14,7 +14,6 @@ mod mutation;
 mod selection;
 mod virtualization;
 
-const TABLE_OWNER_COMPONENTS: [&str; 2] = ["Table", "DataGrid"];
 const TABLE_OWNER_ROLES: [&str; 3] = ["table", "data-grid", "mui-x-data-grid"];
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -306,7 +305,7 @@ impl UiSurface {
         if route.captured.is_some() {
             return Ok(None);
         }
-        let Some(header_id) = route.bubbled.iter().copied().find(|node_id| {
+        let Some(header_id) = route.bubble_route().find(|node_id| {
             self.tree
                 .node(*node_id)
                 .and_then(|node| node.template_metadata.as_ref())
@@ -324,7 +323,7 @@ impl UiSurface {
         let Some(field) = columns::table_column_field(header_metadata) else {
             return Ok(None);
         };
-        let Some(owner_id) = route.bubbled.iter().copied().find(|node_id| {
+        let Some(owner_id) = route.bubble_route().find(|node_id| {
             *node_id != header_id
                 && self
                     .tree
@@ -357,7 +356,7 @@ impl UiSurface {
         &self,
         route: &UiPointerRoute,
     ) -> Result<Option<UiDefaultTableColumnResizeStart>, UiTreeError> {
-        let Some(handle_id) = route.bubbled.iter().copied().find(|node_id| {
+        let Some(handle_id) = route.bubble_route().find(|node_id| {
             self.tree
                 .node(*node_id)
                 .and_then(|node| node.template_metadata.as_ref())
@@ -375,7 +374,7 @@ impl UiSurface {
         let Some(field) = columns::table_column_field(handle_metadata) else {
             return Ok(None);
         };
-        let Some(owner_id) = route.bubbled.iter().copied().find(|node_id| {
+        let Some(owner_id) = route.bubble_route().find(|node_id| {
             *node_id != handle_id
                 && self
                     .tree
@@ -453,16 +452,15 @@ pub(super) fn is_default_table_behavior(metadata: &UiTemplateNodeMetadata) -> bo
 }
 
 fn is_table_owner(metadata: &UiTemplateNodeMetadata) -> bool {
-    TABLE_OWNER_COMPONENTS.contains(&metadata.component.as_str())
-        || role_is_one_of(metadata, &TABLE_OWNER_ROLES)
+    role_is_one_of(metadata, &TABLE_OWNER_ROLES)
 }
 
 fn is_data_grid_owner(metadata: &UiTemplateNodeMetadata) -> bool {
-    metadata.component == "DataGrid" || role_is_one_of(metadata, &["data-grid", "mui-x-data-grid"])
+    role_is_one_of(metadata, &["data-grid", "mui-x-data-grid"])
 }
 
 fn role_is_one_of(metadata: &UiTemplateNodeMetadata, roles: &[&str]) -> bool {
-    string_attribute(metadata, "role").is_some_and(|role| roles.contains(&role.as_str()))
+    super::semantics::component_role_is_one_of(metadata, roles)
 }
 
 fn string_attribute(metadata: &UiTemplateNodeMetadata, property: &str) -> Option<String> {

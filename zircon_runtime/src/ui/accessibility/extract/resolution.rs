@@ -13,7 +13,7 @@ use crate::ui::surface::UiSurface;
 
 use super::super::{
     budget::{AccessibilityBuildBudget, AccessibilitySnapshotBudgetError},
-    name,
+    name, semantic_text,
 };
 use super::{diagnostic, is_hidden, parse_node_id};
 
@@ -63,7 +63,7 @@ pub(super) fn resolve_names(
                 surface
                     .tree
                     .node(node_id)
-                    .and_then(|node| name::own_text(node.template_metadata.as_ref()))
+                    .and_then(|node| semantic_text::own_text(surface, node))
             })
             .or_else(|| {
                 surface
@@ -161,7 +161,11 @@ pub(super) fn filter_children(
     budget: &mut AccessibilityBuildBudget,
 ) -> Result<(), AccessibilitySnapshotBudgetError> {
     let included: BTreeSet<_> = nodes.keys().copied().collect();
-    for node in surface.tree.nodes.values() {
+    let included_node_ids = nodes.keys().copied().collect::<Vec<_>>();
+    for node_id in included_node_ids {
+        let Some(node) = surface.tree.nodes.get(&node_id) else {
+            continue;
+        };
         let mut filtered = Vec::new();
         for child in node.children.iter().copied() {
             collect_included_children(
@@ -173,7 +177,7 @@ pub(super) fn filter_children(
                 budget,
             )?;
         }
-        if let Some(accessibility_node) = nodes.get_mut(&node.node_id) {
+        if let Some(accessibility_node) = nodes.get_mut(&node_id) {
             accessibility_node.children = filtered;
         }
     }
@@ -221,21 +225,19 @@ fn referenced_text(
     if !nodes.contains_key(&target_id) {
         return None;
     }
-    surface
-        .tree
-        .node(target_id)
-        .and_then(|node| node.template_metadata.as_ref())
-        .and_then(|metadata| {
+    surface.tree.node(target_id).and_then(|node| {
+        node.template_metadata.as_ref().and_then(|metadata| {
             metadata
                 .a11y
                 .name
                 .clone()
-                .or_else(|| name::own_text(Some(metadata)))
+                .or_else(|| semantic_text::own_text(surface, node))
                 .or_else(|| name::alt_text(Some(metadata)))
                 .or_else(|| metadata.a11y.tooltip.clone())
                 .or_else(|| metadata.widget.tooltip.clone())
                 .or_else(|| name::tooltip_text(Some(metadata)))
         })
+    })
 }
 
 fn collect_included_children(

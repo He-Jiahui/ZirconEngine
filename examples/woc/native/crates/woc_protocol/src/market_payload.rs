@@ -1,7 +1,7 @@
 use crate::command_payload::{decode_utf8_id_f64_pair, encode_utf8_id_f64_pair};
 use crate::{
     require_finite, validate_command_payload, ProtocolError, MARKET_BUY_COMMAND_ID,
-    MARKET_CANCEL_COMMAND_ID, MARKET_LIST_COMMAND_ID,
+    MARKET_CANCEL_COMMAND_ID, MARKET_LIST_COMMAND_ID, MARKET_SEARCH_COMMAND_ID,
 };
 
 const MARKET_LISTING_ID_BYTES: usize = 8;

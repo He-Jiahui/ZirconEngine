@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
-    AdvancedProfileRuntimePlan, RenderCapabilitySummary, RenderParticlePreviousSpriteSnapshot,
-    RenderPipelineHandle, ShaderQualityTier, SolariRuntimeReport, TaaQualityPreset,
-    ViewportCameraSnapshot,
+    AdvancedProfileRuntimePlan, RenderCapabilitySummary, RenderFrameworkError,
+    RenderParticlePreviousSpriteSnapshot, RenderPipelineHandle, ShaderQualityTier,
+    SolariRuntimeReport, TaaQualityPreset, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use crate::graphics::visibility::VisibilityStaticIndex;
@@ -127,10 +127,14 @@ impl ViewportRecordState {
         &self.compile_options
     }
 
-    pub(super) fn take_advanced_runtime_plan(&mut self) -> AdvancedProfileRuntimePlan {
+    pub(super) fn take_advanced_runtime_plan(
+        &mut self,
+    ) -> Result<AdvancedProfileRuntimePlan, RenderFrameworkError> {
         self.advanced_runtime_plan
             .take()
-            .expect("advanced runtime plan is moved into one submission context")
+            .ok_or(RenderFrameworkError::InvalidSubmissionState {
+                state: "advanced runtime plan was already moved into a submission context",
+            })
     }
 
     pub(super) fn take_solari_runtime_report(&mut self) -> SolariRuntimeReport {

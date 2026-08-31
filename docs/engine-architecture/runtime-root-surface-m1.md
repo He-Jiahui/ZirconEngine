@@ -47,9 +47,9 @@ M1 gate status `classified-and-clear`
 
 Current numeric evidence:
 
-- `public_module_count = 19`
+- `public_module_count = 21`
 - `public_use_location_count = 2`
-- `module_decision_count = 19`
+- `module_decision_count = 21`
 - `public_use_decision_count = 2`
 - `unclassified_public_module_count = 0`
 - `unclassified_public_use_location_count = 0`
@@ -60,7 +60,7 @@ The current public module classification is:
 
 - `stable-facade`: `core`, `dynamic_api`, `engine_module`, `prelude`
 - `namespace-entry`: `builtin`, `plugin`
-- `runtime-module-entry`: `animation`, `asset`, `diagnostic_log`, `foundation`, `input`, `navigation`, `platform`, `scene`, `script`, `ui`
+- `runtime-module-entry`: `animation`, `asset`, `diagnostic_log`, `foundation`, `input`, `navigation`, `operation`, `platform`, `scene`, `script`, `text`, `ui`
 - `graphics-rhi-deferred`: `graphics`, `render_graph`, `rhi`
 
 The current root `pub use` classification is:
@@ -70,7 +70,7 @@ The current root `pub use` classification is:
 
 The current migration debt list is empty.
 
-Markdown rendering for this gate is split out to `runtime_root_surface_markdown.py`. `runtime_root_surface.py` remains the 268-line audit and risk owner, while the Markdown owner is 35 lines and only formats the current `root_surface_audit` facts. The split preserves the current direct audit output: 19 public modules, 2 public `pub use` locations, 19 module decisions, 2 public-use decisions, zero unclassified root entries, zero migration debt, zero crate-visible graphics re-exports, M1 gate `classified-and-clear`, and `risks = []`.
+Markdown rendering for this gate is split out to `runtime_root_surface_markdown.py`. `runtime_root_surface.py` remains the 268-line audit and risk owner, while the Markdown owner is 35 lines and only formats the current `root_surface_audit` facts. The split preserves the current direct audit output: 21 public modules, 2 public `pub use` locations, 21 module decisions, 2 public-use decisions, zero unclassified root entries, zero migration debt, zero crate-visible graphics re-exports, M1 gate `classified-and-clear`, and `risks = []`.
 
 `rhi_wgpu` backend root public exposure is removed. The backend module is now a crate-private owner behind `rhi`; direct external `zircon_runtime::rhi_wgpu` paths must not return.
 

@@ -11,6 +11,10 @@ use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_text::layout_policy::HostTextLayoutPolicy;
 use crate::ui::retained_host::host_contract::paint_theme::HostTextSmoothing;
 
+#[cfg(test)]
+#[path = "artifact/capacity_tests.rs"]
+mod capacity_tests;
+
 /// Fully preflighted direct artifact input for one retained-host text layout.
 ///
 /// The consumer either receives every raster glyph from the exact runtime artifact or receives
@@ -43,9 +47,13 @@ pub(super) fn positioned_artifact_glyphs(
         return None;
     }
     let faces = artifact_layout.artifact_raster_faces()?;
+    let glyph_capacity = lines.iter().try_fold(0_usize, |capacity, line| {
+        let glyphs = line.artifact_line.as_ref()?.glyphs()?;
+        capacity.checked_add(glyphs.len())
+    })?;
     let mut font_indices = HashMap::new();
     let mut raster_fonts = Vec::new();
-    let mut glyphs = Vec::new();
+    let mut glyphs = Vec::with_capacity(glyph_capacity);
 
     for line in lines {
         let artifact_line = line.artifact_line.as_ref()?;

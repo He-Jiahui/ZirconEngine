@@ -12,6 +12,7 @@ use zircon_runtime::core::framework::render::{
     ShaderFeatureBits, ShaderPassType, ShaderPipelinePrewarmState, ShaderQualityTier,
     ShaderVariantKey, ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest,
     ShaderVariantPrewarmSource, ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    SHADER_VARIANT_CACHE_NAGA_VERSION, SHADER_VARIANT_CACHE_WGPU_VERSION,
     SHADING_MODEL_ID_STANDARD_PBR,
 };
 use zircon_runtime::core::resource::{ResourceId, ResourceKind};
@@ -36,7 +37,7 @@ use self::material_sources::{
     collect_material_sources, prewarm_manifest_for_material_source, ShaderPrewarmSourceIndex,
 };
 use self::module_dependencies::shader_sources_with_module_dependency_hashes_and_changed_paths;
-use self::pass_types::{asset_scan_full_material_passes, asset_scan_pass_types_for_zshader};
+use self::pass_types::asset_scan_pass_types_for_zshader;
 use self::paths::{
     content_hash, has_extension, has_sidecar_zmeta, is_inside_compound_shader_source, is_zmeta,
     meta_path_for_single_source, primary_zshader_path, stable_label_for_path,
@@ -53,8 +54,6 @@ use super::error::{
 
 const BUILTIN_STANDARD_MATERIAL_SHADER_URI: &str = "builtin://shader/pbr.wgsl";
 const ASSET_SCAN_TEMPLATE_REVISION: &str = "asset-scan-mesh-template-v1";
-const ASSET_SCAN_NAGA_VERSION: &str = "naga-29.0.1";
-const ASSET_SCAN_WGPU_VERSION: &str = "wgpu-29.0.1";
 const ASSET_SCAN_PLATFORM_TOKEN: &str = "wgpu-runtime";
 
 pub fn read_manifest(path: &Path) -> ShaderPrewarmManifestResult<ShaderVariantPrewarmManifest> {
@@ -315,7 +314,7 @@ pub(crate) fn asset_root_manifest_from_inventory_with_resource_registry_revision
                 quality_tiers,
                 &geometry_sources,
                 geometry_source_descriptors,
-            ),
+            )?,
         );
     }
 
@@ -542,8 +541,8 @@ fn shader_source_from_wgsl(
         vec![wgsl_path.to_path_buf()],
         source,
         include_hashes,
-        asset_scan_full_material_passes(),
-        ShaderAssetKind::Surface,
+        Vec::new(),
+        ShaderAssetKind::Module,
         None,
         Vec::new(),
         metadata,
@@ -617,6 +616,9 @@ fn prewarm_manifest_for_source(
     geometry_sources: &[GeometrySourceId],
     geometry_source_descriptors: &BTreeMap<GeometrySourceId, GeometrySourceDescriptor>,
 ) -> ShaderVariantPrewarmManifest {
+    if !source.kind.participates_in_material_variants() {
+        return ShaderVariantPrewarmManifest::empty();
+    }
     let material_layout_hash = source.material_layout_hash;
     let material_option_bits = source.material_option_table.default_bits();
     prewarm_manifest_for_source_with_dimensions(
@@ -684,8 +686,8 @@ fn prewarm_manifest_for_source_with_dimensions(
                 wgsl_source,
                 include_content_hashes,
                 template_revision,
-                ASSET_SCAN_NAGA_VERSION,
-                ASSET_SCAN_WGPU_VERSION,
+                SHADER_VARIANT_CACHE_NAGA_VERSION,
+                SHADER_VARIANT_CACHE_WGPU_VERSION,
             );
             for quality in &quality_tiers {
                 requests.push(ShaderVariantPrewarmRequest {

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::buffer::{ZrByteSlice, ZrOwnedResultV2};
 use crate::handles::ZrRuntimeSessionHandle;
+use crate::runtime_build_set::ZrRuntimeModuleCompositionReceiptV1;
 use crate::status::ZrStatus;
 
 mod session_path;
@@ -67,7 +68,7 @@ impl ProfileCaptureConfig {
         if self.max_counters == 0 {
             self.max_counters = PROFILE_DEFAULT_MAX_COUNTERS;
         }
-        if self.frame_budget_ms <= 0.0 {
+        if !self.frame_budget_ms.is_finite() || self.frame_budget_ms <= 0.0 {
             self.frame_budget_ms = PROFILE_DEFAULT_FRAME_BUDGET_MS;
         }
         self
@@ -507,6 +508,7 @@ pub enum ProfileControlCommand {
     StopCapture,
     Snapshot,
     RuntimeDiagnosticsSnapshot,
+    RuntimeModuleCompositionReceipt,
     ExportReport,
     Reset,
 }
@@ -527,6 +529,8 @@ pub struct ProfileControlResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runtime_diagnostics: Option<RuntimeDiagnosticsSnapshot>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub module_composition_receipt: Option<ZrRuntimeModuleCompositionReceiptV1>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hotspot_report: Option<HotspotReport>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub counter_hotspot_report: Option<CounterHotspotReport>,
@@ -545,6 +549,7 @@ impl ProfileControlResponse {
             message: message.into(),
             snapshot: None,
             runtime_diagnostics: None,
+            module_composition_receipt: None,
             hotspot_report: None,
             counter_hotspot_report: None,
             ui_hotspot_report: None,
@@ -559,6 +564,7 @@ impl ProfileControlResponse {
             message: message.into(),
             snapshot: None,
             runtime_diagnostics: None,
+            module_composition_receipt: None,
             hotspot_report: None,
             counter_hotspot_report: None,
             ui_hotspot_report: None,

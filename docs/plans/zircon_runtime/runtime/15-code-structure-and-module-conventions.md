@@ -12,13 +12,40 @@ related_code:
   - docs/zircon_runtime/asset/render-assets.md
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/prelude.rs
+  - zircon_runtime/src/scene/world/property_access/entries.rs
+  - zircon_runtime/src/scene/world/property_access/entries/camera.rs
+  - zircon_runtime/src/scene/world/property_access/entries/mesh.rs
+  - zircon_runtime/src/scene/world/property_access/entries/lighting.rs
+  - zircon_runtime/src/scene/world/property_access/entries/animation.rs
+  - tools/tests/test_runtime_scene_property_entry_owner_structure.py
   - zircon_runtime/src/plugin/mod.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access/authority.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access/error.rs
+  - tools/tests/test_runtime_native_system_access_owner_structure.py
+  - zircon_runtime/src/plugin/package_manifest/constructors.rs
+  - zircon_runtime/src/plugin/package_manifest/constructors/module.rs
+  - zircon_runtime/src/plugin/package_manifest/constructors/package.rs
+  - tools/tests/test_runtime_plugin_manifest_constructor_owner_structure.py
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/prelude.rs
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/prelude.rs
   - zircon_runtime/src/ui/platform_input/keyboard_map.rs
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation/keyboard.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation/pointer.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation/ime.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation/window.rs
+  - tools/tests/test_runtime_ui_winit_translation_owner_structure.py
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs
+  - tools/tests/test_runtime_ui_pointer_component_state_owner_structure.py
+  - tools/tests/test_runtime_ui_pointer_template_action_owner_structure.py
+  - zircon_runtime/src/ui/template/asset/surface_index.rs
+  - zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs
+  - tools/tests/test_runtime_ui_asset_surface_node_resource_owner_structure.py
   - docs/zircon_runtime/ui/platform_input.md
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/tests/asset_schema_migration.rs
@@ -28,6 +55,51 @@ related_code:
   - zircon_runtime/src/ui/text/mod.rs
   - zircon_runtime/src/ui/text/edit_state.rs
   - zircon_runtime/src/ui/public_runtime_frame.rs
+  - zircon_runtime/src/operation/service.rs
+  - zircon_runtime/src/operation/service/admission.rs
+  - zircon_runtime/src/operation/service/json_budget.rs
+  - zircon_runtime/src/operation/service/limits.rs
+  - zircon_runtime/src/operation/service/prepare_completion.rs
+  - zircon_runtime/src/operation/service/task_state.rs
+  - zircon_runtime/src/operation/tests/phase_indexes.rs
+  - zircon_runtime/src/operation/tests/source_guards.rs
+  - tools/tests/test_runtime_operation_service_structure.py
+  - zircon_runtime/src/dynamic_api/session/project.rs
+  - zircon_runtime/src/dynamic_api/session/project/tests.rs
+  - zircon_runtime/src/dynamic_api/session/project/runtime61_characterization.rs
+  - tools/tests/test_runtime_dynamic_project_test_structure.py
+  - zircon_runtime/src/dynamic_api/session/events.rs
+  - zircon_runtime/src/dynamic_api/session/events/keyboard_ime.rs
+  - zircon_runtime/src/dynamic_api/session/events/gamepad.rs
+  - tools/tests/test_runtime_dynamic_event_input_owner_structure.py
+  - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
+  - zircon_runtime/src/plugin/extension_registry/register/system_registration/tests.rs
+  - tools/tests/test_runtime_plugin_system_registration_test_structure.py
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs
+  - tools/tests/test_runtime_shader_prewarm_test_structure.py
+  - zircon_runtime/src/graphics/shader/template/module_registry.rs
+  - zircon_runtime/src/graphics/shader/template/module_registry/tests.rs
+  - tools/tests/test_runtime_shader_module_registry_test_structure.py
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior/exact_dependency_resolution.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior/factory_panics.rs
+  - tools/tests/test_runtime_resolution_behavior_test_structure.py
+  - zircon_runtime/src/ui/tests/widget_menu_behavior.rs
+  - zircon_runtime/src/ui/tests/widget_menu_behavior/control_anchored_overlays.rs
+  - tools/tests/test_runtime_widget_menu_behavior_test_structure.py
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/activation.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/activation/contention.rs
+  - tools/tests/test_runtime_activation_contention_test_structure.py
+  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler/gpu_resolution.rs
+  - zircon_runtime/src/dynamic_api/session/events.rs
+  - zircon_runtime/src/dynamic_api/session/events/keyboard_ime.rs
+  - zircon_runtime/src/dynamic_api/session/events/gamepad.rs
+  - tools/tests/test_runtime_frame_profiler_gpu_resolution_owner_structure.py
   - zircon_runtime/src/ui/tests/runtime_ui_support
   - zircon_runtime/src/animation/module.rs
   - zircon_runtime/src/animation/manager/mod.rs
@@ -279,6 +351,8 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/audit_status.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/split_layout.rs
   - zircon_runtime/src/graphics/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler/gpu_resolution.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/asset/prelude.rs
   - zircon_runtime/src/scene/prelude.rs
@@ -389,6 +463,8 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/gpu_resource_owners.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/resource_streamer_cleanup.rs
 tests:
+  - python -B -m unittest tools.tests.test_runtime_frame_profiler_gpu_resolution_owner_structure
+  - python -B -m unittest tools.tests.test_runtime_dynamic_event_input_owner_structure
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/child_ownership.rs::runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner: Runtime 15 M3 typed-error child-ownership source-tree reconciliation / runtime_15_typed_error_child_ownership_source_tree_reconciliation_static_passed_cargo_deferred; focused typed_error_child_owners passed 93/93 and code_review_findings passed 218/218 on 2026-07-07; package Cargo deferred
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation.rs::runtime_15_typed_error_status_docs_are_folder_backed: Runtime 15 M3 typed-error status-doc source/status-map reconciliation / runtime_15_typed_error_status_doc_source_status_map_reconciliation_static_passed_cargo_deferred; focused typed_error_status_doc standalone guard passed 51/51 on 2026-07-07; package Cargo deferred
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked
@@ -450,7 +526,13 @@ last_refined: 2026-08-03
 > 规范权威：跨域通用规则已统一收敛至 [Zircon 开发规范总纲](../frameworks/development-conventions.md)；本文保留 Runtime 结构收束主题的细节论证与执行上下文，不再作为并列规则源。
 
 
-最新完成：`Runtime 15 M3 UI text pipeline test owner split` / `runtime_15_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred` 已删除旧 `zircon_runtime/src/ui/tests/text_pipeline` flat owner，并硬切为 `zircon_runtime/src/ui/tests/text_pipeline/{mod.rs,fixtures.rs,font_registry.rs,layout_request.rs,measure_cache.rs,render_extract_prewarm.rs,surface_cache.rs}` folder-backed test tree。验证：scoped rustfmt passed；focused `text_pipeline` cargo test 15/15 passed；direct `runtime_15_no_oversized_test_files` 1/1 passed；当前源码全量 `tests::runtime_absorption::structure_convention` 为 1226/1303 passed、77 failed remaining，剩余失败来自 status/root owner guard groups，不再包含 `text_pipeline` 或 oversized-test-file failure。该切片不保留旧 `text_pipeline.rs`、compat/shim/re-export；Cargo gate deferred，不声明 package/workspace Cargo 全通过。
+最新完成：`Runtime 15 M3 UI text pipeline test owner split` / `runtime_15_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred` 已删除旧 `zircon_runtime/src/ui/tests/text_pipeline` flat owner，并硬切为 folder-backed test tree。该记录的历史验证为：scoped rustfmt passed；focused `text_pipeline` cargo test 15/15 passed；direct `runtime_15_no_oversized_test_files` 1/1 passed；当时 `tests::runtime_absorption::structure_convention` 为 1226/1303 passed、77 failed remaining，剩余失败来自 status/root owner guard groups，不再包含 `text_pipeline` 或 oversized-test-file failure。2026-08-24 Text02 硬切随后物理删除无生产 consumer 的 `font_registry.rs` source/test owner；当前测试树为 `zircon_runtime/src/ui/tests/text_pipeline/{mod.rs,fixtures.rs,layout_request.rs,measure_cache.rs,render_extract_prewarm.rs,surface_cache.rs}`。该切片不保留旧 `text_pipeline.rs`、compat/shim/re-export；当前 Cargo gate 仍须走受管验证，不声明 package/workspace Cargo 全通过。
+
+最新完成：`Runtime 15 M3/M4 shader variant miss report test owner split` / `runtime_15_shader_variant_miss_report_test_owner_split_source_complete_static_passed_managed_validation_deferred` 已把 `core/framework/render/shader/variant_miss_report.rs` 的 11 个内联测试硬切到 folder-backed `core/framework/render/shader/variant_miss_report/tests.rs`；生产 owner 从 1013 行收敛到 549 行，测试 owner 为 463 行，根文件测试属性 0、子 owner 测试属性 11、显式路径挂载 1。scoped rustfmt、所有权扫描与 diff check 已通过；全局静态镜像仍有 50 个既有生产文件达到或超过 800 行，受管 Cargo gate 仍待补，因此只关闭本 owner 的源码结构切片，不声明 Runtime 15 M3/M4 或全局预算完成。详情见 [`15/2026-08-27-shader-variant-miss-report-test-owner-split.md`](15/2026-08-27-shader-variant-miss-report-test-owner-split.md)。
+
+最新完成：`Runtime 15 M3/M4 IBL source cubemap staging test owner split` / `runtime_15_ibl_source_cubemap_staging_test_owner_split_source_complete_static_passed_managed_validation_deferred` 已把 `asset/artifact/ibl_source_cubemap_staging.rs` 的 15 个内联测试硬切到 folder-backed `asset/artifact/ibl_source_cubemap_staging/tests.rs`；生产 owner 从 1414 行收敛到 776 行，测试 owner 为 638 行，根文件测试属性 0、子 owner 测试属性 15、显式路径挂载 1。scoped rustfmt、所有权扫描与 diff check 已通过；全局静态镜像当前仍有 50 个其它生产文件达到或超过 800 行，受管 Cargo gate 仍待补，因此只关闭本 owner 的源码结构切片，不声明 Runtime 15 M3/M4 或全局预算完成。详情见 [`15/2026-08-27-ibl-source-cubemap-staging-test-owner-split.md`](15/2026-08-27-ibl-source-cubemap-staging-test-owner-split.md)。
+
+最新完成：`Runtime 15 M3/M4 frame hit-test owner split` / `runtime_15_frame_hit_test_owner_split_source_complete_static_passed_managed_validation_deferred` 已把 `ui/surface/frame_hit_test.rs` 中段的 6 个 projected-grid 测试硬切到 folder-backed `ui/surface/frame_hit_test/tests.rs`，并把测试源码守卫相对路径同步为 `../frame_hit_test.rs`；生产 owner 从 1066 行收敛到 757 行，测试 owner 为 308 行，测试模块之后的 2 个公开 debug hit-test 函数完整保留。scoped rustfmt、所有权/后续生产函数扫描与 diff check 已通过；本轮三个已拆 owner 均不再超预算，全局静态镜像仍有 49 个其它生产文件达到或超过 800 行，受管 Cargo gate 仍待补，因此不声明 Runtime 09/15 或全局预算完成。详情见 [`15/2026-08-27-frame-hit-test-owner-split.md`](15/2026-08-27-frame-hit-test-owner-split.md)。
 
 最新完成：`Runtime 15 M3 current-child route plus IBL runtime writeback budget cleanup` / `runtime_15_m3_current_child_route_ibl_writeback_budget_cleanup_static_passed_cargo_deferred` 已把 ResourceStreamer diagnostics/material capture、asset mesh/asset pack、dynamic scene、editor/hub status row routes、module-layout 与 core scene ECS naming guards 对齐到 current child owners；`graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs` 从 948 行生产+测试混合文件硬切为 56 行 production route owner，runtime graph writeback 测试移入 `graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback/tests.rs`，seam/irradiance metrics 拆入 `graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback/tests/metrics.rs`。验证：scoped rustfmt passed；focused structure guards 12/12 passed；production-file budget guard passed；`runtime_graph_writeback` 4/4 passed；当前源码全量 `tests::runtime_absorption::structure_convention` 经后续 UI text pipeline split 为 1226/1303 passed、77 failed remaining。该切片不保留旧 route mirror/compat/shim/re-export；Cargo gate deferred，不声明 package/workspace Cargo 全通过。
 
@@ -920,3 +1002,508 @@ Cargo 因全部可见磁盘低于 50 GiB 阈值且外部编译通道活跃而延
 - fixed 已修复：[core-runtime-state-plugin-bridge-lifecycle-anchor-drift](../../zircon_editor/editor/02/fixed-2026-07-14-core-runtime-state-plugin-bridge-lifecycle-anchor-drift.md)
 - 2026-07-14：ZrVM 具体 backend 已硬切到插件 owner；Runtime15 删除旧具体实现状态行、日期/状态映射和父级手写 row mirror，lock-poison 聚合读取改为 child source-set，插件默认测试 18/18、Runtime 计划状态 48/48 通过。F2 Scene lock guard 已同步当前局部 `MutexGuard` owner；完整 current-source structure harness 为 1297/1303，六个剩余失败均属于 Render/UI 或通用文件预算 owner。当前切片状态为 `runtime_15_zr_vm_concrete_backend_owner_hard_cut_plugin_tests_18_passed`；详细证据见 [`15/2026-07-14-zrvm-owner-status-hard-cut.md`](15/2026-07-14-zrvm-owner-status-hard-cut.md)。
 - 2026-07-18 RenderProduct 测试上下文交接：`graphics/scene` 根级产品测试当前 35 个测试执行 35 次独立 offscreen backend 初始化。Runtime15 须把纯 material/shader/diagnostic projection 与真实 WGPU resident/upload 测试分层，并建立按 backend config + features/limits 键控的 test-only context pool；每测试 asset manager、streamer、error scope 保持独立，device-loss/error 测试走 serial key。兼容 key 内 backend 初始化应不超过 1 次，纯测试为 0 次，见 `PERF-MVP-406` 及 scene root product-test 静态证据。
+
+## 2026-08-27 Runtime Operation Service Responsibility Owner Split
+
+状态：`runtime_15_operation_service_responsibility_owner_split_static_passed_cargo_deferred`。
+
+R1.3/M4 的当前源码切片把 `operation/service.rs` 中可独立审查的声明硬切到 folder-backed owner：容量策略归 `service/limits.rs`，任务表、phase indexes、maintenance state、handle 分配与 index compact 归 `service/task_state.rs`，JSON 精确字节预算与 UTF-8 截断归 `service/json_budget.rs`，prepare completion channel 协议声明归 `service/prepare_completion.rs`；raw-admission reservation 与释放不变量收口到既有 `service/admission.rs`。父 owner 只保留服务编排与窄的 crate-private re-export，从 862 行降到 716 行。当前 service/admission/completion/json-budget/limits/prepare-completion/task-state 行数为 716/248/332/39/28/29/59，均低于 800 行预算。
+
+既有 phase-index 与 maintenance 源码合同改为读取 task-state owner，raw-admission 守卫改为读取 admission owner；新增 Python 静态结构回归锁定五类声明不回流父文件及父文件行数上限。operation admission、handle 分配、queued/ready index compact、deadline、completion、ABI、JSON 字节计数、UTF-8 截断和 retained-byte 算法均为原样搬移，未做性能算法修正或改变公共 API。
+
+聚焦 Python 结构回归 exact 1/1、定向 Rust 文件 rustfmt、旧声明扫描与 scoped diff check 通过。完整聚合结构审计在当前巨大脏工作区的 124 秒窗口内未产出结果，受管 Cargo 亦未执行；该切片不能替代 Runtime 15 整体 acceptance，也未触发 milestone commit 或企微同步。
+
+## 2026-08-27 Dynamic Runtime Project Test Owner Split
+
+状态：`runtime_10_15_dynamic_project_test_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M3-M4 的当前源码切片把 `dynamic_api/session/project.rs` 中 14 个既有 unit tests 原样硬切到 folder-backed `dynamic_api/session/project/tests.rs`。父 project owner 从 917 行降到 562 行，测试 child 为 353 行；另一会话新增的 `project/runtime61_characterization.rs` 保持独立 120 行 child 及显式 route，不被合并、改写或计入本切片完成范围。父 owner 现在只持有 project ABI path 解析、prepared project、scene/UI/navigation/script 加载和两个 test route。
+
+新增 Python 静态结构回归锁定父文件不超过 800 行、旧内联 `mod tests {` 不回流、folder-backed test route 与 Runtime61 route 同时存在、14 个测试保持可见。HEAD 旧测试体与新 child 的 whitespace-normalized 源码逐字符等价，测试属性为 14/14；定向 rustfmt、scoped diff check 与 trailing-whitespace 扫描通过。项目启动、路径解析、manifest snapshot、scene load 和 script package 过滤算法均未改变；受管 Cargo 未执行，因此不声明 Runtime10、Runtime15 或 Runtime61 acceptance，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 Plugin System Registration Test Owner Split
+
+状态：`runtime_06_15_plugin_system_registration_test_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M3-M4 的当前源码切片把 `plugin/extension_registry/register/system_registration.rs` 末尾 3 个 per-World private-state/concurrency tests 原样硬切到 folder-backed `system_registration/tests.rs`。父 production owner 从 825 行降到 676 行，测试 child 为 149 行；另一会话新增的 `CallbackSceneSystem::retire` 生命周期实现保持在 production owner，签名与 `self.state.retire(world)` 调用均为 1/1。
+
+新增 Python 静态结构回归锁定父文件不超过 800 行、旧内联测试不回流、3 个测试名与 `retire` 生命周期锚保持可见。HEAD 旧测试体与新 child whitespace-normalized 等价、测试属性 3/3；定向 rustfmt、scoped diff check 与空白扫描通过。该切片没有修正系统注册/调度算法：Runtime06 记录的 PERF-MVP-532/533 generation-owned per-World factory/state、同代 compiled world extension plan 和 reload/unload quiescence 仍开放；Cargo 未执行，因此不声明 Runtime06/15 acceptance 或性能瓶颈消失，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 Shader Prewarm Test Owner And Guard Routing Split
+
+状态：`runtime_07_15_shader_prewarm_test_owner_and_source_guard_routing_static_passed_cargo_deferred`。
+
+R1.4/M3-M4 的当前源码切片把 `graphics/shader/variant_cache/prewarm.rs` 中 11 个既有
+unit tests 原样硬切到 folder-backed `prewarm/tests.rs`，并以显式 `#[path]` 继续挂载既有
+`prewarm/tests/combined_validation_tests.rs`。父 route 从 811 行降到 142 行；生产 worker、
+主体测试、组合测试分别为 251/667/159 行，全部低于 800 行 owner 预算。既有缓存键五维
+source identity 修正保持不变，`prewarm/worker.rs` 与组合测试中的其它会话改动未被格式化、
+改写或回退。
+
+生产文件预算现把 route、worker、主体测试、组合测试登记为四个独立 source owner；缓存
+artifact、source provenance、WGPU module、WGPU pipeline 与 validation summary 五个结构
+守卫分别读取真实生产或测试文件，消除拆分后继续读取父 route 的假阳性。新增 Python
+静态回归锁定 folder-backed route、11+2 测试数、四文件行数和缓存键身份参数。该回归
+1/1 通过，定向 Rust `rustfmt --check` 通过，HEAD 旧测试体加当前身份参数后与新 child
+whitespace-normalized 等价。Cargo 未执行，且本切片未改变预热算法或提供性能/功耗数据，
+因此不声明 Runtime07/15 或 Render08 acceptance，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 Shader Module Registry Test Owner Split
+
+状态：`runtime_08_15_shader_module_registry_test_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M3-M4 的当前源码切片把 `graphics/shader/template/module_registry.rs` 中 11 个既有
+unit tests 原样硬切到 folder-backed `module_registry/tests.rs`。父 production owner 从
+870 行降到 656 行，测试 child 为 214 行；三个 `include_str!` 仅按新物理目录增加 `../`
+路径层级。另一会话加入的 `PBR_COMMON_INCLUDE_TOKEN`、builtin closure 和三处依赖顺序断言
+均完整保留，本切片未改 registry DFS、root-scoped construction、hash 或 module factory 算法。
+
+生产文件预算现登记 registry production/test 两个真实 owner；新增 Python 静态回归锁定
+folder-backed route、11 个测试、PBR common 断言和双 owner 预算路径。该回归与 prewarm
+结构回归合计 4/4 通过，定向 Rust `rustfmt --check`、拆分前后 tests 源码 SHA-256 规范化
+等价与 scoped diff check 通过。Cargo 未执行，因此不声明 Runtime08/15、Render08 或 shader
+产品验收，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 Resolution Exact Dependency Test Owner Split
+
+状态：`runtime_02_15_resolution_exact_dependency_test_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M3-M4 的当前源码切片把 `core/runtime/tests/resolution/behavior.rs` 末尾 exact 4/5
+dependency cached-key initialization 两测原样迁入 folder-backed
+`behavior/exact_dependency_resolution.rs`。父 behavior owner 从 846 行降到 631 行；
+dependency-cycle、exact-dependency、factory-panic 三个 child 分别为 115/217/258 行。父文件
+10 个测试、三个 child 2/2/4 个测试均低于预算，另一会话新增的 `mod factory_panics;` 与
+对应 4 个 panic/lifecycle tests 保持独立，不被合并或改写。
+
+新增 Python 静态回归锁定三个 child route、父/child 测试数、exact 两个测试名不回流和
+四文件行数；该回归 1/1、定向 Rust `rustfmt --check`、迁移测试体规范化 SHA-256 等价与
+scoped diff check 通过。服务注册、解析、cached dependency keys、factory single-flight 和
+lifecycle 算法均未修改；Cargo 未执行，因此不声明 Runtime02/15 或 service-registry 行为
+验收，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 Widget Menu Control-Anchored Test Owner Split
+
+状态：`runtime_09_15_widget_menu_control_anchored_test_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M3-M4 的当前源码切片把 `ui/tests/widget_menu_behavior.rs` 中 5 个 control-anchored
+overlay/frame-authority tests 原样迁入 folder-backed
+`widget_menu_behavior/control_anchored_overlays.rs`。父 owner 从 861 行降到 625 行并保留
+11 个通用 menu/popup behavior tests 与共享 fixtures，child 为 239 行。另一会话新增的
+`component_event` 与 binding `mode` 字段保留在父级共享 helper，未被移动或回退。
+
+新增 Python 静态回归锁定父/child 行数、11+5 测试、5 个测试名不回流及 typed binding
+字段；该回归 1/1、定向 Rust `rustfmt --check`、迁移测试体规范化 SHA-256 等价与 scoped
+diff check 通过。本切片未修改 UI 生产代码或交互算法；Cargo 未执行，因此不声明
+Runtime09/15 acceptance，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 Activation Contention Test Owner Split
+
+状态：`runtime_02_15_activation_contention_test_owner_split_static_passed_cargo_profile_deferred`。
+
+R1.4/M3-M4 的当前源码切片把 `core/runtime/tests/activation/behavior/activation.rs` 的
+2 个 contention/benchmark tests 与两个专用 helper 原样迁入 folder-backed
+`activation/contention.rs`。父 owner 从 885 行降到 756 行并保留 11 个 activation tests，
+child 为 132 行。750 ms、7 joiners、1 build 与 21 release samples 的原有性能合同未弱化。
+
+新增 Python 静态回归锁定父/child 行数、11+2 tests、测试名不回流与四项性能锚；该回归
+1/1、定向 Rust `rustfmt --check`、迁移块规范化 SHA-256 等价与 scoped diff check 通过。
+本切片未修改 activation 算法，也未产生新性能样本；Cargo/profile 延后，因此不声明
+Runtime02/15 或 optimize acceptance，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 RenderPipelineAsset Postprocess Plugin Input Test Owner Split
+
+状态：`runtime_01_15_render_pipeline_postprocess_plugin_input_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M3-M4 的当前源码切片把
+`graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs` 中 6 个 plugin
+scene-velocity / hybrid-GI input route tests 与 3 个专用 fixture 原样迁入 folder-backed
+`postprocess_routes/plugin_inputs.rs`。父 postprocess route owner 从 881 行降到 622 行并保留
+13 个 LUT、Bloom、blur、exposure、light-list、output-transfer 与 HZB route tests；child 为
+262 行 / 6 tests。另一会话新增的 FXAA/SMAA terminal pass `has_side_effects` 断言仍留在父
+owner，未被移动或回退。
+
+现有 `runtime_15_render_pipeline_compile_tests_are_child_owners` 预算守卫已读取新 child 并将
+父/child 分别纳入 800 行预算；新增 Python 静态回归锁定 13+6 测试、6 个测试名和 3 个
+fixture 不回流、预算守卫使用真实路径及并发断言保持。该切片只移动测试物理 owner，未修改
+RenderGraph 编译、插件 feature filter、资源依赖或 pass 排序算法。Python RED 先以 881 行
+预算失败，切分后本 guard 2/2、与前五个绕阻塞切片联合 9/9 通过；9 个迁移函数
+whitespace-normalized 等价，定向 `rustfmt --check` 与 scoped diff check 通过。Cargo/WGPU/
+RenderDoc 均延后，因此不声明 Render01/Runtime15 acceptance 或性能瓶颈消失，也未触发
+milestone commit/企微同步。
+
+## 2026-08-27 Scene Post-Process Volumetric Fog Test Owner Split
+
+状态：`runtime_07_15_scene_post_process_volumetric_fog_test_owner_split_static_passed_cargo_deferred`。
+
+R1.4/M3-M4 的当前源码切片把 `scene/tests/render_post_process_extract.rs` 中 3 个 local
+volumetric-fog extract tests 和唯一 `spawn_local_volumetric_box` fixture 原样迁入
+folder-backed `render_post_process_extract/volumetric_fog.rs`。父 owner 从 823 行降到 677 行，
+保留 11 个 camera/post-process volume tests；child 为 149 行 / 3 tests。另一会话正在推进的
+fallible `spawn_node(...).expect(...)` 断言在父/child 中均完整保留。
+
+生产边界复核确认 local volumetric fog 虽由 `PostProcessVolumeComponent` authoring，但按
+camera render/culling layers 进入 `AdvancedLightingExtract.fog_volumes`，与按 camera volume
+mask 进入 `PostProcessExtract.volumes` 的路径分离。新增 Python RED 先以 823 行预算失败，
+迁移后 guard 1/1、4 个迁移函数 whitespace-normalized 等价、定向 rustfmt 与 scoped diff
+check 通过。本切片未改 `collect_post_process_volumes`、fog bounds、layer routing 或 volume
+evaluation 算法；Cargo/WGPU/RenderDoc 延后，不声明 Render07/Runtime15 acceptance 或性能
+瓶颈消失，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 Native Registration Replay Typed-Error Owner Split
+
+状态：`runtime_06_15_native_registration_replay_error_owner_split_static_passed_cargo_deferred`。
+
+R1.3/M4 的当前源码切片把
+`plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs` 中
+`NativePluginRegistrationReplayError`、完整 Display 映射和 `Error::source` 链硬切到
+folder-backed `registration_replay/error.rs`。父 production owner 从 955 行降到 785 行，
+typed-error child 为 178 行；父模块以同级 `pub(super) use` 保持 live-host root 与 module-local
+tests 的原内部路径，没有增加 public facade、alias 或兼容分支。
+
+既有 F5 typed-error review guard 现在分别读取 orchestration 与 error owner，避免拆分后继续
+扫描父文件形成假失败或假通过。新增 Python RED 先因 955 行预算和旧 guard 路径 2/2 失败，
+迁移后通过；错误块除 folder-backed 层级所需的等效 `pub(in super::super)` visibility token
+外 whitespace-normalized 等价，另一会话的 3 个
+`sort_unstable` 和 optimization-test route 均保留，定向 rustfmt/scoped diff check 通过。本
+切片随后补充了 generation 的 fail-closed 边界：replay 前显式校验 manifest 与 prepared
+system 数量一致，且数量校验位于 known-component/access-authority 构造和空 manifest
+早退之前；非空 manifest 缺少 replay bridge context 时返回 `BridgeCallScope` typed error，
+不再依赖 release 模式会消失的
+`debug_assert_eq!` 或 `expect`。新增 optimization-test source contracts 覆盖这两条边界，
+定向 rustfmt/scoped diff check 与 native replay error-owner guard 通过。除上述错误路径
+收束外，manifest parse、access authority、bridge call 和 system registration 算法保持不变；
+当前 replay root 为 795 行（含 test-owner 挂载），optimization-test owner 为 198 行；Rust
+1.94.1 直接 test harness 执行 4 passed、2 ignored（release performance lanes），未引入
+外部依赖或 C 盘产物。
+当前源码指纹：replay root SHA-256 为
+`C9A80BE267518F1E903BDFCF1762F040A76161418D2EEC814FB026917AD169AC`，source-contract
+test owner SHA-256 为
+`EFDA9F946DEDEB5F1B0612D6285EA68585A8018990DC7FE3599329D5DD164205`。
+Cargo/native 动态加载延后，不声明 Runtime06/15 acceptance 或性能瓶颈消失，也未触发
+milestone commit/企微同步。Runtime06 主计划当前由另一会话持有写锁，本状态先由 Runtime15
+与 Runtime06 编号产出记录作为权威镜像。
+
+## 2026-08-27 FrameProfiler GPU Resolution Owner Split
+
+状态：`runtime_17_15_frame_profiler_gpu_resolution_owner_split_static_passed_cargo_profile_deferred`。
+
+R1.3/R1.4 与 Render17 PF-M1 的当前源码切片把
+`graphics/runtime/render_framework/frame_profiler.rs` 中的延迟 GPU timer、pipeline statistics
+结果归并以及 pass/subsystem budget 投影硬切到 folder-backed
+`frame_profiler/gpu_resolution.rs`。父 owner 保留 current-frame profile 组装、有界 pending ring 和
+stats 发布，从 936 行降到 796 行并保留 11 个 tests；GPU resolution child 为 153 行。父模块
+只在原 crate-private 范围精选 re-export `FrameProfileWrite`，没有增加 public facade、兼容 alias
+或第二份 profile 状态。
+
+新增 Python RED 先以父 owner 936 行超预算失败；拆分后 source/status guard 2/2 通过。迁移的
+`FrameProfileWrite`、2 个 merge 方法和 4 个匹配/预算 helper 共 7 项与 `HEAD` whitespace-
+normalized 等价，定向 `rustfmt --check` 与 scoped diff check 通过。另一会话的
+`GpuMemoryBudget`、memory warning 与 mesh-submission profile 变更完整保留，但不计入本切片。
+本切片没有改变 pending ring 容量、pass 匹配、`Arc::make_mut`、延迟帧计算或 budget 算法，
+也没有生成 CPU/GPU/allocator/RSS/power 样本；Cargo/WGPU/RenderDoc/PNG 延后，不声明
+Render17/Runtime15 acceptance 或瓶颈消失，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 Dynamic Event Keyboard/IME And Gamepad Owner Split
+
+状态：`runtime_10_12_15_dynamic_event_keyboard_ime_gamepad_owner_split_static_passed_cargo_deferred`。
+
+R1.3/R1.4 的当前源码切片把 `dynamic_api/session/events.rs` 中 keyboard/IME payload 解析与
+runtime/UI 双投影硬切到 223 行 `events/keyboard_ime.rs`，把 gamepad connection/button/axis
+投影与 UI navigation/analog mapping 硬切到 115 行 `events/gamepad.rs`。父 owner 从 1038 行
+降到 734 行并保留 6 个 tests，只拥有 ABI kind routing、viewport/pointer/window/lifecycle 编排
+和共享 UI dispatch；child handler 只对父路由开放 `pub(super)`，没有新增 public facade、alias、
+第二 input manager 或 event queue。
+
+Python RED 先以 1038 行预算失败，迁移后 source/status guard 2/2 通过，定向 rustfmt 与 scoped
+diff check 通过。3 个迁移项与 `HEAD` 规范化等价；4 个 handler 保留拆分前已经存在的
+physical-input-before-UI、typed clock 和 metadata sequencing 改动，但不计入本切片。本切片
+未改 event ordering、payload/UTF-8 limits、UI consumed 语义、gamepad threshold、coalescing、
+recording 或 action mapping 算法，也没有新增性能样本。Cargo/app/UI/backend 验证延后，
+不声明 Runtime10/12/15 acceptance，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 UiSurface Incremental Rebuild Owner Split
+
+状态：`runtime_09_15_ui_surface_incremental_rebuild_owner_split_static_passed_cargo_profile_deferred`。
+
+R1.3/R1.4 与 Runtime09 当前源码切片把
+`zircon_runtime/src/ui/surface/surface/rebuild.rs` 中完整 `rebuild_dirty`、增量布局预算和
+layout-engine selection report patch/merge helper 硬切到 711 行 folder-backed
+`zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs`。500 行父 owner 继续拥有 full
+rebuild、render extract、dirty mutation 与 `compute_layout`；child 只通过原有 inherent
+`UiSurface` owner 执行，没有 facade、alias、第二 invalidation state 或 public API 扩张。结构
+回归由 `tools/tests/test_runtime_ui_surface_incremental_rebuild_owner_structure.py` 固定父/子预算、
+职责和并发行为锚点。
+
+Python RED 先以 1194 行父文件超预算失败，迁移后 source guard 1/1 通过。`rebuild_dirty` 和
+3 个 helper 共 4 项与拆分前 whitespace-normalized SHA-256 4/4 等价，定向 rustfmt 与 scoped
+diff check 通过。本切片保留字体代次、布局 fallback、arranged/hit/render patch、导航索引和
+frame publication 行为，未调整算法或阈值；Cargo/UI/profile/power 验证延后，不声明
+Runtime09/15 acceptance 或性能收益，也未触发 milestone commit/企微同步。
+
+## 2026-08-27 UiSurface Property Transaction Owner Split
+
+状态：`runtime_09_15_ui_surface_property_transaction_owner_split_static_passed_cargo_profile_deferred`。
+
+R1.3/R1.4 与 Runtime09 当前源码切片把 959 行
+`zircon_runtime/src/ui/surface/surface.rs` 的完整 surface property transaction 硬切到 485 行
+folder-backed `zircon_runtime/src/ui/surface/surface/property_transaction.rs`。483 行父 owner 继续
+拥有 `UiSurface` state/construction、invalidation transaction、runtime style、hit/accessibility/
+debug query 和 route projection；child 统一同步 tree property、component state、style、focus/
+popup、editable text、clipboard revision 与 invalidation，未增加 facade、alias、第二 property
+store 或 public API。结构回归由
+`tools/tests/test_runtime_ui_surface_property_transaction_owner_structure.py` 固定父/子预算、职责和
+并发源码锚点。
+
+Python RED 先以 959 行父文件超预算失败，迁移后 source guard 1/1 通过。12 个移动方法/helper
+与拆分前 whitespace-normalized SHA-256 12/12 等价，定向 rustfmt 与 scoped diff check 通过。
+本切片完整保留 compiled binding/font generation/arranged visibility/virtual-list/hot-reload 和
+editable-text/popup 并发改动，未调整 mutation、dirty、focus 或 popup 算法；Cargo/UI/profile/
+power 验证延后，不声明 Runtime09/15 acceptance 或性能收益，也未触发 milestone commit/企微
+同步。
+
+## 2026-08-27 UI Pointer Component State Owner Split
+
+状态：`runtime_09_15_ui_pointer_component_state_owner_split_static_passed_cargo_profile_deferred`。
+
+R1.3/R1.4 与 Runtime09 当前源码切片把 887 行
+`zircon_runtime/src/ui/surface/surface/pointer_component_events.rs` 中 hover/pressed/focus
+component state、runtime pseudo-style propagation、render dirty 和 ancestor-root helper 硬切到
+226 行 folder-backed
+`zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs`。首次拆分后的
+674 行父 owner 继续拥有 component event、damage、compiled binding 和 template-action payload
+投影；child 仍修改同一 surface state/style/invalidation authority，没有 facade、第二事件路由或
+cache。结构
+回归由 `tools/tests/test_runtime_ui_pointer_component_state_owner_structure.py` 固定父/子预算、职责
+与 event-owner 锚点。
+
+Python RED 先以 887 行父文件超预算失败，迁移后 source guard 1/1 通过。7 个移动方法/helper
+与拆分前 whitespace-normalized SHA-256 7/7 等价，定向 rustfmt 与 scoped diff check 通过。
+本切片未调整 ancestor walk、style subtree、dirty、event ordering、binding 或 payload 算法；
+Cargo/UI/profile/power 验证延后，不声明 Runtime09/15 acceptance 或性能收益，也未触发
+milestone commit/企微同步。
+
+同一 pointer event folder 随后进一步把 9 个 binding/action 方法原样迁入 262 行
+`zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs`，父 owner 降到
+426 行并只保留 event envelope、focus、damage 与 binding event emission。action child 统一拥有
+compiled handle validation、action/route projection、missing-value policy 与 payload expression/
+property resolution，仍消费同一 `UiSurface` tree、binding、control index 与 component state，
+没有第二 dispatch 或 action registry。结构回归由
+`tools/tests/test_runtime_ui_pointer_template_action_owner_structure.py` 固定父/子预算与职责。
+
+状态：`runtime_09_15_ui_pointer_template_action_owner_split_static_passed_cargo_profile_deferred`。
+结构 RED 先以 674 行父 owner 超出 550 行边界失败；迁移后 9/9 方法 whitespace-normalized
+SHA-256 等价。该切片未改变 event ordering、compiled handle mapping、missing-value policy、
+payload evaluation 或 allocation 算法；Cargo/UI/profile/power 验证继续延后，不声明 Runtime09/15
+acceptance、性能收益或瓶颈消失，也未触发 milestone commit/企微同步。
+
+## 2026-08-28 Winit Translation Domain Owner Split
+
+状态：`runtime_09_15_winit_translation_domain_owner_split_static_passed_cargo_product_profile_deferred`。
+
+R1.3/R1.4 与 Runtime09 当前源码切片把 785 行
+`zircon_runtime/src/ui/platform_input/winit_translation.rs` 中平台事件路由与键盘、指针、IME、
+窗口 metadata/metrics 翻译职责分开。530 行根 owner 保留唯一 `WindowEvent` dispatch、公开
+modifier adapter 和约 430 行既有行为测试；40/161/52/51 行的
+`winit_translation/{keyboard,pointer,ime,window}.rs` child 直接构造原有 pump event，不建立
+第二 queue、window state、dispatch authority、DTO 或兼容 facade。结构回归由
+`tools/tests/test_runtime_ui_winit_translation_owner_structure.py` 固定模块路由、预算、职责锚点
+和四份计划状态镜像。
+
+Python RED 先记录旧根 785 行超预算，拆分后 source/status guard 2/2 通过。17 个移动函数体
+相对 `HEAD` 的去空白 SHA-256 17/17 等价，定向 rustfmt 与 scoped diff check 通过。事件顺序、
+synthetic、touch ID、scroll scale、IME byte clamp、window metadata/metrics 与 normalization
+算法未改变；Cargo/UI 产品/profile/power 验证延后，不声明 Runtime09/15 acceptance、性能收益
+或瓶颈消失，也未触发 milestone commit/企微同步。
+
+Scene property enumeration 应与既有 `property_access/write/{camera,mesh,lighting,animation,
+physics}.rs` 使用同一组件域拓扑，而不是让一个 umbrella owner 持续吸收所有固定组件。当前
+`zircon_runtime/src/scene/world/property_access/entries.rs` 为 210 行编排 owner；camera、mesh、
+lighting、animation child 分别为 49/122/153/175 行，既有 physics child 保持 513 行。根 owner
+只保留基础实体、domain order、dynamic metadata 与总 capacity；child 仍访问同一个 `World`，
+不得建立第二 reflection registry、Editor cache、property DTO 或写入入口。结构回归由
+`tools/tests/test_runtime_scene_property_entry_owner_structure.py` 固定路径、预算、顺序和职责。
+
+状态：`runtime_08_15_scene_property_entry_component_owner_split_static_passed_cargo_profile_deferred`。
+RED 先以旧根 567 行超过 280 行失败；迁移后 10/10 投影/capacity/helper 块与 `HEAD` 基线
+whitespace-normalized SHA-256 等价。property order/path/value/animatable/capacity 算法均未改变；
+Cargo、Editor Inspector 与 profile/power 门继续延后，不声明 Runtime08/15 acceptance、性能收益
+或瓶颈消失，也未触发 milestone commit/企微同步。
+
+UI asset hot-reload 索引与 retained node-resource 登记也必须按生命周期分责。758 行
+`zircon_runtime/src/ui/template/asset/surface_index.rs` 根 owner 保留 surface/tree 正反向索引、
+resource reverse edge、affected-surface selection 与 hot-reload targeting；175 行
+`zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs` child 只负责从
+已实例化 node metadata 容错投影 URI、kind 与 fallback。编译期严格 schema/diagnostic owner
+仍是 `ui/template/asset/resource_ref/collect.rs`，不得为了代码复用合并两个不同错误合同。
+`tools/tests/test_runtime_ui_asset_surface_node_resource_owner_structure.py` 固定父/子预算、模块
+路由、严格/容错 owner 边界和文档镜像。
+
+状态：`runtime_09_15_ui_asset_surface_node_resource_owner_split_static_passed_cargo_profile_deferred`。
+结构 RED 先以 918 行根 owner 超过 800 行失败；迁移后 11/11 方法/helper 的
+whitespace-normalized SHA-256 等价。该切片未改变 parser、schema、fallback、dedup、reverse
+index 或 hot-reload 算法；Cargo/UI/profile/power 验证继续延后，不声明 Runtime09/15
+acceptance、性能收益或瓶颈消失，也未触发 milestone commit/企微同步。
+
+## 2026-08-28 Plugin Manifest Constructor Owner Split
+
+状态：`runtime_06_15_plugin_manifest_constructor_owner_split_static_passed_cargo_deferred`。
+
+R1.3/R1.4 与 Runtime06 当前源码切片把 497 行
+`zircon_runtime/src/plugin/package_manifest/constructors.rs` 中 package 与 module descriptor
+构造职责按描述层级硬切。4 行 root 只挂载 child；169 行 `constructors/module.rs` 拥有模块
+kind、init level、module dependency、target mode 与 runtime `ModuleDescriptor` 投影；331 行
+`constructors/package.rs` 拥有 package identity、capability/content、feature、shader、packaging 与
+distribution 构造。二者继续为原公开类型提供相同固有方法，不新增 facade、builder、DTO 或旧
+路径 shim。结构回归由
+`tools/tests/test_runtime_plugin_manifest_constructor_owner_structure.py` 固定预算、职责和状态镜像。
+
+RED 先以旧 root 497 行超预算失败；两个完整 `impl` 与两个 helper 相对 `HEAD` 的去空白
+SHA-256 4/4 等价。该边界对照 Unreal Projects 中 `FPluginDescriptor` 组合独立
+`FModuleDescriptor` 的职责分层。Cargo/plugin 产品验证延后，不声明 Runtime06/15 acceptance
+或性能收益，也未触发 milestone commit/企微同步。
+
+## 2026-08-28 Native System Access Owner Split
+
+状态：`runtime_06_15_native_system_access_owner_split_static_passed_cargo_profile_deferred`。
+
+R1.3/R1.4 与 Runtime06 当前源码切片把 510 行 native registration system-access owner 中的
+plugin capability/ownership authorization 和 parse/authorize/resolve typed errors 分别迁入
+89 行 `system_access/authority.rs` 与 123 行 `system_access/error.rs`。318 行
+`system_access.rs` root 保留 declaration/plan、manifest parser、确定性排序、World access compile
+和原有内联行为测试；parent re-export 继续保持 registration-manifest 内部类型路径，不增加
+authority cache、access registry、World projection 或兼容 facade。结构回归由
+`tools/tests/test_runtime_native_system_access_owner_structure.py` 固定职责、预算和状态镜像。
+
+RED 先以旧 root 510 行超预算失败；12 个移动定义/实现块相对 `HEAD` 的去空白 SHA-256
+12/12 等价。Unreal descriptor admission 与 module loading 分层为主边界参考，Bevy
+`SystemParamAccess` 为冲突解析交叉检查。worker affinity/capability、owned/foreign stable ID、
+`write:world` exclusivity、排序、resolve 和 error text 均未改变；Cargo/native product/profile
+延后，不声明 Runtime06/15 acceptance 或性能收益，也未触发 milestone commit/企微同步。
+
+## 2026-08-28 Asset Artifact Material/Shader Owner Split
+
+状态：`runtime_04_15_asset_artifact_material_shader_owner_split_static_passed_cargo_deferred`。
+
+Runtime04/15 将 `zircon_runtime/src/asset/artifact/cache_payload/material_shader.rs` 从 637 行
+Material/Shader 混合 schema owner 硬切为 5 行 wiring root、161 行
+`zircon_runtime/src/asset/artifact/cache_payload/material_shader/material.rs` 和 487 行
+`zircon_runtime/src/asset/artifact/cache_payload/material_shader/shader.rs`。父级
+`cache_payload.rs` 继续消费同名私有类型，bincode variant 顺序、字段顺序、Serde default 与
+asset conversion 全部保持原合同；两个移动块相对 `HEAD` 的规范化 SHA-256 均完全相等。
+
+Unreal 的 Materials 与 Shader/ShaderCore 所有权分离作为主参考，Bevy PBR material owner
+作为轻量交叉检查。本切片不改序列化算法、缓存格式、导入行为或热路径，也不引入兼容
+facade。`tools/tests/test_runtime_asset_artifact_material_shader_owner_structure.py` 锁定根文件
+导航职责、子 owner 预算、字段顺序与四份状态镜像；Cargo/product validation 延后，不声明
+Runtime04/15 acceptance、性能收益、milestone commit 或企微同步。
+
+## 2026-08-28 ECS Component Registry Transfer Owner Split
+
+状态：`runtime_08_15_component_registry_transfer_owner_split_static_passed_cargo_deferred`。
+
+Runtime08/15 将 559 行
+`zircon_runtime/src/scene/ecs/component/registry.rs` 收束为 154 行 identity/layout root、259 行
+`zircon_runtime/src/scene/ecs/component/registry/transferred.rs` 事务 owner 和 174 行
+`zircon_runtime/src/scene/ecs/component/registry/tests.rs` 测试 owner。结构回归由
+`tools/tests/test_runtime_ecs_component_registry_transfer_owner_structure.py` 固定 owner 预算、
+preflight/publish 不变量、六个行为测试与四份状态镜像；Runtime08 生产清单同步为 76 文件。
+
+Unreal `CoreUObject` 稳定类型/布局 owner 与 package reload 阶段事务是主工程参考，Bevy
+`Components`/queued registrator 是 ECS 交叉检查。16 个移动块相对 `HEAD` 的规范化 SHA-256
+16/16 等价；不改 component ID、冲突判断、pending 顺序、reserve 或 publication 算法，
+不引入第二 registry/facade。Cargo/product validation 延后，不声明 Runtime08/15 acceptance、
+性能收益、milestone commit 或企微同步。
+
+## 2026-08-28 Plugin Availability Evaluation/Selection Owner Split
+
+状态：`runtime_06_15_plugin_availability_evaluation_selection_owner_split_static_passed_cargo_deferred`。
+
+Runtime06/15 将 636 行
+`zircon_runtime/src/plugin/runtime_profile/availability_projection.rs` 收束为 291 行 membership/
+construction root、282 行
+`zircon_runtime/src/plugin/runtime_profile/availability_projection/evaluation.rs` 和 91 行
+`zircon_runtime/src/plugin/runtime_profile/availability_projection/selection.rs`。结构回归由
+`tools/tests/test_runtime_plugin_availability_owner_structure.py` 固定 owner 预算、evaluation
+判定顺序、manifest first-position/required merge 不变量与五份状态镜像。
+
+Unreal provider status 与 project plugin reference/target rules 的分层为主参考。14 个移动块
+相对 `HEAD` 的规范化 SHA-256 14/14 等价；不改 borrowed membership、线性 selection/index
+merge、generation builder 或 availability 分类语义，也不引入第二 registry/cache/facade。
+Cargo/product validation 延后，不声明 Runtime06/15 acceptance、性能收益、milestone commit
+或企微同步。
+
+## 2026-08-28 Asset Management Family/Record-Set Owner Split
+
+状态：`runtime_04_15_asset_management_generation_static_implemented_cargo_deferred`。
+
+Runtime04/15 将 572 行 `zircon_runtime/src/asset/management.rs` 收束为 164 行 DTO declaration
+root、176 行 `zircon_runtime/src/asset/management/family.rs` 与 254 行
+`zircon_runtime/src/asset/management/record_sets.rs`。结构回归由
+`tools/tests/test_runtime_asset_management_owner_structure.py` 固定 owner 预算、11 个公开 DTO
+顺序、family status/issue 分类不变量和 Model/Mesh/Scene/Entity/Material/Shader 聚合顺序。
+
+Unreal `AssetRegistryState` 的 canonical entry/query index owner 与上层 aggregate/config owner
+分层是主工程参考。21 个声明/实现块相对 `HEAD` 的规范化 SHA-256 21/21 等价；不改 API、
+Serde 字段或聚合公式。`ProjectAssetManager` 现已补齐 immutable asset-only generation
+projection、generation-fenced publication 与 graphics-side renderer-material composition；Cargo/
+product/profile validation 延后，不声明 Runtime04/15 acceptance、性能收益、milestone commit
+或企微同步。
+
+## 2026-08-28 Viewport Output Planner Owner Split
+
+状态：`runtime_render_09_15_viewport_output_planner_owner_split_static_passed_cargo_deferred`。
+
+Render09/Runtime15 将 757 行
+`zircon_runtime/src/graphics/types/viewport_render_output_target.rs` 收束为 83 行 target
+declaration/resolution root、217 行
+`zircon_runtime/src/graphics/types/viewport_render_output_target/writeback.rs`、217 行
+`zircon_runtime/src/graphics/types/viewport_render_output_target/graph_import.rs` 与 268 行
+`zircon_runtime/src/graphics/types/viewport_render_output_target/tests.rs`。结构回归由
+`tools/tests/test_runtime_viewport_output_planner_owner_structure.py` 固定 owner 预算、规划顺序、
+两个 format path 和 12 个测试。
+
+Unreal `FRenderTarget` 的目标资源/尺寸/色彩契约与 `FSceneViewFamily` 目标绑定是主工程参考；
+graph import 与 final writeback 保持消费阶段 owner。26 个生产/行为块相对 `HEAD` 的规范化
+SHA-256 26/26 等价；不改 API、状态枚举、格式匹配或 conversion 决策，不引入第二 target
+authority。PERF-MVP-417 retained camera-plan 仍开放；Cargo/product/profile validation 延后，
+不声明 Render09/Runtime15 acceptance、性能收益、milestone commit 或企微同步。
+
+## 2026-08-28 ECS Archetype Topology Equality Receipt
+
+状态：`runtime_08_15_archetype_topology_equality_receipt_static_passed_cargo_deferred`。
+
+Runtime08/15 删除了 `ArchetypeIndex` 的恒真 `PartialEq`，以 owner-local borrowed
+`ArchetypeTopologySnapshot` 明确结构身份。receipt 比较两个 canonical lookup index、ordered
+records 及 archetype ID/signature/entity rows，同时明确排除 performance counters 与 membership
+revision history；既有 `World` derive 路径保持不变，没有引入 public DTO、第二快照存储、缓存或
+兼容 facade。三项 Rust 回归由 `archetype/index/tests.rs` 子 owner 承担，focused Python guard
+固定源码与状态镜像。Cargo/product/profile validation 延后，不声明 Runtime08/15 acceptance、
+性能收益、milestone commit 或企微同步。
+
+Runtime08 aggregate audit 的旧 source count 已从 75 同步到实际 76；继续暴露的 dual storage、
+component-storage import、entity generation 与 observer bucket 四条风险属于正在变化的共享 owner，
+不计入本 topology focused static pass，也未在本切片中关闭。
+
+## 2026-08-29 Shader Prewarm Asset Inventory Owner Split
+
+状态：`runtime_15_shader_prewarm_asset_inventory_owner_split_static_metadata_passed_cargo_product_deferred`。
+
+Runtime15 将 781 行 shader-prewarm asset inventory 收束为 224 行采集编排 root、431 行 warm
+snapshot/index owner 与 159 行安全目录遍历 owner。Unreal `FAssetDataGatherer` 与
+`FAssetRegistryState` 的 discovery/state 分层是主参考；schema v4、排序、text budget、相对路径与
+reparse 拒绝、payload-before-index 发布顺序均不变。结构守卫 `1/1` 与 actual-source isolated
+metadata compile 通过，搬移源码为 3,784/3,784 normalized tokens；managed Cargo、产品执行与
+profile 仍延后，不声明 Runtime15 acceptance、milestone commit 或企微同步。完整证据见
+[`15/2026-08-29-shader-prewarm-asset-inventory-owner-split.md`](15/2026-08-29-shader-prewarm-asset-inventory-owner-split.md)。
+
+## 2026-08-30 Runtime Resource Factory Failure Boundary
+
+Runtime15 在现有 immutable `Fn() + Send + Sync` resource factory 上补齐了
+world-extension 的失败边界。factory 现在只在生成资源值、尚未写入 `World` 的阶段被
+`catch_unwind` 保护；panic payload 会沿既有 `WorldRuntimeExtensionError::registration_failed`
+带着 `resource:<type>` key 返回，失败 World 不会留下半初始化资源，后续 World 仍可重试同一
+factory。该边界没有把任意 scene callback 统一吞掉，也没有引入第二套错误、缓存或锁。
+
+源码回归由 `resource_factory_panic_is_reported_without_partial_world_mutation` 覆盖；资源
+concurrency/owner validation 相关测试共 7 项。当前只完成源码与静态检查，managed Cargo、
+完整 Runtime06/15 gate、性能/功耗验证仍 pending，故不关闭里程碑、不提交 commit 或企微同步。

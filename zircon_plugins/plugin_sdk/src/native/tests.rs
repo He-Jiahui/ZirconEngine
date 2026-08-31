@@ -1,4 +1,7 @@
 use super::*;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+static HOST_ABI_VERSION_CALLS: AtomicUsize = AtomicUsize::new(0);
 
 static REPORT: NativePluginStatic<NativePluginEntryReportV3> =
     NativePluginStatic::new(NativePluginEntryReportV3 {
@@ -82,6 +85,24 @@ fn native_entry_point_selects_report_from_host_capabilities() {
 }
 
 #[test]
+fn native_entry_point_validates_the_host_abi_once_per_negotiation() {
+    HOST_ABI_VERSION_CALLS.store(0, Ordering::SeqCst);
+    let granted = b"runtime.plugin.weather\0";
+    let host = NativePluginHostFunctionTableV3 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+        host_handle: 7,
+        granted_capabilities: granted.as_ptr().cast(),
+        host_abi_version: Some(counting_host_abi_version),
+        host_has_capability: None,
+        host_log: None,
+        host_diagnostic: None,
+    };
+
+    assert_eq!(ENTRY.entry_report(&host), REPORT.as_ptr());
+    assert_eq!(HOST_ABI_VERSION_CALLS.load(Ordering::SeqCst), 1);
+}
+
+#[test]
 fn native_entry_point_rejects_denied_capability() {
     let granted = b"runtime.plugin.weather\nruntime.plugin.denied\0";
     let host = NativePluginHostFunctionTableV3 {
@@ -112,7 +133,7 @@ fn native_owned_bytes_round_trips_through_sdk_free_callback() {
 fn native_owned_bytes_free_rejects_malformed_length_before_reclaiming() {
     let backing = *b"ok";
     let status = unsafe {
-        free_owned_bytes_v2(NativePluginOwnedByteBufferV2 {
+        free_owned_bytes_v3(NativePluginOwnedByteBufferV3 {
             data: backing.as_ptr() as *mut u8,
             len: backing.len(),
             capacity: backing.len() - 1,
@@ -127,7 +148,7 @@ fn native_owned_bytes_free_rejects_malformed_length_before_reclaiming() {
 #[test]
 fn native_owned_bytes_free_rejects_null_pointer_with_owned_capacity() {
     let status = unsafe {
-        free_owned_bytes_v2(NativePluginOwnedByteBufferV2 {
+        free_owned_bytes_v3(NativePluginOwnedByteBufferV3 {
             data: std::ptr::null_mut(),
             len: 0,
             capacity: 1,
@@ -145,10 +166,10 @@ fn native_owned_bytes_free_rejects_owner_mismatch_without_consuming_allocation()
     let mut malformed = buffer;
     malformed.owner_token ^= 1;
 
-    let malformed_status = unsafe { free_owned_bytes_v2(malformed) };
+    let malformed_status = unsafe { free_owned_bytes_v3(malformed) };
     assert_eq!(malformed_status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
 
-    let recovered_status = unsafe { free_owned_bytes_v2(buffer) };
+    let recovered_status = unsafe { free_owned_bytes_v3(buffer) };
     assert_eq!(recovered_status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
 }
 
@@ -291,8 +312,8 @@ unexpected_command_field = true"#,
 fn native_output_sink_v4_writes_into_host_owned_context() {
     unsafe extern "C" fn append(
         context: *mut std::ffi::c_void,
-        bytes: NativePluginByteSliceV2,
-    ) -> NativePluginCallbackStatusV2 {
+        bytes: NativePluginByteSliceV3,
+    ) -> NativePluginCallbackStatusV3 {
         let output = unsafe { &mut *context.cast::<Vec<u8>>() };
         output.extend_from_slice(unsafe { bytes_from_slice(bytes) });
         callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, NATIVE_EMPTY_CSTR)
@@ -335,5 +356,10 @@ fn native_output_sink_v4_rejects_missing_writer_and_oversized_chunk() {
 }
 
 unsafe extern "C" fn host_abi_version() -> u32 {
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION
+}
+
+unsafe extern "C" fn counting_host_abi_version() -> u32 {
+    HOST_ABI_VERSION_CALLS.fetch_add(1, Ordering::SeqCst);
     ZIRCON_NATIVE_PLUGIN_ABI_VERSION
 }

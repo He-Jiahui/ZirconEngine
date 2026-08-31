@@ -4,7 +4,9 @@ use super::*;
 fn world_reflection_routes_component_and_resource_addresses() {
     let mut world = World::empty();
     world.type_registry_mut_for_tests().clear();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
 
     world
         .type_registry_mut_for_tests()
@@ -18,7 +20,7 @@ fn world_reflection_routes_component_and_resource_addresses() {
     world
         .type_registry_mut_for_tests()
         .register(RuntimeTypeRegistration {
-            registration: typed_registration("plugin_a::ProbeResource", "ProbeResource")
+            registration: typed_resource_registration("plugin_a::ProbeResource", "ProbeResource")
                 .as_resource()
                 .with_remote_visible(true),
             component: None,
@@ -30,7 +32,8 @@ fn world_reflection_routes_component_and_resource_addresses() {
         .register(RuntimeTypeRegistration::metadata(
             typed_registration("plugin_a::PluginHidden", "PluginHidden")
                 .as_component()
-                .with_plugin_owned(true),
+                .with_plugin_id("plugin_a")
+                .expect("test plugin id should be valid"),
         ))
         .expect("plugin metadata should be accepted");
 
@@ -44,7 +47,7 @@ fn world_reflection_routes_component_and_resource_addresses() {
         .expect("schema list should route through registry")
         .registrations
         .into_iter()
-        .map(|registration| registration.type_path.type_path)
+        .map(|registration| registration.type_path.type_path().to_string())
         .collect::<Vec<_>>();
     assert_eq!(
         listed,
@@ -69,6 +72,7 @@ fn world_reflection_routes_component_and_resource_addresses() {
     assert_eq!(
         component_fields.fields,
         vec![ReflectFieldValue::new(
+            reflected_field_id("plugin_a::ProbeComponent", "entity"),
             "entity",
             ReflectedValue::Unsigned(entity)
         )]
@@ -76,45 +80,61 @@ fn world_reflection_routes_component_and_resource_addresses() {
     let component_write = world
         .reflect_write(ReflectWriteRequest::new(
             component_address.clone(),
-            "entity",
+            reflected_field_id("plugin_a::ProbeComponent", "entity"),
             ReflectedValue::Unsigned(entity),
         ))
         .expect("component write should route to component adapter and read back");
     assert!(!component_write.changed);
     assert_eq!(
         component_write.field,
-        ReflectFieldValue::new("entity", ReflectedValue::Unsigned(entity))
+        ReflectFieldValue::new(
+            reflected_field_id("plugin_a::ProbeComponent", "entity"),
+            "entity",
+            ReflectedValue::Unsigned(entity),
+        )
     );
 
     let resource_address = ReflectObjectAddress::resource("plugin_a::ProbeResource")
         .expect("resource address should be valid");
     let resource_read = world
-        .reflect_read(ReflectReadRequest::new(resource_address.clone(), "enabled"))
+        .reflect_read(ReflectReadRequest::new(
+            resource_address.clone(),
+            reflected_field_id("plugin_a::ProbeResource", "enabled"),
+        ))
         .expect("resource read should route to resource adapter");
     assert_eq!(
         resource_read.field,
-        ReflectFieldValue::new("enabled", ReflectedValue::Bool(true))
+        ReflectFieldValue::new(
+            reflected_field_id("plugin_a::ProbeResource", "enabled"),
+            "enabled",
+            ReflectedValue::Bool(true),
+        )
     );
     let resource_write = world
         .reflect_write(ReflectWriteRequest::new(
             resource_address,
-            "enabled",
+            reflected_field_id("plugin_a::ProbeResource", "enabled"),
             ReflectedValue::Bool(true),
         ))
         .expect("resource write should route to resource adapter and read back");
     assert!(!resource_write.changed);
     assert_eq!(
         resource_write.field,
-        ReflectFieldValue::new("enabled", ReflectedValue::Bool(true))
+        ReflectFieldValue::new(
+            reflected_field_id("plugin_a::ProbeResource", "enabled"),
+            "enabled",
+            ReflectedValue::Bool(true),
+        )
     );
 
+    let missing_field_id = reflected_field_id("plugin_a::ProbeComponent", "missing");
     assert_eq!(
         world
-            .reflect_read(ReflectReadRequest::new(component_address, "missing"))
+            .reflect_read(ReflectReadRequest::new(component_address, missing_field_id))
             .expect_err("unknown field should propagate from adapter"),
         ReflectError::UnknownField {
             type_path: "plugin_a::ProbeComponent".to_string(),
-            field_name: "missing".to_string(),
+            field_name: missing_field_id.to_string(),
         }
     );
     assert_eq!(

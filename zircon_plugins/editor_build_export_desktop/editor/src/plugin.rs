@@ -2,13 +2,12 @@ use zircon_editor::core::asset::{
     AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
     AssetTypePresentation, ThumbnailProviderDescriptor,
 };
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 use zircon_editor::core::editor_extension::{
-    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
-    EditorUiTemplateDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError, EditorUiTemplateDescriptor,
 };
-use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
@@ -71,7 +70,6 @@ impl zircon_editor::EditorPlugin for EditorBuildExportDesktopPlugin {
                     EXPORT_VIEW_ID,
                     "Desktop Export",
                     "Build",
-                    "Project/Export/Desktop",
                 )],
             },
         )?;
@@ -155,15 +153,7 @@ fn register_export_operations(
     registry: &mut EditorExtensionRegistry,
 ) -> Result<(), EditorExtensionRegistryError> {
     for operation in export_operations()? {
-        let menu_path = operation
-            .menu_path()
-            .expect("desktop export operations are menu-backed")
-            .to_string();
-        let path = operation.id().clone();
         registry.register_command(operation)?;
-        registry.register_menu_item(
-            EditorMenuItemDescriptor::new(menu_path, path).with_required_capabilities([CAPABILITY]),
-        )?;
     }
     Ok(())
 }
@@ -178,26 +168,54 @@ fn export_operations() -> Result<Vec<EditorCommandDescriptor>, EditorExtensionRe
     let open_profile = parse_operation(EXPORT_OPERATION_OPEN_PROFILE)?;
 
     Ok(vec![
-        EditorCommandDescriptor::operation(generate, "Generate Desktop Export Plan")
-            .with_menu_path("Project/Export/Desktop/Generate Plan")
+        EditorCommandDescriptor::operation(generate.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &generate,
+                "project",
+                &["export", "desktop"],
+            ))
             .with_required_capabilities([CAPABILITY]),
-        EditorCommandDescriptor::operation(source_template, "Export Source Template")
-            .with_menu_path("Project/Export/Desktop/Source Template")
+        EditorCommandDescriptor::operation(source_template.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &source_template,
+                "project",
+                &["export", "desktop"],
+            ))
             .with_required_capabilities([CAPABILITY]),
-        EditorCommandDescriptor::operation(library_embed, "Export Library Embed")
-            .with_menu_path("Project/Export/Desktop/Library Embed")
+        EditorCommandDescriptor::operation(library_embed.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &library_embed,
+                "project",
+                &["export", "desktop"],
+            ))
             .with_required_capabilities([CAPABILITY]),
-        EditorCommandDescriptor::operation(native_dynamic, "Export Native Dynamic")
-            .with_menu_path("Project/Export/Desktop/Native Dynamic")
+        EditorCommandDescriptor::operation(native_dynamic.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &native_dynamic,
+                "project",
+                &["export", "desktop"],
+            ))
             .with_required_capabilities([CAPABILITY, NATIVE_DYNAMIC_REPORT_CAPABILITY]),
-        EditorCommandDescriptor::operation(diagnostics, "Open Export Diagnostics")
-            .with_menu_path("Project/Export/Desktop/Diagnostics")
+        EditorCommandDescriptor::operation(diagnostics.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &diagnostics,
+                "project",
+                &["export", "desktop"],
+            ))
             .with_required_capabilities([CAPABILITY, DIAGNOSTICS_CAPABILITY]),
-        EditorCommandDescriptor::operation(create_profile, "Create Desktop Export Profile")
-            .with_menu_path("Assets/Create/Desktop Export Profile")
+        EditorCommandDescriptor::operation(create_profile.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &create_profile,
+                "assets",
+                &["create"],
+            ))
             .with_required_capabilities([CAPABILITY]),
-        EditorCommandDescriptor::operation(open_profile, "Open Desktop Export Profile")
-            .with_menu_path("Assets/Open/Desktop Export Profile")
+        EditorCommandDescriptor::operation(open_profile.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &open_profile,
+                "assets",
+                &["open"],
+            ))
             .with_required_capabilities([CAPABILITY]),
     ])
 }

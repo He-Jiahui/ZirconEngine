@@ -9,10 +9,10 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
 ]
 styles = []
@@ -21,24 +21,47 @@ root = "tags_workspace"
 default_classes = ["workbench-module-body"]
 
 [nodes.tags_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchModuleTagsWorkspace"
 classes = ["workbench-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "tags_rail_gap" }, { node = "tags_left" }, { node = "tags_center" }, { node = "tags_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "tags_workspace_main" },
+  { node = "tags_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.tags_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "tags_rail_gap" }, { node = "tags_left" }, { node = "tags_center" }, { node = "tags_right_reserve" }]
+
+[nodes.tags_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.tags_rail_gap]
 component = "Container"
 control_id = "WorkbenchTagsRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.tags_left]
 component = "VerticalGroup"
 control_id = "WorkbenchTagsLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "tags_title" }, { node = "tags_registry_tab" }, { node = "tags_validation_tab" }, { node = "tags_sources_tab" }, { node = "tags_action_add" }, { node = "tags_action_rename" }, { node = "tags_source_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "tags_title" }, { node = "tags_actions" }, { node = "tags_left_content" }]
+
+[nodes.tags_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchTagsLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "tags_source_row" }]
 
 [nodes.tags_title]
 component = "WorkbenchSectionTitle"
@@ -46,29 +69,12 @@ control_id = "WorkbenchTagsTitle"
 props = { text = "Gameplay Tags" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
-[nodes.tags_registry_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchTagsRegistryTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Registry", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/TagsRegistryTab", event = "Click", route = "workbench.module.tags.registry" }]
-
-[nodes.tags_validation_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchTagsValidationTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Validation", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/TagsValidationTab", event = "Click", route = "workbench.module.tags.validation" }]
-
-[nodes.tags_sources_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchTagsSourcesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Sources", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/TagsSourcesTab", event = "Click", route = "workbench.module.tags.sources" }]
+[nodes.tags_actions]
+component = "HorizontalGroup"
+control_id = "WorkbenchTagsActions"
+classes = ["workbench-module-action-row"]
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "tags_action_add" }, { node = "tags_action_rename" }]
 
 [nodes.tags_action_add]
 component = "WorkbenchButton"
@@ -89,8 +95,8 @@ events = [{ id = "WorkbenchModule/TagsRename", event = "Click", route = "workben
 [nodes.tags_source_row]
 component = "WorkbenchListRow"
 control_id = "WorkbenchTagsSourceRow"
-classes = ["workbench-list-row", "workbench-row-selected"]
-props = { text = "DefaultGameplayTags.ini", icon = "file", selected = true }
+classes = ["workbench-list-row"]
+props = { text = "DefaultGameplayTags.ini", icon = "file" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/TagsSourceDefault", event = "Click", route = "workbench.module.tags.source.default" }]
 
@@ -98,8 +104,15 @@ events = [{ id = "WorkbenchModule/TagsSourceDefault", event = "Click", route = "
 component = "VerticalGroup"
 control_id = "WorkbenchTagsCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "tags_center_title" }, { node = "tags_table_header" }, { node = "tags_table_row_01" }, { node = "tags_table_row_02" }, { node = "tags_validation_row" }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "tags_center_title" }, { node = "tags_table_header" }, { node = "tags_table_content" }, { node = "tags_validation_row" }]
+
+[nodes.tags_table_content]
+component = "ScrollableBox"
+control_id = "WorkbenchTagsTableContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "tags_table_row_01" }, { node = "tags_table_row_02" }]
 
 [nodes.tags_center_title]
 component = "WorkbenchSectionTitle"
@@ -117,8 +130,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 3
 [nodes.tags_table_row_01]
 component = "WorkbenchTableRow"
 control_id = "WorkbenchTagsAbilityActivateRow"
-classes = ["workbench-table-row", "workbench-row-selected"]
-props = { text = "Ability.Activate", value_text = "Game   128   Valid   DefaultGameplayTags.ini", selected = true }
+classes = ["workbench-table-row"]
+props = { text = "Ability.Activate", value_text = "Game   128   Valid   DefaultGameplayTags.ini" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/TagsAbilityActivate", event = "Click", route = "workbench.module.tags.row.ability_activate" }]
 
@@ -134,16 +147,23 @@ events = [{ id = "WorkbenchModule/TagsStateStunned", event = "Click", route = "w
 component = "WorkbenchPropertyRow"
 control_id = "WorkbenchTagsValidationRow"
 classes = ["workbench-property-row"]
-props = { text = "Validation", value_text = "2 errors   8 warnings   6 infos" }
+props = { text = "Validation", value_text = "2 errors   8 warnings   6 infos", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/TagsValidationSelect", event = "Click", route = "workbench.module.tags.validation.select" }]
 
 [nodes.tags_right]
 component = "VerticalGroup"
 control_id = "WorkbenchTagsRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "tags_details_title" }, { node = "tags_search_field" }, { node = "tags_redirect_field" }, { node = "tags_owner_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "tags_details_title" }, { node = "tags_right_content" }]
+
+[nodes.tags_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchTagsRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "tags_search_property_row" }, { node = "tags_redirect_property_row" }, { node = "tags_owner_property_row" }]
 
 [nodes.tags_details_title]
 component = "WorkbenchSectionTitle"
@@ -151,33 +171,54 @@ control_id = "WorkbenchTagsDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.tags_search_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchTagsSearchPropertyRow"
+props = { text = "Search" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "tags_search_field", slot = { name = "value" } }]
+
 [nodes.tags_search_field]
 component = "WorkbenchField"
 control_id = "WorkbenchTagsSearchField"
 classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Search tags..." }
+props = { value = "", placeholder = "Search tags..." }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/TagsSearchEdit", event = "Change", route = "workbench.module.tags.search.edit" },
   { id = "WorkbenchModule/TagsSearchCommit", event = "Submit", route = "workbench.module.tags.search.commit" },
 ]
 
+[nodes.tags_redirect_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchTagsRedirectPropertyRow"
+props = { text = "Redirect" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "tags_redirect_field", slot = { name = "value" } }]
+
 [nodes.tags_redirect_field]
 component = "WorkbenchField"
 control_id = "WorkbenchTagsRedirectField"
 classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Redirect: Character.State.Stun" }
+props = { value = "Character.State.Stun" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/TagsRedirectEdit", event = "Change", route = "workbench.module.tags.redirect.edit" },
   { id = "WorkbenchModule/TagsRedirectCommit", event = "Submit", route = "workbench.module.tags.redirect.commit" },
 ]
 
+[nodes.tags_owner_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchTagsOwnerPropertyRow"
+props = { text = "Owner" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "tags_owner_field", slot = { name = "value" } }]
+
 [nodes.tags_owner_field]
 component = "WorkbenchField"
 control_id = "WorkbenchTagsOwnerField"
 classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Owner: DefaultGameplayTags.ini" }
+props = { value = "DefaultGameplayTags.ini" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/TagsOwnerEdit", event = "Change", route = "workbench.module.tags.owner.edit" },

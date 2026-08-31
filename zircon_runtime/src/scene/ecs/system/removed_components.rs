@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
 use crate::scene::ecs::{
-    ChangeTickWindow, Component, RemovedComponentEvents, RemovedComponentReader, SystemParam,
-    SystemParamAccess, SystemParamError,
+    ChangeTickWindow, Component, RemovedComponentEvents, RemovedComponentReadIter,
+    RemovedComponentReader, SystemParam, SystemParamAccess, SystemParamError,
 };
 use crate::scene::{EntityId, World};
 
@@ -16,12 +16,12 @@ where
     reader: &'world mut RemovedComponentReader<T>,
 }
 
-impl<T> RemovedComponents<'_, T>
+impl<'world, T> RemovedComponents<'world, T>
 where
     T: Component,
 {
-    pub fn read(&mut self) -> impl Iterator<Item = EntityId> {
-        self.reader.read(self.events).into_iter()
+    pub fn read(&mut self) -> RemovedComponentReadIter<'_, 'world, T> {
+        self.reader.read(self.events)
     }
 
     pub fn len(&self) -> usize {
@@ -34,6 +34,10 @@ where
 
     pub fn clear(&mut self) {
         self.reader.clear(self.events);
+    }
+
+    pub fn dropped_count(&self) -> u64 {
+        self.reader.dropped_count()
     }
 }
 

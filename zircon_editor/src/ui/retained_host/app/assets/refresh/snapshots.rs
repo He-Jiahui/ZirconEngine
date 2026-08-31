@@ -1,30 +1,67 @@
 use super::super::super::*;
+use crate::ui::host::editor_asset_manager::EditorAssetChangeKind;
 use std::collections::BTreeSet;
+use zircon_runtime::resource::ResourceEvent;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn sync_asset_catalog(&mut self) {
-        self.sync_asset_catalog_snapshot();
+        self.sync_asset_catalog_snapshot(&[]);
         self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
     }
 
-    pub(super) fn sync_asset_catalog_snapshot(&mut self) {
+    pub(super) fn sync_asset_catalog_snapshot(&mut self, changes: &[EditorAssetChange]) {
         if let Ok(editor_asset_manager) = self.editor_asset_manager_at_use_point() {
-            self.runtime
-                .sync_asset_catalog(editor_asset_manager.catalog_snapshot());
+            let catalog = editor_asset_manager.catalog_snapshot();
+            let exact_changes = !changes.is_empty()
+                && changes.iter().all(|change| {
+                    change.kind != EditorAssetChangeKind::CatalogChanged && change.uuid.is_some()
+                });
+            if exact_changes {
+                let mut changed_asset_uuids = changes
+                    .iter()
+                    .filter_map(|change| change.uuid.clone())
+                    .collect::<Vec<_>>();
+                changed_asset_uuids.sort();
+                changed_asset_uuids.dedup();
+                self.runtime
+                    .sync_asset_catalog_changes(catalog, &changed_asset_uuids);
+            } else {
+                self.runtime.sync_asset_catalog_data(catalog);
+            }
         }
     }
 
     pub(in crate::ui::retained_host::app) fn sync_asset_resources(&mut self) {
-        if self.sync_asset_resources_snapshot() {
+        if self.sync_asset_resources_snapshot(&[], true) {
             self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
         }
     }
 
-    pub(super) fn sync_asset_resources_snapshot(&mut self) -> bool {
+    pub(super) fn sync_asset_resources_snapshot(
+        &mut self,
+        changes: &[ResourceEvent],
+        generation_lagged: bool,
+    ) -> bool {
         if let Ok(resource_manager) = self.resolve_resource_manager() {
-            return self
-                .runtime
-                .sync_asset_resources(resource_manager.resource_management_generation());
+            let resources = resource_manager.resource_management_generation();
+            if !changes.is_empty() && !generation_lagged {
+                let mut changed_locators = changes
+                    .iter()
+                    .flat_map(|change| {
+                        change
+                            .locator
+                            .iter()
+                            .chain(change.previous_locator.iter())
+                            .map(|locator| locator.to_string())
+                    })
+                    .collect::<Vec<_>>();
+                changed_locators.sort();
+                changed_locators.dedup();
+                return self
+                    .runtime
+                    .sync_asset_resource_changes(resources, &changed_locators);
+            }
+            return self.runtime.sync_asset_resources_data(resources);
         }
         false
     }

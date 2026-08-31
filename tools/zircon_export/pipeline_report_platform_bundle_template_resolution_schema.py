@@ -42,8 +42,7 @@ from .pipeline_report_platform_bundle_template_resolution_semantics import (
     template_resolution_skipped_candidate_diagnostics_diagnostics,
 )
 from .pipeline_report_platform_bundle_template_resolution_path_semantics import (
-    template_resolution_path_containment_diagnostics,
-    template_resolution_template_dir_uniqueness_diagnostics,
+    template_resolution_path_diagnostics,
 )
 from .pipeline_report_platform_bundle_template_resolution_row_schema import (
     template_resolution_candidate_row_schema_diagnostics,
@@ -243,8 +242,7 @@ def platform_bundle_template_resolution_schema_diagnostics(
         )
     )
     diagnostics.extend(template_resolution_skipped_candidate_diagnostics_diagnostics(label, resolution))
-    diagnostics.extend(template_resolution_path_containment_diagnostics(label, resolution))
-    diagnostics.extend(template_resolution_template_dir_uniqueness_diagnostics(label, resolution))
+    diagnostics.extend(template_resolution_path_diagnostics(label, resolution))
     diagnostics.extend(template_resolution_fatal_selection_diagnostics(label, resolution))
     diagnostics.extend(template_resolution_fatal_candidate_count_diagnostics(label, resolution))
     diagnostics.extend(template_resolution_fatal_diagnostics_diagnostics(label, resolution))

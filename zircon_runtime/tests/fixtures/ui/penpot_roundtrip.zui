@@ -1,0 +1,233 @@
+[asset]
+kind = "view"
+id = "res://ui/tests/penpot_roundtrip.zui"
+version = 2
+display_name = "Penpot Roundtrip"
+
+[imports]
+widgets = [ "res://ui/components/button.zui#Button" ]
+styles = [ "res://ui/theme/editor.zui" ]
+
+[[imports.resources]]
+kind = "image"
+uri = "res://images/panel.webp"
+
+[imports.resources.fallback]
+mode = "optional"
+
+[tokens]
+"surface.panel" = "#20242b"
+"space.medium" = 12
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "RoundtripRoot"
+classes = [ "roundtrip", "panel" ]
+
+[nodes.root.layout]
+clip = true
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = 12
+
+[nodes.root.layout.padding]
+left = 20
+right = 20
+top = 16
+bottom = 16
+
+[nodes.root.layout.position]
+x = 40
+y = 60
+
+[nodes.root.layout.width]
+min = 320
+preferred = 420
+max = 560
+stretch = "Fixed"
+
+[nodes.root.layout.height]
+min = 240
+preferred = 320
+max = 480
+stretch = "Fixed"
+
+[nodes.root.props]
+background_color = "#20242b"
+border_color = "#59616d"
+border_width = 1
+corner_radius = 6
+
+[[nodes.root.events]]
+id = "Roundtrip/Changed"
+event = "Change"
+route = "tests.roundtrip.changed"
+
+[[nodes.root.children]]
+node = "title"
+
+[[nodes.root.children]]
+node = "actions"
+
+[nodes.root.children.slot.layout.width]
+stretch = "Stretch"
+
+[[nodes.root.children]]
+node = "virtual_rows"
+
+[nodes.root.zircon_extension]
+owner = "roundtrip-test"
+
+[nodes.root.zircon_extension.payload]
+enabled = true
+revision = 7
+
+[nodes.title]
+component = "Label"
+control_id = "RoundtripTitle"
+
+[nodes.title.props]
+text = "Roundtrip title"
+foreground_color = "#f3f5f7"
+font_size = 18
+font_weight = 600
+text_align = "center"
+
+[nodes.title.props.runtime_only]
+binding = "$session.title"
+
+[nodes.title.layout.width]
+stretch = "Stretch"
+
+[nodes.title.layout.height]
+min = 28
+preferred = 32
+max = 40
+stretch = "Fixed"
+
+[nodes.actions]
+component = "HorizontalBox"
+
+[nodes.actions.layout.container]
+kind = "HorizontalBox"
+gap = 8
+
+[nodes.actions.layout.width]
+stretch = "Stretch"
+
+[nodes.actions.layout.height]
+min = 36
+preferred = 40
+max = 44
+stretch = "Fixed"
+
+[[nodes.actions.children]]
+node = "cancel"
+
+[[nodes.actions.children]]
+node = "submit"
+
+[nodes.cancel]
+component = "Button"
+
+[nodes.cancel.props]
+text = "Cancel"
+button_variant = "outlined"
+
+[nodes.cancel.layout.width]
+min = 96
+preferred = 112
+max = 160
+stretch = "Fixed"
+
+[nodes.cancel.layout.height]
+stretch = "Stretch"
+
+[[nodes.cancel.events]]
+id = "Roundtrip/Cancel"
+event = "Click"
+
+[nodes.cancel.events.action]
+action = "dialog.cancel"
+
+[nodes.submit]
+component = "Button"
+
+[nodes.submit.props]
+text = "Apply"
+button_variant = "contained"
+
+[nodes.submit.layout.width]
+stretch = "Stretch"
+
+[nodes.submit.layout.height]
+stretch = "Stretch"
+
+[[nodes.submit.events]]
+id = "Roundtrip/Submit"
+event = "Click"
+route = "tests.roundtrip.submit"
+
+[nodes.virtual_rows]
+component = "VerticalBox"
+
+[nodes.virtual_rows.repeat]
+kind = "virtual_rows"
+prototype = "row_template"
+virtual_control_prefix = "RoundtripRow"
+authored_count = 1
+node_path_namespace = "tests"
+
+[nodes.virtual_rows.layout.container]
+kind = "VerticalBox"
+gap = 4
+
+[nodes.virtual_rows.layout.width]
+stretch = "Stretch"
+
+[nodes.virtual_rows.layout.height]
+min = 24
+preferred = 32
+max = 160
+stretch = "Fixed"
+
+[[nodes.virtual_rows.children]]
+node = "row_template"
+
+[nodes.row_template]
+component = "Label"
+
+[nodes.row_template.props]
+text = "Virtual row prototype"
+
+[nodes.row_template.layout.width]
+stretch = "Stretch"
+
+[nodes.row_template.layout.height]
+min = 24
+preferred = 24
+max = 32
+stretch = "Fixed"
+
+[nodes.detached_template]
+component = "Label"
+
+[nodes.detached_template.props]
+text = "Detached template"
+metadata_only = true
+
+[nodes.detached_template.layout.width]
+min = 120
+preferred = 160
+max = 220
+stretch = "Fixed"
+
+[nodes.detached_template.layout.height]
+min = 24
+preferred = 24
+max = 32
+stretch = "Fixed"

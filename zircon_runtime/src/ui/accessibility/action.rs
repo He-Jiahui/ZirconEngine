@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     dispatch::{UiAccessibilityInputEvent, UiDispatchReply, UiInputDispatchResult, UiInputEvent},
 };
 
-use crate::ui::surface::UiSurface;
+use crate::ui::{dispatch::UiTextDocumentSession, surface::UiSurface};
 
 use self::activate::dispatch_activate;
 use self::expanded::dispatch_expanded_state;
@@ -31,6 +31,7 @@ mod value_target;
 pub(crate) fn dispatch_accessibility_action(
     surface: &mut UiSurface,
     event: UiAccessibilityInputEvent,
+    mut text_documents: Option<&mut UiTextDocumentSession>,
 ) -> UiInputDispatchResult {
     let request = event.request.clone();
     let mut result = UiInputDispatchResult::new(
@@ -54,12 +55,20 @@ pub(crate) fn dispatch_accessibility_action(
         UiAccessibilityAction::Activate => {
             dispatch_activate(surface, target, snapshot_node, result)
         }
-        UiAccessibilityAction::SetValue => {
-            dispatch_set_value(surface, &request, snapshot_node, result)
-        }
-        UiAccessibilityAction::ReplaceSelectedText => {
-            dispatch_replace_selected_text(surface, &request, snapshot_node, result)
-        }
+        UiAccessibilityAction::SetValue => dispatch_set_value(
+            surface,
+            &request,
+            snapshot_node,
+            text_documents.as_deref_mut(),
+            result,
+        ),
+        UiAccessibilityAction::ReplaceSelectedText => dispatch_replace_selected_text(
+            surface,
+            &request,
+            snapshot_node,
+            text_documents.as_deref_mut(),
+            result,
+        ),
         UiAccessibilityAction::SetTextSelection => {
             dispatch_set_text_selection(surface, &request, snapshot_node, result)
         }

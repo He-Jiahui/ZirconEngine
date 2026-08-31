@@ -11,8 +11,8 @@ use zircon_runtime::core::framework::navigation::{
 };
 
 use super::agent_motion::NavigationAgentMotionState;
-use super::bake::PendingDirtyBake;
 use super::bake::task_pool::{NavMeshBakeTaskHandle, PendingTiledBake};
+use super::bake::PendingDirtyBake;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TiledBakeIdentity {

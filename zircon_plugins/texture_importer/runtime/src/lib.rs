@@ -16,7 +16,7 @@ pub use capability::{
     NATIVE_RUNTIME_ENTRY, NATIVE_RUNTIME_REGISTRATION_MANIFEST, PLUGIN_ID, PSD_IMPORTER_CAPABILITY,
     RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME, TEXTURE_IMPORTER_DECLARATION,
 };
-pub use cubemap::import_cubemap_manifest;
+pub use cubemap::import_cubemap;
 pub use importers::{import_image, import_psd, import_texture_container};
 pub use plugin::{
     TEXTURE_IMPORTER_DIST_CRATE_NAME, TEXTURE_IMPORTER_DIST_RUNTIME_ENTRY,

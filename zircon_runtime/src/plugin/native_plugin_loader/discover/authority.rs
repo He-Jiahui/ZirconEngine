@@ -85,6 +85,29 @@ impl NativePluginDiscoveryAuthority {
         self.project_root(root, false)
     }
 
+    pub(super) fn resolve_root(&self, root: &Path) -> NativePluginDiscoveryRoot {
+        self.root_identity(root)
+    }
+
+    pub(super) fn request_refresh(
+        &self,
+        root: &NativePluginDiscoveryRoot,
+    ) -> NativePluginDiscoveryRefreshTicket {
+        self.ticket_for(
+            root,
+            &NativePluginDiscoveryRefreshInput::RootScan,
+            true,
+            NativePluginDiscoveryRefreshWork::root_scan(),
+        )
+    }
+
+    pub(super) fn latest_snapshot(
+        &self,
+        root: &NativePluginDiscoveryRoot,
+    ) -> Option<std::sync::Arc<NativePluginDiscoverySnapshot>> {
+        self.refresh.snapshot(root)
+    }
+
     pub(in crate::plugin::native_plugin_loader) fn discover_load_manifest(
         &self,
         export_root: &Path,
@@ -211,7 +234,7 @@ impl NativePluginDiscoveryAuthority {
             if let Some(snapshot) = self.refresh.snapshot_for(&root, &input) {
                 let mut report = self.report_from_snapshot(snapshot);
                 if let Some(failure) = self.refresh.last_failure_for(&root, &input) {
-                    report.diagnostics.push(format!(
+                    report.push_diagnostic(format!(
                         "native plugin discovery refresh generation {} failed after the published snapshot: {failure}",
                         ticket.generation()
                     ));
@@ -240,6 +263,9 @@ impl NativePluginDiscoveryAuthority {
         work: NativePluginDiscoveryRefreshWork,
     ) -> NativePluginDiscoveryRefreshTicket {
         let mut in_flight = lock_recover(&self.in_flight);
+        // Async facade callers do not enter `clear_terminal_ticket`. Reclaim their completed
+        // entries at the next admission so the table remains bounded by active refresh roots.
+        in_flight.retain(|_, existing| !existing.ticket.is_complete());
         let key = AuthorityRefreshKey::new(root.clone(), input.clone());
         if let Some((existing_ticket, existing_forced)) = in_flight
             .get(&key)
@@ -349,11 +375,10 @@ impl NativePluginDiscoveryAuthority {
         &self,
         snapshot: std::sync::Arc<NativePluginDiscoverySnapshot>,
     ) -> NativePluginLoadReport {
-        NativePluginLoadReport {
-            discovered: snapshot.candidates().to_vec(),
-            diagnostics: snapshot.diagnostics().to_vec(),
-            ..NativePluginLoadReport::default()
-        }
+        NativePluginLoadReport::from_discovery(
+            snapshot.candidates().to_vec(),
+            snapshot.diagnostics().to_vec(),
+        )
     }
 
     fn failure_report(

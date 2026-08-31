@@ -1,6 +1,6 @@
 use crate::text::sdf::SdfBakeParams;
 
-use super::{SdfGlyphMetrics, FALLBACK_ADVANCE_RATIO};
+use super::{FALLBACK_ADVANCE_RATIO, SdfGlyphMetrics};
 
 pub(super) fn glyph_metrics(
     font: &fontsdf::Font,

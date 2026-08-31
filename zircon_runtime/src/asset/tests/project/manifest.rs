@@ -70,7 +70,8 @@ fn project_manifest_rejects_non_project_or_duplicate_ui_roots() {
     let non_project = ProjectManifest::from_toml_str(
         r#"
 name = "Invalid UI Root"
-format_version = 2
+format_version = 3
+project_guid = "d6a3cc3c-2900-4bff-a465-e932cb574e9d"
 default_scene = "res://scenes/main.scene.toml"
 library_version = 1
 ui_roots = ["builtin://ui/hud.zui"]
@@ -85,7 +86,8 @@ ui_roots = ["builtin://ui/hud.zui"]
     let duplicate = ProjectManifest::from_toml_str(
         r#"
 name = "Duplicate UI Root"
-format_version = 2
+format_version = 3
+project_guid = "0b38357e-6229-4ed9-ae0d-92af48d34b5e"
 default_scene = "res://scenes/main.scene.toml"
 library_version = 1
 ui_roots = ["res://ui/hud.zui", "res://ui/hud.zui"]
@@ -100,7 +102,8 @@ ui_roots = ["res://ui/hud.zui", "res://ui/hud.zui"]
     let labelled = ProjectManifest::from_toml_str(
         r#"
 name = "Labelled UI Root"
-format_version = 2
+format_version = 3
+project_guid = "9e4c2f39-1780-4d14-80b8-1864e37a3a7f"
 default_scene = "res://scenes/main.scene.toml"
 library_version = 1
 ui_roots = ["res://ui/hud.zui#Hud"]
@@ -114,18 +117,19 @@ ui_roots = ["res://ui/hud.zui#Hud"]
 }
 
 #[test]
-fn project_manifest_migrates_real_v1_toml_to_v2_without_a_v1_rust_type() {
-    let loaded = ProjectManifest::load_with_report(shared_manifest_fixture("v1")).unwrap();
+fn project_manifest_refuses_legacy_formats_until_explicit_migration() {
+    for (fixture, expected_source_format_version) in [("v1", 1), ("v2", 2)] {
+        let error =
+            ProjectManifest::load_with_report(shared_manifest_fixture(fixture)).unwrap_err();
+        let ProjectManifestError::MigrationRequired {
+            source_format_version,
+        } = error
+        else {
+            panic!("{fixture} must not enter runtime loading before migration: {error}");
+        };
 
-    assert_eq!(loaded.migrated_from, Some(1));
-    assert_eq!(loaded.value.format_version, 2);
-    assert_eq!(loaded.value.engine_version_req, None);
-    assert_eq!(
-        loaded.value.asset_roots,
-        [RelPath::parse("assets").unwrap()]
-    );
-    assert_eq!(loaded.value.settings, None);
-    assert_eq!(loaded.value.library_version, 3);
+        assert_eq!(source_format_version, expected_source_format_version);
+    }
 }
 
 #[test]
@@ -135,8 +139,8 @@ fn project_manifest_rejects_future_format_versions() {
     assert!(matches!(
         error,
         ProjectManifestError::Summary(ProjectManifestSummaryError::FutureVersion {
-            found: 3,
-            supported: 2
+            found: 4,
+            supported: 3
         })
     ));
 }
@@ -146,7 +150,8 @@ fn project_manifest_rejects_unsafe_empty_and_duplicate_asset_roots() {
     let unsafe_root = ProjectManifest::from_toml_str(
         r#"
 name = "Unsafe Roots"
-format_version = 2
+format_version = 3
+project_guid = "ba3ee75e-1b75-42d8-8cbe-d3b75b365817"
 default_scene = "res://scenes/main.scene.toml"
 asset_roots = ["../outside"]
 library_version = 1
@@ -158,7 +163,8 @@ library_version = 1
     let empty_roots = ProjectManifest::from_toml_str(
         r#"
 name = "Empty Roots"
-format_version = 2
+format_version = 3
+project_guid = "a7ac61cc-53bb-4ea7-a737-222a1b93eac9"
 default_scene = "res://scenes/main.scene.toml"
 asset_roots = []
 library_version = 1
@@ -170,7 +176,8 @@ library_version = 1
     let duplicate_roots = ProjectManifest::from_toml_str(
         r#"
 name = "Duplicate Roots"
-format_version = 2
+format_version = 3
+project_guid = "878abc6c-b808-4a94-8f67-10653733e213"
 default_scene = "res://scenes/main.scene.toml"
 asset_roots = ["assets", "assets/"]
 library_version = 1
@@ -184,8 +191,8 @@ library_version = 1
 }
 
 #[test]
-fn project_manifest_save_is_stable_and_writes_only_v2() {
-    let root = unique_temp_project_root("manifest_stable_v2");
+fn project_manifest_save_is_stable_and_writes_only_v3() {
+    let root = unique_temp_project_root("manifest_stable_v3");
     let path = root.join("zircon-project.toml");
     let mut manifest = ProjectManifest::new(
         "Stable Sandbox",
@@ -205,7 +212,8 @@ fn project_manifest_save_is_stable_and_writes_only_v2() {
     loaded.value.save(&path).unwrap();
     let second = fs::read_to_string(&path).unwrap();
 
-    assert!(first.contains("format_version = 2"));
+    assert!(first.contains("format_version = 3"));
+    assert!(first.contains("project_guid = \""));
     assert!(first.contains("asset_roots = [\"game-assets\", \"shared-assets\"]"));
     assert_eq!(first, second);
     assert_eq!(loaded.migrated_from, None);
@@ -278,7 +286,7 @@ fn project_manifest_atomic_save_restores_after_windows_replace_failure() {
 
 #[test]
 fn runtime_projection_matches_interface_summary_for_the_same_manifest_text() {
-    let source = fs::read_to_string(shared_manifest_fixture("v2")).unwrap();
+    let source = fs::read_to_string(shared_manifest_fixture("v3")).unwrap();
 
     let runtime = ProjectManifest::from_toml_str(&source).unwrap();
     let interface = ProjectManifestSummary::parse_toml_str(&source).unwrap();
@@ -435,8 +443,10 @@ fn project_manifest_roundtrip_preserves_script_package_roots() {
 fn export_profile_deserialization_preserves_missing_runtime_profile_id_for_validation() {
     let source = r#"
 name = "Sandbox"
+format_version = 3
+project_guid = "0a347ab5-6dd3-4378-b1f0-00d9b3e48d96"
 default_scene = "res://scenes/main.scene.toml"
-schema_version = 3
+library_version = 3
 
 [[export_profiles]]
 name = "client"
@@ -471,8 +481,10 @@ output_name = "client"
 fn export_profile_map_table_parses_planned_profile_asset_fields() {
     let source = r#"
 name = "Sandbox"
+format_version = 3
+project_guid = "7f1f12f3-d3c7-499d-8c8d-cb9809a3cdcf"
 default_scene = "res://scenes/main.scene.toml"
-schema_version = 3
+library_version = 3
 
 [export_profiles.windows-release]
 runtime_profile_id = "client2d"

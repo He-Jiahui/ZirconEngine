@@ -69,18 +69,18 @@ fn columnar_query_records_one_to_one_hundred_thousand_scale_counters() {
         let mut timings = Vec::with_capacity(4);
 
         let start = Instant::now();
-        let initial = system.run(&mut world, |query| query.iter().count());
+        let initial = system.run(&mut world, |mut query| query.iter().count());
         timings.push(start.elapsed());
         assert_eq!(initial, entity_count);
 
         let start = Instant::now();
-        let changed_zero = system.run(&mut world, |query| query.iter().count());
+        let changed_zero = system.run(&mut world, |mut query| query.iter().count());
         timings.push(start.elapsed());
         assert_eq!(changed_zero, 0);
 
         world.get_mut::<Health>(entities[0]).unwrap().0 += 1;
         let start = Instant::now();
-        let changed_one = system.run(&mut world, |query| query.iter().count());
+        let changed_one = system.run(&mut world, |mut query| query.iter().count());
         timings.push(start.elapsed());
         assert_eq!(changed_one, 1);
 
@@ -88,7 +88,7 @@ fn columnar_query_records_one_to_one_hundred_thousand_scale_counters() {
             world.get_mut::<Health>(entity).unwrap().0 += 1;
         }
         let start = Instant::now();
-        let changed_all = system.run(&mut world, |query| query.iter().count());
+        let changed_all = system.run(&mut world, |mut query| query.iter().count());
         timings.push(start.elapsed());
         assert_eq!(changed_all, entity_count);
 

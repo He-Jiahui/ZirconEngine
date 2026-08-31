@@ -1,10 +1,11 @@
 use super::super::super::super::data::FrameRect;
-use crate::ui::retained_host::host_contract::paint_geometry::inward_pixel_aligned_rect;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paint_rect(
     rect: &FrameRect,
 ) -> FrameRect {
-    inward_pixel_aligned_rect(rect)
+    // Material fields share the same final physical-pixel coverage path as Workbench controls.
+    // Preserve fractional post-DPI geometry until that rasterizer stage.
+    rect.clone()
 }
 
 #[cfg(test)]
@@ -20,13 +21,11 @@ mod tests {
             height: 30.5,
         };
 
-        let aligned = pixel_aligned_rect(&declared);
+        let aligned = paint_rect(&declared);
 
-        assert_eq!(aligned.x, 13.0);
-        assert_eq!(aligned.y, 9.0);
-        assert_eq!(aligned.width, 94.0);
-        assert_eq!(aligned.height, 29.0);
-        assert!(aligned.right() <= declared.right());
-        assert!(aligned.bottom() <= declared.bottom());
+        assert_eq!(aligned.x, declared.x);
+        assert_eq!(aligned.y, declared.y);
+        assert_eq!(aligned.width, declared.width);
+        assert_eq!(aligned.height, declared.height);
     }
 }

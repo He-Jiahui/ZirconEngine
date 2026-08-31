@@ -1,9 +1,48 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
 #[test]
+fn runtime_15_neutral_rhi_device_errors_are_child_owned() {
+    let parent = read_repo("zircon_runtime/crates/zr_rhi/src/device.rs");
+    let error = read_repo("zircon_runtime/crates/zr_rhi/src/device/error.rs");
+
+    assert_contains_all(
+        "neutral RHI device delegates the public error contract",
+        &parent,
+        &["mod error;", "pub use self::error::RhiError;"],
+    );
+    assert_contains_all(
+        "neutral RHI error child owns typed device and submission failures",
+        &error,
+        &[
+            "pub enum RhiError",
+            "SubmissionSequenceExhausted",
+            "SubmissionPollSequenceExhausted",
+            "NativeDevicePoll",
+            "impl From<UnsupportedRenderOperation> for RhiError",
+        ],
+    );
+    assert!(
+        !parent.contains("pub enum RhiError"),
+        "zr_rhi/device.rs should delegate the error contract to device/error.rs"
+    );
+    for (path, source) in [
+        ("zr_rhi/device.rs", parent.as_str()),
+        ("zr_rhi/device/error.rs", error.as_str()),
+    ] {
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 800,
+            "{path} should stay below the Runtime 15 production-file soft budget; got {line_count} lines"
+        );
+    }
+}
+
+#[test]
 fn runtime_15_rhi_wgpu_device_command_list_is_child_owner() {
     let parent = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device.rs");
     let command_list = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device/command_list.rs");
+    let construction = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device/construction.rs");
+    let contract_caps = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device/contract_caps.rs");
     let rhi_wgpu_root = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/lib.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -18,6 +57,7 @@ fn runtime_15_rhi_wgpu_device_command_list_is_child_owner() {
         &parent,
         &[
             "mod command_list;",
+            "mod construction;",
             "pub(crate) use self::command_list::DeterministicRhiContractCommandList;",
             "pub(crate) struct DeterministicRhiContractDevice",
             "pub(super) struct DeterministicRhiContractDeviceState",
@@ -26,7 +66,6 @@ fn runtime_15_rhi_wgpu_device_command_list_is_child_owner() {
             "DeterministicRhiContractCommandList::new(",
             "fn submit(&self, command_list: Box<dyn CommandList>)",
             "fn lock_state(&self) -> MutexGuard<'_, DeterministicRhiContractDeviceState>",
-            "RenderBackendCaps::new(\"deterministic-rhi-contract-test\")",
         ],
     );
     for moved_owner in [
@@ -60,6 +99,22 @@ fn runtime_15_rhi_wgpu_device_command_list_is_child_owner() {
         ],
     );
     assert_contains_all(
+        "deterministic RHI construction child owns device initialization policy",
+        &construction,
+        &[
+            "impl DeterministicRhiContractDevice",
+            "pub(crate) fn new_headless()",
+            "fn new_headless_with_identity_and_config(",
+            "deterministic_contract_caps()",
+            "SubmissionHistory::new(submission_limits)",
+        ],
+    );
+    assert_contains_all(
+        "deterministic RHI capability child owns the backend receipt",
+        &contract_caps,
+        &["RenderBackendCaps::new(\"deterministic-rhi-contract-test\")"],
+    );
+    assert_contains_all(
         "RHI WGPU root keeps the deterministic contract device test-only",
         &rhi_wgpu_root,
         &["use device::{DeterministicRhiContractCommandList, DeterministicRhiContractDevice};"],
@@ -84,6 +139,71 @@ fn runtime_15_rhi_wgpu_device_command_list_is_child_owner() {
     for (path, source) in [
         ("rhi_wgpu/device.rs", parent.as_str()),
         ("rhi_wgpu/device/command_list.rs", command_list.as_str()),
+        ("rhi_wgpu/device/construction.rs", construction.as_str()),
+    ] {
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 800,
+            "{path} should stay below the Runtime 15 production-file soft budget; got {line_count} lines"
+        );
+    }
+}
+
+#[test]
+fn runtime_15_rhi_wgpu_production_device_capabilities_are_child_owned() {
+    let parent = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/production/device.rs");
+    let capabilities =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/production/device/capabilities.rs");
+    let tests = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/production/tests.rs");
+    let capability_tests =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/production/tests/capabilities.rs");
+
+    assert_contains_all(
+        "production RHI device delegates capability receipt construction",
+        &parent,
+        &[
+            "pub(super) mod capabilities;",
+            "use capabilities::production_caps;",
+            "let caps = production_caps(&adapter, &device, &profile);",
+        ],
+    );
+    assert_contains_all(
+        "production RHI capability child owns native-to-neutral mapping",
+        &capabilities,
+        &[
+            "fn production_caps_from_wgpu(",
+            "RenderOperation::MultiDrawIndirectCount",
+            "with_pipeline_statistics_query",
+            "fn adapter_class_label(",
+        ],
+    );
+    for moved_owner in [
+        "fn production_caps_from_wgpu(",
+        "fn indirect_operation_support(",
+        "fn adapter_class_label(",
+    ] {
+        assert!(
+            !parent.contains(moved_owner),
+            "production/device.rs should delegate {moved_owner} to production/device/capabilities.rs"
+        );
+    }
+    assert_contains_all(
+        "production RHI tests delegate capability behavior to a folder-backed owner",
+        &tests,
+        &["#[path = \"tests/capabilities.rs\"]", "mod capabilities;"],
+    );
+    assert!(
+        !tests.contains("fn production_capability_view_advertises_only_implemented_neutral_abi("),
+        "production/tests.rs should delegate capability behavior to production/tests/capabilities.rs"
+    );
+    for (path, source) in [
+        ("production/device.rs", parent.as_str()),
+        ("production/device/capabilities.rs", capabilities.as_str()),
+        ("production/tests.rs", tests.as_str()),
+        (
+            "production/tests/capabilities.rs",
+            capability_tests.as_str(),
+        ),
     ] {
         let line_count = source.lines().count();
         assert!(

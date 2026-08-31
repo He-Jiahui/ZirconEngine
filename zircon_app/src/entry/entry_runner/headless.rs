@@ -6,7 +6,7 @@ use super::EntryRunner;
 
 impl EntryRunner {
     pub fn run_headless() -> Result<(), Box<dyn Error>> {
-        let _ = Self::bootstrap(EntryConfig::new(EntryProfile::Headless))?;
+        let _composition = Self::compose(EntryConfig::new(EntryProfile::Headless))?;
         Ok(())
     }
 }

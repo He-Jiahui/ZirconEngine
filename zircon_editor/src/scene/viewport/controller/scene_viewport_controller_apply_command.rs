@@ -6,14 +6,14 @@ use crate::core::settings::{
     VIEWPORT_ROTATE_STEP_DEGREES_KEY, VIEWPORT_SCALE_STEP_KEY, VIEWPORT_TRANSLATE_STEP_KEY,
 };
 
-use super::SceneViewportController;
+use super::{SceneViewportController, SceneViewportControllerError};
 
 impl SceneViewportController {
     pub(crate) fn apply_command(
         &mut self,
         scene: Option<&Scene>,
         command: &ViewportCommand,
-    ) -> Result<ViewportFeedback, String> {
+    ) -> Result<ViewportFeedback, SceneViewportControllerError> {
         let mut feedback = ViewportFeedback::default();
 
         match command {
@@ -21,29 +21,58 @@ impl SceneViewportController {
                 self.activate_scene_mode(mode.clone())?;
             }
             ViewportCommand::SetTransformSpace(space) => {
-                self.state.settings.transform_space = *space
+                feedback.settings_changed =
+                    replace_if_changed(&mut self.state.settings.transform_space, *space);
             }
-            ViewportCommand::SetProjectionMode(mode) => self.set_projection_mode(*mode),
-            ViewportCommand::AlignView(orientation) => self.align_view(*orientation),
-            ViewportCommand::SetDisplayMode(mode) => self.state.settings.display_mode = *mode,
-            ViewportCommand::SetGridMode(mode) => self.state.settings.grid_mode = *mode,
-            ViewportCommand::SetTranslateSnap(step) => self
-                .set_project_snap_step(VIEWPORT_TRANSLATE_STEP_KEY, validated_snap_step(*step)?)?,
-            ViewportCommand::SetRotateSnapDegrees(step) => self.set_project_snap_step(
-                VIEWPORT_ROTATE_STEP_DEGREES_KEY,
-                validated_snap_step(*step)?,
-            )?,
+            ViewportCommand::SetPivotMode(mode) => {
+                feedback.settings_changed = self.set_interactive_transform_pivot_mode(*mode);
+                feedback.interaction_extract_stale = feedback.settings_changed;
+            }
+            ViewportCommand::SetProjectionMode(mode) => {
+                feedback.settings_changed = self.state.settings.projection_mode != *mode;
+                if feedback.settings_changed {
+                    self.set_projection_mode(*mode);
+                }
+            }
+            ViewportCommand::AlignView(orientation) => {
+                feedback.settings_changed = self.state.settings.view_orientation != *orientation;
+                self.align_view(*orientation);
+            }
+            ViewportCommand::SetDisplayMode(mode) => {
+                feedback.settings_changed =
+                    replace_if_changed(&mut self.state.settings.display_mode, *mode);
+            }
+            ViewportCommand::SetGridMode(mode) => {
+                feedback.settings_changed =
+                    replace_if_changed(&mut self.state.settings.grid_mode, *mode);
+            }
+            ViewportCommand::SetTranslateSnap(step) => {
+                feedback.settings_changed = self.set_project_snap_step(
+                    VIEWPORT_TRANSLATE_STEP_KEY,
+                    validated_snap_step(*step)?,
+                )?;
+            }
+            ViewportCommand::SetRotateSnapDegrees(step) => {
+                feedback.settings_changed = self.set_project_snap_step(
+                    VIEWPORT_ROTATE_STEP_DEGREES_KEY,
+                    validated_snap_step(*step)?,
+                )?;
+            }
             ViewportCommand::SetScaleSnap(step) => {
-                self.set_project_snap_step(VIEWPORT_SCALE_STEP_KEY, validated_snap_step(*step)?)?
+                feedback.settings_changed = self
+                    .set_project_snap_step(VIEWPORT_SCALE_STEP_KEY, validated_snap_step(*step)?)?;
             }
             ViewportCommand::SetPreviewLighting(enabled) => {
-                self.state.settings.preview_lighting = *enabled
+                feedback.settings_changed =
+                    replace_if_changed(&mut self.state.settings.preview_lighting, *enabled);
             }
             ViewportCommand::SetPreviewSkybox(enabled) => {
-                self.state.settings.preview_skybox = *enabled
+                feedback.settings_changed =
+                    replace_if_changed(&mut self.state.settings.preview_skybox, *enabled);
             }
             ViewportCommand::SetGizmosEnabled(enabled) => {
-                self.state.settings.gizmos_enabled = *enabled
+                feedback.settings_changed =
+                    replace_if_changed(&mut self.state.settings.gizmos_enabled, *enabled);
             }
             ViewportCommand::ToggleOverlayProvider { provider_id } => {
                 self.toggle_viewport_overlay_provider(provider_id)?;
@@ -60,9 +89,20 @@ impl SceneViewportController {
     }
 }
 
-fn validated_snap_step(step: f32) -> Result<f32, String> {
+fn replace_if_changed<T>(slot: &mut T, value: T) -> bool
+where
+    T: Copy + PartialEq,
+{
+    if *slot == value {
+        return false;
+    }
+    *slot = value;
+    true
+}
+
+fn validated_snap_step(step: f32) -> Result<f32, SceneViewportControllerError> {
     if !step.is_finite() {
-        return Err("viewport snap step must be finite".to_string());
+        return Err(SceneViewportControllerError::InvalidSnapStep { value: step });
     }
     Ok(step.max(0.0001))
 }

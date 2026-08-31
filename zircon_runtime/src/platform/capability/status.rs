@@ -9,6 +9,12 @@ impl<T> CapabilityStatus<T> {
     pub const fn is_supported(&self) -> bool {
         matches!(self, Self::Supported(_))
     }
+
+    pub(in crate::platform) const fn platform_disabled() -> Self {
+        Self::FeatureDisabled {
+            feature: "platform",
+        }
+    }
 }
 
 pub(super) fn format_capability<T>(

@@ -1,4 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
@@ -13,11 +16,112 @@ pub(super) const VARIABLE_FONT_ASSET_URI: &str = "res://fonts/bahnschrift-variab
 pub(super) const VARIABLE_FONT_NARROW_FAMILY: &str = "Zircon Bahnschrift Narrow";
 pub(super) const VARIABLE_FONT_WIDE_FAMILY: &str = "Zircon Bahnschrift Wide";
 
-pub(super) fn product_fixture_asset_manager(
-    fixture_label: &str,
-) -> (Arc<ProjectAssetManager>, PathBuf) {
+pub(super) struct ProductFixture {
+    asset_manager: Arc<ProjectAssetManager>,
+    work_root: ProductFixtureWorkRoot,
+}
+
+impl ProductFixture {
+    pub(super) fn asset_manager(&self) -> Arc<ProjectAssetManager> {
+        Arc::clone(&self.asset_manager)
+    }
+}
+
+struct ProductFixtureWorkRoot {
+    path: PathBuf,
+}
+
+impl ProductFixtureWorkRoot {
+    fn new(path: PathBuf) -> Self {
+        Self { path }
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for ProductFixtureWorkRoot {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime::asset::pipeline::manager::AssetManager;
+
+    use super::{ProductFixtureWorkRoot, product_fixture, product_proof_work_path};
+
+    #[test]
+    fn product_fixture_work_root_removes_a_failed_fixture_directory() {
+        let root = product_proof_work_path("fixture-cleanup");
+        std::fs::create_dir_all(&root).expect("create failed fixture directory");
+        std::fs::write(root.join("partial-output"), b"failed proof work")
+            .expect("seed failed fixture output");
+
+        {
+            let work_root = ProductFixtureWorkRoot::new(root.clone());
+            assert_eq!(work_root.path(), root.as_path());
+        }
+
+        assert!(
+            !root.exists(),
+            "dropping a failed product fixture must remove only its work directory"
+        );
+    }
+
+    #[test]
+    fn product_fixture_runtime_font_assets_survive_source_deletion() {
+        let fixture = product_fixture("cooked-font-source-deletion");
+        let font_root = fixture.work_root.path().join("assets/fonts");
+        let manager = fixture.asset_manager();
+        let default_uri = zircon_runtime::asset::AssetUri::parse("res://fonts/default.font.toml")
+            .expect("default font URI");
+        let default_id = manager
+            .resolve_asset_id(&default_uri)
+            .expect("imported default font asset id");
+        let default_font = manager
+            .load_font_asset(default_id)
+            .expect("load default font artifact");
+
+        assert!(!font_root.join("ZirconDefaultComposite-subset.ttc").exists());
+        assert!(
+            default_font
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.cooked_blob.as_ref())
+                .is_some_and(|blob| blob.has_valid_content_hash())
+        );
+
+        #[cfg(target_os = "windows")]
+        {
+            let variable_uri =
+                zircon_runtime::asset::AssetUri::parse(super::VARIABLE_FONT_ASSET_URI)
+                    .expect("variable font URI");
+            let variable_id = manager
+                .resolve_asset_id(&variable_uri)
+                .expect("imported variable font asset id");
+            let variable_font = manager
+                .load_font_asset(variable_id)
+                .expect("load variable font artifact");
+
+            assert!(!font_root.join("bahnschrift-variable.ttf").exists());
+            assert!(
+                variable_font
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.cooked_blob.as_ref())
+                    .is_some_and(|blob| blob.has_valid_content_hash())
+            );
+        }
+    }
+}
+
+pub(super) fn product_fixture(fixture_label: &str) -> ProductFixture {
     assert_checked_in_default_composite_package();
     let root = product_proof_work_path(fixture_label);
+    let work_root = ProductFixtureWorkRoot::new(root.clone());
     let paths = ProjectPaths::from_root(&root).expect("text product fixture project paths");
     paths
         .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
@@ -66,7 +170,11 @@ pub(super) fn product_fixture_asset_manager(
             .expect("load imported variable font asset");
         assert_eq!(asset.family_members.len(), 2);
     }
-    (manager, root)
+    remove_runtime_font_sources(&asset_root);
+    ProductFixture {
+        asset_manager: manager,
+        work_root,
+    }
 }
 
 fn assert_checked_in_default_composite_package() {
@@ -85,9 +193,11 @@ fn assert_checked_in_default_composite_package() {
     let bytes = std::fs::read(font_dir.join(&asset.source))
         .expect("checked-in default CompositeFont source");
     let face = ttf_parser::Face::parse(&bytes, 1).expect("checked-in CJK face 1");
-    assert!("中文排版引擎文本与布局竖排标点验证"
-        .chars()
-        .all(|character| face.glyph_index(character).is_some()));
+    assert!(
+        "中文排版引擎文本与布局竖排标点验证"
+            .chars()
+            .all(|character| face.glyph_index(character).is_some())
+    );
 }
 
 fn copy_checked_in_default_composite_font_package(asset_root: &std::path::Path) {
@@ -98,6 +208,15 @@ fn copy_checked_in_default_composite_font_package(asset_root: &std::path::Path) 
         std::fs::copy(source_dir.join(file_name), destination_dir.join(file_name))
             .expect("copy checked-in default CompositeFont package into product fixture");
     }
+}
+
+fn remove_runtime_font_sources(asset_root: &std::path::Path) {
+    let font_dir = asset_root.join("fonts");
+    std::fs::remove_file(font_dir.join("ZirconDefaultComposite-subset.ttc"))
+        .expect("runtime product fixture must consume the imported default font artifact");
+    #[cfg(target_os = "windows")]
+    std::fs::remove_file(font_dir.join("bahnschrift-variable.ttf"))
+        .expect("runtime product fixture must consume the imported variable font artifact");
 }
 
 fn write_checker_texture(asset_root: &std::path::Path) {

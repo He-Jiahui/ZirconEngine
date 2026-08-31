@@ -15,6 +15,7 @@ fn first_frame_exit_flag_projects_into_editor_host_config() {
         None,
         true,
         None,
+        None,
     );
 
     assert_eq!(config.startup_request(), startup_request.as_ref());
@@ -31,6 +32,7 @@ fn editor_host_config_carries_the_optional_first_presented_frame_capture() {
         None,
         true,
         Some(resolved_capture_path.clone()),
+        None,
     );
 
     assert_eq!(
@@ -49,6 +51,7 @@ fn editor_host_config_carries_a_project_startup_scene() {
         Some(scene_uri.clone()),
         None,
         false,
+        None,
         None,
     );
 

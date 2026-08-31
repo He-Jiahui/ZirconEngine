@@ -7,8 +7,6 @@ pub enum ActivityDrawerSlot {
     RightTop,
     RightBottom,
     Bottom,
-    BottomLeft,
-    BottomRight,
 }
 
 impl ActivityDrawerSlot {
@@ -19,11 +17,4 @@ impl ActivityDrawerSlot {
         Self::RightBottom,
         Self::Bottom,
     ];
-
-    pub fn canonical(self) -> Self {
-        match self {
-            Self::BottomLeft | Self::BottomRight => Self::Bottom,
-            slot => slot,
-        }
-    }
 }

@@ -1,8 +1,7 @@
 use crate::core::runtime::tasks::{TaskPool, TaskPools};
 use crate::text::TextDocumentKey;
 use crate::ui::text::{
-    resolve_text_layout, UiTextLayoutRequest, UiTextMeasureCache, UiTextShapePrewarmRequest,
-    UiTextViewport,
+    UiTextLayoutRequest, UiTextMeasureCache, UiTextShapePrewarmRequest, UiTextViewport,
 };
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiEditableTextState, UiRenderCommand};
@@ -10,8 +9,8 @@ use zircon_runtime_interface::ui::surface::{UiEditableTextState, UiRenderCommand
 mod profile;
 #[cfg(feature = "profiling")]
 pub(super) use profile::{
-    record_compiled_rich_text_cache_profile, record_text_extract_profile,
-    TextFontHandleFrameProfile,
+    TextFontHandleFrameProfile, record_compiled_rich_text_cache_profile,
+    record_text_extract_profile,
 };
 const UI_TEXT_SHAPE_PREWARM_CHUNK_SIZE: usize = 8;
 pub(super) const UI_TEXT_OWNER_PREWARM_OVERLAP_MIN_REQUESTS: usize = 8;
@@ -26,7 +25,7 @@ impl PendingOwnerTextLayouts {
     pub(super) fn push(
         &mut self,
         command_index: usize,
-        document_key: TextDocumentKey,
+        document_key: Option<TextDocumentKey>,
         viewport: Option<UiTextViewport>,
         editable: Option<UiEditableTextState>,
     ) {
@@ -46,7 +45,7 @@ impl PendingOwnerTextLayouts {
 
 struct PendingOwnerTextLayout {
     command_index: usize,
-    document_key: TextDocumentKey,
+    document_key: Option<TextDocumentKey>,
     viewport: Option<UiTextViewport>,
     editable: Option<UiEditableTextState>,
 }
@@ -99,10 +98,8 @@ pub(super) fn prewarm_render_command_text_after_owner_overlap(
             if viewport_owner {
                 return None;
             }
-            UiTextShapePrewarmRequest::from_layout_source(
-                command.text.as_deref()?,
-                command.style.clone(),
-            )
+            text_measure_cache
+                .shape_prewarm_request(command.text.as_deref()?, command.style.clone())
         })
         .collect::<Vec<_>>();
     debug_assert_eq!(pending_index, pending_owner_text_layouts.entries.len());
@@ -150,28 +147,20 @@ fn prewarm_text_requests(
 pub(super) fn resolve_missing_render_command_text_layouts(
     commands: &mut [UiRenderCommand],
     pending_owner_text_layouts: &PendingOwnerTextLayouts,
-    mut text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) {
     #[cfg(feature = "profiling")]
-    let shaped_run_cache_before = text_measure_cache
-        .as_deref()
-        .map(UiTextMeasureCache::frame_shaped_run_report);
+    let shaped_run_cache_before = text_measure_cache.frame_shaped_run_report();
     #[cfg(feature = "profiling")]
-    let uncached_document_resolves_before = text_measure_cache
-        .as_deref()
-        .map(UiTextMeasureCache::frame_uncached_document_resolve_count)
-        .unwrap_or_default();
+    let uncached_document_resolves_before =
+        text_measure_cache.frame_uncached_document_resolve_count();
     {
         crate::profile_scope!("runtime", "ui_text.layout_resolve", "render_command_text");
         let mut pending_index = 0;
         for (command_index, command) in commands.iter_mut().enumerate() {
             if let Some(pending) = pending_owner_text_layouts.entries.get(pending_index) {
                 if pending.command_index == command_index {
-                    resolve_pending_owner_text_layout(
-                        command,
-                        pending,
-                        text_measure_cache.as_deref_mut(),
-                    );
+                    resolve_pending_owner_text_layout(command, pending, text_measure_cache);
                     pending_index += 1;
                     continue;
                 }
@@ -184,40 +173,32 @@ pub(super) fn resolve_missing_render_command_text_layouts(
             };
             let request =
                 UiTextLayoutRequest::new(text, &command.style, command.frame, command.clip_frame);
-            let layout = match text_measure_cache.as_deref_mut() {
-                Some(cache) => cache.resolve_or_shape(&request).layout,
-                None => resolve_text_layout(&request).layout,
-            };
+            let layout = text_measure_cache.resolve_or_shape(&request).layout;
             command.text_layout = Some(layout);
         }
         debug_assert_eq!(pending_index, pending_owner_text_layouts.entries.len());
     }
     #[cfg(feature = "profiling")]
-    if let (Some(cache), Some(shaped_run_cache_before)) =
-        (text_measure_cache.as_deref(), shaped_run_cache_before)
-    {
-        profile::record_text_layout_resolve_profile(
-            cache,
-            shaped_run_cache_before,
-            cache
-                .frame_uncached_document_resolve_count()
-                .saturating_sub(uncached_document_resolves_before),
-        );
-    }
+    let uncached_document_resolves = text_measure_cache
+        .frame_uncached_document_resolve_count()
+        .saturating_sub(uncached_document_resolves_before);
+    #[cfg(feature = "profiling")]
+    profile::record_text_layout_resolve_profile(
+        text_measure_cache,
+        shaped_run_cache_before,
+        uncached_document_resolves,
+    );
 }
 
 fn resolve_pending_owner_text_layout(
     command: &mut UiRenderCommand,
     pending: &PendingOwnerTextLayout,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) {
     let Some(request) = pending_owner_text_request(command, pending) else {
         return;
     };
-    let mut layout = match text_measure_cache {
-        Some(cache) => cache.resolve_or_shape(&request).layout,
-        None => resolve_text_layout(&request).layout,
-    };
+    let mut layout = text_measure_cache.resolve_or_shape(&request).layout;
     layout.editable = pending.editable.clone();
     command.text_layout = Some(layout);
 }
@@ -228,8 +209,10 @@ fn pending_owner_text_request<'a>(
 ) -> Option<UiTextLayoutRequest<'a>> {
     let text = command.text.as_deref()?;
     let mut request =
-        UiTextLayoutRequest::new(text, &command.style, command.frame, command.clip_frame)
-            .with_document_key(pending.document_key);
+        UiTextLayoutRequest::new(text, &command.style, command.frame, command.clip_frame);
+    if let Some(document_key) = pending.document_key {
+        request = request.with_document_key(document_key);
+    }
     if let Some(viewport) = pending.viewport {
         request = request.with_viewport(viewport);
     }
@@ -242,10 +225,7 @@ fn command_text_can_use_shape_prewarm(command: &UiRenderCommand) -> bool {
 
 fn command_text_needs_layout(command: &UiRenderCommand) -> bool {
     command.text_layout.is_none()
-        && command
-            .text
-            .as_ref()
-            .is_some_and(|text| !text.trim().is_empty())
+        && command.text.as_ref().is_some_and(|text| !text.is_empty())
         && valid_text_frame(command.frame)
 }
 

@@ -23,6 +23,34 @@ fn command_palette_filtering_compares_borrowed_ascii_text_and_moves_labels() {
 }
 
 #[test]
+fn anchored_command_palette_consumes_runtime_popup_geometry() {
+    let commands = commands_for_command_palette(
+        UiFrame::new(40.0, 32.0, 320.0, 160.0),
+        r##"
+open = true
+popup_open = true
+placement = "top"
+popup_anchor_x = 20.0
+popup_anchor_y = 64.0
+popup_anchor_width = 600.0
+popup_anchor_height = 0.0
+anchor_origin_vertical = "top"
+anchor_origin_horizontal = "center"
+transform_origin_vertical = "top"
+transform_origin_horizontal = "center"
+popup_offset_y = 24.0
+"##,
+    );
+
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::Dropdown
+            && command.frame == UiFrame::new(160.0, 88.0, 320.0, 160.0)
+            && command.clip_frame == Some(UiFrame::new(0.0, 0.0, 640.0, 360.0))
+    }));
+}
+
+#[test]
 fn render_extract_command_palette_draws_search_panel_and_filtered_command_rows() {
     let commands = commands_for_command_palette(
         UiFrame::new(40.0, 32.0, 320.0, 160.0),

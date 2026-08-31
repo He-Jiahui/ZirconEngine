@@ -24,19 +24,26 @@ pub(super) fn draw_pane_template_nodes(
     interaction: &HostPaneInteractionStateData,
     text_input_focus: Option<&HostTextInputFocusData>,
 ) -> bool {
-    select_pane_template_nodes(pane)
-        .map(|nodes| {
-            draw_if_present(
-                frame,
-                pane,
-                nodes,
-                body,
-                clip,
-                interaction,
-                text_input_focus,
-            )
-        })
-        .unwrap_or(false)
+    let render_source_frame = match pane.kind.as_str() {
+        "Assets" => pane.assets_activity.render_source_frame.as_ref(),
+        "AssetBrowser" => pane.asset_browser.render_source_frame.as_ref(),
+        _ => None,
+    };
+    frame.with_render_source_frame(render_source_frame, |frame| {
+        select_pane_template_nodes(pane)
+            .map(|nodes| {
+                draw_if_present(
+                    frame,
+                    pane,
+                    nodes,
+                    body,
+                    clip,
+                    interaction,
+                    text_input_focus,
+                )
+            })
+            .unwrap_or(false)
+    })
 }
 
 fn draw_if_present(
@@ -53,7 +60,7 @@ fn draw_if_present(
     }
     if pane.kind.as_str() == "Assets" {
         if let Some(projector) = ActivityAssetContentProjector::new(nodes, origin, interaction) {
-            return draw_template_nodes_with_transform(
+            draw_template_nodes_with_transform(
                 frame,
                 nodes,
                 origin,
@@ -61,11 +68,12 @@ fn draw_if_present(
                 text_input_focus,
                 Some(&projector),
             );
+            return true;
         }
     }
     if pane.kind.as_str() == "AssetBrowser" {
         if let Some(projector) = BrowserAssetContentProjector::new(nodes, origin, interaction) {
-            return draw_template_nodes_with_transform(
+            draw_template_nodes_with_transform(
                 frame,
                 nodes,
                 origin,
@@ -73,11 +81,12 @@ fn draw_if_present(
                 text_input_focus,
                 Some(&projector),
             );
+            return true;
         }
     }
     if pane.kind.as_str() == "Console" {
         if let Some(projector) = ConsoleOutputProjector::new(nodes, origin, interaction) {
-            let nodes_painted = draw_template_nodes_with_transform(
+            draw_template_nodes_with_transform(
                 frame,
                 nodes,
                 origin,
@@ -85,8 +94,51 @@ fn draw_if_present(
                 text_input_focus,
                 Some(&projector),
             );
-            return projector.draw_scrollbar(frame, clip) || nodes_painted;
+            projector.draw_scrollbar(frame, clip);
+            return true;
         }
     }
-    draw_template_nodes(frame, nodes, origin, clip, text_input_focus)
+    draw_template_nodes(frame, nodes, origin, clip, text_input_focus);
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use std::rc::Rc;
+
+    use crate::ui::retained_host::primitives::VecModel;
+
+    use super::*;
+
+    #[test]
+    fn template_content_remains_present_outside_damage() {
+        let nodes = ModelRc::from(Rc::new(VecModel::from(vec![
+            TemplatePaneNodeData::default(),
+        ])));
+        let mut pane = PaneData::default();
+        pane.template_v2.nodes = nodes;
+        let body = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 100.0,
+            height: 80.0,
+        };
+        let mut frame = HostRgbaFrame::recording_only(300, 300);
+        frame.replace_paint_clip(Some(FrameRect {
+            x: 200.0,
+            y: 200.0,
+            width: 20.0,
+            height: 20.0,
+        }));
+
+        assert!(draw_pane_template_nodes(
+            &mut frame,
+            &pane,
+            &body,
+            &body,
+            &HostPaneInteractionStateData::default(),
+            None,
+        ));
+        assert!(frame.into_recorded_commands().is_empty());
+    }
 }

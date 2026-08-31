@@ -1,5 +1,8 @@
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::view::ViewInstanceId;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct HostDrawerHeaderPointerItem {
-    pub slot: String,
-    pub instance_id: String,
+    pub slot: ActivityDrawerSlot,
+    pub instance_id: ViewInstanceId,
 }

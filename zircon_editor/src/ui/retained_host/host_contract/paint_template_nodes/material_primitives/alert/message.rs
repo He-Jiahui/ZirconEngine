@@ -26,7 +26,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_al
         frame,
         Some(clip.clone()),
         order,
-        message,
+        message.to_string(),
         alert_text_color(node),
         font_size,
         line_height,
@@ -35,14 +35,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_al
     ));
 }
 
-fn alert_message(node: &TemplatePaneNodeData) -> String {
+fn alert_message(node: &TemplatePaneNodeData) -> &str {
     first_non_empty(&[
         node.text.as_str(),
         node.value_text.as_str(),
         node.validation_message.as_str(),
         node.options_text.as_str(),
     ])
-    .to_string()
 }
 
 #[cfg(test)]
@@ -74,3 +73,7 @@ mod tests {
         assert!(commands[0].frame.height > commands[0].line_height);
     }
 }
+
+#[cfg(test)]
+#[path = "message/capacity_tests.rs"]
+mod capacity_tests;

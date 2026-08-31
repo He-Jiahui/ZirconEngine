@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use zircon_runtime::graphics::VisibilityVirtualGeometryFeedback;
 
 use super::super::{VirtualGeometryRuntimeState, HOT_FRONTIER_COOLING_FRAME_COUNT};
@@ -9,7 +7,7 @@ impl VirtualGeometryRuntimeState {
         &mut self,
         feedback: &VisibilityVirtualGeometryFeedback,
     ) {
-        let resident_page_ids = self.resident_page_ids().collect::<BTreeSet<_>>();
+        let resident_page_ids = self.resident_page_id_index();
         self.retain_recent_hot_resident_pages(|page_id, frames_remaining| {
             if !resident_page_ids.contains(page_id) {
                 return false;
@@ -42,7 +40,7 @@ impl VirtualGeometryRuntimeState {
             feedback.requested_pages.iter().copied(),
             &feedback.evictable_pages,
         );
-        let resident_page_ids = self.resident_page_ids().collect::<BTreeSet<_>>();
+        let resident_page_ids = self.resident_page_id_index();
         self.retain_current_hot_resident_pages(|page_id| resident_page_ids.contains(page_id));
         self.retain_recent_hot_resident_pages(|page_id, _| resident_page_ids.contains(page_id));
     }

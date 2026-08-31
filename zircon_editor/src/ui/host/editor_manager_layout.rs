@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use crate::core::asset::{DirtyExternalEffectId, DirtyExternalEffectRevision};
 use crate::core::editor_message::DocumentId;
-use crate::core::extension::DocumentToolkitSnapshot;
+use crate::core::extension::{
+    DocumentToolkitDescriptor, DocumentToolkitSnapshot, ToolkitInstanceId,
+};
 use crate::ui::workbench::layout::{LayoutCommand, MainPageId};
 use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId};
 use crate::ui::workbench::LayoutPresetRestoreResult;
@@ -73,6 +75,14 @@ impl EditorManager {
 
     pub fn document_toolkit_snapshot(&self) -> DocumentToolkitSnapshot {
         self.host.document_toolkit_snapshot()
+    }
+
+    pub(crate) fn focused_document_toolkit(&self) -> Option<DocumentToolkitDescriptor> {
+        let focused = self.current_focused_view()?;
+        let instance = ToolkitInstanceId::parse(focused.0).ok()?;
+        self.document_toolkit_snapshot()
+            .descriptor_for_instance(&instance)
+            .cloned()
     }
 
     pub(crate) fn dirty_document_toolkits(

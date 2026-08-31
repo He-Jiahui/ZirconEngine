@@ -3,11 +3,11 @@ use wgpu::util::DeviceExt;
 use crate::core::framework::render::{GpuLightData, GpuLightType};
 use crate::core::math::{Mat4, UVec2, Vec3, Vec4};
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
-    build_light_grid, LightGridProjection, LightGridViewInfo,
+    LightGridProjection, LightGridViewInfo, build_light_grid,
 };
 use crate::graphics::scene::scene_renderer::shadow::atlas::SHADOW_ATLAS_COMPARE_FUNCTION;
 use crate::graphics::scene::scene_renderer::shadow::slot::{
-    GpuShadowGlobals, GpuShadowSlot, GPU_SHADOW_SLOT_FLAG_VALID,
+    GPU_SHADOW_SLOT_FLAG_VALID, GpuShadowGlobals, GpuShadowSlot,
 };
 
 use super::super::FroxelViewReconstruction;

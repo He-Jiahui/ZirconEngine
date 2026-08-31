@@ -1,4 +1,4 @@
-use unicode_segmentation::UnicodeSegmentation;
+use crate::text::WordBoundaryMap;
 
 pub(crate) const ELLIPSIS: &str = "…";
 
@@ -26,7 +26,7 @@ pub(crate) fn retained_grapheme_counts(
                 .get(fitted.saturating_sub(1))
                 .map(|(_, end)| *end)
                 .unwrap_or_default();
-            let word_end = word_ellipsis_prefix_end(text, fitted_end);
+            let word_end = WordBoundaryMap::new(text).completed_prefix_end(fitted_end);
             (graphemes.partition_point(|&(_, end)| end <= word_end), 0)
         }
         EllipsisPlacement::End => (fitting_prefix_count(advances, available), 0),
@@ -99,36 +99,6 @@ pub(crate) fn trim_end_ellipsis_trailing_graphemes(
     }
 }
 
-fn word_ellipsis_prefix_end(text: &str, end: usize) -> usize {
-    let Some(prefix) = text.get(..end) else {
-        return 0;
-    };
-    let trimmed_end = prefix.trim_end_matches(char::is_whitespace).len();
-    if trimmed_end == 0 {
-        return 0;
-    }
-    if trimmed_end < end
-        || text
-            .get(end..)
-            .and_then(|suffix| suffix.chars().next())
-            .map_or(true, char::is_whitespace)
-    {
-        return trimmed_end;
-    }
-
-    let mut seen_word = false;
-    for (index, grapheme) in text[..trimmed_end].grapheme_indices(true).rev() {
-        if grapheme.chars().all(char::is_whitespace) {
-            if seen_word {
-                return index;
-            }
-        } else {
-            seen_word = true;
-        }
-    }
-    0
-}
-
 fn fitting_prefix_count(advances: &[f32], available: f32) -> usize {
     let mut width = 0.0;
     advances
@@ -160,7 +130,7 @@ fn fitting_suffix_count(advances: &[f32], available: f32) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{retained_grapheme_counts, EllipsisPlacement};
+    use super::{EllipsisPlacement, retained_grapheme_counts};
     use unicode_segmentation::UnicodeSegmentation;
 
     #[test]
@@ -176,6 +146,37 @@ mod tests {
             retained_grapheme_counts(text, &graphemes, &advances, 8.0, EllipsisPlacement::EndWord),
             (5, 0),
             "the incomplete `be` prefix must not survive a word ellipsis"
+        );
+    }
+
+    #[test]
+    fn end_word_ellipsis_uses_unicode_boundaries_without_whitespace() {
+        let text = "alpha-beta";
+        let graphemes = text
+            .grapheme_indices(true)
+            .map(|(start, grapheme)| (start, start + grapheme.len()))
+            .collect::<Vec<_>>();
+        let advances = vec![1.0; graphemes.len()];
+
+        assert_eq!(
+            retained_grapheme_counts(text, &graphemes, &advances, 8.0, EllipsisPlacement::EndWord),
+            (5, 0),
+            "the completed UAX #29 word survives even when the separator is punctuation"
+        );
+    }
+
+    #[test]
+    fn end_word_ellipsis_supports_cjk_without_spaces() {
+        let text = "中文文本";
+        let graphemes = text
+            .grapheme_indices(true)
+            .map(|(start, grapheme)| (start, start + grapheme.len()))
+            .collect::<Vec<_>>();
+        let advances = vec![1.0; graphemes.len()];
+
+        assert_eq!(
+            retained_grapheme_counts(text, &graphemes, &advances, 3.0, EllipsisPlacement::EndWord),
+            (3, 0)
         );
     }
 

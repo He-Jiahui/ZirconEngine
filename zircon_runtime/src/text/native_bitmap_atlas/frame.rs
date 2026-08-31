@@ -1,7 +1,5 @@
+use std::collections::HashMap;
 use std::sync::Arc;
-
-use glyphon::cosmic_text::LayoutGlyph;
-use glyphon::{FontSystem, TextArea};
 
 use crate::core::math::UVec2;
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
@@ -11,34 +9,34 @@ use crate::text::atlas::{
     GlyphAtlasBitmapRetryFrameState, GlyphAtlasBitmapRetryFrameStateReport,
     GlyphAtlasBitmapRetryFrameSubmissionReport, GlyphAtlasBitmapSource,
     GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat, GlyphAtlasSet, GlyphAtlasStorageFormat,
+    GlyphRasterKey,
 };
 use crate::text::font::FontDatabase;
 use crate::text::parallel::raster_pool::{TextRasterCompletionDrainBudget, TextRasterWorkerPool};
 
+use super::glyph_run::NativeBitmapAtlasGlyphRun;
 use super::handoff::{
-    native_bitmap_atlas_first_frame_degradation_for_report,
-    native_bitmap_atlas_glyphon_fallback_reason_for_report, native_bitmap_atlas_handoff_for_report,
+    native_bitmap_atlas_degradation_reason_for_report,
+    native_bitmap_atlas_first_frame_degradation_for_report, native_bitmap_atlas_handoff_for_report,
 };
-use super::raster_key::native_bitmap_atlas_raster_key;
 use super::report::NativeBitmapAtlasPrepareReport;
 use super::retry_frame::native_bitmap_atlas_retry_frame;
+use super::source_cache::native_bitmap_atlas_raster_key_for_content;
 use super::source_cache::{
-    NativeBitmapAtlasSourceCache, NativeBitmapAtlasSourceCacheFrameReport,
-    NativeBitmapAtlasWorkerRequestStatus,
+    NativeBitmapAtlasCachedGlyphImage, NativeBitmapAtlasSourceCache,
+    NativeBitmapAtlasSourceCacheFrameReport, NativeBitmapAtlasWorkerRequestStatus,
 };
 use super::source_image::{
-    glyph_atlas_bitmap_face_validity_for_epoch, native_bitmap_atlas_background_color,
-    native_bitmap_atlas_foreground_color, native_bitmap_atlas_format,
-    native_bitmap_atlas_format_requires_background_composite, native_bitmap_atlas_screen_rect,
-    native_bitmap_atlas_source_from_image, text_bounds_clipped_screen_rect, unpack_color,
-    NativeBitmapGlyphImage,
+    NativeBitmapGlyphImage, glyph_atlas_bitmap_face_validity_for_epoch,
+    native_bitmap_atlas_background_color, native_bitmap_atlas_foreground_color,
+    native_bitmap_atlas_format, native_bitmap_atlas_format_requires_background_composite,
+    native_bitmap_atlas_screen_rect, native_bitmap_atlas_source_from_image,
 };
 use super::storage::{
-    native_bitmap_atlas_has_mixed_storage_formats, native_bitmap_atlas_storage_submissions,
+    native_bitmap_atlas_has_mixed_storage_formats, native_bitmap_atlas_storage_resource_count,
     single_native_bitmap_atlas_format, single_native_bitmap_atlas_storage_format,
-    NativeBitmapAtlasStorageSubmission,
 };
-use super::text_area::NativeBitmapAtlasTextArea;
+use super::{NativeBitmapAtlasReadinessChangeReceipt, NativeBitmapAtlasReadinessGeneration};
 
 pub(super) const NATIVE_BITMAP_ATLAS_MAX_RASTER_COMPLETIONS_PER_FRAME: usize = 256;
 pub(super) const NATIVE_BITMAP_ATLAS_MAX_RASTER_COMPLETION_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
@@ -62,6 +60,7 @@ pub(crate) struct NativeBitmapAtlasFrame {
     pub(super) retry_state: GlyphAtlasBitmapRetryFrameStateReport,
     pub(super) discarded_stale_retry_glyph_count: usize,
     pub(super) face_epoch: u64,
+    readiness_changes: NativeBitmapAtlasReadinessChangeReceipt,
 }
 
 #[derive(Clone)]
@@ -78,8 +77,22 @@ struct NativeBitmapAtlasPendingPlaceholder {
     retry_frame_index: u64,
 }
 
+enum NativeBitmapAtlasGlyphReadiness {
+    Exact {
+        image: NativeBitmapAtlasCachedGlyphImage,
+        persistent_raster_key: Option<GlyphRasterKey>,
+    },
+    Approximate {
+        image: NativeBitmapAtlasCachedGlyphImage,
+        worker_request: Option<NativeBitmapAtlasWorkerRequestStatus>,
+    },
+    Missing {
+        worker_request: Option<NativeBitmapAtlasWorkerRequestStatus>,
+    },
+}
+
 impl NativeBitmapAtlasFrame {
-    pub(crate) fn replaces_glyphon(&self) -> bool {
+    pub(crate) fn supports_native_submission(&self) -> bool {
         self.source_coverage_supports_replacement()
             && self.submission.run.allocation_failures.is_empty()
             && self.submission.gpu_draw.visible_glyph_count == self.visible_raster_glyph_count
@@ -109,14 +122,12 @@ impl NativeBitmapAtlasFrame {
         )
     }
 
-    pub(crate) fn storage_submissions(&self) -> Vec<NativeBitmapAtlasStorageSubmission> {
-        native_bitmap_atlas_storage_submissions(
-            &self.submission,
-            &self.source_images,
-            self.viewport_size,
-            self.clip_rect,
-            self.face_epoch,
-        )
+    pub(crate) fn readiness_generation(&self) -> NativeBitmapAtlasReadinessGeneration {
+        self.readiness_changes().generation()
+    }
+
+    pub(crate) fn readiness_changes(&self) -> &NativeBitmapAtlasReadinessChangeReceipt {
+        &self.readiness_changes
     }
 
     pub(crate) fn atlas_layer_count(&self) -> u32 {
@@ -151,32 +162,53 @@ impl NativeBitmapAtlasFrame {
         )
     }
 
+    pub(crate) fn canonical_frame_plan_count(&self) -> usize {
+        usize::from(!self.submission.gpu_draw.instances.is_empty())
+    }
+
+    pub(crate) fn storage_resource_count(&self) -> usize {
+        native_bitmap_atlas_storage_resource_count(
+            self.submission
+                .run
+                .glyphs
+                .iter()
+                .map(|glyph| glyph.page_key.format),
+        )
+    }
+
+    pub(crate) fn ordered_draw_segment_count(&self) -> usize {
+        let mut previous_format = None;
+        let mut segment_count = 0;
+        for command in &self.submission.gpu_draw.draw_commands {
+            let format = command.key.page_key.format;
+            if previous_format != Some(format) {
+                segment_count += 1;
+                previous_format = Some(format);
+            }
+        }
+        segment_count
+    }
+
     pub(crate) fn prepare_report(&self) -> NativeBitmapAtlasPrepareReport {
-        let storage_submissions = self.storage_submissions();
-        self.prepare_report_for_storage_submissions(&storage_submissions)
-    }
-
-    pub(crate) fn prepare_report_with_storage_submissions(
-        &self,
-    ) -> (
-        NativeBitmapAtlasPrepareReport,
-        Vec<NativeBitmapAtlasStorageSubmission>,
-    ) {
-        let storage_submissions = self.storage_submissions();
-        let report = self.prepare_report_for_storage_submissions(&storage_submissions);
-        (report, storage_submissions)
-    }
-
-    fn prepare_report_for_storage_submissions(
-        &self,
-        storage_submissions: &[NativeBitmapAtlasStorageSubmission],
-    ) -> NativeBitmapAtlasPrepareReport {
-        let storage_submission_visible_glyph_count = storage_submissions
-            .iter()
-            .map(NativeBitmapAtlasStorageSubmission::visible_glyph_count)
-            .sum();
-        let storage_submissions_replace_glyphon =
-            self.storage_submissions_replace_glyphon(&storage_submissions);
+        crate::profile_counter!(
+            "runtime",
+            "ui_text.native_raster_plan.readiness_generation",
+            self.readiness_generation().value()
+        );
+        crate::profile_counter!(
+            "runtime",
+            "ui_text.native_raster_plan.readiness_changed_key_count",
+            self.readiness_changes().changed_key_count()
+        );
+        crate::profile_counter!(
+            "runtime",
+            "ui_text.native_raster_plan.readiness_full_invalidation_count",
+            usize::from(self.readiness_changes().full_invalidation())
+        );
+        let storage_resource_count = self.storage_resource_count();
+        let canonical_frame_plan_count = self.canonical_frame_plan_count();
+        let frame_plan_visible_glyph_count = self.submission.gpu_draw.visible_glyph_count;
+        let frame_plan_supports_native_submission = self.frame_plan_supports_native_submission();
         let background_composite_replacement_ready = self.background_composite_replacement_ready();
         let mut report = NativeBitmapAtlasPrepareReport {
             frame_index: self.frame_index,
@@ -195,10 +227,12 @@ impl NativeBitmapAtlasFrame {
                     .iter()
                     .map(|glyph| glyph.page_key.format.storage_format()),
             ),
-            storage_submission_count: storage_submissions.len(),
-            storage_submission_visible_glyph_count,
-            mixed_storage_replacement_ready: storage_submissions.len() > 1
-                && storage_submissions_replace_glyphon,
+            // The sole canonical frame plan owns ordered segments rather than contiguous format
+            // runs. These counters describe its resources and visible glyphs directly.
+            storage_submission_count: canonical_frame_plan_count,
+            storage_submission_visible_glyph_count: frame_plan_visible_glyph_count,
+            mixed_storage_replacement_ready: storage_resource_count > 1
+                && frame_plan_supports_native_submission,
             requires_background_composite: self.submission.gpu_draw.requires_background_composite,
             background_composite_replacement_ready,
             background_composite_glyph_count: self.background_composite_glyph_count,
@@ -207,13 +241,13 @@ impl NativeBitmapAtlasFrame {
             retry_submission: self.retry_submission,
             retry_state: self.retry_state,
             discarded_stale_retry_glyph_count: self.discarded_stale_retry_glyph_count,
-            glyphon_fallback_reason: None,
+            native_degradation_reason: None,
             first_frame_degradation: None,
-            replaces_glyphon: self.replaces_glyphon(),
+            native_submission_ready: self.supports_native_submission(),
             submission: self.submission.submission_report(),
         };
-        report.glyphon_fallback_reason =
-            native_bitmap_atlas_glyphon_fallback_reason_for_report(&report);
+        report.native_degradation_reason =
+            native_bitmap_atlas_degradation_reason_for_report(&report);
         report.first_frame_degradation =
             native_bitmap_atlas_first_frame_degradation_for_report(&report);
         report
@@ -238,36 +272,20 @@ impl NativeBitmapAtlasFrame {
             && self.missing_background_composite_glyph_count == 0
     }
 
-    fn storage_submissions_replace_glyphon(
-        &self,
-        storage_submissions: &[NativeBitmapAtlasStorageSubmission],
-    ) -> bool {
+    fn frame_plan_supports_native_submission(&self) -> bool {
         if !self.source_coverage_supports_replacement()
             || !self.background_composite_supports_replacement()
         {
             return false;
         }
 
-        let source_count = storage_submissions
-            .iter()
-            .map(NativeBitmapAtlasStorageSubmission::source_image_count)
-            .sum::<usize>();
-        let visible_count = storage_submissions
-            .iter()
-            .map(NativeBitmapAtlasStorageSubmission::visible_glyph_count)
-            .sum::<usize>();
-        let has_failures = storage_submissions
-            .iter()
-            .any(NativeBitmapAtlasStorageSubmission::has_allocation_failures);
-
-        source_count == self.visible_raster_glyph_count
-            && visible_count == self.visible_raster_glyph_count
-            && !has_failures
+        self.source_images.len() == self.visible_raster_glyph_count
+            && self.submission.gpu_draw.visible_glyph_count == self.visible_raster_glyph_count
+            && self.submission.run.allocation_failures.is_empty()
     }
 }
 
-pub(crate) fn native_bitmap_atlas_frame(
-    font_system: &mut FontSystem,
+pub(crate) fn native_bitmap_atlas_frame<'a, GlyphRuns>(
     font_database: &FontDatabase,
     raster_worker_pool: Option<&TextRasterWorkerPool>,
     source_cache: &mut NativeBitmapAtlasSourceCache,
@@ -275,8 +293,11 @@ pub(crate) fn native_bitmap_atlas_frame(
     atlas: GlyphAtlasSet,
     viewport_size: UVec2,
     frame_index: u64,
-    text_areas: &[NativeBitmapAtlasTextArea<'_, '_>],
-) -> NativeBitmapAtlasFrame {
+    glyph_runs: GlyphRuns,
+) -> NativeBitmapAtlasFrame
+where
+    GlyphRuns: Clone + IntoIterator<Item = &'a NativeBitmapAtlasGlyphRun>,
+{
     crate::profile_scope!(
         "runtime",
         "ui_text.native_raster_plan",
@@ -293,7 +314,7 @@ pub(crate) fn native_bitmap_atlas_frame(
                 NATIVE_BITMAP_ATLAS_MAX_RASTER_COMPLETION_BYTES_PER_FRAME,
             ),
         );
-        source_cache.apply_worker_completion_drain(font_database, completion_drain);
+        source_cache.apply_worker_completion_drain(completion_drain);
     }
     let budget_evicted_raster_keys = source_cache.take_budget_evicted_raster_keys();
     let invalidated_raster_keys = atlas.invalidate_bitmap_raster_keys(budget_evicted_raster_keys);
@@ -310,143 +331,159 @@ pub(crate) fn native_bitmap_atlas_frame(
     let mut missing_background_composite_glyph_count: usize = 0;
     let mut pending_placeholders = Vec::new();
 
-    for bitmap_text_area in text_areas {
-        let text_area = bitmap_text_area.text_area;
-        let default_color = unpack_color(text_area.default_color);
-        for run in text_area.buffer.layout_runs() {
-            for glyph in run.glyphs {
-                let physical = glyph.physical((text_area.left, text_area.top), text_area.scale);
-                let mut persistent_raster_key = None;
-                let mut approximate_cache_hit = false;
-                let image = match source_cache.cached_image(physical.cache_key) {
-                    Some(image) => {
-                        persistent_raster_key = native_bitmap_atlas_raster_key(
-                            font_database,
-                            physical.cache_key,
-                            native_bitmap_atlas_format(image.content),
-                        );
-                        if let Some(raster_key) = persistent_raster_key {
-                            let _ = source_cache
-                                .bind_persistent_raster_key(physical.cache_key, raster_key);
-                        }
-                        image
+    let mut glyph_instance_visit_count = 0usize;
+    let mut readiness_by_raster_key = HashMap::new();
+    for glyph_run in glyph_runs.clone() {
+        for glyph in &glyph_run.glyphs {
+            glyph_instance_visit_count = glyph_instance_visit_count.saturating_add(1);
+            if readiness_by_raster_key.contains_key(&glyph.raster_key) {
+                continue;
+            }
+            let readiness = match source_cache.cached_image(glyph.raster_key) {
+                Some(image) => {
+                    let persistent_raster_key =
+                        native_bitmap_atlas_raster_key_for_content(glyph.raster_key, image.content);
+                    if let Some(raster_key) = persistent_raster_key {
+                        let _ =
+                            source_cache.bind_persistent_raster_key(glyph.raster_key, raster_key);
                     }
-                    None => {
-                        if let Some(approximate_image) =
-                            source_cache.approximate_cached_image(physical.cache_key)
-                        {
-                            approximate_cache_hit = true;
-                            approximate_image
-                        } else {
-                            let Some(pending_placeholder) = native_bitmap_atlas_pending_placeholder(
-                                glyph,
-                                run.line_top,
-                                run.line_height,
-                                text_area,
-                                frame_index,
-                            ) else {
-                                // The glyph cannot affect the current frame, so do not let it
-                                // consume the bounded visible-raster request budget.
-                                missing_raster_image_count += 1;
-                                continue;
-                            };
-                            let worker_request = source_cache.request_worker_image(
-                                font_system,
-                                font_database,
-                                raster_worker_pool,
-                                face_epoch,
-                                physical.cache_key,
-                            );
-                            if matches!(
-                                worker_request,
-                                NativeBitmapAtlasWorkerRequestStatus::Submitted(_)
-                                    | NativeBitmapAtlasWorkerRequestStatus::Pending
-                                    | NativeBitmapAtlasWorkerRequestStatus::DeferredByFrameBudget
-                                    | NativeBitmapAtlasWorkerRequestStatus::DeferredByWorkerBackpressure
-                            ) {
-                                pending_placeholders.push(pending_placeholder);
-                            }
-                            missing_raster_image_count += 1;
-                            visible_missing_raster_image_count += 1;
-                            continue;
-                        }
+                    NativeBitmapAtlasGlyphReadiness::Exact {
+                        image,
+                        persistent_raster_key,
                     }
-                };
-                if image.width == 0 || image.height == 0 {
-                    continue;
                 }
-                let screen_rect = native_bitmap_atlas_screen_rect(
-                    physical.x,
-                    physical.y,
-                    run.line_y,
-                    image.top,
-                    image.left,
-                    image.width,
-                    image.height,
-                    text_area.scale,
-                );
-                let Some(clipped_rect) =
-                    text_bounds_clipped_screen_rect(text_area.bounds, screen_rect)
-                else {
-                    continue;
-                };
-                visible_raster_glyph_count += 1;
-                if approximate_cache_hit {
-                    approximate_raster_image_count =
-                        approximate_raster_image_count.saturating_add(1);
-                    let _ = source_cache.request_worker_image(
-                        font_system,
-                        font_database,
-                        raster_worker_pool,
-                        face_epoch,
-                        physical.cache_key,
-                    );
-                }
+                None => match source_cache.approximate_cached_image(glyph.raster_key) {
+                    Some(image) => NativeBitmapAtlasGlyphReadiness::Approximate {
+                        image,
+                        worker_request: None,
+                    },
+                    None => NativeBitmapAtlasGlyphReadiness::Missing {
+                        worker_request: None,
+                    },
+                },
+            };
+            readiness_by_raster_key.insert(glyph.raster_key, readiness);
+        }
+    }
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.native_raster_plan.glyph_instance_visit_count",
+        glyph_instance_visit_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.native_raster_plan.unique_raster_dependency_count",
+        readiness_by_raster_key.len()
+    );
 
-                let Some(format) = native_bitmap_atlas_format(image.content) else {
-                    unsupported_glyph_count += 1;
-                    continue;
-                };
-                if native_bitmap_atlas_format_requires_background_composite(format) {
-                    background_composite_glyph_count += 1;
-                    if bitmap_text_area.background_color.is_none() {
-                        missing_background_composite_glyph_count += 1;
-                    }
-                }
-
-                let glyph_image = NativeBitmapGlyphImage {
-                    x: physical.x,
-                    y: physical.y,
-                    line_y: run.line_y,
-                    top: image.top,
-                    left: image.left,
-                    width: image.width,
-                    height: image.height,
-                    format,
-                    scale_factor: text_area.scale,
-                    source_byte_len: image.bytes.len(),
-                    foreground_color: native_bitmap_atlas_foreground_color(
-                        format,
-                        glyph.color_opt.map(unpack_color).unwrap_or(default_color),
-                    ),
-                    background_color: native_bitmap_atlas_background_color(
-                        format,
-                        bitmap_text_area.background_color,
-                    ),
-                };
-                if let Some(clipped_source) = native_bitmap_atlas_source_from_image(
-                    glyph_image,
-                    clipped_rect,
-                    image.bytes,
+    for glyph_run in glyph_runs {
+        for glyph in &glyph_run.glyphs {
+            let Some(readiness) = readiness_by_raster_key.get_mut(&glyph.raster_key) else {
+                continue;
+            };
+            let (image, persistent_raster_key, approximate_worker_request) = match readiness {
+                NativeBitmapAtlasGlyphReadiness::Exact {
+                    image,
                     persistent_raster_key,
-                ) {
-                    clipped_glyph_count += usize::from(clipped_source.was_clipped);
-                    source_images.push(NativeBitmapAtlasSourceImage {
-                        source: clipped_source.source,
-                        bytes: clipped_source.bytes,
-                        face_epoch: source_cache.face_epoch(),
+                } => (image, *persistent_raster_key, None),
+                NativeBitmapAtlasGlyphReadiness::Approximate {
+                    image,
+                    worker_request,
+                } => (image, None, Some(worker_request)),
+                NativeBitmapAtlasGlyphReadiness::Missing { worker_request } => {
+                    let Some(pending_placeholder) =
+                        native_bitmap_atlas_pending_placeholder(glyph, glyph_run, frame_index)
+                    else {
+                        missing_raster_image_count += 1;
+                        continue;
+                    };
+                    let worker_request = *worker_request.get_or_insert_with(|| {
+                        source_cache.request_worker_image(
+                            font_database,
+                            raster_worker_pool,
+                            face_epoch,
+                            glyph.raster_key,
+                        )
+                    });
+                    if worker_request_keeps_placeholder(worker_request) {
+                        pending_placeholders.push(pending_placeholder);
+                    }
+                    missing_raster_image_count += 1;
+                    visible_missing_raster_image_count += 1;
+                    continue;
+                }
+            };
+            let approximate_cache_hit = approximate_worker_request.is_some();
+            if image.width == 0 || image.height == 0 {
+                continue;
+            }
+            let screen_rect = native_bitmap_atlas_screen_rect(
+                glyph.screen_x,
+                glyph.baseline_y,
+                image.top,
+                image.left,
+                image.width,
+                image.height,
+            );
+            let Some(clipped_rect) = screen_rect.clipped_to(glyph_run.bounds) else {
+                continue;
+            };
+            visible_raster_glyph_count += 1;
+            if approximate_cache_hit {
+                approximate_raster_image_count = approximate_raster_image_count.saturating_add(1);
+                if let Some(worker_request) = approximate_worker_request {
+                    let _ = worker_request.get_or_insert_with(|| {
+                        source_cache.request_worker_image(
+                            font_database,
+                            raster_worker_pool,
+                            face_epoch,
+                            glyph.raster_key,
+                        )
                     });
                 }
+            }
+
+            let Some(format) = native_bitmap_atlas_format(image.content) else {
+                unsupported_glyph_count += 1;
+                continue;
+            };
+            if native_bitmap_atlas_format_requires_background_composite(format) {
+                background_composite_glyph_count += 1;
+                if glyph.background_color.is_none() {
+                    missing_background_composite_glyph_count += 1;
+                }
+            }
+
+            let glyph_image = NativeBitmapGlyphImage {
+                screen_x: glyph.screen_x,
+                baseline_y: glyph.baseline_y,
+                top: image.top,
+                left: image.left,
+                width: image.width,
+                height: image.height,
+                format,
+                source_byte_len: image.bytes.len(),
+                foreground_color: native_bitmap_atlas_foreground_color(
+                    format,
+                    glyph.foreground_color,
+                ),
+                background_color: native_bitmap_atlas_background_color(
+                    format,
+                    glyph.background_color,
+                ),
+            };
+            if let Some(clipped_source) = native_bitmap_atlas_source_from_image(
+                glyph_image,
+                clipped_rect,
+                Arc::clone(&image.bytes),
+                persistent_raster_key,
+            ) {
+                clipped_glyph_count += usize::from(clipped_source.was_clipped);
+                source_images.push(NativeBitmapAtlasSourceImage {
+                    source: clipped_source.source,
+                    bytes: clipped_source.bytes,
+                    face_epoch: source_cache.face_epoch(),
+                });
             }
         }
     }
@@ -481,6 +518,7 @@ pub(crate) fn native_bitmap_atlas_frame(
         source_cache_report.record_worker_pool_diagnostics(raster_worker_pool.diagnostics());
     }
 
+    let readiness_changes = source_cache.take_readiness_changes();
     NativeBitmapAtlasFrame {
         submission,
         source_images,
@@ -500,29 +538,26 @@ pub(crate) fn native_bitmap_atlas_frame(
         retry_state: retry_frame.retry_state,
         discarded_stale_retry_glyph_count: retry_frame.discarded_stale_retry_glyph_count,
         face_epoch: source_cache.face_epoch(),
+        readiness_changes,
     }
 }
 
+fn worker_request_keeps_placeholder(status: NativeBitmapAtlasWorkerRequestStatus) -> bool {
+    matches!(
+        status,
+        NativeBitmapAtlasWorkerRequestStatus::Submitted(_)
+            | NativeBitmapAtlasWorkerRequestStatus::Pending
+            | NativeBitmapAtlasWorkerRequestStatus::DeferredByFrameBudget
+            | NativeBitmapAtlasWorkerRequestStatus::DeferredByWorkerBackpressure
+    )
+}
+
 fn native_bitmap_atlas_pending_placeholder(
-    glyph: &LayoutGlyph,
-    line_top: f32,
-    line_height: f32,
-    text_area: &TextArea<'_>,
+    glyph: &super::glyph_run::NativeBitmapAtlasGlyph,
+    glyph_run: &NativeBitmapAtlasGlyphRun,
     frame_index: u64,
 ) -> Option<NativeBitmapAtlasPendingPlaceholder> {
-    let scale = text_area.scale;
-    let x_offset = glyph.font_size * glyph.x_offset;
-    let x = (glyph.x + x_offset).mul_add(scale, text_area.left);
-    let y = line_top.mul_add(scale, text_area.top);
-    let screen_rect = text_bounds_clipped_screen_rect(
-        text_area.bounds,
-        GlyphAtlasScreenRect::new(
-            x,
-            y,
-            (glyph.w * scale).abs().max(1.0),
-            (line_height * scale).abs().max(1.0),
-        ),
-    )?;
+    let screen_rect = glyph.placeholder_rect.clipped_to(glyph_run.bounds)?;
     Some(NativeBitmapAtlasPendingPlaceholder {
         format: GlyphAtlasFormat::AlphaMask,
         screen_rect,

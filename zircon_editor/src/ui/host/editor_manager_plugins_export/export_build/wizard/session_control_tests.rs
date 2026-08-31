@@ -1,9 +1,12 @@
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::time::Duration;
 
-use zircon_runtime_interface::export::ExportStage;
+use zircon_runtime_interface::{export::ExportStage, ui::dispatch::UiWindowId};
 
+use crate::core::context::ToolSchedulerService;
+use crate::core::editor_message::SharedEditorMessageBus;
 use crate::core::jobs::{test_job_system, JobError};
+use crate::core::tools::ToolResourceKey;
 
 use super::*;
 
@@ -117,6 +120,90 @@ fn export_wizard_panel_session_cancel_disables_cancel_before_terminal_poll() {
     assert!(session.view_model().controls().can_close);
 }
 
+#[test]
+fn export_wizard_session_holds_modal_tool_until_terminal_completion() {
+    let scheduler = ToolSchedulerService::new(SharedEditorMessageBus::default());
+    let modal_resource = modal_resource("window.main");
+    let mut session = ExportWizardPanelSession::new_with_tools(
+        test_job_system(),
+        "export-panel-modal-tool",
+        export_wizard_pipeline_plan(ready_options()),
+        scheduler.clone(),
+        UiWindowId::new("window.main"),
+    );
+    let (_stage_started_sender, stage_started_receiver) = channel();
+    let (release_stage_sender, release_stage_receiver) = channel();
+
+    session
+        .handle_start_request_with_runner(FirstStageBlockingRunner::new(
+            _stage_started_sender,
+            release_stage_receiver,
+        ))
+        .expect("ready panel session should start");
+    stage_started_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("first stage should start before checking the lease");
+    let lease = scheduler
+        .holder(&modal_resource)
+        .expect("the active export session should hold the modal surface");
+    assert!(lease
+        .instance()
+        .as_str()
+        .starts_with("editor.export.wizard."));
+    assert_eq!(lease.resources().as_slice(), [modal_resource.clone()]);
+
+    release_stage_sender
+        .send(())
+        .expect("release first stage before joining");
+    let _ = session.finish_job();
+    assert_eq!(scheduler.holder(&modal_resource), None);
+}
+
+#[test]
+fn replacing_export_plan_preserves_the_session_scoped_tool_identity() {
+    let scheduler = ToolSchedulerService::new(SharedEditorMessageBus::default());
+    let modal_resource = modal_resource("window.main");
+    let mut session = ExportWizardPanelSession::new_with_tools(
+        test_job_system(),
+        "export-panel-old-job",
+        export_wizard_pipeline_plan(ready_options()),
+        scheduler.clone(),
+        UiWindowId::new("window.main"),
+    );
+    let tool = session
+        .tool_id_for_test()
+        .expect("the export session should allocate a tool identity")
+        .clone();
+    session
+        .regenerate_plan("export-panel-new-job", ready_options())
+        .expect("inactive export plan should be replaceable");
+    assert_eq!(session.tool_id_for_test(), Ok(&tool));
+
+    let (_stage_started_sender, stage_started_receiver) = channel();
+    let (release_stage_sender, release_stage_receiver) = channel();
+    session
+        .handle_start_request_with_runner(FirstStageBlockingRunner::new(
+            _stage_started_sender,
+            release_stage_receiver,
+        ))
+        .expect("regenerated export plan should start");
+    stage_started_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("first stage should start before checking the lease");
+
+    assert_eq!(
+        scheduler
+            .holder(&modal_resource)
+            .map(|lease| lease.instance().clone()),
+        Some(tool)
+    );
+    release_stage_sender
+        .send(())
+        .expect("release first stage before joining");
+    let _ = session.finish_job();
+    assert_eq!(scheduler.holder(&modal_resource), None);
+}
+
 fn ready_session(job_id: &str) -> ExportWizardPanelSession {
     ExportWizardPanelSession::new(
         test_job_system(),
@@ -134,4 +221,8 @@ fn ready_options() -> ExportWizardPipelineOptions {
     options.source_asset_manifest = Some("D:\\zircon-export\\assets\\assets.json".to_string());
     options.host_executable = Some("D:\\zircon-export\\host\\zircon_game.exe".to_string());
     options
+}
+
+fn modal_resource(window_id: &str) -> ToolResourceKey {
+    ToolResourceKey::modal_surface(UiWindowId::new(window_id))
 }

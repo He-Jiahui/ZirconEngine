@@ -1,10 +1,11 @@
 use std::ptr;
 
+use serde::Serialize;
 use zircon_runtime_interface::ui::accessibility::UiAccessibilityTreeSnapshot;
 use zircon_runtime_interface::world_sync::{InvalidationBatch, WorldQueryResult};
 use zircon_runtime_interface::{
     ProfileControlResponse, ProfileSnapshot, ZrOwnedResultV2, ZrRuntimeFrameV2,
-    ZrRuntimeHostRequestBatchV1, ZrStatus, ZrStatusCode,
+    ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrStatus, ZrStatusCode,
     ZR_RUNTIME_ACCESSIBILITY_TREE_OUTPUT_LIMIT_V1, ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1,
     ZR_RUNTIME_PROFILE_RESPONSE_OUTPUT_LIMIT_V1, ZR_RUNTIME_WORLD_INVALIDATION_OUTPUT_LIMIT_V1,
     ZR_RUNTIME_WORLD_QUERY_OUTPUT_LIMIT_V1,
@@ -56,6 +57,26 @@ pub(super) fn encode_host_request_batch(
     bounded_json::encode(batch, ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1, || {
         batch.requests.len()
     })
+}
+
+#[derive(Serialize)]
+struct ZrRuntimeHostRequestBatchRefV1<'a> {
+    abi_version: u32,
+    requests: &'a [ZrRuntimeHostRequestV1],
+}
+
+pub(super) fn encode_host_request_page(
+    abi_version: u32,
+    requests: &[ZrRuntimeHostRequestV1],
+) -> Result<Vec<u8>, BoundedJsonError> {
+    bounded_json::encode(
+        &ZrRuntimeHostRequestBatchRefV1 {
+            abi_version,
+            requests,
+        },
+        ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1,
+        || requests.len(),
+    )
 }
 
 pub(super) fn encode_world_query_payload(
@@ -111,6 +132,9 @@ fn profile_control_response_item_count(response: &ProfileControlResponse) -> usi
         );
         count = count.saturating_add(profile_snapshot_item_count(&diagnostics.profile));
     }
+    if response.module_composition_receipt.is_some() {
+        count = count.saturating_add(1);
+    }
     if let Some(report) = &response.hotspot_report {
         count = count
             .saturating_add(report.hotspots.len())
@@ -140,14 +164,20 @@ fn profile_snapshot_item_count(snapshot: &ProfileSnapshot) -> usize {
 
 fn world_query_item_count(result: &WorldQueryResult) -> usize {
     match result {
-        WorldQueryResult::Rows(rows) => rows.iter().fold(rows.len(), |count, row| {
-            row.components.values().fold(
-                count.saturating_add(row.components.len()),
-                |count, value| {
-                    count.saturating_add(value.as_object().map_or(0, serde_json::Map::len))
-                },
-            )
-        }),
+        WorldQueryResult::ComponentRows { rows, .. } => {
+            rows.iter().fold(rows.len(), |count, row| {
+                row.components.values().fold(
+                    count.saturating_add(row.components.len()),
+                    |count, value| {
+                        count.saturating_add(value.as_object().map_or(0, serde_json::Map::len))
+                    },
+                )
+            })
+        }
+        WorldQueryResult::HierarchyRows { rows, .. } => rows.len(),
+        WorldQueryResult::InspectionFields { fields, .. } => fields.len(),
+        WorldQueryResult::TransformSnapshot { .. } => 1,
+        WorldQueryResult::EntityMissing { .. } => 1,
         WorldQueryResult::NotModified { .. } => 1,
     }
 }

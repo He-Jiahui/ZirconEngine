@@ -11,6 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/ui/tests/hit_grid.rs
   - zircon_runtime/src/ui/tree/hit_test.rs
+  - zircon_runtime/src/ui/tree/hit_test/query_scratch.rs
   - zircon_runtime/src/ui/surface/arranged.rs
 tests:
   - exact-query zero-intermediate-candidate-Vec guard
@@ -51,4 +52,22 @@ hit grid没有generation-owned query scratch/dense visit mark，arranged tree也
 
 ## 修复结果与回传
 
-Open state: `exact borrowed-cell止损已实现，等待EditorUI01/02回传radius scratch、dense arranged index与产品规模证据`。
+Open state: `radius scratch 与 retention budget 代码完成，受管 Rust/产品规模证据待恢复`。
+
+- `UiHitTestIndex` 现持有 serde-skipped、clone-reset 的 mutex scratch；radius query 用
+  generation-stamped `Vec<u32>` marks 对 cell entry references 做一次探测去重，候选排序后
+  复用容量，poisoned lock 可恢复。radius 0 仍走 borrowed single-cell 路径。
+- scratch retention 以 `max(1024, current_entry_count * 4)` 为 entry budget，并按
+  `u32 mark + usize candidate` 的实际 capacity 计算 byte budget。历史容量超过预算时，
+  两个 buffer 都重建到当前规模；16,384→32 entries 回收和随后小规模容量复用已有 focused
+  regression，dense 256-entry/4-cell test 同时约束 1,024 probes、256 unique 与 byte budget。
+- immutable snapshot 2090 / ticket `fa6dccf51e19454d9aa5a45a271c3b8d`
+  于 2026-08-24 在 Cargo 前终态 failed。copy
+  `6708798578ef40f8bcec59336dc13673` 的 durable error 为
+  `validation_copy_compile_time_resource_missing`：
+  `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs` 引用已不存在的
+  `zircon_editor/assets/ui/editor/animation_editor.zui`。该 foreign tracked-deleted
+  resource 不属于本 failure scope，不能以重试、伪造 asset 或扩大 owner 绕过。
+- 仍需在资源 closure 恢复后取得 focused Rust terminal，并补齐
+  1/100/1k/10k、radius 0/8/64、120 Hz allocation/CPU p95 与产品 parity；因此不得执行
+  fixed return。

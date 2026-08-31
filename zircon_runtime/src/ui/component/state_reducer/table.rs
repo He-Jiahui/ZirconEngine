@@ -196,7 +196,7 @@ fn apply_column_width(state: &mut UiComponentState, field: &str, width: f64) {
     let Some(UiValue::Map(widths)) = state.values.get_mut("column_widths") else {
         unreachable!("column width map was inserted before mutable access");
     };
-    widths.insert(field.to_string(), UiValue::Float(width));
+    set_borrowed_map_value(widths, field, UiValue::Float(width));
 
     let Some(UiValue::Array(columns)) = state.values.get_mut("columns") else {
         return;
@@ -206,9 +206,17 @@ fn apply_column_width(state: &mut UiComponentState, field: &str, width: f64) {
             continue;
         };
         if column_matches(values, field) {
-            values.insert("width".to_string(), UiValue::Float(width));
+            set_borrowed_map_value(values, "width", UiValue::Float(width));
             break;
         }
+    }
+}
+
+fn set_borrowed_map_value(values: &mut BTreeMap<String, UiValue>, key: &str, value: UiValue) {
+    if let Some(current) = values.get_mut(key) {
+        *current = value;
+    } else {
+        values.insert(key.to_string(), value);
     }
 }
 
@@ -253,3 +261,7 @@ fn normalize_sort_direction(value: &str) -> Option<&'static str> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+#[path = "table/in_place_width_tests.rs"]
+mod in_place_width_tests;

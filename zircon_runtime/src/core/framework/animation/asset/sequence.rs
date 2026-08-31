@@ -11,6 +11,10 @@ use crate::core::framework::animation::AnimationTrackPath;
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use crate::core::math::Real;
 
+#[cfg(test)]
+#[path = "sequence/borrowed_encoding_tests.rs"]
+mod borrowed_encoding_tests;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationSequenceTrackAsset {
     pub property_path: ComponentPropertyPath,
@@ -69,6 +73,25 @@ pub struct AnimationSequenceAsset {
     pub bindings: Vec<AnimationSequenceBindingAsset>,
 }
 
+#[derive(Clone, Serialize)]
+struct AnimationSequenceAssetRef<'a> {
+    name: &'a Option<String>,
+    duration_seconds: Real,
+    frames_per_second: Real,
+    bindings: &'a [AnimationSequenceBindingAsset],
+}
+
+impl<'a> From<&'a AnimationSequenceAsset> for AnimationSequenceAssetRef<'a> {
+    fn from(value: &'a AnimationSequenceAsset) -> Self {
+        Self {
+            name: &value.name,
+            duration_seconds: value.duration_seconds,
+            frames_per_second: value.frames_per_second,
+            bindings: &value.bindings,
+        }
+    }
+}
+
 impl AnimationSequenceAsset {
     pub fn from_bytes(bytes: &[u8]) -> AnimationAssetResult<Self> {
         decode_binary_asset_with_v1_payload_fallback::<
@@ -78,7 +101,10 @@ impl AnimationSequenceAsset {
     }
 
     pub fn to_bytes(&self) -> AnimationAssetResult<Vec<u8>> {
-        encode_binary_asset(AnimationBinaryAssetKind::Sequence, self)
+        encode_binary_asset(
+            AnimationBinaryAssetKind::Sequence,
+            &AnimationSequenceAssetRef::from(self),
+        )
     }
 
     pub fn track_paths(&self) -> Vec<AnimationTrackPath> {

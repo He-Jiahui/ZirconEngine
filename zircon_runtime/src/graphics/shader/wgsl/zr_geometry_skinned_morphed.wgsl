@@ -34,10 +34,11 @@ fn zr_skin_matrix(v: ZrVertexInput) -> mat4x4<f32> {
     if (weight_sum <= 0.000001) {
         return zr_template_identity_mat4();
     }
-    return zr_skinned_joint_matrix(v.joints.x) * zr_template_skin_weight(v.joints.x, v.weights.x, joint_count)
-        + zr_skinned_joint_matrix(v.joints.y) * zr_template_skin_weight(v.joints.y, v.weights.y, joint_count)
-        + zr_skinned_joint_matrix(v.joints.z) * zr_template_skin_weight(v.joints.z, v.weights.z, joint_count)
-        + zr_skinned_joint_matrix(v.joints.w) * zr_template_skin_weight(v.joints.w, v.weights.w, joint_count);
+    let inverse_weight_sum = 1.0 / weight_sum;
+    return zr_skinned_joint_matrix(v.joints.x) * zr_template_skin_weight(v.joints.x, v.weights.x, joint_count) * inverse_weight_sum
+        + zr_skinned_joint_matrix(v.joints.y) * zr_template_skin_weight(v.joints.y, v.weights.y, joint_count) * inverse_weight_sum
+        + zr_skinned_joint_matrix(v.joints.z) * zr_template_skin_weight(v.joints.z, v.weights.z, joint_count) * inverse_weight_sum
+        + zr_skinned_joint_matrix(v.joints.w) * zr_template_skin_weight(v.joints.w, v.weights.w, joint_count) * inverse_weight_sum;
 }
 
 fn zr_prev_skin_matrix(v: ZrVertexInput) -> mat4x4<f32> {
@@ -46,10 +47,11 @@ fn zr_prev_skin_matrix(v: ZrVertexInput) -> mat4x4<f32> {
     if (weight_sum <= 0.000001) {
         return zr_template_identity_mat4();
     }
-    return zr_previous_skinned_joint_matrix(v.joints.x) * zr_template_skin_weight(v.joints.x, v.weights.x, joint_count)
-        + zr_previous_skinned_joint_matrix(v.joints.y) * zr_template_skin_weight(v.joints.y, v.weights.y, joint_count)
-        + zr_previous_skinned_joint_matrix(v.joints.z) * zr_template_skin_weight(v.joints.z, v.weights.z, joint_count)
-        + zr_previous_skinned_joint_matrix(v.joints.w) * zr_template_skin_weight(v.joints.w, v.weights.w, joint_count);
+    let inverse_weight_sum = 1.0 / weight_sum;
+    return zr_previous_skinned_joint_matrix(v.joints.x) * zr_template_skin_weight(v.joints.x, v.weights.x, joint_count) * inverse_weight_sum
+        + zr_previous_skinned_joint_matrix(v.joints.y) * zr_template_skin_weight(v.joints.y, v.weights.y, joint_count) * inverse_weight_sum
+        + zr_previous_skinned_joint_matrix(v.joints.z) * zr_template_skin_weight(v.joints.z, v.weights.z, joint_count) * inverse_weight_sum
+        + zr_previous_skinned_joint_matrix(v.joints.w) * zr_template_skin_weight(v.joints.w, v.weights.w, joint_count) * inverse_weight_sum;
 }
 
 fn zr_morph_payload_for_instance(instance_index: u32) -> vec4<u32> {

@@ -16,7 +16,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
         identity::DialogPaintState::Open(kind) => kind,
     };
 
-    let rect = layout::pixel_aligned_rect(rect);
+    let rect = layout::paint_rect(rect);
     if !layout::dialog_has_visible_area(&rect) || !layout::frame_is_within(clip, &rect) {
         return true;
     }

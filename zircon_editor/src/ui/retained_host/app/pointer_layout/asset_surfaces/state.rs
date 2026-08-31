@@ -65,13 +65,18 @@ mod performance_tests {
     }
 
     #[test]
-    fn unchanged_pointer_sizes_do_not_rebuild_list_layouts() {
+    fn pointer_size_changes_patch_geometry_without_rebuilding_list_projections() {
         let content = include_str!("../../asset_content_pointer/target/dispatch.rs");
         let tree = include_str!("../../asset_tree_pointer/target.rs");
         let reference = include_str!("../../asset_reference_pointer/target/dispatch.rs");
 
-        assert!(content.contains("if surface.content_size != target.content_size"));
-        assert!(tree.contains("if surface.tree_size != tree_size"));
-        assert!(reference.contains("if list.size != target.list_size"));
+        for source in [content, tree, reference] {
+            assert!(source.contains("sync_pane_size"));
+            assert!(!source.contains("from_snapshot"));
+            assert!(!source.contains("from_references"));
+        }
+        assert!(content.contains("if surface.content_size == target.content_size"));
+        assert!(tree.contains("if surface.tree_size == tree_size"));
+        assert!(reference.contains("if list.size == target.list_size"));
     }
 }

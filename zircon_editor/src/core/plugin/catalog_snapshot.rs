@@ -62,7 +62,7 @@ impl EditorPluginCatalogSnapshot {
             capabilities_by_package.insert(package_id, registration.capabilities.clone());
         }
         for package_ids in packages_by_capability.values_mut() {
-            package_ids.sort();
+            package_ids.sort_unstable();
             package_ids.dedup();
         }
         Self {
@@ -156,3 +156,7 @@ impl EditorPluginCatalogSnapshot {
         self.catalog.validate_capabilities(enabled_capabilities)
     }
 }
+
+#[cfg(test)]
+#[path = "catalog_snapshot/optimization_tests.rs"]
+mod optimization_tests;

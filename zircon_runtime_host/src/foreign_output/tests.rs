@@ -166,6 +166,94 @@ fn test_budget(max_bytes: usize, max_items: usize) -> RuntimeForeignOutputBudget
 }
 
 #[test]
+fn world_query_item_count_covers_every_result_variant() {
+    use std::collections::BTreeMap;
+
+    use zircon_runtime_interface::math::Transform;
+    use zircon_runtime_interface::reflect::ReflectedValue;
+    use zircon_runtime_interface::world_sync::{
+        EntityRow, WorldHierarchyRow, WorldInspectionFieldRow, WorldQueryResult,
+    };
+
+    let mut components = BTreeMap::new();
+    components.insert(
+        "Transform".to_string(),
+        serde_json::json!({ "translation": [0, 0, 0] }),
+    );
+    let results = [
+        (
+            WorldQueryResult::ComponentRows {
+                generation: 11,
+                rows: vec![EntityRow {
+                    entity: 7,
+                    components,
+                }],
+            },
+            6,
+        ),
+        (
+            WorldQueryResult::HierarchyRows {
+                generation: 12,
+                rows: vec![WorldHierarchyRow {
+                    entity: 7,
+                    parent: None,
+                    depth: 0,
+                    display_name: "Root".to_string(),
+                    kind: "entity".to_string(),
+                    subtree_hash: 41,
+                    active_in_hierarchy: true,
+                    has_children: false,
+                }],
+            },
+            1,
+        ),
+        (
+            WorldQueryResult::InspectionFields {
+                generation: 13,
+                entity: 7,
+                fields: vec![WorldInspectionFieldRow {
+                    component_type_path: "Transform".to_string(),
+                    component_display_name: "Transform".to_string(),
+                    field_name: "translation".to_string(),
+                    field_display_name: "Translation".to_string(),
+                    value_type_path: "Vec3".to_string(),
+                    value: ReflectedValue::Null,
+                    writable: true,
+                    serializable: true,
+                    plugin_owned: false,
+                }],
+            },
+            1,
+        ),
+        (
+            WorldQueryResult::TransformSnapshot {
+                generation: 14,
+                world_replacement_epoch: 3,
+                entity: 7,
+                transform: Transform::identity(),
+            },
+            1,
+        ),
+        (
+            WorldQueryResult::EntityMissing {
+                generation: 15,
+                entity: 7,
+            },
+            1,
+        ),
+        (WorldQueryResult::NotModified { generation: 16 }, 1),
+    ];
+
+    for (result, expected) in results {
+        assert_eq!(
+            super::world_query_item_count(&result),
+            expected,
+            "unexpected structural item count for {result:?}"
+        );
+    }
+}
+
+#[test]
 fn bounded_json_acceptance_releases_once_and_records_metrics() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();

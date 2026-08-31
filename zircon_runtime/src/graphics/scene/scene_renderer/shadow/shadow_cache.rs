@@ -113,6 +113,9 @@ pub(crate) fn static_shadow_caster_revision_from_meshes_with_resource_revisions(
         let material_revision = resource_revision(material_resource)?;
         let material_revision =
             resource_revision_fingerprint([(material_resource, material_revision)]);
+        if casters.is_empty() {
+            casters.reserve_exact(meshes.len());
+        }
         casters.push(ShadowStaticCasterRevisionInput::new(
             mesh.stable_instance_key,
             mesh.transform_revision,
@@ -278,18 +281,21 @@ impl ShadowCache {
 }
 
 #[cfg(test)]
+#[path = "shadow_cache/preallocated_static_casters_tests.rs"]
+mod preallocated_static_casters_tests;
+
+#[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
     use super::{
-        shadow_light_params_hash, static_shadow_caster_revision,
+        ShadowCache, ShadowCacheDecision, ShadowCacheInput, ShadowCacheInvalidationReason,
+        ShadowStaticCasterRevisionInput, shadow_light_params_hash, static_shadow_caster_revision,
         static_shadow_caster_revision_from_meshes,
-        static_shadow_caster_revision_from_meshes_with_resource_revisions, ShadowCache,
-        ShadowCacheDecision, ShadowCacheInput, ShadowCacheInvalidationReason,
-        ShadowStaticCasterRevisionInput,
+        static_shadow_caster_revision_from_meshes_with_resource_revisions,
     };
     use crate::core::framework::render::{
-        render_mesh_stable_instance_key, RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,
+        RenderMeshSnapshot, RenderMeshStaticState, RendererCommon, render_mesh_stable_instance_key,
     };
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{Transform, Vec4};

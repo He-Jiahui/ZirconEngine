@@ -293,6 +293,7 @@ mod tests {
             "activation-time consumers must never observe the temporary unavailable backend"
         );
         assert!(source.contains("PlatformDriver::with_preference_storage_backend"));
+        assert!(source.contains("core.task_graph().worker_pool().clone()"));
     }
 
     fn env_map<const N: usize>(values: [(&str, &str); N]) -> impl Fn(&str) -> Option<OsString> {

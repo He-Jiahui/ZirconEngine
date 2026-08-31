@@ -1,4 +1,4 @@
-use std::collections::{btree_map::Entry, BTreeMap};
+use std::collections::{BTreeMap, btree_map::Entry};
 use std::sync::{Mutex, MutexGuard};
 
 use zr_contracts::random::{
@@ -100,23 +100,29 @@ impl RandomStreamRegistry {
     pub(crate) fn checkpoint_with_authority_snapshot(
         &self,
         capture_authority: impl FnOnce() -> RandomServiceState,
+        after_stream_capture: impl FnOnce(),
     ) -> Result<(RandomServiceState, Vec<RandomStreamCheckpoint>), usize> {
         let state = self.lock();
         let active_leases = state.active_leases;
         if active_leases > 0 {
             return Err(active_leases);
         }
+        // Keep the registry guard while entering the seed authority: reseed uses the same order.
+        let authority = capture_authority();
+        let master_seed_generation = authority.master_seed_generation();
         let streams = state
             .streams
             .iter()
             .filter_map(|(key, entry)| match entry {
-                RandomStreamEntry::Available(stream) => {
-                    Some(RandomStreamCheckpoint::new(*key, stream.snapshot()))
-                }
+                RandomStreamEntry::Available(stream) => Some(RandomStreamCheckpoint::new(
+                    *key,
+                    stream.snapshot(),
+                    master_seed_generation,
+                )),
                 RandomStreamEntry::Leased => None,
             })
             .collect();
-        let authority = capture_authority();
+        after_stream_capture();
         Ok((authority, streams))
     }
 
@@ -154,31 +160,41 @@ impl RandomStreamRegistry {
     pub(crate) fn evict_matching(
         &self,
         matches: impl Fn(RandomStreamKey) -> bool,
+        capture_master_seed_generation: impl FnOnce() -> u64,
     ) -> Result<Vec<RandomStreamCheckpoint>, usize> {
         let mut state = self.lock();
-        let active_leases = state
-            .streams
-            .iter()
-            .filter(|(key, entry)| matches(**key) && matches!(entry, RandomStreamEntry::Leased))
-            .count();
+        let mut matching_streams = 0usize;
+        let mut active_leases = 0usize;
+        for (key, entry) in &state.streams {
+            if matches(*key) {
+                matching_streams = matching_streams.saturating_add(1);
+                active_leases += usize::from(matches!(entry, RandomStreamEntry::Leased));
+            }
+        }
         if active_leases > 0 {
             return Err(active_leases);
         }
-        let keys = state
-            .streams
-            .keys()
-            .copied()
-            .filter(|key| matches(*key))
-            .collect::<Vec<_>>();
-        Ok(keys
-            .into_iter()
-            .filter_map(|key| match state.streams.remove(&key) {
-                Some(RandomStreamEntry::Available(stream)) => {
-                    Some(RandomStreamCheckpoint::new(key, stream.snapshot()))
-                }
-                _ => None,
-            })
-            .collect())
+        if matching_streams == 0 {
+            return Ok(Vec::new());
+        }
+
+        let master_seed_generation = capture_master_seed_generation();
+        let mut checkpoints = Vec::with_capacity(matching_streams);
+        state.streams.retain(|key, entry| {
+            if !matches(*key) {
+                return true;
+            }
+            let RandomStreamEntry::Available(stream) = entry else {
+                unreachable!("matching active leases were rejected before scope eviction")
+            };
+            checkpoints.push(RandomStreamCheckpoint::new(
+                *key,
+                stream.snapshot(),
+                master_seed_generation,
+            ));
+            false
+        });
+        Ok(checkpoints)
     }
 
     pub(crate) fn registered_stream_count(&self) -> usize {
@@ -220,3 +236,7 @@ impl RandomStreamRegistry {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 }
+
+#[cfg(test)]
+#[path = "registry/evict_matching_tests.rs"]
+mod evict_matching_tests;

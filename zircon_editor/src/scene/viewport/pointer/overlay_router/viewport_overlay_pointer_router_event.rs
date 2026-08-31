@@ -1,10 +1,9 @@
 use zircon_runtime_interface::ui::{
-    dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
+    dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind, tree::UiTreeError,
 };
 
 use crate::scene::viewport::pointer::{
-    runtime_picking_adapter::runtime_pointer_input_for_event,
-    viewport_pointer_dispatch::ViewportPointerDispatch,
+    precision::lock_shared_resolution_state, viewport_pointer_dispatch::ViewportPointerDispatch,
 };
 
 use super::ViewportOverlayPointerRouter;
@@ -13,19 +12,22 @@ impl ViewportOverlayPointerRouter {
     pub(crate) fn handle_move(
         &mut self,
         point: UiPoint,
-    ) -> Result<ViewportPointerDispatch, String> {
+    ) -> Result<ViewportPointerDispatch, UiTreeError> {
         self.handle_event(UiPointerEvent::new(UiPointerEventKind::Move, point))
     }
 
     pub(crate) fn handle_down(
         &mut self,
         point: UiPoint,
-    ) -> Result<ViewportPointerDispatch, String> {
+    ) -> Result<ViewportPointerDispatch, UiTreeError> {
         self.handle_event(UiPointerEvent::new(UiPointerEventKind::Down, point))
     }
 
     #[cfg(test)]
-    pub(crate) fn handle_up(&mut self, point: UiPoint) -> Result<ViewportPointerDispatch, String> {
+    pub(crate) fn handle_up(
+        &mut self,
+        point: UiPoint,
+    ) -> Result<ViewportPointerDispatch, UiTreeError> {
         self.handle_event(UiPointerEvent::new(UiPointerEventKind::Up, point))
     }
 
@@ -34,28 +36,26 @@ impl ViewportOverlayPointerRouter {
         &mut self,
         point: UiPoint,
         scroll_delta: f32,
-    ) -> Result<ViewportPointerDispatch, String> {
+    ) -> Result<ViewportPointerDispatch, UiTreeError> {
         self.handle_event(
             UiPointerEvent::new(UiPointerEventKind::Scroll, point).with_scroll_delta(scroll_delta),
         )
     }
 
-    fn handle_event(&mut self, event: UiPointerEvent) -> Result<ViewportPointerDispatch, String> {
-        let runtime_input = runtime_pointer_input_for_event(&event);
-        if let Ok(mut shared) = self.shared.lock() {
+    fn handle_event(
+        &mut self,
+        event: UiPointerEvent,
+    ) -> Result<ViewportPointerDispatch, UiTreeError> {
+        {
+            let mut shared = lock_shared_resolution_state(self.shared.as_ref());
             shared.last_route = None;
             shared.last_debug_feed = None;
         }
         self.surface
-            .dispatch_pointer_event(&self.dispatcher, event)
-            .map_err(|error| error.to_string())?;
-        let shared = self
-            .shared
-            .lock()
-            .map_err(|_| "viewport pointer shared resolution lock poisoned".to_string())?;
+            .dispatch_pointer_event(&self.dispatcher, event)?;
+        let shared = lock_shared_resolution_state(self.shared.as_ref());
         Ok(ViewportPointerDispatch {
             route: shared.last_route.clone(),
-            runtime_input: Some(runtime_input),
             picking_debug_feed: shared.last_debug_feed.clone(),
         })
     }

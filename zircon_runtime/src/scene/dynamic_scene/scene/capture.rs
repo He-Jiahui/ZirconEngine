@@ -1,15 +1,20 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use zircon_runtime_interface::reflect::{ReflectFieldValue, ReflectTypeRegistration};
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::scene::components::{default_render_layer_mask, Mobility, NodeRecord, SceneNode};
+use crate::scene::reflect::validate_reflected_field_values;
+use crate::scene::reflect::WorldReflection;
 use crate::scene::{EntityId, World};
 
 use super::DynamicScene;
 use crate::scene::dynamic_scene::{
     DynamicComponent, DynamicEntity, DynamicResource, DynamicSceneError,
 };
+
+#[cfg(test)]
+mod hash_membership_tests;
 
 pub(super) fn dynamic_scene_from_world(world: &World) -> Result<DynamicScene, DynamicSceneError> {
     let entities = world
@@ -43,7 +48,7 @@ fn component_type_descriptors_from_world(
     world: &World,
     entities: &[DynamicEntity],
 ) -> Vec<ComponentTypeDescriptor> {
-    let mut required_type_ids = BTreeSet::new();
+    let mut required_type_ids = HashSet::new();
     for entity in entities {
         for component in &entity.components {
             if component.plugin_owned {
@@ -101,7 +106,7 @@ fn reflected_components_for_entity(
     let mut components = Vec::new();
     for runtime in world.type_registry().iter() {
         let metadata = &runtime.registration;
-        if !metadata.is_component || !metadata.serializable {
+        if !metadata.is_component() || !metadata.serializable {
             continue;
         }
         let Some(adapter) = &runtime.component else {
@@ -110,10 +115,14 @@ fn reflected_components_for_entity(
         if !adapter.contains(world, entity) {
             continue;
         }
-        let fields = serializable_fields(metadata, adapter.read_fields(world, entity)?);
+        let fields = serializable_fields(
+            metadata,
+            WorldReflection::read_component_fields_by_slot(world, entity, metadata, adapter)?,
+        );
+        validate_reflected_field_values(metadata.type_path.type_path(), &fields)?;
         components.push(DynamicComponent::new(
-            metadata.type_path.type_path.clone(),
-            metadata.plugin_owned,
+            metadata.type_path.type_path().to_string(),
+            metadata.is_plugin_owned(),
             fields,
         ));
     }
@@ -127,7 +136,7 @@ fn reflected_resources_from_world(
     let mut resources = Vec::new();
     for runtime in world.type_registry().iter() {
         let metadata = &runtime.registration;
-        if !metadata.is_resource || !metadata.serializable {
+        if !metadata.is_resource() || !metadata.serializable {
             continue;
         }
         let Some(adapter) = runtime.resource else {
@@ -136,9 +145,13 @@ fn reflected_resources_from_world(
         if !adapter.contains(world) {
             continue;
         }
-        let fields = serializable_fields(metadata, adapter.read_fields(world)?);
+        let fields = serializable_fields(
+            metadata,
+            WorldReflection::read_resource_fields_by_slot(world, metadata, &adapter)?,
+        );
+        validate_reflected_field_values(metadata.type_path.type_path(), &fields)?;
         resources.push(DynamicResource::new(
-            metadata.type_path.type_path.clone(),
+            metadata.type_path.type_path().to_string(),
             fields,
         ));
     }
@@ -149,14 +162,15 @@ fn serializable_fields(
     metadata: &ReflectTypeRegistration,
     fields: Vec<ReflectFieldValue>,
 ) -> Vec<ReflectFieldValue> {
-    fields
-        .into_iter()
-        .filter(|field| {
-            metadata
-                .type_info
-                .fields
-                .iter()
-                .any(|info| info.name == field.field_name && info.serializable)
+    debug_assert_eq!(metadata.type_info.fields.len(), fields.len());
+    metadata
+        .type_info
+        .fields
+        .iter()
+        .zip(fields)
+        .filter_map(|(info, value)| {
+            debug_assert_eq!(info.id, value.field_id);
+            info.serializable.then_some(value)
         })
         .collect()
 }

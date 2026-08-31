@@ -54,7 +54,8 @@ class EditorUiPresentationGenerationContractTests(unittest.TestCase):
 
         self.assertNotIn("apply_template_hover_to_presentation", snapshot)
         self.assertIn("apply_template_hover_to_node", draw)
-        self.assertIn("paint_workbench_row_indices", draw)
+        self.assertIn("visit_paint_workbench_rows", draw)
+        self.assertNotIn("paint_workbench_row_indices", draw)
 
 
 if __name__ == "__main__":

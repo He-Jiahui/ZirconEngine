@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use crate::ui::component::UiValue;
 use crate::ui::event_ui::UiNodeId;
 use crate::ui::layout::UiAxis;
-use crate::ui::text::UiTextEdit;
+use crate::ui::text::UiTextEditReceipt;
+
+pub const UI_WIDGET_COMPONENT_ROLE_ATTRIBUTE: &str = "component_role";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -45,7 +47,7 @@ pub enum UiWidgetEvent {
         source: UiWidgetEventSource,
     },
     TextEditChange {
-        edit: Box<UiTextEdit>,
+        receipt: Box<UiTextEditReceipt>,
     },
     OpenChanged {
         target: UiNodeId,
@@ -103,18 +105,64 @@ pub enum UiPopupAnchor {
     Control {
         control_id: String,
     },
+    /// Uses the current arranged surface root as the placement frame.
+    ///
+    /// Surface overlays such as a command palette remain responsive to window and DPI changes
+    /// without persisting a host-computed rectangle in template properties.
+    Surface,
+    /// Uses a transient surface-space point captured for this popup at open time.
+    ///
+    /// `owner_property` names a string property on the popup whose value identifies the control
+    /// that owns dismissal and focus restoration. Pointer coordinates never enter the template.
+    Pointer {
+        owner_property: String,
+    },
 }
 
 impl UiPopupAnchor {
     pub fn control_id(&self) -> Option<&str> {
         match self {
             Self::Control { control_id } => Some(control_id.as_str()),
-            Self::None => None,
+            Self::None | Self::Surface | Self::Pointer { .. } => None,
         }
     }
 }
 
 impl UiWidgetBehavior {
+    pub fn infer_from_component_role(role: &str) -> Self {
+        match role {
+            "button" | "icon-button" | "material-button" => Self::Button,
+            "toggle" | "checkbox" | "check-box" | "switch" | "toggle-button" => Self::Toggle,
+            "radio-group" | "button-group" => Self::RadioGroup,
+            "radio" | "radio-button" => Self::Radio,
+            "group" | "foldout" | "inspector-section" | "tree-row" | "tree-view" => {
+                Self::Disclosure
+            }
+            "dropdown"
+            | "combo-box"
+            | "enum-field"
+            | "flags-field"
+            | "search-select"
+            | "menu"
+            | "popup-menu"
+            | "menu-popup"
+            | "context-menu"
+            | "context-action-menu"
+            | "dropdown-popup"
+            | "popup" => Self::Popup,
+            "range-field" | "slider" | "range-slider" => Self::Range,
+            "scrollbar" | "scroll-bar" | "scroll-bar-track" => Self::Scrollbar,
+            "scrollbar-thumb" | "scroll-thumb" | "scroll-bar-thumb" => Self::ScrollbarThumb,
+            "input-field" | "text-field" | "line-edit" | "text-edit" | "number-field"
+            | "search-field" | "search-input" | "input" | "input-base" | "filled-input"
+            | "outlined-input" | "textarea-autosize" | "field-editor" | "source-editor" => {
+                Self::TextInput
+            }
+            "menu-item" => Self::MenuItem,
+            _ => Self::Passive,
+        }
+    }
+
     pub fn infer_from_component(component: &str) -> Self {
         match component {
             "Button" | "IconButton" | "MaterialButton" => Self::Button,
@@ -129,7 +177,10 @@ impl UiWidgetBehavior {
             "Scrollbar" | "ScrollBar" | "ScrollBarTrack" => Self::Scrollbar,
             "ScrollbarThumb" | "ScrollThumb" | "ScrollBarThumb" => Self::ScrollbarThumb,
             "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField"
-            | "SearchField" => Self::TextInput,
+            | "SearchField" | "SearchInput" | "Input" | "InputBase" | "FilledInput"
+            | "OutlinedInput" | "TextareaAutosize" | "FieldEditor" | "SourceEditor" => {
+                Self::TextInput
+            }
             "MenuItem" => Self::MenuItem,
             _ => Self::Passive,
         }
@@ -163,6 +214,63 @@ impl UiWidgetContract {
         match self.behavior {
             UiWidgetBehavior::Auto => UiWidgetBehavior::infer_from_component(component),
             behavior => behavior,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UiWidgetBehavior;
+
+    #[test]
+    fn editable_text_component_roles_share_one_behavior_classification() {
+        for role in [
+            "input-field",
+            "text-field",
+            "line-edit",
+            "text-edit",
+            "number-field",
+            "search-field",
+            "search-input",
+            "input",
+            "input-base",
+            "filled-input",
+            "outlined-input",
+            "textarea-autosize",
+            "field-editor",
+            "source-editor",
+        ] {
+            assert_eq!(
+                UiWidgetBehavior::infer_from_component_role(role),
+                UiWidgetBehavior::TextInput,
+                "role {role} must route through the surface text-input pipeline"
+            );
+        }
+    }
+
+    #[test]
+    fn editable_text_component_aliases_share_one_behavior_classification() {
+        for component in [
+            "InputField",
+            "TextField",
+            "LineEdit",
+            "TextEdit",
+            "NumberField",
+            "SearchField",
+            "SearchInput",
+            "Input",
+            "InputBase",
+            "FilledInput",
+            "OutlinedInput",
+            "TextareaAutosize",
+            "FieldEditor",
+            "SourceEditor",
+        ] {
+            assert_eq!(
+                UiWidgetBehavior::infer_from_component(component),
+                UiWidgetBehavior::TextInput,
+                "component {component} must route through the surface text-input pipeline"
+            );
         }
     }
 }

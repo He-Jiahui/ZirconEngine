@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use ttf_parser::{name_id, Face, GlyphId, Style as TtfStyle};
+use ttf_parser::{Face, GlyphId, Style as TtfStyle, name_id};
 
 use crate::asset::{FontAssetFaceMetrics, FontAssetLineMetrics};
 use crate::text::{FontFamilyName, FontStretch, FontStyle, FontWeight, VariationCoords};
@@ -134,10 +134,10 @@ impl FontFaceMetadata {
         }
 
         let mut weighted = variations.clone();
-        if let Some(font_weight) = font_weight {
-            if self.axes.iter().any(|axis| axis.tag == WEIGHT_AXIS_TAG) {
-                weighted.0.push((WEIGHT_AXIS_TAG, f32::from(font_weight)));
-            }
+        let weight_axis =
+            font_weight.and_then(|_| self.axes.iter().find(|axis| axis.tag == WEIGHT_AXIS_TAG));
+        if let (Some(font_weight), Some(_)) = (font_weight, weight_axis) {
+            weighted.0.push((WEIGHT_AXIS_TAG, f32::from(font_weight)));
         }
         let Ok(weighted) = canonical_variation_coords(&weighted) else {
             return variations.clone();
@@ -147,7 +147,11 @@ impl FontFaceMetadata {
                 .0
                 .into_iter()
                 .filter_map(|(tag, value)| {
-                    let axis = self.axes.iter().find(|axis| axis.tag == tag)?;
+                    let axis = if tag == WEIGHT_AXIS_TAG {
+                        weight_axis.or_else(|| self.axes.iter().find(|axis| axis.tag == tag))?
+                    } else {
+                        self.axes.iter().find(|axis| axis.tag == tag)?
+                    };
                     let value = quantized_axis_value(
                         value,
                         axis.min_value,
@@ -296,6 +300,10 @@ fn source_identity(bytes: &[u8], face_index: u32) -> [u8; 16] {
     identity.copy_from_slice(&hasher.finalize().as_bytes()[..16]);
     identity
 }
+
+#[cfg(test)]
+#[path = "face_metadata/cached_weight_axis_tests.rs"]
+mod cached_weight_axis_tests;
 
 #[cfg(test)]
 mod tests {

@@ -16,6 +16,16 @@ pub(super) fn push_shader_readiness_validation_errors(
             .push_validation_error_once(RenderMaterialValidationError::MissingRuntimeShaderSource);
     }
 
+    if let Some(diagnostic) = readiness.kind_diagnostic {
+        report.push_validation_error_once(
+            RenderMaterialValidationError::ShaderReadinessDiagnostic {
+                source: RenderMaterialDiagnosticSource::ShaderReadiness,
+                path: "kind".to_string(),
+                diagnostic,
+            },
+        );
+    }
+
     for entry in readiness.entry_points {
         if let Some(diagnostic) = entry.diagnostic {
             report.push_validation_error_once(

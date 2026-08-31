@@ -1,9 +1,7 @@
 mod asset_kind;
-mod compute_dispatch;
 mod definition_value;
 mod dependency;
 mod entry_point;
-mod fullscreen_pass;
 mod geometry_source;
 mod ide_env;
 mod material_property_layout;
@@ -18,20 +16,9 @@ mod variant_miss_report;
 mod variant_prewarm;
 
 pub use asset_kind::ShaderAssetKind;
-pub use compute_dispatch::{
-    ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef, ComputePipelineCacheKey,
-    ShaderAbiBinding, ShaderDispatchBuildDiagnostic, ShaderDispatchExtent,
-    ShaderNamedResourceBinding, ShaderParameterValue, COMPUTE_SHADER_FIRST_RESOURCE_BINDING,
-    COMPUTE_SHADER_PARAMS_BINDING, COMPUTE_SHADER_RESOURCE_GROUP,
-};
 pub use definition_value::RenderShaderDefinitionValue;
 pub use dependency::RenderShaderDependency;
 pub use entry_point::RenderShaderEntryPointDescriptor;
-pub use fullscreen_pass::{
-    FullscreenPassBuilder, FullscreenPassPlan, FullscreenPipelineCacheKey, FullscreenShaderRef,
-    FULLSCREEN_FIRST_PASS_INPUT_BINDING, FULLSCREEN_FRAME_GROUP, FULLSCREEN_PARAMS_BINDING,
-    FULLSCREEN_PASS_INPUT_GROUP, FULLSCREEN_TRIANGLE_VERTEX_ENTRY,
-};
 pub use geometry_source::{
     builtin_geometry_source_descriptor, builtin_geometry_source_descriptors,
     GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
@@ -75,8 +62,11 @@ pub use variant_key::{
     RenderShaderVariantKey, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
 };
 pub use variant_miss_report::{
-    ShaderPipelineDiagnostic, ShaderPipelineDiagnosticStage, ShaderVariantMissReport,
+    ShaderPipelineDiagnostic, ShaderPipelineDiagnosticStage, ShaderPipelineFallbackAction,
+    ShaderPipelineFallbackDiagnostic, ShaderPipelineFallbackState, ShaderPipelineTarget,
+    ShaderPipelineTargetMetrics, ShaderSourceValidationMetrics, ShaderVariantMissReport,
     ShaderVariantRuntimeDimensionCount, ShaderVariantRuntimeDimensionSummary,
+    SHADER_PIPELINE_TARGET_COUNT,
 };
 pub use variant_prewarm::{
     ShaderPipelinePrewarmState, ShaderVariantPrewarmDimensionCount,
@@ -88,4 +78,5 @@ pub use variant_prewarm::{
     ShaderVariantPrewarmSourceProvenanceEntry, ShaderVariantPrewarmSourceProvenanceSummary,
     ShaderVariantPrewarmWgpuModuleValidationSummary,
     ShaderVariantPrewarmWgpuPipelineValidationSummary, ShaderVariantPrewarmWrittenVariant,
+    SHADER_VARIANT_CACHE_NAGA_VERSION, SHADER_VARIANT_CACHE_WGPU_VERSION,
 };

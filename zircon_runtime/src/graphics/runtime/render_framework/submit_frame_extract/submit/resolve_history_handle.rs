@@ -65,6 +65,7 @@ const fn history_invalidation_requires_reallocation(
     !matches!(
         reason,
         None | Some(FrameHistoryInvalidationReason::FrameInputsChanged)
+            | Some(FrameHistoryInvalidationReason::CameraCut)
     )
 }
 
@@ -94,6 +95,9 @@ mod tests {
     fn frame_input_changes_invalidate_content_without_reallocating_history_textures() {
         assert!(!history_invalidation_requires_reallocation(Some(
             FrameHistoryInvalidationReason::FrameInputsChanged
+        )));
+        assert!(!history_invalidation_requires_reallocation(Some(
+            FrameHistoryInvalidationReason::CameraCut
         )));
         assert!(!history_invalidation_requires_reallocation(None));
         assert!(history_invalidation_requires_reallocation(Some(

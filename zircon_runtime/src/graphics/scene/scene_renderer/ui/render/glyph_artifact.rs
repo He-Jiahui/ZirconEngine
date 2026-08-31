@@ -7,9 +7,8 @@ use crate::text::{ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine};
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiGlyphArtifactLine {
     pub(in crate::graphics::scene::scene_renderer::ui) artifact: Arc<ResolvedTextGlyphArtifact>,
     pub(in crate::graphics::scene::scene_renderer::ui) line_index: usize,
-    pub(in crate::graphics::scene::scene_renderer::ui) refreshed_line:
-        Option<Arc<ResolvedTextGlyphArtifactLine>>,
     pub(in crate::graphics::scene::scene_renderer::ui) font_generation: u64,
+    pub(in crate::graphics::scene::scene_renderer::ui) glyph_range: std::ops::Range<usize>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -18,35 +17,26 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiGlyphArti
     line_address: Option<usize>,
     line_index: usize,
     font_generation: u64,
+    glyph_start: usize,
+    glyph_end: usize,
 }
 
 impl ScreenSpaceUiGlyphArtifactLine {
     pub(in crate::graphics::scene::scene_renderer::ui) fn glyphs(&self) -> Option<&[TextGlyph]> {
-        self.refreshed_line
-            .as_deref()
-            .map(|line| line.glyphs.as_slice())
-            .or_else(|| {
-                self.artifact
-                    .lines
-                    .get(self.line_index)
-                    .and_then(Option::as_ref)
-                    .map(|line| line.glyphs.as_slice())
-            })
+        self.artifact
+            .lines
+            .get(self.line_index)
+            .and_then(Option::as_ref)
+            .and_then(|line| line.glyphs.get(self.glyph_range.clone()))
     }
 
     pub(in crate::graphics::scene::scene_renderer::ui) fn layout_baseline(&self) -> Option<f32> {
-        self.refreshed_line
-            .as_deref()
+        self.artifact
+            .lines
+            .get(self.line_index)
+            .and_then(Option::as_ref)
             .map(|line| line.layout_line.baseline)
             .filter(|baseline| baseline.is_finite())
-            .or_else(|| {
-                self.artifact
-                    .lines
-                    .get(self.line_index)
-                    .and_then(Option::as_ref)
-                    .map(|line| line.layout_line.baseline)
-                    .filter(|baseline| baseline.is_finite())
-            })
     }
 
     pub(in crate::graphics::scene::scene_renderer::ui) fn source_scalar(
@@ -68,27 +58,24 @@ impl ScreenSpaceUiGlyphArtifactLine {
             .unwrap_or(' ')
     }
 
-    // The concrete lines are immutable Arc allocations. The renderer only needs this O(1)
-    // identity to invalidate derived atlas and CPU-run caches after a text-owned refresh.
+    // Text/layout republishes an immutable artifact Arc after invalidation. The renderer only
+    // needs this O(1) identity to invalidate derived atlas and CPU-run caches.
     pub(in crate::graphics::scene::scene_renderer::ui) fn cache_identity(
         &self,
     ) -> ScreenSpaceUiGlyphArtifactCacheIdentity {
         let line_address = self
-            .refreshed_line
-            .as_ref()
-            .map(|line| Arc::as_ptr(line) as usize)
-            .or_else(|| {
-                self.artifact
-                    .lines
-                    .get(self.line_index)
-                    .and_then(Option::as_ref)
-                    .map(|line| line as *const ResolvedTextGlyphArtifactLine as usize)
-            });
+            .artifact
+            .lines
+            .get(self.line_index)
+            .and_then(Option::as_ref)
+            .map(|line| line as *const ResolvedTextGlyphArtifactLine as usize);
         ScreenSpaceUiGlyphArtifactCacheIdentity {
             artifact_address: Arc::as_ptr(&self.artifact) as usize,
             line_address,
             line_index: self.line_index,
             font_generation: self.font_generation,
+            glyph_start: self.glyph_range.start,
+            glyph_end: self.glyph_range.end,
         }
     }
 }

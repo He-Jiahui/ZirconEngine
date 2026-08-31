@@ -18,7 +18,6 @@ related_code:
   - zircon_runtime/src/text/sdf/font_bake
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
-  - zircon_runtime/src/ui/text/font_registry.rs
   - zircon_runtime/src/ui/surface/text_artifact.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/runtime_lines.rs
 tests:
@@ -30,7 +29,6 @@ tests:
   - zircon_runtime/src/text/font/source_manifest/tests.rs
   - zircon_runtime/src/text/sdf/font_bake/tests
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/font_assets.rs
-  - zircon_runtime/src/ui/tests/text_pipeline/font_registry.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md
@@ -83,6 +81,8 @@ Zircon 的字体底座已经超过“临时能显示文字”的阶段。当前 
 但字体“资产 -> cook -> runtime byte lease -> face collection -> resolved glyph”仍未闭合。导入器读取并解码源字体，只把 metadata 写进 `FontAsset`；artifact payload不保存字体字节，而项目扫描又把 TTF/OTF/WOFF/WOFF2当作auxiliary。运行时于是从manifest重新canonicalize并打开原始source path，非项目路径还回落 `env!("CARGO_MANIFEST_DIR")`。这使clean package、DLC、远端mount和只读部署无法仅依赖cooked artifact。与此同时共享数据库、布局服务和handle registry仍是process-global，默认启动显式发现主机系统字体；一个project/window/test的mutation会改变同进程其他session的fallback、generation和全套atlas/cache。
 
 本轮不重复登记 Runtime11B 已拥有的两个字体 P0：P0-1 cooked font bytes断链、P0-2真实shaping全失败后仍发布无face的synthetic rasterizable glyph。两项经current source复核均仍开放。本报告新增 **0 项 P0、48 项 Runtime80 独有 P1、12 项 P2 与 48 项资格门**。目标不是继续扩展全局 `FontDatabase`，而是建立 `FontBlobArtifact -> FontCollectionSnapshot -> FontCollectionService -> ResolvedFontFaceLease -> ResolvedGlyphStatus` 的project/session-owned链；只有clean package、双session隔离、恶意字体budget、确定性fallback、真实color/variation和同负载性能门全部通过，才可谈工程级完成度。
+
+2026-08-29 current-source 校准：上段与第 4 节表格保留为 review 基线，其中 P0-1/P0-2 的源码事实已被后续实现取代。P0-2 的 typed shaping correction 见 Runtime11B；P0-1 当前已有 `FontBlobArtifact -> artifact cache payload -> project cooked loader -> FontDatabase Arc bytes` 链，并以编译内嵌 manifest/TTC 建立不依赖系统字体的 2-face runtime 默认包。默认 primary face/CompositeFont/UI family 也已从 project projection 中分离成 engine baseline，解析优先级为 explicit > project > runtime，项目卸载恢复内置 CJK 路由；SDF default resolver不再重开 loose default asset。静态实现不等于 Runtime80 M1/GATE-002 完成：shipping direct-path policy、source-deleted package、多语言 raster、license/toolchain receipt及受管动态证据继续开放。
 
 ## 2. 审查边界与物理冻结
 
@@ -162,9 +162,27 @@ Zircon 的字体底座已经超过“临时能显示文字”的阶段。当前 
 | 既有阻断 | Current-source证据 | 状态 |
 |---|---|---|
 | Runtime11B P0-1：font artifact不拥有raw bytes | importer读取/解码bytes后只发布metadata `FontAsset`；artifact payload无blob；源字体被scan视为auxiliary；runtime再开source path | **open**；以artifact-owned byte lease关闭，clean package删除source且禁用系统字体仍成功 |
-| Runtime11B P0-2：synthetic glyph伪装为可栅格化成功 | Cosmic/direct全失败后fallback生成FNV式glyph ID与猜测advance，face/instance为None；service仍按非空白标 `requires_rasterization` | **open**；typed shape outcome、真实fallback/tofu face和publication completeness贯通renderer |
+| Runtime11B P0-2：synthetic glyph伪装为可栅格化成功 | current canonical service已无FNV/codepoint glyph ID，且无face handle不会发布`requires_rasterization`；剩余断路是terminal fallback曾把任意request primary的glyph 0当全局缺字策略 | **static implemented / product gate pending**；generation-owned packaged last-resort face已贯通fallback/metric/SDF source，专用全码点字体、typed status与真实产品像素仍开放 |
 
 Text01/02/09的metadata缓存、fallback索引、batch handle、stable cache slot与resolved artifact owner修复在managed product/Editor资格完成前仍可保持其failure记录open，但当前实现成果不作为Runtime80新gap重复计数。
+
+2026-08-29 superseding status：`RFF-P1-001`、`RFF-P1-002`、`RFF-P1-007` 和 `RFF-P1-011` 的核心生产链已推进到 `static_implemented / product_gate_pending`；`RFF-P1-003/009/010/012` 及 session-owned collection、generational lease、color/capability仍开放。内置 baseline 只增加 generation-owned descriptor/index/family 状态，fallback hot path继续复用已编译 `Arc<CompositeFontIndex>`，没有新增逐glyph锁、解析或分配。未完成 1/100/1k/10k、31样本 CPU/RSS/cache/profile/power 与 Unreal 同负载对比，不作性能或功耗结论。
+
+同日 clean-process primary admission 复核发现：仅注册内置 faces/composite 仍不足以服务空 family query，因为旧 `match_face` 在获得 primary 之前只看公共 fallback families。现已按 explicit/project default/runtime primary/runtime family/platform fallback 分层，默认层 mutation 失效匹配缓存，并以 fresh embedded DB 的 Latin+CJK handle-resolution regression锁定。它不替代 `FontCollectionService`/lease，也不解决旧 generation in-flight lifetime；`RFF-GATE-019/021`继续开放。
+
+同日 FontObject current-source 纵向重审确认另一条 P0 级 MVP 断路：UI loader 以 URI 注册 owner，但 canonical shaping 曾把 URI 当 family 查询，资产 CompositeFont、owner-local typeface、line-metric 证书与 shaped cache 均未共享该 identity。当前已按 Unreal `FSlateFontInfo(FontObject, TypefaceFontName)` 硬切为 owner-scoped primary/composite/fallback/layout/cache 链；asset CompositeFont 在 generation 发布时编译，owner attach/remove 进入 render-input generation，物理 face 仍按 source 去重。owner fallback 仅合并自身声明与 base/platform 链，不读取其他 FontAsset fallback 并集。静态回归与格式/边界扫描完成；这不等于 session-owned `FontCollectionService`、旧 generation lease 或 RFF-GATE-013/019/021/047 完成，Cargo、真实多语言 shape/raster、WGPU/PNG、profile/RSS/power 均未执行。状态为 `font_object_owner_scope_static_implemented / managed_product_validation_pending`。
+
+同日最终 SDF consumer 复核：有效 shaped face/instance handle 原已直接驱动 face/glyph bake，符合 Unreal `FShapedGlyphEntry` 到 SDF atlas 的主路径；但无 handle 或 stale/mismatch 恢复仍以 asset primary 调用 `composite=None`，会跳过 owner CompositeFont。当前恢复路径改为同一 request-owner resolver，stale glyph id 不跨 face 使用，空 family 不生成空名称候选；existing face-resolution cache 仍在 glyph-key miss 后才调用该路径。未执行 profile/WGPU，故这里只关闭结构性 resolver 漂移，不宣称耗时、功耗或产品门完成。
+
+Unavailable owner 纵向复核同时修复了 local typeface 泄漏：显式 FontObject 未注册时不再让其 `font_family` 进入全局 family index。registered owner/empty-family 使用 borrowed query；仅 unknown owner + family 在 request 级 clone-and-clear，随后 shaping、metric certificate 与 SDF recovery 共享默认链。该异常恢复成本不进入正常 glyph hot path，仍待 profile 量化。
+
+Registered owner 候选去重的结构复核继续发现来源丢失：旧逻辑无法区分 local typeface 与 external fallback，只要 owner 没有同名 face 就全局搜索。当前用 `OwnerLocalOnly`/`OwnerThenGlobal` scope 随 family 进入单次 O(n) identity dedupe；CompositeFont/asset/base fallback 可显式升级同名候选，裸 request typeface 不可。候选数与 coverage pass 数不增加，动态规模数据仍待 profile。
+
+Last-resort 纵向复核确认旧P0描述已部分过期：canonical service不再生成synthetic glyph ID，但 terminal
+`LastResort`仍返回请求primary，custom FontObject的glyph 0因而成为全局缺字图。当前数据库新增独立
+generation-owned `runtime_last_resort_face`，packaged bootstrap绑定内嵌Fira Mono；fallback terminal、line-metric
+envelope、neutral handle与SDF face-byte lookup共享该face。覆盖正常cluster不增加candidate访问，missing terminal只做
+O(1) face读取。源码回归已落但未运行；`RFF-P1-033/036`的专用全码点tofu与typed status、真实像素/性能门仍开放。
 
 ## 5. P1 差距
 
@@ -230,7 +248,7 @@ Text01/02/09的metadata缓存、fallback索引、batch handle、stable cache slo
 | RFF-P1-041 | offline SDF虽有source hash/variation hash，却仍先从source-path manifest取得identity；与cooked font artifact没有同代保证 | offline artifact key直接引用FontBlobArtifact content/generation和raster toolchain version |
 | RFF-P1-042 | DB bytes、backend clone、TLS FontSystem、SDF source/offline、native bitmap与renderer cache没有统一resident budget | 建立分层memory domains、global/project caps、pressure callbacks与完整resident report |
 | RFF-P1-043 | font mutation以process generation触发跨route全清，无法保留未依赖changed face的shape/raster/atlas数据 | dependency-indexed invalidation和old-generation lease，禁止无关cache storm |
-| RFF-P1-044 | `UiFontRegistry`只有测试consumer，却维护另一套u32 ID/family/fallback/system source真值 | 硬删除或变成FontCollectionService只读facade；不得保留第二registry |
+| RFF-P1-044 | `UiFontRegistry`曾只有测试consumer，却维护另一套u32 ID/family/fallback/system source真值 | **实现完成，验收待定**：source/test owner 已硬删除；`FontDatabase` 是唯一 owner，不保留 facade 或第二 registry |
 | RFF-P1-045 | Editor runtime text只消费global artifact/handle，没有project/PIE collection lease、authoring preview generation或teardown隔离 | Editor document/preview/session显式持collection snapshot并跨PIE隔离 |
 | RFF-P1-046 | typed DB错误、fallback diagnostics和cache report分散在私有模块；product readiness没有统一低基数font receipt | 汇总 `FontDiagnosticsReceipt`，关联project/session/collection generation且不记录raw text |
 | RFF-P1-047 | 许多测试依赖 `CARGO_MANIFEST_DIR`、loose fixture或当前主机font；没有clean package、双session和catalog replay gate | 建立hermetic artifact fixtures、source-deleted package和multi-session test matrix |
@@ -242,14 +260,14 @@ Text01/02/09的metadata缓存、fallback索引、batch handle、stable cache slo
 |---|---|---|
 | RFF-P2-001 | `FontFamilyName::new`只trim，canonical key规则分散 | 统一显示名、匹配名和stable identity，避免locale/Unicode case临时规则 |
 | RFF-P2-002 | `FontCultureTag`字段注释宣称normalized但类型不执行normalization | 修正文档并让构造返回validated canonical tag |
-| RFF-P2-003 | dead `UiFontRegistry`的saturating `next_id`到上限后可重复发ID | 删除registry；若保留facade则使用generational handle和exhaustion error |
+| RFF-P2-003 | dead `UiFontRegistry`的saturating `next_id`到上限后可重复发ID | **随 RFF-P1-044 关闭**：registry 已删除，无 facade 或可重复 ID 路径 |
 | RFF-P2-004 | 128项 `SdfFontAssetFaceCache`每次eviction扫描全部recency map | 使用O(1) LRU或复用共享bounded cache |
 | RFF-P2-005 | decoration cache没有自身report，无法看出size cardinality和fallback metric占比 | 增加低成本cache report并纳入统一receipt |
 | RFF-P2-006 | fallback decoration thickness用小Vec `contains`去重face，长fallback run会反复线性检查 | 使用small-set/indexed unique face list并设置每run candidate budget |
 | RFF-P2-007 | metadata fallback为“测试可用”扫描BMP；空cmap TTC还在production metadata插入codepoint 0 | 测试fixture策略移出production parser，invalid/empty cmap显式报告 |
 | RFF-P2-008 | default family在Rust数组、font manifest和backend generic family投影间重复 | 建立单一compiled default collection artifact |
 | RFF-P2-009 | locale FontSystem容量固定4且不可配置，也没有eviction/rebuild report | 将capacity纳入service profile并暴露low-cardinality metrics |
-| RFF-P2-010 | private UI cache状态只在 `cfg(test)`暴露Ready/Missing/Error，production diagnostic无法查询 | 使用公开但受控的typed asset status snapshot |
+| RFF-P2-010 | UI cache 原先只在 `cfg(test)`暴露Ready/Missing/Error，production diagnostic无法查询 | **部分实现，验收待定**：`ScreenSpaceUiTextPrepareReport.font_assets` 现提供一帧一次的有界聚合 snapshot（Ready/Missing/Error、source contract/IO/decode 与 registration 分类），不持久化路径或原始错误；仍需按 asset reference 的受控 typed receipt 与 Editor reimport action |
 | RFF-P2-011 | render/manifest helpers以相似名称重复包装 `Option`，调用方容易误把配置缺失和加载损坏等价 | 收敛一个typed resolve API与一个compat adapter，随后硬切adapter |
 | RFF-P2-012 | font、source、face、family、collection、instance、handle术语在模块和旧计划中混用 | 固定术语/identity表，并让API名称对应生命周期层级 |
 
@@ -319,7 +337,7 @@ Runtime UI、SceneText、Editor preview、accessibility和plugin API只消费相
 
 ### M7：Cache与pressure收敛
 
-删除dead `UiFontRegistry`，合并manifest/font cache；设置UI/decor/TLS/DB/SDF/native全域budget、targeted invalidation、resident bytes和pressure recovery。
+`UiFontRegistry` 硬切已完成；继续合并manifest/font cache，并设置UI/decor/TLS/DB/SDF/native全域budget、targeted invalidation、resident bytes和pressure recovery。
 
 ### M8：产品与性能资格
 
@@ -408,4 +426,41 @@ Runtime UI、SceneText、Editor preview、accessibility和plugin API只消费相
 
 ## 12. 本轮产出边界
 
-本文只完成current-source静态review和重构路线，没有修改production code，也没有把任何finding标为implemented。Runtime81继续审查shaping、Unicode、BiDi与line breaking；Runtime82审查editing、IME和secure text。Runtime80实施优先级固定为：先关闭artifact字节与typed failure，再切session-owned collection和generational lease，最后做fallback/capability/cache/product资格；GPU atlas细节继续由Runtime11C/79拥有。
+本文以 current-source 静态 review 和重构路线为主；后续状态只在对应 finding 中记录实现切片，不能替代受管 Cargo 或产品资格。Runtime81继续审查shaping、Unicode、BiDi与line breaking；Runtime82审查editing、IME和secure text。Runtime80实施优先级固定为：先关闭artifact字节与typed failure，再切session-owned collection和generational lease，最后做fallback/capability/cache/product资格；GPU atlas细节继续由Runtime11C/79拥有。
+
+2026-08-29 FontObject owner 路径二次复核：注册事务已产生的有序 face 集原未保留，请求 primary、每个 scoped
+family 与 line-metric 查询会从 source keys 重新查表并物化完整 `Vec<FontFaceId>`。当前 owner state 一次发布
+generation-local `Arc<[FontFaceId]>`，上述路径共享借用；family candidate 与 coverage 输出规模不变。源码借用回归、
+rustfmt、diff-check 已完成；Cargo、allocation profile、p50/p95、RSS/power、真实 WGPU/PNG 仍待受管门，状态为
+`owner_face_generation_slice_static_implemented / request_recollection_removed / dynamic_evidence_pending`。
+
+2026-08-29 generation snapshot 前置切片：`FontCollectionSnapshot` 已把 exact generation 与
+`Arc<FontDatabase>` 合成单一不可变发布对象；canonical shaping attempt 和 cosmic locale FontSystem 共享该
+snapshot，不再先采 generation、后从 global 重选 database。稳定 snapshot acquisition 为 O(1) Arc clone；仍需
+mutable database 的 renderer clone 单独暴露 `shared_owned_snapshot_clone` profile span。同 generation 的等价
+诊断发布不触发 locale cache rebuild。Arc 复用、旧代跨发布存活和显式旧 snapshot backend binding 回归已写入，
+rustfmt/diff/static guards 通过；Cargo 与动态测试未执行。后续非验收切片已将 handle registry、snapshot 与 metrics
+归入 `FontCollectionService`，`TextFontFaceHandle` 纳入 collection identity，canonical/artifact projection 和 SDF
+consumer 均显式绑定集合；UI 在途 artifact view 同时租用旧代 database Arc 与 registry snapshot，字体发布后仍可完成
+既有帧且不会读取新代资源。`RFF-P1-015` 因此为 `static_implemented / managed_validation_pending`；`RFF-P1-013`
+仍缺真实 manager owner，`RFF-P1-017` 仍缺 document/window/PIE session 注入，`RFF-P1-022` 的 backend face slot
+代际回收仍开放。没有 Cargo/WGPU/PNG/profile/RSS/power 结论。
+
+2026-08-29 owner-ready continuation：裸 generation 已从布局与 artifact 所有权边界移除，统一为
+`FontCollectionRevision(collection_id, generation)`。collection-bound `SharedTextLayoutSession` 现贯通
+`UiTextMeasureCache`、retained `UiSurface`、physical/logical fragment、plain/rich/secure glyph artifact；artifact
+在最后一次 handle registration 后捕获 database 与 resolver publication lease，renderer line acquire 不再通过
+进程集合重建租约。foreign collection mutation 不触发 surface，owned mutation 才推进失效且复用同一 session。
+`RFF-P1-015` 静态实现因此覆盖 layout-to-raster lease 全链，但仍为 `managed_validation_pending`；
+`RFF-P1-013/014/017` 的真实 manager/module/window/PIE 注入、`RFF-P1-022` face slot reclaim 与全部动态/产品/
+性能/功耗门保持开放。
+
+2026-08-29 screen-space continuation：`TextRenderState` 的 collection owner 已向上贯通
+`ScreenSpaceUiTextSystem` 与 `ScreenSpaceUiRenderer` 显式构造边界；沿用 process task-pool worker budget 不再隐含
+选择 process font collection。renderer plan、segment product 与 stale artifact admission 统一比较完整
+`FontCollectionRevision`，相同 generation 的 foreign collection 不能复用产品。每个相关 cache identity 只增加一个
+collection-id word，比较保持 O(1)，batch admission 保持原 O(text batches)，无新增 shape/coverage/database clone/
+per-glyph 工作。真实 Core manager/module/window/PIE owner 仍未把同一 service 注入 Surface 与 renderer，因此
+`RFF-P1-013/014/017` 保持开放；Cargo、动态 profile、RSS/功耗与 WGPU/PNG 未执行。状态：
+`screen_space_renderer_collection_boundary_static_implemented /
+product_manager_injection_open / managed_validation_pending`。

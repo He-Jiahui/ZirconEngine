@@ -1,20 +1,21 @@
 use std::error::Error;
 
+use super::super::super::super::runtime_lease::RetainedHostStartupRuntimeAccess;
 use super::super::super::super::*;
 use super::bundle::StartupManagers;
 use super::events::subscribe_startup_change_events;
 
 pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn resolve_startup_managers(
-    core: &CoreHandle,
+    runtime_access: &RetainedHostStartupRuntimeAccess,
     background_event_wake: zircon_runtime::core::framework::channel::ChannelWakeCallback,
 ) -> Result<StartupManagers, Box<dyn Error>> {
     let asset_runtime_access = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_asset_manager_handle");
-        RetainedHostAssetRuntimeAccess::new(core)?
+        runtime_access.asset_runtime_access()?
     };
     let editor_manager = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_resolve_editor_manager");
-        core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?
+        runtime_access.editor_manager()?
     };
     let resolved_asset_manager = asset_runtime_access.asset_manager()?;
     let resolved_editor_asset_manager = asset_runtime_access.editor_asset_manager()?;

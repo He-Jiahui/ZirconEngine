@@ -2,7 +2,7 @@ mod frames;
 
 use super::super::super::data::{
     HostPaneInteractionStateData, HostSideDockSurfaceData, HostTextInputFocusData,
-    HostViewportImageData,
+    HostViewportImageSet,
 };
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::{is_visible_frame, translated};
@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_side_dock(
     frame: &mut HostRgbaFrame,
     dock: &HostSideDockSurfaceData,
     interaction: &HostPaneInteractionStateData,
-    viewport_image: Option<&HostViewportImageData>,
+    viewport_images: &HostViewportImageSet,
     text_input_focus: Option<&HostTextInputFocusData>,
 ) {
     if !is_visible_frame(&dock.region_frame) {
@@ -64,7 +64,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_side_dock(
             &dock.pane,
             &content,
             interaction,
-            viewport_image,
+            viewport_images,
             text_input_focus,
         );
     }

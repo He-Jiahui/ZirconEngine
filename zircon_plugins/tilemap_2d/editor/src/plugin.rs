@@ -1,15 +1,13 @@
 use zircon_editor::core::asset::{
     AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
 };
-use zircon_editor::core::commands::EditorCommandDescriptor;
-use zircon_editor::core::editor_extension::{
-    AssetImporterDescriptor, EditorMenuItemDescriptor,
-};
-use zircon_editor::core::extension::InspectorCustomizationDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
+use zircon_editor::core::editor_extension::AssetImporterDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_plugin_editor_support::{
-    EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
     register_authoring_contribution_batch, register_authoring_extensions,
+    EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
 use zircon_runtime_interface::resource::ResourceKind;
 
@@ -50,7 +48,6 @@ impl zircon_editor::EditorPlugin for Tilemap2dEditorPlugin {
                     TILEMAP_AUTHORING_VIEW_ID,
                     "Tilemap 2D",
                     "World",
-                    "Plugins/Tilemap 2D",
                 )],
             },
         )?;
@@ -97,44 +94,56 @@ fn tilemap_authoring_batch() -> EditorAuthoringContributionBatch {
     let paint = operation("tilemap_2d.authoring.paint");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::operation(import_tiled.clone(), "Import Tiled Tilemap")
-                .with_menu_path("Plugins/Tilemap 2D/Import Tiled")
+            EditorCommandDescriptor::operation(import_tiled.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &import_tiled,
+                    "plugins",
+                    &["tilemap_2d"],
+                ))
                 .with_payload_schema_id("tilemap_2d.import_tiled.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(create_tilemap.clone(), "Create Tilemap")
-                .with_menu_path("Plugins/Tilemap 2D/Create Tilemap")
+            EditorCommandDescriptor::operation(create_tilemap.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &create_tilemap,
+                    "plugins",
+                    &["tilemap_2d"],
+                ))
                 .with_payload_schema_id("tilemap_2d.create_tilemap.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(create_tileset.clone(), "Create Tileset")
-                .with_menu_path("Plugins/Tilemap 2D/Create Tileset")
+            EditorCommandDescriptor::operation(create_tileset.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &create_tileset,
+                    "plugins",
+                    &["tilemap_2d"],
+                ))
                 .with_payload_schema_id("tilemap_2d.create_tileset.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(open.clone(), "Open Tilemap")
-                .with_menu_path("Plugins/Tilemap 2D/Open Tilemap Asset")
+            EditorCommandDescriptor::operation(open.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &open,
+                    "plugins",
+                    &["tilemap_2d"],
+                ))
                 .with_payload_schema_id("tilemap_2d.open_asset.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(paint.clone(), "Paint Tilemap")
-                .with_menu_path("Plugins/Tilemap 2D/Paint")
+            EditorCommandDescriptor::operation(paint.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &paint,
+                    "plugins",
+                    &["tilemap_2d"],
+                ))
                 .with_payload_schema_id("tilemap_2d.paint.v1")
                 .with_required_capabilities([CAPABILITY]),
         ],
-        menu_items: vec![
-            menu_item("Plugins/Tilemap 2D/Import Tiled", &import_tiled),
-            menu_item("Plugins/Tilemap 2D/Create Tilemap", &create_tilemap),
-            menu_item("Plugins/Tilemap 2D/Create Tileset", &create_tileset),
-            menu_item("Plugins/Tilemap 2D/Open Tilemap Asset", &open),
-            menu_item("Plugins/Tilemap 2D/Paint", &paint),
-        ],
-        asset_importers: vec![
-            AssetImporterDescriptor::new(
-                "tilemap_2d.tiled.importer",
-                "Tiled Tilemap",
-                import_tiled,
-            )
-            .with_source_extensions(["tmx", "tsx", "json"])
-            .with_output_type(AssetTypeId::from_resource_kind(ResourceKind::TileMap))
-            .with_required_capabilities([CAPABILITY]),
-        ],
+        menu_items: Vec::new(),
+        asset_importers: vec![AssetImporterDescriptor::new(
+            "tilemap_2d.tiled.importer",
+            "Tiled Tilemap",
+            import_tiled,
+        )
+        .with_source_extensions(["tmx", "tsx", "json"])
+        .with_output_type(AssetTypeId::from_resource_kind(ResourceKind::TileMap))
+        .with_required_capabilities([CAPABILITY])],
         asset_type_contributions: vec![
             AssetTypeContribution::augment(AssetTypeId::from_resource_kind(ResourceKind::TileMap))
                 .with_toolkit(
@@ -170,8 +179,4 @@ fn tilemap_authoring_batch() -> EditorAuthoringContributionBatch {
 
 fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid tilemap operation path")
-}
-
-fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
-    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
 }

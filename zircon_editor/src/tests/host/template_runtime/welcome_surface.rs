@@ -57,6 +57,25 @@ fn editor_ui_host_runtime_projects_builtin_welcome_surface_template_into_retaine
         remove_recent.binding.path().control_id,
         "RemoveRecentProject"
     );
+
+    let recover_recent = projection
+        .bindings
+        .iter()
+        .find(|binding| binding.binding_id == "WelcomeSurface/RecoverRecentProject")
+        .unwrap();
+    assert_eq!(recover_recent.binding.path().event_kind, UiEventKind::Click);
+    assert_eq!(
+        recover_recent.binding.path().control_id,
+        "RecoverRecentProject"
+    );
+
+    let safe_recent = projection
+        .bindings
+        .iter()
+        .find(|binding| binding.binding_id == "WelcomeSurface/SafeRecentProject")
+        .unwrap();
+    assert_eq!(safe_recent.binding.path().event_kind, UiEventKind::Click);
+    assert_eq!(safe_recent.binding.path().control_id, "SafeRecentProject");
 }
 
 #[test]
@@ -86,6 +105,18 @@ fn welcome_surface_actions_fit_the_available_drawer_width() {
             "control_id = \"RemoveRecentProject\"\nprops = { label = \"Remove\", icon = \"editor_pages/workbench/tabs/close-tab.svg\", icon_placement = \"icon_only\""
         ),
         "remove-recent must remain an accessible icon action instead of consuming a second text-button width"
+    );
+    assert!(
+        source.contains(
+            "control_id = \"RecoverRecentProject\"\nprops = { label = \"Recover\", icon = \"editor_pages/workbench/menu/undo-history.svg\", icon_placement = \"icon_only\""
+        ),
+        "recover-recent must remain an accessible icon action instead of widening recent rows"
+    );
+    assert!(
+        source.contains(
+            "control_id = \"SafeRecentProject\"\nprops = { label = \"Safe Mode\", icon = \"editor_pages/hierarchy/row_state/warning-state.svg\", icon_placement = \"icon_only\""
+        ),
+        "safe-mode must remain an accessible icon action instead of widening recent rows"
     );
     assert!(
         source.contains("width = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" }"),

@@ -10,6 +10,16 @@ pub enum ToolkitRegistryError {
     DocumentAlreadyRegistered { document: DocumentId },
     #[error("toolkit instance {instance:?} is already registered")]
     InstanceAlreadyRegistered { instance: ToolkitInstanceId },
+    #[error("toolkit instance {instance:?} has invalid menu path `{path}`")]
+    InvalidMenuPath {
+        instance: ToolkitInstanceId,
+        path: String,
+    },
+    #[error("toolkit instance {instance:?} declares duplicate menu path `{path}`")]
+    DuplicateMenuPath {
+        instance: ToolkitInstanceId,
+        path: String,
+    },
     #[error("document {document:?} has {active_saves} active save operation(s)")]
     DocumentBusy {
         document: DocumentId,

@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use zircon_runtime::core::framework::ai::{
     AiBlackboardEntry, AiBlackboardSchemaDescriptor, AiManagerError, AiPerceptionSnapshot,
@@ -37,7 +37,7 @@ pub(in crate::manager) fn validate_blackboard_entries(
     schema: Option<&AiBlackboardSchemaDescriptor>,
     entries: &[AiBlackboardEntry],
 ) -> Result<(), AiManagerError> {
-    let mut seen_entries = HashSet::new();
+    let mut entries_by_key = HashMap::with_capacity(entries.len());
     for entry in entries {
         ensure_non_empty(&entry.key, "blackboard_entry.key")?;
         if !entry.value.is_finite() {
@@ -45,7 +45,10 @@ pub(in crate::manager) fn validate_blackboard_entries(
                 key: entry.key.clone(),
             });
         }
-        if !seen_entries.insert(entry.key.as_str()) {
+        if entries_by_key
+            .insert(entry.key.as_str(), (entry, false))
+            .is_some()
+        {
             return Err(AiManagerError::DuplicateBlackboardEntry {
                 key: entry.key.clone(),
             });
@@ -56,38 +59,39 @@ pub(in crate::manager) fn validate_blackboard_entries(
         return Ok(());
     };
     for descriptor in &schema.keys {
-        let matching_entry = entries.iter().find(|entry| entry.key == descriptor.key);
-        if descriptor.required && matching_entry.is_none() {
+        let Some(matching_entry) = entries_by_key.get_mut(descriptor.key.as_str()) else {
+            if !descriptor.required {
+                continue;
+            }
             return Err(AiManagerError::MissingBlackboardKey {
                 schema_id: schema.id.clone(),
                 key: descriptor.key.clone(),
             });
-        }
-        if let Some(entry) = matching_entry {
-            let Some(expected) = descriptor.expected_value_type() else {
-                return Err(AiManagerError::UnknownBlackboardValueType {
-                    schema_id: schema.id.clone(),
-                    key: descriptor.key.clone(),
-                    value_type: descriptor.value_type.clone(),
-                });
-            };
-            let actual = entry.value.value_type();
-            if expected != actual {
-                return Err(AiManagerError::BlackboardValueTypeMismatch {
-                    schema_id: schema.id.clone(),
-                    key: entry.key.clone(),
-                    expected: expected.as_str().to_string(),
-                    actual: actual.as_str().to_string(),
-                });
-            }
+        };
+        matching_entry.1 = true;
+        let entry = matching_entry.0;
+        let Some(expected) = descriptor.expected_value_type() else {
+            return Err(AiManagerError::UnknownBlackboardValueType {
+                schema_id: schema.id.clone(),
+                key: descriptor.key.clone(),
+                value_type: descriptor.value_type.clone(),
+            });
+        };
+        let actual = entry.value.value_type();
+        if expected != actual {
+            return Err(AiManagerError::BlackboardValueTypeMismatch {
+                schema_id: schema.id.clone(),
+                key: entry.key.clone(),
+                expected: expected.as_str().to_string(),
+                actual: actual.as_str().to_string(),
+            });
         }
     }
     for entry in entries {
-        if !schema
-            .keys
-            .iter()
-            .any(|descriptor| descriptor.key == entry.key)
-        {
+        let matched = entries_by_key
+            .get(entry.key.as_str())
+            .is_some_and(|entry| entry.1);
+        if !matched {
             return Err(AiManagerError::UnknownBlackboardKey {
                 schema_id: schema.id.clone(),
                 key: entry.key.clone(),
@@ -119,3 +123,6 @@ pub(in crate::manager) fn validate_perception_snapshot(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod indexed_entry_tests;

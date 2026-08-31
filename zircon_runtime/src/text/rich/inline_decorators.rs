@@ -1,9 +1,11 @@
 use crate::core::math::Vec2;
-use crate::text::{FontFamilyName, InlineObjectRef};
+use crate::core::resource::ResourceId;
+use crate::text::{InlineBaseline, InlineObjectRef, RichIconAssetId, RichInlineWidgetSlotId};
 
+use super::resource_admission::controlled_resource_locator;
 use super::{RichTextDecoration, RichTextDecorator};
 
-const DEFAULT_ICON_FONT_FAMILY: &str = "Zircon Icons";
+const DEFAULT_INLINE_ICON_SIZE_PX: f32 = 16.0;
 const MAX_INLINE_WIDGET_EXTENT: f32 = 16_384.0;
 
 pub(super) struct IconTextDecorator;
@@ -14,10 +16,15 @@ impl RichTextDecorator for IconTextDecorator {
     }
 
     fn decorate(&self, value: Option<&str>, decoration: &mut RichTextDecoration) -> bool {
-        let Some((glyph, font)) = value.and_then(parse_icon) else {
+        let Some((asset, size, baseline, alternative_text)) = value.and_then(parse_icon) else {
             return false;
         };
-        decoration.inline = Some(InlineObjectRef::Icon { glyph, font });
+        decoration.inline = Some(InlineObjectRef::Icon {
+            asset,
+            size,
+            baseline,
+            alternative_text,
+        });
         true
     }
 }
@@ -30,34 +37,53 @@ impl RichTextDecorator for WidgetTextDecorator {
     }
 
     fn decorate(&self, value: Option<&str>, decoration: &mut RichTextDecoration) -> bool {
-        let Some((id, size)) = value.and_then(parse_widget) else {
+        let Some((slot, size)) = value.and_then(parse_widget) else {
             return false;
         };
-        decoration.inline = Some(InlineObjectRef::Widget { id, size });
+        decoration.inline = Some(InlineObjectRef::Widget { slot, size });
         true
     }
 }
 
-fn parse_icon(value: &str) -> Option<(char, FontFamilyName)> {
-    let (glyph, family) = value
-        .split_once('|')
-        .map(|(glyph, family)| (glyph.trim(), family.trim()))
-        .unwrap_or((value.trim(), DEFAULT_ICON_FONT_FAMILY));
-    let mut glyphs = glyph.chars();
-    let glyph = glyphs.next()?;
-    if glyphs.next().is_some() || family.is_empty() {
-        return None;
-    }
-    Some((glyph, FontFamilyName::from(family)))
+fn parse_icon(value: &str) -> Option<(RichIconAssetId, Vec2, InlineBaseline, Option<String>)> {
+    let mut fields = value.splitn(4, '|');
+    let locator = controlled_resource_locator(fields.next()?)?;
+    let size = match fields.next().filter(|extent| !extent.trim().is_empty()) {
+        Some(extent) => parse_extent(extent)?,
+        None => Vec2::new(DEFAULT_INLINE_ICON_SIZE_PX, DEFAULT_INLINE_ICON_SIZE_PX),
+    };
+    let baseline = match fields.next().filter(|baseline| !baseline.trim().is_empty()) {
+        Some(baseline) => parse_baseline(baseline)?,
+        None => InlineBaseline::Baseline,
+    };
+    let alternative_text = fields.next().map(str::to_owned);
+    Some((
+        RichIconAssetId::from_resource_id(ResourceId::from_locator(&locator)),
+        size,
+        baseline,
+        alternative_text,
+    ))
 }
 
-fn parse_widget(value: &str) -> Option<(u64, Vec2)> {
+fn parse_widget(value: &str) -> Option<(RichInlineWidgetSlotId, Vec2)> {
     let (id, extent) = value.split_once('|')?;
-    let (width, height) = extent.split_once('x')?;
-    let id = id.trim().parse().ok()?;
-    let width = positive_extent(width)?;
-    let height = positive_extent(height)?;
-    Some((id, Vec2::new(width, height)))
+    let slot = RichInlineWidgetSlotId::new(id.trim().parse().ok()?);
+    Some((slot, parse_extent(extent)?))
+}
+
+fn parse_extent(value: &str) -> Option<Vec2> {
+    let (width, height) = value.split_once('x')?;
+    Some(Vec2::new(positive_extent(width)?, positive_extent(height)?))
+}
+
+fn parse_baseline(value: &str) -> Option<InlineBaseline> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "baseline" => Some(InlineBaseline::Baseline),
+        "center" => Some(InlineBaseline::Center),
+        "top" => Some(InlineBaseline::Top),
+        "bottom" => Some(InlineBaseline::Bottom),
+        _ => None,
+    }
 }
 
 fn positive_extent(value: &str) -> Option<f32> {

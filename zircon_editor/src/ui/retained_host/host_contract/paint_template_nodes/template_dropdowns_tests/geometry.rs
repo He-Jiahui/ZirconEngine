@@ -1,27 +1,23 @@
-use super::super::super::super::data::FrameRect;
+use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::template_dropdown_metrics::workbench_dropdown_metrics;
 use super::super::geometry::{
-    dropdown_surface_radius, has_paintable_dropdown_extent, pixel_aligned_rect,
+    dropdown_paint_rect, dropdown_surface_radius, has_paintable_dropdown_extent,
 };
 
 #[test]
-fn workbench_dropdown_alignment_stays_inside_fractional_declared_bounds() {
+fn workbench_dropdown_preserves_fractional_declared_bounds() {
     let declared = FrameRect {
         x: 12.3,
         y: 8.4,
         width: 95.2,
         height: 30.5,
     };
-    let rect = pixel_aligned_rect(&declared);
+    let rect = dropdown_paint_rect(&TemplatePaneNodeData::default(), &declared);
 
-    assert_eq!(rect.x, 13.0);
-    assert_eq!(rect.y, 9.0);
-    assert_eq!(rect.width, 94.0);
-    assert_eq!(rect.height, 29.0);
-    assert!(rect.x >= declared.x);
-    assert!(rect.y >= declared.y);
-    assert!(rect.right() <= declared.right());
-    assert!(rect.bottom() <= declared.bottom());
+    assert_eq!(rect.x, declared.x);
+    assert_eq!(rect.y, declared.y);
+    assert_eq!(rect.width, declared.width);
+    assert_eq!(rect.height, declared.height);
 }
 
 #[test]

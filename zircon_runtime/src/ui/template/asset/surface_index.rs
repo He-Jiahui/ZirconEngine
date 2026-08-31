@@ -2,14 +2,15 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::surface::UiSurface;
 use crate::ui::template::UiCompiledDocument;
-use toml::Value;
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::template::{
-    UiResourceFallbackMode, UiResourceFallbackPolicy, UiResourceKind,
+    UiCompiledBindingHandle, UiCompiledBindingProgram, UiCompiledNodeId,
 };
 use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTree, UiTreeError};
 
 use super::hot_reload_plan::{UiAssetHotReloadPlan, UiAssetHotReloadSurfaceDirtyReport};
+
+mod node_resource_registration;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiAssetSurfaceIndex {
@@ -18,6 +19,11 @@ pub struct UiAssetSurfaceIndex {
     // surface nodes do not yet persist asset-to-node ownership metadata.
     assets_by_surface: BTreeMap<UiTreeId, Vec<String>>,
     surfaces_by_asset: BTreeMap<String, BTreeSet<UiTreeId>>,
+    compiled_assets_by_surface: BTreeMap<UiTreeId, Vec<String>>,
+    compiled_nodes_by_surface: BTreeMap<UiTreeId, Vec<(String, UiCompiledNodeId)>>,
+    compiled_nodes_by_asset: BTreeMap<String, BTreeSet<UiAssetCompiledNodeTarget>>,
+    bindings_by_surface: BTreeMap<UiTreeId, Vec<(String, UiCompiledBindingHandle)>>,
+    bindings_by_asset: BTreeMap<String, BTreeSet<UiAssetBindingTarget>>,
     node_assets_by_surface: BTreeMap<UiTreeId, BTreeMap<UiNodeId, Vec<String>>>,
     nodes_by_asset: BTreeMap<String, BTreeSet<UiAssetNodeTarget>>,
 }
@@ -26,6 +32,18 @@ pub struct UiAssetSurfaceIndex {
 pub struct UiAssetNodeTarget {
     pub tree_id: UiTreeId,
     pub node_id: UiNodeId,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UiAssetCompiledNodeTarget {
+    pub tree_id: UiTreeId,
+    pub node_id: UiCompiledNodeId,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UiAssetBindingTarget {
+    pub tree_id: UiTreeId,
+    pub handle: UiCompiledBindingHandle,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -129,59 +147,152 @@ impl UiAssetSurfaceIndex {
                 assets.push(fallback_uri);
             }
         }
-        self.record_surface_assets(tree_id, assets);
+        self.record_surface_assets(tree_id.clone(), assets);
+        self.record_binding_program(tree_id, compiled.template_instance().binding_program());
     }
 
-    pub fn record_tree_node_resources(
+    pub fn record_binding_program(
         &mut self,
-        tree: &UiTree,
-    ) -> UiAssetSurfaceNodeResourceRegistrationReport {
-        let tree_id = tree.tree_id.clone();
-        self.remove_surface_node_assets(&tree_id);
-        let mut report = UiAssetSurfaceNodeResourceRegistrationReport {
-            tree_id: tree_id.clone(),
-            ..Default::default()
-        };
+        tree_id: UiTreeId,
+        program: &UiCompiledBindingProgram,
+    ) {
+        self.remove_compiled_ownership(&tree_id);
 
-        for (node_id, node) in &tree.nodes {
-            let mut collector = NodeResourceCollector::default();
-            if let Some(metadata) = &node.template_metadata {
-                collector.collect_map(&metadata.attributes, "attributes");
-                collector.collect_map(&metadata.slot_attributes, "slot_attributes");
-                collector.collect_map(&metadata.style_overrides, "style_overrides");
-            }
-
-            let resources = collector.finish();
-            if resources.is_empty() {
-                report.nodes_without_resources.push(*node_id);
+        let mut assets = BTreeSet::new();
+        if let Some(asset_id) = program.asset_id() {
+            assets.insert(asset_id.to_string());
+        }
+        let mut node_owners = Vec::with_capacity(program.node_count());
+        for (node_id, _) in program.iter_nodes() {
+            let Some(asset_id) = program.node_asset_id(node_id) else {
                 continue;
-            }
-
-            report.nodes_registered += 1;
-            report.resource_uris_registered += resources.len();
-            self.record_node_assets(tree_id.clone(), *node_id, resources);
+            };
+            assets.insert(asset_id.to_string());
+            let target = UiAssetCompiledNodeTarget {
+                tree_id: tree_id.clone(),
+                node_id,
+            };
+            self.compiled_nodes_by_asset
+                .entry(asset_id.to_string())
+                .or_default()
+                .insert(target);
+            node_owners.push((asset_id.to_string(), node_id));
         }
 
-        report
+        let mut binding_owners = Vec::with_capacity(program.binding_count());
+        for binding in program.iter_bindings() {
+            let Some(asset_id) = program.binding_asset_id(binding.handle) else {
+                continue;
+            };
+            assets.insert(asset_id.to_string());
+            let target = UiAssetBindingTarget {
+                tree_id: tree_id.clone(),
+                handle: binding.handle,
+            };
+            self.bindings_by_asset
+                .entry(asset_id.to_string())
+                .or_default()
+                .insert(target);
+            binding_owners.push((asset_id.to_string(), binding.handle));
+        }
+
+        let assets = assets.into_iter().collect::<Vec<_>>();
+        for asset_id in &assets {
+            self.surfaces_by_asset
+                .entry(asset_id.clone())
+                .or_default()
+                .insert(tree_id.clone());
+        }
+        self.compiled_assets_by_surface
+            .insert(tree_id.clone(), assets);
+        self.compiled_nodes_by_surface
+            .insert(tree_id.clone(), node_owners);
+        self.bindings_by_surface.insert(tree_id, binding_owners);
     }
 
     pub fn remove_surface(&mut self, tree_id: &UiTreeId) -> Option<Vec<String>> {
         self.remove_surface_node_assets(tree_id);
-        self.remove_surface_assets(tree_id)
+        let assets = self.remove_surface_assets(tree_id);
+        self.remove_compiled_ownership(tree_id);
+        assets
     }
 
     fn remove_surface_assets(&mut self, tree_id: &UiTreeId) -> Option<Vec<String>> {
         let assets = self.assets_by_surface.remove(tree_id)?;
         for asset in &assets {
-            let remove_asset =
-                if let Some(surfaces) = self.surfaces_by_asset.get_mut(asset.as_str()) {
-                    surfaces.remove(tree_id);
-                    surfaces.is_empty()
-                } else {
-                    false
-                };
+            let compiled_owns_asset = self
+                .compiled_assets_by_surface
+                .get(tree_id)
+                .is_some_and(|assets| assets.contains(asset));
+            let remove_asset = if compiled_owns_asset {
+                false
+            } else if let Some(surfaces) = self.surfaces_by_asset.get_mut(asset.as_str()) {
+                surfaces.remove(tree_id);
+                surfaces.is_empty()
+            } else {
+                false
+            };
             if remove_asset {
                 self.surfaces_by_asset.remove(asset.as_str());
+            }
+        }
+        Some(assets)
+    }
+
+    fn remove_compiled_ownership(&mut self, tree_id: &UiTreeId) -> Option<Vec<String>> {
+        if let Some(nodes) = self.compiled_nodes_by_surface.remove(tree_id) {
+            for (asset_id, node_id) in nodes {
+                let target = UiAssetCompiledNodeTarget {
+                    tree_id: tree_id.clone(),
+                    node_id,
+                };
+                let remove_asset = self
+                    .compiled_nodes_by_asset
+                    .get_mut(asset_id.as_str())
+                    .is_some_and(|targets| {
+                        targets.remove(&target);
+                        targets.is_empty()
+                    });
+                if remove_asset {
+                    self.compiled_nodes_by_asset.remove(asset_id.as_str());
+                }
+            }
+        }
+        if let Some(bindings) = self.bindings_by_surface.remove(tree_id) {
+            for (asset_id, handle) in bindings {
+                let target = UiAssetBindingTarget {
+                    tree_id: tree_id.clone(),
+                    handle,
+                };
+                let remove_asset = self
+                    .bindings_by_asset
+                    .get_mut(asset_id.as_str())
+                    .is_some_and(|targets| {
+                        targets.remove(&target);
+                        targets.is_empty()
+                    });
+                if remove_asset {
+                    self.bindings_by_asset.remove(asset_id.as_str());
+                }
+            }
+        }
+
+        let assets = self.compiled_assets_by_surface.remove(tree_id)?;
+        for asset_id in &assets {
+            let registered_owns_asset = self
+                .assets_by_surface
+                .get(tree_id)
+                .is_some_and(|assets| assets.contains(asset_id));
+            let remove_asset = if registered_owns_asset {
+                false
+            } else if let Some(surfaces) = self.surfaces_by_asset.get_mut(asset_id.as_str()) {
+                surfaces.remove(tree_id);
+                surfaces.is_empty()
+            } else {
+                false
+            };
+            if remove_asset {
+                self.surfaces_by_asset.remove(asset_id.as_str());
             }
         }
         Some(assets)
@@ -226,6 +337,13 @@ impl UiAssetSurfaceIndex {
             .unwrap_or(&[])
     }
 
+    pub fn compiled_assets_for_surface(&self, tree_id: &UiTreeId) -> &[String] {
+        self.compiled_assets_by_surface
+            .get(tree_id)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
     pub fn assets_for_node(&self, tree_id: &UiTreeId, node_id: UiNodeId) -> &[String] {
         self.node_assets_by_surface
             .get(tree_id)
@@ -249,6 +367,26 @@ impl UiAssetSurfaceIndex {
             .get(asset_id)
             .into_iter()
             .flat_map(|nodes| nodes.iter())
+    }
+
+    pub fn compiled_nodes_for_asset<'a>(
+        &'a self,
+        asset_id: &str,
+    ) -> impl Iterator<Item = &'a UiAssetCompiledNodeTarget> {
+        self.compiled_nodes_by_asset
+            .get(asset_id)
+            .into_iter()
+            .flat_map(|nodes| nodes.iter())
+    }
+
+    pub fn bindings_for_asset<'a>(
+        &'a self,
+        asset_id: &str,
+    ) -> impl Iterator<Item = &'a UiAssetBindingTarget> {
+        self.bindings_by_asset
+            .get(asset_id)
+            .into_iter()
+            .flat_map(|bindings| bindings.iter())
     }
 
     pub fn target_surfaces_for_plan(
@@ -382,6 +520,11 @@ impl UiAssetSurfaceIndex {
 
     pub fn surface_count(&self) -> usize {
         self.assets_by_surface.len()
+            + self
+                .compiled_assets_by_surface
+                .keys()
+                .filter(|tree_id| !self.assets_by_surface.contains_key(*tree_id))
+                .count()
     }
 
     pub fn asset_count(&self) -> usize {
@@ -392,8 +535,20 @@ impl UiAssetSurfaceIndex {
         self.nodes_by_asset.len()
     }
 
+    pub fn compiled_node_asset_count(&self) -> usize {
+        self.compiled_nodes_by_asset.len()
+    }
+
+    pub fn binding_asset_count(&self) -> usize {
+        self.bindings_by_asset.len()
+    }
+
     pub fn is_empty(&self) -> bool {
-        self.assets_by_surface.is_empty() && self.node_assets_by_surface.is_empty()
+        self.assets_by_surface.is_empty()
+            && self.compiled_assets_by_surface.is_empty()
+            && self.node_assets_by_surface.is_empty()
+            && self.compiled_nodes_by_surface.is_empty()
+            && self.bindings_by_surface.is_empty()
     }
 
     fn collect_surfaces_for_assets<'a>(
@@ -600,131 +755,4 @@ fn push_unique_nodes<'a>(
             targets.push(node.clone());
         }
     }
-}
-
-#[derive(Default)]
-struct NodeResourceCollector {
-    uris: Vec<String>,
-    seen: BTreeSet<String>,
-}
-
-impl NodeResourceCollector {
-    fn collect_map(&mut self, values: &BTreeMap<String, Value>, root: &str) {
-        for (key, value) in values {
-            self.collect_value(value, &format!("{root}.{key}"));
-        }
-    }
-
-    fn collect_value(&mut self, value: &Value, path: &str) {
-        match value {
-            Value::String(uri) if has_supported_resource_scheme(uri) => {
-                let kind = UiResourceKind::infer_from_path_and_uri(path, uri);
-                self.push_resource_uri(kind, uri, &UiResourceFallbackPolicy::default());
-            }
-            Value::Array(values) => {
-                for (index, value) in values.iter().enumerate() {
-                    self.collect_value(value, &format!("{path}[{index}]"));
-                }
-            }
-            Value::Table(table) if is_resource_table(table) => {
-                self.collect_resource_table(table, path);
-            }
-            Value::Table(table) => {
-                for (key, value) in table {
-                    self.collect_value(value, &format!("{path}.{key}"));
-                }
-            }
-            _ => {}
-        }
-    }
-
-    fn collect_resource_table(&mut self, table: &toml::map::Map<String, Value>, path: &str) {
-        let Some(Value::String(uri)) = table.get("uri") else {
-            return;
-        };
-        if !has_supported_resource_scheme(uri) {
-            return;
-        }
-        let kind = table
-            .get("kind")
-            .and_then(Value::as_str)
-            .and_then(resource_kind_from_name)
-            .unwrap_or_else(|| UiResourceKind::infer_from_path_and_uri(path, uri));
-        let fallback = fallback_policy_from_table(table);
-        self.push_resource_uri(kind, uri, &fallback);
-    }
-
-    fn push_resource_uri(
-        &mut self,
-        kind: UiResourceKind,
-        uri: &str,
-        fallback: &UiResourceFallbackPolicy,
-    ) {
-        let trimmed = uri.trim();
-        if !trimmed.is_empty() && self.seen.insert(trimmed.to_string()) {
-            self.uris.push(trimmed.to_string());
-        }
-        if let Some(fallback_uri) = fallback.uri.as_deref() {
-            let fallback_uri = fallback_uri.trim();
-            if !fallback_uri.is_empty()
-                && has_supported_resource_scheme(fallback_uri)
-                && (fallback.mode != UiResourceFallbackMode::Placeholder
-                    || UiResourceKind::infer_from_path_and_uri("", fallback_uri) == kind)
-                && self.seen.insert(fallback_uri.to_string())
-            {
-                self.uris.push(fallback_uri.to_string());
-            }
-        }
-    }
-
-    fn finish(self) -> Vec<String> {
-        self.uris
-    }
-}
-
-fn is_resource_table(table: &toml::map::Map<String, Value>) -> bool {
-    table.contains_key("uri")
-        || table.get("kind").is_some_and(
-            |kind| matches!(kind, Value::String(kind) if resource_kind_from_name(kind).is_some()),
-        )
-        || matches!(table.get("fallback"), Some(Value::Table(_)))
-}
-
-fn fallback_policy_from_table(table: &toml::map::Map<String, Value>) -> UiResourceFallbackPolicy {
-    let Some(Value::Table(fallback)) = table.get("fallback") else {
-        return UiResourceFallbackPolicy::default();
-    };
-
-    let mode = fallback
-        .get("mode")
-        .and_then(Value::as_str)
-        .map(fallback_mode_from_name)
-        .unwrap_or_default();
-    let uri = fallback
-        .get("uri")
-        .and_then(Value::as_str)
-        .map(str::to_string);
-    UiResourceFallbackPolicy { mode, uri }
-}
-
-fn fallback_mode_from_name(value: &str) -> UiResourceFallbackMode {
-    match value {
-        "placeholder" => UiResourceFallbackMode::Placeholder,
-        "optional" => UiResourceFallbackMode::Optional,
-        _ => UiResourceFallbackMode::None,
-    }
-}
-
-fn resource_kind_from_name(value: &str) -> Option<UiResourceKind> {
-    match value {
-        "font" => Some(UiResourceKind::Font),
-        "image" => Some(UiResourceKind::Image),
-        "media" => Some(UiResourceKind::Media),
-        "generic_asset" => Some(UiResourceKind::GenericAsset),
-        _ => None,
-    }
-}
-
-fn has_supported_resource_scheme(uri: &str) -> bool {
-    uri.starts_with("res://") || uri.starts_with("asset://") || uri.starts_with("project://")
 }

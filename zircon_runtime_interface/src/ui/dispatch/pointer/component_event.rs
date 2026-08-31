@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::ui::template::UiCompiledBindingHandle;
 use crate::ui::{
     binding::UiEventKind,
     component::{
@@ -92,6 +93,8 @@ pub enum UiPointerComponentEventReason {
 pub struct UiPointerComponentEvent {
     pub node_id: UiNodeId,
     pub binding_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compiled_binding: Option<UiCompiledBindingHandle>,
     pub event_kind: UiEventKind,
     pub reason: UiPointerComponentEventReason,
     pub envelope: UiComponentEventEnvelope,
@@ -115,6 +118,7 @@ impl UiPointerComponentEvent {
         Self {
             node_id,
             binding_id: binding_id.into(),
+            compiled_binding: None,
             event_kind,
             reason,
             envelope: UiComponentEventEnvelope::new(
@@ -130,6 +134,11 @@ impl UiPointerComponentEvent {
 
     pub fn with_drag_metrics(mut self, drag: UiDragMetrics) -> Self {
         self.drag = Some(drag);
+        self
+    }
+
+    pub fn with_compiled_binding(mut self, handle: UiCompiledBindingHandle) -> Self {
+        self.compiled_binding = Some(handle);
         self
     }
 

@@ -1,19 +1,15 @@
-use std::path::PathBuf;
-
-use crate::core::project::{NewProjectDraft, NewProjectTemplate};
+use zircon_runtime_interface::project::ProjectLaunchIntent;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EditorGuiStartupRequest {
-    OpenProject { project_path: PathBuf },
+    Project { intent: ProjectLaunchIntent },
     OpenBuiltinView { descriptor_id: String },
-    CreateProject(NewProjectDraft),
 }
 
 impl EditorGuiStartupRequest {
-    pub fn open_project(project_path: impl Into<PathBuf>) -> Self {
-        Self::OpenProject {
-            project_path: project_path.into(),
-        }
+    /// Carries a versioned project operation into the host without assigning it an identity.
+    pub fn project(intent: ProjectLaunchIntent) -> Self {
+        Self::Project { intent }
     }
 
     pub fn open_builtin_view(descriptor_id: impl Into<String>) -> Self {
@@ -22,14 +18,10 @@ impl EditorGuiStartupRequest {
         }
     }
 
-    pub fn create_renderable_empty(
-        project_name: impl Into<String>,
-        location: impl Into<String>,
-    ) -> Self {
-        Self::CreateProject(NewProjectDraft {
-            project_name: project_name.into(),
-            location: location.into(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
+    pub fn project_intent(&self) -> Option<&ProjectLaunchIntent> {
+        match self {
+            Self::Project { intent } => Some(intent),
+            Self::OpenBuiltinView { .. } => None,
+        }
     }
 }

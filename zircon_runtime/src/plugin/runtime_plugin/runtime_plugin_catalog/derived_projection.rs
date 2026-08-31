@@ -4,10 +4,11 @@ use std::time::Instant;
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::PluginModuleKind;
 
-use super::bridge_dependencies::{RuntimePluginBridgeDependent, bridge_dependency_diagnostics};
+use super::bridge_dependencies::{bridge_dependency_diagnostics, RuntimePluginBridgeDependent};
 use super::feature_capabilities::feature_capabilities_for_target;
 use super::feature_definition_collection::feature_definition_map;
 use super::feature_definitions::{FeatureDefinition, FeatureDefinitionMap};
+use super::PluginCatalogGeneration;
 use super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
 #[derive(Clone, Debug, Default)]
@@ -30,7 +31,7 @@ pub(super) struct RuntimePluginCatalogProjection {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RuntimePluginCatalogProjectionMetrics {
-    pub catalog_generation: u64,
+    pub catalog_generation: PluginCatalogGeneration,
     pub projection_builds: u64,
     pub build_elapsed_ns: u64,
     pub indexed_entry_count: usize,
@@ -51,7 +52,7 @@ impl RuntimePluginCatalogProjection {
     pub(super) fn build(
         registrations: &[RuntimePluginRegistrationReport],
         feature_registrations: &[RuntimePluginFeatureRegistrationReport],
-        catalog_generation: u64,
+        catalog_generation: PluginCatalogGeneration,
         projection_builds: u64,
     ) -> Self {
         let build_started = Instant::now();
@@ -87,7 +88,7 @@ impl RuntimePluginCatalogProjection {
         };
         tracing::debug!(
             target: "zircon_runtime::plugin",
-            catalog_generation = projection.metrics.catalog_generation,
+            catalog_generation = projection.metrics.catalog_generation.get(),
             projection_builds = projection.metrics.projection_builds,
             build_elapsed_ns = projection.metrics.build_elapsed_ns,
             indexed_entry_count = projection.metrics.indexed_entry_count,

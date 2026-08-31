@@ -3,8 +3,10 @@ use zircon_runtime_interface::ui::{
     event_ui::UiValueType,
 };
 
-pub(super) fn viewport_actions() -> Vec<UiActionDescriptor> {
-    vec![
+pub(super) const VIEWPORT_ACTION_COUNT: usize = 9;
+
+pub(super) fn viewport_actions() -> [UiActionDescriptor; VIEWPORT_ACTION_COUNT] {
+    [
         UiActionDescriptor::new(
             "workbench.viewport.pointer.move",
             UiEventKind::Hover,

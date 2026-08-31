@@ -3,7 +3,7 @@ use std::fs;
 use super::super::asset_root_manifest;
 
 #[test]
-fn shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision() {
+fn shader_prewarm_asset_root_manifest_does_not_promote_raw_wgsl_module() {
     let root = std::env::temp_dir().join(format!(
         "zircon_shader_prewarm_raw_revision_{}",
         std::process::id()
@@ -13,19 +13,13 @@ fn shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision() {
     let shader_path = root.join("simple.wgsl");
     fs::write(&shader_path, "fn simple_a() {}\n").unwrap();
 
-    let first_revision = asset_root_manifest(&root).unwrap().variants[0]
-        .key
-        .material_revision;
+    let first = asset_root_manifest(&root).unwrap();
     fs::write(&shader_path, "fn simple_b() {}\n").unwrap();
-    let second_revision = asset_root_manifest(&root).unwrap().variants[0]
-        .key
-        .material_revision;
+    let second = asset_root_manifest(&root).unwrap();
 
-    assert_ne!(first_revision, 0);
-    assert_ne!(second_revision, 0);
-    assert_ne!(
-        first_revision, second_revision,
-        "raw shader source edits must export a new shader prewarm material revision"
-    );
+    assert!(first.sources.is_empty());
+    assert!(first.variants.is_empty());
+    assert!(second.sources.is_empty());
+    assert!(second.variants.is_empty());
     let _ = fs::remove_dir_all(root);
 }

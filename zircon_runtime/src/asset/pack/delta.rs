@@ -71,33 +71,12 @@ impl ZrPackDeltaWriter {
             .map(|asset| asset.path.as_str())
             .collect::<BTreeSet<_>>();
 
-        let removed_assets = base
-            .manifest()
-            .assets
-            .iter()
-            .filter(|asset| !target_paths.contains(asset.path.as_str()))
-            .map(|asset| asset.path.clone())
-            .collect::<Vec<_>>();
-
-        let mut changed_asset_entries = Vec::new();
-        let mut changed_assets = Vec::new();
-        let mut reused_assets = Vec::new();
-        let mut chunk_source_paths = BTreeMap::new();
-
-        for asset in &target.manifest().assets {
-            if base_hashes.contains(&asset.chunk_hash) {
-                reused_assets.push(asset.path.clone());
-                continue;
-            }
-            chunk_source_paths
-                .entry(asset.chunk_hash)
-                .or_insert_with(|| asset.path.clone());
-            changed_assets.push(asset.path.clone());
-            changed_asset_entries.push(asset.clone());
-        }
+        let removed_assets = collect_removed_assets(&base.manifest().assets, &target_paths);
+        let (changed_asset_entries, changed_assets, reused_assets, chunk_source_paths) =
+            collect_delta_asset_changes(&base_hashes, &target.manifest().assets);
 
         let mut bytes = vec![0; header_size()];
-        let mut chunks = Vec::new();
+        let mut chunks = Vec::with_capacity(chunk_source_paths.len());
         for (hash, path) in chunk_source_paths {
             let chunk_bytes = target.read_asset(&path)?;
             let offset = u64::try_from(bytes.len()).map_err(|_| ZrPackError::SizeOverflow)?;
@@ -130,6 +109,53 @@ impl ZrPackDeltaWriter {
             reused_assets,
         })
     }
+}
+
+fn collect_removed_assets(
+    base_assets: &[ZrPackAssetEntry],
+    target_paths: &BTreeSet<&str>,
+) -> Vec<String> {
+    let mut removed_assets = Vec::with_capacity(base_assets.len());
+    for asset in base_assets {
+        if !target_paths.contains(asset.path.as_str()) {
+            removed_assets.push(asset.path.clone());
+        }
+    }
+    removed_assets
+}
+
+fn collect_delta_asset_changes(
+    base_hashes: &BTreeSet<[u8; 32]>,
+    target_assets: &[ZrPackAssetEntry],
+) -> (
+    Vec<ZrPackAssetEntry>,
+    Vec<String>,
+    Vec<String>,
+    BTreeMap<[u8; 32], String>,
+) {
+    let mut changed_asset_entries = Vec::with_capacity(target_assets.len());
+    let mut changed_assets = Vec::with_capacity(target_assets.len());
+    let mut reused_assets = Vec::with_capacity(target_assets.len());
+    let mut chunk_source_paths = BTreeMap::new();
+
+    for asset in target_assets {
+        if base_hashes.contains(&asset.chunk_hash) {
+            reused_assets.push(asset.path.clone());
+            continue;
+        }
+        chunk_source_paths
+            .entry(asset.chunk_hash)
+            .or_insert_with(|| asset.path.clone());
+        changed_assets.push(asset.path.clone());
+        changed_asset_entries.push(asset.clone());
+    }
+
+    (
+        changed_asset_entries,
+        changed_assets,
+        reused_assets,
+        chunk_source_paths,
+    )
 }
 
 impl ZrPackDeltaReader {
@@ -347,3 +373,7 @@ fn write_delta_header(header: &mut [u8], manifest_offset: u64, manifest_size: u6
     header[8..16].copy_from_slice(&manifest_offset.to_le_bytes());
     header[16..24].copy_from_slice(&manifest_size.to_le_bytes());
 }
+
+#[cfg(test)]
+#[path = "delta/optimization_tests.rs"]
+mod optimization_tests;

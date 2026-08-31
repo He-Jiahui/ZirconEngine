@@ -1,5 +1,6 @@
 use crate::ui::host::{EditorPluginStatus, EditorPluginStatusReport};
 use crate::ui::layouts::windows::workbench_host_window::ModulePluginStatusViewData;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 
 use super::super::rows::{
     module_plugin_action_id, module_plugin_feature_action, module_plugin_optional_feature_summary,
@@ -36,13 +37,7 @@ fn module_plugin_status_row(plugin: &EditorPluginStatus) -> ModulePluginStatusVi
         load_state: plugin.load_state.clone().into(),
         enabled: plugin.enabled,
         required: plugin.required,
-        target_modes: plugin
-            .target_modes
-            .iter()
-            .map(target_mode_label)
-            .collect::<Vec<_>>()
-            .join(", ")
-            .into(),
+        target_modes: target_mode_summary(&plugin.target_modes).into(),
         packaging: packaging_label(plugin.packaging).into(),
         runtime_crate: plugin.runtime_crate.clone().unwrap_or_default().into(),
         editor_crate: plugin.editor_crate.clone().unwrap_or_default().into(),
@@ -64,3 +59,18 @@ fn module_plugin_status_row(plugin: &EditorPluginStatus) -> ModulePluginStatusVi
         hot_reload_action_id: hot_reload_action_id.into(),
     }
 }
+
+fn target_mode_summary(target_modes: &[RuntimeTargetMode]) -> String {
+    let mut summary = String::with_capacity(target_modes.len().saturating_mul("editor, ".len()));
+    for (index, mode) in target_modes.iter().enumerate() {
+        if index != 0 {
+            summary.push_str(", ");
+        }
+        summary.push_str(target_mode_label(mode));
+    }
+    summary
+}
+
+#[cfg(test)]
+#[path = "view_rows/target_mode_join_tests.rs"]
+mod target_mode_join_tests;

@@ -756,6 +756,305 @@ source、`0/1/10/100%` changed ratio、single/compound 和 duplicate/collision/f
 p95 和 I/O 指标超出 MAD 噪声包络地改善，RSS、磁盘放大和能耗不退化。没有同机参考工作负载时，不声称
 与 Unreal/Bevy/Fyrox/Godot 经验值接近，也不声称算法已达到最优规模。
 
+## R8 Journal Namespace Isolation Correction (2026-08-29)
+
+R8 current-source 复核发现 durable engine 的 recovery owner 把 journal directory 定义为专用命名空间：目录内
+只允许 `.zrjournal` 和 atomic-intent orphan。`commit_prepared_files::validate_inputs` 此前只规范化 journal
+路径，却没有让 journal physical identity 参与 live target/retirement 校验。因此 target 位于 journal 之下时，
+首个 transaction 可以发布该文件，后续 transaction 会把 live 文件误判为 pending recovery；recovery 又会按
+unsupported entry 拒绝该目录。反向关系同样非法：journal 位于计划写入的 live file 之下时，journal
+materialization 会先把目标路径创建成目录。
+
+本轮 hard cut 固定以下输入合同，不增加兼容或恢复猜测：
+
+- journal owner 与每个 target/retirement 的规范化 physical identity 必须双向无祖先关系；相等也拒绝；
+- Windows 复用 `CompareStringOrdinal(..., ignore_case = 1)` 的现有 identity 语义，并检查 UTF-16 prefix 后的
+  path-separator boundary，避免把 `journal-old` 误判为 `journal` 的后代；Unix 使用 component-aware
+  `Path::starts_with`；
+- 校验发生在 journal directory 创建、owner lock、pending-recovery scan、intent materialization 和所有 live
+  mutation 之前；失败保持 `DurableCommitReport::default()`；
+- 本变更是 correctness gate，不是性能优化。每个 live path 新增两次 `O(path length)` 无分配关系判断，仍在
+  prepare 输入阶段，不进入 frame append、fsync、replace 或 recovery replay 循环；没有 profile 样本时不宣称
+  性能改善。
+
+TDD RED 使用 managed Windows job `9277500385af4afd966e9fe53618950e`、run
+`3b787791d99b4dc2b47ec4794c5740d9`、`F:\cargo-targets` pool；`journal_owner` filter 为
+`1 passed / 2 failed / 169 filtered`。失败分别证明 journal 内 target 被错误返回 `Durable`，以及 journal 内
+retirement 没有按输入合同返回 namespace error。随后补齐反向祖先和 Windows case-alias 合同，并实现
+`PathIdentity::is_same_or_descendant_of` 与 `validate_inputs` 双向拒绝。接近 1000 行的测试 root 没有继续堆叠：
+namespace 合同硬切到 folder-backed `engine/tests/journal_namespace.rs`，父 `tests.rs` 从 903 行降为 767 行，
+child 为 142 行；拆分按 journal namespace 职责，不是等行数或 `misc/part` 分割。
+
+current-hash Windows 证据如下，所有 Cargo target 均在 `F:\cargo-targets`：
+
+- managed focused job `fa43809c5fe04891a611b3072a3c0598`、run
+  `a4468bab45ae424fad7646699f9a2391`：`journal_namespace` 为 `5 passed / 0 failed / 170 filtered`；编译
+  37.13 秒，测试 0.41 秒；
+- managed full job `33dcd2cd6fe04140a813dba66b8b2bb7`、run
+  `0362c2338dcb4ff9b13b5a1d9150b046`：`zr_resource --lib` 为
+  `172 passed / 0 failed / 3 ignored`；warm 编译 2.48 秒，测试 17.49 秒；
+- exact-4 rustfmt 与 Resource crate boundary `5/5` GREEN；独立 reviewer 的 conditional-write static guard
+  `15/15` GREEN；
+- independent Resource reviewer 对 engine `5573a74d...`、test root `27d6adb3...`、namespace child
+  `b6386480...`、pathing `916ad73e...` 给出 `C0/I0/M0 / Ready`，未写文件、未启动 Cargo。
+
+全局 `check_conventions` Python 契约为 `29/30`：唯一失败是 current shared tree 的 7 条 foreign
+`zircon_runtime_interface` exemption marker 缺失，与本 exact scope 无交集；不得由 Frameworks01 吸收。尝试
+`--only structure` 时发现该 wrapper 会隐式启动非 managed Runtime Cargo，因此本轮不把其结果作为证据，也不以
+它替代上述 managed current-hash tests。残余的非协作进程 symlink/junction retarget TOCTOU 已由 Runtime25
+拥有；exact equality、反向 retirement ancestor 和 Unix prefix sibling 没有逐条重复枚举，但它们共享同一
+双向 helper 与标准 component-aware path 语义，独立复审未形成 finding。本 correction 状态为
+`implemented / crate-validated / independently-reviewed`；R6/M1 仍受 upward Failure 与整体 crash matrix 接受门禁约束。
+
+### R8 WAL namespace completeness and complexity correction (2026-08-29)
+
+对 `engine -> intent -> recovery` 全链复核后，namespace 合同继续收敛为一个统一 antichain，而不是只校验
+journal owner：owner-lock 文件、journal、全部 live target/retirement 及其 staging/backup/rollback artifact
+必须精确不别名且双向无祖先关系。commit 入口先执行 normalized live-path 校验与纯 `plan_intent`，只有所有
+generated path 通过后才创建 journal directory、取得跨进程 owner lock、扫描 pending recovery 并持久化
+immutable intent；输入错误不再先物化 owner namespace。recovery 对所有 journal 先完成 raw wire encoding、
+owner-lock/journal-directory 隔离与跨 journal antichain 校验，然后才读取或摘要 evidence，避免非法 namespace
+触发目标/备份 I/O。WAL wire version 继续硬切为 v6，不保留旧 basename namespace。
+
+本轮重审同时纠正先前过于乐观的静态复杂度描述。设一次校验保留 `P` 个 path identity、最大 component 深度为
+`D`；当前 `strict_ancestor_identities` 会为每个 path 构造全部 ancestor identity，各前缀还会复制并在 Windows
+重新编码 comparison key，再对 `BTreeSet` 做 membership lookup。包含路径比较成本的保守最坏上界是
+`O(P * D^2 * log P)` time，retained identity 为 `O(P * path_length)`，单路径 ancestor 临时分配为
+`O(D^2)` path units；这不是原记录中可被理解为单次 `O(path length)` 的无分配检查。它只发生在 transaction
+admission/recovery validation，不进入 frame append、fsync、replace 或逐帧 runtime hot path，但在深目录和大批量
+generation 下是否 material 仍须测量。
+
+因此不在本 correctness slice 中凭静态推断改成相邻有序扫描、prefix trie 或 parent cache。R7-C baseline 必须
+单独记录 1/100/1k/10k path、浅/深目录、无冲突/末项 ancestor collision 的 namespace CPU sampled time、allocation
+count/bytes、metadata query count、wall median/p95/MAD 与 peak working set；WPR/ETW 无可用能耗数据时明确记录
+`unavailable`。只有该项在 generation profile 中成为 material bottleneck，R7-D 才可比较 component-aware ordered
+adjacency 或零临时 ancestor iterator，并重新执行 Windows Unicode case、Unix raw basename、journal/owner-lock
+隔离、跨 journal overlap、故障恢复和相同输出合同。本记录不声称性能、功耗、跨引擎 parity 或最优复杂度已达成。
+
+### R7-C current-source profile result and R7-D gate (2026-08-30)
+
+The current-hash managed profile job `2794501fb32743a794423b8bab0279d6` completed with exit `0`
+(`03:49:07` to `06:12:55`, released `06:13:10`) on the D-drive coordinator target. Its 16-scenario
+report is `D:\cargo-targets\zircon-engine\pool\f9fef644bf8e441a49ad1c139495499657f126cd246ffca80d13868db535561d\zircon-namespace-profile-report-36316.txt`,
+SHA-256 `ECDC6C1E3D04EA41E79996C41D46406977C534F89285BEA44B970BE0F4BBB744`.
+
+Measured admission p50/p95 for 10,000 writes was `38.1404/41.5826 s` at depth 2 without a collision,
+`35.7481/70.6145 s` at depth 2 with a final ancestor collision, `82.7582/86.0916 s` at depth 16
+without a collision, and `80.1322/84.0125 s` at depth 16 with a final ancestor collision. At depth
+16, the 1,000-write p50/p95 was `9.0043/17.5372 s` without a collision and `7.8062/8.4091 s` with
+a final ancestor collision. The complete p50/p95/MAD matrix is in the report; metadata queries,
+allocations, RSS, and power are explicitly unavailable.
+
+This confirms a material structural hotspot in repeated physical resolution and ancestor identity
+construction. A first R7-D candidate was reviewed against Unreal `FPathViews`/`FPaths`: cache a
+verified existing ancestor within one admission transaction, then perform one final identity check
+before use. It is not implemented. A plain `PathBuf -> PathIdentity` cache would introduce a
+symlink/junction retarget TOCTOU window, while stable Rust 1.94 does not expose Windows file identity
+metadata through `std::os::windows::fs` (`volume_serial_number` remains unstable). The next design gate
+therefore requires an explicit Windows reparse-point/file-identity owner or a lock-backed non-retargeting
+directory contract, plus alias/journal/owner-lock race tests and a paired pre/post profile. Until that
+  gate is satisfied, R7-D remains open and no timing, power, or complexity gain is claimed from a
+  speculative cache.
+
+The first implementable R7-D slice is now narrowed to an admission-local ancestor-membership cache.
+The cache is populated only from already resolved `PathIdentity::operation_path()` values and never
+re-resolves filesystem metadata; it is therefore not a path-to-filesystem identity cache and does not
+weaken symlink/junction retarget handling. A bounded entry count is required so workloads with mostly
+unique prefixes cannot retain `O(P*D)` temporary state indefinitely. The cache is an optimization of
+repeated prefix construction only; all existing case-insensitive Windows comparison, UTF-8 wire,
+journal namespace, owner-lock, and antichain rejection contracts remain authoritative. Acceptance
+requires the same 16-scenario matrix, exact behavior tests, a paired current-source profile, and a
+memory/working-set check; no implementation is accepted from the design note alone.
+
+### R7-D component-aware antichain scan implementation (2026-08-30)
+
+The first constrained implementation slice changes only the already resolved live-path overlap
+check in `zr_resource::io::transaction::engine::validate_inputs`. It orders borrowed `PathIdentity`
+references by path components and checks adjacent pairs for containment. This removes temporary
+materialization of every strict ancestor identity and its repeated `PathBuf` cloning: after physical
+identity resolution, the overlap stage uses `O(P)` borrowed references, with component comparisons
+bounded by path depth (`O(P log P * D + P * D)` worst case) rather than constructing `O(P * D)`
+ancestor identities and their `O(P * D^2)` copied path buffers. The unchanged physical resolution
+cost remains outside this slice. It does not cache filesystem metadata or re-resolve a path, so
+symlink/junction retarget and owner-lock contracts remain unchanged.
+
+Windows ordering tokenizes the validated UTF-16 operation path and compares each component with the
+existing case-insensitive `CompareStringOrdinal` primitive before the deterministic full-path
+fallback. Non-Windows ordering is component-aware and keeps `assets/child.zmeta` adjacent to
+`assets` while leaving `assets-child` independent. The regression
+`component_ordering_catches_interleaved_ancestor_targets` covers the previously unsafe lexical order;
+the existing case-insensitive and prefix-sibling tests remain authoritative.
+
+`rustfmt +1.94.1 --check`, scoped `git diff --check`, and the Frameworks01 resource static guard
+(`15/15`) are green. The first managed Windows focused test job
+`ea010f901c064decab4956a8b3bb1063` lost its host wait window after the process tree exited and is
+recorded as `orphaned` with `exit_code=null`; it was released by the owning validator session
+(`85190d6bf37d4ce7a266896b2ce6c2a9`). A second managed attempt was correctly rejected as
+`cargo_reuse_pool_busy` by the active job `153344c01616403fa7732f0d1a03f43d`. Therefore this slice
+has no terminal Cargo test ticket yet, no paired post-profile, and no claimed timing, power, or
+end-to-end complexity gain.
+
+The next retry was also rejected before Cargo start because the same compatibility pool was leased
+by job `8f1caadae3ac484d85b8c9b82a8b887b` (`cargo_reuse_pool_busy`; no process was running at the
+observation point). This is a coordinator scheduling gate, not a test result; no additional retry
+is launched while that lease is held.
+
+### Shader invocation owner hard cut (2026-08-30)
+
+The shader invocation boundary was completed as a structural hard cut: compute dispatch and fullscreen
+pass builders, plans, references, parameter packing, diagnostics, and resource binding code moved from
+`core::framework::render::shader` into the folder-backed owner
+`graphics::shader::invocation`. The old builder modules and exports were removed; no forwarding module,
+type alias, or compatibility re-export remains. The six production/test consumer groups that previously
+imported the old owner now import `crate::graphics::shader::invocation`, while pure shader descriptor
+contracts remain in the framework render owner.
+
+Coordinator request `406fee868010411abbec8411414b77bd` claimed the complete invocation/framework/
+consumer path set, and request `ccd6f17780234c3598d642bbc6a1193e` recorded the final current hashes after
+formatting. The static owner-boundary
+validator is `6/6 OK`; scoped `git diff --check` is green and the new invocation files pass
+`rustfmt +1.94.1 --check --config skip_children=true`. A managed Cargo compile/test ticket is still
+pending because the shared compatibility pool is leased by another job, so this is a partial
+implementation record and does not claim upward compile, performance, power, or milestone acceptance.
+
+### R13 current-source closure and cross-plan ownership (2026-08-30)
+
+The R7-D admission-local antichain implementation remains the only current Frameworks01
+correctness/performance slice advanced in this window. The component-aware ordered scan and its
+interleaved ancestor regression are present in the untracked `zr_resource` successor tree; the
+resource static guard is `15/15` and the 16-scenario D-drive profile completed with exit `0`.
+The managed retry first reached Cargo and exposed an R7-D integration compile error at
+`engine.rs:397`: the ordered overlap scan called `super::pathing::compare_namespace_paths` as a
+module function although the comparator is an associated `PathIdentity` function. The minimal
+hard-cut repair changed the call to `PathIdentity::compare_namespace_paths`; current hashes are
+`engine.rs=A5F602D759BFF57BAE29581EA745D6A7E385058B8111DB892492FC0ECD6DC877` and
+`pathing.rs=63D31D83E4C94CA369EB043AC68386B92237BF15B5C9F9880B8F72F6F7F4BD23`. Rust 1.94.1
+rustfmt, scoped diff-check, and the 15/15 conditional-write static guard are green. The next
+coordinator-managed Cargo submission was rejected before build by `unmanaged_artifacts_detected`
+because an external RenderDoc MCP process (PID 27420) still owns a live D-drive pool process
+identity; the subsequent coordinator `artifact.audit` completed with `unmanaged: []`. That
+attempt therefore produced no Cargo result and no paired post-profile, allocation, working-set,
+power, or end-to-end complexity claim. A subsequent coordinator-managed ephemeral F: lane
+(`8147a01836f94863b29648f41da1d29f`) rebuilt `zr_resource` and ran the filtered transaction
+tests successfully: Cargo build OK, Cargo test OK, with no R7-owned errors. Frameworks01 remains
+`resolving_failure` because the full crash/fault matrix, paired profile, upward product validation,
+and independent milestone review are still open.
+
+Runtime22's clean-copy blocker is cross-plan and remains frozen. The untracked
+`zircon_runtime/crates/zr_rhi_wgpu/src/command_validation/copy_commands.rs` is not a Frameworks01
+consumer: its current SHA-256 is
+`493DA66A570A4230CE39B2804A838727A434DC2E72F0A7556C50C7888E77B124`, and the coordinator confirms
+the legal owner is Runtime90 primary session `root-runtime90-copy-command-resource-closure-20260829`
+(`resolving_failure`). Runtime90's immutable union includes `command_validation.rs`, the child
+`copy_commands.rs`, `render_state.rs`, and `tests/capabilities.rs`; the child must be committed with
+that union and must not be detached, copied into the parent, or transferred to Runtime22. The
+Runtime22 `dynamic_api/session/state.rs` mvp00 integration baseline is likewise outside this scope
+and remains untouched. Runtime22 was notified of the exact owner and hash; no Frameworks01 ownership
+transfer or content edit was performed.
+
+The clean-copy follow-up confirms there is no active mvp00 integration owner for
+`zircon_runtime/src/dynamic_api/session/state.rs`. The historical
+`mvp00-current-source-convergence-r2-01a00797-20260818` session is `stale` with
+status reason `Exact-path ownership surrendered to Runtime22 after six days without
+heartbeat or active Cargo work`; its broad `zircon_runtime/src` scope is not an
+executable current-source owner. Coordinator matrix request
+`b9c7dad650264a088b963252e21ca32d` reports the current `state.rs` hash
+`a79255874bdddf1c2cdc3d9e11597954d1197356fb96685611c3bb0d8d31ffba` attributed to
+`root-runtime22-checkpoint-atomicity-20260829`, with only stale-baseline and missing
+lease blockers. Frameworks01 must not repair or absorb this mixed Runtime22 blob.
+
+The corrected R7-D paired profile submission was managed as F-drive ephemeral job
+`738d82371b2c41808724ae44dac61708`. The harness remained CPU-bound in the
+`1/100/1k/10k` matrix for more than 20 minutes; the validator command timed out
+without an exit code or report file while the coordinator still observed the test
+process alive. This is an incomplete measurement, not a performance acceptance:
+no paired p50/p95/MAD, allocation, RSS, I/O, power, or complexity conclusion is
+recorded from that run. The job must be allowed to reach coordinator cleanup before
+any retry, and a bounded profiling protocol is required before R7-C/R7-D can close.
+
+The open Frameworks01 Resource conditional-write failure and the Runtime90 validation-copy failure
+remain unresolved. Consequently there is no legal milestone acceptance, coordinator milestone
+commit, or service-managed WeCom notification in this record. The next admissible closure action is
+to consume the Runtime90 union only after its owner lands a current-source commit, then rerun the
+Runtime22 exact copy against a clean HEAD; neither action authorizes a compatibility facade or a
+Frameworks01 edit to the foreign paths.
+
+### R14 path-resolution cost review (2026-08-30)
+
+The R7-C report showed that admission wall time is dominated by physical path resolution rather
+than the post-resolution antichain check: 10,000-path no-conflict samples measured
+`38.1404/41.5826 s` at depth 2 and `82.7582/86.0916 s` at depth 16 (p50/p95). A source review of
+`PathIdentity::resolve` found `split_at_deepest_existing_ancestor` probing every existing prefix
+from the filesystem root to the leaf. For missing targets below one existing directory, that is
+`O(D)` metadata calls per path even though the first useful ancestor can be found from the leaf.
+
+The approved structural hypothesis is a local reverse walk: probe the requested path, pop one
+component on `NotFound`, and stop at the first existing ancestor; canonicalize that ancestor once
+and append the collected tail using the existing `append_uncreated_component` normalization.
+This keeps the final symlink special case in `resolve_operation_path`, preserves physical identity,
+and changes no transaction state or journal ordering. The new private regression covers a three-
+component missing tail under an existing branch and writes only below the configured managed test
+output root. It does not claim an optimization result until a bounded managed profile demonstrates
+that metadata probes and wall time fall outside the prior MAD envelope while symlink, `..`,
+case-folding, and namespace rejection tests remain equivalent.
+
+The implementation is now present in `zr_resource` `pathing.rs` at SHA-256
+`EE5EADBD55DAFB10F098D1DB102C3CF1443BC7E8C6A29DC9964E43835C107AFD`; the new regression is
+`split_at_deepest_existing_ancestor_scans_from_leaf`. The final exhaustive component classifier
+retains `.`/`..` lexical semantics while the reverse probe pops only `Normal` components on
+`NotFound`. Rust 1.94.1 rustfmt and scoped diff-check are green. Coordinator-managed Windows job
+`bf4648ee2deb47efaba2dbb6ef22b000` ran the complete current-source `zr_resource --lib` target on
+the F-drive pool and completed with exit `0`: `191 passed / 0 failed / 4 ignored` in 12.16 seconds.
+The frozen 76-file current-source tree manifest hash was
+`73DE0A28F59B3E4F40E82A2D233EA9A2D2F944D2F4AA18817E10F39D374E63C8`, and no Resource Rust file
+changed after the run started. This closes the crate-local compile/behavior gate for R14; it does
+not establish a performance result.
+
+The earlier paired profile job `738d82371b2c41808724ae44dac61708` was terminated after its
+validator timeout once its test process exceeded 55 minutes without producing a report; the
+coordinator recorded exit `137`, then released the job. A fresh exact-harness submission was
+accepted as coordinator request `0c31eb97b65445ed9681aa9e98931349`. Its delayed terminal created
+leased job `755b4090219b40fc8e34e831b2d86019` only after the wrapper had exited; the coordinator then
+rejected launch because that supervisor process identity was already dead. No Cargo run or profile
+process was created. The empty lease was owner-released by request
+`68ef2186a7534e21ac3ef70139eeb43e`. This is a reconciled control-plane wait, not a profile sample.
+The historical R7-C report was also removed with its shared D-drive target; its recorded job
+terminal, report SHA-256, and matrix summary remain, but the raw report is no longer available for
+independent replay. R14 therefore remains
+implementation-in-progress pending a durable paired report plus I/O/RSS/power evidence where the
+platform exposes it.
+
+### R15 Runtime02 validation materialization handoff (2026-08-30)
+
+Runtime02 aggregate validation ticket `78ef39a572e1422e83b9c048832034e8` reached clean-copy closure
+planning after its `crash_windows.rs` consumer stopped naming the removed monolithic Runtime journal.
+Validation-copy job `7b1be72ab9404e6aa1f16c4fe5450e4b` then failed
+`validation_copy_compile_time_resource_missing` for the canonical successor
+`zircon_runtime/crates/zr_resource/src/io/transaction/journal/intent.rs`. This is a physical
+materialization/ownership failure, not a transaction algorithm or compatibility-facade failure.
+
+Frameworks01 preserved the exact source bytes and used the coordinator's owner-side handoff protocol.
+The first preview `46ff006e97d84dc0b85a85aff37d163d` proved that the only blocker was
+`source_owner_executable`. After request `a210b549f3804a7886f91a1df5332a40` placed Frameworks01 in a
+short `stale` quiesce window, fresh preview `8841a8fd150b4cf5bdfd30470a13985e` was eligible with
+fingerprint `416477a9d964848ae9d6b43314460b6e1e878fa2836b70ceab3d96597e9f687b` and current SHA-256
+`7781ec21ea073e8290e7e885b6637a614b4bcbc2b30f6222c9f74301b9ade8a5`. Apply request
+`b63a3ebfd81948888d20ebf1e24326bd` transferred only that exact path to
+`root-runtime-editor-optimize-20260829-r5`; no maintenance capability, force claim, content rewrite,
+copy, fallback include, or retired Runtime file was used. Request
+`6cfe3b950a24435ca3cfdec9b2b6877e` immediately restored Frameworks01 to `resolving_failure`.
+Post-check `93bdbb722ddd4d9896f9f11991483ba6` reports the Runtime02 Session as current owner, matching
+source/current hashes, and only `path_already_owned_by_target`.
+
+The lower-layer static gate was rerun with Python temporary state rooted at `D:\zircon-validation`:
+Resource crate-boundary plus conditional-write authority are `20 passed / 0 failed` in 27.723 seconds.
+This transfer satisfies the Failure's ownership/materialization input contract, but it is not an
+M1 acceptance or a substitute for the full 77-file crate/manifest integration. Runtime02 must still
+run one aggregate managed validation and prove that clean-copy materialization advances beyond
+closure planning and compiles against the transferred intent. Until that terminal evidence is
+returned, the Failure remains `transfer complete / origin validation pending`; Frameworks01 makes
+no milestone commit, performance/power claim, or WeCom completion notification from this handoff.
+
 ## Ordered Implementation Milestones
 
 - [x] R4-A：复核 current-source、现有 migration journal 和四个本地参考引擎，锁定 owner/state machine。
@@ -768,15 +1067,17 @@ p95 和 I/O 指标超出 MAD 噪声包络地改善，RSS、磁盘放大和能耗
   AssetMigration 与 targeted/full project generation 使用同一 Core engine。
 - [x] R6-B：实现 frame WAL、digest/evidence 验证、跨进程 owner lock、restart 代次裁决、Project/Migration
   target policy、post-replace durability rollback 和 intent orphan cleanup。
-- [ ] R6-C：执行 every-transition crash/fault/restart matrix、focused/upward tests 与独立复审；测试已经写入，
+- [~] R6-C：执行 every-transition crash/fault/restart matrix、focused/upward tests 与独立复审；测试已经写入，
   新增 5 条 commit-point/cleanup/rollback-transition fault contract、1 条 active committed old-bytes restart
   contract 与 staging-directory barrier、torn-tail repair frame、journal-first abort/Intent recovery cleanup、
   rollback-completed consumed-staging restart、bounded append contract 均 exact rustfmt GREEN。Tooling fix
   `543497826` 已解除 pre-start 缺陷，current-hash focused lib-test compile 已连续实际进入 Cargo；R8-owned 2 条
   test-contract drift 修复后，新增 bounded recovery append fallback 与合同也已进入 lib-test 图。最新 job
   `ae53fb57f30745a7b50b0ee6aee249e0` 为 61 foreign errors / 1,352 warnings / 0 tests，R8-owned diagnostics 0；
-  Asset/IBL、Render06/07、RuntimeCore 与 Runtime08/Scene owner 门禁收敛前 focused tests 和独立复审仍保持
-  validation pending。
+  Asset/IBL、Render06/07、RuntimeCore 与 Runtime08/Scene owner 门禁收敛前 upward acceptance 仍保持
+  validation pending。2026-08-29 current `zr_resource --lib` 已在 managed Windows lane 达到
+  `172 passed / 0 failed / 3 ignored`，journal namespace correction 独立复审为 C0/I0/M0；这关闭 crate-local
+  current-source compile/test/review 子门，不代表真实 process-kill crash matrix 或 upward 产品门已完成。
 - [~] R6-D：atomic persistence 963 行 owner 的 folder-backed 拆分、`io::atomic_write` curated façade、31 个
   current-source consumer/35 处旧路径迁移和 `atomic_file` 模块私有化的非验收实现已完成；exact
   rustfmt/diff-check GREEN，旧 Rust 模块路径为 0。最新 `core-min` production managed build job
@@ -786,8 +1087,10 @@ p95 和 I/O 指标超出 MAD 噪声包络地改善，RSS、磁盘放大和能耗
   profiler-only success 吞掉未决耐久性；physical-path identity hard cut 后的 production job
   `c555b198299445ffb2ecc2a0b3b38595` 同样 0 errors。最新 focused compile job `ae53fb57f30745a7b50b0ee6aee249e0`
   的 R8-owned diagnostics 为 0，但 61 条 foreign errors 使测试数仍为 0。最大 production owner 为 806 行 recovery validation/replay，
-  略过 800 行 review 线但低于约 1000 行强制拆分阈值，继续观察而不做等行数切分；新增 alias contracts、最终
-  current-hash managed lib-test 与独立复审尚未完成，因此保持 validation pending。
+  略过 800 行 review 线但低于约 1000 行强制拆分阈值，继续观察而不做等行数切分；journal/live namespace
+  双向 physical-identity 隔离已取得 managed RED，并完成 folder-backed 测试拆分、current-hash focused/full
+  managed lib-test、exact rustfmt 与 C0/I0/M0 独立复审；crate-local 子门已关闭。整体 R6 crash matrix、upward
+  产品门和 Frameworks01 milestone 仍未关闭，因此 R6-D 保持集成中而不提升为 accepted。
 - [x] R7-A：复核 Zircon profiler、Project/Resource/transaction current call graph，以及 Unreal AssetDataGatherer
   phase scopes 与 Bevy deferred diagnostics；锁定单一 observer owner 和零额外 I/O 约束。
 - [~] R7-B：实现 project-generation phase/counter 与 durable-transaction activity，拆出 resource publication
@@ -796,10 +1099,17 @@ p95 和 I/O 指标超出 MAD 噪声包络地改善，RSS、磁盘放大和能耗
   live rollback restore attempt/success、deferred commit recovery 与 deferred cleanup 已由中立报告实现；
   post-correction profiling managed build 的 R7 owned errors 为 0，但共享 lib 的外部错误与最新 validator
   control-plane/shared-target acquire 阻塞仍阻止 current-hash test target，不能记 GREEN。
-- [ ] R7-C：取得相同 fingerprint 的 Windows WPR/ETW/RSS/I/O/可用功耗 baseline，按规模与 changed ratio 输出
-  median/p95/MAD；当前没有样本。
-- [ ] R7-D：只实现 profile 证明的单遍 discovery、parallel import、index layout 或 batching 优化，并复测行为、
-  耗时、I/O、RSS 和可用功耗；当前没有开始算法优化。
+- [~] R7-C：已取得相同 current fingerprint 的 D 盘 managed admission wall-clock baseline，按深度/规模/冲突
+  输出 16 组 p50/p95/MAD；WPR/ETW metadata、allocations、RSS、I/O 计数与功耗仍 unavailable。原始报告已随
+  shared target 清理，只保留 coordinator terminal、报告 hash 和计划内矩阵摘要，不能作为最终可重放证据。
+  修正后的 F 盘 paired profile job `738d82371b2c41808724ae44dac61708` 最终 exit `137` 且没有报告；fresh
+  request `0c31eb97b65445ed9681aa9e98931349` 延迟完成后只产生 supervisor 已退出的空 lease
+  `755b4090219b40fc8e34e831b2d86019`，未启动 Cargo，并已由 owner request `68ef2186...` 释放。这些都只能
+  记为 incomplete/control-plane wait，不能作为 R7-C 验收证据。
+- [~] R7-D：已实现受限的 component-aware ordered adjacency overlap scan，并加入交错 ancestor/sibling 回归
+  测试；reverse physical-ancestor probe 的最终 `pathing.rs` hash 为 `EE5EADBD...107AFD`，协调器 F: job
+  `bf4648ee2deb47efaba2dbb6ef22b000` 已达到完整 `zr_resource --lib` `191 passed / 0 failed / 4 ignored`。
+  仍需 durable paired profile、I/O/RSS/功耗复测和独立性能复审后才能验收，当前不声明收益。
 - [ ] Acceptance：focused/upward/product tests、独立复审、managed validation ticket、计划状态、coordinator
   milestone commit 和 service-managed WeCom 全部完成后，才提升 Frameworks01 M1。
 

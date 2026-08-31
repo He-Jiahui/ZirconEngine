@@ -15,7 +15,23 @@ impl FeatureDefinition {
         manifest: PluginFeatureBundleManifest,
         provider_package_id: String,
     ) -> Self {
-        let key = feature_definition_key(&manifest.id, &provider_package_id);
+        let key = Self::key(&manifest.id, &provider_package_id);
+        Self::new_with_key(key, manifest, provider_package_id)
+    }
+
+    pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn key(
+        feature_id: &str,
+        provider_package_id: &str,
+    ) -> String {
+        feature_definition_key(feature_id, provider_package_id)
+    }
+
+    pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn new_with_key(
+        key: String,
+        manifest: PluginFeatureBundleManifest,
+        provider_package_id: String,
+    ) -> Self {
+        debug_assert_eq!(key, Self::key(&manifest.id, &provider_package_id));
         Self {
             key,
             manifest,

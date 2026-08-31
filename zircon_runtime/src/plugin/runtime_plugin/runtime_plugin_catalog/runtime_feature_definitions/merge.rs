@@ -11,7 +11,7 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_runtime_f
     definition_order: &mut Vec<String>,
     declared_feature_ids: &HashSet<String>,
 ) {
-    let mut registered_feature_ids = HashSet::new();
+    let mut registered_feature_ids = HashSet::with_capacity(feature_registrations.len());
     for registration in feature_registrations {
         merge_runtime_feature_registration(
             registration,
@@ -23,3 +23,7 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_runtime_f
         );
     }
 }
+
+#[cfg(test)]
+#[path = "merge/capacity_tests.rs"]
+mod capacity_tests;

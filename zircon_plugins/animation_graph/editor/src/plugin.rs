@@ -1,11 +1,10 @@
 use zircon_editor::core::asset::{AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId};
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 use zircon_editor::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
 };
-use zircon_editor::core::editor_extension::EditorMenuItemDescriptor;
-use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
     EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
@@ -62,7 +61,6 @@ impl zircon_editor::EditorPlugin for AnimationGraphEditorPlugin {
                     ANIMATION_GRAPH_VIEW_ID,
                     "Animation Graph",
                     "Animation",
-                    "Plugins/Animation Graph",
                 )],
             },
         )?;
@@ -140,35 +138,40 @@ fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
     let compile = operation("animation_graph.authoring.compile");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::operation(open_graph.clone(), "Open Animation Graph")
-                .with_menu_path("Plugins/Animation Graph/Open Graph")
+            EditorCommandDescriptor::operation(open_graph.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &open_graph,
+                    "plugins",
+                    &["animation_graph"],
+                ))
                 .with_payload_schema_id("animation_graph.open_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(
-                open_state_machine.clone(),
-                "Open Animation State Machine",
-            )
-            .with_menu_path("Plugins/Animation Graph/Open State Machine")
-            .with_payload_schema_id("animation_graph.open_state_machine.v1")
-            .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(validate.clone(), "Validate Animation Graph")
-                .with_menu_path("Plugins/Animation Graph/Validate")
+            EditorCommandDescriptor::operation(open_state_machine.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &open_state_machine,
+                    "plugins",
+                    &["animation_graph"],
+                ))
+                .with_payload_schema_id("animation_graph.open_state_machine.v1")
+                .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(validate.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &validate,
+                    "plugins",
+                    &["animation_graph"],
+                ))
                 .with_payload_schema_id("animation_graph.validate.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(compile.clone(), "Compile Animation Graph")
-                .with_menu_path("Plugins/Animation Graph/Compile")
+            EditorCommandDescriptor::operation(compile.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &compile,
+                    "plugins",
+                    &["animation_graph"],
+                ))
                 .with_payload_schema_id("animation_graph.compile.v1")
                 .with_required_capabilities([CAPABILITY]),
         ],
-        menu_items: vec![
-            menu_item("Plugins/Animation Graph/Open Graph", &open_graph),
-            menu_item(
-                "Plugins/Animation Graph/Open State Machine",
-                &open_state_machine,
-            ),
-            menu_item("Plugins/Animation Graph/Validate", &validate),
-            menu_item("Plugins/Animation Graph/Compile", &compile),
-        ],
+        menu_items: Vec::new(),
         asset_type_contributions: vec![
             AssetTypeContribution::augment(AssetTypeId::from_resource_kind(
                 ResourceKind::AnimationGraph,
@@ -273,8 +276,4 @@ fn animation_state_machine_palette() -> GraphNodePaletteDescriptor {
 
 fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid animation graph operation path")
-}
-
-fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
-    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
 }

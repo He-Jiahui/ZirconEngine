@@ -5,7 +5,7 @@ use super::binary::{
     decode_binary_asset_with_v1_payload_fallback, encode_binary_asset, AnimationBinaryAssetKind,
 };
 use super::error::{AnimationAssetError, AnimationAssetResult};
-use super::reference::{push_unique_reference, AnimationAssetReferenceBinary};
+use super::reference::{AnimationAssetReferenceBinary, DirectReferenceCollector};
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::math::Real;
 use crate::core::resource::AssetReference;
@@ -300,12 +300,17 @@ impl AnimationGraphAsset {
     }
 
     pub fn direct_references(&self) -> Vec<AssetReference> {
-        let mut references = Vec::new();
+        let reference_count = self
+            .nodes
+            .iter()
+            .filter(|node| matches!(node, AnimationGraphNodeAsset::Clip { .. }))
+            .count();
+        let mut references = DirectReferenceCollector::with_capacity(reference_count);
         for node in &self.nodes {
             if let AnimationGraphNodeAsset::Clip { clip, .. } = node {
-                push_unique_reference(&mut references, clip.clone());
+                references.push(clip);
             }
         }
-        references
+        references.into_references()
     }
 }

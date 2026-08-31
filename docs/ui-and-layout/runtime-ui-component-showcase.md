@@ -25,6 +25,7 @@ related_code:
   - zircon_runtime_interface/src/ui/binding/model/event_kind.rs
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/core/framework/render/ui_submission.rs
   - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
@@ -563,7 +564,7 @@ The active builtin showcase window is now declared in `zircon_editor/assets/ui/e
 
 The 2026-05-15 Material visual pass makes the showcase import `editor_material.zui` directly and aligns its local shell/panel/control tokens with the retained editor Material palette. Showcase panels use 12px rounded surfaces, field/control rows use 10px rounded corners, and action/selection controls share the same teal primary, stronger focus ring, and warning/error/success/info tones as the workbench and Inspector. This keeps the showcase useful as a visual reference for the retained editor instead of demonstrating a separate Unreal-dark palette.
 
-No-argument editor startup now resolves an `EditorStartupSessionDocument` with `open_builtin_view = "editor.ui_component_showcase"`. The retained host consumes that request by opening the descriptor through `EditorManager::open_view(...)`, and the descriptor uses `PreferredHost::ExclusiveMainPage` so the first visible page is the component showcase rather than the default Workbench Scene/Game layout. Explicit `--project` and `--create-project` startup requests still return project sessions and do not set the builtin-view request.
+No-argument editor startup resolves a Welcome project chooser with `open_builtin_view = None`; it never activates a recent project or the component showcase. The component showcase remains an explicit built-in view request, including the Welcome demo route, and its descriptor uses `PreferredHost::ExclusiveMainPage`. Explicit `--project` and `--create-project` startup requests remain separate project-launch requests and do not set the built-in-view instruction.
 
 The v2 showcase no longer imports `component_widgets.ui.toml#ShowcaseSection` or `material_meta_components.ui.toml#Material*` on the main runtime path. Section shells are authored as flat layout nodes, and Material-like controls are direct catalog nodes (`Button`, `IconButton`, `ToggleButton`, `Checkbox`, `InputField`, `TextField`, `NumberField`, `RangeField`, `ComboBox`, `Group`, `ListRow`, `TableRow`, `VirtualList`, and `ContextActionMenu`) with retained control ids and route ids preserved. Common Material measurement and interaction metadata is declared by the showcase catalog as runtime projection metadata, then authored as v2 props so retained host layout keeps the same padding, minimum size, and clickable/focusable semantics.
 
@@ -1107,7 +1108,7 @@ Validation evidence:
 
 - World-space UI submissions now leave the host-only cache and are folded into the viewport UI render extract during `RetainedViewportController::submit_extract_with_ui`.
 - The retained host recompute path collects world-space-enabled pane/template nodes from the current host scene presentation and submits them to the viewport before the next render frame submission.
-- The render-side consumption path intentionally reuses `UiRenderExtract -> RenderFramework::submit_frame_extract_with_ui -> ViewportRenderFrame::with_ui -> ScreenSpaceUiRenderer`, so world-space UI reaches the existing wgpu/RHI UI pass without binding editor component logic directly to low-level RHI code.
+- The render-side consumption path intentionally reuses `UiRenderExtract -> UiRenderSubmission::single -> RenderFramework::submit_frame_extract_with_ui -> ViewportRenderFrame::with_ui -> ScreenSpaceUiRenderer`, so world-space UI reaches the existing wgpu/RHI UI pass without binding editor component logic directly to low-level RHI code. Runtime project UI may publish multiple ordered extract segments through the same submission contract.
 - Current implementation renders projected world-space surfaces as screen-space UI quads with label text, depth/billboard metadata reflected in styling and ordering. A future true 3D/depth-aware UI geometry pass can replace the projection consumer behind the same submission contract.
 - Validation: `cargo test -p zircon_editor --lib controller_submits_world_space_ui_surfaces_through_render_framework_ui_extract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-ui-closeout --color never` passed with 1 test, 0 failed; only pre-existing runtime graphics warnings were emitted.
 

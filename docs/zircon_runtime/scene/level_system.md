@@ -53,7 +53,7 @@ The hard cut replaced the inline Physics fields with `PhysicsRuntimeState`, gate
 
 `LevelSystem` owns live level state. Callers use `snapshot`, `replace`, `with_world`, `with_world_mut`, and runtime-state record/read methods instead of reaching into the internal `Mutex` fields.
 
-Animation pose recording retains existing entity entries before applying a new frame. Stable entities copy through `AnimationPoseOutput::clone_from_reusing_storage`, preserving the final pose vector and bone-name capacities; disappeared entities are removed and new entities transfer their owned pose directly. This keeps the level snapshot API owned while eliminating the previous whole-map replacement and stable-rig handoff churn.
+Animation pose publication accepts only `AnimationPoseSnapshot`, whose ordered entity map stores sealed `Arc<AnimationPoseOutput>` rows. Full evaluation replaces the outer snapshot; partial evaluation shallow-clones the ordered map only when a supplied or removed entity actually changes, reuses every unchanged row handle, and publishes the exact changed/removed entity list to the physics projection. Frame/render/history consumers keep the sealed rows shared. The public single-entity inspection method may materialize one owned pose, but no production whole-map compatibility API remains.
 
 `DefaultLevelManager` owns the level map. The lifecycle owner creates and resolves levels through `try_create_level`, `try_create_default_level`, their explicit infallible convenience wrappers, and `level`. Multi-level callback traversal and VM type synchronization sort cloned level snapshots by `WorldHandle` before acquiring world locks, providing one stable lock/traversal order independent of HashMap iteration.
 

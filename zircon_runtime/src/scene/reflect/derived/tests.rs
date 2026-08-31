@@ -28,10 +28,10 @@ fn derive_round_trips_reflect_type_info() {
     let registration =
         Health::reflect_type_registration().expect("derived type registration should be valid");
 
-    assert_eq!(registration.type_path.short_type_path, "Health");
+    assert_eq!(registration.type_path.short_type_path(), "Health");
     assert_eq!(registration.display_name, "Health");
     assert_eq!(registration.type_info.kind, ReflectTypeKind::Struct);
-    assert!(registration.is_component);
+    assert!(registration.is_component());
     assert!(!registration.remote_visible);
     assert_eq!(
         registration.script_visibility,
@@ -82,7 +82,9 @@ fn derive_generated_field_accessors_round_trip_values() {
 #[test]
 fn derived_component_stage_clone_moves_an_owned_value_into_preflight_world() {
     let mut source = World::empty();
-    let entity = source.spawn_node(NodeKind::Empty);
+    let entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     source
         .insert(
             entity,
@@ -98,7 +100,7 @@ fn derived_component_stage_clone_moves_an_owned_value_into_preflight_world() {
 
     let registration =
         derived_component_registration::<Health>().expect("derived component adapter should build");
-    let type_path = registration.registration.type_path.type_path.clone();
+    let type_path = registration.registration.type_path.type_path().to_string();
     source
         .type_registry_mut_for_tests()
         .register(registration)
@@ -127,10 +129,12 @@ fn derived_component_stage_clone_moves_an_owned_value_into_preflight_world() {
 #[test]
 fn reflected_component_stage_clone_rejects_registration_without_adapter() {
     let mut source = World::empty();
-    let entity = source.spawn_node(NodeKind::Empty);
+    let entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let registration =
         Health::reflect_type_registration().expect("derived reflection metadata should build");
-    let type_path = registration.type_path.type_path.clone();
+    let type_path = registration.type_path.type_path().to_string();
     source
         .type_registry_mut_for_tests()
         .register(RuntimeTypeRegistration::metadata(registration))
@@ -151,13 +155,15 @@ fn reflected_component_stage_clone_rejects_registration_without_adapter() {
 #[test]
 fn reflected_component_stage_clone_rejects_adapter_without_callback() {
     let mut source = World::empty();
-    let entity = source.spawn_node(NodeKind::Empty);
+    let entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let RuntimeTypeRegistration {
         registration,
         component,
         resource: _,
     } = derived_component_registration::<Health>().expect("derived component adapter should build");
-    let type_path = registration.type_path.type_path.clone();
+    let type_path = registration.type_path.type_path().to_string();
     let mut component = component.expect("derived registration must include its component adapter");
     component.stage_clone = None;
     source

@@ -307,6 +307,6 @@ Zircon目标还应比传统in-process module manager更严格：package digest/s
 
 ## 10. 当前状态
 
-`review_complete；implementation_pending；recheck_required`
+`review_complete；implementation_in_progress；recheck_required`
 
-本篇只完成静态current-source审查、参考源码对照和重构路由，没有修改生产代码，也没有声明Cargo、真实ZrVM/native DLL、签名链、crash isolation、脚本/插件规模或性能对比通过。07关联的script/plugin/dynamic API/SDK/ZrVM/editor plugin文件存在其他Session的大量修改；进入M0前必须重新读取diff、取得coordinator授权并复核所有源码锚点与failure状态。
+本篇已开始P1-1基础实现：`PluginCatalogGeneration`完成强类型与终值拒绝，mutable catalog owner不再可值复制，已加入共享immutable snapshot、单次copy/index的staging candidate、exact-base type-state prepared generation和`ArcSwap` compare-exchange publication owner；bridge lifecycle是首个共享snapshot consumer，dynamic session已把本地catalog snapshot与同代compiled plan共同pin到shutdown。完成项与局部量化证据记录在`07/2026-08-28-typed-catalog-generation-identity.md`。App bootstrap、dynamic session、native/script backend仍有重复catalog builder，尚未统一消费该authority；P1-1/P1-2、Cargo产品验收、真实ZrVM/native DLL、签名链、crash isolation、功耗与参考引擎对比均未完成。07关联源码仍有其他Session的大量修改，后续接线前必须重新读取current diff并复核failure状态。

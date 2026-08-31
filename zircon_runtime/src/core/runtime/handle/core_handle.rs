@@ -13,7 +13,7 @@ use super::super::state::{
     CoreRuntimeInner, LifecycleCoordinator, ModuleEntry, ModuleLifecycleCommand,
     ModuleLifecycleTransitionPermit, ModuleLifecycleTransitionToken, ServiceEntry,
 };
-use super::super::tasks::{JobScheduler, TaskPool, TaskPoolKind, TaskPoolReport, TaskPools};
+use super::super::tasks::{EngineTaskGraph, JobScheduler, TaskGraphWorkerInventory};
 use super::super::weak::CoreWeak;
 
 #[derive(Clone)]
@@ -32,16 +32,12 @@ impl CoreHandle {
         &self.inner.scheduler
     }
 
-    pub fn task_pools(&self) -> &TaskPools {
-        &self.inner.task_pools
+    pub fn task_graph(&self) -> &EngineTaskGraph {
+        &self.inner.task_graph
     }
 
-    pub fn task_pool(&self, kind: TaskPoolKind) -> &TaskPool {
-        self.inner.task_pools.get(kind)
-    }
-
-    pub fn task_pool_report(&self) -> TaskPoolReport {
-        self.inner.task_pools.report()
+    pub fn task_graph_worker_inventory(&self) -> TaskGraphWorkerInventory {
+        self.task_graph().worker_inventory()
     }
 
     pub(crate) fn lock_modules(&self) -> MutexGuard<'_, HashMap<String, ModuleEntry>> {
@@ -56,6 +52,14 @@ impl CoreHandle {
         &self,
     ) -> MutexGuard<'_, Option<Arc<FrozenModuleGraph>>> {
         lock_poison_recovered(&self.inner.frozen_module_graph)
+    }
+
+    pub(crate) fn lock_active_module_order(&self) -> MutexGuard<'_, Vec<String>> {
+        lock_poison_recovered(&self.inner.active_module_order)
+    }
+
+    pub(crate) fn active_module_shutdown_order(&self) -> Vec<String> {
+        self.lock_active_module_order().clone()
     }
 
     fn lock_lifecycle_coordinator(&self) -> MutexGuard<'_, LifecycleCoordinator> {
@@ -283,6 +287,12 @@ mod tests {
             panic!("poison core handle frozen module graph");
         }));
         assert!(handle.lock_frozen_module_graph().is_none());
+
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = handle.inner.active_module_order.lock().unwrap();
+            panic!("poison core handle active module order");
+        }));
+        assert!(handle.lock_active_module_order().is_empty());
 
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
             let _guard = handle.inner.lifecycle_coordinator.lock().unwrap();

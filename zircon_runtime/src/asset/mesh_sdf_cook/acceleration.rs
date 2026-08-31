@@ -103,16 +103,17 @@ impl TriangleBvh {
             return Err(MeshSdfCookError::IndexOutOfRange);
         }
 
-        let triangles = indices
-            .chunks_exact(3)
-            .filter_map(|triangle| {
-                Triangle::new(
-                    Vec3::from_array(vertices[triangle[0] as usize].position),
-                    Vec3::from_array(vertices[triangle[1] as usize].position),
-                    Vec3::from_array(vertices[triangle[2] as usize].position),
-                )
-            })
-            .collect::<Vec<_>>();
+        let triangle_capacity = indices.len() / 3;
+        let mut triangles = Vec::with_capacity(triangle_capacity);
+        for triangle_indices in indices.chunks_exact(3) {
+            if let Some(triangle) = Triangle::new(
+                Vec3::from_array(vertices[triangle_indices[0] as usize].position),
+                Vec3::from_array(vertices[triangle_indices[1] as usize].position),
+                Vec3::from_array(vertices[triangle_indices[2] as usize].position),
+            ) {
+                triangles.push(triangle);
+            }
+        }
         if triangles.is_empty() {
             return Err(MeshSdfCookError::DegenerateGeometry);
         }
@@ -122,7 +123,8 @@ impl TriangleBvh {
             .map(Aabb::from_triangle)
             .reduce(Aabb::union)
             .ok_or(MeshSdfCookError::DegenerateGeometry)?;
-        let mut triangle_order = (0..triangles.len()).collect::<Vec<_>>();
+        let mut triangle_order = Vec::with_capacity(triangles.len());
+        triangle_order.extend(0..triangles.len());
         let mut nodes = Vec::with_capacity(triangles.len().saturating_mul(2));
         let triangle_order_len = triangle_order.len();
         let root = build_node(

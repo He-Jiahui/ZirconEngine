@@ -156,6 +156,37 @@ class ReservedStartTests(unittest.TestCase):
             run_status = self.runner.status(job.job_id, session_id="session-a")
         self.assertEqual("completed", run_status["status"])
 
+    def test_rollover_pending_rejects_reserved_start_before_acknowledgement(self) -> None:
+        command = ("cargo", "check")
+        reservation, job = self._reserved_job(command)
+
+        def reject_start(_connection, _operation: str) -> None:
+            raise CoordinatorError(
+                "cargo_start_rollover_pending",
+                "The current daemon has committed a rollover handoff",
+            )
+
+        self.cargo_jobs.set_cargo_start_guard(reject_start)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.starts.accept(
+                request_id="a" * 32,
+                reservation_id=reservation["reservationId"],
+                job_id=job.job_id,
+                session_id="session-a",
+                command=command,
+            )
+
+        self.assertEqual("cargo_start_rollover_pending", rejected.exception.code)
+        self.assertEqual([], self.scheduled)
+        with self.database.connect() as connection:
+            request_count = connection.execute(
+                "SELECT COUNT(*) FROM cargo_start_requests WHERE job_id=?",
+                (job.job_id,),
+            ).fetchone()[0]
+        self.assertEqual(0, request_count)
+        self.assertEqual(CargoJobStatus.LEASED, self.cargo_jobs.get(job.job_id).status)
+
     def test_launch_failure_is_terminal_without_fabricating_cargo_exit(self) -> None:
         command = (os.fspath(Path(os.sys.executable)), "-c", "raise SystemExit(0)")
         reservation, job = self._reserved_job(command)

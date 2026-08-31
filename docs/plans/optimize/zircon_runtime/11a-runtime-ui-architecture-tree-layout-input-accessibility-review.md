@@ -1,6 +1,14 @@
 ---
 related_code:
   - zircon_runtime/src/ui
+  - zircon_runtime/src/ui/surface/surface/rebuild.rs
+  - zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs
+  - zircon_runtime/src/ui/surface/surface/property_transaction.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs
+  - zircon_runtime/src/ui/template/asset/surface_index.rs
+  - zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs
   - zircon_runtime_interface/src/ui
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
@@ -30,7 +38,7 @@ reference_engines:
   - dev/godot/servers/display/accessibility_server.h
 doc_type: review-and-refactor-plan
 review_status: review_complete
-implementation_status: pending
+implementation_status: in_progress
 source_recheck_required: true
 ---
 
@@ -48,7 +56,7 @@ Zircon 的 retained UI 不是空实现。`UiSurface` 已拥有 tree、component 
 
 Tree/layout 的增量基础是真实的，但工程声明超过实装。局部 dirty rebuild 会选择 subtree 并 patch arranged/hit/render；然而 Taffy bridge 每个 container 临时创建一棵只含 parent 和直接 child leaf 的 `TaffyTree`，计算后立即丢弃。它不是 Bevy 式 persistent Taffy graph，不能利用跨帧 dirty/measure cache，也不具有完整嵌套 CSS layout 语义。所谓 virtualized list 仍物化和测量全部 child，再隐藏不可见 subtree；通用 node pool 没有进入运行时数据源循环。
 
-Tree 的公开可变图和 hit grid 还存在 P0 robustness 风险。`UiTree.roots/nodes/slots` 都可绕过 transaction 直接修改；大量 recursive traversal 没有统一 cycle/depth guard。Hit grid 根据所有 entry 的联合 bounds 直接分配 `columns * rows` 个 cell，没有 finite、checked arithmetic、最大 cell/bytes 或 authored-content budget。一个极远坐标或巨大 frame 可以导致溢出、巨量分配或 OOM。
+Tree 的公开可变图仍存在 P0 robustness 风险。`UiTree.roots/nodes/slots` 都可绕过 transaction 直接修改；大量 recursive traversal 没有统一 cycle/depth guard。current-source 静态候选已经让 base/projected hit grid 共用 finite geometry、每轴 128、总计 16,384 cell 和单 entry 4,096 cell 的 admission 边界；超宽 entry 会把 cell size 自适应加倍，使网格最多调粗到64×64而不坍缩全局空间分区。但 surface/node/entry/bytes 总预算、typed rejection和产品压力验证仍未关闭。
 
 Accessibility 已有较完整的中立 DTO、名称解析、诊断和动作回写，也有 optional AccessKit snapshot converter；但没有 app/editor 的 AccessKit window adapter、OS tree publication、incremental update、action callback 或 focus synchronization。产品只提供手工 JSON snapshot ABI。角色/关系/live-region/text semantics 也远窄于工程级桌面与游戏 UI。
 
@@ -79,8 +87,8 @@ Accessibility 已有较完整的中立 DTO、名称解析、诊断和动作回�
 ### 2.3 参考源码
 
 - Bevy `UiPlugin` 注册 persistent `UiSurface` resource，并把 Focus、Prepare、Propagate、Content、Layout、PostLayout、Stack 放入明确 schedule；`layout/ui_surface.rs` 持久保存 entity-to-Taffy map 和 `TaffyTree`，以 upsert/update/remove 维护跨帧 graph。
-- Fyrox `UserInterface` 同时拥有 keyboard focus、captured node、layout event、double-click timer 和 tooltip update；`update(screen_size, dt, switches)` 用真实 `dt` 推进时间行为。
-- Unreal `FSlateApplication` 是 window/input/user focus/tick/modal/popup 的统一 application owner；Slate 使用 typed invalidation reason、invalidation root、widget path 和 platform accessibility bridge。
+- Fyrox `UserInterface` 同时拥有 keyboard focus、captured node、layout event、double-click timer 和 tooltip update；`update(screen_size, dt, switches)` 用真实 `dt` 推进时间行为。其 `pick_node` 在递归下降前以 screen-size clip 拒绝不可见 subtree，说明即使不用空间网格，查询域也不能由异常 authored extent 无界扩张。
+- Unreal `FSlateApplication` 是 window/input/user focus/tick/modal/popup 的统一 application owner；Slate 使用 typed invalidation reason、invalidation root、widget path 和 platform accessibility bridge。`FHittestGrid::SetHittestArea` 由窗口 hit-test area 决定固定 cell 数，`AddWidget` 在 paint 时读取最终 paint geometry 并把 cell 坐标夹到该窗口网格；内容 geometry 不拥有 backing-grid 容量。
 - Godot `Control` 通过 minimum-size/queue update 传播失效，`LineEdit` 将 IME active/candidate position直接同步到 `DisplayServer`，Control/AccessibilityServer 形成 OS-facing 更新与动作回调。
 - Unity Graphics 仓内源码不包含 Unity 主 UI retained tree/input/accessibility 实现，11A 不用 graphics package 猜测闭源 UI 行为；11C 只在 GPU resource/batch/clip 范围引用可证明部分。
 
@@ -98,9 +106,19 @@ Tree、component state、focus、input transient state、arranged tree、hit ind
 
 `UiInputDispatchResult` 已能携带 reply、diagnostics、effects、host requests、component events 和 binding reports。缺口主要在产品桥将其丢弃，而不是再发明第四种 result。应以这个 typed result 为基础做 compact receipt/generation，而不是保留 bool-only 旁路。
 
+这里的 compact receipt 必须是行为权威，不是 full diagnostics 的第二份副本。它需要区分 physical hit path 与 capture/redirect dispatch path，并提供 route target、capture target 和 under-cursor 路径；input manager、multi-surface routing 与 Editor bridge 只消费 receipt。`UiInputRouteTrace`、per-stage steps、notes 和 popup stack 是从同一次 dispatch 观察生成的可选投影，默认 summary、full capture 有 path/step/note/popup/byte 上限。任何模式切换都必须保持 reply、effects、hover、capture、focus 和 host request 等价。
+
+2026-08-31 current-source candidate 已把 pointer portion 落到同一 typed result：`UiPointerRoutingReceipt` 接管 route/capture target、physical path 和 conditional dispatch path；manager、dynamic multi-surface capture 与 Editor shell 已不再从 diagnostics 反推行为。Dynamic Runtime UI 与 Editor drag/resize 产品入口选择 `Summary`，因此普通产品 pointer event 不物化 trace/steps/pointer-source String；窗口泵、文本选择、富链接默认动作、raw mouse motion 以及 analog/navigation/drag-drop 也在格式化诊断字符串或 route trace 前检查同一 mode，兼容入口保留显式 `Full`。Full pointer projection 在构造期限制为每 path 128 nodes、256 steps、32 notes、16 popup rows 和 8 KiB combined strings；Summary 先用固定字段空检查跳过普通 pointer/raw-motion/analog/drag-drop finalizer，只有已存在可变长诊断 payload 时才执行同一预算。source suites 59/59，14个interface/runtime Rust回归已写但未获 Cargo 执行授权。`E:\zircon-profiles\runtime-ui-pointer-diagnostics-summary-pressure-20260831-r4.json`（SHA-256 `664A1061BCE94AA6D217AB34F1BFBF9CFE4E1AEC0C53E66C7E1B46E9A44B02B8`）分别建模 100,000 个窗口归一化 pointer-move 与 raw mouse motion，记录避免 300,000 + 100,000 次诊断字符串分配、在两个事件路径合计保留 1,600,000 次固定字段 presence checks；它只证明 source-bound 分配下界，不能替代 managed parity、allocator counter 或产品 input-to-present trace。其它 non-pointer diagnostics 的构造期预算仍未完成。
+
+Analog 侧按 Unreal typed analog key 的 retained lookup 边界收口：Zircon 删除了读取 retained value 前的完整 analog event/control clone，canonical lowercase ASCII alnum control 通过 `Cow::Borrowed` 分类，兼容 alias 才分配 normalized string，现有 repeat key 不变；Summary 也不构造 analog/navigation trace、steps、phase 或 notes。source-bound artifact `E:\zircon-profiles\runtime-ui-analog-ownership-pressure-20260831-r2.json`（SHA-256 `D5B65F8951D3AECDD7BD59F26DF3A969191508988A32D25175020EC535ED03E7`）在 100,000 个 12-byte canonical 事件模型中记录避免 200,000 次 transient String allocation 与至少 2,400,000 bytes copy；active repeat-key formatting、CPU/allocator timing和产品 gamepad latency仍未验证。
+
+Drag-drop 侧复用 Unreal shared drag-operation authority：platform normalization只构造一次`Arc<UiDragPayload>`，event/reply/applied effect/retained state共享它且保持既有JSON对象；产品`Summary`不投影route/steps/phase/notes。单个同session、同pointer、同target `Update`不再复制tree/runtime style/input/component state；target变化、生命周期和multi-effect仍保留transaction rollback。source-bound artifact `E:\zircon-profiles\runtime-ui-drag-drop-ownership-pressure-20260831-r1.json`（SHA-256 `B467E04C9334EB1C7601B87D8BD6A70DD6926F3AD338970F13DA3A6F10A410ED`）在100,000 updates模型中记录600,000次旧payload深clone与99,900次full snapshot可消除，candidate保留300,000次`Arc`clone和100次target-transition snapshot；allocator/CPU/RSS、Arc原子成本和产品drag latency仍未验证。
+
 ### 3.3 Dirty domain 和局部 patch 不是空统计
 
 `rebuild_dirty` 会把 layout dirtiness 向需要的 ancestor 扩大，只对受影响 subtree重算 layout，并尝试 patch arranged geometry、hit entry和 render command。该边界可以升级为 generation-owned immutable artifacts；问题是部分内部步骤仍全 subtree/full scan，以及 publication/report 语义不精确。
+
+2026-08-31 current source进一步把render publication和最后一个renderer consumer接通：`UiRenderFrameExtract`的64-command不可变leaf与持久目录已是generation authority，`UiRenderSubmission`保留surface route/projection；`ScreenSpaceUiPlanCache`现在直接按同一leaf `Arc` identity缓存plan，而不是surface frame根变化后重编译该surface全部commands。cache key同时覆盖route、projection、DPI和background generation，background effects变化会显式使suffix失效，最终composition继续共享plan payload。leaf hit/count/rebuild观测已覆盖exact、全复用和局部重建三条分支；stable/delta evidence v2分别守恒command leaf与image/text surface segment。focused及相邻源码/模型合同91/91；source-bound artifact `E:\zircon-profiles\runtime-ui-command-leaf-plan-cache-pressure-20260831-r1.json`（SHA-256 `30BDA2A9F4478C00088A42848195D5238E0F31B40A0AC2CC7C876EC10D65864A`）在默认模型中记录command visits `65,024 -> 36,800`与32,193个leaf cache hit。Rust lower regression已写但未执行Cargo；该结果只关闭publication identity未被renderer消费的结构缺口，不代表实际resize、按钮响应、GPU或帧延迟已经达标。
 
 ### 3.4 Accessibility 中立层可复用
 
@@ -142,11 +160,11 @@ Role/state/action、name/description/label relation、focus、bounds、诊断和
 
 必须定义 game/UI 边界：compiled binding target指向typed gameplay command/model field；UI event提交事务生成compact receipt；game state变化以generation/delta回投surface。禁止用字符串反射mirror成为第二truth，也禁止业务代码直接拿`UiTree.nodes.get_mut()`。
 
-### P0-6：Hit grid 可被 authored geometry 触发无界分配或溢出
+### P0-6：Hit grid backing allocation 已封顶，但总预算与 coarse 查询退化未关闭
 
-`build_hit_grid` 对所有entry联合bounds按64像素切格，直接执行 `(columns * rows) as usize` 和 `vec![cell; count]`。没有 finite/negative/maximum extent、checked multiplication、cell/bytes budget或sparse fallback；大entry还会复制到每个相交cell。极远坐标、NaN/Inf或巨大UI资产可造成panic、overflow、OOM或长时间卡死。
+current-source 静态候选已让 base grid 与 popup projected grid 共用 `bounded_hit_grid_dimensions` 和 `bounded_cells_for_frame`：非 finite frame 不进入 membership；每轴最多128、backing grid最多16,384个cell；单entry若覆盖超过4,096个cell则把cell size加倍，将全局网格从最多128×128调粗到最多64×64，任何entry仍不超过4,096个membership；两条 backing allocation 都使用checked multiplication。此前 projected path 自行计算 `columns * rows`、重复实现 cell mapper 且只检查正宽高的旁路已移除。
 
-导入/compile边界必须验证finite geometry和规模；runtime spatial index必须checked allocation并受surface budget约束。超预算应返回typed diagnostic并降级到bounded BVH/quadtree或拒绝surface，不能让内容数据决定任意内存分配。
+这只封住 backing-cell 和单entry membership 爆炸，不等于P0完成。多个真正覆盖全surface的重叠entry仍会共同出现在每个query cell，这是语义上不可避免的候选集合；当前也没有surface级node/entry/membership/bytes budget、typed超预算diagnostic、import拒绝或viewport-owned index。下一步应让窗口/viewport定义索引域，记录adaptive coarsening和每query候选数；超预算必须typed拒绝或切换bounded sparse/BVH。Rust lower regression与产品resize/popup CPU、RSS、候选数和输入p95仍待managed验证。
 
 ### P0-7：公开 Tree 可绕过不变量，递归遍历缺少统一防环/深度门禁
 
@@ -200,9 +218,11 @@ incremental path是真实patch，但每个root仍遍历完整subtree、snapshot 
 
 Surface同时包含authoring/runtime mutable state，并通过serde跳过部分index/cache。反序列化后可能得到tree/component/input状态与默认cache/generation组合，依赖调用方手工full rebuild。应只序列化versioned asset/state snapshot DTO；live surface、handler、capture、IME、timer、cache和publication handle禁止直接serde。
 
-### P1-12：Tree 顺序插入是 O(N²)
+### P1-12：Tree 顺序插入已收敛到 cursor；overflow 合同仍未完成
 
-每次`insert_root/insert_child`都扫描所有nodes求最大paint order；模板顺序构树因此是O(N²)。bulk compile应一次生成dense paint order，动态tree维护单一next-order cursor；deserialize只重建一次并校验overflow。
+`UiTreeNodes` current-source 已维护单一 `PaintOrderCursor`。纯顺序 `insert_root/insert_child` 不再扫描既有node；deserialize和公开mutable入口只使cursor失效，下一次allocate最多重建一次，随后继续O(1)分配。10,000节点确定性模型把旧式累计49,995,000次node visit降为0；一次任意paint-order mutation后的首个insert为10,000次，后续insert为0。
+
+残余是cursor用`saturating_add`，到`u64::MAX`会静默复用order，尚无typed exhaustion、rebase transaction或compile/import budget。当前lower Rust测试与release benchmark已写入源码，但本轮没有Cargo授权；在managed回归和产品大树构建证据完成前，本项只能记为静态候选而非accepted。
 
 ### P1-13：Tree mutation index 在反序列化后丢失
 
@@ -234,7 +254,7 @@ popup open状态通过全树metadata扫描、组件名和boolean属性推断。�
 
 ### P1-20：Pointer/navigation handler 注册没有生命周期token
 
-dispatcher按node/kind保存`Arc`/closure，但没有unregister/owner generation。tree节点移除、hot reload或plugin unload后handler生命周期无法原子退休。route invocation还clone完整context/result。应返回generational subscription token，随surface/plugin generation teardown，并将normal-path diagnostics置于debug gate。
+dispatcher按node/kind保存`Arc`/closure，但没有unregister/owner generation。tree节点移除、hot reload或plugin unload后handler生命周期无法原子退休。当前pointer/navigation handler context已借用event-lifetime route，dispatcher结束后再把同一route move进result，不再为context/result深clone route；pointer hit/dispatch path也已收敛为一条root-to-leaf规范序列，只有capture/redirect才保留第二条必要路径，bubble/tunnel仅改变迭代方向。Pointer normal path 已通过产品 `Summary` gate 停止物化 full trace，显式 Full 也已有硬预算和截断回执；本项剩余问题是返回generational subscription token并随surface/plugin generation teardown。
 
 ### P1-21：`UiEventManager` route 覆盖会留下stale entry
 
@@ -304,7 +324,7 @@ converter把AccessKit character index按grapheme cluster换算为UTF-8 byte offs
 
 ### P2-6：多处hot path仍拥有wide clone/String/TOML解析
 
-route context、component event、binding、reflection、node metadata和attribute alias在input/navigation/a11y路径重复clone或解析。既有PERF-MVP-254/265/274/278/283/572已经拥有性能重构编号；11A只要求它们绑定同一surface/component generation，不另建cache truth。
+event-lifetime route context深clone与普通pointer hit/bubble/dispatch三份路径所有权已在PERF-MVP-254源码候选中消除；capture仍明确保留物理命中和实际分发两条必要路径。component event、binding、reflection、node metadata和attribute alias在input/navigation/a11y路径仍重复clone或解析。既有PERF-MVP-265/274/278/283/572继续拥有这些性能重构编号；11A只要求它们绑定同一surface/component generation，不另建cache truth。
 
 ### P2-7：错误和fallback缺少产品可观测性
 
@@ -375,6 +395,7 @@ Runtime09保持`in_progress`是正确的，但部分子记录把“单入口”�
 ### M2：完整dispatch receipt和host bridge
 
 - Product ABI携带component/binding/host/effect结果和handled状态。
+- Pointer compact routing receipt 的 current-source candidate 已成为 manager/dynamic/Editor 行为权威，pointer Full 也已有节点、步骤、字符串和字节硬预算/截断回执；仍需 managed parity、non-pointer diagnostics 构造期预算与迁移。
 - app执行typed clipboard/IME/cursor/pointer/popup/link request并返回结果。
 - gameplay command/model binding完成一个Button、Slider、TextInput、List selection端到端闭环。
 
@@ -451,7 +472,7 @@ Runtime09保持`in_progress`是正确的，但部分子记录把“单入口”�
 ## 11. 既有计划需要纠正或重开
 
 1. `09-ui-subsystem-architecture.md` 的M2.1“单Taffy入口”结构结论可保留，但不能作为persistent Taffy/layout cache完成；按本文M5重开行为与规模验收。
-2. M2.2和测试名`virtualized_list_only_materializes_visible_window`需要纠正。当前只计算visible range并隐藏已物化child，不满足“只物化”；按本文M6重开并先改名避免false claim。
+2. M2.2旧测试名`virtualized_list_only_materializes_visible_window`已经retired并hard cut为`retained_virtual_list_only_arranges_visible_window`，不再声称“只物化”。当前仍只是计算visible range并隐藏已retained child，实例materialization继续按本文M6重开。
 3. `2026-08-07-runtime-ui-incremental-refresh.md` frontmatter标记`completed`与正文M4-M7 pending/当前full-subtree事实不一致。历史里程碑记录保留，但总体状态应恢复`in_progress`，直到publication/scale/product gates完成。
 4. `2026-07-17-woc-project-runtime-ui-bridge.md` 的“无project surface”已被当前未跟踪`RuntimeUiSurfaceSet`部分改变；该failure不能直接关闭，因为action/binding/host/tick/window/hot-reload/scale验收仍失败。
 5. `2026-07-19-dynamic-ui-extract-generation.md` 仍open且正确。当前render每次flatten commands并重写node ID，没有generation-ownedmulti-surface segment。
@@ -467,8 +488,42 @@ Runtime09保持`in_progress`是正确的，但部分子记录把“单入口”�
 - `zircon_app`后续报告：Winit/application host执行与window/screen-reader设备接入；runtime仍拥有UI状态机。
 - `zircon_editor`后续报告：authoring transaction、Workbench多窗口、designer/preview；不能再创建第二套runtime UI truth。
 
+Current-source structural correction 2026-08-28: pointer component-event envelope/focus/damage
+remains in the 426-line `pointer_component_events.rs` root, while compiled binding handle validation,
+declarative action/route selection and payload resolution now live in the 262-line
+`pointer_component_events/template_action.rs` child. The 9/9 moved-method normalized hashes match;
+event and payload algorithms were not optimized. Status:
+`runtime_09_15_ui_pointer_template_action_owner_split_static_passed_cargo_profile_deferred`.
+Cargo/product and CPU/allocation/RSS/power gates remain open.
+
+Current-source product correction 2026-08-28: pointer, keyboard/text/IME, clipboard-result and
+accessibility dispatch now send authored `template_action` values through one
+`RuntimeUiActionRequestQueue` into the existing transactional Host Request page. The queue is
+folder-backed under `runtime_ui/action_requests.rs` and has 256-row, 240 KiB aggregate, 64 KiB row
+and JSON-depth admission bounds. Secure Change supersedes only the same field/route; a rejected
+secure delivery revokes its latest surface lease. The generic App validates viewport identity and
+emits logarithmically bounded diagnostics without payload/reference. This closes only the
+template-action portion of P0-1; binding reports and the remaining UI host requests, real product
+adapters, UI clock/window lifecycle, managed Cargo and product/profile/power validation remain open.
+Status: `runtime_ui_template_action_host_delivery_implemented_unvalidated /
+remaining_dispatch_receipts_open`.
+
+Current-source structural correction 2026-08-28: the 758-line `surface_index.rs` root owns
+surface/tree forward and reverse indexes, resource reverse edges and hot-reload targeting; tolerant
+retained node-resource URI/kind/fallback projection now lives in the 175-line
+`surface_index/node_resource_registration.rs` child. Compile-time strict schema diagnostics remain in
+`resource_ref/collect.rs`, preserving the distinct lifecycle and error contract. All 11 moved-item
+normalized hashes match, while parser/schema/fallback/dedup/hot-reload algorithms were not optimized.
+Status:
+`runtime_09_15_ui_asset_surface_node_resource_owner_split_static_passed_cargo_profile_deferred`.
+Cargo/product and CPU/allocation/RSS/power gates remain open.
+
 ## 状态与产出记录
 
 | 里程碑 | 范围 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
 | 11A-R0 | Runtime UI architecture/tree/layout/input/accessibility current-source review | review_complete_implementation_pending_source_recheck | 2026-08-16 | 566 production architecture files / 88,376 lines inventoried and fingerprinted；6-file product bridge traced；Bevy/Fyrox/Unreal/Godot owners cross-read；7 P0、31 P1、8 P2；production untouched |
+| 11A-S1 | UiSurface incremental rebuild responsibility owner split | runtime_09_15_ui_surface_incremental_rebuild_owner_split_static_passed_cargo_profile_deferred | 2026-08-27 | Unreal `SlateInvalidationRoot` 与 widget list/heap/index owner 边界复审；1194-line root -> 500-line root + 711-line child；4/4 moved-item normalized SHA-256 equivalent；P1-9/P1-10、Cargo/profile/power remain open |
+| 11A-S2 | UiSurface property transaction responsibility owner split | runtime_09_15_ui_surface_property_transaction_owner_split_static_passed_cargo_profile_deferred | 2026-08-27 | Unreal Slate attribute descriptor/value-change/invalidation mapping复审；959-line root -> 483-line root + 485-line child；12/12 moved-item normalized SHA-256 equivalent；mutation/popup/text/focus algorithms and Cargo/profile/power remain open |
+| 11A-S3 | UI pointer component transient-state owner split | runtime_09_15_ui_pointer_component_state_owner_split_static_passed_cargo_profile_deferred | 2026-08-27 | Unreal `SlateApplication` routing vs `SWidget` hover/invalidation state复审；887-line root -> 674-line root + 226-line child；7/7 moved-item normalized SHA-256 equivalent；ancestor/style/dirty algorithms and Cargo/profile/power remain open |
+| 11A-P0-1A | Dynamic Runtime UI authored action Host delivery | runtime_ui_template_action_host_delivery_implemented_unvalidated / remaining_dispatch_receipts_open | 2026-08-28 | typed viewport/surface/tree/node/sequence/action delivery；256-row + 240 KiB aggregate + 64 KiB row + depth reserve；secure Change supersession/rejection revocation；Host output rollback stability；generic App payload-free bounded diagnostics；managed Cargo/product adapter pending |

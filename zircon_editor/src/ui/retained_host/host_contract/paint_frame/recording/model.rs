@@ -1,8 +1,16 @@
 use std::sync::Arc;
 
-use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
+use zircon_runtime_interface::ui::surface::{UiRenderFrameCommandRef, UiTextRunPaintStyle};
 
 use super::super::super::data::FrameRect;
+use super::source_table::{HostRenderSourceKey, HostRenderSourceTable};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::ui::retained_host::host_contract) struct HostRenderCommandSource {
+    pub(in crate::ui::retained_host::host_contract) surface_key: HostRenderSourceKey,
+    pub(in crate::ui::retained_host::host_contract) command_ref: UiRenderFrameCommandRef,
+    pub(in crate::ui::retained_host::host_contract) fragment_index: u16,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract) struct HostPaintImageUvRect {
@@ -53,5 +61,12 @@ pub(in crate::ui::retained_host::host_contract) struct HostRecordedPaintCommand 
     pub frame: FrameRect,
     pub clip_frame: Option<FrameRect>,
     pub z_index: i32,
+    pub source: Option<HostRenderCommandSource>,
     pub kind: HostRecordedPaintKind,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(in crate::ui::retained_host::host_contract) struct HostRecordedFrame {
+    pub commands: Vec<HostRecordedPaintCommand>,
+    pub render_sources: HostRenderSourceTable,
 }

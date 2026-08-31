@@ -29,6 +29,7 @@ def source_template_generated_file_diagnostics(
         return ["SourceTemplate report generated_files must be a list"]
     diagnostics: list[str] = []
     report_paths: list[str] = []
+    report_path_set: set[str] = set()
     for index, file in enumerate(generated_files):
         if not isinstance(file, dict):
             diagnostics.append("SourceTemplate generated file entry must be an object")
@@ -40,11 +41,12 @@ def source_template_generated_file_diagnostics(
             continue
         if not source_template_is_non_empty_trimmed_string(path):
             continue
-        if path in report_paths:
+        if path in report_path_set:
             diagnostics.append(
                 f"SourceTemplate report generated file path {path} is duplicated"
             )
         report_paths.append(path)
+        report_path_set.add(path)
         output_path = source_template_generated_file_path(project_dir, path, diagnostics)
         if output_path is None:
             continue
@@ -106,13 +108,15 @@ def source_template_generated_file_plan_diagnostics(
     )
     if plan_paths is None:
         return ["SourceTemplate Validate plan_summary.generated_files must be a list"]
+    report_path_set = set(report_paths)
+    plan_path_set = set(plan_paths)
     for path in plan_paths:
-        if path not in report_paths:
+        if path not in report_path_set:
             diagnostics.append(
                 f"SourceTemplate report missing generated file from Validate plan: {path}"
             )
     for path in report_paths:
-        if path not in plan_paths:
+        if path not in plan_path_set:
             diagnostics.append(
                 f"SourceTemplate report generated file {path} is not declared by Validate plan"
             )
@@ -133,6 +137,7 @@ def source_template_validate_generated_file_paths(
     if not isinstance(generated_files, list):
         return None, diagnostics
     paths: list[str] = []
+    path_set: set[str] = set()
     for index, file in enumerate(generated_files):
         if not isinstance(file, dict):
             diagnostics.append("SourceTemplate Validate generated file entry must be an object")
@@ -155,10 +160,11 @@ def source_template_validate_generated_file_paths(
             kind="SourceTemplate Validate generated file path",
         ) is None:
             continue
-        if path in paths:
+        if path in path_set:
             diagnostics.append(
                 f"SourceTemplate Validate generated file path {path} is duplicated"
             )
             continue
         paths.append(path)
+        path_set.add(path)
     return paths, diagnostics

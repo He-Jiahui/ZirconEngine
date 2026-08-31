@@ -81,7 +81,7 @@ fn componentized_workbench_module_dropdown_selection_paints_native_preview_pixel
             .expect("material domain dropdown projection after option selection")
             .value_text
             .as_deref(),
-        Some("post_process")
+        Some("Post Process")
     );
 
     let after = paint_runtime_render_commands_for_test(
@@ -273,11 +273,11 @@ fn native_workbench_secondary_press_requests_scene_context_menu() {
     assert!(request
         .menu_items
         .iter()
-        .any(|item| item.as_str() == "Rename|icon=edit"));
+        .any(|item| item.as_str() == "Rename|action=menu.item.rename,icon=edit"));
     assert!(request
         .menu_items
         .iter()
-        .any(|item| item.as_str() == "Delete|danger,icon=trash"));
+        .any(|item| item.as_str() == "Delete|action=menu.item.delete,danger,icon=trash"));
 }
 
 #[test]

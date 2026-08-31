@@ -25,7 +25,7 @@ fn runtime_surface_present_sources_stay_folder_backed() {
     );
     assert!(
         runtime_surface_present_source.contains("mod binding;")
-            && runtime_surface_present_source.contains("mod fallback;")
+            && runtime_surface_present_source.contains("mod reference_cpu;")
             && runtime_surface_present_source.contains("mod lifecycle;")
             && runtime_surface_present_source.contains("mod redraw;")
             && runtime_surface_present_source.contains("mod resize;"),
@@ -33,9 +33,8 @@ fn runtime_surface_present_sources_stay_folder_backed() {
     );
     assert!(
         runtime_window_surface_source.contains("mod native_target;")
-            && runtime_window_surface_source.contains(
-                "pub(in crate::entry::runtime_entry_app) use native_target::runtime_native_surface_target;",
-            ),
+            && runtime_window_surface_source
+                .contains("runtime_native_surface_target, NativeSurfaceTargetUnavailable",),
         "runtime window-surface root should stay structural and expose the native target helper"
     );
     assert!(
@@ -88,4 +87,16 @@ fn runtime_window_surface_target_extraction_stays_app_side_and_wgpu_free() {
         !runtime_window_surface_source.contains("wgpu::"),
         "runtime window-surface target extraction should not create or configure render surfaces directly"
     );
+    for unavailable_path in [
+        "NativeSurfaceTargetUnavailable",
+        "WindowHandleUnavailable",
+        "DisplayHandleUnavailable",
+        "UnqualifiedPlatformHandle",
+        "Result<ZrRuntimeNativeSurfaceTargetV1, NativeSurfaceTargetUnavailable>",
+    ] {
+        assert!(
+            runtime_window_surface_source.contains(unavailable_path),
+            "native target extraction should retain typed unavailability `{unavailable_path}`"
+        );
+    }
 }

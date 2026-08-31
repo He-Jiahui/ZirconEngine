@@ -252,8 +252,6 @@ pub(super) fn pane_from_tab_with_template_v2_data(
                 String::new(),
             )
         });
-    let ui_asset_pane = ui_asset_pane.cloned().unwrap_or_default();
-    let animation_pane = animation_pane.cloned().unwrap_or_default();
     let pane_presentation = build_pane_presentation(
         title,
         icon_key,
@@ -264,7 +262,7 @@ pub(super) fn pane_from_tab_with_template_v2_data(
         &viewport,
         snapshot,
         chrome,
-        Some(&animation_pane),
+        animation_pane,
         runtime_diagnostics,
         module_plugins,
         build_export,
@@ -289,22 +287,65 @@ pub(super) fn pane_from_tab_with_template_v2_data(
         secondary_hint: SharedString::from(secondary_hint),
         show_toolbar,
         viewport,
-        native_body: PaneNativeBodyData {
-            hierarchy: hierarchy_pane_data(chrome),
-            inspector: inspector_pane_data(chrome, &info),
-            console: console_pane_data(chrome),
-            assets_activity: AssetsActivityPaneViewData::default(),
-            asset_browser: AssetBrowserPaneViewData::default(),
-            project_overview: ProjectOverviewPaneViewData::default(),
-            performance_timeline: performance_timeline_pane_data(&pane_presentation),
-            module_plugins: module_plugins.clone(),
-            build_export: build_export.clone(),
-            generated_bottom: generated_bottom_pane_data(&pane_presentation),
-            ui_asset: ui_asset_pane,
-            animation: animation_pane_data(animation_pane),
-        },
+        native_body: build_native_body(
+            kind,
+            chrome,
+            &info,
+            &pane_presentation,
+            module_plugins,
+            build_export,
+            ui_asset_pane,
+            animation_pane,
+        ),
         pane_presentation,
     }
+}
+
+fn build_native_body(
+    kind: ViewContentKind,
+    chrome: &EditorChromeSnapshot,
+    info: &str,
+    pane_presentation: &Option<PanePresentation>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+    ui_asset_pane: Option<&crate::ui::asset_editor::UiAssetEditorPanePresentation>,
+    animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
+) -> PaneNativeBodyData {
+    let mut native_body = PaneNativeBodyData::default();
+    match kind {
+        ViewContentKind::Hierarchy => {
+            native_body.hierarchy = hierarchy_pane_data(chrome);
+        }
+        ViewContentKind::Inspector => {
+            native_body.inspector = inspector_pane_data(chrome, info);
+        }
+        ViewContentKind::Console => {
+            native_body.console = console_pane_data(chrome);
+        }
+        ViewContentKind::PerformanceTimeline => {
+            native_body.performance_timeline = performance_timeline_pane_data(pane_presentation);
+        }
+        ViewContentKind::ModulePlugins => {
+            native_body.module_plugins = module_plugins.clone();
+        }
+        ViewContentKind::BuildExport => {
+            native_body.build_export = build_export.clone();
+        }
+        ViewContentKind::GeneratedBottom => {
+            native_body.generated_bottom = generated_bottom_pane_data(pane_presentation);
+        }
+        ViewContentKind::UiAssetEditor => {
+            native_body.ui_asset = ui_asset_pane.cloned().unwrap_or_default();
+        }
+        ViewContentKind::AnimationSequenceEditor | ViewContentKind::AnimationGraphEditor => {
+            native_body.animation = animation_pane
+                .cloned()
+                .map(animation_pane_data)
+                .unwrap_or_default();
+        }
+        _ => {}
+    }
+    native_body
 }
 
 pub(crate) fn find_tab_snapshot<'a>(
@@ -391,22 +432,7 @@ pub(crate) fn blank_pane() -> PaneData {
         secondary_hint: SharedString::default(),
         show_toolbar: false,
         viewport: blank_viewport_chrome(),
-        native_body: PaneNativeBodyData {
-            hierarchy: HierarchyPaneViewData::default(),
-            inspector: InspectorPaneViewData::default(),
-            console: ConsolePaneViewData::default(),
-            assets_activity: AssetsActivityPaneViewData::default(),
-            asset_browser: AssetBrowserPaneViewData::default(),
-            project_overview: ProjectOverviewPaneViewData::default(),
-            performance_timeline: PerformanceTimelinePaneViewData::default(),
-            module_plugins: ModulePluginsPaneViewData::default(),
-            build_export: BuildExportPaneViewData::default(),
-            generated_bottom: GeneratedBottomPaneViewData::default(),
-            ui_asset: crate::ui::asset_editor::UiAssetEditorPanePresentation::default(),
-            animation: animation_pane_data(
-                crate::ui::animation_editor::AnimationEditorPanePresentation::default(),
-            ),
-        },
+        native_body: PaneNativeBodyData::default(),
         pane_presentation: None,
     }
 }
@@ -683,7 +709,7 @@ fn inspector_pane_data(chrome: &EditorChromeSnapshot, info: &str) -> InspectorPa
 fn console_pane_data(chrome: &EditorChromeSnapshot) -> ConsolePaneViewData {
     ConsolePaneViewData {
         nodes: Default::default(),
-        status_text: chrome.console_output.text_arc(),
+        output: chrome.console_output.clone(),
     }
 }
 

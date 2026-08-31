@@ -1,8 +1,8 @@
-use crate::scene::dynamic_scene::{DynamicSceneError, EntityRemap};
 use crate::scene::World;
+use crate::scene::dynamic_scene::{DynamicSceneError, EntityRemap};
 
 use super::preflight_mutation::PreflightedSceneMutation;
-use super::transaction::{ensure_compiled_spawn_target_is_current, PreparedSceneSpawnCommit};
+use super::transaction::{PreparedSceneSpawnCommit, ensure_compiled_spawn_target_is_current};
 
 /// Performs the no-fail publication half of a completed scene preflight.
 pub(super) fn commit_preflighted_scene_mutation(

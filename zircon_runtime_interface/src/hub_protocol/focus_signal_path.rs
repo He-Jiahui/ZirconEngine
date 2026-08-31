@@ -1,12 +1,53 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
 
+use super::HubSessionToken;
+
 const ZIRCON_DIRECTORY: &str = ".zircon";
 const HUB_DIRECTORY: &str = "hub";
 const FOCUS_DIRECTORY: &str = "focus";
+const FOCUS_REQUESTS_DIRECTORY: &str = "requests";
+const FOCUS_ACKS_DIRECTORY: &str = "acks";
 
 /// Returns the project-owned, instance-addressed Hub focus mailbox path.
 pub fn hub_editor_focus_signal_path(
+    project_root: impl AsRef<Path>,
+    target_instance_id: &str,
+    sequence: u64,
+    request_id: HubSessionToken,
+) -> Result<PathBuf, HubEditorFocusSignalPathError> {
+    Ok(
+        hub_editor_focus_request_directory(project_root, target_instance_id)?
+            .join(request_file_name(sequence, request_id)),
+    )
+}
+
+/// Returns the instance-owned request inbox directory for sequenced Hub focus work.
+pub fn hub_editor_focus_request_directory(
+    project_root: impl AsRef<Path>,
+    target_instance_id: &str,
+) -> Result<PathBuf, HubEditorFocusSignalPathError> {
+    Ok(
+        hub_editor_focus_instance_directory(project_root, target_instance_id)?
+            .join(FOCUS_REQUESTS_DIRECTORY),
+    )
+}
+
+/// Returns the instance-owned acknowledgement directory for sequenced Hub focus work.
+pub fn hub_editor_focus_ack_path(
+    project_root: impl AsRef<Path>,
+    target_instance_id: &str,
+    sequence: u64,
+    request_id: HubSessionToken,
+) -> Result<PathBuf, HubEditorFocusSignalPathError> {
+    Ok(
+        hub_editor_focus_instance_directory(project_root, target_instance_id)?
+            .join(FOCUS_ACKS_DIRECTORY)
+            .join(request_file_name(sequence, request_id)),
+    )
+}
+
+fn hub_editor_focus_instance_directory(
     project_root: impl AsRef<Path>,
     target_instance_id: &str,
 ) -> Result<PathBuf, HubEditorFocusSignalPathError> {
@@ -16,7 +57,11 @@ pub fn hub_editor_focus_signal_path(
         .join(ZIRCON_DIRECTORY)
         .join(HUB_DIRECTORY)
         .join(FOCUS_DIRECTORY)
-        .join(format!("{target_instance_id}.json")))
+        .join(target_instance_id))
+}
+
+fn request_file_name(sequence: u64, request_id: HubSessionToken) -> String {
+    format!("{sequence:020}-{request_id}.json")
 }
 
 /// The target instance identity is part of the mailbox filename and must remain path-safe.

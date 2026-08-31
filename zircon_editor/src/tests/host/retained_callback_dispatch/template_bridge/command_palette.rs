@@ -174,7 +174,7 @@ fn scene_picker_chrome_is_scoped_to_its_palette_open() {
 }
 
 #[test]
-fn command_palette_anchor_tracks_the_current_workbench_size() {
+fn command_palette_uses_surface_anchor_without_editor_geometry_projection() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
         .expect("componentized workbench template should project");
@@ -186,17 +186,28 @@ fn command_palette_anchor_tracks_the_current_workbench_size() {
         .open_command_palette(palette_state("file.project.open", "Open Project"))
         .expect("command palette should open after a narrow layout recompute");
 
-    assert_float_attribute(&bridge, "popup_anchor_x", 14.4);
-    assert_float_attribute(&bridge, "popup_anchor_y", 64.0);
-    assert_float_attribute(&bridge, "popup_anchor_width", 331.2);
-
-    bridge
-        .recompute_layout(UiSize::new(1200.0, 900.0))
-        .expect("desktop workbench layout should recompute");
-
-    assert_float_attribute(&bridge, "popup_anchor_x", 32.0);
-    assert_float_attribute(&bridge, "popup_anchor_y", 72.0);
-    assert_float_attribute(&bridge, "popup_anchor_width", 1136.0);
+    let node_id = bridge
+        .control_node_id(COMMAND_PALETTE_CONTROL_ID)
+        .expect("command palette control should resolve");
+    let metadata = bridge
+        .template_surface
+        .surface
+        .tree
+        .node(node_id)
+        .and_then(|node| node.template_metadata.as_ref())
+        .expect("command palette metadata should resolve");
+    assert!(matches!(
+        &metadata.widget.popup_anchor,
+        zircon_runtime_interface::ui::widget::UiPopupAnchor::Surface
+    ));
+    for property in [
+        "popup_anchor_x",
+        "popup_anchor_y",
+        "popup_anchor_width",
+        "popup_anchor_height",
+    ] {
+        assert!(!metadata.attributes.contains_key(property));
+    }
 }
 
 #[test]

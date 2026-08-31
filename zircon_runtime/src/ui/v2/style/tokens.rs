@@ -109,10 +109,14 @@ pub(super) fn style_token_path(prefix: Option<&str>, key: &str) -> String {
 }
 
 pub(super) fn remove_style_token_sources(style_tokens: &mut BTreeMap<String, String>, path: &str) {
-    let nested = format!("{path}.");
-    let indexed = format!("{path}[");
-    style_tokens
-        .retain(|key, _| key != path && !key.starts_with(&nested) && !key.starts_with(&indexed));
+    style_tokens.retain(|key, _| !style_token_path_is_at_or_below(key, path));
+}
+
+fn style_token_path_is_at_or_below(candidate: &str, path: &str) -> bool {
+    candidate == path
+        || candidate
+            .strip_prefix(path)
+            .is_some_and(|suffix| suffix.starts_with('.') || suffix.starts_with('['))
 }
 
 pub(super) fn resolve_value_map(
@@ -242,3 +246,7 @@ fn token_name(value: &str) -> Option<&str> {
                 .and_then(|value| value.strip_suffix(')'))
         })
 }
+
+#[cfg(test)]
+#[path = "tokens/allocation_free_path_match_tests.rs"]
+mod allocation_free_path_match_tests;

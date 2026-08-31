@@ -33,9 +33,7 @@ impl ConfigStore {
     }
 
     pub fn load_value(&self, key: &str) -> Option<Value> {
-        self.lock_values()
-            .get(key)
-            .map(|value| value.as_ref().clone())
+        self.shared_value(key).map(|value| value.as_ref().clone())
     }
 
     pub fn store<T: Serialize>(&self, key: impl Into<String>, value: &T) -> Result<(), CoreError> {
@@ -48,12 +46,14 @@ impl ConfigStore {
 
     pub fn load<T: DeserializeOwned>(&self, key: &str) -> Result<T, CoreError> {
         let value = self
-            .lock_values()
-            .get(key)
-            .cloned()
+            .shared_value(key)
             .ok_or_else(|| CoreError::MissingConfig(key.to_string()))?;
         T::deserialize(value.as_ref())
             .map_err(|error| CoreError::ConfigParse(key.to_string(), error.to_string()))
+    }
+
+    fn shared_value(&self, key: &str) -> Option<Arc<Value>> {
+        self.lock_values().get(key).cloned()
     }
 
     pub fn snapshot_values(&self) -> HashMap<String, Value> {
@@ -75,6 +75,10 @@ fn shared_snapshot_entries(values: &HashMap<String, Arc<Value>>) -> Vec<(String,
 #[cfg(test)]
 #[path = "config_store/shared_snapshot_tests.rs"]
 mod shared_snapshot_tests;
+
+#[cfg(test)]
+#[path = "config_store/shared_load_tests.rs"]
+mod shared_load_tests;
 
 #[cfg(test)]
 mod tests {

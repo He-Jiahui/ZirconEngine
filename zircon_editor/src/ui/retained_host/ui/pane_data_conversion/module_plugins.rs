@@ -1,10 +1,15 @@
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::windows::workbench_host_window::{
-    ModulePluginStatusViewData, ModulePluginsPaneViewData, PaneContentSize, PaneData,
+    ModulePluginStatusViewData, ModulePluginsPaneViewData, PaneContentSize, PaneData, PanePayload,
 };
 use crate::ui::retained_host as host_contract;
 
-use super::model_projection::map_model_rc;
+use super::pane_template_runtime;
+
+mod cache;
+
+pub(crate) use cache::ModulePluginsPaneProjectionCache;
+use cache::ModulePluginsPaneProjectionCacheKey;
 const MODULE_PLUGIN_ROW_HEIGHT: f32 = 112.0;
 const MODULE_PLUGIN_ROW_GAP: f32 = 8.0;
 const MODULE_PLUGIN_ROW_PADDING: f32 = 8.0;
@@ -13,52 +18,92 @@ const MODULE_PLUGIN_BUTTON_GAP: f32 = 6.0;
 const MODULE_PLUGIN_MIN_BUTTON_WIDTH: f32 = 56.0;
 const MODULE_PLUGIN_MAX_BUTTON_WIDTH: f32 = 92.0;
 
-pub(crate) fn to_host_contract_module_plugins_pane_from_host_pane(
+#[cfg(test)]
+fn to_host_contract_module_plugins_pane_from_host_pane(
     data: &PaneData,
     content_size: PaneContentSize,
 ) -> host_contract::ModulePluginsPaneData {
+    let mut cache = ModulePluginsPaneProjectionCache::default();
+    to_host_contract_module_plugins_pane_from_host_pane_with_cache(data, content_size, &mut cache)
+}
+
+pub(crate) fn to_host_contract_module_plugins_pane_from_host_pane_with_cache(
+    data: &PaneData,
+    content_size: PaneContentSize,
+    cache: &mut ModulePluginsPaneProjectionCache,
+) -> host_contract::ModulePluginsPaneData {
     let native = &data.native_body.module_plugins;
+    let cache_key = module_plugins_projection_cache_key(data, content_size);
+    if let Some(cache_key) = cache_key {
+        if let Some(pane) = cache.cached(
+            data.id.as_str(),
+            cache_key,
+            &native.plugins,
+            &native.diagnostics,
+        ) {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.module_plugins.host_projection_cache_hit_count",
+                1
+            );
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.module_plugins.host_projection_source_row_count",
+                0
+            );
+            return pane;
+        }
+    }
+    zircon_runtime::profile_counter!(
+        "editor",
+        "ui.module_plugins.host_projection_cache_miss_count",
+        1
+    );
+    zircon_runtime::profile_counter!(
+        "editor",
+        "ui.module_plugins.host_projection_source_row_count",
+        native.plugins.row_count()
+    );
     let mut nodes = module_plugins_template_projection(data, content_size).unwrap_or_default();
     nodes.extend(module_plugin_row_nodes(native, &nodes, content_size));
 
-    host_contract::ModulePluginsPaneData {
+    let pane = host_contract::ModulePluginsPaneData {
         nodes: model_rc(nodes),
-        plugins: map_model_rc(&native.plugins, to_host_contract_module_plugin_status),
         diagnostics: native.diagnostics.clone(),
+    };
+    if let Some(cache_key) = cache_key {
+        cache.store(
+            data.id.to_string(),
+            cache_key,
+            native.plugins.clone(),
+            pane.clone(),
+        );
     }
+    pane
 }
 
-fn to_host_contract_module_plugin_status(
-    data: &ModulePluginStatusViewData,
-) -> host_contract::ModulePluginStatusData {
-    host_contract::ModulePluginStatusData {
-        plugin_id: data.plugin_id.clone(),
-        display_name: data.display_name.clone(),
-        package_source: data.package_source.clone(),
-        load_state: data.load_state.clone(),
-        enabled: data.enabled,
-        required: data.required,
-        target_modes: data.target_modes.clone(),
-        packaging: data.packaging.clone(),
-        runtime_crate: data.runtime_crate.clone(),
-        editor_crate: data.editor_crate.clone(),
-        runtime_capabilities: data.runtime_capabilities.clone(),
-        editor_capabilities: data.editor_capabilities.clone(),
-        optional_features: data.optional_features.clone(),
-        feature_action_label: data.feature_action_label.clone(),
-        feature_action_id: data.feature_action_id.clone(),
-        diagnostics: data.diagnostics.clone(),
-        primary_action_label: data.primary_action_label.clone(),
-        primary_action_id: data.primary_action_id.clone(),
-        packaging_action_label: data.packaging_action_label.clone(),
-        packaging_action_id: data.packaging_action_id.clone(),
-        target_modes_action_label: data.target_modes_action_label.clone(),
-        target_modes_action_id: data.target_modes_action_id.clone(),
-        unload_action_label: data.unload_action_label.clone(),
-        unload_action_id: data.unload_action_id.clone(),
-        hot_reload_action_label: data.hot_reload_action_label.clone(),
-        hot_reload_action_id: data.hot_reload_action_id.clone(),
-    }
+fn module_plugins_projection_cache_key(
+    data: &PaneData,
+    content_size: PaneContentSize,
+) -> Option<ModulePluginsPaneProjectionCacheKey> {
+    let (document_identity, uses_template) = match data
+        .pane_presentation
+        .as_ref()
+        .filter(|presentation| matches!(&presentation.body.payload, PanePayload::ModulePluginsV1(_)))
+    {
+        Some(presentation) => (
+            pane_template_runtime(None)?
+                .retained_document_identity(&presentation.body.document_id)?,
+            true,
+        ),
+        None => (0, false),
+    };
+    Some(ModulePluginsPaneProjectionCacheKey {
+        document_identity,
+        uses_template,
+        width_bits: content_size.width.to_bits(),
+        height_bits: content_size.height.to_bits(),
+    })
 }
 
 fn module_plugins_template_projection(
@@ -123,8 +168,8 @@ fn module_plugin_row_nodes(
             actions
                 .iter()
                 .map(|action| host_contract::TemplatePaneActionData {
-                    label: action.label.clone().into(),
-                    action_id: action.action_id.clone().into(),
+                    label: action.label.into(),
+                    action_id: action.action_id.into(),
                 })
                 .collect(),
         );
@@ -209,36 +254,38 @@ fn module_plugin_row_nodes(
     nodes
 }
 
-struct ModulePluginRowAction {
-    label: String,
-    action_id: String,
+struct ModulePluginRowAction<'a> {
+    label: &'a str,
+    action_id: &'a str,
 }
 
-fn module_plugin_row_actions(plugin: &ModulePluginStatusViewData) -> Vec<ModulePluginRowAction> {
+fn module_plugin_row_actions(
+    plugin: &ModulePluginStatusViewData,
+) -> Vec<ModulePluginRowAction<'_>> {
     [
         (
-            plugin.primary_action_label.to_string(),
-            plugin.primary_action_id.to_string(),
+            plugin.primary_action_label.as_str(),
+            plugin.primary_action_id.as_str(),
         ),
         (
-            plugin.feature_action_label.to_string(),
-            plugin.feature_action_id.to_string(),
+            plugin.feature_action_label.as_str(),
+            plugin.feature_action_id.as_str(),
         ),
         (
-            plugin.packaging_action_label.to_string(),
-            plugin.packaging_action_id.to_string(),
+            plugin.packaging_action_label.as_str(),
+            plugin.packaging_action_id.as_str(),
         ),
         (
-            plugin.target_modes_action_label.to_string(),
-            plugin.target_modes_action_id.to_string(),
+            plugin.target_modes_action_label.as_str(),
+            plugin.target_modes_action_id.as_str(),
         ),
         (
-            plugin.unload_action_label.to_string(),
-            plugin.unload_action_id.to_string(),
+            plugin.unload_action_label.as_str(),
+            plugin.unload_action_id.as_str(),
         ),
         (
-            plugin.hot_reload_action_label.to_string(),
-            plugin.hot_reload_action_id.to_string(),
+            plugin.hot_reload_action_label.as_str(),
+            plugin.hot_reload_action_id.as_str(),
         ),
     ]
     .into_iter()
@@ -252,7 +299,7 @@ fn module_plugin_action_button_nodes(
     row_y: f32,
     row_x: f32,
     row_width: f32,
-    actions: &[ModulePluginRowAction],
+    actions: &[ModulePluginRowAction<'_>],
 ) -> Vec<host_contract::TemplatePaneNodeData> {
     if actions.is_empty() {
         return Vec::new();
@@ -276,7 +323,7 @@ fn module_plugin_action_button_nodes(
                 format!("module_plugin_action_{plugin_id}_{index}"),
                 "ModulePluginAction",
                 "Button",
-                compact_module_plugin_action_label(&action.label),
+                compact_module_plugin_action_label(action.label),
                 host_contract::TemplateNodeFrameData {
                     x: start_x + index as f32 * (button_width + MODULE_PLUGIN_BUTTON_GAP),
                     y: button_y,
@@ -285,7 +332,7 @@ fn module_plugin_action_button_nodes(
                 },
             );
             node.dispatch_kind = "module_plugin".into();
-            node.action_id = action.action_id.clone().into();
+            node.action_id = action.action_id.into();
             node.button_variant = "secondary".into();
             node.disabled = action.action_id.is_empty();
             node
@@ -293,19 +340,19 @@ fn module_plugin_action_button_nodes(
         .collect()
 }
 
-fn compact_module_plugin_action_label(label: &str) -> String {
+fn compact_module_plugin_action_label(label: &str) -> &str {
     if label == "Cycle targets" {
-        return "Targets".to_string();
+        return "Targets";
     }
     if label.starts_with("Cycle ") {
-        return "Package".to_string();
+        return "Package";
     }
     match label {
-        "Hot Reload" => "Reload".to_string(),
-        "Enable Deps" => "Deps".to_string(),
-        "Enable Feature" => "Feature".to_string(),
-        "Disable Feature" => "Feature Off".to_string(),
-        other => other.to_string(),
+        "Hot Reload" => "Reload",
+        "Enable Deps" => "Deps",
+        "Enable Feature" => "Feature",
+        "Disable Feature" => "Feature Off",
+        other => other,
     }
 }
 
@@ -340,14 +387,6 @@ mod tests {
         let data = to_host_contract_module_plugins_pane_from_host_pane(
             &pane,
             PaneContentSize::new(480.0, 260.0),
-        );
-
-        assert_eq!(data.plugins.row_count(), 1);
-        assert_eq!(
-            data.plugins
-                .row_data(0)
-                .map(|plugin| plugin.plugin_id.to_string()),
-            Some("physics".to_string())
         );
 
         let action_ids = (0..data.nodes.row_count())
@@ -414,6 +453,43 @@ mod tests {
             .find(|node| node.control_id.as_str() == "ModulePluginRow.physics")
             .expect("module plugin row should be projected");
         assert_eq!(row_node.actions.row_count(), 5);
+    }
+
+    #[test]
+    fn module_plugins_host_projection_reuses_models_for_one_source_generation() {
+        let pane = module_plugins_pane_fixture();
+        let mut cache = ModulePluginsPaneProjectionCache::default();
+        let first = to_host_contract_module_plugins_pane_from_host_pane_with_cache(
+            &pane,
+            PaneContentSize::new(480.0, 260.0),
+            &mut cache,
+        );
+        let second = to_host_contract_module_plugins_pane_from_host_pane_with_cache(
+            &pane,
+            PaneContentSize::new(480.0, 260.0),
+            &mut cache,
+        );
+
+        assert!(first.nodes.shares_values_with(&second.nodes));
+    }
+
+    #[test]
+    fn module_plugins_host_projection_invalidates_for_new_plugin_storage() {
+        let mut pane = module_plugins_pane_fixture();
+        let mut cache = ModulePluginsPaneProjectionCache::default();
+        let first = to_host_contract_module_plugins_pane_from_host_pane_with_cache(
+            &pane,
+            PaneContentSize::new(480.0, 260.0),
+            &mut cache,
+        );
+        pane.native_body.module_plugins.plugins = model_rc(vec![module_plugin_status_fixture()]);
+        let second = to_host_contract_module_plugins_pane_from_host_pane_with_cache(
+            &pane,
+            PaneContentSize::new(480.0, 260.0),
+            &mut cache,
+        );
+
+        assert!(!first.nodes.shares_values_with(&second.nodes));
     }
 
     fn module_plugins_pane_fixture() -> PaneData {

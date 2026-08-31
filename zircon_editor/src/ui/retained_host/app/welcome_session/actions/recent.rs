@@ -1,10 +1,38 @@
 use super::super::super::*;
+use super::next_project_launch_operation_id;
+use zircon_runtime_interface::project::{
+    ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource,
+};
 
 impl RetainedEditorHost {
     pub(super) fn open_recent_project(&mut self, path: &str) {
-        let result = self
-            .editor_manager
-            .open_project_and_remember(path)
+        self.launch_recent_project(path, ProjectLaunchProfile::Normal);
+    }
+
+    pub(super) fn safe_recent_project(&mut self, path: &str) {
+        self.launch_recent_project(path, ProjectLaunchProfile::Safe);
+    }
+
+    pub(super) fn recover_recent_project(&mut self, path: &str) {
+        self.launch_recent_project(path, ProjectLaunchProfile::Recovery);
+    }
+
+    fn launch_recent_project(&mut self, path: &str, profile: ProjectLaunchProfile) {
+        let result = next_project_launch_operation_id()
+            .and_then(|operation_id| {
+                ProjectLaunchIntent::open_existing(
+                    operation_id,
+                    ProjectLaunchSource::Recent,
+                    profile,
+                    path,
+                )
+                .map_err(|error| error.to_string())
+            })
+            .and_then(|intent| {
+                self.editor_manager
+                    .execute_project_launch_intent(intent)
+                    .map_err(|error| error.to_string())
+            })
             .map_err(|error| error.to_string())
             .and_then(|session| self.apply_startup_session(session));
         if let Err(error) = result {

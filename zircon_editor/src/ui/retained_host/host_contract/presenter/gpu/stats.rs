@@ -3,6 +3,14 @@ use zircon_runtime::rhi::{UiSurfacePresentStats, UiSurfacePresenter};
 use super::GpuChromePresenter;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter_batch, UiPerfCounter};
 
+const BASE_PRESENT_STAT_COUNTER_COUNT: usize = 52;
+const GPU_TIMESTAMP_COUNTER_COUNT: usize = 1;
+const GPU_TIME_COUNTER_COUNT: usize = 2;
+
+#[cfg(test)]
+#[path = "stats/capacity_tests.rs"]
+mod capacity_tests;
+
 pub(super) fn record_present_stats<P: UiSurfacePresenter>(
     presenter: &mut GpuChromePresenter<P>,
     stats: &UiSurfacePresentStats,
@@ -20,6 +28,7 @@ fn append_present_stats(
     stats: &UiSurfacePresentStats,
     region_present: bool,
 ) {
+    counters.reserve(present_stat_counter_count(stats));
     let mut record = |counter, value| counters.push((counter, value));
     record(
         UiPerfCounter::GpuUploadBytes,
@@ -64,6 +73,30 @@ fn append_present_stats(
     record(
         UiPerfCounter::GpuImageCacheResidentBytes,
         stats.image_cache_resident_bytes as f64,
+    );
+    record(
+        UiPerfCounter::GpuImageDeviceAllocationCount,
+        stats.image_device_allocation_count as f64,
+    );
+    record(
+        UiPerfCounter::GpuImageDeviceAllocationBytes,
+        stats.image_device_allocation_bytes as f64,
+    );
+    record(
+        UiPerfCounter::GpuImageRegistryEvictedPinnedBytes,
+        stats.image_registry_evicted_pinned_bytes as f64,
+    );
+    record(
+        UiPerfCounter::GpuImageSurfacePinCount,
+        stats.image_surface_pin_count as f64,
+    );
+    record(
+        UiPerfCounter::GpuImageInFlightPresentPinCount,
+        stats.image_in_flight_present_pin_count as f64,
+    );
+    record(
+        UiPerfCounter::GpuImageEvictionCompletionCount,
+        stats.image_eviction_completion_count as f64,
     );
     record(UiPerfCounter::GpuDrawCalls, stats.draw_calls as f64);
     record(
@@ -215,6 +248,12 @@ fn append_present_stats(
     );
 }
 
+fn present_stat_counter_count(stats: &UiSurfacePresentStats) -> usize {
+    BASE_PRESENT_STAT_COUNTER_COUNT
+        + usize::from(stats.gpu_timestamp_supported) * GPU_TIMESTAMP_COUNTER_COUNT
+        + usize::from(stats.gpu_time_us.is_some()) * GPU_TIME_COUNTER_COUNT
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,7 +263,7 @@ mod tests {
         let mut counters = Vec::new();
         append_present_stats(&mut counters, &UiSurfacePresentStats::default(), true);
 
-        assert_eq!(counters.len(), 46);
+        assert_eq!(counters.len(), 52);
         assert_eq!(
             counters.last(),
             Some(&(UiPerfCounter::ChromeCommandPatchCount, 1.0))
@@ -249,7 +288,7 @@ mod tests {
         let mut counters = Vec::new();
         append_present_stats(&mut counters, &stats, false);
 
-        assert_eq!(counters.len(), 49);
+        assert_eq!(counters.len(), 55);
         assert_eq!(
             counters.last(),
             Some(&(UiPerfCounter::ChromeCommandFullRebuildCount, 1.0))
@@ -268,5 +307,27 @@ mod tests {
             UiPerfCounter::GpuProfileLatencyFrames,
             stats.gpu_profile_latency_frames as f64,
         )));
+    }
+
+    #[test]
+    fn present_stats_batch_includes_device_allocation_ledger_stats() {
+        let stats = UiSurfacePresentStats {
+            image_device_allocation_count: 3,
+            image_device_allocation_bytes: 12_288,
+            image_registry_evicted_pinned_bytes: 4_096,
+            image_surface_pin_count: 5,
+            image_in_flight_present_pin_count: 2,
+            image_eviction_completion_count: 7,
+            ..UiSurfacePresentStats::default()
+        };
+        let mut counters = Vec::new();
+        append_present_stats(&mut counters, &stats, true);
+
+        assert!(counters.contains(&(UiPerfCounter::GpuImageDeviceAllocationCount, 3.0)));
+        assert!(counters.contains(&(UiPerfCounter::GpuImageDeviceAllocationBytes, 12_288.0)));
+        assert!(counters.contains(&(UiPerfCounter::GpuImageRegistryEvictedPinnedBytes, 4_096.0,)));
+        assert!(counters.contains(&(UiPerfCounter::GpuImageSurfacePinCount, 5.0)));
+        assert!(counters.contains(&(UiPerfCounter::GpuImageInFlightPresentPinCount, 2.0,)));
+        assert!(counters.contains(&(UiPerfCounter::GpuImageEvictionCompletionCount, 7.0)));
     }
 }

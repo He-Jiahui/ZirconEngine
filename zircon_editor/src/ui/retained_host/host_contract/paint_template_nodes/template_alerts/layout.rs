@@ -4,7 +4,7 @@ mod metrics;
 mod toast;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use common::{
-    frame_is_within, has_paintable_alert_extent, pixel_aligned_rect,
+    frame_is_within, has_paintable_alert_extent, paint_rect,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use inline::{
     alert_icon_rect, alert_text_rect,

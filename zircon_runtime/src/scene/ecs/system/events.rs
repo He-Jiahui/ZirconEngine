@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 
-use crate::scene::ecs::{
-    ChangeTickWindow, EventCursor, EventReadIter, EventStore, EventTypeId, Events, SystemParam,
-    SystemParamAccess, SystemParamError,
-};
 use crate::scene::World;
+use crate::scene::ecs::{
+    ChangeTickWindow, EventCursor, EventReadIter, EventReaderLease, EventStore, EventTypeId,
+    Events, SystemParam, SystemParamAccess, SystemParamError,
+};
 
 pub struct EventReaderParam<T>(PhantomData<fn() -> T>);
 
@@ -72,9 +72,15 @@ where
         access: &mut SystemParamAccess,
     ) -> Result<Self::State, SystemParamError> {
         access.add_event_read::<T>()?;
+        let reader_lease = world.event_store_mut().register_reader::<T>().ok_or(
+            SystemParamError::EventReaderLeaseExhausted {
+                type_name: std::any::type_name::<T>(),
+            },
+        )?;
         Ok(EventReaderState {
             cursor: EventCursor::default(),
-            event_type_id: world.event_store_mut().register_reader::<T>(),
+            event_type_id: reader_lease.event_type_id(),
+            reader_lease: Some(reader_lease),
         })
     }
 
@@ -88,6 +94,17 @@ where
             cursor: &mut state.cursor,
             events: world.event_store().events_by_id::<T>(state.event_type_id),
         }
+    }
+
+    fn retire_state(world: &mut World, state: &mut Self::State) {
+        let Some(mut reader_lease) = state.reader_lease.take() else {
+            return;
+        };
+        let disconnected = world.event_store_mut().disconnect_reader(&mut reader_lease);
+        debug_assert!(
+            disconnected,
+            "event reader lease must belong to its active world"
+        );
     }
 }
 
@@ -125,6 +142,7 @@ where
 pub struct EventReaderState<T> {
     cursor: EventCursor<T>,
     event_type_id: EventTypeId,
+    reader_lease: Option<EventReaderLease>,
 }
 
 pub struct EventWriterState {

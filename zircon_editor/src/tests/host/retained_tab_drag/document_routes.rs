@@ -2,10 +2,10 @@ use super::support::*;
 
 #[test]
 fn resolve_host_tab_drop_route_prefers_shared_pointer_route_over_stale_host_group() {
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: BTreeMap::from([
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        BTreeMap::from([
             (
                 ActivityDrawerSlot::RightTop,
                 drawer(
@@ -27,11 +27,8 @@ fn resolve_host_tab_drop_route_prefers_shared_pointer_route_over_stale_host_grou
                 ),
             ),
         ]),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+        Vec::new(),
+    );
     let model = workbench_model(
         BTreeMap::from([
             (
@@ -101,15 +98,12 @@ fn resolve_host_tab_drop_route_prefers_shared_pointer_route_over_stale_host_grou
 
 #[test]
 fn resolve_host_tab_drop_route_falls_back_to_host_group_when_pointer_route_is_missing() {
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: default_drawers(),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        default_drawers(),
+        Vec::new(),
+    );
     let model = workbench_model(
         default_drawers_model(),
         vec![
@@ -159,15 +153,12 @@ fn resolve_host_tab_drop_route_falls_back_to_host_group_when_pointer_route_is_mi
 
 #[test]
 fn resolve_host_tab_drop_route_maps_document_edge_to_create_split_on_active_workspace_path() {
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: default_drawers(),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        default_drawers(),
+        Vec::new(),
+    );
     let model = workbench_model(
         default_drawers_model(),
         vec![
@@ -210,15 +201,12 @@ fn resolve_host_tab_drop_route_maps_document_edge_to_create_split_on_active_work
 
 #[test]
 fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_document_edge() {
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: default_drawers(),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        default_drawers(),
+        Vec::new(),
+    );
     let model = workbench_model(
         default_drawers_model(),
         vec![
@@ -301,15 +289,12 @@ fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_fo
 
 #[test]
 fn resolve_host_tab_drop_route_accepts_document_edge_group_fallback_keys() {
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: default_drawers(),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        default_drawers(),
+        Vec::new(),
+    );
     let model = workbench_model(
         default_drawers_model(),
         vec![
@@ -351,15 +336,12 @@ fn resolve_host_tab_drop_route_accepts_document_edge_group_fallback_keys() {
 
 #[test]
 fn resolve_host_tab_drop_route_prefers_document_edge_fallback_over_coarse_document_route() {
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: default_drawers(),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        default_drawers(),
+        Vec::new(),
+    );
     let model = workbench_model(
         default_drawers_model(),
         vec![

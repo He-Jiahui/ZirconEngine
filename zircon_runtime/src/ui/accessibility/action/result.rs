@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use zircon_runtime_interface::ui::{
     accessibility::UiAccessibilityActionStatus,
     dispatch::{UiDispatchReply, UiInputDispatchResult},
@@ -79,17 +81,25 @@ pub(super) fn action_note(
     code: Option<&str>,
     reason: Option<&str>,
 ) -> String {
-    let mut note = format!("status={}", status_label(status));
+    let status = status_label(status);
+    let capacity = "status=".len()
+        + status.len()
+        + code.map_or(0, |code| " code=".len() + code.len())
+        + reason.map_or(0, |reason| " reason=".len() + reason.len());
+    let mut note = String::with_capacity(capacity);
+    write!(note, "status={status}").expect("writing to a string cannot fail");
     if let Some(code) = code {
-        note.push_str(" code=");
-        note.push_str(code);
+        write!(note, " code={code}").expect("writing to a string cannot fail");
     }
     if let Some(reason) = reason {
-        note.push_str(" reason=");
-        note.push_str(reason);
+        write!(note, " reason={reason}").expect("writing to a string cannot fail");
     }
     note
 }
+
+#[cfg(test)]
+#[path = "result/single_buffer_action_note_tests.rs"]
+mod single_buffer_action_note_tests;
 
 fn status_label(status: UiAccessibilityActionStatus) -> &'static str {
     match status {

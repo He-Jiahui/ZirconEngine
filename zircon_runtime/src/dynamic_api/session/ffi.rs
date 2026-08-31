@@ -2,17 +2,19 @@ use std::ptr;
 
 use zircon_runtime_interface::world_sync::{WatchRegistration, WatchToken, WorldQuery};
 use zircon_runtime_interface::{
-    ProfileControlCommand, ProfileControlRequest, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
-    ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
-    ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_SESSION_PROFILE_MAX_ENCODED_BYTES_V1,
-    ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1, ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1, ZrByteSlice,
-    ZrOwnedResultV2, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeAllocationId,
+    ProfileControlCommand, ProfileControlRequest, ZrByteSlice, ZrOwnedResultV2,
+    ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeAllocationId,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHighlightSetV1,
     ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
-    ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus,
+    ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportPickRequestV1, ZrRuntimeViewportPickResultV1, ZrRuntimeViewportPickTicket,
+    ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
+    ZIRCON_RUNTIME_ABI_VERSION_V3, ZR_RUNTIME_FRAME_MAX_DIMENSION_V1,
+    ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1, ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1,
+    ZR_RUNTIME_SESSION_PROFILE_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1,
 };
 
 use super::super::bounded_json;
@@ -22,21 +24,23 @@ use super::super::frame::{
     write_world_sync_payload,
 };
 use super::super::surface::render_surface_descriptor;
-use super::RuntimeProjectError;
+use super::composition_receipt::module_composition_receipt_response;
 use super::diagnostics::runtime_diagnostics_response;
 use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
 use super::registry::{
-    RuntimeAllocationKind, RuntimeWakeRegistration, SessionRegistryInsertError,
     destroy_session_slot, register_runtime_allocation_in_action, release_runtime_allocation,
     try_insert_session_with_wake, with_session, with_session_activity,
-    with_session_result_committed, with_session_result_finalized,
+    with_session_result_committed, with_session_result_finalized, RuntimeAllocationKind,
+    RuntimeWakeRegistration, SessionRegistryInsertError,
 };
 use super::status::{
     error_status, invalid_argument, invalid_or_limit_payload, limit_exceeded, not_found,
     output_payload_status, unsupported_version,
 };
-use super::{DEFAULT_VIEWPORT, RuntimeDynamicSession};
+use super::viewport_pick::RuntimeViewportPickError;
+use super::RuntimeProjectError;
+use super::{RuntimeDynamicSession, DEFAULT_VIEWPORT};
 
 pub(in crate::dynamic_api) unsafe fn create_session(
     config: ZrRuntimeSessionConfigV3,
@@ -345,6 +349,90 @@ pub(in crate::dynamic_api) unsafe fn submit_highlight_set(
     })
 }
 
+pub(in crate::dynamic_api) unsafe fn request_viewport_pick(
+    handle: ZrRuntimeSessionHandle,
+    request: ZrRuntimeViewportPickRequestV1,
+    out_ticket: *mut ZrRuntimeViewportPickTicket,
+) -> ZrStatus {
+    if out_ticket.is_null() {
+        return invalid_argument(b"missing runtime viewport-pick ticket output");
+    }
+    unsafe { ptr::write(out_ticket, ZrRuntimeViewportPickTicket::invalid()) };
+    with_session(handle, |session| {
+        if request.viewport != DEFAULT_VIEWPORT {
+            return not_found(b"runtime viewport not found");
+        }
+        match session
+            .viewport_picks
+            .request(request, session.render_bridge.as_ref())
+        {
+            Ok(ticket) => {
+                unsafe { ptr::write(out_ticket, ticket) };
+                ZrStatus::ok()
+            }
+            Err(error) => viewport_pick_error_status(error),
+        }
+    })
+}
+
+pub(in crate::dynamic_api) unsafe fn poll_viewport_pick(
+    handle: ZrRuntimeSessionHandle,
+    ticket: ZrRuntimeViewportPickTicket,
+    out_result: *mut ZrRuntimeViewportPickResultV1,
+) -> ZrStatus {
+    if out_result.is_null() {
+        return invalid_argument(b"missing runtime viewport-pick result output");
+    }
+    unsafe { ptr::write(out_result, ZrRuntimeViewportPickResultV1::invalid()) };
+    with_session(handle, |session| {
+        match session
+            .viewport_picks
+            .poll(ticket, session.render_bridge.as_ref())
+        {
+            Ok(result) if result.validate_viewport_pick() => {
+                unsafe { ptr::write(out_result, result) };
+                ZrStatus::ok()
+            }
+            Ok(_) => error_status("runtime produced an invalid viewport-pick result"),
+            Err(error) => viewport_pick_error_status(error),
+        }
+    })
+}
+
+pub(in crate::dynamic_api) unsafe fn cancel_viewport_pick(
+    handle: ZrRuntimeSessionHandle,
+    ticket: ZrRuntimeViewportPickTicket,
+) -> ZrStatus {
+    with_session(handle, |session| {
+        match session
+            .viewport_picks
+            .cancel(ticket, session.render_bridge.as_ref())
+        {
+            Ok(()) => ZrStatus::ok(),
+            Err(error) => viewport_pick_error_status(error),
+        }
+    })
+}
+
+fn viewport_pick_error_status(error: RuntimeViewportPickError) -> ZrStatus {
+    match error {
+        RuntimeViewportPickError::InvalidRequest => {
+            invalid_argument(b"invalid runtime viewport-pick request")
+        }
+        RuntimeViewportPickError::InvalidTicket => {
+            invalid_argument(b"invalid runtime viewport-pick ticket")
+        }
+        RuntimeViewportPickError::LimitExceeded => {
+            limit_exceeded(b"runtime viewport-pick ticket limit exceeded")
+        }
+        RuntimeViewportPickError::TicketSpaceExhausted => {
+            limit_exceeded(b"runtime viewport-pick ticket space exhausted")
+        }
+        RuntimeViewportPickError::NotFound => not_found(b"runtime viewport-pick ticket not found"),
+        RuntimeViewportPickError::Backend(message) => error_status(message),
+    }
+}
+
 pub(in crate::dynamic_api) unsafe fn profile_control(
     handle: ZrRuntimeSessionHandle,
     request_json: ZrByteSlice,
@@ -384,6 +472,8 @@ pub(in crate::dynamic_api) unsafe fn profile_control(
             };
             let response = if request.command == ProfileControlCommand::RuntimeDiagnosticsSnapshot {
                 runtime_diagnostics_response(session)
+            } else if request.command == ProfileControlCommand::RuntimeModuleCompositionReceipt {
+                module_composition_receipt_response(session)
             } else {
                 crate::core::diagnostics::profiling::control(request)
             };
@@ -566,15 +656,7 @@ pub(in crate::dynamic_api) unsafe fn query_world(
                 bounded_json::decode::<WorldQuery>(
                     request_json,
                     ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1,
-                    |query| {
-                        query
-                            .filter
-                            .with
-                            .len()
-                            .saturating_add(query.filter.without.len())
-                            .saturating_add(query.select.len())
-                            .saturating_add(1)
-                    },
+                    WorldQuery::request_item_count,
                 )
             } {
                 Ok(query) => query,

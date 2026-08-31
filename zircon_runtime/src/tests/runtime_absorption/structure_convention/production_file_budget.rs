@@ -36,6 +36,8 @@ mod module_layout;
 mod native_host_api_adapter;
 #[path = "production_file_budget/plugin_bridge_table_reports.rs"]
 mod plugin_bridge_table_reports;
+#[path = "production_file_budget/render_asset_residency_manager.rs"]
+mod render_asset_residency_manager;
 #[path = "production_file_budget/render_backend_types.rs"]
 mod render_backend_types;
 #[path = "production_file_budget/render_build_virtual_geometry_debug_snapshot.rs"]
@@ -116,12 +118,16 @@ mod render_stats_product_tests;
 mod render_submit_camera_loop;
 #[path = "production_file_budget/render_surface_targets_texture_target_tests.rs"]
 mod render_surface_targets_texture_target_tests;
+#[path = "production_file_budget/render_system_texture_generation_owner.rs"]
+mod render_system_texture_generation_owner;
 #[path = "production_file_budget/render_ui_image_binding_cache.rs"]
 mod render_ui_image_binding_cache;
 #[path = "production_file_budget/render_ui_image_vertex_buffer.rs"]
 mod render_ui_image_vertex_buffer;
 #[path = "production_file_budget/render_ui_native_bitmap_atlas_upload_reuse.rs"]
 mod render_ui_native_bitmap_atlas_upload_reuse;
+#[path = "production_file_budget/render_ui_resource_upload_transaction.rs"]
+mod render_ui_resource_upload_transaction;
 #[path = "production_file_budget/render_ui_screen_space_render.rs"]
 mod render_ui_screen_space_render;
 #[path = "production_file_budget/render_ui_screen_space_vertex_buffer.rs"]
@@ -176,10 +182,14 @@ mod ui_component_catalog_editor_showcase;
 mod ui_component_state_reducer_keyboard_menu;
 #[path = "production_file_budget/ui_component_state_reducer_tree_view.rs"]
 mod ui_component_state_reducer_tree_view;
+#[path = "production_file_budget/ui_dispatch_bound_text_model_updates.rs"]
+mod ui_dispatch_bound_text_model_updates;
 #[path = "production_file_budget/ui_dispatch_input_manager_tests.rs"]
 mod ui_dispatch_input_manager_tests;
 #[path = "production_file_budget/ui_layout_arrange.rs"]
 mod ui_layout_arrange;
+#[path = "production_file_budget/ui_secure_text_keyboard_policy.rs"]
+mod ui_secure_text_keyboard_policy;
 #[path = "production_file_budget/ui_surface_default_interactions.rs"]
 mod ui_surface_default_interactions;
 #[path = "production_file_budget/ui_surface_event_routing.rs"]

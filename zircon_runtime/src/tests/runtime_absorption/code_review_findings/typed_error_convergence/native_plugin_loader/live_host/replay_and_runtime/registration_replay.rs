@@ -3,6 +3,9 @@ fn review_f5_native_live_host_registration_replay_uses_typed_error() {
     let registration_replay = include_str!(
         "../../../../../../../plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs"
     );
+    let registration_replay_error = include_str!(
+        "../../../../../../../plugin/native_plugin_loader/native_plugin_live_host/registration_replay/error.rs"
+    );
     let live_host_root =
         include_str!("../../../../../../../plugin/native_plugin_loader/native_plugin_live_host.rs");
     let registration_replay_tests = include_str!(
@@ -28,6 +31,21 @@ fn review_f5_native_live_host_registration_replay_uses_typed_error() {
     for required in [
         "type NativePluginRegistrationReplayResult<T>",
         "std::result::Result<T, NativePluginRegistrationReplayError>",
+        ") -> NativePluginRegistrationReplayResult<NativePluginRuntimeRegistrationReplayReport>",
+        ") -> NativePluginRegistrationReplayResult<RuntimeRegistrationManifestSource>",
+        ") -> NativePluginRegistrationReplayResult<NativePluginRuntimeRegistrationSystemReplay>",
+        ") -> NativePluginRegistrationReplayResult<()>",
+        "NativePluginRegistrationReplayError::UnsupportedManifestSchema",
+        "NativePluginRegistrationReplayError::InvalidRegistrationManifest",
+        "NativePluginRegistrationReplayError::RegisterNativeSystem",
+    ] {
+        assert!(
+            registration_replay.contains(required),
+            "native live-host registration replay orchestration owner should contain `{required}`"
+        );
+    }
+
+    for required in [
         "enum NativePluginRegistrationReplayError",
         "UnsupportedManifestSchema",
         "MissingRegistrationManifest",
@@ -39,24 +57,14 @@ fn review_f5_native_live_host_registration_replay_uses_typed_error() {
         "RegisterNativeSystem",
         "impl std::fmt::Display for NativePluginRegistrationReplayError",
         "impl std::error::Error for NativePluginRegistrationReplayError",
-        ") -> NativePluginRegistrationReplayResult<NativePluginRuntimeRegistrationReplayReport>",
-        ") -> NativePluginRegistrationReplayResult<RuntimeRegistrationManifestSource>",
-        ") -> NativePluginRegistrationReplayResult<NativePluginRuntimeRegistrationSystemReplay>",
-        ") -> NativePluginRegistrationReplayResult<()>",
-        "NativePluginRegistrationReplayError::UnsupportedManifestSchema",
-        "NativePluginRegistrationReplayError::InvalidRegistrationManifest",
-        "NativePluginRegistrationReplayError::RegisterNativeSystem",
     ] {
         assert!(
-            registration_replay.contains(required),
-            "native live-host registration replay typed-error owner should contain `{required}`"
+            registration_replay_error.contains(required),
+            "native live-host registration replay error owner should contain `{required}`"
         );
     }
 
-    let production = registration_replay
-        .split("#[cfg(test)]")
-        .next()
-        .expect("native live-host registration replay production source");
+    let production = [registration_replay, registration_replay_error].concat();
     for forbidden in [
         "return Err(format!(\n                    \"runtime plugin {plugin_id} registration manifest schema",
         ".map_err(|error| format!(\"runtime plugin {plugin_id} {error}\"))",

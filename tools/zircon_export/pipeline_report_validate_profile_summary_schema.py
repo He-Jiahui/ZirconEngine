@@ -70,10 +70,64 @@ VALIDATE_PROFILE_SUMMARY_REQUIRED_PROJECT_PLUGIN_ID_ARRAY_FIELDS = (
 VALIDATE_PROFILE_SUMMARY_REQUIRED_OBJECT_FIELDS = ("features",)
 
 
+def validate_profile_summary_strategy_projection(
+    strategies: Any,
+) -> tuple[list[str], list[str], list[str], list[str]]:
+    label = "validate report profile_summary.strategies"
+    if not isinstance(strategies, list):
+        return [f"{label} must be a string array"], [], [], []
+
+    type_diagnostics: list[str] = []
+    strategy_diagnostics: list[str] = []
+    duplicate_diagnostics: list[str] = []
+    normalized_by_index: list[str | None] = []
+    all_strings = True
+    for index, strategy in enumerate(strategies):
+        if not isinstance(strategy, str):
+            all_strings = False
+            type_diagnostics.append(f"{label}[{index}] must be a string")
+            normalized_by_index.append(None)
+            continue
+        if not strategy or strategy.strip() != strategy:
+            strategy_diagnostics.append(
+                f"{label}[{index}] must be a non-empty trimmed export strategy"
+            )
+            normalized_by_index.append(None)
+            continue
+        normalized = normalize_export_strategy(strategy)
+        normalized_by_index.append(normalized)
+        if normalized is None:
+            strategy_diagnostics.append(f"unsupported export strategy {strategy}")
+
+    if not all_strings:
+        return type_diagnostics, [], [], []
+
+    seen: dict[str, int] = {}
+    for index, normalized in enumerate(normalized_by_index):
+        if normalized is None:
+            continue
+        previous_index = seen.get(normalized)
+        if previous_index is None:
+            seen[normalized] = index
+            continue
+        duplicate_diagnostics.append(
+            f"{label}[{index}] duplicates entry {previous_index}"
+        )
+    empty = (
+        [f"{label} must include at least one supported export strategy"]
+        if not strategies
+        else []
+    )
+    return type_diagnostics, empty, strategy_diagnostics, duplicate_diagnostics
+
+
 def validate_profile_summary_schema_diagnostics(
     profile_summary: dict[str, Any],
 ) -> list[str]:
     diagnostics: list[str] = []
+    strategy_projection = validate_profile_summary_strategy_projection(
+        profile_summary.get("strategies")
+    ) if "strategies" in profile_summary else None
     known_profile_fields = set(VALIDATE_PROFILE_SUMMARY_FIELDS)
     diagnostics.extend(
         f"validate report profile_summary unknown field {field}"
@@ -158,32 +212,11 @@ def validate_profile_summary_schema_diagnostics(
         )
     for field in VALIDATE_PROFILE_SUMMARY_STRING_ARRAY_FIELDS:
         if field in profile_summary:
-            diagnostics.extend(
-                validate_string_array_schema_diagnostics(
-                    f"validate report profile_summary.{field}",
-                    profile_summary.get(field),
-                )
-            )
-    strategies = profile_summary.get("strategies")
-    if (
-        "strategies" in profile_summary
-        and isinstance(strategies, list)
-        and not any(not isinstance(strategy, str) for strategy in strategies)
-        and not strategies
-    ):
-        diagnostics.append(
-            "validate report profile_summary.strategies must include "
-            "at least one supported export strategy"
-        )
-    if (
-        "strategies" in profile_summary
-        and isinstance(strategies, list)
-        and not any(not isinstance(strategy, str) for strategy in strategies)
-    ):
-        diagnostics.extend(validate_export_strategy_schema_diagnostics(strategies))
-        diagnostics.extend(
-            validate_unique_export_strategy_schema_diagnostics(strategies)
-        )
+            diagnostics.extend(strategy_projection[0])
+    if strategy_projection is not None:
+        diagnostics.extend(strategy_projection[1])
+        diagnostics.extend(strategy_projection[2])
+        diagnostics.extend(strategy_projection[3])
     for field in VALIDATE_PROFILE_SUMMARY_PROJECT_PLUGIN_ID_ARRAY_FIELDS:
         if field in profile_summary:
             label = f"validate report profile_summary.{field}"

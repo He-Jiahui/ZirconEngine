@@ -1,70 +1,66 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
-use zircon_runtime_interface::reflect::{ReflectError, ReflectTypeRegistration, ReflectedValue};
+use zircon_runtime_interface::reflect::{
+    ReflectEditorHint, ReflectError, ReflectFieldId, ReflectFieldInfo, ReflectSchemaCatalog,
+    ReflectSchemaCatalogEntry, ReflectTypeRegistration, ReflectedValue,
+};
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
 
 use super::declared_value_type::DeclaredValueType;
+use super::runtime_type_registration::RuntimeTypeRegistration;
+use super::value_admission::validate_reflected_value_contract;
 use super::vm_type_backing::VmTypeBacking;
 
-#[derive(Clone)]
-pub struct RuntimeTypeRegistration {
-    pub registration: ReflectTypeRegistration,
-    pub component: Option<crate::scene::reflect::ReflectComponent>,
-    pub resource: Option<crate::scene::reflect::ReflectResource>,
-}
-
-impl RuntimeTypeRegistration {
-    pub fn metadata(registration: ReflectTypeRegistration) -> Self {
-        Self {
-            registration,
-            component: None,
-            resource: None,
-        }
-    }
-}
-
-impl fmt::Debug for RuntimeTypeRegistration {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("RuntimeTypeRegistration")
-            .field("registration", &self.registration)
-            .field("has_component_adapter", &self.component.is_some())
-            .field("has_resource_adapter", &self.resource.is_some())
-            .finish()
-    }
-}
-
-impl PartialEq for RuntimeTypeRegistration {
-    fn eq(&self, other: &Self) -> bool {
-        self.registration == other.registration
-            && self.component.is_some() == other.component.is_some()
-            && self.resource.is_some() == other.resource.is_some()
-    }
-}
+const MAX_REFLECT_FIELDS_PER_TYPE: usize = 4_096;
+const MAX_REFLECT_FIELD_DISPLAY_NAME_BYTES: usize = 256;
+const MAX_REFLECT_ENUM_OPTIONS_PER_FIELD: usize = 4_096;
+const MAX_REFLECT_ENUM_OPTIONS_PER_TYPE: usize = 16_384;
+const MAX_REFLECT_ENUM_VALUE_BYTES: usize = 128;
+const MAX_REFLECT_ENUM_DISPLAY_NAME_BYTES: usize = 256;
 
 #[derive(Clone, Default)]
 pub struct TypeRegistry {
     registrations: BTreeMap<String, RuntimeTypeRegistration>,
-    short_paths: BTreeMap<String, String>,
-    ambiguous_short_paths: BTreeSet<String>,
+    schema_catalog: ReflectSchemaCatalog,
     schema_catalog_generation: u64,
 }
 
 impl TypeRegistry {
     pub fn register(&mut self, registration: RuntimeTypeRegistration) -> Result<(), ReflectError> {
-        validate_registration(&registration.registration)?;
-        let type_path = registration.registration.type_path.type_path.clone();
-        if self.registrations.contains_key(&type_path) {
-            return Err(ReflectError::DuplicateTypePath { type_path });
-        }
-
-        let short_type_path = registration.registration.type_path.short_type_path.as_str();
-        self.update_short_path_lookup(&type_path, short_type_path);
-        self.registrations.insert(type_path, registration);
-        self.advance_schema_catalog_generation();
+        self.validate_new_registration(&registration)?;
+        self.publish_prevalidated(registration);
         Ok(())
+    }
+
+    pub(crate) fn validate_new_registration(
+        &self,
+        registration: &RuntimeTypeRegistration,
+    ) -> Result<(), ReflectError> {
+        validate_registration(&registration.registration)?;
+        self.schema_catalog
+            .validate_insert(&ReflectSchemaCatalogEntry::new(
+                registration.registration.clone(),
+            ))
+    }
+
+    pub(crate) fn publish_prevalidated(&mut self, mut registration: RuntimeTypeRegistration) {
+        debug_assert!(self.validate_new_registration(&registration).is_ok());
+        let type_path = registration.registration.type_path.type_path().to_string();
+        self.schema_catalog
+            .try_insert(ReflectSchemaCatalogEntry::new(
+                registration.registration.clone(),
+            ))
+            .expect("prevalidated reflection schema entry must publish");
+        registration.registration = self
+            .schema_catalog
+            .registration(&type_path)
+            .expect("published schema entry must resolve")
+            .clone();
+        let previous = self.registrations.insert(type_path, registration);
+        debug_assert!(previous.is_none());
+        self.advance_schema_catalog_generation();
     }
 
     pub fn register_resource(
@@ -72,9 +68,9 @@ impl TypeRegistry {
         registration: ReflectTypeRegistration,
         adapter: crate::scene::reflect::ReflectResource,
     ) -> Result<(), ReflectError> {
-        if !registration.is_resource || registration.is_component {
+        if !registration.is_resource() {
             return Err(ReflectError::InvalidRegistration {
-                type_path: registration.type_path.type_path.clone(),
+                type_path: registration.type_path.type_path().to_string(),
                 reason: "resource adapters require resource-only registrations".to_string(),
             });
         }
@@ -91,7 +87,16 @@ impl TypeRegistry {
         registration: ReflectTypeRegistration,
         backing: VmTypeBacking,
     ) -> Result<(), ReflectError> {
-        let type_path = registration.type_path.type_path.clone();
+        self.register_vm_type_with_descriptor(registration, backing)?;
+        Ok(())
+    }
+
+    pub(crate) fn register_vm_type_with_descriptor(
+        &mut self,
+        registration: ReflectTypeRegistration,
+        backing: VmTypeBacking,
+    ) -> Result<ComponentTypeDescriptor, ReflectError> {
+        let type_path = registration.type_path.type_path().to_string();
         if self.registrations.contains_key(&type_path) {
             return Err(ReflectError::DuplicateTypePath { type_path });
         }
@@ -100,23 +105,26 @@ impl TypeRegistry {
             VmTypeBacking::DynamicComponent => {
                 let component =
                     super::dynamic_component::reflect_component_for_dynamic_descriptor(&descriptor);
-                self.register(RuntimeTypeRegistration {
+                let runtime_registration = RuntimeTypeRegistration {
                     registration,
                     component: Some(component),
                     resource: None,
-                })
+                };
+                self.validate_new_registration(&runtime_registration)?;
+                self.publish_prevalidated(runtime_registration);
             }
         }
+        Ok(descriptor)
     }
 
     pub(crate) fn upsert_vm_type(
         &mut self,
         registration: ReflectTypeRegistration,
         backing: VmTypeBacking,
-    ) -> Result<(), ReflectError> {
+    ) -> Result<ComponentTypeDescriptor, ReflectError> {
         let descriptor = Self::vm_component_descriptor(&registration, backing)?;
-        let type_path = registration.type_path.type_path.clone();
-        let replacement = match backing {
+        let type_path = registration.type_path.type_path().to_string();
+        let mut replacement = match backing {
             VmTypeBacking::DynamicComponent => RuntimeTypeRegistration {
                 component: Some(
                     super::dynamic_component::reflect_component_for_dynamic_descriptor(&descriptor),
@@ -126,26 +134,35 @@ impl TypeRegistry {
             },
         };
         let Some(existing) = self.registrations.get(&type_path) else {
-            return self.register(replacement);
+            self.validate_new_registration(&replacement)?;
+            self.publish_prevalidated(replacement);
+            return Ok(descriptor);
         };
-        if !existing.registration.plugin_owned
-            || existing.registration.plugin_id != replacement.registration.plugin_id
+        if !existing.registration.is_plugin_owned()
+            || existing.registration.type_path.plugin_id()
+                != replacement.registration.type_path.plugin_id()
         {
             return Err(ReflectError::DuplicateTypePath { type_path });
         }
+        if existing == &replacement {
+            return Ok(descriptor);
+        }
 
-        validate_registration(&replacement.registration)?;
-        self.registrations.insert(type_path, replacement);
-        self.rebuild_short_path_lookup();
+        self.schema_catalog
+            .try_replace(ReflectSchemaCatalogEntry::new(
+                replacement.registration.clone(),
+            ))?;
+        replacement.registration = self.schema_catalog.registration(&type_path)?.clone();
+        self.registrations.insert(type_path.clone(), replacement);
         self.advance_schema_catalog_generation();
-        Ok(())
+        Ok(descriptor)
     }
 
     pub(crate) fn remove_vm_type(&mut self, type_path: &str) -> Result<(), ReflectError> {
         let Some(existing) = self.registrations.get(type_path) else {
             return Ok(());
         };
-        if !existing.registration.plugin_owned || existing.component.is_none() {
+        if !existing.registration.is_plugin_owned() || existing.component.is_none() {
             return Err(ReflectError::InvalidRegistration {
                 type_path: type_path.to_string(),
                 reason:
@@ -153,8 +170,8 @@ impl TypeRegistry {
                         .to_string(),
             });
         }
+        self.schema_catalog.try_remove(type_path)?;
         self.registrations.remove(type_path);
-        self.rebuild_short_path_lookup();
         self.advance_schema_catalog_generation();
         Ok(())
     }
@@ -165,7 +182,7 @@ impl TypeRegistry {
     ) -> Result<ComponentTypeDescriptor, ReflectError> {
         let plugin_id = validate_vm_registration(registration, backing)?.to_string();
         let mut descriptor = ComponentTypeDescriptor::new(
-            registration.type_path.type_path.clone(),
+            registration.type_path.type_path().to_string(),
             plugin_id,
             registration.display_name.clone(),
         );
@@ -180,7 +197,7 @@ impl TypeRegistry {
     }
 
     pub fn registration(&self, type_path: &str) -> Result<&ReflectTypeRegistration, ReflectError> {
-        Ok(&self.runtime_registration(type_path)?.registration)
+        self.schema_catalog.registration(type_path)
     }
 
     pub fn runtime_registration(
@@ -191,45 +208,26 @@ impl TypeRegistry {
             return Ok(registration);
         }
 
-        if let Some(resolved) = self.short_paths.get(type_path) {
-            if let Some(registration) = self.registrations.get(resolved) {
-                return Ok(registration);
-            }
-            return Err(ReflectError::InvalidRegistration {
-                type_path: resolved.clone(),
-                reason: format!("short type path `{type_path}` points at a missing registration"),
-            });
-        }
-
-        if self.ambiguous_short_paths.contains(type_path) {
-            return Err(ReflectError::AmbiguousShortTypePath {
-                short_type_path: type_path.to_string(),
-            });
-        }
-
-        Err(ReflectError::UnknownType {
-            type_path: type_path.to_string(),
-        })
+        let resolved = self.schema_catalog.resolve_type_path(type_path)?;
+        self.registrations
+            .get(resolved)
+            .ok_or_else(|| ReflectError::InvalidRegistration {
+                type_path: resolved.to_string(),
+                reason: "schema catalog entry is missing its runtime adapter projection"
+                    .to_string(),
+            })
     }
 
     pub fn resolve(&self, type_path: &str) -> Result<&str, ReflectError> {
-        if let Some((canonical_type_path, _)) = self.registrations.get_key_value(type_path) {
-            return Ok(canonical_type_path.as_str());
-        }
+        self.schema_catalog.resolve_type_path(type_path)
+    }
 
-        if let Some(resolved) = self.short_paths.get(type_path) {
-            return Ok(resolved.as_str());
-        }
-
-        if self.ambiguous_short_paths.contains(type_path) {
-            return Err(ReflectError::AmbiguousShortTypePath {
-                short_type_path: type_path.to_string(),
-            });
-        }
-
-        Err(ReflectError::UnknownType {
-            type_path: type_path.to_string(),
-        })
+    pub(crate) fn resolve_field_slot_by_id(
+        &self,
+        type_path: &str,
+        field_id: ReflectFieldId,
+    ) -> Result<u32, ReflectError> {
+        self.schema_catalog.field_slot_by_id(type_path, field_id)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &RuntimeTypeRegistration> {
@@ -237,11 +235,15 @@ impl TypeRegistry {
     }
 
     pub fn contains(&self, type_path: &str) -> bool {
-        self.registrations.contains_key(type_path) || self.short_paths.contains_key(type_path)
+        self.schema_catalog.contains(type_path)
     }
 
     pub fn contains_type_path(&self, type_path: &str) -> bool {
-        self.registrations.contains_key(type_path)
+        self.schema_catalog.contains_type_path(type_path)
+    }
+
+    pub fn schema_catalog(&self) -> &ReflectSchemaCatalog {
+        &self.schema_catalog
     }
 
     /// Returns the revision of the registered reflection catalog.
@@ -255,8 +257,7 @@ impl TypeRegistry {
     pub fn clear(&mut self) {
         let had_registrations = !self.registrations.is_empty();
         self.registrations.clear();
-        self.short_paths.clear();
-        self.ambiguous_short_paths.clear();
+        self.schema_catalog.clear();
         if had_registrations {
             self.advance_schema_catalog_generation();
         }
@@ -264,52 +265,6 @@ impl TypeRegistry {
 
     pub fn is_empty(&self) -> bool {
         self.registrations.is_empty()
-    }
-
-    fn update_short_path_lookup(&mut self, type_path: &str, short_type_path: &str) {
-        Self::update_short_path_maps(
-            &mut self.short_paths,
-            &mut self.ambiguous_short_paths,
-            type_path,
-            short_type_path,
-        );
-    }
-
-    fn update_short_path_maps(
-        short_paths: &mut BTreeMap<String, String>,
-        ambiguous_short_paths: &mut BTreeSet<String>,
-        type_path: &str,
-        short_type_path: &str,
-    ) {
-        if ambiguous_short_paths.contains(short_type_path) {
-            return;
-        }
-
-        match short_paths.get(short_type_path) {
-            None => {
-                short_paths.insert(short_type_path.to_string(), type_path.to_string());
-            }
-            Some(existing) if existing == type_path => {}
-            Some(_) => {
-                short_paths.remove(short_type_path);
-                ambiguous_short_paths.insert(short_type_path.to_string());
-            }
-        }
-    }
-
-    fn rebuild_short_path_lookup(&mut self) {
-        let mut short_paths = BTreeMap::new();
-        let mut ambiguous_short_paths = BTreeSet::new();
-        for (type_path, registration) in &self.registrations {
-            Self::update_short_path_maps(
-                &mut short_paths,
-                &mut ambiguous_short_paths,
-                type_path,
-                &registration.registration.type_path.short_type_path,
-            );
-        }
-        self.short_paths = short_paths;
-        self.ambiguous_short_paths = ambiguous_short_paths;
     }
 
     fn advance_schema_catalog_generation(&mut self) {
@@ -321,33 +276,21 @@ fn validate_vm_registration(
     registration: &ReflectTypeRegistration,
     backing: VmTypeBacking,
 ) -> Result<&str, ReflectError> {
-    let type_path = registration.type_path.type_path.as_str();
-    validate_canonical_text(type_path, "full type path", type_path)?;
-    validate_canonical_text(
-        type_path,
-        "short type path",
-        &registration.type_path.short_type_path,
-    )?;
+    validate_registration(registration)?;
+    let type_path = registration.type_path.type_path();
     validate_canonical_text(type_path, "display name", &registration.display_name)?;
-    if !registration.plugin_owned {
+    if !registration.is_plugin_owned() {
         return Err(invalid_vm_registration(
             type_path,
             "VM types must be plugin-owned",
         ));
     }
-    let Some(plugin_id) = registration.plugin_id.as_deref() else {
+    let Some(plugin_id) = registration.type_path.plugin_id() else {
         return Err(invalid_vm_registration(
             type_path,
             "VM types must declare a plugin id",
         ));
     };
-    validate_canonical_text(type_path, "plugin id", plugin_id)?;
-    if registration.type_path.plugin_id.as_deref() != Some(plugin_id) {
-        return Err(invalid_vm_registration(
-            type_path,
-            "VM type path and registration plugin ids must match",
-        ));
-    }
     let plugin_prefix = format!("{plugin_id}.");
     if !type_path.starts_with(&plugin_prefix) {
         return Err(invalid_vm_registration(
@@ -356,7 +299,7 @@ fn validate_vm_registration(
         ));
     }
     for field in &registration.type_info.fields {
-        if let Err(reason) = DeclaredValueType::parse(&field.value_type_path) {
+        if let Err(reason) = DeclaredValueType::parse_vm(&field.value_type_path) {
             return Err(invalid_vm_registration(
                 type_path,
                 &format!("reflected field `{}` {reason}", field.name),
@@ -365,9 +308,7 @@ fn validate_vm_registration(
     }
 
     match backing {
-        VmTypeBacking::DynamicComponent
-            if !registration.is_component || registration.is_resource =>
-        {
+        VmTypeBacking::DynamicComponent if !registration.is_component() => {
             Err(invalid_vm_registration(
                 type_path,
                 "dynamic VM backing requires a component-only registration",
@@ -378,49 +319,308 @@ fn validate_vm_registration(
 }
 
 fn validate_registration(registration: &ReflectTypeRegistration) -> Result<(), ReflectError> {
-    let type_path = registration.type_path.type_path.as_str();
-    if registration.is_component && registration.is_resource {
-        return Err(invalid_vm_registration(
+    let type_path = registration.type_path.type_path();
+    if registration.type_info.fields.len() > MAX_REFLECT_FIELDS_PER_TYPE {
+        return Err(ReflectError::InvalidRegistration {
+            type_path: type_path.to_string(),
+            reason: format!(
+                "reflected types must not declare more than {MAX_REFLECT_FIELDS_PER_TYPE} fields"
+            ),
+        });
+    }
+
+    ReflectSchemaCatalog::validate_entry(&ReflectSchemaCatalogEntry::new(registration.clone()))?;
+
+    let mut enum_option_count = 0_usize;
+    for field in &registration.type_info.fields {
+        validate_field_text(
             type_path,
-            "a reflected type cannot be both a component and a resource",
+            field,
+            "display name",
+            &field.display_name,
+            MAX_REFLECT_FIELD_DISPLAY_NAME_BYTES,
+        )?;
+        let declared = DeclaredValueType::parse(&field.value_type_path)
+            .map_err(|reason| invalid_field_registration(type_path, &field.name, &reason))?;
+        validate_editor_hint(type_path, field, &declared)?;
+        if let Some(default_value) = &field.default_value {
+            validate_reflected_value_contract(default_value).map_err(|error| {
+                invalid_field_registration(
+                    type_path,
+                    &field.name,
+                    &format!("default value rejected: {error}"),
+                )
+            })?;
+            if !declared.matches_reflected(default_value)
+                && !(declared.is_named()
+                    && editor_hint_matches_value(&field.editor_hint, default_value))
+            {
+                return Err(invalid_field_registration(
+                    type_path,
+                    &field.name,
+                    &format!(
+                        "default value type `{}` does not match declared value type `{}`",
+                        default_value.type_name(),
+                        field.value_type_path
+                    ),
+                ));
+            }
+        }
+        validate_numeric_metadata(type_path, field, &declared)?;
+        enum_option_count = enum_option_count
+            .checked_add(field.enum_options.len())
+            .ok_or_else(|| ReflectError::InvalidRegistration {
+                type_path: type_path.to_string(),
+                reason: "reflected enum option count overflowed".to_string(),
+            })?;
+        if enum_option_count > MAX_REFLECT_ENUM_OPTIONS_PER_TYPE {
+            return Err(ReflectError::InvalidRegistration {
+                type_path: type_path.to_string(),
+                reason: format!(
+                    "reflected types must not declare more than {MAX_REFLECT_ENUM_OPTIONS_PER_TYPE} total enum options"
+                ),
+            });
+        }
+        validate_enum_metadata(type_path, field, &declared)?;
+    }
+    Ok(())
+}
+
+fn validate_field_text(
+    type_path: &str,
+    field: &ReflectFieldInfo,
+    label: &str,
+    value: &str,
+    max_bytes: usize,
+) -> Result<(), ReflectError> {
+    if value.is_empty() || value.trim() != value {
+        return Err(invalid_field_registration(
+            type_path,
+            &field.name,
+            &format!("field {label} must be non-empty and already trimmed"),
+        ));
+    }
+    if value.len() > max_bytes {
+        return Err(invalid_field_registration(
+            type_path,
+            &field.name,
+            &format!("field {label} must not exceed {max_bytes} bytes"),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_editor_hint(
+    type_path: &str,
+    field: &ReflectFieldInfo,
+    declared: &DeclaredValueType,
+) -> Result<(), ReflectError> {
+    let compatible = match &field.editor_hint {
+        ReflectEditorHint::None | ReflectEditorHint::Json => true,
+        ReflectEditorHint::String | ReflectEditorHint::MultilineString => {
+            matches!(declared, DeclaredValueType::String) || declared.is_named()
+        }
+        ReflectEditorHint::Bool => {
+            matches!(declared, DeclaredValueType::Bool) || declared.is_named()
+        }
+        ReflectEditorHint::Integer => {
+            matches!(declared, DeclaredValueType::Integer) || declared.is_named()
+        }
+        ReflectEditorHint::Unsigned => {
+            matches!(declared, DeclaredValueType::Unsigned) || declared.is_named()
+        }
+        ReflectEditorHint::Scalar => {
+            matches!(declared, DeclaredValueType::Scalar) || declared.is_named()
+        }
+        ReflectEditorHint::Vec2 => {
+            matches!(declared, DeclaredValueType::Vec2) || declared.is_named()
+        }
+        ReflectEditorHint::Vec3 => {
+            matches!(declared, DeclaredValueType::Vec3) || declared.is_named()
+        }
+        ReflectEditorHint::Vec4 => {
+            matches!(
+                declared,
+                DeclaredValueType::Vec4 | DeclaredValueType::Quaternion
+            ) || declared.is_named()
+        }
+        ReflectEditorHint::Enum => declared.supports_enum_metadata() || declared.is_named(),
+        ReflectEditorHint::Entity => {
+            matches!(declared, DeclaredValueType::Entity) || declared.is_named()
+        }
+        ReflectEditorHint::Resource => {
+            matches!(declared, DeclaredValueType::Resource) || declared.is_named()
+        }
+        ReflectEditorHint::Color => {
+            matches!(declared, DeclaredValueType::Vec3 | DeclaredValueType::Vec4)
+                || declared.is_named()
+        }
+    };
+    if compatible {
+        return Ok(());
+    }
+    Err(invalid_field_registration(
+        type_path,
+        &field.name,
+        &format!(
+            "editor hint `{:?}` is incompatible with declared value type `{}`",
+            field.editor_hint, field.value_type_path
+        ),
+    ))
+}
+
+fn validate_numeric_metadata(
+    type_path: &str,
+    field: &ReflectFieldInfo,
+    declared: &DeclaredValueType,
+) -> Result<(), ReflectError> {
+    if field.numeric_range.is_none()
+        || declared.supports_numeric_metadata()
+        || (declared.is_named()
+            && matches!(
+                &field.editor_hint,
+                ReflectEditorHint::Integer
+                    | ReflectEditorHint::Unsigned
+                    | ReflectEditorHint::Scalar
+            ))
+    {
+        return Ok(());
+    }
+    Err(invalid_field_registration(
+        type_path,
+        &field.name,
+        "numeric range metadata requires an integer, unsigned, or scalar field",
+    ))
+}
+
+fn validate_enum_metadata(
+    type_path: &str,
+    field: &ReflectFieldInfo,
+    declared: &DeclaredValueType,
+) -> Result<(), ReflectError> {
+    if field.enum_options.len() > MAX_REFLECT_ENUM_OPTIONS_PER_FIELD {
+        return Err(invalid_field_registration(
+            type_path,
+            &field.name,
+            &format!(
+                "enum fields must not declare more than {MAX_REFLECT_ENUM_OPTIONS_PER_FIELD} options"
+            ),
+        ));
+    }
+    if field.enum_options.is_empty() {
+        return Ok(());
+    }
+    if !declared.supports_enum_metadata()
+        && !(declared.is_named() && field.editor_hint == ReflectEditorHint::Enum)
+    {
+        return Err(invalid_field_registration(
+            type_path,
+            &field.name,
+            "enum options require an enum field",
         ));
     }
 
-    let mut field_names = BTreeSet::new();
-    for field in &registration.type_info.fields {
-        if field.name.trim().is_empty() || field.name.trim() != field.name {
-            return Err(invalid_vm_registration(
-                type_path,
-                "reflected field names must be non-empty and already trimmed",
-            ));
-        }
-        if !field_names.insert(field.name.as_str()) {
-            return Err(invalid_vm_registration(
-                type_path,
-                &format!("duplicate reflected field `{}`", field.name),
-            ));
-        }
-        if field.value_type_path.trim().is_empty()
-            || field.value_type_path.trim() != field.value_type_path
-        {
-            return Err(invalid_vm_registration(
-                type_path,
-                &format!(
-                    "reflected field `{}` value type path must be non-empty and already trimmed",
-                    field.name
-                ),
-            ));
-        }
-        if let Some(default_value) = &field.default_value {
-            ensure_reflected_value_type(
+    let mut values = HashSet::with_capacity(field.enum_options.len());
+    for option in &field.enum_options {
+        validate_enum_option_text(
+            type_path,
+            field,
+            "value",
+            &option.value,
+            MAX_REFLECT_ENUM_VALUE_BYTES,
+        )?;
+        if !valid_enum_value(&option.value) {
+            return Err(invalid_field_registration(
                 type_path,
                 &field.name,
-                &field.value_type_path,
-                default_value,
-            )?;
+                "enum option values must use ASCII letters, digits, `_`, `-`, `.`, or `:`",
+            ));
+        }
+        validate_enum_option_text(
+            type_path,
+            field,
+            "display name",
+            &option.display_name,
+            MAX_REFLECT_ENUM_DISPLAY_NAME_BYTES,
+        )?;
+        if !values.insert(option.value.as_str()) {
+            return Err(invalid_field_registration(
+                type_path,
+                &field.name,
+                &format!("duplicate enum option value `{}`", option.value),
+            ));
+        }
+    }
+    if let Some(ReflectedValue::Enum(default)) = &field.default_value {
+        if !values.contains(default.as_str()) {
+            return Err(invalid_field_registration(
+                type_path,
+                &field.name,
+                &format!("enum default `{default}` is not present in enum options"),
+            ));
         }
     }
     Ok(())
+}
+
+fn validate_enum_option_text(
+    type_path: &str,
+    field: &ReflectFieldInfo,
+    label: &str,
+    value: &str,
+    max_bytes: usize,
+) -> Result<(), ReflectError> {
+    if value.is_empty() || value.trim() != value {
+        return Err(invalid_field_registration(
+            type_path,
+            &field.name,
+            &format!("enum option {label} must be non-empty and already trimmed"),
+        ));
+    }
+    if value.len() > max_bytes {
+        return Err(invalid_field_registration(
+            type_path,
+            &field.name,
+            &format!("enum option {label} must not exceed {max_bytes} bytes"),
+        ));
+    }
+    Ok(())
+}
+
+fn editor_hint_matches_value(hint: &ReflectEditorHint, value: &ReflectedValue) -> bool {
+    match (hint, value) {
+        (
+            ReflectEditorHint::String | ReflectEditorHint::MultilineString,
+            ReflectedValue::String(_),
+        )
+        | (ReflectEditorHint::Bool, ReflectedValue::Bool(_))
+        | (ReflectEditorHint::Integer, ReflectedValue::Integer(_))
+        | (ReflectEditorHint::Unsigned, ReflectedValue::Unsigned(_))
+        | (ReflectEditorHint::Enum, ReflectedValue::Enum(_))
+        | (ReflectEditorHint::Resource, ReflectedValue::Resource(_))
+        | (ReflectEditorHint::Json, ReflectedValue::Json(_)) => true,
+        (ReflectEditorHint::Scalar, ReflectedValue::Scalar(value)) => value.is_finite(),
+        (ReflectEditorHint::Vec2, ReflectedValue::Vec2(values)) => finite(values),
+        (ReflectEditorHint::Vec3 | ReflectEditorHint::Color, ReflectedValue::Vec3(values)) => {
+            finite(values)
+        }
+        (
+            ReflectEditorHint::Vec4 | ReflectEditorHint::Color,
+            ReflectedValue::Vec4(values) | ReflectedValue::Quaternion(values),
+        ) => finite(values),
+        (ReflectEditorHint::Entity, ReflectedValue::Entity(_) | ReflectedValue::Null) => true,
+        _ => false,
+    }
+}
+
+fn finite(values: &[f32]) -> bool {
+    values.iter().all(|value| value.is_finite())
+}
+
+fn valid_enum_value(value: &str) -> bool {
+    value.bytes().all(|byte| {
+        byte == b'_' || byte == b'-' || byte == b'.' || byte == b':' || byte.is_ascii_alphanumeric()
+    })
 }
 
 pub(crate) fn ensure_reflected_value_type(
@@ -463,13 +663,20 @@ fn invalid_vm_registration(type_path: &str, reason: &str) -> ReflectError {
     }
 }
 
+fn invalid_field_registration(type_path: &str, field_name: &str, reason: &str) -> ReflectError {
+    ReflectError::InvalidFieldRegistration {
+        type_path: type_path.to_string(),
+        field_name: field_name.to_string(),
+        reason: reason.to_string(),
+    }
+}
+
 impl fmt::Debug for TypeRegistry {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("TypeRegistry")
             .field("registrations", &self.registrations)
-            .field("short_paths", &self.short_paths)
-            .field("ambiguous_short_paths", &self.ambiguous_short_paths)
+            .field("schema_catalog", &self.schema_catalog)
             .field("schema_catalog_generation", &self.schema_catalog_generation)
             .finish()
     }
@@ -477,8 +684,6 @@ impl fmt::Debug for TypeRegistry {
 
 impl PartialEq for TypeRegistry {
     fn eq(&self, other: &Self) -> bool {
-        self.registrations == other.registrations
-            && self.short_paths == other.short_paths
-            && self.ambiguous_short_paths == other.ambiguous_short_paths
+        self.registrations == other.registrations && self.schema_catalog == other.schema_catalog
     }
 }

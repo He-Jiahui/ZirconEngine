@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
 };
 
-use crate::ui::binding::{DockCommand, EditorUiBinding, EditorUiBindingPayload};
+use crate::ui::binding::EditorUiBinding;
 use crate::ui::retained_host::callback_dispatch::constants::{
     BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID, DOCUMENT_TABS_CONTROL_ID, UI_HOST_WINDOW_CONTROL_ID,
 };
@@ -165,22 +165,6 @@ impl BuiltinHostWindowTemplateBridge {
             pane_surface_frame: self.control_frame("PaneSurfaceRoot"),
             status_bar_frame: self.control_frame("StatusBarRoot"),
         }
-    }
-
-    pub(crate) fn activity_binding_for_target(
-        &self,
-        slot: &str,
-        instance_id: &str,
-    ) -> Option<&EditorUiBinding> {
-        self.bindings_by_id.values().find(|binding| {
-            matches!(
-                binding.payload(),
-                EditorUiBindingPayload::DockCommand(DockCommand::ActivateDrawerTab {
-                    slot: binding_slot,
-                    instance_id: binding_instance_id,
-                }) if binding_slot == slot && binding_instance_id == instance_id
-            )
-        })
     }
 
     fn binding_for_control_with_arguments(

@@ -1,13 +1,15 @@
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::core::framework::render::RenderCapabilitySummary;
 use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
+use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 use super::{
-    grow_indirect_buffer_capacity, MeshIndirectCompactionWorkspace, MeshIndirectDrawExecution,
+    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, MeshIndirectCompactionWorkspace, MeshIndirectDrawExecution,
     MeshIndirectDrawPlan, MeshIndirectResourceIdentity, MeshPassIndirectDrawExecutions,
-    MeshPassIndirectDrawPlans, INDEXED_INDIRECT_ARGS_STRIDE_BYTES,
+    MeshPassIndirectDrawPlans, PodRangeUploadCommit, PodRangeUploadShadow,
+    grow_indirect_buffer_capacity,
 };
 
 #[derive(Default)]
@@ -28,8 +30,69 @@ pub(crate) struct MeshIndirectPhaseWorkspace {
     resource_revision: u64,
     args_buffer: Option<Arc<wgpu::Buffer>>,
     args_capacity_bytes: wgpu::BufferAddress,
-    args_shadow: Vec<IndexedIndirectArgs>,
+    args_buffer_revision: u64,
+    args_shadow: PodRangeUploadShadow<IndexedIndirectArgs>,
     compaction: MeshIndirectCompactionWorkspace,
+}
+
+#[derive(Clone, Copy)]
+enum MeshIndirectPhase {
+    DepthPrepass,
+    Shadow,
+    Opaque,
+    AlphaMask,
+    AdvancedPbrOpaque,
+    Transparent,
+    HalfResolutionTransparent,
+    Velocity,
+    TaaReactiveMask,
+}
+
+struct MeshIndirectPhasePreparedCommit {
+    phase: MeshIndirectPhase,
+    workspace_id: u64,
+    resource_revision: u64,
+    args: Option<PodRangeUploadCommit>,
+    compaction_metadata: Option<PodRangeUploadCommit>,
+}
+
+#[derive(Default)]
+pub(crate) struct MeshIndirectWorkspacePreparedUpload {
+    uploads: WgpuBufferUploadBatch,
+    commits: Vec<MeshIndirectPhasePreparedCommit>,
+    appended_to_frame: bool,
+}
+
+impl MeshIndirectWorkspacePreparedUpload {
+    pub(crate) fn append_to(&mut self, frame_uploads: &mut WgpuBufferUploadBatch) {
+        assert!(
+            !self.appended_to_frame,
+            "mesh indirect uploads must be appended to one frame transaction exactly once"
+        );
+        frame_uploads.append(&mut self.uploads);
+        self.appended_to_frame = true;
+    }
+
+    pub(crate) fn commit_count(&self) -> usize {
+        self.commits.len()
+    }
+
+    pub(crate) fn commit(self, workspace: &mut MeshIndirectDrawWorkspace) -> u32 {
+        assert!(
+            self.appended_to_frame,
+            "mesh indirect shadows require an accepted frame upload batch"
+        );
+        let mut committed_count = 0_u32;
+        for commit in self.commits {
+            let phase_workspace = workspace.phase_workspace_mut(commit.phase);
+            assert!(
+                phase_workspace.commit_prepared_upload(commit),
+                "mesh indirect upload commit token must match its prepared workspace revision"
+            );
+            committed_count = committed_count.saturating_add(1);
+        }
+        committed_count
+    }
 }
 
 static NEXT_INDIRECT_WORKSPACE_ID: AtomicU64 = AtomicU64::new(1);
@@ -41,7 +104,8 @@ impl Default for MeshIndirectPhaseWorkspace {
             resource_revision: 0,
             args_buffer: None,
             args_capacity_bytes: 0,
-            args_shadow: Vec::new(),
+            args_buffer_revision: 0,
+            args_shadow: PodRangeUploadShadow::default(),
             compaction: MeshIndirectCompactionWorkspace::default(),
         }
     }
@@ -58,94 +122,104 @@ impl MeshIndirectDrawWorkspace {
     pub(crate) fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         capabilities: &RenderCapabilitySummary,
         plans: MeshPassIndirectDrawPlans,
     ) -> (
         MeshPassIndirectDrawExecutions,
         MeshIndirectWorkspaceFrameStats,
+        MeshIndirectWorkspacePreparedUpload,
     ) {
         let mut stats = MeshIndirectWorkspaceFrameStats::default();
+        let mut prepared_upload = MeshIndirectWorkspacePreparedUpload::default();
         let depth_prepass = prepare_phase(
+            MeshIndirectPhase::DepthPrepass,
             &mut self.depth_prepass,
             device,
-            queue,
             "zircon-depth-prepass-indirect-args",
             plans.depth_prepass,
             capabilities,
             &mut stats,
+            &mut prepared_upload,
         );
         let shadow = prepare_phase(
+            MeshIndirectPhase::Shadow,
             &mut self.shadow,
             device,
-            queue,
             "zircon-shadow-indirect-args",
             plans.shadow,
             capabilities,
             &mut stats,
+            &mut prepared_upload,
         );
         let opaque = prepare_phase(
+            MeshIndirectPhase::Opaque,
             &mut self.opaque,
             device,
-            queue,
             "zircon-opaque-indirect-args",
             plans.opaque,
             capabilities,
             &mut stats,
+            &mut prepared_upload,
         );
         let alpha_mask = prepare_phase(
+            MeshIndirectPhase::AlphaMask,
             &mut self.alpha_mask,
             device,
-            queue,
             "zircon-alpha-mask-indirect-args",
             plans.alpha_mask,
             capabilities,
             &mut stats,
+            &mut prepared_upload,
         );
         let advanced_pbr_opaque = prepare_phase(
+            MeshIndirectPhase::AdvancedPbrOpaque,
             &mut self.advanced_pbr_opaque,
             device,
-            queue,
             "zircon-advanced-pbr-opaque-indirect-args",
             plans.advanced_pbr_opaque,
             capabilities,
             &mut stats,
+            &mut prepared_upload,
         );
         let transparent = prepare_phase(
+            MeshIndirectPhase::Transparent,
             &mut self.transparent,
             device,
-            queue,
             "zircon-transparent-indirect-args",
             plans.transparent,
             capabilities,
             &mut stats,
+            &mut prepared_upload,
         );
         let half_resolution_transparent = prepare_phase(
+            MeshIndirectPhase::HalfResolutionTransparent,
             &mut self.half_resolution_transparent,
             device,
-            queue,
             "zircon-halfres-transparent-indirect-args",
             plans.half_resolution_transparent,
             capabilities,
             &mut stats,
+            &mut prepared_upload,
         );
         let velocity = prepare_phase(
+            MeshIndirectPhase::Velocity,
             &mut self.velocity,
             device,
-            queue,
             "zircon-velocity-indirect-args",
             plans.velocity,
             capabilities,
             &mut stats,
+            &mut prepared_upload,
         );
         let taa_reactive_mask = prepare_phase(
+            MeshIndirectPhase::TaaReactiveMask,
             &mut self.taa_reactive_mask,
             device,
-            queue,
             "zircon-taa-reactive-mask-indirect-args",
             plans.taa_reactive_mask,
             capabilities,
             &mut stats,
+            &mut prepared_upload,
         );
 
         (
@@ -161,19 +235,39 @@ impl MeshIndirectDrawWorkspace {
                 taa_reactive_mask,
             ),
             stats,
+            prepared_upload,
         )
+    }
+
+    fn phase_workspace_mut(&mut self, phase: MeshIndirectPhase) -> &mut MeshIndirectPhaseWorkspace {
+        match phase {
+            MeshIndirectPhase::DepthPrepass => &mut self.depth_prepass,
+            MeshIndirectPhase::Shadow => &mut self.shadow,
+            MeshIndirectPhase::Opaque => &mut self.opaque,
+            MeshIndirectPhase::AlphaMask => &mut self.alpha_mask,
+            MeshIndirectPhase::AdvancedPbrOpaque => &mut self.advanced_pbr_opaque,
+            MeshIndirectPhase::Transparent => &mut self.transparent,
+            MeshIndirectPhase::HalfResolutionTransparent => &mut self.half_resolution_transparent,
+            MeshIndirectPhase::Velocity => &mut self.velocity,
+            MeshIndirectPhase::TaaReactiveMask => &mut self.taa_reactive_mask,
+        }
     }
 }
 
 impl MeshIndirectPhaseWorkspace {
-    pub(crate) fn prepare(
+    fn prepare(
         &mut self,
+        phase: MeshIndirectPhase,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         label: &'static str,
         plan: MeshIndirectDrawPlan,
         capabilities: &RenderCapabilitySummary,
-    ) -> (MeshIndirectDrawExecution, MeshIndirectWorkspaceFrameStats) {
+        uploads: &mut WgpuBufferUploadBatch,
+    ) -> (
+        MeshIndirectDrawExecution,
+        MeshIndirectWorkspaceFrameStats,
+        Option<MeshIndirectPhasePreparedCommit>,
+    ) {
         let args = plan.batcher.args_cpu();
         let required_args_bytes = args.len() as wgpu::BufferAddress
             * std::mem::size_of::<IndexedIndirectArgs>() as wgpu::BufferAddress;
@@ -189,6 +283,7 @@ impl MeshIndirectPhaseWorkspace {
                 usage: indirect_args_usage(),
                 mapped_at_creation: false,
             })));
+            self.args_buffer_revision = self.args_buffer_revision.wrapping_add(1).max(1);
         }
 
         let mut stats = MeshIndirectWorkspaceFrameStats {
@@ -196,21 +291,20 @@ impl MeshIndirectPhaseWorkspace {
             uploaded_byte_count: 0,
             upload_range_count: 0,
         };
-        let args_upload = super::write_changed_pod_ranges(
-            queue,
+        let (args_upload, args_commit) = self.args_shadow.prepare(
             self.args_buffer
                 .as_ref()
                 .expect("indirect args buffer was prepared"),
-            &mut self.args_shadow,
+            self.args_buffer_revision,
             args,
-            args_buffer_recreated,
+            uploads,
         );
         stats.uploaded_byte_count = args_upload.byte_count;
         stats.upload_range_count = args_upload.range_count;
 
-        let (compaction_resources, compaction_stats) =
-            self.compaction
-                .prepare(device, queue, label, &plan.compaction_plan);
+        let (compaction_resources, compaction_stats, compaction_metadata_commit) = self
+            .compaction
+            .prepare(device, label, &plan.compaction_plan, uploads);
         stats.created_buffer_count = stats
             .created_buffer_count
             .saturating_add(compaction_stats.created_buffer_count);
@@ -234,21 +328,60 @@ impl MeshIndirectPhaseWorkspace {
             compaction_resources,
             capabilities,
         );
-        (execution, stats)
+        let prepared_commit = (args_commit.is_some() || compaction_metadata_commit.is_some())
+            .then_some(MeshIndirectPhasePreparedCommit {
+                phase,
+                workspace_id: self.workspace_id,
+                resource_revision: self.resource_revision,
+                args: args_commit,
+                compaction_metadata: compaction_metadata_commit,
+            });
+        (execution, stats, prepared_commit)
+    }
+
+    fn commit_prepared_upload(&mut self, commit: MeshIndirectPhasePreparedCommit) -> bool {
+        if self.workspace_id != commit.workspace_id
+            || self.resource_revision != commit.resource_revision
+            || commit
+                .args
+                .is_some_and(|token| !self.args_shadow.accepts(token))
+            || commit
+                .compaction_metadata
+                .is_some_and(|token| !self.compaction.accepts_metadata_upload(token))
+        {
+            return false;
+        }
+        if let Some(token) = commit.args {
+            let accepted = self.args_shadow.commit(token);
+            debug_assert!(accepted);
+        }
+        if let Some(token) = commit.compaction_metadata {
+            let accepted = self.compaction.commit_metadata_upload(token);
+            debug_assert!(accepted);
+        }
+        true
     }
 }
 
 fn prepare_phase(
+    phase: MeshIndirectPhase,
     workspace: &mut MeshIndirectPhaseWorkspace,
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
     label: &'static str,
     plan: Option<MeshIndirectDrawPlan>,
     capabilities: &RenderCapabilitySummary,
     total_stats: &mut MeshIndirectWorkspaceFrameStats,
+    prepared_upload: &mut MeshIndirectWorkspacePreparedUpload,
 ) -> Option<MeshIndirectDrawExecution> {
     let plan = plan?;
-    let (execution, stats) = workspace.prepare(device, queue, label, plan, capabilities);
+    let (execution, stats, commit) = workspace.prepare(
+        phase,
+        device,
+        label,
+        plan,
+        capabilities,
+        &mut prepared_upload.uploads,
+    );
     total_stats.created_buffer_count = total_stats
         .created_buffer_count
         .saturating_add(stats.created_buffer_count);
@@ -258,6 +391,9 @@ fn prepare_phase(
     total_stats.upload_range_count = total_stats
         .upload_range_count
         .saturating_add(stats.upload_range_count);
+    if let Some(commit) = commit {
+        prepared_upload.commits.push(commit);
+    }
     Some(execution)
 }
 

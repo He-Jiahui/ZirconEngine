@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 use crate::ui::accessibility::UiAccessibilityContract;
 use crate::ui::binding::UiEventKind;
+use crate::ui::component::UiComponentEventKind;
 use crate::ui::focus::UiFocusContract;
 use crate::ui::navigation::UiNavigationContract;
 use crate::ui::picking::UiPickPolicy;
@@ -12,34 +12,78 @@ use crate::ui::widget::UiWidgetContract;
 
 use super::{UiActionRef, UiBindingTargetAssignment};
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiTemplateDocument {
-    #[serde(default = "default_template_version")]
-    pub version: u32,
-    #[serde(default)]
-    pub components: BTreeMap<String, UiComponentTemplate>,
-    pub root: UiTemplateNode,
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UiBindingWritePermissions {
+    pub writes_target: bool,
+    pub writes_source: bool,
+    pub publishes_command: bool,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiComponentTemplate {
-    #[serde(default)]
-    pub slots: BTreeMap<String, UiSlotTemplate>,
-    pub root: UiTemplateNode,
+impl UiBindingWritePermissions {
+    pub const TARGET_ONLY: Self = Self {
+        writes_target: true,
+        writes_source: false,
+        publishes_command: false,
+    };
+    pub const SOURCE_AND_TARGET: Self = Self {
+        writes_target: true,
+        writes_source: true,
+        publishes_command: false,
+    };
+    pub const COMMAND_ONLY: Self = Self {
+        writes_target: false,
+        writes_source: false,
+        publishes_command: true,
+    };
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UiSlotTemplate {
-    #[serde(default)]
-    pub required: bool,
-    #[serde(default)]
-    pub multiple: bool,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UiBindingTriggerTiming {
+    Instantiation,
+    SourceChange,
+    SourceOrTargetChange,
+    EventDispatch,
+    CommandDispatch,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UiBindingMode {
+    OneTime,
+    OneWay,
+    TwoWay,
+    #[default]
+    Event,
+    Command,
+}
+
+impl UiBindingMode {
+    pub const fn trigger_timing(self) -> UiBindingTriggerTiming {
+        match self {
+            Self::OneTime => UiBindingTriggerTiming::Instantiation,
+            Self::OneWay => UiBindingTriggerTiming::SourceChange,
+            Self::TwoWay => UiBindingTriggerTiming::SourceOrTargetChange,
+            Self::Event => UiBindingTriggerTiming::EventDispatch,
+            Self::Command => UiBindingTriggerTiming::CommandDispatch,
+        }
+    }
+
+    pub const fn write_permissions(self) -> UiBindingWritePermissions {
+        match self {
+            Self::OneTime | Self::OneWay | Self::Event => UiBindingWritePermissions::TARGET_ONLY,
+            Self::TwoWay => UiBindingWritePermissions::SOURCE_AND_TARGET,
+            Self::Command => UiBindingWritePermissions::COMMAND_ONLY,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiBindingRef {
     pub id: String,
     pub event: UiEventKind,
+    #[serde(default)]
+    pub mode: UiBindingMode,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub component_event: Option<UiComponentEventKind>,
     #[serde(default)]
     pub route: Option<String>,
     #[serde(default)]
@@ -50,6 +94,8 @@ pub struct UiBindingRef {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiTemplateNode {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_asset_id: Option<String>,
     #[serde(default)]
     pub component: Option<String>,
     #[serde(default)]
@@ -62,6 +108,8 @@ pub struct UiTemplateNode {
     pub classes: Vec<String>,
     #[serde(default)]
     pub bindings: Vec<UiBindingRef>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub binding_source_asset_ids: Vec<String>,
     #[serde(default)]
     pub children: Vec<UiTemplateNode>,
     #[serde(default)]
@@ -86,46 +134,83 @@ pub struct UiTemplateNode {
     pub widget: UiWidgetContract,
 }
 
-impl UiTemplateNode {
-    pub fn node_kind_count(&self) -> usize {
-        usize::from(self.component.is_some())
-            + usize::from(self.template.is_some())
-            + usize::from(self.slot.is_some())
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn binding_mode_contract_serializes_trigger_timing_and_write_permissions() {
+        let cases = [
+            (
+                "OneTime",
+                UiBindingMode::OneTime,
+                UiBindingTriggerTiming::Instantiation,
+                UiBindingWritePermissions::TARGET_ONLY,
+            ),
+            (
+                "OneWay",
+                UiBindingMode::OneWay,
+                UiBindingTriggerTiming::SourceChange,
+                UiBindingWritePermissions::TARGET_ONLY,
+            ),
+            (
+                "TwoWay",
+                UiBindingMode::TwoWay,
+                UiBindingTriggerTiming::SourceOrTargetChange,
+                UiBindingWritePermissions::SOURCE_AND_TARGET,
+            ),
+            (
+                "Event",
+                UiBindingMode::Event,
+                UiBindingTriggerTiming::EventDispatch,
+                UiBindingWritePermissions::TARGET_ONLY,
+            ),
+            (
+                "Command",
+                UiBindingMode::Command,
+                UiBindingTriggerTiming::CommandDispatch,
+                UiBindingWritePermissions::COMMAND_ONLY,
+            ),
+        ];
+
+        for (serialized_mode, expected_mode, expected_trigger, expected_permissions) in cases {
+            let binding: UiBindingRef = toml::from_str(&format!(
+                "id = \"mode.contract\"\nevent = \"Click\"\nmode = \"{serialized_mode}\"\n"
+            ))
+            .unwrap();
+
+            assert_eq!(binding.mode, expected_mode);
+            assert_eq!(binding.mode.trigger_timing(), expected_trigger);
+            assert_eq!(binding.mode.write_permissions(), expected_permissions);
+            assert!(toml::to_string(&binding)
+                .unwrap()
+                .contains(&format!("mode = \"{serialized_mode}\"")));
+        }
+
+        let legacy: UiBindingRef = toml::from_str("id = \"legacy\"\nevent = \"Click\"\n").unwrap();
+        assert_eq!(legacy.mode, UiBindingMode::Event);
     }
-}
 
-#[derive(Clone, Debug, Error, PartialEq, Eq)]
-pub enum UiTemplateError {
-    #[error("failed to parse ui template document: {0}")]
-    ParseToml(String),
-    #[error("failed to read ui template document: {0}")]
-    Io(String),
-    #[error("ui template node is invalid: {detail}")]
-    InvalidNodeDefinition { detail: String },
-    #[error("ui template references unknown component {template_id}")]
-    UnknownTemplate { template_id: String },
-    #[error("ui template {template_id} missing required slot {slot_name}")]
-    MissingRequiredSlot {
-        template_id: String,
-        slot_name: String,
-    },
-    #[error("ui template {template_id} received unknown slot {slot_name}")]
-    UnknownSlot {
-        template_id: String,
-        slot_name: String,
-    },
-    #[error("ui template {template_id} slot {slot_name} does not accept multiple children")]
-    SlotDoesNotAcceptMultiple {
-        template_id: String,
-        slot_name: String,
-    },
-    #[error("ui template {template_id} uses undeclared slot placeholder {slot_name}")]
-    UndeclaredSlotPlaceholder {
-        template_id: String,
-        slot_name: String,
-    },
-}
+    #[test]
+    fn typed_component_event_serde_round_trips_declared_identity() {
+        let binding: UiBindingRef = toml::from_str(
+            r#"
+id = "product.lower_snake"
+event = "Click"
+component_event = "OpenPopup"
+route = "component_lab.open_popup.product"
+"#,
+        )
+        .expect("typed component event should deserialize");
 
-const fn default_template_version() -> u32 {
-    1
+        assert_eq!(
+            binding.component_event,
+            Some(UiComponentEventKind::OpenPopup)
+        );
+        let serialized = toml::to_string(&binding).expect("typed component event should serialize");
+        assert!(serialized.contains("component_event = \"OpenPopup\""));
+
+        let legacy: UiBindingRef = toml::from_str("id = \"legacy\"\nevent = \"Click\"\n").unwrap();
+        assert_eq!(legacy.component_event, None);
+    }
 }

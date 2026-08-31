@@ -91,7 +91,8 @@ impl EditorManager {
 
         for package in native_packages {
             let package_diagnostics = native_projection.diagnostics_for_plugin(&package.id);
-            let load_state = native_load_state(&native_projection, &package.id);
+            let load_state =
+                native_load_state(&native_projection, &package.id, &package_diagnostics);
             let completed_project_selection = completed_plugins
                 .selections
                 .iter()

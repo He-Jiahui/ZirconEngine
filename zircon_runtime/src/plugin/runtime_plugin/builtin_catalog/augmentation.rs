@@ -4,10 +4,14 @@ mod categories;
 use capabilities::attach_extra_capabilities;
 use categories::assign_category;
 
-use super::BuiltinCatalogDescriptorBuilder;
+use super::IdentifiedBuiltinCatalogDescriptorBuilder;
 
 pub(super) fn augment_descriptor(
-    descriptor: BuiltinCatalogDescriptorBuilder,
-) -> BuiltinCatalogDescriptorBuilder {
-    attach_extra_capabilities(assign_category(descriptor))
+    (package_id, descriptor): IdentifiedBuiltinCatalogDescriptorBuilder,
+) -> IdentifiedBuiltinCatalogDescriptorBuilder {
+    let descriptor = assign_category(package_id, descriptor);
+    (
+        package_id,
+        attach_extra_capabilities(package_id, descriptor),
+    )
 }

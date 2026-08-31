@@ -1,4 +1,4 @@
-use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
+use zircon_runtime_interface::ui::surface::{UiRenderFrameCommandRef, UiTextRunPaintStyle};
 
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_text::HostTextLayoutPolicy;
@@ -14,6 +14,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Hos
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) clip_frame:
         Option<FrameRect>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) z_index: i32,
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) source_render_command_ref:
+        Option<UiRenderFrameCommandRef>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) background_color:
         Option<[u8; 4]>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) foreground_color:

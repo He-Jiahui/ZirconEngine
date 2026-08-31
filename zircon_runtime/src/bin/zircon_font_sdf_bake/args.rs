@@ -125,6 +125,10 @@ fn parse_mode(value: OsString) -> Result<FontSdfBakeMode, FontSdfCliError> {
 
 fn codepoint(value: OsString) -> Result<u32, FontSdfCliError> {
     let value = text(value, "--codepoint")?;
+    codepoint_text(&value)
+}
+
+fn codepoint_text(value: &str) -> Result<u32, FontSdfCliError> {
     let digits = value
         .strip_prefix("U+")
         .or_else(|| value.strip_prefix("u+"))
@@ -141,8 +145,8 @@ fn codepoint_range(value: OsString) -> Result<Vec<u32>, FontSdfCliError> {
     let (start, end) = value
         .split_once('-')
         .ok_or_else(|| FontSdfCliError(format!("invalid codepoint range {value}")))?;
-    let start = codepoint(OsString::from(start))?;
-    let end = codepoint(OsString::from(end))?;
+    let start = codepoint_text(start)?;
+    let end = codepoint_text(end)?;
     if end < start {
         return Err(FontSdfCliError(format!(
             "codepoint range is reversed: {value}"
@@ -176,6 +180,10 @@ fn hash(value: OsString, flag: &str) -> Result<[u8; 32], FontSdfCliError> {
     }
     Ok(decoded)
 }
+
+#[cfg(test)]
+#[path = "args/borrowed_codepoint_range_tests.rs"]
+mod borrowed_codepoint_range_tests;
 
 #[cfg(test)]
 mod tests;

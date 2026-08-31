@@ -11,9 +11,9 @@ use crate::scene::ecs::{Component, ComponentId};
 
 use super::super::{SceneError, SceneResult};
 use super::{
-    register_component_id, BundleInsertionTransaction, PendingBundleValue, PendingDeferredRemoval,
-    PreflightedBundleComponent, UnregisteredBundleComponentType, MAX_BUNDLE_COMPONENTS,
-    MAX_BUNDLE_COMPONENT_TYPES, MAX_NODE_RECORD_COMPONENT_TYPES,
+    BundleInsertionTransaction, MAX_BUNDLE_COMPONENT_TYPES, MAX_BUNDLE_COMPONENTS,
+    MAX_NODE_RECORD_COMPONENT_TYPES, PendingBundleValue, PendingDeferredRemoval,
+    PreflightedBundleComponent, UnregisteredBundleComponentType, register_component_id,
 };
 
 impl BundleInsertionTransaction<'_> {

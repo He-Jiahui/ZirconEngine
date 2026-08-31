@@ -4,10 +4,11 @@ use std::hash::{Hash, Hasher};
 use std::io::{self as std_io, Write};
 use std::path::Path;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
+use std::sync::{Arc, MutexGuard};
 
-use zircon_runtime_interface::serialization::write_canonical_text_to;
-use zircon_runtime_interface::serialization::CanonicalTextWriteError;
+use zircon_runtime_interface::serialization::{
+    write_canonical_text_to, CanonicalTextWriteError, SerializationBudget,
+};
 
 use super::{
     io, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
@@ -42,6 +43,11 @@ pub(super) enum RuntimeSessionArchiveSealFailure {
         max: usize,
         found: usize,
     },
+    CanonicalResourceLimitExceeded {
+        resource: &'static str,
+        max: usize,
+        found: usize,
+    },
     Io {
         operation: &'static str,
         kind: std_io::ErrorKind,
@@ -60,6 +66,15 @@ impl RuntimeSessionArchiveSealFailure {
             CanonicalTextWriteError::OutputTooLarge { max, found } => {
                 Self::CanonicalOutputTooLarge { max, found }
             }
+            CanonicalTextWriteError::ResourceLimitExceeded {
+                resource,
+                max,
+                found,
+            } => Self::CanonicalResourceLimitExceeded {
+                resource,
+                max,
+                found,
+            },
             CanonicalTextWriteError::Io { operation, source } => Self::Io {
                 operation,
                 kind: source.kind(),
@@ -95,6 +110,16 @@ impl RuntimeSessionArchiveSealFailure {
                 }
                 .into()
             }
+            Self::CanonicalResourceLimitExceeded {
+                resource,
+                max,
+                found,
+            } => CanonicalTextWriteError::ResourceLimitExceeded {
+                resource,
+                max: *max,
+                found: *found,
+            }
+            .into(),
             Self::Io {
                 operation,
                 kind,
@@ -120,8 +145,8 @@ pub struct RuntimeSessionArchiveArtifactDiagnostics {
 #[derive(Clone, Debug)]
 pub struct RuntimeSessionArchiveArtifact {
     generation: u64,
-    lineage: u64,
     revision: u64,
+    publication: Arc<super::archive::RuntimeSessionArchivePublicationState>,
     payload: Arc<RuntimeSessionArchivePayload>,
     manifest: Arc<RuntimeSessionArchiveManifest>,
     statistics: RuntimeSessionArchiveStatistics,
@@ -173,14 +198,28 @@ impl RuntimeSessionArchive {
             .counters
             .serialize_count
             .fetch_add(1, Ordering::AcqRel);
-        if let Err(error) = write_canonical_text_to(&*payload, &mut serialized_bytes) {
-            let failure = if let Some(estimated_bytes) = serialized_bytes.overflow_at() {
-                RuntimeSessionArchiveSealFailure::ArtifactTooLarge {
-                    estimated_bytes,
-                    limit_bytes,
+        if let Err(error) = write_canonical_text_to(
+            &*payload,
+            &mut serialized_bytes,
+            SerializationBudget::new(limit_bytes),
+        ) {
+            let failure = match error {
+                CanonicalTextWriteError::OutputTooLarge { found, .. } => {
+                    RuntimeSessionArchiveSealFailure::ArtifactTooLarge {
+                        estimated_bytes: found,
+                        limit_bytes,
+                    }
                 }
-            } else {
-                RuntimeSessionArchiveSealFailure::from_canonical(error)
+                error => {
+                    if let Some(estimated_bytes) = serialized_bytes.overflow_at() {
+                        RuntimeSessionArchiveSealFailure::ArtifactTooLarge {
+                            estimated_bytes,
+                            limit_bytes,
+                        }
+                    } else {
+                        RuntimeSessionArchiveSealFailure::from_canonical(error)
+                    }
+                }
             };
             let returned = failure.to_error();
             *sealed = RuntimeSessionArchiveSealState::Rejected(failure);
@@ -192,8 +231,8 @@ impl RuntimeSessionArchive {
         let slot_index = Arc::new(build_slot_index(&manifest));
         let artifact = RuntimeSessionArchiveArtifact {
             generation: self.generation(),
-            lineage: self.lineage(),
             revision: self.revision(),
+            publication: Arc::clone(&self.state.publication),
             payload,
             manifest,
             statistics,
@@ -355,8 +394,21 @@ impl RuntimeSessionArchiveArtifact {
         self.revision
     }
 
-    pub(super) fn lineage(&self) -> u64 {
-        self.lineage
+    pub(super) fn latest_published_revision(&self) -> u64 {
+        self.publication.published_revision.load(Ordering::Acquire)
+    }
+
+    pub(super) fn lock_publication(&self) -> MutexGuard<'_, ()> {
+        self.publication
+            .gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(super) fn record_published_revision(&self) {
+        self.publication
+            .published_revision
+            .fetch_max(self.revision, Ordering::AcqRel);
     }
 
     pub fn manifest(&self) -> &RuntimeSessionArchiveManifest {
@@ -501,7 +553,9 @@ mod tests {
     #[test]
     fn runtime_session_archive_slot_and_entity_scale_matrix_builds_linear_indexes() {
         let mut source = World::empty();
-        source.spawn_node(NodeKind::Mesh);
+        source
+            .spawn_node(NodeKind::Mesh)
+            .expect("test scene spawn should succeed");
         let mut scene =
             DynamicScene::from_world(&source).expect("source scene should capture one real entity");
         scene.resources.push(DynamicResource::new(

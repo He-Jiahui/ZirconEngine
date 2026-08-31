@@ -8,6 +8,8 @@ pub enum SceneModeRegistryError {
     DuplicateMode { mode_id: SceneModeId },
     #[error("scene mode {mode_id:?} is not registered")]
     UnknownMode { mode_id: SceneModeId },
+    #[error("scene mode {mode_id:?} is already bound to a contribution ticket")]
+    ContributionAlreadyOwned { mode_id: SceneModeId },
     #[error(
         "scene mode factory registered as {registered_mode_id:?} produced {produced_mode_id:?}"
     )]

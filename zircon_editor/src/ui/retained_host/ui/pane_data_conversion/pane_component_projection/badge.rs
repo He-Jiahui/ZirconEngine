@@ -10,11 +10,7 @@ pub(super) fn projected_badge_value_text(
     if component_role != "badge" {
         return None;
     }
-    let variant = attributes
-        .get("variant")
-        .or_else(|| attributes.get("mui_variant"))
-        .and_then(value_as_string)
-        .unwrap_or_else(|| "standard".to_string());
+    let variant = badge_variant(attributes);
     if variant == "dot" {
         return Some(String::new());
     }
@@ -28,6 +24,18 @@ pub(super) fn projected_badge_value_text(
     Some(UiValue::from_toml(content).display_text())
 }
 
+fn badge_variant(attributes: &BTreeMap<String, toml::Value>) -> &str {
+    attributes
+        .get("variant")
+        .or_else(|| attributes.get("mui_variant"))
+        .and_then(toml::Value::as_str)
+        .unwrap_or("standard")
+}
+
 fn badge_content_number(value: &toml::Value) -> Option<f64> {
     value_as_f64(value).or_else(|| value_as_string(value)?.trim().parse::<f64>().ok())
 }
+
+#[cfg(test)]
+#[path = "badge/borrowed_variant_tests.rs"]
+mod borrowed_variant_tests;

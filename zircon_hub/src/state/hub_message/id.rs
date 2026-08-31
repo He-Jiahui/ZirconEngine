@@ -36,9 +36,50 @@ impl HubMessageId {
     }
 
     pub fn from_str_id(id: &str) -> Option<Self> {
-        Self::all()
-            .into_iter()
-            .find(|candidate| candidate.as_str() == id)
+        let (namespace, _) = id.split_once('.')?;
+        match namespace {
+            "shell" => ShellMessageId::ALL
+                .iter()
+                .copied()
+                .find(|candidate| candidate.as_str() == id)
+                .map(Self::Shell),
+            "project" => ProjectMessageId::ALL
+                .iter()
+                .copied()
+                .find(|candidate| candidate.as_str() == id)
+                .map(Self::Project),
+            "engine" => EngineMessageId::ALL
+                .iter()
+                .copied()
+                .find(|candidate| candidate.as_str() == id)
+                .map(Self::Engine),
+            "build" => BuildMessageId::ALL
+                .iter()
+                .copied()
+                .find(|candidate| candidate.as_str() == id)
+                .map(Self::Build),
+            "delivery" => DeliveryMessageId::ALL
+                .iter()
+                .copied()
+                .find(|candidate| candidate.as_str() == id)
+                .map(Self::Delivery),
+            "process" => ProcessMessageId::ALL
+                .iter()
+                .copied()
+                .find(|candidate| candidate.as_str() == id)
+                .map(Self::Process),
+            "settings" => SettingsMessageId::ALL
+                .iter()
+                .copied()
+                .find(|candidate| candidate.as_str() == id)
+                .map(Self::Settings),
+            "learn" => LearnMessageId::ALL
+                .iter()
+                .copied()
+                .find(|candidate| candidate.as_str() == id)
+                .map(Self::Learn),
+            _ => None,
+        }
     }
 
     pub fn param_count(self) -> usize {

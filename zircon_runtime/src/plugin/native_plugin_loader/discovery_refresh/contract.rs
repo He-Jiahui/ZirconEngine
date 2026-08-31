@@ -34,7 +34,7 @@ impl NativePluginDiscoveryRoot {
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(crate) enum NativePluginDiscoveryRefreshInput {
     RootScan,
-    LoadManifest { export_root: PathBuf },
+    LoadManifest { export_root: Arc<PathBuf> },
 }
 
 impl NativePluginDiscoveryRefreshInput {
@@ -43,7 +43,39 @@ impl NativePluginDiscoveryRefreshInput {
     }
 
     pub(in crate::plugin::native_plugin_loader) fn load_manifest(export_root: PathBuf) -> Self {
-        Self::LoadManifest { export_root }
+        Self::LoadManifest {
+            export_root: Arc::new(export_root),
+        }
+    }
+}
+
+#[cfg(test)]
+mod refresh_input_tests {
+    use std::path::PathBuf;
+    use std::sync::Arc;
+
+    use super::NativePluginDiscoveryRefreshInput;
+
+    #[test]
+    fn load_manifest_input_clones_share_export_root() {
+        let input = NativePluginDiscoveryRefreshInput::load_manifest(PathBuf::from(
+            "export/plugins/native",
+        ));
+        let cloned = input.clone();
+
+        let (
+            NativePluginDiscoveryRefreshInput::LoadManifest {
+                export_root: original,
+            },
+            NativePluginDiscoveryRefreshInput::LoadManifest {
+                export_root: cloned,
+            },
+        ) = (&input, &cloned)
+        else {
+            panic!("load-manifest constructor preserves the input variant");
+        };
+
+        assert!(Arc::ptr_eq(original, cloned));
     }
 }
 

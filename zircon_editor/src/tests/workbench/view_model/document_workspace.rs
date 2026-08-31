@@ -340,7 +340,9 @@ fn project_empty_state_remains_the_same_when_docked_to_the_right() {
     let mut fixture = default_preview_fixture();
     let left_top = fixture
         .layout
-        .drawers
+        .active_activity_window_mut()
+        .expect("active activity window")
+        .activity_drawers
         .get_mut(&ActivityDrawerSlot::LeftTop)
         .expect("left top drawer");
     left_top
@@ -352,7 +354,9 @@ fn project_empty_state_remains_the_same_when_docked_to_the_right() {
 
     let right_top = fixture
         .layout
-        .drawers
+        .active_activity_window_mut()
+        .expect("active activity window")
+        .activity_drawers
         .get_mut(&ActivityDrawerSlot::RightTop)
         .expect("right top drawer");
     right_top

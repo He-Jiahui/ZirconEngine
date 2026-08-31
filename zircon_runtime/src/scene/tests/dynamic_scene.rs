@@ -1,8 +1,8 @@
 use serde_json::json;
 use zircon_runtime_interface::reflect::{
-    ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue, ReflectObjectAddress,
-    ReflectReadRequest, ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath,
-    ReflectTypeRegistration, ReflectedValue,
+    ReflectEditorHint, ReflectError, ReflectFieldId, ReflectFieldInfo, ReflectFieldValue,
+    ReflectObjectAddress, ReflectReadRequest, ReflectSerializationStrategy, ReflectTypeInfo,
+    ReflectTypePath, ReflectTypeRegistration, ReflectedValue,
 };
 
 use crate::core::framework::physics::PhysicsWorldStepPlan;
@@ -16,7 +16,7 @@ use crate::scene::{
 };
 
 use super::authoring_boundary::{
-    SERIALIZED_AUTHORING_TOKENS, assert_text_excludes_authoring_tokens,
+    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
 };
 
 const CLOUD_LAYER_TYPE_PATH: &str = "weather.Component.CloudLayer";
@@ -63,7 +63,9 @@ fn frame_counter_registration() -> ReflectTypeRegistration {
         ReflectTypePath::new(FRAME_COUNTER_TYPE_PATH, "FrameCounter")
             .expect("frame counter type path should be valid"),
         "Frame Counter",
-        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::from_stable_keys(
+            FRAME_COUNTER_TYPE_PATH,
+            "value",
             "value",
             "Unsigned",
             ReflectEditorHint::Unsigned,
@@ -82,7 +84,7 @@ fn frame_counter_adapter() -> ReflectResource {
         ensure: None,
         contains: frame_counter_contains,
         read_field: frame_counter_read_field,
-        read_fields: frame_counter_read_fields,
+        read_field_by_slot: frame_counter_read_field_by_slot,
         write_field_by_slot: frame_counter_write_field_by_slot,
         write_fields_by_slot: frame_counter_write_fields_by_slot,
     }
@@ -144,11 +146,19 @@ fn frame_counter_read_field(
     }
 }
 
-fn frame_counter_read_fields(world: &World) -> Result<Vec<ReflectFieldValue>, ReflectError> {
-    Ok(vec![ReflectFieldValue::new(
-        "value",
-        frame_counter_read_field(world, "value")?,
-    )])
+fn frame_counter_read_field_by_slot(
+    world: &World,
+    field_slot: u32,
+) -> Result<ReflectedValue, ReflectError> {
+    match field_slot {
+        0 => Ok(ReflectedValue::Unsigned(
+            world
+                .get_resource::<FrameCounter>()
+                .ok_or_else(missing_frame_counter_resource)?
+                .value as u64,
+        )),
+        _ => Err(unknown_frame_counter_field(&format!("#{field_slot}"))),
+    }
 }
 
 fn frame_counter_write_fields_by_slot(

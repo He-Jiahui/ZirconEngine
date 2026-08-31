@@ -6,6 +6,42 @@ use zr_rhi::{
     ShaderStage, TextureDesc, TextureFormat, TextureUsage, TransientAllocatorStats,
 };
 
+const RESOURCE_CHURN_ITERATIONS: usize = 100_000;
+
+#[test]
+fn deterministic_rhi_contract_resource_churn_returns_registry_and_bytes_to_baseline() {
+    let device = DeterministicRhiContractDevice::new_headless();
+
+    for iteration in 0..RESOURCE_CHURN_ITERATIONS {
+        if iteration % 2 == 0 {
+            let buffer = device
+                .create_buffer(&BufferDesc::new("buffer-churn", 4, BufferUsage::COPY_DST))
+                .unwrap();
+            device.destroy_buffer(buffer).unwrap();
+        } else {
+            let texture = device
+                .create_texture(&TextureDesc::new(
+                    "texture-churn",
+                    1,
+                    1,
+                    TextureFormat::Rgba8Unorm,
+                    TextureUsage::COPY_DST,
+                ))
+                .unwrap();
+            device.destroy_texture(texture).unwrap();
+        }
+    }
+
+    assert_eq!(
+        device.transient_allocator_stats(),
+        TransientAllocatorStats::default()
+    );
+    assert_eq!(
+        device.memory_snapshot(),
+        zr_rhi::GpuMemorySnapshot::default()
+    );
+}
+
 #[test]
 fn deterministic_rhi_contract_reports_live_transient_allocator_stats_for_buffers_and_textures() {
     let device = DeterministicRhiContractDevice::new_headless();
@@ -83,7 +119,7 @@ fn deterministic_rhi_contract_destroying_bound_resources_updates_stats_without_r
             layout,
             vec![BindGroupEntryDesc::new(
                 0,
-                BindGroupEntryResource::Buffer(uniform),
+                BindGroupEntryResource::Buffer(zr_rhi::BindGroupBufferBinding::whole(uniform)),
             )],
         ))
         .unwrap();
@@ -150,7 +186,7 @@ fn deterministic_rhi_contract_submit_rejects_bind_group_with_destroyed_resource(
             layout,
             vec![BindGroupEntryDesc::new(
                 0,
-                BindGroupEntryResource::Buffer(uniform),
+                BindGroupEntryResource::Buffer(zr_rhi::BindGroupBufferBinding::whole(uniform)),
             )],
         ))
         .unwrap();
@@ -166,6 +202,6 @@ fn deterministic_rhi_contract_submit_rejects_bind_group_with_destroyed_resource(
 
     assert_eq!(
         device.submit(command_list).unwrap_err(),
-        RhiError::UnknownBuffer(uniform.raw())
+        RhiError::UnknownBuffer(uniform.diagnostic_id())
     );
 }

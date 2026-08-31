@@ -2,14 +2,14 @@ use uuid::Uuid;
 
 use super::SdfOfflineArtifactError;
 use crate::text::sdf::SdfBakeParams;
-use crate::text::VariationCoords;
+use crate::text::{StableContentDigest, VariationCoords};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct SdfOfflineArtifactIdentity {
     pub(crate) asset_guid: String,
     pub(crate) face_index: u32,
-    pub(crate) variation_hash: [u8; 32],
-    pub(crate) source_hash: [u8; 32],
+    pub(crate) variation_hash: StableContentDigest,
+    pub(crate) source_hash: StableContentDigest,
     pub(crate) params: SdfBakeParams,
 }
 
@@ -50,11 +50,11 @@ impl SdfOfflineArtifactIdentity {
     }
 }
 
-pub(crate) fn sdf_default_variation_hash() -> [u8; 32] {
+pub(crate) fn sdf_default_variation_hash() -> StableContentDigest {
     sdf_variation_hash(&VariationCoords::default())
 }
 
-pub(crate) fn sdf_variation_hash(variations: &VariationCoords) -> [u8; 32] {
+pub(crate) fn sdf_variation_hash(variations: &VariationCoords) -> StableContentDigest {
     let mut coordinates = variations
         .0
         .iter()
@@ -66,9 +66,9 @@ pub(crate) fn sdf_variation_hash(variations: &VariationCoords) -> [u8; 32] {
         hasher.update(&tag.to_be_bytes());
         hasher.update(&value_bits.to_le_bytes());
     }
-    *hasher.finalize().as_bytes()
+    StableContentDigest::from_bytes(*hasher.finalize().as_bytes())
 }
 
-pub(crate) fn sdf_font_source_hash(bytes: &[u8]) -> [u8; 32] {
-    *blake3::hash(bytes).as_bytes()
+pub(crate) fn sdf_font_source_hash(bytes: &[u8]) -> StableContentDigest {
+    StableContentDigest::blake3(bytes)
 }

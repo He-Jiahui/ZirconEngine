@@ -171,23 +171,23 @@ fn field_label(field: &WorldInspectionField) -> String {
 }
 
 fn title_case_identifier(value: &str) -> String {
-    value
-        .split('_')
-        .filter(|part| !part.is_empty())
-        .map(|part| {
-            let mut chars = part.chars();
-            match chars.next() {
-                Some(first) => {
-                    let mut word = first.to_ascii_uppercase().to_string();
-                    word.push_str(chars.as_str());
-                    word
-                }
-                None => String::new(),
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
+    let mut title = String::with_capacity(value.len());
+    for part in value.split('_').filter(|part| !part.is_empty()) {
+        if !title.is_empty() {
+            title.push(' ');
+        }
+        let mut chars = part.chars();
+        if let Some(first) = chars.next() {
+            title.push(first.to_ascii_uppercase());
+            title.push_str(chars.as_str());
+        }
+    }
+    title
 }
+
+#[cfg(test)]
+#[path = "build/title_case_tests.rs"]
+mod title_case_tests;
 
 fn build_toolbar_state(
     settings: &SceneViewportSettings,

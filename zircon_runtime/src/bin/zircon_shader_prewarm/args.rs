@@ -187,12 +187,12 @@ fn next_usize(
 }
 
 fn parse_quality_tier(value: &str) -> ShaderPrewarmArgsResult<Vec<ShaderQualityTier>> {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "low" => Ok(vec![ShaderQualityTier::Low]),
-        "medium" => Ok(vec![ShaderQualityTier::Medium]),
-        "high" => Ok(vec![ShaderQualityTier::High]),
-        "ultra" => Ok(vec![ShaderQualityTier::Ultra]),
-        "all" => Ok(vec![
+    match quality_tier_variant(value) {
+        1 => Ok(vec![ShaderQualityTier::Low]),
+        2 => Ok(vec![ShaderQualityTier::Medium]),
+        3 => Ok(vec![ShaderQualityTier::High]),
+        4 => Ok(vec![ShaderQualityTier::Ultra]),
+        5 => Ok(vec![
             ShaderQualityTier::Low,
             ShaderQualityTier::Medium,
             ShaderQualityTier::High,
@@ -201,6 +201,18 @@ fn parse_quality_tier(value: &str) -> ShaderPrewarmArgsResult<Vec<ShaderQualityT
         _ => Err(ShaderPrewarmArgsError::Usage(usage(&format!(
             "unknown shader quality tier {value}; expected low, medium, high, ultra, or all"
         )))),
+    }
+}
+
+fn quality_tier_variant(value: &str) -> u8 {
+    let value = value.trim();
+    match value.len() {
+        3 if value.eq_ignore_ascii_case("low") => 1,
+        3 if value.eq_ignore_ascii_case("all") => 5,
+        4 if value.eq_ignore_ascii_case("high") => 3,
+        5 if value.eq_ignore_ascii_case("ultra") => 4,
+        6 if value.eq_ignore_ascii_case("medium") => 2,
+        _ => 0,
     }
 }
 
@@ -380,6 +392,10 @@ fn normalized_geometry_sources(
         .filter(|geometry_source| seen.insert(*geometry_source))
         .collect()
 }
+
+#[cfg(test)]
+#[path = "args/borrowed_quality_tier_tests.rs"]
+mod borrowed_quality_tier_tests;
 
 #[cfg(test)]
 mod tests {

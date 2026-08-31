@@ -4,6 +4,7 @@ use zircon_runtime_interface::ui::dispatch::UiPointerComponentEvent;
 use super::super::super::data::WorkbenchContextMenuRequestData;
 use super::types::{
     Callback1, Callback2, Callback3, Callback4, Callback5, Callback6, Callback7, Callback8,
+    Callback9,
 };
 
 #[derive(Default)]
@@ -60,6 +61,8 @@ pub(in crate::ui::retained_host::host_contract) struct PaneSurfaceCallbacks {
         Option<Callback2<SharedString, SharedString>>,
     pub(in crate::ui::retained_host::host_contract) asset_tree_pointer_clicked:
         Option<Callback5<SharedString, f32, f32, f32, f32>>,
+    pub(in crate::ui::retained_host::host_contract) asset_tree_pointer_event:
+        Option<Callback7<SharedString, i32, i32, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) asset_tree_pointer_moved:
         Option<Callback5<SharedString, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) asset_tree_pointer_scrolled:
@@ -67,7 +70,7 @@ pub(in crate::ui::retained_host::host_contract) struct PaneSurfaceCallbacks {
     pub(in crate::ui::retained_host::host_contract) asset_content_pointer_clicked:
         Option<Callback5<SharedString, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) asset_content_pointer_event:
-        Option<Callback7<SharedString, i32, i32, f32, f32, f32, f32>>,
+        Option<Callback9<SharedString, i32, i32, f32, f32, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) asset_content_pointer_moved:
         Option<Callback5<SharedString, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) asset_content_pointer_scrolled:
@@ -88,7 +91,9 @@ pub(in crate::ui::retained_host::host_contract) struct PaneSurfaceCallbacks {
         Option<Callback2<SharedString, SharedString>>,
     pub(in crate::ui::retained_host::host_contract) welcome_control_clicked:
         Option<Callback1<SharedString>>,
-    pub(in crate::ui::retained_host::host_contract) viewport_pointer_event:
+    pub(in crate::ui::retained_host::host_contract) scene_viewport_pointer_event:
+        Option<Callback7<i32, i32, f32, f32, f32, bool, bool>>,
+    pub(in crate::ui::retained_host::host_contract) game_viewport_pointer_event:
         Option<Callback7<i32, i32, f32, f32, f32, bool, bool>>,
     pub(in crate::ui::retained_host::host_contract) viewport_toolbar_pointer_clicked:
         Option<Callback5<SharedString, f32, f32, f32, f32>>,

@@ -1,8 +1,9 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
-    tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode},
+    layout::UiPoint,
+    tree::{UiDirtyFlags, UiTemplateNodeMetadata, UiTree, UiTreeError, UiTreeNode},
     widget::{UiPopupAnchor, UiWidgetBehavior},
 };
 
@@ -10,7 +11,106 @@ use crate::ui::tree::UiRuntimeTreeFocusExt;
 
 use super::UiSurface;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct UiPopupDependencyImpact {
+    pub(crate) render_extract: bool,
+    pub(crate) stack_reconciliation: bool,
+}
+
 impl UiSurface {
+    /// Retargets a popup to an unambiguous, currently valid control without persisting geometry.
+    ///
+    /// Dynamic overlays such as hover tooltips use this when their trigger identity is known only
+    /// at input time. The arranged tree remains the sole source of anchor geometry.
+    pub fn set_popup_control_anchor(
+        &mut self,
+        popup_node_id: UiNodeId,
+        control_id: impl Into<String>,
+    ) -> Result<bool, UiTreeError> {
+        let control_id = control_id.into();
+        let Some(trigger_id) = self
+            .control_index
+            .unique_node_id_for_surface(&self.tree, control_id.as_str())
+        else {
+            return Ok(false);
+        };
+        if trigger_id == popup_node_id || !self.popup_trigger_is_valid(trigger_id) {
+            return Ok(false);
+        }
+
+        let next_anchor = UiPopupAnchor::Control { control_id };
+        let open = {
+            let node = self
+                .tree
+                .nodes
+                .get_mut(&popup_node_id)
+                .ok_or(UiTreeError::MissingNode(popup_node_id))?;
+            let Some(metadata) = node.template_metadata.as_mut() else {
+                return Ok(false);
+            };
+            if !is_popup_stack_metadata(metadata) || metadata.widget.popup_anchor == next_anchor {
+                return Ok(false);
+            }
+            metadata.widget.popup_anchor = next_anchor;
+            tree_node_popup_open(metadata)
+        };
+
+        self.mark_node_dirty(
+            popup_node_id,
+            UiDirtyFlags {
+                render: true,
+                input: true,
+                ..UiDirtyFlags::default()
+            },
+        )?;
+        if open {
+            let _ = self.sync_popup_stack_for_node(popup_node_id, true);
+        }
+        Ok(true)
+    }
+
+    /// Captures the surface-space point used by a pointer-anchored popup.
+    pub fn set_popup_pointer_anchor(
+        &mut self,
+        popup_node_id: UiNodeId,
+        point: UiPoint,
+    ) -> Result<bool, UiTreeError> {
+        if !point.x.is_finite() || !point.y.is_finite() {
+            return Ok(false);
+        }
+        let pointer_anchored = self
+            .tree
+            .nodes
+            .get(&popup_node_id)
+            .ok_or(UiTreeError::MissingNode(popup_node_id))?
+            .template_metadata
+            .as_ref()
+            .is_some_and(|metadata| {
+                is_popup_stack_metadata(metadata)
+                    && matches!(&metadata.widget.popup_anchor, UiPopupAnchor::Pointer { .. })
+            });
+        if !pointer_anchored || self.input.popup_anchor_point(popup_node_id) == Some(point) {
+            return Ok(false);
+        }
+
+        self.input.set_popup_anchor_point(popup_node_id, point);
+        self.mark_node_dirty(
+            popup_node_id,
+            UiDirtyFlags {
+                render: true,
+                input: true,
+                ..UiDirtyFlags::default()
+            },
+        )?;
+        if self
+            .popup_state_for_node(popup_node_id)
+            .is_some_and(|(_, open)| open)
+        {
+            let _ = self.sync_popup_stack_for_node(popup_node_id, true);
+        }
+        Ok(true)
+    }
+
     pub(crate) fn is_popup_stack_node(&self, node_id: UiNodeId) -> bool {
         self.tree
             .nodes
@@ -95,7 +195,7 @@ impl UiSurface {
             node.template_metadata
                 .as_ref()
                 .filter(|metadata| is_popup_stack_metadata(metadata))
-                .filter(|_| popup_stack_id_for_node(node) == popup_id)
+                .filter(|_| popup_stack_id_matches(node, popup_id))
                 .map(|_| *node_id)
         });
         let node_id = matches.next()?;
@@ -149,13 +249,17 @@ impl UiSurface {
                 let metadata = node.template_metadata.as_ref()?;
                 (is_popup_stack_metadata(metadata)
                     && tree_node_popup_open(metadata)
-                    && matches!(&metadata.widget.popup_anchor, UiPopupAnchor::Control { .. })
-                    && self.popup_anchor_owner(*node_id, metadata).is_none())
+                    && popup_uses_runtime_anchor_metadata(metadata)
+                    && (self.popup_anchor_owner(*node_id, metadata).is_none()
+                        || (matches!(
+                            &metadata.widget.popup_anchor,
+                            UiPopupAnchor::Pointer { .. }
+                        ) && self.input.popup_anchor_point(*node_id).is_none())))
                 .then(|| (*node_id, popup_open_property(metadata)))
             })
             .collect::<Vec<_>>();
         for (node_id, property) in rejected_popups {
-            let _ = self.reject_control_anchored_popup(node_id, property);
+            let _ = self.reject_runtime_anchored_popup(node_id, property);
         }
         let open_popups = self
             .tree
@@ -163,26 +267,31 @@ impl UiSurface {
             .iter()
             .filter_map(|(node_id, node)| self.popup_stack_record(*node_id, node))
             .collect::<Vec<_>>();
+        let open_popup_by_node = open_popups
+            .iter()
+            .filter(|record| record.open)
+            .map(|record| (record.popup_node, (record.popup_id.as_str(), record.owner)))
+            .collect::<HashMap<_, _>>();
 
         self.input.popup_stack.retain(|popup| {
             let Some(popup_node) = popup.popup_node else {
                 return true;
             };
-            open_popups.iter().any(|record| {
-                record.open
-                    && record.popup_node == popup_node
-                    && record.popup_id == popup.popup_id
-                    && popup.owner == Some(record.owner)
-            })
+            let Some((popup_id, owner)) = open_popup_by_node.get(&popup_node) else {
+                return false;
+            };
+            popup.popup_id == *popup_id && popup.owner == Some(*owner)
         });
+        drop(open_popup_by_node);
 
+        let mut stacked_popup_nodes = self
+            .input
+            .popup_stack
+            .iter()
+            .filter_map(|popup| popup.popup_node)
+            .collect::<HashSet<_>>();
         for record in open_popups.into_iter().filter(|record| record.open) {
-            let already_open = self.input.popup_stack.iter().any(|popup| {
-                popup.popup_node == Some(record.popup_node)
-                    && popup.popup_id == record.popup_id
-                    && popup.owner == Some(record.owner)
-            });
-            if !already_open {
+            if stacked_popup_nodes.insert(record.popup_node) {
                 let _ = self.sync_popup_stack_for_node(record.popup_node, true);
             }
         }
@@ -205,6 +314,18 @@ impl UiSurface {
         let popup_id = popup_stack_id_for_node(node);
         if open && node.state_flags.enabled && node.is_render_visible() {
             if let Some(owner) = self.popup_anchor_owner(node_id, metadata) {
+                let anchor = match &metadata.widget.popup_anchor {
+                    UiPopupAnchor::Pointer { .. } => {
+                        let Some(point) = self.input.popup_anchor_point(node_id) else {
+                            self.input.close_popup_with_node(node_id, popup_id.as_str());
+                            return None;
+                        };
+                        Some(point)
+                    }
+                    UiPopupAnchor::None
+                    | UiPopupAnchor::Control { .. }
+                    | UiPopupAnchor::Surface => None,
+                };
                 let first_open_descendant = self.input.popup_stack.iter().find_map(|popup| {
                     popup
                         .popup_node
@@ -214,7 +335,7 @@ impl UiSurface {
                     popup_id,
                     Some(owner),
                     node_id,
-                    None,
+                    anchor,
                     first_open_descendant,
                 );
                 return Some(owner);
@@ -227,23 +348,47 @@ impl UiSurface {
         None
     }
 
-    pub(crate) fn popup_uses_control_anchor(&self, popup_node_id: UiNodeId) -> bool {
+    pub(crate) fn popup_uses_runtime_anchor(&self, popup_node_id: UiNodeId) -> bool {
         let Some(node) = self.tree.nodes.get(&popup_node_id) else {
             return false;
         };
         let Some(metadata) = node.template_metadata.as_ref() else {
             return false;
         };
-        is_popup_stack_metadata(metadata)
-            && matches!(&metadata.widget.popup_anchor, UiPopupAnchor::Control { .. })
+        is_popup_stack_metadata(metadata) && popup_uses_runtime_anchor_metadata(metadata)
     }
 
-    pub(crate) fn popup_trigger_requires_full_render_extract(
+    pub(crate) fn popup_dependency_impact(
         &self,
         changed_node_ids: &std::collections::BTreeSet<UiNodeId>,
-    ) -> bool {
+    ) -> UiPopupDependencyImpact {
         if changed_node_ids.is_empty() {
-            return false;
+            return UiPopupDependencyImpact::default();
+        }
+
+        let mut impact = UiPopupDependencyImpact::default();
+        let mut changed_control_ids = HashSet::new();
+        let mut changed_node_missing = false;
+        for node_id in changed_node_ids.iter().copied() {
+            let Some(node) = self.tree.nodes.get(&node_id) else {
+                changed_node_missing = true;
+                impact.render_extract = true;
+                continue;
+            };
+            if let Some(metadata) = node.template_metadata.as_ref() {
+                if is_popup_stack_metadata(metadata) {
+                    impact.stack_reconciliation = true;
+                }
+                if let Some(control_id) = metadata.control_id.as_deref() {
+                    changed_control_ids.insert(control_id);
+                }
+            }
+            if is_open_runtime_anchored_popup(node) {
+                impact.render_extract = true;
+            }
+        }
+        if impact.render_extract && impact.stack_reconciliation {
+            return impact;
         }
 
         // A popup only depends on its resolved trigger, its ancestor geometry and a
@@ -253,19 +398,25 @@ impl UiSurface {
             if popup.popup_node.is_some_and(|popup_node| {
                 self.changed_node_is_ancestor_of(changed_node_ids, popup_node)
             }) {
-                return true;
+                return UiPopupDependencyImpact {
+                    render_extract: true,
+                    stack_reconciliation: true,
+                };
             }
             let Some(control_id) = self.popup_control_anchor_id(popup.popup_node) else {
                 continue;
             };
             let Some(owner) = popup.owner else {
-                return true;
+                return UiPopupDependencyImpact {
+                    render_extract: true,
+                    stack_reconciliation: true,
+                };
             };
-            if changed_node_ids.contains(&owner) {
-                return true;
-            }
             let Some(owner_node) = self.tree.nodes.get(&owner) else {
-                return true;
+                return UiPopupDependencyImpact {
+                    render_extract: true,
+                    stack_reconciliation: true,
+                };
             };
             if owner_node
                 .template_metadata
@@ -273,74 +424,23 @@ impl UiSurface {
                 .and_then(|metadata| metadata.control_id.as_deref())
                 != Some(control_id)
             {
-                return true;
+                return UiPopupDependencyImpact {
+                    render_extract: true,
+                    stack_reconciliation: true,
+                };
             }
-            if changed_node_ids
-                .iter()
-                .copied()
-                .any(|node_id| self.changed_node_affects_popup_owner(node_id, owner, control_id))
+            if changed_node_missing
+                || changed_control_ids.contains(control_id)
+                || self.changed_node_is_ancestor_of(changed_node_ids, owner)
             {
-                return true;
+                return UiPopupDependencyImpact {
+                    render_extract: true,
+                    stack_reconciliation: true,
+                };
             }
         }
 
-        changed_node_ids.iter().copied().any(|node_id| {
-            self.tree
-                .nodes
-                .get(&node_id)
-                .is_none_or(|node| is_open_control_anchored_popup(node))
-        })
-    }
-
-    pub(crate) fn popup_stack_requires_reconciliation(
-        &self,
-        changed_node_ids: &std::collections::BTreeSet<UiNodeId>,
-    ) -> bool {
-        if changed_node_ids.is_empty() {
-            return false;
-        }
-
-        for popup in &self.input.popup_stack {
-            if popup.popup_node.is_some_and(|popup_node| {
-                self.changed_node_is_ancestor_of(changed_node_ids, popup_node)
-            }) {
-                return true;
-            }
-            let Some(control_id) = self.popup_control_anchor_id(popup.popup_node) else {
-                continue;
-            };
-            let Some(owner) = popup.owner else {
-                return true;
-            };
-            if changed_node_ids.contains(&owner) {
-                return true;
-            }
-            if self
-                .tree
-                .nodes
-                .get(&owner)
-                .and_then(|node| node.template_metadata.as_ref())
-                .and_then(|metadata| metadata.control_id.as_deref())
-                != Some(control_id)
-            {
-                return true;
-            }
-            if changed_node_ids
-                .iter()
-                .copied()
-                .any(|node_id| self.changed_node_affects_popup_owner(node_id, owner, control_id))
-            {
-                return true;
-            }
-        }
-
-        changed_node_ids.iter().copied().any(|node_id| {
-            self.tree
-                .nodes
-                .get(&node_id)
-                .and_then(|node| node.template_metadata.as_ref())
-                .is_some_and(is_popup_stack_metadata)
-        })
+        impact
     }
 
     fn popup_control_anchor_id(&self, popup_node_id: Option<UiNodeId>) -> Option<&str> {
@@ -353,34 +453,6 @@ impl UiSurface {
             return None;
         };
         Some(control_id)
-    }
-
-    fn changed_node_affects_popup_owner(
-        &self,
-        changed_node_id: UiNodeId,
-        owner: UiNodeId,
-        control_id: &str,
-    ) -> bool {
-        let Some(changed_node) = self.tree.nodes.get(&changed_node_id) else {
-            return true;
-        };
-        if changed_node
-            .template_metadata
-            .as_ref()
-            .and_then(|metadata| metadata.control_id.as_deref())
-            == Some(control_id)
-        {
-            return true;
-        }
-
-        let mut current = Some(owner);
-        while let Some(node_id) = current {
-            if node_id == changed_node_id {
-                return true;
-            }
-            current = self.tree.nodes.get(&node_id).and_then(|node| node.parent);
-        }
-        false
     }
 
     fn changed_node_is_ancestor_of(
@@ -406,8 +478,13 @@ impl UiSurface {
         popup_node_id: UiNodeId,
         metadata: &UiTemplateNodeMetadata,
     ) -> Option<UiNodeId> {
-        let UiPopupAnchor::Control { control_id } = &metadata.widget.popup_anchor else {
-            return Some(popup_node_id);
+        let control_id = match &metadata.widget.popup_anchor {
+            UiPopupAnchor::None | UiPopupAnchor::Surface => return Some(popup_node_id),
+            UiPopupAnchor::Control { control_id } => control_id.as_str(),
+            UiPopupAnchor::Pointer { owner_property } => metadata
+                .attributes
+                .get(owner_property)
+                .and_then(toml::Value::as_str)?,
         };
         let trigger_id = self
             .control_index
@@ -509,7 +586,7 @@ pub(super) fn is_popup_stack_metadata(metadata: &UiTemplateNodeMetadata) -> bool
         )
 }
 
-fn is_open_control_anchored_popup(node: &UiTreeNode) -> bool {
+fn is_open_runtime_anchored_popup(node: &UiTreeNode) -> bool {
     let Some(metadata) = node.template_metadata.as_ref() else {
         return false;
     };
@@ -517,7 +594,14 @@ fn is_open_control_anchored_popup(node: &UiTreeNode) -> bool {
         && tree_node_popup_open(metadata)
         && node.state_flags.enabled
         && node.is_render_visible()
-        && matches!(&metadata.widget.popup_anchor, UiPopupAnchor::Control { .. })
+        && popup_uses_runtime_anchor_metadata(metadata)
+}
+
+fn popup_uses_runtime_anchor_metadata(metadata: &UiTemplateNodeMetadata) -> bool {
+    matches!(
+        &metadata.widget.popup_anchor,
+        UiPopupAnchor::Control { .. } | UiPopupAnchor::Surface | UiPopupAnchor::Pointer { .. }
+    )
 }
 
 fn tree_node_popup_open(metadata: &UiTemplateNodeMetadata) -> bool {
@@ -550,14 +634,36 @@ fn popup_stack_id_for_node(node: &UiTreeNode) -> String {
     }
 }
 
+fn popup_stack_id_matches(node: &UiTreeNode, popup_id: &str) -> bool {
+    if !node.node_path.0.is_empty() {
+        return node.node_path.0.as_str() == popup_id;
+    }
+    let Some(encoded_node_id) = popup_id.strip_prefix("node:") else {
+        return false;
+    };
+    if encoded_node_id.is_empty()
+        || (encoded_node_id.len() > 1 && encoded_node_id.starts_with('0'))
+        || !encoded_node_id.as_bytes().iter().all(u8::is_ascii_digit)
+    {
+        return false;
+    }
+    encoded_node_id.parse::<u64>().ok() == Some(node.node_id.0)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use zircon_runtime_interface::ui::{
-        event_ui::{UiNodeId, UiNodePath},
+        event_ui::{UiNodeId, UiNodePath, UiTreeId},
+        layout::UiPoint,
         tree::{UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
+        widget::{UiPopupAnchor, UiWidgetBehavior},
     };
 
-    use super::tree_popup_stack_record;
+    use super::{
+        UiPopupDependencyImpact, UiSurface, popup_stack_id_matches, tree_popup_stack_record,
+    };
 
     fn open_popup_node(node_id: UiNodeId) -> UiTreeNode {
         let mut metadata = UiTemplateNodeMetadata {
@@ -589,5 +695,172 @@ mod tests {
             tree_popup_stack_record(node.node_id, &node),
             Some((node.node_id, ("root/popup".to_string(), false)))
         );
+    }
+
+    #[test]
+    fn popup_stack_id_match_preserves_path_and_canonical_node_id_semantics() {
+        let path_node = UiTreeNode::new(UiNodeId::new(7), UiNodePath::new("root/popup"));
+        assert!(popup_stack_id_matches(&path_node, "root/popup"));
+        assert!(!popup_stack_id_matches(&path_node, "node:7"));
+
+        let id_node = UiTreeNode::new(UiNodeId::new(7), UiNodePath::new(""));
+        assert!(popup_stack_id_matches(&id_node, "node:7"));
+        assert!(!popup_stack_id_matches(&id_node, "node:07"));
+        assert!(!popup_stack_id_matches(&id_node, "node:+7"));
+        assert!(!popup_stack_id_matches(&id_node, "node:invalid"));
+    }
+
+    #[test]
+    fn popup_dependency_impact_preserves_independent_domain_semantics() {
+        let mut surface = UiSurface::new(UiTreeId::new("popup.dependency.impact"));
+        surface.tree.insert_root(UiTreeNode::new(
+            UiNodeId::new(1),
+            UiNodePath::new("root/normal"),
+        ));
+
+        let mut closed_popup = open_popup_node(UiNodeId::new(2));
+        closed_popup
+            .template_metadata
+            .as_mut()
+            .expect("popup metadata")
+            .attributes
+            .insert("open".to_string(), toml::Value::Boolean(false));
+        surface.tree.insert_root(closed_popup);
+
+        let mut control_popup = open_popup_node(UiNodeId::new(3));
+        control_popup
+            .template_metadata
+            .as_mut()
+            .expect("popup metadata")
+            .widget
+            .popup_anchor = UiPopupAnchor::Control {
+            control_id: "trigger".to_string(),
+        };
+        surface.tree.insert_root(control_popup);
+
+        let impact_for =
+            |node_id| surface.popup_dependency_impact(&BTreeSet::from([UiNodeId::new(node_id)]));
+        assert_eq!(
+            impact_for(99),
+            UiPopupDependencyImpact {
+                render_extract: true,
+                stack_reconciliation: false,
+            }
+        );
+        assert_eq!(
+            impact_for(2),
+            UiPopupDependencyImpact {
+                render_extract: false,
+                stack_reconciliation: true,
+            }
+        );
+        assert_eq!(
+            impact_for(3),
+            UiPopupDependencyImpact {
+                render_extract: true,
+                stack_reconciliation: true,
+            }
+        );
+        assert_eq!(impact_for(1), UiPopupDependencyImpact::default());
+    }
+
+    #[test]
+    fn dynamic_control_anchor_retargets_open_popup_without_layout_invalidation() {
+        let mut surface = UiSurface::new(UiTreeId::new("popup.dynamic.control.anchor"));
+        surface.tree.insert_root(control_node(1, "first"));
+        surface.tree.insert_root(control_node(2, "second"));
+
+        let mut popup = open_popup_node(UiNodeId::new(3));
+        let popup_metadata = popup.template_metadata.as_mut().expect("popup metadata");
+        popup_metadata.widget.behavior = UiWidgetBehavior::Popup;
+        popup_metadata.widget.popup_anchor = UiPopupAnchor::Control {
+            control_id: "first".to_string(),
+        };
+        surface.tree.insert_root(popup);
+        surface.seed_popup_stack_from_tree_metadata();
+        surface.clear_dirty_flags();
+
+        assert!(
+            surface
+                .set_popup_control_anchor(UiNodeId::new(3), "second")
+                .unwrap()
+        );
+        let popup = surface.tree.node(UiNodeId::new(3)).unwrap();
+        assert_eq!(
+            popup
+                .template_metadata
+                .as_ref()
+                .unwrap()
+                .widget
+                .popup_anchor
+                .control_id(),
+            Some("second")
+        );
+        assert_eq!(surface.input.popup_stack.len(), 1);
+        assert_eq!(surface.input.popup_stack[0].owner, Some(UiNodeId::new(2)));
+        assert!(popup.dirty.render);
+        assert!(popup.dirty.input);
+        assert!(!popup.dirty.layout);
+        assert!(!popup.dirty.hit_test);
+        assert!(
+            !surface
+                .set_popup_control_anchor(UiNodeId::new(3), "second")
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn pointer_anchor_captures_transient_point_and_restores_target_owner() {
+        let mut surface = UiSurface::new(UiTreeId::new("popup.pointer.anchor"));
+        surface.tree.insert_root(control_node(1, "target"));
+
+        let mut popup = open_popup_node(UiNodeId::new(2));
+        let popup_metadata = popup.template_metadata.as_mut().expect("popup metadata");
+        popup_metadata.widget.behavior = UiWidgetBehavior::Popup;
+        popup_metadata.widget.popup_anchor = UiPopupAnchor::Pointer {
+            owner_property: "context_target".to_string(),
+        };
+        popup_metadata.attributes.insert(
+            "context_target".to_string(),
+            toml::Value::String("target".to_string()),
+        );
+        surface.tree.insert_root(popup);
+        surface.clear_dirty_flags();
+
+        let point = UiPoint::new(48.0, 72.0);
+        assert!(
+            surface
+                .set_popup_pointer_anchor(UiNodeId::new(2), point)
+                .unwrap()
+        );
+        assert_eq!(
+            surface.input.popup_anchor_point(UiNodeId::new(2)),
+            Some(point)
+        );
+        assert_eq!(surface.input.popup_stack.len(), 1);
+        assert_eq!(surface.input.popup_stack[0].owner, Some(UiNodeId::new(1)));
+        assert_eq!(surface.input.popup_stack[0].anchor, Some(point));
+        let popup = surface.tree.node(UiNodeId::new(2)).unwrap();
+        assert!(popup.dirty.render);
+        assert!(popup.dirty.input);
+        assert!(!popup.dirty.layout);
+
+        assert_eq!(
+            surface.sync_popup_stack_for_node(UiNodeId::new(2), false),
+            None
+        );
+        assert!(surface.input.popup_stack.is_empty());
+        assert_eq!(surface.input.popup_anchor_point(UiNodeId::new(2)), None);
+    }
+
+    fn control_node(node_id: u64, control_id: &str) -> UiTreeNode {
+        UiTreeNode::new(
+            UiNodeId::new(node_id),
+            UiNodePath::new(format!("root/{control_id}")),
+        )
+        .with_template_metadata(UiTemplateNodeMetadata {
+            control_id: Some(control_id.to_string()),
+            ..UiTemplateNodeMetadata::default()
+        })
     }
 }

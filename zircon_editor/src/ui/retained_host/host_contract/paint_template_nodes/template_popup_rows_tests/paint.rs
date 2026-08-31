@@ -49,3 +49,34 @@ fn standalone_dropdown_popup_paints_selected_row_outline_inside_projected_popup_
         0
     );
 }
+
+#[test]
+fn standalone_dropdown_popup_paints_focus_outline_without_a_row_fill() {
+    let bytes = paint_template_nodes_for_test(180, 140, model_rc(vec![dropdown_popup_node()]));
+
+    assert!(matching_pixel_count(&bytes, 180, PALETTE.accent, 20, 40, 120, 24) > 72);
+    assert!(matching_pixel_count(&bytes, 180, PALETTE.popup, 22, 42, 116, 20) > 1_800);
+    assert_eq!(
+        matching_pixel_count(&bytes, 180, PALETTE.surface_hover, 22, 42, 116, 20),
+        0
+    );
+    assert_eq!(
+        matching_pixel_count(&bytes, 180, PALETTE.surface_pressed, 22, 42, 116, 20),
+        0
+    );
+}
+
+#[test]
+fn popup_menu_hover_surface_stays_inside_projected_content_padding() {
+    let mut popup = popup_menu_node();
+    popup.layout_padding_left = 8.0;
+    popup.layout_padding_right = 8.0;
+    popup.layout_padding_top = 4.0;
+    popup.layout_padding_bottom = 4.0;
+    popup.layout_spacing = 4.0;
+    let bytes = paint_template_nodes_for_test(180, 180, model_rc(vec![popup]));
+
+    assert_eq!(pixel_at(&bytes, 180, 12, 110), PALETTE.popup);
+    assert_eq!(pixel_at(&bytes, 180, 20, 110), PALETTE.surface_hover);
+    assert_eq!(pixel_at(&bytes, 180, 20, 12), PALETTE.popup);
+}

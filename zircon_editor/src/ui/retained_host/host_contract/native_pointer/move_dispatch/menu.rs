@@ -23,11 +23,7 @@ pub(super) fn dispatch_menu_pointer_move(
     }
     let before = generation.interaction_generation();
     ui.global::<UiHostContext>().invoke_menu_pointer_moved(x, y);
-    if before
-        == ui
-            .get_host_presentation_generation()
-            .interaction_generation()
-    {
+    if before == ui.get_host_interaction_generation() {
         return Some(NativePointerDispatchResult::idle());
     }
     Some(NativePointerDispatchResult::region(

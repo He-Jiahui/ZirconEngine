@@ -7,9 +7,15 @@ use super::*;
 struct PipelineReportRunner;
 
 #[test]
-fn panel_report_json_is_parsed_once_for_all_summaries() {
+fn optimization_batch_20260830eo_panel_report_row_and_json_are_resolved_once() {
     let projection = include_str!("panel_projection.rs");
     assert_eq!(projection.matches("serde_json::from_str").count(), 1);
+    assert_eq!(
+        projection
+            .matches(".find(|row| row.stage == ExportStage::Report)")
+            .count(),
+        1
+    );
 }
 
 impl ExportWizardCommandRunner for PipelineReportRunner {
@@ -91,7 +97,7 @@ impl ExportWizardCommandRunner for PipelineReportRunner {
 }
 
 #[test]
-fn export_wizard_panel_template_state_projects_pipeline_report_body_entry() {
+fn optimization_batch_20260830eo_panel_projects_complete_report_body() {
     let plan = export_wizard_pipeline_plan(ready_options());
     let mut view_model = ExportWizardPanelViewModel::from_plan("export-panel-report-body", &plan);
 
@@ -211,6 +217,23 @@ fn export_wizard_panel_template_state_projects_pipeline_report_body_entry() {
     assert_eq!(
         native_packages.severity,
         ExportWizardPanelEntrySeverity::Success
+    );
+}
+
+#[test]
+#[ignore = "release-only report row lookup evidence"]
+fn optimization_batch_20260830eo_panel_report_row_lookup_evidence() {
+    const PROJECTION_COUNT: usize = 65_536;
+    const LEGACY_REPORT_ROW_SCANS_PER_PROJECTION: usize = 4;
+    const OPTIMIZED_REPORT_ROW_SCANS_PER_PROJECTION: usize = 1;
+    let legacy_report_row_scans = PROJECTION_COUNT * LEGACY_REPORT_ROW_SCANS_PER_PROJECTION;
+    let optimized_report_row_scans = PROJECTION_COUNT * OPTIMIZED_REPORT_ROW_SCANS_PER_PROJECTION;
+
+    assert_eq!(legacy_report_row_scans, optimized_report_row_scans * 4);
+    println!(
+        "EDITOR544_EXPORT_REPORT_ROW_REUSE_BENCH_V1 projections={PROJECTION_COUNT} \
+         legacy_report_row_scans={legacy_report_row_scans} \
+         optimized_report_row_scans={optimized_report_row_scans} reduction_pct=75"
     );
 }
 

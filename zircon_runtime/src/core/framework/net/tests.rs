@@ -207,7 +207,8 @@ fn rpc_session_and_handshake_descriptors_are_runtime_mode_agnostic() {
     let reflected_schema = RpcPayloadSchema::from_reflect_type_path(
         ReflectTypePath::new("gameplay.inventory.SyncOne", "SyncOne")
             .unwrap()
-            .with_plugin_id("net"),
+            .with_plugin_id("net")
+            .unwrap(),
     );
     assert_eq!(reflected_schema.schema_id(), "gameplay.inventory.SyncOne");
     assert_eq!(
@@ -408,4 +409,79 @@ fn sync_descriptors_share_interest_budget_and_delta_contracts() {
     assert_eq!(schedule.sent_snapshots.len(), 0);
     assert_eq!(schedule.used_bytes, 0);
     assert_eq!(schedule.deferred_snapshots, 0);
+}
+
+#[test]
+fn optimization_wave_20260825vw_runtime08e_interest_groups_are_normalized() {
+    let interest = SyncInterestDescriptor::new(NetSessionId::new(3))
+        .with_group("zeta")
+        .with_group("alpha")
+        .with_group("middle")
+        .with_group("alpha");
+    assert_eq!(
+        interest
+            .groups()
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        vec!["alpha", "middle", "zeta"]
+    );
+
+    let mut encoded = serde_json::to_value(interest).expect("interest should serialize");
+    encoded["groups"] = serde_json::json!(["zeta", "alpha", "middle", "alpha"]);
+    let decoded: SyncInterestDescriptor =
+        serde_json::from_value(encoded).expect("interest should deserialize");
+
+    assert_eq!(
+        decoded
+            .groups()
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        vec!["alpha", "middle", "zeta"]
+    );
+    assert!(decoded.allows_group(Some("middle")));
+    assert!(!decoded.allows_group(Some("missing")));
+}
+
+#[test]
+#[ignore = "performance evidence; run in the managed Windows release lane"]
+fn optimization_wave_20260825vw_runtime08e_interest_group_lookup_evidence() {
+    use std::hint::black_box;
+    use std::time::{Duration, Instant};
+
+    const GROUP_COUNT: usize = 10_000;
+    const QUERY_COUNT: usize = 100_000;
+    const MAX_ELAPSED: Duration = Duration::from_millis(500);
+
+    let mut interest = SyncInterestDescriptor::new(NetSessionId::new(7));
+    for index in 0..GROUP_COUNT {
+        interest = interest.with_group(format!("group-{index:05}"));
+    }
+    let target = format!("group-{:05}", GROUP_COUNT - 1);
+    let started = Instant::now();
+    for _ in 0..QUERY_COUNT {
+        assert!(black_box(
+            interest.allows_group(Some(black_box(target.as_str())))
+        ));
+    }
+    let elapsed = started.elapsed();
+
+    let legacy_group_comparisons = GROUP_COUNT * QUERY_COUNT;
+    let comparisons_per_query_upper_bound =
+        usize::BITS as usize - GROUP_COUNT.leading_zeros() as usize;
+    let indexed_comparisons_upper_bound = comparisons_per_query_upper_bound * QUERY_COUNT;
+    let reduction_basis_points = (legacy_group_comparisons - indexed_comparisons_upper_bound)
+        * 10_000
+        / legacy_group_comparisons;
+    assert!(elapsed <= MAX_ELAPSED, "indexed lookup took {elapsed:?}");
+    println!(
+        "RUNTIME08E_INTEREST_GROUP_BENCH_V1 groups={} queries={} legacy_group_comparisons={} indexed_comparisons_upper_bound={} reduction_basis_points={} elapsed_ns={}",
+        GROUP_COUNT,
+        QUERY_COUNT,
+        legacy_group_comparisons,
+        indexed_comparisons_upper_bound,
+        reduction_basis_points,
+        elapsed.as_nanos()
+    );
 }

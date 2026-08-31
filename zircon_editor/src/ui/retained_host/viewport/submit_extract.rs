@@ -1,18 +1,20 @@
+use std::sync::Arc;
+
 use crate::scene::viewport::{
     RenderFrameExtract, RenderFrameworkError, RenderVisibleSpatialQuerySnapshot,
 };
+use zircon_runtime::core::framework::render::UiRenderSubmission;
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::editor_viewport_render_defaults::apply_editor_viewport_render_defaults;
 use super::retained_viewport_controller::RetainedViewportController;
-use super::world_space_ui::merge_ui_with_world_space_submissions;
 
 impl RetainedViewportController {
     pub(crate) fn submit_extract_with_ui(
         &self,
         mut extract: RenderFrameExtract,
-        ui: Option<UiRenderExtract>,
+        ui: Option<Arc<UiRenderExtract>>,
         size: UVec2,
     ) -> Result<bool, RenderFrameworkError> {
         zircon_runtime::profile_scope!("editor", "viewport", "submit_extract_with_ui");
@@ -21,11 +23,12 @@ impl RetainedViewportController {
             return Ok(false);
         };
         let ui = {
-            let shared = self.lock_shared();
-            merge_ui_with_world_space_submissions(ui, &shared.last_world_space_ui_surfaces)
+            let mut shared = self.lock_shared();
+            shared.merge_world_space_ui(ui)
         };
         extract.apply_viewport_size(size);
         apply_editor_viewport_render_defaults(&mut extract);
+        let ui = ui.map(UiRenderSubmission::single);
         render_framework.submit_frame_extract_with_ui(viewport, extract, ui)?;
         let mut shared = self.lock_shared();
         if shared

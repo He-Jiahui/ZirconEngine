@@ -13,6 +13,12 @@ pub struct GeneratedProjections {
     pub zrvm: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProjectionWriteOutcome {
+    Unchanged,
+    Written,
+}
+
 #[derive(Debug, Error)]
 pub enum ProjectionError {
     #[error(transparent)]
@@ -36,10 +42,10 @@ pub fn generate_projections(
 ) -> Result<GeneratedProjections, ProjectionError> {
     manifest.validate()?;
     let fingerprint = manifest.fingerprint()?;
-    let fingerprint_hex = fingerprint
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
+    let mut fingerprint_hex = String::with_capacity(fingerprint.len() * 2);
+    for byte in fingerprint {
+        write!(fingerprint_hex, "{byte:02x}").expect("writing to a String cannot fail");
+    }
     Ok(GeneratedProjections {
         rust: generate_rust(manifest, &fingerprint_hex, &fingerprint),
         zrvm: generate_zrvm(manifest, &fingerprint_hex),
@@ -61,8 +67,16 @@ pub fn verify_projection(path: impl AsRef<Path>, expected: &str) -> Result<(), P
     Ok(())
 }
 
-pub fn write_projection(path: impl AsRef<Path>, contents: &str) -> Result<(), ProjectionError> {
+pub fn write_projection(
+    path: impl AsRef<Path>,
+    contents: &str,
+) -> Result<ProjectionWriteOutcome, ProjectionError> {
     let path = path.as_ref();
+    if fs::metadata(path).is_ok_and(|metadata| metadata.len() == contents.len() as u64) {
+        if fs::read(path).is_ok_and(|actual| actual == contents.as_bytes()) {
+            return Ok(ProjectionWriteOutcome::Unchanged);
+        }
+    }
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|source| ProjectionError::Write {
             path: parent.to_path_buf(),
@@ -72,7 +86,8 @@ pub fn write_projection(path: impl AsRef<Path>, contents: &str) -> Result<(), Pr
     fs::write(path, contents).map_err(|source| ProjectionError::Write {
         path: path.to_path_buf(),
         source,
-    })
+    })?;
+    Ok(ProjectionWriteOutcome::Written)
 }
 
 fn generate_rust(

@@ -1,6 +1,6 @@
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
     Arc, OnceLock,
+    atomic::{AtomicU64, Ordering},
 };
 
 use crate::graphics::{RenderFeatureCapabilityRequirement, RendererFeatureAsset};

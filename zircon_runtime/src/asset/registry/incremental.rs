@@ -48,7 +48,7 @@ impl AssetRegistryIndex {
         let mut duplicate_diagnostics = Vec::new();
         let reminted_paths =
             normalize_duplicate_guids(&mut metas, &mut duplicate_diagnostics, &owners)?;
-        let mut changed_paths = Vec::new();
+        let mut changed_paths = Vec::with_capacity(watch_change_path_capacity(changes));
         for change in changes {
             if change.kind != AssetChangeKind::Removed {
                 changed_paths.push(change.uri.clone());
@@ -77,6 +77,14 @@ impl AssetRegistryIndex {
     }
 }
 
+fn watch_change_path_capacity(changes: &[AssetChange]) -> usize {
+    changes.len()
+}
+
 fn same_source_path(left: &AssetUri, right: &AssetUri) -> bool {
     left.scheme() == right.scheme() && left.path() == right.path()
 }
+
+#[cfg(test)]
+#[path = "incremental/capacity_tests.rs"]
+mod capacity_tests;

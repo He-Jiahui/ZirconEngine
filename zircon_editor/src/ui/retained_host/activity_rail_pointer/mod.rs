@@ -3,7 +3,6 @@ mod build_host_activity_rail_pointer_layout;
 mod collect_tabs;
 mod constants;
 mod dispatch_event;
-mod drawer_slot_key;
 mod global_point_for_side;
 mod handle_click;
 mod host_activity_rail_pointer_bridge;

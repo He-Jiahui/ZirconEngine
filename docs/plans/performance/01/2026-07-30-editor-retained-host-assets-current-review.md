@@ -7,6 +7,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/helpers/animation_assets.rs
   - zircon_editor/src/ui/retained_host/app/helpers/model_staging.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
+  - zircon_runtime/src/core/resource/management_generation.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/09-editor-asset-management.md
@@ -28,7 +31,7 @@ status: static_complete_dynamic_pending
 
 ## 范围
 
-`zircon_editor/src/ui/retained_host/app/assets/**`当前源 **10/10** 个Rust文件、**720** 行、**3** 条`#[test]`已逐文件阅读；path+raw-content SHA-256为`4a27e84da3c3a088f7a788d1848e9249b95e6e3c56cd923ebff621cf1e970de5`。5个tracked文件的外部未提交内容只读纳入，本轮未修改Rust。
+`zircon_editor/src/ui/retained_host/app/assets/**`当前源 **10/10** 个Rust文件、**720** 行、**3** 条`#[test]`已逐文件阅读；path+raw-content SHA-256为`4a27e84da3c3a088f7a788d1848e9249b95e6e3c56cd923ebff621cf1e970de5`。该 retained-host 复核只读纳入5个tracked文件的外部未提交内容；资源查询 profiling adapter 的实现与验证归 Runtime51 范围。
 
 | 模块 | 文件 | 行 | 测试 | 当前边界 |
 |---|---:|---:|---:|---|
@@ -52,11 +55,11 @@ status: static_complete_dynamic_pending
 ### 2026-08-14 Runtime04 generation addendum
 
 - `ProjectAssetManager::asset_ids_by_kind` 已不再扫描 mutable registry、调用 `list_resources()` 或在调用方排序；它读取 `ResourceManagementGeneration` 的 kind query。这一已完成止损不得被后续工作回退。
-- 该 generation 目前按 `64` 个 locator-sorted shard 发布。每次 `ResourceManagementScan::next_row()` 都在全部 shard 的当前候选中选择最小 locator；完整 kind list 仍执行约 `64 * N` 次候选检查。`ProjectAssetManager` 随后逐 id 加载资产并重建 model/mesh/scene/material/shader rich records，scene entity 也从新建的 scene records 再投影。因此 stable list/summary 仍不是 generation-owned O(1) 读取，不能从“已无调用方 sort”推导为 warm work 为零。
+- 该 generation 目前按 `64` 个 locator-sorted shard 发布。scan/page 使用以每个 shard 当前候选为节点的 K-way heap merge：完整 kind list 的候选推进是 `O(shards + matching rows)`，heap 比较是 `O(matching rows * log shards)`，另加被过滤 row 的 cursor advance；它不再按每个 emitted row 线性检查全部 shard。`ProjectAssetManager` 随后逐 id 加载资产并重建 model/mesh/scene/material/shader rich records，scene entity 也从新建的 scene records 再投影。因此 stable list/summary 仍不是 generation-owned O(1) 读取，不能从“已无调用方 sort”推导为 warm work 为零。
 - Unreal `FAssetRegistryState` 把 class/path/package 等 lookup index 与 registry state 一起维护，并直接枚举对应索引；其 tag index 还明确记录 memory-for-query-latency trade-off。Zircon 的正确演进方向是由 Runtime04 在同一 immutable generation 发布紧凑的 query-specific ordered rows/summary 与 selected-detail handle，Editor 只消费 `(generation, query, page)`，而不是在 Editor 建立第二套缓存或为每页重新扫描 shard。
 - 在任何索引结构改动前，基线必须记录 `scan` 调用、每页/全量输出的 shard-candidate 检查数、匹配 row 数、rich record/scene-entity projection 数、row/detail clone bytes、query wall time 与 generation sequence。矩阵保持 assets/scenes/entities `1/1K/100K`、visible page `0/50/1K`、idle/60Hz stable/1% change；只有稳定 generation 的这些数据确认热路径后，才实施并复测前后 p50/p95/RSS。GPU timing 与系统功耗不由该 CPU-side counter 推导，仍需独立校准来源。
-- 当前源码已在 `ResourceManagementScan` 的 profiling feature 路径按 scan 生命周期汇总并一次批量发射 `resource_management.scan.instances`、`matching_rows`、`rows_emitted`、`shard_candidate_checks` 和 `filtered_rows_skipped`：五项归属同一帧与时间戳，不会作为五次 recorder 锁争用。基线报告仅在同一场景完整保留五项时标记 asset-management 为 `measured`，缺项必须为 `partial`。它不在默认构建求值，也不按每行写入 timeline；后续基线必须把这些 counter 与同一 capture 的 `project_asset_manager` span、generation sequence 和产品场景关联。rich record/scene entity 的输出行数、clone bytes 与 page 指标仍待管理 projection owner 补齐，不能由现有 scan counter 推断。
-- `ResourceManagementGeneration::page()` 是独立的 64-shard merge，不复用 scan cursor；profiling feature 路径现在在该页返回前一次批量发射 `resource_management.page.instances`、`matching_rows`、`candidate_rows`（含 offset 所消耗的有序候选）、`rows_returned`、`shard_candidate_checks` 与 `filtered_rows_skipped`。报告以独立 `asset_management_page` 覆盖率呈现：没有产品 page 场景时为 `not_emitted`，同一场景只保留部分 page counters 才为 `partial`，不借 scan 指标推断 page 成本。该切片仅建立测量基线，不改变合并算法、默认构建或 runtime/editor 缓存所有权。
+- `ProjectAssetManager` 在 profiling feature 下仅当调用线程已有 active frame 时，为单类型查询建立 `resource_management/project_asset_manager.kind_query` span；`asset_management_record_sets` 则以一次无过滤 scan 分桶五个管理类型，并建立 `resource_management/project_asset_manager.record_sets_scan` span。scan 耗尽后，它一次批量发射 `resource_management.scan.instances`、`matching_rows`、`rows_emitted`、`shard_candidate_checks` 和 `filtered_rows_skipped`。资源 generation 只提供不可变 query-local metrics，不依赖 recorder；五项 counter 共享同一 frame/timestamp。聚合同时建立 `project_asset_manager.record_sets` span。单元测试将 aggregate 固定为一组 scan counter，这只是重复扫描工作的 source-level 降低；受信产品基线仍须在同一场景完整保留五项并绑定 producer receipt，当前源码与单元测试不是产品 p95、RSS 或 VRAM 证据。
+- `ResourceManagementGeneration::page()` 是独立的 K-way merge，不复用 scan cursor；profiling feature 可返回 page-local `candidate_rows`（含 offset 所消耗的有序候选）、`rows_returned`、`shard_candidate_checks` 和 `filtered_rows_skipped`，但当前没有 page consumer adapter 写入 `resource_management.page.*` counter。报告以独立 `asset_management_page` 覆盖率呈现：没有产品 page 场景时为 `not_emitted`，同一场景只保留部分 page counters 才为 `partial`，不借 scan 指标推断 page 成本。该切片仅建立测量基线，不改变默认构建或 runtime/editor 缓存所有权。
 
 ## 参考与目标
 

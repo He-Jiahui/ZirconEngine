@@ -16,6 +16,7 @@ pub(super) fn push_heat_source_markers(
     if !geometry.is_drawable() {
         return;
     }
+    commands.reserve(sources.len());
     for source in sources {
         let x = geometry.x_for_normalized(source.x());
         let y = geometry.y_for_normalized(source.y());
@@ -108,3 +109,7 @@ mod tests {
         assert!(commands.is_empty());
     }
 }
+
+#[cfg(test)]
+#[path = "markers/capacity_tests.rs"]
+mod capacity_tests;

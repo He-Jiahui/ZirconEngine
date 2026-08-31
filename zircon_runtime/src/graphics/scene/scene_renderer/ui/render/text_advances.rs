@@ -2,13 +2,12 @@ use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
 
 use crate::core::framework::text::{
-    TextFontFaceHandle, TextFontRequest, TextGlyphRotation, TextLayoutError, TextLayoutService,
-    TextRenderMode, TextShapeRequest, TextShapeResult,
+    TextFontFaceHandle, TextFontRequest, TextGlyphRotation, TextLayoutError, TextRenderMode,
+    TextShapeRequest, TextShapeResult,
 };
-use crate::text::font::shared_font_database_generation;
-use crate::text::{
-    rebuild_resolved_text_glyph_artifact_line, shared_text_layout_service, ShapedGlyphRotation,
-};
+use crate::text::font::FontCollectionService;
+use crate::text::{ShapedGlyphRotation, shape_text_request_in_font_collection};
+use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiShapedGlyph {
@@ -40,13 +39,16 @@ pub(super) struct ScreenSpaceTextShapingRequest<'a> {
 pub(super) struct ResolvedScreenSpaceTextGlyphs {
     pub(super) glyph_advances: Vec<f32>,
     pub(super) shaped_glyphs: Vec<ScreenSpaceUiShapedGlyph>,
+    pub(super) layout_baseline: Option<f32>,
     pub(super) layout_error: Option<TextLayoutError>,
 }
 
 pub(super) fn resolve_screen_space_text_glyphs(
     request: ScreenSpaceTextShapingRequest<'_>,
     glyph_advances: Vec<f32>,
+    font_collection: &Arc<FontCollectionService>,
 ) -> ResolvedScreenSpaceTextGlyphs {
+    crate::profile_scope!("runtime", "text.render", "shape_renderer_fallback");
     use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 
     let style = UiResolvedStyle {
@@ -60,24 +62,32 @@ pub(super) fn resolve_screen_space_text_glyphs(
         text_writing_mode: request.writing_mode,
         ..UiResolvedStyle::default()
     };
-    let shaped = if matches!(request.writing_mode, UiTextWritingMode::VerticalRl) {
-        resolved_vertical_text_glyphs(
-            request.text,
-            &style,
-            request.direction,
-            request.source_range,
-        )
+    let writing_mode = if matches!(request.writing_mode, UiTextWritingMode::VerticalRl) {
+        crate::core::framework::text::TextWritingMode::VerticalRightToLeft
     } else {
-        resolved_horizontal_text_glyphs(
-            request.text,
-            &style,
-            request.direction,
-            request.source_range,
-        )
+        crate::core::framework::text::TextWritingMode::HorizontalTopToBottom
     };
-    let (mut shaped_glyphs, layout_error) = match shaped {
-        Ok(glyphs) => (glyphs, None),
-        Err(error) => (Vec::new(), Some(error)),
+    let shaped = shape_through_canonical_service(
+        request.text,
+        &style,
+        request.direction,
+        writing_mode,
+        font_collection,
+    );
+    let (mut shaped_glyphs, layout_baseline, layout_error) = match shaped {
+        Ok(shaped) => {
+            let layout_baseline = shaped
+                .metrics
+                .baseline
+                .is_finite()
+                .then_some(shaped.metrics.baseline);
+            (
+                shaped_glyphs_for_screen_space(request.text, request.source_range, shaped),
+                layout_baseline,
+                None,
+            )
+        }
+        Err(error) => (Vec::new(), None, Some(error)),
     };
     let glyph_advances = if matches!(request.writing_mode, UiTextWritingMode::VerticalRl) {
         let grapheme_ranges = source_grapheme_ranges(request.text, request.source_range);
@@ -98,33 +108,16 @@ pub(super) fn resolve_screen_space_text_glyphs(
     ResolvedScreenSpaceTextGlyphs {
         glyph_advances,
         shaped_glyphs,
+        layout_baseline,
         layout_error,
     }
 }
 
-pub(in crate::graphics::scene::scene_renderer::ui) fn refresh_screen_space_text_batch_glyphs(
+pub(in crate::graphics::scene::scene_renderer::ui) fn refresh_renderer_fallback_text_batch_glyphs(
     text: &mut super::ScreenSpaceUiTextBatch,
+    font_collection: &Arc<FontCollectionService>,
 ) {
-    if text.preserve_shaped_glyphs {
-        let Some(artifact_line) = text.glyph_artifact_line.as_mut() else {
-            return;
-        };
-        let generation = shared_font_database_generation();
-        if artifact_line.font_generation == generation {
-            return;
-        }
-        // Rebind the whole Text02 line after a font generation swap; never shape a visual run.
-        let Some((line, generation)) = rebuild_resolved_text_glyph_artifact_line(
-            artifact_line.artifact.as_ref(),
-            artifact_line.line_index,
-        ) else {
-            return;
-        };
-        if shared_font_database_generation() != generation {
-            return;
-        }
-        artifact_line.refreshed_line = Some(line);
-        artifact_line.font_generation = generation;
+    if text.glyph_artifact_line.is_some() || text.preserve_shaped_glyphs {
         return;
     }
     let source_range = text.source_range.unwrap_or(UiTextRange {
@@ -154,12 +147,19 @@ pub(in crate::graphics::scene::scene_renderer::ui) fn refresh_screen_space_text_
             source_range,
         },
         glyph_advances,
+        font_collection,
     );
     text.glyph_advances = resolved.glyph_advances;
     text.shaped_glyphs = resolved.shaped_glyphs;
+    if text.text_decoration_baseline.is_none() {
+        text.text_decoration_baseline = resolved
+            .layout_baseline
+            .map(|baseline| text.frame.y + baseline);
+    }
     text.layout_error = resolved.layout_error;
 }
 
+#[cfg(test)]
 pub(super) fn resolved_vertical_text_glyphs(
     text: &str,
     style: &UiResolvedStyle,
@@ -171,10 +171,12 @@ pub(super) fn resolved_vertical_text_glyphs(
         style,
         direction,
         crate::core::framework::text::TextWritingMode::VerticalRightToLeft,
+        &crate::text::font::shared_font_collection_service(),
     )?;
     Ok(shaped_glyphs_for_screen_space(text, source_range, shaped))
 }
 
+#[cfg(test)]
 pub(super) fn resolved_horizontal_text_glyphs(
     text: &str,
     style: &UiResolvedStyle,
@@ -186,6 +188,7 @@ pub(super) fn resolved_horizontal_text_glyphs(
         style,
         direction,
         crate::core::framework::text::TextWritingMode::HorizontalTopToBottom,
+        &crate::text::font::shared_font_collection_service(),
     )?;
     Ok(shaped_glyphs_for_screen_space(text, source_range, shaped))
 }
@@ -229,6 +232,7 @@ fn shape_through_canonical_service(
     style: &UiResolvedStyle,
     direction: UiTextDirection,
     writing_mode: crate::core::framework::text::TextWritingMode,
+    font_collection: &Arc<FontCollectionService>,
 ) -> Result<TextShapeResult, TextLayoutError> {
     let family_storage = style.font_family.as_deref().map(|family| [family]);
     let families = family_storage
@@ -249,8 +253,7 @@ fn shape_through_canonical_service(
     request.writing_mode = writing_mode;
     request.line_height = style.line_height;
     request.tab_size = style.tab_size;
-    let service: &dyn TextLayoutService = shared_text_layout_service();
-    service.shape(request)
+    shape_text_request_in_font_collection(request, font_collection)
 }
 
 pub(super) fn vertical_advances_by_source_grapheme(
@@ -352,11 +355,7 @@ fn sanitized_advance(value: f32) -> f32 {
 }
 
 fn sanitized_position(value: f32) -> f32 {
-    if value.is_finite() {
-        value
-    } else {
-        0.0
-    }
+    if value.is_finite() { value } else { 0.0 }
 }
 
 #[cfg(all(test, target_os = "windows"))]
@@ -372,6 +371,18 @@ mod tests {
 
         assert!(source.contains(&indexed_range_api));
         assert!(!source.contains(&nested_glyph_scan));
+    }
+
+    #[test]
+    fn renderer_fallback_module_cannot_rebuild_text_owned_artifacts() {
+        let source = include_str!("text_advances.rs");
+        let rebuild_api = ["rebuild_resolved_text_glyph_", "artifact_line"].concat();
+        let session_constructor = ["SharedTextLayoutSession", "::new"].concat();
+        let refresh_overlay = ["refreshed", "_line"].concat();
+
+        assert!(!source.contains(&rebuild_api));
+        assert!(!source.contains(&session_constructor));
+        assert!(!source.contains(&refresh_overlay));
     }
 
     #[test]
@@ -504,6 +515,7 @@ mod tests {
                 source_range: UiTextRange { start: 0, end: 7 },
             },
             Vec::new(),
+            &crate::text::font::shared_font_collection_service(),
         );
 
         assert_eq!(

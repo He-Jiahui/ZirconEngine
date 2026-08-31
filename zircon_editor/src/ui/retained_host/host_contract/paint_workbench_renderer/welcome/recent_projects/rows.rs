@@ -18,7 +18,7 @@ pub(super) fn draw_recent_project_rows(
     visible_rows: usize,
 ) {
     for index in 0..visible_rows {
-        let Some(recent) = pane.welcome.recent_projects.row_data(index) else {
+        let Some(recent) = pane.welcome.recent_projects.get(index) else {
             continue;
         };
         let frames = recent_project_row_frames(list, index);
@@ -39,6 +39,14 @@ pub(super) fn draw_recent_project_rows(
             ]),
             recent.invalid,
         );
-        draw_recent_project_row_actions(frame, &frames.open, &frames.remove, clip, recent.invalid);
+        draw_recent_project_row_actions(
+            frame,
+            &frames.open,
+            &frames.safe,
+            &frames.recover,
+            &frames.remove,
+            clip,
+            recent.invalid,
+        );
     }
 }

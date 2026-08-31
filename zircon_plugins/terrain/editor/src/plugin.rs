@@ -1,15 +1,13 @@
 use zircon_editor::core::asset::{
     AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
 };
-use zircon_editor::core::commands::EditorCommandDescriptor;
-use zircon_editor::core::editor_extension::{
-    AssetImporterDescriptor, EditorMenuItemDescriptor,
-};
-use zircon_editor::core::extension::InspectorCustomizationDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
+use zircon_editor::core::editor_extension::AssetImporterDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_plugin_editor_support::{
-    EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
     register_authoring_contribution_batch, register_authoring_extensions,
+    EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
 use zircon_runtime_interface::resource::ResourceKind;
 
@@ -50,7 +48,6 @@ impl zircon_editor::EditorPlugin for TerrainEditorPlugin {
                     TERRAIN_AUTHORING_VIEW_ID,
                     "Terrain",
                     "World",
-                    "Plugins/Terrain",
                 )],
             },
         )?;
@@ -93,40 +90,48 @@ fn terrain_authoring_batch() -> EditorAuthoringContributionBatch {
     let sculpt = operation("terrain.authoring.sculpt");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::operation(
-                import_heightfield.clone(),
-                "Import Terrain Heightfield",
-            )
-            .with_menu_path("Plugins/Terrain/Import Heightfield")
-            .with_payload_schema_id("terrain.import_heightfield.v1")
-            .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(
-                import_weightmap.clone(),
-                "Import Terrain Weightmap",
-            )
-            .with_menu_path("Plugins/Terrain/Import Weightmap")
-            .with_payload_schema_id("terrain.import_weightmap.v1")
-            .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(create.clone(), "Create Terrain Heightfield")
-                .with_menu_path("Plugins/Terrain/Create Heightfield")
+            EditorCommandDescriptor::operation(import_heightfield.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &import_heightfield,
+                    "plugins",
+                    &["terrain"],
+                ))
+                .with_payload_schema_id("terrain.import_heightfield.v1")
+                .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(import_weightmap.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &import_weightmap,
+                    "plugins",
+                    &["terrain"],
+                ))
+                .with_payload_schema_id("terrain.import_weightmap.v1")
+                .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(create.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &create,
+                    "plugins",
+                    &["terrain"],
+                ))
                 .with_payload_schema_id("terrain.create_heightfield.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(open.clone(), "Open Terrain")
-                .with_menu_path("Plugins/Terrain/Open Terrain Asset")
+            EditorCommandDescriptor::operation(open.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &open,
+                    "plugins",
+                    &["terrain"],
+                ))
                 .with_payload_schema_id("terrain.open_asset.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(sculpt.clone(), "Activate Terrain Sculpt Tool")
-                .with_menu_path("Plugins/Terrain/Sculpt")
+            EditorCommandDescriptor::operation(sculpt.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &sculpt,
+                    "plugins",
+                    &["terrain"],
+                ))
                 .with_payload_schema_id("terrain.activate_sculpt_tool.v1")
                 .with_required_capabilities([CAPABILITY]),
         ],
-        menu_items: vec![
-            menu_item("Plugins/Terrain/Import Heightfield", &import_heightfield),
-            menu_item("Plugins/Terrain/Import Weightmap", &import_weightmap),
-            menu_item("Plugins/Terrain/Create Heightfield", &create),
-            menu_item("Plugins/Terrain/Open Terrain Asset", &open),
-            menu_item("Plugins/Terrain/Sculpt", &sculpt),
-        ],
+        menu_items: Vec::new(),
         asset_importers: vec![
             AssetImporterDescriptor::new(
                 "terrain.heightfield.importer",
@@ -147,22 +152,22 @@ fn terrain_authoring_batch() -> EditorAuthoringContributionBatch {
             ))
             .with_required_capabilities([CAPABILITY]),
         ],
-        asset_type_contributions: vec![
-            AssetTypeContribution::augment(AssetTypeId::from_resource_kind(ResourceKind::Terrain))
-                .with_toolkit(
-                    AssetToolkitDescriptor::new(TERRAIN_AUTHORING_VIEW_ID, open)
-                        .with_required_capabilities([CAPABILITY]),
-                )
-                .with_creation_template(
-                    AssetCreationTemplateDescriptor::new(
-                        "terrain.template.heightfield",
-                        "Terrain Heightfield",
-                        create,
-                    )
-                    .with_default_document("plugins://terrain/templates/default_heightfield.toml")
-                    .with_required_capabilities([CAPABILITY]),
-                ),
-        ],
+        asset_type_contributions: vec![AssetTypeContribution::augment(
+            AssetTypeId::from_resource_kind(ResourceKind::Terrain),
+        )
+        .with_toolkit(
+            AssetToolkitDescriptor::new(TERRAIN_AUTHORING_VIEW_ID, open)
+                .with_required_capabilities([CAPABILITY]),
+        )
+        .with_creation_template(
+            AssetCreationTemplateDescriptor::new(
+                "terrain.template.heightfield",
+                "Terrain Heightfield",
+                create,
+            )
+            .with_default_document("plugins://terrain/templates/default_heightfield.toml")
+            .with_required_capabilities([CAPABILITY]),
+        )],
         inspector_customizations: vec![InspectorCustomizationDescriptor::new(
             zircon_plugin_terrain_runtime::TERRAIN_COMPONENT_TYPE,
             "plugins://terrain/editor/terrain_component.zui",
@@ -174,8 +179,4 @@ fn terrain_authoring_batch() -> EditorAuthoringContributionBatch {
 
 fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid terrain operation path")
-}
-
-fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
-    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
 }

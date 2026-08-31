@@ -15,7 +15,7 @@ fn block_style(wrap: UiTextWrap) -> UiResolvedStyle {
         line_height: 12.0,
         wrap,
         text_overflow: UiTextOverflow::Clip,
-        rich_text_format: UiRichTextFormat::BbCode,
+        rich_text_format: UiRichTextFormat::BbCodeV1,
         ..UiResolvedStyle::default()
     }
 }
@@ -25,7 +25,7 @@ fn runtime_text_rich_blocks_parse_paragraph_indent_and_nested_markers() {
     let parser = RichTextParser::default();
     let parsed = parser.parse(
         "[p align=center indent=12]title[/p][indent]body[/indent][ol type=A][li]One[ul bullet=→][li]Inner[/li][/ul][/li][li]Two[/li][/ol]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "title\nbody\nA. One\n→ Inner\nB. Two");
@@ -36,7 +36,8 @@ fn runtime_text_rich_blocks_parse_paragraph_indent_and_nested_markers() {
         parsed
             .paragraphs
             .iter()
-            .filter_map(|(_, paragraph)| paragraph.list_prefix)
+            .filter_map(|(_, paragraph)| paragraph.list_item.as_ref())
+            .map(|item| item.marker_range)
             .map(|range| &parsed.text[range.0 as usize..range.1 as usize])
             .collect::<Vec<_>>(),
         vec!["A. ", "→ ", "B. "]
@@ -74,10 +75,11 @@ fn runtime_text_rich_blocks_layout_hanging_indent_and_inner_marker_width() {
     assert!(narrow_inner + 1 < narrow.lines.len());
     assert!(wide_inner + 1 < wide.lines.len());
     assert!(wide.lines[wide_inner + 1].frame.x > narrow.lines[narrow_inner + 1].frame.x);
-    assert!(wide
-        .lines
-        .iter()
-        .all(|line| line.frame.right() <= frame.right() + 0.01));
+    assert!(
+        wide.lines
+            .iter()
+            .all(|line| line.frame.right() <= frame.right() + 0.01)
+    );
 }
 
 #[test]

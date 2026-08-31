@@ -466,8 +466,14 @@ class Frameworks05TextBoundaryTests(unittest.TestCase):
 
     def test_graphics_mounts_the_shared_text_transport_boundary(self) -> None:
         graphics_mod = production_code_view(RUNTIME_SRC / "graphics" / "mod.rs")
-        transport_path = RUNTIME_SRC / "graphics" / "text_transport" / "mod.rs"
-        ui_adapter = production_code_view(RUNTIME_SRC / "ui" / "text" / "adapter.rs")
+        transport_root = RUNTIME_SRC / "graphics" / "text_transport" / "mod.rs"
+        conversion_path = (
+            RUNTIME_SRC / "graphics" / "text_transport" / "conversion.rs"
+        )
+        ui_text_source = "\n".join(
+            production_code_view(path)
+            for path in production_rust_sources(RUNTIME_SRC / "ui" / "text")
+        )
 
         self.assertIn(
             "mod text_transport;",
@@ -475,27 +481,39 @@ class Frameworks05TextBoundaryTests(unittest.TestCase):
             "graphics-only builds must mount the shared Text/UI transport conversions",
         )
         self.assertTrue(
-            transport_path.is_file(),
+            transport_root.is_file() and conversion_path.is_file(),
             "Text/UI transport conversions must have a graphics-owned, folder-backed boundary",
         )
-        transport_source = production_code_view(transport_path)
+        transport_root_source = production_code_view(transport_root)
+        transport_source = production_code_view(conversion_path)
+        self.assertIn("mod conversion;", transport_root_source)
+        self.assertIsNone(
+            re.search(r"\bimpl\s+From\s*<", transport_root_source),
+            "Text/UI transport root must stay structural; conversion.rs owns mappings",
+        )
         required_conversions = (
+            "impl From<UiTextRange> for TextRange",
+            "impl From<TextRange> for UiTextRange",
+            "impl From<UiTextWritingMode> for TextWritingMode",
+            "impl From<TextWritingMode> for UiTextWritingMode",
+            "impl From<UiTextAlign> for TextAlign",
+            "impl From<TextAlign> for UiTextAlign",
+            "impl From<UiTextWrap> for TextWrap",
+            "impl From<TextWrap> for UiTextWrap",
             "impl From<UiRichTextFormat> for RichTextFormat",
             "impl From<RichTextFormat> for UiRichTextFormat",
-            "impl From<UiTextDirection> for TextDirection",
-            "impl From<TextDirection> for UiTextDirection",
+            "impl From<UiTextRenderMode> for TextRenderMode",
             "impl From<UiFrame> for TextFrame",
             "impl From<TextFrame> for UiFrame",
-            "impl From<UiTextWritingMode> for TextWritingMode",
-            "impl From<UiTextAlign> for TextAlign",
-            "impl From<UiTextWrap> for TextWrap",
+            "impl From<TextSize> for UiSize",
         )
         for conversion in required_conversions:
             self.assertIn(conversion, transport_source)
-        self.assertIsNone(
-            re.search(r"\bimpl\s+From\s*<", ui_adapter),
-            "UI may consume shared Text transport conversions but must not own duplicate impls",
-        )
+            self.assertNotIn(
+                conversion,
+                ui_text_source,
+                "UI may consume shared Text transport conversions but must not own duplicate impls",
+            )
 
         cargo_manifest = tomllib.loads(
             (REPO_ROOT / "zircon_runtime" / "Cargo.toml").read_text(encoding="utf-8")

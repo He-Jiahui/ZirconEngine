@@ -99,3 +99,51 @@ fn partially_clipped_workbench_slider_keeps_clipped_paint_commands() {
         .iter()
         .all(|command| command.clip_frame.as_ref() == Some(&clip)));
 }
+
+#[test]
+fn workbench_slider_commands_preserve_fractional_owner_translation() {
+    let node = positioned_slider_node("WorkbenchInputSlider", 0.375, 8.0, 8.0, 184.0, 30.0);
+    let base = FrameRect {
+        x: 8.0,
+        y: 8.0,
+        width: 184.0,
+        height: 30.0,
+    };
+    let shifted = FrameRect {
+        x: 8.25,
+        ..base.clone()
+    };
+    let clip = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 320.0,
+        height: 80.0,
+    };
+    let mut base_commands = Vec::new();
+    let mut shifted_commands = Vec::new();
+
+    assert!(push_slider_commands(
+        &mut base_commands,
+        &node,
+        &base,
+        &clip,
+        4,
+        1.0,
+    ));
+    assert!(push_slider_commands(
+        &mut shifted_commands,
+        &node,
+        &shifted,
+        &clip,
+        4,
+        1.0,
+    ));
+    assert_eq!(base_commands.len(), shifted_commands.len());
+
+    for (base, shifted) in base_commands.iter().zip(&shifted_commands) {
+        assert!((shifted.frame.x - base.frame.x - 0.25).abs() < 0.000_1);
+        assert!((shifted.frame.y - base.frame.y).abs() < 0.000_1);
+        assert!((shifted.frame.width - base.frame.width).abs() < 0.000_1);
+        assert!((shifted.frame.height - base.frame.height).abs() < 0.000_1);
+    }
+}

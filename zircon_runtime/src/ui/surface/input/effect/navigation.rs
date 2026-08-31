@@ -4,8 +4,6 @@ use zircon_runtime_interface::ui::{
     focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
 };
 
-use crate::ui::tree::UiRuntimeTreeFocusExt;
-
 use super::super::super::surface::UiSurface;
 use super::super::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult};
 
@@ -19,7 +17,6 @@ pub(super) fn apply_navigation_effect(
                 .route_navigation_event(*kind)
                 .map_err(|source| UiSurfaceInputEffectError::NavigationRouteRejected { source })?;
             let target = surface
-                .tree
                 .next_navigation_target(route.target, *kind)
                 .map_err(|source| UiSurfaceInputEffectError::NavigationTargetRejected { source })?;
             if let Some(target) = target {

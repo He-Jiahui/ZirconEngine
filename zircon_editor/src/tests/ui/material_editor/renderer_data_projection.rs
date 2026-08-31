@@ -1,4 +1,6 @@
-use crate::ui::material_editor::RendererDataEditorProjection;
+use std::time::{Duration, Instant};
+
+use crate::ui::material_editor::{RendererDataDiagnosticRow, RendererDataEditorProjection};
 use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::render::{
     RenderMaterialDiagnosticSource, RenderMaterialTextureDimension, RenderMaterialValidationError,
@@ -505,6 +507,64 @@ fn renderer_data_projection_uses_runtime_diagnostic_ownership_without_shader_dup
     }));
     let diagnostics_by_shader = projection.diagnostics_by_shader();
     assert_eq!(diagnostics_by_shader.get(&shader).unwrap().len(), 2);
+}
+
+#[test]
+fn optimization_wave_20260825vw_editor15_diagnostic_grouping_clones_only_unique_keys() {
+    let source = include_str!("../../../ui/material_editor/renderer_data_projection.rs");
+    let production = source
+        .split("#[cfg(test)]")
+        .next()
+        .expect("production renderer-data projection source should exist");
+
+    assert!(production.contains("diagnostics.get_mut(material)"));
+    assert!(production.contains("diagnostics.get_mut(shader)"));
+    assert!(!production.contains(".entry(material.clone())"));
+    assert!(!production.contains(".entry(shader.clone())"));
+}
+
+#[test]
+#[ignore = "release-mode performance evidence"]
+fn optimization_wave_20260825vw_editor15_diagnostic_grouping_unique_key_evidence() {
+    const DIAGNOSTIC_COUNT: usize = 100_000;
+    const TARGET: Duration = Duration::from_millis(500);
+    const MARKER: &str = "EDITOR15_DIAGNOSTIC_GROUPING_UNIQUE_KEYS_BENCH_V1";
+
+    let material = asset_reference("res://materials/shared.zmaterial");
+    let shader = asset_reference("res://shaders/shared.zshader");
+    let row = RendererDataDiagnosticRow {
+        feature: "mesh".to_string(),
+        material_reference: Some(material.clone()),
+        shader_references: vec![shader.clone()],
+        source: Some(RenderMaterialDiagnosticSource::ShaderSchema),
+        severity: RendererFeatureContractDiagnosticSeverity::Warning,
+        path: "overrides.shared".to_string(),
+        message: "shared diagnostic".to_string(),
+    };
+    let projection = RendererDataEditorProjection {
+        renderer_name: "Large Renderer".to_string(),
+        stages: Vec::new(),
+        features: Vec::new(),
+        diagnostics: vec![row; DIAGNOSTIC_COUNT],
+    };
+
+    let started = Instant::now();
+    let by_material = projection.diagnostics_by_material();
+    let by_shader = projection.diagnostics_by_shader();
+    let elapsed = started.elapsed();
+
+    assert_eq!(by_material.get(&material).unwrap().len(), DIAGNOSTIC_COUNT);
+    assert_eq!(by_shader.get(&shader).unwrap().len(), DIAGNOSTIC_COUNT);
+    assert!(
+        elapsed <= TARGET,
+        "{MARKER}: expected grouping within {TARGET:?}, got {elapsed:?}"
+    );
+    eprintln!(
+        "{MARKER} diagnostics={DIAGNOSTIC_COUNT} unique_materials=1 unique_shaders=1 legacy_asset_reference_clones={} optimized_asset_reference_clones=2 clone_reduction_percent=99.999 elapsed_us={} target_us={}",
+        DIAGNOSTIC_COUNT * 2,
+        elapsed.as_micros(),
+        TARGET.as_micros()
+    );
 }
 
 fn asset_reference(locator: &str) -> AssetReference {

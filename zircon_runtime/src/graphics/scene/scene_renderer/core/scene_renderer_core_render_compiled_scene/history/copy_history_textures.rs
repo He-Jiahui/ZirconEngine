@@ -1,9 +1,11 @@
-use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::core::framework::render::RenderHistoryCopyReport;
 use crate::core::math::UVec2;
 use crate::graphics::backend::OffscreenTarget;
+use crate::graphics::pipeline::{CompiledHistoryEpiloguePlan, CompiledHistoryTextureSource};
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
-use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
+use crate::graphics::scene::scene_renderer::history::{
+    SceneFrameHistoryTextures, SceneHistoryDomain, SceneHistoryWriteIntent,
+};
 use crate::graphics::types::ViewportRenderRegion;
 use crate::rhi::TextureDesc;
 
@@ -18,17 +20,18 @@ impl SceneRendererCore {
         target: &OffscreenTarget,
         render_region: ViewportRenderRegion,
         graph_resources: &RenderGraphExecutionResources,
-        history_textures: Option<&mut SceneFrameHistoryTextures>,
+        history_epilogue_plan: &CompiledHistoryEpiloguePlan,
+        graph_history_writes: SceneHistoryWriteIntent,
+        history_textures: Option<&SceneFrameHistoryTextures>,
         runtime_features: SceneRuntimeFeatureFlags,
         taa_history_enabled: bool,
         screen_space_reflection_history_enabled: bool,
         hzb_history_enabled: bool,
         exposure_history_enabled: bool,
         volumetric_history_enabled: bool,
-    ) -> RenderHistoryCopyReport {
+    ) -> Result<(RenderHistoryCopyReport, SceneHistoryWriteIntent), String> {
         let requested_copy_count = taa_history_enabled as usize
             + runtime_features.hybrid_global_illumination_enabled as usize
-            + runtime_features.ssao_enabled as usize
             + screen_space_reflection_history_enabled as usize
             + hzb_history_enabled as usize
             + exposure_history_enabled as usize
@@ -36,99 +39,140 @@ impl SceneRendererCore {
         let history_target_present = history_textures.is_some();
         let mut scene_color_copied = false;
         let mut global_illumination_copied = false;
-        let mut ambient_occlusion_copied = false;
         let mut screen_space_reflection_copied = false;
         let mut hzb_furthest_copied = false;
         let mut exposure_copied = false;
         let mut volumetric_scattering_copied = false;
+        let mut write_intent = SceneHistoryWriteIntent::default();
 
         if let Some(history) = history_textures {
             if taa_history_enabled {
-                history.flip_taa_scene_color_history();
-                scene_color_copied = true;
+                scene_color_copied = history.taa_scene_color_current_texture().is_some()
+                    && graph_history_writes.was_written(SceneHistoryDomain::TaaSceneColor);
             }
-            if runtime_features.hybrid_global_illumination_enabled {
+            if runtime_features.hybrid_global_illumination_enabled
+                && graph_history_writes.was_written(SceneHistoryDomain::HybridGlobalIllumination)
+            {
                 global_illumination_copied = copy_global_illumination_history(
                     encoder,
                     target,
                     render_region,
                     graph_resources,
+                    history_epilogue_plan,
                     history,
-                );
-                history.set_global_illumination_history_valid(global_illumination_copied);
+                )?;
             }
-            if runtime_features.ssao_enabled {
-                encoder.copy_texture_to_texture(
-                    target.ambient_occlusion.as_image_copy(),
-                    history.ambient_occlusion.as_image_copy(),
-                    texture_extent(target.render_size),
-                );
-                ambient_occlusion_copied = true;
-            }
-            if screen_space_reflection_history_enabled {
+            if screen_space_reflection_history_enabled
+                && graph_history_writes.was_written(SceneHistoryDomain::ScreenSpaceReflection)
+            {
                 if let Some((screen_space_reflection_history, extent)) =
-                    screen_space_reflection_history_copy_extent(graph_resources, target.render_size)
+                    screen_space_reflection_history_copy_extent(
+                        graph_resources,
+                        history_epilogue_plan.screen_space_reflection(),
+                    )?
                 {
-                    encoder.copy_texture_to_texture(
-                        screen_space_reflection_history.as_image_copy(),
-                        history.screen_space_reflection.as_image_copy(),
-                        extent,
-                    );
-                    screen_space_reflection_copied = true;
+                    if let Some(destination) = history.screen_space_reflection_texture() {
+                        encoder.copy_texture_to_texture(
+                            screen_space_reflection_history.as_image_copy(),
+                            destination.as_image_copy(),
+                            extent,
+                        );
+                        screen_space_reflection_copied = true;
+                    }
                 }
             }
-            if hzb_history_enabled {
-                hzb_furthest_copied =
-                    copy_hzb_furthest_mip_chain(encoder, graph_resources, history);
+            if hzb_history_enabled
+                && graph_history_writes.was_written(SceneHistoryDomain::HzbFurthest)
+            {
+                hzb_furthest_copied = copy_hzb_furthest_mip_chain(
+                    encoder,
+                    graph_resources,
+                    history_epilogue_plan.hzb_furthest(),
+                    history,
+                )?;
             }
             if exposure_history_enabled {
-                history.flip_exposure_history();
-                exposure_copied = true;
+                exposure_copied = history.exposure_current_buffer().is_some()
+                    && graph_history_writes.was_written(SceneHistoryDomain::Exposure);
             }
-            if volumetric_history_enabled {
-                volumetric_scattering_copied =
-                    copy_volumetric_scattering_history(encoder, graph_resources, history);
-                history.set_volumetric_history_valid(volumetric_scattering_copied);
+            if volumetric_history_enabled
+                && graph_history_writes.was_written(SceneHistoryDomain::VolumetricScattering)
+            {
+                volumetric_scattering_copied = copy_volumetric_scattering_history(
+                    encoder,
+                    graph_resources,
+                    history_epilogue_plan.volumetric_scattering(),
+                    history,
+                )?;
             }
         }
-        RenderHistoryCopyReport::new(
+        if taa_history_enabled {
+            write_intent.record(SceneHistoryDomain::TaaSceneColor, scene_color_copied);
+        }
+        if runtime_features.hybrid_global_illumination_enabled {
+            write_intent.record(
+                SceneHistoryDomain::HybridGlobalIllumination,
+                global_illumination_copied,
+            );
+        }
+        if screen_space_reflection_history_enabled {
+            write_intent.record(
+                SceneHistoryDomain::ScreenSpaceReflection,
+                screen_space_reflection_copied,
+            );
+        }
+        if hzb_history_enabled {
+            write_intent.record(SceneHistoryDomain::HzbFurthest, hzb_furthest_copied);
+        }
+        if exposure_history_enabled {
+            write_intent.record(SceneHistoryDomain::Exposure, exposure_copied);
+        }
+        if volumetric_history_enabled {
+            write_intent.record(
+                SceneHistoryDomain::VolumetricScattering,
+                volumetric_scattering_copied,
+            );
+        }
+        let report = RenderHistoryCopyReport::new(
             history_target_present,
             target.size,
             requested_copy_count,
             scene_color_copied,
             global_illumination_copied,
-            ambient_occlusion_copied,
+            false,
             screen_space_reflection_copied,
             hzb_furthest_copied,
             exposure_copied,
             volumetric_scattering_copied,
-        )
+        );
+        Ok((report, write_intent))
     }
 }
 
 fn copy_volumetric_scattering_history(
     encoder: &mut wgpu::CommandEncoder,
     graph_resources: &RenderGraphExecutionResources,
+    source: Option<&CompiledHistoryTextureSource>,
     history: &SceneFrameHistoryTextures,
-) -> bool {
-    let resource_name = PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING;
-    let (Some(source), Some(desc), Some(destination), Some(quality)) = (
-        graph_resources.owned_texture(resource_name),
-        graph_resources.owned_texture_desc(resource_name),
+) -> Result<bool, String> {
+    let (Some(source), Some(destination), Some(quality)) = (
+        source,
         history.volumetric_history_texture(),
         history.volumetric_history_quality(),
     ) else {
-        return false;
+        return Ok(false);
     };
+    let texture = graph_resources.graph_owned_texture_for_access(source.access_id())?;
+    let desc = source.desc();
     if desc.sample_count != 1
         || desc.format != crate::rhi::TextureFormat::Rgba16Float
         || desc.dimension != crate::rhi::TextureDimension::D3
         || [desc.width, desc.height, desc.depth] != quality.dimensions()
     {
-        return false;
+        return Ok(false);
     }
     encoder.copy_texture_to_texture(
-        source.as_image_copy(),
+        texture.as_image_copy(),
         destination.as_image_copy(),
         wgpu::Extent3d {
             width: desc.width,
@@ -136,7 +180,7 @@ fn copy_volumetric_scattering_history(
             depth_or_array_layers: desc.depth,
         },
     );
-    true
+    Ok(true)
 }
 
 fn copy_global_illumination_history(
@@ -144,124 +188,129 @@ fn copy_global_illumination_history(
     target: &OffscreenTarget,
     render_region: ViewportRenderRegion,
     graph_resources: &RenderGraphExecutionResources,
+    history_epilogue_plan: &CompiledHistoryEpiloguePlan,
     history: &SceneFrameHistoryTextures,
-) -> bool {
-    let graph_lighting_copied = [
-        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
-        PostProcessGraphResourceNames::GLOBAL_ILLUMINATION,
-    ]
-    .into_iter()
-    .any(|resource_name| {
-        copy_owned_global_illumination_history_source(
+) -> Result<bool, String> {
+    let Some(fallback_destination) = history.global_illumination_texture() else {
+        return Ok(false);
+    };
+    let mut graph_lighting_copied = false;
+    for source in history_epilogue_plan.global_illumination_sources() {
+        if copy_graph_global_illumination_history_source(
             encoder,
             target,
             render_region,
             graph_resources,
             history,
-            resource_name,
-        )
-    });
+            source,
+        )? {
+            graph_lighting_copied = true;
+            break;
+        }
+    }
 
     if !graph_lighting_copied {
         encoder.copy_texture_to_texture(
             target.global_illumination.as_image_copy(),
-            history.global_illumination.as_image_copy(),
+            fallback_destination.as_image_copy(),
             texture_extent(target.render_size),
         );
     }
 
-    copy_owned_global_illumination_temporal_metadata(
+    copy_graph_global_illumination_temporal_metadata(
         encoder,
         target,
         render_region,
         graph_resources,
+        history_epilogue_plan.global_illumination_temporal_metadata(),
         history,
     )
 }
 
-fn copy_owned_global_illumination_history_source(
+fn copy_graph_global_illumination_history_source(
     encoder: &mut wgpu::CommandEncoder,
     target: &OffscreenTarget,
     render_region: ViewportRenderRegion,
     graph_resources: &RenderGraphExecutionResources,
     history: &SceneFrameHistoryTextures,
-    resource_name: &str,
-) -> bool {
-    let (Some(global_illumination), Some(desc)) = (
-        graph_resources.owned_texture(resource_name),
-        graph_resources.owned_texture_desc(resource_name),
-    ) else {
-        return false;
-    };
+    source: &CompiledHistoryTextureSource,
+) -> Result<bool, String> {
+    let global_illumination = graph_resources.graph_owned_texture_for_access(source.access_id())?;
+    let desc = source.desc();
     if !owned_global_illumination_history_source_is_copyable(desc) {
-        return false;
+        return Ok(false);
     }
     let Some(extent) = history_region_copy_extent(
         UVec2::new(desc.width, desc.height),
         target.size,
         render_region,
     ) else {
-        return false;
+        return Ok(false);
+    };
+    let Some(destination) = history.global_illumination_texture() else {
+        return Ok(false);
     };
 
-    let mut destination = history.global_illumination.as_image_copy();
+    let mut destination = destination.as_image_copy();
     destination.origin = history_region_copy_origin(render_region);
     encoder.copy_texture_to_texture(global_illumination.as_image_copy(), destination, extent);
-    true
+    Ok(true)
 }
 
 fn owned_global_illumination_history_source_is_copyable(desc: &TextureDesc) -> bool {
     desc.sample_count == 1 && desc.format == crate::rhi::TextureFormat::Rgba16Float
 }
 
-fn copy_owned_global_illumination_temporal_metadata(
+fn copy_graph_global_illumination_temporal_metadata(
     encoder: &mut wgpu::CommandEncoder,
     target: &OffscreenTarget,
     render_region: ViewportRenderRegion,
     graph_resources: &RenderGraphExecutionResources,
+    source: Option<&CompiledHistoryTextureSource>,
     history: &SceneFrameHistoryTextures,
-) -> bool {
-    let resource_name = PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA;
-    let (Some(metadata), Some(desc)) = (
-        graph_resources.owned_texture(resource_name),
-        graph_resources.owned_texture_desc(resource_name),
-    ) else {
-        return false;
+) -> Result<bool, String> {
+    let Some(source) = source else {
+        return Ok(false);
     };
+    let metadata = graph_resources.graph_owned_texture_for_access(source.access_id())?;
+    let desc = source.desc();
     if !owned_global_illumination_temporal_metadata_is_copyable(desc) {
-        return false;
+        return Ok(false);
     }
     let Some(extent) = history_region_copy_extent(
         UVec2::new(desc.width, desc.height),
         target.size,
         render_region,
     ) else {
-        return false;
+        return Ok(false);
+    };
+    let Some(destination) = history.global_illumination_temporal_metadata_texture() else {
+        return Ok(false);
     };
 
-    let mut destination = history
-        .global_illumination_temporal_metadata
-        .as_image_copy();
+    let mut destination = destination.as_image_copy();
     destination.origin = history_region_copy_origin(render_region);
     encoder.copy_texture_to_texture(metadata.as_image_copy(), destination, extent);
-    true
+    Ok(true)
 }
 
 fn owned_global_illumination_temporal_metadata_is_copyable(desc: &TextureDesc) -> bool {
     desc.sample_count == 1 && desc.format == crate::rhi::TextureFormat::Rgba16Float
 }
 
-fn screen_space_reflection_history_copy_extent(
-    graph_resources: &RenderGraphExecutionResources,
-    fallback_size: UVec2,
-) -> Option<(&wgpu::Texture, wgpu::Extent3d)> {
-    let texture = graph_resources
-        .owned_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)?;
-    let size = graph_resources
-        .owned_texture_desc(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
-        .map(|desc| UVec2::new(desc.width, desc.height))
-        .unwrap_or(fallback_size);
-    Some((texture, texture_extent(size)))
+fn screen_space_reflection_history_copy_extent<'a>(
+    graph_resources: &'a RenderGraphExecutionResources,
+    source: Option<&CompiledHistoryTextureSource>,
+) -> Result<Option<(&'a wgpu::Texture, wgpu::Extent3d)>, String> {
+    let Some(source) = source else {
+        return Ok(None);
+    };
+    let texture = graph_resources.graph_owned_texture_for_access(source.access_id())?;
+    let desc = source.desc();
+    Ok(Some((
+        texture,
+        texture_extent(UVec2::new(desc.width, desc.height)),
+    )))
 }
 
 fn history_region_copy_extent(
@@ -302,26 +351,31 @@ fn history_region_copy_origin(render_region: ViewportRenderRegion) -> wgpu::Orig
 fn copy_hzb_furthest_mip_chain(
     encoder: &mut wgpu::CommandEncoder,
     graph_resources: &RenderGraphExecutionResources,
+    source: Option<&CompiledHistoryTextureSource>,
     history: &SceneFrameHistoryTextures,
-) -> bool {
-    let Some(hzb_furthest) =
-        graph_resources.owned_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
-    else {
-        return false;
+) -> Result<bool, String> {
+    let Some(source) = source else {
+        return Ok(false);
     };
-    if graph_resources.owned_texture_mip_level_count(PostProcessGraphResourceNames::HZB_FURTHEST)
-        != Some(history.hzb_furthest_mip_count)
-    {
-        return false;
+    let (Some(destination), Some(destination_size), Some(destination_mip_count)) = (
+        history.hzb_furthest_texture(),
+        history.hzb_furthest_size(),
+        history.hzb_furthest_mip_count(),
+    ) else {
+        return Ok(false);
+    };
+    let hzb_furthest = graph_resources.graph_owned_texture_for_access(source.access_id())?;
+    if source.desc().mip_levels != destination_mip_count {
+        return Ok(false);
     }
-    for mip_level in 0..history.hzb_furthest_mip_count {
+    for mip_level in 0..destination_mip_count {
         encoder.copy_texture_to_texture(
             texture_mip_copy(hzb_furthest, mip_level),
-            texture_mip_copy(&history.hzb_furthest, mip_level),
-            mip_extent(history.hzb_furthest_size, mip_level),
+            texture_mip_copy(destination, mip_level),
+            mip_extent(destination_size, mip_level),
         );
     }
-    true
+    Ok(true)
 }
 
 fn texture_mip_copy(texture: &wgpu::Texture, mip_level: u32) -> wgpu::TexelCopyTextureInfo<'_> {
@@ -355,6 +409,45 @@ mod tests {
         owned_global_illumination_history_source_is_copyable,
         owned_global_illumination_temporal_metadata_is_copyable,
     };
+
+    #[test]
+    fn history_copy_encoding_returns_intent_without_committing_persistent_state() {
+        let source = include_str!("copy_history_textures.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap();
+
+        assert!(production.contains("SceneHistoryWriteIntent"));
+        assert!(production.contains("write_intent.record("));
+        assert!(
+            production
+                .contains("graph_history_writes.was_written(SceneHistoryDomain::TaaSceneColor)")
+        );
+        assert!(
+            production.contains("graph_history_writes.was_written(SceneHistoryDomain::Exposure)")
+        );
+        assert!(production.contains(
+            "graph_history_writes.was_written(SceneHistoryDomain::ScreenSpaceReflection)"
+        ));
+        assert!(
+            production
+                .contains("graph_history_writes.was_written(SceneHistoryDomain::HzbFurthest)")
+        );
+        assert!(production.contains(
+            "graph_history_writes.was_written(SceneHistoryDomain::VolumetricScattering)"
+        ));
+        assert!(production.contains("was_written(SceneHistoryDomain::HybridGlobalIllumination)"));
+        assert!(!production.contains("SceneHistoryDomain::AmbientOcclusion"));
+        assert!(!production.contains("target.ambient_occlusion.as_image_copy()"));
+        assert!(!production.contains("history.ambient_occlusion.as_image_copy()"));
+        assert!(!production.contains("scene_color_copied = true"));
+        assert!(!production.contains("exposure_copied = true"));
+        assert!(production.contains("graph_owned_texture_for_access"));
+        assert!(!production.contains("owned_texture("));
+        assert!(!production.contains("PostProcessGraphResourceNames"));
+        assert!(!production.contains("flip_taa_scene_color_history"));
+        assert!(!production.contains("flip_exposure_history"));
+        assert!(!production.contains("set_global_illumination_history_valid"));
+        assert!(!production.contains("set_volumetric_history_valid"));
+    }
 
     #[test]
     fn global_illumination_history_source_requires_single_sample_rgba16_float() {

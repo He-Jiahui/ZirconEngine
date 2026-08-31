@@ -174,6 +174,7 @@ fn recorded_atlas_image(
         },
         clip_frame: None,
         z_index,
+        source: None,
         kind: HostRecordedPaintKind::Image {
             resource_key: format!("source:{z_index}"),
             width: 1,

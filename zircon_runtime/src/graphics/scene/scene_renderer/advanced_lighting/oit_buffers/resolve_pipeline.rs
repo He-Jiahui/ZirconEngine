@@ -19,7 +19,6 @@ struct OitGpuSettings {
 }
 
 pub(super) struct OitResolvePipeline {
-    target_format: wgpu::TextureFormat,
     bind_group_layout: wgpu::BindGroupLayout,
     pipeline: wgpu::RenderPipeline,
 }
@@ -78,14 +77,9 @@ impl OitResolvePipeline {
             cache: None,
         });
         Self {
-            target_format,
             bind_group_layout,
             pipeline,
         }
-    }
-
-    pub(super) const fn target_format(&self) -> wgpu::TextureFormat {
-        self.target_format
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -94,8 +88,8 @@ impl OitResolvePipeline {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         output: &wgpu::TextureView,
-        layers: &wgpu::Buffer,
-        counts: &wgpu::Buffer,
+        layers: wgpu::BufferBinding<'_>,
+        counts: wgpu::BufferBinding<'_>,
         render_region: ViewportRenderRegion,
         settings: OitSettings,
     ) {
@@ -122,11 +116,11 @@ impl OitResolvePipeline {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: layers.as_entire_binding(),
+                    resource: wgpu::BindingResource::Buffer(layers),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: counts.as_entire_binding(),
+                    resource: wgpu::BindingResource::Buffer(counts),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,

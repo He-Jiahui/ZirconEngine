@@ -2,7 +2,7 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::identity::{workbench_alert_kind, WorkbenchAlertKind};
 use super::inline::push_inline_alert;
-use super::layout::{frame_is_within, has_paintable_alert_extent, pixel_aligned_rect};
+use super::layout::{frame_is_within, has_paintable_alert_extent, paint_rect};
 use super::toast::push_toast;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_alert_commands(
@@ -19,7 +19,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_al
     if !has_paintable_alert_extent(rect) {
         return true;
     }
-    let rect = pixel_aligned_rect(rect);
+    let rect = paint_rect(rect);
     if !frame_is_within(&rect, clip) {
         return true;
     }

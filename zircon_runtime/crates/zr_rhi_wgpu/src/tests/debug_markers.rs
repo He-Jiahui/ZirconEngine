@@ -77,9 +77,12 @@ fn command_list_records_debug_markers_and_groups() {
             CommandListCommand::PopDebugGroup,
         ]
     );
-    assert!(device
-        .is_fence_complete(device.submit(command_list).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(command_list).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 }
 
 #[test]
@@ -148,9 +151,12 @@ fn command_list_submit_validates_render_pass_debug_group_scope() {
     valid.pop_debug_group();
     valid.end_render_pass();
     valid.pop_debug_group();
-    assert!(device
-        .is_fence_complete(device.submit(valid).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(valid).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 
     let mut unclosed_pass_group = device
         .create_command_list(

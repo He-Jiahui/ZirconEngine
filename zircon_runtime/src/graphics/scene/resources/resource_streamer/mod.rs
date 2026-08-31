@@ -1,4 +1,5 @@
 pub(in crate::graphics::scene::resources) mod model_geometry_resolution;
+mod published_material_draw_proxy;
 mod resource_streamer;
 mod resource_streamer_accessors;
 mod resource_streamer_advanced_lighting;
@@ -18,7 +19,15 @@ mod resource_streamer_mip_streaming;
 mod resource_streamer_resolve_texture_id;
 mod resource_streamer_resource_revision;
 mod resource_streamer_shading_models;
+mod resource_streamer_submission_failure;
 mod resource_streamer_validate_material_shader_layout;
 
+pub(crate) use published_material_draw_proxy::{
+    MaterialDrawGenerationSelection, PublishedMaterialDrawProxy,
+};
+pub(in crate::graphics::scene) use published_material_draw_proxy::{
+    PublishedMaterialTextureBinding, PublishedMaterialTextureSet,
+};
 pub(crate) use resource_streamer::ResourceStreamer;
 pub(crate) use resource_streamer_advanced_lighting::IrradianceVolumeTextureBinding;
+pub(in crate::graphics::scene::resources) use resource_streamer_ensure_texture::TextureSnapshotFramePrepareError;

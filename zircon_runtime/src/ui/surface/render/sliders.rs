@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
-    surface::{bounded_ui_slider_tick_count, ui_slider_tick_count_for_track, UiRenderCommand},
+    surface::{UiRenderCommand, bounded_ui_slider_tick_count, ui_slider_tick_count_for_track},
     tree::UiTemplateNodeMetadata,
 };
 
@@ -246,7 +246,6 @@ pub(super) fn slider_render_commands(
         return Vec::new();
     }
     let visual = SliderVisual::resolve(metadata);
-    let frame = pixel_aligned_frame(frame);
     if frame.width <= visual.min_frame_extent || frame.height <= visual.min_frame_extent {
         return Vec::new();
     }
@@ -756,15 +755,6 @@ fn value_label(metadata: &UiTemplateNodeMetadata, percent: f32) -> String {
 
 fn centered_frame(center_x: f32, center_y: f32, size: f32) -> UiFrame {
     UiFrame::new(center_x - size * 0.5, center_y - size * 0.5, size, size)
-}
-
-fn pixel_aligned_frame(frame: UiFrame) -> UiFrame {
-    UiFrame::new(
-        frame.x.round(),
-        frame.y.round(),
-        frame.width.round().max(1.0),
-        frame.height.round().max(1.0),
-    )
 }
 
 fn data_number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {

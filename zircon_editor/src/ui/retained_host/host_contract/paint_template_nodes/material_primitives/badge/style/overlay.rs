@@ -1,6 +1,6 @@
 use super::super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
-use super::super::super::{component_variant_contains, first_non_empty, resolved_style_color};
+use super::super::super::{first_non_empty, resolved_style_color};
 use super::tokens::badge_color_token;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_overlay_background_color(
@@ -60,13 +60,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_o
     node: &TemplatePaneNodeData,
     background: [u8; 4],
 ) -> [u8; 4] {
-    if component_variant_contains(node, "overlapCircular")
-        || component_variant_contains(node, "circular")
-    {
+    if badge_border_is_circular(&node.component_variant) {
         background
     } else {
         resolved_style_color(node.button_style.element.border_color.as_ref()).unwrap_or(background)
     }
+}
+
+fn badge_border_is_circular(component_variant: &str) -> bool {
+    component_variant
+        .split(|character: char| {
+            character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
+        })
+        .any(|part| {
+            part.eq_ignore_ascii_case("overlapCircular") || part.eq_ignore_ascii_case("circular")
+        })
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_overlay_border_width(
@@ -77,6 +85,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_o
         .max(0.0)
         .min(2.0)
 }
+
+#[cfg(test)]
+#[path = "overlay/single_scan_border_tests.rs"]
+mod single_scan_border_tests;
 
 #[cfg(test)]
 mod tests {

@@ -7,14 +7,6 @@ use super::super::super::super::data::{HostMenuStateData, HostWindowPresentation
 use super::super::super::routing::contains;
 use super::nested::nested_menu_popup_handles_point;
 
-pub(in crate::ui::retained_host::host_contract) fn menu_popup_handles_point(
-    presentation: &HostWindowPresentationData,
-    x: f32,
-    y: f32,
-) -> bool {
-    menu_popup_handles_point_with_state(presentation, &presentation.menu_state, x, y)
-}
-
 pub(in crate::ui::retained_host::host_contract) fn menu_popup_handles_point_with_state(
     presentation: &HostWindowPresentationData,
     menu_state: &HostMenuStateData,

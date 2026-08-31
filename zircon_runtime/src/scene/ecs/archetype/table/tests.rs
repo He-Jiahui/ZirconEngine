@@ -1,12 +1,12 @@
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     Arc,
+    atomic::{AtomicUsize, Ordering},
 };
 
+use crate::scene::EntityId;
 use crate::scene::ecs::component::TableColumnLayout;
 use crate::scene::ecs::storage::StoredComponent;
 use crate::scene::ecs::{ChangeTick, ComponentId, ComponentTicks};
-use crate::scene::EntityId;
 
 use super::{ArchetypeTable, ArchetypeTableError};
 

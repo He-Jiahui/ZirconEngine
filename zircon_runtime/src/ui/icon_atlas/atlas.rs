@@ -1,7 +1,7 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use crate::asset::UiIconAsset;
-use crate::ui::icon_atlas::{parse_ui_svg_icon, UiSvgIconDocument, UiSvgIconParseError};
+use crate::ui::icon_atlas::{parse_ui_svg_icon_cached, UiSvgIconDocument, UiSvgIconParseError};
 
 const DEFAULT_ATLAS_SLOT_PADDING_PX: u32 = 2;
 const DEFAULT_ATLAS_MIN_SIDE_PX: u32 = 64;
@@ -97,7 +97,7 @@ impl UiIconAtlasBuilder {
                     .source
                     .text
                     .as_deref()
-                    .map(parse_ui_svg_icon)
+                    .map(parse_ui_svg_icon_cached)
                     .transpose()?;
                 Ok(PendingIconSlot {
                     request,
@@ -175,7 +175,7 @@ struct PendingIconSlot {
 fn deduplicate_requests(
     requests: impl IntoIterator<Item = UiIconRasterRequest>,
 ) -> Vec<UiIconRasterRequest> {
-    let mut by_icon = BTreeMap::new();
+    let mut by_icon = HashMap::new();
     for request in requests {
         by_icon.entry(request.icon_id.clone()).or_insert(request);
     }
@@ -184,7 +184,9 @@ fn deduplicate_requests(
 
 fn icon_pixel_size(asset: &UiIconAsset, dpi_scale: f32) -> u32 {
     let scale = if dpi_scale.is_finite() && dpi_scale > 0.0 {
-        dpi_scale
+        // Icon bitmaps are resolution-dependent UI resources. Never let a producer request a
+        // below-native raster; values above one remain available for deliberate supersampling.
+        dpi_scale.max(1.0)
     } else {
         1.0
     };
@@ -205,3 +207,7 @@ fn uv_rect(rect: UiIconAtlasRect, atlas_width: u32, atlas_height: u32) -> UiIcon
         max_v: rect.y.saturating_add(rect.height) as f32 / atlas_height,
     }
 }
+
+#[cfg(test)]
+#[path = "atlas/hash_dedup_tests.rs"]
+mod hash_dedup_tests;

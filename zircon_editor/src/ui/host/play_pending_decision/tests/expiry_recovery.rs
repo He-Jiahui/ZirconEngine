@@ -3,9 +3,11 @@ use std::time::Duration;
 use super::super::adapter::{
     ExpiredReceiptRecovery, ExpiredReceiptRepublish, PlayPendingReceiptConsumeError,
 };
-use super::super::{PlayPendingEditDecisionAdapter, PlayPendingEditDecisionOutcome};
-use super::support::publish_foreign_receipt;
-use crate::core::i18n::EditorI18nService;
+use super::super::{
+    PlayPendingDecisionReceiptRecoveryError, PlayPendingEditDecisionAdapter,
+    PlayPendingEditDecisionOutcome,
+};
+use super::support::{first_pending_selection, publish_foreign_receipt};
 use crate::core::notifications::{DecisionCenterConfig, DecisionNotificationCenter};
 use crate::core::play::{PendingEditDecisionPrompt, PendingEditQueueSummary};
 
@@ -16,7 +18,6 @@ fn expired_receipt_range_requires_a_new_explicit_play_choice() {
     )
     .expect("decision center should construct");
     let adapter = PlayPendingEditDecisionAdapter::default();
-    let i18n = EditorI18nService::default();
     let prompt = PendingEditDecisionPrompt::new(PendingEditQueueSummary {
         pending_count: 1,
         payload_bytes: 128,
@@ -25,14 +26,9 @@ fn expired_receipt_range_requires_a_new_explicit_play_choice() {
     adapter
         .publish(&center, &prompt)
         .expect("pending edits should publish a decision");
-    let stale_selection = adapter
-        .pending_options(&center, &i18n)
-        .into_iter()
-        .next()
-        .expect("apply option should be available")
-        .selection();
+    let stale_selection = first_pending_selection(&center);
     center
-        .resolve(stale_selection.ticket(), stale_selection.option_id())
+        .resolve(&stale_selection.0, &stale_selection.1)
         .expect("headless core resolution should commit the retained Play receipt");
     publish_foreign_receipt(&center, "first");
     publish_foreign_receipt(&center, "second");
@@ -54,7 +50,10 @@ fn expired_receipt_range_requires_a_new_explicit_play_choice() {
             Ok(ExpiredReceiptRepublish::ExistingDecision)
         })
         .expect_err("a missing replacement publication must reject recovery");
-    assert!(recovery_error.contains("did not establish a replacement Decision"));
+    assert!(matches!(
+        recovery_error,
+        PlayPendingDecisionReceiptRecoveryError::ReplacementDecisionNotEstablished
+    ));
     assert!(matches!(
         adapter.consume_resolved_receipts(&center, |_| {
             Ok(PlayPendingEditDecisionOutcome::Discarded { discarded_count: 1 })
@@ -68,15 +67,8 @@ fn expired_receipt_range_requires_a_new_explicit_play_choice() {
             if !adapter.publish_replacement_after_expiry(&center, &prompt, stale_cutoff)? {
                 return Ok(ExpiredReceiptRepublish::ExistingDecision);
             }
-            let replacement = adapter
-                .pending_options(&center, &i18n)
-                .into_iter()
-                .next()
-                .expect("the replacement Decision must expose a new explicit choice")
-                .selection();
-            center
-                .resolve(replacement.ticket(), replacement.option_id())
-                .map_err(|error| error.to_string())?;
+            let replacement = first_pending_selection(&center);
+            center.resolve(&replacement.0, &replacement.1)?;
             Ok(ExpiredReceiptRepublish::Published)
         })
         .expect("recovery should install only the pre-publication stale cutoff");
@@ -118,21 +110,15 @@ fn expired_owned_receipt_without_a_pending_prompt_keeps_the_cursor_expired() {
     )
     .expect("decision center should construct");
     let adapter = PlayPendingEditDecisionAdapter::default();
-    let i18n = EditorI18nService::default();
     let prompt = PendingEditDecisionPrompt::new(PendingEditQueueSummary {
         pending_count: 1,
         payload_bytes: 128,
         oldest_age: Some(Duration::from_secs(1)),
     });
     adapter.publish(&center, &prompt).unwrap();
-    let stale_selection = adapter
-        .pending_options(&center, &i18n)
-        .into_iter()
-        .next()
-        .unwrap()
-        .selection();
+    let stale_selection = first_pending_selection(&center);
     center
-        .resolve(stale_selection.ticket(), stale_selection.option_id())
+        .resolve(&stale_selection.0, &stale_selection.1)
         .unwrap();
     publish_foreign_receipt(&center, "evict-owned-first");
     publish_foreign_receipt(&center, "evict-owned-second");
@@ -149,12 +135,55 @@ fn expired_owned_receipt_without_a_pending_prompt_keeps_the_cursor_expired() {
         })
         .expect_err("a lost owned choice still requires an explicit replacement");
 
-    assert!(error.contains("owned Apply/Discard choice was lost"));
+    assert!(matches!(
+        error,
+        PlayPendingDecisionReceiptRecoveryError::ReplacementPromptUnavailable
+    ));
     assert!(matches!(
         adapter.consume_resolved_receipts(&center, |_| {
             panic!("the evicted choice must remain unexecuted")
         }),
         Err(PlayPendingReceiptConsumeError::CursorExpired { .. })
+    ));
+}
+
+#[test]
+fn expired_receipt_recovery_retains_publish_errors() {
+    let center = DecisionNotificationCenter::new(
+        DecisionCenterConfig::new(8, 2).expect("small test capacities should construct"),
+    )
+    .expect("decision center should construct");
+    let adapter = PlayPendingEditDecisionAdapter::default();
+    let prompt = PendingEditDecisionPrompt::new(PendingEditQueueSummary {
+        pending_count: 1,
+        payload_bytes: 128,
+        oldest_age: Some(Duration::from_secs(1)),
+    });
+    adapter.publish(&center, &prompt).unwrap();
+    let stale_selection = first_pending_selection(&center);
+    center
+        .resolve(&stale_selection.0, &stale_selection.1)
+        .unwrap();
+    publish_foreign_receipt(&center, "evict-publish-error-first");
+    publish_foreign_receipt(&center, "evict-publish-error-second");
+
+    let resume_cursor = match adapter.consume_resolved_receipts(&center, |_| {
+        panic!("an evicted owned receipt must not execute by guesswork")
+    }) {
+        Err(PlayPendingReceiptConsumeError::CursorExpired { resume_cursor }) => resume_cursor,
+        other => panic!("expected cursor expiry, received {other:?}"),
+    };
+    let error = adapter
+        .recover_expired_receipts(&center, resume_cursor, |_| {
+            Err(super::super::PlayPendingDecisionPublishError::SequenceExhausted)
+        })
+        .expect_err("a replacement publication failure must remain typed");
+
+    assert!(matches!(
+        error,
+        PlayPendingDecisionReceiptRecoveryError::Publish(
+            super::super::PlayPendingDecisionPublishError::SequenceExhausted
+        )
     ));
 }
 
@@ -202,7 +231,6 @@ fn live_play_receipt_after_frozen_cutoff_remains_consumable() {
     )
     .expect("decision center should construct");
     let adapter = PlayPendingEditDecisionAdapter::default();
-    let i18n = EditorI18nService::default();
     let prompt = PendingEditDecisionPrompt::new(PendingEditQueueSummary {
         pending_count: 1,
         payload_bytes: 128,
@@ -212,12 +240,7 @@ fn live_play_receipt_after_frozen_cutoff_remains_consumable() {
     publish_foreign_receipt(&center, "live-cutoff-second");
     publish_foreign_receipt(&center, "live-cutoff-third");
     adapter.publish(&center, &prompt).unwrap();
-    let selection = adapter
-        .pending_options(&center, &i18n)
-        .into_iter()
-        .next()
-        .unwrap()
-        .selection();
+    let selection = first_pending_selection(&center);
 
     let resume_cursor = match adapter.consume_resolved_receipts(&center, |_| {
         panic!("the live Decision has not been resolved yet")
@@ -237,9 +260,7 @@ fn live_play_receipt_after_frozen_cutoff_remains_consumable() {
         }
     );
 
-    center
-        .resolve(selection.ticket(), selection.option_id())
-        .unwrap();
+    center.resolve(&selection.0, &selection.1).unwrap();
     let resume_cursor = match adapter.consume_resolved_receipts(&center, |_| {
         panic!("the newly resolved receipt must remain retained across cursor recovery")
     }) {

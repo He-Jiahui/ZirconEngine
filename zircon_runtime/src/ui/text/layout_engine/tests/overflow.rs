@@ -25,7 +25,7 @@ fn ellipsis_preserves_combining_mark_grapheme_boundaries() {
 #[test]
 fn ellipsis_preserves_rich_run_boundary_grapheme_clusters() {
     let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Ellipsis);
-    style.rich_text_format = UiRichTextFormat::Markdown;
+    style.rich_text_format = UiRichTextFormat::MarkdownInlineV1;
 
     let layout = layout_text(
         "*a*\u{0301}bc",

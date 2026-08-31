@@ -81,20 +81,13 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                     UiValue::String("Generated bottom filter updated".to_string()),
                 )?;
             }
-            "workbench.generated_bottom.mode.edit" | "workbench.generated_bottom.mode.commit" => {
-                self.mutate_control_property(
-                    "WorkbenchStatusReady",
-                    "text",
-                    UiValue::String("Generated bottom mode updated".to_string()),
-                )?;
-            }
             _ => {}
         }
 
         Ok(())
     }
 
-    fn select_generated_bottom_mode(
+    pub(super) fn select_generated_bottom_mode(
         &mut self,
         selected_control_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
@@ -108,16 +101,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.mutate_control_property(
             "WorkbenchGeneratedBottomSelectedMode",
             "value_text",
-            UiValue::String(mode_text.to_string()),
-        )?;
-        self.mutate_control_property(
-            "WorkbenchGeneratedBottomModeDropdown",
-            "value",
-            UiValue::String(mode_text.to_string()),
-        )?;
-        self.mutate_control_property(
-            "WorkbenchGeneratedBottomModeDropdown",
-            "text",
             UiValue::String(mode_text.to_string()),
         )?;
         Ok(())

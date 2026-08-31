@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+use crate::project::ProjectNameError;
 use crate::serialization::MigrateError;
 
 /// Typed failure produced by the lightweight project-manifest reader.
@@ -20,8 +21,30 @@ pub enum ProjectManifestSummaryError {
         #[source]
         source: serde_json::Error,
     },
+    #[error("project manifest exceeds {max} bytes (found {found})")]
+    DocumentTooLarge { max: usize, found: usize },
+    #[error("project manifest TOML nesting exceeds depth {max} (found {found})")]
+    TomlNestingTooDeep { max: usize, found: usize },
+    #[error("project manifest TOML tables exceed {max} cumulative entries (found {found})")]
+    TooManyTomlTableEntries { max: usize, found: usize },
+    #[error("project manifest TOML arrays exceed {max} cumulative items (found {found})")]
+    TooManyTomlArrayItems { max: usize, found: usize },
     #[error("project manifest has an invalid value: {message}")]
     InvalidValue { message: String },
+    #[error("project manifest project name is invalid: {source}")]
+    InvalidProjectName {
+        #[source]
+        source: ProjectNameError,
+    },
+    #[error("project manifest declares {found} asset roots; maximum is {max}")]
+    TooManyAssetRoots { max: usize, found: usize },
+    #[error("project manifest declares duplicate normalized asset root {root}")]
+    DuplicateAssetRoot { root: String },
+    #[error("project manifest asset root {ancestor} contains nested root {descendant}")]
+    OverlappingAssetRoots {
+        ancestor: String,
+        descendant: String,
+    },
     #[error("project manifest engine_version_req {value:?} is invalid: {source}")]
     InvalidEngineVersionReq {
         value: String,

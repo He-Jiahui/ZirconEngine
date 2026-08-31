@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "policy_kind": "zircon.mvp-project-copy-policy",
+  "policy_id": "mvp-project-source-v1",
+  "path_comparison": "ordinal-ignore-case",
+  "default": {
+    "ownership": "source",
+    "copy_policy": "include"
+  },
+  "rules": [
+    {
+      "relative_directory": ".zircon/autosave",
+      "ownership": "generated",
+      "copy_policy": "exclude-subtree"
+    },
+    {
+      "relative_directory": ".zircon/cache",
+      "ownership": "derived",
+      "copy_policy": "exclude-subtree"
+    },
+    {
+      "relative_directory": ".zircon/play",
+      "ownership": "generated",
+      "copy_policy": "exclude-subtree"
+    },
+    {
+      "relative_directory": ".zircon/registry",
+      "ownership": "derived",
+      "copy_policy": "exclude-subtree"
+    },
+    {
+      "relative_directory": ".zircon/thumbnails",
+      "ownership": "derived",
+      "copy_policy": "exclude-subtree"
+    }
+  ]
+}

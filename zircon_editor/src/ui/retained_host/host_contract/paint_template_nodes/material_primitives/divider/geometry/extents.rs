@@ -1,5 +1,4 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::component_variant_contains;
 use super::align::pixel_aligned;
 use super::metrics::{
     divider_inset_horizontal_inset, divider_middle_horizontal_inset, divider_middle_vertical_inset,
@@ -11,13 +10,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn horizon
 ) -> (f32, f32) {
     let mut start = rect.x;
     let mut end = rect.x + rect.width;
-    if component_variant_contains(node, "middle") {
-        let inset = divider_middle_horizontal_inset().min(rect.width * 0.45);
-        start += inset;
-        end -= inset;
-    } else if component_variant_contains(node, "inset") {
-        let inset = divider_inset_horizontal_inset().min(rect.width * 0.9);
-        start += inset;
+    match divider_extent_variant(&node.component_variant) {
+        DividerExtentVariant::Middle => {
+            let inset = divider_middle_horizontal_inset().min(rect.width * 0.45);
+            start += inset;
+            end -= inset;
+        }
+        DividerExtentVariant::Inset => {
+            let inset = divider_inset_horizontal_inset().min(rect.width * 0.9);
+            start += inset;
+        }
+        DividerExtentVariant::None => {}
     }
     if end < start {
         let center = rect.x + rect.width * 0.5;
@@ -33,7 +36,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn vertica
 ) -> (f32, f32) {
     let mut top = rect.y;
     let mut bottom = rect.y + rect.height;
-    if component_variant_contains(node, "middle") {
+    if divider_extent_variant(&node.component_variant) == DividerExtentVariant::Middle {
         let inset = divider_middle_vertical_inset().min(rect.height * 0.45);
         top += inset;
         bottom -= inset;
@@ -45,3 +48,30 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn vertica
         (pixel_aligned(top), pixel_aligned(bottom))
     }
 }
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum DividerExtentVariant {
+    #[default]
+    None,
+    Inset,
+    Middle,
+}
+
+fn divider_extent_variant(component_variant: &str) -> DividerExtentVariant {
+    let mut variant = DividerExtentVariant::None;
+    for part in component_variant.split(|character: char| {
+        character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
+    }) {
+        if part.eq_ignore_ascii_case("middle") {
+            return DividerExtentVariant::Middle;
+        }
+        if part.eq_ignore_ascii_case("inset") {
+            variant = DividerExtentVariant::Inset;
+        }
+    }
+    variant
+}
+
+#[cfg(test)]
+#[path = "extents/single_scan_variant_tests.rs"]
+mod single_scan_variant_tests;

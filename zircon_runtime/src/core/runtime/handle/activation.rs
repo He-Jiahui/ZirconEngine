@@ -282,20 +282,29 @@ impl CoreHandle {
     }
 
     fn finish_module_activation(&self, module_name: &str) -> Result<(), CoreError> {
+        let mut active_module_order = self.lock_active_module_order();
         let mut modules = self.lock_modules();
         let Some(entry) = modules.get_mut(module_name) else {
             return Err(CoreError::MissingModule(module_name.to_string()));
         };
         entry.lifecycle = LifecycleState::Running;
+        if !active_module_order
+            .iter()
+            .any(|active_module| active_module == module_name)
+        {
+            active_module_order.push(module_name.to_owned());
+        }
         Ok(())
     }
 
     fn finish_module_deactivation(&self, module_name: &str) -> Result<(), CoreError> {
+        let mut active_module_order = self.lock_active_module_order();
         let mut modules = self.lock_modules();
         let Some(entry) = modules.get_mut(module_name) else {
             return Err(CoreError::MissingModule(module_name.to_string()));
         };
         entry.lifecycle = LifecycleState::Unloaded;
+        active_module_order.retain(|active_module| active_module != module_name);
         Ok(())
     }
 }

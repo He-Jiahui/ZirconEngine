@@ -1,7 +1,7 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
-    layout::UiFrame,
+    layout::{UiFrame, UiPixelSnappingPolicy},
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
@@ -77,6 +77,45 @@ fn render_extract_expands_loading_skeleton_from_the_arranged_frame() {
             .count(),
         1,
         "the custom skeleton must suppress its generic owner surface"
+    );
+}
+
+#[test]
+fn skeleton_preserves_fractional_animation_geometry_when_snapping_is_disabled() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.skeleton.fractional"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/skeleton"))
+                .with_frame(UiFrame::new(8.25, 10.5, 120.5, 18.25))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Skeleton".to_string(),
+                    pixel_snapping: UiPixelSnappingPolicy::Disabled,
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let skeleton = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2))
+        .expect("fractional skeleton should emit one surface command");
+    assert_eq!(skeleton.frame, UiFrame::new(8.25, 10.5, 120.5, 18.25));
+    assert_eq!(
+        skeleton.style.pixel_snapping,
+        UiPixelSnappingPolicy::Disabled
     );
 }
 

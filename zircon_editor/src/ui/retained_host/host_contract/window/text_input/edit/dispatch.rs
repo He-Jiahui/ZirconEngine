@@ -9,11 +9,12 @@ use super::redraw::text_input_focus_redraw;
 
 pub(super) fn dispatch_text_focus_value(
     window: &UiHostWindow,
-    focus: HostTextInputFocusData,
+    mut focus: HostTextInputFocusData,
     target_id: SharedString,
     value: SharedString,
 ) -> NativePointerDispatchResult {
-    let control_id = focus.control_id.clone();
+    let is_commit_target = target_id.as_str() == text_focus_edit_target_id(&focus);
+    let control_id = take_text_focus_control_id(&mut focus);
     let pane_host = window.global::<PaneSurfaceHostContext>();
     match focus.dispatch_kind.as_str() {
         "welcome_text" => pane_host.invoke_welcome_control_changed(target_id, value),
@@ -26,7 +27,7 @@ pub(super) fn dispatch_text_focus_value(
             control_id,
             value,
         ),
-        "commit_only" if target_id == focus.edit_target_id() => {
+        "commit_only" if is_commit_target => {
             return text_input_focus_redraw(&focus);
         }
         "commit_only" => pane_host.invoke_surface_control_edited(control_id, target_id, value),
@@ -37,3 +38,21 @@ pub(super) fn dispatch_text_focus_value(
     }
     text_input_focus_redraw(&focus)
 }
+
+fn text_focus_edit_target_id(focus: &HostTextInputFocusData) -> &str {
+    if !focus.edit_action_id.is_empty() {
+        focus.edit_action_id.as_str()
+    } else if !focus.action_id.is_empty() {
+        focus.action_id.as_str()
+    } else {
+        focus.control_id.as_str()
+    }
+}
+
+fn take_text_focus_control_id(focus: &mut HostTextInputFocusData) -> SharedString {
+    std::mem::take(&mut focus.control_id)
+}
+
+#[cfg(test)]
+#[path = "dispatch/owned_control_id_tests.rs"]
+mod owned_control_id_tests;

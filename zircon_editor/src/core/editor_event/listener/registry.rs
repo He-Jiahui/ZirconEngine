@@ -79,7 +79,11 @@ impl EditorEventListenerRegistry {
     }
 
     pub fn set_enabled(&mut self, listener_id: &str, enabled: bool) -> Result<(), String> {
-        self.listener_mut(listener_id)?.descriptor.enabled = enabled;
+        let listener = self.listener_mut(listener_id)?;
+        if listener.descriptor.enabled == enabled {
+            return Ok(());
+        }
+        listener.descriptor.enabled = enabled;
         self.rebuild_delivery_routes();
         Ok(())
     }
@@ -89,23 +93,35 @@ impl EditorEventListenerRegistry {
         listener_id: &str,
         filter: EditorEventListenerFilter,
     ) -> Result<(), String> {
-        self.listener_mut(listener_id)?.descriptor.filter = Some(filter.normalized());
+        let listener = self.listener_mut(listener_id)?;
+        let filter = filter.normalized();
+        if listener.descriptor.filter.as_ref() == Some(&filter) {
+            return Ok(());
+        }
+        listener.descriptor.filter = Some(filter);
         self.rebuild_delivery_routes();
         Ok(())
     }
 
     pub fn clear_filter(&mut self, listener_id: &str) -> Result<(), String> {
-        self.listener_mut(listener_id)?.descriptor.filter = None;
+        let listener = self.listener_mut(listener_id)?;
+        if listener.descriptor.filter.is_none() {
+            return Ok(());
+        }
+        listener.descriptor.filter = None;
         self.rebuild_delivery_routes();
         Ok(())
     }
 
     pub fn listeners(&self) -> Vec<EditorEventListenerDescriptor> {
-        self.listener_order
-            .iter()
-            .filter_map(|listener_id| self.listeners.get(listener_id))
-            .map(|listener| listener.descriptor.clone())
-            .collect()
+        let mut listeners = Vec::with_capacity(self.listener_order.len());
+        listeners.extend(
+            self.listener_order
+                .iter()
+                .filter_map(|listener_id| self.listeners.get(listener_id))
+                .map(|listener| listener.descriptor.clone()),
+        );
+        listeners
     }
 
     pub(crate) fn listener_handle(
@@ -133,25 +149,30 @@ impl EditorEventListenerRegistry {
     }
 
     fn rebuild_delivery_routes(&mut self) {
-        self.delivery_routes = self
-            .listener_order
-            .iter()
-            .filter_map(|listener_id| self.listeners.get(listener_id))
-            .filter(|listener| listener.descriptor.enabled)
-            .map(|listener| {
-                EditorEventListenerRoute::new(
-                    listener.descriptor.filter.clone(),
-                    Arc::clone(&listener.inbox),
-                )
-            })
-            .collect::<Vec<_>>()
-            .into();
+        let mut routes = Vec::with_capacity(self.listener_order.len());
+        routes.extend(
+            self.listener_order
+                .iter()
+                .filter_map(|listener_id| self.listeners.get(listener_id))
+                .filter(|listener| listener.descriptor.enabled)
+                .map(|listener| {
+                    EditorEventListenerRoute::new(
+                        listener.descriptor.filter.clone(),
+                        Arc::clone(&listener.inbox),
+                    )
+                }),
+        );
+        self.delivery_routes = routes.into();
     }
 }
 
 fn not_registered(listener_id: &str) -> String {
     format!("editor event listener {listener_id} is not registered")
 }
+
+#[cfg(test)]
+#[path = "registry/optimization_tests.rs"]
+mod optimization_tests;
 
 #[cfg(test)]
 mod tests {

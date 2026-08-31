@@ -12,8 +12,9 @@ struct TestTransform;
 struct ExactRowsTransform;
 
 impl TemplateNodePaintTransform for TestTransform {
-    fn transform(
+    fn transform_row(
         &self,
+        _row: usize,
         mut node: TemplatePaneNodeData,
         mut clip: FrameRect,
     ) -> Option<(TemplatePaneNodeData, FrameRect)> {
@@ -32,8 +33,9 @@ impl TemplateNodePaintTransform for ExactRowsTransform {
         Some(vec![1])
     }
 
-    fn transform(
+    fn transform_row(
         &self,
+        _row: usize,
         node: TemplatePaneNodeData,
         clip: FrameRect,
     ) -> Option<(TemplatePaneNodeData, FrameRect)> {
@@ -128,10 +130,11 @@ fn template_node_paint_transform_none_matches_existing_draw_path() {
 }
 
 #[test]
-fn template_node_transform_clones_only_the_filtered_owned_model_row() {
+fn template_node_pipeline_has_only_transform_and_targeted_hover_clone_sites() {
     let production = include_str!("../template_node_pipeline/draw.rs");
 
-    assert_eq!(production.matches("source_node.clone()").count(), 1);
+    assert_eq!(production.matches("source_node.clone()").count(), 2);
+    assert!(production.contains("push_untransformed_template_node_commands"));
 }
 
 #[test]

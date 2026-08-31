@@ -6,7 +6,8 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 use super::super::{resolved_layout::UiTextViewport, rich_text::UiParsedText};
-use super::candidate_line::{append_segment, CandidateLine};
+use super::candidate_line::{CandidateLine, append_segment};
+use super::measurement::certified_plain_viewport_line_height;
 
 pub(super) struct VisibleTextLineWindow {
     pub(super) first_line: usize,
@@ -21,7 +22,7 @@ pub(super) fn visible_plain_text_lines(
     parsed: &UiParsedText,
     style: &UiResolvedStyle,
     viewport: UiTextViewport,
-    line_height: f32,
+    sample_line_height: f32,
     document_key: Option<TextDocumentKey>,
     provider: &mut SharedTextLayoutSession,
 ) -> Option<VisibleTextLineWindow> {
@@ -30,8 +31,8 @@ pub(super) fn visible_plain_text_lines(
         || !matches!(style.text_overflow, UiTextOverflow::Clip)
         || matches!(style.text_writing_mode, UiTextWritingMode::VerticalRl)
         || parsed.source_offset() != 0
-        || !line_height.is_finite()
-        || line_height <= 0.0
+        || !sample_line_height.is_finite()
+        || sample_line_height <= 0.0
     {
         return None;
     }
@@ -48,14 +49,46 @@ pub(super) fn visible_plain_text_lines(
         return None;
     }
 
+    let line_height =
+        certified_plain_viewport_line_height(text, style, sample_line_height, provider)?;
+    visible_plain_text_lines_from_certified_height(
+        parsed,
+        viewport,
+        Some(line_height),
+        document_key,
+        provider,
+    )
+}
+
+fn visible_plain_text_lines_from_certified_height(
+    parsed: &UiParsedText,
+    viewport: UiTextViewport,
+    certified_uniform_line_height: Option<f32>,
+    document_key: Option<TextDocumentKey>,
+    provider: &mut SharedTextLayoutSession,
+) -> Option<VisibleTextLineWindow> {
+    let line_height = certified_uniform_line_height?;
+    if !line_height.is_finite() || line_height <= 0.0 {
+        return None;
+    }
+    let text = parsed.text();
+    let run = parsed.runs.first()?;
+
+    crate::profile_scope!("runtime", "text.layout", "select_visible_plain_lines");
     let requested_window = unbounded_line_window(
         viewport.offset_y,
         viewport.extent_y,
         line_height,
         viewport.overscan_screens,
     )?;
-    let (total_line_count, hard_lines) =
-        provider.hard_line_count_and_window(text, document_key, requested_window.clone());
+    let (total_line_count, hard_lines) = match document_key {
+        Some(document_key) => provider.retained_hard_line_count_and_window(
+            parsed.rich.shared_text(),
+            document_key,
+            requested_window.clone(),
+        ),
+        None => provider.unretained_hard_line_count_and_window(text, requested_window.clone()),
+    };
     let first_line = requested_window.start.min(total_line_count);
     let last_line_exclusive = requested_window.end.min(total_line_count);
     if first_line == 0 && last_line_exclusive == total_line_count {
@@ -141,14 +174,23 @@ fn unbounded_line_window(
 
 #[cfg(test)]
 mod tests {
-    use super::{line_window, visible_plain_text_lines};
+    use super::{
+        line_window, visible_plain_text_lines, visible_plain_text_lines_from_certified_height,
+    };
     use crate::{
         text::{RichTextFormat, SharedTextLayoutSession, TextDocumentKey},
-        ui::text::rich_text::parse_source_text,
+        ui::text::rich_text::parse_source_text as try_parse_source_text,
     };
     use zircon_runtime_interface::ui::surface::{
         UiResolvedStyle, UiTextOverflow, UiTextRange, UiTextWrap, UiTextWritingMode,
     };
+
+    fn parse_source_text(
+        text: &str,
+        format: RichTextFormat,
+    ) -> crate::ui::text::rich_text::UiParsedText {
+        try_parse_source_text(text, format).expect("test text fits parser budgets")
+    }
 
     #[test]
     fn line_window_keeps_two_viewports_of_overscan() {
@@ -189,19 +231,40 @@ mod tests {
     }
 
     #[test]
-    fn visible_window_borrows_only_the_requested_plain_hard_lines() {
-        let parsed = parse_source_text("first\nsecond\nthird\nfourth", RichTextFormat::Plain);
-        let style = UiResolvedStyle {
-            wrap: UiTextWrap::None,
-            text_overflow: UiTextOverflow::Clip,
-            ..UiResolvedStyle::default()
-        };
+    fn visible_window_requires_a_certified_uniform_line_height() {
+        let parsed = parse_source_text("first\nsecond\nthird", RichTextFormat::Plain);
         let viewport =
             super::super::UiTextViewport::new(11.0, 1.0, 0).expect("finite document viewport");
         let mut provider = SharedTextLayoutSession::new();
 
-        let window = visible_plain_text_lines(&parsed, &style, viewport, 10.0, None, &mut provider)
-            .expect("partial plain viewport window");
+        assert!(
+            visible_plain_text_lines_from_certified_height(
+                &parsed,
+                viewport,
+                None,
+                None,
+                &mut provider,
+            )
+            .is_none(),
+            "an uncertified font chain must use complete physical-line layout"
+        );
+    }
+
+    #[test]
+    fn visible_window_borrows_only_the_requested_plain_hard_lines() {
+        let parsed = parse_source_text("first\nsecond\nthird\nfourth", RichTextFormat::Plain);
+        let viewport =
+            super::super::UiTextViewport::new(11.0, 1.0, 0).expect("finite document viewport");
+        let mut provider = SharedTextLayoutSession::new();
+
+        let window = visible_plain_text_lines_from_certified_height(
+            &parsed,
+            viewport,
+            Some(10.0),
+            None,
+            &mut provider,
+        )
+        .expect("partial plain viewport window");
 
         assert_eq!(window.first_line, 1);
         assert_eq!(window.total_line_count, 4);
@@ -218,11 +281,6 @@ mod tests {
     #[test]
     fn visible_windows_reuse_the_session_hard_line_index() {
         let parsed = parse_source_text("zero\none\ntwo\nthree", RichTextFormat::Plain);
-        let style = UiResolvedStyle {
-            wrap: UiTextWrap::None,
-            text_overflow: UiTextOverflow::Clip,
-            ..UiResolvedStyle::default()
-        };
         let mut provider = SharedTextLayoutSession::new();
         let first =
             super::super::UiTextViewport::new(0.0, 1.0, 0).expect("finite document viewport");
@@ -230,12 +288,22 @@ mod tests {
             super::super::UiTextViewport::new(21.0, 1.0, 0).expect("finite document viewport");
 
         let key = TextDocumentKey::new(7, 1);
-        let first_window =
-            visible_plain_text_lines(&parsed, &style, first, 10.0, Some(key), &mut provider)
-                .expect("first plain viewport window");
-        let third_window =
-            visible_plain_text_lines(&parsed, &style, third, 10.0, Some(key), &mut provider)
-                .expect("third plain viewport window");
+        let first_window = visible_plain_text_lines_from_certified_height(
+            &parsed,
+            first,
+            Some(10.0),
+            Some(key),
+            &mut provider,
+        )
+        .expect("first plain viewport window");
+        let third_window = visible_plain_text_lines_from_certified_height(
+            &parsed,
+            third,
+            Some(10.0),
+            Some(key),
+            &mut provider,
+        )
+        .expect("third plain viewport window");
 
         assert_eq!(first_window.lines[0].text, "zero");
         assert_eq!(third_window.lines[0].text, "two");

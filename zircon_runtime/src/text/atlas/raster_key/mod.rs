@@ -141,8 +141,17 @@ fn px_size_bucket(logical_px: f32, scale_factor: f32, quantum_px: f32) -> u32 {
 }
 
 fn subpixel_bin_for_screen_x(screen_x: f32) -> u8 {
-    let fraction = screen_x.rem_euclid(1.0);
+    let fraction = positive_fraction(screen_x);
     (fraction * SUBPIXEL_BIN_COUNT as f32).floor() as u8
+}
+
+fn positive_fraction(value: f32) -> f32 {
+    let fraction = value.fract();
+    if fraction < 0.0 {
+        fraction + 1.0
+    } else {
+        fraction
+    }
 }
 
 fn normalized_raster_quality(

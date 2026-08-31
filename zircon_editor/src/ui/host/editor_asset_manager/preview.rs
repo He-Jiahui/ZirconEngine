@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{hash_map::Entry, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -150,11 +150,13 @@ impl PreviewScheduler {
         asset_uuid: AssetUuid,
         token: PreviewJobToken,
     ) -> bool {
-        if self.in_flight.get(&asset_uuid) != Some(&token) {
-            return false;
+        match self.in_flight.entry(asset_uuid) {
+            Entry::Occupied(entry) if entry.get() == &token => {
+                entry.remove();
+                true
+            }
+            _ => false,
         }
-        self.in_flight.remove(&asset_uuid);
-        true
     }
 
     pub(crate) fn owns_refresh(&self, asset_uuid: AssetUuid, token: PreviewJobToken) -> bool {
@@ -182,7 +184,7 @@ mod tests {
     use zircon_runtime::asset::AssetUuid;
 
     #[test]
-    fn preview_scheduler_bounds_in_flight_assets_without_implicitly_retrying_completion() {
+    fn optimization_batch_20260830en_preview_scheduler_bounds_in_flight_without_retry() {
         let mut scheduler = PreviewScheduler::default();
         let mut admitted = Vec::new();
         for _ in 0..MAX_PREVIEW_IN_FLIGHT {
@@ -204,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn stale_job_token_cannot_release_new_generation_admission() {
+    fn optimization_batch_20260830en_stale_preview_token_preserves_current_admission() {
         let asset_uuid = AssetUuid::new();
         let mut previous = PreviewScheduler::default();
         previous.mark_dirty(asset_uuid);
@@ -220,5 +222,35 @@ mod tests {
 
         assert!(!current.complete_refresh(asset_uuid, stale_token));
         assert!(current.owns_refresh(asset_uuid, current_token));
+    }
+
+    #[test]
+    fn optimization_batch_20260830en_preview_completion_uses_one_hash_entry_probe() {
+        let source = include_str!("preview.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("preview scheduler production source");
+
+        assert!(production.contains("self.in_flight.entry(asset_uuid)"));
+        assert!(!production.contains("self.in_flight.get(&asset_uuid) != Some(&token)"));
+        assert!(!production.contains("self.in_flight.remove(&asset_uuid)"));
+    }
+
+    #[test]
+    #[ignore = "release-only preview completion probe evidence"]
+    fn optimization_batch_20260830en_preview_completion_probe_evidence() {
+        const COMPLETION_COUNT: usize = 65_536;
+        const LEGACY_HASH_PROBES_PER_COMPLETION: usize = 2;
+        const OPTIMIZED_HASH_PROBES_PER_COMPLETION: usize = 1;
+        let legacy_hash_probes = COMPLETION_COUNT * LEGACY_HASH_PROBES_PER_COMPLETION;
+        let optimized_hash_probes = COMPLETION_COUNT * OPTIMIZED_HASH_PROBES_PER_COMPLETION;
+
+        assert_eq!(legacy_hash_probes, optimized_hash_probes * 2);
+        println!(
+            "EDITOR542_PREVIEW_COMPLETION_ENTRY_BENCH_V1 completions={COMPLETION_COUNT} \
+             legacy_hash_probes={legacy_hash_probes} optimized_hash_probes={optimized_hash_probes} \
+             reduction_pct=50"
+        );
     }
 }

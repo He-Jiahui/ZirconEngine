@@ -17,5 +17,5 @@ pub(in crate::hybrid_gi::renderer::gpu_resources) use execute::{
     create_radiance_cache_update_pipeline,
 };
 pub(in crate::hybrid_gi::renderer) use execute::{
-    HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource,
+    HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource, HybridGiMaterialCaptureTextureKey,
 };

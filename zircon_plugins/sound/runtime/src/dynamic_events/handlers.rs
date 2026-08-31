@@ -132,7 +132,7 @@ mod tests {
         SoundDynamicEventCatalog, SoundDynamicEventDescriptor, SoundDynamicEventHandlerDescriptor,
     };
 
-    use super::{DynamicEventHandlerRegistry, register_dynamic_event_handler};
+    use super::{register_dynamic_event_handler, DynamicEventHandlerRegistry};
 
     #[test]
     fn handler_registration_maintains_dispatch_order_after_insert_and_update() {

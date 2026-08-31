@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{cmp::Ordering, collections::BTreeMap};
 
 use toml::Value;
 use zircon_runtime_interface::ui::component::UiComponentState;
@@ -300,23 +300,55 @@ pub(super) fn dirty_for_runtime_style_delta(
         render: true,
         ..UiDirtyFlags::default()
     };
-    let changed_keys = old_attributes
-        .keys()
-        .chain(new_attributes.keys())
-        .filter(|key| old_attributes.get(*key) != new_attributes.get(*key))
-        .cloned()
-        .collect::<BTreeSet<_>>();
-    for key in changed_keys {
-        if is_retained_runtime_state(&key) {
-            continue;
+    let mut old_entries = old_attributes.iter().peekable();
+    let mut new_entries = new_attributes.iter().peekable();
+    loop {
+        if dirty.text && dirty.style {
+            break;
         }
-        if is_text_affecting_style_key(&key) {
-            dirty.text = true;
-        } else if !is_render_only_style_key(&key) {
-            dirty.style = true;
+        match (old_entries.peek(), new_entries.peek()) {
+            (Some((old_key, old_value)), Some((new_key, new_value))) => {
+                match old_key.cmp(new_key) {
+                    Ordering::Less => {
+                        mark_runtime_style_delta_key(&mut dirty, old_key);
+                        let _ = old_entries.next();
+                    }
+                    Ordering::Equal => {
+                        if old_value != new_value {
+                            mark_runtime_style_delta_key(&mut dirty, old_key);
+                        }
+                        let _ = old_entries.next();
+                        let _ = new_entries.next();
+                    }
+                    Ordering::Greater => {
+                        mark_runtime_style_delta_key(&mut dirty, new_key);
+                        let _ = new_entries.next();
+                    }
+                }
+            }
+            (Some((old_key, _)), None) => {
+                mark_runtime_style_delta_key(&mut dirty, old_key);
+                let _ = old_entries.next();
+            }
+            (None, Some((new_key, _))) => {
+                mark_runtime_style_delta_key(&mut dirty, new_key);
+                let _ = new_entries.next();
+            }
+            (None, None) => break,
         }
     }
     dirty
+}
+
+fn mark_runtime_style_delta_key(dirty: &mut UiDirtyFlags, key: &str) {
+    if is_retained_runtime_state(key) {
+        return;
+    }
+    if is_text_affecting_style_key(key) {
+        dirty.text = true;
+    } else if !is_render_only_style_key(key) {
+        dirty.style = true;
+    }
 }
 
 fn is_text_affecting_style_key(key: &str) -> bool {
@@ -373,4 +405,61 @@ pub(super) fn merge_dirty_flags_into(target: &mut UiDirtyFlags, dirty: UiDirtyFl
     target.text |= dirty.text;
     target.input |= dirty.input;
     target.visible_range |= dirty.visible_range;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn runtime_style_delta_preserves_dirty_domain_classification() {
+        let old_attributes = BTreeMap::from([
+            (
+                "background".to_string(),
+                Value::String("#111111".to_string()),
+            ),
+            ("font_size".to_string(), Value::Integer(12)),
+            ("hovered".to_string(), Value::Boolean(true)),
+            ("opacity".to_string(), Value::Float(1.0)),
+            ("width".to_string(), Value::Integer(100)),
+        ]);
+        let new_attributes = BTreeMap::from([
+            (
+                "background".to_string(),
+                Value::String("#222222".to_string()),
+            ),
+            ("font_size".to_string(), Value::Integer(14)),
+            ("opacity".to_string(), Value::Float(1.0)),
+            ("pressed".to_string(), Value::Boolean(true)),
+            ("width".to_string(), Value::Integer(120)),
+        ]);
+
+        let dirty = dirty_for_runtime_style_delta(&old_attributes, &new_attributes);
+
+        assert!(dirty.render);
+        assert!(dirty.text);
+        assert!(dirty.style);
+        assert!(!dirty.layout);
+        assert!(!dirty.hit_test);
+        assert!(!dirty.input);
+        assert!(!dirty.visible_range);
+    }
+
+    #[test]
+    fn runtime_style_delta_keeps_state_and_render_only_changes_render_scoped() {
+        let old_attributes = BTreeMap::from([
+            ("hovered".to_string(), Value::Boolean(true)),
+            ("opacity".to_string(), Value::Float(1.0)),
+        ]);
+        let new_attributes = BTreeMap::from([
+            ("opacity".to_string(), Value::Float(0.5)),
+            ("pressed".to_string(), Value::Boolean(true)),
+        ]);
+
+        let dirty = dirty_for_runtime_style_delta(&old_attributes, &new_attributes);
+
+        assert!(dirty.render);
+        assert!(!dirty.text);
+        assert!(!dirty.style);
+    }
 }

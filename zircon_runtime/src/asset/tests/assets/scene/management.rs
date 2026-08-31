@@ -222,7 +222,7 @@ fn scene_asset_overview_reports_entity_component_and_reference_counts() {
     });
     hero_entity.animation_graph_player = Some(SceneAnimationGraphPlayerAsset {
         graph: animation_graph.clone(),
-        parameters: std::collections::BTreeMap::new(),
+        parameters: std::collections::BTreeMap::new().into(),
         playing: true,
     });
     hero_entity.terrain = Some(SceneTerrainAsset {

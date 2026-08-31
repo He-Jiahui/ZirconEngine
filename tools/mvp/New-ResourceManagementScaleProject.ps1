@@ -1,28 +1,34 @@
 [CmdletBinding()]
 param(
-    [string]$ProjectRoot = (Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' ([guid]::NewGuid().ToString('N'))),
-    [ValidateRange(1, 100000)][int]$DataAssetCount = 1
+    [string]$ProjectRoot,
+    [ValidateRange(1, 100000)][int]$DataAssetCount = 1,
+    [string]$ProductInputManifestPath
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-Import-Module (Join-Path $PSScriptRoot 'MvpProductInputManifest.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpProductSourceIdentity.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'ResourceManagementScaleInventory.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
+    $ProjectRoot = New-MvpArtifactStoragePath -NamespaceId 'resource-management-projects'
+}
 
 function Assert-ResourceManagementScaleProjectDirectory {
     param([Parameter(Mandatory)][string]$Path)
 
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    if ($resolution.DisplayPath -notmatch '^E:\\ZirconBuilds\\mvp-resource-management-projects\\(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
-        throw "-ProjectRoot resource-management scale project must resolve under E:\ZirconBuilds\mvp-resource-management-projects\<session>: $($resolution.DisplayPath)"
+    $storage = Resolve-MvpArtifactStoragePath -Path $Path -NamespaceId 'resource-management-projects'
+    if ([IO.Directory]::Exists($storage.operation_path) -or [IO.File]::Exists($storage.operation_path)) {
+        throw "-ProjectRoot must not already exist so the generated resource-management project has one immutable input identity: $($storage.display_path)"
     }
-    if ([IO.Directory]::Exists($resolution.OperationalPath) -or [IO.File]::Exists($resolution.OperationalPath)) {
-        throw "-ProjectRoot must not already exist so the generated resource-management project has one immutable input identity: $($resolution.DisplayPath)"
+    return [pscustomobject]@{
+        OperationalPath = $storage.operation_path
+        DisplayPath = $storage.display_path
+        StoragePolicy = $storage
     }
-    return $resolution
 }
 
 function Write-ResourceManagementScaleFileNew {
@@ -57,17 +63,28 @@ function Write-ResourceManagementScaleFileNew {
 
 function Copy-ResourceManagementScaleTemplate {
     param(
-        [Parameter(Mandatory)][string]$TemplateRoot,
+        [Parameter(Mandatory)]$BuildSet,
         [Parameter(Mandatory)][string]$DestinationRoot
     )
 
-    $templateRootPrefix = $TemplateRoot.TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
-    foreach ($sourceFile in [IO.Directory]::EnumerateFiles($TemplateRoot, '*', [IO.SearchOption]::AllDirectories)) {
-        if (-not $sourceFile.StartsWith($templateRootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Template file escaped its declared root: $sourceFile"
-        }
-        $relativePath = $sourceFile.Substring($templateRootPrefix.Length)
-        $destinationPath = Join-ZirconWindowsPath -Path $DestinationRoot -ChildPath $relativePath
+    $templatePrefix = 'templates/projects/renderable-empty/'
+    $templateFiles = @($BuildSet.files | Where-Object {
+            ([string]$_.relative_path).StartsWith($templatePrefix, [StringComparison]::Ordinal)
+        })
+    if ($templateFiles.Count -eq 0) {
+        throw "Resource-management scale template is absent from BuildSet $($BuildSet.build_set_id)."
+    }
+    foreach ($file in $templateFiles) {
+        $buildSetRelativePath = [string]$file.relative_path
+        $relativePath = $buildSetRelativePath.Substring($templatePrefix.Length)
+        $sourceFile = [IO.Path]::Combine(
+            [string]$BuildSet.snapshot_root,
+            $buildSetRelativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+        )
+        $destinationPath = [IO.Path]::Combine(
+            $DestinationRoot,
+            $relativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+        )
         Write-ResourceManagementScaleFileNew -Path $destinationPath -Bytes ([IO.File]::ReadAllBytes($sourceFile))
     }
 }
@@ -96,16 +113,28 @@ function New-ResourceManagementScaleProject {
     param(
         [Parameter(Mandatory)][string]$ProjectRoot,
         [Parameter(Mandatory)][ValidateRange(1, 100000)][int]$DataAssetCount,
-        [Parameter(Mandatory)][string]$SourceFingerprint
+        [Parameter(Mandatory)]$SourceIdentity
     )
 
-    if ($SourceFingerprint -notmatch '^[0-9A-F]{64}$') {
-        throw 'Resource-management scale project source fingerprint must be an uppercase SHA-256 value.'
+    $sourceFingerprint = [string]$SourceIdentity.source_fingerprint
+    $buildSetId = [string]$SourceIdentity.build_set_id
+    $productInputManifestSha256 = [string]$SourceIdentity.manifest_sha256
+    if ($sourceFingerprint -notmatch '^[0-9A-F]{64}$' -or
+        $buildSetId -notmatch '^[0-9A-F]{64}$' -or
+        -not $sourceFingerprint.Equals($buildSetId, [StringComparison]::Ordinal) -or
+        -not $buildSetId.Equals([string]$SourceIdentity.build_set.build_set_id, [StringComparison]::Ordinal)) {
+        throw 'Resource-management scale project source identity must bind one verified BuildSet.'
+    }
+    if ($productInputManifestSha256 -notmatch '^[0-9A-F]{64}$') {
+        throw 'Resource-management scale project ProductInputManifest identity must be an uppercase SHA-256 value.'
     }
     $projectResolution = Assert-ResourceManagementScaleProjectDirectory -Path $ProjectRoot
-    $templateRoot = (Resolve-ZirconWindowsPath -Path (Join-Path $repoRoot 'templates\projects\renderable-empty')).OperationalPath
+    $templateRoot = [IO.Path]::Combine(
+        [string]$SourceIdentity.build_set.snapshot_root,
+        'templates\projects\renderable-empty'
+    )
     if (-not [IO.Directory]::Exists($templateRoot)) {
-        throw "Resource-management scale template does not exist: $templateRoot"
+        throw "Resource-management scale template does not exist in BuildSet $buildSetId."
     }
 
     $destinationParent = [IO.Path]::GetDirectoryName($projectResolution.OperationalPath)
@@ -117,7 +146,9 @@ function New-ResourceManagementScaleProject {
 
     try {
         [IO.Directory]::CreateDirectory($partialProjectRoot) | Out-Null
-        Copy-ResourceManagementScaleTemplate -TemplateRoot $templateRoot -DestinationRoot $partialProjectRoot
+        Copy-ResourceManagementScaleTemplate `
+            -BuildSet $SourceIdentity.build_set `
+            -DestinationRoot $partialProjectRoot
         $dataRoot = Write-ResourceManagementScaleDataSources `
             -ProjectRoot $partialProjectRoot `
             -DataAssetCount $DataAssetCount
@@ -126,8 +157,10 @@ function New-ResourceManagementScaleProject {
             -DataAssetCount $DataAssetCount
 
         $manifest = [ordered]@{
-            schema_version       = 1
-            source_fingerprint   = $SourceFingerprint
+            schema_version       = 2
+            source_fingerprint   = $buildSetId
+            build_set_id         = $buildSetId
+            product_input_manifest_sha256 = $productInputManifestSha256
             data_asset_count     = $DataAssetCount
             data_inventory_sha256 = $dataInventorySha256
             asset_kind           = 'Data'
@@ -150,6 +183,7 @@ function New-ResourceManagementScaleProject {
 
     return [pscustomobject]@{
         project_root        = $projectResolution.DisplayPath
+        build_set_id        = $buildSetId
         data_asset_count    = $DataAssetCount
         data_inventory_sha256 = $dataInventorySha256
         asset_kind          = 'Data'
@@ -160,9 +194,12 @@ function New-ResourceManagementScaleProject {
 }
 
 if ($env:RESOURCE_MANAGEMENT_SCALE_PROJECT_TEST_MODE -ne '1') {
-    $sourceFingerprint = Get-MvpSourceFingerprint -RepositoryRoot $repoRoot
+    if ([string]::IsNullOrWhiteSpace($ProductInputManifestPath)) {
+        throw '-ProductInputManifestPath is required to bind the resource-management scale project to its BuildSet.'
+    }
+    $sourceIdentity = Resolve-MvpProductSourceIdentity -ManifestPath $ProductInputManifestPath
     New-ResourceManagementScaleProject `
         -ProjectRoot $ProjectRoot `
         -DataAssetCount $DataAssetCount `
-        -SourceFingerprint $sourceFingerprint
+        -SourceIdentity $sourceIdentity
 }

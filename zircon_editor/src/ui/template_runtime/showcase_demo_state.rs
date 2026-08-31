@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 
 use toml::Value as TomlValue;
 use zircon_runtime::ui::component::{apply_component_event, UiComponentDescriptorRegistry};
@@ -33,7 +33,7 @@ pub(crate) struct UiComponentShowcaseDemoLogEntry {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiComponentShowcaseDemoState {
     selected_category: String,
-    states: BTreeMap<String, UiComponentState>,
+    states: HashMap<String, UiComponentState>,
     event_log: VecDeque<UiComponentShowcaseDemoLogEntry>,
 }
 
@@ -41,7 +41,7 @@ impl Default for UiComponentShowcaseDemoState {
     fn default() -> Self {
         Self {
             selected_category: "All".to_string(),
-            states: BTreeMap::new(),
+            states: HashMap::new(),
             event_log: VecDeque::new(),
         }
     }
@@ -548,3 +548,7 @@ mod performance_tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "showcase_demo_state/hash_state_tests.rs"]
+mod hash_state_tests;

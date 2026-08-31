@@ -7,8 +7,8 @@ use super::{journal_owner, map_transaction_error, recovery_io};
 use crate::asset::migration::AssetMigrationError;
 use crate::asset::project::ProjectPaths;
 use crate::core::resource::io::transaction::{
-    detect_pending_transactions as detect_core_transactions,
-    recover_pending_transactions as recover_core_transactions, JournalDocument, RecoveryPolicy,
+    JournalDocument, RecoveryPolicy, detect_pending_transactions as detect_core_transactions,
+    recover_pending_transactions as recover_core_transactions,
 };
 
 const EVIDENCE_READ_BUFFER_BYTES: usize = 64 * 1024;
@@ -73,7 +73,7 @@ impl RecoveryPolicy for MigrationRecoveryPolicy {
         document: &JournalDocument,
     ) -> Result<(), String> {
         self.validate_scanned_target(document.target())?;
-        if let Some(retired) = document.retired_path() {
+        for retired in document.retired_paths() {
             self.validate_scanned_target(retired)?;
             validate_retired_pair(document.target(), retired)?;
         }
@@ -134,10 +134,22 @@ fn validate_retired_pair(target: &Path, retired: &Path) -> Result<(), String> {
 fn path_identity(path: &Path) -> Option<String> {
     let resolved = resolve_existing_or_parent(path)?;
     #[cfg(windows)]
-    return Some(resolved.to_string_lossy().to_ascii_lowercase());
+    return Some(normalize_windows_path_identity(
+        resolved.to_string_lossy().into_owned(),
+    ));
     #[cfg(not(windows))]
     Some(resolved.to_string_lossy().into_owned())
 }
+
+#[cfg(windows)]
+fn normalize_windows_path_identity(mut identity: String) -> String {
+    identity.make_ascii_lowercase();
+    identity
+}
+
+#[cfg(all(test, windows))]
+#[path = "recovery/path_identity_tests.rs"]
+mod path_identity_tests;
 
 fn resolve_existing_or_parent(path: &Path) -> Option<PathBuf> {
     if path.exists() {

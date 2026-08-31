@@ -100,17 +100,14 @@ fn particles_editor_plugin_contributes_authoring_extensions() {
     );
     assert!(!create_asset_descriptor.callable_from_remote());
     assert_eq!(
-        create_asset_descriptor.menu_path(),
-        Some("Plugins/Particles/Create CPU Sprite Asset")
+        create_asset_descriptor
+            .menu_path()
+            .expect("create command menu path")
+            .stable_path(),
+        "plugins/particles/particles.authoring.create_cpu_sprite_asset"
     );
 
-    let particles_authoring_capability = [PARTICLES_AUTHORING_CAPABILITY.to_string()];
-    assert!(registration.extensions.menu_items().iter().any(|menu| {
-        menu.path() == "Plugins/Particles/Create CPU Sprite Asset"
-            && menu.operation() == &create_asset
-            && !menu.enabled()
-            && menu.required_capabilities() == particles_authoring_capability.as_slice()
-    }));
+    assert!(registration.extensions.menu_items().next().is_none());
 
     assert!(CPU_SPRITE_TEMPLATE.contains("cpu_sprite_system"));
     assert_cpu_sprite_template_shape(CPU_SPRITE_TEMPLATE);

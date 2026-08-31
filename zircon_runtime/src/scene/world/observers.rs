@@ -1,7 +1,7 @@
+use crate::scene::EntityId;
 use crate::scene::ecs::{
     Component, ComponentId, ComponentLifecycleEvent, LifecycleEventKind, ObserverId,
 };
-use crate::scene::EntityId;
 
 use super::{SceneResult, World};
 

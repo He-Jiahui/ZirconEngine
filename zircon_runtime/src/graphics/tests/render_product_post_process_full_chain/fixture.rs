@@ -2,21 +2,22 @@ use std::collections::BTreeMap;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AlphaMode, AssetReference, AssetUri, MaterialAsset, TextureAsset, TextureAssetDescriptor,
-    RGBA8_UNORM_FORMAT,
+    AlphaMode, AssetReference, AssetUri, MaterialAsset, RGBA8_UNORM_FORMAT, TextureAsset,
+    TextureAssetDescriptor,
 };
 use crate::core::framework::render::{
-    AntiAliasSettings, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderBloomSettings,
-    RenderBlurSettings, RenderChromaticAberrationSettings, RenderColorGradingSettings,
-    RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderDepthOfFieldSettings,
-    RenderDitherSettings, RenderDynamicResolutionSettings, RenderExposureSettings,
-    RenderFilmGrainSettings, RenderFogSettings, RenderFrameExtract, RenderImageColorSpace,
-    RenderLayerSet, RenderMeshSnapshot, RenderMotionBlurSettings, RenderOverlayExtract,
+    AntiAliasSettings, COLOR_LUT_SIZE_DEFAULT, DEFAULT_RENDER_LAYER_MASK, FallbackSkyboxKind,
+    PreviewEnvironmentExtract, RenderBloomSettings, RenderBlurSettings,
+    RenderChromaticAberrationSettings, RenderColorGradingSettings, RenderColorLookupSettings,
+    RenderColorLookupTextureLayout, RenderDepthOfFieldSettings, RenderDitherSettings,
+    RenderDynamicResolutionSettings, RenderExposureSettings, RenderFilmGrainSettings,
+    RenderFogSettings, RenderFrameExtract, RenderImageColorSpace, RenderLayerSet,
+    RenderMeshSnapshot, RenderMotionBlurSettings, RenderOverlayExtract,
     RenderParticlePreviousSpriteSnapshot, RenderParticleSpriteSnapshot, RenderPipelineHandle,
     RenderPostProcessEffectStackSettings, RenderQualityProfile, RenderSceneGeometryExtract,
     RenderSceneSnapshot, RenderScreenSpaceReflectionSettings, RenderTonemapOperator,
     RenderTonemapSettings, RenderVignetteSettings, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot, COLOR_LUT_SIZE_DEFAULT, DEFAULT_RENDER_LAYER_MASK,
+    ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};

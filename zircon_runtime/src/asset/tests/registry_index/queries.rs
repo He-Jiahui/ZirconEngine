@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use crate::asset::registry::{AssetRegistryEntry, AssetRegistryFilter, AssetRegistryIndex};
+use crate::asset::registry::{
+    AssetRegistryEntry, AssetRegistryError, AssetRegistryFilter, AssetRegistryIndex,
+};
 use crate::asset::{AssetId, AssetKind, AssetReference, AssetUuid};
 
 use super::uri;
@@ -95,6 +97,32 @@ fn registry_hot_identity_and_reverse_queries_use_derived_indexes() {
     assert!(!index_source.contains(".values()\n            .filter(|entry| same_source_path"));
     let targeted_source = include_str!("../../registry/targeted.rs");
     assert!(!targeted_source.contains("entries_by_uuid\n            .values()"));
+}
+
+#[test]
+fn registry_reference_resolution_never_substitutes_an_occupied_path_for_a_missing_uuid() {
+    let registered_uuid = AssetUuid::new();
+    let missing_uuid = AssetUuid::new();
+    let occupied_path = uri("res://materials/hero.zmaterial");
+    let index = AssetRegistryIndex::from_entries([AssetRegistryEntry::new(
+        registered_uuid,
+        occupied_path.clone(),
+        AssetKind::Material,
+        "hero",
+    )])
+    .unwrap();
+
+    assert_eq!(
+        index.resolve_asset_id_for_reference(missing_uuid, &occupied_path),
+        Err(AssetRegistryError::AssetReferenceNotFound {
+            uuid: missing_uuid,
+            path: occupied_path.clone(),
+        })
+    );
+    assert_eq!(
+        index.resolve_asset_id_for_reference(registered_uuid, &uri("res://old/hero.zmaterial")),
+        Ok(AssetId::from_asset_uuid(registered_uuid))
+    );
 }
 
 #[test]

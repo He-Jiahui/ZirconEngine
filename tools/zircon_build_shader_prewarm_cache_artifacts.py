@@ -123,7 +123,40 @@ class _ShaderCacheArtifactPairs:
             raise RuntimeError(
                 "shader prewarm cache reported cache variant mismatch: "
                 + "; ".join(mismatched)
+            )
+
+
+class _WrittenVariantDimensionIndex:
+    def __init__(self, variants: tuple[ReportedWrittenVariant, ...]) -> None:
+        self.values_by_field: dict[str, set[str]] = {}
+        self.variant_combinations: set[tuple[str | None, str | None, str | None]] = (
+            set()
         )
+        self.custom_id_combinations: set[
+            tuple[str | None, str | None, str | None, str | None]
+        ] = set()
+        for variant in variants:
+            dimensions = _canonical_dimension_values(
+                variant.canonical_string,
+                values_by_field=self.values_by_field,
+            )
+            pass_type = dimensions.get("pass")
+            quality_tier = dimensions.get("quality")
+            geometry_id = dimensions.get("geometry")
+            shading_id = dimensions.get("shading")
+            self.variant_combinations.add(
+                (pass_type, quality_tier, geometry_id)
+            )
+            for indexed_pass_type in (pass_type, None):
+                for indexed_quality_tier in (quality_tier, None):
+                    self.custom_id_combinations.add(
+                        (
+                            indexed_pass_type,
+                            indexed_quality_tier,
+                            geometry_id,
+                            shading_id,
+                        )
+                    )
 
 
 def _validate_expected_written_variant_dimensions(
@@ -135,29 +168,44 @@ def _validate_expected_written_variant_dimensions(
     expected_geometry_source_ids: Sequence[str],
     expected_shading_model_ids: Sequence[str],
 ) -> None:
-    _validate_expected_written_pass_types(variants, expected_pass_types)
-    _validate_expected_written_quality_tiers(variants, expected_quality_tiers)
-    _validate_expected_written_geometry_sources(variants, expected_geometry_sources)
+    if not (
+        expected_pass_types
+        or expected_quality_tiers
+        or expected_geometry_sources
+        or expected_geometry_source_ids
+        or expected_shading_model_ids
+    ):
+        return
+    dimension_index = _WrittenVariantDimensionIndex(variants)
+    _validate_expected_written_pass_types(dimension_index, expected_pass_types)
+    _validate_expected_written_quality_tiers(
+        dimension_index,
+        expected_quality_tiers,
+    )
+    _validate_expected_written_geometry_sources(
+        dimension_index,
+        expected_geometry_sources,
+    )
     _validate_expected_written_variant_combinations(
-        variants,
+        dimension_index,
         expected_pass_types=expected_pass_types,
         expected_quality_tiers=expected_quality_tiers,
         expected_geometry_sources=expected_geometry_sources,
     )
     _validate_expected_written_dimension(
-        variants,
+        dimension_index,
         expected_geometry_source_ids,
         label="shader geometry source",
         canonical_field="geometry",
     )
     _validate_expected_written_dimension(
-        variants,
+        dimension_index,
         expected_shading_model_ids,
         label="shader shading model",
         canonical_field="shading",
     )
     _validate_expected_written_custom_id_combinations(
-        variants,
+        dimension_index,
         expected_pass_types=expected_pass_types,
         expected_quality_tiers=expected_quality_tiers,
         expected_geometry_source_ids=expected_geometry_source_ids,
@@ -166,7 +214,7 @@ def _validate_expected_written_variant_dimensions(
 
 
 def _validate_expected_written_pass_types(
-    variants: tuple[ReportedWrittenVariant, ...],
+    dimension_index: _WrittenVariantDimensionIndex,
     expected_pass_types: Sequence[str],
 ) -> None:
     requested = tuple(
@@ -177,13 +225,10 @@ def _validate_expected_written_pass_types(
     missing = [
         pass_type
         for pass_type in requested
-        if not any(
-            _canonical_has_dimension_value(
-                variant.canonical_string,
-                canonical_field="pass",
-                expected_value=pass_type,
-            )
-            for variant in variants
+        if not _canonical_has_dimension_value(
+            dimension_index,
+            canonical_field="pass",
+            expected_value=pass_type,
         )
     ]
     if missing:
@@ -194,7 +239,7 @@ def _validate_expected_written_pass_types(
 
 
 def _validate_expected_written_quality_tiers(
-    variants: tuple[ReportedWrittenVariant, ...],
+    dimension_index: _WrittenVariantDimensionIndex,
     expected_quality_tiers: Sequence[str],
 ) -> None:
     requested = tuple(
@@ -206,13 +251,10 @@ def _validate_expected_written_quality_tiers(
     missing = [
         quality_tier
         for quality_tier in requested
-        if not any(
-            _canonical_has_dimension_value(
-                variant.canonical_string,
-                canonical_field="quality",
-                expected_value=quality_tier,
-            )
-            for variant in variants
+        if not _canonical_has_dimension_value(
+            dimension_index,
+            canonical_field="quality",
+            expected_value=quality_tier,
         )
     ]
     if missing:
@@ -223,7 +265,7 @@ def _validate_expected_written_quality_tiers(
 
 
 def _validate_expected_written_geometry_sources(
-    variants: tuple[ReportedWrittenVariant, ...],
+    dimension_index: _WrittenVariantDimensionIndex,
     expected_geometry_sources: Sequence[str],
 ) -> None:
     requested = tuple(
@@ -234,13 +276,10 @@ def _validate_expected_written_geometry_sources(
     missing = [
         source_id
         for source_id in requested
-        if not any(
-            _canonical_has_dimension_value(
-                variant.canonical_string,
-                canonical_field="geometry",
-                expected_value=source_id,
-            )
-            for variant in variants
+        if not _canonical_has_dimension_value(
+            dimension_index,
+            canonical_field="geometry",
+            expected_value=source_id,
         )
     ]
     if missing:
@@ -251,7 +290,7 @@ def _validate_expected_written_geometry_sources(
 
 
 def _validate_expected_written_variant_combinations(
-    variants: tuple[ReportedWrittenVariant, ...],
+    dimension_index: _WrittenVariantDimensionIndex,
     *,
     expected_pass_types: Sequence[str],
     expected_quality_tiers: Sequence[str],
@@ -274,20 +313,17 @@ def _validate_expected_written_variant_combinations(
     ):
         return
 
-    written_dimension_sets = tuple(
-        _canonical_dimension_values(variant.canonical_string) for variant in variants
-    )
     missing = [
         f"pass={pass_type}|quality={quality_tier}|geometry={geometry_source}"
         for pass_type in requested_pass_types
         for quality_tier in requested_quality_tiers
         for geometry_source in requested_geometry_sources
-        if not any(
-            dimension_values.get("pass") == pass_type
-            and dimension_values.get("quality") == quality_tier
-            and dimension_values.get("geometry") == geometry_source
-            for dimension_values in written_dimension_sets
+        if (
+            pass_type,
+            quality_tier,
+            geometry_source,
         )
+        not in dimension_index.variant_combinations
     ]
     if missing:
         raise RuntimeError(
@@ -297,7 +333,7 @@ def _validate_expected_written_variant_combinations(
 
 
 def _validate_expected_written_custom_id_combinations(
-    variants: tuple[ReportedWrittenVariant, ...],
+    dimension_index: _WrittenVariantDimensionIndex,
     *,
     expected_pass_types: Sequence[str],
     expected_quality_tiers: Sequence[str],
@@ -322,9 +358,6 @@ def _validate_expected_written_custom_id_combinations(
         _normalize_dimension_token(quality_tier)
         for quality_tier in expected_quality_tiers
     )
-    written_dimension_sets = tuple(
-        _canonical_dimension_values(variant.canonical_string) for variant in variants
-    )
     missing = [
         _custom_id_combination_label(
             pass_type=pass_type,
@@ -336,15 +369,12 @@ def _validate_expected_written_custom_id_combinations(
         for quality_tier in (requested_quality_tiers or (None,))
         for _, geometry_id in requested_geometry_ids
         for _, shading_id in requested_shading_ids
-        if not any(
-            _custom_id_combination_matches(
-                dimension_values,
-                pass_type=pass_type,
-                quality_tier=quality_tier,
-                geometry_id=geometry_id,
-                shading_id=shading_id,
-            )
-            for dimension_values in written_dimension_sets
+        if not _custom_id_combination_matches(
+            dimension_index,
+            pass_type=pass_type,
+            quality_tier=quality_tier,
+            geometry_id=geometry_id,
+            shading_id=shading_id,
         )
     ]
     if missing:
@@ -355,7 +385,7 @@ def _validate_expected_written_custom_id_combinations(
 
 
 def _custom_id_combination_matches(
-    dimension_values: Mapping[str, str],
+    dimension_index: _WrittenVariantDimensionIndex,
     *,
     pass_type: str | None,
     quality_tier: str | None,
@@ -363,11 +393,11 @@ def _custom_id_combination_matches(
     shading_id: int,
 ) -> bool:
     return (
-        (pass_type is None or dimension_values.get("pass") == pass_type)
-        and (quality_tier is None or dimension_values.get("quality") == quality_tier)
-        and dimension_values.get("geometry") == str(geometry_id)
-        and dimension_values.get("shading") == str(shading_id)
-    )
+        pass_type,
+        quality_tier,
+        str(geometry_id),
+        str(shading_id),
+    ) in dimension_index.custom_id_combinations
 
 
 def _custom_id_combination_label(
@@ -388,7 +418,7 @@ def _custom_id_combination_label(
 
 
 def _validate_expected_written_dimension(
-    variants: tuple[ReportedWrittenVariant, ...],
+    dimension_index: _WrittenVariantDimensionIndex,
     expected_ids: Sequence[str],
     *,
     label: str,
@@ -400,13 +430,10 @@ def _validate_expected_written_dimension(
     missing = [
         f"{token}={id_value}"
         for token, id_value in requested
-        if not any(
-            _canonical_has_dimension_value(
-                variant.canonical_string,
-                canonical_field=canonical_field,
-                expected_value=str(id_value),
-            )
-            for variant in variants
+        if not _canonical_has_dimension_value(
+            dimension_index,
+            canonical_field=canonical_field,
+            expected_value=str(id_value),
         )
     ]
     if missing:
@@ -430,21 +457,27 @@ def _expected_shader_id_records(
 
 
 def _canonical_has_dimension_value(
-    canonical_string: str,
+    dimension_index: _WrittenVariantDimensionIndex,
     *,
     canonical_field: str,
     expected_value: str,
 ) -> bool:
-    expected_part = f"{canonical_field}={expected_value}"
-    return expected_part in canonical_string.split("|")
+    values = dimension_index.values_by_field.get(canonical_field)
+    return values is not None and expected_value in values
 
 
-def _canonical_dimension_values(canonical_string: str) -> Mapping[str, str]:
+def _canonical_dimension_values(
+    canonical_string: str,
+    *,
+    values_by_field: dict[str, set[str]] | None = None,
+) -> Mapping[str, str]:
     dimensions: dict[str, str] = {}
     for part in canonical_string.split("|"):
         field, separator, value = part.partition("=")
         if separator:
             dimensions[field] = value
+            if values_by_field is not None:
+                values_by_field.setdefault(field, set()).add(value)
     return dimensions
 
 

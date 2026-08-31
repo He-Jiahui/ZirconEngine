@@ -3,11 +3,13 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::{Arc, Mutex};
 
 use super::{
-    compiled_binding::{CompiledScenePropertyAccessDiagnostics, SceneBindingGenerations},
-    derived_state::{HierarchyMutationIndex, NODE_KIND_ORDINAL_COUNT},
-    dirty_state::DerivedStateDirty,
-    generation::{LifecycleVisibilityRevision, WorldGeneration},
     ComponentTypeRegistry,
+    compiled_binding::{CompiledScenePropertyAccessDiagnostics, SceneBindingGenerations},
+    derived_state::NODE_KIND_ORDINAL_COUNT,
+    dirty_state::DerivedStateDirty,
+    entity_id_allocator::EntityIdAllocator,
+    generation::{LifecycleVisibilityRevision, WorldGeneration},
+    hierarchy_topology::HierarchyTopology,
 };
 use crate::scene::components::{
     ActiveSelf, AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
@@ -27,7 +29,7 @@ use crate::scene::event_mirror::RuntimeEventMirrorRegistry;
 use crate::scene::inspection::SubscriptionTable;
 use crate::scene::inspection::WorldInspectionArtifactCache;
 use crate::scene::reflect::TypeRegistry;
-use crate::scene::EntityId;
+use crate::scene::{EntityId, SceneError};
 use zircon_runtime_interface::world_sync::WorldFact;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -101,12 +103,12 @@ pub struct World {
     pub(super) type_registry: TypeRegistry,
     pub(super) vm_catalog_type_paths: BTreeSet<String>,
     pub(super) vm_dynamic_type_paths: BTreeSet<String>,
-    pub(super) next_id: EntityId,
+    pub(super) entity_id_allocator: EntityIdAllocator,
     pub(super) active_camera: EntityId,
     pub(super) schedule: Schedule,
     pub(super) archetype_index: ArchetypeIndex,
     pub(super) stable_query_order: super::query_order::StableQueryOrderIndex,
-    pub(super) hierarchy_mutation_index: HierarchyMutationIndex,
+    pub(super) hierarchy_mutation_index: HierarchyTopology,
     pub(super) entity_registry: EntityRegistry,
     pub(super) component_registry: ComponentRegistry,
     pub(super) component_storage: ComponentStorage,
@@ -136,6 +138,8 @@ pub struct World {
     pub(super) last_change_tick: ChangeTick,
     pub(super) active_change_tick: Option<ChangeTick>,
     pub(super) node_cache: Vec<SceneNode>,
+    pub(super) node_cache_rows: HashMap<EntityId, usize>,
+    pub(super) node_cache_topology_generation: u64,
     pub(in crate::scene) inspection_artifact_cache: WorldInspectionArtifactCache,
     pub(super) derived_state_dirty: DerivedStateDirty,
 }
@@ -150,7 +154,9 @@ impl Clone for World {
         let persistent_lighting = self.persistent_lighting_component_snapshot();
         let persistent_render_2d = self.persistent_render_2d_component_snapshot();
         let persistent_animation_runtime = self.persistent_animation_runtime_component_snapshot();
-        let world_generation = self.world_generation;
+        let world_generation = self
+            .world_generation
+            .advanced_by(self.derived_state_dirty.pending_component_mutation_count());
         let stable_entities = self.stable_entity_ids().collect::<Vec<_>>();
         let mut cloned = Self {
             entities: self.entities.clone(),
@@ -163,7 +169,7 @@ impl Clone for World {
             type_registry: self.type_registry.clone(),
             vm_catalog_type_paths: self.vm_catalog_type_paths.clone(),
             vm_dynamic_type_paths: self.vm_dynamic_type_paths.clone(),
-            next_id: self.next_id,
+            entity_id_allocator: self.entity_id_allocator,
             active_camera: self.active_camera,
             schedule: self.schedule.clone(),
             archetype_index: Default::default(),
@@ -198,6 +204,8 @@ impl Clone for World {
             last_change_tick: self.last_change_tick,
             active_change_tick: self.active_change_tick,
             node_cache: self.node_cache.clone(),
+            node_cache_rows: self.node_cache_rows.clone(),
+            node_cache_topology_generation: self.node_cache_topology_generation,
             inspection_artifact_cache: self
                 .inspection_artifact_cache
                 .clone_for_world_generation(world_generation.get()),
@@ -271,6 +279,15 @@ pub(super) struct WorldPersistentState {
     dynamic_components: HashMap<EntityId, HashMap<String, serde_json::Value>>,
     next_id: EntityId,
     active_camera: EntityId,
+}
+
+#[derive(Debug)]
+pub(super) enum WorldPersistentStateError {
+    OrphanComponent {
+        entity: EntityId,
+        component: &'static str,
+    },
+    Scene(SceneError),
 }
 
 impl WorldPersistentState {
@@ -393,7 +410,7 @@ impl Serialize for World {
             render_layer_masks: persistent_scene_render.render_layer_masks,
             mobility: persistent_scene_render.mobility,
             dynamic_components: &self.dynamic_components,
-            next_id: self.next_id,
+            next_id: self.entity_id_allocator.next_id(),
             active_camera: self.active_camera,
         }
         .serialize(serializer)
@@ -403,10 +420,15 @@ impl Serialize for World {
 impl World {
     pub(super) fn from_persistent_state(
         state: WorldPersistentState,
-    ) -> Result<Self, (EntityId, &'static str)> {
+    ) -> Result<Self, WorldPersistentStateError> {
         if let Some(orphan) = state.first_orphan_component() {
-            return Err(orphan);
+            return Err(WorldPersistentStateError::OrphanComponent {
+                entity: orphan.0,
+                component: orphan.1,
+            });
         }
+        let entity_id_allocator = EntityIdAllocator::from_persisted_next(state.next_id)
+            .map_err(WorldPersistentStateError::Scene)?;
         let persistent_entity_core =
             Self::persistent_entity_core_component_snapshot_from_serialized_maps(
                 state.names,
@@ -457,7 +479,7 @@ impl World {
             type_registry: Default::default(),
             vm_catalog_type_paths: Default::default(),
             vm_dynamic_type_paths: Default::default(),
-            next_id: state.next_id,
+            entity_id_allocator,
             active_camera: state.active_camera,
             schedule: Default::default(),
             archetype_index: Default::default(),
@@ -492,6 +514,8 @@ impl World {
             last_change_tick: ChangeTick::ZERO,
             active_change_tick: None,
             node_cache: Vec::new(),
+            node_cache_rows: HashMap::new(),
+            node_cache_topology_generation: 0,
             inspection_artifact_cache: Default::default(),
             derived_state_dirty: Default::default(),
         };
@@ -519,11 +543,36 @@ impl<'de> Deserialize<'de> for World {
         D: Deserializer<'de>,
     {
         let state = WorldPersistentState::deserialize(deserializer)?;
-        Self::from_persistent_state(state).map_err(|(entity, component)| {
-            serde::de::Error::custom(format!(
-                "persisted {component} component belongs to missing entity {entity}"
-            ))
+        Self::from_persistent_state(state).map_err(|error| match error {
+            WorldPersistentStateError::OrphanComponent { entity, component } => {
+                serde::de::Error::custom(format!(
+                    "persisted {component} component belongs to missing entity {entity}"
+                ))
+            }
+            WorldPersistentStateError::Scene(source) => serde::de::Error::custom(source),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{World, WorldPersistentState, WorldPersistentStateError};
+    use crate::scene::SceneError;
+
+    #[test]
+    fn persistent_state_retains_invalid_entity_allocator_diagnostics() {
+        let world = World::empty();
+        let mut state: WorldPersistentState =
+            serde_json::from_value(serde_json::to_value(world).expect("world serializes"))
+                .expect("serialized world decodes as persistent state");
+        state.next_id = u64::MAX;
+
+        assert!(matches!(
+            World::from_persistent_state(state),
+            Err(WorldPersistentStateError::Scene(
+                SceneError::EntityIdExhausted { entity: u64::MAX }
+            ))
+        ));
     }
 }
 

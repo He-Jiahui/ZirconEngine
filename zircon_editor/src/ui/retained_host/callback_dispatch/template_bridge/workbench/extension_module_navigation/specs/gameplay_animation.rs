@@ -1,24 +1,5 @@
 use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
-const SEQUENCER_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionSequencerTracksTab",
-    "WorkbenchExtensionSequencerCurvesTab",
-    "WorkbenchExtensionSequencerValidationTab",
-];
-const SEQUENCER_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.sequencer.tracks_tab.select",
-        "WorkbenchExtensionSequencerTracksTab",
-    ),
-    action(
-        "workbench.extension.sequencer.curves_tab.select",
-        "WorkbenchExtensionSequencerCurvesTab",
-    ),
-    action(
-        "workbench.extension.sequencer.validation_tab.select",
-        "WorkbenchExtensionSequencerValidationTab",
-    ),
-];
 const SEQUENCER_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionSequencerSequenceRow",
     "WorkbenchExtensionSequencerCameraRow",
@@ -27,7 +8,6 @@ const SEQUENCER_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionSequencerHeroTransformTableRow",
     "WorkbenchExtensionSequencerAudioTableRow",
     "WorkbenchExtensionSequencerEventCueTableRow",
-    "WorkbenchExtensionSequencerOutputRow",
 ];
 const SEQUENCER_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -58,20 +38,16 @@ const SEQUENCER_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.sequencer.event_cue_table_row.select",
         "WorkbenchExtensionSequencerEventCueTableRow",
     ),
-    action(
-        "workbench.extension.sequencer.output.select",
-        "WorkbenchExtensionSequencerOutputRow",
-    ),
 ];
 const SEQUENCER_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAbilitySequencerButton",
+    "WorkbenchAbilityAnimationToolsMenu",
     "WorkbenchExtensionSequencerPreviewButton",
     "WorkbenchExtensionSequencerValidateButton",
 ];
 const SEQUENCER_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.sequencer.open",
-        "WorkbenchAbilitySequencerButton",
+        "WorkbenchAbilityAnimationToolsMenu",
     ),
     action(
         "workbench.extension.sequencer.preview.invoke",
@@ -94,8 +70,6 @@ const SEQUENCER_FIELD_ACTIONS: &[&str] = &[
 pub(super) const SEQUENCER_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.sequencer.open",
     "WorkbenchExtensionSequencerWorkspace",
-    SEQUENCER_TAB_CONTROLS,
-    SEQUENCER_TAB_ACTIONS,
     SEQUENCER_ROW_CONTROLS,
     SEQUENCER_ROW_ACTIONS,
     SEQUENCER_COMMAND_CONTROLS,
@@ -103,25 +77,6 @@ pub(super) const SEQUENCER_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     SEQUENCER_FIELD_ACTIONS,
 );
 
-const MONTAGE_EDITOR_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionMontageEditorSectionsTab",
-    "WorkbenchExtensionMontageEditorNotifiesTab",
-    "WorkbenchExtensionMontageEditorCurvesTab",
-];
-const MONTAGE_EDITOR_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.montage_editor.sections_tab.select",
-        "WorkbenchExtensionMontageEditorSectionsTab",
-    ),
-    action(
-        "workbench.extension.montage_editor.notifies_tab.select",
-        "WorkbenchExtensionMontageEditorNotifiesTab",
-    ),
-    action(
-        "workbench.extension.montage_editor.curves_tab.select",
-        "WorkbenchExtensionMontageEditorCurvesTab",
-    ),
-];
 const MONTAGE_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionMontageEditorAttackRow",
     "WorkbenchExtensionMontageEditorComboRow",
@@ -130,7 +85,6 @@ const MONTAGE_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionMontageEditorComboTableRow",
     "WorkbenchExtensionMontageEditorNotifyTableRow",
     "WorkbenchExtensionMontageEditorRootMotionTableRow",
-    "WorkbenchExtensionMontageEditorOutputRow",
 ];
 const MONTAGE_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -161,20 +115,16 @@ const MONTAGE_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.montage_editor.root_motion_table_row.select",
         "WorkbenchExtensionMontageEditorRootMotionTableRow",
     ),
-    action(
-        "workbench.extension.montage_editor.output.select",
-        "WorkbenchExtensionMontageEditorOutputRow",
-    ),
 ];
 const MONTAGE_EDITOR_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAbilityMontageEditorButton",
+    "WorkbenchAbilityAnimationToolsMenu",
     "WorkbenchExtensionMontageEditorPreviewButton",
     "WorkbenchExtensionMontageEditorApplyButton",
 ];
 const MONTAGE_EDITOR_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.montage_editor.open",
-        "WorkbenchAbilityMontageEditorButton",
+        "WorkbenchAbilityAnimationToolsMenu",
     ),
     action(
         "workbench.extension.montage_editor.preview.invoke",
@@ -197,8 +147,6 @@ const MONTAGE_EDITOR_FIELD_ACTIONS: &[&str] = &[
 pub(super) const MONTAGE_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.montage_editor.open",
     "WorkbenchExtensionMontageEditorWorkspace",
-    MONTAGE_EDITOR_TAB_CONTROLS,
-    MONTAGE_EDITOR_TAB_ACTIONS,
     MONTAGE_EDITOR_ROW_CONTROLS,
     MONTAGE_EDITOR_ROW_ACTIONS,
     MONTAGE_EDITOR_COMMAND_CONTROLS,
@@ -206,25 +154,6 @@ pub(super) const MONTAGE_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     MONTAGE_EDITOR_FIELD_ACTIONS,
 );
 
-const BLEND_SPACE_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionBlendSpaceSamplesTab",
-    "WorkbenchExtensionBlendSpaceAxesTab",
-    "WorkbenchExtensionBlendSpacePreviewTab",
-];
-const BLEND_SPACE_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.blend_space.samples_tab.select",
-        "WorkbenchExtensionBlendSpaceSamplesTab",
-    ),
-    action(
-        "workbench.extension.blend_space.axes_tab.select",
-        "WorkbenchExtensionBlendSpaceAxesTab",
-    ),
-    action(
-        "workbench.extension.blend_space.preview_tab.select",
-        "WorkbenchExtensionBlendSpacePreviewTab",
-    ),
-];
 const BLEND_SPACE_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionBlendSpaceIdleRunRow",
     "WorkbenchExtensionBlendSpaceStrafeRow",
@@ -233,7 +162,6 @@ const BLEND_SPACE_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionBlendSpaceWalkSampleTableRow",
     "WorkbenchExtensionBlendSpaceRunSampleTableRow",
     "WorkbenchExtensionBlendSpaceDiagonalSampleTableRow",
-    "WorkbenchExtensionBlendSpaceOutputRow",
 ];
 const BLEND_SPACE_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -264,20 +192,21 @@ const BLEND_SPACE_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.blend_space.diagonal_sample_table_row.select",
         "WorkbenchExtensionBlendSpaceDiagonalSampleTableRow",
     ),
-    action(
-        "workbench.extension.blend_space.output.select",
-        "WorkbenchExtensionBlendSpaceOutputRow",
-    ),
 ];
 const BLEND_SPACE_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAbilityBlendSpaceButton",
+    "WorkbenchAbilityAnimationToolsMenu",
     "WorkbenchExtensionBlendSpacePreviewButton",
     "WorkbenchExtensionBlendSpaceApplyButton",
+    "WorkbenchValidationLogAll",
+    "WorkbenchValidationLogErrors",
+    "WorkbenchValidationLogWarnings",
+    "WorkbenchValidationLogInfos",
+    "WorkbenchValidationLogClear",
 ];
 const BLEND_SPACE_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.blend_space.open",
-        "WorkbenchAbilityBlendSpaceButton",
+        "WorkbenchAbilityAnimationToolsMenu",
     ),
     action(
         "workbench.extension.blend_space.preview.invoke",
@@ -286,6 +215,26 @@ const BLEND_SPACE_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.blend_space.apply.invoke",
         "WorkbenchExtensionBlendSpaceApplyButton",
+    ),
+    action(
+        "workbench.extension.blend_space.validation.filter_all",
+        "WorkbenchValidationLogAll",
+    ),
+    action(
+        "workbench.extension.blend_space.validation.filter_errors",
+        "WorkbenchValidationLogErrors",
+    ),
+    action(
+        "workbench.extension.blend_space.validation.filter_warnings",
+        "WorkbenchValidationLogWarnings",
+    ),
+    action(
+        "workbench.extension.blend_space.validation.filter_infos",
+        "WorkbenchValidationLogInfos",
+    ),
+    action(
+        "workbench.extension.blend_space.validation.clear",
+        "WorkbenchValidationLogClear",
     ),
 ];
 const BLEND_SPACE_FIELD_ACTIONS: &[&str] = &[
@@ -302,8 +251,6 @@ const BLEND_SPACE_FIELD_ACTIONS: &[&str] = &[
 pub(super) const BLEND_SPACE_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.blend_space.open",
     "WorkbenchExtensionBlendSpaceWorkspace",
-    BLEND_SPACE_TAB_CONTROLS,
-    BLEND_SPACE_TAB_ACTIONS,
     BLEND_SPACE_ROW_CONTROLS,
     BLEND_SPACE_ROW_ACTIONS,
     BLEND_SPACE_COMMAND_CONTROLS,
@@ -311,25 +258,6 @@ pub(super) const BLEND_SPACE_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     BLEND_SPACE_FIELD_ACTIONS,
 );
 
-const POSE_LIBRARY_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionPoseLibraryPosesTab",
-    "WorkbenchExtensionPoseLibraryTagsTab",
-    "WorkbenchExtensionPoseLibraryMirrorTab",
-];
-const POSE_LIBRARY_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.pose_library.poses_tab.select",
-        "WorkbenchExtensionPoseLibraryPosesTab",
-    ),
-    action(
-        "workbench.extension.pose_library.tags_tab.select",
-        "WorkbenchExtensionPoseLibraryTagsTab",
-    ),
-    action(
-        "workbench.extension.pose_library.mirror_tab.select",
-        "WorkbenchExtensionPoseLibraryMirrorTab",
-    ),
-];
 const POSE_LIBRARY_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPoseLibraryCombatRow",
     "WorkbenchExtensionPoseLibraryLocomotionRow",
@@ -338,7 +266,6 @@ const POSE_LIBRARY_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPoseLibraryAimPoseTableRow",
     "WorkbenchExtensionPoseLibraryCrouchPoseTableRow",
     "WorkbenchExtensionPoseLibraryMirrorPoseTableRow",
-    "WorkbenchExtensionPoseLibraryOutputRow",
 ];
 const POSE_LIBRARY_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -369,20 +296,16 @@ const POSE_LIBRARY_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.pose_library.mirror_pose_table_row.select",
         "WorkbenchExtensionPoseLibraryMirrorPoseTableRow",
     ),
-    action(
-        "workbench.extension.pose_library.output.select",
-        "WorkbenchExtensionPoseLibraryOutputRow",
-    ),
 ];
 const POSE_LIBRARY_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAbilityPoseLibraryButton",
+    "WorkbenchAbilityAnimationToolsMenu",
     "WorkbenchExtensionPoseLibraryPreviewButton",
     "WorkbenchExtensionPoseLibraryApplyButton",
 ];
 const POSE_LIBRARY_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.pose_library.open",
-        "WorkbenchAbilityPoseLibraryButton",
+        "WorkbenchAbilityAnimationToolsMenu",
     ),
     action(
         "workbench.extension.pose_library.preview.invoke",
@@ -405,8 +328,6 @@ const POSE_LIBRARY_FIELD_ACTIONS: &[&str] = &[
 pub(super) const POSE_LIBRARY_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.pose_library.open",
     "WorkbenchExtensionPoseLibraryWorkspace",
-    POSE_LIBRARY_TAB_CONTROLS,
-    POSE_LIBRARY_TAB_ACTIONS,
     POSE_LIBRARY_ROW_CONTROLS,
     POSE_LIBRARY_ROW_ACTIONS,
     POSE_LIBRARY_COMMAND_CONTROLS,
@@ -414,25 +335,6 @@ pub(super) const POSE_LIBRARY_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     POSE_LIBRARY_FIELD_ACTIONS,
 );
 
-const RETARGET_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionRetargetRigsTab",
-    "WorkbenchExtensionRetargetChainsTab",
-    "WorkbenchExtensionRetargetPreviewTab",
-];
-const RETARGET_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.retarget.rigs_tab.select",
-        "WorkbenchExtensionRetargetRigsTab",
-    ),
-    action(
-        "workbench.extension.retarget.chains_tab.select",
-        "WorkbenchExtensionRetargetChainsTab",
-    ),
-    action(
-        "workbench.extension.retarget.preview_tab.select",
-        "WorkbenchExtensionRetargetPreviewTab",
-    ),
-];
 const RETARGET_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionRetargetMannequinRow",
     "WorkbenchExtensionRetargetRobotRow",
@@ -441,7 +343,6 @@ const RETARGET_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionRetargetSpineChainTableRow",
     "WorkbenchExtensionRetargetArmChainTableRow",
     "WorkbenchExtensionRetargetLegChainTableRow",
-    "WorkbenchExtensionRetargetOutputRow",
 ];
 const RETARGET_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -472,20 +373,16 @@ const RETARGET_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.retarget.leg_chain_table_row.select",
         "WorkbenchExtensionRetargetLegChainTableRow",
     ),
-    action(
-        "workbench.extension.retarget.output.select",
-        "WorkbenchExtensionRetargetOutputRow",
-    ),
 ];
 const RETARGET_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAbilityRetargetButton",
+    "WorkbenchAbilityAnimationToolsMenu",
     "WorkbenchExtensionRetargetPreviewButton",
     "WorkbenchExtensionRetargetApplyButton",
 ];
 const RETARGET_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.retarget.open",
-        "WorkbenchAbilityRetargetButton",
+        "WorkbenchAbilityAnimationToolsMenu",
     ),
     action(
         "workbench.extension.retarget.preview.invoke",
@@ -508,8 +405,6 @@ const RETARGET_FIELD_ACTIONS: &[&str] = &[
 pub(super) const RETARGET_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.retarget.open",
     "WorkbenchExtensionRetargetWorkspace",
-    RETARGET_TAB_CONTROLS,
-    RETARGET_TAB_ACTIONS,
     RETARGET_ROW_CONTROLS,
     RETARGET_ROW_ACTIONS,
     RETARGET_COMMAND_CONTROLS,
@@ -517,25 +412,6 @@ pub(super) const RETARGET_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     RETARGET_FIELD_ACTIONS,
 );
 
-const CONTROL_RIG_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionControlRigControlsTab",
-    "WorkbenchExtensionControlRigHierarchyTab",
-    "WorkbenchExtensionControlRigSolveTab",
-];
-const CONTROL_RIG_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.control_rig.controls_tab.select",
-        "WorkbenchExtensionControlRigControlsTab",
-    ),
-    action(
-        "workbench.extension.control_rig.hierarchy_tab.select",
-        "WorkbenchExtensionControlRigHierarchyTab",
-    ),
-    action(
-        "workbench.extension.control_rig.solve_tab.select",
-        "WorkbenchExtensionControlRigSolveTab",
-    ),
-];
 const CONTROL_RIG_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionControlRigHeroRow",
     "WorkbenchExtensionControlRigSpineRow",
@@ -544,7 +420,6 @@ const CONTROL_RIG_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionControlRigArmIkTableRow",
     "WorkbenchExtensionControlRigHandIkTableRow",
     "WorkbenchExtensionControlRigOutputPoseTableRow",
-    "WorkbenchExtensionControlRigOutputRow",
 ];
 const CONTROL_RIG_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -575,20 +450,16 @@ const CONTROL_RIG_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.control_rig.output_pose_table_row.select",
         "WorkbenchExtensionControlRigOutputPoseTableRow",
     ),
-    action(
-        "workbench.extension.control_rig.output.select",
-        "WorkbenchExtensionControlRigOutputRow",
-    ),
 ];
 const CONTROL_RIG_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAbilityControlRigButton",
+    "WorkbenchAbilityAnimationToolsMenu",
     "WorkbenchExtensionControlRigPreviewButton",
     "WorkbenchExtensionControlRigValidateButton",
 ];
 const CONTROL_RIG_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.control_rig.open",
-        "WorkbenchAbilityControlRigButton",
+        "WorkbenchAbilityAnimationToolsMenu",
     ),
     action(
         "workbench.extension.control_rig.preview.invoke",
@@ -611,8 +482,6 @@ const CONTROL_RIG_FIELD_ACTIONS: &[&str] = &[
 pub(super) const CONTROL_RIG_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.control_rig.open",
     "WorkbenchExtensionControlRigWorkspace",
-    CONTROL_RIG_TAB_CONTROLS,
-    CONTROL_RIG_TAB_ACTIONS,
     CONTROL_RIG_ROW_CONTROLS,
     CONTROL_RIG_ROW_ACTIONS,
     CONTROL_RIG_COMMAND_CONTROLS,
@@ -620,25 +489,6 @@ pub(super) const CONTROL_RIG_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     CONTROL_RIG_FIELD_ACTIONS,
 );
 
-const MOTION_MATCHING_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionMotionMatchingDatabaseTab",
-    "WorkbenchExtensionMotionMatchingTrajectoryTab",
-    "WorkbenchExtensionMotionMatchingDebugTab",
-];
-const MOTION_MATCHING_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.motion_matching.database_tab.select",
-        "WorkbenchExtensionMotionMatchingDatabaseTab",
-    ),
-    action(
-        "workbench.extension.motion_matching.trajectory_tab.select",
-        "WorkbenchExtensionMotionMatchingTrajectoryTab",
-    ),
-    action(
-        "workbench.extension.motion_matching.debug_tab.select",
-        "WorkbenchExtensionMotionMatchingDebugTab",
-    ),
-];
 const MOTION_MATCHING_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionMotionMatchingLocomotionRow",
     "WorkbenchExtensionMotionMatchingCombatRow",
@@ -647,7 +497,6 @@ const MOTION_MATCHING_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionMotionMatchingStartClipTableRow",
     "WorkbenchExtensionMotionMatchingPivotClipTableRow",
     "WorkbenchExtensionMotionMatchingStopClipTableRow",
-    "WorkbenchExtensionMotionMatchingOutputRow",
 ];
 const MOTION_MATCHING_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -678,20 +527,16 @@ const MOTION_MATCHING_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.motion_matching.stop_clip_table_row.select",
         "WorkbenchExtensionMotionMatchingStopClipTableRow",
     ),
-    action(
-        "workbench.extension.motion_matching.output.select",
-        "WorkbenchExtensionMotionMatchingOutputRow",
-    ),
 ];
 const MOTION_MATCHING_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAbilityMotionMatchingButton",
+    "WorkbenchAbilityAnimationToolsMenu",
     "WorkbenchExtensionMotionMatchingPreviewButton",
     "WorkbenchExtensionMotionMatchingRebuildButton",
 ];
 const MOTION_MATCHING_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.motion_matching.open",
-        "WorkbenchAbilityMotionMatchingButton",
+        "WorkbenchAbilityAnimationToolsMenu",
     ),
     action(
         "workbench.extension.motion_matching.preview.invoke",
@@ -714,8 +559,6 @@ const MOTION_MATCHING_FIELD_ACTIONS: &[&str] = &[
 pub(super) const MOTION_MATCHING_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.motion_matching.open",
     "WorkbenchExtensionMotionMatchingWorkspace",
-    MOTION_MATCHING_TAB_CONTROLS,
-    MOTION_MATCHING_TAB_ACTIONS,
     MOTION_MATCHING_ROW_CONTROLS,
     MOTION_MATCHING_ROW_ACTIONS,
     MOTION_MATCHING_COMMAND_CONTROLS,
@@ -723,25 +566,6 @@ pub(super) const MOTION_MATCHING_NAVIGATION_SPEC: ExtensionNavigationSpec = spec
     MOTION_MATCHING_FIELD_ACTIONS,
 );
 
-const ANIMATION_COMPRESSION_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionAnimationCompressionClipsTab",
-    "WorkbenchExtensionAnimationCompressionCodecsTab",
-    "WorkbenchExtensionAnimationCompressionErrorsTab",
-];
-const ANIMATION_COMPRESSION_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.animation_compression.clips_tab.select",
-        "WorkbenchExtensionAnimationCompressionClipsTab",
-    ),
-    action(
-        "workbench.extension.animation_compression.codecs_tab.select",
-        "WorkbenchExtensionAnimationCompressionCodecsTab",
-    ),
-    action(
-        "workbench.extension.animation_compression.errors_tab.select",
-        "WorkbenchExtensionAnimationCompressionErrorsTab",
-    ),
-];
 const ANIMATION_COMPRESSION_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionAnimationCompressionLocomotionRow",
     "WorkbenchExtensionAnimationCompressionCombatRow",
@@ -750,7 +574,6 @@ const ANIMATION_COMPRESSION_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionAnimationCompressionAttackClipTableRow",
     "WorkbenchExtensionAnimationCompressionFacialClipTableRow",
     "WorkbenchExtensionAnimationCompressionErrorClipTableRow",
-    "WorkbenchExtensionAnimationCompressionOutputRow",
 ];
 const ANIMATION_COMPRESSION_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -781,20 +604,16 @@ const ANIMATION_COMPRESSION_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.animation_compression.error_clip_table_row.select",
         "WorkbenchExtensionAnimationCompressionErrorClipTableRow",
     ),
-    action(
-        "workbench.extension.animation_compression.output.select",
-        "WorkbenchExtensionAnimationCompressionOutputRow",
-    ),
 ];
 const ANIMATION_COMPRESSION_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAbilityAnimationCompressionButton",
+    "WorkbenchAbilityAnimationToolsMenu",
     "WorkbenchExtensionAnimationCompressionPreviewButton",
     "WorkbenchExtensionAnimationCompressionCompressButton",
 ];
 const ANIMATION_COMPRESSION_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.animation_compression.open",
-        "WorkbenchAbilityAnimationCompressionButton",
+        "WorkbenchAbilityAnimationToolsMenu",
     ),
     action(
         "workbench.extension.animation_compression.preview.invoke",
@@ -817,8 +636,6 @@ const ANIMATION_COMPRESSION_FIELD_ACTIONS: &[&str] = &[
 pub(super) const ANIMATION_COMPRESSION_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.animation_compression.open",
     "WorkbenchExtensionAnimationCompressionWorkspace",
-    ANIMATION_COMPRESSION_TAB_CONTROLS,
-    ANIMATION_COMPRESSION_TAB_ACTIONS,
     ANIMATION_COMPRESSION_ROW_CONTROLS,
     ANIMATION_COMPRESSION_ROW_ACTIONS,
     ANIMATION_COMPRESSION_COMMAND_CONTROLS,

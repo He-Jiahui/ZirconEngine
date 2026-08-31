@@ -1,9 +1,14 @@
+use std::collections::HashSet;
+
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventError, UiComponentKeyboardAction, UiComponentState,
     UiValue, UiValueKind,
 };
 
-use super::{command_palette, notification_center, numeric, overlay, text_input, tree_view};
+use super::{
+    command_palette, notification_center, numeric, overlay, selection::option_is_disabled,
+    tree_view,
+};
 
 mod menu;
 
@@ -47,9 +52,6 @@ pub(super) fn apply_keyboard_text(
     }
     if command_palette::apply_keyboard_text(state, descriptor, text)? {
         return Ok(());
-    }
-    if text_input::is_text_input_control(descriptor) {
-        return text_input::apply_keyboard_text(state, descriptor, text);
     }
     menu::apply_keyboard_text(state, descriptor, text)
 }
@@ -155,10 +157,10 @@ fn navigate(
         return Ok(());
     }
 
+    let eligibility = OptionEligibility::new(state, descriptor);
     let current = current_index(state, descriptor, &options);
     let next = match next_enabled_index(
-        state,
-        descriptor,
+        &eligibility,
         action,
         current,
         &options,
@@ -271,7 +273,8 @@ fn toggle_multiple_toggle_group_focused_option(
     let Some(option_id) = options.get(current as usize) else {
         return;
     };
-    if option_is_disabled(state, descriptor, option_id) {
+    let eligibility = OptionEligibility::new(state, descriptor);
+    if eligibility.is_disabled(option_id) {
         return;
     }
 
@@ -464,8 +467,7 @@ fn option_label_text(values: &std::collections::BTreeMap<String, UiValue>) -> Op
 }
 
 fn next_enabled_index(
-    state: &UiComponentState,
-    descriptor: &UiComponentDescriptor,
+    eligibility: &OptionEligibility<'_>,
     action: UiComponentKeyboardAction,
     current: i64,
     options: &[String],
@@ -473,10 +475,16 @@ fn next_enabled_index(
     skip_disabled: bool,
 ) -> Option<i64> {
     let max_index = (options.len() - 1) as i64;
-    let current = current.clamp(0, max_index);
-    let focusable = |index: i64| {
-        !skip_disabled || !option_is_disabled(state, descriptor, &options[index as usize])
-    };
+    let focusable =
+        |index: i64| !skip_disabled || !eligibility.is_disabled(&options[index as usize]);
+    if !(0..=max_index).contains(&current) {
+        return match action {
+            UiComponentKeyboardAction::Previous | UiComponentKeyboardAction::Last => {
+                (0..=max_index).rev().find(|index| focusable(*index))
+            }
+            _ => (0..=max_index).find(|index| focusable(*index)),
+        };
+    }
 
     match action {
         UiComponentKeyboardAction::First => (0..=max_index).find(|index| focusable(*index)),
@@ -521,28 +529,67 @@ fn option_id_list(value: &UiValue) -> Vec<String> {
     }
 }
 
-fn option_is_disabled(
-    state: &UiComponentState,
-    descriptor: &UiComponentDescriptor,
-    option_id: &str,
-) -> bool {
-    option_is_explicitly_disabled(state, descriptor, option_id)
-        || menu::option_is_hidden_by_search_filter(state, descriptor, option_id)
+struct ExplicitOptionEligibility<'a> {
+    disabled: HashSet<&'a str>,
 }
 
-fn option_is_explicitly_disabled(
-    state: &UiComponentState,
-    descriptor: &UiComponentDescriptor,
-    option_id: &str,
-) -> bool {
-    descriptor
-        .prop("options")
-        .and_then(|schema| schema.options.iter().find(|option| option.id == option_id))
-        .is_some_and(|option| option.disabled)
-        || state
-            .values
-            .get("disabled_options")
-            .is_some_and(|value| option_id_list_contains(value, option_id))
+impl<'a> ExplicitOptionEligibility<'a> {
+    fn new(state: &'a UiComponentState, descriptor: &'a UiComponentDescriptor) -> Self {
+        let mut disabled = descriptor
+            .prop("options")
+            .into_iter()
+            .flat_map(|schema| schema.options.iter())
+            .filter(|option| option.disabled)
+            .map(|option| option.id.as_str())
+            .collect::<HashSet<_>>();
+        if let Some(value) = state.values.get("disabled_options") {
+            collect_option_id_refs(value, &mut disabled);
+        }
+        Self { disabled }
+    }
+
+    fn is_disabled(&self, option_id: &str) -> bool {
+        self.disabled.contains(option_id)
+    }
+}
+
+struct OptionEligibility<'a> {
+    explicit: ExplicitOptionEligibility<'a>,
+    search_filter: Option<menu::MenuSearchFilter<'a>>,
+}
+
+impl<'a> OptionEligibility<'a> {
+    fn new(state: &'a UiComponentState, descriptor: &'a UiComponentDescriptor) -> Self {
+        Self {
+            explicit: ExplicitOptionEligibility::new(state, descriptor),
+            search_filter: menu::option_search_filter(state, descriptor),
+        }
+    }
+
+    fn is_disabled(&self, option_id: &str) -> bool {
+        self.explicit.is_disabled(option_id)
+            || self
+                .search_filter
+                .as_ref()
+                .is_some_and(|filter| menu::option_is_hidden_by_search_filter(filter, option_id))
+    }
+}
+
+fn collect_option_id_refs<'a>(value: &'a UiValue, ids: &mut HashSet<&'a str>) {
+    match value {
+        UiValue::Array(values) => {
+            for value in values {
+                collect_option_id_refs(value, ids);
+            }
+        }
+        UiValue::String(value) | UiValue::Enum(value) => {
+            ids.insert(value.as_str());
+        }
+        UiValue::Flags(values) => {
+            ids.extend(values.iter().map(String::as_str));
+        }
+        _ => {}
+    }
 }
 
 fn option_id_list_contains(value: &UiValue, option_id: &str) -> bool {

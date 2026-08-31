@@ -2,7 +2,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use zircon_runtime_interface::{
-    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
+    GatewaySessionIdentity, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1,
 };
 
 use crate::core::gateway::{
@@ -20,10 +21,11 @@ fn session_gateway_keeps_the_runtime_provider_alive() {
     let drops = Arc::new(AtomicUsize::new(0));
     let owner: Arc<dyn Send + Sync> = Arc::new(OwnerDropProbe(drops.clone()));
     let gateway = unsafe {
-        SessionGateway::new(
+        SessionGateway::new_with_identity(
             owner,
             api_table(),
             ZrRuntimeSessionHandle::new(17),
+            GatewaySessionIdentity::new(17, ZrRuntimeSessionHandle::new(17), 1, None),
             capabilities(),
             Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )
@@ -44,10 +46,11 @@ fn session_gateway_retains_foreign_frame_storage_until_explicit_release() {
     let mut api = api_table();
     api.capture_frame = Some(fake_capture_owned_frame);
     let gateway = unsafe {
-        SessionGateway::new(
+        SessionGateway::new_with_identity(
             owner,
             api,
             ZrRuntimeSessionHandle::new(17),
+            GatewaySessionIdentity::new(17, ZrRuntimeSessionHandle::new(17), 1, None),
             capabilities(),
             Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )

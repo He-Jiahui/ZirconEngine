@@ -78,6 +78,7 @@ pub struct EditorAssetCatalogSnapshotRecord {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EditorAssetChangeKind {
     CatalogChanged,
+    AssetStateChanged,
     PreviewChanged,
     PreviewAdmissionAvailable,
     ReferenceChanged,

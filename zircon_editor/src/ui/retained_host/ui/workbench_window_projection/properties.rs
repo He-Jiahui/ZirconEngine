@@ -163,16 +163,40 @@ pub(super) fn color_property(
 }
 
 fn parse_hex_rgba(raw: &str) -> Option<[u8; 4]> {
-    let hex = raw.trim().strip_prefix('#')?;
-    let channel = |range: std::ops::Range<usize>| u8::from_str_radix(&hex[range], 16).ok();
+    // EDITOR76_HEX_COLOR_NIBBLE_DECODE_BENCH_V1
+    let hex = raw.trim().strip_prefix('#')?.as_bytes();
     match hex.len() {
-        6 => Some([channel(0..2)?, channel(2..4)?, channel(4..6)?, 255]),
+        6 => Some([
+            hex_channel(hex, 0)?,
+            hex_channel(hex, 2)?,
+            hex_channel(hex, 4)?,
+            255,
+        ]),
         8 => Some([
-            channel(0..2)?,
-            channel(2..4)?,
-            channel(4..6)?,
-            channel(6..8)?,
+            hex_channel(hex, 0)?,
+            hex_channel(hex, 2)?,
+            hex_channel(hex, 4)?,
+            hex_channel(hex, 6)?,
         ]),
         _ => None,
     }
 }
+
+#[inline]
+fn hex_channel(hex: &[u8], offset: usize) -> Option<u8> {
+    Some((hex_nibble(hex[offset])? << 4) | hex_nibble(hex[offset + 1])?)
+}
+
+#[inline]
+fn hex_nibble(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+#[path = "properties/hex_color_decode_tests.rs"]
+mod hex_color_decode_tests;

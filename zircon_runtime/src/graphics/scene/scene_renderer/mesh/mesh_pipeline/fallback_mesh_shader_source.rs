@@ -13,7 +13,15 @@ pub(crate) const FALLBACK_MESH_SHADER: &str = concat!(
     "\n",
     include_str!("../../../../shader/wgsl/zr_lightmap.wgsl"),
     "\n",
+    include_str!("../../../../shader/includes/zr_pbr_common.wgsl"),
+    "\n",
+    include_str!("../../../../shader/includes/zr_pbr_extras_core.wgsl"),
+    "\n",
+    include_str!("../../../../shader/includes/zr_normal.wgsl"),
+    "\n",
     include_str!("../shaders/fallback_mesh.wgsl"),
+    "\n",
+    include_str!("../../../../shader/wgsl/zr_procedural_sky.wgsl"),
     "\n",
     include_str!("../../../../shader/wgsl/zr_environment_core.wgsl"),
     "\n",
@@ -28,22 +36,59 @@ mod tests {
 
     #[test]
     fn fallback_mesh_shader_declares_gpu_scene_group() {
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(3) @binding(0) var<storage, read> zr_primitive_data"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(3) @binding(1) var<storage, read> zr_instance_data"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(3) @binding(0) var<storage, read> zr_primitive_data")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(3) @binding(1) var<storage, read> zr_instance_data")
+        );
         assert!(
             FALLBACK_MESH_SHADER.contains("@group(3) @binding(2) var<storage, read> zr_light_data")
         );
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette")
+        );
         assert!(FALLBACK_MESH_SHADER.contains(
             "@group(3) @binding(4) var<storage, read> zr_previous_skinned_joint_palette"
         ));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_world_from_local(instance_index: u32)"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_gpu_scene_light_count() -> u32"));
-        assert!(FALLBACK_MESH_SHADER.contains("fn zr_skinned_joint_count() -> u32"));
-        assert!(FALLBACK_MESH_SHADER.contains("fn zr_previous_skinned_joint_count() -> u32"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains("fn zr_skinned_joint_count(instance_index: u32) -> u32")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("fn zr_previous_skinned_joint_count(instance_index: u32) -> u32")
+        );
+    }
+
+    #[test]
+    fn fallback_mesh_shader_applies_precomputed_per_slot_uv_rotation() {
+        for required in [
+            "data13: vec4<f32>,",
+            "data14: vec4<f32>,",
+            "data15: vec4<f32>,",
+            "let scaled = uv * transform.xy;",
+            "scaled.x * rotation_sin_cos.x - scaled.y * rotation_sin_cos.y",
+            "scaled.x * rotation_sin_cos.y + scaled.y * rotation_sin_cos.x",
+            "material_properties.data13.xy",
+            "material_properties.data13.zw",
+            "material_properties.data14.xy",
+            "material_properties.data14.zw",
+            "material_properties.data15.xy",
+        ] {
+            assert!(
+                FALLBACK_MESH_SHADER.contains(required),
+                "fallback mesh shader must retain `{required}` for KHR_texture_transform rotation"
+            );
+        }
+        assert!(
+            !FALLBACK_MESH_SHADER.contains("uv * transform.xy + transform.zw"),
+            "fallback mesh shader must not silently drop texture rotation"
+        );
     }
 
     #[test]
@@ -51,13 +96,33 @@ mod tests {
         assert!(FALLBACK_MESH_SHADER.contains(
             "fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32)"
         ));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let world_from_local = zr_world_from_local(instance_index);"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let motion_params = zr_gpu_scene_motion_params(instance_index);"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains("let instance = zr_gpu_scene_instance(instance_index);")
+        );
+        assert!(FALLBACK_MESH_SHADER.contains("let world_from_local = instance.world_from_local;"));
+        assert!(FALLBACK_MESH_SHADER.contains("let instance_flags = instance.flags;"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("let motion_params = zr_gpu_scene_motion_params(instance_index);")
+        );
+        assert!(FALLBACK_MESH_SHADER.contains("fn zr_gpu_scene_normal_to_world_direction("));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "output.world_normal = normalize_or_zero(zr_gpu_scene_normal_to_world_direction(world_from_local, instance_flags, local_normal));"
+        ));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "output.world_tangent = normalize_or_zero(zr_gpu_scene_tangent_to_world_direction(world_from_local, instance_flags, local_tangent));"
+        ));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "output.tangent_handedness = select(-1.0, 1.0, input.tangent.w >= 0.0) * zr_gpu_scene_tangent_handedness_scale(instance_flags);"
+        ));
+        assert!(!FALLBACK_MESH_SHADER.contains(
+            "output.world_normal = normalize_or_zero((world_from_local * vec4<f32>(local_normal, 0.0)).xyz);"
+        ));
         assert!(FALLBACK_MESH_SHADER.contains("output.tint = zr_gpu_scene_tint(instance_index);"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("output.shadow_params = zr_gpu_scene_shadow_params(instance_index);"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("output.shadow_params = zr_gpu_scene_shadow_params(instance_index);")
+        );
         assert!(FALLBACK_MESH_SHADER.contains(
             "let previous_world = zr_previous_world_from_local(instance_index) * vec4<f32>(previous_local_position, 1.0);"
         ));
@@ -154,47 +219,67 @@ mod tests {
     #[test]
     fn fallback_mesh_shader_reads_gpu_light_buffer_for_all_builtin_light_types() {
         assert!(FALLBACK_MESH_SHADER.contains("@location(2) world_position: vec3<f32>"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let ambient = scene.ambient_color.rgb * material.occlusion;"));
+        assert!(FALLBACK_MESH_SHADER.contains("let ambient = zr_scene_ambient_color("));
         assert!(FALLBACK_MESH_SHADER.contains("fn gpu_light_lighting"));
         assert!(FALLBACK_MESH_SHADER.contains("fn shade_gpu_light_index"));
         assert!(FALLBACK_MESH_SHADER.contains("if (light_index >= zr_gpu_scene_light_count())"));
         assert!(FALLBACK_MESH_SHADER.contains("let light = zr_gpu_light(light_index);"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("zr_light_mask_word(tile_base, bin, word, zr_light_grid_params)"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("zr_light_mask_word(tile_base, bin, word, zr_light_grid_params)")
+        );
         assert!(FALLBACK_MESH_SHADER.contains("firstTrailingBit(mask)"));
         assert!(FALLBACK_MESH_SHADER.contains("ZR_GPU_LIGHT_TYPE_DIRECTIONAL"));
         assert!(FALLBACK_MESH_SHADER.contains("ZR_GPU_LIGHT_TYPE_POINT"));
         assert!(FALLBACK_MESH_SHADER.contains("ZR_GPU_LIGHT_TYPE_SPOT"));
         assert!(FALLBACK_MESH_SHADER.contains("ZR_GPU_LIGHT_TYPE_RECT"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z)"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let direct_lights = gpu_light_lighting(input.clip_position.xy"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains(
+                "zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z)"
+            )
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("let direct_lights = gpu_light_lighting(input.clip_position.xy")
+        );
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_pbr_indirect"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_is_realtime_ibl"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_procedural_sky_color"));
         assert!(FALLBACK_MESH_SHADER.contains("scene.environment_sample_params.x"));
         assert!(FALLBACK_MESH_SHADER.contains("zr_environment_sh9.coefficients[0].rgb"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_has_irradiance_cube"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(0) @binding(2) var zr_environment_sampler: sampler;"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(0) @binding(3) var zr_environment_brdf_lut: texture_2d<f32>;"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains(
+                "@group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;"
+            )
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(0) @binding(2) var zr_environment_sampler: sampler;")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(0) @binding(3) var zr_environment_brdf_lut: texture_2d<f32>;")
+        );
         assert!(FALLBACK_MESH_SHADER.contains(
             "@group(0) @binding(4) var zr_environment_specular_pmrem_cube: texture_cube<f32>;"
         ));
         assert!(FALLBACK_MESH_SHADER.contains(
             "@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;"
         ));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(0) @binding(6) var<uniform> zr_environment_sh9: ZrEnvironmentSh9;"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(1) @binding(16) var<storage, read> zr_env_probes"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(1) @binding(17) var<uniform> zr_env_probe_header"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains(
+                "@group(0) @binding(6) var<uniform> zr_environment_sh9: ZrEnvironmentSh9;"
+            )
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(1) @binding(16) var<storage, read> zr_env_probes")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(1) @binding(17) var<uniform> zr_env_probe_header")
+        );
         assert!(FALLBACK_MESH_SHADER.contains(
             "@group(1) @binding(18) var zr_env_probe_cubemaps: texture_cube_array<f32>;"
         ));
@@ -211,10 +296,14 @@ mod tests {
         assert!(FALLBACK_MESH_SHADER.contains("if (zr_environment_has_irradiance_cube()) {"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_env_brdf_lut"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_env_brdf_approx"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("material.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let environment_lights = zr_environment_pbr_indirect_normalized("));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("material.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID")
+        );
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "let environment_lights = zr_environment_pbr_indirect_with_dielectric_f0_normalized("
+        ));
+        assert!(FALLBACK_MESH_SHADER.contains("material.dielectric_f0,"));
         assert!(FALLBACK_MESH_SHADER.contains(
             "let lit = diffuse_color * diffuse_energy_scale * ambient + direct_lights + environment_lights + baked_indirect;"
         ));
@@ -238,12 +327,10 @@ mod tests {
             "let normalized_world_normal = world_normal_normalized;",
             "let world_view = view_dir_normalized;",
             "if (material.shading_model_id != ZR_SHADING_MODEL_BLINN_PHONG_ID)",
-            "direct_f0 = mix(",
-            "direct_diffuse_brdf =",
+            "direct_f0 = fallback_pbr_material_f0(",
             "normalized_world_normal,",
             "world_view,",
             "direct_f0,",
-            "direct_diffuse_brdf,",
         ] {
             assert!(
                 light_loop.contains(expected),
@@ -261,9 +348,9 @@ mod tests {
             .and_then(|source| source.split("fn sampled_base_color(").next())
             .expect("fallback shader should retain the sampled-normal owner");
         for expected in [
-            "let geometric_normal = normalize_or_zero(input.world_normal);",
-            "let world_normal = normalize_or_zero(tangent * tangent_normal.x + bitangent * tangent_normal.y + geometric_normal * tangent_normal.z);",
-            "return world_normal;",
+            "let geometric_normal = input.world_normal;",
+            "let world_normal = tangent * tangent_normal.x + bitangent * tangent_normal.y + geometric_normal * tangent_normal.z;",
+            "return normalize(world_normal);",
         ] {
             assert!(
                 surface_normal.contains(expected),
@@ -277,7 +364,7 @@ mod tests {
             .expect("fallback shader should retain the lit fragment owner");
         for expected in [
             "let world_normal = sampled_world_normal(input);",
-            "let view_dir = scene_view_dir_ws(input.world_position);",
+            "let view_dir = zr_pbr_view_direction_ws(input.world_position);",
             "let direct_lights = gpu_light_lighting(input.clip_position.xy, input.world_position, world_normal, material, diffuse_color, input.shadow_params, view_dir);",
         ] {
             assert!(
@@ -319,10 +406,8 @@ mod tests {
             !standard_lobe.contains("let f0 = mix("),
             "fallback standard PBR must not recompute F0 per light"
         );
-        assert!(
-            !standard_lobe.contains("1.0 - material.metallic"),
-            "fallback standard PBR must not recompute diffuse BRDF per light"
-        );
+        assert!(standard_lobe.contains("direct_diffuse_brdf"));
+        assert!(!standard_lobe.contains("fallback_pbr_diffuse_energy_scale"));
     }
 
     #[test]
@@ -331,15 +416,22 @@ mod tests {
         assert!(FALLBACK_MESH_SHADER.contains("previous_view_proj_unjittered: mat4x4<f32>"));
         assert!(FALLBACK_MESH_SHADER.contains("fn vs_velocity_object"));
         assert!(FALLBACK_MESH_SHADER.contains("fn fs_velocity_object"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let previous_local_position = skin_previous_vertex_position"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("let previous_local_position = skin_previous_vertex_position")
+        );
         assert!(FALLBACK_MESH_SHADER.contains(
             "let previous_world = zr_previous_world_from_local(instance_index) * vec4<f32>(previous_local_position, 1.0);"
         ));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let current_clip = scene.view_proj_unjittered * current_world"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let previous_clip = scene.previous_view_proj_unjittered * previous_world"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("let current_clip = scene.view_proj_unjittered * current_world")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER.contains(
+                "let previous_clip = scene.previous_view_proj_unjittered * previous_world"
+            )
+        );
         assert!(FALLBACK_MESH_SHADER.contains("input.motion_params.x <= 0.5"));
     }
 
@@ -371,11 +463,17 @@ mod tests {
         assert!(FALLBACK_MESH_SHADER.contains("fn sampled_base_color"));
         assert!(FALLBACK_MESH_SHADER.contains("fn fs_taa_reactive_mask"));
         assert!(FALLBACK_MESH_SHADER.contains("fn fs_taa_reactive_material_mask"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let authored_strength = clamp(material_properties.data8.x, 0.0, 1.0);"));
-        assert!(FALLBACK_MESH_SHADER.contains("let reactive_mask = max(alpha, authored_strength);"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let reactive_mask = clamp(material_properties.data8.x, 0.0, 1.0);"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("let authored_strength = clamp(material_properties.data8.x, 0.0, 1.0);")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER.contains("let reactive_mask = max(alpha, authored_strength);")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("let reactive_mask = clamp(material_properties.data8.x, 0.0, 1.0);")
+        );
         assert!(FALLBACK_MESH_SHADER.contains("return reactive_mask;"));
         assert!(FALLBACK_MESH_SHADER.contains("discard;"));
     }
@@ -401,23 +499,51 @@ mod tests {
     }
 
     #[test]
-    fn fallback_mesh_shader_samples_normal_map_with_tangent_frame() {
+    fn fallback_mesh_shader_shares_normal_map_decoding_with_standard_materials() {
         assert!(
             FALLBACK_MESH_SHADER.contains("@group(2) @binding(3) var normal_tex: texture_2d<f32>;")
         );
-        assert!(FALLBACK_MESH_SHADER.contains("@group(2) @binding(4) var normal_sampler: sampler;"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains("@group(2) @binding(4) var normal_sampler: sampler;")
+        );
         assert!(FALLBACK_MESH_SHADER.contains("fn skin_vertex_tangent"));
         assert!(FALLBACK_MESH_SHADER.contains("input.motion_params.w <= 0.5"));
         assert!(FALLBACK_MESH_SHADER.contains("let encoded_normal_xy = textureSampleBias("));
-        assert!(FALLBACK_MESH_SHADER.contains("let tangent_normal_xy = encoded_normal_xy * 2.0"));
-        assert!(FALLBACK_MESH_SHADER.contains("sqrt(max(0.0, 1.0 - dot(tangent_normal_xy"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("fn zr_reconstruct_bc5_normal(encoded_xy: vec2<f32>) -> vec3<f32>")
+        );
+        assert!(FALLBACK_MESH_SHADER.contains("zr_reconstruct_bc5_normal("));
+        assert!(!FALLBACK_MESH_SHADER.contains("ZR_NORMAL_CONVENTION_"));
+        assert!(FALLBACK_MESH_SHADER.contains("sampled_normal.xy * material_properties.data12.x,"));
+        assert!(FALLBACK_MESH_SHADER.contains("material_properties.data13.zw,"));
         assert!(FALLBACK_MESH_SHADER.contains(
-            "let normal_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data3, material_properties.data7.y);"
+            "let bitangent = cross(geometric_normal, tangent) * input.tangent_handedness;"
         ));
-        assert!(FALLBACK_MESH_SHADER.contains("let bitangent = normalize_or_zero(cross(geometric_normal, tangent) * input.tangent_handedness);"));
-        assert!(FALLBACK_MESH_SHADER.contains("let world_normal = sampled_world_normal(input);"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let lambert = max(dot(world_normal, light_vector), 0.0);"));
+        assert!(!FALLBACK_MESH_SHADER.contains("input.world_tangent - geometric_normal * dot("));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("let sampled_normal = sampled_world_normal(input, uv_mask);")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("return u32(round(clamp(material_properties.data7.x, 0.0, 63.0)));")
+        );
+        assert!(FALLBACK_MESH_SHADER.contains("(uv_mask & (1u << slot)) != 0u"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("let lambert = max(dot(world_normal, light_vector), 0.0);")
+        );
+    }
+
+    #[test]
+    fn fallback_mesh_shader_orients_double_sided_normals_from_raster_facing() {
+        assert!(FALLBACK_MESH_SHADER.contains("@builtin(front_facing) front_facing: bool"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains(
+                "let world_normal = select(-sampled_normal, sampled_normal, front_facing);"
+            )
+        );
     }
 
     #[test]
@@ -431,41 +557,74 @@ mod tests {
 
     #[test]
     fn fallback_mesh_shader_samples_standard_pbr_texture_set() {
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(2) @binding(5) var metallic_roughness_tex: texture_2d<f32>;"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(2) @binding(6) var metallic_roughness_sampler: sampler;"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(2) @binding(7) var occlusion_tex: texture_2d<f32>;"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(2) @binding(5) var metallic_roughness_tex: texture_2d<f32>;")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(2) @binding(6) var metallic_roughness_sampler: sampler;")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(2) @binding(7) var occlusion_tex: texture_2d<f32>;")
+        );
         assert!(
             FALLBACK_MESH_SHADER.contains("@group(2) @binding(8) var occlusion_sampler: sampler;")
         );
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(2) @binding(9) var emissive_tex: texture_2d<f32>;"));
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("@group(2) @binding(9) var emissive_tex: texture_2d<f32>;")
+        );
         assert!(
             FALLBACK_MESH_SHADER.contains("@group(2) @binding(10) var emissive_sampler: sampler;")
         );
-        assert!(FALLBACK_MESH_SHADER.contains("material_properties.data0.x * metallic_roughness.b"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains("material_properties.data0.x * metallic_roughness.b")
+        );
         assert!(FALLBACK_MESH_SHADER.contains(
-            "roughness = clamp(roughness * metallic_roughness.g, ZR_STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);"
+            "let roughness = clamp(\n        material_properties.data0.y * metallic_roughness.g,\n        ZR_STANDARD_MATERIAL_MIN_ROUGHNESS,\n        1.0,\n    );"
         ));
+        for projection in [
+            "let base_color_uv = transform_material_uv_channel(",
+            "let metallic_roughness_uv = transform_material_uv_channel(",
+            "let occlusion_uv = transform_material_uv_channel(",
+            "let emissive_uv = transform_material_uv_channel(",
+            "uv_mask,\n        0u,",
+            "uv_mask,\n        2u,",
+            "uv_mask,\n        3u,",
+            "uv_mask,\n        4u,",
+        ] {
+            assert!(FALLBACK_MESH_SHADER.contains(projection));
+        }
         assert!(FALLBACK_MESH_SHADER.contains(
-            "let base_color_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data2, material_properties.data7.x);"
+            "let occlusion_sample = textureSampleBias(occlusion_tex, occlusion_sampler, occlusion_uv, scene.camera_world_position.w).r;"
         ));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let metallic_roughness_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data4, material_properties.data7.z);"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains(
+                "mix(1.0, occlusion_sample, clamp(material_properties.data0.z, 0.0, 1.0))"
+            )
+        );
         assert!(FALLBACK_MESH_SHADER.contains(
-            "let occlusion_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data5, material_properties.data7.w);"
+            "max(material_properties.data1.rgb, vec3<f32>(0.0, 0.0, 0.0)) * textureSampleBias(emissive_tex, emissive_sampler, emissive_uv, scene.camera_world_position.w).rgb"
         ));
-        assert!(FALLBACK_MESH_SHADER.contains(
-            "let emissive_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data6, material_properties.data1.w);"
+    }
+
+    #[test]
+    fn fallback_mesh_shader_preserves_explicit_zero_roughness_factor() {
+        let sampled_material = FALLBACK_MESH_SHADER
+            .split("fn sampled_material(")
+            .nth(1)
+            .and_then(|source| source.split("fn light_radiance(").next())
+            .expect("fallback mesh shader should retain sampled material owner");
+
+        assert!(sampled_material.contains(
+            "material_properties.data0.y * metallic_roughness.g,\n        ZR_STANDARD_MATERIAL_MIN_ROUGHNESS"
         ));
-        assert!(FALLBACK_MESH_SHADER.contains(
-            "occlusion = clamp(occlusion * textureSample(occlusion_tex, occlusion_sampler, occlusion_uv).r"
-        ));
-        assert!(FALLBACK_MESH_SHADER.contains(
-            "material_properties.data1.rgb, vec3<f32>(0.0, 0.0, 0.0)) * textureSample(emissive_tex, emissive_sampler, emissive_uv).rgb"
-        ));
+        assert!(
+            !sampled_material.contains("select(1.0, material_properties.data0.y"),
+            "an explicit glTF roughnessFactor=0 must clamp to the Standard PBR minimum, not fall back to 1.0"
+        );
     }
 
     #[test]
@@ -482,8 +641,8 @@ mod tests {
             "material.shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID",
             "fn shade_standard_pbr_light_vector_normalized",
             "fn shade_blinn_phong_light_vector",
-            "return shade_blinn_phong_light_vector(light_vector, radiance, normalized_world_normal, material, diffuse_color);",
-            "return shade_standard_pbr_light_vector_normalized(light_vector, radiance, normalized_world_normal, material, direct_f0, direct_diffuse_brdf, world_view);",
+            "return shade_blinn_phong_light_vector(light_vector, radiance, normalized_world_normal, material, diffuse_color, world_view);",
+            "return shade_standard_pbr_light_vector_normalized(light_vector, radiance, normalized_world_normal, material, diffuse_color, direct_f0, world_view);",
             "material.shading_model_id == ZR_SHADING_MODEL_UNLIT_ID",
             "let shaded = material.albedo.rgb + material.emissive;",
             "zr_volumetric_apply(shaded, input.clip_position.xy, input.clip_position.z)",
@@ -493,51 +652,91 @@ mod tests {
                 "fallback mesh shader should use `{expected}` for built-in shading model dispatch"
             );
         }
-        assert!(!FALLBACK_MESH_SHADER
-            .contains("let shaded = mix(lit, material.albedo.rgb, clamp(material.unlit"));
+        assert!(
+            !FALLBACK_MESH_SHADER
+                .contains("let shaded = mix(lit, material.albedo.rgb, clamp(material.unlit")
+        );
     }
 
     #[test]
     fn fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag() {
-        assert!(FALLBACK_MESH_SHADER.contains("struct ZrSkinnedJointPaletteStorage"));
-        assert!(FALLBACK_MESH_SHADER.contains("joint_matrices: array<mat4x4<f32>, 256>"));
-        assert!(FALLBACK_MESH_SHADER.contains("params: vec4<u32>"));
+        assert!(FALLBACK_MESH_SHADER.contains("skinning_palette_params: vec4<u32>"));
         assert!(FALLBACK_MESH_SHADER.contains(
-            "@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette: ZrSkinnedJointPaletteStorage;"
+            "@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette: array<mat4x4<f32>>;"
         ));
         assert!(FALLBACK_MESH_SHADER.contains(
-            "@group(3) @binding(4) var<storage, read> zr_previous_skinned_joint_palette: ZrSkinnedJointPaletteStorage;"
+            "@group(3) @binding(4) var<storage, read> zr_previous_skinned_joint_palette: array<mat4x4<f32>>;"
         ));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("fn zr_skinned_joint_matrix(joint_index: u32) -> mat4x4<f32>"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("fn zr_previous_skinned_joint_matrix(joint_index: u32) -> mat4x4<f32>"));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "fn zr_skinned_joint_matrix(instance_index: u32, joint_index: u32) -> mat4x4<f32>"
+        ));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "fn zr_previous_skinned_joint_matrix(instance_index: u32, joint_index: u32) -> mat4x4<f32>"
+        ));
+        assert!(!FALLBACK_MESH_SHADER.contains("struct ZrSkinnedJointPaletteStorage"));
         assert!(!FALLBACK_MESH_SHADER.contains("struct SkinnedJointPaletteUniform"));
-        assert!(!FALLBACK_MESH_SHADER
-            .contains("@group(1) @binding(1) var<uniform> skinned_joint_palette"));
-        assert!(!FALLBACK_MESH_SHADER
-            .contains("@group(1) @binding(2) var<uniform> previous_skinned_joint_palette"));
+        assert!(
+            !FALLBACK_MESH_SHADER
+                .contains("@group(1) @binding(1) var<uniform> skinned_joint_palette")
+        );
+        assert!(
+            !FALLBACK_MESH_SHADER
+                .contains("@group(1) @binding(2) var<uniform> previous_skinned_joint_palette")
+        );
         assert!(FALLBACK_MESH_SHADER.contains("fn skin_vertex_position"));
         assert!(FALLBACK_MESH_SHADER.contains("fn skin_previous_vertex_position"));
         assert!(FALLBACK_MESH_SHADER.contains("fn skin_vertex_normal"));
         assert!(FALLBACK_MESH_SHADER.contains("motion_params.y <= 0.5"));
         assert!(FALLBACK_MESH_SHADER.contains("motion_params.z <= 0.5"));
-        assert!(FALLBACK_MESH_SHADER.contains("joint_index >= zr_skinned_joint_count()"));
-        assert!(FALLBACK_MESH_SHADER.contains("joint_index >= zr_previous_skinned_joint_count()"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains("joint_index >= zr_skinned_joint_count(instance_index)")
+        );
+        assert!(
+            FALLBACK_MESH_SHADER
+                .contains("joint_index >= zr_previous_skinned_joint_count(instance_index)")
+        );
         assert!(FALLBACK_MESH_SHADER.contains(
-            "let local_position = skin_vertex_position(input.position, input.joint_indices, input.joint_weights, motion_params);"
+            "let local_position = skin_vertex_position(instance_index, input.position, input.joint_indices, input.joint_weights, motion_params);"
         ));
     }
 }
 
 #[test]
-fn fallback_mesh_standard_pbr_applies_metallic_diffuse_energy_exactly_once() {
+fn fallback_mesh_blinn_phong_direct_lighting_uses_camera_relative_view() {
+    let blinn_phong = FALLBACK_MESH_SHADER
+        .split("fn shade_blinn_phong_light_vector")
+        .nth(1)
+        .and_then(|source| source.split("fn shade_light_vector_normalized").next())
+        .expect("fallback shader should retain a separate Blinn-Phong light path");
+
     for expected in [
-        "fn material_diffuse_color(material: SampledMaterial) -> vec3<f32> {\n    return material.albedo.rgb;",
-        "let metallic = clamp(material_properties.data0.x * metallic_roughness.b, 0.0, 1.0);",
-        "direct_diffuse_brdf = diffuse_color * (1.0 - material.metallic) / FALLBACK_PBR_PI;",
-        "return direct_diffuse_brdf * radiance * lambert",
+        "world_view: vec3<f32>",
+        "let half_dir = normalize_or_zero(light_vector + world_view);",
+    ] {
+        assert!(
+            blinn_phong.contains(expected),
+            "fallback Blinn-Phong direct lighting should use camera-relative `{expected}`"
+        );
+    }
+    assert!(
+        !blinn_phong.contains("light_vector + vec3<f32>(0.0, 0.0, 1.0)"),
+        "fallback Blinn-Phong direct lighting must not synthesize a fixed +Z camera direction"
+    );
+}
+
+#[test]
+fn fallback_mesh_standard_pbr_uses_source_independent_metallic_diffuse_energy() {
+    for expected in [
+        "fn material_diffuse_color(material: SampledMaterial) -> vec3<f32>",
         "material.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID",
+        "return zr_pbr_base_color(material.albedo.rgb);",
+        "return material.albedo.rgb;",
+        "let metallic = clamp(material_properties.data0.x * metallic_roughness.b, 0.0, 1.0);",
+        "fn zr_surface_metallic_diffuse_energy_scale(",
+        "let specular = zr_pbr_isotropic_ggx(",
+        "return (direct_diffuse_brdf + specular) * radiance * lambert;",
+        "material.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID",
+        "zr_surface_metallic_diffuse_energy_scale(material.metallic)",
         "let baked_indirect = diffuse_color * diffuse_energy_scale * material.occlusion",
     ] {
         assert!(FALLBACK_MESH_SHADER.contains(expected));
@@ -548,23 +747,45 @@ fn fallback_mesh_standard_pbr_applies_metallic_diffuse_energy_exactly_once() {
 #[test]
 fn fallback_mesh_standard_pbr_direct_lighting_uses_camera_relative_isotropic_ggx() {
     for expected in [
-        "fn fallback_pbr_fresnel_schlick(",
-        "fn fallback_pbr_smith_visibility(",
-        "fn fallback_standard_pbr_isotropic_ggx(",
+        "fn zr_pbr_fresnel_schlick(",
+        "fn zr_pbr_normalize_or_zero(",
+        "fn zr_pbr_smith_joint_visibility_approx(",
+        "fn zr_pbr_isotropic_ggx(",
         "let alpha = max(perceptual_roughness * perceptual_roughness, 0.001);",
         "let alpha_squared = alpha * alpha;",
-        "return 0.5 / max(gv + gl, EPSILON);",
-        "return fallback_pbr_fresnel_schlick(vo_h, f0) * distribution * visibility;",
-        "let view_dir = scene_view_dir_ws(input.world_position);",
+        "return 0.5 / max(visibility_v + visibility_l, ZR_PBR_EXTRAS_EPSILON);",
+        "let view_dir = zr_pbr_view_direction_ws(input.world_position);",
         "var direct_f0 = vec3<f32>(0.0);",
-        "direct_f0 = mix(vec3<f32>(0.04), max(diffuse_color, vec3<f32>(0.0)), material.metallic);",
-        "fallback_standard_pbr_isotropic_ggx(",
-        "direct_diffuse_brdf = diffuse_color * (1.0 - material.metallic) / FALLBACK_PBR_PI;",
-        "radiance * specular * lambert;",
+        "direct_f0 = fallback_pbr_material_f0(",
+        "let specular = zr_pbr_isotropic_ggx(",
+        "zr_surface_metallic_diffuse_energy_scale(",
+        "return (direct_diffuse_brdf + specular) * radiance * lambert;",
     ] {
         assert!(
             FALLBACK_MESH_SHADER.contains(expected),
             "fallback Standard PBR should use camera-relative GGX direct lighting `{expected}`"
+        );
+    }
+    let fallback_body = include_str!("../shaders/fallback_mesh.wgsl");
+    for rejected in [
+        "struct ZrPbrSpecularComponents",
+        "fn zr_pbr_isotropic_ggx_components(",
+        "specular_components.fresnel",
+    ] {
+        assert!(!FALLBACK_MESH_SHADER.contains(rejected));
+    }
+    for duplicate_owner in [
+        "struct FallbackPbrGgxTerms",
+        "fn fallback_pbr_smith_visibility(",
+        "fn fallback_standard_pbr_isotropic_ggx_terms(",
+        "fn fallback_standard_pbr_isotropic_ggx(",
+        "fn fallback_pbr_diffuse_energy_scale(",
+        "struct ZrPbrGgxTerms",
+        "fn zr_pbr_isotropic_ggx_terms(",
+    ] {
+        assert!(
+            !fallback_body.contains(duplicate_owner),
+            "fallback mesh body must not duplicate shared PBR owner `{duplicate_owner}`"
         );
     }
     assert!(
@@ -589,4 +810,11 @@ fn fallback_mesh_standard_pbr_direct_lighting_uses_camera_relative_isotropic_ggx
         !per_light.contains("material.occlusion"),
         "fallback direct-light radiance must not apply ambient occlusion"
     );
+}
+
+#[test]
+fn fallback_mesh_selects_ambient_by_instance_lightmap_presence() {
+    assert!(FALLBACK_MESH_SHADER.contains("lightmapped_ambient_color: vec4<f32>"));
+    assert!(FALLBACK_MESH_SHADER.contains("zr_scene_ambient_color("));
+    assert!(FALLBACK_MESH_SHADER.contains("zr_gpu_scene_has_lightmap(input.instance_index)"));
 }

@@ -19,6 +19,7 @@ impl HostPaintCommand {
             frame,
             clip_frame,
             z_index,
+            source_render_command_ref: None,
             background_color,
             foreground_color: None,
             border_color,

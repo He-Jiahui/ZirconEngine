@@ -6,7 +6,7 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use crossbeam_channel::{
-    Receiver, RecvTimeoutError, SendTimeoutError, Sender, TrySendError, bounded,
+    bounded, Receiver, RecvTimeoutError, SendTimeoutError, Sender, TrySendError,
 };
 
 use super::super::settings::DiagnosticLogSinkSettings;
@@ -136,6 +136,12 @@ impl SinkRuntime {
             return false;
         }
 
+        if level < DiagnosticLogLevel::Warn && self.sender.is_full() {
+            self.metrics.observe_queue_depth(self.queue_capacity);
+            self.metrics.record_drop(level);
+            return false;
+        }
+
         let message = message();
         let command = SinkCommand::Record(LogRecord {
             level,
@@ -254,20 +260,10 @@ impl SinkRuntime {
 
 fn send_control_until(
     sender: &Sender<SinkCommand>,
-    mut command: SinkCommand,
+    command: SinkCommand,
     deadline: Instant,
 ) -> bool {
-    loop {
-        match sender.try_send(command) {
-            Ok(()) => return true,
-            Err(TrySendError::Full(returned)) => command = returned,
-            Err(TrySendError::Disconnected(_)) => return false,
-        }
-        if Instant::now() >= deadline {
-            return false;
-        }
-        thread::yield_now();
-    }
+    sender.send_timeout(command, remaining(deadline)).is_ok()
 }
 
 fn run_sink_worker(
@@ -364,13 +360,9 @@ fn flush_pending(outputs: &mut SinkOutputs, pending: &mut Vec<LogRecord>, metric
 
     let record_count = pending.len();
     let mut buffer = Vec::with_capacity(pending.iter().map(estimated_record_bytes).sum::<usize>());
+    let timestamp = current_log_timestamp();
     for record in pending.drain(..) {
-        let line = diagnostic_log_line(
-            &current_log_timestamp(),
-            record.level,
-            &record.scope,
-            &record.message,
-        );
+        let line = diagnostic_log_line(&timestamp, record.level, &record.scope, &record.message);
         buffer.extend_from_slice(line.as_bytes());
     }
 

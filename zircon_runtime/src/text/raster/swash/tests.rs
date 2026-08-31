@@ -6,13 +6,13 @@ use super::*;
 use crate::core::math::{UVec2, Vec2};
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{
-    glyph_atlas_bitmap_run_plan_with_padding, glyph_atlas_bitmap_upload_staging_plan,
     GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
-    GlyphAtlasStorageFormat,
+    GlyphAtlasStorageFormat, glyph_atlas_bitmap_run_plan_with_padding,
+    glyph_atlas_bitmap_upload_staging_plan,
 };
-use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin};
-use swash::scale::image::{Content as SwashImageContent, Image as SwashImage};
 use swash::FontRef;
+use swash::scale::image::{Content as SwashImageContent, Image as SwashImage};
+use swash::scale::{Source as SwashSource, StrikeWith as SwashStrikeWith};
 
 const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -247,6 +247,45 @@ fn text_raster_swash_normalizes_color_image_to_rgba_bitmap() {
 }
 
 #[test]
+fn text_raster_swash_unpremultiplies_color_outline_for_straight_alpha_atlas() {
+    let bitmap = glyph_bitmap_from_swash_image(
+        swash_image_from_source(
+            SwashImageContent::Color,
+            SwashSource::ColorOutline(0),
+            1,
+            9,
+            2,
+            1,
+            vec![64, 32, 16, 128, 7, 9, 11, 0],
+        ),
+        16.0,
+    )
+    .expect("color outline should normalize to straight rgba");
+
+    assert_eq!(bitmap.data, vec![128, 64, 32, 128, 0, 0, 0, 0]);
+}
+
+#[test]
+fn text_raster_swash_preserves_straight_color_bitmap_pixels() {
+    let pixels = vec![200, 100, 50, 128];
+    let bitmap = glyph_bitmap_from_swash_image(
+        swash_image_from_source(
+            SwashImageContent::Color,
+            SwashSource::ColorBitmap(SwashStrikeWith::BestFit),
+            1,
+            9,
+            1,
+            1,
+            pixels.clone(),
+        ),
+        16.0,
+    )
+    .expect("embedded color bitmap should remain straight rgba");
+
+    assert_eq!(bitmap.data, pixels);
+}
+
+#[test]
 fn text_raster_swash_normalizes_subpixel_mask_image_to_rgba_bitmap() {
     let bitmap = glyph_bitmap_from_swash_image(
         swash_image(SwashImageContent::SubpixelMask, 1, 9, 2, 2, vec![255; 16]),
@@ -297,42 +336,6 @@ fn text_raster_swash_subpixel_outline_request_uses_subpixel_render_format() {
 }
 
 #[test]
-fn text_raster_swash_glyphon_cache_key_preserves_offset_hint_sources_and_weight() {
-    let request = SwashRasterRequest::glyphon_cache_key(
-        2,
-        CacheKey {
-            font_id: fontdb::ID::default(),
-            glyph_id: 42,
-            font_size_bits: 17.5_f32.to_bits(),
-            x_bin: SubpixelBin::Three,
-            y_bin: SubpixelBin::Two,
-            font_weight: fontdb::Weight(650),
-            flags: CacheKeyFlags::DISABLE_HINTING,
-        },
-    );
-
-    assert_eq!(request.face_index, 2);
-    assert_eq!(request.glyph_id, 42);
-    assert_eq!(request.px_size, 17.5);
-    assert!(!request.hint);
-    assert_eq!(request.offset, Vec2::new(0.75, 0.5));
-    assert_eq!(request.render_format, ::swash::zeno::Format::Alpha);
-    assert_eq!(
-        *request.variations,
-        crate::text::VariationCoords(vec![(u32::from_be_bytes(*b"wght"), 650.0,)])
-    );
-    assert!(!request.fake_italic);
-    assert_eq!(
-        request.sources(),
-        &[
-            SwashRasterSource::ColorOutline { palette_index: 0 },
-            SwashRasterSource::ColorBitmap(SwashBitmapStrike::BestFit),
-            SwashRasterSource::AlphaOutline,
-        ]
-    );
-}
-
-#[test]
 fn text_raster_swash_request_preserves_arbitrary_variable_axes() {
     let variations = Arc::new(crate::text::VariationCoords(vec![
         (u32::from_be_bytes(*b"wdth"), 85.0),
@@ -351,26 +354,6 @@ fn text_raster_swash_request_preserves_a_stable_font_identity() {
     let request = SwashRasterRequest::alpha_outline(0, 1, 18.0, true).with_font_identity([7, 11]);
 
     assert_eq!(request.font_identity, Some([7, 11]));
-}
-
-#[test]
-fn text_raster_swash_glyphon_cache_key_applies_pixel_font_and_fake_italic_flags() {
-    let request = SwashRasterRequest::glyphon_cache_key(
-        0,
-        CacheKey {
-            font_id: fontdb::ID::default(),
-            glyph_id: 7,
-            font_size_bits: 12.0_f32.to_bits(),
-            x_bin: SubpixelBin::Three,
-            y_bin: SubpixelBin::Two,
-            font_weight: fontdb::Weight::NORMAL,
-            flags: CacheKeyFlags::PIXEL_FONT | CacheKeyFlags::FAKE_ITALIC,
-        },
-    );
-
-    assert_eq!(request.offset, Vec2::new(2.0, 1.0));
-    assert!(request.fake_italic);
-    assert!(request.fake_italic_transform().is_some());
 }
 
 #[test]
@@ -599,8 +582,29 @@ fn swash_image(
     height: u32,
     data: Vec<u8>,
 ) -> SwashImage {
+    swash_image_from_source(
+        content,
+        SwashSource::Outline,
+        left,
+        top,
+        width,
+        height,
+        data,
+    )
+}
+
+fn swash_image_from_source(
+    content: SwashImageContent,
+    source: SwashSource,
+    left: i32,
+    top: i32,
+    width: u32,
+    height: u32,
+    data: Vec<u8>,
+) -> SwashImage {
     let mut image = SwashImage::new();
     image.content = content;
+    image.source = source;
     image.placement = ::swash::zeno::Placement {
         left,
         top,

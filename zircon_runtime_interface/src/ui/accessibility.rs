@@ -178,7 +178,11 @@ pub struct UiAccessibilityTreeSnapshot {
 
 impl UiAccessibilityTreeSnapshot {
     pub fn node(&self, node_id: UiNodeId) -> Option<&UiAccessibilityNode> {
-        self.nodes.iter().find(|node| node.node_id == node_id)
+        self.nodes
+            .binary_search_by_key(&node_id, |node| node.node_id)
+            .ok()
+            .and_then(|index| self.nodes.get(index))
+            .or_else(|| self.nodes.iter().find(|node| node.node_id == node_id))
     }
 }
 

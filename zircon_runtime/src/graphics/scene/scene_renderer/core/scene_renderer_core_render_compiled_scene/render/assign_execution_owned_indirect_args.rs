@@ -31,27 +31,22 @@ pub(super) fn assign_execution_owned_indirect_args(
         mapped_at_creation: false,
     }));
 
-    for (execution_index, draw_index) in indirect_execution_draw_indices.iter().copied().enumerate()
-    {
-        let draw = &mesh_draws[draw_index];
-        let Some(source_buffer) = draw.indirect_args_buffer() else {
-            continue;
-        };
-        encoder.copy_buffer_to_buffer(
-            source_buffer,
-            draw.indirect_args_offset(),
-            &buffer,
-            (execution_index as u64) * INDIRECT_ARGS_STRIDE_BYTES,
-            INDIRECT_ARGS_STRIDE_BYTES,
-        );
-    }
-
     for (execution_index, draw_index) in indirect_execution_draw_indices.into_iter().enumerate() {
-        let draw = &mut mesh_draws[draw_index];
-        draw.assign_execution_owned_indirect_args(
-            Arc::clone(&buffer),
-            (execution_index as u64) * INDIRECT_ARGS_STRIDE_BYTES,
-        );
+        let execution_offset = (execution_index as u64) * INDIRECT_ARGS_STRIDE_BYTES;
+        {
+            let draw = &mesh_draws[draw_index];
+            if let Some(source_buffer) = draw.indirect_args_buffer() {
+                encoder.copy_buffer_to_buffer(
+                    source_buffer,
+                    draw.indirect_args_offset(),
+                    &buffer,
+                    execution_offset,
+                    INDIRECT_ARGS_STRIDE_BYTES,
+                );
+            }
+        }
+        mesh_draws[draw_index]
+            .assign_execution_owned_indirect_args(Arc::clone(&buffer), execution_offset);
     }
 
     Some(buffer)
@@ -83,6 +78,9 @@ fn collect_execution_indirect_draw_indices<T>(
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     #[derive(Clone, Copy)]
     struct TestDraw {
         transparent: bool,
@@ -115,6 +113,63 @@ mod tests {
         );
 
         assert_eq!(indices, vec![1, 4, 0]);
+    }
+
+    #[test]
+    fn optimization_batch_20260830es_runtime552_copies_and_assigns_in_one_index_traversal() {
+        let production = include_str!("assign_execution_owned_indirect_args.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production source");
+
+        assert!(!production.contains("indirect_execution_draw_indices.iter()"));
+        assert_eq!(
+            production
+                .matches("indirect_execution_draw_indices.into_iter()")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    #[ignore = "deterministic performance marker"]
+    fn optimization_batch_20260830es_runtime552_single_index_traversal_benchmark() {
+        const DRAW_COUNT: usize = 65_536;
+        const SAMPLES: usize = 9;
+        let indices = (0..DRAW_COUNT).collect::<Vec<_>>();
+        let mut legacy_samples = Vec::with_capacity(SAMPLES);
+        let mut optimized_samples = Vec::with_capacity(SAMPLES);
+
+        for _ in 0..SAMPLES {
+            let started = Instant::now();
+            let mut checksum = 0_usize;
+            for index in indices.iter().copied() {
+                checksum = checksum.wrapping_add(index.rotate_left(3));
+            }
+            for index in indices.iter().copied() {
+                checksum = checksum.wrapping_add(index.rotate_left(7));
+            }
+            black_box(checksum);
+            legacy_samples.push(started.elapsed());
+
+            let started = Instant::now();
+            let mut checksum = 0_usize;
+            for index in indices.iter().copied() {
+                checksum = checksum
+                    .wrapping_add(index.rotate_left(3))
+                    .wrapping_add(index.rotate_left(7));
+            }
+            black_box(checksum);
+            optimized_samples.push(started.elapsed());
+        }
+
+        legacy_samples.sort_unstable();
+        optimized_samples.sort_unstable();
+        let legacy = legacy_samples[SAMPLES / 2];
+        let optimized = optimized_samples[SAMPLES / 2];
+        println!(
+            "RUNTIME552_SINGLE_INDEX_TRAVERSAL_BENCH_V1 legacy={legacy:?} optimized={optimized:?}"
+        );
     }
 
     fn test_draws() -> [TestDraw; 5] {

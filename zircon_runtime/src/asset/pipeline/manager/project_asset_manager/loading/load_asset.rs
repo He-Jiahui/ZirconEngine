@@ -3,9 +3,9 @@ use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, DataMarker, FontMarker, MaterialGraphMarker, MaterialMarker,
     MeshMarker, ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker,
-    PrefabMarker, ResourceHandle, SceneMarker, ShaderMarker, SoundMarker, TerrainLayerStackMarker,
-    TerrainMarker, TextureMarker, TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker,
-    UiWidgetMarker,
+    PrefabMarker, ResourceHandle, ResourceSnapshot, SceneMarker, ShaderMarker, SoundMarker,
+    TerrainLayerStackMarker, TerrainMarker, TextureMarker, TileMapMarker, TileSetMarker,
+    UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
 };
 use crate::core::CoreError;
 
@@ -32,6 +32,13 @@ impl ProjectAssetManager {
 
     pub fn load_material_asset(&self, id: AssetId) -> Result<MaterialAsset, CoreError> {
         self.load_typed(id, ResourceHandle::<MaterialMarker>::new(id), "material")
+    }
+
+    pub fn load_material_asset_snapshot(
+        &self,
+        id: AssetId,
+    ) -> Result<ResourceSnapshot<MaterialAsset>, CoreError> {
+        self.load_typed_snapshot(id, ResourceHandle::<MaterialMarker>::new(id), "material")
     }
 
     pub fn load_material_graph_asset(&self, id: AssetId) -> Result<MaterialGraphAsset, CoreError> {
@@ -103,12 +110,26 @@ impl ProjectAssetManager {
         self.load_typed(id, ResourceHandle::<TextureMarker>::new(id), "texture")
     }
 
+    pub fn load_texture_asset_snapshot(
+        &self,
+        id: AssetId,
+    ) -> Result<ResourceSnapshot<TextureAsset>, CoreError> {
+        self.load_typed_snapshot(id, ResourceHandle::<TextureMarker>::new(id), "texture")
+    }
+
     pub fn load_ui_icon_asset(&self, id: AssetId) -> Result<UiIconAsset, CoreError> {
         self.load_typed(id, ResourceHandle::<TextureMarker>::new(id), "ui icon")
     }
 
     pub fn load_shader_asset(&self, id: AssetId) -> Result<ShaderAsset, CoreError> {
         self.load_typed(id, ResourceHandle::<ShaderMarker>::new(id), "shader")
+    }
+
+    pub fn load_shader_asset_snapshot(
+        &self,
+        id: AssetId,
+    ) -> Result<ResourceSnapshot<ShaderAsset>, CoreError> {
+        self.load_typed_snapshot(id, ResourceHandle::<ShaderMarker>::new(id), "shader")
     }
 
     pub fn load_scene_asset(&self, id: AssetId) -> Result<SceneAsset, CoreError> {

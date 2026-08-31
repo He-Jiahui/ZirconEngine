@@ -5,11 +5,12 @@ use crate::generated::{
 };
 use crate::weapon_skin_contract::weapon_skin_code_matches_loadout_type;
 use crate::{
-    command_descriptor, Command, EntityRef, Event, FixedTickInput, MessageKind, MovementFrame,
-    MovementFrameBatch, MovementInputFlags, NetworkEnvelope, OfflineSessionBootstrap,
-    OfflineWeaponSkinAccount, ProtocolError, RlActionBatch, RlObservationBatch, SaveState,
-    WorldSnapshot, OFFLINE_SESSION_BOOTSTRAP_VERSION, OFFLINE_WEAPON_SKIN_COUNT,
-    OFFLINE_WEAPON_SKIN_TYPE_COUNT, SCHEMA_FINGERPRINT_BYTES, STANDARD_OFFLINE_WORLD_SEED,
+    command_descriptor, Command, EntityRef, Event, FixedTickInput, FixedTickInputRef, MessageKind,
+    MovementFrame, MovementFrameBatch, MovementInputFlags, NetworkEnvelope,
+    OfflineSessionBootstrap, OfflineWeaponSkinAccount, ProtocolError, RlActionBatch,
+    RlObservationBatch, SaveState, WorldSnapshot, OFFLINE_SESSION_BOOTSTRAP_VERSION,
+    OFFLINE_WEAPON_SKIN_COUNT, OFFLINE_WEAPON_SKIN_TYPE_COUNT, SCHEMA_FINGERPRINT_BYTES,
+    STANDARD_OFFLINE_WORLD_SEED,
 };
 
 const FIXED_TICK_BASE_BYTES: usize = 8 + 4 + 1 + 4 + 4 + 8 + 4 + 4;
@@ -25,80 +26,7 @@ const RL_BATCH_BASE_BYTES: usize = 8 + 4 + 4 + 4;
 
 impl FixedTickInput {
     pub fn encode_payload(&self) -> Result<Vec<u8>, ProtocolError> {
-        check_bound(
-            "FixedTickInput.commands",
-            self.commands.len(),
-            fixed_tick_input_field_id::COMMANDS_MAX_LENGTH,
-        )?;
-        check_bound(
-            "FixedTickInput.committed_state",
-            self.committed_state.len(),
-            fixed_tick_input_field_id::COMMITTED_STATE_MAX_LENGTH,
-        )?;
-        let movement_frames = MovementFrameBatch::new(self.movement_frames.clone())
-            .map_err(|error| ProtocolError::InvalidMovementInput(error.to_string()))?;
-        check_bound(
-            "FixedTickInput.movement_frames",
-            movement_frames.frames().len(),
-            fixed_tick_input_field_id::MOVEMENT_FRAMES_MAX_LENGTH,
-        )?;
-        let offline_bootstrap = self
-            .offline_bootstrap
-            .as_ref()
-            .map(OfflineSessionBootstrap::encode_payload)
-            .transpose()?;
-        let offline_bootstrap_bytes = offline_bootstrap.as_deref().unwrap_or_default();
-        check_bound(
-            "FixedTickInput.offline_bootstrap",
-            offline_bootstrap_bytes.len(),
-            fixed_tick_input_field_id::OFFLINE_BOOTSTRAP_MAX_LENGTH,
-        )?;
-        let wire_length = checked_wire_length(
-            "FixedTickInput.payload",
-            FIXED_TICK_BASE_BYTES,
-            std::iter::once(self.committed_state.len())
-                .chain(
-                    self.commands
-                        .iter()
-                        .map(|command| COMMAND_BASE_BYTES.saturating_add(command.payload.len())),
-                )
-                .chain(std::iter::once(
-                    movement_frames
-                        .frames()
-                        .len()
-                        .saturating_mul(MOVEMENT_FRAME_BYTES),
-                ))
-                .chain(std::iter::once(offline_bootstrap_bytes.len())),
-            limit::FRAME_PAYLOAD_BYTES,
-        )?;
-        let mut output = Vec::with_capacity(wire_length);
-        push_u64(&mut output, self.tick);
-        push_length(&mut output, "FixedTickInput.commands", self.commands.len())?;
-        for command in &self.commands {
-            command.encode_into(&mut output)?;
-        }
-        output.push(u8::from(self.wall_time_forbidden));
-        push_bytes(
-            &mut output,
-            "FixedTickInput.committed_state",
-            &self.committed_state,
-        )?;
-        push_u32(&mut output, self.committed_state_digest);
-        push_u64(&mut output, self.generation);
-        push_length(
-            &mut output,
-            "FixedTickInput.movement_frames",
-            movement_frames.frames().len(),
-        )?;
-        for frame in movement_frames.frames() {
-            encode_movement_frame(&mut output, *frame);
-        }
-        push_bytes(
-            &mut output,
-            "FixedTickInput.offline_bootstrap",
-            offline_bootstrap_bytes,
-        )?;
-        Ok(output)
+        FixedTickInputRef::from(self).encode_payload()
     }
 
     pub fn decode_payload(bytes: &[u8]) -> Result<Self, ProtocolError> {
@@ -160,6 +88,84 @@ impl FixedTickInput {
             movement_frames,
             offline_bootstrap,
         })
+    }
+}
+
+impl FixedTickInputRef<'_> {
+    pub fn encode_payload(&self) -> Result<Vec<u8>, ProtocolError> {
+        check_bound(
+            "FixedTickInput.commands",
+            self.commands.len(),
+            fixed_tick_input_field_id::COMMANDS_MAX_LENGTH,
+        )?;
+        check_bound(
+            "FixedTickInput.committed_state",
+            self.committed_state.len(),
+            fixed_tick_input_field_id::COMMITTED_STATE_MAX_LENGTH,
+        )?;
+        let movement_frames = MovementFrameBatch::new(self.movement_frames.to_vec())
+            .map_err(|error| ProtocolError::InvalidMovementInput(error.to_string()))?;
+        check_bound(
+            "FixedTickInput.movement_frames",
+            movement_frames.frames().len(),
+            fixed_tick_input_field_id::MOVEMENT_FRAMES_MAX_LENGTH,
+        )?;
+        let offline_bootstrap = self
+            .offline_bootstrap
+            .map(OfflineSessionBootstrap::encode_payload)
+            .transpose()?;
+        let offline_bootstrap_bytes = offline_bootstrap.as_deref().unwrap_or_default();
+        check_bound(
+            "FixedTickInput.offline_bootstrap",
+            offline_bootstrap_bytes.len(),
+            fixed_tick_input_field_id::OFFLINE_BOOTSTRAP_MAX_LENGTH,
+        )?;
+        let wire_length = checked_wire_length(
+            "FixedTickInput.payload",
+            FIXED_TICK_BASE_BYTES,
+            std::iter::once(self.committed_state.len())
+                .chain(
+                    self.commands
+                        .iter()
+                        .map(|command| COMMAND_BASE_BYTES.saturating_add(command.payload.len())),
+                )
+                .chain(std::iter::once(
+                    movement_frames
+                        .frames()
+                        .len()
+                        .saturating_mul(MOVEMENT_FRAME_BYTES),
+                ))
+                .chain(std::iter::once(offline_bootstrap_bytes.len())),
+            limit::FRAME_PAYLOAD_BYTES,
+        )?;
+        let mut output = Vec::with_capacity(wire_length);
+        push_u64(&mut output, self.tick);
+        push_length(&mut output, "FixedTickInput.commands", self.commands.len())?;
+        for command in &self.commands {
+            command.encode_into(&mut output)?;
+        }
+        output.push(u8::from(self.wall_time_forbidden));
+        push_bytes(
+            &mut output,
+            "FixedTickInput.committed_state",
+            self.committed_state,
+        )?;
+        push_u32(&mut output, self.committed_state_digest);
+        push_u64(&mut output, self.generation);
+        push_length(
+            &mut output,
+            "FixedTickInput.movement_frames",
+            movement_frames.frames().len(),
+        )?;
+        for frame in movement_frames.frames() {
+            encode_movement_frame(&mut output, *frame);
+        }
+        push_bytes(
+            &mut output,
+            "FixedTickInput.offline_bootstrap",
+            offline_bootstrap_bytes,
+        )?;
+        Ok(output)
     }
 }
 

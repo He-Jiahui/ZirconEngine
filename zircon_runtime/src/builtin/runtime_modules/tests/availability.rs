@@ -9,17 +9,17 @@ use super::support::availability_contains;
 
 #[test]
 fn runtime_profile_load_report_surfaces_structured_availability() {
-    let report = runtime_modules_for_runtime_profile(RuntimeProfileId::Client2d);
+    let report = runtime_modules_for_runtime_profile(RuntimeProfileId::Client2d)
+        .expect_err("missing required providers must reject the profile");
 
     assert!(availability_contains(
-        &report.runtime_plugin_availability.externalized_missing,
+        &report.runtime_plugin_availability().externalized_missing,
         RuntimePluginId::Sound
     ));
     assert!(availability_contains(
-        &report.runtime_plugin_availability.missing_required,
+        &report.runtime_plugin_availability().missing_required,
         RuntimePluginId::Sound
     ));
-    assert!(report.has_fatal_diagnostics());
     assert!(report
         .fatal_messages()
         .iter()
@@ -35,15 +35,15 @@ fn runtime_profile_load_report_surfaces_structured_availability() {
 
 #[test]
 fn minimal_runtime_profile_load_report_has_structured_core_availability() {
-    let report = runtime_modules_for_runtime_profile(RuntimeProfileId::Minimal);
+    let report = runtime_modules_for_runtime_profile(RuntimeProfileId::Minimal)
+        .expect("minimal profile should compile");
 
-    assert!(!report.has_fatal_diagnostics());
     assert!(report
-        .runtime_plugin_availability
+        .runtime_plugin_availability()
         .missing_required
         .is_empty());
     assert!(report
-        .runtime_plugin_availability
+        .runtime_plugin_availability()
         .externalized_missing
         .is_empty());
 }
@@ -68,14 +68,19 @@ fn required_ui_without_compiled_ui_feature_is_structured_missing() {
         )],
     };
 
-    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest));
+    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest))
+        .expect_err("required UI without a provider must reject the composition");
 
-    assert!(report.runtime_plugin_availability.stub.iter().any(|entry| {
-        entry.runtime_id == RuntimePluginId::Ui && entry.reason.contains("ui feature is disabled")
-    }));
+    assert!(report
+        .runtime_plugin_availability()
+        .stub
+        .iter()
+        .any(|entry| {
+            entry.runtime_id == RuntimePluginId::Ui
+                && entry.reason.contains("ui feature is disabled")
+        }));
     assert!(report
         .required_missing()
         .iter()
         .any(|entry| entry.runtime_id == RuntimePluginId::Ui));
-    assert!(report.has_fatal_diagnostics());
 }

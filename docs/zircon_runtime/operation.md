@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime/src/operation/service.rs
   - zircon_runtime/src/operation/task.rs
   - zircon_runtime/src/operation/tests.rs
-  - zircon_runtime_interface/src/runtime_api/operation.rs
+  - zircon_runtime_interface/src/runtime_api/session/operation.rs
   - zircon_runtime/src/dynamic_api/session/operation.rs
   - zircon_runtime/src/navigation/operation/
 implementation_files:
@@ -17,7 +17,7 @@ implementation_files:
   - zircon_runtime/src/operation/handler.rs
   - zircon_runtime/src/operation/service.rs
   - zircon_runtime/src/operation/task.rs
-  - zircon_runtime_interface/src/runtime_api/operation.rs
+  - zircon_runtime_interface/src/runtime_api/session/operation.rs
   - zircon_runtime/src/dynamic_api/session/operation.rs
   - zircon_runtime/src/navigation/operation/handler.rs
   - zircon_runtime/src/navigation/operation/registration.rs

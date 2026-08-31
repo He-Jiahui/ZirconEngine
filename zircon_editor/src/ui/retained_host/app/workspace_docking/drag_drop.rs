@@ -4,23 +4,30 @@ use crate::ui::retained_host::UiHostContext;
 mod route;
 
 impl RetainedEditorHost {
-    pub(super) fn sync_drag_target_group(&mut self, x: f32, y: f32) {
-        let value = self
-            .shell_pointer_bridge
-            .drag_route_at(UiPoint::new(x, y))
-            .and_then(|route| host_shell_pointer_route_group_key(&route))
-            .unwrap_or_default();
+    pub(super) fn sync_drag_target_group(
+        &mut self,
+        x: f32,
+        y: f32,
+    ) -> Option<HostShellPointerRoute> {
+        let route = self.shell_pointer_bridge.drag_route_at(UiPoint::new(x, y));
         let host_shell = self.ui.global::<UiHostContext>();
-        let mut drag_state = host_shell.get_drag_state();
-        if drag_state.active_drag_target_group.as_str() == value.as_str() {
-            return;
+        let unchanged = host_shell.drag_target_group_matches(|group_key| match route.as_ref() {
+            Some(route) => host_shell_pointer_route_matches_group_key(route, group_key),
+            None => group_key.is_empty(),
+        });
+        if unchanged {
+            return route;
         }
-        drag_state.active_drag_target_group = value.into();
-        host_shell.set_drag_state(drag_state);
+        let value = route
+            .as_ref()
+            .and_then(host_shell_pointer_route_group_key)
+            .unwrap_or_default();
+        host_shell.set_drag_target_group(value);
+        route
     }
 
     pub(super) fn dispatch_drag_drop_from_pointer(&mut self, x: f32, y: f32) {
-        self.sync_drag_target_group(x, y);
+        let pointer_route = self.sync_drag_target_group(x, y);
 
         let host_shell = self.ui.global::<UiHostContext>();
         let drag_state = host_shell.get_drag_state();
@@ -34,6 +41,7 @@ impl RetainedEditorHost {
             &tab_id,
             drag_state.drag_source_group.as_str(),
             target_group.as_str(),
+            pointer_route,
             x,
             y,
         );
@@ -59,8 +67,8 @@ mod performance_tests {
         let source = include_str!("drag_drop.rs");
         let production = source.split("#[cfg(test)]").next().unwrap_or(source);
 
-        assert!(
-            production.contains("drag_state.active_drag_target_group.as_str() == value.as_str()")
-        );
+        assert!(production.contains("drag_target_group_matches"));
+        assert!(production.contains("host_shell.set_drag_target_group(value);"));
+        assert!(!production.contains("host_shell.set_drag_state"));
     }
 }

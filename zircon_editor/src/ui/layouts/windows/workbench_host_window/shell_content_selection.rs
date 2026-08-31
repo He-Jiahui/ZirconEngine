@@ -12,26 +12,29 @@ pub(crate) fn side_pane_selection<'a>(
     model: &'a WorkbenchViewModel,
     slots: &[ActivityDrawerSlot],
 ) -> Option<SidePaneSelection<'a>> {
-    let stack = slots
-        .iter()
-        .filter_map(|slot| model.tool_windows.get(slot))
-        .find(|stack| {
-            stack.mode != ActivityDrawerMode::Collapsed
-                && stack.active_tab.is_some()
-                && !stack.tabs.is_empty()
-        })
-        .or_else(|| {
-            slots
-                .iter()
-                .filter_map(|slot| model.tool_windows.get(slot))
-                .find(|stack| stack.active_tab.is_some() && !stack.tabs.is_empty())
-        })
-        .or_else(|| {
-            slots
-                .iter()
-                .filter_map(|slot| model.tool_windows.get(slot))
-                .find(|stack| !stack.tabs.is_empty())
-        })?;
+    let mut first_nonempty = None;
+    let mut first_active = None;
+    for stack in slots.iter().filter_map(|slot| model.tool_windows.get(slot)) {
+        if stack.tabs.is_empty() {
+            continue;
+        }
+        if first_nonempty.is_none() {
+            first_nonempty = Some(stack);
+        }
+        if stack.active_tab.is_some() {
+            if stack.mode != ActivityDrawerMode::Collapsed {
+                return selection_from_stack(stack);
+            }
+            if first_active.is_none() {
+                first_active = Some(stack);
+            }
+        }
+    }
+    let stack = first_active.or(first_nonempty)?;
+    selection_from_stack(stack)
+}
+
+fn selection_from_stack(stack: &ToolWindowStackModel) -> Option<SidePaneSelection<'_>> {
     let tab = stack
         .tabs
         .iter()

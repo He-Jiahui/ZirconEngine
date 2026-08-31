@@ -238,6 +238,7 @@ impl ChildWindowHostHarness {
                 engine_version_req: None,
                 default_scene: "res://scenes/main.scene.toml".to_string(),
                 format_version: 2,
+                project_guid: None,
             },
             path: path.to_string(),
             last_opened_unix_ms: 1,

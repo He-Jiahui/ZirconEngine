@@ -1,17 +1,17 @@
 use crate::core::framework::render::{
-    packed_sort_key_u64, CorePipelineKind, PrimitiveRelevance, RenderLayerSet,
-    RenderMaterialAlphaMode, RenderPhase, RenderPhaseSortComponents,
-    GEOMETRY_SOURCE_ID_SKINNED_MESH,
+    CorePipelineKind, GEOMETRY_SOURCE_ID_SKINNED_MESH, PrimitiveRelevance, RenderLayerSet,
+    RenderMaterialAlphaMode, RenderPhase, RenderPhaseSortComponents, RenderViewportPickPolicy,
+    packed_sort_key_u64,
 };
 use crate::core::framework::scene::Mobility;
-use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
+use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
     MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
 };
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
-    DepthPrepassProcessor, MeshBatchRef, MeshBindHandle, MeshDrawArgs, MeshDrawCommandList,
-    MeshGeometryHandle, MeshPassBuildContext, MeshPassPipelineKind, MeshPassProcessor,
-    OpaqueBasePassProcessor, ShadowPassProcessor, TaaReactiveMaskPassProcessor,
+    DepthPrepassProcessor, HitProxyPassProcessor, MeshBatchRef, MeshBindHandle, MeshDrawArgs,
+    MeshDrawCommandList, MeshGeometryHandle, MeshPassBuildContext, MeshPassPipelineKind,
+    MeshPassProcessor, OpaqueBasePassProcessor, ShadowPassProcessor, TaaReactiveMaskPassProcessor,
     TransparentPassProcessor, VelocityPassProcessor,
 };
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantRegistry;
@@ -106,6 +106,54 @@ fn render_mesh_draw_processor_depth_prepass_filters_transparent() {
 }
 
 #[test]
+fn hit_proxy_processor_uses_main_visibility_and_explicit_translucent_policy() {
+    let mut variants = MeshPipelineVariantRegistry::default();
+    let mut context = MeshPassBuildContext::with_default_quality(&mut variants);
+    let mut default_list = MeshDrawCommandList::new();
+    let opaque = batch(MeshDrawQueuePhase::Opaque, 1);
+    let alpha = batch(MeshDrawQueuePhase::AlphaMask, 2);
+    let transparent = batch(MeshDrawQueuePhase::Transparent, 3);
+    let hidden = batch(MeshDrawQueuePhase::Opaque, 4).with_visibility(None, false, false);
+
+    let mut default_processor = HitProxyPassProcessor::new(RenderViewportPickPolicy::default());
+    for candidate in [&opaque, &alpha, &transparent, &hidden] {
+        default_processor.add_mesh_batch(candidate, &mut context, &mut default_list);
+    }
+    assert_eq!(default_list.commands().len(), 2);
+    assert!(
+        default_list
+            .commands()
+            .iter()
+            .all(|command| command.pipeline_kind == MeshPassPipelineKind::HitProxy)
+    );
+
+    let translucent_policy =
+        RenderViewportPickPolicy::from_bits(RenderViewportPickPolicy::INCLUDE_TRANSLUCENT).unwrap();
+    let mut translucent_list = MeshDrawCommandList::new();
+    HitProxyPassProcessor::new(translucent_policy).add_mesh_batch(
+        &transparent,
+        &mut context,
+        &mut translucent_list,
+    );
+    assert_eq!(translucent_list.commands().len(), 1);
+}
+
+#[test]
+fn hit_proxy_backface_policy_projects_to_request_local_double_sided_variant() {
+    let mut variants = MeshPipelineVariantRegistry::default();
+    let mut context = MeshPassBuildContext::with_default_quality(&mut variants);
+    let source = batch(MeshDrawQueuePhase::Opaque, 5);
+    let policy =
+        RenderViewportPickPolicy::from_bits(RenderViewportPickPolicy::INCLUDE_BACKFACES).unwrap();
+    let mut list = MeshDrawCommandList::new();
+
+    HitProxyPassProcessor::new(policy).add_mesh_batch(&source, &mut context, &mut list);
+
+    assert!(!source.pipeline_key.double_sided);
+    assert!(list.commands()[0].pipeline_key().double_sided);
+}
+
+#[test]
 fn render_mesh_draw_processor_opaque_preserves_material_slots_for_fallback_shader_selection() {
     let mut list = MeshDrawCommandList::new();
     let mut variants = MeshPipelineVariantRegistry::default();
@@ -191,10 +239,11 @@ fn render_mesh_draw_processor_shadow_excludes_non_casters_and_picks_alpha_mask_v
             ),
         ]
     );
-    assert!(list
-        .commands()
-        .iter()
-        .all(|command| command.pipeline_variant_id.value() > 0));
+    assert!(
+        list.commands()
+            .iter()
+            .all(|command| command.pipeline_variant_id.value() > 0)
+    );
     assert_eq!(variants.len(), 2);
     assert!(list.commands().iter().all(|command| {
         variants
@@ -341,6 +390,26 @@ fn shadow_processor_respects_shadow_view_visibility() {
     ShadowPassProcessor.add_mesh_batch(&shadow_culled, &mut context, &mut list);
 
     assert!(list.commands().is_empty());
+}
+
+#[test]
+fn shadow_processor_uses_effective_two_sided_key_without_polluting_base_identity() {
+    let mut list = MeshDrawCommandList::new();
+    let mut variants = MeshPipelineVariantRegistry::default();
+    let mut context = MeshPassBuildContext::with_default_quality(&mut variants);
+    let batch = batch(MeshDrawQueuePhase::Opaque, 10)
+        .with_casts_shadow(true)
+        .with_shadow_two_sided(true);
+
+    assert!(!batch.pipeline_key.double_sided);
+    ShadowPassProcessor.add_mesh_batch(&batch, &mut context, &mut list);
+
+    let command = list
+        .commands()
+        .first()
+        .expect("two-sided shadow batch should emit one command");
+    assert!(command.pipeline_key().double_sided);
+    assert!(!batch.pipeline_key.double_sided);
 }
 
 fn batch(phase: MeshDrawQueuePhase, sort_key: u64) -> MeshBatchRef {

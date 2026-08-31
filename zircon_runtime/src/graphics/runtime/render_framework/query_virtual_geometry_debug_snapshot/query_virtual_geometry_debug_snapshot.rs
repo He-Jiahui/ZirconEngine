@@ -11,6 +11,13 @@ pub(in crate::graphics::runtime::render_framework) fn query_virtual_geometry_deb
     Ok(snapshot.as_deref().cloned())
 }
 
+pub(in crate::graphics::runtime::render_framework) fn query_virtual_geometry_debug_snapshot_available(
+    framework: &WgpuRenderFramework,
+) -> Result<bool, RenderFrameworkError> {
+    let state = framework.lock_state();
+    Ok(state.last_virtual_geometry_debug_snapshot.is_some())
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -26,5 +33,22 @@ mod tests {
             .expect("query must preserve the owned public result");
 
         assert!(release < owned_clone);
+    }
+
+    #[test]
+    fn virtual_geometry_availability_query_does_not_clone_the_payload() {
+        let source = include_str!("query_virtual_geometry_debug_snapshot.rs");
+        let start = source
+            .find("fn query_virtual_geometry_debug_snapshot_available")
+            .expect("availability query");
+        let end = source[start..]
+            .find("#[cfg(test)]")
+            .map(|offset| start + offset)
+            .expect("availability query end");
+        let body = &source[start..end];
+
+        assert!(body.contains("last_virtual_geometry_debug_snapshot.is_some()"));
+        assert!(!body.contains(".clone()"));
+        assert!(!body.contains(".cloned()"));
     }
 }

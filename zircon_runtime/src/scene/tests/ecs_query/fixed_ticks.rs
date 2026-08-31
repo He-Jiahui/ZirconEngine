@@ -16,8 +16,8 @@ fn fixed_scene_components_are_queryable_through_m3_api() {
 
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].0, entity);
-    assert_eq!(rows[0].1 .0, "Renderable");
-    assert_eq!(rows[0].2 .0, 0b0101);
+    assert_eq!(rows[0].1.0, "Renderable");
+    assert_eq!(rows[0].2.0, 0b0101);
 }
 
 #[test]
@@ -29,7 +29,7 @@ fn ref_and_mut_query_items_report_change_ticks() {
 
     type ReadTracked = QueryState<(EntityId, Ref<'static, Health>)>;
     let mut read_system = crate::scene::ecs::SystemState::<ReadTracked>::new(&mut world).unwrap();
-    let first = read_system.run(&mut world, |query| {
+    let first = read_system.run(&mut world, |mut query| {
         query
             .iter()
             .map(|(entity, health)| (entity, health.0, health.is_added(), health.is_changed()))
@@ -37,7 +37,7 @@ fn ref_and_mut_query_items_report_change_ticks() {
     });
     assert_eq!(first, vec![(entity, 10, true, true)]);
 
-    let second = read_system.run(&mut world, |query| {
+    let second = read_system.run(&mut world, |mut query| {
         query
             .iter()
             .map(|(entity, health)| (entity, health.is_added(), health.is_changed()))
@@ -56,7 +56,7 @@ fn ref_and_mut_query_items_report_change_ticks() {
         });
     });
 
-    let changed = read_system.run(&mut world, |query| {
+    let changed = read_system.run(&mut world, |mut query| {
         query
             .iter()
             .map(|(entity, health)| (entity, health.0, health.is_changed()))

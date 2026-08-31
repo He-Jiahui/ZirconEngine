@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 
 use crate::core::framework::script::ScriptHostValue;
-use crate::core::{CoreError, CoreHandle, CoreRuntime, JobScheduler, PluginContext};
+use crate::core::{CoreError, CoreHandle, CoreRuntime, PluginContext};
 
 use super::super::backend::{BuiltinVmBackendFamily, VmBackendFamily, VmBackendRegistry, VmError};
 use super::super::gc_bridge::{VmGcBudget, VmGcStepReport};
@@ -36,9 +36,11 @@ pub struct VmPluginManager {
     reflection_catalog: VmReflectionCatalog,
     coordinator: HotReloadCoordinator,
     discovery_worker: VmPluginDiscoveryWorker,
+    // Field drop order keeps the discovery lane ahead of its detached runtime owner.
+    _owned_runtime: Option<CoreRuntime>,
     payload_cache: VmPluginPayloadCache,
     backends: VmBackendRegistry,
-    selected_backend: RwLock<String>,
+    selected_backend: RwLock<Arc<str>>,
 }
 
 #[derive(Debug)]
@@ -108,7 +110,16 @@ impl VmPluginManager {
     }
 
     pub fn with_builtin_backends(host: HostRegistry) -> Arc<Self> {
-        Self::with_plugin_context(Self::detached_plugin_context(), host)
+        let (owned_runtime, plugin_context) = Self::detached_runtime_context();
+        let host_exports = HostExportRegistry::new(host.clone());
+        register_builtin_host_modules(&host_exports, &host)
+            .expect("builtin script host modules should be valid");
+        Self::with_plugin_context_and_host_exports_with_runtime_owner(
+            plugin_context,
+            host,
+            host_exports,
+            Some(owned_runtime),
+        )
     }
 
     pub fn with_plugin_context(plugin_context: PluginContext, host: HostRegistry) -> Arc<Self> {
@@ -123,18 +134,25 @@ impl VmPluginManager {
         host: HostRegistry,
         host_exports: HostExportRegistry,
     ) -> Arc<Self> {
+        Self::with_plugin_context_and_host_exports_with_runtime_owner(
+            plugin_context,
+            host,
+            host_exports,
+            None,
+        )
+    }
+
+    fn with_plugin_context_and_host_exports_with_runtime_owner(
+        plugin_context: PluginContext,
+        host: HostRegistry,
+        host_exports: HostExportRegistry,
+        owned_runtime: Option<CoreRuntime>,
+    ) -> Arc<Self> {
         let discovery_worker = plugin_context
             .core
             .upgrade()
-            .map(|core| {
-                let io_pool = core.task_pools().io().clone();
-                VmPluginDiscoveryWorker::with_io_pool(
-                    Default::default(),
-                    io_pool.clone(),
-                    JobScheduler::from_pool(io_pool),
-                )
-            })
-            .unwrap_or_default();
+            .map(|core| VmPluginDiscoveryWorker::with_runtime(Default::default(), &core))
+            .unwrap_or_else(|| VmPluginDiscoveryWorker::unavailable(Default::default()));
         let manager = Arc::new_cyclic(|weak| Self {
             self_ref: weak.clone(),
             plugin_context,
@@ -144,9 +162,10 @@ impl VmPluginManager {
             reflection_catalog: VmReflectionCatalog::default(),
             coordinator: HotReloadCoordinator::new(),
             discovery_worker,
+            _owned_runtime: owned_runtime,
             payload_cache: VmPluginPayloadCache::default(),
             backends: VmBackendRegistry::new(),
-            selected_backend: RwLock::new(DEFAULT_BACKEND_SELECTOR.to_string()),
+            selected_backend: RwLock::new(Arc::from(DEFAULT_BACKEND_SELECTOR)),
         });
         manager.register_family(Arc::new(BuiltinVmBackendFamily));
         manager
@@ -161,12 +180,12 @@ impl VmPluginManager {
     }
 
     pub fn selected_backend_name(&self) -> String {
-        self.selected_backend_read().clone()
+        self.selected_backend_selector().to_string()
     }
 
     pub fn select_default_backend(&self, backend_name: &str) -> Result<(), VmError> {
         self.backends.resolve(backend_name)?;
-        *self.selected_backend_write() = backend_name.to_string();
+        *self.selected_backend_write() = Arc::from(backend_name);
         Ok(())
     }
 
@@ -191,7 +210,7 @@ impl VmPluginManager {
     }
 
     pub fn load_package(&self, package: VmPluginPackage) -> Result<PluginSlotId, VmError> {
-        let backend_name = self.selected_backend_name();
+        let backend_name = self.selected_backend_selector();
         self.load_package_with_backend(&backend_name, package)
     }
 
@@ -449,15 +468,16 @@ impl VmPluginManager {
             .publish_active_slots(self.coordinator.active_slots());
     }
 
-    fn detached_plugin_context() -> PluginContext {
+    fn detached_runtime_context() -> (CoreRuntime, PluginContext) {
         let runtime = CoreRuntime::new();
-        PluginContext {
+        let plugin_context = PluginContext {
             plugin_name: VM_PLUGIN_RUNTIME_NAME.to_string(),
             core: runtime.handle().downgrade(),
             package_root: None,
             source_root: None,
             data_root: None,
-        }
+        };
+        (runtime, plugin_context)
     }
 
     fn build_host_context(
@@ -486,13 +506,17 @@ impl VmPluginManager {
         )
     }
 
-    fn selected_backend_read(&self) -> RwLockReadGuard<'_, String> {
+    fn selected_backend_selector(&self) -> Arc<str> {
+        Arc::clone(&self.selected_backend_read())
+    }
+
+    fn selected_backend_read(&self) -> RwLockReadGuard<'_, Arc<str>> {
         self.selected_backend
             .read()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    fn selected_backend_write(&self) -> RwLockWriteGuard<'_, String> {
+    fn selected_backend_write(&self) -> RwLockWriteGuard<'_, Arc<str>> {
         self.selected_backend
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -539,6 +563,75 @@ mod tests {
     use super::*;
 
     #[test]
+    fn builtin_manager_retains_its_discovery_runtime_owner() {
+        let manager = VmPluginManager::with_builtin_backends(HostRegistry::default());
+
+        assert!(manager.base_plugin_context().core.upgrade().is_some());
+    }
+
+    #[test]
+    fn stale_plugin_context_rejects_discovery_without_a_process_pool_fallback() {
+        let runtime = CoreRuntime::new();
+        let plugin_context = PluginContext {
+            plugin_name: VM_PLUGIN_RUNTIME_NAME.to_string(),
+            core: runtime.handle().downgrade(),
+            package_root: None,
+            source_root: None,
+            data_root: None,
+        };
+        drop(runtime);
+        let manager = VmPluginManager::with_plugin_context(plugin_context, HostRegistry::default());
+
+        let error = manager
+            .submit_package_discovery(".")
+            .expect_err("stale runtime context must not fall back to a process I/O pool");
+
+        assert!(error
+            .to_string()
+            .contains("runtime task owner is unavailable"));
+    }
+
+    #[test]
+    fn discovery_rejects_after_an_external_runtime_owner_expires() {
+        let runtime = CoreRuntime::new();
+        let plugin_context = PluginContext {
+            plugin_name: VM_PLUGIN_RUNTIME_NAME.to_string(),
+            core: runtime.handle().downgrade(),
+            package_root: None,
+            source_root: None,
+            data_root: None,
+        };
+        let manager = VmPluginManager::with_plugin_context(plugin_context, HostRegistry::default());
+        drop(runtime);
+
+        let error = manager
+            .submit_package_discovery(".")
+            .expect_err("expired runtime owner must close discovery admission");
+
+        assert!(error
+            .to_string()
+            .contains("runtime task owner is unavailable"));
+    }
+
+    #[test]
+    fn vm_discovery_worker_has_no_process_global_constructor() {
+        let source = include_str!("../plugin/vm_plugin_package_discovery/io.rs");
+
+        for forbidden in [
+            "TaskPools::process_default",
+            "JobScheduler::process_io",
+            "impl Default for VmPluginDiscoveryWorker",
+            "pub(crate) fn new(limits: VmPluginDiscoveryLimits)",
+            "pub(crate) fn with_io_pool",
+        ] {
+            assert!(
+                !source.contains(forbidden),
+                "VM discovery worker must not retain process fallback `{forbidden}`"
+            );
+        }
+    }
+
+    #[test]
     fn callback_and_system_dispatch_avoid_wide_record_clones() {
         let source = include_str!("vm_plugin_manager.rs")
             .split_once("#[cfg(test)]")
@@ -568,7 +661,7 @@ mod tests {
         let manager = VmPluginManager::with_builtin_backends(HostRegistry::default());
         let poison = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let mut selected = manager.selected_backend.write().unwrap();
-            *selected = DEFAULT_BACKEND_SELECTOR.to_string();
+            *selected = Arc::from(DEFAULT_BACKEND_SELECTOR);
             panic!("poison vm plugin manager selected backend lock");
         }));
         assert!(poison.is_err());

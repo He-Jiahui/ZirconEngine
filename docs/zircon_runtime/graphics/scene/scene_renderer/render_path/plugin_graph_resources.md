@@ -1,12 +1,13 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
+  - zircon_runtime/src/graphics/runtime_prepare_device_epoch.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs
@@ -16,10 +17,13 @@ related_code:
   - zircon_plugins/particles/runtime/src/render/gpu/backend.rs
   - zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector/device_epoch_tests.rs
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_plugin_renderer_outputs.rs
 implementation_files:
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
+  - zircon_runtime/src/graphics/runtime_prepare_device_epoch.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
@@ -33,6 +37,7 @@ implementation_files:
   - zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs
   - zircon_plugins/particles/runtime/src/render/executors.rs
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_plugin_renderer_outputs.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
@@ -49,6 +54,10 @@ tests:
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs::tests::particle_runtime_prepare_neutral_frame_sizes_cover_readback_payload
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs::tests::particle_runtime_prepare_neutral_frame_uses_minimum_nonzero_buffers
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs::tests::particle_runtime_prepare_registration_id_is_stable
+  - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs::tests::device_epoch_is_activated_before_particle_early_returns_and_old_readbacks
+  - zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs::tests::device_epoch_change_releases_persistent_particle_gpu_state
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector/device_epoch_tests.rs::hybrid_gi_device_epoch_change_is_explicit_and_preserves_frame_ordering
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector/device_epoch_tests.rs::hybrid_gi_activates_device_epoch_before_feature_early_returns
   - zircon_plugins/particles/runtime/src/tests/manager_resolution.rs::particles_runtime_plugin_module_and_runtime_prepare_share_manager
   - zircon_plugins/particles/runtime/src/tests/gpu.rs::particle_gpu_runtime_owner_executes_backend_and_exposes_active_buffers
   - zircon_plugins/particles/runtime/src/tests/gpu.rs::particle_gpu_runtime_owner_records_transparent_draw_from_executed_backend
@@ -66,7 +75,11 @@ doc_type: module-detail
 
 `bind_plugin_graph_resources.rs` owns the production binding model for plugin-owned, non-frame external buffer resources in the compiled-scene render path. It runs after transient materialization and HZB execution-owned binding, before `RenderGraphExecutionResources::validate_materialized_graph_resources(...)`.
 
-The binder is graph-lifetime-aware. It only considers live `CompiledRenderGraph::resource_lifetime_by_name(...)` rows whose external binding is typed as `Buffer`, then binds those names into the same execution resource table used by frame, history, HZB, and transient resources. Runtime prepare collectors can now register actual WGPU buffers through `RuntimePrepareCollectorContext::register_external_buffer_binding(...)`; those bindings are carried by `SceneRendererAdvancedPluginReadbacks` and are bound before fallback buffers are considered.
+The binder is graph-lifetime-aware. It only considers live `CompiledRenderGraph::resource_lifetime_by_name(...)` rows whose external binding is typed as `Buffer`, then binds those names into the same execution resource table used by frame, history, HZB, and transient resources. Runtime prepare collectors register actual WGPU buffers through `RuntimePrepareCollectorContext::register_external_buffer_binding(...)`. After all collectors succeed, the dispatcher seals every non-empty registration into one `RuntimePrepareExternalBufferBindingPacket` qualified by the current `RenderDeviceProfile`; `SceneRendererAdvancedPluginReadbacks` carries that packet to compiled graph binding.
+
+Plugin binding begins only after transient materialization establishes `RenderGraphExecutionResources.device_epoch()`. Before inspecting any registered binding or creating a fallback, the binder compares that execution epoch with the packet epoch once. A missing execution epoch or mismatched device/generation fails closed without installing a plugin buffer. Empty registrations do not create a packet and retain the deterministic fallback path.
+
+The same dispatch constructs one `RuntimePrepareDeviceEpoch` value and gives it to every collector root and scoped GPU recording context. Persistent plugin owners must activate that epoch before consuming an old readback, returning because a feature is disabled, checking GPU-work admission, or registering retained native resources. The value is an identity fact, not an authority: it contains no Queue, submit, poll, allocator, or full device-profile access.
 
 The 2026-06-24 F12 cleanup (`render_plan01_advanced_plugin_resource_readback_suppression_cleanup_static_passed_cargo_deferred_active_lanes`) keeps this boundary narrow: test-only readback emptiness checks, test-only runtime-prepare collector injection, and the currently unconsumed Hybrid GI resource capability getter no longer require production `dead_code` suppression.
 
@@ -83,15 +96,23 @@ Virtual Geometry now has a producer-side registration. Its runtime-prepare colle
 
 Particles now have a plugin-side concrete buffer producer and consumer path. The particles runtime plugin registers `particles.runtime-prepare` with the same shared `ParticlesManager` exposed by its module service. When that manager contains concrete GPU instances, the collector executes `ParticleGpuRuntimeOwner`, aggregates all playing GPU instances into one real `ParticleGpuBackend`, and registers backend WGPU buffers for the declared `particles.gpu.*` names before this binder considers fallbacks. The particle storage names are graph-facing semantic aliases: `particles.gpu.particles-a` binds the previous/input side of the backend ping-pong pair for the last executed frame, while `particles.gpu.particles-b` binds the current/output side consumed by compact/indirect and transparent descriptors. The object-backed `particle.transparent` executor receives a clone of the same owner handle and records the backend transparent draw from `particles-b`, alive indices, and indirect args when runtime prepare executed a concrete backend for the frame. Focused offscreen validation now confirms that draw writes visible RGBA8 pixels after the indirect pass is submitted, and focused CPU/GPU count parity validation confirms the small-scene GPU counter readback agrees with CPU fallback live/spawned counts and indirect instance count. If no concrete GPU instance exists but `ParticleExtract.gpu_frame` is available, the collector still creates neutral summary-derived buffers for the same graph names. That neutral frame can now be produced by scene extraction from visible dynamic particle payloads containing a `gpu_frame` object, keeping `World` free of WGPU and particles-plugin dependencies while still feeding the graph-facing buffer set. Frames without either source keep the deterministic fallback backings and the transparent executor falls back to CPU billboards.
 
+Particle retained resources are generation-qualified at the shared runtime owner. Initial activation fail-closes any unqualified pre-existing state; a later device-epoch change drops the pending prepared frame, aggregate backend, planner state, and neutral identity buffers before any admission fallback can publish old bindings. The collector also clears its separate readback queue. Neutral buffers no longer retain a cloned `wgpu::Device`. The next admitted real frame rebuilds its planner from current runtime instance age and transform rather than pretending the old GPU simulation state migrated across devices.
+
+Hybrid GI applies the same release/reinitialize rule before prepared-frame and feature-enable early returns. A changed epoch drops shared pipelines/buffers and the complete resident instance map, including radiance-cache and Global SDF GPU state and their pending readback futures. The monotonic collector frame index remains diagnostic CPU state. When GPU work is not admitted, the collector may consume completion from an existing current-epoch instance but does not allocate a new instance or shared GPU resources.
+
 ## Boundaries
 
 This module does not change plugin descriptors from report-only to required. Missing or unknown plugin externals remain report-only diagnostics unless a descriptor explicitly opts into a required external binding. A registered runtime-prepare binding may bind a non-fallback plugin name when that name is a live typed external buffer; unknown names without a registered backing are still not synthesized. The binder also does not bind plugin external textures; Hybrid GI's `history-global-illumination` alias is a history-owned texture and is handled by `bind_history_graph_resources.rs`.
+
+The packet epoch proves which device generation admitted the runtime-prepare handoff; it does not independently prove which native device created an arbitrary raw `wgpu::Buffer`. Producers must still create or retain buffers under the scoped current-generation GPU owner. Replacing raw plugin buffers with neutral pooled resource handles remains a later RHI migration, not an implied guarantee of this packet check.
+
+Generation changes deliberately choose correctness over transparent native-state migration. Particles restart from authoritative runtime instance data, while Hybrid GI restarts its bootstrap and CPU projection caches together with GPU state. Cross-generation preservation of pure CPU Hybrid GI caches is deferred until recovery profiling proves that the extra ownership split is necessary.
 
 The producer-to-consumer handoff is now connected for the particles plugin-owned backend path and the scene-authored neutral GPU-frame path. Remaining evidence gaps are product-scene parity, RenderDoc resource/marker confirmation, wider plugin package validation after the plugin lockfile drift is resolved, and concrete scene-to-manager `ParticleSystemComponent` integration.
 
 ## Validation State
 
-Source-contract tests build small graphs with the current first-party plugin buffer names and assert that the binder closes the materialization report and emits buffer alias rows. Additional tests cover runtime-prepare registration, registered buffers taking priority over fallbacks, and registered non-fallback plugin names binding only when the compiled graph declares them as typed external buffers.
+Source-contract tests build small graphs with the current first-party plugin buffer names and assert that the binder closes the materialization report and emits buffer alias rows. Additional tests cover runtime-prepare registration, registered buffers taking priority over fallbacks, registered non-fallback plugin names binding only when the compiled graph declares them as typed external buffers, rejection before graph epoch establishment, and rejection when a packet from one WGPU backend reaches another backend's execution resources.
 
 `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-plugin-real-buffer-handoff-0618 --message-format short --color never` passed on 2026-06-18 with the existing 141-warning set. A focused lib-test command for `runtime_prepare_collectors_can_register_external_buffer_bindings` was attempted after the new tests were added, but the `zircon_runtime` lib-test crate still fails before running filtered tests because of unrelated root-surface/test-crate drift: root `crate::BuiltinRenderFeature`/`RenderPassStage` style imports are missing in multiple graphics tests, `RenderPhaseSortComponents` is missing in mesh-pass tests, and one compile-test path reaches a private `scene_renderer` module.
 

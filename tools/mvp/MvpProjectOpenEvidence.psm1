@@ -26,20 +26,67 @@ function Get-MvpProjectOpenEvidenceValue {
     return $property.Value
 }
 
+function Get-MvpProjectOpenDiagnosticLine {
+    param(
+        [Parameter(Mandatory)][string]$DiagnosticText
+    )
+
+    $marker = 'editor_project_open '
+    $markerIndex = $DiagnosticText.LastIndexOf($marker, [StringComparison]::Ordinal)
+    if ($markerIndex -lt 0) {
+        throw 'Editor project creation did not emit the editor_project_open diagnostic.'
+    }
+
+    $lineStart = $DiagnosticText.LastIndexOf([char]10, $markerIndex)
+    if ($lineStart -lt 0) {
+        $lineStart = 0
+    }
+    else {
+        $lineStart++
+    }
+    $lineEnd = $DiagnosticText.IndexOf([char]10, $markerIndex)
+    if ($lineEnd -lt 0) {
+        $lineEnd = $DiagnosticText.Length
+    }
+    elseif ($lineEnd -gt $lineStart -and $DiagnosticText[$lineEnd - 1] -eq [char]13) {
+        $lineEnd--
+    }
+    return $DiagnosticText.Substring($lineStart, $lineEnd - $lineStart)
+}
+
+function Get-MvpProjectOpenDiagnosticTokens {
+    param(
+        [Parameter(Mandatory)][string]$Diagnostic
+    )
+
+    $tokens = [Collections.Generic.Dictionary[string, string]]::new(12, [StringComparer]::Ordinal)
+    foreach ($token in $Diagnostic.Split(
+            [char[]]$null,
+            [StringSplitOptions]::RemoveEmptyEntries)) {
+        $equalsIndex = $token.IndexOf([char]61)
+        if ($equalsIndex -le 0 -or $equalsIndex -ge ($token.Length - 1)) {
+            continue
+        }
+        $name = $token.Substring(0, $equalsIndex)
+        if (-not $tokens.ContainsKey($name)) {
+            $tokens.Add($name, $token.Substring($equalsIndex + 1))
+        }
+    }
+    return $tokens
+}
+
 function Get-MvpProjectOpenDiagnosticToken {
     param(
+        [Parameter(Mandatory)][Collections.Generic.Dictionary[string, string]]$Tokens,
         [Parameter(Mandatory)][string]$Diagnostic,
         [Parameter(Mandatory)][string]$Name
     )
 
-    $match = [regex]::Match(
-        $Diagnostic,
-        '(?:^|\s)' + [regex]::Escape($Name) + '=([^\s]+)'
-    )
-    if (-not $match.Success) {
+    [string]$value = $null
+    if (-not $Tokens.TryGetValue($Name, [ref]$value)) {
         throw "Editor project-open diagnostic is missing '$Name': $Diagnostic"
     }
-    return $match.Groups[1].Value
+    return $value
 }
 
 function ConvertFrom-MvpProjectOpenDiagnosticToken {
@@ -74,16 +121,22 @@ function ConvertTo-MvpProjectOpenUInt64 {
 function Get-MvpProjectOpenRelativePath {
     param(
         [Parameter(Mandatory)][string]$StagingRoot,
-        [Parameter(Mandatory)][string]$ProjectRoot
+        [Parameter(Mandatory)][string]$ProjectRoot,
+        $ProjectResolution
     )
 
     $stagingResolution = Resolve-ZirconWindowsPath -Path $StagingRoot
-    $projectResolution = Resolve-ZirconWindowsPath -Path $ProjectRoot
+    $effectiveProjectResolution = if ($null -eq $ProjectResolution) {
+        Resolve-ZirconWindowsPath -Path $ProjectRoot
+    }
+    else {
+        $ProjectResolution
+    }
     $resolvedStagingRoot = $stagingResolution.OperationalPath.TrimEnd([char[]]@('\', '/'))
-    $resolvedProjectRoot = $projectResolution.OperationalPath
+    $resolvedProjectRoot = $effectiveProjectResolution.OperationalPath
     $prefix = $resolvedStagingRoot + [IO.Path]::DirectorySeparatorChar
     if (-not $resolvedProjectRoot.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Editor project-open diagnostic project root '$($projectResolution.DisplayPath)' escapes staging root '$($stagingResolution.DisplayPath)'."
+        throw "Editor project-open diagnostic project root '$($effectiveProjectResolution.DisplayPath)' escapes staging root '$($stagingResolution.DisplayPath)'."
     }
     return $resolvedProjectRoot.Substring($prefix.Length).Replace('\', '/')
 }
@@ -105,28 +158,29 @@ function Get-MvpEditorProjectOpenEvidence {
         [string]$ExpectedProjectRoot
     )
 
-    $diagnosticLines = @(
-        $DiagnosticText -split '\r?\n' |
-            Where-Object { $_.IndexOf('editor_project_open ', [StringComparison]::Ordinal) -ge 0 }
-    )
-    if ($diagnosticLines.Count -eq 0) {
-        throw 'Editor project creation did not emit the editor_project_open diagnostic.'
-    }
-    $diagnostic = $diagnosticLines[$diagnosticLines.Count - 1]
-    if ((Get-MvpProjectOpenDiagnosticToken -Diagnostic $diagnostic -Name 'result') -ne 'completed') {
+    $diagnostic = Get-MvpProjectOpenDiagnosticLine -DiagnosticText $DiagnosticText
+    $diagnosticTokens = Get-MvpProjectOpenDiagnosticTokens -Diagnostic $diagnostic
+    if ((Get-MvpProjectOpenDiagnosticToken -Tokens $diagnosticTokens -Diagnostic $diagnostic -Name 'result') -ne 'completed') {
         throw "Editor project-open diagnostic did not complete successfully: $diagnostic"
     }
 
     $reportedProjectRoot = ConvertFrom-MvpProjectOpenDiagnosticToken `
-        -Value (Get-MvpProjectOpenDiagnosticToken -Diagnostic $diagnostic -Name 'project_root') `
+        -Value (Get-MvpProjectOpenDiagnosticToken -Tokens $diagnosticTokens -Diagnostic $diagnostic -Name 'project_root') `
         -Name 'project_root'
-    $expectedProjectRootInput = if ([string]::IsNullOrWhiteSpace($ExpectedProjectRoot)) {
+    $projectRootIsExpected = [string]::IsNullOrWhiteSpace($ExpectedProjectRoot)
+    $expectedProjectRootInput = if ($projectRootIsExpected) {
         $ProjectRoot
     }
     else {
         $ExpectedProjectRoot
     }
     $expectedProjectRootResolution = Resolve-ZirconWindowsPath -Path $expectedProjectRootInput
+    $relativeProjectResolution = if ($projectRootIsExpected) {
+        $expectedProjectRootResolution
+    }
+    else {
+        $null
+    }
     $expectedProjectRoot = $expectedProjectRootResolution.OperationalPath
     if ($reportedProjectRoot -eq '.') {
         $resolvedReportedProjectRoot = $expectedProjectRoot
@@ -152,19 +206,19 @@ function Get-MvpEditorProjectOpenEvidence {
     }
 
     $manifestIdentity = ConvertFrom-MvpProjectOpenDiagnosticToken `
-        -Value (Get-MvpProjectOpenDiagnosticToken -Diagnostic $diagnostic -Name 'manifest_identity') `
+        -Value (Get-MvpProjectOpenDiagnosticToken -Tokens $diagnosticTokens -Diagnostic $diagnostic -Name 'manifest_identity') `
         -Name 'manifest_identity'
     if ($manifestIdentity -notmatch '^.+@v[1-9][0-9]*$') {
         throw "Editor project-open diagnostic has invalid manifest_identity '$manifestIdentity'."
     }
     $sceneUri = ConvertFrom-MvpProjectOpenDiagnosticToken `
-        -Value (Get-MvpProjectOpenDiagnosticToken -Diagnostic $diagnostic -Name 'scene_uri') `
+        -Value (Get-MvpProjectOpenDiagnosticToken -Tokens $diagnosticTokens -Diagnostic $diagnostic -Name 'scene_uri') `
         -Name 'scene_uri'
     if ($sceneUri -ne 'res://scenes/main.scene.toml') {
         throw "Editor project-open diagnostic scene_uri '$sceneUri' differs from the RenderableEmpty default scene."
     }
     $settingsSource = ConvertFrom-MvpProjectOpenDiagnosticToken `
-        -Value (Get-MvpProjectOpenDiagnosticToken -Diagnostic $diagnostic -Name 'settings_source') `
+        -Value (Get-MvpProjectOpenDiagnosticToken -Tokens $diagnosticTokens -Diagnostic $diagnostic -Name 'settings_source') `
         -Name 'settings_source'
     if ($settingsSource -notmatch '^persisted-[A-Za-z0-9._-]+$') {
         throw "Editor project-open diagnostic settings_source '$settingsSource' is not persisted project settings evidence."
@@ -181,7 +235,7 @@ function Get-MvpEditorProjectOpenEvidence {
         'catalog_asset_count'
     )) {
         $counts[$name] = ConvertTo-MvpProjectOpenUInt64 `
-            -Value (Get-MvpProjectOpenDiagnosticToken -Diagnostic $diagnostic -Name $name) `
+            -Value (Get-MvpProjectOpenDiagnosticToken -Tokens $diagnosticTokens -Diagnostic $diagnostic -Name $name) `
             -Name $name
     }
     if ($counts.registry_asset_count -lt 4 -or $counts.registry_ready_asset_count -lt 4) {
@@ -201,7 +255,10 @@ function Get-MvpEditorProjectOpenEvidence {
     }
 
     return [pscustomobject][ordered]@{
-        project_root = Get-MvpProjectOpenRelativePath -StagingRoot $StagingRoot -ProjectRoot $ProjectRoot
+        project_root = Get-MvpProjectOpenRelativePath `
+            -StagingRoot $StagingRoot `
+            -ProjectRoot $ProjectRoot `
+            -ProjectResolution $relativeProjectResolution
         manifest_identity = $manifestIdentity
         scene_uri = $sceneUri
         registry_asset_count = $counts.registry_asset_count

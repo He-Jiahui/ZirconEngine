@@ -41,12 +41,16 @@ fn render_product_advanced_submits_vg_hgi_only_with_runtime_providers() {
         .unwrap();
     let stats = server.query_stats().unwrap();
 
-    assert!(stats
-        .last_effective_features
-        .contains(&"virtual_geometry".to_string()));
-    assert!(stats
-        .last_effective_features
-        .contains(&"hybrid_gi".to_string()));
+    assert!(
+        stats
+            .last_effective_features
+            .contains(&"virtual_geometry".to_string())
+    );
+    assert!(
+        stats
+            .last_effective_features
+            .contains(&"hybrid_gi".to_string())
+    );
     assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 5);
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 4);
     assert_eq!(
@@ -82,12 +86,16 @@ fn render_product_advanced_degrades_without_runtime_providers() {
         .unwrap();
     let stats = server.query_stats().unwrap();
 
-    assert!(!stats
-        .last_effective_features
-        .contains(&"virtual_geometry".to_string()));
-    assert!(!stats
-        .last_effective_features
-        .contains(&"hybrid_gi".to_string()));
+    assert!(
+        !stats
+            .last_effective_features
+            .contains(&"virtual_geometry".to_string())
+    );
+    assert!(
+        !stats
+            .last_effective_features
+            .contains(&"hybrid_gi".to_string())
+    );
     assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 0);
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 0);
     assert_eq!(
@@ -107,11 +115,13 @@ fn render_product_advanced_degrades_without_runtime_providers() {
         assert!(report.requested);
         assert_eq!(report.provider_id, None);
         assert_eq!(report.status, AdvancedProviderStatus::Degraded);
-        assert!(report
-            .degradations
-            .iter()
-            .any(|degradation| degradation.reason
-                == AdvancedRenderDegradationReason::ProviderMissing));
+        assert!(
+            report
+                .degradations
+                .iter()
+                .any(|degradation| degradation.reason
+                    == AdvancedRenderDegradationReason::ProviderMissing)
+        );
     }
 }
 

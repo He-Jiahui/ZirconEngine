@@ -218,7 +218,7 @@ fn debug_snapshot_carries_surface_pipeline_report() {
     let frame = surface.surface_frame();
     let snapshot = surface.debug_snapshot();
 
-    assert_eq!(snapshot.pipeline_report, frame.pipeline_report);
+    assert_eq!(&snapshot.pipeline_report, frame.pipeline_report.as_ref());
     assert!(snapshot.pipeline_report.is_complete_ordered());
 }
 

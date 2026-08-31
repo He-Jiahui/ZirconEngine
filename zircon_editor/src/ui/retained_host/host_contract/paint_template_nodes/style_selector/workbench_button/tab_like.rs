@@ -105,9 +105,9 @@ fn is_asset_browser_tab_like_action(action_id: &str) -> bool {
 }
 
 fn is_asset_browser_toolbar_chip_control(control_id: &str) -> bool {
-    control_id.starts_with("AssetBrowserKind")
+    ((control_id.starts_with("AssetBrowserKind") || control_id.starts_with("AssetsActivityKind"))
+        && (control_id.ends_with("Chip") || control_id.ends_with("Button")))
         || control_id.starts_with("AssetBrowserViewMode")
-        || control_id.starts_with("AssetsActivityKind")
         || control_id.starts_with("AssetsActivityViewMode")
 }
 

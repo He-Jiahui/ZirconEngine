@@ -571,8 +571,10 @@ fn bundle_commit_derives_one_final_archetype_signature_from_staged_metadata() {
     assert!(
         finish.contains("let final_signature =")
             && finish.contains("self.final_archetype_signature(")
-            && finish.contains("let final_archetype_transition = current_signature != final_signature")
-            && finish.contains("transition_entity_archetype_row(self.entity, final_signature, updates)")
+            && finish
+                .contains("let final_archetype_transition = current_signature != final_signature")
+            && finish
+                .contains("transition_entity_archetype_row(self.entity, final_signature, updates)")
             && finish.contains("table_values")
             && !finish.contains("publish_entity_archetype_signature(")
             && !finish.contains("refresh_entity_archetype(self.entity)"),
@@ -659,7 +661,8 @@ fn fixed_record_restore_uses_the_shared_complete_row_transaction() {
     );
     assert!(
         row_source.contains("validate_transition(")
-            && row_source.contains("transition_entity_archetype_row(entity, signature, dense_updates)")
+            && row_source
+                .contains("transition_entity_archetype_row(entity, signature, dense_updates)")
             && row_source.contains("for (component_id, sparse) in sparse_values")
             && !row_source.contains("component_ids_for_entity_by_storage"),
         "shared component row commit must preflight the final schema and publish sparse plus dense values without storage scans"

@@ -134,7 +134,7 @@ let enemy = world
 type PlayerHealth = QueryState<(EntityId, &'static Health), With<Player>>;
 let mut system = SystemState::<PlayerHealth>::new(&mut world).unwrap();
 
-let player_rows = system.run(&mut world, |query| {
+let player_rows = system.run(&mut world, |mut query| {
     query
         .iter()
         .map(|(entity, health)| (entity, health.0))
@@ -207,7 +207,7 @@ This example is intentionally explicit about `apply_deferred()`. Zircon's scene 
 
 - `World::observe_component_lifecycle::<T>(...)` and `World::observe_entity_event::<T>(...)` run callbacks during the trigger or mutation path.
 - `World::send_message(...)`, `MessageWriterParam<T>`, and `MessageReaderParam<T>` use retained cursors so a system reads only messages it has not consumed.
-- `RemovedComponentsParam<T>` observes component removals and recursive despawn cleanup without requiring the removed value to remain stored.
+- `RemovedComponentsParam<T>` observes component removals and recursive despawn cleanup without requiring the removed value to remain stored. Its world-owned queue is bounded by entry, byte, and age retention; a slow reader exposes its dropped count rather than extending world lifetime.
 
 The coverage lives in `ecs_change_detection.rs` and `ecs_observers_messages.rs`. The Bevy comparison point is capability behavior, not identical observer storage: Zircon keeps the observer store behind `World`, and editor/remote reflection still routes through `WorldReflection`.
 

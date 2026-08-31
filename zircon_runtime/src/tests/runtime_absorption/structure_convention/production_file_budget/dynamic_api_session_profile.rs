@@ -32,10 +32,9 @@ fn runtime_15_dynamic_api_session_profile_is_child_owner() {
     );
     for moved_owner in [
         "enum RuntimeDynamicSessionProfile",
-        "const DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME",
         "const RUNTIME_SESSION_PROFILE_RUNTIME",
         "fn from_bytes(bytes: &[u8]) -> Option<Self>",
-        "fn max_fixed_steps_per_frame(self) -> u32",
+        "fn product_time_policy(self) -> ProductTimePolicy",
         "fn diagnostic_log_schedule(self) -> DiagnosticStoreLogSchedule",
         "fn uses_render_bridge(self) -> bool",
     ] {
@@ -49,10 +48,9 @@ fn runtime_15_dynamic_api_session_profile_is_child_owner() {
         &profile,
         &[
             "pub(super) enum RuntimeDynamicSessionProfile",
-            "const DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME",
             "const RUNTIME_SESSION_PROFILE_RUNTIME",
             "pub(super) fn from_bytes(bytes: &[u8]) -> Option<Self>",
-            "pub(super) fn max_fixed_steps_per_frame(self) -> u32",
+            "pub(super) fn product_time_policy(self) -> ProductTimePolicy",
             "pub(super) fn diagnostic_log_schedule(self) -> DiagnosticStoreLogSchedule",
             "pub(super) fn uses_render_bridge(self) -> bool",
             "DiagnosticStoreLogSchedule::repeating(DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT)",

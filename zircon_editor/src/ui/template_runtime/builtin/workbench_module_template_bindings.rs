@@ -24,12 +24,6 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
         ("Compile", "workbench.module.compile.invoke"),
         ("Diff", "workbench.module.diff.invoke"),
         ("Simulate", "workbench.module.simulate.invoke"),
-        ("EffectRulesTab", "workbench.module.effect.rules_tab.select"),
-        ("EffectTagsTab", "workbench.module.effect.tags_tab.select"),
-        (
-            "EffectSimulationTab",
-            "workbench.module.effect.simulation_tab.select",
-        ),
         (
             "EffectDurationRow",
             "workbench.module.effect.duration_row.select",
@@ -48,7 +42,6 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
         ),
         ("EffectStackRow", "workbench.module.effect.stack_row.select"),
         ("EffectCueRow", "workbench.module.effect.cue_row.select"),
-        ("EffectOutput", "workbench.module.effect.output.select"),
         ("EffectApply", "workbench.module.effect.apply.invoke"),
         (
             "EffectModifierHealth",
@@ -71,20 +64,12 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
             "workbench.module.effect.attribute_preview.select",
         ),
         (
-            "MaterialGraphTab",
-            "workbench.module.material.graph_tab.select",
-        ),
-        (
-            "MaterialPreviewTab",
-            "workbench.module.material.preview_tab.select",
-        ),
-        (
-            "MaterialShaderTab",
-            "workbench.module.material.shader_tab.select",
-        ),
-        (
             "MaterialBaseColorRow",
             "workbench.module.material.base_color_row.select",
+        ),
+        (
+            "MaterialRoughnessRow",
+            "workbench.module.material.roughness_row.select",
         ),
         (
             "MaterialNormalRow",
@@ -102,22 +87,9 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
             "MaterialNodeNormal",
             "workbench.module.material.node_normal.select",
         ),
-        ("MaterialOutput", "workbench.module.material.output.select"),
         (
             "MaterialCompile",
             "workbench.module.material.compile.invoke",
-        ),
-        (
-            "BehaviorTreeTab",
-            "workbench.module.behavior.tree_tab.select",
-        ),
-        (
-            "BehaviorBlackboardTab",
-            "workbench.module.behavior.blackboard_tab.select",
-        ),
-        (
-            "BehaviorDebugTab",
-            "workbench.module.behavior.debug_tab.select",
         ),
         (
             "BehaviorSelectorRow",
@@ -139,22 +111,9 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
             "BehaviorNodeCooldown",
             "workbench.module.behavior.node_cooldown.select",
         ),
-        ("BehaviorOutput", "workbench.module.behavior.output.select"),
         (
             "BehaviorValidate",
             "workbench.module.behavior.validate.invoke",
-        ),
-        (
-            "AssetsBrowserTab",
-            "workbench.module.assets.browser_tab.select",
-        ),
-        (
-            "AssetsImportTab",
-            "workbench.module.assets.import_tab.select",
-        ),
-        (
-            "AssetsValidationTab",
-            "workbench.module.assets.validation_tab.select",
         ),
         (
             "AssetsForestRow",
@@ -176,30 +135,25 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
             "AssetsTableTexture",
             "workbench.module.assets.table_texture.select",
         ),
-        ("AssetsOutput", "workbench.module.assets.output.select"),
         ("AssetsImport", "workbench.module.assets.import.invoke"),
-        ("VfxEmittersTab", "workbench.module.vfx.emitters_tab.select"),
-        ("VfxTimelineTab", "workbench.module.vfx.timeline_tab.select"),
-        ("VfxCompileTab", "workbench.module.vfx.compile_tab.select"),
+        (
+            "AssetsWorldToolsOpen",
+            "workbench.module.assets.world_tools.open",
+        ),
+        (
+            "AssetsGameplayToolsOpen",
+            "workbench.module.assets.gameplay_tools.open",
+        ),
+        (
+            "AssetsProductionToolsOpen",
+            "workbench.module.assets.production_tools.open",
+        ),
         ("VfxEmitterRow", "workbench.module.vfx.emitter_row.select"),
         ("VfxCurveRow", "workbench.module.vfx.curve_row.select"),
         ("VfxSpawnRow", "workbench.module.vfx.spawn_row.select"),
         ("VfxLifetimeRow", "workbench.module.vfx.lifetime_row.select"),
         ("VfxMaterialRow", "workbench.module.vfx.material_row.select"),
-        ("VfxOutput", "workbench.module.vfx.output.select"),
         ("VfxSimulate", "workbench.module.vfx.simulate.invoke"),
-        (
-            "AbilityGraphTab",
-            "workbench.module.ability.graph_tab.select",
-        ),
-        (
-            "AbilityTasksTab",
-            "workbench.module.ability.tasks_tab.select",
-        ),
-        (
-            "AbilityDebugTab",
-            "workbench.module.ability.debug_tab.select",
-        ),
         (
             "AbilityTaskActivate",
             "workbench.module.ability.task_activate.select",
@@ -217,6 +171,10 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
             "workbench.module.ability.playtest.invoke",
         ),
         (
+            "AbilityAnimationToolsOpen",
+            "workbench.module.ability.animation_tools.open",
+        ),
+        (
             "AbilityPhaseActivate",
             "workbench.module.ability.phase_activate.select",
         ),
@@ -228,16 +186,6 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
             "AbilityGraphSelect",
             "workbench.module.ability.graph_select.select",
         ),
-        ("AbilityOutput", "workbench.module.ability.output.select"),
-        (
-            "TagsRegistryTab",
-            "workbench.module.tags.registry_tab.select",
-        ),
-        (
-            "TagsValidationTab",
-            "workbench.module.tags.validation_tab.select",
-        ),
-        ("TagsSourcesTab", "workbench.module.tags.sources_tab.select"),
         ("TagsAdd", "workbench.module.tags.add.invoke"),
         ("TagsRename", "workbench.module.tags.rename.invoke"),
         (
@@ -251,22 +199,6 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
         (
             "TagsStateStunned",
             "workbench.module.tags.state_stunned.select",
-        ),
-        (
-            "TagsValidationSelect",
-            "workbench.module.tags.validation_select.select",
-        ),
-        (
-            "PerceptionSightTab",
-            "workbench.module.perception.sight_tab.select",
-        ),
-        (
-            "PerceptionHearingTab",
-            "workbench.module.perception.hearing_tab.select",
-        ),
-        (
-            "PerceptionDebugTab",
-            "workbench.module.perception.debug_tab.select",
         ),
         (
             "PerceptionGuard",
@@ -293,19 +225,6 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
             "workbench.module.perception.stimulus.select",
         ),
         (
-            "PerceptionEvent",
-            "workbench.module.perception.event.select",
-        ),
-        ("RenderGraphTab", "workbench.module.render.graph_tab.select"),
-        (
-            "RenderResourcesTab",
-            "workbench.module.render.resources_tab.select",
-        ),
-        (
-            "RenderWarningsTab",
-            "workbench.module.render.warnings_tab.select",
-        ),
-        (
             "RenderLightingPass",
             "workbench.module.render.lighting_pass.select",
         ),
@@ -326,13 +245,8 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
             "RenderSceneColor",
             "workbench.module.render.scene_color.select",
         ),
-        ("RenderCapture", "workbench.module.render.capture.select"),
-        ("HudCanvasTab", "workbench.module.hud.canvas_tab.select"),
-        ("HudBindingsTab", "workbench.module.hud.bindings_tab.select"),
-        (
-            "HudValidationTab",
-            "workbench.module.hud.validation_tab.select",
-        ),
+        ("RenderToolsOpen", "workbench.module.render.tools.open"),
+        ("HudToolsOpen", "workbench.module.hud.tools.open"),
         ("HudWidgetText", "workbench.module.hud.widget_text.select"),
         (
             "HudWidgetButton",
@@ -342,10 +256,6 @@ pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, E
         ("HudMinimap", "workbench.module.hud.minimap.select"),
         ("HudAmmoPanel", "workbench.module.hud.ammo_panel.select"),
         ("HudBindingAmmo", "workbench.module.hud.binding_ammo.select"),
-        (
-            "HudValidationRow",
-            "workbench.module.hud.validation_row.select",
-        ),
     ] {
         insert_click(
             bindings,

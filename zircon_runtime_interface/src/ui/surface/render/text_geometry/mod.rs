@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::ui::{layout::UiFrame, surface::UiTextPreeditClauseKind};
 
 use super::{
@@ -174,15 +176,76 @@ fn append_range_decorations(
         return;
     }
 
-    // Reuse each line's cluster projection and exact-advance cache across the
-    // selection and every IME clause while retaining declaration order.
-    let source_maps = layout
-        .lines
-        .iter()
-        .map(UiTextLineSourceMap::new)
-        .collect::<Vec<_>>();
+    let mut source_maps = TextDecorationLineSourceMaps::new(&layout.lines);
+    append_range_decorations_with_source_maps(
+        decorations,
+        layout,
+        range_decorations,
+        &mut source_maps,
+    );
+}
+
+struct TextDecorationLineSourceMaps<'a> {
+    lines: &'a [UiResolvedTextLine],
+    maps: HashMap<usize, UiTextLineSourceMap<'a>>,
+    #[cfg(test)]
+    initialized_count: usize,
+}
+
+impl<'a> TextDecorationLineSourceMaps<'a> {
+    fn new(lines: &'a [UiResolvedTextLine]) -> Self {
+        Self {
+            lines,
+            maps: HashMap::new(),
+            #[cfg(test)]
+            initialized_count: 0,
+        }
+    }
+
+    fn for_source_range(
+        &mut self,
+        line_index: usize,
+        range: UiTextRange,
+    ) -> Option<(&'a UiResolvedTextLine, &UiTextLineSourceMap<'a>)> {
+        let line = self.lines.get(line_index)?;
+        if range.start >= line.source_range.end || line.source_range.start >= range.end {
+            return None;
+        }
+
+        let source_map = match self.maps.entry(line_index) {
+            std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                #[cfg(test)]
+                {
+                    self.initialized_count += 1;
+                }
+                entry.insert(UiTextLineSourceMap::new(line))
+            }
+        };
+        Some((line, source_map))
+    }
+
+    #[cfg(test)]
+    fn initialized_count(&self) -> usize {
+        self.initialized_count
+    }
+}
+
+fn append_range_decorations_with_source_maps(
+    decorations: &mut Vec<UiTextPaintDecoration>,
+    layout: &UiResolvedTextLayout,
+    range_decorations: &[TextRangeDecoration],
+    source_maps: &mut TextDecorationLineSourceMaps<'_>,
+) {
+    // Reuse each touched line's cluster projection and exact-advance cache
+    // across the selection and every IME clause while retaining declaration order.
     for decoration in range_decorations {
-        for (line, source_map) in layout.lines.iter().zip(&source_maps) {
+        for line_index in 0..source_maps.lines.len() {
+            let Some((line, source_map)) =
+                source_maps.for_source_range(line_index, decoration.range)
+            else {
+                continue;
+            };
             for span in source_map.visual_spans_for_source_range(decoration.range) {
                 let start = source_map.advance_to_visual_offset(span.visual_range.start);
                 let end = source_map.advance_to_visual_offset(span.visual_range.end);
@@ -287,4 +350,78 @@ fn caret_line<'a>(
             .filter(|line| caret.offset < line.source_range.start)
     })
     .or_else(|| layout.lines.last())
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+    use crate::ui::surface::{UiResolvedTextRun, UiTextDirection, UiTextRunKind};
+
+    #[test]
+    fn localized_selection_and_preedit_share_one_intersecting_line_source_map() {
+        let lines = (0..128)
+            .map(|line_index| UiResolvedTextLine {
+                text: "x".to_string(),
+                placement_frame: UiFrame::default(),
+                frame: UiFrame::new(0.0, line_index as f32 * 12.0, 8.0, 12.0),
+                source_range: UiTextRange {
+                    start: line_index,
+                    end: line_index + 1,
+                },
+                visual_range: UiTextRange { start: 0, end: 1 },
+                measured_width: 8.0,
+                glyph_advances: vec![8.0],
+                baseline: 9.0,
+                direction: UiTextDirection::LeftToRight,
+                runs: vec![UiResolvedTextRun {
+                    kind: UiTextRunKind::Plain,
+                    text: "x".to_string(),
+                    source_range: UiTextRange {
+                        start: line_index,
+                        end: line_index + 1,
+                    },
+                    visual_range: UiTextRange { start: 0, end: 1 },
+                    direction: UiTextDirection::LeftToRight,
+                }],
+                ellipsized: false,
+            })
+            .collect::<Vec<_>>();
+        let layout = UiResolvedTextLayout {
+            lines,
+            ..Default::default()
+        };
+        let range = UiTextRange { start: 64, end: 65 };
+        let mut decorations = Vec::new();
+        let mut source_maps = TextDecorationLineSourceMaps::new(&layout.lines);
+
+        append_range_decorations_with_source_maps(
+            &mut decorations,
+            &layout,
+            &[
+                TextRangeDecoration::composition_highlight(range),
+                TextRangeDecoration::selection(range),
+                TextRangeDecoration::composition_underline(range, TEXT_COMPOSITION_UNDERLINE_COLOR),
+            ],
+            &mut source_maps,
+        );
+
+        assert_eq!(source_maps.initialized_count(), 1);
+        assert_eq!(
+            decorations
+                .iter()
+                .map(|decoration| decoration.kind)
+                .collect::<Vec<_>>(),
+            vec![
+                UiTextPaintDecorationKind::CompositionHighlight,
+                UiTextPaintDecorationKind::Selection,
+                UiTextPaintDecorationKind::CompositionUnderline,
+            ]
+        );
+        assert!(decorations
+            .iter()
+            .all(|decoration| decoration.range == range));
+        assert_eq!(decorations[0].frame, UiFrame::new(0.0, 768.0, 8.0, 12.0));
+        assert_eq!(decorations[1].frame, UiFrame::new(0.0, 768.0, 8.0, 12.0));
+        assert_eq!(decorations[2].frame, UiFrame::new(0.0, 778.0, 8.0, 2.0));
+    }
 }

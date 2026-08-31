@@ -1,14 +1,21 @@
+use std::sync::Arc;
+
 use serde_json::json;
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
+use zircon_runtime::scene::DefaultLevelManager;
+use zircon_runtime_interface::math::Vec3;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 use super::support;
-use crate::core::editing::engine::HistoryContextId;
+use crate::core::editing::engine::{EditCommandError, HistoryContextId};
 use crate::core::editing::intent::EditorIntent;
 use crate::core::editor_event::InspectorFieldChange;
 use crate::core::editor_message::{EditorMessagePayload, EditorTopic, TransactionMessage};
+use crate::core::gateway::InProcessGateway;
+use crate::core::play::PlayInstanceId;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
-use crate::ui::binding_dispatch::apply_inspector_binding;
+use crate::ui::binding_dispatch::{apply_inspector_binding, EditorBindingDispatchError};
+use crate::ui::workbench::state::EditorStateOperationError;
 
 #[test]
 fn inspector_binding_applies_batch_changes_to_editor_state() {
@@ -35,7 +42,7 @@ fn inspector_binding_applies_batch_changes_to_editor_state() {
     assert!(apply_inspector_binding(&mut state, &binding).unwrap());
     state
         .world
-        .with_world(|scene: &zircon_runtime::scene::Scene| {
+        .expect_with_world(|scene: &zircon_runtime::scene::Scene| {
             let node = scene.find_node(cube).unwrap();
             assert_eq!(node.name, "Bound Cube");
             assert_eq!(
@@ -50,7 +57,7 @@ fn inspector_binding_applies_dynamic_plugin_component_fields_with_undo_history()
     let mut state = support::test_state();
     let cube = support::cube_id(&state);
     state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene
             .register_component_type(
                 ComponentTypeDescriptor::new(
@@ -84,7 +91,7 @@ fn inspector_binding_applies_dynamic_plugin_component_fields_with_undo_history()
     );
 
     assert!(apply_inspector_binding(&mut state, &binding).unwrap());
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         assert_eq!(
             scene.dynamic_component(cube, "weather.Component.CloudLayer"),
             Some(&json!({ "coverage": 0.9 }))
@@ -92,7 +99,7 @@ fn inspector_binding_applies_dynamic_plugin_component_fields_with_undo_history()
     });
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         assert_eq!(
             scene.dynamic_component(cube, "weather.Component.CloudLayer"),
             Some(&json!({ "coverage": 0.25 }))
@@ -101,11 +108,80 @@ fn inspector_binding_applies_dynamic_plugin_component_fields_with_undo_history()
 }
 
 #[test]
+fn inspector_binding_captures_and_replays_fields_in_the_active_play_world() {
+    let mut state = support::test_state();
+    let cube = support::cube_id(&state);
+    let authoring_name = state
+        .world
+        .expect_with_world(|scene| scene.find_node(cube).unwrap().name.clone());
+    let authoring_transform = state
+        .world
+        .expect_with_world(|scene| scene.find_node(cube).unwrap().transform);
+    assert!(state.enter_play_mode().unwrap());
+
+    let instance = PlayInstanceId::for_test(83);
+    let play_level = DefaultLevelManager::default().create_default_level();
+    play_level.with_world_mut(|scene| {
+        scene.rename_node(cube, "Runtime Cube").unwrap();
+        let mut transform = scene.find_node(cube).unwrap().transform;
+        transform.translation = Vec3::new(1.0, 2.0, 3.0);
+        scene.update_transform(cube, transform).unwrap();
+    });
+    state
+        .context
+        .play_gateway_handle()
+        .replace_for_play(
+            Arc::new(InProcessGateway::for_authoring_level(play_level.clone())),
+            Some(instance.raw()),
+        )
+        .unwrap();
+    assert!(state.activate_play_selection_domain(instance));
+
+    let binding = EditorUiBinding::new(
+        "InspectorView",
+        "ApplyBatchButton",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            vec![
+                InspectorFieldChange::new("name", UiBindingValue::string("Live Cube")),
+                InspectorFieldChange::new("transform.translation.x", UiBindingValue::Float(9.0)),
+            ],
+        ),
+    );
+
+    assert!(apply_inspector_binding(&mut state, &binding).unwrap());
+    play_level.with_world(|scene| {
+        let node = scene.find_node(cube).unwrap();
+        assert_eq!(node.name, "Live Cube");
+        assert_eq!(node.transform.translation, Vec3::new(9.0, 2.0, 3.0));
+    });
+    state.world.expect_with_world(|scene| {
+        let node = scene.find_node(cube).unwrap();
+        assert_eq!(node.name, authoring_name);
+        assert_eq!(node.transform, authoring_transform);
+    });
+
+    assert!(state.apply_intent(EditorIntent::Undo).unwrap());
+    play_level.with_world(|scene| {
+        let node = scene.find_node(cube).unwrap();
+        assert_eq!(node.name, "Runtime Cube");
+        assert_eq!(node.transform.translation, Vec3::new(1.0, 2.0, 3.0));
+    });
+    assert!(state.apply_intent(EditorIntent::Redo).unwrap());
+    play_level.with_world(|scene| {
+        let node = scene.find_node(cube).unwrap();
+        assert_eq!(node.name, "Live Cube");
+        assert_eq!(node.transform.translation, Vec3::new(9.0, 2.0, 3.0));
+    });
+}
+
+#[test]
 fn inspector_binding_rejects_dynamic_plugin_component_field_when_schema_is_unloaded() {
     let mut state = support::test_state();
     let cube = support::cube_id(&state);
     state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene
             .set_dynamic_component(
                 cube,
@@ -464,9 +540,14 @@ fn inspector_binding_cancels_post_apply_selection_sync_failure_before_history_co
     );
 
     let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
-    assert!(error
-        .to_string()
-        .contains("forced transaction selection synchronization failure"));
+    assert!(matches!(
+        error,
+        EditorBindingDispatchError::State(EditorStateOperationError::EditCommand(
+            EditCommandError::InvariantViolation {
+                invariant: "forced transaction selection synchronization failure",
+            }
+        ))
+    ));
     let lifecycle = state
         .context
         .bus()
@@ -529,15 +610,53 @@ fn inspector_binding_cancels_post_apply_selection_sync_failure_before_history_co
 }
 
 #[test]
+fn inspector_binding_rollback_keeps_primary_and_restore_errors_typed() {
+    let mut state = support::test_state();
+    let cube = support::cube_id(&state);
+    state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
+    state.fail_next_transaction_selection_sync_for_test();
+    state.fail_next_inspector_checkpoint_restore_for_test();
+
+    let binding = EditorUiBinding::new(
+        "InspectorView",
+        "ApplyBatchButton",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::inspector_field_batch(
+            format!("node://{cube}"),
+            [InspectorFieldChange::new(
+                "name",
+                UiBindingValue::string("Changed Cube"),
+            )],
+        ),
+    );
+
+    let error = apply_inspector_binding(&mut state, &binding)
+        .expect_err("checkpoint restore failure must preserve the original state failure");
+
+    assert!(matches!(
+        error,
+        EditorBindingDispatchError::InspectorBindingRollback { cause, rollback }
+            if matches!(
+                cause.as_ref(),
+                EditorBindingDispatchError::State(EditorStateOperationError::EditCommand(
+                    EditCommandError::InvariantViolation {
+                        invariant: "forced transaction selection synchronization failure",
+                    }
+                ))
+            ) && matches!(
+                rollback,
+                EditorStateOperationError::InspectorCheckpointRestoreFailed
+            )
+    ));
+}
+
+#[test]
 fn inspector_binding_rejects_an_active_gizmo_without_cancelling_its_preview() {
     let mut state = support::test_state();
     let cube = support::cube_id(&state);
-    let camera = support::camera_id(&state);
-    state
-        .apply_intent(EditorIntent::SelectNode(camera))
-        .unwrap();
+    state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
     state.bind_transaction_context().unwrap();
-    assert!(state.begin_gizmo_transaction().unwrap());
+    let _ = crate::tests::editing::begin_moved_gizmo_drag(&mut state);
     assert!(state.has_active_gizmo_interaction());
     let selection_before = state.viewport_controller.selection().clone();
     let world_before = state.world.snapshot();
@@ -560,9 +679,10 @@ fn inspector_binding_rejects_an_active_gizmo_without_cancelling_its_preview() {
     );
 
     let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
-    assert!(error
-        .to_string()
-        .contains("cannot apply inspector changes while a gizmo interaction is active"));
+    assert!(matches!(
+        error,
+        EditorBindingDispatchError::State(EditorStateOperationError::InspectorBindingActiveGizmo)
+    ));
     assert!(state.has_active_gizmo_interaction());
     assert_eq!(state.viewport_controller.selection(), &selection_before);
     assert_eq!(state.world.snapshot(), world_before);

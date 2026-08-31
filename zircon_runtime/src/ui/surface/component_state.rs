@@ -13,6 +13,24 @@ pub struct UiSurfaceComponentStateStore {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct UiSurfaceComponentStateMigrationReport {
+    pub(crate) migrated: usize,
+    pub(crate) reset: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum UiStableComponentStateKey {
+    Control {
+        component: String,
+        control_id: String,
+    },
+    NodePath {
+        component: String,
+        node_path: String,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiComponentStatePropertyChange {
     pub(crate) value_changed: bool,
     pub(crate) pseudo_state_changed: bool,
@@ -34,6 +52,40 @@ impl UiComponentStatePropertyChange {
 impl UiSurfaceComponentStateStore {
     pub fn get(&self, node_id: UiNodeId) -> Option<&UiComponentState> {
         self.states.get(&node_id)
+    }
+
+    pub(crate) fn migrate_stable_from(
+        &mut self,
+        previous: &Self,
+        previous_tree: &UiTree,
+        replacement_tree: &UiTree,
+    ) -> UiSurfaceComponentStateMigrationReport {
+        let previous_key_counts = stable_component_state_key_counts(previous_tree);
+        let replacement_nodes = unique_stable_component_state_nodes(replacement_tree);
+        let mut report = UiSurfaceComponentStateMigrationReport::default();
+
+        for (node_id, state) in &previous.states {
+            let Some(key) = previous_tree
+                .node(*node_id)
+                .and_then(stable_component_state_key)
+            else {
+                report.reset += 1;
+                continue;
+            };
+            if previous_key_counts.get(&key) != Some(&1) {
+                report.reset += 1;
+                continue;
+            }
+            let Some(Some(replacement_node_id)) = replacement_nodes.get(&key) else {
+                report.reset += 1;
+                continue;
+            };
+            self.states
+                .insert(*replacement_node_id, persistent_reload_state(state));
+            report.migrated += 1;
+        }
+
+        report
     }
 
     pub(crate) fn seed_from_tree_metadata(&mut self, tree: &UiTree) {
@@ -285,6 +337,66 @@ impl UiSurfaceComponentStateStore {
     }
 }
 
+fn persistent_reload_state(state: &UiComponentState) -> UiComponentState {
+    let mut state = state.clone();
+    state.flags.focused = false;
+    state.flags.focus_visible = false;
+    state.flags.hovered = false;
+    state.flags.pressed = false;
+    state.flags.dragging = false;
+    state.flags.drop_hovered = false;
+    state.flags.active_drag_target = false;
+    state.flags.popup_open = false;
+    state
+}
+
+fn stable_component_state_key_counts(tree: &UiTree) -> BTreeMap<UiStableComponentStateKey, usize> {
+    let mut counts = BTreeMap::new();
+    for node in tree.nodes.values() {
+        if let Some(key) = stable_component_state_key(node) {
+            *counts.entry(key).or_default() += 1;
+        }
+    }
+    counts
+}
+
+fn unique_stable_component_state_nodes(
+    tree: &UiTree,
+) -> BTreeMap<UiStableComponentStateKey, Option<UiNodeId>> {
+    let mut nodes = BTreeMap::new();
+    for (node_id, node) in &tree.nodes {
+        let Some(key) = stable_component_state_key(node) else {
+            continue;
+        };
+        match nodes.entry(key) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                entry.insert(Some(*node_id));
+            }
+            std::collections::btree_map::Entry::Occupied(mut entry) => {
+                entry.insert(None);
+            }
+        }
+    }
+    nodes
+}
+
+fn stable_component_state_key(
+    node: &zircon_runtime_interface::ui::tree::UiTreeNode,
+) -> Option<UiStableComponentStateKey> {
+    let metadata = node.template_metadata.as_ref()?;
+    let component = metadata.component.clone();
+    Some(match metadata.control_id.as_deref() {
+        Some(control_id) => UiStableComponentStateKey::Control {
+            component,
+            control_id: control_id.to_string(),
+        },
+        None => UiStableComponentStateKey::NodePath {
+            component,
+            node_path: node.node_path.0.clone(),
+        },
+    })
+}
+
 pub(crate) fn property_may_affect_runtime_pseudo_state(property: &str) -> bool {
     matches!(
         property,
@@ -318,6 +430,10 @@ fn bool_attribute(values: &std::collections::BTreeMap<String, toml::Value>, key:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_runtime_interface::ui::{
+        event_ui::{UiNodePath, UiTreeId},
+        tree::{UiTemplateNodeMetadata, UiTreeNode},
+    };
 
     #[test]
     fn virtual_window_numeric_property_change_is_not_a_runtime_pseudo_state_change() {
@@ -365,5 +481,46 @@ mod tests {
             }
         );
         assert_eq!(unchanged, UiComponentStatePropertyChange::default());
+    }
+
+    #[test]
+    fn hot_reload_state_migration_rejects_duplicate_stable_keys() {
+        let tree_id = UiTreeId::new("runtime.ui.duplicate-state-key");
+        let mut previous_tree = UiTree::new(tree_id.clone());
+        previous_tree.insert_root(state_node(1, "Shared", "TextInput"));
+        previous_tree.insert_root(state_node(2, "Shared", "TextInput"));
+        let mut replacement_tree = UiTree::new(tree_id);
+        replacement_tree.insert_root(state_node(10, "Shared", "TextInput"));
+
+        let mut previous = UiSurfaceComponentStateStore::default();
+        previous.set_value(
+            UiNodeId::new(1),
+            "text",
+            UiValue::String("first".to_string()),
+        );
+        previous.set_value(
+            UiNodeId::new(2),
+            "text",
+            UiValue::String("second".to_string()),
+        );
+        let mut replacement = UiSurfaceComponentStateStore::default();
+
+        let report = replacement.migrate_stable_from(&previous, &previous_tree, &replacement_tree);
+
+        assert_eq!(report.migrated, 0);
+        assert_eq!(report.reset, 2);
+        assert!(replacement.get(UiNodeId::new(10)).is_none());
+    }
+
+    fn state_node(node_id: u64, control_id: &str, component: &str) -> UiTreeNode {
+        UiTreeNode::new(
+            UiNodeId::new(node_id),
+            UiNodePath::new(format!("reload/{node_id}")),
+        )
+        .with_template_metadata(UiTemplateNodeMetadata {
+            component: component.to_string(),
+            control_id: Some(control_id.to_string()),
+            ..Default::default()
+        })
     }
 }

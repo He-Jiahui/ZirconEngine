@@ -1,7 +1,8 @@
 use zr_rhi::{
-    BindGroupHandle, BufferHandle, CommandList, CommandListCommand, IndexFormat, PipelineHandle,
-    RenderPassColorAttachmentDesc, RenderPassDepthStencilAttachmentDesc, RenderQueueClass,
-    RenderScissorRect, RenderViewportDesc, TextureCopyRegion, TextureHandle,
+    BindGroupHandle, BufferHandle, CommandList, CommandListCommand, DiagnosticPassQueryScope,
+    IndexFormat, PipelineHandle, RenderPassColorAttachmentDesc,
+    RenderPassDepthStencilAttachmentDesc, RenderQueueClass, RenderScissorRect, RenderViewportDesc,
+    TextureCopyRegion, TextureHandle,
 };
 
 #[derive(Clone, Debug)]
@@ -101,6 +102,22 @@ impl CommandList for DeterministicRhiContractCommandList {
         });
     }
 
+    fn copy_texture_to_texture(
+        &mut self,
+        source: TextureHandle,
+        destination: TextureHandle,
+        source_region: TextureCopyRegion,
+        destination_region: TextureCopyRegion,
+    ) {
+        self.commands
+            .push(CommandListCommand::CopyTextureToTexture {
+                source,
+                destination,
+                source_region,
+                destination_region,
+            });
+    }
+
     fn begin_render_pass(
         &mut self,
         label: &str,
@@ -114,8 +131,46 @@ impl CommandList for DeterministicRhiContractCommandList {
         });
     }
 
+    fn begin_render_pass_with_diagnostics(
+        &mut self,
+        label: &str,
+        color_attachments: Vec<RenderPassColorAttachmentDesc>,
+        depth_stencil_attachment: Option<RenderPassDepthStencilAttachmentDesc>,
+        diagnostic_scope: DiagnosticPassQueryScope,
+    ) {
+        self.commands
+            .push(CommandListCommand::BeginRenderPassWithDiagnostics {
+                label: label.to_string(),
+                color_attachments,
+                depth_stencil_attachment,
+                diagnostic_scope,
+            });
+    }
+
     fn end_render_pass(&mut self) {
         self.commands.push(CommandListCommand::EndRenderPass);
+    }
+
+    fn begin_compute_pass(&mut self, label: &str) {
+        self.commands.push(CommandListCommand::BeginComputePass {
+            label: label.to_string(),
+        });
+    }
+
+    fn begin_compute_pass_with_diagnostics(
+        &mut self,
+        label: &str,
+        diagnostic_scope: DiagnosticPassQueryScope,
+    ) {
+        self.commands
+            .push(CommandListCommand::BeginComputePassWithDiagnostics {
+                label: label.to_string(),
+                diagnostic_scope,
+            });
+    }
+
+    fn end_compute_pass(&mut self) {
+        self.commands.push(CommandListCommand::EndComputePass);
     }
 
     fn set_pipeline(&mut self, pipeline: PipelineHandle) {
@@ -123,9 +178,17 @@ impl CommandList for DeterministicRhiContractCommandList {
             .push(CommandListCommand::SetPipeline { pipeline });
     }
 
-    fn set_bind_group(&mut self, slot: u32, bind_group: BindGroupHandle) {
-        self.commands
-            .push(CommandListCommand::SetBindGroup { slot, bind_group });
+    fn set_bind_group_with_dynamic_offsets(
+        &mut self,
+        slot: u32,
+        bind_group: BindGroupHandle,
+        dynamic_offsets: Vec<u32>,
+    ) {
+        self.commands.push(CommandListCommand::SetBindGroup {
+            slot,
+            bind_group,
+            dynamic_offsets,
+        });
     }
 
     fn set_viewport(&mut self, viewport: RenderViewportDesc) {
@@ -194,8 +257,76 @@ impl CommandList for DeterministicRhiContractCommandList {
         });
     }
 
+    fn draw_indirect(&mut self, arguments: BufferHandle, offset: u64) {
+        self.commands
+            .push(CommandListCommand::DrawIndirect { arguments, offset });
+    }
+
+    fn draw_indexed_indirect(&mut self, arguments: BufferHandle, offset: u64) {
+        self.commands
+            .push(CommandListCommand::DrawIndexedIndirect { arguments, offset });
+    }
+
+    fn multi_draw_indirect(&mut self, arguments: BufferHandle, offset: u64, count: u32) {
+        self.commands.push(CommandListCommand::MultiDrawIndirect {
+            arguments,
+            offset,
+            count,
+        });
+    }
+
+    fn multi_draw_indexed_indirect(&mut self, arguments: BufferHandle, offset: u64, count: u32) {
+        self.commands
+            .push(CommandListCommand::MultiDrawIndexedIndirect {
+                arguments,
+                offset,
+                count,
+            });
+    }
+
+    fn multi_draw_indirect_count(
+        &mut self,
+        arguments: BufferHandle,
+        offset: u64,
+        count_buffer: BufferHandle,
+        count_offset: u64,
+        max_count: u32,
+    ) {
+        self.commands
+            .push(CommandListCommand::MultiDrawIndirectCount {
+                arguments,
+                offset,
+                count_buffer,
+                count_offset,
+                max_count,
+            });
+    }
+
+    fn multi_draw_indexed_indirect_count(
+        &mut self,
+        arguments: BufferHandle,
+        offset: u64,
+        count_buffer: BufferHandle,
+        count_offset: u64,
+        max_count: u32,
+    ) {
+        self.commands
+            .push(CommandListCommand::MultiDrawIndexedIndirectCount {
+                arguments,
+                offset,
+                count_buffer,
+                count_offset,
+                max_count,
+            });
+    }
+
     fn dispatch_compute(&mut self, x: u32, y: u32, z: u32) {
         self.commands
             .push(CommandListCommand::DispatchCompute { x, y, z });
+    }
+
+    fn dispatch_compute_indirect(&mut self, arguments: BufferHandle, offset: u64) {
+        self.commands
+            .push(CommandListCommand::DispatchComputeIndirect { arguments, offset });
     }
 }

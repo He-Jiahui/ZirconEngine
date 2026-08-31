@@ -1,6 +1,7 @@
 const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;
 const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;
 const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;
+const ZR_PBR_NO_ATTENUATION_DISTANCE: f32 = 1.0e30;
 
 struct ZrVertexInput {
     @location(0) position: vec3<f32>,
@@ -50,14 +51,11 @@ struct ZrSurfaceOutput {
     diffuse_transmission: f32,
     thickness: f32,
     ior: f32,
+    dielectric_f0: vec3<f32>,
     attenuation_color: vec3<f32>,
     attenuation_distance: f32,
     custom0: vec4<f32>,
 };
-
-fn zr_surface_metallic_diffuse_energy_scale(metallic: f32) -> f32 {
-    return 1.0 - clamp(metallic, 0.0, 1.0);
-}
 
 alias ZrSurfaceInput = ZrVertexOutput;
 
@@ -89,15 +87,17 @@ fn zr_build_vertex_output(
     color: vec4<f32>,
 ) -> ZrVertexOutput {
     var output: ZrVertexOutput;
-    let world_from_local = zr_world_from_local(instance_index);
+    let instance = zr_gpu_scene_instance(instance_index);
+    let world_from_local = instance.world_from_local;
+    let instance_flags = instance.flags;
     let position_ws = world_from_local * vec4<f32>(position_os, 1.0);
     output.clip_position = scene.view_proj * position_ws;
     output.position_ws = position_ws.xyz;
-    output.normal_ws = zr_normalize_or_zero((world_from_local * vec4<f32>(normal_os, 0.0)).xyz);
+    output.normal_ws = zr_normalize_or_zero(zr_gpu_scene_normal_to_world_direction(world_from_local, instance_flags, normal_os));
     output.uv0 = uv0;
     output.uv1 = uv1;
-    output.tangent_ws = zr_normalize_or_zero((world_from_local * vec4<f32>(tangent_os.xyz, 0.0)).xyz);
-    output.tangent_handedness = select(-1.0, 1.0, tangent_os.w >= 0.0);
+    output.tangent_ws = zr_normalize_or_zero(zr_gpu_scene_tangent_to_world_direction(world_from_local, instance_flags, tangent_os.xyz));
+    output.tangent_handedness = select(-1.0, 1.0, tangent_os.w >= 0.0) * zr_gpu_scene_tangent_handedness_scale(instance_flags);
     output.color = color;
     output.tint = zr_gpu_scene_tint(instance_index);
     output.shadow_params = zr_gpu_scene_shadow_params(instance_index);
@@ -117,11 +117,7 @@ fn zr_build_shading_context(input: ZrVertexOutput) -> ZrShadingContext {
 }
 
 fn zr_normalize_or_zero(value: vec3<f32>) -> vec3<f32> {
-    let value_length = length(value);
-    if (value_length <= 0.000001) {
-        return vec3<f32>(0.0, 0.0, 0.0);
-    }
-    return value / value_length;
+    return zr_pbr_common_normalize_or_zero(value);
 }
 
 fn zr_surface_from_base_color(base_color: vec4<f32>) -> ZrSurfaceOutput {
@@ -146,14 +142,47 @@ fn zr_surface_from_base_color(base_color: vec4<f32>) -> ZrSurfaceOutput {
     surface.diffuse_transmission = 0.0;
     surface.thickness = 0.0;
     surface.ior = 1.5;
+    surface.dielectric_f0 = vec3<f32>(0.04);
     surface.attenuation_color = vec3<f32>(1.0);
-    surface.attenuation_distance = 1.0e30;
+    surface.attenuation_distance = ZR_PBR_NO_ATTENUATION_DISTANCE;
     surface.custom0 = vec4<f32>(0.0);
     return surface;
 }
 
 fn zr_surface_default(input: ZrSurfaceInput) -> ZrSurfaceOutput {
     return zr_surface_from_base_color(input.color);
+}
+
+fn zr_raster_facing_sign(front_facing: bool) -> f32 {
+    return select(-1.0, 1.0, !ZR_FEATURE_DOUBLE_SIDED || front_facing);
+}
+
+fn zr_raster_facing_normal(normal_ws: vec3<f32>, front_facing: bool) -> vec3<f32> {
+    return normal_ws * zr_raster_facing_sign(front_facing);
+}
+
+fn zr_surface_apply_raster_facing(
+    surface: ZrSurfaceOutput,
+    front_facing: bool,
+) -> ZrSurfaceOutput {
+    let facing_sign = zr_raster_facing_sign(front_facing);
+    var oriented = surface;
+    oriented.normal_ws = surface.normal_ws * facing_sign;
+    oriented.bitangent_ws = surface.bitangent_ws * facing_sign;
+    oriented.clearcoat_normal_ws = surface.clearcoat_normal_ws * facing_sign;
+    return oriented;
+}
+
+fn zr_surface_apply_environment_capture_policy(
+    surface: ZrSurfaceOutput,
+) -> ZrSurfaceOutput {
+    if (scene.sky_sun_params.w > 0.5) {
+        var resolved = surface;
+        resolved.roughness = 1.0;
+        resolved.clearcoat_roughness = 1.0;
+        return resolved;
+    }
+    return surface;
 }
 
 fn zr_surface_fails_alpha_clip(surface: ZrSurfaceOutput) -> bool {

@@ -15,18 +15,6 @@ fn assets_workspace_authored_routes_match_installed_bindings() {
 
     for (event_id, action_id) in [
         (
-            "AssetsBrowserTab",
-            "workbench.module.assets.browser_tab.select",
-        ),
-        (
-            "AssetsImportTab",
-            "workbench.module.assets.import_tab.select",
-        ),
-        (
-            "AssetsValidationTab",
-            "workbench.module.assets.validation_tab.select",
-        ),
-        (
             "AssetsForestRow",
             "workbench.module.assets.forest_row.select",
         ),
@@ -46,8 +34,19 @@ fn assets_workspace_authored_routes_match_installed_bindings() {
             "AssetsTableTexture",
             "workbench.module.assets.table_texture.select",
         ),
-        ("AssetsOutput", "workbench.module.assets.output.select"),
         ("AssetsImport", "workbench.module.assets.import.invoke"),
+        (
+            "AssetsWorldToolsOpen",
+            "workbench.module.assets.world_tools.open",
+        ),
+        (
+            "AssetsGameplayToolsOpen",
+            "workbench.module.assets.gameplay_tools.open",
+        ),
+        (
+            "AssetsProductionToolsOpen",
+            "workbench.module.assets.production_tools.open",
+        ),
     ] {
         let authored_event = format!(
             "id = \"WorkbenchModule/{event_id}\", event = \"Click\", route = \"{action_id}\""

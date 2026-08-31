@@ -29,6 +29,7 @@ fn shared_list_surfaces_route_through_pane_surface_host_context() {
     for required in [
         "on_hierarchy_pointer_clicked",
         "on_asset_tree_pointer_clicked",
+        "on_asset_tree_pointer_event",
         "on_asset_content_pointer_clicked",
         "on_asset_reference_pointer_clicked",
         "on_welcome_recent_pointer_clicked",
@@ -41,6 +42,7 @@ fn shared_list_surfaces_route_through_pane_surface_host_context() {
     for required in [
         "pane_surface_host.on_hierarchy_pointer_clicked(",
         "pane_surface_host.on_asset_tree_pointer_clicked(",
+        "pane_surface_host.on_asset_tree_pointer_event(",
         "pane_surface_host.on_asset_content_pointer_clicked(",
         "pane_surface_host.on_asset_reference_pointer_clicked(",
         "pane_surface_host.on_welcome_recent_pointer_clicked(",
@@ -55,57 +57,42 @@ fn shared_list_surfaces_route_through_pane_surface_host_context() {
 }
 
 #[test]
-fn hierarchy_pointer_bridge_uses_route_intent_only() {
+fn hierarchy_pointer_bridge_uses_direct_arithmetic_routing_only() {
     let bridge = source("src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_bridge.rs");
-    let rebuild = source("src/ui/retained_host/hierarchy_pointer/rebuild_surface.rs");
-    let dispatch = source("src/ui/retained_host/hierarchy_pointer/dispatch_event.rs");
+    let route = source("src/ui/retained_host/hierarchy_pointer/route_at_point.rs");
 
-    assert!(bridge.contains("route_intents: EditorRouteIntentMap"));
-    assert!(rebuild.contains("EditorRouteIntent::Hierarchy"));
-    assert!(rebuild.contains("route_intents.bind_node"));
-    assert!(dispatch.contains("hierarchy_route_for_pointer_dispatch"));
     for forbidden in [
-        "targets:",
-        "HierarchyPointerTarget",
-        "handled_by",
-        "route.target",
+        "UiSurface",
+        "UiPointerDispatcher",
+        "EditorRouteIntentMap",
+        "route_intents",
     ] {
         assert!(
-            !bridge.contains(forbidden)
-                && !rebuild.contains(forbidden)
-                && !dispatch.contains(forbidden),
-            "hierarchy pointer bridge should not keep old hit target marker `{forbidden}`"
+            !bridge.contains(forbidden),
+            "hierarchy pointer bridge should not keep mirror hit marker `{forbidden}`"
         );
     }
+    assert!(route.contains(".floor() as usize"));
+    assert!(route.contains("self.layout.item_count"));
+    assert!(!route.contains("node_ids"));
 }
 
 #[test]
-fn welcome_recent_pointer_bridge_uses_route_intent_only() {
+fn welcome_recent_pointer_bridge_uses_direct_arithmetic_routing_only() {
     let bridge =
         source("src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge.rs");
-    let rebuild = source(
-        "src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_rebuild_surface.rs",
-    );
-    let dispatch = source(
-        "src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_dispatch_event.rs",
+    let route = source(
+        "src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_project_route.rs",
     );
 
-    assert!(bridge.contains("route_intents: EditorRouteIntentMap"));
-    assert!(rebuild.contains("EditorRouteIntent::WelcomeRecent"));
-    assert!(rebuild.contains("route_intents.bind_node"));
-    assert!(dispatch.contains("welcome_recent_route_for_pointer_dispatch"));
-    assert!(rebuild.contains("WelcomeRecentPointerRouteIntent"));
-    for forbidden in [
-        "targets:",
-        "WelcomeRecentPointerTarget",
-        "handled_by",
-        "route.target",
-    ] {
+    for forbidden in ["UiSurface", "UiPointerDispatcher", "EditorRouteIntentMap"] {
         assert!(
-            !bridge.contains(forbidden)
-                && !rebuild.contains(forbidden)
-                && !dispatch.contains(forbidden),
-            "welcome recent pointer bridge should not keep old hit target marker `{forbidden}`"
+            !bridge.contains(forbidden),
+            "welcome recent pointer bridge should not keep mirror marker `{forbidden}`"
         );
     }
+    assert!(route.contains(".floor() as usize"));
+    assert!(route.contains("recent_project_paths.len()"));
+    assert!(route.contains("action_target_for_route"));
+    assert!(!route.contains("path.clone()"));
 }

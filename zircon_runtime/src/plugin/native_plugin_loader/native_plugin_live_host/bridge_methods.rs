@@ -397,7 +397,7 @@ impl NativePluginLiveHost {
             .diagnostics
             .push(report.bridge_lifecycle_report.diagnostic());
         report.diagnostics.push(report.diagnostic());
-        report.diagnostics.sort();
+        report.diagnostics.sort_unstable();
         report.diagnostics.dedup();
         Ok(report)
     }

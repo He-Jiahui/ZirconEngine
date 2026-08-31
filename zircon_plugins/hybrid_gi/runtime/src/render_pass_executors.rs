@@ -179,29 +179,6 @@ const RESOLVE_RESOURCES: &[ExpectedResource] = &[
     ),
 ];
 
-const HISTORY_RESOURCES: &[ExpectedResource] = &[
-    ExpectedResource::any_of(
-        HYBRID_GI_LIGHTING_RESOURCE,
-        READ_ONLY_TEXTURE_INPUT_KINDS,
-        RenderGraphResourceAccessKind::Read,
-    ),
-    ExpectedResource::any_of(
-        HYBRID_GI_TEMPORAL_METADATA_RESOURCE,
-        READ_ONLY_TEXTURE_INPUT_KINDS,
-        RenderGraphResourceAccessKind::Read,
-    ),
-    ExpectedResource::new(
-        HYBRID_GI_HISTORY_RESOURCE,
-        RenderGraphResourceKind::External,
-        RenderGraphResourceAccessKind::Write,
-    ),
-    ExpectedResource::new(
-        HYBRID_GI_TEMPORAL_METADATA_HISTORY_RESOURCE,
-        RenderGraphResourceKind::External,
-        RenderGraphResourceAccessKind::Write,
-    ),
-];
-
 const SCENE_PREPARE_CONTRACT: RenderPassExecutorContract = RenderPassExecutorContract {
     pass_name: "hybrid-gi-scene-prepare",
     executor_id: "hybrid-gi.scene-prepare",
@@ -235,17 +212,6 @@ const RESOLVE_CONTRACT: RenderPassExecutorContract = RenderPassExecutorContract 
     resources: RESOLVE_RESOURCES,
 };
 
-const HISTORY_CONTRACT: RenderPassExecutorContract = RenderPassExecutorContract {
-    pass_name: "hybrid-gi-history",
-    executor_id: "hybrid-gi.history",
-    declared_queue: QueueLane::Graphics,
-    flags: PassFlags {
-        allow_culling: true,
-        has_side_effects: true,
-    },
-    resources: HISTORY_RESOURCES,
-};
-
 pub(crate) fn hybrid_gi_scene_prepare_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
@@ -274,12 +240,6 @@ pub(crate) fn hybrid_gi_resolve_executor(
         return Ok(());
     }
     record_resolve_trace_handoff(context)
-}
-
-pub(crate) fn hybrid_gi_history_executor(
-    context: &mut RenderPassExecutionContext<'_>,
-) -> Result<(), String> {
-    validate_context(context, &HISTORY_CONTRACT)
 }
 
 fn validate_context(
@@ -412,7 +372,6 @@ mod tests {
         SCENE_PREPARE_CONTRACT,
         TRACE_SCHEDULE_CONTRACT,
         RESOLVE_CONTRACT,
-        HISTORY_CONTRACT,
     ];
 
     #[test]

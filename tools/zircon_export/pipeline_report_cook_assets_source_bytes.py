@@ -5,14 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-ZRPACK_HASH_SEEDS = (
-    0xCBF2_9CE4_8422_2325,
-    0x9AE1_6A3B_2F90_404F,
-    0x6EED_0E9D_A4D9_4A4F,
-    0xACE5_929A_D4D9_8F13,
-)
-FNV1A64_PRIME = 0x100_0000_01B3
-U64_MASK = (1 << 64) - 1
+from .zrpack_hash import zrpack_content_hash as _zrpack_content_hash
 
 
 def cook_assets_pack_source_byte_diagnostics(
@@ -111,19 +104,7 @@ def pack_asset_source_byte_field_diagnostics(
 
 
 def zrpack_content_hash(source_bytes: bytes) -> list[int]:
-    hash_bytes = bytearray()
-    for seed in ZRPACK_HASH_SEEDS:
-        value = fnv1a64(source_bytes, seed)
-        hash_bytes.extend(value.to_bytes(8, byteorder="little"))
-    return list(hash_bytes)
-
-
-def fnv1a64(source_bytes: bytes, seed: int) -> int:
-    value = seed
-    for byte in source_bytes:
-        value ^= byte
-        value = (value * FNV1A64_PRIME) & U64_MASK
-    return value
+    return _zrpack_content_hash(source_bytes)
 
 
 def is_byte_hash(value: Any) -> bool:

@@ -58,7 +58,12 @@ impl GcNextDueSchedule {
     }
 
     pub(super) fn take_due(&mut self, frame_index: u64) -> Vec<PluginSlotId> {
-        let mut ready = BTreeSet::new();
+        let ready_capacity = self
+            .due_by_frame
+            .range(..=frame_index)
+            .map(|(_, slots)| slots.len())
+            .sum();
+        let mut ready = Vec::with_capacity(ready_capacity);
         while self
             .due_by_frame
             .first_key_value()
@@ -76,7 +81,7 @@ impl GcNextDueSchedule {
                     if entry.next_due_frame != due_frame {
                         continue;
                     }
-                    ready.insert(slot);
+                    ready.push(slot);
                     let next_due_frame = due_frame_after(frame_index, entry.interval_frames);
                     if let Some(next_due_frame) = next_due_frame {
                         entry.next_due_frame = next_due_frame;
@@ -96,7 +101,8 @@ impl GcNextDueSchedule {
                 }
             }
         }
-        ready.into_iter().collect()
+        ready.sort_unstable();
+        ready
     }
 }
 

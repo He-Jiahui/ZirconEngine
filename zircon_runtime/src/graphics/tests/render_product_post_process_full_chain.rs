@@ -47,7 +47,7 @@ const POST_SCENE_COMPOSITE_EXECUTOR_ID: &str = "post.scene-composite";
 const POST_BLUR_EXECUTOR_ID: &str = "post.blur";
 const POST_COLOR_LUT_BAKE_EXECUTOR_ID: &str = "post.color-lut-bake";
 const POST_UBER_EXECUTOR_ID: &str = "post.uber";
-const POST_UPSCALE_EXECUTOR_ID: &str = "post.upscale";
+const POST_PRIMARY_UPSCALE_EXECUTOR_ID: &str = "post.primary-upscale";
 const POST_OUTPUT_TRANSFER_EXECUTOR_ID: &str = "post.output-transfer";
 
 #[test]
@@ -175,7 +175,7 @@ fn render_product_post_full_chain_all_effects_on() {
         "blur",
         "color-lut-bake",
         "uber",
-        "upscale",
+        "primary-upscale",
         "output-transfer",
         SMAA_PASS_NAME,
     ] {
@@ -203,7 +203,7 @@ fn render_product_post_full_chain_all_effects_on() {
         POST_BLUR_EXECUTOR_ID,
         POST_COLOR_LUT_BAKE_EXECUTOR_ID,
         POST_UBER_EXECUTOR_ID,
-        POST_UPSCALE_EXECUTOR_ID,
+        POST_PRIMARY_UPSCALE_EXECUTOR_ID,
         POST_OUTPUT_TRANSFER_EXECUTOR_ID,
         SMAA_EXECUTOR_ID,
     ] {
@@ -260,10 +260,10 @@ fn render_product_post_full_chain_all_effects_on() {
         POST_UBER_EXECUTOR_ID,
     );
     assert_graph_executor_order(&stats, POST_UBER_EXECUTOR_ID, SMAA_EXECUTOR_ID);
-    assert_graph_executor_order(&stats, SMAA_EXECUTOR_ID, POST_UPSCALE_EXECUTOR_ID);
+    assert_graph_executor_order(&stats, SMAA_EXECUTOR_ID, POST_PRIMARY_UPSCALE_EXECUTOR_ID);
     assert_graph_executor_order(
         &stats,
-        POST_UPSCALE_EXECUTOR_ID,
+        POST_PRIMARY_UPSCALE_EXECUTOR_ID,
         POST_OUTPUT_TRANSFER_EXECUTOR_ID,
     );
 
@@ -308,7 +308,7 @@ fn render_product_post_full_chain_all_effects_on() {
         PostProcessGraphResourceNames::BLURRED,
         PostProcessGraphResourceNames::COLOR_LUT,
         PostProcessGraphResourceNames::TONEMAPPED,
-        PostProcessGraphResourceNames::UPSCALED,
+        PostProcessGraphResourceNames::PRIMARY_UPSCALED,
         PostProcessGraphResourceNames::FINAL_COMPOSITED,
     ] {
         assert_texture_backing_exists(&stats, resource_name);
@@ -325,7 +325,7 @@ fn render_product_post_full_chain_all_effects_on() {
     );
     assert_texture_backings_are_distinct(
         &stats,
-        PostProcessGraphResourceNames::UPSCALED,
+        PostProcessGraphResourceNames::PRIMARY_UPSCALED,
         PostProcessGraphResourceNames::FINAL_COMPOSITED,
     );
 

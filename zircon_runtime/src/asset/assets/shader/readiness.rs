@@ -1,10 +1,11 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{AssetReference, AssetUri};
 use crate::core::framework::render::{
     RenderShaderBindingResourceType, RenderShaderDefinitionValue, RenderShaderStage,
+    ShaderAssetKind,
 };
 use crate::core::resource::ResourceId;
 
@@ -13,6 +14,10 @@ use super::{ShaderAsset, ShaderSourceLanguage};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderReadinessReport {
     pub uri: AssetUri,
+    #[serde(default = "default_shader_asset_kind")]
+    pub kind: ShaderAssetKind,
+    #[serde(default)]
+    pub kind_diagnostic: Option<String>,
     pub runtime_source: ShaderRuntimeSourceReadiness,
     pub imports: Vec<ShaderImportReadiness>,
     pub entry_points: Vec<ShaderEntryPointReadiness>,
@@ -27,6 +32,10 @@ pub struct ShaderReadinessReport {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderAssetReadinessSummary {
     pub ready: bool,
+    #[serde(default = "default_shader_asset_kind")]
+    pub kind: ShaderAssetKind,
+    #[serde(default)]
+    pub kind_diagnostic_count: usize,
     pub uses_runtime_wgsl: bool,
     pub runtime_source_kind: ShaderRuntimeSourceKind,
     pub import_count: usize,
@@ -57,6 +66,8 @@ pub struct ShaderAssetManagementRecordSetSummary {
     pub not_ready_count: usize,
     pub runtime_wgsl_count: usize,
     pub unavailable_runtime_source_count: usize,
+    #[serde(default)]
+    pub kind_diagnostic_count: usize,
     pub redirected_import_count: usize,
     pub dependency_count: usize,
     pub entry_point_diagnostic_count: usize,
@@ -87,6 +98,7 @@ impl ShaderAssetManagementRecordSetSummary {
             summary.runtime_wgsl_count += usize::from(record.uses_runtime_wgsl);
             summary.unavailable_runtime_source_count +=
                 usize::from(record.runtime_source_kind == ShaderRuntimeSourceKind::Unavailable);
+            summary.kind_diagnostic_count += record.kind_diagnostic_count;
             summary.redirected_import_count += record.redirected_import_count;
             summary.dependency_count += record.dependency_count;
             summary.entry_point_diagnostic_count += record.entry_point_diagnostic_count;
@@ -102,6 +114,7 @@ impl ShaderAssetManagementRecordSetSummary {
 
     pub fn issue_row_count(&self) -> usize {
         self.unavailable_runtime_source_count
+            + self.kind_diagnostic_count
             + self.entry_point_diagnostic_count
             + self.shader_definition_diagnostic_count
             + self.validation_diagnostic_count
@@ -118,7 +131,8 @@ impl ShaderAssetManagementRecordSet {
 
 impl ShaderReadinessReport {
     pub fn is_ready(&self) -> bool {
-        self.uses_runtime_wgsl()
+        self.kind_diagnostic.is_none()
+            && self.uses_runtime_wgsl()
             && self
                 .entry_points
                 .iter()
@@ -146,6 +160,8 @@ impl ShaderReadinessReport {
     pub fn summary(&self) -> ShaderAssetReadinessSummary {
         ShaderAssetReadinessSummary {
             ready: self.is_ready(),
+            kind: self.kind,
+            kind_diagnostic_count: usize::from(self.kind_diagnostic.is_some()),
             uses_runtime_wgsl: self.uses_runtime_wgsl(),
             runtime_source_kind: self.runtime_source.source_kind,
             import_count: self.imports.len(),
@@ -184,11 +200,14 @@ impl ShaderReadinessReport {
     }
 
     fn from_shader(shader: &ShaderAsset) -> Self {
+        let entry_points = entry_point_readiness(shader);
         Self {
             uri: shader.uri.clone(),
+            kind: shader.kind,
+            kind_diagnostic: shader_kind_diagnostic(shader, &entry_points),
             runtime_source: runtime_source_readiness(shader),
             imports: import_readiness(shader),
-            entry_points: entry_point_readiness(shader),
+            entry_points,
             shader_defs: shader_definition_readiness(shader),
             validation_diagnostics: shader.validation_diagnostics.clone(),
             dependency_count: shader.dependencies.len(),
@@ -205,7 +224,8 @@ impl ShaderAssetReadinessSummary {
             1
         } else {
             0
-        }) + self.entry_point_diagnostic_count
+        }) + self.kind_diagnostic_count
+            + self.entry_point_diagnostic_count
             + self.shader_definition_diagnostic_count
             + self.validation_diagnostic_count
     }
@@ -319,6 +339,85 @@ fn runtime_source_readiness(shader: &ShaderAsset) -> ShaderRuntimeSourceReadines
     }
 }
 
+fn shader_kind_diagnostic(
+    shader: &ShaderAsset,
+    entry_points: &[ShaderEntryPointReadiness],
+) -> Option<String> {
+    match shader.kind {
+        ShaderAssetKind::Module => None,
+        ShaderAssetKind::Surface => {
+            if !shader
+                .shading_model
+                .as_deref()
+                .is_some_and(|model| !model.trim().is_empty())
+            {
+                return Some("surface shader requires a non-empty shading model".to_string());
+            }
+            shader
+                .surface_source_contract()
+                .err()
+                .map(|error| error.to_string())
+        }
+        ShaderAssetKind::Include => (!entry_points.is_empty()).then(|| {
+            format!(
+                "include shader must not own entry points (found {})",
+                entry_points.len()
+            )
+        }),
+        ShaderAssetKind::Compute => executable_kind_diagnostic(
+            ShaderAssetKind::Compute,
+            RenderShaderStage::Compute,
+            entry_points,
+        ),
+        ShaderAssetKind::Fullscreen => executable_kind_diagnostic(
+            ShaderAssetKind::Fullscreen,
+            RenderShaderStage::Fragment,
+            entry_points,
+        ),
+    }
+}
+
+fn executable_kind_diagnostic(
+    kind: ShaderAssetKind,
+    expected_stage: RenderShaderStage,
+    entry_points: &[ShaderEntryPointReadiness],
+) -> Option<String> {
+    if entry_points.is_empty() {
+        return Some(format!(
+            "{} shader requires at least one entry point",
+            kind.token()
+        ));
+    }
+    entry_points
+        .iter()
+        .find(|entry| {
+            entry
+                .canonical_stage
+                .is_some_and(|stage| stage != expected_stage)
+        })
+        .map(|entry| {
+            format!(
+                "{} shader entry point `{}` uses `{}` but expected `{}`",
+                kind.token(),
+                entry.name,
+                entry.stage,
+                render_shader_stage_token(expected_stage)
+            )
+        })
+}
+
+fn render_shader_stage_token(stage: RenderShaderStage) -> &'static str {
+    match stage {
+        RenderShaderStage::Vertex => "vertex",
+        RenderShaderStage::Fragment => "fragment",
+        RenderShaderStage::Compute => "compute",
+    }
+}
+
+fn default_shader_asset_kind() -> ShaderAssetKind {
+    ShaderAssetKind::Surface
+}
+
 fn import_readiness(shader: &ShaderAsset) -> Vec<ShaderImportReadiness> {
     shader
         .imports
@@ -362,15 +461,15 @@ fn entry_point_readiness(shader: &ShaderAsset) -> Vec<ShaderEntryPointReadiness>
 }
 
 fn shader_definition_readiness(shader: &ShaderAsset) -> Vec<ShaderDefinitionReadiness> {
-    let mut seen = BTreeSet::new();
+    let mut seen = HashSet::with_capacity(shader.shader_defs.len());
     shader
         .shader_defs
         .iter()
         .map(|definition| {
-            let normalized_name = definition.normalized_name();
+            let normalized_name = definition.name().trim();
             let diagnostic = if normalized_name.is_empty() {
                 Some("shader definition is empty after trimming".to_string())
-            } else if !seen.insert(normalized_name.clone()) {
+            } else if !seen.insert(normalized_name) {
                 Some(format!(
                     "shader definition `{}` is duplicated",
                     normalized_name
@@ -381,7 +480,7 @@ fn shader_definition_readiness(shader: &ShaderAsset) -> Vec<ShaderDefinitionRead
 
             ShaderDefinitionReadiness {
                 raw_name: definition.name().to_string(),
-                normalized_name,
+                normalized_name: normalized_name.to_string(),
                 value: definition.clone(),
                 diagnostic,
             }
@@ -422,3 +521,7 @@ fn pipeline_layout_readiness(shader: &ShaderAsset) -> ShaderPipelineLayoutReadin
         push_constant_ranges,
     }
 }
+
+#[cfg(test)]
+#[path = "readiness/optimization_tests.rs"]
+mod optimization_tests;

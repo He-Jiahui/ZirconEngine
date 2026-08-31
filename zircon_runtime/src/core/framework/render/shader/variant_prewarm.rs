@@ -7,6 +7,7 @@ use super::ShaderVariantKey;
 
 mod budget;
 mod source;
+mod toolchain;
 
 pub use budget::{
     ShaderVariantPrewarmExecutionBudget, ShaderVariantPrewarmExecutionBudgetError,
@@ -15,6 +16,7 @@ pub use budget::{
 pub use source::{
     ShaderVariantPrewarmSource, ShaderVariantPrewarmSourceId, ShaderVariantPrewarmSourceTable,
 };
+pub use toolchain::{SHADER_VARIANT_CACHE_NAGA_VERSION, SHADER_VARIANT_CACHE_WGPU_VERSION};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -38,7 +40,7 @@ pub enum ShaderVariantPrewarmManifestIntegrityError {
 }
 
 impl ShaderVariantPrewarmManifest {
-    pub const SCHEMA_VERSION: u32 = 2;
+    pub const SCHEMA_VERSION: u32 = 3;
 
     pub fn new(
         sources: Vec<ShaderVariantPrewarmSource>,
@@ -145,15 +147,15 @@ pub struct ShaderVariantPrewarmRequest {
     pub source_id: ShaderVariantPrewarmSourceId,
 }
 
+/// Render-pipeline state not already represented by [`ShaderVariantKey`].
+///
+/// Standard material binding presence is excluded: fixed texture bindings use
+/// neutral fallback resources and do not change shader or PSO identity.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ShaderPipelinePrewarmState {
     pub alpha_blend: bool,
     pub alpha_cutoff_bits: Option<u32>,
     pub unlit: bool,
-    pub has_base_color_texture: bool,
-    pub has_metallic_roughness_texture: bool,
-    pub has_occlusion_texture: bool,
-    pub has_emissive_texture: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

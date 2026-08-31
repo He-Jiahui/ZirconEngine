@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
@@ -23,7 +23,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs

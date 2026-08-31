@@ -1,16 +1,64 @@
+use std::sync::Arc;
+
+use zr_rhi_wgpu::{WgpuTextureUpload, WgpuTextureUploadBatch};
+
 use crate::text::atlas::{
-    glyph_atlas_bitmap_texture_upload_request_plan,
+    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageShadowCommit,
+    GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapRequeueReason, GlyphAtlasBitmapRunPlan,
+    GlyphAtlasBitmapTextureUploadRequestPlan, GlyphAtlasFormat, GlyphAtlasSet,
+    glyph_atlas_bitmap_page_shadow_commit, glyph_atlas_bitmap_texture_upload_request_plan,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity,
-    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPreparedUploadPlan,
-    GlyphAtlasBitmapRequeueReason, GlyphAtlasBitmapTextureUploadRequestPlan, GlyphAtlasSet,
 };
 
 use super::binding::{
-    glyph_atlas_bitmap_texture_upload_binding_plan,
-    write_glyph_atlas_bitmap_texture_upload_bindings, GlyphAtlasBitmapTextureUploadBindingPlan,
+    GlyphAtlasBitmapTextureUploadBindingPlan, glyph_atlas_bitmap_texture_upload_binding_plan,
 };
-use super::resource::GlyphAtlasTextureArrayResources;
+use super::write::{glyph_atlas_texture_upload_region, glyph_atlas_texture_upload_source_range};
+
+const GLYPH_ATLAS_BITMAP_RESOURCE_FORMAT_COUNT: usize = 5;
+
+/// Fixed lookup for the finite atlas format set. Duplicate resources are unavailable so a frame
+/// cannot silently choose a target texture by iteration order.
+pub(super) struct GlyphAtlasBitmapTextureUploadResourceTable<T> {
+    resources: [Option<T>; GLYPH_ATLAS_BITMAP_RESOURCE_FORMAT_COUNT],
+    duplicate_formats: [bool; GLYPH_ATLAS_BITMAP_RESOURCE_FORMAT_COUNT],
+}
+
+impl<T> GlyphAtlasBitmapTextureUploadResourceTable<T> {
+    pub(super) fn from_resources(
+        resources: impl IntoIterator<Item = (GlyphAtlasFormat, T)>,
+    ) -> Self {
+        let mut table = Self {
+            resources: std::array::from_fn(|_| None),
+            duplicate_formats: [false; GLYPH_ATLAS_BITMAP_RESOURCE_FORMAT_COUNT],
+        };
+        for (format, resource) in resources {
+            let index = glyph_atlas_bitmap_resource_format_index(format);
+            if table.resources[index].replace(resource).is_some() {
+                table.duplicate_formats[index] = true;
+            }
+        }
+        table
+    }
+
+    pub(super) fn resource(&self, format: GlyphAtlasFormat) -> Option<&T> {
+        let index = glyph_atlas_bitmap_resource_format_index(format);
+        (!self.duplicate_formats[index])
+            .then(|| self.resources[index].as_ref())
+            .flatten()
+    }
+}
+
+fn glyph_atlas_bitmap_resource_format_index(format: GlyphAtlasFormat) -> usize {
+    match format {
+        GlyphAtlasFormat::AlphaMask => 0,
+        GlyphAtlasFormat::SubpixelMask => 1,
+        GlyphAtlasFormat::Sdf => 2,
+        GlyphAtlasFormat::Msdf => 3,
+        GlyphAtlasFormat::Color => 4,
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapTextureUploadFrameReport {
@@ -58,6 +106,24 @@ impl GlyphAtlasBitmapTextureUploadFramePlan<'_> {
         &self,
     ) -> GlyphAtlasBitmapTextureUploadFrameReport {
         self.report
+    }
+}
+
+pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapPreparedTextureUpload {
+    texture_uploads: WgpuTextureUploadBatch,
+    shadow_commit: GlyphAtlasBitmapPageShadowCommit,
+    report: GlyphAtlasBitmapTextureUploadFrameReport,
+}
+
+impl GlyphAtlasBitmapPreparedTextureUpload {
+    pub(in crate::graphics::scene::scene_renderer::ui) fn into_parts(
+        self,
+    ) -> (
+        WgpuTextureUploadBatch,
+        GlyphAtlasBitmapPageShadowCommit,
+        GlyphAtlasBitmapTextureUploadFrameReport,
+    ) {
+        (self.texture_uploads, self.shadow_commit, self.report)
     }
 }
 
@@ -120,27 +186,98 @@ fn glyph_atlas_bitmap_texture_upload_frame_plan_from_requests<'a>(
     }
 }
 
-pub(in crate::graphics::scene::scene_renderer::ui) fn write_glyph_atlas_bitmap_texture_upload_frame_plan(
-    queue: &wgpu::Queue,
-    texture: &wgpu::Texture,
-    plan: &GlyphAtlasBitmapTextureUploadFramePlan<'_>,
-) -> GlyphAtlasBitmapTextureUploadFrameReport {
-    if plan.ready_to_write_texture() {
-        write_glyph_atlas_bitmap_texture_upload_bindings(
-            queue,
-            texture,
-            &plan.binding_plan.bindings,
-        );
+pub(in crate::graphics::scene::scene_renderer::ui) fn prepare_glyph_atlas_bitmap_texture_upload_for_resources(
+    resources: impl IntoIterator<Item = (GlyphAtlasFormat, wgpu::Texture)>,
+    run: &GlyphAtlasBitmapRunPlan,
+    prepared_upload: GlyphAtlasBitmapPreparedUploadPlan,
+    face_validity: GlyphAtlasBitmapFaceValidity,
+) -> GlyphAtlasBitmapPreparedTextureUpload {
+    let plan = glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas_and_face_validity(
+        &prepared_upload,
+        &run.atlas,
+        face_validity,
+    );
+    let mut report = plan.report;
+    if !plan.ready_to_write_texture() {
+        drop(plan);
+        return GlyphAtlasBitmapPreparedTextureUpload {
+            texture_uploads: WgpuTextureUploadBatch::new(),
+            shadow_commit: glyph_atlas_bitmap_page_shadow_commit(run, prepared_upload, false),
+            report,
+        };
     }
-    plan.report
-}
 
-pub(in crate::graphics::scene::scene_renderer::ui) fn write_glyph_atlas_bitmap_texture_upload_frame_resources(
-    queue: &wgpu::Queue,
-    resources: &GlyphAtlasTextureArrayResources,
-    plan: &GlyphAtlasBitmapTextureUploadFramePlan<'_>,
-) -> GlyphAtlasBitmapTextureUploadFrameReport {
-    write_glyph_atlas_bitmap_texture_upload_frame_plan(queue, resources.texture(), plan)
+    let resources = GlyphAtlasBitmapTextureUploadResourceTable::from_resources(resources);
+    let mut missing_resource_count = 0_usize;
+    for binding in &plan.binding_plan.bindings {
+        let Some(request) = plan.request_plan.requests.get(binding.request_index) else {
+            missing_resource_count = missing_resource_count.saturating_add(1);
+            continue;
+        };
+        if resources.resource(request.page_key.format).is_none() {
+            missing_resource_count = missing_resource_count.saturating_add(1);
+        }
+    }
+    if missing_resource_count > 0 {
+        report.binding_failure_count = report
+            .binding_failure_count
+            .saturating_add(missing_resource_count);
+        report.ready_to_write_texture = false;
+        drop(plan);
+        return GlyphAtlasBitmapPreparedTextureUpload {
+            texture_uploads: WgpuTextureUploadBatch::new(),
+            shadow_commit: glyph_atlas_bitmap_page_shadow_commit(run, prepared_upload, false),
+            report,
+        };
+    }
+
+    let mut texture_uploads = WgpuTextureUploadBatch::new();
+    for binding in &plan.binding_plan.bindings {
+        let Some(request) = plan.request_plan.requests.get(binding.request_index) else {
+            continue;
+        };
+        let Some(texture) = resources.resource(request.page_key.format) else {
+            continue;
+        };
+        let Some(staging_page) = prepared_upload
+            .staging
+            .pages
+            .get(request.staging_page_index)
+        else {
+            continue;
+        };
+        let Some(source_range) =
+            glyph_atlas_texture_upload_source_range(binding.write, request.upload_byte_len)
+        else {
+            report.binding_failure_count = report.binding_failure_count.saturating_add(1);
+            report.ready_to_write_texture = false;
+            break;
+        };
+        let Some(upload) = WgpuTextureUpload::new(
+            texture.clone(),
+            glyph_atlas_texture_upload_region(binding.write),
+            binding.write.bytes_per_row,
+            binding.write.rows_per_image,
+            Arc::clone(&staging_page.bytes),
+            source_range,
+        ) else {
+            report.binding_failure_count = report.binding_failure_count.saturating_add(1);
+            report.ready_to_write_texture = false;
+            break;
+        };
+        texture_uploads.push(upload);
+    }
+    drop(plan);
+    if !report.ready_to_write_texture {
+        texture_uploads = WgpuTextureUploadBatch::new();
+    }
+    let shadow_commit =
+        glyph_atlas_bitmap_page_shadow_commit(run, prepared_upload, report.ready_to_write_texture);
+    GlyphAtlasBitmapPreparedTextureUpload {
+        texture_uploads,
+        shadow_commit,
+        report,
+    }
 }
 
 fn glyph_atlas_bitmap_texture_upload_frame_report(

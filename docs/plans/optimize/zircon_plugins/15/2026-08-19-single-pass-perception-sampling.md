@@ -3,7 +3,7 @@
 - Date: 2026-08-19
 - Owner: `plugins15-perception-sampling-order-r1-01a00797-20260819`
 - Source plan: `docs/plans/optimize/zircon_plugins/15-first-party-ai-source-runtime-editor-dist-catalog-behavior-tree-blackboard-perception-eqs-product-integration-review.md`, NAI-P1-037
-- Status: implementation complete; combined managed validation pending
+- Status: implementation and focused static validation complete; managed release batch queued
 
 ## Problem
 
@@ -30,6 +30,23 @@ not bound this pre-scan cost.
 | Same tick | 2 redundant sample-vector sorts | 0 redundant sorts | 100% |
 | Scene-node projections before filtering | 8,192 | 4,096 | 50% |
 
+## Current Execution Evidence
+
+- Integration Session: `root-runtime-interface03-activate-link-failure-20260831`;
+  ownership apply `b684ea3ed9304cf4a9f71e5787befa1a`, fingerprint
+  `b9047be13003a7c46040170fe788f53d2c5dcc8722f2488ffecc97d56ebffbbc`.
+- Current `perception/scan.rs` SHA-256:
+  `AB2133C3ACF11A4FB841EA5BE52995608839B0516DEF2F4A31FE4D5D394CF768`.
+- Unified deterministic model manifest SHA-256:
+  `93CF6BD9C2D374D1F4C81CF6776948372611820AAB048DB2EB499977E8493347`.
+  It records World projections `2 -> 1`, projected node records
+  `8,192 -> 4,096`, and redundant sample sorts `2 -> 0`.
+- Focused source/model/validator contract passed locally `12/12`; managed
+  static ticket `049d11366ae94ef38ddc58158d6e6b69` is queued.
+- Four-benchmark Windows release batch ticket
+  `bf5d08d9143849e189ac6e0fa1bb477c` is queued. Its 21 alternating sample
+  pairs are the only accepted P50/P95 source.
+
 ## Acceptance
 
 - `single_pass_sampling_preserves_stable_receiver_and_source_order` compares
@@ -41,8 +58,8 @@ not bound this pre-scan cost.
   nearest-rank P50/P95.
 - Timing gate: optimized P95 must be no more than 75% of legacy P95.
 - Exact-file Rustfmt and scoped diff checks: passed.
-- Cargo regression and release P50/P95: pending one batched Windows coordinator
-  validation with the ordered-stimulus task.
+- Cargo regression and release P50/P95: queued in one batched Windows
+  coordinator validation with the ordered-stimulus task.
 
 ## Remaining Scope
 

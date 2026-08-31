@@ -1,19 +1,6 @@
 use super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(super) const RUNTIME_STATE_BINDINGS: &[ExtensionBindingSpec] = &[
-    click("SaveDataOpen", "workbench.extension.save_data.open"),
-    click(
-        "SaveDataSlotsTab",
-        "workbench.extension.save_data.slots_tab.select",
-    ),
-    click(
-        "SaveDataMigrationTab",
-        "workbench.extension.save_data.migration_tab.select",
-    ),
-    click(
-        "SaveDataValidationTab",
-        "workbench.extension.save_data.validation_tab.select",
-    ),
     click(
         "SaveDataAutoSaveRow",
         "workbench.extension.save_data.auto_save_row.select",
@@ -41,10 +28,6 @@ pub(super) const RUNTIME_STATE_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "SaveDataDebugSlotRow",
         "workbench.extension.save_data.debug_slot_row.select",
-    ),
-    click(
-        "SaveDataOutput",
-        "workbench.extension.save_data.output.select",
     ),
     click(
         "SaveDataSaveSlot",

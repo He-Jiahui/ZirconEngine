@@ -13,6 +13,7 @@ pub(in super::super) fn to_host_contract_assets_activity_pane(
 ) -> host_contract::AssetsActivityPaneData {
     host_contract::AssetsActivityPaneData {
         nodes: project_nodes(&data.nodes, to_host_contract_template_node),
+        render_source_frame: data.render_source_frame,
     }
 }
 
@@ -27,11 +28,16 @@ pub(in super::super) fn to_host_contract_asset_browser_pane(
                 pane_size.width,
             )
         }),
+        render_source_frame: data.render_source_frame,
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
+
     use super::*;
     use crate::ui::layouts::common::model_rc;
     use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
@@ -51,6 +57,7 @@ mod tests {
                 },
                 ..ViewTemplateNodeData::default()
             }]),
+            ..AssetBrowserPaneViewData::default()
         };
 
         let pane = to_host_contract_asset_browser_pane(
@@ -67,6 +74,37 @@ mod tests {
             .as_str()
             .split_whitespace()
             .any(|token| token == "layoutNarrow"));
+    }
+
+    #[test]
+    fn assets_activity_preserves_the_runtime_render_source_frame() {
+        let source_frame = Arc::new(UiSurfaceFrame::default());
+        let pane = to_host_contract_assets_activity_pane(AssetsActivityPaneViewData {
+            render_source_frame: Some(Arc::clone(&source_frame)),
+            ..AssetsActivityPaneViewData::default()
+        });
+
+        assert!(pane
+            .render_source_frame
+            .as_ref()
+            .is_some_and(|frame| Arc::ptr_eq(frame, &source_frame)));
+    }
+
+    #[test]
+    fn asset_browser_preserves_the_runtime_render_source_frame() {
+        let source_frame = Arc::new(UiSurfaceFrame::default());
+        let pane = to_host_contract_asset_browser_pane(
+            AssetBrowserPaneViewData {
+                render_source_frame: Some(Arc::clone(&source_frame)),
+                ..AssetBrowserPaneViewData::default()
+            },
+            PaneContentSize::default(),
+        );
+
+        assert!(pane
+            .render_source_frame
+            .as_ref()
+            .is_some_and(|frame| Arc::ptr_eq(frame, &source_frame)));
     }
 }
 

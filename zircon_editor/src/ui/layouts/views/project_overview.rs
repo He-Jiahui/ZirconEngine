@@ -8,12 +8,6 @@ use crate::ui::workbench::snapshot::ProjectOverviewSnapshot;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 const PROJECT_OVERVIEW_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/project_overview.zui";
-const PROJECT_OVERVIEW_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
-const PROJECT_OVERVIEW_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
-const PROJECT_OVERVIEW_MATERIAL_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.zui";
-const PROJECT_OVERVIEW_MATERIAL_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.zui";
-const PROJECT_OVERVIEW_TOKENS_STYLE_ASSET_PATH: &str = "/assets/ui/editor/theme/editor_tokens.zui";
-const PROJECT_OVERVIEW_TOKENS_STYLE_ASSET_ID: &str = "res://ui/editor/theme/editor_tokens.zui";
 
 pub(crate) fn project_overview_data(snapshot: &ProjectOverviewSnapshot) -> ProjectOverviewData {
     ProjectOverviewData {
@@ -72,20 +66,7 @@ pub(crate) fn project_overview_pane_data(
         nodes: build_view_template_node_projection(
             "project_overview.template_projection",
             PROJECT_OVERVIEW_LAYOUT_ASSET_PATH,
-            &[
-                (
-                    PROJECT_OVERVIEW_STYLE_ASSET_ID,
-                    PROJECT_OVERVIEW_STYLE_ASSET_PATH,
-                ),
-                (
-                    PROJECT_OVERVIEW_MATERIAL_STYLE_ASSET_ID,
-                    PROJECT_OVERVIEW_MATERIAL_STYLE_ASSET_PATH,
-                ),
-                (
-                    PROJECT_OVERVIEW_TOKENS_STYLE_ASSET_ID,
-                    PROJECT_OVERVIEW_TOKENS_STYLE_ASSET_PATH,
-                ),
-            ],
+            &[],
             size,
             &text_overrides,
         )

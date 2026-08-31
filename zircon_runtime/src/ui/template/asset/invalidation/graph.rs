@@ -27,7 +27,8 @@ impl UiInvalidationGraph {
 
         let mut changes = Vec::new();
         let mut stages = BTreeSet::new();
-        if previous.document != next.document {
+        let full_rebuild = previous.document != next.document;
+        if full_rebuild {
             changes.push(UiAssetChange::Document);
             stages.extend(full_rebuild_stages());
         }
@@ -35,54 +36,84 @@ impl UiInvalidationGraph {
             || previous.declared_widget_imports_revision != next.declared_widget_imports_revision
         {
             changes.push(UiAssetChange::WidgetImport);
-            stages.extend([
-                UiInvalidationStage::ImportGraph,
-                UiInvalidationStage::ComponentContract,
-                UiInvalidationStage::SelectorMatch,
-                UiInvalidationStage::StyleValue,
-                UiInvalidationStage::Layout,
-                UiInvalidationStage::Render,
-            ]);
+            extend_incremental_stages(
+                &mut stages,
+                full_rebuild,
+                [
+                    UiInvalidationStage::ImportGraph,
+                    UiInvalidationStage::ComponentContract,
+                    UiInvalidationStage::SelectorMatch,
+                    UiInvalidationStage::StyleValue,
+                    UiInvalidationStage::Layout,
+                    UiInvalidationStage::Render,
+                ],
+            );
         }
         if previous.style_imports != next.style_imports
             || previous.declared_style_imports_revision != next.declared_style_imports_revision
         {
             changes.push(UiAssetChange::StyleImport);
-            stages.extend([
-                UiInvalidationStage::ImportGraph,
-                UiInvalidationStage::SelectorMatch,
-                UiInvalidationStage::StyleValue,
-                UiInvalidationStage::Layout,
-                UiInvalidationStage::Render,
-            ]);
+            extend_incremental_stages(
+                &mut stages,
+                full_rebuild,
+                [
+                    UiInvalidationStage::ImportGraph,
+                    UiInvalidationStage::SelectorMatch,
+                    UiInvalidationStage::StyleValue,
+                    UiInvalidationStage::Layout,
+                    UiInvalidationStage::Render,
+                ],
+            );
         }
         if previous.descriptor_registry_revision != next.descriptor_registry_revision {
             changes.push(UiAssetChange::DescriptorRegistry);
-            stages.extend([
-                UiInvalidationStage::DescriptorRegistry,
-                UiInvalidationStage::Layout,
-                UiInvalidationStage::Render,
-            ]);
+            extend_incremental_stages(
+                &mut stages,
+                full_rebuild,
+                [
+                    UiInvalidationStage::DescriptorRegistry,
+                    UiInvalidationStage::Layout,
+                    UiInvalidationStage::Render,
+                ],
+            );
         }
         if previous.component_contract_revision != next.component_contract_revision {
             changes.push(UiAssetChange::ComponentContract);
-            stages.extend([
-                UiInvalidationStage::ComponentContract,
-                UiInvalidationStage::SelectorMatch,
-                UiInvalidationStage::StyleValue,
-                UiInvalidationStage::Layout,
-                UiInvalidationStage::Render,
-            ]);
+            extend_incremental_stages(
+                &mut stages,
+                full_rebuild,
+                [
+                    UiInvalidationStage::ComponentContract,
+                    UiInvalidationStage::SelectorMatch,
+                    UiInvalidationStage::StyleValue,
+                    UiInvalidationStage::Layout,
+                    UiInvalidationStage::Render,
+                ],
+            );
         }
         if previous.resource_dependencies_revision != next.resource_dependencies_revision {
             changes.push(UiAssetChange::ResourceDependency);
-            stages.extend([
-                UiInvalidationStage::ResourceDependency,
-                UiInvalidationStage::Render,
-                UiInvalidationStage::Projection,
-            ]);
+            extend_incremental_stages(
+                &mut stages,
+                full_rebuild,
+                [
+                    UiInvalidationStage::ResourceDependency,
+                    UiInvalidationStage::Render,
+                    UiInvalidationStage::Projection,
+                ],
+            );
         }
         UiInvalidationReport::from_stages(changes, stages, diagnostics)
+    }
+}
+
+fn extend_incremental_stages(
+    stages: &mut BTreeSet<UiInvalidationStage>,
+    full_rebuild: bool,
+    additions: impl IntoIterator<Item = UiInvalidationStage>,
+) {
+    if !full_rebuild {
+        stages.extend(additions);
     }
 }
 
@@ -100,3 +131,7 @@ fn full_rebuild_stages() -> BTreeSet<UiInvalidationStage> {
     .into_iter()
     .collect()
 }
+
+#[cfg(test)]
+#[path = "graph/full_rebuild_tests.rs"]
+mod full_rebuild_tests;

@@ -10,6 +10,9 @@ const SOURCE_PATHS = [
   'src/sim/content/talents_warrior.ts', 'src/sim/content/talents_classic.ts',
   'src/sim/content/warrior_rows.ts', 'src/sim/content/choice_rows_classic.ts',
 ];
+const SPEC_COUNT_PER_CLASS = 3;
+const OPTION_COUNT_PER_CLASS = 18;
+const ENTRY_COUNT_PER_CLASS = SPEC_COUNT_PER_CLASS + OPTION_COUNT_PER_CLASS;
 const STAT_FIELDS = [
   'str', 'agi', 'sta', 'int', 'spi', 'armor', 'ap', 'crit', 'dodge', 'apPct',
   'staPct', 'armorPct', 'armorFromStrPct', 'maxHpPct', 'strPct', 'agiPct', 'intPct', 'spiPct',
@@ -60,6 +63,7 @@ if (entries.filter((entry) => entry.origin === 'spec').length !== 27 ||
     entries.filter((entry) => entry.origin === 'option').length !== 162) {
   throw new Error('current modifier origin counts drifted');
 }
+validateDenseOriginLayout(entries, selection.classes);
 const document = {
   schema_version: 1,
   source_commit: COMMIT,
@@ -96,6 +100,36 @@ function normalize(raw, index, specCodes, optionCodes) {
     grant: normalizeGrant(effect.grant, key),
     proc_id: effect.proc?.id ?? '',
   };
+}
+
+function validateDenseOriginLayout(entries, classes) {
+  if (entries.length !== classes.length * ENTRY_COUNT_PER_CLASS) {
+    throw new Error('modifier entries do not fill the dense per-class layout');
+  }
+  for (let classIndex = 0; classIndex < classes.length; classIndex += 1) {
+    const classEntryOffset = classIndex * ENTRY_COUNT_PER_CLASS;
+    const specs = classes[classIndex].specs;
+    const options = classes[classIndex].rows.flatMap((row) => row.options);
+    if (specs.length !== SPEC_COUNT_PER_CLASS || options.length !== OPTION_COUNT_PER_CLASS) {
+      throw new Error(`modifier selection shape drifted for ${classes[classIndex].id}`);
+    }
+    for (let offset = 0; offset < SPEC_COUNT_PER_CLASS; offset += 1) {
+      const entry = entries[classEntryOffset + offset];
+      const origin_code = classIndex * SPEC_COUNT_PER_CLASS + offset + 1;
+      if (entry.class_id !== classes[classIndex].id || entry.origin !== 'spec' ||
+          entry.origin_code !== origin_code) {
+        throw new Error(`modifier spec layout drifted for ${classes[classIndex].id}:${offset}`);
+      }
+    }
+    for (let offset = 0; offset < OPTION_COUNT_PER_CLASS; offset += 1) {
+      const entry = entries[classEntryOffset + SPEC_COUNT_PER_CLASS + offset];
+      const origin_code = classIndex * OPTION_COUNT_PER_CLASS + offset + 1;
+      if (entry.class_id !== classes[classIndex].id || entry.origin !== 'option' ||
+          entry.origin_code !== origin_code) {
+        throw new Error(`modifier option layout drifted for ${classes[classIndex].id}:${offset}`);
+      }
+    }
+  }
 }
 
 function numericRecord(value, fields, label) {
@@ -178,6 +212,8 @@ function normalizeGrant(value, label) {
 
 function renderZr(document) {
   const entries = document.entries;
+  const specEntryCount = entries.filter((entry) => entry.origin === 'spec').length;
+  const optionEntryCount = entries.filter((entry) => entry.origin === 'option').length;
   const abilityRows = entries.flatMap((entry) => entry.abilities.map((ability, abilityIndex) => ({ entry, ability, abilityIndex })));
   const nestedRows = abilityRows.flatMap((row) => row.ability.add_effects.map((effect, effectIndex) => ({ ...row, effect, effectIndex })));
   const cases = (rows, condition, value, fallback) => rows.map((row) => `    if (${condition(row)}) return ${value(row)};`).join('\n') + `\n    return ${fallback};`;
@@ -195,6 +231,16 @@ function renderZr(document) {
     'pub globalFieldName(field: int): string {\n' + cases(GLOBAL_FIELDS.map((name, field) => ({ name, field })), (row) => `field == ${row.field}`, (row) => quoted(row.name), '""') + '\n}\n\n' +
     'pub globalUsesMax(field: int): bool { return field == 32; }\n\n' +
     'pub abilityNumberFieldName(field: int): string {\n' + cases(ABILITY_NUMBER_FIELDS.map((name, field) => ({ name, field })), (row) => `field == ${row.field}`, (row) => quoted(row.name), '""') + '\n}\n\n' +
+    'pub entryIndex(originCode: uint, spec: bool): int {\n' +
+    '    if (originCode == <uint>0) return -1;\n' +
+    '    var code = <int>originCode - 1;\n' +
+    '    if (spec) {\n' +
+    `        if (originCode > <uint>${specEntryCount}) return -1;\n` +
+    `        return code / ${SPEC_COUNT_PER_CLASS} * ${ENTRY_COUNT_PER_CLASS} + code % ${SPEC_COUNT_PER_CLASS};\n` +
+    '    }\n' +
+    `    if (originCode > <uint>${optionEntryCount}) return -1;\n` +
+    `    return code / ${OPTION_COUNT_PER_CLASS} * ${ENTRY_COUNT_PER_CLASS} + ${SPEC_COUNT_PER_CLASS} + code % ${OPTION_COUNT_PER_CLASS};\n` +
+    '}\n\n' +
     'pub entryOriginCode(index: int): uint {\n' + cases(entries, (entry) => `index == ${entry.index}`, (entry) => `<uint>${entry.origin_code}`, '<uint>0') + '\n}\n\n' +
     'pub entryIsSpec(index: int): bool {\n' + cases(entries, (entry) => `index == ${entry.index}`, (entry) => entry.origin === 'spec' ? 'true' : 'false', 'false') + '\n}\n\n' +
     'pub entryStat(index: int, field: int): float {\n' + cases(entries.flatMap((entry) => STAT_FIELDS.map((name, field) => ({ entry, field, value: entry.stats[name] ?? 0 }))), (row) => `index == ${row.entry.index} && field == ${row.field}`, (row) => float(row.value), '0.0') + '\n}\n\n' +

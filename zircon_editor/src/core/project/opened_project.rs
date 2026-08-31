@@ -1,22 +1,31 @@
 use std::path::Path;
 
-use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::project::{ProjectManager, ResolvedProjectPath};
 use zircon_runtime_interface::project::ProjectManifestSummary;
 
 #[derive(Clone, Debug)]
 pub struct OpenedProject {
+    identity: ResolvedProjectPath,
     project: ProjectManager,
     summary: ProjectManifestSummary,
 }
 
 impl OpenedProject {
-    pub(super) fn new(project: ProjectManager) -> Self {
+    pub(super) fn new(project: ProjectManager, identity: ResolvedProjectPath) -> Self {
         let summary = project.manifest().summary();
-        Self { project, summary }
+        Self {
+            identity,
+            project,
+            summary,
+        }
     }
 
     pub fn root(&self) -> &Path {
-        self.project.paths().root()
+        self.identity.operation_path()
+    }
+
+    pub fn identity(&self) -> &ResolvedProjectPath {
+        &self.identity
     }
 
     pub fn summary(&self) -> &ProjectManifestSummary {

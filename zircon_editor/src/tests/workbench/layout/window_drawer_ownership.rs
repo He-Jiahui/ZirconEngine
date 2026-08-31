@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
+use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowHostMode,
-    ActivityWindowId, ActivityWindowLayout, DocumentNode, LayoutCommand, LayoutManager,
-    MainHostPageLayout, MainPageId, WorkbenchLayout,
+    ActivityWindowId, ActivityWindowLayout, DocumentNode, FloatingWindowLayout, LayoutCommand,
+    LayoutManager, MainHostPageLayout, MainPageId, WorkbenchLayout,
 };
 use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId};
 
@@ -27,83 +28,80 @@ fn default_workbench_layout_seeds_drawers_inside_workbench_activity_window() {
     assert!(workbench_window
         .activity_drawers
         .contains_key(&ActivityDrawerSlot::Bottom));
-    assert!(!workbench_window
-        .activity_drawers
-        .contains_key(&ActivityDrawerSlot::BottomLeft));
-    assert!(!workbench_window
-        .activity_drawers
-        .contains_key(&ActivityDrawerSlot::BottomRight));
 }
 
 #[test]
-fn default_workbench_layout_stores_activity_window_drawers_as_layout_state() {
-    let mut layout = WorkbenchLayout::default();
-    let window_id = ActivityWindowId::new("window:workbench");
+fn serialized_workbench_layout_rejects_retired_root_drawers() {
+    let mut encoded = serde_json::to_value(WorkbenchLayout::default()).unwrap();
+    let object = encoded.as_object_mut().expect("workbench layout object");
+    let activity_windows = object
+        .remove("activity_windows")
+        .expect("current layout must serialize activity windows");
+    object.insert("drawers".to_string(), activity_windows);
 
-    layout.drawers.clear();
+    assert!(serde_json::from_value::<WorkbenchLayout>(encoded).is_err());
+}
 
-    let workbench_window = layout
-        .activity_windows
-        .get(&window_id)
-        .expect("activity window drawers should be stored on layout state");
+#[test]
+fn serialized_workbench_layout_rejects_missing_activity_window_fields() {
+    let encoded = serde_json::to_value(WorkbenchLayout::default()).unwrap();
+
+    for required_field in ["menu_overflow_mode", "region_overrides", "view_overrides"] {
+        let mut missing_field = encoded.clone();
+        missing_field["activity_windows"]["window:workbench"]
+            .as_object_mut()
+            .expect("workbench activity window")
+            .remove(required_field);
+
+        assert!(serde_json::from_value::<WorkbenchLayout>(missing_field).is_err());
+    }
+}
+
+#[test]
+fn serialized_workbench_layout_rejects_unknown_nested_fields() {
+    let encoded = serde_json::to_value(WorkbenchLayout::default()).unwrap();
+
+    let mut unknown_activity_window_field = encoded.clone();
+    unknown_activity_window_field["activity_windows"]["window:workbench"]
+        .as_object_mut()
+        .expect("workbench activity window")
+        .insert("legacy_drawers".to_string(), serde_json::json!({}));
+    assert!(serde_json::from_value::<WorkbenchLayout>(unknown_activity_window_field).is_err());
+
+    let mut unknown_main_page_field = encoded;
+    unknown_main_page_field["main_pages"][0]["WorkbenchPage"]
+        .as_object_mut()
+        .expect("workbench main page")
+        .insert("legacy_window".to_string(), serde_json::json!(null));
+    assert!(serde_json::from_value::<WorkbenchLayout>(unknown_main_page_field).is_err());
+
+    let mut with_floating_window = WorkbenchLayout::default();
+    with_floating_window
+        .floating_windows
+        .push(FloatingWindowLayout {
+            window_id: MainPageId::new("floating:scene"),
+            title: "Scene".to_string(),
+            workspace: DocumentNode::default(),
+            focused_view: None,
+            frame: ShellFrame::default(),
+        });
+    let mut unknown_floating_window_field = serde_json::to_value(with_floating_window).unwrap();
+    unknown_floating_window_field["floating_windows"][0]
+        .as_object_mut()
+        .expect("floating window")
+        .insert("legacy_frame".to_string(), serde_json::json!({}));
+    assert!(serde_json::from_value::<WorkbenchLayout>(unknown_floating_window_field).is_err());
+}
+
+#[test]
+fn activity_drawer_slot_rejects_retired_bottom_aliases() {
     assert_eq!(
-        workbench_window.activity_drawers.len(),
-        ActivityDrawerSlot::ALL.len()
+        serde_json::from_str::<ActivityDrawerSlot>(r#""Bottom""#).unwrap(),
+        ActivityDrawerSlot::Bottom
     );
-    assert!(workbench_window
-        .activity_drawers
-        .contains_key(&ActivityDrawerSlot::LeftTop));
-    assert!(workbench_window
-        .activity_drawers
-        .contains_key(&ActivityDrawerSlot::Bottom));
-}
-
-#[test]
-fn legacy_bottom_left_and_bottom_right_drawers_merge_into_single_bottom_slot() {
-    let console = ViewInstanceId::new("editor.console#1");
-    let diagnostics = ViewInstanceId::new("editor.runtime_diagnostics#1");
-    let mut bottom_left = ActivityDrawerLayout::new(ActivityDrawerSlot::BottomLeft);
-    bottom_left.tab_stack.tabs = vec![console.clone()];
-    bottom_left.tab_stack.active_tab = Some(console.clone());
-    bottom_left.active_view = Some(console.clone());
-    bottom_left.mode = ActivityDrawerMode::Pinned;
-    bottom_left.extent = 168.0;
-
-    let mut bottom_right = ActivityDrawerLayout::new(ActivityDrawerSlot::BottomRight);
-    bottom_right.tab_stack.tabs = vec![diagnostics.clone()];
-    bottom_right.tab_stack.active_tab = None;
-    bottom_right.active_view = None;
-    bottom_right.mode = ActivityDrawerMode::Collapsed;
-    bottom_right.extent = 240.0;
-
-    let legacy_layout = WorkbenchLayout {
-        drawers: BTreeMap::from([
-            (ActivityDrawerSlot::BottomLeft, bottom_left),
-            (ActivityDrawerSlot::BottomRight, bottom_right),
-        ]),
-        activity_windows: BTreeMap::new(),
-        ..WorkbenchLayout::default()
-    };
-    let activity_windows = legacy_layout.activity_windows();
-    let workbench_window = activity_windows
-        .get(&ActivityWindowId::workbench())
-        .expect("legacy drawers should migrate into workbench activity window");
-    let bottom = workbench_window
-        .activity_drawers
-        .get(&ActivityDrawerSlot::Bottom)
-        .expect("legacy bottom drawers should merge into Bottom");
-
-    assert_eq!(bottom.slot, ActivityDrawerSlot::Bottom);
-    assert_eq!(bottom.tab_stack.tabs, vec![console.clone(), diagnostics]);
-    assert_eq!(bottom.active_view, Some(console));
-    assert_eq!(bottom.mode, ActivityDrawerMode::Pinned);
-    assert_eq!(bottom.extent, 168.0);
-    assert!(!workbench_window
-        .activity_drawers
-        .contains_key(&ActivityDrawerSlot::BottomLeft));
-    assert!(!workbench_window
-        .activity_drawers
-        .contains_key(&ActivityDrawerSlot::BottomRight));
+    for retired in [r#""BottomLeft""#, r#""BottomRight""#] {
+        assert!(serde_json::from_str::<ActivityDrawerSlot>(retired).is_err());
+    }
 }
 
 #[test]
@@ -150,7 +148,6 @@ fn drawer_layout_commands_mutate_active_activity_window_drawers() {
         id: asset_page_id.clone(),
         title: "Asset Browser".to_string(),
         activity_window: asset_window_id.clone(),
-        document_workspace: DocumentNode::default(),
     });
     layout.activity_windows.insert(
         asset_window_id.clone(),

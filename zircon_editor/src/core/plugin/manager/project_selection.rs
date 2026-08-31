@@ -6,8 +6,10 @@ use std::sync::Arc;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ProjectPluginManifest;
 
-use super::{
+use super::state::{
     apply_enablement_request, has_failed_disabled_lifecycle, validate_enablement_request,
+};
+use super::{
     EditorPluginManager, EditorPluginManagerEntry, EditorPluginManagerSnapshot,
     EditorPluginTransitionError,
 };

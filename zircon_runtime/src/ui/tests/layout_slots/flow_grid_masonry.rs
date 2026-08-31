@@ -44,13 +44,13 @@ fn wrap_flow_slot_padding_alignment_feeds_shared_surface_frame() {
             ),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(2), UiSlotKind::Flow)
             .with_padding(UiMargin::new(2.0, 1.0, 4.0, 3.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::End))
             .with_order(2),
     );
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(3), UiSlotKind::Flow)
             .with_padding(UiMargin::new(1.0, 2.0, 1.0, 2.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::Fill))
@@ -130,13 +130,13 @@ fn grid_slot_cell_placement_feeds_arranged_render_hit_from_one_surface_frame() {
             ),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(2), UiSlotKind::Grid)
             .with_grid_placement(UiGridSlotPlacement::new(0, 0))
             .with_padding(UiMargin::new(2.0, 2.0, 2.0, 2.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::Center)),
     );
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(3), UiSlotKind::Grid)
             .with_grid_placement(UiGridSlotPlacement::new(1, 1))
             .with_padding(UiMargin::new(4.0, 4.0, 4.0, 4.0))

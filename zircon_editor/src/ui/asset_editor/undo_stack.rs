@@ -425,6 +425,12 @@ impl UiAssetEditorUndoStack {
             .unwrap_or_default()
     }
 
+    pub(crate) fn undo_transitions_rev(
+        &self,
+    ) -> impl Iterator<Item = &UiAssetEditorUndoTransition> {
+        self.undo_stack.iter().rev().map(|entry| &entry.undo)
+    }
+
     pub fn replay_records(&self) -> Vec<UiAssetEditorUndoStackReplayRecord> {
         self.undo_stack
             .iter()

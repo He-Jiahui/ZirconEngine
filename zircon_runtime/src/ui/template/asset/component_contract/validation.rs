@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use zircon_runtime_interface::ui::template::{
     parse_component_reference, UiAssetDocument, UiAssetError, UiComponentApiVersion,
@@ -582,17 +582,17 @@ impl ScopedSelectorTarget {
 }
 
 struct ComponentTreeIndex<'a> {
-    node_ids: BTreeSet<&'a str>,
-    control_ids: BTreeSet<&'a str>,
-    node_control_ids: BTreeMap<&'a str, &'a str>,
+    node_ids: HashSet<&'a str>,
+    control_ids: HashSet<&'a str>,
+    node_control_ids: HashMap<&'a str, &'a str>,
 }
 
 impl<'a> ComponentTreeIndex<'a> {
     fn new(root: &'a UiNodeDefinition) -> Self {
         let mut index = Self {
-            node_ids: BTreeSet::new(),
-            control_ids: BTreeSet::new(),
-            node_control_ids: BTreeMap::new(),
+            node_ids: HashSet::new(),
+            control_ids: HashSet::new(),
+            node_control_ids: HashMap::new(),
         };
         index.visit(root);
         index
@@ -621,13 +621,13 @@ impl<'a> ComponentTreeIndex<'a> {
 }
 
 struct ComponentPrivacyIndex<'a> {
-    private_targets: BTreeSet<&'a str>,
+    private_targets: HashSet<&'a str>,
 }
 
 impl<'a> ComponentPrivacyIndex<'a> {
     fn new(component: &'a UiComponentDefinition) -> Self {
         let tree = ComponentTreeIndex::new(&component.root);
-        let mut public_targets = BTreeSet::new();
+        let mut public_targets = HashSet::new();
         let _ = public_targets.insert(component.root.node_id.as_str());
         if let Some(control_id) = &component.root.control_id {
             let _ = public_targets.insert(control_id.as_str());
@@ -648,6 +648,9 @@ impl<'a> ComponentPrivacyIndex<'a> {
         Self { private_targets }
     }
 }
+
+#[cfg(test)]
+mod hash_index_tests;
 
 struct TargetRef {
     node_id: Option<String>,

@@ -10,12 +10,12 @@ fn added_and_changed_filters_use_system_run_windows() {
     type AddedHealth = QueryState<(EntityId, &'static Health), Added<Health>>;
     let mut added_system = SystemState::<AddedHealth>::new(&mut world).unwrap();
 
-    let first_added = added_system.run(&mut world, |query| {
+    let first_added = added_system.run(&mut world, |mut query| {
         query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
     });
     assert_eq!(first_added, vec![first]);
 
-    let second_added = added_system.run(&mut world, |query| {
+    let second_added = added_system.run(&mut world, |mut query| {
         query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
     });
     assert!(second_added.is_empty());
@@ -23,25 +23,25 @@ fn added_and_changed_filters_use_system_run_windows() {
     let second = world
         .spawn((Name("Second".to_string()), Health(1)))
         .unwrap();
-    let new_added = added_system.run(&mut world, |query| {
+    let new_added = added_system.run(&mut world, |mut query| {
         query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
     });
     assert_eq!(new_added, vec![second]);
 
     type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
     let mut changed_system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
-    let baseline = changed_system.run(&mut world, |query| {
+    let baseline = changed_system.run(&mut world, |mut query| {
         query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
     });
     assert_eq!(baseline, vec![first, second]);
 
-    let unchanged = changed_system.run(&mut world, |query| {
+    let unchanged = changed_system.run(&mut world, |mut query| {
         query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
     });
     assert!(unchanged.is_empty());
 
     world.get_mut::<Health>(first).unwrap().0 += 5;
-    let changed = changed_system.run(&mut world, |query| {
+    let changed = changed_system.run(&mut world, |mut query| {
         query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
     });
     assert_eq!(changed, vec![first]);
@@ -179,7 +179,9 @@ fn system_query_count_and_empty_helpers_reuse_cache_and_run_window_filters() {
         )
     });
     assert_eq!(
-        (baseline.0, baseline.1, baseline.2, baseline.3, baseline.4, baseline.5),
+        (
+            baseline.0, baseline.1, baseline.2, baseline.3, baseline.4, baseline.5
+        ),
         (1, false, 1, false, 1, false)
     );
     assert_eq!(

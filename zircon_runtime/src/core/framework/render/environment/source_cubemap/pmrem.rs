@@ -1,8 +1,8 @@
 use super::super::ibl_bake_recipe::CANONICAL_IBL_BAKE_RECIPE;
+use super::sampling::{normalize_or_positive_z, sample_source_cubemap_trilinear};
 use super::{
-    normalize_or_positive_z, sample_source_cubemap_trilinear, source_cubemap_face_mip_outputs,
-    source_cubemap_mip_size, source_cubemap_roughness_from_pmrem_mip, CubemapFaceMipOutput,
-    SourceCubemapPrefilterQuality,
+    source_cubemap_face_mip_outputs, source_cubemap_mip_size,
+    source_cubemap_roughness_from_pmrem_mip, CubemapFaceMipOutput, SourceCubemapPrefilterQuality,
 };
 use crate::core::framework::render::environment::{cubemap_texel_direction, CubemapFace};
 use crate::core::framework::tasks::ParallelSliceExecutor;
@@ -257,8 +257,10 @@ fn importance_sample_ggx(xi: [Real; 2], roughness: Real) -> [Real; 3] {
 fn distribution_ggx(no_h: Real, roughness: Real) -> Real {
     let alpha = (roughness * roughness).max(0.0001);
     let alpha2 = alpha * alpha;
-    let denominator = (no_h * no_h * (alpha2 - 1.0) + 1.0).max(0.0001);
-    alpha2 / (std::f32::consts::PI * denominator * denominator).max(0.000001)
+    let clamped_no_h = no_h.clamp(0.0, 1.0);
+    let no_h_squared = clamped_no_h * clamped_no_h;
+    let denominator = (1.0 - no_h_squared) + no_h_squared * alpha2;
+    alpha2 / (std::f32::consts::PI * denominator * denominator)
 }
 
 fn ggx_light_direction_pdf(no_h: Real, roughness: Real) -> Real {
@@ -419,6 +421,20 @@ mod tests {
         let expected = distribution_ggx(no_h, roughness) * 0.25;
 
         assert!((ggx_light_direction_pdf(no_h, roughness) - expected).abs() <= 0.000001);
+    }
+
+    #[test]
+    fn ggx_distribution_preserves_the_valid_canonical_low_roughness_peak() {
+        let roughness = super::super::source_cubemap_roughness_from_pmrem_mip(1, 8);
+        let alpha = roughness * roughness;
+        let alpha_squared = alpha * alpha;
+        let expected = 1.0 / (std::f32::consts::PI * alpha_squared);
+        let actual = distribution_ggx(1.0, roughness);
+
+        assert!(
+            (actual - expected).abs() <= expected * 0.00001,
+            "PMREM D_GGX must retain the canonical mip1 peak: actual={actual} expected={expected}"
+        );
     }
 
     #[test]

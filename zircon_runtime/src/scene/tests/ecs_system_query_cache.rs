@@ -31,7 +31,7 @@ fn system_query_default_iter_reuses_persistent_cache_candidates() {
     let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
     assert_eq!(system.state().cache_rebuilds(), 1);
 
-    let baseline = system.run(&mut world, |query| {
+    let baseline = system.run(&mut world, |mut query| {
         let iter = query.iter();
         assert!(iter.uses_compiled_archetype_plans());
         iter.map(|(entity, health)| (entity, health.0))
@@ -40,14 +40,14 @@ fn system_query_default_iter_reuses_persistent_cache_candidates() {
     assert_eq!(baseline, vec![(first, 10)]);
     assert_eq!(system.state().cache_rebuilds(), 1);
 
-    let unchanged_count = system.run(&mut world, |query| query.iter().count());
+    let unchanged_count = system.run(&mut world, |mut query| query.iter().count());
     assert_eq!(unchanged_count, 0);
     assert_eq!(system.state().cache_rebuilds(), 1);
 
     let second = world
         .spawn((Name("Second".to_string()), Health(20)))
         .unwrap();
-    let after_spawn = system.run(&mut world, |query| {
+    let after_spawn = system.run(&mut world, |mut query| {
         let iter = query.iter();
         assert!(iter.uses_compiled_archetype_plans());
         iter.map(|(entity, health)| (entity, health.0))
@@ -179,9 +179,15 @@ fn cached_query_compiles_only_new_archetypes_that_match_its_access() {
 #[test]
 fn cached_name_query_keeps_stable_world_order_across_moves_clone_and_serde() {
     let mut world = World::empty();
-    let first_mesh = world.spawn_node(NodeKind::Mesh);
-    let second_mesh = world.spawn_node(NodeKind::Mesh);
-    let camera = world.spawn_node(NodeKind::Camera);
+    let first_mesh = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let second_mesh = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let camera = world
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
 
     world
         .remove::<MeshRenderer>(first_mesh)

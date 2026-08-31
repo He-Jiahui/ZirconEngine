@@ -8,6 +8,7 @@ use crate::core::runtime::tasks::TaskTimer;
 use super::service::RuntimeOperationTaskState;
 
 pub(super) fn expire_due_deadlines_in_state(state: &mut RuntimeOperationTaskState, now: Instant) {
+    crate::profile_counter!("runtime", "operation.deadline_scan_rows", state.tasks.len());
     let expired: Vec<_> = state
         .tasks
         .iter()
@@ -23,6 +24,7 @@ pub(super) fn expire_due_deadlines_in_state(state: &mut RuntimeOperationTaskStat
                 .then_some((*handle, deadline))
         })
         .collect();
+    crate::profile_counter!("runtime", "operation.deadline_expired_rows", expired.len());
     for (handle, deadline) in expired {
         let elapsed = duration_millis_u64(now.saturating_duration_since(deadline));
         let released_bytes = {
@@ -66,6 +68,11 @@ pub(super) fn expire_terminal_results_in_state(
     terminal_result_ttl: Duration,
     now: Instant,
 ) {
+    crate::profile_counter!(
+        "runtime",
+        "operation.terminal_ttl_scan_rows",
+        state.tasks.len()
+    );
     let expired: Vec<_> = state
         .tasks
         .iter()
@@ -79,6 +86,11 @@ pub(super) fn expire_terminal_results_in_state(
                 .then_some((*handle, terminal_at))
         })
         .collect();
+    crate::profile_counter!(
+        "runtime",
+        "operation.terminal_ttl_expired_rows",
+        expired.len()
+    );
     for (handle, terminal_at) in expired {
         let elapsed = duration_millis_u64(now.saturating_duration_since(terminal_at));
         let released_bytes = {
@@ -189,6 +201,11 @@ fn next_maintenance_deadline(
     state: &RuntimeOperationTaskState,
     terminal_result_ttl: Duration,
 ) -> Option<Instant> {
+    crate::profile_counter!(
+        "runtime",
+        "operation.maintenance_select_scan_rows",
+        state.tasks.len().saturating_mul(2)
+    );
     state
         .tasks
         .values()

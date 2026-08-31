@@ -6,12 +6,12 @@ use crate::scene::components::{
 };
 use std::any::TypeId;
 
+use crate::scene::EntityId;
 use crate::scene::ecs::{
     ArchetypeId, ArchetypeIndexPerformanceStats, ChangeTick, Component, ComponentId,
     ComponentStorageLocation, ComponentTicks, InternalEntity, QueryAccess, StableEntityLocation,
     StorageType,
 };
-use crate::scene::EntityId;
 
 impl World {
     pub(crate) fn archetype_generation(&self) -> u64 {
@@ -150,12 +150,14 @@ impl World {
 
     pub(crate) fn query_component_mut_at_location<T>(
         &mut self,
+        entity: EntityId,
         location: ComponentStorageLocation,
     ) -> Option<&mut T>
     where
         T: Component,
     {
         let tick = self.mutation_change_tick();
+        self.mark_query_component_mutation::<T>(entity);
         match location.storage_type {
             StorageType::Table => self.archetype_index.get_mut_at_tick_by_slot::<T>(
                 location.table_archetype?,
@@ -173,12 +175,21 @@ impl World {
 
     pub(crate) fn query_component_mut_with_ticks_at_location<T>(
         &mut self,
+        entity: EntityId,
         location: ComponentStorageLocation,
-    ) -> Option<(&mut T, &mut ComponentTicks, ChangeTick)>
+    ) -> Option<(
+        &mut T,
+        &mut ComponentTicks,
+        ChangeTick,
+        crate::scene::ecs::ComponentMutationRecorder<'_>,
+    )>
     where
         T: Component,
     {
         let tick = self.mutation_change_tick();
+        let mutation_recorder = self
+            .derived_state_dirty
+            .component_mutation_recorder::<T>(entity);
         let (value, ticks) = match location.storage_type {
             StorageType::Table => self.archetype_index.get_mut_with_ticks_by_slot::<T>(
                 location.table_archetype?,
@@ -189,7 +200,7 @@ impl World {
                 .component_storage
                 .get_mut_with_ticks::<T>(location.component_id, location.entity)?,
         };
-        Some((value, ticks, tick))
+        Some((value, ticks, tick, mutation_recorder))
     }
 
     pub fn contains_entity(&self, entity: EntityId) -> bool {

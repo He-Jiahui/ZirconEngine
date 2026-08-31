@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
-    ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceId, ShaderFeatureBits, ShaderPassType,
+    ShaderQualityTier, ShaderVariantKey, ShadingModelId,
 };
 use crate::core::resource::ResourceId;
 
@@ -10,22 +10,28 @@ use super::super::fallback_shader_uri;
 pub(crate) struct PipelineKey {
     pub(crate) shader_id: ResourceId,
     pub(crate) shader_revision: u64,
+    /// Process-local epoch for the shader's complete resource dependency closure.
+    /// Persistent cache identity remains content-addressed by assembled WGSL.
+    pub(crate) shader_dependency_revision: u64,
     pub(crate) material_layout_hash: u64,
     pub(crate) material_option_bits: u32,
     pub(crate) double_sided: bool,
+    /// Reverses the raster front-face convention for negative-determinant instances.
+    /// This is PSO state and must not enter persistent shader variant identity.
+    pub(crate) reverse_raster_winding: bool,
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_mask: bool,
     pub(crate) alpha_cutoff_bits: Option<u32>,
     pub(crate) receive_shadows: bool,
     pub(crate) shading_model_id: ShadingModelId,
     pub(crate) unlit: bool,
-    pub(crate) has_base_color_texture: bool,
+    /// Normal mapping changes generated shader code and vertex requirements.
     pub(crate) has_normal_texture: bool,
-    pub(crate) has_metallic_roughness_texture: bool,
-    pub(crate) has_occlusion_texture: bool,
-    pub(crate) has_emissive_texture: bool,
     pub(crate) pbr_clearcoat: bool,
     pub(crate) pbr_anisotropy: bool,
+    /// Routes a non-default dielectric F0 away from the fixed deferred GBuffer.
+    /// It is intentionally not a shader specialization bit.
+    pub(crate) pbr_ior_override: bool,
     pub(crate) pbr_transmission: bool,
     pub(crate) volumetric_fog: bool,
 }
@@ -40,7 +46,14 @@ impl PipelineKey {
     }
 
     pub(crate) fn requires_forward_path(&self) -> bool {
-        self.pbr_clearcoat || self.pbr_anisotropy || self.pbr_transmission
+        self.pbr_clearcoat || self.pbr_anisotropy || self.pbr_ior_override || self.pbr_transmission
+    }
+
+    /// Returns the PSO identity after removing draw-list-only routing state.
+    pub(crate) fn pipeline_variant_identity(&self) -> Self {
+        let mut identity = self.clone();
+        identity.pbr_ior_override = false;
+        identity
     }
 
     pub(crate) fn uses_fallback_shader(&self) -> bool {
@@ -112,7 +125,7 @@ impl PipelineKey {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        ShaderFeatureBits, ShaderPassType, SHADING_MODEL_ID_STANDARD_PBR,
+        SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
     };
     use crate::core::resource::ResourceId;
     use crate::graphics::scene::resources::default_pipeline_key;
@@ -130,6 +143,7 @@ mod tests {
     fn pipeline_key_derives_material_shader_variant_key() {
         let mut key = default_pipeline_key();
         key.shader_revision = 42;
+        key.shader_dependency_revision = 9;
         key.double_sided = true;
         key.alpha_mask = true;
         key.receive_shadows = true;
@@ -138,17 +152,53 @@ mod tests {
 
         assert_eq!(variant.material_shader, key.shader_id);
         assert_eq!(variant.material_revision, 42);
+        assert!(!variant.canonical_string().contains("dependency_revision"));
         assert_eq!(variant.shading_model, SHADING_MODEL_ID_STANDARD_PBR);
         assert_eq!(variant.pass_type, ShaderPassType::GBuffer);
         assert_eq!(variant.platform_token, "wgpu-test");
         assert!(variant.features.contains(ShaderFeatureBits::ALPHA_TEST));
         assert!(variant.features.contains(ShaderFeatureBits::DOUBLE_SIDED));
-        assert!(variant
-            .features
-            .contains(ShaderFeatureBits::RECEIVE_SHADOWS));
-        assert!(!variant
-            .features
-            .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
+        assert!(
+            variant
+                .features
+                .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
+        );
+        assert!(
+            !variant
+                .features
+                .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE)
+        );
+    }
+
+    #[test]
+    fn pipeline_key_separates_runtime_dependency_generations_without_changing_disk_variant_key() {
+        let first = default_pipeline_key();
+        let mut second = first.clone();
+        second.shader_dependency_revision = first.shader_dependency_revision.wrapping_add(1);
+
+        assert_ne!(first, second);
+        assert_eq!(
+            first.shader_variant_key(ShaderPassType::Forward, "wgpu-test"),
+            second.shader_variant_key(ShaderPassType::Forward, "wgpu-test"),
+            "process-local dependency epochs must not enter the persistent variant contract"
+        );
+    }
+
+    #[test]
+    fn reverse_raster_winding_changes_pso_identity_without_a_shader_permutation() {
+        let first = default_pipeline_key();
+        let mut mirrored = first.clone();
+        mirrored.reverse_raster_winding = true;
+
+        assert_ne!(
+            first.pipeline_variant_identity(),
+            mirrored.pipeline_variant_identity()
+        );
+        assert_eq!(
+            first.shader_variant_key(ShaderPassType::Forward, "wgpu-test"),
+            mirrored.shader_variant_key(ShaderPassType::Forward, "wgpu-test"),
+            "raster winding must not duplicate persistent WGSL variants"
+        );
     }
 
     #[test]
@@ -158,9 +208,11 @@ mod tests {
 
         let variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
 
-        assert!(variant
-            .features
-            .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
+        assert!(
+            variant
+                .features
+                .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE)
+        );
     }
 
     #[test]
@@ -170,9 +222,11 @@ mod tests {
 
         let variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
 
-        assert!(!variant
-            .features
-            .contains(ShaderFeatureBits::RECEIVE_SHADOWS));
+        assert!(
+            !variant
+                .features
+                .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
+        );
     }
 
     #[test]
@@ -180,29 +234,56 @@ mod tests {
         let mut key = default_pipeline_key();
 
         let default_variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
-        assert!(!default_variant
-            .features
-            .contains(ShaderFeatureBits::PBR_CLEARCOAT));
-        assert!(!default_variant
-            .features
-            .contains(ShaderFeatureBits::PBR_ANISOTROPY));
-        assert!(!default_variant
-            .features
-            .contains(ShaderFeatureBits::PBR_TRANSMISSION));
+        assert!(
+            !default_variant
+                .features
+                .contains(ShaderFeatureBits::PBR_CLEARCOAT)
+        );
+        assert!(
+            !default_variant
+                .features
+                .contains(ShaderFeatureBits::PBR_ANISOTROPY)
+        );
+        assert!(
+            !default_variant
+                .features
+                .contains(ShaderFeatureBits::PBR_TRANSMISSION)
+        );
 
         key.pbr_clearcoat = true;
         key.pbr_anisotropy = true;
+        key.pbr_ior_override = true;
         key.pbr_transmission = true;
         let advanced_variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
 
-        assert!(advanced_variant
-            .features
-            .contains(ShaderFeatureBits::PBR_CLEARCOAT));
-        assert!(advanced_variant
-            .features
-            .contains(ShaderFeatureBits::PBR_ANISOTROPY));
-        assert!(advanced_variant
-            .features
-            .contains(ShaderFeatureBits::PBR_TRANSMISSION));
+        assert!(
+            advanced_variant
+                .features
+                .contains(ShaderFeatureBits::PBR_CLEARCOAT)
+        );
+        assert!(
+            advanced_variant
+                .features
+                .contains(ShaderFeatureBits::PBR_ANISOTROPY)
+        );
+        assert!(
+            advanced_variant
+                .features
+                .contains(ShaderFeatureBits::PBR_TRANSMISSION)
+        );
+        assert!(key.requires_forward_path());
+    }
+
+    #[test]
+    fn pipeline_key_routes_non_default_ior_without_a_shader_permutation() {
+        let mut key = default_pipeline_key();
+        let baseline = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
+
+        key.pbr_ior_override = true;
+        let routed = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
+
+        assert!(key.requires_forward_path());
+        assert_eq!(routed, baseline);
+        assert_eq!(key.pipeline_variant_identity(), default_pipeline_key());
     }
 }

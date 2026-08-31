@@ -1,4 +1,7 @@
-use std::{collections::BTreeSet, sync::OnceLock};
+use std::{
+    collections::{BTreeSet, HashMap},
+    sync::OnceLock,
+};
 
 use toml::Value;
 use zircon_runtime_interface::ui::{
@@ -12,7 +15,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::painter_state::UiRenderPainterStateSource;
-use super::popup_rows::{push_popup_row_label, push_popup_row_surface, PopupRowPaintState};
+use super::popup_position::{PopupPlacement, resolve_anchored_popup_geometry};
+use super::popup_rows::{PopupRowPaintState, push_popup_row_label, push_popup_row_surface};
 
 const COMMANDS: &str = "commands";
 const FILTERED_COMMANDS: &str = "filtered_commands";
@@ -174,6 +178,7 @@ pub(super) fn command_palette_render_commands(
     state_flags: &UiStateFlags,
     component_state: Option<&UiComponentState>,
     frame: UiFrame,
+    popup_anchor_frame: Option<UiFrame>,
     clip_frame: Option<UiFrame>,
     z_index: i32,
     opacity: f32,
@@ -189,6 +194,14 @@ pub(super) fn command_palette_render_commands(
     if frame.width <= min_frame_extent || frame.height <= min_frame_extent {
         return Vec::new();
     }
+    let (frame, clip_frame) = resolve_anchored_popup_geometry(
+        metadata,
+        frame,
+        popup_anchor_frame,
+        clip_frame,
+        PopupPlacement::Top,
+        0.0,
+    );
 
     let state = CommandPaletteRenderState::resolve(metadata, state_flags, component_state);
     let mut commands = vec![quad_command(
@@ -423,13 +436,13 @@ fn command_rows(metadata: &UiTemplateNodeMetadata) -> Vec<CommandPaletteRow> {
 
     let mut rows: Vec<CommandPaletteRow> =
         if let Some(filtered) = metadata.attributes.get(FILTERED_COMMANDS) {
+            let command_index = command_entry_index(&commands);
             command_id_values(filtered)
                 .into_iter()
                 .filter_map(|id| {
-                    commands
-                        .iter()
-                        .find(|entry| entry.matches_id(&id))
-                        .cloned()
+                    command_index
+                        .get(id.as_str())
+                        .map(|entry_index| commands[*entry_index].clone())
                         .or_else(|| (!id.is_empty()).then(|| CommandPaletteRow::new(id)))
                 })
                 .collect()
@@ -456,6 +469,19 @@ fn command_rows(metadata: &UiTemplateNodeMetadata) -> Vec<CommandPaletteRow> {
     }
 
     rows
+}
+
+fn command_entry_index(commands: &[CommandPaletteRow]) -> HashMap<&str, usize> {
+    let mut index = HashMap::with_capacity(commands.len().saturating_mul(2));
+    for (entry_index, entry) in commands.iter().enumerate() {
+        if !entry.id.is_empty() {
+            index.entry(entry.id.as_str()).or_insert(entry_index);
+        }
+        if !entry.label.is_empty() {
+            index.entry(entry.label.as_str()).or_insert(entry_index);
+        }
+    }
+    index
 }
 
 fn contains_ascii_case(value: &str, needle: &str) -> bool {

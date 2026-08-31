@@ -50,7 +50,7 @@ fn component_showcase_action_id_for_binding_id(binding_id: &str) -> String {
 }
 
 fn camel_to_snake_segment(value: &str) -> String {
-    let mut output = String::new();
+    let mut output = String::with_capacity(value.len());
     let mut previous_was_separator = true;
     for ch in value.chars() {
         if ch.is_ascii_alphanumeric() {
@@ -59,10 +59,17 @@ fn camel_to_snake_segment(value: &str) -> String {
             }
             output.push(ch.to_ascii_lowercase());
             previous_was_separator = false;
-        } else if !output.ends_with('_') {
+        } else if !output.is_empty() && !output.ends_with('_') {
             output.push('_');
             previous_was_separator = true;
         }
     }
-    output.trim_matches('_').to_string()
+    if output.ends_with('_') {
+        output.pop();
+    }
+    output
 }
+
+#[cfg(test)]
+#[path = "bindings/camel_to_snake_tests.rs"]
+mod camel_to_snake_tests;

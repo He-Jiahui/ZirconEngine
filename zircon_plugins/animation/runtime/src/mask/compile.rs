@@ -10,6 +10,15 @@ pub struct MaskWeights {
 }
 
 impl MaskWeights {
+    pub(crate) fn from_validated_weights(weights: &[Real]) -> Self {
+        debug_assert!(weights
+            .iter()
+            .all(|weight| weight.is_finite() && (0.0..=1.0).contains(weight)));
+        Self {
+            weights: weights.into(),
+        }
+    }
+
     pub fn try_from_weights(weights: Vec<Real>) -> Result<Self, AvatarMaskError> {
         for weight in &weights {
             validate_weight(None, *weight)?;

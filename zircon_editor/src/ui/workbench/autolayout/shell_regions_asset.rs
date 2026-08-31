@@ -1,10 +1,12 @@
-use std::collections::BTreeSet;
-
 use serde::Deserialize;
 use thiserror::Error;
 
 use super::workbench_skeleton::WorkbenchSkeleton;
 use super::{EditorRegion, EditorRegionRole, RegionBinding, WorkbenchConstraintTokenName};
+
+#[cfg(test)]
+#[path = "shell_regions_asset/region_bitset_tests.rs"]
+mod region_bitset_tests;
 
 pub const WORKBENCH_SHELL_REGIONS_ASSET_KIND: &str = "layout_regions";
 pub const WORKBENCH_SHELL_REGIONS_ASSET_ID: &str = "zircon.editor.workbench.shell_regions";
@@ -136,18 +138,31 @@ fn validate_header(
 fn validate_complete_region_set(
     regions: &[RegionBinding],
 ) -> Result<(), WorkbenchShellRegionsAssetError> {
-    let mut seen = BTreeSet::new();
+    let mut occupied_regions = 0u8;
     for binding in regions {
-        if !seen.insert(binding.region) {
+        let region_bit = editor_region_bit(binding.region);
+        if occupied_regions & region_bit != 0 {
             return Err(WorkbenchShellRegionsAssetError::DuplicateRegion {
                 region: binding.region,
             });
         }
+        occupied_regions |= region_bit;
     }
     for region in EditorRegion::ALL {
-        if !seen.contains(&region) {
+        if occupied_regions & editor_region_bit(region) == 0 {
             return Err(WorkbenchShellRegionsAssetError::MissingRegion { region });
         }
     }
     Ok(())
+}
+
+const fn editor_region_bit(region: EditorRegion) -> u8 {
+    1 << match region {
+        EditorRegion::LeftTop => 0,
+        EditorRegion::LeftBottom => 1,
+        EditorRegion::RightTop => 2,
+        EditorRegion::RightBottom => 3,
+        EditorRegion::Bottom => 4,
+        EditorRegion::Center => 5,
+    }
 }

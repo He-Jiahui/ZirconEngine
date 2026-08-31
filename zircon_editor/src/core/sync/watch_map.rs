@@ -222,11 +222,16 @@ impl WorldWatchMap {
         tokens
     }
 
+    /// Clears session bindings when their runtime generation has already been retired.
+    pub fn clear(&mut self) {
+        self.by_token.clear();
+        self.by_view.clear();
+    }
+
     /// Returns every token in sorted token order for runtime unwatch and clears session state.
     pub fn drain_tokens(&mut self) -> Vec<WatchToken> {
         let tokens = self.by_token.keys().copied().collect::<Vec<_>>();
-        self.by_token.clear();
-        self.by_view.clear();
+        self.clear();
         tokens
     }
 

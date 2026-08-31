@@ -7,7 +7,8 @@ pub trait UiRuntimeTreeLayoutExt {
 
 impl UiRuntimeTreeLayoutExt for UiTree {
     fn mark_layout_dirty(&mut self, node_id: UiNodeId) -> Result<(), UiTreeError> {
-        mark_layout_dirty_local(self, node_id)?;
+        self.nodes.mark_layout_dirty_source(node_id);
+        mark_layout_dirty_local(self, node_id, true)?;
 
         let mut current = node_id;
         while let Some(parent_id) = self
@@ -16,7 +17,7 @@ impl UiRuntimeTreeLayoutExt for UiTree {
             .ok_or(UiTreeError::MissingNode(current))?
             .parent
         {
-            mark_layout_dirty_local(self, parent_id)?;
+            mark_layout_dirty_local(self, parent_id, false)?;
             let parent = self
                 .nodes
                 .get(&parent_id)
@@ -35,10 +36,17 @@ impl UiRuntimeTreeLayoutExt for UiTree {
     }
 }
 
-fn mark_layout_dirty_local(tree: &mut UiTree, node_id: UiNodeId) -> Result<(), UiTreeError> {
+fn mark_layout_dirty_local(
+    tree: &mut UiTree,
+    node_id: UiNodeId,
+    invalidate_measure: bool,
+) -> Result<(), UiTreeError> {
     let node = tree
         .node_mut(node_id)
         .ok_or(UiTreeError::MissingNode(node_id))?;
+    if invalidate_measure {
+        node.layout_cache.invalidate_measure();
+    }
     node.dirty.layout = true;
     node.dirty.hit_test = true;
     node.dirty.render = true;

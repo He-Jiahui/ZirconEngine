@@ -2,15 +2,16 @@ use super::super::super::{PreparedOverlayBuffers, PreparedSceneGizmoPass};
 use super::super::viewport_overlay_renderer::ViewportOverlayRenderer;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use zr_rhi_wgpu::WgpuTextureUploadBatch;
 
 impl ViewportOverlayRenderer {
     pub(crate) fn prepare_buffers(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
+        frame_texture_uploads: &mut WgpuTextureUploadBatch,
     ) -> Result<PreparedOverlayBuffers, GraphicsError> {
         let Some(interaction_overlays) = self.interaction_overlays.as_mut() else {
             return Ok(PreparedOverlayBuffers {
@@ -37,9 +38,9 @@ impl ViewportOverlayRenderer {
             ),
             scene_gizmo: interaction_overlays.scene_gizmo.prepare(
                 device,
-                queue,
                 texture_layout,
                 frame,
+                frame_texture_uploads,
             )?,
             handle_buffer: super::super::super::super::primitives::build_line_buffer(
                 device,
@@ -78,5 +79,14 @@ mod tests {
         assert!(source.contains("selection_buffer: None"));
         assert!(source.contains("wireframe_buffer: None"));
         assert!(source.contains("handle_buffer: None"));
+    }
+
+    #[test]
+    fn viewport_icon_uploads_join_the_existing_frame_texture_batch_without_a_queue() {
+        let source = production_source();
+
+        assert!(source.contains("frame_texture_uploads: &mut WgpuTextureUploadBatch"));
+        assert!(source.contains("frame_texture_uploads,"));
+        assert!(!source.contains("queue: &wgpu::Queue"));
     }
 }

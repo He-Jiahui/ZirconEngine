@@ -3,7 +3,8 @@ use super::*;
 #[test]
 fn render_product_streamer_exposes_material_uniform_debug_counts() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/runtime-property-uniform-counts.zmaterial");
@@ -131,6 +132,7 @@ fn render_product_streamer_exposes_material_uniform_debug_counts() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -310,12 +312,16 @@ fn render_product_streamer_exposes_material_uniform_debug_counts() {
     assert_eq!(diagnostic_issue_view.records, record_set.overview().records);
     assert_eq!(diagnostic_issue_view.len(), 1);
     assert!(!diagnostic_issue_view.is_empty());
-    assert!(streamer
-        .material_management_issue_view(RenderMaterialManagementIssueKind::ValidationError)
-        .is_empty());
-    assert!(streamer
-        .material_management_issue_view(RenderMaterialManagementIssueKind::FallbackUsage)
-        .is_empty());
+    assert!(
+        streamer
+            .material_management_issue_view(RenderMaterialManagementIssueKind::ValidationError)
+            .is_empty()
+    );
+    assert!(
+        streamer
+            .material_management_issue_view(RenderMaterialManagementIssueKind::FallbackUsage)
+            .is_empty()
+    );
     assert_eq!(
         record_set
             .status_index
@@ -377,9 +383,11 @@ fn render_product_streamer_exposes_material_uniform_debug_counts() {
     assert_eq!(diagnostic_status_view.records, overview.records);
     assert_eq!(diagnostic_status_view.len(), 1);
     assert!(!diagnostic_status_view.is_empty());
-    assert!(streamer
-        .material_management_status_view(RenderMaterialReadinessStatus::Ready)
-        .is_empty());
+    assert!(
+        streamer
+            .material_management_status_view(RenderMaterialReadinessStatus::Ready)
+            .is_empty()
+    );
     assert_eq!(
         overview.summary.status,
         RenderMaterialReadinessStatus::Diagnostic

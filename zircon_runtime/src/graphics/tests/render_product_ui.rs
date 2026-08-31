@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::asset::{AssetUri, TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_SRGB_FORMAT};
+use crate::asset::{AssetUri, RGBA8_UNORM_SRGB_FORMAT, TextureAsset, TextureAssetDescriptor};
 use crate::core::framework::render::{
     CapturedFrame, OverlayLineSegment, ProjectionMode, RenderCameraTarget,
     RenderCameraTargetGraphImportStatus, RenderCameraTargetKind, RenderCameraTargetWritebackStatus,
     RenderCaptureSource, RenderDynamicResolutionSettings, RenderFrameExtract, RenderFramework,
     RenderImageColorSpace, RenderImageFallbackKind, RenderImageUsage, RenderPipelineHandle,
     RenderQualityProfile, RenderSamplerDescriptor, RenderViewportDescriptor,
-    RenderWorldSnapshotHandle, SceneGizmoKind, SceneGizmoOverlayExtract,
+    RenderWorldSnapshotHandle, SceneGizmoKind, SceneGizmoOverlayExtract, UiRenderSubmission,
 };
 use crate::core::math::{UVec2, Vec3, Vec4};
 use crate::core::resource::{
@@ -29,7 +29,7 @@ fn render_product_ui_compile_order_tracks_core2d_and_core3d_terminal_semantics()
     let core2d = RenderPipelineAsset::default_core2d()
         .compile(&orthographic_extract())
         .unwrap();
-    assert_ui_after_postprocess_before_overlay(&core2d.pass_stages);
+    assert_ui_after_postprocess_before_overlay(&core2d);
 
     let forward = RenderPipelineAsset::default_forward_plus()
         .compile(&perspective_extract())
@@ -66,7 +66,9 @@ fn render_product_ui_submit_records_graph_pass_order_and_payload_stats() {
         .submit_frame_extract_with_ui(
             viewport,
             perspective_extract(),
-            Some(runtime_ui_extract_with_image_and_clip()),
+            Some(UiRenderSubmission::single(Arc::new(
+                runtime_ui_extract_with_image_and_clip(),
+            ))),
         )
         .unwrap();
     let stats = framework.query_stats().unwrap();
@@ -107,12 +109,16 @@ fn render_product_ui_submit_records_graph_pass_order_and_payload_stats() {
         stats.last_graph_executed_passes.last().map(String::as_str),
         Some("runtime-ui")
     );
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"ui.screen-space".to_string()));
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"overlay.gizmo".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"ui.screen-space".to_string())
+    );
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"overlay.gizmo".to_string())
+    );
 }
 
 #[test]
@@ -143,7 +149,9 @@ fn render_product_ui_submit_keeps_presentation_target_under_dynamic_resolution()
         .submit_frame_extract_with_ui(
             viewport,
             extract,
-            Some(runtime_ui_extract_with_image_and_clip()),
+            Some(UiRenderSubmission::single(Arc::new(
+                runtime_ui_extract_with_image_and_clip(),
+            ))),
         )
         .unwrap();
     let stats = framework.query_stats().unwrap();
@@ -210,7 +218,9 @@ fn render_product_ui_submit_targets_direct_import_texture_under_dynamic_resoluti
         .submit_frame_extract_with_ui(
             viewport,
             extract,
-            Some(runtime_ui_extract_with_image_and_clip()),
+            Some(UiRenderSubmission::single(Arc::new(
+                runtime_ui_extract_with_image_and_clip(),
+            ))),
         )
         .unwrap();
     let stats = framework.query_stats().unwrap();
@@ -296,7 +306,9 @@ fn render_product_ui_submit_keeps_ui_pixels_over_scene_overlay_product() {
         .submit_frame_extract_with_ui(
             viewport,
             perspective_extract_with_overlay_lattice(),
-            Some(runtime_ui_extract_with_center_quad()),
+            Some(UiRenderSubmission::single(Arc::new(
+                runtime_ui_extract_with_center_quad(),
+            ))),
         )
         .unwrap();
     let frame = framework
@@ -309,12 +321,16 @@ fn render_product_ui_submit_keeps_ui_pixels_over_scene_overlay_product() {
         stats.last_ui_graph_pass_order.as_deref(),
         Some("postprocess-overlay-ui")
     );
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"overlay.gizmo".to_string()));
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"ui.screen-space".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"overlay.gizmo".to_string())
+    );
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"ui.screen-space".to_string())
+    );
 
     let inner_ui_origin = UVec2::new(104, 80);
     let inner_ui_size = UVec2::new(112, 80);
@@ -332,46 +348,19 @@ fn render_product_ui_submit_keeps_ui_pixels_over_scene_overlay_product() {
     );
 }
 
-fn assert_ui_after_postprocess_before_overlay(
-    pass_stages: &[crate::graphics::CompiledRenderPipelinePassStage],
-) {
-    let postprocess = pass_stages
-        .iter()
-        .position(|entry| entry.stage == RenderPassStage::PostProcess)
-        .expect("pipeline should compile at least one postprocess graph pass");
-    let ui = pass_stages
-        .iter()
-        .position(|entry| entry.stage == RenderPassStage::Ui)
-        .expect("pipeline should compile a runtime UI graph pass");
-    let overlay = pass_stages
-        .iter()
-        .position(|entry| entry.stage == RenderPassStage::Debug)
-        .expect("pipeline should compile an overlay/debug graph pass");
+fn assert_ui_after_postprocess_before_overlay(compiled: &CompiledRenderPipeline) {
+    let postprocess = first_execution_stage_index(compiled, RenderPassStage::PostProcess);
+    let ui = first_execution_stage_index(compiled, RenderPassStage::Ui);
+    let overlay = first_execution_stage_index(compiled, RenderPassStage::Debug);
 
     assert!(postprocess < ui && ui < overlay);
 }
 
 fn assert_ui_after_overlay_for_default_3d(compiled: &CompiledRenderPipeline) {
-    let postprocess = compiled
-        .stages
-        .iter()
-        .position(|stage| *stage == RenderPassStage::PostProcess)
-        .expect("pipeline should compile at least one postprocess graph pass");
-    let ui = compiled
-        .stages
-        .iter()
-        .position(|stage| *stage == RenderPassStage::Ui)
-        .expect("pipeline should compile a runtime UI graph pass");
-    let overlay = compiled
-        .stages
-        .iter()
-        .position(|stage| *stage == RenderPassStage::Overlay)
-        .expect("pipeline should compile an overlay graph stage");
-    let debug = compiled
-        .stages
-        .iter()
-        .position(|stage| *stage == RenderPassStage::Debug)
-        .expect("pipeline should compile a debug overlay graph stage");
+    let postprocess = first_execution_stage_index(compiled, RenderPassStage::PostProcess);
+    let ui = first_execution_stage_index(compiled, RenderPassStage::Ui);
+    let overlay = first_execution_stage_index(compiled, RenderPassStage::Overlay);
+    let debug = first_execution_stage_index(compiled, RenderPassStage::Debug);
 
     assert!(postprocess < overlay && overlay < ui);
     assert!(postprocess < debug && debug < ui);
@@ -385,6 +374,13 @@ fn assert_ui_after_overlay_for_default_3d(compiled: &CompiledRenderPipeline) {
             .map(|pass| pass.name.as_str()),
         Some("runtime-ui")
     );
+}
+
+fn first_execution_stage_index(compiled: &CompiledRenderPipeline, stage: RenderPassStage) -> usize {
+    compiled
+        .execution_passes_in_graph_order()
+        .position(|execution_pass| execution_pass.stage == stage)
+        .unwrap_or_else(|| panic!("compiled pipeline should include {stage:?}"))
 }
 
 fn assert_pass_before(compiled: &CompiledRenderPipeline, earlier: &str, later: &str) {

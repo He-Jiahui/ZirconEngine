@@ -10,7 +10,7 @@ MOVEMENT = (
 
 
 class EditorDrawerResizePerformanceContractTests(unittest.TestCase):
-    def test_repeated_pointer_extent_does_not_mark_layout_dirty(self) -> None:
+    def test_changed_extent_reuses_committed_shell_metrics_stage(self) -> None:
         source = MOVEMENT.read_text(encoding="utf-8")
         update_start = source.index("fn update_drawer_resize_capture")
         finish_start = source.index("fn finish_drawer_resize_capture")
@@ -19,12 +19,13 @@ class EditorDrawerResizePerformanceContractTests(unittest.TestCase):
         previous = update.index("let previous_preferred")
         unchanged = update.index("if previous_preferred == preferred")
         insert = update.index(".insert(active.region, preferred)")
-        dirty = update.index("self.mark_layout_dirty()")
+        dirty = update.index("HostInvalidationMask::WINDOW_METRICS")
 
         self.assertLess(previous, unchanged)
         self.assertLess(unchanged, insert)
         self.assertLess(insert, dirty)
         self.assertIn("return;", update[unchanged:insert])
+        self.assertNotIn("mark_layout_dirty", update)
 
 
 if __name__ == "__main__":

@@ -21,18 +21,32 @@ pub(in crate::ui::workbench::project) fn layout_preset_asset_path(
 }
 
 fn sanitize_layout_preset_name(name: &str) -> String {
-    let sanitized = name
-        .chars()
-        .map(|ch| match ch {
+    let mut sanitized = String::with_capacity(name.len());
+    let mut pending_hyphens = 0_usize;
+    for ch in name.chars() {
+        let ch = match ch {
             'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' => ch,
             _ => '-',
-        })
-        .collect::<String>()
-        .trim_matches('-')
-        .to_string();
+        };
+        if ch == '-' {
+            if !sanitized.is_empty() {
+                pending_hyphens += 1;
+            }
+            continue;
+        }
+        while pending_hyphens != 0 {
+            sanitized.push('-');
+            pending_hyphens -= 1;
+        }
+        sanitized.push(ch);
+    }
     if sanitized.is_empty() {
         "preset".to_string()
     } else {
         sanitized
     }
 }
+
+#[cfg(test)]
+#[path = "layout_preset_asset_path/single_buffer_sanitizer_tests.rs"]
+mod single_buffer_sanitizer_tests;

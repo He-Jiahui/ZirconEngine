@@ -73,6 +73,54 @@ fn command_plan_uses_per_mip_d2_array_storage_views() {
 }
 
 #[test]
+fn exact_command_plan_builds_one_requested_kernel_with_full_plan_parity() {
+    let request = request(128, 8, IblBakeArtifactContents::PMREM_SH9_IEM);
+    let full_plan = ibl_bake_wgpu_command_plan_for_request(&request);
+    let kinds = (0..request.pmrem_mip_count())
+        .map(|mip_level| IblBakeComputeKernelKind::Pmrem { mip_level })
+        .chain([
+            IblBakeComputeKernelKind::IrradianceSh9,
+            IblBakeComputeKernelKind::IrradianceCube,
+        ])
+        .collect::<Vec<_>>();
+
+    let exact_commands = kinds
+        .iter()
+        .copied()
+        .map(|kind| {
+            ibl_bake_wgpu_command_plan_for_kind(&request, kind)
+                .expect("requested IBL kernel should build exactly one command")
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(exact_commands.len(), 10);
+    assert_eq!(exact_commands, full_plan.commands);
+}
+
+#[test]
+fn exact_command_plan_rejects_unrequested_and_out_of_range_kernels() {
+    let request = request(64, 7, IblBakeArtifactContents::SH9);
+
+    assert!(ibl_bake_wgpu_command_plan_for_kind(
+        &request,
+        IblBakeComputeKernelKind::Pmrem { mip_level: 0 }
+    )
+    .is_none());
+    assert!(ibl_bake_wgpu_command_plan_for_kind(
+        &request,
+        IblBakeComputeKernelKind::IrradianceCube
+    )
+    .is_none());
+
+    let pmrem_request = request(128, 8, IblBakeArtifactContents::PMREM);
+    assert!(ibl_bake_wgpu_command_plan_for_kind(
+        &pmrem_request,
+        IblBakeComputeKernelKind::Pmrem { mip_level: 8 }
+    )
+    .is_none());
+}
+
+#[test]
 fn one_texel_single_mip_pmrem_plan_writes_the_terminal_average_to_all_faces() {
     let request = request(16, 5, IblBakeArtifactContents::PMREM).with_pmrem_layout(1, 1);
     let plan = ibl_bake_wgpu_command_plan_for_request(&request);

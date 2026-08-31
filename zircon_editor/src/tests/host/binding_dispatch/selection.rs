@@ -1,6 +1,6 @@
 use super::support;
-use crate::core::editing::intent::EditorIntent;
 use crate::core::editor_event::SelectionHostEvent;
+use crate::core::play::WorldDomain;
 use crate::ui::binding::{
     EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, SelectionCommand,
 };
@@ -21,7 +21,10 @@ fn selection_binding_dispatches_and_applies_scene_node_selection() {
 
     assert_eq!(
         dispatch_selection_binding(&binding).unwrap(),
-        SelectionHostEvent::SelectSceneNode { node_id: cube }
+        SelectionHostEvent::SelectSceneNode {
+            world_domain: WorldDomain::Edit,
+            node_id: cube,
+        }
     );
     assert!(apply_selection_binding(&mut state, &binding).unwrap());
     assert_eq!(

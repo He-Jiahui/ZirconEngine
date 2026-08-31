@@ -14,10 +14,17 @@ actual package boundary.
 - Runtime asset kind: `prefab.asset`
 
 The runtime side contributes prefab component/package manifest metadata,
-including the NativeDynamic dist contract. The editor side registers
-create-from-selection, open, apply overrides, revert overrides, and break
-instance operations, plus the prefab authoring view, drawer, component drawer,
-templates, menu items, and payload schema ids.
+including the NativeDynamic dist contract. The editor side currently contributes
+only the prefab authoring view, drawer, and inspector customization surface.
+Create, open, apply, revert, and break operations are intentionally absent
+until their transaction factories, prefab graph authority, and importer backend
+are installed together.
 
-Runtime DTOs must not contain editor-only open state. Breaking an instance
-should remove the prefab link and leave ordinary scene state behind.
+Runtime DTOs must not contain editor-only open state. A prefab instance is
+retained losslessly until a future transaction-backed break operation can update
+the scene and source authority atomically.
+
+Validation rejects duplicate `(entity_path, property_path)` overrides. Effective
+override queries remain deterministic and retain latest-value precedence, but
+build their ordered index from borrowed paths and clone only the final values.
+This query behavior does not make duplicate paths admissible for mutation.

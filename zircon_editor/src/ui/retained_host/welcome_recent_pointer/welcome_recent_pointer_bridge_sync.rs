@@ -1,51 +1,35 @@
 use super::welcome_recent_pointer_bridge::WelcomeRecentPointerBridge;
 use super::welcome_recent_pointer_layout::WelcomeRecentPointerLayout;
-use super::welcome_recent_pointer_state::WelcomeRecentPointerState;
 use crate::ui::retained_host::welcome_recent_geometry::current_welcome_recent_layout_metrics;
-use zircon_runtime_interface::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 impl WelcomeRecentPointerBridge {
-    pub(crate) fn sync(
-        &mut self,
-        layout: WelcomeRecentPointerLayout,
-        state: WelcomeRecentPointerState,
-    ) -> bool {
+    pub(crate) fn sync(&mut self, layout: WelcomeRecentPointerLayout) -> bool {
         let layout_metrics = current_welcome_recent_layout_metrics();
-        if self.layout == layout && self.state == state && self.layout_metrics == layout_metrics {
+        if self.layout == layout && self.layout_metrics == layout_metrics {
             return false;
         }
 
-        let surface_geometry_changed =
-            self.layout.pane_size != layout.pane_size || self.layout_metrics != layout_metrics;
+        let previous_state = self.state;
         self.layout = layout;
-        self.state = state;
         self.layout_metrics = layout_metrics;
         self.clamp_scroll_offset();
-        if surface_geometry_changed {
-            self.patch_surface_geometry();
-        }
-        true
+        self.clamp_hovered_item();
+        self.state != previous_state
     }
 
-    pub(crate) fn sync_pane_size(
-        &mut self,
-        pane_size: UiSize,
-        state: WelcomeRecentPointerState,
-    ) -> bool {
+    pub(crate) fn sync_viewport(&mut self, viewport: UiFrame) -> bool {
         let layout_metrics = current_welcome_recent_layout_metrics();
-        if self.layout.pane_size == pane_size
-            && self.state == state
-            && self.layout_metrics == layout_metrics
-        {
+        if self.layout.viewport == viewport && self.layout_metrics == layout_metrics {
             return false;
         }
 
-        self.layout.pane_size = pane_size;
-        self.state = state;
+        let previous_state = self.state;
+        self.layout.viewport = viewport;
         self.layout_metrics = layout_metrics;
         self.clamp_scroll_offset();
-        self.patch_surface_geometry();
-        true
+        self.clamp_hovered_item();
+        self.state != previous_state
     }
 
     pub(in crate::ui::retained_host::welcome_recent_pointer) fn refresh_layout_metrics(&mut self) {
@@ -56,7 +40,17 @@ impl WelcomeRecentPointerBridge {
 
         self.layout_metrics = layout_metrics;
         self.clamp_scroll_offset();
-        self.patch_surface_geometry();
+    }
+
+    fn clamp_hovered_item(&mut self) {
+        if self
+            .state
+            .hovered_item_index
+            .is_some_and(|index| index >= self.layout.recent_project_paths.len())
+        {
+            self.state.hovered_item_index = None;
+            self.state.hovered_action = None;
+        }
     }
 }
 
@@ -65,23 +59,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sync_pane_size_preserves_recent_project_paths() {
+    fn sync_viewport_preserves_recent_project_paths() {
         let mut bridge = WelcomeRecentPointerBridge::new();
-        let state = WelcomeRecentPointerState::default();
         let project_paths = vec![String::from("E:/ProjectA"), String::from("E:/ProjectB")];
 
-        assert!(bridge.sync(
-            WelcomeRecentPointerLayout {
-                pane_size: UiSize::new(120.0, 80.0),
-                recent_project_paths: project_paths.clone(),
-            },
-            state.clone(),
-        ));
+        assert!(!bridge.sync(WelcomeRecentPointerLayout {
+            viewport: UiFrame::new(8.0, 12.0, 120.0, 80.0),
+            recent_project_paths: project_paths.clone(),
+        }));
 
-        assert!(!bridge.sync_pane_size(UiSize::new(120.0, 80.0), state.clone()));
+        assert!(!bridge.sync_viewport(UiFrame::new(8.0, 12.0, 120.0, 80.0)));
         assert_eq!(bridge.layout.recent_project_paths, project_paths);
 
-        assert!(bridge.sync_pane_size(UiSize::new(180.0, 80.0), state));
+        assert!(!bridge.sync_viewport(UiFrame::new(8.0, 12.0, 180.0, 80.0)));
         assert_eq!(
             bridge.layout.recent_project_paths,
             vec![String::from("E:/ProjectA"), String::from("E:/ProjectB")]

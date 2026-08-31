@@ -103,6 +103,35 @@ fn module_activation_order_reports_same_level_cycles() {
 }
 
 #[test]
+fn module_activation_order_handles_a_one_hundred_thousand_module_deep_chain() {
+    const MODULE_COUNT: usize = 100_000;
+
+    let descriptors = (0..MODULE_COUNT)
+        .map(|index| {
+            let descriptor = ModuleDescriptor::new(
+                format!("DeepModule{index:06}"),
+                "deep activation-order regression",
+            );
+            if index + 1 == MODULE_COUNT {
+                descriptor
+            } else {
+                descriptor.with_module_dependency(ModuleDependencySpec::named(format!(
+                    "DeepModule{:06}",
+                    index + 1
+                )))
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let order = sort_module_activation_order(&descriptors)
+        .expect("a valid 100k module chain must not consume the native call stack");
+
+    assert_eq!(order.len(), MODULE_COUNT);
+    assert_eq!(order.first(), Some(&"DeepModule099999".to_owned()));
+    assert_eq!(order.last(), Some(&"DeepModule000000".to_owned()));
+}
+
+#[test]
 fn module_lifecycle_default_hooks_are_noop_and_ready() {
     #[derive(Debug)]
     struct DefaultLifecycle;

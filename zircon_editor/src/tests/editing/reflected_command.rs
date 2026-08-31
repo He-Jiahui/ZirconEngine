@@ -2,7 +2,9 @@ use serde_json::json;
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, LevelSystem, NodeId, Scene};
-use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest, ReflectedValue};
+use zircon_runtime_interface::reflect::{
+    ReflectError, ReflectObjectAddress, ReflectReadRequest, ReflectedValue,
+};
 
 use crate::core::editing::command::EditorCommand;
 use crate::core::editing::context::CoreEditContext;
@@ -22,7 +24,9 @@ const WIND_ANCHOR_TYPE_PATH: &str = "weather.Component.WindAnchor";
 #[test]
 fn reflected_editor_command_updates_fixed_component_and_undoes() {
     let mut scene = Scene::empty();
-    let entity = scene.spawn_node(NodeKind::Cube);
+    let entity = scene
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let original_name = scene.find_node(entity).unwrap().name.clone();
 
     let command = EditorCommand::set_reflected_scene_field(
@@ -71,7 +75,9 @@ fn reflected_editor_command_updates_fixed_component_and_undoes() {
 #[test]
 fn reflected_editor_command_updates_dynamic_plugin_component_and_undoes() {
     let mut scene = scene_with_cloud_layer();
-    let entity = scene.spawn_node(NodeKind::Mesh);
+    let entity = scene
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     scene
         .set_dynamic_component(
             entity,
@@ -133,7 +139,9 @@ fn reflected_editor_command_updates_dynamic_plugin_component_and_undoes() {
 #[test]
 fn reflected_editor_command_rejects_readonly_dynamic_field() {
     let mut scene = scene_with_cloud_layer();
-    let entity = scene.spawn_node(NodeKind::Mesh);
+    let entity = scene
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     scene
         .set_dynamic_component(
             entity,
@@ -162,7 +170,7 @@ fn reflected_editor_command_rejects_readonly_dynamic_field() {
 fn reflected_editor_command_uses_reflection_schema_for_dynamic_field_editability() {
     let mut state = test_state();
     let entity = cube_id(&state);
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene
             .register_component_type(cloud_layer_descriptor())
             .expect("dynamic component descriptor should register");
@@ -178,16 +186,22 @@ fn reflected_editor_command_uses_reflection_schema_for_dynamic_field_editability
         .apply_intent(EditorIntent::SelectNode(entity))
         .expect("selection should succeed");
 
-    assert!(state.can_edit_dynamic_component_field(&format!("{CLOUD_LAYER_TYPE_PATH}.coverage")));
-    assert!(!state.can_edit_dynamic_component_field(&format!("{CLOUD_LAYER_TYPE_PATH}.label")));
-    assert!(!state.can_edit_dynamic_component_field(&format!("{CLOUD_LAYER_TYPE_PATH}.missing")));
+    assert!(state
+        .can_edit_dynamic_component_field(&format!("{CLOUD_LAYER_TYPE_PATH}.coverage"))
+        .expect("authoring world gateway should succeed"));
+    assert!(!state
+        .can_edit_dynamic_component_field(&format!("{CLOUD_LAYER_TYPE_PATH}.label"))
+        .expect("authoring world gateway should succeed"));
+    assert!(!state
+        .can_edit_dynamic_component_field(&format!("{CLOUD_LAYER_TYPE_PATH}.missing"))
+        .expect("authoring world gateway should succeed"));
 }
 
 #[test]
 fn reflected_editor_command_rejects_dynamic_field_when_reflection_schema_is_unloaded() {
     let mut state = test_state();
     let entity = cube_id(&state);
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene
             .set_dynamic_component(entity, CLOUD_LAYER_TYPE_PATH, json!({ "coverage": 0.25 }))
             .expect("legacy dynamic component should attach while no schema is registered");
@@ -196,7 +210,9 @@ fn reflected_editor_command_rejects_dynamic_field_when_reflection_schema_is_unlo
         .apply_intent(EditorIntent::SelectNode(entity))
         .expect("selection should succeed");
 
-    assert!(!state.can_edit_dynamic_component_field(&format!("{CLOUD_LAYER_TYPE_PATH}.coverage")));
+    assert!(!state
+        .can_edit_dynamic_component_field(&format!("{CLOUD_LAYER_TYPE_PATH}.coverage"))
+        .expect("authoring world gateway should succeed"));
 }
 
 fn transaction_scene(scene: Scene, selected: NodeId) -> (LevelSystem, EditorTransactionEngine) {
@@ -223,7 +239,7 @@ fn commit_command(transactions: &EditorTransactionEngine, command: EditorCommand
 fn reflected_editor_command_snapshot_uses_reflection_schema_for_plugin_properties() {
     let mut state = test_state();
     let entity = cube_id(&state);
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene
             .register_component_type(cloud_layer_descriptor())
             .expect("dynamic component descriptor should register");
@@ -281,7 +297,7 @@ fn reflected_editor_command_snapshot_uses_reflection_schema_for_plugin_propertie
 fn reflected_editor_command_snapshot_keeps_unloaded_dynamic_schema_protected() {
     let mut state = test_state();
     let entity = cube_id(&state);
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene
             .set_dynamic_component(entity, CLOUD_LAYER_TYPE_PATH, json!({ "coverage": 0.25 }))
             .expect("legacy dynamic component should attach while no schema is registered");
@@ -316,7 +332,7 @@ fn reflected_editor_command_snapshot_keeps_unloaded_dynamic_schema_protected() {
 fn reflected_editor_command_snapshot_marks_vector_and_entity_fields_editable() {
     let mut state = test_state();
     let (entity, camera) = cube_and_camera(&state);
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene
             .register_component_type(wind_anchor_descriptor())
             .expect("dynamic component descriptor should register");
@@ -373,14 +389,14 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
     let (entity, camera) = cube_and_camera(&state);
     let original_name = state
         .world
-        .with_world(|scene| read_reflected_field(scene, entity, NAME_TYPE_PATH, "value"));
-    let original_parent = state
-        .world
-        .with_world(|scene| read_reflected_field(scene, entity, HIERARCHY_TYPE_PATH, "parent"));
-    let original_translation = state.world.with_world(|scene| {
+        .expect_with_world(|scene| read_reflected_field(scene, entity, NAME_TYPE_PATH, "value"));
+    let original_parent = state.world.expect_with_world(|scene| {
+        read_reflected_field(scene, entity, HIERARCHY_TYPE_PATH, "parent")
+    });
+    let original_translation = state.world.expect_with_world(|scene| {
         read_reflected_field(scene, entity, LOCAL_TRANSFORM_TYPE_PATH, "translation")
     });
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene
             .register_component_type(cloud_layer_descriptor())
             .expect("dynamic component descriptor should register");
@@ -409,7 +425,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
         .apply_inspector_changes()
         .expect("inspector change should apply through reflected command"));
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             NAME_TYPE_PATH,
@@ -418,7 +434,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
         ReflectedValue::String("Reflected Cube".to_string())
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             HIERARCHY_TYPE_PATH,
@@ -427,7 +443,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
         ReflectedValue::Entity(Some(camera))
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             LOCAL_TRANSFORM_TYPE_PATH,
@@ -436,7 +452,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
         ReflectedValue::Vec3([3.5, 4.5, 5.5])
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             CLOUD_LAYER_TYPE_PATH,
@@ -447,7 +463,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             NAME_TYPE_PATH,
@@ -456,7 +472,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
         original_name
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             HIERARCHY_TYPE_PATH,
@@ -465,7 +481,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
         original_parent
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             LOCAL_TRANSFORM_TYPE_PATH,
@@ -474,7 +490,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
         original_translation
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             CLOUD_LAYER_TYPE_PATH,
@@ -485,7 +501,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
 
     assert!(state.apply_intent(EditorIntent::Redo).unwrap());
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             NAME_TYPE_PATH,
@@ -494,7 +510,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
         ReflectedValue::String("Reflected Cube".to_string())
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             HIERARCHY_TYPE_PATH,
@@ -503,7 +519,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
         ReflectedValue::Entity(Some(camera))
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             LOCAL_TRANSFORM_TYPE_PATH,
@@ -512,7 +528,7 @@ fn reflected_editor_command_routes_inspector_fields_through_reflection() {
         ReflectedValue::Vec3([3.5, 4.5, 5.5])
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             CLOUD_LAYER_TYPE_PATH,
@@ -577,7 +593,7 @@ fn reflected_edit_preserves_active_multi_selection() {
 fn reflected_inspector_batch_mutates_all_selected_nodes_in_one_history_record() {
     let mut state = test_state();
     let (cube, camera) = cube_and_camera(&state);
-    let (cube_name_before, camera_name_before) = state.world.with_world(|scene| {
+    let (cube_name_before, camera_name_before) = state.world.expect_with_world(|scene| {
         (
             scene.find_node(cube).unwrap().name.clone(),
             scene.find_node(camera).unwrap().name.clone(),
@@ -588,7 +604,7 @@ fn reflected_inspector_batch_mutates_all_selected_nodes_in_one_history_record() 
         [camera, cube],
         Some(cube),
     ));
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene
             .register_component_type(cloud_layer_descriptor())
             .expect("dynamic component descriptor should register");
@@ -614,7 +630,7 @@ fn reflected_inspector_batch_mutates_all_selected_nodes_in_one_history_record() 
     );
 
     assert!(state.apply_inspector_changes().unwrap());
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         assert_eq!(scene.find_node(cube).unwrap().name, "Selected Batch");
         assert_eq!(scene.find_node(camera).unwrap().name, "Selected Batch");
         assert_eq!(
@@ -636,7 +652,7 @@ fn reflected_inspector_batch_mutates_all_selected_nodes_in_one_history_record() 
     );
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         assert_eq!(scene.find_node(cube).unwrap().name, cube_name_before);
         assert_eq!(scene.find_node(camera).unwrap().name, camera_name_before);
         assert_eq!(
@@ -649,7 +665,7 @@ fn reflected_inspector_batch_mutates_all_selected_nodes_in_one_history_record() 
         );
     });
     assert!(state.apply_intent(EditorIntent::Redo).unwrap());
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         assert_eq!(scene.find_node(cube).unwrap().name, "Selected Batch");
         assert_eq!(scene.find_node(camera).unwrap().name, "Selected Batch");
         assert_eq!(
@@ -667,13 +683,13 @@ fn reflected_inspector_batch_mutates_all_selected_nodes_in_one_history_record() 
 fn reflected_inspector_batch_rejects_missing_dynamic_component_without_partial_mutation() {
     let mut state = test_state();
     let (cube, camera) = cube_and_camera(&state);
-    let (cube_name_before, camera_name_before) = state.world.with_world(|scene| {
+    let (cube_name_before, camera_name_before) = state.world.expect_with_world(|scene| {
         (
             scene.find_node(cube).unwrap().name.clone(),
             scene.find_node(camera).unwrap().name.clone(),
         )
     });
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene
             .register_component_type(cloud_layer_descriptor())
             .expect("dynamic component descriptor should register");
@@ -697,7 +713,7 @@ fn reflected_inspector_batch_rejects_missing_dynamic_component_without_partial_m
     );
 
     assert!(state.apply_inspector_changes().is_err());
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         assert_eq!(scene.find_node(cube).unwrap().name, cube_name_before);
         assert_eq!(scene.find_node(camera).unwrap().name, camera_name_before);
         assert_eq!(
@@ -722,10 +738,10 @@ fn reflected_editor_command_routes_vector_and_entity_text_fields_through_reflect
     state
         .apply_intent(EditorIntent::SelectNode(entity))
         .expect("selection should succeed");
-    let original_parent = state
-        .world
-        .with_world(|scene| read_reflected_field(scene, entity, HIERARCHY_TYPE_PATH, "parent"));
-    let original_scale = state.world.with_world(|scene| {
+    let original_parent = state.world.expect_with_world(|scene| {
+        read_reflected_field(scene, entity, HIERARCHY_TYPE_PATH, "parent")
+    });
+    let original_scale = state.world.expect_with_world(|scene| {
         read_reflected_field(scene, entity, LOCAL_TRANSFORM_TYPE_PATH, "scale")
     });
 
@@ -742,7 +758,7 @@ fn reflected_editor_command_routes_vector_and_entity_text_fields_through_reflect
         .apply_inspector_changes()
         .expect("vector and entity text edits should apply through reflection"));
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             LOCAL_TRANSFORM_TYPE_PATH,
@@ -751,7 +767,7 @@ fn reflected_editor_command_routes_vector_and_entity_text_fields_through_reflect
         ReflectedValue::Vec3([2.0, 3.0, 4.0])
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             HIERARCHY_TYPE_PATH,
@@ -762,7 +778,7 @@ fn reflected_editor_command_routes_vector_and_entity_text_fields_through_reflect
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             LOCAL_TRANSFORM_TYPE_PATH,
@@ -771,7 +787,7 @@ fn reflected_editor_command_routes_vector_and_entity_text_fields_through_reflect
         original_scale
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             HIERARCHY_TYPE_PATH,
@@ -782,7 +798,7 @@ fn reflected_editor_command_routes_vector_and_entity_text_fields_through_reflect
 
     assert!(state.apply_intent(EditorIntent::Redo).unwrap());
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             LOCAL_TRANSFORM_TYPE_PATH,
@@ -791,7 +807,7 @@ fn reflected_editor_command_routes_vector_and_entity_text_fields_through_reflect
         ReflectedValue::Vec3([2.0, 3.0, 4.0])
     );
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             HIERARCHY_TYPE_PATH,
@@ -808,7 +824,7 @@ fn reflected_editor_command_rejects_invalid_vector_text_without_mutating() {
     state
         .apply_intent(EditorIntent::SelectNode(entity))
         .expect("selection should succeed");
-    let original_scale = state.world.with_world(|scene| {
+    let original_scale = state.world.expect_with_world(|scene| {
         read_reflected_field(scene, entity, LOCAL_TRANSFORM_TYPE_PATH, "scale")
     });
 
@@ -820,9 +836,18 @@ fn reflected_editor_command_rejects_invalid_vector_text_without_mutating() {
     let error = state
         .apply_inspector_changes()
         .expect_err("invalid vector text should be rejected before mutation");
-    assert!(error.contains("Vec3"));
+    assert!(matches!(
+        error,
+        crate::ui::workbench::state::EditorStateOperationError::Inspector(
+            crate::ui::workbench::state::InspectorEditError::InvalidVector {
+                type_name: "Vec3",
+                component_count: 3,
+                ..
+            }
+        )
+    ));
     assert_eq!(
-        state.world.with_world(|scene| read_reflected_field(
+        state.world.expect_with_world(|scene| read_reflected_field(
             scene,
             entity,
             LOCAL_TRANSFORM_TYPE_PATH,
@@ -830,6 +855,30 @@ fn reflected_editor_command_rejects_invalid_vector_text_without_mutating() {
         )),
         original_scale
     );
+}
+
+#[test]
+fn reflected_editor_command_preserves_reflection_read_error_source() {
+    let mut state = test_state();
+    let entity = cube_id(&state);
+    state
+        .apply_intent(EditorIntent::SelectNode(entity))
+        .expect("selection should succeed");
+    state.update_dynamic_component_field("missing.Component.value", "1".to_string());
+
+    let error = state
+        .apply_inspector_changes()
+        .expect_err("unknown reflected component must be rejected before mutation");
+
+    assert!(matches!(
+        error,
+        crate::ui::workbench::state::EditorStateOperationError::Inspector(
+            crate::ui::workbench::state::InspectorEditError::ReflectionRead {
+                ref field_id,
+                source: ReflectError::UnknownType { ref type_path },
+            }
+        ) if field_id == "missing.Component.value" && type_path == "missing.Component"
+    ));
 }
 
 fn scene_with_cloud_layer() -> Scene {
@@ -858,11 +907,20 @@ fn read_reflected_field(
     type_path: &str,
     field_name: &str,
 ) -> ReflectedValue {
+    let field_id = scene
+        .reflect_schema(type_path)
+        .expect("test reflected type should be registered")
+        .type_info
+        .fields
+        .into_iter()
+        .find(|field| field.name == field_name)
+        .expect("test reflected field should be registered")
+        .id;
     scene
         .reflect_read(ReflectReadRequest::new(
             ReflectObjectAddress::component(entity, type_path)
                 .expect("test component address should be valid"),
-            field_name,
+            field_id,
         ))
         .expect("reflected field should be readable")
         .field

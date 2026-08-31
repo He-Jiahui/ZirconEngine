@@ -1,5 +1,10 @@
 mod executors;
 mod pipelines;
+mod prepared_frame;
+
+pub(crate) use prepared_frame::{
+    SSS_PARAMS_BUFFER_SIZE_BYTES, SSS_PROFILE_TABLE_BUFFER_SIZE_BYTES,
+};
 
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassExecutorRegistration;
@@ -48,7 +53,9 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
             .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
             .write_buffer(PostProcessGraphResourceNames::SSS_TILE_LIST)
-            .write_buffer(PostProcessGraphResourceNames::SSS_INDIRECT_ARGS),
+            .write_buffer(PostProcessGraphResourceNames::SSS_INDIRECT_ARGS)
+            .write_buffer(PostProcessGraphResourceNames::SSS_PARAMS)
+            .write_buffer(PostProcessGraphResourceNames::SSS_PROFILES),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Lighting,
                 SSS_SCATTER_EXECUTOR_ID,
@@ -62,6 +69,8 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
             .read_buffer(PostProcessGraphResourceNames::SSS_TILE_LIST)
             .read_buffer(PostProcessGraphResourceNames::SSS_INDIRECT_ARGS)
+            .read_buffer(PostProcessGraphResourceNames::SSS_PARAMS)
+            .read_buffer(PostProcessGraphResourceNames::SSS_PROFILES)
             .write_storage_texture(PostProcessGraphResourceNames::SSS_SCATTERED),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Lighting,
@@ -120,6 +129,8 @@ mod tests {
     #[test]
     fn render_sss_shaders_keep_tile_indirect_and_recombine_contracts() {
         assert!(pipelines::SETUP_SHADER.contains("atomicAdd(&indirect_args.group_count_x, 1u)"));
+        assert!(pipelines::SETUP_SHADER.contains("indirect_args.group_count_y = 1u"));
+        assert!(pipelines::SETUP_SHADER.contains("indirect_args.group_count_z = 1u"));
         assert!(pipelines::SCATTER_SHADER.contains("BURLEY_SAMPLE_COUNT: u32 = 64u"));
         assert!(pipelines::SCATTER_SHADER.contains("tile_list[workgroup_id.x]"));
         assert!(pipelines::SCATTER_SHADER.contains("mix(center_diffuse, scattered, falloff)"));
@@ -137,4 +148,67 @@ mod tests {
                 && extension.resource.access == crate::graphics::RenderFeatureResourceAccess::Write
         }));
     }
+
+    #[test]
+    fn render_sss_descriptor_versions_prepared_uniforms_from_setup_to_scatter() {
+        use crate::graphics::{RenderFeatureResourceAccess, RenderFeatureResourceKind};
+
+        let descriptor = render_feature_descriptor();
+        let setup = descriptor
+            .stage_passes
+            .iter()
+            .find(|pass| pass.pass_name == SSS_SETUP_EXECUTOR_ID)
+            .expect("SSS setup pass");
+        let scatter = descriptor
+            .stage_passes
+            .iter()
+            .find(|pass| pass.pass_name == SSS_SCATTER_EXECUTOR_ID)
+            .expect("SSS scatter pass");
+
+        for name in [
+            PostProcessGraphResourceNames::SSS_PARAMS,
+            PostProcessGraphResourceNames::SSS_PROFILES,
+        ] {
+            assert!(setup.resources.iter().any(|resource| {
+                resource.name == name
+                    && resource.kind == RenderFeatureResourceKind::Buffer
+                    && resource.access == RenderFeatureResourceAccess::Write
+            }));
+            assert!(scatter.resources.iter().any(|resource| {
+                resource.name == name
+                    && resource.kind == RenderFeatureResourceKind::Buffer
+                    && resource.access == RenderFeatureResourceAccess::Read
+            }));
+        }
+        assert_eq!(SSS_PARAMS_BUFFER_SIZE_BYTES, 80);
+        assert_eq!(SSS_PROFILE_TABLE_BUFFER_SIZE_BYTES, 512);
+        assert_eq!(
+            prepared_frame::PreparedSubsurfaceFrame::uploaded_byte_len(),
+            592
+        );
+    }
+
+    #[test]
+    fn render_sss_prepares_once_and_consumes_graph_owned_uniforms() {
+        let prepared = include_str!("prepared_frame.rs");
+        let executors = include_str!("executors.rs");
+        let pipelines = include_str!("pipelines.rs");
+
+        assert_eq!(
+            prepared
+                .matches("resolve_subsurface_profile_table(")
+                .count(),
+            1
+        );
+        assert_eq!(prepared.matches(".inverse();").count(), 1);
+        assert!(executors.contains("PreparedSubsurfaceFrame::prepare("));
+        assert!(executors.contains("append_pre_submit_buffer_uploads("));
+        assert!(!executors.contains(".subsurface_profiles.clone()"));
+        assert!(pipelines.contains("context.command_encoder().clear_buffer("));
+        assert!(!pipelines.contains("queue.write_buffer("));
+        assert!(!pipelines.contains("create_buffer_init("));
+    }
 }
+
+#[cfg(test)]
+mod factory_coverage_tests;

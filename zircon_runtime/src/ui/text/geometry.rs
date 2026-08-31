@@ -6,17 +6,16 @@ use zircon_runtime_interface::ui::{
     },
 };
 
+use crate::text::font::{shared_font_collection_snapshot, FontCollectionSnapshot};
 use crate::text::{
     resolve_resolved_text_glyph_artifact, resolved_text_glyph_artifact_caret_advance,
     resolved_text_glyph_artifact_range_advance_spans,
 };
 
-use super::measure_text_source_range_width;
-
 #[path = "geometry/source_metrics.rs"]
 mod source_metrics;
 
-use source_metrics::{measured_source_prefix_width, SourceMeasureContext};
+use source_metrics::{SourceLineGeometry, SourceMeasureContext};
 
 #[cfg(test)]
 use source_metrics::{line_accepts_source_measure, source_prefix_range_for_visual_offset};
@@ -36,7 +35,26 @@ pub(crate) fn caret_frame_for_text_layout_with_source_metrics(
     text: &str,
     style: &UiResolvedStyle,
 ) -> Option<UiFrame> {
-    caret_frame_for_text_layout_inner(layout, caret, Some(SourceMeasureContext { text, style }))
+    let font_collection = shared_font_collection_snapshot();
+    caret_frame_for_text_layout_with_font_collection(layout, caret, text, style, &font_collection)
+}
+
+pub(crate) fn caret_frame_for_text_layout_with_font_collection(
+    layout: &UiResolvedTextLayout,
+    caret: &UiTextCaret,
+    text: &str,
+    style: &UiResolvedStyle,
+    font_collection: &FontCollectionSnapshot,
+) -> Option<UiFrame> {
+    caret_frame_for_text_layout_inner(
+        layout,
+        caret,
+        Some(SourceMeasureContext {
+            text,
+            style,
+            font_collection,
+        }),
+    )
 }
 
 fn caret_frame_for_text_layout_inner(
@@ -52,30 +70,20 @@ fn caret_frame_for_text_layout_inner(
         .and_then(|artifact| {
             resolved_text_glyph_artifact_caret_advance(artifact, line_index, line, caret)
         });
+    let resolved_advance = artifact_advance.or_else(|| {
+        SourceLineGeometry::for_line(layout, line, measure_context)
+            .map(|geometry| geometry.caret_advance(caret))
+    });
     if is_vertical_rl(layout) {
         return Some(UiFrame::new(
             line.frame.x,
-            visual_y(
-                layout,
-                line,
-                &source_map,
-                visual_offset,
-                artifact_advance,
-                measure_context,
-            ),
+            visual_y(line, &source_map, visual_offset, resolved_advance),
             line.frame.width.max(TEXT_CARET_WIDTH),
             TEXT_CARET_WIDTH,
         ));
     }
     Some(UiFrame::new(
-        visual_x(
-            layout,
-            line,
-            &source_map,
-            visual_offset,
-            artifact_advance,
-            measure_context,
-        ),
+        visual_x(line, &source_map, visual_offset, resolved_advance),
         line.frame.y,
         TEXT_CARET_WIDTH,
         line.frame.height.max(TEXT_CARET_WIDTH),
@@ -95,11 +103,52 @@ pub(crate) fn text_range_frames_for_text_layout_with_source_metrics(
     text: &str,
     style: &UiResolvedStyle,
 ) -> Vec<UiFrame> {
+    let font_collection = shared_font_collection_snapshot();
+    text_range_frames_for_text_layout_with_font_collection(
+        layout,
+        range,
+        text,
+        style,
+        &font_collection,
+    )
+}
+
+pub(crate) fn text_range_frames_for_text_layout_with_font_collection(
+    layout: &UiResolvedTextLayout,
+    range: UiTextRange,
+    text: &str,
+    style: &UiResolvedStyle,
+    font_collection: &FontCollectionSnapshot,
+) -> Vec<UiFrame> {
     text_range_frames_for_text_layout_inner(
         layout,
         range,
-        Some(SourceMeasureContext { text, style }),
+        Some(SourceMeasureContext {
+            text,
+            style,
+            font_collection,
+        }),
     )
+}
+
+pub(super) fn source_metrics_caret_at_advance(
+    layout: &UiResolvedTextLayout,
+    line: &UiResolvedTextLine,
+    visual_advance: f32,
+    text: &str,
+    style: &UiResolvedStyle,
+    font_collection: &FontCollectionSnapshot,
+) -> Option<(UiTextCaret, usize)> {
+    SourceLineGeometry::for_line(
+        layout,
+        line,
+        Some(SourceMeasureContext {
+            text,
+            style,
+            font_collection,
+        }),
+    )?
+    .caret_at_advance(visual_advance)
 }
 
 fn text_range_frames_for_text_layout_inner(
@@ -123,6 +172,9 @@ fn text_range_frames_for_text_layout_inner(
     let mut frames = Vec::new();
     let artifact = resolved_glyph_artifact(layout);
     for (line_index, line) in layout.lines.iter().enumerate() {
+        if range.start >= line.source_range.end || line.source_range.start >= range.end {
+            continue;
+        }
         if let Some(spans) = artifact.as_deref().and_then(|artifact| {
             resolved_text_glyph_artifact_range_advance_spans(artifact, line_index, line, range)
         }) {
@@ -131,26 +183,18 @@ fn text_range_frames_for_text_layout_inner(
             }
             continue;
         }
+        if let Some((start, end)) = SourceLineGeometry::for_line(layout, line, measure_context)
+            .and_then(|geometry| geometry.range_advance_span(range))
+        {
+            frames.push(range_frame(layout, line, start, end));
+            continue;
+        }
         let source_map = UiTextLineSourceMap::new(line);
         for span in source_map.visual_spans_for_source_range(range) {
             let visual_start = span.visual_range.start;
             let visual_end = span.visual_range.end;
-            let start = resolved_visual_advance(
-                layout,
-                line,
-                &source_map,
-                visual_start,
-                None,
-                measure_context,
-            );
-            let end = resolved_visual_advance(
-                layout,
-                line,
-                &source_map,
-                visual_end,
-                None,
-                measure_context,
-            );
+            let start = resolved_visual_advance(&source_map, visual_start, None);
+            let end = resolved_visual_advance(&source_map, visual_end, None);
             frames.push(range_frame(layout, line, start, end));
         }
     }
@@ -158,54 +202,29 @@ fn text_range_frames_for_text_layout_inner(
 }
 
 fn visual_x(
-    layout: &UiResolvedTextLayout,
     line: &UiResolvedTextLine,
     source_map: &UiTextLineSourceMap<'_>,
     visual_offset: usize,
-    artifact_advance: Option<f32>,
-    measure_context: Option<SourceMeasureContext<'_>>,
+    resolved_advance: Option<f32>,
 ) -> f32 {
-    line.frame.x
-        + resolved_visual_advance(
-            layout,
-            line,
-            source_map,
-            visual_offset,
-            artifact_advance,
-            measure_context,
-        )
+    line.frame.x + resolved_visual_advance(source_map, visual_offset, resolved_advance)
 }
 
 fn visual_y(
-    layout: &UiResolvedTextLayout,
     line: &UiResolvedTextLine,
     source_map: &UiTextLineSourceMap<'_>,
     visual_offset: usize,
-    artifact_advance: Option<f32>,
-    measure_context: Option<SourceMeasureContext<'_>>,
+    resolved_advance: Option<f32>,
 ) -> f32 {
-    line.frame.y
-        + resolved_visual_advance(
-            layout,
-            line,
-            source_map,
-            visual_offset,
-            artifact_advance,
-            measure_context,
-        )
+    line.frame.y + resolved_visual_advance(source_map, visual_offset, resolved_advance)
 }
 
 fn resolved_visual_advance(
-    layout: &UiResolvedTextLayout,
-    line: &UiResolvedTextLine,
     source_map: &UiTextLineSourceMap<'_>,
     visual_offset: usize,
-    artifact_advance: Option<f32>,
-    measure_context: Option<SourceMeasureContext<'_>>,
+    resolved_advance: Option<f32>,
 ) -> f32 {
-    artifact_advance
-        .or_else(|| measured_source_prefix_width(layout, line, visual_offset, measure_context))
-        .unwrap_or_else(|| source_map.advance_to_visual_offset(visual_offset))
+    resolved_advance.unwrap_or_else(|| source_map.advance_to_visual_offset(visual_offset))
 }
 
 fn range_frame(

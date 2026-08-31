@@ -1,7 +1,7 @@
 use super::super::super::data::FrameRect;
 use super::super::super::paint_geometry::is_visible_frame;
 
-const COVERAGE_SAMPLE_AXIS: u32 = 4;
+const COVERAGE_SAMPLE_AXIS: u32 = 8;
 const PIXEL_HALF_DIAGONAL: f32 = std::f32::consts::FRAC_1_SQRT_2;
 
 pub(in crate::ui::retained_host::host_contract) fn clamped_corner_radius(
@@ -53,6 +53,23 @@ pub(in crate::ui::retained_host::host_contract) fn rounded_rect_pixel_coverage(
         }
     }
     covered as f32 / (COVERAGE_SAMPLE_AXIS * COVERAGE_SAMPLE_AXIS) as f32
+}
+
+pub(in crate::ui::retained_host::host_contract) fn rect_pixel_coverage(
+    x: u32,
+    y: u32,
+    rect: &FrameRect,
+) -> f32 {
+    if !is_visible_frame(rect) {
+        return 0.0;
+    }
+    interval_pixel_coverage(x, rect.x, rect.x + rect.width)
+        * interval_pixel_coverage(y, rect.y, rect.y + rect.height)
+}
+
+pub(super) fn interval_pixel_coverage(pixel: u32, start: f32, end: f32) -> f32 {
+    let pixel_start = pixel as f32;
+    (end.min(pixel_start + 1.0) - start.max(pixel_start)).clamp(0.0, 1.0)
 }
 
 fn rounded_rect_signed_distance(x: f32, y: f32, rect: &FrameRect, corner_radius: f32) -> f32 {

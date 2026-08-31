@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "telemetry_dashboard_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.telemetry_dashboard_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionTelemetryDashboardWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "telemetry_dashboard_rail_gap" }, { node = "telemetry_dashboard_left" }, { node = "telemetry_dashboard_center" }, { node = "telemetry_dashboard_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "telemetry_dashboard_workspace_main" },
+  { node = "telemetry_dashboard_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.telemetry_dashboard_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_rail_gap" }, { node = "telemetry_dashboard_left" }, { node = "telemetry_dashboard_center" }, { node = "telemetry_dashboard_right_reserve" }]
+
+[nodes.telemetry_dashboard_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.telemetry_dashboard_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionTelemetryDashboardRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.telemetry_dashboard_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionTelemetryDashboardLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "telemetry_dashboard_title" }, { node = "telemetry_dashboard_metrics_tab" }, { node = "telemetry_dashboard_segments_tab" }, { node = "telemetry_dashboard_raw_events_tab" }, { node = "telemetry_dashboard_retention_query_row" }, { node = "telemetry_dashboard_new_users_segment_row" }, { node = "telemetry_dashboard_metric_fps_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_title" }, { node = "telemetry_dashboard_left_content" }]
+
+[nodes.telemetry_dashboard_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionTelemetryDashboardLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_retention_query_row" }, { node = "telemetry_dashboard_new_users_segment_row" }, { node = "telemetry_dashboard_metric_fps_row" }]
 
 [nodes.telemetry_dashboard_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionTelemetryDashboardTitle"
 props = { text = "Telemetry Dashboard" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.telemetry_dashboard_metrics_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionTelemetryDashboardMetricsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Metrics", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/TelemetryDashboardMetricsTab", event = "Click", route = "workbench.extension.telemetry_dashboard.metrics" }]
-
-[nodes.telemetry_dashboard_segments_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionTelemetryDashboardSegmentsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Segments", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/TelemetryDashboardSegmentsTab", event = "Click", route = "workbench.extension.telemetry_dashboard.segments" }]
-
-[nodes.telemetry_dashboard_raw_events_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionTelemetryDashboardRawEventsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Raw Events", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/TelemetryDashboardRawEventsTab", event = "Click", route = "workbench.extension.telemetry_dashboard.raw_events" }]
 
 [nodes.telemetry_dashboard_retention_query_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/TelemetryDashboardMetricFpsRow", event = "C
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionTelemetryDashboardCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "telemetry_dashboard_center_header" }, { node = "telemetry_dashboard_metric_table" }, { node = "telemetry_dashboard_output" }]
 
 [nodes.telemetry_dashboard_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionTelemetryDashboardCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "telemetry_dashboard_center_title" }, { node = "telemetry_dashboard_header_fill" }, { node = "telemetry_dashboard_filter_button" }, { node = "telemetry_dashboard_run_query_button" }]
 
 [nodes.telemetry_dashboard_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionTelemetryDashboardFilterTelemetryButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Filter Telemetry", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Filter Telemetry", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 132.0, preferred = 132.0, max = 146.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/TelemetryDashboardFilterTelemetry", event = "Click", route = "workbench.extension.telemetry_dashboard.filter_telemetry" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/TelemetryDashboardFilterTelemetry", event =
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionTelemetryDashboardRunQueryButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Run Query", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Run Query", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 94.0, preferred = 94.0, max = 106.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/TelemetryDashboardRunQuery", event = "Click", route = "workbench.extension.telemetry_dashboard.run_query" }]
 
 [nodes.telemetry_dashboard_metric_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionTelemetryDashboardMetricTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "telemetry_dashboard_dau_table_row" }, { node = "telemetry_dashboard_fps_p95_table_row" }, { node = "telemetry_dashboard_crash_rate_table_row" }, { node = "telemetry_dashboard_queue_wait_table_row" }]
 
 [nodes.telemetry_dashboard_dau_table_row]
@@ -179,22 +178,36 @@ events = [{ id = "WorkbenchExtension/TelemetryDashboardQueueWaitTableRow", event
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionTelemetryDashboardOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Telemetry Output", value_text = "Events 2.4M   Segments 12   Alerts 3   Latency 120 ms" }
+props = { text = "Telemetry Output", value_text = "Events 2.4M   Segments 12   Alerts 3   Latency 120 ms", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/TelemetryDashboardOutput", event = "Click", route = "workbench.extension.telemetry_dashboard.output" }]
 
 [nodes.telemetry_dashboard_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionTelemetryDashboardRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "telemetry_dashboard_details_title" }, { node = "telemetry_dashboard_query_field" }, { node = "telemetry_dashboard_range_dropdown" }, { node = "telemetry_dashboard_segment_dropdown" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_details_title" }, { node = "telemetry_dashboard_right_content" }]
+
+[nodes.telemetry_dashboard_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionTelemetryDashboardRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "telemetry_dashboard_query_field_property_row" }, { node = "telemetry_dashboard_range_dropdown_property_row" }, { node = "telemetry_dashboard_segment_dropdown_property_row" }]
 
 [nodes.telemetry_dashboard_details_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionTelemetryDashboardDetailsTitle"
 props = { text = "Query Builder" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.telemetry_dashboard_query_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionTelemetryDashboardQueryFieldPropertyRow"
+props = { text = "Query" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "telemetry_dashboard_query_field", slot = { name = "value" } }]
 
 [nodes.telemetry_dashboard_query_field]
 component = "WorkbenchField"
@@ -207,22 +220,36 @@ events = [
   { id = "WorkbenchExtension/TelemetryDashboardQueryCommit", event = "Submit", route = "workbench.extension.telemetry_dashboard.query.commit" },
 ]
 
+[nodes.telemetry_dashboard_range_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionTelemetryDashboardRangeDropdownPropertyRow"
+props = { text = "Range" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "telemetry_dashboard_range_dropdown", slot = { name = "value" } }]
+
 [nodes.telemetry_dashboard_range_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionTelemetryDashboardRangeDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "24h", value = "24h", options = ["1h", "24h", "7d", "30d"] }
+props = { value_text = "24h", value = "24h", options = ["1h", "24h", "7d", "30d"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/TelemetryDashboardRangeEdit", event = "Change", route = "workbench.extension.telemetry_dashboard.range.edit" },
   { id = "WorkbenchExtension/TelemetryDashboardRangeCommit", event = "Submit", route = "workbench.extension.telemetry_dashboard.range.commit" },
 ]
 
+[nodes.telemetry_dashboard_segment_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionTelemetryDashboardSegmentDropdownPropertyRow"
+props = { text = "Segment" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "telemetry_dashboard_segment_dropdown", slot = { name = "value" } }]
+
 [nodes.telemetry_dashboard_segment_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionTelemetryDashboardSegmentDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "New Users", value = "New Users", options = ["All Users", "New Users", "Returning", "Crashes"] }
+props = { value_text = "New Users", value = "New Users", options = ["All Users", "New Users", "Returning", "Crashes"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/TelemetryDashboardSegmentEdit", event = "Change", route = "workbench.extension.telemetry_dashboard.segment.edit" },

@@ -56,7 +56,7 @@ related_code:
   - zircon_app/src/plugins/tests.rs
   - zircon_app/src/tests/prelude.rs
   - zircon_app/src/entry/builtin_modules.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/entry/engine_entry.rs
@@ -129,7 +129,7 @@ implementation_files:
   - zircon_app/src/plugins/tests.rs
   - zircon_app/src/tests/prelude.rs
   - zircon_app/src/entry/builtin_modules.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/entry/engine_entry.rs
@@ -380,13 +380,13 @@ M2 begins by making provider availability explicit without moving `zircon_runtim
 
 `runtime_modules_for_runtime_profile()` and `runtime_modules_for_runtime_profile_with_plugin_registration_reports()` provide runtime-only profile bootstrap helpers. They project the selected profile into a `ProjectPluginManifest` and then reuse the existing target/module loader against that exact profile manifest, so profile helpers do not inherit legacy target defaults such as the default client UI plugin. `RuntimeProfileId::Minimal` is stricter: it returns the Bevy-style minimal core module set directly instead of the wider client baseline. The older `runtime_modules_for_target*` helpers still merge target baselines for compatibility with existing bootstrap callers.
 
-The manifest-specific profile helpers are intentionally available through the `zircon_runtime` crate root as well as `zircon_runtime::builtin` internals. App bootstrap uses those helpers when `EntryConfig.runtime_profile()` is set and runtime plugin or feature-registration reports are present, so profile-aware provider selection does not fall back to target-only defaults. The feature-registration app path clones the optional project manifest before creating a profile fallback manifest, preserving the caller manifest for feature dependency checks while still giving the module resolver a concrete profile manifest.
+The profile descriptor and module compiler remain runtime-owned. App bootstrap first resolves `EntryConfig` into `ResolvedProductHostConfig`; runtime profile defaults and the optional project manifest are merged there once, then provider selection and feature-aware module composition consume the same resolved manifest instead of constructing independent target-only fallbacks.
 
 The 2026-05-25 editor-host closeout reran `cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation` and passed. That build exercises the crate-root helper exports plus the app-side manifest-preservation path used by provider-aware editor bootstrap.
 
-`zircon_app` now owns profile and render-profile projection for provider bootstrap, but not the provider crate fan-out. `EntryConfig::for_runtime_profile()` maps `RuntimeProfileId` into the appropriate app `EntryProfile`, target mode, and projected profile manifest. `first_party_runtime_plugin_registrations_for_config()` appends render-profile selections, then delegates compiled-in first-party provider selection to `zircon_first_party_runtime_catalog`. The resulting reports feed into `BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations()` or `EntryRunner::bootstrap_with_first_party_runtime_plugin_registrations()`. The app feature `first-party-runtime-plugins` now links the catalog's `base-runtime-plugins`; `first-party-navigation-runtime-plugin` links the catalog's navigation provider group separately.
+`zircon_app` owns product-role request resolution and render-profile projection, but not provider crate fan-out. `EntryConfig::for_runtime_profile()` records a role/profile request; `resolve()` validates target compatibility and projects the profile manifest. `first_party_runtime_plugin_registrations_for_config()` accepts only the resolved config, appends render-profile selections, and delegates provider collection to `zircon_first_party_runtime_catalog`.
 
-Advanced render provider collection is driven by the app render profile, not by target defaults. When `EntryConfig::render_profile` contains `VirtualGeometry`, `HybridGlobalIllumination`, or `Solari`, `first_party_runtime_plugin_registrations_for_config(...)` appends target-scoped project selections for `RuntimePluginId::VirtualGeometry`, `RuntimePluginId::HybridGi`, and `RuntimePluginId::Solari` before collecting linked providers. Those providers are compiled only behind `first-party-advanced-render-runtime-plugins`, so `DefaultRender` and normal `Client3d` profile selection remain lightweight unless a caller explicitly chooses an advanced or Solari render profile. The current Solari provider is a contract-only unavailable provider, not a visual pass implementation.
+Advanced render provider collection is driven by `ResolvedProductHostConfig::render_profile()`, not by target defaults. The resolved bundle contributes target-scoped Virtual Geometry, Hybrid GI, and Solari selections before linked providers are collected. Those providers remain compiled only behind `first-party-advanced-render-runtime-plugins`, so default profiles stay lightweight.
 
 Profile bootstrap also persists app-owned platform and render config before and after module activation. The second write is intentional: runtime modules may install defaults during activation, but the selected entry profile must remain authoritative for `PLATFORM_CONFIG_KEY` and `RENDER_PROFILE_CONFIG_KEY`. Headless profile validation therefore checks both headless platform features and the `Headless` render bundle, while minimal profile validation still records disabled platform state because `MinimalPlugins` excludes the platform module.
 

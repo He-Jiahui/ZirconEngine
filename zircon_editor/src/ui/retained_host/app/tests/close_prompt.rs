@@ -1,5 +1,9 @@
 use super::*;
+use std::time::{Duration, Instant};
+
 use crate::core::asset::DirtyExternalEffectId;
+use crate::core::extension::SaveReason;
+use crate::ui::host::{DirtyDocumentSaveOwner, DirtyDocumentSaveStart};
 use crate::ui::retained_host::primitives::CloseRequestResponse;
 
 const CLOSE_PROMPT_UI_ASSET: &str = r#"
@@ -40,6 +44,23 @@ fn open_dirty_ui_asset(
     (path, instance_id)
 }
 
+fn await_owned_document_save(harness: &ChildWindowHostHarness, owner: DirtyDocumentSaveOwner) {
+    let deadline = Instant::now() + Duration::from_secs(2);
+    loop {
+        match harness
+            .host
+            .borrow()
+            .editor_manager
+            .poll_dirty_document_save(owner)
+            .unwrap()
+        {
+            Some(_) => return,
+            None if Instant::now() < deadline => std::thread::yield_now(),
+            None => panic!("owned document save did not terminalize"),
+        }
+    }
+}
+
 #[test]
 fn dirty_floating_window_close_request_shows_cancelable_prompt() {
     let _guard = lock_env();
@@ -78,7 +99,7 @@ fn dirty_floating_window_close_request_shows_cancelable_prompt() {
 }
 
 #[test]
-fn dirty_saveable_floating_window_save_prompt_saves_then_closes_window() {
+fn dirty_saveable_floating_window_save_prompt_schedules_then_closes_window() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_dirty_child_close_save");
@@ -105,6 +126,31 @@ fn dirty_saveable_floating_window_save_prompt_saves_then_closes_window() {
         prompt.save_button_frame.x + 4.0,
         prompt.save_button_frame.y + 4.0,
     );
+
+    assert!(!child.get_host_presentation().close_prompt.can_save);
+    assert!(harness
+        .host
+        .borrow()
+        .runtime
+        .current_layout()
+        .floating_windows
+        .iter()
+        .any(|window| window.window_id == window_id));
+
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while Instant::now() < deadline
+        && harness
+            .host
+            .borrow()
+            .runtime
+            .current_layout()
+            .floating_windows
+            .iter()
+            .any(|window| window.window_id == window_id)
+    {
+        harness.host.borrow_mut().tick();
+        std::thread::yield_now();
+    }
 
     assert!(harness
         .host
@@ -178,5 +224,160 @@ fn dirty_main_window_discard_prompt_requests_host_exit() {
     );
 
     assert!(harness.root_ui.exit_requested_for_test());
+    let _ = std::fs::remove_file(ui_asset_path);
+}
+
+#[test]
+fn dirty_project_close_defers_teardown_until_the_shared_discard_decision() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_retained_dirty_project_close");
+    let (ui_asset_path, _instance_id) =
+        open_dirty_ui_asset(&harness, "zircon_retained_project_close_prompt");
+
+    harness.dispatch_menu_action("workbench.project.close");
+
+    let prompt = harness.root_ui.get_host_presentation().close_prompt;
+    assert!(prompt.visible);
+    assert_eq!(prompt.target_window_id.as_str(), "main");
+    assert_eq!(
+        prompt.title.as_str(),
+        "Save changes before closing project?"
+    );
+    assert_eq!(
+        harness.host.borrow().startup_session.mode,
+        crate::ui::workbench::startup::EditorSessionMode::Project
+    );
+
+    harness.root_ui.dispatch_native_primary_press_for_test(
+        prompt.cancel_button_frame.x + 4.0,
+        prompt.cancel_button_frame.y + 4.0,
+    );
+    assert_eq!(
+        harness.host.borrow().startup_session.mode,
+        crate::ui::workbench::startup::EditorSessionMode::Project
+    );
+
+    harness.dispatch_menu_action("workbench.project.close");
+    let prompt = harness.root_ui.get_host_presentation().close_prompt;
+    harness.root_ui.dispatch_native_primary_press_for_test(
+        prompt.discard_button_frame.x + 4.0,
+        prompt.discard_button_frame.y + 4.0,
+    );
+
+    assert_eq!(
+        harness.host.borrow().startup_session.mode,
+        crate::ui::workbench::startup::EditorSessionMode::Welcome
+    );
+    let _ = std::fs::remove_file(ui_asset_path);
+}
+
+#[test]
+fn save_all_queues_behind_close_prompt_save_then_acquires_the_released_owner() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_retained_save_all_owner_queue");
+    let (ui_asset_path, instance_id) =
+        open_dirty_ui_asset(&harness, "zircon_retained_save_all_owner_queue");
+    let document = harness
+        .host
+        .borrow()
+        .editor_manager
+        .dirty_document_toolkits()
+        .unwrap()[0]
+        .document_id;
+
+    assert_eq!(
+        harness
+            .host
+            .borrow()
+            .editor_manager
+            .begin_dirty_document_save(
+                DirtyDocumentSaveOwner::ClosePrompt,
+                [document],
+                SaveReason::Explicit,
+            )
+            .unwrap(),
+        DirtyDocumentSaveStart::Scheduled
+    );
+    harness.host.borrow_mut().request_document_save_all();
+    assert!(harness.host.borrow().queued_document_save_all);
+    assert!(!harness.host.borrow().pending_document_save_all);
+
+    await_owned_document_save(&harness, DirtyDocumentSaveOwner::ClosePrompt);
+    harness
+        .host
+        .borrow()
+        .editor_manager
+        .mark_document_external_effect(&instance_id, DirtyExternalEffectId::ui_source_buffer())
+        .unwrap();
+    harness.host.borrow_mut().poll_document_save_all();
+    assert!(!harness.host.borrow().queued_document_save_all);
+    assert!(harness.host.borrow().pending_document_save_all);
+
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while harness.host.borrow().pending_document_save_all && Instant::now() < deadline {
+        harness.host.borrow_mut().poll_document_save_all();
+        std::thread::yield_now();
+    }
+    assert!(!harness.host.borrow().pending_document_save_all);
+    assert!(harness
+        .host
+        .borrow()
+        .editor_manager
+        .dirty_document_toolkits()
+        .unwrap()
+        .is_empty());
+    let _ = std::fs::remove_file(ui_asset_path);
+}
+
+#[test]
+fn project_close_cannot_teardown_until_close_prompt_save_terminalizes() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_retained_project_close_save_owner");
+    let (ui_asset_path, _instance_id) =
+        open_dirty_ui_asset(&harness, "zircon_retained_project_close_save_owner");
+    let document = harness
+        .host
+        .borrow()
+        .editor_manager
+        .dirty_document_toolkits()
+        .unwrap()[0]
+        .document_id;
+    assert_eq!(
+        harness
+            .host
+            .borrow()
+            .editor_manager
+            .begin_dirty_document_save(
+                DirtyDocumentSaveOwner::ClosePrompt,
+                [document],
+                SaveReason::Explicit,
+            )
+            .unwrap(),
+        DirtyDocumentSaveStart::Scheduled
+    );
+
+    harness.host.borrow_mut().request_project_close().unwrap();
+    assert_eq!(
+        harness.host.borrow().startup_session.mode,
+        crate::ui::workbench::startup::EditorSessionMode::Project
+    );
+    assert_eq!(
+        harness
+            .host
+            .borrow()
+            .editor_manager
+            .dirty_document_save_owner(),
+        Some(DirtyDocumentSaveOwner::ClosePrompt)
+    );
+
+    await_owned_document_save(&harness, DirtyDocumentSaveOwner::ClosePrompt);
+    harness.host.borrow_mut().request_project_close().unwrap();
+    assert_eq!(
+        harness.host.borrow().startup_session.mode,
+        crate::ui::workbench::startup::EditorSessionMode::Welcome
+    );
     let _ = std::fs::remove_file(ui_asset_path);
 }

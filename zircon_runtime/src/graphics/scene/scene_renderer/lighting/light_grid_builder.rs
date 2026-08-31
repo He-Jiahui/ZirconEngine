@@ -1,9 +1,9 @@
 use bytemuck::{Pod, Zeroable};
 
 use crate::core::framework::render::{
-    GpuLightData, GpuLightType, ProjectionMode, ViewportCameraSnapshot,
+    GpuLightData, GpuLightType, ProjectionMode, ViewProjectionMatrixPair, ViewportCameraSnapshot,
 };
-use crate::core::math::{view_matrix, Mat4, UVec2, Vec3};
+use crate::core::math::{Mat4, UVec2, Vec3, view_matrix};
 
 pub(crate) const LIGHT_GRID_INITIAL_TILE_SIZE_PX: u32 = 8;
 pub(crate) const LIGHT_GRID_MAX_ZBIN_WORDS: u32 = 4096;
@@ -61,35 +61,13 @@ pub(crate) struct LightGridViewInfo {
 impl LightGridViewInfo {
     pub(crate) fn from_camera(camera: &ViewportCameraSnapshot, viewport_size: UVec2) -> Self {
         let viewport_size = UVec2::new(viewport_size.x.max(1), viewport_size.y.max(1));
-        let aspect_ratio = viewport_size.x.max(1) as f32 / viewport_size.y.max(1) as f32;
         let z_near = camera.z_near.max(0.001);
         let z_far = camera.z_far.max(z_near + 0.001);
         let projection = match camera.projection_mode {
             ProjectionMode::Perspective => LightGridProjection::Perspective,
             ProjectionMode::Orthographic => LightGridProjection::Orthographic,
         };
-        let view_to_clip = camera
-            .projection_override
-            .unwrap_or_else(|| match projection {
-                LightGridProjection::Perspective => Mat4::perspective_rh(
-                    camera.fov_y_radians,
-                    aspect_ratio.max(0.001),
-                    z_near,
-                    z_far,
-                ),
-                LightGridProjection::Orthographic => {
-                    let half_height = (camera.ortho_size * 0.5).max(0.001);
-                    let half_width = half_height * aspect_ratio.max(0.001);
-                    Mat4::orthographic_rh(
-                        -half_width,
-                        half_width,
-                        -half_height,
-                        half_height,
-                        z_near,
-                        z_far,
-                    )
-                }
-            });
+        let view_to_clip = ViewProjectionMatrixPair::projection_from_camera(camera, viewport_size);
 
         Self {
             viewport_size,
@@ -319,9 +297,21 @@ fn sphere_tile_rect(
     view: &LightGridViewInfo,
     params: &LightGridParams,
 ) -> Option<TileRect> {
-    let clip = view.view_to_clip * view_position.extend(1.0);
+    let mut projection_position = view_position;
+    let crosses_near_plane = view.projection == LightGridProjection::Perspective
+        && -view_position.z - radius <= view.z_near;
+    if crosses_near_plane {
+        // A sphere crossing the near plane cannot be bounded from its center clip position alone.
+        // Camera-inside lights cover every ray; otherwise project the conservative near-plane slice.
+        if view_position.length_squared() <= radius * radius {
+            return Some(full_tile_rect(params));
+        }
+        projection_position.z = -view.z_near;
+    }
+
+    let clip = view.view_to_clip * projection_position.extend(1.0);
     if !clip.w.is_finite() || clip.w <= 0.0 {
-        return None;
+        return crosses_near_plane.then(|| full_tile_rect(params));
     }
     let ndc = clip.truncate() / clip.w;
     let viewport = view.viewport_size;
@@ -352,6 +342,13 @@ fn sphere_tile_rect(
             (max_y.saturating_sub(1) / tile_size + 1).min(params.tile_resolution[1]),
         ],
     })
+}
+
+fn full_tile_rect(params: &LightGridParams) -> TileRect {
+    TileRect {
+        tile_min: [0, 0],
+        tile_max_exclusive: params.tile_resolution,
+    }
 }
 
 fn projected_radius_px(view_position: Vec3, radius: f32, view: &LightGridViewInfo) -> [f32; 2] {
@@ -521,6 +518,58 @@ mod tests {
     }
 
     #[test]
+    fn light_grid_view_uses_canonical_orthographic_half_height() {
+        let viewport_size = UVec2::new(100, 100);
+        let mut camera = test_camera(viewport_size);
+        camera.projection_mode = ProjectionMode::Orthographic;
+        camera.ortho_size = 10.0;
+
+        let view = LightGridViewInfo::from_camera(&camera, viewport_size);
+        let projection = view.view_to_clip.to_cols_array();
+
+        assert!((projection[5] - 0.1).abs() <= f32::EPSILON);
+    }
+
+    #[test]
+    fn light_grid_view_reuses_shared_camera_projection_owner() {
+        let viewport_size = UVec2::new(100, 100);
+        let camera = test_camera(viewport_size);
+        let view = LightGridViewInfo::from_camera(&camera, viewport_size);
+
+        assert_eq!(
+            view.view_to_clip,
+            ViewProjectionMatrixPair::projection_from_camera(&camera, viewport_size)
+        );
+    }
+
+    #[test]
+    fn light_grid_builder_keeps_camera_inside_point_light_conservative() {
+        let view = test_view(UVec2::new(64, 64));
+        let output = build_light_grid(&[point_light(Vec3::new(0.0, 0.0, 0.05), 1.0)], &view);
+
+        assert!(output.tile_masks.iter().all(|word| *word == 1));
+        assert!(output.stats.non_empty_zbin_count > 0);
+    }
+
+    #[test]
+    fn light_grid_builder_keeps_near_crossing_sphere_with_behind_camera_center() {
+        let view = test_view(UVec2::new(64, 64));
+        let output = build_light_grid(&[point_light(Vec3::new(1.0, 0.0, 1.0), 1.2)], &view);
+
+        assert!(output.tile_masks.iter().all(|word| *word == 1));
+        assert!(output.stats.non_empty_zbin_count > 0);
+    }
+
+    #[test]
+    fn light_grid_builder_rejects_sphere_fully_behind_camera() {
+        let view = test_view(UVec2::new(64, 64));
+        let output = build_light_grid(&[point_light(Vec3::new(0.0, 0.0, 1.0), 0.5)], &view);
+
+        assert!(output.tile_masks.iter().all(|word| *word == 0));
+        assert_eq!(output.stats.non_empty_zbin_count, 0);
+    }
+
+    #[test]
     fn light_grid_builder_increases_tile_size_to_fit_mask_budget() {
         let view = test_view(UVec2::new(4096, 4096));
         let lights = vec![directional_light(); 1024];
@@ -564,7 +613,11 @@ mod tests {
     }
 
     fn test_view(viewport_size: UVec2) -> LightGridViewInfo {
-        let camera = ViewportCameraSnapshot {
+        LightGridViewInfo::from_camera(&test_camera(viewport_size), viewport_size)
+    }
+
+    fn test_camera(viewport_size: UVec2) -> ViewportCameraSnapshot {
+        ViewportCameraSnapshot {
             transform: Transform::from_translation(Vec3::ZERO).with_rotation(Quat::IDENTITY),
             core_pipeline: Default::default(),
             projection_mode: ProjectionMode::Perspective,
@@ -580,8 +633,7 @@ mod tests {
             dynamic_resolution: Default::default(),
             temporal_jitter: Default::default(),
             projection_override: None,
-        };
-        LightGridViewInfo::from_camera(&camera, viewport_size)
+        }
     }
 
     fn directional_light() -> GpuLightData {

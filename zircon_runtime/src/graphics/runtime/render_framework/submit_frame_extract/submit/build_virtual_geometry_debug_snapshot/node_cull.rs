@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 use super::super::super::frame_submission_context::FrameSubmissionContext;
 use super::support::saturated_u32_len;
@@ -202,6 +202,7 @@ fn build_node_and_cluster_cull_traversal_records(
     Vec<RenderVirtualGeometryNodeAndClusterCullChildWorkItem>,
     Vec<RenderVirtualGeometryNodeAndClusterCullTraversalRecord>,
 ) {
+    let hierarchy_nodes_by_id = index_hierarchy_nodes(&extract.hierarchy_nodes);
     let mut child_work_items = Vec::new();
     let mut traversal_records = Vec::new();
     let mut queue = cluster_work_items
@@ -220,7 +221,7 @@ fn build_node_and_cluster_cull_traversal_records(
         cursor += 1;
         let node = item
             .hierarchy_node_id
-            .and_then(|node_id| hierarchy_node(extract, node_id));
+            .and_then(|node_id| hierarchy_nodes_by_id.get(&node_id).copied());
         push_traversal_record(
             &mut traversal_records,
             RenderVirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,
@@ -337,14 +338,14 @@ struct TraversalQueueItem {
     hierarchy_node_id: Option<u32>,
 }
 
-fn hierarchy_node(
-    extract: &RenderVirtualGeometryExtract,
-    node_id: u32,
-) -> Option<&RenderVirtualGeometryHierarchyNode> {
-    extract
-        .hierarchy_nodes
-        .iter()
-        .find(|node| node.node_id == node_id)
+fn index_hierarchy_nodes(
+    hierarchy_nodes: &[RenderVirtualGeometryHierarchyNode],
+) -> HashMap<u32, &RenderVirtualGeometryHierarchyNode> {
+    let mut nodes_by_id = HashMap::with_capacity(hierarchy_nodes.len());
+    for node in hierarchy_nodes {
+        nodes_by_id.entry(node.node_id).or_insert(node);
+    }
+    nodes_by_id
 }
 
 fn push_traversal_record(
@@ -371,4 +372,36 @@ fn push_traversal_record(
         page_budget: cull_input.page_budget,
         forced_mip: cull_input.debug.forced_mip,
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{index_hierarchy_nodes, RenderVirtualGeometryHierarchyNode};
+
+    #[test]
+    fn runtime94_hierarchy_node_index_preserves_first_authored_duplicate() {
+        let hierarchy_nodes = [
+            RenderVirtualGeometryHierarchyNode {
+                instance_index: 0,
+                node_id: 7,
+                child_base: 0,
+                child_count: 0,
+                cluster_start: 11,
+                cluster_count: 1,
+            },
+            RenderVirtualGeometryHierarchyNode {
+                instance_index: 1,
+                node_id: 7,
+                child_base: 2,
+                child_count: 3,
+                cluster_start: 22,
+                cluster_count: 4,
+            },
+        ];
+
+        let nodes_by_id = index_hierarchy_nodes(&hierarchy_nodes);
+
+        assert_eq!(nodes_by_id.len(), 1);
+        assert_eq!(nodes_by_id[&7].cluster_start, 11);
+    }
 }

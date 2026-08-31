@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
 import test from "node:test";
 
+import { buildCatalogSearchIndex, filterCatalogSearchIndex } from "../src/catalog/catalogSearchIndex.ts";
 import { groupBy } from "../src/catalog/groupBy.ts";
 
 const SAMPLE_PAIRS = 21;
+const SCALE_BATCH_REPETITIONS = 10;
 
 function legacyGroupBy(items, key) {
   return items.reduce((groups, item) => {
@@ -35,6 +38,48 @@ function rows(count, groupCount = 1) {
 
 function totalItems(groups) {
   return Array.from(groups.values()).reduce((total, group) => total + group.length, 0);
+}
+
+function matchesCatalogTab(row, mode, tab) {
+  return (
+    tab === "all" ||
+    (mode === "learn"
+      ? row.categoryKey === tab
+      : tab === "project"
+        ? row.scopeKey === "project"
+        : row.scopeKey === "engine")
+  );
+}
+
+function legacyCatalogFilter(input, mode, tab, query, normalizationCounter) {
+  const normalizedQuery = query.trim().toLowerCase();
+  return input.filter((row) => {
+    const inQuery =
+      normalizedQuery.length === 0 ||
+      [row.title, row.detail, row.meta, row.category, row.scope, row.path].some((value) => {
+        normalizationCounter?.();
+        return value.toLowerCase().includes(normalizedQuery);
+      });
+    return matchesCatalogTab(row, mode, tab) && inQuery;
+  });
+}
+
+function indexedCatalogFilter(input, index, mode, tab, query) {
+  return filterCatalogSearchIndex(input, index, mode, tab, query);
+}
+
+function catalogRows(count) {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `catalog-${index}`,
+    title: `Title ${index % 997}`,
+    detail: `Detail ${index}`,
+    meta: `Meta ${index % 17}`,
+    category: `Category ${index % 9}`,
+    categoryKey: index % 2 === 0 ? "reference" : "guide",
+    scope: `Scope-${index % 43}`,
+    scopeKey: index % 2 === 0 ? "engine" : "project",
+    path: `E:/catalog/path-${index}`,
+  }));
 }
 
 test("groupBy preserves first-key and item order while evaluating each key once", () => {
@@ -69,6 +114,147 @@ test("groupBy constructs a complete 100k single-group catalog", () => {
   assert.equal(groups.get("category-0")?.[99_999]?.id, 99_999);
 });
 
+test("catalog search index preserves field, Unicode, and tab filtering semantics", () => {
+  const input = [
+    {
+      id: "split-fields",
+      title: "Alpha",
+      detail: "Beta",
+      meta: "Local",
+      category: "Guide",
+      categoryKey: "guide",
+      scope: "Project",
+      scopeKey: "project",
+      path: "E:/Docs/Alpha",
+    },
+    {
+      id: "embedded-separator",
+      title: "alpha\0beta",
+      detail: "Unicode ΟΣ",
+      meta: "Engine",
+      category: "Reference",
+      categoryKey: "reference",
+      scope: "Engine",
+      scopeKey: "engine",
+      path: "D:/Docs/Gamma",
+    },
+    {
+      id: "unicode",
+      title: "İstanbul",
+      detail: "Mixed Case",
+      meta: "Archive",
+      category: "Guide",
+      categoryKey: "guide",
+      scope: "Project",
+      scopeKey: "project",
+      path: "F:/Docs/Delta",
+    },
+  ];
+  const index = buildCatalogSearchIndex(input);
+
+  assert.equal(index.length, input.length);
+  for (const mode of ["assets", "plugins", "learn"]) {
+    for (const tab of ["all", "project", "engine", "guide", "reference"]) {
+      for (const query of ["", "  alpha  ", "BETA", "unicode ος", "i̇stanbul", "missing", "alpha\0beta"]) {
+        assert.deepEqual(
+          indexedCatalogFilter(input, index, mode, tab, query).map((row) => row.id),
+          legacyCatalogFilter(input, mode, tab, query).map((row) => row.id),
+          `${mode}/${tab}/${JSON.stringify(query)}`,
+        );
+      }
+    }
+  }
+  assert.deepEqual(indexedCatalogFilter(input, index, "assets", "all", "alpha\0beta").map((row) => row.id), [
+    "embedded-separator",
+  ]);
+});
+
+test("CatalogPage builds one row search index instead of normalizing every query", async () => {
+  const page = await readFile(new URL("../src/pages/CatalogPage.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /import \{ buildCatalogSearchIndex, filterCatalogSearchIndex \} from "\.\.\/catalog\/catalogSearchIndex";/);
+  assert.match(page, /buildCatalogSearchIndex\(rows\)/);
+  assert.match(page, /filterCatalogSearchIndex\(rows, rowSearchIndex, mode, tab, query\)/);
+  assert.doesNotMatch(page, /projects\/searchIndex/);
+});
+
+test(
+  "catalog search index meets the Hub02 10k burst-query P95 gate",
+  { skip: process.env.ZIRCON_HUB02_PERF !== "1" },
+  () => {
+    const input = catalogRows(10_000);
+    const queries = Array.from({ length: 32 }, (_, index) =>
+      index % 4 === 0
+        ? `title ${index}`
+        : index % 4 === 1
+          ? `scope-${index % 43}`
+          : index % 4 === 2
+            ? `path-${index * 13}`
+            : "no-match",
+    );
+    const index = buildCatalogSearchIndex(input);
+    const legacyBurst = () => {
+      let matches = 0;
+      for (const query of queries) {
+        matches += legacyCatalogFilter(input, "assets", "project", query).length;
+      }
+      return matches;
+    };
+    const indexedBurst = () => {
+      let matches = 0;
+      for (const query of queries) {
+        matches += indexedCatalogFilter(input, index, "assets", "project", query).length;
+      }
+      return matches;
+    };
+
+    for (let warmup = 0; warmup < 3; warmup += 1) {
+      assert.equal(indexedBurst(), legacyBurst());
+    }
+
+    const legacySamples = [];
+    const optimizedSamples = [];
+    let checksum = 0;
+    for (let sample = 0; sample < SAMPLE_PAIRS; sample += 1) {
+      globalThis.gc?.();
+      const measureLegacy = () => elapsedNanoseconds(legacyBurst);
+      const measureOptimized = () => elapsedNanoseconds(indexedBurst);
+      const first = sample % 2 === 0 ? measureLegacy() : measureOptimized();
+      const second = sample % 2 === 0 ? measureOptimized() : measureLegacy();
+      legacySamples.push(sample % 2 === 0 ? first.elapsed : second.elapsed);
+      optimizedSamples.push(sample % 2 === 0 ? second.elapsed : first.elapsed);
+      assert.equal(first.result, second.result);
+      checksum += first.result + second.result;
+    }
+
+    let legacyFieldNormalizations = 0;
+    for (const query of queries) {
+      legacyCatalogFilter(input, "assets", "project", query, () => {
+        legacyFieldNormalizations += 1;
+      });
+    }
+    const legacyP50 = nearestRank(legacySamples, 50);
+    const legacyP95 = nearestRank(legacySamples, 95);
+    const optimizedP50 = nearestRank(optimizedSamples, 50);
+    const optimizedP95 = nearestRank(optimizedSamples, 95);
+    assert.ok(checksum > 0);
+    assert.equal(index.length, input.length);
+    assert.ok(
+      optimizedP95 * 100 <= legacyP95 * 60,
+      `indexed P95 ${optimizedP95}ns must be at most 60% of legacy ${legacyP95}ns`,
+    );
+
+    console.log(
+      `HUB02_CATALOG_SEARCH_INDEX_10K_BENCH_V1 entries=10000 queries_per_sample=32 sample_pairs=${SAMPLE_PAIRS} ` +
+        `percentile=nearest_rank pair_order=alternating_legacy_even legacy_ns=${legacySamples.join(",")} ` +
+        `optimized_ns=${optimizedSamples.join(",")} legacy_p50_ns=${legacyP50} legacy_p95_ns=${legacyP95} ` +
+        `optimized_p50_ns=${optimizedP50} optimized_p95_ns=${optimizedP95} ` +
+        `legacy_field_normalizations=${legacyFieldNormalizations} optimized_row_normalizations=${index.length} ` +
+        "threshold=optimized_p95_lte_60pct_legacy",
+    );
+  },
+);
+
 test(
   "groupBy meets the Hub02 10k comparison and 100k linear-scale gates",
   { skip: process.env.ZIRCON_HUB02_PERF !== "1" },
@@ -102,13 +288,21 @@ test(
       const measureTenByTen = () =>
         elapsedNanoseconds(() => {
           let total = 0;
-          for (let repetition = 0; repetition < 10; repetition += 1) {
-            total += totalItems(groupBy(tenThousand, (item) => item.category));
+          for (let batch = 0; batch < SCALE_BATCH_REPETITIONS; batch += 1) {
+            for (let repetition = 0; repetition < 10; repetition += 1) {
+              total += totalItems(groupBy(tenThousand, (item) => item.category));
+            }
           }
           return total;
         });
       const measureHundredThousand = () =>
-        elapsedNanoseconds(() => totalItems(groupBy(hundredThousand, (item) => item.category)));
+        elapsedNanoseconds(() => {
+          let total = 0;
+          for (let repetition = 0; repetition < SCALE_BATCH_REPETITIONS; repetition += 1) {
+            total += totalItems(groupBy(hundredThousand, (item) => item.category));
+          }
+          return total;
+        });
       const scaleFirst = sample % 2 === 0 ? measureTenByTen() : measureHundredThousand();
       const scaleSecond = sample % 2 === 0 ? measureHundredThousand() : measureTenByTen();
       tenByTenSamples.push(sample % 2 === 0 ? scaleFirst.elapsed : scaleSecond.elapsed);
@@ -125,7 +319,7 @@ test(
     const hundredThousandP50 = nearestRank(hundredThousandSamples, 50);
     const hundredThousandP95 = nearestRank(hundredThousandSamples, 95);
 
-    assert.equal(checksum, SAMPLE_PAIRS * 220_000);
+    assert.equal(checksum, SAMPLE_PAIRS * 2_020_000);
     assert.ok(
       optimizedP95 * 100 <= legacyP95 * 25,
       `10k optimized P95 ${optimizedP95}ns must be at most 25% of legacy ${legacyP95}ns`,
@@ -145,7 +339,7 @@ test(
         "threshold=optimized_p95_lte_25pct_legacy",
     );
     console.log(
-      `HUB02_CATALOG_GROUP_BY_100K_BENCH_V1 entries=100000 groups=1 sample_pairs=${SAMPLE_PAIRS} ` +
+      `HUB02_CATALOG_GROUP_BY_100K_BENCH_V1 entries=100000 groups=1 scale_batches_per_sample=${SCALE_BATCH_REPETITIONS} sample_pairs=${SAMPLE_PAIRS} ` +
         `percentile=nearest_rank pair_order=alternating_ten_by_ten_even ten_by_ten_ns=${tenByTenSamples.join(",")} ` +
         `hundred_thousand_ns=${hundredThousandSamples.join(",")} ten_by_ten_p50_ns=${tenByTenP50} ` +
         `ten_by_ten_p95_ns=${tenByTenP95} hundred_thousand_p50_ns=${hundredThousandP50} ` +

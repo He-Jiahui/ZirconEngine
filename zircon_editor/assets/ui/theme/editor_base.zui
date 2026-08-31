@@ -83,11 +83,11 @@ set = { self = { foreground = { color = "$text_muted" } } }
 
 [[stylesheets.rules]]
 selector = "Button.primary"
-set = { self = { background = { color = "$accent" }, foreground = { color = "$text" }, border = { color = "$accent", width = "$editor.control.border_width", radius = "$editor.control.radius.small" } } }
+set = { self = { background = { color = "$accent" }, foreground = { color = "$text" }, border = { color = "$accent", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
 
 [[stylesheets.rules]]
 selector = "Button.secondary"
-set = { self = { background = { color = "$surface_bg" }, foreground = { color = "$text" }, border = { color = "$border", width = "$editor.control.border_width", radius = "$editor.control.radius.small" } } }
+set = { self = { background = { color = "$surface_bg" }, foreground = { color = "$text" }, border = { color = "$border", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
 
 [[stylesheets.rules]]
 selector = ".toolbar > Button.toolbar-primary"

@@ -35,7 +35,7 @@ pub(in crate::graphics::runtime::render_framework) struct ViewportRecord {
         HashMap<ViewportCameraHistoryKey, Arc<RenderVirtualGeometryDebugSnapshot>>,
     pub(super) last_capture: Option<CapturedFrame>,
     pub(super) last_visible_spatial_query:
-        Option<Arc<crate::core::framework::render::RenderVisibleSpatialQuerySnapshot>>,
+        Option<crate::core::framework::render::RenderVisibleSpatialQuerySnapshot>,
     pub(super) camera_histories: HashMap<ViewportCameraHistoryKey, ViewportFrameHistory>,
     pub(super) motion_vector_cameras: HashMap<ViewportCameraHistoryKey, ViewportCameraSnapshot>,
     pub(super) particle_previous_sprites:

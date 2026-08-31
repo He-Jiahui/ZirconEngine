@@ -9,7 +9,9 @@ use std::sync::{
 use zircon_runtime_interface::ui::{
     accessibility::{UiAccessibilityAction, UiAccessibilityActionRequest},
     binding::UiEventKind,
-    component::{UiComponentEvent, UiComponentKeyboardAction, UiDragPhase, UiValue},
+    component::{
+        UiComponentEvent, UiComponentEventKind, UiComponentKeyboardAction, UiDragPhase, UiValue,
+    },
     dispatch::{
         UiAccessibilityInputEvent, UiAnalogInputEvent, UiDispatchDisposition, UiDispatchEffect,
         UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchReply, UiDispatchReplyStep,
@@ -469,8 +471,10 @@ fn editable_attr_string(surface: &UiSurface, key: &str) -> String {
 
 fn binding(id: &str, event: UiEventKind) -> UiBindingRef {
     UiBindingRef {
+        component_event: super::typed_component_event_kind_for_test(id),
         id: id.to_string(),
         event,
+        mode: Default::default(),
         route: Some(id.replace('/', ".")),
         action: None,
         targets: Vec::new(),

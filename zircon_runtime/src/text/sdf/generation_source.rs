@@ -5,12 +5,12 @@ use std::sync::Arc;
 use self_cell::self_cell;
 use ttf_parser::Face;
 
-use crate::core::runtime::tasks::{parallel_for, TaskPool};
-use crate::text::VariationCoords;
+use crate::core::runtime::tasks::{TaskPool, parallel_for};
+use crate::text::{StableContentDigest, VariationCoords};
 
 use super::fdsm_gen::{generate_distance_field_glyph_from_face, parse_distance_field_face};
 use super::{
-    sdf_font_source_hash, sdf_variation_hash, SdfBakeParams, SdfGlyphData, SdfGlyphGenerationError,
+    SdfBakeParams, SdfGlyphData, SdfGlyphGenerationError, sdf_font_source_hash, sdf_variation_hash,
 };
 
 type ParsedSdfFace<'a> = Face<'a>;
@@ -62,8 +62,8 @@ pub(crate) struct SdfGenerationBatch {
 pub(crate) struct SdfGenerationSourceContext {
     handle: SdfGenerationSourceHandle,
     source_face_index: u32,
-    source_hash: [u8; 32],
-    variation_hash: [u8; 32],
+    source_hash: StableContentDigest,
+    variation_hash: StableContentDigest,
     report: SdfGenerationSourceReport,
     parsed: ParsedSdfFaceCell,
 }
@@ -95,7 +95,7 @@ impl SdfGenerationSourceContext {
     pub(crate) fn from_hashed_source(
         handle: SdfGenerationSourceHandle,
         font_bytes: Arc<[u8]>,
-        source_hash: [u8; 32],
+        source_hash: StableContentDigest,
         source_hash_count: usize,
         face_index: u32,
         variations: Arc<VariationCoords>,
@@ -125,11 +125,11 @@ impl SdfGenerationSourceContext {
         self.handle
     }
 
-    pub(crate) const fn source_hash(&self) -> [u8; 32] {
+    pub(crate) const fn source_hash(&self) -> StableContentDigest {
         self.source_hash
     }
 
-    pub(crate) const fn variation_hash(&self) -> [u8; 32] {
+    pub(crate) const fn variation_hash(&self) -> StableContentDigest {
         self.variation_hash
     }
 

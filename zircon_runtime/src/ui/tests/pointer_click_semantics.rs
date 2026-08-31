@@ -407,8 +407,10 @@ fn keyboard_pressed(logical_key: &str, key_code: u32) -> UiKeyboardInputEvent {
 
 fn binding(id: &str, event: UiEventKind) -> UiBindingRef {
     UiBindingRef {
+        component_event: super::typed_component_event_kind_for_test(id),
         id: id.to_string(),
         event,
+        mode: Default::default(),
         route: Some(id.replace('/', ".")),
         action: None,
         targets: Vec::new(),

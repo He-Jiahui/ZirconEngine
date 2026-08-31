@@ -32,13 +32,12 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
     let operation_path = EditorOperationPath::parse("plugin.weather.cloud_layer.refresh").unwrap();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
+            EditorCommandDescriptor::operation(operation_path.clone())
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
     extension
-        .register_menu_item(EditorMenuItemDescriptor::new(
-            "Tools/Weather/Refresh Cloud Layers",
+        .register_menu_item(EditorMenuItemDescriptor::for_operation(
             operation_path.clone(),
         ))
         .unwrap();
@@ -63,7 +62,7 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
         .id;
     {
         let shell = runtime.runtime.shell().lock();
-        shell.state.world.with_world_mut(|scene| {
+        shell.state.world.expect_with_world_mut(|scene| {
             scene
                 .register_component_type(
                     ComponentTypeDescriptor::new(component_type, "weather", "Cloud Layer")
@@ -90,6 +89,7 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
             failed_lifecycle_stages: Vec::new(),
             runtime_event_consumers:
                 crate::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry::default(),
+            native_command_bindings: Default::default(),
             diagnostics: Vec::new(),
         })
         .expect("register editor plugin report");
@@ -289,6 +289,7 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
             failed_lifecycle_stages: Vec::new(),
             runtime_event_consumers:
                 crate::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry::default(),
+            native_command_bindings: Default::default(),
             diagnostics: Vec::new(),
         })
         .expect("register plugin template descriptor");
@@ -296,7 +297,7 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
     let (registered_generation, disabled_capabilities, disabled_templates) =
         runtime.runtime.enabled_plugin_template_descriptors();
     let (disabled_revision, disabled_revision_capabilities) =
-        runtime.runtime.plugin_template_revision();
+        runtime.runtime.extension_projection_revision();
     assert!(registered_generation > 0);
     assert_eq!(disabled_revision, registered_generation);
     assert!(!disabled_capabilities.contains(&capability));
@@ -314,7 +315,7 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
     let (enabled_generation, enabled_capabilities, enabled_templates) =
         runtime.runtime.enabled_plugin_template_descriptors();
     let (enabled_revision, enabled_revision_capabilities) =
-        runtime.runtime.plugin_template_revision();
+        runtime.runtime.extension_projection_revision();
     assert_eq!(enabled_generation, registered_generation);
     assert_eq!(enabled_revision, registered_generation);
     assert!(enabled_capabilities.contains(&capability));
@@ -344,7 +345,7 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
         } if owner_id == "unknown.weather"
     ));
     assert_eq!(
-        runtime.runtime.plugin_template_revision().0,
+        runtime.runtime.extension_projection_revision().0,
         enabled_generation,
         "rejected replacement must not advance the template generation"
     );
@@ -425,7 +426,6 @@ fn editor_runtime_exposes_plugin_inspector_customization_surface_for_inspector_l
     extension
         .register_command(EditorCommandDescriptor::operation(
             EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap(),
-            "Refresh Cloud Layers",
         ))
         .unwrap();
     extension
@@ -502,7 +502,7 @@ fn editor_snapshot_resolves_enabled_inspector_customization_for_selected_dynamic
 
     {
         let shell = runtime.runtime.shell().lock();
-        shell.state.world.with_world_mut(|scene| {
+        shell.state.world.expect_with_world_mut(|scene| {
             scene
                 .register_component_type(
                     ComponentTypeDescriptor::new(component_type, "weather", "Cloud Layer")
@@ -518,10 +518,7 @@ fn editor_snapshot_resolves_enabled_inspector_customization_for_selected_dynamic
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_command(EditorCommandDescriptor::operation(
-            operation_path,
-            "Refresh Cloud Layers",
-        ))
+        .register_command(EditorCommandDescriptor::operation(operation_path))
         .unwrap();
     extension
         .register_inspector_customization(
@@ -599,7 +596,7 @@ fn editor_snapshot_resolves_plugin_field_editors_from_active_contributions() {
         .id;
     {
         let shell = runtime.runtime.shell().lock();
-        shell.state.world.with_world_mut(|scene| {
+        shell.state.world.expect_with_world_mut(|scene| {
             scene
                 .register_component_type(
                     ComponentTypeDescriptor::new(component_type, "weather", "Cloud Layer")
@@ -707,7 +704,7 @@ fn editor_snapshot_hides_inspector_customization_when_extension_capability_is_di
 
     {
         let shell = runtime.runtime.shell().lock();
-        shell.state.world.with_world_mut(|scene| {
+        shell.state.world.expect_with_world_mut(|scene| {
             scene
                 .register_component_type(
                     ComponentTypeDescriptor::new(component_type, "weather", "Cloud Layer")
@@ -723,10 +720,7 @@ fn editor_snapshot_hides_inspector_customization_when_extension_capability_is_di
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_command(EditorCommandDescriptor::operation(
-            operation_path,
-            "Refresh Cloud Layers",
-        ))
+        .register_command(EditorCommandDescriptor::operation(operation_path))
         .unwrap();
     extension
         .register_inspector_customization(

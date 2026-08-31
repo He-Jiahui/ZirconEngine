@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventError, UiComponentKeyboardAction, UiComponentState,
     UiValidationState, UiValue,
@@ -65,7 +67,7 @@ pub(super) fn apply_select_option(
     }
 
     let node_ids = ordered_node_ids(state, descriptor);
-    let Some(target_index) = node_ids.iter().position(|node_id| node_id == option_id) else {
+    let Some(target_index) = node_ids.iter().position(|node_id| *node_id == option_id) else {
         return Ok(false);
     };
 
@@ -81,15 +83,32 @@ pub(super) fn apply_select_option(
 
     let multi_select = tree_multi_select(state, descriptor, property);
     let range_selecting = selected && tree_range_selecting(state, descriptor);
-    if multi_select || range_selecting || is_selected_control_property(property) {
+    let multi_selection =
+        if multi_select || range_selecting || is_selected_control_property(property) {
+            let property = selected_control_property(state, descriptor, property).to_string();
+            let selected_ids = if range_selecting {
+                range_selected_node_ids(state, descriptor, &node_ids, target_index)
+            } else {
+                let mut selected_ids = selected_node_ids(state, descriptor, &property);
+                if selected {
+                    push_unique(&mut selected_ids, option_id.to_string());
+                } else {
+                    selected_ids.retain(|id| id != option_id);
+                }
+                selected_ids
+            };
+            Some((property, selected_ids))
+        } else {
+            None
+        };
+    drop(node_ids);
+
+    if let Some((property, selected_ids)) = multi_selection {
         apply_multi_select_option(
             state,
-            descriptor,
-            property,
-            option_id,
-            selected,
+            &property,
+            selected_ids,
             target_index,
-            &node_ids,
             range_selecting,
         );
     } else {
@@ -137,27 +156,11 @@ fn set_focused_node_expanded(
 
 fn apply_multi_select_option(
     state: &mut UiComponentState,
-    descriptor: &UiComponentDescriptor,
     property: &str,
-    option_id: &str,
-    selected: bool,
+    selected_ids: Vec<String>,
     target_index: usize,
-    node_ids: &[String],
     range_selecting: bool,
 ) {
-    let property = selected_control_property(state, descriptor, property);
-    let selected_ids = if range_selecting {
-        range_selected_node_ids(state, descriptor, node_ids, target_index)
-    } else {
-        let mut selected_ids = selected_node_ids(state, descriptor, property);
-        if selected {
-            push_unique(&mut selected_ids, option_id.to_string());
-        } else {
-            selected_ids.retain(|id| id != option_id);
-        }
-        selected_ids
-    };
-
     let has_selection = !selected_ids.is_empty();
     super::set_value(
         state,
@@ -217,7 +220,7 @@ fn set_tree_selection_focus(state: &mut UiComponentState, target_index: usize) {
 fn range_selected_node_ids(
     state: &UiComponentState,
     descriptor: &UiComponentDescriptor,
-    node_ids: &[String],
+    node_ids: &[&str],
     target_index: usize,
 ) -> Vec<String> {
     let anchor = int_setting(state, descriptor, "selection_anchor_index")
@@ -226,10 +229,11 @@ fn range_selected_node_ids(
         .clamp(0, (node_ids.len() - 1) as i64) as usize;
     let start = anchor.min(target_index);
     let end = anchor.max(target_index);
-    let mut selected_ids = Vec::new();
+    let disabled_ids = disabled_option_ids(state);
+    let mut selected_ids = Vec::with_capacity(end - start + 1);
     for node_id in &node_ids[start..=end] {
-        if !option_is_disabled(state, node_id) {
-            push_unique(&mut selected_ids, node_id.clone());
+        if !disabled_ids.contains(*node_id) {
+            selected_ids.push((*node_id).to_string());
         }
     }
     selected_ids
@@ -257,12 +261,13 @@ fn selected_node_ids(
     property: &str,
 ) -> Vec<String> {
     let mut ids = Vec::new();
+    let mut seen = HashSet::new();
     if let Some(value) = state.values.get(property).or_else(|| {
         descriptor
             .prop(property)
             .and_then(|schema| schema.default_value.as_ref())
     }) {
-        collect_string_ids(value, &mut ids);
+        collect_owned_string_ids(value, &mut ids, &mut seen);
     }
     ids
 }
@@ -288,19 +293,21 @@ fn expanded_node_ids(state: &UiComponentState, descriptor: &UiComponentDescripto
     for property in EXPANDED_CONTROL_PROPERTIES {
         if let Some(value) = state.values.get(property) {
             let mut ids = Vec::new();
-            collect_string_ids(value, &mut ids);
+            let mut seen = HashSet::new();
+            collect_owned_string_ids(value, &mut ids, &mut seen);
             return ids;
         }
     }
 
     let mut ids = Vec::new();
+    let mut seen = HashSet::new();
     for property in DEFAULT_EXPANDED_PROPERTIES {
         if let Some(value) = state.values.get(property).or_else(|| {
             descriptor
                 .prop(property)
                 .and_then(|schema| schema.default_value.as_ref())
         }) {
-            collect_string_ids(value, &mut ids);
+            collect_owned_string_ids(value, &mut ids, &mut seen);
         }
     }
     ids
@@ -313,18 +320,22 @@ fn focused_node_id(state: &UiComponentState, descriptor: &UiComponentDescriptor)
     }
 
     let index = current_tree_index(state, descriptor, &node_ids);
-    node_ids.get(index).cloned()
+    node_ids.get(index).map(|node_id| (*node_id).to_string())
 }
 
-fn ordered_node_ids(state: &UiComponentState, descriptor: &UiComponentDescriptor) -> Vec<String> {
+fn ordered_node_ids<'a>(
+    state: &'a UiComponentState,
+    descriptor: &'a UiComponentDescriptor,
+) -> Vec<&'a str> {
     let mut node_ids = Vec::new();
+    let mut seen = HashSet::new();
     for property in NODE_PROPERTIES {
         if let Some(value) = state.values.get(property).or_else(|| {
             descriptor
                 .prop(property)
                 .and_then(|schema| schema.default_value.as_ref())
         }) {
-            collect_tree_node_ids(value, &mut node_ids);
+            collect_tree_node_ids(value, &mut node_ids, &mut seen);
         }
     }
     node_ids
@@ -333,7 +344,7 @@ fn ordered_node_ids(state: &UiComponentState, descriptor: &UiComponentDescriptor
 fn current_tree_index(
     state: &UiComponentState,
     descriptor: &UiComponentDescriptor,
-    node_ids: &[String],
+    node_ids: &[&str],
 ) -> usize {
     int_setting(state, descriptor, "focused_index")
         .or_else(|| int_setting(state, descriptor, "selected_index"))
@@ -342,26 +353,30 @@ fn current_tree_index(
         .clamp(0, (node_ids.len() - 1) as i64) as usize
 }
 
-fn current_value_index(state: &UiComponentState, node_ids: &[String]) -> Option<i64> {
+fn current_value_index(state: &UiComponentState, node_ids: &[&str]) -> Option<i64> {
     ["value", "value_text", "group_value"]
         .into_iter()
         .filter_map(|property| state.values.get(property).and_then(string_value))
         .find_map(|value| {
             node_ids
                 .iter()
-                .position(|node_id| node_id == &value)
+                .position(|node_id| *node_id == value)
                 .map(|index| index as i64)
         })
 }
 
-fn collect_tree_node_ids(value: &UiValue, out: &mut Vec<String>) {
+fn collect_tree_node_ids<'a>(
+    value: &'a UiValue,
+    out: &mut Vec<&'a str>,
+    seen: &mut HashSet<&'a str>,
+) {
     match value {
         UiValue::Array(values) => {
             for value in values {
-                collect_tree_node_ids(value, out);
+                collect_tree_node_ids(value, out, seen);
             }
         }
-        UiValue::String(value) | UiValue::Enum(value) => push_unique(out, value.clone()),
+        UiValue::String(value) | UiValue::Enum(value) => push_unique_borrowed(out, seen, value),
         UiValue::Map(values) => {
             if let Some(value) = values
                 .get("id")
@@ -372,11 +387,11 @@ fn collect_tree_node_ids(value: &UiValue, out: &mut Vec<String>) {
                 .or_else(|| values.get("nodeId"))
                 .or_else(|| values.get("key"))
             {
-                collect_string_ids(value, out);
+                collect_borrowed_string_ids(value, out, seen);
             }
             for property in ["children", "nodes", "items", "options"] {
                 if let Some(value) = values.get(property) {
-                    collect_tree_node_ids(value, out);
+                    collect_tree_node_ids(value, out, seen);
                 }
             }
         }
@@ -384,25 +399,71 @@ fn collect_tree_node_ids(value: &UiValue, out: &mut Vec<String>) {
     }
 }
 
-fn collect_string_ids(value: &UiValue, out: &mut Vec<String>) {
+fn collect_borrowed_string_ids<'a>(
+    value: &'a UiValue,
+    out: &mut Vec<&'a str>,
+    seen: &mut HashSet<&'a str>,
+) {
     match value {
         UiValue::Array(values) => {
             for value in values {
-                collect_string_ids(value, out);
+                collect_borrowed_string_ids(value, out, seen);
             }
         }
-        UiValue::String(value) | UiValue::Enum(value) => push_unique(out, value.clone()),
+        UiValue::String(value) | UiValue::Enum(value) => push_unique_borrowed(out, seen, value),
         UiValue::Flags(values) => {
             for value in values {
-                push_unique(out, value.clone());
+                push_unique_borrowed(out, seen, value);
             }
         }
         UiValue::Map(values) => {
             if let Some(value) = values.get("id").or_else(|| values.get("value")) {
-                collect_string_ids(value, out);
+                collect_borrowed_string_ids(value, out, seen);
             }
         }
         _ => {}
+    }
+}
+
+fn collect_owned_string_ids<'a>(
+    value: &'a UiValue,
+    out: &mut Vec<String>,
+    seen: &mut HashSet<&'a str>,
+) {
+    match value {
+        UiValue::Array(values) => {
+            for value in values {
+                collect_owned_string_ids(value, out, seen);
+            }
+        }
+        UiValue::String(value) | UiValue::Enum(value) => push_unique_owned(out, seen, value),
+        UiValue::Flags(values) => {
+            for value in values {
+                push_unique_owned(out, seen, value);
+            }
+        }
+        UiValue::Map(values) => {
+            if let Some(value) = values.get("id").or_else(|| values.get("value")) {
+                collect_owned_string_ids(value, out, seen);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn push_unique_borrowed<'a>(
+    values: &mut Vec<&'a str>,
+    seen: &mut HashSet<&'a str>,
+    value: &'a str,
+) {
+    if !value.is_empty() && seen.insert(value) {
+        values.push(value);
+    }
+}
+
+fn push_unique_owned<'a>(values: &mut Vec<String>, seen: &mut HashSet<&'a str>, value: &'a str) {
+    if !value.is_empty() && seen.insert(value) {
+        values.push(value.to_string());
     }
 }
 
@@ -432,9 +493,9 @@ fn int_value(value: &UiValue) -> Option<i64> {
     }
 }
 
-fn string_value(value: &UiValue) -> Option<String> {
+fn string_value(value: &UiValue) -> Option<&str> {
     match value {
-        UiValue::String(value) | UiValue::Enum(value) if !value.is_empty() => Some(value.clone()),
+        UiValue::String(value) | UiValue::Enum(value) if !value.is_empty() => Some(value),
         _ => None,
     }
 }
@@ -490,6 +551,31 @@ fn option_is_disabled(state: &UiComponentState, option_id: &str) -> bool {
         .is_some_and(|value| option_id_list_contains(value, option_id))
 }
 
+fn disabled_option_ids(state: &UiComponentState) -> HashSet<&str> {
+    let mut ids = HashSet::new();
+    if let Some(value) = state.values.get("disabled_options") {
+        collect_disabled_option_ids(value, &mut ids);
+    }
+    ids
+}
+
+fn collect_disabled_option_ids<'a>(value: &'a UiValue, out: &mut HashSet<&'a str>) {
+    match value {
+        UiValue::Array(values) => {
+            for value in values {
+                collect_disabled_option_ids(value, out);
+            }
+        }
+        UiValue::String(value) | UiValue::Enum(value) => {
+            out.insert(value);
+        }
+        UiValue::Flags(values) => {
+            out.extend(values.iter().map(String::as_str));
+        }
+        _ => {}
+    }
+}
+
 fn option_id_list_contains(value: &UiValue, option_id: &str) -> bool {
     match value {
         UiValue::Array(values) => values
@@ -505,4 +591,53 @@ fn is_selected_control_property(property: &str) -> bool {
     SELECTED_CONTROL_PROPERTIES
         .iter()
         .any(|selected_property| property == *selected_property)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use zircon_runtime_interface::ui::component::UiValue;
+
+    use super::{collect_disabled_option_ids, collect_tree_node_ids};
+
+    #[test]
+    fn ordered_tree_ids_borrow_first_occurrence_and_deduplicate_in_linear_index() {
+        let value = UiValue::Array(vec![
+            UiValue::String("root".to_string()),
+            UiValue::String("root".to_string()),
+            UiValue::Enum("child".to_string()),
+        ]);
+        let first_root = match &value {
+            UiValue::Array(values) => match &values[0] {
+                UiValue::String(value) => value.as_ptr(),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
+        let mut ids = Vec::new();
+        let mut seen = HashSet::new();
+
+        collect_tree_node_ids(&value, &mut ids, &mut seen);
+
+        assert_eq!(ids, ["root", "child"]);
+        assert_eq!(ids[0].as_ptr(), first_root);
+    }
+
+    #[test]
+    fn disabled_option_index_preserves_array_enum_and_flags_membership() {
+        let value = UiValue::Array(vec![
+            UiValue::String("root".to_string()),
+            UiValue::Enum("child".to_string()),
+            UiValue::Flags(vec!["leaf".to_string(), "root".to_string()]),
+        ]);
+        let mut disabled = HashSet::new();
+
+        collect_disabled_option_ids(&value, &mut disabled);
+
+        assert_eq!(disabled.len(), 3);
+        assert!(disabled.contains("root"));
+        assert!(disabled.contains("child"));
+        assert!(disabled.contains("leaf"));
+    }
 }

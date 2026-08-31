@@ -148,3 +148,54 @@ fn focused_unchecked_checkbox_keeps_idle_surface_with_focus_border() {
     assert_eq!(checkbox.surface, PALETTE.popup);
     assert_eq!(checkbox.border, PALETTE.focus_ring);
 }
+
+#[test]
+fn unchecked_hover_and_press_keep_idle_borders_without_focus_outline() {
+    for mut node in [
+        TemplatePaneNodeData {
+            hovered: true,
+            ..TemplatePaneNodeData::default()
+        },
+        TemplatePaneNodeData {
+            pressed: true,
+            ..TemplatePaneNodeData::default()
+        },
+    ] {
+        node.focus_visible = false;
+        node.focus_visible_known = true;
+
+        let checkbox = select_workbench_selection_control_style(
+            &node,
+            WorkbenchSelectionControlKind::Checkbox,
+        );
+        let radio =
+            select_workbench_selection_control_style(&node, WorkbenchSelectionControlKind::Radio);
+        let toggle =
+            select_workbench_selection_control_style(&node, WorkbenchSelectionControlKind::Toggle);
+
+        assert_eq!(checkbox.border, PALETTE.separator_strong);
+        assert_eq!(radio.border, PALETTE.separator_strong);
+        assert_eq!(toggle.border, PALETTE.border);
+        assert_ne!(checkbox.border, PALETTE.focus_ring);
+        assert_ne!(toggle.border, PALETTE.focus_ring);
+    }
+}
+
+#[test]
+fn unchecked_drop_target_keeps_the_dedicated_focus_outline() {
+    let node = TemplatePaneNodeData {
+        drop_hovered: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    for kind in [
+        WorkbenchSelectionControlKind::Checkbox,
+        WorkbenchSelectionControlKind::Radio,
+        WorkbenchSelectionControlKind::Toggle,
+    ] {
+        assert_eq!(
+            select_workbench_selection_control_style(&node, kind).border,
+            PALETTE.focus_ring
+        );
+    }
+}

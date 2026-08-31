@@ -46,6 +46,9 @@ pub fn profile_control_response_item_count(response: &ProfileControlResponse) ->
         );
         count = count.saturating_add(profile_snapshot_item_count(&diagnostics.profile));
     }
+    if response.module_composition_receipt.is_some() {
+        count = count.saturating_add(1);
+    }
     if let Some(report) = &response.hotspot_report {
         count = count
             .saturating_add(report.hotspots.len())
@@ -75,11 +78,17 @@ fn profile_snapshot_item_count(snapshot: &ProfileSnapshot) -> usize {
 
 pub fn world_query_item_count(result: &WorldQueryResult) -> usize {
     match result {
-        WorldQueryResult::Rows(rows) => rows.iter().fold(rows.len(), |count, row| {
-            row.components.values().fold(count, |count, value| {
-                count.saturating_add(json_value_item_count(value))
+        WorldQueryResult::ComponentRows { rows, .. } => {
+            rows.iter().fold(rows.len(), |count, row| {
+                row.components.values().fold(count, |count, value| {
+                    count.saturating_add(json_value_item_count(value))
+                })
             })
-        }),
+        }
+        WorldQueryResult::HierarchyRows { rows, .. } => rows.len(),
+        WorldQueryResult::InspectionFields { fields, .. } => fields.len(),
+        WorldQueryResult::TransformSnapshot { .. } => 1,
+        WorldQueryResult::EntityMissing { .. } => 1,
         WorldQueryResult::NotModified { .. } => 1,
     }
 }

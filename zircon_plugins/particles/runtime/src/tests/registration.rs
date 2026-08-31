@@ -154,5 +154,14 @@ fn particles_plugin_registration_contributes_runtime_module_render_feature_and_c
         workload.workgroup_size == [64, 1, 1]
             && workload.dispatch_extent == RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
     }));
+    assert!(
+        !descriptor.stage_passes[0].flags.has_side_effects
+            && !descriptor.stage_passes[1].flags.has_side_effects,
+        "the first two compute stages are retained by the particle render dataflow"
+    );
+    assert!(
+        descriptor.stage_passes[2].flags.has_side_effects,
+        "the final compute stage owns the externally observed debug readback"
+    );
     assert_eq!(descriptor.stage_passes[3].queue, QueueLane::Graphics);
 }

@@ -245,6 +245,27 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
+        "render.mesh.queue.opaque_command_count",
+        frame_index,
+        stats.last_mesh_opaque_command_count,
+        &["render", "mesh", "queue", "command", "opaque"],
+    );
+    record_count(
+        store,
+        "render.mesh.queue.advanced_pbr_opaque_command_count",
+        frame_index,
+        stats.last_mesh_advanced_pbr_opaque_command_count,
+        &[
+            "render",
+            "mesh",
+            "queue",
+            "command",
+            "advanced_pbr",
+            "opaque",
+        ],
+    );
+    record_count(
+        store,
         "render.mesh.queue.cached_command_hit_count",
         frame_index,
         stats.last_mesh_cached_command_hit_count,

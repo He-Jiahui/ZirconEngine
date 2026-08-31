@@ -105,7 +105,11 @@ impl RetainedEditorHost {
             )));
         };
         if self.workbench_window_bridge.command_palette_window_offset() != Some(current_offset)
-            || self.workbench_window_bridge.command_palette_query() != request_query
+            || self
+                .workbench_window_bridge
+                .command_palette_query()
+                .as_str()
+                != request_query
         {
             return Some(Ok(UiHostEventEffects::default()));
         }
@@ -114,7 +118,7 @@ impl RetainedEditorHost {
                 "scene picker session is no longer available".to_string()
             ));
         };
-        let state = session.command_palette_state(&request_query, target_offset, focus_last);
+        let state = session.command_palette_state(request_query, target_offset, focus_last);
         let updated = self
             .workbench_window_bridge
             .update_command_palette_query(state)
@@ -232,7 +236,7 @@ fn paint_only_effects(updated: bool) -> UiHostEventEffects {
     effects
 }
 
-fn parse_window_request(value: &str) -> Option<(usize, usize, bool, String)> {
+fn parse_window_request(value: &str) -> Option<(usize, usize, bool, &str)> {
     let mut fields = value.splitn(4, '|');
     let current_offset = fields.next()?.parse().ok()?;
     let target_offset = fields.next()?.parse().ok()?;
@@ -241,12 +245,8 @@ fn parse_window_request(value: &str) -> Option<(usize, usize, bool, String)> {
         "last" => true,
         _ => return None,
     };
-    Some((
-        current_offset,
-        target_offset,
-        focus_last,
-        fields.next()?.to_string(),
-    ))
+    let query = fields.next()?;
+    Some((current_offset, target_offset, focus_last, query))
 }
 
 fn scene_picker_action_name(mode: ScenePickerMode) -> &'static str {
@@ -268,3 +268,7 @@ mod tests {
         assert!(source.contains(".submit_scene_open_request(ticket, request)"));
     }
 }
+
+#[cfg(test)]
+#[path = "scene_picker_actions/borrowed_window_request_tests.rs"]
+mod borrowed_window_request_tests;

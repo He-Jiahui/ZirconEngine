@@ -9,7 +9,9 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
     );
     let mesh_pipeline_cache_mod =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mod.rs");
-    let prewarm = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
+    let prewarm_route = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
+    let prewarm_worker = read_runtime_src("graphics/shader/variant_cache/prewarm/worker.rs");
+    let prewarm_runtime_tests = read_runtime_src("graphics/shader/variant_cache/prewarm/tests.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
     let dynamic_api_mod = read_runtime_src("dynamic_api/mod.rs");
@@ -67,16 +69,24 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
         ],
     );
     assert_contains_all(
-        "shader variant cache blocks disk writes on render-pipeline validation failure",
-        &prewarm,
+        "shader variant cache route exposes render-pipeline validation",
+        &prewarm_route,
+        &["prewarm_shader_variants_to_disk_with_pipeline_validation"],
+    );
+    assert_contains_all(
+        "shader variant cache worker blocks disk writes on render-pipeline validation failure",
+        &prewarm_worker,
         &[
-            "prewarm_shader_variants_to_disk_with_pipeline_validation",
             "enable_wgpu_pipeline_validation",
             "record_wgpu_pipeline_validation_passed",
             "record_wgpu_pipeline_validation_failed",
             "WGPU render pipeline validation failed",
-            "render_shader_variant_prewarm_rejects_wgpu_pipeline_validation_failure_before_disk_write",
         ],
+    );
+    assert_contains_all(
+        "shader variant cache tests cover render-pipeline validation failure",
+        &prewarm_runtime_tests,
+        &["render_shader_variant_prewarm_rejects_wgpu_pipeline_validation_failure_before_disk_write"],
     );
     assert_contains_all(
         "dynamic API re-exports strict WGPU pipeline prewarm",
@@ -212,7 +222,15 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
         ),
         (
             "zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs",
-            prewarm.as_str(),
+            prewarm_route.as_str(),
+        ),
+        (
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs",
+            prewarm_worker.as_str(),
+        ),
+        (
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs",
+            prewarm_runtime_tests.as_str(),
         ),
         (
             "zircon_runtime/src/dynamic_api/shader_prewarm.rs",

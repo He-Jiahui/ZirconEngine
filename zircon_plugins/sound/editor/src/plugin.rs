@@ -43,17 +43,11 @@ impl zircon_editor::EditorPlugin for SoundEditorPlugin {
                 template_id: SOUND_TEMPLATE_ID,
                 template_document: "plugins://sound/editor/mixer_console.zui",
                 surfaces: &[
-                    EditorAuthoringSurface::new(
-                        SOUND_AUTHORING_VIEW_ID,
-                        "Sound Mixer",
-                        "Audio",
-                        "Plugins/Sound/Mixer",
-                    ),
+                    EditorAuthoringSurface::new(SOUND_AUTHORING_VIEW_ID, "Sound Mixer", "Audio"),
                     EditorAuthoringSurface::new(
                         SOUND_ACOUSTIC_DEBUG_VIEW_ID,
                         "Acoustic Debug",
                         "Audio",
-                        "Plugins/Sound/Acoustic Debug",
                     ),
                 ],
             },

@@ -1,9 +1,9 @@
 use std::{cell::Cell, fs};
 
 use crate::core::framework::render::{
-    ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
-    ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource,
-    GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits,
+    ShaderPassType, ShaderQualityTier, ShaderVariantKey, ShaderVariantPrewarmManifest,
+    ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource,
 };
 use crate::core::resource::ResourceId;
 use crate::graphics::shader::{ShaderVariantCacheDisk, ShaderVariantCacheDiskKey};
@@ -24,10 +24,7 @@ fn render_shader_variant_prewarm_records_combined_wgpu_validation_success() {
         vec!["include-wgpu-combined-validation-success".to_string()],
     );
     let request = test_request(&source);
-    let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-        &request.key,
-        source.include_content_hashes.iter().map(String::as_str),
-    );
+    let disk_key = disk_key(&request.key, &source);
     let manifest = ShaderVariantPrewarmManifest::new(vec![source], vec![request]);
     let module_validation_calls = Cell::new(0);
     let pipeline_validation_calls = Cell::new(0);
@@ -80,10 +77,7 @@ fn render_shader_variant_prewarm_skips_pipeline_after_module_validation_failure(
         vec!["include-wgpu-combined-validation-failure".to_string()],
     );
     let request = test_request(&source);
-    let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-        &request.key,
-        source.include_content_hashes.iter().map(String::as_str),
-    );
+    let disk_key = disk_key(&request.key, &source);
     let manifest = ShaderVariantPrewarmManifest::new(vec![source], vec![request]);
 
     let report = prewarm_shader_variants_to_disk_with_module_and_pipeline_validation(
@@ -133,6 +127,20 @@ fn test_request(source: &ShaderVariantPrewarmSource) -> ShaderVariantPrewarmRequ
         pipeline_state: None,
         source_id: source.id.clone(),
     }
+}
+
+fn disk_key(
+    variant_key: &ShaderVariantKey,
+    source: &ShaderVariantPrewarmSource,
+) -> ShaderVariantCacheDiskKey {
+    ShaderVariantCacheDiskKey::from_variant_key(
+        variant_key,
+        &source.source_hash,
+        &source.include_content_hashes,
+        &source.template_revision,
+        &source.naga_version,
+        &source.wgpu_version,
+    )
 }
 
 fn variant_key() -> ShaderVariantKey {

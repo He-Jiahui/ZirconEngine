@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::TransitionDesc;
 use crate::state_machine::condition_expression::CompiledConditionProgram;
+use crate::TransitionDesc;
 
 use super::StateSlot;
 

@@ -10,6 +10,11 @@ use super::builder::SnapshotBuilder;
 use super::state_flags::visible_enabled_flags;
 use super::value_type::infer_value_type;
 
+#[cfg(test)]
+mod capacity_tests;
+
+const ACTIVITY_CORE_PROPERTY_COUNT: usize = 3;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EditorActivityKind {
     ActivityView,
@@ -43,7 +48,8 @@ pub(super) fn activity_node(
     activity: &EditorActivityReflection,
     node_path: String,
 ) -> UiNodeId {
-    let mut properties = vec![
+    let mut properties = Vec::with_capacity(activity_property_capacity(activity));
+    properties.extend([
         UiPropertyDescriptor::new(
             "descriptor_id",
             UiValueType::String,
@@ -59,7 +65,7 @@ pub(super) fn activity_node(
             UiValueType::String,
             json!(kind_name(&activity.kind)),
         ),
-    ];
+    ]);
     properties.extend(activity.properties.iter().map(|(name, value)| {
         UiPropertyDescriptor::new(name.clone(), infer_value_type(value), value.clone())
     }));
@@ -84,6 +90,10 @@ pub(super) fn activity_node(
         properties,
         activity.actions.clone(),
     )
+}
+
+fn activity_property_capacity(activity: &EditorActivityReflection) -> usize {
+    ACTIVITY_CORE_PROPERTY_COUNT.saturating_add(activity.properties.len())
 }
 
 fn host_name(host: &EditorActivityHost) -> &'static str {

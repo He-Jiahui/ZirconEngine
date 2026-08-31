@@ -1,11 +1,13 @@
 use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::time::{Duration, Instant};
 
-use crate::core::editing::operation::{DeferredOperationInvocation, PendingEditRetention};
+use crate::core::editing::operation::{
+    DeferredOperationInvocation, EditOperationTarget, PendingEditRetention,
+};
 use crate::core::editor_operation::EditorOperationInvocation;
 
-use super::super::PlayEditTarget;
 use super::{PendingEditId, PendingEditIntent};
 
 const DEFAULT_MAX_ENTRIES: usize = 4_096;
@@ -71,7 +73,7 @@ impl PendingEditPageCursor {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PendingEditPageEntry {
     pub id: PendingEditId,
-    pub target: PlayEditTarget,
+    pub target: EditOperationTarget,
     pub operation_id: String,
     pub retention: PendingEditRetention,
     pub payload_bytes: usize,
@@ -105,6 +107,7 @@ struct PendingEditQueueState {
     retry_entries: VecDeque<PendingEditIntent>,
     entries: VecDeque<PendingEditIntent>,
     payload_bytes: usize,
+    in_flight_count: usize,
 }
 
 impl Default for PendingEditQueueState {
@@ -114,6 +117,7 @@ impl Default for PendingEditQueueState {
             retry_entries: VecDeque::new(),
             entries: VecDeque::new(),
             payload_bytes: 0,
+            in_flight_count: 0,
         }
     }
 }
@@ -128,9 +132,16 @@ impl PendingEditQueue {
 
     pub fn enqueue(
         &self,
-        target: PlayEditTarget,
+        target: EditOperationTarget,
         deferred: DeferredOperationInvocation,
     ) -> Result<PendingEditEnqueueReport, PendingEditQueueError> {
+        let registered_target = deferred.target();
+        if target != registered_target {
+            return Err(PendingEditQueueError::TargetMismatch {
+                requested: target,
+                registered: registered_target,
+            });
+        }
         let payload_bytes = serde_json::to_vec(deferred.invocation())
             .map_err(|error| PendingEditQueueError::PayloadEncoding(error.to_string()))?
             .len();
@@ -267,10 +278,10 @@ impl PendingEditQueue {
             .iter()
             .chain(state.entries.iter())
             .filter(|intent| after.is_none_or(|cursor| intent.id > cursor.id()));
-        let entries = candidates
-            .by_ref()
-            .take(limit)
-            .map(|intent| PendingEditPageEntry {
+        let page_capacity = candidates.clone().count().min(limit);
+        let mut entries = Vec::with_capacity(page_capacity);
+        for intent in candidates.by_ref().take(limit) {
+            entries.push(PendingEditPageEntry {
                 id: intent.id,
                 target: intent.target,
                 operation_id: intent.invocation.operation_id.to_string(),
@@ -278,8 +289,8 @@ impl PendingEditQueue {
                 payload_bytes: intent.payload_bytes(),
                 age: now.saturating_duration_since(intent.enqueued_at()),
                 retry_count: intent.retry_count(),
-            })
-            .collect::<Vec<_>>();
+            });
+        }
         let next_cursor = candidates
             .next()
             .and(entries.last())
@@ -301,25 +312,39 @@ impl PendingEditQueue {
         mut apply: impl FnMut(&PendingEditIntent) -> Result<(), E>,
     ) -> super::PendingEditApplyReport<E> {
         let started_at = Instant::now();
-        let mut retry_remaining = self.lock_state().retry_entries.len();
+        let (mut retry_remaining, mut pending_remaining) = {
+            let state = self.lock_state();
+            (state.retry_entries.len(), state.entries.len())
+        };
         let mut applied = Vec::new();
         let mut failures = Vec::new();
 
         while applied.len().saturating_add(failures.len()) < budget.max_entries
             && started_at.elapsed() < budget.max_elapsed
         {
-            let Some(mut intent) = self.take_next(&mut retry_remaining) else {
+            let Some(mut intent) = self.take_next(&mut retry_remaining, &mut pending_remaining)
+            else {
                 break;
             };
-            match apply(&intent) {
-                Ok(()) => applied.push(intent.id),
-                Err(error) => {
+            let outcome = catch_unwind(AssertUnwindSafe(|| apply(&intent)));
+            let payload_bytes = intent.payload_bytes();
+            match outcome {
+                Ok(Ok(())) => {
+                    self.complete_in_flight(payload_bytes);
+                    applied.push(intent.id);
+                }
+                Ok(Err(error)) => {
                     intent.mark_retry();
                     failures.push(super::PendingEditApplyFailure {
                         intent: intent.clone(),
                         error,
                     });
                     self.requeue_for_retry(intent);
+                }
+                Err(panic) => {
+                    intent.mark_retry();
+                    self.requeue_for_retry(intent);
+                    resume_unwind(panic);
                 }
             }
         }
@@ -341,7 +366,9 @@ impl PendingEditQueue {
         let discarded_payload_bytes = state.payload_bytes;
         state.retry_entries.clear();
         state.entries.clear();
-        state.payload_bytes = 0;
+        if state.in_flight_count == 0 {
+            state.payload_bytes = 0;
+        }
         super::PendingEditDiscardReport {
             discarded_count,
             discarded_payload_bytes,
@@ -349,24 +376,37 @@ impl PendingEditQueue {
         }
     }
 
-    fn take_next(&self, retry_remaining: &mut usize) -> Option<PendingEditIntent> {
+    fn take_next(
+        &self,
+        retry_remaining: &mut usize,
+        pending_remaining: &mut usize,
+    ) -> Option<PendingEditIntent> {
         let mut state = self.lock_state();
         let next = if *retry_remaining != 0 {
             *retry_remaining -= 1;
             state.retry_entries.pop_front()
-        } else {
+        } else if *pending_remaining != 0 {
+            *pending_remaining -= 1;
             state.entries.pop_front()
+        } else {
+            None
         };
         if let Some(intent) = next.as_ref() {
-            state.payload_bytes = state.payload_bytes.saturating_sub(intent.payload_bytes());
+            state.in_flight_count = state.in_flight_count.saturating_add(1);
         }
         next
     }
 
     fn requeue_for_retry(&self, intent: PendingEditIntent) {
         let mut state = self.lock_state();
-        state.payload_bytes = state.payload_bytes.saturating_add(intent.payload_bytes());
+        state.in_flight_count = state.in_flight_count.saturating_sub(1);
         state.retry_entries.push_back(intent);
+    }
+
+    fn complete_in_flight(&self, payload_bytes: usize) {
+        let mut state = self.lock_state();
+        state.in_flight_count = state.in_flight_count.saturating_sub(1);
+        state.payload_bytes = state.payload_bytes.saturating_sub(payload_bytes);
     }
 
     fn reject_expired_queue(
@@ -438,7 +478,10 @@ enum PendingEditLocation {
 
 impl PendingEditQueueState {
     fn len(&self) -> usize {
-        self.retry_entries.len().saturating_add(self.entries.len())
+        self.retry_entries
+            .len()
+            .saturating_add(self.entries.len())
+            .saturating_add(self.in_flight_count)
     }
 
     fn oldest_enqueued_at(&self) -> Option<Instant> {
@@ -451,7 +494,7 @@ impl PendingEditQueueState {
 
     fn find_cohort(
         &self,
-        target: PlayEditTarget,
+        target: EditOperationTarget,
         invocation: &EditorOperationInvocation,
         retention: &PendingEditRetention,
     ) -> Option<PendingEditLocation> {
@@ -469,7 +512,7 @@ impl PendingEditQueueState {
 
     fn cohort_count(
         &self,
-        target: PlayEditTarget,
+        target: EditOperationTarget,
         invocation: &EditorOperationInvocation,
         retention: &PendingEditRetention,
     ) -> usize {
@@ -482,7 +525,7 @@ impl PendingEditQueueState {
 
     fn oldest_cohort(
         &self,
-        target: PlayEditTarget,
+        target: EditOperationTarget,
         invocation: &EditorOperationInvocation,
         retention: &PendingEditRetention,
     ) -> Option<PendingEditLocation> {
@@ -551,6 +594,10 @@ pub enum PendingEditQueueError {
     PayloadEncoding(String),
     PayloadAccountingOverflow,
     QueueStateInconsistent,
+    TargetMismatch {
+        requested: EditOperationTarget,
+        registered: EditOperationTarget,
+    },
 }
 
 impl Display for PendingEditQueueError {
@@ -602,13 +649,61 @@ impl Display for PendingEditQueueError {
             }
             Self::QueueStateInconsistent => formatter
                 .write_str("pending edit queue changed while an operation was being admitted"),
+            Self::TargetMismatch {
+                requested,
+                registered,
+            } => write!(
+                formatter,
+                "pending edit target {requested:?} does not match its registered target {registered:?}"
+            ),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+
     use super::*;
+
+    const PAGE_BUFFER_SAMPLE_PAIRS: usize = 17;
+    const PAGE_BUFFER_MEASURE_ITERATIONS: usize = 4_096;
+    const PAGE_BUFFER_SIZE: usize = 128;
+
+    fn elapsed_micros(run: impl FnOnce()) -> u128 {
+        let started = Instant::now();
+        run();
+        started.elapsed().as_micros()
+    }
+
+    fn nearest_rank_p95(samples: &mut [u128]) -> u128 {
+        samples.sort_unstable();
+        let rank = (samples.len() * 95).div_ceil(100);
+        samples[rank.saturating_sub(1)]
+    }
+
+    fn legacy_page_buffer(values: &[usize]) -> Vec<usize> {
+        values
+            .iter()
+            .filter(|_| true)
+            .take(PAGE_BUFFER_SIZE)
+            .copied()
+            .collect()
+    }
+
+    fn reserved_page_buffer(values: &[usize]) -> Vec<usize> {
+        let mut candidates = values.iter().filter(|_| true);
+        let page_capacity = candidates
+            .size_hint()
+            .1
+            .unwrap_or(PAGE_BUFFER_SIZE)
+            .min(PAGE_BUFFER_SIZE);
+        let mut page = Vec::with_capacity(page_capacity);
+        for value in candidates.by_ref().take(PAGE_BUFFER_SIZE) {
+            page.push(*value);
+        }
+        page
+    }
 
     #[test]
     fn removing_a_stale_location_fails_without_panicking() {
@@ -618,6 +713,67 @@ mod tests {
         assert!(state.intent_at_mut(PendingEditLocation::Retry(0)).is_none());
         assert!(state.remove(PendingEditLocation::Pending(0)).is_none());
         assert!(state.remove(PendingEditLocation::Retry(0)).is_none());
+    }
+
+    #[test]
+    #[ignore = "release performance evidence for the managed validation coordinator"]
+    fn optimization_batch_20260826b_editor07_pending_edit_page_capacity_performance_evidence() {
+        let values = (0..PAGE_BUFFER_SIZE).collect::<Vec<_>>();
+
+        for _ in 0..4 {
+            assert_eq!(
+                black_box(legacy_page_buffer(&values)).len(),
+                PAGE_BUFFER_SIZE
+            );
+            assert_eq!(
+                black_box(reserved_page_buffer(&values)).len(),
+                PAGE_BUFFER_SIZE
+            );
+        }
+
+        let mut legacy_samples = Vec::with_capacity(PAGE_BUFFER_SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(PAGE_BUFFER_SAMPLE_PAIRS);
+        for sample_index in 0..PAGE_BUFFER_SAMPLE_PAIRS {
+            let measure_legacy = || {
+                elapsed_micros(|| {
+                    for _ in 0..PAGE_BUFFER_MEASURE_ITERATIONS {
+                        black_box(legacy_page_buffer(black_box(&values)));
+                    }
+                })
+            };
+            let measure_optimized = || {
+                elapsed_micros(|| {
+                    for _ in 0..PAGE_BUFFER_MEASURE_ITERATIONS {
+                        black_box(reserved_page_buffer(black_box(&values)));
+                    }
+                })
+            };
+            if sample_index % 2 == 0 {
+                legacy_samples.push(measure_legacy());
+                optimized_samples.push(measure_optimized());
+            } else {
+                optimized_samples.push(measure_optimized());
+                legacy_samples.push(measure_legacy());
+            }
+        }
+
+        let legacy_p95 = nearest_rank_p95(&mut legacy_samples);
+        let optimized_p95 = nearest_rank_p95(&mut optimized_samples);
+        println!(
+            "EDITOR07_PENDING_EDIT_PAGE_CAPACITY_BENCH_V1 sample_pairs={} page_entries={} iterations_per_sample={} legacy_page_buffer_initial_capacity=0 optimized_page_buffer_initial_capacity={} legacy_p95_us={} optimized_p95_us={} legacy_samples_us={:?} optimized_samples_us={:?}",
+            PAGE_BUFFER_SAMPLE_PAIRS,
+            PAGE_BUFFER_SIZE,
+            PAGE_BUFFER_MEASURE_ITERATIONS,
+            PAGE_BUFFER_SIZE,
+            legacy_p95,
+            optimized_p95,
+            legacy_samples,
+            optimized_samples,
+        );
+        assert!(
+            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(80),
+            "reserved pending-edit page buffer p95 must be at least 20% below progressive growth: legacy={legacy_p95}us optimized={optimized_p95}us"
+        );
     }
 }
 

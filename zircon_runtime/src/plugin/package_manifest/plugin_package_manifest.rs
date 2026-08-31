@@ -102,10 +102,15 @@ impl PluginPackageManifest {
         {
             return self.id.clone();
         }
-        format!(
-            "{}.{}.{}",
-            self.package_prefix, self.package_company, self.package_name
-        )
+        let capacity =
+            self.package_prefix.len() + self.package_company.len() + self.package_name.len() + 2;
+        let mut package_id = String::with_capacity(capacity);
+        package_id.push_str(&self.package_prefix);
+        package_id.push('.');
+        package_id.push_str(&self.package_company);
+        package_id.push('.');
+        package_id.push_str(&self.package_name);
+        package_id
     }
 
     pub fn asset_roots_or_default(&self) -> Vec<String> {
@@ -130,5 +135,21 @@ impl PluginPackageManifest {
                 .iter()
                 .map(move |method| (interface, method))
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PluginPackageManifest;
+
+    #[test]
+    fn exact_package_coordinate_id_preserves_qualified_and_fallback_identity() {
+        let qualified = PluginPackageManifest::new("legacy_weather", "Weather")
+            .with_package_identity("org", "zircon", "weather");
+        assert_eq!(qualified.package_id(), "org.zircon.weather");
+
+        let fallback = PluginPackageManifest::new("legacy_weather", "Weather")
+            .with_package_identity("", "zircon", "weather");
+        assert_eq!(fallback.package_id(), "legacy_weather");
     }
 }

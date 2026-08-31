@@ -171,6 +171,66 @@ fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
 }
 
 #[test]
+fn taa_resolve_reads_depth_of_field_output_from_pre_reconstruction_phase() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &Default::default(),
+        &Default::default(),
+        &RenderPostProcessEffectStackSettings {
+            depth_of_field: RenderDepthOfFieldSettings {
+                aperture: 0.75,
+                max_blur_radius: 4.0,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        true,
+        true,
+        &AntiAliasSettings::taa(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::Temporal)
+                .with_post_process_stack(stack),
+        )
+        .unwrap();
+
+    let taa_pass = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "taa-resolve")
+        .expect("TAA resolve should be compiled");
+    let taa_read_resources = taa_pass
+        .resources
+        .iter()
+        .filter(|resource| resource.access == RenderGraphResourceAccessKind::Read)
+        .map(|resource| resource.name.as_str())
+        .collect::<Vec<_>>();
+    assert!(taa_read_resources.contains(&PostProcessGraphResourceNames::DEPTH_OF_FIELDED));
+    assert!(!taa_read_resources.contains(&PostProcessGraphResourceNames::SCENE_COLOR));
+
+    let live_pass_names = compiled
+        .execution_passes_in_graph_order()
+        .map(|execution_pass| {
+            compiled.graph().passes()[execution_pass.graph_pass_index]
+                .name
+                .as_str()
+        })
+        .collect::<Vec<_>>();
+    let depth_of_field_index = live_pass_names
+        .iter()
+        .position(|name| *name == "depth-of-field")
+        .expect("depth of field should remain live");
+    let taa_index = live_pass_names
+        .iter()
+        .position(|name| *name == "taa-resolve")
+        .expect("TAA resolve should remain live");
+    assert!(depth_of_field_index < taa_index);
+}
+
+#[test]
 fn taa_resolve_pass_and_resources_are_absent_when_taa_is_disabled() {
     let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
         &Default::default(),

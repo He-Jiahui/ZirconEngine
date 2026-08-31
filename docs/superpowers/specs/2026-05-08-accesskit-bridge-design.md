@@ -7,7 +7,7 @@ related_code:
   - dev/godot/servers/display/accessibility_server.h
   - zircon_runtime_interface/src/ui/accessibility.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/input/dispatch.rs
   - zircon_runtime/src/ui/tree/node/mod.rs
@@ -16,7 +16,7 @@ related_code:
 implementation_files:
   - zircon_runtime_interface/src/ui/accessibility.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime_interface/src/tests/accessibility_contracts.rs
   - zircon_runtime/src/ui/accessibility/mod.rs
   - zircon_runtime/src/ui/accessibility/extract.rs

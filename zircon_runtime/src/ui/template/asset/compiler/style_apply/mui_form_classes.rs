@@ -360,14 +360,14 @@ fn append_text_field_input_slot_classes(
     owner_attributes: &BTreeMap<String, Value>,
 ) {
     let variant = text_field_variant(owner_attributes);
-    match variant.as_str() {
+    match variant {
         "filled" => append_class(&mut child.classes, "MuiFilledInput-root".to_string()),
         "standard" => append_class(&mut child.classes, "MuiInput-root".to_string()),
         _ => append_class(&mut child.classes, "MuiOutlinedInput-root".to_string()),
     }
     append_class(&mut child.classes, "MuiInputBase-root".to_string());
     append_input_owner_state_classes(child, owner_attributes, "MuiInputBase");
-    match variant.as_str() {
+    match variant {
         "filled" => {
             append_input_owner_state_classes(child, owner_attributes, "MuiFilledInput");
             if !bool_from_attributes_any(owner_attributes, &["disableUnderline"]) {
@@ -390,7 +390,7 @@ fn append_text_field_html_input_slot_classes(
 ) {
     let variant = text_field_variant(owner_attributes);
     append_class(&mut child.classes, "MuiInputBase-input".to_string());
-    match variant.as_str() {
+    match variant {
         "filled" => append_class(&mut child.classes, "MuiFilledInput-input".to_string()),
         "standard" => append_class(&mut child.classes, "MuiInput-input".to_string()),
         _ => append_class(&mut child.classes, "MuiOutlinedInput-input".to_string()),
@@ -440,7 +440,7 @@ fn append_text_field_form_helper_text_slot_classes(
 ) {
     append_class(&mut child.classes, "MuiFormHelperText-root".to_string());
     let variant = text_field_variant(owner_attributes);
-    if matches!(variant.as_str(), "filled" | "outlined") {
+    if matches!(variant, "filled" | "outlined") {
         append_class(
             &mut child.classes,
             "MuiFormHelperText-contained".to_string(),
@@ -537,10 +537,18 @@ fn has_adornment_from_attributes(attributes: &BTreeMap<String, Value>, name: &st
         || bool_from_attributes_any(attributes, &[name])
 }
 
-fn text_field_variant(attributes: &BTreeMap<String, Value>) -> String {
-    string_from_attributes_any(attributes, &["variant", "mui_variant"])
-        .filter(|variant| matches!(variant.as_str(), "filled" | "outlined" | "standard"))
-        .unwrap_or_else(|| "outlined".to_string())
+fn text_field_variant(attributes: &BTreeMap<String, Value>) -> &str {
+    ["variant", "mui_variant"]
+        .iter()
+        .find_map(|name| {
+            attributes
+                .get(*name)
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|variant| !variant.is_empty())
+        })
+        .filter(|variant| matches!(*variant, "filled" | "outlined" | "standard"))
+        .unwrap_or("outlined")
 }
 
 fn text_field_label_shrinks(attributes: &BTreeMap<String, Value>) -> bool {
@@ -548,6 +556,10 @@ fn text_field_label_shrinks(attributes: &BTreeMap<String, Value>) -> bool {
         || string_from_attributes_any(attributes, &["value", "value_text", "defaultValue"])
             .is_some_and(|value| !value.is_empty())
 }
+
+#[cfg(test)]
+#[path = "mui_form_classes/borrowed_text_field_variant_tests.rs"]
+mod borrowed_text_field_variant_tests;
 
 fn append_prefixed_state_classes(node: &mut UiTemplateNode, prefix: &str, states: &[&str]) {
     for state in states {

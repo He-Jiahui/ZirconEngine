@@ -1,3 +1,5 @@
+use std::{collections::HashSet, mem};
+
 use crate::core::framework::render::{
     AntiAliasMode, AntiAliasSettings, RenderBloomSettings, RenderColorGradingSettings,
     RenderExposureMode, RenderExposureSettings,
@@ -86,7 +88,7 @@ impl PostProcessStackDescriptor {
         history_available: bool,
         anti_alias: &AntiAliasSettings,
     ) -> Self {
-        Self::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+        Self::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
             bloom,
             color_grading,
             exposure,
@@ -95,10 +97,11 @@ impl PostProcessStackDescriptor {
             history_available,
             anti_alias,
             false,
+            false,
         )
     }
 
-    pub fn from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+    pub fn from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
         bloom: &RenderBloomSettings,
         color_grading: &RenderColorGradingSettings,
         exposure: RenderExposureSettings,
@@ -106,7 +109,8 @@ impl PostProcessStackDescriptor {
         temporal_history_enabled: bool,
         history_available: bool,
         anti_alias: &AntiAliasSettings,
-        upscale_required: bool,
+        primary_upscale_required: bool,
+        secondary_upscale_required: bool,
     ) -> Self {
         let bloom_enabled = bloom.intensity > 0.0;
         let color_grading_enabled = *color_grading != RenderColorGradingSettings::default();
@@ -163,20 +167,22 @@ impl PostProcessStackDescriptor {
                 .push(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string());
         }
 
-        let final_scene_color = if taa_enabled {
-            PostProcessGraphResourceNames::TAA_OUTPUT
+        // DOF remains in primary space; temporal reconstruction consumes it before later scene
+        // effects move to the reconstructed target.
+        let pre_reconstruction_scene_color = if depth_of_field_enabled {
+            PostProcessGraphResourceNames::DEPTH_OF_FIELDED
         } else {
             PostProcessGraphResourceNames::SCENE_COLOR
         };
-        let post_dof_scene_color = if depth_of_field_enabled {
-            PostProcessGraphResourceNames::DEPTH_OF_FIELDED
+        let reconstructed_scene_color = if taa_enabled {
+            PostProcessGraphResourceNames::TAA_OUTPUT
         } else {
-            final_scene_color
+            pre_reconstruction_scene_color
         };
         let post_motion_scene_color = if motion_blur_enabled {
             PostProcessGraphResourceNames::MOTION_BLURRED
         } else {
-            post_dof_scene_color
+            reconstructed_scene_color
         };
         let post_composite_scene_color = if scene_composite_enabled {
             PostProcessGraphResourceNames::SCENE_COMPOSITED
@@ -189,15 +195,15 @@ impl PostProcessStackDescriptor {
             post_composite_scene_color
         };
         let mut final_inputs = vec![post_blur_scene_color.to_string()];
-        let mut scene_color_after = Vec::new();
-        if taa_enabled {
-            scene_color_after.push(PostProcessEffectKind::TaaResolve);
-        }
-        let mut post_dof_after = scene_color_after.clone();
+        let mut pre_reconstruction_after = Vec::new();
         if depth_of_field_enabled {
-            post_dof_after.push(PostProcessEffectKind::DepthOfField);
+            pre_reconstruction_after.push(PostProcessEffectKind::DepthOfField);
         }
-        let mut post_motion_after = post_dof_after.clone();
+        let mut reconstructed_after = pre_reconstruction_after.clone();
+        if taa_enabled {
+            reconstructed_after.push(PostProcessEffectKind::TaaResolve);
+        }
+        let mut post_motion_after = reconstructed_after.clone();
         if motion_blur_enabled {
             post_motion_after.push(PostProcessEffectKind::MotionBlur);
         }
@@ -257,15 +263,30 @@ impl PostProcessStackDescriptor {
                 .push(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string());
             final_after.push(PostProcessEffectKind::ScreenSpaceReflectionResolve);
         }
-        let output_transfer_input = if upscale_required {
-            vec![PostProcessGraphResourceNames::UPSCALED.to_string()]
+        let display_post_process_input = if terminal_anti_alias_enabled {
+            PostProcessGraphResourceNames::FINAL_COMPOSITED
+        } else {
+            PostProcessGraphResourceNames::TONEMAPPED
+        };
+        let display_post_process_after =
+            if let Some(terminal_anti_alias_effect) = terminal_anti_alias_effect {
+                vec![terminal_anti_alias_effect]
+            } else {
+                vec![PostProcessEffectKind::Uber]
+            };
+        let output_transfer_input = if secondary_upscale_required {
+            vec![PostProcessGraphResourceNames::SECONDARY_UPSCALED.to_string()]
+        } else if primary_upscale_required {
+            vec![PostProcessGraphResourceNames::PRIMARY_UPSCALED.to_string()]
         } else if terminal_anti_alias_enabled {
             vec![PostProcessGraphResourceNames::FINAL_COMPOSITED.to_string()]
         } else {
             final_inputs.clone()
         };
-        let output_transfer_after = if upscale_required {
-            vec![PostProcessEffectKind::Upscale]
+        let output_transfer_after = if secondary_upscale_required {
+            vec![PostProcessEffectKind::SecondaryUpscale]
+        } else if primary_upscale_required {
+            vec![PostProcessEffectKind::PrimaryUpscale]
         } else if let Some(terminal_anti_alias_effect) = terminal_anti_alias_effect {
             vec![terminal_anti_alias_effect]
         } else {
@@ -279,11 +300,23 @@ impl PostProcessStackDescriptor {
         let mut color_lut_after = color_grading_after;
         color_lut_after.push(PostProcessEffectKind::ExposureResolve);
         let mut effects = Vec::new();
+        if depth_of_field_enabled {
+            effects.push(
+                PostProcessEffectSettings::new(PostProcessEffectKind::DepthOfField)
+                    .with_required_inputs([
+                        PostProcessGraphResourceNames::SCENE_COLOR,
+                        PostProcessGraphResourceNames::SCENE_DEPTH,
+                        PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+                        PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+                    ])
+                    .with_produced_outputs([PostProcessGraphResourceNames::DEPTH_OF_FIELDED]),
+            );
+        }
         if taa_enabled {
             effects.push(
                 PostProcessEffectSettings::new(PostProcessEffectKind::TaaResolve)
                     .with_required_inputs([
-                        PostProcessGraphResourceNames::SCENE_COLOR,
+                        pre_reconstruction_scene_color,
                         PostProcessGraphResourceNames::SCENE_DEPTH,
                         PostProcessGraphResourceNames::SCENE_VELOCITY,
                         PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
@@ -292,32 +325,20 @@ impl PostProcessStackDescriptor {
                     .with_produced_outputs([
                         PostProcessGraphResourceNames::TAA_OUTPUT,
                         PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
-                    ]),
-            );
-        }
-        if depth_of_field_enabled {
-            effects.push(
-                PostProcessEffectSettings::new(PostProcessEffectKind::DepthOfField)
-                    .with_required_inputs([
-                        final_scene_color,
-                        PostProcessGraphResourceNames::SCENE_DEPTH,
-                        PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
-                        PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
                     ])
-                    .with_produced_outputs([PostProcessGraphResourceNames::DEPTH_OF_FIELDED])
-                    .with_after(scene_color_after.clone()),
+                    .with_after(pre_reconstruction_after.clone()),
             );
         }
         if motion_blur_enabled {
             effects.push(
                 PostProcessEffectSettings::new(PostProcessEffectKind::MotionBlur)
                     .with_required_inputs([
-                        post_dof_scene_color,
+                        reconstructed_scene_color,
                         PostProcessGraphResourceNames::SCENE_DEPTH,
                         PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
                     ])
                     .with_produced_outputs([PostProcessGraphResourceNames::MOTION_BLURRED])
-                    .with_after(post_dof_after.clone()),
+                    .with_after(reconstructed_after.clone()),
             );
         }
         if exposure_histogram_enabled {
@@ -349,10 +370,13 @@ impl PostProcessStackDescriptor {
             effects.push(
                 PostProcessEffectSettings::new(PostProcessEffectKind::Uber)
                     .with_required_inputs(effect_stack_inputs)
-                    .with_produced_outputs(effect_stack_outputs(effect_stack, upscale_required))
+                    .with_produced_outputs(effect_stack_outputs(effect_stack))
                     .with_after(effect_stack_after.clone()),
             );
-        } else if upscale_required || terminal_anti_alias_enabled {
+        } else if primary_upscale_required
+            || secondary_upscale_required
+            || terminal_anti_alias_enabled
+        {
             effects.push(
                 PostProcessEffectSettings::new(PostProcessEffectKind::Uber)
                     .with_required_inputs(final_inputs.clone())
@@ -443,23 +467,28 @@ impl PostProcessStackDescriptor {
                     .with_after([PostProcessEffectKind::Uber]),
             );
         }
-        if upscale_required {
-            let upscale_input = if terminal_anti_alias_enabled {
-                PostProcessGraphResourceNames::FINAL_COMPOSITED
+        if primary_upscale_required {
+            effects.push(
+                PostProcessEffectSettings::new(PostProcessEffectKind::PrimaryUpscale)
+                    .with_required_inputs([display_post_process_input])
+                    .with_produced_outputs([PostProcessGraphResourceNames::PRIMARY_UPSCALED])
+                    .with_after(display_post_process_after.clone()),
+            );
+        }
+        if secondary_upscale_required {
+            let (secondary_input, secondary_after) = if primary_upscale_required {
+                (
+                    PostProcessGraphResourceNames::PRIMARY_UPSCALED,
+                    vec![PostProcessEffectKind::PrimaryUpscale],
+                )
             } else {
-                PostProcessGraphResourceNames::TONEMAPPED
-            };
-            let upscale_after = if let Some(terminal_anti_alias_effect) = terminal_anti_alias_effect
-            {
-                vec![terminal_anti_alias_effect]
-            } else {
-                vec![PostProcessEffectKind::Uber]
+                (display_post_process_input, display_post_process_after)
             };
             effects.push(
-                PostProcessEffectSettings::new(PostProcessEffectKind::Upscale)
-                    .with_required_inputs([upscale_input])
-                    .with_produced_outputs([PostProcessGraphResourceNames::UPSCALED])
-                    .with_after(upscale_after),
+                PostProcessEffectSettings::new(PostProcessEffectKind::SecondaryUpscale)
+                    .with_required_inputs([secondary_input])
+                    .with_produced_outputs([PostProcessGraphResourceNames::SECONDARY_UPSCALED])
+                    .with_after(secondary_after),
             );
         }
         effects.push(
@@ -511,81 +540,74 @@ impl PostProcessStackDescriptor {
     }
 
     pub fn with_effect_disabled(mut self, kind: PostProcessEffectKind) -> Self {
-        let disabled_outputs = self
+        let disabled_output_groups = self
             .effects
-            .iter()
-            .filter(|effect| effect.kind == kind)
-            .flat_map(|effect| effect.produced_outputs.iter().cloned())
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(index, effect)| {
+                (effect.kind == kind).then(|| {
+                    effect.enabled = false;
+                    (index, mem::take(&mut effect.produced_outputs))
+                })
+            })
             .collect::<Vec<_>>();
-        for effect in &mut self.effects {
-            if effect.kind == kind {
-                effect.enabled = false;
-            }
-            effect
-                .required_inputs
-                .retain(|resource| !disabled_outputs.contains(resource));
-            effect.after.retain(|dependency| *dependency != kind);
-        }
-        self
-    }
-
-    pub fn without_history_resources(&self) -> Self {
-        let mut stack = self.clone();
-        stack.initial_resources.retain(|resource| {
-            resource != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
-                && resource != PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS
-                && resource != PostProcessGraphResourceNames::TAA_HISTORY_CURRENT
-                && resource != PostProcessGraphResourceNames::TAA_REACTIVE_MASK
-        });
-        for effect in &mut stack.effects {
-            if effect.kind == PostProcessEffectKind::TaaResolve {
-                effect.enabled = false;
-            }
-            let had_taa_output_input = effect
-                .required_inputs
+        let disabled_output_count = disabled_output_groups
+            .iter()
+            .map(|(_, outputs)| outputs.len())
+            .sum();
+        let mut disabled_outputs: HashSet<&str> = HashSet::with_capacity(disabled_output_count);
+        disabled_outputs.extend(
+            disabled_output_groups
                 .iter()
-                .any(|resource| resource == PostProcessGraphResourceNames::TAA_OUTPUT);
-            effect.required_inputs.retain(|resource| {
-                resource != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
-                    && resource != PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS
-                    && resource != PostProcessGraphResourceNames::TAA_HISTORY_CURRENT
-                    && resource != PostProcessGraphResourceNames::TAA_OUTPUT
-                    && resource != PostProcessGraphResourceNames::TAA_REACTIVE_MASK
-            });
-            if had_taa_output_input
-                && !effect
+                .flat_map(|(_, outputs)| outputs.iter().map(String::as_str)),
+        );
+        let temporal_fallback_resource = if kind != PostProcessEffectKind::DepthOfField
+            && self
+                .effects
+                .iter()
+                .any(|effect| effect.enabled && effect.kind == PostProcessEffectKind::DepthOfField)
+        {
+            PostProcessGraphResourceNames::DEPTH_OF_FIELDED
+        } else {
+            PostProcessGraphResourceNames::SCENE_COLOR
+        };
+        for effect in &mut self.effects {
+            let disabled_color_input_fallback = if kind == PostProcessEffectKind::DepthOfField
+                && effect
                     .required_inputs
                     .iter()
-                    .any(|resource| resource == PostProcessGraphResourceNames::SCENE_COLOR)
+                    .any(|resource| resource == PostProcessGraphResourceNames::DEPTH_OF_FIELDED)
             {
-                effect
+                Some(PostProcessGraphResourceNames::SCENE_COLOR)
+            } else if kind == PostProcessEffectKind::TaaResolve
+                && effect
                     .required_inputs
-                    .insert(0, PostProcessGraphResourceNames::SCENE_COLOR.to_string());
-            }
-            effect.produced_outputs.retain(|resource| {
-                resource != PostProcessGraphResourceNames::TAA_HISTORY_CURRENT
-                    && resource != PostProcessGraphResourceNames::TAA_OUTPUT
-                    && resource != PostProcessGraphResourceNames::TAA_REACTIVE_MASK
-            });
+                    .iter()
+                    .any(|resource| resource == PostProcessGraphResourceNames::TAA_OUTPUT)
+            {
+                Some(temporal_fallback_resource)
+            } else {
+                None
+            };
             effect
-                .after
-                .retain(|dependency| *dependency != PostProcessEffectKind::TaaResolve);
+                .required_inputs
+                .retain(|resource| !disabled_outputs.contains(resource.as_str()));
+            if let Some(fallback) = disabled_color_input_fallback {
+                if !effect
+                    .required_inputs
+                    .iter()
+                    .any(|resource| resource == fallback)
+                {
+                    effect.required_inputs.insert(0, fallback.to_string());
+                }
+            }
+            effect.after.retain(|dependency| *dependency != kind);
         }
-        let needs_reconstructed_motion_vectors = stack.initial_resources.iter().any(|resource| {
-            resource == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
-                || resource == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
-                || resource == PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
-        });
-        let needs_scene_velocity = stack
-            .initial_resources
-            .iter()
-            .any(|resource| resource == PostProcessGraphResourceNames::HYBRID_GI_LIGHTING);
-        if !needs_reconstructed_motion_vectors && !needs_scene_velocity {
-            stack
-                .initial_resources
-                .retain(|resource| resource != PostProcessGraphResourceNames::SCENE_VELOCITY);
+        drop(disabled_outputs);
+        for (index, outputs) in disabled_output_groups {
+            self.effects[index].produced_outputs = outputs;
         }
-        stack
+        self
     }
 }
 
@@ -600,10 +622,7 @@ fn effect_stack_requires_scene_depth(
         || (effect_stack.fog.density > 0.0 && !scene_composite_split)
 }
 
-fn effect_stack_outputs(
-    _effect_stack: &RenderPostProcessEffectStackSettings,
-    _upscale_required: bool,
-) -> Vec<&'static str> {
+fn effect_stack_outputs(_effect_stack: &RenderPostProcessEffectStackSettings) -> Vec<&'static str> {
     vec![
         PostProcessGraphResourceNames::EFFECT_STACKED,
         PostProcessGraphResourceNames::TONEMAPPED,
@@ -666,6 +685,90 @@ fn screen_space_reflection_resolve_inputs(ssr_temporal_enabled: bool) -> Vec<&'s
         inputs.push(PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION);
     }
     inputs
+}
+
+#[cfg(test)]
+mod effect_disable_tests {
+    use super::{PostProcessEffectKind, PostProcessEffectSettings, PostProcessStackDescriptor};
+
+    fn effect(
+        kind: PostProcessEffectKind,
+        required_inputs: &[&str],
+        produced_outputs: &[&str],
+        after: &[PostProcessEffectKind],
+    ) -> PostProcessEffectSettings {
+        PostProcessEffectSettings::new(kind)
+            .with_required_inputs(required_inputs.iter().copied())
+            .with_produced_outputs(produced_outputs.iter().copied())
+            .with_after(after.iter().copied())
+    }
+
+    #[test]
+    fn effect_disable_preserves_provider_output_metadata() {
+        let stack = PostProcessStackDescriptor {
+            initial_resources: vec![],
+            effects: vec![
+                effect(PostProcessEffectKind::Bloom, &[], &["bloom.output"], &[]),
+                effect(
+                    PostProcessEffectKind::Uber,
+                    &["bloom.output", "scene.color"],
+                    &["final.color"],
+                    &[PostProcessEffectKind::Bloom],
+                ),
+            ],
+        };
+
+        let disabled = stack.with_effect_disabled(PostProcessEffectKind::Bloom);
+
+        assert!(!disabled.effects[0].enabled);
+        assert_eq!(disabled.effects[0].produced_outputs, ["bloom.output"]);
+        assert_eq!(disabled.effects[1].required_inputs, ["scene.color"]);
+        assert!(disabled.effects[1].after.is_empty());
+    }
+
+    #[test]
+    fn effect_disable_indexes_outputs_from_every_matching_provider() {
+        let stack = PostProcessStackDescriptor {
+            initial_resources: vec![],
+            effects: vec![
+                effect(PostProcessEffectKind::Bloom, &[], &["bloom.a"], &[]),
+                effect(PostProcessEffectKind::Bloom, &[], &["bloom.b"], &[]),
+                effect(
+                    PostProcessEffectKind::Uber,
+                    &["bloom.a", "scene.color", "bloom.b"],
+                    &[],
+                    &[PostProcessEffectKind::Bloom],
+                ),
+            ],
+        };
+
+        let disabled = stack.with_effect_disabled(PostProcessEffectKind::Bloom);
+
+        assert!(disabled.effects[..2].iter().all(|effect| !effect.enabled));
+        assert_eq!(disabled.effects[0].produced_outputs, ["bloom.a"]);
+        assert_eq!(disabled.effects[1].produced_outputs, ["bloom.b"]);
+        assert_eq!(disabled.effects[2].required_inputs, ["scene.color"]);
+    }
+
+    #[test]
+    fn effect_disable_removes_dangling_dependency_without_a_provider() {
+        let stack = PostProcessStackDescriptor {
+            initial_resources: vec![],
+            effects: vec![effect(
+                PostProcessEffectKind::Uber,
+                &["scene.color"],
+                &["final.color"],
+                &[PostProcessEffectKind::Bloom],
+            )],
+        };
+
+        let disabled = stack.with_effect_disabled(PostProcessEffectKind::Bloom);
+
+        assert!(disabled.effects[0].enabled);
+        assert_eq!(disabled.effects[0].required_inputs, ["scene.color"]);
+        assert_eq!(disabled.effects[0].produced_outputs, ["final.color"]);
+        assert!(disabled.effects[0].after.is_empty());
+    }
 }
 
 #[cfg(test)]

@@ -43,6 +43,18 @@ BEHAVIOR_TEST_ANCHORS = (
         "minimal_and_headless_profiles_skip_render_bridge_bootstrap",
     ),
     (
+        "zircon_runtime/src/dynamic_api/tests/viewport_pick.rs",
+        "headless_viewport_pick_closes_one_exact_unavailable_ticket",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/tests/viewport_pick.rs",
+        "invalid_viewport_pick_request_never_allocates_a_ticket",
+    ),
+    (
+        "zircon_editor/src/core/gateway/session/tests.rs",
+        "session_gateway_preserves_exact_viewport_pick_request_identity",
+    ),
+    (
         "zircon_app/src/entry/runtime_library/tests.rs",
         "runtime_api_pointer_rejects_null_from_entry_symbol",
     ),
@@ -71,24 +83,24 @@ BEHAVIOR_TEST_ANCHORS = (
         "profile_control_runtime_diagnostics_snapshot_returns_store_and_scene_reload_report",
     ),
     (
-        "zircon_runtime/tests/runtime_owned_result_v7.rs",
-        "runtime_v7_owned_results_require_opaque_exactly_once_release",
+        "zircon_runtime/tests/runtime_owned_result_v8.rs",
+        "runtime_v8_owned_results_require_opaque_exactly_once_release",
     ),
     (
-        "zircon_runtime/tests/runtime_owned_result_v7.rs",
-        "runtime_v7_release_is_concurrent_and_exactly_once",
+        "zircon_runtime/tests/runtime_owned_result_v8.rs",
+        "runtime_v8_release_is_concurrent_and_exactly_once",
     ),
     (
-        "zircon_runtime/tests/runtime_owned_result_v7.rs",
-        "runtime_v7_destroy_is_retryable_after_outstanding_result_release",
+        "zircon_runtime/tests/runtime_owned_result_v8.rs",
+        "runtime_v8_destroy_is_retryable_after_outstanding_result_release",
     ),
     (
-        "zircon_runtime/tests/runtime_owned_result_v7.rs",
-        "runtime_v7_release_rejects_a_different_session_without_changing_owner_census",
+        "zircon_runtime/tests/runtime_owned_result_v8.rs",
+        "runtime_v8_release_rejects_a_different_session_without_changing_owner_census",
     ),
     (
-        "zircon_runtime/tests/runtime_owned_result_v7.rs",
-        "runtime_v7_release_performance_acceptance",
+        "zircon_runtime/tests/runtime_owned_result_v8.rs",
+        "runtime_v8_release_performance_acceptance",
     ),
 )
 

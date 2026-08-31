@@ -3,7 +3,7 @@
 - Date: 2026-08-21
 - Owner plan: `docs/plans/optimize/zircon_plugins/03-desktop-export-native-window-source-dist-provider-integration-review.md`
 - Finding: `PLUGIN-DESKTOP-WINDOW-P0-004`
-- Status: `validation_pending`
+- Status: `static_validation_complete`; managed release Cargo batch queued
 
 ## Scope
 
@@ -24,11 +24,33 @@
 - The previous path also queued 1,000 resolutions of a physically absent template URI; the current path queues zero (100% reduction).
 - The release marker is `PERF-MVP-PLUGINS03-NO-PHANTOM-AUTHORING`.
 
+## Current Execution Evidence
+
+- Integration Session: `root-runtime-interface03-activate-link-failure-20260831`;
+  ownership apply `82dfdbab6bc444c582224ab9284307a6`, fingerprint
+  `13514f0c9245f53af8b16e987803b8cb341b7af901d4817464325a247fbed13f`.
+- Current `plugin.rs` SHA-256:
+  `F4722C493CF94D9E1E29207CC5C1138066B5AE9C65F4646F8467794E92AC3A94`;
+  formatted `lib.rs` and `tests.rs` SHA-256 are
+  `E1AB7F79E95A2AF0842D065CD419AE3BA5B1C66F33B5C08F7AC653CBC87844DA`
+  and `0B9F3CC6853EE60131518770611188D4EB675545DC9350E1F270CEAC2606F8D2`.
+- Unified deterministic model manifest SHA-256:
+  `17A9DACBE245A8562CD994DCC61423E4061BB1A7F264B281EAC9F9FF4AB85719`.
+  It records phantom contributions `8,000 -> 0` and missing-template
+  resolutions `1,000 -> 0`, both exact `100%` reductions.
+- Focused source/model/validator contract passed locally `10/10`; managed
+  static ticket `b1ba67ff1d2d43c98abfa21c4b14dee8` is queued.
+- Cross-package Windows release ticket
+  `66d397b6a4454a68b53bb295a5c4fe78` runs the full feature-enabled editor lib
+  suite and marker in the same validation copy as Plugins01 and Plugins09.
+
 ## Validation
 
 - The package regression asserts successful capability/package registration with zero views, drawers, UI templates, menu items, or commands.
 - The deterministic scale regression emits and locks the 1,000-registration contribution and template-resolution reductions.
-- Cargo compilation, all package tests, and release marker validation are queued in the multi-task Plugins aggregate; no standalone Cargo run or measured pass is claimed here.
+- Cargo compilation, all package tests, and release marker validation are
+  queued in one multi-task Plugins aggregate; no standalone Cargo run or
+  measured pass is claimed here.
 
 ## Remaining Plan Work
 

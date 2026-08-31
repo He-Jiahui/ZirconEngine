@@ -13,7 +13,9 @@ use super::{apply_compiled_sequence_to_world, compile_sequence_for_world};
 #[test]
 fn compiled_sequence_applies_mesh_renderer_morph_weight_track() {
     let mut world = World::new();
-    let hero = world.spawn_node(NodeKind::Mesh);
+    let hero = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.rename_node(hero, "Hero").unwrap();
     let track_path = ComponentPropertyPath::parse("MeshRenderer.morph_weights.1").unwrap();
     let sequence = AnimationSequenceAsset {
@@ -57,7 +59,9 @@ fn compiled_sequence_applies_mesh_renderer_morph_weight_track() {
 #[test]
 fn compiled_sequence_resolves_numeric_target_once_and_writes_through_compiled_property() {
     let mut world = World::empty();
-    let hero = world.spawn_node(NodeKind::Mesh);
+    let hero = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_animation_player(
             hero,
@@ -110,8 +114,12 @@ fn compiled_sequence_resolves_numeric_target_once_and_writes_through_compiled_pr
 #[test]
 fn compiled_sequence_reports_stale_target_without_re_resolving_raw_path() {
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
-    let hero = world.spawn_node(NodeKind::Mesh);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let hero = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.rename_node(root, "Root").unwrap();
     world.rename_node(hero, "Hero").unwrap();
     world.set_parent_checked(hero, Some(root)).unwrap();
@@ -196,7 +204,9 @@ fn compiled_sequence_retries_missing_target_only_after_topology_catalog_changes(
     assert_eq!(compiled.missing_tracks().len(), 1);
     assert!(compiled.is_current_for(&world));
 
-    world.spawn_node(NodeKind::Empty);
+    world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
     assert!(!compiled.is_current_for(&world));
 }

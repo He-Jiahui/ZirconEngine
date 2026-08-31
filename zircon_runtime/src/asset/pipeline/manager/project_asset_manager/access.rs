@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
 #[cfg(test)]
+use crate::core::TaskPool;
+#[cfg(test)]
 use crate::core::{
     manager::{manager_service_handle, RegisteredManagerService},
     runtime::ServiceObject,
@@ -73,6 +75,16 @@ impl ProjectAssetManagerAccess {
             handle,
             _test_runtime: Some(runtime),
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_worker_pool(&self) -> TaskPool {
+        self._test_runtime
+            .as_ref()
+            .expect("test asset access must retain its CoreRuntime owner")
+            .task_graph()
+            .worker_pool()
+            .clone()
     }
 
     pub fn resolve(&self) -> Result<Arc<ProjectAssetManager>, CoreError> {

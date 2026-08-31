@@ -27,7 +27,7 @@ toml.workspace = true
 tracing.workspace = true
 unicode-segmentation = "1.13.2"
 winit.workspace = true
-zircon_runtime = { path = "../zircon_runtime" }
+zircon_runtime = { path = "../zircon_runtime", default-features = false }
 zircon_runtime_host.workspace = true
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
 

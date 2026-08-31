@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/event_mirror.rs
   - zircon_runtime/src/dynamic_api/session/ffi.rs
   - zircon_runtime/src/plugin/extension_registry/register/event_registration.rs
-  - zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs
+  - zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs
   - zircon_editor/src/core/gateway/session/plugin_events.rs
   - zircon_editor/src/core/runtime_event_consumer
   - zircon_plugins/plugin_sdk/src/registration.rs

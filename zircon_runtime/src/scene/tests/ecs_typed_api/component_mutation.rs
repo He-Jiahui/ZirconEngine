@@ -74,7 +74,9 @@ fn world_spawn_insert_get_mut_and_remove_typed_components() {
 #[test]
 fn typed_local_transform_insertion_rejects_values_that_cannot_be_persisted() {
     let mut world = World::new();
-    let entity = world.spawn_node(crate::scene::NodeKind::Mesh);
+    let entity = world
+        .spawn_node(crate::scene::NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let original = world
         .get::<LocalTransform>(entity)
         .expect("mesh nodes must have a local transform")

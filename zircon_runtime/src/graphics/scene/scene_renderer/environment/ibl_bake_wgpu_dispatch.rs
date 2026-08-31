@@ -5,9 +5,10 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 use crate::render_graph::RenderGraphResourceAccessKind;
 
 use super::ibl_bake_graph_plan::{
-    ibl_bake_pmrem_mip_from_pass_name, IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID,
-    IBL_BAKE_IRRADIANCE_CUBE_PASS, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
-    IBL_BAKE_IRRADIANCE_SH9_PASS, IBL_BAKE_PMREM_EXECUTOR_ID, IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
+    ibl_bake_pmrem_mip_from_pass_name, ibl_bake_pmrem_pass_name,
+    IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_CUBE_PASS,
+    IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_PASS, IBL_BAKE_PMREM_EXECUTOR_ID,
+    IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
 };
 use super::ibl_bake_shader_plan::IblBakeComputeKernelKind;
 use super::ibl_bake_wgpu_binding::{
@@ -15,7 +16,7 @@ use super::ibl_bake_wgpu_binding::{
     IblBakeWgpuOutputBindingResource,
 };
 use super::ibl_bake_wgpu_command_plan::{
-    ibl_bake_wgpu_command_plan_for_request, IblBakeWgpuCommandPlan, IblBakeWgpuOutputPlan,
+    ibl_bake_wgpu_command_plan_for_kind, IblBakeWgpuCommandPlan, IblBakeWgpuOutputPlan,
 };
 use super::ibl_bake_wgpu_pipeline_cache::create_ibl_bake_wgpu_compute_pipeline_from_cached_parts;
 
@@ -31,19 +32,20 @@ pub(in crate::graphics::scene::scene_renderer) fn record_ibl_bake_wgpu_pass_for_
     context: &mut RenderPassExecutionContext<'_>,
     request: &IblBakeArtifactRequest,
 ) -> Result<IblBakeWgpuEncodedDispatch, String> {
-    let command_plan = ibl_bake_wgpu_command_plan_for_request(request);
-    let command = command_plan
-        .commands
-        .iter()
-        .find(|command| command_matches_context(command, context))
-        .ok_or_else(|| {
-            format!(
-                "no IBL bake WGPU command matches pass `{}` executor `{}`",
-                context.pass_name, context.executor_id
-            )
-        })?;
+    let kind = command_kind_for_context(context).ok_or_else(|| {
+        format!(
+            "no IBL bake WGPU command matches pass `{}` executor `{}`",
+            context.pass_name, context.executor_id
+        )
+    })?;
+    let command = ibl_bake_wgpu_command_plan_for_kind(request, kind).ok_or_else(|| {
+        format!(
+            "IBL bake pass `{}` requests an unavailable {:?} kernel",
+            context.pass_name, kind
+        )
+    })?;
 
-    record_ibl_bake_wgpu_command(context, command)
+    record_ibl_bake_wgpu_command(context, &command)
 }
 
 pub(in crate::graphics::scene::scene_renderer) fn create_ibl_bake_wgpu_compute_pipeline(
@@ -175,23 +177,21 @@ fn validate_dispatch_groups(command: &IblBakeWgpuCommandPlan) -> Result<(), Stri
     ))
 }
 
-fn command_matches_context(
-    command: &IblBakeWgpuCommandPlan,
+fn command_kind_for_context(
     context: &RenderPassExecutionContext<'_>,
-) -> bool {
-    match command.kind {
-        IblBakeComputeKernelKind::Pmrem { mip_level } => {
-            context.executor_id.as_str() == IBL_BAKE_PMREM_EXECUTOR_ID
-                && ibl_bake_pmrem_mip_from_pass_name(context.pass_name.as_str()) == Some(mip_level)
+) -> Option<IblBakeComputeKernelKind> {
+    match context.executor_id.as_str() {
+        IBL_BAKE_PMREM_EXECUTOR_ID => {
+            let mip_level = ibl_bake_pmrem_mip_from_pass_name(context.pass_name.as_str())?;
+            (ibl_bake_pmrem_pass_name(mip_level) == context.pass_name)
+                .then_some(IblBakeComputeKernelKind::Pmrem { mip_level })
         }
-        IblBakeComputeKernelKind::IrradianceSh9 => {
-            context.executor_id.as_str() == IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID
-                && context.pass_name == IBL_BAKE_IRRADIANCE_SH9_PASS
-        }
-        IblBakeComputeKernelKind::IrradianceCube => {
-            context.executor_id.as_str() == IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID
-                && context.pass_name == IBL_BAKE_IRRADIANCE_CUBE_PASS
-        }
+        IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID => (context.pass_name == IBL_BAKE_IRRADIANCE_SH9_PASS)
+            .then_some(IblBakeComputeKernelKind::IrradianceSh9),
+        IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID => (context.pass_name
+            == IBL_BAKE_IRRADIANCE_CUBE_PASS)
+            .then_some(IblBakeComputeKernelKind::IrradianceCube),
+        _ => None,
     }
 }
 
@@ -216,26 +216,38 @@ fn output_resource_name(command: &IblBakeWgpuCommandPlan) -> &'static str {
     }
 }
 
-enum IblBakeResolvedOutputBinding {
+enum IblBakeResolvedOutputBinding<'a> {
     StorageTexture2DArray(wgpu::TextureView),
-    StorageBuffer(wgpu::Buffer),
+    StorageBuffer {
+        buffer: &'a wgpu::Buffer,
+        offset: wgpu::BufferAddress,
+        size: Option<std::num::NonZeroU64>,
+    },
 }
 
-impl IblBakeResolvedOutputBinding {
+impl IblBakeResolvedOutputBinding<'_> {
     fn as_binding_resource(&self) -> IblBakeWgpuOutputBindingResource<'_> {
         match self {
             Self::StorageTexture2DArray(view) => {
                 IblBakeWgpuOutputBindingResource::StorageTexture2DArray(view)
             }
-            Self::StorageBuffer(buffer) => IblBakeWgpuOutputBindingResource::StorageBuffer(buffer),
+            Self::StorageBuffer {
+                buffer,
+                offset,
+                size,
+            } => IblBakeWgpuOutputBindingResource::StorageBufferRange {
+                buffer,
+                offset: *offset,
+                size: *size,
+            },
         }
     }
 }
 
-fn resolve_output_binding(
-    gpu: &RenderPassGpuExecutionContext<'_>,
+fn resolve_output_binding<'a>(
+    gpu: &RenderPassGpuExecutionContext<'a>,
     command: &IblBakeWgpuCommandPlan,
-) -> Result<IblBakeResolvedOutputBinding, String> {
+) -> Result<IblBakeResolvedOutputBinding<'a>, String> {
     match &command.output {
         IblBakeWgpuOutputPlan::StorageTexture {
             resource_name,
@@ -259,13 +271,13 @@ fn resolve_output_binding(
                     RenderGraphResourceAccessKind::Write,
                 )?;
             }
-            gpu.resources
-                .buffer(resource_name)
-                .cloned()
-                .map(IblBakeResolvedOutputBinding::StorageBuffer)
-                .ok_or_else(|| {
-                    format!("render graph execution buffer resource `{resource_name}` is not bound")
-                })
+            let binding =
+                gpu.require_buffer_binding(resource_name, RenderGraphResourceAccessKind::Write)?;
+            Ok(IblBakeResolvedOutputBinding::StorageBuffer {
+                buffer: binding.buffer,
+                offset: binding.offset,
+                size: binding.size,
+            })
         }
     }
 }

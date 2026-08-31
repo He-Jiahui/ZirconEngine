@@ -1,32 +1,37 @@
 use std::cmp::Ordering;
 
+use zircon_runtime::core::framework::animation::compiler::state_machine::AnimationCompiledBlendSpace1DSample;
 use zircon_runtime::core::math::Real;
 
-use super::{BlendSpaceCompileError, BlendSpacePoint1D, BlendSpaceWeights2};
+use super::{BlendSpaceCompileError, BlendSpaceWeights2};
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct PreparedPoint1D {
+    position: Real,
+    sample: u32,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BlendSpace1D {
-    points: Box<[BlendSpacePoint1D]>,
+    points: Box<[PreparedPoint1D]>,
 }
 
 impl BlendSpace1D {
-    pub fn compile(
-        points: impl IntoIterator<Item = BlendSpacePoint1D>,
+    pub(super) fn from_compiled(
+        samples: &[AnimationCompiledBlendSpace1DSample],
     ) -> Result<Self, BlendSpaceCompileError> {
-        let mut points = points.into_iter().collect::<Vec<_>>();
-        if points.is_empty() {
-            return Err(BlendSpaceCompileError::Empty);
-        }
-        if points.iter().any(|point| !point.position.is_finite()) {
-            return Err(BlendSpaceCompileError::NonFinitePoint);
-        }
+        let mut points = samples
+            .iter()
+            .enumerate()
+            .map(|(sample, source)| {
+                Ok(PreparedPoint1D {
+                    position: source.position,
+                    sample: u32::try_from(sample)
+                        .map_err(|_| BlendSpaceCompileError::CapacityExceeded)?,
+                })
+            })
+            .collect::<Result<Vec<_>, BlendSpaceCompileError>>()?;
         points.sort_by(|left, right| left.position.total_cmp(&right.position));
-        if points
-            .windows(2)
-            .any(|pair| pair[0].position == pair[1].position)
-        {
-            return Err(BlendSpaceCompileError::DuplicatePoint);
-        }
         Ok(Self {
             points: points.into_boxed_slice(),
         })

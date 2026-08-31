@@ -1,9 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::asset::project::{
     AssetMetaEntry, PreviewState, ProjectCatalogInputGeneration, ProjectCatalogInputSource,
+    ProjectPaths,
 };
 use crate::asset::registry::AssetRegistryDiagnostic;
 use crate::asset::{
@@ -11,7 +12,8 @@ use crate::asset::{
     ImportedAssetEntry,
 };
 use crate::core::resource::{
-    ResourceDiagnostic, ResourceRecord, ResourceRegistryStaging, ResourceState,
+    ResourceDiagnostic, ResourceRecord, ResourceRegistryAssemblyExt, ResourceRegistryStaging,
+    ResourceState,
 };
 
 use super::metadata::{
@@ -19,17 +21,20 @@ use super::metadata::{
     entry_uuid_for_import_entry, existing_entry_tags_for_source, existing_entry_uuids_for_source,
     validate_import_entries,
 };
-use super::sources::{source_bytes_for_import, source_mtime_unix_ms_for_import};
-use super::{stage_project_resource, ProjectManager};
+use super::sources::{
+    AssetImportSourceSnapshot, source_mtime_unix_ms_for_import, take_source_bytes_for_import,
+};
+use super::{ImportSourcePlan, ProjectManager, stage_project_resource};
 use crate::asset::project::manager::durable_transaction::{
-    commit_prepared_files, journal_directory, PreparedFileWrite, ProjectFileCommitOutcome,
-    ProjectTransactionFault,
+    PreparedFileWrite, ProjectFileCommitOutcome, ProjectTransactionFault, commit_prepared_files,
+    journal_directory,
 };
 
 pub(crate) struct PreparedTargetedGeneration {
     journal_directory: PathBuf,
     meta_path: PathBuf,
     writes: Vec<PreparedFileWrite>,
+    registry_write: PreparedFileWrite,
     imported: Vec<ResourceRecord>,
     affected: Vec<ResourceRecord>,
     ready_payloads: Vec<(ResourceRecord, ImportedAsset)>,
@@ -49,10 +54,12 @@ impl PreparedTargetedGeneration {
     }
 
     pub(crate) fn commit(self) -> Result<ProjectFileCommitOutcome, AssetImportError> {
-        let _meta_write_guard = crate::asset::project::lock_meta_document_path(&self.meta_path);
+        let _meta_write_guard = crate::asset::project::lock_meta_document_path(&self.meta_path)?;
+        let mut writes = self.writes;
+        writes.push(self.registry_write);
         commit_prepared_files(
             &self.journal_directory,
-            self.writes,
+            writes,
             ProjectTransactionFault::None,
         )
     }
@@ -62,12 +69,187 @@ impl PreparedTargetedGeneration {
         self,
         fault: ProjectTransactionFault,
     ) -> Result<ProjectFileCommitOutcome, AssetImportError> {
-        let _meta_write_guard = crate::asset::project::lock_meta_document_path(&self.meta_path);
-        commit_prepared_files(&self.journal_directory, self.writes, fault)
+        let _meta_write_guard = crate::asset::project::lock_meta_document_path(&self.meta_path)?;
+        let mut writes = self.writes;
+        writes.push(self.registry_write);
+        commit_prepared_files(&self.journal_directory, writes, fault)
+    }
+}
+
+/// Collects targeted source preparations against one candidate project generation.
+///
+/// Every member owns its source/artifact/meta writes, while only the final candidate registry
+/// write is retained. This is the durable boundary required by compound editor imports.
+pub(crate) struct PreparedProjectImportBatch {
+    journal_directory: PathBuf,
+    meta_paths: Vec<PathBuf>,
+    writes: Vec<PreparedFileWrite>,
+    registry_write: PreparedFileWrite,
+    imported: Vec<ResourceRecord>,
+    affected: Vec<ResourceRecord>,
+    ready_payloads: Vec<(ResourceRecord, ImportedAsset)>,
+}
+
+impl PreparedProjectImportBatch {
+    pub(crate) fn from_targeted_generations(
+        generations: impl IntoIterator<Item = PreparedTargetedGeneration>,
+    ) -> Result<Self, AssetImportError> {
+        let mut generations = generations.into_iter();
+        let first = generations
+            .next()
+            .ok_or(AssetImportError::EmptyProjectImportBatch)?;
+        let mut batch = Self::from_generation(first);
+        for generation in generations {
+            batch.append(generation);
+        }
+        let mut unique_meta_paths = BTreeMap::new();
+        for path in std::mem::take(&mut batch.meta_paths) {
+            let identity = ProjectPaths::resolve_identity(&path)?;
+            unique_meta_paths.entry(identity).or_insert(path);
+        }
+        batch.meta_paths = unique_meta_paths.into_values().collect();
+        batch.append_prepared_writes(Vec::new())?;
+        Ok(batch)
+    }
+
+    pub(crate) fn imported(&self) -> &[ResourceRecord] {
+        &self.imported
+    }
+
+    pub(crate) fn affected(&self) -> &[ResourceRecord] {
+        &self.affected
+    }
+
+    pub(crate) fn take_ready_payloads(&mut self) -> Vec<(ResourceRecord, ImportedAsset)> {
+        std::mem::take(&mut self.ready_payloads)
+    }
+
+    pub(crate) fn append_source_writes(
+        &mut self,
+        writes: Vec<PreparedFileWrite>,
+    ) -> Result<(), AssetImportError> {
+        self.append_prepared_writes(writes)
+    }
+
+    pub(crate) fn commit(self) -> Result<ProjectFileCommitOutcome, AssetImportError> {
+        let _meta_write_guards = crate::asset::project::lock_meta_document_paths(&self.meta_paths)?;
+        let mut writes = self.writes;
+        writes.push(self.registry_write);
+        commit_prepared_files(
+            &self.journal_directory,
+            writes,
+            ProjectTransactionFault::None,
+        )
+    }
+
+    fn from_generation(generation: PreparedTargetedGeneration) -> Self {
+        let PreparedTargetedGeneration {
+            journal_directory,
+            meta_path,
+            writes,
+            registry_write,
+            imported,
+            affected,
+            ready_payloads,
+        } = generation;
+        Self {
+            journal_directory,
+            meta_paths: vec![meta_path],
+            writes,
+            registry_write,
+            imported,
+            affected,
+            ready_payloads,
+        }
+    }
+
+    fn append(&mut self, generation: PreparedTargetedGeneration) {
+        let PreparedTargetedGeneration {
+            journal_directory,
+            meta_path,
+            writes,
+            registry_write,
+            imported,
+            affected,
+            ready_payloads,
+        } = generation;
+        debug_assert_eq!(self.journal_directory, journal_directory);
+        self.meta_paths.push(meta_path);
+        self.writes.extend(writes);
+        self.registry_write = registry_write;
+        self.imported.extend(imported);
+        self.affected.extend(affected);
+        self.ready_payloads.extend(ready_payloads);
+    }
+
+    fn append_prepared_writes(
+        &mut self,
+        writes: Vec<PreparedFileWrite>,
+    ) -> Result<(), AssetImportError> {
+        let existing_writes = std::mem::take(&mut self.writes);
+        let mut prepared_paths = BTreeMap::new();
+        super::append_prepared_file_writes(&mut self.writes, &mut prepared_paths, existing_writes)?;
+        super::append_prepared_file_writes(&mut self.writes, &mut prepared_paths, writes)
     }
 }
 
 impl ProjectManager {
+    pub(crate) fn prepare_targeted_import_batch(
+        &mut self,
+        sources: &[(AssetUri, PathBuf)],
+    ) -> Result<PreparedProjectImportBatch, AssetImportError> {
+        if sources.is_empty() {
+            return Err(AssetImportError::EmptyProjectImportBatch);
+        }
+        let mut paths_by_uri = HashMap::with_capacity(sources.len());
+        let mut generations = Vec::with_capacity(sources.len());
+        for (uri, path) in sources {
+            let source_uri = AssetUri::new(uri.scheme(), uri.path().to_string(), None)?;
+            if let Some(previous) = paths_by_uri.insert(source_uri.clone(), path.clone()) {
+                return Err(AssetImportError::DuplicateProjectAssetUri {
+                    uri: source_uri,
+                    first: previous,
+                    second: path.clone(),
+                });
+            }
+            generations.push(self.prepare_targeted_generation(&source_uri, path)?);
+        }
+        PreparedProjectImportBatch::from_targeted_generations(generations)
+    }
+
+    pub(crate) fn prepare_model_import_batch(
+        &mut self,
+        plan: ImportSourcePlan,
+    ) -> Result<PreparedProjectImportBatch, AssetImportError> {
+        const DEFAULT_PROJECT_MATERIAL_URI: &str = "res://materials/default.zmaterial";
+
+        let source_uri = plan.source_uri().clone();
+        let source_path = plan.source_path().to_path_buf();
+        let source_snapshot = plan
+            .source_bytes()
+            .map(|source_bytes| AssetImportSourceSnapshot {
+                source_bytes: source_bytes.to_vec(),
+                source_mtime_unix_ms: plan.source_mtime_unix_ms().unwrap_or_default(),
+                source_file_snapshots: plan.source_file_snapshots().clone(),
+            });
+        let material_uri = AssetUri::parse(DEFAULT_PROJECT_MATERIAL_URI)?;
+        let material_path = self.existing_or_primary_project_source_path_for_uri(&material_uri)?;
+        let model_generation = self.prepare_targeted_generation_with_source_snapshot(
+            &source_uri,
+            &source_path,
+            source_snapshot,
+            false,
+        )?;
+        let material_generation =
+            self.prepare_targeted_generation(&material_uri, &material_path)?;
+        let mut batch = PreparedProjectImportBatch::from_targeted_generations([
+            model_generation,
+            material_generation,
+        ])?;
+        batch.append_source_writes(plan.into_staged_writes())?;
+        Ok(batch)
+    }
+
     pub(crate) fn import_targeted_source(
         &mut self,
         uri: &AssetUri,
@@ -95,8 +277,8 @@ impl ProjectManager {
         let affected = prepared.affected.clone();
         let ready_payloads = prepared.take_ready_payloads();
         let outcome = prepared.commit()?;
-        *self = candidate;
         outcome.ensure_durable()?;
+        *self = candidate;
         Ok((imported, affected, ready_payloads))
     }
 
@@ -112,8 +294,8 @@ impl ProjectManager {
         let imported = prepared.imported.clone();
         let outcome =
             prepared.commit_with_fault(ProjectTransactionFault::BeforeCommit(file_index))?;
-        *self = candidate;
         outcome.ensure_durable()?;
+        *self = candidate;
         Ok(imported)
     }
 
@@ -132,14 +314,52 @@ impl ProjectManager {
         uri: &AssetUri,
         indexed_path: &Path,
     ) -> Result<PreparedTargetedGeneration, AssetImportError> {
+        self.prepare_targeted_generation_with_source_snapshot(uri, indexed_path, None, false)
+    }
+
+    pub(crate) fn prepare_generated_source_generation(
+        &mut self,
+        uri: &AssetUri,
+        indexed_path: &Path,
+        source_bytes: Vec<u8>,
+    ) -> Result<PreparedTargetedGeneration, AssetImportError> {
+        let source_mtime_unix_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis()
+            .try_into()
+            .unwrap_or(u64::MAX);
+        self.prepare_targeted_generation_with_source_snapshot(
+            uri,
+            indexed_path,
+            Some(AssetImportSourceSnapshot {
+                source_bytes,
+                source_mtime_unix_ms,
+                source_file_snapshots: BTreeMap::new(),
+            }),
+            true,
+        )
+    }
+
+    fn prepare_targeted_generation_with_source_snapshot(
+        &mut self,
+        uri: &AssetUri,
+        indexed_path: &Path,
+        source_snapshot: Option<AssetImportSourceSnapshot>,
+        persist_source_snapshot: bool,
+    ) -> Result<PreparedTargetedGeneration, AssetImportError> {
         let source = self.prepare_targeted_import_source(uri, indexed_path)?;
+        let mut source = match source_snapshot {
+            Some(snapshot) => source.with_source_snapshot(snapshot),
+            None => source,
+        };
         let replaced_ids = self
             .asset_registry
             .source_entries(&source.uri)
             .into_iter()
             .map(|entry| AssetId::from_asset_uuid(entry.uuid()))
             .collect::<HashSet<_>>();
-        let source_bytes = source_bytes_for_import(&source)?;
+        let source_bytes = take_source_bytes_for_import(&mut source)?;
         let source_digest = super::super::hash_bytes::hash_bytes(&source_bytes);
         let source_mtime_unix_ms = source_mtime_unix_ms_for_import(&source)?;
         let descriptor = self.importer.descriptor_for_source(&source.path).ok();
@@ -172,15 +392,19 @@ impl ProjectManager {
             source_bytes,
             import_settings,
         )
-        .with_project_resolver(Arc::new(self.asset_registry.clone()), project_roots);
+        .with_source_file_snapshots(source.source_file_snapshots())
+        .with_project_resolver(Arc::clone(&self.asset_registry), project_roots);
         let mut outcome = self.importer.import_context(&context)?;
         validate_import_entries(&source.uri, &outcome)?;
-        super::stage_environment_ibl_import(
+        let reference_repairs = outcome.reference_repairs.clone();
+        let prepared_ibl_writes = super::prepare_environment_ibl_import(
             &context,
             outcome.root_entry().map(|entry| &entry.asset),
             self.paths.cache_root(),
             self.environment_ibl_parallel_executor.as_ref(),
         )?;
+        let prepared_source_write = persist_source_snapshot
+            .then(|| PreparedFileWrite::new(context.source_path.clone(), context.source_bytes));
         crate::asset::registry::dependency_extractors::append_handwritten_dependencies(
             &mut outcome,
         );
@@ -208,7 +432,14 @@ impl ProjectManager {
         // Registry normalization can remint a colliding root UUID; the catalog key follows it.
         let root_asset_id = AssetId::from_asset_uuid(meta.uuid);
 
-        let mut writes = Vec::with_capacity(outcome.entries.len() + 2);
+        let mut writes = Vec::with_capacity(
+            outcome.entries.len()
+                + prepared_ibl_writes.len()
+                + usize::from(prepared_source_write.is_some())
+                + 2,
+        );
+        writes.extend(prepared_source_write);
+        writes.extend(prepared_ibl_writes);
         let mut imported = Vec::with_capacity(outcome.entries.len());
         let mut ready_payloads = Vec::with_capacity(outcome.entries.len());
         for (entry, meta_entry) in outcome.entries.into_iter().zip(&mut meta.entries) {
@@ -286,6 +517,7 @@ impl ProjectManager {
             meta.clone(),
             source_mtime_unix_ms,
             root_direct_references,
+            reference_repairs,
         );
 
         writes.push(PreparedFileWrite::new(
@@ -293,9 +525,9 @@ impl ProjectManager {
             meta.to_pretty_bytes()?,
         ));
         let persisted = asset_registry.prepare_persistence(self.paths.registry_root())?;
-        writes.push(PreparedFileWrite::new(persisted.path, persisted.bytes));
+        let registry_write = PreparedFileWrite::new(persisted.path, persisted.bytes);
         self.registry = registry.finish();
-        self.asset_registry = asset_registry;
+        self.asset_registry = Arc::new(asset_registry);
         self.shader_import_dependencies = shader_import_dependencies;
         let catalog_updated_records = std::iter::once(root_asset_id)
             .chain(affected_uuids.iter().copied().map(AssetId::from_asset_uuid))
@@ -319,6 +551,7 @@ impl ProjectManager {
             journal_directory: journal_directory(&self.paths),
             meta_path: source.meta_path,
             writes,
+            registry_write,
             imported,
             affected,
             ready_payloads,
@@ -392,7 +625,7 @@ fn prepare_meta_entries(
     Ok(())
 }
 
-pub(super) fn refresh_runtime_dependency_closure(
+pub(crate) fn refresh_runtime_dependency_closure(
     registry: &mut ResourceRegistryStaging,
     asset_registry: &crate::asset::registry::AssetRegistryIndex,
     affected_uuids: &HashSet<crate::asset::AssetUuid>,

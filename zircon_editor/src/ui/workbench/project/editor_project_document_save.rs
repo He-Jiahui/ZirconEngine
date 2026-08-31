@@ -1,6 +1,6 @@
 use std::io;
 
-use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::{AssetUri, project::ProjectManager};
 use zircon_runtime::scene::world::SceneProjectError;
 use zircon_runtime::scene::Scene;
 
@@ -11,8 +11,9 @@ use super::editor_workspace_persistence::{
 use super::project_editor_workspace::ProjectEditorWorkspace;
 
 impl EditorProjectDocument {
-    pub fn save_to_project(
+    pub fn save_scene_to_project(
         project: &ProjectManager,
+        scene_uri: &AssetUri,
         world: &Scene,
         editor_workspace: Option<&ProjectEditorWorkspace>,
     ) -> Result<(), SceneProjectError> {
@@ -21,9 +22,7 @@ impl EditorProjectDocument {
         // workspace I/O failure cannot report a failed save after the scene has already changed.
         let previous_workspace = capture_editor_workspace(root)?;
         save_editor_workspace(root, editor_workspace)?;
-        if let Err(scene_error) =
-            world.save_scene_to_project(project, &project.manifest().default_scene)
-        {
+        if let Err(scene_error) = world.save_scene_to_project(project, scene_uri) {
             // A scene write can still fail after the workspace has committed. Restore the exact
             // previous workspace so a failed project save never leaves a split persisted document.
             restore_editor_workspace(root, previous_workspace).map_err(|restore_error| {

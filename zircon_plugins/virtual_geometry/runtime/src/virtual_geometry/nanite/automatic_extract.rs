@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use zircon_runtime::asset::{MeshVertex, ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset};
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, RenderMeshSnapshot,
-    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryCpuReferenceDepthClusterMapEntry,
+    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryCpuReferenceDepthClusterMapEntry,
     RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryCpuReferenceLeafCluster,
     RenderVirtualGeometryCpuReferenceMipClusterMapEntry,
     RenderVirtualGeometryCpuReferenceNodeVisit,
@@ -24,6 +24,10 @@ use super::cpu_reference::{
     VirtualGeometryCpuReferenceLeafCluster,
 };
 use super::page_payload::render_page_payloads_for_asset;
+
+mod bvh_visualization;
+
+use bvh_visualization::append_bvh_visualization_instance_if_enabled;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VirtualGeometryAutomaticExtractInstance {
@@ -252,11 +256,13 @@ fn build_virtual_geometry_automatic_extract_with_config(
             cpu_reference_instance_index,
             &cpu_reference,
         ));
-        bvh_visualization_instances.push(render_bvh_visualization_instance(
+        append_bvh_visualization_instance_if_enabled(
+            &mut bvh_visualization_instances,
+            extract_debug.visualize_bvh,
             cpu_reference_instance_index,
             &instance.asset,
             &cpu_reference,
-        ));
+        );
         let root_cluster_count = root_cluster_count(&instance.asset);
         let per_instance_cluster_budget = cpu_reference
             .selected_clusters()
@@ -469,73 +475,6 @@ fn render_debug_state_for_cpu_reference_config(
         visualize_bvh: debug.visualize_bvh(),
         visualize_visbuffer: debug.visualize_visbuffer(),
         print_leaf_clusters: debug.print_leaf_clusters(),
-    }
-}
-
-fn render_bvh_visualization_instance(
-    instance_index: u32,
-    asset: &VirtualGeometryAsset,
-    frame: &VirtualGeometryCpuReferenceFrame,
-) -> RenderVirtualGeometryBvhVisualizationInstance {
-    let nodes_by_id = asset
-        .hierarchy_buffer
-        .iter()
-        .map(|node| (node.node_id, node))
-        .collect::<BTreeMap<_, _>>();
-    let visited_nodes = frame
-        .visited_nodes()
-        .iter()
-        .map(|visit| (visit.node_id(), visit))
-        .collect::<BTreeMap<_, _>>();
-    let selected_cluster_ids = frame
-        .selected_clusters()
-        .iter()
-        .map(|cluster| cluster.cluster_id())
-        .collect::<BTreeSet<_>>();
-
-    RenderVirtualGeometryBvhVisualizationInstance {
-        instance_index,
-        entity: frame.entity(),
-        mesh_name: frame.mesh_name().map(str::to_owned),
-        source_hint: frame.source_hint().map(str::to_owned),
-        nodes: frame
-            .visited_nodes()
-            .iter()
-            .filter_map(|visit| {
-                let node = nodes_by_id.get(&visit.node_id()).copied()?;
-                let subtree_leaf_clusters = subtree_leaf_clusters_for_node(
-                    node.node_id,
-                    &nodes_by_id,
-                    frame.leaf_clusters(),
-                );
-                Some(RenderVirtualGeometryBvhVisualizationNode {
-                    node_id: node.node_id,
-                    parent_node_id: node.parent_node_id,
-                    child_node_ids: node.child_node_ids.clone(),
-                    depth: visited_nodes
-                        .get(&node.node_id)
-                        .map(|visited_node| visited_node.depth())
-                        .unwrap_or_default(),
-                    page_id: node.page_id,
-                    mip_level: node.mip_level,
-                    is_leaf: node.child_node_ids.is_empty(),
-                    cluster_ids: visit.cluster_ids().to_vec(),
-                    selected_cluster_ids: subtree_leaf_clusters
-                        .iter()
-                        .filter(|cluster| selected_cluster_ids.contains(&cluster.cluster_id()))
-                        .map(|cluster| cluster.cluster_id())
-                        .collect(),
-                    resident_cluster_ids: subtree_leaf_clusters
-                        .iter()
-                        .filter(|cluster| cluster.loaded())
-                        .map(|cluster| cluster.cluster_id())
-                        .collect(),
-                    bounds_center: node.bounds_center,
-                    bounds_radius: node.bounds_radius,
-                    screen_space_error: node.screen_space_error,
-                })
-            })
-            .collect(),
     }
 }
 
@@ -895,35 +834,6 @@ fn render_selected_mip_cluster_map(
             },
         )
         .collect()
-}
-
-fn subtree_leaf_clusters_for_node<'a>(
-    node_id: u32,
-    nodes_by_id: &BTreeMap<u32, &'a zircon_runtime::asset::VirtualGeometryHierarchyNodeAsset>,
-    leaf_clusters: &'a [VirtualGeometryCpuReferenceLeafCluster],
-) -> Vec<&'a VirtualGeometryCpuReferenceLeafCluster> {
-    let mut subtree_node_ids = BTreeSet::new();
-    collect_subtree_node_ids(node_id, nodes_by_id, &mut subtree_node_ids);
-    leaf_clusters
-        .iter()
-        .filter(|cluster| subtree_node_ids.contains(&cluster.node_id()))
-        .collect()
-}
-
-fn collect_subtree_node_ids(
-    node_id: u32,
-    nodes_by_id: &BTreeMap<u32, &zircon_runtime::asset::VirtualGeometryHierarchyNodeAsset>,
-    subtree_node_ids: &mut BTreeSet<u32>,
-) {
-    if !subtree_node_ids.insert(node_id) {
-        return;
-    }
-    let Some(node) = nodes_by_id.get(&node_id).copied() else {
-        return;
-    };
-    for child_node_id in &node.child_node_ids {
-        collect_subtree_node_ids(*child_node_id, nodes_by_id, subtree_node_ids);
-    }
 }
 
 fn ordered_local_pages(asset: &VirtualGeometryAsset) -> Vec<(u32, u64)> {

@@ -1,4 +1,5 @@
 use crate::core::editor_event::{EditorAnimationEvent, EditorEventEffect};
+use crate::ui::host::EditorError;
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 use crate::ui::workbench::snapshot::EditorConsoleMessageLevel;
 
@@ -6,12 +7,12 @@ use super::execution_outcome::ExecutionOutcome;
 pub(super) fn execute_animation_event(
     shell: &mut WorkbenchShellStateData,
     event: &EditorAnimationEvent,
-) -> Result<ExecutionOutcome, String> {
+) -> Result<ExecutionOutcome, EditorError> {
     let changed = match shell.manager.apply_animation_event(event) {
         Ok(changed) => changed,
-        Err(error) if should_tolerate_missing_animation_target(&error.to_string()) => {
+        Err(error) if should_tolerate_missing_animation_target(&error) => {
             shell.state.set_status_line_with_level(
-                ignored_status_line_for_error(&error.to_string()),
+                ignored_status_line_for_error(&error),
                 EditorConsoleMessageLevel::Warning,
             );
             return Ok(ExecutionOutcome {
@@ -22,7 +23,7 @@ pub(super) fn execute_animation_event(
                 ],
             });
         }
-        Err(error) => return Err(error.to_string()),
+        Err(error) => return Err(error),
     };
     shell.state.set_status_line(if changed {
         status_line_for_event(event)
@@ -38,17 +39,12 @@ pub(super) fn execute_animation_event(
     })
 }
 
-fn should_tolerate_missing_animation_target(message: &str) -> bool {
-    message == "no focused animation sequence editor"
-        || message == "focused view is not an animation sequence editor"
-        || message == "no focused animation graph editor"
-        || message == "focused view is not an animation graph editor"
-        || message.starts_with("missing focused animation sequence view ")
-        || message.starts_with("missing focused animation graph view ")
+fn should_tolerate_missing_animation_target(error: &EditorError) -> bool {
+    error.animation_target_diagnostic().is_some()
 }
 
-fn ignored_status_line_for_error(message: &str) -> String {
-    format!("Ignored animation command because {message}")
+fn ignored_status_line_for_error(error: &EditorError) -> String {
+    format!("Ignored animation command because {error}")
 }
 
 fn ignored_status_line_for_no_change() -> String {
@@ -162,5 +158,30 @@ fn status_line_for_event(event: &EditorAnimationEvent) -> String {
         } => format!(
             "Set animation transition condition {from_state} -> {to_state} in {state_machine_locator}: {parameter_name} {operator} {value_literal}"
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::ui::host::{
+        AnimationEditorTargetDiagnostic, AnimationEditorTargetKind,
+        AnimationEditorTargetUnavailableReason,
+    };
+
+    use super::{should_tolerate_missing_animation_target, EditorError};
+
+    #[test]
+    fn only_typed_animation_target_errors_are_tolerated() {
+        let typed = EditorError::AnimationTargetUnavailable {
+            diagnostic: AnimationEditorTargetDiagnostic::new(
+                AnimationEditorTargetKind::Sequence,
+                AnimationEditorTargetUnavailableReason::NoFocusedView,
+            ),
+        };
+
+        assert!(should_tolerate_missing_animation_target(&typed));
+        assert!(!should_tolerate_missing_animation_target(
+            &EditorError::UiAsset("no focused animation sequence editor".to_string(),)
+        ));
     }
 }

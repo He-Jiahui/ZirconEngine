@@ -5,6 +5,8 @@ use crate::asset::{
     VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset, VirtualGeometryHierarchyNodeAsset,
 };
 
+const MAX_U32_DECIMAL_DIGITS: usize = 10;
+
 pub fn format_virtual_geometry_cook_bvh_graph_dump(asset: &VirtualGeometryAsset) -> String {
     let mut graph = String::new();
     let cluster_ids_by_node = cluster_ids_by_node(asset);
@@ -85,7 +87,8 @@ fn push_cluster_id(
 }
 
 fn format_u32_list(values: &[u32]) -> String {
-    let mut formatted = String::from("[");
+    let mut formatted = String::with_capacity(u32_list_capacity(values.len()));
+    formatted.push('[');
     for (index, value) in values.iter().enumerate() {
         if index > 0 {
             formatted.push(',');
@@ -96,6 +99,16 @@ fn format_u32_list(values: &[u32]) -> String {
     formatted
 }
 
+fn u32_list_capacity(value_count: usize) -> usize {
+    2usize
+        .saturating_add(value_count.saturating_mul(MAX_U32_DECIMAL_DIGITS))
+        .saturating_add(value_count.saturating_sub(1))
+}
+
 fn write_line(graph: &mut String, args: std::fmt::Arguments<'_>) {
     writeln!(graph, "{args}").expect("writing to String cannot fail");
 }
+
+#[cfg(test)]
+#[path = "bvh_graph_dump/capacity_tests.rs"]
+mod capacity_tests;

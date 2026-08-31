@@ -8,7 +8,7 @@ fixing_plan: docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
 origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_editor/editor/03
 related_code:
-  - zircon_runtime_interface/src/runtime_api/operation.rs
+  - zircon_runtime_interface/src/runtime_api/session/operation.rs
   - zircon_runtime/src/dynamic_api/session/operation.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix.rs
 tests:

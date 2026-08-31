@@ -1,7 +1,15 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
+use crate::render_graph::{
+    RenderGraphComputePipelineFallbackPolicy, RenderGraphComputePipelineResolution,
+};
 use crate::rhi::{TextureDesc, TextureDimension, TextureFormat};
+
+mod family_publication;
+
+use super::{RenderPassDeviceEpoch, RenderPassGpuResourceFactory};
+use family_publication::{ComputePipelineFamilyKey, ComputePipelineFamilyPublicationCache};
 
 // Compute pass variants are runtime/plugin supplied, so this must remain
 // bounded even when a scene continuously introduces new specializations.
@@ -273,6 +281,12 @@ struct CachedComputePipeline {
     workgroup_size: [u32; 3],
 }
 
+pub(super) struct ResolvedComputePipeline {
+    pub pipeline: wgpu::ComputePipeline,
+    pub bind_group_layout: wgpu::BindGroupLayout,
+    pub resolution: RenderGraphComputePipelineResolution,
+}
+
 enum ComputePipelineCacheEntry {
     Ready(CachedComputePipeline),
     Failed(String),
@@ -285,16 +299,133 @@ struct ComputePipelineCacheRecord {
 }
 
 pub(super) struct ComputePipelineCache {
+    active_device_epoch: Option<RenderPassDeviceEpoch>,
     scene_bind_group_layout: Option<wgpu::BindGroupLayout>,
     capacity: usize,
     use_counter: u64,
+    mru_bucket_key: Option<ComputePipelineCacheBucketKey>,
     pipelines: HashMap<ComputePipelineCacheBucketKey, Vec<ComputePipelineCacheRecord>>,
+    published_families: ComputePipelineFamilyPublicationCache,
 }
 
 impl ComputePipelineCache {
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn resolve(
+        &mut self,
+        device: &wgpu::Device,
+        resource_factory: &impl RenderPassGpuResourceFactory,
+        scene_bind_group_layout: &wgpu::BindGroupLayout,
+        label: &str,
+        source: &str,
+        entry_point: &str,
+        expected_workgroup_size: [u32; 3],
+        bindings: &[ComputePipelineBindingLayout],
+        fallback_policy: &RenderGraphComputePipelineFallbackPolicy,
+        device_epoch: Option<RenderPassDeviceEpoch>,
+    ) -> Result<ResolvedComputePipeline, String> {
+        fallback_policy.validate()?;
+        if matches!(
+            fallback_policy,
+            RenderGraphComputePipelineFallbackPolicy::LastGood(_)
+        ) && device_epoch.is_none()
+        {
+            return Err(format!(
+                "compute pipeline `{label}` last-good policy requires a materialized device epoch"
+            ));
+        }
+        self.update_device_epoch(device_epoch);
+        let artifact_fingerprint =
+            compute_pipeline_artifact_fingerprint(source, entry_point, bindings);
+        let family_key = fallback_policy.family().cloned().map(|family| {
+            ComputePipelineFamilyKey::new(family, entry_point, expected_workgroup_size, bindings)
+        });
+        let candidate = self.get_or_create_with_factory(
+            device,
+            resource_factory,
+            scene_bind_group_layout,
+            label,
+            source,
+            entry_point,
+            expected_workgroup_size,
+            bindings,
+        );
+        match candidate {
+            Ok((pipeline, bind_group_layout)) => {
+                if let Some(family_key) = family_key {
+                    let use_counter = self.next_use_counter();
+                    self.published_families.publish(
+                        family_key,
+                        &pipeline,
+                        &bind_group_layout,
+                        artifact_fingerprint,
+                        use_counter,
+                    );
+                }
+                Ok(ResolvedComputePipeline {
+                    pipeline,
+                    bind_group_layout,
+                    resolution: RenderGraphComputePipelineResolution::ready(
+                        fallback_policy,
+                        artifact_fingerprint,
+                        device_epoch.map(RenderPassDeviceEpoch::raw_parts),
+                    ),
+                })
+            }
+            Err(candidate_failure) => {
+                let Some(family_key) = family_key else {
+                    return Err(candidate_failure);
+                };
+                let use_counter = self.next_use_counter();
+                let family = family_key.family().clone();
+                let Some(published) = self.published_families.resolve(&family_key, use_counter)
+                else {
+                    return Err(candidate_failure);
+                };
+                let device_epoch = device_epoch.ok_or_else(|| {
+                    format!("compute pipeline `{label}` last-good resolution lost its device epoch")
+                })?;
+                Ok(ResolvedComputePipeline {
+                    pipeline: published.pipeline,
+                    bind_group_layout: published.bind_group_layout,
+                    resolution: RenderGraphComputePipelineResolution::using_last_good(
+                        family,
+                        artifact_fingerprint,
+                        published.artifact_fingerprint,
+                        device_epoch.raw_parts(),
+                        candidate_failure,
+                    ),
+                })
+            }
+        }
+    }
+
     pub(super) fn get_or_create(
         &mut self,
         device: &wgpu::Device,
+        scene_bind_group_layout: &wgpu::BindGroupLayout,
+        label: &str,
+        source: &str,
+        entry_point: &str,
+        expected_workgroup_size: [u32; 3],
+        bindings: &[ComputePipelineBindingLayout],
+    ) -> Result<(wgpu::ComputePipeline, wgpu::BindGroupLayout), String> {
+        self.get_or_create_with_factory(
+            device,
+            device,
+            scene_bind_group_layout,
+            label,
+            source,
+            entry_point,
+            expected_workgroup_size,
+            bindings,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn get_or_create_with_factory(
+        &mut self,
+        device: &wgpu::Device,
+        resource_factory: &impl RenderPassGpuResourceFactory,
         scene_bind_group_layout: &wgpu::BindGroupLayout,
         label: &str,
         source: &str,
@@ -308,10 +439,13 @@ impl ComputePipelineCache {
             ));
         }
         self.update_scene_bind_group_layout(scene_bind_group_layout);
-        // The bucket avoids cloning shader text on hot hits; matching_entry still
+        let use_counter = self.next_use_counter();
+        if let Some(cached) = self.matching_mru_entry(source, entry_point, bindings, use_counter) {
+            return cached_pipeline_result(label, entry_point, expected_workgroup_size, cached);
+        }
+        // The bucket avoids cloning shader text on fallback hits; matching_entry still
         // compares complete keys so equal hashes can never select a wrong pipeline.
         let bucket_key = ComputePipelineCacheBucketKey::new(source, entry_point, bindings);
-        let use_counter = self.next_use_counter();
         if let Some(cached) =
             self.matching_entry(&bucket_key, source, entry_point, bindings, use_counter)
         {
@@ -350,8 +484,9 @@ impl ComputePipelineCache {
                 workgroup_size,
                 expected_workgroup_size,
             )?;
+            let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
             let bind_group_layout =
-                device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                resource_factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                     label: Some(label),
                     entries: &bindings
                         .iter()
@@ -363,23 +498,45 @@ impl ComputePipelineCache {
                         })
                         .collect::<Vec<_>>(),
                 });
-            let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some(label),
-                bind_group_layouts: &[Some(scene_bind_group_layout), Some(&bind_group_layout)],
-                immediate_size: 0,
-            });
-            let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            let pipeline_layout =
+                resource_factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: Some(label),
+                    bind_group_layouts: &[Some(scene_bind_group_layout), Some(&bind_group_layout)],
+                    immediate_size: 0,
+                });
+            let shader = resource_factory.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some(label),
                 source: wgpu::ShaderSource::Wgsl(source.into()),
             });
-            let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-                label: Some(label),
-                layout: Some(&pipeline_layout),
-                module: &shader,
-                entry_point: Some(entry_point),
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-                cache: None,
-            });
+            let pipeline =
+                resource_factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                    label: Some(label),
+                    layout: Some(&pipeline_layout),
+                    module: &shader,
+                    entry_point: Some(entry_point),
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                    cache: None,
+                });
+            let validation_error = {
+                crate::profile_scope!(
+                    "render",
+                    "shader_pipeline",
+                    "compute_pipeline_error_scope_pop"
+                );
+                pollster::block_on(error_scope.pop()).map(|error| error.to_string())
+            };
+            if let Some(validation_error) = validation_error {
+                let error = format!(
+                    "compute pipeline `{label}` WGPU validation failed: {validation_error}"
+                );
+                self.insert_entry(
+                    bucket_key,
+                    key,
+                    ComputePipelineCacheEntry::Failed(error.clone()),
+                    use_counter,
+                );
+                return Err(error);
+            }
             ComputePipelineCacheEntry::Ready(CachedComputePipeline {
                 pipeline,
                 bind_group_layout,
@@ -397,10 +554,13 @@ impl ComputePipelineCache {
 
     fn with_capacity(capacity: usize) -> Self {
         Self {
+            active_device_epoch: None,
             scene_bind_group_layout: None,
             capacity: capacity.max(1),
             use_counter: 0,
+            mru_bucket_key: None,
             pipelines: HashMap::new(),
+            published_families: ComputePipelineFamilyPublicationCache::with_capacity(capacity),
         }
     }
 
@@ -416,15 +576,31 @@ impl ComputePipelineCache {
         bindings: &[ComputePipelineBindingLayout],
         use_counter: u64,
     ) -> Option<&ComputePipelineCacheEntry> {
-        self.pipelines.get_mut(bucket_key).and_then(|entries| {
-            entries
-                .iter_mut()
-                .find(|candidate| candidate.key.matches(source, entry_point, bindings))
-                .map(|candidate| {
-                    candidate.last_used = use_counter;
-                    &candidate.entry
-                })
-        })
+        let candidate = self
+            .pipelines
+            .get_mut(bucket_key)?
+            .iter_mut()
+            .find(|candidate| candidate.key.matches(source, entry_point, bindings))?;
+        candidate.last_used = use_counter;
+        self.mru_bucket_key = Some(*bucket_key);
+        Some(&candidate.entry)
+    }
+
+    fn matching_mru_entry(
+        &mut self,
+        source: &str,
+        entry_point: &str,
+        bindings: &[ComputePipelineBindingLayout],
+        use_counter: u64,
+    ) -> Option<&ComputePipelineCacheEntry> {
+        let bucket_key = self.mru_bucket_key?;
+        let candidate = self
+            .pipelines
+            .get_mut(&bucket_key)?
+            .iter_mut()
+            .find(|candidate| candidate.key.matches(source, entry_point, bindings))?;
+        candidate.last_used = use_counter;
+        Some(&candidate.entry)
     }
 
     fn insert_entry(
@@ -445,6 +621,7 @@ impl ComputePipelineCache {
                 entry,
                 last_used: use_counter,
             });
+        self.mru_bucket_key = Some(bucket_key);
     }
 
     fn next_use_counter(&mut self) -> u64 {
@@ -473,6 +650,9 @@ impl ComputePipelineCache {
         });
         if remove_bucket {
             self.pipelines.remove(&bucket_key);
+            if self.mru_bucket_key == Some(bucket_key) {
+                self.mru_bucket_key = None;
+            }
         }
     }
 
@@ -482,9 +662,33 @@ impl ComputePipelineCache {
                 return;
             }
             self.pipelines.clear();
+            self.published_families.clear();
+            self.mru_bucket_key = None;
         }
         self.scene_bind_group_layout = Some(scene_bind_group_layout.clone());
     }
+
+    fn update_device_epoch(&mut self, device_epoch: Option<RenderPassDeviceEpoch>) {
+        let Some(device_epoch) = device_epoch else {
+            return;
+        };
+        if self.active_device_epoch == Some(device_epoch) {
+            return;
+        }
+        self.active_device_epoch = Some(device_epoch);
+        self.scene_bind_group_layout = None;
+        self.pipelines.clear();
+        self.published_families.clear();
+        self.mru_bucket_key = None;
+    }
+}
+
+fn compute_pipeline_artifact_fingerprint(
+    source: &str,
+    entry_point: &str,
+    bindings: &[ComputePipelineBindingLayout],
+) -> u64 {
+    cache_hash(&(source, entry_point, bindings))
 }
 
 fn cached_pipeline_result(

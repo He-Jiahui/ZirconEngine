@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use super::*;
 use crate::asset::project::{ProjectManifest, ProjectPaths};
 use crate::asset::{AssetManager, AssetUri, ProjectAssetManager};
+use crate::text::font::FontDatabase;
 
 const TEXT_FONT_MANIFEST_WORK_DIRECTORY: &str = ".runtime_text_font_manifest_work";
 
@@ -132,10 +133,10 @@ fn res_font_manifest_rejects_source_paths_that_escape_runtime_assets_root() {
 
     let loaded = load_text_font_source(&format!("res://fonts/{manifest_name}"), None);
 
-    assert!(
-        loaded.is_none(),
-        "res font manifests should reject source paths that escape the runtime assets root"
-    );
+    assert!(matches!(
+        loaded,
+        Err(FontLoadError::SourceOutsideAllowedRoot)
+    ));
 }
 
 #[test]
@@ -152,10 +153,44 @@ fn font_manifest_rejects_absolute_source_paths() {
         None,
     );
 
-    assert!(
-        loaded.is_none(),
-        "font manifests should reject absolute source paths and keep source resolution scoped"
+    assert!(matches!(loaded, Err(FontLoadError::AbsoluteManifestSource)));
+}
+
+#[test]
+fn font_manifest_reports_parse_failure_instead_of_missing_source() {
+    let temp = TempDirGuard::new("zircon-font-manifest-parse");
+    let manifest_path = temp.path.join("malformed.font.toml");
+    fs::write(&manifest_path, "source = [").expect("malformed manifest should write");
+
+    let loaded = load_text_font_source(
+        manifest_path
+            .to_str()
+            .expect("manifest path should convert to utf-8"),
+        None,
     );
+
+    assert!(matches!(loaded, Err(FontLoadError::ManifestParseFailed)));
+}
+
+#[test]
+fn font_manifest_reports_missing_source_with_a_stable_io_cause() {
+    let temp = TempDirGuard::new("zircon-font-manifest-missing-source");
+    let manifest_path = temp.path.join("missing-source.font.toml");
+    write_manifest(&manifest_path, "missing.ttf");
+
+    let loaded = load_text_font_source(
+        manifest_path
+            .to_str()
+            .expect("manifest path should convert to utf-8"),
+        None,
+    );
+
+    assert!(matches!(
+        loaded,
+        Err(FontLoadError::ManifestSourceUnavailable(
+            FontLoadIoFailure::NotFound
+        ))
+    ));
 }
 
 #[test]
@@ -182,20 +217,64 @@ fn project_font_manifest_resolves_through_project_asset_manager() {
     let project_manifest = font_dir.join("project.font.toml");
     write_manifest(&project_manifest, "project.ttf");
 
-    let manager = ProjectAssetManager::default();
-    manager
+    let expected_cooked_bytes = fs::read(&project_font).expect("project font bytes should exist");
+    let expected_asset_uuid = {
+        let manager = ProjectAssetManager::default();
+        manager
+            .open_project(
+                temp.path
+                    .to_str()
+                    .expect("project root should convert to utf-8"),
+            )
+            .expect("project should import the source font into its artifact cache");
+        manager
+            .current_project_manager()
+            .and_then(|project| {
+                project
+                    .asset_registry()
+                    .entry_by_path(&AssetUri::parse("res://fonts/project.font.toml").unwrap())
+                    .map(|entry| entry.uuid())
+            })
+            .expect("opened project font should retain a registry UUID")
+    };
+    fs::remove_file(&project_font).expect("source font should be removable after import");
+
+    let restarted = ProjectAssetManager::default();
+    restarted
         .open_project(
             temp.path
                 .to_str()
                 .expect("project root should convert to utf-8"),
         )
-        .expect("project should open");
+        .expect("project should restore the font manifest from its persisted artifact cache");
+    let loaded = load_text_font_source("res://fonts/project.font.toml", Some(&restarted))
+        .expect("project font manifest should resolve through the restarted asset manager");
 
-    let loaded = load_text_font_source("res://fonts/project.font.toml", Some(&manager))
-        .expect("project font manifest should resolve through the active project asset manager");
-
-    assert_eq!(loaded.source_path, project_font);
     assert_eq!(loaded.family.as_deref(), Some("Test Family"));
+    assert_eq!(loaded.asset_uuid, Some(expected_asset_uuid));
+    let cooked_blob = loaded
+        .cooked_blob
+        .expect("project font resolution must use its cooked payload after source removal");
+    assert_eq!(cooked_blob.bytes(), expected_cooked_bytes);
+    assert!(cooked_blob.has_valid_content_hash());
+
+    let asset = loaded
+        .asset
+        .as_ref()
+        .expect("project font resolution should retain the deserialized font asset metadata");
+    let owner = "res://fonts/project.font.toml";
+    let mut font_database = FontDatabase::default();
+    let registration = font_database
+        .replace_font_asset_blob(owner, asset, &loaded.source_path, &cooked_blob)
+        .expect("the restarted runtime should register its deserialized cooked font blob");
+    assert!(
+        !registration.faces.is_empty(),
+        "a cooked font blob should produce at least one renderable face"
+    );
+    assert!(
+        font_database.font_asset_primary_face(owner).is_some(),
+        "the restarted runtime should resolve the registered cooked font face"
+    );
 }
 
 fn write_manifest(path: &Path, source: &str) {

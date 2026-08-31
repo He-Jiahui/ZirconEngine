@@ -1,57 +1,19 @@
 use crate::tests::editor_event::support::EventRuntimeHarness;
-use crate::ui::retained_host::callback_dispatch::{
-    BuiltinHostOuterShellFrames, BuiltinHostWindowTemplateBridge,
-};
 use crate::ui::retained_host::host_page_pointer::build_host_page_pointer_layout;
-use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::model::WorkbenchViewModel;
-use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 #[test]
-fn shared_host_page_pointer_layout_prefers_shared_shell_width_over_metric_strip_estimate() {
-    let harness = EventRuntimeHarness::new("zircon_retained_host_page_pointer_shared_width");
-    let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
-        .expect("builtin workbench template bridge should build");
+fn host_page_receipt_projection_keeps_typed_page_identity_without_geometry() {
+    let harness = EventRuntimeHarness::new("zircon_retained_host_page_receipt_projection");
     let chrome = harness.runtime.chrome_snapshot();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
     );
-    let outer_shell_frames = template_bridge.outer_shell_frames();
-    let layout = build_host_page_pointer_layout(
-        &model,
-        &WorkbenchChromeMetrics::default(),
-        Some(&outer_shell_frames),
-    );
 
-    assert_eq!(
-        layout.strip_frame,
-        UiFrame::new(0.0, 24.0, 1280.0, 32.0),
-        "shared shell projection should own the root host-page strip width"
-    );
-}
+    let layout = build_host_page_pointer_layout(&model);
 
-#[test]
-fn shared_host_page_pointer_layout_prefers_shared_host_strip_frame_over_shell_metric_estimate() {
-    let harness = EventRuntimeHarness::new("zircon_retained_host_page_pointer_shared_strip");
-    let chrome = harness.runtime.chrome_snapshot();
-    let model = WorkbenchViewModel::build(
-        &crate::core::commands::EditorCommandRegistry::default_workbench(),
-        &chrome,
-    );
-    let layout = build_host_page_pointer_layout(
-        &model,
-        &WorkbenchChromeMetrics::default(),
-        Some(&BuiltinHostOuterShellFrames {
-            shell_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 900.0)),
-            host_page_strip_frame: Some(UiFrame::new(40.0, 54.0, 1110.0, 28.0)),
-            ..Default::default()
-        }),
-    );
-
-    assert_eq!(
-        layout.strip_frame,
-        UiFrame::new(40.0, 54.0, 1110.0, 28.0),
-        "shared host-page strip projection should outrank the shell-level metric estimate"
-    );
+    assert_eq!(layout.items.len(), model.host_strip.pages.len());
+    assert_eq!(layout.items[0].page_id, MainPageId::workbench());
 }

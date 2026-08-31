@@ -1,6 +1,6 @@
 use std::any::TypeId;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -14,7 +14,7 @@ use super::sparse::SparseComponentStorage;
 
 /// Owns sparse-set values only. Dense table values live in `ArchetypeTable`.
 #[derive(Default)]
-pub struct ComponentStorage {
+pub(crate) struct ComponentStorage {
     storage_types: HashMap<ComponentId, StorageType>,
     component_types: HashMap<ComponentId, TypeId>,
     sparse_components: HashMap<ComponentId, SparseComponentStorage>,
@@ -62,7 +62,7 @@ impl ComponentStorage {
         row.row.value
     }
 
-    pub fn insert<T>(
+    pub(crate) fn insert<T>(
         &mut self,
         component_id: ComponentId,
         storage_type: StorageType,
@@ -81,7 +81,7 @@ impl ComponentStorage {
         )
     }
 
-    pub fn insert_at_tick<T>(
+    pub(crate) fn insert_at_tick<T>(
         &mut self,
         component_id: ComponentId,
         storage_type: StorageType,
@@ -181,14 +181,14 @@ impl ComponentStorage {
         })
     }
 
-    pub fn get<T>(&self, component_id: ComponentId, entity: InternalEntity) -> Option<&T>
+    pub(crate) fn get<T>(&self, component_id: ComponentId, entity: InternalEntity) -> Option<&T>
     where
         T: 'static + Send + Sync,
     {
         self.sparse_components.get(&component_id)?.get(entity)
     }
 
-    pub fn get_mut<T>(
+    pub(crate) fn get_mut<T>(
         &mut self,
         component_id: ComponentId,
         entity: InternalEntity,
@@ -201,7 +201,7 @@ impl ComponentStorage {
             .get_mut(entity)
     }
 
-    pub fn get_mut_at_tick<T>(
+    pub(crate) fn get_mut_at_tick<T>(
         &mut self,
         component_id: ComponentId,
         entity: InternalEntity,
@@ -215,7 +215,7 @@ impl ComponentStorage {
             .get_mut_at_tick(entity, tick)
     }
 
-    pub fn get_mut_with_ticks<T>(
+    pub(crate) fn get_mut_with_ticks<T>(
         &mut self,
         component_id: ComponentId,
         entity: InternalEntity,
@@ -228,7 +228,7 @@ impl ComponentStorage {
             .get_mut_with_ticks(entity)
     }
 
-    pub fn remove<T>(
+    pub(crate) fn remove<T>(
         &mut self,
         component_id: ComponentId,
         entity: InternalEntity,
@@ -374,13 +374,13 @@ impl ComponentStorage {
             .is_some()
     }
 
-    pub fn contains(&self, component_id: ComponentId, entity: InternalEntity) -> bool {
+    pub(crate) fn contains(&self, component_id: ComponentId, entity: InternalEntity) -> bool {
         self.sparse_components
             .get(&component_id)
             .is_some_and(|storage| storage.contains(entity))
     }
 
-    pub fn ticks(
+    pub(crate) fn ticks(
         &self,
         component_id: ComponentId,
         entity: InternalEntity,
@@ -388,7 +388,7 @@ impl ComponentStorage {
         self.sparse_components.get(&component_id)?.ticks(entity)
     }
 
-    pub fn location(
+    pub(crate) fn location(
         &self,
         component_id: ComponentId,
         entity: InternalEntity,
@@ -399,7 +399,7 @@ impl ComponentStorage {
             .then_some(ComponentStorageLocation::sparse(component_id, entity))
     }
 
-    pub fn get_with_ticks_at_location<T>(
+    pub(crate) fn get_with_ticks_at_location<T>(
         &self,
         location: ComponentStorageLocation,
     ) -> Option<(&T, ComponentTicks)>
@@ -418,7 +418,7 @@ impl ComponentStorage {
             .get_with_ticks(location.entity)
     }
 
-    pub fn mark_changed(
+    pub(crate) fn mark_changed(
         &mut self,
         component_id: ComponentId,
         entity: InternalEntity,
@@ -448,11 +448,11 @@ impl ComponentStorage {
         removed
     }
 
-    pub fn storage_type(&self, component_id: ComponentId) -> Option<StorageType> {
+    pub(crate) fn storage_type(&self, component_id: ComponentId) -> Option<StorageType> {
         self.storage_types.get(&component_id).copied()
     }
 
-    pub fn len_for_component(&self, component_id: ComponentId) -> usize {
+    pub(crate) fn len_for_component(&self, component_id: ComponentId) -> usize {
         self.sparse_components
             .get(&component_id)
             .map_or(0, SparseComponentStorage::len)

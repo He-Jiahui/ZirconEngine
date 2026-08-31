@@ -1,27 +1,24 @@
 use std::marker::PhantomData;
 use std::path::Path;
 use std::slice;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
 
 use zircon_runtime::diagnostic_log::write_log;
-use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 use zircon_runtime_host::foreign_output::{
     profile_control_response_item_count, RuntimeOwnedOutputReleaser,
 };
+use zircon_runtime_host::viewport_surface::ViewportSurfaceBindings;
 use zircon_runtime_interface::project::RelPath;
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeModuleCompositionReceiptV1;
 use zircon_runtime_interface::{
-    ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedResultV2,
-    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
+    validate_runtime_frame_rgba_shape, ProfileControlRequest, ProfileControlResponse, ZrByteSlice,
+    ZrOwnedResultV2, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
     ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
     ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
-    ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
-    ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
@@ -33,9 +30,14 @@ use super::{
 };
 
 mod foreign_output;
+mod frame_demand;
+pub(super) mod module_composition_receipt;
 mod operation;
 mod owned_buffer;
 mod request_encoding;
+mod surface_bindings;
+
+pub(crate) use frame_demand::{RuntimeFrameDemand, MAX_HOST_RUNTIME_FRAME_DELAY};
 
 use foreign_output::{
     ForeignOutputKind, ForeignOutputState, HOST_REQUEST_OUTPUT_BUDGET, PLUGIN_EVENT_OUTPUT_BUDGET,
@@ -47,51 +49,12 @@ use owned_buffer::{
 };
 use request_encoding::encode_runtime_request;
 
-pub(crate) const MAX_HOST_RUNTIME_FRAME_DELAY: Duration = Duration::from_secs(60);
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum RuntimeFrameDemand {
-    Idle,
-    Immediate,
-    After(Duration),
-}
-
-impl TryFrom<ZrRuntimeFrameDemandV1> for RuntimeFrameDemand {
-    type Error = RuntimeLibraryError;
-
-    fn try_from(demand: ZrRuntimeFrameDemandV1) -> Result<Self, Self::Error> {
-        if demand.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
-            return Err(RuntimeLibraryError::new(format!(
-                "runtime frame demand used unsupported ABI version {}",
-                demand.abi_version
-            )));
-        }
-        match demand.kind {
-            ZR_RUNTIME_FRAME_DEMAND_IDLE_V1 | ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1
-                if demand.delay_nanoseconds != 0 =>
-            {
-                Err(RuntimeLibraryError::new(format!(
-                    "runtime frame demand kind {} requires zero delay",
-                    demand.kind
-                )))
-            }
-            ZR_RUNTIME_FRAME_DEMAND_IDLE_V1 => Ok(Self::Idle),
-            ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1 => Ok(Self::Immediate),
-            ZR_RUNTIME_FRAME_DEMAND_AFTER_V1 => Ok(Self::After(
-                Duration::from_nanos(demand.delay_nanoseconds).min(MAX_HOST_RUNTIME_FRAME_DELAY),
-            )),
-            kind => Err(RuntimeLibraryError::new(format!(
-                "unsupported runtime frame demand kind {kind}"
-            ))),
-        }
-    }
-}
-
 pub(crate) struct RuntimeSession {
     runtime: Option<LoadedRuntime>,
     handle: ZrRuntimeSessionHandle,
+    module_composition_receipt: Option<ZrRuntimeModuleCompositionReceiptV1>,
     wake_registration: Option<RuntimeWakeRegistration>,
-    viewport_surface_bound: Arc<AtomicBool>,
+    viewport_surface_bindings: Arc<ViewportSurfaceBindings>,
     teardown_failure_state: RuntimeSessionTeardownFailureState,
     foreign_output: Arc<ForeignOutputState>,
 }
@@ -118,13 +81,9 @@ impl RuntimeSession {
                 self.foreign_output.clone(),
             )?
         }
-        .with_viewport_surface_lifecycle_state(self.viewport_surface_lifecycle_state());
+        .with_module_composition_receipt(self.module_composition_receipt().clone())?
+        .with_viewport_surface_bindings(self.viewport_surface_bindings.clone());
         Ok(Arc::new(gateway))
-    }
-
-    #[cfg(feature = "target-editor-host")]
-    fn viewport_surface_lifecycle_state(&self) -> Arc<AtomicBool> {
-        self.viewport_surface_bound.clone()
     }
 
     #[cfg(feature = "target-editor-host")]
@@ -187,45 +146,53 @@ impl RuntimeSession {
                 "runtime returned an invalid session handle",
             ));
         }
-        Ok(Self {
+        let mut session = Self {
             runtime: Some(runtime),
             handle,
+            module_composition_receipt: None,
             wake_registration,
-            viewport_surface_bound: Arc::new(AtomicBool::new(false)),
+            viewport_surface_bindings: Arc::new(ViewportSurfaceBindings::default()),
             teardown_failure_state: RuntimeSessionTeardownFailureState::default(),
             foreign_output: Arc::new(ForeignOutputState::default()),
-        })
+        };
+        let receipt = module_composition_receipt::query(&session, profile)?;
+        session.module_composition_receipt = Some(receipt);
+        Ok(session)
     }
 
-    pub(crate) fn create_linked_with_profile_and_project(
-        runtime: LoadedRuntime,
-        profile: &[u8],
-        project_root: Option<&Path>,
-        registrations: Vec<RuntimePluginRegistrationReport>,
-    ) -> Result<Self, RuntimeLibraryError> {
-        let handle = zircon_runtime::dynamic_api::create_linked_runtime_session(
-            profile,
-            project_root,
-            registrations,
-        )
-        .map_err(|error| RuntimeLibraryError::new(error.to_string()))?;
-        if !handle.is_valid() {
-            return Err(RuntimeLibraryError::new(
-                "linked runtime returned an invalid session handle",
-            ));
-        }
-        Ok(Self {
-            runtime: Some(runtime),
-            handle,
-            wake_registration: None,
-            viewport_surface_bound: Arc::new(AtomicBool::new(false)),
-            teardown_failure_state: RuntimeSessionTeardownFailureState::default(),
-            foreign_output: Arc::new(ForeignOutputState::default()),
-        })
+    pub(in crate::entry) fn module_composition_receipt(
+        &self,
+    ) -> &ZrRuntimeModuleCompositionReceiptV1 {
+        self.module_composition_receipt
+            .as_ref()
+            .expect("successfully constructed runtime sessions retain a composition receipt")
     }
 
     pub(in crate::entry) fn teardown_failure_state(&self) -> RuntimeSessionTeardownFailureState {
         self.teardown_failure_state.clone()
+    }
+
+    /// Destroys this session while retaining the loaded library and handle on failure.
+    ///
+    /// App-owned Play leases call this only after Editor has detached every gateway generation.
+    /// Ordinary owners may continue to rely on `Drop`, whose failure remains process-fatal.
+    pub(in crate::entry) fn try_destroy(&mut self) -> Result<(), RuntimeLibraryError> {
+        if !self.handle.is_valid() {
+            return Ok(());
+        }
+        if let Some(diagnostic) = self.foreign_output.diagnostic_line() {
+            write_log("runtime_foreign_output", diagnostic);
+        }
+        self.release_bound_viewport_surfaces_for_teardown();
+        let destroy_session = self.runtime().destroy_session();
+        let destroy_status = unsafe { destroy_session(self.handle) };
+        ensure_status(destroy_status, "destroy runtime session")?;
+        if let Some(wake_registration) = &mut self.wake_registration {
+            wake_registration.unregister();
+        }
+        self.handle = ZrRuntimeSessionHandle::invalid();
+        self.runtime.take();
+        Ok(())
     }
 
     fn runtime(&self) -> &LoadedRuntime {
@@ -282,7 +249,7 @@ impl RuntimeSession {
                 return self
                     .foreign_output
                     .reject_protocol(ForeignOutputKind::SessionProtocol, error)
-                    .map_err(Into::into)
+                    .map_err(Into::into);
             }
         };
         if let Err(error) = validate_runtime_frame_releasing_on_error(&mut frame, releaser) {
@@ -309,12 +276,13 @@ impl RuntimeSession {
         let Some(bind) = self.runtime().bind_viewport_surface() else {
             return Ok(false);
         };
-        ensure_status(
+        let operation = self.begin_viewport_surface_binding(request.viewport)?;
+        let result = ensure_status(
             unsafe { bind(self.handle, request) },
             "bind runtime viewport surface",
-        )?;
-        self.viewport_surface_bound.store(true, Ordering::Release);
-        Ok(true)
+        );
+        self.finish_viewport_surface_binding(operation, result.is_ok());
+        result.map(|()| true)
     }
 
     pub(crate) fn unbind_viewport_surface(
@@ -330,19 +298,27 @@ impl RuntimeSession {
         &self,
         viewport: ZrRuntimeViewportHandle,
     ) -> Result<bool, RuntimeLibraryError> {
-        if !self.viewport_surface_bound.load(Ordering::Acquire) {
-            return Ok(false);
-        }
-        let Some(unbind) = self.runtime().unbind_viewport_surface() else {
-            self.viewport_surface_bound.store(false, Ordering::Release);
+        let Some(operation) = self.begin_viewport_surface_release(viewport)? else {
             return Ok(false);
         };
-        ensure_status(
+        let Some(unbind) = self.runtime().unbind_viewport_surface() else {
+            self.finish_viewport_surface_release(operation, false);
+            return Ok(false);
+        };
+        let result = ensure_status(
             unsafe { unbind(self.handle, viewport) },
             "unbind runtime viewport surface",
-        )?;
-        self.viewport_surface_bound.store(false, Ordering::Release);
-        Ok(true)
+        );
+        self.finish_viewport_surface_release(operation, result.is_ok());
+        result.map(|()| true)
+    }
+
+    fn release_bound_viewport_surfaces_for_teardown(&self) {
+        for viewport in self.bound_viewport_surfaces() {
+            if let Err(error) = self.unbind_viewport_surface_for_teardown(viewport) {
+                self.teardown_failure_state.record(error);
+            }
+        }
     }
 
     pub(crate) fn present_viewport(
@@ -581,27 +557,10 @@ impl RuntimeSession {
 
 impl Drop for RuntimeSession {
     fn drop(&mut self) {
-        if let Some(diagnostic) = self.foreign_output.diagnostic_line() {
-            write_log("runtime_foreign_output", diagnostic);
-        }
-        if let Err(error) =
-            self.unbind_viewport_surface_for_teardown(ZrRuntimeViewportHandle::new(1))
-        {
+        if let Err(error) = self.try_destroy() {
+            let detail = error.to_string();
             self.teardown_failure_state.record(error);
-        }
-        let destroy_session = self.runtime().destroy_session();
-        let destroy_status = unsafe { destroy_session(self.handle) };
-        match ensure_status(destroy_status, "destroy runtime session") {
-            Ok(()) => {
-                if let Some(wake_registration) = &mut self.wake_registration {
-                    wake_registration.unregister();
-                }
-            }
-            Err(error) => {
-                let detail = error.to_string();
-                self.teardown_failure_state.record(error);
-                abort_after_runtime_session_teardown_failure(&detail);
-            }
+            abort_after_runtime_session_teardown_failure(&detail);
         }
     }
 }
@@ -712,36 +671,8 @@ fn validate_runtime_frame(frame: &ZrRuntimeFrameV2) -> Result<(), RuntimeLibrary
             frame.abi_version
         )));
     }
-    if frame.width == 0 || frame.height == 0 {
-        return Err(RuntimeLibraryError::new(format!(
-            "runtime frame returned invalid dimensions {}x{}",
-            frame.width, frame.height
-        )));
-    }
-    if frame.width > ZR_RUNTIME_FRAME_MAX_DIMENSION_V1
-        || frame.height > ZR_RUNTIME_FRAME_MAX_DIMENSION_V1
-    {
-        return Err(RuntimeLibraryError::new(format!(
-            "runtime frame dimensions {}x{} exceed maximum {}",
-            frame.width, frame.height, ZR_RUNTIME_FRAME_MAX_DIMENSION_V1
-        )));
-    }
-    let expected_len = (frame.width as usize)
-        .checked_mul(frame.height as usize)
-        .and_then(|pixel_count| pixel_count.checked_mul(4))
-        .ok_or_else(|| RuntimeLibraryError::new("runtime frame pixel length overflowed usize"))?;
-    if expected_len > ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1 {
-        return Err(RuntimeLibraryError::new(format!(
-            "runtime frame RGBA length {expected_len} exceeds maximum {ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1}"
-        )));
-    }
-    if frame.rgba.len != expected_len as u64 {
-        return Err(RuntimeLibraryError::new(format!(
-            "runtime frame returned {} RGBA bytes for {}x{} pixels; expected {}",
-            frame.rgba.len, frame.width, frame.height, expected_len
-        )));
-    }
-    Ok(())
+    validate_runtime_frame_rgba_shape(frame.width, frame.height, frame.rgba.len)
+        .map_err(|error| RuntimeLibraryError::new(error.to_string()))
 }
 
 fn validate_runtime_frame_releasing_on_error(

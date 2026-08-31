@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use toml::Value;
 use zircon_runtime_interface::ui::binding::UiEventKind;
-use zircon_runtime_interface::ui::component::{UiComponentEvent, UiValue};
+use zircon_runtime_interface::ui::component::{UiComponentEvent, UiComponentEventKind, UiValue};
 use zircon_runtime_interface::ui::dispatch::{UiPointerComponentEventReason, UiPointerEvent};
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
@@ -34,6 +34,7 @@ mod default_controls;
 mod demo_and_builder;
 mod file_cache;
 mod performance_guards;
+mod pixel_snapping;
 mod range_controls;
 mod style_runtime;
 
@@ -54,6 +55,31 @@ fn v2_document(asset_id: &str, root: &str) -> UiV2AssetDocument {
         components: BTreeMap::new(),
         stylesheets: Vec::new(),
     }
+}
+
+#[test]
+fn v2_compiler_projects_descriptor_component_role() {
+    let mut document = v2_document("runtime.v2.semantic_role", "root");
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Button".to_string(),
+            ..UiV2NodeDefinition::default()
+        },
+    );
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let root = compiled
+        .arena
+        .node(compiled.arena.root.expect("semantic role root"))
+        .unwrap();
+
+    assert_eq!(
+        root.props
+            .get("component_role")
+            .and_then(toml::Value::as_str),
+        Some("button")
+    );
 }
 
 fn v2_cache_temp_dir(test_name: &str) -> std::path::PathBuf {
@@ -111,29 +137,37 @@ fn runtime_range_slider_surface(
             layout: Some(fixed_size_layout(100.0, 24.0)),
             events: vec![
                 UiBindingRef {
+                    component_event: Some(UiComponentEventKind::ValueChanged),
                     id: "RuntimeRangeSlider/ValueChanged".to_string(),
                     event: UiEventKind::Change,
+                    mode: Default::default(),
                     route: Some("RuntimeRangeSlider.ValueChanged".to_string()),
                     action: None,
                     targets: Vec::new(),
                 },
                 UiBindingRef {
+                    component_event: Some(UiComponentEventKind::BeginDrag),
                     id: "RuntimeRangeSlider/DragBegin".to_string(),
                     event: UiEventKind::DragBegin,
+                    mode: Default::default(),
                     route: Some("RuntimeRangeSlider.BeginDrag".to_string()),
                     action: None,
                     targets: Vec::new(),
                 },
                 UiBindingRef {
+                    component_event: Some(UiComponentEventKind::DragDelta),
                     id: "RuntimeRangeSlider/DragDelta".to_string(),
                     event: UiEventKind::DragUpdate,
+                    mode: Default::default(),
                     route: Some("RuntimeRangeSlider.DragDelta".to_string()),
                     action: None,
                     targets: Vec::new(),
                 },
                 UiBindingRef {
+                    component_event: Some(UiComponentEventKind::EndDrag),
                     id: "RuntimeRangeSlider/DragEnd".to_string(),
                     event: UiEventKind::DragEnd,
+                    mode: Default::default(),
                     route: Some("RuntimeRangeSlider.EndDrag".to_string()),
                     action: None,
                     targets: Vec::new(),
@@ -329,4 +363,33 @@ fn style_rule<'a, const N: usize>(
             slot: BTreeMap::new(),
         },
     }
+}
+
+#[test]
+fn typed_component_event_compile_rejects_unsupported_descriptor_event() {
+    let mut document = v2_document("runtime.ui.typed_event", "root");
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Button".to_string(),
+            events: vec![UiBindingRef {
+                component_event: Some(UiComponentEventKind::ToggleExpanded),
+                id: "business.unrelated_name".to_string(),
+                event: UiEventKind::Click,
+                mode: Default::default(),
+                route: Some("product.lower_snake.route".to_string()),
+                action: None,
+                targets: Vec::new(),
+            }],
+            ..Default::default()
+        },
+    );
+
+    let error = UiV2DocumentCompiler::compile(&document)
+        .expect_err("Button must reject an undeclared ToggleExpanded component event");
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { detail, .. }
+            if detail.contains("ToggleExpanded") && detail.contains("Button")
+    ));
 }

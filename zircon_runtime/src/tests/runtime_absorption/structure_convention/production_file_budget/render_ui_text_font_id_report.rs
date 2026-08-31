@@ -6,10 +6,11 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/text.rs");
     let font_id_report =
         read_runtime_src("graphics/scene/scene_renderer/ui/text/font_id_report.rs");
+    let native_glyph_run =
+        read_runtime_src("graphics/scene/scene_renderer/ui/text/native_glyph_run.rs");
     let prepare_report =
         read_runtime_src("graphics/scene/scene_renderer/ui/text/prepare_report.rs");
     let text_module = read_runtime_src("text/mod.rs");
-    let native_buffer = read_runtime_src("text/native_buffer.rs");
     let render_state = read_runtime_src("text/render_state.rs");
     let parent_production = production_code_view(&parent);
     let font_id_report_production = production_code_view(&font_id_report);
@@ -20,22 +21,19 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
         &parent_production,
         &[
             "mod font_id_report;",
+            "mod native_glyph_run;",
             "mod prepare_report;",
-            "use self::font_id_report::{",
+            "use self::font_id_report::ScreenSpaceUiTextFontIdReport;",
+            "use self::native_glyph_run::native_bitmap_atlas_glyph_runs;",
             "ScreenSpaceUiTextSystem",
             "ScreenSpaceUiTextPrepareReport",
             "let native_font_id_report = self.native.prepare(",
-            "accumulate_text_font_id_report(",
-            "native_buffer.primary_face",
-            "|backend| text_state.font_face_id(backend)",
-            "native_text_align(",
+            "font_ids: glyph_run_projection.font_ids",
         ],
     );
     for moved_owner in [
         "pub(crate) struct ScreenSpaceUiTextFontIdReport",
-        "fn accumulate_text_font_id_report(",
-        "fn accumulate_backend_glyphs(",
-        "resolve_face: impl FnMut(glyphon::fontdb::ID) -> Option<FontFaceId>",
+        "fn accumulate_resolved_glyph_faces(",
     ] {
         assert!(
             !parent_production.contains(moved_owner),
@@ -47,26 +45,33 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
         );
     }
     assert_contains_all(
-        "screen-space UI text font-id child owns actual backend reporting",
+        "screen-space UI text font-id child owns canonical shaped-glyph reporting",
         &font_id_report_production,
         &[
             "pub(crate) struct ScreenSpaceUiTextFontIdReport",
-            "pub(super) fn accumulate_text_font_id_report",
-            "primary: Option<FontFaceId>",
-            "resolve_face: impl FnMut(glyphon::fontdb::ID) -> Option<FontFaceId>",
-            "buffer.layout_runs()",
-            "match (resolve_face(glyph.font_id), primary)",
-            "(Some(_), _) => fallback_glyph_count += 1",
+            "pub(super) fn accumulate_resolved_glyph_faces",
+            "faces: impl IntoIterator<Item = Option<FontFaceId>>",
+            "let mut primary = None;",
+            "Some(face) if primary.is_none()",
+            "Some(_) => fallback_glyph_count += 1",
             "unmapped_glyph_count",
+        ],
+    );
+    assert_contains_all(
+        "native glyph-run projection resolves handles once and reuses them for diagnostics",
+        &native_glyph_run,
+        &[
+            "resolve_font_handle_batch(",
+            "accumulate_resolved_glyph_faces(font_ids, handles.iter().map(|(face, _)| *face));",
         ],
     );
     assert!(
         !parent_production.contains("text_state.font_database()"),
-        "graphics production must resolve backend font IDs through the narrow TextRenderState query"
+        "graphics production must not expose the Text-owned database for font-id reporting"
     );
     assert!(
-        !font_id_report_production.contains("FontDatabase"),
-        "graphics font-id reporting must receive a narrow resolver instead of the Text-owned database"
+        !font_id_report_production.contains("glyphon::"),
+        "graphics font-id reporting must consume canonical glyph handles rather than glyphon"
     );
     for moved_report_owner in [
         "pub(crate) struct ScreenSpaceUiTextPrepareReport",
@@ -82,54 +87,15 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
             "text/prepare_report.rs should own `{moved_report_owner}`"
         );
     }
-    for forbidden_bridge in ["shape_horizontal_line", "annotate_fallback_font_ids"] {
+    for forbidden_bridge in ["shape_horizontal_range", "annotate_fallback_font_ids"] {
         assert!(
             !font_id_report.contains(forbidden_bridge),
             "text/font_id_report.rs must not retain post-shape bridge `{forbidden_bridge}`"
         );
     }
-    for duplicate_owner in ["NativeTextFontIdReport", "fn font_id_report(", ".font_ids"] {
-        assert!(
-            !native_buffer.contains(duplicate_owner),
-            "text/native_buffer.rs must not duplicate render-only font-id reporting owner `{duplicate_owner}`"
-        );
-    }
     assert!(
         !text_module.contains("NativeTextFontIdReport"),
         "text/mod.rs must not retain the removed NativeTextFontIdReport re-export"
-    );
-    assert_contains_all(
-        "code text resolves the same default family installed as the glyphon monospace family",
-        &parent,
-        &[
-            "fn resolve_family_name(",
-            "code: bool",
-            "if code {",
-            "DEFAULT_FONT_ASSET,",
-            "record.family.clone()",
-        ],
-    );
-    assert_contains_all(
-        "native text preparation exposes only canonical primary-face metadata to the render report owner",
-        &native_buffer,
-        &[
-            "pub(crate) primary_face: Option<FontFaceId>",
-            "fn native_font_query(",
-            "if request.code {",
-            "Family::Monospace",
-            "style: if request.emphasis",
-            "requested_weight.max(FontWeight::BOLD)",
-        ],
-    );
-    assert_contains_all(
-        "text render state exposes a narrow font-face query to the render-only report owner",
-        &render_state_production,
-        &[
-            "pub(crate) fn set_default_ui_family(&mut self, family: &str)",
-            "mutate_shared_font_database(|database| database.set_default_ui_family(family))",
-            "pub(crate) fn font_face_id(&self, backend: glyphon::fontdb::ID)",
-            "self.font_database.font_face_id(backend)",
-        ],
     );
     assert!(
         !render_state_production.contains("pub(crate) fn font_database(&self) -> &FontDatabase"),
@@ -147,7 +113,6 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
             prepare_report.as_str(),
         ),
         ("text/mod.rs", text_module.as_str()),
-        ("text/native_buffer.rs", native_buffer.as_str()),
         ("text/render_state.rs", render_state.as_str()),
     ] {
         let line_count = source.lines().count();

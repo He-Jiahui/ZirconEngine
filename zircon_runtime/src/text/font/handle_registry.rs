@@ -2,16 +2,22 @@
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, OnceLock, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
-use crate::core::framework::text::TextFontFaceHandle;
+use crate::core::framework::text::{TextFontCollectionHandle, TextFontFaceHandle};
 use crate::text::{FontFaceId, InstancedFaceId};
 
-use super::shared_font_database_generation;
+use super::{FontCollectionService, shared_font_collection_service};
 
-type BackendFontHandlePair = (Option<FontFaceId>, Option<InstancedFaceId>);
-type TextFontHandlePair = (Option<TextFontFaceHandle>, Option<TextFontFaceHandle>);
+mod resolver_snapshot;
+pub(crate) use resolver_snapshot::{
+    FontHandleResolverSnapshot, font_handle_resolver_snapshot,
+    resolve_font_handle_batch_from_snapshot,
+};
+
+pub(crate) type BackendFontHandlePair = (Option<FontFaceId>, Option<InstancedFaceId>);
+pub(crate) type TextFontHandlePair = (Option<TextFontFaceHandle>, Option<TextFontFaceHandle>);
 
 /// Monotonic counters; a frame owner takes two snapshots to obtain its per-frame delta.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -122,8 +128,8 @@ impl FontHandleRegistryMetrics {
     }
 }
 
-#[derive(Default)]
 struct FontHandleRegistry {
+    collection: TextFontCollectionHandle,
     generation: u64,
     faces: Vec<FontFaceId>,
     face_slots: HashMap<FontFaceId, u32>,
@@ -132,6 +138,17 @@ struct FontHandleRegistry {
 }
 
 impl FontHandleRegistry {
+    fn new(collection: TextFontCollectionHandle) -> Self {
+        Self {
+            collection,
+            generation: 0,
+            faces: Vec::new(),
+            face_slots: HashMap::new(),
+            instances: Vec::new(),
+            instance_slots: HashMap::new(),
+        }
+    }
+
     fn reset_for_generation(&mut self, generation: u64) -> bool {
         if self.generation == generation {
             return true;
@@ -160,7 +177,11 @@ impl FontHandleRegistry {
                 index
             }
         };
-        Some(TextFontFaceHandle::new(index, self.generation))
+        Some(TextFontFaceHandle::new(
+            self.collection,
+            index,
+            self.generation,
+        ))
     }
 
     fn register_instance_for_current_generation(
@@ -176,7 +197,11 @@ impl FontHandleRegistry {
                 index
             }
         };
-        Some(TextFontFaceHandle::new(index, self.generation))
+        Some(TextFontFaceHandle::new(
+            self.collection,
+            index,
+            self.generation,
+        ))
     }
 
     fn register_unique_pairs(
@@ -202,14 +227,14 @@ impl FontHandleRegistry {
 
     #[cfg(test)]
     fn resolve_face(&self, handle: TextFontFaceHandle) -> Option<FontFaceId> {
-        (self.generation == handle.generation)
+        (self.collection == handle.collection && self.generation == handle.generation)
             .then(|| self.faces.get(handle.index as usize).copied())
             .flatten()
     }
 }
 
-#[derive(Default)]
 struct FontHandleRegistrySnapshot {
+    collection: TextFontCollectionHandle,
     generation: u64,
     faces: Vec<FontFaceId>,
     instances: Vec<InstancedFaceId>,
@@ -218,6 +243,7 @@ struct FontHandleRegistrySnapshot {
 impl From<&FontHandleRegistry> for FontHandleRegistrySnapshot {
     fn from(registry: &FontHandleRegistry) -> Self {
         Self {
+            collection: registry.collection,
             generation: registry.generation,
             faces: registry.faces.clone(),
             instances: registry.instances.clone(),
@@ -227,31 +253,63 @@ impl From<&FontHandleRegistry> for FontHandleRegistrySnapshot {
 
 impl FontHandleRegistrySnapshot {
     fn resolve_face(&self, handle: TextFontFaceHandle) -> Option<FontFaceId> {
-        (self.generation == handle.generation)
+        (self.collection == handle.collection && self.generation == handle.generation)
             .then(|| self.faces.get(handle.index as usize).copied())
             .flatten()
     }
 
     fn resolve_instance(&self, handle: TextFontFaceHandle) -> Option<InstancedFaceId> {
-        (self.generation == handle.generation)
+        (self.collection == handle.collection && self.generation == handle.generation)
             .then(|| self.instances.get(handle.index as usize).copied())
             .flatten()
     }
 }
 
-fn registry() -> &'static Mutex<FontHandleRegistry> {
-    static REGISTRY: OnceLock<Mutex<FontHandleRegistry>> = OnceLock::new();
-    REGISTRY.get_or_init(|| Mutex::new(FontHandleRegistry::default()))
+pub(crate) struct FontHandleRegistryService {
+    registry: Mutex<FontHandleRegistry>,
+    snapshot: RwLock<Arc<FontHandleRegistrySnapshot>>,
+    metrics: FontHandleRegistryMetrics,
 }
 
-fn registry_snapshot() -> &'static RwLock<Arc<FontHandleRegistrySnapshot>> {
-    static SNAPSHOT: OnceLock<RwLock<Arc<FontHandleRegistrySnapshot>>> = OnceLock::new();
-    SNAPSHOT.get_or_init(|| RwLock::new(Arc::new(FontHandleRegistrySnapshot::default())))
-}
+impl FontHandleRegistryService {
+    pub(crate) fn new(collection: TextFontCollectionHandle) -> Self {
+        Self {
+            registry: Mutex::new(FontHandleRegistry::new(collection)),
+            snapshot: RwLock::new(Arc::new(FontHandleRegistrySnapshot {
+                collection,
+                generation: 0,
+                faces: Vec::new(),
+                instances: Vec::new(),
+            })),
+            metrics: FontHandleRegistryMetrics::default(),
+        }
+    }
 
-fn metrics() -> &'static FontHandleRegistryMetrics {
-    static METRICS: OnceLock<FontHandleRegistryMetrics> = OnceLock::new();
-    METRICS.get_or_init(FontHandleRegistryMetrics::default)
+    fn report(&self) -> FontHandleRegistryReport {
+        self.metrics.report()
+    }
+
+    fn publish_snapshot(&self, registry: &FontHandleRegistry) {
+        *self
+            .snapshot
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) =
+            Arc::new(FontHandleRegistrySnapshot::from(registry));
+    }
+
+    fn current_snapshot(&self) -> (Arc<FontHandleRegistrySnapshot>, Duration, Duration) {
+        let wait_started = Instant::now();
+        let snapshot_guard = self
+            .snapshot
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let wait = wait_started.elapsed();
+        let hold_started = Instant::now();
+        let snapshot = snapshot_guard.clone();
+        let hold = hold_started.elapsed();
+        drop(snapshot_guard);
+        (snapshot, wait, hold)
+    }
 }
 
 fn duration_to_nanos(duration: Duration) -> u64 {
@@ -259,7 +317,7 @@ fn duration_to_nanos(duration: Duration) -> u64 {
 }
 
 pub(crate) fn font_handle_registry_report() -> FontHandleRegistryReport {
-    metrics().report()
+    shared_font_collection_service().handle_registry().report()
 }
 
 #[cfg(test)]
@@ -272,32 +330,17 @@ pub(crate) fn current_thread_font_handle_registration_batch_count() -> u64 {
     CURRENT_THREAD_REGISTRATION_BATCH_COUNT.get()
 }
 
-fn publish_registry_snapshot(registry: &FontHandleRegistry) {
-    *registry_snapshot()
-        .write()
-        .unwrap_or_else(|poisoned| poisoned.into_inner()) =
-        Arc::new(FontHandleRegistrySnapshot::from(registry));
-}
-
-fn current_registry_snapshot() -> (Arc<FontHandleRegistrySnapshot>, Duration, Duration) {
-    let wait_started = Instant::now();
-    let snapshot_guard = registry_snapshot()
-        .read()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let wait = wait_started.elapsed();
-    let hold_started = Instant::now();
-    let snapshot = snapshot_guard.clone();
-    let hold = hold_started.elapsed();
-    drop(snapshot_guard);
-    (snapshot, wait, hold)
-}
-
 fn snapshot_matches_font_database_generation(
     snapshot: &FontHandleRegistrySnapshot,
+    expected_collection: TextFontCollectionHandle,
     expected_generation: u64,
+    observed_collection: TextFontCollectionHandle,
     observed_generation: u64,
 ) -> bool {
-    snapshot.generation == expected_generation && observed_generation == expected_generation
+    snapshot.collection == expected_collection
+        && expected_collection == observed_collection
+        && snapshot.generation == expected_generation
+        && observed_generation == expected_generation
 }
 
 fn unique_backend_pairs(pairs: &[BackendFontHandlePair]) -> Vec<BackendFontHandlePair> {
@@ -311,6 +354,7 @@ fn unique_backend_pairs(pairs: &[BackendFontHandlePair]) -> Vec<BackendFontHandl
     unique
 }
 
+#[cfg(test)]
 fn unique_text_pairs(pairs: &[TextFontHandlePair]) -> Vec<TextFontHandlePair> {
     let mut seen = HashSet::with_capacity(pairs.len());
     let mut unique = Vec::new();
@@ -320,6 +364,62 @@ fn unique_text_pairs(pairs: &[TextFontHandlePair]) -> Vec<TextFontHandlePair> {
         }
     }
     unique
+}
+
+fn normalize_text_pair(
+    pair: TextFontHandlePair,
+    collection: TextFontCollectionHandle,
+    generation: u64,
+) -> TextFontHandlePair {
+    pair.0
+        .iter()
+        .chain(pair.1.iter())
+        .all(|handle| handle.collection == collection && handle.generation == generation)
+        .then_some(pair)
+        .unwrap_or((None, None))
+}
+
+fn unique_current_text_pairs(
+    pairs: &[TextFontHandlePair],
+    collection: TextFontCollectionHandle,
+    generation: u64,
+) -> Vec<TextFontHandlePair> {
+    let mut seen = HashSet::with_capacity(pairs.len());
+    let mut unique = Vec::new();
+    for pair in pairs.iter().copied() {
+        let pair = normalize_text_pair(pair, collection, generation);
+        if (pair.0.is_some() || pair.1.is_some()) && seen.insert(pair) {
+            unique.push(pair);
+        }
+    }
+    unique
+}
+
+fn project_resolved_pairs(
+    pairs: &[TextFontHandlePair],
+    collection: TextFontCollectionHandle,
+    generation: u64,
+    resolved_by_pair: &HashMap<TextFontHandlePair, BackendFontHandlePair>,
+) -> (Vec<BackendFontHandlePair>, usize) {
+    let mut rejected_count = 0;
+    let result = pairs
+        .iter()
+        .copied()
+        .map(|pair| {
+            let normalized = normalize_text_pair(pair, collection, generation);
+            let resolved = resolved_by_pair
+                .get(&normalized)
+                .copied()
+                .unwrap_or((None, None));
+            if (pair.0.is_some() && resolved.0.is_none())
+                || (pair.1.is_some() && resolved.1.is_none())
+            {
+                rejected_count += 1;
+            }
+            resolved
+        })
+        .collect();
+    (result, rejected_count)
 }
 
 pub(crate) fn register_font_face_handle(
@@ -357,19 +457,39 @@ pub(crate) fn register_font_handle_batch(
     pairs: &[BackendFontHandlePair],
     generation: u64,
 ) -> Vec<TextFontHandlePair> {
-    register_font_handle_batch_impl(pairs, generation, None)
+    let font_collection = shared_font_collection_service();
+    register_font_handle_batch_impl(&font_collection, pairs, generation, None)
+}
+
+pub(crate) fn register_font_handle_batch_for_collection(
+    font_collection: &FontCollectionService,
+    pairs: &[BackendFontHandlePair],
+    generation: u64,
+) -> Vec<TextFontHandlePair> {
+    register_font_handle_batch_impl(font_collection, pairs, generation, None)
 }
 
 pub(crate) fn register_font_handle_batch_with_report(
     pairs: &[BackendFontHandlePair],
     generation: u64,
 ) -> (Vec<TextFontHandlePair>, FontHandleRegistrationBatchReport) {
+    let font_collection = shared_font_collection_service();
+    register_font_handle_batch_with_report_for_collection(&font_collection, pairs, generation)
+}
+
+pub(crate) fn register_font_handle_batch_with_report_for_collection(
+    font_collection: &FontCollectionService,
+    pairs: &[BackendFontHandlePair],
+    generation: u64,
+) -> (Vec<TextFontHandlePair>, FontHandleRegistrationBatchReport) {
     let mut report = FontHandleRegistrationBatchReport::default();
-    let handles = register_font_handle_batch_impl(pairs, generation, Some(&mut report));
+    let handles =
+        register_font_handle_batch_impl(font_collection, pairs, generation, Some(&mut report));
     (handles, report)
 }
 
 fn register_font_handle_batch_impl(
+    font_collection: &FontCollectionService,
     pairs: &[BackendFontHandlePair],
     generation: u64,
     mut local_report: Option<&mut FontHandleRegistrationBatchReport>,
@@ -377,10 +497,12 @@ fn register_font_handle_batch_impl(
     if pairs.is_empty() {
         return Vec::new();
     }
+    let collection = font_collection.collection_id();
+    let registry_service = font_collection.handle_registry();
     if let Some(report) = local_report.as_deref_mut() {
         report.registration_batch_count = 1;
     }
-    let metrics = metrics();
+    let metrics = &registry_service.metrics;
     #[cfg(test)]
     CURRENT_THREAD_REGISTRATION_BATCH_COUNT.set(
         CURRENT_THREAD_REGISTRATION_BATCH_COUNT
@@ -406,7 +528,8 @@ fn register_font_handle_batch_impl(
         .fetch_add(1, Ordering::Relaxed);
     let registered = {
         let wait_started = Instant::now();
-        let mut registry = registry()
+        let mut registry = registry_service
+            .registry
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let wait_nanos = duration_to_nanos(wait_started.elapsed());
@@ -420,12 +543,15 @@ fn register_font_handle_batch_impl(
         let previous_generation = registry.generation;
         let previous_face_count = registry.faces.len();
         let previous_instance_count = registry.instances.len();
+        if registry.collection != collection {
+            return vec![(None, None); pairs.len()];
+        }
         let registered = registry.register_unique_pairs(&unique, generation);
         if registry.generation != previous_generation
             || registry.faces.len() != previous_face_count
             || registry.instances.len() != previous_instance_count
         {
-            publish_registry_snapshot(&registry);
+            registry_service.publish_snapshot(&registry);
             metrics
                 .registration_snapshot_publish_count
                 .fetch_add(1, Ordering::Relaxed);
@@ -501,27 +627,25 @@ pub(crate) fn resolve_font_handles(
 pub(crate) fn resolve_font_handle_batch(
     pairs: &[TextFontHandlePair],
 ) -> Vec<BackendFontHandlePair> {
+    let font_collection = shared_font_collection_service();
+    resolve_font_handle_batch_for_collection(&font_collection, pairs)
+}
+
+pub(crate) fn resolve_font_handle_batch_for_collection(
+    font_collection: &FontCollectionService,
+    pairs: &[TextFontHandlePair],
+) -> Vec<BackendFontHandlePair> {
     if pairs.is_empty() {
         return Vec::new();
     }
-    let metrics = metrics();
+    let registry_service = font_collection.handle_registry();
+    let metrics = &registry_service.metrics;
     metrics
         .resolution_batch_count
         .fetch_add(1, Ordering::Relaxed);
-    let generation = shared_font_database_generation();
-    let normalized = pairs
-        .iter()
-        .map(|(face, instance)| {
-            let pair_is_current = face
-                .iter()
-                .chain(instance.iter())
-                .all(|handle| handle.generation == generation);
-            pair_is_current
-                .then_some((*face, *instance))
-                .unwrap_or((None, None))
-        })
-        .collect::<Vec<_>>();
-    let unique = unique_text_pairs(&normalized);
+    let collection = font_collection.collection_id();
+    let generation = font_collection.generation();
+    let unique = unique_current_text_pairs(pairs, collection, generation);
     if unique.is_empty() {
         let rejected_count = pairs
             .iter()
@@ -538,7 +662,7 @@ pub(crate) fn resolve_font_handle_batch(
     metrics
         .resolution_snapshot_acquire_count
         .fetch_add(1, Ordering::Relaxed);
-    let (snapshot, snapshot_wait, snapshot_hold) = current_registry_snapshot();
+    let (snapshot, snapshot_wait, snapshot_hold) = registry_service.current_snapshot();
     metrics
         .resolution_snapshot_wait_nanos
         .fetch_add(duration_to_nanos(snapshot_wait), Ordering::Relaxed);
@@ -550,8 +674,10 @@ pub(crate) fn resolve_font_handle_batch(
     // a handle from the retired font database, so defer the whole batch.
     if !snapshot_matches_font_database_generation(
         &snapshot,
+        collection,
         generation,
-        shared_font_database_generation(),
+        font_collection.collection_id(),
+        font_collection.generation(),
     ) {
         let rejected_count = pairs
             .iter()
@@ -574,18 +700,8 @@ pub(crate) fn resolve_font_handle_batch(
             )
         })
         .collect::<HashMap<_, _>>();
-    let result = normalized
-        .iter()
-        .map(|pair| resolved_by_pair.get(pair).copied().unwrap_or((None, None)))
-        .collect::<Vec<_>>();
-    let rejected_count = pairs
-        .iter()
-        .zip(&result)
-        .filter(|((face, instance), (resolved_face, resolved_instance))| {
-            (face.is_some() && resolved_face.is_none())
-                || (instance.is_some() && resolved_instance.is_none())
-        })
-        .count();
+    let (result, rejected_count) =
+        project_resolved_pairs(pairs, collection, generation, &resolved_by_pair);
     metrics
         .resolution_rejected_pair_count
         .fetch_add(rejected_count as u64, Ordering::Relaxed);
@@ -594,3 +710,6 @@ pub(crate) fn resolve_font_handle_batch(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod optimization_tests;

@@ -67,7 +67,21 @@ fn is_skeleton_root_node(node: &TemplatePaneNodeData) -> bool {
 }
 
 fn is_skeleton_child_node(node: &TemplatePaneNodeData) -> bool {
-    component_variant_contains(node, "muiSkeletonChild")
-        || component_variant_contains(node, "SkeletonChild")
-        || component_variant_contains(node, "skeletonChild")
+    skeleton_child_variant(&node.component_variant)
 }
+
+fn skeleton_child_variant(component_variant: &str) -> bool {
+    component_variant
+        .split(|character: char| {
+            character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
+        })
+        .any(|part| {
+            part.eq_ignore_ascii_case("muiSkeletonChild")
+                || part.eq_ignore_ascii_case("SkeletonChild")
+                || part.eq_ignore_ascii_case("skeletonChild")
+        })
+}
+
+#[cfg(test)]
+#[path = "skeleton/single_scan_child_tests.rs"]
+mod single_scan_child_tests;

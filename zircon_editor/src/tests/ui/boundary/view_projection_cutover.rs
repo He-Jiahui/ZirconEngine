@@ -156,9 +156,13 @@ fn v2_view_projection_uses_runtime_v2_file_cache_without_editor_local_loader() {
             .join("asset_browser.zui"),
     )
     .expect("asset_browser.zui should be readable");
-    assert!(asset_browser.contains("res://ui/theme/editor_base.zui"));
+    assert!(asset_browser.contains("res://ui/theme/editor_workbench_strict.zui"));
+    assert!(
+        !asset_browser.contains("res://ui/theme/editor_base.zui"),
+        ".zui asset browser must not retain the legacy Editor base theme"
+    );
     assert!(
         !asset_browser.contains("res://ui/theme/editor_base.ui.toml"),
-        ".zui asset browser must not import the old schema theme"
+        ".zui asset browser must not import the retired schema theme"
     );
 }

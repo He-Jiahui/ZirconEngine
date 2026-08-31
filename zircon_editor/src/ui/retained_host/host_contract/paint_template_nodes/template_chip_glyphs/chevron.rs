@@ -1,14 +1,10 @@
 use super::super::super::data::FrameRect;
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
+use super::super::template_icon_assets::push_icon_asset_pixels;
 use super::metrics::{chip_glyph_chevron_right, chip_glyph_chevron_size};
-use super::segments::{push_segments, ChipGlyphSegmentSpec};
 
-const CHIP_CHEVRON_SEGMENTS: &[ChipGlyphSegmentSpec] = &[
-    ChipGlyphSegmentSpec::new(3, 4, 2, 2),
-    ChipGlyphSegmentSpec::new(5, 6, 2, 2),
-    ChipGlyphSegmentSpec::new(7, 4, 2, 2),
-];
+const CHIP_CHEVRON_ICON: &str = "zircon_editor_shell/toolbar/chevron-right.svg";
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chip_chevron(
     commands: &mut Vec<HostPaintCommand>,
@@ -24,14 +20,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     if intersect(&chevron, clip).is_none() {
         return;
     }
-    push_segments(
+    push_icon_asset_pixels(
         commands,
+        CHIP_CHEVRON_ICON,
         &chevron,
         clip,
         order,
-        color,
+        Some(color),
         opacity,
-        CHIP_CHEVRON_SEGMENTS,
     );
 }
 

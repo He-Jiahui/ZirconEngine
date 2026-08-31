@@ -51,13 +51,18 @@ pub(super) fn has_extension(path: &Path, extension: &str) -> bool {
 }
 
 pub(super) fn stable_label_for_path(asset_root: &Path, path: &Path) -> String {
+    const LABEL_PREFIX: &str = "asset-scan://";
+
     let relative = path.strip_prefix(asset_root).unwrap_or(path);
-    let normalized = relative
-        .components()
-        .map(|component| component.as_os_str().to_string_lossy())
-        .collect::<Vec<_>>()
-        .join("/");
-    format!("asset-scan://{normalized}")
+    let mut label = String::with_capacity(LABEL_PREFIX.len() + relative.as_os_str().len());
+    label.push_str(LABEL_PREFIX);
+    for component in relative.components() {
+        if label.len() > LABEL_PREFIX.len() {
+            label.push('/');
+        }
+        label.push_str(&component.as_os_str().to_string_lossy());
+    }
+    label
 }
 
 pub(super) fn wgsl_files_for_document(
@@ -98,3 +103,7 @@ pub(super) fn primary_zshader_path(
 pub(super) fn content_hash(source: &str) -> String {
     blake3::hash(source.as_bytes()).to_hex().to_string()
 }
+
+#[cfg(test)]
+#[path = "paths/streamed_label_tests.rs"]
+mod streamed_label_tests;

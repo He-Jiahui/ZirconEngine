@@ -29,14 +29,20 @@ pub(super) fn drawer_slot_name(slot: ActivityDrawerSlot) -> &'static str {
         ActivityDrawerSlot::LeftBottom => "left_bottom",
         ActivityDrawerSlot::RightTop => "right_top",
         ActivityDrawerSlot::RightBottom => "right_bottom",
-        ActivityDrawerSlot::Bottom
-        | ActivityDrawerSlot::BottomLeft
-        | ActivityDrawerSlot::BottomRight => "bottom",
+        ActivityDrawerSlot::Bottom => "bottom",
     }
 }
 
 pub(super) fn menu_id(label: &str) -> String {
-    label.to_ascii_lowercase().replace(' ', "_")
+    let mut menu_id = String::with_capacity(label.len());
+    menu_id.extend(label.chars().map(|character| {
+        if character == ' ' {
+            '_'
+        } else {
+            character.to_ascii_lowercase()
+        }
+    }));
+    menu_id
 }
 
 pub(super) fn content_kind_name(kind: ViewContentKind) -> &'static str {
@@ -63,3 +69,7 @@ pub(super) fn content_kind_name(kind: ViewContentKind) -> &'static str {
         ViewContentKind::Placeholder => "placeholder",
     }
 }
+
+#[cfg(test)]
+#[path = "name_mapping/single_pass_tests.rs"]
+mod single_pass_tests;

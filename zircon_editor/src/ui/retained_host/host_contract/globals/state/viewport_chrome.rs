@@ -3,7 +3,8 @@ use std::sync::Arc;
 
 use super::HostContractState;
 use crate::ui::retained_host::host_contract::data::{
-    FloatingWindowData, PaneData, SceneViewportChromeData, TemplatePaneNodeData,
+    FloatingWindowData, HostWindowPresentationData, PaneData, SceneViewportChromeData,
+    TemplatePaneNodeData,
 };
 use crate::ui::retained_host::primitives::ModelRc;
 
@@ -17,6 +18,14 @@ impl HostContractState {
         status_grid_text: &str,
         status_snap_text: &str,
     ) -> bool {
+        if !scene_viewport_chrome_needs_patch(
+            &self.host_presentation,
+            &viewport,
+            status_grid_text,
+            status_snap_text,
+        ) {
+            return false;
+        }
         let presentation = Arc::make_mut(&mut self.host_presentation);
         let scene = &mut presentation.host_scene_data;
         let mut changed = false;
@@ -36,11 +45,95 @@ impl HostContractState {
         );
 
         if changed {
-            self.presentation_structure_generation =
-                self.presentation_structure_generation.saturating_add(1);
+            self.host_structure = Arc::clone(&self.host_presentation);
+            self.advance_structure_generation();
+            self.advance_geometry_generation();
         }
         changed
     }
+
+    pub(crate) fn patch_native_scene_viewport_chrome(
+        &mut self,
+        row: usize,
+        window_id: &str,
+        viewport: SceneViewportChromeData,
+    ) -> bool {
+        let windows = &self
+            .host_presentation
+            .native_floating_surface_data
+            .floating_windows;
+        let Some(window) = windows.get(row) else {
+            return false;
+        };
+        if window.window_id.as_str() != window_id
+            || !scene_pane_needs_patch(&window.active_pane, &viewport)
+        {
+            return false;
+        }
+
+        let presentation = Arc::make_mut(&mut self.host_presentation);
+        let windows = &mut presentation.native_floating_surface_data.floating_windows;
+        let mut next = windows
+            .get(row)
+            .expect("validated native presenter row should remain present")
+            .clone();
+        if !patch_scene_pane(&mut next.active_pane, &viewport) {
+            return false;
+        }
+        *windows = windows.with_row_patches(BTreeMap::from([(row, next)]));
+        self.host_structure = Arc::clone(&self.host_presentation);
+        self.advance_structure_generation();
+        self.advance_geometry_generation();
+        true
+    }
+}
+
+fn scene_viewport_chrome_needs_patch(
+    presentation: &HostWindowPresentationData,
+    viewport: &SceneViewportChromeData,
+    status_grid_text: &str,
+    status_snap_text: &str,
+) -> bool {
+    let scene = &presentation.host_scene_data;
+    scene_pane_needs_patch(&scene.document_dock.pane, viewport)
+        || scene_pane_needs_patch(&scene.left_dock.pane, viewport)
+        || scene_pane_needs_patch(&scene.right_dock.pane, viewport)
+        || scene_pane_needs_patch(&scene.bottom_dock.pane, viewport)
+        || floating_windows_need_patch(&scene.floating_layer.floating_windows, viewport)
+        || floating_windows_need_patch(
+            &presentation.native_floating_surface_data.floating_windows,
+            viewport,
+        )
+        || status_nodes_need_patch(
+            &presentation.workbench_window_nodes,
+            status_grid_text,
+            status_snap_text,
+        )
+}
+
+fn scene_pane_needs_patch(pane: &PaneData, viewport: &SceneViewportChromeData) -> bool {
+    pane.kind.as_str() == "Scene" && !same_viewport_chrome(&pane.viewport, viewport)
+}
+
+fn floating_windows_need_patch(
+    windows: &ModelRc<FloatingWindowData>,
+    viewport: &SceneViewportChromeData,
+) -> bool {
+    windows
+        .iter()
+        .any(|window| scene_pane_needs_patch(&window.active_pane, viewport))
+}
+
+fn status_nodes_need_patch(
+    nodes: &ModelRc<TemplatePaneNodeData>,
+    grid_text: &str,
+    snap_text: &str,
+) -> bool {
+    nodes.iter().any(|node| match node.control_id.as_str() {
+        STATUS_GRID_CONTROL_ID => node.text.as_str() != grid_text,
+        STATUS_SNAP_CONTROL_ID => node.text.as_str() != snap_text,
+        _ => false,
+    })
 }
 
 fn patch_scene_pane(pane: &mut PaneData, viewport: &SceneViewportChromeData) -> bool {
@@ -103,6 +196,7 @@ fn patch_status_nodes(
 fn same_viewport_chrome(left: &SceneViewportChromeData, right: &SceneViewportChromeData) -> bool {
     left.mode == right.mode
         && left.transform_space == right.transform_space
+        && left.pivot_mode == right.pivot_mode
         && left.projection_mode == right.projection_mode
         && left.view_orientation == right.view_orientation
         && left.display_mode == right.display_mode
@@ -187,5 +281,86 @@ mod tests {
         assert!(patched
             .workbench_window_nodes
             .shares_row_with(&original_nodes, 1));
+    }
+
+    #[test]
+    fn stable_scene_chrome_patch_keeps_the_retained_presentation() {
+        let mut presentation = crate::ui::retained_host::HostWindowPresentationData::default();
+        presentation.host_scene_data.document_dock.pane.kind = "Scene".to_string();
+        presentation.host_scene_data.document_dock.pane.viewport =
+            SceneViewportChromeData::default();
+        presentation.workbench_window_nodes = model_rc(vec![
+            TemplatePaneNodeData {
+                control_id: STATUS_GRID_CONTROL_ID.to_string(),
+                text: "Grid: Off".to_string(),
+                ..TemplatePaneNodeData::default()
+            },
+            TemplatePaneNodeData {
+                control_id: STATUS_SNAP_CONTROL_ID.to_string(),
+                text: "Snap: Off".to_string(),
+                ..TemplatePaneNodeData::default()
+            },
+        ]);
+        let mut state = HostContractState::new(
+            crate::ui::retained_host::primitives::PhysicalSize::new(1280, 720),
+        );
+        state.replace_host_presentation(presentation);
+        let retained = Arc::clone(&state.host_presentation);
+
+        assert!(!state.patch_scene_viewport_chrome(
+            SceneViewportChromeData::default(),
+            "Grid: Off",
+            "Snap: Off",
+        ));
+        assert!(Arc::ptr_eq(&retained, &state.host_presentation));
+    }
+
+    #[test]
+    fn native_scene_chrome_patch_updates_only_the_cached_presenter_row() {
+        let scene_window = FloatingWindowData {
+            window_id: "window:scene".to_string(),
+            active_pane: PaneData {
+                kind: "Scene".to_string(),
+                ..PaneData::default()
+            },
+            ..FloatingWindowData::default()
+        };
+        let hierarchy_window = FloatingWindowData {
+            window_id: "window:hierarchy".to_string(),
+            active_pane: PaneData {
+                kind: "Hierarchy".to_string(),
+                ..PaneData::default()
+            },
+            ..FloatingWindowData::default()
+        };
+        let mut presentation = crate::ui::retained_host::HostWindowPresentationData::default();
+        presentation.native_floating_surface_data.floating_windows =
+            model_rc(vec![scene_window, hierarchy_window]);
+        let mut state = HostContractState::new(
+            crate::ui::retained_host::primitives::PhysicalSize::new(1280, 720),
+        );
+        state.replace_host_presentation(presentation);
+        let original = state
+            .host_presentation
+            .native_floating_surface_data
+            .floating_windows
+            .clone();
+        let viewport = SceneViewportChromeData {
+            mode: "Transform.Scale".to_string(),
+            ..SceneViewportChromeData::default()
+        };
+
+        assert!(state.patch_native_scene_viewport_chrome(0, "window:scene", viewport.clone(),));
+        let patched = &state
+            .host_presentation
+            .native_floating_surface_data
+            .floating_windows;
+        assert_eq!(
+            patched.get(0).unwrap().active_pane.viewport.mode,
+            "Transform.Scale"
+        );
+        assert!(patched.shares_row_with(&original, 1));
+        assert!(!state.patch_native_scene_viewport_chrome(1, "window:scene", viewport.clone(),));
+        assert!(!state.patch_native_scene_viewport_chrome(1, "window:hierarchy", viewport,));
     }
 }

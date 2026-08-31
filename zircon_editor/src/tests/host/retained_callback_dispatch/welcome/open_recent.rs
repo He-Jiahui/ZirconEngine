@@ -73,3 +73,47 @@ fn builtin_welcome_surface_open_recent_matches_direct_binding_dispatch() {
 
     assert_eq!(builtin_event, legacy_event);
 }
+
+#[test]
+fn builtin_welcome_surface_recover_recent_dispatches_recovery_host_event() {
+    let _guard = env_lock().lock().unwrap();
+
+    let bridge = BuiltinWelcomeSurfaceTemplateBridge::new().unwrap();
+    let event = dispatch_builtin_welcome_surface_control(
+        &bridge,
+        "RecoverRecentProject",
+        UiEventKind::Click,
+        vec![UiBindingValue::string("E:/Projects/Sandbox")],
+    )
+    .expect("welcome recover recent control should resolve through template bridge")
+    .unwrap();
+
+    assert_eq!(
+        event,
+        WelcomeHostEvent::RecoverRecentProject {
+            path: "E:/Projects/Sandbox".to_string(),
+        }
+    );
+}
+
+#[test]
+fn builtin_welcome_surface_safe_recent_dispatches_safe_host_event() {
+    let _guard = env_lock().lock().unwrap();
+
+    let bridge = BuiltinWelcomeSurfaceTemplateBridge::new().unwrap();
+    let event = dispatch_builtin_welcome_surface_control(
+        &bridge,
+        "SafeRecentProject",
+        UiEventKind::Click,
+        vec![UiBindingValue::string("E:/Projects/Sandbox")],
+    )
+    .expect("welcome safe recent control should resolve through template bridge")
+    .unwrap();
+
+    assert_eq!(
+        event,
+        WelcomeHostEvent::SafeRecentProject {
+            path: "E:/Projects/Sandbox".to_string(),
+        }
+    );
+}

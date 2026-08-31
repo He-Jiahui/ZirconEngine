@@ -1,4 +1,5 @@
 use super::vertices::ScreenSpaceUiSdfVertex;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 const MIN_SDF_VERTEX_BUFFER_CAPACITY_BYTES: u64 = 4 * 1024;
 
@@ -11,13 +12,15 @@ pub(super) struct SdfVertexBufferWriteReport {
 
 pub(super) fn write_sdf_vertex_buffer(
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
     buffer: &mut Option<wgpu::Buffer>,
     capacity_bytes: &mut u64,
     payload_hash: &mut Option<[u8; 32]>,
     vertices: &[ScreenSpaceUiSdfVertex],
+    uploads: &mut WgpuBufferUploadBatch,
+    force_full_upload: bool,
 ) -> SdfVertexBufferWriteReport {
     if vertices.is_empty() {
+        *payload_hash = None;
         return SdfVertexBufferWriteReport {
             capacity_byte_len: capacity_byte_len_usize(*capacity_bytes),
             ..Default::default()
@@ -38,10 +41,14 @@ pub(super) fn write_sdf_vertex_buffer(
     let vertex_bytes = bytemuck::cast_slice(vertices);
     let next_payload_hash = *blake3::hash(vertex_bytes).as_bytes();
     let payload_changed = *payload_hash != Some(next_payload_hash);
-    let write_required = requires_reallocation || payload_changed;
+    let write_required = requires_reallocation || force_full_upload || payload_changed;
     if write_required {
         if let Some(buffer) = buffer.as_ref() {
-            queue.write_buffer(buffer, 0, vertex_bytes);
+            uploads.push(WgpuBufferUpload::from_bytes(
+                buffer.clone(),
+                0,
+                vertex_bytes,
+            ));
         }
         *payload_hash = Some(next_payload_hash);
     }

@@ -53,8 +53,15 @@ pub(in crate::scene::viewport) fn apply_interaction_overlays(
     packet: &mut RenderSceneSnapshot,
     interaction: &crate::scene::viewport::ViewportInteractionExtract,
 ) {
-    packet.overlays.handles = interaction.handles().iter().cloned().collect();
-    packet.overlays.scene_gizmos = interaction.scene_gizmos().iter().cloned().collect();
+    let handles = interaction.handles();
+    replace_cloned_values(&mut packet.overlays.handles, handles.as_ref());
+    let scene_gizmos = interaction.scene_gizmos();
+    replace_cloned_values(&mut packet.overlays.scene_gizmos, scene_gizmos.as_ref());
+}
+
+fn replace_cloned_values<T: Clone>(target: &mut Vec<T>, source: &[T]) {
+    target.clear();
+    target.extend_from_slice(source);
 }
 
 pub(in crate::scene::viewport) fn build_scene_gizmos(
@@ -231,3 +238,7 @@ fn build_directional_light_gizmo(
         }],
     })
 }
+
+#[cfg(test)]
+#[path = "render_packet/reused_overlay_storage_tests.rs"]
+mod reused_overlay_storage_tests;

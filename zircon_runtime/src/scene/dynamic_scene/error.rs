@@ -38,6 +38,8 @@ pub enum DynamicSceneError {
     SpawnTaskResultUnavailable { label: String },
     #[error("dynamic scene spawn task `{label}` was cancelled")]
     SpawnTaskCancelled { label: String },
+    #[error("dynamic scene spawn task `{label}` was not admitted: {reason}")]
+    SpawnTaskAdmission { label: String, reason: String },
     #[error(
         "prepared dynamic scene requires {estimated_bytes} bytes, exceeding the {limit_bytes}-byte limit"
     )]

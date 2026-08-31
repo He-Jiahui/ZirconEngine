@@ -32,8 +32,10 @@ mod tests {
     fn color_lut_bake_shader_declares_compute_entry_and_3d_storage_output() {
         assert!(COLOR_LUT_BAKE_SHADER.contains("@compute @workgroup_size(4, 4, 4)"));
         assert!(COLOR_LUT_BAKE_SHADER.contains("fn cs_main"));
-        assert!(COLOR_LUT_BAKE_SHADER
-            .contains("var color_lut_out: texture_storage_3d<rgba16float, write>"));
+        assert!(
+            COLOR_LUT_BAKE_SHADER
+                .contains("var color_lut_out: texture_storage_3d<rgba16float, write>")
+        );
         assert!(COLOR_LUT_BAKE_SHADER.contains("textureStore(color_lut_out"));
     }
 

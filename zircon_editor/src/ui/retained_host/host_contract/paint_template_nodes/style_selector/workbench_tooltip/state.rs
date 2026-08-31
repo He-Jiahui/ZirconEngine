@@ -27,8 +27,8 @@ pub(super) fn tooltip_state_style_from_palette(
         }
         UiPainterResolvedState::Pressed => {
             let mut style = tooltip_normal_style_from_palette(state, palette);
-            style.border = palette.focused_border;
-            style.icon = palette.focused_border;
+            style.border = palette.border;
+            style.icon = palette.hover_icon;
             style.title = palette.title;
             style
         }

@@ -3,7 +3,7 @@
 - Date: 2026-08-19
 - Owner: `plugins15-perception-sampling-order-r1-01a00797-20260819`
 - Source plan: `docs/plans/optimize/zircon_plugins/15-first-party-ai-source-runtime-editor-dist-catalog-behavior-tree-blackboard-perception-eqs-product-integration-review.md`, NAI-P1-047
-- Status: implementation complete; combined managed validation pending
+- Status: implementation and focused static validation complete; managed release batch queued
 
 ## Problem
 
@@ -32,6 +32,23 @@ debug event generated for a bounded active set.
 | Per-frame global key union | 1 full union | 0 | 100% |
 | Per-frame behavior-tree descriptor catalog clone | 1 full clone | 0 | 100% |
 
+## Current Execution Evidence
+
+- Integration Session: `root-runtime-interface03-activate-link-failure-20260831`;
+  ownership apply `b684ea3ed9304cf4a9f71e5787befa1a`, fingerprint
+  `b9047be13003a7c46040170fe788f53d2c5dcc8722f2488ffecc97d56ebffbbc`.
+- Current `manager/snapshot.rs` SHA-256:
+  `064822D9DBAEC7B7D2C71B2428103D65DEC5235E172C11A7DE8E817029FC7C00`.
+- Unified deterministic model manifest SHA-256:
+  `93CF6BD9C2D374D1F4C81CF6776948372611820AAB048DB2EB499977E8493347`.
+  It records agent projections `8,192 -> 256` (`96.875%` fewer), global key
+  unions `1 -> 0`, and behavior-tree descriptor catalog clones `1 -> 0`.
+- Focused source/model/validator contract passed locally `12/12`; managed
+  static ticket `049d11366ae94ef38ddc58158d6e6b69` is queued.
+- Four-benchmark Windows release batch ticket
+  `bf5d08d9143849e189ac6e0fa1bb477c` is queued. Its 21 alternating sample
+  pairs are the only accepted P50/P95 source.
+
 ## Acceptance
 
 - `targeted_projection_reads_only_requested_world_agents` verifies World and
@@ -47,7 +64,7 @@ debug event generated for a bounded active set.
 - Timing gate: targeted projection P95 must be no more than 25% of full
   snapshot P95.
 - Exact-file Rustfmt, source assertions, and scoped `git diff --check`: passed.
-- Cargo regression and release P50/P95: pending the same batched Windows
+- Cargo regression and release P50/P95: queued in the same batched Windows
   coordinator validation as immutable compiled-tree generation.
 
 ## Remaining Scope

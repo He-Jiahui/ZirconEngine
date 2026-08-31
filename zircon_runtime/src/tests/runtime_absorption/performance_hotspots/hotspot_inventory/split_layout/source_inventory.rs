@@ -5,7 +5,7 @@ pub(super) fn assert_hotspot_inventory_source_inventory(sources: &HotspotInvento
         "performance hotpath source inventory",
         sources.source_inventory,
         &[
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/hotspot_inventory/sources.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/hotspot_inventory/evidence_gate_docs.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/hotspot_inventory/ecs_extract_counters.rs",

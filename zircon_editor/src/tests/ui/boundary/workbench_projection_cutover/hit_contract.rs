@@ -67,42 +67,6 @@ fn workbench_hit_test_paths_reuse_pane_surfaces_and_borrow_committed_window_geom
             ][..],
         ),
         (
-            "src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs",
-            &[
-                "surface: UiSurface",
-                "dispatcher: UiPointerDispatcher",
-                "route_intents: EditorRouteIntentMap",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/drawer_header_pointer/rebuild_surface.rs",
-            &[
-                "UiSurface::new",
-                "UiTreeNode::new",
-                "surface.rebuild()",
-                "register_handled_pointer_node",
-                "route_intents.bind_node",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs",
-            &[
-                "surface: UiSurface",
-                "dispatcher: UiPointerDispatcher",
-                "route_intents: EditorRouteIntentMap",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_rebuild_surface.rs",
-            &[
-                "UiSurface::new",
-                "UiTreeNode::new",
-                "surface.rebuild()",
-                "register_handled_pointer_node",
-                "route_intents.bind_node",
-            ][..],
-        ),
-        (
             "src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs",
             &[
                 "surface: UiSurface",
@@ -112,77 +76,6 @@ fn workbench_hit_test_paths_reuse_pane_surfaces_and_borrow_committed_window_geom
         ),
         (
             "src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs",
-            &[
-                "UiSurface::new",
-                "UiTreeNode::new",
-                "surface.rebuild()",
-                "register_handled_pointer_node",
-                "route_intents.bind_node",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_bridge.rs",
-            &[
-                "surface: UiSurface",
-                "dispatcher: UiPointerDispatcher",
-                "route_intents: EditorRouteIntentMap",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/hierarchy_pointer/rebuild_surface.rs",
-            &[
-                "UiSurface::new",
-                "UiTreeNode::new",
-                "surface.rebuild()",
-                "register_handled_pointer_node",
-                "route_intents.bind_node",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/detail_pointer/scroll_surface_pointer_bridge.rs",
-            &[
-                "surface: UiSurface",
-                "dispatcher: UiPointerDispatcher",
-                "route_intents: EditorRouteIntentMap",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/detail_pointer/rebuild_surface.rs",
-            &[
-                "UiSurface::new",
-                "UiTreeNode::new",
-                "surface.rebuild()",
-                "route_intents.bind_node",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/host_page_pointer/host_page_pointer_bridge.rs",
-            &[
-                "surface: UiSurface",
-                "dispatcher: UiPointerDispatcher",
-                "route_intents: EditorRouteIntentMap",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/host_page_pointer/rebuild_surface.rs",
-            &[
-                "UiSurface::new",
-                "UiTreeNode::new",
-                "surface.rebuild()",
-                "register_handled_pointer_node",
-                "route_intents.bind_node",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge.rs",
-            &[
-                "surface: UiSurface",
-                "dispatcher: UiPointerDispatcher",
-                "route_intents: EditorRouteIntentMap",
-            ][..],
-        ),
-        (
-            "src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_rebuild_surface.rs",
             &[
                 "UiSurface::new",
                 "UiTreeNode::new",
@@ -229,6 +122,20 @@ fn workbench_hit_test_paths_reuse_pane_surfaces_and_borrow_committed_window_geom
         let source = source_file(&[relative]);
         for marker in required {
             assert_contains(relative, &source, marker);
+        }
+    }
+
+    for relative in [
+        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs",
+        "src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs",
+        "src/ui/retained_host/host_page_pointer/host_page_pointer_bridge.rs",
+        "src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_bridge.rs",
+        "src/ui/retained_host/detail_pointer/scroll_surface_pointer_bridge.rs",
+        "src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge.rs",
+    ] {
+        let source = source_file(&[relative]);
+        for forbidden in ["UiSurface", "UiPointerDispatcher", "EditorRouteIntentMap"] {
+            assert_does_not_contain(relative, &source, forbidden);
         }
     }
 

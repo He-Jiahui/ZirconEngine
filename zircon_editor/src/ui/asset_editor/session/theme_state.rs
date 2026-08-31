@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 
 use super::{
     command::{
@@ -7,15 +7,14 @@ use super::{
     },
     promotion_state::reference_asset_id,
     theme_authoring::{
-        adopt_active_cascade_rule, adopt_active_cascade_rules, adopt_active_cascade_token,
-        adopt_active_cascade_tokens, adopt_all_active_cascade_changes,
-        adopt_all_imported_theme_changes, adopt_imported_theme_compare_diffs,
-        adopt_imported_theme_rule, adopt_imported_theme_rules, adopt_imported_theme_token,
-        adopt_imported_theme_tokens, apply_theme_refactor_action,
+        UiAssetThemeRefactorAction, UiAssetThemeRuleHelperAction, adopt_active_cascade_rule,
+        adopt_active_cascade_rules, adopt_active_cascade_token, adopt_active_cascade_tokens,
+        adopt_all_active_cascade_changes, adopt_all_imported_theme_changes,
+        adopt_imported_theme_compare_diffs, adopt_imported_theme_rule, adopt_imported_theme_rules,
+        adopt_imported_theme_token, adopt_imported_theme_tokens, apply_theme_refactor_action,
         clone_imported_theme_to_local_theme_layer, detach_imported_theme_to_local_theme_layer,
         prune_duplicate_local_theme_overrides, prune_imported_theme_compare_duplicates,
-        theme_refactor_actions, theme_rule_helper_actions, UiAssetThemeRefactorAction,
-        UiAssetThemeRuleHelperAction,
+        theme_refactor_actions, theme_rule_helper_actions,
     },
     theme_summary::reconcile_selected_theme_source_key,
     ui_asset_editor_session::{UiAssetEditorSession, UiAssetEditorSessionError},
@@ -564,12 +563,12 @@ fn build_style_import_replay_commands(
         }];
     }
 
-    let target_entries = target.iter().cloned().collect::<BTreeSet<_>>();
+    let target_entries = borrowed_string_index(target.iter().map(String::as_str));
     let mut working = current.to_vec();
     let mut commands = Vec::new();
 
     for index in (0..working.len()).rev() {
-        if target_entries.contains(&working[index]) {
+        if target_entries.contains(working[index].as_str()) {
             continue;
         }
         let reference = working.remove(index);
@@ -655,10 +654,7 @@ fn build_stylesheet_replay_commands(
         }];
     }
 
-    let target_ids = target
-        .iter()
-        .map(|stylesheet| stylesheet.id.clone())
-        .collect::<BTreeSet<_>>();
+    let target_ids = borrowed_string_index(target.iter().map(|stylesheet| stylesheet.id.as_str()));
     let mut working = current.to_vec();
     let mut commands = Vec::new();
 
@@ -742,10 +738,7 @@ fn build_style_rule_replay_commands(
         return None;
     }
 
-    let target_selectors = target
-        .iter()
-        .map(|rule| rule.selector.clone())
-        .collect::<BTreeSet<_>>();
+    let target_selectors = borrowed_string_index(target.iter().map(|rule| rule.selector.as_str()));
     let mut working = current.to_vec();
     let mut commands = Vec::new();
 
@@ -813,25 +806,28 @@ fn build_style_rule_replay_commands(
 }
 
 fn has_duplicate_stylesheet_ids(stylesheets: &[UiStyleSheet]) -> bool {
-    let mut seen = BTreeSet::new();
-    stylesheets
-        .iter()
-        .map(|stylesheet| stylesheet.id.as_str())
-        .any(|stylesheet_id| !seen.insert(stylesheet_id))
+    has_duplicate_borrowed_entries(stylesheets.iter().map(|stylesheet| stylesheet.id.as_str()))
 }
 
 fn has_duplicate_rule_selectors(rules: &[UiStyleRule]) -> bool {
-    let mut seen = BTreeSet::new();
-    rules
-        .iter()
-        .map(|rule| rule.selector.as_str())
-        .any(|selector| !seen.insert(selector))
+    has_duplicate_borrowed_entries(rules.iter().map(|rule| rule.selector.as_str()))
 }
 
 fn has_duplicate_string_entries(entries: &[String]) -> bool {
-    let mut seen = BTreeSet::new();
-    entries
-        .iter()
-        .map(String::as_str)
-        .any(|entry| !seen.insert(entry))
+    has_duplicate_borrowed_entries(entries.iter().map(String::as_str))
 }
+
+fn borrowed_string_index<'a>(entries: impl ExactSizeIterator<Item = &'a str>) -> HashSet<&'a str> {
+    let mut index = HashSet::with_capacity(entries.len());
+    index.extend(entries);
+    index
+}
+
+fn has_duplicate_borrowed_entries<'a>(mut entries: impl ExactSizeIterator<Item = &'a str>) -> bool {
+    let mut seen = HashSet::with_capacity(entries.len());
+    entries.any(|entry| !seen.insert(entry))
+}
+
+#[cfg(test)]
+#[path = "theme_state/optimization_tests.rs"]
+mod optimization_tests;

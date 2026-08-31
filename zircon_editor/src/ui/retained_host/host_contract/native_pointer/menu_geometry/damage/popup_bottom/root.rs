@@ -11,11 +11,11 @@ pub(super) fn opened_root_menu_popup_bottom(
     let menu = scene
         .menu_chrome
         .menus
-        .row_data(menu_state.open_menu_index as usize)?;
+        .get(menu_state.open_menu_index as usize)?;
     let menu_frame = scene
         .menu_chrome
         .menu_frames
-        .row_data(menu_state.open_menu_index as usize)?;
+        .get(menu_state.open_menu_index as usize)?;
     let menu_frame_rect = scrolled_menu_frame_with_state(&menu_frame.frame, menu_state);
     let menu_index = menu_state.open_menu_index as usize;
     let viewport = root_menu_popup_viewport(

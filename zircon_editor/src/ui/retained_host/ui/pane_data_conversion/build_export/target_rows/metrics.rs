@@ -1,3 +1,5 @@
+pub(super) const BUILD_EXPORT_ACTION_COUNT: usize = 4;
+pub(super) const BUILD_EXPORT_NODES_PER_TARGET: usize = BUILD_EXPORT_ACTION_COUNT + 5;
 pub(super) const BUILD_EXPORT_ROW_HEIGHT: f32 = 118.0;
 pub(super) const BUILD_EXPORT_ROW_GAP: f32 = 8.0;
 pub(super) const BUILD_EXPORT_ROW_PADDING: f32 = 8.0;

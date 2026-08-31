@@ -17,7 +17,7 @@ slots = { title = { required = true, multiple = false, kind = "linear", accepts 
 component = "HorizontalGroup"
 control_id = "WorkbenchPanelHeaderRoot"
 classes = ["workbench-panel-header", "workbench-panel-toolbar"]
-props = { background_color = "$editor.surface.3", border_color = "$editor.separator.soft", border_width = "$editor.control.border_width", corner_radius = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium" }
+props = { background_color = "$editor.surface.3", border_color = "$editor.separator.soft", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.small", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium" }
 layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
 children = [{ node = "title_slot" }, { node = "actions_slot" }]
 

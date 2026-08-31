@@ -9,6 +9,29 @@ fn default_server_manifest_avoids_ui() {
         .selections
         .iter()
         .all(|selection| selection.id != RuntimePluginId::Ui.key()));
+    assert!(manifest
+        .selections
+        .iter()
+        .all(|selection| selection.id != RuntimePluginId::UiDocumentImporter.key()));
+}
+
+#[cfg(feature = "ui")]
+#[test]
+fn default_ui_manifests_require_the_document_importer_provider() {
+    for target in [
+        RuntimeTargetMode::ClientRuntime,
+        RuntimeTargetMode::EditorHost,
+    ] {
+        let manifest = default_manifest_for_target(target);
+        let importer = manifest
+            .selections
+            .iter()
+            .find(|selection| selection.id == RuntimePluginId::UiDocumentImporter.key())
+            .expect("UI-capable targets should select the document importer provider");
+
+        assert!(importer.enabled);
+        assert!(importer.required);
+    }
 }
 
 #[test]
@@ -56,6 +79,25 @@ fn project_manifest_can_disable_mode_baseline_plugin() {
     assert!(manifest
         .enabled_for_target(RuntimeTargetMode::ClientRuntime)
         .all(|selection| selection.id != RuntimePluginId::Ui.key()));
+}
+
+#[cfg(feature = "ui")]
+#[test]
+fn project_manifest_can_disable_document_importer_baseline_plugin() {
+    let manifest = manifest_with_mode_baseline(
+        RuntimeTargetMode::ClientRuntime,
+        Some(&ProjectPluginManifest {
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::UiDocumentImporter,
+                false,
+                false,
+            )],
+        }),
+    );
+
+    assert!(manifest
+        .enabled_for_target(RuntimeTargetMode::ClientRuntime)
+        .all(|selection| selection.id != RuntimePluginId::UiDocumentImporter.key()));
 }
 
 #[cfg(feature = "ui")]

@@ -10,7 +10,7 @@ use crate::scene::components::{
     NodeRecord, PointLight, RectLight, RenderLayerMask, RigidBodyComponent, SpotLight,
     Sprite2dComponent,
 };
-use crate::scene::{ecs::InternalEntity, EntityId};
+use crate::scene::{EntityId, ecs::InternalEntity};
 use zircon_runtime_interface::world_sync::WorldFact;
 
 struct PreparedNodeRecordBatch {
@@ -101,7 +101,7 @@ impl World {
         records: &'a [NodeRecord],
     ) -> SceneResult<(BTreeMap<EntityId, &'a NodeRecord>, EntityId)> {
         let mut records_by_id = BTreeMap::new();
-        let mut next_id = self.next_id;
+        let mut allocator = self.entity_id_allocator;
         for record in records {
             if self.contains_entity(record.id)
                 || self.entity_registry.contains_stable(record.id)
@@ -110,15 +110,13 @@ impl World {
                 return Err(SceneError::DuplicateEntity { entity: record.id });
             }
             validate_transform_for_write(record.id, record.transform)?;
-            let candidate_next_id = record
-                .id
-                .checked_add(1)
-                .ok_or(SceneError::EntityIdExhausted { entity: record.id })?;
-            next_id = next_id.max(candidate_next_id);
+            allocator.advance_past(record.id)?;
         }
 
+        self.entity_registry
+            .ensure_capacity_for_additional(records_by_id.len())?;
         self.validate_node_record_batch_mobility(&records_by_id)?;
-        Ok((records_by_id, next_id))
+        Ok((records_by_id, allocator.next_id()))
     }
 
     fn commit_node_record_batch(&mut self, batch: PreparedNodeRecordBatch) -> SceneResult<()> {
@@ -133,7 +131,9 @@ impl World {
         for record in records {
             self.insert_prevalidated_node_record(record);
         }
-        self.next_id = self.next_id.max(next_id);
+        self.entity_id_allocator
+            .replace_next(next_id)
+            .expect("prevalidated node records must retain a valid entity allocator state");
         self.bump_lifecycle_visibility_revision();
         self.mark_derived_state_dirty();
         self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
@@ -344,9 +344,9 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use crate::scene::{
+        NodeKind, World,
         components::{ActiveSelf, Hierarchy, LocalTransform, Mobility, Name, RenderLayerMask},
         ecs::{Component, LifecycleEventKind, StorageType},
-        NodeKind, World,
     };
 
     #[derive(Debug, PartialEq, Eq)]
@@ -363,7 +363,9 @@ mod tests {
 
     fn node_record_with_id(id: u64) -> crate::scene::components::NodeRecord {
         let mut source = World::empty();
-        let entity = source.spawn_node(NodeKind::Empty);
+        let entity = source
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         let mut record = source
             .node_record(entity)
             .expect("spawned node must produce a record");
@@ -407,11 +409,13 @@ mod tests {
         assert_eq!(world.node_record(second.id), Some(second));
         let observed = observed.lock().expect("test observer lock");
         assert_eq!(observed.len(), 2);
-        assert!(observed
-            .iter()
-            .all(|(_, second_visible, second_has_final_signature)| {
-                *second_visible && *second_has_final_signature
-            }));
+        assert!(
+            observed
+                .iter()
+                .all(|(_, second_visible, second_has_final_signature)| {
+                    *second_visible && *second_has_final_signature
+                })
+        );
     }
 
     #[test]
@@ -441,7 +445,9 @@ mod tests {
     #[test]
     fn pending_component_row_publishes_dense_and_sparse_values_in_one_transition() {
         let mut world = World::empty();
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         let marker = world.component_id::<RebuiltArchetypeMarker>();
         let sparse_marker = world.component_id::<RebuiltSparseArchetypeMarker>();
         let assignments_before = world.archetype_assignment_count();

@@ -90,15 +90,20 @@ def validate_shader_resource_registry_export_contract(
             "shader prewarm resource registry export did not produce "
             "a ResourceRecord array"
         )
-    for index, record in enumerate(records):
-        if not isinstance(record, Mapping):
-            raise RuntimeError(
-                "shader prewarm resource registry export contains "
-                "non-object ResourceRecord entries"
-            )
-        _validate_resource_record_shape(record, index)
+    has_usable_shader_record, locators, usable_locators = (
+        _validate_and_index_resource_records(
+            records,
+            detect_usable_shader_records=(
+                require_usable_shader_records or report_path is not None
+            ),
+            index_report_locators=report_path is not None,
+        )
+    )
     if require_usable_shader_records:
-        _validate_registry_export_has_usable_shader_records(records, registry_path)
+        _validate_registry_export_has_usable_shader_records(
+            has_usable_shader_record,
+            registry_path,
+        )
     if report_path is None and require_report_registry_backed_sources:
         raise RuntimeError(
             "shader prewarm resource registry export requires report_path when "
@@ -107,7 +112,8 @@ def validate_shader_resource_registry_export_contract(
     if report_path is not None:
         report = _read_report_for_registry_export_contract(report_path)
         _validate_registry_export_matches_report_sources(
-            records,
+            locators,
+            usable_locators,
             report,
             require_report_registry_backed_sources=require_report_registry_backed_sources,
         )
@@ -125,6 +131,44 @@ def _resource_registry_record_array(registry: object) -> list[object] | None:
     if isinstance(records, list):
         return records
     return None
+
+
+def _validate_and_index_resource_records(
+    records: list[object],
+    *,
+    detect_usable_shader_records: bool,
+    index_report_locators: bool,
+) -> tuple[bool, set[str], set[str]]:
+    has_usable_shader_record = False
+    locators: set[str] = set()
+    usable_locators: set[str] = set()
+    for index, record in enumerate(records):
+        if not isinstance(record, Mapping):
+            raise RuntimeError(
+                "shader prewarm resource registry export contains "
+                "non-object ResourceRecord entries"
+            )
+        primary_locator, artifact_locator, record_is_usable_shader = (
+            _validate_resource_record_shape(record, index)
+        )
+        is_usable_shader_record = (
+            detect_usable_shader_records and record_is_usable_shader
+        )
+        if is_usable_shader_record:
+            has_usable_shader_record = True
+        if not index_report_locators:
+            continue
+
+        if isinstance(primary_locator, str):
+            locators.add(primary_locator)
+        if isinstance(artifact_locator, str):
+            locators.add(artifact_locator)
+        if is_usable_shader_record:
+            if isinstance(primary_locator, str):
+                usable_locators.add(primary_locator)
+            if isinstance(artifact_locator, str):
+                usable_locators.add(artifact_locator)
+    return has_usable_shader_record, locators, usable_locators
 
 
 def _read_report_for_registry_export_contract(
@@ -154,7 +198,7 @@ def _read_report_for_registry_export_contract(
 def _validate_resource_record_shape(
     record: Mapping[str, object],
     index: int,
-) -> None:
+) -> tuple[object, object, bool]:
     missing = [
         field
         for field in _RESOURCE_RECORD_REQUIRED_FIELDS
@@ -163,9 +207,11 @@ def _validate_resource_record_shape(
     invalid = []
     if not _is_resource_id_string(record.get("id")):
         invalid.append("id")
-    if not _resource_record_kind_is_known(record.get("kind")):
+    kind = record.get("kind")
+    if not _resource_record_kind_is_known(kind):
         invalid.append("kind")
-    if not _is_resource_locator_string(record.get("primary_locator")):
+    primary_locator = record.get("primary_locator")
+    if not _is_resource_locator_string(primary_locator):
         invalid.append("primary_locator")
     artifact_locator = record.get("artifact_locator")
     if artifact_locator is not None and not _is_resource_locator_string(
@@ -175,7 +221,8 @@ def _validate_resource_record_shape(
     revision = record.get("revision")
     if not _is_unsigned_int_within(revision, _U64_MAX):
         invalid.append("revision")
-    if not _resource_record_state_is_known(record.get("state")):
+    state = record.get("state")
+    if not _resource_record_state_is_known(state):
         invalid.append("state")
     if not isinstance(record.get("dependency_ids"), list):
         invalid.append("dependency_ids")
@@ -204,10 +251,18 @@ def _validate_resource_record_shape(
             f"{_INCOMPLETE_RESOURCE_RECORD_ENTRY} {index}: "
             f"{', '.join(problems)}"
         )
+    is_usable_shader_record = (
+        _resource_record_kind_is_shader(kind)
+        and state == "Ready"
+        and isinstance(revision, int)
+        and revision > 0
+    )
+    return primary_locator, artifact_locator, is_usable_shader_record
 
 
 def _validate_registry_export_matches_report_sources(
-    records: list[object],
+    locators: set[str],
+    usable_locators: set[str],
     report: Mapping[str, object],
     *,
     require_report_registry_backed_sources: bool = False,
@@ -220,7 +275,6 @@ def _validate_registry_export_matches_report_sources(
                 "registry-backed report source for project/plugin asset roots"
             )
         return
-    locators = _resource_record_locators(records)
     missing = [
         source_label
         for source_label in source_labels
@@ -232,7 +286,6 @@ def _validate_registry_export_matches_report_sources(
             f"{_MISSING_RESOURCE_RECORD_LOCATORS}: "
             + ", ".join(missing)
         )
-    usable_locators = _usable_shader_resource_record_locators(records)
     unusable = [
         source_label
         for source_label in source_labels
@@ -247,13 +300,9 @@ def _validate_registry_export_matches_report_sources(
 
 
 def _validate_registry_export_has_usable_shader_records(
-    records: list[object],
+    has_usable_shader_record: bool,
     registry_path: Path,
 ) -> None:
-    has_usable_shader_record = any(
-        isinstance(record, Mapping) and _is_usable_shader_record(record)
-        for record in records
-    )
     if not has_usable_shader_record:
         raise RuntimeError(
             "shader prewarm resource registry export requires at least one "

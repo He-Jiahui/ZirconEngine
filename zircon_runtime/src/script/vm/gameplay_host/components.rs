@@ -5,8 +5,25 @@ use crate::script::runtime_context_for_frame;
 use crate::script::vm::scene_system::{
     script_binding_number_for_entity, with_script_binding_property_matches,
 };
+use serde::ser::SerializeSeq;
+use serde::{Serialize, Serializer};
 
 use super::values::{expect_entity, expect_float, json_error, to_json_string, with_string};
+
+struct ComponentEntityIds<'a>(&'a [(u64, &'a serde_json::Value)]);
+
+impl Serialize for ComponentEntityIds<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut sequence = serializer.serialize_seq(Some(self.0.len()))?;
+        for (entity, _) in self.0 {
+            sequence.serialize_element(entity)?;
+        }
+        sequence.end()
+    }
+}
 
 pub(super) fn component_json(
     context: &ScriptHostCallFrame<'_>,
@@ -67,14 +84,12 @@ pub(super) fn find_by_component(
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let runtime = runtime_context_for_frame(context)?;
     with_string(context, 0, |component_id: &str| {
-        let entities = runtime.level.with_world(|world| {
+        let entities_json = runtime.level.with_world(|world| {
             let mut rows = Vec::new();
             world.dynamic_component_rows(component_id, &mut rows);
-            rows.into_iter()
-                .map(|(entity, _)| entity)
-                .collect::<Vec<_>>()
-        });
-        Ok(ScriptHostValue::String(to_json_string(&entities)?))
+            to_json_string(&ComponentEntityIds(&rows))
+        })?;
+        Ok(ScriptHostValue::String(entities_json))
     })
 }
 
@@ -210,6 +225,20 @@ pub(super) fn script_number_at_most(
 
 #[cfg(test)]
 mod performance_contract_tests {
+    use super::ComponentEntityIds;
+
+    #[test]
+    fn component_entity_ids_serialize_in_row_order_without_values() {
+        let first = serde_json::json!({"ignored": 1});
+        let second = serde_json::json!({"ignored": 2});
+        let rows = vec![(7, &first), (11, &second)];
+
+        assert_eq!(
+            serde_json::to_string(&ComponentEntityIds(&rows)).unwrap(),
+            r#"[7,11]"#
+        );
+    }
+
     #[test]
     fn entity_exists_uses_the_world_entity_index() {
         let source = include_str!("components.rs")

@@ -1741,8 +1741,10 @@ fn ui_asset_editor_session_binding_payload_authoring_uses_executable_binding_rep
         vec![UiAssetEditorDocumentReplayCommand::SetNodeBindings {
             node_id: "root".to_string(),
             bindings: vec![UiBindingRef {
+                component_event: None,
                 id: "SaveButton/onClick".to_string(),
                 event: UiEventKind::Click,
+                mode: Default::default(),
                 route: Some("menu_action.workbench.project.save".to_string()),
                 action: None,
                 targets: Vec::new(),
@@ -1756,8 +1758,10 @@ fn ui_asset_editor_session_binding_payload_authoring_uses_executable_binding_rep
         vec![UiAssetEditorDocumentReplayCommand::SetNodeBindings {
             node_id: "root".to_string(),
             bindings: vec![UiBindingRef {
+                component_event: None,
                 id: "SaveButton/onClick".to_string(),
                 event: UiEventKind::Click,
+                mode: Default::default(),
                 route: Some("menu_action.workbench.project.save".to_string()),
                 action: Some(UiActionRef {
                     route: Some("menu_action.workbench.project.save".to_string()),
@@ -1768,6 +1772,7 @@ fn ui_asset_editor_session_binding_payload_authoring_uses_executable_binding_rep
                     )]
                     .into_iter()
                     .collect(),
+                    payload_missing_policy: Default::default(),
                 }),
                 targets: Vec::new(),
             }],

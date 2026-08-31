@@ -10,24 +10,18 @@ from typing import Protocol
 
 from .database import Database
 from .models import CoordinatorError
-from .validation_tickets import ValidationTicket, ValidationTicketService
+from .validation_tickets import (
+    ValidationTicket,
+    ValidationTicketService,
+    validation_dependency_roots,
+    validation_uses_cargo_lane,
+)
+from .validation_external_pins import external_sources_from_coverage
 
 
 _COPY_LINK_EVENT = "validation.ticket_copy_linked"
 _RUN_LINK_EVENT = "validation.ticket_run_linked"
 _ACTIVE_COPY_STATES = frozenset({"planned", "materializing"})
-_CARGO_TOOLCHAIN_NOT_REQUIRED = frozenset(
-    {
-        "",
-        "disabled",
-        "false",
-        "none",
-        "not required",
-        "not-required",
-        "not_required",
-        "off",
-    }
-)
 _SNAPSHOT_STALE_COPY_ERRORS = frozenset(
     {
         "validation_copy_attribution_stale",
@@ -38,12 +32,18 @@ _SNAPSHOT_STALE_COPY_ERRORS = frozenset(
 
 
 class ValidationCopyExecutor(Protocol):
+    def require_overlay_ownership(
+        self, session_id: str, overlay_paths: tuple[str, ...]
+    ) -> tuple[str, ...]: ...
+
     def materialize_validation_async(
         self,
         session_id: str,
         *,
         dependency_roots: tuple[str, ...],
         overlay_paths: tuple[str, ...],
+        sealed_overlay_manifest: Mapping[str, str | None] | None = None,
+        baseline_commit: str | None = None,
     ): ...
 
     def materialize_cargo_async(
@@ -53,9 +53,14 @@ class ValidationCopyExecutor(Protocol):
         command: tuple[str, ...],
         overlay_paths: tuple[str, ...],
         discover_external_sources: bool,
+        external_sources: tuple[Mapping[str, object], ...] = (),
+        sealed_overlay_manifest: Mapping[str, str | None] | None = None,
+        baseline_commit: str | None = None,
     ): ...
 
     def status(self, session_id: str, job_id: str): ...
+
+    def cleanup_terminal_ticket_copy(self, ticket_id: str, job_id: str) -> bool: ...
 
     def start(
         self,
@@ -68,7 +73,7 @@ class ValidationCopyExecutor(Protocol):
 
 
 class ValidationTicketWorker:
-    """Advance one managed validation while terminalizing stale backlog in batches."""
+    """Advance a bounded set of isolated validations and preserve FIFO admission."""
 
     def __init__(
         self,
@@ -78,12 +83,16 @@ class ValidationTicketWorker:
         workspace_copy: ValidationCopyExecutor,
         *,
         run_result_lookup: Callable[[str], Mapping[str, object] | None] | None = None,
+        max_active: int = 2,
     ) -> None:
+        if max_active < 1:
+            raise ValueError("max_active must be positive")
         self.database = database
         self.repo_root = Path(repo_root).resolve()
         self.tickets = tickets
         self.workspace_copy = workspace_copy
         self.run_result_lookup = run_result_lookup or self._run_result
+        self.max_active = max_active
 
     def tick(self, *, stale_batch_size: int = 16) -> dict[str, int]:
         if stale_batch_size < 1:
@@ -95,37 +104,58 @@ class ValidationTicketWorker:
             "passed": 0,
             "failed": 0,
         }
-        active = self.tickets.active_ticket()
-        if active is not None:
-            result[self._advance(active)] += 1
-            return result
+        for ticket in self.tickets.active_tickets():
+            result[self._advance(ticket)] += 1
 
+        active_count = len(self.tickets.active_tickets())
         for _ in range(stale_batch_size):
+            if active_count >= self.max_active:
+                break
             ticket = self.tickets.claim_next()
             if ticket is None:
                 break
-            drift = self._manifest_drift(self.repo_root, ticket.source_manifest)
-            if drift:
-                self.tickets.record_result(
-                    ticket.ticket_id,
-                    "snapshot_stale",
-                    evidence={"phase": "queue_claim", "driftPaths": drift},
-                )
-                result["snapshot_stale"] += 1
-                continue
+            sealed_manifest = (
+                ticket.source_manifest
+                if self.tickets.source_is_sealed(ticket.ticket_id)
+                else None
+            )
+            if sealed_manifest is None:
+                try:
+                    self.workspace_copy.require_overlay_ownership(
+                        ticket.session_id, tuple(ticket.source_manifest)
+                    )
+                except Exception as error:
+                    self._terminal_error(ticket, "queue_claim", error)
+                    result["failed"] += 1
+                    continue
+                drift = self._manifest_drift(self.repo_root, ticket.source_manifest)
+                if drift:
+                    self._record_terminal(
+                        ticket,
+                        "snapshot_stale",
+                        evidence={"phase": "queue_claim", "driftPaths": drift},
+                    )
+                    result["snapshot_stale"] += 1
+                    continue
             try:
                 if self._uses_cargo_lane(ticket):
+                    external_sources = external_sources_from_coverage(ticket.coverage)
                     record = self.workspace_copy.materialize_cargo_async(
                         ticket.session_id,
                         command=ticket.command,
                         overlay_paths=tuple(ticket.source_manifest),
-                        discover_external_sources=True,
+                        external_sources=external_sources,
+                        discover_external_sources=False,
+                        sealed_overlay_manifest=sealed_manifest,
+                        baseline_commit=ticket.base_head,
                     )
                 else:
                     record = self.workspace_copy.materialize_validation_async(
                         ticket.session_id,
                         dependency_roots=self._dependency_roots(ticket),
                         overlay_paths=tuple(ticket.source_manifest),
+                        sealed_overlay_manifest=sealed_manifest,
+                        baseline_commit=ticket.base_head,
                     )
                 self.tickets.record_worker_event(
                     ticket.ticket_id,
@@ -137,7 +167,7 @@ class ValidationTicketWorker:
                 result["failed"] += 1
             else:
                 result["materializing"] += 1
-            break
+                active_count += 1
         return result
 
     def _advance(self, ticket: ValidationTicket) -> str:
@@ -154,8 +184,8 @@ class ValidationTicketWorker:
         link = self.tickets.latest_worker_event(ticket.ticket_id, _COPY_LINK_EVENT)
         job_id = str((link or {}).get("jobId") or "")
         if not job_id:
-            self.tickets.record_result(
-                ticket.ticket_id,
+            self._record_terminal(
+                ticket,
                 "failed",
                 evidence={
                     "phase": "materializing_recovery",
@@ -185,10 +215,11 @@ class ValidationTicketWorker:
                 if str(record.error_code) in _SNAPSHOT_STALE_COPY_ERRORS
                 else "failed"
             )
-            self.tickets.record_result(
-                ticket.ticket_id,
+            self._record_terminal(
+                ticket,
                 terminal_status,
                 evidence=self._copy_failure(record, job_id),
+                job_id=job_id,
             )
             return terminal_status
         if status == "removed":
@@ -207,8 +238,8 @@ class ValidationTicketWorker:
             self._link_running(ticket, job_id)
             return "running"
         if status != "materialized":
-            self.tickets.record_result(
-                ticket.ticket_id,
+            self._record_terminal(
+                ticket,
                 "failed",
                 evidence={
                     "phase": "materialization_status",
@@ -216,19 +247,21 @@ class ValidationTicketWorker:
                     "jobId": job_id,
                     "copyStatus": status,
                 },
+                job_id=job_id,
             )
             return "failed"
 
         drift = self._manifest_drift(Path(record.source_root), ticket.source_manifest)
         if drift:
-            self.tickets.record_result(
-                ticket.ticket_id,
+            self._record_terminal(
+                ticket,
                 "snapshot_stale",
                 evidence={"phase": "materialized_copy", "jobId": job_id, "driftPaths": drift},
+                job_id=job_id,
             )
             return "snapshot_stale"
         try:
-            self.workspace_copy.start(
+            progress = self.workspace_copy.start(
                 ticket.session_id,
                 job_id,
                 command=ticket.command,
@@ -237,6 +270,8 @@ class ValidationTicketWorker:
         except Exception as error:
             self._terminal_error(ticket, "run_start", error, job_id=job_id)
             return "failed"
+        if str(progress.get("status") or "") == "waiting":
+            return "materializing"
         self._link_running(ticket, job_id)
         return "running"
 
@@ -247,31 +282,47 @@ class ValidationTicketWorker:
         *,
         uses_cargo_lane: bool,
     ) -> str:
-        drift = self._manifest_drift(self.repo_root, ticket.source_manifest)
+        sealed_manifest = (
+            ticket.source_manifest
+            if self.tickets.source_is_sealed(ticket.ticket_id)
+            else None
+        )
+        drift = (
+            []
+            if sealed_manifest is not None
+            else self._manifest_drift(self.repo_root, ticket.source_manifest)
+        )
         if drift:
-            self.tickets.record_result(
-                ticket.ticket_id,
+            self._record_terminal(
+                ticket,
                 "snapshot_stale",
                 evidence={
                     "phase": "materialization_recovery",
                     "jobId": previous_job_id,
                     "driftPaths": drift,
                 },
+                job_id=previous_job_id,
             )
             return "snapshot_stale"
         try:
             if uses_cargo_lane:
+                external_sources = external_sources_from_coverage(ticket.coverage)
                 record = self.workspace_copy.materialize_cargo_async(
                     ticket.session_id,
                     command=ticket.command,
                     overlay_paths=tuple(ticket.source_manifest),
-                    discover_external_sources=True,
+                    external_sources=external_sources,
+                    discover_external_sources=False,
+                    sealed_overlay_manifest=sealed_manifest,
+                    baseline_commit=ticket.base_head,
                 )
             else:
                 record = self.workspace_copy.materialize_validation_async(
                     ticket.session_id,
                     dependency_roots=self._dependency_roots(ticket),
                     overlay_paths=tuple(ticket.source_manifest),
+                    sealed_overlay_manifest=sealed_manifest,
+                    baseline_commit=ticket.base_head,
                 )
         except Exception as error:
             self._terminal_error(
@@ -292,8 +343,8 @@ class ValidationTicketWorker:
         link = self.tickets.latest_worker_event(ticket.ticket_id, _RUN_LINK_EVENT)
         job_id = str((link or {}).get("jobId") or "")
         if not job_id:
-            self.tickets.record_result(
-                ticket.ticket_id,
+            self._record_terminal(
+                ticket,
                 "failed",
                 evidence={
                     "phase": "run_recovery",
@@ -308,10 +359,11 @@ class ValidationTicketWorker:
         if run is not None:
             exit_code = int(run.get("exitCode", run.get("exit_code", 1)))
             status = "passed" if exit_code == 0 else "failed"
-            self.tickets.record_result(
-                ticket.ticket_id,
+            self._record_terminal(
+                ticket,
                 status,
                 evidence=self._run_evidence(run, ticket.ticket_id, job_id, exit_code),
+                job_id=job_id,
             )
             return status
         try:
@@ -323,7 +375,7 @@ class ValidationTicketWorker:
             return "running"
         if str(record.status) == "materialized":
             try:
-                self.workspace_copy.start(
+                progress = self.workspace_copy.start(
                     ticket.session_id,
                     job_id,
                     command=ticket.command,
@@ -332,9 +384,13 @@ class ValidationTicketWorker:
             except Exception as error:
                 self._terminal_error(ticket, "run_restart", error, job_id=job_id)
                 return "failed"
+            if str(progress.get("status") or "") == "waiting":
+                # This branch recovers a ticket already durably projected as running;
+                # preserve that projection until its exact reservation can start.
+                return "running"
             return "running"
-        self.tickets.record_result(
-            ticket.ticket_id,
+        self._record_terminal(
+            ticket,
             "failed",
             evidence={
                 "phase": "run_status",
@@ -342,6 +398,7 @@ class ValidationTicketWorker:
                 "jobId": job_id,
                 "copyStatus": str(record.status),
             },
+            job_id=job_id,
         )
         return "failed"
 
@@ -377,9 +434,30 @@ class ValidationTicketWorker:
             "errorCode": getattr(error, "code", type(error).__name__),
             "error": str(error)[-4096:],
         }
+        details = getattr(error, "details", None)
+        if isinstance(details, Mapping) and details:
+            evidence["errorDetails"] = dict(details)
         if job_id:
             evidence["jobId"] = job_id
-        self.tickets.record_result(ticket.ticket_id, "failed", evidence=evidence)
+        self._record_terminal(ticket, "failed", evidence=evidence, job_id=job_id)
+
+    def _record_terminal(
+        self,
+        ticket: ValidationTicket,
+        status: str,
+        *,
+        evidence: Mapping[str, object],
+        job_id: str | None = None,
+    ) -> None:
+        self.tickets.record_result(ticket.ticket_id, status, evidence=evidence)
+        if not job_id:
+            return
+        try:
+            self.workspace_copy.cleanup_terminal_ticket_copy(ticket.ticket_id, job_id)
+        except Exception:
+            # Cargo release can trail ticket projection; periodic recovery retries
+            # only terminal tickets with an explicit copy link.
+            return
 
     @staticmethod
     def _manifest_drift(
@@ -400,45 +478,13 @@ class ValidationTicketWorker:
                     break
         return drift
 
-    @staticmethod
-    def _is_cargo_command(command: tuple[str, ...]) -> bool:
-        if not command:
-            return False
-        executable = command[0].replace("\\", "/").rsplit("/", 1)[-1].casefold()
-        return executable in {"cargo", "cargo.exe"}
-
     @classmethod
     def _uses_cargo_lane(cls, ticket: ValidationTicket) -> bool:
-        if cls._is_cargo_command(ticket.command):
-            return True
-        cargo_identity = ticket.toolchain.get("cargo")
-        return (
-            isinstance(cargo_identity, str)
-            and cargo_identity.strip().casefold() not in _CARGO_TOOLCHAIN_NOT_REQUIRED
-        )
+        return validation_uses_cargo_lane(ticket.command, ticket.toolchain)
 
     @staticmethod
     def _dependency_roots(ticket: ValidationTicket) -> tuple[str, ...]:
-        roots = ticket.coverage.get("dependencyRoots")
-        if roots is None:
-            raise CoordinatorError(
-                "validation_ticket_dependency_roots_missing",
-                "Non-Cargo validation tickets must declare coverage.dependencyRoots",
-            )
-        if not isinstance(roots, (list, tuple)) or not roots:
-            raise CoordinatorError(
-                "validation_ticket_dependency_roots_invalid",
-                "Validation dependency roots must be a non-empty string array",
-            )
-        normalized: list[str] = []
-        for root in roots:
-            if not isinstance(root, str) or not root.strip():
-                raise CoordinatorError(
-                    "validation_ticket_dependency_roots_invalid",
-                    "Validation dependency roots must be a non-empty string array",
-                )
-            normalized.append(root)
-        return tuple(dict.fromkeys(normalized))
+        return validation_dependency_roots(ticket.coverage)
 
     @staticmethod
     def _copy_failure(record, job_id: str) -> dict[str, object]:

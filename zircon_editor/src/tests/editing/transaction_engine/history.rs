@@ -2,8 +2,10 @@ use std::sync::atomic::Ordering;
 
 use crate::core::editing::engine::{
     EditCommandError, EditorTransactionEngine, HistoryContextId, HistorySaveMarkOutcome,
+    TransactionId, TransactionJournalError,
 };
 use crate::core::editor_message::DocumentId;
+use crate::core::play::{PlayInstanceId, WorldDomain};
 
 use super::fixture::{finalized_counter, DeltaCommand, FixtureContext};
 
@@ -27,6 +29,82 @@ fn commit_delta(
         .push(DeltaCommand::new(label, before, after, finalized_counter()))
         .unwrap();
     scope.commit().unwrap();
+}
+
+#[test]
+fn play_history_uses_its_world_route_and_remains_volatile() {
+    let engine = EditorTransactionEngine::new(FixtureContext::default());
+    let instance = PlayInstanceId::for_test(17);
+    let history = HistoryContextId::PlaySession(instance);
+
+    assert!(history.is_volatile());
+    assert_eq!(history.world_domain(), WorldDomain::Play(instance));
+    assert!(!engine.is_dirty(history).unwrap());
+    let status = engine.history_status(history).unwrap();
+    assert_eq!(status.len, 0);
+    assert_eq!(status.saved_top, None);
+    assert!(status.saved_top_reachable);
+    assert!(!status.dirty);
+    let mut scope = engine.begin("routed play edit", history).unwrap();
+    scope
+        .push(DeltaCommand::new(
+            "routed play edit",
+            1,
+            5,
+            finalized_counter(),
+        ))
+        .unwrap();
+    scope.commit().unwrap();
+    assert_eq!(engine.history_status(history).unwrap().len, 1);
+    assert!(!engine.is_dirty(history).unwrap());
+    assert_eq!(
+        engine
+            .with_context::<FixtureContext, _>(|context| context.world_domain)
+            .unwrap(),
+        Some(WorldDomain::Play(instance))
+    );
+    assert!(engine.undo(history).unwrap());
+    assert!(engine.redo(history).unwrap());
+    assert!(matches!(
+        engine.capture_save_token(history),
+        Err(EditCommandError::VolatileHistoryPersistenceUnsupported {
+            history: found,
+            operation: "capture save token for",
+        }) if found == history
+    ));
+    assert!(matches!(
+        engine.journal_transaction(history, TransactionId::from_sequence(1)),
+        Err(TransactionJournalError::VolatileHistory { history: found }) if found == history
+    ));
+    assert!(engine.discard_play_history(instance).unwrap());
+    assert_eq!(engine.history_status(history).unwrap().len, 0);
+    assert_eq!(
+        engine
+            .with_context::<FixtureContext, _>(|context| context.world_domain)
+            .unwrap(),
+        WorldDomain::Edit
+    );
+
+    let empty_instance = PlayInstanceId::for_test(18);
+    let empty_history = HistoryContextId::PlaySession(empty_instance);
+    engine
+        .begin("empty play edit", empty_history)
+        .unwrap()
+        .commit()
+        .unwrap();
+    assert_eq!(
+        engine
+            .with_context::<FixtureContext, _>(|context| context.world_domain)
+            .unwrap(),
+        WorldDomain::Play(empty_instance)
+    );
+    assert!(!engine.discard_play_history(empty_instance).unwrap());
+    assert_eq!(
+        engine
+            .with_context::<FixtureContext, _>(|context| context.world_domain)
+            .unwrap(),
+        WorldDomain::Edit
+    );
 }
 
 #[test]

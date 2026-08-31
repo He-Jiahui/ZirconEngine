@@ -4,27 +4,30 @@ use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::DisplayMode;
 
-use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::pipeline::{PipelineAdmission, RenderPassStage};
 use crate::graphics::scene::resources::{GpuTextureResource, ResourceStreamer};
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommand, MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats,
     MeshSceneDataBindHandle,
 };
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::scene::scene_renderer::sprite::{
-    build_sprite_vertices, SpriteRenderer, SpriteVertex,
+    SpriteRenderer, SpriteVertex, build_sprite_vertices,
 };
 use crate::graphics::scene::scene_renderer::transparent::{
-    build_transparent_submission_order, TransparentSubmissionSource,
+    TransparentSubmissionSource, build_transparent_submission_order,
 };
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
 
 pub(crate) struct BaseScenePass;
+
+const BASE_SCENE_OPAQUE_PIPELINE_CONSUMER: &str = "base_scene_opaque";
+const BASE_SCENE_TRANSPARENT_PIPELINE_CONSUMER: &str = "base_scene_transparent";
 
 impl BaseScenePass {
     #[allow(clippy::too_many_arguments)]
@@ -42,13 +45,111 @@ impl BaseScenePass {
         frame: &ViewportRenderFrame,
         shadow_atlas_resources: Option<&ShadowAtlasResources>,
         render_region: ViewportRenderRegion,
-        light_grid_params_buffer: Option<&wgpu::Buffer>,
-        light_zbins_buffer: Option<&wgpu::Buffer>,
-        light_tile_masks_buffer: Option<&wgpu::Buffer>,
+        light_grid_params_buffer: Option<wgpu::BufferBinding<'_>>,
+        light_zbins_buffer: Option<wgpu::BufferBinding<'_>>,
+        light_tile_masks_buffer: Option<wgpu::BufferBinding<'_>>,
         integrated_volumetric_view: Option<&wgpu::TextureView>,
         transmission_scene_color_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
+    ) -> MeshDrawReplayStats
+    where
+        I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
+        I::IntoIter: Clone,
+    {
+        self.record_commands_with_receiver_policy(
+            encoder,
+            device,
+            color_view,
+            depth_view,
+            scene_bind_group,
+            gpu_scene_bind_group,
+            mesh_draw_commands,
+            mesh_pipelines,
+            streamer,
+            frame,
+            shadow_atlas_resources,
+            render_region,
+            light_grid_params_buffer,
+            light_zbins_buffer,
+            light_tile_masks_buffer,
+            integrated_volumetric_view,
+            transmission_scene_color_view,
+            attachment_ops,
+            depth_attachment_ops,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn record_environment_capture_commands_with_attachment_ops<'a, I>(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        device: &wgpu::Device,
+        color_view: &wgpu::TextureView,
+        depth_view: &wgpu::TextureView,
+        scene_bind_group: &wgpu::BindGroup,
+        gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
+        mesh_draw_commands: I,
+        mesh_pipelines: &mut MeshPipelineCache,
+        streamer: &ResourceStreamer,
+        frame: &ViewportRenderFrame,
+        render_region: ViewportRenderRegion,
+        forward_receiver_bind_group: Option<&wgpu::BindGroup>,
+        attachment_ops: RenderGraphAttachmentOps,
+        depth_attachment_ops: RenderGraphAttachmentOps,
+    ) -> MeshDrawReplayStats
+    where
+        I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
+        I::IntoIter: Clone,
+    {
+        self.record_commands_with_receiver_policy(
+            encoder,
+            device,
+            color_view,
+            depth_view,
+            scene_bind_group,
+            gpu_scene_bind_group,
+            mesh_draw_commands,
+            mesh_pipelines,
+            streamer,
+            frame,
+            None,
+            render_region,
+            None,
+            None,
+            None,
+            None,
+            None,
+            attachment_ops,
+            depth_attachment_ops,
+            forward_receiver_bind_group,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn record_commands_with_receiver_policy<'a, I>(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        device: &wgpu::Device,
+        color_view: &wgpu::TextureView,
+        depth_view: &wgpu::TextureView,
+        scene_bind_group: &wgpu::BindGroup,
+        gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
+        mesh_draw_commands: I,
+        mesh_pipelines: &mut MeshPipelineCache,
+        streamer: &ResourceStreamer,
+        frame: &ViewportRenderFrame,
+        shadow_atlas_resources: Option<&ShadowAtlasResources>,
+        render_region: ViewportRenderRegion,
+        light_grid_params_buffer: Option<wgpu::BufferBinding<'_>>,
+        light_zbins_buffer: Option<wgpu::BufferBinding<'_>>,
+        light_tile_masks_buffer: Option<wgpu::BufferBinding<'_>>,
+        integrated_volumetric_view: Option<&wgpu::TextureView>,
+        transmission_scene_color_view: Option<&wgpu::TextureView>,
+        attachment_ops: RenderGraphAttachmentOps,
+        depth_attachment_ops: RenderGraphAttachmentOps,
+        provided_forward_receiver_bind_group: Option<&wgpu::BindGroup>,
     ) -> MeshDrawReplayStats
     where
         I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
@@ -71,19 +172,22 @@ impl BaseScenePass {
             });
         // This stays alive through the render pass while avoiding the generic
         // forward-receiver allocation for the EnvironmentOnly-only path.
-        let forward_shadow_receiver_bind_group = needs_forward_receiver.then(|| {
-            mesh_pipelines.create_forward_shading_bind_group(
-                device,
-                frame,
-                render_region,
-                shadow_atlas_resources,
-                light_grid_params_buffer,
-                light_zbins_buffer,
-                light_tile_masks_buffer,
-                integrated_volumetric_view,
-                transmission_scene_color_view,
-            )
-        });
+        let owned_forward_receiver_bind_group =
+            (needs_forward_receiver && provided_forward_receiver_bind_group.is_none()).then(|| {
+                mesh_pipelines.create_forward_shading_bind_group(
+                    device,
+                    frame,
+                    render_region,
+                    shadow_atlas_resources,
+                    light_grid_params_buffer,
+                    light_zbins_buffer,
+                    light_tile_masks_buffer,
+                    integrated_volumetric_view,
+                    transmission_scene_color_view,
+                )
+            });
+        let forward_shadow_receiver_bind_group =
+            provided_forward_receiver_bind_group.or(owned_forward_receiver_bind_group.as_ref());
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("BaseScenePass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -115,24 +219,45 @@ impl BaseScenePass {
                     .pipeline_uses_builtin_fallback_shader(streamer, command.pipeline_key());
                 if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id)
                 {
-                    let Some(pipeline) = mesh_pipelines.ensure_pipeline_for_variant(
+                    match mesh_pipelines.ensure_pipeline_admission_for_variant(
                         device,
                         streamer,
                         command.pipeline_variant_id,
-                    ) else {
-                        replayer.invalidate_state_after_external_pipeline();
-                        return false;
-                    };
-                    pass.set_pipeline(pipeline);
+                    ) {
+                        PipelineAdmission::Ready(()) => {
+                            mesh_pipelines.record_bound_mesh_pass_pipeline(
+                                command.pipeline_kind,
+                                command.pipeline_variant_id,
+                            );
+                            pass.set_pipeline(
+                                mesh_pipelines
+                                    .base_pipeline_for_ready_variant(command.pipeline_variant_id),
+                            );
+                        }
+                        PipelineAdmission::Deferred(unavailable)
+                        | PipelineAdmission::Failed(unavailable) => {
+                            mesh_pipelines.record_base_pipeline_fallback_for_command(
+                                command,
+                                BASE_SCENE_OPAQUE_PIPELINE_CONSUMER,
+                                unavailable,
+                            );
+                            replayer.invalidate_state_after_external_pipeline();
+                            return false;
+                        }
+                    }
                 }
                 if mesh_pipelines
                     .base_pipeline_requires_forward_receiver(command.pipeline_variant_id)
                 {
+                    let Some(forward_shadow_receiver_bind_group) =
+                        forward_shadow_receiver_bind_group
+                    else {
+                        replayer.invalidate_state_after_external_pipeline();
+                        return false;
+                    };
                     replayer.bind_forward_shadow_receiver_if_needed(
                         pass,
-                        forward_shadow_receiver_bind_group
-                            .as_ref()
-                            .expect("generic Base commands require a forward receiver bind group"),
+                        forward_shadow_receiver_bind_group,
                     );
                 }
                 replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
@@ -164,9 +289,9 @@ impl BaseScenePass {
         frame: &ViewportRenderFrame,
         shadow_atlas_resources: Option<&ShadowAtlasResources>,
         render_region: ViewportRenderRegion,
-        light_grid_params_buffer: Option<&wgpu::Buffer>,
-        light_zbins_buffer: Option<&wgpu::Buffer>,
-        light_tile_masks_buffer: Option<&wgpu::Buffer>,
+        light_grid_params_buffer: Option<wgpu::BufferBinding<'_>>,
+        light_zbins_buffer: Option<wgpu::BufferBinding<'_>>,
+        light_tile_masks_buffer: Option<wgpu::BufferBinding<'_>>,
         integrated_volumetric_view: Option<&wgpu::TextureView>,
         transmission_scene_color_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
@@ -241,15 +366,33 @@ impl BaseScenePass {
                         if replayer
                             .should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id)
                         {
-                            let Some(pipeline) = mesh_pipelines.ensure_pipeline_for_variant(
+                            match mesh_pipelines.ensure_pipeline_admission_for_variant(
                                 device,
                                 streamer,
                                 command.pipeline_variant_id,
-                            ) else {
-                                replayer.invalidate_state_after_external_pipeline();
-                                return false;
-                            };
-                            pass.set_pipeline(pipeline);
+                            ) {
+                                PipelineAdmission::Ready(()) => {
+                                    mesh_pipelines.record_bound_mesh_pass_pipeline(
+                                        command.pipeline_kind,
+                                        command.pipeline_variant_id,
+                                    );
+                                    pass.set_pipeline(
+                                        mesh_pipelines.base_pipeline_for_ready_variant(
+                                            command.pipeline_variant_id,
+                                        ),
+                                    );
+                                }
+                                PipelineAdmission::Deferred(unavailable)
+                                | PipelineAdmission::Failed(unavailable) => {
+                                    mesh_pipelines.record_base_pipeline_fallback_for_command(
+                                        command,
+                                        BASE_SCENE_TRANSPARENT_PIPELINE_CONSUMER,
+                                        unavailable,
+                                    );
+                                    replayer.invalidate_state_after_external_pipeline();
+                                    return false;
+                                }
+                            }
                         }
                         replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
                         if uses_builtin_fallback_shader {
@@ -450,8 +593,14 @@ mod tests {
             "the opaque pass must determine generic ABI use before beginning the render pass"
         );
         assert!(
-            opaque.contains("let forward_shadow_receiver_bind_group = needs_forward_receiver.then"),
-            "the forward receiver bind group must be allocated only for a generic Base command"
+            opaque.contains(
+                "needs_forward_receiver && provided_forward_receiver_bind_group.is_none()"
+            ),
+            "viewport recording must allocate a receiver only for a generic Base command"
+        );
+        assert!(
+            opaque.contains("provided_forward_receiver_bind_group.or(owned_forward_receiver_bind_group.as_ref())"),
+            "offscreen recording must be able to reuse a caller-owned receiver across passes"
         );
         assert!(
             !opaque.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);"),

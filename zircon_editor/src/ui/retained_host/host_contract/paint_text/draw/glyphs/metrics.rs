@@ -2,8 +2,6 @@ use std::ops::Range;
 
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
-pub(super) const TEXT_RASTER_SUPERSAMPLE: f32 = 8.0;
-
 const MIN_GLYPH_RASTER_SCALE: f32 = 1.0;
 const MIN_COMBINED_SAMPLE_OFFSET_X: f32 = 0.0;
 const MAX_COMBINED_SAMPLE_OFFSET_X: f32 = 1.999;
@@ -15,45 +13,45 @@ const SINGLE_GLYPH_DRAW_PASS_COUNT: i32 = 1;
 
 pub(super) fn logical_raster_extent(
     raster_extent: usize,
-    raster_scale: f32,
+    sample_scale: f32,
     sample_offset: f32,
 ) -> usize {
-    let raster_scale = glyph_raster_scale(raster_scale);
+    let sample_scale = normalized_sample_scale(sample_scale);
     let sample_offset = combined_sample_offset_x(sample_offset);
-    (raster_extent as f32 / raster_scale + sample_offset).ceil() as usize
+    (raster_extent as f32 / sample_scale + sample_offset).ceil() as usize
 }
 
 pub(super) fn uses_native_pixel_sampling(
     raster_width: usize,
     raster_height: usize,
-    raster_scale: f32,
+    sample_scale: f32,
 ) -> bool {
     raster_width == 0
         || raster_height == 0
-        || !raster_scale.is_finite()
-        || raster_scale <= MIN_GLYPH_RASTER_SCALE
+        || !sample_scale.is_finite()
+        || sample_scale <= MIN_GLYPH_RASTER_SCALE
 }
 
 pub(super) fn raster_sample_x_range(
     logical_column: usize,
-    raster_scale: f32,
+    sample_scale: f32,
     sample_offset_x: f32,
     raster_width: usize,
 ) -> Range<usize> {
     let sample_offset_x = combined_sample_offset_x(sample_offset_x);
-    let x0 = (((logical_column as f32) - sample_offset_x) * raster_scale).floor() as isize;
-    let x1 = ((((logical_column + 1) as f32) - sample_offset_x) * raster_scale).ceil() as isize;
+    let x0 = (((logical_column as f32) - sample_offset_x) * sample_scale).floor() as isize;
+    let x1 = ((((logical_column + 1) as f32) - sample_offset_x) * sample_scale).ceil() as isize;
 
     x0.max(0) as usize..x1.max(0).min(raster_width as isize) as usize
 }
 
 pub(super) fn raster_sample_y_range(
     logical_row: usize,
-    raster_scale: f32,
+    sample_scale: f32,
     raster_height: usize,
 ) -> Range<usize> {
-    let y0 = ((logical_row as f32) * raster_scale).floor() as usize;
-    let y1 = (((logical_row + 1) as f32) * raster_scale).ceil() as usize;
+    let y0 = ((logical_row as f32) * sample_scale).floor() as usize;
+    let y1 = (((logical_row + 1) as f32) * sample_scale).ceil() as usize;
 
     y0..y1.min(raster_height)
 }
@@ -83,9 +81,9 @@ pub(super) fn glyph_draw_pass_count(_style: UiTextRunPaintStyle) -> i32 {
     SINGLE_GLYPH_DRAW_PASS_COUNT
 }
 
-fn glyph_raster_scale(raster_scale: f32) -> f32 {
-    if raster_scale.is_finite() && raster_scale > MIN_GLYPH_RASTER_SCALE {
-        raster_scale
+fn normalized_sample_scale(sample_scale: f32) -> f32 {
+    if sample_scale.is_finite() && sample_scale > MIN_GLYPH_RASTER_SCALE {
+        sample_scale
     } else {
         MIN_GLYPH_RASTER_SCALE
     }
@@ -103,17 +101,17 @@ pub(super) fn combined_sample_offset_x(sample_offset: f32) -> f32 {
 mod tests {
     use super::{
         averaged_channel_coverage, combined_sample_offset_x, glyph_draw_pass_count,
-        glyph_raster_scale, italic_pixel_offset, logical_raster_extent, raster_sample_x_range,
+        italic_pixel_offset, logical_raster_extent, normalized_sample_scale, raster_sample_x_range,
         raster_sample_y_range, thin_stroke_preserved_coverage, uses_native_pixel_sampling,
         MAX_COMBINED_SAMPLE_OFFSET_X, MIN_GLYPH_RASTER_SCALE,
     };
     use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
     #[test]
-    fn glyph_raster_scale_keeps_supersample_scale_above_minimum() {
-        assert_eq!(glyph_raster_scale(8.0), 8.0);
-        assert_eq!(glyph_raster_scale(1.0), MIN_GLYPH_RASTER_SCALE);
-        assert_eq!(glyph_raster_scale(f32::NAN), MIN_GLYPH_RASTER_SCALE);
+    fn sample_scale_keeps_explicit_supersample_scale_above_minimum() {
+        assert_eq!(normalized_sample_scale(8.0), 8.0);
+        assert_eq!(normalized_sample_scale(1.0), MIN_GLYPH_RASTER_SCALE);
+        assert_eq!(normalized_sample_scale(f32::NAN), MIN_GLYPH_RASTER_SCALE);
     }
 
     #[test]

@@ -4,9 +4,7 @@ use crate::text::atlas::{
     GlyphAtlasStorageFormat,
 };
 
-use super::handoff::{
-    NativeBitmapAtlasFirstFrameDegradation, NativeBitmapAtlasGlyphonFallbackReason,
-};
+use super::handoff::{NativeBitmapAtlasDegradationReason, NativeBitmapAtlasFirstFrameDegradation};
 use super::source_cache::{NativeBitmapAtlasSourceCache, NativeBitmapAtlasSourceCacheFrameReport};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -17,7 +15,7 @@ pub(crate) struct NativeBitmapAtlasPrepareReport {
     pub(crate) missing_raster_image_count: usize,
     /// Cache misses whose layout bounds intersect the current text area bounds.
     ///
-    /// Offscreen misses remain cache diagnostics, but must not force glyphon for
+    /// Offscreen misses remain cache diagnostics, but must not force native degradation for
     /// an otherwise empty native-atlas frame.
     pub(crate) visible_missing_raster_image_count: usize,
     pub(crate) approximate_raster_image_count: usize,
@@ -36,9 +34,9 @@ pub(crate) struct NativeBitmapAtlasPrepareReport {
     pub(crate) retry_submission: GlyphAtlasBitmapRetryFrameSubmissionReport,
     pub(crate) retry_state: GlyphAtlasBitmapRetryFrameStateReport,
     pub(crate) discarded_stale_retry_glyph_count: usize,
-    pub(crate) glyphon_fallback_reason: Option<NativeBitmapAtlasGlyphonFallbackReason>,
+    pub(crate) native_degradation_reason: Option<NativeBitmapAtlasDegradationReason>,
     pub(crate) first_frame_degradation: Option<NativeBitmapAtlasFirstFrameDegradation>,
-    pub(crate) replaces_glyphon: bool,
+    pub(crate) native_submission_ready: bool,
     pub(crate) submission: GlyphAtlasBitmapRenderSubmissionReport,
 }
 

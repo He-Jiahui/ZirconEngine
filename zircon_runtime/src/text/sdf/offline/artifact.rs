@@ -1,6 +1,6 @@
 use crate::core::math::UVec2;
 
-use super::{codec, SdfOfflineArtifactError, SdfOfflineArtifactIdentity};
+use super::{SdfOfflineArtifactError, SdfOfflineArtifactIdentity, codec};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct SdfOfflineRect {

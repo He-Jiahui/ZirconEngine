@@ -2,9 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use super::super::super::super::data::{
-    paint_pane_interaction_state, paint_text_input_focus, paint_viewport_image,
-    paint_workbench_hit_index, FrameRect, HostWindowLayoutData, HostWindowPresentationData,
-    TemplatePaneNodeData,
+    paint_pane_interaction_state, paint_text_input_focus, paint_viewport_images,
+    paint_workbench_hit_index, FrameRect, HostTextInputFocusData, HostWindowLayoutData,
+    HostWindowPresentationData, TemplatePaneNodeData,
 };
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_template_nodes::{
@@ -14,6 +14,7 @@ use super::super::super::super::paint_template_nodes::{
 use super::super::super::super::surface_hit_test::HostWorkbenchHitIndex;
 use super::super::super::root_frames::{resolve_root_frames, zero_origin};
 use super::super::{chrome, dock_layer, resize};
+use super::dock_overflow::draw_host_dock_overflow_menu;
 use super::modal;
 use super::page_overflow::draw_host_page_overflow_menu;
 use super::root_template::{draw_root_template_overlay, frame_bounds};
@@ -27,18 +28,25 @@ struct ComponentizedChromeFallbackTransform {
 
 impl ComponentizedChromeFallbackTransform {
     fn from_presentation(presentation: &HostWindowPresentationData) -> Self {
-        let viewport_image = paint_viewport_image(presentation);
+        let viewport_images = paint_viewport_images(presentation);
+        let active_pane_kind = presentation
+            .host_scene_data
+            .document_dock
+            .pane
+            .kind
+            .as_str();
         Self {
-            suppress_viewport_fallback: viewport_image
-                .as_ref()
+            suppress_viewport_fallback: viewport_images
+                .for_pane(active_pane_kind)
                 .is_some_and(|image| image.is_valid()),
         }
     }
 }
 
 impl TemplateNodePaintTransform for ComponentizedChromeFallbackTransform {
-    fn transform(
+    fn transform_row(
         &self,
+        _row: usize,
         node: TemplatePaneNodeData,
         clip: FrameRect,
     ) -> Option<(TemplatePaneNodeData, FrameRect)> {
@@ -61,7 +69,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_componentized_workbench_
     presentation: &HostWindowPresentationData,
 ) {
     let pane_interaction_state = paint_pane_interaction_state(presentation);
-    frame.set_pane_interaction_state(&pane_interaction_state);
+    frame.set_pane_interaction_state(pane_interaction_state);
     let frame_bounds = frame_bounds(frame);
     let root = resolve_root_frames(frame.width(), frame.height(), presentation);
     chrome::draw_top_chrome_layers(frame, &root, presentation);
@@ -73,6 +81,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_componentized_workbench_
     draw_componentized_extension_workspace(frame, presentation, &frame_bounds);
     resize::draw_resize_layer(frame, presentation);
     dock_layer::draw_floating_layer(frame, presentation);
+    draw_host_dock_overflow_menu(frame, presentation);
     draw_host_page_overflow_menu(frame, presentation);
     modal::draw_menu_and_prompt_layers(frame, presentation);
     draw_root_template_overlay(frame, presentation);
@@ -170,17 +179,24 @@ impl ExtensionWorkspaceSubtree {
 }
 
 impl TemplateNodePaintTransform for ExtensionWorkspaceSubtree {
-    fn row_visit_indices(&self, _row_count: usize, clip: &FrameRect) -> Option<Vec<usize>> {
-        Some(
-            self.indexed_root
-                .as_ref()
-                .map(|(index, root_row)| index.paint_rows_for_subtree(*root_row, clip))
-                .unwrap_or_else(|| self.included_rows.clone()),
-        )
+    fn stream_row_visit_indices(
+        &self,
+        _row_count: usize,
+        clip: &FrameRect,
+        visit: &mut dyn FnMut(usize),
+    ) -> bool {
+        if let Some((index, root_row)) = self.indexed_root.as_ref() {
+            return index.visit_paint_rows_for_subtree(*root_row, clip, visit);
+        }
+        for row in &self.included_rows {
+            visit(*row);
+        }
+        true
     }
 
-    fn transform(
+    fn transform_row(
         &self,
+        _row: usize,
         node: TemplatePaneNodeData,
         clip: FrameRect,
     ) -> Option<(TemplatePaneNodeData, FrameRect)> {
@@ -317,26 +333,64 @@ fn draw_componentized_workbench_chrome(
         return;
     };
 
-    draw_componentized_workbench_chrome_clip(frame, presentation, &top_chrome);
-    draw_componentized_workbench_chrome_clip(frame, presentation, &status_bar);
+    let route = componentized_chrome_damage_route(frame, &top_chrome, &status_bar);
+    if !route.top_chrome && !route.status_bar {
+        return;
+    }
+    let text_input_focus = paint_text_input_focus(presentation);
+    if route.top_chrome {
+        draw_componentized_workbench_chrome_clip(
+            frame,
+            presentation,
+            &top_chrome,
+            &text_input_focus,
+        );
+    }
+    if route.status_bar {
+        draw_componentized_workbench_chrome_clip(
+            frame,
+            presentation,
+            &status_bar,
+            &text_input_focus,
+        );
+    }
+}
+
+#[derive(Clone, Copy)]
+struct ComponentizedChromeDamageRoute {
+    top_chrome: bool,
+    status_bar: bool,
+}
+
+fn componentized_chrome_damage_route(
+    frame: &HostRgbaFrame,
+    top_chrome: &FrameRect,
+    status_bar: &FrameRect,
+) -> ComponentizedChromeDamageRoute {
+    let intersects_damage = |clip: &FrameRect| {
+        visible_rect(clip)
+            && frame
+                .paint_clip()
+                .is_none_or(|damage| intersect_rect(clip, damage).is_some())
+    };
+    ComponentizedChromeDamageRoute {
+        top_chrome: intersects_damage(top_chrome),
+        status_bar: intersects_damage(status_bar),
+    }
 }
 
 fn draw_componentized_workbench_chrome_clip(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
     clip: &FrameRect,
+    text_input_focus: &HostTextInputFocusData,
 ) {
-    if !visible_rect(clip) {
-        return;
-    }
-    let text_input_focus = paint_text_input_focus(presentation);
-
     draw_template_nodes(
         frame,
         &presentation.workbench_window_nodes,
         &zero_origin(),
         clip,
-        Some(&text_input_focus),
+        Some(text_input_focus),
     );
 }
 

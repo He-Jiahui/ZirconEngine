@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use crate::ui::retained_host as host_contract;
 use crate::ui::template_runtime::RetainedUiHostNodeModel;
 
@@ -45,11 +43,8 @@ fn inherited_status_right_parent<'a>(
     }
 
     let mut parent_id = node.parent_id.as_deref();
-    let mut visited_parent_ids = HashSet::new();
-    while let Some(current_parent_id) = parent_id {
-        if !visited_parent_ids.insert(current_parent_id) {
-            return None;
-        }
+    for _ in 0..node_index.node_count() {
+        let current_parent_id = parent_id?;
         let parent = node_index.node(current_parent_id)?;
         if parent.control_id.as_deref() == Some("WorkbenchWindowStatusBar") {
             return Some(parent);

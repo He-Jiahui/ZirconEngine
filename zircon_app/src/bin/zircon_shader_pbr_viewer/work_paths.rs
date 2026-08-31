@@ -13,6 +13,7 @@ pub(crate) struct ViewerWorkPaths {
     project_root: PathBuf,
     ibl_cache_root: PathBuf,
     renderdoc_capture_template: PathBuf,
+    terminal_outcome_path: PathBuf,
 }
 
 impl ViewerWorkPaths {
@@ -25,6 +26,7 @@ impl ViewerWorkPaths {
                 .map(Path::to_path_buf)
                 .unwrap_or_else(|| work_dir.join(VIEWER_IBL_CACHE_DIRECTORY)),
             renderdoc_capture_template: work_dir.join("renderdoc").join("zircon_shader_pbr_viewer"),
+            terminal_outcome_path: work_dir.join("zircon_shader_pbr_viewer_terminal_outcome.json"),
         }
     }
 
@@ -38,6 +40,10 @@ impl ViewerWorkPaths {
 
     pub(crate) fn renderdoc_capture_template(&self) -> &Path {
         &self.renderdoc_capture_template
+    }
+
+    pub(crate) fn terminal_outcome_path(&self) -> &Path {
+        &self.terminal_outcome_path
     }
 }
 
@@ -82,6 +88,10 @@ mod tests {
         assert_eq!(
             paths.renderdoc_capture_template(),
             Path::new("E:/viewer-work/renderdoc/zircon_shader_pbr_viewer")
+        );
+        assert_eq!(
+            paths.terminal_outcome_path(),
+            Path::new("E:/viewer-work/zircon_shader_pbr_viewer_terminal_outcome.json")
         );
     }
 

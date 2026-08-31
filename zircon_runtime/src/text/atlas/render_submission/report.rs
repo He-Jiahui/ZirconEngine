@@ -1,3 +1,4 @@
+use super::super::page_shadow::GlyphAtlasBitmapPageShadowReport;
 use super::super::{GlyphAtlasBitmapAllocationFailureReason, GlyphAtlasUploadMode};
 use super::plan::GlyphAtlasBitmapRenderSubmissionPlan;
 
@@ -6,6 +7,7 @@ pub(crate) struct GlyphAtlasBitmapRenderSubmissionReport {
     pub(crate) source_count: usize,
     pub(crate) resident_page_count: usize,
     pub(crate) resident_page_byte_len: usize,
+    pub(crate) bitmap_page_shadow: GlyphAtlasBitmapPageShadowReport,
     pub(crate) allocated_glyph_count: usize,
     pub(crate) visible_glyph_count: usize,
     pub(crate) skipped_glyph_count: usize,
@@ -79,6 +81,7 @@ pub(crate) fn glyph_atlas_bitmap_render_submission_report(
         source_count: plan.run.glyphs.len() + plan.run.allocation_failures.len(),
         resident_page_count: plan.run.atlas.page_count(),
         resident_page_byte_len: plan.run.atlas.resident_page_byte_len(),
+        bitmap_page_shadow: plan.run.atlas.bitmap_page_shadow_report(),
         allocated_glyph_count: plan.run.glyphs.len(),
         visible_glyph_count: plan.draw_batches.visible_glyph_count,
         skipped_glyph_count: plan.draw_batches.skipped_glyph_count,

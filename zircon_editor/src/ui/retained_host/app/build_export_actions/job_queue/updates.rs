@@ -8,7 +8,7 @@ impl DesktopExportJobQueue {
     pub(in crate::ui::retained_host::app) fn poll_updates(
         &mut self,
     ) -> (Vec<DesktopExportExecutionSummary>, bool) {
-        let mut summaries = self.completed.drain(..).collect::<Vec<_>>();
+        let mut summaries = take_completed(&mut self.completed);
         let mut changed = false;
         if let Some(active) = self.active.as_mut() {
             changed |=
@@ -34,6 +34,10 @@ impl DesktopExportJobQueue {
         changed |= !summaries.is_empty();
         (summaries, changed)
     }
+}
+
+fn take_completed<T>(completed: &mut std::collections::VecDeque<T>) -> Vec<T> {
+    std::mem::take(completed).into()
 }
 
 fn drain_progress_for_active(
@@ -112,3 +116,7 @@ mod tests {
         assert_eq!(progress.map(|snapshot| snapshot.percent), Some(100));
     }
 }
+
+#[cfg(test)]
+#[path = "updates/completed_take_tests.rs"]
+mod completed_take_tests;

@@ -3,6 +3,7 @@ mod data_binding;
 mod descriptor;
 mod drag;
 mod event;
+mod secure_text;
 mod state;
 mod validation;
 mod value;
@@ -27,6 +28,7 @@ pub use drag::{
 pub use event::{
     UiComponentEvent, UiComponentEventError, UiComponentEventKind, UiComponentKeyboardAction,
 };
+pub use secure_text::UiSecureTextValueRef;
 pub use state::{UiComponentFlags, UiComponentState};
 pub use validation::{UiValidationLevel, UiValidationState};
 pub use value::{UiValue, UiValueKind};

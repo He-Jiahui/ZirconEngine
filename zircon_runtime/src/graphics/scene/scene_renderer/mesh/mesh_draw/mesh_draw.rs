@@ -4,20 +4,22 @@ use crate::core::framework::render::{
     CastShadowsMode, PrimitiveRelevance, RenderMeshLodSelection, RenderMeshStaticState,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
+use crate::core::resource::ResourceId;
 use crate::graphics::scene::resources::{
     GpuMaterialUniformResource, GpuMeshResource, MaterialDisabledPasses, PipelineKey,
 };
 
+use super::MeshCommandSortInput;
 use super::geometry_source::MeshDrawGeometrySource;
 use super::material_texture_set::MaterialTextureSet;
 use super::virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;
-use super::MeshCommandSortInput;
 
 pub(crate) struct MeshDraw {
     pub(super) mesh: Arc<GpuMeshResource>,
     pub(super) geometry_source: MeshDrawGeometrySource,
     pub(super) mobility: Mobility,
     pub(super) source_entity: EntityId,
+    pub(super) material_id: ResourceId,
     pub(super) stable_instance_key: u64,
     pub(super) source_draw_ordinal: u32,
     pub(super) static_state: RenderMeshStaticState,
@@ -37,7 +39,6 @@ pub(crate) struct MeshDraw {
     pub(super) disabled_passes: MaterialDisabledPasses,
     pub(super) taa_reactive_mask_strength: f32,
     pub(super) half_resolution_transparency: bool,
-    pub(super) gpu_scene_bind_group: Option<wgpu::BindGroup>,
     pub(super) gpu_scene_instance_span: Option<(u32, u32)>,
     pub(super) primitive_relevance: Option<PrimitiveRelevance>,
     pub(super) main_view_visible: bool,
@@ -45,8 +46,8 @@ pub(crate) struct MeshDraw {
     pub(super) has_previous_velocity_transform: bool,
     pub(super) mesh_lod: Option<RenderMeshLodSelection>,
     pub(super) skinned: bool,
-    pub(super) skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
-    pub(super) previous_skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(super) has_skinned_joint_palette_upload: bool,
+    pub(super) has_previous_skinned_joint_palette_upload: bool,
     pub(super) previous_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
     pub(super) command_sort_input: MeshCommandSortInput,
     // Retains the source mesh that allowed this draw to enter the shader-skinning
@@ -63,6 +64,7 @@ impl MeshDraw {
         geometry_source: MeshDrawGeometrySource,
         mobility: Mobility,
         source_entity: EntityId,
+        material_id: ResourceId,
         stable_instance_key: u64,
         source_draw_ordinal: u32,
         static_state: RenderMeshStaticState,
@@ -81,12 +83,11 @@ impl MeshDraw {
         disabled_passes: MaterialDisabledPasses,
         taa_reactive_mask_strength: f32,
         half_resolution_transparency: bool,
-        gpu_scene_bind_group: Option<wgpu::BindGroup>,
         has_previous_velocity_transform: bool,
         mesh_lod: Option<RenderMeshLodSelection>,
         skinned: bool,
-        skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
-        previous_skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
+        has_skinned_joint_palette_upload: bool,
+        has_previous_skinned_joint_palette_upload: bool,
         previous_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
         skinned_gpu_source: Option<Arc<GpuMeshResource>>,
         skinned_gpu_source_uses_cpu_morphed_source: bool,
@@ -97,6 +98,7 @@ impl MeshDraw {
             geometry_source,
             mobility,
             source_entity,
+            material_id,
             stable_instance_key,
             source_draw_ordinal,
             static_state,
@@ -117,7 +119,6 @@ impl MeshDraw {
             disabled_passes,
             taa_reactive_mask_strength,
             half_resolution_transparency,
-            gpu_scene_bind_group,
             gpu_scene_instance_span: None,
             primitive_relevance: None,
             main_view_visible: true,
@@ -125,8 +126,8 @@ impl MeshDraw {
             has_previous_velocity_transform,
             mesh_lod,
             skinned,
-            skinned_joint_palette_buffer,
-            previous_skinned_joint_palette_buffer,
+            has_skinned_joint_palette_upload,
+            has_previous_skinned_joint_palette_upload,
             previous_skinned_gpu_source,
             command_sort_input: MeshCommandSortInput::new(0.0, source_entity),
             skinned_gpu_source,
@@ -141,6 +142,10 @@ impl MeshDraw {
 
     pub(crate) fn source_entity(&self) -> EntityId {
         self.source_entity
+    }
+
+    pub(crate) fn material_id(&self) -> ResourceId {
+        self.material_id
     }
 
     pub(crate) fn stable_instance_key(&self) -> u64 {

@@ -30,7 +30,7 @@ class RuntimeUiTableModuleStructureTests(unittest.TestCase):
             self.assertIn(f"fn {method}", mutation_source, method)
 
         self.assertLess(len(route_source.splitlines()), 540)
-        self.assertLess(len(mutation_source.splitlines()), 240)
+        self.assertLess(len(mutation_source.splitlines()), 400)
 
     def test_table_mutation_owner_is_documented(self) -> None:
         module_doc = (

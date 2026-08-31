@@ -1,8 +1,10 @@
 //! Plugin discovery inputs and errors owned by the catalog publication boundary.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use super::super::admission::EditorPluginCatalogAdmissionError;
+use super::super::catalog::EditorPluginCatalog;
 use super::super::phases::EditorPluginLoadingPhase;
 use super::super::sdk::lifecycle::EditorPluginLifecycleStage;
 
@@ -139,4 +141,33 @@ impl From<EditorPluginCatalogAdmissionError> for EditorPluginDiscoveryError {
     fn from(value: EditorPluginCatalogAdmissionError) -> Self {
         Self::CatalogAdmission(value)
     }
+}
+
+/// Validates that one discovery row exists at most once for each catalog package.
+pub(super) fn discovery_index(
+    catalog: &EditorPluginCatalog,
+    discoveries: impl IntoIterator<Item = EditorPluginDiscovery>,
+) -> Result<BTreeMap<String, EditorPluginDiscovery>, EditorPluginDiscoveryError> {
+    let package_ids = catalog
+        .package_manifests()
+        .iter()
+        .map(|package| package.id.clone())
+        .collect::<BTreeSet<_>>();
+    let mut result = BTreeMap::new();
+    for discovery in discoveries {
+        if !package_ids.contains(discovery.package_id()) {
+            return Err(EditorPluginDiscoveryError::UnknownPackage {
+                package_id: discovery.package_id().to_string(),
+            });
+        }
+        if result
+            .insert(discovery.package_id().to_string(), discovery.clone())
+            .is_some()
+        {
+            return Err(EditorPluginDiscoveryError::DuplicateDiscovery {
+                package_id: discovery.package_id().to_string(),
+            });
+        }
+    }
+    Ok(result)
 }

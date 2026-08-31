@@ -9,7 +9,7 @@ fn text_input_commit_timing_defers_validation_until_commit() {
     let text_field = registry
         .descriptor("TextField")
         .expect("TextField descriptor");
-    assert!(text_field.supports_event(UiComponentEventKind::KeyboardText));
+    assert!(text_field.supports_event(UiComponentEventKind::ValueChanged));
     assert!(text_field.supports_event(UiComponentEventKind::Commit));
 
     let mut state = UiComponentState::new()
@@ -20,8 +20,9 @@ fn text_input_commit_timing_defers_validation_until_commit() {
     state
         .apply_event(
             text_field,
-            UiComponentEvent::KeyboardText {
-                text: "a".to_string(),
+            UiComponentEvent::ValueChanged {
+                property: "value_text".to_string(),
+                value: UiValue::String("a".to_string()),
             },
         )
         .unwrap();
@@ -46,11 +47,13 @@ fn text_input_commit_timing_defers_validation_until_commit() {
         )
         .unwrap();
     assert_eq!(state.validation.level, UiValidationLevel::Error);
-    assert!(state
-        .validation
-        .message
-        .as_deref()
-        .is_some_and(|message| message.contains("at least 3")));
+    assert!(
+        state
+            .validation
+            .message
+            .as_deref()
+            .is_some_and(|message| message.contains("at least 3"))
+    );
     assert_eq!(
         state.value("validation_level"),
         Some(&UiValue::Enum("error".to_string()))
@@ -64,8 +67,9 @@ fn text_input_commit_timing_defers_validation_until_commit() {
     state
         .apply_event(
             text_field,
-            UiComponentEvent::KeyboardText {
-                text: "bc".to_string(),
+            UiComponentEvent::ValueChanged {
+                property: "value_text".to_string(),
+                value: UiValue::String("abc".to_string()),
             },
         )
         .unwrap();
@@ -188,11 +192,13 @@ fn text_input_change_timing_validates_max_length_live() {
         )
         .unwrap();
     assert_eq!(state.validation.level, UiValidationLevel::Error);
-    assert!(state
-        .validation
-        .message
-        .as_deref()
-        .is_some_and(|message| message.contains("at most 4")));
+    assert!(
+        state
+            .validation
+            .message
+            .as_deref()
+            .is_some_and(|message| message.contains("at most 4"))
+    );
     assert_eq!(
         state.value("validation_level"),
         Some(&UiValue::Enum("error".to_string()))

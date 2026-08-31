@@ -103,20 +103,16 @@ impl EditorPluginDeclaration {
 
     pub fn mirrors_runtime_manifest(mut self, runtime_manifest: PluginPackageManifest) -> Self {
         let editor_capabilities = self.descriptor.capabilities.clone();
-        let asset_roots = self.base_manifest.asset_roots.clone();
-        let content_roots = self.base_manifest.content_roots.clone();
+        let asset_roots = std::mem::take(&mut self.base_manifest.asset_roots);
+        let content_roots = std::mem::take(&mut self.base_manifest.content_roots);
         let mut base_manifest = runtime_manifest;
         self.descriptor.package_id = base_manifest.id.clone();
         self.mirrored_runtime_package_id = Some(base_manifest.id.clone());
         for capability in editor_capabilities {
             push_unique(&mut base_manifest.capabilities, capability);
         }
-        for asset_root in asset_roots {
-            push_unique(&mut base_manifest.asset_roots, asset_root);
-        }
-        for content_root in content_roots {
-            push_unique(&mut base_manifest.content_roots, content_root);
-        }
+        merge_unique(&mut base_manifest.asset_roots, asset_roots);
+        merge_unique(&mut base_manifest.content_roots, content_roots);
         self.base_manifest = base_manifest;
         self
     }
@@ -165,6 +161,16 @@ impl EditorPluginDeclaration {
 fn push_unique(values: &mut Vec<String>, value: String) {
     if !values.iter().any(|existing| existing == &value) {
         values.push(value);
+    }
+}
+
+fn merge_unique(values: &mut Vec<String>, incoming: Vec<String>) {
+    if values.is_empty() {
+        *values = incoming;
+        return;
+    }
+    for value in incoming {
+        push_unique(values, value);
     }
 }
 
@@ -412,5 +418,32 @@ mod tests {
             editor_module.capabilities,
             ["editor.extension.sdk_test".to_string()]
         );
+    }
+
+    #[test]
+    fn mirrored_manifest_moves_editor_root_buffers() {
+        let declaration = EditorPluginDeclaration::new(
+            "editor.mirror",
+            "Editor Mirror",
+            "zircon_plugin_editor_mirror",
+        )
+        .with_asset_root("editor_assets")
+        .with_content_root("editor_content");
+        let asset_root_buffer = declaration.base_manifest.asset_roots.as_ptr();
+        let content_root_buffer = declaration.base_manifest.content_roots.as_ptr();
+
+        let mirrored = declaration
+            .mirrors_runtime_manifest(PluginPackageManifest::new("runtime.mirror", "Runtime"));
+
+        assert_eq!(
+            mirrored.base_manifest.asset_roots.as_ptr(),
+            asset_root_buffer
+        );
+        assert_eq!(
+            mirrored.base_manifest.content_roots.as_ptr(),
+            content_root_buffer
+        );
+        assert_eq!(mirrored.base_manifest.asset_roots, ["editor_assets"]);
+        assert_eq!(mirrored.base_manifest.content_roots, ["editor_content"]);
     }
 }

@@ -39,20 +39,33 @@ const FORBIDDEN_SOURCE_NEEDLES: &[&str] = &[
 const CANONICAL_TEXT_SPOOL_OS_NEEDLES: &[&str] = &["std::fs", "std::process", "std::sync"];
 const CANONICAL_TEXT_SPOOL_PATH: &str = "src/serialization/text/canonical_spool.rs";
 
-const EXPECTED_RUNTIME_API_MODULES: &[&str] = &[
-    "api_table",
-    "constants",
-    "events",
-    "frame_demand",
-    "host_requests",
-    "operation",
-    "plugin_event_mirror",
-    "requests",
-    "session",
-    "viewport",
+const EXPECTED_RUNTIME_API_DOMAINS: &[&str] = &["abi", "constants", "frame", "host", "session"];
+const EXPECTED_RUNTIME_API_OWNER_PATHS: &[&str] = &[
+    "abi/api_shape.rs",
+    "abi/api_table.rs",
+    "abi/host_api_shape.rs",
+    "constants.rs",
+    "frame/frame_demand.rs",
+    "frame/frame_shape.rs",
+    "frame/highlight_set.rs",
+    "host/host_requests.rs",
+    "session/events.rs",
+    "session/operation.rs",
+    "session/plugin_event_mirror.rs",
+    "session/requests.rs",
+    "session/session.rs",
+    "session/session_identity.rs",
+    "session/viewport.rs",
 ];
-const RUNTIME_API_FACADE_LINE_BUDGET: usize = 20;
+const RUNTIME_API_FACADE_LINE_BUDGET: usize = 220;
+const RUNTIME_API_FACADE_REEXPORT_BUDGET: usize = 6;
 const RUNTIME_API_CHILD_LINE_BUDGET: usize = 700;
+const RUNTIME_API_DOMAIN_FACADE_PATHS: &[&str] = &[
+    "abi/mod.rs",
+    "frame/mod.rs",
+    "host/mod.rs",
+    "session/mod.rs",
+];
 
 #[test]
 fn manifest_dependencies_stay_contract_only() {
@@ -146,7 +159,16 @@ fn canonical_text_spool_os_exception_stays_exact() {
 
 #[test]
 fn runtime_api_surface_stays_folder_backed_by_abi_owner() {
-    let root_path = manifest_dir().join("src").join("runtime_api.rs");
+    let legacy_root_path = manifest_dir().join("src").join("runtime_api.rs");
+    assert!(
+        !legacy_root_path.exists(),
+        "runtime_api.rs was superseded by runtime_api/mod.rs and must not be restored"
+    );
+
+    let root_path = manifest_dir()
+        .join("src")
+        .join("runtime_api")
+        .join("mod.rs");
     let root_text = std::fs::read_to_string(&root_path).expect("read runtime_api facade");
     let facade_lines = root_text
         .lines()
@@ -155,7 +177,15 @@ fn runtime_api_surface_stays_folder_backed_by_abi_owner() {
 
     assert!(
         facade_lines <= RUNTIME_API_FACADE_LINE_BUDGET,
-        "runtime_api.rs must stay a small facade over owner modules; found {facade_lines} non-empty lines"
+        "runtime_api/mod.rs must stay a small facade over owner modules; found {facade_lines} non-empty lines"
+    );
+    let facade_reexport_statements = root_text
+        .lines()
+        .filter(|line| line.trim_start().starts_with("pub use "))
+        .count();
+    assert!(
+        facade_reexport_statements <= RUNTIME_API_FACADE_REEXPORT_BUDGET,
+        "runtime_api/mod.rs must group its curated re-exports by domain; found {facade_reexport_statements} statements"
     );
     for forbidden in [
         "#[repr(",
@@ -166,43 +196,42 @@ fn runtime_api_surface_stays_folder_backed_by_abi_owner() {
     ] {
         assert!(
             !root_text.contains(forbidden),
-            "runtime_api.rs must not own ABI declarations directly; found `{forbidden}`"
+            "runtime_api/mod.rs must not own ABI declarations directly; found `{forbidden}`"
         );
     }
 
     let module_root = manifest_dir().join("src").join("runtime_api");
-    let expected_files: BTreeSet<_> = EXPECTED_RUNTIME_API_MODULES
+    let expected_files: BTreeSet<_> = EXPECTED_RUNTIME_API_OWNER_PATHS
         .iter()
-        .map(|module| format!("{module}.rs"))
+        .map(|path| (*path).to_string())
         .collect();
-    let actual_files: BTreeSet<_> = std::fs::read_dir(&module_root)
-        .expect("read runtime_api module directory")
-        .map(|entry| {
-            entry
-                .expect("read runtime_api module entry")
-                .file_name()
-                .to_string_lossy()
-                .into_owned()
-        })
-        .filter(|file_name| file_name.ends_with(".rs"))
-        .collect();
+    let actual_files = runtime_api_owner_sources(&module_root);
 
     assert_eq!(
         actual_files, expected_files,
-        "runtime_api module owners changed; update the boundary review when adding/removing ABI owner files"
+        "runtime_api owner paths changed; update the boundary review when adding/removing ABI owner files"
     );
 
-    for module in EXPECTED_RUNTIME_API_MODULES {
+    for domain in EXPECTED_RUNTIME_API_DOMAINS {
         assert!(
-            root_text.contains(&format!("mod {module};")),
-            "runtime_api.rs must declare `{module}` as an owner module"
+            root_text.contains(&format!("mod {domain};")),
+            "runtime_api/mod.rs must declare `{domain}` as an ABI owner domain"
         );
         assert!(
-            root_text.contains(&format!("pub use {module}::*;")),
-            "runtime_api.rs must re-export `{module}` through runtime_api::*"
+            root_text.contains(&format!("pub use {domain}::{{")),
+            "runtime_api/mod.rs must explicitly re-export `{domain}` through runtime_api::*"
         );
+    }
 
-        let module_path = module_root.join(format!("{module}.rs"));
+    assert!(
+        !root_text
+            .lines()
+            .any(|line| line.trim_start().starts_with("pub use ") && line.contains("::*;")),
+        "runtime_api/mod.rs must not use glob re-exports"
+    );
+
+    for owner_path in EXPECTED_RUNTIME_API_OWNER_PATHS {
+        let module_path = module_root.join(owner_path);
         let module_text = std::fs::read_to_string(&module_path).expect("read runtime_api owner");
         let module_lines = module_text.lines().count();
         assert!(
@@ -210,6 +239,61 @@ fn runtime_api_surface_stays_folder_backed_by_abi_owner() {
             "{} must be split before it becomes another support hot spot; found {module_lines} lines",
             relative_to_manifest(&module_path).display()
         );
+    }
+
+    for facade_path in RUNTIME_API_DOMAIN_FACADE_PATHS {
+        let facade_path = module_root.join(facade_path);
+        let facade_text =
+            std::fs::read_to_string(&facade_path).expect("read runtime_api domain facade");
+        assert!(
+            !facade_text
+                .lines()
+                .any(|line| { line.trim_start().starts_with("pub use ") && line.contains("::*;") }),
+            "{} must explicitly re-export its ABI owner surface",
+            relative_to_manifest(&facade_path).display()
+        );
+    }
+}
+
+fn runtime_api_owner_sources(module_root: &Path) -> BTreeSet<String> {
+    let mut owner_paths = BTreeSet::new();
+    collect_runtime_api_owner_sources(module_root, module_root, &mut owner_paths);
+    owner_paths
+}
+
+fn collect_runtime_api_owner_sources(
+    module_root: &Path,
+    path: &Path,
+    owner_paths: &mut BTreeSet<String>,
+) {
+    for entry in std::fs::read_dir(path).expect("read runtime_api owner directory") {
+        let entry = entry.expect("read runtime_api owner entry");
+        let path = entry.path();
+        if path.is_dir() {
+            if path
+                .file_name()
+                .is_some_and(|name| name == OsStr::new("tests"))
+            {
+                continue;
+            }
+            collect_runtime_api_owner_sources(module_root, &path, owner_paths);
+        } else if path
+            .extension()
+            .is_some_and(|extension| extension == OsStr::new("rs"))
+            && path
+                .file_name()
+                .is_some_and(|name| name != OsStr::new("mod.rs"))
+            && !path
+                .file_stem()
+                .is_some_and(|stem| stem.to_string_lossy().ends_with("_tests"))
+        {
+            owner_paths.insert(
+                path.strip_prefix(module_root)
+                    .expect("runtime_api owner stays below its module root")
+                    .to_string_lossy()
+                    .replace('\\', "/"),
+            );
+        }
     }
 }
 

@@ -288,30 +288,27 @@ fn report_body_entries(
         });
     }
 
-    if let Some(pipeline_report) = pipeline_report_body_entry(rows) {
-        entries.push(pipeline_report);
+    if let Some(report) = rows.iter().find(|row| row.stage == ExportStage::Report) {
+        if let Some(pipeline_report) = pipeline_report_body_entry(report) {
+            entries.push(pipeline_report);
+        }
+        let parsed_report = parsed_report_from_stdout(&report.stdout_lines);
+        entries.extend(report_export_plan_body_entries(
+            report,
+            parsed_report.as_ref(),
+        ));
+        entries.extend(report_native_plugins_payload_body_entries(
+            report,
+            parsed_report.as_ref(),
+        ));
     }
-
-    let parsed_report = rows
-        .iter()
-        .find(|row| row.stage == ExportStage::Report)
-        .and_then(|report| parsed_report_from_stdout(&report.stdout_lines));
-    entries.extend(report_export_plan_body_entries(
-        rows,
-        parsed_report.as_ref(),
-    ));
-    entries.extend(report_native_plugins_payload_body_entries(
-        rows,
-        parsed_report.as_ref(),
-    ));
 
     entries
 }
 
 fn pipeline_report_body_entry(
-    rows: &[ExportWizardStageViewRow],
+    report: &ExportWizardStageViewRow,
 ) -> Option<ExportWizardPanelSlotEntry> {
-    let report = rows.iter().find(|row| row.stage == ExportStage::Report)?;
     let path = artifact_path_for_key(report, "pipeline_report")?;
     Some(ExportWizardPanelSlotEntry {
         key: "report.pipeline_report".to_string(),
@@ -323,12 +320,9 @@ fn pipeline_report_body_entry(
 }
 
 fn report_export_plan_body_entries(
-    rows: &[ExportWizardStageViewRow],
+    report: &ExportWizardStageViewRow,
     parsed_report: Option<&Value>,
 ) -> Vec<ExportWizardPanelSlotEntry> {
-    let Some(report) = rows.iter().find(|row| row.stage == ExportStage::Report) else {
-        return Vec::new();
-    };
     let Some(summary) = parsed_report.and_then(export_plan_summary_from_report) else {
         return Vec::new();
     };
@@ -364,12 +358,9 @@ fn report_export_plan_body_entries(
 }
 
 fn report_native_plugins_payload_body_entries(
-    rows: &[ExportWizardStageViewRow],
+    report: &ExportWizardStageViewRow,
     parsed_report: Option<&Value>,
 ) -> Vec<ExportWizardPanelSlotEntry> {
-    let Some(report) = rows.iter().find(|row| row.stage == ExportStage::Report) else {
-        return Vec::new();
-    };
     let Some(summary) = parsed_report.and_then(native_plugins_payload_summary_from_report) else {
         return Vec::new();
     };

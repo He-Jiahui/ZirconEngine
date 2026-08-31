@@ -47,10 +47,16 @@ impl SceneAsset {
     }
 
     pub fn direct_references(&self) -> Vec<AssetReference> {
-        self.entities
+        let capacity = self
+            .entities
             .iter()
-            .flat_map(SceneEntityAsset::direct_references)
-            .collect()
+            .map(SceneEntityAsset::direct_reference_count)
+            .fold(0usize, usize::saturating_add);
+        let mut references = Vec::with_capacity(capacity);
+        for entity in &self.entities {
+            entity.append_direct_references(&mut references);
+        }
+        references
     }
 
     pub fn entity_overviews(&self) -> Vec<SceneEntityOverview> {
@@ -120,3 +126,6 @@ impl SceneAsset {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod performance_tests;

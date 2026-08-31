@@ -98,16 +98,16 @@ fn runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wire
         ],
     );
     assert_contains_all(
-        "Plan 08 Deferred project-shader probe keeps full-pass project WGSL off material template path",
+        "Plan 08 Deferred project-shader probe publishes the typed Surface source contract",
         &resource_streamer_accessors,
         &[
             "shader_uses_material_surface_source",
-            "shader.runtime.kind.participates_in_material_variants()",
-            "shader.runtime.source.contains(\"fn zr_material_surface\")",
+            "shader.runtime.surface_source_contract",
+            "ShaderSurfaceSourceContract::MaterialFunction",
         ],
     );
     assert_contains_all(
-        "Plan 08 Deferred project-shader probe uses the narrow runtime material-surface predicate",
+        "Plan 08 Deferred project-shader probe retains raw WGSL only for executable shader kinds",
         &mesh_shader_source,
         &[
             "shader_source_uses_runtime_material_surface",
@@ -116,14 +116,14 @@ fn runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wire
         ],
     );
     assert_contains_all(
-        "Plan 08 Deferred project-shader probe low-level regression covers full-pass Surface assets",
+        "Plan 08 Deferred project-shader probe rejects full-pass Surface assets before source selection",
         &mesh_shader_source_runtime_tests,
         &[
-            "runtime_surface_shader_with_full_pass_entry_points_uses_raw_wgsl_source",
+            "runtime_surface_shader_with_full_pass_entry_points_is_rejected_before_source_selection",
             "FULL_PASS_WGSL",
-            "assert!(!streamer.shader_uses_material_surface_source(&key.shader_id))",
-            "assert_eq!(source.template_revision, MESH_SHADER_TEMPLATE_REVISION)",
-            "zircon-test-full-pass-project-raw-wgsl",
+            "expect_err(\"full-pass WGSL must not stream as a Surface material shader\")",
+            "invalid surface source contract",
+            "surface shader requires exactly one `fn zr_material_surface(` material function",
         ],
     );
 
@@ -196,7 +196,6 @@ fn runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wire
                 "light_grid_external_fallback_buffers_satisfy_materialization_report",
                 "deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path",
                 "average_channel_in_region",
-                "runtime_surface_shader_with_full_pass_entry_points_uses_raw_wgsl_source",
                 "shader_uses_material_surface_source",
                 "default-feature",
                 "5876 filtered",

@@ -11,8 +11,8 @@ pub(crate) use temporal_reprojection::GpuFroxelTemporalReprojection;
 pub(crate) use view_reconstruction::{FroxelViewReconstruction, GpuFroxelViewParams};
 
 pub(crate) use apply_binding::{
-    volumetric_apply_bind_group_layout_entries, VolumetricApplyFallbackResources,
     VOLUMETRIC_APPLY_PARAMS_BINDING, VOLUMETRIC_INTEGRATED_BINDING, VOLUMETRIC_SAMPLER_BINDING,
+    VolumetricApplyFallbackResources, volumetric_apply_bind_group_layout_entries,
 };
 pub(crate) use resolved_settings::{resolved_volumetric_fog_settings, volumetric_history_quality};
 
@@ -26,10 +26,13 @@ pub(crate) use integrate::{
     VOLUMETRIC_INTEGRATE_WORKGROUP_SIZE,
 };
 pub(crate) use light_scatter::{
-    volumetric_ambient_radiance, FroxelLightScatterPipeline, FroxelLightScatterRequest,
-    VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL, VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE,
+    FroxelLightScatterPipeline, FroxelLightScatterRequest, VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL,
+    VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE, volumetric_ambient_radiance,
 };
 pub(crate) use media_inject::{
     FroxelMediaInjectPipeline, FroxelMediaInjectRequest, VOLUMETRIC_MEDIA_INJECT_PIPELINE_LABEL,
     VOLUMETRIC_MEDIA_INJECT_WORKGROUP_SIZE,
 };
+
+#[cfg(test)]
+mod factory_coverage_tests;

@@ -1,4 +1,4 @@
-use super::super::super::data::FrameRect;
+use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::layers::bubble_order;
 use super::layout::frame_is_within;
@@ -6,6 +6,7 @@ use super::metrics::tooltip_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tooltip_surface(
     commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
     rect: &FrameRect,
     bubble: &FrameRect,
     clip: &FrameRect,
@@ -16,6 +17,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     opacity: f32,
 ) {
     let metrics = tooltip_metrics();
+    let radius = tooltip_surface_radius(node);
     let shadow_rect = FrameRect {
         x: bubble.x,
         y: bubble.y + metrics.shadow_offset_y,
@@ -30,7 +32,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
             Some(shadow),
             None,
             0.0,
-            metrics.radius,
+            radius,
             opacity,
         ));
     }
@@ -41,7 +43,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         Some(surface),
         Some(border),
         metrics.border_width,
-        metrics.radius,
+        radius,
         opacity,
     ));
+}
+
+pub(super) fn tooltip_surface_radius(node: &TemplatePaneNodeData) -> f32 {
+    if node.corner_radius.is_finite() && node.corner_radius > 0.0 {
+        node.corner_radius
+    } else {
+        tooltip_metrics().radius
+    }
 }

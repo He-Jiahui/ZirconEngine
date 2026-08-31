@@ -21,8 +21,10 @@ related_code:
   - zircon_runtime/src/scene/dynamic_scene/remap.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/capture.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/snapshot.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/spawn/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/validation.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/world_operations.rs
   - zircon_runtime/src/scene/dynamic_scene/scene_asset/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/scene_asset/dynamic_scene.rs
   - zircon_runtime/src/scene/dynamic_scene/scene_asset/error.rs
@@ -171,7 +173,10 @@ related_code:
   - zircon_runtime/src/scene/dynamic_scene/session/io/load_save/save.rs
   - zircon_runtime/src/scene/dynamic_scene/session/io/atomic.rs
   - zircon_runtime/src/scene/dynamic_scene/session/io/mutation.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/io/reader/contract.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/io/reader/service.rs
   - zircon_runtime/src/scene/dynamic_scene/session/io/support.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/io/writer.rs
   - zircon_runtime/src/scene/dynamic_scene/session/manifest/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/session/manifest/archive.rs
   - zircon_runtime/src/scene/dynamic_scene/session/manifest/order.rs
@@ -627,8 +632,10 @@ implementation_files:
   - zircon_runtime/src/scene/dynamic_scene/remap.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/capture.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/snapshot.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/spawn/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/validation.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/world_operations.rs
   - zircon_runtime/src/scene/dynamic_scene/scene_asset/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/scene_asset/dynamic_scene.rs
   - zircon_runtime/src/scene/dynamic_scene/scene_asset/error.rs
@@ -774,7 +781,10 @@ implementation_files:
   - zircon_runtime/src/scene/dynamic_scene/session/io/load_save/save.rs
   - zircon_runtime/src/scene/dynamic_scene/session/io/atomic.rs
   - zircon_runtime/src/scene/dynamic_scene/session/io/mutation.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/io/reader/contract.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/io/reader/service.rs
   - zircon_runtime/src/scene/dynamic_scene/session/io/support.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/io/writer.rs
   - zircon_runtime/src/scene/dynamic_scene/session/manifest/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/session/manifest/archive.rs
   - zircon_runtime/src/scene/dynamic_scene/session/manifest/order.rs
@@ -1286,11 +1296,14 @@ The design follows the shape of Bevy's `bevy_scene` APIs rather than replacing Z
 ## Public Types
 
 - `DynamicScene` is a versioned serializable snapshot. It owns required plugin `component_types`, `entities`, and `resources`, and exposes `from_world`, `preview_spawn_into`, and `spawn_into`.
+- `scene/mod.rs` is the structural snapshot façade; `scene/snapshot.rs` owns the serializable data and empty constructor, while `scene/world_operations.rs` owns the World capture, spawn, preflight, and validation method surface.
 - `PreparedDynamicSceneSpawn` is a validated scene payload that can be applied on the main world after off-thread loading and validation finish.
 - `DynamicSceneSpawnTask` is a runtime `JobScheduler` task wrapper for background dynamic scene preparation from an existing scene, JSON string, JSON file path, loaded `SceneAsset`, or project scene-asset URI.
 - `DynamicSceneAssetReloadQueue` consumes typed `AssetEvent<SceneAsset>` streams, schedules added/modified/renamed scene assets for dynamic-scene preparation, and returns ready prepared payloads for caller-thread application.
 - `DynamicSceneAssetReloadDrainReport` reports drained asset events, scheduled reload preparations, skipped events, and superseded pending preparations.
-- `DynamicSceneAssetReloadPendingReport` snapshots pending reload task descriptors and `AsyncTaskStatus` values for runtime progress UI or diagnostics.
+- `DynamicSceneAssetReloadPendingReport` snapshots pending reload
+  `TaskDescriptor` and canonical `TaskStatus` values for runtime progress UI or
+  diagnostics.
 - `DynamicSceneAssetReloadReadyReport` returns current prepared reload payloads plus stale completed results that lost the latest-revision race.
 - `DynamicSceneAssetReloadTickReport` combines one asset-event drain pass with one ready/stale collection pass for a runtime-host frame.
 - `DynamicSceneAssetReloadApplyReport` reports caller-thread application of ready reload payloads into an explicit target `World` or `LevelSystem`, including applied remaps, apply failures, stale completions, and final pending count.
@@ -1298,12 +1311,14 @@ The design follows the shape of Bevy's `bevy_scene` APIs rather than replacing Z
 - `DynamicSceneAssetReloadSupersededTask` records an older pending reload task discarded after a newer asset revision arrived.
 - `entity/mod.rs` keeps the dynamic-scene entity declaration facade structural while `entity/dynamic_component.rs`, `entity/dynamic_entity.rs`, and `entity/dynamic_resource.rs` own the three serializable declaration types separately.
 - `DynamicEntity` stores the source entity id, its fixed `NodeRecord`, and reflected components found through the `TypeRegistry`.
-- `DynamicComponent` stores a component type path, whether it is plugin-owned, and its serializable reflected fields.
-- `DynamicResource` stores a resource type path and its serializable reflected fields.
+- `DynamicComponent` stores a component type path, whether it is plugin-owned, and its serializable reflected fields. Each field carries a stable `ReflectFieldId`; its current schema name is diagnostic metadata only.
+- `DynamicResource` stores a resource type path and the same stable-ID reflected field values.
 - `EntityRemap` records old scene ids to target world ids. It preserves ids when available and allocates the next free id when the target world already contains a source id.
 - `ScenePatch` wraps a `DynamicScene`, can preview an apply through `ScenePatchPreviewReport`, and applies it to a target `World`.
 - `ScenePatchPreviewReport` reports dynamic-scene component type, component type install preview, component instance, entity, resource, target-entity, preserved-entity, and remapped-entity counts before a patch mutates the target world. It carries `ScenePatchPreviewComponentType` rows with type id, plugin id, display name, and target-registration status, `ScenePatchPreviewResource` rows with resource preflight details, plus ordered `ScenePatchPreviewEntityRemap` rows so hosts can display the exact source-to-target entity remapping that a later apply will use.
 - `RuntimeSessionArchive` is a versioned runtime session file with one or more `RuntimeSessionSlot` entries.
+- `RuntimeSessionArchiveReader` is the Runtime-owned bounded asynchronous load owner. It accepts only an `asset::project::ResolvedProjectPath`, shares one nonterminal physical-path request and result reservation across aliases, retires terminal requests so failures and file revisions can be reloaded, and keeps filesystem access inside the Runtime `Io` lane.
+- `RuntimeSessionArchiveWriter` is the Runtime-owned bounded asynchronous publication owner. It accepts the same prepared physical path, coalesces path generations through `ResolvedProjectPathIdentity`, weakly retains only live path publication state, stages before final-publication locking, allocates unique revisions across clone-forked archives, rejects stale archive revisions across a lineage, and delegates staging and atomic replacement to the shared filesystem owner.
 - `RuntimeSessionArchiveManifest` is the read-only index view of an archive, exposing sorted slot summaries plus latest/oldest update selectors without restoring worlds.
 - `RuntimeSessionArchiveMergePolicy` selects whether archive imports reject duplicate slot ids, keep existing slots, or replace existing slots.
 - `RuntimeSessionArchiveMergeReport` records inserted, replaced, and skipped slot ids after an archive import.
@@ -1329,11 +1344,16 @@ The design follows the shape of Bevy's `bevy_scene` APIs rather than replacing Z
 
 ## Versioned Documents
 
-`document/mod.rs` is the structural runtime-scene JSON entrypoint. `document/read.rs` owns `DynamicScene::from_versioned_json`, `document/write.rs` owns `DynamicScene::to_versioned_json_pretty`, and `document/migration/` owns the explicit v0-to-v1 and v1-to-v2 value migrations. No retired project-document DTO remains. `DynamicScene::from_versioned_json` accepts the `zircon.scene.dynamic-scene` envelope and treats unwrapped input only as version-zero migration data.
+`document/mod.rs` is the structural runtime-scene JSON entrypoint. `document/read.rs` owns `DynamicScene::from_versioned_json`, `document/write.rs` owns `DynamicScene::to_versioned_json_pretty`, and `document/migration/` owns the explicit v0-to-v1, v1-to-v2, and v2-to-v3 value migrations. No retired project-document DTO remains. `DynamicScene::from_versioned_json` accepts the `zircon.scene.dynamic-scene` envelope and treats unwrapped input only as version-zero migration data.
 
 When v0 data contains a top-level `world`, the migration converts the serialized world maps to the current dynamic-scene payload using only `serde_json::Value`; it does not deserialize a legacy DTO or keep a compatibility owner. The shared loader validates the external schema header and version before decoding the current `DynamicScene` payload.
 
-`DynamicScene::to_versioned_json_pretty` writes the canonical version envelope. This keeps migration one-way: v0 project-world and v1 envelope data can migrate into the dynamic scene model, while every new save emits only the current reflected dynamic-scene payload. Plan 11 M2.2 removed the retired inner `format_version`; the `$zircon` envelope header is the sole scene schema-version authority.
+`DynamicScene::to_versioned_json_pretty` writes only the canonical v3 envelope. This keeps migration one-way:
+v0 project-world and v1/v2 envelope data can migrate into the current model, while every new save emits
+stable field IDs. The v2-to-v3 importer derives the initial ID from the historical type path and field name;
+after migration, v3 routing ignores the diagnostic field name and resolves the ID through the admitted
+schema. Plan 11 M2.2 removed the retired inner `format_version`; the `$zircon` envelope header is the sole
+scene schema-version authority.
 
 `DynamicScene::from_world` embeds the plugin component type descriptors required by plugin-owned dynamic components in the captured entities. The descriptor list is sorted by type id and omitted from JSON when empty, preserving the old scene shape for scenes that only use fixed runtime components.
 
@@ -1341,13 +1361,26 @@ When v0 data contains a top-level `world`, the migration converts the serialized
 
 `DynamicScene::ensure_supported` is the shared runtime validation boundary for direct dynamic-scene documents and session archive slots. It checks the payload header schema/version, duplicate component type descriptors, invalid component descriptor schemas, and duplicate source entities before a scene is accepted by load, archive, manifest, apply, or restore paths. Session archives serialize every embedded scene as its own `$zircon` envelope and reject a future embedded header before payload decoding. The envelope header is the only scene schema-version authority; current payloads contain no inner `format_version`.
 
-`DynamicSceneSpawnTask` moves JSON parsing, v0 project-world migration, scene-asset instantiation, and `ensure_supported` validation onto the runtime `JobScheduler`. The task exposes an `AsyncTaskDescriptor`, polled `AsyncTaskStatus`, the underlying `JobHandle`, and `take_ready` / `wait_ready` result collection. Its output is `PreparedDynamicSceneSpawn`, which stores component/entity/resource counts for load UI and then applies the already validated `DynamicScene` through the normal `spawn_into` path. This keeps ECS world mutation, entity remapping, descriptor installation, component writes, and resource writes on the caller thread while allowing load selectors or runtime hosts to prepare scene payloads without blocking the frame on parse/validation work.
+`DynamicSceneSpawnTask` moves JSON parsing, v0 project-world migration,
+scene-asset instantiation, and `ensure_supported` validation onto the runtime
+task owner. It composes one canonical `TaskHandle` and one business-result
+mutex. Descriptor, state, cancellation, completion, and wait all delegate to
+that handle; the scene layer no longer copies a mutable task status, owns a
+second cancellation bit, or exposes the underlying `JobHandle`. Its output is
+`PreparedDynamicSceneSpawn`, which stores component/entity/resource counts for
+load UI and applies the validated `DynamicScene` through the normal
+`spawn_into` path. ECS world mutation remains on the caller thread.
 
 `scene/spawn/` is the folder-backed compiled transaction owner. `CompiledSceneSpawn` binds the target generation, reflection schema generation, entity remap, resolved field slots, and preview summary. Its isolated preflight World executes every fallible component/resource adapter once, then transfers descriptor-owned component rows, plugin JSON, and only the planned resource rows into a `PreflightedSceneMutation`. `World::commit_preflighted_dynamic_scene` resolves descriptors in the target registry, rekeys rows away from source-local component ids, publishes final archetypes and resources under one world-generation change, and dispatches lifecycle only after final target state exists; target commit never replays reflection adapters.
 
-Runtime 15 M3 dynamic scene spawn task lock poison recovery keeps that same async/caller-thread split while removing production poisoned-lock panic paths from the spawn task status/result storage. `spawn_task/task.rs` now centralizes status/result mutex access in `lock_spawn_status(...)` and `lock_spawn_result(...)`; `spawn_task/loader.rs` uses the same helpers inside the scheduled background closure before marking running/completed/failed and publishing the `SpawnTaskResult`. Module-local `dynamic_scene_spawn_task_accessors_recover_poisoned_locks` deliberately poisons both locks and verifies status polling plus result recovery still work. `structure_convention/lock_poison_policy.rs::runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_task` records status `runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_static_passed_cargo_deferred` and rejects regressions to direct lock unwrap or `lock poisoned` panic text in the production spawn task owners.
+Runtime 15 M3 poison recovery remains on the scene business-result storage.
+`spawn_task/task.rs` centralizes `SpawnTaskResult` locking in
+`lock_spawn_result(...)`. Task lifecycle poison recovery belongs to Runtime11's
+`TaskHandle` record and is no longer duplicated in the scene module. The
+module-local recovery test deliberately poisons the result lock and verifies
+the value remains collectable.
 
-`DynamicSceneAssetReloadQueue` is the runtime-side hot-reload consumer for typed scene asset events. It can be constructed from a `ProjectAssetManager` event subscription, drains `Added`, `Modified`, and `Renamed` `SceneAsset` events into `DynamicSceneSpawnTask::schedule_scene_asset_uri`, skips `Removed`, `ReloadFailed`, missing-locator, and older-than-latest-revision events with explicit skip reasons, and exposes `take_ready` for completed `PreparedDynamicSceneSpawn` results. Each drained event updates the latest observed revision for its asset handle; older pending preparations for the same handle are removed from the queue and reported as `DynamicSceneAssetReloadSupersededTask`, so a later remove/reload-failed/modified event can invalidate earlier work before it finishes. `pending_report` snapshots each pending reload task's asset event, `AsyncTaskDescriptor`, and current `AsyncTaskStatus` without incrementing the task's poll count, letting runtime hosts build progress UI, logs, or diagnostics without reaching through the queue internals or consuming ready results. `take_ready_report` additionally reports stale completed tasks when an older background preparation finishes after a newer event for the same asset handle, so hosts can log the discarded revision while `take_ready` preserves the simpler "current ready payloads only" surface. `tick` is the host-frame convenience entry point: it performs one event drain pass, one ready/stale collection pass, and returns `DynamicSceneAssetReloadTickReport` with final pending counts and the underlying drain/ready reports. Once the host has chosen the target runtime world on the caller thread, `DynamicSceneAssetReloadResult::spawn_into` and `DynamicSceneAssetReloadReadyReport::spawn_ready_into` apply ready payloads through the normal `PreparedDynamicSceneSpawn::spawn_into` path and return `DynamicSceneAssetReloadApplyReport` with applied entity remaps, preparation/apply failures, stale completions, and the remaining pending count. For the usual runtime owner object, `spawn_into_level` and `spawn_ready_into_level` apply through `LevelSystem::with_world_mut` while keeping the same report shape. `DynamicSceneAssetReloadQueue::tick_into` composes those two host-frame operations for the common runtime loop shape: it drains events, collects ready/stale work, applies the ready payloads into the caller-provided `World`, and returns `DynamicSceneAssetReloadFrameApplyReport` with both drain and apply diagnostics. `tick_into_level` does the same for a caller-provided `LevelSystem`, avoiding host-side lock boilerplate while still requiring the runtime host to pick the target level explicitly. Project `RuntimeDynamicSession` construction now resolves the concrete `ProjectAssetManager`, builds one optional reload queue for project-backed sessions, and calls `tick_into_level` before `LevelSystem::tick` each frame; non-empty frame work is logged and cached as the last reload report, while failures stay in diagnostics instead of aborting the frame. The queue deliberately stops short of owning commit policy: choosing which live world or level to update outside that session integration, and when to call `tick_into` or `tick_into_level`, remains a runtime host decision on the caller thread.
+`DynamicSceneAssetReloadQueue` is the runtime-side hot-reload consumer for typed scene asset events. It can be constructed from a `ProjectAssetManager` event subscription, drains `Added`, `Modified`, and `Renamed` `SceneAsset` events into `DynamicSceneSpawnTask::schedule_scene_asset_uri`, skips `Removed`, `ReloadFailed`, missing-locator, and older-than-latest-revision events with explicit skip reasons, and exposes `take_ready` for completed `PreparedDynamicSceneSpawn` results. Each drained event updates the latest observed revision for its asset handle; older pending preparations for the same handle are removed from the queue and reported as `DynamicSceneAssetReloadSupersededTask`, so a later remove/reload-failed/modified event can invalidate earlier work before it finishes. `pending_report` snapshots each pending reload task's asset event, canonical `TaskDescriptor`, and current `TaskStatus`; observation does not mutate task lifecycle state. `take_ready_report` additionally reports stale completed tasks when an older background preparation finishes after a newer event for the same asset handle, while `take_ready` preserves the simpler current-payload surface. Caller-thread apply through `tick_into` or `tick_into_level` and the queue's explicit commit-policy boundary are unchanged.
 
 ## Runtime Session Archives
 
@@ -1442,7 +1475,10 @@ For every entity, the dynamic scene exporter iterates `world.type_registry().ite
 - backed by a `ReflectComponent` adapter,
 - present on the entity.
 
-The adapter's `read_fields` result is filtered to schema fields marked serializable. This keeps the serialized payload bound to the reflection schema instead of dumping arbitrary adapter output.
+The exporter iterates admitted field metadata in schema order, reads each serializable field through its
+dense slot, and zips the value with that metadata's stable ID and current diagnostic name. It asserts that
+the adapter projection remains aligned with the admitted schema instead of accepting arbitrary named
+adapter output.
 
 Resources use the same rule with `ReflectResource`: serializable resource registrations with an adapter are captured only when the adapter reports that the resource exists in the source world. During scene apply, a resource adapter may provide an `ensure` hook that creates or initializes the missing target resource before reflected fields are written. Adapters without an `ensure` hook still report `MissingResource` when the target world does not already contain the resource.
 
@@ -1456,11 +1492,22 @@ Resources use the same rule with `ReflectResource`: serializable resource regist
 4. Insert remapped `NodeRecord` values into the target world, remapping parent ids and joint connected entities.
 5. Apply reflected components and resources.
 
+Reflected writes compile stable field IDs to dense slots before mutation. The common schema-order case uses
+one O(n) pass; reordered persisted fields fall back to the catalog ID index. Unknown or duplicate IDs are
+rejected during preflight, and current diagnostic names never overwrite the identity decision. Fixed
+components and resources then use one compiled dense write list for preview and commit.
+
 `DynamicScene::preview_spawn_into` and `ScenePatch::preview_apply` run the same support validation, component descriptor compatibility check, entity remap planning, parent remap validation, and reflection schema preflight without mutating the target world. The returned `ScenePatchPreviewReport` lets runtime hosts surface apply diagnostics before committing a patch, including component type install preview counts through `existing_component_type_count` and `new_component_type_count`, component install detail rows through `ScenePatchPreviewComponentType` / `new_component_types()`, resource preflight details through `ScenePatchPreviewResource` / `resources_requiring_creation()`, component instance workload counts, and a stable list of `source_entity -> target_entity` remap rows for preview UI, logs, or authoring conflict summaries.
 
 The reflection preflight is deliberately read-only. It resolves fixed component and resource registrations, checks component/resource kind, verifies adapter availability, validates referenced fields against serializable/editable reflection metadata, checks plugin-owned dynamic component payloads through JSON conversion, and rejects a missing reflected resource when the adapter has no `ensure` hook. It does not call `write_field`, install descriptors, insert entities, write components, write resources, or create missing resources.
 
 Plugin-owned dynamic components are applied as complete JSON objects built from all serialized reflected fields. This intentionally preserves read-only plugin fields such as labels or authored metadata, because attaching a full dynamic component is a scene instantiation operation, not an editor property write.
+
+VM-backed plugin schemas resolve every persisted ID through the admitted reflection schema and reject
+duplicates before constructing the JSON object. The descriptor-only plugin bridge currently has no explicit
+stable field identity in `ComponentPropertyDescriptor`, so its temporary ID is derived from
+`(descriptor.type_id, property.name)`. Rename-stable descriptor identity remains blocked on the Runtime42
+descriptor contract owner and is not claimed as closed by dynamic-scene v3.
 
 Non-plugin fixed components and reflected resources are applied through their reflection adapters. Only fields that still exist in the target schema and are both serializable and editable are written. Reflected resources are ensured through the adapter hook before field writes when the adapter supports creation; otherwise missing target resources remain explicit load/apply errors. Read-only fixed data is expected to be carried by `NodeRecord` when it belongs to the core scene model.
 

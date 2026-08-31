@@ -9,6 +9,12 @@ const DETAIL_ROW_TOP_INSET: f32 = 18.0;
 const DETAIL_ROW_X_INSET: f32 = 8.0;
 const DETAIL_LABEL_GAP: f32 = 6.0;
 
+fn source_section_frame(
+    node: &host_contract::TemplatePaneNodeData,
+) -> host_contract::TemplateNodeFrameData {
+    node.frame.clone()
+}
+
 pub(super) fn append_detail_section_nodes(
     nodes: &mut Vec<host_contract::TemplatePaneNodeData>,
     section: &UiAssetDetailFieldSection,
@@ -23,34 +29,34 @@ pub(super) fn append_detail_section_nodes(
     if section.rows.is_empty() {
         return;
     }
-    let mut source_section = nodes[section_index].clone();
-    if source_section.frame.width <= DETAIL_ROW_X_INSET * 2.0 {
+    let mut source_frame = source_section_frame(&nodes[section_index]);
+    if source_frame.width <= DETAIL_ROW_X_INSET * 2.0 {
         return;
     }
 
     let required_section_height = DETAIL_ROW_TOP_INSET
         + section.rows.len() as f32 * EditorDensityTokens::WORKBENCH_ROW_HEIGHT
         + 4.0;
-    let section_growth = (required_section_height - source_section.frame.height).max(0.0);
+    let section_growth = (required_section_height - source_frame.height).max(0.0);
     if section_growth > 0.0 {
-        let original_section_bottom = source_section.frame.y + source_section.frame.height;
+        let original_section_bottom = source_frame.y + source_frame.height;
         nodes[section_index].frame.height += section_growth;
         for (node_index, node) in nodes.iter_mut().enumerate() {
             if node_index != section_index && node.frame.y >= original_section_bottom - 0.5 {
                 node.frame.y += section_growth;
             }
         }
-        source_section = nodes[section_index].clone();
+        source_frame = source_section_frame(&nodes[section_index]);
     }
 
-    let content_x = source_section.frame.x + DETAIL_ROW_X_INSET;
-    let content_width = (source_section.frame.width - DETAIL_ROW_X_INSET * 2.0).max(0.0);
+    let content_x = source_frame.x + DETAIL_ROW_X_INSET;
+    let content_width = (source_frame.width - DETAIL_ROW_X_INSET * 2.0).max(0.0);
     let label_width = (content_width * 0.42).clamp(72.0, 132.0);
     let value_x = content_x + label_width + DETAIL_LABEL_GAP;
     let value_width = (content_width - label_width - DETAIL_LABEL_GAP).max(48.0);
 
     for (row_index, row) in section.rows.iter().enumerate() {
-        let y = source_section.frame.y
+        let y = source_frame.y
             + DETAIL_ROW_TOP_INSET
             + row_index as f32 * EditorDensityTokens::WORKBENCH_ROW_HEIGHT;
         nodes.push(host_contract::TemplatePaneNodeData {
@@ -179,3 +185,7 @@ mod tests {
         }));
     }
 }
+
+#[cfg(test)]
+#[path = "section_nodes/source_frame_clone_tests.rs"]
+mod source_frame_clone_tests;

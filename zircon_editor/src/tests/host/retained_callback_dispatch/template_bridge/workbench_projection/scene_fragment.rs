@@ -78,6 +78,36 @@ fn hierarchy_patch_updates_only_its_runtime_rows_at_the_expected_generation() {
 }
 
 #[test]
+fn invalidated_hierarchy_projection_rejects_follow_up_sparse_deltas() {
+    let _guard = env_lock().lock().unwrap();
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge
+        .sync_scene_and_inspector(
+            &hierarchy_entries(7, vec![hierarchy_row(1, None, 0, "World", 11)]),
+            None,
+        )
+        .unwrap();
+    bridge.invalidate_scene_hierarchy_projection();
+    let fragment = SceneInspectionHierarchyFragment::patch(
+        delta(
+            7,
+            8,
+            vec![anchor(1, None, 0, 12)],
+            SceneInspectionSelectionDelta::unchanged(),
+        ),
+        vec![hierarchy_row(1, None, 0, "Renamed", 12)],
+    )
+    .unwrap();
+
+    let rejected = bridge.apply_scene_hierarchy_fragment(&fragment).unwrap();
+
+    assert!(!rejected.applied());
+    assert!(!rejected.selection_resync_required());
+    assert_eq!(rejected.updated_rows(), 0);
+}
+
+#[test]
 fn hierarchy_reflow_is_explicit_for_a_structural_change() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge =
@@ -432,10 +462,12 @@ fn ten_thousand_row_patch_does_not_reflow_the_projection() {
     assert!(applied.applied());
     assert_eq!(applied.updated_rows(), 1);
     assert!(!applied.reflowed());
+    assert_eq!(applied.logical_row_patches()[0].row_index(), 9_999);
+    assert_eq!(applied.logical_row_patches()[0].entity(), 9_999);
 }
 
 #[test]
-fn virtual_hierarchy_row_rename_applies_without_reflow() {
+fn unmaterialized_hierarchy_row_rename_applies_without_reflow() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
@@ -462,14 +494,53 @@ fn virtual_hierarchy_row_rename_applies_without_reflow() {
     assert!(applied.applied());
     assert!(!applied.reflowed());
     assert_eq!(applied.updated_rows(), 1);
-    assert_eq!(
-        control_string(&bridge, "WorkbenchSceneVirtualItem11", "text").as_deref(),
-        Some("Renamed Virtual Entity")
-    );
-    assert_eq!(
-        control_integer(&bridge, "WorkbenchSceneVirtualItem11", "scene_node_id"),
-        Some(11)
-    );
+    assert!(applied.changed_control_ids().is_empty());
+    let logical_patch = &applied.logical_row_patches()[0];
+    assert_eq!(logical_patch.row_index(), 10);
+    assert_eq!(logical_patch.entity(), 11);
+    assert_eq!(logical_patch.display_name(), "Renamed Virtual Entity");
+    assert_eq!(logical_patch.depth(), 0);
+    assert!(!logical_patch.selected());
+    assert!(bridge
+        .host_projection()
+        .node_by_control_id("WorkbenchSceneVirtualItem11")
+        .is_none());
+}
+
+#[test]
+fn selection_delta_publishes_unmaterialized_logical_row_state() {
+    let _guard = env_lock().lock().unwrap();
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    let rows = (1..=11)
+        .map(|entity| hierarchy_row(entity, None, 0, "Entity", entity))
+        .collect();
+    bridge
+        .sync_scene_and_inspector(&hierarchy_entries_with_selection(95, rows, [10]), None)
+        .unwrap();
+    let patch = SceneInspectionHierarchyFragment::patch(
+        delta(
+            95,
+            95,
+            Vec::new(),
+            SceneInspectionSelectionDelta::delta(vec![11], vec![10]),
+        ),
+        Vec::new(),
+    )
+    .unwrap();
+
+    let applied = bridge.apply_scene_hierarchy_fragment(&patch).unwrap();
+
+    assert!(applied.applied());
+    assert_eq!(applied.updated_rows(), 2);
+    assert_eq!(applied.changed_control_ids(), &["WorkbenchSceneSlot10Item"]);
+    let unmaterialized = applied
+        .logical_row_patches()
+        .iter()
+        .find(|patch| patch.entity() == 11)
+        .expect("unmaterialized selection row patch");
+    assert_eq!(unmaterialized.row_index(), 10);
+    assert!(unmaterialized.selected());
 }
 
 fn delta(
@@ -517,7 +588,6 @@ fn hierarchy_row(
         display_name: display_name.to_string(),
         kind: "Entity".to_string(),
         subtree_hash,
-        focused: false,
         active_in_hierarchy: true,
         has_children: false,
     }

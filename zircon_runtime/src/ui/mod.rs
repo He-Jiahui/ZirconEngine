@@ -7,11 +7,12 @@ mod public_runtime_frame;
 #[cfg(test)]
 #[path = "tests/runtime_ui_support/mod.rs"]
 mod runtime_ui_support;
+pub(crate) mod secure_text_policy;
 
 pub use crate::core::framework::ui::UI_MODULE_NAME;
 pub use module::{
-    module_descriptor, UiConfig, UiModule, UiRuntimeDriver, UI_EVENT_MANAGER_NAME,
-    UI_RUNTIME_DRIVER_NAME,
+    UI_EVENT_MANAGER_NAME, UI_RUNTIME_DRIVER_NAME, UiConfig, UiModule, UiRuntimeDriver,
+    module_descriptor,
 };
 pub(crate) use public_runtime_frame::PublicRuntimeFrame;
 #[cfg(test)]

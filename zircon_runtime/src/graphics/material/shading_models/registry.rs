@@ -1,15 +1,19 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::core::framework::render::{
-    GBufferChannelMask, RenderMaterialLightingModel, ShadingModelDescriptor, ShadingModelId,
-    ShadingModelRegistrationError, SHADING_MODEL_PLUGIN_ID_START,
+    GBufferChannelMask, RenderMaterialLightingModel, SHADING_MODEL_PLUGIN_ID_START,
+    ShadingModelDescriptor, ShadingModelId, ShadingModelRegistrationError,
 };
+
+#[cfg(test)]
+#[path = "registry/hash_token_tests.rs"]
+mod hash_token_tests;
 
 #[derive(Clone, Debug)]
 pub(crate) struct ShadingModelRegistry {
     supported_channels: GBufferChannelMask,
     descriptors: BTreeMap<ShadingModelId, ShadingModelDescriptor>,
-    tokens: BTreeMap<String, ShadingModelId>,
+    tokens: HashMap<String, ShadingModelId>,
 }
 
 impl ShadingModelRegistry {
@@ -17,7 +21,7 @@ impl ShadingModelRegistry {
         Self {
             supported_channels,
             descriptors: BTreeMap::new(),
-            tokens: BTreeMap::new(),
+            tokens: HashMap::new(),
         }
     }
 
@@ -114,9 +118,9 @@ impl ShadingModelRegistry {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GBufferChannelMask, RenderMaterialLightingModel, ShadingModelDescriptor, ShadingModelId,
-        ShadingModelRegistrationError, SHADING_MODEL_ID_STANDARD_PBR,
-        SHADING_MODEL_PLUGIN_ID_START,
+        GBufferChannelMask, RenderMaterialLightingModel, SHADING_MODEL_ID_STANDARD_PBR,
+        SHADING_MODEL_PLUGIN_ID_START, ShadingModelDescriptor, ShadingModelId,
+        ShadingModelRegistrationError,
     };
 
     use super::ShadingModelRegistry;

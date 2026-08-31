@@ -22,7 +22,6 @@ impl NativePluginLoadProjection {
     pub fn runtime_plugin_registration_reports(&self) -> Vec<RuntimePluginRegistrationReport> {
         self.package_manifests()
             .iter()
-            .cloned()
             .filter(|manifest| {
                 manifest.package_kind != PluginPackageKind::FeatureExtension
                     && has_runtime_module(manifest)
@@ -30,7 +29,7 @@ impl NativePluginLoadProjection {
             .map(|manifest| {
                 let plugin_id = manifest.id.clone();
                 let mut report = RuntimePluginRegistrationReport::from_native_package_manifest(
-                    runtime_only_package_manifest(manifest),
+                    runtime_only_package_manifest(manifest.clone()),
                 );
                 let (shader_module_sources, shader_module_diagnostics) =
                     self.shader_module_sources_for_plugin(&plugin_id);
@@ -61,8 +60,8 @@ impl NativePluginLoadProjection {
             .flat_map(|manifest| {
                 let plugin_id = manifest.id.clone();
                 let runtime_features = runtime_feature_manifests(&manifest)
-                    .into_iter()
-                    .filter(has_runtime_feature_module)
+                    .filter(|feature| has_runtime_feature_module(*feature))
+                    .cloned()
                     .collect::<Vec<_>>();
                 if runtime_features.is_empty() {
                     return Vec::new();
@@ -130,10 +129,13 @@ fn has_runtime_feature_module(feature: &PluginFeatureBundleManifest) -> bool {
         .any(|module| module.kind == PluginModuleKind::Runtime)
 }
 
-fn runtime_feature_manifests(manifest: &PluginPackageManifest) -> Vec<PluginFeatureBundleManifest> {
-    let mut features = manifest.optional_features.clone();
-    features.extend(manifest.feature_extensions.iter().cloned());
-    features
+fn runtime_feature_manifests(
+    manifest: &PluginPackageManifest,
+) -> impl Iterator<Item = &PluginFeatureBundleManifest> + '_ {
+    manifest
+        .optional_features
+        .iter()
+        .chain(manifest.feature_extensions.iter())
 }
 
 fn runtime_only_package_manifest(mut manifest: PluginPackageManifest) -> PluginPackageManifest {
@@ -142,3 +144,7 @@ fn runtime_only_package_manifest(mut manifest: PluginPackageManifest) -> PluginP
         .retain(|module| module.kind == PluginModuleKind::Runtime);
     manifest
 }
+
+#[cfg(test)]
+#[path = "registrations/optimization_tests.rs"]
+mod optimization_tests;

@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
     AntiAliasSettings, CorePipelineKind, FallbackSkyboxKind, PostProcessGraphResourceNames,
     PostProcessStackDescriptor, PreviewEnvironmentExtract, ProjectionMode, RenderCameraTarget,
-    RenderDynamicResolutionSettings, RenderFrameExtract, RenderPhase,
+    RenderDepthOfFieldSettings, RenderDynamicResolutionSettings, RenderFrameExtract, RenderPhase,
     RenderPostProcessEffectStackSettings, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderScreenSpaceReflectionSettings, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
@@ -30,43 +30,34 @@ mod temporal_and_ops;
 mod validation_core;
 mod validation_descriptors;
 
+fn compiled_execution_stage_order(
+    compiled: &crate::graphics::CompiledRenderPipeline,
+) -> Vec<RenderPassStage> {
+    let mut stages = Vec::new();
+    for execution_pass in compiled.execution_passes_in_graph_order() {
+        if !stages.contains(&execution_pass.stage) {
+            stages.push(execution_pass.stage);
+        }
+    }
+    stages
+}
+
 fn default_rendering_feature_descriptors() -> Vec<RenderFeatureDescriptor> {
     vec![
-        rendering_ssao_descriptor(),
         rendering_reflection_probes_descriptor(),
         rendering_baked_lighting_descriptor(),
         rendering_post_process_descriptor(),
     ]
 }
 
+fn rendering_feature_descriptors_with_ssao() -> Vec<RenderFeatureDescriptor> {
+    let mut descriptors = default_rendering_feature_descriptors();
+    descriptors.insert(0, rendering_ssao_descriptor());
+    descriptors
+}
+
 fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        "screen_space_ambient_occlusion",
-        vec![
-            "view".to_string(),
-            "geometry".to_string(),
-            "visibility".to_string(),
-        ],
-        vec![FrameHistoryBinding::read_write(
-            FrameHistorySlot::AmbientOcclusion,
-        )],
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::AmbientOcclusion,
-            "ssao-evaluate",
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id("compute.generic")
-        .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
-            "zircon-ssao-pipeline",
-            [8, 8, 1],
-            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
-            [8, 8],
-        ))
-        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-        .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
-        .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
-    )
+    crate::graphics::screen_space_ambient_occlusion_render_feature_descriptor()
 }
 
 fn rendering_reflection_probes_descriptor() -> RenderFeatureDescriptor {
@@ -78,14 +69,16 @@ fn rendering_reflection_probes_descriptor() -> RenderFeatureDescriptor {
             "post_process".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            "reflection-probe-composite",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("lighting.reflection-probes")
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "reflection-probe-composite",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("lighting.reflection-probes")
+            .read_texture("scene-color")
+            .write_texture("scene-color"),
+        ],
     )
 }
 
@@ -94,14 +87,16 @@ fn rendering_baked_lighting_descriptor() -> RenderFeatureDescriptor {
         "baked_lighting",
         vec!["lighting".to_string(), "post_process".to_string()],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            "baked-lighting-composite",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("lighting.baked-composite")
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "baked-lighting-composite",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("lighting.baked-composite")
+            .read_texture("scene-color")
+            .write_texture("scene-color"),
+        ],
     )
 }
 
@@ -226,7 +221,6 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
-            .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
             .read_texture(PostProcessGraphResourceNames::BLOOM)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)

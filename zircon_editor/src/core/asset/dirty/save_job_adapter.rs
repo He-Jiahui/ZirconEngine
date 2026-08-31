@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
 use thiserror::Error;
@@ -52,6 +52,7 @@ pub enum SaveDirtyViewsAdmissionError {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SaveDirtyViewsCompletionBatch {
     completions: Vec<SaveDirtyViewCompletionSlot>,
+    completion_indices: HashMap<DocumentId, usize>,
 }
 
 impl SaveDirtyViewsCompletionBatch {
@@ -64,10 +65,8 @@ impl SaveDirtyViewsCompletionBatch {
     }
 
     pub fn completion(&self, document: DocumentId) -> Option<&SaveDirtyViewCompletion> {
-        self.completions
-            .iter()
-            .find(|slot| slot.document == document)
-            .and_then(|slot| slot.completion.as_ref())
+        let index = *self.completion_indices.get(&document)?;
+        self.completions.get(index)?.completion.as_ref()
     }
 
     pub fn into_completions(self) -> impl Iterator<Item = (DocumentId, SaveDirtyViewCompletion)> {
@@ -251,8 +250,10 @@ impl SaveDirtyViewsJobAdapter {
         }
 
         let completed = if self.tickets.is_empty() && !self.completions.is_empty() {
+            let completions = std::mem::take(&mut self.completions);
             Some(SaveDirtyViewsCompletionBatch {
-                completions: std::mem::take(&mut self.completions),
+                completion_indices: first_completion_indices(&completions),
+                completions,
             })
         } else {
             None
@@ -288,6 +289,20 @@ impl SaveDirtyViewsJobAdapter {
         ids
     }
 }
+
+fn first_completion_indices(
+    completions: &[SaveDirtyViewCompletionSlot],
+) -> HashMap<DocumentId, usize> {
+    let mut indices = HashMap::with_capacity(completions.len());
+    for (index, completion) in completions.iter().enumerate() {
+        indices.entry(completion.document).or_insert(index);
+    }
+    indices
+}
+
+#[cfg(test)]
+#[path = "save_job_adapter/indexed_completion_tests.rs"]
+mod indexed_completion_tests;
 
 fn intent_estimated_bytes(intent: &SaveDirtyViewIntent) -> usize {
     usize::try_from(intent.estimated_bytes())

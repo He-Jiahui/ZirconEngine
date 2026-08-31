@@ -1,28 +1,26 @@
 use std::sync::Arc;
 
-use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin, Weight};
 use glyphon::SwashContent;
-use glyphon::{Attrs, Buffer, FontSystem, Metrics, Shaping, TextArea};
 
 use crate::core::math::UVec2;
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{
-    glyph_atlas_bitmap_render_submission_plan,
-    glyph_atlas_bitmap_render_submission_plan_with_atlas, GlyphAtlasBitmapFaceValidity,
+    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasBitmapFaceValidity,
     GlyphAtlasBitmapPlaceholderGlyph, GlyphAtlasBitmapPlaceholderMode, GlyphAtlasBitmapQueuedGlyph,
     GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapRenderSubmissionReport,
     GlyphAtlasBitmapRetryFrameState, GlyphAtlasBitmapRetryFrameStateReport,
     GlyphAtlasBitmapRetryFrameSubmissionReport, GlyphAtlasBitmapSource, GlyphAtlasFormat,
     GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet, GlyphAtlasStorageFormat,
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
+    GlyphHintingMode, GlyphRasterKey, GlyphSmoothingMode, SyntheticGlyphStyle,
+    glyph_atlas_bitmap_render_submission_plan,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas,
 };
 use crate::text::font::FontDatabase;
 use crate::text::parallel::raster_pool::{TextRasterWorkerPool, TextRasterWorkerPoolOptions};
 
 use super::source_image::{
-    native_bitmap_atlas_foreground_color, native_bitmap_atlas_format,
+    NativeBitmapGlyphImage, native_bitmap_atlas_foreground_color, native_bitmap_atlas_format,
     native_bitmap_atlas_screen_rect, native_bitmap_atlas_source_from_image,
-    text_bounds_clipped_screen_rect, NativeBitmapGlyphImage,
 };
 use super::*;
 
@@ -79,16 +77,52 @@ fn test_source_image(
     }
 }
 
-fn test_cache_key(glyph_id: u16) -> CacheKey {
-    CacheKey {
-        font_id: fontdb::ID::dummy(),
-        glyph_id,
-        font_size_bits: 16.0f32.to_bits(),
-        x_bin: SubpixelBin::Zero,
-        y_bin: SubpixelBin::Zero,
-        font_weight: Weight(400),
-        flags: CacheKeyFlags::empty(),
+fn test_cache_key(glyph_id: u16) -> GlyphRasterKey {
+    GlyphRasterKey {
+        face: crate::text::InstancedFaceId(17),
+        glyph_id: u32::from(glyph_id),
+        px_size_bucket: 16,
+        subpixel_bin: 0,
+        vertical_subpixel_bin: 0,
+        format: GlyphAtlasFormat::AlphaMask,
+        hinting: GlyphHintingMode::Full,
+        smoothing: GlyphSmoothingMode::Grayscale,
+        synthetic: SyntheticGlyphStyle::default(),
     }
+}
+
+fn test_glyph_run(glyph_id: u16) -> NativeBitmapAtlasGlyphRun {
+    test_glyph_run_with_key(test_cache_key(glyph_id), test_clip_rect())
+}
+
+fn test_glyph_run_with_key(
+    raster_key: GlyphRasterKey,
+    bounds: GlyphAtlasScreenRect,
+) -> NativeBitmapAtlasGlyphRun {
+    NativeBitmapAtlasGlyphRun::new(
+        bounds,
+        vec![NativeBitmapAtlasGlyph {
+            raster_key,
+            screen_x: 12.0,
+            baseline_y: 24.0,
+            placeholder_rect: GlyphAtlasScreenRect::new(12.0, 8.0, 12.0, 20.0),
+            foreground_color: [1.0; 4],
+            background_color: None,
+        }],
+    )
+}
+
+fn test_font_database_with_fira() -> (FontDatabase, crate::text::InstancedFaceId) {
+    let source_path =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
+    let mut font_database = FontDatabase::default();
+    let face = font_database
+        .register_font_file(&source_path, Some("Zircon Native Atlas Test"), 0)
+        .expect("test font should register with the text font database");
+    let instance = font_database
+        .effective_instance_id(face, 400)
+        .expect("registered test face should resolve an exact instance");
+    (font_database, instance)
 }
 
 fn test_cached_image(byte: u8) -> super::source_cache::NativeBitmapAtlasCachedGlyphImage {

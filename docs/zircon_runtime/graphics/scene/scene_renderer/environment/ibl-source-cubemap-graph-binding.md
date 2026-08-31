@@ -39,7 +39,7 @@ The module sits in `scene_renderer_core_render_compiled_scene/render` because it
 - The helper only imports `environment.ibl.source_cubemap` when the compiled graph declares it as an external texture.
 - If another owner already bound that graph resource, the helper leaves it unchanged.
 - If the current frame has no source cubemap view, the helper leaves the required external missing. The materialization report must expose that missing resource instead of receiving a dummy fallback.
-- `render.rs` calls the helper after `write_scene_uniform(device, queue, frame)`, so the source cubemap upload path has already run before the borrowed view is imported.
+- `render.rs` calls the helper after `write_scene_uniform(...)`, so the source cubemap has validated its immutable artifact, appended its staging range to the outer frame upload batch, and recorded its scene-encoder copies before the borrowed view is imported. The revision remains pending until scene submission succeeds.
 - `SceneEnvironmentCubemap::source_view()` is a narrow renderer-core accessor for this graph binding path.
 
 This closes the source-input side of the live WGPU IBL bake chain. The output resource acquisition and artifact readback remain owned by `ibl_bake_wgpu_readback.rs` and `ibl_bake_runtime_writeback.rs`.

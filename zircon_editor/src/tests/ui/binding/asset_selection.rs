@@ -60,3 +60,46 @@ fn asset_command_binding_roundtrips_for_import_model() {
         binding
     );
 }
+
+#[test]
+fn asset_command_binding_roundtrips_for_relocation_drop() {
+    let binding = EditorUiBinding::new(
+        "AssetTree",
+        "RelocateAsset",
+        EditorUiEventKind::Drop,
+        EditorUiBindingPayload::asset_command(AssetCommand::RelocateAsset {
+            asset_uuid: "00112233-4455-6677-8899-aabbccddeeff".to_string(),
+            target_locator: "res://environment/cube.zmodel".to_string(),
+        }),
+    );
+
+    assert_eq!(
+        binding.native_binding(),
+        r#"AssetTree/RelocateAsset:onDrop(AssetCommand.RelocateAsset("00112233-4455-6677-8899-aabbccddeeff","res://environment/cube.zmodel"))"#
+    );
+    assert_eq!(
+        EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),
+        binding
+    );
+}
+
+#[test]
+fn asset_command_binding_roundtrips_for_deletion() {
+    let binding = EditorUiBinding::new(
+        "AssetContextMenu",
+        "DeleteAsset",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::asset_command(AssetCommand::DeleteAsset {
+            asset_uuid: "00112233-4455-6677-8899-aabbccddeeff".to_string(),
+        }),
+    );
+
+    assert_eq!(
+        binding.native_binding(),
+        r#"AssetContextMenu/DeleteAsset:onClick(AssetCommand.DeleteAsset("00112233-4455-6677-8899-aabbccddeeff"))"#
+    );
+    assert_eq!(
+        EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),
+        binding
+    );
+}

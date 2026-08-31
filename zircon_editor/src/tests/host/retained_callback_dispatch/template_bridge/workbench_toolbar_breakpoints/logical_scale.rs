@@ -36,8 +36,8 @@ fn toolbar_priority_uses_logical_width_under_scale() {
     assert!(bridge.control_frame("WorkbenchRunMode").is_some());
     assert_eq!(
         control_string(&bridge, "WorkbenchModuleSave", "text").as_deref(),
-        Some("Save"),
-        "logical 640px should not use the <=480px Ultra icon density"
+        Some(""),
+        "Save stays icon-only at every logical width"
     );
     assert!(bridge.control_frame("WorkbenchToolbarSave").is_some());
 

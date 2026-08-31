@@ -9,10 +9,20 @@ pub(super) fn wire_viewport_callbacks(
 ) {
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
-    pane_surface_host.on_viewport_pointer_event(
+    pane_surface_host.on_scene_viewport_pointer_event(
         move |kind, button, x, y, delta, shift, control| {
             dispatch_with_callback_source(&weak, &source_ui, |host| {
-                host.viewport_pointer_event(kind, button, x, y, delta, shift, control);
+                host.scene_viewport_pointer_event(kind, button, x, y, delta, shift, control);
+            });
+        },
+    );
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    pane_surface_host.on_game_viewport_pointer_event(
+        move |kind, button, x, y, delta, shift, control| {
+            dispatch_with_callback_source(&weak, &source_ui, |host| {
+                host.game_viewport_pointer_event(kind, button, x, y, delta, shift, control);
             });
         },
     );

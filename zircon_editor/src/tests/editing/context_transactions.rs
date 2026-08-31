@@ -10,7 +10,7 @@ use crate::core::jobs::test_job_scheduler;
 
 #[test]
 fn editor_context_exposes_one_transaction_engine_instance() {
-    let context = EditorContextBuilder::new(test_job_scheduler()).build();
+    let context = EditorContextBuilder::new(test_job_scheduler(), test_job_scheduler()).build();
 
     assert!(ptr::eq(context.transactions(), context.transactions()));
 }
@@ -20,7 +20,7 @@ fn committing_an_empty_context_transaction_does_not_create_history() {
     let bus = SharedEditorMessageBus::default();
     let topic = EditorTopic::parse(TOPIC_TRANSACTION).unwrap();
     let subscriber = bus.register_subscriber([topic.clone()]).unwrap();
-    let context = EditorContextBuilder::new(test_job_scheduler())
+    let context = EditorContextBuilder::new(test_job_scheduler(), test_job_scheduler())
         .with_bus(bus.clone())
         .build();
     let transaction = context

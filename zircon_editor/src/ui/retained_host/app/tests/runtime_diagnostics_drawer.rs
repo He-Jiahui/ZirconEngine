@@ -72,7 +72,10 @@ fn dispatch_runtime_diagnostics_bottom_tab(harness: &ChildWindowHostHarness) {
 
 fn assert_runtime_diagnostics_bottom_drawer_visible(harness: &ChildWindowHostHarness) {
     let layout = harness.host.borrow().runtime.current_layout();
-    let drawer = layout.drawers.get(&ActivityDrawerSlot::Bottom).unwrap();
+    let drawer = layout
+        .active_activity_window_drawers()
+        .get(&ActivityDrawerSlot::Bottom)
+        .unwrap();
     assert_eq!(
         drawer.active_view.as_ref().map(|id| id.0.as_str()),
         Some(RUNTIME_DIAGNOSTICS_INSTANCE_ID)

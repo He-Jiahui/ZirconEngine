@@ -1,0 +1,457 @@
+[asset]
+kind = "style"
+id = "res://ui/theme/editor_workbench_spatial.zui"
+version = 2
+display_name = "Editor Workbench Spatial"
+
+[imports]
+widgets = []
+styles = ["res://ui/theme/editor_workbench_strict.zui"]
+
+[tokens]
+workbench_viewport_backdrop = "#151719"
+workbench_viewport_ceiling = "#151a1d"
+workbench_viewport_wall = "#1b1d1f"
+workbench_viewport_wall_detail_center_lines = "#aabec733"
+workbench_viewport_rack_left = "#2d251f47"
+workbench_viewport_side_stairs = "#b8c2c238"
+workbench_viewport_floor = "#232625"
+workbench_viewport_grid = "#747e803d"
+workbench_viewport_grid_major = "#919b9d57"
+workbench_viewport_floor_seam = "#505a5f5c"
+workbench_viewport_floor_grate = "#0000008c"
+workbench_viewport_side = "#2025265c"
+workbench_viewport_door = "#4b5559d6"
+workbench_viewport_door_core = "#0b0e10a8"
+workbench_viewport_lightwash_left = "#b78f76bd"
+workbench_viewport_lightwash_center = "#aec6d326"
+workbench_viewport_lightwash_lower = "#08060538"
+workbench_viewport_lightwash_floor = "#aac2d32e"
+workbench_viewport_lightwash_floor_cool = "#7891a01f"
+workbench_viewport_lightwash_floor_right = "#94603a24"
+workbench_viewport_lightwash_wall_right = "#829aae29"
+workbench_viewport_lightwash_rear_walkway = "#adbfc726"
+workbench_viewport_shadow_top = "#0000006b"
+workbench_viewport_shadow_ceiling_left = "#00000078"
+workbench_viewport_shadow_ceiling_mid = "#00000057"
+workbench_viewport_shadow_left_floor = "#0000003d"
+workbench_viewport_shadow_floor = "#00000075"
+workbench_viewport_beacon = "#e19450"
+workbench_viewport_handrail = "#b371307a"
+workbench_viewport_reflection = "#c2c6be16"
+workbench_viewport_floor_panel = "#ffffff06"
+workbench_viewport_prop = "#202528"
+workbench_viewport_prop_top = "#2a3035"
+workbench_viewport_cargo_inner = "#00000000"
+workbench_viewport_light = "#d9e6e980"
+workbench_viewport_light_soft = "#d9e6e9c7"
+workbench_viewport_gizmo_cube = "#315d9f"
+workbench_axis_x = "#ef493f"
+workbench_axis_y = "#58d05e"
+workbench_axis_z = "#3990ff"
+
+[[stylesheets]]
+id = "editor_workbench_spatial"
+
+[[stylesheets.rules]]
+selector = ".workbench-transform-row"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text_muted"
+
+[[stylesheets.rules]]
+selector = ".workbench-transform-row-label"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text_muted"
+
+[[stylesheets.rules]]
+selector = ".workbench-axis-value-field"
+[stylesheets.rules.set.self]
+background_color = "$workbench_field"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = "$editor.control.border_width"
+radius = "$editor.control.radius.control"
+
+[[stylesheets.rules]]
+selector = ".workbench-axis-label"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel"
+foreground_color = "$workbench_text_muted"
+
+[[stylesheets.rules]]
+selector = ".workbench-axis-x"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_axis_x"
+
+[[stylesheets.rules]]
+selector = ".workbench-axis-y"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_axis_y"
+
+[[stylesheets.rules]]
+selector = ".workbench-axis-z"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_axis_z"
+
+[[stylesheets.rules]]
+selector = ".workbench-transform-title"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_text_muted"
+
+[[stylesheets.rules]]
+selector = ".workbench-mesh-title"
+[stylesheets.rules.set.self]
+foreground_color = "$workbench_mesh_title_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-panel"
+[stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border"
+border_width = 1.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-toolbar"
+[stylesheets.rules.set.self]
+background_color = "$workbench_surface"
+border_color = "$workbench_border"
+border_width = 1.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-surface"
+[stylesheets.rules.set.self]
+background_color = "$workbench_inset"
+foreground_color = "$workbench_text_muted"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-backdrop"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_backdrop"
+border_width = 0.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-ceiling"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_ceiling"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-wall"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_wall"
+border_color = "$workbench_border"
+border_width = 1.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-wall-detail-center-lines"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_wall_detail_center_lines"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 1.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-rack-left"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_rack_left"
+border_color = "$workbench_viewport_handrail"
+border_width = 1.0
+radius = 1.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-side"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_side"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-side-stairs"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_side_stairs"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 1.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-door"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_door"
+border_color = "$workbench_border"
+border_width = 1.0
+radius = 4.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-door-core"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_door_core"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 2.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-column"
+[stylesheets.rules.set.self]
+background_color = "$workbench_warning_surface"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 2.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-beacon"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_beacon"
+border_width = 0.0
+radius = 2.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-lightwash-left"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_lightwash_left"
+border_width = 0.0
+radius = 72.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-lightwash-center"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_lightwash_center"
+border_width = 0.0
+radius = 76.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-lightwash-lower"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_lightwash_lower"
+border_width = 0.0
+radius = 96.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-lightwash-floor"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_lightwash_floor"
+border_width = 0.0
+radius = 80.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-lightwash-floor-cool"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_lightwash_floor_cool"
+border_width = 0.0
+radius = 74.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-lightwash-floor-right"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_lightwash_floor_right"
+border_width = 0.0
+radius = 64.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-lightwash-wall-right"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_lightwash_wall_right"
+border_width = 0.0
+radius = 60.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-lightwash-rear-walkway"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_lightwash_rear_walkway"
+border_width = 0.0
+radius = 20.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-shadow-top-bay"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_shadow_top"
+border_width = 0.0
+radius = 52.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-shadow-ceiling-left"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_shadow_ceiling_left"
+border_width = 0.0
+radius = 40.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-shadow-ceiling-mid"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_shadow_ceiling_mid"
+border_width = 0.0
+radius = 42.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-shadow-left-floor"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_shadow_left_floor"
+border_width = 0.0
+radius = 46.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-shadow-right-floor"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_shadow_floor"
+border_width = 0.0
+radius = 84.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-floor"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_floor"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-grid-line"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_grid"
+border_width = 0.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-grid-major"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_grid_major"
+border_width = 0.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-floor-seam"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_floor_seam"
+border_width = 0.0
+radius = 0.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-floor-reflection"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_reflection"
+border_width = 0.0
+radius = 60.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-floor-grate"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_floor_grate"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 1.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-floor-panel"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_floor_panel"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 1.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-light"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_light"
+border_width = 0.0
+radius = 4.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-light-soft"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_light_soft"
+border_width = 0.0
+radius = 4.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-handrail"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_handrail"
+border_width = 0.0
+radius = 1.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-cargo"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_prop_top"
+border_color = "$workbench_border"
+border_width = 1.0
+radius = 4.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-cargo-inner"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_cargo_inner"
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 2.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-prop"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_prop"
+border_color = "$workbench_border"
+border_width = 1.0
+radius = 4.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-prop-top"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_prop_top"
+border_color = "$workbench_border"
+border_width = 1.0
+radius = 4.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-selection"
+[stylesheets.rules.set.self]
+background_color = "$workbench_accent_2"
+border_width = 0.0
+radius = 1.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-axis-x"
+[stylesheets.rules.set.self]
+background_color = "$workbench_axis_x"
+border_width = 0.0
+radius = 2.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-axis-y"
+[stylesheets.rules.set.self]
+background_color = "$workbench_axis_y"
+border_width = 0.0
+radius = 2.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-axis-z"
+[stylesheets.rules.set.self]
+background_color = "$workbench_axis_z"
+border_width = 0.0
+radius = 2.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-gizmo-panel"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_cargo_inner"
+border_color = "$workbench_viewport_cargo_inner"
+border_width = 0.0
+radius = 3.0
+
+[[stylesheets.rules]]
+selector = ".workbench-viewport-gizmo-center"
+[stylesheets.rules.set.self]
+background_color = "$workbench_viewport_gizmo_cube"
+border_width = 0.0
+radius = 2.0
+
+

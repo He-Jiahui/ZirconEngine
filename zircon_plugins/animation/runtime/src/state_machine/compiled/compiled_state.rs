@@ -7,6 +7,34 @@ use crate::{BlendSpace1D, BlendSpace2D};
 
 pub(crate) type CompiledGraphSamples<'a> = [Option<(&'a AssetReference, Real)>; 3];
 
+#[derive(Debug)]
+pub(crate) struct StateMachineBlendSamplingState {
+    triangle_hints: Box<[Option<usize>]>,
+}
+
+impl StateMachineBlendSamplingState {
+    pub(crate) fn new(state_count: usize) -> Self {
+        Self {
+            triangle_hints: vec![None; state_count].into_boxed_slice(),
+        }
+    }
+
+    pub(crate) fn ensure_state_count(&mut self, state_count: usize) {
+        if self.triangle_hints.len() != state_count {
+            self.triangle_hints = vec![None; state_count].into_boxed_slice();
+        }
+    }
+
+    pub(crate) fn triangle_hint_mut(&mut self, state_index: usize) -> Option<&mut Option<usize>> {
+        self.triangle_hints.get_mut(state_index)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn triangle_hint(&self, state_index: usize) -> Option<usize> {
+        self.triangle_hints.get(state_index).copied().flatten()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(super) enum CompiledStateKind {
     Clip(AssetReference),
@@ -33,7 +61,15 @@ pub(super) struct CompiledState {
 impl CompiledState {
     pub(super) fn graph_samples<'a>(
         &'a self,
-        values: &[Option<&AnimationParameterValue>],
+        values: &[Option<AnimationParameterValue>],
+    ) -> CompiledGraphSamples<'a> {
+        self.graph_samples_with_hint(values, None)
+    }
+
+    pub(super) fn graph_samples_with_hint<'a>(
+        &'a self,
+        values: &[Option<AnimationParameterValue>],
+        triangle_hint: Option<&mut Option<usize>>,
     ) -> CompiledGraphSamples<'a> {
         match &self.kind {
             CompiledStateKind::Clip(_) => [None, None, None],
@@ -44,7 +80,7 @@ impl CompiledState {
                 graphs,
             } => {
                 let Some(AnimationParameterValue::Scalar(value)) =
-                    values.get(parameter.index()).and_then(|value| *value)
+                    values.get(parameter.index()).and_then(Option::as_ref)
                 else {
                     return [None, None, None];
                 };
@@ -64,13 +100,19 @@ impl CompiledState {
                 graphs,
             } => {
                 let Some(AnimationParameterValue::Vec2(value)) =
-                    values.get(parameter.index()).and_then(|value| *value)
+                    values.get(parameter.index()).and_then(Option::as_ref)
                 else {
                     return [None, None, None];
                 };
-                let Some(weights) = blend.sample(Vec2::from_array(*value)) else {
+                let retained_hint = triangle_hint.as_ref().and_then(|hint| **hint);
+                let Some((weights, next_hint)) =
+                    blend.sample_with_hint(Vec2::from_array(*value), retained_hint)
+                else {
                     return [None, None, None];
                 };
+                if let (Some(hint), Some(next_hint)) = (triangle_hint, next_hint) {
+                    *hint = Some(next_hint);
+                }
                 let pairs = weights.as_pairs();
                 [
                     graph_sample(graphs, pairs[0]),

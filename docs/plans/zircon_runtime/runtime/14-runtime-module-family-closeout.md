@@ -26,7 +26,7 @@ last_refined: 2026-08-01
 
 # 14 运行时模块族完备性收尾（animation / navigation / diagnostic_log / engine_module）
 
-2026-08-01 current-source owner sync：`module_family_boundary` 报告 `expected_family_count = 4`、`animation = 17`、`navigation = 15`、`diagnostic_log = 31`、`engine_module = 8`，全部 missing/file-count/risk 列表为空。计数包含各族目录下的嵌套测试与 folder-backed owner；它只用于发现未同步的结构变化，不代表行为完成度。navigation 的 `operation/{mod,handler,registration}.rs`、`repath_budget.rs` 与 `runtime/baked_mesh/{query_scratch,spatial_index}.rs` 已纳入当前 owner 镜像，不改变 fallback runtime manager、crate-root seat 或 editor/plugin 边界。下方 9-file/28-file/7-file 记录保留为历史证据；当前镜像只由本计划、Runtime14 当前编号记录和对应模块文档维护，不再要求 Runtime15 历史归档复制最新计数。
+2026-08-30 current-source owner sync：`module_family_boundary` 报告 `expected_family_count = 4`、`animation = 21`、`navigation = 16`、`diagnostic_log = 32`、`engine_module = 8`，全部 missing/file-count/risk 列表为空。计数包含各族目录下的嵌套测试与 folder-backed owner；它只用于发现未同步的结构变化，不代表行为完成度。navigation 的 `operation/{mod,handler,registration}.rs`、`repath_budget.rs`、`runtime/baked_mesh/{query_scratch,spatial_index}.rs` 与 `runtime/state/repath_entry_tests.rs` 已纳入当前 owner 镜像，不改变 fallback runtime manager、crate-root seat 或 editor/plugin 边界。下方 9-file/28-file/7-file 记录保留为历史证据；当前镜像只由本计划、Runtime14 当前编号记录和对应模块文档维护，不再要求 Runtime15 历史归档复制最新计数。
 
 Current audit anchors: `root_seat_guard_present = true`, `animation_status_json_guard_present = true`, `animation_status_json_anchor_count = 8`, `missing_animation_status_json_anchors = []`, `module_family_guard_anchor_count = 7`, `missing_module_family_guard_anchors = []`, `cargo_gate_anchor_count = 5`, `missing_cargo_gate_anchors = []`, `risks = []`, and `runtime_14_module_family_mirror_docs_match_structure_audit_counts`.
 
@@ -100,7 +100,7 @@ Current audit anchors: `root_seat_guard_present = true`, `animation_status_json_
 
 ### 已处理
 
-- 顶部 current-source sync、Python 结构审计与 Rust 镜像守卫均已采用当前基线：animation = 17、navigation = 15、diagnostic_log = 31、engine_module = 8；navigation 的 `operation/{mod,handler,registration}.rs`、`repath_budget.rs` 与 `runtime/baked_mesh/{query_scratch,spatial_index}.rs` 已纳入 owner 镜像。
+- 顶部 current-source sync、Python 结构审计与 Rust 镜像守卫均已采用当前基线：animation = 21、navigation = 16、diagnostic_log = 32、engine_module = 8；navigation 的 `operation/{mod,handler,registration}.rs`、`repath_budget.rs`、`runtime/baked_mesh/{query_scratch,spatial_index}.rs` 与 `runtime/state/repath_entry_tests.rs` 已纳入 owner 镜像。
 - 「现状与证据」中的 animation = 28、navigation = 9、diagnostic_log = 7 保留为 2026-06-13 历史快照，不再作为当前源码事实或验收基线；当前文件清单以顶部 sync、模块文档与结构守卫为准。
 
 ### 仍开放

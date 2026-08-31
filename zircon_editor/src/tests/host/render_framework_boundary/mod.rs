@@ -83,7 +83,7 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
     );
     assert!(
         viewport_redraw_source.contains("poll_captured_frame()")
-            && viewport_redraw_source.contains("set_viewport_capture(viewport, frame)")
+            && viewport_redraw_source.contains("set_scene_viewport_capture(viewport, frame)")
             && host_viewport_image_production_source.contains("rgba: frame.rgba")
             && host_viewport_image_production_source
                 .contains("viewport_image_resource_key(viewport, generation)")
@@ -133,6 +133,9 @@ fn retained_host_composition_owns_runtime_lifetime_outside_viewport_state() {
         include_str!("../../../ui/retained_host/app/host_lifecycle/startup/constructors.rs");
     let startup_source =
         include_str!("../../../ui/retained_host/app/host_lifecycle/startup/with_viewport.rs");
+    let startup_managers_source =
+        include_str!("../../../ui/retained_host/app/host_lifecycle/startup/resources/managers.rs");
+    let runtime_lease_source = include_str!("../../../ui/retained_host/app/runtime_lease.rs");
     let construction_input_source = include_str!(
         "../../../ui/retained_host/app/host_lifecycle/startup/state/construction/input.rs"
     );
@@ -147,7 +150,12 @@ fn retained_host_composition_owns_runtime_lifetime_outside_viewport_state() {
     assert!(
         app_source.contains("runtime_lease: RetainedHostRuntimeLease")
             && constructors_source.contains("RetainedHostRuntimeLease::new(core)")
-            && startup_source.contains("runtime_lease.bootstrap_core()")
+            && startup_source.contains("runtime_lease.startup_access()")
+            && startup_managers_source.contains("RetainedHostStartupRuntimeAccess")
+            && !startup_managers_source.contains("CoreHandle")
+            && !startup_managers_source.contains("resolve_manager::<EditorManager>")
+            && runtime_lease_source.contains("struct RetainedHostStartupRuntimeAccess")
+            && runtime_lease_source.contains("CoreWeak")
             && construction_input_source.contains("runtime_lease:")
             && construction_input_source.contains("RetainedHostRuntimeLease")
             && assembly_source.contains("runtime_lease,")

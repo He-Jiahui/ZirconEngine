@@ -52,7 +52,7 @@ pub(super) fn dropdown_label(node: &TemplatePaneNodeData) -> (String, bool) {
     }
     let fallback = node
         .options
-        .row_data(0)
+        .get(0)
         .map(|value| value.to_string())
         .unwrap_or_default();
     (fallback, true)

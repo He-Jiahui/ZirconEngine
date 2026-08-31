@@ -61,10 +61,13 @@ tests:
 
 ## 修复结果与回传
 
-Open state：`architecture handoff pending`。Editor01 只完成 `core/ -> ui` 静态单向守卫；当前工作树仍有 UI raw runtime inventory，且无 immutable Cargo、独立 review 或 Editor04 domain-routing acceptance。Editor04 在 typed dual-domain routing、focused regressions、managed validation、review 和 fixed return 完成前，不得把本交接关闭。
+Open state：`source_hardcut_complete / managed_validation_and_fixed_return_pending`。typed dual-domain routing、Edit 域命名边界、focused source contract 与 UI raw world-owner guard 已落地；尚无 immutable Cargo、产品零污染验收或 fixed return，因此本记录仍保持 open。
 
 ## 产出记录与时间
 
 | 时间 | 状态 | 完成项目与证据 |
 | --- | --- | --- |
+| 2026-08-27 CST | `authoring_gateway_name_hardcut_source_complete / managed_validation_pending` | 复读 current source 与 Unreal `FWorldContext` 的 `Editor`/`PIE` 分域后，确认 Zircon 数据 owner 已分开，但 `EditorContext.gateway()` / builder `with_gateway()` 仍保留可替换通用 transport 的旧语义。现已无兼容别名硬切为 `authoring_gateway` / `with_authoring_gateway`，Edit 路由显式消费 authoring owner，Play 仍只从 `PlaySessionController::play_gateway(instance)` 取得；旧 context/builder accessor 与调用点扫描为 0。新 Python 合同 2/2 先 RED 后 GREEN，联跑 Editor04 现有 Play 合同合计 9/9 GREEN；scoped rustfmt 通过。Editor03 旧源码字符串合同仍有 7 项与既有 App/EditorState/Gizmo 重构漂移失败，未为迎合其恢复旧架构；未运行 Cargo，failure 继续 open。 |
+| 2026-08-26 CST | `embedded_session_ownership_source_complete / viewport_and_managed_acceptance_pending` | App-owned factory 从重校验的同一 BuildSet 创建独立 runtime-profile session，Editor 仅持 gateway + opaque retirement lease；authoring `editor` profile 不进入 play domain。start 自动 attach，terminal 统一 consumer stop -> backend stop -> identity detach -> lease retire，outstanding owner/destroy failure可重试；欢迎页后开工程同样已有 embedded backend。相关 Python 21/21、scoped format/diff/source audit 通过。UI 双域深迁移、PIE viewport、真实 session/零污染、managed Cargo 与独立 review 尚未完成，failure 继续 open；详见 [M2 基础设施子记录](2026-08-26-play-domain-startup-hardcut.md)。 |
+| 2026-08-26 CST | `source_hardcut_static_green / embedded_session_and_managed_validation_pending` | retained startup 已删除把 projectless editor-profile `runtime_gateway` 无条件 attach 到 play domain 的临时路径；无明确 gateway 的 backend 默认 `attachable=false`。normal stop、consumer-start compensation、crash、project close 与 host shutdown 统一走 active-mode refusal 和 identity-qualified terminal detach，16 个 Editor04 Python 合同、scoped rustfmt/diff/source scan 通过。P2 App session factory、DTO world payload、viewport、两阶段 destroy、Cargo/产品零污染证据未完成，failure 保持 open；详见 [M2 前置子记录](2026-08-26-play-domain-startup-hardcut.md)。 |
 | 2026-07-29 CST | `OPEN / architecture handoff` | Editor01 M2.4 清点发现 `set_runtime_gateway` 覆盖 context gateway、SessionGateway 依法拒绝 borrowed-world access，而 UI edit state 仍直接持有 `LevelSystem`。该三点构成 authoring/runtime ownership 冲突；未修改 Editor04 生产代码、未启动 Cargo。交给 Editor04 的 Edit/Play 双域 gateway 与 attach lifecycle owner 处理。 |

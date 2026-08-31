@@ -16,8 +16,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/construction.rs
   - zircon_runtime/src/script/vm/gameplay_host/input.rs
   - zircon_runtime/src/script/vm/gameplay_host/values.rs
-  - zircon_runtime_interface/src/runtime_api/events.rs
-  - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/session/events.rs
+  - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
   - zircon_app/src/entry/runtime_entry_app/keyboard_input
   - zircon_app/src/entry/runtime_entry_app/pointer_input
   - zircon_app/src/entry/runtime_entry_app/ime_input

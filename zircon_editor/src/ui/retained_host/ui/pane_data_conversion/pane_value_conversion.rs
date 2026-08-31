@@ -54,24 +54,36 @@ pub(super) fn value_as_color(value: &Value) -> Option<crate::ui::retained_host::
 
 fn parse_hex_color(value: &str) -> Option<crate::ui::retained_host::primitives::Color> {
     let hex = value.strip_prefix('#')?;
+    let hex = hex.as_bytes();
     match hex.len() {
         6 => Some(crate::ui::retained_host::primitives::Color::from_rgb_u8(
-            parse_hex_pair(&hex[0..2])?,
-            parse_hex_pair(&hex[2..4])?,
-            parse_hex_pair(&hex[4..6])?,
+            decode_hex_byte(hex, 0)?,
+            decode_hex_byte(hex, 2)?,
+            decode_hex_byte(hex, 4)?,
         )),
         8 => Some(crate::ui::retained_host::primitives::Color::from_argb_u8(
-            parse_hex_pair(&hex[6..8])?,
-            parse_hex_pair(&hex[0..2])?,
-            parse_hex_pair(&hex[2..4])?,
-            parse_hex_pair(&hex[4..6])?,
+            decode_hex_byte(hex, 6)?,
+            decode_hex_byte(hex, 0)?,
+            decode_hex_byte(hex, 2)?,
+            decode_hex_byte(hex, 4)?,
         )),
         _ => None,
     }
 }
 
-fn parse_hex_pair(value: &str) -> Option<u8> {
-    u8::from_str_radix(value, 16).ok()
+fn decode_hex_byte(encoded: &[u8], offset: usize) -> Option<u8> {
+    let high = decode_hex_digit(*encoded.get(offset)?)?;
+    let low = decode_hex_digit(*encoded.get(offset + 1)?)?;
+    Some((high << 4) | low)
+}
+
+fn decode_hex_digit(encoded: u8) -> Option<u8> {
+    match encoded {
+        b'0'..=b'9' => Some(encoded - b'0'),
+        b'a'..=b'f' => Some(encoded - b'a' + 10),
+        b'A'..=b'F' => Some(encoded - b'A' + 10),
+        _ => None,
+    }
 }
 
 pub(super) fn value_as_options(value: &Value) -> Option<Vec<String>> {
@@ -88,3 +100,7 @@ pub(super) fn value_as_options(value: &Value) -> Option<Vec<String>> {
         Some(options)
     }
 }
+
+#[cfg(test)]
+#[path = "pane_value_conversion/direct_hex_color_tests.rs"]
+mod direct_hex_color_tests;

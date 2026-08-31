@@ -86,11 +86,11 @@ impl RuntimeCapabilities {
             .into_iter()
             .map(Into::into)
             .collect::<Vec<_>>();
-        core_capabilities.sort();
+        core_capabilities.sort_unstable();
         core_capabilities.dedup();
 
         let mut plugin_summary = plugin_summary.into_iter().collect::<Vec<_>>();
-        plugin_summary.sort_by(|left, right| {
+        plugin_summary.sort_unstable_by(|left, right| {
             (&left.id, &left.version, left.activation).cmp(&(
                 &right.id,
                 &right.version,
@@ -164,3 +164,7 @@ impl RuntimeCapabilities {
             .clone()
     }
 }
+
+#[cfg(test)]
+#[path = "capabilities/optimization_tests.rs"]
+mod optimization_tests;

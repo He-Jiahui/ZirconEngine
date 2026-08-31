@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 use super::{
     append_class, bool_attribute, bool_attribute_any, bool_from_attributes_any, mui_slot_name,
-    pascal_case, string_attribute_any, string_from_attributes_any,
+    pascal_case, string_attribute_any,
 };
 
 pub(super) fn append_bottom_navigation_action_classes(node: &mut UiTemplateNode, prefix: &str) {
@@ -15,12 +15,10 @@ pub(super) fn append_bottom_navigation_action_classes(node: &mut UiTemplateNode,
 }
 
 pub(super) fn append_link_classes(node: &mut UiTemplateNode, prefix: &str) {
-    let underline = string_attribute_any(node, &["underline"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "always".to_string());
+    let underline = borrowed_navigation_attribute(&node.attributes, &["underline"], "always");
     append_class(
         &mut node.classes,
-        format!("{prefix}-underline{}", pascal_case(&underline)),
+        format!("{prefix}-underline{}", pascal_case(underline)),
     );
 
     if string_attribute_any(node, &["component"]).as_deref() == Some("button") {
@@ -44,26 +42,22 @@ pub(super) fn append_menu_item_classes(node: &mut UiTemplateNode, prefix: &str) 
 }
 
 pub(super) fn append_pagination_classes(node: &mut UiTemplateNode, prefix: &str) {
-    let variant = string_attribute_any(node, &["variant", "mui_variant"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "text".to_string());
+    let variant =
+        borrowed_navigation_attribute(&node.attributes, &["variant", "mui_variant"], "text");
     append_class(&mut node.classes, format!("{prefix}-{variant}"));
 }
 
 pub(super) fn append_pagination_item_classes(node: &mut UiTemplateNode, prefix: &str) {
-    let size = string_attribute_any(node, &["size", "mui_size"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "medium".to_string());
-    if matches!(size.as_str(), "small" | "large") {
+    let size = borrowed_navigation_attribute(&node.attributes, &["size", "mui_size"], "medium");
+    if matches!(size, "small" | "large") {
         append_class(
             &mut node.classes,
-            format!("{prefix}-size{}", pascal_case(&size)),
+            format!("{prefix}-size{}", pascal_case(size)),
         );
     }
 
-    let variant = string_attribute_any(node, &["variant", "mui_variant"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "text".to_string());
+    let variant =
+        borrowed_navigation_attribute(&node.attributes, &["variant", "mui_variant"], "text");
     append_class(&mut node.classes, format!("{prefix}-{variant}"));
 
     if string_attribute_any(node, &["shape"]).as_deref() == Some("rounded") {
@@ -79,10 +73,8 @@ pub(super) fn append_pagination_item_classes(node: &mut UiTemplateNode, prefix: 
         );
     }
 
-    let item_type = string_attribute_any(node, &["type"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "page".to_string());
-    let class_suffix = match item_type.as_str() {
+    let item_type = borrowed_navigation_attribute(&node.attributes, &["type"], "page");
+    let class_suffix = match item_type {
         "first" | "last" => Some("firstLast"),
         "next" | "previous" => Some("previousNext"),
         "start-ellipsis" | "end-ellipsis" => Some("ellipsis"),
@@ -173,12 +165,11 @@ pub(super) fn append_tab_classes(node: &mut UiTemplateNode, prefix: &str) {
     if tab_has_icon(node) && tab_has_label(node) {
         append_class(&mut node.classes, format!("{prefix}-labelIcon"));
     }
-    let text_color = string_attribute_any(node, &["textColor", "text_color"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "inherit".to_string());
+    let text_color =
+        borrowed_navigation_attribute(&node.attributes, &["textColor", "text_color"], "inherit");
     append_class(
         &mut node.classes,
-        format!("{prefix}-textColor{}", pascal_case(&text_color)),
+        format!("{prefix}-textColor{}", pascal_case(text_color)),
     );
     if bool_attribute_any(node, &["fullWidth", "full_width"]) {
         append_class(&mut node.classes, format!("{prefix}-fullWidth"));
@@ -205,11 +196,14 @@ pub(super) fn append_step_connector_line_slot_classes(
     child: &mut UiTemplateNode,
     owner_attributes: &BTreeMap<String, Value>,
 ) {
-    let orientation = string_from_attributes_any(owner_attributes, &["orientation"])
-        .unwrap_or_else(|| "horizontal".to_string());
+    let orientation = borrowed_navigation_attribute_from_attributes(
+        owner_attributes,
+        &["orientation"],
+        "horizontal",
+    );
     append_class(
         &mut child.classes,
-        format!("MuiStepConnector-line{}", pascal_case(&orientation)),
+        format!("MuiStepConnector-line{}", pascal_case(orientation)),
     );
 }
 
@@ -238,10 +232,16 @@ pub(super) fn append_tabs_slot_classes(
     owner_attributes: &BTreeMap<String, Value>,
     slot_name: &str,
 ) {
-    let orientation = string_from_attributes_any(owner_attributes, &["orientation"])
-        .unwrap_or_else(|| "horizontal".to_string());
-    let variant = string_from_attributes_any(owner_attributes, &["variant", "mui_variant"])
-        .unwrap_or_else(|| "standard".to_string());
+    let orientation = borrowed_navigation_attribute_from_attributes(
+        owner_attributes,
+        &["orientation"],
+        "horizontal",
+    );
+    let variant = borrowed_navigation_attribute_from_attributes(
+        owner_attributes,
+        &["variant", "mui_variant"],
+        "standard",
+    );
 
     match slot_name {
         "scroller" if variant == "scrollable" => {
@@ -342,10 +342,34 @@ pub(super) fn append_transfer_list_slot_classes(
 }
 
 fn append_orientation_class(node: &mut UiTemplateNode, prefix: &str) {
-    let orientation = string_attribute_any(node, &["orientation"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "horizontal".to_string());
+    let orientation =
+        borrowed_navigation_attribute(&node.attributes, &["orientation"], "horizontal");
     append_class(&mut node.classes, format!("{prefix}-{orientation}"));
+}
+
+fn borrowed_navigation_attribute<'a>(
+    attributes: &'a BTreeMap<String, Value>,
+    names: &[&str],
+    default: &'a str,
+) -> &'a str {
+    borrowed_navigation_attribute_from_attributes(attributes, names, default)
+}
+
+fn borrowed_navigation_attribute_from_attributes<'a>(
+    attributes: &'a BTreeMap<String, Value>,
+    names: &[&str],
+    default: &'a str,
+) -> &'a str {
+    names
+        .iter()
+        .find_map(|name| {
+            attributes
+                .get(*name)
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+        })
+        .unwrap_or(default)
 }
 
 fn append_owner_state_classes(
@@ -416,3 +440,7 @@ fn tab_has_icon(node: &UiTemplateNode) -> bool {
 fn tab_has_label(node: &UiTemplateNode) -> bool {
     string_attribute_any(node, &["label", "text"]).is_some_and(|value| !value.is_empty())
 }
+
+#[cfg(test)]
+#[path = "mui_navigation_classes/borrowed_default_tests.rs"]
+mod borrowed_default_tests;

@@ -20,86 +20,92 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
     unavailable: bool,
     opacity: f32,
 ) -> Option<f32> {
-    if matches!(kind, DialogKind::ConfirmDialog) {
-        let confirm = action_label(node, 1).unwrap_or_else(|| "Confirm".to_string());
-        let confirm_width = action_width(&confirm);
-        let confirm_enabled = style::confirm_enabled(node) && !unavailable;
-        let cancel = action_label(node, 0).unwrap_or_else(|| "Cancel".to_string());
-        let frames = confirm_action_frames(rect, action_width(&cancel), confirm_width);
-        let cancel_paint = style::cancel_action_paint(unavailable);
-        let confirm_paint = style::confirm_action_paint(node, unavailable, confirm_enabled);
-        push_dialog_action_surface(
-            commands,
-            rect,
-            frames.cancel.clone(),
-            clip,
-            order + 4,
-            cancel_paint,
-            opacity,
-        );
-        push_dialog_action_text(
-            commands,
-            rect,
-            action_text_frame(&frames.cancel, &cancel),
-            clip,
-            order + 5,
-            cancel,
-            cancel_paint.text,
-            opacity,
-        );
-        push_dialog_action_surface(
-            commands,
-            rect,
-            frames.confirm.clone(),
-            clip,
-            order + 6,
-            confirm_paint,
-            opacity,
-        );
-        push_dialog_action_text(
-            commands,
-            rect,
-            action_text_frame(&frames.confirm, &confirm),
-            clip,
-            order + 7,
-            confirm,
-            confirm_paint.text,
-            opacity,
-        );
-        return Some(frames.cancel.y);
+    match kind {
+        DialogKind::ConfirmDialog => {
+            let confirm = action_label(node, 1).unwrap_or_else(|| "Confirm".to_string());
+            let confirm_width = action_width(&confirm);
+            let confirm_enabled = style::confirm_enabled(node) && !unavailable;
+            let cancel = action_label(node, 0).unwrap_or_else(|| "Cancel".to_string());
+            let frames = confirm_action_frames(rect, action_width(&cancel), confirm_width);
+            let cancel_paint = style::cancel_action_paint(unavailable);
+            let confirm_paint = style::confirm_action_paint(node, unavailable, confirm_enabled);
+            push_dialog_action_surface(
+                commands,
+                rect,
+                frames.cancel.clone(),
+                clip,
+                order + 4,
+                cancel_paint,
+                opacity,
+            );
+            push_dialog_action_text(
+                commands,
+                rect,
+                action_text_frame(&frames.cancel, &cancel),
+                clip,
+                order + 5,
+                cancel,
+                cancel_paint.text,
+                opacity,
+            );
+            push_dialog_action_surface(
+                commands,
+                rect,
+                frames.confirm.clone(),
+                clip,
+                order + 6,
+                confirm_paint,
+                opacity,
+            );
+            push_dialog_action_text(
+                commands,
+                rect,
+                action_text_frame(&frames.confirm, &confirm),
+                clip,
+                order + 7,
+                confirm,
+                confirm_paint.text,
+                opacity,
+            );
+            return Some(frames.cancel.y);
+        }
+        DialogKind::AlertDialog => {
+            push_legacy_confirm_actions(commands, node, rect, clip, order, unavailable, opacity);
+            None
+        }
+        _ => {
+            let Some(action) = action_label(node, 0) else {
+                return None;
+            };
+            let frame = single_action_frame(rect, action_width(&action));
+            let paint = style::dialog_action_paint(unavailable);
+            push_dialog_action_surface(
+                commands,
+                rect,
+                frame.clone(),
+                clip,
+                order + 4,
+                paint,
+                opacity,
+            );
+            push_dialog_action_text(
+                commands,
+                rect,
+                action_text_frame(&frame, &action),
+                clip,
+                order + 5,
+                action,
+                paint.text,
+                opacity,
+            );
+            Some(frame.y)
+        }
     }
-
-    if matches!(kind, DialogKind::AlertDialog) {
-        push_legacy_confirm_actions(commands, node, rect, clip, order, unavailable, opacity);
-        return None;
-    }
-
-    let Some(action) = action_label(node, 0) else {
-        return None;
-    };
-    let frame = single_action_frame(rect, action_width(&action));
-    let paint = style::dialog_action_paint(unavailable);
-    push_dialog_action_surface(
-        commands,
-        rect,
-        frame.clone(),
-        clip,
-        order + 4,
-        paint,
-        opacity,
-    );
-    push_dialog_action_text(
-        commands,
-        rect,
-        action_text_frame(&frame, &action),
-        clip,
-        order + 5,
-        action,
-        paint.text,
-        opacity,
-    );
-    Some(frame.y)
 }
+
+#[cfg(test)]
+#[path = "commands/dialog_kind_dispatch_tests.rs"]
+mod dialog_kind_dispatch_tests;
 
 #[derive(Clone, Debug)]
 struct ConfirmActionFrames {

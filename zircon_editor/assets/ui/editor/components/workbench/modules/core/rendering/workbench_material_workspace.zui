@@ -9,10 +9,10 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
 ]
 styles = []
@@ -22,24 +22,47 @@ root = "material_workspace"
 default_classes = ["workbench-module-body"]
 
 [nodes.material_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchModuleMaterialWorkspace"
 classes = ["workbench-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "material_rail_gap" }, { node = "material_left" }, { node = "material_center" }, { node = "material_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "material_workspace_main" },
+  { node = "material_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.material_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "material_rail_gap" }, { node = "material_left" }, { node = "material_center" }, { node = "material_right_reserve" }]
+
+[nodes.material_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.material_rail_gap]
 component = "Container"
 control_id = "WorkbenchMaterialRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.material_left]
 component = "VerticalGroup"
 control_id = "WorkbenchMaterialLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "material_title" }, { node = "material_graph_tab" }, { node = "material_preview_tab" }, { node = "material_shader_tab" }, { node = "material_base_color_row" }, { node = "material_normal_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "material_title" }, { node = "material_left_content" }]
+
+[nodes.material_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchMaterialLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "material_base_color_row" }, { node = "material_roughness_row" }, { node = "material_normal_row" }]
 
 [nodes.material_title]
 component = "WorkbenchSectionTitle"
@@ -48,43 +71,27 @@ classes = ["workbench-section-title"]
 props = { text = "Material" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
-[nodes.material_graph_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchMaterialGraphTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Graph", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialGraphTab", event = "Click", route = "workbench.module.material.graph" }]
-
-[nodes.material_preview_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchMaterialPreviewTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Preview", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialPreviewTab", event = "Click", route = "workbench.module.material.preview" }]
-
-[nodes.material_shader_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchMaterialShaderTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Shader", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialShaderTab", event = "Click", route = "workbench.module.material.shader" }]
-
 [nodes.material_base_color_row]
 component = "WorkbenchListRow"
 control_id = "WorkbenchMaterialBaseColorRow"
 classes = ["workbench-list-row"]
-props = { text = "Base Color", value = "base_color", selected = true, checked = true }
+props = { text = "Base Color", value = "base_color" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/MaterialBaseColorRow", event = "Click", route = "workbench.module.material.base_color" }]
+
+[nodes.material_roughness_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchMaterialRoughnessRow"
+classes = ["workbench-list-row"]
+props = { text = "Roughness", value = "roughness" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/MaterialRoughnessRow", event = "Click", route = "workbench.module.material.roughness" }]
 
 [nodes.material_normal_row]
 component = "WorkbenchListRow"
 control_id = "WorkbenchMaterialNormalRow"
 classes = ["workbench-list-row"]
-props = { text = "Normal Map", value = "normal_map", selected = false }
+props = { text = "Normal Map", value = "normal_map" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/MaterialNormalRow", event = "Click", route = "workbench.module.material.normal" }]
 
@@ -92,13 +99,13 @@ events = [{ id = "WorkbenchModule/MaterialNormalRow", event = "Click", route = "
 component = "VerticalGroup"
 control_id = "WorkbenchMaterialCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "material_center_header" }, { node = "material_graph_canvas" }, { node = "material_output" }]
 
 [nodes.material_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchMaterialCenterHeader"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
 children = [{ node = "material_center_title" }, { node = "material_header_fill" }, { node = "material_compile_button" }]
 
 [nodes.material_center_title]
@@ -117,16 +124,16 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchMaterialCompileButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Compile", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Compile", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/MaterialCompile", event = "Click", route = "workbench.module.material.compile" }]
 
 [nodes.material_graph_canvas]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchMaterialGraphCanvas"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.regular", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "material_node_row_01" }, { node = "material_node_row_02" }, { node = "material_node_row_03" }]
 
 [nodes.material_node_row_01]
@@ -157,16 +164,23 @@ events = [{ id = "WorkbenchModule/MaterialNodeNormal", event = "Click", route = 
 component = "WorkbenchListRow"
 control_id = "WorkbenchMaterialOutputRow"
 classes = ["workbench-list-row"]
-props = { text = "Shader Output: 0 errors, 2 warnings", value = "material_output" }
+props = { text = "Shader Output: 0 errors, 2 warnings", value = "material_output", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/MaterialOutput", event = "Click", route = "workbench.module.material.output" }]
 
 [nodes.material_right]
 component = "VerticalGroup"
 control_id = "WorkbenchMaterialRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "material_details_title" }, { node = "material_domain_dropdown" }, { node = "material_blend_dropdown" }, { node = "material_preview_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "material_details_title" }, { node = "material_right_content" }]
+
+[nodes.material_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchMaterialRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "material_domain_property_row" }, { node = "material_blend_property_row" }, { node = "material_preview_property_row" }]
 
 [nodes.material_details_title]
 component = "WorkbenchSectionTitle"
@@ -175,33 +189,54 @@ classes = ["workbench-section-title"]
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.material_domain_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchMaterialDomainPropertyRow"
+props = { text = "Domain" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "material_domain_dropdown", slot = { name = "value" } }]
+
 [nodes.material_domain_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchMaterialDomainDropdown"
 classes = ["workbench-field", "workbench-dropdown"]
-props = { value = "surface", value_text = "Surface", options = ["surface", "post_process", "decal"] }
+props = { value = "surface", value_text = "Surface", options = ["surface|label=Surface", "post_process|label=Post Process", "decal|label=Decal"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/MaterialDomainEdit", event = "Change", route = "workbench.module.material.domain.edit" },
   { id = "WorkbenchModule/MaterialDomainCommit", event = "Submit", route = "workbench.module.material.domain.commit" },
 ]
 
+[nodes.material_blend_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchMaterialBlendPropertyRow"
+props = { text = "Blend Mode" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "material_blend_dropdown", slot = { name = "value" } }]
+
 [nodes.material_blend_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchMaterialBlendDropdown"
 classes = ["workbench-field", "workbench-dropdown"]
-props = { value = "opaque", value_text = "Opaque", options = ["opaque", "masked", "translucent"] }
+props = { value = "opaque", value_text = "Opaque", options = ["opaque|label=Opaque", "masked|label=Masked", "translucent|label=Translucent"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/MaterialBlendEdit", event = "Change", route = "workbench.module.material.blend.edit" },
   { id = "WorkbenchModule/MaterialBlendCommit", event = "Submit", route = "workbench.module.material.blend.commit" },
 ]
 
+[nodes.material_preview_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchMaterialPreviewPropertyRow"
+props = { text = "Preview Mesh" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "material_preview_field", slot = { name = "value" } }]
+
 [nodes.material_preview_field]
 component = "WorkbenchField"
 control_id = "WorkbenchMaterialPreviewField"
 classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Preview Mesh: Sphere" }
+props = { value = "Sphere" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/MaterialPreviewEdit", event = "Change", route = "workbench.module.material.preview.edit" },

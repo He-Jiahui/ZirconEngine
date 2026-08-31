@@ -16,12 +16,23 @@ impl RenderMaterialLightingModel {
         matches!(self, Self::Unlit)
     }
 
-    pub fn as_token(&self) -> String {
+    const fn builtin_token(&self) -> Option<&'static str> {
         match self {
-            Self::Pbr => "pbr".to_string(),
-            Self::BlinnPhong => "blinn_phong".to_string(),
-            Self::Unlit => "unlit".to_string(),
-            Self::Custom { name } => format!("custom:{name}"),
+            Self::Pbr => Some("pbr"),
+            Self::BlinnPhong => Some("blinn_phong"),
+            Self::Unlit => Some("unlit"),
+            Self::Custom { .. } => None,
+        }
+    }
+
+    pub fn as_token(&self) -> String {
+        if let Some(token) = self.builtin_token() {
+            token.to_owned()
+        } else {
+            let Self::Custom { name } = self else {
+                unreachable!("built-in lighting models have static tokens")
+            };
+            format!("custom:{name}")
         }
     }
 }
@@ -34,7 +45,14 @@ impl Default for RenderMaterialLightingModel {
 
 impl Display for RenderMaterialLightingModel {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.as_token())
+        if let Some(token) = self.builtin_token() {
+            f.write_str(token)
+        } else {
+            let Self::Custom { name } = self else {
+                unreachable!("built-in lighting models have static tokens")
+            };
+            write!(f, "custom:{name}")
+        }
     }
 }
 
@@ -73,7 +91,11 @@ impl Serialize for RenderMaterialLightingModel {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.as_token())
+        if let Some(token) = self.builtin_token() {
+            serializer.serialize_str(token)
+        } else {
+            serializer.serialize_str(&self.as_token())
+        }
     }
 }
 
@@ -97,3 +119,7 @@ impl Display for RenderMaterialLightingModelParseError {
 }
 
 impl std::error::Error for RenderMaterialLightingModelParseError {}
+
+#[cfg(test)]
+#[path = "lighting_model/allocation_tests.rs"]
+mod allocation_tests;

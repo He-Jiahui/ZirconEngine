@@ -1,7 +1,10 @@
-use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use super::{ToolkitArea, ToolkitAreaSlot, ToolkitLayoutError};
+
+#[cfg(test)]
+#[path = "layout/slot_bitset_tests.rs"]
+mod slot_bitset_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ToolkitLayout {
@@ -22,11 +25,13 @@ impl ToolkitLayout {
         if areas.is_empty() {
             return Err(ToolkitLayoutError::EmptyAreas);
         }
-        let mut slots = BTreeSet::new();
+        let mut occupied_slots = 0u8;
         for area in &areas {
-            if !slots.insert(area.slot()) {
+            let slot_bit = area_slot_bit(area.slot());
+            if occupied_slots & slot_bit != 0 {
                 return Err(ToolkitLayoutError::DuplicateAreaSlot { slot: area.slot() });
             }
+            occupied_slots |= slot_bit;
         }
         Ok(Self {
             id,
@@ -55,5 +60,14 @@ impl ToolkitLayout {
 
     pub fn areas(&self) -> &[ToolkitArea] {
         &self.areas
+    }
+}
+
+const fn area_slot_bit(slot: ToolkitAreaSlot) -> u8 {
+    1 << match slot {
+        ToolkitAreaSlot::Center => 0,
+        ToolkitAreaSlot::Left => 1,
+        ToolkitAreaSlot::Right => 2,
+        ToolkitAreaSlot::Bottom => 3,
     }
 }

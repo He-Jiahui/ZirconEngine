@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPageDependency,
@@ -15,11 +15,7 @@ impl VirtualGeometryRuntimeState {
             return;
         };
 
-        let live_page_ids = extract
-            .pages
-            .iter()
-            .map(|page| page.page_id)
-            .collect::<BTreeSet<_>>();
+        let live_page_ids = live_page_id_index(extract);
         let stale_resident_page_ids = self
             .resident_page_ids()
             .filter(|page_id| !live_page_ids.contains(page_id))
@@ -58,12 +54,10 @@ fn page_parent_pages(extract: &RenderVirtualGeometryExtract) -> BTreeMap<u32, u3
         return cooked_page_parent_pages(extract);
     }
 
-    let clusters_by_id = extract
-        .clusters
-        .iter()
-        .copied()
-        .map(|cluster| (cluster.cluster_id, cluster))
-        .collect::<BTreeMap<_, _>>();
+    let mut clusters_by_id = HashMap::with_capacity(extract.clusters.len());
+    for &cluster in &extract.clusters {
+        clusters_by_id.insert(cluster.cluster_id, cluster);
+    }
     let mut page_parent_pages = BTreeMap::new();
 
     for cluster in &extract.clusters {
@@ -80,11 +74,7 @@ fn page_parent_pages(extract: &RenderVirtualGeometryExtract) -> BTreeMap<u32, u3
 }
 
 fn cooked_page_parent_pages(extract: &RenderVirtualGeometryExtract) -> BTreeMap<u32, u32> {
-    let live_page_ids = extract
-        .pages
-        .iter()
-        .map(|page| page.page_id)
-        .collect::<BTreeSet<_>>();
+    let live_page_ids = live_page_id_index(extract);
     let mut page_parent_pages = BTreeMap::new();
 
     for dependency in &extract.page_dependencies {
@@ -103,7 +93,7 @@ fn cooked_page_parent_pages(extract: &RenderVirtualGeometryExtract) -> BTreeMap<
 
 fn insert_cooked_page_parent_link(
     dependency: &RenderVirtualGeometryPageDependency,
-    live_page_ids: &BTreeSet<u32>,
+    live_page_ids: &HashSet<u32>,
     page_parent_pages: &mut BTreeMap<u32, u32>,
 ) {
     let Some(parent_page_id) = dependency.parent_page_id else {
@@ -119,10 +109,10 @@ fn insert_cooked_page_parent_link(
 
 fn nearest_distinct_parent_page(
     cluster: RenderVirtualGeometryCluster,
-    clusters_by_id: &BTreeMap<u32, RenderVirtualGeometryCluster>,
+    clusters_by_id: &HashMap<u32, RenderVirtualGeometryCluster>,
 ) -> Option<u32> {
     let mut current_parent_cluster_id = cluster.parent_cluster_id;
-    let mut visited_cluster_ids = BTreeSet::new();
+    let mut visited_cluster_ids = HashSet::new();
 
     while let Some(parent_cluster_id) = current_parent_cluster_id {
         if !visited_cluster_ids.insert(parent_cluster_id) {
@@ -137,6 +127,15 @@ fn nearest_distinct_parent_page(
 
     None
 }
+
+fn live_page_id_index(extract: &RenderVirtualGeometryExtract) -> HashSet<u32> {
+    let mut live_page_ids = HashSet::with_capacity(extract.pages.len());
+    live_page_ids.extend(extract.pages.iter().map(|page| page.page_id));
+    live_page_ids
+}
+
+#[cfg(test)]
+mod performance_tests;
 
 #[cfg(test)]
 mod tests {

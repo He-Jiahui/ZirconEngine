@@ -10,6 +10,7 @@ mod protocol;
 #[cfg(test)]
 mod tests;
 mod viewport;
+mod viewport_pick;
 mod world_sync;
 
 pub use gateway::SessionGateway;

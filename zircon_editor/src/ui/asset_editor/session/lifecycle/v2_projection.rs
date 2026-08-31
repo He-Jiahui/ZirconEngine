@@ -70,13 +70,13 @@ pub(crate) fn legacy_projection_document_to_v2_document(
 ) -> Result<UiV2AssetDocument, UiAssetEditorSessionError> {
     let mut nodes = BTreeMap::new();
     if let Some(root) = &document.root {
-        flatten_legacy_projection_nodes_into(&mut nodes, root)?;
+        flatten_legacy_projection_nodes_into(&mut nodes, root, previous)?;
     }
     let components = document
         .components
         .iter()
         .map(|(component_name, component)| {
-            flatten_legacy_projection_nodes_into(&mut nodes, &component.root)?;
+            flatten_legacy_projection_nodes_into(&mut nodes, &component.root, previous)?;
             let previous_component =
                 previous.and_then(|document| document.components.get(component_name));
             Ok((
@@ -145,6 +145,7 @@ pub(in crate::ui::asset_editor) fn serialize_v2_projection_document(
 pub(super) fn flatten_legacy_projection_nodes_into(
     nodes: &mut BTreeMap<String, UiV2NodeDefinition>,
     root: &UiNodeDefinition,
+    previous: Option<&UiV2AssetDocument>,
 ) -> Result<(), UiAssetEditorSessionError> {
     let mut stack = vec![root.clone()];
     while let Some(node) = stack.pop() {
@@ -178,9 +179,16 @@ pub(super) fn flatten_legacy_projection_nodes_into(
         let next = UiV2NodeDefinition {
             component,
             control_id: node.control_id,
+            pixel_snapping: previous
+                .and_then(|document| document.nodes.get(&node.node_id))
+                .and_then(|node| node.pixel_snapping),
+            params: node.params,
             classes: node.classes,
             props,
-            state: node.params,
+            state: previous
+                .and_then(|document| document.nodes.get(&node.node_id))
+                .map(|node| node.state.clone())
+                .unwrap_or_default(),
             layout: node.layout,
             repeat: None,
             style: v2_style_block(&node.style_overrides),
@@ -356,7 +364,7 @@ pub(super) fn legacy_projection_node(
         slot_name,
         control_id: source.control_id.clone(),
         classes: source.classes.clone(),
-        params: source.state.clone(),
+        params: source.params.clone(),
         props: source.props.clone(),
         layout: source.layout.clone(),
         bindings: source.events.clone(),
@@ -544,6 +552,55 @@ mod tests {
         assert_eq!(children[1].node.component.as_deref(), Some("Card"));
         assert_eq!(children[2].node.kind, UiNodeDefinitionKind::Slot);
         assert_eq!(children[2].node.slot_name.as_deref(), Some("footer"));
+    }
+
+    #[test]
+    fn product_binding_fixture_projection_roundtrip_preserves_params_and_prior_state() {
+        let source = r#"
+[asset]
+kind = "view"
+id = "ui.test.param_projection"
+version = 2
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "BindingRow"
+params = { label = "Before" }
+state = { selected = true }
+"#;
+        let v2 = UiZuiAssetLoader::load_zui_str(source).expect("v2 param projection source");
+        let mut projected = v2_document_to_legacy_projection_document(&v2)
+            .expect("v2 params should project into the editor model");
+        let root = projected.root.as_mut().expect("projected root");
+        assert_eq!(
+            root.params.get("label").and_then(toml::Value::as_str),
+            Some("Before")
+        );
+        assert!(!root.params.contains_key("selected"));
+        root.params.insert(
+            "label".to_string(),
+            toml::Value::String("After".to_string()),
+        );
+
+        let rebuilt = legacy_projection_document_to_v2_document(&projected, Some(&v2))
+            .expect("editor projection should rebuild v2 params");
+
+        assert_eq!(
+            rebuilt.nodes["root"]
+                .params
+                .get("label")
+                .and_then(toml::Value::as_str),
+            Some("After")
+        );
+        assert_eq!(
+            rebuilt.nodes["root"]
+                .state
+                .get("selected")
+                .and_then(toml::Value::as_bool),
+            Some(true)
+        );
     }
 
     #[test]

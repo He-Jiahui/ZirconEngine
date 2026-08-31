@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::ui::asset_editor::UiAssetPreviewPreset;
 use crate::ui::template::EditorTemplateRuntimeService;
 use zircon_runtime::ui::template::UiCompiledDocument;
@@ -22,8 +24,8 @@ pub(super) fn compile_preview(
     let template_service = EditorTemplateRuntimeService;
     let (mut widget_imports, mut style_imports) =
         crate::ui::template_runtime::collect_builtin_template_imports(&template_service, document)?;
-    widget_imports.extend(imports.widgets.clone());
-    style_imports.extend(imports.styles.clone());
+    extend_compiler_imports(&mut widget_imports, &imports.widgets);
+    extend_compiler_imports(&mut style_imports, &imports.styles);
     let compiled = template_service.compile_document_with_import_maps(
         document,
         &widget_imports,
@@ -31,6 +33,17 @@ pub(super) fn compile_preview(
     )?;
     let preview_host = UiAssetPreviewHost::new(preview_size, &document.asset.id, &compiled)?;
     Ok((Some(compiled), Some(preview_host)))
+}
+
+fn extend_compiler_imports(
+    target: &mut BTreeMap<String, UiAssetDocument>,
+    source: &BTreeMap<String, UiAssetDocument>,
+) {
+    target.extend(
+        source
+            .iter()
+            .map(|(reference, document)| (reference.clone(), document.clone())),
+    );
 }
 
 pub(super) fn preview_size_for_preset(preview_preset: UiAssetPreviewPreset) -> UiSize {
@@ -51,3 +64,7 @@ pub(super) fn current_preview_size(
         .map(UiAssetPreviewHost::preview_size)
         .unwrap_or_else(|| preview_size_for_preset(preview_preset))
 }
+
+#[cfg(test)]
+#[path = "preview_compile/streaming_import_tests.rs"]
+mod streaming_import_tests;

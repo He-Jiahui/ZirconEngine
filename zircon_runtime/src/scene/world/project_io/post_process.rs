@@ -1,13 +1,14 @@
 use crate::asset::assets::{
-    SceneBloomSettingsAsset, SceneChromaticAberrationSettingsAsset, SceneColorGradingSettingsAsset,
+    SceneAmbientOcclusionSettingsAsset, SceneAoQualityTierAsset, SceneBloomSettingsAsset,
+    SceneChromaticAberrationSettingsAsset, SceneColorGradingSettingsAsset,
     SceneDitherSettingsAsset, SceneFilmGrainSettingsAsset, SceneFogSettingsAsset,
     ScenePostProcessEffectStackAsset, ScenePostProcessSettingsAsset, ScenePostProcessVolumeAsset,
     ScenePostProcessVolumeProfileAsset, SceneTonemapOperatorAsset, SceneTonemapSettingsAsset,
     SceneVignetteSettingsAsset, SceneVolumetricFogSettingsAsset,
 };
 use crate::core::framework::render::{
-    RenderBloomSettings, RenderChromaticAberrationSettings, RenderColorGradingSettings,
-    RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings,
+    AoQualityTier, AoSourceSettings, RenderBloomSettings, RenderChromaticAberrationSettings,
+    RenderColorGradingSettings, RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings,
     RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile, RenderTonemapOperator,
     RenderTonemapSettings, RenderVignetteSettings, VolumetricFogSettings,
 };
@@ -20,12 +21,14 @@ pub(super) fn post_process_settings_from_asset(
         color_grading_from_asset(settings.color_grading),
         effect_stack_from_asset(settings.effect_stack),
     )
+    .with_ambient_occlusion(ambient_occlusion_from_asset(settings.ambient_occlusion))
 }
 
 pub(super) fn post_process_settings_to_asset(
     settings: PostProcessSettingsComponent,
 ) -> ScenePostProcessSettingsAsset {
     ScenePostProcessSettingsAsset {
+        ambient_occlusion: ambient_occlusion_to_asset(settings.ambient_occlusion),
         bloom: bloom_to_asset(settings.bloom),
         color_grading: color_grading_to_asset(settings.color_grading),
         effect_stack: effect_stack_to_asset(settings.effect_stack),
@@ -62,6 +65,7 @@ fn volume_profile_from_asset(
     profile: ScenePostProcessVolumeProfileAsset,
 ) -> RenderPostProcessVolumeProfile {
     RenderPostProcessVolumeProfile {
+        ambient_occlusion: profile.ambient_occlusion.map(ambient_occlusion_from_asset),
         volumetric_fog: profile.volumetric_fog.map(volumetric_fog_from_asset),
         bloom: profile.bloom.map(bloom_from_asset),
         color_grading: profile.color_grading.map(color_grading_from_asset),
@@ -73,10 +77,47 @@ fn volume_profile_to_asset(
     profile: RenderPostProcessVolumeProfile,
 ) -> ScenePostProcessVolumeProfileAsset {
     ScenePostProcessVolumeProfileAsset {
+        ambient_occlusion: profile.ambient_occlusion.map(ambient_occlusion_to_asset),
         volumetric_fog: profile.volumetric_fog.map(volumetric_fog_to_asset),
         bloom: profile.bloom.map(bloom_to_asset),
         color_grading: profile.color_grading.map(color_grading_to_asset),
         effect_stack: profile.effect_stack.map(effect_stack_to_asset),
+    }
+}
+
+fn ambient_occlusion_from_asset(settings: SceneAmbientOcclusionSettingsAsset) -> AoSourceSettings {
+    AoSourceSettings {
+        intensity: settings.intensity,
+        radius_meters: settings.radius_meters,
+        thickness_meters: settings.thickness_meters,
+        depth_bias_meters: settings.depth_bias_meters,
+        falloff_start_meters: settings.falloff_start_meters,
+        quality: match settings.quality {
+            SceneAoQualityTierAsset::Low => AoQualityTier::Low,
+            SceneAoQualityTierAsset::Medium => AoQualityTier::Medium,
+            SceneAoQualityTierAsset::High => AoQualityTier::High,
+            SceneAoQualityTierAsset::Ultra => AoQualityTier::Ultra,
+        },
+        half_resolution: settings.half_resolution,
+        temporal: settings.temporal,
+    }
+}
+
+fn ambient_occlusion_to_asset(settings: AoSourceSettings) -> SceneAmbientOcclusionSettingsAsset {
+    SceneAmbientOcclusionSettingsAsset {
+        intensity: settings.intensity,
+        radius_meters: settings.radius_meters,
+        thickness_meters: settings.thickness_meters,
+        depth_bias_meters: settings.depth_bias_meters,
+        falloff_start_meters: settings.falloff_start_meters,
+        quality: match settings.quality {
+            AoQualityTier::Low => SceneAoQualityTierAsset::Low,
+            AoQualityTier::Medium => SceneAoQualityTierAsset::Medium,
+            AoQualityTier::High => SceneAoQualityTierAsset::High,
+            AoQualityTier::Ultra => SceneAoQualityTierAsset::Ultra,
+        },
+        half_resolution: settings.half_resolution,
+        temporal: settings.temporal,
     }
 }
 

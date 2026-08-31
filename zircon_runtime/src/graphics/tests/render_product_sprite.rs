@@ -205,8 +205,8 @@ fn render_product_sprite_submit_records_sprite_stats_without_particle_feature() 
             ProjectionMode::Orthographic,
         ),
     );
-    extract.geometry = GeometryExtract::from_meshes(CorePipelineKind::Core2d, Vec::new());
-    extract.sprites = SpriteExtract::from_sprites(
+    *extract.geometry = GeometryExtract::from_meshes(CorePipelineKind::Core2d, Vec::new());
+    *extract.sprites = SpriteExtract::from_sprites(
         CorePipelineKind::Core2d,
         vec![RenderSpriteSnapshot {
             entity: 50,

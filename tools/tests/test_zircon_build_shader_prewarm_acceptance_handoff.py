@@ -9,13 +9,19 @@ from tools.tests.test_zircon_build_shader_prewarm_acceptance_contract import (
 
 
 class ZirconBuildShaderPrewarmAcceptanceHandoffTests(unittest.TestCase):
-    def test_prewarm_shaders_runs_acceptance_bundle_after_success(self):
+    @patch.object(zircon_build, "managed_cargo_environment")
+    def test_prewarm_shaders_runs_acceptance_bundle_after_success(
+        self, managed_cargo_environment
+    ):
         config = _FakePrewarmConfig()
         events: list[str] = []
+        managed_environment = {"ZR_TEST_MANAGED_ENV": "1"}
+        managed_cargo_environment.return_value = managed_environment
 
-        def fake_run(command, cwd, check):
+        def fake_run(command, cwd, check, env):
             self.assertFalse(check)
             self.assertEqual(config.repo_root, cwd)
+            self.assertIs(managed_environment, env)
             events.append("run")
             return subprocess.CompletedProcess(command, 0)
 
@@ -33,6 +39,10 @@ class ZirconBuildShaderPrewarmAcceptanceHandoffTests(unittest.TestCase):
                     ),
                 ):
                     zircon_build.prewarm_shaders(config)
+
+        managed_cargo_environment.assert_called_once_with(
+            config.targets_root / "shader_prewarm", config.targets_root
+        )
 
         self.assertEqual(
             [

@@ -11,7 +11,8 @@ fn render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels() {
     let asset_access = crate::asset::ProjectAssetManagerAccess::for_test(Arc::new(
         crate::asset::ProjectAssetManager::default(),
     ));
-    let server = crate::graphics::WgpuRenderFramework::new(asset_access).unwrap();
+    let worker_pool = asset_access.test_worker_pool();
+    let server = crate::graphics::WgpuRenderFramework::new(asset_access, worker_pool).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -76,7 +77,8 @@ fn render_framework_reports_clipped_ui_commands_for_inventory_fixture() {
     let asset_access = crate::asset::ProjectAssetManagerAccess::for_test(Arc::new(
         crate::asset::ProjectAssetManager::default(),
     ));
-    let server = crate::graphics::WgpuRenderFramework::new(asset_access).unwrap();
+    let worker_pool = asset_access.test_worker_pool();
+    let server = crate::graphics::WgpuRenderFramework::new(asset_access, worker_pool).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -121,7 +123,8 @@ fn render_framework_submits_all_builtin_runtime_ui_fixtures() {
     let asset_access = crate::asset::ProjectAssetManagerAccess::for_test(Arc::new(
         crate::asset::ProjectAssetManager::default(),
     ));
-    let server = crate::graphics::WgpuRenderFramework::new(asset_access).unwrap();
+    let worker_pool = asset_access.test_worker_pool();
+    let server = crate::graphics::WgpuRenderFramework::new(asset_access, worker_pool).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();

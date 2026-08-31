@@ -16,6 +16,8 @@ impl From<&UiResolvedStyle> for TextStyle {
             font_family: value.font_family.clone(),
             language: value.language.clone(),
             font_weight: value.font_weight,
+            italic: false,
+            features: Default::default(),
             font_size: value.font_size,
             line_height: value.line_height,
             tab_size: value.tab_size,

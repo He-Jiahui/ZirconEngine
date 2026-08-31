@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -27,12 +28,27 @@ def repo_root() -> Path:
 
 
 def build_report(root: Path) -> dict[str, Any]:
-    manifest_schema = audit_plugin_manifest_schema(root).to_json()
-    skeleton_conformance = audit_plugin_skeleton_conformance(root).to_json()
-    registration_conformance = audit_plugin_registration_conformance(root).to_json()
-    capability_conformance = audit_plugin_capability_conformance(root).to_json()
-    dependency_boundary = audit_plugin_dependency_boundary(root).to_json()
-    retired_ui_asset_conformance = audit_retired_ui_asset_conformance(root).to_json()
+    audits = {
+        "manifest_schema": audit_plugin_manifest_schema,
+        "skeleton_conformance": audit_plugin_skeleton_conformance,
+        "registration_conformance": audit_plugin_registration_conformance,
+        "capability_conformance": audit_plugin_capability_conformance,
+        "dependency_boundary": audit_plugin_dependency_boundary,
+        "retired_ui_asset_conformance": audit_retired_ui_asset_conformance,
+    }
+    with ThreadPoolExecutor(max_workers=len(audits)) as executor:
+        futures = {
+            name: executor.submit(audit, root)
+            for name, audit in audits.items()
+        }
+        results = {name: future.result().to_json() for name, future in futures.items()}
+
+    manifest_schema = results["manifest_schema"]
+    skeleton_conformance = results["skeleton_conformance"]
+    registration_conformance = results["registration_conformance"]
+    capability_conformance = results["capability_conformance"]
+    dependency_boundary = results["dependency_boundary"]
+    retired_ui_asset_conformance = results["retired_ui_asset_conformance"]
     skeleton_sample_is_clean = (
         skeleton_conformance["sample_conformance_status"] == "sample-clean"
     )

@@ -15,6 +15,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
     opacity: f32,
 ) {
     let metrics = dialog_metrics();
+    let panel_radius = if node.corner_radius.is_finite() && node.corner_radius > 0.0 {
+        node.corner_radius
+    } else {
+        metrics.radius
+    };
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
@@ -22,7 +27,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
         Some(style::dialog_surface_color(unavailable)),
         Some(style::dialog_border_color(node, kind, unavailable)),
         metrics.border_width,
-        corner_radius_for_frame(rect, metrics.radius),
+        corner_radius_for_frame(rect, panel_radius),
         opacity,
     ));
 

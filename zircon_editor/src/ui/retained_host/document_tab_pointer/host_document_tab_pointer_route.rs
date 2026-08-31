@@ -1,13 +1,11 @@
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum HostDocumentTabPointerRoute {
     ActivateTab {
-        surface_key: String,
+        surface_index: usize,
         item_index: usize,
-        instance_id: String,
     },
     CloseTab {
-        surface_key: String,
+        surface_index: usize,
         item_index: usize,
-        instance_id: String,
     },
 }

@@ -7,16 +7,6 @@ use crate::core::math::{Mat4, UVec2};
 
 const VELOCITY_CAMERA_ENABLED: u32 = 1;
 const VELOCITY_CAMERA_PERSPECTIVE: u32 = 1;
-// Implausible frame-to-frame camera deltas are treated as cuts and clear velocity.
-const VELOCITY_CAMERA_MAX_TRANSLATION_FAR_PLANE_FRACTION: f32 = 0.2;
-const VELOCITY_CAMERA_MAX_ROTATION_RADIANS: f32 = core::f32::consts::FRAC_PI_3;
-const VELOCITY_CAMERA_MAX_FOV_DELTA_RADIANS: f32 = core::f32::consts::PI / 12.0;
-const VELOCITY_CAMERA_MIN_FOV_RADIANS: f32 = core::f32::consts::PI / 180.0;
-const VELOCITY_CAMERA_MAX_FOV_RADIANS: f32 =
-    core::f32::consts::PI - VELOCITY_CAMERA_MIN_FOV_RADIANS;
-const VELOCITY_CAMERA_MAX_ORTHO_SIZE_RELATIVE_DELTA: f32 = 0.25;
-const VELOCITY_CAMERA_MAX_CLIP_PLANE_RELATIVE_DELTA: f32 = 0.5;
-const VELOCITY_CAMERA_MIN_PROJECTION_PARAMETER: f32 = 0.001;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -34,10 +24,7 @@ impl VelocityCameraParams {
         previous: &ViewportCameraSnapshot,
         enabled: bool,
     ) -> Self {
-        let mut enabled = enabled
-            && velocity_camera_projection_compatible(current, previous)
-            && velocity_camera_projection_shape_compatible(current, previous)
-            && velocity_camera_history_compatible(current, previous);
+        let mut enabled = enabled && current.supports_temporal_reprojection_from(previous);
         let (current_clip_from_world, current_world_from_clip, previous_clip_from_world) =
             if enabled {
                 let current_clip_from_world = camera_clip_from_world(current, viewport_size);
@@ -89,107 +76,6 @@ impl VelocityCameraParams {
     }
 }
 
-fn velocity_camera_projection_compatible(
-    current: &ViewportCameraSnapshot,
-    previous: &ViewportCameraSnapshot,
-) -> bool {
-    current.projection_mode == previous.projection_mode
-        && current.dynamic_resolution == previous.dynamic_resolution
-}
-
-fn velocity_camera_projection_shape_compatible(
-    current: &ViewportCameraSnapshot,
-    previous: &ViewportCameraSnapshot,
-) -> bool {
-    if !velocity_camera_clip_range_valid(current)
-        || !velocity_camera_clip_range_valid(previous)
-        || !velocity_camera_relative_parameter_compatible(
-            current.z_near,
-            previous.z_near,
-            VELOCITY_CAMERA_MAX_CLIP_PLANE_RELATIVE_DELTA,
-        )
-        || !velocity_camera_relative_parameter_compatible(
-            current.z_far,
-            previous.z_far,
-            VELOCITY_CAMERA_MAX_CLIP_PLANE_RELATIVE_DELTA,
-        )
-    {
-        return false;
-    }
-
-    match current.projection_mode {
-        ProjectionMode::Perspective => {
-            let fov_delta = (current.fov_y_radians - previous.fov_y_radians).abs();
-            velocity_camera_fov_valid(current.fov_y_radians)
-                && velocity_camera_fov_valid(previous.fov_y_radians)
-                && fov_delta.is_finite()
-                && fov_delta <= VELOCITY_CAMERA_MAX_FOV_DELTA_RADIANS
-        }
-        ProjectionMode::Orthographic => velocity_camera_relative_parameter_compatible(
-            current.ortho_size,
-            previous.ortho_size,
-            VELOCITY_CAMERA_MAX_ORTHO_SIZE_RELATIVE_DELTA,
-        ),
-    }
-}
-
-fn velocity_camera_clip_range_valid(camera: &ViewportCameraSnapshot) -> bool {
-    camera.z_near.is_finite()
-        && camera.z_far.is_finite()
-        && camera.z_near > 0.0
-        && camera.z_far > camera.z_near
-}
-
-fn velocity_camera_fov_valid(fov_y_radians: f32) -> bool {
-    fov_y_radians.is_finite()
-        && fov_y_radians >= VELOCITY_CAMERA_MIN_FOV_RADIANS
-        && fov_y_radians <= VELOCITY_CAMERA_MAX_FOV_RADIANS
-}
-
-fn velocity_camera_relative_parameter_compatible(
-    current: f32,
-    previous: f32,
-    max_delta_fraction: f32,
-) -> bool {
-    if !current.is_finite() || !previous.is_finite() || current <= 0.0 || previous <= 0.0 {
-        return false;
-    }
-
-    let baseline = current
-        .abs()
-        .max(previous.abs())
-        .max(VELOCITY_CAMERA_MIN_PROJECTION_PARAMETER);
-    ((current - previous).abs() / baseline) <= max_delta_fraction
-}
-
-fn velocity_camera_history_compatible(
-    current: &ViewportCameraSnapshot,
-    previous: &ViewportCameraSnapshot,
-) -> bool {
-    let current_translation = current.transform.translation;
-    let previous_translation = previous.transform.translation;
-    let translation_delta = current_translation.distance(previous_translation);
-    if !translation_delta.is_finite() {
-        return false;
-    }
-
-    let far_plane = current
-        .z_far
-        .min(previous.z_far)
-        .max(current.z_near.max(previous.z_near));
-    let max_translation_delta =
-        (far_plane * VELOCITY_CAMERA_MAX_TRANSLATION_FAR_PLANE_FRACTION).max(0.001);
-    if translation_delta > max_translation_delta {
-        return false;
-    }
-
-    let rotation_delta = current
-        .transform
-        .rotation
-        .angle_between(previous.transform.rotation);
-    rotation_delta.is_finite() && rotation_delta <= VELOCITY_CAMERA_MAX_ROTATION_RADIANS
-}
-
 fn velocity_camera_matrix_finite(matrix: Mat4) -> bool {
     matrix
         .to_cols_array()
@@ -227,6 +113,20 @@ mod tests {
             params.current_clip_from_world,
             params.previous_clip_from_world
         );
+    }
+
+    #[test]
+    fn render_velocity_camera_params_enable_during_continuous_fov_change() {
+        let current = ViewportCameraSnapshot::default();
+        let previous = ViewportCameraSnapshot {
+            fov_y_radians: 65.0_f32.to_radians(),
+            ..ViewportCameraSnapshot::default()
+        };
+
+        let params =
+            VelocityCameraParams::from_cameras(UVec2::new(1280, 720), &current, &previous, true);
+
+        assert!(params.is_enabled());
     }
 
     #[test]

@@ -218,10 +218,7 @@ impl<T> CommandletReport<T> {
             migration: None,
             plugins: None,
             automation: None,
-            error: Some(format!(
-                "commandlet requires unavailable capabilities: {}",
-                capabilities.join(", ")
-            )),
+            error: Some(format_missing_capabilities(&capabilities)),
         }
     }
 
@@ -266,6 +263,25 @@ impl<T> CommandletReport<T> {
             error: None,
         }
     }
+}
+
+fn format_missing_capabilities(capabilities: &[String]) -> String {
+    const PREFIX: &str = "commandlet requires unavailable capabilities: ";
+    const SEPARATOR: &str = ", ";
+
+    let capability_bytes = capabilities.iter().map(String::len).sum::<usize>();
+    let mut message = String::with_capacity(
+        PREFIX.len() + capability_bytes + SEPARATOR.len() * capabilities.len().saturating_sub(1),
+    );
+    message.push_str(PREFIX);
+    if let Some((first, remaining)) = capabilities.split_first() {
+        message.push_str(first);
+        for capability in remaining {
+            message.push_str(SEPARATOR);
+            message.push_str(capability);
+        }
+    }
+    message
 }
 
 impl<T> Serialize for CommandletReport<T>
@@ -697,3 +713,7 @@ fn issue_kind_name(kind: AssetMigrationIssueKind) -> &'static str {
         AssetMigrationIssueKind::PathIo => "path_io",
     }
 }
+
+#[cfg(test)]
+#[path = "runner/capability_error_tests.rs"]
+mod capability_error_tests;

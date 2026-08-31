@@ -13,6 +13,18 @@ use super::seed_backed_execution_selection::collect_execution_cluster_selection_
 use super::selection_collection::ExecutedClusterSelectionCollection;
 use super::selection_filter::collect_execution_cluster_selections_from_submission_keys;
 
+fn collect_execution_submission_keys(
+    indirect_execution_draws: &[&RenderVirtualGeometryExecutionDraw],
+) -> HashSet<(u64, u32)> {
+    let mut keys = HashSet::with_capacity(indirect_execution_draws.len());
+    for draw in indirect_execution_draws {
+        if let Some(key) = draw.execution_selection_key {
+            keys.insert(key);
+        }
+    }
+    keys
+}
+
 pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual_geometry_executed_cluster_selection_pass(
     device: &wgpu::Device,
     selected_cluster_pass_enabled: bool,
@@ -31,10 +43,7 @@ pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual
         );
     }
 
-    let executed_submission_keys = indirect_execution_draws
-        .iter()
-        .filter_map(|draw| draw.execution_selection_key)
-        .collect::<HashSet<_>>();
+    let executed_submission_keys = collect_execution_submission_keys(indirect_execution_draws);
     let selections = collect_execution_cluster_selections_from_submission_keys(
         cluster_selections,
         &executed_submission_keys,
@@ -64,3 +73,6 @@ pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual
         selected_cluster_buffer,
     )
 }
+
+#[cfg(test)]
+mod allocation_tests;

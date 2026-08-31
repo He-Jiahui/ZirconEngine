@@ -1,12 +1,12 @@
 use std::fmt;
 
-/// Strict decoding failure for the versioned project-session record format.
+/// Strict validation failure for the versioned project-session admission record.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ProjectSessionLockRecordDecodeError {
+pub struct ProjectSessionAdmissionRecordError {
     message: String,
 }
 
-impl ProjectSessionLockRecordDecodeError {
+impl ProjectSessionAdmissionRecordError {
     pub(crate) fn new(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
@@ -14,10 +14,10 @@ impl ProjectSessionLockRecordDecodeError {
     }
 }
 
-impl fmt::Display for ProjectSessionLockRecordDecodeError {
+impl fmt::Display for ProjectSessionAdmissionRecordError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.message.fmt(formatter)
     }
 }
 
-impl std::error::Error for ProjectSessionLockRecordDecodeError {}
+impl std::error::Error for ProjectSessionAdmissionRecordError {}

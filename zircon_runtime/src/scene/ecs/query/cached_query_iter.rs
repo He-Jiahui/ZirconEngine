@@ -1,7 +1,7 @@
 use std::{any::TypeId, marker::PhantomData};
 
 use super::query_filter::{Added, Changed, QueryFilter, With, Without};
-use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
+use super::query_state::{CachedArchetypePlan, find_cached_archetype_plan};
 use crate::scene::ecs::{
     ChangeTickWindow, Component, ComponentStorageLocation, Mut, QueryDataAccess, QueryEntityItem,
     Ref, StableEntityLocation,

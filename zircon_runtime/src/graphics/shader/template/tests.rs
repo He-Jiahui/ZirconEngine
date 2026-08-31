@@ -1,21 +1,21 @@
 use std::num::NonZeroU32;
 
 use crate::core::framework::render::{
-    builtin_geometry_source_descriptor, GBufferChannelMask, GeometrySourceDescriptor,
-    RenderMaterialAlphaMode, RenderMaterialDependencySet, RenderMaterialFallbackPolicy,
-    RenderMaterialLightingModel, RenderMaterialTextureTransform, RenderQueueValue,
-    ShaderFeatureBits, ShaderPassType, ShadingModelDescriptor, ShadingModelId,
-    StandardMaterialDescriptor, StandardPbrMaterialFeatures, GEOMETRY_SOURCE_ID_MORPHED_MESH,
-    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
-    GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
+    GBufferChannelMask, GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
+    GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GeometrySourceDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
+    RenderMaterialFallbackPolicy, RenderMaterialLightingModel, RenderMaterialTextureTransform,
+    RenderQueueValue, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
+    ShadingModelDescriptor, ShadingModelId, StandardMaterialDescriptor,
+    StandardPbrMaterialFeatures, builtin_geometry_source_descriptor,
 };
 use crate::core::resource::{AssetReference, ResourceLocator};
 
 use super::assemble::{
-    assemble_material_shader_template, MaterialShaderTemplateRequest, ShaderTemplateAssemblyError,
+    MaterialShaderTemplateRequest, ShaderTemplateAssemblyError, assemble_material_shader_template,
 };
 use super::deferred_gbuffer::{
-    assemble_deferred_gbuffer_shader_template, DeferredGBufferShaderTemplateRequest,
+    DeferredGBufferShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
 };
 use super::material_surface::{
     standard_material_surface_source, standard_material_surface_source_for_features,
@@ -130,12 +130,16 @@ fn render_bindless_material_template_requires_a_capacity_and_emits_the_fixed_arr
         "zr_bindless_material.wgsl"
     ));
     assert!(enabled.wgsl_source.contains("enable wgpu_binding_array;"));
-    assert!(enabled
-        .wgsl_source
-        .contains("const ZR_FEATURE_BINDLESS_MATERIAL: bool = true;"));
-    assert!(enabled
-        .wgsl_source
-        .contains("const ZR_BINDLESS_MATERIAL_SLOT_CAPACITY: u32 = 64u;"));
+    assert!(
+        enabled
+            .wgsl_source
+            .contains("const ZR_FEATURE_BINDLESS_MATERIAL: bool = true;")
+    );
+    assert!(
+        enabled
+            .wgsl_source
+            .contains("const ZR_BINDLESS_MATERIAL_SLOT_CAPACITY: u32 = 64u;")
+    );
     assert_include_token!(enabled, "zr_bindless_material.wgsl");
 }
 
@@ -150,9 +154,11 @@ fn standard_pbr_direct_lighting_reuses_per_pixel_material_inputs() {
         "let world_normal = zr_normalize_or_zero(surface.normal_ws);",
         "if (surface.shading_model_id != ZR_SHADING_MODEL_BLINN_PHONG_ID)",
         "let direct_metallic = clamp(surface.metallic, 0.0, 1.0);",
-        "direct_f0 = mix(",
+        "direct_f0 = zr_pbr_material_f0(",
+        "surface.dielectric_f0,",
         "direct_metallic,",
-        "direct_diffuse_brdf =",
+        "direct_diffuse_brdf = diffuse_color",
+        "zr_surface_metallic_diffuse_energy_scale(direct_metallic)",
         "direct_clearcoat_normal: vec3<f32>,",
         "direct_base_energy: vec3<f32>,",
         "world_normal,",
@@ -172,7 +178,11 @@ fn standard_pbr_direct_lighting_reuses_per_pixel_material_inputs() {
         .nth(1)
         .and_then(|source| source.split("let tile_base =").next())
         .expect("light-grid setup must derive direct PBR material inputs once");
-    for expected in ["direct_metallic,", "(1.0 - direct_metallic)"] {
+    for expected in [
+        "surface.dielectric_f0,",
+        "diffuse_color,",
+        "direct_metallic,",
+    ] {
         assert!(
             direct_material_setup.contains(expected),
             "direct PBR setup must consume the clamped metallic value in `{expected}`"
@@ -248,12 +258,37 @@ fn standard_pbr_direct_lighting_reuses_per_pixel_material_inputs() {
         "var specular = zr_pbr_isotropic_ggx(",
         "if (ZR_FEATURE_PBR_ANISOTROPY) {",
         "specular = zr_aniso_ggx(",
+        "direct_diffuse_brdf",
     ] {
         assert!(
             standard_lobe.contains(expected),
             "the standard PBR lobe must retain feature-selected anisotropy `{expected}`"
         );
     }
+    assert!(
+        !standard_lobe.contains("zr_surface_metallic_diffuse_energy_scale("),
+        "the Standard-PBR lobe must not recompute source-independent diffuse energy per light"
+    );
+    let light_dispatch = STANDARD_PBR_FORWARD_SHADER
+        .split("fn zr_standard_pbr_shade_light_vector_normalized(")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("fn zr_standard_pbr_punctual_light_visibility(")
+                .next()
+        })
+        .expect("standard PBR must retain the light-model dispatch owner");
+    let blinn_lobe = STANDARD_PBR_FORWARD_SHADER
+        .split("fn zr_standard_pbr_shade_blinn_phong_light_vector_normalized(")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("fn zr_standard_pbr_shade_light_vector_normalized(")
+                .next()
+        })
+        .expect("standard PBR must retain the Blinn-Phong lobe owner");
+    assert!(light_dispatch.contains("direct_diffuse_brdf: vec3<f32>"));
+    assert!(!blinn_lobe.contains("direct_diffuse_brdf"));
     for (feature_guard, material_weight, lobe) in [
         (
             "if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat > 0.0)",
@@ -288,7 +323,7 @@ fn standard_pbr_direct_lighting_reuses_per_pixel_material_inputs() {
             "zr_pbr_clearcoat_base_energy_scale_normalized(",
         ),
         (
-            "if (ZR_FEATURE_PBR_TRANSMISSION && surface.specular_transmission > 0.0) {",
+            "if (specular_transmission > 0.0) {",
             "zr_pbr_screen_space_transmission(",
         ),
     ] {
@@ -316,11 +351,19 @@ fn standard_pbr_direct_lighting_reuses_per_pixel_material_inputs() {
     let direct_lights = forward_shading
         .find("let direct_lights = zr_standard_pbr_gpu_light_lighting(")
         .expect("forward shading must retain direct lighting");
-    let environment_lights = forward_shading
-        .find("let environment_lights = zr_environment_pbr_indirect_normalized(")
+    let environment_components = forward_shading
+        .find("let environment_components =\n        zr_environment_pbr_components_with_dielectric_f0_and_specular_normal_normalized(")
         .expect("forward shading must retain environment lighting");
+    let environment_call = forward_shading[environment_components..]
+        .split(");")
+        .next()
+        .expect("forward environment lighting call must have a closing delimiter");
     assert!(
-        clearcoat_energy < direct_lights && direct_lights < environment_lights,
+        environment_call.contains("surface.dielectric_f0,"),
+        "forward environment lighting must receive the material-derived dielectric F0"
+    );
+    assert!(
+        clearcoat_energy < direct_lights && direct_lights < environment_components,
         "direct and environment lighting must share the prepared clearcoat base energy"
     );
 }
@@ -467,6 +510,7 @@ fn standard_material_descriptor() -> StandardMaterialDescriptor {
         normal_texture: None,
         normal_texture_transform: RenderMaterialTextureTransform::default(),
         normal_texture_uv_channel: 0,
+        normal_scale: 1.0,
         metallic: 0.0,
         roughness: 1.0,
         metallic_roughness_texture: None,
@@ -480,6 +524,8 @@ fn standard_material_descriptor() -> StandardMaterialDescriptor {
         emissive_texture: None,
         emissive_texture_transform: RenderMaterialTextureTransform::default(),
         emissive_texture_uv_channel: 0,
+        clearcoat_normal_texture_transform: RenderMaterialTextureTransform::default(),
+        clearcoat_normal_texture_uv_channel: 0,
         alpha_mode: RenderMaterialAlphaMode::Mask { cutoff: 0.5 },
         lighting_model: RenderMaterialLightingModel::Pbr,
         unlit: false,

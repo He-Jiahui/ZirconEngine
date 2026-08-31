@@ -1,6 +1,10 @@
 use crate::core::framework::project::{ExportPackagingStrategy, ExportProfile};
 use crate::plugin::RuntimeProfileDescriptor;
 
+#[cfg(test)]
+#[path = "export_profile_validation/strategy_capacity_tests.rs"]
+mod strategy_capacity_tests;
+
 pub(super) fn export_profile_duplicate_name_fatal_diagnostics(
     profiles: &[ExportProfile],
     profile_name: &str,
@@ -69,7 +73,9 @@ pub(super) fn export_profile_name_fatal_diagnostics(profile: &ExportProfile) -> 
 }
 
 pub(super) fn export_profile_strategy_diagnostics(profile: &ExportProfile) -> Vec<String> {
-    let mut diagnostics = Vec::new();
+    let mut diagnostics = Vec::with_capacity(export_strategy_diagnostic_capacity(
+        profile.strategies.len(),
+    ));
     let mut seen = Vec::new();
     for strategy in profile.strategies.iter().copied() {
         if seen.contains(&strategy) {
@@ -82,6 +88,10 @@ pub(super) fn export_profile_strategy_diagnostics(profile: &ExportProfile) -> Ve
         }
     }
     diagnostics
+}
+
+fn export_strategy_diagnostic_capacity(strategy_count: usize) -> usize {
+    strategy_count.saturating_sub(1)
 }
 
 pub(super) fn export_profile_strategy_fatal_diagnostics(profile: &ExportProfile) -> Vec<String> {

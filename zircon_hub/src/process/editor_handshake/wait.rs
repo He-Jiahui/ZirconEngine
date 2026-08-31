@@ -20,7 +20,7 @@ pub(crate) fn wait_for_editor_handshake(
     wait_for_editor_handshake_until(
         Instant::now() + HUB_HANDSHAKE_TIMEOUT,
         HUB_HANDSHAKE_POLL_INTERVAL,
-        || read_editor_handshake(&mailbox_path),
+        || read_editor_handshake(&mailbox_path, session),
     )
 }
 

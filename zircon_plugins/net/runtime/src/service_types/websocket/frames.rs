@@ -68,7 +68,8 @@ impl DefaultNetManager {
             )?;
             match websockets.get_mut(&connection) {
                 Some(ManagedWebSocketConnection::Loopback(entry)) => {
-                    let mut frames = Vec::new();
+                    let drain_count = max_frames.min(entry.inbound.len());
+                    let mut frames = Vec::with_capacity(drain_count);
                     while frames.len() < max_frames {
                         match entry.inbound.pop_front() {
                             Some(NetWebSocketFrame::Close(reason)) => {

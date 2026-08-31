@@ -1,6 +1,5 @@
 use crate::core::math::UVec2;
 use crate::text::atlas::{
-    glyph_atlas_bitmap_render_submission_plan_with_padding, render_plan::GlyphAtlasScreenRect,
     GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageUploadStaging,
     GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapSource, GlyphAtlasBitmapStagedUpload,
     GlyphAtlasBitmapStagedUploadFailure, GlyphAtlasBitmapStagedUploadFailureReason,
@@ -9,24 +8,38 @@ use crate::text::atlas::{
     GlyphAtlasBitmapUploadStagingFailureReason, GlyphAtlasBitmapUploadStagingPlan,
     GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasRect,
     GlyphAtlasSamplingSemantics, GlyphAtlasSet, GlyphAtlasStorageFormat, GlyphAtlasUploadCommand,
-    GlyphAtlasUploadMode,
+    GlyphAtlasUploadMode, glyph_atlas_bitmap_render_submission_plan_with_padding,
+    render_plan::GlyphAtlasScreenRect,
 };
 
 use super::binding::{
-    glyph_atlas_bitmap_texture_upload_binding_plan,
     GlyphAtlasBitmapTextureUploadBindingFailureReason,
+    glyph_atlas_bitmap_texture_upload_binding_plan,
 };
+use super::frame::GlyphAtlasBitmapTextureUploadResourceTable;
 use super::resource::glyph_atlas_texture_array_spec;
-use super::write::glyph_atlas_texture_upload_write;
+use super::write::{glyph_atlas_texture_upload_source_range, glyph_atlas_texture_upload_write};
 use super::{
+    GlyphAtlasBitmapPreparedTextureUpload, GlyphAtlasBitmapTextureUploadFramePlan,
+    GlyphAtlasBitmapTextureUploadFrameReport,
     glyph_atlas_bitmap_render_submission_texture_upload_frame_report,
     glyph_atlas_bitmap_texture_upload_frame_plan,
     glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas,
     glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas_and_face_validity,
-    write_glyph_atlas_bitmap_texture_upload_frame_resources,
-    GlyphAtlasBitmapTextureUploadFramePlan, GlyphAtlasBitmapTextureUploadFrameReport,
-    GlyphAtlasTextureArrayResources,
 };
+
+#[test]
+fn bitmap_texture_upload_resource_table_rejects_missing_and_duplicate_formats() {
+    let resources = GlyphAtlasBitmapTextureUploadResourceTable::from_resources([
+        (GlyphAtlasFormat::AlphaMask, 1_u8),
+        (GlyphAtlasFormat::Color, 2_u8),
+        (GlyphAtlasFormat::Color, 3_u8),
+    ]);
+
+    assert_eq!(resources.resource(GlyphAtlasFormat::AlphaMask), Some(&1));
+    assert_eq!(resources.resource(GlyphAtlasFormat::Color), None);
+    assert_eq!(resources.resource(GlyphAtlasFormat::SubpixelMask), None);
+}
 
 #[test]
 fn glyph_atlas_texture_array_spec_maps_r8_storage_to_2d_array_resource() {
@@ -110,6 +123,68 @@ fn glyph_atlas_texture_upload_write_projects_command_to_wgpu_fields() {
 }
 
 #[test]
+fn glyph_atlas_texture_upload_source_range_rejects_non_integral_rows() {
+    let write = glyph_atlas_texture_upload_write(GlyphAtlasUploadCommand {
+        mode: GlyphAtlasUploadMode::PartialRect,
+        page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0),
+        page_generation: 1,
+        sampling_semantics: GlyphAtlasSamplingSemantics::AlphaCoverage,
+        rect: GlyphAtlasRect {
+            x: 0,
+            y: 0,
+            width: 4,
+            height: 2,
+        },
+        source_offset: 0,
+        bytes_per_row: 8,
+        rows_per_image: 2,
+        upload_byte_len: 7,
+    });
+
+    assert_eq!(glyph_atlas_texture_upload_source_range(write, 7), None);
+}
+
+#[test]
+fn glyph_atlas_texture_upload_source_range_rejects_an_invalid_row_layout() {
+    let command = GlyphAtlasUploadCommand {
+        mode: GlyphAtlasUploadMode::PartialRect,
+        page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0),
+        page_generation: 1,
+        sampling_semantics: GlyphAtlasSamplingSemantics::AlphaCoverage,
+        rect: GlyphAtlasRect {
+            x: 0,
+            y: 0,
+            width: 4,
+            height: 2,
+        },
+        source_offset: 0,
+        bytes_per_row: 3,
+        rows_per_image: 2,
+        upload_byte_len: 8,
+    };
+    assert_eq!(
+        glyph_atlas_texture_upload_source_range(
+            glyph_atlas_texture_upload_write(command),
+            command.upload_byte_len,
+        ),
+        None,
+    );
+
+    let short_rows = GlyphAtlasUploadCommand {
+        bytes_per_row: 4,
+        rows_per_image: 1,
+        ..command
+    };
+    assert_eq!(
+        glyph_atlas_texture_upload_source_range(
+            glyph_atlas_texture_upload_write(short_rows),
+            short_rows.upload_byte_len,
+        ),
+        None,
+    );
+}
+
+#[test]
 fn bitmap_texture_upload_binding_plan_binds_request_to_staging_page_bytes() {
     let page_key = GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 2);
     let staging_pages = vec![bitmap_staging_page(page_key, 16, 64)];
@@ -122,7 +197,7 @@ fn bitmap_texture_upload_binding_plan_binds_request_to_staging_page_bytes() {
     assert_eq!(plan.bindings.len(), 1);
     let binding = plan.bindings[0];
     assert_eq!(binding.request_index, 0);
-    assert_eq!(binding.bytes, staging_pages[0].bytes.as_slice());
+    assert_eq!(binding.bytes, staging_pages[0].bytes.as_ref());
     assert_eq!(binding.write.origin_x, 3);
     assert_eq!(binding.write.origin_y, 5);
     assert_eq!(binding.write.origin_layer, 2);
@@ -408,13 +483,25 @@ fn bitmap_texture_upload_frame_plan_reports_face_invalidated_requeue() {
 }
 
 #[test]
-fn bitmap_texture_upload_frame_resources_writer_targets_texture_array_resources() {
-    let _writer: for<'a> fn(
-        &wgpu::Queue,
-        &GlyphAtlasTextureArrayResources,
-        &GlyphAtlasBitmapTextureUploadFramePlan<'a>,
-    ) -> GlyphAtlasBitmapTextureUploadFrameReport =
-        write_glyph_atlas_bitmap_texture_upload_frame_resources;
+fn bitmap_texture_upload_preparation_owns_neutral_upload_batch() {
+    fn assert_owned_preparation(_: Option<GlyphAtlasBitmapPreparedTextureUpload>) {}
+
+    assert_owned_preparation(None);
+}
+
+#[test]
+fn ui_atlas_upload_production_has_no_direct_queue_texture_write() {
+    let production = [
+        include_str!("binding.rs"),
+        include_str!("frame.rs"),
+        include_str!("submission.rs"),
+        include_str!("write.rs"),
+        include_str!("../sdf_render/atlas_resources.rs"),
+    ]
+    .concat();
+
+    assert!(!production.contains(".write_texture("));
+    assert!(production.contains("WgpuTextureUpload::new"));
 }
 
 #[test]
@@ -503,7 +590,10 @@ fn bitmap_staging_page_with_generation(
             height: 2,
         },
         bytes_per_row,
-        bytes: (0..byte_len).map(|value| value as u8).collect(),
+        bytes: (0..byte_len)
+            .map(|value| value as u8)
+            .collect::<Vec<_>>()
+            .into(),
     }
 }
 

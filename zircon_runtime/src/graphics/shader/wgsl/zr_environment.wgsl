@@ -13,7 +13,7 @@ struct ZrGpuReflectionProbe {
 
 struct ZrReflectionProbeHeader {
     probe_count: u32,
-    padding0: u32,
+    camera_layer_mask: u32,
     padding1: u32,
     padding2: u32,
 };
@@ -119,6 +119,10 @@ fn zr_environment_select_probes(world_position: vec3<f32>) -> ZrReflectionProbeS
     for (var probe_index = 0u; probe_index < probe_count; probe_index = probe_index + 1u) {
         let probe = zr_env_probes[probe_index];
         if (!(probe.misc.x > 0.0)) {
+            continue;
+        }
+        let probe_layer_mask = bitcast<u32>(probe.misc.w);
+        if ((probe_layer_mask & zr_env_probe_header.camera_layer_mask) == 0u) {
             continue;
         }
         let weight = zr_environment_probe_weight(probe, world_position);
@@ -312,6 +316,25 @@ fn zr_environment_reflection_color_normalized(
     );
 }
 
+fn zr_environment_reflection_color_from_direction_normalized(
+    world_position: vec3<f32>,
+    sample_direction: vec3<f32>,
+    clamped_roughness: f32,
+    has_global_environment: bool,
+) -> vec3<f32> {
+    let planar = zr_environment_planar_reflection(world_position, clamped_roughness);
+    if (planar.a > 0.0) {
+        return planar.rgb;
+    }
+    return zr_environment_radiance_color_normalized(
+        world_position,
+        sample_direction,
+        sample_direction,
+        clamped_roughness,
+        has_global_environment,
+    );
+}
+
 fn zr_environment_reflection_color_after_planar(
     world_position: vec3<f32>,
     normal: vec3<f32>,
@@ -322,22 +345,58 @@ fn zr_environment_reflection_color_after_planar(
     if (zr_env_probe_header.probe_count == 0u && !has_global_environment) {
         return vec3<f32>(0.0);
     }
-    let reflected = reflect(-view_dir, normal);
+    let perfect_reflection = zr_environment_perfect_specular_direction_normalized(
+        normal,
+        view_dir,
+    );
+    let sky_has_pmrem = zr_environment_is_source_cubemap()
+        || zr_environment_is_realtime_ibl();
+    var dominant_direction = perfect_reflection;
+    if (zr_env_probe_header.probe_count > 0u || sky_has_pmrem) {
+        dominant_direction = zr_environment_dominant_specular_direction_normalized(
+            normal,
+            perfect_reflection,
+            clamped_roughness,
+        );
+    }
+    var sky_direction = perfect_reflection;
+    if (sky_has_pmrem) {
+        sky_direction = dominant_direction;
+    }
+    return zr_environment_radiance_color_normalized(
+        world_position,
+        sky_direction,
+        dominant_direction,
+        clamped_roughness,
+        has_global_environment,
+    );
+}
+
+fn zr_environment_radiance_color_normalized(
+    world_position: vec3<f32>,
+    sky_direction: vec3<f32>,
+    probe_direction: vec3<f32>,
+    clamped_roughness: f32,
+    has_global_environment: bool,
+) -> vec3<f32> {
+    if (zr_env_probe_header.probe_count == 0u && !has_global_environment) {
+        return vec3<f32>(0.0);
+    }
     if (zr_env_probe_header.probe_count == 0u) {
-        return zr_environment_sky_reflection_color(reflected, clamped_roughness);
+        return zr_environment_sky_reflection_color(sky_direction, clamped_roughness);
     }
     let selection = zr_environment_select_probes(world_position);
     let sky_weight = max(1.0 - selection.primary_weight - selection.secondary_weight, 0.0);
     var sky = vec3<f32>(0.0);
     if (sky_weight > 0.0 && has_global_environment) {
-        sky = zr_environment_sky_reflection_color(reflected, clamped_roughness);
+        sky = zr_environment_sky_reflection_color(sky_direction, clamped_roughness);
     }
     var primary = vec3<f32>(0.0);
     if (selection.primary_weight > 0.0) {
         primary = zr_environment_probe_color(
             selection.primary_index,
             world_position,
-            reflected,
+            probe_direction,
             clamped_roughness,
         );
     }
@@ -346,13 +405,33 @@ fn zr_environment_reflection_color_after_planar(
         secondary = zr_environment_probe_color(
             selection.secondary_index,
             world_position,
-            reflected,
+            probe_direction,
             clamped_roughness,
         );
     }
     return primary * selection.primary_weight
         + secondary * selection.secondary_weight
         + sky * sky_weight;
+}
+
+fn zr_environment_transmission_radiance_normalized(
+    world_position: vec3<f32>,
+    sample_direction: vec3<f32>,
+    roughness: f32,
+) -> vec3<f32> {
+    let has_global_environment = zr_environment_is_enabled()
+        && scene.environment_params.y > 0.0;
+    if (zr_env_probe_header.probe_count == 0u && !has_global_environment) {
+        return vec3<f32>(0.0);
+    }
+    let normalized_sample_direction = zr_environment_normalize_or_zero(sample_direction);
+    return zr_environment_radiance_color_normalized(
+        world_position,
+        normalized_sample_direction,
+        normalized_sample_direction,
+        clamp(roughness, 0.0, 1.0),
+        has_global_environment,
+    );
 }
 
 fn zr_environment_pbr_prepared_inputs(
@@ -407,6 +486,7 @@ fn zr_environment_pbr_components_with_prepared_inputs(
     diffuse_color: vec3<f32>,
     base_color: vec3<f32>,
     prepared: ZrEnvironmentPbrPreparedInputs,
+    dielectric_f0: vec3<f32>,
 ) -> ZrEnvironmentPbrComponents {
     if (all(normal == vec3<f32>(0.0)) || all(view_dir == vec3<f32>(0.0))) {
         return ZrEnvironmentPbrComponents(vec3<f32>(0.0), vec3<f32>(0.0));
@@ -426,6 +506,7 @@ fn zr_environment_pbr_components_with_prepared_inputs(
         prepared.clamped_occlusion,
         diffuse_color,
         base_color,
+        dielectric_f0,
         prepared.has_global_environment,
         reflection,
     );
@@ -458,6 +539,7 @@ fn zr_environment_pbr_components(
         diffuse_color,
         base_color,
         prepared,
+        vec3<f32>(0.04),
     );
 }
 
@@ -488,6 +570,7 @@ fn zr_environment_pbr_components_normalized(
         diffuse_color,
         base_color,
         prepared,
+        vec3<f32>(0.04),
     );
 }
 
@@ -539,4 +622,110 @@ fn zr_environment_pbr_indirect_normalized(
         is_standard_pbr,
     );
     return components.diffuse + components.specular;
+}
+
+fn zr_environment_pbr_indirect_with_dielectric_f0_normalized(
+    world_position: vec3<f32>,
+    normal_normalized: vec3<f32>,
+    view_dir_normalized: vec3<f32>,
+    roughness: f32,
+    metallic: f32,
+    diffuse_color: vec3<f32>,
+    base_color: vec3<f32>,
+    dielectric_f0: vec3<f32>,
+    occlusion: f32,
+    is_standard_pbr: bool,
+) -> vec3<f32> {
+    let components = zr_environment_pbr_components_with_dielectric_f0_normalized(
+        world_position,
+        normal_normalized,
+        view_dir_normalized,
+        roughness,
+        metallic,
+        diffuse_color,
+        base_color,
+        dielectric_f0,
+        occlusion,
+        is_standard_pbr,
+    );
+    return components.diffuse + components.specular;
+}
+
+fn zr_environment_pbr_components_with_dielectric_f0_normalized(
+    world_position: vec3<f32>,
+    normal_normalized: vec3<f32>,
+    view_dir_normalized: vec3<f32>,
+    roughness: f32,
+    metallic: f32,
+    diffuse_color: vec3<f32>,
+    base_color: vec3<f32>,
+    dielectric_f0: vec3<f32>,
+    occlusion: f32,
+    is_standard_pbr: bool,
+) -> ZrEnvironmentPbrComponents {
+    let prepared = zr_environment_pbr_prepared_inputs(
+        roughness,
+        metallic,
+        occlusion,
+        is_standard_pbr,
+    );
+    if (!prepared.is_active) {
+        return ZrEnvironmentPbrComponents(vec3<f32>(0.0), vec3<f32>(0.0));
+    }
+    let components = zr_environment_pbr_components_with_prepared_inputs(
+        world_position,
+        normal_normalized,
+        view_dir_normalized,
+        diffuse_color,
+        base_color,
+        prepared,
+        dielectric_f0,
+    );
+    return components;
+}
+
+fn zr_environment_pbr_components_with_dielectric_f0_and_specular_normal_normalized(
+    world_position: vec3<f32>,
+    normal_normalized: vec3<f32>,
+    view_dir_normalized: vec3<f32>,
+    specular_normal_normalized: vec3<f32>,
+    roughness: f32,
+    metallic: f32,
+    diffuse_color: vec3<f32>,
+    base_color: vec3<f32>,
+    dielectric_f0: vec3<f32>,
+    occlusion: f32,
+    is_standard_pbr: bool,
+) -> ZrEnvironmentPbrComponents {
+    let prepared = zr_environment_pbr_prepared_inputs(
+        roughness,
+        metallic,
+        occlusion,
+        is_standard_pbr,
+    );
+    if (!prepared.is_active
+        || all(normal_normalized == vec3<f32>(0.0))
+        || all(view_dir_normalized == vec3<f32>(0.0)))
+    {
+        return ZrEnvironmentPbrComponents(vec3<f32>(0.0), vec3<f32>(0.0));
+    }
+    let reflection = zr_environment_reflection_color_normalized(
+        world_position,
+        specular_normal_normalized,
+        view_dir_normalized,
+        prepared.clamped_roughness,
+        prepared.has_global_environment,
+    );
+    return zr_environment_pbr_components_from_reflection(
+        normal_normalized,
+        view_dir_normalized,
+        prepared.clamped_roughness,
+        prepared.clamped_metallic,
+        prepared.clamped_occlusion,
+        diffuse_color,
+        base_color,
+        dielectric_f0,
+        prepared.has_global_environment,
+        reflection,
+    );
 }

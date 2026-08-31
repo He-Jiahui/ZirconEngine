@@ -4,16 +4,17 @@ use crate::core::math::{Quat, Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::{
-    compiled_binding::SceneBindingGenerations,
-    generation::{LifecycleVisibilityRevision, WorldGeneration},
     World,
+    compiled_binding::SceneBindingGenerations,
+    entity_id_allocator::EntityIdAllocator,
+    generation::{LifecycleVisibilityRevision, WorldGeneration},
 };
+use crate::scene::EntityId;
 use crate::scene::components::{
-    default_render_layer_mask, ActiveSelf, AmbientLight, CameraComponent, DirectionalLight,
-    MeshRenderer, Mobility, Name, NodeKind, NodeRecord, PointLight, RectLight, SpotLight,
+    ActiveSelf, AmbientLight, CameraComponent, DirectionalLight, MeshRenderer, Mobility, Name,
+    NodeKind, NodeRecord, PointLight, RectLight, SpotLight, default_render_layer_mask,
 };
 use crate::scene::ecs::Schedule;
-use crate::scene::EntityId;
 use zircon_runtime_interface::world_sync::WorldFact;
 
 impl World {
@@ -29,7 +30,7 @@ impl World {
             type_registry: Default::default(),
             vm_catalog_type_paths: Default::default(),
             vm_dynamic_type_paths: Default::default(),
-            next_id: 1,
+            entity_id_allocator: EntityIdAllocator::default(),
             active_camera: 0,
             schedule: Schedule::default(),
             archetype_index: Default::default(),
@@ -64,6 +65,8 @@ impl World {
             last_change_tick: crate::scene::ecs::ChangeTick::ZERO,
             active_change_tick: None,
             node_cache: Vec::new(),
+            node_cache_rows: HashMap::new(),
+            node_cache_topology_generation: 0,
             inspection_artifact_cache: Default::default(),
             derived_state_dirty: Default::default(),
         };
@@ -74,36 +77,25 @@ impl World {
     pub fn new() -> Self {
         let mut world = Self::empty();
 
-        let camera = world.spawn_node(NodeKind::Camera);
+        let camera = world
+            .spawn_node(NodeKind::Camera)
+            .expect("a fresh World must allocate its default camera");
         world.active_camera = camera;
-        world.spawn_node(NodeKind::DirectionalLight);
-        world.spawn_node(NodeKind::Cube);
+        world
+            .spawn_node(NodeKind::DirectionalLight)
+            .expect("a fresh World must allocate its default directional light");
+        world
+            .spawn_node(NodeKind::Cube)
+            .expect("a fresh World must allocate its default cube");
         world.flush_scene_systems_now();
         world
     }
 
-    pub fn spawn_node(&mut self, kind: NodeKind) -> EntityId {
-        let id = self.next_id;
-        self.next_id += 1;
+    pub fn spawn_node(&mut self, kind: NodeKind) -> crate::scene::SceneResult<EntityId> {
+        let id = self.entity_id_allocator.next_available()?;
         let record = self.default_node_record(id, kind);
-        let prior_lifecycle_staging =
-            std::mem::replace(&mut self.record_staged_lifecycle_events, true);
-        let lifecycle_start = self.staged_lifecycle_events.len();
-        self.insert_prevalidated_node_record(record);
-        self.bump_lifecycle_visibility_revision();
-        self.mark_derived_state_dirty();
-        self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
-        self.advance_world_generation();
-        self.advance_scene_binding_generations_for_new_descendant(id);
-        self.record_world_fact(WorldFact::Spawned(id));
-        self.record_staged_lifecycle_events = prior_lifecycle_staging;
-        if !prior_lifecycle_staging {
-            let lifecycle_events = self.staged_lifecycle_events.split_off(lifecycle_start);
-            for event in lifecycle_events {
-                self.dispatch_component_lifecycle(event);
-            }
-        }
-        id
+        self.insert_node_record(record)?;
+        Ok(id)
     }
 
     pub(super) fn default_node_record(&self, id: EntityId, kind: NodeKind) -> NodeRecord {
@@ -174,13 +166,11 @@ impl World {
         &mut self,
         model: ResourceHandle<ModelMarker>,
         material: ResourceHandle<MaterialMarker>,
-    ) -> EntityId {
-        let id = self.spawn_node(NodeKind::Mesh);
-        self.insert(id, Name(mesh_display_name(model, self.entities.len())))
-            .expect("spawned mesh entity must accept a name component");
-        self.insert(id, MeshRenderer::from_handles(model, material))
-            .expect("spawned mesh entity must accept a mesh renderer component");
-        id
+    ) -> crate::scene::SceneResult<EntityId> {
+        let id = self.spawn_node(NodeKind::Mesh)?;
+        self.insert(id, Name(mesh_display_name(model, self.entities.len())))?;
+        self.insert(id, MeshRenderer::from_handles(model, material))?;
+        Ok(id)
     }
 }
 

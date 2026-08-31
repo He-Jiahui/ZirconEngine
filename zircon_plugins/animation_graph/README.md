@@ -18,5 +18,6 @@ schema ids. V1 palette node ids are `clip`, `blend`, `output`, `state`,
 `transition`, and `condition`.
 
 Validation covers missing output nodes, duplicate node ids, missing clip/state
-references, invalid transitions, and dependency gate behavior when animation is
-disabled.
+references, cyclic graph dependencies, invalid transitions, and dependency gate
+behavior when animation is disabled. Graph validation and compile share one
+borrowed node index, and cycle detection uses a non-recursive topological pass.

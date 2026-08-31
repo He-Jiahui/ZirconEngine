@@ -13,8 +13,13 @@ class ZirconBuildHubManagedRootsTests(unittest.TestCase):
     def test_hub_environment_routes_npm_cache_to_the_managed_target(self) -> None:
         from tools.zircon_build_hub import hub_cargo_environment
 
-        managed_root = r"D:\ZirconBuilds" if os.name == "nt" else None
-        with tempfile.TemporaryDirectory(dir=managed_root) as temporary_root:
+        with (
+            tempfile.TemporaryDirectory() as temporary_root,
+            mock.patch(
+                "tools.zircon_build_cargo_environment."
+                "assert_managed_windows_build_root"
+            ),
+        ):
             target_dir = Path(temporary_root) / "targets" / "hub"
 
             environment = hub_cargo_environment(target_dir)

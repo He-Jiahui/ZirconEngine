@@ -1,4 +1,4 @@
-use super::super::super::super::super::super::data::{FrameRect, PaneData};
+use super::super::super::super::super::super::data::{FrameRect, WelcomePaneLayoutData};
 
 use super::super::fallback::{
     location_fallback, name_fallback, preview_fallback, validation_fallback,
@@ -12,36 +12,36 @@ pub(super) struct WelcomeFormFrames {
 }
 
 pub(super) fn resolve_form_frames(
-    pane: &PaneData,
+    layout: &WelcomePaneLayoutData,
     body: &FrameRect,
     metrics: &WelcomeMainColumnFrameMetrics,
     header: &FrameRect,
 ) -> WelcomeFormFrames {
     let name = resolve_welcome_frame(
-        pane,
+        layout.project_name_field.as_ref(),
+        layout.has_nodes,
         body,
-        "WelcomeProjectNameField",
         name_fallback(metrics, header),
         metrics,
     );
     let location = resolve_welcome_frame(
-        pane,
+        layout.location_field.as_ref(),
+        layout.has_nodes,
         body,
-        "WelcomeLocationField",
         location_fallback(metrics, &name),
         metrics,
     );
     let preview = resolve_welcome_frame(
-        pane,
+        layout.preview_panel.as_ref(),
+        layout.has_nodes,
         body,
-        "WelcomePreviewPanel",
         preview_fallback(metrics, &location),
         metrics,
     );
     let validation = resolve_welcome_frame(
-        pane,
+        layout.validation_panel.as_ref(),
+        layout.has_nodes,
         body,
-        "WelcomeValidationPanel",
         validation_fallback(metrics, &preview),
         metrics,
     );

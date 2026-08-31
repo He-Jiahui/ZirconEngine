@@ -4,14 +4,17 @@ use zircon_editor::EditorPluginRegistrationReport;
 use zircon_runtime::core::framework::project::ProjectPluginManifest;
 
 #[cfg(feature = "first-party-editor-catalog")]
-use super::EntryConfig;
+use super::ResolvedProductHostConfig;
 
 #[cfg(feature = "first-party-editor-catalog")]
 pub fn first_party_editor_plugin_registrations_for_config(
-    config: &EntryConfig,
+    config: &ResolvedProductHostConfig,
 ) -> Vec<EditorPluginRegistrationReport> {
-    let manifest = config.project_plugin_manifest().unwrap_or_default();
-    first_party_editor_plugin_registrations_for_manifest(config.target_mode, &manifest)
+    let manifest = config
+        .project_plugin_manifest()
+        .cloned()
+        .unwrap_or_default();
+    first_party_editor_plugin_registrations_for_manifest(config.target_mode(), &manifest)
 }
 
 #[cfg(feature = "first-party-editor-catalog")]
@@ -47,10 +50,12 @@ mod tests {
     #[test]
     fn app_composition_projects_selected_navigation_editor_provider() {
         let manifest = ProjectPluginManifest {
-            selections: vec![
-                ProjectPluginSelection::runtime_plugin(RuntimePluginId::Navigation, true, false)
-                    .with_target_modes([RuntimeTargetMode::EditorHost]),
-            ],
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::Navigation,
+                true,
+                false,
+            )
+            .with_target_modes([RuntimeTargetMode::EditorHost])],
         };
 
         let registrations = first_party_editor_plugin_registrations_for_manifest(
@@ -79,12 +84,10 @@ mod tests {
 
         assert_eq!(registrations.len(), 1);
         assert_eq!(registrations[0].package_manifest.id, "neural");
-        assert!(
-            registrations[0]
-                .capabilities
-                .iter()
-                .any(|capability| capability == "editor.extension.neural_authoring")
-        );
+        assert!(registrations[0]
+            .capabilities
+            .iter()
+            .any(|capability| capability == "editor.extension.neural_authoring"));
         assert_provider_resolution_performance(RuntimePluginId::new("neural"), "neural");
     }
 

@@ -16,8 +16,8 @@ use crate::core::math::{Real, Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
 };
-use crate::graphics::shader::standard_material_surface_source_for_features;
 use crate::graphics::WgpuRenderFramework;
+use crate::graphics::shader::standard_material_surface_source_for_features;
 
 const GPU_DRIVEN_INSTANCE_COUNT: usize = 64;
 const GPU_DRIVEN_VIEWPORT_SIZE: UVec2 = UVec2::new(320, 240);
@@ -166,6 +166,7 @@ fn gpu_driven_extract(material: ResourceHandle<MaterialMarker>) -> RenderFrameEx
                 ambient_lights: vec![RenderAmbientLightSnapshot {
                     color: Vec3::new(0.78, 0.86, 1.0),
                     intensity: 1.4,
+                    affects_lightmapped_meshes: true,
                     renderer_degraded: false,
                     degradation_reason: None,
                 }],

@@ -2,10 +2,12 @@ use crate::ui::asset_editor;
 
 use super::row_model::{push_detail_row, semantic_label, UiAssetDetailFieldRow};
 
+const SLOT_DETAIL_ROW_MAX_COUNT: usize = 18;
+
 pub(super) fn slot_detail_rows(
     data: &asset_editor::UiAssetEditorPanePresentation,
 ) -> Vec<UiAssetDetailFieldRow> {
-    let mut rows = Vec::new();
+    let mut rows = Vec::with_capacity(slot_detail_row_capacity(data));
     push_detail_row(
         &mut rows,
         "Mount",
@@ -170,3 +172,35 @@ pub(super) fn slot_detail_rows(
     );
     rows
 }
+
+fn slot_detail_row_capacity(data: &asset_editor::UiAssetEditorPanePresentation) -> usize {
+    let capacity = [
+        &data.inspector_mount,
+        &data.inspector_slot_padding,
+        &data.inspector_slot_width_preferred,
+        &data.inspector_slot_height_preferred,
+        &data.inspector_slot_semantic_value,
+        &data.inspector_slot_linear_main_weight,
+        &data.inspector_slot_linear_main_stretch,
+        &data.inspector_slot_linear_cross_weight,
+        &data.inspector_slot_linear_cross_stretch,
+        &data.inspector_slot_overlay_anchor_x,
+        &data.inspector_slot_overlay_anchor_y,
+        &data.inspector_slot_overlay_position_x,
+        &data.inspector_slot_overlay_position_y,
+        &data.inspector_slot_overlay_z_index,
+        &data.inspector_slot_grid_row,
+        &data.inspector_slot_grid_column,
+        &data.inspector_slot_flow_break_before,
+        &data.inspector_slot_flow_alignment,
+    ]
+    .into_iter()
+    .filter(|value| !value.is_empty())
+    .count();
+    debug_assert!(capacity <= SLOT_DETAIL_ROW_MAX_COUNT);
+    capacity
+}
+
+#[cfg(test)]
+#[path = "slot/capacity_tests.rs"]
+mod capacity_tests;

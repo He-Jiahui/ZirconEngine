@@ -184,7 +184,7 @@ impl UiAssetEditorSession {
         };
         let selection = selection_for_node(&document, &wrapper_id);
         self.apply_document_edit_with_tree_edit_and_selection(
-            document.clone(),
+            document,
             UiAssetEditorTreeEdit::WrapNode {
                 node_id,
                 wrapper_node_id: wrapper_id,
@@ -207,7 +207,7 @@ impl UiAssetEditorSession {
         };
         let selection = selection_for_node(&document, &child_id);
         self.apply_document_edit_with_tree_edit_and_selection(
-            document.clone(),
+            document,
             UiAssetEditorTreeEdit::UnwrapNode {
                 wrapper_node_id,
                 child_node_id: child_id,
@@ -282,6 +282,10 @@ pub(super) fn palette_insert_mode_label(mode: PaletteInsertMode) -> &'static str
         PaletteInsertMode::After => "after_selection",
     }
 }
+
+#[cfg(test)]
+#[path = "ui_asset_editor_session/owned_document_move_tests.rs"]
+mod owned_document_move_tests;
 
 pub(super) fn move_direction_label(direction: UiTreeMoveDirection) -> &'static str {
     match direction {

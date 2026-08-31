@@ -6,7 +6,7 @@ use crate::asset::{
     FontAsset, FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetFaceMetrics,
     FontAssetFaceStyle, FontAssetFamilyMember, FontAssetLineMetrics, FontAssetMetadata,
     FontAssetParsedFace, FontAssetRenderStrategy, FontAssetSourceFormat, FontAssetVariableInstance,
-    FontAssetVariationAxis, FontAssetVariationCoord,
+    FontAssetVariationAxis, FontAssetVariationCoord, FontBlobArtifact,
 };
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
@@ -255,6 +255,7 @@ struct ArtifactCacheFontAssetMetadata {
     source_format: FontAssetSourceFormat,
     face_count: u32,
     faces: Vec<ArtifactCacheFontAssetParsedFace>,
+    cooked_blob: Option<FontBlobArtifact>,
 }
 
 impl From<&FontAssetMetadata> for ArtifactCacheFontAssetMetadata {
@@ -267,6 +268,7 @@ impl From<&FontAssetMetadata> for ArtifactCacheFontAssetMetadata {
                 .iter()
                 .map(ArtifactCacheFontAssetParsedFace::from)
                 .collect(),
+            cooked_blob: metadata.cooked_blob.clone(),
         }
     }
 }
@@ -281,6 +283,7 @@ impl ArtifactCacheFontAssetMetadata {
                 .into_iter()
                 .map(ArtifactCacheFontAssetParsedFace::into_asset)
                 .collect(),
+            cooked_blob: self.cooked_blob,
         }
     }
 }

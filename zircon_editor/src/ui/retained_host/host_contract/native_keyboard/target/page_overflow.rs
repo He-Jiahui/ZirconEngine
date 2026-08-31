@@ -10,6 +10,20 @@ const HOST_PAGE_OVERFLOW_CONTROL_ID: &str = "HostPageOverflowMenu";
 pub(in crate::ui::retained_host::host_contract) const HOST_PAGE_OVERFLOW_DISPATCH_KIND: &str =
     "host_page_overflow";
 
+#[cfg(test)]
+mod focus_index_single_scan_tests;
+
+fn record_first_current_index(
+    current_index: &mut Option<usize>,
+    row_index: usize,
+    focused: bool,
+    selected: bool,
+) {
+    if current_index.is_none() && (focused || selected) {
+        *current_index = Some(row_index);
+    }
+}
+
 pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_keyboard_target(
     presentation: &HostWindowPresentationData,
 ) -> Option<PopupKeyboardTarget> {
@@ -28,37 +42,40 @@ pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_keyboard_t
         .host_scene_data
         .page_chrome
         .overflow_hidden_tab_indices;
-    let rows = hidden_indices
-        .iter()
-        .enumerate()
-        .filter_map(|(row_index, page_index)| {
-            let tab = presentation
-                .host_scene_data
-                .page_chrome
-                .tabs
-                .row_data(*page_index)?;
-            Some(PopupKeyboardRow {
-                action_id: page_index.to_string().into(),
-                value_text: tab.title.clone(),
-                identity: tab.id.clone(),
-                search_text: tab.title.clone(),
-                focused: state.hovered_page_index == *page_index as i32,
-                selected: tab.active,
-                source_index: Some(*page_index),
-                frame: host_page_overflow_row_frame_with_state(
-                    presentation,
-                    &popup_frame,
-                    row_index,
-                    state,
-                ),
-            })
-        })
-        .collect::<Vec<_>>();
+    let mut rows = Vec::with_capacity(hidden_indices.len());
+    let mut current_index = None;
+    for (row_index, page_index) in hidden_indices.iter().enumerate() {
+        let Some(tab) = presentation
+            .host_scene_data
+            .page_chrome
+            .tabs
+            .row_data(*page_index)
+        else {
+            continue;
+        };
+        let focused = state.hovered_page_index == *page_index as i32;
+        let selected = tab.active;
+        record_first_current_index(&mut current_index, rows.len(), focused, selected);
+        rows.push(PopupKeyboardRow {
+            action_id: page_index.to_string().into(),
+            value_text: tab.title.clone(),
+            identity: tab.id.clone(),
+            search_text: tab.title.clone(),
+            focused,
+            selected,
+            source_index: Some(*page_index),
+            frame: host_page_overflow_row_frame_with_state(
+                presentation,
+                &popup_frame,
+                row_index,
+                state,
+            ),
+        });
+    }
     if rows.is_empty() {
         return None;
     }
 
-    let current_index = rows.iter().position(|row| row.focused || row.selected);
     let current_row = current_index.and_then(|index| rows.get(index).cloned());
     let current_frame = current_row
         .as_ref()

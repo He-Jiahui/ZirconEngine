@@ -1,8 +1,8 @@
 use super::data::{FrameRect, HostPageOverflowMenuStateData, HostWindowPresentationData};
 use super::menu_popup_metrics::{
     menu_popup_outer_padding, menu_popup_row_stride, menu_popup_shell_padding,
-    MENU_POPUP_ANCHOR_GAP, MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_HEIGHT, MENU_POPUP_SHELL_MARGIN,
-    MENU_POPUP_TEXT_INSET_X,
+    menu_popup_visible_row_range, MENU_POPUP_ANCHOR_GAP, MENU_POPUP_EDGE_INSET,
+    MENU_POPUP_ROW_HEIGHT, MENU_POPUP_SHELL_MARGIN, MENU_POPUP_TEXT_INSET_X,
 };
 #[cfg(test)]
 use super::paint_text::measure_runtime_text_width;
@@ -221,35 +221,7 @@ fn host_page_overflow_visible_row_range_for_scroll(
         .overflow_hidden_tab_indices
         .len();
     let viewport_height = host_page_overflow_content_viewport_height(popup);
-    let stride = menu_popup_row_stride();
-    if item_count == 0
-        || !viewport_height.is_finite()
-        || viewport_height <= 0.0
-        || !stride.is_finite()
-        || stride <= 0.0
-    {
-        return 0..0;
-    }
-
-    if !scroll_offset.is_finite() {
-        return 0..0;
-    }
-    let first_intersection = (scroll_offset - MENU_POPUP_ROW_HEIGHT) / stride;
-    let start = if first_intersection >= 0.0 {
-        (first_intersection.floor() as usize).saturating_add(1)
-    } else {
-        0
-    }
-    .min(item_count);
-    let last_exclusive = ((scroll_offset + viewport_height) / stride).ceil();
-    let end = if last_exclusive > 0.0 {
-        last_exclusive as usize
-    } else {
-        0
-    }
-    .clamp(start, item_count);
-
-    start..end
+    menu_popup_visible_row_range(item_count, viewport_height, scroll_offset, 0.0)
 }
 
 pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_scroll_offset_for_page(
@@ -355,19 +327,27 @@ pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_row_hit_in
     if !contains(&viewport, x, y) {
         return None;
     }
-    for row in host_page_overflow_visible_row_range_for_scroll(presentation, popup, scroll_offset) {
-        let frame = host_page_overflow_row_frame_for_scroll(popup, row, scroll_offset);
-        if contains(&frame, x, y) {
-            return Some(HostPageOverflowRowHit {
-                page_index: presentation
-                    .host_scene_data
-                    .page_chrome
-                    .overflow_hidden_tab_indices[row],
-                frame,
-            });
-        }
+    let row_position =
+        (y - popup.y - MENU_POPUP_EDGE_INSET + scroll_offset) / menu_popup_row_stride();
+    if !row_position.is_finite() || row_position < 0.0 {
+        return None;
     }
-    None
+    let candidate_row = row_position.floor() as usize;
+    let visible_rows =
+        host_page_overflow_visible_row_range_for_scroll(presentation, popup, scroll_offset);
+    if !visible_rows.contains(&candidate_row) {
+        return None;
+    }
+    let frame = host_page_overflow_row_frame_for_scroll(popup, candidate_row, scroll_offset);
+    if !contains(&frame, x, y) {
+        return None;
+    }
+    let page_index = *presentation
+        .host_scene_data
+        .page_chrome
+        .overflow_hidden_tab_indices
+        .get(candidate_row)?;
+    Some(HostPageOverflowRowHit { page_index, frame })
 }
 
 pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_popup_frame_contains(

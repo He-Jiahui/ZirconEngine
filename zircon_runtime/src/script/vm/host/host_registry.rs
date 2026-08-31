@@ -182,13 +182,14 @@ impl HostRegistry {
     }
 
     pub fn capabilities(&self) -> Vec<HostCapabilityRecord> {
-        let mut records = self
-            .lock_state()
-            .slots
-            .iter()
-            .filter_map(|slot| slot.record.clone())
-            .collect::<Vec<_>>();
-        records.sort_by_key(|record| record.handle.into_raw());
+        let mut records = {
+            let state = self.lock_state();
+            let live_record_capacity = state.slots.len().saturating_sub(state.free_slots.len());
+            let mut records = Vec::with_capacity(live_record_capacity);
+            records.extend(state.slots.iter().filter_map(|slot| slot.record.clone()));
+            records
+        };
+        records.sort_unstable_by_key(|record| record.handle.into_raw());
         records
     }
 
@@ -327,6 +328,29 @@ mod tests {
             }
         );
         assert_eq!(registry.capabilities().len(), 1);
+    }
+
+    #[test]
+    fn preallocated_capability_snapshot_preserves_live_sorted_contract() {
+        let registry = HostRegistry::default();
+        let first = registry.register_capability("first").unwrap();
+        let second = registry.register_capability("second").unwrap();
+        let third = registry.register_capability("third").unwrap();
+        registry.revoke(second).unwrap();
+        let replacement = registry.register_capability("replacement").unwrap();
+
+        let mut expected = vec![
+            registry.resolve(first).unwrap(),
+            registry.resolve(third).unwrap(),
+            registry.resolve(replacement).unwrap(),
+        ];
+        expected.sort_unstable_by_key(|record| record.handle.into_raw());
+
+        assert_eq!(registry.capabilities(), expected);
+        assert!(registry
+            .capabilities()
+            .iter()
+            .all(|record| record.handle != second));
     }
 
     #[test]

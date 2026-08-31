@@ -128,6 +128,38 @@ fn toolbar_icon_button_normal_glyph_uses_semantic_button_tone() {
 }
 
 #[test]
+fn selected_panel_icon_uses_neutral_border_and_local_active_glyph() {
+    let node = TemplatePaneNodeData {
+        selected: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_icon_button_style(&node, WorkbenchIconButtonContext::Panel);
+
+    assert_eq!(style.state, UiPainterResolvedState::Selected);
+    assert_eq!(style.background, Some(PALETTE.surface_selected));
+    assert_eq!(style.border, Some(PALETTE.border));
+    assert_ne!(style.border, Some(PALETTE.focus_ring));
+    assert_eq!(style.glyph, PALETTE.accent);
+    assert_ne!(style.glyph, PALETTE.focus_ring);
+}
+
+#[test]
+fn pressed_panel_icon_uses_surface_feedback_without_a_focus_outline() {
+    let node = TemplatePaneNodeData {
+        pressed: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_icon_button_style(&node, WorkbenchIconButtonContext::Panel);
+
+    assert_eq!(style.state, UiPainterResolvedState::Pressed);
+    assert_eq!(style.background, Some(PALETTE.surface_pressed));
+    assert_eq!(style.border, Some(PALETTE.border));
+    assert_ne!(style.border, Some(PALETTE.focus_ring));
+}
+
+#[test]
 fn primary_import_icon_button_pure_focus_keeps_primary_surface_and_focus_ring() {
     let node = TemplatePaneNodeData {
         control_id: "ImportModel".into(),
@@ -143,6 +175,20 @@ fn primary_import_icon_button_pure_focus_keeps_primary_surface_and_focus_ring() 
     assert_eq!(style.border, Some(PALETTE.focus_ring));
     assert_eq!(style.border_width, METRICS.border_width);
     assert_eq!(style.glyph, PALETTE.shell_background);
+}
+
+#[test]
+fn mixed_case_danger_identity_preserves_style() {
+    let node = TemplatePaneNodeData {
+        control_id: "WorkbenchActionIcon".into(),
+        icon_name: "TrAsH".into(),
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_icon_button_style(&node, WorkbenchIconButtonContext::Panel);
+
+    assert_eq!(style.background, Some(PALETTE.error_container));
+    assert_eq!(style.glyph, PALETTE.error);
 }
 
 #[test]

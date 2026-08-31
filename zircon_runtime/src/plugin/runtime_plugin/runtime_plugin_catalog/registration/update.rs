@@ -8,7 +8,7 @@ use crate::plugin::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistr
 use super::super::derived_projection::RuntimePluginCatalogProjection;
 use super::super::diagnostics::collect_catalog_diagnostics;
 use super::super::RuntimePluginCatalog;
-use candidate_rows::CandidateRows;
+pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) use candidate_rows::CandidateRows;
 
 pub use outcome::{RuntimePluginCatalogUpdateMetrics, RuntimePluginCatalogUpdateOutcome};
 
@@ -142,7 +142,17 @@ impl RuntimePluginCatalogUpdate<'_> {
         let feature_registrations = candidate_feature_registrations
             .as_deref()
             .unwrap_or(&self.catalog.feature_registrations);
-        let catalog_generation = self.catalog.catalog_generation.saturating_add(1);
+        let Some(catalog_generation) = self.catalog.catalog_generation.checked_next() else {
+            return RuntimePluginCatalogUpdateOutcome::generation_exhausted(
+                RuntimePluginCatalogUpdateMetrics {
+                    candidate_registration_rows: registrations.len(),
+                    candidate_feature_registration_rows: feature_registrations.len(),
+                    candidate_registration_rows_indexed,
+                    candidate_feature_registration_rows_indexed,
+                    ..RuntimePluginCatalogUpdateMetrics::default()
+                },
+            );
+        };
         let projection_builds = self.catalog.projection_builds.saturating_add(1);
         let projection = Arc::new(RuntimePluginCatalogProjection::build(
             registrations,

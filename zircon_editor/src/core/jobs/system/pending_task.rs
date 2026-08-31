@@ -84,11 +84,16 @@ where
 }
 
 fn panic_message(payload: Box<dyn Any + Send>) -> String {
-    if let Some(message) = payload.downcast_ref::<&str>() {
-        (*message).to_string()
-    } else if let Some(message) = payload.downcast_ref::<String>() {
-        message.clone()
-    } else {
-        "non-string panic payload".to_string()
+    let payload = match payload.downcast::<&str>() {
+        Ok(message) => return (*message).to_string(),
+        Err(payload) => payload,
+    };
+    match payload.downcast::<String>() {
+        Ok(message) => *message,
+        Err(_) => "non-string panic payload".to_string(),
     }
 }
+
+#[cfg(test)]
+#[path = "pending_task/owned_panic_tests.rs"]
+mod owned_panic_tests;

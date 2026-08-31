@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 from pathlib import Path
 
 try:
@@ -47,7 +48,7 @@ class PluginPackage:
     crates: tuple[CargoPackage, ...]
     shader_modules: tuple[dict[str, object], ...] = ()
 
-    @property
+    @functools.cached_property
     def native_dynamic_crates(self) -> tuple[CargoPackage, ...]:
         if PLUGIN_DISTRIBUTION_FORM_DIST not in self.distribution_forms:
             return ()
@@ -57,7 +58,7 @@ class PluginPackage:
             )
         return tuple(crate for crate in self.crates if crate.is_native_dynamic)
 
-    @property
+    @functools.cached_property
     def rlib_static_crates(self) -> tuple[CargoPackage, ...]:
         if PLUGIN_DISTRIBUTION_FORM_EMBED not in self.distribution_forms:
             return ()
@@ -67,7 +68,7 @@ class PluginPackage:
             )
         return self.crates
 
-    @property
+    @functools.cached_property
     def carriers(self) -> tuple[str, ...]:
         carriers: list[str] = []
         if self.native_dynamic_crates:

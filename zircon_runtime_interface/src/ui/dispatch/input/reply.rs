@@ -132,12 +132,17 @@ impl UiDispatchReply {
     pub fn merge_route(
         steps: impl IntoIterator<Item = UiDispatchReplyStep>,
     ) -> UiDispatchReplyMergeReport {
+        let steps = steps.into_iter();
+        let (lower_bound, upper_bound) = steps.size_hint();
+        let route_trace_capacity = (upper_bound == Some(lower_bound))
+            .then_some(lower_bound)
+            .unwrap_or(0);
         let mut merged = UiDispatchReply::unhandled();
         let mut step_count = 0usize;
         let mut stopped = false;
         let mut stopped_at = None;
         let mut stopped_phase = None;
-        let mut routed_steps = Vec::new();
+        let mut routed_steps = Vec::with_capacity(route_trace_capacity);
 
         for mut step in steps {
             step_count += 1;

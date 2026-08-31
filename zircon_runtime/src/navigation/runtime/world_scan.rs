@@ -31,6 +31,7 @@ pub(super) struct RuntimeObstacle {
 pub(super) struct RuntimeAgent {
     pub(super) entity: u64,
     pub(super) descriptor: NavMeshAgentDescriptor,
+    position_row: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -41,10 +42,11 @@ pub(super) struct NavigationWorldProjection {
     pub(super) obstacles: Vec<RuntimeObstacle>,
     pub(super) agent_component_rows: usize,
     pub(super) obstacle_component_rows: usize,
+    pub(super) agent_descriptor_lookups: u64,
     pub(super) agent_position_lookups: u64,
     pub(super) avoidance_cell_visits: usize,
     pub(super) avoidance_candidate_visits: usize,
-    agent_position_rows: HashMap<u64, usize>,
+    agent_rows: HashMap<u64, usize>,
     avoidance_index: NavigationAvoidanceIndex,
     avoidance_epoch: usize,
     avoidance_obstacle_scratch: Vec<RuntimeObstacle>,
@@ -52,9 +54,18 @@ pub(super) struct NavigationWorldProjection {
 }
 
 impl NavigationWorldProjection {
+    pub(super) fn agent_descriptor(&mut self, entity: u64) -> Option<&NavMeshAgentDescriptor> {
+        self.agent_descriptor_lookups = self.agent_descriptor_lookups.saturating_add(1);
+        let row = *self.agent_rows.get(&entity)?;
+        Some(&self.agents[row].descriptor)
+    }
+
     pub(super) fn update_agent_position(&mut self, entity: u64, position: Vec3) {
         self.agent_position_lookups = self.agent_position_lookups.saturating_add(1);
-        let Some(&index) = self.agent_position_rows.get(&entity) else {
+        let Some(&agent_row) = self.agent_rows.get(&entity) else {
+            return;
+        };
+        let Some(index) = self.agents[agent_row].position_row else {
             return;
         };
         let previous = self.agent_positions[index].1;
@@ -269,12 +280,15 @@ pub(super) fn collect_navigation_world_projection(world: &World) -> NavigationWo
         let Ok(agent) = NavMeshAgentDescriptor::deserialize(value) else {
             continue;
         };
-        if let Some(transform) = world.world_transform(entity) {
+        let position_row = world.world_transform(entity).map(|transform| {
+            let row = agent_positions.len();
             agent_positions.push((entity, transform.translation, agent.radius.max(0.05)));
-        }
+            row
+        });
         agents.push(RuntimeAgent {
             entity,
             descriptor: agent,
+            position_row,
         });
     }
 
@@ -309,9 +323,9 @@ pub(super) fn collect_navigation_world_projection(world: &World) -> NavigationWo
         });
     }
 
-    let mut agent_position_rows = HashMap::with_capacity(agent_positions.len());
-    for (row, (entity, _, _)) in agent_positions.iter().enumerate() {
-        agent_position_rows.insert(*entity, row);
+    let mut agent_rows = HashMap::with_capacity(agents.len());
+    for (row, agent) in agents.iter().enumerate() {
+        agent_rows.insert(agent.entity, row);
     }
     let avoidance_index = NavigationAvoidanceIndex::new(&agent_positions, &obstacles);
     NavigationWorldProjection {
@@ -321,10 +335,11 @@ pub(super) fn collect_navigation_world_projection(world: &World) -> NavigationWo
         obstacles,
         agent_component_rows,
         obstacle_component_rows,
+        agent_descriptor_lookups: 0,
         agent_position_lookups: 0,
         avoidance_cell_visits: 0,
         avoidance_candidate_visits: 0,
-        agent_position_rows,
+        agent_rows,
         avoidance_index,
         avoidance_epoch: 0,
         avoidance_obstacle_scratch: Vec::with_capacity(MAX_NAVIGATION_AVOIDANCE_NEIGHBORS),

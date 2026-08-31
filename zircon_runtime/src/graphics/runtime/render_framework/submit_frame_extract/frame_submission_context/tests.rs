@@ -90,12 +90,14 @@ fn frame_submission_context_keeps_the_resolved_view_family_phase_contract() {
         RenderResolutionPolicy::with_temporal_fractions(0.5, 0.75),
         RenderUpscalerKind::Temporal,
     );
-    let context = context_with_advanced_plan(AdvancedProfileRuntimePlan::from_profile_bundle(
-        &RenderProfileBundle::advanced_render(),
-        &advanced_capabilities(),
-        &AdvancedProviderAvailability::new(),
-    ))
-    .with_view_family_pipeline(view_family_pipeline);
+    let context = context_with_advanced_plan_and_view_family(
+        AdvancedProfileRuntimePlan::from_profile_bundle(
+            &RenderProfileBundle::advanced_render(),
+            &advanced_capabilities(),
+            &AdvancedProviderAvailability::new(),
+        ),
+        view_family_pipeline,
+    );
 
     let temporal_targets = context
         .view_family_pipeline()
@@ -135,6 +137,7 @@ fn virtual_geometry_payload_source_clears_when_plan_degrades_feature() {
         ),
         Some(RenderVirtualGeometryExtract::default()),
         RenderVirtualGeometryPayloadSource::Authored,
+        native_view_family_pipeline(),
     );
 
     assert!(!context.virtual_geometry_enabled());
@@ -157,6 +160,7 @@ fn virtual_geometry_payload_source_survives_for_provider_backed_extract() {
         ),
         Some(RenderVirtualGeometryExtract::default()),
         RenderVirtualGeometryPayloadSource::Authored,
+        native_view_family_pipeline(),
     );
 
     assert!(context.virtual_geometry_enabled());
@@ -215,6 +219,7 @@ fn hybrid_gi_payload_source_clears_when_plan_degrades_feature() {
         RenderHybridGiPayloadSource::SceneRepresentation,
         None,
         RenderVirtualGeometryPayloadSource::None,
+        native_view_family_pipeline(),
     );
 
     assert!(!context.hybrid_gi_enabled());
@@ -239,6 +244,7 @@ fn hybrid_gi_scene_representation_source_survives_for_provider_backed_settings()
         RenderHybridGiPayloadSource::SceneRepresentation,
         None,
         RenderVirtualGeometryPayloadSource::None,
+        native_view_family_pipeline(),
     );
 
     assert!(context.hybrid_gi_enabled());
@@ -252,10 +258,26 @@ fn hybrid_gi_scene_representation_source_survives_for_provider_backed_settings()
 fn context_with_advanced_plan(
     advanced_runtime_plan: AdvancedProfileRuntimePlan,
 ) -> FrameSubmissionContext {
+    context_with_advanced_plan_and_view_family(advanced_runtime_plan, native_view_family_pipeline())
+}
+
+fn native_view_family_pipeline() -> RenderViewFamilyPipeline {
+    RenderViewFamilyPipeline::resolve(
+        UVec2::new(64, 64),
+        RenderResolutionPolicy::default(),
+        RenderUpscalerKind::Spatial,
+    )
+}
+
+fn context_with_advanced_plan_and_view_family(
+    advanced_runtime_plan: AdvancedProfileRuntimePlan,
+    view_family_pipeline: RenderViewFamilyPipeline,
+) -> FrameSubmissionContext {
     context_with_advanced_plan_and_virtual_geometry(
         advanced_runtime_plan,
         None,
         RenderVirtualGeometryPayloadSource::None,
+        view_family_pipeline,
     )
 }
 
@@ -263,6 +285,7 @@ fn context_with_advanced_plan_and_virtual_geometry(
     advanced_runtime_plan: AdvancedProfileRuntimePlan,
     virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
     virtual_geometry_payload_source: RenderVirtualGeometryPayloadSource,
+    view_family_pipeline: RenderViewFamilyPipeline,
 ) -> FrameSubmissionContext {
     context_with_advanced_plan_and_payloads(
         advanced_runtime_plan,
@@ -270,6 +293,7 @@ fn context_with_advanced_plan_and_virtual_geometry(
         RenderHybridGiPayloadSource::None,
         virtual_geometry_extract,
         virtual_geometry_payload_source,
+        view_family_pipeline,
     )
 }
 
@@ -279,6 +303,7 @@ fn context_with_advanced_plan_and_payloads(
     hybrid_gi_payload_source: RenderHybridGiPayloadSource,
     virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
     virtual_geometry_payload_source: RenderVirtualGeometryPayloadSource,
+    view_family_pipeline: RenderViewFamilyPipeline,
 ) -> FrameSubmissionContext {
     let extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
@@ -307,12 +332,12 @@ fn context_with_advanced_plan_and_payloads(
         None,
         ViewportRenderOutputTarget::PrimarySurface,
         Default::default(),
+        view_family_pipeline,
         None,
         Default::default(),
         Default::default(),
         Default::default(),
         advanced_runtime_plan,
-        Default::default(),
         Default::default(),
         true,
         true,
@@ -354,15 +379,16 @@ fn empty_pipeline() -> CompiledRenderPipeline {
         handle: RenderPipelineHandle::new(1),
         name: "empty".to_string(),
         renderer_name: "empty".to_string(),
-        stages: vec![RenderPassStage::Opaque3d],
-        pass_stages: Vec::new(),
+        execution_pass_metadata: Vec::new(),
         enabled_features: Vec::new(),
         required_extract_sections: Vec::new(),
         capability_requirements: Vec::new(),
         history_bindings: Vec::new(),
         environment_ibl_bake_request: None,
+        ambient_occlusion_profile: None,
         half_resolution_transparency_depth_sigma:
             crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
         graph,
     })
+    .expect("empty frame context pipeline execution packet")
 }

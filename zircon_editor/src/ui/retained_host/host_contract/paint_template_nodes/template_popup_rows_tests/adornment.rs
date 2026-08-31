@@ -18,7 +18,7 @@ fn menu_item_adornment_kind_reads_icon_danger_and_submenu_flags() {
     assert_eq!(icon, Some("trash"));
     assert_eq!(
         menu_row_adornment_kind(&delete),
-        Some(PopupRowAdornmentKind::Trash)
+        Some(PopupRowAdornmentKind::Icon("trash"))
     );
     assert_eq!(
         menu_row_adornment_kind(&more),
@@ -26,11 +26,33 @@ fn menu_item_adornment_kind_reads_icon_danger_and_submenu_flags() {
     );
     assert_eq!(
         menu_row_adornment_kind(&save),
-        Some(PopupRowAdornmentKind::Save)
+        Some(PopupRowAdornmentKind::Icon("save"))
     );
     let content_style = popup_row_content_style(&popup_menu_row_style(&delete));
     assert_eq!(content_style.text, POPUP_ROW_DANGER_TEXT);
     assert_eq!(content_style.adornment, POPUP_ROW_DANGER_TEXT);
+}
+
+#[test]
+fn menu_item_adornment_forwards_product_semantic_icons_without_a_whitelist() {
+    for icon in [
+        "copy",
+        "edit",
+        "grid",
+        "pin",
+        "play",
+        "rotate-ccw",
+        "search",
+        "target",
+    ] {
+        let raw = format!("Action|icon={icon}");
+        let item = menu_item(raw.as_str(), false, false, false);
+        assert_eq!(
+            menu_row_adornment_kind(&item),
+            Some(PopupRowAdornmentKind::Icon(icon)),
+            "{icon}"
+        );
+    }
 }
 
 #[test]

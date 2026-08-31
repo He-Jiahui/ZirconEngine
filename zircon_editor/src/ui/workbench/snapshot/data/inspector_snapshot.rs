@@ -2,13 +2,14 @@ use zircon_runtime::scene::NodeId;
 
 use crate::core::extension::{FieldEditorContainer, FieldEditorInstance, InspectorField};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InspectorSnapshot {
     pub id: NodeId,
     pub name: String,
     pub parent: String,
     pub translation: [String; 3],
     pub scale: [String; 3],
+    pub render_layer_mask: u32,
     pub plugin_components: Vec<InspectorPluginComponentSnapshot>,
 }
 

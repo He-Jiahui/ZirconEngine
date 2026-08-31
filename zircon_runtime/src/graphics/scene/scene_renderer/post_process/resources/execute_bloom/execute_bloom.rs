@@ -1,5 +1,6 @@
 use crate::core::framework::render::RenderBloomSettings;
 use crate::core::math::UVec2;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use super::super::super::bloom_params::BloomParams;
 use super::super::super::clear_render_target::clear_render_target;
@@ -9,7 +10,6 @@ impl ScenePostProcessResources {
     pub(crate) fn execute_bloom(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         viewport_size: UVec2,
         scene_color_origin: [u32; 2],
@@ -17,10 +17,10 @@ impl ScenePostProcessResources {
         bloom_view: &wgpu::TextureView,
         settings: RenderBloomSettings,
         enabled: bool,
-    ) {
+    ) -> WgpuBufferUploadBatch {
         if !enabled || settings.intensity <= f32::EPSILON {
             clear_render_target(encoder, "ClearBloomPass", bloom_view, wgpu::Color::BLACK);
-            return;
+            return WgpuBufferUploadBatch::new();
         }
 
         let params = BloomParams {
@@ -37,7 +37,11 @@ impl ScenePostProcessResources {
                 0.0,
             ],
         };
-        queue.write_buffer(&self.bloom_params_buffer, 0, bytemuck::bytes_of(&params));
+        let params_uploads = WgpuBufferUploadBatch::from(WgpuBufferUpload::from_bytes(
+            self.bloom_params_buffer.clone(),
+            0,
+            bytemuck::bytes_of(&params),
+        ));
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-bloom-bind-group"),
@@ -70,8 +74,34 @@ impl ScenePostProcessResources {
             timestamp_writes: None,
             multiview_mask: None,
         });
+        pass.set_viewport(
+            0.0,
+            0.0,
+            viewport_size.x.max(1) as f32,
+            viewport_size.y.max(1) as f32,
+            0.0,
+            1.0,
+        );
+        pass.set_scissor_rect(0, 0, viewport_size.x.max(1), viewport_size.y.max(1));
         pass.set_pipeline(&self.bloom_pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.draw(0..3, 0..1);
+        params_uploads
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn bloom_params_are_returned_as_pre_submit_uploads() {
+        let source = include_str!("execute_bloom.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("bloom production source");
+
+        assert!(!production.contains("queue.write_buffer"));
+        assert!(production.contains("WgpuBufferUpload::from_bytes("));
+        assert!(production.contains("WgpuBufferUploadBatch"));
     }
 }

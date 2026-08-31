@@ -3,12 +3,17 @@ use super::*;
 #[test]
 fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
     let parent = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
+    let errors = read_runtime_src("bin/zircon_shader_prewarm/error.rs");
+    let material_sources =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/material_sources.rs");
     let pass_types = read_runtime_src("bin/zircon_shader_prewarm/manifest/pass_types.rs");
     let paths = read_runtime_src("bin/zircon_shader_prewarm/manifest/paths.rs");
     let revision = read_runtime_src("bin/zircon_shader_prewarm/manifest/revision.rs");
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
     let asset_scan_error_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/asset_scan_errors.rs");
+    let geometry_source_tests =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/geometry_sources.rs");
     let io_tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/io.rs");
     let raw_revision_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/raw_revision.rs");
@@ -46,6 +51,36 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
             "ShaderSourceOutsidePackageDir",
         ],
     );
+    assert_contains_all(
+        "raw WGSL prewarm remains a generic module",
+        &parent,
+        &[
+            "fn shader_source_from_wgsl",
+            "ShaderAssetKind::Module",
+            "if !source.kind.participates_in_material_variants()",
+        ],
+    );
+    assert!(
+        !parent.contains("asset_scan_full_material_passes(),\n        ShaderAssetKind::Surface"),
+        "raw WGSL prewarm must not regain implicit material passes or Surface identity"
+    );
+    assert_contains_all(
+        "material prewarm rejects non-material shader kinds",
+        &material_sources,
+        &[
+            "fn prewarm_manifest_for_material_source",
+            "if !shader_source.kind.participates_in_material_variants()",
+            "ShaderPrewarmAssetScanError::MaterialShaderKindMismatch",
+        ],
+    );
+    assert_contains_all(
+        "shader prewarm owns a typed material kind mismatch",
+        &errors,
+        &[
+            "MaterialShaderKindMismatch",
+            "material prewarm requires kind surface",
+        ],
+    );
     assert_eq!(
         parent.matches("#[test]").count(),
         0,
@@ -57,10 +92,11 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
     );
     assert_contains_all(
         "shader prewarm manifest test child owns asset-root manifest contract",
-        &(tests.clone() + &raw_revision_tests),
+        &(tests.clone() + &raw_revision_tests + &geometry_source_tests),
         &[
             "mod io;",
             "mod asset_scan_errors;",
+            "mod geometry_sources;",
             "mod resource_registry;",
             "asset_root_manifest(&root)",
             "fn shader_prewarm_asset_root_manifest_reads_compound_zshader_package",
@@ -69,7 +105,7 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
             "fn shader_prewarm_asset_root_manifest_maps_custom_shading_model_plugin_ids",
             "fn shader_prewarm_asset_root_manifest_expands_requested_geometry_sources",
             "fn shader_prewarm_asset_root_manifest_uses_zmeta_source_digest_revision",
-            "fn shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision",
+            "fn shader_prewarm_asset_root_manifest_does_not_promote_raw_wgsl_module",
             "material_revision",
             "SHADING_MODEL_ID_BLINN_PHONG",
             "SHADING_MODEL_ID_UNLIT",
@@ -78,7 +114,9 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
         ],
     );
     assert_eq!(
-        tests.matches("#[test]").count() + raw_revision_tests.matches("#[test]").count(),
+        tests.matches("#[test]").count()
+            + raw_revision_tests.matches("#[test]").count()
+            + geometry_source_tests.matches("#[test]").count(),
         10,
         "shader prewarm manifest child should own builtin-fallback, asset-root, sparse-option, builtin-template, custom-shading, revision, and geometry-source tests"
     );
@@ -102,10 +140,12 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
             "fn shader_prewarm_asset_root_scan_reports_typed_zshader_parse_error",
             "fn shader_prewarm_asset_root_scan_reports_typed_empty_wgsl_error",
             "fn shader_prewarm_asset_root_scan_reports_typed_zmaterial_parse_error",
+            "fn shader_prewarm_asset_root_scan_rejects_material_bound_to_raw_wgsl_module",
             "ShaderPrewarmAssetScanError::ReadAssetRoot",
             "ShaderPrewarmAssetScanError::ParseZShader",
             "ShaderPrewarmAssetScanError::EmptyShaderSource",
             "ShaderPrewarmAssetScanError::ParseZMaterial",
+            "ShaderPrewarmAssetScanError::MaterialShaderKindMismatch",
         ],
     );
     assert_contains_all(
@@ -113,7 +153,7 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
         &registry_tests,
         &[
             "fn shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay",
-            "fn shader_prewarm_asset_root_exports_shader_resource_records",
+            "fn shader_prewarm_asset_root_exports_raw_module_records_without_material_variants",
             "fn shader_prewarm_project_and_plugin_asset_roots_use_exported_registry_revisions",
             "fn shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions",
             "ShaderPrewarmResourceRegistryOverlay::from_records",
@@ -129,6 +169,11 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
 
     for (path, source) in [
         ("bin/zircon_shader_prewarm/manifest.rs", parent.as_str()),
+        ("bin/zircon_shader_prewarm/error.rs", errors.as_str()),
+        (
+            "bin/zircon_shader_prewarm/manifest/material_sources.rs",
+            material_sources.as_str(),
+        ),
         (
             "bin/zircon_shader_prewarm/manifest/pass_types.rs",
             pass_types.as_str(),
@@ -148,6 +193,10 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
         (
             "bin/zircon_shader_prewarm/manifest/tests/asset_scan_errors.rs",
             asset_scan_error_tests.as_str(),
+        ),
+        (
+            "bin/zircon_shader_prewarm/manifest/tests/geometry_sources.rs",
+            geometry_source_tests.as_str(),
         ),
         (
             "bin/zircon_shader_prewarm/manifest/tests/io.rs",

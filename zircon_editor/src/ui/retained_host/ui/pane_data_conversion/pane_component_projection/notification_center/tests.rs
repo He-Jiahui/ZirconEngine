@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
+use std::time::{Duration, Instant};
 
 use super::super::host_template_node;
+use super::attributes::normalized_tone;
 use super::parse::{parse_count, reset_parse_count};
 use super::{
     projected_notification_center_metadata, projected_notification_center_options,
@@ -161,6 +163,82 @@ fn pipe_string_notifications_project_row_state() {
 }
 
 #[test]
+fn pipe_string_title_fallback_distinguishes_missing_from_explicit_empty() {
+    let attributes = notification_attributes([(
+        "notifications",
+        Value::Array(vec![
+            Value::String("missing|severity=INFO".into()),
+            Value::String("empty|title=|severity=WARNING".into()),
+        ]),
+    )]);
+
+    let rows = projected_notification_center_structured_options("notification-center", &attributes)
+        .expect("notification rows should project");
+
+    assert_eq!(rows[0].label.as_str(), "missing");
+    assert_eq!(rows[0].tone.as_str(), "info");
+    assert_eq!(rows[1].label.as_str(), "");
+    assert_eq!(rows[1].tone.as_str(), "warning");
+}
+
+#[test]
+fn pipe_string_severity_is_not_overwritten_by_notification_kind() {
+    let attributes = notification_attributes([(
+        "notifications",
+        Value::Array(vec![
+            Value::String("error|severity=error|kind=toast".into()),
+            Value::String("warning|kind=toast|severity=warning".into()),
+            Value::String("success|tone=success|kind=toast".into()),
+            Value::String("legacy-kind|kind=done".into()),
+        ]),
+    )]);
+
+    let rows = projected_notification_center_structured_options("notification-center", &attributes)
+        .expect("notification rows should project");
+
+    assert_eq!(rows[0].tone.as_str(), "error");
+    assert_eq!(rows[1].tone.as_str(), "warning");
+    assert_eq!(rows[2].tone.as_str(), "success");
+    assert_eq!(rows[3].tone.as_str(), "success");
+}
+
+#[test]
+fn tone_normalization_avoids_allocating_a_lowercase_copy() {
+    let source = include_str!("attributes.rs");
+
+    assert!(source.contains("eq_ignore_ascii_case"));
+    assert!(!source.contains("to_ascii_lowercase"));
+}
+
+#[test]
+#[ignore = "managed Editor10 performance evidence"]
+fn editor10_notification_tone_normalization_evidence() {
+    const ROUNDS: usize = 100_000;
+    const VALUES: [&str; 4] = ["SUCCESS", "Warning", "ERROR", "toast"];
+    const MAX_ELAPSED: Duration = Duration::from_millis(250);
+
+    let started = Instant::now();
+    for _ in 0..ROUNDS {
+        for value in VALUES {
+            std::hint::black_box(normalized_tone(std::hint::black_box(value)));
+        }
+    }
+    let elapsed = started.elapsed();
+    let normalizations = ROUNDS * VALUES.len();
+    let normalizations_per_second = normalizations as f64 / elapsed.as_secs_f64();
+
+    assert!(elapsed <= MAX_ELAPSED);
+    println!(
+        "EDITOR_NOTIFICATION_BENCH_V1 kind=tone_normalization normalizations={} lowercase_allocations_before={} lowercase_allocations_after=0 allocation_reduction_percent=100.0000 elapsed_ns={} target_ns={} normalizations_per_second={:.2}",
+        normalizations,
+        normalizations,
+        elapsed.as_nanos(),
+        MAX_ELAPSED.as_nanos(),
+        normalizations_per_second,
+    );
+}
+
+#[test]
 fn non_notification_roles_do_not_claim_options() {
     let attributes = notification_attributes([("empty_text", Value::String("Hidden".into()))]);
 
@@ -201,6 +279,8 @@ fn projected_node(
 ) -> RetainedUiHostNodeProjection {
     RetainedUiHostNodeProjection {
         node_id: format!("{component}Node"),
+        surface_node_id: None,
+        has_workbench_icon_tooltip: false,
         parent_id: None,
         component: component.to_owned(),
         control_id: Some(format!("{component}Control")),

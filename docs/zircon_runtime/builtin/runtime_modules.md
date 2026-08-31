@@ -7,6 +7,11 @@ related_code:
   - zircon_runtime/src/builtin/mod.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/compiled_plan.rs
+  - zircon_runtime/src/builtin/runtime_modules/composition.rs
+  - zircon_runtime/src/builtin/runtime_modules/composition/compiler.rs
+  - zircon_runtime/src/builtin/runtime_modules/composition/identity.rs
+  - zircon_runtime/src/builtin/runtime_modules/composition/outcome.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/extension_inputs.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/feature_reports.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs
@@ -23,7 +28,14 @@ related_code:
   - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
   - zircon_runtime/src/builtin/runtime_modules/manifest.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/plugin_modules/descriptor_backed.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
+  - zircon_runtime/src/dynamic_api/session/construction.rs
+  - zircon_runtime/src/dynamic_api/session/composition_receipt.rs
+  - zircon_runtime/src/dynamic_api/session/linked_plugins.rs
+  - zircon_runtime/src/dynamic_api/session/state.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project/selection.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project.rs
   - zircon_runtime/src/plugin/runtime_profile/availability.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/mod.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/availability.rs
@@ -41,6 +53,11 @@ implementation_files:
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/compiled_plan.rs
+  - zircon_runtime/src/builtin/runtime_modules/composition.rs
+  - zircon_runtime/src/builtin/runtime_modules/composition/compiler.rs
+  - zircon_runtime/src/builtin/runtime_modules/composition/identity.rs
+  - zircon_runtime/src/builtin/runtime_modules/composition/outcome.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/extension_inputs.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/feature_reports.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs
@@ -57,7 +74,13 @@ implementation_files:
   - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
   - zircon_runtime/src/builtin/runtime_modules/manifest.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/plugin_modules/descriptor_backed.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
+  - zircon_runtime/src/dynamic_api/session/construction.rs
+  - zircon_runtime/src/dynamic_api/session/composition_receipt.rs
+  - zircon_runtime/src/dynamic_api/session/linked_plugins.rs
+  - zircon_runtime/src/dynamic_api/session/state.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project/selection.rs
   - zircon_runtime/src/plugin/runtime_profile/availability.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
@@ -102,7 +125,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_runtime::builtin::runtime_modules` owns runtime module assembly for target modes and runtime profiles. It converts a target/profile plus project plugin manifest and registration reports into a `RuntimeModuleLoadReport` containing built-in engine modules, one typed diagnostic stream, and structured runtime plugin availability. Warning/fatal strings are projections created only when a host or ABI boundary must display them.
+`zircon_runtime::builtin::runtime_modules` owns runtime module assembly for target modes and runtime profiles. It converts either a target/profile plus project plugin inputs or one frozen `CompiledProjectPluginPlan` into `Result<RuntimeModuleCompositionPlan, RuntimeModuleCompositionRejection>`. A ready plan privately owns the final activation-order module and descriptor graph, structured runtime plugin availability, non-fatal diagnostics, and a deterministic composition identity. A rejection owns availability and fatal diagnostics but has no module field or accessor. Warning/fatal strings are projections created only when a host or ABI boundary must display them.
 
 This boundary is runtime-owned. `zircon_app` calls the public assembly functions through `zircon_runtime::builtin::{...}`, but optional plugin implementation fan-out now sits behind the plugin-workspace `zircon_first_party_runtime_catalog` rather than process entry code. The `zircon_runtime` crate root deliberately does not re-export the assembly functions.
 
@@ -112,19 +135,25 @@ This boundary is runtime-owned. `zircon_app` calls the public assembly functions
 - `ids.rs` is the runtime plugin-id boundary. It declares only the `plugin_id` child and re-exports `RuntimePluginId`.
 - `ids/plugin_id.rs` owns `RuntimePluginId`, including string-newtype storage, built-in associated constants, key validation, label, parse, and serde behavior.
 - `core/framework/platform/runtime_target_mode.rs` owns the neutral `RuntimeTargetMode` contract consumed by module assembly, platform capability policy, plugin manifests, hosts, and external plugins.
-- `load_report.rs` is the public load-report boundary. It declares the report children and re-exports the stable report API.
-- `load_report/report.rs` owns `RuntimeModuleLoadReport`, construction, availability replacement, and private typed diagnostic storage.
+- `composition.rs` is the public result boundary. It re-exports the compiler, immutable identity, ready plan, rejection, and result alias.
+- `composition/compiler.rs` owns the frozen-plan vertical compiler and admits host modules before final validation.
+- `composition/identity.rs` hashes catalog generation, source-manifest fingerprint, target/profile identity, and the full logical module/service descriptor graph.
+- `composition/outcome.rs` is the only candidate finalizer. It freezes the Core module/service graph, materializes activation order, and produces either a ready plan or a module-free rejection.
+- `load_report.rs` is the private mutable-candidate boundary. It re-exports only `RuntimeModuleLoadDiagnostic` publicly.
+- `load_report/report.rs` owns the crate-private `RuntimeModuleLoadReport`, construction, availability replacement, and typed diagnostic storage.
 - `load_report/diagnostics.rs` owns `RuntimeModuleLoadDiagnostic`, diagnostic severity, display-message projection, required-provider summaries, and fatal-diagnostic detection.
 - `core_modules.rs` owns built-in core module vector construction for target modes and minimal profiles.
 - `manifest.rs` owns default target manifests, profile manifests, and manifest baseline overlay behavior.
-- `availability.rs` owns structured runtime plugin availability reports for profiles, targets, manifests, and registration reports.
-- `plugin_modules.rs` is the private plugin-module boundary; it declares only the loader child and re-exports the narrow built-in loader consumed by target assembly.
+- `availability.rs` owns structured runtime plugin availability reports for profiles, targets, manifests, registration reports, and frozen plan provider rows.
+- `plugin_modules.rs` is the private plugin-module boundary; it declares the built-in loader and descriptor-backed module children and re-exports only the narrow constructors consumed by assembly.
+- `plugin_modules/descriptor_backed.rs` owns the `EngineModule` adapter for a module descriptor already selected by a frozen plan.
 - `plugin_modules/loader.rs` owns concrete built-in plugin module loading.
 - `assembly.rs` owns the stable public facade functions and delegates specialized target/profile/report assembly to private child owners.
+- `assembly/compiled_plan.rs` owns plan-only candidate materialization. It consumes the plan's completed manifest, exact provider packaging rows, frozen extension registry, target-filtered module proposals, and catalog diagnostics; the composition finalizer performs the one authoritative final graph freeze after host modules have been added.
 - `assembly/extension_inputs.rs` owns plugin extension-registry traversal for asset importer registries, render feature descriptors, render pass executors, runtime prepare collectors, and runtime provider registrations.
 - `assembly/feature_reports.rs` owns runtime plugin catalog construction for feature dependency reports, active feature registration filtering, and blocked-feature diagnostic projection into module load reports.
 - `assembly/profile_modules.rs` owns runtime-profile assembly flow, minimal-profile module construction, profile manifest lookup, and profile availability replacement.
-- `assembly/registration_inputs.rs` owns the `RuntimeModuleRegistrationInputs` data object, linked-plugin id collection from active registration reports, and handoff from report selections into extension-input aggregation.
+- `assembly/registration_inputs.rs` owns the `RuntimeModuleRegistrationInputs` data object, linked-plugin id collection from active registration reports, and projection of one frozen extension registry into the built-in extension inputs.
 - `assembly/registration_reports.rs` owns target/profile registration-report assembly flow, active plugin report filtering, asset-importer error projection, and registration-report availability updates.
 - `assembly/target_modules.rs` owns target/manifest module-list construction, structured provider-availability consumption, built-in plugin selection, unknown-plugin diagnostics, and module ordering.
 - `tests/` mirrors the behavior split: manifest baseline behavior, availability reporting, folder-backed registration/bootstrap behavior, and shared fixtures.
@@ -136,7 +165,9 @@ This boundary is runtime-owned. `zircon_app` calls the public assembly functions
 
 The split follows the M2 runtime module assembly decision in the runtime architecture review plan. It keeps Bevy-style profile/plugin composition in one runtime-owned facade, follows Fyrox-style Rust subsystem modules for runtime implementation details, and preserves Unreal-style separation between runtime assembly, plugin implementation domains, and editor/process hosts.
 
-The current slice is intentionally a structural cutover rather than a behavior rewrite. It preserves the existing public function names and report types while removing the previous monolithic file shape.
+The legacy target/profile/report functions remain typed input adapters, but every public adapter now returns the same ready/rejected result. App entry and dynamic session each compile one `Arc<CompiledProjectPluginPlan>` and reuse its extension report. App contributes Dev diagnostics and Editor host modules to `RuntimeModuleCompositionCompiler` before finalization, then constructs its compatibility `ResolvedPluginGroup` directly from the already-frozen module/descriptor order without another profile assembly or topology sort. Dynamic selects Navigation/Animation fallback modules before compilation, never appends modules in session construction, and registers the plan's frozen descriptors instead of rematerializing them from `EngineModule`. The dynamic session retains the plugin plan for its lifetime.
+
+`CompiledProjectPluginPlan` retains the source-manifest fingerprint used by the catalog cache. `RuntimeModuleCompositionIdentity` combines it with catalog generation, target/profile identity, and a BLAKE3 digest over the final logical descriptor graph. Factory and lifecycle pointers are intentionally excluded; module/service identity, authored order, startup modes, dependencies, descriptions, and init levels are included. Legacy target/profile adapters expose `None` for catalog generation and source fingerprint rather than manufacturing provenance. A dynamic session retains this exact identity and exposes a typed `ZrRuntimeModuleCompositionReceiptV1` projection through the existing profile-control JSON slot; the App consumes that receipt after session creation and passes it into the matching Editor gateway generation instead of assembling a second catalog or module graph.
 
 The follow-up M2 provider slice moved linked first-party registration into `zircon_first_party_runtime_catalog`. The runtime assembly facade still consumes registration reports and stays independent of concrete plugin crates; the app wrapper only projects config and render-profile selections before delegating provider lookup to the catalog.
 
@@ -166,7 +197,7 @@ Runtime 15 M3 D6 RuntimePluginId open string-newtype review sync: status `d6_run
 
 The same M5 cutover keeps `plugin_modules/loader.rs` as the concrete built-in handoff owner. The optional UI module remains the only plugin module loaded there. Known external providers are represented by catalog registrations and structured availability; unknown-but-valid third-party ids become typed `UnknownPlugin` diagnostics in target assembly rather than string fallbacks or new engine-core `match` arms.
 
-The 2026-07-13 Frameworks 02 hard cut removes the parallel `warnings`, `errors`, private required-missing storage, `RuntimeRequiredPluginMissing`, and all `effective_*` merge helpers. `load_report/report.rs` now owns only modules, structured availability, and a private `RuntimeModuleLoadDiagnostic` stream. Known required-provider absence has exactly one owner at `RuntimePluginAvailabilityReport::missing_required`; optional unavailable-provider warnings are projected from the non-required availability categories, while core, unknown-plugin, feature, and asset-importer failures stay typed until `warning_messages()` or `fatal_messages()` is called at a display boundary.
+The 2026-07-13 Frameworks 02 hard cut removed the parallel `warnings`, `errors`, private required-missing storage, `RuntimeRequiredPluginMissing`, and all `effective_*` merge helpers. The 2026-08-27 composition cut then made that mutable report crate-private. Known required-provider absence has exactly one owner at `RuntimePluginAvailabilityReport::missing_required`; optional unavailable-provider warnings are projected from the non-required availability categories, while core, unknown-plugin, feature, and asset-importer failures stay typed. Fatal candidates can only become `RuntimeModuleCompositionRejection`, which cannot expose a submit-ready module vector.
 
 The same single-source cut makes compile-time built-in availability explicit. When the runtime is compiled without the `ui` feature, a selected UI plugin is classified in structured availability with the reason that the built-in UI runtime is disabled; required UI also enters `missing_required`. The loader does not recreate an independent `"ui feature is disabled"` warning or required-missing list.
 
@@ -174,7 +205,7 @@ Provider identity is exact package identity. Registration-report availability ma
 
 The same runtime-module test cutover converted the former flat `tests/registration.rs` owner into `tests/registration/`. `tests/registration/mod.rs` now only declares behavior and structure child owners, `behavior.rs` keeps runtime module registration/bootstrap behavior coverage, and `structure.rs` keeps the source-shape guard that prevents assembly, id, load-report, plugin-module, and registration-input logic from drifting back into root or facade files.
 
-The 2026-06-07 root-facade cutover made `zircon_runtime::builtin` the direct public owner for assembly helpers such as `builtin_runtime_modules()` and `runtime_modules_for_target(...)`. The crate root exposes the `builtin` module but does not forward assembly functions or runtime module id/report DTOs. App entry, dynamic API startup, runtime plugin-extension tests, and structural guards import assembly helpers and DTOs through `zircon_runtime::builtin` or `crate::builtin`.
+The 2026-06-07 root-facade cutover made `zircon_runtime::builtin` the direct public owner for assembly helpers. The 2026-08-27 hard cut deleted `builtin_runtime_modules()` because it discarded diagnostics by extracting a raw module vector; callers use typed target/profile/compiler results. The crate root exposes the `builtin` module but does not forward assembly functions or runtime module DTOs.
 
 The 2026-06-17 stale root DTO consumer cleanup remains historically valid for the crate-root surface: neither DTO is flattened at `zircon_runtime`. The later Frameworks05 cut strengthens domain ownership without adding compatibility paths. Runtime plugin ids still import from `builtin`; target/profile/platform/project-manifest consumers now import `core::framework::platform::RuntimeTargetMode` directly. The deleted builtin target-mode file and re-export must not return.
 
@@ -183,7 +214,10 @@ The same M2 hard-cut pass tightened internal id/report ownership. After the Fram
 ## Invariants
 
 - Root `runtime_modules.rs` must stay structural: child module declarations, curated re-exports, and test module wiring only.
-- `zircon_runtime::builtin` is the public namespace for runtime module assembly helpers, `RuntimePluginId`, and module load reports. `RuntimeTargetMode` belongs to `zircon_runtime::core::framework::platform`. The `zircon_runtime` crate root must not forward any of these functions or DTOs, and builtin must not re-export the platform contract.
+- `zircon_runtime::builtin` is the public namespace for runtime module assembly helpers, `RuntimePluginId`, and typed composition outcomes. `RuntimeTargetMode` belongs to `zircon_runtime::core::framework::platform`. The `zircon_runtime` crate root must not forward any of these functions or DTOs, and builtin must not re-export the platform contract.
+- A rejected composition must not contain or expose modules. Only the finalizer may construct `RuntimeModuleCompositionPlan`, and it must freeze both module and service dependencies before construction.
+- App and Dynamic host modules must enter `RuntimeModuleCompositionCompiler` before final graph freeze. Product callers must not append a module or run a second profile/group topology sort after receiving a ready plan.
+- A dynamic product session must retain and expose the identity of that frozen graph. Its cross-ABI receipt must distinguish module-selection profile from dynamic-session policy, preserve compiled catalog provenance, and must not manufacture provenance for legacy composition paths.
 - Internal implementation files below `runtime_modules` must import DTOs from their direct owners: `ids::RuntimePluginId`, `core::framework::platform::RuntimeTargetMode`, and `load_report::RuntimeModuleLoadReport`. They must not route sibling implementation dependencies through the parent facade exports in `runtime_modules.rs`.
 - The assembly facade may expose target/profile/plugin registration entry points, but runtime plugin-id re-export wiring belongs in `ids.rs`, plugin identity parsing belongs in `ids/plugin_id.rs`, target-mode declaration belongs in `core/framework/platform/runtime_target_mode.rs`, load-report re-export wiring belongs in `load_report.rs`, load-report data storage belongs in `load_report/report.rs`, typed diagnostic classification and display projection belong in `load_report/diagnostics.rs`, structured availability and exact package-provider matching belong in `availability.rs`, concrete built-in plugin loading belongs in `plugin_modules/loader.rs`, extension-registry traversal belongs in `assembly/extension_inputs.rs`, feature dependency report handling belongs in `assembly/feature_reports.rs`, profile assembly flow belongs in `assembly/profile_modules.rs`, registration-report assembly flow belongs in `assembly/registration_reports.rs`, registration-input data assembly belongs in `assembly/registration_inputs.rs`, target/manifest module selection and availability-category consumption belong in `assembly/target_modules.rs`, manifest defaults belong in `manifest.rs`, and concrete built-in module vector construction belongs in `core_modules.rs`.
 - The only built-in plugin module loaded from this boundary remains the optional UI module behind `ui`; other runtime plugin implementations remain externalized to `zircon_plugins/*`.
@@ -195,7 +229,7 @@ The same M2 hard-cut pass tightened internal id/report ownership. After the Fram
 
 Frameworks 03 M1 server hard cutover passed WSL nightly checks for both `--no-default-features --features target-server` and the default feature set. The server dependency-tree gate found no wgpu, winit, taffy, glyphon, naga, swash, fontsdf, or woff2-patched packages. A later support-first review found that a default/client-compiled binary still selected `ScriptModule` for `ServerRuntime`; both graphics and non-graphics core-module assembly paths now exclude Script by target as well as compile feature. `frameworks_03_server_profile` passes 1/1 under the full default feature set (test 0.01s, cold command 26m52s), the fresh target-server lib check passes in 8m36s, and the server static guard passes 5/5. The broader per-domain and full-test matrix remains tracked by the Frameworks 03 plan.
 
-The current implementation slice ran focused `zircon_runtime` checking after formatting. Workspace-wide validation remains a milestone testing-stage task because other active sessions are running concurrent Cargo lanes.
+An earlier implementation slice ran focused `zircon_runtime` checking after formatting. For the 2026-08-27 composition-outcome cut, only direct owned-file `rustfmt` parsing and static boundary review are recorded; managed Cargo, behavioral tests, performance, and power validation remain pending. No green result from the earlier slice is carried forward to this cut.
 
 The 2026-07-13 provider-identity follow-up passed a Windows `core-min` build-and-run probe with `--no-default-features`: linked and native provider inputs containing only `RuntimePluginId::key()` did not satisfy a descriptor with a different package id; linked and native registration reports whose `project_selection.id` matched the runtime domain but whose `package_manifest.id` differed also remained unavailable; Client2d and Client3d each reported UI as their sole required missing plugin when `ui` was not compiled. The same probe exited 0 after 16m11s in a coordinator-owned disposable lane. A default-feature `cargo check -p zircon_runtime --lib --tests --locked --jobs 1` first completed the production library with existing warnings, then stopped in the unrelated integration target `material_shader_redirect_dependency_contract` because that target still calls missing `MaterialAsset::from_toml_str` and passes two `&AssetReference` values where owned values are required. No full test-profile green result is claimed from that command.
 

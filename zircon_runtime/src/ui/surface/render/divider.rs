@@ -87,7 +87,6 @@ pub(super) fn divider_render_commands(
         return Vec::new();
     }
     let visual = DividerVisual::resolve(metadata);
-    let frame = pixel_aligned_frame(frame);
     if frame.width <= visual.min_frame_extent || frame.height <= visual.min_frame_extent {
         return Vec::new();
     }
@@ -165,7 +164,7 @@ fn horizontal_divider_frame(
     let (leading, trailing) = divider_insets(frame.width, metadata, visual);
     UiFrame::new(
         frame.x + leading,
-        (frame.y + (frame.height - thickness) * 0.5).round(),
+        frame.y + (frame.height - thickness) * 0.5,
         (frame.width - leading - trailing).max(0.0),
         thickness,
     )
@@ -179,7 +178,7 @@ fn vertical_divider_frame(
     let thickness = visual.thickness.min(frame.width);
     let (leading, trailing) = divider_insets(frame.height, metadata, visual);
     UiFrame::new(
-        (frame.x + (frame.width - thickness) * 0.5).round(),
+        frame.x + (frame.width - thickness) * 0.5,
         frame.y + leading,
         thickness,
         (frame.height - leading - trailing).max(0.0),
@@ -264,15 +263,6 @@ fn value_as_f32(value: &Value) -> Option<f32> {
         _ => return None,
     } as f32;
     value.is_finite().then_some(value)
-}
-
-fn pixel_aligned_frame(frame: UiFrame) -> UiFrame {
-    UiFrame::new(
-        frame.x.round(),
-        frame.y.round(),
-        frame.width.round().max(1.0),
-        frame.height.round().max(1.0),
-    )
 }
 
 fn css_color(color: UiRgbaColor) -> String {

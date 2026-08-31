@@ -10,7 +10,7 @@ use crate::ui::template::{
 };
 use thiserror::Error;
 use zircon_runtime::ui::surface::UiSurface;
-use zircon_runtime::ui::template::UiTemplateBuildError;
+use zircon_runtime::ui::template::{UiTemplateBuildError, UiTemplateInstance};
 use zircon_runtime::ui::theme::UiThemeRegistry;
 use zircon_runtime::ui::v2::{
     UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder,
@@ -38,7 +38,7 @@ use super::{
     plugin_documents::{EditorPluginV2DocumentSourceError, EditorUiHostPluginV2Document},
     projection::{
         build_host_model, build_host_model_with_surface, build_host_nodes_with_surface,
-        project_document, project_v2_document,
+        project_instance, project_v2_document,
     },
     template_action_registry::TemplateActionRegistry,
 };
@@ -134,6 +134,8 @@ pub struct EditorUiHostRuntime {
     pub(super) active_theme: UiThemeRegistry,
     pub(super) builtin_host_templates_loaded: bool,
     showcase_demo_state: UiComponentShowcaseDemoState,
+    projection_cache: Mutex<BTreeMap<String, RetainedUiProjection>>,
+    template_instance_cache: Mutex<BTreeMap<String, Arc<UiTemplateInstance>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -149,7 +151,9 @@ impl EditorUiHostRuntime {
     ) -> Result<(), EditorUiHostRuntimeError> {
         self.component_catalog
             .register(descriptor)
-            .map_err(EditorUiHostRuntimeError::from)
+            .map_err(EditorUiHostRuntimeError::from)?;
+        self.invalidate_projection_cache();
+        Ok(())
     }
 
     pub fn component_descriptor(&self, component_id: &str) -> Option<&EditorComponentDescriptor> {
@@ -175,7 +179,9 @@ impl EditorUiHostRuntime {
             compile_template_document_with_builtin_imports(&self.template_service, &document)?;
         self.template_service
             .register_compiled_document(&mut self.template_registry, document_id, compiled)
-            .map_err(EditorUiHostRuntimeError::from)
+            .map_err(EditorUiHostRuntimeError::from)?;
+        self.invalidate_projection_cache();
+        Ok(())
     }
 
     pub fn register_v2_template_document_files<P, I>(
@@ -213,7 +219,9 @@ impl EditorUiHostRuntime {
         let compiled = compile_template_document_file(&self.template_service, path.as_ref())?;
         self.template_service
             .register_compiled_document(&mut self.template_registry, document_id, compiled)
-            .map_err(EditorUiHostRuntimeError::from)
+            .map_err(EditorUiHostRuntimeError::from)?;
+        self.invalidate_projection_cache();
+        Ok(())
     }
 
     pub fn register_binding(
@@ -223,7 +231,9 @@ impl EditorUiHostRuntime {
     ) -> Result<(), EditorUiHostRuntimeError> {
         self.template_adapter
             .register_binding(binding_id, binding)
-            .map_err(EditorUiHostRuntimeError::from)
+            .map_err(EditorUiHostRuntimeError::from)?;
+        self.invalidate_projection_cache();
+        Ok(())
     }
 
     pub fn load_builtin_host_templates(&mut self) -> Result<(), EditorUiHostRuntimeError> {
@@ -262,6 +272,37 @@ impl EditorUiHostRuntime {
         &self,
         document_id: &str,
     ) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
+        self.project_document_cached(document_id)
+    }
+
+    pub(crate) fn project_document_cached(
+        &self,
+        document_id: &str,
+    ) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
+        if let Some(projection) = self
+            .projection_cache
+            .lock()
+            .expect("template projection cache mutex should not be poisoned")
+            .get(document_id)
+            .cloned()
+        {
+            zircon_runtime::profile_counter!("editor", "ui.template_projection.cache_hit_count", 1);
+            return Ok(projection);
+        }
+
+        zircon_runtime::profile_counter!("editor", "ui.template_projection.cache_miss_count", 1);
+        let projection = self.project_document_uncached(document_id)?;
+        self.projection_cache
+            .lock()
+            .expect("template projection cache mutex should not be poisoned")
+            .insert(document_id.to_string(), projection.clone());
+        Ok(projection)
+    }
+
+    fn project_document_uncached(
+        &self,
+        document_id: &str,
+    ) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
         if let Some(document) = self.v2_document(document_id) {
             return project_v2_document(
                 document_id,
@@ -269,12 +310,55 @@ impl EditorUiHostRuntime {
                 &self.template_adapter,
             );
         }
-        project_document(
-            &self.template_service,
-            &self.template_registry,
-            &self.template_adapter,
-            document_id,
-        )
+        let instance = self.template_instance_cached(document_id)?;
+        project_instance(document_id, instance.as_ref(), &self.template_adapter)
+    }
+
+    fn template_instance_cached(
+        &self,
+        document_id: &str,
+    ) -> Result<Arc<UiTemplateInstance>, EditorUiHostRuntimeError> {
+        if let Some(instance) = self
+            .template_instance_cache
+            .lock()
+            .expect("template instance cache mutex should not be poisoned")
+            .get(document_id)
+            .cloned()
+        {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.template_projection.instance_cache_hit_count",
+                1
+            );
+            return Ok(instance);
+        }
+
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.template_projection.instance_cache_miss_count",
+            1
+        );
+        let instance = Arc::new(
+            self.template_service
+                .instantiate(&self.template_registry, document_id)
+                .map_err(EditorUiHostRuntimeError::from)?,
+        );
+        self.template_instance_cache
+            .lock()
+            .expect("template instance cache mutex should not be poisoned")
+            .insert(document_id.to_string(), Arc::clone(&instance));
+        Ok(instance)
+    }
+
+    pub(crate) fn invalidate_projection_cache(&self) {
+        self.projection_cache
+            .lock()
+            .expect("template projection cache mutex should not be poisoned")
+            .clear();
+        self.template_instance_cache
+            .lock()
+            .expect("template instance cache mutex should not be poisoned")
+            .clear();
     }
 
     pub fn register_projection_routes(
@@ -285,7 +369,7 @@ impl EditorUiHostRuntime {
         for binding in &mut projection.bindings {
             let route_id = service
                 .route_id_for_binding(&binding.binding.as_ui_binding())
-                .unwrap_or_else(|| service.register_route_stub(binding.binding.as_ui_binding()));
+                .unwrap_or_else(|| service.register_binding_route(binding.binding.as_ui_binding()));
             binding.route_id = Some(route_id);
         }
         Ok(())
@@ -326,13 +410,18 @@ impl EditorUiHostRuntime {
             )
             .map_err(EditorUiHostRuntimeError::from);
         }
-        let instance = self
-            .template_service
-            .instantiate(&self.template_registry, document_id)
-            .map_err(EditorUiHostRuntimeError::from)?;
+        let instance = self.template_instance_cached(document_id)?;
         self.template_service
-            .build_surface(UiTreeId::new(format!("template.{document_id}")), &instance)
+            .build_surface(
+                UiTreeId::new(format!("template.{document_id}")),
+                instance.as_ref(),
+            )
             .map_err(EditorUiHostRuntimeError::from)
+    }
+
+    pub(crate) fn retained_document_identity(&self, document_id: &str) -> Option<usize> {
+        self.v2_document(document_id)
+            .map(|document| Arc::as_ptr(&document.compiled) as usize)
     }
 
     pub fn build_retained_host_projection(
@@ -414,6 +503,7 @@ impl EditorUiHostRuntime {
                 compiled: outcome.compiled,
             },
         );
+        self.invalidate_projection_cache();
         Ok(())
     }
 
@@ -502,6 +592,8 @@ mod pane_control_state_tests {
             document_id: "plugin.rows.panel".to_string(),
             nodes: vec![RetainedUiHostNodeProjection {
                 node_id: "root/RowList".to_string(),
+                surface_node_id: None,
+                has_workbench_icon_tooltip: false,
                 parent_id: None,
                 component: "Table".to_string(),
                 control_id: Some("RowList".to_string()),
@@ -600,6 +692,7 @@ mod pane_control_state_tests {
                     route: Some("fixture.operation".to_string()),
                     action: None,
                     payload: BTreeMap::new(),
+                    payload_missing_policy: Default::default(),
                 },
                 BTreeMap::new(),
             );

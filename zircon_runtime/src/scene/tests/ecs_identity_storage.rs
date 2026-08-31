@@ -94,7 +94,9 @@ fn entity_id_reuse_does_not_alias_previous_generation_handle() {
 #[test]
 fn world_maps_stable_scene_ids_to_internal_generational_entities() {
     let mut world = World::new();
-    let cube = world.spawn_node(NodeKind::Cube);
+    let cube = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let internal = world.internal_entity(cube).unwrap();
 
     assert!(world.contains_entity(cube));
@@ -108,7 +110,9 @@ fn world_maps_stable_scene_ids_to_internal_generational_entities() {
     assert!(!world.contains_entity(cube));
     assert!(!world.contains_internal_entity(internal));
 
-    let next = world.spawn_node(NodeKind::Cube);
+    let next = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let next_internal = world.internal_entity(next).unwrap();
 
     assert_ne!(next, cube);
@@ -683,9 +687,9 @@ fn dynamic_component_membership_uses_explicit_row_transitions_without_facades() 
 fn entity_registry_location_for_stable_uses_direct_internal_lookup() {
     let source = include_str!("../ecs/entity/registry.rs");
     let location_for_stable = source
-        .split("pub fn location_for_stable(&self, stable_id: EntityId)")
+        .split("pub(crate) fn location_for_stable(&self, stable_id: EntityId)")
         .nth(1)
-        .and_then(|text| text.split("pub fn location_for_internal").next())
+        .and_then(|text| text.split("pub(crate) fn location_for_internal").next())
         .expect("read EntityRegistry::location_for_stable body");
 
     assert!(
@@ -702,23 +706,24 @@ fn entity_registry_location_for_stable_uses_direct_internal_lookup() {
 fn entity_registry_error_paths_use_direct_lookup_branches() {
     let source = include_str!("../ecs/entity/registry.rs");
     let despawn = source
-        .split("pub fn despawn(&mut self, stable_id: EntityId)")
+        .split("pub(crate) fn despawn(")
         .nth(1)
-        .and_then(|text| text.split("pub fn clear(&mut self)").next())
+        .and_then(|text| text.split("pub(crate) fn clear(&mut self)").next())
         .expect("read EntityRegistry despawn body");
     let set_location = source
-        .split("pub fn set_location(")
+        .split("pub(crate) fn set_location(")
         .nth(1)
-        .and_then(|text| text.split("pub fn contains_internal").next())
+        .and_then(|text| text.split("pub(crate) fn contains_internal").next())
         .expect("read EntityRegistry set_location body");
     let location_for_internal = source
-        .split("pub fn location_for_internal(")
+        .split("pub(crate) fn location_for_internal(")
         .nth(1)
-        .and_then(|text| text.split("pub fn len(&self)").next())
+        .and_then(|text| text.split("pub(crate) fn len(&self)").next())
         .expect("read EntityRegistry location_for_internal body");
 
     assert!(
-        despawn.contains("let Some(internal) = self.stable_to_internal.remove(&stable_id) else")
+        despawn
+            .contains("let Some(internal) = self.stable_to_internal.get(&stable_id).copied() else")
     );
     assert!(despawn.contains("return Err(EntityRegistryError::MissingStableId(stable_id));"));
     assert!(
@@ -744,9 +749,9 @@ fn entity_registry_error_paths_use_direct_lookup_branches() {
 fn entity_registry_despawn_location_take_uses_direct_default_branch() {
     let source = include_str!("../ecs/entity/registry.rs");
     let despawn = source
-        .split("pub fn despawn(&mut self, stable_id: EntityId)")
+        .split("pub(crate) fn despawn(")
         .nth(1)
-        .and_then(|text| text.split("pub fn clear(&mut self)").next())
+        .and_then(|text| text.split("pub(crate) fn clear(&mut self)").next())
         .expect("read EntityRegistry despawn body");
 
     assert!(despawn.contains("let location = match slot.location.take()"));
@@ -756,23 +761,24 @@ fn entity_registry_despawn_location_take_uses_direct_default_branch() {
 }
 
 #[test]
-fn entity_registry_generation_wrap_uses_direct_checked_branch() {
+fn entity_registry_generation_exhaustion_uses_checked_non_wrapping_branch() {
     let source = include_str!("../ecs/entity/slot.rs");
     let next_generation = source
-        .split("fn next_generation(generation: u32) -> u32")
+        .split("fn next_generation(generation: u32) -> Option<u32>")
         .nth(1)
         .expect("read EntityRegistry generation helper body");
 
-    assert!(next_generation.contains("match generation.checked_add(1)"));
-    assert!(next_generation.contains("Some(next_generation) => next_generation"));
-    assert!(next_generation.contains("None => FIRST_GENERATION"));
-    assert!(!next_generation.contains(".unwrap_or(FIRST_GENERATION)"));
+    assert!(next_generation.contains("generation.checked_add(1)"));
+    assert!(!next_generation.contains("FIRST_GENERATION"));
+    assert!(!next_generation.contains(".unwrap_or("));
 }
 
 #[test]
 fn internal_identity_map_is_rebuilt_after_scene_roundtrip_without_serializing_runtime_slots() {
     let mut world = World::new();
-    let imported = world.spawn_node(NodeKind::Mesh);
+    let imported = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
 
     let unique = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -789,4 +795,55 @@ fn internal_identity_map_is_rebuilt_after_scene_roundtrip_without_serializing_ru
         loaded.internal_entity_location(imported).unwrap().stable_id,
         imported
     );
+}
+
+#[test]
+fn internal_entity_handles_remain_owner_local_and_nonserializable() {
+    let internal = include_str!("../ecs/entity/internal.rs");
+    let entity_module = include_str!("../ecs/entity/mod.rs");
+    let ecs_module = include_str!("../ecs/mod.rs");
+    let scene_module = include_str!("../mod.rs");
+    let identity = include_str!("../world/identity.rs");
+    let stable_location = include_str!("../ecs/entity/stable_location.rs");
+    let component_storage = include_str!("../ecs/storage/component_storage/store.rs");
+    let component_location = include_str!("../ecs/storage/component_storage/location.rs");
+
+    assert!(internal.contains("pub(crate) struct InternalEntity"));
+    assert!(!internal.contains("Serialize"));
+    assert!(!internal.contains("Deserialize"));
+    assert!(!internal.contains("to_bits"));
+    assert!(!internal.contains("from_bits"));
+
+    assert!(entity_module.contains("pub(crate) use internal::InternalEntity;"));
+    assert!(entity_module.contains("pub(crate) use registry::EntityRegistry;"));
+    assert!(!entity_module.contains("pub use internal::InternalEntity;"));
+    assert!(!entity_module.contains("pub use registry::EntityRegistry;"));
+    assert!(ecs_module.contains("pub(crate) use entity::{"));
+    assert!(scene_module.contains("pub(crate) use ecs::{"));
+    assert!(!scene_module.contains("FunctionSceneSystem, InternalEntity,"));
+    assert!(!scene_module.contains("EntityLocation, EntityRegistry,"));
+
+    assert!(identity.contains("pub(crate) fn internal_entity"));
+    assert!(identity.contains("pub(crate) fn internal_entity_location"));
+    assert!(identity.contains("pub(crate) fn contains_internal_entity"));
+    assert!(stable_location.contains("pub(crate) internal: InternalEntity"));
+    assert!(stable_location.contains("pub const fn stable_id(self) -> EntityId"));
+    assert!(component_storage.contains("pub(crate) struct ComponentStorage"));
+    assert!(component_location.contains("pub(crate) entity: InternalEntity"));
+}
+
+#[test]
+fn public_location_debug_output_redacts_owner_local_entity_slots() {
+    let stable_location = include_str!("../ecs/entity/stable_location.rs");
+    let component_location = include_str!("../ecs/storage/component_storage/location.rs");
+
+    assert!(stable_location.contains("impl fmt::Debug for StableEntityLocation"));
+    assert!(stable_location.contains(".field(\"stable_id\", &self.stable_id)"));
+    assert!(!stable_location.contains("#[derive(Clone, Copy, Debug, PartialEq, Eq)]"));
+    assert!(!stable_location.contains(".field(\"internal\","));
+
+    assert!(component_location.contains("impl fmt::Debug for ComponentStorageLocation"));
+    assert!(component_location.contains(".field(\"component_id\", &self.component_id)"));
+    assert!(!component_location.contains("#[derive(Clone, Copy, Debug, PartialEq, Eq)]"));
+    assert!(!component_location.contains(".field(\"entity\","));
 }

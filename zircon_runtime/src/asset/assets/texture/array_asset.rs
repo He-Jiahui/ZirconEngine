@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::asset::{AssetReference, AssetUri};
-use crate::core::framework::render::RenderImageDimension;
+use crate::core::framework::render::{RenderImageDescriptor, RenderImageDimension};
 
 use super::{TextureArrayLayout, TextureAsset, TextureAssetDescriptor, TexturePayload};
 
@@ -78,7 +78,7 @@ pub enum Texture2DArrayAssetError {
 
 pub fn texture_asset_from_array_layers(
     asset: Texture2DArrayAsset,
-    layers: Vec<TextureAsset>,
+    mut layers: Vec<TextureAsset>,
 ) -> Result<TextureAsset, Texture2DArrayAssetError> {
     if layers.is_empty() {
         return Err(Texture2DArrayAssetError::Empty);
@@ -94,56 +94,35 @@ pub fn texture_asset_from_array_layers(
         });
     }
 
-    let first = &layers[0];
-    let first_descriptor = first.render_image_descriptor();
-    let width = first.width;
-    let height = first.height;
+    let first_descriptor = take_render_image_descriptor(&mut layers[0]);
+    let width = layers[0].width;
+    let height = layers[0].height;
     let mip_count = first_descriptor.mip_count.max(1);
     let expected_layer_len = rgba8_mip_chain_len(width, height, mip_count)
         .ok_or(Texture2DArrayAssetError::PayloadExtentOverflow)?;
 
-    for (layer, texture) in layers.iter().enumerate() {
-        let descriptor = texture.render_image_descriptor();
-        if texture.payload != TexturePayload::Rgba8
-            || descriptor.dimension != RenderImageDimension::D2
-            || descriptor.array_layer_count != 1
-            || descriptor.depth_or_array_layers != 1
-        {
-            return Err(Texture2DArrayAssetError::LayerPayload { layer });
-        }
-        if texture.width != width || texture.height != height {
-            return Err(Texture2DArrayAssetError::LayerDimensionMismatch {
-                layer,
-                expected_width: width,
-                expected_height: height,
-                width: texture.width,
-                height: texture.height,
-            });
-        }
-        if descriptor.format != first_descriptor.format {
-            return Err(Texture2DArrayAssetError::LayerFormatMismatch {
-                layer,
-                expected: first_descriptor.format.clone(),
-                actual: descriptor.format,
-            });
-        }
-        if descriptor.color_space != first_descriptor.color_space {
-            return Err(Texture2DArrayAssetError::LayerColorSpaceMismatch { layer });
-        }
-        if descriptor.mip_count.max(1) != mip_count {
-            return Err(Texture2DArrayAssetError::LayerMipCountMismatch {
-                layer,
-                expected: mip_count,
-                actual: descriptor.mip_count.max(1),
-            });
-        }
-        if texture.rgba.len() != expected_layer_len {
-            return Err(Texture2DArrayAssetError::LayerPayloadLength {
-                layer,
-                expected: expected_layer_len,
-                actual: texture.rgba.len(),
-            });
-        }
+    validate_array_layer(
+        0,
+        &layers[0],
+        &first_descriptor,
+        &first_descriptor,
+        width,
+        height,
+        mip_count,
+        expected_layer_len,
+    )?;
+    for (layer, texture) in layers.iter_mut().enumerate().skip(1) {
+        let descriptor = take_render_image_descriptor(texture);
+        validate_array_layer(
+            layer,
+            texture,
+            &descriptor,
+            &first_descriptor,
+            width,
+            height,
+            mip_count,
+            expected_layer_len,
+        )?;
     }
 
     let rgba = interleave_layer_mips(&layers, width, height, mip_count)?;
@@ -157,6 +136,67 @@ pub fn texture_asset_from_array_layers(
     descriptor.color_space = first_descriptor.color_space;
 
     Ok(TextureAsset::new_rgba8(asset.uri, width, height, rgba).with_descriptor(descriptor))
+}
+
+fn take_render_image_descriptor(texture: &mut TextureAsset) -> RenderImageDescriptor {
+    texture
+        .descriptor
+        .take()
+        .unwrap_or_else(|| TextureAssetDescriptor::from_payload(&texture.payload))
+        .into_render_image_descriptor(texture.width, texture.height)
+}
+
+fn validate_array_layer(
+    layer: usize,
+    texture: &TextureAsset,
+    descriptor: &RenderImageDescriptor,
+    expected_descriptor: &RenderImageDescriptor,
+    expected_width: u32,
+    expected_height: u32,
+    expected_mip_count: u32,
+    expected_layer_len: usize,
+) -> Result<(), Texture2DArrayAssetError> {
+    if texture.payload != TexturePayload::Rgba8
+        || descriptor.dimension != RenderImageDimension::D2
+        || descriptor.array_layer_count != 1
+        || descriptor.depth_or_array_layers != 1
+    {
+        return Err(Texture2DArrayAssetError::LayerPayload { layer });
+    }
+    if texture.width != expected_width || texture.height != expected_height {
+        return Err(Texture2DArrayAssetError::LayerDimensionMismatch {
+            layer,
+            expected_width,
+            expected_height,
+            width: texture.width,
+            height: texture.height,
+        });
+    }
+    if descriptor.format != expected_descriptor.format {
+        return Err(Texture2DArrayAssetError::LayerFormatMismatch {
+            layer,
+            expected: expected_descriptor.format.clone(),
+            actual: descriptor.format.clone(),
+        });
+    }
+    if descriptor.color_space != expected_descriptor.color_space {
+        return Err(Texture2DArrayAssetError::LayerColorSpaceMismatch { layer });
+    }
+    if descriptor.mip_count.max(1) != expected_mip_count {
+        return Err(Texture2DArrayAssetError::LayerMipCountMismatch {
+            layer,
+            expected: expected_mip_count,
+            actual: descriptor.mip_count.max(1),
+        });
+    }
+    if texture.rgba.len() != expected_layer_len {
+        return Err(Texture2DArrayAssetError::LayerPayloadLength {
+            layer,
+            expected: expected_layer_len,
+            actual: texture.rgba.len(),
+        });
+    }
+    Ok(())
 }
 
 fn interleave_layer_mips(
@@ -199,4 +239,51 @@ fn rgba8_level_len(width: u32, height: u32) -> Option<usize> {
         .checked_mul(height)?
         .checked_mul(4)
         .and_then(|value| usize::try_from(value).ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn uri(path: &str) -> AssetUri {
+        AssetUri::parse(path).expect("texture test URI must be valid")
+    }
+
+    #[test]
+    fn runtime92_owned_descriptors_recovery_batch_array_preserves_payload_and_extent() {
+        let asset = Texture2DArrayAsset {
+            uri: uri("res://textures/runtime92-array.ztexture"),
+            descriptor: TextureAssetDescriptor::default(),
+            layers: vec![
+                TextureArrayLayerSource::Reference(AssetReference::from_locator(uri(
+                    "res://textures/runtime92-array-0.png",
+                ))),
+                TextureArrayLayerSource::Reference(AssetReference::from_locator(uri(
+                    "res://textures/runtime92-array-1.png",
+                ))),
+            ],
+        };
+        let layers = vec![
+            TextureAsset::new_rgba8(
+                uri("res://textures/runtime92-array-0.png"),
+                2,
+                1,
+                vec![1; 8],
+            ),
+            TextureAsset::new_rgba8(
+                uri("res://textures/runtime92-array-1.png"),
+                2,
+                1,
+                vec![2; 8],
+            ),
+        ];
+
+        let output = texture_asset_from_array_layers(asset, layers).unwrap();
+
+        assert_eq!(output.rgba, [vec![1; 8], vec![2; 8]].concat());
+        let descriptor = output.descriptor.unwrap();
+        assert_eq!(descriptor.dimension, RenderImageDimension::D2);
+        assert_eq!(descriptor.depth_or_array_layers, 2);
+        assert_eq!(descriptor.array_layer_count, 2);
+    }
 }

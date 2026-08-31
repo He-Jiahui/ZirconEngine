@@ -27,9 +27,22 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
         return;
     }
 
+    let command_start = commands.len();
     if push_specialized_template_node_commands(
-        commands, node, &rect, &node_clip, origin, clip, order, opacity,
+        commands,
+        node,
+        &rect,
+        &node_clip,
+        origin,
+        clip,
+        text_input_focus,
+        order,
+        opacity,
     ) {
+        tag_commands_with_source(
+            &mut commands[command_start..],
+            node.surface_render_command_ref,
+        );
         return;
     }
 
@@ -44,4 +57,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
         opacity,
         text_input_focus,
     );
+    tag_commands_with_source(
+        &mut commands[command_start..],
+        node.surface_render_command_ref,
+    );
+}
+
+fn tag_commands_with_source(
+    commands: &mut [HostPaintCommand],
+    command_ref: Option<zircon_runtime_interface::ui::surface::UiRenderFrameCommandRef>,
+) {
+    for command in commands {
+        command.source_render_command_ref = command_ref;
+    }
 }

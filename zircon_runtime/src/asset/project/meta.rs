@@ -1,6 +1,7 @@
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeSet, HashSet};
+use std::fmt::{self, Display, Formatter};
 use std::fs;
 use std::path::Path;
 use thiserror::Error;
@@ -8,6 +9,15 @@ use thiserror::Error;
 use crate::asset::{AssetKind, AssetUri, AssetUuid};
 
 const ASSET_META_FORMAT_VERSION: u32 = 7;
+
+#[derive(Clone, Copy)]
+struct EntryTagScope(usize);
+
+impl Display for EntryTagScope {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        write!(formatter, "entries[{}]", self.0)
+    }
+}
 
 pub type AssetMetaResult<T> = std::result::Result<T, AssetMetaError>;
 
@@ -177,8 +187,7 @@ impl<'de> Deserialize<'de> for AssetMetaDocument {
         validate_format_version(raw.format_version).map_err(D::Error::custom)?;
         validate_tag_list("root", &raw.tags).map_err(D::Error::custom)?;
         for (index, entry) in raw.entries.iter().enumerate() {
-            validate_tag_list(&format!("entries[{index}]"), &entry.tags)
-                .map_err(D::Error::custom)?;
+            validate_tag_list(EntryTagScope(index), &entry.tags).map_err(D::Error::custom)?;
         }
         Ok(raw.into_document())
     }
@@ -313,7 +322,7 @@ impl AssetMetaDocument {
         validate_format_version(self.format_version)?;
         validate_tag_set("root", &self.tags)?;
         for (index, entry) in self.entries.iter().enumerate() {
-            validate_tag_set(&format!("entries[{index}]"), &entry.tags)?;
+            validate_tag_set(EntryTagScope(index), &entry.tags)?;
         }
         Ok(())
     }
@@ -324,14 +333,17 @@ fn validate_serialized_tags(table: &toml::Table) -> AssetMetaResult<()> {
     if let Some(entries) = table.get("entries").and_then(toml::Value::as_array) {
         for (index, entry) in entries.iter().enumerate() {
             if let Some(entry) = entry.as_table() {
-                validate_tag_value(&format!("entries[{index}]"), entry.get("tags"))?;
+                validate_tag_value(EntryTagScope(index), entry.get("tags"))?;
             }
         }
     }
     Ok(())
 }
 
-fn validate_tag_value(scope: &str, value: Option<&toml::Value>) -> AssetMetaResult<()> {
+fn validate_tag_value(
+    scope: impl Display + Copy,
+    value: Option<&toml::Value>,
+) -> AssetMetaResult<()> {
     let Some(tags) = value.and_then(toml::Value::as_array) else {
         return Ok(());
     };
@@ -348,7 +360,7 @@ fn validate_tag_value(scope: &str, value: Option<&toml::Value>) -> AssetMetaResu
     Ok(())
 }
 
-fn validate_tag_list(scope: &str, tags: &[String]) -> AssetMetaResult<()> {
+fn validate_tag_list(scope: impl Display + Copy, tags: &[String]) -> AssetMetaResult<()> {
     let mut seen = HashSet::new();
     for tag in tags {
         validate_tag(scope, tag)?;
@@ -362,14 +374,14 @@ fn validate_tag_list(scope: &str, tags: &[String]) -> AssetMetaResult<()> {
     Ok(())
 }
 
-fn validate_tag_set(scope: &str, tags: &BTreeSet<String>) -> AssetMetaResult<()> {
+fn validate_tag_set(scope: impl Display + Copy, tags: &BTreeSet<String>) -> AssetMetaResult<()> {
     for tag in tags {
         validate_tag(scope, tag)?;
     }
     Ok(())
 }
 
-fn validate_tag(scope: &str, tag: &str) -> AssetMetaResult<()> {
+fn validate_tag(scope: impl Display, tag: &str) -> AssetMetaResult<()> {
     if tag.is_empty() {
         return Err(AssetMetaError::EmptyTag {
             scope: scope.to_string(),
@@ -415,6 +427,10 @@ fn deserialize_error(error: toml::de::Error) -> AssetMetaError {
 fn invalid_data(error: impl std::error::Error) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::InvalidData, error.to_string())
 }
+
+#[cfg(test)]
+#[path = "meta/lazy_tag_scope_tests.rs"]
+mod lazy_tag_scope_tests;
 
 #[cfg(test)]
 mod tests {

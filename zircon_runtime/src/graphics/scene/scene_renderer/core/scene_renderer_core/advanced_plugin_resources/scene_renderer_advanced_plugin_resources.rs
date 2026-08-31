@@ -4,15 +4,16 @@ use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RuntimePrepareCollectorContext,
-    RuntimePrepareCollectorRegistration, RuntimePrepareExternalBufferBinding,
-    RuntimePrepareGpuPassProfile, RuntimePrepareGpuReadbackRequest,
+    RuntimePrepareCollectorRegistration, RuntimePrepareDeviceEpoch,
+    RuntimePrepareExternalBufferBinding, RuntimePrepareFramePacket, RuntimePrepareGpuPassProfile,
+    RuntimePrepareGpuReadbackRequest,
 };
 
 pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePrepareCollector =
     Box<
         dyn FnMut(
                 &wgpu::Device,
-                &wgpu::Queue,
+                RuntimePrepareDeviceEpoch,
                 &mut wgpu::CommandEncoder,
                 &ResourceStreamer,
                 &ViewportRenderFrame,
@@ -21,6 +22,7 @@ pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePr
                 bool,
                 Option<&mut GpuPassTimer>,
                 &mut Vec<RuntimePrepareGpuPassProfile>,
+                &mut RuntimePrepareFramePacket,
             ) -> Result<RenderPluginRendererOutputs, GraphicsError>
             + Send,
     >;
@@ -28,6 +30,7 @@ pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePr
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvancedPluginResources {
     capabilities: SceneRendererAdvancedPluginResourceCapabilities,
     runtime_prepare_collectors: Vec<SceneRendererRuntimePrepareCollector>,
+    runtime_prepare_gpu_readback_collector_count: usize,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -40,16 +43,21 @@ struct SceneRendererAdvancedPluginResourceCapabilities {
 
 impl SceneRendererAdvancedPluginResources {
     pub(in crate::graphics::scene::scene_renderer::core) fn new(
-        _device: &wgpu::Device,
         render_features: &[RenderFeatureDescriptor],
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     ) -> Self {
+        let runtime_prepare_collectors = runtime_prepare_collectors.into_iter().collect::<Vec<_>>();
+        let runtime_prepare_gpu_readback_collector_count = runtime_prepare_collectors
+            .iter()
+            .filter(|registration| registration.requests_gpu_readback())
+            .count();
         Self {
             capabilities: advanced_plugin_resource_capabilities(render_features),
             runtime_prepare_collectors: runtime_prepare_collectors
                 .into_iter()
                 .map(scene_runtime_prepare_collector_from_registration)
                 .collect(),
+            runtime_prepare_gpu_readback_collector_count,
         }
     }
 
@@ -65,6 +73,12 @@ impl SceneRendererAdvancedPluginResources {
         &mut self,
     ) -> &mut [SceneRendererRuntimePrepareCollector] {
         &mut self.runtime_prepare_collectors
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn has_runtime_prepare_gpu_readback_collectors(
+        &self,
+    ) -> bool {
+        self.runtime_prepare_gpu_readback_collector_count > 0
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) fn virtual_geometry_enabled(
@@ -116,7 +130,7 @@ fn scene_runtime_prepare_collector_from_registration(
 ) -> SceneRendererRuntimePrepareCollector {
     Box::new(
         move |device,
-              queue,
+              device_epoch,
               encoder,
               streamer,
               frame,
@@ -124,11 +138,12 @@ fn scene_runtime_prepare_collector_from_registration(
               gpu_readbacks,
               gpu_work_admitted,
               gpu_pass_timer,
-              gpu_pass_profiles| {
+              gpu_pass_profiles,
+              runtime_prepare_frame_packet| {
             let mut context =
                 RuntimePrepareCollectorContext::new_with_gpu_readbacks_and_gpu_work_admission(
                     device,
-                    queue,
+                    device_epoch,
                     encoder,
                     streamer,
                     frame,
@@ -138,7 +153,10 @@ fn scene_runtime_prepare_collector_from_registration(
                     gpu_pass_timer,
                     gpu_pass_profiles,
                 );
-            registration.collect(&mut context)
+            let result = registration.collect(&mut context);
+            let mut collector_frame_packet = context.take_frame_packet();
+            runtime_prepare_frame_packet.append(&mut collector_frame_packet);
+            result
         },
     )
 }
@@ -205,6 +223,7 @@ mod tests {
         let resources = SceneRendererAdvancedPluginResources {
             capabilities,
             runtime_prepare_collectors: Vec::new(),
+            runtime_prepare_gpu_readback_collector_count: 0,
         };
         assert!(resources.hybrid_gi_enabled());
         assert!(resources.volumetric_fog_enabled());

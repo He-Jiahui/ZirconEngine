@@ -61,8 +61,8 @@ fn draw_rgba_image_clipped_blends_translucent_scaled_pixels() {
     );
 
     assert!(drew);
-    assert_eq!(&frame.as_bytes()[0..4], &[60, 70, 80, 255]);
-    assert_eq!(&frame.as_bytes()[4..8], &[60, 70, 80, 255]);
+    assert_eq!(&frame.as_bytes()[0..4], &[80, 88, 97, 255]);
+    assert_eq!(&frame.as_bytes()[4..8], &[80, 88, 97, 255]);
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn scaled_rgba_image_uses_bilinear_center_sampling() {
         &rgba,
     ));
 
-    assert_eq!(rgba_pixel(&frame, 1, 1), [128, 128, 128, 255]);
+    assert_eq!(rgba_pixel(&frame, 1, 1), [188, 188, 188, 255]);
 }
 
 #[test]
@@ -108,7 +108,7 @@ fn bilinear_sampling_does_not_bleed_rgb_from_transparent_texels() {
         &rgba,
     ));
 
-    assert_eq!(rgba_pixel(&frame, 1, 0), [0, 0, 128, 255]);
+    assert_eq!(rgba_pixel(&frame, 1, 0), [0, 0, 188, 255]);
 }
 
 #[test]

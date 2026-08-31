@@ -30,20 +30,18 @@ pub(crate) fn layout_vertical_rl_columns(
         .max(1.0) as usize;
     let frame_right = finite_coordinate(frame_x) + frame_width;
     let frame_y = finite_coordinate(frame_y);
-    let frames = column_heights
-        .iter()
-        .enumerate()
-        .map(|(index, height)| VerticalColumnFrame {
+    let mut frames = Vec::with_capacity(column_heights.len());
+    let mut measured_height = 0.0_f32;
+    for (index, height) in column_heights.iter().copied().enumerate() {
+        let height = finite_non_negative(height);
+        measured_height = measured_height.max(height);
+        frames.push(VerticalColumnFrame {
             x: frame_right - (index + 1) as f32 * column_advance,
             y: frame_y,
             width: column_width,
-            height: finite_non_negative(*height),
-        })
-        .collect::<Vec<_>>();
-    let measured_height = frames
-        .iter()
-        .map(|frame| frame.height)
-        .fold(0.0_f32, f32::max);
+            height,
+        });
+    }
 
     VerticalColumnLayout {
         column_capacity,
@@ -53,12 +51,12 @@ pub(crate) fn layout_vertical_rl_columns(
     }
 }
 
+#[cfg(test)]
+#[path = "vertical_layout/single_pass_frame_tests.rs"]
+mod single_pass_frame_tests;
+
 fn finite_coordinate(value: f32) -> f32 {
-    if value.is_finite() {
-        value
-    } else {
-        0.0
-    }
+    if value.is_finite() { value } else { 0.0 }
 }
 
 fn finite_non_negative(value: f32) -> f32 {

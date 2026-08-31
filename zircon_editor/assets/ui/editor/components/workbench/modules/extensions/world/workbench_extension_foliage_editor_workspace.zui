@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "foliage_editor_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.foliage_editor_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionFoliageEditorWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "foliage_editor_rail_gap" }, { node = "foliage_editor_left" }, { node = "foliage_editor_center" }, { node = "foliage_editor_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "foliage_editor_workspace_main" },
+  { node = "foliage_editor_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.foliage_editor_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "foliage_editor_rail_gap" }, { node = "foliage_editor_left" }, { node = "foliage_editor_center" }, { node = "foliage_editor_right_reserve" }]
+
+[nodes.foliage_editor_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.foliage_editor_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionFoliageEditorRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.foliage_editor_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionFoliageEditorLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "foliage_editor_title" }, { node = "foliage_editor_paint_tab" }, { node = "foliage_editor_erase_tab" }, { node = "foliage_editor_clusters_tab" }, { node = "foliage_editor_forest_row" }, { node = "foliage_editor_oak_row" }, { node = "foliage_editor_biome_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "foliage_editor_title" }, { node = "foliage_editor_left_content" }]
+
+[nodes.foliage_editor_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionFoliageEditorLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "foliage_editor_forest_row" }, { node = "foliage_editor_oak_row" }, { node = "foliage_editor_biome_row" }]
 
 [nodes.foliage_editor_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionFoliageEditorTitle"
 props = { text = "Foliage Editor" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.foliage_editor_paint_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionFoliageEditorPaintTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Paint", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/FoliageEditorPaintTab", event = "Click", route = "workbench.extension.foliage_editor.paint" }]
-
-[nodes.foliage_editor_erase_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionFoliageEditorEraseTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Erase", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/FoliageEditorEraseTab", event = "Click", route = "workbench.extension.foliage_editor.erase" }]
-
-[nodes.foliage_editor_clusters_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionFoliageEditorClustersTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Clusters", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/FoliageEditorClustersTab", event = "Click", route = "workbench.extension.foliage_editor.clusters" }]
 
 [nodes.foliage_editor_forest_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/FoliageEditorBiomeRow", event = "Click", ro
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionFoliageEditorCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "foliage_editor_center_header" }, { node = "foliage_editor_cluster_table" }, { node = "foliage_editor_output" }]
 
 [nodes.foliage_editor_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionFoliageEditorCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "foliage_editor_center_title" }, { node = "foliage_editor_header_fill" }, { node = "foliage_editor_preview_button" }, { node = "foliage_editor_build_button" }]
 
 [nodes.foliage_editor_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionFoliageEditorPreviewButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Preview", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Preview", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/FoliageEditorPreview", event = "Click", route = "workbench.extension.foliage_editor.preview" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/FoliageEditorPreview", event = "Click", rou
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionFoliageEditorBuildButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Build", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Build", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/FoliageEditorBuild", event = "Click", route = "workbench.extension.foliage_editor.build" }]
 
 [nodes.foliage_editor_cluster_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionFoliageEditorClusterTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "foliage_editor_forest_a12_row" }, { node = "foliage_editor_forest_a13_row" }, { node = "foliage_editor_river_02_row" }, { node = "foliage_editor_cliff_01_row" }]
 
 [nodes.foliage_editor_forest_a12_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/FoliageEditorCliff01TableRow", event = "Cli
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionFoliageEditorOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Paint Output", value_text = "84K instances   2 warnings" }
+props = { text = "Paint Output", value_text = "84K instances   2 warnings", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/FoliageEditorOutput", event = "Click", route = "workbench.extension.foliage_editor.output" }]
 
 [nodes.foliage_editor_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionFoliageEditorRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "foliage_editor_details_title" }, { node = "foliage_editor_type_dropdown" }, { node = "foliage_editor_density_field" }, { node = "foliage_editor_radius_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "foliage_editor_details_title" }, { node = "foliage_editor_right_content" }]
+
+[nodes.foliage_editor_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionFoliageEditorRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "foliage_editor_type_dropdown_property_row" }, { node = "foliage_editor_density_field_property_row" }, { node = "foliage_editor_radius_field_property_row" }]
 
 [nodes.foliage_editor_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,16 +202,30 @@ control_id = "WorkbenchExtensionFoliageEditorDetailsTitle"
 props = { text = "Brush Properties" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.foliage_editor_type_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionFoliageEditorTypeDropdownPropertyRow"
+props = { text = "Type" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "foliage_editor_type_dropdown", slot = { name = "value" } }]
+
 [nodes.foliage_editor_type_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionFoliageEditorTypeDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Oak_Tall", value = "Oak_Tall", options = ["Oak_Tall", "Fern_A", "Grass_Clump", "Bush_A"] }
+props = { value_text = "Oak_Tall", value = "Oak_Tall", options = ["Oak_Tall", "Fern_A", "Grass_Clump", "Bush_A"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/FoliageEditorTypeEdit", event = "Change", route = "workbench.extension.foliage_editor.type.edit" },
   { id = "WorkbenchExtension/FoliageEditorTypeCommit", event = "Submit", route = "workbench.extension.foliage_editor.type.commit" },
 ]
+
+[nodes.foliage_editor_density_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionFoliageEditorDensityFieldPropertyRow"
+props = { text = "Density" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "foliage_editor_density_field", slot = { name = "value" } }]
 
 [nodes.foliage_editor_density_field]
 component = "WorkbenchField"
@@ -217,6 +237,13 @@ events = [
   { id = "WorkbenchExtension/FoliageEditorDensityEdit", event = "Change", route = "workbench.extension.foliage_editor.density.edit" },
   { id = "WorkbenchExtension/FoliageEditorDensityCommit", event = "Submit", route = "workbench.extension.foliage_editor.density.commit" },
 ]
+
+[nodes.foliage_editor_radius_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionFoliageEditorRadiusFieldPropertyRow"
+props = { text = "Radius" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "foliage_editor_radius_field", slot = { name = "value" } }]
 
 [nodes.foliage_editor_radius_field]
 component = "WorkbenchField"

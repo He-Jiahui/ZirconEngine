@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -29,13 +29,17 @@ pub struct SystemSetRegistry {
 }
 
 impl SystemSetRegistry {
-    pub fn intern(&mut self, name: impl Into<String>) -> Result<SystemSetId, ScheduleError> {
+    pub fn intern<'a>(
+        &mut self,
+        name: impl Into<Cow<'a, str>>,
+    ) -> Result<SystemSetId, ScheduleError> {
         let name = name.into();
-        validate_system_set_name(&name)?;
-        if let Some(id) = self.ids_by_name.get(&name).copied() {
+        validate_system_set_name(name.as_ref())?;
+        if let Some(id) = self.ids_by_name.get(name.as_ref()).copied() {
             return Ok(id);
         }
 
+        let name = name.into_owned();
         let id = SystemSetId::from_raw(self.names.len() as u32);
         self.names.push(name.clone());
         self.ids_by_name.insert(name, id);
@@ -67,4 +71,43 @@ fn is_lowercase_system_set_token(segment: &str) -> bool {
         && segment
             .bytes()
             .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SystemSetRegistry;
+
+    #[test]
+    fn runtime60_batch_borrowed_system_set_intern_reuses_dense_id() {
+        let mut registry = SystemSetRegistry::default();
+
+        let first = registry.intern("physics.main").unwrap();
+        let repeated = registry.intern("physics.main").unwrap();
+
+        assert_eq!(repeated, first);
+        assert_eq!(registry.names.len(), 1);
+        assert_eq!(registry.ids_by_name.len(), 1);
+    }
+
+    #[test]
+    fn runtime60_batch_owned_system_set_intern_preserves_name() {
+        let mut registry = SystemSetRegistry::default();
+        let name = String::from("render.main");
+
+        let borrowed_id = registry.intern(&name).unwrap();
+        let owned_id = registry.intern(name).unwrap();
+
+        assert_eq!(owned_id, borrowed_id);
+        assert_eq!(registry.name(owned_id), Some("render.main"));
+    }
+
+    #[test]
+    fn runtime60_batch_invalid_borrowed_system_set_does_not_mutate_registry() {
+        let mut registry = SystemSetRegistry::default();
+
+        assert!(registry.intern("Physics.main").is_err());
+
+        assert!(registry.names.is_empty());
+        assert!(registry.ids_by_name.is_empty());
+    }
 }

@@ -12,6 +12,26 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
 };
 
+#[cfg(test)]
+#[path = "virtual_geometry_output_buffers/fixed_packing_tests.rs"]
+mod fixed_packing_tests;
+
+#[inline]
+fn collect_fixed_packed_words<T, const WORD_COUNT: usize>(
+    values: &[T],
+    packed_words: impl Fn(&T) -> [u32; WORD_COUNT],
+) -> Vec<u32> {
+    let capacity = values
+        .len()
+        .checked_mul(WORD_COUNT)
+        .expect("fixed-width output buffer word count exceeds addressable memory");
+    let mut words = Vec::with_capacity(capacity);
+    for value in values {
+        words.extend_from_slice(&packed_words(value));
+    }
+    words
+}
+
 pub(super) fn create_selected_cluster_buffer(
     device: &wgpu::Device,
     packed_words: &[u32],
@@ -69,10 +89,10 @@ pub(super) fn create_node_and_cluster_cull_instance_work_item_buffer(
         return None;
     }
 
-    let packed_words = instance_work_items
-        .iter()
-        .flat_map(RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem::packed_words)
-        .collect::<Vec<_>>();
+    let packed_words = collect_fixed_packed_words(
+        instance_work_items,
+        RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem::packed_words,
+    );
     Some(Arc::new(device.create_buffer_init(
         &wgpu::util::BufferInitDescriptor {
             label: Some("zircon-vg-node-and-cluster-cull-instance-work-item-buffer"),
@@ -90,10 +110,10 @@ pub(super) fn create_node_and_cluster_cull_cluster_work_item_buffer(
         return None;
     }
 
-    let packed_words = cluster_work_items
-        .iter()
-        .flat_map(VirtualGeometryNodeAndClusterCullClusterWorkItem::packed_words)
-        .collect::<Vec<_>>();
+    let packed_words = collect_fixed_packed_words(
+        cluster_work_items,
+        VirtualGeometryNodeAndClusterCullClusterWorkItem::packed_words,
+    );
     Some(Arc::new(device.create_buffer_init(
         &wgpu::util::BufferInitDescriptor {
             label: Some("zircon-vg-node-and-cluster-cull-cluster-work-item-buffer"),
@@ -128,10 +148,10 @@ pub(super) fn create_node_and_cluster_cull_child_work_item_buffer(
         return None;
     }
 
-    let packed_words = child_work_items
-        .iter()
-        .flat_map(VirtualGeometryNodeAndClusterCullChildWorkItem::packed_words)
-        .collect::<Vec<_>>();
+    let packed_words = collect_fixed_packed_words(
+        child_work_items,
+        VirtualGeometryNodeAndClusterCullChildWorkItem::packed_words,
+    );
     Some(Arc::new(device.create_buffer_init(
         &wgpu::util::BufferInitDescriptor {
             label: Some("zircon-vg-node-and-cluster-cull-child-work-item-buffer"),
@@ -149,10 +169,10 @@ pub(super) fn create_node_and_cluster_cull_traversal_record_buffer(
         return None;
     }
 
-    let packed_words = traversal_records
-        .iter()
-        .flat_map(VirtualGeometryNodeAndClusterCullTraversalRecord::packed_words)
-        .collect::<Vec<_>>();
+    let packed_words = collect_fixed_packed_words(
+        traversal_records,
+        VirtualGeometryNodeAndClusterCullTraversalRecord::packed_words,
+    );
     Some(Arc::new(device.create_buffer_init(
         &wgpu::util::BufferInitDescriptor {
             label: Some("zircon-vg-node-and-cluster-cull-traversal-record-buffer"),
@@ -199,10 +219,7 @@ pub(super) fn create_visbuffer64_buffer(
 pub(super) fn pack_hardware_rasterization_records(
     records: &[RenderVirtualGeometryHardwareRasterizationRecord],
 ) -> Vec<u32> {
-    records
-        .iter()
-        .flat_map(|record| record.packed_words())
-        .collect()
+    collect_fixed_packed_words(records, |record| record.packed_words())
 }
 
 pub(super) fn create_hardware_rasterization_buffer(

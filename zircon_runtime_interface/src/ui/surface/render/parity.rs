@@ -31,24 +31,35 @@ impl UiRendererParitySnapshot {
         elements: &[UiPaintElement],
         plan: &UiBatchPlan,
     ) -> Self {
+        let batch_indices = batch_indices_by_source_index(&plan.batches, elements.len());
+        let mut clipped_paint_count = 0;
+        let mut resource_bound_paint_count = 0;
+        let mut text_paint_count = 0;
         let paint_order = elements
             .iter()
             .enumerate()
             .map(|(paint_index, element)| {
-                let batch_index = batch_index_for_paint_index(plan, paint_index);
+                let batch_index = batch_indices[paint_index];
                 let batch_key = UiBatchKey::from_paint_element(element);
+                let resource = batch_key.resource.clone();
+                let text_render_mode = batch_key.text_backend;
+                let clip_frame = element.clip.as_ref().map(|clip| clip.frame);
+                let payload_kind = UiRendererParityPayloadKind::from_payload(&element.payload);
+                clipped_paint_count += usize::from(clip_frame.is_some());
+                resource_bound_paint_count += usize::from(resource.is_some());
+                text_paint_count += usize::from(payload_kind == UiRendererParityPayloadKind::Text);
                 UiRendererParityPaintRow {
                     paint_index,
                     node_id: element.node_id,
                     paint_order: element.paint_order,
                     frame: element.geometry.render_bounds,
-                    clip_frame: element.clip.as_ref().map(|clip| clip.frame),
+                    clip_frame,
                     clip: batch_key.clip.clone(),
-                    payload_kind: UiRendererParityPayloadKind::from_payload(&element.payload),
+                    payload_kind,
                     batch_key,
                     batch_index,
-                    resource: paint_resource_key(element),
-                    text_render_mode: paint_text_render_mode(element),
+                    resource,
+                    text_render_mode,
                     opacity: element.effects.opacity,
                     debug_label: element.debug_label.clone(),
                 }
@@ -76,18 +87,9 @@ impl UiRendererParitySnapshot {
         let stats = UiRendererParityStats {
             paint_element_count: paint_order.len(),
             batch_count: batch_order.len(),
-            clipped_paint_count: paint_order
-                .iter()
-                .filter(|row| row.clip_frame.is_some())
-                .count(),
-            resource_bound_paint_count: paint_order
-                .iter()
-                .filter(|row| row.resource.is_some())
-                .count(),
-            text_paint_count: paint_order
-                .iter()
-                .filter(|row| row.payload_kind == UiRendererParityPayloadKind::Text)
-                .count(),
+            clipped_paint_count,
+            resource_bound_paint_count,
+            text_paint_count,
         };
 
         Self {
@@ -158,19 +160,19 @@ pub struct UiRendererParityStats {
     pub text_paint_count: usize,
 }
 
-fn batch_index_for_paint_index(plan: &UiBatchPlan, paint_index: usize) -> Option<usize> {
-    plan.batches
-        .iter()
-        .position(|batch| batch.source_indices.contains(&paint_index))
-}
-
-fn paint_resource_key(element: &UiPaintElement) -> Option<UiRenderResourceKey> {
-    UiBatchKey::from_paint_element(element).resource
-}
-
-fn paint_text_render_mode(element: &UiPaintElement) -> Option<UiTextRenderMode> {
-    match &element.payload {
-        UiPaintPayload::Text { text } => Some(text.render_mode),
-        UiPaintPayload::Empty | UiPaintPayload::Brush { .. } => None,
+pub(crate) fn batch_indices_by_source_index(
+    batches: &[super::UiBatch],
+    element_count: usize,
+) -> Vec<Option<usize>> {
+    let mut batch_indices = vec![None; element_count];
+    for (batch_index, batch) in batches.iter().enumerate() {
+        for &source_index in &batch.source_indices {
+            if let Some(slot) = batch_indices.get_mut(source_index) {
+                if slot.is_none() {
+                    *slot = Some(batch_index);
+                }
+            }
+        }
     }
+    batch_indices
 }

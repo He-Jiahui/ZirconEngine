@@ -1,10 +1,11 @@
+use std::sync::Arc;
 use std::time::Instant;
 
 use super::{EditorJobSystem, ProgressObserverEvent};
 use crate::core::jobs::event_sink::JobEventSink;
 use crate::core::jobs::{
-    EditorJobAdmissionSnapshot, EditorJobProgressSource, JobContext, JobEventKind,
-    JobEventPumpBudget, JobId, UnfinishedEditorJob,
+    CancellationToken, EditorJobAdmissionSnapshot, EditorJobProgressSource, EditorJobSpec,
+    JobCategory, JobContext, JobEventKind, JobEventPumpBudget, JobId, UnfinishedEditorJob,
 };
 
 impl EditorJobSystem {
@@ -62,10 +63,12 @@ impl EditorJobSystem {
         let Some(pending) = state.remove_pending(id) else {
             return self.inner.progress.request_cancel(id);
         };
-        pending.spec.cancel.cancel();
-        let label = pending.spec.label.clone();
-        let category = pending.spec.category;
-        let cancel = pending.spec.cancel.clone();
+        let PendingCancelMetadata {
+            label,
+            category,
+            cancel,
+        } = into_pending_cancel_metadata(pending.spec);
+        cancel.cancel();
         let cancel_task = pending.cancel_task;
         drop(state);
         let events = JobEventSink::new(
@@ -157,3 +160,27 @@ impl EditorJobSystem {
         super::state::TERMINAL_RECORD_RETENTION_LIMIT
     }
 }
+
+struct PendingCancelMetadata {
+    label: Arc<str>,
+    category: JobCategory,
+    cancel: CancellationToken,
+}
+
+fn into_pending_cancel_metadata(spec: EditorJobSpec) -> PendingCancelMetadata {
+    let EditorJobSpec {
+        label,
+        category,
+        cancel,
+        ..
+    } = spec;
+    PendingCancelMetadata {
+        label,
+        category,
+        cancel,
+    }
+}
+
+#[cfg(test)]
+#[path = "lifecycle/owned_cancel_metadata_tests.rs"]
+mod owned_cancel_metadata_tests;

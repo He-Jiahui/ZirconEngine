@@ -2,7 +2,7 @@ use crate::core::framework::render::{PostProcessEffectKind, PostProcessPassGraph
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources,
 };
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 pub(crate) fn execute_post_process_pass_graph(
     graph: &PostProcessPassGraph,
@@ -20,28 +20,44 @@ pub(crate) fn execute_post_process_pass_graph(
         return;
     }
 
-    let produced_resources = graph
+    let produced_resource_count = graph
         .nodes
         .iter()
-        .flat_map(|node| node.produced_outputs.iter().cloned())
-        .collect::<BTreeSet<_>>();
-    let mut available_resources = graph
-        .nodes
-        .iter()
-        .flat_map(|node| node.required_inputs.iter())
-        .filter(|resource| !produced_resources.contains(*resource))
-        .filter(|resource| resources.has_bound_resource(resource))
-        .cloned()
-        .collect::<BTreeSet<_>>();
+        .map(|node| node.produced_outputs.len())
+        .sum();
+    let resource_reference_count = graph.nodes.iter().fold(0, |count, node| {
+        count + node.required_inputs.len() + node.produced_outputs.len()
+    });
+    let mut produced_resources: HashSet<&str> = HashSet::with_capacity(produced_resource_count);
+    for node in &graph.nodes {
+        produced_resources.extend(node.produced_outputs.iter().map(String::as_str));
+    }
+    let mut available_resources: HashSet<&str> = HashSet::with_capacity(resource_reference_count);
+    for node in &graph.nodes {
+        available_resources.extend(
+            node.required_inputs
+                .iter()
+                .map(String::as_str)
+                .filter(|resource| !produced_resources.contains(resource))
+                .filter(|resource| resources.has_bound_resource(resource)),
+        );
+    }
 
     for node in &graph.nodes {
-        if !node.required_inputs.iter().all(|resource| {
-            resources.has_bound_resource(resource) && available_resources.contains(resource)
-        }) {
+        if !node
+            .required_inputs
+            .iter()
+            .all(|resource| available_resources.contains(resource.as_str()))
+        {
             continue;
         }
         record.push_executed_post_process_node(node.name.clone());
-        available_resources.extend(node.produced_outputs.iter().cloned());
+        available_resources.extend(
+            node.produced_outputs
+                .iter()
+                .map(String::as_str)
+                .filter(|resource| resources.has_bound_resource(resource)),
+        );
     }
 }
 
@@ -77,7 +93,8 @@ fn post_process_effect_for_executor_id(executor_id: &str) -> Option<PostProcessE
         "post.screen-space-reflection-resolve" => {
             Some(PostProcessEffectKind::ScreenSpaceReflectionResolve)
         }
-        "post.upscale" => Some(PostProcessEffectKind::Upscale),
+        "post.primary-upscale" => Some(PostProcessEffectKind::PrimaryUpscale),
+        "post.secondary-upscale" => Some(PostProcessEffectKind::SecondaryUpscale),
         "post.output-transfer" => Some(PostProcessEffectKind::OutputTransfer),
         "post.fxaa" => Some(PostProcessEffectKind::Fxaa),
         "post.smaa" => Some(PostProcessEffectKind::Smaa),
@@ -101,10 +118,11 @@ const fn post_process_effect_bit(kind: PostProcessEffectKind) -> u32 {
         PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse => 1 << 11,
         PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion => 1 << 12,
         PostProcessEffectKind::ScreenSpaceReflectionResolve => 1 << 13,
-        PostProcessEffectKind::Upscale => 1 << 14,
-        PostProcessEffectKind::OutputTransfer => 1 << 15,
-        PostProcessEffectKind::Fxaa => 1 << 16,
-        PostProcessEffectKind::Smaa => 1 << 17,
+        PostProcessEffectKind::PrimaryUpscale => 1 << 14,
+        PostProcessEffectKind::SecondaryUpscale => 1 << 15,
+        PostProcessEffectKind::OutputTransfer => 1 << 16,
+        PostProcessEffectKind::Fxaa => 1 << 17,
+        PostProcessEffectKind::Smaa => 1 << 18,
     }
 }
 
@@ -117,11 +135,11 @@ mod tests {
     use crate::core::framework::render::{
         PostProcessEffectKind, PostProcessPassGraph, PostProcessPassNode,
     };
+    use crate::graphics::RenderPassStage;
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::scene::scene_renderer::graph_execution::{
         RenderGraphExecutionRecord, RenderGraphExecutionResources,
     };
-    use crate::graphics::RenderPassStage;
     use crate::render_graph::QueueLane;
 
     #[test]
@@ -183,7 +201,14 @@ mod tests {
                 "post.screen-space-reflection-resolve",
                 PostProcessEffectKind::ScreenSpaceReflectionResolve,
             ),
-            ("post.upscale", PostProcessEffectKind::Upscale),
+            (
+                "post.primary-upscale",
+                PostProcessEffectKind::PrimaryUpscale,
+            ),
+            (
+                "post.secondary-upscale",
+                PostProcessEffectKind::SecondaryUpscale,
+            ),
             (
                 "post.output-transfer",
                 PostProcessEffectKind::OutputTransfer,

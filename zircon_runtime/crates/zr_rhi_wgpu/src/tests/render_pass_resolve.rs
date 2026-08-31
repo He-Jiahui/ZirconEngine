@@ -137,9 +137,12 @@ fn command_list_records_msaa_resolve_target_and_validates_pipeline_sample_count(
             zr_rhi::CommandListCommand::EndRenderPass,
         ]
     );
-    assert!(device
-        .is_fence_complete(device.submit(command_list).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(command_list).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 }
 
 #[test]
@@ -292,7 +295,7 @@ fn command_list_render_pass_submit_validates_resolve_target_format_extent_and_us
     assert_eq!(
         device.submit(sampled_only_pass).unwrap_err(),
         RhiError::InvalidTextureUsage {
-            texture: sampled_only.raw(),
+            texture: sampled_only.diagnostic_id(),
             required: TextureUsage::RENDER_ATTACHMENT,
             actual: TextureUsage::SAMPLED,
         }
@@ -324,7 +327,7 @@ fn command_list_render_pass_submit_rejects_duplicate_resolve_bindings() {
         RhiError::InvalidRenderPass {
             reason: format!(
                 "texture `{}` mip 0 layer 0 is bound more than once in the render pass",
-                msaa_color.raw()
+                msaa_color.diagnostic_id()
             ),
         }
     );

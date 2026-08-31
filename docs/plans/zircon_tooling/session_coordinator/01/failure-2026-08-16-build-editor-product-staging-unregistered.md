@@ -103,3 +103,41 @@ identity-preserving publish/recovery, exact-owner release, and
 missing fixture-parent reservations during startup recovery without a prefix
 exemption. No product Cargo or WGPU run was started. The Coordinator contract remains
 green, while the real UI12 build/publish/audit/visual acceptance above remains open.
+
+The current `build-editor.Tests.ps1` suite subsequently passed `17/17` in 174.696
+seconds. It exercised the staging lease through success, failed-build cleanup,
+reparse/junction rejection, held-directory deletion, and root-bound publication while
+the live artifact-governance maintenance loop remained enabled. After the suite, the
+four reported stale cleanup reservations for
+`mvp-test-fixtures-{11376,29760,10976,16996}` were absent; the complete
+`mvp-test-fixtures-*` cleanup-reservation query was also empty. Online artifact audit
+request `3e16c922314445fd8c1d7f070cb1cdef` returned `unmanaged: []`, and no
+Cargo/rustc process was active. This closes the fixture-reservation/preflight support
+boundary only; `build-editor.ps1` intentionally has no dry-run mode, so the real
+managed product build and visual acceptance remain with UI12 and this lifecycle stays
+`open`.
+
+### 2026-08-28 fixture-reservation release proof
+
+The focused restart and online-recovery regressions passed `2/2`, including the exact
+missing parents `mvp-test-fixtures-{11376,29760,10976,16996}`. The complete
+`tools.session_coordinator.tests.test_artifact_governance` suite then passed `31/31`
+in 80.177 seconds, retaining live reservations while recovering missing paths and
+preserving concurrent/sibling cleanup isolation.
+
+The live read-only ledger contains no cleanup reservation for those four paths. A
+separate short-lived `tooling15-local-benchmarks` producer reservation disappeared
+after its directory was removed and the online recovery path cleared its row; it was
+not manually deleted. Managed job `ac756551ded64736884a3f41ba2281aa` subsequently
+passed artifact governance and started Cargo, then released after the workspace loader
+reported the unrelated missing `zircon_runtime/crates/zr_resource/Cargo.toml`. This is
+production evidence that the build-editor preflight and successor action boundary are
+available; it is not a successful product build.
+
+The live schema-68 daemon instance `54725740965b4e9a98b047f3bd2fd364` started after
+the online-recovery commit, so another disruptive rollover was neither required nor
+performed. At the release check the five named cleanup-reservation rows were absent,
+job `ac756551ded64736884a3f41ba2281aa` was durable `released`, and no Cargo/rustc
+process was active. The fixture-reservation support boundary is released to UI12;
+the product acceptance lifecycle remains `open` for its independent source/build and
+visual gates.

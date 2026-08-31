@@ -1,10 +1,14 @@
 #[cfg(test)]
 use std::cell::Cell;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::core::math::Real;
 
 use super::{HitRecord, PointerId};
+
+#[cfg(test)]
+#[path = "pointer_hits/hash_grouping_tests.rs"]
+mod hash_grouping_tests;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PointerHits {
@@ -48,7 +52,8 @@ pub(super) fn sorted_hits_by_pointer(
     #[cfg(test)]
     SORTED_HIT_PROJECTION_BUILDS.with(|count| count.set(count.get() + 1));
 
-    let mut indexed_by_pointer = BTreeMap::<PointerId, Vec<IndexedHit>>::new();
+    let mut indexed_by_pointer =
+        HashMap::<PointerId, Vec<IndexedHit>>::with_capacity(outputs.len());
     for (output_index, output) in outputs.iter().enumerate() {
         indexed_by_pointer
             .entry(output.pointer)
@@ -70,7 +75,7 @@ pub(super) fn sorted_hits_by_pointer(
             let hits = indexed.into_iter().map(|(_, _, _, hit)| hit).collect();
             (pointer, hits)
         })
-        .collect()
+        .collect::<BTreeMap<_, _>>()
 }
 
 type IndexedHit = (usize, usize, Real, HitRecord);

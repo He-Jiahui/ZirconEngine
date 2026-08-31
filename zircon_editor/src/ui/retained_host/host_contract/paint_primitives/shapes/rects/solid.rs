@@ -3,7 +3,7 @@ use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_geometry::PixelRect;
 use super::super::super::clip::effective_clip;
 use super::super::super::pixels::{
-    clamped_corner_radius, fill_pixel_rect, fill_rounded_pixel_rect,
+    clamped_corner_radius, fill_rect_pixel_coverage, fill_rounded_pixel_rect,
 };
 
 pub(super) fn draw_solid_rect_clipped(
@@ -29,12 +29,7 @@ pub(super) fn draw_solid_rect_clipped(
     };
     let corner_radius = clamped_corner_radius(&rect, corner_radius);
     if frame.is_recording() {
-        let recorded_frame = if corner_radius > 0.0 {
-            rect.clone()
-        } else {
-            target.to_frame()
-        };
-        frame.record_quad(recorded_frame, effective_clip, color, corner_radius);
+        frame.record_quad(rect.clone(), effective_clip, color, corner_radius);
         if frame.record_only() {
             return;
         }
@@ -42,21 +37,6 @@ pub(super) fn draw_solid_rect_clipped(
     if corner_radius > 0.0 {
         fill_rounded_pixel_rect(frame, &target, &rect, color, corner_radius);
     } else {
-        fill_pixel_rect(frame, &target, color);
-    }
-}
-
-trait PixelRectExt {
-    fn to_frame(&self) -> FrameRect;
-}
-
-impl PixelRectExt for PixelRect {
-    fn to_frame(&self) -> FrameRect {
-        FrameRect {
-            x: self.x0 as f32,
-            y: self.y0 as f32,
-            width: self.x1.saturating_sub(self.x0) as f32,
-            height: self.y1.saturating_sub(self.y0) as f32,
-        }
+        fill_rect_pixel_coverage(frame, &target, &rect, color);
     }
 }

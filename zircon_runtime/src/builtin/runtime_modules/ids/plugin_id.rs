@@ -222,23 +222,28 @@ impl std::error::Error for RuntimePluginIdParseError {}
 
 fn normalize_runtime_plugin_key(raw: &str) -> Option<Cow<'_, str>> {
     let trimmed = raw.trim();
-    if trimmed.is_empty()
-        || !trimmed
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.'))
-        || !trimmed
-            .bytes()
-            .next()
-            .is_some_and(|byte| byte.is_ascii_alphanumeric())
-    {
+    let mut bytes = trimmed.bytes();
+    let first = bytes.next()?;
+    if !first.is_ascii_alphanumeric() {
         return None;
     }
-    if trimmed.bytes().any(|byte| byte.is_ascii_uppercase()) {
+    let mut has_uppercase = first.is_ascii_uppercase();
+    for byte in bytes {
+        if !byte.is_ascii_alphanumeric() && !matches!(byte, b'_' | b'-' | b'.') {
+            return None;
+        }
+        has_uppercase |= byte.is_ascii_uppercase();
+    }
+    if has_uppercase {
         Some(Cow::Owned(trimmed.to_ascii_lowercase()))
     } else {
         Some(Cow::Borrowed(trimmed))
     }
 }
+
+#[cfg(test)]
+#[path = "plugin_id/single_pass_normalization_tests.rs"]
+mod single_pass_normalization_tests;
 
 #[cfg(test)]
 mod tests {

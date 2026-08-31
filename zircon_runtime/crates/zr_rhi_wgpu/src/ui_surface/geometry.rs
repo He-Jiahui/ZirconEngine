@@ -11,6 +11,7 @@ mod clipping;
 use clipping::clip_solid_triangles_to_rect;
 
 pub(super) const UI_QUAD_VERTEX_COUNT: u32 = 6;
+const ANALYTIC_AA_PADDING: f32 = 1.0;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
@@ -21,6 +22,7 @@ pub(super) struct SolidVertex {
     pub(super) half_extent: [f32; 2],
     pub(super) corner_radius: f32,
     pub(super) border_width: f32,
+    pub(super) fill_color: [f32; 4],
 }
 
 #[repr(C)]
@@ -50,6 +52,7 @@ pub(super) struct SolidItem {
     pub(super) order: DrawItemOrder,
     pub(super) rect: UiSurfaceRect,
     pub(super) geometry: SolidGeometry,
+    pub(super) fused_border_command_index: Option<usize>,
 }
 
 #[derive(Clone, Debug)]
@@ -118,14 +121,16 @@ impl DrawItem {
 }
 
 pub(super) fn draw_items(draw_list: &UiSurfaceDrawList) -> Vec<DrawItem> {
-    draw_items_with_damage(draw_list, draw_list.damage, None, None)
+    let damage = damage_with_analytic_coverage(draw_list.damage, draw_list.projection_size());
+    draw_items_with_damage(draw_list, damage, None, None)
 }
 
 pub(super) fn draw_items_with_stats(
     draw_list: &UiSurfaceDrawList,
 ) -> (Vec<DrawItem>, UiSurfacePresentStats) {
+    let damage = damage_with_analytic_coverage(draw_list.damage, draw_list.projection_size());
     let mut stats = UiSurfacePresentStatsAccumulator::new(draw_list);
-    let items = draw_items_with_damage(draw_list, draw_list.damage, Some(&mut stats), None);
+    let items = draw_items_with_damage(draw_list, damage, Some(&mut stats), None);
     (items, stats.finish())
 }
 
@@ -136,17 +141,21 @@ pub(super) fn full_projection_draw_items_with_stats(
     UiSurfacePresentStats,
     Option<UiSurfacePresentStats>,
 ) {
+    let damage = damage_with_analytic_coverage(draw_list.damage, draw_list.projection_size());
     let mut full_stats = UiSurfacePresentStatsAccumulator::new(draw_list);
-    let mut damage_stats = draw_list
-        .damage
-        .map(|_| UiSurfacePresentStatsAccumulator::new(draw_list));
-    let damage_projection = draw_list.damage.zip(damage_stats.as_mut());
+    let mut damage_stats = damage.map(|_| UiSurfacePresentStatsAccumulator::new(draw_list));
+    let damage_projection = damage.zip(damage_stats.as_mut());
     let items = draw_items_with_damage(draw_list, None, Some(&mut full_stats), damage_projection);
-    (
-        items,
-        full_stats.finish(),
-        damage_stats.map(UiSurfacePresentStatsAccumulator::finish),
-    )
+    let mut full_stats = full_stats.finish();
+    let mut damage_stats = damage_stats.map(UiSurfacePresentStatsAccumulator::finish);
+    if let Some(damage_stats) = damage_stats.as_mut() {
+        let total_visibility_scans = full_stats
+            .command_visibility_scan_count
+            .saturating_add(damage_stats.command_visibility_scan_count);
+        full_stats.command_visibility_scan_count = total_visibility_scans;
+        damage_stats.command_visibility_scan_count = total_visibility_scans;
+    }
+    (items, full_stats, damage_stats)
 }
 
 fn draw_items_with_damage<'a>(
@@ -156,16 +165,40 @@ fn draw_items_with_damage<'a>(
     mut secondary_stats: Option<(UiSurfaceRect, &mut UiSurfacePresentStatsAccumulator<'a>)>,
 ) -> Vec<DrawItem> {
     let mut items = Vec::new();
-    for (command_index, command) in ordered_commands(draw_list) {
+    let ordered = ordered_commands(draw_list);
+    let mut fused_border_index = None;
+    for (ordered_index, &(command_index, command)) in ordered.iter().enumerate() {
+        let primary_visible = draw_list.command_visible_with_damage(command, damage);
         if let Some(stats) = stats.as_deref_mut() {
-            if draw_list.command_visible_with_damage(command, damage) {
+            stats.record_command_visit();
+            if primary_visible {
                 stats.record_visible(command, draw_list);
             }
         }
+        let secondary_visible = secondary_stats
+            .as_ref()
+            .is_some_and(|(secondary_damage, _)| {
+                draw_list.command_visible_with_damage(command, Some(*secondary_damage))
+            });
         if let Some((secondary_damage, secondary_stats)) = secondary_stats.as_mut() {
-            if draw_list.command_visible_with_damage(command, Some(*secondary_damage)) {
+            secondary_stats.record_command_visit();
+            if secondary_visible {
                 secondary_stats.record_visible(command, draw_list);
             }
+        }
+        if fused_border_index == Some(ordered_index) {
+            if primary_visible {
+                if let Some(stats) = stats.as_deref_mut() {
+                    stats.record_draw_item_fusion();
+                }
+            }
+            if secondary_visible {
+                if let Some((_, secondary_stats)) = secondary_stats.as_mut() {
+                    secondary_stats.record_draw_item_fusion();
+                }
+            }
+            fused_border_index = None;
+            continue;
         }
         let Some(kind) = draw_list.resolved_kind(command) else {
             continue;
@@ -175,61 +208,64 @@ fn draw_items_with_damage<'a>(
                 color,
                 corner_radius,
             } => {
-                push_solid_item(
-                    &mut items,
-                    DrawItemOrder {
-                        z_index: command.z_index,
-                        command_index,
-                        sub_index: 0,
-                    },
-                    command.frame,
+                let order = DrawItemOrder {
+                    z_index: command.z_index,
+                    command_index,
+                    sub_index: 0,
+                };
+                if let Some((border_command_index, border_color, width)) = matching_border(
+                    draw_list,
+                    &ordered,
+                    ordered_index,
+                    command,
                     color,
                     corner_radius,
-                    command,
-                    draw_list,
-                    damage,
-                );
+                ) {
+                    push_rounded_box_item(
+                        &mut items,
+                        order,
+                        color,
+                        border_color,
+                        width,
+                        corner_radius,
+                        border_command_index,
+                        command,
+                        draw_list,
+                        damage,
+                    );
+                    fused_border_index = Some(ordered_index + 1);
+                } else {
+                    push_solid_item(
+                        &mut items,
+                        order,
+                        command.frame,
+                        color,
+                        corner_radius,
+                        command,
+                        draw_list,
+                        damage,
+                    );
+                }
             }
             UiSurfaceResolvedCommandKind::Border {
                 color,
                 width,
                 corner_radius,
             } => {
-                if corner_radius > 0.0 {
-                    push_rounded_border_item(
-                        &mut items,
-                        DrawItemOrder {
-                            z_index: command.z_index,
-                            command_index,
-                            sub_index: 0,
-                        },
-                        color,
-                        width,
-                        corner_radius,
-                        command,
-                        draw_list,
-                        damage,
-                    );
-                } else {
-                    for (sub_index, rect) in
-                        border_rects(command.frame, width).into_iter().enumerate()
-                    {
-                        push_solid_item(
-                            &mut items,
-                            DrawItemOrder {
-                                z_index: command.z_index,
-                                command_index,
-                                sub_index,
-                            },
-                            rect,
-                            color,
-                            0.0,
-                            command,
-                            draw_list,
-                            damage,
-                        );
-                    }
-                }
+                push_border_item(
+                    &mut items,
+                    DrawItemOrder {
+                        z_index: command.z_index,
+                        command_index,
+                        sub_index: 0,
+                    },
+                    color,
+                    width,
+                    corner_radius,
+                    command,
+                    draw_list,
+                    damage,
+                );
             }
             UiSurfaceResolvedCommandKind::Image { payload } => {
                 let Some(rect) = primitive_effective_rect(
@@ -302,14 +338,30 @@ fn push_solid_item(
     draw_list: &UiSurfaceDrawList,
     damage: Option<UiSurfaceRect>,
 ) {
+    let analytic = (corner_radius.is_finite() && corner_radius > 0.0)
+        || !rect_edges_are_physical_pixel_aligned(frame);
+    let raster_frame = if analytic {
+        let Some(raster_frame) = analytic_raster_frame(frame) else {
+            return;
+        };
+        raster_frame
+    } else {
+        frame
+    };
     let Some(effective) =
-        effective_rect_with_clip_status(command, frame, draw_list.projection_size(), damage)
+        effective_rect_with_clip_status(command, raster_frame, draw_list.projection_size(), damage)
     else {
         return;
     };
     let rect = effective.rect;
-    let geometry = if corner_radius.is_finite() && corner_radius > 0.0 {
-        let vertices = solid_vertices(frame, color, draw_list.projection_size(), corner_radius);
+    let geometry = if analytic {
+        let vertices = solid_vertices(
+            frame,
+            raster_frame,
+            color,
+            draw_list.projection_size(),
+            corner_radius,
+        );
         let vertices = if effective.clipped {
             clip_solid_triangles_to_rect(vertices, rect, draw_list.projection_size())
         } else {
@@ -323,10 +375,11 @@ fn push_solid_item(
         order,
         rect,
         geometry,
+        fused_border_command_index: None,
     }));
 }
 
-fn push_rounded_border_item(
+fn push_border_item(
     items: &mut Vec<DrawItem>,
     order: DrawItemOrder,
     color: [u8; 4],
@@ -336,17 +389,21 @@ fn push_rounded_border_item(
     draw_list: &UiSurfaceDrawList,
     damage: Option<UiSurfaceRect>,
 ) {
-    let Some(effective) = effective_rect_with_clip_status(
-        command,
-        command.frame,
-        draw_list.projection_size(),
-        damage,
-    ) else {
+    if !width.is_finite() || width <= 0.0 {
+        return;
+    }
+    let Some(raster_frame) = analytic_raster_frame(command.frame) else {
+        return;
+    };
+    let Some(effective) =
+        effective_rect_with_clip_status(command, raster_frame, draw_list.projection_size(), damage)
+    else {
         return;
     };
     let rect = effective.rect;
     let vertices = rounded_border_vertices(
         command.frame,
+        raster_frame,
         color,
         draw_list.projection_size(),
         width,
@@ -361,6 +418,52 @@ fn push_rounded_border_item(
         order,
         rect,
         geometry: SolidGeometry::Vertices(vertices),
+        fused_border_command_index: None,
+    }));
+}
+
+fn push_rounded_box_item(
+    items: &mut Vec<DrawItem>,
+    order: DrawItemOrder,
+    fill_color: [u8; 4],
+    border_color: [u8; 4],
+    width: f32,
+    corner_radius: f32,
+    fused_border_command_index: usize,
+    command: &UiSurfaceCommand,
+    draw_list: &UiSurfaceDrawList,
+    damage: Option<UiSurfaceRect>,
+) {
+    let Some(raster_frame) = analytic_raster_frame(command.frame) else {
+        return;
+    };
+    let Some(effective) =
+        effective_rect_with_clip_status(command, raster_frame, draw_list.projection_size(), damage)
+    else {
+        return;
+    };
+    let mut vertices = rounded_border_vertices(
+        command.frame,
+        raster_frame,
+        border_color,
+        draw_list.projection_size(),
+        width,
+        corner_radius,
+    );
+    let fill_color = normalized_color(fill_color);
+    for vertex in &mut vertices {
+        vertex.fill_color = fill_color;
+    }
+    let vertices = if effective.clipped {
+        clip_solid_triangles_to_rect(vertices, effective.rect, draw_list.projection_size())
+    } else {
+        vertices
+    };
+    items.push(DrawItem::Solid(SolidItem {
+        order,
+        rect: effective.rect,
+        geometry: SolidGeometry::Vertices(vertices),
+        fused_border_command_index: Some(fused_border_command_index),
     }));
 }
 
@@ -374,20 +477,27 @@ fn solid_instance(frame: UiSurfaceRect, color: [u8; 4], size: (u32, u32)) -> Sol
 }
 
 fn solid_vertices(
-    frame: UiSurfaceRect,
+    shape_frame: UiSurfaceRect,
+    raster_frame: UiSurfaceRect,
     color: [u8; 4],
     size: (u32, u32),
     corner_radius: f32,
 ) -> Vec<SolidVertex> {
-    let corner_radius = clamped_corner_radius(frame, corner_radius);
-    let positions = quad_positions(frame, size);
+    let corner_radius = clamped_corner_radius(shape_frame, corner_radius);
+    let positions = quad_positions(raster_frame, size);
     let color = normalized_color(color);
-    let half_extent = [frame.width * 0.5, frame.height * 0.5];
+    let half_extent = [shape_frame.width * 0.5, shape_frame.height * 0.5];
+    let center = [
+        shape_frame.x + half_extent[0],
+        shape_frame.y + half_extent[1],
+    ];
+    let raster_right = raster_frame.x + raster_frame.width;
+    let raster_bottom = raster_frame.y + raster_frame.height;
     let local_positions = [
-        [-half_extent[0], -half_extent[1]],
-        [half_extent[0], -half_extent[1]],
-        [-half_extent[0], half_extent[1]],
-        [half_extent[0], half_extent[1]],
+        [raster_frame.x - center[0], raster_frame.y - center[1]],
+        [raster_right - center[0], raster_frame.y - center[1]],
+        [raster_frame.x - center[0], raster_bottom - center[1]],
+        [raster_right - center[0], raster_bottom - center[1]],
     ];
     let vertex = |index| SolidVertex {
         position: positions[index],
@@ -396,6 +506,7 @@ fn solid_vertices(
         half_extent,
         corner_radius,
         border_width: 0.0,
+        fill_color: [0.0; 4],
     };
     vec![
         vertex(0),
@@ -407,19 +518,84 @@ fn solid_vertices(
     ]
 }
 
+fn matching_border(
+    draw_list: &UiSurfaceDrawList,
+    ordered: &[(usize, &UiSurfaceCommand)],
+    ordered_index: usize,
+    fill: &UiSurfaceCommand,
+    fill_color: [u8; 4],
+    corner_radius: f32,
+) -> Option<(usize, [u8; 4], f32)> {
+    if fill_color[3] == 0 {
+        return None;
+    }
+    let &(border_command_index, border) = ordered.get(ordered_index + 1)?;
+    if border.frame != fill.frame || border.clip != fill.clip {
+        return None;
+    }
+    match draw_list.resolved_kind(border)? {
+        UiSurfaceResolvedCommandKind::Border {
+            color,
+            width,
+            corner_radius: border_radius,
+        } if color[3] != 0
+            && width.is_finite()
+            && width > 0.0
+            && border_radius.to_bits() == corner_radius.to_bits() =>
+        {
+            Some((border_command_index, color, width))
+        }
+        _ => None,
+    }
+}
+
 fn rounded_border_vertices(
-    frame: UiSurfaceRect,
+    shape_frame: UiSurfaceRect,
+    raster_frame: UiSurfaceRect,
     color: [u8; 4],
     size: (u32, u32),
     width: f32,
     corner_radius: f32,
 ) -> Vec<SolidVertex> {
-    let width = width.max(1.0).min(frame.width.min(frame.height) * 0.5);
-    let mut vertices = solid_vertices(frame, color, size, corner_radius);
+    let width = width.min(shape_frame.width.min(shape_frame.height) * 0.5);
+    let mut vertices = solid_vertices(shape_frame, raster_frame, color, size, corner_radius);
     for vertex in &mut vertices {
         vertex.border_width = width;
     }
     vertices
+}
+
+fn analytic_raster_frame(frame: UiSurfaceRect) -> Option<UiSurfaceRect> {
+    let padding = ANALYTIC_AA_PADDING;
+    let raster_frame = UiSurfaceRect::new(
+        frame.x - padding,
+        frame.y - padding,
+        frame.width + padding * 2.0,
+        frame.height + padding * 2.0,
+    );
+    raster_frame
+        .has_finite_positive_area()
+        .then_some(raster_frame)
+}
+
+fn rect_edges_are_physical_pixel_aligned(frame: UiSurfaceRect) -> bool {
+    [
+        frame.x,
+        frame.y,
+        frame.x + frame.width,
+        frame.y + frame.height,
+    ]
+    .into_iter()
+    .all(|edge| edge.is_finite() && (edge - edge.round()).abs() <= f32::EPSILON)
+}
+
+pub(super) fn damage_with_analytic_coverage(
+    damage: Option<UiSurfaceRect>,
+    surface_size: (u32, u32),
+) -> Option<UiSurfaceRect> {
+    let damage = analytic_raster_frame(damage?)?;
+    let surface = UiSurfaceRect::new(0.0, 0.0, surface_size.0 as f32, surface_size.1 as f32);
+    damage.intersection(surface)
 }
 
 fn clamped_corner_radius(frame: UiSurfaceRect, corner_radius: f32) -> f32 {
@@ -521,36 +697,12 @@ fn quad_positions(frame: UiSurfaceRect, size: (u32, u32)) -> [[f32; 2]; 4] {
     [[left, top], [right, top], [left, bottom], [right, bottom]]
 }
 
-fn border_rects(frame: UiSurfaceRect, width: f32) -> [UiSurfaceRect; 4] {
-    let width = width.max(1.0);
-    [
-        UiSurfaceRect::new(frame.x, frame.y, frame.width, width),
-        UiSurfaceRect::new(
-            frame.x,
-            (frame.y + frame.height - width).max(frame.y),
-            frame.width,
-            width,
-        ),
-        UiSurfaceRect::new(frame.x, frame.y, width, frame.height),
-        UiSurfaceRect::new(
-            (frame.x + frame.width - width).max(frame.x),
-            frame.y,
-            width,
-            frame.height,
-        ),
-    ]
-}
-
 pub(super) fn command_effective_rect(
     command: &UiSurfaceCommand,
     draw_list: &UiSurfaceDrawList,
 ) -> Option<UiSurfaceRect> {
-    effective_rect(
-        command,
-        command.frame,
-        draw_list.projection_size(),
-        draw_list.damage,
-    )
+    let damage = damage_with_analytic_coverage(draw_list.damage, draw_list.projection_size());
+    effective_rect(command, command.frame, draw_list.projection_size(), damage)
 }
 
 pub(super) fn full_projection_effective_rect(

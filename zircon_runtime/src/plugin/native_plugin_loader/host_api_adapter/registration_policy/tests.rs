@@ -11,6 +11,50 @@ use crate::plugin::RuntimeExtensionRegistry;
 use super::*;
 
 #[test]
+fn native_host_api_v4_registration_policy_owner_is_folder_backed() {
+    let root = include_str!("mod.rs");
+    let context = include_str!("context.rs");
+    let policy = include_str!("policy.rs");
+    let scope = include_str!("scope.rs");
+
+    for child in ["mod context;", "mod policy;", "mod scope;"] {
+        assert!(
+            root.contains(child),
+            "registration-policy root should mount {child}"
+        );
+    }
+    assert!(root.contains("pub use policy::NativeHostApiV4RegistrationPolicy;"));
+    assert!(root.contains("pub use scope::NativeHostApiV4RegistrationScope;"));
+    assert!(root.contains("pub(super) use context::NativeHostApiV4RegistrationContext;"));
+    assert!(!root.contains("pub struct NativeHostApiV4RegistrationPolicy"));
+    assert!(!root.contains("pub struct NativeHostApiV4RegistrationScope"));
+    assert!(!root.contains("impl Drop for NativeHostApiV4RegistrationScope"));
+
+    assert!(policy.contains("pub struct NativeHostApiV4RegistrationPolicy"));
+    assert!(policy.contains("impl NativeHostApiV4RegistrationPolicy"));
+    assert!(scope.contains("pub struct NativeHostApiV4RegistrationScope"));
+    assert!(scope.contains("impl Drop for NativeHostApiV4RegistrationScope"));
+    assert!(scope.contains("self.lifetime.close_and_wait();"));
+    assert!(scope.contains("remove_context(self.handle.raw());"));
+    assert!(context.contains("pub(in super::super) struct NativeHostApiV4RegistrationContext"));
+    assert!(context.contains("pub(in super::super) fn v3_context(&self)"));
+    assert!(policy.contains("pub(in super::super) granted_capabilities"));
+    assert!(policy.contains("pub(in super::super) known_resource_ids"));
+
+    for (path, source, budget) in [
+        ("registration_policy/mod.rs", root, 20),
+        ("registration_policy/context.rs", context, 80),
+        ("registration_policy/policy.rs", policy, 80),
+        ("registration_policy/scope.rs", scope, 160),
+    ] {
+        assert!(
+            source.lines().count() < budget,
+            "{path} should remain below its responsibility budget"
+        );
+    }
+}
+
+#[test]
 fn native_host_api_v4_registers_authorized_worker_safe_typed_access() {
     let mut registry = RuntimeExtensionRegistry::default();
     let scope = NativeHostApiV4RegistrationScope::new(

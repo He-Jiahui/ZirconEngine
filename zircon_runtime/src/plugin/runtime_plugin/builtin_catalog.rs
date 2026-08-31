@@ -24,23 +24,28 @@ use optional_features::attach_optional_features;
 use rows::builtin_catalog_rows;
 
 type BuiltinCatalogDescriptorBuilder = RuntimePluginDescriptorBuilder;
+type IdentifiedBuiltinCatalogDescriptorBuilder = (&'static str, BuiltinCatalogDescriptorBuilder);
 
 impl RuntimePluginDescriptor {
     pub fn builtin_catalog() -> Vec<Self> {
         builtin_catalog_rows()
             .map(|row| {
-                Self::builder(
+                (
                     row.package_id,
-                    row.display_name,
-                    row.runtime_id.clone(),
-                    row.runtime_crate,
+                    Self::builder(
+                        row.package_id,
+                        row.display_name,
+                        row.runtime_id.clone(),
+                        row.runtime_crate,
+                    )
+                    .with_target_modes(row.target_modes.iter().copied())
+                    .with_capability(row.capability),
                 )
-                .with_target_modes(row.target_modes.iter().copied())
-                .with_capability(row.capability)
             })
             .map(augment_descriptor)
             .map(attach_optional_features)
             .map(classify_descriptor)
+            .map(|(_, descriptor)| descriptor)
             .map(RuntimePluginDescriptorBuilder::build)
             .collect()
     }

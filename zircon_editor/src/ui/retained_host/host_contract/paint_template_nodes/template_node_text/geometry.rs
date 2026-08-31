@@ -1,6 +1,6 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::template_node_images::{is_icon_node, is_icon_only_node, leading_icon_size};
-use super::super::template_node_labels::template_node_label;
+use super::super::template_node_labels::template_node_has_label;
 use super::metrics::{template_node_text_geometry_metrics, TemplateNodeTextGeometryMetrics};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_rect_for_node(
@@ -139,5 +139,5 @@ mod tests {
 }
 
 fn is_leading_icon_text_node(node: &TemplatePaneNodeData) -> bool {
-    is_icon_node(node) && !is_icon_only_node(node) && !template_node_label(node, None).is_empty()
+    is_icon_node(node) && !is_icon_only_node(node) && template_node_has_label(node, None)
 }

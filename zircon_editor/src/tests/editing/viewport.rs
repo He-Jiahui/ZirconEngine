@@ -256,7 +256,9 @@ fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
         .find(|node| node.kind == NodeKind::Cube)
         .expect("default cube")
         .id;
-    let child = scene.spawn_node(NodeKind::PointLight);
+    let child = scene
+        .spawn_node(NodeKind::PointLight)
+        .expect("test scene spawn should succeed");
     scene.rename_node(cube, "Root Cube").unwrap();
     scene.set_parent_checked(child, Some(cube)).unwrap();
     scene.set_active_self(child, false).unwrap();

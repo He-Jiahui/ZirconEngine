@@ -66,6 +66,8 @@ fn pressed_unmarked_tree_row_keeps_pressed_surface_distinct_from_selection() {
     assert_eq!(style.state, UiPainterResolvedState::Pressed);
     assert_eq!(style.background, Some(PALETTE.surface_pressed));
     assert_ne!(style.background, Some(PALETTE.surface_selected));
+    assert_eq!(style.border, None);
+    assert_eq!(style.border_width, 0.0);
 }
 
 #[test]

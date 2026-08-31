@@ -8,6 +8,7 @@ use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 pub(super) struct WorkbenchToastPalette {
     pub surface: [u8; 4],
     pub border: [u8; 4],
+    pub focus_border: [u8; 4],
     pub text: [u8; 4],
     pub action: [u8; 4],
     pub close: [u8; 4],
@@ -29,8 +30,9 @@ pub(super) fn workbench_toast_palette_from_host(
     WorkbenchToastPalette {
         surface: palette.accent_soft,
         border: palette.border,
+        focus_border: palette.focus_ring,
         text: palette.text,
-        action: palette.focus_ring,
+        action: palette.accent,
         close: palette.text_muted,
         hover_surface: palette.surface_selected,
         hover_border: palette.accent_soft,
@@ -116,7 +118,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORK
     PALETTE.border;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TOAST_ACTION: [u8; 4] =
-    PALETTE.focus_ring;
+    PALETTE.accent;
 
 #[cfg(test)]
 mod tests {
@@ -129,7 +131,7 @@ mod tests {
         palette.accent_soft = [10, 11, 12, 247];
         palette.border = [13, 14, 15, 20];
         palette.text = [16, 17, 18, 255];
-        palette.focus_ring = [19, 20, 21, 255];
+        palette.accent = [19, 20, 21, 255];
         palette.text_muted = [22, 23, 24, 255];
 
         let style = toast_normal_style_from_host(UiPainterResolvedState::Normal, palette);
@@ -156,6 +158,7 @@ mod tests {
     fn toast_palette_projects_state_roles_from_host_palette() {
         let mut palette = PALETTE;
         palette.accent_soft = [40, 41, 42, 247];
+        palette.focus_ring = [41, 42, 43, 255];
         palette.surface_disabled = [43, 44, 45, 255];
         palette.border_disabled = [46, 47, 48, 255];
         palette.text_disabled = [49, 50, 51, 255];
@@ -163,6 +166,7 @@ mod tests {
         let toast_palette = workbench_toast_palette_from_host(palette);
 
         assert_eq!(toast_palette.hover_border, [40, 41, 42, 247]);
+        assert_eq!(toast_palette.focus_border, [41, 42, 43, 255]);
         assert_eq!(toast_palette.disabled_surface, [43, 44, 45, 255]);
         assert_eq!(toast_palette.disabled_border, [46, 47, 48, 255]);
         assert_eq!(toast_palette.disabled_text, [49, 50, 51, 255]);

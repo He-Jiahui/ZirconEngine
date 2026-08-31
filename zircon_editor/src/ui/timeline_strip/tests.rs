@@ -1,4 +1,9 @@
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::{
+    hint::black_box,
+    sync::{Arc, Barrier, Mutex, MutexGuard},
+    thread,
+    time::{Duration, Instant},
+};
 
 use super::{
     static_content_cache_entry_count, TimelineStripGeneration, TimelineStripGenerationInput,
@@ -24,7 +29,7 @@ fn static_content_test_lock() -> MutexGuard<'static, ()> {
 }
 
 #[test]
-fn ticks_are_preformatted_once_per_visual_budget() {
+fn optimization_wave_20260824tu_editor75_ticks_are_preformatted_once_per_visual_budget() {
     let _guard = static_content_test_lock();
     let timeline = generation(2.25, 0.5, "Run_Fwd");
 
@@ -43,7 +48,7 @@ fn ticks_are_preformatted_once_per_visual_budget() {
 }
 
 #[test]
-fn scrub_changes_only_dynamic_generation() {
+fn optimization_wave_20260824tu_editor75_scrub_changes_only_dynamic_generation() {
     let _guard = static_content_test_lock();
     let before = generation(0.5, 0.5, "Run_Fwd");
     let after = generation(2.25, 0.5, "Run_Fwd");
@@ -57,7 +62,7 @@ fn scrub_changes_only_dynamic_generation() {
 }
 
 #[test]
-fn reprojection_reuses_static_content_for_scrub() {
+fn optimization_wave_20260824tu_editor75_reprojection_reuses_static_content_for_scrub() {
     let _guard = static_content_test_lock();
     let before = generation(0.5, 0.5, "Run_Fwd");
     let before_content = before.static_content_for_plot_width(120.0);
@@ -68,7 +73,7 @@ fn reprojection_reuses_static_content_for_scrub() {
 }
 
 #[test]
-fn track_or_tick_changes_update_static_generation() {
+fn optimization_wave_20260824tu_editor75_track_or_tick_changes_update_static_generation() {
     let baseline = generation(2.25, 0.5, "Run_Fwd");
     let relabeled = generation(2.25, 0.5, "Jump");
     let reticked = generation(2.25, 1.0, "Run_Fwd");
@@ -83,7 +88,8 @@ fn track_or_tick_changes_update_static_generation() {
 }
 
 #[test]
-fn key_geometry_changes_static_and_selection_changes_dynamic() {
+fn optimization_wave_20260824tu_editor75_key_geometry_changes_static_and_selection_changes_dynamic()
+{
     let baseline = generation(2.25, 0.5, "Run_Fwd");
     let repositioned = TimelineStripGeneration::new(TimelineStripGenerationInput {
         duration: 3.0,
@@ -124,7 +130,7 @@ fn key_geometry_changes_static_and_selection_changes_dynamic() {
 }
 
 #[test]
-fn visual_budget_is_bounded_and_preserves_endpoints() {
+fn optimization_wave_20260824tu_editor75_visual_budget_is_bounded_and_preserves_endpoints() {
     let _guard = static_content_test_lock();
     let timeline = TimelineStripGeneration::new(TimelineStripGenerationInput {
         duration: 10.0,
@@ -141,7 +147,7 @@ fn visual_budget_is_bounded_and_preserves_endpoints() {
 }
 
 #[test]
-fn visual_budget_clamps_to_the_hard_cap() {
+fn optimization_wave_20260824tu_editor75_visual_budget_clamps_to_the_hard_cap() {
     let _guard = static_content_test_lock();
     let timeline = TimelineStripGeneration::new(TimelineStripGenerationInput {
         duration: 10.0,
@@ -158,7 +164,7 @@ fn visual_budget_clamps_to_the_hard_cap() {
 }
 
 #[test]
-fn visual_budget_cache_is_bounded() {
+fn optimization_wave_20260824tu_editor75_visual_budget_cache_is_bounded() {
     let _guard = static_content_test_lock();
     let timeline = generation(2.25, 0.5, "Bounded");
 
@@ -170,7 +176,79 @@ fn visual_budget_cache_is_bounded() {
 }
 
 #[test]
-fn invalid_input_is_normalized() {
+fn optimization_wave_20260824tu_editor75_static_cache_is_single_flight_without_hit_scan() {
+    let source = include_str!("generation.rs");
+    let production = source.split("#[cfg(test)]").next().unwrap();
+
+    assert!(!production.contains("VecDeque"));
+    assert!(!production.contains("recency.retain"));
+    assert!(production.contains("OnceLock<Arc<TimelineStripStaticContent>>"));
+    assert!(production.contains("get_or_init"));
+}
+
+#[test]
+fn optimization_wave_20260824tu_editor75_concurrent_static_cache_miss_shares_one_result() {
+    const WORKERS: usize = 16;
+
+    let _guard = static_content_test_lock();
+    let timeline = Arc::new(generation(2.25, 0.5, "SingleFlight20260824"));
+    let barrier = Arc::new(Barrier::new(WORKERS));
+    let workers = (0..WORKERS)
+        .map(|_| {
+            let timeline = Arc::clone(&timeline);
+            let barrier = Arc::clone(&barrier);
+            thread::spawn(move || {
+                barrier.wait();
+                timeline.static_content_for_plot_width(f32::MAX)
+            })
+        })
+        .collect::<Vec<_>>();
+    let results = workers
+        .into_iter()
+        .map(|worker| worker.join().expect("timeline cache worker should finish"))
+        .collect::<Vec<_>>();
+
+    assert!(results
+        .iter()
+        .skip(1)
+        .all(|result| Arc::ptr_eq(&results[0], result)));
+}
+
+#[test]
+#[ignore = "performance evidence; run in the managed Windows release lane"]
+fn optimization_wave_20260824tu_editor75_timeline_cache_hit_evidence() {
+    const HIT_COUNT: usize = 250_000;
+    const MAX_ELAPSED: Duration = Duration::from_secs(1);
+
+    let _guard = static_content_test_lock();
+    let timeline = generation(2.25, 0.5, "CacheHitEvidence20260824");
+    for width in 1..=STATIC_CONTENT_CACHE_CAPACITY {
+        black_box(timeline.static_content_for_plot_width(width as f32));
+    }
+
+    let started = Instant::now();
+    for _ in 0..HIT_COUNT {
+        black_box(timeline.static_content_for_plot_width(1.0));
+    }
+    let elapsed = started.elapsed();
+    let legacy_recency_entries_visited = HIT_COUNT * STATIC_CONTENT_CACHE_CAPACITY;
+    let optimized_recency_entries_visited = 0_usize;
+    assert!(
+        elapsed <= MAX_ELAPSED,
+        "timeline cache hits took {elapsed:?}"
+    );
+    println!(
+        "EDITOR75_TIMELINE_CACHE_BENCH_V1 capacity={} hits={} legacy_recency_entries_visited={} optimized_recency_entries_visited={} elapsed_ns={}",
+        STATIC_CONTENT_CACHE_CAPACITY,
+        HIT_COUNT,
+        legacy_recency_entries_visited,
+        optimized_recency_entries_visited,
+        elapsed.as_nanos()
+    );
+}
+
+#[test]
+fn optimization_wave_20260824tu_editor75_invalid_input_is_normalized() {
     let timeline = TimelineStripGeneration::new(TimelineStripGenerationInput {
         duration: f32::NAN,
         current_time: f32::INFINITY,

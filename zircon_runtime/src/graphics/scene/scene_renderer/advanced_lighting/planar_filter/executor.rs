@@ -2,7 +2,8 @@ use std::sync::Mutex;
 
 use crate::core::framework::render::{PostProcessGraphResourceNames, RenderCameraTarget};
 use crate::graphics::scene::scene_renderer::graph_execution::{
-    RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassDeviceEpochCache, RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassGpuRecordingContext,
 };
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 
@@ -13,7 +14,7 @@ use super::{
 
 #[derive(Default)]
 pub(super) struct PlanarReflectionFilterExecutor {
-    pipeline: Mutex<Option<PlanarReflectionFilterPipeline>>,
+    pipeline: Mutex<RenderPassDeviceEpochCache<(), PlanarReflectionFilterPipeline>>,
 }
 
 impl RenderPassExecutor for PlanarReflectionFilterExecutor {
@@ -22,6 +23,10 @@ impl RenderPassExecutor for PlanarReflectionFilterExecutor {
         let pass_name = context.pass_name.clone();
         let executor_id = context.executor_id.as_str().to_string();
         let gpu = context.require_gpu()?;
+        let device_epoch = gpu.device_epoch().ok_or_else(|| {
+            "planar filter requires a materialized device epoch before pipeline recording"
+                .to_string()
+        })?;
         let target = match gpu.frame_extract().view.selected_camera_target() {
             RenderCameraTarget::Texture(target) => *target,
             _ => return Err("planar.filter requires a texture capture camera".to_string()),
@@ -56,25 +61,29 @@ impl RenderPassExecutor for PlanarReflectionFilterExecutor {
             })?;
             mesh_pipelines.reflection_probes.planar_texture()
         };
-        let mut pipeline = self
-            .pipeline
-            .lock()
-            .map_err(|_| "planar filter pipeline cache lock poisoned".to_string())?;
-        if pipeline.is_none() {
-            *pipeline = Some(PlanarReflectionFilterPipeline::new(gpu.device));
-        }
-        let report = pipeline.as_ref().unwrap().encode(
-            gpu.device,
-            gpu.encoder,
-            &source,
-            &output,
-            wgpu::Extent3d {
-                width: resolution,
-                height: resolution,
-                depth_or_array_layers: 1,
-            },
-            mip_count,
-        )?;
+        let report = {
+            let mut native = gpu.native_context();
+            let mut pipeline_cache = self
+                .pipeline
+                .lock()
+                .map_err(|_| "planar filter pipeline cache lock poisoned".to_string())?;
+            let pipeline = pipeline_cache.get_or_try_insert_with(device_epoch, (), || {
+                Ok(PlanarReflectionFilterPipeline::new(
+                    native.resource_factory(),
+                ))
+            })?;
+            pipeline.encode(
+                &mut native,
+                &source,
+                &output,
+                wgpu::Extent3d {
+                    width: resolution,
+                    height: resolution,
+                    depth_or_array_layers: 1,
+                },
+                mip_count,
+            )
+        }?;
         for (index, dispatch) in report.dispatches.into_iter().enumerate() {
             gpu.record_compute_dispatch_with_uploaded_bytes(
                 pass_name.clone(),

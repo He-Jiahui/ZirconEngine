@@ -4,7 +4,7 @@ use crate::core::framework::render::{CapturedFrame, RenderCaptureReport};
 use crate::core::math::UVec2;
 use crate::graphics::scene::AsyncViewportCaptureRequest;
 use crate::graphics::CompiledRenderPipeline;
-use zr_rhi_wgpu::GpuReadbackQueue;
+use zr_rhi::DiagnosticReadbackBudget;
 
 use super::viewport_record::{
     PendingViewportCapture, ReadyViewportCapture, ViewportAsyncCaptureMailbox, ViewportRecord,
@@ -20,7 +20,7 @@ impl ViewportRecord {
             let mut mailbox = mailbox
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-            mailbox.complete(generation, result.map_err(|error| error.to_string()));
+            mailbox.complete(generation, result);
         }))
     }
 
@@ -127,7 +127,7 @@ impl ViewportAsyncCaptureMailbox {
     }
 
     fn trim_to_readback_ring(&mut self) {
-        while self.pending.len() > GpuReadbackQueue::FRAME_SLOTS {
+        while self.pending.len() > viewport_capture_pending_limit() {
             let Some(generation) = self.pending.keys().next().copied() else {
                 return;
             };
@@ -135,6 +135,10 @@ impl ViewportAsyncCaptureMailbox {
             self.completed.remove(&generation);
         }
     }
+}
+
+pub(super) fn viewport_capture_pending_limit() -> usize {
+    DiagnosticReadbackBudget::default().max_pending_requests()
 }
 
 impl Default for ViewportAsyncCaptureMailbox {

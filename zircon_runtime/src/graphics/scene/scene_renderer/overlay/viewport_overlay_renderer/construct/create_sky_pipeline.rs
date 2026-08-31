@@ -3,10 +3,16 @@ use super::super::super::super::core::DEPTH_FORMAT;
 const SKY_SHADER: &str = concat!(
     include_str!("../../../../../shader/wgsl/zr_volumetric.wgsl"),
     "\n",
+    include_str!("../../../../../shader/wgsl/zr_procedural_sky.wgsl"),
+    "\n",
     include_str!("../../../environment/shaders/skybox_procedural.wgsl"),
 );
 
-const SKY_SHADER_BODY: &str = include_str!("../../../environment/shaders/skybox_procedural.wgsl");
+const SKY_SHADER_BODY: &str = concat!(
+    include_str!("../../../../../shader/wgsl/zr_procedural_sky.wgsl"),
+    "\n",
+    include_str!("../../../environment/shaders/skybox_procedural.wgsl"),
+);
 const SKY_VOLUMETRIC_DISABLED: &str = r#"
 fn zr_volumetric_apply(color: vec3<f32>, _fragment_position: vec2<f32>, _device_depth: f32) -> vec3<f32> {
     return color;
@@ -74,7 +80,7 @@ pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_rendere
 
 #[cfg(test)]
 mod tests {
-    use super::{sky_shader_source, SKY_SHADER};
+    use super::{SKY_SHADER, sky_shader_source};
 
     #[test]
     fn skybox_shader_variant_removes_volumetric_bindings_when_disabled() {
@@ -102,6 +108,27 @@ mod tests {
                 "skybox shader should use `{expected}` for camera-space cubemap lookup"
             );
         }
+    }
+
+    #[test]
+    fn skybox_orthographic_direction_is_parallel_and_skips_inverse_projection() {
+        let direction = SKY_SHADER
+            .split("fn skybox_world_direction_from_ndc(")
+            .nth(1)
+            .and_then(|source| source.split("fn source_cubemap_sky_color(").next())
+            .expect("skybox shader should retain its camera-ray owner");
+        let orthographic_endpoint = direction
+            .find("if (camera_direction_weight >= 1.0) {")
+            .expect("orthographic skybox rays must return before inverse projection");
+        let inverse_projection = direction
+            .find("scene.inverse_view_proj * vec4<f32>(ndc.x, ndc.y, 1.0, 1.0)")
+            .expect("perspective skybox rays must retain inverse projection");
+
+        assert!(orthographic_endpoint < inverse_projection);
+        assert!(direction.contains("-scene.camera_view_direction.xyz"));
+        assert!(!direction.contains("right_far_world"));
+        assert!(!direction.contains("up_far_world"));
+        assert!(!direction.contains("camera_forward + ndc.x * camera_right + ndc.y * camera_up"));
     }
 
     #[test]

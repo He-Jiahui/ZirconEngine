@@ -8,7 +8,7 @@ mod text;
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
 use field::push_heatmap_field;
-use geometry::WeightHeatmapGeometry;
+use geometry::{has_paintable_weight_heatmap_extent, WeightHeatmapGeometry};
 use identity::is_weight_heatmap;
 use markers::push_heat_source_markers;
 use text::{legend_label_width, push_heatmap_legend_text};
@@ -23,6 +23,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_we
 ) -> bool {
     if !is_weight_heatmap(node) {
         return false;
+    }
+    if !has_paintable_weight_heatmap_extent(rect) {
+        return true;
     }
 
     let generation = &node.weight_heatmap.generation;

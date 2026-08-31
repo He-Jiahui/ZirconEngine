@@ -14,7 +14,7 @@ pub(super) struct HotspotInventorySources {
     pub(super) query_filter: &'static str,
     pub(super) query_iter: &'static str,
     pub(super) query_many_iter: &'static str,
-    pub(super) query_state_root: &'static str,
+    pub(super) query_state_state: &'static str,
     pub(super) query_state_cache: &'static str,
     pub(super) query_state_read_only_cached: &'static str,
     pub(super) query_state_stats: &'static str,
@@ -89,7 +89,7 @@ impl HotspotInventorySources {
             query_filter: include_str!("../../../../scene/ecs/query/query_filter.rs"),
             query_iter: include_str!("../../../../scene/ecs/query/query_iter.rs"),
             query_many_iter: include_str!("../../../../scene/ecs/query/query_many_iter.rs"),
-            query_state_root: include_str!("../../../../scene/ecs/query/query_state/mod.rs"),
+            query_state_state: include_str!("../../../../scene/ecs/query/query_state/state.rs"),
             query_state_cache: include_str!("../../../../scene/ecs/query/query_state/cache.rs"),
             query_state_read_only_cached: include_str!(
                 "../../../../scene/ecs/query/query_state/read_only_cached.rs"

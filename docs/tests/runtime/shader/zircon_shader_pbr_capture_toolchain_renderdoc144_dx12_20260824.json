@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "toolchain_kind": "zircon_shader_pbr_capture_toolchain",
+  "graphics": {
+    "wgpu_backend": "dx12",
+    "evidence_backend": "wgpu(dx12)",
+    "permitted_backends": [
+      "dx12"
+    ],
+    "unsupported_backends": [
+      "vulkan"
+    ]
+  },
+  "renderdoc": {
+    "dll": {
+      "path": "D:\\Tools\\renderdoc\\renderdoc.dll",
+      "sha256": "590e0b1bf885ed47c569d5e268d10577751fab5a3010dbc0e1d0262cdeed7cb0",
+      "byte_length": 27145600
+    },
+    "command": {
+      "path": "D:\\Tools\\renderdoc\\renderdoccmd.exe",
+      "sha256": "87393ef7f8a668befe396fddaf322e6710af9dfd10c239dd9a0a95a6b10d6fe0",
+      "byte_length": 578944
+    }
+  }
+}

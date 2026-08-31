@@ -1,14 +1,11 @@
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
-
-use zircon_runtime::core::CoreError;
 
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogGeneration, EditorAssetCatalogSnapshotRecord, EditorAssetChangeKind,
     EditorAssetChangeRecord,
 };
 
-use super::DefaultEditorAssetManager;
+use super::{lock_editor_asset_gate_recovering_poison, DefaultEditorAssetManager};
 
 impl DefaultEditorAssetManager {
     /// Replaces the active runtime projection with an empty, newer catalog generation.
@@ -16,28 +13,22 @@ impl DefaultEditorAssetManager {
     /// Invalidating the source-sync epoch prevents an older project snapshot from committing;
     /// replacing the catalog generation and preview scheduler separately rejects old preview
     /// completions after the close transition.
-    pub fn deactivate_runtime_project(&self) -> Result<bool, CoreError> {
-        let _source_sync_guard = self
-            .source_sync_gate
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+    pub fn deactivate_runtime_project(&self) -> bool {
+        let _source_sync_guard =
+            lock_editor_asset_gate_recovering_poison(self.source_sync_gate.as_ref());
+        self.advance_source_sync_epoch();
+        self.clear_import_flow();
 
         let change = {
-            let _publish_guard = self
-                .publish_gate
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            let mut state = self
-                .state
-                .write()
-                .expect("editor asset state lock poisoned");
+            let _publish_guard =
+                lock_editor_asset_gate_recovering_poison(self.publish_gate.as_ref());
+            let mut state = self.write_state_recovering_poison();
             if runtime_project_projection_is_empty(&state) {
-                return Ok(false);
+                return false;
             }
 
-            self.source_sync_epoch.fetch_add(1, Ordering::AcqRel);
-            let catalog_revision = state.catalog_generation.catalog_revision.saturating_add(1);
-            let publish_epoch = state.catalog_generation.publish_epoch.saturating_add(1);
+            let (catalog_revision, publish_epoch) =
+                state.catalog_generation.next_catalog_identity();
             let catalog_generation = Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(
                 EditorAssetCatalogSnapshotRecord {
                     catalog_revision,
@@ -57,7 +48,7 @@ impl DefaultEditorAssetManager {
             }
         };
         self.broadcast(change);
-        Ok(true)
+        true
     }
 }
 
@@ -71,8 +62,7 @@ fn runtime_project_projection_is_empty(state: &super::EditorAssetState) -> bool 
         && state.catalog_generation.project_root.is_empty()
         && state.catalog_generation.assets.is_empty()
         && state.catalog_generation.folders.is_empty()
-        && state.catalog_by_uuid.is_empty()
-        && state.uuid_by_locator.is_empty()
+        && state.asset_index.is_none()
         && state.preview_cache.is_none()
 }
 
@@ -113,7 +103,7 @@ mod tests {
         while changes.try_recv().is_some() {}
         let before = manager.catalog_snapshot_record();
         let stale_preview_uuid = AssetUuid::new();
-        let (previous_source_generation, stale_preview_token) = {
+        let stale_preview_token = {
             let mut state = manager
                 .state
                 .write()
@@ -123,10 +113,10 @@ mod tests {
                 .preview_scheduler
                 .request_refresh(stale_preview_uuid, true)
                 .expect("old preview generation admission");
-            (Arc::clone(&state.source_generation), stale_preview_token)
+            stale_preview_token
         };
 
-        assert!(EditorAssetManager::deactivate_runtime_project(&manager).unwrap());
+        assert!(EditorAssetManager::deactivate_runtime_project(&manager));
 
         let after = manager.catalog_snapshot_record();
         assert!(after.assets.is_empty());
@@ -148,24 +138,19 @@ mod tests {
         assert!(state.project_name.is_empty());
         assert!(state.default_scene_uri.is_none());
         assert!(state.project.is_none());
-        assert!(state.catalog_by_uuid.is_empty());
-        assert!(state.uuid_by_locator.is_empty());
+        assert!(state.asset_index.is_none());
         assert!(state.preview_cache.is_none());
-        assert!(!Arc::ptr_eq(
-            &state.source_generation,
-            &previous_source_generation
-        ));
         assert!(!state
             .preview_scheduler
             .complete_refresh(stale_preview_uuid, stale_preview_token));
         drop(state);
 
         let deactivated_epoch = manager.source_sync_epoch.load(Ordering::Acquire);
-        assert!(!EditorAssetManager::deactivate_runtime_project(&manager).unwrap());
+        assert!(!EditorAssetManager::deactivate_runtime_project(&manager));
         assert_eq!(
             manager.source_sync_epoch.load(Ordering::Acquire),
-            deactivated_epoch,
-            "a no-op deactivation must not invalidate an in-flight source sync"
+            deactivated_epoch + 1,
+            "a no-op projection retirement must still invalidate registered source sync work"
         );
         assert!(changes.try_recv().is_none());
 
@@ -186,7 +171,7 @@ mod tests {
         }
         let before = manager.catalog_snapshot_record();
 
-        assert!(EditorAssetManager::deactivate_runtime_project(&manager).unwrap());
+        assert!(EditorAssetManager::deactivate_runtime_project(&manager));
 
         let after = manager.catalog_snapshot_record();
         assert_eq!(after.catalog_revision, before.catalog_revision + 1);
@@ -205,6 +190,98 @@ mod tests {
                 .kind,
             EditorAssetChangeKind::CatalogChanged
         );
+    }
+
+    #[test]
+    fn runtime_project_deactivation_clears_a_residual_runtime_asset_index() {
+        let root = unique_temp_project_root("asset_catalog_residual_runtime_asset_index");
+        let paths = ProjectPaths::from_root(&root).unwrap();
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .unwrap();
+        ProjectManifest::new(
+            "Residual Source Generation",
+            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+            1,
+        )
+        .save(paths.manifest_path())
+        .unwrap();
+
+        let manager = DefaultEditorAssetManager::new();
+        manager
+            .sync_from_project(ProjectManager::open(&root).unwrap())
+            .unwrap();
+        {
+            let mut state = manager
+                .state
+                .write()
+                .expect("editor asset state lock poisoned");
+            let asset_index = state.asset_index.clone();
+            *state = Default::default();
+            state.asset_index = asset_index;
+            assert!(state.asset_index.is_some());
+        }
+
+        assert!(EditorAssetManager::deactivate_runtime_project(&manager));
+        let state = manager
+            .state
+            .read()
+            .expect("editor asset state lock poisoned");
+        assert!(state.asset_index.is_none());
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn runtime_project_deactivation_recovers_from_a_poisoned_state_lock() {
+        let manager = DefaultEditorAssetManager::new();
+        let state = Arc::clone(&manager.state);
+        let poisoner = std::thread::spawn(move || {
+            let _guard = state.write().expect("state write lock");
+            panic!("poison the editor asset state lock");
+        });
+        assert!(poisoner.join().is_err());
+
+        assert!(!EditorAssetManager::deactivate_runtime_project(&manager));
+    }
+
+    #[test]
+    fn runtime_project_deactivation_recovers_from_a_poisoned_source_sync_gate() {
+        let manager = DefaultEditorAssetManager::new();
+        let gate = Arc::clone(&manager.source_sync_gate);
+        let poisoner = std::thread::spawn(move || {
+            let _guard = gate.lock().expect("source sync gate");
+            panic!("poison the source sync gate");
+        });
+        assert!(poisoner.join().is_err());
+
+        assert!(!EditorAssetManager::deactivate_runtime_project(&manager));
+    }
+
+    #[test]
+    fn runtime_project_deactivation_recovers_from_a_poisoned_publish_gate() {
+        let manager = DefaultEditorAssetManager::new();
+        {
+            let mut state = manager.state.write().expect("editor asset state lock");
+            state.project_root = Some(std::path::PathBuf::from("E:/projects/retired"));
+        }
+        let gate = Arc::clone(&manager.publish_gate);
+        let poisoner = std::thread::spawn(move || {
+            let _guard = gate.lock().expect("publish gate");
+            panic!("poison the publish gate");
+        });
+        assert!(poisoner.join().is_err());
+
+        assert!(EditorAssetManager::deactivate_runtime_project(&manager));
+    }
+
+    #[test]
+    #[should_panic(expected = "editor asset source-sync epoch exhausted")]
+    fn runtime_project_deactivation_never_reuses_an_exhausted_source_sync_epoch() {
+        let manager = DefaultEditorAssetManager::new();
+        manager.source_sync_epoch.store(u64::MAX, Ordering::Release);
+
+        let _ = EditorAssetManager::deactivate_runtime_project(&manager);
     }
 
     fn unique_temp_project_root(label: &str) -> std::path::PathBuf {

@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/extract_stats.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - zircon_runtime/src/scene/ecs/frame_performance_diagnostics.rs
-  - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/state.rs
   - zircon_runtime/src/scene/ecs/query/query_state/stats.rs
   - zircon_runtime/src/scene/ecs/query/query_state/system_param.rs
   - zircon_runtime/src/scene/ecs/system/system_param.rs
@@ -56,7 +56,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - zircon_runtime/src/scene/ecs/frame_performance_diagnostics.rs
-  - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/state.rs
   - zircon_runtime/src/scene/ecs/query/query_state/stats.rs
   - zircon_runtime/src/scene/ecs/query/query_state/system_param.rs
   - zircon_runtime/src/scene/ecs/system/system_param.rs

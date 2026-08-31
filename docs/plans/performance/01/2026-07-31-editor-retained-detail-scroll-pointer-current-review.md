@@ -16,10 +16,15 @@ tests:
   - current-source managed Windows Cargo pending
   - boundary-scroll counters and WPR/Tracy trace pending
 doc_type: implementation-evidence
-status: static_complete_dynamic_pending
+status: superseded_by_2026-08-23_current_source_review
 ---
 
 # Editor retained detail-scroll pointer current review (2026-07-31)
+
+> Superseded on 2026-08-23 by
+> `2026-08-23-editor-retained-detail-scroll-direct-change-receipt-hard-cutover-architecture-review.md`.
+> The new review deletes the generic detail scroll surfaces and implements the changed-only
+> publication that this report left pending. Use the newer source fingerprint for acceptance.
 
 ## Scope
 

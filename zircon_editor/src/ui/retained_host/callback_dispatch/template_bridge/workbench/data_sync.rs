@@ -1,19 +1,17 @@
 use zircon_runtime_interface::ui::component::UiValue;
 
 use crate::ui::workbench::snapshot::{
-    EditorChromeSnapshot, InspectorPluginComponentPropertySnapshot,
-    InspectorPluginComponentSnapshot, InspectorSnapshot, SceneEntries,
+    EditorChromeSnapshot, InspectorPluginComponentPropertySnapshot, InspectorSnapshot, SceneEntries,
 };
 
+use super::super::virtual_rows::TemplateBridgeVirtualRowBinding;
 use super::{
-    component_property_rows::COMPONENT_PROPERTY_STATIC_CONTROLS,
     componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge,
     error::BuiltinHostWindowTemplateBridgeError,
 };
 
 const INSPECTOR_TITLE: &str = "WorkbenchInspectorTitle";
-const INSPECTOR_TAGS: &str = "WorkbenchInspectorTags";
-const INSPECTOR_TRANSFORM: &str = "WorkbenchInspectorTransform";
+const INSPECTOR_RENDER_LAYER_MASK: &str = "WorkbenchInspectorRenderLayerMask";
 const TRANSFORM_POSITION: &str = "WorkbenchTransformPosition";
 const TRANSFORM_POSITION_X: &str = "WorkbenchTransformPositionX";
 const TRANSFORM_POSITION_Y: &str = "WorkbenchTransformPositionY";
@@ -22,11 +20,7 @@ const TRANSFORM_SCALE: &str = "WorkbenchTransformScale";
 const TRANSFORM_SCALE_X: &str = "WorkbenchTransformScaleX";
 const TRANSFORM_SCALE_Y: &str = "WorkbenchTransformScaleY";
 const TRANSFORM_SCALE_Z: &str = "WorkbenchTransformScaleZ";
-const INSPECTOR_MESH: &str = "WorkbenchInspectorMesh";
 const MESH_LABEL: &str = "WorkbenchMeshLabel";
-const MESH_ROW: &str = "WorkbenchMeshRow";
-const MATERIAL_ROW: &str = "WorkbenchMaterialRow";
-const ADD_COMPONENT: &str = "WorkbenchAddComponent";
 const PROPERTY_FIELD_ID: &str = "inspector_property_field_id";
 const PROPERTY_NAME: &str = "inspector_property_name";
 const PROPERTY_LABEL: &str = "inspector_property_label";
@@ -90,11 +84,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 "text",
                 UiValue::String("No Selection".to_string()),
             )?;
-            self.hide_component_property_rows()?;
-            self.set_visible(INSPECTOR_TAGS, false)?;
-            self.set_visible(INSPECTOR_TRANSFORM, false)?;
-            self.set_visible(INSPECTOR_MESH, false)?;
-            self.set_visible(ADD_COMPONENT, false)?;
+            self.set_inspector_filter_source(false, None)?;
             return Ok(());
         };
 
@@ -103,9 +93,11 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             "text",
             UiValue::String(non_empty_label(&inspector.name, "Entity")),
         )?;
-        self.set_visible(INSPECTOR_TAGS, true)?;
-        self.set_visible(INSPECTOR_TRANSFORM, true)?;
-        self.set_visible(ADD_COMPONENT, true)?;
+        self.mutate_control_property(
+            INSPECTOR_RENDER_LAYER_MASK,
+            "value",
+            UiValue::String(inspector.render_layer_mask.to_string()),
+        )?;
         self.mutate_control_property(
             TRANSFORM_POSITION,
             "value",
@@ -120,80 +112,59 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.sync_transform_scale_axis_values(inspector)?;
 
         let Some(component) = inspector.plugin_components.first() else {
-            self.hide_component_property_rows()?;
-            self.set_visible(INSPECTOR_MESH, false)?;
+            self.set_inspector_filter_source(true, None)?;
             return Ok(());
         };
 
-        self.set_visible(INSPECTOR_MESH, true)?;
         self.mutate_control_property(
             MESH_LABEL,
             "text",
             UiValue::String(non_empty_label(&component.display_name, "Component")),
         )?;
-        self.sync_component_property_rows(component)?;
+        self.set_inspector_filter_source(true, Some(component))?;
         Ok(())
     }
 
-    fn sync_component_property_rows(
+    pub(super) fn sync_component_property_binding(
         &mut self,
-        component: &InspectorPluginComponentSnapshot,
+        binding: &TemplateBridgeVirtualRowBinding,
+        properties: &[InspectorPluginComponentPropertySnapshot],
+        customization_available: bool,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        self.reconcile_component_property_row_capacity(component.properties.len())?;
-        for (index, control_id) in self
-            .component_property_row_control_ids()?
-            .iter()
-            .enumerate()
-        {
-            let Some(property) = component.properties.get(index) else {
-                self.sync_component_property_row_metadata(control_id, None, false)?;
-                self.mutate_control_property(
-                    control_id,
-                    "text",
-                    UiValue::String(component_property_fallback_label(component, index)),
-                )?;
-                self.mutate_control_property(
-                    control_id,
-                    "value_text",
-                    UiValue::String(component_property_fallback_value(component, index)),
-                )?;
-                self.set_visible(control_id, false)?;
-                continue;
-            };
-
-            self.set_visible(control_id, true)?;
+        let index = binding.logical_index;
+        let control_id = binding.control_id.as_str();
+        let Some(property) = properties.get(index) else {
+            self.sync_component_property_row_metadata(control_id, None, false)?;
             self.mutate_control_property(
                 control_id,
                 "text",
-                UiValue::String(format_component_property_label(property)),
+                UiValue::String(component_property_fallback_label(index)),
             )?;
             self.mutate_control_property(
                 control_id,
                 "value_text",
-                UiValue::String(format_component_property_value(property)),
+                UiValue::String(component_property_fallback_value()),
             )?;
-            self.sync_component_property_row_metadata(
-                control_id,
-                Some(property),
-                component.customization_available,
-            )?;
-        }
-        Ok(())
-    }
+            self.set_visible(control_id, false)?;
+            return Ok(());
+        };
 
-    fn hide_component_property_rows(&mut self) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        self.reconcile_component_property_row_capacity(0)?;
-        for control_id in self.component_property_row_control_ids()? {
-            self.sync_component_property_row_metadata(&control_id, None, false)?;
-            self.mutate_control_property(&control_id, "text", UiValue::String(String::new()))?;
-            self.mutate_control_property(
-                &control_id,
-                "value_text",
-                UiValue::String(String::new()),
-            )?;
-            self.set_visible(&control_id, false)?;
-        }
-        Ok(())
+        self.set_visible(control_id, true)?;
+        self.mutate_control_property(
+            control_id,
+            "text",
+            UiValue::String(format_component_property_label(property)),
+        )?;
+        self.mutate_control_property(
+            control_id,
+            "value_text",
+            UiValue::String(format_component_property_value(property)),
+        )?;
+        self.sync_component_property_row_metadata(
+            control_id,
+            Some(property),
+            customization_available,
+        )
     }
 
     fn sync_component_property_row_metadata(
@@ -311,26 +282,12 @@ fn format_transform_scale(inspector: &InspectorSnapshot) -> String {
     )
 }
 
-fn component_property_fallback_label(
-    _component: &InspectorPluginComponentSnapshot,
-    index: usize,
-) -> String {
-    match COMPONENT_PROPERTY_STATIC_CONTROLS.get(index).copied() {
-        Some(MESH_ROW) => "Component".to_string(),
-        Some(MATERIAL_ROW) => "Plugin".to_string(),
-        _ => format!("Property {:02}", index + 1),
-    }
+fn component_property_fallback_label(index: usize) -> String {
+    format!("Property {:02}", index + 1)
 }
 
-fn component_property_fallback_value(
-    component: &InspectorPluginComponentSnapshot,
-    index: usize,
-) -> String {
-    match COMPONENT_PROPERTY_STATIC_CONTROLS.get(index).copied() {
-        Some(MESH_ROW) => non_empty_label(&component.component_id, "-"),
-        Some(MATERIAL_ROW) => non_empty_label(&component.plugin_id, "-"),
-        _ => "-".to_string(),
-    }
+fn component_property_fallback_value() -> String {
+    "-".to_string()
 }
 
 fn format_component_property_label(property: &InspectorPluginComponentPropertySnapshot) -> String {

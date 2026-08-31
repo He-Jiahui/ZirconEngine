@@ -7,6 +7,7 @@ use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 pub(crate) struct SceneViewportChromeData {
     pub mode: SharedString,
     pub transform_space: SharedString,
+    pub pivot_mode: SharedString,
     pub projection_mode: SharedString,
     pub view_orientation: SharedString,
     pub display_mode: SharedString,

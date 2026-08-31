@@ -1,6 +1,7 @@
 //! Editor extension contracts shared by headless authoring and UI hosts.
 
 mod inspector;
+mod settings_page_projection;
 mod slots;
 mod store;
 mod toolkit;
@@ -11,6 +12,9 @@ pub use inspector::{
     InspectorCustomizationChain, InspectorCustomizationDescriptor, InspectorCustomizationSurface,
     InspectorField, InspectorLayout, InspectorLayoutBuilder, InspectorLayoutRow,
     InspectorRegistrationError,
+};
+pub use settings_page_projection::{
+    LocalizedSettingsCategory, LocalizedSettingsPage, SettingsPageProjection,
 };
 pub use slots::{DefaultWorkbenchPreset, WorkbenchSlot};
 pub use store::{
@@ -25,3 +29,4 @@ pub use toolkit::{
     ToolkitInstanceIdError, ToolkitLayout, ToolkitLayoutError, ToolkitRegistryError,
     ToolkitSaveFailure,
 };
+pub(crate) use toolkit::{DocumentSourceWritePublication, DocumentSourceWriteReceipt};

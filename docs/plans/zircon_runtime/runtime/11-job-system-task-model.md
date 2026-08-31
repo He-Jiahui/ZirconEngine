@@ -5,14 +5,54 @@ related_code:
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
+  - zircon_runtime/src/core/runtime/tasks/task_cancellation_policy.rs
+  - zircon_runtime/src/core/runtime/tasks/task_descriptor.rs
+  - zircon_runtime/src/core/runtime/tasks/task_graph/task_handle.rs
+  - zircon_runtime/src/core/runtime/tasks/task_id.rs
+  - zircon_runtime/src/core/runtime/tasks/task_pool_descriptor.rs
+  - zircon_runtime/src/core/runtime/tasks/task_pool_kind.rs
+  - zircon_runtime/src/core/runtime/tasks/task_state.rs
+  - zircon_runtime/src/core/runtime/tasks/task_status.rs
+  - zircon_runtime/src/core/runtime/tasks/diagnostic_observation
   - zircon_runtime/src/core/runtime/tasks/pool.rs
+  - zircon_runtime/src/core/runtime/tasks/pool/owned_workers.rs
   - zircon_runtime/src/core/runtime/tasks/pools.rs
   - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
   - zircon_runtime/src/core/runtime/tasks/report.rs
+  - zircon_runtime/src/core/runtime/tasks/retained_byte_budget.rs
   - zircon_runtime/src/core/runtime/tasks/timer.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/discover.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh
+  - zircon_runtime/src/plugin/native/discovery.rs
+  - zircon_editor/src/core/logging/runtime_task_diagnostics
+  - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
+  - zircon_runtime/src/scene/module/default_level_manager.rs
+  - zircon_runtime/src/scene/module/level_manager_project_io.rs
+  - zircon_runtime/src/scene/world/project_io/document.rs
   - zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
+  - zircon_plugins/navigation/runtime/src/lib.rs
+  - zircon_plugins/navigation/runtime/src/manager.rs
+  - zircon_plugins/navigation/runtime/src/test_support.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
+  - zircon_runtime/src/platform/module.rs
+  - zircon_runtime/src/platform/service_types/driver.rs
+  - zircon_runtime/src/platform/test_support.rs
+  - zircon_runtime/src/platform/preferences/persistence/adapter.rs
+  - zircon_runtime/src/platform/tests/preferences.rs
+  - zircon_runtime/src/text/font_sdf_build_tool/bake.rs
+  - zircon_runtime/src/bin/zircon_font_sdf_bake/main.rs
+  - zircon_runtime/tests/runtime_text_sdf_offline_artifact.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/io/path.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/io/reader
+  - zircon_editor/src/core/context/builder.rs
+  - zircon_editor/src/core/settings/persistence.rs
+  - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
+  - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_runtime/src/tests/runtime_absorption/job_system.rs
   - zircon_runtime/src/tests/runtime_absorption/job_system/inventory.rs
   - zircon_runtime/src/tests/runtime_absorption/job_system/mirror_docs.rs
@@ -26,24 +66,98 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_markdown.py
   - tools/tests/test_runtime_job_system_audit.py
+  - tools/tests/test_runtime_11_native_plugin_discovery_contract.py
   - tests/acceptance/runtime-job-system-audit-owner-sync.md
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/Task.h
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/Pipe.h
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/TaskConcurrencyLimiter.h
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/Async.h
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/LocalWorkQueue.h
+  - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/TaskGraphInterfaces.h
+  - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/AsyncWork.h
+  - dev/UnrealEngine/Engine/Source/Runtime/NavigationSystem/Private/NavMesh/RecastNavMeshGenerator.cpp
   - dev/bevy/crates/bevy_tasks/src
+  - dev/Fyrox/fyrox-impl/src/engine/mod.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
+  - docs/plans/optimize/zircon_runtime/11/2026-08-27-native-plugin-discovery-authority-research.md
 status: in_progress
-last_refined: 2026-08-01
+last_refined: 2026-08-28
 ---
 
 # 11 多线程 JobSystem 任务模型与调度
 
-2026-07-28 Runtime 11 当前 guard-owner 同步：`job_system_boundary` 报告 `expected_module_count = 10`、`expected_guard_file_count = 2`、`missing_guard_files = []`、`direct_rayon_paths = 2`、`schedule_parallel_executor_direct_rayon = []`、`diagnostic_anchor_count = 11`、`behavior_test_anchor_count = 27`、`missing_behavior_test_anchors = []`、`oversized_modules = []`、`mirror_docs_guard_present = true` 与 `risks = []`。新增 `tasks/timer.rs` 是进程级、容量受限的一次性 deadline 服务，供 Runtime11 生命周期维护复用，不能由 asset worker 私建维护线程。2 个 guard owner 为 route parent `job_system.rs` 与真实 folder-backed owner `job_system/mirror_docs.rs`；`runtime_11_job_system_mirror_docs_match_structure_audit_counts` 保持计划、runtime index、JobSystem 模块文档、M0 review 与 interface convergence 一致。当前诊断面已覆盖 dependency waiting、ready queue、active、queue wait、explicit wait、panic、cancellation 与通用 terminal observer；重叠 writer 以 acquire/release 终态 handoff 建立完整可见性，continuation unwind 逐项 containment 后仍释放后续 barrier callback 与 observer。named `tasks/ecs_schedule/worker_pool/rayon` filters 的最终 current-source 证据仍按编号记录推进。
+2026-08-28 canonical task-model source cutover: `core/framework/tasks` 从 9 个文件硬切为仅
+`mod.rs + ParallelSliceExecutor`，`AsyncTask*` 与未被 executor 消费的 `TaskPollBudget`
+全部删除；Runtime11 新增 `TaskId/TaskDescriptor/TaskState/TaskStatus/TaskHandle` owner。
+`TaskGraphScope::submit/schedule/schedule_after` 现在统一返回 `TaskHandle`，scoped dependency
+也消费该句柄，内部才降级为 `JobHandle` fence。dynamic-scene 删除第二套 status mutex、
+cancel bit 与 public completion handle，只组合 canonical handle 和业务结果。Rustfmt、
+diff-check 和旧符号全仓 Rust 搜索通过；独立复核发现的双终态 authority、fence/status 分叉、
+process-default callback owner、prerequisite lease 提前释放和 late-observer post-join panic 已修复并增加回归。
+locked/offline Windows check 已进入 Runtime 本体，但共享 current source 有 152 个其它模块
+编译错误，筛选后 canonical contract/TaskGraph/dynamic-scene 路径 0 条错误。
+独立复核 follow-up 确认 Critical `0`、Important `0`。受管 Runtime/Editor/App、focused behavior、
+WPR/RSS/功耗仍待执行，故状态保持 `in_progress`，不得提交 milestone 或标记 accepted。
+
+2026-07-28 Runtime 11 历史 guard-owner 快照：`job_system_boundary` 当时报告 `expected_module_count = 10`、`expected_guard_file_count = 2`、`missing_guard_files = []`、`direct_rayon_paths = 2`、`schedule_parallel_executor_direct_rayon = []`、`diagnostic_anchor_count = 11`、`behavior_test_anchor_count = 27`、`missing_behavior_test_anchors = []`、`oversized_modules = []`、`mirror_docs_guard_present = true` 与 `risks = []`。新增 `tasks/timer.rs` 是进程级、容量受限的一次性 deadline 服务，供 Runtime11 生命周期维护复用，不能由 asset worker 私建维护线程。2 个 guard owner 为 route parent `job_system.rs` 与真实 folder-backed owner `job_system/mirror_docs.rs`；`runtime_11_job_system_mirror_docs_match_structure_audit_counts` 保持计划、runtime index、JobSystem 模块文档、M0 review 与 interface convergence 一致。该快照不覆盖后续 `tasks/execution/` owner、scope 行为锚点或当前 audit risks。
+
+2026-08-26 Runtime02 M1 implementation registers `tasks/callback_dispatcher.rs` and `tasks/execution/` as canonical JobSystem owners (`expected_module_count = 12`). The explicit `ExecutionRuntime` creates fallible, non-static pools and its `ExecutionScope` supplies admission closure, cooperative cancellation, task terminal status, and queue/running drain census. `JobHandle` now has an explicit typed `Cancelled` terminal state; `schedule_after(...)` propagates prerequisite cancellation without launching dependent user work. Running scope work is cancelled only after `ExecutionCancellationToken::acknowledge_cancellation()`, while a normal return that ignored the request remains completed. Dynamic-scene loading is the first production acknowledgement route. The folder-backed structure slice has moved pending dependency ownership and task tests out of oversized roots; current root sizes are `diagnostics.rs = 467`, `job_handle.rs = 421`, `job_scheduler.rs = 472`, and `timer.rs = 371`, with `oversized_modules = []`. `ExecutionWorkerInventory` exposes the three runtime-owned domains and their conserved worker total without treating process-default pools, the timer, or private workers as runtime-owned. Scope shutdown proves task-body terminal state only and is explicitly not a DLL-unload receipt; worker-owner hard cutover and worker join remain P0. The mesh builder direct-Rayon path, scene target staging, generic scheduler ownership, timer, and private workers are still open; no Runtime11 or Runtime02 milestone is accepted until the broader P0 shutdown, managed Cargo gates, and current-source audit risks are resolved.
+
+2026-08-27 Runtime11 source implementation owns terminal task observation in `tasks/diagnostic_observation/`, bounded blocking-stream capture in `tasks/bounded_stream_io/`, and clone-safe retained-result reservations in `tasks/retained_byte_budget.rs`, bringing the focused mirror to `expected_module_count = 15` and `behavior_test_anchor_count = 67`. The diagnostic journal remains independently enabled, bounded to 256 entries and 64-entry reads, and free of a scheduler-global identity allocator. The stream lane admits an entire stdout/stderr capture before either reader starts, caps active readers by both its configured limit and physical Runtime `Io` parallelism, uses fixed read/line/queue budgets, and exposes typed stream records, drop/truncate/lossy counters, oldest-age drain data, cancellation and terminal wait. Readers run as `ExecutionScope` `Io` work with `FinishOnShutdown`; the host must terminate the producer and close pipes before waiting, while a still-blocked reader remains visible in scope census instead of detaching. Interrupted reads retry, and an unwind during multi-reader submission aborts the start gate by RAII. The retained-result owner bounds both bytes and live leases until the final clone drops and keeps issued leases valid after admission closes. `job_scheduler.rs = 347` and `diagnostics.rs = 427` remain below the owner limit, and the source audit rejects runtime-to-editor dependencies and private reader threads. The architecture/performance baselines are recorded in `docs/plans/optimize/zircon_runtime/11/2026-08-26-bounded-stream-io-owner.md` and `docs/plans/optimize/zircon_runtime/11/2026-08-27-dynamic-scene-runtime-reader-owner.md`. Source and behavior contracts are implemented; managed Cargo, dynamic-scene sync-facade migration, Editor14 migration, product performance/power evidence, worker join and independent acceptance remain pending, so the milestone stays `in_progress`.
+
+2026-08-27 Runtime11 worker-owner source slice: the explicit `ExecutionRuntime` now owns the only strong backends for its `Compute`, `AsyncCompute`, and `Io` domains. Cloned pool and scheduler routes are weak handles guarded by a shared atomic admission bit, so a retained consumer cannot extend or reopen worker lifetime. Rayon's custom spawn hook retains every standard-library `JoinHandle`; shutdown orders scope quiescence before closing all domains, releasing the sole backends, waiting for worker exits, and joining exact handles. Per-domain expected/exited/joined and termination-signal census is part of `ExecutionShutdownReport`; timeout remains retryable `Closing`, and only exact equality publishes `Stopped`. The source design and profiling gate are recorded in `docs/plans/optimize/zircon_runtime/11/2026-08-27-execution-worker-join-owner.md`. Managed Cargo and product profiling remain pending, and remaining process-default consumers, timer/private workers, and scene staging remain open, so aggregate Runtime11/DLL-unload acceptance is unchanged.
+
+2026-08-27 first production consumer cutover: the `AssetModule` `ProjectAssetManager` factory now upgrades its activation context and injects the current `CoreRuntime` `Io` pool. Asset decode workers therefore share the runtime-owned domain and can no longer enter `TaskPools::process_default()` through `ProjectAssetManager::default()`. The module activation regression compares concrete pool owner identity. A 2026-08-27 tracked-plus-untracked inventory finds 499 `ProjectAssetManager::default()` calls across Runtime, Editor, and plugin test/product-fixture sources; deleting the default requires a dedicated retained-owner fixture migration rather than a partial shim, especially while the asset manager has concurrent generation/publication changes. Standalone default consumers and the asset expiry timer remain open, so this narrows but does not close process-default ownership debt.
+
+2026-08-27 second production consumer cutover and follow-up hard cut: `PlatformModule` declares its Tasks dependency, upgrades the activation context, and constructs `PlatformDriver` with the active Core TaskGraph worker owner. The App descriptor override for a host-provided preference backend now upgrades the same Core and injects that owner too; it can no longer re-enter a process default behind the custom factory. `PlatformDriver::default()` is deleted, `with_preference_storage_backend(...)` requires a `TaskPool`, and the crate-private `PreferencePersistenceAdapter::new(...)` process-owner bypass is replaced by `with_pool(...)`. All 42 driver/manager test construction sites and four adapter construction sites use explicit retained one-worker I/O fixtures, with consumers dropped before their pool owner. Static counts across the Platform owner subsystem are implicit owner-selection routes `3 -> 0`, direct process-default selection sites `2 -> 0`, driver default test calls `42 -> 0`, and adapter implicit test calls `4 -> 0`. The JobSystem audit passes 3/3 and rejects restoration at the driver, adapter, builtin factory, App factory, or test-owner boundary. This changes execution ownership only: preference, platform-host, window-state, and event-loop algorithms are unchanged. Managed Cargo, product traces, elapsed-time, RSS, wakeup, and power evidence remain pending, so Runtime11 stays `in_progress`.
+
+2026-08-27 third production consumer cutover: editor settings persistence no longer calls `JobScheduler::process_io()`. `JobScheduler::from_pool(...)` is the explicit cross-crate facade constructor; `EditorManager` derives it from `core.task_pool(TaskPoolKind::Io)`, and `EditorContextBuilder` plus `SettingsPersistenceService` require the route as a constructor input. The follow-up owner hard cut deletes both `JobScheduler::default()` and `JobScheduler::process_io()` instead of retaining public standalone fallbacks. Existing Runtime and Editor test fixtures now name their process-lifetime pool explicitly through `from_pool(...)`, so repeated fixtures no longer manufacture one full-CPU private pool per scheduler. The JobSystem structure audit rejects both removed constructor snippets. This is a source-level owner result rather than a thread-peak or power claim; focused formatting/diff checks pass, five editor settings source-contract suites pass 24/24, and the runtime domain dependency audit remains 11/11. Managed Cargo and the full-harness thread matrix remain pending.
+
+2026-08-27 fourth production consumer cutover: all six production-visible `WgpuRenderFramework` constructors now require an explicit `TaskPool`; the three `construct.rs` full-compute allocation sites are removed and the unused `new_with_plugin_render_extensions_and_solari(...)` private-owner convenience API is deleted. Runtime module-host graphics and the PBR viewer inject their active `CoreRuntime::task_graph().worker_pool()`. Runtime, Editor, Hybrid GI, Virtual Geometry, Contact Shadow, and Volumetric Fog fixtures retain a real CoreRuntime and share its worker owner across paired frameworks; unit-only `new_for_test*` paths derive the pool from the test asset access's retained CoreRuntime. The JobSystem structure audit now rejects graphics-side `TaskPool::new/try_new`, process-default lookup, nested TaskGraph construction, and the deleted Solari constructor. Focused `rustfmt --check`, diff checks, tracked plus untracked legacy-call searches, and the Python audit pass; managed Cargo and product profiling remain pending.
+
+2026-08-27 fifth production consumer cutover: `DefaultNavigationManager` no longer implements `Default` or creates an async-compute pool. Its only production constructor requires a `TaskPool`; the Navigation module declares `TasksModule` as a dependency, upgrades its activation Core, and injects `core.task_graph().worker_pool().clone()`. This matches Unreal Recast's use of the engine worker census and `FAsyncTask::StartBackgroundTask()` default `GThreadPool` route instead of a Navigation-owned general executor. Fifty-five unit-test construction sites now use a retained two-worker `EngineTaskGraph` fixture, while the existing Recast tile dispatch, shared-plan allocation, panic containment, and bake algorithms are unchanged. Static source counts are Navigation production private-pool sites `1 -> 0`; on the report's 16-logical-processor model, Navigation activation adds `0` workers instead of a second 16-worker set, reducing the modeled Rayon bound `32 -> 16`. This is not WPR, elapsed-time, RSS, or power evidence. The JobSystem audit passes 3/3 and rejects future Navigation private-owner construction; managed Cargo and product profiling remain pending, so Runtime11 stays `in_progress`.
+
+The same inventory confirms that the production scene module uses `DefaultLevelManager::with_core`, while `DefaultLevelManager::default()` is now memory-only and returns typed `RuntimeUnavailable` before artifact serialization or filesystem work instead of acquiring the process pool. Native-plugin discovery is also not a local constructor fix, but the owner conclusion changed after composition-order and Unreal review: discovery runs before Core composition and matches Unreal's application-global plugin manager, so the process-lifetime `DISCOVERY_AUTHORITY` is intentional. The source now exposes an explicit root-resolution phase plus nonblocking refresh tickets and immutable last-good snapshots; Editor12 migration and managed validation remain open. Its `TaskPools::process_default()` route may materialize a second full three-domain pool set before Core startup, so physical owner convergence is gated on the Windows profile in `docs/plans/optimize/zircon_runtime/11/2026-08-27-native-plugin-discovery-authority-research.md`, not on a runtime-pool substitution.
+
+2026-08-27 timer architecture review records the current 512-entry `BTreeMap + Condvar` service, its three production consumer families, Unreal's GameInstance/CoreTicker tick ownership, and a two-tier runtime-tick versus headless-lifecycle deadline design in `docs/plans/optimize/zircon_runtime/11/2026-08-27-runtime-deadline-owner-research.md`. Source inspection found no polling algorithm and therefore no evidence for a power hotspot; algorithm/thread replacement is gated on wakeup, CPU, deadline-error, shutdown, and power measurements. The process timer remains open rather than being mechanically copied into each runtime.
+
+2026-08-27 dynamic-scene read-owner source slice adds a domain-neutral cloneable
+`RetainedByteBudget`/lease for results that outlive task terminal, plus a Runtime-owned archive reader. Prepared
+absolute logical paths perform no filesystem work during caller admission; same-path submissions share one physical
+ticket and one result reservation; open/metadata/bounded streaming decode run only on the Runtime I/O lane; failure,
+queued cancel, panic and final result Drop return the lease. Default result quota permits one maximum 512 MiB archive,
+and weak request entries retire with the last submission. Unreal `AsyncPackageLoader`, Bevy `AssetServer` and Fyrox
+`ResourceManager` evidence, complexity and the pending RSS/power matrix are recorded in
+`docs/plans/optimize/zircon_runtime/11/2026-08-27-dynamic-scene-runtime-reader-owner.md`. The synchronous path facade,
+managed Cargo, active cancellation and product performance/power evidence remain open, so Runtime11 acceptance is
+unchanged.
+
+2026-08-27 renderer-text execution review found a second structural budget defect: product `TextRenderState` uses the process compute pool for SDF while `TextRasterWorkerPool` copies the async-compute worker count and creates that many additional private OS threads; `UiSurface` shape prewarm independently uses the process compute pool. Unreal Slate SDF instead bounds reusable task objects on the shared background task system, returns `BUSY` at capacity, harvests on `Update`, and flushes before teardown. The source graph, candidate runtime-owned construction input, complexity target, and required Windows WPR/WPA matrix are recorded in `docs/plans/optimize/zircon_runtime/11/2026-08-27-renderer-text-execution-owner-research.md`. No raster algorithm change is authorized before that product baseline and comparison profile.
+
+2026-08-27 offline Font SDF owner hard cut: `bake_font_sdf_artifact(...)` now requires the caller's `&TaskPool` and cannot initialize `TaskPools::process_default()`. The standalone `zircon_font_sdf_bake` process explicitly owns one `EngineTaskGraph`, passes its worker pool into the synchronous batch, and requires a bounded shutdown receipt before writing the artifact; the two integration tests retain an explicit two-worker graph. The static owner routes are offline bake implicit process selection `1 -> 0` and hidden process pool sets `3 -> 0`, replaced by one explicit graph. Under the report's 16-logical-processor model, configured workers remain `16 -> 16`, while workers available to generation change from the legacy Compute split `4 -> 16`; elapsed time, small-batch overhead, wakeups, RSS, and power are unmeasured and may not improve. Product `TextRenderState`, UI shape prewarm, the private bitmap raster pool, and their algorithm/profile gate remain open, so Runtime11 stays `in_progress`.
+
+2026-08-27 direct-Rayon source-boundary closure: after reviewing the complete MeshDraw command-build transaction, its source-index sort, owner-thread variant/cache preparation, immutable chunk build, and ordered owner-thread cache-store/command merge remain unchanged. `ParallelSliceExecutor` now adds an owned `parallel_map_ordered(Vec<T>, ...)` contract so resource-bearing plans move into the Runtime task owner without clone-for-boundary overhead; the serial default preserves order, while `TaskPool` contains the only multi-item Rayon implementation and empty/single fast paths. Mesh SDF already uses `parallel_map_indices`, and graph encoding uses the same Core task owner. `python tools/tests/test_runtime_job_system_audit.py` passes 3/3 with exactly `tasks/pool.rs` and `tasks/parallel_for.rs` as Rayon owners; `rustfmt --check`, scoped `git diff --check`, and runtime domain dependency tests pass. Managed Cargo and Windows CPU/allocator/context-switch/power profiles remain pending, so this is a source boundary result rather than an algorithm performance claim or Runtime11 acceptance.
 
 把 runtime 的并行执行底座从"三池 + 三原语 + 多处旁路"升级为带**依赖图、句柄、同步点、数据并行原语**的统一 JobSystem——任务模型对照 Unity C# Job System（JobHandle / 依赖链 / Complete 同步点 / IJobParallelFor），调度实现对照 UE5 Tasks System（`Tasks::FTask` 前置依赖、`FPipe` 串行管道、`FTaskConcurrencyLimiter`、worker 本地队列 + 窃取）。**证据优先原则继承 07：每一步结构升级必须有消费方需求或计数证据，不做投机调度器**。
+
+### 2026-08-27 单一 TaskGraph worker owner 状态
+
+Runtime11 已在源码层把三物理池 `ExecutionRuntime` 硬切为
+`tasks/task_graph/EngineTaskGraph`。每个 CoreRuntime 现在只创建一个精确 1/2/N
+预算的 `zircon-taskgraph-worker` set；Core `task_pools()/task_pool(kind)` selector、
+旧 public 类型、旧路径和兼容 alias 均已删除。默认 JobScheduler 与 asset、platform、
+graphics、scene、VM discovery、dynamic archive、PBR viewer 和 editor settings 产品
+调用面复用同一 worker owner。`TaskGraphWorkerInventory` 的当前合同为一个 worker set
+和精确 worker 数，不再报告三个物理 work-kind domain。
+
+dynamic session 的关闭顺序同步修正为 session scope 停止 admission 并排空、module
+cleanup、最后 TaskGraph close/join，避免 module cleanup 在 scheduler 已停止后运行。
+结构调研、1/2/16 worker 源码模型和后续动态 profile 门记录在
+`docs/plans/optimize/zircon_runtime/11/2026-08-27-engine-task-graph-shared-worker-owner.md`。
+本切片只完成 Plan02 M1 的单 owner 基础层；affinity、priority、quota、keyed-I/O
+异 key 并行、timer/process/private owner 清零、managed Cargo 和产品性能/功耗仍未完成，
+因此 M1 条目不勾选，Runtime11 保持 `in_progress`。
 
 ## 现状与证据（2026-06-12 实仓盘点）
 
@@ -246,7 +360,39 @@ last_refined: 2026-08-01
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前状态：`in_progress`。统一任务模型、source-cubemap direct-Rayon 收编与任务诊断切片仍在 managed acceptance 链上；最高优先级仍是有界偏好持久化 failure，其 current-source 二审、受管 lock/编译/测试 receipt 与 fixed return 未完成，不得标记 accepted。
+当前状态：`in_progress`。在绕开当前受管验收阻塞后，显式 `ExecutionRuntime` 三域 worker owner/join 源码切片，以及生产 `AssetModule`、`PlatformModule`、Editor 设置持久化和离线 Font SDF bake 的显式 owner 注入已实现并完成聚焦静态检查。原生插件发现经 composition-order 与 Unreal 重审后保留 process-lifetime authority，并补齐 prepared-root 非阻塞 ticket/last-good snapshot 源码合同；dynamic scene reader/writer 已删除重复 lexical path owner，硬切为 project-owned physical path identity，并让 Runtime11 bounded lane 支持领域 typed key。其 path publication authority 只弱持有 live path state，terminal read 不再永久复用，staging 不持全局锁，最终 publication 只按同 path/lineage 串行；独立复审首轮 3 项 Important 已落实源码修复与回归，follow-up/受管 Cargo 尚待回执。Editor12 迁移、Cargo 行为验收及进程池重复物化的量化性能/功耗矩阵仍待执行。生产 direct-Rayon consumer 已在源码层清零，JobSystem 静态审计为 4/4，但统一任务模型和任务诊断仍在 managed acceptance 链上；product text/timer/private workers、scene staging、同步 session facade 及其余明确列出的 process-default consumers 未收敛，不得标记 accepted。
+
+2026-08-28 状态补记：canonical task-model 源码硬切已完成。framework task 文件 `9 -> 2`、
+旧 `AsyncTask*` Rust 引用 `16 files -> 0`、scoped public handle 分叉 `2 -> 1`、dynamic-scene
+生命周期/取消 authority `3 -> 1`、status poll clock `1 -> 0`。`TaskHandle` 现统一 descriptor、
+status、cancel、wait、terminal observer 与 prerequisite；`JobHandle` 保留为低层 fence。
+源码解析与 diff 检查通过，locked offline Windows check 到达 Runtime 本体，但被共享工作树
+152 个非本切片错误阻塞；本切片路径筛选为 0 条 Rust 错误。复审 follow-up 已确认
+Critical `0`、Important `0`；受管验收和产品性能/功耗矩阵未完成，因此本项目仅记
+`source_complete_validation_pending`，不构成里程碑完成。
+
+本轮状态补记：单一 `EngineTaskGraph` worker owner、跨 workspace consumer 硬切与正确
+module-before-scheduler 关闭顺序已完成源码实现；固定 Rust 1.94.1 rustfmt 解析通过。
+scope registration 已改为最后一个 live owner 释放时自动注销，图内状态从累计历史 scope
+收敛为 `O(S_live)`；三项依赖排队语义的取消测试也已固定为单 worker，避免沿用旧三池假设。
+底层 pool 现区分外部 admission 与已接受工作的 continuation：提交租约贯穿依赖等待、
+实际执行和终态 callback，shutdown 在拒绝新任务后等待租约归零再释放/join worker。
+该切片修复关闭竞态与 owner 析构位置，不作为吞吐、功耗或最终算法性能结论。
+更新后的 `job_system_boundary` 为 owner 22/22、行为锚点 73/73、direct-Rayon
+白名单 2/2、缺失 API/声明/模块 0、超限 owner 0、runtime→editor 依赖 0、`risks=[]`。
+`DefaultLevelManager::default()` 同步收敛为纯内存 owner；artifact save 只有
+`SceneModule::with_core` 注入 TaskGraph worker 后可 admission，无 owner 时在序列化和文件系统
+工作前返回 typed `RuntimeUnavailable`，不再进入 process-default pool。
+`JobScheduler` 同步删除 `Default` 与 `process_io()` 隐式 owner 入口，唯一公共构造面
+`from_pool(...)` 要求调用方提供明确的 Runtime 或 process-lifetime pool；Runtime/Editor 测试夹具
+显式复用已有 process owner，不再按测试 scheduler 数量创建 full-CPU 私有 pool。
+`WgpuRenderFramework` 的生产构造面也全部要求显式 `TaskPool`，`construct.rs` 私建
+full-compute pool 的 3 个站点已归零，无调用的 Solari 隐式 owner 构造器已删除；产品与测试
+fixture 均从其保留的 CoreRuntime TaskGraph 注入 owner。该结构结果不代表渲染耗时或功耗改善。
+受管 Cargo、独立 review、1/2/N 与 1/1k/100k task matrix、F0/F2/F4
+current-source WPR/RSS/功耗仍待执行，未达到 accepted milestone，未提交、未发送企微。
+
+- implementation-pending-validation：[task-diagnostics-editor-log-source-bridge](11/failure-2026-08-05-task-diagnostics-editor-log-source-bridge.md)；已实现 256 条保留、64 条单批、4 KiB UTF-8 安全消息上限、typed identity/cursor、panic/error 与 cancel/warning 映射、EditorLog 单一投影和重复 pump 去重，Cargo/独立验收未执行。
 
 - 迁入记录：[既有 2026-07-09 产出记录](11/2026-07-09-job-system-task-model-output-records.md)
 - 迁入产出记录：[2026-08-01 产出与性能交接归档](11/2026-08-01-plan-output-and-performance-handoffs.md)

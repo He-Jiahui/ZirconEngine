@@ -133,15 +133,15 @@ impl EditorJobProgressNotificationObserver {
 #[cfg(test)]
 mod tests {
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-    use std::sync::{mpsc, Arc, Mutex};
+    use std::sync::{Arc, Mutex, mpsc};
     use std::thread;
     use std::time::Duration;
 
     use crate::core::editor_message::SharedEditorMessageBus;
     use crate::core::jobs::{
-        test_job_scheduler, EditorJob, EditorJobLimits, EditorJobProgressObserver,
-        EditorJobProgressSource, EditorJobSpec, EditorJobSystem, JobCategory, JobContext, JobError,
-        JobId,
+        EditorJob, EditorJobLimits, EditorJobProgressObserver, EditorJobProgressSource,
+        EditorJobSpec, EditorJobSystem, JobCategory, JobContext, JobError, JobId,
+        test_job_scheduler,
     };
 
     use super::EditorNotificationService;
@@ -337,9 +337,10 @@ mod tests {
         .wait()
         .unwrap();
 
-        assert!(jobs
-            .shutdown(std::time::Instant::now() + Duration::from_secs(5))
-            .is_empty());
+        assert!(
+            jobs.shutdown(std::time::Instant::now() + Duration::from_secs(5))
+                .is_empty()
+        );
         assert!(service.progress().is_empty());
     }
 

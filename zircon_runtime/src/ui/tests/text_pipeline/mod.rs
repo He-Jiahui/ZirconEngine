@@ -1,5 +1,5 @@
 mod fixtures;
-mod font_registry;
+mod inline_widgets;
 mod layout_request;
 mod measure_cache;
 mod render_extract_prewarm;

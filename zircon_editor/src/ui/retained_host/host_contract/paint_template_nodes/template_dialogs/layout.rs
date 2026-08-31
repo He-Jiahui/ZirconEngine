@@ -2,15 +2,10 @@ use super::super::super::data::FrameRect;
 use super::identity::DialogKind;
 use super::metrics::dialog_metrics;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paint_rect(
     rect: &FrameRect,
 ) -> FrameRect {
-    FrameRect {
-        x: rect.x.round(),
-        y: rect.y.round(),
-        width: rect.width.round(),
-        height: rect.height.round(),
-    }
+    rect.clone()
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_has_visible_area(

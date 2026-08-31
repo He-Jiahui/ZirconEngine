@@ -6,6 +6,8 @@ use std::sync::Arc;
 use zircon_runtime_interface::ui::template::{UiAssetError, UiNodeDefinitionKind};
 use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiSize};
 
+mod control_scope;
+
 const FLAT_LAYOUT_ASSET_TOML: &str = r##"
 [asset]
 kind = "layout"
@@ -73,6 +75,84 @@ props = { text = "$param.title" }
 [nodes.content_slot]
 kind = "slot"
 slot_name = "content"
+"##;
+
+const FLAT_PARAM_BINDING_LAYOUT_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "asset://ui/tests/param_binding_layout.ui"
+version = 3
+
+[imports]
+widgets = ["asset://ui/tests/param_binding_widget.ui#ParamBindingWrapper"]
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "reference"
+component_ref = "asset://ui/tests/param_binding_widget.ui#ParamBindingWrapper"
+params = { state = false }
+"##;
+
+const FLAT_PARAM_BINDING_WIDGET_TOML: &str = r##"
+[asset]
+kind = "widget"
+id = "asset://ui/tests/param_binding_widget.ui"
+version = 3
+
+[components.ParamBinding]
+root = "binding_root"
+
+[components.ParamBinding.params.visible]
+type = "bool"
+default = true
+
+[components.ParamBindingWrapper]
+root = "wrapper_root"
+
+[components.ParamBindingWrapper.params.state]
+type = "bool"
+default = true
+
+[nodes.wrapper_root]
+kind = "component"
+component = "ParamBinding"
+params = { visible = "$param.state" }
+
+[[nodes.wrapper_root.bindings]]
+id = "ParamBindingWrapper/onChange"
+event = "Change"
+route = "Route.ParamBindingWrapper"
+
+[[nodes.wrapper_root.bindings.targets]]
+target = { kind = "enabled" }
+expression = "param.state"
+
+[nodes.wrapper_root.bindings.action]
+route = "Route.ParamBindingWrapper"
+
+[nodes.wrapper_root.bindings.action.payload]
+state = "=param.state"
+
+[nodes.binding_root]
+kind = "native"
+type = "Label"
+
+[[nodes.binding_root.bindings]]
+id = "ParamBinding/onChange"
+event = "Change"
+route = "Route.ParamBinding"
+
+[[nodes.binding_root.bindings.targets]]
+target = { kind = "visibility" }
+expression = "param.visible"
+
+[nodes.binding_root.bindings.action]
+route = "Route.ParamBinding"
+
+[nodes.binding_root.bindings.action.payload]
+visible = "=param.visible"
 "##;
 
 const FLAT_STYLE_ASSET_TOML: &str = r##"
@@ -249,6 +329,47 @@ fn prototype_compiler_applies_reference_instance_props_to_expanded_root() {
             .and_then(toml::Value::as_float),
         Some(2.0),
         "component defaults that were not overridden should survive"
+    );
+}
+
+#[test]
+fn param_ref_compile_resolves_prototype_binding_params() {
+    let layout =
+        UiAssetLoader::load_flat_prototype_toml_str(FLAT_PARAM_BINDING_LAYOUT_TOML).unwrap();
+    let widget =
+        UiAssetLoader::load_flat_prototype_toml_str(FLAT_PARAM_BINDING_WIDGET_TOML).unwrap();
+    let mut builder = UiPrototypeStoreBuilder::new();
+    let _ = builder.insert(layout);
+    let _ = builder.insert(widget);
+    let store = builder.build().unwrap();
+
+    let compiled = UiDocumentCompiler::default()
+        .compile_prototype_asset("asset://ui/tests/param_binding_layout.ui", &store)
+        .unwrap();
+    let binding = &compiled.template_instance().root.bindings[0];
+
+    assert_eq!(binding.targets[0].expression, "false");
+    assert_eq!(
+        binding
+            .action
+            .as_ref()
+            .and_then(|action| action.payload.get("visible")),
+        Some(&toml::Value::Boolean(false))
+    );
+    let caller_binding = compiled
+        .template_instance()
+        .root
+        .bindings
+        .iter()
+        .find(|binding| binding.id == "ParamBindingWrapper/onChange")
+        .unwrap();
+    assert_eq!(caller_binding.targets[0].expression, "false");
+    assert_eq!(
+        caller_binding
+            .action
+            .as_ref()
+            .and_then(|action| action.payload.get("state")),
+        Some(&toml::Value::Boolean(false))
     );
 }
 

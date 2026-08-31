@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -76,44 +78,7 @@ impl RenderFramePhaseQueueSummary {
                 }
             })
             .collect::<Vec<_>>();
-        let mut phase_order_spans = Vec::<RenderFramePhaseQueueSummaryPhaseOrderSpan>::new();
-        for phase in RENDER_PHASES_BY_QUEUE_ORDER {
-            let phase_order = phase.queue_order();
-            if let Some(span) = phase_order_spans
-                .iter_mut()
-                .find(|span| span.phase_order == phase_order)
-            {
-                span.phases.push(phase);
-                span.diagnostic_name = phase_diagnostic_name(&span.phases);
-            } else {
-                let geometry_span = geometry.span_for_phase_order(phase_order);
-                let sprite_span = sprites.span_for_phase_order(phase_order);
-                let geometry_item_count = geometry_span
-                    .map(|span| span.item_count)
-                    .unwrap_or_default();
-                let sprite_item_count = sprite_span.map(|span| span.item_count).unwrap_or_default();
-                phase_order_spans.push(RenderFramePhaseQueueSummaryPhaseOrderSpan {
-                    phase_order,
-                    diagnostic_name: phase_diagnostic_name(&[phase]),
-                    phases: vec![phase],
-                    geometry_item_count,
-                    sprite_item_count,
-                    total_item_count: geometry_item_count + sprite_item_count,
-                    geometry_start_index: geometry_span.and_then(|span| span.start_index),
-                    geometry_end_index_exclusive: geometry_span
-                        .and_then(|span| span.end_index_exclusive),
-                    geometry_first_ordering_key: geometry_span
-                        .and_then(|span| span.first_ordering_key),
-                    geometry_last_ordering_key: geometry_span
-                        .and_then(|span| span.last_ordering_key),
-                    sprite_start_index: sprite_span.and_then(|span| span.start_index),
-                    sprite_end_index_exclusive: sprite_span
-                        .and_then(|span| span.end_index_exclusive),
-                    sprite_first_ordering_key: sprite_span.and_then(|span| span.first_ordering_key),
-                    sprite_last_ordering_key: sprite_span.and_then(|span| span.last_ordering_key),
-                });
-            }
-        }
+        let phase_order_spans = frame_phase_order_spans(&geometry, &sprites);
         Self {
             total_item_count: geometry.item_count + sprites.item_count,
             geometry_first_ordering_key: geometry.first_ordering_key,
@@ -201,6 +166,59 @@ impl RenderFramePhaseQueueSummary {
     }
 }
 
+fn frame_phase_order_spans(
+    geometry: &RenderPhaseQueueSummary,
+    sprites: &RenderPhaseQueueSummary,
+) -> Vec<RenderFramePhaseQueueSummaryPhaseOrderSpan> {
+    let mut spans = frame_phase_order_span_template().to_vec();
+    for span in &mut spans {
+        let geometry_span = geometry.span_for_phase_order(span.phase_order);
+        let sprite_span = sprites.span_for_phase_order(span.phase_order);
+        span.geometry_item_count = geometry_span.map(|row| row.item_count).unwrap_or_default();
+        span.sprite_item_count = sprite_span.map(|row| row.item_count).unwrap_or_default();
+        span.total_item_count = span.geometry_item_count + span.sprite_item_count;
+        span.geometry_start_index = geometry_span.and_then(|row| row.start_index);
+        span.geometry_end_index_exclusive = geometry_span.and_then(|row| row.end_index_exclusive);
+        span.geometry_first_ordering_key = geometry_span.and_then(|row| row.first_ordering_key);
+        span.geometry_last_ordering_key = geometry_span.and_then(|row| row.last_ordering_key);
+        span.sprite_start_index = sprite_span.and_then(|row| row.start_index);
+        span.sprite_end_index_exclusive = sprite_span.and_then(|row| row.end_index_exclusive);
+        span.sprite_first_ordering_key = sprite_span.and_then(|row| row.first_ordering_key);
+        span.sprite_last_ordering_key = sprite_span.and_then(|row| row.last_ordering_key);
+    }
+    spans
+}
+
+fn frame_phase_order_span_template() -> &'static [RenderFramePhaseQueueSummaryPhaseOrderSpan] {
+    static TEMPLATE: OnceLock<Vec<RenderFramePhaseQueueSummaryPhaseOrderSpan>> = OnceLock::new();
+    TEMPLATE.get_or_init(build_frame_phase_order_span_template)
+}
+
+fn build_frame_phase_order_span_template() -> Vec<RenderFramePhaseQueueSummaryPhaseOrderSpan> {
+    let mut spans = Vec::with_capacity(RENDER_PHASES_BY_QUEUE_ORDER.len());
+    for phases in RENDER_PHASES_BY_QUEUE_ORDER
+        .chunk_by(|left, right| left.queue_order() == right.queue_order())
+    {
+        spans.push(RenderFramePhaseQueueSummaryPhaseOrderSpan {
+            phase_order: phases[0].queue_order(),
+            diagnostic_name: phase_diagnostic_name(phases),
+            phases: phases.to_vec(),
+            geometry_item_count: 0,
+            sprite_item_count: 0,
+            total_item_count: 0,
+            geometry_start_index: None,
+            geometry_end_index_exclusive: None,
+            geometry_first_ordering_key: None,
+            geometry_last_ordering_key: None,
+            sprite_start_index: None,
+            sprite_end_index_exclusive: None,
+            sprite_first_ordering_key: None,
+            sprite_last_ordering_key: None,
+        });
+    }
+    spans
+}
+
 fn phase_diagnostic_name(phases: &[RenderPhase]) -> String {
     let capacity = phases
         .iter()
@@ -227,3 +245,7 @@ mod tests {
         assert!(source.contains(concat!("String::with_", "capacity(capacity)")));
     }
 }
+
+#[cfg(test)]
+#[path = "frame_phase_queue_summary/cached_span_template_tests.rs"]
+mod cached_span_template_tests;

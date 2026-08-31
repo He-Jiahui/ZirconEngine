@@ -6,6 +6,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/click.rs
   - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/motion.rs
   - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/scroll.rs
+  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/events.rs
   - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/target.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces.rs
   - zircon_editor/src/ui/retained_host/app/assets.rs
@@ -15,6 +16,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/click.rs
   - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/motion.rs
   - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/scroll.rs
+  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/events.rs
   - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/target.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
@@ -33,7 +35,7 @@ doc_type: module-detail
 
 ## Purpose
 
-The retained-host asset tree pointer boundary owns pointer callbacks for the Activity and Asset Browser folder trees. It keeps the app-facing `RetainedEditorHost` methods stable while separating tree target preparation from click/move/scroll dispatch.
+The retained-host asset tree pointer boundary owns pointer callbacks for the Activity and Asset Browser folder trees. It keeps the app-facing `RetainedEditorHost` methods stable while separating tree target preparation from click/move/scroll dispatch and asset drop routing.
 
 This split supports the 08 M3.S2 retained-host cleanup: `app/asset_tree_pointer.rs` is now a structural entry, and tree target preparation can be reused by all asset tree pointer actions without repeating snapshot, size fallback, and bridge sync logic.
 
@@ -45,6 +47,7 @@ This split supports the 08 M3.S2 retained-host cleanup: `app/asset_tree_pointer.
 - `zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/click.rs` owns click dispatch for Activity and Browser asset tree surfaces, including runtime asset surface bridge forwarding and dispatch effects.
 - `zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/motion.rs` owns hover/move dispatch against the already-synced tree bridge.
 - `zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/scroll.rs` owns scroll dispatch against the already-synced tree bridge.
+- `zircon_editor/src/ui/retained_host/app/asset_tree_pointer/events.rs` owns primary-release asset drops, typed relocation target construction, and event dispatch.
 - `zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces.rs` writes pointer hover/scroll state back into the visible Workbench surfaces after dispatch.
 
 ## Behavior Model
@@ -54,6 +57,11 @@ Every asset tree pointer path first calls `prepare_asset_tree_pointer_target(...
 Click dispatch then ensures the runtime asset surface bridge is available and routes the click through `dispatch_shared_asset_tree_pointer_click(...)` for either the Activity or Browser tree bridge. Successful dispatch writes the returned pointer state back, updates visible UI hover/scroll state, and applies any runtime dispatch effects.
 
 Move and scroll dispatch use the already-synced tree bridge directly. Successful dispatch writes the returned pointer state back and applies the asset pointer state to the UI.
+
+An asset-content drag released over a folder row is converted into `AssetCommand::RelocateAsset`
+with the stable asset UUID and a structured target locator that preserves the source file name.
+Reference-list payloads and subasset locators are rejected. The callback only dispatches the typed
+event; the retained asset lifecycle queues the Runtime-owned transaction outside the UI thread.
 
 ## Design and Rationale
 
@@ -66,6 +74,7 @@ The dispatch subtree remains separate because click dispatch crosses into the ru
 - Unknown surface modes write a status-line diagnostic and abort before bridge mutation.
 - A missing asset surface bridge aborts click dispatch before runtime UI forwarding.
 - Target preparation must run before move/scroll so hover and scroll operate on the current folder tree layout.
+- Folder drops accept only content-list asset payloads, preserve stable UUID identity, and reject independent subasset moves.
 - Surface modes remain the existing string contract: `activity` and `browser`.
 
 ## Test Coverage

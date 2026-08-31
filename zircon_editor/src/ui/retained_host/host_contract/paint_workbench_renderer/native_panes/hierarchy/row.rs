@@ -2,6 +2,8 @@ mod frame;
 mod style;
 mod text;
 
+use crate::ui::retained_host::hierarchy_pointer::HierarchyRowMetrics;
+
 use super::super::super::super::data::{FrameRect, HostPaneInteractionStateData, SceneNodeData};
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_geometry::intersect;
@@ -18,11 +20,12 @@ pub(super) fn draw_hierarchy_row(
     row_clip: &FrameRect,
     index: usize,
     scroll_px: f32,
+    row_metrics: HierarchyRowMetrics,
     node: &SceneNodeData,
     interaction: &HostPaneInteractionStateData,
     inline_rename_value: Option<&str>,
 ) {
-    let row = hierarchy_row_frame(viewport, index, scroll_px);
+    let row = hierarchy_row_frame(viewport, index, scroll_px, row_metrics);
     if intersect(&row, row_clip).is_none() {
         return;
     }

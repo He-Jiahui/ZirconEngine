@@ -28,7 +28,7 @@ use self::metrics::{
     grapheme_advances_match, missing_glyph_left_offset_px, missing_host_advance,
     non_negative_advance, total_advances_match,
 };
-use self::runtime_lines::{runtime_single_line_text, runtime_word_wrapped_text};
+use self::runtime_lines::{runtime_single_line_text, runtime_word_wrapped_text, RuntimeTextLine};
 
 pub(super) struct PaintTextLayout {
     pub(super) display_text: String,
@@ -165,11 +165,6 @@ fn layout_text_run_uncached(
             runtime_word_wrapped_text(rect, text, font_size, line_height, font_face)
         }
     };
-    let display_text = lines
-        .iter()
-        .map(|line| line.text.as_str())
-        .collect::<Vec<_>>()
-        .join("\n");
     let artifact_glyphs = positioned_artifact_glyphs(
         &lines,
         rect,
@@ -235,12 +230,32 @@ fn layout_text_run_uncached(
             .collect();
         (glyphs, Vec::new())
     };
+    let display_text = display_text_from_lines(lines);
     PaintTextLayout {
         display_text,
         font_face,
         glyphs,
         artifact_raster_fonts,
     }
+}
+
+fn display_text_from_lines(lines: Vec<RuntimeTextLine>) -> String {
+    let mut lines = lines.into_iter();
+    let Some(first) = lines.next() else {
+        return String::new();
+    };
+    let additional_capacity = lines
+        .as_slice()
+        .iter()
+        .map(|line| 1_usize.saturating_add(line.text.len()))
+        .sum();
+    let mut display_text = first.text;
+    display_text.reserve(additional_capacity);
+    for line in lines {
+        display_text.push('\n');
+        display_text.push_str(&line.text);
+    }
+    display_text
 }
 
 fn fontdue_glyph_layout(
@@ -460,52 +475,45 @@ fn shaped_positions_match_host_advances(
     if glyphs.len() != shaped_glyphs.len() {
         return false;
     }
-
-    let shaped_origins = shaped_glyphs
-        .iter()
-        .map(|glyph| {
-            let origin = glyph.x + glyph.offset_x;
-            origin.is_finite().then_some(origin)
-        })
-        .collect::<Option<Vec<_>>>();
-    let Some(shaped_origins) = shaped_origins else {
-        return false;
+    let Some((first_shaped, first_host)) = shaped_glyphs.first().zip(glyphs.first()) else {
+        return true;
     };
-    let host_origins = glyphs
-        .iter()
-        .map(|glyph| {
-            let origin = glyph_cursor_x(glyph, font_face);
-            origin.is_finite().then_some(origin)
-        })
-        .collect::<Option<Vec<_>>>();
-    let Some(host_origins) = host_origins else {
+    let mut shaped_origin = first_shaped.x + first_shaped.offset_x;
+    let mut host_origin = glyph_cursor_x(first_host, font_face);
+    if !shaped_origin.is_finite() || !host_origin.is_finite() {
         return false;
-    };
-
+    }
     let font = host_font_snapshot_for_face(font_face);
-    shaped_glyphs
-        .iter()
-        .zip(glyphs)
-        .enumerate()
-        .all(|(index, (shaped, host))| {
-            let shaped_next = shaped_origins
-                .get(index + 1)
-                .copied()
-                .unwrap_or_else(|| shaped_origins[index] + non_negative_advance(shaped.advance));
-            let host_next = host_origins.get(index + 1).copied().unwrap_or_else(|| {
+    for (index, (shaped, host)) in shaped_glyphs.iter().zip(glyphs).enumerate() {
+        let shaped_next = shaped_glyphs.get(index + 1).map_or_else(
+            || shaped_origin + non_negative_advance(shaped.advance),
+            |next| next.x + next.offset_x,
+        );
+        let host_next = glyphs.get(index + 1).map_or_else(
+            || {
                 let advance = font
                     .font()
                     .map(|font| font.metrics_indexed(host.key.glyph_index, host.key.px))
                     .map(|metrics| non_negative_advance(metrics.advance_width))
                     .unwrap_or_else(missing_host_advance);
-                host_origins[index] + advance
-            });
-            let shaped_advance = non_negative_advance(shaped_next - shaped_origins[index]);
-            let host_advance = non_negative_advance(host_next - host_origins[index]);
-            shaped_advance.is_finite()
-                && host_advance.is_finite()
-                && grapheme_advances_match(shaped_advance, host_advance)
-        })
+                host_origin + advance
+            },
+            |next| glyph_cursor_x(next, font_face),
+        );
+        let shaped_advance = non_negative_advance(shaped_next - shaped_origin);
+        let host_advance = non_negative_advance(host_next - host_origin);
+        if !shaped_next.is_finite()
+            || !host_next.is_finite()
+            || !shaped_advance.is_finite()
+            || !host_advance.is_finite()
+            || !grapheme_advances_match(shaped_advance, host_advance)
+        {
+            return false;
+        }
+        shaped_origin = shaped_next;
+        host_origin = host_next;
+    }
+    true
 }
 
 fn runtime_text_glyph_from_host_glyph(

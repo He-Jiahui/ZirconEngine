@@ -34,7 +34,7 @@ pub(super) fn push_tooltip_body(
         frame,
         Some(clip.clone()),
         order,
-        body,
+        body.to_string(),
         body_color,
         metrics.body_font_size,
         metrics.body_line_height,

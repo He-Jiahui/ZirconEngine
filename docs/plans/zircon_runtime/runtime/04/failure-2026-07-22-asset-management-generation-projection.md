@@ -76,6 +76,24 @@ Open state: `待修复`; no pass is claimed.
 
 Open state: `实现完成，受管验证待回执`; accepted closeout remains deferred.
 
+### 2026-08-30 current-source continuation
+
+- `ProjectAssetManager` now owns `ProjectAssetManagementGeneration`, an `Arc`-backed immutable
+  asset-only projection with resource-generation identity, per-kind stable ID indexes, typed
+  management rows, and scene/entity rows. The renderer-prepared material set is deliberately
+  excluded and remains a consumer-composed detail product.
+- The projection starts empty while no project is active, then is built from the committed
+  resource generation and refreshed inside the existing `publish_project_generation` fence before
+  change broadcast or wake delivery. Close returns it to the empty projection. This covers open,
+  close, import, watch, relocation, and deletion publication paths without a second cache or an
+  observer-side rebuild. Public manager record reads retain their existing return shapes but borrow
+  the snapshot rows; the legacy full-build helper is now restricted to the publish-time projection
+  builder.
+- Static source guards cover publication ordering, snapshot accessor usage, asset-only ownership,
+  and renderer material composition. `rustfmt` is applied to the touched owner files. Managed
+  Cargo, stable/changed/page performance evidence, independent review, commit, and WeCom remain
+  pending; this continuation does not claim acceptance.
+
 ### 2026-08-14 current-source continuation
 
 - `ProjectAssetManager::asset_ids_by_kind` now reads the published
@@ -143,6 +161,20 @@ Open state: `实现完成，受管验证待回执`; accepted closeout remains de
 - No source change was made in these concurrently modified asset-owner files. This audit narrows
   the next source slice to one ProjectAssetManager-owned immutable projection and confirms that
   the failure remains `open`; it is not validation or performance acceptance evidence.
+
+### 2026-08-30 current-source correction
+
+- The historical implementation-gap bullets above describe the pre-slice state. Current source now
+  owns `ProjectAssetManagementGeneration` in `ProjectAssetManager`; stable record-set reads consume
+  that immutable asset-only snapshot, and `asset_management_record_sets` returns a compatibility
+  aggregate with an empty renderer-material slot.
+- Renderer-prepared material rows are composed in the graphics consumer test boundary instead of
+  being supplied through an asset-manager `with_prepared_materials` API. The remaining
+  `RenderMaterialManagementRecordSet` import in the manager is limited to the publish-time
+  compatibility aggregate/builder and does not enter the generation owner.
+- The generation refresh now passes each of the six asset record sets explicitly into the owner
+  constructor. Managed Cargo validation, performance evidence, independent review, commit, and
+  WeCom synchronization remain pending; the failure status stays `open`.
 
 ### 2026-08-14 publication cut points
 

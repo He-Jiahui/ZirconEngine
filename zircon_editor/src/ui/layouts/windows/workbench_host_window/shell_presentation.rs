@@ -1,9 +1,8 @@
+use std::sync::Arc;
+
 use super::*;
 use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::{
-    asset_surface_presentation, project_overview_data, welcome_presentation,
-    AssetSurfacePresentation, WelcomePresentation,
-};
+use crate::ui::layouts::views::{project_overview_data, welcome_presentation, WelcomePresentation};
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::widgets::common::side_expanded;
 use crate::ui::workbench::startup::display_project_title;
@@ -11,12 +10,12 @@ use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 use crate::ui::retained_host::STARTUP_REFRESH_DIAGNOSTICS_OVERLAY;
 
+#[derive(Clone)]
 pub(crate) struct ShellPresentation {
     pub host_surface_data: HostWindowSurfaceData,
+    pub retained_scene_data: Option<Arc<HostWindowSceneData>>,
     pub welcome: WelcomePresentation,
     pub project_overview: ProjectOverviewData,
-    pub activity: AssetSurfacePresentation,
-    pub browser: AssetSurfacePresentation,
     pub host_shell: HostWindowShellData,
     pub status_primary: SharedString,
     pub mesh_import_path: SharedString,
@@ -24,83 +23,6 @@ pub(crate) struct ShellPresentation {
 
 impl ShellPresentation {
     pub(crate) fn from_state(
-        model: &WorkbenchViewModel,
-        chrome: &EditorChromeSnapshot,
-        geometry: &WorkbenchShellGeometry,
-        preset_names: &[String],
-        active_preset_name: Option<&str>,
-        ui_asset_panes: &std::collections::BTreeMap<
-            String,
-            crate::ui::asset_editor::UiAssetEditorPanePresentation,
-        >,
-        animation_panes: &std::collections::BTreeMap<
-            String,
-            crate::ui::animation_editor::AnimationEditorPanePresentation,
-        >,
-        runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
-        module_plugins: &ModulePluginsPaneViewData,
-        build_export: &BuildExportPaneViewData,
-        floating_window_projection_bundle: &FloatingWindowProjectionBundle,
-    ) -> Self {
-        let template_v2_data = std::collections::BTreeMap::new();
-        Self::from_state_with_template_v2_data(
-            model,
-            chrome,
-            geometry,
-            preset_names,
-            active_preset_name,
-            ui_asset_panes,
-            animation_panes,
-            runtime_diagnostics,
-            module_plugins,
-            build_export,
-            &template_v2_data,
-            floating_window_projection_bundle,
-        )
-    }
-
-    pub(crate) fn from_state_with_template_v2_data(
-        model: &WorkbenchViewModel,
-        chrome: &EditorChromeSnapshot,
-        geometry: &WorkbenchShellGeometry,
-        preset_names: &[String],
-        active_preset_name: Option<&str>,
-        ui_asset_panes: &std::collections::BTreeMap<
-            String,
-            crate::ui::asset_editor::UiAssetEditorPanePresentation,
-        >,
-        animation_panes: &std::collections::BTreeMap<
-            String,
-            crate::ui::animation_editor::AnimationEditorPanePresentation,
-        >,
-        runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
-        module_plugins: &ModulePluginsPaneViewData,
-        build_export: &BuildExportPaneViewData,
-        template_v2_data: &std::collections::BTreeMap<
-            String,
-            crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
-        >,
-        floating_window_projection_bundle: &FloatingWindowProjectionBundle,
-    ) -> Self {
-        let mut cache = HostChromeProjectionCache::default();
-        Self::from_state_with_template_v2_data_and_cache(
-            model,
-            chrome,
-            geometry,
-            preset_names,
-            active_preset_name,
-            ui_asset_panes,
-            animation_panes,
-            runtime_diagnostics,
-            module_plugins,
-            build_export,
-            template_v2_data,
-            floating_window_projection_bundle,
-            &mut cache,
-        )
-    }
-
-    pub(crate) fn from_state_with_template_v2_data_and_cache(
         model: &WorkbenchViewModel,
         chrome: &EditorChromeSnapshot,
         geometry: &WorkbenchShellGeometry,
@@ -130,8 +52,6 @@ impl ShellPresentation {
         let bottom_tabs = chrome_projection_cache.bottom_tabs(model);
         let document_tabs = chrome_projection_cache.document_tabs(model);
 
-        let activity = asset_surface_presentation(&chrome.asset_activity);
-        let browser = asset_surface_presentation(&chrome.asset_browser);
         let welcome = welcome_presentation(&chrome.welcome);
         let host_shell = build_host_window_shell_data(
             model,
@@ -208,10 +128,9 @@ impl ShellPresentation {
                     template_v2_data,
                 ),
             },
+            retained_scene_data: None,
             welcome,
             project_overview: project_overview_data(&chrome.project_overview),
-            activity,
-            browser,
             host_shell,
             status_primary: chrome.status_line.clone().into(),
             mesh_import_path: chrome.mesh_import_path.clone().into(),

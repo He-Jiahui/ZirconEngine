@@ -6,10 +6,14 @@ use zircon_runtime_interface::{
     ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
 };
 
-use crate::core::editing::authoring_world::{AuthoringWorldSeed, EditorAuthoringWorld};
+use crate::core::editing::authoring_world::{
+    AuthoringWorldAccessError, AuthoringWorldSeed, EditorAuthoringWorld,
+};
 use crate::core::editing::context::CoreEditContext;
 use crate::core::editing::engine::EditCommandError;
-use crate::core::gateway::{EditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError};
+use crate::core::gateway::{
+    DetachedEditorRuntimeGateway, EditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError,
+};
 
 struct RepeatingWorldCallbackGateway {
     world: Mutex<World>,
@@ -26,6 +30,10 @@ impl RepeatingWorldCallbackGateway {
 impl EditorRuntimeGateway for RepeatingWorldCallbackGateway {
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         ZrRuntimeSessionHandle::invalid()
+    }
+
+    fn session_identity(&self) -> zircon_runtime_interface::GatewaySessionIdentity {
+        zircon_runtime_interface::GatewaySessionIdentity::detached()
     }
 
     fn with_world(&self, read: &mut dyn FnMut(&World)) -> Result<(), GatewayError> {
@@ -99,16 +107,16 @@ fn authoring_facade_replaces_and_clears_the_stable_gateway() {
         .expect("initial authoring world");
 
     assert!(facade.is_loaded());
-    assert_eq!(facade.try_with_world(|scene| scene.nodes().len()), Some(0));
+    assert_eq!(facade.with_world(|scene| scene.nodes().len()), Ok(Some(0)));
 
     facade
         .replace(AuthoringWorldSeed::from(replacement))
         .expect("replacement authoring world");
-    assert_eq!(facade.try_with_world(|scene| scene.nodes().len()), Some(0));
+    assert_eq!(facade.with_world(|scene| scene.nodes().len()), Ok(Some(0)));
 
     facade.clear().expect("clear authoring world");
     assert!(!facade.is_loaded());
-    assert_eq!(facade.try_snapshot(), None);
+    assert_eq!(facade.snapshot(), Ok(None));
     assert_eq!(
         handle.with_world(&mut |_| {}),
         Err(GatewayError::RequiresSerializedAccess)
@@ -120,14 +128,34 @@ fn repeated_borrowed_world_callbacks_fail_closed() {
     let handle = EditorRuntimeGatewayHandle::detached();
     let level =
         DefaultLevelManager::default().create_level(Scene::default(), LevelMetadata::default());
-    let facade = EditorAuthoringWorld::loaded(&handle, AuthoringWorldSeed::from(level))
+    let mut facade = EditorAuthoringWorld::loaded(&handle, AuthoringWorldSeed::from(level))
         .expect("initial authoring world");
-    handle
-        .replace(Arc::new(RepeatingWorldCallbackGateway::new()))
+    facade
+        .replace_gateway_for_test(Arc::new(RepeatingWorldCallbackGateway::new()))
         .expect("install repeating callback gateway");
 
-    assert_eq!(facade.try_with_world(|scene| scene.nodes().len()), None);
-    assert_eq!(facade.try_with_world_mut(|scene| scene.nodes().len()), None);
+    assert_eq!(
+        facade.with_world(|scene| scene.nodes().len()),
+        Err(AuthoringWorldAccessError::ProtocolViolation {
+            source: GatewayError::Protocol {
+                message: "borrowed world callback was invoked more than once".to_owned(),
+            },
+        })
+    );
+    let outcome = facade
+        .with_world_mut(|scene| scene.nodes().len())
+        .expect("the first mutable callback should produce an outcome")
+        .expect("the authoring world should remain loaded");
+    let (node_count, post_callback_error) = outcome.into_parts();
+    assert_eq!(node_count, 0);
+    assert_eq!(
+        post_callback_error,
+        Some(AuthoringWorldAccessError::ProtocolViolation {
+            source: GatewayError::Protocol {
+                message: "borrowed world callback was invoked more than once".to_owned(),
+            },
+        })
+    );
 
     let context = CoreEditContext::new(handle);
     assert_repeated_callback_protocol(
@@ -135,9 +163,51 @@ fn repeated_borrowed_world_callbacks_fail_closed() {
             .with_scene(|scene| scene.nodes().len())
             .expect_err("duplicate read callback must fail"),
     );
+    let outcome = context
+        .with_scene_mut(|scene| scene.nodes().len())
+        .expect("first mutable callback must expose its execution outcome");
+    let (node_count, protocol_error) = outcome.into_parts();
+    assert_eq!(node_count, 0);
     assert_repeated_callback_protocol(
-        context
-            .with_scene_mut(|scene| scene.nodes().len())
-            .expect_err("duplicate mutable callback must fail"),
+        protocol_error.expect("duplicate mutable callback must be reported after execution"),
+    );
+}
+
+#[test]
+fn authoring_gateway_generation_mismatch_and_gateway_failure_remain_distinct_from_unloaded() {
+    let handle = EditorRuntimeGatewayHandle::detached();
+    let level =
+        DefaultLevelManager::default().create_level(Scene::default(), LevelMetadata::default());
+    let facade = EditorAuthoringWorld::loaded(&handle, AuthoringWorldSeed::from(level))
+        .expect("initial authoring world");
+    handle
+        .replace(Arc::new(DetachedEditorRuntimeGateway))
+        .expect("install detached gateway");
+
+    let stale_error = facade
+        .with_world(|scene| scene.nodes().len())
+        .expect_err("a replacement must not become an unloaded world");
+    assert!(facade.is_loaded());
+    assert_eq!(
+        stale_error,
+        AuthoringWorldAccessError::StaleGeneration {
+            expected_generation: 1,
+            current_generation: 2,
+        }
+    );
+    assert!(facade.should_report_access_failure(&stale_error));
+    assert!(!facade.should_report_access_failure(&stale_error));
+
+    facade
+        .replace_gateway_for_test(Arc::new(DetachedEditorRuntimeGateway))
+        .expect("install a detached current generation");
+    let error = facade
+        .with_world(|scene| scene.nodes().len())
+        .expect_err("a detached gateway must not become an unloaded world");
+    assert_eq!(
+        error,
+        AuthoringWorldAccessError::SerializedAccessRequired {
+            source: GatewayError::RequiresSerializedAccess,
+        }
     );
 }

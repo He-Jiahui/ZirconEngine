@@ -19,10 +19,10 @@ pub(in crate::ui::retained_host::host_contract) fn arm_native_tab_drag(
     };
     ui.global::<UiHostContext>()
         .set_drag_state(HostDragStateData {
-            drag_tab_id: tab.id,
-            drag_tab_title: tab.title,
-            drag_tab_icon_key: tab.icon_key,
-            drag_source_group: source_group,
+            drag_tab_id: tab.id.clone(),
+            drag_tab_title: tab.title.clone(),
+            drag_tab_icon_key: tab.icon_key.clone(),
+            drag_source_group: source_group.clone(),
             drag_pointer_x: x,
             drag_pointer_y: y,
             ..HostDragStateData::default()

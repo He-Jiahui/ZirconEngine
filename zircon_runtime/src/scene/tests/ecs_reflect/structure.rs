@@ -1,5 +1,5 @@
 #[test]
-fn type_registry_register_borrows_short_path_during_lookup_update() {
+fn type_registry_publication_uses_the_neutral_schema_catalog() {
     let source = include_str!("../../reflect/type_registry.rs");
     let register = source
         .split("pub fn register(&mut self, registration: RuntimeTypeRegistration)")
@@ -8,18 +8,19 @@ fn type_registry_register_borrows_short_path_during_lookup_update() {
         .expect("read TypeRegistry::register body");
 
     assert!(
-        register.contains(
-            "let short_type_path = registration.registration.type_path.short_type_path.as_str();"
-        ) && register.contains("self.update_short_path_lookup(&type_path, short_type_path);")
+        register.contains("self.validate_new_registration(&registration)?;")
+            && register.contains("self.publish_prevalidated(registration);")
+            && register.contains("self.schema_catalog")
+            && register.contains(".try_insert(ReflectSchemaCatalogEntry::new(")
             && register.contains("self.registrations.insert(type_path, registration);")
-            && !register.contains("short_type_path.clone()")
-            && !register.contains("self.update_short_path_lookup(&type_path, &short_type_path);"),
-        "TypeRegistry::register must borrow the short type path for lookup maintenance before moving the runtime registration"
+            && !register.contains("self.short_paths")
+            && !register.contains("self.field_slots"),
+        "TypeRegistry publication must admit the neutral schema catalog before publishing its runtime adapter projection"
     );
 }
 
 #[test]
-fn type_registry_contains_uses_direct_maps_without_resolve_error_allocation() {
+fn type_registry_contains_delegates_to_catalog_direct_indexes() {
     let source = include_str!("../../reflect/type_registry.rs");
     let contains = source
         .split("pub fn contains(&self, type_path: &str) -> bool")
@@ -28,10 +29,10 @@ fn type_registry_contains_uses_direct_maps_without_resolve_error_allocation() {
         .expect("read TypeRegistry::contains body");
 
     assert!(
-        contains.contains("self.registrations.contains_key(type_path)")
-            && contains.contains("self.short_paths.contains_key(type_path)")
-            && !contains.contains("self.resolve(type_path).is_ok()"),
-        "TypeRegistry::contains must answer from direct full-path and unambiguous short-path maps without constructing resolve errors"
+        contains.contains("self.schema_catalog.contains(type_path)")
+            && !contains.contains("self.resolve(type_path).is_ok()")
+            && !contains.contains("self.short_paths"),
+        "TypeRegistry::contains must use the catalog's direct full/short indexes without constructing resolve errors"
     );
 }
 
@@ -49,17 +50,16 @@ fn type_registry_runtime_registration_uses_direct_lookup_before_error_paths() {
             .contains("if let Some(registration) = self.registrations.get(type_path)")
             && runtime_registration.contains("return Ok(registration);")
             && runtime_registration
-                .contains("if let Some(resolved) = self.short_paths.get(type_path)")
+                .contains("let resolved = self.schema_catalog.resolve_type_path(type_path)?;")
             && runtime_registration.contains(".get(resolved)")
-            && runtime_registration.contains("ReflectError::AmbiguousShortTypePath")
-            && runtime_registration.contains("ReflectError::UnknownType")
-            && !runtime_registration.contains("let resolved = self.resolve(type_path)?;"),
-        "TypeRegistry::runtime_registration must look up full and short paths directly before constructing error payloads"
+            && !runtime_registration.contains("self.short_paths")
+            && !runtime_registration.contains("self.ambiguous_short_paths"),
+        "TypeRegistry::runtime_registration must preserve direct full-path adapter lookup and delegate non-full resolution to the catalog"
     );
 }
 
 #[test]
-fn type_registry_registration_borrows_field_without_result_map_closure() {
+fn type_registry_registration_reads_the_catalog_authority() {
     let source = include_str!("../../reflect/type_registry.rs");
     let registration = source
         .split("pub fn registration(&self, type_path: &str)")
@@ -68,28 +68,25 @@ fn type_registry_registration_borrows_field_without_result_map_closure() {
         .expect("read TypeRegistry::registration body");
 
     assert!(
-        registration.contains("Ok(&self.runtime_registration(type_path)?.registration)")
-            && !registration.contains(".map(|registration| &registration.registration)"),
-        "TypeRegistry::registration must borrow the reflected registration field directly without a Result::map closure"
+        registration.contains("self.schema_catalog.registration(type_path)")
+            && !registration.contains("runtime_registration(type_path)"),
+        "TypeRegistry::registration must return neutral catalog metadata instead of the copied runtime adapter projection"
     );
 }
 
 #[test]
-fn type_registry_short_path_rebuild_streams_borrowed_registrations() {
+fn type_registry_has_no_second_schema_identity_index() {
     let source = include_str!("../../reflect/type_registry.rs");
-    let rebuild = source
-        .split("fn rebuild_short_path_lookup(&mut self)")
-        .nth(1)
-        .and_then(|text| text.split("}\n}").next())
-        .expect("read TypeRegistry::rebuild_short_path_lookup body");
+    let root = include_str!("../../reflect/mod.rs");
 
     assert!(
-        rebuild.contains("for (type_path, registration) in &self.registrations")
-            && rebuild.contains("Self::update_short_path_maps(")
-            && !rebuild.contains(".collect::<Vec<_>>()")
-            && !rebuild.contains("type_path.clone(),")
-            && !rebuild.contains("short_type_path.clone(),"),
-        "short-path rebuilds must stream borrowed registrations into replacement indexes without a cloned staging vector"
+        source.contains("schema_catalog: ReflectSchemaCatalog")
+            && !source.contains("field_slots:")
+            && !source.contains("short_paths:")
+            && !source.contains("ambiguous_short_paths:")
+            && !root.contains("mod field_identity_admission;")
+            && !root.contains("mod field_slot_index;"),
+        "Runtime TypeRegistry must not retain a second field-ID, alias, or short-path schema authority"
     );
 }
 
@@ -140,7 +137,7 @@ fn reflection_json_persistence_stays_folder_backed_and_versioned() {
     assert!(
         mod_source.contains("mod migration;")
             && mod_source.contains("mod schema;")
-            && read_source.contains("load_versioned::<ReflectedJsonDocument>")
+            && read_source.contains("load_versioned_legacy_schema_zero::<ReflectedJsonDocument>")
             && write_source.contains("write_versioned_text")
             && migration_source.contains(
                 "use zircon_runtime_interface::project::migrate_retired_asset_references;"
@@ -350,6 +347,7 @@ fn derived_and_dynamic_component_adapters_expose_dense_field_slots() {
     let hierarchy = include_str!("../../reflect/builtin_reflection/hierarchy.rs");
     let active_in_hierarchy =
         include_str!("../../reflect/builtin_reflection/active_in_hierarchy.rs");
+    let world_reflection = include_str!("../../reflect/world_reflection.rs");
 
     assert!(
         reflect_contract.contains("fn read_reflected_field_by_slot(")
@@ -357,15 +355,20 @@ fn derived_and_dynamic_component_adapters_expose_dense_field_slots() {
             && reflect_component.contains("pub fn with_dense_field_slots(")
             && reflect_component.contains("pub fn read_field_by_slot(")
             && reflect_component.contains("pub fn write_field_by_slot(")
+            && !reflect_component.contains("pub read_fields:")
+            && !reflect_component.contains("pub fn read_fields(")
             && derived.contains(".with_dense_field_slots(")
+            && !derived.contains("read_fields::<T>")
             && derived.contains("read_reflected_field_by_slot(field_slot)")
             && derived.contains("write_reflected_field_by_slot(field_slot, value)")
             && dynamic.contains(".with_dense_field_slots(read_dense_slot, write_dense_slot)")
             && hierarchy
                 .contains(".with_dense_field_slots(read_field_by_slot, write_field_by_slot)")
             && active_in_hierarchy
-                .contains(".with_dense_field_slots(read_field_by_slot, write_field_by_slot)"),
-        "all component reflection paths consumed by VM call sites must provide numeric field-slot adapters"
+                .contains(".with_dense_field_slots(read_field_by_slot, write_field_by_slot)")
+            && world_reflection.contains("read_component_fields_by_slot(")
+            && world_reflection.contains("read_resource_fields_by_slot("),
+        "all bulk component/resource reflection reads must enumerate schema order through numeric field-slot adapters"
     );
 }
 
@@ -403,17 +406,19 @@ fn derived_component_registration_constructs_reflection_metadata_once() {
 }
 
 #[test]
-fn dynamic_component_bulk_read_reuses_the_resolved_field_descriptor() {
-    let source = include_str!("../../reflect/dynamic_component.rs");
+fn dynamic_component_bulk_read_is_owned_by_the_dense_world_facade() {
+    let dynamic = include_str!("../../reflect/dynamic_component.rs");
+    let source = include_str!("../../reflect/world_reflection.rs");
     let read_fields = source
-        .split("fn read_fields(")
+        .split("fn read_schema_fields_by_slot(")
         .nth(1)
-        .and_then(|text| text.split("fn write_field(").next())
-        .expect("read dynamic component read_fields body");
+        .expect("read dense world reflection bulk body");
 
     assert!(
-        read_fields.contains("read_declared_field(world, entity, type_path, field)?")
-            && !read_fields.contains("read_field(world, entity, type_path, &field.name)?"),
-        "bulk reflection reads must reuse each already-resolved field instead of re-querying the registry and rescanning the schema"
+        !dynamic.contains("fn read_fields(")
+            && read_fields.contains("for (slot, field) in fields.iter().enumerate()")
+            && read_fields.contains("let value = read(slot)?;")
+            && !read_fields.contains("field.name =="),
+        "dynamic bulk reflection must use the facade's schema-order dense-slot reader"
     );
 }

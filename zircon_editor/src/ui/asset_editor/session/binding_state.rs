@@ -1,12 +1,11 @@
 use super::{
     binding_inspector::{
-        add_default_binding,
-        apply_selected_binding_action_suggestion as apply_selected_binding_action_suggestion_field,
-        apply_selected_binding_payload_suggestion as apply_selected_binding_payload_suggestion_field,
-        apply_selected_binding_route_suggestion as apply_selected_binding_route_suggestion_field,
-        build_binding_fields, delete_selected_binding as delete_selected_binding_field,
+        add_default_binding, binding_action_kind_option, binding_event_option,
+        delete_selected_binding as delete_selected_binding_field,
         delete_selected_binding_payload as delete_selected_binding_payload_field,
-        reconcile_selected_binding_payload_key,
+        reconcile_selected_binding_payload_key, selected_binding_action_suggestion,
+        selected_binding_count, selected_binding_payload_key, selected_binding_payload_suggestion,
+        selected_binding_route_suggestion,
         set_selected_binding_action_kind as set_selected_binding_action_kind_field,
         set_selected_binding_action_target as set_selected_binding_action_target_field,
         set_selected_binding_event as set_selected_binding_event_field,
@@ -20,14 +19,7 @@ use super::{
 
 impl UiAssetEditorSession {
     pub fn select_binding(&mut self, index: usize) -> Result<bool, UiAssetEditorSessionError> {
-        let binding_fields = build_binding_fields(
-            &self.last_valid_document,
-            &self.selection,
-            &self.preview_mock_state,
-            self.selected_binding_index,
-            self.selected_binding_payload_key.as_deref(),
-        );
-        if index >= binding_fields.items.len() {
+        if index >= selected_binding_count(&self.last_valid_document, &self.selection) {
             return Err(UiAssetEditorSessionError::InvalidBindingIndex { index });
         }
         let changed = self.selected_binding_index != Some(index);
@@ -89,14 +81,7 @@ impl UiAssetEditorSession {
         &mut self,
         index: usize,
     ) -> Result<bool, UiAssetEditorSessionError> {
-        let binding_fields = build_binding_fields(
-            &self.last_valid_document,
-            &self.selection,
-            &self.preview_mock_state,
-            self.selected_binding_index,
-            self.selected_binding_payload_key.as_deref(),
-        );
-        let Some(event_name) = binding_fields.binding_event_items.get(index) else {
+        let Some(event_name) = binding_event_option(index) else {
             return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
         };
         self.set_selected_binding_event(event_name)
@@ -129,14 +114,7 @@ impl UiAssetEditorSession {
         &mut self,
         index: usize,
     ) -> Result<bool, UiAssetEditorSessionError> {
-        let binding_fields = build_binding_fields(
-            &self.last_valid_document,
-            &self.selection,
-            &self.preview_mock_state,
-            self.selected_binding_index,
-            self.selected_binding_payload_key.as_deref(),
-        );
-        let Some(kind_label) = binding_fields.binding_action_kind_items.get(index) else {
+        let Some(kind_label) = binding_action_kind_option(index) else {
             return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
         };
         self.ensure_editable_source()?;
@@ -212,22 +190,20 @@ impl UiAssetEditorSession {
         index: usize,
     ) -> Result<bool, UiAssetEditorSessionError> {
         self.ensure_editable_source()?;
-        let binding_fields = build_binding_fields(
+        let Some(target) = selected_binding_route_suggestion(
             &self.last_valid_document,
-            &self.selection,
-            &self.preview_mock_state,
-            self.selected_binding_index,
-            self.selected_binding_payload_key.as_deref(),
-        );
-        if index >= binding_fields.binding_route_suggestion_items.len() {
-            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
-        }
-        let mut document = self.last_valid_document.clone();
-        if !apply_selected_binding_route_suggestion_field(
-            &mut document,
             &self.selection,
             self.selected_binding_index,
             index,
+        ) else {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        };
+        let mut document = self.last_valid_document.clone();
+        if !set_selected_binding_route_target_field(
+            &mut document,
+            &self.selection,
+            self.selected_binding_index,
+            &target,
         ) {
             return Ok(false);
         }
@@ -240,22 +216,20 @@ impl UiAssetEditorSession {
         index: usize,
     ) -> Result<bool, UiAssetEditorSessionError> {
         self.ensure_editable_source()?;
-        let binding_fields = build_binding_fields(
+        let Some(target) = selected_binding_action_suggestion(
             &self.last_valid_document,
-            &self.selection,
-            &self.preview_mock_state,
-            self.selected_binding_index,
-            self.selected_binding_payload_key.as_deref(),
-        );
-        if index >= binding_fields.binding_action_suggestion_items.len() {
-            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
-        }
-        let mut document = self.last_valid_document.clone();
-        if !apply_selected_binding_action_suggestion_field(
-            &mut document,
             &self.selection,
             self.selected_binding_index,
             index,
+        ) else {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        };
+        let mut document = self.last_valid_document.clone();
+        if !set_selected_binding_action_target_field(
+            &mut document,
+            &self.selection,
+            self.selected_binding_index,
+            &target,
         ) {
             return Ok(false);
         }
@@ -267,21 +241,16 @@ impl UiAssetEditorSession {
         &mut self,
         index: usize,
     ) -> Result<bool, UiAssetEditorSessionError> {
-        let binding_fields = build_binding_fields(
+        let Some(payload_key) = selected_binding_payload_key(
             &self.last_valid_document,
             &self.selection,
-            &self.preview_mock_state,
             self.selected_binding_index,
-            self.selected_binding_payload_key.as_deref(),
-        );
-        let Some(item) = binding_fields.binding_payload_items.get(index) else {
+            index,
+        ) else {
             return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
         };
-        let Some((payload_key, _)) = item.split_once(" = ") else {
-            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
-        };
-        let changed = self.selected_binding_payload_key.as_deref() != Some(payload_key);
-        self.selected_binding_payload_key = Some(payload_key.to_string());
+        let changed = self.selected_binding_payload_key.as_deref() != Some(payload_key.as_str());
+        self.selected_binding_payload_key = Some(payload_key);
         Ok(changed)
     }
 
@@ -327,23 +296,23 @@ impl UiAssetEditorSession {
         index: usize,
     ) -> Result<bool, UiAssetEditorSessionError> {
         self.ensure_editable_source()?;
-        let binding_fields = build_binding_fields(
+        let Some((payload_key, payload_value)) = selected_binding_payload_suggestion(
             &self.last_valid_document,
-            &self.selection,
-            &self.preview_mock_state,
-            self.selected_binding_index,
-            self.selected_binding_payload_key.as_deref(),
-        );
-        if index >= binding_fields.binding_payload_suggestion_items.len() {
-            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
-        }
-        let mut document = self.last_valid_document.clone();
-        let Some(resolved_payload_key) = apply_selected_binding_payload_suggestion_field(
-            &mut document,
             &self.selection,
             self.selected_binding_index,
             self.selected_binding_payload_key.as_deref(),
             index,
+        ) else {
+            return Err(UiAssetEditorSessionError::InvalidSelectionIndex { index });
+        };
+        let mut document = self.last_valid_document.clone();
+        let Some(resolved_payload_key) = upsert_selected_binding_payload_field(
+            &mut document,
+            &self.selection,
+            self.selected_binding_index,
+            self.selected_binding_payload_key.as_deref(),
+            &payload_key,
+            &payload_value.to_string(),
         ) else {
             return Ok(false);
         };

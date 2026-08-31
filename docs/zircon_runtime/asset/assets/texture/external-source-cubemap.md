@@ -49,7 +49,7 @@ The classifier is deliberately placed in the asset texture layer. Import plugins
 
 `external_source_cubemap.rs` owns the header classification and metadata validation. `upload_support.rs` calls it before DDS/KTX upload planning and returns `EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON` for valid source cubemap containers.
 
-`.zcube` remains the Zircon-native source cubemap representation. `external_source_cubemap/decode.rs` converts supported linear-float DDS/KTX payloads into that representation, while `environment_ibl.rs` stages the `.zcube` source and its separately rebuilt `.zribl` PMREM/SH9/IEM companion. Project scanning runs the same staging step after a fresh import and after restoring a ready cached texture artifact.
+`.zcube` remains the Zircon-native source cubemap representation. `external_source_cubemap/decode.rs` converts supported linear-float DDS/KTX payloads into that representation, while `environment_ibl/source_cubemap_texture.rs` owns the shared captured-`.zcube`/DDS/KTX staging route and its separately rebuilt `.zribl` PMREM/SH9/IEM companion. Project scanning runs the same generic staging step after a fresh import and after restoring a ready cached texture artifact.
 
 ## Behavior Model
 
@@ -71,7 +71,7 @@ The accepted source contract is intentionally narrow:
 
 The classifier reads header metadata only. The sibling decoder consumes complete float source mip chains using cmft's canonical memory rules: DDS is face-major with all mips for one face contiguous; KTX1/KTX2 is mip-major on disk and is reordered to face-major. Those imported mips remain source/display data. Zircon always regenerates specular PMREM plus SH9/IEM instead of trusting an external mip chain as prefiltered reflection data.
 
-`stage_external_source_cubemap_texture(...)` hashes the imported container bytes and normalized source URI into the same versioned IBL request identity used by HDR/EXR staging. A current `.zcube`/`.zribl` pair is reused; a missing or corrupt companion is rebuilt.
+`stage_source_cubemap_texture(...)` hashes either a captured `ZRZCUBE1` container or supported DDS/KTX bytes into the same versioned IBL request identity used by HDR/EXR staging. Captured classification validates the 32-byte header, payload length, and texture metadata without pixel decode. A current `.zcube`/`.zribl` pair is reused before f32 expansion or PMREM work; a missing or corrupt companion is rebuilt. `stage_external_source_cubemap_texture(...)` remains the DDS/KTX-only compatibility entry.
 
 ## Design and Rationale
 

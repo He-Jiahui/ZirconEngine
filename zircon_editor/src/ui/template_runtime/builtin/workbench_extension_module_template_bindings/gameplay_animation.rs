@@ -1,19 +1,6 @@
 use super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
-    click("SequencerOpen", "workbench.extension.sequencer.open"),
-    click(
-        "SequencerTracksTab",
-        "workbench.extension.sequencer.tracks_tab.select",
-    ),
-    click(
-        "SequencerCurvesTab",
-        "workbench.extension.sequencer.curves_tab.select",
-    ),
-    click(
-        "SequencerValidationTab",
-        "workbench.extension.sequencer.validation_tab.select",
-    ),
     click(
         "SequencerSequenceRow",
         "workbench.extension.sequencer.sequence_row.select",
@@ -41,10 +28,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "SequencerEventCueTableRow",
         "workbench.extension.sequencer.event_cue_table_row.select",
-    ),
-    click(
-        "SequencerOutput",
-        "workbench.extension.sequencer.output.select",
     ),
     click(
         "SequencerPreview",
@@ -79,22 +62,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.sequencer.work_range.commit",
     ),
     click(
-        "MontageEditorOpen",
-        "workbench.extension.montage_editor.open",
-    ),
-    click(
-        "MontageEditorSectionsTab",
-        "workbench.extension.montage_editor.sections_tab.select",
-    ),
-    click(
-        "MontageEditorNotifiesTab",
-        "workbench.extension.montage_editor.notifies_tab.select",
-    ),
-    click(
-        "MontageEditorCurvesTab",
-        "workbench.extension.montage_editor.curves_tab.select",
-    ),
-    click(
         "MontageEditorAttackRow",
         "workbench.extension.montage_editor.attack_row.select",
     ),
@@ -121,10 +88,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "MontageEditorRootMotionTableRow",
         "workbench.extension.montage_editor.root_motion_table_row.select",
-    ),
-    click(
-        "MontageEditorOutput",
-        "workbench.extension.montage_editor.output.select",
     ),
     click(
         "MontageEditorPreview",
@@ -158,7 +121,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
         "MontageEditorBlendCommit",
         "workbench.extension.montage_editor.blend.commit",
     ),
-    click("BlendSpaceOpen", "workbench.extension.blend_space.open"),
     click(
         "AnimationTransportRecord",
         "workbench.extension.animation_transport.record.toggle",
@@ -182,18 +144,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "AnimationTransportLoop",
         "workbench.extension.animation_transport.loop.toggle",
-    ),
-    click(
-        "BlendSpaceSamplesTab",
-        "workbench.extension.blend_space.samples_tab.select",
-    ),
-    click(
-        "BlendSpaceAxesTab",
-        "workbench.extension.blend_space.axes_tab.select",
-    ),
-    click(
-        "BlendSpacePreviewTab",
-        "workbench.extension.blend_space.preview_tab.select",
     ),
     click(
         "BlendSpaceIdleRunRow",
@@ -222,10 +172,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "BlendSpaceDiagonalSampleTableRow",
         "workbench.extension.blend_space.diagonal_sample_table_row.select",
-    ),
-    click(
-        "BlendSpaceOutput",
-        "workbench.extension.blend_space.output.select",
     ),
     click(
         "BlendSpacePreview",
@@ -267,19 +213,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
         "BlendSpaceInterpolationCommit",
         "workbench.extension.blend_space.interpolation.commit",
     ),
-    click("PoseLibraryOpen", "workbench.extension.pose_library.open"),
-    click(
-        "PoseLibraryPosesTab",
-        "workbench.extension.pose_library.poses_tab.select",
-    ),
-    click(
-        "PoseLibraryTagsTab",
-        "workbench.extension.pose_library.tags_tab.select",
-    ),
-    click(
-        "PoseLibraryMirrorTab",
-        "workbench.extension.pose_library.mirror_tab.select",
-    ),
     click(
         "PoseLibraryCombatRow",
         "workbench.extension.pose_library.combat_row.select",
@@ -307,10 +240,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "PoseLibraryMirrorPoseTableRow",
         "workbench.extension.pose_library.mirror_pose_table_row.select",
-    ),
-    click(
-        "PoseLibraryOutput",
-        "workbench.extension.pose_library.output.select",
     ),
     click(
         "PoseLibraryPreview",
@@ -344,19 +273,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
         "PoseLibraryMirrorCommit",
         "workbench.extension.pose_library.mirror.commit",
     ),
-    click("RetargetOpen", "workbench.extension.retarget.open"),
-    click(
-        "RetargetRigsTab",
-        "workbench.extension.retarget.rigs_tab.select",
-    ),
-    click(
-        "RetargetChainsTab",
-        "workbench.extension.retarget.chains_tab.select",
-    ),
-    click(
-        "RetargetPreviewTab",
-        "workbench.extension.retarget.preview_tab.select",
-    ),
     click(
         "RetargetMannequinRow",
         "workbench.extension.retarget.mannequin_row.select",
@@ -384,10 +300,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "RetargetLegChainTableRow",
         "workbench.extension.retarget.leg_chain_table_row.select",
-    ),
-    click(
-        "RetargetOutput",
-        "workbench.extension.retarget.output.select",
     ),
     click(
         "RetargetPreview",
@@ -418,19 +330,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
         "RetargetSolverCommit",
         "workbench.extension.retarget.solver.commit",
     ),
-    click("ControlRigOpen", "workbench.extension.control_rig.open"),
-    click(
-        "ControlRigControlsTab",
-        "workbench.extension.control_rig.controls_tab.select",
-    ),
-    click(
-        "ControlRigHierarchyTab",
-        "workbench.extension.control_rig.hierarchy_tab.select",
-    ),
-    click(
-        "ControlRigSolveTab",
-        "workbench.extension.control_rig.solve_tab.select",
-    ),
     click(
         "ControlRigHeroRow",
         "workbench.extension.control_rig.hero_row.select",
@@ -458,10 +357,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "ControlRigOutputPoseTableRow",
         "workbench.extension.control_rig.output_pose_table_row.select",
-    ),
-    click(
-        "ControlRigOutput",
-        "workbench.extension.control_rig.output.select",
     ),
     click(
         "ControlRigPreview",
@@ -496,22 +391,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.control_rig.weight.commit",
     ),
     click(
-        "MotionMatchingOpen",
-        "workbench.extension.motion_matching.open",
-    ),
-    click(
-        "MotionMatchingDatabaseTab",
-        "workbench.extension.motion_matching.database_tab.select",
-    ),
-    click(
-        "MotionMatchingTrajectoryTab",
-        "workbench.extension.motion_matching.trajectory_tab.select",
-    ),
-    click(
-        "MotionMatchingDebugTab",
-        "workbench.extension.motion_matching.debug_tab.select",
-    ),
-    click(
         "MotionMatchingLocomotionRow",
         "workbench.extension.motion_matching.locomotion_row.select",
     ),
@@ -538,10 +417,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "MotionMatchingStopClipTableRow",
         "workbench.extension.motion_matching.stop_clip_table_row.select",
-    ),
-    click(
-        "MotionMatchingOutput",
-        "workbench.extension.motion_matching.output.select",
     ),
     click(
         "MotionMatchingPreview",
@@ -576,22 +451,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.motion_matching.cost.commit",
     ),
     click(
-        "AnimationCompressionOpen",
-        "workbench.extension.animation_compression.open",
-    ),
-    click(
-        "AnimationCompressionClipsTab",
-        "workbench.extension.animation_compression.clips_tab.select",
-    ),
-    click(
-        "AnimationCompressionCodecsTab",
-        "workbench.extension.animation_compression.codecs_tab.select",
-    ),
-    click(
-        "AnimationCompressionErrorsTab",
-        "workbench.extension.animation_compression.errors_tab.select",
-    ),
-    click(
         "AnimationCompressionLocomotionRow",
         "workbench.extension.animation_compression.locomotion_row.select",
     ),
@@ -618,10 +477,6 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "AnimationCompressionErrorClipTableRow",
         "workbench.extension.animation_compression.error_clip_table_row.select",
-    ),
-    click(
-        "AnimationCompressionOutput",
-        "workbench.extension.animation_compression.output.select",
     ),
     click(
         "AnimationCompressionPreview",

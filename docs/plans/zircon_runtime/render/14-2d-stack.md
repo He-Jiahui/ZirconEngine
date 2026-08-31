@@ -8,6 +8,11 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/prepared_batches.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/resource_upload.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance_buffer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs
@@ -16,6 +21,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/owner.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertex_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs
@@ -61,6 +68,30 @@ plan_sources:
 
 - sprite 渲染器与图集管理(`atlas.rs`)可用,prepared_batches 有批组织;但无文本场景渲染器(文本仅 UI 内部)、无九宫、无 tilemap、无 y-sort。
 - UI 的文本/排版能力(SDF bake 计划)在 UI 模块内,场景 2D 不能直接复用,需要把 shaping/atlas 下沉为共享服务。
+
+### PFO-4d1t UI buffer 上传事务状态（2026-08-28）
+
+- 源码已完成：generic/image/bitmap-atlas/SDF 的 6 个动态 buffer owner 不再调用
+  `Queue::write_buffer`，统一产出 `WgpuBufferUploadBatch` 并进入 direct/compiled 帧的唯一
+  buffer upload ticket。
+- 复用状态受 renderer generation fence 保护；准备被丢弃或后端未接受时，下一帧会对 6 个
+  owner 强制全量重传。direct 与 compiled 都把 UI generation 保留到场景 ticket 通过完整帧事务
+  验证后再提交。
+- 算法保持 `O(payload bytes + invalidated segments)`；没有新增排序、逐顶点注册或全历史扫描。
+- 当前仅完成源码与静态检查。Windows WGPU、产品 PNG、RenderDoc、1K/10K/100K profile、显存与
+  功耗证据仍 pending。
+
+### PFO-4d2f UI atlas 资源上传事务状态（2026-08-28）
+
+- 源码与静态审查已完成：bitmap/SDF/MSDF atlas 不再直接调用 `Queue::write_texture`，buffer 与
+  texture 中性批次合入每帧唯一 `WgpuResourceUploadBatch`，共享一个 Copy ticket 和 payload budget。
+- atlas page shadow、SDF dirty state 与 UI renderer generation 仅在 scene ticket 通过完整帧事务验证后
+  提交；物理 atlas 替换会重放已提交 page shadow，失败后的全量重传债务不会被空 UI 帧清除。
+- SDF command 生成与 page 匹配改为单调游标；bitmap source/copy 先按 identity/page 建索引，
+  committed-shadow 页的 region 上限为 8，消除了跨页 `commands * all copies` 扫描。正常持久路径按
+  source/copy/dirty bytes 线性增长，替换/重试为必须的 `O(committed atlas page bytes)`。
+- 动态编译、Windows WGPU、真实产品 PNG、RenderDoc 与性能/功耗证据仍 pending；权威设计与状态见
+  [`PFO-4d2f UI Atlas Resource Upload Transaction`](../../optimize/zircon_runtime/90/2026-08-28-pfo-4d2f-ui-atlas-resource-upload-transaction-plan.md)。
 
 ## 与编辑器 UI 链路的关系(遵 editor_layout/21 提交契约)
 

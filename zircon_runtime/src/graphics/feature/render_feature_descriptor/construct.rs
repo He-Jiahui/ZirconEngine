@@ -7,7 +7,9 @@ use crate::graphics::feature::{
     RenderFeatureCapabilityRequirement, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
     RenderFeatureResourceDescriptor, RenderFeatureResourceKind, RenderFeatureResourceWriteMode,
 };
-use crate::render_graph::RenderGraphExternalResourceBinding;
+use crate::render_graph::{
+    RenderGraphExternalResourceBinding, RenderGraphResourceUsageFlags, RenderResourceSchema,
+};
 
 impl RenderFeatureDescriptor {
     pub fn new(
@@ -120,7 +122,41 @@ impl RenderFeatureDescriptor {
                         minimum_size_bytes: None,
                         attachment_ops: None,
                         write_mode: RenderFeatureResourceWriteMode::Attachment,
+                        access_metadata: None,
                         external_binding: RenderGraphExternalResourceBinding::report_only(),
+                        texture_view_alias: None,
+                        schema: None,
+                        usage: RenderGraphResourceUsageFlags::default(),
+                    },
+                },
+            ));
+        self
+    }
+
+    /// Extends an existing pass with a typed transient texture read.
+    pub fn with_pass_read_texture_with_schema(
+        mut self,
+        target_pass_name: impl Into<String>,
+        resource_name: impl Into<String>,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        self.pass_resource_extensions
+            .push(RenderFeatureGraphMutation::PassResource(
+                RenderFeaturePassResourceExtension {
+                    target_pass_name: target_pass_name.into(),
+                    resource: RenderFeatureResourceDescriptor {
+                        name: resource_name.into(),
+                        kind: RenderFeatureResourceKind::Texture,
+                        access: RenderFeatureResourceAccess::Read,
+                        input_version: None,
+                        minimum_size_bytes: None,
+                        attachment_ops: None,
+                        write_mode: RenderFeatureResourceWriteMode::Attachment,
+                        access_metadata: None,
+                        external_binding: RenderGraphExternalResourceBinding::report_only(),
+                        texture_view_alias: None,
+                        schema: Some(schema),
+                        usage: RenderGraphResourceUsageFlags::default(),
                     },
                 },
             ));
@@ -145,7 +181,11 @@ impl RenderFeatureDescriptor {
                         minimum_size_bytes: None,
                         attachment_ops: None,
                         write_mode: RenderFeatureResourceWriteMode::Attachment,
+                        access_metadata: None,
                         external_binding: RenderGraphExternalResourceBinding::report_only_texture(),
+                        texture_view_alias: None,
+                        schema: None,
+                        usage: RenderGraphResourceUsageFlags::default(),
                     },
                 },
             ));
@@ -173,10 +213,73 @@ impl RenderFeatureDescriptor {
                         minimum_size_bytes: None,
                         attachment_ops: Some(attachment_ops),
                         write_mode: RenderFeatureResourceWriteMode::Attachment,
+                        access_metadata: None,
                         external_binding: RenderGraphExternalResourceBinding::report_only(),
+                        texture_view_alias: None,
+                        schema: None,
+                        usage: RenderGraphResourceUsageFlags::default(),
                     },
                 },
             ));
         self
+    }
+
+    /// Extends an existing graphics pass with a typed attachment write.
+    pub fn with_pass_write_texture_with_schema(
+        mut self,
+        target_pass_name: impl Into<String>,
+        resource_name: impl Into<String>,
+        attachment_ops: crate::render_graph::RenderGraphAttachmentOps,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        self.pass_resource_extensions
+            .push(RenderFeatureGraphMutation::PassResource(
+                RenderFeaturePassResourceExtension {
+                    target_pass_name: target_pass_name.into(),
+                    resource: RenderFeatureResourceDescriptor {
+                        name: resource_name.into(),
+                        kind: RenderFeatureResourceKind::Texture,
+                        access: RenderFeatureResourceAccess::Write,
+                        input_version: None,
+                        minimum_size_bytes: None,
+                        attachment_ops: Some(attachment_ops),
+                        write_mode: RenderFeatureResourceWriteMode::Attachment,
+                        access_metadata: None,
+                        external_binding: RenderGraphExternalResourceBinding::report_only(),
+                        texture_view_alias: None,
+                        schema: Some(schema),
+                        usage: RenderGraphResourceUsageFlags::default(),
+                    },
+                },
+            ));
+        self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::render_graph::{RenderResourceSchema, RenderTextureSchema};
+    use crate::rhi::{TextureFormat, TextureUsage};
+
+    #[test]
+    fn pass_resource_extension_preserves_its_explicit_schema() {
+        let schema = RenderResourceSchema::texture(RenderTextureSchema::new(
+            TextureFormat::Rgba16Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ));
+        let descriptor =
+            RenderFeatureDescriptor::new("typed-extension", Vec::new(), Vec::new(), Vec::new())
+                .with_pass_read_texture_with_schema(
+                    "existing-pass",
+                    "typed-extension-input",
+                    schema,
+                );
+
+        let extension = descriptor
+            .resource_extensions()
+            .next()
+            .expect("extension declaration");
+        assert_eq!(extension.resource.schema, Some(schema));
     }
 }

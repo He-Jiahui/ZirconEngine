@@ -2,6 +2,7 @@ use std::num::NonZeroU64;
 use std::ops::Range;
 
 use bytemuck::{Pod, Zeroable};
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use crate::core::math::UVec2;
 use crate::text::sdf::{SdfBakeParams, SdfMode};
@@ -149,6 +150,7 @@ impl SdfTextMaterialDrawPlan {
         plan
     }
 
+    #[cfg(test)]
     pub(super) fn rebuild(
         &mut self,
         texts: &[ScreenSpaceUiTextBatch],
@@ -156,6 +158,23 @@ impl SdfTextMaterialDrawPlan {
         decoration_vertex_count: u32,
         text_ranges: &[Range<u32>],
     ) {
+        self.rebuild_iter(
+            texts.iter(),
+            atlas_size,
+            decoration_vertex_count,
+            text_ranges,
+        );
+    }
+
+    pub(super) fn rebuild_iter<'a, Texts>(
+        &mut self,
+        texts: Texts,
+        atlas_size: UVec2,
+        decoration_vertex_count: u32,
+        text_ranges: &[Range<u32>],
+    ) where
+        Texts: IntoIterator<Item = &'a ScreenSpaceUiTextBatch>,
+    {
         self.materials.clear();
         self.draws.clear();
         if decoration_vertex_count > 0 {
@@ -165,7 +184,7 @@ impl SdfTextMaterialDrawPlan {
                 material_index: 0,
             });
         }
-        for (text, range) in texts.iter().zip(text_ranges) {
+        for (text, range) in texts.into_iter().zip(text_ranges) {
             if range.is_empty() {
                 continue;
             }
@@ -244,8 +263,9 @@ impl SdfTextMaterialResources {
     pub(super) fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         materials: &[SdfTextMaterial],
+        uploads: &mut WgpuBufferUploadBatch,
+        force_full_upload: bool,
     ) {
         let material_count = materials.len().max(1);
         let byte_len = usize::try_from(self.uniform_stride)
@@ -263,7 +283,11 @@ impl SdfTextMaterialResources {
             self.capacity = material_count;
             buffer_recreated = true;
         }
-        if self.upload_initialized && !buffer_recreated && self.uploaded_materials == materials {
+        if !force_full_upload
+            && self.upload_initialized
+            && !buffer_recreated
+            && self.uploaded_materials == materials
+        {
             return;
         }
 
@@ -275,7 +299,11 @@ impl SdfTextMaterialResources {
             let source = bytemuck::bytes_of(&uniform);
             self.upload_bytes[offset..offset + source.len()].copy_from_slice(source);
         }
-        queue.write_buffer(&self.buffer, 0, &self.upload_bytes);
+        uploads.push(WgpuBufferUpload::from_bytes(
+            self.buffer.clone(),
+            0,
+            &self.upload_bytes,
+        ));
         self.uploaded_materials.clear();
         self.uploaded_materials.extend_from_slice(materials);
         self.upload_initialized = true;

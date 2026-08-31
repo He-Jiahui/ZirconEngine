@@ -1,5 +1,6 @@
 use super::super::{
     BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, EntryRunMode, EntryRunner,
+    ProductCompositionRequest,
 };
 use crate::plugins::{DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup};
 use zircon_runtime::core::framework::project::RuntimeProfileId;
@@ -15,7 +16,7 @@ const EDITOR_MODULE_NAME: &str = "EditorModule";
 
 #[test]
 fn native_bootstrap_moves_owned_registration_reports() {
-    let source = include_str!("../entry_runner/bootstrap.rs");
+    let source = include_str!("../product_composition/request.rs");
     let compact = source.split_whitespace().collect::<String>();
 
     for field in [
@@ -133,14 +134,7 @@ fn minimal_runtime_profile_selects_minimal_plugin_group() {
 #[test]
 fn dev_runtime_profile_selects_dev_plugin_group() {
     let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Dev);
-    let entry = BuiltinEngineEntry::for_config_with_available_runtime_plugins(
-        &config,
-        [
-            RuntimePluginId::Sound.key().to_string(),
-            RuntimePluginId::Rendering.key().to_string(),
-        ],
-    )
-    .unwrap();
+    let entry = BuiltinEngineEntry::for_config(&config).unwrap();
     let expected = DevPlugins.build().unwrap().finish();
     let report = entry.module_selection_report();
 
@@ -243,10 +237,9 @@ fn entry_runner_exposes_module_selection_diagnostics_without_bootstrap() {
 #[test]
 fn entry_runner_exposes_first_party_module_selection_diagnostics_without_bootstrap() {
     let diagnostics =
-        EntryRunner::module_selection_diagnostics_with_first_party_runtime_plugin_registrations(
-            EntryConfig::for_runtime_profile(RuntimeProfileId::Minimal),
-        )
-        .unwrap();
+        ProductCompositionRequest::new(EntryConfig::for_runtime_profile(RuntimeProfileId::Minimal))
+            .module_selection_diagnostics()
+            .unwrap();
 
     for expected in [
         "entry.profile=Runtime",
@@ -295,41 +288,40 @@ fn entry_runner_module_selection_diagnostics_include_linked_runtime_plugin_regis
 }
 
 #[test]
-fn entry_runner_bootstrap_with_report_preserves_runtime_plugin_availability() {
+fn product_composition_preserves_runtime_plugin_availability_and_core_owner() {
     let config = EntryConfig::new(EntryProfile::Runtime)
         .with_required_runtime_plugins([RuntimePluginId::VirtualGeometry]);
-    let bootstrap = EntryRunner::bootstrap_with_runtime_plugin_registrations_and_report(
-        config,
-        [linked_virtual_geometry_registration()],
-    )
-    .unwrap();
+    let composition = ProductCompositionRequest::new(config)
+        .with_runtime_plugin_registrations([linked_virtual_geometry_registration()])
+        .compose()
+        .unwrap();
 
-    assert!(bootstrap
+    assert!(composition
         .module_selection_report()
         .runtime_plugin_availability
         .contains(
             RuntimePluginAvailabilityCategory::Linked,
             RuntimePluginId::VirtualGeometry
         ));
-    assert!(!bootstrap
+    assert!(!composition
         .module_selection_report()
         .runtime_plugin_availability
         .has_missing_required());
 
-    let (_core, report) = bootstrap.into_parts();
-    assert!(report.module_keys().contains(&"VirtualGeometryPlugin"));
+    assert!(composition
+        .module_selection_report()
+        .module_keys()
+        .contains(&"VirtualGeometryPlugin"));
+    let _core = composition.core();
 }
 
 #[test]
 fn entry_runner_feature_aware_module_selection_diagnostics_accept_linked_plugin_registrations() {
     let config = EntryConfig::new(EntryProfile::Runtime)
         .with_required_runtime_plugins([RuntimePluginId::VirtualGeometry]);
-    let diagnostics =
-        EntryRunner::module_selection_diagnostics_with_runtime_plugin_and_feature_registrations(
-            config,
-            [linked_virtual_geometry_registration()],
-            [],
-        )
+    let diagnostics = ProductCompositionRequest::new(config)
+        .with_runtime_plugin_and_feature_registrations([linked_virtual_geometry_registration()], [])
+        .module_selection_diagnostics()
         .unwrap();
 
     assert!(diagnostics.contains("module=VirtualGeometryPlugin"));

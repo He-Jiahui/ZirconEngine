@@ -82,26 +82,33 @@ impl ViewTemplateNodePatch {
         }
     }
 
-    pub(super) fn changed_properties(&self, previous: &Self) -> Vec<(&'static str, UiValue)> {
-        let mut properties = Vec::new();
-        if self.selected != previous.selected {
-            properties.push(("selected", UiValue::Bool(self.selected.unwrap_or(false))));
-        }
-        if self.focused != previous.focused {
-            properties.push(("focused", UiValue::Bool(self.focused.unwrap_or(false))));
-        }
-        if self.surface_variant != previous.surface_variant {
-            properties.push((
-                "surface_variant",
-                UiValue::String(self.surface_variant.clone().unwrap_or_default()),
-            ));
-        }
-        if self.text_tone != previous.text_tone {
-            properties.push((
-                "text_tone",
-                UiValue::String(self.text_tone.clone().unwrap_or_default()),
-            ));
-        }
-        properties
+    pub(super) fn changed_properties<'a>(
+        &'a self,
+        previous: &'a Self,
+    ) -> impl Iterator<Item = (&'static str, UiValue)> + 'a {
+        [
+            (self.selected != previous.selected)
+                .then(|| ("selected", UiValue::Bool(self.selected.unwrap_or(false)))),
+            (self.focused != previous.focused)
+                .then(|| ("focused", UiValue::Bool(self.focused.unwrap_or(false)))),
+            (self.surface_variant != previous.surface_variant).then(|| {
+                (
+                    "surface_variant",
+                    UiValue::String(self.surface_variant.clone().unwrap_or_default()),
+                )
+            }),
+            (self.text_tone != previous.text_tone).then(|| {
+                (
+                    "text_tone",
+                    UiValue::String(self.text_tone.clone().unwrap_or_default()),
+                )
+            }),
+        ]
+        .into_iter()
+        .flatten()
     }
 }
+
+#[cfg(test)]
+#[path = "projection_patch/allocation_free_change_tests.rs"]
+mod allocation_free_change_tests;

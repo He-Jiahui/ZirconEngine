@@ -10,6 +10,7 @@ from typing import Any, Sequence
 from .native_build_workspace import (
     native_dynamic_cdylib_crate_index_from_workspace,
     native_dynamic_workspace_crate_index,
+    read_toml,
 )
 from .plugin_package_source import (
     default_repo_root,
@@ -18,9 +19,7 @@ from .plugin_package_source import (
 from .plugin_validate_common import (
     PLUGIN_VALIDATE_DIST_FORM,
 )
-from .plugin_validate_asset_importer_global_ids import (
-    validate_plugin_asset_importer_global_ids,
-)
+from .plugin_validate_asset_importer_global_ids import validate_plugin_asset_importer_global_ids
 from .plugin_validate_engine_version import plugin_validate_engine_version
 from .plugin_validate_option_global_keys import validate_plugin_option_global_keys
 from .plugin_validate_retired_ui_assets import validate_plugin_retired_ui_asset_files
@@ -138,8 +137,7 @@ def plugin_validate_all_targets(
         else []
     )
     if plugin_root is not None:
-        validate_plugin_option_global_keys(plugin_root, diagnostics)
-        validate_plugin_asset_importer_global_ids(plugin_root, diagnostics)
+        validate_plugin_global_identities(plugin_root, diagnostics)
     if repo_root is not None:
         validate_plugin_retired_ui_asset_files(repo_root, diagnostics)
     items = [
@@ -164,3 +162,16 @@ def plugin_validate_all_targets(
         diagnostics=diagnostics,
         items=items,
     )
+
+
+def validate_plugin_global_identities(
+    plugin_root: Path,
+    diagnostics: list[str],
+) -> None:
+    manifests: list[tuple[Path, dict[str, Any]]] = []
+    for manifest_path in sorted(plugin_root.rglob("plugin.toml")):
+        manifest = read_toml(manifest_path, diagnostics)
+        if manifest is not None:
+            manifests.append((manifest_path, manifest))
+    validate_plugin_option_global_keys(plugin_root, diagnostics, manifests)
+    validate_plugin_asset_importer_global_ids(plugin_root, diagnostics, manifests)

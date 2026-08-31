@@ -1,16 +1,16 @@
 use crate::core::framework::render::{
-    strip_wgsl_include_directives, GeometrySourceDescriptor, RenderShaderDefinitionValue,
-    ShaderFeatureBits,
+    GeometrySourceDescriptor, RenderShaderDefinitionValue, ShaderFeatureBits,
+    strip_wgsl_include_directives,
 };
 
 use super::assemble::{
-    format_defines_header, generated_material_include, push_include_chunk,
-    push_source_module_includes, rename_material_surface_entry, MaterialShaderTemplateAssembly,
-    ShaderAssemblyBuilder, ShaderAssemblySegmentKind, ShaderTemplateAssemblyError,
+    MaterialShaderTemplateAssembly, ShaderAssemblyBuilder, ShaderAssemblySegmentKind,
+    ShaderTemplateAssemblyError, format_defines_header, generated_material_include,
+    push_include_chunk, push_source_module_includes, rename_material_surface_entry,
 };
 use super::module_registry::{
-    geometry_source_include_for, gpu_scene_include, scene_runtime_include, surface_types_include,
-    ShaderTemplateInclude, ShaderTemplateIncludeRegistry,
+    ShaderTemplateInclude, ShaderTemplateIncludeRegistry, geometry_source_include_for,
+    gpu_scene_include, pbr_common_include, scene_runtime_include, surface_types_include,
 };
 use super::pass_specialization::MATERIAL_SHADER_TEMPLATE_REVISION;
 
@@ -90,6 +90,7 @@ impl TaaReactiveMaskShaderTemplateRequest {
 pub(crate) fn assemble_taa_reactive_mask_shader_template(
     request: TaaReactiveMaskShaderTemplateRequest,
 ) -> Result<MaterialShaderTemplateAssembly, ShaderTemplateAssemblyError> {
+    crate::profile_scope!("render", "shader_pipeline", "template_assembly");
     let mut registry = ShaderTemplateIncludeRegistry::default();
     let mut builder = ShaderAssemblyBuilder::default();
 
@@ -107,6 +108,7 @@ pub(crate) fn assemble_taa_reactive_mask_shader_template(
 
     push_include_chunk(&mut registry, &mut builder, scene_runtime_include());
     push_include_chunk(&mut registry, &mut builder, gpu_scene_include());
+    push_include_chunk(&mut registry, &mut builder, pbr_common_include());
     push_include_chunk(&mut registry, &mut builder, surface_types_include());
 
     let geometry_include =

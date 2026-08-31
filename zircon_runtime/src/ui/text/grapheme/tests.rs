@@ -1,7 +1,21 @@
 use super::{
-    line_end_boundary, line_start_boundary, next_line_same_column_boundary,
-    previous_line_same_column_boundary,
+    clamp_grapheme_boundary, line_end_boundary, line_start_boundary,
+    next_line_same_column_boundary, next_word_boundary, previous_line_same_column_boundary,
+    previous_word_boundary, word_range_at,
 };
+
+#[test]
+fn grapheme_boundary_floor_rejects_combining_and_zwj_interior_offsets() {
+    let combining = "a\u{0301}b";
+    assert_eq!(clamp_grapheme_boundary(combining, 1), 0);
+    assert_eq!(clamp_grapheme_boundary(combining, 2), 0);
+    assert_eq!(clamp_grapheme_boundary(combining, 3), 3);
+
+    let zwj = "\u{1f469}\u{200d}\u{1f680}x";
+    assert_eq!(clamp_grapheme_boundary(zwj, 4), 0);
+    assert_eq!(clamp_grapheme_boundary(zwj, 7), 0);
+    assert_eq!(clamp_grapheme_boundary(zwj, 11), 11);
+}
 
 #[test]
 fn line_navigation_uses_every_canonical_hard_separator() {
@@ -47,4 +61,13 @@ fn line_navigation_keeps_crlf_as_one_separator() {
         next_line_same_column_boundary(text, third_start + 1),
         Some(fourth_start + 1)
     );
+}
+
+#[test]
+fn word_navigation_consumes_the_shared_unicode_boundary_owner() {
+    let text = "alpha-beta can't";
+
+    assert_eq!(previous_word_boundary(text, 8), Some(6));
+    assert_eq!(next_word_boundary(text, 5), Some(10));
+    assert_eq!(word_range_at(text, 12), Some((11, text.len())));
 }

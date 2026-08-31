@@ -145,6 +145,7 @@ mod tests {
             direction: UiTextDirection::LeftToRight,
             lines: vec![UiResolvedTextLine {
                 text: text.to_string(),
+                placement_frame: UiFrame::default(),
                 frame: UiFrame::new(10.0, 20.0, 30.0, 12.0),
                 source_range: UiTextRange {
                     start: 0,

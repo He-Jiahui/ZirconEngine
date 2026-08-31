@@ -33,6 +33,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_hot(
     )
 }
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn uses_focus_outline(
+    state: UiPainterResolvedState,
+) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Focused | UiPainterResolvedState::DropHovered
+    )
+}
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selection_node_is_hot(
     node: &TemplatePaneNodeData,
 ) -> bool {

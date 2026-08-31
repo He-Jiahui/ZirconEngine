@@ -4,9 +4,10 @@ import { StatusText } from "../StatusText";
 
 export function WorkflowNodeCard({ node, onOpen }: { node: WorkflowNode; onOpen: (node: WorkflowNode) => void }) {
   const attempt = node.currentAttempt;
-  return <Card variant="outlined">
+  const tone = ["failed", "blocked"].includes(node.state) ? "error.main" : ["running", "leased"].includes(node.state) ? "warning.main" : node.state === "succeeded" ? "success.main" : "divider";
+  return <Card variant="outlined" sx={{ borderLeft: 3, borderLeftColor: tone, boxShadow: "none" }}>
     <CardActionArea onClick={() => onOpen(node)} aria-label={`查看节点 ${node.title}`}>
-      <CardContent>
+      <CardContent sx={{ py: 1.25, "&:last-child": { pb: 1.25 } }}>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}><StatusText value={node.state} /><Typography sx={{ fontWeight: 700 }}>{node.title}</Typography></Stack>
         <Typography variant="caption">会话：{node.ownerSessionId ?? "未分配"} · 尝试：{attempt?.attemptNumber ?? 0}</Typography>
         {node.statusReason && <Typography variant="body2">原因：{node.statusReason}</Typography>}

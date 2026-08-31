@@ -44,7 +44,7 @@ impl<'a> RecordedRenderState<'a> {
         match self.current_pipeline {
             Some((_pipeline, PipelineKind::Raster, desc)) => Ok(desc),
             Some((pipeline, actual, _)) => Err(RhiError::InvalidPipelineUsage {
-                pipeline: pipeline.raw(),
+                pipeline: pipeline.diagnostic_id(),
                 required: PipelineKind::Raster,
                 actual,
             }),
@@ -58,7 +58,7 @@ impl<'a> RecordedRenderState<'a> {
         match self.current_pipeline {
             Some((_pipeline, PipelineKind::Compute, desc)) => Ok(desc),
             Some((pipeline, actual, _)) => Err(RhiError::InvalidPipelineUsage {
-                pipeline: pipeline.raw(),
+                pipeline: pipeline.diagnostic_id(),
                 required: PipelineKind::Compute,
                 actual,
             }),
@@ -88,8 +88,8 @@ impl<'a> RecordedRenderState<'a> {
                 return Err(RhiError::InvalidBindGroupUsage {
                     reason: format!(
                         "bind group slot {slot} layout `{}` does not match pipeline layout `{}`",
-                        bind_group_desc.layout.raw(),
-                        expected_layout.raw()
+                        bind_group_desc.layout.diagnostic_id(),
+                        expected_layout.diagnostic_id()
                     ),
                 });
             }
@@ -179,9 +179,9 @@ pub(super) fn validate_bind_group_slot(
         return Err(RhiError::InvalidBindGroupUsage {
             reason: format!(
                 "bind group `{}` layout `{}` does not match pipeline layout slot {slot} `{}`",
-                bind_group.raw(),
-                bind_group_desc.layout.raw(),
-                expected_layout.raw()
+                bind_group.diagnostic_id(),
+                bind_group_desc.layout.diagnostic_id(),
+                expected_layout.diagnostic_id()
             ),
         });
     }
@@ -209,7 +209,7 @@ impl CommandResourceLookup for DeterministicRhiContractDeviceState {
         self.buffers
             .get(&handle)
             .map(|buffer| &buffer.desc)
-            .ok_or(RhiError::UnknownBuffer(handle.raw()))
+            .ok_or(RhiError::UnknownBuffer(handle.diagnostic_id()))
     }
 }
 
@@ -221,7 +221,7 @@ pub(super) fn ensure_binding_range(
 ) -> Result<(), RhiError> {
     if size == 0 || offset.saturating_add(size) > desc.size_bytes {
         Err(RhiError::BufferBindingOutOfRange {
-            buffer: buffer.raw(),
+            buffer: buffer.diagnostic_id(),
             offset,
             size,
         })

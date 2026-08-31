@@ -8,6 +8,8 @@ use super::style::{
     paper_dark_overlay, paper_elevation, paper_is_outlined,
 };
 
+const MAX_PAPER_COMMANDS: usize = 5;
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_paper_primitive_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -29,6 +31,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pa
         return true;
     }
 
+    reserve_paper_command_capacity(commands);
     let outlined = paper_is_outlined(node);
     let elevation = paper_elevation(node);
     let corner_radius = paper_corner_radius(node, &paper_rect);
@@ -72,6 +75,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pa
     true
 }
 
+fn reserve_paper_command_capacity(commands: &mut Vec<HostPaintCommand>) {
+    commands.reserve(MAX_PAPER_COMMANDS);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -102,3 +109,7 @@ mod tests {
         assert!(commands.is_empty());
     }
 }
+
+#[cfg(test)]
+#[path = "commands/reserve_capacity_tests.rs"]
+mod reserve_capacity_tests;

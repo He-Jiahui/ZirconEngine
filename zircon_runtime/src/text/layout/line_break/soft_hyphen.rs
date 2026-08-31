@@ -5,19 +5,70 @@ const SOFT_HYPHEN: char = '\u{00ad}';
 const SOFT_HYPHEN_BREAK_SUFFIX: &str = "-";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct LineBreakSuffix {
-    pub text: &'static str,
-    pub source_range: TextRange,
+pub(crate) enum DiscretionaryHyphenMarker {
+    HyphenMinus,
 }
 
-pub(crate) fn break_suffix_at(text: &str, break_end: usize) -> Option<LineBreakSuffix> {
+impl DiscretionaryHyphenMarker {
+    pub(crate) const fn text(self) -> &'static str {
+        match self {
+            Self::HyphenMinus => SOFT_HYPHEN_BREAK_SUFFIX,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct DiscretionaryHyphenDecision {
+    marker: DiscretionaryHyphenMarker,
+    consumed_source_range: TextRange,
+    virtual_anchor: usize,
+}
+
+impl DiscretionaryHyphenDecision {
+    fn from_soft_hyphen(source_range: TextRange) -> Self {
+        Self {
+            marker: DiscretionaryHyphenMarker::HyphenMinus,
+            virtual_anchor: source_range.end,
+            consumed_source_range: source_range,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn marker(self) -> DiscretionaryHyphenMarker {
+        self.marker
+    }
+
+    pub(crate) const fn marker_text(self) -> &'static str {
+        self.marker.text()
+    }
+
+    pub(crate) const fn consumed_source_range(self) -> TextRange {
+        self.consumed_source_range
+    }
+
+    pub(crate) const fn virtual_anchor(self) -> usize {
+        self.virtual_anchor
+    }
+
+    pub(crate) fn rebased(self, source_base: usize) -> Option<Self> {
+        Some(Self {
+            marker: self.marker,
+            consumed_source_range: TextRange {
+                start: source_base.checked_add(self.consumed_source_range.start)?,
+                end: source_base.checked_add(self.consumed_source_range.end)?,
+            },
+            virtual_anchor: source_base.checked_add(self.virtual_anchor)?,
+        })
+    }
+}
+
+pub(crate) fn break_suffix_at(text: &str, break_end: usize) -> Option<DiscretionaryHyphenDecision> {
     let source_end = break_end.saturating_add(SOFT_HYPHEN.len_utf8());
-    (text.get(break_end..source_end) == Some("\u{00ad}")).then_some(LineBreakSuffix {
-        text: SOFT_HYPHEN_BREAK_SUFFIX,
-        source_range: TextRange {
+    (text.get(break_end..source_end) == Some("\u{00ad}")).then(|| {
+        DiscretionaryHyphenDecision::from_soft_hyphen(TextRange {
             start: break_end,
             end: source_end,
-        },
+        })
     })
 }
 
@@ -70,13 +121,10 @@ pub(super) fn push_chunks<'a>(
                     start: visible_start,
                     end: soft_hyphen_start,
                 },
-                Some(LineBreakSuffix {
-                    text: SOFT_HYPHEN_BREAK_SUFFIX,
-                    source_range: TextRange {
-                        start: soft_hyphen_start,
-                        end: soft_hyphen_end,
-                    },
-                }),
+                Some(DiscretionaryHyphenDecision::from_soft_hyphen(TextRange {
+                    start: soft_hyphen_start,
+                    end: soft_hyphen_end,
+                })),
             ));
         }
         visible_start = soft_hyphen_end;
@@ -100,9 +148,9 @@ pub(super) fn push_chunks<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::{break_suffix_at, push_chunks, SOFT_HYPHEN};
-    use crate::text::layout::line_break::LineBreakChunk;
+    use super::{DiscretionaryHyphenMarker, SOFT_HYPHEN, break_suffix_at, push_chunks};
     use crate::text::TextRange;
+    use crate::text::layout::line_break::LineBreakChunk;
 
     #[test]
     fn plain_chunk_stays_single_chunk_without_break_suffix() {
@@ -127,14 +175,16 @@ mod tests {
         assert_eq!(chunks[0].text, "pre");
         assert_eq!(chunks[0].source_range, TextRange { start: 0, end: 3 });
         let suffix = chunks[0].break_suffix.expect("soft-hyphen suffix");
-        assert_eq!(suffix.text, "-");
+        assert_eq!(suffix.marker(), DiscretionaryHyphenMarker::HyphenMinus);
+        assert_eq!(suffix.marker_text(), "-");
         assert_eq!(
-            suffix.source_range,
+            suffix.consumed_source_range(),
             TextRange {
                 start: 3,
                 end: 3 + SOFT_HYPHEN.len_utf8()
             }
         );
+        assert_eq!(suffix.virtual_anchor(), 3 + SOFT_HYPHEN.len_utf8());
         assert_eq!(chunks[1].text, "fix");
         assert_eq!(
             chunks[1].source_range,
@@ -155,8 +205,14 @@ mod tests {
 
         let texts: Vec<_> = chunks.iter().map(|chunk| chunk.text).collect();
         assert_eq!(texts, vec!["a", "b", "c"]);
-        assert_eq!(chunks[0].break_suffix.expect("first suffix").text, "-");
-        assert_eq!(chunks[1].break_suffix.expect("second suffix").text, "-");
+        assert_eq!(
+            chunks[0].break_suffix.expect("first suffix").marker_text(),
+            "-"
+        );
+        assert_eq!(
+            chunks[1].break_suffix.expect("second suffix").marker_text(),
+            "-"
+        );
         assert!(chunks[2].break_suffix.is_none());
     }
 
@@ -166,8 +222,20 @@ mod tests {
 
         let suffix = break_suffix_at(text, 3).expect("soft-hyphen suffix");
 
-        assert_eq!(suffix.text, "-");
-        assert_eq!(suffix.source_range, TextRange { start: 3, end: 5 });
+        assert_eq!(suffix.marker_text(), "-");
+        assert_eq!(
+            suffix.consumed_source_range(),
+            TextRange { start: 3, end: 5 }
+        );
+        assert_eq!(suffix.virtual_anchor(), 5);
+        let rebased = suffix
+            .rebased(7)
+            .expect("source offset remains representable");
+        assert_eq!(
+            rebased.consumed_source_range(),
+            TextRange { start: 10, end: 12 }
+        );
+        assert_eq!(rebased.virtual_anchor(), 12);
         assert!(break_suffix_at(text, 0).is_none());
     }
 }

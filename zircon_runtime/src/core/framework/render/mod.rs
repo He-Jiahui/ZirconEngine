@@ -8,9 +8,17 @@ mod camera_stack;
 mod capture;
 mod core_pipeline;
 mod environment;
+mod environment_capture;
+mod environment_capture_source_payload;
 mod frame_extract;
 mod frame_phase_queue_summary;
 mod frame_profile;
+mod frame_submission_boundary_reason;
+mod frame_submission_failure_receipt;
+mod frame_submission_metrics;
+mod frame_submission_producer_record;
+mod frame_submission_receipt;
+mod frame_submission_transaction;
 mod framework;
 mod framework_error;
 mod highlight_set;
@@ -27,6 +35,7 @@ mod profile;
 mod relevance;
 mod renderer_common;
 mod scene_extract;
+mod scene_submission_completion;
 mod shader;
 mod shadow;
 mod solari;
@@ -34,9 +43,11 @@ mod sprite;
 mod submission;
 mod surface;
 mod temporal_jitter;
+mod ui_submission;
 mod view_family;
 mod view_matrix_pair;
 mod viewport_highlight_store;
+mod viewport_pick;
 mod viewport_product;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
@@ -68,24 +79,30 @@ pub use anti_alias::{
     AntiAliasFallbackReason, AntiAliasFallbackReport, AntiAliasMode, AntiAliasSettings,
     TaaQualityPreset,
 };
-pub(crate) use backend_types::{normalize_texture_max_anisotropy, RenderGraphPassProfileMetrics};
+pub(crate) use backend_types::{
+    normalize_texture_max_anisotropy, RenderFrameHistoryInput, RenderGraphPassProfileMetrics,
+};
 pub use backend_types::{
     FrameHistoryHandle, FrameHistoryInvalidationReason, FrameHistoryStatus, GraphicsDebuggerStatus,
-    MotionVectorCameraStatus, RenderCameraTargetGraphImportReport,
-    RenderCameraTargetGraphImportStatus, RenderCameraTargetResolutionReport,
-    RenderCameraTargetWritebackReport, RenderCameraTargetWritebackStatus, RenderCapabilityClass,
-    RenderCapabilityClassReport, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-    RenderCapabilitySummary, RenderCommand, RenderDeviceDiagnostics, RenderDeviceLimitDiagnostics,
-    RenderFeatureQualitySettings, RenderGpuSceneUploadPath, RenderGraphExecutionAliasRecord,
-    RenderGraphExecutionAliasReport, RenderGraphExecutionCoverageReport,
+    MotionVectorCameraStatus, RenderAmbientOcclusionExecutionFailureFlags,
+    RenderAmbientOcclusionExecutionReport, RenderAmbientOcclusionExecutionStatus,
+    RenderCameraTargetGraphImportReport, RenderCameraTargetGraphImportStatus,
+    RenderCameraTargetResolutionReport, RenderCameraTargetWritebackReport,
+    RenderCameraTargetWritebackStatus, RenderCapabilityClass, RenderCapabilityClassReport,
+    RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderCommand,
+    RenderDeviceDiagnostics, RenderDeviceLimitDiagnostics, RenderFeatureQualitySettings,
+    RenderGpuSceneUploadPath, RenderGraphExecutionAccessBindingReport,
+    RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
+    RenderGraphExecutionBatchReport, RenderGraphExecutionCoverageReport,
     RenderGraphExecutionProfileReport, RenderGraphExecutionResourceReport,
     RenderGraphMaterializationReport, RenderGraphParallelRecordingReport,
     RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderGraphTransientPoolReport,
-    RenderHistoryCopyReport, RenderHybridGiPayloadSource, RenderPipelineHandle,
-    RenderQualityProfile, RenderQuery, RenderQueueCapability, RenderSceneVelocityReadbackReport,
-    RenderStats, RenderViewportDescriptor, RenderViewportHandle,
-    RenderVirtualGeometryPayloadSource, RenderingBackendInfo,
-    DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
+    RenderHistoryCopyReport, RenderHistoryDomain, RenderHistoryDomainResetReason,
+    RenderHistoryDomainStatus, RenderHistoryDomainsReport, RenderHybridGiPayloadSource,
+    RenderPipelineHandle, RenderQualityProfile, RenderQuery, RenderQueueCapability,
+    RenderReflectionProbeWorkloadReport, RenderSceneVelocityReadbackReport, RenderStats,
+    RenderViewportDescriptor, RenderViewportHandle, RenderVirtualGeometryPayloadSource,
+    RenderingBackendInfo, DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
@@ -113,6 +130,7 @@ pub use core_pipeline::{
     RenderPhaseSortDecisionField, RenderPhaseSortKey, RenderPhaseSortKeyBreakdown,
     RenderQueueValue, SpritePhaseInput, RENDER_PHASES_BY_QUEUE_ORDER,
 };
+pub(crate) use environment::encode_rg16f_texels;
 pub use environment::{
     append_rgb_as_rgba16f_texels, append_rgba16f_texels, build_environment_brdf_lut,
     build_environment_brdf_lut_with_extent, build_source_cubemap_from_captured_faces,
@@ -121,11 +139,12 @@ pub use environment::{
     build_source_cubemap_irradiance_cube,
     build_source_cubemap_irradiance_cube_with_parallel_executor,
     build_source_cubemap_upload_artifact, compare_source_cubemap_irradiance,
-    cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
-    cubemap_face_size_from_equirect_height, cubemap_scaled_uv_for_texel,
-    cubemap_solid_angle_from_scaled_uv, cubemap_texel_direction, cubemap_texel_solid_angle,
-    decode_rgb_from_rgba16f_texels, decode_rgba16f_texels, encode_rgba16f_texels,
-    environment_brdf_lut_integrate, environment_brdf_lut_texel_index, equirect_uv_from_direction,
+    cubemap_capture_camera, cubemap_capture_view_from_world, cubemap_direction_from_scaled_uv,
+    cubemap_face_scaled_uv_from_direction, cubemap_face_size_from_equirect_height,
+    cubemap_scaled_uv_for_texel, cubemap_solid_angle_from_scaled_uv, cubemap_texel_direction,
+    cubemap_texel_solid_angle, decode_rgb_from_rgba16f_texels, decode_rgba16f_texels,
+    decode_rgba16f_texels_into_exact, encode_rgba16f_texels, environment_brdf_lut_integrate,
+    environment_brdf_lut_texel_index, equirect_uv_from_direction,
     rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_parallel_executor_and_timing,
     rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_timing,
     reflection_probe_box_project_direction, reflection_probe_influence_weight,
@@ -136,25 +155,31 @@ pub use environment::{
     source_cubemap_irradiance_mip_level, source_cubemap_mip_chain_with_bake_artifact,
     source_cubemap_mip_count, source_cubemap_mip_size, source_cubemap_pmrem_mip_from_roughness,
     source_cubemap_roughness_from_pmrem_mip, source_cubemap_sample_count,
-    source_cubemap_sample_irradiance_cube, CubemapFace, EnvironmentBrdfLutTexel,
-    EnvironmentExtract, IblBakeArtifactBlob, IblBakeArtifactBlobCandidate,
-    IblBakeArtifactBlobError, IblBakeArtifactCandidate, IblBakeArtifactContents,
-    IblBakeArtifactDescriptor, IblBakeArtifactHeader, IblBakeArtifactHeaderError,
-    IblBakeArtifactPayload, IblBakeArtifactPayloadError, IblBakeArtifactProducer,
-    IblBakeArtifactReadbackError, IblBakeArtifactReadbackSectionKind,
-    IblBakeArtifactReadbackSections, IblBakeArtifactRequest, IblBakeArtifactResolvedPayload,
-    IblBakeArtifactSelection, IblBakeArtifactSource, IblBakeDiffuseIntegrator,
-    IblBakeDiffuseRepresentation, IblBakeKey, IblBakeOutputFormat, IblBakePmremIntegrator,
-    IblBakeRecipe, IblBakeRecipeIdentity, LightProbeGridData, LightmapAtlasBudget,
-    LightmapAtlasDescriptor, LightmapAtlasFormat, LightmapAtlasPage, LightmapBakeOutput,
-    LightmapBakeRequest, LightmapBakeSceneSnapshot, LightmapConsumeContract,
-    LightmapContractValidationError, LightmapInstanceSlot, ProbeBakeTiming, ProbeInfluenceShape,
-    ProceduralSkyParams, ReflectionProbeBlend, ReflectionProbeBlendEntry, ReflectionProbeData,
-    ReflectionProbeValidationError, ShL2Rgb, SkyboxMode, SkyboxSettings,
-    SourceCubemapBakeArtifactError, SourceCubemapBuildTiming, SourceCubemapEnvironment,
-    SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9, SourceCubemapMipChain,
-    SourceCubemapPrefilterQuality, SourceCubemapUploadArtifact, SourceCubemapUploadKey,
-    SourceCubemapUploadMip, CANONICAL_IBL_BAKE_ALGORITHM_VERSION,
+    source_cubemap_sample_irradiance_cube, CubemapCaptureCamera, CubemapCaptureView, CubemapFace,
+    CubemapFaceProjectionAxes, EnvironmentBrdfLutFormat, EnvironmentBrdfLutIntegrator,
+    EnvironmentBrdfLutRecipe, EnvironmentBrdfLutRecipeIdentity, EnvironmentBrdfLutTexel,
+    EnvironmentExtract, EnvironmentPbrEnergyMode, EnvironmentPbrRecipe,
+    EnvironmentPbrRecipeIdentity, EnvironmentRuntimeSnapshot, EnvironmentRuntimeSnapshotError,
+    IblBakeArtifactBlob, IblBakeArtifactBlobCandidate, IblBakeArtifactBlobError,
+    IblBakeArtifactCandidate, IblBakeArtifactContents, IblBakeArtifactDescriptor,
+    IblBakeArtifactHeader, IblBakeArtifactHeaderError, IblBakeArtifactPayload,
+    IblBakeArtifactPayloadError, IblBakeArtifactProducer, IblBakeArtifactReadbackError,
+    IblBakeArtifactReadbackSectionKind, IblBakeArtifactReadbackSections, IblBakeArtifactRequest,
+    IblBakeArtifactResolvedPayload, IblBakeArtifactSelection, IblBakeArtifactSource,
+    IblBakeDiffuseIntegrator, IblBakeDiffuseRepresentation, IblBakeKey, IblBakeOutputFormat,
+    IblBakePmremIntegrator, IblBakeRecipe, IblBakeRecipeIdentity, LightProbeGridData,
+    LightmapAtlasBudget, LightmapAtlasDescriptor, LightmapAtlasFormat, LightmapAtlasPage,
+    LightmapBakeOutput, LightmapBakeRequest, LightmapBakeSceneSnapshot, LightmapConsumeContract,
+    LightmapContractValidationError, LightmapInstanceSlot, ProbeInfluenceShape,
+    ProceduralSkyParams, RealtimeIblFailureKind, RealtimeIblFailureOperation,
+    RealtimeIblFailureReport, RealtimeIblReadiness, RealtimeIblStatusReport, ReflectionProbeBlend,
+    ReflectionProbeBlendEntry, ReflectionProbeData, ReflectionProbeValidationError, ShL2Rgb,
+    SkyboxMode, SkyboxSettings, SourceCubemapBakeArtifactError, SourceCubemapBuildTiming,
+    SourceCubemapEnvironment, SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9,
+    SourceCubemapMipChain, SourceCubemapPrefilterQuality, SourceCubemapUploadArtifact,
+    SourceCubemapUploadKey, SourceCubemapUploadMip,
+    CANONICAL_ENVIRONMENT_BRDF_LUT_ALGORITHM_VERSION, CANONICAL_ENVIRONMENT_BRDF_LUT_RECIPE,
+    CANONICAL_ENVIRONMENT_PBR_RECIPE, CANONICAL_IBL_BAKE_ALGORITHM_VERSION,
     CANONICAL_IBL_BAKE_DIFFUSE_SOURCE_FACE_SIZE, CANONICAL_IBL_BAKE_IRRADIANCE_CUBE_FACE_SIZE,
     CANONICAL_IBL_BAKE_RECIPE, CANONICAL_IBL_BAKE_ROUGHEST_MIP_OFFSET,
     CANONICAL_IBL_BAKE_ROUGHNESS_MIP_SCALE, ENVIRONMENT_BRDF_LUT_HEIGHT,
@@ -169,10 +194,23 @@ pub use environment::{
     SOURCE_CUBEMAP_PMREM_MIP_COUNT, SOURCE_CUBEMAP_ROUGHEST_MIP,
     SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
 };
+pub use environment_capture::{
+    RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureOutputIdentity,
+    RenderEnvironmentCapturePhase, RenderEnvironmentCaptureRequest,
+    RenderEnvironmentCaptureRequestError, RenderEnvironmentCaptureStatus,
+    RenderEnvironmentCaptureStatusError, RENDER_ENVIRONMENT_CAPTURE_WORK_ITEM_COUNT,
+};
+pub use environment_capture_source_payload::{
+    RenderEnvironmentCaptureSourcePayload, RenderEnvironmentCaptureSourcePayloadError,
+};
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
-    PostProcessExtract, RenderExtractContext, RenderExtractProducer, RenderFrameExtract,
-    RenderParticleGpuFrameExtract, RenderSkeletalPoseExtract, RenderViewExtract,
+    PostProcessExtract, RenderComponentChangeArtifact, RenderComponentChangeKind,
+    RenderComponentChangeMask, RenderComponentChangeStats, RenderComponentFullReprojectionReason,
+    RenderComponentMeshLodLevel, RenderComponentMeshPayload, RenderComponentMeshPrimitiveBinding,
+    RenderComponentProjectionMode, RenderComponentSnapshot, RenderComponentSourceWorldId,
+    RenderComponentValue, RenderExtractContext, RenderExtractProducer, RenderFrameExtract,
+    RenderFrameTiming, RenderParticleGpuFrameExtract, RenderSkeletalPoseExtract, RenderViewExtract,
     RenderWorldSnapshotHandle, SpritePhaseExtractInput, StaticMeshBatchExtract, VisibilityInput,
     VisibilityRenderableInput,
 };
@@ -182,8 +220,22 @@ pub use frame_phase_queue_summary::{
 };
 pub use frame_profile::{
     RenderBudgetKey, RenderFrameBudget, RenderFrameProfile, RenderGpuTimingStatus,
+    RenderMeshSubmissionProfile, RenderPassNativeResourceCreateMetrics,
     RenderPassPipelineStatistics, RenderPassProfileEntry, RenderSubsystemProfileEntry,
 };
+pub use frame_submission_boundary_reason::RenderFrameSubmissionBoundaryReason;
+pub use frame_submission_failure_receipt::{
+    RenderFrameSubmissionFailureReceipt, RenderFrameSubmissionFailureReceiptError,
+    RenderFrameSubmissionFailureRecord,
+};
+pub use frame_submission_metrics::RenderFrameSubmissionMetrics;
+pub use frame_submission_producer_record::{
+    RenderFrameSubmissionProducer, RenderFrameSubmissionProducerRecord,
+};
+pub use frame_submission_receipt::{
+    RenderFrameSubmissionReceipt, RenderFrameSubmissionReceiptError,
+};
+pub(crate) use frame_submission_transaction::RenderFrameSubmissionTransaction;
 pub use framework::RenderFramework;
 pub use framework_error::RenderFrameworkError;
 pub use highlight_set::{HighlightRenderAttributes, HighlightSet};
@@ -236,6 +288,7 @@ pub use material::{
     ShadingModelId, ShadingModelRegistrationError, StandardMaterialDescriptor,
     SHADING_MODEL_GBUFFER_ALPHA_SCALE, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
     SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START, STANDARD_MATERIAL_MIN_ROUGHNESS,
+    STANDARD_MATERIAL_TEXTURE_UV_CHANNEL_COUNT,
 };
 pub use mesh::{RenderMeshBounds, RenderMeshDescriptor, RenderMeshKind, RenderMeshTopology};
 pub use module_identity::GRAPHICS_MODULE_NAME;
@@ -262,13 +315,13 @@ pub use plugin_renderer_outputs::{
     RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT,
 };
 pub use post_process::{
-    interp_bool, interp_discrete, interp_float_lerp, interp_vec3_lerp, PostProcessEffectKind,
-    PostProcessEffectSettings, PostProcessGraphResourceNames, PostProcessGraphValidationError,
-    PostProcessPassGraph, PostProcessPassNode, PostProcessStackDescriptor,
-    PostProcessVolumeExtract, RenderBlurSettings, RenderChromaticAberrationSettings,
-    RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderColorLutReadbackReference,
-    RenderColorLutReadbackReport, RenderDepthOfFieldSettings, RenderDitherSettings,
-    RenderExposureMode, RenderExposureReadbackReport, RenderExposureSettings,
+    interp_bool, interp_discrete, interp_float_lerp, interp_vec3_lerp, AoQualityTier,
+    AoSourceSettings, AoSourceSettingsKey, PostProcessEffectKind, PostProcessEffectSettings,
+    PostProcessGraphResourceNames, PostProcessGraphValidationError, PostProcessPassGraph,
+    PostProcessPassNode, PostProcessStackDescriptor, PostProcessVolumeExtract, RenderBlurSettings,
+    RenderChromaticAberrationSettings, RenderColorLookupSettings, RenderColorLookupTextureLayout,
+    RenderColorLutReadbackReference, RenderColorLutReadbackReport, RenderDepthOfFieldSettings,
+    RenderDitherSettings, RenderExposureMode, RenderExposureReadbackReport, RenderExposureSettings,
     RenderFilmGrainSettings, RenderFogSettings, RenderMotionBlurSettings, RenderOutputTransfer,
     RenderPostProcessEffectStackReport, RenderPostProcessEffectStackResourceStatus,
     RenderPostProcessEffectStackSettings, RenderPostProcessTextureFormat,
@@ -278,12 +331,13 @@ pub use post_process::{
     VolumeComponentApplyFn, VolumeComponentDescriptor, VolumeComponentOverride,
     VolumeComponentReadFn, VolumeComponentRegistry, VolumeEvaluationError, VolumeEvaluationRequest,
     VolumeEvaluator, VolumeParamInterpFn, VolumeParamSchema, VolumeParamType, VolumeParamValue,
-    VolumeRegistryError, VolumeShapeExtract, BUILTIN_POST_PROCESS_VOLUME_COMPONENTS,
-    COLOR_LUT_FORMAT, COLOR_LUT_IDENTITY_EPSILON_MICRO, COLOR_LUT_SIZE_DEFAULT,
-    COLOR_LUT_SIZE_HIGH_QUALITY, EXPOSURE_BUFFER_WORD_COUNT, EXPOSURE_HISTOGRAM_BIN_COUNT,
-    EXPOSURE_READBACK_EXPECTED_BYTE_LEN, INTERMEDIATE_HDR_FORMAT_DEFAULT,
-    INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY, MAX_COLOR_LOOKUP_TEXTURE_SIZE,
-    MIN_COLOR_LOOKUP_TEXTURE_SIZE, OUTPUT_TRANSFER_DEFAULT, TONEMAPPED_SDR_FORMAT,
+    VolumeRegistryError, VolumeShapeExtract, AO_SOURCE_SETTINGS_VERSION,
+    BUILTIN_POST_PROCESS_VOLUME_COMPONENTS, COLOR_LUT_FORMAT, COLOR_LUT_IDENTITY_EPSILON_MICRO,
+    COLOR_LUT_SIZE_DEFAULT, COLOR_LUT_SIZE_HIGH_QUALITY, EXPOSURE_BUFFER_WORD_COUNT,
+    EXPOSURE_HISTOGRAM_BIN_COUNT, EXPOSURE_READBACK_EXPECTED_BYTE_LEN,
+    INTERMEDIATE_HDR_FORMAT_DEFAULT, INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY,
+    MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE, OUTPUT_TRANSFER_DEFAULT,
+    TONEMAPPED_SDR_FORMAT,
 };
 pub use prepared_runtime_sidebands::{
     RenderHybridGiCompositePolicy, RenderHybridGiPreparedCardCaptureRequest,
@@ -318,42 +372,42 @@ pub use scene_extract::{
     RenderVirtualGeometryPageDependency, SceneViewportRenderPacket,
     RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL, RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS,
 };
+pub use scene_submission_completion::{
+    RenderSceneSubmissionCompletionError, RenderSceneSubmissionCompletionFailure,
+    RenderSceneSubmissionCompletionReport, RenderSceneSubmissionCompletionStatus,
+};
 pub use shader::{
     builtin_geometry_source_descriptor, builtin_geometry_source_descriptors,
     derive_shader_import_path, is_builtin_shader_module_token, is_generated_shader_module_token,
     shader_ide_generated_material_stub_relative_path, shader_ide_module_stub_relative_path,
     shader_ide_preview_relative_path, shader_ide_preview_segments_relative_path,
     shader_ide_relative_path_string, shader_project_namespace_from_name,
-    strip_wgsl_include_directives, wgsl_include_paths, ComputeDispatchBuilder, ComputeDispatchPlan,
-    ComputeKernelRef, ComputePipelineCacheKey, FullscreenPassBuilder, FullscreenPassPlan,
-    FullscreenPipelineCacheKey, FullscreenShaderRef, GeometrySourceBindingKind,
+    strip_wgsl_include_directives, wgsl_include_paths, GeometrySourceBindingKind,
     GeometrySourceBindingRequirement, GeometrySourceDescriptor, GeometrySourceId,
     GeometrySourceVertexAttribute, MaterialOptionKind, MaterialOptionRef, MaterialOptionTable,
     MaterialPropertyKind, MaterialPropertyLayout, MaterialPropertySlotRef,
     MaterialTextureBindingRef, PropertyScalarClass, RenderShaderBindGroupLayoutDescriptor,
     RenderShaderBindingDescriptor, RenderShaderBindingResourceType, RenderShaderDefinitionValue,
     RenderShaderDependency, RenderShaderEntryPointDescriptor, RenderShaderPipelineLayoutDescriptor,
-    RenderShaderStage, RenderShaderVariantKey, ShaderAbiBinding, ShaderAssetKind, ShaderBlendMode,
-    ShaderCullMode, ShaderDepthCompare, ShaderDispatchBuildDiagnostic, ShaderDispatchExtent,
-    ShaderFeatureBits, ShaderIdeModuleMap, ShaderIdeModuleMapEntry, ShaderIdeModuleSource,
-    ShaderIdePreviewMap, ShaderIdePreviewSegment, ShaderIdePreviewVariant,
-    ShaderImportPathDerivation, ShaderImportPathDerivationError, ShaderNamedResourceBinding,
-    ShaderParameterValue, ShaderPassType, ShaderPipelineDiagnostic, ShaderPipelineDiagnosticStage,
-    ShaderPipelinePrewarmState, ShaderQualityTier, ShaderQueueDescriptor, ShaderQueueSegment,
-    ShaderRenderStateDescriptor, ShaderResourceAccess, ShaderResourceDescriptor,
-    ShaderResourceKind, ShaderVariantKey, ShaderVariantMissReport,
-    ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmDimensionSummary,
-    ShaderVariantPrewarmExecutionBudget, ShaderVariantPrewarmExecutionBudgetError,
-    ShaderVariantPrewarmExecutionBudgetSummary, ShaderVariantPrewarmFailure,
-    ShaderVariantPrewarmManifest, ShaderVariantPrewarmManifestIntegrityError,
-    ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource,
-    ShaderVariantPrewarmSourceId, ShaderVariantPrewarmSourceProvenanceEntry,
-    ShaderVariantPrewarmSourceProvenanceSummary, ShaderVariantPrewarmWgpuModuleValidationSummary,
+    RenderShaderStage, RenderShaderVariantKey, ShaderAssetKind, ShaderBlendMode, ShaderCullMode,
+    ShaderDepthCompare, ShaderFeatureBits, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
+    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewSegment, ShaderIdePreviewVariant,
+    ShaderImportPathDerivation, ShaderImportPathDerivationError, ShaderPassType,
+    ShaderPipelineDiagnostic, ShaderPipelineDiagnosticStage, ShaderPipelineFallbackAction,
+    ShaderPipelineFallbackDiagnostic, ShaderPipelineFallbackState, ShaderPipelinePrewarmState,
+    ShaderPipelineTarget, ShaderPipelineTargetMetrics, ShaderQualityTier, ShaderQueueDescriptor,
+    ShaderQueueSegment, ShaderRenderStateDescriptor, ShaderResourceAccess,
+    ShaderResourceDescriptor, ShaderResourceKind, ShaderSourceValidationMetrics, ShaderVariantKey,
+    ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount,
+    ShaderVariantPrewarmDimensionSummary, ShaderVariantPrewarmExecutionBudget,
+    ShaderVariantPrewarmExecutionBudgetError, ShaderVariantPrewarmExecutionBudgetSummary,
+    ShaderVariantPrewarmFailure, ShaderVariantPrewarmManifest,
+    ShaderVariantPrewarmManifestIntegrityError, ShaderVariantPrewarmReport,
+    ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource, ShaderVariantPrewarmSourceId,
+    ShaderVariantPrewarmSourceProvenanceEntry, ShaderVariantPrewarmSourceProvenanceSummary,
+    ShaderVariantPrewarmWgpuModuleValidationSummary,
     ShaderVariantPrewarmWgpuPipelineValidationSummary, ShaderVariantPrewarmWrittenVariant,
     ShaderVariantRuntimeDimensionCount, ShaderVariantRuntimeDimensionSummary,
-    COMPUTE_SHADER_FIRST_RESOURCE_BINDING, COMPUTE_SHADER_PARAMS_BINDING,
-    COMPUTE_SHADER_RESOURCE_GROUP, FULLSCREEN_FIRST_PASS_INPUT_BINDING, FULLSCREEN_FRAME_GROUP,
-    FULLSCREEN_PARAMS_BINDING, FULLSCREEN_PASS_INPUT_GROUP, FULLSCREEN_TRIANGLE_VERTEX_ENTRY,
     GENERATED_MATERIAL_MODULE_IMPORT_PATH, GEOMETRY_SOURCE_ID_MORPHED_MESH,
     GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
     GEOMETRY_SOURCE_ID_STATIC_MESH, GEOMETRY_SOURCE_PLUGIN_ID_START,
@@ -361,7 +415,8 @@ pub use shader::{
     GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
     SHADER_IDE_ENV_CACHE_DIR, SHADER_IDE_ENV_SCHEMA_VERSION, SHADER_IDE_MODULE_MAP_FILE,
     SHADER_IDE_PREVIEW_DEFAULT_VARIANT, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
-    SHADER_SELF_MODULE_NAMESPACE,
+    SHADER_PIPELINE_TARGET_COUNT, SHADER_SELF_MODULE_NAMESPACE, SHADER_VARIANT_CACHE_NAGA_VERSION,
+    SHADER_VARIANT_CACHE_WGPU_VERSION,
 };
 pub use shadow::RenderShadowExecutionReport;
 pub use solari::{
@@ -376,6 +431,7 @@ pub use sprite::{
 pub use submission::RenderSubmissionConfig;
 pub use surface::RenderViewportSurfaceDescriptor;
 pub use temporal_jitter::{halton, TemporalJitterSample, TemporalJitterSequence};
+pub use ui_submission::{UiRenderNodeIdProjection, UiRenderSubmission, UiRenderSubmissionSegment};
 pub use view_family::{
     RenderDynamicResolutionController, RenderDynamicResolutionDecision,
     RenderDynamicResolutionDecisionReason, RenderDynamicResolutionGpuSample,
@@ -386,6 +442,10 @@ pub use view_family::{
 };
 pub use view_matrix_pair::ViewProjectionMatrixPair;
 pub use viewport_highlight_store::{ViewportHighlightSet, ViewportHighlightStore};
+pub use viewport_pick::{
+    RenderViewportPickDisposition, RenderViewportPickPolicy, RenderViewportPickPurpose,
+    RenderViewportPickRequest, RenderViewportPickResult, RenderViewportPickTicket,
+};
 pub use viewport_product::RenderViewportProduct;
 pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,

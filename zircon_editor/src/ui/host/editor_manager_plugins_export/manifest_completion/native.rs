@@ -2,7 +2,7 @@ use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::plugin::native::{
-    discover_native_plugins, NativePluginLoadProjection, NativePluginLoadReport,
+    discovery::discover_native_plugins, NativePluginLoadProjection, NativePluginLoadReport,
 };
 use zircon_runtime::plugin::PluginModuleKind;
 

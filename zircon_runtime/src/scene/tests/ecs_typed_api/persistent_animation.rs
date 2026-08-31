@@ -4,11 +4,11 @@ use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, ResourceHandle, ResourceId,
 };
+use crate::scene::World;
 use crate::scene::components::{
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
     AnimationSkeletonComponent, AnimationStateMachinePlayerComponent,
 };
-use crate::scene::World;
 
 #[test]
 fn persistent_animation_runtime_uses_generic_storage_across_clone_serde_and_records() {
@@ -44,14 +44,14 @@ fn persistent_animation_runtime_uses_generic_storage_across_clone_serde_and_reco
         graph: ResourceHandle::<AnimationGraphMarker>::new(ResourceId::from_stable_label(
             "res://animation/runtime08.graph.zranim",
         )),
-        parameters: BTreeMap::new(),
+        parameters: BTreeMap::new().into(),
         playing: true,
     };
     let state_machine_player = AnimationStateMachinePlayerComponent {
         state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(
             ResourceId::from_stable_label("res://animation/runtime08.state-machine.zranim"),
         ),
-        parameters: BTreeMap::new(),
+        parameters: BTreeMap::new().into(),
         active_state: Some("idle".to_string()),
         playing: true,
     };

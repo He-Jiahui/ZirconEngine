@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use serde::Deserialize;
 
@@ -141,7 +141,7 @@ impl NativePluginRegistrationManifest {
             system.bridge_method()?;
             system.access_plan(&self.capabilities)?;
         }
-        let mut resource_ids = BTreeSet::new();
+        let mut resource_ids = HashSet::new();
         for resource in &self.resources {
             resource.validate()?;
             if !resource_ids.insert(resource.id.as_str()) {
@@ -297,7 +297,47 @@ fn required_non_empty<'a>(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+    use std::hint::black_box;
+    use std::time::{Duration, Instant};
+
     use super::*;
+
+    const RESOURCE_ADMISSION_COUNT: usize = 65_536;
+    const UNIQUE_RESOURCE_COUNT: usize = 8_192;
+    const SAMPLE_COUNT: usize = 17;
+
+    fn percentile_95(samples: &mut [Duration]) -> Duration {
+        samples.sort_unstable();
+        samples[(samples.len() - 1) * 95 / 100]
+    }
+
+    fn resource_ids() -> Vec<String> {
+        (0..RESOURCE_ADMISSION_COUNT)
+            .map(|index| {
+                format!(
+                    "native.generated.resource.with.long.shared.identity.{:05}",
+                    (index * 4_099) % UNIQUE_RESOURCE_COUNT
+                )
+            })
+            .collect()
+    }
+
+    fn ordered_unique_count(resource_ids: &[String]) -> usize {
+        let mut unique = BTreeSet::new();
+        resource_ids
+            .iter()
+            .filter(|resource_id| unique.insert(resource_id.as_str()))
+            .count()
+    }
+
+    fn hash_unique_count(resource_ids: &[String]) -> usize {
+        let mut unique = HashSet::new();
+        resource_ids
+            .iter()
+            .filter(|resource_id| unique.insert(resource_id.as_str()))
+            .count()
+    }
 
     #[test]
     fn native_registration_manifest_parses_bridge_systems() {
@@ -486,5 +526,97 @@ bridge_method = "sample_count"
                 ..
             } if stable_id == "physics.solver"
         ));
+    }
+
+    #[test]
+    fn optimization_batch_20260826ad_runtime07_hash_resource_validation_preserves_first_duplicate_error(
+    ) {
+        let error = NativePluginRegistrationManifest::from_toml(
+            r#"
+schema = "zircon.native.registration-manifest/3"
+
+[[resources]]
+id = "physics.solver"
+module = "runtime"
+schema = "physics.solver.v1"
+
+[[resources]]
+id = "physics.world"
+module = "runtime"
+schema = "physics.world.v1"
+
+[[resources]]
+id = "physics.solver"
+module = "duplicate"
+schema = "physics.solver.v2"
+"#,
+        )
+        .expect_err("duplicate resource should fail validation");
+
+        assert!(matches!(
+            error,
+            NativePluginRegistrationManifestError::DuplicateResourceId { resource_id }
+                if resource_id == "physics.solver"
+        ));
+    }
+
+    #[test]
+    fn optimization_batch_20260826ad_runtime07_native_resource_validation_uses_borrowed_hash_set() {
+        let source = include_str!("registration_manifest.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap();
+
+        assert!(production.contains("use std::collections::HashSet;"));
+        assert!(production.contains("let mut resource_ids = HashSet::new();"));
+        assert!(production.contains("resource_ids.insert(resource.id.as_str())"));
+        assert!(!production.contains("BTreeSet"));
+    }
+
+    #[test]
+    #[ignore = "release performance evidence"]
+    fn optimization_batch_20260826ad_runtime07_native_resource_hash_validation_performance_evidence(
+    ) {
+        let resource_ids = resource_ids();
+        assert_eq!(
+            ordered_unique_count(&resource_ids),
+            hash_unique_count(&resource_ids)
+        );
+
+        let mut ordered_samples = Vec::with_capacity(SAMPLE_COUNT);
+        let mut hash_samples = Vec::with_capacity(SAMPLE_COUNT);
+        for sample in 0..SAMPLE_COUNT {
+            if sample % 2 == 0 {
+                let started = Instant::now();
+                black_box(ordered_unique_count(black_box(&resource_ids)));
+                ordered_samples.push(started.elapsed());
+
+                let started = Instant::now();
+                black_box(hash_unique_count(black_box(&resource_ids)));
+                hash_samples.push(started.elapsed());
+            } else {
+                let started = Instant::now();
+                black_box(hash_unique_count(black_box(&resource_ids)));
+                hash_samples.push(started.elapsed());
+
+                let started = Instant::now();
+                black_box(ordered_unique_count(black_box(&resource_ids)));
+                ordered_samples.push(started.elapsed());
+            }
+        }
+
+        let ordered_p95 = percentile_95(&mut ordered_samples);
+        let hash_p95 = percentile_95(&mut hash_samples);
+        println!(
+            "RUNTIME07_NATIVE_RESOURCE_HASH_VALIDATION_BENCH_V1 \
+             admissions={RESOURCE_ADMISSION_COUNT} unique_resources={UNIQUE_RESOURCE_COUNT} \
+             borrowed_identity=true ordered_p95_ns={} hash_p95_ns={}",
+            ordered_p95.as_nanos(),
+            hash_p95.as_nanos(),
+        );
+        assert!(
+            hash_p95.as_nanos() * 100 <= ordered_p95.as_nanos() * 60,
+            "hash-validation P95 {:?} exceeded 60% of ordered-validation P95 {:?}",
+            hash_p95,
+            ordered_p95,
+        );
     }
 }

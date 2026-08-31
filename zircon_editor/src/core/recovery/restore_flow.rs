@@ -1,10 +1,40 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
-use std::time::SystemTime;
 
 use thiserror::Error;
 
-use super::{AutosaveDocumentId, SessionLockInspection, SessionLockRecord};
+use super::{
+    AutosaveContentDigest, AutosaveDocumentId, AutosaveSourceDigest,
+    ProjectSessionAdmissionRecordV1, SessionLockInspection,
+};
+
+/// The content relationship between an autosave commit and its authoritative source.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RestoreFreshness {
+    SourceMissing,
+    SnapshotAheadOfSource,
+    SourceDiverged,
+    SnapshotAlreadyCommitted,
+}
+
+impl RestoreFreshness {
+    pub(crate) fn from_snapshot(
+        captured_source: &AutosaveSourceDigest,
+        committed_snapshot: &AutosaveContentDigest,
+        current_source: &AutosaveSourceDigest,
+    ) -> Self {
+        match current_source {
+            AutosaveSourceDigest::Missing => Self::SourceMissing,
+            AutosaveSourceDigest::Present(current) if current == committed_snapshot => {
+                Self::SnapshotAlreadyCommitted
+            }
+            AutosaveSourceDigest::Present(_) if current_source == captured_source => {
+                Self::SnapshotAheadOfSource
+            }
+            AutosaveSourceDigest::Present(_) => Self::SourceDiverged,
+        }
+    }
+}
 
 /// One document whose autosave may be recovered after an unclean editor exit.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -12,8 +42,7 @@ pub struct RestoreCandidate {
     document: AutosaveDocumentId,
     source_path: PathBuf,
     autosave_path: PathBuf,
-    source_modified_at: Option<SystemTime>,
-    autosave_modified_at: SystemTime,
+    freshness: RestoreFreshness,
 }
 
 impl RestoreCandidate {
@@ -21,15 +50,13 @@ impl RestoreCandidate {
         document: AutosaveDocumentId,
         source_path: impl Into<PathBuf>,
         autosave_path: impl Into<PathBuf>,
-        source_modified_at: Option<SystemTime>,
-        autosave_modified_at: SystemTime,
+        freshness: RestoreFreshness,
     ) -> Self {
         Self {
             document,
             source_path: source_path.into(),
             autosave_path: autosave_path.into(),
-            source_modified_at,
-            autosave_modified_at,
+            freshness,
         }
     }
 
@@ -45,9 +72,12 @@ impl RestoreCandidate {
         &self.autosave_path
     }
 
+    pub const fn freshness(&self) -> RestoreFreshness {
+        self.freshness
+    }
+
     pub fn should_offer_recovery(&self) -> bool {
-        self.source_modified_at
-            .is_none_or(|source_modified_at| self.autosave_modified_at > source_modified_at)
+        self.freshness != RestoreFreshness::SnapshotAlreadyCommitted
     }
 }
 
@@ -83,10 +113,10 @@ impl RestoreResolution {
 pub enum RestoreStartup {
     NoRecoveryNeeded,
     ResidualTakeoverRequired {
-        residual_lock: SessionLockRecord,
+        residual_lock: ProjectSessionAdmissionRecordV1,
     },
     RecoveryRequired {
-        residual_lock: SessionLockRecord,
+        residual_lock: ProjectSessionAdmissionRecordV1,
         candidates: Vec<RestoreCandidate>,
     },
 }
@@ -100,7 +130,7 @@ impl RestoreStartup {
         }
     }
 
-    pub fn residual_lock(&self) -> Option<&SessionLockRecord> {
+    pub fn residual_lock(&self) -> Option<&ProjectSessionAdmissionRecordV1> {
         match self {
             Self::NoRecoveryNeeded => None,
             Self::ResidualTakeoverRequired { residual_lock }
@@ -124,7 +154,7 @@ impl RestorePlan {
 pub struct RestoreFlow;
 
 impl RestoreFlow {
-    /// Prompts only after a residual lock and an autosave newer than its source are both present.
+    /// Prompts only after a residual lock and a committed snapshot remains recoverable.
     pub fn detect(
         lock: SessionLockInspection,
         candidates: impl IntoIterator<Item = RestoreCandidate>,
@@ -196,6 +226,45 @@ impl RestoreFlow {
             resolutions: by_document.into_values().collect(),
         })
     }
+
+    /// Builds a subset plan for retrying failed document executions.
+    pub fn retry_plan(
+        original: &RestorePlan,
+        resolutions: impl IntoIterator<Item = RestoreResolution>,
+    ) -> Result<Option<RestorePlan>, RestoreFlowError> {
+        let original_by_document = original
+            .resolutions()
+            .iter()
+            .map(|resolution| (resolution.document().clone(), resolution.action()))
+            .collect::<BTreeMap<_, _>>();
+        let mut retry_by_document = BTreeMap::new();
+        for resolution in resolutions {
+            let document = resolution.document().clone();
+            let Some(original_action) = original_by_document.get(&document) else {
+                return Err(RestoreFlowError::UnexpectedResolution {
+                    document: document.as_str().to_string(),
+                });
+            };
+            if *original_action != resolution.action() {
+                return Err(RestoreFlowError::ChangedRetryAction {
+                    document: document.as_str().to_string(),
+                    original: *original_action,
+                    retry: resolution.action(),
+                });
+            }
+            if retry_by_document
+                .insert(document.clone(), resolution)
+                .is_some()
+            {
+                return Err(RestoreFlowError::DuplicateResolution {
+                    document: document.as_str().to_string(),
+                });
+            }
+        }
+        Ok((!retry_by_document.is_empty()).then(|| RestorePlan {
+            resolutions: retry_by_document.into_values().collect(),
+        }))
+    }
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -208,4 +277,12 @@ pub enum RestoreFlowError {
     MissingResolution { document: String },
     #[error("recovery decision references unexpected document `{document}`")]
     UnexpectedResolution { document: String },
+    #[error(
+        "recovery retry for `{document}` changed the original action from {original:?} to {retry:?}"
+    )]
+    ChangedRetryAction {
+        document: String,
+        original: RestoreAction,
+        retry: RestoreAction,
+    },
 }

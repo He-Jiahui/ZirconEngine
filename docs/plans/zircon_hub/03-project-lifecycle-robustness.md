@@ -27,6 +27,8 @@ status: in_progress
 
 > 2026-08-01 实仓复核：M1 的路径归一、shared manifest 校验、picker 注入、create 保目录恢复与相关单测，M2 的生产 fixture 判定删除与守卫，M3 的 recycler 注入、平台 recovery 与确定性测试均已落在当前源码。本文保留终态设计与验收口径，状态改为 `in_progress`；在受管 Hub package gate 与截图矩阵通过前，不把三个里程碑记为完成。
 
+- 失败交接（`open / 待受管复验`）：[shared recent-project loader test import drift](03/failure-2026-08-27-shared-recent-project-load-import.md)
+
 ## 现状与证据
 
 - create-project：`create_project()` 建目录与清单成功后，后续 remember/记录/persist 任一步失败都没有回滚——磁盘上有项目但 Hub 不可见，且重建同名项目会因"目录非空"失败（`runtime_state/project_actions.rs` create 链路，`create_project_from_payload`：22-90 行；`remember_lifecycle_project(...)?` 与 `persist_with_last_project(Some(&project_root))` 的错误直接向上冒泡）。

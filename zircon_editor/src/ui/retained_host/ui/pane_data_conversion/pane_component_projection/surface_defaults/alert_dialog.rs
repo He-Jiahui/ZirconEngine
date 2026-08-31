@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use super::super::super::pane_value_conversion::{value_as_bool, value_as_string};
+use super::super::super::pane_value_conversion::value_as_bool;
 use super::shared::{
     alert_color_severity, append_variant_token, dialog_severity, has_non_empty_attribute,
     pascal_case,
@@ -10,13 +10,8 @@ pub(super) fn append_alert_variant_tokens(
     attributes: &BTreeMap<String, toml::Value>,
     variant: &mut String,
 ) {
-    let alert_variant = attributes
-        .get("variant")
-        .or_else(|| attributes.get("mui_variant"))
-        .and_then(value_as_string)
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "standard".to_string());
-    append_variant_token(variant, &alert_variant);
+    let alert_variant = borrowed_alert_variant(attributes);
+    append_variant_token(variant, alert_variant);
 
     let severity = alert_color_severity(attributes);
     append_variant_token(variant, &severity);
@@ -30,6 +25,15 @@ pub(super) fn append_alert_variant_tokens(
     if alert_has_close_action(attributes) {
         append_variant_token(variant, "hasCloseAction");
     }
+}
+
+fn borrowed_alert_variant(attributes: &BTreeMap<String, toml::Value>) -> &str {
+    attributes
+        .get("variant")
+        .or_else(|| attributes.get("mui_variant"))
+        .and_then(toml::Value::as_str)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("standard")
 }
 
 fn alert_has_visible_icon(attributes: &BTreeMap<String, toml::Value>) -> bool {
@@ -92,3 +96,7 @@ pub(super) fn append_dialog_variant_tokens(
         append_variant_token(variant, "confirmDisabled");
     }
 }
+
+#[cfg(test)]
+#[path = "alert_dialog/borrowed_variant_tests.rs"]
+mod borrowed_variant_tests;

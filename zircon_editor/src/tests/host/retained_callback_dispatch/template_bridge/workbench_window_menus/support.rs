@@ -1,4 +1,4 @@
-pub(super) use std::collections::BTreeSet;
+pub(super) use std::collections::{BTreeMap, BTreeSet};
 pub(super) use std::sync::Arc;
 
 pub(super) use super::super::super::support::*;
@@ -8,15 +8,16 @@ pub(super) use super::super::support::{
 pub(super) use crate::core::asset::{
     AssetCreationTemplateDescriptor, AssetTypeContribution, AssetTypeId, AssetTypeRegistry,
 };
-pub(super) use crate::core::commands::EditorCommandDescriptor;
+pub(super) use crate::core::commands::{
+    CommandEvalCtx, EditorCommandDescriptor, EditorCommandRegistry, EditorKeyChord, EditorKeymap,
+};
 pub(super) use crate::core::editor_extension::EditorExtensionRegistry;
 pub(super) use crate::core::editor_operation::EditorOperationPath;
+pub(super) use crate::core::extension::{CapabilitySet, ContributionSnapshot};
 pub(super) use crate::core::play::{PlayKind, PlayMode};
+pub(super) use crate::core::settings::EditorKeymapOverrides;
 pub(super) use crate::ui::binding::AssetCommand;
 pub(super) use crate::ui::retained_host::menu_popup_contract::menu_popup_content_height;
-pub(super) use crate::ui::retained_host::popup_anchor_metrics::{
-    clamp_popup_x_to_bounds, toolbar_popup_render_gap,
-};
 pub(super) use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 pub(super) use crate::ui::workbench::fixture::default_preview_fixture;
 pub(super) use crate::ui::workbench::model::WorkbenchViewModel;
@@ -50,42 +51,87 @@ pub(super) fn assert_toolbar_menu_anchor(
         .unwrap_or_else(|error| panic!("{trigger_id} should dispatch: {error:?}"))
         .unwrap_or_else(|| panic!("{trigger_id} should expose a click binding"));
 
-    let menu = bridge
+    let arranged_menu = bridge
         .control_frame(menu_id)
         .unwrap_or_else(|| panic!("{menu_id} should open with a visible menu frame"));
+    let menu = rendered_control_frame(bridge, menu_id);
     let authored_x = match align {
         ToolbarMenuAlign::Start => trigger.x,
-        ToolbarMenuAlign::End => trigger.right() - menu.width,
+        ToolbarMenuAlign::End => trigger.right() - arranged_menu.width,
     };
-    let expected_x = clamped_toolbar_menu_x(authored_x, menu.width, root.width);
+    let expected_x = authored_x.clamp(root.x, root.right() - arranged_menu.width);
     assert_near(&format!("{menu_id} x"), menu.x, expected_x);
     assert_near(&format!("{menu_id} y"), menu.y, toolbar.bottom());
-    assert_near(
-        &format!("{menu_id} popup_anchor_x"),
-        control_float(bridge, menu_id, "popup_anchor_x")
-            .unwrap_or_else(|| panic!("{menu_id} should store popup_anchor_x")) as f32,
-        menu.x,
+    assert_near(&format!("{menu_id} width"), menu.width, arranged_menu.width);
+    let node = bridge
+        .surface()
+        .tree
+        .nodes
+        .values()
+        .find(|node| {
+            node.template_metadata
+                .as_ref()
+                .and_then(|metadata| metadata.control_id.as_deref())
+                == Some(menu_id)
+        })
+        .unwrap_or_else(|| panic!("{menu_id} should resolve to one runtime node"));
+    let metadata = node
+        .template_metadata
+        .as_ref()
+        .expect("menu node should retain template metadata");
+    assert_eq!(
+        metadata.widget.popup_anchor.control_id(),
+        Some(trigger_id),
+        "{menu_id} should resolve its live trigger through the runtime widget contract"
     );
-    assert_near(
-        &format!("{menu_id} popup_anchor_y"),
-        control_float(bridge, menu_id, "popup_anchor_y")
-            .unwrap_or_else(|| panic!("{menu_id} should store popup_anchor_y")) as f32,
-        menu.y,
+    assert_eq!(
+        control_string(bridge, menu_id, "placement").as_deref(),
+        Some(match align {
+            ToolbarMenuAlign::Start => "bottom-start",
+            ToolbarMenuAlign::End => "bottom-end",
+        })
     );
     assert_near(
         &format!("{menu_id} popup_offset_y"),
         control_float(bridge, menu_id, "popup_offset_y")
-            .unwrap_or_else(|| panic!("{menu_id} should store popup_offset_y")) as f32,
-        -toolbar_popup_render_gap(),
+            .unwrap_or_else(|| panic!("{menu_id} should declare popup_offset_y")) as f32,
+        toolbar.bottom() - trigger.bottom() - 4.0,
     );
-    assert_eq!(
-        control_string(bridge, menu_id, "placement").as_deref(),
-        Some("bottom-start")
-    );
+    assert_eq!(control_float(bridge, menu_id, "popup_anchor_x"), None);
+    assert_eq!(control_float(bridge, menu_id, "popup_anchor_y"), None);
 }
 
-pub(super) fn clamped_toolbar_menu_x(authored_x: f32, menu_width: f32, root_width: f32) -> f32 {
-    clamp_popup_x_to_bounds(authored_x, 0.0, root_width, menu_width)
+pub(super) fn rendered_control_frame(
+    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    control_id: &str,
+) -> UiFrame {
+    let node_id = bridge
+        .surface()
+        .tree
+        .nodes
+        .values()
+        .find_map(|node| {
+            node.template_metadata
+                .as_ref()
+                .and_then(|metadata| metadata.control_id.as_deref())
+                .filter(|candidate| *candidate == control_id)
+                .map(|_| node.node_id)
+        })
+        .unwrap_or_else(|| panic!("{control_id} should resolve to one runtime node"));
+    bridge
+        .surface()
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .filter(|command| command.node_id == node_id)
+        .map(|command| command.frame)
+        .max_by(|left, right| frame_area(*left).total_cmp(&frame_area(*right)))
+        .unwrap_or_else(|| panic!("{control_id} should emit popup render commands"))
+}
+
+fn frame_area(frame: UiFrame) -> f32 {
+    frame.width.max(0.0) * frame.height.max(0.0)
 }
 
 pub(super) fn assert_near(label: &str, actual: f32, expected: f32) {

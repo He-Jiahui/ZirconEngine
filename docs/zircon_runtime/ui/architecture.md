@@ -29,6 +29,16 @@ related_code:
   - zircon_runtime/src/ui/tree/node/scroll.rs
   - zircon_runtime/src/ui/tests/scroll_virtualization.rs
   - zircon_runtime/src/ui/surface/mod.rs
+  - zircon_runtime/src/ui/surface/surface/rebuild.rs
+  - zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs
+  - zircon_runtime/src/ui/surface/surface/property_transaction.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs
+  - tools/tests/test_runtime_ui_pointer_template_action_owner_structure.py
+  - zircon_runtime/src/ui/template/asset/surface_index.rs
+  - zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs
+  - tools/tests/test_runtime_ui_asset_surface_node_resource_owner_structure.py
   - zircon_runtime/src/ui/surface/focus.rs
   - zircon_runtime/src/ui/surface/input
   - zircon_runtime/src/ui/surface/input/dispatch.rs
@@ -69,7 +79,12 @@ related_code:
   - zircon_runtime/src/ui/accessibility/extract.rs
   - zircon_runtime/src/ui/accessibility/extract/state.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
+  - zircon_runtime/src/ui/component/catalog/editor_showcase/descriptors.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase/descriptor_builders.rs
+  - zircon_runtime_interface/src/ui/v2/asset.rs
+  - zircon_runtime/src/ui/v2/component_instancer.rs
+  - zircon_editor/assets/ui/editor/product_binding_fixture.zui
+  - zircon_editor/src/tests/ui/boundary/template_assets/product_binding_fixture.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_component_catalog_editor_showcase.rs
   - zircon_runtime/src/ui/tests/accessibility.rs
   - zircon_runtime/src/ui/tests/accessibility/extraction.rs
@@ -265,6 +280,7 @@ implementation_files:
   - zircon_runtime/src/ui/accessibility/extract/state.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_accessibility_extract.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
+  - zircon_runtime/src/ui/component/catalog/editor_showcase/descriptors.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase/descriptor_builders.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_component_catalog_editor_showcase.rs
   - zircon_runtime/src/ui/tests/accessibility.rs
@@ -468,12 +484,12 @@ tests:
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_taffy_layout_pass_order_uses_bridge_authority
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_virtualization_scroll_boundary_records_invalidation_authority
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_template_pipeline_boundary_records_compile_instance_validate_authority
-  - zircon_runtime::ui::tests::scroll_virtualization::virtualized_list_only_materializes_visible_window
+  - zircon_runtime::ui::tests::scroll_virtualization::retained_virtual_list_only_arranges_visible_window
   - zircon_runtime::ui::tests::scroll_virtualization::scroll_offset_invalidates_virtualization_window
   - zircon_runtime::ui::tests::scroll_virtualization::non_virtualized_scroll_offset_keeps_full_window_dirty_domain
   - zircon_runtime::ui::tests::template_pipeline::template_validate_rejects_unknown_component_contract
   - zircon_runtime::ui::tests::template_pipeline::template_instance_failure_surfaces_loader_error
-  - zircon_runtime::ui::tests::template_pipeline::compiled_template_artifact_stays_binary_leaf_dto_not_generated_source
+  - zircon_runtime::ui::tests::template_pipeline::compiled_template_artifact_stays_toml_envelope_leaf_dto_not_generated_source
   - ui_architecture_boundary targeted audit
   - docs/zircon_runtime/ui/v2.md
   - docs/zircon_runtime/ui/dispatch/input_manager.md
@@ -517,7 +533,7 @@ Current scan baseline:
 | `surface/` | Retained surface state and runtime interaction state | Owns arranged output, hit testing, focus, popup stack, input state, component state, property mutation, default interactions, reflection snapshots, render collection data, timeline, and diagnostics. |
 | `dispatch/` | UI route manager | Owns the route authority entry point documented by `UiInputManager`: capture, popup, preview, target, bubble, focus, default action. |
 | `platform_input/` | Platform input normalization | Feature-gated `platform-winit` owner for winit `WindowEvent` and modifier normalization before events enter `UiWindowInputPumpBatch`; editor-local winit interpretation is slated for deletion in Editor UI 01.M1.S3. |
-| `template/` | Asset/build/instance/loader/validate/pipeline boundary | Owns template compilation, validation, dependency indexing, hot reload coordination, and old template migration surfaces. M3.1 records `UiTemplateRuntimePipeline` as the thin `load -> validate -> instance -> build` owner boundary while v2 remains the replacement mainline. |
+| `template/` | Asset compiler/build/instance boundary | Owns template loading, compilation, validation, dependency indexing, hot reload coordination, and surface construction. Runtime74 `RTB-P1-001` hard-cuts the old recursive loader/validator/pipeline so `UiDocumentCompiler` is the single source-template authority. |
 | `v2/` | Runtime v2 loader, compiler, prototype cache, style resolver, surface builder, surface tree | Runtime implementation of the v2 schema. It consumes `zircon_runtime_interface::ui::v2` DTOs and creates runtime surfaces. |
 | `component/` | Component descriptor catalog and state reducers | Owns runtime catalog metadata and component state reduction, including editor shell component entries that are still runtime projection data. |
 | `tree/` | Runtime tree extensions and hit-test helpers | Utility owner for UI node tree traversal and hit-test integration. |
@@ -550,7 +566,7 @@ No M0 blocker-level owner inversion was found in the scanned module graph. The r
 1. UI legacy naming and migration terms: production UI source now contains no `legacy` scan hits after Runtime 09 M1.2 cutovers. `runtime_09_m1_2_navigation_legacy_reply_renamed_static_passed_cargo_pending` removed the navigation reply variable from this bucket by renaming the local route reply to `routed_reply`; `runtime_09_m1_2_pointer_legacy_reply_renamed_static_passed_cargo_pending` removed the pointer reply local naming debt by using `routed_result`; `runtime_09_m1_2_pointer_capture_fallback_renamed_static_passed_cargo_pending` removed the pointer capture fallback API wording debt, and Editor UI 01.M4.S1 now requires indexed ownership through `has_pointer_capture_for_owner`; `runtime_09_m1_2_table_row_label_fallback_renamed_static_passed_cargo_pending` removed the render table row-label fallback wording debt by using `split_row_label_table_text`; `runtime_09_m1_2_template_component_name_fallback_renamed_static_passed_cargo_pending` removed the template interaction inference wording debt by using `component_name_interaction_fallback`; `runtime_09_m1_2_property_visibility_flag_renamed_static_passed_cargo_pending` removed the property mutation visibility-transition wording debt by using `state_visible_flag`; `runtime_09_m1_2_responsive_mui_visibility_flag_renamed_static_passed_cargo_pending` removed the responsive MUI visibility DTO wording debt by using the same `state_visible_flag` semantic name; `runtime_09_m1_2_accessibility_open_state_fallback_renamed_static_passed_cargo_pending` removed the accessibility open-state fallback wording debt by using `fallback_properties`; `runtime_09_m1_2_layout_engine_backend_name_cutover_static_passed_cargo_pending` removed the layout-engine public backend wording debt by hard-cutting to `UiLayoutEngineBackend::Zircon`, `UiLayoutEngineCapability::zircon()`, and `zircon_selected_count`; `runtime_09_m1_2_surface_default_interaction_fallback_renamed_static_passed_cargo_pending` removed the final surface default interaction fallback wording debt by using `fallback_properties` in `default_open_boolean_value(...)`.
 2. Taffy backend exposure: 9 production files currently mention `taffy`. `runtime_09_m2_1_taffy_bridge_pass_order_static_passed_cargo_pending` hardens the intended owner shape: `taffy_bridge/compute.rs` owns Taffy tree construction and `compute_layout`, `pass/taffy_arrange.rs` owns eligibility/fallback/recursive arrange only, and `style_mapping.rs` remains `runtime_09_m2_1_style_mapping_remains_taffy_dto_adapter`.
 3. Virtualization and scroll cache invalidation: `runtime_09_m2_2_virtualization_scroll_boundary_static_passed_cargo_pending` records `UiScrollVirtualizationPlan` as the layout-owned authority for scroll offset, viewport/content extent, and visible-range invalidation. Tree scrolling and layout arrange consume that planner; render, hit grid, and editor code do not compute virtual windows.
-4. Template generation and migration: `runtime_09_m3_1_template_compile_instance_validate_boundary_static_passed_cargo_pending` records `UiTemplateRuntimePipeline`, `UI_TEMPLATE_RUNTIME_PIPELINE_STAGES`, `UiTemplateRuntimePipelineError`, template failure-path anchors, and the binary DTO generated policy. Old recursive template paths still coexist with v2 runtime paths as migration/test surfaces.
+4. Template generation and migration: Runtime74 `RTB-P1-001` supersedes the earlier Runtime09 split-pipeline boundary. `UiAssetLoader -> UiDocumentCompiler -> UiCompiledDocument -> UiTemplateSurfaceBuilder` is now the only source-to-surface path; the recursive document, loader, validator, and pipeline types are deleted. The binary DTO generated policy remains unchanged.
 
 ## M1.1 Input Route Authority
 
@@ -876,17 +892,30 @@ Runtime 15 M4 keeps accessibility snapshot traversal, relation-target pruning, n
 
 runtime_15_ui_component_catalog_editor_showcase_helper_owner_split_static_passed_cargo_timeout_no_result
 
-Runtime 15 M4 keeps the editor showcase registry, descriptor list, descriptor assembly entry point, and representative component catalog coverage in `ui/component/catalog/editor_showcase.rs` while splitting reusable descriptor construction into `ui/component/catalog/editor_showcase/descriptor_builders.rs`. The child owner now owns base descriptor setup, layout-role/default-template projection, palette metadata, fallback policy, option/slot/value prop schema builders, and TOML layout helper construction; the original M4 `helpers.rs` owner name was later hard-cut to the responsibility name by the Runtime 15 M2 naming slice.
+Runtime 15 M4 originally kept the editor showcase registry, descriptor list, descriptor assembly entry point, and representative component catalog coverage in `ui/component/catalog/editor_showcase.rs` while splitting reusable descriptor construction into `ui/component/catalog/editor_showcase/descriptor_builders.rs`. Runtime74 P2 later moved the descriptor list and assembly entry point into `ui/component/catalog/editor_showcase/descriptors.rs`, leaving the root module responsible only for the process registry and registration execution. The descriptor-builder child continues to own base descriptor setup, layout-role/default-template projection, palette metadata, fallback policy, option/slot/value prop schema builders, and TOML layout helper construction; the original M4 `helpers.rs` owner name was hard-cut to the responsibility name by the Runtime 15 M2 naming slice.
 
-`runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner` locks the parent/child layout, prevents descriptor helper and palette/fallback construction from moving back into the parent, keeps both production owners under the Runtime 15 file budget, and records the status-output expectation in the Runtime 15 M4 row data. This is static structure evidence only; focused Cargo timed out after 305 seconds with no diagnostic result and is not counted as passing.
+`runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner` now locks the three-owner layout, prevents generated declarations or descriptor helper construction from moving back into the handwritten registry executor, and keeps all production owners under the Runtime 15 file budget. This remains static structure evidence; the historical focused Cargo attempt timed out after 305 seconds with no diagnostic result and is not counted as passing.
 
 ## Runtime 15 M2 UI editor showcase descriptor builders module naming hard cutover
 
 runtime_15_ui_editor_showcase_descriptor_builders_naming_hard_cutover_static_passed_cargo_deferred
 
-Runtime 15 M2 deletes the retired `ui/component/catalog/editor_showcase/helpers.rs` owner name and hard-cuts the descriptor construction owner to `ui/component/catalog/editor_showcase/descriptor_builders.rs`. `ui/component/catalog/editor_showcase.rs` now mounts only `mod descriptor_builders;` and imports descriptor construction, layout role/default template projection, palette metadata, fallback policy, option/slot/value prop schema builders, and TOML layout helpers from the responsibility-named owner.
+Runtime 15 M2 deletes the retired `ui/component/catalog/editor_showcase/helpers.rs` owner name and hard-cuts the descriptor construction owner to `ui/component/catalog/editor_showcase/descriptor_builders.rs`. The Runtime74 P2 layout mounts that builder beside `descriptors.rs`; only the declaration owner imports descriptor construction, layout role/default template projection, palette metadata, fallback policy, option/slot/value prop schema builders, and TOML layout helpers.
 
 `runtime_15_ui_editor_showcase_descriptor_builders_use_owner_name` locks the old file absence, the new owner/module entry/caller import shape, the synchronized M4 production-budget guard path, and the Runtime 15/status/docs mirrors. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone implementation cadence.
+
+## Runtime74 P2 editor-showcase catalog/executor split
+
+`ui/component/catalog/editor_showcase.rs` is the handwritten executor owner: it owns the shared
+registry, public registry constructors, and ordered descriptor registration. The large catalog
+declaration lives in `ui/component/catalog/editor_showcase/descriptors.rs`, while reusable schema
+builders remain in `descriptor_builders.rs`. The declaration owner is private to the executor and
+exports only `editor_showcase_descriptors`, so catalog samples cannot accumulate registry behavior
+or another public lookup authority.
+
+The existing structure-convention test is the source-boundary guard for this folder shape. Catalog
+behavior remains locked separately by the editor-showcase small-stack test and the component catalog
+inventory tests; the folder-shape assertion does not claim runtime execution evidence.
 
 ## Runtime 15 M4 UI surface event-routing owner split
 
@@ -1112,23 +1141,51 @@ Invalidation timing is now explicit:
 - Viewport and content changes are settled in `layout/pass/arrange.rs`, which consumes the same planner after measurement has produced `content_size` and the parent frame has produced `viewport_extent`. The resulting full or virtual window is cached in `node.layout_cache.virtual_window`.
 - Data changes that alter child count or measured content extent flow through layout dirtiness into the arrange pass. Virtualized scroll containers mark `visible_range` when the planned window, viewport extent, or content extent changes. Non-virtualized scroll containers keep a full-window cache and do not report `visible_range` changes for ordinary scroll offset movement.
 
-Behavior coverage is recorded by `scroll_virtualization.rs`: `virtualized_list_only_materializes_visible_window`, `scroll_offset_invalidates_virtualization_window`, and `non_virtualized_scroll_offset_keeps_full_window_dirty_domain`. Package behavior filters are still deferred by the current implementation-first request, but the tests are present and wired into `ui/tests/mod.rs`.
+Behavior coverage is recorded by `scroll_virtualization.rs`: `retained_virtual_list_only_arranges_visible_window`, `scroll_offset_invalidates_virtualization_window`, and `non_virtualized_scroll_offset_keeps_full_window_dirty_domain`. The first name is deliberately limited to arranged geometry; it does not claim bounded row instances. Package behavior filters are still deferred by the current implementation-first request, but the tests are present and wired into `ui/tests/mod.rs`.
 
-## M3.1 Template Pipeline Boundary
+## Runtime74 Single Template Compiler Authority
 
-runtime_09_m3_1_template_compile_instance_validate_boundary_static_passed_cargo_pending
+RTB-P1-001
 
-The old recursive template path now has an explicit runtime entry in `UiTemplateRuntimePipeline`. `UI_TEMPLATE_RUNTIME_PIPELINE_STAGES` fixes the phase order as:
+Status: validation_pending
+
+The current source-to-surface path is:
 
 ```text
-load -> validate -> instance -> build
+UiAssetLoader -> UiDocumentCompiler -> UiCompiledDocument -> UiTemplateSurfaceBuilder
 ```
 
-The stage owners are intentionally narrow. `UiTemplateLoader` owns TOML parse and file IO, `UiTemplateValidator` owns structural contract validation, `UiTemplateInstance::from_validated_document(...)` owns already-validated expansion, and `UiTemplateSurfaceBuilder` owns lazy `UiSurface` construction. `UiTemplateRuntimePipelineError` keeps those phases observable as `Load`, `Validate`, `Instance`, and `Build`, so callers and tests can tell which boundary rejected the document.
+`UiDocumentCompiler` is the only validation and expansion authority and emits the one retained
+artifact schema. The old `UiTemplateLoader`, `UiTemplateValidator`, `UiTemplateRuntimePipeline`,
+`UiTemplateDocument`, and `UiTemplateError` contracts are removed without facade aliases. Runtime
+layout/input fixtures deserialize compiled `UiTemplateNode` trees only and reject unresolved
+template or slot fields.
 
-The M3.1 failure-path anchors are present in `template_pipeline.rs`: `template_validate_rejects_unknown_component_contract`, `template_instance_failure_surfaces_loader_error`, and `compiled_template_artifact_stays_binary_leaf_dto_not_generated_source`. Broader package behavior execution remains deferred by the current implementation-first request.
+The acceptance anchors in `template_pipeline.rs` are
+`asset_compiler_is_the_single_template_compile_authority`,
+`legacy_recursive_template_document_is_not_a_runtime_compile_input`,
+`template_compiler_authority_has_bounded_p95_latency`, and
+`compiled_template_artifact_stays_toml_envelope_leaf_dto_not_generated_source`. The performance gate
+emits `PERF-RUNTIME74-COMPILER-AUTHORITY` from 21 samples using nearest-rank P95. Cargo and measured
+performance evidence remain `validation_pending` until the coordinator batch completes.
 
-Generated output policy is tied to Runtime 02 M4. `UiRuntimeCompiledAssetArtifact::generated_policy()` records `runtime_09_m3_1_binary_leaf_dto_artifact_not_generated_source`; current compiled template package output is a binary/TOML DTO payload and does not require a generated-source marker. If a future template compiler writes source files, the first line must be `// @generated <generator> - do not edit by hand`, and the generated file may only contain leaf DTO/table/adaptor material, not runtime validation, loading, expansion, or surface mutation behavior.
+Generated output policy is tied to Runtime 02 M4. `UiRuntimeCompiledAssetArtifact::generated_policy()` records `runtime_09_m3_1_toml_envelope_leaf_dto_not_generated_source`; current compiled template package output is a framed TOML envelope DTO and does not require a generated-source marker. If a future template compiler writes source files, the first line must be `// @generated <generator> - do not edit by hand`, and the generated file may only contain leaf DTO/table/adaptor material, not runtime validation, loading, expansion, or surface mutation behavior.
+
+## Runtime74 Compiled Binding Identity and Endpoint Program
+
+RTB-P1-002 / RTB-P1-003
+
+The canonical compiler now emits `UiCompiledBindingProgram` inside `UiTemplateInstance`. Authoring
+names remain readable strings in source assets, while compiled bindings use distinct dense IDs for
+binding, property, control, route, action, node, and target domains. Handles include the canonical
+tree fingerprint generation. `UiTemplateSurfaceBuilder` installs that program into `UiSurface`, and
+pointer events carry typed binding handles into the target executor.
+
+Runtime target execution validates generation/node/event/binding identity before preparing an
+atomic mutation. Stale or missing endpoints fail closed. Valid execution no longer reparses target
+expressions, clones binding DTOs, or constructs a string-keyed per-dispatch index. The new artifact
+contract is compiler schema 8, TOML envelope schema 3, magic `ZRUIA018`. Grouped Cargo and 21-pair
+nearest-rank P95 evidence remain validation pending.
 
 ## V2 Verdict
 
@@ -1136,13 +1193,20 @@ v2-replacement-mainline
 
 The v2 UI path is the replacement mainline for authored runtime/editor UI assets, not dead code and not a second unconstrained runtime contract.
 
+V2 component instances now carry typed `params` through the same canonical value and binding
+resolvers used by the template compiler. Expansion fails on missing, unknown, or wrong-kind values,
+resolves target/action expressions before arena publication, and keeps caller/callee scopes distinct
+for nested and repeated instances. The Editor product binding fixture executes this path, exercises
+file-cache reload and last-known-good rejection, and advances compiler schema to 6 so prior V2 cache
+entries cannot bypass the contract.
+
 Runtime 10 M2.2 now mirrors this verdict through `runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending`: interface `ui/v2` owns the v2 asset/compiled/style DTOs, runtime `ui/v2` consumes those DTOs for loader/cache/compiler/instancer behavior, and `UiComponentApiVersion` remains the interface-owned component contract version. Runtime validation continues to report `UiComponentContractDiagnosticCode::ApiMismatch` via `actual.is_compatible_with(required)`; the current Runtime 10 structural mirror records `ui_v2_contract_sync_anchors = 9/9` and keeps `v2-replacement-mainline` mutually linked with Runtime 09.
 
 The source-profile split is:
 
 - `.zui` is the production component asset suffix for imported project/editor component assets.
 - `.v2.ui.toml` remains valid for v2 view/style/runtime fixture/editor chrome assets that are loaded through the v2 cache path, but it is not the general production component importer path.
-- recursive `UiTemplateNode` and old template document paths are legacy/migration/test-only surfaces until M3 proves their remaining owners and deletion conditions.
+- `UiTemplateNode` is retained only as the compiled tree DTO consumed by surface construction; old recursive source-template documents and their runtime loader/validator pipeline are deleted.
 
 Current evidence:
 
@@ -1157,15 +1221,15 @@ Migration route:
 1. Keep `zircon_runtime_interface::ui::v2` as the neutral contract layer.
 2. Keep `zircon_runtime::ui::v2` as the sole runtime implementation layer for v2 cache, compilation, style resolution, and surface construction.
 3. Keep editor usage on asset/cache/projection APIs; editor code may not grow a parallel runtime builder.
-4. Delete or isolate old recursive template paths only after M3 records owner files, generated-file rules, fixture exceptions, and failure-path tests.
+4. Keep the Runtime74 hard cut: do not reintroduce a second source loader, validator, expander, or compatibility facade beside `UiDocumentCompiler`.
 
 Deletion conditions for non-v2 runtime paths:
 
 - production project/editor component importers do not accept old recursive `.ui.toml` component documents;
 - component catalog and editor shell projection use v2 assets or `.zui` component assets;
-- runtime fixtures and test-support preview manager have no fallback through `UiTemplateTreeBuilder` or old `UiTemplateSurfaceBuilder`;
+- runtime fixtures and test-support preview manager consume compiled trees or compiled documents and do not parse source templates through the surface builder;
 - migration fixtures are named and isolated from production asset registration;
-- template compile/instance/validate failure paths have explicit tests and generated output markers where they write files.
+- canonical asset compile failure paths have explicit tests and generated output markers where they write files.
 
 ## Static Acceptance
 
@@ -1176,10 +1240,10 @@ This Runtime 09 record contains the M0 documentation/status pass, the M1.1 norma
 - `legacy` full-tree and production-file baselines are recorded separately after the Runtime 09 M1.2 navigation, pointer reply, pointer-capture fallback, table row-label fallback, template component-name fallback, property visibility flag, responsive MUI visibility flag, accessibility open-state fallback, layout engine backend name, and surface default interaction fallback cutovers;
 - `taffy` production-file baseline is refreshed after M2.1 to record the bridge-directory and pass-order owner shape;
 - `UiScrollVirtualizationPlan` and `plan_scrollable_virtual_window(...)` are recorded as the Runtime 09 M2.2 owner boundary for scroll offset, viewport/content extent, and virtual-window invalidation;
-- `UiTemplateRuntimePipeline`, `UI_TEMPLATE_RUNTIME_PIPELINE_STAGES`, and `UiTemplateRuntimePipelineError` are recorded as the Runtime 09 M3.1 template load/validate/instance/build boundary;
-- `runtime_09_m3_1_binary_leaf_dto_artifact_not_generated_source` records that current compiled template artifacts are binary DTO payloads rather than generated source; future generated source must use `// @generated <generator> - do not edit by hand`;
+- Runtime74 `RTB-P1-001` records `UiDocumentCompiler` as the single source-template compiler authority and statically rejects the retired recursive pipeline symbols;
+- `runtime_09_m3_1_toml_envelope_leaf_dto_not_generated_source` records that current compiled template artifacts are framed TOML envelope DTOs rather than generated source; future generated source must use `// @generated <generator> - do not edit by hand`;
 - v2 is explicitly classified as replacement mainline with a source-profile split and deletion conditions.
-- `runtime_absorption::ui_architecture` now guards the module count, baseline scan values, v2 runtime/interface module shape, the route authority note, the direct pointer/navigation owner verdict, the navigation reply rename, the pointer reply rename, the pointer-capture fallback rename, the table row-label fallback rename, the template component-name fallback rename, the property visibility flag rename, the responsive MUI visibility flag rename, the accessibility open-state fallback rename, the layout engine backend name cutover, the surface default interaction fallback rename, the Taffy bridge/pass-order authority, the virtualization/scroll invalidation planner, the template pipeline/generated-policy boundary, and the plan/index anchors.
+- `runtime_absorption::ui_architecture` now guards the module count, baseline scan values, v2 runtime/interface module shape, the route authority note, the direct pointer/navigation owner verdict, the navigation reply rename, the pointer reply rename, the pointer-capture fallback rename, the table row-label fallback rename, the template component-name fallback rename, the property visibility flag rename, the responsive MUI visibility flag rename, the accessibility open-state fallback rename, the layout engine backend name cutover, the surface default interaction fallback rename, the Taffy bridge/pass-order authority, the virtualization/scroll invalidation planner, the single compiler authority/generated-policy boundary, and the plan/index anchors.
 - 2026-07-01 Runtime 09 UI entry map audit sync records `expected_ui_entry_count = 19` and `expected_surface_entry_count = 21`: `ui/platform_input/` is a current top-level runtime UI owner, `ui/surface/property_mutation/` is the current surface child owner beside `property_mutation.rs`, `has_pointer_capture_or_unindexed_fallback_for_owner` remains the mirror doc anchor for the pointer-capture fallback cutover, and `ui_architecture_boundary` reports `missing_doc_anchors = []` with `risks = []`. This only syncs static structure evidence; behavior and Cargo gates remain deferred.
 - 2026-07-10 Runtime Text adds two narrow direct surface leaves: `ui/surface/text_geometry.rs` owns shaped caret/range frames and `ui/surface/text_shape.rs` owns direct shaped-line projection. The Runtime 09 surface entry map is therefore 23; these leaves reuse shared text/graphics owners and do not create another UI architecture path.
 - `ui_architecture_boundary` mirrors the same static facts while `ui_architecture_markdown.py` owns Markdown rendering: `ui_architecture_boundary.py` remains the audit/risk owner, `ui_architecture_markdown.py` is the renderer, `expected_source_file_count = 52`, `expected_ui_entry_count = 20`, `expected_surface_entry_count = 26`, `legacy_full_hits = 70`, `expected_legacy_full_hits = 70`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 175`, `expected_taffy_production_hits = 175`, `taffy_production_file_count = 10`, `expected_taffy_production_file_count = 10`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. The current UI entry map includes the editable-text composition owner (`editable_text_composition.rs`). The surface entry map includes the retained control-id index (`control_index.rs`), the split focus owner (`focus/` beside `focus.rs`), and the invalidation transaction owner (`invalidation.rs`). Full-tree lowercase `legacy` hits remain test/fixture-only; production stays at zero. `runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts` keeps this current module document aligned with the source audit. Numbered plan archives retain their historical snapshots. This is static structure evidence only.
@@ -1190,3 +1254,68 @@ This Runtime 09 record contains the M0 documentation/status pass, the M1.1 norma
 Current Runtime 15 UI guard anchors are mirrored here for the structure sweep: `Runtime 15 M4 UI dispatch input manager test owner split`, `runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred`, `ui/dispatch/input_manager/manager/tests.rs`, `runtime_15_ui_dispatch_input_manager_tests_are_child_owner`, `Runtime 15 M4 UI v2 style token-resolution owner split`, `runtime_15_ui_v2_style_token_resolution_owner_split_static_passed_cargo_deferred`, `ui/v2/style/tokens.rs`, `runtime_15_ui_v2_style_token_resolution_is_child_owner`, `Runtime 15 M3 UI asset MUI web form style test folder split`, `runtime_15_ui_asset_mui_web_form_style_tests_folder_split_static_passed_cargo_deferred`, `ui/tests/asset_mui_web_form_style.rs`, `ui/tests/asset_mui_web_form_style/form_controls.rs`, `runtime_15_ui_asset_mui_web_form_style_tests_are_folder_backed`, `Runtime 15 M3 UI asset surface index test folder split`, `runtime_15_ui_asset_surface_index_tests_folder_split_static_passed_cargo_deferred`, `ui/tests/asset_surface_index.rs`, `ui/tests/asset_surface_index/surface_edges.rs`, `ui/tests/asset_surface_index/dirty_targets.rs`, `runtime_15_ui_asset_surface_index_tests_are_folder_backed`, `ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/focus_path.rs`, `ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/selection.rs`, `Runtime 15 M3 UI runtime input reply table pointer route folder split`, `runtime_15_ui_runtime_input_reply_table_pointer_routes_folder_split_static_passed_cargo_deferred`, `ui/tests/runtime_input_reply_routes/table_pointer_routes.rs`, `ui/tests/runtime_input_reply_routes/table_pointer_routes/resize.rs`, `ui/tests/runtime_input_reply_routes/table_pointer_routes/virtualization.rs`, `runtime_15_ui_runtime_input_reply_table_pointer_routes_are_folder_backed`, `ui/tests/widget_text_input_keyboard/selection_navigation.rs`, and `ui/tests/widget_text_input_keyboard/text_ime.rs`.
 
 Shared-core/focus mirrors for the same sweep: `ui/tests/focus_navigation/modal_popup.rs`, `Runtime 15 M3 UI shared core input visibility child folder split`, `runtime_15_ui_shared_core_input_visibility_child_folder_split_static_passed_cargo_deferred`, `ui/tests/shared_core/input_visibility/hit_visibility.rs`, `ui/tests/shared_core/input_visibility/pointer_routes.rs`, `runtime_15_ui_shared_core_input_visibility_children_are_folder_backed`, `Runtime 15 M3 UI shared core layout surface child folder split`, `runtime_15_ui_shared_core_layout_surface_child_folder_split_static_passed_cargo_deferred`, `ui/tests/shared_core/layout_surface/layout_measurement.rs`, `ui/tests/shared_core/layout_surface/render_extract.rs`, `runtime_15_ui_shared_core_layout_surface_children_are_folder_backed`, `Runtime 15 M3 UI shared core scroll mutation child folder split`, `runtime_15_ui_shared_core_scroll_mutation_child_folder_split_static_passed_cargo_deferred`, `ui/tests/shared_core/scroll_mutation/property_mutation.rs`, `ui/tests/shared_core/scroll_mutation/virtual_scroll.rs`, and `runtime_15_ui_shared_core_scroll_mutation_children_are_folder_backed`.
+
+## UiSurface Rebuild Ownership
+
+`ui/surface/surface/rebuild.rs` owns full rebuild, render-extract assembly, dirty mutation and the
+public full-layout entry. `rebuild/incremental.rs` owns the existing `rebuild_dirty` transaction,
+incremental-to-full layout budget and layout-engine report patch/merge policy. Both are inherent
+implementations of the same `UiSurface`; there is one tree, invalidation transaction, render cache,
+navigation index and published surface frame. This mirrors Unreal Slate's root coordination versus
+invalidation list/heap/index support ownership without importing a second runtime state model.
+
+Current structure status is
+`runtime_09_15_ui_surface_incremental_rebuild_owner_split_static_passed_cargo_profile_deferred`:
+the parent is 500 lines, the child 711 lines, and four moved core items are normalized-equivalent to
+their pre-split source. This is ownership evidence only. Full-subtree dirty-frontier work, persistent
+Taffy, accurate local-patch outcomes, product Cargo execution and CPU/allocation/RSS/power profiling
+remain open.
+
+## UiSurface Property Transaction Ownership
+
+`ui/surface/surface/property_transaction.rs` is the single surface-level property transaction owner.
+It projects an accepted tree mutation into component state, runtime style, focus/popup state, editable
+text, clipboard revision and typed invalidation on the same `UiSurface`. The root `surface.rs` owns the
+state container, construction, invalidation transaction entry, runtime-style application and query/
+projection APIs; it does not keep a duplicate mutation route. This follows Unreal Slate's separation
+between widget/root state and attribute descriptor/value-change invalidation mapping.
+
+Current structure status is
+`runtime_09_15_ui_surface_property_transaction_owner_split_static_passed_cargo_profile_deferred`:
+the parent is 483 lines, the child 485 lines, and all 12 moved methods/helpers are normalized-equivalent
+to their pre-split source. Mutation, popup, editable-text and focus behavior has not been optimized;
+Cargo/product and CPU/allocation/RSS/power profiling remain open.
+
+## Pointer Component State Ownership
+
+`ui/surface/surface/pointer_component_events.rs` owns retained pointer component-event envelopes,
+focus events and damage collection. Its `pointer_component_events/template_action.rs` child owns
+compiled binding handle validation, declarative action/route selection, missing-value policy and
+payload expression/property resolution. The sibling `state_invalidation.rs` owns hover/pressed/focus
+component-state transitions, pseudo-style propagation and render dirty on the same `UiSurface`.
+This follows the local Unreal `SlateApplication` pointer-routing, `FUIAction` contract and `SWidget`
+state division without adding another event router, action registry or state cache.
+
+Current state-owner status is
+`runtime_09_15_ui_pointer_component_state_owner_split_static_passed_cargo_profile_deferred`: all
+seven moved state items remain normalized-equivalent to their pre-split source. Current action-owner
+status is `runtime_09_15_ui_pointer_template_action_owner_split_static_passed_cargo_profile_deferred`:
+the event root is 426 lines, the action child 262 lines, the state child 226 lines, and all nine moved
+action methods are normalized-equivalent. Ancestor/style/dirty, event ordering, handle mapping,
+missing-value and payload algorithms are unchanged; Cargo/product and CPU/allocation/RSS/power
+profiling remain open.
+
+## UI Asset Surface Index Ownership
+
+`ui/template/asset/surface_index.rs` owns surface/tree forward and reverse indexes, resource reverse
+edges, affected-surface selection and hot-reload targeting. Its
+`surface_index/node_resource_registration.rs` child scans already-instantiated retained node metadata
+and tolerantly projects usable resource URI, kind and fallback entries into that same index. Strict
+document schema validation and diagnostics remain owned by `ui/template/asset/resource_ref/collect.rs`;
+the runtime registration path must not reject ordinary metadata tables or become a second compiler.
+
+Current structure status is
+`runtime_09_15_ui_asset_surface_node_resource_owner_split_static_passed_cargo_profile_deferred`:
+the root is 758 lines, the child 175 lines, and all 11 moved items are normalized-equivalent to their
+pre-split source. Parser, schema, fallback, deduplication, reverse-index and hot-reload behavior are
+unchanged; Cargo/product and CPU/allocation/RSS/power profiling remain open.

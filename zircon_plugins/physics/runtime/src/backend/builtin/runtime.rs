@@ -12,17 +12,16 @@ use zircon_runtime::core::framework::{
 use zircon_runtime::core::math::{Real, Vec3};
 
 use super::query_contact::{
-    PreparedPhysicsQueryFilter, append_query_mode, compute_contact_events, ray_cast_collider,
-    shape_cast_query, shape_overlap_query,
+    append_query_mode, compute_contact_events, ray_cast_collider, shape_cast_query,
+    shape_overlap_query, PreparedPhysicsQueryFilter,
 };
 use super::step::integrate_body_sync_state;
-use super::trigger::{PhysicsTriggerPairMap, compute_trigger_events};
+use super::trigger::{compute_trigger_events, PhysicsTriggerPairMap};
 use crate::backend::handle_pool::HandlePool;
 use crate::backend::validation::{body_desc_is_valid, material_is_valid, shape_is_valid};
 use crate::backend::{
-    BodyCommand, BodyDesc, BodyHandle, ConstraintDesc, ConstraintHandle, PhysicsBackend,
-    PhysicsBackendError, PhysicsBackendObjectKind, PhysicsEventBuffer, ShapeHandle,
-    resolve_body_mass,
+    resolve_body_mass, BodyCommand, BodyDesc, BodyHandle, ConstraintDesc, ConstraintHandle,
+    PhysicsBackend, PhysicsBackendError, PhysicsBackendObjectKind, PhysicsEventBuffer, ShapeHandle,
 };
 
 const BACKEND_NAME: &str = "builtin";

@@ -32,7 +32,7 @@ The interface crate owns DTOs only. Runtime world storage, subscription matching
 
 ## Module ownership
 
-- `query.rs` owns `WorldQuery`, component presence filters and selectors, deterministic entity rows, and `WorldQueryResult`.
+- `query.rs` owns the typed `WorldQuery` projection enum, component filters/selectors, deterministic entity rows, runtime hierarchy rows, focused Inspector field rows, and `WorldQueryResult`.
 - `watch.rs` owns typed `WatchKey` values, registrations, and runtime-issued opaque `WatchToken` identities.
 - `invalidation.rs` owns `WorldFact`, the stable dynamic-scene reload summary, and `InvalidationBatch`.
 - `mod.rs` is a navigational façade and contains no query, matching, or serialization behavior.
@@ -41,9 +41,11 @@ This four-file shape follows Editor02 M1.1 and keeps future subscription-table o
 
 ## Query model
 
-`QueryFilter.with` and `QueryFilter.without` contain fully qualified component type names. `WorldQuery.select` lists component values to project for each matching entity. `EntityRow` uses `BTreeMap<String, serde_json::Value>` so serialized row order is deterministic while component payloads remain reflection-neutral.
+`WorldQuery` is a tagged enum. `Components(ComponentWorldQuery)` carries fully qualified component filters/selectors; `Hierarchy(WorldHierarchyQuery)` requests the runtime-owned inspection hierarchy; `InspectionFields(WorldInspectionFieldsQuery)` requests every editor-visible reflected field for one focused entity. The enum prevents hierarchy and Inspector requests from carrying meaningless component filters or selectors. `EntityRow` uses `BTreeMap<String, serde_json::Value>` so serialized component order is deterministic while values remain reflection-neutral. `WorldHierarchyRow` and `WorldInspectionFieldRow` are owned here and reused directly by `zircon_runtime` inspection; the editor does not reconstruct hierarchy anchors or field metadata from ad hoc JSON.
 
-`generation_hint` is optional. `WorldQuery::result_for_generation` is the single contract helper for the short circuit: an exact hint match produces `NotModified { generation }`; a missing or stale hint returns `Rows`. The saturated `u64::MAX` revision always returns `Rows`, because later monotonic mutations cannot produce a distinct counter value. The helper canonicalizes returned rows by ascending stable entity id, while each row's component map is already key ordered. Rows deliberately do not carry editor selection, focus, hierarchy presentation, or any other authoring state.
+`generation_hint` is optional on all three projections. An exact hint match produces `NotModified { generation }`; a missing or stale hint returns `ComponentRows`, `HierarchyRows`, or `InspectionFields`, each with its generation. A focused entity that no longer exists returns `EntityMissing { generation, entity }` rather than an empty authoring fallback. Every materialized response establishes the generation anchor for the next query. The saturated `u64::MAX` revision always materializes because later monotonic mutations cannot produce a distinct counter value. Component rows are ordered by stable entity id; hierarchy rows preserve runtime inspection pre-order; Inspector fields preserve the runtime artifact's deterministic component/field order. No response carries editor selection or other authoring state.
+
+The ABI producer enforces encoded-byte, item-count, nesting, and processing-time budgets before returning owned data. Hierarchy and focused Inspector queries validate borrowed inspection artifacts before cloning rows or fields. Snapshot IDs, cursors, cancellation, and multi-page recovery remain the open Interface02 P0 work; this generation-bearing typed projection does not claim million-entity paging or power targets. Focused Inspector cadence is an editor consumer policy, not part of this DTO module.
 
 ## Watch and invalidation model
 
@@ -60,7 +62,7 @@ Each registration receives an opaque `WatchToken`. Runtime stores and returns to
 
 ## Wire rules and hard cut
 
-Enums use stable snake-case `kind`/`data` serde tags. Structs and enum payloads reject unknown fields. Optional and empty query collections have intentional defaults, matching Bevy BRP query behavior; retired field aliases, legacy view ids, fallback deserializers, and transport-specific wrappers are not accepted.
+Enums use stable snake-case `kind`/`data` serde tags. Structs and enum payloads reject unknown fields. Component filters/selectors may be empty, but the former untagged query object and bare `Rows(Vec<EntityRow>)` result are retired and not accepted. Retired field aliases, legacy view ids, fallback deserializers, and transport-specific wrappers are not accepted.
 
 World entity identity is the runtime's current stable `u64` identity. Asset facts use the existing interface-owned `ResourceId`; no string path, editor tab id, or runtime object pointer is permitted in the protocol.
 
@@ -70,7 +72,7 @@ Bevy BRP supplies the primary precedent: `BrpQuery`, `BrpQueryFilter`, `BrpQuery
 
 ## Test coverage
 
-`world_sync_contracts.rs` covers JSON round trips for queries, every watch-key family, tokens, invalidation facts, and dynamic reload counts. It directly covers matching/stale/missing generation hints, ascending entity-row canonicalization, and rejection of unknown retired wire fields. The coordinator-managed M1 interface gate passed on Windows; the full M1 runtime acceptance gate remains tracked by the Editor02 child plan and is not implied by this crate-local result.
+`world_sync_contracts.rs` covers JSON round trips for component, hierarchy, and focused Inspector projections, every watch-key family, tokens, invalidation facts, and dynamic reload counts. It covers generation-bearing materialized results, explicit missing-entity state, matching/stale/missing generation hints, ascending component-row canonicalization, and rejection of retired wire fields. Runtime tests cover hierarchy/field artifact reuse and producer item-budget rejection. These Rust tests are updated in source but still require the coordinator-managed gate; static checks do not imply runtime acceptance.
 
 ## Follow-up
 

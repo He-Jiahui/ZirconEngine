@@ -1,5 +1,9 @@
 use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
+// Unreal Slate wraps text-only tooltips at 1000 logical pixels. Express the
+// same limit in row units so the retained painter scales it with device DPI.
+const TOOLTIP_MAX_WIDTH_IN_ROWS: f32 = 31.25;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchTooltipMetrics
 {
@@ -36,9 +40,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip
     let body_font_size = metrics.font_body + metrics.border_width;
     WorkbenchTooltipMetrics {
         bubble_min_width: metrics.row_height * 3.0,
-        bubble_max_width: metrics.row_height * 10.0,
+        bubble_max_width: metrics.row_height * TOOLTIP_MAX_WIDTH_IN_ROWS,
         bubble_height: metrics.row_height + metrics.gap_l + metrics.gap_m + metrics.border_width,
-        radius: metrics.radius_control,
+        radius: metrics.radius_control + metrics.gap_s,
         border_width: metrics.border_width,
         shadow_offset_y: metrics.gap_m,
         text_left: metrics.gap_m,

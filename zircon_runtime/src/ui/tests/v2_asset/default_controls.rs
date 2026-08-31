@@ -11,8 +11,10 @@ fn ui_v2_surface_default_toggle_click_mutates_checked_and_restyles_runtime_pseud
             classes: vec!["material-toggle".to_string()],
             layout: Some(fixed_size_layout(120.0, 32.0)),
             events: vec![UiBindingRef {
+                component_event: Some(UiComponentEventKind::ValueChanged),
                 id: "RuntimeToggle/Changed".to_string(),
                 event: UiEventKind::Change,
+                mode: Default::default(),
                 route: Some("RuntimeToggle.Change".to_string()),
                 action: None,
                 targets: Vec::new(),
@@ -212,8 +214,10 @@ fn ui_v2_surface_default_foldout_click_toggles_expanded_and_restyles_runtime_pse
             props: BTreeMap::from([("expanded".to_string(), Value::Boolean(true))]),
             layout: Some(fixed_size_layout(160.0, 32.0)),
             events: vec![UiBindingRef {
+                component_event: Some(UiComponentEventKind::ToggleExpanded),
                 id: "RuntimeFoldout/Toggled".to_string(),
                 event: UiEventKind::Toggle,
+                mode: Default::default(),
                 route: Some("RuntimeFoldout.Toggle".to_string()),
                 action: None,
                 targets: Vec::new(),
@@ -313,15 +317,19 @@ fn ui_v2_surface_default_combobox_click_toggles_popup_open_and_routes_typed_even
             layout: Some(fixed_size_layout(180.0, 32.0)),
             events: vec![
                 UiBindingRef {
+                    component_event: Some(UiComponentEventKind::OpenPopup),
                     id: "RuntimeComboBox/OpenPopup".to_string(),
                     event: UiEventKind::Click,
+                    mode: Default::default(),
                     route: Some("RuntimeComboBox.OpenPopup".to_string()),
                     action: None,
                     targets: Vec::new(),
                 },
                 UiBindingRef {
+                    component_event: Some(UiComponentEventKind::ClosePopup),
                     id: "RuntimeComboBox/ClosePopup".to_string(),
                     event: UiEventKind::Click,
+                    mode: Default::default(),
                     route: Some("RuntimeComboBox.ClosePopup".to_string()),
                     action: None,
                     targets: Vec::new(),

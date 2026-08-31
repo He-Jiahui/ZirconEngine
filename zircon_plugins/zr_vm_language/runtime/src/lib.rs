@@ -31,9 +31,9 @@ pub use reflection_host::{ReflectionHostError, ReflectionHostModule};
 pub use zircon_runtime::script::{
     HostHandle, VmGcBudget, VmGcDiagnostics, VmGcRootRegistrationError, VmGcRootRegistry,
     VmGcRootToken, VmGcSlotStepReport, VmGcStepOutcome, VmGcStepReport, VmObjectId, VmObjectRef,
-    VmObjectRefError, VmStateBlob, VmStateFieldRename, VmStateMigrationError, VmStateObject,
+    VmObjectRefError, VmStateBlob, VmStateFieldValue, VmStateMigrationError, VmStateObject,
     VmStateSchema, VmStateTypeIdentity, VmStateTypeSchema, DEFAULT_VM_GC_MAX_MICROS_PER_FRAME,
-    VM_GC_DIAGNOSTICS_HISTORY_CAPACITY, VM_STATE_SCHEMA_VERSION_V2,
+    VM_GC_DIAGNOSTICS_HISTORY_CAPACITY, VM_STATE_SCHEMA_VERSION_V3,
 };
 
 pub const ZR_VM_PROJECT_BACKEND_SELECTOR: &str = "zr_vm:project";

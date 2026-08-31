@@ -1,28 +1,37 @@
 [CmdletBinding()]
 param(
-    [string]$ProjectRoot = (Join-Path 'E:\ZirconBuilds\mvp-perf-projects' ([guid]::NewGuid().ToString('N'))),
+    [string]$ProjectRoot,
     [ValidateRange(1, 100000)]
-    [int]$PrimitiveCount = 1
+    [int]$PrimitiveCount = 1,
+    [string]$ProfilingInputManifestPath
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-Import-Module (Join-Path $PSScriptRoot 'MvpProductInputManifest.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'RenderExtractSourceIdentity.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+
+if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
+    $ProjectRoot = New-MvpArtifactStoragePath -NamespaceId 'render-extract-scale-projects'
+}
 
 function Assert-RenderExtractScaleProjectDirectory {
     param([Parameter(Mandatory)][string]$Path)
 
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    if ($resolution.DisplayPath -notmatch '^E:\\ZirconBuilds\\mvp-perf-projects\\(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
-        throw "-ProjectRoot scale project must resolve under E:\ZirconBuilds\mvp-perf-projects\<session>: $($resolution.DisplayPath)"
+    $storage = Resolve-MvpArtifactStoragePath `
+        -Path $Path `
+        -NamespaceId 'render-extract-scale-projects'
+    if ([IO.Directory]::Exists($storage.operation_path) -or [IO.File]::Exists($storage.operation_path)) {
+        throw "-ProjectRoot must not already exist so the generated scale project has one immutable input identity: $($storage.display_path)"
     }
-    if ([IO.Directory]::Exists($resolution.OperationalPath) -or [IO.File]::Exists($resolution.OperationalPath)) {
-        throw "-ProjectRoot must not already exist so the generated scale project has one immutable input identity: $($resolution.DisplayPath)"
+    return [pscustomobject]@{
+        OperationalPath = $storage.operation_path
+        DisplayPath = $storage.display_path
+        StoragePolicy = $storage
     }
-    return $resolution
 }
 
 function Write-RenderExtractScaleFileNew {
@@ -159,21 +168,33 @@ function Write-RenderExtractScaleSceneFileNew {
 
 function Copy-RenderExtractScaleTemplate {
     param(
-        [Parameter(Mandatory)][string]$TemplateRoot,
+        [Parameter(Mandatory)]$BuildSet,
         [Parameter(Mandatory)][string]$DestinationRoot
     )
 
-    $templateRootPrefix = $TemplateRoot.TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
+    $templateRootRelativePath = 'templates/projects/renderable-empty'
+    $templatePrefix = $templateRootRelativePath + '/'
     $generatedSceneRelativePath = 'assets/scenes/main.scene.toml'
-    foreach ($sourceFile in [IO.Directory]::EnumerateFiles($TemplateRoot, '*', [IO.SearchOption]::AllDirectories)) {
-        if (-not $sourceFile.StartsWith($templateRootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Template file escaped its declared root: $sourceFile"
-        }
-        $relativePath = $sourceFile.Substring($templateRootPrefix.Length).Replace('\', '/')
+    $templateFiles = @($BuildSet.files | Where-Object {
+            ([string]$_.relative_path).StartsWith($templatePrefix, [StringComparison]::Ordinal)
+        })
+    if ($templateFiles.Count -eq 0) {
+        throw "Render-extract scale template is absent from BuildSet $($BuildSet.build_set_id)."
+    }
+    foreach ($file in $templateFiles) {
+        $buildSetRelativePath = [string]$file.relative_path
+        $relativePath = $buildSetRelativePath.Substring($templatePrefix.Length)
         if ($relativePath.Equals($generatedSceneRelativePath, [StringComparison]::OrdinalIgnoreCase)) {
             continue
         }
-        $destinationPath = Join-Path $DestinationRoot $relativePath
+        $sourceFile = [IO.Path]::Combine(
+            [string]$BuildSet.snapshot_root,
+            $buildSetRelativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+        )
+        $destinationPath = [IO.Path]::Combine(
+            $DestinationRoot,
+            $relativePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+        )
         Write-RenderExtractScaleFileNew -Path $destinationPath -Bytes ([IO.File]::ReadAllBytes($sourceFile))
     }
 }
@@ -182,16 +203,17 @@ function New-RenderExtractScaleProject {
     param(
         [Parameter(Mandatory)][string]$ProjectRoot,
         [Parameter(Mandatory)][int]$PrimitiveCount,
-        [Parameter(Mandatory)][string]$SourceFingerprint
+        [Parameter(Mandatory)][string]$ProfilingInputManifestPath
     )
 
-    if ($SourceFingerprint -notmatch '^[0-9A-F]{64}$') {
-        throw 'Render-extract scale project source fingerprint must be an uppercase SHA-256 value.'
-    }
+    $sourceIdentity = Resolve-RenderExtractProfilingSourceIdentity `
+        -ManifestPath $ProfilingInputManifestPath
     $projectResolution = Assert-RenderExtractScaleProjectDirectory -Path $ProjectRoot
-    $templateRoot = (Resolve-ZirconWindowsPath -Path (Join-Path $repoRoot 'templates\projects\renderable-empty')).OperationalPath
+    $templateRoot = Join-ZirconWindowsPath `
+        -Path $sourceIdentity.build_set.snapshot_root `
+        -ChildPath 'templates\projects\renderable-empty'
     if (-not [IO.Directory]::Exists($templateRoot)) {
-        throw "Render-extract scale template does not exist: $templateRoot"
+        throw "Render-extract scale template does not exist in BuildSet $($sourceIdentity.build_set_id)."
     }
 
     $destinationParent = [IO.Path]::GetDirectoryName($projectResolution.OperationalPath)
@@ -203,13 +225,16 @@ function New-RenderExtractScaleProject {
 
     try {
         [IO.Directory]::CreateDirectory($partialProjectRoot) | Out-Null
-        Copy-RenderExtractScaleTemplate -TemplateRoot $templateRoot -DestinationRoot $partialProjectRoot
-        $scenePath = Join-Path $partialProjectRoot 'assets\scenes\main.scene.toml'
+        Copy-RenderExtractScaleTemplate `
+            -BuildSet $sourceIdentity.build_set `
+            -DestinationRoot $partialProjectRoot
+        $scenePath = [IO.Path]::Combine($partialProjectRoot, 'assets\scenes\main.scene.toml')
         Write-RenderExtractScaleSceneFileNew -Path $scenePath -PrimitiveCount $PrimitiveCount
 
         $manifest = [ordered]@{
-            schema_version = 1
-            source_fingerprint = $SourceFingerprint
+            schema_version = 2
+            source_fingerprint = $sourceIdentity.build_set_id
+            build_set_id = $sourceIdentity.build_set_id
             primitive_count = $PrimitiveCount
             scene_virtual_path = 'res://scenes/main.scene.toml'
             model_virtual_path = 'assets/models/cube.obj'
@@ -217,7 +242,7 @@ function New-RenderExtractScaleProject {
         }
         $manifestBytes = [Text.UTF8Encoding]::new($false).GetBytes(($manifest | ConvertTo-Json -Depth 3))
         Write-RenderExtractScaleFileNew `
-            -Path (Join-Path $partialProjectRoot 'render-extract-scale-project.json') `
+            -Path ([IO.Path]::Combine($partialProjectRoot, 'render-extract-scale-project.json')) `
             -Bytes $manifestBytes
         [IO.Directory]::Move($partialProjectRoot, $projectResolution.OperationalPath)
     }
@@ -230,16 +255,22 @@ function New-RenderExtractScaleProject {
 
     return [pscustomobject]@{
         project_root = $projectResolution.DisplayPath
+        build_set_id = $sourceIdentity.build_set_id
         primitive_count = $PrimitiveCount
         scene_virtual_path = 'res://scenes/main.scene.toml'
-        manifest_path = (Resolve-ZirconWindowsPath -Path (Join-Path $projectResolution.OperationalPath 'render-extract-scale-project.json')).DisplayPath
+        manifest_path = (Resolve-ZirconWindowsPath -Path ([IO.Path]::Combine(
+                    $projectResolution.OperationalPath,
+                    'render-extract-scale-project.json'
+                ))).DisplayPath
     }
 }
 
 if ($env:RENDER_EXTRACT_SCALE_PROJECT_TEST_MODE -ne '1') {
-    $sourceFingerprint = Get-MvpSourceFingerprint -RepositoryRoot $repoRoot
+    if ([string]::IsNullOrWhiteSpace($ProfilingInputManifestPath)) {
+        throw '-ProfilingInputManifestPath is required to bind the scale project to its BuildSet.'
+    }
     New-RenderExtractScaleProject `
         -ProjectRoot $ProjectRoot `
         -PrimitiveCount $PrimitiveCount `
-        -SourceFingerprint $sourceFingerprint
+        -ProfilingInputManifestPath $ProfilingInputManifestPath
 }

@@ -1,6 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
 const MAX_GLOBAL_MATERIAL_MIP_BIAS: f32 = 4.0;
+const ENVIRONMENT_CAPTURE_SURFACE_POLICY_ENABLED: f32 = 1.0;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -11,7 +12,10 @@ pub(crate) struct SceneUniform {
     pub(crate) view_proj_unjittered: [[f32; 4]; 4],
     /// Current frame world-from-clip matrix with temporal jitter removed.
     pub(crate) inverse_view_proj: [[f32; 4]; 4],
+    /// xyz = ambient radiance for all meshes.
     pub(crate) ambient_color: [f32; 4],
+    /// xyz = ambient radiance from sources that opt into lightmapped meshes.
+    pub(crate) lightmapped_ambient_color: [f32; 4],
     /// Previous frame clip-from-world matrix with temporal jitter removed.
     pub(crate) previous_view_proj_unjittered: [[f32; 4]; 4],
     pub(crate) motion_params: [f32; 4],
@@ -19,7 +23,8 @@ pub(crate) struct SceneUniform {
     pub(crate) jitter_params: [f32; 4],
     /// xyz = camera world position, w = global material texture mip bias.
     pub(crate) camera_world_position: [f32; 4],
-    /// xyz = orthographic camera-to-view direction, w = orthographic flag.
+    /// xyz = orthographic world-space surface-to-camera direction (the camera backward axis),
+    /// w = orthographic flag.
     pub(crate) camera_view_direction: [f32; 4],
     pub(crate) sky_horizon_color: [f32; 4],
     pub(crate) sky_zenith_color: [f32; 4],
@@ -28,7 +33,8 @@ pub(crate) struct SceneUniform {
     pub(crate) sky_sun_direction: [f32; 4],
     /// rgb = procedural sun radiance color, w = authored angular radius for diagnostics.
     pub(crate) sky_sun_color_radius: [f32; 4],
-    /// x = sun intensity, y = outer cosine, z = inner cosine, w reserved.
+    /// x = sun intensity, y = outer cosine, z = inner cosine,
+    /// w = environment-capture full-roughness surface policy.
     pub(crate) sky_sun_params: [f32; 4],
     /// x = source IEM available, y = sky intensity, z = sky rotation radians, w = IBL enabled.
     pub(crate) environment_params: [f32; 4],
@@ -63,6 +69,12 @@ impl SceneUniform {
             pmrem_mip_count.max(1) as f32,
         ];
     }
+
+    pub(in crate::graphics::scene::scene_renderer) fn use_environment_capture_surface_policy(
+        &mut self,
+    ) {
+        self.sky_sun_params[3] = ENVIRONMENT_CAPTURE_SURFACE_POLICY_ENABLED;
+    }
 }
 
 impl Default for SceneUniform {
@@ -72,6 +84,7 @@ impl Default for SceneUniform {
             view_proj_unjittered: [[0.0; 4]; 4],
             inverse_view_proj: [[0.0; 4]; 4],
             ambient_color: [0.0; 4],
+            lightmapped_ambient_color: [0.0; 4],
             previous_view_proj_unjittered: [[0.0; 4]; 4],
             motion_params: [0.0; 4],
             jitter_params: [0.0; 4],
@@ -93,6 +106,15 @@ impl Default for SceneUniform {
 #[cfg(test)]
 mod tests {
     use super::SceneUniform;
+    use std::mem::{offset_of, size_of};
+
+    #[test]
+    fn scene_uniform_ambient_policy_preserves_the_wgsl_byte_layout() {
+        assert_eq!(offset_of!(SceneUniform, ambient_color), 192);
+        assert_eq!(offset_of!(SceneUniform, lightmapped_ambient_color), 208);
+        assert_eq!(offset_of!(SceneUniform, previous_view_proj_unjittered), 224);
+        assert_eq!(size_of::<SceneUniform>(), 496);
+    }
 
     #[test]
     fn render_perf_global_material_mip_bias_is_sanitized_before_gpu_upload() {
@@ -106,5 +128,16 @@ mod tests {
 
         uniform.set_global_material_mip_bias(f32::MAX);
         assert_eq!(uniform.camera_world_position[3], 4.0);
+    }
+
+    #[test]
+    fn environment_capture_surface_policy_is_opt_in() {
+        let mut uniform = SceneUniform::default();
+
+        assert_eq!(uniform.sky_sun_params[3], 0.0);
+
+        uniform.use_environment_capture_surface_policy();
+
+        assert_eq!(uniform.sky_sun_params[3], 1.0);
     }
 }

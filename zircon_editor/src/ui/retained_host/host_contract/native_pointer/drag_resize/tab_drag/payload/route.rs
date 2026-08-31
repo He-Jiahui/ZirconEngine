@@ -5,10 +5,10 @@ use super::super::super::super::routing::ChromePointerRoute;
 use super::document::document_tab_drag_payload;
 use super::drawer::drawer_tab_drag_payload;
 
-pub(in super::super) fn tab_drag_payload_for_route(
-    presentation: &HostWindowPresentationData,
+pub(in super::super) fn tab_drag_payload_for_route<'a>(
+    presentation: &'a HostWindowPresentationData,
     route: &ChromePointerRoute,
-) -> Option<(TabData, SharedString)> {
+) -> Option<(&'a TabData, &'a SharedString)> {
     match route {
         ChromePointerRoute::DocumentTab {
             surface_key,
@@ -26,7 +26,8 @@ pub(in super::super) fn tab_drag_payload_for_route(
         } => drawer_tab_drag_payload(presentation, surface_key, *index),
         ChromePointerRoute::ActivityRail { .. }
         | ChromePointerRoute::HostPageTab { .. }
-        | ChromePointerRoute::HostPageOverflow { .. }
+        | ChromePointerRoute::HostPageOverflow
+        | ChromePointerRoute::DockOverflow { .. }
         | ChromePointerRoute::FloatingWindowHeader { .. }
         | ChromePointerRoute::Resize => None,
     }

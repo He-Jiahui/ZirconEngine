@@ -47,14 +47,18 @@ pub(super) fn compile_submission_pipeline_with_options(
         &options,
         state.capabilities(),
         state.shader_quality(),
-    );
+    )
+    .map_err(|error| RenderFrameworkError::GraphCompileFailure {
+        pipeline: state.pipeline_asset().handle.raw(),
+        message: error.to_string(),
+    })?;
     let mut framework_state = framework.lock_state();
     let lookup = framework_state
         .compiled_graph_cache
         .get_or_compile_with_status(key, || {
             let compiled = state
                 .pipeline_asset()
-                .compile_with_options(extract, &options)?;
+                .compile_with_options_and_camera_target(extract, &options, camera_target)?;
             validate_compiled_pipeline_capabilities(&compiled, state.capabilities())
                 .map_err(|error| error.to_string())?;
             Ok(compiled)

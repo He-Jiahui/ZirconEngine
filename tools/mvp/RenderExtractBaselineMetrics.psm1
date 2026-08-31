@@ -267,7 +267,7 @@ function Get-RenderExtractSchedulerWorkerOccupancyAttempt {
     }
 
     $numericTypes = @(
-        [sbyte], [byte], [short], [ushort], [int], [uint], [long], [ulong],
+        [sbyte], [byte], [Int16], [UInt16], [int], [UInt32], [long], [UInt64],
         [single], [double], [decimal]
     )
     $samples = [System.Collections.Generic.List[object]]::new()

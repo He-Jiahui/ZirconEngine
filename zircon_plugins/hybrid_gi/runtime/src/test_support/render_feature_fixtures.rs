@@ -58,6 +58,7 @@ pub(crate) fn pluginized_wgpu_render_framework_with_asset_manager(
     let core = asset_runtime.handle();
     let handle = manager_service_handle(&core, TEST_ASSET_SERVICE_NAME)
         .expect("hybrid GI test ProjectAssetManager handle should resolve");
+    let compute_task_pool = asset_runtime.task_graph().worker_pool().clone();
     let framework = WgpuRenderFramework::new_with_plugin_render_extensions(
         ProjectAssetManagerAccess::new(core, handle),
         [hybrid_gi_render_feature_descriptor()],
@@ -65,6 +66,7 @@ pub(crate) fn pluginized_wgpu_render_framework_with_asset_manager(
         [crate::runtime_prepare_collector_registration()],
         [crate::hybrid_gi_runtime_provider_registration()],
         Vec::new(),
+        compute_task_pool,
     )
     .unwrap();
     PluginizedWgpuRenderFrameworkFixture {

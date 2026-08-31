@@ -20,7 +20,8 @@ class EditorContributionBuilderContractTests(unittest.TestCase):
             'editor_contribution = ["dep:zircon_runtime_interface"]', cargo_toml
         )
         self.assertIn(
-            'native = ["dep:serde", "dep:toml", "editor_contribution"]', cargo_toml
+            'native = ["declaration", "dep:serde", "dep:toml", "editor_contribution"]',
+            cargo_toml,
         )
         self.assertIn('#[cfg(feature = "editor_contribution")]', lib)
         self.assertIn("pub mod editor_contribution;", lib)
@@ -33,7 +34,8 @@ class EditorContributionBuilderContractTests(unittest.TestCase):
             "pub fn menu(",
             "pub fn command(",
             "pub fn asset_type(",
-            "pub fn settings_page(",
+            "pub fn settings_page<",
+            "pub fn localization_bundle(",
             "pub fn build(self)",
         ):
             self.assertIn(method, source)
@@ -43,6 +45,7 @@ class EditorContributionBuilderContractTests(unittest.TestCase):
             "MENU_SCHEMA",
             "COMMAND_SCHEMA",
             "ASSET_TYPE_SCHEMA",
+            "LOCALIZATION_BUNDLE_SCHEMA",
             "SETTINGS_PAGE_SCHEMA",
         ):
             self.assertIn(
@@ -50,6 +53,15 @@ class EditorContributionBuilderContractTests(unittest.TestCase):
             )
         self.assertIn("SerializedContributionBatch::new(self.package_id, self.contributions)", source)
         self.assertNotIn("EditorExtensionRegistry", source)
+
+    def test_shared_batch_reuses_sorted_adjacency_for_duplicate_detection(self) -> None:
+        source = (
+            ROOT / "zircon_runtime_interface" / "src" / "editor_contribution.rs"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("sort_unstable_by", source)
+        self.assertIn("previous_key", source)
+        self.assertNotIn("BTreeSet", source)
 
 
 if __name__ == "__main__":

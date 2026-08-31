@@ -1,10 +1,9 @@
 use crate::core::framework::render::{
-    RenderFrameExtract, RenderFrameworkError, RenderViewportHandle,
+    RenderFrameExtract, RenderFrameworkError, RenderViewportHandle, UiRenderSubmission,
 };
 use crate::graphics::ViewportCameraStackOutputPolicy;
 use std::sync::Arc;
 use std::time::Instant;
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::super::super::frame_profiler::FrameProfiler;
 use super::super::super::graphics_debugger_capture::{
@@ -12,11 +11,13 @@ use super::super::super::graphics_debugger_capture::{
     finish_active_capture_and_relock,
 };
 use super::super::super::render_framework_backend_error::render_framework_backend_error;
-use super::super::super::render_framework_state::RenderFrameworkState;
+use super::super::super::render_framework_state::{
+    RenderFrameworkState, ViewportPickFrameSnapshot,
+};
 use super::super::super::wgpu_render_framework::{WgpuRenderFramework, WgpuRenderFrameworkAccess};
 use super::super::build_frame_submission_context::{
     build_frame_submission_context_from_runtime_frame_extract,
-    validate_camera_surface_present_target, FrameSubmissionSourcePayloads,
+    validate_camera_surface_present_target,
 };
 use super::super::prepare_runtime_submission::prepare_runtime_submission;
 use super::super::record_submission::record_present_submission;
@@ -29,6 +30,7 @@ use super::camera_loop::{
     submit_camera_loop, viewport_terminal_camera_target, CameraLoopOutputPolicy,
 };
 use super::collect_runtime_feedback::collect_runtime_feedback;
+use super::completion_error_stats::publish_scene_submission_completion_stats;
 use super::record_camera_history::record_non_viewport_camera_state_after_success;
 use super::release_previous_history::release_previous_history;
 use super::resolve_history_handle::resolve_history_handle;
@@ -47,7 +49,7 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
     framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     extract: RenderFrameExtract,
-    ui: Option<UiRenderExtract>,
+    ui: Option<Arc<UiRenderSubmission>>,
 ) -> Result<(), RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "present_frame_extract");
     framework.dispatch_submission(present_frame_extract_with_ui_on_core, viewport, extract, ui)
@@ -57,7 +59,7 @@ fn present_frame_extract_with_ui_on_core(
     framework: &super::super::super::wgpu_render_framework::WgpuRenderFrameworkCore,
     viewport: RenderViewportHandle,
     extract: RenderFrameExtract,
-    ui: Option<UiRenderExtract>,
+    ui: Option<Arc<UiRenderSubmission>>,
 ) -> Result<(), RenderFrameworkError> {
     present_frame_extract_with_ui_locked(framework, viewport, extract, ui)
 }
@@ -66,7 +68,7 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
     framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
     extract: RenderFrameExtract,
-    ui: Option<UiRenderExtract>,
+    ui: Option<Arc<UiRenderSubmission>>,
 ) -> Result<(), RenderFrameworkError> {
     let submit_started = Instant::now();
     let terminal_target = match viewport_terminal_camera_target(&extract) {
@@ -100,9 +102,8 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
 fn present_selected_camera_frame(
     framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
-    extract: &mut Arc<RenderFrameExtract>,
-    source_payloads: Option<FrameSubmissionSourcePayloads<'_>>,
-    ui: Option<UiRenderExtract>,
+    extract: &Arc<RenderFrameExtract>,
+    ui: Option<Arc<UiRenderSubmission>>,
     submit_started: &Instant,
     output_policy: CameraLoopOutputPolicy,
 ) -> Result<(), RenderFrameworkError> {
@@ -115,8 +116,7 @@ fn present_selected_camera_frame(
             framework,
             viewport,
             extract,
-            ui.as_ref(),
-            source_payloads,
+            ui.as_deref(),
         ) {
             Ok(context) => context,
             Err(error) => {
@@ -145,11 +145,7 @@ fn present_selected_camera_frame(
         }
     };
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
-    let mut runtime_frame = build_runtime_frame(ui, &context, prepared, output_policy);
-    if owns_shared_viewport_products {
-        state.last_virtual_geometry_debug_snapshot =
-            runtime_frame.virtual_geometry_debug_snapshot.clone();
-    }
+    let mut runtime_frame = build_runtime_frame(ui, &mut context, prepared, output_policy);
     state
         .renderer
         .set_global_material_mip_bias(context.global_material_mip_bias());
@@ -189,8 +185,11 @@ fn present_selected_camera_frame(
                         &runtime_frame,
                         context.compiled_pipeline(),
                         context.capabilities(),
-                        resolved_history.current_history_handle(),
-                        resolved_history.previous_history_available(),
+                        crate::core::framework::render::RenderFrameHistoryInput::new(
+                            resolved_history.current_history_handle(),
+                            resolved_history.previous_history_available(),
+                            context.history_invalidation_reason(),
+                        ),
                         surface_lease.value_mut(),
                         framework.compute_task_pool(),
                         environment_ibl_bake_reservation,
@@ -210,19 +209,23 @@ fn present_selected_camera_frame(
                     &runtime_frame,
                     context.compiled_pipeline(),
                     context.capabilities(),
-                    resolved_history.current_history_handle(),
-                    resolved_history.previous_history_available(),
+                    crate::core::framework::render::RenderFrameHistoryInput::new(
+                        resolved_history.current_history_handle(),
+                        resolved_history.previous_history_available(),
+                        context.history_invalidation_reason(),
+                    ),
                     framework.compute_task_pool(),
                     None,
                     environment_ibl_bake_reservation,
+                    false,
                 )
         } else {
             state
                 .renderer
-                .render_frame_direct_submission(&runtime_frame)
+                .render_frame_direct_submission(&runtime_frame, false)
         };
         result
-            .map(|frame| frame.generation)
+            .map(|frame| frame.generation())
             .map_err(render_framework_backend_error)
     };
     let frame_generation = match render_result {
@@ -237,6 +240,10 @@ fn present_selected_camera_frame(
             );
         }
     };
+
+    if let Err(error) = validate_viewport_generation(&state, viewport, &context) {
+        return finish_capture_and_return_error(framework, state, viewport, active_capture, error);
+    }
 
     state = finish_active_capture_and_relock(
         framework,
@@ -254,18 +261,16 @@ fn present_selected_camera_frame(
         )
     };
     let camera_light_grid_report = state.renderer.last_light_grid_report();
-    if let Err(error) = validate_viewport_generation(&state, viewport, &context) {
-        if !owns_shared_viewport_products {
-            fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
-        }
-        return Err(error);
+    if owns_shared_viewport_products {
+        state.last_virtual_geometry_debug_snapshot =
+            runtime_frame.virtual_geometry_debug_snapshot.clone();
     }
     if !owns_viewport_submission {
         record_non_viewport_camera_state_after_success(
             &mut state,
             viewport,
             &context,
-            &runtime_frame,
+            &mut runtime_frame,
             camera_light_grid_report,
             runtime_feedback,
             frame_generation,
@@ -274,6 +279,7 @@ fn present_selected_camera_frame(
         return Ok(());
     }
     let record = viewport_record_mut_after_generation_check(&mut state, viewport, &context)?;
+    let requires_hit_proxies = record.requires_hit_proxies();
     record.record_camera_product_reports(
         context.camera_history_key(),
         camera_light_grid_report,
@@ -286,16 +292,16 @@ fn present_selected_camera_frame(
         resolved_history.allocated_history(),
         frame_generation,
         runtime_feedback,
-    );
+    )?;
     update_temporal_camera_history_after_success(
         record,
-        &runtime_frame,
+        &mut runtime_frame,
         context.camera_history_key(),
         true,
     );
     update_particle_previous_state_after_success(
         record,
-        &runtime_frame,
+        &mut runtime_frame,
         context.camera_history_key(),
     );
     release_previous_history(&mut state.renderer, &record_update);
@@ -315,6 +321,16 @@ fn present_selected_camera_frame(
         for profile in &frame_profile_write.resolved_gpu_profiles {
             viewport_record.attach_capture_frame_profile(profile);
         }
+    }
+    if requires_hit_proxies {
+        state
+            .viewport_pick_frames
+            .publish(ViewportPickFrameSnapshot::from_rendered_frame(
+                viewport,
+                frame_generation,
+                &runtime_frame,
+                context.virtual_geometry_enabled(),
+            ));
     }
     state.last_retained_scene_color_viewport = Some(viewport);
     crate::profile_counter!(
@@ -354,6 +370,7 @@ fn finish_capture_and_return_error(
     active_capture: bool,
     error: RenderFrameworkError,
 ) -> Result<(), RenderFrameworkError> {
+    publish_scene_submission_completion_stats(&mut state);
     if !active_capture {
         fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
         return Err(error);

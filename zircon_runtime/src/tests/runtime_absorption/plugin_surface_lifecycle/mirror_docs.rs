@@ -12,7 +12,7 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
 
     assert_eq!(
         EXPECTED_RUNTIME_06_SOURCE_FILES.len(),
-        14,
+        20,
         "Runtime 06 source inventory should mirror plugin_surface_lifecycle_boundary"
     );
     for source_file in EXPECTED_RUNTIME_06_SOURCE_FILES {
@@ -42,7 +42,7 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
         "Runtime 06 should stay in_progress until plugin/native/app/plugins validation closes"
     );
     assert!(
-        plan_doc.contains("last_refined: 2026-07-22"),
+        plan_doc.contains("last_refined: 2026-08-24"),
         "Runtime 06 last_refined should cover the latest mirror-doc row"
     );
 
@@ -159,7 +159,7 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
     for (doc_name, doc_source) in mirror_docs {
         for required_anchor in [
             "plugin_surface_lifecycle_boundary",
-            "expected_source_file_count = 14",
+            "expected_source_file_count = 20",
             "expected_doc_file_count = 5",
             "fallback lifecycle failure tests 4/4",
             "root_reexport_count = 0",
@@ -168,7 +168,7 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
             "native namespace re-export 68/68",
             "M4 gate `classified-and-clear`",
             "debt groups 0/0",
-            "native namespace symbol groups 5/5",
+            "native namespace symbol groups 6/6",
             "unclassified native root symbols 0/0",
             "unclassified native namespace symbols 0/0",
             "root public native re-export locations 0/0",

@@ -105,7 +105,7 @@ fn manifest_offset(bytes: &[u8]) -> Result<usize, ZrPackError> {
 
 fn chunk_payload_end(chunks: &[ZrChunkEntry]) -> Result<usize, ZrPackError> {
     let mut chunks = chunks.iter().collect::<Vec<_>>();
-    chunks.sort_by(|left, right| left.offset.cmp(&right.offset));
+    sort_chunks_by_offset(&mut chunks);
 
     let mut payload_end = header_size();
     for chunk in chunks {
@@ -120,6 +120,10 @@ fn chunk_payload_end(chunks: &[ZrChunkEntry]) -> Result<usize, ZrPackError> {
             .ok_or(ZrPackError::SizeOverflow)?;
     }
     Ok(payload_end)
+}
+
+fn sort_chunks_by_offset(chunks: &mut [&ZrChunkEntry]) {
+    chunks.sort_unstable_by(|left, right| left.offset.cmp(&right.offset));
 }
 
 fn validate_manifest_chunks(
@@ -194,3 +198,7 @@ fn read_header_bytes<const N: usize>(bytes: &[u8], offset: usize) -> Result<[u8;
     }
     Ok(value)
 }
+
+#[cfg(test)]
+#[path = "reader/optimization_tests.rs"]
+mod optimization_tests;

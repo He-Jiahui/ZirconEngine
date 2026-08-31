@@ -5,7 +5,7 @@ fn runtime_15_shader_prewarm_geometry_source_enumeration_is_wired() {
     let args = read_runtime_src("bin/zircon_shader_prewarm/args.rs");
     let run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
-    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/geometry_sources.rs");
     let build_tool = read_zircon_build_sources();
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
     let plan_08 = read_repo(
@@ -105,7 +105,7 @@ fn runtime_15_shader_prewarm_custom_geometry_source_id_is_wired() {
     let args = read_runtime_src("bin/zircon_shader_prewarm/args.rs");
     let run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
-    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/geometry_sources.rs");
     let build_tool = read_zircon_build_sources();
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
     let plan_08 = read_repo(

@@ -5,13 +5,20 @@ def render_runtime_api_boundary_markdown(boundary: dict[str, object]) -> list[st
     owner_modules = boundary["owner_modules"]
     lines = [
         "## Runtime API Boundary",
-        "- folder-backed owner modules "
+        "- folder-backed V8 owner domains "
+        f"({len(boundary['owner_domains'])}/{boundary['expected_domain_count']}): "
+        f"{', '.join(boundary['owner_domains'])}",
+        "- production owner modules "
         f"({len(owner_modules)}/{boundary['expected_module_count']}): "
         f"{', '.join(module['path'] for module in owner_modules) if owner_modules else 'none'}",
-        "- facade `zircon_runtime_interface/src/runtime_api.rs`: "
+        "- facade `zircon_runtime_interface/src/runtime_api/mod.rs`: "
         f"{'present' if boundary['facade_exists'] else 'absent'}",
+        "- superseded facade `zircon_runtime_interface/src/runtime_api.rs`: "
+        f"{'present (invalid)' if boundary['legacy_facade_exists'] else 'absent'}",
         "- facade non-empty lines: "
         f"{boundary['facade_non_empty_lines']}/{boundary['max_facade_non_empty_lines']}",
+        "- facade re-export statements: "
+        f"{boundary['facade_reexport_statements']}/{boundary['max_facade_reexport_statements']}",
     ]
 
     if boundary["missing_mod_declarations"]:
@@ -24,6 +31,8 @@ def render_runtime_api_boundary_markdown(boundary: dict[str, object]) -> list[st
             "- missing re-exports: "
             f"{', '.join(boundary['missing_reexports'])}"
         )
+    if boundary["facade_glob_reexports"]:
+        lines.append("- facade glob re-exports: present (invalid)")
 
     oversized_modules = boundary["oversized_modules"]
     if oversized_modules:

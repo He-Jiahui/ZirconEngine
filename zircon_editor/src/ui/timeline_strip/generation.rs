@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, VecDeque},
+    collections::BTreeMap,
     sync::{Arc, Mutex, OnceLock},
 };
 
@@ -165,24 +165,27 @@ impl TimelineStripGeneration {
             static_generation: self.static_generation,
             visual_budget,
         };
-        if let Some(content) = static_content_cache()
+        let (content_cell, requires_completion) = static_content_cache()
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .get(key)
-        {
-            return content;
+            .content_cell(key);
+        let content = content_cell
+            .get_or_init(|| {
+                Arc::new(TimelineStripStaticContent::new(
+                    self.duration,
+                    self.tick_interval,
+                    self.static_generation,
+                    visual_budget,
+                ))
+            })
+            .clone();
+        if requires_completion {
+            static_content_cache()
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .complete_insertion(key);
         }
-
-        let candidate = Arc::new(TimelineStripStaticContent::new(
-            self.duration,
-            self.tick_interval,
-            self.static_generation,
-            visual_budget,
-        ));
-        static_content_cache()
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .insert_or_get(key, candidate)
+        content
     }
 }
 
@@ -192,43 +195,82 @@ struct StaticContentCacheKey {
     visual_budget: usize,
 }
 
+type StaticContentCell = OnceLock<Arc<TimelineStripStaticContent>>;
+
+struct StaticContentCacheEntry {
+    content: Arc<StaticContentCell>,
+    last_access_epoch: u64,
+}
+
 #[derive(Default)]
 struct StaticContentCache {
-    entries: BTreeMap<StaticContentCacheKey, Arc<TimelineStripStaticContent>>,
-    recency: VecDeque<StaticContentCacheKey>,
+    entries: BTreeMap<StaticContentCacheKey, StaticContentCacheEntry>,
+    next_access_epoch: u64,
 }
 
 impl StaticContentCache {
-    fn get(&mut self, key: StaticContentCacheKey) -> Option<Arc<TimelineStripStaticContent>> {
-        let content = self.entries.get(&key).cloned();
-        if content.is_some() {
-            self.touch(key);
+    fn content_cell(&mut self, key: StaticContentCacheKey) -> (Arc<StaticContentCell>, bool) {
+        let access_epoch = self.take_access_epoch();
+        if let Some(entry) = self.entries.get_mut(&key) {
+            entry.last_access_epoch = access_epoch;
+            let requires_completion = entry.content.get().is_none();
+            return (Arc::clone(&entry.content), requires_completion);
         }
-        content
+
+        let content = Arc::new(StaticContentCell::new());
+        self.entries.insert(
+            key,
+            StaticContentCacheEntry {
+                content: Arc::clone(&content),
+                last_access_epoch: access_epoch,
+            },
+        );
+        self.trim_completed_entries(key);
+        (content, true)
     }
 
-    fn insert_or_get(
-        &mut self,
-        key: StaticContentCacheKey,
-        candidate: Arc<TimelineStripStaticContent>,
-    ) -> Arc<TimelineStripStaticContent> {
-        if let Some(content) = self.get(key) {
-            return content;
-        }
-        self.entries.insert(key, candidate.clone());
-        self.touch(key);
+    fn complete_insertion(&mut self, key: StaticContentCacheKey) {
+        self.trim_completed_entries(key);
+    }
+
+    fn trim_completed_entries(&mut self, protected_key: StaticContentCacheKey) {
         while self.entries.len() > STATIC_CONTENT_CACHE_CAPACITY {
-            let Some(oldest) = self.recency.pop_front() else {
+            let oldest = self
+                .entries
+                .iter()
+                .filter(|(key, entry)| **key != protected_key && entry.content.get().is_some())
+                .min_by_key(|(key, entry)| (entry.last_access_epoch, **key))
+                .map(|(key, _)| *key);
+            let Some(oldest) = oldest else {
                 break;
             };
             self.entries.remove(&oldest);
         }
-        candidate
     }
 
-    fn touch(&mut self, key: StaticContentCacheKey) {
-        self.recency.retain(|entry| *entry != key);
-        self.recency.push_back(key);
+    fn take_access_epoch(&mut self) -> u64 {
+        if self.next_access_epoch == u64::MAX {
+            self.rebase_access_epochs();
+        }
+        let access_epoch = self.next_access_epoch;
+        self.next_access_epoch += 1;
+        access_epoch
+    }
+
+    fn rebase_access_epochs(&mut self) {
+        let mut ordered = self
+            .entries
+            .iter()
+            .map(|(key, entry)| (*key, entry.last_access_epoch))
+            .collect::<Vec<_>>();
+        ordered.sort_by_key(|(key, access_epoch)| (*access_epoch, *key));
+        for (access_epoch, (key, _)) in ordered.into_iter().enumerate() {
+            self.entries
+                .get_mut(&key)
+                .expect("rebased timeline cache entry must still exist")
+                .last_access_epoch = access_epoch as u64;
+        }
+        self.next_access_epoch = self.entries.len() as u64;
     }
 }
 

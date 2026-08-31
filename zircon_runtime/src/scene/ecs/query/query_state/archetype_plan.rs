@@ -1,7 +1,7 @@
 use std::any::TypeId;
 
-use crate::scene::ecs::{ArchetypeId, ComponentId, ComponentStorageLocation, StableEntityLocation};
 use crate::scene::World;
+use crate::scene::ecs::{ArchetypeId, ComponentId, ComponentStorageLocation, StableEntityLocation};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum QueryComponentBinding {

@@ -16,6 +16,13 @@ pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<
     }
     let args = parse_script_type_attrs(&input.attrs)?;
     let type_name = args.name.unwrap_or_else(|| ident.to_string());
+    let type_identity = args.identity.unwrap_or_else(|| type_name.clone());
+    if type_identity.is_empty() || type_identity.trim() != type_identity {
+        return Err(syn::Error::new(
+            ident.span(),
+            "zircon_script type identity must be non-empty and already trimmed",
+        ));
+    }
     let value_kind = args.value_kind.map(path_tokens).unwrap_or_else(|| {
         quote!(::zircon_runtime::core::framework::script::ScriptHostValueKind::Null)
     });
@@ -25,7 +32,7 @@ pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<
         .map(|doc| quote!(.with_documentation(#doc)));
     let (type_info, fields, default_prototype) = match input.data {
         Data::Struct(data) => {
-            let (registrations, projections) = field_tokens(&data.fields)?;
+            let (registrations, projections) = field_tokens(&data.fields, &type_identity)?;
             (
                 quote!(::zircon_runtime::core::framework::script::__reflect::ReflectTypeInfo::struct_with_fields(
                     vec![#(#registrations),*]
@@ -87,7 +94,10 @@ pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<
     })
 }
 
-fn field_tokens(fields: &Fields) -> syn::Result<(Vec<TokenStream2>, Vec<TokenStream2>)> {
+fn field_tokens(
+    fields: &Fields,
+    type_identity: &str,
+) -> syn::Result<(Vec<TokenStream2>, Vec<TokenStream2>)> {
     let mut registrations = Vec::new();
     let mut projections = Vec::new();
     for (index, field) in fields.iter().enumerate() {
@@ -100,6 +110,15 @@ fn field_tokens(fields: &Fields) -> syn::Result<(Vec<TokenStream2>, Vec<TokenStr
             (None, Some(ident)) => ident.to_string(),
             (None, None) => index.to_string(),
         };
+        let field_identity = args.identity.unwrap_or_else(|| field_name.clone());
+        let aliases = args.aliases;
+        let alias_tokens = aliases.iter().map(|alias| quote!(#alias.to_string()));
+        if field_identity.is_empty() || field_identity.trim() != field_identity {
+            return Err(syn::Error::new(
+                field.span(),
+                "zircon_script field identity must be non-empty and already trimmed",
+            ));
+        }
         let field_type = &field.ty;
         let registration_type_ref = script_host_type_ref_tokens(
             field_type,
@@ -114,10 +133,15 @@ fn field_tokens(fields: &Fields) -> syn::Result<(Vec<TokenStream2>, Vec<TokenStr
         registrations.push(quote! {{
             let type_ref = #registration_type_ref;
             ::zircon_runtime::core::framework::script::__reflect::ReflectFieldInfo::new(
+                ::zircon_runtime::core::framework::script::__reflect::ReflectFieldId::from_stable_keys(
+                    #type_identity,
+                    #field_identity,
+                ),
                 #field_name,
                 type_ref.type_name,
                 ::zircon_runtime::core::framework::script::__reflect::ReflectEditorHint::None,
             )
+            .with_aliases(vec![#(#alias_tokens),*])
             .with_serializable(false)
             .with_editor_visible(false)
             #documentation

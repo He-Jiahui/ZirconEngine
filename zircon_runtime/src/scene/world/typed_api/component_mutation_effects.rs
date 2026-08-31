@@ -1,7 +1,51 @@
-use crate::scene::ecs::Component;
+use crate::scene::ecs::{Component, ComponentMutationRecord};
 use crate::scene::{EntityId, World};
 
+use super::HierarchyMutationMode;
+
 impl World {
+    pub(crate) fn mark_query_component_mutation<T>(&mut self, entity: EntityId)
+    where
+        T: Component,
+    {
+        self.mark_component_mutation::<T>(entity, HierarchyMutationMode::Unchecked);
+        self.mark_scene_binding_component_get_mut::<T>(entity);
+    }
+
+    pub(in crate::scene::world) fn apply_deferred_component_mutation(
+        &mut self,
+        mutation: ComponentMutationRecord,
+    ) {
+        let entity = mutation.entity();
+        let component_type = mutation.component_type();
+        self.advance_world_generation();
+        self.invalidate_world_component_type(mutation.component_type_name());
+
+        if self.is_hierarchy_component_type(component_type)
+            || self.is_active_component_type(component_type)
+        {
+            self.mark_inspection_subtree_fields_dirty(entity);
+        } else {
+            self.inspection_artifact_cache.mark_fields_dirty(entity);
+        }
+        if self.is_inspection_hierarchy_component_type(component_type) {
+            if component_type == std::any::TypeId::of::<crate::scene::components::Name>() {
+                self.inspection_artifact_cache
+                    .mark_hierarchy_name_dirty(entity);
+            } else {
+                self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
+            }
+        }
+
+        if component_type == std::any::TypeId::of::<crate::scene::components::Name>() {
+            self.advance_scene_binding_generation_for_name(entity);
+        } else if self.is_hierarchy_component_type(component_type) {
+            self.mark_hierarchy_mutation_index_dirty();
+            self.invalidate_all_scene_binding_generations();
+        }
+        self.mark_component_derived_state_dirty_at_type(entity, component_type);
+    }
+
     pub(super) fn mark_scene_binding_component_replacement<T>(
         &mut self,
         entity: EntityId,
@@ -107,6 +151,33 @@ impl World {
         } else {
             self.mark_node_cache_dirty();
         }
+    }
+
+    pub(super) fn mark_component_derived_state_dirty_at<T>(&mut self, entity: EntityId)
+    where
+        T: Component,
+    {
+        self.mark_component_derived_state_dirty_at_type(entity, std::any::TypeId::of::<T>());
+    }
+
+    fn mark_component_derived_state_dirty_at_type(
+        &mut self,
+        entity: EntityId,
+        type_id: std::any::TypeId,
+    ) {
+        if self.is_hierarchy_component_type(type_id) {
+            self.mark_hierarchy_dirty_at(entity);
+        } else if self.is_transform_component_type(type_id) {
+            self.mark_transform_dirty_at(entity);
+        } else if self.is_active_component_type(type_id) {
+            self.mark_active_state_dirty_at(entity);
+        } else {
+            self.mark_node_cache_dirty_at(entity);
+        }
+    }
+
+    pub(super) fn mark_checked_hierarchy_derived_state_dirty_at(&mut self, entity: EntityId) {
+        self.mark_checked_hierarchy_dirty_at(entity);
     }
 
     pub(super) fn is_hierarchy_component_type(&self, type_id: std::any::TypeId) -> bool {

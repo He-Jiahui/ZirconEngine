@@ -11,6 +11,8 @@ use std::sync::Arc;
 pub use super::ibl_bake_recipe::CANONICAL_IBL_BAKE_IRRADIANCE_CUBE_FACE_SIZE as SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE;
 
 const IRRADIANCE_CUBE_ROWS_PER_TASK: u32 = 4;
+const IRRADIANCE_HASH_TEXELS_PER_BATCH: usize = 64;
+const IRRADIANCE_HASH_BYTES_PER_TEXEL: usize = std::mem::size_of::<Real>() * 3;
 
 struct IrradianceCubeFaceOutput<'a> {
     face: CubemapFace,
@@ -95,11 +97,7 @@ impl SourceCubemapIrradianceCube {
 fn source_cubemap_irradiance_cube_content_hash(face_size: u32, texels: &[[Real; 3]]) -> [u32; 4] {
     let mut hasher = blake3::Hasher::new();
     hasher.update(&face_size.to_le_bytes());
-    for texel in texels {
-        for channel in texel {
-            hasher.update(&channel.to_bits().to_le_bytes());
-        }
-    }
+    update_irradiance_texel_hash(&mut hasher, texels);
     let bytes = hasher.finalize();
     let bytes = bytes.as_bytes();
     [
@@ -108,6 +106,22 @@ fn source_cubemap_irradiance_cube_content_hash(face_size: u32, texels: &[[Real; 
         u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]),
         u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]),
     ]
+}
+
+fn update_irradiance_texel_hash(hasher: &mut blake3::Hasher, texels: &[[Real; 3]]) {
+    let mut encoded = [0_u8; IRRADIANCE_HASH_TEXELS_PER_BATCH * IRRADIANCE_HASH_BYTES_PER_TEXEL];
+    for batch in texels.chunks(IRRADIANCE_HASH_TEXELS_PER_BATCH) {
+        let mut encoded_len = 0;
+        for texel in batch {
+            for channel in texel {
+                let bytes = channel.to_bits().to_le_bytes();
+                let end = encoded_len + bytes.len();
+                encoded[encoded_len..end].copy_from_slice(&bytes);
+                encoded_len = end;
+            }
+        }
+        hasher.update(&encoded[..encoded_len]);
+    }
 }
 
 pub fn build_source_cubemap_irradiance_cube(
@@ -347,6 +361,9 @@ fn dot3(a: [Real; 3], b: [Real; 3]) -> Real {
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use super::*;
     use crate::core::framework::render::environment::build_source_cubemap_from_equirect;
     use crate::core::framework::tasks::ParallelSliceExecutor;
@@ -381,6 +398,86 @@ mod tests {
         let cloned = cube.clone();
 
         assert!(std::sync::Arc::ptr_eq(&cube.texels, &cloned.texels));
+    }
+
+    #[test]
+    fn optimization_batch_20260830eu_runtime557_batches_irradiance_hash_bytes() {
+        let production = include_str!("source_irradiance_cubemap.rs");
+        let hash_source = production
+            .split("fn source_cubemap_irradiance_cube_content_hash")
+            .nth(1)
+            .and_then(|source| {
+                source
+                    .split("pub fn build_source_cubemap_irradiance_cube")
+                    .next()
+            })
+            .expect("irradiance hash source");
+
+        assert!(production.contains("IRRADIANCE_HASH_TEXELS_PER_BATCH"));
+        assert!(hash_source.contains("update_irradiance_texel_hash"));
+        assert!(!hash_source.contains("hasher.update(&channel.to_bits().to_le_bytes())"));
+
+        let texels = (0..257)
+            .map(|index| {
+                let value = index as Real * 0.03125 - 3.0;
+                [value, -value, value * value]
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            source_cubemap_irradiance_cube_content_hash(19, &texels),
+            legacy_content_hash(19, &texels)
+        );
+    }
+
+    fn legacy_content_hash(face_size: u32, texels: &[[Real; 3]]) -> [u32; 4] {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(&face_size.to_le_bytes());
+        for texel in texels {
+            for channel in texel {
+                hasher.update(&channel.to_bits().to_le_bytes());
+            }
+        }
+        let bytes = hasher.finalize();
+        let bytes = bytes.as_bytes();
+        [
+            u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
+            u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
+            u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]),
+            u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]),
+        ]
+    }
+
+    #[test]
+    #[ignore = "deterministic performance marker"]
+    fn optimization_batch_20260830eu_runtime557_irradiance_hash_batch_benchmark() {
+        const TEXEL_COUNT: usize = 32 * 32 * 6;
+        const SAMPLES: usize = 9;
+        let texels = (0..TEXEL_COUNT)
+            .map(|index| {
+                let value = index as Real * 0.000_976_562_5;
+                [value, value * 0.5, 1.0 - value]
+            })
+            .collect::<Vec<_>>();
+        let mut legacy_samples = Vec::with_capacity(SAMPLES);
+        let mut optimized_samples = Vec::with_capacity(SAMPLES);
+
+        for _ in 0..SAMPLES {
+            let started = Instant::now();
+            black_box(legacy_content_hash(32, &texels));
+            legacy_samples.push(started.elapsed());
+
+            let started = Instant::now();
+            black_box(source_cubemap_irradiance_cube_content_hash(32, &texels));
+            optimized_samples.push(started.elapsed());
+        }
+
+        legacy_samples.sort_unstable();
+        optimized_samples.sort_unstable();
+        println!(
+            "RUNTIME557_IRRADIANCE_HASH_BATCH_BENCH_V1 legacy={:?} optimized={:?}",
+            legacy_samples[SAMPLES / 2],
+            optimized_samples[SAMPLES / 2]
+        );
     }
 
     #[test]

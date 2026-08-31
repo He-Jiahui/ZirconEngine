@@ -7,11 +7,16 @@ use crate::ui::workbench::view::{DockPolicy, ViewDescriptor, ViewKind};
 
 use super::drawer_slot_preference::drawer_slot_preference;
 
+#[cfg(test)]
+#[path = "activity_descriptors/capacity_tests.rs"]
+mod capacity_tests;
+
 pub fn activity_descriptors_from_views(
     descriptors: &[ViewDescriptor],
 ) -> (Vec<ActivityViewDescriptor>, Vec<ActivityWindowDescriptor>) {
-    let mut activity_views = Vec::new();
-    let mut activity_windows = Vec::new();
+    let (view_count, window_count) = activity_descriptor_capacities(descriptors);
+    let mut activity_views = Vec::with_capacity(view_count);
+    let mut activity_windows = Vec::with_capacity(window_count);
 
     for descriptor in descriptors {
         match descriptor.kind {
@@ -65,6 +70,16 @@ pub fn activity_descriptors_from_views(
     }
 
     (activity_views, activity_windows)
+}
+
+fn activity_descriptor_capacities(descriptors: &[ViewDescriptor]) -> (usize, usize) {
+    descriptors.iter().fold(
+        (0usize, 0usize),
+        |(views, windows), descriptor| match descriptor.kind {
+            ViewKind::ActivityView => (views.saturating_add(1), windows),
+            ViewKind::ActivityWindow => (views, windows.saturating_add(1)),
+        },
+    )
 }
 
 fn drawer_slot(workbench_slot: WorkbenchSlot) -> Option<ActivityDrawerSlot> {

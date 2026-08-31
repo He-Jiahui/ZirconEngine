@@ -2,7 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::plugin::native::discover_native_plugins;
+use zircon_runtime::plugin::native::discovery::discover_native_plugins;
 use zircon_runtime::{
     core::framework::project::ProjectPluginManifest,
     core::framework::project::ProjectPluginSelection, plugin::PluginFeatureBundleManifest,

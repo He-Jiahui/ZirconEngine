@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "retarget_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.retarget_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionRetargetWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "retarget_rail_gap" }, { node = "retarget_left" }, { node = "retarget_center" }, { node = "retarget_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "retarget_workspace_main" },
+  { node = "retarget_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.retarget_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "retarget_rail_gap" }, { node = "retarget_left" }, { node = "retarget_center" }, { node = "retarget_right_reserve" }]
+
+[nodes.retarget_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.retarget_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionRetargetRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.retarget_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionRetargetLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "retarget_title" }, { node = "retarget_rigs_tab" }, { node = "retarget_chains_tab" }, { node = "retarget_preview_tab" }, { node = "retarget_mannequin_row" }, { node = "retarget_robot_row" }, { node = "retarget_quadruped_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "retarget_title" }, { node = "retarget_left_content" }]
+
+[nodes.retarget_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionRetargetLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "retarget_mannequin_row" }, { node = "retarget_robot_row" }, { node = "retarget_quadruped_row" }]
 
 [nodes.retarget_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionRetargetTitle"
 props = { text = "Retarget" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.retarget_rigs_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionRetargetRigsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Rigs", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/RetargetRigsTab", event = "Click", route = "workbench.extension.retarget.rigs" }]
-
-[nodes.retarget_chains_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionRetargetChainsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Chains", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/RetargetChainsTab", event = "Click", route = "workbench.extension.retarget.chains" }]
-
-[nodes.retarget_preview_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionRetargetPreviewTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Preview", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/RetargetPreviewTab", event = "Click", route = "workbench.extension.retarget.preview_tab" }]
 
 [nodes.retarget_mannequin_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/RetargetQuadrupedRow", event = "Click", rou
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionRetargetCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "retarget_center_header" }, { node = "retarget_chain_table" }, { node = "retarget_output" }]
 
 [nodes.retarget_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionRetargetCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "retarget_center_title" }, { node = "retarget_header_fill" }, { node = "retarget_preview_button" }, { node = "retarget_apply_button" }]
 
 [nodes.retarget_center_title]
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/RetargetPreview", event = "Click", route = 
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionRetargetApplyButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Apply", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Apply", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 72.0, preferred = 72.0, max = 82.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/RetargetApply", event = "Click", route = "workbench.extension.retarget.apply" }]
 
 [nodes.retarget_chain_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionRetargetChainTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "retarget_root_chain_table_row" }, { node = "retarget_spine_chain_table_row" }, { node = "retarget_arm_chain_table_row" }, { node = "retarget_leg_chain_table_row" }]
 
 [nodes.retarget_root_chain_table_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/RetargetLegChainTableRow", event = "Click",
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionRetargetOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Retarget", value_text = "SK_Mannequin -> SK_Robot   4 chains   Ready" }
+props = { text = "Retarget", value_text = "SK_Mannequin -> SK_Robot   4 chains   Ready", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/RetargetOutput", event = "Click", route = "workbench.extension.retarget.output" }]
 
 [nodes.retarget_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionRetargetRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "retarget_details_title" }, { node = "retarget_source_dropdown" }, { node = "retarget_target_field" }, { node = "retarget_solver_dropdown" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "retarget_details_title" }, { node = "retarget_right_content" }]
+
+[nodes.retarget_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionRetargetRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "retarget_source_dropdown_property_row" }, { node = "retarget_target_field_property_row" }, { node = "retarget_solver_dropdown_property_row" }]
 
 [nodes.retarget_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,16 +202,30 @@ control_id = "WorkbenchExtensionRetargetDetailsTitle"
 props = { text = "Retarget Settings" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.retarget_source_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionRetargetSourceDropdownPropertyRow"
+props = { text = "Source" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "retarget_source_dropdown", slot = { name = "value" } }]
+
 [nodes.retarget_source_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionRetargetSourceDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "SK_Mannequin", value = "SK_Mannequin", options = ["SK_Mannequin", "SK_MetaHuman", "Creature_Source"] }
+props = { value_text = "SK_Mannequin", value = "SK_Mannequin", options = ["SK_Mannequin", "SK_MetaHuman", "Creature_Source"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/RetargetSourceEdit", event = "Change", route = "workbench.extension.retarget.source.edit" },
   { id = "WorkbenchExtension/RetargetSourceCommit", event = "Submit", route = "workbench.extension.retarget.source.commit" },
 ]
+
+[nodes.retarget_target_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionRetargetTargetFieldPropertyRow"
+props = { text = "Target" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "retarget_target_field", slot = { name = "value" } }]
 
 [nodes.retarget_target_field]
 component = "WorkbenchField"
@@ -218,11 +238,18 @@ events = [
   { id = "WorkbenchExtension/RetargetTargetCommit", event = "Submit", route = "workbench.extension.retarget.target.commit" },
 ]
 
+[nodes.retarget_solver_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionRetargetSolverDropdownPropertyRow"
+props = { text = "Solver" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "retarget_solver_dropdown", slot = { name = "value" } }]
+
 [nodes.retarget_solver_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionRetargetSolverDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Full Body IK", value = "FullBodyIK", options = ["FullBodyIK", "LimbIK", "FKOnly"] }
+props = { value_text = "Full Body IK", value = "FullBodyIK", options = ["FullBodyIK|label=Full Body IK", "LimbIK|label=Limb IK", "FKOnly|label=FK Only"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/RetargetSolverEdit", event = "Change", route = "workbench.extension.retarget.solver.edit" },

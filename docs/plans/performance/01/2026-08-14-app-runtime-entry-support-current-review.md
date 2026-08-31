@@ -4,7 +4,7 @@ related_code:
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
   - zircon_runtime/src/input/runtime
-  - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md

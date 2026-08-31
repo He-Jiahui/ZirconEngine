@@ -6,6 +6,7 @@ use std::sync::{
     Mutex, MutexGuard,
 };
 
+use serde::{Deserialize, Serialize};
 use zircon_runtime::asset::project::ProjectPaths;
 
 use crate::core::editor_message::{DocumentId, DocumentMessage};
@@ -21,8 +22,29 @@ const MAX_TRACKED_DOCUMENT_ROOTS: usize = 1_024;
 static NEXT_PROJECT_SESSION: AtomicU64 = AtomicU64::new(1);
 
 /// Identifies one active project generation for picker and document-route requests.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct ProjectSessionId(u64);
+
+impl ProjectSessionId {
+    pub const fn value(self) -> u64 {
+        self.0
+    }
+}
+
+impl<'de> Deserialize<'de> for ProjectSessionId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = u64::deserialize(deserializer)?;
+        if value == 0 {
+            return Err(serde::de::Error::custom(
+                "a project session identity must be non-zero",
+            ));
+        }
+        Ok(Self(value))
+    }
+}
 
 /// An opaque picker capability bound to the project session that initiated the request.
 ///
@@ -59,6 +81,55 @@ pub struct SceneDocumentActivation {
     pub already_active: bool,
 }
 
+/// A lifecycle identity that has passed session validation but is not yet active.
+///
+/// Scene routes create this before replacing an authoring world. Holding the route gate prevents
+/// another project/session transition until the route either installs the world and commits this
+/// reservation or returns without publishing it.
+#[derive(Debug)]
+pub(super) struct SceneDocumentActivationReservation {
+    session: ProjectSessionId,
+    key: SceneDocumentKey,
+    document: DocumentId,
+    activation_revision: u64,
+}
+
+impl SceneDocumentActivationReservation {
+    pub(super) const fn document(&self) -> DocumentId {
+        self.document
+    }
+}
+
+/// Immutable identity for the scene currently owned by a project session.
+///
+/// The lifecycle authority owns this value. Consumers use it to select an explicit scene
+/// source for persistence instead of inferring one from a project manifest default.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ActiveSceneDocumentIdentity {
+    document: DocumentId,
+    project_root: PathBuf,
+    scene_uri: String,
+    activation_revision: u64,
+}
+
+impl ActiveSceneDocumentIdentity {
+    pub const fn document(&self) -> DocumentId {
+        self.document
+    }
+
+    pub fn project_root(&self) -> &Path {
+        &self.project_root
+    }
+
+    pub fn scene_uri(&self) -> &str {
+        &self.scene_uri
+    }
+
+    pub const fn activation_revision(&self) -> u64 {
+        self.activation_revision
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SceneDocumentLifecycleError {
     NoActiveProjectSession {
@@ -69,6 +140,7 @@ pub enum SceneDocumentLifecycleError {
         received: ProjectSessionId,
         active: Option<ProjectSessionId>,
     },
+    SceneActivationRevisionExhausted,
 }
 
 impl fmt::Display for SceneDocumentLifecycleError {
@@ -90,11 +162,44 @@ impl fmt::Display for SceneDocumentLifecycleError {
                 received,
                 active
             ),
+            Self::SceneActivationRevisionExhausted => {
+                formatter.write_str("scene document activation revision is exhausted")
+            }
         }
     }
 }
 
 impl std::error::Error for SceneDocumentLifecycleError {}
+
+/// Identifies whether a scene activation failed while reserving lifecycle state or while the
+/// caller bound a reservation-owned service before publication.
+#[derive(Debug)]
+pub enum SceneDocumentActivationBindingError<BindingError> {
+    Lifecycle(SceneDocumentLifecycleError),
+    Binding(BindingError),
+}
+
+impl<BindingError: fmt::Display> fmt::Display
+    for SceneDocumentActivationBindingError<BindingError>
+{
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Lifecycle(error) => error.fmt(formatter),
+            Self::Binding(error) => write!(formatter, "scene document binding failed: {error}"),
+        }
+    }
+}
+
+impl<BindingError: std::error::Error + 'static> std::error::Error
+    for SceneDocumentActivationBindingError<BindingError>
+{
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Lifecycle(error) => Some(error),
+            Self::Binding(error) => Some(error),
+        }
+    }
+}
 
 /// Owns document identity and structural lifecycle transitions for one editor manager.
 ///
@@ -111,6 +216,8 @@ struct DocumentLifecycleState {
     active_document: Option<DocumentId>,
     ids_by_root: BTreeMap<PathBuf, DocumentId>,
     active_scene_key: Option<SceneDocumentKey>,
+    active_scene_activation_revision: Option<u64>,
+    next_scene_activation_revision: u64,
     ids_by_scene_key: BTreeMap<SceneDocumentKey, DocumentId>,
     active_project_session: Option<ActiveProjectSession>,
     probe_counters: retention_snapshot::DocumentLifecycleProbeCounters,
@@ -151,23 +258,47 @@ impl DocumentLifecycleAuthority {
         }
     }
 
-    /// Activates a distinct scene document only when the project session still owns the project.
-    pub fn activate_scene(
+    /// Test-only shorthand for lifecycle tests that do not install a project-bound service.
+    #[cfg(test)]
+    pub(crate) fn activate_scene(
         &self,
         session: ProjectSessionId,
         project_root: &Path,
         scene_uri: &str,
     ) -> Result<SceneDocumentActivation, SceneDocumentLifecycleError> {
         let _route_guard = self.lock_scene_route_gate();
-        self.activate_scene_while_routed(session, project_root, scene_uri)
+        let reservation =
+            self.prepare_scene_activation_while_routed(session, project_root, scene_uri)?;
+        Ok(self.commit_scene_activation_while_routed(reservation))
     }
 
-    pub(super) fn activate_scene_while_routed(
+    /// Runs a side-effect-free document binding after identity reservation and before lifecycle
+    /// publication. A failed binding leaves the active scene unchanged.
+    pub fn activate_scene_with_binding<BindingError>(
         &self,
         session: ProjectSessionId,
         project_root: &Path,
         scene_uri: &str,
-    ) -> Result<SceneDocumentActivation, SceneDocumentLifecycleError> {
+        bind: impl FnOnce(DocumentId) -> Result<(), BindingError>,
+    ) -> Result<SceneDocumentActivation, SceneDocumentActivationBindingError<BindingError>> {
+        let _route_guard = self.lock_scene_route_gate();
+        let reservation = self
+            .prepare_scene_activation_while_routed(session, project_root, scene_uri)
+            .map_err(SceneDocumentActivationBindingError::Lifecycle)?;
+        bind(reservation.document()).map_err(SceneDocumentActivationBindingError::Binding)?;
+        Ok(self.commit_scene_activation_while_routed(reservation))
+    }
+
+    /// Reserves the target scene identity after validating its project session.
+    ///
+    /// This intentionally leaves `active_document` and `active_scene_key` unchanged. The route
+    /// commits only after its installer has replaced the authoring world successfully.
+    pub(super) fn prepare_scene_activation_while_routed(
+        &self,
+        session: ProjectSessionId,
+        project_root: &Path,
+        scene_uri: &str,
+    ) -> Result<SceneDocumentActivationReservation, SceneDocumentLifecycleError> {
         let mut state = self.lock_state();
         validate_scene_session(&state, session, project_root)?;
         let key = SceneDocumentKey {
@@ -179,17 +310,49 @@ impl DocumentLifecycleAuthority {
             .get(&key)
             .copied()
             .unwrap_or_else(|| scene_document_id_for(&mut state, &key));
-        if state.active_document == Some(document) && state.active_scene_key.as_ref() == Some(&key)
+        let activation_revision = state
+            .next_scene_activation_revision
+            .checked_add(1)
+            .ok_or(SceneDocumentLifecycleError::SceneActivationRevisionExhausted)?;
+        state.next_scene_activation_revision = activation_revision;
+        Ok(SceneDocumentActivationReservation {
+            session,
+            key,
+            document,
+            activation_revision,
+        })
+    }
+
+    /// Publishes a prevalidated scene identity while the scene-route gate remains held.
+    ///
+    /// `SceneDocumentActivationReservation` can only be created by the matching prepare method,
+    /// and route serialization forbids another session transition between preparation and commit.
+    /// This keeps the post-install step infallible: callers never receive an activation error
+    /// after the authoring world has already changed.
+    pub(super) fn commit_scene_activation_while_routed(
+        &self,
+        reservation: SceneDocumentActivationReservation,
+    ) -> SceneDocumentActivation {
+        let mut state = self.lock_state();
+        debug_assert!(state
+            .active_project_session
+            .as_ref()
+            .is_some_and(|session| {
+                session.id == reservation.session && session.root == reservation.key.project_root
+            }));
+        if state.active_document == Some(reservation.document)
+            && state.active_scene_key.as_ref() == Some(&reservation.key)
         {
-            return Ok(SceneDocumentActivation {
-                document,
+            return SceneDocumentActivation {
+                document: reservation.document,
                 messages: Vec::new(),
                 already_active: true,
-            });
+            };
         }
 
-        let previous_document = state.active_document.replace(document);
-        state.active_scene_key = Some(key);
+        let previous_document = state.active_document.replace(reservation.document);
+        state.active_scene_key = Some(reservation.key);
+        state.active_scene_activation_revision = Some(reservation.activation_revision);
         state.trim_closed_roots();
         state.trim_closed_scene_documents();
         let mut messages = Vec::with_capacity(2);
@@ -198,12 +361,14 @@ impl DocumentLifecycleAuthority {
                 doc: previous_document,
             });
         }
-        messages.push(DocumentMessage::Opened { doc: document });
-        Ok(SceneDocumentActivation {
-            document,
+        messages.push(DocumentMessage::Opened {
+            doc: reservation.document,
+        });
+        SceneDocumentActivation {
+            document: reservation.document,
             messages,
             already_active: false,
-        })
+        }
     }
 
     pub fn close(&self, root: &Path) -> Option<DocumentMessage> {
@@ -216,6 +381,7 @@ impl DocumentLifecycleAuthority {
 
         state.active_document = None;
         state.active_scene_key = None;
+        state.active_scene_activation_revision = None;
         if state
             .active_project_session
             .as_ref()
@@ -239,6 +405,7 @@ impl DocumentLifecycleAuthority {
 
         state.active_project_session = None;
         state.active_scene_key = None;
+        state.active_scene_activation_revision = None;
         state
             .active_document
             .take()
@@ -275,15 +442,49 @@ impl DocumentLifecycleAuthority {
         })
     }
 
-    pub fn save_active_project_session(&self, root: &Path) -> Option<DocumentMessage> {
+    /// Returns the selected source identity for the active scene in `root`.
+    ///
+    /// A project session without a scene has no save target. Callers must surface that condition
+    /// instead of falling back to `ProjectManifest::default_scene`.
+    pub fn active_scene_identity(&self, root: &Path) -> Option<ActiveSceneDocumentIdentity> {
+        let _route_guard = self.lock_scene_route_gate();
+        self.active_scene_identity_while_routed(root)
+    }
+
+    /// Returns the scene selected by the single active project session.
+    pub fn active_scene_identity_for_session(&self) -> Option<ActiveSceneDocumentIdentity> {
+        let _route_guard = self.lock_scene_route_gate();
+        let state = self.lock_state();
+        active_scene_identity_from_state(&state, None)
+    }
+
+    pub(super) fn active_scene_identity_while_routed(
+        &self,
+        root: &Path,
+    ) -> Option<ActiveSceneDocumentIdentity> {
+        let state = self.lock_state();
+        active_scene_identity_from_state(&state, Some(root))
+    }
+
+    /// Confirms a save only when the captured scene identity is still the active one.
+    ///
+    /// Persistence runs outside the lifecycle lock. This guards the post-write document event
+    /// against a later scene-route commit incorrectly marking a different document as saved.
+    pub fn save_scene_identity_if_active(
+        &self,
+        identity: &ActiveSceneDocumentIdentity,
+    ) -> Option<DocumentMessage> {
         let state = self.lock_state();
         let session = state.active_project_session.as_ref()?;
-        if session.root != root {
-            return None;
-        }
-        state
-            .active_document
-            .map(|document| DocumentMessage::Saved { doc: document })
+        let active_scene = state.active_scene_key.as_ref()?;
+        (session.root == identity.project_root
+            && state.active_document == Some(identity.document)
+            && active_scene.project_root == identity.project_root
+            && active_scene.scene_uri == identity.scene_uri
+            && state.active_scene_activation_revision == Some(identity.activation_revision))
+        .then_some(DocumentMessage::Saved {
+            doc: identity.document,
+        })
     }
 
     pub fn validate_project_session(
@@ -385,6 +586,26 @@ impl DocumentLifecycleAuthority {
     }
 }
 
+fn active_scene_identity_from_state(
+    state: &DocumentLifecycleState,
+    expected_root: Option<&Path>,
+) -> Option<ActiveSceneDocumentIdentity> {
+    let session = state.active_project_session.as_ref()?;
+    if expected_root.is_some_and(|root| session.root != root) {
+        return None;
+    }
+    let scene = state.active_scene_key.as_ref()?;
+    if scene.project_root != session.root {
+        return None;
+    }
+    Some(ActiveSceneDocumentIdentity {
+        document: state.active_document?,
+        project_root: scene.project_root.clone(),
+        scene_uri: scene.scene_uri.clone(),
+        activation_revision: state.active_scene_activation_revision?,
+    })
+}
+
 fn next_project_session_id() -> ProjectSessionId {
     loop {
         let candidate = NEXT_PROJECT_SESSION.fetch_add(1, Ordering::Relaxed);
@@ -445,6 +666,7 @@ fn activate_project_document(
 
     let previous_document = state.active_document.replace(document_id);
     state.active_scene_key = None;
+    state.active_scene_activation_revision = None;
     state.trim_closed_roots();
     state.trim_closed_scene_documents();
     let mut messages = Vec::with_capacity(2);

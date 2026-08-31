@@ -6,9 +6,6 @@ mod orbit;
 mod pan;
 
 pub use controller_output::{CameraControllerOutput, CursorGrabIntent, CursorGrabMode};
-pub use free::{FreeCameraController, FreeCameraInput, FreeCameraSettings, FreeCameraState};
-pub use orbit::{
-    OrbitCameraAction, OrbitCameraController, OrbitCameraInput, OrbitCameraSettings,
-    OrbitCameraState,
-};
-pub use pan::{PanCameraController, PanCameraInput, PanCameraSettings, PanCameraState};
+pub use free::{FreeCameraInput, FreeCameraSettings, FreeCameraState};
+pub use orbit::{OrbitCameraAction, OrbitCameraInput, OrbitCameraSettings, OrbitCameraState};
+pub use pan::{PanCameraInput, PanCameraSettings, PanCameraState};

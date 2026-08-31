@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import mmap
 from pathlib import Path
 from typing import Any
 
@@ -146,7 +147,7 @@ def template_report_file_source_hash_diagnostics(
             diagnostics.append(f"{label}.files[{index}].path {file_path} is not a file")
             continue
         try:
-            actual_sha256 = hashlib.sha256(file_path.read_bytes()).hexdigest()
+            actual_sha256 = mapped_file_sha256(file_path)
         except OSError as error:
             diagnostics.append(
                 f"{label}.files[{index}].path {file_path} could not be read: {error}"
@@ -157,6 +158,15 @@ def template_report_file_source_hash_diagnostics(
                 f"{label}.files[{index}].sha256 does not match actual {actual_sha256}"
             )
     return diagnostics
+
+
+def mapped_file_sha256(path: Path) -> str:
+    with path.open("rb") as stream:
+        stream.seek(0, 2)
+        if stream.tell() == 0:
+            return hashlib.sha256().hexdigest()
+        with mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as mapped_bytes:
+            return hashlib.sha256(mapped_bytes).hexdigest()
 
 
 def template_report_content_hash_diagnostics(

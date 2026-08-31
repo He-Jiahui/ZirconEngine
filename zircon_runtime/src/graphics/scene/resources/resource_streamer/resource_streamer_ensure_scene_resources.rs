@@ -1,25 +1,29 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::{
-    RenderCameraTargetGraphImportReport, RenderColorLookupTextureLayout, RenderImageDescriptor,
+    RenderCameraTargetGraphImportReport, RenderCameraTargetWritebackReport,
+    RenderColorLookupTextureLayout, RenderFrameSubmissionTransaction, RenderImageDescriptor,
 };
 use crate::core::math::UVec2;
 use crate::core::resource::ResourceId;
+use crate::graphics::backend::RenderBackend;
 use crate::graphics::types::{
     GraphicsError, ViewportRenderFrame, ViewportTextureGraphImportPlan,
     ViewportTextureGraphImportStatus,
 };
 
-use super::super::{ui_texture_id_for_upload, ui_texture_ids};
+use super::super::OutputTargetFramePlan;
+use super::super::ui_texture_ids;
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
     pub(crate) fn ensure_scene_resources(
         &mut self,
+        backend: &RenderBackend,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         frame: &ViewportRenderFrame,
+        submission_transaction: &mut RenderFrameSubmissionTransaction,
     ) -> Result<(), GraphicsError> {
         self.last_material_count = 0;
         self.last_material_ready_count = 0;
@@ -35,8 +39,10 @@ impl ResourceStreamer {
         self.last_post_process_lut_2d_strip_ready_count = 0;
         self.last_post_process_lut_3d_request_count = 0;
         self.last_post_process_lut_unsupported_shape_count = 0;
-        self.last_output_target_graph_import_report =
-            RenderCameraTargetGraphImportReport::not_requested(frame.output_target().kind());
+        self.last_ui_texture_prepare_receipt = None;
+        self.set_output_target_frame_plan(OutputTargetFramePlan::not_requested(
+            frame.output_target(),
+        ));
         let mut direct_mesh_readiness = HashMap::new();
         let mut ensured_models = HashSet::new();
         let mut ensured_materials = HashSet::new();
@@ -57,23 +63,43 @@ impl ResourceStreamer {
                 self.ensure_model(device, mesh.model)?;
             }
             if ensured_materials.insert(mesh.material.id()) {
-                self.ensure_material(device, queue, texture_layout, mesh.material)?;
+                self.ensure_material_for_frame(
+                    backend,
+                    device,
+                    texture_layout,
+                    mesh.material,
+                    submission_transaction,
+                )?;
             }
             self.record_material_summary(mesh.material.id());
         }
         if let Some(lightmaps) = frame.environment().baked_lighting() {
-            self.ensure_texture(device, queue, texture_layout, lightmaps.atlas)?;
+            self.ensure_texture_for_frame(
+                backend,
+                texture_layout,
+                lightmaps.atlas,
+                submission_transaction,
+            )?;
         }
         let mut ensured_cookie_textures = HashSet::new();
         for cookie in &frame.extract.lighting.advanced_lighting.cookies {
             if ensured_cookie_textures.insert(cookie.texture) {
-                let _ = self.ensure_texture(device, queue, texture_layout, cookie.texture);
+                let _ = self.ensure_texture_for_frame(
+                    backend,
+                    texture_layout,
+                    cookie.texture,
+                    submission_transaction,
+                );
             }
         }
         let mut ensured_irradiance_textures = HashSet::new();
         for volume in &frame.extract.lighting.advanced_lighting.irradiance_volumes {
             if ensured_irradiance_textures.insert(volume.voxels) {
-                let _ = self.ensure_irradiance_volume_texture(device, queue, volume.voxels);
+                let _ = self.ensure_irradiance_volume_texture(
+                    backend,
+                    volume.voxels,
+                    submission_transaction,
+                );
             }
         }
         let mut sprite_texture_readiness = HashMap::new();
@@ -84,7 +110,12 @@ impl ResourceStreamer {
                 *ready
             } else {
                 let ready = self
-                    .ensure_sprite_texture(device, queue, texture_layout, texture_id)
+                    .ensure_sprite_texture_for_frame(
+                        backend,
+                        texture_layout,
+                        texture_id,
+                        submission_transaction,
+                    )
                     .is_ok();
                 sprite_texture_readiness.insert(texture_id, ready);
                 ready
@@ -96,12 +127,12 @@ impl ResourceStreamer {
             }
         }
         if let Some(ui) = frame.ui.as_ref() {
-            let asset_manager = self.asset_manager()?;
-            for texture_id in ui_texture_ids(ui) {
-                if let Some(texture_id) = ui_texture_id_for_upload(&asset_manager, texture_id) {
-                    let _ = self.ensure_texture(device, queue, texture_layout, texture_id);
-                }
-            }
+            self.prepare_ui_textures_for_frame(
+                backend,
+                texture_layout,
+                &ui_texture_ids(ui),
+                submission_transaction,
+            )?;
         }
         if let Some(request) = effect_stack_lut_texture_request(frame) {
             self.last_post_process_lut_request_count += 1;
@@ -111,12 +142,22 @@ impl ResourceStreamer {
             ) {
                 self.last_post_process_lut_3d_request_count += 1;
             }
-            self.record_effect_stack_lut_texture_readiness(device, queue, texture_layout, request);
+            self.record_effect_stack_lut_texture_readiness(
+                backend,
+                texture_layout,
+                request,
+                submission_transaction,
+            );
         }
         self.ensure_output_target_texture(device, frame)?;
-        self.record_output_target_graph_import_readiness(frame);
+        self.resolve_output_target_frame_plan(frame);
         self.collect_texture_mip_streaming_visibility(frame);
-        self.apply_texture_mip_streaming(device, queue, texture_layout, frame.texture_mip_bias());
+        self.apply_texture_mip_streaming(
+            backend,
+            texture_layout,
+            frame.texture_mip_bias(),
+            submission_transaction,
+        );
         Ok(())
     }
 
@@ -136,10 +177,10 @@ impl ResourceStreamer {
 
     fn record_effect_stack_lut_texture_readiness(
         &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        backend: &RenderBackend,
         texture_layout: &wgpu::BindGroupLayout,
         request: EffectStackLutTextureRequest,
+        submission_transaction: &mut RenderFrameSubmissionTransaction,
     ) {
         let Some(texture_id) = request.texture_id else {
             self.last_post_process_lut_fallback_count += 1;
@@ -150,7 +191,7 @@ impl ResourceStreamer {
             self.last_post_process_lut_fallback_count += 1;
             return;
         };
-        let Ok(texture) = asset_manager.load_texture_asset(texture_id) else {
+        let Ok(texture) = asset_manager.load_texture_asset_snapshot(texture_id) else {
             self.last_post_process_lut_fallback_count += 1;
             return;
         };
@@ -162,7 +203,12 @@ impl ResourceStreamer {
         match status {
             EffectStackLutTextureStatus::Ready2d | EffectStackLutTextureStatus::Ready2dStrip => {
                 if self
-                    .ensure_texture(device, queue, texture_layout, texture_id)
+                    .ensure_texture_for_frame(
+                        backend,
+                        texture_layout,
+                        texture_id,
+                        submission_transaction,
+                    )
                     .is_ok()
                 {
                     self.last_post_process_lut_ready_count += 1;
@@ -181,7 +227,12 @@ impl ResourceStreamer {
                     self.last_post_process_lut_3d_request_count += 1;
                 }
                 if self
-                    .ensure_post_process_lut_texture(device, queue, texture_id)
+                    .ensure_post_process_lut_texture_snapshot(
+                        backend,
+                        texture_id,
+                        texture,
+                        submission_transaction,
+                    )
                     .is_ok()
                 {
                     self.last_post_process_lut_ready_count += 1;
@@ -196,14 +247,89 @@ impl ResourceStreamer {
         }
     }
 
-    fn record_output_target_graph_import_readiness(&mut self, frame: &ViewportRenderFrame) {
+    fn resolve_output_target_frame_plan(&mut self, frame: &ViewportRenderFrame) {
+        if !frame
+            .camera_stack_output_policy()
+            .owns_final_target_output()
+        {
+            let Some(size) = frame
+                .output_target()
+                .size()
+                .filter(|_| frame.output_target().texture_handle().is_some())
+            else {
+                self.set_output_target_frame_plan(OutputTargetFramePlan::not_requested(
+                    frame.output_target(),
+                ));
+                return;
+            };
+            self.set_output_target_frame_plan(OutputTargetFramePlan::new(
+                frame.output_target(),
+                RenderCameraTargetGraphImportReport::suppressed_by_camera_stack(size),
+                RenderCameraTargetWritebackReport::suppressed_by_camera_stack(size),
+                RenderCameraTargetWritebackReport::suppressed_by_camera_stack(size),
+            ));
+            return;
+        }
         let target_format = frame
             .output_target()
             .texture_handle()
             .and_then(|texture| self.output_target_textures.get(&texture.id()))
             .map(|prepared| prepared.resource().descriptor().format.as_str());
         let plan = frame.output_target().graph_import_plan(target_format);
-        self.last_output_target_graph_import_report = output_target_graph_import_report(&plan);
+        let graph_import_report = output_target_graph_import_report(&plan);
+        self.set_output_target_frame_plan(OutputTargetFramePlan::new(
+            frame.output_target(),
+            graph_import_report,
+            output_target_writeback_plan(graph_import_report),
+            direct_submission_output_target_writeback_plan(graph_import_report),
+        ));
+    }
+
+    fn set_output_target_frame_plan(&mut self, plan: OutputTargetFramePlan) {
+        self.last_output_target_graph_import_report = plan.graph_import_report();
+        self.last_output_target_frame_plan = plan;
+    }
+}
+
+fn direct_submission_output_target_writeback_plan(
+    graph_import: RenderCameraTargetGraphImportReport,
+) -> RenderCameraTargetWritebackReport {
+    use crate::core::framework::render::RenderCameraTargetGraphImportStatus;
+
+    match graph_import.status {
+        RenderCameraTargetGraphImportStatus::ReadyForDirectImport
+        | RenderCameraTargetGraphImportStatus::DirectImported => {
+            RenderCameraTargetWritebackReport::ready_for_copy(graph_import.target_size)
+        }
+        _ => output_target_writeback_plan(graph_import),
+    }
+}
+
+fn output_target_writeback_plan(
+    graph_import: RenderCameraTargetGraphImportReport,
+) -> RenderCameraTargetWritebackReport {
+    use crate::core::framework::render::RenderCameraTargetGraphImportStatus;
+
+    match graph_import.status {
+        RenderCameraTargetGraphImportStatus::NotRequested => {
+            RenderCameraTargetWritebackReport::not_requested(graph_import.target_kind)
+        }
+        RenderCameraTargetGraphImportStatus::PendingTargetDescriptor => {
+            RenderCameraTargetWritebackReport::pending_target_descriptor(graph_import.target_size)
+        }
+        RenderCameraTargetGraphImportStatus::ReadyForDirectImport
+        | RenderCameraTargetGraphImportStatus::DirectImported => {
+            RenderCameraTargetWritebackReport::skipped_direct_import(graph_import.target_size)
+        }
+        RenderCameraTargetGraphImportStatus::RequiresConversionWriteback => {
+            RenderCameraTargetWritebackReport::ready_for_conversion(graph_import.target_size)
+        }
+        RenderCameraTargetGraphImportStatus::SuppressedByCameraStack => {
+            RenderCameraTargetWritebackReport::suppressed_by_camera_stack(graph_import.target_size)
+        }
+        RenderCameraTargetGraphImportStatus::BlockedFormatMismatch => {
+            RenderCameraTargetWritebackReport::blocked_format_mismatch(graph_import.target_size)
+        }
     }
 }
 
@@ -242,7 +368,7 @@ struct EffectStackLutTextureRequest {
 fn effect_stack_lut_texture_request(
     frame: &ViewportRenderFrame,
 ) -> Option<EffectStackLutTextureRequest> {
-    let settings = frame.extract.post_process.effect_stack.color_lookup;
+    let settings = frame.post_process().effect_stack.color_lookup;
     settings.is_enabled().then(|| EffectStackLutTextureRequest {
         texture_id: settings.texture.map(|texture| texture.id()),
         texture_layout: settings.texture_layout,
@@ -281,23 +407,25 @@ fn effect_stack_lut_texture_status(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderFrameExtract,
-        RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension,
-        RenderImageFallbackKind, RenderImageUsage, RenderPostProcessEffectStackSettings,
-        RenderSamplerDescriptor, RenderWorldSnapshotHandle, TextureMetadata,
+        RenderCameraTargetWritebackStatus, RenderColorLookupSettings,
+        RenderColorLookupTextureLayout, RenderFrameExtract, RenderImageColorSpace,
+        RenderImageDescriptor, RenderImageDimension, RenderImageFallbackKind, RenderImageUsage,
+        RenderPostProcessEffectStackSettings, RenderSamplerDescriptor, RenderWorldSnapshotHandle,
+        TextureMetadata,
     };
     use crate::core::math::UVec2;
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
     use crate::graphics::types::{
-        ViewportRenderFrame, ViewportRenderOutputTarget, FRAMEWORK_OUTPUT_FORMAT_LABEL,
-        LINEAR_OUTPUT_FORMAT_LABEL,
+        FRAMEWORK_OUTPUT_FORMAT_LABEL, LINEAR_OUTPUT_FORMAT_LABEL, ViewportRenderFrame,
+        ViewportRenderOutputTarget,
     };
     use crate::scene::World;
 
     use super::{
+        EffectStackLutTextureStatus, direct_submission_output_target_writeback_plan,
         effect_stack_lut_texture_id, effect_stack_lut_texture_request,
         effect_stack_lut_texture_status, output_target_graph_import_report,
-        EffectStackLutTextureStatus,
+        output_target_writeback_plan,
     };
 
     #[test]
@@ -328,6 +456,49 @@ mod tests {
 
         assert!(material_prepare < visibility_collect);
         assert!(visibility_collect < streaming_apply);
+    }
+
+    #[test]
+    fn scene_resource_prepare_routes_texture_producers_into_the_frame_transaction() {
+        let production = include_str!("resource_streamer_ensure_scene_resources.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("scene resource preparation test boundary");
+
+        assert!(production.contains("ensure_material_for_frame("));
+        assert!(production.contains("ensure_texture_for_frame("));
+        assert!(production.contains("ensure_sprite_texture_for_frame("));
+        assert!(production.contains("ensure_irradiance_volume_texture("));
+        assert!(production.contains("ensure_post_process_lut_texture_snapshot("));
+        assert!(production.contains("load_texture_asset_snapshot(texture_id)"));
+        assert!(!production.contains("load_texture_asset(texture_id)"));
+        assert!(production.contains("submission_transaction"));
+        assert!(!production.contains("self.ensure_material("));
+        assert!(!production.contains("self.ensure_texture("));
+        assert!(!production.contains("self.ensure_sprite_texture("));
+    }
+
+    #[test]
+    fn product_scene_resource_prepare_does_not_receive_queue_authority() {
+        let production = include_str!("resource_streamer_ensure_scene_resources.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("scene resource preparation test boundary");
+        let material = include_str!("resource_streamer_ensure_material.rs");
+        let frame_material = material
+            .split("pub(crate) fn ensure_material_for_frame(")
+            .nth(1)
+            .and_then(|source| source.split("fn ensure_material_internal(").next())
+            .expect("frame material preparation boundary");
+        let internal_material = material
+            .split("fn ensure_material_internal(")
+            .nth(1)
+            .and_then(|source| source.split("crate::profile_scope!").next())
+            .expect("internal material preparation signature");
+
+        assert!(!production.contains("queue: &wgpu::Queue"));
+        assert!(!frame_material.contains("wgpu::Queue"));
+        assert!(!internal_material.contains("wgpu::Queue"));
     }
 
     #[test]
@@ -473,6 +644,14 @@ mod tests {
         assert_eq!(report.direct_import_count, 0);
         assert_eq!(report.conversion_writeback_count, 0);
         assert_eq!(report.blocked_count, 0);
+        assert_eq!(
+            output_target_writeback_plan(report).status,
+            RenderCameraTargetWritebackStatus::SkippedDirectImport
+        );
+        assert_eq!(
+            direct_submission_output_target_writeback_plan(report).status,
+            RenderCameraTargetWritebackStatus::ReadyForCopy
+        );
     }
 
     #[test]
@@ -504,6 +683,14 @@ mod tests {
         assert_eq!(report.direct_import_count, 0);
         assert_eq!(report.conversion_writeback_count, 1);
         assert_eq!(report.blocked_count, 0);
+        assert_eq!(
+            output_target_writeback_plan(report).status,
+            RenderCameraTargetWritebackStatus::ReadyForConversion
+        );
+        assert_eq!(
+            direct_submission_output_target_writeback_plan(report).status,
+            RenderCameraTargetWritebackStatus::ReadyForConversion
+        );
     }
 
     fn texture_descriptor(

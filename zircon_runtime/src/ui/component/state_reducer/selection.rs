@@ -3,6 +3,9 @@ use zircon_runtime_interface::ui::component::{
     UiValueKind,
 };
 
+#[cfg(test)]
+mod borrowed_option_id_tests;
+
 pub(super) fn apply_selection(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -40,12 +43,12 @@ pub(super) fn apply_selection(
         if selected {
             if !values
                 .iter()
-                .any(|value| value == &UiValue::Enum(option_id.clone()))
+                .any(|value| enum_option_id_matches(value, &option_id))
             {
                 values.push(UiValue::Enum(option_id));
             }
         } else {
-            values.retain(|value| value != &UiValue::Enum(option_id.clone()));
+            values.retain(|value| !enum_option_id_matches(value, &option_id));
         }
     } else if selected {
         state.values.insert(property, UiValue::Enum(option_id));
@@ -118,7 +121,11 @@ fn bool_setting(
     }
 }
 
-fn option_is_disabled(
+fn enum_option_id_matches(value: &UiValue, option_id: &str) -> bool {
+    matches!(value, UiValue::Enum(value) if value == option_id)
+}
+
+pub(super) fn option_is_disabled(
     state: &UiComponentState,
     descriptor: &UiComponentDescriptor,
     option_id: &str,

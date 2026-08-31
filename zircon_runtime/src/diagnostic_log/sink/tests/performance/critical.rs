@@ -1,4 +1,4 @@
-use std::sync::{Arc, Barrier, mpsc};
+use std::sync::{mpsc, Arc, Barrier};
 use std::time::Duration;
 
 use super::super::super::worker::SinkRuntime;

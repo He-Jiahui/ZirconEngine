@@ -155,3 +155,18 @@ All generated artifacts remain outside `C:`.
 Until the product-observability gate is complete, Global SDF, Radiance Cache, parallel command
 recording, and quality ladders remain hypotheses. No static code path or historical capture is
 accepted as a substitute for the requested runtime evidence.
+
+## 2026-08-27 FrameProfiler Owner Follow-Up
+
+Status: `runtime_17_15_frame_profiler_gpu_resolution_owner_split_static_passed_cargo_profile_deferred`.
+
+The delayed-result resolution responsibility is now physically owned by
+`frame_profiler/gpu_resolution.rs`: timer and pipeline-statistics merge, duplicate pass-occurrence
+matching, subsystem GPU-time projection, and GPU budget warnings moved without changing their
+implementation. The 796-line parent remains the current-frame assembly, bounded pending-ring, and
+publication owner; the child is 153 lines. A normalized comparison passed for all seven moved items,
+and the source/status guard, focused formatting, and diff checks pass.
+
+This follow-up does not satisfy any measurement gate. It produced no Cargo, WGPU, RenderDoc, PNG,
+timestamp, allocation, RSS, or power receipt, and it does not authorize tuning the ring, matching
+algorithm, copy-on-write policy, budget model, command recording, or renderer quality.

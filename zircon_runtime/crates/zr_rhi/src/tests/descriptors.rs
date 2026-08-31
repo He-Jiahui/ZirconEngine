@@ -1,14 +1,15 @@
-use crate::ShaderModuleHandle;
+use crate::PipelineLayoutDesc;
 use crate::{
     BindGroupLayoutDesc, BindGroupLayoutEntryDesc, BindingResourceType, BlendFactor,
     BlendOperation, BlendStateDesc, BufferDesc, BufferUsage, ColorTargetDesc, ColorWriteMask,
-    CompareFunction, CullMode, DepthStencilStateDesc, FilterMode, FrontFace, MipmapFilterMode,
-    PipelineDesc, PipelineKind, PrimitiveStateDesc, PrimitiveTopology, RasterPipelineStateDesc,
-    SamplerDesc, ShaderModuleDesc, ShaderStage, TextureDesc, TextureDimension, TextureFormat,
-    TextureResidency, TextureUsage, VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat,
+    CompareFunction, CullMode, DepthStencilStateDesc, DeviceGeneration, DeviceId, FilterMode,
+    FrontFace, MipmapFilterMode, PipelineDesc, PipelineKind, PrimitiveStateDesc, PrimitiveTopology,
+    RasterPipelineStateDesc, RenderResourceHandleAllocator, SamplerBindingType, SamplerDesc,
+    ShaderModuleDesc, ShaderStage, StorageTextureAccess, StorageTextureBindingDesc, TextureDesc,
+    TextureDimension, TextureFormat, TextureResidency, TextureSampleType, TextureUsage,
+    TextureViewDimension, VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat,
     VertexInputLayoutDesc, VertexStepMode,
 };
-use crate::{BindGroupLayoutHandle, PipelineLayoutDesc, PipelineLayoutHandle};
 
 #[test]
 fn resource_descriptors_keep_stable_labels_and_usage() {
@@ -32,6 +33,8 @@ fn resource_descriptors_keep_stable_labels_and_usage() {
     assert_eq!(texture.width, 1920);
     assert_eq!(texture.height, 1080);
     assert_eq!(texture.dimension, TextureDimension::D2);
+    assert!(TextureUsage::ALL.contains(TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_DST));
+    assert!(!texture.usage.has_unknown_bits());
     assert_eq!(sampler.mag_filter, FilterMode::Linear);
     assert_eq!(sampler.min_filter, FilterMode::Linear);
     assert_eq!(sampler.mipmap_filter, MipmapFilterMode::Nearest);
@@ -40,51 +43,67 @@ fn resource_descriptors_keep_stable_labels_and_usage() {
 
 #[test]
 fn pipeline_descriptors_bind_shader_stages_to_pipeline_layouts() {
-    let material_layout = BindGroupLayoutHandle::new(42);
+    let handles = RenderResourceHandleAllocator::new(DeviceId::new(1), DeviceGeneration::initial());
+    let material_layout = handles
+        .allocate_bind_group_layout()
+        .expect("allocate material layout");
+    let raster_layout = handles
+        .allocate_pipeline_layout()
+        .expect("allocate raster layout");
+    let vertex_shader = handles
+        .allocate_shader_module()
+        .expect("allocate vertex shader");
+    let fragment_shader = handles
+        .allocate_shader_module()
+        .expect("allocate fragment shader");
+    let compute_layout = handles
+        .allocate_pipeline_layout()
+        .expect("allocate compute layout");
+    let compute_shader = handles
+        .allocate_shader_module()
+        .expect("allocate compute shader");
     let pipeline_layout = PipelineLayoutDesc::new("forward-layout", vec![material_layout]);
-    let vertex_shader = ShaderModuleDesc::new(
+    let vertex_shader_desc = ShaderModuleDesc::new(
         "mesh-vs",
         ShaderStage::Vertex,
         "vs_main",
         "@vertex fn vs_main() {}",
     );
-    let fragment_shader = ShaderModuleDesc::new(
+    let fragment_shader_desc = ShaderModuleDesc::new(
         "mesh-fs",
         ShaderStage::Fragment,
         "fs_main",
         "@fragment fn fs_main() {}",
     );
     let raster_pipeline = PipelineDesc::new("forward-opaque", PipelineKind::Raster)
-        .with_layout(PipelineLayoutHandle::new(9))
-        .with_vertex_shader(ShaderModuleHandle::new(10))
-        .with_fragment_shader(ShaderModuleHandle::new(11));
+        .with_layout(raster_layout)
+        .with_vertex_shader(vertex_shader)
+        .with_fragment_shader(fragment_shader);
     let compute_pipeline = PipelineDesc::new("postprocess-blur", PipelineKind::Compute)
-        .with_layout(PipelineLayoutHandle::new(12))
-        .with_compute_shader(ShaderModuleHandle::new(13));
+        .with_layout(compute_layout)
+        .with_compute_shader(compute_shader);
 
-    assert_eq!(
-        pipeline_layout.bind_group_layouts,
-        vec![BindGroupLayoutHandle::new(42)]
-    );
-    assert_eq!(vertex_shader.stage, ShaderStage::Vertex);
-    assert_eq!(fragment_shader.entry_point, "fs_main");
-    assert_eq!(raster_pipeline.layout, Some(PipelineLayoutHandle::new(9)));
-    assert_eq!(
-        raster_pipeline.vertex_shader,
-        Some(ShaderModuleHandle::new(10))
-    );
-    assert_eq!(
-        raster_pipeline.fragment_shader,
-        Some(ShaderModuleHandle::new(11))
-    );
-    assert_eq!(
-        compute_pipeline.compute_shader,
-        Some(ShaderModuleHandle::new(13))
-    );
+    assert_eq!(pipeline_layout.bind_group_layouts, vec![material_layout]);
+    assert_eq!(vertex_shader_desc.stage, ShaderStage::Vertex);
+    assert_eq!(fragment_shader_desc.entry_point, "fs_main");
+    assert_eq!(raster_pipeline.layout, Some(raster_layout));
+    assert_eq!(raster_pipeline.vertex_shader, Some(vertex_shader));
+    assert_eq!(raster_pipeline.fragment_shader, Some(fragment_shader));
+    assert_eq!(compute_pipeline.compute_shader, Some(compute_shader));
 }
 
 #[test]
 fn raster_pipeline_state_descriptors_cover_scene_ui_postprocess_and_depth_targets() {
+    let handles = RenderResourceHandleAllocator::new(DeviceId::new(1), DeviceGeneration::initial());
+    let pipeline_layout = handles
+        .allocate_pipeline_layout()
+        .expect("allocate pipeline layout");
+    let vertex_shader = handles
+        .allocate_shader_module()
+        .expect("allocate vertex shader");
+    let fragment_shader = handles
+        .allocate_shader_module()
+        .expect("allocate fragment shader");
     let position_color_uv_layout = VertexInputLayoutDesc::new(vec![VertexBufferLayoutDesc::new(
         32,
         vec![
@@ -138,9 +157,9 @@ fn raster_pipeline_state_descriptors_cover_scene_ui_postprocess_and_depth_target
             .with_front_face(FrontFace::Cw),
     );
     let pipeline = PipelineDesc::new("forward-opaque", PipelineKind::Raster)
-        .with_layout(PipelineLayoutHandle::new(9))
-        .with_vertex_shader(ShaderModuleHandle::new(10))
-        .with_fragment_shader(ShaderModuleHandle::new(11))
+        .with_layout(pipeline_layout)
+        .with_vertex_shader(vertex_shader)
+        .with_fragment_shader(fragment_shader)
         .with_raster_state(scene_state.clone());
 
     assert_eq!(
@@ -217,12 +236,16 @@ fn bind_group_layout_descriptors_cover_material_texture_and_sampler_bindings() {
             ),
             BindGroupLayoutEntryDesc::new(
                 1,
-                BindingResourceType::Texture,
+                BindingResourceType::SampledTexture {
+                    sample_type: TextureSampleType::Float { filterable: true },
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: false,
+                },
                 vec![ShaderStage::Fragment],
             ),
             BindGroupLayoutEntryDesc::new(
                 2,
-                BindingResourceType::Sampler,
+                BindingResourceType::Sampler(SamplerBindingType::Filtering),
                 vec![ShaderStage::Fragment],
             ),
         ],
@@ -241,12 +264,31 @@ fn bind_group_layout_descriptors_cover_material_texture_and_sampler_bindings() {
     );
     assert_eq!(
         layout.entries[1].resource_type,
-        BindingResourceType::Texture
+        BindingResourceType::SampledTexture {
+            sample_type: TextureSampleType::Float { filterable: true },
+            view_dimension: TextureViewDimension::D2,
+            multisampled: false,
+        }
     );
     assert_eq!(
         layout.entries[2].resource_type,
-        BindingResourceType::Sampler
+        BindingResourceType::Sampler(SamplerBindingType::Filtering)
     );
+}
+
+#[test]
+fn storage_texture_binding_descriptors_are_explicit_and_format_bound() {
+    let storage =
+        StorageTextureBindingDesc::write_only(TextureFormat::Rgba16Float, TextureViewDimension::D3);
+
+    assert_eq!(storage.access, StorageTextureAccess::WriteOnly);
+    assert_eq!(storage.format, TextureFormat::Rgba16Float);
+    assert_eq!(storage.view_dimension, TextureViewDimension::D3);
+    assert!(TextureFormat::Rgba8Unorm.supports_write_only_storage());
+    assert!(TextureFormat::Rgba16Float.supports_write_only_storage());
+    assert!(TextureFormat::R32Float.supports_write_only_storage());
+    assert!(TextureFormat::Rgba32Float.supports_write_only_storage());
+    assert!(!TextureFormat::Rgba8UnormSrgb.supports_write_only_storage());
 }
 
 #[test]

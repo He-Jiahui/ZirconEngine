@@ -1,5 +1,7 @@
 use super::*;
 
+mod plugin_inputs;
+
 #[test]
 fn compile_describes_color_lut_as_rgba16float_3d_transient_when_enabled() {
     let mut extract = test_extract();
@@ -44,10 +46,12 @@ fn compile_describes_color_lut_as_rgba16float_3d_transient_when_enabled() {
         workload.dispatch_extent,
         crate::render_graph::RenderGraphComputeDispatchExtent::Fixed([8, 8, 8])
     );
-    assert!(color_lut_pass
-        .resources
-        .iter()
-        .any(|resource| resource.name == PostProcessGraphResourceNames::EXPOSURE_CURRENT));
+    assert!(
+        color_lut_pass
+            .resources
+            .iter()
+            .any(|resource| resource.name == PostProcessGraphResourceNames::EXPOSURE_CURRENT)
+    );
 }
 
 #[test]
@@ -207,7 +211,7 @@ fn compile_removes_bloom_consumer_when_pipeline_has_no_bloom_provider() {
 #[test]
 fn compile_bloom_uses_the_motion_blur_version_without_an_exposure_ordering_rule() {
     let extract = test_extract();
-    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
         &RenderBloomSettings {
             intensity: 0.6,
             ..Default::default()
@@ -224,6 +228,7 @@ fn compile_bloom_uses_the_motion_blur_version_without_an_exposure_ordering_rule(
         false,
         false,
         &AntiAliasSettings::off(),
+        false,
         false,
     );
     let compiled = RenderPipelineAsset::default_forward_plus()
@@ -254,119 +259,6 @@ fn compile_bloom_uses_the_motion_blur_version_without_an_exposure_ordering_rule(
 
     assert!(bloom.dependencies.contains(&motion_blur.id));
     assert!(!bloom.dependencies.contains(&exposure_histogram.id));
-}
-
-#[test]
-fn compile_orders_plugin_scene_velocity_load_after_temporal_velocity_producer() {
-    let mut extract = test_extract();
-    extract.particles.emitters = vec![42];
-    extract.particles.sprites = vec![RenderParticleSpriteSnapshot {
-        entity: 42,
-        stable_sprite_key: 7,
-        position: Vec3::new(0.0, 0.0, -2.0),
-        size: 0.5,
-        aspect_ratio: 1.0,
-        billboard_offset: Vec2::ZERO,
-        rotation: 0.0,
-        sort_order: 0,
-        color: Vec4::ONE,
-        intensity: 1.0,
-        depth_test: true,
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
-        material: None,
-        texture: None,
-    }];
-    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
-        &RenderBloomSettings {
-            intensity: 0.6,
-            ..Default::default()
-        },
-        &extract.post_process.color_grading,
-        RenderExposureSettings::histogram(),
-        &RenderPostProcessEffectStackSettings {
-            motion_blur: RenderMotionBlurSettings {
-                shutter_angle: 0.5,
-                samples: 8,
-            },
-            screen_space_reflection: RenderScreenSpaceReflectionSettings {
-                intensity: 1.0,
-                temporal_blend_factor: 0.0,
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        true,
-        true,
-        &AntiAliasSettings::smaa(),
-        true,
-    );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .with_plugin_render_features([particle_velocity_descriptor()])
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::Temporal)
-                .with_post_process_stack(stack),
-        )
-        .unwrap();
-
-    assert_pass_writes(
-        &compiled,
-        "velocity-object",
-        PostProcessGraphResourceNames::SCENE_VELOCITY,
-    );
-    assert_pass_writes(
-        &compiled,
-        "particle-velocity",
-        PostProcessGraphResourceNames::SCENE_VELOCITY,
-    );
-    let velocity_object_index = graph_pass_index(&compiled, "velocity-object");
-    let particle_velocity_index = graph_pass_index(&compiled, "particle-velocity");
-    assert!(
-        velocity_object_index < particle_velocity_index,
-        "temporal velocity producer must execute before plugin particle velocity load/store writer"
-    );
-    let particle_velocity = graph_pass(&compiled, "particle-velocity");
-    assert!(particle_velocity.resources.iter().any(|resource| {
-        resource.name == PostProcessGraphResourceNames::SCENE_VELOCITY
-            && resource.access == RenderGraphResourceAccessKind::Write
-            && resource.attachment_ops == Some(RenderGraphAttachmentOps::load_store())
-    }));
-}
-
-#[test]
-fn compile_filters_plugin_scene_velocity_pass_without_post_process_stack() {
-    let extract = particle_extract();
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .with_plugin_render_features([particle_velocity_descriptor()])
-        .compile_with_options(&extract, &RenderPipelineCompileOptions::default())
-        .unwrap();
-
-    assert!(!graph_has_pass(&compiled, "particle-velocity"));
-    assert!(graph_has_pass(&compiled, "particle-render"));
-}
-
-#[test]
-fn compile_filters_plugin_scene_velocity_pass_when_stack_does_not_use_scene_velocity() {
-    let extract = particle_extract();
-    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
-        &RenderBloomSettings::default(),
-        &extract.post_process.color_grading,
-        &RenderPostProcessEffectStackSettings::default(),
-        false,
-        false,
-        &AntiAliasSettings::off(),
-    );
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .with_plugin_render_features([particle_velocity_descriptor()])
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
-        )
-        .unwrap();
-
-    assert!(!graph_has_pass(&compiled, "particle-velocity"));
-    assert!(graph_has_pass(&compiled, "particle-render"));
 }
 
 #[test]
@@ -524,84 +416,6 @@ fn compile_declares_uber_light_list_as_external_when_clustered_lighting_is_disab
 }
 
 #[test]
-fn compile_filters_hybrid_gi_lighting_from_uber_without_stack_input() {
-    let extract = test_extract();
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .with_plugin_render_features([hybrid_gi_lighting_descriptor()])
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_post_process_stack(PostProcessStackDescriptor::default()),
-        )
-        .unwrap();
-
-    assert_pass_does_not_read(
-        &compiled,
-        "uber",
-        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
-    );
-}
-
-#[test]
-fn compile_routes_hybrid_gi_lighting_into_uber_when_stack_requests_current_input() {
-    let extract = test_extract();
-    let stack = PostProcessStackDescriptor::default().with_hybrid_gi_lighting_input();
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .with_plugin_render_features([hybrid_gi_lighting_descriptor()])
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
-        )
-        .unwrap();
-
-    assert_pass_writes(
-        &compiled,
-        "hybrid-gi-resolve",
-        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
-    );
-    assert_pass_reads(
-        &compiled,
-        "uber",
-        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
-    );
-    assert!(graph_pass_index(&compiled, "hybrid-gi-resolve") < graph_pass_index(&compiled, "uber"));
-}
-
-#[test]
-fn compile_keeps_hybrid_gi_lighting_single_sample_when_graph_msaa_is_enabled() {
-    let extract = test_extract();
-    let stack = PostProcessStackDescriptor::default().with_hybrid_gi_lighting_input();
-    let compiled = RenderPipelineAsset::default_forward_plus()
-        .with_plugin_render_features([hybrid_gi_lighting_descriptor()])
-        .compile_with_options(
-            &extract,
-            &RenderPipelineCompileOptions::default()
-                .with_graph_msaa_sample_count(4)
-                .with_post_process_stack(stack),
-        )
-        .unwrap();
-
-    assert_pass_writes(
-        &compiled,
-        "hybrid-gi-resolve",
-        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
-    );
-    assert_pass_reads(
-        &compiled,
-        "uber",
-        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
-    );
-    assert_eq!(
-        texture_lifetime(&compiled, PostProcessGraphResourceNames::SCENE_COLOR).sample_count,
-        4
-    );
-    assert_eq!(
-        texture_lifetime(&compiled, PostProcessGraphResourceNames::HYBRID_GI_LIGHTING).sample_count,
-        1
-    );
-}
-
-#[test]
 fn compile_routes_output_transfer_through_fxaa_terminal_input() {
     let extract = test_extract();
     let stack = PostProcessStackDescriptor::from_extract_settings_with_anti_alias(
@@ -640,6 +454,10 @@ fn compile_routes_output_transfer_through_fxaa_terminal_input() {
         .iter()
         .find(|pass| pass.name == "fxaa")
         .expect("enabled terminal FXAA should compile the anti-alias pass");
+    assert!(
+        !fxaa.flags.has_side_effects,
+        "output transfer consumes the terminal FXAA result and owns the present root"
+    );
     assert!(graph_pass_index(&compiled, "fxaa") < graph_pass_index(&compiled, "output-transfer"));
     assert!(fxaa.resources.iter().any(|resource| {
         resource.name == PostProcessGraphResourceNames::TONEMAPPED
@@ -658,12 +476,16 @@ fn compile_routes_output_transfer_through_fxaa_terminal_input() {
         crate::rhi::TextureFormat::Rgba8UnormSrgb
     );
     assert_eq!(terminal_input.sample_count, 1);
-    assert!(terminal_input
-        .usage
-        .contains(crate::rhi::TextureUsage::RENDER_ATTACHMENT));
-    assert!(terminal_input
-        .usage
-        .contains(crate::rhi::TextureUsage::SAMPLED));
+    assert!(
+        terminal_input
+            .usage
+            .contains(crate::rhi::TextureUsage::RENDER_ATTACHMENT)
+    );
+    assert!(
+        terminal_input
+            .usage
+            .contains(crate::rhi::TextureUsage::SAMPLED)
+    );
 }
 
 #[test]
@@ -705,6 +527,10 @@ fn compile_routes_output_transfer_through_smaa_terminal_input() {
         .iter()
         .find(|pass| pass.name == "smaa")
         .expect("enabled terminal SMAA should compile the anti-alias pass");
+    assert!(
+        !smaa.flags.has_side_effects,
+        "output transfer consumes the terminal SMAA result and owns the present root"
+    );
     assert!(graph_pass_index(&compiled, "smaa") < graph_pass_index(&compiled, "output-transfer"));
     assert!(smaa.resources.iter().any(|resource| {
         resource.name == PostProcessGraphResourceNames::TONEMAPPED
@@ -715,11 +541,13 @@ fn compile_routes_output_transfer_through_smaa_terminal_input() {
         resource.name == PostProcessGraphResourceNames::FINAL_COMPOSITED
             && resource.access == RenderGraphResourceAccessKind::Write
     }));
-    assert!(!compiled
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "fxaa"));
+    assert!(
+        !compiled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "fxaa")
+    );
 
     let terminal_input =
         texture_lifetime(&compiled, PostProcessGraphResourceNames::FINAL_COMPOSITED);
@@ -728,12 +556,16 @@ fn compile_routes_output_transfer_through_smaa_terminal_input() {
         crate::rhi::TextureFormat::Rgba8UnormSrgb
     );
     assert_eq!(terminal_input.sample_count, 1);
-    assert!(terminal_input
-        .usage
-        .contains(crate::rhi::TextureUsage::RENDER_ATTACHMENT));
-    assert!(terminal_input
-        .usage
-        .contains(crate::rhi::TextureUsage::SAMPLED));
+    assert!(
+        terminal_input
+            .usage
+            .contains(crate::rhi::TextureUsage::RENDER_ATTACHMENT)
+    );
+    assert!(
+        terminal_input
+            .usage
+            .contains(crate::rhi::TextureUsage::SAMPLED)
+    );
 }
 
 #[test]
@@ -765,76 +597,6 @@ fn compile_describes_hzb_as_half_power_of_two_mip_chain() {
     );
     assert!(!hzb_pass.culled);
     assert!(hzb_pass.flags.has_side_effects);
-}
-
-fn particle_velocity_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        "particle",
-        vec![
-            "view".to_string(),
-            "particles".to_string(),
-            "visibility".to_string(),
-        ],
-        Vec::new(),
-        vec![
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent3d,
-                "particle-velocity",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("particle.velocity")
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCENE_VELOCITY,
-                RenderGraphAttachmentOps::load_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent3d,
-                "particle-render",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("particle.transparent")
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
-        ],
-    )
-}
-
-fn hybrid_gi_lighting_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        "hybrid_gi",
-        vec!["view".to_string(), "lighting".to_string()],
-        Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Lighting,
-            "hybrid-gi-resolve",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("hybrid-gi.resolve")
-        .write_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)],
-    )
-}
-
-fn particle_extract() -> RenderFrameExtract {
-    let mut extract = test_extract();
-    extract.particles.emitters = vec![42];
-    extract.particles.sprites = vec![RenderParticleSpriteSnapshot {
-        entity: 42,
-        stable_sprite_key: 7,
-        position: Vec3::new(0.0, 0.0, -2.0),
-        size: 0.5,
-        aspect_ratio: 1.0,
-        billboard_offset: Vec2::ZERO,
-        rotation: 0.0,
-        sort_order: 0,
-        color: Vec4::ONE,
-        intensity: 1.0,
-        depth_test: true,
-        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
-        material: None,
-        texture: None,
-    }];
-    extract
 }
 
 fn graph_has_pass(

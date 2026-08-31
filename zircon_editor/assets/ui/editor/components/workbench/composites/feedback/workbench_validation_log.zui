@@ -23,7 +23,7 @@ component = "VerticalGroup"
 control_id = "WorkbenchValidationLogRoot"
 classes = ["workbench-panel", "workbench-surface-inset"]
 layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "validation_log_header" }, { node = "validation_log_filters" }, { node = "validation_log_info_axes" }, { node = "validation_log_warning" }, { node = "validation_log_info_range" }, { node = "validation_log_info_duplicates" }, { node = "validation_log_fill" }, { node = "validation_log_footer" }]
+children = [{ node = "validation_log_header" }, { node = "validation_log_filters" }, { node = "validation_log_diagnostics" }, { node = "validation_log_footer" }]
 
 [nodes.validation_log_header]
 component = "WorkbenchPanelHeader"
@@ -46,31 +46,42 @@ children = [{ node = "validation_log_all" }, { node = "validation_log_errors" },
 [nodes.validation_log_all]
 component = "WorkbenchButton"
 control_id = "WorkbenchValidationLogAll"
-props = { text = "All", icon = "editor_pages/console_profiler/logs/filter-logs.svg", icon_placement = "leading", component_variant = "code compact_icon_text", button_variant = "text", button_color = "secondary", text_tone = "accent", selected = true, checked = true }
+props = { text = "All", icon = "editor_pages/console_profiler/logs/filter-logs.svg", icon_placement = "leading", component_variant = "code compact_icon_text", button_variant = "text", button_color = "secondary", text_tone = "accent" }
 layout = { width = { min = 48.0, preferred = 54.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceValidationFilterAll", event = "Click", route = "workbench.extension.blend_space.validation.filter_all" }]
 
 [nodes.validation_log_errors]
 component = "WorkbenchButton"
 control_id = "WorkbenchValidationLogErrors"
 props = { text = "0", icon = "editor_pages/console_profiler/logs/log-error.svg", icon_placement = "leading", component_variant = "code compact_icon_text", button_variant = "text", button_color = "secondary", text_tone = "error", validation_level = "error" }
 layout = { width = { min = 42.0, preferred = 46.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceValidationFilterErrors", event = "Click", route = "workbench.extension.blend_space.validation.filter_errors" }]
 
 [nodes.validation_log_warnings]
 component = "WorkbenchButton"
 control_id = "WorkbenchValidationLogWarnings"
 props = { text = "1", icon = "editor_pages/console_profiler/logs/log-warning.svg", icon_placement = "leading", component_variant = "code compact_icon_text", button_variant = "text", button_color = "secondary", text_tone = "warning", validation_level = "warning" }
 layout = { width = { min = 42.0, preferred = 46.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceValidationFilterWarnings", event = "Click", route = "workbench.extension.blend_space.validation.filter_warnings" }]
 
 [nodes.validation_log_infos]
 component = "WorkbenchButton"
 control_id = "WorkbenchValidationLogInfos"
-props = { text = "2", icon = "editor_pages/console_profiler/logs/log-info.svg", icon_placement = "leading", component_variant = "code compact_icon_text", button_variant = "text", button_color = "secondary", text_tone = "info", validation_level = "info" }
+props = { text = "3", icon = "editor_pages/console_profiler/logs/log-info.svg", icon_placement = "leading", component_variant = "code compact_icon_text", button_variant = "text", button_color = "secondary", text_tone = "info", validation_level = "info" }
 layout = { width = { min = 42.0, preferred = 46.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceValidationFilterInfos", event = "Click", route = "workbench.extension.blend_space.validation.filter_infos" }]
 
 [nodes.validation_log_filters_fill]
 component = "Container"
 control_id = "WorkbenchValidationLogFiltersFill"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.validation_log_diagnostics]
+component = "ScrollableBox"
+control_id = "WorkbenchValidationLogDiagnostics"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.xsmall", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "validation_log_info_axes" }, { node = "validation_log_warning" }, { node = "validation_log_info_range" }, { node = "validation_log_info_duplicates" }]
 
 [nodes.validation_log_info_axes]
 component = "WorkbenchDiagnosticRow"
@@ -144,11 +155,6 @@ control_id = "WorkbenchValidationLogInfoDuplicatesMessage"
 props = { text = "No duplicate samples found.", foreground_color = "$editor.text.primary", text_tone = "subtle" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.validation_log_fill]
-component = "Container"
-control_id = "WorkbenchValidationLogFill"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-
 [nodes.validation_log_footer]
 component = "HorizontalGroup"
 control_id = "WorkbenchValidationLogFooter"
@@ -165,3 +171,4 @@ component = "WorkbenchButton"
 control_id = "WorkbenchValidationLogClear"
 props = { text = "Clear", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 50.0, preferred = 58.0, max = 66.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/BlendSpaceValidationClear", event = "Click", route = "workbench.extension.blend_space.validation.clear" }]

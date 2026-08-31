@@ -119,8 +119,8 @@ pub(super) fn pending_mesh_draw_queue_profile(
 ) -> MeshDrawQueueProfile {
     MeshDrawQueueProfile::new(
         MeshDrawQueuePhase::from_pipeline_flags(
-            pending_draw.pipeline_key.is_transparent(),
-            pending_draw.pipeline_key.is_alpha_mask(),
+            pending_draw.material.pipeline_key.is_transparent(),
+            pending_draw.material.pipeline_key.is_alpha_mask(),
         ),
         pending_mesh_draw_geometry_source(pending_draw, skinned_gpu_skinning_enabled),
         pending_draw.mobility,
@@ -131,7 +131,7 @@ pub(super) fn pending_mesh_draw_queue_profile(
 }
 
 pub(super) fn pending_draw_has_enabled_skinned_gpu_source(pending_draw: &PendingMeshDraw) -> bool {
-    pending_draw.pipeline_key.uses_fallback_shader()
+    pending_draw.material.pipeline_key.uses_fallback_shader()
         && pending_draw.resolved_skinned_gpu_source.is_some()
 }
 

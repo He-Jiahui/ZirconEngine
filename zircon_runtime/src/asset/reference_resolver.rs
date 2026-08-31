@@ -11,9 +11,7 @@ use crate::asset::{AssetReference, AssetUri, ReferenceResolutionError};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReferenceRepairKind {
-    Guid,
     PathHint,
-    Subasset,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -155,38 +153,37 @@ pub(crate) fn resolve_project_reference_from_lookup(
     sources: &impl ProjectSourceLookup,
     reference: &AssetRef,
 ) -> Result<ResolvedProjectReference, ReferenceResolutionError> {
-    let entry = if let Some(entry) = registry.entry_by_uuid(reference.guid()) {
-        if entry.path().label() == reference.sub() {
-            let resolved = sources.project_hint_for_locator(entry.path())?;
-            let resolved = AssetRef::try_new(
-                entry.uuid(),
-                resolved,
-                entry.path().label().map(str::to_owned),
-            )
-            .map_err(|source| ReferenceResolutionError::AssetRef { source })?;
-            let repair = repair_between(reference, &resolved);
-            return Ok(ResolvedProjectReference {
-                reference: AssetReference::new(entry.uuid(), entry.path().clone()),
-                repair,
-            });
-        }
-
-        let Some(entry) = entry_by_hint(registry, sources, reference)? else {
+    let Some(entry) = registry.entry_by_uuid(reference.guid()) else {
+        let Some(candidate) = entry_by_hint(registry, sources, reference)? else {
             return Err(ReferenceResolutionError::Dangling {
                 guid: reference.guid(),
                 path: reference.path_hint().to_string(),
             });
         };
-        entry
-    } else {
-        let Some(entry) = entry_by_hint(registry, sources, reference)? else {
-            return Err(ReferenceResolutionError::Dangling {
-                guid: reference.guid(),
-                path: reference.path_hint().to_string(),
-            });
-        };
-        entry
+        return Err(ReferenceResolutionError::PathOccupiedCandidate {
+            guid: reference.guid(),
+            path: reference.path_hint().to_string(),
+            candidate_uuid: candidate.uuid(),
+            candidate_path: candidate.path().clone(),
+        });
     };
+
+    if entry.path().label() != reference.sub() {
+        // A path/subasset candidate is evidence only. It must never replace a stable GUID.
+        return match entry_by_hint(registry, sources, reference)? {
+            Some(candidate) if candidate.uuid() != entry.uuid() => {
+                Err(ReferenceResolutionError::Conflict {
+                    guid: reference.guid(),
+                    path: reference.path_hint().to_string(),
+                })
+            }
+            Some(_) | None => Err(ReferenceResolutionError::Conflict {
+                guid: reference.guid(),
+                path: reference.path_hint().to_string(),
+            }),
+        };
+    };
+
     let resolved_ref = AssetRef::try_new(
         entry.uuid(),
         sources.project_hint_for_locator(entry.path())?,
@@ -195,11 +192,7 @@ pub(crate) fn resolve_project_reference_from_lookup(
     .map_err(|source| ReferenceResolutionError::AssetRef { source })?;
     Ok(ResolvedProjectReference {
         reference: AssetReference::new(entry.uuid(), entry.path().clone()),
-        repair: Some(ReferenceRepair {
-            stale: reference.clone(),
-            resolved: resolved_ref,
-            kind: ReferenceRepairKind::Guid,
-        }),
+        repair: repair_between(reference, &resolved_ref),
     })
 }
 
@@ -207,17 +200,12 @@ fn repair_between(stale: &AssetRef, resolved: &AssetRef) -> Option<ReferenceRepa
     if stale == resolved {
         return None;
     }
-    let kind = if stale.guid() != resolved.guid() {
-        ReferenceRepairKind::Guid
-    } else if stale.path_hint() != resolved.path_hint() {
-        ReferenceRepairKind::PathHint
-    } else {
-        ReferenceRepairKind::Subasset
-    };
+    debug_assert_eq!(stale.guid(), resolved.guid());
+    debug_assert_eq!(stale.sub(), resolved.sub());
     Some(ReferenceRepair {
         stale: stale.clone(),
         resolved: resolved.clone(),
-        kind,
+        kind: ReferenceRepairKind::PathHint,
     })
 }
 
@@ -369,7 +357,7 @@ mod tests {
     use crate::asset::{AssetKind, AssetUuid};
 
     #[test]
-    fn resolution_reports_guid_path_repair_dangling_and_conflict_states() {
+    fn resolution_keeps_guid_authoritative_and_reports_path_candidates() {
         let root = std::env::temp_dir().join(format!(
             "zircon_reference_resolution_{}",
             std::process::id()
@@ -428,11 +416,16 @@ mod tests {
         )
         .unwrap();
         assert!(matches!(
-            resolve_project_reference(&registry, &roots, &stale_guid)
-                .unwrap()
-                .repair,
-            Some(ReferenceRepair { kind: ReferenceRepairKind::Guid, resolved, .. })
-                if resolved.guid() == a
+            resolve_project_reference(&registry, &roots, &stale_guid),
+            Err(ReferenceResolutionError::PathOccupiedCandidate {
+                guid,
+                path,
+                candidate_uuid,
+                candidate_path,
+            }) if guid == missing
+                && path == "assets/models/a.glb"
+                && candidate_uuid == a
+                && candidate_path == AssetUri::parse("res://models/a.glb").unwrap()
         ));
 
         let stale_subasset = AssetRef::try_new(
@@ -442,16 +435,28 @@ mod tests {
         )
         .unwrap();
         assert!(matches!(
-            resolve_project_reference(&registry, &roots, &stale_subasset)
-                .unwrap()
-                .repair,
-            Some(ReferenceRepair {
-                kind: ReferenceRepairKind::Guid,
-                stale,
-                resolved,
-            }) if stale.sub() == Some("Mesh0")
-                && resolved.guid() == a_mesh
-                && resolved.sub() == Some("Mesh0")
+            resolve_project_reference(&registry, &roots, &stale_subasset),
+            Err(ReferenceResolutionError::PathOccupiedCandidate {
+                guid,
+                path,
+                candidate_uuid,
+                candidate_path,
+            }) if guid == missing
+                && path == "assets/models/a.glb"
+                && candidate_uuid == a_mesh
+                && candidate_path == AssetUri::parse("res://models/a.glb#Mesh0").unwrap()
+        ));
+
+        let guid_subasset_conflict = AssetRef::try_new(
+            a,
+            RelPath::parse("assets/models/a.glb").unwrap(),
+            Some("Mesh0".to_owned()),
+        )
+        .unwrap();
+        assert!(matches!(
+            resolve_project_reference(&registry, &roots, &guid_subasset_conflict),
+            Err(ReferenceResolutionError::Conflict { guid, path })
+                if guid == a && path == "assets/models/a.glb"
         ));
 
         let missing_subasset = AssetRef::try_new(

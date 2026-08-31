@@ -4,9 +4,11 @@ use crate::ui::retained_host::ui_perf::{
     enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
 };
 
+use super::dock_overflow::dispatch_host_dock_overflow_menu_scroll;
 use super::menu::dispatch_menu_pointer_scroll;
 use super::page_overflow::dispatch_host_page_overflow_menu_scroll;
 use super::pane::dispatch_pane_pointer_scroll;
+use super::settings::dispatch_settings_window_scroll;
 
 pub(in crate::ui::retained_host::host_contract) fn dispatch_native_pointer_scroll(
     ui: &UiHostWindow,
@@ -18,6 +20,18 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_native_pointer_scrol
     let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::IdleHover);
 
     let generation = ui.get_host_presentation_generation();
+    if generation.dock_overflow_menu_state().open {
+        if let Some(result) = dispatch_host_dock_overflow_menu_scroll(
+            ui,
+            generation.structure(),
+            generation.dock_overflow_menu_state(),
+            x,
+            y,
+            delta,
+        ) {
+            return result;
+        }
+    }
     if generation.page_overflow_menu_state().open {
         if let Some(result) = dispatch_host_page_overflow_menu_scroll(
             ui,
@@ -30,10 +44,13 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_native_pointer_scrol
             return result;
         }
     }
+    if let Some(result) = dispatch_settings_window_scroll(ui, generation.structure(), x, y, delta) {
+        return result;
+    }
     if let Some(result) = dispatch_menu_pointer_scroll(ui, &generation, x, y, delta) {
         return result;
     }
-    if let Some(result) = dispatch_pane_pointer_scroll(ui, generation.structure(), x, y, delta) {
+    if let Some(result) = dispatch_pane_pointer_scroll(ui, &generation, x, y, delta) {
         return result;
     }
     NativePointerDispatchResult::idle()

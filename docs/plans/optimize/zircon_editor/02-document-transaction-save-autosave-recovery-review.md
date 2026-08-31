@@ -35,7 +35,7 @@ reference_engines:
   - dev/Fyrox/editor/src/command/mod.rs
 doc_type: review-and-refactor-plan
 review_status: review_complete
-implementation_status: pending
+implementation_status: in_progress
 source_recheck_required: true
 ---
 
@@ -384,3 +384,9 @@ Project admission 先 inspect live/residual lease，再容错扫描 recovery cat
 - [Editor17](../../zircon_editor/editor/17-editor-services-and-recovery.md) 已拥有 autosave/session guard 基础；本文将“底层已实现但startup/UI/executor不可达”提升为产品级P0/P1，并补充统一close/save authority。
 - [Editor01 failure](../../zircon_editor/editor/01/failure-2026-07-29-document-message-producer-missing.md) 记录 Close Project producer曾缺失；当前 producer 已可达，但实现从“不可达”演化为“可达却绕过dirty gate”，不能把旧 failure关闭等同于工作流完成。
 - 本文只关闭 document/transaction/save/autosave/recovery 这一审查切片；selection、scene/prefab authoring、viewport/runtime bridge、inspector/tool mode、content import/reimport和editor plugin UX仍需独立报告。
+
+## 产出记录与时间
+
+- 2026-08-24 16:25 +08:00 | P0-02/P0-03 | `进行中，未验收`：新增 retained-host `project_close` owner，将 File > Close Project 先收敛到 `request_project_close()`，仅在 close plan 的 active scene（`HistoryContextId::Global` generation）与全部 dirty toolkit documents 均已保存或由用户明确 Discard 后，才调用 `commit_project_close()`；主窗口退出复用相同 scene/document plan。Save 会先走权威 Save Project，再复用既有 `SaveReason::Close` 异步 document batch；Discard 会重新校验每个 participant generation，发现新编辑时重新展示决策。旧的 `EditorManager::close_project` 产品 API 已硬切为 crate 内 `commit_project_close`。新增 scene-generation 和 dirty-project-close regression 覆盖；只完成 Rustfmt/`git diff --check` 静态检查，未运行 Cargo、真实窗口、进程退出或故障注入。自动化/进程收尾仍为受控 commit caller，尚未完成统一 CloseCoordinator、Save As/Retry、source-control/CAS、恢复和 P0 验收，故不得提交或发送企微。
+- 2026-08-24 16:51 +08:00 | P0-05 | `进行中，未验收`：运行时 `resource::io` 新增 staged conditional replace 和 no-replace publication；UI asset canonical save 在暂存完成后复核打开时的完整 BLAKE3 源基线，检测到未被 watcher 投递的外部变更时保留本地缓冲、建立既有 conflict projection，且只在持久化成功后标记 source buffer 已保存。工作区、刷新计划和 conflict snapshot 已从 `DefaultHasher` 的 `u64` 改为完整 BLAKE3 digest；Save Local Copy、组件/主题提升使用 no-replace 发布并对名称竞争重试，提升发布失败会回滚未发布的内存命令；undo/redo 外部 source effect 已转为原子替换。动画文档保存先前已使用共享 atomic writer。新增 conditional/no-replace、未观测外部改写、相邻副本碰撞与提升目标已存在覆盖；只完成 Rustfmt/`git diff --check`/定向静态扫描，未运行 Cargo 或故障注入。conditional compare 是 staged 后、replace 前的同进程写入前复核，不构成跨进程或 source-control 的线性化 CAS；SaveCoordinator、typed persisted-projection terminal、OS 级身份锁和 P0 完整验收仍未完成，故不得提交或发送企微。
+- 2026-08-24 16:59 +08:00 | P1-23 | `进行中，未验收`：新增 `core/recovery/restore_executor.rs`，仅消费既有 `RestoreFlow` 的完整决策计划；`RestoreAutosave` 与 `OpenComparison` 均以 no-replace atomic write 将 snapshot 物化到 `<project>/.zircon/recovered/{restore|comparison}/`，绝不覆盖 authoritative source，`DiscardAutosave` 只删除已验证归属的单个 autosave document 目录。执行器验证 candidate 文档映射和 autosave-path containment，返回 typed per-document report，并新增 source 不变与 discard 范围覆盖。项目 admission 仍把 residual 压成错误文本，retained host 仍没有 Inspect/Take Over/Restore/Open Copy/Discard/Cancel 决策 owner，且 report 尚未驱动 recovered-copy 打开、import/hydrate 或错误重试；只完成单文件 Rustfmt/`git diff --check` 静态检查，未运行 Cargo、真实进程或 kill/recovery 故障注入，故不得提交或发送企微。

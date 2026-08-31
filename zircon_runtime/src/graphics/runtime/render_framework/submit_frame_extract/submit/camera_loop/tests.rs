@@ -4,8 +4,8 @@ use crate::core::framework::render::{
     FallbackSkyboxKind, PlanarReflectionProbeData, PlanarReflectionUpdateState, PlanarUpdateMode,
     PreviewEnvironmentExtract, RenderCameraTarget, RenderLayerSet, RenderOverlayExtract,
     RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs, RenderPreparedRuntimeSidebands,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportRect,
-    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportRect, RenderWorldSnapshotHandle,
+    UiRenderSubmission, ViewportCameraSnapshot,
 };
 use crate::core::math::{Mat4, UVec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
@@ -134,7 +134,7 @@ fn camera_loop_extracts_select_each_sequence_descriptor() {
 }
 
 #[test]
-fn submit_camera_loop_streams_source_extract_and_restores_derived_state() {
+fn submit_camera_loop_streams_immutable_scene_with_owned_view_overlays() {
     let first = descriptor(
         0,
         11,
@@ -157,21 +157,24 @@ fn submit_camera_loop_streams_source_extract_and_restores_derived_state() {
     );
     extract.view.target_size = None;
     extract.view = extract.view.with_cameras(vec![first, second]);
+    let source_scene = extract.shared_scene();
     let submissions = camera_loop_submissions(&extract).expect("active camera sequence");
     let mut observed = Vec::new();
 
     stream_camera_loop_extract_submissions(
         extract,
-        Some(UiRenderExtract::default()),
+        Some(UiRenderSubmission::single(Arc::new(
+            UiRenderExtract::default(),
+        ))),
         submissions,
-        |extract, _source_payloads, ui, output_policy| {
+        |extract, ui, output_policy| {
+            assert!(Arc::ptr_eq(&source_scene, &extract.shared_scene()));
             observed.push((
                 extract.view.scene_camera_entity,
                 extract.view.target_size,
                 ui.is_some(),
                 ViewportCameraStackOutputPolicy::from(output_policy).owns_viewport_submission(),
             ));
-            Arc::make_mut(extract).apply_viewport_size(UVec2::new(999, 777));
             Ok(())
         },
     )
@@ -437,7 +440,7 @@ fn camera_loop_marks_stack_and_viewport_output_owners() {
             .map(|submission| submission.output_policy)
             .collect::<Vec<_>>(),
         vec![
-            CameraLoopOutputPolicy::new(false, false),
+            CameraLoopOutputPolicy::new(false, false).with_viewport_submission_start(true),
             CameraLoopOutputPolicy::new(true, false),
             CameraLoopOutputPolicy::new(true, false),
             CameraLoopOutputPolicy::new(false, false),
@@ -450,6 +453,7 @@ fn camera_loop_marks_stack_and_viewport_output_owners() {
             .map(|submission| {
                 let policy = ViewportCameraStackOutputPolicy::from(submission.output_policy);
                 (
+                    policy.starts_viewport_submission(),
                     policy.is_stack_terminal(),
                     policy.is_viewport_terminal(),
                     policy.owns_final_target_output(),
@@ -459,11 +463,11 @@ fn camera_loop_marks_stack_and_viewport_output_owners() {
             })
             .collect::<Vec<_>>(),
         vec![
-            (false, false, false, false, false),
-            (true, false, true, false, false),
-            (true, false, true, false, false),
-            (false, false, false, false, false),
-            (true, true, true, true, true),
+            (true, false, false, false, false, false),
+            (false, true, false, true, false, false),
+            (false, true, false, true, false, false),
+            (false, false, false, false, false, false),
+            (false, true, true, true, true, true),
         ]
     );
 }

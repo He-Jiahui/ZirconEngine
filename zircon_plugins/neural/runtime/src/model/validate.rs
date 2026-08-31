@@ -118,12 +118,12 @@ impl NnModelAsset {
                     });
                 }
             }
-            op.attrs
-                .encode(op.code)
-                .map_err(|error| NnModelValidationError::InvalidOpAttrs {
+            op.attrs.validate_for(op.code).map_err(|error| {
+                NnModelValidationError::InvalidOpAttrs {
                     op: op_index,
                     error,
-                })?;
+                }
+            })?;
         }
 
         Ok(())

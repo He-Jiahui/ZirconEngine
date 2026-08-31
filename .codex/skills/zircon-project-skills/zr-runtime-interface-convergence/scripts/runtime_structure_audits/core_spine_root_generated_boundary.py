@@ -43,7 +43,7 @@ EXPECTED_RETIRED_CORE_ROOT_ENTRIES = (
 EXPECTED_ROOT_ENTRIES_TEST_COUNT = 13
 EXPECTED_ROOT_SURFACE_TEST_COUNT = 6
 EXPECTED_GENERATED_GUARD_TEST_COUNT = 7
-EXPECTED_PUBLIC_MODULE_COUNT = 19
+EXPECTED_PUBLIC_MODULE_COUNT = 21
 EXPECTED_PUBLIC_USE_COUNT = 2
 EXPECTED_GRAPHICS_REEXPORT_COUNT = 0
 EXPECTED_GENERATED_TEMPLATE_COUNT = 10
@@ -134,7 +134,7 @@ DOC_ANCHORS = (
     "core root entries 6/6",
     "core public modules 5/5",
     "retired core root entries 0",
-    "runtime root public modules 19/19",
+    "runtime root public modules 21/21",
     "public `pub use` sites 2/2",
     "crate-visible graphics alias debt 0/0",
     "root-surface M1 gate `classified-and-clear`",

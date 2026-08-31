@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::asset::{DirtyExternalEffectId, DirtyExternalEffectRevision, DirtyRegistry};
+use crate::core::editing::context::CoreEditContext;
+use crate::core::editing::engine::EditorTransactionEngine;
 use crate::core::extension::{
     DocumentAutosavePayload, DocumentCloseLease, DocumentSaveReport, DocumentToolkit,
     DocumentToolkitDescriptor, DocumentToolkitRegistry, DocumentToolkitSnapshot, SaveCtx,
@@ -33,6 +35,7 @@ pub(super) struct EditorUiHost {
     pub(super) settings: Arc<SettingsAuthority>,
     pub(super) logs: Arc<EditorLogService>,
     pub(super) jobs: EditorJobSystem,
+    pub(super) transactions: Arc<EditorTransactionEngine>,
     pub(super) view_registry: Mutex<ViewRegistry>,
     pub(super) layout_manager: LayoutManager,
     pub(super) window_host_manager: Mutex<WindowHostManager>,
@@ -44,7 +47,7 @@ pub(super) struct EditorUiHost {
     pub(super) ui_asset_dependency_generation: Mutex<UiAssetDependencyGeneration>,
     pub(super) ui_asset_refresh_pipeline: Mutex<UiAssetWorkspaceRefreshPipeline>,
     pub(super) ui_asset_workspace_watcher: Mutex<Option<UiAssetWorkspaceWatcher>>,
-    document_toolkits: DocumentToolkitRegistry<EditorUiHost>,
+    pub(super) document_toolkits: DocumentToolkitRegistry<EditorUiHost>,
     dirty_documents: DirtyRegistry,
     pub(super) minimal_report: EditorHostMinimalReport,
     pub(super) subsystem_report: Mutex<EditorSubsystemReport>,
@@ -116,6 +119,7 @@ impl EditorUiHost {
     pub(super) fn new(
         runtime_services: EditorHostRuntimeServices,
         jobs: EditorJobSystem,
+        transactions: Arc<EditorTransactionEngine>,
         logs: Arc<EditorLogService>,
         dirty_documents: DirtyRegistry,
         settings: Arc<SettingsAuthority>,
@@ -133,6 +137,7 @@ impl EditorUiHost {
             settings,
             logs,
             jobs: jobs.clone(),
+            transactions,
             view_registry: Mutex::new(ViewRegistry::default()),
             layout_manager: LayoutManager,
             window_host_manager: Mutex::new(WindowHostManager::default()),
@@ -155,11 +160,19 @@ impl EditorUiHost {
     pub(super) fn bootstrap(
         runtime_services: EditorHostRuntimeServices,
         jobs: EditorJobSystem,
+        transactions: Arc<EditorTransactionEngine>,
         logs: Arc<EditorLogService>,
         dirty_documents: DirtyRegistry,
         settings: Arc<SettingsAuthority>,
     ) -> Result<Self, EditorError> {
-        let host = Self::new(runtime_services, jobs, logs, dirty_documents, settings)?;
+        let host = Self::new(
+            runtime_services,
+            jobs,
+            transactions,
+            logs,
+            dirty_documents,
+            settings,
+        )?;
         host.register_builtin_views()?;
         host.bootstrap_default_layout()?;
         Ok(host)
@@ -175,6 +188,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
         layout_id: &'static str,
         tab_id: &'static str,
+        validate_references: HostDocumentReferenceValidationHook,
         save: HostDocumentSaveHook,
         autosave_source_path: HostDocumentAutosaveSourcePathHook,
         capture_autosave: HostDocumentAutosaveHook,
@@ -203,6 +217,7 @@ impl EditorUiHost {
             .register(Arc::new(HostDocumentToolkit {
                 descriptor,
                 instance: instance_id.clone(),
+                validate_references,
                 save,
                 autosave_source_path,
                 capture_autosave,
@@ -212,6 +227,19 @@ impl EditorUiHost {
             return Err(error.into());
         }
         Ok(document)
+    }
+
+    pub(super) fn unregister_document_toolkit(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<(), EditorError> {
+        let toolkit_instance = ToolkitInstanceId::parse(instance_id.0.clone())?;
+        let Some(descriptor) = self.document_toolkits.unregister(&toolkit_instance)? else {
+            return Ok(());
+        };
+        self.dirty_documents
+            .unregister_document(descriptor.document_id())?;
+        Ok(())
     }
 
     pub(super) fn save_document_toolkit(
@@ -261,7 +289,7 @@ impl EditorUiHost {
             })?;
         let dirty_snapshot = self.dirty_documents.snapshot(document)?;
         let save_token = self.dirty_documents.capture_save_token(document)?;
-        let report = self.document_toolkits.save(document, self, reason)?;
+        let report = self.write_document_toolkit(document, reason)?;
         self.dirty_documents
             .mark_saved_if_unchanged(document, save_token)?;
         if !self
@@ -278,6 +306,21 @@ impl EditorUiHost {
         }
         self.sync_document_dirty_projection(instance_id)?;
         Ok(report)
+    }
+
+    pub(super) fn write_document_toolkit(
+        &self,
+        document: crate::core::editor_message::DocumentId,
+        reason: SaveReason,
+    ) -> Result<DocumentSaveReport, EditorError> {
+        Ok(self.document_toolkits.save(document, self, reason)?)
+    }
+
+    pub(super) fn validate_document_toolkit_references(
+        &self,
+        document: crate::core::editor_message::DocumentId,
+    ) -> Result<(), EditorError> {
+        Ok(self.document_toolkits.validate_references(document, self)?)
     }
 
     pub(super) fn capture_document_autosave(
@@ -315,10 +358,15 @@ impl EditorUiHost {
 
     pub(super) fn clear_document_toolkits(&self) -> Result<(), EditorError> {
         let descriptors = self.document_toolkits.clear()?;
+        let documents = descriptors
+            .iter()
+            .map(DocumentToolkitDescriptor::document_id)
+            .collect::<Vec<_>>();
         for descriptor in descriptors {
             self.dirty_documents
                 .unregister_document(descriptor.document_id())?;
         }
+        self.detach_animation_authoring_documents(&documents)?;
         Ok(())
     }
 
@@ -329,7 +377,28 @@ impl EditorUiHost {
         let descriptor = close.commit()?;
         self.dirty_documents
             .unregister_document(descriptor.document_id())?;
+        self.detach_animation_authoring_documents(&[descriptor.document_id()])?;
         Ok(descriptor)
+    }
+
+    fn detach_animation_authoring_documents(
+        &self,
+        documents: &[crate::core::editor_message::DocumentId],
+    ) -> Result<(), EditorError> {
+        if documents.is_empty() {
+            return Ok(());
+        }
+        self.transactions
+            .with_context_mut::<CoreEditContext, _>(|context| {
+                for document in documents {
+                    context.animation_documents_mut().detach(*document);
+                }
+            })
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?
+            .ok_or_else(|| {
+                EditorError::UiAsset("animation transaction context type mismatch".to_string())
+            })?;
+        Ok(())
     }
 
     pub(super) fn mark_document_external_effect(
@@ -413,6 +482,22 @@ impl EditorUiHost {
         Ok(())
     }
 
+    pub(super) fn sync_document_dirty_projection_for_document(
+        &self,
+        document: crate::core::editor_message::DocumentId,
+    ) -> Result<(), EditorError> {
+        let toolkit_snapshot = self.document_toolkits.snapshot();
+        let Some(descriptor) = toolkit_snapshot
+            .descriptors()
+            .iter()
+            .find(|descriptor| descriptor.document_id() == document)
+        else {
+            return Ok(());
+        };
+        let instance_id = ViewInstanceId::new(descriptor.instance_id().as_str());
+        self.sync_document_dirty_projection(&instance_id)
+    }
+
     pub(super) fn document_toolkit_snapshot(&self) -> DocumentToolkitSnapshot {
         self.document_toolkits.snapshot()
     }
@@ -420,6 +505,8 @@ impl EditorUiHost {
 
 type HostDocumentSaveHook =
     fn(&EditorUiHost, &ViewInstanceId, &mut SaveCtx) -> Result<(), ToolkitSaveFailure>;
+type HostDocumentReferenceValidationHook =
+    fn(&EditorUiHost, &ViewInstanceId) -> Result<(), ToolkitSaveFailure>;
 type HostDocumentAutosaveSourcePathHook =
     fn(&EditorUiHost, &ViewInstanceId) -> Result<std::path::PathBuf, ToolkitSaveFailure>;
 type HostDocumentAutosaveHook =
@@ -428,6 +515,7 @@ type HostDocumentAutosaveHook =
 struct HostDocumentToolkit {
     descriptor: DocumentToolkitDescriptor,
     instance: ViewInstanceId,
+    validate_references: HostDocumentReferenceValidationHook,
     save: HostDocumentSaveHook,
     autosave_source_path: HostDocumentAutosaveSourcePathHook,
     capture_autosave: HostDocumentAutosaveHook,
@@ -436,6 +524,10 @@ struct HostDocumentToolkit {
 impl DocumentToolkit<EditorUiHost> for HostDocumentToolkit {
     fn descriptor(&self) -> &DocumentToolkitDescriptor {
         &self.descriptor
+    }
+
+    fn validate_references(&self, host: &EditorUiHost) -> Result<(), ToolkitSaveFailure> {
+        (self.validate_references)(host, &self.instance)
     }
 
     fn save(&self, host: &EditorUiHost, context: &mut SaveCtx) -> Result<(), ToolkitSaveFailure> {

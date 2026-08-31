@@ -59,6 +59,13 @@ fn feature_enabled_first_party_provider_snapshot_reports_compiled_runtime_plugin
         RuntimePluginId::GltfImporter,
         "gltf_importer",
     );
+    #[cfg(feature = "ui-document-importer")]
+    push_expected_runtime_provider(
+        &mut expected,
+        &mut selections,
+        RuntimePluginId::UiDocumentImporter,
+        "ui_document_importer",
+    );
     #[cfg(feature = "advanced-render-runtime-plugins")]
     push_expected_runtime_provider(
         &mut expected,

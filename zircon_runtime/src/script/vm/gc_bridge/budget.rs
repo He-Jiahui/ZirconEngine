@@ -55,15 +55,17 @@ impl VmGcStepReport {
         host_elapsed_micros: u64,
         slots: Vec<VmGcSlotStepReport>,
     ) -> Self {
-        let pause_micros = slots.iter().fold(0_u64, |total, slot| {
-            total.saturating_add(slot.outcome.pause_micros)
-        });
-        let root_count = slots.iter().fold(0_u64, |total, slot| {
-            total.saturating_add(slot.outcome.root_count)
-        });
-        let cross_boundary_reference_count = slots.iter().fold(0_u64, |total, slot| {
-            total.saturating_add(slot.outcome.cross_boundary_reference_count)
-        });
+        let (pause_micros, root_count, cross_boundary_reference_count) = slots.iter().fold(
+            (0_u64, 0_u64, 0_u64),
+            |(pause_micros, root_count, cross_boundary_reference_count), slot| {
+                (
+                    pause_micros.saturating_add(slot.outcome.pause_micros),
+                    root_count.saturating_add(slot.outcome.root_count),
+                    cross_boundary_reference_count
+                        .saturating_add(slot.outcome.cross_boundary_reference_count),
+                )
+            },
+        );
         Self {
             frame_index,
             budget_micros: budget.max_micros_per_frame,

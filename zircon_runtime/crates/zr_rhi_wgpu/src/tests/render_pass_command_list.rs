@@ -159,9 +159,12 @@ fn command_list_records_render_pass_and_validates_raster_attachments() {
             zr_rhi::CommandListCommand::EndRenderPass,
         ]
     );
-    assert!(device
-        .is_fence_complete(device.submit(draw).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(draw).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 }
 
 #[test]
@@ -247,7 +250,7 @@ fn command_list_render_pass_submit_validates_attachment_usage_and_formats() {
     assert_eq!(
         device.submit(sampled_only).unwrap_err(),
         RhiError::InvalidTextureUsage {
-            texture: not_attachment.raw(),
+            texture: not_attachment.diagnostic_id(),
             required: TextureUsage::RENDER_ATTACHMENT,
             actual: TextureUsage::SAMPLED,
         }
@@ -295,7 +298,7 @@ fn command_list_render_pass_submit_validates_attachment_usage_and_formats() {
         RhiError::InvalidRenderPass {
             reason: format!(
                 "texture `{}` mip 0 layer 0 is bound more than once in the render pass",
-                color.raw()
+                color.diagnostic_id()
             ),
         }
     );
@@ -378,9 +381,12 @@ fn command_list_render_pass_submit_validates_depth_stencil_attachment_contract()
         ),
     );
     stencil_ok.end_render_pass();
-    assert!(device
-        .is_fence_complete(device.submit(stencil_ok).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(stencil_ok).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 }
 
 #[test]

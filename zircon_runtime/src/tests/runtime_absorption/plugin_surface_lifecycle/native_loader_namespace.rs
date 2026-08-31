@@ -5,6 +5,16 @@ use super::inventory::NATIVE_LOADER_TEST_PATTERNS;
 use super::support::{files_containing, native_root_import_leak_files};
 
 #[test]
+fn runtime_06_plugin_root_does_not_forward_native_loader_for_tests() {
+    let plugin_root = include_str!("../../../plugin/mod.rs");
+
+    assert!(
+        !plugin_root.contains("native_plugin_loader::NativePluginLoader"),
+        "plugin root must not retain a test-only NativePluginLoader forwarding export; use plugin::native instead"
+    );
+}
+
+#[test]
 fn runtime_06_native_loader_tests_use_isolated_plugin_native_namespace() {
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let plugin_extension_tests = runtime_root

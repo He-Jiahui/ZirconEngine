@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::hint::black_box;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 #[cfg(windows)]
 use std::process::Command;
@@ -513,4 +515,132 @@ fn current_process_rss_bytes() -> Option<u64> {
 
 fn rss_value(value: Option<u64>) -> String {
     value.map_or_else(|| "unavailable".to_string(), |value| value.to_string())
+}
+
+#[test]
+fn optimization_batch_fl_runtime468_full_waiter_lookup_preserves_rejection_semantics() {
+    let gate = AssetWorkerTestExecutionGate::new();
+    let pool = AssetWorkerPool::with_test_execution_gate(
+        TaskPool::new(TaskPoolDescriptor::io().with_worker_threads(1)),
+        AssetWorkerPoolOptions::new().with_waiter_capacity(1),
+        gate.clone(),
+    );
+    let request = AssetRequest::Texture(TextureSource::BuiltinChecker);
+    let first = pool
+        .request(request.clone())
+        .expect("the first observer should own the in-flight request");
+    gate.wait_for_worker_start();
+
+    let rejection = match pool.request(request) {
+        Ok(_) => panic!("a full observer budget must reject the duplicate request"),
+        Err(error) => error,
+    };
+
+    assert!(matches!(
+        rejection,
+        CoreError::ChannelSend(message) if message.contains("observer budget full")
+    ));
+    gate.release_worker();
+    first
+        .wait_timeout(Duration::from_secs(2))
+        .expect("the original observer should still receive the completion");
+}
+
+#[test]
+fn optimization_batch_fl_runtime468_rejection_lookup_borrows_in_flight_entry() {
+    let source = include_str!("../worker_pool.rs");
+    let request = source
+        .split("pub fn request")
+        .nth(1)
+        .and_then(|source| source.split("pub fn cancel").next())
+        .expect("asset worker request implementation");
+
+    assert!(request.contains("state.in_flight.get(&request)"));
+    assert!(!request.contains("state.in_flight.get(&request).cloned()"));
+}
+
+#[test]
+#[ignore = "release-only asset worker rejection lookup performance gate"]
+fn optimization_batch_fl_runtime468_borrowed_rejection_lookup_benchmark() {
+    const ENTRY_COUNT: usize = 64;
+    const LOOKUP_COUNT: usize = 262_144;
+    const SAMPLE_COUNT: usize = 17;
+    const PERFORMANCE_MARKER: &str = "RUNTIME468_BORROWED_WORKER_REJECTION_LOOKUP_BENCH_V1";
+
+    let entries = (0..ENTRY_COUNT)
+        .map(|key| (key as u64, Arc::new([key as u8; 64])))
+        .collect::<HashMap<_, _>>();
+
+    for _ in 0..4 {
+        black_box(legacy_cloned_worker_lookups(&entries, LOOKUP_COUNT));
+        black_box(borrowed_worker_lookups(&entries, LOOKUP_COUNT));
+    }
+
+    let mut legacy_samples = Vec::with_capacity(SAMPLE_COUNT);
+    let mut optimized_samples = Vec::with_capacity(SAMPLE_COUNT);
+    for sample in 0..SAMPLE_COUNT {
+        if sample % 2 == 0 {
+            legacy_samples.push(measure_fl(|| {
+                legacy_cloned_worker_lookups(&entries, LOOKUP_COUNT)
+            }));
+            optimized_samples.push(measure_fl(|| {
+                borrowed_worker_lookups(&entries, LOOKUP_COUNT)
+            }));
+        } else {
+            optimized_samples.push(measure_fl(|| {
+                borrowed_worker_lookups(&entries, LOOKUP_COUNT)
+            }));
+            legacy_samples.push(measure_fl(|| {
+                legacy_cloned_worker_lookups(&entries, LOOKUP_COUNT)
+            }));
+        }
+    }
+
+    let legacy_p50_ns = percentile_fl_ns(&mut legacy_samples, 50);
+    let legacy_p95_ns = percentile_fl_ns(&mut legacy_samples, 95);
+    let optimized_p50_ns = percentile_fl_ns(&mut optimized_samples, 50);
+    let optimized_p95_ns = percentile_fl_ns(&mut optimized_samples, 95);
+    println!(
+        "{PERFORMANCE_MARKER} legacy_p50_ns={legacy_p50_ns} optimized_p50_ns={optimized_p50_ns} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} lookups={LOOKUP_COUNT} entries={ENTRY_COUNT} samples={SAMPLE_COUNT} legacy_arc_refcount_operations={} optimized_arc_refcount_operations=0",
+        LOOKUP_COUNT * 2
+    );
+    assert!(
+        optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(85),
+        "borrowed rejection lookup P95 {optimized_p95_ns}ns must be at most 85% of cloned lookup P95 {legacy_p95_ns}ns"
+    );
+}
+
+fn legacy_cloned_worker_lookups(
+    entries: &HashMap<u64, Arc<[u8; 64]>>,
+    lookup_count: usize,
+) -> usize {
+    let mut checksum = 0usize;
+    for lookup in 0..lookup_count {
+        let key = (lookup % entries.len()) as u64;
+        let entry = black_box(entries.get(&key).cloned()).expect("benchmark entry");
+        checksum ^= black_box(Arc::as_ptr(&entry) as usize);
+    }
+    checksum
+}
+
+fn borrowed_worker_lookups(entries: &HashMap<u64, Arc<[u8; 64]>>, lookup_count: usize) -> usize {
+    let mut checksum = 0usize;
+    for lookup in 0..lookup_count {
+        let key = (lookup % entries.len()) as u64;
+        let entry = black_box(entries.get(&key)).expect("benchmark entry");
+        checksum ^= black_box(Arc::as_ptr(entry) as usize);
+    }
+    checksum
+}
+
+fn measure_fl<T>(run: impl FnOnce() -> T) -> Duration {
+    let started = Instant::now();
+    black_box(run());
+    started.elapsed()
+}
+
+fn percentile_fl_ns(samples: &mut [Duration], percentile: usize) -> u128 {
+    samples.sort_unstable();
+    let rank = (samples.len() * percentile).div_ceil(100);
+    samples[rank.saturating_sub(1)].as_nanos()
 }

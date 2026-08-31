@@ -9,15 +9,20 @@ pub use super::startup::{NewProjectFormSnapshot, RecentProjectItemSnapshot, Welc
 pub use asset::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetOperationProjectionSnapshot,
     AssetReferenceSnapshot, AssetSelectionSnapshot, AssetSubassetSnapshot, AssetSurfaceMode,
-    AssetTypeProjectionSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
+    AssetTypeProjectionSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceItemGeneration,
+    AssetWorkspaceSnapshot,
 };
-pub(crate) use data::CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY;
 pub use data::{
     ConsoleOutputLevelCounts, ConsoleOutputSnapshot, EditorBridgeDiagnosticsSnapshot,
     EditorBridgeDiagnosticsSummarySnapshot, EditorBridgeInterfaceRowSnapshot, EditorChromeSnapshot,
     EditorConsoleMessageLevel, EditorDataSnapshot, InspectorPluginComponentPropertySnapshot,
     InspectorPluginComponentSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntries,
-    SceneEntry, StatusTaskProgressSnapshot, StatusTaskProgressTone,
+    SceneEntry, StatusTaskProgressSnapshot, StatusTaskProgressTone, TransactionHistoryRowSnapshot,
+    TransactionHistorySnapshot,
+};
+pub(crate) use data::{
+    ConsoleOutputLineDelta, ConsoleOutputLineGeneration, ConsoleOutputLineSnapshot,
+    CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY,
 };
 pub(crate) use data::{
     SceneEntryProjectionCache, SceneInspectionHierarchyFragment,

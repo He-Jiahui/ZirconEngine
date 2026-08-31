@@ -49,7 +49,7 @@ pub trait InputManager: Send + Sync {
 
     /// Drains records and observes their retention status under one manager transaction.
     fn drain_event_records_with_status(&self)
-    -> (Vec<InputEventRecord>, InputEventRecordingStatus);
+        -> (Vec<InputEventRecord>, InputEventRecordingStatus);
 
     fn set_event_recording_config(&self, _config: InputEventRecordingConfig) {}
 

@@ -237,10 +237,10 @@ fn plugin_runtime_scene_system_registrations_apply_to_world() {
                     let events = Arc::clone(&events);
                     move |context: RuntimeSceneSystemContext<'_>| {
                         context.level.with_world(|_| {
-                            events
-                                .lock()
-                                .unwrap()
-                                .push(format!("runtime-context={:.3}", context.delta_seconds));
+                            events.lock().unwrap().push(format!(
+                                "runtime-context={:.3}",
+                                context.tick().delta_seconds()
+                            ));
                         });
                         Ok(())
                     }

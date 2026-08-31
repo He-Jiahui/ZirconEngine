@@ -3,7 +3,9 @@ use serde::Serialize;
 use super::frame::{UiProfileFrame, UiProfileLayout, UiProfileSize};
 use super::hit::UiProfileHitSample;
 use super::named::UiProfileNamedFrame;
+use super::rounded::UiProfileRoundedShape;
 use super::tab::UiProfileTabFrame;
+use super::text::UiProfileTextRun;
 
 #[derive(Serialize)]
 pub(in crate::ui::retained_host::host_contract) struct UiProfileGeometry {
@@ -23,6 +25,11 @@ pub(in crate::ui::retained_host::host_contract) struct UiProfileGeometry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(in crate::ui::retained_host::host_contract) welcome_recent_frame:
         Option<UiProfileNamedFrame>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(in crate::ui::retained_host::host_contract) asset_browser_content_frame:
+        Option<UiProfileNamedFrame>,
     pub(in crate::ui::retained_host::host_contract) clickable_frames: Vec<UiProfileNamedFrame>,
     pub(in crate::ui::retained_host::host_contract) hit_samples: Vec<UiProfileHitSample>,
+    pub(in crate::ui::retained_host::host_contract) rounded_shapes: Vec<UiProfileRoundedShape>,
+    pub(in crate::ui::retained_host::host_contract) text_runs: Vec<UiProfileTextRun>,
 }

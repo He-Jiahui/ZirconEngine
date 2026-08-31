@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map_tests.rs
@@ -12,7 +12,7 @@ related_code:
   - docs/zircon_runtime/dynamic_api/session.md
   - docs/plans/zircon_editor/editor/03/fixed-2026-07-16-dynamic-runtime-v1-fallback-reintroduced.md
 implementation_files:
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs

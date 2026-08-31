@@ -1,7 +1,7 @@
 use woc_protocol::{
-    event_stream_digest, fnv1a_bytes, Command, EntityRef, FixedTickInput, MovementFrame,
-    MovementInputFlags, OfflineSessionBootstrap, OfflineWeaponSkinAccount, WorldSnapshot,
-    OFFLINE_SESSION_BOOTSTRAP_VERSION, STANDARD_OFFLINE_WORLD_SEED,
+    event_stream_digest, fnv1a_bytes, Command, EntityRef, FixedTickInput, FixedTickInputRef,
+    MovementFrame, MovementInputFlags, OfflineSessionBootstrap, OfflineWeaponSkinAccount,
+    WorldSnapshot, OFFLINE_SESSION_BOOTSTRAP_VERSION, STANDARD_OFFLINE_WORLD_SEED,
 };
 use woc_runtime::{
     BudgetKind, RuntimeRole, RuntimeStatus, TickBudgets, TickUsage, VmTickError, VmTickResult,
@@ -82,6 +82,9 @@ fn successful_tick_commits_one_candidate_and_passes_the_committed_base_to_vm() {
     assert_eq!(input.committed_state_digest, fnv1a_bytes(&[]));
     assert_eq!(input.generation, 0);
     assert!(input.movement_frames.is_empty());
+
+    runtime.tick(vec![]).expect("second tick must commit");
+    assert_eq!(runtime.vm().observed_inputs[1].committed_state, b"next");
 }
 
 #[test]
@@ -319,6 +322,123 @@ fn command_rejection_is_structured_and_deterministic_runs_match() {
     left.tick(vec![]).expect("left tick must commit");
     right.tick(vec![]).expect("right tick must commit");
     assert_eq!(left.committed(), right.committed());
+}
+
+#[test]
+#[ignore = "release performance gate; run through the validation coordinator"]
+fn borrowed_tick_state_release_performance_gate() {
+    const STATE_BYTES: usize = 16 * 1024 * 1024;
+    const ENCODINGS_PER_SAMPLE: usize = 8;
+    const SAMPLE_PAIRS: usize = 21;
+    const THRESHOLD_PERCENT: f64 = 35.0;
+
+    let state = vec![0x5a; STATE_BYTES];
+    let owned_template = FixedTickInput {
+        tick: 7,
+        commands: vec![],
+        wall_time_forbidden: true,
+        committed_state: vec![],
+        committed_state_digest: fnv1a_bytes(&state),
+        generation: 3,
+        movement_frames: vec![],
+        offline_bootstrap: None,
+    };
+    let borrowed = FixedTickInputRef {
+        tick: owned_template.tick,
+        commands: &owned_template.commands,
+        wall_time_forbidden: owned_template.wall_time_forbidden,
+        committed_state: &state,
+        committed_state_digest: owned_template.committed_state_digest,
+        generation: owned_template.generation,
+        movement_frames: &owned_template.movement_frames,
+        offline_bootstrap: None,
+    };
+
+    let _ = measure_owned_tick_encoding(&owned_template, &state, 1);
+    let _ = measure_borrowed_tick_encoding(borrowed, 1);
+
+    let mut owned_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut borrowed_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    for pair in 0..SAMPLE_PAIRS {
+        let (owned_ns, borrowed_ns) = if pair % 2 == 0 {
+            (
+                measure_owned_tick_encoding(&owned_template, &state, ENCODINGS_PER_SAMPLE),
+                measure_borrowed_tick_encoding(borrowed, ENCODINGS_PER_SAMPLE),
+            )
+        } else {
+            let borrowed_ns = measure_borrowed_tick_encoding(borrowed, ENCODINGS_PER_SAMPLE);
+            let owned_ns =
+                measure_owned_tick_encoding(&owned_template, &state, ENCODINGS_PER_SAMPLE);
+            (owned_ns, borrowed_ns)
+        };
+        owned_samples.push(owned_ns);
+        borrowed_samples.push(borrowed_ns);
+    }
+
+    let owned_p50 = nearest_rank(&owned_samples, 50);
+    let owned_p95 = nearest_rank(&owned_samples, 95);
+    let borrowed_p50 = nearest_rank(&borrowed_samples, 50);
+    let borrowed_p95 = nearest_rank(&borrowed_samples, 95);
+    let p50_improvement = improvement_percent(owned_p50, borrowed_p50);
+    let p95_improvement = improvement_percent(owned_p95, borrowed_p95);
+    let owned_ns = nanosecond_csv(&owned_samples);
+    let borrowed_ns = nanosecond_csv(&borrowed_samples);
+    eprintln!(
+        "WOC_APP03_BORROWED_TICK_STATE_PERF state_bytes={STATE_BYTES} \
+         encodings_per_sample={ENCODINGS_PER_SAMPLE} sample_pairs=21 \
+         sample_order=alternating_owned_first_even percentile_method=nearest_rank \
+         threshold_percent=35 owned_ns={owned_ns} borrowed_ns={borrowed_ns}"
+    );
+    assert!(
+        p50_improvement >= THRESHOLD_PERCENT && p95_improvement >= THRESHOLD_PERCENT,
+        "borrowed encoding improved P50 by {p50_improvement:.3}% and P95 by \
+         {p95_improvement:.3}%, below the {THRESHOLD_PERCENT:.0}% gate"
+    );
+}
+
+fn measure_owned_tick_encoding(template: &FixedTickInput, state: &[u8], encodings: usize) -> u128 {
+    let started = std::time::Instant::now();
+    for _ in 0..encodings {
+        let input = FixedTickInput {
+            tick: template.tick,
+            commands: template.commands.clone(),
+            wall_time_forbidden: template.wall_time_forbidden,
+            committed_state: std::hint::black_box(state).to_vec(),
+            committed_state_digest: template.committed_state_digest,
+            generation: template.generation,
+            movement_frames: template.movement_frames.clone(),
+            offline_bootstrap: template.offline_bootstrap.clone(),
+        };
+        std::hint::black_box(input.encode_payload().expect("owned input encodes"));
+    }
+    started.elapsed().as_nanos()
+}
+
+fn measure_borrowed_tick_encoding(input: FixedTickInputRef<'_>, encodings: usize) -> u128 {
+    let started = std::time::Instant::now();
+    for _ in 0..encodings {
+        std::hint::black_box(input.encode_payload().expect("borrowed input encodes"));
+    }
+    started.elapsed().as_nanos()
+}
+
+fn nearest_rank(samples: &[u128], percentile: usize) -> u128 {
+    let mut ordered = samples.to_vec();
+    ordered.sort_unstable();
+    let rank = percentile.saturating_mul(ordered.len()).saturating_add(99) / 100;
+    ordered[rank.saturating_sub(1)]
+}
+
+fn nanosecond_csv(samples: &[u128]) -> String {
+    samples
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn improvement_percent(baseline: u128, optimized: u128) -> f64 {
+    100.0 * (baseline as f64 - optimized as f64) / baseline as f64
 }
 
 fn successful_result(

@@ -9,11 +9,8 @@ pub(super) fn union_host_page_template_node_damage(
     presentation: &HostWindowPresentationData,
 ) -> Option<FrameRect> {
     let template_nodes = &presentation.host_scene_data.page_chrome.template_nodes;
-    for row in 0..template_nodes.row_count() {
-        let Some(node) = template_nodes.row_data(row) else {
-            continue;
-        };
-        damage = union_visible_frame(damage, template_node_frame(&node));
+    for node in template_nodes.iter() {
+        damage = union_visible_frame(damage, template_node_frame(node));
     }
     damage
 }

@@ -1,16 +1,24 @@
 use serde::{Deserialize, Serialize};
 
-use super::{ReflectObjectAddress, ReflectedValue};
+use super::{ReflectFieldId, ReflectObjectAddress, ReflectedValue};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReflectFieldValue {
+    pub field_id: ReflectFieldId,
+    /// Current schema name retained for authoring and diagnostics; never used as identity.
     pub field_name: String,
     pub value: ReflectedValue,
 }
 
 impl ReflectFieldValue {
-    pub fn new(field_name: impl Into<String>, value: ReflectedValue) -> Self {
+    pub fn new(
+        field_id: ReflectFieldId,
+        field_name: impl Into<String>,
+        value: ReflectedValue,
+    ) -> Self {
         Self {
+            field_id,
             field_name: field_name.into(),
             value,
         }
@@ -41,17 +49,15 @@ impl ReflectFieldsResponse {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReflectReadRequest {
     pub address: ReflectObjectAddress,
-    pub field_name: String,
+    pub field_id: ReflectFieldId,
 }
 
 impl ReflectReadRequest {
-    pub fn new(address: ReflectObjectAddress, field_name: impl Into<String>) -> Self {
-        Self {
-            address,
-            field_name: field_name.into(),
-        }
+    pub fn new(address: ReflectObjectAddress, field_id: ReflectFieldId) -> Self {
+        Self { address, field_id }
     }
 }
 
@@ -68,21 +74,22 @@ impl ReflectReadResponse {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReflectWriteRequest {
     pub address: ReflectObjectAddress,
-    pub field_name: String,
+    pub field_id: ReflectFieldId,
     pub value: ReflectedValue,
 }
 
 impl ReflectWriteRequest {
     pub fn new(
         address: ReflectObjectAddress,
-        field_name: impl Into<String>,
+        field_id: ReflectFieldId,
         value: ReflectedValue,
     ) -> Self {
         Self {
             address,
-            field_name: field_name.into(),
+            field_id,
             value,
         }
     }
@@ -91,6 +98,7 @@ impl ReflectWriteRequest {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ReflectWriteResponse {
     pub address: ReflectObjectAddress,
+    /// The accepted request field, not an implicit post-publication readback.
     pub field: ReflectFieldValue,
     pub changed: bool,
 }

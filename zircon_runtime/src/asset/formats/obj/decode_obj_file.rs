@@ -62,8 +62,7 @@ pub(crate) fn decode_obj_file(path: &str) -> ObjDecodeResult<CpuMeshPayload> {
                     });
                 };
 
-                let mut face_indices = Vec::with_capacity(3 + parts.size_hint().0);
-                for token in [first, second, third].into_iter().chain(parts) {
+                let mut resolve_vertex = |token: &str| -> ObjDecodeResult<u32> {
                     let key =
                         parse_obj_face_vertex(token, positions.len(), uvs.len(), normals.len())
                             .map_err(|source| ObjDecodeError::FaceVertex {
@@ -90,13 +89,17 @@ pub(crate) fn decode_obj_file(path: &str) -> ObjDecodeResult<CpuMeshPayload> {
                         dedup.insert(key, index);
                         index
                     };
-                    face_indices.push(vertex_index);
-                }
+                    Ok(vertex_index)
+                };
 
-                for triangle in 1..face_indices.len() - 1 {
-                    indices.push(face_indices[0]);
-                    indices.push(face_indices[triangle]);
-                    indices.push(face_indices[triangle + 1]);
+                let first_index = resolve_vertex(first)?;
+                let second_index = resolve_vertex(second)?;
+                let mut previous_index = resolve_vertex(third)?;
+                indices.extend([first_index, second_index, previous_index]);
+                for token in parts {
+                    let current_index = resolve_vertex(token)?;
+                    indices.extend([first_index, previous_index, current_index]);
+                    previous_index = current_index;
                 }
             }
             _ => {}

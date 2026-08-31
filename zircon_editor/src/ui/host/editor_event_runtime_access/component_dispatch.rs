@@ -56,7 +56,7 @@ impl EditorHostEventController {
             UiComponentAdapterError::HostMutation {
                 domain: envelope.target.domain.clone(),
                 path: envelope.target.path.clone(),
-                reason: error,
+                reason: error.to_string(),
             }
         })?;
         Ok(
@@ -91,7 +91,7 @@ impl EditorHostEventController {
             .map_err(|error| UiComponentAdapterError::HostMutation {
                 domain: envelope.target.domain.clone(),
                 path: envelope.target.path.clone(),
-                reason: error,
+                reason: error.to_string(),
             })?;
         Ok(
             crate::ui::template_runtime::component_adapter::command::command_adapter_result(

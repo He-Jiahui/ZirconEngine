@@ -354,7 +354,8 @@ def native_dynamic_signing_platform_allowed(
 
 
 def file_sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open("rb") as artifact_file:
+        return hashlib.file_digest(artifact_file, "sha256").hexdigest()
 
 
 def file_sha256_or_diagnostic(

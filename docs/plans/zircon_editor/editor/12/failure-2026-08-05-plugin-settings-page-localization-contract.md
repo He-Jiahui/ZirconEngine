@@ -16,7 +16,7 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/extension/store/batch.rs
 tests:
-  - python -m unittest tools.tests.test_editor12_plugin_settings_page_localization_contract -v
+  - python -m unittest tools.tests.test_editor12_settings_page_contribution_contract -v
   - cargo test -p zircon_runtime_interface --locked
   - cargo test -p zircon_editor --lib core::plugin --locked --jobs 1 -- --test-threads=1
 ---
@@ -75,3 +75,4 @@ Open state：`source_contract_drift_recorded / no_local_rollback / target_valida
 | 日期 | 切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
 | 2026-08-05 | Editor17 M1 -> Editor12 SettingsPage locale contract handoff | `open_handoff_recorded` | 直接检查 `editor_contribution.rs` 的 V1 raw fields、`plugin/materializer.rs` 的 raw 透传、`settings/page.rs` 的 raw storage 以及 registry/store 的 slash-path validation；它们与已落地 builtin `SettingsPresentation` key-only authority 矛盾。已明确 V2 hard-cut、plugin locale-resource 验证和双轨等价验收；没有回滚主干或修改目标 owner 文件。 |
+| 2026-08-28 | current-source static return / executable guard correction | `implementation_static_green / managed_cargo_pending` | Canonical test route first failed at import because `test_editor12_plugin_settings_page_localization_contract` does not exist; the maintained owner is `test_editor12_settings_page_contribution_contract`. That guard is 1/1 GREEN and adjacent serialized DTO, fixture, and SDK-builder contracts are 6/6 GREEN. Current source exposes `zircon.editor.settings-page/2`, typed label/description/category keys, package localization bundles, explicit V1 rejection, and typed materialization/projection. Only this record's stale command is corrected; foreign-owned implementation and guard files are unchanged. Runtime-interface and Editor managed Cargo gates remain required, so the failure stays open. |

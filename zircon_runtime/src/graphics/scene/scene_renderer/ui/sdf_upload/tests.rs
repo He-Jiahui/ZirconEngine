@@ -476,13 +476,42 @@ fn sdf_upload_partial_msdf_rect_uses_rgba_row_stride() {
 fn sdf_upload_commands_build_page_offsets_once_and_borrow_report() {
     let upload_source = include_str!("../sdf_upload.rs");
     let resources_source = include_str!("../sdf_render/atlas_resources.rs");
+    let command_source = upload_source
+        .split("pub(super) fn sdf_atlas_upload_commands(")
+        .nth(1)
+        .and_then(|source| source.split("fn sdf_atlas_source_pages(").next())
+        .expect("command builder source");
 
     assert!(upload_source.contains("fn sdf_atlas_source_pages("));
-    assert!(upload_source.contains("binary_search_by_key("));
+    assert!(command_source.contains("let mut source_page_index = 0_usize;"));
+    assert!(!command_source.contains("binary_search_by_key("));
     assert!(!upload_source.contains("fn offset_upload_command_for_source_page("));
     assert!(!resources_source.contains("upload.clone()"));
     assert!(resources_source.contains("checked_sub(page_source_offset)"));
-    assert!(resources_source.contains("page.pixels.as_ref()"));
+    assert!(resources_source.contains("page.pixels.clone()"));
+}
+
+#[test]
+fn sdf_upload_commands_reject_non_monotonic_dirty_pages() {
+    let page_area = 512 * 512;
+    let plan = atlas_plan_with_page_slots(vec![
+        slot_on_page('A', 0, sdf_rect(0, 0, 64, 64)),
+        slot_on_page('B', 1, sdf_rect(0, 0, 64, 64)),
+    ]);
+    let upload = SdfAtlasUploadReport {
+        mode: SdfAtlasUploadMode::DirtySlots,
+        byte_len: 2 * 64 * 64,
+        full_texture: false,
+        dirty_slot_count: 2,
+        dirty_rect: None,
+        dirty_byte_len: 2 * 64 * 64,
+        dirty_pages: vec![
+            dirty_upload_page(1, sdf_rect(0, 0, 64, 64), 64 * 64),
+            dirty_upload_page(0, sdf_rect(0, 0, 64, 64), 64 * 64),
+        ],
+    };
+
+    assert!(sdf_atlas_upload_commands(&plan, &upload, 2 * page_area).is_empty());
 }
 
 fn atlas_plan(slot_count: usize) -> SdfAtlasPlan {

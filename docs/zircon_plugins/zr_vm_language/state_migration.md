@@ -34,27 +34,27 @@ doc_type: module-detail
 
 ## Plugin boundary
 
-The ZrVM language plugin re-exports the shared Script VM M5 contracts instead of defining a plugin-local snapshot or reflection schema. Public backend-facing types include `VmStateBlob`, `VmStateTypeIdentity`, `VmStateObject`, `VmStateSchema`, `VmStateTypeSchema`, `VmStateFieldRename`, and `VmStateMigrationError`. Field metadata is always `ReflectTypeRegistration`; there is no second ZrVM-only field description.
+The ZrVM language plugin re-exports the shared Script VM M5 contracts instead of defining a plugin-local snapshot or reflection schema. Public backend-facing types include `VmStateBlob`, `VmStateTypeIdentity`, `VmStateObject`, `VmStateFieldValue`, `VmStateSchema`, `VmStateTypeSchema`, and `VmStateMigrationError`. Field metadata is always `ReflectTypeRegistration`; there is no second ZrVM-only field description.
 
-The feature-gated ZrVM instance adapter is owned only by `zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs` and uses one hard-cut v2 lifecycle protocol: `saveState` returns JSON for the complete `VmStateBlob`, and `restoreState` receives JSON for the complete blob. `VmStateBlob::from_json` validates reflected snapshots with non-empty type tables; `to_json` preserves the schema version, type identities, hashes, and payload as one envelope. Null or absent `saveState` still produces the v2 default blob. Raw payload-only lifecycle strings are no longer accepted.
+The feature-gated ZrVM instance adapter is owned only by `zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs` and uses one hard-cut v3 lifecycle protocol: `saveState` returns JSON for the complete `VmStateBlob`, and `restoreState` receives JSON for the complete blob. `VmStateBlob::from_json` validates reflected snapshots with non-empty type tables; `to_json` preserves the producer schema version, type identities, hashes, and payload as one envelope. Null or absent `saveState` produces the V3 default blob. Raw payload-only lifecycle strings and reflected V2 `field_name` payloads are no longer accepted.
 
 ## Reflected and opaque modes
 
 The shared `VmPluginInstance::state_schema` hook defaults to `None`:
 
-- `None` means the backend owns opaque bytes. The coordinator transfers the v2 blob without field migration.
+- `None` means the backend owns opaque bytes. The coordinator transfers the versioned blob without field migration.
 - `Some(VmStateSchema)` opts into reflected migration. The payload must then be a reflected `VmStateObject` array and its types must be declared by the blob's authoritative identity table.
 
-The single feature-gated real ZrVM adapter queries an optional `stateSchema` lifecycle export. A missing or null export selects opaque mode. A string export must be JSON for `VmStateSchema`; decode failures are typed `SchemaDecode` errors, and a valid schema activates the same reflected rename/default migration used by every backend. The source `saveState` blob must carry the corresponding old type table, while `stateSchema` describes the new generation. The external build now exists under `E:/Git/zr_vm/build`; production-adapter acceptance and its coordinator commit remain owned by Plugins 08 M4 rather than this docs-only G7 batch.
+The single feature-gated real ZrVM adapter queries an optional `stateSchema` lifecycle export. A missing or null export selects opaque mode. A string export must be JSON for `VmStateSchema`; decode failures are typed `SchemaDecode` errors, and a valid schema activates the same reflected stable-ID/default migration used by every backend. The source `saveState` blob must carry the corresponding old type table, while `stateSchema` describes the new generation. The external build now exists under `E:/Git/zr_vm/build`; production-adapter acceptance remains a managed validation concern rather than evidence implied by this document.
 
 ## Reload behavior
 
-On a reflected reload, the host coordinator migrates values before invoking the new instance's `restoreState`. Current field names take precedence, rename mappings preserve historical values, defaults fill newly added fields, removed fields are discarded, and missing required fields fail with a typed error.
+On a reflected reload, the host coordinator migrates values before invoking the new instance's `restoreState`. `ReflectFieldId` is the only field lookup key; a current-name rename retains its stable identity key and needs no rename map. Defaults fill newly added field IDs, removed IDs are discarded, and missing required fields fail with a typed error. Old `renames` schema members are rejected by `deny_unknown_fields`.
 
 Any schema, migration, or restore failure deactivates the new instance, removes its generation registrations, reactivates the old instance with its saved capability/source/root context, restores the old state, and reinstates the exact pre-reload callback and extension-registration snapshot. The slot returns to the old manifest and generation only when old activation and state restoration succeed. Plugins must make `activate` safe for rollback re-entry and register host interfaces under the owner generation supplied by `VmPluginHostContext`.
 
 ## Validation status
 
-The runtime-neutral M5 acceptance names pass exactly as planned: `state_blob_round_trips_with_schema`, `schema_change_migrates_fields`, and `migration_failure_rolls_back_old_module`. Two additional tests enforce the source type table. The complete Windows `script::vm` suite passes 86/86, and the default `zircon_plugin_zr_vm_language_runtime` package passes 11/11 with doctests 0/0 under fixed toolchain `1.94.1-x86_64-pc-windows-msvc`, `--locked --offline --jobs 1`.
+The current V3 source adds focused coverage for round-trip, stable-ID rename preservation, legacy `field_name`/`renames` rejection, duplicate-ID admission, migration defaults, rollback, and the feature-gated real backend's V3 schema projection. Scoped rustfmt and diff checks pass. The exact Windows `script::vm` and `backend-zr-vm` release gates are managed validation work and remain pending until their current-source tickets complete.
 
-The Plugins 08 M4 output record reports a managed Windows `backend-zr-vm` real-backend run with 15/15 passing and doc-tests 0 failures, plus a passing default-feature package matrix. This Frameworks 06 G7 batch does not rerun or promote that foreign milestone; it only records the current single-owner path while Plugins 08 retains responsibility for committing its exact source and evidence manifest. Full runtime details are in [`../../zircon_runtime/script/vm/state_migration.md`](../../zircon_runtime/script/vm/state_migration.md).
+Earlier Plugins 08 M4 evidence predates the V3 field-identity cut and is not promoted as acceptance for the current source. Full runtime details are in [`../../zircon_runtime/script/vm/state_migration.md`](../../zircon_runtime/script/vm/state_migration.md).

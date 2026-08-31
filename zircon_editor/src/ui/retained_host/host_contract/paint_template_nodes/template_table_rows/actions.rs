@@ -1,6 +1,5 @@
 mod entry;
 mod geometry;
-mod glyphs;
 mod metrics;
 mod palette;
 

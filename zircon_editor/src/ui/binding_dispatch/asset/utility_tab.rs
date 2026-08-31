@@ -8,8 +8,8 @@ pub(super) fn parse_asset_utility_tab(
         "references" => Ok(crate::core::editor_event::EditorAssetUtilityTab::References),
         "metadata" => Ok(crate::core::editor_event::EditorAssetUtilityTab::Metadata),
         "plugins" => Ok(crate::core::editor_event::EditorAssetUtilityTab::Plugins),
-        _ => Err(EditorBindingDispatchError::StateMutation(format!(
-            "unknown asset utility tab {tab}"
-        ))),
+        _ => Err(EditorBindingDispatchError::UnknownAssetUtilityTab(
+            tab.to_string(),
+        )),
     }
 }

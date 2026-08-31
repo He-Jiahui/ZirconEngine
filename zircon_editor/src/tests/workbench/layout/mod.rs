@@ -13,6 +13,7 @@ mod editor_shell_asset_contracts;
 mod layout_preset_persistence;
 mod notification_center_density;
 mod page_layout_templates;
+mod payload_strictness;
 mod roundtrip_and_restore;
 mod split_creation;
 mod status_item_text_overflow;

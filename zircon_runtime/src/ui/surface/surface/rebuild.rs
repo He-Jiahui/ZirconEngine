@@ -1,14 +1,9 @@
 use std::{collections::BTreeSet, time::Instant};
 
-use crate::ui::layout::{
-    compute_incremental_layout_tree_with_text_measure_cache,
-    compute_layout_tree_with_text_measure_cache,
-    compute_layout_tree_with_text_measure_cache_and_slot_index,
-};
+use crate::ui::layout::compute_layout_tree_with_text_measure_cache_and_slot_index;
 use crate::ui::surface::{
     arranged_node_indices, arranged_slot_indices, build_arranged_tree,
     invalidation::UiInvalidationReason,
-    patch_arranged_tree_geometry, patch_arranged_tree_input,
     render::{
         extract_ui_render_commands_for_nodes_with_component_states_and_text_measure_cache,
         extract_ui_render_tree_from_arranged_indexed_with_component_states_and_text_measure_cache_and_control_index,
@@ -18,13 +13,18 @@ use crate::ui::surface::{
 use zircon_runtime_interface::ui::{
     dispatch::{UiPointerDispatchEffect, UiPointerDispatchResult},
     event_ui::UiNodeId,
-    layout::{UiLayoutEngineSelectionReport, UiSize},
+    layout::UiSize,
     tree::{UiDirtyFlags, UiTree, UiTreeError, UiTreeNode},
 };
 
 use super::UiSurface;
 
+mod authored_geometry;
+mod incremental;
 mod report;
+pub use authored_geometry::{UiAuthoredGeometryFallbackReason, UiAuthoredGeometryPublication};
+#[cfg(feature = "profiling")]
+use report::record_surface_rebuild_profile;
 pub use report::UiSurfaceRebuildReport;
 use report::UiTextCacheFrameStats;
 
@@ -56,9 +56,6 @@ impl UiSurface {
         force_rebuild: bool,
         begin_text_frame: bool,
     ) -> UiSurfaceRenderCacheStats {
-        if force_rebuild {
-            self.render_cache = Default::default();
-        }
         if begin_text_frame {
             self.text_measure_cache.begin_frame();
         }
@@ -67,12 +64,15 @@ impl UiSurface {
                 &self.tree,
                 &self.arranged_tree,
                 &self.arranged_node_indices,
+                Some(&self.arranged_visibility),
                 Some(&self.component_states),
-                Some(&mut self.text_measure_cache),
+                &mut self.text_measure_cache,
                 Some(&self.control_index),
+                Some(&self.input.popup_anchor_points),
             );
         extract.raster_scale = self.current_raster_scale();
         let update = self.render_cache.update_for_arranged(
+            &self.render_extract,
             extract,
             force_rebuild,
             &self.arranged_tree,
@@ -92,9 +92,12 @@ impl UiSurface {
                 &self.tree,
                 &self.arranged_tree,
                 &self.arranged_node_indices,
+                &self.arranged_visibility,
                 changed_node_ids,
                 Some(&self.component_states),
-                Some(&mut self.text_measure_cache),
+                &mut self.text_measure_cache,
+                Some(&self.control_index),
+                Some(&self.input.popup_anchor_points),
             )?;
         self.render_cache.patch_nodes(
             &mut self.render_extract,
@@ -120,11 +123,26 @@ impl UiSurface {
     }
 
     fn current_raster_scale(&self) -> f32 {
-        self.window_state
-            .metrics
-            .map(|metrics| metrics.scale_factor as f32)
-            .filter(|scale| scale.is_finite() && *scale > 0.0)
-            .unwrap_or(1.0)
+        let Some(metrics) = self.window_state.metrics else {
+            return 1.0;
+        };
+        let reported_scale = metrics.scale_factor as f32;
+        let reported_scale = if reported_scale.is_finite() && reported_scale > 0.0 {
+            reported_scale
+        } else {
+            1.0
+        };
+        let physical_scale = [
+            physical_axis_raster_scale(metrics.physical_size.width, metrics.logical_size.width),
+            physical_axis_raster_scale(metrics.physical_size.height, metrics.logical_size.height),
+        ]
+        .into_iter()
+        .flatten()
+        .fold(1.0, f32::max);
+
+        // A DPI transition can publish scale and extent in separate events. Keep raster
+        // resources at least as dense as the current physical target throughout the transition.
+        reported_scale.max(physical_scale).max(1.0)
     }
 
     pub(crate) fn refresh_render_extract_for_current_tree(&mut self) {
@@ -134,12 +152,22 @@ impl UiSurface {
             .rebuild_arranged_indexed(&self.arranged_tree, &self.arranged_node_indices);
         let _ = self.rebuild_render_extract(false);
         self.seed_popup_stack_from_tree_metadata();
-        self.rebuild_projected_hit_test();
+        let _ = self.rebuild_projected_hit_test();
+        self.rebuild_navigation_index();
         self.mark_surface_frame_dirty();
+        self.publish_surface_frame_after_rebuild();
     }
 
     fn refresh_arranged_node_indices(&mut self) {
         self.arranged_node_indices = arranged_node_indices(&self.arranged_tree);
+        self.arranged_visibility
+            .rebuild(&self.arranged_tree, &self.arranged_node_indices);
+        crate::profile_counter!("runtime", "ui.arranged_visibility.rebuild_count", 1);
+        crate::profile_counter!(
+            "runtime",
+            "ui.arranged_visibility.node_resolve_count",
+            self.arranged_tree.nodes.len()
+        );
         self.arranged_slot_indices = arranged_slot_indices(&self.tree);
     }
 
@@ -154,6 +182,8 @@ impl UiSurface {
     }
 
     pub fn rebuild(&mut self) {
+        #[cfg(feature = "profiling")]
+        let rebuild_profile_start = Instant::now();
         let dirty_summary = dirty_summary(&self.tree);
         self.record_dirty_summary(&dirty_summary);
         let dirty_flags =
@@ -192,8 +222,10 @@ impl UiSurface {
         }
         .with_text_cache_stats(text_cache_stats);
         self.seed_popup_stack_from_tree_metadata();
-        self.rebuild_projected_hit_test();
+        let _ = self.rebuild_projected_hit_test();
+        self.rebuild_navigation_index();
         self.mark_surface_frame_dirty();
+        self.publish_surface_frame_after_rebuild();
         if !requires_layout_rebuild(dirty_flags) {
             let _ = self
                 .invalidation
@@ -202,6 +234,11 @@ impl UiSurface {
             self.clear_dirty_flags();
             self.reset_pending_pool_report();
         }
+        #[cfg(feature = "profiling")]
+        record_surface_rebuild_profile(
+            &self.last_rebuild_report,
+            elapsed_micros(rebuild_profile_start),
+        );
     }
 
     /// Publishes geometry already authored in each node's layout cache and prepares the
@@ -257,15 +294,24 @@ impl UiSurface {
         node_id: zircon_runtime_interface::ui::event_ui::UiNodeId,
         dirty: UiDirtyFlags,
     ) -> Result<(), UiTreeError> {
-        let node = self
-            .tree
-            .nodes
-            .get_mut(&node_id)
-            .ok_or(UiTreeError::MissingNode(node_id))?;
-        if dirty.text && !node.dirty.text {
-            node.layout_cache.advance_text_layout_revision();
+        let affects_layout = dirty.layout || dirty.style || dirty.text || dirty.visible_range;
+        {
+            let node = self
+                .tree
+                .nodes
+                .get_mut(&node_id)
+                .ok_or(UiTreeError::MissingNode(node_id))?;
+            if affects_layout {
+                node.layout_cache.invalidate_measure();
+            }
+            if dirty.text {
+                node.layout_cache.advance_text_layout_revision();
+            }
+            merge_dirty_flags_into(&mut node.dirty, dirty);
         }
-        merge_dirty_flags_into(&mut node.dirty, dirty);
+        if affects_layout {
+            self.tree.nodes.mark_layout_dirty_source(node_id);
+        }
         self.dirty_node_ids.insert(node_id);
         self.invalidation.record_dirty(node_id, dirty);
         Ok(())
@@ -309,349 +355,11 @@ impl UiSurface {
         Ok(())
     }
 
-    pub fn rebuild_dirty(
-        &mut self,
-        root_size: UiSize,
-    ) -> Result<UiSurfaceRebuildReport, UiTreeError> {
-        self.last_layout_geometry_changed_node_ids.clear();
-        let root_size_changed = self.last_layout_root_size.map_or_else(
-            || !self.arranged_tree.nodes.is_empty(),
-            |previous| previous != root_size,
-        );
-        if root_size_changed {
-            for root_id in self.tree.roots.clone() {
-                self.invalidate_node(root_id, UiInvalidationReason::Layout)?;
-            }
-        }
-        let mut dirty_candidates = self.dirty_node_ids.clone();
-        dirty_candidates.extend(self.invalidation.pending_changed_node_ids());
-        dirty_candidates.extend(self.tree.pending_mutation_node_ids().iter().copied());
-        let dirty_summary = if !self.dirty_index_initialized {
-            dirty_summary(&self.tree)
-        } else {
-            dirty_summary_for_nodes(&self.tree, &dirty_candidates)
-        };
-        self.dirty_index_initialized = true;
-        self.record_dirty_summary(&dirty_summary);
-        let dirty =
-            merge_dirty_flag_values(dirty_summary.dirty, self.invalidation.pending_dirty_flags());
-        let dirty_node_count = self.invalidation.pending_changed_node_count();
-        let dirty_node_ids = self.invalidation.pending_changed_node_ids();
-        self.render_extract.raster_scale = self.current_raster_scale();
-        if !dirty.any() {
-            self.last_layout_root_size.get_or_insert(root_size);
-            let next_report = UiSurfaceRebuildReport::default().with_counts(self.rebuild_counts());
-            if self.last_rebuild_report != next_report {
-                self.last_rebuild_report = next_report;
-                self.mark_surface_frame_dirty();
-            }
-            self.reset_pending_pool_report();
-            return Ok(self.last_rebuild_report);
-        }
-
-        if dirty.layout || dirty.style || dirty.text || dirty.visible_range {
-            self.text_measure_cache.begin_frame();
-            let layout_start = Instant::now();
-            let layout_stats = compute_incremental_layout_tree_with_text_measure_cache(
-                &mut self.tree,
-                root_size,
-                Some(&mut self.text_measure_cache),
-                &dirty_node_ids,
-                root_size_changed,
-                &self.layout_slot_index,
-            )?;
-            self.last_layout_root_size = Some(root_size);
-            self.last_layout_geometry_changed_node_ids =
-                layout_stats.geometry_changed_node_ids.clone();
-            if self.layout_engine_selection_indices.is_empty()
-                && !self.layout_engine_report.selections.is_empty()
-            {
-                self.refresh_layout_engine_selection_indices();
-            }
-            if !patch_incremental_layout_engine_report(
-                &mut self.layout_engine_report,
-                &self.layout_engine_selection_indices,
-                &layout_stats.layout_engine_report,
-                &layout_stats.visited_node_ids,
-            ) {
-                self.layout_engine_report = merge_incremental_layout_engine_report(
-                    &self.layout_engine_report,
-                    &layout_stats.layout_engine_report,
-                    &layout_stats.visited_node_ids,
-                    &self.tree,
-                );
-                self.refresh_layout_engine_selection_indices();
-            }
-            let layout_elapsed_micros = elapsed_micros(layout_start);
-            let arranged_start = Instant::now();
-            let hit_test_is_layout_derived = dirty_summary
-                .changed_nodes
-                .iter()
-                .all(|(_, node_dirty)| !node_dirty.hit_test || node_dirty.layout);
-            let local_layout_patch_dirty = (dirty.layout || dirty.style || dirty.text)
-                && !dirty.visible_range
-                && !dirty.input
-                && hit_test_is_layout_derived
-                && !layout_stats.visited_node_ids.is_empty();
-            let arranged_patched = local_layout_patch_dirty
-                && patch_arranged_tree_geometry(
-                    &self.tree,
-                    &mut self.arranged_tree,
-                    &layout_stats.geometry_changed_node_ids,
-                    &layout_stats.visited_node_ids,
-                    &self.arranged_node_indices,
-                    &self.arranged_slot_indices,
-                );
-            if !arranged_patched {
-                self.arranged_tree = build_arranged_tree(&self.tree);
-                self.refresh_arranged_node_indices();
-            }
-            let arranged_elapsed_micros = elapsed_micros(arranged_start);
-            let hit_start = Instant::now();
-            let hit_grid_patch = (arranged_patched
-                && !layout_stats.geometry_changed_node_ids.is_empty())
-            .then(|| {
-                self.hit_test.patch_arranged_geometry(
-                    &self.arranged_tree,
-                    &layout_stats.geometry_changed_node_ids,
-                    &self.arranged_node_indices,
-                )
-            });
-            let hit_grid_changed = hit_grid_patch
-                .as_ref()
-                .and_then(|result| result.as_ref().ok().copied())
-                .unwrap_or(false);
-            let hit_grid_full_rebuild =
-                !arranged_patched || hit_grid_patch.as_ref().is_some_and(Result::is_err);
-            if hit_grid_full_rebuild {
-                self.hit_test
-                    .rebuild_arranged_indexed(&self.arranged_tree, &self.arranged_node_indices);
-            }
-            let hit_grid_elapsed_micros = elapsed_micros(hit_start);
-            let render_start = Instant::now();
-            let mut render_changed_node_ids = dirty_node_ids.clone();
-            render_changed_node_ids.extend(layout_stats.geometry_changed_node_ids.iter().copied());
-            let popup_trigger_dependency_changed =
-                self.popup_trigger_requires_full_render_extract(&render_changed_node_ids);
-            let render_local_patch = if !popup_trigger_dependency_changed
-                && arranged_patched
-                && local_layout_patch_dirty
-            {
-                if dirty.style || dirty.text {
-                    match self.patch_render_nodes(&render_changed_node_ids) {
-                        Ok(stats) => {
-                            self.text_measure_cache.finish_frame();
-                            Some(stats)
-                        }
-                        Err(()) => None,
-                    }
-                } else {
-                    match self.render_cache.patch_geometry(
-                        &mut self.render_extract,
-                        &self.arranged_tree,
-                        &self.arranged_node_indices,
-                        &layout_stats.geometry_changed_node_ids,
-                    ) {
-                        Ok(stats) => {
-                            self.text_measure_cache.finish_frame();
-                            Some(stats)
-                        }
-                        Err(()) => match self.patch_render_nodes(&render_changed_node_ids) {
-                            Ok(stats) => {
-                                self.text_measure_cache.finish_frame();
-                                Some(stats)
-                            }
-                            Err(()) => None,
-                        },
-                    }
-                }
-            } else if !popup_trigger_dependency_changed
-                && !dirty.style
-                && !dirty.visible_range
-                && !dirty.hit_test
-                && !dirty.input
-                && !render_changed_node_ids.is_empty()
-            {
-                match self.patch_render_nodes(&render_changed_node_ids) {
-                    Ok(stats) => {
-                        self.text_measure_cache.finish_frame();
-                        Some(stats)
-                    }
-                    Err(()) => None,
-                }
-            } else {
-                None
-            };
-            let render_stats = render_local_patch
-                .clone()
-                .unwrap_or_else(|| self.rebuild_render_extract_with_text_frame(false, false));
-            let render_elapsed_micros = elapsed_micros(render_start);
-            let text_cache_stats = self.text_cache_frame_stats();
-            let report = UiSurfaceRebuildReport {
-                dirty_flags: dirty,
-                dirty_node_count,
-                layout_recomputed: true,
-                arranged_rebuilt: true,
-                hit_grid_rebuilt: hit_grid_changed || hit_grid_full_rebuild,
-                render_rebuilt: true,
-                arranged_outer_node_visit_count: if arranged_patched {
-                    layout_stats.visited_node_count
-                } else {
-                    self.tree.nodes.len()
-                },
-                hit_grid_outer_node_visit_count: if hit_grid_changed {
-                    layout_stats.geometry_changed_node_count
-                } else if hit_grid_full_rebuild {
-                    self.arranged_tree.draw_order.len()
-                } else {
-                    0
-                },
-                render_outer_node_visit_count: if render_local_patch.is_some() {
-                    render_changed_node_ids.len()
-                } else {
-                    self.arranged_tree.draw_order.len()
-                },
-                layout_visited_node_count: layout_stats.visited_node_count,
-                layout_geometry_changed_node_count: layout_stats.geometry_changed_node_count,
-                layout_skipped_node_count: layout_stats.skipped_node_count,
-                render_command_reused_count: render_stats.reused_command_count,
-                render_command_rebuilt_count: render_stats.rebuilt_command_count,
-                render_damage_rect_count: render_stats.damage_rect_count,
-                layout_elapsed_micros,
-                arranged_elapsed_micros,
-                hit_grid_elapsed_micros,
-                render_elapsed_micros,
-                ..self.rebuild_counts()
-            }
-            .with_text_cache_stats(text_cache_stats);
-            self.last_rebuild_report = report;
-            if self.popup_stack_requires_reconciliation(&render_changed_node_ids) {
-                self.seed_popup_stack_from_tree_metadata();
-            }
-            self.synchronize_projected_hit_test(
-                &layout_stats.geometry_changed_node_ids,
-                hit_grid_full_rebuild,
-            );
-            let _ = self
-                .invalidation
-                .commit_pending()
-                .expect("surface-owned invalidation transaction must use the current generation");
-            self.clear_dirty_flags();
-            self.reset_pending_pool_report();
-            self.mark_surface_frame_dirty();
-            return Ok(report);
-        }
-
-        let mut report = UiSurfaceRebuildReport {
-            dirty_flags: dirty,
-            dirty_node_count,
-            ..UiSurfaceRebuildReport::default()
-        };
-        let mut input_patch_node_ids = None;
-        let mut hit_grid_full_rebuild = false;
-        if dirty.hit_test || dirty.input {
-            let arranged_start = Instant::now();
-            input_patch_node_ids = patch_arranged_tree_input(
-                &self.tree,
-                &mut self.arranged_tree,
-                &dirty_node_ids,
-                &self.arranged_node_indices,
-                &self.arranged_slot_indices,
-            );
-            if input_patch_node_ids.is_none() {
-                self.arranged_tree = build_arranged_tree(&self.tree);
-                self.refresh_arranged_node_indices();
-            }
-            report.arranged_elapsed_micros = elapsed_micros(arranged_start);
-            let hit_start = Instant::now();
-            let hit_grid_patch = input_patch_node_ids.as_ref().map(|node_ids| {
-                self.hit_test.patch_arranged_geometry(
-                    &self.arranged_tree,
-                    node_ids,
-                    &self.arranged_node_indices,
-                )
-            });
-            let hit_grid_changed = hit_grid_patch
-                .as_ref()
-                .and_then(|result| result.as_ref().ok().copied())
-                .unwrap_or(false);
-            hit_grid_full_rebuild = input_patch_node_ids.is_none()
-                || hit_grid_patch.as_ref().is_some_and(Result::is_err);
-            if hit_grid_full_rebuild {
-                self.hit_test
-                    .rebuild_arranged_indexed(&self.arranged_tree, &self.arranged_node_indices);
-            }
-            report.hit_grid_elapsed_micros = elapsed_micros(hit_start);
-            report.arranged_rebuilt = true;
-            report.hit_grid_rebuilt = hit_grid_changed || hit_grid_full_rebuild;
-            report.arranged_outer_node_visit_count = input_patch_node_ids
-                .as_ref()
-                .map_or(self.tree.nodes.len(), BTreeSet::len);
-            report.hit_grid_outer_node_visit_count = if hit_grid_changed {
-                input_patch_node_ids.as_ref().map_or(0, BTreeSet::len)
-            } else if hit_grid_full_rebuild {
-                self.arranged_tree.draw_order.len()
-            } else {
-                0
-            };
-        }
-        if dirty.render {
-            let render_start = Instant::now();
-            self.text_measure_cache.begin_frame();
-            let render_patch_node_ids = input_patch_node_ids
-                .as_ref()
-                .filter(|_| dirty.hit_test || dirty.input)
-                .unwrap_or(&dirty_node_ids);
-            let render_local_patch = if (!dirty.hit_test && !dirty.input
-                || input_patch_node_ids.is_some())
-                && !render_patch_node_ids.is_empty()
-                && !self.popup_trigger_requires_full_render_extract(render_patch_node_ids)
-            {
-                match self.patch_render_nodes(render_patch_node_ids) {
-                    Ok(stats) => {
-                        self.text_measure_cache.finish_frame();
-                        Some(stats)
-                    }
-                    Err(()) => None,
-                }
-            } else {
-                None
-            };
-            let render_stats = render_local_patch
-                .clone()
-                .unwrap_or_else(|| self.rebuild_render_extract_with_text_frame(false, false));
-            report.render_elapsed_micros = elapsed_micros(render_start);
-            report.render_rebuilt = true;
-            report.render_command_reused_count = render_stats.reused_command_count;
-            report.render_command_rebuilt_count = render_stats.rebuilt_command_count;
-            report.render_damage_rect_count = render_stats.damage_rect_count;
-            report.render_outer_node_visit_count = if render_local_patch.is_some() {
-                render_patch_node_ids.len()
-            } else {
-                self.arranged_tree.draw_order.len()
-            };
-            report = report.with_text_cache_stats(self.text_cache_frame_stats());
-        }
-        report = UiSurfaceRebuildReport {
-            ..report.with_counts(self.rebuild_counts())
-        };
-        self.last_rebuild_report = report;
-        if self.popup_stack_requires_reconciliation(&dirty_node_ids) {
-            self.seed_popup_stack_from_tree_metadata();
-        }
-        let hit_grid_affected_node_ids = input_patch_node_ids.unwrap_or_default();
-        self.synchronize_projected_hit_test(&hit_grid_affected_node_ids, hit_grid_full_rebuild);
-        let _ = self
-            .invalidation
-            .commit_pending()
-            .expect("surface-owned invalidation transaction must use the current generation");
-        self.clear_dirty_flags();
-        self.reset_pending_pool_report();
-        self.mark_surface_frame_dirty();
-        Ok(report)
-    }
-
     pub fn compute_layout(&mut self, root_size: UiSize) -> Result<(), UiTreeError> {
+        #[cfg(feature = "profiling")]
+        let rebuild_profile_start = Instant::now();
+        self.invalidate_for_changed_text_font_generation()?;
+        let operation_font_generation = self.text_measure_cache.font_database_generation();
         let dirty_summary = dirty_summary(&self.tree);
         self.record_dirty_summary(&dirty_summary);
         let dirty_flags =
@@ -662,7 +370,7 @@ impl UiSurface {
         self.layout_engine_report = compute_layout_tree_with_text_measure_cache_and_slot_index(
             &mut self.tree,
             root_size,
-            Some(&mut self.text_measure_cache),
+            &mut self.text_measure_cache,
             &self.layout_slot_index,
         )?;
         self.refresh_layout_engine_selection_indices();
@@ -708,6 +416,10 @@ impl UiSurface {
             layout_visited_node_count: self.tree.nodes.len(),
             layout_geometry_changed_node_count: self.tree.nodes.len(),
             layout_skipped_node_count: 0,
+            layout_measure_probe_node_count: self.tree.nodes.len(),
+            layout_arrange_probe_node_count: self.tree.nodes.len(),
+            layout_taffy_tree_build_count: self.layout_engine_report.taffy_tree_build_count,
+            layout_taffy_tree_node_build_count: self.layout_engine_report.taffy_tree_node_count,
             render_command_reused_count: render_stats.reused_command_count,
             render_command_rebuilt_count: render_stats.rebuilt_command_count,
             render_damage_rect_count: render_stats.damage_rect_count,
@@ -719,7 +431,8 @@ impl UiSurface {
         }
         .with_text_cache_stats(text_cache_stats);
         self.seed_popup_stack_from_tree_metadata();
-        self.rebuild_projected_hit_test();
+        let _ = self.rebuild_projected_hit_test();
+        self.rebuild_navigation_index();
         let _ = self
             .invalidation
             .commit_pending()
@@ -727,8 +440,23 @@ impl UiSurface {
         self.clear_dirty_flags();
         self.reset_pending_pool_report();
         self.mark_surface_frame_dirty();
+        self.publish_surface_frame_after_rebuild();
+        self.record_text_font_generation_layout(operation_font_generation);
+        #[cfg(feature = "profiling")]
+        record_surface_rebuild_profile(
+            &self.last_rebuild_report,
+            elapsed_micros(rebuild_profile_start),
+        );
         Ok(())
     }
+}
+
+fn physical_axis_raster_scale(physical_extent: u32, logical_extent: f32) -> Option<f32> {
+    if physical_extent == 0 || !logical_extent.is_finite() || logical_extent <= 0.0 {
+        return None;
+    }
+    let scale = physical_extent as f32 / logical_extent;
+    (scale.is_finite() && scale > 0.0).then_some(scale)
 }
 
 #[derive(Debug, Default)]
@@ -791,74 +519,6 @@ fn merge_dirty_flag_values(mut target: UiDirtyFlags, dirty: UiDirtyFlags) -> UiD
 
 fn requires_layout_rebuild(dirty: UiDirtyFlags) -> bool {
     dirty.layout || dirty.style || dirty.text || dirty.visible_range
-}
-
-// Incremental layout visits only dirty subtrees, while diagnostics expose a surface-level route map.
-// Keep untouched container routes and replace any route owned by the visited subtree.
-fn merge_incremental_layout_engine_report(
-    previous: &UiLayoutEngineSelectionReport,
-    incremental: &UiLayoutEngineSelectionReport,
-    visited_node_ids: &BTreeSet<UiNodeId>,
-    tree: &UiTree,
-) -> UiLayoutEngineSelectionReport {
-    let mut selections = Vec::new();
-
-    for selection in &previous.selections {
-        let Some(node_id) = selection.node_id else {
-            continue;
-        };
-        if tree.nodes.contains_key(&node_id) && !visited_node_ids.contains(&node_id) {
-            selections.push(selection.clone());
-        }
-    }
-
-    selections.extend(incremental.selections.iter().cloned());
-    UiLayoutEngineSelectionReport::from_selections(selections)
-}
-
-fn patch_incremental_layout_engine_report(
-    previous: &mut UiLayoutEngineSelectionReport,
-    previous_indices: &std::collections::BTreeMap<UiNodeId, usize>,
-    incremental: &UiLayoutEngineSelectionReport,
-    visited_node_ids: &BTreeSet<UiNodeId>,
-) -> bool {
-    let incremental_by_node = incremental
-        .selections
-        .iter()
-        .filter_map(|selection| selection.node_id.map(|node_id| (node_id, selection)))
-        .collect::<std::collections::BTreeMap<_, _>>();
-    let mut replacements = Vec::new();
-
-    for node_id in visited_node_ids {
-        match (
-            previous_indices.get(node_id).copied(),
-            incremental_by_node.get(node_id).copied(),
-        ) {
-            (None, None) => {}
-            (Some(index), Some(next)) => {
-                let Some(current) = previous.selections.get(index) else {
-                    return false;
-                };
-                if current.node_id != Some(*node_id) {
-                    return false;
-                }
-                if current != next {
-                    replacements.push((index, next.clone()));
-                }
-            }
-            _ => return false,
-        }
-    }
-
-    if replacements.is_empty() {
-        return true;
-    }
-    for (index, replacement) in replacements {
-        if !previous.replace_selection_at(index, replacement) {
-            return false;
-        }
-    }
-    true
 }
 
 fn elapsed_micros(start: Instant) -> u64 {

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use zircon_runtime::asset::AssetId;
 use zircon_runtime::core::framework::animation::AnimationPoseOutput;
 use zircon_runtime::core::framework::physics::SimulatedPoseFeed;
-use zircon_runtime::core::math::Real;
+use zircon_runtime::core::math::{Real, Transform};
 use zircon_runtime::scene::EntityId;
 
 use super::AnimationEvaluationPipeline;
@@ -38,24 +38,44 @@ pub(super) fn blend_simulated_pose_feed(
                 continue;
             }
             let weight = simulated.normalized_weight;
-            bone.local_transform.translation = bone
-                .local_transform
-                .translation
-                .lerp(simulated.local_transform.translation, weight);
-            bone.local_transform.rotation = bone
-                .local_transform
-                .rotation
-                .slerp(simulated.local_transform.rotation.normalize(), weight)
-                .normalize();
-            bone.local_transform.scale = bone
-                .local_transform
-                .scale
-                .lerp(simulated.local_transform.scale, weight);
+            bone.local_transform =
+                blend_simulated_transform(bone.local_transform, simulated.local_transform, weight);
         }
     }
 }
 
-fn valid_transform(transform: zircon_runtime::core::math::Transform) -> bool {
+fn blend_simulated_transform(current: Transform, simulated: Transform, weight: Real) -> Transform {
+    if weight == 0.0 {
+        return Transform {
+            rotation: current.rotation.normalize(),
+            ..current
+        };
+    }
+
+    let simulated_rotation = simulated.rotation.normalize();
+    if weight == 1.0 {
+        let rotation = if current.rotation.dot(simulated_rotation) < 0.0 {
+            -simulated_rotation
+        } else {
+            simulated_rotation
+        };
+        return Transform {
+            rotation,
+            ..simulated
+        };
+    }
+
+    Transform {
+        translation: current.translation.lerp(simulated.translation, weight),
+        rotation: current
+            .rotation
+            .slerp(simulated_rotation, weight)
+            .normalize(),
+        scale: current.scale.lerp(simulated.scale, weight),
+    }
+}
+
+fn valid_transform(transform: Transform) -> bool {
     transform.translation.is_finite()
         && transform.rotation.is_finite()
         && transform.rotation.length_squared() > Real::EPSILON
@@ -65,3 +85,7 @@ fn valid_transform(transform: zircon_runtime::core::math::Transform) -> bool {
 fn valid_weight(weight: Real) -> bool {
     weight.is_finite() && (0.0..=1.0).contains(&weight)
 }
+
+#[cfg(test)]
+#[path = "simulated_pose_blend/performance_tests.rs"]
+mod optimization_batch_20260830cw_tests;

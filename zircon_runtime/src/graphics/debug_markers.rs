@@ -13,6 +13,7 @@ pub(crate) const RENDERDOC_MARKER_TEXTURE_WRITEBACK_CONVERSION: &str =
     "zircon::TextureWritebackConversion";
 pub(crate) const RENDERDOC_MARKER_OVERLAY: &str = "zircon::Overlay";
 pub(crate) const RENDERDOC_MARKER_UI: &str = "zircon::UI";
+pub(crate) const RENDERDOC_MARKER_PRESENT: &str = "zircon::Present";
 pub(crate) const RENDERDOC_MARKER_READBACK: &str = "zircon::Readback";
 pub(crate) const RENDERDOC_MARKER_RENDER_GRAPH_PASS_PREFIX: &str = "zircon::RenderGraphPass::";
 
@@ -30,6 +31,7 @@ pub(crate) const REQUIRED_RENDERDOC_STAGE_MARKERS: &[&str] = &[
     RENDERDOC_MARKER_TEXTURE_WRITEBACK_CONVERSION,
     RENDERDOC_MARKER_OVERLAY,
     RENDERDOC_MARKER_UI,
+    RENDERDOC_MARKER_PRESENT,
     RENDERDOC_MARKER_READBACK,
 ];
 
@@ -51,6 +53,7 @@ pub(crate) fn marker_for_render_pass_stage(stage: RenderPassStage) -> Option<&'s
         }
         RenderPassStage::Ui => Some(RENDERDOC_MARKER_UI),
         RenderPassStage::Overlay | RenderPassStage::Debug => Some(RENDERDOC_MARKER_OVERLAY),
+        RenderPassStage::Present => Some(RENDERDOC_MARKER_PRESENT),
     }
 }
 

@@ -3,9 +3,9 @@ use zr_rhi::{
     BindGroupLayoutDesc, BindGroupLayoutEntryDesc, BindGroupLayoutHandle, BindingResourceType,
     BlendStateDesc, ColorTargetDesc, ColorWriteMask, CompareFunction, DepthStencilStateDesc,
     PipelineDesc, PipelineKind, PipelineLayoutDesc, PipelineLayoutHandle, RasterPipelineStateDesc,
-    RenderDevice, RhiError, ShaderModuleDesc, ShaderModuleHandle, ShaderStage, TextureFormat,
-    VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat, VertexInputLayoutDesc,
-    VertexStepMode,
+    RenderDevice, RhiError, SamplerBindingType, ShaderModuleDesc, ShaderModuleHandle, ShaderStage,
+    TextureFormat, TextureSampleType, TextureViewDimension, VertexAttributeDesc,
+    VertexBufferLayoutDesc, VertexFormat, VertexInputLayoutDesc, VertexStepMode,
 };
 
 fn create_pipeline_layout(device: &DeterministicRhiContractDevice) -> PipelineLayoutHandle {
@@ -118,12 +118,16 @@ fn deterministic_rhi_contract_roundtrips_pipeline_layouts_and_shader_bound_pipel
                 ),
                 BindGroupLayoutEntryDesc::new(
                     1,
-                    BindingResourceType::Texture,
+                    BindingResourceType::SampledTexture {
+                        sample_type: TextureSampleType::Float { filterable: true },
+                        view_dimension: TextureViewDimension::D2,
+                        multisampled: false,
+                    },
                     vec![ShaderStage::Fragment],
                 ),
                 BindGroupLayoutEntryDesc::new(
                     2,
-                    BindingResourceType::Sampler,
+                    BindingResourceType::Sampler(SamplerBindingType::Filtering),
                     vec![ShaderStage::Fragment],
                 ),
             ],
@@ -154,12 +158,12 @@ fn deterministic_rhi_contract_roundtrips_pipeline_layouts_and_shader_bound_pipel
     device.destroy_pipeline(pipeline).unwrap();
     assert_eq!(
         device.pipeline_desc(pipeline).unwrap_err(),
-        RhiError::UnknownPipeline(pipeline.raw())
+        RhiError::UnknownPipeline(pipeline.diagnostic_id())
     );
     device.destroy_pipeline_layout(pipeline_layout).unwrap();
     assert_eq!(
         device.pipeline_layout_desc(pipeline_layout).unwrap_err(),
-        RhiError::UnknownPipelineLayout(pipeline_layout.raw())
+        RhiError::UnknownPipelineLayout(pipeline_layout.diagnostic_id())
     );
 }
 
@@ -204,14 +208,18 @@ fn deterministic_rhi_contract_rejects_invalid_shader_and_pipeline_descriptors() 
         device.pipeline_layout_desc(empty_pipeline_layout).unwrap(),
         empty_pipeline_layout_desc
     );
+    let stale_layout = device
+        .create_bind_group_layout(&create_test_bind_group_layout_desc("stale-layout"))
+        .unwrap();
+    device.destroy_bind_group_layout(stale_layout).unwrap();
     assert_eq!(
         device
             .create_pipeline_layout(&PipelineLayoutDesc::new(
                 "unknown-layout",
-                vec![BindGroupLayoutHandle::new(999)],
+                vec![stale_layout],
             ))
             .unwrap_err(),
-        RhiError::UnknownBindGroupLayout(999)
+        RhiError::UnknownBindGroupLayout(stale_layout.diagnostic_id())
     );
 
     let bind_group_layout = device
@@ -226,7 +234,10 @@ fn deterministic_rhi_contract_rejects_invalid_shader_and_pipeline_descriptors() 
             .unwrap_err(),
         RhiError::InvalidPipelineLayoutDescriptor {
             label: Some("duplicate-layout".to_string()),
-            reason: format!("duplicate bind group layout `{}`", bind_group_layout.raw()),
+            reason: format!(
+                "duplicate bind group layout `{}`",
+                bind_group_layout.diagnostic_id()
+            ),
         }
     );
 
@@ -273,7 +284,7 @@ fn deterministic_rhi_contract_rejects_invalid_shader_and_pipeline_descriptors() 
             label: Some("compute-wrong-shader".to_string()),
             reason: format!(
                 "shader `{}` stage {:?} does not match required stage {:?}",
-                vertex.raw(),
+                vertex.diagnostic_id(),
                 ShaderStage::Vertex,
                 ShaderStage::Compute
             ),

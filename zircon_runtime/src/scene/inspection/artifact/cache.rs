@@ -306,7 +306,9 @@ mod tests {
     #[test]
     fn clone_generation_guard_rebuilds_a_split_publication_snapshot() {
         let mut source = World::empty();
-        let renamed = source.spawn_node(NodeKind::Empty);
+        let renamed = source
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         let stale_artifact = source.inspection_artifact();
         source.rename_node(renamed, "Current name").unwrap();
         let expected_generation = source.world_generation();

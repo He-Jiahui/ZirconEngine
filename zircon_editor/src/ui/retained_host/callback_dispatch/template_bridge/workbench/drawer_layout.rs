@@ -9,8 +9,8 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::workbench::autolayout::{
     balanced_side_widths_for_budget, compact_bottom_height_limit, compact_side_width_limit,
-    minimum_document_width_fraction, right_drawer_should_collapse_for_physical_width,
-    workbench_layout_tier_for_physical_width, ShellRegionId, WorkbenchChromeMetrics,
+    minimum_document_width_fraction, right_drawer_should_collapse_for_logical_width,
+    workbench_layout_tier_for_logical_width, ShellRegionId, WorkbenchChromeMetrics,
     WorkbenchLayoutTier,
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
@@ -106,8 +106,22 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         model: &WorkbenchViewModel,
         metrics: &WorkbenchChromeMetrics,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        let physical_shell_size = UiSize::new(mount_frame.width, mount_frame.height);
         let shell_size = self.prepare_layout_at_mount_with_scale(mount_frame, scale_factor);
         let logical_toolbar_width = shell_size.width;
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "workbench_bridge_responsive_projection"
+            );
+            apply_workbench_responsive_layout(
+                &mut self.template_surface.surface,
+                physical_shell_size,
+                scale_factor,
+                self.compact_module_details_drawer_open,
+            )?;
+        }
         {
             zircon_runtime::profile_scope!(
                 "editor",
@@ -120,7 +134,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 logical_toolbar_width,
                 shell_size.height,
             ))?;
-            self.refresh_command_palette_popup_anchor()?;
         }
         {
             zircon_runtime::profile_scope!(
@@ -131,19 +144,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             apply_workbench_drawer_layout_to_surface(
                 &mut self.template_surface.surface,
                 shell_size,
-                1.0,
                 model,
                 metrics,
                 None,
             )?;
-        }
-        {
-            zircon_runtime::profile_scope!(
-                "editor",
-                "retained_host",
-                "workbench_bridge_responsive_projection"
-            );
-            apply_workbench_responsive_layout(&mut self.template_surface.surface, shell_size, 1.0)?;
         }
         {
             zircon_runtime::profile_scope!(
@@ -161,7 +165,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 fn apply_workbench_drawer_layout_to_surface(
     surface: &mut UiSurface,
     shell_size: UiSize,
-    scale_factor: f32,
     model: &WorkbenchViewModel,
     metrics: &WorkbenchChromeMetrics,
     anchors: Option<WorkbenchDrawerLayoutAnchors>,
@@ -169,7 +172,6 @@ fn apply_workbench_drawer_layout_to_surface(
     apply_workbench_drawer_layout(
         surface,
         shell_size,
-        scale_factor,
         WorkbenchDrawerLayoutInputs::from_workbench_model(model, metrics),
         *metrics,
         anchors,
@@ -179,7 +181,6 @@ fn apply_workbench_drawer_layout_to_surface(
 fn apply_workbench_drawer_layout(
     surface: &mut UiSurface,
     shell_size: UiSize,
-    scale_factor: f32,
     drawer_inputs: WorkbenchDrawerLayoutInputs,
     metrics: WorkbenchChromeMetrics,
     anchors: Option<WorkbenchDrawerLayoutAnchors>,
@@ -189,23 +190,15 @@ fn apply_workbench_drawer_layout(
         drawer_inputs.left,
         ShellRegionId::Left,
         shell_size,
-        scale_factor,
         rail_width,
     );
     let right = compacted_side_region_input(
         drawer_inputs.right,
         ShellRegionId::Right,
         shell_size,
-        scale_factor,
         rail_width,
     );
-    let bottom = compacted_bottom_region_input(
-        drawer_inputs.bottom,
-        shell_size,
-        scale_factor,
-        metrics,
-        anchors,
-    );
+    let bottom = compacted_bottom_region_input(drawer_inputs.bottom, shell_size, metrics, anchors);
     let (left, right) = reserve_document_width(left, right, shell_size, metrics);
 
     mark_roots_layout_dirty(surface)?;
@@ -273,7 +266,8 @@ fn region_with_panel_width(
 fn mark_roots_layout_dirty(
     surface: &mut UiSurface,
 ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-    for root_id in surface.tree.roots.clone() {
+    for root_index in 0..surface.tree.roots.len() {
+        let root_id = surface.tree.roots[root_index];
         surface.tree.mark_layout_dirty(root_id)?;
     }
     Ok(())
@@ -283,7 +277,6 @@ fn compacted_side_region_input(
     region: WorkbenchDrawerRegionInput,
     side: ShellRegionId,
     shell_size: UiSize,
-    scale_factor: f32,
     rail_width: f32,
 ) -> WorkbenchDrawerRegionInput {
     if !region.visible {
@@ -291,7 +284,7 @@ fn compacted_side_region_input(
     }
 
     if side == ShellRegionId::Right
-        && right_drawer_should_collapse_for_physical_width(shell_size.width, scale_factor)
+        && right_drawer_should_collapse_for_logical_width(shell_size.width)
     {
         return WorkbenchDrawerRegionInput {
             extent: rail_width,
@@ -309,7 +302,6 @@ fn compacted_side_region_input(
 fn compacted_bottom_region_input(
     region: WorkbenchDrawerRegionInput,
     shell_size: UiSize,
-    scale_factor: f32,
     metrics: WorkbenchChromeMetrics,
     anchors: Option<WorkbenchDrawerLayoutAnchors>,
 ) -> WorkbenchDrawerRegionInput {
@@ -318,7 +310,7 @@ fn compacted_bottom_region_input(
     }
 
     if matches!(
-        workbench_layout_tier_for_physical_width(shell_size.width, scale_factor),
+        workbench_layout_tier_for_logical_width(shell_size.width),
         WorkbenchLayoutTier::Ultra | WorkbenchLayoutTier::Narrow
     ) {
         // The compact bottom drawer keeps its tab strip as the re-open affordance,
@@ -526,7 +518,6 @@ mod tests {
         let compacted = compacted_bottom_region_input(
             pinned_drawer,
             UiSize::new(640.0, 520.0),
-            1.0,
             metrics,
             Some(WorkbenchDrawerLayoutAnchors { body_height: 420.0 }),
         );

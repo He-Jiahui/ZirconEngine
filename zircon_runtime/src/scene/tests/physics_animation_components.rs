@@ -23,7 +23,9 @@ use crate::scene::world::World;
 #[test]
 fn world_project_roundtrip_preserves_physics_and_animation_components() {
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
 
     let rigid_body = RigidBodyComponent {
         body_type: RigidBodyType::Dynamic,
@@ -121,7 +123,8 @@ fn world_project_roundtrip_preserves_physics_and_animation_components() {
         parameters: BTreeMap::from([
             ("grounded".to_string(), AnimationParameterValue::Bool(true)),
             ("speed".to_string(), AnimationParameterValue::Scalar(2.0)),
-        ]),
+        ])
+        .into(),
         playing: true,
     };
     let animation_state_machine_player = AnimationStateMachinePlayerComponent {
@@ -131,7 +134,8 @@ fn world_project_roundtrip_preserves_physics_and_animation_components() {
         parameters: BTreeMap::from([
             ("grounded".to_string(), AnimationParameterValue::Bool(true)),
             ("speed".to_string(), AnimationParameterValue::Scalar(2.0)),
-        ]),
+        ])
+        .into(),
         active_state: Some("Locomotion".to_string()),
         playing: true,
     };

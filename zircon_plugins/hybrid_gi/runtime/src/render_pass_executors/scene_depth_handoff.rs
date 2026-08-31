@@ -1,4 +1,7 @@
-use zircon_runtime::graphics::{RenderPassExecutionContext, RenderPassGpuExecutionContext};
+use zircon_runtime::graphics::{
+    RenderPassBufferUploadSink, RenderPassExecutionContext, RenderPassGpuNativeContext,
+    RenderPassGpuResourceFactory,
+};
 use zircon_runtime::render_graph::RenderGraphResourceAccessKind;
 
 use crate::{
@@ -6,8 +9,8 @@ use crate::{
     HYBRID_GI_SCENE_DEPTH_HANDOFF_WORKGROUP_SIZE,
 };
 
-use super::scene_hzb_camera_packet::{scene_hzb_camera_packet, SCENE_HZB_CAMERA_WORD_OFFSET};
-use super::scene_trace_input_packet::{scene_trace_input_packet, SCENE_TRACE_INPUT_WORD_OFFSET};
+use super::scene_hzb_camera_packet::{SCENE_HZB_CAMERA_WORD_OFFSET, scene_hzb_camera_packet};
+use super::scene_trace_input_packet::{SCENE_TRACE_INPUT_WORD_OFFSET, scene_trace_input_packet};
 use super::{
     HYBRID_GI_SCENE_RESOURCE, SCENE_DEPTH_RESOURCE, SCENE_HZB_RESOURCE, SCENE_NORMAL_RESOURCE,
 };
@@ -68,33 +71,40 @@ pub(super) fn record_scene_depth_handoff(
         SCENE_HZB_RESOURCE,
         RenderGraphResourceAccessKind::Read,
     )?;
-    let hybrid_gi_scene_buffer = gpu
-        .require_buffer(
-            HYBRID_GI_SCENE_RESOURCE,
-            RenderGraphResourceAccessKind::Write,
-        )?
-        .clone();
+    let hybrid_gi_scene_buffer = gpu.require_buffer_binding(
+        HYBRID_GI_SCENE_RESOURCE,
+        RenderGraphResourceAccessKind::Write,
+    )?;
     let camera_packet = scene_hzb_camera_packet(gpu.frame_extract(), gpu.viewport_size());
-    gpu.queue.write_buffer(
-        &hybrid_gi_scene_buffer,
+    let scene_trace_packet =
+        scene_trace_input_packet(&gpu.plugin_outputs().hybrid_gi.scene_prepare);
+    let mut buffer_uploads = gpu.buffer_upload_recorder();
+    write_buffer_binding(
+        &mut buffer_uploads,
+        hybrid_gi_scene_buffer.clone(),
         SCENE_HZB_CAMERA_WORD_OFFSET * std::mem::size_of::<u32>() as u64,
         bytemuck::cast_slice(&camera_packet),
-    );
-    let scene_trace_packet = scene_trace_input_packet(&gpu.plugin_outputs.hybrid_gi.scene_prepare);
-    gpu.queue.write_buffer(
-        &hybrid_gi_scene_buffer,
+        "scene HZB camera packet",
+    )?;
+    write_buffer_binding(
+        &mut buffer_uploads,
+        hybrid_gi_scene_buffer.clone(),
         (SCENE_TRACE_INPUT_WORD_OFFSET * std::mem::size_of::<u32>()) as u64,
         bytemuck::cast_slice(&scene_trace_packet),
-    );
+        "scene trace input packet",
+    )?;
+    drop(buffer_uploads);
 
+    let mut native = gpu.native_context();
     encode_scene_depth_handoff(
-        gpu,
+        &mut native,
         &shader,
         &scene_depth_view,
         &scene_normal_view,
         &scene_hzb_view,
-        &hybrid_gi_scene_buffer,
+        hybrid_gi_scene_buffer,
     );
+    drop(native);
     gpu.record_compute_dispatch(
         pass_name,
         executor_id,
@@ -107,24 +117,24 @@ pub(super) fn record_scene_depth_handoff(
 }
 
 fn encode_scene_depth_handoff(
-    gpu: &mut RenderPassGpuExecutionContext<'_>,
+    native: &mut RenderPassGpuNativeContext<'_, '_>,
     shader: &SceneDepthHandoffShader,
     scene_depth_view: &wgpu::TextureView,
     scene_normal_view: &wgpu::TextureView,
     scene_hzb_view: &wgpu::TextureView,
-    hybrid_gi_scene_buffer: &wgpu::Buffer,
+    hybrid_gi_scene_buffer: wgpu::BufferBinding<'_>,
 ) {
-    let bind_group_layout = create_scene_depth_handoff_bind_group_layout(gpu.device, shader);
-    let pipeline = create_scene_depth_handoff_pipeline(gpu.device, shader, &bind_group_layout);
+    let bind_group_layout = create_scene_depth_handoff_bind_group_layout(native, shader);
+    let pipeline = create_scene_depth_handoff_pipeline(native, shader, &bind_group_layout);
     let bind_group = create_scene_depth_handoff_bind_group(
-        gpu.device,
+        native,
         &bind_group_layout,
         scene_depth_view,
         scene_hzb_view,
         hybrid_gi_scene_buffer,
         scene_normal_view,
     );
-    let mut pass = gpu
+    let mut pass = native
         .encoder
         .begin_compute_pass(&wgpu::ComputePassDescriptor {
             label: Some("HybridGiSceneDepthHandoffPass"),
@@ -140,10 +150,10 @@ fn encode_scene_depth_handoff(
 }
 
 fn create_scene_depth_handoff_bind_group_layout(
-    device: &wgpu::Device,
+    factory: &impl RenderPassGpuResourceFactory,
     shader: &SceneDepthHandoffShader,
 ) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+    factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-hybrid-gi-scene-depth-handoff-bind-group-layout"),
         entries: &[
             wgpu::BindGroupLayoutEntry {
@@ -191,7 +201,7 @@ fn create_scene_depth_handoff_bind_group_layout(
 }
 
 fn create_scene_depth_handoff_pipeline(
-    device: &wgpu::Device,
+    factory: &impl RenderPassGpuResourceFactory,
     shader: &SceneDepthHandoffShader,
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::ComputePipeline {
@@ -199,16 +209,16 @@ fn create_scene_depth_handoff_pipeline(
         "zircon-hybrid-gi-scene-depth-handoff-{}-shader",
         shader.label_suffix()
     );
-    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+    let shader_module = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some(shader_label.as_str()),
         source: wgpu::ShaderSource::Wgsl(shader.source().into()),
     });
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+    let pipeline_layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("zircon-hybrid-gi-scene-depth-handoff-pipeline-layout"),
         bind_group_layouts: &[Some(bind_group_layout)],
         immediate_size: 0,
     });
-    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+    factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
         label: Some(HYBRID_GI_SCENE_DEPTH_HANDOFF_PIPELINE_LABEL),
         layout: Some(&pipeline_layout),
         module: &shader_module,
@@ -219,14 +229,14 @@ fn create_scene_depth_handoff_pipeline(
 }
 
 fn create_scene_depth_handoff_bind_group(
-    device: &wgpu::Device,
+    factory: &impl RenderPassGpuResourceFactory,
     bind_group_layout: &wgpu::BindGroupLayout,
     scene_depth_view: &wgpu::TextureView,
     scene_hzb_view: &wgpu::TextureView,
-    hybrid_gi_scene_buffer: &wgpu::Buffer,
+    hybrid_gi_scene_buffer: wgpu::BufferBinding<'_>,
     scene_normal_view: &wgpu::TextureView,
 ) -> wgpu::BindGroup {
-    device.create_bind_group(&wgpu::BindGroupDescriptor {
+    factory.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-hybrid-gi-scene-depth-handoff-bind-group"),
         layout: bind_group_layout,
         entries: &[
@@ -240,7 +250,7 @@ fn create_scene_depth_handoff_bind_group(
             },
             wgpu::BindGroupEntry {
                 binding: 2,
-                resource: hybrid_gi_scene_buffer.as_entire_binding(),
+                resource: wgpu::BindingResource::Buffer(hybrid_gi_scene_buffer),
             },
             wgpu::BindGroupEntry {
                 binding: 3,
@@ -248,6 +258,38 @@ fn create_scene_depth_handoff_bind_group(
             },
         ],
     })
+}
+
+fn write_buffer_binding(
+    buffer_uploads: &mut dyn RenderPassBufferUploadSink,
+    binding: wgpu::BufferBinding<'_>,
+    relative_offset: u64,
+    bytes: &[u8],
+    label: &str,
+) -> Result<(), String> {
+    let byte_count = u64::try_from(bytes.len())
+        .map_err(|_| format!("hybrid GI {label} payload length does not fit u64"))?;
+    let relative_end = relative_offset
+        .checked_add(byte_count)
+        .ok_or_else(|| format!("hybrid GI {label} offset overflows its compiler buffer window"))?;
+    let backing_remaining = binding
+        .buffer
+        .size()
+        .checked_sub(binding.offset)
+        .ok_or_else(|| {
+            format!("hybrid GI {label} binding offset exceeds its backing buffer size")
+        })?;
+    let window_size = binding.size.map_or(backing_remaining, |size| size.get());
+    if relative_end > window_size {
+        return Err(format!(
+            "hybrid GI {label} range [{relative_offset}..{relative_end}) exceeds compiler buffer window size {window_size}"
+        ));
+    }
+    let absolute_offset = binding.offset.checked_add(relative_offset).ok_or_else(|| {
+        format!("hybrid GI {label} absolute buffer offset overflows its backing buffer")
+    })?;
+    buffer_uploads.write_buffer(binding.buffer, absolute_offset, bytes);
+    Ok(())
 }
 
 #[cfg(test)]
@@ -258,6 +300,20 @@ mod tests {
 
     const HANDOFF_MAGIC: u32 = 0x48474944;
     const DEPTH_Q24_SCALE: f32 = 16777215.0;
+
+    #[test]
+    fn scene_depth_handoff_records_buffer_writes_without_native_queue_authority() {
+        let source = include_str!("scene_depth_handoff.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("scene-depth handoff production source");
+
+        assert!(production.contains("buffer_upload_recorder()"));
+        assert!(production.contains("RenderPassBufferUploadSink"));
+        assert!(!production.contains("gpu.queue"));
+        assert!(!production.contains("queue.write_buffer"));
+    }
 
     #[test]
     fn scene_depth_handoff_msaa_shader_resolves_depth_sample_count() {
@@ -352,7 +408,7 @@ mod tests {
             &bind_group_layout,
             &depth_view,
             &hzb_view,
-            &storage,
+            storage.as_entire_buffer_binding(),
             &normal_view,
         );
         {

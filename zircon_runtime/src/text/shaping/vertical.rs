@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 
 use crate::text::font::FontDatabase;
-use crate::text::{BackendShapeRequest, FontFaceId, ShapedGlyph, ShapedGlyphRun, TextOrientation};
+use crate::text::{
+    BackendShapeRequest, FontFaceId, ShapedGlyph, ShapedGlyphRun, TextOrientation,
+    TextVerticalGlyphDecisionBasis, TextVerticalGlyphFallbackReason, TextVerticalGlyphFeatureSet,
+    TextVerticalGlyphOrientation, TextVerticalGlyphSubstitution, VerticalMode,
+};
 
 #[path = "vertical/orientation.rs"]
 mod orientation;
@@ -19,7 +23,7 @@ mod tests;
 use orientation::vertical_glyph_metrics;
 
 pub(in crate::text::shaping) use orientation::{
-    vertical_shape_orientation, VerticalShapeOrientation,
+    VerticalShapeOrientation, vertical_shape_orientation,
 };
 
 pub(super) use direct::shape_vertical_request;
@@ -83,6 +87,7 @@ fn apply_vertical_layout_with_native_metrics(
     }
 
     let column_width = request.style.font_size.max(1.0);
+    let requested_vertical_features = backend::requested_vertical_feature_set(request.features());
     let mut max_column_height = 0.0_f32;
     let mut populated_columns = 0_usize;
     for (line_index, line) in shaped.lines.iter_mut().enumerate() {
@@ -115,6 +120,11 @@ fn apply_vertical_layout_with_native_metrics(
                 column_width,
                 native_vertical_advance,
             );
+            let decision = unproven_vertical_decision(
+                request.vertical_mode,
+                cluster_text,
+                requested_vertical_features,
+            );
             for (cluster_glyph_index, glyph) in
                 line.glyphs[glyph_index..cluster_end].iter_mut().enumerate()
             {
@@ -122,6 +132,9 @@ fn apply_vertical_layout_with_native_metrics(
                 glyph.y = cursor_y;
                 glyph.offset_x += metrics.offset_x;
                 glyph.rotation = metrics.rotation;
+                if cluster_glyph_index == 0 && glyph.cluster_flags.vertical_decision.is_none() {
+                    glyph.cluster_flags.vertical_decision = Some(decision);
+                }
                 glyph.advance = if cluster_glyph_index == 0 {
                     metrics.advance
                 } else {
@@ -143,6 +156,49 @@ fn apply_vertical_layout_with_native_metrics(
 
     shaped.measured_width = populated_columns as f32 * column_width;
     shaped.measured_height = max_column_height;
+}
+
+fn unproven_vertical_decision(
+    mode: VerticalMode,
+    cluster_text: &str,
+    requested_features: TextVerticalGlyphFeatureSet,
+) -> TextVerticalGlyphDecisionBasis {
+    if cluster_text.is_empty() || cluster_text.chars().all(char::is_control) {
+        return TextVerticalGlyphDecisionBasis {
+            orientation: TextVerticalGlyphOrientation::Upright,
+            features: TextVerticalGlyphFeatureSet::None,
+            substitution: TextVerticalGlyphSubstitution::NotChecked,
+            fallback_reason: TextVerticalGlyphFallbackReason::NonRenderingControl,
+        };
+    }
+    let (orientation, features, fallback_reason) =
+        match vertical_shape_orientation(mode, cluster_text) {
+            VerticalShapeOrientation::Upright => (
+                TextVerticalGlyphOrientation::Upright,
+                requested_features,
+                TextVerticalGlyphFallbackReason::None,
+            ),
+            VerticalShapeOrientation::Sideways => (
+                TextVerticalGlyphOrientation::Sideways,
+                TextVerticalGlyphFeatureSet::None,
+                if matches!(mode, VerticalMode::Sideways) {
+                    TextVerticalGlyphFallbackReason::ForcedSideways
+                } else {
+                    TextVerticalGlyphFallbackReason::UnicodeSideways
+                },
+            ),
+            VerticalShapeOrientation::TransformOrRotate => (
+                TextVerticalGlyphOrientation::TransformOrRotate,
+                requested_features,
+                TextVerticalGlyphFallbackReason::BackendProvenanceUnavailable,
+            ),
+        };
+    TextVerticalGlyphDecisionBasis {
+        orientation,
+        features,
+        substitution: TextVerticalGlyphSubstitution::NotChecked,
+        fallback_reason,
+    }
 }
 
 pub(super) fn source_cluster_text<'a>(

@@ -2,8 +2,7 @@ use super::*;
 
 #[test]
 fn template_surface_builder_computes_layout_from_template_contract_attributes() {
-    let document = UiTemplateLoader::load_toml_str(LAYOUT_CONTRACT_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(LAYOUT_CONTRACT_TEMPLATE_TOML);
 
     let mut surface =
         UiTemplateSurfaceBuilder::build_surface(UiTreeId::new("layout.surface"), &instance)

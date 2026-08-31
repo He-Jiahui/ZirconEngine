@@ -1,0 +1,7 @@
+{
+  "family": "zircon.runtime.payload.internal",
+  "spec_version": 1,
+  "encoding": "utf-8",
+  "serialization": "entry-local-json",
+  "schema_status": "migration-baseline"
+}

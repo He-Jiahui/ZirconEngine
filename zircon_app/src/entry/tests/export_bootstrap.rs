@@ -14,13 +14,14 @@ use zircon_runtime::plugin::{
 use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use super::super::{
-    bootstrap_export_runtime_with_native_plugins_from_export_root,
-    bootstrap_export_runtime_with_report, EntryProfile, ExportRuntimeBootstrapConfig,
+    bootstrap_export_runtime, bootstrap_export_runtime_with_native_plugins_from_export_root,
+    ExportRuntimeBootstrapConfig, ProductConfigSource, ProductConfigSourceSet,
+    ProductHostConfigError, ProductRoleRequest,
 };
 
 #[test]
 fn export_runtime_bootstrap_uses_linked_registration_reports() {
-    let bootstrap = bootstrap_export_runtime_with_report(export_bootstrap_config(
+    let bootstrap = bootstrap_export_runtime(export_bootstrap_config(
         [RuntimePluginId::Sound],
         [linked_sound_registration_report()],
     ))
@@ -30,6 +31,30 @@ fn export_runtime_bootstrap_uses_linked_registration_reports() {
         .module_selection_report()
         .module_keys()
         .contains(&"LinkedSoundPlugin"));
+    assert_eq!(
+        bootstrap.module_selection_report().runtime_profile,
+        Some(RuntimeProfileId::Client2d),
+        "export runtime composition must preserve the profile encoded by the export receipt"
+    );
+    assert_eq!(
+        bootstrap.module_selection_report().product_role,
+        ProductRoleRequest::DesktopClient
+    );
+    assert_eq!(
+        bootstrap
+            .module_selection_report()
+            .product_config_provenance
+            .runtime_profile(),
+        ProductConfigSource::ExportProfile
+    );
+    assert_eq!(
+        bootstrap
+            .module_selection_report()
+            .product_config_provenance
+            .project_plugins(),
+        ProductConfigSourceSet::single(ProductConfigSource::RuntimeProfile)
+            .with(ProductConfigSource::ExportProfile)
+    );
 }
 
 #[test]
@@ -69,13 +94,134 @@ fn native_export_runtime_bootstrap_merges_linked_and_native_reports() {
     let _ = fs::remove_dir_all(export_root);
 }
 
+#[test]
+fn invalid_export_product_config_fails_before_native_root_access() {
+    let mut config = export_bootstrap_config([], []);
+    config.export_profile.runtime_profile_id = Some(RuntimeProfileId::Server);
+    let missing_export_root = unique_export_root("unreachable_native_root");
+
+    let error =
+        bootstrap_export_runtime_with_native_plugins_from_export_root(config, &missing_export_root)
+            .unwrap_err();
+
+    assert!(error.to_string().contains("zircon_app product host config"));
+    assert!(!missing_export_root.exists());
+}
+
+#[test]
+fn export_product_role_is_derived_from_the_export_profile() {
+    let cases = [
+        (
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::Windows,
+            ProductRoleRequest::DesktopClient,
+        ),
+        (
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::Android,
+            ProductRoleRequest::AndroidClient,
+        ),
+        (
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::WebGpu,
+            ProductRoleRequest::WebClient,
+        ),
+        (
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::Ios,
+            ProductRoleRequest::Embedded,
+        ),
+        (
+            RuntimeTargetMode::ServerRuntime,
+            ExportTargetPlatform::Android,
+            ProductRoleRequest::AndroidClient,
+        ),
+        (
+            RuntimeTargetMode::EditorHost,
+            ExportTargetPlatform::WebGpu,
+            ProductRoleRequest::WebClient,
+        ),
+        (
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::Headless,
+            ProductRoleRequest::Embedded,
+        ),
+        (
+            RuntimeTargetMode::ServerRuntime,
+            ExportTargetPlatform::Headless,
+            ProductRoleRequest::Server,
+        ),
+    ];
+
+    for (target_mode, target_platform, expected_role) in cases {
+        let config = ExportRuntimeBootstrapConfig::new(
+            ProjectPluginManifest::default(),
+            ExportProfile::new(
+                "role-projection",
+                target_mode,
+                target_platform,
+                match target_mode {
+                    RuntimeTargetMode::ServerRuntime => RuntimeProfileId::Server,
+                    RuntimeTargetMode::EditorHost => RuntimeProfileId::Editor,
+                    RuntimeTargetMode::ClientRuntime => RuntimeProfileId::Client2d,
+                },
+            ),
+        );
+
+        assert_eq!(config.entry_config().role_request(), expected_role);
+    }
+}
+
+#[test]
+fn unowned_export_hosts_fail_closed_with_their_product_role() {
+    let cases = [
+        (
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::Android,
+            ProductRoleRequest::AndroidClient,
+        ),
+        (
+            RuntimeTargetMode::EditorHost,
+            ExportTargetPlatform::WebGpu,
+            ProductRoleRequest::WebClient,
+        ),
+        (
+            RuntimeTargetMode::ServerRuntime,
+            ExportTargetPlatform::Ios,
+            ProductRoleRequest::Embedded,
+        ),
+    ];
+
+    for (target_mode, target_platform, expected_role) in cases {
+        let error = ExportRuntimeBootstrapConfig::new(
+            ProjectPluginManifest::default(),
+            ExportProfile::new(
+                "unsupported-host",
+                target_mode,
+                target_platform,
+                match target_mode {
+                    RuntimeTargetMode::ServerRuntime => RuntimeProfileId::Server,
+                    RuntimeTargetMode::EditorHost => RuntimeProfileId::Editor,
+                    RuntimeTargetMode::ClientRuntime => RuntimeProfileId::Client2d,
+                },
+            ),
+        )
+        .entry_config()
+        .resolve()
+        .unwrap_err();
+
+        assert_eq!(
+            error,
+            ProductHostConfigError::UnsupportedProductRole(expected_role)
+        );
+    }
+}
+
 fn export_bootstrap_config<const REQUIRED: usize, const LINKED: usize>(
     required_plugins: [RuntimePluginId; REQUIRED],
     linked_reports: [RuntimePluginRegistrationReport; LINKED],
 ) -> ExportRuntimeBootstrapConfig {
     ExportRuntimeBootstrapConfig::new(
-        EntryProfile::Runtime,
-        RuntimeTargetMode::ClientRuntime,
         ProjectPluginManifest {
             selections: required_plugins
                 .into_iter()

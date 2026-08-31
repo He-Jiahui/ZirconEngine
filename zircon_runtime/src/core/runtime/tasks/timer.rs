@@ -2,7 +2,6 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
-use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock, Weak};
 use std::thread::{self, JoinHandle};
@@ -10,6 +9,7 @@ use std::time::{Duration, Instant};
 
 use crate::core::{CoreError, CoreResult};
 
+use super::callback_dispatcher::TaskCallbackDispatcher;
 use super::spawn_named_thread;
 
 const PROCESS_TIMER_CAPACITY: usize = 512;
@@ -30,6 +30,7 @@ pub(crate) struct TaskTimerSubscription {
 }
 
 struct TaskTimerInner {
+    callback_dispatcher: TaskCallbackDispatcher,
     state: Mutex<TaskTimerState>,
     changed: Condvar,
     owners: AtomicUsize,
@@ -51,6 +52,7 @@ struct TimerRegistration {
     id: u64,
     schedule: TimerSchedule,
     cancelled: AtomicBool,
+    delivery_pending: AtomicBool,
     callback: Box<dyn Fn() + Send + Sync + 'static>,
 }
 
@@ -126,6 +128,7 @@ impl TaskTimer {
             id,
             schedule,
             cancelled: AtomicBool::new(false),
+            delivery_pending: AtomicBool::new(false),
             callback: Box::new(callback),
         });
         state
@@ -145,7 +148,15 @@ impl TaskTimer {
 
     /// Creates an explicitly bounded timer for a contained runtime owner.
     pub(crate) fn new(capacity: usize) -> CoreResult<Self> {
+        Self::new_with_callback_dispatcher(capacity, TaskCallbackDispatcher::process_default())
+    }
+
+    fn new_with_callback_dispatcher(
+        capacity: usize,
+        callback_dispatcher: TaskCallbackDispatcher,
+    ) -> CoreResult<Self> {
         let inner = Arc::new(TaskTimerInner {
+            callback_dispatcher,
             state: Mutex::new(TaskTimerState {
                 next_id: 0,
                 capacity,
@@ -253,11 +264,18 @@ fn run_timer(timer: Weak<TaskTimerInner>) {
         let Some(callbacks) = next_callbacks(&timer) else {
             return;
         };
-        drop(timer);
         for registration in callbacks {
-            if !registration.cancelled.load(Ordering::Acquire) {
-                let _ = catch_unwind(AssertUnwindSafe(|| (registration.callback)()));
-            }
+            let timer_for_delivery = Arc::downgrade(&timer);
+            timer.callback_dispatcher.dispatch_one(Box::new(move || {
+                let _delivery = TimerDeliveryPending::new(Arc::clone(&registration));
+                if timer_for_delivery
+                    .upgrade()
+                    .is_some_and(|timer| !timer.closing.load(Ordering::Acquire))
+                    && !registration.cancelled.load(Ordering::Acquire)
+                {
+                    (registration.callback)();
+                }
+            }));
         }
     }
 }
@@ -307,9 +325,30 @@ fn next_callbacks(timer: &TaskTimerInner) -> Option<Vec<Arc<TimerRegistration>>>
                     .push(Arc::clone(&registration));
                 state.scheduled_deadlines.insert(registration.id, deadline);
             }
-            callbacks.push(registration);
+            // A slow periodic delivery coalesces later ticks instead of building a callback backlog.
+            if !registration.delivery_pending.swap(true, Ordering::AcqRel) {
+                callbacks.push(registration);
+            }
         }
         return Some(callbacks);
+    }
+}
+
+struct TimerDeliveryPending {
+    registration: Arc<TimerRegistration>,
+}
+
+impl TimerDeliveryPending {
+    fn new(registration: Arc<TimerRegistration>) -> Self {
+        Self { registration }
+    }
+}
+
+impl Drop for TimerDeliveryPending {
+    fn drop(&mut self) {
+        self.registration
+            .delivery_pending
+            .store(false, Ordering::Release);
     }
 }
 
@@ -328,110 +367,5 @@ fn lock_timer_worker(worker: &TaskTimerWorker) -> MutexGuard<'_, Option<JoinHand
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-    use std::sync::mpsc;
-    use std::sync::Arc;
-    use std::time::{Duration, Instant};
-
-    use super::TaskTimer;
-
-    #[test]
-    fn task_timer_rejects_zero_interval() {
-        let timer = TaskTimer::process_default().expect("process timer should start");
-        let error = timer
-            .schedule_interval(Duration::ZERO, || {})
-            .expect_err("zero interval must be rejected");
-        assert!(error.to_string().contains("must be non-zero"));
-    }
-
-    #[test]
-    fn dropping_a_subscription_releases_its_bounded_timer_slot() {
-        let timer = TaskTimer::new(1).expect("test timer should start");
-        let subscription = timer
-            .schedule_at(Instant::now() + Duration::from_secs(1), || {})
-            .expect("first registration should fit the timer capacity");
-
-        let error = timer
-            .schedule_at(Instant::now() + Duration::from_secs(1), || {})
-            .expect_err("second registration must observe the hard timer capacity");
-        assert!(error.to_string().contains("registration capacity full"));
-
-        drop(subscription);
-        let replacement = timer
-            .schedule_at(Instant::now() + Duration::from_secs(1), || {})
-            .expect("dropping a subscription must release its timer slot");
-        drop(replacement);
-    }
-
-    #[test]
-    fn dropping_the_last_explicit_timer_owner_stops_its_worker() {
-        let timer = TaskTimer::new(1).expect("test timer should start");
-        let inner = Arc::downgrade(&timer.inner);
-
-        drop(timer);
-
-        assert!(
-            inner.upgrade().is_none(),
-            "the explicit timer worker must not retain its state after its final owner drops"
-        );
-    }
-
-    #[test]
-    fn dropped_subscription_stops_recurring_callbacks() {
-        let timer = TaskTimer::process_default().expect("process timer should start");
-        let (first_callback_tx, first_callback_rx) = mpsc::sync_channel(1);
-        let callback_count = Arc::new(AtomicUsize::new(0));
-        let callback_count_for_task = Arc::clone(&callback_count);
-        let subscription = timer
-            .schedule_interval(Duration::from_millis(1), move || {
-                callback_count_for_task.fetch_add(1, Ordering::AcqRel);
-                let _ = first_callback_tx.try_send(());
-            })
-            .expect("timer should accept one recurring callback");
-
-        first_callback_rx
-            .recv_timeout(Duration::from_secs(1))
-            .expect("recurring callback should run");
-        drop(subscription);
-        std::thread::sleep(Duration::from_millis(10));
-        let settled_count = callback_count.load(Ordering::Acquire);
-        std::thread::sleep(Duration::from_millis(10));
-        assert_eq!(callback_count.load(Ordering::Acquire), settled_count);
-    }
-
-    #[test]
-    fn panicking_callback_does_not_stop_later_timer_callbacks() {
-        let timer = TaskTimer::process_default().expect("process timer should start");
-        let panic_started = Arc::new(AtomicBool::new(false));
-        let panic_started_for_task = Arc::clone(&panic_started);
-        let panicking_subscription = timer
-            .schedule_interval(Duration::from_millis(1), move || {
-                if !panic_started_for_task.swap(true, Ordering::AcqRel) {
-                    panic!("timer callback panic");
-                }
-            })
-            .expect("timer should accept a panicking callback");
-
-        let deadline = std::time::Instant::now() + Duration::from_secs(1);
-        while !panic_started.load(Ordering::Acquire) {
-            assert!(
-                std::time::Instant::now() < deadline,
-                "panicking callback should run before the healthy subscription"
-            );
-            std::thread::sleep(Duration::from_millis(1));
-        }
-
-        let (healthy_callback_tx, healthy_callback_rx) = mpsc::sync_channel(1);
-        let healthy_subscription = timer
-            .schedule_interval(Duration::from_millis(1), move || {
-                let _ = healthy_callback_tx.try_send(());
-            })
-            .expect("timer should accept a healthy callback after a panic");
-        healthy_callback_rx
-            .recv_timeout(Duration::from_secs(1))
-            .expect("timer should continue after a callback panic");
-        drop(healthy_subscription);
-        drop(panicking_subscription);
-    }
-}
+#[path = "timer/tests.rs"]
+mod tests;

@@ -2,7 +2,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::*;
-use crate::text::{FontFaceDescriptor, FontFamilyName, SubFontRange};
+use crate::text::{FontFaceDescriptor, FontFamilyName, FontScriptTag, SubFontRange};
+
+const EMOJI_SCRIPT: FontScript = FontScript::Other(FontScriptTag::EMOJI);
 
 #[test]
 fn text_fallback_primary_face_covers_all_codepoints() {
@@ -75,7 +77,7 @@ fn text_fallback_emoji_zwj_controls_do_not_require_standalone_cmap_glyphs() {
             &['\u{1F469}', '\u{1F4BB}'],
         )
         .unwrap();
-    let script = FontScript::Other('\u{1F469}' as u32);
+    let script = EMOJI_SCRIPT;
     let composite = CompositeFontDescriptor {
         default_family: FontFamilyName::from("Primary"),
         sub_fonts: vec![
@@ -116,7 +118,7 @@ fn text_fallback_emoji_tag_controls_do_not_require_standalone_cmap_glyphs() {
     let emoji = database
         .register_test_face_with_coverage(FontFaceDescriptor::regular("Emoji Tags"), &['\u{1F3F4}'])
         .unwrap();
-    let script = FontScript::Other('\u{1F3F4}' as u32);
+    let script = EMOJI_SCRIPT;
     let composite = CompositeFontDescriptor {
         default_family: FontFamilyName::from("Primary"),
         sub_fonts: vec![SubFontRange {
@@ -233,20 +235,24 @@ fn text_fallback_missing_codepoint_reports_diagnostic() {
     let primary = database
         .register_font_file(&source_path, Some("Inter"), 0)
         .unwrap();
+    let last_resort = database
+        .register_test_face_with_coverage(FontFaceDescriptor::regular("Runtime Last Resort"), &[])
+        .unwrap();
+    assert!(database.set_runtime_last_resort_face(last_resort));
     let query = FontQuery::single_family("Inter");
     let mut resolver = FallbackResolver::new(&database, &query, None, None);
 
-    let resolution = resolver.resolve(primary, FontScript::Other(0x10FFFF), &['\u{10FFFF}']);
+    let resolution = resolver.resolve(primary, FontScript::Unknown, &['\u{10FFFF}']);
 
-    assert_eq!(resolution.face, primary);
+    assert_eq!(resolution.face, last_resort);
     assert!(resolution.missing);
     assert_eq!(resolution.source, FallbackResolutionSource::LastResort);
     assert_eq!(resolver.diagnostics().entries().len(), 1);
     assert_eq!(
         resolver.diagnostics().entries()[0],
         MissingGlyphDiagnostic {
-            face: primary,
-            script: FontScript::Other(0x10FFFF),
+            face: last_resort,
+            script: FontScript::Unknown,
             codepoint: 0x10FFFF,
             reason: MissingGlyphReason::MissingGlyph,
             occurrence_count: 1,
@@ -415,6 +421,87 @@ fn text_fallback_reuses_generation_owned_resolution_for_repeated_cluster() {
     assert_eq!(report.normalization_allocation_count, 0);
     assert_eq!(report.resolution_entry_count, 1);
     assert!(report.approximate_bytes > 0);
+}
+
+#[test]
+fn text_fallback_request_receipt_distinguishes_resolution_cache_work() {
+    let mut database = FontDatabase::default();
+    let primary = database
+        .register_test_face_with_coverage(FontFaceDescriptor::regular("Primary"), &['A'])
+        .unwrap();
+    let fallback = database
+        .register_test_face_with_coverage(FontFaceDescriptor::regular("CJK"), &['中'])
+        .unwrap();
+    database.set_project_composite_font(Some(CompositeFontDescriptor {
+        default_family: FontFamilyName::from("Primary"),
+        sub_fonts: vec![SubFontRange {
+            family: FontFamilyName::from("CJK"),
+            scripts: vec![FontScript::Han],
+            ranges: vec![(0x4E00, 0x9FFF)],
+            cultures: Vec::new(),
+        }],
+    }));
+    let query = FontQuery::single_family("Primary");
+
+    let coverage_before_first = database.fallback_cache_report().coverage_probe_count;
+    let mut first = FallbackResolver::new(&database, &query, None, Some("zh-CN"));
+    assert_eq!(
+        first.resolve(primary, FontScript::Han, &['中']).face,
+        fallback
+    );
+    let first = first.take_resolution_report();
+    let coverage_after_first = database.fallback_cache_report().coverage_probe_count;
+    assert_eq!(first.resolution_request_count, 1);
+    assert_eq!(first.resolution_cache_miss_count, 1);
+    assert_eq!(first.resolution_cache_hit_count, 0);
+    assert_eq!(first.candidate_cache_miss_count, 1);
+    assert_eq!(first.primary_coverage_rejection_count, 1);
+    assert!(first.complete_candidate_visit_count > 0);
+    assert!(first.decision_coverage_call_count > 0);
+    assert_eq!(
+        first.decision_coverage_call_count,
+        coverage_after_first.saturating_sub(coverage_before_first)
+    );
+    assert_eq!(first.fallback_selection_count, 1);
+
+    let coverage_before_second = database.fallback_cache_report().coverage_probe_count;
+    let mut second = FallbackResolver::new(&database, &query, None, Some("zh-CN"));
+    assert_eq!(
+        second.resolve(primary, FontScript::Han, &['中']).face,
+        fallback
+    );
+    let second = second.take_resolution_report();
+    let coverage_after_second = database.fallback_cache_report().coverage_probe_count;
+    assert_eq!(second.resolution_request_count, 1);
+    assert_eq!(second.resolution_cache_hit_count, 1);
+    assert_eq!(second.resolution_cache_miss_count, 0);
+    assert_eq!(second.candidate_cache_hit_count, 0);
+    assert_eq!(second.candidate_cache_miss_count, 0);
+    assert_eq!(second.primary_coverage_rejection_count, 0);
+    assert_eq!(second.complete_candidate_visit_count, 0);
+    assert_eq!(second.partial_candidate_visit_count, 0);
+    assert_eq!(second.decision_coverage_call_count, 0);
+    assert_eq!(coverage_after_second, coverage_before_second);
+    assert_eq!(second.fallback_selection_count, 1);
+
+    let mut candidate_hit = FallbackResolver::with_max_depth(
+        &database,
+        &query,
+        None,
+        Some("zh-CN"),
+        DEFAULT_FALLBACK_MAX_DEPTH - 1,
+    );
+    assert_eq!(
+        candidate_hit
+            .resolve(primary, FontScript::Han, &['中'])
+            .face,
+        fallback
+    );
+    let candidate_hit = candidate_hit.take_resolution_report();
+    assert_eq!(candidate_hit.resolution_cache_miss_count, 1);
+    assert_eq!(candidate_hit.candidate_cache_hit_count, 1);
+    assert_eq!(candidate_hit.candidate_cache_miss_count, 0);
+    assert!(candidate_hit.complete_candidate_visit_count > 0);
 }
 
 #[test]

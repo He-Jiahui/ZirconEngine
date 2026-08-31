@@ -5,6 +5,11 @@ use std::sync::Arc;
 use crate::plugin::RuntimePluginRegistrationReport;
 
 const STRONG_DEPENDENCY_DIAGNOSTIC_CODE: &str = "bridge.strong_dependency_missing";
+const DISABLE_BLOCKER_PROVIDER_PREFIX: &str =
+    "bridge.strong_target_disable_blocked: provider plugin `";
+const DISABLE_BLOCKER_DEPENDENT_PREFIX: &str = "` cannot be disabled while dependent plugin `";
+const DISABLE_BLOCKER_INTERFACES_PREFIX: &str = "` requires interfaces [";
+const DISABLE_BLOCKER_INTERFACE_SEPARATOR: &str = ", ";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimePluginBridgeDependent {
@@ -21,18 +26,54 @@ pub struct RuntimePluginBridgeDisableBlocker {
 
 impl RuntimePluginBridgeDisableBlocker {
     pub fn diagnostic(&self) -> String {
-        format!(
-            "bridge.strong_target_disable_blocked: provider plugin `{}` cannot be disabled while dependent plugin `{}` requires interfaces [{}]",
-            self.provider_package_id,
-            self.dependent_package_id,
-            self.interface_ids
-                .iter()
-                .map(|interface_id| format!("`{interface_id}`"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
+        let mut diagnostic = String::with_capacity(self.diagnostic_len());
+        self.write_diagnostic(&mut diagnostic);
+        diagnostic
+    }
+
+    pub(super) fn write_diagnostic(&self, diagnostic: &mut String) {
+        diagnostic.push_str(DISABLE_BLOCKER_PROVIDER_PREFIX);
+        diagnostic.push_str(&self.provider_package_id);
+        diagnostic.push_str(DISABLE_BLOCKER_DEPENDENT_PREFIX);
+        diagnostic.push_str(&self.dependent_package_id);
+        diagnostic.push_str(DISABLE_BLOCKER_INTERFACES_PREFIX);
+        for (index, interface_id) in self.interface_ids.iter().enumerate() {
+            if index != 0 {
+                diagnostic.push_str(DISABLE_BLOCKER_INTERFACE_SEPARATOR);
+            }
+            diagnostic.push('`');
+            diagnostic.push_str(interface_id);
+            diagnostic.push('`');
+        }
+        diagnostic.push(']');
+    }
+
+    pub(super) fn diagnostic_len(&self) -> usize {
+        DISABLE_BLOCKER_PROVIDER_PREFIX
+            .len()
+            .saturating_add(self.provider_package_id.len())
+            .saturating_add(DISABLE_BLOCKER_DEPENDENT_PREFIX.len())
+            .saturating_add(self.dependent_package_id.len())
+            .saturating_add(DISABLE_BLOCKER_INTERFACES_PREFIX.len())
+            .saturating_add(
+                self.interface_ids
+                    .iter()
+                    .map(|interface_id| interface_id.len().saturating_add(2))
+                    .sum::<usize>(),
+            )
+            .saturating_add(
+                self.interface_ids
+                    .len()
+                    .saturating_sub(1)
+                    .saturating_mul(DISABLE_BLOCKER_INTERFACE_SEPARATOR.len()),
+            )
+            .saturating_add(1)
     }
 }
+
+#[cfg(test)]
+#[path = "bridge_dependencies/diagnostic_buffer_tests.rs"]
+mod diagnostic_buffer_tests;
 
 pub(super) fn bridge_dependency_diagnostics(
     registrations: &[RuntimePluginRegistrationReport],

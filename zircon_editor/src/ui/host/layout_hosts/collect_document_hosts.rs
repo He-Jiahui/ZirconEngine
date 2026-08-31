@@ -1,17 +1,17 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use crate::ui::workbench::layout::DocumentNode;
 use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
 pub(super) fn collect_document_hosts(
     node: &DocumentNode,
-    placements: &mut BTreeMap<ViewInstanceId, ViewHost>,
+    placements: &mut HashMap<ViewInstanceId, ViewHost>,
     make_host: impl Fn(Vec<usize>) -> ViewHost + Copy,
 ) {
     fn visit(
         node: &DocumentNode,
         path: &mut Vec<usize>,
-        placements: &mut BTreeMap<ViewInstanceId, ViewHost>,
+        placements: &mut HashMap<ViewInstanceId, ViewHost>,
         make_host: impl Fn(Vec<usize>) -> ViewHost + Copy,
     ) {
         match node {

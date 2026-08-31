@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -22,10 +23,13 @@ def materialize_platform_bundle_template_files(
 
     fatal = False
     copied_template_files: list[dict[str, str]] = []
+    resolved_host: Path | None = None
+    host_resolve_attempted = False
+    template_root = Path(template_report["template_dir"])
     for entry in template_report.get("files", []):
         if not isinstance(entry, dict):
             continue
-        source = Path(template_report["template_dir"]) / entry["path"]
+        source = template_root / entry["path"]
         destination = resolve_bundle_child(
             bundle_root,
             entry.get("bundle_path", entry["path"]),
@@ -40,23 +44,33 @@ def materialize_platform_bundle_template_files(
                 source,
                 diagnostics,
             )
-            resolved_host = resolve_platform_bundle_template_file_copy_path(
-                "host executable",
-                host_executable,
-                diagnostics,
-            )
+            if not host_resolve_attempted:
+                resolved_host = resolve_platform_bundle_template_file_copy_path(
+                    "host executable",
+                    host_executable,
+                    diagnostics,
+                )
+                host_resolve_attempted = True
             if resolved_source is None or resolved_host is None:
                 fatal = True
                 continue
             if resolved_source == resolved_host:
                 continue
-        if not source.exists():
+        try:
+            source_metadata = source.stat()
+        except FileNotFoundError:
             diagnostics.append(
                 f"template file {source} does not exist during bundle copy"
             )
             fatal = True
             continue
-        if not source.is_file():
+        except OSError as error:
+            diagnostics.append(
+                f"template file {source} could not be inspected during bundle copy: {error}"
+            )
+            fatal = True
+            continue
+        if not stat.S_ISREG(source_metadata.st_mode):
             diagnostics.append(
                 f"template file {source} is not a file during bundle copy"
             )

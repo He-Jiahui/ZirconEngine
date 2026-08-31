@@ -100,6 +100,8 @@ pub(crate) struct SdfAtlasBakeReport {
     /// Faces materialized by this atlas build rather than reused from the cache.
     pub(crate) loaded_font_count: usize,
     pub(crate) generation_failure_count: usize,
+    pub(crate) resident_font_asset_error_count: usize,
+    pub(crate) resident_font_asset_no_registered_faces_count: usize,
     pub(crate) r8_byte_len: usize,
     pub(crate) rgba_byte_len: usize,
     pub(crate) offline_glyph_count: usize,

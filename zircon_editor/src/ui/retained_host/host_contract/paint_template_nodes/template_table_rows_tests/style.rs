@@ -15,7 +15,7 @@ fn workbench_table_row_style_uses_shared_state_priority() {
     let pressed = table_row_style(&node);
     assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
     assert_eq!(pressed.background, PALETTE.surface_pressed);
-    assert_eq!(pressed.border, Some(PALETTE.focus_ring));
+    assert_eq!(pressed.border, None);
     assert_eq!(pressed.text_for_cell(0), PALETTE.text);
 
     node.pressed = false;

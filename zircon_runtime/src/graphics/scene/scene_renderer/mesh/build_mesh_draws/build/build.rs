@@ -2,15 +2,16 @@ use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use crate::core::framework::render::PrimitiveRelevance;
+use crate::core::framework::render::{CastShadowsMode, PrimitiveRelevance};
 use crate::core::framework::scene::EntityId;
-use crate::graphics::scene::gpu_scene::{GpuScene, GpuSceneUploadReport};
+use crate::graphics::backend::RenderBackend;
+use crate::graphics::scene::gpu_scene::{GpuScene, GpuScenePreparedUpload, GpuSceneUploadReport};
 use crate::graphics::scene::resources::{
     GpuMaterialUniformResource, GpuMeshResource, MaterialDisabledPasses, ResourceStreamer,
 };
 use crate::graphics::scene::scene_renderer::lighting::light_buffer::pack_lighting_extract_with_cookies;
 use crate::graphics::scene::scene_renderer::shadow::ShadowLightSlotAssignments;
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 use super::super::super::mesh_draw::VirtualGeometrySubmissionDetail;
 use super::super::super::mesh_draw::{
@@ -18,28 +19,36 @@ use super::super::super::mesh_draw::{
 };
 use super::super::super::mesh_pass::MeshPassCommandBuffers;
 use super::super::super::prepared_queue::{
-    summarize_prepared_mesh_queue_items, PreparedMeshQueueStats,
+    PreparedMeshQueueStats, summarize_prepared_mesh_queue_items,
 };
-use super::super::create_mesh_draw::create_mesh_draw;
+use super::super::MeshHitProxyTokenSource;
+use super::super::create_mesh_draw::{create_mesh_draw, record_material_binding_build_profile};
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
-use super::extend_pending_draws_for_mesh_instance::extend_pending_draws_for_mesh_instance;
-use super::geometry_source_selection::{
-    pending_draw_has_enabled_skinned_gpu_source, pending_mesh_draw_geometry_source,
-    pending_mesh_source_selection, PendingMeshSourceSelection,
+use super::collect_pending_draws::{
+    collect_pending_draws, collect_pending_draws_with_published_pipeline_requirements,
 };
-use super::gpu_scene_sync::{sync_gpu_scene_pending_draws, SyncedGpuSceneEntry};
+use super::geometry_source_selection::{
+    PendingMeshSourceSelection, pending_draw_has_enabled_skinned_gpu_source,
+    pending_mesh_draw_geometry_source, pending_mesh_source_selection,
+};
+use super::gpu_scene_sync::{SyncedGpuSceneEntry, sync_gpu_scene_pending_draws};
+use super::material_context_admission::select_material_generations_for_context;
+use super::material_draw_selection::MaterialDrawSelection;
+use super::material_pipeline_requirements::{
+    MaterialPipelineFeatureSet, MaterialPipelineRequirementCensus,
+    collect_material_pipeline_requirements,
+};
 use super::morph_payload_upload::upload_morph_payloads;
 use super::pending_command_cache_extract::{
-    extract_pending_static_mesh_command_cache_hits, PendingMeshCommandCacheExtractionContext,
-    PendingMeshCommandCacheExtractionStats, PendingMeshDrawRemainder,
+    PendingMeshCommandCacheExtractionContext, PendingMeshCommandCacheExtractionStats,
+    PendingMeshDrawRemainder, extract_pending_static_mesh_command_cache_hits,
 };
 use super::pending_command_cache_plan::{
-    summarize_pending_mesh_command_cache_plan, PendingMeshCommandCachePlanStats,
-    PendingMeshCommandCacheVisibility,
+    PendingMeshCommandCachePlanStats, PendingMeshCommandCacheVisibility,
+    summarize_pending_mesh_command_cache_plan,
 };
 use super::pending_mesh_draw::{PendingMeshGeometry, PendingSkinnedGpuSource};
-use super::phase_ordering::phase_ordered_meshes;
 use super::virtual_geometry_indirect::build_virtual_geometry_indirect_draw_plan;
 use super::virtual_geometry_resident_upload::upload_virtual_geometry_resident_payloads;
 
@@ -47,6 +56,7 @@ pub(crate) struct BuiltMeshDraws {
     draws: Vec<MeshDraw>,
     prepared_mesh_queue_stats: PreparedMeshQueueStats,
     prebuilt_mesh_pass_command_buffers: MeshPassCommandBuffers,
+    gpu_scene_prepared_upload: Option<GpuScenePreparedUpload>,
     gpu_scene_upload_report: GpuSceneUploadReport,
     indirect_segment_count: u32,
     indirect_args_count: u32,
@@ -57,6 +67,7 @@ pub(crate) struct BuiltMeshDraws {
     indirect_segment_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
     pending_command_cache_plan_stats: PendingMeshCommandCachePlanStats,
     pending_command_cache_extraction_stats: PendingMeshCommandCacheExtractionStats,
+    material_pipeline_requirements: MaterialPipelineRequirementCensus,
 }
 
 impl BuiltMeshDraws {
@@ -74,6 +85,12 @@ impl BuiltMeshDraws {
 
     pub(crate) fn gpu_scene_upload_report(&self) -> GpuSceneUploadReport {
         self.gpu_scene_upload_report
+    }
+
+    pub(crate) fn take_gpu_scene_prepared_upload(&mut self) -> GpuScenePreparedUpload {
+        self.gpu_scene_prepared_upload
+            .take()
+            .expect("built mesh draws must retain their prepared GPU Scene upload")
     }
 
     pub(crate) fn indirect_segment_count(&self) -> u32 {
@@ -113,40 +130,81 @@ impl BuiltMeshDraws {
     ) -> PendingMeshCommandCacheExtractionStats {
         self.pending_command_cache_extraction_stats
     }
+
+    pub(crate) fn take_material_pipeline_requirements(
+        &mut self,
+    ) -> MaterialPipelineRequirementCensus {
+        std::mem::take(&mut self.material_pipeline_requirements)
+    }
 }
 
 pub(crate) fn build_mesh_draws(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
+    backend: &RenderBackend,
     encoder: &mut wgpu::CommandEncoder,
     material_texture_layout: &wgpu::BindGroupLayout,
     gpu_scene: &mut GpuScene,
-    streamer: &ResourceStreamer,
+    streamer: &mut ResourceStreamer,
+    mesh_pipelines: &mut super::super::super::MeshPipelineCache,
     frame: &ViewportRenderFrame,
     virtual_geometry_enabled: bool,
     volumetric_fog_enabled: bool,
+    material_pipeline_features: MaterialPipelineFeatureSet,
     direct_lighting_preparation: Option<bool>,
     shadow_light_slots: Option<&ShadowLightSlotAssignments>,
     command_cache_extraction: Option<PendingMeshCommandCacheExtractionContext<'_>>,
-) -> BuiltMeshDraws {
-    let build_context = build_mesh_draw_build_context(frame, virtual_geometry_enabled);
-    let mut pending_draws = Vec::new();
-    for mesh_instance in phase_ordered_meshes(frame, streamer) {
-        extend_pending_draws_for_mesh_instance(
-            &mut pending_draws,
+    hit_proxy_tokens: Option<&dyn MeshHitProxyTokenSource>,
+) -> Result<BuiltMeshDraws, GraphicsError> {
+    let device = &backend.device;
+    let build_context = build_mesh_draw_build_context(
+        frame,
+        virtual_geometry_enabled,
+        material_pipeline_features.reverses_view_raster_winding(),
+    );
+    let published_selection = MaterialDrawSelection::default();
+    let (mut pending_draws, current_material_pipeline_requirements) =
+        collect_pending_draws_with_published_pipeline_requirements(
             streamer,
             frame,
             &build_context,
             gpu_scene,
-            mesh_instance.snapshot,
-            mesh_instance.command_sort_input,
+            &published_selection,
+            material_pipeline_features,
+            frame.shader_quality(),
+            volumetric_fog_enabled,
+        );
+    let (material_selection, _) = select_material_generations_for_context(
+        device,
+        streamer,
+        mesh_pipelines,
+        &pending_draws,
+        current_material_pipeline_requirements,
+        material_pipeline_features,
+        frame.shader_quality(),
+        volumetric_fog_enabled,
+    )?;
+    if material_selection.has_overrides() {
+        pending_draws = collect_pending_draws(
+            streamer,
+            frame,
+            &build_context,
+            gpu_scene,
+            &material_selection,
         );
     }
     for pending_draw in &mut pending_draws {
-        pending_draw.pipeline_key.volumetric_fog = volumetric_fog_enabled;
+        pending_draw.material.pipeline_key.volumetric_fog = volumetric_fog_enabled;
         pending_draw
-            .material_textures
+            .material
+            .textures
             .set_max_anisotropy(frame.texture_max_anisotropy());
+        refresh_pending_mesh_material_submission_revision(pending_draw);
+    }
+    if let Some(hit_proxy_tokens) = hit_proxy_tokens {
+        pending_draws.retain(|pending_draw| {
+            hit_proxy_tokens
+                .token_for_instance(pending_draw.stable_instance_key)
+                .is_some_and(|token| token != 0)
+        });
     }
     let indirect_plan = build_virtual_geometry_indirect_draw_plan(
         device,
@@ -154,14 +212,14 @@ pub(crate) fn build_mesh_draws(
         virtual_geometry_enabled,
         &mut pending_draws,
     );
-    let virtual_geometry_upload_report = upload_virtual_geometry_resident_payloads(
+    let virtual_geometry_upload = upload_virtual_geometry_resident_payloads(
         device,
-        queue,
         gpu_scene,
         virtual_geometry_enabled,
         frame.virtual_geometry_debug_snapshot.as_ref(),
     );
-    let morph_upload_report = upload_morph_payloads(device, queue, gpu_scene, &mut pending_draws);
+    let virtual_geometry_scene_counts = virtual_geometry_upload.scene_data_counts();
+    let morph_upload = upload_morph_payloads(device, gpu_scene, &mut pending_draws);
     if let Some(direct_lighting_enabled) = direct_lighting_preparation {
         let mut packed_lights = pack_lighting_extract_with_cookies(
             &frame.extract.lighting,
@@ -174,18 +232,26 @@ pub(crate) fn build_mesh_draws(
         }
         gpu_scene.write_lights(device, &packed_lights.lights);
     }
-    let (gpu_scene_upload_report, gpu_scene_entries) = sync_gpu_scene_pending_draws(
-        device,
-        queue,
+    let (mut gpu_scene_prepared_upload, gpu_scene_entries) = sync_gpu_scene_pending_draws(
+        backend,
         encoder,
         gpu_scene,
         &mut pending_draws,
+        virtual_geometry_scene_counts,
         frame.environment().baked_lighting(),
-    );
-    let gpu_scene_upload_report = gpu_scene_upload_report
-        .with_additional_uploaded_bytes(virtual_geometry_upload_report.uploaded_bytes)
-        .with_additional_uploaded_bytes(morph_upload_report.uploaded_bytes);
+        hit_proxy_tokens,
+    )?;
+    gpu_scene_prepared_upload.append_virtual_geometry_upload(virtual_geometry_upload);
+    gpu_scene_prepared_upload.append_morph_upload(morph_upload);
+    let gpu_scene_upload_report = gpu_scene_prepared_upload.report();
     let visibility_states = mesh_visibility_states(frame);
+    let material_pipeline_requirements = collect_material_pipeline_requirements(
+        &pending_draws,
+        streamer,
+        material_pipeline_features,
+        frame.shader_quality(),
+        volumetric_fog_enabled,
+    );
     let pending_command_cache_plan_stats =
         summarize_pending_mesh_command_cache_plan(&pending_draws, |stable_instance_key| {
             visibility_states
@@ -224,6 +290,7 @@ pub(crate) fn build_mesh_draws(
                         .get(&stable_instance_key)
                         .map(|entry| (entry.entry.first_instance_index, entry.entry.instance_count))
                 },
+                mesh_pipelines,
                 command_cache_extraction,
             );
             (
@@ -274,8 +341,16 @@ pub(crate) fn build_mesh_draws(
                 pending_draw,
             )
         });
-    BuiltMeshDraws {
-        draws: indexed_pending_draws
+    let (residual_draw_count, residual_draw_count_upper_bound) = indexed_pending_draws.size_hint();
+    debug_assert_eq!(
+        residual_draw_count_upper_bound,
+        Some(residual_draw_count),
+        "pending draw remainder must preserve an exact size hint"
+    );
+    let mut override_uniform_buffer_creation_count = 0;
+    let draws: Vec<MeshDraw> = {
+        crate::profile_scope!("render", "material", "binding.build_residual_draws");
+        indexed_pending_draws
             .map(
                 |(
                     indirect_args_offset,
@@ -321,65 +396,46 @@ pub(crate) fn build_mesh_draws(
                             )
                         }
                     };
-                    let previous_skinned_joint_palette = if skinned_gpu_skinning_enabled {
-                        pending_draw.previous_skinned_joint_palette
-                    } else {
-                        None
-                    };
-                    let has_compatible_previous_skinned_palette =
-                        skinned_gpu_skinning_enabled && previous_skinned_joint_palette.is_some();
-                    let (staged_joint_palette_buffer, staged_previous_joint_palette_buffer) =
-                        gpu_scene.stage_skinned_joint_palette_buffers(
-                            device,
-                            queue,
-                            stable_instance_key,
-                            pending_draw.skinned_joint_palette.as_ref(),
-                            has_compatible_previous_skinned_palette,
-                        );
-                    let (skinned_joint_palette_buffer, previous_skinned_joint_palette_buffer) =
-                        if skinned_gpu_skinning_enabled {
-                            (
-                                staged_joint_palette_buffer,
-                                staged_previous_joint_palette_buffer,
-                            )
-                        } else {
-                            (None, None)
-                        };
+                    let has_skinned_joint_palette_upload = skinned_gpu_skinning_enabled
+                        && pending_draw.skinned_joint_palette.is_some();
+                    let has_previous_skinned_joint_palette_upload = skinned_gpu_skinning_enabled
+                        && pending_draw.previous_skinned_joint_palette.is_some();
                     let has_previous_velocity_transform = synced_gpu_scene_entry
                         .has_previous_velocity_transform
                         && (!skinned_gpu_skinning_enabled
-                            || previous_skinned_joint_palette_buffer.is_some());
+                            || has_previous_skinned_joint_palette_upload);
                     let material_uniform = if let Some(payload) =
-                        pending_draw.material_uniform_override_payload.as_ref()
+                        pending_draw.material.uniform_override_payload.as_ref()
                     {
+                        override_uniform_buffer_creation_count += 1;
                         Arc::new(GpuMaterialUniformResource::from_payload(device, payload))
                     } else {
-                        pending_draw.material_uniform
+                        pending_draw.material.uniform
                     };
                     let mut mesh_draw = create_mesh_draw(
                         device,
-                        gpu_scene,
                         material_texture_layout,
                         mesh,
                         geometry_source,
                         pending_draw.mobility,
                         pending_draw.source_entity,
+                        pending_draw.material.resource_id,
                         stable_instance_key,
                         pending_draw.source_draw_ordinal,
                         pending_draw.static_state,
-                        pending_draw.material_textures,
+                        pending_draw.material.textures,
                         material_uniform,
-                        pending_draw.standard_material_uniform,
-                        pending_draw.pipeline_key,
-                        pending_draw.common.as_ref(),
-                        pending_draw.disabled_passes,
-                        pending_draw.taa_reactive_mask_strength,
-                        pending_draw.half_resolution_transparency,
+                        pending_draw.material.standard_uniform,
+                        pending_draw.material.pipeline_key,
+                        pending_draw.material.common.as_ref(),
+                        pending_draw.material.disabled_passes,
+                        pending_draw.material.taa_reactive_mask_strength,
+                        pending_draw.material.half_resolution_transparency,
                         has_previous_velocity_transform,
                         pending_draw.mesh_lod,
                         pending_draw.skinned,
-                        skinned_joint_palette_buffer,
-                        previous_skinned_joint_palette_buffer,
+                        has_skinned_joint_palette_upload,
+                        has_previous_skinned_joint_palette_upload,
                         pending_draw.previous_skinned_gpu_source,
                         resolved_skinned_gpu_source,
                         skinned_gpu_source_uses_cpu_morphed_source,
@@ -405,9 +461,17 @@ pub(crate) fn build_mesh_draws(
                     mesh_draw
                 },
             )
-            .collect(),
+            .collect()
+    };
+    record_material_binding_build_profile(
+        residual_draw_count,
+        override_uniform_buffer_creation_count,
+    );
+    Ok(BuiltMeshDraws {
+        draws,
         prepared_mesh_queue_stats,
         prebuilt_mesh_pass_command_buffers,
+        gpu_scene_prepared_upload: Some(gpu_scene_prepared_upload),
         gpu_scene_upload_report,
         indirect_segment_count,
         indirect_args_count,
@@ -418,7 +482,8 @@ pub(crate) fn build_mesh_draws(
         indirect_segment_buffer,
         pending_command_cache_plan_stats,
         pending_command_cache_extraction_stats,
-    }
+        material_pipeline_requirements,
+    })
 }
 
 #[derive(Clone, Copy)]
@@ -447,6 +512,7 @@ struct PendingPreparedMeshBatchKey {
     metallic_roughness_texture: usize,
     occlusion_texture: usize,
     emissive_texture: usize,
+    clearcoat_normal_texture: usize,
     material_uniform: usize,
     material_uniform_override_signature: u64,
     standard_material_uniform: usize,
@@ -475,8 +541,8 @@ fn prepared_mesh_queue_stats_for_pending_draws(
             pending_mesh_draw_geometry_source(pending_draw, skinned_gpu_skinning_enabled);
         let queue_profile = MeshDrawQueueProfile::new(
             MeshDrawQueuePhase::from_pipeline_flags(
-                pending_draw.pipeline_key.is_transparent(),
-                pending_draw.pipeline_key.is_alpha_mask(),
+                pending_draw.material.pipeline_key.is_transparent(),
+                pending_draw.material.pipeline_key.is_alpha_mask(),
             ),
             geometry_source,
             pending_draw.mobility,
@@ -486,7 +552,7 @@ fn prepared_mesh_queue_stats_for_pending_draws(
         );
         (
             queue_profile,
-            pending_draw.common.cast_shadows.casts_shadows()
+            pending_draw.material.common.cast_shadows.casts_shadows()
                 && queue_profile.phase().casts_shadow(),
             has_previous_velocity_transform,
             pending_draw.skinned,
@@ -511,36 +577,83 @@ fn pending_mesh_draw_batch_key(
         geometry_source,
         mesh: pending_mesh_identity(pending_draw),
         base_color_texture: material_texture_identity(
-            &pending_draw.material_textures,
+            &pending_draw.material.textures,
             |textures| &textures.base_color,
         ),
-        normal_texture: material_texture_identity(&pending_draw.material_textures, |textures| {
+        normal_texture: material_texture_identity(&pending_draw.material.textures, |textures| {
             &textures.normal
         }),
         metallic_roughness_texture: material_texture_identity(
-            &pending_draw.material_textures,
+            &pending_draw.material.textures,
             |textures| &textures.metallic_roughness,
         ),
-        occlusion_texture: material_texture_identity(&pending_draw.material_textures, |textures| {
+        occlusion_texture: material_texture_identity(&pending_draw.material.textures, |textures| {
             &textures.occlusion
         }),
-        emissive_texture: material_texture_identity(&pending_draw.material_textures, |textures| {
+        emissive_texture: material_texture_identity(&pending_draw.material.textures, |textures| {
             &textures.emissive
         }),
-        material_uniform: Arc::as_ptr(&pending_draw.material_uniform) as usize,
+        clearcoat_normal_texture: material_texture_identity(
+            &pending_draw.material.textures,
+            |textures| &textures.clearcoat_normal,
+        ),
+        material_uniform: Arc::as_ptr(&pending_draw.material.uniform) as usize,
         material_uniform_override_signature: material_uniform_override_signature(pending_draw),
-        standard_material_uniform: Arc::as_ptr(&pending_draw.standard_material_uniform) as usize,
-        pipeline_key: pending_draw.pipeline_key.clone(),
-        disabled_passes: pending_draw.disabled_passes,
+        standard_material_uniform: Arc::as_ptr(&pending_draw.material.standard_uniform) as usize,
+        pipeline_key: pending_draw.material.pipeline_key.clone(),
+        disabled_passes: pending_draw.material.disabled_passes,
         first_index: pending_draw.first_index,
         draw_index_count: pending_draw.draw_index_count,
     }
 }
 
+fn refresh_pending_mesh_material_submission_revision(
+    pending_draw: &mut super::pending_mesh_draw::PendingMeshDraw,
+) {
+    let source_revision = pending_draw.static_state.material_revision;
+    pending_draw.static_state.material_revision = material_submission_revision(
+        source_revision,
+        &pending_draw.material.pipeline_key,
+        [
+            pending_draw.material.textures.base_color.identity(),
+            pending_draw.material.textures.normal.identity(),
+            pending_draw.material.textures.metallic_roughness.identity(),
+            pending_draw.material.textures.occlusion.identity(),
+            pending_draw.material.textures.emissive.identity(),
+            pending_draw.material.textures.clearcoat_normal.identity(),
+        ],
+        Arc::as_ptr(&pending_draw.material.uniform) as usize,
+        Arc::as_ptr(&pending_draw.material.standard_uniform) as usize,
+        pending_draw.material.common.cast_shadows,
+    );
+}
+
+fn material_submission_revision(
+    source_revision: u64,
+    pipeline_key: &crate::graphics::scene::resources::PipelineKey,
+    texture_identities: [usize; 6],
+    material_uniform_identity: usize,
+    standard_material_uniform_identity: usize,
+    cast_shadows: CastShadowsMode,
+) -> u64 {
+    if source_revision == 0 {
+        return 0;
+    }
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    source_revision.hash(&mut hasher);
+    pipeline_key.hash(&mut hasher);
+    texture_identities.hash(&mut hasher);
+    material_uniform_identity.hash(&mut hasher);
+    standard_material_uniform_identity.hash(&mut hasher);
+    cast_shadows.hash(&mut hasher);
+    let hash = hasher.finish();
+    if hash == 0 { 1 } else { hash }
+}
+
 fn material_uniform_override_signature(
     pending_draw: &super::pending_mesh_draw::PendingMeshDraw,
 ) -> u64 {
-    let Some(payload) = pending_draw.material_uniform_override_payload.as_ref() else {
+    let Some(payload) = pending_draw.material.uniform_override_payload.as_ref() else {
         return 0;
     };
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
@@ -550,11 +663,7 @@ fn material_uniform_override_signature(
         unsupported.reason.hash(&mut hasher);
     }
     let hash = hasher.finish();
-    if hash == 0 {
-        1
-    } else {
-        hash
-    }
+    if hash == 0 { 1 } else { hash }
 }
 
 fn pending_mesh_identity(pending_draw: &super::pending_mesh_draw::PendingMeshDraw) -> usize {
@@ -681,11 +790,12 @@ mod tests {
     };
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{UVec2, Vec4};
+    use crate::graphics::ViewportRenderFrame;
+    use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::visibility::{
         FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityBounds,
         VisibilityViewKey,
     };
-    use crate::graphics::ViewportRenderFrame;
 
     fn production_source() -> &'static str {
         include_str!("build.rs")
@@ -722,6 +832,74 @@ mod tests {
                 .expect("direct-light preparation gate")]
                 .contains("gpu_scene.write_lights("),
             "GPU light-buffer writes must stay behind the profile-controlled preparation gate"
+        );
+    }
+
+    #[test]
+    fn material_submission_revision_tracks_final_pipeline_and_binding_identities() {
+        let pipeline = default_pipeline_key();
+        let textures = [11, 13, 17, 19, 23, 29];
+        let revision = super::material_submission_revision(
+            7,
+            &pipeline,
+            textures,
+            31,
+            37,
+            crate::core::framework::render::CastShadowsMode::On,
+        );
+
+        let mut changed_pipeline = pipeline.clone();
+        changed_pipeline.shader_dependency_revision = 41;
+        assert_ne!(
+            revision,
+            super::material_submission_revision(
+                7,
+                &changed_pipeline,
+                textures,
+                31,
+                37,
+                crate::core::framework::render::CastShadowsMode::On,
+            ),
+            "transitive shader generations must invalidate cached submission payloads"
+        );
+
+        let mut changed_textures = textures;
+        changed_textures[0] = 43;
+        assert_ne!(
+            revision,
+            super::material_submission_revision(
+                7,
+                &pipeline,
+                changed_textures,
+                31,
+                37,
+                crate::core::framework::render::CastShadowsMode::On,
+            ),
+            "mip residency resource replacement must invalidate cached material bind groups"
+        );
+        assert_ne!(
+            revision,
+            super::material_submission_revision(
+                7,
+                &pipeline,
+                textures,
+                31,
+                37,
+                crate::core::framework::render::CastShadowsMode::TwoSided,
+            ),
+            "effective renderer shadow raster mode must invalidate cached commands"
+        );
+        assert_eq!(
+            super::material_submission_revision(
+                0,
+                &pipeline,
+                textures,
+                31,
+                37,
+                crate::core::framework::render::CastShadowsMode::On,
+            ),
+            0,
+            "missing source authority must not become cacheable through process-local identities"
         );
     }
 

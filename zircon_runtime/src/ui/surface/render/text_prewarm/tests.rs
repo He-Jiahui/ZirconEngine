@@ -25,7 +25,7 @@ fn prewarm_render_command_text_projects_rich_and_vertical_layout_spans() {
             text_command(
                 "**sample base.zui**",
                 UiResolvedStyle {
-                    rich_text_format: UiRichTextFormat::Markdown,
+                    rich_text_format: UiRichTextFormat::MarkdownInlineV1,
                     font_size: 10.0,
                     line_height: 12.0,
                     ..UiResolvedStyle::default()
@@ -43,7 +43,7 @@ fn prewarm_render_command_text_projects_rich_and_vertical_layout_spans() {
             text_command(
                 "**sample base.zui**",
                 UiResolvedStyle {
-                    rich_text_format: UiRichTextFormat::Markdown,
+                    rich_text_format: UiRichTextFormat::MarkdownInlineV1,
                     font_size: 10.0,
                     line_height: 12.0,
                     ..UiResolvedStyle::default()
@@ -64,7 +64,7 @@ fn prewarm_render_command_text_projects_rich_and_vertical_layout_spans() {
 #[test]
 fn rich_and_vertical_prewarm_match_normal_layout_source_without_inline_objects() {
     let rich_style = UiResolvedStyle {
-        rich_text_format: UiRichTextFormat::Markdown,
+        rich_text_format: UiRichTextFormat::MarkdownInlineV1,
         font_weight: 700,
         font_size: 10.0,
         line_height: 12.0,
@@ -83,7 +83,7 @@ fn rich_and_vertical_prewarm_match_normal_layout_source_without_inline_objects()
     prewarm_render_command_text(&commands, &pending, &mut cache);
     let prewarm = cache.frame_shape_prewarm_report();
     let before_layout = cache.frame_shaped_run_report();
-    resolve_missing_render_command_text_layouts(&mut commands, &pending, Some(&mut cache));
+    resolve_missing_render_command_text_layouts(&mut commands, &pending, &mut cache);
     let after_layout = cache.frame_shaped_run_report();
 
     assert_eq!(prewarm.requested_count, 2);
@@ -98,7 +98,7 @@ fn rich_and_vertical_prewarm_match_normal_layout_source_without_inline_objects()
 #[test]
 fn rich_inline_prewarm_coalesces_effectively_equal_adjacent_spans() {
     let style = UiResolvedStyle {
-        rich_text_format: UiRichTextFormat::Html,
+        rich_text_format: UiRichTextFormat::HtmlSubsetV1,
         font_weight: 700,
         font_size: 10.0,
         line_height: 12.0,
@@ -115,7 +115,7 @@ fn rich_inline_prewarm_coalesces_effectively_equal_adjacent_spans() {
     prewarm_render_command_text(&commands, &pending, &mut cache);
     let prewarm = cache.frame_shape_prewarm_report();
     let before_layout = cache.frame_shaped_run_report();
-    resolve_missing_render_command_text_layouts(&mut commands, &pending, Some(&mut cache));
+    resolve_missing_render_command_text_layouts(&mut commands, &pending, &mut cache);
     let after_layout = cache.frame_shaped_run_report();
     assert_eq!(prewarm.requested_count, 2);
     assert_eq!(prewarm.cache_miss_count, 2);
@@ -135,7 +135,7 @@ fn rich_inline_prewarm_source_line_request_topology_evidence() {
         "first\r\nsecond\u{2028}{long_run}<img src=\"res://icons/star.png\" width=\"16\" height=\"16\">tail"
     );
     let style = UiResolvedStyle {
-        rich_text_format: UiRichTextFormat::Html,
+        rich_text_format: UiRichTextFormat::HtmlSubsetV1,
         font_size: 10.0,
         line_height: 12.0,
         ..UiResolvedStyle::default()
@@ -148,7 +148,7 @@ fn rich_inline_prewarm_source_line_request_topology_evidence() {
     prewarm_render_command_text(&commands, &pending, &mut cache);
     let prewarm = cache.frame_shape_prewarm_report();
     let before_layout = cache.frame_shaped_run_report();
-    resolve_missing_render_command_text_layouts(&mut commands, &pending, Some(&mut cache));
+    resolve_missing_render_command_text_layouts(&mut commands, &pending, &mut cache);
     let after_layout = cache.frame_shaped_run_report();
 
     assert_eq!(prewarm.requested_count, 4);
@@ -175,7 +175,7 @@ fn normal_rich_prewarm_preserves_one_line_across_markup_at_the_work_threshold() 
     let second = "x".repeat(budget.max_inline_input_bytes() / 2 + 1);
     let text = format!("{first}<b>{second}</b>");
     let style = UiResolvedStyle {
-        rich_text_format: UiRichTextFormat::Html,
+        rich_text_format: UiRichTextFormat::HtmlSubsetV1,
         font_size: 10.0,
         line_height: 12.0,
         ..UiResolvedStyle::default()
@@ -188,7 +188,7 @@ fn normal_rich_prewarm_preserves_one_line_across_markup_at_the_work_threshold() 
     prewarm_render_command_text(&commands, &pending, &mut cache);
     let prewarm = cache.frame_shape_prewarm_report();
     let before_layout = cache.frame_shaped_run_report();
-    resolve_missing_render_command_text_layouts(&mut commands, &pending, Some(&mut cache));
+    resolve_missing_render_command_text_layouts(&mut commands, &pending, &mut cache);
     let after_layout = cache.frame_shaped_run_report();
     let layout = commands[0]
         .text_layout
@@ -264,7 +264,7 @@ fn pending_owner_request_retains_document_key_and_viewport() {
     let viewport = UiTextViewport::new(12.0, 24.0, 2).expect("finite viewport");
     let pending = PendingOwnerTextLayout {
         command_index: 0,
-        document_key,
+        document_key: Some(document_key),
         viewport: Some(viewport),
         editable: None,
     };
@@ -278,6 +278,27 @@ fn pending_owner_request_retains_document_key_and_viewport() {
 }
 
 #[test]
+fn pending_owner_without_a_retained_key_still_resolves_text_layout() {
+    let mut commands = vec![text_command(
+        "uncacheable owner",
+        UiResolvedStyle::default(),
+    )];
+    let viewport = UiTextViewport::new(0.0, 24.0, 0).expect("finite viewport");
+    let mut pending = PendingOwnerTextLayouts::default();
+    pending.push(0, None, Some(viewport), None);
+    let mut cache = UiTextMeasureCache::default();
+    cache.begin_frame();
+
+    let request = pending_owner_text_request(&commands[0], &pending.entries[0])
+        .expect("an uncacheable owner still has a layout request");
+    assert_eq!(request.document_key, None);
+    assert_eq!(request.viewport, Some(viewport));
+
+    resolve_missing_render_command_text_layouts(&mut commands, &pending, &mut cache);
+    assert!(commands[0].text_layout.is_some());
+}
+
+#[test]
 fn pending_owner_resolution_preserves_editable_empty_text_without_prewarm() {
     let editable = UiEditableTextState {
         text: String::new(),
@@ -285,19 +306,61 @@ fn pending_owner_resolution_preserves_editable_empty_text_without_prewarm() {
     };
     let mut commands = vec![text_command("", UiResolvedStyle::default())];
     let mut pending = PendingOwnerTextLayouts::default();
-    pending.push(0, TextDocumentKey::new(9, 3), None, Some(editable.clone()));
+    pending.push(
+        0,
+        Some(TextDocumentKey::new(9, 3)),
+        None,
+        Some(editable.clone()),
+    );
     let mut cache = UiTextMeasureCache::default();
     cache.begin_frame();
 
     prewarm_render_command_text(&commands, &pending, &mut cache);
     assert_eq!(cache.frame_shape_prewarm_report().requested_count, 0);
-    resolve_missing_render_command_text_layouts(&mut commands, &pending, Some(&mut cache));
+    resolve_missing_render_command_text_layouts(&mut commands, &pending, &mut cache);
 
     let layout = commands[0]
         .text_layout
         .as_ref()
         .expect("empty owner text must resolve after the prewarm filter");
     assert_eq!(layout.editable.as_ref(), Some(&editable));
+}
+
+#[test]
+fn display_whitespace_preserves_layout_while_empty_text_stays_absent() {
+    let mut commands = vec![
+        text_command("   ", UiResolvedStyle::default()),
+        text_command("\n", UiResolvedStyle::default()),
+        text_command("", UiResolvedStyle::default()),
+    ];
+    let mut cache = UiTextMeasureCache::default();
+    cache.begin_frame();
+
+    prewarm_render_command_text(
+        &commands[..1],
+        &PendingOwnerTextLayouts::default(),
+        &mut cache,
+    );
+    assert_eq!(
+        cache.frame_shape_prewarm_report().requested_count,
+        1,
+        "spaces must enter the same prewarm path as visible glyph text"
+    );
+    resolve_missing_render_command_text_layouts(
+        &mut commands,
+        &PendingOwnerTextLayouts::default(),
+        &mut cache,
+    );
+
+    assert!(
+        commands[0].text_layout.is_some(),
+        "spaces own advance and caret geometry"
+    );
+    assert!(
+        commands[1].text_layout.is_some(),
+        "hard separators own line height and caret geometry"
+    );
+    assert!(commands[2].text_layout.is_none());
 }
 
 #[test]
@@ -314,7 +377,7 @@ fn short_clipped_plain_owner_prewarm_remains_batched() {
     let mut pending = PendingOwnerTextLayouts::default();
     pending.push(
         0,
-        TextDocumentKey::new(72, 1),
+        Some(TextDocumentKey::new(72, 1)),
         Some(UiTextViewport::new(0.0, 20.0, 2).expect("finite document viewport")),
         None,
     );
@@ -340,7 +403,7 @@ fn non_virtualizable_owner_prewarm_remains_batched() {
     let mut pending = PendingOwnerTextLayouts::default();
     pending.push(
         0,
-        TextDocumentKey::new(72, 2),
+        Some(TextDocumentKey::new(72, 2)),
         Some(UiTextViewport::new(0.0, 20.0, 2).expect("finite document viewport")),
         None,
     );
@@ -371,7 +434,7 @@ fn oversized_single_line_owner_prewarm_remains_batched_when_viewport_covers_it()
     let mut pending = PendingOwnerTextLayouts::default();
     pending.push(
         0,
-        TextDocumentKey::new(72, 3),
+        Some(TextDocumentKey::new(72, 3)),
         Some(UiTextViewport::new(0.0, 20.0, 2).expect("finite document viewport")),
         None,
     );
@@ -406,7 +469,7 @@ fn viewported_owner_prewarm_defers_shaping_to_the_visible_window() {
     let mut pending = PendingOwnerTextLayouts::default();
     pending.push(
         0,
-        TextDocumentKey::new(73, 1),
+        Some(TextDocumentKey::new(73, 1)),
         Some(UiTextViewport::new(241.0, 8.0, 2).expect("finite document viewport")),
         None,
     );
@@ -421,7 +484,7 @@ fn viewported_owner_prewarm_defers_shaping_to_the_visible_window() {
     );
 
     let before_layout = cache.frame_shaped_run_report();
-    resolve_missing_render_command_text_layouts(&mut commands, &pending, Some(&mut cache));
+    resolve_missing_render_command_text_layouts(&mut commands, &pending, &mut cache);
     let after_layout = cache.frame_shaped_run_report();
     let layout = commands[0]
         .text_layout

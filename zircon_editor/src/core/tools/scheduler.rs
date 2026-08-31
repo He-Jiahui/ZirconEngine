@@ -1,681 +1,756 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
+use zircon_runtime_interface::ui::dispatch::UiWindowId;
 
-use serde::{Deserialize, Serialize};
-
-use super::ToolId;
-
-pub const DEFAULT_MAX_QUEUE_PER_RESOURCE: usize = 64;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum ExclusiveResource {
-    ViewportInput,
-    ModalSurface,
-    SceneModeSlot,
-}
-
-impl ExclusiveResource {
-    const ALL: [Self; 3] = [Self::ViewportInput, Self::ModalSurface, Self::SceneModeSlot];
-}
-
-/// Immutable, nonempty, canonically sorted resources acquired as one scheduler lease.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ToolResourceSet(Vec<ExclusiveResource>);
-
-impl ToolResourceSet {
-    pub fn new<I>(resources: I) -> Result<Self, ToolResourceSetError>
-    where
-        I: IntoIterator<Item = ExclusiveResource>,
-    {
-        let resources = resources.into_iter().collect::<BTreeSet<_>>();
-        if resources.is_empty() {
-            return Err(ToolResourceSetError::Empty);
-        }
-        Ok(Self(resources.into_iter().collect()))
-    }
-
-    pub fn as_slice(&self) -> &[ExclusiveResource] {
-        &self.0
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-}
-
-impl Serialize for ToolResourceSet {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.0.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for ToolResourceSet {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let resources = Vec::<ExclusiveResource>::deserialize(deserializer)?;
-        Self::new(resources).map_err(serde::de::Error::custom)
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ToolResourceSetError {
-    Empty,
-}
-
-impl std::fmt::Display for ToolResourceSetError {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Empty => write!(formatter, "a tool resource set cannot be empty"),
-        }
-    }
-}
-
-impl std::error::Error for ToolResourceSetError {}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AcquireDenial {
-    QueueFull { max_queued: usize },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AcquireOutcome {
-    Acquired,
-    AlreadyHeld,
-    Queued {
-        position: usize,
-    },
-    AlreadyQueued {
-        position: usize,
-    },
-    Denied {
-        holder: ToolId,
-        reason: AcquireDenial,
-    },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AcquireSetOutcome {
-    Acquired,
-    AlreadyHeld,
-    Queued { position: usize },
-    AlreadyQueued { position: usize },
-    Denied { reason: AcquireDenial },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ReleaseOutcome {
-    Released { activated: Option<ToolId> },
-    NotHeld,
-    NotHolder { holder: ToolId },
-    SetHeld { resources: ToolResourceSet },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ReleaseSetOutcome {
-    Released {
-        activated: Option<ToolId>,
-    },
-    NotHeld,
-    NotHolder {
-        resource: ExclusiveResource,
-        holder: ToolId,
-    },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum WithdrawOutcome {
-    Withdrawn { previous_position: usize },
-    NotQueued,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum WithdrawSetOutcome {
-    Withdrawn {
-        previous_position: usize,
-        activated: Option<ToolId>,
-    },
-    NotQueued,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct ReleaseAllOutcome {
-    pub released_resources: Vec<ExclusiveResource>,
-    pub withdrawn_resources: Vec<ExclusiveResource>,
-    pub activated_tools: Vec<(ExclusiveResource, ToolId)>,
-    pub released_resource_sets: Vec<ToolResourceSet>,
-    pub withdrawn_resource_sets: Vec<ToolResourceSet>,
-    pub activated_resource_sets: Vec<(ToolResourceSet, ToolId)>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ToolLifecycleEvent {
-    Activated {
-        tool: ToolId,
-        resource: ExclusiveResource,
-    },
-    Deactivated {
-        tool: ToolId,
-        resource: ExclusiveResource,
-    },
-    Queued {
-        tool: ToolId,
-        resource: ExclusiveResource,
-        position: usize,
-    },
-    Withdrawn {
-        tool: ToolId,
-        resource: ExclusiveResource,
-        previous_position: usize,
-    },
-    Denied {
-        tool: ToolId,
-        resource: ExclusiveResource,
-        holder: ToolId,
-        reason: AcquireDenial,
-    },
-    SetActivated {
-        tool: ToolId,
-        resources: ToolResourceSet,
-    },
-    SetDeactivated {
-        tool: ToolId,
-        resources: ToolResourceSet,
-    },
-    SetQueued {
-        tool: ToolId,
-        resources: ToolResourceSet,
-        position: usize,
-    },
-    SetWithdrawn {
-        tool: ToolId,
-        resources: ToolResourceSet,
-        previous_position: usize,
-    },
-    SetDenied {
-        tool: ToolId,
-        resources: ToolResourceSet,
-        reason: AcquireDenial,
-    },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[must_use = "tool lifecycle events must be published before exposing the new scheduler state"]
-pub struct ToolScheduleReport<O> {
-    outcome: O,
-    events: Vec<ToolLifecycleEvent>,
-}
-
-impl<O> ToolScheduleReport<O> {
-    fn new(outcome: O, events: Vec<ToolLifecycleEvent>) -> Self {
-        Self { outcome, events }
-    }
-
-    pub fn outcome(&self) -> &O {
-        &self.outcome
-    }
-
-    pub fn events(&self) -> &[ToolLifecycleEvent] {
-        &self.events
-    }
-
-    pub fn into_parts(self) -> (O, Vec<ToolLifecycleEvent>) {
-        (self.outcome, self.events)
-    }
-}
+use super::input_capture::{ToolInputCaptureAuthority, ToolInputCaptureReport};
+use super::limits::ToolQueueLimits;
+use super::{
+    AcquireDenial, AcquireOutcome, ReleaseOutcome, ToolInputCaptureDenial,
+    ToolInputCaptureDisposition, ToolInputCaptureEndOutcome, ToolInputCaptureHandle,
+    ToolInputCaptureOutcome, ToolInputCaptureOwner, ToolInputCaptureRequest, ToolInputSource,
+    ToolInstanceId, ToolLeaseHandle, ToolLeaseId, ToolLifecycleEvent, ToolOwnerGeneration,
+    ToolOwnerRevokeOutcome, ToolRequestHandle, ToolRequestId, ToolResourceKey, ToolResourceKindId,
+    ToolResourceSet, ToolResourceStateSnapshot, ToolScheduleReport, ToolSchedulerStateSnapshot,
+    ToolShutdownOutcome, WithdrawOutcome,
+};
 
 #[derive(Debug, Default, PartialEq, Eq)]
 struct ResourceState {
-    holder: Option<ToolId>,
-    queue: VecDeque<ToolId>,
+    holder: Option<ToolLeaseId>,
+    queue: VecDeque<ToolRequestId>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct ResourceSetRequest {
-    tool: ToolId,
-    resources: ToolResourceSet,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ClaimStateRef {
+    Queued(ToolRequestId),
+    Active(ToolLeaseId),
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ToolScheduler {
-    resources: BTreeMap<ExclusiveResource, ResourceState>,
-    set_queue: VecDeque<ResourceSetRequest>,
-    active_sets: BTreeMap<ToolId, ToolResourceSet>,
-    max_queue_per_resource: usize,
+    resources: BTreeMap<ToolResourceKey, ResourceState>,
+    set_queue: VecDeque<ToolRequestId>,
+    requests: BTreeMap<ToolRequestId, ToolRequestHandle>,
+    leases: BTreeMap<ToolLeaseId, ToolLeaseHandle>,
+    instances: BTreeMap<ToolInstanceId, ClaimStateRef>,
+    input_captures: ToolInputCaptureAuthority,
+    limits: ToolQueueLimits,
+    next_request_id: Option<ToolRequestId>,
+    next_lease_id: Option<ToolLeaseId>,
 }
 
 impl ToolScheduler {
-    pub fn new(max_queue_per_resource: usize) -> Self {
+    pub fn new(limits: ToolQueueLimits) -> Self {
         Self {
             resources: BTreeMap::new(),
             set_queue: VecDeque::new(),
-            active_sets: BTreeMap::new(),
-            max_queue_per_resource,
+            requests: BTreeMap::new(),
+            leases: BTreeMap::new(),
+            instances: BTreeMap::new(),
+            input_captures: ToolInputCaptureAuthority::new(),
+            limits,
+            next_request_id: Some(ToolRequestId::first()),
+            next_lease_id: Some(ToolLeaseId::first()),
         }
     }
 
-    pub fn max_queue_per_resource(&self) -> usize {
-        self.max_queue_per_resource
+    pub const fn limits(&self) -> ToolQueueLimits {
+        self.limits
     }
 
-    pub fn holder(&self, resource: ExclusiveResource) -> Option<&ToolId> {
+    pub fn holder(&self, resource: &ToolResourceKey) -> Option<&ToolLeaseHandle> {
         self.resources
-            .get(&resource)
-            .and_then(|state| state.holder.as_ref())
+            .get(resource)
+            .and_then(|state| state.holder)
+            .and_then(|lease_id| self.leases.get(&lease_id))
     }
 
-    pub fn queued_tools(&self, resource: ExclusiveResource) -> impl Iterator<Item = &ToolId> {
+    pub fn queued_requests(
+        &self,
+        resource: &ToolResourceKey,
+    ) -> impl Iterator<Item = &ToolRequestHandle> {
         self.resources
-            .get(&resource)
+            .get(resource)
             .into_iter()
             .flat_map(|state| state.queue.iter())
+            .filter_map(|request_id| self.requests.get(request_id))
     }
 
+    pub fn active_lease(&self, instance: &ToolInstanceId) -> Option<&ToolLeaseHandle> {
+        match self.instances.get(instance) {
+            Some(ClaimStateRef::Active(lease_id)) => self.leases.get(lease_id),
+            Some(ClaimStateRef::Queued(_)) | None => None,
+        }
+    }
+
+    pub fn pending_request(&self, instance: &ToolInstanceId) -> Option<&ToolRequestHandle> {
+        match self.instances.get(instance) {
+            Some(ClaimStateRef::Queued(request_id)) => self.requests.get(request_id),
+            Some(ClaimStateRef::Active(_)) | None => None,
+        }
+    }
+
+    pub fn snapshot(&self) -> ToolSchedulerStateSnapshot {
+        let resources = self
+            .resources
+            .iter()
+            .map(|(resource, state)| {
+                ToolResourceStateSnapshot::new(
+                    resource.clone(),
+                    state
+                        .holder
+                        .and_then(|lease_id| self.leases.get(&lease_id))
+                        .cloned(),
+                    state
+                        .queue
+                        .iter()
+                        .filter_map(|request_id| self.requests.get(request_id).cloned())
+                        .collect(),
+                )
+            })
+            .collect();
+        ToolSchedulerStateSnapshot::new(
+            resources,
+            self.leases.values().cloned().collect(),
+            self.requests.values().cloned().collect(),
+            self.input_captures.active().cloned().collect(),
+        )
+    }
+
+    pub fn active_input_capture(
+        &self,
+        source: &ToolInputSource,
+    ) -> Option<&ToolInputCaptureHandle> {
+        self.input_captures.active_for_source(source)
+    }
+
+    pub(crate) fn begin_input_capture(
+        &mut self,
+        request: ToolInputCaptureRequest,
+    ) -> ToolScheduleReport<ToolInputCaptureOutcome> {
+        let owner = request.owner();
+        let denial = match self.leases.get(&owner.lease_id()) {
+            Some(lease) if lease.instance() == owner.instance() => {
+                (!lease.resources().as_slice().contains(request.resource())).then_some(
+                    ToolInputCaptureDenial::ResourceNotLeased {
+                        resource: request.resource().clone(),
+                    },
+                )
+            }
+            Some(_) | None => Some(ToolInputCaptureDenial::LeaseNotActive {
+                lease_id: owner.lease_id(),
+            }),
+        };
+        if let Some(reason) = denial {
+            return capture_schedule_report(self.input_captures.deny(request, reason));
+        }
+        capture_schedule_report(self.input_captures.begin(request))
+    }
+
+    pub(crate) fn end_input_capture(
+        &mut self,
+        capture_id: super::ToolInputCaptureId,
+        owner: &ToolInputCaptureOwner,
+        disposition: ToolInputCaptureDisposition,
+    ) -> ToolScheduleReport<ToolInputCaptureEndOutcome> {
+        capture_schedule_report(self.input_captures.end(capture_id, owner, disposition))
+    }
+
+    pub(crate) fn release_input_window_on_focus_loss(
+        &mut self,
+        window_id: &UiWindowId,
+    ) -> ToolScheduleReport<Box<[ToolInputCaptureHandle]>> {
+        capture_schedule_report(
+            self.input_captures
+                .release_window(window_id, ToolInputCaptureDisposition::FocusLost),
+        )
+    }
+
+    /// Acquires one canonical resource set or queues the complete claim with no partial hold.
     pub fn acquire(
         &mut self,
-        tool: ToolId,
-        resource: ExclusiveResource,
-    ) -> ToolScheduleReport<AcquireOutcome> {
-        let set_queue_holder = self.set_queue.front().map(|request| request.tool.clone());
-        let state = self.resources.entry(resource).or_default();
-        if state.holder.as_ref() == Some(&tool) {
-            return ToolScheduleReport::new(AcquireOutcome::AlreadyHeld, Vec::new());
-        }
-
-        if let Some(index) = state.queue.iter().position(|queued| queued == &tool) {
-            return ToolScheduleReport::new(
-                AcquireOutcome::AlreadyQueued {
-                    position: index + 1,
-                },
-                Vec::new(),
-            );
-        }
-
-        if state.holder.is_none() && set_queue_holder.is_none() {
-            state.holder = Some(tool.clone());
-            return ToolScheduleReport::new(
-                AcquireOutcome::Acquired,
-                vec![ToolLifecycleEvent::Activated { tool, resource }],
-            );
-        }
-
-        if state.queue.len() >= self.max_queue_per_resource {
-            let reason = AcquireDenial::QueueFull {
-                max_queued: self.max_queue_per_resource,
-            };
-            if let Some(holder) = state.holder.clone().or(set_queue_holder) {
-                return ToolScheduleReport::new(
-                    AcquireOutcome::Denied {
-                        holder: holder.clone(),
-                        reason: reason.clone(),
-                    },
-                    vec![ToolLifecycleEvent::Denied {
-                        tool,
-                        resource,
-                        holder,
-                        reason,
-                    }],
-                );
-            }
-        }
-
-        state.queue.push_back(tool.clone());
-        let position = state.queue.len();
-        ToolScheduleReport::new(
-            AcquireOutcome::Queued { position },
-            vec![ToolLifecycleEvent::Queued {
-                tool,
-                resource,
-                position,
-            }],
-        )
-    }
-
-    /// Acquires every resource in one canonical set or queues the full set with no partial hold.
-    pub fn acquire_set(
-        &mut self,
-        tool: ToolId,
+        instance: ToolInstanceId,
         resources: ToolResourceSet,
-    ) -> ToolScheduleReport<AcquireSetOutcome> {
-        if self.active_sets.get(&tool) == Some(&resources) {
-            return ToolScheduleReport::new(AcquireSetOutcome::AlreadyHeld, Vec::new());
+    ) -> ToolScheduleReport<AcquireOutcome> {
+        if let Some(existing) = self.instances.get(&instance).copied() {
+            return self.report_existing_claim(instance, resources, existing);
         }
-        if let Some(index) = self
-            .set_queue
-            .iter()
-            .position(|request| request.tool == tool && request.resources == resources)
-        {
+
+        let immediate = self.claim_can_activate_immediately(&resources);
+        if !immediate {
+            let max_queued = self.queue_limit(&resources);
+            if self.queue_len(&resources) >= max_queued {
+                let reason = AcquireDenial::QueueFull { max_queued };
+                return self.denied(instance, resources, reason);
+            }
+        }
+
+        let Some(request) = self.reserve_request(instance.clone(), resources.clone()) else {
+            return self.denied(instance, resources, AcquireDenial::ClaimIdentityExhausted);
+        };
+        if immediate {
+            let lease = self.activate_reserved_request(&request);
             return ToolScheduleReport::new(
-                AcquireSetOutcome::AlreadyQueued {
-                    position: index + 1,
+                AcquireOutcome::Acquired {
+                    lease: lease.clone(),
                 },
-                Vec::new(),
+                vec![ToolLifecycleEvent::Activated { lease }],
             );
         }
 
-        if self.set_queue.is_empty() && self.resources_are_available(&resources) {
-            self.activate_set(tool.clone(), resources.clone());
-            return ToolScheduleReport::new(
-                AcquireSetOutcome::Acquired,
-                vec![ToolLifecycleEvent::SetActivated { tool, resources }],
-            );
-        }
-
-        if self.set_queue.len() >= self.max_queue_per_resource {
-            let reason = AcquireDenial::QueueFull {
-                max_queued: self.max_queue_per_resource,
-            };
-            return ToolScheduleReport::new(
-                AcquireSetOutcome::Denied {
-                    reason: reason.clone(),
-                },
-                vec![ToolLifecycleEvent::SetDenied {
-                    tool,
-                    resources,
-                    reason,
-                }],
-            );
-        }
-
-        self.set_queue.push_back(ResourceSetRequest {
-            tool: tool.clone(),
-            resources: resources.clone(),
-        });
-        let position = self.set_queue.len();
+        self.enqueue_request(request.clone());
+        let position = self.request_position(&request).unwrap_or(1);
         ToolScheduleReport::new(
-            AcquireSetOutcome::Queued { position },
-            vec![ToolLifecycleEvent::SetQueued {
-                tool,
-                resources,
+            AcquireOutcome::Queued {
+                request: request.clone(),
                 position,
-            }],
+            },
+            vec![ToolLifecycleEvent::Queued { request, position }],
         )
     }
 
-    pub fn release(
-        &mut self,
-        tool: &ToolId,
-        resource: ExclusiveResource,
-    ) -> ToolScheduleReport<ReleaseOutcome> {
-        if let Some(resources) = self.active_sets.get(tool) {
-            if resources.as_slice().contains(&resource) {
-                return ToolScheduleReport::new(
-                    ReleaseOutcome::SetHeld {
-                        resources: resources.clone(),
-                    },
-                    Vec::new(),
-                );
-            }
+    pub fn release(&mut self, lease_id: ToolLeaseId) -> ToolScheduleReport<ReleaseOutcome> {
+        if !self.leases.contains_key(&lease_id) {
+            return ToolScheduleReport::new(ReleaseOutcome::NotHeld, Vec::new());
         }
         let mut events = Vec::new();
-        {
-            let Some(state) = self.resources.get_mut(&resource) else {
-                return ToolScheduleReport::new(ReleaseOutcome::NotHeld, events);
-            };
-            let Some(holder) = state.holder.as_ref() else {
-                return ToolScheduleReport::new(ReleaseOutcome::NotHeld, events);
-            };
-            if holder != tool {
-                return ToolScheduleReport::new(
-                    ReleaseOutcome::NotHolder {
-                        holder: holder.clone(),
-                    },
-                    events,
-                );
-            }
-            state.holder = None;
-        }
-        events.push(ToolLifecycleEvent::Deactivated {
-            tool: tool.clone(),
-            resource,
-        });
-
-        if self.promote_set_head(&mut events).is_none() {
-            let activated = self.promote_single_resource(resource, &mut events);
-            self.remove_empty_resource_state(resource);
-            return ToolScheduleReport::new(ReleaseOutcome::Released { activated }, events);
-        }
-
-        ToolScheduleReport::new(ReleaseOutcome::Released { activated: None }, events)
-    }
-
-    pub fn release_set(
-        &mut self,
-        tool: &ToolId,
-        resources: &ToolResourceSet,
-    ) -> ToolScheduleReport<ReleaseSetOutcome> {
-        let Some(active_resources) = self.active_sets.get(tool) else {
-            return ToolScheduleReport::new(ReleaseSetOutcome::NotHeld, Vec::new());
+        self.release_lease_captures(
+            lease_id,
+            ToolInputCaptureDisposition::OwnerLost,
+            &mut events,
+        );
+        let Some(lease) = self.detach_active_lease_state(lease_id, &mut events) else {
+            return ToolScheduleReport::new(ReleaseOutcome::NotHeld, Vec::new());
         };
-        if active_resources != resources {
-            return ToolScheduleReport::new(ReleaseSetOutcome::NotHeld, Vec::new());
-        }
-        for resource in resources.as_slice() {
-            match self.holder(*resource) {
-                Some(holder) if holder == tool => {}
-                Some(holder) => {
-                    return ToolScheduleReport::new(
-                        ReleaseSetOutcome::NotHolder {
-                            resource: *resource,
-                            holder: holder.clone(),
-                        },
-                        Vec::new(),
-                    );
-                }
-                None => return ToolScheduleReport::new(ReleaseSetOutcome::NotHeld, Vec::new()),
-            }
-        }
-
-        self.active_sets.remove(tool);
-        for resource in resources.as_slice() {
-            if let Some(state) = self.resources.get_mut(resource) {
-                state.holder = None;
-            }
-        }
-        let mut events = vec![ToolLifecycleEvent::SetDeactivated {
-            tool: tool.clone(),
-            resources: resources.clone(),
-        }];
-        let activated = self.promote_set_head(&mut events).map(|(tool, _)| tool);
-        if activated.is_none() && self.set_queue.is_empty() {
-            self.promote_waiting_single_resources(&mut events);
-        }
-        for resource in resources.as_slice() {
-            self.remove_empty_resource_state(*resource);
-        }
-        ToolScheduleReport::new(ReleaseSetOutcome::Released { activated }, events)
-    }
-
-    pub fn withdraw(
-        &mut self,
-        tool: &ToolId,
-        resource: ExclusiveResource,
-    ) -> ToolScheduleReport<WithdrawOutcome> {
-        let Some(state) = self.resources.get_mut(&resource) else {
-            return ToolScheduleReport::new(WithdrawOutcome::NotQueued, Vec::new());
-        };
-        let Some(index) = state.queue.iter().position(|queued| queued == tool) else {
-            return ToolScheduleReport::new(WithdrawOutcome::NotQueued, Vec::new());
-        };
-        let previous_position = index + 1;
-        if state.queue.remove(index).is_none() {
-            return ToolScheduleReport::new(WithdrawOutcome::NotQueued, Vec::new());
-        }
-
+        let activated_leases = self.promote_available_claims(&mut events);
+        self.remove_empty_resource_states();
         ToolScheduleReport::new(
-            WithdrawOutcome::Withdrawn { previous_position },
-            vec![ToolLifecycleEvent::Withdrawn {
-                tool: tool.clone(),
-                resource,
-                previous_position,
-            }],
-        )
-    }
-
-    pub fn withdraw_set(
-        &mut self,
-        tool: &ToolId,
-        resources: &ToolResourceSet,
-    ) -> ToolScheduleReport<WithdrawSetOutcome> {
-        let Some(index) = self
-            .set_queue
-            .iter()
-            .position(|request| &request.tool == tool && &request.resources == resources)
-        else {
-            return ToolScheduleReport::new(WithdrawSetOutcome::NotQueued, Vec::new());
-        };
-        let previous_position = index + 1;
-        if self.set_queue.remove(index).is_none() {
-            return ToolScheduleReport::new(WithdrawSetOutcome::NotQueued, Vec::new());
-        }
-        let mut events = vec![ToolLifecycleEvent::SetWithdrawn {
-            tool: tool.clone(),
-            resources: resources.clone(),
-            previous_position,
-        }];
-        let activated = self.promote_set_head(&mut events).map(|(tool, _)| tool);
-        if activated.is_none() && self.set_queue.is_empty() {
-            self.promote_waiting_single_resources(&mut events);
-        }
-        ToolScheduleReport::new(
-            WithdrawSetOutcome::Withdrawn {
-                previous_position,
-                activated,
+            ReleaseOutcome::Released {
+                lease,
+                activated_leases: activated_leases.into_boxed_slice(),
             },
             events,
         )
     }
 
-    pub fn release_all(&mut self, tool: &ToolId) -> ToolScheduleReport<ReleaseAllOutcome> {
-        let mut outcome = ReleaseAllOutcome::default();
+    pub fn withdraw(&mut self, request_id: ToolRequestId) -> ToolScheduleReport<WithdrawOutcome> {
+        let Some(request) = self.requests.get(&request_id).cloned() else {
+            return ToolScheduleReport::new(WithdrawOutcome::NotQueued, Vec::new());
+        };
+        let previous_position = self.request_position(&request).unwrap_or(1);
+        let mut events = Vec::new();
+        let Some(request) =
+            self.detach_queued_request_state(request_id, previous_position, &mut events)
+        else {
+            return ToolScheduleReport::new(WithdrawOutcome::NotQueued, Vec::new());
+        };
+        let activated_leases = self.promote_available_claims(&mut events);
+        self.remove_empty_resource_states();
+        ToolScheduleReport::new(
+            WithdrawOutcome::Withdrawn {
+                request,
+                previous_position,
+                activated_leases: activated_leases.into_boxed_slice(),
+            },
+            events,
+        )
+    }
+
+    pub(crate) fn revoke_owner_generation(
+        &mut self,
+        generation: ToolOwnerGeneration,
+        revoked_resource_kinds: &[ToolResourceKindId],
+    ) -> ToolScheduleReport<ToolOwnerRevokeOutcome> {
+        let lease_ids = self
+            .leases
+            .iter()
+            .filter_map(|(lease_id, lease)| {
+                (lease.owner_generation() == generation
+                    || claim_uses_revoked_kind(lease.resources(), revoked_resource_kinds))
+                .then_some(*lease_id)
+            })
+            .collect::<Vec<_>>();
+        let request_positions = self
+            .requests
+            .iter()
+            .filter_map(|(request_id, request)| {
+                (request.owner_generation() == generation
+                    || claim_uses_revoked_kind(request.resources(), revoked_resource_kinds))
+                .then(|| (*request_id, self.request_position(request).unwrap_or(1)))
+            })
+            .collect::<Vec<_>>();
         let mut events = Vec::new();
 
-        let queued_sets = self
-            .set_queue
-            .iter()
-            .filter(|request| &request.tool == tool)
-            .map(|request| request.resources.clone())
+        for lease_id in &lease_ids {
+            self.release_lease_captures(
+                *lease_id,
+                ToolInputCaptureDisposition::OwnerLost,
+                &mut events,
+            );
+        }
+        let released_leases = lease_ids
+            .into_iter()
+            .filter_map(|lease_id| self.detach_active_lease_state(lease_id, &mut events))
             .collect::<Vec<_>>();
-        for resources in queued_sets {
-            let report = self.withdraw_set(tool, &resources);
-            let (set_outcome, set_events) = report.into_parts();
-            if matches!(set_outcome, WithdrawSetOutcome::Withdrawn { .. }) {
-                outcome.withdrawn_resource_sets.push(resources);
+        let withdrawn_requests = request_positions
+            .into_iter()
+            .filter_map(|(request_id, previous_position)| {
+                self.detach_queued_request_state(request_id, previous_position, &mut events)
+            })
+            .collect::<Vec<_>>();
+        let activated_leases = self.promote_available_claims(&mut events);
+        self.remove_empty_resource_states();
+
+        ToolScheduleReport::new(
+            ToolOwnerRevokeOutcome::Revoked {
+                generation,
+                released_leases: released_leases.into_boxed_slice(),
+                withdrawn_requests: withdrawn_requests.into_boxed_slice(),
+                activated_leases: activated_leases.into_boxed_slice(),
+                revoked_resource_kinds: revoked_resource_kinds.to_vec().into_boxed_slice(),
+            },
+            events,
+        )
+    }
+
+    pub(crate) fn shutdown(&mut self) -> ToolScheduleReport<ToolShutdownOutcome> {
+        let capture_report = self.input_captures.shutdown();
+        let (_, capture_events) = capture_report.into_parts();
+        let queued = self
+            .requests
+            .values()
+            .cloned()
+            .map(|request| {
+                let position = self.request_position(&request).unwrap_or(1);
+                (request, position)
+            })
+            .collect::<Vec<_>>();
+        let leases = std::mem::take(&mut self.leases)
+            .into_values()
+            .collect::<Vec<_>>();
+        self.requests.clear();
+        self.instances.clear();
+        self.resources.clear();
+        self.set_queue.clear();
+
+        let mut outcome = ToolShutdownOutcome::default();
+        let mut events = Vec::with_capacity(
+            capture_events
+                .len()
+                .saturating_add(leases.len())
+                .saturating_add(queued.len()),
+        );
+        events.extend(
+            capture_events
+                .into_iter()
+                .map(|event| ToolLifecycleEvent::InputCapture { event }),
+        );
+        for lease in leases {
+            if lease.resources().len() == 1 {
+                outcome.released_single_leases += 1;
+            } else {
+                outcome.released_set_leases += 1;
             }
-            events.extend(set_events);
+            events.push(ToolLifecycleEvent::Deactivated { lease });
         }
-
-        if let Some(resources) = self.active_sets.get(tool).cloned() {
-            let report = self.release_set(tool, &resources);
-            let (set_outcome, set_events) = report.into_parts();
-            if let ReleaseSetOutcome::Released { activated } = set_outcome {
-                outcome.released_resource_sets.push(resources);
-                if let Some(activated_tool) = activated {
-                    if let Some(activated_resources) =
-                        self.active_sets.get(&activated_tool).cloned()
-                    {
-                        outcome
-                            .activated_resource_sets
-                            .push((activated_resources, activated_tool));
-                    }
-                }
+        for (request, previous_position) in queued {
+            if request.resources().len() == 1 {
+                outcome.withdrawn_single_requests += 1;
+            } else {
+                outcome.withdrawn_set_requests += 1;
             }
-            events.extend(set_events);
+            events.push(ToolLifecycleEvent::Withdrawn {
+                request,
+                previous_position,
+            });
         }
-
-        for resource in ExclusiveResource::ALL {
-            let withdrawn = self.withdraw(tool, resource);
-            let (withdrawn_outcome, withdrawn_events) = withdrawn.into_parts();
-            if matches!(withdrawn_outcome, WithdrawOutcome::Withdrawn { .. }) {
-                outcome.withdrawn_resources.push(resource);
-            }
-            events.extend(withdrawn_events);
-
-            let released = self.release(tool, resource);
-            let (released_outcome, released_events) = released.into_parts();
-            if let ReleaseOutcome::Released { activated } = released_outcome {
-                outcome.released_resources.push(resource);
-                if let Some(activated_tool) = activated {
-                    outcome.activated_tools.push((resource, activated_tool));
-                }
-            }
-            events.extend(released_events);
-        }
-
         ToolScheduleReport::new(outcome, events)
+    }
+
+    fn report_existing_claim(
+        &self,
+        instance: ToolInstanceId,
+        resources: ToolResourceSet,
+        existing: ClaimStateRef,
+    ) -> ToolScheduleReport<AcquireOutcome> {
+        match existing {
+            ClaimStateRef::Active(lease_id) => {
+                let lease = self.leases.get(&lease_id).cloned();
+                match lease {
+                    Some(lease) if lease.resources() == &resources => {
+                        ToolScheduleReport::new(AcquireOutcome::AlreadyHeld { lease }, Vec::new())
+                    }
+                    Some(lease) => {
+                        let reason = AcquireDenial::AlreadyHeld {
+                            resources: lease.resources().clone(),
+                        };
+                        ToolScheduleReport::new(
+                            AcquireOutcome::Denied {
+                                holder: Some(lease.clone()),
+                                reason: reason.clone(),
+                            },
+                            vec![ToolLifecycleEvent::Denied {
+                                instance,
+                                resources,
+                                holder: Some(lease),
+                                reason,
+                            }],
+                        )
+                    }
+                    None => self.denied(instance, resources, AcquireDenial::ClaimIdentityExhausted),
+                }
+            }
+            ClaimStateRef::Queued(request_id) => {
+                let request = self.requests.get(&request_id).cloned();
+                match request {
+                    Some(request) if request.resources() == &resources => {
+                        let position = self.request_position(&request).unwrap_or(1);
+                        ToolScheduleReport::new(
+                            AcquireOutcome::AlreadyQueued { request, position },
+                            Vec::new(),
+                        )
+                    }
+                    Some(request) => {
+                        let position = self.request_position(&request).unwrap_or(1);
+                        let reason = AcquireDenial::AlreadyQueued {
+                            resources: request.resources().clone(),
+                            position,
+                        };
+                        ToolScheduleReport::new(
+                            AcquireOutcome::Denied {
+                                holder: None,
+                                reason: reason.clone(),
+                            },
+                            vec![ToolLifecycleEvent::Denied {
+                                instance,
+                                resources,
+                                holder: None,
+                                reason,
+                            }],
+                        )
+                    }
+                    None => self.denied(instance, resources, AcquireDenial::ClaimIdentityExhausted),
+                }
+            }
+        }
+    }
+
+    fn denied(
+        &self,
+        instance: ToolInstanceId,
+        resources: ToolResourceSet,
+        reason: AcquireDenial,
+    ) -> ToolScheduleReport<AcquireOutcome> {
+        let holder = resources
+            .as_slice()
+            .iter()
+            .find_map(|resource| self.holder(resource).cloned());
+        ToolScheduleReport::new(
+            AcquireOutcome::Denied {
+                holder: holder.clone(),
+                reason: reason.clone(),
+            },
+            vec![ToolLifecycleEvent::Denied {
+                instance,
+                resources,
+                holder,
+                reason,
+            }],
+        )
+    }
+
+    fn reserve_request(
+        &mut self,
+        instance: ToolInstanceId,
+        resources: ToolResourceSet,
+    ) -> Option<ToolRequestHandle> {
+        let request_id = self.next_request_id?;
+        let lease_id = self.next_lease_id?;
+        self.next_request_id = request_id.checked_next();
+        self.next_lease_id = lease_id.checked_next();
+        Some(ToolRequestHandle::new(
+            request_id, lease_id, instance, resources,
+        ))
+    }
+
+    fn enqueue_request(&mut self, request: ToolRequestHandle) {
+        let request_id = request.id();
+        for resource in request.resources().as_slice() {
+            self.resources
+                .entry(resource.clone())
+                .or_default()
+                .queue
+                .push_back(request_id);
+        }
+        if request.resources().len() > 1 {
+            self.set_queue.push_back(request_id);
+        }
+        self.instances.insert(
+            request.instance().clone(),
+            ClaimStateRef::Queued(request_id),
+        );
+        self.requests.insert(request_id, request);
+    }
+
+    fn activate_reserved_request(&mut self, request: &ToolRequestHandle) -> ToolLeaseHandle {
+        let lease = ToolLeaseHandle::from_request(request);
+        for resource in lease.resources().as_slice() {
+            let state = self.resources.entry(resource.clone()).or_default();
+            debug_assert!(state.holder.is_none());
+            state.holder = Some(lease.id());
+        }
+        self.instances
+            .insert(lease.instance().clone(), ClaimStateRef::Active(lease.id()));
+        self.leases.insert(lease.id(), lease.clone());
+        lease
+    }
+
+    fn claim_can_activate_immediately(&self, resources: &ToolResourceSet) -> bool {
+        if !self.resources_are_available(resources) {
+            return false;
+        }
+        if resources.len() > 1 {
+            self.set_queue.is_empty()
+        } else {
+            !self.set_head_overlaps(&resources.as_slice()[0])
+        }
     }
 
     fn resources_are_available(&self, resources: &ToolResourceSet) -> bool {
         resources
             .as_slice()
             .iter()
-            .all(|resource| self.holder(*resource).is_none())
+            .all(|resource| self.holder(resource).is_none())
     }
 
-    fn activate_set(&mut self, tool: ToolId, resources: ToolResourceSet) {
-        for resource in resources.as_slice() {
-            self.resources.entry(*resource).or_default().holder = Some(tool.clone());
+    fn queue_limit(&self, resources: &ToolResourceSet) -> usize {
+        if resources.len() == 1 {
+            self.limits.max_single_queue_per_resource()
+        } else {
+            self.limits.max_set_queue()
         }
-        self.active_sets.insert(tool, resources);
     }
 
-    fn promote_set_head(
+    fn queue_len(&self, resources: &ToolResourceSet) -> usize {
+        if resources.len() > 1 {
+            return self.set_queue.len();
+        }
+        self.resources
+            .get(&resources.as_slice()[0])
+            .map(|state| {
+                state
+                    .queue
+                    .iter()
+                    .filter(|request_id| {
+                        self.requests
+                            .get(request_id)
+                            .is_some_and(|request| request.resources().len() == 1)
+                    })
+                    .count()
+            })
+            .unwrap_or_default()
+    }
+
+    fn request_position(&self, request: &ToolRequestHandle) -> Option<usize> {
+        if request.resources().len() > 1 {
+            return self
+                .set_queue
+                .iter()
+                .position(|request_id| *request_id == request.id())
+                .map(|index| index + 1);
+        }
+        let state = self.resources.get(&request.resources().as_slice()[0])?;
+        let mut position = 0;
+        for request_id in &state.queue {
+            let Some(candidate) = self.requests.get(request_id) else {
+                continue;
+            };
+            if candidate.resources().len() != 1 {
+                continue;
+            }
+            position += 1;
+            if *request_id == request.id() {
+                return Some(position);
+            }
+        }
+        None
+    }
+
+    fn detach_request(&mut self, request: &ToolRequestHandle) {
+        for resource in request.resources().as_slice() {
+            if let Some(state) = self.resources.get_mut(resource) {
+                state.queue.retain(|request_id| *request_id != request.id());
+            }
+        }
+        if request.resources().len() > 1 {
+            self.set_queue
+                .retain(|request_id| *request_id != request.id());
+        }
+    }
+
+    fn release_lease_captures(
+        &mut self,
+        lease_id: ToolLeaseId,
+        disposition: ToolInputCaptureDisposition,
+        events: &mut Vec<ToolLifecycleEvent>,
+    ) {
+        let capture_report = self.input_captures.release_lease(lease_id, disposition);
+        let (_, capture_events) = capture_report.into_parts();
+        events.extend(
+            capture_events
+                .into_iter()
+                .map(|event| ToolLifecycleEvent::InputCapture { event }),
+        );
+    }
+
+    fn detach_active_lease_state(
+        &mut self,
+        lease_id: ToolLeaseId,
+        events: &mut Vec<ToolLifecycleEvent>,
+    ) -> Option<ToolLeaseHandle> {
+        let lease = self.leases.remove(&lease_id)?;
+        for resource in lease.resources().as_slice() {
+            if let Some(state) = self.resources.get_mut(resource) {
+                debug_assert_eq!(state.holder, Some(lease_id));
+                if state.holder == Some(lease_id) {
+                    state.holder = None;
+                }
+            }
+        }
+        if self.instances.get(lease.instance()) == Some(&ClaimStateRef::Active(lease_id)) {
+            self.instances.remove(lease.instance());
+        }
+        events.push(ToolLifecycleEvent::Deactivated {
+            lease: lease.clone(),
+        });
+        Some(lease)
+    }
+
+    fn detach_queued_request_state(
+        &mut self,
+        request_id: ToolRequestId,
+        previous_position: usize,
+        events: &mut Vec<ToolLifecycleEvent>,
+    ) -> Option<ToolRequestHandle> {
+        let request = self.requests.get(&request_id).cloned()?;
+        self.detach_request(&request);
+        self.requests.remove(&request_id);
+        if self.instances.get(request.instance()) == Some(&ClaimStateRef::Queued(request_id)) {
+            self.instances.remove(request.instance());
+        }
+        events.push(ToolLifecycleEvent::Withdrawn {
+            request: request.clone(),
+            previous_position,
+        });
+        Some(request)
+    }
+
+    fn set_head_overlaps(&self, resource: &ToolResourceKey) -> bool {
+        self.set_queue
+            .front()
+            .and_then(|request_id| self.requests.get(request_id))
+            .is_some_and(|request| request.resources().as_slice().contains(resource))
+    }
+
+    fn promote_available_claims(
         &mut self,
         events: &mut Vec<ToolLifecycleEvent>,
-    ) -> Option<(ToolId, ToolResourceSet)> {
-        let request = self.set_queue.front()?.clone();
-        if !self.resources_are_available(&request.resources) {
-            return None;
-        }
-        self.set_queue.pop_front();
-        self.activate_set(request.tool.clone(), request.resources.clone());
-        events.push(ToolLifecycleEvent::SetActivated {
-            tool: request.tool.clone(),
-            resources: request.resources.clone(),
-        });
-        Some((request.tool, request.resources))
+    ) -> Vec<ToolLeaseHandle> {
+        let mut activated = self.promote_available_sets(events);
+        activated.extend(self.promote_waiting_singles(events));
+        activated
     }
 
-    fn promote_single_resource(
+    fn promote_available_sets(
         &mut self,
-        resource: ExclusiveResource,
         events: &mut Vec<ToolLifecycleEvent>,
-    ) -> Option<ToolId> {
-        let state = self.resources.get_mut(&resource)?;
-        if state.holder.is_some() {
-            return None;
+    ) -> Vec<ToolLeaseHandle> {
+        let mut activated = Vec::new();
+        loop {
+            let Some(request_id) = self.set_queue.front().copied() else {
+                break;
+            };
+            let Some(request) = self.requests.get(&request_id).cloned() else {
+                self.set_queue.pop_front();
+                continue;
+            };
+            if !self.resources_are_available(request.resources()) {
+                break;
+            }
+            self.detach_request(&request);
+            self.requests.remove(&request_id);
+            let lease = self.activate_reserved_request(&request);
+            events.push(ToolLifecycleEvent::Activated {
+                lease: lease.clone(),
+            });
+            activated.push(lease);
         }
-        let activated = state.queue.pop_front()?;
-        state.holder = Some(activated.clone());
-        events.push(ToolLifecycleEvent::Activated {
-            tool: activated.clone(),
-            resource,
-        });
-        Some(activated)
+        activated
     }
 
-    fn promote_waiting_single_resources(&mut self, events: &mut Vec<ToolLifecycleEvent>) {
-        for resource in ExclusiveResource::ALL {
-            self.promote_single_resource(resource, events);
+    fn promote_waiting_singles(
+        &mut self,
+        events: &mut Vec<ToolLifecycleEvent>,
+    ) -> Vec<ToolLeaseHandle> {
+        let mut activated = Vec::new();
+        let resources = self.resources.keys().cloned().collect::<Vec<_>>();
+        for resource in resources {
+            if self.holder(&resource).is_some() || self.set_head_overlaps(&resource) {
+                continue;
+            }
+            let request_id = self.resources.get(&resource).and_then(|state| {
+                state.queue.iter().copied().find(|request_id| {
+                    self.requests
+                        .get(request_id)
+                        .is_some_and(|request| request.resources().len() == 1)
+                })
+            });
+            let Some(request_id) = request_id else {
+                continue;
+            };
+            let Some(request) = self.requests.get(&request_id).cloned() else {
+                continue;
+            };
+            self.detach_request(&request);
+            self.requests.remove(&request_id);
+            let lease = self.activate_reserved_request(&request);
+            events.push(ToolLifecycleEvent::Activated {
+                lease: lease.clone(),
+            });
+            activated.push(lease);
         }
+        activated
     }
 
-    fn remove_empty_resource_state(&mut self, resource: ExclusiveResource) {
-        let remove_state = self
-            .resources
-            .get(&resource)
-            .is_some_and(|state| state.holder.is_none() && state.queue.is_empty());
-        if remove_state {
-            self.resources.remove(&resource);
-        }
+    fn remove_empty_resource_states(&mut self) {
+        self.resources
+            .retain(|_, state| state.holder.is_some() || !state.queue.is_empty());
     }
+}
+
+fn capture_schedule_report<O>(report: ToolInputCaptureReport<O>) -> ToolScheduleReport<O> {
+    let (outcome, capture_events) = report.into_parts();
+    ToolScheduleReport::new(
+        outcome,
+        capture_events
+            .into_iter()
+            .map(|event| ToolLifecycleEvent::InputCapture { event })
+            .collect(),
+    )
 }
 
 impl Default for ToolScheduler {
     fn default() -> Self {
-        Self::new(DEFAULT_MAX_QUEUE_PER_RESOURCE)
+        Self::new(ToolQueueLimits::default())
     }
+}
+
+fn claim_uses_revoked_kind(
+    resources: &ToolResourceSet,
+    revoked_resource_kinds: &[ToolResourceKindId],
+) -> bool {
+    resources.as_slice().iter().any(|resource| {
+        revoked_resource_kinds
+            .binary_search(resource.kind())
+            .is_ok()
+    })
 }

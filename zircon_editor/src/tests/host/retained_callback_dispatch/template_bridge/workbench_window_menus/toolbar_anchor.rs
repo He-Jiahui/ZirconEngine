@@ -36,19 +36,24 @@ fn workbench_toolbar_window_menus_anchor_to_toolbar_controls_across_widths() {
 }
 
 #[test]
-fn workbench_toolbar_window_menu_anchor_metrics_stay_shared() {
+fn workbench_toolbar_window_menus_do_not_snapshot_editor_owned_geometry() {
     let source = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
         "src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs",
     ))
     .expect("window menu state source should be readable");
 
-    assert!(source.contains("popup_anchor_metrics"));
-    assert!(
-        !source.contains("const TOOLBAR_POPUP_EDGE_MARGIN"),
-        "toolbar popup edge margin must stay in popup_anchor_metrics"
-    );
-    assert!(
-        !source.contains("const TOOLBAR_POPUP_RENDER_GAP"),
-        "toolbar popup render gap must stay in popup_anchor_metrics"
-    );
+    for removed_editor_geometry_owner in [
+        "popup_anchor_metrics",
+        "popup_anchor_x",
+        "popup_anchor_y",
+        "apply_toolbar_window_menu_anchor",
+        "apply_toolbar_menu_node_frame",
+        "node_position_for_absolute_frame",
+        "mark_layout_dirty",
+    ] {
+        assert!(
+            !source.contains(removed_editor_geometry_owner),
+            "toolbar popup geometry must be runtime-owned; found {removed_editor_geometry_owner}"
+        );
+    }
 }

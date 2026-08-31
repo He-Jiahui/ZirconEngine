@@ -21,7 +21,7 @@ pub use listener::{
     EditorEventListenerDelivery, EditorEventListenerDeliveryPage, EditorEventListenerDescriptor,
     EditorEventListenerFilter, EditorEventListenerRegistry, EditorEventListenerStatus,
 };
-pub use replay::EditorEventReplay;
+pub use replay::{EditorEventReplay, EditorEventReplayError};
 pub use retention::{
     EditorEventRetentionBudget, EditorEventRetentionBudgetSnapshot, EditorEventRetentionBudgets,
     EditorEventRetentionBudgetsSnapshot, EditorEventRetentionClass,

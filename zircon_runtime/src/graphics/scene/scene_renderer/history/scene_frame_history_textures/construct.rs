@@ -1,174 +1,180 @@
-use crate::core::framework::render::FroxelGridQuality;
 use crate::core::math::UVec2;
-use crate::graphics::scene::scene_renderer::post_process::params::exposure_params::default_exposure_buffer_words;
 use crate::graphics::scene::scene_renderer::temporal::taa::{
-    TemporalHistoryKey, TemporalHistoryStore, TAA_SCENE_COLOR_HISTORY_FORMAT,
+    TAA_SCENE_COLOR_HISTORY_FORMAT, TemporalHistoryKey, TemporalHistoryStore,
 };
-use crate::graphics::visibility::HzbBuilder;
-use wgpu::util::DeviceExt;
 
 use super::super::texture_extent::texture_extent;
-use super::scene_frame_history_textures::SceneFrameHistoryTextures;
+use super::super::{
+    ExposureHistoryBuffers, GlobalIlluminationHistory, HzbHistoryTexture,
+    SceneFrameHistoryRequirements, SceneHistoryAllocationChanges, SceneHistoryDomain,
+    ScreenSpaceReflectionHistory,
+};
 use super::VolumetricHistoryTexture;
+use super::scene_frame_history_textures::SceneFrameHistoryTextures;
 
 impl SceneFrameHistoryTextures {
-    pub(crate) fn new(
+    pub(crate) fn new_with_requirements_and_initialization(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         size: UVec2,
         render_size: UVec2,
-    ) -> Self {
-        Self::new_with_volumetric_history(device, queue, size, render_size, None)
+        requirements: SceneFrameHistoryRequirements,
+    ) -> (Self, Option<wgpu::CommandBuffer>) {
+        let taa_scene_color = requirements
+            .taa_scene_color()
+            .then(|| create_taa_scene_color_history(device, size));
+        let global_illumination = requirements
+            .hybrid_global_illumination()
+            .then(|| GlobalIlluminationHistory::new(device, size));
+        let screen_space_reflection = requirements
+            .screen_space_reflection()
+            .then(|| ScreenSpaceReflectionHistory::new(device, size));
+        let hzb_furthest = requirements
+            .hzb_furthest()
+            .then(|| HzbHistoryTexture::new(device, render_size));
+        let exposure = requirements
+            .exposure()
+            .then(|| ExposureHistoryBuffers::new(device));
+        let volumetric_scattering = requirements
+            .volumetric_scattering()
+            .map(|quality| VolumetricHistoryTexture::new(device, quality));
+
+        let initialization_command_buffer = clear_history_textures(
+            device,
+            taa_scene_color.as_ref(),
+            global_illumination.as_ref(),
+            screen_space_reflection.as_ref(),
+        );
+
+        (
+            Self {
+                size,
+                render_size,
+                requirements,
+                taa_scene_color,
+                global_illumination,
+                volumetric_scattering,
+                screen_space_reflection,
+                hzb_furthest,
+                exposure,
+                domain_states: Default::default(),
+            },
+            initialization_command_buffer,
+        )
     }
 
-    pub(crate) fn new_with_volumetric_history(
+    pub(crate) fn reconcile_with_requirements_and_initialization(
+        &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         size: UVec2,
         render_size: UVec2,
-        volumetric_quality: Option<FroxelGridQuality>,
-    ) -> Self {
-        let hzb_plan = HzbBuilder::new(render_size).build_plan();
-        let taa_scene_color_read = create_scene_color_history_texture(
-            device,
-            crate::core::framework::render::PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
+        requirements: SceneFrameHistoryRequirements,
+    ) -> (SceneHistoryAllocationChanges, Option<wgpu::CommandBuffer>) {
+        let changes = self.requirements.allocation_changes(
+            self.size,
+            self.render_size,
+            requirements,
             size,
-            TAA_SCENE_COLOR_HISTORY_FORMAT,
+            render_size,
         );
-        let taa_scene_color_read_view =
-            taa_scene_color_read.create_view(&wgpu::TextureViewDescriptor::default());
-        let taa_scene_color_write = create_scene_color_history_texture(
-            device,
-            crate::core::framework::render::PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
-            size,
-            TAA_SCENE_COLOR_HISTORY_FORMAT,
-        );
-        let taa_scene_color_write_view =
-            taa_scene_color_write.create_view(&wgpu::TextureViewDescriptor::default());
-        let global_illumination = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-history-global-illumination"),
-            size: texture_extent(size),
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: super::super::super::core::SCENE_COLOR_HDR_FORMAT,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING
-                | wgpu::TextureUsages::COPY_DST
-                | wgpu::TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
-        });
-        let global_illumination_view =
-            global_illumination.create_view(&wgpu::TextureViewDescriptor::default());
-        let global_illumination_temporal_metadata =
-            device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("zircon-history-global-illumination-temporal-metadata"),
-                size: texture_extent(size),
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba16Float,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING
-                    | wgpu::TextureUsages::COPY_DST
-                    | wgpu::TextureUsages::RENDER_ATTACHMENT,
-                view_formats: &[],
-            });
-        let global_illumination_temporal_metadata_view = global_illumination_temporal_metadata
-            .create_view(&wgpu::TextureViewDescriptor::default());
-        let ambient_occlusion = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-history-ambient-occlusion"),
-            size: texture_extent(size),
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING
-                | wgpu::TextureUsages::COPY_DST
-                | wgpu::TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
-        });
-        let ambient_occlusion_view =
-            ambient_occlusion.create_view(&wgpu::TextureViewDescriptor::default());
-        let screen_space_reflection = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-history-screen-space-reflection"),
-            size: texture_extent(size),
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: super::super::super::core::SCENE_COLOR_HDR_FORMAT,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING
-                | wgpu::TextureUsages::COPY_DST
-                | wgpu::TextureUsages::RENDER_ATTACHMENT,
-            view_formats: &[],
-        });
-        let screen_space_reflection_view =
-            screen_space_reflection.create_view(&wgpu::TextureViewDescriptor::default());
-        let hzb_furthest = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-history-hzb-furthest"),
-            size: texture_extent(hzb_plan.hzb_size),
-            mip_level_count: hzb_plan.mip_count,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba16Float,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-        let hzb_furthest_view = hzb_furthest.create_view(&wgpu::TextureViewDescriptor::default());
-        let exposure_read = create_exposure_history_buffer(device, "zircon-history-exposure-read");
-        let exposure_write =
-            create_exposure_history_buffer(device, "zircon-history-exposure-write");
-
-        clear_history_textures(
-            device,
-            queue,
-            &taa_scene_color_read_view,
-            &taa_scene_color_write_view,
-            &global_illumination_view,
-            &global_illumination_temporal_metadata_view,
-            &ambient_occlusion_view,
-            &screen_space_reflection_view,
-        );
-        let taa_scene_color = TemporalHistoryStore::new(
-            TemporalHistoryKey::new(size, TAA_SCENE_COLOR_HISTORY_FORMAT),
-            taa_scene_color_read,
-            taa_scene_color_read_view,
-            taa_scene_color_write,
-            taa_scene_color_write_view,
-        );
-
-        Self {
-            hzb_resource_identity:
-                crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity::new(),
-            size,
-            hzb_furthest_size: hzb_plan.hzb_size,
-            hzb_furthest_mip_count: hzb_plan.mip_count,
-            taa_scene_color,
-            global_illumination,
-            global_illumination_view,
-            global_illumination_temporal_metadata,
-            global_illumination_temporal_metadata_view,
-            global_illumination_history_valid: false,
-            volumetric_scattering: volumetric_quality
-                .map(|quality| VolumetricHistoryTexture::new(device, quality)),
-            ambient_occlusion,
-            ambient_occlusion_view,
-            screen_space_reflection,
-            screen_space_reflection_view,
-            hzb_furthest,
-            hzb_furthest_view,
-            exposure_read,
-            exposure_write,
+        if changes.is_empty() {
+            self.size = size;
+            self.render_size = render_size;
+            self.requirements = requirements;
+            return (changes, None);
         }
+
+        let taa_scene_color = changes.changed(SceneHistoryDomain::TaaSceneColor).then(|| {
+            requirements
+                .taa_scene_color()
+                .then(|| create_taa_scene_color_history(device, size))
+        });
+        let global_illumination = changes
+            .changed(SceneHistoryDomain::HybridGlobalIllumination)
+            .then(|| {
+                requirements
+                    .hybrid_global_illumination()
+                    .then(|| GlobalIlluminationHistory::new(device, size))
+            });
+        let screen_space_reflection = changes
+            .changed(SceneHistoryDomain::ScreenSpaceReflection)
+            .then(|| {
+                requirements
+                    .screen_space_reflection()
+                    .then(|| ScreenSpaceReflectionHistory::new(device, size))
+            });
+        let hzb_furthest = changes.changed(SceneHistoryDomain::HzbFurthest).then(|| {
+            requirements
+                .hzb_furthest()
+                .then(|| HzbHistoryTexture::new(device, render_size))
+        });
+        let exposure = changes.changed(SceneHistoryDomain::Exposure).then(|| {
+            requirements
+                .exposure()
+                .then(|| ExposureHistoryBuffers::new(device))
+        });
+        let volumetric_scattering = changes
+            .changed(SceneHistoryDomain::VolumetricScattering)
+            .then(|| {
+                requirements
+                    .volumetric_scattering()
+                    .map(|quality| VolumetricHistoryTexture::new(device, quality))
+            });
+
+        let initialization_command_buffer = clear_history_textures(
+            device,
+            taa_scene_color.as_ref().and_then(Option::as_ref),
+            global_illumination.as_ref().and_then(Option::as_ref),
+            screen_space_reflection.as_ref().and_then(Option::as_ref),
+        );
+
+        if let Some(replacement) = taa_scene_color {
+            self.taa_scene_color = replacement;
+        }
+        if let Some(replacement) = global_illumination {
+            self.global_illumination = replacement;
+        }
+        if let Some(replacement) = screen_space_reflection {
+            self.screen_space_reflection = replacement;
+        }
+        if let Some(replacement) = hzb_furthest {
+            self.hzb_furthest = replacement;
+        }
+        if let Some(replacement) = exposure {
+            self.exposure = replacement;
+        }
+        if let Some(replacement) = volumetric_scattering {
+            self.volumetric_scattering = replacement;
+        }
+        self.size = size;
+        self.render_size = render_size;
+        self.requirements = requirements;
+
+        (changes, initialization_command_buffer)
     }
 }
 
-fn create_exposure_history_buffer(device: &wgpu::Device, label: &'static str) -> wgpu::Buffer {
-    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some(label),
-        contents: bytemuck::cast_slice(&default_exposure_buffer_words()),
-        usage: wgpu::BufferUsages::STORAGE
-            | wgpu::BufferUsages::COPY_SRC
-            | wgpu::BufferUsages::COPY_DST,
-    })
+fn create_taa_scene_color_history(device: &wgpu::Device, size: UVec2) -> TemporalHistoryStore {
+    let read = create_scene_color_history_texture(
+        device,
+        crate::core::framework::render::PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
+        size,
+        TAA_SCENE_COLOR_HISTORY_FORMAT,
+    );
+    let read_view = read.create_view(&wgpu::TextureViewDescriptor::default());
+    let write = create_scene_color_history_texture(
+        device,
+        crate::core::framework::render::PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
+        size,
+        TAA_SCENE_COLOR_HISTORY_FORMAT,
+    );
+    let write_view = write.create_view(&wgpu::TextureViewDescriptor::default());
+    TemporalHistoryStore::new(
+        TemporalHistoryKey::new(size, TAA_SCENE_COLOR_HISTORY_FORMAT),
+        read,
+        read_view,
+        write,
+        write_view,
+    )
 }
 
 fn create_scene_color_history_texture(
@@ -191,66 +197,68 @@ fn create_scene_color_history_texture(
     })
 }
 
-#[allow(clippy::too_many_arguments)]
 fn clear_history_textures(
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    taa_read_view: &wgpu::TextureView,
-    taa_write_view: &wgpu::TextureView,
-    global_illumination_view: &wgpu::TextureView,
-    global_illumination_metadata_view: &wgpu::TextureView,
-    ambient_occlusion_view: &wgpu::TextureView,
-    screen_space_reflection_view: &wgpu::TextureView,
-) {
+    taa_scene_color: Option<&TemporalHistoryStore>,
+    global_illumination: Option<&GlobalIlluminationHistory>,
+    screen_space_reflection: Option<&ScreenSpaceReflectionHistory>,
+) -> Option<wgpu::CommandBuffer> {
+    if taa_scene_color.is_none()
+        && global_illumination.is_none()
+        && screen_space_reflection.is_none()
+    {
+        return None;
+    }
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-history-initialize-encoder"),
     });
-    {
-        let color_attachments = [
-            clear_attachment(taa_read_view, wgpu::Color::TRANSPARENT),
-            clear_attachment(taa_write_view, wgpu::Color::TRANSPARENT),
-            clear_attachment(global_illumination_view, wgpu::Color::TRANSPARENT),
-            clear_attachment(global_illumination_metadata_view, wgpu::Color::TRANSPARENT),
-        ];
+    let hdr_attachments = [
+        taa_scene_color
+            .map(|history| clear_attachment(history.previous_view(), wgpu::Color::TRANSPARENT)),
+        taa_scene_color
+            .map(|history| clear_attachment(history.current_view(), wgpu::Color::TRANSPARENT)),
+        global_illumination
+            .map(|history| clear_attachment(history.lighting_view(), wgpu::Color::TRANSPARENT)),
+        global_illumination.map(|history| {
+            clear_attachment(history.temporal_metadata_view(), wgpu::Color::TRANSPARENT)
+        }),
+    ];
+    let mut encoded_clear = false;
+    if hdr_attachments.iter().any(Option::is_some) {
         let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("zircon-history-initialize-hdr-pass"),
-            color_attachments: &color_attachments,
+            color_attachments: &hdr_attachments,
             depth_stencil_attachment: None,
             occlusion_query_set: None,
             timestamp_writes: None,
             multiview_mask: None,
         });
+        encoded_clear = true;
     }
-    {
-        let color_attachments = [
-            clear_attachment(screen_space_reflection_view, wgpu::Color::TRANSPARENT),
-            clear_attachment(
-                ambient_occlusion_view,
-                wgpu::Color {
-                    r: 1.0,
-                    g: 1.0,
-                    b: 1.0,
-                    a: 1.0,
-                },
-            ),
-        ];
+    if let Some(screen_space_reflection) = screen_space_reflection {
+        let color_attachments = [Some(clear_attachment(
+            screen_space_reflection.view(),
+            wgpu::Color::TRANSPARENT,
+        ))];
         let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("zircon-history-initialize-ssr-ao-pass"),
+            label: Some("zircon-history-initialize-ssr-pass"),
             color_attachments: &color_attachments,
             depth_stencil_attachment: None,
             occlusion_query_set: None,
             timestamp_writes: None,
             multiview_mask: None,
         });
+        encoded_clear = true;
     }
-    queue.submit([encoder.finish()]);
+    debug_assert!(encoded_clear);
+    Some(encoder.finish())
 }
 
 fn clear_attachment(
     view: &wgpu::TextureView,
     color: wgpu::Color,
-) -> Option<wgpu::RenderPassColorAttachment<'_>> {
-    Some(wgpu::RenderPassColorAttachment {
+) -> wgpu::RenderPassColorAttachment<'_> {
+    wgpu::RenderPassColorAttachment {
         view,
         resolve_target: None,
         depth_slice: None,
@@ -258,7 +266,7 @@ fn clear_attachment(
             load: wgpu::LoadOp::Clear(color),
             store: wgpu::StoreOp::Store,
         },
-    })
+    }
 }
 
 #[cfg(test)]
@@ -275,6 +283,64 @@ mod tests {
         assert!(!implementation.contains("write_texture("));
         assert_eq!(implementation.matches("begin_render_pass(").count(), 2);
         assert!(implementation.contains("zircon-history-initialize-hdr-pass"));
-        assert!(implementation.contains("zircon-history-initialize-ssr-ao-pass"));
+        assert!(implementation.contains("zircon-history-initialize-ssr-pass"));
+        assert!(!implementation.contains("zircon-history-ambient-occlusion"));
+        assert!(
+            implementation.contains("let initialization_command_buffer = clear_history_textures(")
+        );
+        assert!(implementation.contains("initialization_command_buffer,"));
+        assert!(implementation.contains("screen_space_reflection.is_none()"));
+        assert!(implementation.contains("return None"));
+        assert!(implementation.contains("Some(encoder.finish())"));
+        assert!(!implementation.contains("submit_graphics_command_buffers("));
+        assert!(!implementation.contains("enqueue_graphics_command_buffers("));
+        assert!(!implementation.contains("queue.submit("));
+    }
+
+    #[test]
+    fn every_physical_history_owner_is_guarded_by_compiled_requirements() {
+        let source = include_str!("construct.rs");
+        let implementation = source.split("#[cfg(test)]").next().unwrap();
+        let constructor = implementation
+            .split("pub(crate) fn new_with_requirements_and_initialization(")
+            .nth(1)
+            .and_then(|tail| {
+                tail.split("pub(crate) fn reconcile_with_requirements_and_initialization(")
+                    .next()
+            })
+            .expect("initial history constructor");
+
+        for requirement in [
+            ".taa_scene_color()",
+            ".hybrid_global_illumination()",
+            ".screen_space_reflection()",
+            ".hzb_furthest()",
+            ".exposure()",
+            ".volumetric_scattering()",
+        ] {
+            assert!(implementation.contains(requirement));
+        }
+        assert_eq!(constructor.matches(".then(||").count(), 5);
+        assert!(constructor.contains(".map(|quality| VolumetricHistoryTexture::new("));
+    }
+
+    #[test]
+    fn reconcile_applies_replacements_only_after_clear_commands_are_encoded() {
+        let source = include_str!("construct.rs");
+        let implementation = source.split("#[cfg(test)]").next().unwrap();
+        let clear = implementation
+            .rfind("let initialization_command_buffer = clear_history_textures(")
+            .expect("reconcile must encode clears for newly-created attachments");
+        let first_assignment = implementation[clear..]
+            .find("self.taa_scene_color = replacement;")
+            .map(|offset| clear + offset)
+            .expect("reconcile must publish the TAA replacement");
+        let commit_requirements = implementation[clear..]
+            .find("self.requirements = requirements;")
+            .map(|offset| clear + offset)
+            .expect("reconcile must publish requirements after clear encoding");
+
+        assert!(clear < first_assignment);
+        assert!(first_assignment < commit_requirements);
     }
 }

@@ -2,8 +2,8 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
     Arc,
+    atomic::{AtomicU64, Ordering},
 };
 
 use bincode::Options;
@@ -14,18 +14,22 @@ use crate::core::resource::{ResourceRecord, ResourceScheme};
 
 use super::cache_payload::ArtifactCacheAsset;
 use super::chunk_residency::{
-    chunk_path, ArtifactChunkDescriptor, ArtifactChunkInventory, ArtifactChunkResidency,
-    ArtifactChunkResidencyDiagnostics, ChunkReader, ARTIFACT_CHUNK_BYTES, ARTIFACT_CHUNK_DIRECTORY,
+    ARTIFACT_CHUNK_BYTES, ARTIFACT_CHUNK_DIRECTORY, ArtifactChunkDescriptor,
+    ArtifactChunkInventory, ArtifactChunkResidency, ArtifactChunkResidencyDiagnostics,
+    ArtifactChunkResidencyTrimReport, ChunkReader, chunk_path,
 };
 use crate::asset::project::ProjectPaths;
 use crate::asset::{
-    asset_kind_for_imported_asset, AssetImportError, AssetKind, AssetUri, ImportedAsset,
+    AssetImportError, AssetKind, AssetUri, ImportedAsset, asset_kind_for_imported_asset,
 };
 
 const ARTIFACT_CACHE_EXTENSION: &str = "zasset";
 const ARTIFACT_CACHE_SUFFIX: &str = ".zasset";
-const ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRARTM05";
-const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 5;
+// The artifact payload gained a cooked font blob. Its bincode encoding is
+// sequential, so caches written before this revision must be rejected before
+// payload deserialization rather than interpreted as the new layout.
+const ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRARTM06";
+const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 6;
 const ARTIFACT_STAGING_DIRECTORY: &str = ".staging";
 const ARTIFACT_CACHE_ZSTD_LEVEL: i32 = 1;
 const BLAKE3_HEX_LENGTH: usize = 64;
@@ -208,6 +212,14 @@ impl ArtifactStore {
         &self,
     ) -> Result<ArtifactChunkResidencyDiagnostics, AssetImportError> {
         Ok(self.chunk_residency.diagnostics()?)
+    }
+
+    /// Releases cache-owned compressed chunks and their eviction-index storage.
+    /// Caller-held chunks remain alive and are reported as external leases.
+    pub fn trim_chunk_residency(
+        &self,
+    ) -> Result<ArtifactChunkResidencyTrimReport, AssetImportError> {
+        Ok(self.chunk_residency.trim()?)
     }
 }
 
@@ -453,10 +465,10 @@ fn publish_chunks(
             break;
         }
         let bytes = &buffer[..bytes_read];
-        let content_hash = blake3::hash(bytes).to_hex().to_string();
-        let path = chunk_path(&chunk_root, &content_hash);
+        let content_hash: Arc<str> = Arc::from(blake3::hash(bytes).to_hex().as_str());
+        let path = chunk_path(&chunk_root, content_hash.as_ref());
         let matches_existing_content =
-            existing_chunk_matches(&path, &content_hash, bytes_read as u64)?;
+            existing_chunk_matches(&path, content_hash.as_ref(), bytes_read as u64)?;
         if !matches_existing_content {
             atomic_write(&path, bytes)?;
         }

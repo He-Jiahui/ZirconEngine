@@ -64,8 +64,10 @@ pub(crate) fn summarize_prepared_mesh_queue_items<K>(
 where
     K: Eq + Hash,
 {
+    let items = items.into_iter();
+    let (minimum_items, _) = items.size_hint();
     let mut stats = PreparedMeshQueueStats::default();
-    let mut candidate_groups = HashMap::<K, CandidateGroupCounts>::new();
+    let mut candidate_groups = HashMap::<K, CandidateGroupCounts>::with_capacity(minimum_items);
 
     for (
         profile,

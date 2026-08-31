@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 from pathlib import Path
 
 
@@ -19,14 +20,18 @@ APPROVED_WINDOWS_BUILD_ROOTS = (
 )
 
 
+@lru_cache(maxsize=1)
+def _resolved_approved_windows_build_roots() -> tuple[Path, ...]:
+    return tuple(Path(root).resolve() for root in APPROVED_WINDOWS_BUILD_ROOTS)
+
+
 def assert_managed_windows_build_root(out_root: Path) -> None:
     """Require Windows staging roots to physically resolve under an approved root."""
 
     if os.name != "nt":
         return
     resolved_root = out_root.resolve()
-    for root in APPROVED_WINDOWS_BUILD_ROOTS:
-        approved_root = Path(root).resolve()
+    for approved_root in _resolved_approved_windows_build_roots():
         try:
             resolved_root.relative_to(approved_root)
             return

@@ -15,6 +15,7 @@ pub(super) struct AssetRefreshEvents {
     pub(super) editor_asset_changes: Vec<EditorAssetChange>,
     pub(super) resource_changes: Vec<ResourceEvent>,
     pub(super) resource_generation_lagged: bool,
+    pub(super) active_scene_reload_requested: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -29,6 +30,7 @@ pub(in crate::ui::retained_host::app) struct AssetRefreshAccumulator {
     events: AssetRefreshEvents,
     deferred_since: Option<Instant>,
     last_event_at: Option<Instant>,
+    resource_sequence_exhausted: bool,
 }
 
 #[derive(Default)]
@@ -73,10 +75,14 @@ impl AssetRefreshEvents {
             && self.editor_asset_changes.is_empty()
             && self.resource_changes.is_empty()
             && !self.resource_generation_lagged
+            && !self.active_scene_reload_requested
     }
 
     fn event_count(&self) -> usize {
-        self.asset_changes.len() + self.editor_asset_changes.len() + self.resource_changes.len()
+        self.asset_changes.len()
+            + self.editor_asset_changes.len()
+            + self.resource_changes.len()
+            + usize::from(self.active_scene_reload_requested)
     }
 
     fn append(&mut self, mut next: Self) {
@@ -85,10 +91,31 @@ impl AssetRefreshEvents {
             .append(&mut next.editor_asset_changes);
         self.resource_changes.append(&mut next.resource_changes);
         self.resource_generation_lagged |= next.resource_generation_lagged;
+        self.active_scene_reload_requested |= next.active_scene_reload_requested;
     }
 }
 
 impl AssetRefreshAccumulator {
+    pub(super) fn resource_sequence_exhausted(&self) -> bool {
+        self.resource_sequence_exhausted
+    }
+
+    pub(super) fn latch_resource_sequence_exhaustion(&mut self) -> bool {
+        if self.resource_sequence_exhausted {
+            return false;
+        }
+        self.resource_sequence_exhausted = true;
+        true
+    }
+
+    pub(super) fn request_active_scene_reload(&mut self, now: Instant) -> Instant {
+        self.events.active_scene_reload_requested = true;
+        self.deferred_since.get_or_insert(now);
+        self.last_event_at = Some(now);
+        self.next_commit_deadline()
+            .expect("a requested active-scene reload has a commit deadline")
+    }
+
     pub(super) fn accumulate(
         &mut self,
         events: AssetRefreshEvents,
@@ -312,5 +339,42 @@ mod accumulation_policy_tests {
             accumulator.next_commit_deadline(),
             Some(now + MAX_ASSET_REFRESH_DEFERRAL)
         );
+    }
+
+    #[test]
+    fn superseded_active_scene_reload_is_coalesced_into_one_bounded_commit() {
+        let now = Instant::now();
+        let mut accumulator = AssetRefreshAccumulator::default();
+
+        assert_eq!(
+            accumulator.request_active_scene_reload(now),
+            now + ASSET_REFRESH_QUIET_PERIOD
+        );
+        assert!(accumulator
+            .accumulate(
+                AssetRefreshEvents::default(),
+                false,
+                now + ASSET_REFRESH_QUIET_PERIOD - Duration::from_millis(1),
+            )
+            .is_none());
+        let committed = accumulator
+            .accumulate(
+                AssetRefreshEvents::default(),
+                false,
+                now + ASSET_REFRESH_QUIET_PERIOD,
+            )
+            .expect("the synthetic reload must commit after the quiet period");
+
+        assert!(committed.active_scene_reload_requested);
+        assert!(accumulator.next_commit_deadline().is_none());
+    }
+
+    #[test]
+    fn resource_sequence_exhaustion_is_latched_once_for_the_host_lifetime() {
+        let mut accumulator = AssetRefreshAccumulator::default();
+
+        assert!(accumulator.latch_resource_sequence_exhaustion());
+        assert!(!accumulator.latch_resource_sequence_exhaustion());
+        assert!(accumulator.resource_sequence_exhausted());
     }
 }

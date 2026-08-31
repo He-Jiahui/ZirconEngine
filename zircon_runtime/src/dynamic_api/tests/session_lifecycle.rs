@@ -97,6 +97,35 @@ fn destroy_session_removes_registry_entry_only_after_event_mirror_quiescent_tear
 }
 
 #[test]
+fn session_scope_drains_before_modules_and_task_graph_stops_last() {
+    let session_state_source = include_str!("../session/state.rs");
+    let shutdown_start = session_state_source
+        .find("pub(super) fn shutdown_before_library_unload")
+        .expect("dynamic session shutdown owner");
+    let shutdown_end = session_state_source[shutdown_start..]
+        .find("\n    pub(super) fn new(")
+        .map(|offset| shutdown_start + offset)
+        .expect("dynamic session constructor after shutdown owner");
+    let shutdown_body = &session_state_source[shutdown_start..shutdown_end];
+    let close_admission = shutdown_body
+        .find("self.task_graph_scope.close_admission();")
+        .expect("session scope admission close");
+    let drain_scope = shutdown_body
+        .find(".wait_until_quiescent(DYNAMIC_SESSION_TASK_GRAPH_DRAIN_TIMEOUT)")
+        .expect("session scope drain");
+    let shutdown_modules = shutdown_body
+        .find(".shutdown_registered_modules_with_drain_timeout(")
+        .expect("runtime module shutdown");
+    let shutdown_task_graph = shutdown_body
+        .find(".shutdown_task_graph(DYNAMIC_SESSION_TASK_GRAPH_DRAIN_TIMEOUT)")
+        .expect("task graph shutdown");
+
+    assert!(close_admission < drain_scope);
+    assert!(drain_scope < shutdown_modules);
+    assert!(shutdown_modules < shutdown_task_graph);
+}
+
+#[test]
 fn create_session_validates_abi_and_startup_config_before_acquiring_the_dynamic_log_lease() {
     let session_source = include_str!("../session/ffi.rs");
     let create_start = session_source
@@ -122,8 +151,8 @@ fn create_session_validates_abi_and_startup_config_before_acquiring_the_dynamic_
 }
 
 #[test]
-fn create_session_aborts_before_dynamic_library_unload_when_post_lease_bootstrap_cannot_stop_the_worker()
- {
+fn create_session_aborts_before_dynamic_library_unload_when_post_lease_bootstrap_cannot_stop_the_worker(
+) {
     let session_source = include_str!("../session/ffi.rs");
     let create_start = session_source
         .find("pub(in crate::dynamic_api) unsafe fn create_session(")
@@ -257,7 +286,7 @@ fn session_destroy_reports_explicit_not_found_after_headless_destroy() {
 
 #[test]
 fn create_session_requires_output_pointer() {
-    let api = unsafe { &*zircon_runtime_get_api_v7(core::ptr::null()) };
+    let api = unsafe { &*zircon_runtime_get_api_v8(core::ptr::null()) };
     let create_session = api.create_session.expect("create_session");
     let status = unsafe {
         create_session(

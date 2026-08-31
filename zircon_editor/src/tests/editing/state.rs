@@ -1,6 +1,9 @@
+mod camera_authority;
 mod play_mode;
 mod selection;
 mod viewport;
+
+pub(crate) use viewport::{begin_moved_gizmo_drag, move_handle_drag_cursor_pair};
 
 use std::sync::Arc;
 

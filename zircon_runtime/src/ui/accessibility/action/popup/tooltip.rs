@@ -1,6 +1,8 @@
 use zircon_runtime_interface::ui::{
     accessibility::{UiA11yRole, UiAccessibilityNode},
-    dispatch::{UiDispatchEffect, UiDispatchReply, UiInputDispatchResult, UiTooltipEffectKind},
+    dispatch::{
+        UiDispatchEffect, UiDispatchReply, UiInputDispatchResult, UiInputEvent, UiTooltipEffectKind,
+    },
     event_ui::UiNodeId,
 };
 
@@ -28,8 +30,7 @@ pub(super) fn dispatch_tooltip_dismiss(
     tooltip_id: String,
     result: UiInputDispatchResult,
 ) -> UiInputDispatchResult {
-    let event = result.event.clone();
-    let mut notes = result.diagnostics.notes;
+    let (event, mut notes) = into_tooltip_dismiss_parts(result);
     let reply =
         UiDispatchReply::handled()
             .from_handler(target)
@@ -43,3 +44,14 @@ pub(super) fn dispatch_tooltip_dismiss(
     result.diagnostics.notes = notes;
     finish_tooltip_dismiss(result, target, tooltip_id)
 }
+
+fn into_tooltip_dismiss_parts(result: UiInputDispatchResult) -> (UiInputEvent, Vec<String>) {
+    let UiInputDispatchResult {
+        event, diagnostics, ..
+    } = result;
+    (event, diagnostics.notes)
+}
+
+#[cfg(test)]
+#[path = "tooltip/owned_result_event_tests.rs"]
+mod owned_result_event_tests;

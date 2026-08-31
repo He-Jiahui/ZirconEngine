@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::{
         UiLinearBoxConfig, UiLinearSlotSizeRule, UiLinearSlotSizing, UiMargin, UiPoint, UiSize,
         UiSizeBoxConfig, UiSlot, UiSlotKind, UiWrapBoxConfig,
     },
-    surface::{UiPointerButton, UiPointerEventKind},
+    surface::{UiPointerButton, UiPointerEventKind, UI_RENDER_FRAME_COMMAND_SEGMENT_SIZE},
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
 
@@ -128,12 +128,12 @@ fn taffy_flex_linear_slot_sizing_button_surface() -> UiSurface {
             ),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(ROOT_ID, BACK_ID, UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(2.0),
         ),
     );
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(ROOT_ID, FRONT_ID, UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
         ),
@@ -177,12 +177,12 @@ fn taffy_vertical_flex_linear_slot_sizing_button_surface() -> UiSurface {
             ),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(ROOT_ID, BACK_ID, UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(2.0),
         ),
     );
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(ROOT_ID, FRONT_ID, UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
         ),
@@ -209,7 +209,7 @@ fn taffy_flex_slot_policy_fallback_button_surface() -> UiSurface {
             layout_button_node_with_size(FRONT_ID, "root/front", "front.button", 40.0, 16.0, 10),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(ROOT_ID, FRONT_ID, UiSlotKind::Linear)
             .with_padding(UiMargin::new(10.0, 5.0, 10.0, 5.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::End)),
@@ -266,7 +266,7 @@ fn taffy_grid_slot_button_surface() -> UiSurface {
             layout_button_node_with_size(FRONT_ID, "root/front", "front.button", 40.0, 16.0, 10),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(ROOT_ID, FRONT_ID, UiSlotKind::Grid)
             .with_grid_placement(UiGridSlotPlacement::new(1, 1))
             .with_padding(UiMargin::new(2.0, 3.0, 4.0, 5.0))
@@ -292,7 +292,7 @@ fn zircon_size_box_button_surface() -> UiSurface {
             layout_button_node_with_size(FRONT_ID, "root/front", "front.button", 40.0, 16.0, 10),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(ROOT_ID, FRONT_ID, UiSlotKind::Container)
             .with_padding(UiMargin::new(10.0, 5.0, 10.0, 5.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::End)),
@@ -302,8 +302,8 @@ fn zircon_size_box_button_surface() -> UiSurface {
 
 fn button_node(
     node_id: UiNodeId,
-    node_path: &'static str,
-    control_id: &'static str,
+    node_path: &str,
+    control_id: &str,
     frame: UiFrame,
     z_index: i32,
 ) -> UiTreeNode {

@@ -1,5 +1,5 @@
-use std::any::{type_name, Any, TypeId};
-use std::collections::{BTreeSet, HashMap};
+use std::any::{Any, TypeId, type_name};
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use crate::scene::ecs::messages::id::{Message, MessageId};
@@ -10,7 +10,9 @@ pub struct MessageStore {
     stores: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
     type_names: HashMap<TypeId, &'static str>,
     advance_operations: HashMap<TypeId, fn(&mut (dyn Any + Send + Sync), u64) -> bool>,
-    active_channels: BTreeSet<TypeId>,
+    // RUNTIME130_MESSAGE_STORE_HASH_ACTIVE_CHANNELS_BENCH_V1
+    active_channels: HashSet<TypeId>,
+    active_channel_spare: HashSet<TypeId>,
     last_advance_channel_visits: usize,
     frame: u64,
 }
@@ -84,9 +86,10 @@ impl MessageStore {
 
     pub fn advance_frame(&mut self) {
         self.frame = self.frame.saturating_add(1);
-        let active_channels = std::mem::take(&mut self.active_channels);
-        self.last_advance_channel_visits = active_channels.len();
-        for type_id in active_channels {
+        std::mem::swap(&mut self.active_channels, &mut self.active_channel_spare);
+        self.active_channels.clear();
+        self.last_advance_channel_visits = self.active_channel_spare.len();
+        for type_id in self.active_channel_spare.drain() {
             let Some(advance) = self.advance_operations.get(&type_id) else {
                 continue;
             };
@@ -145,3 +148,7 @@ impl PartialEq for MessageStore {
         true
     }
 }
+
+#[cfg(test)]
+#[path = "store/hash_active_channel_tests.rs"]
+mod hash_active_channel_tests;

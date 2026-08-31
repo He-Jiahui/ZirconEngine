@@ -101,23 +101,17 @@ impl UiSurface {
         &self,
         route: &UiPointerRoute,
     ) -> Result<Option<UiNodeId>, UiTreeError> {
-        let hit_route = if route.stacked.is_empty() {
-            route.bubbled.as_slice()
-        } else {
-            route.stacked.as_slice()
-        };
-
-        for node_id in hit_route {
+        for node_id in route.hit_candidates() {
             let node = self
                 .tree
-                .node(*node_id)
-                .ok_or(UiTreeError::MissingNode(*node_id))?;
+                .node(node_id)
+                .ok_or(UiTreeError::MissingNode(node_id))?;
             if node
                 .template_metadata
                 .as_ref()
                 .is_some_and(super::is_table_owner)
             {
-                return Ok(Some(*node_id));
+                return Ok(Some(node_id));
             }
         }
         Ok(None)

@@ -79,9 +79,10 @@ fn runtime_15_gpu_texture_from_asset_tests_are_child_owner() {
         "quality anisotropy variants must reuse the shared texture sampler cache"
     );
     assert_contains_all(
-        "fallback textures consume the shared sampler cache",
+        "fallback textures project system resources while retaining streamer cache ownership",
         &fallback,
         &[
+            "SystemTextureGenerationLease",
             "sampler_cache: Arc<TextureSamplerCache>",
             "sampler_cache.sampler_for_image(device, &descriptor)",
             "sampler_cache,",
@@ -105,8 +106,11 @@ fn runtime_15_gpu_texture_from_asset_tests_are_child_owner() {
         "resource streamer constructs its sampler cache before fallback resources",
         &resource_streamer_construction,
         &[
-            "let texture_sampler_cache = Arc::new(TextureSamplerCache::new());",
+            "TextureSamplerCache::new()",
+            "TextureSamplerCache::new_with_linear_clamp_sampler",
             "Arc::clone(&texture_sampler_cache)",
+            "create_fallback_texture_from_system(",
+            "create_fallback_normal_texture_from_system(",
             "texture_sampler_cache,",
         ],
     );

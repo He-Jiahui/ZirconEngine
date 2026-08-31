@@ -28,8 +28,8 @@ control_id = "DocumentTabsRoot"
 classes = ["workbench-document-tabs", "workbench-tab-strip"]
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.chrome.document_header.height", preferred = "$editor.chrome.document_header.height", max = "$editor.chrome.document_header.height", stretch = "Fixed" } }
 events = [
-  { id = "DocumentTabs/ActivateTab", event = "Change", route = "workbench.dock.focus_view" },
-  { id = "DocumentTabs/CloseTab", event = "Submit", route = "workbench.dock.close_view" },
+  { id = "Workbench/ActivateDocumentTab", event = "Change", route = "workbench.document_tabs.activate" },
+  { id = "Workbench/CloseDocumentTab", event = "Submit", route = "workbench.document_tabs.close" },
 ]
 
 [nodes.viewport_toolbar]
@@ -43,7 +43,7 @@ children = [{ node = "viewport_mode" }, { node = "viewport_lit" }, { node = "vie
 component = "WorkbenchChip"
 control_id = "WorkbenchViewportMode"
 classes = ["workbench-chip"]
-props = { text = "Perspective", layout_min_height = "$editor.chrome.viewport_toolbar.height" }
+props = { text = "Perspective", responsive_min_tier = "narrow", layout_min_height = "$editor.chrome.viewport_toolbar.height" }
 layout = { width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
 
 [nodes.viewport_lit]
@@ -62,14 +62,14 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchChip"
 control_id = "WorkbenchViewportAngle"
 classes = ["workbench-chip"]
-props = { text = "10 deg", layout_min_height = "$editor.chrome.viewport_toolbar.height" }
+props = { text = "10 deg", responsive_min_tier = "regular", layout_min_height = "$editor.chrome.viewport_toolbar.height" }
 layout = { width = { min = 70.0, preferred = 70.0, max = 70.0, stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
 
 [nodes.viewport_speed]
 component = "WorkbenchChip"
 control_id = "WorkbenchViewportSpeed"
 classes = ["workbench-chip"]
-props = { text = "0.25", layout_min_height = "$editor.chrome.viewport_toolbar.height" }
+props = { text = "0.25", responsive_min_tier = "wide", layout_min_height = "$editor.chrome.viewport_toolbar.height" }
 layout = { width = { min = 70.0, preferred = 70.0, max = 70.0, stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
 
 [nodes.viewport_surface]

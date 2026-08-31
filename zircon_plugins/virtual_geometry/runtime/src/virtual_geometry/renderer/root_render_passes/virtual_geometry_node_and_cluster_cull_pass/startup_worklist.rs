@@ -1,6 +1,6 @@
 use crate::virtual_geometry::types::VirtualGeometryNodeAndClusterCullClusterWorkItem;
 use zircon_runtime::core::framework::render::{
-    ProjectionMode, RenderVirtualGeometryCullInputSnapshot,
+    ProjectionMode, RenderVirtualGeometryCluster, RenderVirtualGeometryCullInputSnapshot,
     RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot,
     RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,
     RenderVirtualGeometryNodeAndClusterCullInstanceSeed,
@@ -213,25 +213,51 @@ pub(super) fn build_node_and_cluster_cull_cluster_work_items(
         .map(|extract| extract.clusters.as_slice())
         .unwrap_or(&[]);
 
-    instance_work_items
-        .iter()
-        .flat_map(|work_item| {
-            (0..work_item.cluster_count).map(move |cluster_local_index| {
-                let cluster_array_index =
-                    work_item.cluster_offset.saturating_add(cluster_local_index);
-                VirtualGeometryNodeAndClusterCullClusterWorkItem {
-                    instance_index: work_item.instance_index,
-                    entity: work_item.entity,
-                    cluster_array_index,
-                    hierarchy_node_id: clusters
-                        .get(cluster_array_index as usize)
-                        .and_then(|cluster| cluster.hierarchy_node_id),
-                    cluster_budget: work_item.cluster_budget,
-                    page_budget: work_item.page_budget,
-                    forced_mip: work_item.forced_mip,
-                }
-            })
-        })
-        .take(cluster_work_item_limit as usize)
-        .collect()
+    build_node_and_cluster_cull_cluster_work_items_from_clusters(
+        clusters,
+        instance_work_items,
+        cluster_work_item_limit,
+    )
 }
+
+fn build_node_and_cluster_cull_cluster_work_items_from_clusters(
+    clusters: &[RenderVirtualGeometryCluster],
+    instance_work_items: &[RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem],
+    cluster_work_item_limit: u32,
+) -> Vec<VirtualGeometryNodeAndClusterCullClusterWorkItem> {
+    let item_limit = usize::try_from(cluster_work_item_limit).unwrap_or(usize::MAX);
+    if item_limit == 0 || instance_work_items.is_empty() {
+        return Vec::new();
+    }
+
+    let capacity = instance_work_items
+        .iter()
+        .map(|work_item| usize::try_from(work_item.cluster_count).unwrap_or(usize::MAX))
+        .fold(0_usize, usize::saturating_add)
+        .min(item_limit);
+    let mut cluster_work_items = Vec::with_capacity(capacity);
+    'instances: for work_item in instance_work_items {
+        for cluster_local_index in 0..work_item.cluster_count {
+            if cluster_work_items.len() == item_limit {
+                break 'instances;
+            }
+
+            let cluster_array_index = work_item.cluster_offset.saturating_add(cluster_local_index);
+            cluster_work_items.push(VirtualGeometryNodeAndClusterCullClusterWorkItem {
+                instance_index: work_item.instance_index,
+                entity: work_item.entity,
+                cluster_array_index,
+                hierarchy_node_id: clusters
+                    .get(cluster_array_index as usize)
+                    .and_then(|cluster| cluster.hierarchy_node_id),
+                cluster_budget: work_item.cluster_budget,
+                page_budget: work_item.page_budget,
+                forced_mip: work_item.forced_mip,
+            });
+        }
+    }
+    cluster_work_items
+}
+
+#[cfg(test)]
+mod allocation_tests;

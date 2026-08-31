@@ -5,6 +5,13 @@ use zircon_runtime_interface::ui::template::{UiAssetDocument, UiStyleDeclaration
 
 use super::theme_authoring::can_promote_local_theme_to_external_style_asset;
 
+#[derive(Clone, Copy, Debug)]
+struct ThemeRuleReference<'a> {
+    stylesheet_label: &'a str,
+    selector: &'a str,
+    block: &'a UiStyleDeclarationBlock,
+}
+
 pub(crate) fn build_theme_compare_items(
     document: &UiAssetDocument,
     imported_styles: &BTreeMap<String, UiAssetDocument>,
@@ -70,27 +77,29 @@ fn compare_imported_against_local(
 
     let imported_rules = selector_rule_blocks(imported);
     let local_rules = selector_rule_blocks(local);
-    for (selector, (imported_label, imported_block)) in &imported_rules {
-        match local_rules.get(selector) {
-            Some((_, local_block)) if local_block == imported_block => {
+    for (selector, imported_rule) in &imported_rules {
+        let imported_label = format_rule_label(imported_rule);
+        match local_rules.get(*selector) {
+            Some(local_rule) if local_rule.block == imported_rule.block => {
                 items.push(format!("shared • rule • {imported_label}"));
             }
-            Some((_, local_block)) => items.push(format!(
+            Some(local_rule) => items.push(format!(
                 "shadowed by local • rule • {imported_label} • imported {} • local {}",
-                format_rule_block(imported_block),
-                format_rule_block(local_block)
+                format_rule_block(imported_rule.block),
+                format_rule_block(local_rule.block)
             )),
             None => items.push(format!(
                 "imported-only • rule • {imported_label} • {}",
-                format_rule_block(imported_block)
+                format_rule_block(imported_rule.block)
             )),
         }
     }
-    for (selector, (local_label, local_block)) in &local_rules {
-        if !imported_rules.contains_key(selector) {
+    for (selector, local_rule) in &local_rules {
+        if !imported_rules.contains_key(*selector) {
+            let local_label = format_rule_label(local_rule);
             items.push(format!(
                 "local-only • rule • {local_label} • {}",
-                format_rule_block(local_block)
+                format_rule_block(local_rule.block)
             ));
         }
     }
@@ -142,36 +151,38 @@ fn compare_local_against_imports(
 
     let local_rules = selector_rule_blocks(local);
     let imported_rule_blocks = aggregated_rule_blocks(local, imported_styles);
-    for (selector, (local_label, local_block)) in &local_rules {
-        match imported_rule_blocks.get(selector) {
-            Some((_, imported_block)) if imported_block == local_block => {
+    for (selector, local_rule) in &local_rules {
+        let local_label = format_rule_label(local_rule);
+        match imported_rule_blocks.get(*selector) {
+            Some(imported_rule) if imported_rule.block == local_rule.block => {
                 items.push(format!("shared • rule • {local_label}"));
             }
-            Some((_, imported_block)) => items.push(format!(
+            Some(imported_rule) => items.push(format!(
                 "overrides imported • rule • {local_label} • imported {} • local {}",
-                format_rule_block(imported_block),
-                format_rule_block(local_block)
+                format_rule_block(imported_rule.block),
+                format_rule_block(local_rule.block)
             )),
             None => items.push(format!(
                 "local-only • rule • {local_label} • {}",
-                format_rule_block(local_block)
+                format_rule_block(local_rule.block)
             )),
         }
     }
-    for (selector, (imported_label, imported_block)) in imported_rule_blocks {
-        if !local_rules.contains_key(&selector) {
+    for (selector, imported_rule) in imported_rule_blocks {
+        if !local_rules.contains_key(selector) {
+            let imported_label = format_rule_label(&imported_rule);
             items.push(format!(
                 "inherited • rule • {imported_label} • {}",
-                format_rule_block(&imported_block)
+                format_rule_block(imported_rule.block)
             ));
         }
     }
     items
 }
 
-fn selector_rule_blocks(
-    document: &UiAssetDocument,
-) -> BTreeMap<String, (String, UiStyleDeclarationBlock)> {
+fn selector_rule_blocks<'a>(
+    document: &'a UiAssetDocument,
+) -> BTreeMap<&'a str, ThemeRuleReference<'a>> {
     let mut rules = BTreeMap::new();
     for stylesheet in &document.stylesheets {
         let stylesheet_label = if stylesheet.id.is_empty() {
@@ -181,21 +192,22 @@ fn selector_rule_blocks(
         };
         for rule in &stylesheet.rules {
             rules.insert(
-                rule.selector.clone(),
-                (
-                    format!("{stylesheet_label} • {}", rule.selector),
-                    rule.set.clone(),
-                ),
+                rule.selector.as_str(),
+                ThemeRuleReference {
+                    stylesheet_label,
+                    selector: rule.selector.as_str(),
+                    block: &rule.set,
+                },
             );
         }
     }
     rules
 }
 
-fn aggregated_rule_blocks(
-    local: &UiAssetDocument,
-    imported_styles: &BTreeMap<String, UiAssetDocument>,
-) -> BTreeMap<String, (String, UiStyleDeclarationBlock)> {
+fn aggregated_rule_blocks<'a>(
+    local: &'a UiAssetDocument,
+    imported_styles: &'a BTreeMap<String, UiAssetDocument>,
+) -> BTreeMap<&'a str, ThemeRuleReference<'a>> {
     let mut rules = BTreeMap::new();
     for reference in &local.imports.styles {
         let Some(imported) = imported_styles.get(reference) else {
@@ -206,6 +218,10 @@ fn aggregated_rule_blocks(
         }
     }
     rules
+}
+
+fn format_rule_label(rule: &ThemeRuleReference<'_>) -> String {
+    format!("{} • {}", rule.stylesheet_label, rule.selector)
 }
 
 fn format_rule_block(block: &UiStyleDeclarationBlock) -> String {
@@ -238,3 +254,7 @@ fn push_rule_block_value(entries: &mut Vec<String>, path: String, value: &Value)
 fn format_value(value: &Value) -> String {
     value.to_string()
 }
+
+#[cfg(test)]
+#[path = "theme_compare/borrowed_rule_index_tests.rs"]
+mod borrowed_rule_index_tests;

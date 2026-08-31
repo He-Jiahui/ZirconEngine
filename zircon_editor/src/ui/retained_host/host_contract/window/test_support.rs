@@ -43,7 +43,7 @@ impl UiHostWindow {
         x: f32,
         y: f32,
     ) -> NativePointerDispatchResult {
-        dispatch_native_pointer_move(self, x, y)
+        dispatch_native_pointer_move(self, x, y).0
     }
 
     pub(crate) fn dispatch_native_primary_press_for_test(

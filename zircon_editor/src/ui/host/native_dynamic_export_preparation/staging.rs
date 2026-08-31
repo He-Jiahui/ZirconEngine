@@ -311,15 +311,131 @@ pub(super) fn is_native_dynamic_artifact(path: &Path) -> bool {
     let Some(extension) = path.extension().and_then(|extension| extension.to_str()) else {
         return false;
     };
-    matches!(
-        extension.to_ascii_lowercase().as_str(),
-        "dll" | "so" | "dylib" | "pdb" | "dbg" | "dsym"
-    )
+    match extension.len() {
+        2 => extension.eq_ignore_ascii_case("so"),
+        3 => {
+            extension.eq_ignore_ascii_case("dll")
+                || extension.eq_ignore_ascii_case("pdb")
+                || extension.eq_ignore_ascii_case("dbg")
+        }
+        4 => extension.eq_ignore_ascii_case("dsym"),
+        5 => extension.eq_ignore_ascii_case("dylib"),
+        _ => false,
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use super::*;
+
+    fn legacy_is_native_dynamic_artifact(path: &Path) -> bool {
+        let Some(extension) = path.extension().and_then(|extension| extension.to_str()) else {
+            return false;
+        };
+        matches!(
+            extension.to_ascii_lowercase().as_str(),
+            "dll" | "so" | "dylib" | "pdb" | "dbg" | "dsym"
+        )
+    }
+
+    #[test]
+    fn optimization_batch_et_native_artifact_extensions_preserve_case_insensitive_matching() {
+        for name in [
+            "plugin.dll",
+            "plugin.SO",
+            "plugin.DyLiB",
+            "plugin.PDB",
+            "plugin.dbg",
+            "plugin.DSYM",
+            "plugin.txt",
+            "plugin",
+        ] {
+            let path = Path::new(name);
+            assert_eq!(
+                is_native_dynamic_artifact(path),
+                legacy_is_native_dynamic_artifact(path),
+                "extension classification diverged for {name}"
+            );
+        }
+    }
+
+    #[test]
+    #[ignore = "release-only allocation-free artifact extension benchmark"]
+    fn optimization_batch_et_native_artifact_extension_release_benchmark_evidence() {
+        const SAMPLE_PAIRS: usize = 17;
+        const CHECKS_PER_SAMPLE: usize = 262_144;
+
+        fn measure(path: &Path, classify: fn(&Path) -> bool) -> u128 {
+            let started = Instant::now();
+            let mut matched = 0_usize;
+            for _ in 0..CHECKS_PER_SAMPLE {
+                matched = matched.wrapping_add(usize::from(classify(black_box(path))));
+            }
+            black_box(matched);
+            started.elapsed().as_nanos().max(1)
+        }
+
+        fn percentile(samples: &[u128], percentile: usize) -> u128 {
+            let mut sorted = samples.to_vec();
+            sorted.sort_unstable();
+            let rank = (sorted.len() * percentile).div_ceil(100);
+            sorted[rank.saturating_sub(1)]
+        }
+
+        fn raw(samples: &[u128]) -> String {
+            samples
+                .iter()
+                .map(u128::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        }
+
+        let path = Path::new("plugins/render_backend.DSYM");
+        assert_eq!(
+            is_native_dynamic_artifact(path),
+            legacy_is_native_dynamic_artifact(path)
+        );
+        for _ in 0..4 {
+            black_box(measure(path, legacy_is_native_dynamic_artifact));
+            black_box(measure(path, is_native_dynamic_artifact));
+        }
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample in 0..SAMPLE_PAIRS {
+            if sample % 2 == 0 {
+                legacy_samples.push(measure(path, legacy_is_native_dynamic_artifact));
+                optimized_samples.push(measure(path, is_native_dynamic_artifact));
+            } else {
+                optimized_samples.push(measure(path, is_native_dynamic_artifact));
+                legacy_samples.push(measure(path, legacy_is_native_dynamic_artifact));
+            }
+        }
+
+        let legacy_p50_ns = percentile(&legacy_samples, 50);
+        let optimized_p50_ns = percentile(&optimized_samples, 50);
+        let legacy_p95_ns = percentile(&legacy_samples, 95);
+        let optimized_p95_ns = percentile(&optimized_samples, 95);
+        println!(
+            "EDITOR382_ALLOCATION_FREE_ARTIFACT_EXTENSION_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
+             checks_per_sample={CHECKS_PER_SAMPLE} extension=DSYM \
+             pair_order=alternating_legacy_even legacy_lowercase_allocations_per_check=1 \
+             optimized_lowercase_allocations_per_check=0 legacy_p50_ns={legacy_p50_ns} \
+             optimized_p50_ns={optimized_p50_ns} legacy_p95_ns={legacy_p95_ns} \
+             optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            raw(&legacy_samples),
+            raw(&optimized_samples),
+        );
+
+        assert!(
+            optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(55),
+            "allocation-free artifact extension matching must reduce P95 by at least 45%: \
+             legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
+        );
+    }
 
     #[test]
     fn unchanged_warm_staging_copies_zero_files_and_bytes() {

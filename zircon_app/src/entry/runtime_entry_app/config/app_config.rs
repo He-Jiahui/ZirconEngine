@@ -12,6 +12,7 @@ pub(in crate::entry) struct RuntimeEntryAppConfig {
     pub(in crate::entry::runtime_entry_app) exit_after_presented_frames: Option<NonZeroU64>,
     pub(in crate::entry::runtime_entry_app) first_frame_capture_path: Option<ResolvedProjectPath>,
     pub(in crate::entry::runtime_entry_app) require_persisted_scene_diagnostics: bool,
+    pub(in crate::entry::runtime_entry_app) reference_cpu_presenter: bool,
 }
 
 impl RuntimeEntryAppConfig {
@@ -73,6 +74,11 @@ impl RuntimeEntryAppConfig {
         self
     }
 
+    pub(in crate::entry) fn with_reference_cpu_presenter(mut self, enabled: bool) -> Self {
+        self.reference_cpu_presenter = enabled;
+        self
+    }
+
     #[cfg(test)]
     pub(in crate::entry) fn window_descriptor(&self) -> &WindowDescriptor {
         &self.window_descriptor
@@ -107,6 +113,11 @@ impl RuntimeEntryAppConfig {
     pub(in crate::entry) fn require_persisted_scene_diagnostics(&self) -> bool {
         self.require_persisted_scene_diagnostics
     }
+
+    #[cfg(test)]
+    pub(in crate::entry) fn reference_cpu_presenter(&self) -> bool {
+        self.reference_cpu_presenter
+    }
 }
 
 impl Default for RuntimeEntryAppConfig {
@@ -118,6 +129,7 @@ impl Default for RuntimeEntryAppConfig {
             exit_after_presented_frames: None,
             first_frame_capture_path: None,
             require_persisted_scene_diagnostics: false,
+            reference_cpu_presenter: false,
         }
     }
 }
@@ -140,6 +152,7 @@ mod tests {
             .window_lifecycle_policy
             .should_exit_after_primary_close());
         assert!(!config.exit_after_first_presented_frame());
+        assert!(!config.reference_cpu_presenter());
     }
 
     #[test]
@@ -208,5 +221,12 @@ mod tests {
         let config = RuntimeEntryAppConfig::default().with_persisted_scene_diagnostics(true);
 
         assert!(config.require_persisted_scene_diagnostics());
+    }
+
+    #[test]
+    fn runtime_entry_app_config_requires_explicit_reference_cpu_presenter_opt_in() {
+        let config = RuntimeEntryAppConfig::default().with_reference_cpu_presenter(true);
+
+        assert!(config.reference_cpu_presenter());
     }
 }

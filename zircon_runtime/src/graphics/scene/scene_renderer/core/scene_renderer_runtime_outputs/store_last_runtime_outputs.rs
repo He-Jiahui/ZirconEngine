@@ -17,10 +17,7 @@ pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outpu
     renderer.last_render_graph_execution = render_graph_execution;
     renderer.last_prepared_mesh_queue_stats = prepared_mesh_queue_stats;
     renderer.last_prepared_sprite_queue_stats = prepared_sprite_queue_stats;
-    advanced_plugin_readbacks.collect_into_outputs(
-        &renderer.backend.device,
-        &mut renderer.advanced_plugin_outputs,
-    )?;
+    advanced_plugin_readbacks.collect_into_outputs(&mut renderer.advanced_plugin_outputs)?;
     if let Some(report) = output_target_graph_import_report {
         renderer
             .streamer

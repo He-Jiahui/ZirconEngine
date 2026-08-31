@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{UVec2, Vec4};
 
@@ -217,6 +219,7 @@ fn resolve_active_camera_sequence(
             });
         }
     }
+    let active_by_entity = index_active_cameras(&active);
 
     for base in active
         .iter()
@@ -225,11 +228,7 @@ fn resolve_active_camera_sequence(
     {
         let mut overlays = Vec::new();
         for referenced in &base.stack {
-            match active
-                .iter()
-                .map(|camera| camera.camera_descriptor())
-                .find(|camera| camera.entity == Some(*referenced))
-            {
+            match active_by_entity.get(referenced).copied() {
                 None => violations.push(CameraSequenceViolation {
                     entity: base.entity,
                     reason: CameraSequenceViolationReason::BaseStackReferencesMissingCamera {
@@ -271,6 +270,19 @@ fn resolve_active_camera_sequence(
         sequence,
         violations,
     }
+}
+
+fn index_active_cameras<'a, T: CameraDescriptorRef>(
+    active: &'a [T],
+) -> HashMap<EntityId, &'a CameraRenderDescriptor> {
+    let mut index = HashMap::with_capacity(active.len());
+    for camera in active {
+        let camera = camera.camera_descriptor();
+        if let Some(entity) = camera.entity {
+            index.entry(entity).or_insert(camera);
+        }
+    }
+    index
 }
 
 #[cfg(test)]
@@ -444,6 +456,78 @@ mod tests {
         assert_eq!(report.sequence[0].overlays[0].entity, Some(2));
         assert_eq!(cameras.len(), 2);
         assert!(!report.has_violations());
+    }
+
+    #[test]
+    fn runtime37_batch_camera_entity_index_preserves_first_match() {
+        let first = descriptor(
+            -10,
+            7,
+            CameraRenderType::Overlay,
+            RenderCameraTarget::PrimarySurface,
+        );
+        let second = descriptor(
+            10,
+            7,
+            CameraRenderType::Overlay,
+            RenderCameraTarget::PrimarySurface,
+        );
+        let active = vec![first, second];
+
+        let index = index_active_cameras(&active);
+
+        assert_eq!(index.get(&7).map(|camera| camera.render_order), Some(-10));
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn runtime37_batch_camera_stack_entity_index_evidence() {
+        const CAMERA_COUNT: usize = 10_000;
+        const REFERENCE_COUNT: usize = 10_000;
+        const TARGET_MILLIS: u128 = 500;
+        const MARKER: &str = "RUNTIME37_CAMERA_STACK_INDEX_BENCH_V1";
+
+        let last_entity = CAMERA_COUNT as u64;
+        let base = descriptor(
+            0,
+            1,
+            CameraRenderType::Base,
+            RenderCameraTarget::PrimarySurface,
+        )
+        .with_stack(vec![last_entity; REFERENCE_COUNT]);
+        let mut cameras = Vec::with_capacity(CAMERA_COUNT);
+        cameras.push(base);
+        cameras.extend((2..=last_entity).map(|entity| {
+            descriptor(
+                entity as i32,
+                entity,
+                CameraRenderType::Overlay,
+                RenderCameraTarget::PrimarySurface,
+            )
+        }));
+
+        let started = std::time::Instant::now();
+        let report = resolve_camera_sequence(cameras);
+        let elapsed = started.elapsed();
+        let legacy_entity_comparisons = CAMERA_COUNT * REFERENCE_COUNT;
+        let indexed_operations = CAMERA_COUNT + REFERENCE_COUNT;
+
+        assert!(!report.has_violations());
+        assert_eq!(report.sequence.len(), 1);
+        assert_eq!(report.sequence[0].overlays.len(), REFERENCE_COUNT);
+        assert!(report.sequence[0]
+            .overlays
+            .iter()
+            .all(|camera| camera.entity == Some(last_entity)));
+        assert!(
+            elapsed.as_millis() <= TARGET_MILLIS,
+            "{MARKER} elapsed_ms={} target_ms={TARGET_MILLIS}",
+            elapsed.as_millis()
+        );
+        println!(
+            "{MARKER} cameras={CAMERA_COUNT} references={REFERENCE_COUNT} legacy_entity_comparisons={legacy_entity_comparisons} indexed_operations={indexed_operations} reduction_pct=99.98 elapsed_ms={} target_ms={TARGET_MILLIS}",
+            elapsed.as_millis()
+        );
     }
 
     fn descriptor(

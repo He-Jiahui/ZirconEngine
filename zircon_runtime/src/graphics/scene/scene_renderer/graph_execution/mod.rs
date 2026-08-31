@@ -10,6 +10,8 @@ mod preview_sky_executor;
 mod render_graph_execution_record;
 mod render_graph_execution_resource_identities;
 mod render_graph_execution_resources;
+mod render_pass_device_epoch;
+mod render_pass_device_epoch_cache;
 mod render_pass_execution_context;
 mod render_pass_executor_id;
 mod render_pass_executor_registration;
@@ -25,8 +27,12 @@ pub use render_graph_execution_record::{
 };
 pub use render_graph_execution_resources::RenderGraphExecutionResources;
 pub(in crate::graphics::scene::scene_renderer) use render_graph_execution_resources::RenderGraphImportedFinalTarget;
+pub use render_pass_device_epoch::RenderPassDeviceEpoch;
+pub(in crate::graphics::scene::scene_renderer) use render_pass_device_epoch_cache::RenderPassDeviceEpochCache;
 pub use render_pass_execution_context::{
-    ParticleGpuTransparentDrawContext, RenderPassExecutionContext, RenderPassGpuExecutionContext,
+    ParticleGpuTransparentDrawContext, RenderPassBufferUploadRecorder, RenderPassBufferUploadSink,
+    RenderPassExecutionContext, RenderPassGpuExecutionContext, RenderPassGpuNativeContext,
+    RenderPassGpuRecordingContext, RenderPassGpuResourceFactory,
 };
 pub(in crate::graphics::scene::scene_renderer) use render_pass_execution_context::{
     RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
@@ -36,4 +42,6 @@ pub use render_pass_executor_registration::{
     RenderPassExecutor, RenderPassExecutorRegistration, RenderPassRecordingPolicy,
 };
 pub use render_pass_executor_registry::{RenderPassExecutorFn, RenderPassExecutorRegistry};
-pub(in crate::graphics::scene::scene_renderer) use transient_resource_pool::TransientResourcePool;
+pub(in crate::graphics::scene::scene_renderer) use transient_resource_pool::{
+    TransientBufferAllocation, TransientResourcePool, TransientTextureAllocation,
+};

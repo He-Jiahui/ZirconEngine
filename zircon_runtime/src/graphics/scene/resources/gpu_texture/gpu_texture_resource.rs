@@ -121,11 +121,7 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 {
-        1
-    } else {
-        shifted
-    }
+    if shifted == 0 { 1 } else { shifted }
 }
 
 fn rgba8_mip_streaming_upload_bytes(
@@ -154,7 +150,7 @@ fn rgba8_mip_streaming_upload_bytes(
 
 #[cfg(test)]
 mod tests {
-    use super::{rgba8_mip_streaming_upload_bytes, GpuTextureResource};
+    use super::{GpuTextureResource, rgba8_mip_streaming_upload_bytes};
 
     #[test]
     fn mip_streaming_upload_bytes_excludes_mips_copied_from_prior_residency() {

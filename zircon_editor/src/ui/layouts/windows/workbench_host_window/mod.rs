@@ -58,6 +58,8 @@ pub(crate) use scene_projection::{
     build_host_dock_surface_patch, build_host_scene_data_with_cache, HostDockSurfaceId,
     HostDockSurfacePatch,
 };
-pub(crate) use scene_projection::{build_host_scene_data, build_native_floating_surface_data};
+pub(crate) use scene_projection::{
+    build_host_scene_data, build_host_scene_geometry, build_native_floating_surface_data,
+};
 pub(crate) use shell_content_selection::{document_pane_selection, side_pane_selection};
 pub(crate) use shell_presentation::{build_host_window_shell_data, ShellPresentation};

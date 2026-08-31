@@ -8,11 +8,21 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
     let dynamic_mesh = spawn_mesh_on_layer(&mut world, 0b0010, Mobility::Dynamic);
     let static_mesh = spawn_mesh_on_layer(&mut world, 0b0100, Mobility::Static);
     let sprite = spawn_sprite_on_layer(&mut world, 0b0010);
-    let ambient = world.spawn_node(NodeKind::AmbientLight);
-    let directional = world.spawn_node(NodeKind::DirectionalLight);
-    let point = world.spawn_node(NodeKind::PointLight);
-    let rect = world.spawn_node(NodeKind::RectLight);
-    let spot = world.spawn_node(NodeKind::SpotLight);
+    let ambient = world
+        .spawn_node(NodeKind::AmbientLight)
+        .expect("test scene spawn should succeed");
+    let directional = world
+        .spawn_node(NodeKind::DirectionalLight)
+        .expect("test scene spawn should succeed");
+    let point = world
+        .spawn_node(NodeKind::PointLight)
+        .expect("test scene spawn should succeed");
+    let rect = world
+        .spawn_node(NodeKind::RectLight)
+        .expect("test scene spawn should succeed");
+    let spot = world
+        .spawn_node(NodeKind::SpotLight)
+        .expect("test scene spawn should succeed");
 
     world
         .update_transform(
@@ -103,11 +113,13 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
             && input.mesh_index == static_index
             && input.material_alpha_mode == RenderMaterialAlphaMode::Blend
     }));
-    assert!(extract
-        .geometry
-        .phase_queue
-        .items_for_phase(RenderPhase::Transparent3d)
-        .any(|item| item.mesh_source == RenderPhaseMeshSource::MeshIndex(static_index)));
+    assert!(
+        extract
+            .geometry
+            .phase_queue
+            .items_for_phase(RenderPhase::Transparent3d)
+            .any(|item| item.mesh_source == RenderPhaseMeshSource::MeshIndex(static_index))
+    );
 
     assert_eq!(extract.sprites.sprites.len(), 1);
     assert_eq!(extract.sprites.sprites[0].entity, sprite);
@@ -118,44 +130,58 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
             .to_scene_schema_v1_mask_lossy(),
         0b0010
     );
-    assert!(extract
-        .sprites
-        .phase_queue
-        .items_for_phase(RenderPhase::Transparent3d)
-        .any(|item| item.mesh_source == RenderPhaseMeshSource::SpriteIndex(0)));
+    assert!(
+        extract
+            .sprites
+            .phase_queue
+            .items_for_phase(RenderPhase::Transparent3d)
+            .any(|item| item.mesh_source == RenderPhaseMeshSource::SpriteIndex(0))
+    );
 
     assert_eq!(extract.lighting.ambient_lights.len(), 1);
     assert_eq!(extract.lighting.directional_lights.len(), 1);
-    assert!(extract
-        .lighting
-        .point_lights
-        .iter()
-        .any(|light| light.node_id == point && light.position == Vec3::new(1.0, 2.0, 3.0)));
-    assert!(extract
-        .lighting
-        .rect_lights
-        .iter()
-        .any(|light| light.node_id == rect));
-    assert!(extract
-        .lighting
-        .spot_lights
-        .iter()
-        .any(|light| light.node_id == spot));
-    assert!(extract
-        .lighting
-        .directional_lights
-        .iter()
-        .any(|light| light.node_id == directional));
-    assert!(extract
-        .lighting
-        .ambient_lights
-        .iter()
-        .any(|light| light.color == AmbientLight::default().color));
-    assert!(extract
-        .lighting
-        .hybrid_global_illumination
-        .as_ref()
-        .is_some_and(|gi| !gi.enabled));
+    assert!(
+        extract
+            .lighting
+            .point_lights
+            .iter()
+            .any(|light| light.node_id == point && light.position == Vec3::new(1.0, 2.0, 3.0))
+    );
+    assert!(
+        extract
+            .lighting
+            .rect_lights
+            .iter()
+            .any(|light| light.node_id == rect)
+    );
+    assert!(
+        extract
+            .lighting
+            .spot_lights
+            .iter()
+            .any(|light| light.node_id == spot)
+    );
+    assert!(
+        extract
+            .lighting
+            .directional_lights
+            .iter()
+            .any(|light| light.node_id == directional)
+    );
+    assert!(
+        extract
+            .lighting
+            .ambient_lights
+            .iter()
+            .any(|light| light.color == AmbientLight::default().color)
+    );
+    assert!(
+        extract
+            .lighting
+            .hybrid_global_illumination
+            .as_ref()
+            .is_some_and(|gi| !gi.enabled)
+    );
 
     assert_eq!(extract.post_process.display_mode, DisplayMode::WireOverlay);
     assert!(!extract.post_process.preview.lighting_enabled);
@@ -163,12 +189,14 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
     assert_eq!(extract.post_process.bloom.intensity, 0.0);
     assert_eq!(extract.post_process.color_grading.exposure, 1.0);
     assert!(!extract.post_process.stack.initial_resources.is_empty());
-    assert!(extract
-        .post_process
-        .graph
-        .output_transfer_node
-        .as_deref()
-        .is_some_and(|node| node == "output-transfer"));
+    assert!(
+        extract
+            .post_process
+            .graph
+            .output_transfer_node
+            .as_deref()
+            .is_some_and(|node| node == "output-transfer")
+    );
     assert_eq!(extract.geometry.virtual_geometry_debug, Some(debug));
     let virtual_geometry = extract
         .geometry
@@ -179,14 +207,18 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
     assert!(virtual_geometry.clusters.is_empty());
     assert_eq!(virtual_geometry.cluster_budget, 0);
 
-    assert!(extract
-        .visibility
-        .renderable_entities
-        .contains(&dynamic_mesh));
-    assert!(extract
-        .visibility
-        .renderable_entities
-        .contains(&static_mesh));
+    assert!(
+        extract
+            .visibility
+            .renderable_entities
+            .contains(&dynamic_mesh)
+    );
+    assert!(
+        extract
+            .visibility
+            .renderable_entities
+            .contains(&static_mesh)
+    );
     assert!(extract.visibility.renderable_entities.contains(&sprite));
     assert!(extract.visibility.dynamic_entities.contains(&dynamic_mesh));
     assert!(extract.visibility.dynamic_entities.contains(&sprite));
@@ -272,11 +304,21 @@ fn inactive_camera_render_frame_extract_keeps_view_but_removes_scene_payload() {
     world.get_mut::<CameraComponent>(camera).unwrap().is_active = false;
     spawn_mesh_on_layer(&mut world, 0b0001, Mobility::Dynamic);
     spawn_sprite_on_layer(&mut world, 0b0001);
-    world.spawn_node(NodeKind::AmbientLight);
-    world.spawn_node(NodeKind::DirectionalLight);
-    world.spawn_node(NodeKind::PointLight);
-    world.spawn_node(NodeKind::RectLight);
-    world.spawn_node(NodeKind::SpotLight);
+    world
+        .spawn_node(NodeKind::AmbientLight)
+        .expect("test scene spawn should succeed");
+    world
+        .spawn_node(NodeKind::DirectionalLight)
+        .expect("test scene spawn should succeed");
+    world
+        .spawn_node(NodeKind::PointLight)
+        .expect("test scene spawn should succeed");
+    world
+        .spawn_node(NodeKind::RectLight)
+        .expect("test scene spawn should succeed");
+    world
+        .spawn_node(NodeKind::SpotLight)
+        .expect("test scene spawn should succeed");
 
     let debug = RenderVirtualGeometryDebugState {
         freeze_cull: true,
@@ -309,30 +351,38 @@ fn inactive_camera_render_frame_extract_keeps_view_but_removes_scene_payload() {
     assert!(extract.visibility.renderables.is_empty());
     assert_eq!(extract.post_process.display_mode, DisplayMode::WireOnly);
     assert_eq!(extract.geometry.virtual_geometry_debug, Some(debug));
-    assert!(extract
-        .geometry
-        .virtual_geometry
-        .as_ref()
-        .is_some_and(|vg| vg.debug == debug));
-    assert!(extract
-        .lighting
-        .hybrid_global_illumination
-        .as_ref()
-        .is_some_and(|gi| !gi.enabled));
+    assert!(
+        extract
+            .geometry
+            .virtual_geometry
+            .as_ref()
+            .is_some_and(|vg| vg.debug == debug)
+    );
+    assert!(
+        extract
+            .lighting
+            .hybrid_global_illumination
+            .as_ref()
+            .is_some_and(|gi| !gi.enabled)
+    );
     assert!(extract.particles.emitters.is_empty());
 }
 
 #[test]
 fn hierarchy_inactive_camera_render_frame_extract_keeps_view_but_removes_scene_payload() {
     let mut world = World::empty();
-    let parent = world.spawn_node(NodeKind::Cube);
+    let parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let camera = spawn_camera_on_layer(&mut world, 0b1111);
     world.set_parent_checked(camera, Some(parent)).unwrap();
     world.set_active_self(parent, false).unwrap();
     world.set_active_camera(camera);
     spawn_mesh_on_layer(&mut world, 0b0001, Mobility::Dynamic);
     spawn_sprite_on_layer(&mut world, 0b0001);
-    world.spawn_node(NodeKind::DirectionalLight);
+    world
+        .spawn_node(NodeKind::DirectionalLight)
+        .expect("test scene spawn should succeed");
 
     let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
         RenderWorldSnapshotHandle::new(703),
@@ -362,42 +412,56 @@ fn render_frame_extract_filters_meshes_sprites_and_visibility_by_camera_layers()
         SceneViewportExtractRequest::default(),
     ));
 
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == visible_mesh));
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .all(|mesh| mesh.node_id != hidden_mesh));
-    assert!(extract
-        .sprites
-        .sprites
-        .iter()
-        .any(|sprite| sprite.entity == visible_sprite));
-    assert!(extract
-        .sprites
-        .sprites
-        .iter()
-        .all(|sprite| sprite.entity != hidden_sprite));
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == visible_mesh)
+    );
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .all(|mesh| mesh.node_id != hidden_mesh)
+    );
+    assert!(
+        extract
+            .sprites
+            .sprites
+            .iter()
+            .any(|sprite| sprite.entity == visible_sprite)
+    );
+    assert!(
+        extract
+            .sprites
+            .sprites
+            .iter()
+            .all(|sprite| sprite.entity != hidden_sprite)
+    );
     assert!(extract.visibility.renderables.iter().all(|renderable| {
         renderable
             .render_layer_mask
             .intersects(&RenderLayerSet::from_scene_schema_v1_mask(0b0010))
     }));
     assert!(extract.visibility.static_entities.contains(&visible_mesh));
-    assert!(extract
-        .visibility
-        .dynamic_entities
-        .contains(&visible_sprite));
-    assert!(!extract
-        .visibility
-        .renderable_entities
-        .contains(&hidden_mesh));
-    assert!(!extract
-        .visibility
-        .renderable_entities
-        .contains(&hidden_sprite));
+    assert!(
+        extract
+            .visibility
+            .dynamic_entities
+            .contains(&visible_sprite)
+    );
+    assert!(
+        !extract
+            .visibility
+            .renderable_entities
+            .contains(&hidden_mesh)
+    );
+    assert!(
+        !extract
+            .visibility
+            .renderable_entities
+            .contains(&hidden_sprite)
+    );
 }

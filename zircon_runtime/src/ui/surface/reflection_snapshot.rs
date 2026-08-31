@@ -21,7 +21,7 @@ pub fn reflector_snapshot(
     query: Option<UiHitTestQuery>,
 ) -> UiReflectorSnapshot {
     let hit = query.map(|query| (query.clone(), surface.hit_test_with_query(query)));
-    let mut nodes = Vec::new();
+    let mut nodes = Vec::with_capacity(reflection_snapshot_node_capacity(surface));
     for node in surface.tree.nodes.values() {
         let arranged = surface.arranged_node(node.node_id);
         let effective_visibility = arranged
@@ -88,6 +88,14 @@ pub fn reflector_snapshot(
         rejected: Vec::new(),
     });
     snapshot
+}
+
+fn reflection_snapshot_node_capacity(surface: &UiSurface) -> usize {
+    reflection_snapshot_node_capacity_from_count(surface.tree.nodes.len())
+}
+
+const fn reflection_snapshot_node_capacity_from_count(node_count: usize) -> usize {
+    node_count
 }
 
 fn lifecycle_for_node(
@@ -318,3 +326,7 @@ fn is_layout_metadata_attribute(property: &str) -> bool {
         "layout" | "width" | "height" | "min_width" | "min_height" | "padding" | "gap"
     ) || property.starts_with("layout_")
 }
+
+#[cfg(test)]
+#[path = "reflection_snapshot/node_capacity_tests.rs"]
+mod node_capacity_tests;

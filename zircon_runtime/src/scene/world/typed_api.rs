@@ -17,9 +17,15 @@ use crate::scene::ecs::{
     ArchetypeSignature, Component, ComponentId, ComponentRemoveResult, ComponentTicks,
     LifecycleEventKind, Resource, ResourceId, StorageError, StorageType,
 };
-use crate::scene::{components::Mobility, EntityId};
+use crate::scene::{EntityId, components::Mobility};
 
 use super::{SceneError, SceneResult, World};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum HierarchyMutationMode {
+    Unchecked,
+    Checked,
+}
 
 impl World {
     pub fn component_id<T>(&mut self) -> ComponentId
@@ -118,6 +124,26 @@ impl World {
     where
         T: Component,
     {
+        self.insert_with_hierarchy_mutation(entity, component, HierarchyMutationMode::Unchecked)
+    }
+
+    pub(super) fn insert_checked_hierarchy(
+        &mut self,
+        entity: EntityId,
+        hierarchy: crate::scene::components::Hierarchy,
+    ) -> SceneResult<Option<crate::scene::components::Hierarchy>> {
+        self.insert_with_hierarchy_mutation(entity, hierarchy, HierarchyMutationMode::Checked)
+    }
+
+    fn insert_with_hierarchy_mutation<T>(
+        &mut self,
+        entity: EntityId,
+        component: T,
+        hierarchy_mutation: HierarchyMutationMode,
+    ) -> SceneResult<Option<T>>
+    where
+        T: Component,
+    {
         if !self.contains_entity(entity) {
             return Err(SceneError::missing_entity("insert component on", entity));
         }
@@ -198,7 +224,7 @@ impl World {
             self.update_hierarchy_mutation_index(entity, previous_parent, current_parent);
         }
 
-        self.mark_component_mutation::<T>(entity);
+        self.mark_component_mutation::<T>(entity, hierarchy_mutation);
         self.mark_scene_binding_component_replacement::<T>(
             entity,
             old.as_ref(),
@@ -268,7 +294,7 @@ impl World {
         if !self.contains_component_id(entity, component_id) {
             return None;
         }
-        self.mark_component_mutation::<T>(entity);
+        self.mark_component_mutation::<T>(entity, HierarchyMutationMode::Unchecked);
         self.mark_scene_binding_component_get_mut::<T>(entity);
         match T::STORAGE_TYPE {
             StorageType::Table => {
@@ -349,7 +375,7 @@ impl World {
                 self.update_hierarchy_mutation_index(entity, previous_parent, None);
             }
             self.record_removed_component::<T>(entity);
-            self.mark_component_mutation::<T>(entity);
+            self.mark_component_mutation::<T>(entity, HierarchyMutationMode::Unchecked);
             self.mark_scene_binding_component_removal::<T>(entity, removed);
             self.bump_lifecycle_visibility_revision();
         }
@@ -634,8 +660,11 @@ impl World {
         }
     }
 
-    fn mark_component_mutation<T>(&mut self, entity: EntityId)
-    where
+    fn mark_component_mutation<T>(
+        &mut self,
+        entity: EntityId,
+        hierarchy_mutation: HierarchyMutationMode,
+    ) where
         T: Component,
     {
         let type_id = std::any::TypeId::of::<T>();
@@ -654,7 +683,13 @@ impl World {
                 self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
             }
         }
-        self.mark_component_derived_state_dirty::<T>();
+        if self.is_hierarchy_component_type(type_id)
+            && hierarchy_mutation == HierarchyMutationMode::Checked
+        {
+            self.mark_checked_hierarchy_derived_state_dirty_at(entity);
+        } else {
+            self.mark_component_derived_state_dirty_at::<T>(entity);
+        }
     }
 
     fn mark_preflighted_bundle_component_mutation<T>(&mut self, entity: EntityId)
@@ -676,7 +711,7 @@ impl World {
                 self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
             }
         }
-        self.mark_component_derived_state_dirty::<T>();
+        self.mark_component_derived_state_dirty_at::<T>(entity);
     }
 
     pub(super) fn mark_inspection_subtree_fields_dirty(&self, root: EntityId) {

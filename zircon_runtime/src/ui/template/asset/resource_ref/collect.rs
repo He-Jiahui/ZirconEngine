@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt::Write as _,
+};
 
 use toml::Value;
 
@@ -14,19 +17,22 @@ pub fn collect_document_resource_dependencies(
     style_imports: &BTreeMap<String, UiAssetDocument>,
 ) -> Result<UiResourceCollectionReport, UiAssetError> {
     let mut collector = ResourceDependencyCollector::default();
-    collector.collect_document(document, None, None)?;
+    let mut path = String::new();
+    collector.collect_document(document, None, &mut path)?;
     for (reference, import) in widget_imports {
+        let mut path = format!("imported_widget:{reference}");
         collector.collect_document(
             import,
             Some(UiResourceDependencySource::ImportedWidget),
-            Some(format!("imported_widget:{reference}")),
+            &mut path,
         )?;
     }
     for (reference, import) in style_imports {
+        let mut path = format!("imported_style:{reference}");
         collector.collect_document(
             import,
             Some(UiResourceDependencySource::ImportedStyle),
-            Some(format!("imported_style:{reference}")),
+            &mut path,
         )?;
     }
     Ok(collector.finish())
@@ -52,51 +58,77 @@ impl ResourceDependencyCollector {
         &mut self,
         document: &UiAssetDocument,
         import_source: Option<UiResourceDependencySource>,
-        prefix: Option<String>,
+        path: &mut String,
     ) -> Result<(), UiAssetError> {
         let source_for = |default_source| import_source.unwrap_or(default_source);
-        let path_for = |path: &str| match prefix.as_deref() {
-            Some(prefix) => format!("{prefix}.{path}"),
-            None => path.to_string(),
-        };
 
+        let prefix_len = push_path_segment(path, "imports.resources");
         for (index, reference) in document.imports.resources.iter().enumerate() {
+            let index_prefix_len = path.len();
+            let _ = write!(path, "[{index}]");
             self.insert_validated(
                 reference.clone(),
                 source_for(UiResourceDependencySource::DocumentImport),
-                path_for(&format!("imports.resources[{index}]")),
+                path.clone(),
             )?;
+            path.truncate(index_prefix_len);
         }
+        path.truncate(prefix_len);
+
+        let prefix_len = push_path_segment(path, "tokens");
         for (token, value) in &document.tokens {
+            let token_prefix_len = push_path_segment(path, token);
             self.collect_value(
                 value,
                 source_for(UiResourceDependencySource::TokenValue),
-                path_for(&format!("tokens.{token}")),
+                path,
             )?;
+            path.truncate(token_prefix_len);
         }
+        path.truncate(prefix_len);
+
         if let Some(root) = &document.root {
-            self.collect_node(root, source_for, &path_for("root"))?;
+            let prefix_len = push_path_segment(path, "root");
+            self.collect_node(root, source_for, path)?;
+            path.truncate(prefix_len);
         }
+
+        let prefix_len = push_path_segment(path, "components");
         for (component_name, component) in &document.components {
-            self.collect_node(
-                &component.root,
-                source_for,
-                &path_for(&format!("components.{component_name}.root")),
-            )?;
+            let component_prefix_len = push_path_segment(path, component_name);
+            let root_prefix_len = push_path_segment(path, "root");
+            self.collect_node(&component.root, source_for, path)?;
+            path.truncate(root_prefix_len);
+            path.truncate(component_prefix_len);
         }
+        path.truncate(prefix_len);
+
+        let prefix_len = push_path_segment(path, "stylesheets");
         for stylesheet in &document.stylesheets {
+            let stylesheet_prefix_len = push_path_segment(path, &stylesheet.id);
+            let rules_prefix_len = push_path_segment(path, "rules");
             for (rule_index, rule) in stylesheet.rules.iter().enumerate() {
-                let rule_path = match rule.id.as_deref() {
-                    Some(rule_id) => format!("stylesheets.{}.rules.{rule_id}", stylesheet.id),
-                    None => format!("stylesheets.{}.rules[{rule_index}]", stylesheet.id),
+                let rule_prefix_len = match rule.id.as_deref() {
+                    Some(rule_id) => push_path_segment(path, rule_id),
+                    None => {
+                        let prefix_len = path.len();
+                        let _ = write!(path, "[{rule_index}]");
+                        prefix_len
+                    }
                 };
+                let set_prefix_len = push_path_segment(path, "set");
                 self.collect_declaration_block(
                     &rule.set,
                     source_for(UiResourceDependencySource::StyleRuleDeclaration),
-                    &path_for(&format!("{rule_path}.set")),
+                    path,
                 )?;
+                path.truncate(set_prefix_len);
+                path.truncate(rule_prefix_len);
             }
+            path.truncate(rules_prefix_len);
+            path.truncate(stylesheet_prefix_len);
         }
+        path.truncate(prefix_len);
         Ok(())
     }
 
@@ -104,36 +136,53 @@ impl ResourceDependencyCollector {
         &mut self,
         node: &UiNodeDefinition,
         source_for: F,
-        path: &str,
+        path: &mut String,
     ) -> Result<(), UiAssetError>
     where
         F: Fn(UiResourceDependencySource) -> UiResourceDependencySource + Copy,
     {
+        let prefix_len = push_path_segment(path, "props");
         self.collect_map(
             &node.props,
             source_for(UiResourceDependencySource::NodeProp),
-            &format!("{path}.props"),
+            path,
         )?;
+        path.truncate(prefix_len);
+
+        let prefix_len = push_path_segment(path, "params");
         self.collect_map(
             &node.params,
             source_for(UiResourceDependencySource::NodeProp),
-            &format!("{path}.params"),
+            path,
         )?;
+        path.truncate(prefix_len);
+
         if let Some(layout) = &node.layout {
+            let prefix_len = push_path_segment(path, "layout");
             self.collect_map(
                 layout,
                 source_for(UiResourceDependencySource::NodeLayout),
-                &format!("{path}.layout"),
+                path,
             )?;
+            path.truncate(prefix_len);
         }
+
+        let prefix_len = push_path_segment(path, "style_overrides");
         self.collect_declaration_block(
             &node.style_overrides,
             source_for(UiResourceDependencySource::NodeStyleOverride),
-            &format!("{path}.style_overrides"),
+            path,
         )?;
+        path.truncate(prefix_len);
+
+        let prefix_len = push_path_segment(path, "children");
         for (index, child) in node.children.iter().enumerate() {
-            self.collect_child_mount(child, source_for, &format!("{path}.children[{index}]"))?;
+            let index_prefix_len = path.len();
+            let _ = write!(path, "[{index}]");
+            self.collect_child_mount(child, source_for, path)?;
+            path.truncate(index_prefix_len);
         }
+        path.truncate(prefix_len);
         Ok(())
     }
 
@@ -141,37 +190,51 @@ impl ResourceDependencyCollector {
         &mut self,
         child: &UiChildMount,
         source_for: F,
-        path: &str,
+        path: &mut String,
     ) -> Result<(), UiAssetError>
     where
         F: Fn(UiResourceDependencySource) -> UiResourceDependencySource + Copy,
     {
+        let prefix_len = push_path_segment(path, "slot");
         self.collect_map(
             &child.slot,
             source_for(UiResourceDependencySource::ChildMountSlot),
-            &format!("{path}.slot"),
+            path,
         )?;
-        self.collect_node(&child.node, source_for, &format!("{path}.node"))
+        path.truncate(prefix_len);
+
+        let prefix_len = push_path_segment(path, "node");
+        self.collect_node(&child.node, source_for, path)?;
+        path.truncate(prefix_len);
+        Ok(())
     }
 
     fn collect_declaration_block(
         &mut self,
         block: &UiStyleDeclarationBlock,
         source: UiResourceDependencySource,
-        path: &str,
+        path: &mut String,
     ) -> Result<(), UiAssetError> {
-        self.collect_map(&block.self_values, source, &format!("{path}.self"))?;
-        self.collect_map(&block.slot, source, &format!("{path}.slot"))
+        let prefix_len = push_path_segment(path, "self");
+        self.collect_map(&block.self_values, source, path)?;
+        path.truncate(prefix_len);
+
+        let prefix_len = push_path_segment(path, "slot");
+        self.collect_map(&block.slot, source, path)?;
+        path.truncate(prefix_len);
+        Ok(())
     }
 
     fn collect_map(
         &mut self,
         values: &BTreeMap<String, Value>,
         source: UiResourceDependencySource,
-        path: &str,
+        path: &mut String,
     ) -> Result<(), UiAssetError> {
         for (key, value) in values {
-            self.collect_value(value, source, format!("{path}.{key}"))?;
+            let prefix_len = push_path_segment(path, key);
+            self.collect_value(value, source, path)?;
+            path.truncate(prefix_len);
         }
         Ok(())
     }
@@ -180,29 +243,34 @@ impl ResourceDependencyCollector {
         &mut self,
         value: &Value,
         source: UiResourceDependencySource,
-        path: String,
+        path: &mut String,
     ) -> Result<(), UiAssetError> {
         match value {
             Value::String(uri) if has_supported_scheme(uri) => {
                 let reference = UiResourceRef {
-                    kind: UiResourceKind::infer_from_path_and_uri(&path, uri),
+                    kind: UiResourceKind::infer_from_path_and_uri(path, uri),
                     uri: uri.clone(),
                     fallback: UiResourceFallbackPolicy::default(),
                 };
-                self.insert_validated(reference, source, path)?;
+                self.insert_validated(reference, source, path.clone())?;
             }
             Value::Array(values) => {
                 for (index, value) in values.iter().enumerate() {
-                    self.collect_value(value, source, format!("{path}[{index}]"))?;
+                    let prefix_len = path.len();
+                    let _ = write!(path, "[{index}]");
+                    self.collect_value(value, source, path)?;
+                    path.truncate(prefix_len);
                 }
             }
             Value::Table(table) if is_resource_table(table) => {
-                let reference = parse_resource_table(table, &path)?;
-                self.insert_validated(reference, source, path)?;
+                let reference = parse_resource_table(table, path)?;
+                self.insert_validated(reference, source, path.clone())?;
             }
             Value::Table(table) => {
                 for (key, value) in table {
-                    self.collect_value(value, source, format!("{path}.{key}"))?;
+                    let prefix_len = push_path_segment(path, key);
+                    self.collect_value(value, source, path)?;
+                    path.truncate(prefix_len);
                 }
             }
             _ => {}
@@ -238,6 +306,15 @@ impl ResourceDependencyCollector {
             diagnostics: self.diagnostics,
         }
     }
+}
+
+fn push_path_segment(path: &mut String, segment: &str) -> usize {
+    let prefix_len = path.len();
+    if !path.is_empty() {
+        path.push('.');
+    }
+    path.push_str(segment);
+    prefix_len
 }
 
 fn is_resource_table(table: &toml::map::Map<String, Value>) -> bool {
@@ -347,3 +424,7 @@ fn invalid_resource(path: &str, detail: &str) -> UiAssetError {
 fn has_supported_scheme(uri: &str) -> bool {
     uri.starts_with("res://") || uri.starts_with("asset://") || uri.starts_with("project://")
 }
+
+#[cfg(test)]
+#[path = "collect/path_buffer_tests.rs"]
+mod path_buffer_tests;

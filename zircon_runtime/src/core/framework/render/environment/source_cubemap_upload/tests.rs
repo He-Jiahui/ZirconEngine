@@ -31,6 +31,9 @@ fn source_cubemap_upload_artifact_groups_each_mip_by_face() {
     assert_eq!(artifact.pmrem_mips()[0].face_size(), 1);
     assert_eq!(artifact.pmrem_mips()[0].bytes_per_row(), 256);
     assert_eq!(artifact.pmrem_mips()[0].bytes().len(), 6 * 256);
+    assert_eq!(artifact.irradiance_mip().face_size(), 1);
+    assert_eq!(artifact.irradiance_mip().bytes_per_row(), 256);
+    assert_eq!(artifact.irradiance_mip().bytes().len(), 6 * 256);
     for face in CubemapFace::ALL {
         let source_offset = source_cubemap_face_mip_offset(2, 2, face, 0);
         let artifact_offset = face.index() * 2 * 256;
@@ -47,7 +50,7 @@ fn source_cubemap_upload_artifact_groups_each_mip_by_face() {
 }
 
 #[test]
-fn source_cubemap_upload_artifact_preserves_optional_irradiance_cube() {
+fn source_cubemap_upload_artifact_preserves_irradiance_cube() {
     let mip_chain = SourceCubemapMipChain::new(
         1,
         1,
@@ -60,12 +63,36 @@ fn source_cubemap_upload_artifact_preserves_optional_irradiance_cube() {
         SourceCubemapIrradianceCube::new(1, vec![[0.25, 0.5, 0.75]; CubemapFace::ALL.len()]);
 
     let artifact = build_source_cubemap_upload_artifact(&mip_chain, Some(&irradiance));
-    let irradiance_mip = artifact
-        .irradiance_mip()
-        .expect("optional irradiance cube should produce an upload mip");
+    let irradiance_mip = artifact.irradiance_mip();
 
     assert_eq!(irradiance_mip.mip_level(), 0);
     assert_eq!(irradiance_mip.face_size(), 1);
     assert_eq!(irradiance_mip.bytes_per_row(), 256);
     assert_eq!(irradiance_mip.bytes().len(), CubemapFace::ALL.len() * 256);
+}
+
+#[test]
+fn source_cubemap_upload_artifact_supplies_default_black_irradiance_cube() {
+    let mip_chain = SourceCubemapMipChain::new(
+        1,
+        1,
+        vec![[0.0, 0.0, 0.0, 1.0]; 6],
+        1,
+        1,
+        vec![[0.0, 0.0, 0.0, 1.0]; 6],
+    );
+
+    let artifact = build_source_cubemap_upload_artifact(&mip_chain, None);
+    let irradiance_mip = artifact.irradiance_mip();
+    let black = encode_rgba16f_texels(&[[0.0, 0.0, 0.0, 1.0]]);
+
+    assert_eq!(irradiance_mip.face_size(), 1);
+    assert_eq!(irradiance_mip.bytes_per_row(), 256);
+    for face in CubemapFace::ALL {
+        let face_offset = face.index() * 256;
+        assert_eq!(
+            &irradiance_mip.bytes()[face_offset..face_offset + black.len()],
+            black.as_slice()
+        );
+    }
 }

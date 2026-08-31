@@ -2,22 +2,6 @@ use super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(super) const SIMULATION_PHYSICS_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
-        "CollisionProxyOpen",
-        "workbench.extension.collision_proxy.open",
-    ),
-    click(
-        "CollisionProxyProxyTab",
-        "workbench.extension.collision_proxy.proxy_tab.select",
-    ),
-    click(
-        "CollisionProxyChannelsTab",
-        "workbench.extension.collision_proxy.channels_tab.select",
-    ),
-    click(
-        "CollisionProxyContactsTab",
-        "workbench.extension.collision_proxy.contacts_tab.select",
-    ),
-    click(
         "CollisionProxyRockCliffRow",
         "workbench.extension.collision_proxy.rock_cliff_row.select",
     ),
@@ -44,10 +28,6 @@ pub(super) const SIMULATION_PHYSICS_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "CollisionProxyChannelMaskTableRow",
         "workbench.extension.collision_proxy.channel_mask_table_row.select",
-    ),
-    click(
-        "CollisionProxyOutput",
-        "workbench.extension.collision_proxy.output.select",
     ),
     click(
         "CollisionProxyBake",
@@ -82,22 +62,6 @@ pub(super) const SIMULATION_PHYSICS_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.collision_proxy.lod.commit",
     ),
     click(
-        "PhysicsCollisionOpen",
-        "workbench.extension.physics_collision.open",
-    ),
-    click(
-        "PhysicsCollisionBodiesTab",
-        "workbench.extension.physics_collision.bodies_tab.select",
-    ),
-    click(
-        "PhysicsCollisionMaterialsTab",
-        "workbench.extension.physics_collision.materials_tab.select",
-    ),
-    click(
-        "PhysicsCollisionContactsTab",
-        "workbench.extension.physics_collision.contacts_tab.select",
-    ),
-    click(
         "PhysicsCollisionPlayerCapsuleRow",
         "workbench.extension.physics_collision.player_capsule_row.select",
     ),
@@ -124,10 +88,6 @@ pub(super) const SIMULATION_PHYSICS_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "PhysicsCollisionCcdWarningTableRow",
         "workbench.extension.physics_collision.ccd_warning_table_row.select",
-    ),
-    click(
-        "PhysicsCollisionOutput",
-        "workbench.extension.physics_collision.output.select",
     ),
     click(
         "PhysicsCollisionSimulate",

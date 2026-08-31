@@ -27,6 +27,10 @@ impl<'a> ProjectionNodeIndex<'a> {
         self.nodes_by_id.get(node_id).copied()
     }
 
+    pub(super) fn node_count(&self) -> usize {
+        self.nodes_by_id.len()
+    }
+
     pub(super) fn render_visible(&self, node: &RetainedUiHostNodeModel) -> bool {
         self.render_visible_by_id
             .get(node.node_id.as_str())

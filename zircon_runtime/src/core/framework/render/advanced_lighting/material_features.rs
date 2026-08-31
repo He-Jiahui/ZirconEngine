@@ -5,10 +5,11 @@ use crate::core::resource::AssetReference;
 
 pub const STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS: f32 = 0.5;
 pub const STANDARD_PBR_DEFAULT_IOR: f32 = 1.5;
+pub const STANDARD_PBR_DEFAULT_DIELECTRIC_F0: f32 = 0.04;
 pub const STANDARD_PBR_TRANSMISSION_RENDER_QUEUE: RenderQueueValue = RenderQueueValue::new(2_900);
 
-/// Finite serialization-safe equivalent of an unbounded attenuation distance.
-pub const STANDARD_PBR_NO_ATTENUATION_DISTANCE: f32 = f32::MAX;
+/// Finite serialization- and GPU-safe equivalent of an unbounded attenuation distance.
+pub const STANDARD_PBR_NO_ATTENUATION_DISTANCE: f32 = 1.0e30;
 
 /// Forward-only Standard PBR extensions consumed by the material pipeline.
 ///
@@ -19,6 +20,7 @@ pub struct StandardPbrMaterialFeatures {
     pub clearcoat: f32,
     pub clearcoat_perceptual_roughness: f32,
     pub clearcoat_normal_texture: Option<AssetReference>,
+    pub clearcoat_normal_scale: f32,
     pub anisotropy_strength: f32,
     pub anisotropy_rotation: f32,
     pub specular_transmission: f32,
@@ -35,6 +37,7 @@ impl Default for StandardPbrMaterialFeatures {
             clearcoat: 0.0,
             clearcoat_perceptual_roughness: STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
             clearcoat_normal_texture: None,
+            clearcoat_normal_scale: 1.0,
             anisotropy_strength: 0.0,
             anisotropy_rotation: 0.0,
             specular_transmission: 0.0,
@@ -65,8 +68,26 @@ impl StandardPbrMaterialFeatures {
             || is_active_strength(self.diffuse_transmission)
     }
 
+    /// Dielectric reflectance at normal incidence derived from the normalized IOR.
+    pub fn dielectric_f0(&self) -> f32 {
+        let ior = normalized_ior(self.ior);
+        if ior.to_bits() == STANDARD_PBR_DEFAULT_IOR.to_bits() {
+            return STANDARD_PBR_DEFAULT_DIELECTRIC_F0;
+        }
+        let ratio = (ior - 1.0) / (ior + 1.0);
+        ratio * ratio
+    }
+
+    /// A non-default F0 cannot be represented by the current deferred GBuffer.
+    pub fn uses_dielectric_f0_override(&self) -> bool {
+        normalized_ior(self.ior).to_bits() != STANDARD_PBR_DEFAULT_IOR.to_bits()
+    }
+
     pub fn requires_forward_path(&self) -> bool {
-        self.uses_clearcoat() || self.uses_anisotropy() || self.uses_transmission()
+        self.uses_clearcoat()
+            || self.uses_anisotropy()
+            || self.uses_transmission()
+            || self.uses_dielectric_f0_override()
     }
 
     pub fn requires_scene_color_copy(&self) -> bool {
@@ -81,12 +102,13 @@ impl StandardPbrMaterialFeatures {
                 STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
             ),
             clearcoat_normal_texture: self.clearcoat_normal_texture.clone(),
+            clearcoat_normal_scale: normalized_finite(self.clearcoat_normal_scale, 1.0),
             anisotropy_strength: normalized_unit(self.anisotropy_strength, 0.0),
             anisotropy_rotation: normalized_finite(self.anisotropy_rotation, 0.0),
             specular_transmission: normalized_unit(self.specular_transmission, 0.0),
             diffuse_transmission: normalized_unit(self.diffuse_transmission, 0.0),
             thickness: normalized_nonnegative(self.thickness, 0.0),
-            ior: normalized_finite(self.ior, STANDARD_PBR_DEFAULT_IOR).max(1.0),
+            ior: normalized_ior(self.ior),
             attenuation_color: self
                 .attenuation_color
                 .map(|channel| normalized_unit(channel, 1.0)),
@@ -94,11 +116,16 @@ impl StandardPbrMaterialFeatures {
                 && self.attenuation_distance > 0.0
             {
                 self.attenuation_distance
+                    .min(STANDARD_PBR_NO_ATTENUATION_DISTANCE)
             } else {
                 STANDARD_PBR_NO_ATTENUATION_DISTANCE
             },
         }
     }
+}
+
+fn normalized_ior(value: f32) -> f32 {
+    normalized_finite(value, STANDARD_PBR_DEFAULT_IOR).max(1.0)
 }
 
 fn is_active_strength(value: f32) -> bool {
@@ -125,8 +152,8 @@ fn normalized_finite(value: f32, fallback: f32) -> f32 {
 mod tests {
     use super::{
         StandardPbrMaterialFeatures, STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
-        STANDARD_PBR_DEFAULT_IOR, STANDARD_PBR_NO_ATTENUATION_DISTANCE,
-        STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
+        STANDARD_PBR_DEFAULT_DIELECTRIC_F0, STANDARD_PBR_DEFAULT_IOR,
+        STANDARD_PBR_NO_ATTENUATION_DISTANCE, STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
     };
     use crate::core::framework::render::{CorePipelineKind, RenderPhase, RenderQueueValue};
 
@@ -139,14 +166,17 @@ mod tests {
             STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS
         );
         assert_eq!(features.ior, STANDARD_PBR_DEFAULT_IOR);
+        assert_eq!(features.dielectric_f0(), STANDARD_PBR_DEFAULT_DIELECTRIC_F0);
         assert_eq!(
             features.attenuation_distance,
             STANDARD_PBR_NO_ATTENUATION_DISTANCE
         );
+        assert_eq!(STANDARD_PBR_NO_ATTENUATION_DISTANCE, 1.0e30);
         assert!(features.is_default());
         assert!(!features.uses_clearcoat());
         assert!(!features.uses_anisotropy());
         assert!(!features.uses_transmission());
+        assert!(!features.uses_dielectric_f0_override());
         assert!(!features.requires_forward_path());
         assert!(!features.requires_scene_color_copy());
 
@@ -154,6 +184,31 @@ mod tests {
         let decoded: StandardPbrMaterialFeatures =
             toml::from_str(&encoded).expect("default material features deserialize");
         assert_eq!(decoded, features);
+    }
+
+    #[test]
+    fn render_advanced_material_features_derive_finite_dielectric_f0_from_ior() {
+        let vacuum_boundary = StandardPbrMaterialFeatures {
+            ior: 1.0,
+            ..Default::default()
+        };
+        assert_eq!(vacuum_boundary.dielectric_f0(), 0.0);
+        assert!(vacuum_boundary.uses_dielectric_f0_override());
+        assert!(vacuum_boundary.requires_forward_path());
+
+        let high_ior = StandardPbrMaterialFeatures {
+            ior: 2.5,
+            ..Default::default()
+        };
+        assert!((high_ior.dielectric_f0() - 0.18367347).abs() < 0.000001);
+        assert!(high_ior.uses_dielectric_f0_override());
+
+        let invalid = StandardPbrMaterialFeatures {
+            ior: f32::NAN,
+            ..Default::default()
+        };
+        assert_eq!(invalid.dielectric_f0(), STANDARD_PBR_DEFAULT_DIELECTRIC_F0);
+        assert!(!invalid.uses_dielectric_f0_override());
     }
 
     #[test]
@@ -197,6 +252,7 @@ mod tests {
         let resolved = StandardPbrMaterialFeatures {
             clearcoat: 2.0,
             clearcoat_perceptual_roughness: f32::NAN,
+            clearcoat_normal_scale: f32::NAN,
             anisotropy_strength: -1.0,
             anisotropy_rotation: f32::INFINITY,
             specular_transmission: 1.5,
@@ -215,6 +271,7 @@ mod tests {
             STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS
         );
         assert_eq!(resolved.anisotropy_strength, 0.0);
+        assert_eq!(resolved.clearcoat_normal_scale, 1.0);
         assert_eq!(resolved.anisotropy_rotation, 0.0);
         assert_eq!(resolved.specular_transmission, 1.0);
         assert_eq!(resolved.diffuse_transmission, 0.0);
@@ -225,6 +282,21 @@ mod tests {
             resolved.attenuation_distance,
             STANDARD_PBR_NO_ATTENUATION_DISTANCE
         );
+    }
+
+    #[test]
+    fn render_advanced_material_features_canonicalize_legacy_unbounded_distance() {
+        let resolved = StandardPbrMaterialFeatures {
+            attenuation_distance: f32::MAX,
+            ..Default::default()
+        }
+        .normalized();
+
+        assert_eq!(
+            resolved.attenuation_distance,
+            STANDARD_PBR_NO_ATTENUATION_DISTANCE
+        );
+        assert!(resolved.is_default());
     }
 
     #[test]

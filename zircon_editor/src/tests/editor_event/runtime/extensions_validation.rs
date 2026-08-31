@@ -14,7 +14,7 @@ fn editor_runtime_rejects_menu_capabilities_without_an_extension_owned_command()
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_menu_item(
-            EditorMenuItemDescriptor::new("Tools/Project/Open", operation_path.clone())
+            EditorMenuItemDescriptor::for_operation(operation_path.clone())
                 .with_required_capabilities(["editor.extension.project_tools"]),
         )
         .unwrap();
@@ -45,10 +45,7 @@ fn editor_runtime_rejects_serde_retained_command_ids_as_menu_capability_owners_a
     let operation_path = EditorOperationPath::parse("weather.retained.refresh").unwrap();
     let mut retained = EditorExtensionRegistry::default();
     retained
-        .register_command(EditorCommandDescriptor::operation(
-            operation_path.clone(),
-            "Refresh Retained Weather",
-        ))
+        .register_command(EditorCommandDescriptor::operation(operation_path.clone()))
         .unwrap();
     assert_eq!(retained.take_command_contributions().len(), 1);
     assert!(retained.pending_commands().next().is_none());
@@ -58,11 +55,8 @@ fn editor_runtime_rejects_serde_retained_command_ids_as_menu_capability_owners_a
     let mut extension: EditorExtensionRegistry = serde_json::from_value(encoded).unwrap();
     extension
         .register_menu_item(
-            EditorMenuItemDescriptor::new(
-                "Tools/Weather/Refresh Retained Weather",
-                operation_path.clone(),
-            )
-            .with_required_capabilities(["editor.extension.weather_authoring"]),
+            EditorMenuItemDescriptor::for_operation(operation_path.clone())
+                .with_required_capabilities(["editor.extension.weather_authoring"]),
         )
         .unwrap();
 
@@ -133,10 +127,7 @@ fn editor_runtime_rejects_menu_items_to_missing_operations() {
     let mut extension = EditorExtensionRegistry::default();
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     extension
-        .register_menu_item(EditorMenuItemDescriptor::new(
-            "Tools/Weather/Refresh Cloud Layers",
-            operation_path,
-        ))
+        .register_menu_item(EditorMenuItemDescriptor::for_operation(operation_path))
         .unwrap();
 
     let error = runtime
@@ -151,27 +142,11 @@ fn editor_runtime_rejects_menu_items_to_missing_operations() {
 }
 
 #[test]
-fn editor_extension_registry_rejects_invalid_menu_item_paths() {
-    use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
-    use crate::core::editor_operation::EditorOperationPath;
+fn editor_extension_registry_rejects_invalid_menu_segment_ids() {
+    use crate::core::commands::EditorCommandMenuSegmentId;
 
-    let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
-    for path in [
-        "",
-        "Tools",
-        "Tools//Refresh",
-        "/Tools/Refresh",
-        "Tools/Refresh/",
-    ] {
-        let mut extension = EditorExtensionRegistry::default();
-        let error = extension
-            .register_menu_item(EditorMenuItemDescriptor::new(path, operation_path.clone()))
-            .unwrap_err();
-
-        assert_eq!(
-            error.to_string(),
-            format!("editor menu item path `{path}` is invalid")
-        );
+    for segment in ["", "Tools", "tools/refresh", " tools", "tools "] {
+        assert!(EditorCommandMenuSegmentId::parse(segment).is_err());
     }
 }
 
@@ -223,10 +198,7 @@ fn editor_runtime_rejects_duplicate_extension_view_without_registering_operation
         ))
         .unwrap();
     duplicate_extension
-        .register_command(EditorCommandDescriptor::operation(
-            operation_path.clone(),
-            "Refresh Cloud Layers",
-        ))
+        .register_command(EditorCommandDescriptor::operation(operation_path.clone()))
         .unwrap();
 
     let error = runtime
@@ -315,7 +287,7 @@ fn editor_runtime_rejects_explicit_view_command_with_the_wrong_target_atomically
         .unwrap();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Open Cloud Layers")
+            EditorCommandDescriptor::operation(operation_path.clone())
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
@@ -361,7 +333,7 @@ fn editor_runtime_accepts_explicit_view_command_only_for_the_matching_target() {
         .unwrap();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Open Cloud Layers")
+            EditorCommandDescriptor::operation(operation_path.clone())
                 .with_event(expected_event.clone()),
         )
         .unwrap();
@@ -398,13 +370,18 @@ fn editor_runtime_rejects_duplicate_extension_menu_paths_without_registering_ope
     let mut first_extension = EditorExtensionRegistry::default();
     first_extension
         .register_command(
-            EditorCommandDescriptor::operation(first_operation.clone(), "Refresh Cloud Layers")
+            EditorCommandDescriptor::operation(first_operation.clone())
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
+    let duplicate_menu_path = crate::core::commands::EditorCommandMenuPath::builtin(
+        &first_operation,
+        "tools",
+        &["weather"],
+    );
     first_extension
         .register_menu_item(EditorMenuItemDescriptor::new(
-            "Tools/Weather/Refresh Cloud Layers",
+            duplicate_menu_path.clone(),
             first_operation,
         ))
         .unwrap();
@@ -416,14 +393,11 @@ fn editor_runtime_rejects_duplicate_extension_menu_paths_without_registering_ope
     let second_operation = EditorOperationPath::parse("weather.cloud_layer.reset").unwrap();
     let mut duplicate_extension = EditorExtensionRegistry::default();
     duplicate_extension
-        .register_command(EditorCommandDescriptor::operation(
-            second_operation.clone(),
-            "Reset Cloud Layers",
-        ))
+        .register_command(EditorCommandDescriptor::operation(second_operation.clone()))
         .unwrap();
     duplicate_extension
         .register_menu_item(EditorMenuItemDescriptor::new(
-            "Tools/Weather/Refresh Cloud Layers",
+            duplicate_menu_path,
             second_operation.clone(),
         ))
         .unwrap();
@@ -435,7 +409,7 @@ fn editor_runtime_rejects_duplicate_extension_menu_paths_without_registering_ope
 
     assert_eq!(
         error.to_string(),
-        "editor menu item Tools/Weather/Refresh Cloud Layers already registered"
+        "editor menu item tools/weather/weather.cloud_layer.refresh already registered"
     );
     let operations = runtime
         .runtime

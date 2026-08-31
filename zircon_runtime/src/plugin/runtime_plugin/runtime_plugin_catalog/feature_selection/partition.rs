@@ -18,9 +18,10 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn feature_selecti
     manifest: &'a ProjectPluginManifest,
     feature_definitions: &FeatureDefinitionMap,
 ) -> FeatureSelectionPartition<'a> {
-    let mut pending = Vec::new();
+    let active_selections = active_feature_selections(manifest);
+    let mut pending = Vec::with_capacity(active_selections.len());
     let mut unknown_feature_blocks = Vec::new();
-    for active in active_feature_selections(manifest) {
+    for active in active_selections {
         if let Some(feature_definition) =
             feature_definitions.definition_for_selection(&active.owner_plugin_id, active.feature)
         {
@@ -43,3 +44,7 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn feature_selecti
         unknown_feature_blocks,
     }
 }
+
+#[cfg(test)]
+#[path = "partition/capacity_tests.rs"]
+mod capacity_tests;

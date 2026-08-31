@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::render::{
-    render_mesh_stable_instance_key, DisplayMode, RenderMaterialPropertyUniformPayload,
-    RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,
+    CastShadowsMode, DisplayMode, RenderMaterialPropertyUniformPayload, RenderMeshLodSelection,
+    RenderMeshSnapshot, RenderMeshStaticState, RendererCommon, render_mesh_stable_instance_key,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{RenderMat4, Vec4};
@@ -16,17 +16,24 @@ use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPale
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::resources::{
-    default_pipeline_key, GpuMeshResource, ResourceStreamer,
+    GpuMeshResource, PipelineKey, PublishedMaterialDrawProxy, ResourceStreamer,
+    default_pipeline_key,
 };
 use super::super::super::super::primitives::render_mat4_or;
 use super::super::super::mesh_draw::MeshCommandSortInput;
 use super::super::raster_draws_for_mesh::raster_draws_for_mesh;
+use super::gpu_scene_bounds::{local_bounds_for_gpu_mesh, local_bounds_for_model_primitive};
+use super::gpu_scene_sync::{
+    normal_transform_flags_for_pending_instance, normal_transform_flags_reverse_raster_winding,
+};
+use super::material_draw_selection::MaterialDrawSelection;
 use super::mesh_draw_build_context::MeshDrawBuildContext;
 use super::morph_payload_upload::morph_payload_from_mesh_asset;
+use super::pending_material_draw::PendingMaterialDraw;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::skinning::{
-    prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
-    SkinnedMeshPreparedPrimitive,
+    SkinnedMeshPreparedPrimitive, prepare_skinned_mesh_asset_primitive,
+    prepare_skinned_model_primitive,
 };
 
 mod material_inputs;
@@ -49,6 +56,17 @@ struct DynamicMeshPrimitive {
     gpu_morphed_source: Option<Arc<GpuMeshResource>>,
 }
 
+fn pipeline_key_with_raster_winding(
+    mut pipeline_key: PipelineKey,
+    normal_transform_flags: u32,
+    reverse_view_raster_winding: bool,
+) -> PipelineKey {
+    pipeline_key.reverse_raster_winding =
+        normal_transform_flags_reverse_raster_winding(normal_transform_flags)
+            ^ reverse_view_raster_winding;
+    pipeline_key
+}
+
 pub(super) fn extend_pending_draws_for_mesh_instance(
     pending_draws: &mut Vec<PendingMeshDraw>,
     streamer: &ResourceStreamer,
@@ -57,6 +75,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     gpu_scene: &GpuScene,
     mesh_instance: &RenderMeshSnapshot,
     command_sort_input: MeshCommandSortInput,
+    material_selection: &MaterialDrawSelection,
 ) {
     if let Some(allowed_entities) = build_context.allowed_virtual_geometry_entities.as_ref() {
         if !allowed_entities.contains(&mesh_instance.node_id) {
@@ -73,7 +92,8 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     };
     let model_matrix =
         render_mat4_or(mesh_instance.transform.matrix(), RenderMat4::IDENTITY).to_cols_array_2d();
-    let material = streamer.material(&mesh_instance.material.id());
+    let material_proxy = material_selection.proxy(streamer, &mesh_instance.material.id());
+    let material = material_proxy.runtime();
     let common = Arc::new(renderer_common_for_material(
         &mesh_instance.common,
         material,
@@ -81,21 +101,23 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     if !common.enabled {
         return;
     }
-    let material_revision = streamer.material_revision(&mesh_instance.material.id());
+    let material_revision = material_proxy.draw_generation();
     let material_uniform_override_payload = frame
         .extract
         .geometry
         .material_property_overrides
         .get(&mesh_instance.node_id)
-        .and_then(|overrides| {
-            streamer
-                .material_uniform_payload_with_overrides(&mesh_instance.material.id(), overrides)
-        });
+        .and_then(|overrides| material_proxy.uniform_payload_with_overrides(overrides));
     let mut draw_ordinal = 0_u32;
     // Direct mesh snapshots bypass the model-primitive loop, so mirror the same CPU skinning path here.
     if let Some(mesh_handle) = mesh_instance.mesh.as_ref() {
         let mesh_id = mesh_handle.id();
         if let Some(mesh) = streamer.mesh(&mesh_id) {
+            let normal_transform_flags = normal_transform_flags_for_pending_instance(
+                gpu_scene,
+                mesh_instance.stable_instance_key,
+                &model_matrix,
+            );
             let static_state = mesh_draw_static_state(
                 mesh_instance,
                 mesh_id,
@@ -121,6 +143,8 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     static_state,
                     &common,
                     mesh_instance.material,
+                    material_proxy,
+                    mesh_instance.common.cast_shadows,
                     material_uniform_override_payload.clone(),
                     mesh_instance.mobility,
                     command_sort_input,
@@ -128,6 +152,8 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     &dynamic_primitive.primitive,
                     instance_tint,
                     model_matrix,
+                    normal_transform_flags,
+                    build_context.reverse_view_raster_winding,
                     dynamic_primitive.cpu_morphed,
                     dynamic_primitive.morph_payload,
                     dynamic_primitive.source_morph_weights.clone(),
@@ -150,12 +176,16 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     static_state,
                     &common,
                     mesh_instance.material,
+                    material_proxy,
+                    mesh_instance.common.cast_shadows,
                     material_uniform_override_payload.clone(),
                     mesh_instance.mobility,
                     command_sort_input,
                     mesh,
                     instance_tint,
                     model_matrix,
+                    normal_transform_flags,
+                    build_context.reverse_view_raster_winding,
                     direct_mesh_source_morph_weights(streamer, &mesh_id, mesh_instance),
                     mesh_instance.mesh_lod,
                 );
@@ -202,6 +232,11 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             u32::try_from(mesh_index)
                 .expect("model mesh primitive index exceeds stable instance key packing range"),
         );
+        let normal_transform_flags = normal_transform_flags_for_pending_instance(
+            gpu_scene,
+            stable_instance_key,
+            &model_matrix,
+        );
         if let Some(skinned_primitive) = skinned_primitives
             .as_ref()
             .and_then(|(_, primitives)| primitives.get(mesh_index))
@@ -219,6 +254,8 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 static_state,
                 &common,
                 mesh_instance.material,
+                material_proxy,
+                mesh_instance.common.cast_shadows,
                 material_uniform_override_payload.clone(),
                 mesh_instance.mobility,
                 command_sort_input,
@@ -226,6 +263,8 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 &skinned_primitive.primitive,
                 instance_tint,
                 model_matrix,
+                normal_transform_flags,
+                build_context.reverse_view_raster_winding,
                 false,
                 None,
                 None,
@@ -243,41 +282,52 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             continue;
         }
 
-        let raster_draws = raster_draws_for_mesh(
-            mesh.index_count,
-            material_tinted(streamer, mesh_instance.material, instance_tint),
+        let local_bounds = local_bounds_for_gpu_mesh(mesh);
+        let material_textures = material_texture_set(material_proxy);
+        let material_uniform = material_proxy.uniform();
+        let standard_material_uniform = material_proxy.standard_uniform();
+        let pipeline_key = pipeline_key_with_raster_winding(
+            material
+                .map(|material| material.pipeline_key.clone())
+                .unwrap_or_else(default_pipeline_key),
+            normal_transform_flags,
+            build_context.reverse_view_raster_winding,
         );
+        let raster_draws =
+            raster_draws_for_mesh(mesh.index_count, material_tinted(material, instance_tint));
 
         for (first_index, draw_index_count, draw_tint) in raster_draws {
             let source_draw_ordinal = next_draw_ordinal(&mut draw_ordinal);
             pending_draws.push(PendingMeshDraw {
                 mesh: PendingMeshGeometry::Prepared(mesh.clone()),
+                local_bounds,
                 source_entity: mesh_instance.node_id,
                 stable_instance_key,
                 source_draw_ordinal,
                 transform_revision: mesh_instance.transform_revision,
                 mobility: mesh_instance.mobility,
                 static_state,
-                material_id: mesh_instance.material.id(),
-                material_textures: material_texture_set(streamer, material),
-                material_uniform: streamer.material_uniform(&mesh_instance.material.id()),
-                material_uniform_override_payload: material_uniform_override_payload.clone(),
-                standard_material_uniform: streamer
-                    .standard_material_uniform(&mesh_instance.material.id()),
-                pipeline_key: streamer
-                    .material(&mesh_instance.material.id())
-                    .map(|material| material.pipeline_key.clone())
-                    .unwrap_or_else(default_pipeline_key),
+                material: PendingMaterialDraw {
+                    resource_id: mesh_instance.material.id(),
+                    draw_generation: material_revision,
+                    textures: material_textures.clone(),
+                    uniform: material_uniform.clone(),
+                    uniform_override_payload: material_uniform_override_payload.clone(),
+                    standard_uniform: standard_material_uniform.clone(),
+                    pipeline_key: pipeline_key.clone(),
+                    common: Arc::clone(&common),
+                    renderer_cast_shadows: mesh_instance.common.cast_shadows,
+                    disabled_passes: material_disabled_passes(material),
+                    taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
+                    half_resolution_transparency: material_half_resolution_transparency(material),
+                    draw_tint,
+                },
                 morph_payload: None,
                 source_morph_weights: None,
                 morph_payload_slot: None,
                 mesh_lod: mesh_instance.mesh_lod,
-                common: Arc::clone(&common),
-                disabled_passes: material_disabled_passes(material),
-                taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
-                half_resolution_transparency: material_half_resolution_transparency(material),
                 model_matrix,
-                draw_tint,
+                normal_transform_flags,
                 skinned: false,
                 skinned_palette_signature: None,
                 skinned_joint_palette: None,
@@ -347,11 +397,7 @@ fn resource_revision_signature(resource_id: ResourceId, revision: u64) -> u64 {
 
 fn nonzero_hash(hasher: DefaultHasher) -> u64 {
     let signature = hasher.finish();
-    if signature == 0 {
-        1
-    } else {
-        signature
-    }
+    if signature == 0 { 1 } else { signature }
 }
 
 fn next_draw_ordinal(draw_ordinal: &mut u32) -> u32 {
@@ -561,6 +607,8 @@ fn push_dynamic_mesh_draws(
     static_state: RenderMeshStaticState,
     common: &Arc<RendererCommon>,
     material_id: ResourceHandle<MaterialMarker>,
+    material_proxy: PublishedMaterialDrawProxy<'_>,
+    renderer_cast_shadows: CastShadowsMode,
     material_uniform_override_payload: Option<RenderMaterialPropertyUniformPayload>,
     mobility: Mobility,
     command_sort_input: MeshCommandSortInput,
@@ -568,6 +616,8 @@ fn push_dynamic_mesh_draws(
     dynamic_primitive: &ModelPrimitiveAsset,
     instance_tint: Vec4,
     model_matrix: [[f32; 4]; 4],
+    normal_transform_flags: u32,
+    reverse_view_raster_winding: bool,
     cpu_morphed: bool,
     morph_payload: Option<Arc<super::pending_mesh_draw::PendingMorphPayload>>,
     source_morph_weights: Option<Vec<f32>>,
@@ -579,18 +629,23 @@ fn push_dynamic_mesh_draws(
     gpu_morphed_source: Option<Arc<GpuMeshResource>>,
     mesh_lod: Option<RenderMeshLodSelection>,
 ) {
-    let material = streamer.material(&material_id.id());
+    let material_revision = material_proxy.draw_generation();
+    let material = material_proxy.runtime();
     let material_resource_id = material_id.id();
-    let material_textures = material_texture_set(streamer, material);
-    let material_uniform = streamer.material_uniform(&material_id.id());
-    let standard_material_uniform = streamer.standard_material_uniform(&material_id.id());
-    let pipeline_key = material
-        .map(|material| material.pipeline_key.clone())
-        .unwrap_or_else(default_pipeline_key);
-    for (first_index, draw_index_count, draw_tint) in raster_draws_for_mesh(
-        index_count,
-        material_tinted(streamer, material_id, instance_tint),
-    ) {
+    let material_textures = material_texture_set(material_proxy);
+    let material_uniform = material_proxy.uniform();
+    let standard_material_uniform = material_proxy.standard_uniform();
+    let pipeline_key = pipeline_key_with_raster_winding(
+        material
+            .map(|material| material.pipeline_key.clone())
+            .unwrap_or_else(default_pipeline_key),
+        normal_transform_flags,
+        reverse_view_raster_winding,
+    );
+    let local_bounds = local_bounds_for_model_primitive(dynamic_primitive);
+    for (first_index, draw_index_count, draw_tint) in
+        raster_draws_for_mesh(index_count, material_tinted(material, instance_tint))
+    {
         let source_draw_ordinal = next_draw_ordinal(draw_ordinal);
         let mesh = if let Some(gpu_morphed_source) = gpu_morphed_source.clone() {
             PendingMeshGeometry::GpuMorphed(gpu_morphed_source)
@@ -601,28 +656,34 @@ fn push_dynamic_mesh_draws(
         };
         pending_draws.push(PendingMeshDraw {
             mesh,
+            local_bounds,
             source_entity,
             stable_instance_key,
             source_draw_ordinal,
             transform_revision,
             mobility,
             static_state,
-            material_id: material_resource_id,
-            material_textures: material_textures.clone(),
-            material_uniform: material_uniform.clone(),
-            material_uniform_override_payload: material_uniform_override_payload.clone(),
-            standard_material_uniform: standard_material_uniform.clone(),
-            pipeline_key: pipeline_key.clone(),
+            material: PendingMaterialDraw {
+                resource_id: material_resource_id,
+                draw_generation: material_revision,
+                textures: material_textures.clone(),
+                uniform: material_uniform.clone(),
+                uniform_override_payload: material_uniform_override_payload.clone(),
+                standard_uniform: standard_material_uniform.clone(),
+                pipeline_key: pipeline_key.clone(),
+                common: Arc::clone(common),
+                renderer_cast_shadows,
+                disabled_passes: material_disabled_passes(material),
+                taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
+                half_resolution_transparency: material_half_resolution_transparency(material),
+                draw_tint,
+            },
             morph_payload: morph_payload.clone(),
             source_morph_weights: source_morph_weights.clone(),
             morph_payload_slot: None,
             mesh_lod,
-            common: Arc::clone(common),
-            disabled_passes: material_disabled_passes(material),
-            taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
-            half_resolution_transparency: material_half_resolution_transparency(material),
             model_matrix,
-            draw_tint,
+            normal_transform_flags,
             skinned,
             skinned_palette_signature,
             skinned_joint_palette,
@@ -653,52 +714,67 @@ fn push_prepared_mesh_draws(
     static_state: RenderMeshStaticState,
     common: &Arc<RendererCommon>,
     material_id: ResourceHandle<MaterialMarker>,
+    material_proxy: PublishedMaterialDrawProxy<'_>,
+    renderer_cast_shadows: CastShadowsMode,
     material_uniform_override_payload: Option<RenderMaterialPropertyUniformPayload>,
     mobility: Mobility,
     command_sort_input: MeshCommandSortInput,
     mesh: &Arc<GpuMeshResource>,
     instance_tint: Vec4,
     model_matrix: [[f32; 4]; 4],
+    normal_transform_flags: u32,
+    reverse_view_raster_winding: bool,
     source_morph_weights: Option<Vec<f32>>,
     mesh_lod: Option<RenderMeshLodSelection>,
 ) {
-    let material = streamer.material(&material_id.id());
+    let material_revision = material_proxy.draw_generation();
+    let material = material_proxy.runtime();
     let material_resource_id = material_id.id();
-    let material_textures = material_texture_set(streamer, material);
-    let material_uniform = streamer.material_uniform(&material_id.id());
-    let standard_material_uniform = streamer.standard_material_uniform(&material_id.id());
-    let pipeline_key = material
-        .map(|material| material.pipeline_key.clone())
-        .unwrap_or_else(default_pipeline_key);
-    for (first_index, draw_index_count, draw_tint) in raster_draws_for_mesh(
-        mesh.index_count,
-        material_tinted(streamer, material_id, instance_tint),
-    ) {
+    let material_textures = material_texture_set(material_proxy);
+    let material_uniform = material_proxy.uniform();
+    let standard_material_uniform = material_proxy.standard_uniform();
+    let pipeline_key = pipeline_key_with_raster_winding(
+        material
+            .map(|material| material.pipeline_key.clone())
+            .unwrap_or_else(default_pipeline_key),
+        normal_transform_flags,
+        reverse_view_raster_winding,
+    );
+    let local_bounds = local_bounds_for_gpu_mesh(mesh);
+    for (first_index, draw_index_count, draw_tint) in
+        raster_draws_for_mesh(mesh.index_count, material_tinted(material, instance_tint))
+    {
         let source_draw_ordinal = next_draw_ordinal(draw_ordinal);
         pending_draws.push(PendingMeshDraw {
             mesh: PendingMeshGeometry::Prepared(mesh.clone()),
+            local_bounds,
             source_entity,
             stable_instance_key,
             source_draw_ordinal,
             transform_revision,
             mobility,
             static_state,
-            material_id: material_resource_id,
-            material_textures: material_textures.clone(),
-            material_uniform: material_uniform.clone(),
-            material_uniform_override_payload: material_uniform_override_payload.clone(),
-            standard_material_uniform: standard_material_uniform.clone(),
-            pipeline_key: pipeline_key.clone(),
+            material: PendingMaterialDraw {
+                resource_id: material_resource_id,
+                draw_generation: material_revision,
+                textures: material_textures.clone(),
+                uniform: material_uniform.clone(),
+                uniform_override_payload: material_uniform_override_payload.clone(),
+                standard_uniform: standard_material_uniform.clone(),
+                pipeline_key: pipeline_key.clone(),
+                common: Arc::clone(common),
+                renderer_cast_shadows,
+                disabled_passes: material_disabled_passes(material),
+                taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
+                half_resolution_transparency: material_half_resolution_transparency(material),
+                draw_tint,
+            },
             morph_payload: None,
             source_morph_weights: source_morph_weights.clone(),
             morph_payload_slot: None,
             mesh_lod,
-            common: Arc::clone(common),
-            disabled_passes: material_disabled_passes(material),
-            taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
-            half_resolution_transparency: material_half_resolution_transparency(material),
             model_matrix,
-            draw_tint,
+            normal_transform_flags,
             skinned: false,
             skinned_palette_signature: None,
             skinned_joint_palette: None,

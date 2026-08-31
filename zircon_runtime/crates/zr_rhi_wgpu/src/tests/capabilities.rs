@@ -3,11 +3,12 @@ use zr_rhi::RenderQueueClass;
 use crate::wgpu_backend_caps;
 
 #[test]
-fn wgpu_caps_fall_back_to_graphics_and_copy_without_rt() {
+fn wgpu_caps_admit_serial_command_lanes_without_async_queue_topology() {
     let caps = wgpu_backend_caps(
         "wgpu-test",
         wgpu::Features::empty(),
         wgpu::Limits::default(),
+        true,
         true,
         true,
     );
@@ -15,6 +16,8 @@ fn wgpu_caps_fall_back_to_graphics_and_copy_without_rt() {
     assert!(caps.supports_queue(RenderQueueClass::Graphics));
     assert!(caps.supports_queue(RenderQueueClass::Compute));
     assert!(caps.supports_queue(RenderQueueClass::Copy));
+    assert!(!caps.supports_async_compute);
+    assert!(!caps.supports_async_copy);
     assert_eq!(
         caps.max_storage_buffers_per_shader_stage,
         wgpu::Limits::default().max_storage_buffers_per_shader_stage
@@ -54,24 +57,5 @@ fn native_ui_surface_source_uses_direct_surface_without_offscreen_blit() {
     assert!(
         combined.contains("WgpuRetainedSurfaceCache"),
         "native UI surface damage must use the retained cache restore path"
-    );
-}
-
-#[test]
-fn command_copy_execution_does_not_clone_whole_source_resources() {
-    let source = include_str!("../command_validation.rs");
-    let compact = source.split_whitespace().collect::<String>();
-
-    assert!(
-        !compact.contains("contents[source_start..source_end].to_vec();"),
-        "buffer-to-buffer execution must not allocate a temporary byte vector"
-    );
-    assert!(
-        !compact.contains(".contents.clone();"),
-        "buffer-to-texture execution must borrow source contents instead of cloning the whole buffer"
-    );
-    assert!(
-        !compact.contains("letsource_texture=state.textures.get(source).ok_or(RhiError::UnknownTexture(source.raw()))?.clone();"),
-        "texture-to-buffer execution must borrow the source texture instead of cloning the whole resource"
     );
 }

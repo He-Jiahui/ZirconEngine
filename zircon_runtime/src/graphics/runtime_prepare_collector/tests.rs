@@ -1,5 +1,8 @@
 use std::borrow::Cow;
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+};
 
 use super::*;
 use crate::core::framework::render::{
@@ -10,6 +13,159 @@ use crate::core::framework::render::{
 use crate::core::framework::scene::Mobility;
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::graphics::backend::RenderBackend;
+use crate::rhi::{BufferDesc, BufferUsage, DeviceGeneration, DeviceId};
+
+struct DeclaredGpuReadbackCollector;
+
+impl RuntimePrepareCollector for DeclaredGpuReadbackCollector {
+    fn requests_gpu_readback(&self) -> bool {
+        true
+    }
+
+    fn collect(
+        &self,
+        _context: &mut RuntimePrepareCollectorContext<'_>,
+    ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
+        Ok(RenderPluginRendererOutputs::default())
+    }
+}
+
+fn empty_runtime_prepare_collector(
+    _context: &mut RuntimePrepareCollectorContext<'_>,
+) -> Result<RenderPluginRendererOutputs, GraphicsError> {
+    Ok(RenderPluginRendererOutputs::default())
+}
+
+fn test_device_epoch() -> RuntimePrepareDeviceEpoch {
+    RuntimePrepareDeviceEpoch::new(DeviceId::new(1), DeviceGeneration::initial())
+}
+
+#[test]
+fn collector_root_keeps_native_gpu_authority_private_and_scoped() {
+    let source = include_str!("../runtime_prepare_collector.rs");
+    let owner = source
+        .split("pub struct RuntimePrepareCollectorContext")
+        .nth(1)
+        .and_then(|source| source.split("/// Runtime-prepare capability").next())
+        .expect("runtime prepare collector root owner");
+    let gpu_capability = source
+        .split("pub struct RuntimePrepareGpuRecordingContext")
+        .nth(1)
+        .and_then(|source| source.split("/// Recorder for CPU state").next())
+        .expect("scoped runtime prepare GPU capability");
+
+    assert!(!owner.contains("pub device:"));
+    assert!(!owner.contains("pub encoder:"));
+    assert!(!owner.contains("pub frame_extract:"));
+    assert!(gpu_capability.contains("pub device:"));
+    assert!(gpu_capability.contains("pub device_epoch:"));
+    assert!(gpu_capability.contains("pub encoder:"));
+    assert!(gpu_capability.contains("pub buffer_uploads:"));
+    assert!(gpu_capability.contains("pub frame_transactions:"));
+}
+
+#[test]
+fn runtime_prepare_device_epoch_preserves_typed_device_identity() {
+    let epoch = RuntimePrepareDeviceEpoch::new(DeviceId::new(7), DeviceGeneration::new(11));
+
+    assert_eq!(epoch.device_id(), DeviceId::new(7));
+    assert_eq!(epoch.generation(), DeviceGeneration::new(11));
+    assert_eq!(epoch, epoch);
+    assert_ne!(
+        epoch,
+        RuntimePrepareDeviceEpoch::new(DeviceId::new(7), DeviceGeneration::new(12))
+    );
+}
+
+#[test]
+fn runtime_prepare_frame_transaction_commits_without_rollback() {
+    let commits = Arc::new(AtomicUsize::new(0));
+    let rollbacks = Arc::new(AtomicUsize::new(0));
+    let transaction = RuntimePrepareFrameTransaction::new(
+        "tests.runtime-prepare-commit",
+        {
+            let commits = Arc::clone(&commits);
+            move || {
+                commits.fetch_add(1, Ordering::SeqCst);
+            }
+        },
+        {
+            let rollbacks = Arc::clone(&rollbacks);
+            move || {
+                rollbacks.fetch_add(1, Ordering::SeqCst);
+            }
+        },
+    );
+
+    transaction.commit();
+
+    assert_eq!(commits.load(Ordering::SeqCst), 1);
+    assert_eq!(rollbacks.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn dropped_runtime_prepare_frame_transaction_rolls_back_once() {
+    let commits = Arc::new(AtomicUsize::new(0));
+    let rollbacks = Arc::new(AtomicUsize::new(0));
+    let transaction = RuntimePrepareFrameTransaction::new(
+        "tests.runtime-prepare-rollback",
+        {
+            let commits = Arc::clone(&commits);
+            move || {
+                commits.fetch_add(1, Ordering::SeqCst);
+            }
+        },
+        {
+            let rollbacks = Arc::clone(&rollbacks);
+            move || {
+                rollbacks.fetch_add(1, Ordering::SeqCst);
+            }
+        },
+    );
+
+    drop(transaction);
+
+    assert_eq!(commits.load(Ordering::SeqCst), 0);
+    assert_eq!(rollbacks.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn collector_registration_exposes_only_explicit_gpu_readback_requirements() {
+    let declared = RuntimePrepareCollectorRegistration::new_collector(
+        "tests.declared-readback",
+        Arc::new(DeclaredGpuReadbackCollector),
+    );
+    let defaulted = RuntimePrepareCollectorRegistration::new(
+        "tests.default-no-readback",
+        empty_runtime_prepare_collector,
+    );
+
+    assert!(declared.requests_gpu_readback());
+    assert!(!defaulted.requests_gpu_readback());
+}
+
+#[test]
+fn runtime_prepare_readbacks_use_the_product_diagnostic_router_without_byte_cloning() {
+    let source = include_str!("../runtime_prepare_collector.rs");
+    let readback = include_str!("../runtime_prepare_collector/gpu_readback.rs");
+
+    assert!(source.contains("DEFAULT_RUNTIME_PREPARE_MAX_IN_FLIGHT_READBACK_FRAMES: usize = 3"));
+    assert!(source.contains("self.device_epoch"));
+    assert!(readback.contains("device_epoch: RuntimePrepareDeviceEpoch"));
+    assert!(readback.contains("RuntimePrepareDeviceEpochMismatch"));
+    let epoch_guard = readback
+        .find("RuntimePrepareDeviceEpochMismatch")
+        .expect("readback epoch guard");
+    let diagnostic_admission = readback
+        .find("backend.enqueue_product_diagnostic_buffer(")
+        .expect("diagnostic admission");
+    assert!(epoch_guard < diagnostic_admission);
+    assert!(source.contains("backend.enqueue_product_diagnostic_buffer("));
+    assert!(!source.contains("GpuReadbackQueue::FRAME_SLOTS"));
+    assert!(!source.contains("request_readback_external"));
+    assert!(!source.contains("map(<[u8]>::to_vec)"));
+    assert!(!readback.contains("map(<[u8]>::to_vec)"));
+}
 
 #[test]
 fn collector_context_exposes_viewport_size_extract_and_prepared_sidebands() {
@@ -65,7 +221,7 @@ fn collector_context_exposes_viewport_size_extract_and_prepared_sidebands() {
     let mut external_buffer_bindings = Vec::new();
     let context = RuntimePrepareCollectorContext::new(
         &device,
-        &queue,
+        test_device_epoch(),
         &mut encoder,
         &streamer,
         &frame,
@@ -117,25 +273,32 @@ fn collector_context_registers_external_buffer_bindings() {
     {
         let mut context = RuntimePrepareCollectorContext::new(
             &device,
-            &queue,
+            test_device_epoch(),
             &mut encoder,
             &streamer,
             &frame,
             &mut external_buffer_bindings,
         );
-        context.register_external_buffer_binding_with_backing(
+        context.register_external_buffer_binding_with_backing_and_physical_desc(
             "particles.gpu.counters",
             "particles.gpu.counters:test-runtime-prepare",
             &buffer,
+            BufferDesc::new("particles.gpu.counters", 32, BufferUsage::STORAGE),
         );
         context.register_static_external_buffer_binding_with_backing(
             "particles.gpu.alive-indices",
             "particles.gpu.alive-indices:test-runtime-prepare",
             &buffer,
         );
+        context.register_static_external_buffer_binding_with_backing_and_physical_desc(
+            "particles.gpu.particles-a",
+            "particles.gpu.particles-a:test-runtime-prepare",
+            &buffer,
+            BufferDesc::new("particles.gpu.particles-a", 32, BufferUsage::STORAGE),
+        );
     }
 
-    assert_eq!(external_buffer_bindings.len(), 2);
+    assert_eq!(external_buffer_bindings.len(), 3);
     assert_eq!(
         external_buffer_bindings[0].logical_name(),
         "particles.gpu.counters"
@@ -153,12 +316,29 @@ fn collector_context_registers_external_buffer_bindings() {
         Cow::Owned(_)
     ));
     assert!(matches!(
+        external_buffer_bindings[0].physical_desc(),
+        Some(desc) if desc.size_bytes == 32 && desc.usage == BufferUsage::STORAGE
+    ));
+    assert!(matches!(
         &external_buffer_bindings[1].logical_name,
         Cow::Borrowed("particles.gpu.alive-indices")
     ));
     assert!(matches!(
         &external_buffer_bindings[1].backing_name,
         Cow::Borrowed("particles.gpu.alive-indices:test-runtime-prepare")
+    ));
+    assert!(external_buffer_bindings[1].physical_desc().is_none());
+    assert!(matches!(
+        &external_buffer_bindings[2].logical_name,
+        Cow::Borrowed("particles.gpu.particles-a")
+    ));
+    assert!(matches!(
+        &external_buffer_bindings[2].backing_name,
+        Cow::Borrowed("particles.gpu.particles-a:test-runtime-prepare")
+    ));
+    assert!(matches!(
+        external_buffer_bindings[2].physical_desc(),
+        Some(desc) if desc.size_bytes == 32 && desc.usage == BufferUsage::STORAGE
     ));
 }
 
@@ -181,7 +361,7 @@ fn collector_context_returns_nonblocking_shared_queue_readback_handles() {
     let mut gpu_readbacks = Vec::new();
     let mut context = RuntimePrepareCollectorContext::new_with_gpu_readbacks(
         &device,
-        &queue,
+        test_device_epoch(),
         &mut encoder,
         &streamer,
         &frame,
@@ -220,7 +400,7 @@ fn collector_context_without_admission_rejects_new_gpu_readbacks() {
     let mut gpu_pass_profiles = Vec::new();
     let mut context = RuntimePrepareCollectorContext::new_with_gpu_readbacks_and_gpu_work_admission(
         &device,
-        &queue,
+        test_device_epoch(),
         &mut encoder,
         &streamer,
         &frame,
@@ -232,9 +412,11 @@ fn collector_context_without_admission_rejects_new_gpu_readbacks() {
     );
 
     assert!(!context.gpu_work_admitted());
-    assert!(context
-        .request_gpu_readback("test.runtime-prepare", &buffer, 0..4)
-        .is_err());
+    assert!(
+        context
+            .request_gpu_readback("test.runtime-prepare", &buffer, 0..4)
+            .is_err()
+    );
     assert!(gpu_readbacks.is_empty());
     assert!(gpu_pass_profiles.is_empty());
 }
@@ -256,7 +438,7 @@ fn collector_context_retains_cpu_profile_for_an_admitted_gpu_pass() {
         let mut context =
             RuntimePrepareCollectorContext::new_with_gpu_readbacks_and_gpu_work_admission(
                 &device,
-                &queue,
+                test_device_epoch(),
                 &mut encoder,
                 &streamer,
                 &frame,
@@ -294,7 +476,7 @@ fn discarded_gpu_pass_does_not_publish_a_cpu_profile() {
         let mut context =
             RuntimePrepareCollectorContext::new_with_gpu_readbacks_and_gpu_work_admission(
                 &device,
-                &queue,
+                test_device_epoch(),
                 &mut encoder,
                 &streamer,
                 &frame,
@@ -323,7 +505,7 @@ fn collector_context_exposes_material_capture_streamer_accessors() {
     let mut external_buffer_bindings = Vec::new();
     let context = RuntimePrepareCollectorContext::new(
         &device,
-        &queue,
+        test_device_epoch(),
         &mut encoder,
         &streamer,
         &frame,

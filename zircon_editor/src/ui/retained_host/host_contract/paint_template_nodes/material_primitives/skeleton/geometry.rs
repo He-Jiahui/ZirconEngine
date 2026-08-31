@@ -1,6 +1,6 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
-use super::super::{bounded_extent, component_variant_contains};
+use super::super::bounded_extent;
 
 const SKELETON_TEXT_SCALE_Y: f32 = 0.60;
 const SKELETON_WAVE_X_RATIO: f32 = 0.28;
@@ -10,25 +10,27 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn skeleto
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
 ) -> FrameRect {
-    if component_variant_contains(node, "circular") {
-        let size = bounded_extent(rect.width).min(bounded_extent(rect.height));
-        return FrameRect {
-            x: rect.x + (rect.width - size) * 0.5,
-            y: rect.y + (rect.height - size) * 0.5,
-            width: size,
-            height: size,
-        };
+    match skeleton_frame_variant(&node.component_variant) {
+        1 => {
+            let size = bounded_extent(rect.width).min(bounded_extent(rect.height));
+            FrameRect {
+                x: rect.x + (rect.width - size) * 0.5,
+                y: rect.y + (rect.height - size) * 0.5,
+                width: size,
+                height: size,
+            }
+        }
+        2 => {
+            let height = bounded_extent(rect.height) * SKELETON_TEXT_SCALE_Y;
+            FrameRect {
+                x: rect.x,
+                y: rect.y + (rect.height - height) * 0.5,
+                width: rect.width,
+                height,
+            }
+        }
+        _ => rect.clone(),
     }
-    if component_variant_contains(node, "text") {
-        let height = bounded_extent(rect.height) * SKELETON_TEXT_SCALE_Y;
-        return FrameRect {
-            x: rect.x,
-            y: rect.y + (rect.height - height) * 0.5,
-            width: rect.width,
-            height,
-        };
-    }
-    rect.clone()
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn skeleton_corner_radius(
@@ -43,11 +45,10 @@ fn skeleton_corner_radius_from_host(
     rect: &FrameRect,
     metrics: HostControlMetrics,
 ) -> f32 {
-    if component_variant_contains(node, "rectangular") {
-        return 0.0;
-    }
-    if component_variant_contains(node, "circular") {
-        return bounded_extent(rect.width).min(bounded_extent(rect.height)) * 0.5;
+    match skeleton_radius_variant(&node.component_variant) {
+        1 => return 0.0,
+        2 => return bounded_extent(rect.width).min(bounded_extent(rect.height)) * 0.5,
+        _ => {}
     }
     let configured =
         configured_corner_radius(node).unwrap_or_else(|| bounded_extent(metrics.radius_control));
@@ -74,6 +75,42 @@ fn configured_corner_radius(node: &TemplatePaneNodeData) -> Option<f32> {
         .corner_radius
         .max(node.corner_radius);
     (radius.is_finite() && radius > 0.0).then_some(radius)
+}
+
+fn skeleton_frame_variant(component_variant: &str) -> u8 {
+    let mut circular = false;
+    let mut text = false;
+    for part in component_variant.split(|character: char| {
+        character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
+    }) {
+        circular |= part.eq_ignore_ascii_case("circular");
+        text |= part.eq_ignore_ascii_case("text");
+    }
+    if circular {
+        1
+    } else if text {
+        2
+    } else {
+        0
+    }
+}
+
+fn skeleton_radius_variant(component_variant: &str) -> u8 {
+    let mut rectangular = false;
+    let mut circular = false;
+    for part in component_variant.split(|character: char| {
+        character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
+    }) {
+        rectangular |= part.eq_ignore_ascii_case("rectangular");
+        circular |= part.eq_ignore_ascii_case("circular");
+    }
+    if rectangular {
+        1
+    } else if circular {
+        2
+    } else {
+        0
+    }
 }
 
 #[cfg(test)]
@@ -136,3 +173,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "geometry/single_scan_variant_tests.rs"]
+mod single_scan_variant_tests;

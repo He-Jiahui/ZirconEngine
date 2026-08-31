@@ -2,7 +2,7 @@
 param(
     [string]$ProfilingInputManifestPath,
     [string]$ProjectRoot,
-    [string]$OutputDirectory = (Join-Path 'E:\ZirconBuilds\mvp-perf' ([guid]::NewGuid().ToString('N'))),
+    [string]$OutputDirectory,
     [ValidateRange(3, 20)]
     [int]$RepeatCount = 3,
     [ValidateRange(0, 1000000)]
@@ -25,65 +25,17 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $PSScriptRoot 'MvpProductInputManifest.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'RenderExtractFrozenInput.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'RenderExtractPerformanceScenario.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'RenderExtractProcessJob.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'RenderExtractSourceIdentity.psm1') -Force -ErrorAction Stop
 . (Join-Path $repoRoot 'tools\profile-capture-paths.ps1')
+. (Join-Path $repoRoot 'tools\performance-machine-manifest.ps1')
 
-function Get-RenderExtractBaselineRunPlan {
-    param(
-        [Parameter(Mandatory)][int]$RepeatCount,
-        [Parameter(Mandatory)][int]$WarmupPresentedFrameCount,
-        [Parameter(Mandatory)][int]$MeasuredPresentedFrameCount
-    )
-
-    $targetPresentedFrameCount = $WarmupPresentedFrameCount + $MeasuredPresentedFrameCount
-    return @(
-        [pscustomobject]@{
-            logical_id = 'pipelined-first-frame'
-            product = 'runtime'
-            runtime_profile = 'runtime-pipelined'
-            exit_after_first_frame = $true
-            presented_frame_count = $null
-            warmup_presented_frame_count = 0
-            measured_presented_frame_count = 1
-            target_presented_frame_count = 1
-            repeat_count = $RepeatCount
-        },
-        [pscustomobject]@{
-            logical_id = 'pipelined-steady'
-            product = 'runtime'
-            runtime_profile = 'runtime-pipelined'
-            exit_after_first_frame = $false
-            presented_frame_count = $targetPresentedFrameCount
-            warmup_presented_frame_count = $WarmupPresentedFrameCount
-            measured_presented_frame_count = $MeasuredPresentedFrameCount
-            target_presented_frame_count = $targetPresentedFrameCount
-            repeat_count = $RepeatCount
-        },
-        [pscustomobject]@{
-            logical_id = 'synchronous-steady'
-            product = 'runtime'
-            runtime_profile = 'runtime'
-            exit_after_first_frame = $false
-            presented_frame_count = $targetPresentedFrameCount
-            warmup_presented_frame_count = $WarmupPresentedFrameCount
-            measured_presented_frame_count = $MeasuredPresentedFrameCount
-            target_presented_frame_count = $targetPresentedFrameCount
-            repeat_count = $RepeatCount
-        },
-        [pscustomobject]@{
-            logical_id = 'editor-first-frame'
-            product = 'editor'
-            runtime_profile = 'editor'
-            exit_after_first_frame = $true
-            presented_frame_count = $null
-            warmup_presented_frame_count = 0
-            measured_presented_frame_count = 1
-            target_presented_frame_count = 1
-            repeat_count = $RepeatCount
-        }
-    )
+if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
+    $OutputDirectory = New-MvpArtifactStoragePath -NamespaceId 'render-extract-baselines'
 }
 
 function Assert-RenderExtractBaselineOutputDirectory {
@@ -91,25 +43,35 @@ function Assert-RenderExtractBaselineOutputDirectory {
         [Parameter(Mandatory)][string]$Path
     )
 
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    if ($resolution.DisplayPath -notmatch '^E:\\ZirconBuilds\\mvp-perf\\(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
-        throw "-OutputDirectory render-extract baseline evidence must resolve under E:\ZirconBuilds\mvp-perf\<session>: $($resolution.DisplayPath)"
-    }
-    $directoryExists = [IO.Directory]::Exists($resolution.OperationalPath)
+    $storage = Resolve-MvpArtifactStoragePath `
+        -Path $Path `
+        -NamespaceId 'render-extract-baselines'
+    $directoryExists = [IO.Directory]::Exists($storage.operation_path)
     if ($directoryExists -and
-        [IO.Directory]::EnumerateFileSystemEntries($resolution.OperationalPath).GetEnumerator().MoveNext()) {
-        throw "-OutputDirectory must be empty to preserve render-extract evidence: $($resolution.DisplayPath)"
+        [IO.Directory]::EnumerateFileSystemEntries($storage.operation_path).GetEnumerator().MoveNext()) {
+        throw "-OutputDirectory must be empty to preserve render-extract evidence: $($storage.display_path)"
     }
-    return $resolution.OperationalPath
+    return $storage.operation_path
 }
 
 function Assert-RenderExtractBaselineProjectDirectory {
     param([Parameter(Mandatory)][string]$Path)
 
-    $projectRoot = Resolve-ZirconWindowsPath -Path $Path
-    # A product run can populate project-local .zircon state, so captures stay off C:.
-    if ($projectRoot.DisplayPath -notmatch '^[D-F]:\\') {
-        throw "-ProjectRoot must resolve on an approved D:, E:, or F: drive: $($projectRoot.DisplayPath)"
+    $pathResolution = Resolve-ZirconWindowsPath -Path $Path
+    $templateRoot = Resolve-ZirconWindowsPath -Path (Join-Path $repoRoot 'templates\projects')
+    $templatePrefix = $templateRoot.OperationalPath.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    if ($pathResolution.OperationalPath.Equals($templateRoot.OperationalPath, [StringComparison]::OrdinalIgnoreCase) -or
+        $pathResolution.OperationalPath.StartsWith($templatePrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "-ProjectRoot must name a created project or example project, not a repository source template: $($pathResolution.DisplayPath)"
+    }
+
+    $storage = Resolve-MvpArtifactStorageRootPath `
+        -Path $pathResolution.DisplayPath `
+        -CapabilityClass 'windows-local-artifact'
+    $projectRoot = [pscustomobject]@{
+        OperationalPath = $storage.operation_path
+        DisplayPath = $storage.display_path
+        StoragePolicy = $storage
     }
     if (-not [IO.Directory]::Exists($projectRoot.OperationalPath)) {
         throw "-ProjectRoot does not exist or is not a directory: $($projectRoot.DisplayPath)"
@@ -117,21 +79,13 @@ function Assert-RenderExtractBaselineProjectDirectory {
     if (-not [IO.File]::Exists((Join-ZirconWindowsPath -Path $projectRoot.OperationalPath -ChildPath 'zircon-project.toml'))) {
         throw "-ProjectRoot is missing zircon-project.toml: $($projectRoot.DisplayPath)"
     }
-
-    # Source templates must stay immutable even when they are on an approved drive.
-    $templateRoot = Resolve-ZirconWindowsPath -Path (Join-Path $repoRoot 'templates\projects')
-    $templatePrefix = $templateRoot.OperationalPath.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
-    if ($projectRoot.OperationalPath.Equals($templateRoot.OperationalPath, [StringComparison]::OrdinalIgnoreCase) -or
-        $projectRoot.OperationalPath.StartsWith($templatePrefix, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "-ProjectRoot must name a created project or example project, not a repository source template: $($projectRoot.DisplayPath)"
-    }
     return $projectRoot
 }
 
 function Get-RenderExtractScaleProjectMetadata {
     param(
         [Parameter(Mandatory)]$ProjectRoot,
-        [Parameter(Mandatory)][string]$ExpectedSourceFingerprint
+        [Parameter(Mandatory)][string]$ExpectedBuildSetId
     )
 
     $metadataPath = Join-ZirconWindowsPath `
@@ -146,15 +100,18 @@ function Get-RenderExtractScaleProjectMetadata {
     catch {
         throw "Generated render-extract scale metadata is not valid JSON: ${metadataPath}: $($_.Exception.Message)"
     }
-    if ($null -eq $metadata -or [int]$metadata.schema_version -ne 1) {
+    if ($null -eq $metadata -or [int]$metadata.schema_version -ne 2) {
         throw "Generated render-extract scale metadata has an unsupported schema_version: $metadataPath"
     }
     $projectFingerprint = [string]$metadata.source_fingerprint
-    if ($projectFingerprint -notmatch '^[0-9A-F]{64}$') {
-        throw "Generated render-extract scale metadata has an invalid source fingerprint: $metadataPath"
+    $projectBuildSetId = [string]$metadata.build_set_id
+    if ($projectFingerprint -notmatch '^[0-9A-F]{64}$' -or
+        $projectBuildSetId -notmatch '^[0-9A-F]{64}$' -or
+        -not $projectFingerprint.Equals($projectBuildSetId, [StringComparison]::Ordinal)) {
+        throw "Generated render-extract scale metadata has an invalid BuildSet identity: $metadataPath"
     }
-    if (-not $projectFingerprint.Equals($ExpectedSourceFingerprint, [StringComparison]::Ordinal)) {
-        throw 'Generated render-extract scale project belongs to a different source snapshot. Regenerate it before capture.'
+    if (-not $projectBuildSetId.Equals($ExpectedBuildSetId, [StringComparison]::Ordinal)) {
+        throw 'Generated render-extract scale project belongs to a different BuildSet. Regenerate it before capture.'
     }
     return $metadata
 }
@@ -236,20 +193,6 @@ function Write-RenderExtractBaselineTextFileNew {
     }
 }
 
-function Get-RenderExtractManifestProperty {
-    param(
-        [Parameter(Mandatory)]$Value,
-        [Parameter(Mandatory)][string]$Name,
-        [Parameter(Mandatory)][string]$Label
-    )
-
-    $property = $Value.PSObject.Properties[$Name]
-    if ($null -eq $property -or $null -eq $property.Value) {
-        throw "$Label is missing '$Name'."
-    }
-    return $property.Value
-}
-
 function Get-RenderExtractProfilingArtifact {
     param(
         [Parameter(Mandatory)]$Artifacts,
@@ -308,31 +251,11 @@ function Get-RenderExtractProfilingArtifact {
 }
 
 function Resolve-RenderExtractProfilingInput {
-    param(
-        [Parameter(Mandatory)][string]$ManifestPath,
-        [Parameter(Mandatory)][string]$ExpectedSourceFingerprint
-    )
+    param([Parameter(Mandatory)][string]$ManifestPath)
 
-    $manifestResolution = Resolve-ZirconWindowsPath -Path $ManifestPath
-    if (-not [IO.File]::Exists($manifestResolution.OperationalPath)) {
-        throw "Profiling input manifest does not exist: $($manifestResolution.DisplayPath)"
-    }
-    try {
-        $manifest = [IO.File]::ReadAllText($manifestResolution.OperationalPath) | ConvertFrom-Json -ErrorAction Stop
-    }
-    catch {
-        throw "Profiling input manifest is not valid JSON: $($manifestResolution.DisplayPath): $($_.Exception.Message)"
-    }
-    if ([int](Get-RenderExtractManifestProperty -Value $manifest -Name 'schema_version' -Label 'Profiling input manifest') -ne 2) {
-        throw 'Profiling input manifest schema_version must be 2.'
-    }
-    $sourceFingerprint = [string](Get-RenderExtractManifestProperty -Value $manifest -Name 'source_fingerprint' -Label 'Profiling input manifest')
-    if (-not $sourceFingerprint.Equals($ExpectedSourceFingerprint, [StringComparison]::Ordinal)) {
-        throw 'Profiling input manifest belongs to a different source snapshot. Rebuild profiling inputs before capture.'
-    }
-    if ([string](Get-RenderExtractManifestProperty -Value $manifest -Name 'cargo_profile' -Label 'Profiling input manifest') -ne 'profiling') {
-        throw 'Profiling input manifest cargo_profile must be profiling.'
-    }
+    $sourceIdentity = Resolve-RenderExtractProfilingSourceIdentity -ManifestPath $ManifestPath
+    $manifest = $sourceIdentity.manifest
+    $manifestDirectory = $sourceIdentity.manifest_directory
     $artifacts = @(Get-RenderExtractManifestProperty -Value $manifest -Name 'artifacts' -Label 'Profiling input manifest')
     if ($artifacts.Count -ne 4) {
         throw "Profiling input manifest must contain exactly four runtime/editor artifacts; found $($artifacts.Count)."
@@ -367,7 +290,6 @@ function Resolve-RenderExtractProfilingInput {
         -ExpectedPackage 'zircon_runtime' `
         -ExpectedBin $null `
         -ExpectedFeatures $editorFeatures
-    $manifestDirectory = [IO.Path]::GetDirectoryName($manifestResolution.OperationalPath)
     foreach ($product in @(
             [pscustomobject]@{ Name = 'runtime'; Executable = $runtimeExecutable; Library = $runtimeLibrary },
             [pscustomobject]@{ Name = 'editor'; Executable = $editorExecutable; Library = $editorLibrary }
@@ -383,8 +305,11 @@ function Resolve-RenderExtractProfilingInput {
         }
     }
     return [pscustomobject]@{
-        manifest_path = $manifestResolution.OperationalPath
-        manifest_sha256 = Get-MvpProductInputFileSha256 -Path $manifestResolution.OperationalPath
+        manifest_path = $sourceIdentity.manifest_path
+        manifest_sha256 = $sourceIdentity.manifest_sha256
+        source_fingerprint = $sourceIdentity.source_fingerprint
+        build_set_id = $sourceIdentity.build_set_id
+        build_set_manifest_sha256 = $sourceIdentity.build_set_manifest_sha256
         runtime = [pscustomobject]@{
             executable_path = $runtimeExecutable.OperationalPath
             executable_sha256 = $runtimeExecutable.Sha256
@@ -411,7 +336,7 @@ function Assert-RenderExtractProfilingInputIdentity {
             throw "Profiling input identity changed during baseline capture ('$name')."
         }
     }
-    foreach ($name in @('manifest_sha256')) {
+    foreach ($name in @('manifest_sha256', 'build_set_id', 'build_set_manifest_sha256')) {
         if (-not ([string]$Expected.$name).Equals([string]$Actual.$name, [StringComparison]::Ordinal)) {
             throw "Profiling input identity changed during baseline capture ('$name')."
         }
@@ -777,13 +702,21 @@ function Invoke-RenderExtractBaselineProcess {
     }
     return [ordered]@{
         logical_id = $Run.logical_id
+        scenario_id = $Run.scenario_id
+        scenario_version = $Run.scenario_version
+        scenario_binding_id = $Run.scenario_binding_id
         product = $Run.product
         attempt = $Attempt
         invocation_id = $InvocationId
         runtime_profile = $Run.runtime_profile
+        measurement_window = $Run.measurement_window
+        repeat_count = $Run.repeat_count
         warmup_presented_frame_count = $Run.warmup_presented_frame_count
         measured_presented_frame_count = $Run.measured_presented_frame_count
         target_presented_frame_count = $Run.target_presented_frame_count
+        cache_contract = $Run.cache_contract
+        required_metrics = @($Run.required_metrics)
+        budget_contract = $Run.budget_contract
         exit_code = $exitCode
         peak_working_set_bytes = $peakWorkingSetBytes
         total_processor_time_ms = $totalProcessorTimeMs
@@ -798,6 +731,8 @@ function Invoke-RenderExtractBaselineProcess {
         system_trace_etl = if ($UseWpr) { (Resolve-ZirconWindowsPath -Path $systemTracePath).DisplayPath } else { $null }
         profiling_input = [ordered]@{
             manifest_sha256 = $ProfilingInput.manifest_sha256
+            build_set_id = $ProfilingInput.build_set_id
+            build_set_manifest_sha256 = $ProfilingInput.build_set_manifest_sha256
             executable_sha256 = $actualProductHashes.executable_sha256
             library_sha256 = $actualProductHashes.library_sha256
             asset_manifest_sha256 = $actualProductHashes.asset_manifest_sha256
@@ -817,17 +752,12 @@ function Invoke-RenderExtractBaselineCapture {
     $resolvedOutputDirectory = Assert-RenderExtractBaselineOutputDirectory -Path $EvidenceOutputDirectory
     $projectRoot = Assert-RenderExtractBaselineProjectDirectory -Path $ProjectPath
 
-    $sourceFingerprint = Get-MvpSourceFingerprint -RepositoryRoot $repoRoot
-    $currentFingerprint = Get-MvpSourceFingerprint -RepositoryRoot $repoRoot
-    if (-not $currentFingerprint.Equals($sourceFingerprint, [StringComparison]::Ordinal)) {
-        throw 'Source fingerprint changed during baseline capture preflight. Rebuild profiling inputs before capture.'
-    }
+    $profilingInput = Resolve-RenderExtractProfilingInput `
+        -ManifestPath $ManifestPath
+    $sourceFingerprint = $profilingInput.source_fingerprint
     $scaleProject = Get-RenderExtractScaleProjectMetadata `
         -ProjectRoot $projectRoot `
-        -ExpectedSourceFingerprint $sourceFingerprint
-    $profilingInput = Resolve-RenderExtractProfilingInput `
-        -ManifestPath $ManifestPath `
-        -ExpectedSourceFingerprint $sourceFingerprint
+        -ExpectedBuildSetId $profilingInput.build_set_id
 
     $runPlan = @(Get-RenderExtractBaselineRunPlan `
             -RepeatCount $RepeatCount `
@@ -836,6 +766,17 @@ function Invoke-RenderExtractBaselineCapture {
     $sessionLease = New-RenderExtractBaselineOutputSessionLease -Path $resolvedOutputDirectory
     $runs = [System.Collections.Generic.List[object]]::new()
     try {
+        $machineManifestPath = Join-ZirconWindowsPath `
+            -Path $resolvedOutputDirectory `
+            -ChildPath 'machine-manifest.json'
+        $machineManifest = New-ZirconPerformanceMachineManifest
+        Write-RenderExtractBaselineTextFileNew `
+            -Path $machineManifestPath `
+            -Content ($machineManifest | ConvertTo-Json -Depth 10)
+        $machineEvidence = [ordered]@{
+            path = (Resolve-ZirconWindowsPath -Path $machineManifestPath).DisplayPath
+            sha256 = Get-MvpProductInputFileSha256 -Path $machineManifestPath
+        }
         $frozenProfilingInput = New-RenderExtractFrozenProfilingInput `
             -ProfilingInput $profilingInput `
             -EngineAssetRoots @(
@@ -846,13 +787,8 @@ function Invoke-RenderExtractBaselineCapture {
             -InvocationId $sessionLease.InvocationId
         foreach ($run in $runPlan) {
             for ($attempt = 1; $attempt -le $run.repeat_count; $attempt++) {
-                $currentFingerprint = Get-MvpSourceFingerprint -RepositoryRoot $repoRoot
-                if (-not $currentFingerprint.Equals($sourceFingerprint, [StringComparison]::Ordinal)) {
-                    throw 'Source fingerprint changed during baseline capture. Rebuild profiling inputs before another capture.'
-                }
                 $currentInput = Resolve-RenderExtractProfilingInput `
-                    -ManifestPath $ManifestPath `
-                    -ExpectedSourceFingerprint $sourceFingerprint
+                    -ManifestPath $ManifestPath
                 Assert-RenderExtractProfilingInputIdentity `
                     -Expected $profilingInput `
                     -Actual $currentInput
@@ -871,18 +807,21 @@ function Invoke-RenderExtractBaselineCapture {
             }
         }
 
-        $finalFingerprint = Get-MvpSourceFingerprint -RepositoryRoot $repoRoot
-        if (-not $finalFingerprint.Equals($sourceFingerprint, [StringComparison]::Ordinal)) {
-            throw 'Source fingerprint changed during baseline capture. The collected evidence is not source-bound.'
-        }
+        $finalInput = Resolve-RenderExtractProfilingInput -ManifestPath $ManifestPath
+        Assert-RenderExtractProfilingInputIdentity `
+            -Expected $profilingInput `
+            -Actual $finalInput
 
         $summaryPath = Join-ZirconWindowsPath -Path $resolvedOutputDirectory -ChildPath 'render-extract-baseline.json'
         $summary = [ordered]@{
-            schema_version = 4
+            schema_version = 5
             generated_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
             source_fingerprint = $sourceFingerprint
             profiling_input_manifest_sha256 = $frozenProfilingInput.manifest_sha256
+            build_set_id = $frozenProfilingInput.build_set_id
+            build_set_manifest_sha256 = $frozenProfilingInput.build_set_manifest_sha256
             invocation_id = $sessionLease.InvocationId
+            machine_manifest = $machineEvidence
             project = [ordered]@{
                 runtime_argument = '.'
                 physical_identity = $projectRoot.DisplayPath
@@ -900,7 +839,7 @@ function Invoke-RenderExtractBaselineCapture {
         }
         Write-RenderExtractBaselineTextFileNew `
             -Path $summaryPath `
-            -Content ($summary | ConvertTo-Json -Depth 6)
+            -Content ($summary | ConvertTo-Json -Depth 10)
         & (Join-Path $PSScriptRoot 'Write-RenderExtractBaselineReport.ps1') -BaselineSummaryPath $summaryPath | Out-Null
         Write-Host "Render-extract baseline summary: $((Resolve-ZirconWindowsPath -Path $summaryPath).DisplayPath)"
         return $summary

@@ -12,8 +12,13 @@ use super::{
     command::{
         UiAssetEditorDocumentReplayCommand, UiAssetEditorInverseTreeEdit, UiAssetEditorTreeEdit,
     },
-    undo_stack::{UiAssetEditorExternalEffect, UiAssetEditorUndoStackReplayRecord},
+    undo_stack::{
+        UiAssetEditorExternalEffect, UiAssetEditorUndoStack, UiAssetEditorUndoStackReplayRecord,
+    },
 };
+
+#[cfg(test)]
+mod borrowed_undo_tests;
 
 pub const UI_ASSET_EDITOR_BUG_REPORT_REPLAY_ARTIFACT_SCHEMA_VERSION: u32 = 1;
 
@@ -122,10 +127,16 @@ impl UiAssetEditorSession {
 }
 
 fn reconstruct_initial_source(session: &UiAssetEditorSession) -> (String, Option<String>) {
-    let mut source = session.source_buffer.text().to_string();
-    let mut undo_stack = session.undo_stack.clone();
-    while let Some(record) = undo_stack.undo_record() {
-        if let Err(error) = record.transition.apply_to_source(&mut source) {
+    reconstruct_initial_source_from_stack(session.source_buffer.text(), &session.undo_stack)
+}
+
+fn reconstruct_initial_source_from_stack(
+    current_source: &str,
+    undo_stack: &UiAssetEditorUndoStack,
+) -> (String, Option<String>) {
+    let mut source = current_source.to_string();
+    for transition in undo_stack.undo_transitions_rev() {
+        if let Err(error) = transition.apply_to_source(&mut source) {
             return (source, Some(error.to_string()));
         }
     }

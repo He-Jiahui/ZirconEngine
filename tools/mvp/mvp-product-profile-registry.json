@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "registry_kind": "zircon.mvp-product-profile-registry",
+  "profiles": [
+    {
+      "profile_id": "runtime-windows-development",
+      "target_profile": "target-client-platform",
+      "role": "runtime",
+      "configuration": "development",
+      "platform": "windows",
+      "features": ["target-client", "platform-winit", "input-gamepad", "gamepad-gilrs"],
+      "products": [
+        {
+          "logical_id": "runtime-executable",
+          "package": "zircon_app",
+          "bin": "zircon_runtime",
+          "artifact_name": "zircon_runtime.exe"
+        },
+        {
+          "logical_id": "runtime-library/runtime",
+          "package": "zircon_runtime",
+          "bin": null,
+          "artifact_name": "zircon_runtime.dll"
+        }
+      ]
+    },
+    {
+      "profile_id": "editor-windows-development",
+      "target_profile": "target-editor-host",
+      "role": "editor",
+      "configuration": "development",
+      "platform": "windows",
+      "features": ["target-editor-host"],
+      "products": [
+        {
+          "logical_id": "editor-executable",
+          "package": "zircon_app",
+          "bin": "zircon_editor",
+          "artifact_name": "zircon_editor.exe"
+        },
+        {
+          "logical_id": "runtime-library/editor",
+          "package": "zircon_runtime",
+          "bin": null,
+          "artifact_name": "zircon_runtime.dll"
+        }
+      ]
+    }
+  ]
+}

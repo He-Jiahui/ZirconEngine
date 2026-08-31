@@ -26,8 +26,8 @@ pub(super) fn bind_group_entries<'a>(
     depth_of_field_bokeh_view: &'a wgpu::TextureView,
     effect_lut_view: &'a wgpu::TextureView,
     effect_lut_3d_view: &'a wgpu::TextureView,
-    cluster_buffer: &'a wgpu::Buffer,
-    exposure_buffer: &'a wgpu::Buffer,
+    cluster_buffer: wgpu::BufferBinding<'a>,
+    exposure_buffer: wgpu::BufferBinding<'a>,
 ) -> [wgpu::BindGroupEntry<'a>; 29] {
     let scene_depth_binding_view = match resources.depth_sampling_mode {
         PostProcessDepthSamplingMode::RawDepthTexture => scene_depth_view,
@@ -59,7 +59,7 @@ pub(super) fn bind_group_entries<'a>(
         },
         wgpu::BindGroupEntry {
             binding: 5,
-            resource: cluster_buffer.as_entire_binding(),
+            resource: wgpu::BindingResource::Buffer(cluster_buffer),
         },
         wgpu::BindGroupEntry {
             binding: 6,
@@ -175,7 +175,7 @@ pub(super) fn bind_group_entries<'a>(
         },
         wgpu::BindGroupEntry {
             binding: 28,
-            resource: exposure_buffer.as_entire_binding(),
+            resource: wgpu::BindingResource::Buffer(exposure_buffer),
         },
     ]
 }

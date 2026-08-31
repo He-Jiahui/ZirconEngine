@@ -7,40 +7,24 @@ version = 2
 display_name = "Console"
 
 [imports]
-styles = ["res://ui/theme/editor_base.zui"]
+styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]
 node = "console_root"
 
-[nodes.top_space]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
-
-[nodes.bottom_space]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
-
-[nodes.left_space]
-component = "Space"
-layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.right_space]
-component = "Space"
-layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
 [nodes.console_header]
 component = "HorizontalBox"
 control_id = "ConsoleHeader"
-props = { surface_variant = "panel", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
+props = { text = "Console", surface_variant = "transparent", radius = 0.0, border_width = 0.0, text_tone = "default", font_weight = "$editor.typography.strong.weight", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", overflow = "elide" }
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.console_header_body_gap]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
 
 [nodes.console_body_top_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
 
 [nodes.text_panel]
 component = "Label"
@@ -50,11 +34,11 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.console_text_left_space]
 component = "Space"
-layout = { width = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.density.gap.medium", preferred = "$editor.density.gap.medium", max = "$editor.density.gap.medium", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.console_text_right_space]
 component = "Space"
-layout = { width = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.density.gap.medium", preferred = "$editor.density.gap.medium", max = "$editor.density.gap.medium", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.console_text_row]
 component = "HorizontalBox"
@@ -64,23 +48,13 @@ children = [{ node = "console_text_left_space" }, { node = "text_panel" }, { nod
 [nodes.console_body]
 component = "VerticalBox"
 control_id = "ConsoleBodySection"
-props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+props = { surface_variant = "transparent", radius = 0.0, border_width = 0.0 }
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "console_body_top_space" }, { node = "console_text_row" }]
-
-[nodes.console_content_stack]
-component = "VerticalBox"
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "console_header" }, { node = "console_header_body_gap" }, { node = "console_body" }]
-
-[nodes.content_row]
-component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "left_space" }, { node = "console_content_stack" }, { node = "right_space" }]
 
 [nodes.console_root]
 component = "VerticalBox"
 control_id = "ConsoleRoot"
-classes = ["editor-shell"]
+classes = ["workbench-shell-root"]
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "top_space" }, { node = "content_row" }, { node = "bottom_space" }]
+children = [{ node = "console_header" }, { node = "console_header_body_gap" }, { node = "console_body" }]

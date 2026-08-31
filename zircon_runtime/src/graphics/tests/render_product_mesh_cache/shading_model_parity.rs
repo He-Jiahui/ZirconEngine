@@ -2,8 +2,8 @@ use std::{fs, path::PathBuf, sync::Arc};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::AssetUri;
+use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     CameraRenderDescriptor, CapturedFrame, DisplayMode, GeometryExtract, ProjectionMode,
     RenderCameraClear, RenderFrameExtract, RenderFramework, RenderLayerSet,
@@ -156,7 +156,7 @@ fn three_shading_models_extract(world: u64, output_size: UVec2) -> RenderFrameEx
     extract.view.select_camera_descriptor(descriptor);
     extract.debug.overlays.display_mode = DisplayMode::Shaded;
     extract.post_process.display_mode = DisplayMode::Shaded;
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         shading_model_cases()
             .iter()

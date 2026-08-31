@@ -2,9 +2,9 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
+use crate::asset::AssetUuid;
 use crate::asset::assets::ProjectDocumentError;
 use crate::asset::importer::AssetImportError;
-use crate::asset::AssetUuid;
 use crate::core::resource::io::atomic_write;
 use crate::core::resource::{ResourceId, ResourceLocator};
 use crate::scene::components::{
@@ -19,13 +19,19 @@ use thiserror::Error;
 use super::super::transform_validation::{
     validate_persisted_transform_map, validate_persisted_transforms,
 };
-use super::super::{world::WorldPersistentState, World};
+use super::super::{
+    World,
+    entity_id_allocator::EntityIdAllocator,
+    world::{WorldPersistentState, WorldPersistentStateError},
+};
 use super::BUILTIN_CUBE;
 
 const PROJECT_FORMAT_VERSION: u32 = 2;
 
 #[derive(Debug, Error)]
 pub enum SceneProjectError {
+    #[error("scene artifact I/O requires a live runtime task owner")]
+    RuntimeUnavailable,
     #[error("project I/O failed: {0}")]
     Io(#[from] std::io::Error),
     #[error("project parse failed: {0}")]
@@ -50,6 +56,11 @@ pub enum SceneProjectError {
     DanglingAssetReference {
         uuid: AssetUuid,
         locator: ResourceLocator,
+    },
+    #[error("resource {resource_id} used as {role} has no persistent asset reference")]
+    UnresolvedResourceHandle {
+        resource_id: ResourceId,
+        role: &'static str,
     },
 }
 
@@ -101,11 +112,14 @@ impl World {
         let persisted_state: WorldPersistentState = serde_json::from_str(document.world.get())?;
         validate_persisted_transform_map(&persisted_state.local_transforms)?;
         let mut world =
-            World::from_persistent_state(persisted_state).map_err(|(entity, _component)| {
-                crate::scene::SceneError::MissingEntity {
-                    operation: "load persisted component",
-                    entity,
+            World::from_persistent_state(persisted_state).map_err(|error| match error {
+                WorldPersistentStateError::OrphanComponent { entity, .. } => {
+                    crate::scene::SceneError::MissingEntity {
+                        operation: "load persisted component",
+                        entity,
+                    }
                 }
+                WorldPersistentStateError::Scene(source) => source,
             })?;
         validate_persisted_transforms(&world)?;
         world
@@ -144,18 +158,14 @@ impl World {
             } else {
                 0
             };
-        let next_id = self
-            .entities
-            .iter()
-            .copied()
-            .max()
-            .unwrap_or(0)
-            .checked_add(1)
-            .ok_or(crate::scene::SceneError::EntityIdExhausted { entity: u64::MAX })?;
-        let admitted_next_id = next_id
-            .checked_add(default_node_count)
-            .filter(|next_id| *next_id != u64::MAX)
-            .ok_or(crate::scene::SceneError::EntityIdExhausted { entity: u64::MAX })?;
+        let mut restored_allocator = EntityIdAllocator::default();
+        for entity in &self.entities {
+            restored_allocator.advance_past(*entity)?;
+        }
+        let mut admitted_allocator = restored_allocator;
+        for _ in 0..default_node_count {
+            admitted_allocator.reserve_next()?;
+        }
         self.schedule = Schedule::default();
         if self.kinds.len() != self.entities.len() {
             self.kinds.clear();
@@ -188,9 +198,9 @@ impl World {
             }
         }
         self.rebuild_node_kind_ordinals();
-        self.next_id = next_id;
+        self.entity_id_allocator = restored_allocator;
         if needs_default_camera {
-            self.spawn_node(NodeKind::Camera);
+            self.spawn_node(NodeKind::Camera)?;
         }
         if !self.contains_component::<CameraComponent>(self.active_camera) {
             self.active_camera = self
@@ -201,9 +211,9 @@ impl World {
                 .unwrap_or(0);
         }
         if needs_default_directional_light {
-            self.spawn_node(NodeKind::DirectionalLight);
+            self.spawn_node(NodeKind::DirectionalLight)?;
         }
-        debug_assert_eq!(self.next_id, admitted_next_id);
+        debug_assert_eq!(self.entity_id_allocator, admitted_allocator);
         for entity_index in 0..self.entities.len() {
             let entity = self.entities[entity_index];
             let mut row = self.begin_component_row(entity);

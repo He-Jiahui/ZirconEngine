@@ -1,26 +1,91 @@
-use std::collections::HashMap;
-
-use super::super::font_assets::{effective_text_render_mode, LoadedUiFontAsset};
+use super::super::font_assets::{LoadedUiFontAsset, effective_text_render_mode};
 use super::super::resolved_batches::{
-    resolved_auto_text_render_mode, AutoTextRasterRouter, ResolvedScreenSpaceUiTextBatches,
+    AutoTextRasterRouter, ResolvedScreenSpaceUiTextBatches, resolved_auto_text_render_mode,
 };
 use super::super::*;
 use super::support::text_batch;
-use crate::asset::ProjectAssetManager;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextRouteIdentity;
 use zircon_runtime_interface::ui::surface::{UiTextRange, UiTextWritingMode};
 
 #[test]
-fn glyphon_atlas_trim_only_transitions_once_per_fallback_exit() {
-    let mut render_glyphon = true;
+fn native_text_backend_accepts_only_prepared_glyph_runs() {
+    let source = include_str!("../../text.rs");
 
-    assert!(super::super::take_glyphon_atlas_trim_transition(
-        &mut render_glyphon
-    ));
-    assert!(!render_glyphon);
-    assert!(!super::super::take_glyphon_atlas_trim_transition(
-        &mut render_glyphon
-    ));
+    assert!(source.contains("native_bitmap_atlas_glyph_runs"));
+    assert!(!source.contains("TextArea"));
+    assert!(!source.contains("TextRenderer"));
+    assert!(!source.contains("TextAtlas"));
+    assert!(!source.contains("layout_runs()"));
+    assert!(!source.contains("shape_native_buffer"));
+}
+
+#[test]
+fn native_bitmap_atlas_acceptance_requires_a_built_upload_plan_to_be_ready() {
+    assert!(native_bitmap_atlas_frame_acceptance(false, false));
+    assert!(native_bitmap_atlas_frame_acceptance(true, true));
+    assert!(!native_bitmap_atlas_frame_acceptance(true, false));
+}
+
+#[test]
+fn text_atlas_upload_preparation_failures_abort_the_frame_before_rendering() {
+    let source = include_str!("../../text.rs");
+
+    assert!(source.contains("if sdf_renderer_report.atlas_upload_preparation_failed"));
+    assert!(source.contains("screen-space UI SDF atlas upload preparation was incomplete"));
+    assert!(source.contains("screen-space UI bitmap atlas upload preparation was incomplete"));
+    assert!(source.contains("self.abort_pending_uploads();"));
+}
+
+#[test]
+fn bitmap_atlas_recovery_debt_is_owner_scoped_and_commit_gated() {
+    let mut recovery = ScreenSpaceUiTextAtlasRecoveryState::default();
+
+    recovery.note_bitmap_abort(true);
+
+    assert!(recovery.bitmap_force_full_upload(false));
+    assert!(!recovery.sdf_force_full_upload(false));
+    recovery.commit_bitmap_recovery(false);
+    recovery.commit_sdf_recovery(true);
+    assert!(recovery.bitmap_force_full_upload(false));
+
+    recovery.commit_bitmap_recovery(true);
+    assert!(!recovery.bitmap_force_full_upload(false));
+}
+
+#[test]
+fn sdf_atlas_upload_abort_survives_unrelated_bitmap_recovery() {
+    let mut recovery = ScreenSpaceUiTextAtlasRecoveryState::default();
+
+    recovery.note_sdf_abort(true);
+    recovery.note_sdf_abort(false);
+
+    assert!(recovery.sdf_force_full_upload(false));
+    assert!(!recovery.bitmap_force_full_upload(false));
+    recovery.commit_sdf_recovery(false);
+    recovery.commit_bitmap_recovery(true);
+    assert!(recovery.sdf_force_full_upload(false));
+
+    recovery.commit_sdf_recovery(true);
+    assert!(!recovery.sdf_force_full_upload(false));
+}
+
+#[test]
+fn sdf_default_material_without_render_work_does_not_keep_recovery_active() {
+    let mut report = ScreenSpaceUiSdfPrepareReport {
+        material_count: 1,
+        ..Default::default()
+    };
+
+    assert!(!sdf_owner_has_render_contents(&report));
+
+    report.draw_count = 1;
+    assert!(sdf_owner_has_render_contents(&report));
+    report.draw_count = 0;
+    report.atlas_slot_count = 1;
+    assert!(sdf_owner_has_render_contents(&report));
+    report.atlas_slot_count = 0;
+    report.vertex_count = 6;
+    assert!(sdf_owner_has_render_contents(&report));
 }
 
 #[test]
@@ -59,34 +124,47 @@ fn text_backend_routing_respects_auto_font_mode_without_crossing_backends() {
 fn text_batch_resolution_invalidates_existing_renderer_after_shared_font_publish() {
     let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
     let mut reader = TextRenderState::new(0);
-    let mut writer = TextRenderState::new(0);
-    let previous_family = reader
+    let writer = TextRenderState::new(0);
+    let previous_project_family = reader
         .font_database()
-        .default_ui_family_for_test()
+        .project_default_ui_family_for_test()
         .map(str::to_owned);
-    assert!(writer.set_default_ui_family("Shared Screen-Space Refresh Family"));
+    let writer_collection = writer.font_collection();
+    let (_, _, changed) = writer_collection
+        .mutate(|database| database.set_default_ui_family("Shared Screen-Space Refresh Family"));
+    assert!(changed);
 
-    let asset_manager = ProjectAssetManager::default();
-    let mut font_assets = HashMap::new();
+    let shaping_changed = reader.refresh_font_collection();
+    let font_revision = reader.font_collection_revision();
+    let font_collection = reader.font_collection();
+    let font_assets = Default::default();
     let mut auto_router = AutoTextRasterRouter::default();
-    let resolved = super::super::resolved_batches::resolve_text_batches(
-        &mut reader,
-        &mut font_assets,
-        &asset_manager,
+    auto_router.begin_frame();
+    let resolved = super::super::resolved_batches::resolve_text_batches_after_font_dependencies(
+        &font_assets,
         &mut auto_router,
         &[],
         &[],
         &[],
+        shaping_changed,
+        shaping_changed,
+        font_revision,
+        &font_collection,
     );
 
     assert!(resolved.font_faces_changed());
     assert!(
-        !reader.refresh_shared_font_database(),
+        !reader.refresh_font_collection(),
         "batch resolution must consume the pending shared generation"
     );
 
-    let _ = writer.set_default_ui_family_asset(previous_family.as_deref());
-    assert!(reader.refresh_shared_font_database());
+    let (_, _, changed) =
+        writer_collection.mutate(|database| match previous_project_family.as_deref() {
+            Some(family) => database.set_default_ui_family(family),
+            None => database.clear_default_ui_family(),
+        });
+    assert!(changed);
+    assert!(reader.refresh_font_collection());
 }
 
 #[test]
@@ -94,8 +172,12 @@ fn text_font_refresh_recomputes_internal_vertical_advances() {
     let mut text = text_batch("AB", UiTextRenderMode::Sdf);
     text.writing_mode = UiTextWritingMode::VerticalRl;
     text.glyph_advances = vec![999.0, 999.0];
+    let font_collection = crate::text::font::shared_font_collection_service();
 
-    super::super::super::render::text_advances::refresh_screen_space_text_batch_glyphs(&mut text);
+    super::super::super::render::text_advances::refresh_renderer_fallback_text_batch_glyphs(
+        &mut text,
+        &font_collection,
+    );
 
     assert_eq!(text.glyph_advances.len(), 2);
     assert!(text.glyph_advances.iter().all(|advance| *advance < 999.0));
@@ -107,8 +189,12 @@ fn text_font_refresh_preserves_resolved_layout_vertical_advances() {
     text.writing_mode = UiTextWritingMode::VerticalRl;
     text.source_range = Some(UiTextRange { start: 0, end: 2 });
     text.glyph_advances = vec![11.0, 13.0];
+    let font_collection = crate::text::font::shared_font_collection_service();
 
-    super::super::super::render::text_advances::refresh_screen_space_text_batch_glyphs(&mut text);
+    super::super::super::render::text_advances::refresh_renderer_fallback_text_batch_glyphs(
+        &mut text,
+        &font_collection,
+    );
 
     assert_eq!(text.glyph_advances, vec![11.0, 13.0]);
 }
@@ -120,7 +206,6 @@ fn auto_text_mode_uses_font_asset_default_when_present() {
         Some(&LoadedUiFontAsset {
             family: Some("Studio Mono".to_string()),
             render_mode: Some(UiTextRenderMode::Sdf),
-            composite_font: None,
         }),
     );
 
@@ -134,7 +219,6 @@ fn explicit_text_mode_overrides_font_asset_default() {
         Some(&LoadedUiFontAsset {
             family: Some("Studio Mono".to_string()),
             render_mode: Some(UiTextRenderMode::Sdf),
-            composite_font: None,
         }),
     );
 
@@ -164,7 +248,6 @@ fn auto_text_without_explicit_font_default_uses_raster_policy() {
             Some(&LoadedUiFontAsset {
                 family: Some("Studio Sans".to_string()),
                 render_mode: Some(UiTextRenderMode::Auto),
-                composite_font: None,
             }),
         ),
         UiTextRenderMode::Sdf
@@ -188,7 +271,6 @@ fn auto_text_policy_preserves_explicit_font_render_modes() {
                 Some(&LoadedUiFontAsset {
                     family: Some("Studio Sans".to_string()),
                     render_mode: Some(mode),
-                    composite_font: None,
                 }),
             ),
             mode
@@ -411,74 +493,4 @@ fn auto_text_router_reports_scale_p50_p95() {
              p50_ns={p50_ns} p95_ns={p95_ns}"
         );
     }
-}
-
-#[test]
-fn native_text_align_maps_start_end_through_text_direction() {
-    assert_eq!(
-        native_text_align(UiTextAlign::Start, UiTextDirection::LeftToRight),
-        NativeTextAlign::Left
-    );
-    assert_eq!(
-        native_text_align(UiTextAlign::End, UiTextDirection::LeftToRight),
-        NativeTextAlign::Right
-    );
-    assert_eq!(
-        native_text_align(UiTextAlign::Start, UiTextDirection::RightToLeft),
-        NativeTextAlign::Right
-    );
-    assert_eq!(
-        native_text_align(UiTextAlign::End, UiTextDirection::RightToLeft),
-        NativeTextAlign::Left
-    );
-    assert_eq!(
-        native_text_align(UiTextAlign::Justify, UiTextDirection::LeftToRight),
-        NativeTextAlign::Justified
-    );
-}
-
-#[test]
-fn native_text_area_placement_snaps_fractional_origin_to_device_pixels() {
-    let mut text = text_batch("editor base.zui", UiTextRenderMode::Native);
-    text.frame = UiFrame::new(12.49, 7.51, 120.0, 20.0);
-    text.clip_frame = Some(UiFrame::new(12.2, 7.2, 80.0, 20.0));
-
-    let placement = native_text_area_placement(crate::core::math::UVec2::new(200, 80), &text);
-
-    assert_eq!(placement.left, 12.0);
-    assert_eq!(placement.top, 8.0);
-    assert_eq!(placement.bounds.left, 12);
-    assert_eq!(placement.bounds.top, 7);
-    assert_eq!(placement.bounds.right, 93);
-    assert_eq!(placement.bounds.bottom, 28);
-}
-
-#[test]
-fn native_text_area_placement_drops_non_finite_origin_values() {
-    let mut text = text_batch("folder-open.svg", UiTextRenderMode::Native);
-    text.frame = UiFrame::new(f32::NAN, f32::INFINITY, 120.0, 20.0);
-
-    let placement = native_text_area_placement(crate::core::math::UVec2::new(200, 80), &text);
-
-    assert_eq!(placement.left, 0.0);
-    assert_eq!(placement.top, 0.0);
-    assert_eq!(placement.bounds.left, 0);
-    assert_eq!(placement.bounds.top, 0);
-}
-
-#[test]
-fn native_text_area_placement_uses_normalized_raster_scale() {
-    let mut text = text_batch("DPI", UiTextRenderMode::Native);
-    text.raster_scale = 2.0;
-
-    assert_eq!(
-        native_text_area_placement(crate::core::math::UVec2::new(200, 80), &text).raster_scale,
-        2.0
-    );
-
-    text.raster_scale = f32::NAN;
-    assert_eq!(
-        native_text_area_placement(crate::core::math::UVec2::new(200, 80), &text).raster_scale,
-        1.0
-    );
 }

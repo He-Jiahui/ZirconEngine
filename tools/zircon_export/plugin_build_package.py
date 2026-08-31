@@ -80,7 +80,7 @@ def materialize_plugin_build_package(
         dist_crate,
         target_platform,
     )
-    if not built_artifact.exists() or not built_artifact.is_file():
+    if not built_artifact.is_file():
         diagnostics.append(f"plugin build artifact {built_artifact} does not exist")
         return None
     loadable_name = platform_dynamic_library_name(directory, target_platform)

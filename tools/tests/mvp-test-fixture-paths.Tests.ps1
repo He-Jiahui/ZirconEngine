@@ -29,6 +29,15 @@ try {
         ($fixturePathsSource -match 'Resolve-ZirconWindowsPath') `
         'MVP fixture paths must resolve physical output paths through the shared Windows resolver.'
     Assert-True `
+        ($fixturePathsSource -match 'MvpArtifactStoragePolicy\.psm1' -and $fixturePathsSource -match 'Resolve-MvpArtifactStorageRootPath') `
+        'MVP fixture paths must authorize Coordinator-issued roots through the typed storage policy.'
+    Assert-True `
+        ($fixturePathsSource -match 'Resolve-MvpArtifactStoragePath' -and $fixturePathsSource -match 'mvp-test-fixtures') `
+        'MVP fixture paths must remain inside the registered Coordinator fixture namespace.'
+    Assert-True `
+        ($fixturePathsSource -notmatch '\^\[D-F\]:' -and $fixturePathsSource -notmatch '[D-F]:\\ZirconBuilds') `
+        'MVP fixture path production logic must not duplicate physical artifact-root literals.'
+    Assert-True `
         ($fixturePathsSource -match 'fixtureParentResolution\s*=\s*Resolve-ZirconWindowsPath') `
         'MVP fixture paths must verify the fixture parent physical path before creating a GUID fixture leaf.'
     Assert-True `

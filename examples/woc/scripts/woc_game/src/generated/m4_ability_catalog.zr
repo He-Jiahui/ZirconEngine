@@ -3849,6 +3849,26 @@ pub rankCount(index: int): int {
 pub metric(index: int, level: int, field: string): float {
     var rank = rankAtLevel(index, level);
     if (rank == 0) { throw "WOC M4 ability is not learned at this level"; }
+    var bucket = index / 8;
+    if (bucket == 0) { return metricBucket0(index, rank, field); }
+    if (bucket == 1) { return metricBucket1(index, rank, field); }
+    if (bucket == 2) { return metricBucket2(index, rank, field); }
+    if (bucket == 3) { return metricBucket3(index, rank, field); }
+    if (bucket == 4) { return metricBucket4(index, rank, field); }
+    if (bucket == 5) { return metricBucket5(index, rank, field); }
+    if (bucket == 6) { return metricBucket6(index, rank, field); }
+    if (bucket == 7) { return metricBucket7(index, rank, field); }
+    if (bucket == 8) { return metricBucket8(index, rank, field); }
+    if (bucket == 9) { return metricBucket9(index, rank, field); }
+    if (bucket == 10) { return metricBucket10(index, rank, field); }
+    if (bucket == 11) { return metricBucket11(index, rank, field); }
+    if (bucket == 12) { return metricBucket12(index, rank, field); }
+    if (bucket == 13) { return metricBucket13(index, rank, field); }
+    if (bucket == 14) { return metricBucket14(index, rank, field); }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket0(index: int, rank: int, field: string): float {
     if (index == 0) {
         if (field == "learnLevel") {
             return 1.0;
@@ -4162,6 +4182,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket1(index: int, rank: int, field: string): float {
     if (index == 8) {
         if (field == "learnLevel") {
             return 14.0;
@@ -4456,6 +4480,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket2(index: int, rank: int, field: string): float {
     if (index == 16) {
         if (field == "learnLevel") {
             return 4.0;
@@ -4757,6 +4785,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket3(index: int, rank: int, field: string): float {
     if (index == 24) {
         if (field == "learnLevel") {
             return 4.0;
@@ -5059,6 +5091,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket4(index: int, rank: int, field: string): float {
     if (index == 32) {
         if (field == "learnLevel") {
             return 1.0;
@@ -5364,6 +5400,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket5(index: int, rank: int, field: string): float {
     if (index == 40) {
         if (field == "learnLevel") {
             return 20.0;
@@ -5666,6 +5706,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket6(index: int, rank: int, field: string): float {
     if (index == 48) {
         if (field == "learnLevel") {
             return 1.0;
@@ -5956,6 +6000,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket7(index: int, rank: int, field: string): float {
     if (index == 56) {
         if (field == "learnLevel") {
             return 10.0;
@@ -6256,6 +6304,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket8(index: int, rank: int, field: string): float {
     if (index == 64) {
         if (field == "learnLevel") {
             return 5.0;
@@ -6546,6 +6598,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket9(index: int, rank: int, field: string): float {
     if (index == 72) {
         if (field == "learnLevel") {
             return 16.0;
@@ -6834,6 +6890,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket10(index: int, rank: int, field: string): float {
     if (index == 80) {
         if (field == "learnLevel") {
             return 14.0;
@@ -7130,6 +7190,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket11(index: int, rank: int, field: string): float {
     if (index == 88) {
         if (field == "learnLevel") {
             return 5.0;
@@ -7420,6 +7484,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket12(index: int, rank: int, field: string): float {
     if (index == 96) {
         if (field == "learnLevel") {
             return 20.0;
@@ -7712,6 +7780,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket13(index: int, rank: int, field: string): float {
     if (index == 104) {
         if (field == "learnLevel") {
             return 10.0;
@@ -8002,6 +8074,10 @@ pub metric(index: int, level: int, field: string): float {
         }
         throw "unknown WOC M4 ability metric field";
     }
+    throw "unknown WOC M4 ability index";
+}
+
+metricBucket14(index: int, rank: int, field: string): float {
     if (index == 112) {
         if (field == "learnLevel") {
             return 10.0;

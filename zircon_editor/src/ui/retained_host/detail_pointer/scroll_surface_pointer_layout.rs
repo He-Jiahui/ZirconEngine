@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::viewport_frame::viewport_frame;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(crate) struct ScrollSurfacePointerLayout {
     pub(super) pane_size: UiSize,
     pub(super) viewport_origin_y: f32,

@@ -15,6 +15,22 @@ impl Component for DetachedSparseMarker {
     const STORAGE_TYPE: StorageType = StorageType::SparseSet;
 }
 
+#[test]
+fn subtree_component_count_is_scoped_to_descendants() {
+    let mut world = World::empty();
+    let root = world.spawn((DetachedHealth(0),)).unwrap();
+    let descendant = world.spawn((DetachedHealth(1),)).unwrap();
+    let unrelated = world.spawn((DetachedHealth(2),)).unwrap();
+    world.set_parent_checked(descendant, Some(root)).unwrap();
+
+    assert_eq!(world.subtree_component_count::<DetachedHealth>(root), 2);
+    assert_eq!(
+        world.subtree_component_count::<DetachedHealth>(unrelated),
+        1
+    );
+    assert_eq!(world.subtree_component_count::<DetachedHealth>(999_999), 0);
+}
+
 fn detached_batch_scale_sample(
     affected_entities: usize,
     unrelated_entities: usize,

@@ -1,5 +1,11 @@
+mod activation_operation_id;
 mod asset_ref;
+mod engine_compatibility;
+mod manifest_digest;
 mod manifest_summary;
+mod project_guid;
+mod project_identity;
+mod project_launch_intent;
 mod project_name;
 mod rel_path;
 mod retired_asset_ref_migration;

@@ -7,6 +7,7 @@ use super::mesh_draw_build_context::MeshDrawBuildContext;
 pub(super) fn build_mesh_draw_build_context(
     frame: &ViewportRenderFrame,
     _virtual_geometry_enabled: bool,
+    reverse_view_raster_winding: bool,
 ) -> MeshDrawBuildContext {
     let selection = frame
         .overlays()
@@ -20,5 +21,6 @@ pub(super) fn build_mesh_draw_build_context(
     MeshDrawBuildContext {
         selection,
         allowed_virtual_geometry_entities: None,
+        reverse_view_raster_winding,
     }
 }

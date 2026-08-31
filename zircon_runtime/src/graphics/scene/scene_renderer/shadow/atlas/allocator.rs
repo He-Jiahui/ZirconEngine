@@ -364,14 +364,19 @@ impl ShadowAtlasAllocator {
                 size * size
             })
             .sum::<u64>();
-        self.update_preemption_contention(&planned, planned_area > available_rect.area());
-
-        let mut packer = FreeRectPacker::new(available_rect);
-        let mut occupied = HashSet::new();
+        planned.sort_by(compare_planned_slots);
         let planned_by_key = planned
             .iter()
             .map(|slot| (slot.request.key, *slot))
             .collect::<HashMap<_, _>>();
+        self.update_preemption_contention(
+            &planned,
+            &planned_by_key,
+            planned_area > available_rect.area(),
+        );
+
+        let mut packer = FreeRectPacker::new(available_rect);
+        let mut occupied = HashSet::new();
         let mut retained = self.previous.values().copied().collect::<Vec<_>>();
         retained.sort_by(|lhs, rhs| compare_retained_slots(lhs, rhs));
 
@@ -408,7 +413,6 @@ impl ShadowAtlasAllocator {
             });
         }
 
-        planned.sort_by(compare_planned_slots);
         for planned_slot in planned {
             if occupied.contains(&planned_slot.request.key) {
                 continue;
@@ -495,6 +499,7 @@ impl ShadowAtlasAllocator {
     fn update_preemption_contention(
         &mut self,
         planned: &[PlannedShadowSlot],
+        planned_by_key: &HashMap<ShadowSlotKey, PlannedShadowSlot>,
         oversubscribed: bool,
     ) {
         if !oversubscribed {
@@ -504,21 +509,17 @@ impl ShadowAtlasAllocator {
 
         let mut active_pairs = HashSet::new();
         for retained_key in self.previous.keys().copied() {
-            let Some(incumbent) = planned
-                .iter()
-                .find(|slot| slot.request.key == retained_key)
-                .copied()
-            else {
+            let Some(incumbent) = planned_by_key.get(&retained_key).copied() else {
                 continue;
             };
             let incumbent_priority = incumbent.request.priority_score();
             let required_priority =
                 incumbent_priority * self.config.preemption_score_multiplier.max(1.0);
             for challenger in planned.iter().copied() {
-                if challenger.request.key == incumbent.request.key {
-                    continue;
-                }
                 if challenger.request.priority_score() < required_priority {
+                    break;
+                }
+                if challenger.request.key == incumbent.request.key {
                     continue;
                 }
                 if challenger.allocated_tier.size_px() < incumbent.allocated_tier.size_px() {
@@ -684,11 +685,7 @@ impl FreeRectPacker {
             .iter()
             .find(|free_rect| free_rect.width >= size && free_rect.height >= size)
             .map(|free_rect| ShadowAtlasRect::new(free_rect.x, free_rect.y, size, size))?;
-        if self.reserve(rect) {
-            Some(rect)
-        } else {
-            None
-        }
+        if self.reserve(rect) { Some(rect) } else { None }
     }
 }
 

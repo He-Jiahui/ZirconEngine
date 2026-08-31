@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "console_diagnostics_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.console_diagnostics_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionConsoleDiagnosticsWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "console_diagnostics_rail_gap" }, { node = "console_diagnostics_left" }, { node = "console_diagnostics_center" }, { node = "console_diagnostics_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "console_diagnostics_workspace_main" },
+  { node = "console_diagnostics_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.console_diagnostics_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "console_diagnostics_rail_gap" }, { node = "console_diagnostics_left" }, { node = "console_diagnostics_center" }, { node = "console_diagnostics_right_reserve" }]
+
+[nodes.console_diagnostics_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.console_diagnostics_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionConsoleDiagnosticsRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.console_diagnostics_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionConsoleDiagnosticsLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "console_diagnostics_title" }, { node = "console_diagnostics_live_log_tab" }, { node = "console_diagnostics_counters_tab" }, { node = "console_diagnostics_report_tab" }, { node = "console_diagnostics_session_row" }, { node = "console_diagnostics_renderer_row" }, { node = "console_diagnostics_asset_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "console_diagnostics_title" }, { node = "console_diagnostics_left_content" }]
+
+[nodes.console_diagnostics_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionConsoleDiagnosticsLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "console_diagnostics_session_row" }, { node = "console_diagnostics_renderer_row" }, { node = "console_diagnostics_asset_row" }]
 
 [nodes.console_diagnostics_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionConsoleDiagnosticsTitle"
 props = { text = "Console Diagnostics" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.console_diagnostics_live_log_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionConsoleDiagnosticsLiveLogTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Live Log", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ConsoleDiagnosticsLiveLogTab", event = "Click", route = "workbench.extension.console_diagnostics.live_log" }]
-
-[nodes.console_diagnostics_counters_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionConsoleDiagnosticsCountersTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Counters", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ConsoleDiagnosticsCountersTab", event = "Click", route = "workbench.extension.console_diagnostics.counters" }]
-
-[nodes.console_diagnostics_report_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionConsoleDiagnosticsReportTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Report", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ConsoleDiagnosticsReportTab", event = "Click", route = "workbench.extension.console_diagnostics.report" }]
 
 [nodes.console_diagnostics_session_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/ConsoleDiagnosticsAssetRow", event = "Click
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionConsoleDiagnosticsCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "console_diagnostics_center_header" }, { node = "console_diagnostics_table" }, { node = "console_diagnostics_output" }]
 
 [nodes.console_diagnostics_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionConsoleDiagnosticsCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "console_diagnostics_center_title" }, { node = "console_diagnostics_header_fill" }, { node = "console_diagnostics_filter_button" }, { node = "console_diagnostics_clear_button" }]
 
 [nodes.console_diagnostics_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionConsoleDiagnosticsFilterConsoleButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Filter Console", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Filter Console", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 122.0, preferred = 122.0, max = 134.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/ConsoleDiagnosticsFilterConsole", event = "Click", route = "workbench.extension.console_diagnostics.filter_console" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/ConsoleDiagnosticsFilterConsole", event = "
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionConsoleDiagnosticsClearConsoleButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Clear Console", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Clear Console", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 116.0, preferred = 116.0, max = 128.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/ConsoleDiagnosticsClearConsole", event = "Click", route = "workbench.extension.console_diagnostics.clear_console" }]
 
 [nodes.console_diagnostics_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionConsoleDiagnosticsTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "console_diagnostics_warning_table_row" }, { node = "console_diagnostics_info_table_row" }, { node = "console_diagnostics_gameplay_table_row" }, { node = "console_diagnostics_error_table_row" }]
 
 [nodes.console_diagnostics_warning_table_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/ConsoleDiagnosticsErrorTableRow", event = "
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionConsoleDiagnosticsOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Console Diagnostics", value_text = "58 FPS   24 warnings   1 error   82 marks" }
+props = { text = "Console Diagnostics", value_text = "58 FPS   24 warnings   1 error   82 marks", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ConsoleDiagnosticsOutput", event = "Click", route = "workbench.extension.console_diagnostics.output" }]
 
 [nodes.console_diagnostics_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionConsoleDiagnosticsRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "console_diagnostics_details_title" }, { node = "console_diagnostics_subsystem_dropdown" }, { node = "console_diagnostics_severity_dropdown" }, { node = "console_diagnostics_regex_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "console_diagnostics_details_title" }, { node = "console_diagnostics_right_content" }]
+
+[nodes.console_diagnostics_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionConsoleDiagnosticsRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "console_diagnostics_subsystem_dropdown_property_row" }, { node = "console_diagnostics_severity_dropdown_property_row" }, { node = "console_diagnostics_regex_field_property_row" }]
 
 [nodes.console_diagnostics_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,27 +202,48 @@ control_id = "WorkbenchExtensionConsoleDiagnosticsDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.console_diagnostics_subsystem_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionConsoleDiagnosticsSubsystemDropdownPropertyRow"
+props = { text = "Subsystem" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "console_diagnostics_subsystem_dropdown", slot = { name = "value" } }]
+
 [nodes.console_diagnostics_subsystem_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionConsoleDiagnosticsSubsystemDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Renderer", value = "Renderer", options = ["Renderer", "Asset", "Gameplay", "Runtime"] }
+props = { value_text = "Renderer", value = "Renderer", options = ["Renderer", "Asset", "Gameplay", "Runtime"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/ConsoleDiagnosticsSubsystemEdit", event = "Change", route = "workbench.extension.console_diagnostics.subsystem.edit" },
   { id = "WorkbenchExtension/ConsoleDiagnosticsSubsystemCommit", event = "Submit", route = "workbench.extension.console_diagnostics.subsystem.commit" },
 ]
 
+[nodes.console_diagnostics_severity_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionConsoleDiagnosticsSeverityDropdownPropertyRow"
+props = { text = "Severity" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "console_diagnostics_severity_dropdown", slot = { name = "value" } }]
+
 [nodes.console_diagnostics_severity_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionConsoleDiagnosticsSeverityDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Warnings+", value = "Warnings+", options = ["Info+", "Warnings+", "Errors"] }
+props = { value_text = "Warnings+", value = "Warnings+", options = ["Info+", "Warnings+", "Errors"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/ConsoleDiagnosticsSeverityEdit", event = "Change", route = "workbench.extension.console_diagnostics.severity.edit" },
   { id = "WorkbenchExtension/ConsoleDiagnosticsSeverityCommit", event = "Submit", route = "workbench.extension.console_diagnostics.severity.commit" },
 ]
+
+[nodes.console_diagnostics_regex_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionConsoleDiagnosticsRegexFieldPropertyRow"
+props = { text = "Regex" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "console_diagnostics_regex_field", slot = { name = "value" } }]
 
 [nodes.console_diagnostics_regex_field]
 component = "WorkbenchField"

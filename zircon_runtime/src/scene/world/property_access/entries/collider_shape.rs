@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use crate::core::framework::scene::ScenePropertyValue;
 use crate::scene::components::ColliderShape;
 
@@ -147,11 +149,32 @@ pub(super) fn visit_collider_shape_property_entries<F>(
 where
     F: FnMut(&str, &mut dyn FnMut() -> ScenePropertyValue, bool) -> bool,
 {
+    let mut path = String::with_capacity(
+        prefix
+            .len()
+            .saturating_add(collider_shape_property_path_suffix_capacity(shape)),
+    );
+    path.push_str(prefix);
+    visit_collider_shape_property_entries_with_path(shape, &mut path, visitor)
+}
+
+fn visit_collider_shape_property_entries_with_path<F>(
+    shape: &ColliderShape,
+    path: &mut String,
+    visitor: &mut F,
+) -> bool
+where
+    F: FnMut(&str, &mut dyn FnMut() -> ScenePropertyValue, bool) -> bool,
+{
     macro_rules! push_shape_entry {
         ($suffix:expr, $value:expr, $animatable:expr $(,)?) => {{
-            let path = format!("{prefix}.{}", $suffix);
+            let checkpoint = path.len();
+            path.push('.');
+            path.push_str($suffix);
             let mut build_value = || $value;
-            if !visitor(&path, &mut build_value, $animatable) {
+            let keep_visiting = visitor(path.as_str(), &mut build_value, $animatable);
+            path.truncate(checkpoint);
+            if !keep_visiting {
                 return false;
             }
         }};
@@ -218,11 +241,14 @@ where
                 false,
             );
             for (index, point) in points.iter().enumerate() {
-                push_shape_entry!(
-                    format!("points.{index}"),
-                    ScenePropertyValue::Vec3(point.to_array()),
-                    false,
-                );
+                let checkpoint = path.len();
+                write!(path, ".points.{index}").expect("writing to a String cannot fail");
+                let mut build_value = || ScenePropertyValue::Vec3(point.to_array());
+                let keep_visiting = visitor(path.as_str(), &mut build_value, false);
+                path.truncate(checkpoint);
+                if !keep_visiting {
+                    return false;
+                }
             }
         }
         ColliderShape::TriangleMesh { mesh } => {
@@ -274,30 +300,31 @@ where
                 false,
             );
             for (index, (transform, child_shape)) in children.iter().enumerate() {
-                let child_prefix = format!("{prefix}.children.{index}");
-                let translation_path = format!("{child_prefix}.transform.translation");
-                let mut build_translation =
-                    || ScenePropertyValue::Vec3(transform.translation.to_array());
-                if !visitor(&translation_path, &mut build_translation, false) {
-                    return false;
-                }
-                let rotation_path = format!("{child_prefix}.transform.rotation");
-                let mut build_rotation =
-                    || ScenePropertyValue::Quaternion(transform.rotation.to_array());
-                if !visitor(&rotation_path, &mut build_rotation, false) {
-                    return false;
-                }
-                let scale_path = format!("{child_prefix}.transform.scale");
-                let mut build_scale = || ScenePropertyValue::Vec3(transform.scale.to_array());
-                if !visitor(&scale_path, &mut build_scale, false) {
-                    return false;
-                }
-                let shape_prefix = format!("{child_prefix}.shape");
-                if !visit_collider_shape_property_entries(
+                let checkpoint = path.len();
+                write!(path, ".children.{index}").expect("writing to a String cannot fail");
+                push_shape_entry!(
+                    "transform.translation",
+                    ScenePropertyValue::Vec3(transform.translation.to_array()),
+                    false,
+                );
+                push_shape_entry!(
+                    "transform.rotation",
+                    ScenePropertyValue::Quaternion(transform.rotation.to_array()),
+                    false,
+                );
+                push_shape_entry!(
+                    "transform.scale",
+                    ScenePropertyValue::Vec3(transform.scale.to_array()),
+                    false,
+                );
+                path.push_str(".shape");
+                let keep_visiting = visit_collider_shape_property_entries_with_path(
                     child_shape.as_ref(),
-                    &shape_prefix,
+                    path,
                     visitor,
-                ) {
+                );
+                path.truncate(checkpoint);
+                if !keep_visiting {
                     return false;
                 }
             }
@@ -305,6 +332,45 @@ where
     }
 
     true
+}
+
+fn collider_shape_property_path_suffix_capacity(shape: &ColliderShape) -> usize {
+    match shape {
+        ColliderShape::Box { .. } => ".half_extents".len(),
+        ColliderShape::Sphere { .. } => ".radius".len(),
+        ColliderShape::Capsule { .. } | ColliderShape::Cylinder { .. } => ".half_height".len(),
+        ColliderShape::ConvexHull { points } => ".point_count"
+            .len()
+            .max(".points.".len() + decimal_digit_count(points.len().saturating_sub(1))),
+        ColliderShape::TriangleMesh { .. } => ".mesh".len(),
+        ColliderShape::HeightField { .. } => ".resolution.x".len(),
+        ColliderShape::Compound { children } => {
+            let indexed_child_prefix =
+                ".children.".len() + decimal_digit_count(children.len().saturating_sub(1));
+            let child_suffix = children
+                .iter()
+                .map(|(_, child_shape)| {
+                    ".transform.translation".len().max(
+                        ".shape".len()
+                            + collider_shape_property_path_suffix_capacity(child_shape.as_ref()),
+                    )
+                })
+                .max()
+                .unwrap_or_default();
+            ".child_count"
+                .len()
+                .max(indexed_child_prefix.saturating_add(child_suffix))
+        }
+    }
+}
+
+fn decimal_digit_count(mut value: usize) -> usize {
+    let mut digits = 1;
+    while value >= 10 {
+        value /= 10;
+        digits += 1;
+    }
+    digits
 }
 
 pub(super) fn collider_shape_property_entry_capacity(shape: &ColliderShape) -> usize {
@@ -373,9 +439,11 @@ mod tests {
                 entries.len(),
                 collider_shape_property_entry_capacity(&shape)
             );
-            assert!(entries
-                .iter()
-                .any(|(path, _, _)| path == "Collider.shape.kind"));
+            assert!(
+                entries
+                    .iter()
+                    .any(|(path, _, _)| path == "Collider.shape.kind")
+            );
         }
     }
 
@@ -406,3 +474,7 @@ mod tests {
         }));
     }
 }
+
+#[cfg(test)]
+#[path = "collider_shape/reused_path_buffer_tests.rs"]
+mod reused_path_buffer_tests;

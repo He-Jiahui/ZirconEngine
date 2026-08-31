@@ -2,7 +2,9 @@ use zircon_runtime::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderMeshBounds, RenderMeshSnapshot, RenderPointLightSnapshot,
     RenderSpotLightSnapshot,
 };
-use zircon_runtime::graphics::GraphicsError;
+use zircon_runtime::graphics::{
+    GraphicsError, RenderPassBufferUploadSink, RuntimePrepareFrameTransactionRecorder,
+};
 
 use crate::hybrid_gi::scene_representation::HybridGiGlobalSdfSceneState;
 use crate::hybrid_gi::types::{
@@ -33,7 +35,8 @@ impl HybridGiGpuResources {
         global_sdf_state: &GlobalSdfGpuState,
         global_sdf_scene_state: &HybridGiGlobalSdfSceneState,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        buffer_uploads: &mut dyn RenderPassBufferUploadSink,
+        frame_transactions: &mut RuntimePrepareFrameTransactionRecorder<'_>,
         encoder: &mut wgpu::CommandEncoder,
         streamer: &impl HybridGiMaterialCaptureSource,
         prepare: Option<&HybridGiPrepareFrame>,
@@ -68,7 +71,7 @@ impl HybridGiGpuResources {
         let buffers = create_buffers(self, device, encoder, streamer, &inputs, tracing_budget);
         queue_params(
             self,
-            queue,
+            buffer_uploads,
             prepare,
             &inputs,
             directional_lights,
@@ -82,7 +85,7 @@ impl HybridGiGpuResources {
             device,
             self,
             radiance_cache_state,
-            queue,
+            buffer_uploads,
             encoder,
             &buffers,
             &inputs,
@@ -93,7 +96,8 @@ impl HybridGiGpuResources {
             global_sdf_state,
             global_sdf_scene_state,
             device,
-            queue,
+            buffer_uploads,
+            frame_transactions,
             encoder,
             &buffers,
             &inputs,

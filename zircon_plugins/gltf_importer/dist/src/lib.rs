@@ -5,7 +5,7 @@ use zircon_plugin_gltf_importer_runtime::{
     NATIVE_RUNTIME_REGISTRATION_MANIFEST,
 };
 use zircon_plugin_sdk::native::{
-    self, NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginOwnedByteBufferV2,
+    self, NativePluginByteSliceV3, NativePluginCallbackStatusV3, NativePluginOwnedByteBufferV3,
     ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     ZIRCON_NATIVE_PLUGIN_STATUS_OK, bytes_from_slice, callback_status as status, owned_bytes,
 };
@@ -59,16 +59,16 @@ zircon_plugin_sdk::native_dist_runtime_plugin_v3! {
 }
 
 unsafe extern "C" fn gltf_importer_save_state(
-    output: *mut NativePluginOwnedByteBufferV2,
-) -> NativePluginCallbackStatusV2 {
+    output: *mut NativePluginOwnedByteBufferV3,
+) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(STATE_CALLBACK_PANIC_DIAGNOSTICS, || unsafe {
         gltf_importer_save_state_inner(output)
     })
 }
 
 unsafe fn gltf_importer_save_state_inner(
-    output: *mut NativePluginOwnedByteBufferV2,
-) -> NativePluginCallbackStatusV2 {
+    output: *mut NativePluginOwnedByteBufferV3,
+) -> NativePluginCallbackStatusV3 {
     if output.is_null() {
         return status(
             ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
@@ -83,16 +83,16 @@ unsafe fn gltf_importer_save_state_inner(
 }
 
 unsafe extern "C" fn gltf_importer_restore_state(
-    state: NativePluginByteSliceV2,
-) -> NativePluginCallbackStatusV2 {
+    state: NativePluginByteSliceV3,
+) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(STATE_CALLBACK_PANIC_DIAGNOSTICS, || unsafe {
         gltf_importer_restore_state_inner(state)
     })
 }
 
 unsafe fn gltf_importer_restore_state_inner(
-    state: NativePluginByteSliceV2,
-) -> NativePluginCallbackStatusV2 {
+    state: NativePluginByteSliceV3,
+) -> NativePluginCallbackStatusV3 {
     let bytes = unsafe { bytes_from_slice(state) };
     let epoch_offset = STATE_MAGIC.len();
     let Some(encoded_epoch) = bytes
@@ -117,14 +117,14 @@ unsafe fn gltf_importer_restore_state_inner(
     status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, STATE_RESTORE_DIAGNOSTICS)
 }
 
-unsafe extern "C" fn gltf_importer_unload() -> NativePluginCallbackStatusV2 {
+unsafe extern "C" fn gltf_importer_unload() -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(
         STATE_CALLBACK_PANIC_DIAGNOSTICS,
         gltf_importer_unload_inner,
     )
 }
 
-fn gltf_importer_unload_inner() -> NativePluginCallbackStatusV2 {
+fn gltf_importer_unload_inner() -> NativePluginCallbackStatusV3 {
     status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, UNLOAD_DIAGNOSTICS)
 }
 
@@ -133,7 +133,7 @@ mod tests {
     use std::ffi::CStr;
 
     use zircon_plugin_sdk::native::{
-        NativePluginByteSliceV2, NativePluginHostFunctionTableV3, NativePluginOwnedByteBufferV2,
+        NativePluginByteSliceV3, NativePluginHostFunctionTableV3, NativePluginOwnedByteBufferV3,
         ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
         ZIRCON_NATIVE_PLUGIN_STATUS_OK,
     };
@@ -201,7 +201,7 @@ mod tests {
     #[test]
     fn gltf_importer_dist_state_round_trips_and_rejects_another_schema() {
         IMPORTER_STATE_EPOCH.store(37, Ordering::Release);
-        let mut buffer = NativePluginOwnedByteBufferV2::empty();
+        let mut buffer = NativePluginOwnedByteBufferV3::empty();
         let save = unsafe { gltf_importer_save_state(&mut buffer) };
         assert_eq!(save.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
         let state = unsafe { std::slice::from_raw_parts(buffer.data, buffer.len) }.to_vec();
@@ -210,7 +210,7 @@ mod tests {
 
         IMPORTER_STATE_EPOCH.store(0, Ordering::Release);
         let restore = unsafe {
-            gltf_importer_restore_state(NativePluginByteSliceV2 {
+            gltf_importer_restore_state(NativePluginByteSliceV3 {
                 data: state.as_ptr(),
                 len: state.len(),
             })
@@ -221,7 +221,7 @@ mod tests {
         let mut invalid = b"ZRGLTF02".to_vec();
         invalid.extend_from_slice(&91_u64.to_le_bytes());
         let rejected = unsafe {
-            gltf_importer_restore_state(NativePluginByteSliceV2 {
+            gltf_importer_restore_state(NativePluginByteSliceV3 {
                 data: invalid.as_ptr(),
                 len: invalid.len(),
             })
@@ -235,7 +235,7 @@ mod tests {
             bytes
         }] {
             let rejected = unsafe {
-                gltf_importer_restore_state(NativePluginByteSliceV2 {
+                gltf_importer_restore_state(NativePluginByteSliceV3 {
                     data: invalid_length.as_ptr(),
                     len: invalid_length.len(),
                 })

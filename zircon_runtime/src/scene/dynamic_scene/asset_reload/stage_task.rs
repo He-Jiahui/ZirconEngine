@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     asset::{AssetEvent, SceneAsset},
-    core::{JobHandle, JobScheduler, framework::tasks::AsyncTaskState},
+    core::{JobHandle, JobScheduler, TaskState},
     scene::dynamic_scene::{DynamicSceneError, PreparedDynamicSceneSpawn, StagedDynamicSceneSpawn},
 };
 
@@ -142,15 +142,15 @@ impl DynamicSceneAssetReloadStageTask {
         self.completion.is_complete()
     }
 
-    pub(super) fn state(&self) -> AsyncTaskState {
+    pub(super) fn state(&self) -> TaskState {
         if self.is_ready() {
             if self.cancel_requested.load(Ordering::Acquire) {
-                AsyncTaskState::Cancelled
+                TaskState::Cancelled
             } else {
-                AsyncTaskState::Completed
+                TaskState::Completed
             }
         } else {
-            AsyncTaskState::Running
+            TaskState::Running
         }
     }
 

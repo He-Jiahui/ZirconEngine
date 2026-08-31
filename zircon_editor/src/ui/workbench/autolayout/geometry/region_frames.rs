@@ -5,7 +5,9 @@ use super::super::region_state::RegionState;
 use super::super::{
     compact_side_defaults, minimum_document_width_fraction, WorkbenchChromeMetrics,
 };
-use super::super::{solve_axis_constraints, ShellFrame, ShellRegionId, ShellSizePx};
+use super::super::{
+    solve_axis_constraints, AxisConstraint, ShellFrame, ShellRegionId, ShellSizePx,
+};
 use super::resolved_region_frames::ResolvedRegionFrames;
 use super::side_width_allocation::balanced_side_widths_for_budget;
 use super::vertical_bands::{resolve_vertical_flex_bands, VerticalFlexBandRequest};
@@ -39,30 +41,12 @@ pub(super) fn build_region_frames(
     let available_row_width =
         (size.width - row_separator_count * metrics.separator_thickness).max(0.0);
 
-    let mut horizontal_constraints = Vec::new();
-    let mut horizontal_regions = Vec::new();
-    if left.visible {
-        horizontal_regions.push(ShellRegionId::Left);
-        horizontal_constraints.push(left.constraints.width);
-    }
-    horizontal_regions.push(ShellRegionId::Document);
-    horizontal_constraints.push(document.constraints.width);
-    if right.visible {
-        horizontal_regions.push(ShellRegionId::Right);
-        horizontal_constraints.push(right.constraints.width);
-    }
-    let solved_widths = compact_side_widths(
+    let solved_widths = solve_visible_row_widths(
         size.width,
         available_row_width,
-        horizontal_regions
-            .iter()
-            .copied()
-            .zip(
-                solve_axis_constraints(available_row_width, &horizontal_constraints)
-                    .iter()
-                    .map(|solved| solved.resolved),
-            )
-            .collect(),
+        left.visible.then_some(left.constraints.width),
+        document.constraints.width,
+        right.visible.then_some(right.constraints.width),
     );
 
     let center_band_frame = ShellFrame::new(0.0, center_y, size.width, center_height);
@@ -100,6 +84,67 @@ pub(super) fn build_region_frames(
         bottom_frame,
     }
 }
+
+fn solve_visible_row_widths(
+    shell_width: f32,
+    available_row_width: f32,
+    left: Option<AxisConstraint>,
+    document: AxisConstraint,
+    right: Option<AxisConstraint>,
+) -> Vec<(ShellRegionId, f32)> {
+    match (left, right) {
+        (Some(left), Some(right)) => solve_row_widths(
+            shell_width,
+            available_row_width,
+            &[
+                ShellRegionId::Left,
+                ShellRegionId::Document,
+                ShellRegionId::Right,
+            ],
+            &[left, document, right],
+        ),
+        (Some(left), None) => solve_row_widths(
+            shell_width,
+            available_row_width,
+            &[ShellRegionId::Left, ShellRegionId::Document],
+            &[left, document],
+        ),
+        (None, Some(right)) => solve_row_widths(
+            shell_width,
+            available_row_width,
+            &[ShellRegionId::Document, ShellRegionId::Right],
+            &[document, right],
+        ),
+        (None, None) => solve_row_widths(
+            shell_width,
+            available_row_width,
+            &[ShellRegionId::Document],
+            &[document],
+        ),
+    }
+}
+
+fn solve_row_widths(
+    shell_width: f32,
+    available_row_width: f32,
+    regions: &[ShellRegionId],
+    constraints: &[AxisConstraint],
+) -> Vec<(ShellRegionId, f32)> {
+    let solved = solve_axis_constraints(available_row_width, constraints);
+    compact_side_widths(
+        shell_width,
+        available_row_width,
+        regions
+            .iter()
+            .copied()
+            .zip(solved.iter().map(|solved| solved.resolved))
+            .collect(),
+    )
+}
+
+#[cfg(test)]
+#[path = "region_frames/allocation_tests.rs"]
+mod allocation_tests;
 
 pub(crate) fn compact_side_width_limit(region: ShellRegionId, available_width: f32) -> Option<f32> {
     let defaults = compact_side_defaults();

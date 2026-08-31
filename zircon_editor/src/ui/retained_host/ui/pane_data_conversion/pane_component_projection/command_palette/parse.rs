@@ -4,11 +4,21 @@ use super::attributes::{bool_value, first_string_value};
 use super::entry::CommandProjectionEntry;
 
 pub(super) fn command_entry_list(value: &Value) -> Vec<CommandProjectionEntry> {
+    let mut entries = Vec::new();
+    append_command_entries(value, &mut entries);
+    entries
+}
+
+fn append_command_entries(value: &Value, entries: &mut Vec<CommandProjectionEntry>) {
     match value {
-        Value::Array(values) => values.iter().flat_map(command_entry_list).collect(),
-        Value::String(value) => command_entry_from_string(value).into_iter().collect(),
-        Value::Table(values) => command_entry_from_table(values).into_iter().collect(),
-        _ => Vec::new(),
+        Value::Array(values) => {
+            for value in values {
+                append_command_entries(value, entries);
+            }
+        }
+        Value::String(value) => entries.extend(command_entry_from_string(value)),
+        Value::Table(values) => entries.extend(command_entry_from_table(values)),
+        _ => {}
     }
 }
 
@@ -67,3 +77,7 @@ fn command_entry_from_table(
         id,
     })
 }
+
+#[cfg(test)]
+#[path = "parse/direct_append_tests.rs"]
+mod direct_append_tests;

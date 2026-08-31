@@ -5,11 +5,12 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::shared::{
-    bool_attribute, icon_command, quad_command, row_label, text_command, CollectionRowVisual,
-    RowRenderState,
+    CollectionRowVisual, RowRenderState, bool_attribute, icon_command, quad_command, row_label,
+    text_command,
 };
 
 const COLUMN_RATIOS: [f32; 4] = [0.36, 0.27, 0.19, 0.18];
+type TableCells = [Option<String>; COLUMN_RATIOS.len()];
 
 pub(super) fn table_row_commands(
     node_id: UiNodeId,
@@ -21,7 +22,7 @@ pub(super) fn table_row_commands(
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let cells = table_cells(metadata);
-    if cells.is_empty() {
+    if cells.iter().all(Option::is_none) {
         return Vec::new();
     }
     let visual = CollectionRowVisual::resolve(metadata);
@@ -55,7 +56,10 @@ pub(super) fn table_row_commands(
         opacity,
     ));
     let text_line_height = visual.line_height(visual.caption_font_size);
-    for (index, cell) in cells.into_iter().take(COLUMN_RATIOS.len()).enumerate() {
+    for (index, cell) in cells.into_iter().enumerate() {
+        let Some(cell) = cell else {
+            continue;
+        };
         commands.push(text_command(
             node_id,
             cell_rect(frame, index, &visual, text_line_height),
@@ -154,20 +158,23 @@ fn action(visual: &CollectionRowVisual, state: &RowRenderState) -> UiRgbaColor {
     }
 }
 
-fn table_cells(metadata: &UiTemplateNodeMetadata) -> Vec<String> {
-    ["cells", "columns", "options"]
+fn table_cells(metadata: &UiTemplateNodeMetadata) -> TableCells {
+    if let Some(values) = ["cells", "columns", "options"]
         .iter()
         .find_map(|key| metadata.attributes.get(*key).and_then(Value::as_array))
-        .map(|values| {
-            values
-                .iter()
-                .filter_map(value_text)
-                .filter(|text| !text.trim().is_empty())
-                .collect::<Vec<_>>()
-        })
-        .filter(|cells| !cells.is_empty())
-        .or_else(|| row_label(metadata).map(split_row_label_table_text))
-        .unwrap_or_default()
+    {
+        let mut texts = values
+            .iter()
+            .filter_map(value_text)
+            .filter(|text| !text.trim().is_empty());
+        let cells = std::array::from_fn(|_| texts.next());
+        if cells.iter().any(Option::is_some) {
+            return cells;
+        }
+    }
+    row_label(metadata)
+        .map(split_row_label_table_text)
+        .unwrap_or_else(empty_table_cells)
 }
 
 fn value_text(value: &Value) -> Option<String> {
@@ -181,24 +188,41 @@ fn value_text(value: &Value) -> Option<String> {
     }
 }
 
-fn split_row_label_table_text(text: &str) -> Vec<String> {
-    let tokens = text.split_whitespace().collect::<Vec<_>>();
-    match tokens.as_slice() {
-        [] => Vec::new(),
-        [name, kind, size, size_unit, modified_value, modified_unit, ..] => vec![
-            (*name).to_string(),
-            (*kind).to_string(),
-            format!("{size} {size_unit}"),
-            format!("{modified_value} {modified_unit}"),
+fn split_row_label_table_text(text: &str) -> TableCells {
+    let mut tokens = text.split_whitespace();
+    let name = tokens.next();
+    let kind = tokens.next();
+    let size = tokens.next();
+    let fourth = tokens.next();
+    let fifth = tokens.next();
+    let sixth = tokens.next();
+    match (name, kind, size, fourth, fifth, sixth) {
+        (None, _, _, _, _, _) => empty_table_cells(),
+        (
+            Some(name),
+            Some(kind),
+            Some(size),
+            Some(size_unit),
+            Some(modified_value),
+            Some(modified_unit),
+        ) => [
+            Some(name.to_string()),
+            Some(kind.to_string()),
+            Some(format!("{size} {size_unit}")),
+            Some(format!("{modified_value} {modified_unit}")),
         ],
-        [name, kind, size, modified, ..] => vec![
-            (*name).to_string(),
-            (*kind).to_string(),
-            (*size).to_string(),
-            (*modified).to_string(),
+        (Some(name), Some(kind), Some(size), Some(modified), _, _) => [
+            Some(name.to_string()),
+            Some(kind.to_string()),
+            Some(size.to_string()),
+            Some(modified.to_string()),
         ],
-        _ => vec![text.trim().to_string()],
+        _ => [Some(text.trim().to_string()), None, None, None],
     }
+}
+
+fn empty_table_cells() -> TableCells {
+    std::array::from_fn(|_| None)
 }
 
 fn cell_rect(
@@ -233,4 +257,55 @@ fn is_header(metadata: &UiTemplateNodeMetadata) -> bool {
 fn is_tail(metadata: &UiTemplateNodeMetadata) -> bool {
     metadata.control_id.as_deref() == Some("WorkbenchTableTail")
         || bool_attribute(metadata, "tail").unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn table_cells_materialize_only_the_four_rendered_columns() {
+        let mut metadata = UiTemplateNodeMetadata::default();
+        metadata.attributes.insert(
+            "cells".to_string(),
+            Value::Array(
+                (0..128)
+                    .map(|index| Value::String(format!("cell-{index}")))
+                    .collect(),
+            ),
+        );
+
+        assert_eq!(
+            table_cells(&metadata),
+            [
+                Some("cell-0".to_string()),
+                Some("cell-1".to_string()),
+                Some("cell-2".to_string()),
+                Some("cell-3".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn empty_cell_array_preserves_compact_row_label_fallback() {
+        let mut metadata = UiTemplateNodeMetadata::default();
+        metadata.attributes.insert(
+            "cells".to_string(),
+            Value::Array(vec![Value::String("  ".to_string())]),
+        );
+        metadata.attributes.insert(
+            "label".to_string(),
+            Value::String("texture image 12 KiB today UTC".to_string()),
+        );
+
+        assert_eq!(
+            table_cells(&metadata),
+            [
+                Some("texture".to_string()),
+                Some("image".to_string()),
+                Some("12 KiB".to_string()),
+                Some("today UTC".to_string()),
+            ]
+        );
+    }
 }

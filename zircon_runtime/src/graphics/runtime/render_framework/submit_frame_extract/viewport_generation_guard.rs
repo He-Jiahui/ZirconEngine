@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::core::framework::render::{RenderFrameworkError, RenderViewportHandle};
 
 use super::super::render_framework_state::RenderFrameworkState;
@@ -31,13 +33,19 @@ pub(super) fn viewport_record_mut_after_generation_check<'a>(
     viewport: RenderViewportHandle,
     context: &FrameSubmissionContext,
 ) -> Result<&'a mut ViewportRecord, RenderFrameworkError> {
-    let record =
-        state
-            .viewports
-            .get_mut(&viewport)
-            .ok_or(RenderFrameworkError::UnknownViewport {
-                viewport: viewport.raw(),
-            })?;
+    viewport_record_mut_after_generation_check_in(&mut state.viewports, viewport, context)
+}
+
+pub(super) fn viewport_record_mut_after_generation_check_in<'a>(
+    viewports: &'a mut HashMap<RenderViewportHandle, ViewportRecord>,
+    viewport: RenderViewportHandle,
+    context: &FrameSubmissionContext,
+) -> Result<&'a mut ViewportRecord, RenderFrameworkError> {
+    let record = viewports
+        .get_mut(&viewport)
+        .ok_or(RenderFrameworkError::UnknownViewport {
+            viewport: viewport.raw(),
+        })?;
     let actual_generation = record.generation();
     if actual_generation != context.viewport_generation() {
         return Err(RenderFrameworkError::ViewportChanged {
@@ -52,10 +60,10 @@ pub(super) fn viewport_record_mut_after_generation_check<'a>(
 #[cfg(test)]
 mod tests {
     #[test]
-    fn mutable_generation_guard_uses_one_viewport_lookup() {
+    fn optimization_batch_fj_runtime466_mutable_generation_guard_uses_one_viewport_lookup() {
         let source = include_str!("viewport_generation_guard.rs");
         let mutable_guard = source
-            .split("fn viewport_record_mut_after_generation_check")
+            .split("fn viewport_record_mut_after_generation_check_in")
             .nth(1)
             .expect("mutable generation guard source");
         let nested_validation =

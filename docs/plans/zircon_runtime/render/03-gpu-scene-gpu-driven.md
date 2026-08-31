@@ -197,10 +197,33 @@ Fyrox 无 GPUScene/indirect 同类实现(逐 draw uniform 块分配,见其 `rend
 
 归属:新增 `zircon_runtime/src/graphics/scene/gpu_scene/` 子模块(数据面),剔除 compute 与 indirect 提交在 `scene_renderer/mesh/` 与计划 04 协同;extract 契约扩展在 `core/framework/render/scene_extract.rs`。
 
+### 2026-08-26 persistent-scene hard-cut amendment
+
+本修订覆盖下方历史 `GpuSceneIdAllocator`、`resource_streamer.ensure` primitive 登记和
+frame-extract 直接驱动 GPUScene 的描述。旧代码在产品切换完成前仍可能物理存在，但不再是目标
+architecture authority：
+
+- `RenderScenePrimitiveHandle(slot, slot_generation)` 是唯一 persistent primitive identity；
+  GPUScene 直接投影同一 slot，不再分配第二套 primitive ID 或 stable-key map；
+- `RenderSceneChangeJournal` 是增量数据面，addition/update/removal 携带 immutable primitive，
+  update 同时保留 before/after `Arc`；
+- journal 一次封存 base/all-LOD model/mesh/material、primitive binding、material override 与
+  skeleton 的 deterministic net typed-resource reference delta，供 09D 唯一 residency authority
+  消费；RenderScene/GPUScene 不持有 residency ticket/cache；
+- `ResourceStreamer::ensure_scene_resources` 的同步 load/clone/WGPU-create 路径是待硬删迁移源，
+  禁止再承担 primitive 注册或 RenderScene resolver；
+- 稳态复杂度按 changed frontier `C`，identity lookup/second allocator 为 0；全量排序/重投影只允许
+  initial/full-resync/device-recovery 路径。
+
+代码与证据见
+[`03/2026-08-26-persistent-render-scene-generation-architecture.md`](03/2026-08-26-persistent-render-scene-generation-architecture.md)
+和
+[`03/2026-08-26-render-scene-resource-dependency-delta-review.md`](03/2026-08-26-render-scene-resource-dependency-delta-review.md)。
+
 核心类型:
 
-- `GpuScene`:`primitive_data: StorageBuffer`(transform、prev transform、bounds、flags、lightmap/payload 槽)、`instance_data`、`light_data`(计划 05 消费)。SOA 打包对齐 16 字节;id 由 `GpuSceneIdAllocator` 分配,free list 回收。
-- `GpuSceneUpdateQueue`:extract 携带脏标记 → 帧首合并为去重上传批;大批量首帧走整段上传,稳态走 scatter 上传 compute(或 queue.write_buffer 分段,按尺寸阈值选择)。
+- `GpuScene`:`primitive_data: StorageBuffer`(transform、prev transform、bounds、flags、lightmap/payload 槽)、`instance_data`、`light_data`(计划 05 消费)。SOA 打包对齐 16 字节；primitive row 直接使用 persistent RenderScene slot/generation，旧 `GpuSceneIdAllocator` 仅作为待清退迁移实现。
+- `GpuSceneJournalConsumer`:消费 `RenderSceneChangeJournal`，按 direct slot 生成去重 full/dirty/retirement work；大批量 initial/recovery 走整段上传，稳态仅处理 journal touched rows。
 - shader ABI:bind group 布局新增 scene data group(`pipeline_layout.rs` 收口);顶点着色器以 `instance_index`(来自 draw args first_instance 或 instance step 顶点输入)取 transform。计划 02 的 `DrawInstanceSource` 在此切换为 instance index 路径并删除 uniform 路径。
 - `IndirectDrawBatcher`:同 (pipeline, geometry, material set) 的命令聚为一个 indirect batch;CPU 填充 args 为基线,计划 04 的剔除 compute 直接改写 args 中 instance_count。
 - capability gate:`RenderCapabilityClass` 增加 gpu_driven 档位;不支持 multi-draw indirect 时 batcher 退化为逐条 `draw_indexed`(仍用 instance index ABI,只是提交方式不同),不维护两套 shader ABI。
@@ -212,8 +235,11 @@ Fyrox 无 GPUScene/indirect 同类实现(逐 draw uniform 块分配,见其 `rend
 ### GS-M1 GpuScene 数据面
 
 实施切片:
-1. `GpuScene` 缓冲布局、id 分配、整段上传;extract 增加 stable instance id 与脏标记。
-2. `resource_streamer` 在 ensure 流程中登记 primitive 条目(替代 per-draw model uniform 的数据来源)。
+1. `RenderScene` persistent slot/generation、immutable journal 与 GPUScene direct-slot consumer。
+2. journal 发布完整 typed resource-reference delta；09D 唯一 residency manager 以 generation-bound
+   non-blocking ticket 解析 all-LOD geometry，再进入 WGPU capacity/upload staging。
+3. 硬删 `resource_streamer.ensure` primitive 登记、GPUScene 第二 ID allocator/stable-key map 与旧
+   pending-draw ownership。
 
 测试阶段:
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipTest`
@@ -272,8 +298,8 @@ Fyrox 无 GPUScene/indirect 同类实现(逐 draw uniform 块分配,见其 `rend
 | `zircon_runtime/src/graphics/scene/gpu_scene/mod.rs` | 模块声明 + curated re-export(`GpuScene`、`GpuSceneIdAllocator`、`GpuSceneUpdateQueue`、`IndirectDrawBatcher`),保持 thin |
 | `zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs` | `GpuScene` 主体:三块 storage buffer、CPU shadow 副本、扩容策略 |
 | `zircon_runtime/src/graphics/scene/gpu_scene/layout.rs` | `GpuPrimitiveData` / `GpuInstanceData` 的 `#[repr(C)]` Pod 镜像 struct 与 stride/offset 常量(与 `zr_gpu_scene.wgsl` 逐字段对拍) |
-| `zircon_runtime/src/graphics/scene/gpu_scene/id_allocator.rs` | `GpuSceneIdAllocator`:单槽 free list + 连续 span 分配/合并回收 |
-| `zircon_runtime/src/graphics/scene/gpu_scene/update_queue.rs` | `GpuSceneUpdateQueue`:脏标记收集、按 index 排序、相邻区间合并 |
+| `zircon_runtime/src/graphics/scene/gpu_scene/id_allocator.rs` | 迁移期 legacy instance-span allocator；primitive identity 硬切 direct RenderScene slot 后删除其 primitive 职责 |
+| `zircon_runtime/src/graphics/scene/gpu_scene/update_queue.rs` | 迁移期 instance/morph 辅助 dirty queue；primitive row 由 `RenderSceneChangeJournal` direct-slot work 驱动 |
 | `zircon_runtime/src/graphics/scene/gpu_scene/staging_ring.rs` | `GpuSceneStagingRing`:3 帧轮转的 `MAP_WRITE | COPY_SRC` staging 环 |
 | `zircon_runtime/src/graphics/scene/gpu_scene/upload.rs` | `flush_updates`:合并区间 → 直写/staging 二选一 → copy 命令;`gpu_scene_upload` graph 节点 executor |
 | `zircon_runtime/src/graphics/scene/scene_renderer/mesh/indirect_draw_batcher/mod.rs` | 模块声明 |
@@ -288,7 +314,7 @@ Fyrox 无 GPUScene/indirect 同类实现(逐 draw uniform 块分配,见其 `rend
 | `zircon_runtime/src/core/framework/render/scene_extract.rs` | `RenderMeshSnapshot` 增加 `stable_instance_key: u64` 与 `transform_revision: u64` |
 | `zircon_runtime/src/core/framework/render/backend_types.rs` | `RenderCapabilitySummary` 增加 `supports_multi_draw_indirect` / `supports_indirect_first_instance`;`RenderStats` 增加 `last_gpu_scene_*` / `last_indirect_*` 字段(见测试清单) |
 | `zircon_runtime/src/graphics/backend/render_backend/request_device.rs` | 由 `wgpu::Features::MULTI_DRAW_INDIRECT_COUNT`、`INDIRECT_FIRST_INSTANCE` 填充上述两个能力位 |
-| `zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs` | ensure 流程中按 `stable_instance_key` 登记/释放 GpuScene primitive + instance 条目 |
+| `zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs` | 迁移 hard cut：删除同步 ensure 的 primitive 登记；journal typed-resource delta 改由 09D manager 在提交锁域外消费 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs` | 删除 model uniform/bind group 构建,改写为依赖 GPUScene entry span;skinned draw 创建 command-local GPUScene palette bind group |
 | `zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs` | `MeshDraw` 删除 `model_buffer` / `model_bind_group` 字段,保留 GPUScene instance span 与可选 command-local GPUScene bind group |
 | `zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs` | 已从 frame path 删除;command replay 直接以 GPUScene span 的 first_instance 提交 |
@@ -326,7 +352,8 @@ impl RenderCapabilitySummary {
 }
 ```
 
-graphics 实现层(`graphics/scene/gpu_scene/`,可用 wgpu):
+graphics 实现层(`graphics/scene/gpu_scene/`,可用 wgpu)。下方代码块记录旧迁移实现形状；
+primitive `HashMap`/allocator 部分已被本节 hard-cut amendment 覆盖，不得作为新增实现依据：
 
 ```rust
 pub(crate) struct GpuScene {
@@ -421,64 +448,80 @@ impl IndirectDrawBatcher {
 
 数据划分对齐 UE:变换在 instance,包围盒/材质派生参数在 primitive。std430、列主序、显式 padding(§8 第 2 条)。
 
-`GpuPrimitiveData`(stride 80 字节):
+`GpuPrimitiveData`(stride 96 字节):
 
 | 字段 | WGSL 类型 | 字节偏移 | 说明 |
 |------|-----------|---------|------|
-| `bounds_center` | `vec3<f32>` | 0 | 世界空间包围球心 |
-| `bounds_radius` | `f32` | 12 | 填入 vec3 的 padding lane,无空洞 |
+| `local_bounds_center` | `vec3<f32>` | 0 | primitive local-space 保守包围球心，由 instance transform 唯一投影 |
+| `local_bounds_radius` | `f32` | 12 | 填入 vec3 的 padding lane,无空洞 |
 | `tint` | `vec4<f32>` | 16 | 迁自 `ModelUniform.tint` |
 | `shadow_params` | `vec4<f32>` | 32 | lane 语义与现 `ModelUniform.shadow_params` 一致(alpha_mask、cutoff、receive_shadows、0) |
 | `motion_params` | `vec4<f32>` | 48 | lane 语义与现 `ModelUniform.motion_params` 一致 |
-| `flags` | `u32` | 64 | bit0 visible、bit1 cast_shadows、bit2 has_prev_transform;其余保留 |
+| `flags` | `u32` | 64 | bit0 visible、bit1 cast_shadows、bit2 has_prev_transform、bit3 force_hzb_visible |
 | `first_instance_index` | `u32` | 68 | 指向 instance_data 起始槽 |
 | `instance_count` | `u32` | 72 | |
-| `payload_slot` | `u32` | 76 | lightmap/payload 预留槽(计划 11 消费),V1 恒 0xFFFFFFFF |
+| `payload_slot` | `u32` | 76 | primitive/VG payload 槽，无效值为 0xFFFFFFFF |
+| `material_payload_slot` | `u32` | 80 | bindless material payload 槽，无效值为 0xFFFFFFFF |
+| `material_payload_padding` | `vec3<u32>` 的三个标量 lane | 84 | 显式 storage-array stride 尾部，Rust 使用 `[u32; 3]` |
 
-`GpuInstanceData`(stride 144 字节):
+`GpuInstanceData`(stride 176 字节):
 
 | 字段 | WGSL 类型 | 字节偏移 | 说明 |
 |------|-----------|---------|------|
 | `world_from_local` | `mat4x4<f32>` | 0 | |
 | `prev_world_from_local` | `mat4x4<f32>` | 64 | prev transform 槽:本计划随上传写入(保持现有 motion vector 行为),双缓冲/jitter 精化归计划 06 的 `TaaResolveExecutor` |
 | `primitive_index` | `u32` | 128 | 反向索引 primitive_data |
-| `flags` | `u32` | 132 | 保留 |
-| `payload_slot` | `u32` | 136 | 保留 |
-| `_pad0` | `u32` | 140 | 显式 padding,Rust 镜像同名字段 |
+| `flags` | `u32` | 132 | affine normal transform、负行列式、退化与 shear 分类位 |
+| `payload_slot` | `u32` | 136 | instance/VG payload 槽，无效值为 0xFFFFFFFF |
+| `morph_payload_slot` | `u32` | 140 | morph payload header 槽，无效值为 0xFFFFFFFF |
+| `lightmap_uv_rect` | `vec4<f32>` | 144 | lightmap atlas UV scale/offset |
+| `lightmap_params` | `vec4<u32>` | 160 | atlas page、有效位与 light-set generation 高低位 |
 
 `light_data`:`array<GpuLightData>`,本计划只负责缓冲创建、id 分配与 binding 槽;`GpuLightData` 条目布局与写入由计划 05 定义。
 
-group3 binding 编号(group0–2 语义见 §8 第 1 条;2026-07-03 SH02-SH04 已完成槽位归位:material property uniform 位于 group2 binding 0,标准贴图/采样器位于 group2 binding 1..10,shadow receiver 采样位于 group1):
+group3 binding 编号(group0–2 语义见 §8 第 1 条;2026-07-03 SH02-SH04 已完成槽位归位:标准贴图/采样器位于 group2 binding 0..9，material property uniform 位于 group2 binding 10，shadow receiver 采样位于 group1):
 
 | binding | 资源 | 类型 | 说明 |
 |---------|------|------|------|
 | 0 | `zr_primitive_data` | `var<storage, read>` | `array<GpuPrimitiveData>` |
 | 1 | `zr_instance_data` | `var<storage, read>` | `array<GpuInstanceData>` |
-| 2 | `zr_light_data` | `var<storage, read>` | 计划 05 消费;本计划绑 fallback 空缓冲 |
-| 3 | `zr_skinned_joint_palette` | `var<uniform>` | current skinned palette;非 skinned 绑 fallback |
-| 4 | `zr_previous_skinned_joint_palette` | `var<uniform>` | previous skinned palette;非 skinned 绑 fallback |
+| 2 | `zr_light_data` | `var<storage, read>` | packed light rows，空场景绑定 fallback storage |
+| 3 | `zr_skinned_joint_palette` | `var<storage, read>` | current skinned palette;非 skinned 绑 fallback |
+| 4 | `zr_previous_skinned_joint_palette` | `var<storage, read>` | previous skinned palette;非 skinned 绑 fallback |
+| 5 | `zr_visible_instance_remap` | `var<storage, read>` | GPU culling 后的可见 instance 重映射；direct 路径绑定 fallback |
+| 6 | `zr_visible_instance_remap_params` | `var<uniform>` | remap gate 与 light/VG 有效 row count |
+| 7 | `zr_morph_deltas` | `var<storage, read>` | morph delta rows |
+| 8 | `zr_morph_weights` | `var<storage, read>` | morph weight rows |
+| 9 | `zr_virtual_geometry_pages` | `var<storage, read>` | VG page table rows |
+| 10 | `zr_virtual_geometry_clusters` | `var<storage, read>` | VG cluster payload rows |
+| 11 | `zr_morph_payloads` | `var<storage, read>` | morph payload headers |
 
 非 skinned draw 共享 `GpuScene` 持有的唯一 group3 bind group;skinned draw 以相同 layout 创建携带真实 palette 的 per-draw bind group(skinned 本就走 dynamic 列表,不破坏静态命令缓存)。
 
 `zr_gpu_scene.wgsl`(只含 struct 与函数,无 entry point):
 
 ```wgsl
-struct GpuPrimitiveData {
-    bounds_center: vec3<f32>, bounds_radius: f32,
+struct ZrGpuPrimitiveData {
+    local_bounds_center: vec3<f32>, local_bounds_radius: f32,
     tint: vec4<f32>, shadow_params: vec4<f32>, motion_params: vec4<f32>,
     flags: u32, first_instance_index: u32, instance_count: u32, payload_slot: u32,
+    material_payload_slot: u32,
+    material_payload_padding_0: u32,
+    material_payload_padding_1: u32,
+    material_payload_padding_2: u32,
 }
-struct GpuInstanceData {
+struct ZrGpuInstanceData {
     world_from_local: mat4x4<f32>, prev_world_from_local: mat4x4<f32>,
-    primitive_index: u32, flags: u32, payload_slot: u32, _pad0: u32,
+    primitive_index: u32, flags: u32, payload_slot: u32, morph_payload_slot: u32,
+    lightmap_uv_rect: vec4<f32>, lightmap_params: vec4<u32>,
 }
-@group(3) @binding(0) var<storage, read> zr_primitive_data: array<GpuPrimitiveData>;
-@group(3) @binding(1) var<storage, read> zr_instance_data: array<GpuInstanceData>;
+@group(3) @binding(0) var<storage, read> zr_primitive_data: array<ZrGpuPrimitiveData>;
+@group(3) @binding(1) var<storage, read> zr_instance_data: array<ZrGpuInstanceData>;
 
-fn get_instance_data(instance_index: u32) -> GpuInstanceData { return zr_instance_data[instance_index]; }
-fn get_primitive_data(primitive_index: u32) -> GpuPrimitiveData { return zr_primitive_data[primitive_index]; }
-fn zr_world_from_local(instance_index: u32) -> mat4x4<f32> { return zr_instance_data[instance_index].world_from_local; }
-fn zr_prev_world_from_local(instance_index: u32) -> mat4x4<f32> { return zr_instance_data[instance_index].prev_world_from_local; }
+fn zr_gpu_scene_instance(instance_index: u32) -> ZrGpuInstanceData { return zr_instance_data[zr_gpu_scene_resolve_instance_index(instance_index)]; }
+fn zr_gpu_scene_primitive(instance: ZrGpuInstanceData) -> ZrGpuPrimitiveData { return zr_primitive_data[instance.primitive_index]; }
+fn zr_world_from_local(instance_index: u32) -> mat4x4<f32> { return zr_gpu_scene_instance(instance_index).world_from_local; }
+fn zr_previous_world_from_local(instance_index: u32) -> mat4x4<f32> { return zr_gpu_scene_instance(instance_index).prev_world_from_local; }
 ```
 
 instance index ABI 结论:采用 **per-draw first_instance + `@builtin(instance_index)`**,不引入 instance step 顶点缓冲。理由:直接提交路径 `pass.draw_indexed(indices, base_vertex, first..first + count)` 的非零 first_instance 是 wgpu/WebGPU core 行为,全后端可用;indirect 路径的非零 `first_instance` 由 `INDIRECT_FIRST_INSTANCE`(与 `MULTI_DRAW_INDIRECT_COUNT` 一起)gate;step buffer 需要额外 vertex layout 排列并污染计划 08 的 VertexFactory 等价物,放弃。`render_pass_bindings.rs::record_indexed_draw` 改写为:
@@ -574,7 +617,7 @@ previous-shape buffer/velocity writer 仍归计划 06 后续切片。
 
 | 测试函数 | 断言 | 位置 |
 |---------|------|------|
-| `render_gpu_scene_layout_matches_wgsl_offsets` | `std::mem::size_of::<GpuPrimitiveData>() == 80`、`offset_of!` 与本章偏移表逐项相等 | `gpu_scene/layout.rs` |
+| `render_gpu_scene_layout_matches_wgsl_offsets` | `std::mem::size_of::<GpuPrimitiveData>() == 96`、`std::mem::size_of::<GpuInstanceData>() == 176`、`offset_of!` 与本章偏移表逐项相等 | `gpu_scene/layout.rs` |
 | `render_gpu_scene_id_allocator_reuses_freed_spans_without_aliasing` | free 后再 allocate 复用空洞;在 flush 前的同帧内不复用 | `gpu_scene/id_allocator.rs` |
 | `render_gpu_scene_id_allocator_coalesces_adjacent_free_spans` | 相邻 span 释放后合并为一段;`high_water` 不回退 | `gpu_scene/id_allocator.rs` |
 | `render_gpu_scene_update_queue_merges_adjacent_dirty_ranges` | 间隙 ≤8 条目的脏区间合并;输出字节区间正确 | `gpu_scene/update_queue.rs` |
@@ -610,6 +653,21 @@ previous-shape buffer/velocity writer 仍归计划 06 后续切片。
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`03/2026-07-09-gpu-scene-gpu-driven-output-records.md`](03/2026-07-09-gpu-scene-gpu-driven-output-records.md)
+- 2026-08-26 P0-1 局部进展：已按 UE `FScene`/`FPrimitiveSceneInfo`/`FScenePrimitiveUpdates`/`FGPUScene` 责任分工新增独立 CPU `RenderScene` owner。复核 extract 全链后确认 camera LOD 会替换完整 model/mesh/material/primitive source，故 primitive 已修正为 component-level identity，持有 base + 全部 LOD 的 camera-neutral source，view 侧 O(log L) 选择，不再仅排除 `mesh_lod` 标记；同时包含与 static-mesh eligibility 解耦的显式 revision、稳定代际 handle、密集 payload、O(1) swap-remove relocation、确定性增量 delta 与不可变 change journal。dirty-domain 已进一步收敛：LOD threshold-only 仅失效 view selection，bounds-only 不再误触 geometry resolution，geometry-only 不再上传未变 bounds，mobility/cast-shadow/alpha phase 正确失效 view relevance，而同一 Mask phase 的 cutoff 修改保持 material-only；mask cutoff 构造边界也与资产层统一为 `[0,1]`，非有限 material-property override 在进入 persistent/GPU owner 前拒绝。共享 `RenderSceneJournalCursor` 已实现预检不推进、成功后显式 commit、same-world exact replay no-op 及 cross-world/stale/gap/inverted/non-adjacent/overlap/superseded typed error，world identity 从 `RenderScene` 贯穿 read view、journal 与 preflight token；journal stats 在分类主循环内封存七类 dirty-domain entry count 以及 live/high-water/reusable-hole/exhausted-slot/fragmentation storage count，不为 diagnostics 二次扫描 updates。RenderScene 子树共 42 个 focused tests 已编写，scoped rustfmt/结构扫描通过；GPUScene journal consumer 的 identity/transaction/retirement/counter 设计已完成，但 Runtime04 world-owned dirty-entity producer、consumer 产品接线、managed Cargo、产品 WGPU/RenderDoc/PNG 与性能基线仍未完成，故 GS-M1 与总计划保持 `in_progress`。证据见 [`03/2026-08-26-persistent-render-scene-generation-architecture.md`](03/2026-08-26-persistent-render-scene-generation-architecture.md)与[`03/2026-08-26-render-scene-gpu-scene-journal-consumer-review.md`](03/2026-08-26-render-scene-gpu-scene-journal-consumer-review.md)。
+- 2026-08-26 P0-3 局部进展：GPUScene/HZB 已硬切为“primitive local bounds + instance transform”单次变换 ABI，非法/skin/变化 morph/shear 路径保守 fail-open；CPU visibility 共享 bounds authority、managed WGPU/Naga、RenderDoc PNG 与性能基线仍未完成，故计划保持 `in_progress`。证据见 [`03/2026-08-26-gpu-scene-local-bounds-hzb-abi.md`](03/2026-08-26-gpu-scene-local-bounds-hzb-abi.md)。
+
+- 2026-08-26 P0-1 补充进展：primitive 构造现强制提供 base 与每个 LOD 的 local bounds，数量不匹配或非法 AABB typed reject，并只持久化保守 union；LOD threshold-only 与 geometry dirty 已分离；新增中立 skeleton/current pose 输入并直接复用 Runtime04 sealed `AnimationPoseHandle`，pose 变化仅发布 `DEFORMATION | BOUNDS`，非有限骨骼 transform typed reject。journal/read-view 新增 O(1) live/high-water/reusable-hole/exhausted-slot/fragmentation 统计；cursor token 已不可伪造且 commit 二次校验 range，拒绝跨代与宽重叠 journal。RenderScene 子树现有 42 个 focused tests；统一 residency authority、Runtime04/GPUScene 产品接线、managed Cargo、WGPU/RenderDoc/PNG 与性能基线仍未完成，状态保持 `in_progress`。
+- 2026-08-26 P0-2 消费事务进展：新增 `gpu_scene/journal_consumer.rs` 独立 CPU 驻留 owner，直接以 persistent RenderScene slot/generation 验证 additions/updates/removals，使用仅覆盖本 journal 驻留变化槽的有序稀疏投影，复杂度为 `O(C log C)`、临时状态 `O(C)`，不建立第二份 stable-key map 或 primitive allocator；remove+add 同 journal 复用、exact replay、错 key 与 stale plan 均保持 typed/atomic。apply plan 现同时投影 slot-ordered full/dirty resident writes 与旧 generation retirements：addition 全域写、update 保留 exact dirty flags、same-slot reuse 同时保留旧退役和新写入，primitive 直接借用 immutable journal；direct-slot validation、projected resident/high-water、full/dirty/retirement 和 stable-key lookup=0 计数均可直接读取。产品入口已收敛为唯一 `apply_with_staging` 事务门，内部 preflight/commit 不再暴露给 sibling owner；staging 失败不推进 cursor/residency，成功返回 typed staging output，exact replay 不调用 staging。设备恢复另有 typed full reprojection：只接受与 consumer 一致的 world/generation/high-water/resident slots，按 persistent slot 输出全量写且不重置 CPU generation；`O(N log N)`/`O(N)` 仅发生在恢复路径，stable-key lookup=0。8 个 folder-backed focused tests 已编写；WGPU asset/capacity staging、device-generation 接线、提交完成回收、previous-state roll、Runtime04 producer、旧 pending-draw ownership 硬切和真实性能/截图验收仍未完成，状态保持 `in_progress`。
+- 2026-08-26 P0-1 跨层接线进展：Runtime04 稀疏 component artifact 已硬切到 `core/framework/render/frame_extract/scene_changes/` 中立 owner；scene wrapper 在发布时一次投影为资源句柄、精确 `Mat4`、`bool`、`u32` 与 core `Mobility`，base/all-LOD/morph payload 使用 immutable `Arc` slice。`GeometryExtract::scene_changes` 对 active/inactive camera 均携带同一个 world-owned `Arc`，稳定和多 viewport 提取不重建 delta；Render03 `RenderSceneComponentProjector::project_frame` 已从真实 frame 消费、校验外部 world lineage，并覆盖 exact replay/cross-world reject。旧 scene-owned artifact/mask 已删除，graphics 不再依赖 `scene::world` DTO。当前仍未把该入口调度进 `SceneRenderer`：同步 `ResourceStreamer` 不满足统一 09D all-LOD residency ticket、typed pending/fail-open 与 no-third-cache 约束，故 WGPU staging、旧 pending-draw hard cut、managed Cargo、RenderDoc/PNG、性能和功耗验收仍未完成，GS-M1 与总计划继续 `in_progress`。
+- 2026-08-26 P0-4 residency 前置进展：复核当前 `ResourceStreamer` 与 UE `FScenePreUpdateChangeSet`/dynamic render-asset remove-before-insert 生命周期后，`RenderSceneUpdatedPrimitive` 已保留 exact before/current primitive `Arc`；journal 一次生成 deterministic net typed-resource reference delta，覆盖 base/all-LOD model/mesh/material、primitive binding、material override 与 skeleton，单 primitive 去重且同 journal acquire/release 抵消。实现使用两个复用 scratch `Vec` 与一个连续 observation buffer，transform/no-op 不扫描依赖，不新增 per-primitive shadow cache、residency state 或 WGPU owner。RenderScene 子树现有 60 个、既定 CPU 范围共 81 个 authored focused tests；scoped static checks 通过，managed Cargo 仍无 terminal result。09D residency ticket/manager、产品接线、RenderDoc/PNG 与性能/功耗基线未完成，状态保持 `in_progress`。证据见 [`03/2026-08-26-render-scene-resource-dependency-delta-review.md`](03/2026-08-26-render-scene-resource-dependency-delta-review.md)。
+
+## 2026-08-27 PFO-4d1k Palette Arena Supersession
+
+PFO-4d1k 已替代本计划早期的 per-draw/per-instance palette resource 路径。GPUScene 现在拥有两个 grow-only global palette arena buffer；192-byte `GpuInstanceData` 用 current/previous matrix base+joint count 间接寻址，binding 3/4 为 `array<mat4x4<f32>>`。frame sync 把 active matrices 紧凑打包为一个连续 upload并附着到现有 `GpuScenePreparedUpload`，scene success 后才滚动 staged slot/span。旧 `create_scene_bind_group_for_palettes`、逐实例双 buffer、每 palette 两次 queue write、MeshDraw buffer保活和 skinned command-local bind-group override已硬删除。历史段落中的 per-draw palette 描述只代表当时落地状态，不再是当前合同；indirect visible-remap 仍可拥有命令/phase级 GPUScene override。源码实施与静态证据见 `docs/plans/optimize/zircon_runtime/90/2026-08-27-pfo-4d1k-skinned-palette-arena-hard-cut-plan.md`，动态 WGPU/RenderDoc/PNG/profile/功耗仍 pending。
+
+## 2026-08-27 PFO-4d1s Sideband Upload Transaction
+
+Morph payload 与 VirtualGeometry resident rows 不再在 mesh build 中取得 raw Queue 或提前更新 CPU shadow。两个 owner 现在准备 immutable upload batch 与 move-only commit token；本帧 VG page/cluster counts 显式进入 core scene-count 参数，随后 sideband 一起附着到唯一 `GpuScenePreparedUpload`。scene submission 成功后才统一提交 shadow/counts。grow-only buffer 在失败帧替换物理资源后保留 full-upload intent，因此下一帧回到旧内容也不会把尚未初始化的新 buffer 误判为稳定。每类 sideband 同时只允许一个未决 preparation，reservation 由组合帧持有到 commit/drop。core 与 sideband preparation 同时保留不可伪造的 scene identity；attachment 不接受 caller-supplied scene，batch 离开本地所有权前与 commit 时都校验目标。因此旧 frame 无法在新物理 buffer 准备后越序发布 shadow，A 场景 sideband 也无法拼接到 B 场景 core frame。dirty-row 算法保持最大连续区间的单次 `O(n)` 扫描。源码实施与静态证据见 `docs/plans/optimize/zircon_runtime/90/2026-08-27-pfo-4d1s-gpu-scene-sideband-upload-transaction-plan.md`；动态 WGPU、PNG、RenderDoc、profile、VRAM与功耗仍 pending。
 
 ## 性能审阅交接
 

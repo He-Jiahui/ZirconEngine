@@ -19,12 +19,14 @@ children = [
 ]
 
 [nodes.left_group]
-component = "HorizontalGroup"
+component = "ScrollableBox"
 control_id = "SceneViewportToolbarLeftGroup"
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Horizontal", gap = "$editor.density.gap.small", scrollbar_visibility = "Never" }, input_policy = "Receive", width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "activate_scene_mode" },
   { node = "set_transform_space" },
+  { node = "set_pivot_mode" },
   { node = "set_display_mode" },
   { node = "set_grid_mode" },
   { node = "set_translate_snap" },
@@ -62,6 +64,13 @@ control_id = "SetTransformSpace"
 props = { label = "Space", icon = "resize-outline", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SetTransformSpace", event = "Change", route = "workbench.viewport.set_transform_space" }]
+
+[nodes.set_pivot_mode]
+component = "IconButton"
+control_id = "SetPivotMode"
+props = { label = "Pivot", icon = "locate-outline", icon_placement = "icon_only" }
+layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetPivotMode", event = "Change", route = "workbench.viewport.set_pivot_mode" }]
 
 [nodes.set_display_mode]
 component = "IconButton"

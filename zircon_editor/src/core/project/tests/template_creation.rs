@@ -646,6 +646,7 @@ fn conflicting_rendered_entry_rolls_back_staging_and_leaves_no_project() {
             engine_version_req: None,
             default_scene: "res://scenes/main.scene.toml".to_string(),
             format_version: PROJECT_MANIFEST_FORMAT_VERSION,
+            project_guid: None,
         },
         entries: vec![
             RenderedProjectTemplateEntry {

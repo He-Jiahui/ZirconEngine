@@ -5,6 +5,41 @@ use zircon_runtime::core::framework::render::{
 
 use super::super::virtual_geometry_executed_cluster_selection_pass::VirtualGeometryExecutedClusterSelectionPassOutput;
 
+#[cfg(test)]
+#[path = "entries/performance_tests.rs"]
+mod performance_tests;
+
+pub(super) fn collect_and_pack_execution_visbuffer64_entries(
+    executed_selected_clusters: &[RenderVirtualGeometrySelectedCluster],
+) -> (Vec<RenderVirtualGeometryVisBuffer64Entry>, Vec<u64>) {
+    let mut entries = Vec::with_capacity(executed_selected_clusters.len());
+    let mut packed_words = Vec::with_capacity(executed_selected_clusters.len());
+    for (entry_index, selected_cluster) in executed_selected_clusters.iter().enumerate() {
+        let entry = RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
+            u32::try_from(entry_index).unwrap_or(u32::MAX),
+            selected_cluster,
+        );
+        packed_words.push(entry.packed_value);
+        entries.push(entry);
+    }
+    (entries, packed_words)
+}
+
+pub(super) fn collect_and_pack_execution_visbuffer64_entries_from_pass(
+    executed_cluster_selection_pass: &VirtualGeometryExecutedClusterSelectionPassOutput,
+) -> (Vec<RenderVirtualGeometryVisBuffer64Entry>, Vec<u64>) {
+    if executed_cluster_selection_pass.source()
+        == RenderVirtualGeometrySelectedClusterSource::Unavailable
+    {
+        return (Vec::new(), Vec::new());
+    }
+
+    collect_and_pack_execution_visbuffer64_entries(
+        executed_cluster_selection_pass.selected_clusters(),
+    )
+}
+
+#[cfg(test)]
 pub(super) fn collect_execution_visbuffer64_entries(
     executed_selected_clusters: &[RenderVirtualGeometrySelectedCluster],
 ) -> Vec<RenderVirtualGeometryVisBuffer64Entry> {
@@ -20,6 +55,7 @@ pub(super) fn collect_execution_visbuffer64_entries(
         .collect()
 }
 
+#[cfg(test)]
 pub(super) fn collect_execution_visbuffer64_entries_from_pass(
     executed_cluster_selection_pass: &VirtualGeometryExecutedClusterSelectionPassOutput,
 ) -> Vec<RenderVirtualGeometryVisBuffer64Entry> {
@@ -32,6 +68,7 @@ pub(super) fn collect_execution_visbuffer64_entries_from_pass(
     collect_execution_visbuffer64_entries(executed_cluster_selection_pass.selected_clusters())
 }
 
+#[cfg(test)]
 pub(super) fn pack_execution_visbuffer64_entries(
     entries: &[RenderVirtualGeometryVisBuffer64Entry],
 ) -> Vec<u64> {
@@ -160,18 +197,20 @@ mod tests {
 
         assert_eq!(
             entries,
-            vec![RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
-                0,
-                &selected_cluster(
-                    Some(0),
-                    42,
-                    20,
+            vec![
+                RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
                     0,
-                    200,
-                    0,
-                    RenderVirtualGeometryExecutionState::Resident,
-                ),
-            )],
+                    &selected_cluster(
+                        Some(0),
+                        42,
+                        20,
+                        0,
+                        200,
+                        0,
+                        RenderVirtualGeometryExecutionState::Resident,
+                    ),
+                )
+            ],
             "expected the VisBuffer64 baseline pass to project typed entries from the executed pass-owned selected-cluster seam directly once that seam exists instead of re-projecting a second cluster identity list from the internal selection DTO"
         );
     }

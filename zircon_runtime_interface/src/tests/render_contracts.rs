@@ -5,11 +5,12 @@ use crate::ui::{
         UiBatchPlan, UiBatchPrimitive, UiBatchShader, UiBatchSplitReason, UiBrushPayload,
         UiClipMode, UiEditableTextState, UiPaintPayload, UiRenderCacheInvalidationReason,
         UiRenderCachePlan, UiRenderCacheStatus, UiRenderCommand, UiRenderCommandKind,
-        UiRenderDebugSnapshot, UiRenderExtract, UiRenderList, UiRenderResourceKey,
-        UiRenderResourceKind, UiRenderResourceState, UiRenderVisualizerOverlayKind,
-        UiRenderVisualizerSnapshot, UiRendererParityPayloadKind, UiRendererParitySnapshot,
-        UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun,
-        UiResourceUvRect, UiShapedGlyph, UiShapedGlyphRotation, UiShapedText, UiTextCaret,
+        UiRenderDebugSnapshot, UiRenderExtract, UiRenderFrameExtract, UiRenderList,
+        UiRenderResourceKey, UiRenderResourceKind, UiRenderResourceState,
+        UiRenderVisualizerOverlayKind, UiRenderVisualizerSnapshot, UiRendererParityPayloadKind,
+        UiRendererParitySnapshot, UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine,
+        UiResolvedTextRun, UiResourceUvRect, UiShapedGlyph, UiShapedGlyphClusterFlags,
+        UiShapedGlyphRotation, UiShapedText, UiShapedTextCluster, UiShapedTextLine, UiTextCaret,
         UiTextCaretAffinity, UiTextComposition, UiTextDirection, UiTextDistanceFieldEffects,
         UiTextGlowEffect, UiTextOutlineEffect, UiTextOverflow, UiTextPaint, UiTextPaintDecoration,
         UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode, UiTextRunKind, UiTextSelection,
@@ -72,6 +73,7 @@ fn text_paint_projects_normalized_distance_field_effects_from_resolved_style() {
 
 mod cache_generation;
 mod rich_table;
+mod text_shape;
 
 fn solid_command(node_id: u64, x: f32, clip_x: f32) -> UiRenderCommand {
     UiRenderCommand {
@@ -114,6 +116,54 @@ fn image_command(node_id: u64, x: f32, resource_id: &str) -> UiRenderCommand {
         text: None,
         image: Some(UiVisualAssetRef::Icon(resource_id.to_string())),
         opacity: 1.0,
+    }
+}
+
+fn canonical_shaped_text_fixture(
+    source_text: &str,
+    layout: &UiResolvedTextLayout,
+    render_mode: UiTextRenderMode,
+) -> UiShapedText {
+    UiShapedText {
+        source_text: source_text.to_string(),
+        source_range: layout.source_range,
+        direction: layout.direction,
+        overflow: layout.overflow,
+        font_size: layout.font_size,
+        line_height: layout.line_height,
+        measured_width: layout.measured_width,
+        measured_height: layout.measured_height,
+        writing_mode: layout.writing_mode,
+        render_mode,
+        font_key: None,
+        atlas_resource: None,
+        ellipsis_range: None,
+        lines: layout
+            .lines
+            .iter()
+            .map(|line| UiShapedTextLine {
+                text: line.text.clone(),
+                frame: line.frame,
+                source_range: line.source_range,
+                visual_range: line.visual_range,
+                measured_width: line.measured_width,
+                baseline: line.baseline,
+                direction: line.direction,
+                ellipsized: line.ellipsized,
+                glyphs: Vec::new(),
+                clusters: line
+                    .runs
+                    .iter()
+                    .map(|run| UiShapedTextCluster {
+                        kind: run.kind,
+                        text: run.text.clone(),
+                        source_range: run.source_range,
+                        visual_range: run.visual_range,
+                        direction: run.direction,
+                    })
+                    .collect(),
+            })
+            .collect(),
     }
 }
 
@@ -292,7 +342,7 @@ fn ui_render_list_paint_order_accounts_for_split_image_controls() {
 }
 
 #[test]
-fn ui_paint_element_derives_text_shape_payload_from_text_layout() {
+fn ui_paint_element_reports_unavailable_shape_without_inventing_font_identity() {
     let layout = UiResolvedTextLayout {
         direction: UiTextDirection::LeftToRight,
         overflow: UiTextOverflow::Ellipsis,
@@ -303,11 +353,12 @@ fn ui_paint_element_derives_text_shape_payload_from_text_layout() {
         source_range: UiTextRange { start: 0, end: 4 },
         lines: vec![UiResolvedTextLine {
             text: "Zirc".to_string(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(4.0, 8.0, 36.0, 22.0),
             source_range: UiTextRange { start: 0, end: 4 },
             visual_range: UiTextRange { start: 0, end: 4 },
             measured_width: 36.0,
-            glyph_advances: vec![],
+            glyph_advances: vec![9.0; 4],
             baseline: 16.0,
             direction: UiTextDirection::LeftToRight,
             runs: vec![UiResolvedTextRun {
@@ -349,48 +400,7 @@ fn ui_paint_element_derives_text_shape_payload_from_text_layout() {
         panic!("expected text payload");
     };
     assert_eq!(text.render_mode, UiTextRenderMode::Sdf);
-    assert_eq!(
-        text.shaped.as_ref().unwrap().lines[0].clusters[0].kind,
-        UiTextRunKind::Strong
-    );
-    assert_eq!(
-        text.shaped.as_ref().unwrap().lines[0].clusters[0]
-            .source_range
-            .end,
-        4
-    );
-    assert_eq!(
-        text.shaped
-            .as_ref()
-            .unwrap()
-            .font_key
-            .as_ref()
-            .unwrap()
-            .kind,
-        UiRenderResourceKind::Font
-    );
-    assert_eq!(
-        text.shaped.as_ref().unwrap().font_key.as_ref().unwrap().id,
-        "fonts/Inter.ttf:w650"
-    );
-    assert_eq!(
-        text.shaped
-            .as_ref()
-            .unwrap()
-            .atlas_resource
-            .as_ref()
-            .unwrap()
-            .kind,
-        UiRenderResourceKind::Texture
-    );
-    assert_eq!(
-        text.shaped.as_ref().unwrap().lines[0].glyphs[0]
-            .atlas_resource
-            .as_ref()
-            .unwrap()
-            .kind,
-        UiRenderResourceKind::Texture
-    );
+    assert_eq!(text.shaped, UiTextShapeArtifact::Unavailable);
     assert_eq!(text.runs.len(), 1);
     assert_eq!(text.runs[0].kind, UiTextRunKind::Strong);
     assert_eq!(text.runs[0].text, "Zirc");
@@ -431,6 +441,7 @@ fn ui_text_paint_carries_editable_caret_selection_and_composition() {
         editable: Some(editable),
         lines: vec![UiResolvedTextLine {
             text: "Hello".to_string(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(10.0, 20.0, 50.0, 12.0),
             source_range: UiTextRange { start: 0, end: 5 },
             visual_range: UiTextRange { start: 0, end: 5 },
@@ -583,6 +594,28 @@ fn ui_render_extract_normalizes_missing_or_invalid_raster_scale() {
     };
 
     assert_eq!(invalid.normalized_raster_scale(), 1.0);
+}
+
+#[test]
+fn ui_render_extract_keeps_raster_resources_at_physical_resolution() {
+    let undersampled = UiRenderExtract {
+        tree_id: UiTreeId::new("ui.render.undersampled"),
+        list: UiRenderList::default(),
+        raster_scale: 0.75,
+    };
+    assert_eq!(undersampled.normalized_raster_scale(), 1.0);
+
+    let supersampled = UiRenderExtract {
+        tree_id: UiTreeId::new("ui.render.supersampled"),
+        list: UiRenderList::default(),
+        raster_scale: 1.5,
+    };
+    assert_eq!(supersampled.normalized_raster_scale(), 1.5);
+
+    let published_undersampled = UiRenderFrameExtract::from_extract(&undersampled);
+    let published_supersampled = UiRenderFrameExtract::from_extract(&supersampled);
+    assert_eq!(published_undersampled.normalized_raster_scale(), 1.0);
+    assert_eq!(published_supersampled.normalized_raster_scale(), 1.5);
 }
 
 #[test]
@@ -809,7 +842,7 @@ fn ui_render_visualizer_snapshot_tracks_material_resource_and_sdf_text_stats() {
             border: None,
         },
     };
-    let mut shaped = UiShapedText::from_resolved_layout(
+    let mut shaped = canonical_shaped_text_fixture(
         "A",
         &UiResolvedTextLayout {
             direction: UiTextDirection::LeftToRight,
@@ -818,6 +851,7 @@ fn ui_render_visualizer_snapshot_tracks_material_resource_and_sdf_text_stats() {
             source_range: UiTextRange { start: 0, end: 1 },
             lines: vec![UiResolvedTextLine {
                 text: "A".to_string(),
+                placement_frame: UiFrame::default(),
                 frame: UiFrame::new(4.0, 6.0, 12.0, 20.0),
                 source_range: UiTextRange { start: 0, end: 1 },
                 visual_range: UiTextRange { start: 0, end: 1 },
@@ -946,6 +980,7 @@ fn ui_shaped_text_contract_preserves_runs_and_ranges() {
         source_range: UiTextRange { start: 0, end: 5 },
         lines: vec![UiResolvedTextLine {
             text: "Hello".to_string(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(0.0, 0.0, 42.0, 18.0),
             source_range: UiTextRange { start: 0, end: 5 },
             visual_range: UiTextRange { start: 0, end: 5 },
@@ -965,7 +1000,7 @@ fn ui_shaped_text_contract_preserves_runs_and_ranges() {
         ..UiResolvedTextLayout::default()
     };
 
-    let shaped = UiShapedText::from_resolved_layout("Hello", &layout, UiTextRenderMode::Native);
+    let shaped = canonical_shaped_text_fixture("Hello", &layout, UiTextRenderMode::Native);
     let paint = UiTextPaint::from_shaped_text(shaped.clone(), Some("#ffffff".to_string()));
 
     assert_eq!(shaped.source_text, "Hello");
@@ -975,7 +1010,7 @@ fn ui_shaped_text_contract_preserves_runs_and_ranges() {
 }
 
 #[test]
-fn ui_shaped_text_contract_derives_grapheme_glyph_bounds() {
+fn ui_shaped_text_contract_preserves_explicit_grapheme_glyph_bounds() {
     let accent = "a\u{0301}";
     let emoji = "\u{1f469}\u{200d}\u{1f4bb}";
     let source = format!("{accent}{emoji}b");
@@ -989,6 +1024,7 @@ fn ui_shaped_text_contract_derives_grapheme_glyph_bounds() {
         },
         lines: vec![UiResolvedTextLine {
             text: source.clone(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(4.0, 6.0, 90.0, 20.0),
             source_range: UiTextRange {
                 start: 0,
@@ -1020,8 +1056,36 @@ fn ui_shaped_text_contract_derives_grapheme_glyph_bounds() {
         ..UiResolvedTextLayout::default()
     };
 
-    let shaped =
-        UiShapedText::from_resolved_layout(source.clone(), &layout, UiTextRenderMode::Native);
+    let mut shaped = canonical_shaped_text_fixture(&source, &layout, UiTextRenderMode::Native);
+    shaped.lines[0].glyphs = vec![
+        UiShapedGlyph::new(
+            101,
+            UiTextRange {
+                start: 0,
+                end: accent.len(),
+            },
+            UiFrame::new(4.0, 6.0, 30.0, 20.0),
+            30.0,
+        ),
+        UiShapedGlyph::new(
+            102,
+            UiTextRange {
+                start: accent.len(),
+                end: accent.len() + emoji.len(),
+            },
+            UiFrame::new(34.0, 6.0, 30.0, 20.0),
+            30.0,
+        ),
+        UiShapedGlyph::new(
+            103,
+            UiTextRange {
+                start: accent.len() + emoji.len(),
+                end: source.len(),
+            },
+            UiFrame::new(64.0, 6.0, 30.0, 20.0),
+            30.0,
+        ),
+    ];
     let glyphs = &shaped.lines[0].glyphs;
 
     assert_eq!(glyphs.len(), 3);
@@ -1045,7 +1109,7 @@ fn ui_shaped_text_contract_derives_grapheme_glyph_bounds() {
 }
 
 #[test]
-fn ui_shaped_text_contract_uses_measured_glyph_advances() {
+fn ui_shaped_text_contract_preserves_explicit_measured_glyph_advances() {
     let layout = UiResolvedTextLayout {
         direction: UiTextDirection::LeftToRight,
         font_size: 16.0,
@@ -1053,6 +1117,7 @@ fn ui_shaped_text_contract_uses_measured_glyph_advances() {
         source_range: UiTextRange { start: 0, end: 2 },
         lines: vec![UiResolvedTextLine {
             text: "Wi".to_string(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(4.0, 6.0, 18.0, 20.0),
             source_range: UiTextRange { start: 0, end: 2 },
             visual_range: UiTextRange { start: 0, end: 2 },
@@ -1072,7 +1137,29 @@ fn ui_shaped_text_contract_uses_measured_glyph_advances() {
         ..UiResolvedTextLayout::default()
     };
 
-    let shaped = UiShapedText::from_resolved_layout("Wi", &layout, UiTextRenderMode::Native);
+    let mut shaped = canonical_shaped_text_fixture("Wi", &layout, UiTextRenderMode::Native);
+    shaped.lines[0].glyphs = vec![
+        UiShapedGlyph::new(
+            87,
+            UiTextRange { start: 0, end: 1 },
+            UiFrame::new(4.0, 6.0, 14.0, 20.0),
+            14.0,
+        )
+        .with_cluster_flags(UiShapedGlyphClusterFlags {
+            cluster_start: true,
+            ..UiShapedGlyphClusterFlags::default()
+        }),
+        UiShapedGlyph::new(
+            105,
+            UiTextRange { start: 1, end: 2 },
+            UiFrame::new(18.0, 6.0, 4.0, 20.0),
+            4.0,
+        )
+        .with_cluster_flags(UiShapedGlyphClusterFlags {
+            cluster_start: true,
+            ..UiShapedGlyphClusterFlags::default()
+        }),
+    ];
     let paint = UiTextPaint::from_shaped_text(shaped.clone(), Some("#ffffff".to_string()));
     let glyphs = &shaped.lines[0].glyphs;
 
@@ -1086,7 +1173,7 @@ fn ui_shaped_text_contract_uses_measured_glyph_advances() {
 }
 
 #[test]
-fn ui_shaped_text_contract_derives_vertical_rl_glyph_bounds() {
+fn ui_shaped_text_contract_preserves_explicit_vertical_rl_glyph_bounds() {
     let source = "A縦".to_string();
     let layout = UiResolvedTextLayout {
         direction: UiTextDirection::LeftToRight,
@@ -1101,6 +1188,7 @@ fn ui_shaped_text_contract_derives_vertical_rl_glyph_bounds() {
         },
         lines: vec![UiResolvedTextLine {
             text: source.clone(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(20.0, 4.0, 10.0, 20.0),
             source_range: UiTextRange {
                 start: 0,
@@ -1132,8 +1220,25 @@ fn ui_shaped_text_contract_derives_vertical_rl_glyph_bounds() {
         ..UiResolvedTextLayout::default()
     };
 
-    let shaped =
-        UiShapedText::from_resolved_layout(source.clone(), &layout, UiTextRenderMode::Native);
+    let mut shaped = canonical_shaped_text_fixture(&source, &layout, UiTextRenderMode::Native);
+    shaped.lines[0].glyphs = vec![
+        UiShapedGlyph::new(
+            65,
+            UiTextRange { start: 0, end: 1 },
+            UiFrame::new(20.0, 4.0, 10.0, 8.0),
+            8.0,
+        )
+        .with_rotation(UiShapedGlyphRotation::Cw90),
+        UiShapedGlyph::new(
+            20_513,
+            UiTextRange {
+                start: 1,
+                end: source.len(),
+            },
+            UiFrame::new(20.0, 12.0, 10.0, 12.0),
+            12.0,
+        ),
+    ];
     let paint = UiTextPaint::from_shaped_text(shaped.clone(), Some("#ffffff".to_string()));
 
     assert_eq!(shaped.writing_mode, UiTextWritingMode::VerticalRl);
@@ -1173,6 +1278,7 @@ fn ui_text_decorations_use_vertical_rl_geometry() {
         },
         editable: Some(UiEditableTextState {
             text: source.clone(),
+            placement_frame: UiFrame::default(),
             caret: UiTextCaret {
                 offset: 6,
                 affinity: UiTextCaretAffinity::Downstream,
@@ -1191,6 +1297,7 @@ fn ui_text_decorations_use_vertical_rl_geometry() {
         }),
         lines: vec![UiResolvedTextLine {
             text: source.clone(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(20.0, 10.0, 12.0, 36.0),
             source_range: UiTextRange {
                 start: 0,
@@ -1291,6 +1398,7 @@ fn ui_text_decorations_snap_to_grapheme_cluster_edges() {
         }),
         lines: vec![UiResolvedTextLine {
             text: source.clone(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(0.0, 0.0, 30.0, 12.0),
             source_range: UiTextRange {
                 start: 0,
@@ -1385,6 +1493,7 @@ fn ui_text_decorations_use_run_visual_ranges_for_non_isomorphic_source_ranges() 
         }),
         lines: vec![UiResolvedTextLine {
             text: "pre-fix".to_string(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(0.0, 0.0, 70.0, 12.0),
             source_range: UiTextRange {
                 start: 0,
@@ -1675,7 +1784,7 @@ fn ui_render_cache_plan_marks_resource_revision_as_recache_reason() {
 
 #[test]
 fn ui_shaped_text_contract_preserves_glyph_atlas_and_advance_data() {
-    let mut shaped = UiShapedText::from_resolved_layout(
+    let mut shaped = canonical_shaped_text_fixture(
         "AB",
         &UiResolvedTextLayout {
             direction: UiTextDirection::LeftToRight,
@@ -1684,6 +1793,7 @@ fn ui_shaped_text_contract_preserves_glyph_atlas_and_advance_data() {
             source_range: UiTextRange { start: 0, end: 2 },
             lines: vec![UiResolvedTextLine {
                 text: "AB".to_string(),
+                placement_frame: UiFrame::default(),
                 frame: UiFrame::new(0.0, 0.0, 24.0, 20.0),
                 source_range: UiTextRange { start: 0, end: 2 },
                 visual_range: UiTextRange { start: 0, end: 2 },
@@ -1743,7 +1853,7 @@ fn ui_shaped_text_contract_preserves_glyph_atlas_and_advance_data() {
 
 #[test]
 fn ui_text_paint_contract_carries_editing_and_overflow_decorations() {
-    let mut shaped = UiShapedText::from_resolved_layout(
+    let mut shaped = canonical_shaped_text_fixture(
         "edit",
         &UiResolvedTextLayout {
             direction: UiTextDirection::LeftToRight,
@@ -1755,6 +1865,7 @@ fn ui_text_paint_contract_carries_editing_and_overflow_decorations() {
             source_range: UiTextRange { start: 0, end: 4 },
             lines: vec![UiResolvedTextLine {
                 text: "edit".to_string(),
+                placement_frame: UiFrame::default(),
                 frame: UiFrame::new(4.0, 8.0, 28.0, 18.0),
                 source_range: UiTextRange { start: 0, end: 4 },
                 visual_range: UiTextRange { start: 0, end: 4 },
@@ -1806,7 +1917,11 @@ fn ui_text_paint_contract_carries_editing_and_overflow_decorations() {
         UiTextRange { start: 1, end: 3 }
     );
     assert_eq!(
-        paint.shaped.as_ref().unwrap().ellipsis_range,
+        paint
+            .shaped
+            .canonical()
+            .expect("explicit shaped artifact")
+            .ellipsis_range,
         Some(UiTextRange { start: 3, end: 4 })
     );
     assert_eq!(paint.decorations.len(), 2);

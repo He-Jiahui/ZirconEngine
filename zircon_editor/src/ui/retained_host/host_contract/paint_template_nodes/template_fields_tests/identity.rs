@@ -1,4 +1,5 @@
 use super::super::identity::{is_stepper_field, is_workbench_field};
+use super::super::search::is_search_field;
 use super::support::field_node;
 
 #[test]
@@ -22,4 +23,12 @@ fn number_field_stepper_is_driven_by_the_component_layout_property() {
     number.layout_stepper = true;
 
     assert!(is_stepper_field(&number));
+}
+
+#[test]
+fn mixed_case_search_identity_remains_search_field() {
+    assert!(is_search_field(&field_node(
+        "WorkbenchSeArChQuery",
+        "material"
+    )));
 }

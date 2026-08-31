@@ -1,11 +1,11 @@
 fn runtime_process_exit_code(
     result: Result<(), Box<dyn std::error::Error>>,
-) -> std::process::ExitCode {
+) -> zircon_app::ProductProcessExitCode {
     match result {
-        Ok(()) => std::process::ExitCode::SUCCESS,
+        Ok(()) => zircon_app::ProductProcessExitCode::Success,
         Err(error) => {
             eprintln!("{error}");
-            std::process::ExitCode::FAILURE
+            zircon_app::ProductProcessExitCode::failure()
         }
     }
 }
@@ -25,13 +25,13 @@ fn main() -> std::process::ExitCode {
     }
     let process_log_shutdown_completed =
         shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT);
-    runtime_process_exit_code_after_log_shutdown(exit_code, process_log_shutdown_completed)
+    runtime_process_exit_code_after_log_shutdown(exit_code, process_log_shutdown_completed).into()
 }
 
 fn runtime_process_exit_code_after_log_shutdown(
-    exit_code: std::process::ExitCode,
+    exit_code: zircon_app::ProductProcessExitCode,
     process_log_shutdown_completed: bool,
-) -> std::process::ExitCode {
+) -> zircon_app::ProductProcessExitCode {
     if process_log_shutdown_completed {
         return exit_code;
     }
@@ -39,7 +39,7 @@ fn runtime_process_exit_code_after_log_shutdown(
     eprintln!(
         "runtime startup diagnostic: component=diagnostic_log requested=process-log-shutdown cause=log flush timed out or an output failed recovery=inspect the process log output and retry zircon_runtime"
     );
-    std::process::ExitCode::FAILURE
+    zircon_app::ProductProcessExitCode::failure()
 }
 
 fn runtime_process_failure_teardown_diagnostic<E>(result: &Result<(), E>) -> Option<&'static str> {
@@ -58,16 +58,23 @@ mod tests {
     #[test]
     fn completed_process_log_shutdown_preserves_the_runtime_exit_code() {
         assert_eq!(
-            runtime_process_exit_code_after_log_shutdown(std::process::ExitCode::SUCCESS, true),
-            std::process::ExitCode::SUCCESS
+            runtime_process_exit_code_after_log_shutdown(
+                zircon_app::ProductProcessExitCode::Success,
+                true
+            ),
+            zircon_app::ProductProcessExitCode::Success
         );
     }
 
     #[test]
     fn process_log_shutdown_failure_overrides_a_successful_runtime_exit() {
         assert_eq!(
-            runtime_process_exit_code_after_log_shutdown(std::process::ExitCode::SUCCESS, false),
-            std::process::ExitCode::FAILURE
+            runtime_process_exit_code_after_log_shutdown(
+                zircon_app::ProductProcessExitCode::Success,
+                false
+            )
+            .code(),
+            1
         );
     }
 
@@ -75,7 +82,7 @@ mod tests {
     fn successful_runtime_process_returns_success() {
         let exit_code = runtime_process_exit_code(Ok(()));
 
-        assert_eq!(exit_code, std::process::ExitCode::SUCCESS);
+        assert_eq!(exit_code, zircon_app::ProductProcessExitCode::Success);
     }
 
     #[test]
@@ -85,7 +92,7 @@ mod tests {
         )
         .into()));
 
-        assert_eq!(exit_code, std::process::ExitCode::FAILURE);
+        assert_eq!(exit_code.code(), 1);
     }
 
     #[test]

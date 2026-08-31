@@ -35,12 +35,14 @@ fn toml_values_from_host_properties_filtered(
 }
 
 fn alias_toml_value_key(values: &mut BTreeMap<String, toml::Value>, source: &str, target: &str) {
+    let Some(value) = values.get(source) else {
+        return;
+    };
     if values.contains_key(target) {
         return;
     }
-    if let Some(value) = values.get(source).cloned() {
-        values.insert(target.to_string(), value);
-    }
+    let value = value.clone();
+    values.insert(target.to_string(), value);
 }
 
 fn toml_value_from_host_value(
@@ -100,3 +102,7 @@ pub(super) fn reset_notification_text_copy_count() {
 pub(super) fn notification_text_copy_count() -> usize {
     NOTIFICATION_TEXT_COPY_COUNT.with(std::cell::Cell::get)
 }
+
+#[cfg(test)]
+#[path = "host_value_toml/missing_alias_lookup_tests.rs"]
+mod missing_alias_lookup_tests;

@@ -1,3 +1,4 @@
+mod ambient_occlusion;
 mod backend_status;
 mod camera_target;
 mod capability;
@@ -10,6 +11,10 @@ mod quality;
 #[cfg(test)]
 mod tests;
 
+pub use ambient_occlusion::{
+    RenderAmbientOcclusionExecutionFailureFlags, RenderAmbientOcclusionExecutionReport,
+    RenderAmbientOcclusionExecutionStatus,
+};
 pub use backend_status::{
     GraphicsDebuggerStatus, RenderDeviceDiagnostics, RenderDeviceLimitDiagnostics,
     RenderingBackendInfo,
@@ -28,15 +33,21 @@ pub use command::{
     RenderVirtualGeometryPayloadSource,
 };
 pub use graph_reports::{
-    MotionVectorCameraStatus, RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
-    RenderGraphExecutionCoverageReport, RenderGraphExecutionProfileReport,
-    RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
-    RenderGraphParallelRecordingReport, RenderGraphPassProfileMetrics,
-    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderGraphTransientPoolReport,
-    RenderSceneVelocityReadbackReport,
+    MotionVectorCameraStatus, RenderGraphExecutionAccessBindingReport,
+    RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
+    RenderGraphExecutionBatchReport, RenderGraphExecutionCoverageReport,
+    RenderGraphExecutionProfileReport, RenderGraphExecutionResourceReport,
+    RenderGraphMaterializationReport, RenderGraphParallelRecordingReport,
+    RenderGraphPassProfileMetrics, RenderGraphPassProfileRecord, RenderGraphStageExecutionReport,
+    RenderGraphTransientPoolReport, RenderSceneVelocityReadbackReport,
 };
 pub use handles::{FrameHistoryHandle, RenderPipelineHandle, RenderViewportHandle};
-pub use history::{FrameHistoryInvalidationReason, FrameHistoryStatus, RenderHistoryCopyReport};
+pub(crate) use history::RenderFrameHistoryInput;
+pub use history::{
+    FrameHistoryInvalidationReason, FrameHistoryStatus, RenderHistoryCopyReport,
+    RenderHistoryDomain, RenderHistoryDomainResetReason, RenderHistoryDomainStatus,
+    RenderHistoryDomainsReport,
+};
 pub(crate) use quality::normalize_texture_max_anisotropy;
 pub use quality::{
     RenderFeatureQualitySettings, RenderQualityProfile, DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
@@ -73,18 +84,60 @@ impl RenderGpuSceneUploadPath {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderReflectionProbeWorkloadReport {
+    /// Probes present in the frame extract, including disabled and non-resident entries.
+    pub extracted_probe_count: usize,
+    /// Extracted probes intersecting the camera layers, before cubemap and intensity gates.
+    pub camera_layer_candidate_count: usize,
+    /// Eligible probes that entered asset and slot resolution.
+    pub attempted_candidate_count: usize,
+    /// Resident probes published to the shader for this frame.
+    pub active_probe_count: usize,
+    /// Eligible probes not attempted because the fixed probe capacity was already filled.
+    pub capacity_dropped_candidate_count: usize,
+    /// New cubemap payloads scheduled in the frame upload batch.
+    pub scheduled_cubemap_upload_count: usize,
+    /// Bytes in newly scheduled cubemap payloads; this does not imply queue submission.
+    pub scheduled_cubemap_upload_bytes: u64,
+    /// Native texture writes scheduled by the probe upload owner, one per PMREM mip.
+    pub scheduled_texture_write_count: usize,
+    /// Synchronous texture-asset load calls made after a probe slot miss.
+    pub asset_load_call_count: usize,
+    /// CPU microseconds spent in those synchronous texture-asset load calls.
+    pub asset_load_cpu_time_us: u64,
+    /// Attempted cubemaps rejected by asset lookup or PMREM validation.
+    pub rejected_cubemap_count: usize,
+    /// Upper bound for the current full-resolution shader loop, not measured shaded fragments.
+    pub full_resolution_fragment_probe_visit_upper_bound: u64,
+}
+
+impl RenderReflectionProbeWorkloadReport {
+    pub fn with_render_size(mut self, render_size: UVec2) -> Self {
+        let pixel_count = u64::from(render_size.x).saturating_mul(u64::from(render_size.y));
+        let active_probe_count = u64::try_from(self.active_probe_count).unwrap_or(u64::MAX);
+        self.full_resolution_fragment_probe_visit_upper_bound =
+            pixel_count.saturating_mul(active_probe_count);
+        self
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderStats {
     pub active_viewports: usize,
     pub submitted_frames: u64,
     pub captured_frames: u64,
     pub last_generation: Option<u64>,
+    pub last_ambient_occlusion_execution_report: RenderAmbientOcclusionExecutionReport,
+    pub last_scene_submission_completion_report: super::RenderSceneSubmissionCompletionReport,
+    pub last_frame_submission_receipt: Option<super::RenderFrameSubmissionReceipt>,
     pub last_pipeline: Option<RenderPipelineHandle>,
     pub last_frame_target_size: Option<UVec2>,
     pub last_frame_render_size: Option<UVec2>,
     pub last_frame_history: Option<FrameHistoryHandle>,
     pub last_frame_history_status: FrameHistoryStatus,
     pub last_frame_history_copy_report: RenderHistoryCopyReport,
+    pub last_frame_history_domains_report: RenderHistoryDomainsReport,
     pub last_camera_target_resolution: RenderCameraTargetResolutionReport,
     pub last_camera_target_graph_import: RenderCameraTargetGraphImportReport,
     pub last_camera_target_writeback: RenderCameraTargetWritebackReport,
@@ -161,6 +214,7 @@ pub struct RenderStats {
     pub last_light_grid_non_empty_cluster_count: usize,
     pub last_light_grid_peak_lights_per_cluster: usize,
     pub last_light_grid_average_lights_per_cluster_milli: usize,
+    pub last_reflection_probe_workload: RenderReflectionProbeWorkloadReport,
     pub last_quality_profile: Option<String>,
     pub last_effective_features: Vec<String>,
     pub last_graph_pass_count: usize,
@@ -203,6 +257,7 @@ pub struct RenderStats {
     pub last_graph_execution_alias_report: RenderGraphExecutionAliasReport,
     pub last_graph_execution_coverage_report: RenderGraphExecutionCoverageReport,
     pub last_graph_execution_profile_report: RenderGraphExecutionProfileReport,
+    pub last_graph_execution_batch_report: RenderGraphExecutionBatchReport,
     pub last_graph_parallel_recording_report: RenderGraphParallelRecordingReport,
     pub last_graph_stage_execution_report: RenderGraphStageExecutionReport,
     pub last_scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
@@ -313,6 +368,10 @@ pub struct RenderStats {
     pub last_mesh_gpu_instancing_candidate_group_count: usize,
     pub last_mesh_gpu_instancing_candidate_draw_count: usize,
     pub last_mesh_command_count: usize,
+    /// Commands routed through the ordinary opaque path.
+    pub last_mesh_opaque_command_count: usize,
+    /// Commands routed through the late forward path for opaque advanced PBR materials.
+    pub last_mesh_advanced_pbr_opaque_command_count: usize,
     pub last_mesh_cached_command_hit_count: usize,
     pub last_mesh_command_rebuild_count: usize,
     pub last_mesh_dynamic_command_count: usize,
@@ -495,4 +554,38 @@ pub struct RenderStats {
     pub advanced_provider_availability: AdvancedProviderAvailability,
     pub last_advanced_provider_reports: Vec<AdvancedProviderReport>,
     pub last_solari_runtime_report: SolariRuntimeReport,
+}
+
+#[cfg(test)]
+mod reflection_probe_workload_tests {
+    use super::RenderReflectionProbeWorkloadReport;
+    use crate::core::math::UVec2;
+
+    #[test]
+    fn reflection_probe_workload_derives_full_resolution_visit_upper_bound() {
+        let report = RenderReflectionProbeWorkloadReport {
+            active_probe_count: 4,
+            ..RenderReflectionProbeWorkloadReport::default()
+        }
+        .with_render_size(UVec2::new(1_920, 1_080));
+
+        assert_eq!(
+            report.full_resolution_fragment_probe_visit_upper_bound,
+            8_294_400
+        );
+    }
+
+    #[test]
+    fn reflection_probe_workload_visit_upper_bound_saturates() {
+        let report = RenderReflectionProbeWorkloadReport {
+            active_probe_count: usize::MAX,
+            ..RenderReflectionProbeWorkloadReport::default()
+        }
+        .with_render_size(UVec2::new(u32::MAX, u32::MAX));
+
+        assert_eq!(
+            report.full_resolution_fragment_probe_visit_upper_bound,
+            u64::MAX
+        );
+    }
 }

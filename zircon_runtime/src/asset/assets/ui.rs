@@ -11,7 +11,7 @@ mod document_loader;
 mod resource_references;
 
 use document_loader::{load_current_ui_document, load_ui_v2_document, load_zui_document};
-use resource_references::collect_resource_uris;
+use resource_references::visit_resource_uris;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -285,9 +285,9 @@ pub fn ui_asset_references(document: &UiAssetDocument) -> Vec<AssetReference> {
         push_reference(reference, &mut references, &mut seen);
     }
 
-    for uri in collect_resource_uris(document) {
+    visit_resource_uris(document, |uri| {
         push_reference(uri, &mut references, &mut seen);
-    }
+    });
     references
 }
 

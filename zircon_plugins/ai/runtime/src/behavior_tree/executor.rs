@@ -3,13 +3,15 @@ use zircon_runtime::core::framework::ai::{
     AiPerceptionSnapshot,
 };
 
-use crate::blackboard::{BlackboardLayout, BlackboardObserverSet, BlackboardSlot, BlackboardStore};
+use crate::blackboard::{
+    BlackboardLayout, BlackboardObserver, BlackboardObserverSet, BlackboardSlot, BlackboardStore,
+};
 use crate::manager::parameters::{
     parse_task_result, ParallelPolicy, PARALLEL_FAILURE_POLICY_PARAMETER_KEY,
     PARALLEL_SUCCESS_POLICY_PARAMETER_KEY, SUBTREE_TARGET_PARAMETER_KEY, TASK_RESULT_PARAMETER_KEY,
 };
 
-use self::abort::{abort_active_root, process_observer_aborts};
+use self::abort::{abort_active_root, process_observer_aborts, AbortRequest};
 use self::condition::decorator_condition_passes;
 use self::integration::{evaluate_integration_task, evaluate_task};
 use self::selector::evaluate_selector;
@@ -25,6 +27,22 @@ mod integration;
 mod selector;
 mod support;
 
+#[cfg(test)]
+#[path = "executor/parallel_allocation_tests.rs"]
+mod parallel_allocation_tests;
+
+#[cfg(test)]
+#[path = "executor/node_state_allocation_tests.rs"]
+mod node_state_allocation_tests;
+
+#[cfg(test)]
+#[path = "executor/observer_pass_allocation_tests.rs"]
+mod observer_pass_allocation_tests;
+
+#[cfg(test)]
+#[path = "executor/tree_stack_allocation_tests.rs"]
+mod tree_stack_allocation_tests;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct BehaviorTreeExecution {
     pub(crate) status: AiDecisionStatus,
@@ -33,9 +51,50 @@ pub(crate) struct BehaviorTreeExecution {
 }
 
 #[derive(Debug, Default)]
+struct BehaviorTreeStack {
+    ids: Vec<String>,
+    depth: usize,
+}
+
+impl BehaviorTreeStack {
+    fn reset(&mut self) {
+        self.depth = 0;
+    }
+
+    fn push(&mut self, tree_id: &str) {
+        if self.depth == self.ids.len() {
+            self.ids.push(tree_id.to_string());
+        } else {
+            let slot = &mut self.ids[self.depth];
+            slot.clear();
+            slot.push_str(tree_id);
+        }
+        self.depth += 1;
+    }
+
+    fn pop(&mut self) {
+        debug_assert!(self.depth > 0);
+        self.depth -= 1;
+    }
+
+    fn contains(&self, tree_id: &str) -> bool {
+        self.ids[..self.depth]
+            .iter()
+            .any(|candidate| candidate == tree_id)
+    }
+}
+
+#[derive(Debug, Default)]
 pub(crate) struct BehaviorTreeInstanceState {
     trees: std::collections::BTreeMap<String, Vec<BehaviorNodeRuntimeState>>,
     observers: std::collections::BTreeMap<String, BlackboardObserverSet>,
+    observer_binding_root: Option<String>,
+    observer_binding_schema: Option<String>,
+    processed_observer_passes: std::collections::HashMap<String, u64>,
+    observer_pass_epoch: u64,
+    observer_scratch: Vec<BlackboardObserver>,
+    abort_request_scratch: Vec<AbortRequest>,
+    tree_stack_scratch: BehaviorTreeStack,
     root_tree: Option<String>,
     tick: u64,
 }
@@ -68,11 +127,16 @@ impl BehaviorTreeInstanceState {
         tree: &CompiledBehaviorTree,
         node_index: u32,
     ) -> &mut BehaviorNodeRuntimeState {
-        let states = self.trees.entry(tree.id().to_string()).or_insert_with(|| {
-            std::iter::repeat_with(BehaviorNodeRuntimeState::default)
+        if !self.trees.contains_key(tree.id()) {
+            let states = std::iter::repeat_with(BehaviorNodeRuntimeState::default)
                 .take(tree.nodes().len())
-                .collect()
-        });
+                .collect();
+            self.trees.insert(tree.id().to_string(), states);
+        }
+        let states = self
+            .trees
+            .get_mut(tree.id())
+            .expect("behavior tree state was initialized");
         &mut states[node_index as usize]
     }
 
@@ -93,6 +157,36 @@ impl BehaviorTreeInstanceState {
         }
         Ok(())
     }
+
+    fn next_observer_pass(&mut self) -> u64 {
+        let next = self.observer_pass_epoch.wrapping_add(1);
+        if next == 0 {
+            self.processed_observer_passes.clear();
+            self.observer_pass_epoch = 1;
+        } else {
+            self.observer_pass_epoch = next;
+        }
+        self.observer_pass_epoch
+    }
+
+    fn mark_observers_processed(&mut self, tree_id: &str, observer_pass: u64) -> bool {
+        if let Some(processed_pass) = self.processed_observer_passes.get_mut(tree_id) {
+            if *processed_pass == observer_pass {
+                return false;
+            }
+            *processed_pass = observer_pass;
+        } else {
+            self.processed_observer_passes
+                .insert(tree_id.to_string(), observer_pass);
+        }
+        true
+    }
+
+    pub(crate) fn invalidate_observer_bindings(&mut self) {
+        self.observers.clear();
+        self.observer_binding_root = None;
+        self.observer_binding_schema = None;
+    }
 }
 
 struct BehaviorTreeExecutionContext<'data, 'host> {
@@ -101,7 +195,7 @@ struct BehaviorTreeExecutionContext<'data, 'host> {
     delta_seconds: f32,
     instance: &'data mut BehaviorTreeInstanceState,
     changed_slots: &'data [BlackboardSlot],
-    processed_observers: std::collections::BTreeSet<String>,
+    observer_pass: u64,
     tree_descriptors: &'data [CompiledBehaviorTree],
     blackboard_store: Option<&'data BlackboardStore>,
     entity: u64,
@@ -139,13 +233,16 @@ pub(crate) fn evaluate_behavior_tree(
     if let Some(layout) = blackboard_layout {
         bind_reachable_observers(instance, descriptor, registered_trees, layout)?;
     }
+    let observer_pass = instance.next_observer_pass();
+    let mut tree_stack = std::mem::take(&mut instance.tree_stack_scratch);
+    tree_stack.reset();
     let mut context = BehaviorTreeExecutionContext {
         blackboard,
         perception,
         delta_seconds,
         instance,
         changed_slots,
-        processed_observers: std::collections::BTreeSet::new(),
+        observer_pass,
         tree_descriptors: registered_trees,
         blackboard_store,
         entity,
@@ -161,8 +258,9 @@ pub(crate) fn evaluate_behavior_tree(
         descriptor,
         registered_trees,
         &mut context,
-        &mut Vec::new(),
+        &mut tree_stack,
     );
+    context.instance.tree_stack_scratch = tree_stack;
     context.instance.tick = context.instance.tick.wrapping_add(1);
     Ok(result)
 }
@@ -182,7 +280,7 @@ pub(crate) fn abort_behavior_tree_instance(
         delta_seconds,
         instance,
         changed_slots: &[],
-        processed_observers: std::collections::BTreeSet::new(),
+        observer_pass: 0,
         tree_descriptors: registered_trees,
         blackboard_store: None,
         entity,
@@ -197,10 +295,10 @@ fn evaluate_behavior_tree_with_stack(
     descriptor: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     process_observer_aborts(descriptor, context);
-    tree_stack.push(descriptor.id().to_string());
+    tree_stack.push(descriptor.id());
     let result = evaluate_node(0, descriptor, tree_descriptors, context, tree_stack);
     tree_stack.pop();
     result
@@ -211,7 +309,7 @@ fn evaluate_node(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let node = tree.node(node_index as usize);
 
@@ -316,7 +414,7 @@ fn evaluate_sequence(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let resume_child = context.instance.node_mut(tree, node_index).active_child;
     let mut last_succeeded = None;
@@ -354,7 +452,7 @@ fn evaluate_parallel(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     // This is a deterministic descriptor fold, not a thread/task scheduler. A later executor can
     // reuse the same policies when latent tasks and services become runtime state.
@@ -362,37 +460,84 @@ fn evaluate_parallel(
         parallel_policy(node, PARALLEL_SUCCESS_POLICY_PARAMETER_KEY).unwrap_or(ParallelPolicy::All);
     let failure_policy =
         parallel_policy(node, PARALLEL_FAILURE_POLICY_PARAMETER_KEY).unwrap_or(ParallelPolicy::Any);
-    let cached = context
-        .instance
-        .node_mut(tree, node_index)
-        .terminal_children
-        .clone();
-    let mut child_results = Vec::with_capacity(tree.child_indices(node).len());
-    for child in tree.child_indices(node) {
-        let result = cached
-            .get(child)
-            .cloned()
-            .unwrap_or_else(|| evaluate_node(*child, tree, tree_descriptors, context, tree_stack));
-        if is_terminal(&result.status) {
-            context
-                .instance
-                .node_mut(tree, node_index)
-                .terminal_children
-                .insert(*child, result.clone());
+    let children = tree.child_indices(node);
+    let child_count = children.len();
+    let mut cached = {
+        let state = context.instance.node_mut(tree, node_index);
+        std::mem::take(&mut state.terminal_children)
+    };
+    let mut succeeded_child_count = 0_usize;
+    let mut failed_child_count = 0_usize;
+    let mut first_blocked_child = None;
+    let mut last_succeeded_child = None;
+    let mut last_failed_child = None;
+    let mut first_running = None;
+    let mut first_idle = None;
+    for child in children {
+        if let Some(result) = cached.get(child) {
+            debug_assert!(is_terminal(&result.status));
+            match &result.status {
+                AiDecisionStatus::Succeeded => {
+                    succeeded_child_count += 1;
+                    last_succeeded_child = Some(*child);
+                }
+                AiDecisionStatus::Failed => {
+                    failed_child_count += 1;
+                    last_failed_child = Some(*child);
+                }
+                AiDecisionStatus::Blocked => {
+                    first_blocked_child.get_or_insert(*child);
+                }
+                AiDecisionStatus::Running | AiDecisionStatus::Idle => {}
+            }
+            continue;
         }
-        child_results.push(result);
+
+        let result = evaluate_node(*child, tree, tree_descriptors, context, tree_stack);
+        match &result.status {
+            AiDecisionStatus::Succeeded => {
+                succeeded_child_count += 1;
+                last_succeeded_child = Some(*child);
+                cached.insert(*child, result);
+            }
+            AiDecisionStatus::Failed => {
+                failed_child_count += 1;
+                last_failed_child = Some(*child);
+                cached.insert(*child, result);
+            }
+            AiDecisionStatus::Blocked => {
+                first_blocked_child.get_or_insert(*child);
+                cached.insert(*child, result);
+            }
+            AiDecisionStatus::Running => {
+                if first_running.is_none() {
+                    first_running = Some(result);
+                }
+            }
+            AiDecisionStatus::Idle => {
+                if first_idle.is_none() {
+                    first_idle = Some(result);
+                }
+            }
+        }
     }
 
-    if let Some(blocked) = first_status(&child_results, AiDecisionStatus::Blocked) {
+    if let Some(child) = first_blocked_child {
+        let result = cached.remove(&child).expect("blocked child is cached");
         context
             .instance
             .node_mut(tree, node_index)
             .terminal_children
             .clear();
-        return blocked.clone();
+        return result;
     }
-    if parallel_policy_matches(&child_results, AiDecisionStatus::Succeeded, success_policy) {
-        let result = selected_parallel_result(&child_results, AiDecisionStatus::Succeeded)
+    let success_policy_matches = match success_policy {
+        ParallelPolicy::All => child_count > 0 && succeeded_child_count == child_count,
+        ParallelPolicy::Any => succeeded_child_count > 0,
+    };
+    if success_policy_matches {
+        let result = last_succeeded_child
+            .and_then(|child| cached.remove(&child))
             .unwrap_or_else(|| node_result(node, AiDecisionStatus::Succeeded));
         context
             .instance
@@ -401,8 +546,13 @@ fn evaluate_parallel(
             .clear();
         return result;
     }
-    if parallel_policy_matches(&child_results, AiDecisionStatus::Failed, failure_policy) {
-        let result = selected_parallel_result(&child_results, AiDecisionStatus::Failed)
+    let failure_policy_matches = match failure_policy {
+        ParallelPolicy::All => child_count > 0 && failed_child_count == child_count,
+        ParallelPolicy::Any => failed_child_count > 0,
+    };
+    if failure_policy_matches {
+        let result = last_failed_child
+            .and_then(|child| cached.remove(&child))
             .unwrap_or_else(|| node_result(node, AiDecisionStatus::Failed));
         context
             .instance
@@ -411,13 +561,25 @@ fn evaluate_parallel(
             .clear();
         return result;
     }
-    if let Some(running) = first_status(&child_results, AiDecisionStatus::Running) {
-        return running.clone();
+    if let Some(running) = first_running {
+        context
+            .instance
+            .node_mut(tree, node_index)
+            .terminal_children = cached;
+        return running;
     }
-    if let Some(idle) = first_status(&child_results, AiDecisionStatus::Idle) {
-        return idle.clone();
+    if let Some(idle) = first_idle {
+        context
+            .instance
+            .node_mut(tree, node_index)
+            .terminal_children = cached;
+        return idle;
     }
 
+    context
+        .instance
+        .node_mut(tree, node_index)
+        .terminal_children = cached;
     node_result(node, AiDecisionStatus::Running)
 }
 
@@ -427,7 +589,7 @@ fn evaluate_decorator(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let dense_value = context.dense_blackboard_value(tree.id(), node_index);
     if !decorator_condition_passes(
@@ -459,7 +621,7 @@ fn evaluate_random_selector(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let children = tree.child_indices(node);
     if children.is_empty() {
@@ -484,7 +646,7 @@ fn evaluate_cooldown(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let delta_seconds = context.delta_seconds.max(0.0);
     let state = context.instance.node_mut(tree, node_index);
@@ -512,7 +674,7 @@ fn evaluate_time_limit(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let Some(child) = tree.child_indices(node).first().copied() else {
         return node_result(node, AiDecisionStatus::Succeeded);
@@ -540,7 +702,7 @@ fn evaluate_loop(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let Some(child) = tree.child_indices(node).first().copied() else {
         return node_result(node, AiDecisionStatus::Succeeded);
@@ -572,7 +734,7 @@ fn evaluate_inverter(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let Some(child) = tree.child_indices(node).first().copied() else {
         return node_result(node, AiDecisionStatus::Succeeded);
@@ -591,7 +753,7 @@ fn evaluate_force_result(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let Some(child) = tree.child_indices(node).first().copied() else {
         return node_result(node, AiDecisionStatus::Succeeded);
@@ -611,7 +773,7 @@ fn evaluate_service(
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     if let Some(child) = tree.child_indices(node).first().copied() {
         return evaluate_node(child, tree, tree_descriptors, context, tree_stack);
@@ -672,7 +834,7 @@ fn evaluate_subtree(
     node: &CompiledBehaviorNode,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
     let Some(target_tree_id) = parameter(node, SUBTREE_TARGET_PARAMETER_KEY)
         .and_then(AiBehaviorNodeParameterValue::as_string)
@@ -691,10 +853,7 @@ fn evaluate_subtree(
             "subtree node references an unregistered behavior tree",
         );
     };
-    if tree_stack
-        .iter()
-        .any(|tree_id| tree_id.as_str() == target_tree_id)
-    {
+    if tree_stack.contains(target_tree_id) {
         return blocked(
             node.id(),
             "subtree node would re-enter an active behavior tree",

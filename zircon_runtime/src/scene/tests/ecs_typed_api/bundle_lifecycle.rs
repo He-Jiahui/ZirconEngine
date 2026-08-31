@@ -3,7 +3,9 @@ use super::*;
 #[test]
 fn bundle_preflight_rejects_a_later_component_without_publishing_earlier_components() {
     let mut world = World::new();
-    let entity = world.spawn_node(crate::scene::NodeKind::Mesh);
+    let entity = world
+        .spawn_node(crate::scene::NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let original_transform = world
         .get::<LocalTransform>(entity)
         .expect("mesh nodes must have a local transform")
@@ -111,7 +113,9 @@ fn spawn_node_lifecycle_observers_see_the_final_fixed_component_signature() {
         },
     );
 
-    world.spawn_node(crate::scene::NodeKind::Empty);
+    world
+        .spawn_node(crate::scene::NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
     assert!(*saw_final_signature.lock().expect("observer state lock"));
 }
@@ -121,7 +125,9 @@ fn bundle_lifecycle_observers_see_the_final_component_signature() {
     use std::sync::{Arc, Mutex};
 
     let mut world = World::empty();
-    let entity = world.spawn_node(crate::scene::NodeKind::Empty);
+    let entity = world
+        .spawn_node(crate::scene::NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mana_id = world.component_id::<Mana>();
     let saw_final_signature = Arc::new(Mutex::new(false));
     let saw_final_signature_from_observer = Arc::clone(&saw_final_signature);

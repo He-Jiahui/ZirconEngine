@@ -1,13 +1,17 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 
 use zircon_runtime_interface::ui::template::{
     parse_component_reference, UiAssetError, UiRawAssetPrototype,
 };
 
+#[cfg(test)]
+#[path = "prototype_store/hash_index_tests.rs"]
+mod hash_index_tests;
+
 #[derive(Clone, Debug, Default)]
 pub struct UiPrototypeStore {
-    assets: BTreeMap<String, Arc<UiRawAssetPrototype>>,
+    assets: HashMap<String, Arc<UiRawAssetPrototype>>,
 }
 
 impl UiPrototypeStore {

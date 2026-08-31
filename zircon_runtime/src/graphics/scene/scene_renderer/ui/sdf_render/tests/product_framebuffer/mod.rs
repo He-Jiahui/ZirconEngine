@@ -1,6 +1,8 @@
+#[cfg(windows)]
+use std::path::Component;
 use std::path::{Path, PathBuf};
 
-use crate::graphics::backend::{read_texture_rgba, RenderBackend};
+use crate::graphics::backend::{RenderBackend, read_texture_rgba};
 use crate::graphics::scene::scene_renderer::ui::render::text_decorations::ScreenSpaceUiTextDecorations;
 use crate::graphics::scene::scene_renderer::ui::render::text_effects::{
     ScreenSpaceUiTextEffects, ScreenSpaceUiTextGlow, ScreenSpaceUiTextOutline,
@@ -14,8 +16,8 @@ mod assertions;
 mod transforms;
 
 use assertions::{
-    assert_framebuffer_proof_is_outside_target, framebuffer_proof_is_outside_target,
-    FramebufferProof,
+    FramebufferProof, assert_framebuffer_proof_is_outside_target,
+    framebuffer_proof_is_outside_target,
 };
 use transforms::{perspective_about_clip_center, rotation_about_clip_center};
 
@@ -59,6 +61,28 @@ fn sdf_product_proof_rejects_relative_cargo_target_directory() {
     let _ = require_absolute_cargo_target_dir(PathBuf::from("cargo-targets").join("sdf-proof"));
 }
 
+#[cfg(windows)]
+#[test]
+#[should_panic(expected = "CARGO_TARGET_DIR must use a D:, E:, or F: coordinator root")]
+fn sdf_product_proof_rejects_c_drive_cargo_target_directory() {
+    let _ = require_absolute_cargo_target_dir(PathBuf::from(r"C:\cargo-targets\sdf-proof"));
+}
+
+#[cfg(windows)]
+#[test]
+fn sdf_product_proof_accepts_coordinator_cargo_target_roots() {
+    for target_dir in [
+        PathBuf::from(r"D:\cargo-targets\sdf-proof"),
+        PathBuf::from(r"E:\cargo-targets\sdf-proof"),
+        PathBuf::from(r"F:\cargo-targets\sdf-proof"),
+    ] {
+        assert_eq!(
+            require_absolute_cargo_target_dir(target_dir.clone()),
+            target_dir
+        );
+    }
+}
+
 #[test]
 #[ignore = "exports an explicit runtime WGPU SDF effects and transformed-text framebuffer proof"]
 fn render_text_sdf_effects_transformed_product_framebuffer() {
@@ -96,9 +120,10 @@ fn render_text_sdf_effects_transformed_product_framebuffer() {
     );
     assert_eq!(sdf_cpu_runs.len(), texts.len());
     let mut renderer = ScreenSpaceUiSdfRenderer::new(&backend.device, target_format);
+    let mut buffer_uploads = zr_rhi_wgpu::WgpuBufferUploadBatch::new();
+    let mut texture_uploads = zr_rhi_wgpu::WgpuTextureUploadBatch::new();
     renderer.prepare(
         &backend.device,
-        &backend.queue,
         viewport_size,
         &texts,
         &sdf_cpu_runs,
@@ -108,7 +133,16 @@ fn render_text_sdf_effects_transformed_product_framebuffer() {
         &atlas_bake,
         SdfAtlasCacheReport::default(),
         false,
+        &mut buffer_uploads,
+        &mut texture_uploads,
+        false,
     );
+    backend
+        .enqueue_copy_resource_upload_batch(zr_rhi_wgpu::WgpuResourceUploadBatch::from_batches(
+            buffer_uploads,
+            texture_uploads,
+        ))
+        .expect("SDF product resource upload batch");
 
     let report = renderer.prepare_report();
     assert_eq!(report.text_batch_count, texts.len());
@@ -159,7 +193,9 @@ fn render_text_sdf_effects_transformed_product_framebuffer() {
         });
         renderer.render(&mut pass);
     }
-    backend.queue.submit([encoder.finish()]);
+    backend
+        .submit_graphics_command_buffers(vec![encoder.finish()])
+        .expect("submit SDF product frame");
     let rgba = read_texture_rgba(&backend.device, &backend.queue, &target, viewport_size)
         .expect("read SDF effects product framebuffer");
     assert_product_pixels(&rgba);
@@ -375,5 +411,27 @@ fn require_absolute_cargo_target_dir(target_dir: PathBuf) -> PathBuf {
         "CARGO_TARGET_DIR must be an absolute coordinator path before exporting a framebuffer proof: {}",
         target_dir.display(),
     );
+    #[cfg(windows)]
+    assert!(
+        coordinator_target_root_is_approved(&target_dir),
+        "CARGO_TARGET_DIR must use a D:, E:, or F: coordinator root before exporting a framebuffer proof: {}",
+        target_dir.display(),
+    );
     target_dir
+}
+
+#[cfg(windows)]
+fn coordinator_target_root_is_approved(target_dir: &Path) -> bool {
+    target_dir
+        .components()
+        .next()
+        .is_some_and(|component| match component {
+            Component::Prefix(prefix) => match prefix.kind() {
+                std::path::Prefix::Disk(letter) | std::path::Prefix::VerbatimDisk(letter) => {
+                    matches!(letter, b'D' | b'd' | b'E' | b'e' | b'F' | b'f')
+                }
+                _ => false,
+            },
+            _ => false,
+        })
 }

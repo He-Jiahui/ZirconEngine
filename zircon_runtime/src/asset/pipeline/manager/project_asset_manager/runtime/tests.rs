@@ -1,9 +1,12 @@
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::fs;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, TryLockError, mpsc};
+use std::sync::{mpsc, Arc, TryLockError};
 use std::thread;
 use std::time::Duration;
 
+use crate::asset::project::{ProjectManager, ProjectManifest};
+use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::watch::AssetChangeKind;
 use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator};
 
@@ -148,69 +151,51 @@ fn watcher_activation_rechecks_retirement_after_initial_active_admission() {
 fn project_asset_manager_runtime_accessors_recover_poisoned_locks() {
     let manager = ProjectAssetManager::default();
 
-    assert!(
-        catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.project_generation_gate.write().unwrap();
-            panic!("poison project generation gate");
-        }))
-        .is_err()
-    );
-    assert!(
-        catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.project.write().unwrap();
-            panic!("poison project lock");
-        }))
-        .is_err()
-    );
-    assert!(
-        catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.project_source_paths.write().unwrap();
-            panic!("poison project source paths lock");
-        }))
-        .is_err()
-    );
-    assert!(
-        catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.asset_importers.write().unwrap();
-            panic!("poison importer registry lock");
-        }))
-        .is_err()
-    );
-    assert!(
-        catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.change_subscribers.lock().unwrap();
-            panic!("poison change subscribers lock");
-        }))
-        .is_err()
-    );
-    assert!(
-        catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.watch_error_subscribers.lock().unwrap();
-            panic!("poison watch error subscribers lock");
-        }))
-        .is_err()
-    );
-    assert!(
-        catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.watcher_activation.lock().unwrap();
-            panic!("poison watcher activation lock");
-        }))
-        .is_err()
-    );
-    assert!(
-        catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.watch_refresh_gate.lock().unwrap();
-            panic!("poison watch refresh gate");
-        }))
-        .is_err()
-    );
-    assert!(
-        catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.watchers.lock().unwrap();
-            panic!("poison watchers lock");
-        }))
-        .is_err()
-    );
+    assert!(catch_unwind(AssertUnwindSafe(|| {
+        let _guard = manager.project_generation_gate.write().unwrap();
+        panic!("poison project generation gate");
+    }))
+    .is_err());
+    assert!(catch_unwind(AssertUnwindSafe(|| {
+        let _guard = manager.project.write().unwrap();
+        panic!("poison project lock");
+    }))
+    .is_err());
+    assert!(catch_unwind(AssertUnwindSafe(|| {
+        let _guard = manager.project_source_paths.write().unwrap();
+        panic!("poison project source paths lock");
+    }))
+    .is_err());
+    assert!(catch_unwind(AssertUnwindSafe(|| {
+        let _guard = manager.asset_importers.write().unwrap();
+        panic!("poison importer registry lock");
+    }))
+    .is_err());
+    assert!(catch_unwind(AssertUnwindSafe(|| {
+        let _guard = manager.change_subscribers.lock().unwrap();
+        panic!("poison change subscribers lock");
+    }))
+    .is_err());
+    assert!(catch_unwind(AssertUnwindSafe(|| {
+        let _guard = manager.watch_error_subscribers.lock().unwrap();
+        panic!("poison watch error subscribers lock");
+    }))
+    .is_err());
+    assert!(catch_unwind(AssertUnwindSafe(|| {
+        let _guard = manager.watcher_activation.lock().unwrap();
+        panic!("poison watcher activation lock");
+    }))
+    .is_err());
+    assert!(catch_unwind(AssertUnwindSafe(|| {
+        let _guard = manager.watch_refresh_gate.lock().unwrap();
+        panic!("poison watch refresh gate");
+    }))
+    .is_err());
+    assert!(catch_unwind(AssertUnwindSafe(|| {
+        let _guard = manager.watchers.lock().unwrap();
+        panic!("poison watchers lock");
+    }))
+    .is_err());
 
     drop(manager.project_generation_read());
     assert!(manager.project_read().is_none());
@@ -232,6 +217,141 @@ fn only_the_latest_project_preparation_epoch_can_publish() {
 
     assert!(!manager.is_latest_project_preparation(older));
     assert!(manager.is_latest_project_preparation(newer));
+}
+
+fn install_generation_fixture(manager: &ProjectAssetManager, case: &str) -> std::path::PathBuf {
+    let root = unique_temp_project_root(case);
+    fs::create_dir_all(root.join("assets")).unwrap();
+    ProjectManifest::new(
+        "Generation Commit Fixture",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(root.join("zircon-project.toml"))
+    .unwrap();
+    let project = ProjectManager::open(&root).unwrap();
+    manager.begin_project_preparation();
+    let generation = manager.project_generation_write();
+    *manager.project_write() = Some(project);
+    drop(generation);
+    root
+}
+
+#[test]
+fn project_generation_conditional_commit_holds_the_read_fence_through_the_callback() {
+    let manager = Arc::new(ProjectAssetManager::default());
+    let root = install_generation_fixture(&manager, "conditional_commit_fence");
+    let snapshot = manager.current_project_generation_snapshot().unwrap();
+    let (_, token) = snapshot.into_parts();
+    let (entered_sender, entered_receiver) = mpsc::sync_channel(0);
+    let (release_sender, release_receiver) = mpsc::sync_channel(0);
+    let commit_manager = Arc::clone(&manager);
+    let commit = thread::spawn(move || {
+        commit_manager.commit_if_project_generation(&token, || {
+            entered_sender.send(()).unwrap();
+            release_receiver.recv().unwrap();
+            41
+        })
+    });
+
+    entered_receiver
+        .recv_timeout(Duration::from_secs(2))
+        .expect("conditional commit callback must begin");
+    assert!(matches!(
+        manager.project_generation_gate.try_write(),
+        Err(TryLockError::WouldBlock)
+    ));
+    release_sender.send(()).unwrap();
+    assert_eq!(
+        commit.join().unwrap(),
+        ProjectGenerationCommitOutcome::Committed(41)
+    );
+
+    drop(manager);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn superseded_project_generation_never_invokes_the_commit_callback() {
+    let manager = ProjectAssetManager::default();
+    let root = install_generation_fixture(&manager, "conditional_commit_superseded");
+    let snapshot = manager.current_project_generation_snapshot().unwrap();
+    let (_, token) = snapshot.into_parts();
+    let newer_project = ProjectManager::open(&root).unwrap();
+    manager.begin_project_preparation();
+    let generation = manager.project_generation_write();
+    *manager.project_write() = Some(newer_project);
+    drop(generation);
+    let invoked = AtomicBool::new(false);
+
+    let outcome = manager.commit_if_project_generation(&token, || {
+        invoked.store(true, Ordering::Release);
+    });
+
+    assert_eq!(
+        outcome,
+        ProjectGenerationCommitOutcome::Superseded {
+            newer_same_project_generation: true,
+        }
+    );
+    assert!(!invoked.load(Ordering::Acquire));
+
+    drop(manager);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn unpublished_preparation_does_not_invalidate_the_active_generation() {
+    let manager = ProjectAssetManager::default();
+    let root = install_generation_fixture(&manager, "conditional_commit_pending_preparation");
+    let snapshot = manager.current_project_generation_snapshot().unwrap();
+    let (_, token) = snapshot.into_parts();
+    manager.begin_project_preparation();
+
+    assert_eq!(
+        manager.commit_if_project_generation(&token, || 17),
+        ProjectGenerationCommitOutcome::Committed(17)
+    );
+
+    drop(manager);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_generation_precheck_distinguishes_current_newer_and_closed_projects() {
+    let manager = ProjectAssetManager::default();
+    let root = install_generation_fixture(&manager, "generation_precheck");
+    let snapshot = manager.current_project_generation_snapshot().unwrap();
+    let (_, token) = snapshot.into_parts();
+
+    assert_eq!(
+        manager.check_project_generation(&token),
+        ProjectGenerationMatch::Current
+    );
+
+    let newer_project = ProjectManager::open(&root).unwrap();
+    let generation = manager.project_generation_write();
+    *manager.project_write() = Some(newer_project);
+    drop(generation);
+    assert_eq!(
+        manager.check_project_generation(&token),
+        ProjectGenerationMatch::Superseded {
+            newer_same_project_generation: true,
+        }
+    );
+
+    let generation = manager.project_generation_write();
+    *manager.project_write() = None;
+    drop(generation);
+    assert_eq!(
+        manager.check_project_generation(&token),
+        ProjectGenerationMatch::Superseded {
+            newer_same_project_generation: false,
+        }
+    );
+
+    drop(manager);
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -287,8 +407,8 @@ fn generation_publication_callers_share_the_fenced_runtime_owner() {
     );
     assert_eq!(
         contract.matches("self.publish_project_generation(").count(),
-        2,
-        "targeted import and full reimport must share the fenced owner"
+        3,
+        "model import, targeted import, and full reimport must share the fenced owner"
     );
     assert_eq!(
         runtime.matches("self.publish_project_generation(").count(),
@@ -298,4 +418,34 @@ fn generation_publication_callers_share_the_fenced_runtime_owner() {
     assert!(!open.contains("drop(generation);"));
     assert!(!contract.contains("drop(_generation);"));
     assert!(!close.contains("drop(generation);"));
+}
+
+#[test]
+fn project_generation_publication_installs_asset_management_before_observers_run() {
+    let runtime = include_str!("../runtime.rs")
+        .split("#[cfg(test)]")
+        .next()
+        .expect("runtime production source must precede its test module");
+    let publish = runtime
+        .split("fn publish_project_generation")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("pub(in crate::asset::pipeline::manager) fn broadcast_watch_error")
+                .next()
+        })
+        .expect("read project generation publication owner");
+
+    let install = publish
+        .find("self.refresh_asset_management_generation();")
+        .expect("asset management generation refresh");
+    let broadcast = publish
+        .find("self.broadcast(changes);")
+        .expect("change broadcast");
+    let wake = publish
+        .find("self.publish_generation_wake();")
+        .expect("generation wake");
+
+    assert!(install < broadcast);
+    assert!(broadcast < wake);
 }

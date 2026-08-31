@@ -8,6 +8,10 @@ use super::ibl_bake_wgpu_binding::{
 };
 use super::ibl_bake_wgpu_command_plan::{IblBakeWgpuCommandPlan, IblBakeWgpuOutputBindingKind};
 
+#[cfg(test)]
+#[path = "ibl_bake_wgpu_pipeline_cache/fast_hit_tests.rs"]
+mod fast_hit_tests;
+
 pub(in crate::graphics::scene::scene_renderer) struct IblBakeWgpuPipelineCache {
     bind_group_layouts: IblBakeWgpuBindGroupLayouts,
     source_sampler: wgpu::Sampler,
@@ -55,7 +59,15 @@ impl IblBakeWgpuPipelineCache {
         device: &wgpu::Device,
         command: &IblBakeWgpuCommandPlan,
     ) -> wgpu::ComputePipeline {
-        let shader_key = command.pipeline_key.clone();
+        let pipeline_key = IblBakeWgpuComputePipelineCacheKey {
+            pipeline: command.pipeline_key.clone(),
+            output_kind: command.bind_group_layout_kind,
+        };
+        if let Some(pipeline) = self.compute_pipelines.get(&pipeline_key) {
+            return pipeline.clone();
+        }
+
+        let shader_key = pipeline_key.pipeline.clone();
         if !self.shader_modules.contains_key(&shader_key) {
             let shader_label = format!("{}-shader", command.pipeline_label);
             let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -77,30 +89,20 @@ impl IblBakeWgpuPipelineCache {
             self.pipeline_layouts.insert(layout_kind, pipeline_layout);
         }
 
-        let pipeline_key = IblBakeWgpuComputePipelineCacheKey {
-            pipeline: shader_key,
-            output_kind: layout_kind,
-        };
-        if !self.compute_pipelines.contains_key(&pipeline_key) {
-            let shader = self
-                .shader_modules
-                .get(&pipeline_key.pipeline)
-                .expect("IBL bake shader module must be cached before pipeline creation");
-            let layout = self
-                .pipeline_layouts
-                .get(&pipeline_key.output_kind)
-                .expect("IBL bake pipeline layout must be cached before pipeline creation");
-            let pipeline = create_ibl_bake_wgpu_compute_pipeline_from_cached_parts(
-                device, command, layout, shader,
-            );
-            self.compute_pipelines
-                .insert(pipeline_key.clone(), pipeline);
-        }
-
+        let shader = self
+            .shader_modules
+            .get(&pipeline_key.pipeline)
+            .expect("IBL bake shader module must be cached before pipeline creation");
+        let layout = self
+            .pipeline_layouts
+            .get(&pipeline_key.output_kind)
+            .expect("IBL bake pipeline layout must be cached before pipeline creation");
+        let pipeline = create_ibl_bake_wgpu_compute_pipeline_from_cached_parts(
+            device, command, layout, shader,
+        );
         self.compute_pipelines
-            .get(&pipeline_key)
-            .expect("IBL bake compute pipeline must be cached")
-            .clone()
+            .insert(pipeline_key, pipeline.clone());
+        pipeline
     }
 
     #[cfg(test)]

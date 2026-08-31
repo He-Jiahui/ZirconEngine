@@ -4,41 +4,40 @@ fn source(relative: &str) -> String {
 }
 
 #[test]
-fn shared_drawer_header_surfaces_use_rust_owned_pointer_callbacks() {
+fn shared_drawer_header_callbacks_consume_the_committed_native_receipt() {
     let globals = source("src/ui/retained_host/host_contract/globals/ui_context.rs");
     let wiring = source("src/ui/retained_host/app/callback_wiring/host_shell/chrome.rs");
     let pointer_layout = source("src/ui/retained_host/app/pointer_layout/shell_chrome.rs");
 
     assert!(globals.contains("on_drawer_header_pointer_clicked"));
     assert!(wiring.contains("host_shell.on_drawer_header_pointer_clicked("));
-    assert!(pointer_layout
-        .contains("build_host_drawer_header_pointer_layout_with_workbench_layout_frames("));
-    assert!(pointer_layout.contains("componentized_workbench_layout_frames"));
+    assert!(pointer_layout.contains("build_host_drawer_header_pointer_layout(model)"));
     assert!(!wiring.contains("on_toggle_drawer_tab"));
 }
 
 #[test]
-fn drawer_header_pointer_bridge_uses_route_intent_only() {
+fn drawer_header_pointer_consumes_native_action_without_a_mirror_hit_surface() {
+    let native =
+        source("src/ui/retained_host/host_contract/native_pointer/routing/chrome/tabs/drawer.rs");
     let bridge =
         source("src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs");
-    let rebuild = source("src/ui/retained_host/drawer_header_pointer/rebuild_surface.rs");
-    let dispatch = source("src/ui/retained_host/drawer_header_pointer/dispatch_event.rs");
+    let click = source("src/ui/retained_host/drawer_header_pointer/handle_click.rs");
 
-    assert!(bridge.contains("route_intents: EditorRouteIntentMap"));
-    assert!(rebuild.contains("EditorRouteIntent::DrawerHeader"));
-    assert!(rebuild.contains("route_intents.bind_node"));
-    assert!(dispatch.contains("drawer_header_route_for_pointer_dispatch"));
+    assert!(native.contains("ChromePointerRoute::DrawerHeaderTab"));
+    assert!(native.contains("contains(&tab_frame, x, y)"));
+    assert!(bridge.contains("route_for_receipt"));
+    assert!(bridge.contains("target_for_route"));
     for forbidden in [
-        "targets:",
-        "HostDrawerHeaderPointerTarget",
-        "handled_by",
-        "route.target",
+        "UiSurface",
+        "UiPointerDispatcher",
+        "measured_frames",
+        "route_intents",
+        "UiPointerEvent",
+        "dispatch_event",
     ] {
         assert!(
-            !bridge.contains(forbidden)
-                && !rebuild.contains(forbidden)
-                && !dispatch.contains(forbidden),
-            "drawer header pointer bridge should not keep old hit target marker `{forbidden}`"
+            !bridge.contains(forbidden) && !click.contains(forbidden),
+            "drawer header receipt path must not retain mirror marker `{forbidden}`"
         );
     }
 }
@@ -72,18 +71,14 @@ fn drawer_content_consumers_use_componentized_workbench_layout_frames() {
 }
 
 #[test]
-fn drawer_header_pointer_rebuild_borrows_measured_frames() {
-    let rebuild = source("src/ui/retained_host/drawer_header_pointer/rebuild_surface.rs");
+fn drawer_header_receipt_route_is_compact_and_identity_remains_typed() {
+    let route =
+        source("src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_route.rs");
+    let item =
+        source("src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_item.rs");
 
-    assert!(
-        !rebuild.contains(".cloned()"),
-        "drawer-header surface rebuild must borrow measured frames"
-    );
-}
-
-#[test]
-fn repeated_drawer_header_measurement_is_a_no_op() {
-    let update = source("src/ui/retained_host/drawer_header_pointer/update_measured_frame.rs");
-
-    assert!(update.contains("frames[item_index] == Some(measured_frame)"));
+    assert!(route.contains("Clone, Copy"));
+    assert!(!route.contains("String"));
+    assert!(item.contains("slot: ActivityDrawerSlot"));
+    assert!(item.contains("instance_id: ViewInstanceId"));
 }

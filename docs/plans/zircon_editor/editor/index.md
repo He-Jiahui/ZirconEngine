@@ -9,7 +9,7 @@ related_code:
   - zircon_editor/src/scene/viewport
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/scene/inspection/mod.rs
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_app/src/bin/editor.rs
   - zircon_hub/src
   - tools/zircon_build.py

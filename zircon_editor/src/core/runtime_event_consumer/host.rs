@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicU8, AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -7,33 +7,69 @@ use zircon_runtime_interface::{
     ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle,
 };
 
-use crate::core::gateway::{EditorRuntimeGateway, EditorRuntimeGatewayHandle};
+use crate::core::gateway::{EditorRuntimeGatewayHandle, GatewayOrigin, GatewaySessionIdentity};
 
 use super::{
-    EditorRuntimeEventConsumerError, EditorRuntimeEventConsumerRegistration,
+    EditorRuntimeEventBacklogObservation, EditorRuntimeEventConsumerCallbackPhase,
+    EditorRuntimeEventConsumerDeliveryDisposition, EditorRuntimeEventConsumerError,
+    EditorRuntimeEventConsumerFaultReceipt, EditorRuntimeEventConsumerFaultReceiptBudget,
+    EditorRuntimeEventConsumerFaultReceiptJournal, EditorRuntimeEventConsumerRegistration,
     EditorRuntimeEventConsumerRegistry, EditorRuntimeEventPumpBudget, EditorRuntimeEventPumpReport,
 };
 
+mod contribution_lifecycle;
 mod execution_support;
+mod health;
+mod lifecycle;
+mod pending;
+mod pump_execution;
+mod retention;
 mod round_robin;
 
-use execution_support::{
-    p95_duration, unsubscribe_consumer, validate_delivery, LifecycleExecutionGuard,
-    PumpExecutionGuard,
+pub(crate) use contribution_lifecycle::ContributionRetirementReport;
+use execution_support::{invoke_consumer_callback, unsubscribe_consumer, LifecycleExecutionGuard};
+use health::{
+    ConsumerCallbackHealth, EditorRuntimeEventConsumerFaultPolicy,
+    EditorRuntimeEventConsumerQuarantineReason,
 };
+use lifecycle::{combine_cleanup_errors, PendingRemoteCleanup};
+use pending::{EditorRuntimeEventConsumerPendingDeliveryBudget, PendingDelivery};
+use retention::EditorRuntimeEventConsumerRetentionBudget;
 
 const EXECUTION_IDLE: u8 = 0;
 const EXECUTION_PUMP: u8 = 1;
 const EXECUTION_LIFECYCLE: u8 = 2;
 
+/// Opaque plugin-event subscription qualified by the gateway transport that issued it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct QualifiedSubscription {
+    raw: ZrRuntimePluginEventSubscriptionHandle,
+    identity: GatewaySessionIdentity,
+}
+
+impl QualifiedSubscription {
+    fn new(raw: ZrRuntimePluginEventSubscriptionHandle, identity: GatewaySessionIdentity) -> Self {
+        Self { raw, identity }
+    }
+
+    fn raw(&self) -> ZrRuntimePluginEventSubscriptionHandle {
+        self.raw
+    }
+
+    fn belongs_to(&self, origin: &GatewayOrigin) -> bool {
+        &self.identity == origin.identity()
+    }
+}
+
 struct ActiveConsumer {
     registration: EditorRuntimeEventConsumerRegistration,
-    subscription: ZrRuntimePluginEventSubscriptionHandle,
+    origin: GatewayOrigin,
+    health: ConsumerCallbackHealth,
+    subscription: QualifiedSubscription,
     generation: u64,
     last_sequence: Option<u64>,
-    pending: VecDeque<ZrRuntimePluginEventDeliveryV1>,
-    pending_encoded_bytes_upper_bound: usize,
-    pending_since: Option<Instant>,
+    pending: VecDeque<PendingDelivery>,
+    pending_retained_bytes: usize,
     last_observed_runtime_remaining_deliveries: Option<usize>,
     last_observed_runtime_oldest_pending_age_millis: Option<u64>,
     runtime_backlog_observed_at: Option<Instant>,
@@ -43,7 +79,8 @@ struct ActiveConsumer {
 struct ActiveConsumerSnapshot {
     consumer_id: String,
     registration: EditorRuntimeEventConsumerRegistration,
-    subscription: ZrRuntimePluginEventSubscriptionHandle,
+    origin: GatewayOrigin,
+    subscription: QualifiedSubscription,
     generation: u64,
     has_pending: bool,
 }
@@ -51,65 +88,8 @@ struct ActiveConsumerSnapshot {
 #[derive(Clone)]
 struct ActiveConsumerIdentity {
     consumer_id: String,
-    subscription: ZrRuntimePluginEventSubscriptionHandle,
+    subscription: QualifiedSubscription,
     generation: u64,
-}
-
-struct PendingDeliveryBatch {
-    deliveries: VecDeque<ZrRuntimePluginEventDeliveryV1>,
-    last_sequence: Option<u64>,
-    encoded_bytes_upper_bound: usize,
-    pending_since: Option<Instant>,
-}
-
-/// Restores the locally owned delivery batch if the callback unwinds before the normal commit.
-///
-/// The delivery currently executing in a callback has transferred payload ownership and cannot be
-/// replayed without changing the consumer ABI. Every later delivery and the last successful
-/// sequence are nevertheless returned to the matching generation before unwinding continues.
-struct PendingDeliveryBatchRestoreGuard<'a> {
-    host: &'a EditorRuntimeEventConsumerHost,
-    snapshot: &'a ActiveConsumerSnapshot,
-    batch: Option<PendingDeliveryBatch>,
-}
-
-impl<'a> PendingDeliveryBatchRestoreGuard<'a> {
-    fn new(
-        host: &'a EditorRuntimeEventConsumerHost,
-        snapshot: &'a ActiveConsumerSnapshot,
-        batch: PendingDeliveryBatch,
-    ) -> Self {
-        Self {
-            host,
-            snapshot,
-            batch: Some(batch),
-        }
-    }
-
-    fn batch(&self) -> &PendingDeliveryBatch {
-        self.batch
-            .as_ref()
-            .expect("pending delivery batch remains owned until it is restored")
-    }
-
-    fn batch_mut(&mut self) -> &mut PendingDeliveryBatch {
-        self.batch
-            .as_mut()
-            .expect("pending delivery batch remains owned until it is restored")
-    }
-
-    fn restore(&mut self) -> bool {
-        let Some(batch) = self.batch.take() else {
-            return true;
-        };
-        self.host.restore_pending_batch(self.snapshot, batch)
-    }
-}
-
-impl Drop for PendingDeliveryBatchRestoreGuard<'_> {
-    fn drop(&mut self) {
-        let _ = self.restore();
-    }
 }
 
 pub struct EditorRuntimeEventConsumerHost {
@@ -120,6 +100,15 @@ pub struct EditorRuntimeEventConsumerHost {
     next_consumer_generation: AtomicU64,
     round_robin_cursor: Mutex<Option<String>>,
     last_pump_report: Mutex<EditorRuntimeEventPumpReport>,
+    fault_receipts: Mutex<EditorRuntimeEventConsumerFaultReceiptJournal>,
+    pending_delivery_budget: EditorRuntimeEventConsumerPendingDeliveryBudget,
+    retention_budget: EditorRuntimeEventConsumerRetentionBudget,
+    fault_policy: EditorRuntimeEventConsumerFaultPolicy,
+    pending_retained_bytes: AtomicUsize,
+    retained_bytes: AtomicUsize,
+    quarantined_consumers: Mutex<BTreeMap<String, EditorRuntimeEventConsumerQuarantineReason>>,
+    user_disabled_consumers: Mutex<BTreeSet<String>>,
+    pending_remote_cleanup: Mutex<BTreeMap<String, PendingRemoteCleanup>>,
     execution_state: AtomicU8,
 }
 
@@ -131,6 +120,109 @@ impl Default for EditorRuntimeEventConsumerHost {
 
 impl EditorRuntimeEventConsumerHost {
     pub fn new(gateway: EditorRuntimeGatewayHandle) -> Self {
+        Self::with_budgets(
+            gateway,
+            EditorRuntimeEventConsumerFaultReceiptBudget::default(),
+            EditorRuntimeEventConsumerPendingDeliveryBudget::default(),
+        )
+    }
+
+    pub fn with_fault_receipt_budget(
+        gateway: EditorRuntimeGatewayHandle,
+        fault_receipt_budget: EditorRuntimeEventConsumerFaultReceiptBudget,
+    ) -> Self {
+        Self::with_budgets(
+            gateway,
+            fault_receipt_budget,
+            EditorRuntimeEventConsumerPendingDeliveryBudget::default(),
+        )
+    }
+
+    pub fn with_pending_delivery_budget(
+        gateway: EditorRuntimeGatewayHandle,
+        pending_delivery_budget: EditorRuntimeEventConsumerPendingDeliveryBudget,
+    ) -> Self {
+        Self::with_budgets(
+            gateway,
+            EditorRuntimeEventConsumerFaultReceiptBudget::default(),
+            pending_delivery_budget,
+        )
+    }
+
+    pub fn with_fault_policy(
+        gateway: EditorRuntimeGatewayHandle,
+        fault_policy: EditorRuntimeEventConsumerFaultPolicy,
+    ) -> Self {
+        Self::with_budgets_and_fault_policy(
+            gateway,
+            EditorRuntimeEventConsumerFaultReceiptBudget::default(),
+            EditorRuntimeEventConsumerPendingDeliveryBudget::default(),
+            fault_policy,
+        )
+    }
+
+    pub fn with_retention_budget(
+        gateway: EditorRuntimeGatewayHandle,
+        retention_budget: EditorRuntimeEventConsumerRetentionBudget,
+    ) -> Self {
+        Self::with_budgets_and_retention(
+            gateway,
+            EditorRuntimeEventConsumerFaultReceiptBudget::default(),
+            EditorRuntimeEventConsumerPendingDeliveryBudget::default(),
+            retention_budget,
+        )
+    }
+
+    pub fn with_budgets(
+        gateway: EditorRuntimeGatewayHandle,
+        fault_receipt_budget: EditorRuntimeEventConsumerFaultReceiptBudget,
+        pending_delivery_budget: EditorRuntimeEventConsumerPendingDeliveryBudget,
+    ) -> Self {
+        Self::with_budgets_and_fault_policy(
+            gateway,
+            fault_receipt_budget,
+            pending_delivery_budget,
+            EditorRuntimeEventConsumerFaultPolicy::default(),
+        )
+    }
+
+    pub fn with_budgets_and_retention(
+        gateway: EditorRuntimeGatewayHandle,
+        fault_receipt_budget: EditorRuntimeEventConsumerFaultReceiptBudget,
+        pending_delivery_budget: EditorRuntimeEventConsumerPendingDeliveryBudget,
+        retention_budget: EditorRuntimeEventConsumerRetentionBudget,
+    ) -> Self {
+        Self::with_all_budgets_and_fault_policy(
+            gateway,
+            fault_receipt_budget,
+            pending_delivery_budget,
+            retention_budget,
+            EditorRuntimeEventConsumerFaultPolicy::default(),
+        )
+    }
+
+    fn with_budgets_and_fault_policy(
+        gateway: EditorRuntimeGatewayHandle,
+        fault_receipt_budget: EditorRuntimeEventConsumerFaultReceiptBudget,
+        pending_delivery_budget: EditorRuntimeEventConsumerPendingDeliveryBudget,
+        fault_policy: EditorRuntimeEventConsumerFaultPolicy,
+    ) -> Self {
+        Self::with_all_budgets_and_fault_policy(
+            gateway,
+            fault_receipt_budget,
+            pending_delivery_budget,
+            EditorRuntimeEventConsumerRetentionBudget::default(),
+            fault_policy,
+        )
+    }
+
+    fn with_all_budgets_and_fault_policy(
+        gateway: EditorRuntimeGatewayHandle,
+        fault_receipt_budget: EditorRuntimeEventConsumerFaultReceiptBudget,
+        pending_delivery_budget: EditorRuntimeEventConsumerPendingDeliveryBudget,
+        retention_budget: EditorRuntimeEventConsumerRetentionBudget,
+        fault_policy: EditorRuntimeEventConsumerFaultPolicy,
+    ) -> Self {
         Self {
             gateway,
             registry: Mutex::new(EditorRuntimeEventConsumerRegistry::default()),
@@ -139,12 +231,34 @@ impl EditorRuntimeEventConsumerHost {
             next_consumer_generation: AtomicU64::new(0),
             round_robin_cursor: Mutex::new(None),
             last_pump_report: Mutex::new(EditorRuntimeEventPumpReport::default()),
+            fault_receipts: Mutex::new(EditorRuntimeEventConsumerFaultReceiptJournal::new(
+                fault_receipt_budget,
+            )),
+            pending_delivery_budget,
+            retention_budget,
+            fault_policy,
+            pending_retained_bytes: AtomicUsize::new(0),
+            retained_bytes: AtomicUsize::new(0),
+            quarantined_consumers: Mutex::new(BTreeMap::new()),
+            user_disabled_consumers: Mutex::new(BTreeSet::new()),
+            pending_remote_cleanup: Mutex::new(BTreeMap::new()),
             execution_state: AtomicU8::new(EXECUTION_IDLE),
         }
     }
 
     pub fn runtime_session_id(&self) -> u64 {
         self.gateway.session_handle().raw()
+    }
+
+    pub fn fault_receipts(&self) -> Vec<EditorRuntimeEventConsumerFaultReceipt> {
+        self.fault_receipts
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .snapshot()
+    }
+
+    pub fn retained_bytes(&self) -> usize {
+        self.retained_bytes.load(Ordering::Relaxed)
     }
 
     pub fn register(
@@ -155,19 +269,6 @@ impl EditorRuntimeEventConsumerHost {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .extend(registry)
-    }
-
-    pub(crate) fn prepare_registration(
-        &self,
-        registry: EditorRuntimeEventConsumerRegistry,
-    ) -> Result<EditorRuntimeEventConsumerRegistry, EditorRuntimeEventConsumerError> {
-        let mut candidate = self
-            .registry
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone();
-        candidate.extend(registry)?;
-        Ok(candidate)
     }
 
     pub(crate) fn install_prepared_registration(
@@ -198,6 +299,15 @@ impl EditorRuntimeEventConsumerHost {
         }
         *session = Some(play_session_id);
         drop(session);
+
+        self.quarantined_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clear();
+        self.user_disabled_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clear();
 
         if let Err(error) = self.reconcile_enabled_capabilities_inner(enabled_capabilities) {
             return Err(match self.end_play_session_inner(play_session_id) {
@@ -239,6 +349,16 @@ impl EditorRuntimeEventConsumerHost {
             .registrations()
             .cloned()
             .collect::<Vec<_>>();
+        let quarantined = self
+            .quarantined_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone();
+        let user_disabled = self
+            .user_disabled_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone();
         let desired = registrations
             .into_iter()
             .filter(|registration| {
@@ -248,9 +368,11 @@ impl EditorRuntimeEventConsumerHost {
                         .iter()
                         .any(|capability| capability == required)
             })
+            .filter(|registration| !quarantined.contains_key(&registration.manifest().consumer_id))
+            .filter(|registration| !user_disabled.contains(&registration.manifest().consumer_id))
             .map(|registration| (registration.manifest().consumer_id.clone(), registration))
             .collect::<BTreeMap<_, _>>();
-        let gateway = self.gateway.clone();
+        self.retry_pending_remote_cleanup();
         let removed = {
             let active = self
                 .active
@@ -261,22 +383,15 @@ impl EditorRuntimeEventConsumerHost {
                 .filter(|(consumer_id, _)| !desired.contains_key(*consumer_id))
                 .map(|(consumer_id, consumer)| ActiveConsumerIdentity {
                     consumer_id: consumer_id.clone(),
-                    subscription: consumer.subscription,
+                    subscription: consumer.subscription.clone(),
                     generation: consumer.generation,
                 })
                 .collect::<Vec<_>>()
         };
         let mut first_error = None;
         for identity in removed {
-            match unsubscribe_consumer(&gateway, &identity.consumer_id, identity.subscription) {
-                Ok(()) => {
-                    if let Some(consumer) = self.remove_active_consumer(&identity) {
-                        consumer.registration.end_session(play_session_id);
-                    }
-                }
-                Err(error) => {
-                    first_error.get_or_insert(error);
-                }
+            if let Err(error) = self.retire_active_consumer(&identity, play_session_id) {
+                first_error.get_or_insert(error);
             }
         }
         if let Some(error) = first_error {
@@ -296,7 +411,24 @@ impl EditorRuntimeEventConsumerHost {
                 continue;
             }
             let manifest = registration.manifest().clone();
-            let subscription = match gateway
+            let generation = match self.allocate_consumer_generation() {
+                Ok(generation) => generation,
+                Err(error) => {
+                    return Err(
+                        match self.rollback_added_consumers(&added, play_session_id) {
+                            Some(cleanup) => EditorRuntimeEventConsumerError::with_cleanup(
+                                "reconcile runtime event consumers",
+                                error,
+                                cleanup,
+                            ),
+                            None => error,
+                        },
+                    );
+                }
+            };
+            let origin = self.gateway.current_lease().origin();
+            let subscription = match origin
+                .gateway()
                 .subscribe_plugin_event(&manifest.event_id, &manifest.payload_schema)
             {
                 Ok(Some(subscription)) => subscription,
@@ -305,7 +437,7 @@ impl EditorRuntimeEventConsumerHost {
                         consumer_id: manifest.consumer_id.clone(),
                     };
                     return Err(
-                        match self.rollback_added_consumers(&gateway, &added, play_session_id) {
+                        match self.rollback_added_consumers(&added, play_session_id) {
                             Some(cleanup) => EditorRuntimeEventConsumerError::with_cleanup(
                                 "reconcile runtime event consumers",
                                 error,
@@ -321,7 +453,7 @@ impl EditorRuntimeEventConsumerHost {
                         message: message.to_string(),
                     };
                     return Err(
-                        match self.rollback_added_consumers(&gateway, &added, play_session_id) {
+                        match self.rollback_added_consumers(&added, play_session_id) {
                             Some(cleanup) => EditorRuntimeEventConsumerError::with_cleanup(
                                 "reconcile runtime event consumers",
                                 error,
@@ -332,11 +464,35 @@ impl EditorRuntimeEventConsumerHost {
                     );
                 }
             };
-            registration.begin_session(play_session_id);
+            let subscription = QualifiedSubscription::new(subscription, origin.identity().clone());
+            if let Err(_error) = invoke_consumer_callback(
+                &manifest.consumer_id,
+                EditorRuntimeEventConsumerCallbackPhase::BeginSession,
+                None,
+                || registration.begin_session(play_session_id),
+            ) {
+                let cleanup_error =
+                    unsubscribe_consumer(&origin, &manifest.consumer_id, &subscription).err();
+                if cleanup_error.is_some() {
+                    self.defer_remote_cleanup(&manifest.consumer_id, subscription.clone(), origin);
+                }
+                self.record_callback_fault(
+                    &manifest.consumer_id,
+                    play_session_id,
+                    EditorRuntimeEventConsumerCallbackPhase::BeginSession,
+                    None,
+                    cleanup_error.as_ref(),
+                );
+                self.quarantine_consumer(
+                    &manifest.consumer_id,
+                    EditorRuntimeEventConsumerQuarantineReason::CallbackPanicked,
+                );
+                continue;
+            }
             let identity = ActiveConsumerIdentity {
                 consumer_id: manifest.consumer_id,
-                subscription,
-                generation: self.allocate_consumer_generation(),
+                subscription: subscription.clone(),
+                generation,
             };
             self.active
                 .lock()
@@ -345,12 +501,13 @@ impl EditorRuntimeEventConsumerHost {
                     identity.consumer_id.clone(),
                     ActiveConsumer {
                         registration,
+                        origin,
+                        health: ConsumerCallbackHealth::default(),
                         subscription,
                         generation: identity.generation,
                         last_sequence: None,
                         pending: VecDeque::new(),
-                        pending_encoded_bytes_upper_bound: 0,
-                        pending_since: None,
+                        pending_retained_bytes: 0,
                         last_observed_runtime_remaining_deliveries: None,
                         last_observed_runtime_oldest_pending_age_millis: None,
                         runtime_backlog_observed_at: None,
@@ -359,130 +516,6 @@ impl EditorRuntimeEventConsumerHost {
             added.push(identity);
         }
         Ok(())
-    }
-
-    pub fn pump(&self) -> Result<usize, EditorRuntimeEventConsumerError> {
-        Ok(self
-            .pump_with_budget(EditorRuntimeEventPumpBudget::default())?
-            .applied())
-    }
-
-    pub fn pump_with_budget(
-        &self,
-        budget: EditorRuntimeEventPumpBudget,
-    ) -> Result<EditorRuntimeEventPumpReport, EditorRuntimeEventConsumerError> {
-        let Some(_pump_guard) = PumpExecutionGuard::enter(&self.execution_state) else {
-            return Ok(EditorRuntimeEventPumpReport::default());
-        };
-        let play_session_id = self
-            .play_session_id
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .unwrap_or_default();
-        if play_session_id == 0 {
-            self.store_pump_report(EditorRuntimeEventPumpReport::default());
-            return Ok(EditorRuntimeEventPumpReport::default());
-        }
-        let gateway = self.gateway.clone();
-        let runtime_session_id = gateway.session_handle().raw();
-        let snapshots = self.snapshot_active_consumers();
-        let started = Instant::now();
-        let mut report = EditorRuntimeEventPumpReport::default();
-        let mut runtime_drain_samples = Vec::with_capacity(snapshots.len());
-        let mut decode_samples = Vec::with_capacity(snapshots.len());
-        let mut visited_consumer_count = 0;
-        let mut first_error = None;
-
-        for snapshot in &snapshots {
-            if report.applied() >= budget.max_events() || started.elapsed() >= budget.max_elapsed()
-            {
-                break;
-            }
-            visited_consumer_count += 1;
-            if !snapshot.has_pending {
-                let page = match gateway.drain_plugin_events(snapshot.subscription) {
-                    Ok(page) => page,
-                    Err(message) => {
-                        first_error.get_or_insert(EditorRuntimeEventConsumerError::Gateway {
-                            consumer_id: snapshot.consumer_id.clone(),
-                            message: message.to_string(),
-                        });
-                        continue;
-                    }
-                };
-                let page_encoded_bytes = page.encoded_bytes();
-                let runtime_remaining_deliveries = page.runtime_remaining_deliveries();
-                let runtime_oldest_pending_age_millis = page.runtime_oldest_pending_age_millis();
-                report.record_drained_page(
-                    page.deliveries().len(),
-                    page_encoded_bytes,
-                    page.runtime_drain_elapsed(),
-                    page.decode_elapsed(),
-                );
-                runtime_drain_samples.push(page.runtime_drain_elapsed());
-                decode_samples.push(page.decode_elapsed());
-                report.record_dropped(self.append_drained_deliveries(
-                    snapshot,
-                    page.into_deliveries(),
-                    page_encoded_bytes,
-                    runtime_remaining_deliveries,
-                    runtime_oldest_pending_age_millis,
-                ));
-            }
-
-            let Some(batch) = self.take_pending_batch(snapshot) else {
-                continue;
-            };
-            let mut pending = PendingDeliveryBatchRestoreGuard::new(self, snapshot, batch);
-            let mut applied_for_consumer = 0;
-            while report.applied() < budget.max_events()
-                && applied_for_consumer < budget.max_events_per_consumer()
-                && started.elapsed() < budget.max_elapsed()
-            {
-                let Some(delivery) = pending.batch_mut().deliveries.pop_front() else {
-                    break;
-                };
-                if let Err(error) = validate_delivery(
-                    snapshot,
-                    runtime_session_id,
-                    pending.batch().last_sequence,
-                    &delivery,
-                ) {
-                    report.record_dropped(1);
-                    first_error.get_or_insert(error);
-                    break;
-                }
-
-                let sequence = delivery.sequence;
-                let callback_started = Instant::now();
-                let apply_result =
-                    snapshot
-                        .registration
-                        .consume(play_session_id, sequence, delivery.payload);
-                let callback_elapsed = callback_started.elapsed();
-                if let Err(source) = apply_result {
-                    report.record_dropped(1);
-                    first_error.get_or_insert(EditorRuntimeEventConsumerError::Payload {
-                        consumer_id: snapshot.consumer_id.clone(),
-                        source,
-                    });
-                    break;
-                }
-
-                report.record_applied(callback_elapsed, budget.slow_callback_threshold());
-                applied_for_consumer += 1;
-                pending.batch_mut().last_sequence = Some(sequence);
-            }
-            let committed = pending.restore();
-            debug_assert!(committed, "lifecycle owner changed during an active pump");
-        }
-        report.set_drain_percentiles(
-            p95_duration(&mut runtime_drain_samples),
-            p95_duration(&mut decode_samples),
-        );
-        self.advance_round_robin_start(&snapshots, visited_consumer_count);
-        self.finish_pump_report(&mut report);
-        first_error.map_or(Ok(report), Err)
     }
 
     pub fn last_pump_report(&self) -> EditorRuntimeEventPumpReport {
@@ -501,6 +534,24 @@ impl EditorRuntimeEventConsumerHost {
         self.end_play_session_inner(play_session_id)
     }
 
+    /// Makes one terminal cleanup pass even when subscription rollback left no active play
+    /// session. Local active entries are retired first; deferred origin cleanup is then attempted
+    /// once and its error remains observable to the host coordinator.
+    pub(crate) fn shutdown(&self) -> Result<(), EditorRuntimeEventConsumerError> {
+        let _lifecycle_guard = LifecycleExecutionGuard::enter(
+            &self.execution_state,
+            "shutdown runtime event consumers",
+        )?;
+        let active_play_session_id = *self
+            .play_session_id
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        match active_play_session_id {
+            Some(play_session_id) => self.end_play_session_inner(play_session_id),
+            None => self.flush_pending_remote_cleanup().map_or(Ok(()), Err),
+        }
+    }
+
     fn end_play_session_inner(
         &self,
         play_session_id: u64,
@@ -515,7 +566,6 @@ impl EditorRuntimeEventConsumerHost {
                 actual: play_session_id,
             });
         }
-        let gateway = self.gateway.clone();
         let consumers = {
             let active = self
                 .active
@@ -525,29 +575,33 @@ impl EditorRuntimeEventConsumerHost {
                 .iter()
                 .map(|(consumer_id, consumer)| ActiveConsumerIdentity {
                     consumer_id: consumer_id.clone(),
-                    subscription: consumer.subscription,
+                    subscription: consumer.subscription.clone(),
                     generation: consumer.generation,
                 })
                 .collect::<Vec<_>>()
         };
         let mut first_error = None;
         for identity in consumers {
-            match unsubscribe_consumer(&gateway, &identity.consumer_id, identity.subscription) {
-                Ok(()) => {
-                    if let Some(consumer) = self.remove_active_consumer(&identity) {
-                        consumer.registration.end_session(play_session_id);
-                    }
-                }
-                Err(error) => {
-                    first_error.get_or_insert(error);
-                }
+            if let Err(error) = self.retire_active_consumer(&identity, play_session_id) {
+                first_error.get_or_insert(error);
             }
+        }
+        if let Some(error) = self.flush_pending_remote_cleanup() {
+            first_error.get_or_insert(error);
         }
         if self.active_consumer_count() == 0 {
             *self
                 .play_session_id
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+            self.quarantined_consumers
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .clear();
+            self.user_disabled_consumers
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .clear();
         }
         first_error.map_or(Ok(()), Err)
     }
@@ -559,6 +613,126 @@ impl EditorRuntimeEventConsumerHost {
             .len()
     }
 
+    pub(crate) fn pending_remote_cleanup_count(&self) -> usize {
+        self.pending_remote_cleanup
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .len()
+    }
+
+    pub fn quarantined_consumer_count(&self) -> usize {
+        self.quarantined_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .len()
+    }
+
+    pub fn quarantined_consumer_reason(
+        &self,
+        consumer_id: &str,
+    ) -> Option<EditorRuntimeEventConsumerQuarantineReason> {
+        self.quarantined_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(consumer_id)
+            .copied()
+    }
+
+    /// Re-enables one quarantined consumer and recreates its origin subscription for this play
+    /// session. A failed reactivation retains its previous diagnostic state.
+    pub fn retry_quarantined_consumer(
+        &self,
+        consumer_id: &str,
+        enabled_capabilities: &[String],
+    ) -> Result<(), EditorRuntimeEventConsumerError> {
+        let _lifecycle_guard =
+            LifecycleExecutionGuard::enter(&self.execution_state, "retry quarantined consumer")?;
+        let previous_reason = self
+            .quarantined_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .remove(consumer_id)
+            .ok_or_else(|| EditorRuntimeEventConsumerError::ConsumerNotQuarantined {
+                consumer_id: consumer_id.to_string(),
+            })?;
+        self.user_disabled_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .remove(consumer_id);
+        match self.reconcile_enabled_capabilities_inner(enabled_capabilities) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                self.quarantined_consumers
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .entry(consumer_id.to_string())
+                    .or_insert(previous_reason);
+                Err(error)
+            }
+        }
+    }
+
+    /// Stops automatic reactivation for one quarantined consumer until the current play session
+    /// ends. Project-persistent enablement remains owned by Plugin Manager.
+    pub fn disable_quarantined_consumer(
+        &self,
+        consumer_id: &str,
+    ) -> Result<(), EditorRuntimeEventConsumerError> {
+        let _lifecycle_guard =
+            LifecycleExecutionGuard::enter(&self.execution_state, "disable quarantined consumer")?;
+        if !self
+            .quarantined_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .contains_key(consumer_id)
+        {
+            return Err(EditorRuntimeEventConsumerError::ConsumerNotQuarantined {
+                consumer_id: consumer_id.to_string(),
+            });
+        }
+        self.user_disabled_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(consumer_id.to_string());
+        Ok(())
+    }
+
+    pub fn consumer_is_user_disabled(&self, consumer_id: &str) -> bool {
+        self.user_disabled_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .contains(consumer_id)
+    }
+
+    fn try_reserve_pending_bytes(&self, bytes: usize) -> bool {
+        if !self.try_reserve_retained_bytes(bytes) {
+            return false;
+        }
+        if self
+            .pending_retained_bytes
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |retained| {
+                retained
+                    .checked_add(bytes)
+                    .filter(|next| *next <= self.pending_delivery_budget.max_retained_bytes())
+            })
+            .is_ok()
+        {
+            true
+        } else {
+            self.release_retained_bytes(bytes);
+            false
+        }
+    }
+
+    pub(super) fn release_pending_bytes(&self, bytes: usize) {
+        let _ = self.pending_retained_bytes.fetch_update(
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+            |retained| Some(retained.saturating_sub(bytes)),
+        );
+        self.release_retained_bytes(bytes);
+    }
+
     pub fn active_play_session_id(&self) -> Option<u64> {
         *self
             .play_session_id
@@ -566,46 +740,96 @@ impl EditorRuntimeEventConsumerHost {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    fn allocate_consumer_generation(&self) -> u64 {
-        self.next_consumer_generation
-            .fetch_add(1, Ordering::Relaxed)
-            .saturating_add(1)
-    }
-
-    fn remove_active_consumer(&self, identity: &ActiveConsumerIdentity) -> Option<ActiveConsumer> {
-        let mut active = self
-            .active
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let matches = active.get(&identity.consumer_id).is_some_and(|consumer| {
-            consumer.generation == identity.generation
-                && consumer.subscription == identity.subscription
-        });
-        matches
-            .then(|| active.remove(&identity.consumer_id))
-            .flatten()
-    }
-
-    fn rollback_added_consumers(
-        &self,
-        gateway: &dyn EditorRuntimeGateway,
-        added: &[ActiveConsumerIdentity],
-        play_session_id: u64,
-    ) -> Option<EditorRuntimeEventConsumerError> {
-        let mut first_error = None;
-        for identity in added {
-            match unsubscribe_consumer(gateway, &identity.consumer_id, identity.subscription) {
-                Ok(()) => {
-                    if let Some(consumer) = self.remove_active_consumer(identity) {
-                        consumer.registration.end_session(play_session_id);
-                    }
-                }
-                Err(error) => {
-                    first_error.get_or_insert(error);
-                }
+    fn allocate_consumer_generation(&self) -> Result<u64, EditorRuntimeEventConsumerError> {
+        let mut current = self.next_consumer_generation.load(Ordering::Relaxed);
+        loop {
+            let next = next_consumer_generation(current)?;
+            match self.next_consumer_generation.compare_exchange_weak(
+                current,
+                next,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => return Ok(next),
+                Err(actual) => current = actual,
             }
         }
-        first_error
+    }
+
+    fn quarantine_consumer(
+        &self,
+        consumer_id: &str,
+        reason: EditorRuntimeEventConsumerQuarantineReason,
+    ) {
+        self.quarantined_consumers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(consumer_id.to_string(), reason);
+    }
+
+    fn record_callback_health(
+        &self,
+        snapshot: &ActiveConsumerSnapshot,
+        failed: bool,
+        callback_elapsed: Duration,
+        slow_callback_threshold: Duration,
+    ) -> Option<EditorRuntimeEventConsumerQuarantineReason> {
+        self.active
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get_mut(&snapshot.consumer_id)
+            .filter(|consumer| {
+                consumer.generation == snapshot.generation
+                    && consumer.subscription == snapshot.subscription
+            })
+            .and_then(|consumer| {
+                consumer.health.record(
+                    self.fault_policy,
+                    failed,
+                    callback_elapsed,
+                    slow_callback_threshold,
+                )
+            })
+    }
+
+    fn record_callback_fault(
+        &self,
+        consumer_id: &str,
+        play_session_id: u64,
+        phase: EditorRuntimeEventConsumerCallbackPhase,
+        delivery: Option<&ZrRuntimePluginEventDeliveryV1>,
+        remote_cleanup_error: Option<&EditorRuntimeEventConsumerError>,
+    ) {
+        self.fault_receipts
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .record_callback_panic(
+                consumer_id,
+                play_session_id,
+                phase,
+                delivery,
+                remote_cleanup_error.map(ToString::to_string).as_deref(),
+                |bytes| self.try_reserve_retained_bytes(bytes),
+                |bytes| self.release_retained_bytes(bytes),
+            );
+    }
+
+    fn try_reserve_retained_bytes(&self, bytes: usize) -> bool {
+        self.retained_bytes
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |retained| {
+                retained
+                    .checked_add(bytes)
+                    .filter(|next| *next <= self.retention_budget.max_retained_bytes())
+            })
+            .is_ok()
+    }
+
+    fn release_retained_bytes(&self, bytes: usize) {
+        let _ =
+            self.retained_bytes
+                .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |retained| {
+                    Some(retained.saturating_sub(bytes))
+                });
     }
 
     fn snapshot_active_consumers(&self) -> Vec<ActiveConsumerSnapshot> {
@@ -618,7 +842,8 @@ impl EditorRuntimeEventConsumerHost {
             .map(|(consumer_id, consumer)| ActiveConsumerSnapshot {
                 consumer_id: consumer_id.clone(),
                 registration: consumer.registration.clone(),
-                subscription: consumer.subscription,
+                origin: consumer.origin.clone(),
+                subscription: consumer.subscription.clone(),
                 generation: consumer.generation,
                 has_pending: !consumer.pending.is_empty(),
             })
@@ -640,92 +865,6 @@ impl EditorRuntimeEventConsumerHost {
         snapshots
     }
 
-    fn append_drained_deliveries(
-        &self,
-        snapshot: &ActiveConsumerSnapshot,
-        deliveries: Vec<ZrRuntimePluginEventDeliveryV1>,
-        encoded_bytes_upper_bound: usize,
-        runtime_remaining_deliveries: usize,
-        runtime_oldest_pending_age_millis: u64,
-    ) -> usize {
-        let mut active = self
-            .active
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let Some(consumer) = active.get_mut(&snapshot.consumer_id).filter(|consumer| {
-            consumer.generation == snapshot.generation
-                && consumer.subscription == snapshot.subscription
-        }) else {
-            return deliveries.len();
-        };
-        debug_assert!(consumer.pending.is_empty());
-        consumer.last_observed_runtime_remaining_deliveries = Some(runtime_remaining_deliveries);
-        consumer.last_observed_runtime_oldest_pending_age_millis =
-            Some(runtime_oldest_pending_age_millis);
-        consumer.runtime_backlog_observed_at = Some(Instant::now());
-        if deliveries.is_empty() {
-            return 0;
-        }
-        consumer.pending_encoded_bytes_upper_bound = encoded_bytes_upper_bound;
-        consumer.pending_since = Some(Instant::now());
-        consumer.pending.extend(deliveries);
-        0
-    }
-
-    fn take_pending_batch(
-        &self,
-        snapshot: &ActiveConsumerSnapshot,
-    ) -> Option<PendingDeliveryBatch> {
-        let mut active = self
-            .active
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let consumer = active.get_mut(&snapshot.consumer_id)?;
-        if consumer.generation != snapshot.generation
-            || consumer.subscription != snapshot.subscription
-        {
-            return None;
-        }
-        if consumer.pending.is_empty() {
-            return None;
-        }
-        Some(PendingDeliveryBatch {
-            deliveries: std::mem::take(&mut consumer.pending),
-            last_sequence: consumer.last_sequence,
-            encoded_bytes_upper_bound: std::mem::take(
-                &mut consumer.pending_encoded_bytes_upper_bound,
-            ),
-            pending_since: consumer.pending_since.take(),
-        })
-    }
-
-    fn restore_pending_batch(
-        &self,
-        snapshot: &ActiveConsumerSnapshot,
-        pending: PendingDeliveryBatch,
-    ) -> bool {
-        let mut active = self
-            .active
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let Some(consumer) = active.get_mut(&snapshot.consumer_id).filter(|consumer| {
-            consumer.generation == snapshot.generation
-                && consumer.subscription == snapshot.subscription
-        }) else {
-            return false;
-        };
-        consumer.last_sequence = pending.last_sequence;
-        consumer.pending = pending.deliveries;
-        if consumer.pending.is_empty() {
-            consumer.pending_encoded_bytes_upper_bound = 0;
-            consumer.pending_since = None;
-        } else {
-            consumer.pending_encoded_bytes_upper_bound = pending.encoded_bytes_upper_bound;
-            consumer.pending_since = pending.pending_since;
-        }
-        true
-    }
-
     fn finish_pump_report(&self, report: &mut EditorRuntimeEventPumpReport) {
         let active = self
             .active
@@ -735,36 +874,44 @@ impl EditorRuntimeEventConsumerHost {
         let pending_sequence_span = active
             .values()
             .filter_map(|consumer| {
-                let first = consumer.pending.front()?.sequence;
-                let last = consumer.pending.back()?.sequence;
+                let first = consumer.pending.front()?.delivery().sequence;
+                let last = consumer.pending.back()?.delivery().sequence;
                 Some(last.saturating_sub(first))
             })
             .max()
             .unwrap_or_default();
-        let pending_encoded_bytes_upper_bound = active
-            .values()
-            .map(|consumer| consumer.pending_encoded_bytes_upper_bound)
-            .sum();
+        let pending_encoded_bytes_upper_bound = self.pending_retained_bytes.load(Ordering::Relaxed);
         let pending_oldest_age = active
             .values()
-            .filter_map(|consumer| consumer.pending_since.map(|since| since.elapsed()))
+            .filter_map(|consumer| {
+                consumer
+                    .pending
+                    .front()
+                    .map(|delivery| delivery.first_seen().elapsed())
+            })
             .max()
             .unwrap_or_default();
-        let last_observed_runtime_backlog = active
-            .values()
-            .try_fold(
-                (0_usize, 0_u64, Duration::ZERO),
-                |(remaining_total, oldest_pending_age, observation_age), consumer| {
-                    Some((
-                        remaining_total
-                            .saturating_add(consumer.last_observed_runtime_remaining_deliveries?),
-                        oldest_pending_age
-                            .max(consumer.last_observed_runtime_oldest_pending_age_millis?),
-                        observation_age.max(consumer.runtime_backlog_observed_at?.elapsed()),
-                    ))
-                },
-            )
-            .filter(|_| !active.is_empty());
+        let mut runtime_backlog_observation = EditorRuntimeEventBacklogObservation::default();
+        for consumer in active.values() {
+            match (
+                consumer.last_observed_runtime_remaining_deliveries,
+                consumer.last_observed_runtime_oldest_pending_age_millis,
+                consumer.runtime_backlog_observed_at,
+            ) {
+                (
+                    Some(remaining_deliveries),
+                    Some(oldest_pending_age_millis),
+                    Some(observed_at),
+                ) => {
+                    runtime_backlog_observation.record_sample(
+                        remaining_deliveries,
+                        oldest_pending_age_millis,
+                        observed_at.elapsed(),
+                    );
+                }
+                _ => runtime_backlog_observation.record_unknown_consumer(),
+            }
+        }
         drop(active);
         report.set_queue_pressure(
             queue_depth,
@@ -772,7 +919,7 @@ impl EditorRuntimeEventConsumerHost {
             pending_encoded_bytes_upper_bound,
             pending_oldest_age,
         );
-        report.set_last_observed_runtime_backlog(last_observed_runtime_backlog);
+        report.set_runtime_backlog_observation(runtime_backlog_observation);
         self.store_pump_report(*report);
     }
 
@@ -781,5 +928,46 @@ impl EditorRuntimeEventConsumerHost {
             .last_pump_report
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = report;
+    }
+}
+
+fn next_consumer_generation(current: u64) -> Result<u64, EditorRuntimeEventConsumerError> {
+    current
+        .checked_add(1)
+        .ok_or(EditorRuntimeEventConsumerError::ConsumerGenerationExhausted)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{next_consumer_generation, EditorRuntimeEventConsumerHost, QualifiedSubscription};
+    use crate::core::gateway::EditorRuntimeGatewayHandle;
+    use crate::core::runtime_event_consumer::EditorRuntimeEventConsumerError;
+    use zircon_runtime_interface::ZrRuntimePluginEventSubscriptionHandle;
+
+    #[test]
+    fn consumer_generation_exhaustion_is_typed() {
+        assert!(matches!(
+            next_consumer_generation(u64::MAX),
+            Err(EditorRuntimeEventConsumerError::ConsumerGenerationExhausted)
+        ));
+    }
+
+    #[test]
+    fn shutdown_flushes_pending_remote_cleanup_without_an_active_play_session() {
+        let gateway = EditorRuntimeGatewayHandle::detached();
+        let host = EditorRuntimeEventConsumerHost::new(gateway.clone());
+        let origin = gateway.current_lease().origin();
+        host.defer_remote_cleanup(
+            "deferred.consumer",
+            QualifiedSubscription::new(
+                ZrRuntimePluginEventSubscriptionHandle::new(11),
+                origin.identity().clone(),
+            ),
+            origin,
+        );
+
+        assert_eq!(host.pending_remote_cleanup_count(), 1);
+        assert!(host.shutdown().is_err());
+        assert_eq!(host.pending_remote_cleanup_count(), 0);
     }
 }

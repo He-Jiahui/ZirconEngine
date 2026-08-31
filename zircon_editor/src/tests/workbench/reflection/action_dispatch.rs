@@ -129,7 +129,7 @@ fn workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_ac
 }
 
 #[test]
-fn workbench_reflection_operation_binding_preserves_native_binding_provenance_and_transaction() {
+fn remote_control_operation_binding_preserves_native_binding_provenance_and_transaction() {
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_workbench_reflection_operation_provenance");
     let scene_entries_before = runtime.runtime.editor_snapshot().scene_entries.len();
@@ -156,7 +156,7 @@ fn workbench_reflection_operation_binding_preserves_native_binding_provenance_an
         .records()
         .last()
         .expect("operation binding must append an event record");
-    assert_eq!(record.source, EditorEventSource::RetainedHost);
+    assert_eq!(record.source, EditorEventSource::Headless);
     assert_eq!(
         record.operation_id.as_deref(),
         Some("scene.node.create_cube")
@@ -171,6 +171,91 @@ fn workbench_reflection_operation_binding_preserves_native_binding_provenance_an
         runtime.runtime.editor_snapshot().scene_entries.len(),
         scene_entries_before + 1
     );
+}
+
+#[test]
+fn remote_invoke_binding_and_route_cannot_bypass_command_surface_policy() {
+    use crate::core::commands::EditorCommandDescriptor;
+    use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
+    use crate::core::editor_operation::EditorOperationPath;
+    use crate::ui::workbench::event::MenuAction;
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_workbench_reflection_remote_route_gate");
+    let operation = EditorOperationPath::parse("weather.secret.refresh").unwrap();
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_command(
+            EditorCommandDescriptor::operation(operation.clone())
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
+                .with_callable_from_remote(false),
+        )
+        .unwrap();
+    extension
+        .register_menu_item(EditorMenuItemDescriptor::for_operation(operation.clone()))
+        .unwrap();
+    runtime
+        .runtime
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
+        .unwrap();
+    runtime.runtime.refresh_reflection();
+
+    let binding = EditorUiBinding::new(
+        "RemoteProbe",
+        "Invoke",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::editor_operation(operation.as_str()),
+    );
+    let direct = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::InvokeBinding {
+            binding: binding.as_ui_binding(),
+        });
+    assert!(matches!(
+        direct,
+        UiControlResponse::Invocation(result)
+            if result.error.as_ref().is_some_and(|error| error.to_string().contains(
+                "weather.secret.refresh is not callable from remote control"
+            ))
+    ));
+
+    let menu_node = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::QueryNode {
+            node_path: UiNodePath::new("editor/workbench/menu/tools/weather.secret.refresh"),
+        });
+    let route_id = match menu_node {
+        UiControlResponse::Node(Some(node)) => node.actions["workbench.menu.item.click"]
+            .route_id
+            .expect("registered menu action should expose a route"),
+        response => panic!("expected reflected menu node, got {response:?}"),
+    };
+    let routed = runtime
+        .runtime
+        .handle_control_request(UiControlRequest::InvokeRoute {
+            route_id,
+            arguments: Vec::new(),
+        });
+    assert!(matches!(
+        routed,
+        UiControlResponse::Invocation(result)
+            if result.error.as_ref().is_some_and(|error| error.to_string().contains(
+                "weather.secret.refresh is not callable from remote control"
+            ))
+    ));
+
+    let journal = runtime.runtime.journal();
+    assert_eq!(journal.records().len(), 2);
+    assert!(journal.records().iter().all(|record| {
+        record.source == EditorEventSource::Headless
+            && record.operation_id.as_deref() == Some("weather.secret.refresh")
+            && matches!(
+                &record.event,
+                EditorEvent::Operation(
+                    crate::core::editor_event::EditorOperationEvent::ControlFailure { .. }
+                )
+            )
+    }));
 }
 
 #[test]
@@ -261,7 +346,6 @@ fn workbench_reflection_call_action_dispatches_animation_track_creation_from_ins
     let _guard = env_lock().lock().unwrap();
     let mut runtime =
         EventRuntimeHarness::new("zircon_workbench_reflection_animation_track_runtime");
-    runtime.register_animation_asset_toolkits();
     let asset_locator = "res://animation/reflection.sequence.zranim";
     let catalog = runtime.open_project_with_assets(
         "zircon_workbench_reflection_animation_track_project",

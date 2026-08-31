@@ -190,16 +190,6 @@ pub(super) fn insert_workbench_generated_bottom_bindings(
             "workbench.generated_bottom.filter.commit",
             EditorUiEventKind::Submit,
         ),
-        (
-            "ModeEdit",
-            "workbench.generated_bottom.mode.edit",
-            EditorUiEventKind::Change,
-        ),
-        (
-            "ModeCommit",
-            "workbench.generated_bottom.mode.commit",
-            EditorUiEventKind::Submit,
-        ),
     ] {
         insert_event(
             bindings,

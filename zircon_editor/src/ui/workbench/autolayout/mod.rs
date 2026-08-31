@@ -16,6 +16,7 @@ mod layout_tier;
 mod pane_constraint_override;
 mod region;
 mod region_binding;
+mod region_preferred_extents;
 mod region_state;
 mod resolution_context;
 mod shell_region_id;
@@ -55,6 +56,7 @@ pub use pane_constraint_override::PaneConstraintOverride;
 pub use region_binding::{
     EditorRegion, EditorRegionRole, RegionBinding, RegionBindingError, WorkbenchConstraintTokenName,
 };
+pub(crate) use region_preferred_extents::LogicalRegionPreferredExtents;
 pub use resolution_context::{ResolutionContext, ResolutionScaleMode};
 pub use shell_region_id::ShellRegionId;
 pub use shell_regions_asset::{

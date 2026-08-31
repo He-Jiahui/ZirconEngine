@@ -10,6 +10,7 @@ use super::{
 };
 
 pub const STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
+pub const STANDARD_MATERIAL_TEXTURE_UV_CHANNEL_COUNT: u32 = 2;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StandardMaterialDescriptor {
@@ -26,6 +27,8 @@ pub struct StandardMaterialDescriptor {
     pub normal_texture_transform: RenderMaterialTextureTransform,
     #[serde(default)]
     pub normal_texture_uv_channel: u32,
+    #[serde(default = "default_normal_scale")]
+    pub normal_scale: f32,
     pub metallic: f32,
     pub roughness: f32,
     pub metallic_roughness_texture: Option<AssetReference>,
@@ -46,6 +49,10 @@ pub struct StandardMaterialDescriptor {
     pub emissive_texture_transform: RenderMaterialTextureTransform,
     #[serde(default)]
     pub emissive_texture_uv_channel: u32,
+    #[serde(default)]
+    pub clearcoat_normal_texture_transform: RenderMaterialTextureTransform,
+    #[serde(default)]
+    pub clearcoat_normal_texture_uv_channel: u32,
     pub alpha_mode: RenderMaterialAlphaMode,
     #[serde(default)]
     pub lighting_model: RenderMaterialLightingModel,
@@ -83,6 +90,50 @@ impl StandardMaterialDescriptor {
             RenderQueueValue::from_authored_queue(&self.alpha_mode, self.render_queue)
         })
     }
+
+    pub fn unsupported_texture_uv_channels(&self) -> Vec<(&'static str, u32)> {
+        [
+            (
+                "base_color",
+                self.base_color_texture.as_ref(),
+                self.base_color_texture_uv_channel,
+            ),
+            (
+                "normal",
+                self.normal_texture.as_ref(),
+                self.normal_texture_uv_channel,
+            ),
+            (
+                "metallic_roughness",
+                self.metallic_roughness_texture.as_ref(),
+                self.metallic_roughness_texture_uv_channel,
+            ),
+            (
+                "occlusion",
+                self.occlusion_texture.as_ref(),
+                self.occlusion_texture_uv_channel,
+            ),
+            (
+                "emissive",
+                self.emissive_texture.as_ref(),
+                self.emissive_texture_uv_channel,
+            ),
+            (
+                "clearcoat_normal",
+                self.advanced_features.clearcoat_normal_texture.as_ref(),
+                self.clearcoat_normal_texture_uv_channel,
+            ),
+        ]
+        .into_iter()
+        .filter_map(|(slot, texture, channel)| {
+            texture
+                .is_some()
+                .then_some(channel)
+                .filter(|channel| *channel >= STANDARD_MATERIAL_TEXTURE_UV_CHANNEL_COUNT)
+                .map(|channel| (slot, channel))
+        })
+        .collect()
+    }
 }
 
 fn default_cast_shadows() -> bool {
@@ -94,5 +145,9 @@ fn default_receive_shadows() -> bool {
 }
 
 fn default_occlusion_strength() -> f32 {
+    1.0
+}
+
+fn default_normal_scale() -> f32 {
     1.0
 }

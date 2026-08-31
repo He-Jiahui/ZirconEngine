@@ -28,6 +28,15 @@ fn showcase_action_id_for_suffix_normalizes_showcase_binding_paths() {
 }
 
 #[test]
+fn showcase_action_id_preserves_empty_suffix_prefix_semantics() {
+    let bindings = [binding("UiComponentShowcase/")];
+
+    let action_id = showcase_action_id_for_suffix(&bindings, "");
+
+    assert_eq!(action_id, "ui_component_showcase.");
+}
+
+#[test]
 fn preferred_showcase_action_id_selects_popup_open_suffixes() {
     let bindings = [
         binding("UiComponentShowcase/DropdownOpenPopup"),

@@ -14,6 +14,9 @@ or window creation.
 
 Use one of the following GUI intents:
 
+- `--project-launch-intent <json>` accepts one versioned `ProjectLaunchIntent` produced by a
+  trusted process boundary such as Zircon Hub. It preserves the originating operation identity,
+  source, profile, and open/create target without reconstructing them from flags.
 - `--project <path>` opens an existing project.
 - `--scene <res://path.scene.toml>` opens a scene from that requested project after its host is ready.
 - `--builtin-view <descriptor-id>` opens a built-in editor view.
@@ -22,6 +25,13 @@ Use one of the following GUI intents:
 
 With no startup intent, the editor opens the welcome workspace. An unrecognized GUI argument is a
 startup error; it is not silently ignored.
+
+`--project-launch-intent` cannot be combined with `--project`, create-project fields, or
+`--builtin-view`. A Hub handshake (`--hub-session <uuid-v4> --hub-protocol 1`) requires exactly a
+Hub-originated versioned launch intent. It deliberately rejects the legacy Hub `--project` shape,
+so the cross-process operation identity cannot be regenerated in the Editor process. Direct CLI
+use of `--project` and `--create-project` remains a local input convenience; each is converted to
+the same typed intent before project preflight.
 
 ## Headless Commandlets
 

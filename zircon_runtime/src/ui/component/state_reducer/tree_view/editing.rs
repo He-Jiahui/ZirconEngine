@@ -96,7 +96,7 @@ pub(in crate::ui::component::state_reducer) fn apply_commit(
     let Some(node_id) = editing_node_id(state, descriptor) else {
         return Ok(false);
     };
-    let Some(rename_text) = super::string_value(value) else {
+    let Some(rename_text) = super::string_value(value).map(str::to_owned) else {
         state.validation = UiValidationState::error(format!(
             "tree rename commit requires string text for `{property}`"
         ));
@@ -141,10 +141,11 @@ fn focused_edit_target(
     }
 
     let index = super::current_tree_index(state, descriptor, &node_ids);
-    let node_id = node_ids.get(index)?.clone();
-    let editing_text =
-        tree_node_label(state, descriptor, &node_id).unwrap_or_else(|| node_id.clone());
-    Some((index, node_id, editing_text))
+    let node_id = node_ids.into_iter().nth(index)?;
+    let editing_text = tree_node_label(state, descriptor, &node_id)
+        .unwrap_or(node_id)
+        .to_string();
+    Some((index, node_id.to_string(), editing_text))
 }
 
 fn clear_editing_state(state: &mut UiComponentState, descriptor: &UiComponentDescriptor) {
@@ -183,13 +184,14 @@ fn editing_node_id(state: &UiComponentState, descriptor: &UiComponentDescriptor)
         })
         .filter_map(super::string_value)
         .find(|node_id| !node_id.is_empty())
+        .map(str::to_owned)
 }
 
-fn tree_node_label(
-    state: &UiComponentState,
-    descriptor: &UiComponentDescriptor,
+fn tree_node_label<'a>(
+    state: &'a UiComponentState,
+    descriptor: &'a UiComponentDescriptor,
     target_id: &str,
-) -> Option<String> {
+) -> Option<&'a str> {
     for property in super::NODE_PROPERTIES {
         if let Some(value) = state.values.get(property).or_else(|| {
             descriptor
@@ -204,16 +206,16 @@ fn tree_node_label(
     None
 }
 
-fn find_tree_node_label(value: &UiValue, target_id: &str) -> Option<String> {
+fn find_tree_node_label<'a>(value: &'a UiValue, target_id: &str) -> Option<&'a str> {
     match value {
         UiValue::Array(values) => values
             .iter()
             .find_map(|value| find_tree_node_label(value, target_id)),
         UiValue::String(value) | UiValue::Enum(value) => {
-            (value == target_id).then(|| value.clone())
+            (value == target_id).then_some(value.as_str())
         }
         UiValue::Map(values) => {
-            if tree_node_identity(values).as_deref() == Some(target_id) {
+            if tree_node_identity(values) == Some(target_id) {
                 return tree_node_display_text(values);
             }
             for property in ["children", "nodes", "items", "options"] {
@@ -229,22 +231,29 @@ fn find_tree_node_label(value: &UiValue, target_id: &str) -> Option<String> {
     }
 }
 
-fn tree_node_identity(values: &BTreeMap<String, UiValue>) -> Option<String> {
+fn tree_node_identity(values: &BTreeMap<String, UiValue>) -> Option<&str> {
     for property in ["id", "value", "row_id", "rowId", "node_id", "nodeId", "key"] {
-        if let Some(value) = values.get(property).and_then(super::string_value) {
+        if let Some(value) = values.get(property).and_then(borrowed_string_value) {
             return Some(value);
         }
     }
     None
 }
 
-fn tree_node_display_text(values: &BTreeMap<String, UiValue>) -> Option<String> {
+fn tree_node_display_text(values: &BTreeMap<String, UiValue>) -> Option<&str> {
     for property in ["label", "text", "name", "title", "id", "value"] {
-        if let Some(value) = values.get(property).and_then(super::string_value) {
+        if let Some(value) = values.get(property).and_then(borrowed_string_value) {
             return Some(value);
         }
     }
     None
+}
+
+fn borrowed_string_value(value: &UiValue) -> Option<&str> {
+    match value {
+        UiValue::String(value) | UiValue::Enum(value) => Some(value),
+        _ => None,
+    }
 }
 
 fn editing_node_id_property(
@@ -310,3 +319,7 @@ fn preferred_property(
 fn is_editing_text_property(property: &str) -> bool {
     EDITING_TEXT_PROPERTIES.contains(&property)
 }
+
+#[cfg(test)]
+#[path = "editing/borrowed_node_lookup_tests.rs"]
+mod borrowed_node_lookup_tests;

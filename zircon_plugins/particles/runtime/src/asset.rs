@@ -384,20 +384,19 @@ pub(crate) fn evaluate_scalar_curve(keys: &[ParticleScalarKey], t: Real) -> Real
         return 1.0;
     }
     let t = t.clamp(0.0, 1.0);
-    for window in keys.windows(2) {
-        let a = window[0];
-        let b = window[1];
-        if t >= a.t && t <= b.t {
-            let span = (b.t - a.t).max(Real::EPSILON);
-            let local = ((t - a.t) / span).clamp(0.0, 1.0);
-            return a.value + (b.value - a.value) * local;
-        }
-    }
     if t < keys[0].t {
-        keys[0].value
-    } else {
-        keys[keys.len() - 1].value
+        return keys[0].value;
     }
+    let right_index = keys.partition_point(|key| key.t < t);
+    if right_index == keys.len() {
+        return keys[keys.len() - 1].value;
+    }
+    let left_index = right_index.saturating_sub(1);
+    let a = keys[left_index];
+    let b = keys[right_index];
+    let span = (b.t - a.t).max(Real::EPSILON);
+    let local = ((t - a.t) / span).clamp(0.0, 1.0);
+    a.value + (b.value - a.value) * local
 }
 
 pub(crate) fn evaluate_color_curve(keys: &[ParticleColorKey], t: Real) -> Vec4 {
@@ -405,20 +404,19 @@ pub(crate) fn evaluate_color_curve(keys: &[ParticleColorKey], t: Real) -> Vec4 {
         return Vec4::ONE;
     }
     let t = t.clamp(0.0, 1.0);
-    for window in keys.windows(2) {
-        let a = window[0];
-        let b = window[1];
-        if t >= a.t && t <= b.t {
-            let span = (b.t - a.t).max(Real::EPSILON);
-            let local = ((t - a.t) / span).clamp(0.0, 1.0);
-            return a.value.lerp(b.value, local);
-        }
-    }
     if t < keys[0].t {
-        keys[0].value
-    } else {
-        keys[keys.len() - 1].value
+        return keys[0].value;
     }
+    let right_index = keys.partition_point(|key| key.t < t);
+    if right_index == keys.len() {
+        return keys[keys.len() - 1].value;
+    }
+    let left_index = right_index.saturating_sub(1);
+    let a = keys[left_index];
+    let b = keys[right_index];
+    let span = (b.t - a.t).max(Real::EPSILON);
+    let local = ((t - a.t) / span).clamp(0.0, 1.0);
+    a.value.lerp(b.value, local)
 }
 
 fn normalize_scalar_keys(mut keys: Vec<ParticleScalarKey>) -> Vec<ParticleScalarKey> {

@@ -6,17 +6,16 @@ use super::{
 impl HostDocumentTabPointerBridge {
     pub(crate) fn sync(&mut self, layout: HostDocumentTabPointerLayout) -> bool {
         if self.layout == layout {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.document_tab.receipt_sync_reuse_count",
+                1
+            );
             return false;
         }
 
         self.layout = layout;
-        self.measured_frames = self
-            .layout
-            .surfaces
-            .iter()
-            .map(|surface| (surface.key.clone(), vec![None; surface.items.len()]))
-            .collect();
-        self.rebuild_surface();
+        zircon_runtime::profile_counter!("editor", "ui.document_tab.receipt_sync_update_count", 1);
         true
     }
 }

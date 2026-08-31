@@ -1,9 +1,9 @@
 use std::io::Read;
 
 use crate::container::support::{
-    KTX2_HEADER_SIZE, KTX2_LEVEL_INDEX_ENTRY_SIZE, KTX2_SUPERCOMPRESSION_NONE,
-    KTX2_SUPERCOMPRESSION_ZLIB, KTX2_SUPERCOMPRESSION_ZSTANDARD, parse_error, parse_error_value,
-    read_u32_le, read_u64_le,
+    parse_error, parse_error_value, read_u32_le, read_u64_le, KTX2_HEADER_SIZE,
+    KTX2_LEVEL_INDEX_ENTRY_SIZE, KTX2_SUPERCOMPRESSION_NONE, KTX2_SUPERCOMPRESSION_ZLIB,
+    KTX2_SUPERCOMPRESSION_ZSTANDARD,
 };
 use zircon_runtime::asset::{AssetImportContext, AssetImportError};
 
@@ -65,13 +65,6 @@ pub(super) fn expand_standard_supercompressed_levels(
                     format!("ktx2 level {level_index} compressed payload is truncated"),
                 )
             })?;
-        let decoded = decode_standard_supercompressed_level(
-            context,
-            level_index,
-            supercompression,
-            compressed,
-            expected_length,
-        )?;
         let aligned_len = align_eight(rewritten.len()).ok_or_else(|| {
             parse_error_value(
                 context,
@@ -80,12 +73,19 @@ pub(super) fn expand_standard_supercompressed_levels(
         })?;
         rewritten.resize(aligned_len, 0);
         let decoded_offset = rewritten.len();
-        rewritten.extend_from_slice(&decoded);
+        let decoded_len = append_standard_supercompressed_level(
+            context,
+            level_index,
+            supercompression,
+            compressed,
+            expected_length,
+            &mut rewritten,
+        )?;
         write_level_index_entry(
             &mut rewritten,
             entry_offset,
             decoded_offset,
-            decoded.len(),
+            decoded_len,
             context,
         )?;
     }
@@ -227,13 +227,14 @@ pub(super) fn level_entry_offset(
         .ok_or_else(|| parse_error_value(context, "ktx2 level index entry offset overflows usize"))
 }
 
-fn decode_standard_supercompressed_level(
+fn append_standard_supercompressed_level(
     context: &AssetImportContext,
     level_index: u32,
     supercompression: u32,
     compressed: &[u8],
     expected_length: usize,
-) -> Result<Vec<u8>, AssetImportError> {
+    output: &mut Vec<u8>,
+) -> Result<usize, AssetImportError> {
     match supercompression {
         KTX2_SUPERCOMPRESSION_ZSTANDARD => {
             let decoder = zstd::stream::read::Decoder::new(compressed).map_err(|error| {
@@ -242,11 +243,11 @@ fn decode_standard_supercompressed_level(
                     format!("decode KTX2 zstd level {level_index}: {error}"),
                 )
             })?;
-            read_decoded_level(context, level_index, decoder, expected_length)
+            append_decoded_level(context, level_index, decoder, expected_length, output)
         }
         KTX2_SUPERCOMPRESSION_ZLIB => {
             let decoder = flate2::read::ZlibDecoder::new(compressed);
-            read_decoded_level(context, level_index, decoder, expected_length)
+            append_decoded_level(context, level_index, decoder, expected_length, output)
         }
         _ => parse_error(
             context,
@@ -257,20 +258,27 @@ fn decode_standard_supercompressed_level(
     }
 }
 
-fn read_decoded_level(
+fn append_decoded_level(
     context: &AssetImportContext,
     level_index: u32,
     mut reader: impl Read,
     expected_length: usize,
-) -> Result<Vec<u8>, AssetImportError> {
+    output: &mut Vec<u8>,
+) -> Result<usize, AssetImportError> {
     let limit = expected_length.checked_add(1).ok_or_else(|| {
         parse_error_value(
             context,
             format!("ktx2 level {level_index} decoded length limit overflows usize"),
         )
     })?;
-    let mut decoded = Vec::new();
-    reader
+    let decoded_offset = output.len();
+    output.try_reserve_exact(expected_length).map_err(|error| {
+        parse_error_value(
+            context,
+            format!("reserve KTX2 level {level_index} decoded payload: {error}"),
+        )
+    })?;
+    let read_result = reader
         .by_ref()
         .take(u64::try_from(limit).map_err(|_| {
             parse_error_value(
@@ -278,20 +286,26 @@ fn read_decoded_level(
                 format!("ktx2 level {level_index} decoded length limit overflows u64"),
             )
         })?)
-        .read_to_end(&mut decoded)
-        .map_err(|error| {
-            parse_error_value(context, format!("decode KTX2 level {level_index}: {error}"))
-        })?;
-    if decoded.len() != expected_length {
+        .read_to_end(output);
+    if let Err(error) = read_result {
+        output.truncate(decoded_offset);
+        return Err(parse_error_value(
+            context,
+            format!("decode KTX2 level {level_index}: {error}"),
+        ));
+    }
+    let decoded_len = output.len() - decoded_offset;
+    if decoded_len != expected_length {
+        output.truncate(decoded_offset);
         return parse_error(
             context,
             format!(
                 "decode KTX2 level {level_index}: expected {expected_length} bytes, got {}",
-                decoded.len()
+                decoded_len
             ),
         );
     }
-    Ok(decoded)
+    Ok(decoded_len)
 }
 
 fn align_eight(value: usize) -> Option<usize> {
@@ -348,4 +362,197 @@ fn write_u64_le(
     })?;
     destination.copy_from_slice(&value.to_le_bytes());
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::hint::black_box;
+    use std::io::Cursor;
+    use std::time::Instant;
+
+    use super::*;
+    use zircon_runtime::asset::AssetUri;
+
+    const SAMPLE_PAIRS: usize = 21;
+
+    #[test]
+    fn import_pipeline_hotpath_direct_decode_append_matches_temporary_reference() {
+        let context = test_context();
+        let payload = patterned_bytes(65_537);
+        let mut optimized = vec![7, 11, 13];
+        let mut legacy = optimized.clone();
+
+        let appended = append_decoded_level(
+            &context,
+            0,
+            Cursor::new(payload.as_slice()),
+            payload.len(),
+            &mut optimized,
+        )
+        .expect("direct decode append succeeds");
+        legacy_append_decoded_level(&payload, payload.len(), &mut legacy);
+
+        assert_eq!(appended, payload.len());
+        assert_eq!(optimized, legacy);
+
+        let before_failure = optimized.clone();
+        let error = append_decoded_level(
+            &context,
+            1,
+            Cursor::new(payload.as_slice()),
+            payload.len() - 1,
+            &mut optimized,
+        )
+        .expect_err("oversized decode must be rejected");
+        assert!(error
+            .to_string()
+            .contains("expected 65536 bytes, got 65537"));
+        assert_eq!(optimized, before_failure, "failed append must roll back");
+    }
+
+    #[test]
+    #[ignore = "release performance gate"]
+    fn import_pipeline_hotpath_direct_decode_append_release_benchmark() {
+        const PAYLOAD_BYTES: usize = 1_048_576;
+        const REQUIRED_IMPROVEMENT_PERCENT: u128 = 20;
+
+        let context = test_context();
+        let payload = patterned_bytes(PAYLOAD_BYTES);
+        let mut legacy_output = Vec::with_capacity(PAYLOAD_BYTES);
+        let mut optimized_output = Vec::with_capacity(PAYLOAD_BYTES);
+        legacy_append_decoded_level(&payload, PAYLOAD_BYTES, &mut legacy_output);
+        append_decoded_level(
+            &context,
+            0,
+            Cursor::new(payload.as_slice()),
+            PAYLOAD_BYTES,
+            &mut optimized_output,
+        )
+        .expect("optimized warmup succeeds");
+        assert_eq!(optimized_output, legacy_output);
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy_samples.push(measure_legacy_append(
+                    &payload,
+                    PAYLOAD_BYTES,
+                    &mut legacy_output,
+                ));
+                optimized_samples.push(measure_optimized_append(
+                    &context,
+                    &payload,
+                    PAYLOAD_BYTES,
+                    &mut optimized_output,
+                ));
+            } else {
+                optimized_samples.push(measure_optimized_append(
+                    &context,
+                    &payload,
+                    PAYLOAD_BYTES,
+                    &mut optimized_output,
+                ));
+                legacy_samples.push(measure_legacy_append(
+                    &payload,
+                    PAYLOAD_BYTES,
+                    &mut legacy_output,
+                ));
+            }
+        }
+
+        let legacy_p95 = nearest_rank_p95(&legacy_samples);
+        let optimized_p95 = nearest_rank_p95(&optimized_samples);
+        let improvement = improvement_percent(legacy_p95, optimized_p95);
+        println!(
+            "PERF_RESULT plugins07_direct_decode_append sample_pairs={} order=alternating_legacy_first_even payload_bytes={} legacy_temporary_buffers_per_sample=1 optimized_temporary_buffers_per_sample=0 legacy_payload_copies_per_sample=2 optimized_payload_copies_per_sample=1 legacy_ns={} optimized_ns={} legacy_p95_ns={} optimized_p95_ns={} threshold_percent={} improvement_percent={}",
+            SAMPLE_PAIRS,
+            PAYLOAD_BYTES,
+            samples_csv(&legacy_samples),
+            samples_csv(&optimized_samples),
+            legacy_p95,
+            optimized_p95,
+            REQUIRED_IMPROVEMENT_PERCENT,
+            improvement
+        );
+        assert!(
+            improvement >= REQUIRED_IMPROVEMENT_PERCENT,
+            "direct decode append improved {improvement}%, below {REQUIRED_IMPROVEMENT_PERCENT}%"
+        );
+    }
+
+    fn test_context() -> AssetImportContext {
+        AssetImportContext::new(
+            "fixture.ktx2".into(),
+            AssetUri::parse("res://textures/fixture.ktx2").expect("valid fixture URI"),
+            Vec::new(),
+            Default::default(),
+        )
+    }
+
+    fn patterned_bytes(len: usize) -> Vec<u8> {
+        (0..len)
+            .map(|index| index.wrapping_mul(37).wrapping_add(11) as u8)
+            .collect()
+    }
+
+    fn legacy_append_decoded_level(payload: &[u8], expected_length: usize, output: &mut Vec<u8>) {
+        let mut decoded = Vec::new();
+        Cursor::new(payload)
+            .take((expected_length + 1) as u64)
+            .read_to_end(&mut decoded)
+            .unwrap();
+        assert_eq!(decoded.len(), expected_length);
+        output.extend_from_slice(&decoded);
+    }
+
+    fn measure_legacy_append(payload: &[u8], expected_length: usize, output: &mut Vec<u8>) -> u128 {
+        output.clear();
+        let started = Instant::now();
+        legacy_append_decoded_level(black_box(payload), expected_length, output);
+        let elapsed = started.elapsed().as_nanos();
+        black_box(output.as_slice());
+        elapsed
+    }
+
+    fn measure_optimized_append(
+        context: &AssetImportContext,
+        payload: &[u8],
+        expected_length: usize,
+        output: &mut Vec<u8>,
+    ) -> u128 {
+        output.clear();
+        let started = Instant::now();
+        append_decoded_level(
+            context,
+            0,
+            Cursor::new(black_box(payload)),
+            expected_length,
+            output,
+        )
+        .expect("optimized benchmark append succeeds");
+        let elapsed = started.elapsed().as_nanos();
+        black_box(output.as_slice());
+        elapsed
+    }
+
+    fn nearest_rank_p95(samples: &[u128]) -> u128 {
+        assert_eq!(samples.len(), SAMPLE_PAIRS);
+        let mut ordered = samples.to_vec();
+        ordered.sort_unstable();
+        ordered[(ordered.len() * 95).div_ceil(100) - 1]
+    }
+
+    fn improvement_percent(legacy: u128, optimized: u128) -> u128 {
+        assert!(legacy > 0);
+        legacy.saturating_sub(optimized) * 100 / legacy
+    }
+
+    fn samples_csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    }
 }

@@ -147,7 +147,6 @@ pub(super) fn progress_render_commands(
         return Vec::new();
     }
     let visual = ProgressVisual::resolve(metadata);
-    let frame = pixel_aligned_frame(frame);
     if frame.width <= visual.min_frame_extent || frame.height <= visual.min_frame_extent {
         return Vec::new();
     }
@@ -493,15 +492,6 @@ fn line_height(
                 .map(|ratio| font_size * ratio)
         })
         .unwrap_or(default)
-}
-
-fn pixel_aligned_frame(frame: UiFrame) -> UiFrame {
-    UiFrame::new(
-        frame.x.round(),
-        frame.y.round(),
-        frame.width.round().max(1.0),
-        frame.height.round().max(1.0),
-    )
 }
 
 fn css_color(color: UiRgbaColor) -> String {

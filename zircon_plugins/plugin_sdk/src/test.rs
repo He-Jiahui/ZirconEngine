@@ -7,7 +7,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
-use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
+use zircon_runtime::core::{
+    CoreError, CoreHandle, CoreRuntime, ModuleDescriptor, TimePolicyError, TimePolicyTransaction,
+};
 use zircon_runtime::plugin::{
     RuntimeExtensionCatalogReport, RuntimeExtensionRegistryError, RuntimePlugin,
     RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
@@ -34,6 +36,9 @@ pub enum TestRuntimeError {
         action: &'static str,
         source: RuntimeExtensionRegistryError,
     },
+    TimePolicy {
+        source: TimePolicyError,
+    },
 }
 
 impl fmt::Display for TestRuntimeError {
@@ -55,6 +60,7 @@ impl fmt::Display for TestRuntimeError {
             Self::RuntimeExtensionRegistry { action, source } => {
                 write!(f, "test runtime {action} failed: {source}")
             }
+            Self::TimePolicy { source } => write!(f, "test runtime time policy failed: {source}"),
         }
     }
 }
@@ -64,6 +70,7 @@ impl Error for TestRuntimeError {
         match self {
             Self::Core { source, .. } => Some(source),
             Self::RuntimeExtensionRegistry { source, .. } => Some(source),
+            Self::TimePolicy { source } => Some(source),
             Self::RuntimeExtensionCatalog { .. } => None,
         }
     }
@@ -149,18 +156,12 @@ impl TestRuntime {
         })
     }
 
-    pub fn advance_time_by(
-        &self,
-        real_delta: Duration,
-    ) -> zircon_runtime::core::RuntimeTimeAdvance {
+    pub fn advance_time_by(&self, real_delta: Duration) -> zircon_runtime::core::FrameTimeSnapshot {
         self.runtime
             .advance_time_by(real_delta, self.max_fixed_steps)
     }
 
-    pub fn advance_time_by_seconds(
-        &self,
-        seconds: f64,
-    ) -> zircon_runtime::core::RuntimeTimeAdvance {
+    pub fn advance_time_by_seconds(&self, seconds: f64) -> zircon_runtime::core::FrameTimeSnapshot {
         self.advance_time_by(duration_from_seconds(seconds))
     }
 
@@ -280,7 +281,11 @@ impl TestRuntimeBuilder {
     pub fn build(self) -> Result<TestRuntime> {
         let runtime = CoreRuntime::new();
         if let Some(fixed_timestep) = self.fixed_timestep {
-            runtime.set_fixed_timestep(fixed_timestep);
+            runtime
+                .apply_time_policy(TimePolicyTransaction::new(
+                    runtime.time_policy().with_fixed_timestep(fixed_timestep),
+                ))
+                .map_err(|source| TestRuntimeError::TimePolicy { source })?;
         }
 
         for module in &self.base_modules {

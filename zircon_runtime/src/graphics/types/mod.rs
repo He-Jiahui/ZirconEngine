@@ -29,13 +29,13 @@ pub(crate) use viewport_camera_stack_attachment_policy::{
 pub(crate) use viewport_camera_stack_output_policy::ViewportCameraStackOutputPolicy;
 pub use viewport_frame::ViewportFrame;
 pub use viewport_frame_texture_handle::ViewportFrameTextureHandle;
-pub(crate) use viewport_render_frame::ViewportRenderFrame;
-pub(crate) use viewport_render_output_target::{
-    ViewportRenderOutputTarget, ViewportTextureGraphImportPlan, ViewportTextureGraphImportStatus,
-    ViewportTextureWritebackPlan, ViewportTextureWritebackStatus,
-};
+pub(crate) use viewport_render_frame::{RendererPostProcessSnapshot, ViewportRenderFrame};
 #[cfg(test)]
 pub(crate) use viewport_render_output_target::{
     FRAMEWORK_OUTPUT_FORMAT_LABEL, LINEAR_OUTPUT_FORMAT_LABEL,
+};
+pub(crate) use viewport_render_output_target::{
+    ViewportRenderOutputTarget, ViewportTextureGraphImportPlan, ViewportTextureGraphImportStatus,
+    ViewportTextureWritebackPlan, ViewportTextureWritebackStatus,
 };
 pub use viewport_render_region::ViewportRenderRegion;

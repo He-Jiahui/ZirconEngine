@@ -6,7 +6,7 @@ pub(in super::super) const EXPECTED_RUNTIME_10_FUNCTION_TABLES: &[(&str, &str, u
     ),
     (
         "zircon_runtime_interface/src/runtime_api/api_table.rs",
-        "ZrRuntimeApiV7",
+        "ZrRuntimeApiV8",
         25,
     ),
     (

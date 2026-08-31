@@ -13,8 +13,7 @@ pub use management_policy::{
     VmPluginMemoryPolicy,
 };
 pub use state_migration::{
-    migrate_vm_state_blob, VmStateFieldRename, VmStateMigrationError, VmStateSchema,
-    VmStateTypeSchema,
+    migrate_vm_state_blob, VmStateMigrationError, VmStateSchema, VmStateTypeSchema,
 };
 pub use vm_plugin_instance::VmPluginInstance;
 pub use vm_plugin_manifest::VmPluginManifest;
@@ -27,5 +26,5 @@ pub use vm_plugin_package_discovery::{
 pub(crate) use vm_plugin_package_discovery::{VmPluginDiscoveryWorker, VmPluginPayloadCache};
 pub use vm_plugin_package_source::VmPluginPackageSource;
 pub use vm_state_blob::{
-    VmStateBlob, VmStateObject, VmStateTypeIdentity, VM_STATE_SCHEMA_VERSION_V2,
+    VmStateBlob, VmStateFieldValue, VmStateObject, VmStateTypeIdentity, VM_STATE_SCHEMA_VERSION_V3,
 };

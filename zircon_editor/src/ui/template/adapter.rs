@@ -1,4 +1,5 @@
-use std::collections::BTreeMap;
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 
 #[cfg(test)]
 use zircon_runtime::ui::template::UiTemplateInstance;
@@ -7,9 +8,13 @@ use zircon_runtime_interface::ui::template::UiBindingRef;
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::template::EditorTemplateError;
 
+#[cfg(test)]
+#[path = "adapter/hash_index_tests.rs"]
+mod hash_index_tests;
+
 #[derive(Default)]
 pub struct EditorTemplateAdapter {
-    bindings: BTreeMap<String, EditorUiBinding>,
+    bindings: HashMap<String, EditorUiBinding>,
 }
 
 impl EditorTemplateAdapter {
@@ -19,11 +24,15 @@ impl EditorTemplateAdapter {
         binding: EditorUiBinding,
     ) -> Result<(), EditorTemplateError> {
         let binding_id = binding_id.into();
-        if self.bindings.contains_key(&binding_id) {
-            return Err(EditorTemplateError::DuplicateBinding { binding_id });
+        match self.bindings.entry(binding_id) {
+            Entry::Vacant(entry) => {
+                entry.insert(binding);
+                Ok(())
+            }
+            Entry::Occupied(entry) => Err(EditorTemplateError::DuplicateBinding {
+                binding_id: entry.key().clone(),
+            }),
         }
-        self.bindings.insert(binding_id, binding);
-        Ok(())
     }
 
     pub fn resolve_binding(

@@ -2,15 +2,15 @@ use zircon_editor::core::asset::{
     AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
     AssetTypePresentation, ThumbnailProviderDescriptor,
 };
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 use zircon_editor::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
 };
 use zircon_editor::core::editor_extension::{
-    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError,
 };
-use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, EditorAuthoringContributionBatch, EditorAuthoringSurface,
 };
@@ -32,17 +32,11 @@ pub const NET_REPLICATION_SCHEMA_COMPILE_OPERATION: &str = "net.replication_sche
 pub const NET_REPLICATION_SCHEMA_CREATE_OPERATION: &str = "net.replication_schema.create";
 
 pub const NET_AUTHORING_SURFACES: &[EditorAuthoringSurface<'static>] = &[
-    EditorAuthoringSurface::new(
-        NET_AUTHORING_VIEW_ID,
-        "Network",
-        "Networking",
-        "Plugins/Network",
-    ),
+    EditorAuthoringSurface::new(NET_AUTHORING_VIEW_ID, "Network", "Networking"),
     EditorAuthoringSurface::new(
         NET_DIAGNOSTICS_VIEW_ID,
         "Network Diagnostics",
         "Diagnostics",
-        "Plugins/Network/Diagnostics",
     ),
 ];
 
@@ -61,46 +55,24 @@ pub fn register_net_authoring_workflows(
         registry,
         EditorAuthoringContributionBatch {
             commands: vec![
-                configure_operation(
-                    listener_config.clone(),
-                    "Configure Network Listener",
-                    "Plugins/Network/Listener",
-                    "net.listener_config.v1",
-                ),
-                configure_operation(
-                    route_config.clone(),
-                    "Configure Network Route",
-                    "Plugins/Network/Route",
-                    "net.route_config.v1",
-                ),
-                EditorCommandDescriptor::operation(
-                    schema_open.clone(),
-                    "Open Network Replication Schema",
-                )
-                .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
-                EditorCommandDescriptor::operation(
-                    schema_validate.clone(),
-                    "Validate Network Replication Schema",
-                )
-                .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
-                EditorCommandDescriptor::operation(
-                    schema_compile.clone(),
-                    "Compile Network Replication Schema",
-                )
-                .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
-                EditorCommandDescriptor::operation(
-                    schema_create.clone(),
-                    "Create Network Replication Schema",
-                )
-                .with_menu_path("Plugins/Network/Replication Schema")
-                .with_payload_schema_id("net.replication_schema.v1")
-                .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
+                configure_operation(listener_config.clone(), "net.listener_config.v1"),
+                configure_operation(route_config.clone(), "net.route_config.v1"),
+                EditorCommandDescriptor::operation(schema_open.clone())
+                    .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
+                EditorCommandDescriptor::operation(schema_validate.clone())
+                    .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
+                EditorCommandDescriptor::operation(schema_compile.clone())
+                    .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
+                EditorCommandDescriptor::operation(schema_create.clone())
+                    .with_menu_path(EditorCommandMenuPath::builtin(
+                        &schema_create,
+                        "plugins",
+                        &["network"],
+                    ))
+                    .with_payload_schema_id("net.replication_schema.v1")
+                    .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
             ],
-            menu_items: vec![
-                menu_item("Plugins/Network/Listener", listener_config.clone()),
-                menu_item("Plugins/Network/Route", route_config.clone()),
-                menu_item("Plugins/Network/Replication Schema", schema_create.clone()),
-            ],
+            menu_items: Vec::new(),
             inspector_customizations: vec![
                 InspectorCustomizationDescriptor::new(
                     "net.ListenerConfig",
@@ -184,18 +156,15 @@ pub fn register_net_authoring_workflows(
 
 fn configure_operation(
     path: EditorOperationPath,
-    display_name: &'static str,
-    menu_path: &'static str,
     payload_schema_id: &'static str,
 ) -> EditorCommandDescriptor {
-    EditorCommandDescriptor::operation(path, display_name)
-        .with_menu_path(menu_path)
+    EditorCommandDescriptor::operation(path.clone())
+        .with_menu_path(EditorCommandMenuPath::builtin(
+            &path,
+            "plugins",
+            &["network"],
+        ))
         .with_payload_schema_id(payload_schema_id)
-        .with_required_capabilities([NET_AUTHORING_CAPABILITY])
-}
-
-fn menu_item(path: &'static str, operation: EditorOperationPath) -> EditorMenuItemDescriptor {
-    EditorMenuItemDescriptor::new(path, operation)
         .with_required_capabilities([NET_AUTHORING_CAPABILITY])
 }
 

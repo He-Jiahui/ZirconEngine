@@ -11,7 +11,10 @@ fn editor_manager_bootstrap_prefers_global_default_layout() {
     config
         .set_value(
             "editor.workbench.default_layout",
-            serde_json::to_value(&custom_layout).unwrap(),
+            crate::ui::workbench::layout_persistence_document::encode_default_layout_value(
+                custom_layout.clone(),
+            )
+            .unwrap(),
         )
         .unwrap();
 
@@ -39,7 +42,10 @@ fn editor_manager_bootstrap_repairs_empty_global_default_layout() {
     config
         .set_value(
             "editor.workbench.default_layout",
-            serde_json::to_value(&empty_layout).unwrap(),
+            crate::ui::workbench::layout_persistence_document::encode_default_layout_value(
+                empty_layout.clone(),
+            )
+            .unwrap(),
         )
         .unwrap();
 
@@ -49,9 +55,9 @@ fn editor_manager_bootstrap_repairs_empty_global_default_layout() {
     let layout = manager.current_layout();
 
     assert_eq!(layout.active_main_page, MainPageId::new("global-layout"));
+    let drawers = layout.active_activity_window_drawers();
 
-    let left_top = layout
-        .drawers
+    let left_top = drawers
         .get(&ActivityDrawerSlot::LeftTop)
         .expect("left top drawer");
     assert_eq!(
@@ -66,8 +72,7 @@ fn editor_manager_bootstrap_repairs_empty_global_default_layout() {
         Some(ViewInstanceId::new("editor.hierarchy#1"))
     );
 
-    let right_top = layout
-        .drawers
+    let right_top = drawers
         .get(&ActivityDrawerSlot::RightTop)
         .expect("right top drawer");
     assert_eq!(
@@ -75,8 +80,7 @@ fn editor_manager_bootstrap_repairs_empty_global_default_layout() {
         vec![ViewInstanceId::new("editor.inspector#1")]
     );
 
-    let bottom = layout
-        .drawers
+    let bottom = drawers
         .get(&ActivityDrawerSlot::Bottom)
         .expect("bottom drawer");
     assert_eq!(
@@ -88,16 +92,17 @@ fn editor_manager_bootstrap_repairs_empty_global_default_layout() {
         ]
     );
 
-    let workbench_page = layout
+    let workbench_page_id = layout
         .main_pages
         .iter()
         .find_map(|page| match page {
-            MainHostPageLayout::WorkbenchPage {
-                document_workspace, ..
-            } => Some(document_workspace),
+            MainHostPageLayout::WorkbenchPage { id, .. } => Some(id),
             MainHostPageLayout::ExclusiveActivityWindowPage { .. } => None,
         })
         .expect("workbench page");
+    let workbench_page = layout
+        .content_workspace_for_page(workbench_page_id)
+        .expect("workbench page should resolve its activity-window content workspace");
     let DocumentNode::Tabs(document_tabs) = workbench_page else {
         panic!("expected root document tabs");
     };

@@ -14,6 +14,8 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
     let resources_events = read_runtime_src("scene/tests/ecs_schedule/resources_events.rs");
     let schedule_plan = read_runtime_src("scene/tests/ecs_schedule/schedule_plan.rs");
     let world_driver = read_runtime_src("scene/tests/ecs_schedule/world_driver.rs");
+    let world_time_controller =
+        read_runtime_src("scene/tests/ecs_schedule/world_time_controller.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -33,6 +35,7 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
             "mod resources_events;",
             "mod schedule_plan;",
             "mod world_driver;",
+            "mod world_time_controller;",
         ],
     );
     assert_eq!(
@@ -102,6 +105,14 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
             "fn world_driver_runs_runtime_scene_systems_in_schedule_order",
         ],
     );
+    assert_contains_all(
+        "world time controller child owns multi-World timing contracts",
+        &world_time_controller,
+        &[
+            "fn worlds_derive_virtual_and_fixed_time_independently_from_one_outer_frame",
+            "fn world_fixed_debt_uses_the_outer_budget_not_another_clock_step_count",
+        ],
+    );
 
     let migrated_test_count = [
         resources_events.as_str(),
@@ -113,8 +124,8 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        migrated_test_count, 37,
-        "new scene ECS schedule child owners should preserve the 37 tests moved out of the parent"
+        migrated_test_count, 42,
+        "scene ECS schedule child owners should preserve the current 42 moved behavior tests"
     );
     let schedule_family_test_count = [
         conflict_graph.as_str(),
@@ -126,13 +137,14 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
         resources_events.as_str(),
         schedule_plan.as_str(),
         world_driver.as_str(),
+        world_time_controller.as_str(),
     ]
     .iter()
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        schedule_family_test_count, 57,
-        "scene ECS schedule folder should retain the full 57-test family"
+        schedule_family_test_count, 66,
+        "scene ECS schedule folder should retain the current 66-test family"
     );
 
     for (path, source) in [
@@ -172,6 +184,10 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
         (
             "scene/tests/ecs_schedule/world_driver.rs",
             world_driver.as_str(),
+        ),
+        (
+            "scene/tests/ecs_schedule/world_time_controller.rs",
+            world_time_controller.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

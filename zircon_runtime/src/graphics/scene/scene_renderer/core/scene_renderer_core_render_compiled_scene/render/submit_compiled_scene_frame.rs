@@ -10,103 +10,125 @@ use crate::core::framework::render::{
     RenderPostProcessEffectStackSettings, RenderSceneVelocityReadbackReport, RenderTonemapOperator,
     RenderTonemapSettings,
 };
+use crate::graphics::EnvironmentIblBakeReservation;
+use crate::graphics::backend::RenderBackend;
 #[cfg(test)]
 use crate::graphics::backend::{read_buffer_f32x4, read_texture_rgba, read_texture_rgba16float_3d};
 use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::scene_renderer::environment::RealtimeIblPendingSubmission;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_runtime_writeback::{
     IblBakeRuntimeGraphWritebackQueue, PreparedIblBakeRuntimeGraphWriteback,
 };
-use crate::graphics::scene::scene_renderer::environment::RealtimeIblPendingSubmission;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources,
 };
-use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
-use crate::graphics::types::GraphicsError;
-use crate::graphics::types::ViewportRenderFrame;
-use crate::graphics::visibility::{
-    HzbOcclusionCullReadbackStats, HzbOcclusionIndirectArgsReadbackSummary,
+use crate::graphics::scene::scene_renderer::history::{
+    SceneFrameHistoryTextures, SceneHistoryFrameTransaction,
 };
-use crate::graphics::EnvironmentIblBakeReservation;
+use crate::graphics::types::GraphicsError;
+#[cfg(test)]
+use crate::graphics::types::ViewportRenderFrame;
+use crate::render_graph::CompiledRenderGraph;
+use crate::rhi::SubmissionTicket;
 #[cfg(test)]
 use crate::rhi::TextureFormat;
+use zr_rhi_wgpu::{
+    WgpuNativeDiagnosticQueryFrame, WgpuNativeDiagnosticReadbackFrame, WgpuNativeSurfaceFrameTarget,
+};
 
 use super::super::super::scene_renderer_core::SceneRendererCore;
 
+#[path = "submit_compiled_scene_frame/hzb_readback.rs"]
+mod hzb_readback;
+use hzb_readback::attach_hzb_occlusion_readback_stats;
+
 pub(super) struct CompiledSceneFrameSubmissionContext<'a> {
+    pub(super) backend: &'a RenderBackend,
+    #[cfg(test)]
     pub(super) device: &'a wgpu::Device,
+    #[cfg(test)]
     pub(super) queue: &'a wgpu::Queue,
     pub(super) command_buffers: Vec<wgpu::CommandBuffer>,
+    #[cfg(test)]
     pub(super) streamer: &'a ResourceStreamer,
+    #[cfg(test)]
     pub(super) frame: &'a ViewportRenderFrame,
     pub(super) graph_resources: &'a mut RenderGraphExecutionResources,
     pub(super) graph_execution_record: &'a mut RenderGraphExecutionRecord,
-    pub(super) environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
-    pub(super) environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
+    pub(super) prepared_ibl_writeback: Option<PreparedIblBakeRuntimeGraphWriteback>,
+    pub(super) environment_ibl_prepare_error: Option<GraphicsError>,
     pub(super) realtime_ibl_submission: Option<RealtimeIblPendingSubmission>,
-    pub(super) readback_frame_index: Option<u64>,
+    pub(super) diagnostic_frame_index: u64,
+    pub(super) product_diagnostic_frame: Option<WgpuNativeDiagnosticReadbackFrame>,
+    pub(super) product_diagnostic_query_frame: Option<WgpuNativeDiagnosticQueryFrame>,
+    pub(super) surface_target: Option<&'a WgpuNativeSurfaceFrameTarget>,
+    pub(super) history_textures: Option<&'a mut SceneFrameHistoryTextures>,
+    pub(super) history_frame_transaction: SceneHistoryFrameTransaction,
+    pub(super) frame_generation: u64,
+    pub(super) exposure_history_reset_prepared: bool,
 }
 
 impl SceneRendererCore {
     pub(super) fn submit_compiled_scene_frame(
         &mut self,
         ctx: CompiledSceneFrameSubmissionContext<'_>,
-    ) -> Result<(), GraphicsError> {
+    ) -> Result<SubmissionTicket, GraphicsError> {
         let CompiledSceneFrameSubmissionContext {
+            backend,
+            #[cfg(test)]
             device,
+            #[cfg(test)]
             queue,
-            mut command_buffers,
+            command_buffers,
+            #[cfg(test)]
             streamer,
+            #[cfg(test)]
             frame,
             graph_resources,
             graph_execution_record,
-            environment_ibl_bake_request,
-            environment_ibl_bake_reservation,
+            prepared_ibl_writeback,
+            environment_ibl_prepare_error,
             realtime_ibl_submission,
-            readback_frame_index,
+            diagnostic_frame_index,
+            product_diagnostic_frame,
+            product_diagnostic_query_frame,
+            surface_target,
+            history_textures,
+            history_frame_transaction,
+            frame_generation,
+            exposure_history_reset_prepared,
         } = ctx;
 
-        let prepared_ibl_writeback = prepare_environment_ibl_runtime_cache_writeback(
-            &self.ibl_bake_runtime_writebacks,
-            device,
-            streamer,
-            environment_ibl_bake_request,
-            environment_ibl_bake_reservation,
-            graph_resources,
-        );
-        let (mut prepared_ibl_writeback, environment_ibl_prepare_error) =
-            match prepared_ibl_writeback {
-                Ok(prepared) => (prepared, None),
-                Err(error) => (None, Some(error)),
-            };
-        if let Some(command_buffer) = prepared_ibl_writeback
-            .as_mut()
-            .and_then(PreparedIblBakeRuntimeGraphWriteback::take_command_buffer)
-        {
-            command_buffers.push(command_buffer);
-        }
         debug_assert!(!command_buffers.is_empty());
-        queue.submit(command_buffers);
+        let submission_ticket = backend
+            .submit_graphics_command_buffers_with_frame_diagnostics_and_surface(
+                command_buffers,
+                product_diagnostic_frame,
+                product_diagnostic_query_frame,
+                surface_target,
+            )?;
+        let history_domains_report = if let Some(history) = history_textures {
+            if exposure_history_reset_prepared {
+                let committed = history.commit_exposure_history_reset();
+                debug_assert!(committed);
+            }
+            history.commit_history_frame(history_frame_transaction, frame_generation)
+        } else {
+            Default::default()
+        };
+        graph_execution_record.set_history_domains_report(history_domains_report);
+        self.mesh_pipelines
+            .bind_recorded_pipeline_usage_to_submission(submission_ticket);
+        self.scene_environment_cubemap.commit_pending_upload();
+        self.mesh_pipelines
+            .reflection_probes
+            .commit_pending_uploads();
         if let Some(prepared) = prepared_ibl_writeback {
             self.ibl_bake_runtime_writebacks.commit_submitted(prepared);
         }
         if let Some(submission) = realtime_ibl_submission {
             self.realtime_ibl.complete_submission(submission, true);
         }
-        let readback_map_result = if let Some(readback_frame_index) = readback_frame_index {
-            let result = self
-                .readback_queue
-                .begin_map(readback_frame_index)
-                .map_err(|error| GraphicsError::BufferMap(error.to_string()));
-            if result.is_err() {
-                self.readback_queue.abort_frame(readback_frame_index);
-            }
-            result
-        } else {
-            Ok(())
-        };
-
-        #[cfg(not(test))]
-        let _ = (streamer, frame);
         #[cfg(test)]
         attach_scene_velocity_readback_stats(
             device,
@@ -130,38 +152,42 @@ impl SceneRendererCore {
         if let Some(hzb_occlusion_culler) = self.hzb_occlusion_culler.as_ref() {
             attach_hzb_occlusion_readback_stats(
                 hzb_occlusion_culler,
-                readback_frame_index,
+                Some(diagnostic_frame_index),
                 graph_execution_record,
             );
         }
-        let environment_ibl_writeback_result = environment_ibl_prepare_error.map_or_else(
-            || {
-                self.ibl_bake_runtime_writebacks
-                    .poll_completed(device)
-                    .map_err(|error| GraphicsError::Asset(error.to_string()))
-            },
-            Err,
+        graph_resources.retire_transient_backings_after_submission(
+            &mut self.transient_resource_pool,
+            submission_ticket,
         );
-        graph_resources.release_transient_backings_into_pool(&mut self.transient_resource_pool);
         self.transient_resource_pool.end_frame();
         graph_execution_record.set_resource_report(
             graph_execution_record
                 .resource_report()
                 .with_transient_pool_report(self.transient_resource_pool.last_frame_report()),
         );
-        readback_map_result?;
-        environment_ibl_writeback_result?;
-        Ok(())
+        let environment_ibl_error = environment_ibl_prepare_error.map(|error| error.to_string());
+        if environment_ibl_error.is_some() {
+            return Err(GraphicsError::FrameFailedAfterSceneSubmission {
+                scene_submission: submission_ticket,
+                source: Box::new(GraphicsError::SceneSubmissionFinalization {
+                    readback: None,
+                    environment_ibl: environment_ibl_error,
+                }),
+            });
+        }
+        Ok(submission_ticket)
     }
 }
 
-fn prepare_environment_ibl_runtime_cache_writeback(
+pub(super) fn prepare_environment_ibl_runtime_cache_writeback(
     writebacks: &IblBakeRuntimeGraphWritebackQueue,
-    device: &wgpu::Device,
+    backend: &RenderBackend,
     streamer: &ResourceStreamer,
     request: Option<IblBakeArtifactRequest>,
     reservation: Option<EnvironmentIblBakeReservation>,
     graph_resources: &RenderGraphExecutionResources,
+    graph: &CompiledRenderGraph,
 ) -> Result<Option<PreparedIblBakeRuntimeGraphWriteback>, GraphicsError> {
     let Some(reservation) = reservation else {
         return Ok(None);
@@ -173,7 +199,7 @@ fn prepare_environment_ibl_runtime_cache_writeback(
         return Ok(None);
     };
     writebacks
-        .prepare(device, store, request, reservation, graph_resources)
+        .prepare(backend, store, request, reservation, graph_resources, graph)
         .map_err(|error| GraphicsError::Asset(error.to_string()))
 }
 
@@ -304,11 +330,11 @@ impl ColorTransformLutReadbackReference {
         frame: &ViewportRenderFrame,
         exposure_readback_report: RenderExposureReadbackReport,
     ) -> Option<Self> {
-        let effect_stack = frame.extract.post_process.effect_stack;
+        let effect_stack = frame.post_process().effect_stack;
         if effect_stack.color_lookup.is_enabled() || !exposure_readback_report.history_valid() {
             return None;
         }
-        let grading = frame.extract.post_process.color_grading;
+        let grading = frame.post_process().color_grading;
         let exposure_multiplier = exposure_readback_report.multiplier();
         color_transform_requires_reference(grading, effect_stack, exposure_multiplier).then_some(
             Self {
@@ -430,9 +456,8 @@ impl UserColorLutReadbackReference {
         frame: &ViewportRenderFrame,
         readback_size: [u32; 3],
     ) -> Option<Self> {
-        let effect_stack = frame.extract.post_process.effect_stack;
-        if !user_lut_readback_supports_frame(frame.extract.post_process.color_grading, effect_stack)
-        {
+        let effect_stack = frame.post_process().effect_stack;
+        if !user_lut_readback_supports_frame(frame.post_process().color_grading, effect_stack) {
             return None;
         }
         Self::from_settings(streamer, effect_stack.color_lookup, readback_size)
@@ -603,95 +628,6 @@ fn rgba8_len(width: u32, height: u32) -> Option<usize> {
         .checked_mul(4)
 }
 
-fn attach_hzb_occlusion_readback_stats(
-    culler: &HzbOcclusionCuller,
-    current_frame_index: Option<u64>,
-    graph_execution_record: &mut RenderGraphExecutionRecord,
-) {
-    let Some(report) = graph_execution_record.hzb_occlusion_cull_report() else {
-        return;
-    };
-    let mut report = if report.dispatched_phase_count == 0 {
-        report
-            .with_readback_stats(HzbOcclusionCullReadbackStats::default())
-            .with_indirect_args_readback(HzbOcclusionIndirectArgsReadbackSummary::default())
-    } else if let Some((source_frame_index, readback_stats)) = culler.collect_last_readback_stats()
-    {
-        report
-            .with_readback_stats(readback_stats)
-            .with_readback_stats_source_frame_index(source_frame_index)
-    } else {
-        report
-    };
-    if report.dispatched_phase_count > 0 {
-        if let Some((source_frame_index, summary)) = culler.collect_last_indirect_args_summary() {
-            report = report
-                .with_indirect_args_readback(summary)
-                .with_indirect_args_readback_source_frame_index(source_frame_index);
-        }
-    }
-    let report = culler.with_readback_queue_diagnostics(report, current_frame_index);
-    graph_execution_record.set_hzb_occlusion_cull_report(report);
-}
-
 #[cfg(test)]
-mod submission_order_tests {
-    #[test]
-    fn compiled_scene_propagates_post_submit_errors_after_transient_cleanup() {
-        let source = include_str!("submit_compiled_scene_frame.rs");
-        let map_result = source.find("let readback_map_result").unwrap_or_default();
-        let writeback_result = source
-            .find("let environment_ibl_writeback_result")
-            .unwrap_or_default();
-        let release = source
-            .find("graph_resources.release_transient_backings_into_pool")
-            .unwrap_or_default();
-        let map_propagation = source.find("readback_map_result?;").unwrap_or_default();
-        let writeback_propagation = source
-            .find("environment_ibl_writeback_result?;")
-            .unwrap_or_default();
-
-        assert!(map_result < release);
-        assert!(writeback_result < release);
-        assert!(release < map_propagation);
-        assert!(map_propagation < writeback_propagation);
-    }
-
-    #[test]
-    fn ibl_runtime_writeback_joins_the_frame_submit_without_waiting_for_gpu_idle() {
-        let source = include_str!("submit_compiled_scene_frame.rs");
-        let prepare = source
-            .find("prepare_environment_ibl_runtime_cache_writeback")
-            .unwrap_or_default();
-        let submit = source
-            .find("queue.submit(command_buffers)")
-            .unwrap_or_default();
-        let begin_map = source
-            .find(".commit_submitted(prepared)")
-            .unwrap_or_default();
-
-        assert!(prepare < submit);
-        assert!(submit < begin_map);
-        assert!(!source.contains("wait_indefinitely"));
-        assert!(!source.contains("queue.submit(["));
-    }
-
-    #[test]
-    fn immediate_scene_finalizes_submitted_state_before_readback_error() {
-        let source = include_str!("../../scene_renderer_core_render_scene/render_scene.rs");
-        let map_error = source.find("let readback_map_error").unwrap_or_default();
-        let complete_submission = source
-            .find("self.realtime_ibl.complete_submission")
-            .unwrap_or_default();
-        let roll_transforms = source
-            .find("self.gpu_scene.roll_prev_transforms_after_success")
-            .unwrap_or_default();
-        let propagate = source
-            .find("if let Some(error) = readback_map_error")
-            .unwrap_or_default();
-
-        assert!(map_error < complete_submission);
-        assert!(complete_submission < roll_transforms);
-        assert!(roll_transforms < propagate);
-    }
-}
+#[path = "submit_compiled_scene_frame/tests.rs"]
+mod submission_order_tests;

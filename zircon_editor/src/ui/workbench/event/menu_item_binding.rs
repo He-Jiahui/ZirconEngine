@@ -26,6 +26,7 @@ pub(crate) fn operation_path_for_menu_action(action: &MenuAction) -> Option<Edit
     let path = match action {
         MenuAction::OpenProject => "file.project.open",
         MenuAction::SaveProject => "file.project.save",
+        MenuAction::SaveAllDocuments => "file.documents.save_all",
         MenuAction::CloseProject => "file.project.close",
         MenuAction::SaveLayout => "window.layout.save",
         MenuAction::ResetLayout => "window.layout.reset",
@@ -58,6 +59,7 @@ pub(crate) fn operation_path_for_menu_action(action: &MenuAction) -> Option<Edit
             "view.console.source.script_build"
         }
         MenuAction::EnterPlayMode => "runtime.play_mode.enter",
+        MenuAction::KeepPlayChanges => "runtime.play_mode.keep_changes",
         MenuAction::ExitPlayMode => "runtime.play_mode.exit",
         MenuAction::Undo => "edit.history.undo",
         MenuAction::Redo => "edit.history.redo",

@@ -44,16 +44,21 @@ fn welcome_project_entry_uses_the_shared_editor_control_scale() {
 }
 
 #[test]
-fn welcome_projection_loads_the_same_token_asset_as_its_template() {
-    for required in [
-        "WELCOME_TOKENS_STYLE_ASSET_PATH",
-        "WELCOME_TOKENS_STYLE_ASSET_ID",
-        "res://ui/editor/theme/editor_tokens.zui",
-        "/assets/ui/editor/theme/editor_tokens.zui",
-    ] {
+fn welcome_projection_uses_the_document_import_graph() {
+    for required in ["WELCOME_LAYOUT_ASSET_PATH", "&[]"] {
         assert!(
             WELCOME_PROJECTION.contains(required),
-            "Welcome projection must resolve `{required}`"
+            "Welcome projection must retain `{required}`"
+        );
+    }
+    for legacy_source in [
+        "editor_base.zui",
+        "editor_material.zui",
+        "editor_tokens.zui",
+    ] {
+        assert!(
+            !WELCOME_PROJECTION.contains(legacy_source),
+            "Welcome projection must not inject `{legacy_source}`"
         );
     }
 }
@@ -61,8 +66,8 @@ fn welcome_projection_loads_the_same_token_asset_as_its_template() {
 #[test]
 fn welcome_project_entry_uses_weighted_responsive_columns() {
     for layout in [
-        "width = { min = 120.0, preferred = 220.0, max = 320.0, weight = 1.0, stretch = \"Stretch\" }",
-        "width = { min = 160.0, preferred = 480.0, max = 680.0, weight = 4.0, stretch = \"Stretch\" }",
+        "width = { min = 136.0, preferred = 184.0, max = 240.0, weight = 1.0, stretch = \"Stretch\" }",
+        "width = { min = 280.0, preferred = 560.0, max = 760.0, weight = 4.0, stretch = \"Stretch\" }",
     ] {
         assert!(
             WELCOME_TEMPLATE.contains(layout),

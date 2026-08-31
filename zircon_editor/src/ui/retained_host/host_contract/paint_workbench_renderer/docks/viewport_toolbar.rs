@@ -41,6 +41,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_viewport_toolbar(
         [
             scene_mode_label(pane.viewport.mode.as_str()),
             pane.viewport.transform_space.as_str(),
+            pane.viewport.pivot_mode.as_str(),
             pane.viewport.display_mode.as_str(),
             pane.viewport.grid_mode.as_str(),
         ],
@@ -59,7 +60,7 @@ fn scene_mode_label(mode: &str) -> &str {
 
 fn draw_viewport_toolbar_labels(
     frame: &mut HostRgbaFrame,
-    labels: [&str; 4],
+    labels: [&str; 5],
     toolbar: &FrameRect,
     clip: &FrameRect,
     palette: ViewportToolbarPalette,
@@ -86,23 +87,23 @@ fn draw_viewport_toolbar_labels(
 
 fn viewport_toolbar_label_slots(
     toolbar: &FrameRect,
-    labels: [&str; 4],
+    labels: [&str; 5],
     metrics: HostControlMetrics,
-) -> [FrameRect; 4] {
+) -> [FrameRect; 5] {
     let outer_inset =
         (metrics.gap_m + metrics.border_width * 2.0).min(toolbar.width.max(0.0) * 0.5);
     let content_width = (toolbar.width - outer_inset * 2.0).max(0.0);
-    let gap = metrics.gap_s.min(content_width / 3.0);
+    let gap = metrics.gap_s.min(content_width / 4.0);
     let label_padding = metrics.gap_m;
     let preferred_widths = labels.map(|label| {
         (measure_runtime_text_width(label, metrics.font_body) + label_padding * 2.0).max(0.0)
     });
-    let preferred_total = preferred_widths.iter().sum::<f32>() + gap * 3.0;
-    let compact_width = ((content_width - gap * 3.0).max(0.0)) / 4.0;
+    let preferred_total = preferred_widths.iter().sum::<f32>() + gap * 4.0;
+    let compact_width = ((content_width - gap * 4.0).max(0.0)) / 5.0;
     let slot_widths = if preferred_total <= content_width {
         preferred_widths
     } else {
-        [compact_width; 4]
+        [compact_width; 5]
     };
     let line_height = metrics
         .line_height(metrics.font_body)
@@ -161,15 +162,18 @@ mod tests {
             width: 640.0,
             height: 30.0,
         };
-        let slots =
-            viewport_toolbar_label_slots(&toolbar, ["Move", "World", "Lit", "Grid"], METRICS);
+        let slots = viewport_toolbar_label_slots(
+            &toolbar,
+            ["Move", "World", "Center", "Lit", "Grid"],
+            METRICS,
+        );
 
         assert!(slots[0].width > 0.0);
         assert!(slots[0].width < slots[1].width);
         assert!(slots
             .windows(2)
             .all(|pair| pair[0].x + pair[0].width <= pair[1].x));
-        assert!(slots[3].x + slots[3].width <= toolbar.x + toolbar.width);
+        assert!(slots[4].x + slots[4].width <= toolbar.x + toolbar.width);
     }
 
     #[test]
@@ -185,6 +189,7 @@ mod tests {
             [
                 "Translate Long Tool Name",
                 "World Coordinates",
+                "Selection Center",
                 "Lit With Shadows",
                 "Visible And Snap",
             ],
@@ -195,7 +200,7 @@ mod tests {
             .windows(2)
             .all(|pair| pair[0].x + pair[0].width <= pair[1].x));
         assert!((slots[0].width - slots[1].width).abs() < f32::EPSILON);
-        assert!(slots[3].x + slots[3].width <= toolbar.x + toolbar.width);
+        assert!(slots[4].x + slots[4].width <= toolbar.x + toolbar.width);
     }
 
     #[test]
@@ -213,6 +218,7 @@ mod tests {
             [
                 "Translate Long Tool Name",
                 "World Coordinates",
+                "Selection Center",
                 "Lit With Shadows",
                 "Visible And Snap",
             ],
@@ -231,7 +237,7 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
-        assert_eq!(texts.len(), 4);
+        assert_eq!(texts.len(), 5);
         assert!(texts.iter().all(|(text, _)| text.ends_with('\u{2026}')));
         assert!(texts.iter().all(|(_, frame)| {
             frame.x >= toolbar.x && frame.x + frame.width <= toolbar.x + toolbar.width

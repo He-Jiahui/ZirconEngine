@@ -70,6 +70,8 @@ doc_type: module-detail
 
 一次项目打开应产生可共享的 opened-project generation，供 authority、runtime asset manager、editor project document、workspace、watcher 和 locator 查询复用。每个资产 locator 不得重新创建 `ProjectManager` 或扫描 manifest。插件注册应在 batch staging 中一次建立 command、operation、asset 与 extension indexes；查询侧消费不可变 generation projection。导出 inventory、tool probe 与内容 digest 也应按 generation 缓存，不能为重叠 artifact tree 重复读盘。
 
+`EditorModule` 在 composition root 创建 `EditorProjectAssetRuntimeAccess`，将项目资产服务的特定 handle 与弱 runtime provider 交给 `DefaultEditorAssetManager`。资产管理器不得保存 `CoreHandle`、`ManagerResolver` 或能解析任意服务的入口；它只能通过这个 typed access 获取 Runtime 的项目资产服务。workbench、pane、watcher 和回调继续消费编辑器资产投影，不得取得该 access 或绕过它直接访问 Runtime。
+
 这些跨模块优化由对应 failure handoff 承担；host 层禁止增加兼容 cache、隐藏的第二 authority 或仅对某个 UI 调用方绕过共享流程。
 
 animation session 的稳定 asset route 在 restore/open 时已经进入 view instance；后续 mutation 只在真实变化时更新 title/dirty，不重新序列化 route。native dynamic preparation 在一次 export 中按 plugin id 建 borrowed discovery index；跨 export 的静态 staging 复用仍由 Editor15 的 generation inventory 统一处理。

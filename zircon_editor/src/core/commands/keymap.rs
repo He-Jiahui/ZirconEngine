@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::dispatch::UiKeyboardInputEvent;
 use crate::core::editor_operation::{EditorOperationPath, EditorOperationPathError};
 use crate::core::settings::EditorKeymapOverrides;
 
-use super::{EditorKeyChord, EditorKeyChordSignature, EditorKeyboardChordInput};
+use super::{EditorKeyChord, EditorKeyChordSignature, EditorKeyboardChordInput, WhenClause};
 
 #[cfg(test)]
 mod tests;
@@ -54,29 +54,33 @@ impl EditorKeymap {
         &self.bindings
     }
 
-    pub fn resolve(&self, chord: &EditorKeyChord) -> Option<&str> {
-        self.signature_index
-            .get(&chord.signature())?
-            .iter()
-            .copied()
-            .find_map(|index| {
-                let binding = self.bindings.get(index)?;
-                (binding.chord == *chord).then_some(binding.command_id.as_str())
-            })
-    }
-
-    pub fn resolve_keyboard_input(&self, keyboard: &UiKeyboardInputEvent) -> Option<&str> {
+    /// Resolves one enabled command from the matching signature bucket.
+    ///
+    /// The caller owns command-registry evaluation. Returning `None` for two enabled candidates
+    /// keeps a malformed keymap from selecting a command by operation-path order.
+    pub fn resolve_keyboard_input_when(
+        &self,
+        keyboard: &UiKeyboardInputEvent,
+        mut is_enabled: impl FnMut(&str) -> bool,
+    ) -> Option<&str> {
         let input = EditorKeyboardChordInput::from_keyboard_input(keyboard)?;
-        self.signature_index
+        let mut resolved = None;
+        for index in self
+            .signature_index
             .get(&input.signature())?
             .iter()
             .copied()
-            .find_map(|index| {
-                let binding = self.bindings.get(index)?;
-                input
-                    .matches(&binding.chord)
-                    .then_some(binding.command_id.as_str())
-            })
+        {
+            let binding = self.bindings.get(index)?;
+            if !input.matches(&binding.chord) || !is_enabled(binding.command_id.as_str()) {
+                continue;
+            }
+            if resolved.is_some() {
+                return None;
+            }
+            resolved = Some(binding.command_id.as_str());
+        }
+        resolved
     }
 
     pub fn chord_for_command(&self, command_id: &str) -> Option<&EditorKeyChord> {
@@ -92,21 +96,45 @@ impl EditorKeymap {
         Self::from_base_and_overrides(self.base_bindings.clone(), overrides.bindings().clone())
     }
 
-    /// Returns all effective bindings which share the same chord.
-    pub fn conflicts(&self) -> Vec<EditorKeymapConflict> {
-        let mut commands_by_chord = BTreeMap::<EditorKeyChord, Vec<EditorOperationPath>>::new();
+    /// Returns pairwise chord collisions whose effective `when` predicates can overlap.
+    ///
+    /// A missing command predicate is conservatively treated as a conflict so a stale keymap
+    /// binding can never hide an ambiguous dispatch behind an absent registry entry.
+    pub fn conflicts_with_when(
+        &self,
+        mut effective_when_for_command: impl FnMut(&str) -> Option<WhenClause>,
+    ) -> Vec<EditorKeymapConflict> {
+        let mut commands_by_chord = BTreeMap::<EditorKeyChord, Vec<&EditorKeyBinding>>::new();
         for binding in &self.bindings {
             commands_by_chord
                 .entry(binding.chord.clone())
                 .or_default()
-                .push(binding.command_id.clone());
+                .push(binding);
         }
-        commands_by_chord
-            .into_iter()
-            .filter_map(|(chord, command_ids)| {
-                (command_ids.len() > 1).then_some(EditorKeymapConflict { chord, command_ids })
-            })
-            .collect()
+        let mut conflicts = Vec::new();
+        for (chord, bindings) in commands_by_chord {
+            for left_index in 0..bindings.len() {
+                let left = bindings[left_index];
+                let left_when = effective_when_for_command(left.command_id.as_str());
+                for right in bindings.iter().skip(left_index + 1).copied() {
+                    let right_when = effective_when_for_command(right.command_id.as_str());
+                    let overlaps = match (left_when.as_ref(), right_when.as_ref()) {
+                        (Some(left_when), Some(right_when)) => {
+                            left_when.can_overlap_in_interactive_context(right_when)
+                        }
+                        (None, _) | (_, None) => true,
+                    };
+                    if overlaps {
+                        conflicts.push(EditorKeymapConflict {
+                            chord: chord.clone(),
+                            first_command_id: left.command_id.clone(),
+                            second_command_id: right.command_id.clone(),
+                        });
+                    }
+                }
+            }
+        }
+        conflicts
     }
 
     fn from_base_and_overrides(
@@ -162,7 +190,8 @@ impl EditorKeyBinding {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EditorKeymapConflict {
     chord: EditorKeyChord,
-    command_ids: Vec<EditorOperationPath>,
+    first_command_id: EditorOperationPath,
+    second_command_id: EditorOperationPath,
 }
 
 impl EditorKeymapConflict {
@@ -170,8 +199,12 @@ impl EditorKeymapConflict {
         &self.chord
     }
 
-    pub fn command_ids(&self) -> &[EditorOperationPath] {
-        &self.command_ids
+    pub fn first_command_id(&self) -> &EditorOperationPath {
+        &self.first_command_id
+    }
+
+    pub fn second_command_id(&self) -> &EditorOperationPath {
+        &self.second_command_id
     }
 }
 

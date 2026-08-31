@@ -1,14 +1,14 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::search::search_field_paint_rect;
-use crate::ui::retained_host::host_contract::paint_geometry::{
-    corner_radius_for_frame, inward_pixel_aligned_rect,
-};
+use crate::ui::retained_host::host_contract::paint_geometry::corner_radius_for_frame;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_paint_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
 ) -> FrameRect {
-    let mut rect = pixel_aligned_rect(rect);
+    // Preserve fractional post-DPI geometry so the shared rounded coverage path can smooth the
+    // field edge at the actual physical target.
+    let mut rect = rect.clone();
     rect.x += node.layout_offset_x;
     rect.y += node.layout_offset_y;
     search_field_paint_rect(node, rect)
@@ -45,12 +45,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_i
         && inner.y >= outer.y
         && inner_right <= outer_right
         && inner_bottom <= outer_bottom
-}
-
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
-    rect: &FrameRect,
-) -> FrameRect {
-    inward_pixel_aligned_rect(rect)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_surface_radius(

@@ -1,6 +1,7 @@
 use crate::scene::viewport::{CapturedFrame, RenderViewportHandle};
 use crate::ui::retained_host::host_contract::data::{
-    FrameRect, HostDockPresentationPatch, HostWindowPresentationData, TemplatePaneNodeData,
+    FrameRect, HostDockPresentationPatch, HostWindowGeometryPresentationData,
+    HostWindowPresentationData, PaneData, TemplateNodeFrameData, TemplatePaneNodeData,
 };
 use crate::ui::retained_host::host_contract::diagnostics::{
     HostInvalidationDiagnostics, HostRefreshDiagnostics, HostWindowDiagnosticSeverity,
@@ -9,6 +10,7 @@ use crate::ui::retained_host::host_contract::PaneSurfaceHostContext;
 use crate::ui::retained_host::primitives::{CloseRequestResponse, ModelRc, VecModel};
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_runtime::asset::project::ProjectPaths;
 
@@ -37,6 +39,183 @@ fn presentation_generation_reuses_structure_until_a_structural_publish() {
         initial.hit_test_generation(),
         published.hit_test_generation()
     );
+}
+
+#[test]
+fn geometry_publish_preserves_semantic_generation_and_pane_handles() {
+    let host = UiHostWindow::new().expect("host window should construct for geometry test");
+    let mut presentation = HostWindowPresentationData::default();
+    presentation.host_scene_data.left_dock.pane = PaneData {
+        id: "left.semantic".into(),
+        body_surface_frame: Some(Arc::new(
+            zircon_runtime_interface::ui::surface::UiSurfaceFrame::default(),
+        )),
+        ..PaneData::default()
+    };
+    presentation.host_scene_data.document_dock.pane = PaneData {
+        id: "document.semantic".into(),
+        body_surface_frame: Some(Arc::new(
+            zircon_runtime_interface::ui::surface::UiSurfaceFrame::default(),
+        )),
+        ..PaneData::default()
+    };
+    presentation.host_scene_data.right_dock.pane = PaneData {
+        id: "right.semantic".into(),
+        body_surface_frame: Some(Arc::new(
+            zircon_runtime_interface::ui::surface::UiSurfaceFrame::default(),
+        )),
+        ..PaneData::default()
+    };
+    presentation.host_scene_data.bottom_dock.pane = PaneData {
+        id: "bottom.semantic".into(),
+        body_surface_frame: Some(Arc::new(
+            zircon_runtime_interface::ui::surface::UiSurfaceFrame::default(),
+        )),
+        ..PaneData::default()
+    };
+    presentation.workbench_window_nodes =
+        ModelRc::from(Rc::new(VecModel::from(vec![TemplatePaneNodeData {
+            control_id: "geometry.control".into(),
+            frame: TemplateNodeFrameData {
+                x: 0.0,
+                y: 0.0,
+                width: 24.0,
+                height: 24.0,
+            },
+            ..TemplatePaneNodeData::default()
+        }])));
+    host.set_host_presentation(presentation);
+
+    let baseline = host.get_host_presentation_generation();
+    let baseline_structure_generation = baseline.structure_generation();
+    let baseline_geometry_generation = baseline.geometry_generation();
+    let baseline_hit_generation = baseline.hit_test_generation();
+    let left_pane = Arc::clone(
+        baseline
+            .structure()
+            .host_scene_data
+            .left_dock
+            .pane
+            .body_surface_frame
+            .as_ref()
+            .expect("left surface frame"),
+    );
+    let document_pane = Arc::clone(
+        baseline
+            .structure()
+            .host_scene_data
+            .document_dock
+            .pane
+            .body_surface_frame
+            .as_ref()
+            .expect("document surface frame"),
+    );
+    let right_pane = Arc::clone(
+        baseline
+            .structure()
+            .host_scene_data
+            .right_dock
+            .pane
+            .body_surface_frame
+            .as_ref()
+            .expect("right surface frame"),
+    );
+    let bottom_pane = Arc::clone(
+        baseline
+            .structure()
+            .host_scene_data
+            .bottom_dock
+            .pane
+            .body_surface_frame
+            .as_ref()
+            .expect("bottom surface frame"),
+    );
+    let mut geometry = HostWindowGeometryPresentationData::from_presentation(baseline.structure());
+    geometry.host_layout.center_band_frame.width = 1600.0;
+    geometry.host_scene_data.left_dock.region_frame.width = 320.0;
+    geometry.workbench_window_nodes =
+        ModelRc::from(Rc::new(VecModel::from(vec![TemplatePaneNodeData {
+            control_id: "geometry.control".into(),
+            frame: TemplateNodeFrameData {
+                x: 40.0,
+                y: 0.0,
+                width: 24.0,
+                height: 24.0,
+            },
+            ..TemplatePaneNodeData::default()
+        }])));
+
+    assert!(host.set_host_geometry_presentation(geometry, &[0]));
+    let resized = host.get_host_presentation_generation();
+
+    assert!(baseline.shares_structure_with(&resized));
+    assert_eq!(
+        resized.structure_generation(),
+        baseline_structure_generation
+    );
+    assert!(resized.geometry_generation() > baseline_geometry_generation);
+    assert!(resized.hit_test_generation() > baseline_hit_generation);
+    assert_eq!(
+        baseline.structure().host_layout.center_band_frame.width,
+        0.0
+    );
+    assert_eq!(
+        resized.structure().host_layout.center_band_frame.width,
+        1600.0
+    );
+    assert_eq!(
+        resized
+            .structure()
+            .host_scene_data
+            .left_dock
+            .region_frame
+            .width,
+        320.0
+    );
+    assert!(Arc::ptr_eq(
+        &left_pane,
+        resized
+            .structure()
+            .host_scene_data
+            .left_dock
+            .pane
+            .body_surface_frame
+            .as_ref()
+            .expect("resized left surface frame")
+    ));
+    assert!(Arc::ptr_eq(
+        &document_pane,
+        resized
+            .structure()
+            .host_scene_data
+            .document_dock
+            .pane
+            .body_surface_frame
+            .as_ref()
+            .expect("resized document surface frame")
+    ));
+    assert!(Arc::ptr_eq(
+        &right_pane,
+        resized
+            .structure()
+            .host_scene_data
+            .right_dock
+            .pane
+            .body_surface_frame
+            .as_ref()
+            .expect("resized right surface frame")
+    ));
+    assert!(Arc::ptr_eq(
+        &bottom_pane,
+        resized
+            .structure()
+            .host_scene_data
+            .bottom_dock
+            .pane
+            .body_surface_frame
+            .as_ref()
+            .expect("resized bottom surface frame")
+    ));
 }
 
 #[test]
@@ -142,7 +321,7 @@ fn hover_updates_only_the_interaction_generation_and_skip_equal_values() {
         height: 20.0,
     };
 
-    host.set_hovered_template_node_for_pointer_move("toolbar.play".into(), frame.clone());
+    host.set_hovered_template_node_for_pointer_move("toolbar.play", &frame);
     let hovered = host.get_host_presentation_generation();
 
     assert!(baseline.shares_structure_with(&hovered));
@@ -164,7 +343,7 @@ fn hover_updates_only_the_interaction_generation_and_skip_equal_values() {
         "toolbar.play"
     );
 
-    host.set_hovered_template_node_for_pointer_move("toolbar.play".into(), frame);
+    host.set_hovered_template_node_for_pointer_move("toolbar.play", &frame);
     let repeated = host.get_host_presentation_generation();
 
     assert_eq!(
@@ -181,14 +360,14 @@ fn viewport_capture_advances_only_the_viewport_generation() {
 
     assert!(host
         .global::<PaneSurfaceHostContext>()
-        .set_viewport_capture(
+        .set_scene_viewport_capture(
             RenderViewportHandle::new(7),
             CapturedFrame::new(1, 1, vec![255, 0, 0, 255], 11),
         ));
     let captured = host.get_host_presentation_generation();
 
     assert!(baseline.shares_structure_with(&captured));
-    assert!(captured.structure().viewport_image.is_none());
+    assert!(captured.structure().viewport_images.scene().is_none());
     assert_eq!(
         baseline.structure_generation(),
         captured.structure_generation()
@@ -201,7 +380,8 @@ fn viewport_capture_advances_only_the_viewport_generation() {
     assert_eq!(
         captured
             .materialize()
-            .viewport_image
+            .viewport_images
+            .scene()
             .expect("capture should materialize")
             .resource_key,
         "viewport:7:11"
@@ -333,19 +513,6 @@ fn completed_frame_update_scenario_is_one_shot() {
         Some(UiPerfScenario::DrawerResize)
     );
     assert_eq!(host.take_completed_frame_update_scenario(), None);
-}
-
-#[test]
-fn native_resize_reflow_gate_is_explicitly_staged_and_committed() {
-    let host = UiHostWindow::new().expect("host window should construct for resize gate test");
-
-    assert!(!host.native_resize_reflow_pending());
-
-    host.defer_native_resize_reflow();
-    assert!(host.native_resize_reflow_pending());
-
-    host.commit_native_resize_reflow();
-    assert!(!host.native_resize_reflow_pending());
 }
 
 #[test]

@@ -1,6 +1,6 @@
 pub(super) use std::collections::BTreeMap;
 
-pub(super) use crate::core::commands::MenuBarModel;
+pub(super) use crate::core::commands::{EditorKeymap, MenuBarModel};
 pub(super) use crate::ui::host::NativeWindowHostState;
 pub(super) use crate::ui::retained_host::callback_dispatch::{
     BuiltinHostRootShellFrames, BuiltinWorkbenchWindowLayoutFrames,
@@ -42,7 +42,6 @@ pub(super) fn workbench_page(id: MainPageId) -> MainHostPageLayout {
         id,
         title: "Workbench".to_string(),
         activity_window: ActivityWindowId::workbench(),
-        document_workspace: DocumentNode::default(),
     }
 }
 
@@ -76,6 +75,24 @@ pub(super) fn default_drawers() -> BTreeMap<ActivityDrawerSlot, ActivityDrawerLa
             )
         })
         .collect()
+}
+
+pub(super) fn workbench_layout(
+    active_main_page: MainPageId,
+    main_pages: Vec<MainHostPageLayout>,
+    drawers: BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
+    floating_windows: Vec<FloatingWindowLayout>,
+) -> WorkbenchLayout {
+    let mut layout = WorkbenchLayout::default();
+    layout.active_main_page = active_main_page;
+    layout.main_pages = main_pages;
+    layout.floating_windows = floating_windows;
+    layout
+        .activity_windows
+        .get_mut(&ActivityWindowId::workbench())
+        .expect("test workbench layout owns its activity window")
+        .activity_drawers = drawers;
+    layout
 }
 
 pub(super) fn default_drawers_model() -> BTreeMap<ActivityDrawerSlot, ToolWindowStackModel> {
@@ -153,6 +170,7 @@ pub(super) fn workbench_model(
     WorkbenchViewModel {
         is_playing: false,
         asset_creation_menu: Default::default(),
+        keymap: EditorKeymap::default_workbench(),
         menu_bar: MenuBarModel { menus: Vec::new() },
         host_strip: MainHostStripViewModel {
             mode: MainHostStripModel::Workbench,

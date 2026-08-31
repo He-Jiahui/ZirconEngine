@@ -1,370 +1,200 @@
 use std::sync::Arc;
 
+use zircon_runtime::builtin::RuntimePluginId;
 use zircon_runtime::builtin::{
-    runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports,
-    runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports,
-    runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
-    runtime_modules_for_target_with_plugin_and_feature_registration_reports,
-    runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
+    manifest_with_mode_baseline, RuntimeModuleCompositionCompiler, RuntimeModuleCompositionPlan,
+    RuntimeModuleCompositionRejection,
 };
-use zircon_runtime::core::framework::project::ProjectPluginManifest;
-use zircon_runtime::core::{framework::platform::RuntimeTargetMode, CoreError, ModuleDescriptor};
+use zircon_runtime::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
+use zircon_runtime::core::framework::render::{RenderProductFeature, RenderProfileBundle};
+use zircon_runtime::core::{framework::platform::RuntimeTargetMode, CoreError};
 use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::plugin::{
-    RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
+    CompiledProjectPluginPlan, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 
-use super::{entry_profile::EntryProfile, EntryConfig};
+use super::{entry_profile::EntryProfile, ResolvedProductHostConfig};
 
 pub(super) struct BuiltinModuleSelection {
-    pub modules: Vec<Arc<dyn EngineModule>>,
-    pub runtime_plugin_availability: RuntimePluginAvailabilityReport,
+    pub composition: RuntimeModuleCompositionPlan,
     pub plugin_bridge_lifecycle_state: Option<RuntimePluginBridgeLifecycleState>,
-}
-
-pub(super) fn builtin_modules_for_config(
-    config: &EntryConfig,
-) -> Result<BuiltinModuleSelection, CoreError> {
-    let manifest = config.project_plugin_manifest();
-    let report = runtime_modules_for_target(config.target_mode, manifest.as_ref());
-    log_load_report_warnings(&report);
-    ensure_load_report_has_no_fatal_diagnostics(&report, "zircon_app runtime module selection")?;
-
-    let runtime_plugin_availability = report.runtime_plugin_availability;
-    let modules = report.modules;
-    #[cfg(feature = "target-editor-host")]
-    let mut modules = modules;
-    if matches!(config.profile, EntryProfile::Editor) {
-        #[cfg(feature = "target-editor-host")]
-        {
-            modules.push(Arc::new(zircon_editor::EditorModule));
-        }
-        #[cfg(not(feature = "target-editor-host"))]
-        {
-            eprintln!(
-                "[zircon_app] editor profile requested but target-editor-host feature is disabled"
-            );
-        }
-    }
-
-    Ok(BuiltinModuleSelection {
-        modules,
-        runtime_plugin_availability,
-        plugin_bridge_lifecycle_state: None,
-    })
+    pub compiled_project_plugin_plan: Option<Arc<CompiledProjectPluginPlan>>,
 }
 
 pub(super) fn builtin_modules_for_config_with_runtime_plugin_registrations(
-    config: &EntryConfig,
+    config: &ResolvedProductHostConfig,
     registrations: &[RuntimePluginRegistrationReport],
 ) -> Result<BuiltinModuleSelection, CoreError> {
-    let manifest = config.project_plugin_manifest();
-    let effective_manifest = project_manifest_for_plugin_selection(config, &manifest);
-    let report = if let Some(runtime_profile) = config.runtime_profile() {
-        runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports(
-            runtime_profile,
-            &effective_manifest,
-            registrations,
-        )
-    } else {
-        runtime_modules_for_target_with_plugin_registration_reports(
-            config.target_mode,
-            manifest.as_ref(),
-            registrations,
-        )
-    };
-    log_load_report_warnings(&report);
-    ensure_load_report_has_no_fatal_diagnostics(&report, "zircon_app runtime module selection")?;
-
-    let runtime_plugin_availability = report.runtime_plugin_availability;
-    let mut modules = report.modules;
-    #[cfg(feature = "target-editor-host")]
-    if matches!(config.profile, EntryProfile::Editor) {
-        modules.push(Arc::new(zircon_editor::EditorModule));
-    }
-    #[cfg(not(feature = "target-editor-host"))]
-    if matches!(config.profile, EntryProfile::Editor) {
-        eprintln!(
-            "[zircon_app] editor profile requested but target-editor-host feature is disabled"
-        );
-    }
-    let active_registrations = registrations
-        .iter()
-        .filter(|registration| {
-            registration.project_selection.enabled
-                && registration
-                    .project_selection
-                    .supports_target(config.target_mode)
-        })
-        .collect::<Vec<_>>();
-    for registration in &active_registrations {
-        for diagnostic in &registration.diagnostics {
-            eprintln!(
-                "[zircon_app] linked runtime plugin {} diagnostic: {diagnostic}",
-                registration.package_manifest.id
-            );
-        }
-    }
-    for registration in active_registrations {
-        for descriptor in registration.extensions.modules() {
-            modules.push(Arc::new(DescriptorBackedEngineModule::new(
-                descriptor.clone(),
-            )));
-        }
-    }
-    let plugin_bridge_lifecycle_state = Some(plugin_bridge_lifecycle_state_for_selection(
-        registrations,
-        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    let effective_manifest = effective_project_plugin_manifest(config);
+    builtin_modules_for_config_with_effective_manifest_and_runtime_plugin_registrations(
+        config,
         &effective_manifest,
-        config.target_mode,
-    ));
+        registrations,
+    )
+}
 
-    Ok(BuiltinModuleSelection {
-        modules,
-        runtime_plugin_availability,
-        plugin_bridge_lifecycle_state,
-    })
+pub(super) fn builtin_modules_for_config_with_effective_manifest_and_runtime_plugin_registrations(
+    config: &ResolvedProductHostConfig,
+    effective_manifest: &ProjectPluginManifest,
+    registrations: &[RuntimePluginRegistrationReport],
+) -> Result<BuiltinModuleSelection, CoreError> {
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        registrations.iter().cloned(),
+        std::iter::empty(),
+    );
+    let plan = catalog.compiled_project_plan(effective_manifest, config.target_mode());
+    builtin_modules_for_config_with_compiled_project_plugin_plan(
+        config,
+        catalog,
+        plan,
+        "zircon_app runtime module selection",
+    )
 }
 
 pub(super) fn builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(
-    config: &EntryConfig,
+    config: &ResolvedProductHostConfig,
     registrations: &[RuntimePluginRegistrationReport],
     feature_registrations: &[RuntimePluginFeatureRegistrationReport],
 ) -> Result<BuiltinModuleSelection, CoreError> {
-    let manifest = config.project_plugin_manifest();
-    let effective_manifest = project_manifest_for_plugin_selection(config, &manifest);
-    let report = if let Some(runtime_profile) = config.runtime_profile() {
-        runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports(
-            runtime_profile,
-            &effective_manifest,
-            registrations,
-            feature_registrations,
-        )
-    } else {
-        runtime_modules_for_target_with_plugin_and_feature_registration_reports(
-            config.target_mode,
-            manifest.as_ref(),
-            registrations,
-            feature_registrations,
-        )
-    };
-    log_load_report_warnings(&report);
-    ensure_load_report_has_no_fatal_diagnostics(&report, "zircon_app runtime feature selection")?;
-
-    let runtime_plugin_availability = report.runtime_plugin_availability;
-    let mut modules = report.modules;
-    #[cfg(feature = "target-editor-host")]
-    if matches!(config.profile, EntryProfile::Editor) {
-        modules.push(Arc::new(zircon_editor::EditorModule));
-    }
-    #[cfg(not(feature = "target-editor-host"))]
-    if matches!(config.profile, EntryProfile::Editor) {
-        eprintln!(
-            "[zircon_app] editor profile requested but target-editor-host feature is disabled"
-        );
-    }
-    let active_registrations = registrations
-        .iter()
-        .filter(|registration| {
-            registration.project_selection.enabled
-                && registration
-                    .project_selection
-                    .supports_target(config.target_mode)
-        })
-        .collect::<Vec<_>>();
-    for registration in &active_registrations {
-        for diagnostic in &registration.diagnostics {
-            eprintln!(
-                "[zircon_app] linked runtime plugin {} diagnostic: {diagnostic}",
-                registration.package_manifest.id
-            );
-        }
-    }
-    for registration in active_registrations {
-        for descriptor in registration.extensions.modules() {
-            modules.push(Arc::new(DescriptorBackedEngineModule::new(
-                descriptor.clone(),
-            )));
-        }
-    }
-
+    let effective_manifest = effective_project_plugin_manifest(config);
     let catalog = RuntimePluginCatalog::from_registration_reports(
         registrations.iter().cloned(),
         feature_registrations.iter().cloned(),
     );
-    let feature_report = catalog.feature_dependency_report(&effective_manifest, config.target_mode);
-    for registration in feature_registrations.iter().filter(|registration| {
-        feature_report
-            .available_features
-            .iter()
-            .any(|id| id == &registration.manifest.id)
-    }) {
-        for diagnostic in &registration.diagnostics {
-            eprintln!(
-                "[zircon_app] linked runtime plugin feature {} diagnostic: {diagnostic}",
-                registration.manifest.id
-            );
-        }
-        for descriptor in registration.extensions.modules() {
-            modules.push(Arc::new(DescriptorBackedEngineModule::new(
-                descriptor.clone(),
-            )));
-        }
-    }
-    let extension_report =
-        catalog.runtime_extensions_for_project(&effective_manifest, config.target_mode);
-    let plugin_bridge_lifecycle_state = Some(
-        RuntimePluginBridgeLifecycleState::from_extension_report(catalog, extension_report),
-    );
-
-    Ok(BuiltinModuleSelection {
-        modules,
-        runtime_plugin_availability,
-        plugin_bridge_lifecycle_state,
-    })
+    let plan = catalog.compiled_project_plan(&effective_manifest, config.target_mode());
+    builtin_modules_for_config_with_compiled_project_plugin_plan(
+        config,
+        catalog,
+        plan,
+        "zircon_app runtime feature selection",
+    )
 }
 
-pub(super) fn builtin_modules_for_config_with_available_runtime_plugins(
-    config: &EntryConfig,
-    available_plugin_ids: &[String],
-) -> Result<BuiltinModuleSelection, CoreError> {
-    let manifest = config.project_plugin_manifest();
-    let report = runtime_modules_for_target_with_linked_plugins(
-        config.target_mode,
-        manifest.as_ref(),
-        available_plugin_ids.iter().map(String::as_str),
-    );
-    log_load_report_warnings(&report);
-    ensure_load_report_has_no_fatal_diagnostics(&report, "zircon_app runtime module selection")?;
-
-    let runtime_plugin_availability = report.runtime_plugin_availability;
-    let modules = report.modules;
-    #[cfg(feature = "target-editor-host")]
-    let mut modules = modules;
-    if matches!(config.profile, EntryProfile::Editor) {
-        #[cfg(feature = "target-editor-host")]
-        {
-            modules.push(Arc::new(zircon_editor::EditorModule));
-        }
-        #[cfg(not(feature = "target-editor-host"))]
-        {
-            eprintln!(
-                "[zircon_app] editor profile requested but target-editor-host feature is disabled"
-            );
-        }
-    }
-
-    Ok(BuiltinModuleSelection {
-        modules,
-        runtime_plugin_availability,
-        plugin_bridge_lifecycle_state: None,
-    })
-}
-
-fn plugin_bridge_lifecycle_state_for_selection(
-    registrations: &[RuntimePluginRegistrationReport],
-    feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
-    manifest: &ProjectPluginManifest,
-    target: RuntimeTargetMode,
-) -> RuntimePluginBridgeLifecycleState {
-    let catalog = RuntimePluginCatalog::from_registration_reports(
-        registrations.iter().cloned(),
-        feature_registrations,
-    );
-    let extension_report = catalog.runtime_extensions_for_project(manifest, target);
-    RuntimePluginBridgeLifecycleState::from_extension_report(catalog, extension_report)
-}
-
-fn ensure_load_report_has_no_fatal_diagnostics(
-    report: &RuntimeModuleLoadReport,
+fn builtin_modules_for_config_with_compiled_project_plugin_plan(
+    config: &ResolvedProductHostConfig,
+    catalog: RuntimePluginCatalog,
+    plan: Arc<CompiledProjectPluginPlan>,
     context: &str,
-) -> Result<(), CoreError> {
-    let errors = report.fatal_messages();
-    if !errors.is_empty() {
-        return Err(CoreError::Initialization(
-            context.to_string(),
-            errors.join("; "),
+) -> Result<BuiltinModuleSelection, CoreError> {
+    let mut compiler = RuntimeModuleCompositionCompiler::new(&plan);
+    if let Some(runtime_profile) = config.runtime_profile() {
+        compiler = compiler.for_runtime_profile(runtime_profile);
+    }
+    compiler = compiler.with_host_modules(host_modules_for_config(config)?);
+    let composition = compiler
+        .compile()
+        .map_err(|rejection| composition_rejection_core_error(context, rejection))?;
+    let plugin_bridge_lifecycle_state =
+        Some(RuntimePluginBridgeLifecycleState::from_extension_report(
+            catalog,
+            plan.runtime_extensions_handle(),
+        ));
+
+    Ok(BuiltinModuleSelection {
+        composition,
+        plugin_bridge_lifecycle_state,
+        compiled_project_plugin_plan: Some(plan),
+    })
+}
+
+fn host_modules_for_config(
+    config: &ResolvedProductHostConfig,
+) -> Result<Vec<Arc<dyn EngineModule>>, CoreError> {
+    let mut modules: Vec<Arc<dyn EngineModule>> = Vec::new();
+    if matches!(
+        config.runtime_profile(),
+        Some(zircon_runtime::core::framework::project::RuntimeProfileId::Dev)
+    ) {
+        modules.push(Arc::new(
+            zircon_runtime::core::runtime::modules::LogDiagnosticsModule,
         ));
     }
-    Ok(())
-}
-
-fn log_load_report_warnings(report: &RuntimeModuleLoadReport) {
-    for warning in report.warning_messages() {
-        eprintln!("[zircon_app] runtime plugin warning: {warning}");
+    #[cfg(feature = "target-editor-host")]
+    if matches!(config.profile(), EntryProfile::Editor) {
+        modules.push(Arc::new(zircon_editor::EditorModule));
     }
+    #[cfg(not(feature = "target-editor-host"))]
+    if matches!(config.profile(), EntryProfile::Editor) {
+        return Err(CoreError::Initialization(
+            "zircon_app runtime host module selection".to_owned(),
+            "editor profile requires the target-editor-host feature".to_owned(),
+        ));
+    }
+    Ok(modules)
 }
 
-fn project_manifest_for_plugin_selection(
-    config: &EntryConfig,
-    manifest: &Option<ProjectPluginManifest>,
+fn composition_rejection_core_error(
+    context: &str,
+    rejection: RuntimeModuleCompositionRejection,
+) -> CoreError {
+    CoreError::Initialization(context.to_owned(), rejection.to_string())
+}
+
+pub(super) fn effective_project_plugin_manifest(
+    config: &ResolvedProductHostConfig,
 ) -> ProjectPluginManifest {
-    manifest.clone().unwrap_or_else(|| {
-        config
-            .runtime_profile()
-            .map(|runtime_profile| {
-                zircon_runtime::plugin::RuntimeProfileDescriptor::for_id(runtime_profile)
-                    .project_manifest()
+    effective_project_plugin_manifest_with_render_profile(
+        config.target_mode(),
+        config.project_plugin_manifest(),
+        config.render_profile(),
+    )
+}
+
+pub(super) fn effective_project_plugin_manifest_with_render_profile(
+    target_mode: RuntimeTargetMode,
+    manifest: Option<&ProjectPluginManifest>,
+    render_profile: &RenderProfileBundle,
+) -> ProjectPluginManifest {
+    let mut effective_manifest = manifest_with_mode_baseline(target_mode, manifest);
+    let render_profile_overlay =
+        render_profile_runtime_plugin_overlay(&effective_manifest, target_mode, render_profile);
+    for selection in render_profile_overlay.selections {
+        effective_manifest.set_enabled(selection);
+    }
+    effective_manifest
+}
+
+pub(super) fn render_profile_runtime_plugin_overlay(
+    manifest: &ProjectPluginManifest,
+    target_mode: RuntimeTargetMode,
+    render_profile: &RenderProfileBundle,
+) -> ProjectPluginManifest {
+    ProjectPluginManifest {
+        selections: runtime_plugins_for_render_profile(render_profile)
+            .filter(|runtime_plugin| {
+                !manifest
+                    .selections
+                    .iter()
+                    .filter_map(|selection| RuntimePluginId::parse_key(&selection.id))
+                    .any(|selection_id| selection_id.key() == runtime_plugin.key())
             })
-            .unwrap_or_default()
+            .map(|runtime_plugin| {
+                ProjectPluginSelection::runtime_plugin(runtime_plugin, true, false)
+                    .with_target_modes([target_mode])
+            })
+            .collect(),
+    }
+}
+
+fn runtime_plugins_for_render_profile(
+    render_profile: &RenderProfileBundle,
+) -> impl Iterator<Item = RuntimePluginId> + '_ {
+    [
+        (
+            RenderProductFeature::VirtualGeometry,
+            RuntimePluginId::VirtualGeometry,
+        ),
+        (
+            RenderProductFeature::HybridGlobalIllumination,
+            RuntimePluginId::HybridGi,
+        ),
+        (RenderProductFeature::Solari, RuntimePluginId::Solari),
+    ]
+    .into_iter()
+    .filter_map(|(feature, runtime_plugin)| {
+        render_profile
+            .has_feature(feature)
+            .then_some(runtime_plugin)
     })
-}
-
-#[derive(Debug)]
-struct DescriptorBackedEngineModule {
-    descriptor: ModuleDescriptor,
-}
-
-impl DescriptorBackedEngineModule {
-    fn new(descriptor: ModuleDescriptor) -> Self {
-        Self { descriptor }
-    }
-}
-
-impl EngineModule for DescriptorBackedEngineModule {
-    fn module_name(&self) -> &str {
-        &self.descriptor.name
-    }
-
-    fn module_description(&self) -> &str {
-        &self.descriptor.description
-    }
-
-    fn descriptor(&self) -> ModuleDescriptor {
-        self.descriptor.clone()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn descriptor_backed_modules_borrow_dynamic_text_at_supported_cardinalities() {
-        for cardinality in [1, 100, 1_000] {
-            let modules = (0..cardinality)
-                .map(|index| {
-                    DescriptorBackedEngineModule::new(ModuleDescriptor::new(
-                        format!("RuntimePluginModule{index}"),
-                        format!("Runtime plugin descriptor {index}"),
-                    ))
-                })
-                .collect::<Vec<_>>();
-
-            assert_eq!(modules.len(), cardinality);
-            for module in modules {
-                assert_eq!(
-                    module.module_name().as_ptr(),
-                    module.descriptor.name.as_ptr(),
-                    "module names must borrow the descriptor-owned allocation"
-                );
-                assert_eq!(
-                    module.module_description().as_ptr(),
-                    module.descriptor.description.as_ptr(),
-                    "module descriptions must borrow the descriptor-owned allocation"
-                );
-            }
-        }
-    }
 }

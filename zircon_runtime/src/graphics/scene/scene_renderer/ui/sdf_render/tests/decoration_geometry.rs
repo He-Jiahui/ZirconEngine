@@ -43,12 +43,16 @@ fn render_text_decorations_emit_solid_quads_from_face_metrics() {
     assert!(vertices
         .iter()
         .all(|vertex| vertex.primitive_kind == super::super::vertices::SDF_TEXT_PRIMITIVE_SOLID));
-    assert!(vertices[..6]
-        .iter()
-        .all(|vertex| vertex.color == [0.8, 0.1, 0.2, 0.7]));
-    assert!(vertices[6..]
-        .iter()
-        .all(|vertex| vertex.color == [0.1, 0.8, 0.2, 0.6]));
+    assert!(
+        vertices[..6]
+            .iter()
+            .all(|vertex| vertex.color == [0.8, 0.1, 0.2, 0.7])
+    );
+    assert!(
+        vertices[6..]
+            .iter()
+            .all(|vertex| vertex.color == [0.1, 0.8, 0.2, 0.6])
+    );
     let underline_top_px = (1.0 - vertices[0].position[1]) * 50.0;
     let strikeout_top_px = (1.0 - vertices[6].position[1]) * 50.0;
     assert!((underline_top_px - 37.5).abs() < 0.0001);

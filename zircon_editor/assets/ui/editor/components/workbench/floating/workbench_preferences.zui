@@ -5,13 +5,8 @@ version = 2
 display_name = "Workbench Preferences"
 
 [imports]
-widgets = [
-  "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
-  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-]
 styles = [
   "res://ui/theme/editor_workbench_strict.zui",
-  "res://ui/editor/theme/editor_tokens.zui",
 ]
 
 [components.WorkbenchPreferences]
@@ -22,38 +17,6 @@ default_classes = ["workbench-floating", "workbench-preferences"]
 component = "HorizontalGroup"
 control_id = "WorkbenchPreferences"
 classes = ["workbench-floating", "workbench-preferences"]
+props = { open = false, popup_open = false, focused = false, selected = false, visibility = "collapsed", title = "Editor Settings", locale = "en", settings_generation = 0, contribution_generation = 0, enabled_capabilities = [], selected_category_id = "", settings_editor_open_key = "", settings_editor_open_kind = "", settings_category_scroll_offset = 0.0, settings_scroll_offset = 0.0, settings_persistence_health_generation = 0, settings_persistence_retry_scope = "", settings_persistence_status_text = "", categories = [], settings = [], settings_values = [], plugin_pages = [], close_on_backdrop_click = true, keep_mounted = true, aria_modal = true, aria_labelledby = "Editor Settings", aria_describedby = "Editor settings and plugin preference pages", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 style = { self = { background = { color = "$editor.surface.1" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.large" } } }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { min = 720.0, preferred = 860.0, max = 960.0, stretch = "Fixed" }, height = { min = 480.0, preferred = 560.0, max = 680.0, stretch = "Fixed" } }
-children = [{ node = "navigation" }, { node = "content" }]
-
-[nodes.navigation]
-component = "VerticalGroup"
-control_id = "WorkbenchPreferencesNavigation"
-style = { self = { background = { color = "$editor.surface.0" }, foreground = { color = "$editor.text.secondary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
-layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.xsmall" }, width = { min = 192.0, preferred = 224.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "nav_general" }, { node = "nav_layout" }]
-
-[nodes.nav_general]
-component = "WorkbenchListRow"
-control_id = "WorkbenchPreferencesGeneral"
-props = { label = "General" }
-layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-
-[nodes.nav_layout]
-component = "WorkbenchListRow"
-control_id = "WorkbenchPreferencesLayout"
-props = { label = "Layout" }
-layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-
-[nodes.content]
-component = "VerticalGroup"
-control_id = "WorkbenchPreferencesContent"
-style = { self = { background = { color = "$editor.surface.2" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
-layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "title" }]
-
-[nodes.title]
-component = "WorkbenchSectionTitle"
-control_id = "WorkbenchPreferencesTitle"
-props = { text = "Preferences" }
-layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, width = { min = 0.0, preferred = 860.0, max = 960.0, stretch = "Stretch" }, height = { min = 0.0, preferred = 560.0, max = 680.0, stretch = "Stretch" }, z_index = 1480 }

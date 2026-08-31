@@ -49,6 +49,8 @@ mod tests {
                 max_sampled_textures_per_shader_stage: 16,
                 max_binding_array_elements_per_shader_stage: 500_000,
                 max_binding_array_sampler_elements_per_shader_stage: 1_000,
+                min_uniform_buffer_offset_alignment: 256,
+                min_storage_buffer_offset_alignment: 256,
                 max_storage_buffers_per_shader_stage: 8,
                 max_storage_buffer_binding_size: 134_217_728,
             });

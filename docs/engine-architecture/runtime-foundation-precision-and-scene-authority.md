@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_runtime/crates/zr_math/src/lib.rs
   - zircon_runtime_interface/src/math.rs
   - zircon_runtime/src/core/math/mod.rs
   - zircon_runtime/tests/math_transform_helpers.rs
@@ -51,6 +52,7 @@ related_code:
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
 implementation_files:
+  - zircon_runtime/crates/zr_math/src/lib.rs
   - zircon_runtime_interface/src/math.rs
   - zircon_runtime/src/core/math/mod.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
@@ -105,6 +107,9 @@ plan_sources:
   - user: 2026-05-08 Bevy-grade ECS / Reflect / Scene / Transform roadmap implementation
   - .codex/plans/ZirconEngine Bevy-Grade ECS Reflect Scene Transform Roadmap.md
 tests:
+  - tools/tests/test_frameworks_01_math_crate_boundary.py
+  - zircon_runtime/crates/zr_math/src/tests/
+  - zircon_runtime_interface/tests/math_contract.rs
   - zircon_runtime/tests/math_transform_helpers.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/core/math/mod.rs zircon_runtime_interface/src/math.rs
   - cargo test -p zircon_runtime --test math_transform_helpers --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-math-warning-cleanup --message-format short --color never
@@ -124,38 +129,79 @@ doc_type: module-detail
 
 ## Purpose
 
-这份文档定义 `runtime foundation` 首里程碑的最终约束，并记录后续 runtime-interface 吸收后的当前归属：
+这份文档定义 `runtime foundation` 首里程碑的最终约束，并记录 2026-08-24
+`zr_math` 物理硬切后的当前归属：
 
-- `zircon_runtime_interface::math` 是当前唯一共享精度 seam，拥有 `Real`、glam alias、finite 校验、render downcast helper 和 `Transform`
-- `zircon_runtime::core::math` 只作为运行时公开入口 re-export 接口层数学合同，不再保留重复私有 math owner
+- `zr_math` 是唯一数学实现 owner，拥有 `Real`、glam alias、数值策略、空间类型、有限值校验、render downcast helper 和 `Transform`
+- `zircon_runtime_interface::math` 只拥有带 `SchemaId` 的版本化产品 DTO，并显式投影批准的 `zr_math` surface
+- `zircon_runtime::core::math` 只作为运行时公开入口，显式投影 `zr_math` 与 Interface schema，不保留重复实现
 - `zircon_runtime::scene` 以 local authoring state + derived runtime state 为权威
 - graphics scene renderer 明确承担 `runtime precision -> render precision` 的降级边界
 
-这轮实现仍然是 `f32 + glam` 后端，但边界已经按未来可切 `f64` 的方向收口。
+这轮实现仍然是 `f32 + glam` 后端。共享 seam 为未来的精度 profile 提供唯一的接口层
+入口，但它本身不构成 `f64-ready` 或 large-world 能力声明。
 
 ## Precision Contract
 
-`zircon_runtime_interface::math` 现在不再把“直接 re-export `glam`”当作最终公共契约，而是先定义自己的精度边界：
+`zr_math` 不把“直接 re-export `glam`”当作最终公共契约，而是定义低依赖、可独立验证的精度边界：
 
 - `Real`：当前是 `f32`
 - `Vec2/Vec3/Vec4/Quat/Mat4`：runtime/backend alias
 - `RenderScalar`：固定为 `f32`
 - `RenderVec* / RenderMat4`：render seam 专用 alias
 
+当前 canonical `CoordinateSchema` 同时冻结右手系、`+Y` up、`-Z` forward、列向量/列主序、
+`[0,1]` clip depth、near-to-far 深度和 CCW canonical front face。单独的 material、mirror 或
+backend pipeline 可以在自己的 descriptor 中声明例外，但不能修改 scene/asset/renderer 共用的
+基础坐标约定。
+
+`ZIRCON_PRECISION_PROFILE` 是当前版本化精度身份：runtime scalar 与 render scalar 均为
+`f32`。任何新的 profile 都必须使用新的 profile/schema 版本，并同时通过 ABI、持久化、
+reflection、cache 与 render narrowing 的迁移验收；不得只改变 `Real` alias。
+
+`ZIRCON_UNIT_SCHEMA` 固定 canonical runtime base units 为 meter、radian 和 second；Editor
+显示单位与 importer source unit 必须通过各自的 conversion receipt 适配，不能改写此存储含义。
+
 统一 helper 负责两个职责：
 
 - runtime 构造与校验：`compose_trs`、`transform_to_mat4`、`affine_inverse`、`is_finite_*`
-- render 降级：`to_render_scalar`、`to_render_vec*`、`to_render_mat4`
+- render 降级：兼容 `to_render_scalar`、`to_render_vec*`、`to_render_mat4`，以及携带误差
+  receipt 的 `try_to_render_scalar`
 
-因此未来如果 runtime 切到 `f64`，主入口应只在 `zircon_runtime_interface::math` backend alias 与 helper，而不是在 scene、asset serializer、graphics renderer 里散落改类型。
+因此未来如果 runtime 切换精度 profile，`zr_math` 是唯一实现入口；
+`zircon_runtime_interface::math` 与 `zircon_runtime::core::math` 是显式、可审计的产品投影，
+避免 scene、asset serializer 和 graphics renderer 各自定义私有 numeric alias。
+这并不意味着 profile 切换只修改 alias/helper：scene canonical world storage、asset 和
+save schema、reflection、animation、plugin/wire ABI、BuildSet/cache identity，以及
+runtime-to-render 的可表示范围和相对坐标提取都必须有显式迁移与验证。GPU 侧仍可保持
+`f32`，但只能在具名、受检的 render boundary 进行降精度，不能把绝对 world matrix
+直接当作完整 large-world 方案。
 
 ## 2026-05-07 Runtime Math Ownership Cutover
+
+> Historical note: 本节记录的 Interface 单 owner 决策已被 2026-08-24 M1 `zr_math` 物理硬切取代，
+> 不再描述当前实现归属。
 
 runtime-interface 收敛后，数学 DTO 与 helper 的中立定义已经在 `zircon_runtime_interface/src/math.rs` 中成为跨 runtime/editor 的事实。`zircon_runtime/src/core/math/mod.rs` 保留为运行时侧的稳定导入面，继续允许现有代码使用 `zircon_runtime::core::math::{Transform, Vec3, Mat4, ...}`，但它只 re-export 接口层合同。
 
 本轮删除了 `zircon_runtime/src/core/math/precision/*` 与 `zircon_runtime/src/core/math/transform/*` 两组运行时私有重复实现。这样做不改变公开数学 API，目的是避免同一批 alias/helper 出现两个维护源，并清掉 runtime 编译中由旧私有模块产生的 unused warning。
 
-后续数学能力扩展必须优先落到 `zircon_runtime_interface::math`。只有 runtime-only、不可序列化且不应暴露给 editor/interface DTO 的 helper，才允许在 `zircon_runtime::core::math` 下面重新建立独立子模块。
+## 2026-08-24 M1 `zr_math` Physical Hard Cut
+
+数学算法与纯值类型已经从 `zircon_runtime_interface` 物理迁入独立 workspace crate
+`zircon_runtime/crates/zr_math`。旧的 Interface 实现文件已经删除，没有复制实现、兼容 module、
+通配符 re-export 或双 owner 过渡期。依赖方向固定为：
+
+1. `zr_math` 仅依赖 `glam`、`serde` 和 `thiserror`，禁止依赖 Runtime 或 Runtime Interface；
+2. `zircon_runtime_interface::math::schema` 保留 `CoordinateSchema`、`UnitSchema`、
+   `PrecisionProfile` 及其 `SchemaId`，并从 `zr_math` 导入纯 convention enum；
+3. Runtime Interface 与 Runtime facade 均使用显式 symbol list 投影批准的数学 surface，新增
+   `zr_math` 符号不会自动泄漏到产品 API；
+4. 产品消费者继续使用稳定的 Runtime/Interface product path；基础 crate 内部实现可以直接依赖
+   `zr_math`，但不得建立 `zr_math -> product facade` 反向边。
+
+这个结构对应 Unreal Runtime Core Math 的基础 owner 与稳定公开投影，也对应 Bevy
+`bevy_math` 的低依赖独立 crate；Zircon 额外保留 Interface 的版本化 ABI schema 责任。
 
 ## Scene Runtime Authority
 
@@ -270,7 +316,7 @@ scene/runtime 到 renderer 的当前入口由 `zircon_runtime/src/scene/render_e
 
 - `zircon_runtime/tests/math_transform_helpers.rs`
   - runtime 公开入口继续通过 `zircon_runtime::core::math` 提供 `Transform`、glam alias 和 TRS helper
-  - helper 由 `zircon_runtime_interface::math` 拥有，runtime 不保留重复私有实现
+  - helper 由 `zr_math` 拥有，Runtime/Interface 不保留重复实现
   - 2026-05-07 focused 验证通过：`cargo test -p zircon_runtime --test math_transform_helpers --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-math-warning-cleanup --message-format short --color never`，3 passed；编译输出剩余 warning 位于 graphics/ui 等既有区域，不再包含已删除的 runtime-local math owner warning 组
 - `zircon_runtime/src/asset/tests/assets/scene.rs`
   - scene asset roundtrip
@@ -288,12 +334,20 @@ scene/runtime 到 renderer 的当前入口由 `zircon_runtime/src/scene/render_e
 
 2026-05-25 M11/M12 gate 已在当前 dirty workspace 下通过：`cargo test -p zircon_runtime --lib scene::tests::ecs --locked --offline --message-format short --jobs 1 --target-dir E:\cargo-targets\zircon-native-ecs-systems --color never -- --test-threads=1 --nocapture` 报告 `145 passed; 0 failed`，`cargo test -p zircon_runtime --lib scene::tests --locked --offline --message-format short --jobs 1 --target-dir E:\cargo-targets\zircon-native-ecs-systems --color never -- --test-threads=1 --nocapture` 报告 `179 passed; 0 failed`，`cargo check -p zircon_runtime --lib --locked --offline --message-format short --jobs 1 --target-dir E:\cargo-targets\zircon-native-ecs-systems --color never` 通过。该证据只接受 scene/ECS gate，不代表全 workspace CI 已在当前脏工作区通过。
 
+2026-08-24 M1 gate 的当前证据为：math boundary guard `4/4`；`zr_math` locked build
+与 lib tests 通过；Runtime Interface `math_contract` 6 个 public-contract tests 通过。
+`zircon_runtime` product build 已成功编译 math/Interface 层，随后被 `zr_rhi_wgpu` 当前源中的
+5 个外部错误阻塞，因此该证据不声明 Runtime、App、Editor 或 workspace 全绿。完整 job id、耗时
+与阻塞指纹记录在
+`docs/plans/zircon_runtime/frameworks/01/2026-08-24-m1-zr-math-physical-hard-cut.md`。
+
 ## Future f64 Switch Boundary
 
 如果后续真的切 runtime `f64`，本轮实现希望把主改动尽量压缩到下面几处：
 
-- `zircon_runtime_interface::math` backend alias
-- `zircon_runtime_interface::math` render conversion helper
+- `zr_math` backend alias
+- `zr_math` render conversion helper
+- `zircon_runtime_interface::math::schema` 的版本化 profile 与迁移规则
 - runtime scene / asset serializer 中依赖容差的测试
 
 不应该再把精度切换扩散成：

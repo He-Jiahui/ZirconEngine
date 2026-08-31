@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn template_legacy_adapter_is_removed_from_formal_namespace_surface() {
+fn template_namespace_exposes_only_asset_compiler_authority() {
     let lib_source = include_str!("../../mod.rs");
     let template_mod_source = include_str!("../../template/mod.rs");
     let interface_template_mod_source =
@@ -12,19 +12,10 @@ fn template_legacy_adapter_is_removed_from_formal_namespace_surface() {
         "zircon_ui root should expose the template namespace directly"
     );
 
-    assert!(
-        interface_template_mod_source.contains("UiTemplateDocument"),
-        "zircon_runtime_interface::ui::template should own neutral DTO `UiTemplateDocument`"
-    );
-    assert!(
-        !template_mod_source.contains("UiTemplateDocument"),
-        "zircon_ui::template should not re-export interface DTO `UiTemplateDocument`"
-    );
-
-    for required in ["UiTemplateLoader"] {
+    for required in ["UiAssetLoader", "UiDocumentCompiler", "UiCompiledDocument"] {
         assert!(
             template_mod_source.contains(required),
-            "zircon_ui::template should expose runtime behavior service `{required}`"
+            "zircon_ui::template should expose the canonical compiler service `{required}`"
         );
     }
 
@@ -32,10 +23,15 @@ fn template_legacy_adapter_is_removed_from_formal_namespace_surface() {
         "UiLegacyTemplateAdapter",
         "UiTemplateDocument",
         "UiTemplateLoader",
+        "UiTemplateValidator",
+        "UiTemplateRuntimePipeline",
+        "UiTemplateError",
     ] {
         assert!(
-            !lib_source.contains(forbidden),
-            "zircon_ui root should stop flattening template boundary type `{forbidden}`"
+            !lib_source.contains(forbidden)
+                && !template_mod_source.contains(forbidden)
+                && !interface_template_mod_source.contains(forbidden),
+            "legacy template authority `{forbidden}` should be absent from every formal namespace"
         );
     }
 
@@ -77,25 +73,11 @@ fn template_compiler_api_moves_under_template_namespace() {
 fn template_runtime_builder_api_moves_under_template_namespace() {
     let lib_source = include_str!("../../mod.rs");
     let template_mod_source = include_str!("../../template/mod.rs");
-    let interface_template_mod_source =
-        include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
-
-    for required in ["UiTemplateError"] {
-        assert!(
-            interface_template_mod_source.contains(required),
-            "zircon_runtime_interface::ui::template should own neutral DTO `{required}`"
-        );
-        assert!(
-            !template_mod_source.contains(required),
-            "zircon_ui::template should not re-export interface DTO `{required}`"
-        );
-    }
 
     for required in [
         "UiTemplateBuildError",
         "UiTemplateSurfaceBuilder",
         "UiTemplateTreeBuilder",
-        "UiTemplateValidator",
     ] {
         assert!(
             template_mod_source.contains(required),
@@ -105,10 +87,8 @@ fn template_runtime_builder_api_moves_under_template_namespace() {
 
     for forbidden in [
         "UiTemplateBuildError",
-        "UiTemplateError",
         "UiTemplateSurfaceBuilder",
         "UiTemplateTreeBuilder",
-        "UiTemplateValidator",
     ] {
         assert!(
             !lib_source.contains(forbidden),
@@ -217,12 +197,7 @@ fn template_binding_model_api_moves_under_template_namespace() {
     let interface_template_mod_source =
         include_str!("../../../../../zircon_runtime_interface/src/ui/template/mod.rs");
 
-    for required in [
-        "UiActionRef",
-        "UiBindingRef",
-        "UiComponentTemplate",
-        "UiSlotTemplate",
-    ] {
+    for required in ["UiActionRef", "UiBindingRef"] {
         assert!(
             interface_template_mod_source.contains(required),
             "zircon_runtime_interface::ui::template should own neutral DTO `{required}`"
@@ -233,12 +208,7 @@ fn template_binding_model_api_moves_under_template_namespace() {
         );
     }
 
-    for forbidden in [
-        "UiActionRef",
-        "UiBindingRef",
-        "UiComponentTemplate",
-        "UiSlotTemplate",
-    ] {
+    for forbidden in ["UiActionRef", "UiBindingRef"] {
         assert!(
             !lib_source.contains(forbidden),
             "zircon_ui root should stop flattening template binding model `{forbidden}`"

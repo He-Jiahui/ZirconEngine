@@ -490,7 +490,7 @@ fn candidate_for_generation(
                 .iter()
                 .map(|registration| {
                     (
-                        registration.type_path.type_path.clone(),
+                        registration.type_path.type_path().to_string(),
                         registration.clone(),
                     )
                 })
@@ -505,7 +505,7 @@ fn candidate_for_generation(
         .registrations
         .retain(|_, registration| registration.slot != slot);
     for registration in registrations {
-        let type_path = registration.type_path.type_path.clone();
+        let type_path = registration.type_path.type_path().to_string();
         if let Some(existing) = candidate.registrations.get(&type_path) {
             return Err(VmReflectionError::TypePathOwnedByAnotherSlot {
                 type_path,
@@ -532,23 +532,10 @@ fn validate_package_owner(
     registrations: &[ReflectTypeRegistration],
 ) -> Result<(), VmReflectionError> {
     for registration in registrations {
-        let type_path = registration.type_path.type_path.clone();
-        let registration_owner = registration.plugin_id.as_deref().unwrap_or("<missing>");
-        if registration_owner != expected_owner {
-            return Err(VmReflectionError::PackageOwnerMismatch {
-                type_path,
-                expected_owner: expected_owner.to_string(),
-                declared_owner: registration_owner.to_string(),
-            });
-        }
-        let type_path_owner = registration
-            .type_path
-            .plugin_id
-            .as_deref()
-            .unwrap_or("<missing>");
+        let type_path_owner = registration.type_path.plugin_id().unwrap_or("<missing>");
         if type_path_owner != expected_owner {
             return Err(VmReflectionError::PackageOwnerMismatch {
-                type_path,
+                type_path: registration.type_path.type_path().to_string(),
                 expected_owner: expected_owner.to_string(),
                 declared_owner: type_path_owner.to_string(),
             });

@@ -18,7 +18,7 @@ children = [{ node = "header" }, { node = "canvas_slot", slot = { name = "animat
 component = "HorizontalGroup"
 control_id = "AnimationEditorHeaderPanel"
 layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
-children = [{ node = "mode" }, { node = "path" }, { node = "status" }, { node = "add_node" }]
+children = [{ node = "mode" }, { node = "path" }, { node = "status" }]
 
 [nodes.mode]
 component = "Text"
@@ -37,13 +37,6 @@ component = "Text"
 control_id = "AnimationEditorHeaderStatusRow"
 props = { text = "Ready" }
 layout = { width = { min = 120.0, preferred = 120.0, max = 180.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.add_node]
-component = "IconButton"
-control_id = "AddNode"
-props = { label = "Add Node", icon = "editor_pages/graph_editor/nodes/state-node.svg", icon_placement = "leading" }
-layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AnimationGraphPaneBody/AddNode", event = "Click", route = "workbench.animation.add_graph_node" }]
 
 [nodes.canvas_slot]
 component = "CanvasBox"

@@ -9,10 +9,10 @@ function Test-MvpStagedProjectDirectoryReleased {
         [Parameter(Mandatory)][string]$ProjectDirectory
     )
 
-    if (-not (Test-Path -LiteralPath $StageDirectory -PathType Container)) {
+    if (-not [IO.Directory]::Exists($StageDirectory)) {
         throw "Staging directory '$StageDirectory' does not exist."
     }
-    if (-not (Test-Path -LiteralPath $ProjectDirectory -PathType Container)) {
+    if (-not [IO.Directory]::Exists($ProjectDirectory)) {
         throw "Staged project directory '$ProjectDirectory' does not exist."
     }
 
@@ -30,16 +30,16 @@ function Test-MvpStagedProjectDirectoryReleased {
         throw "Staged project release probe '$probe' already exists."
     }
 
-    Move-ZirconWindowsPath -Source $resolvedProject -Destination $probe
+    [ZirconEngine.WindowsPathResolver.NativeMethodsV4]::MovePath($resolvedProject, $probe)
     try {
-        Move-ZirconWindowsPath -Source $probe -Destination $resolvedProject
+        [ZirconEngine.WindowsPathResolver.NativeMethodsV4]::MovePath($probe, $resolvedProject)
     }
     catch {
         $restoreError = $_.Exception
         $recovery = 'automatic recovery was not required'
         if ([IO.Directory]::Exists($probe) -and -not [IO.Directory]::Exists($resolvedProject)) {
             try {
-                Move-ZirconWindowsPath -Source $probe -Destination $resolvedProject
+                [ZirconEngine.WindowsPathResolver.NativeMethodsV4]::MovePath($probe, $resolvedProject)
                 $recovery = 'the project directory was restored on retry'
             }
             catch {

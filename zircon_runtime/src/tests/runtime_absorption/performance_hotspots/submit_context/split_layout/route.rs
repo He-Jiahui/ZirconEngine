@@ -56,8 +56,8 @@ fn assert_submit_context_support_children(sources: &SplitLayoutSources) {
         sources.source_extract_payloads,
         &[
             "assert_source_extract_payloads_are_shared",
-            "source_extract: Arc<RenderFrameExtract>",
-            "FrameSubmissionSourcePayloads",
+            "submission_extract: Arc<RenderFrameExtract>",
+            "for_camera_submission",
             "ViewportRenderFrame::from_shared_extract",
         ],
     );
@@ -66,8 +66,8 @@ fn assert_submit_context_support_children(sources: &SplitLayoutSources) {
         sources.camera_loop_sharing,
         &[
             "assert_camera_loop_uses_shared_sources",
-            "CameraLoopExtractSourceState",
-            "CameraLoopFrameSourceState::capture(&mut frame)",
+            "source_extract.for_camera_submission(submission.camera)",
+            "CameraLoopFrameSourceState::capture(&frame)",
             "render_frame_with_pipeline",
         ],
     );

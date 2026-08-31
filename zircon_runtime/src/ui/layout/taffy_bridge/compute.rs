@@ -1,15 +1,14 @@
 use taffy::geometry::Rect;
 use taffy::prelude::{
     fr, line, AlignContent, AlignItems, AvailableSpace, Dimension, FlexDirection, FlexWrap,
-    GridPlacement, LengthPercentageAuto, Line, Size as TaffySize, Style, TaffyTree,
+    GridPlacement, LengthPercentageAuto, Line, NodeId, Size as TaffySize, Style, TaffyTree,
 };
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{
         AxisConstraint, BoxConstraints, StretchMode, UiAlignment, UiAxis, UiContainerKind, UiFrame,
-        UiGridBoxConfig, UiGridSlotPlacement, UiLayoutEngineFallbackReason,
-        UiLayoutEngineTaffyTreeBuildStats, UiLinearSlotSizeRule, UiLinearSlotSizing, UiMargin,
-        UiSize, UiSlot,
+        UiGridSlotPlacement, UiLayoutEngineFallbackReason, UiLayoutEngineTaffyTreeBuildStats,
+        UiLinearSlotSizeRule, UiLinearSlotSizing, UiMargin, UiSize, UiSlot,
     },
     tree::UiTreeNode,
 };
@@ -29,10 +28,119 @@ pub(crate) struct TaffyLayoutChildFrame {
     pub frame: UiFrame,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct TaffyLayoutOutcome {
     pub tree_build: UiLayoutEngineTaffyTreeBuildStats,
-    pub child_frames: Vec<TaffyLayoutChildFrame>,
+}
+
+#[derive(Debug)]
+pub(crate) struct TaffyLayoutBridgeScratch {
+    taffy: TaffyTree<()>,
+    child_node_ids: Vec<UiNodeId>,
+    taffy_children: Vec<NodeId>,
+    child_frames: Vec<TaffyLayoutChildFrame>,
+    grid_columns: usize,
+    grid_rows: usize,
+    grid_visible_child_count: usize,
+}
+
+impl Default for TaffyLayoutBridgeScratch {
+    fn default() -> Self {
+        let mut taffy = TaffyTree::new();
+        // Zircon projections preserve authored fractional metrics such as 30.5px controls.
+        taffy.disable_rounding();
+        Self {
+            taffy,
+            child_node_ids: Vec::new(),
+            taffy_children: Vec::new(),
+            child_frames: Vec::new(),
+            grid_columns: 0,
+            grid_rows: 0,
+            grid_visible_child_count: 0,
+        }
+    }
+}
+
+impl TaffyLayoutBridgeScratch {
+    pub(crate) fn begin_children(&mut self, container: UiContainerKind) {
+        self.clear();
+        if let UiContainerKind::GridBox(config) = container {
+            self.grid_columns = config.columns.max(1);
+            self.grid_rows = config.rows.max(1);
+        }
+    }
+
+    pub(crate) fn push_child(
+        &mut self,
+        parent_container: UiContainerKind,
+        parent_axis: Option<UiAxis>,
+        child: TaffyChildLayoutInput<'_>,
+    ) -> Result<(), TaffyLayoutBridgeError> {
+        if matches!(parent_container, UiContainerKind::GridBox(_)) {
+            let placement = grid_placement_for_child(
+                child.slot.and_then(|slot| slot.grid_placement),
+                self.child_node_ids.len(),
+                self.grid_columns,
+            );
+            self.grid_visible_child_count = self.grid_visible_child_count.saturating_add(1);
+            self.grid_columns = self.grid_columns.max(
+                placement
+                    .column
+                    .saturating_add(placement.column_span.max(1)),
+            );
+            self.grid_rows = self
+                .grid_rows
+                .max(placement.row.saturating_add(placement.row_span.max(1)));
+        }
+
+        let taffy_child = self
+            .taffy
+            .new_leaf(taffy_child_style(
+                child.node,
+                parent_axis,
+                parent_container,
+                child.slot,
+            ))
+            .map_err(|_| TaffyLayoutBridgeError::TreeBuildFailed {
+                tree_build: taffy_tree_stats(self.taffy_children.len()),
+            })?;
+        self.child_node_ids.push(child.node_id);
+        self.taffy_children.push(taffy_child);
+        Ok(())
+    }
+
+    pub(crate) fn child_frames(&self) -> &[TaffyLayoutChildFrame] {
+        &self.child_frames
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.taffy.clear();
+        self.child_node_ids.clear();
+        self.taffy_children.clear();
+        self.child_frames.clear();
+        self.grid_columns = 0;
+        self.grid_rows = 0;
+        self.grid_visible_child_count = 0;
+    }
+
+    #[cfg(test)]
+    pub(crate) fn retained_capacities(&self) -> (usize, usize, usize) {
+        (
+            self.child_node_ids.capacity(),
+            self.taffy_children.capacity(),
+            self.child_frames.capacity(),
+        )
+    }
+
+    fn grid_dimensions(&self, container: UiContainerKind) -> Option<(usize, usize)> {
+        matches!(container, UiContainerKind::GridBox(_)).then(|| {
+            let columns = self.grid_columns.max(1);
+            let rows = self
+                .grid_rows
+                .max(self.grid_visible_child_count.div_ceil(columns).max(1));
+            (columns, rows)
+        })
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -69,40 +177,31 @@ impl TaffyLayoutBridgeError {
 pub(crate) fn compute_taffy_child_frames(
     container: UiContainerKind,
     frame: UiFrame,
-    children: &[TaffyChildLayoutInput<'_>],
+    scratch: &mut TaffyLayoutBridgeScratch,
 ) -> Result<TaffyLayoutOutcome, TaffyLayoutBridgeError> {
-    let Some(axis) = taffy_main_axis(container) else {
+    if taffy_main_axis(container).is_none() {
         return Err(TaffyLayoutBridgeError::StyleUnavailable {
             tree_build: taffy_tree_stats(0),
         });
-    };
-
-    let mut taffy: TaffyTree<()> = TaffyTree::new();
-    // Zircon projections preserve authored fractional metrics such as 30.5px controls.
-    taffy.disable_rounding();
-
-    let mut taffy_children = Vec::with_capacity(children.len());
-    for child in children {
-        let taffy_child = taffy
-            .new_leaf(taffy_child_style(child.node, axis, container, child.slot))
-            .map_err(|_| TaffyLayoutBridgeError::TreeBuildFailed {
-                tree_build: taffy_tree_stats(taffy_children.len()),
-            })?;
-        taffy_children.push(taffy_child);
     }
 
-    let Some(parent_style) = taffy_parent_style(container, frame, children) else {
+    scratch.child_frames.clear();
+    let parent_style = taffy_parent_style(container, frame, scratch.grid_dimensions(container));
+    let Some(parent_style) = parent_style else {
         return Err(TaffyLayoutBridgeError::StyleUnavailable {
-            tree_build: taffy_tree_stats(taffy_children.len()),
+            tree_build: taffy_tree_stats(scratch.taffy_children.len()),
         });
     };
-    let taffy_parent = taffy
-        .new_with_children(parent_style, &taffy_children)
+
+    let taffy_parent = scratch
+        .taffy
+        .new_with_children(parent_style, &scratch.taffy_children)
         .map_err(|_| TaffyLayoutBridgeError::TreeBuildFailed {
-            tree_build: taffy_tree_stats(taffy_children.len()),
+            tree_build: taffy_tree_stats(scratch.taffy_children.len()),
         })?;
-    let complete_taffy_tree_build = complete_taffy_tree_stats(taffy_children.len());
-    taffy
+    let complete_taffy_tree_build = complete_taffy_tree_stats(scratch.taffy_children.len());
+    scratch
+        .taffy
         .compute_layout(
             taffy_parent,
             TaffySize {
@@ -114,16 +213,18 @@ pub(crate) fn compute_taffy_child_frames(
             tree_build: complete_taffy_tree_build,
         })?;
 
-    let mut child_frames = Vec::with_capacity(children.len());
-    for (child, taffy_child) in children.iter().zip(taffy_children) {
-        let layout =
-            taffy
-                .layout(taffy_child)
-                .map_err(|_| TaffyLayoutBridgeError::ComputeFailed {
-                    tree_build: complete_taffy_tree_build,
-                })?;
-        child_frames.push(TaffyLayoutChildFrame {
-            node_id: child.node_id,
+    for (child_node_id, taffy_child) in scratch
+        .child_node_ids
+        .iter()
+        .zip(scratch.taffy_children.iter().copied())
+    {
+        let layout = scratch.taffy.layout(taffy_child).map_err(|_| {
+            TaffyLayoutBridgeError::ComputeFailed {
+                tree_build: complete_taffy_tree_build,
+            }
+        })?;
+        scratch.child_frames.push(TaffyLayoutChildFrame {
+            node_id: *child_node_id,
             frame: UiFrame::new(
                 frame.x + layout.location.x,
                 frame.y + layout.location.y,
@@ -135,7 +236,6 @@ pub(crate) fn compute_taffy_child_frames(
 
     Ok(TaffyLayoutOutcome {
         tree_build: complete_taffy_tree_build,
-        child_frames,
     })
 }
 
@@ -251,7 +351,7 @@ fn axis_alignment_supported(alignment: UiAlignment, constraint: AxisConstraint) 
 fn taffy_parent_style(
     container: UiContainerKind,
     frame: UiFrame,
-    children: &[TaffyChildLayoutInput<'_>],
+    grid_dimensions: Option<(usize, usize)>,
 ) -> Option<Style> {
     let mut style = taffy_style_for_container(
         container,
@@ -276,7 +376,10 @@ fn taffy_parent_style(
     style.align_content = Some(AlignContent::Start);
 
     match container {
-        UiContainerKind::GridBox(config) => configure_grid_parent(&mut style, children, config),
+        UiContainerKind::GridBox(config) => configure_grid_parent(
+            &mut style,
+            grid_dimensions.unwrap_or((config.columns.max(1), config.rows.max(1))),
+        ),
         UiContainerKind::WrapBox(_) => {
             style.flex_wrap = FlexWrap::Wrap;
         }
@@ -292,36 +395,10 @@ fn taffy_parent_style(
     Some(style)
 }
 
-fn configure_grid_parent(
-    style: &mut Style,
-    children: &[TaffyChildLayoutInput<'_>],
-    config: UiGridBoxConfig,
-) {
-    let (columns, rows) = taffy_grid_dimensions(children, config);
+fn configure_grid_parent(style: &mut Style, dimensions: (usize, usize)) {
+    let (columns, rows) = dimensions;
     style.grid_template_columns = vec![fr(1.0); columns];
     style.grid_template_rows = vec![fr(1.0); rows];
-}
-
-fn taffy_grid_dimensions(
-    children: &[TaffyChildLayoutInput<'_>],
-    config: UiGridBoxConfig,
-) -> (usize, usize) {
-    let mut columns = config.columns.max(1);
-    let mut rows = config.rows.max(1);
-    let mut visible_child_count = 0usize;
-
-    for (index, child) in children.iter().enumerate() {
-        if !child.node.effective_visibility().occupies_layout() {
-            continue;
-        }
-        visible_child_count += 1;
-        let placement = grid_placement_for_child(child.slot, index, columns);
-        columns = columns.max(placement.column + placement.column_span.max(1));
-        rows = rows.max(placement.row + placement.row_span.max(1));
-    }
-
-    rows = rows.max(visible_child_count.div_ceil(columns).max(1));
-    (columns, rows)
 }
 
 fn taffy_child_style(
@@ -544,11 +621,11 @@ fn apply_grid_placement(style: &mut Style, placement: UiGridSlotPlacement) {
 }
 
 fn grid_placement_for_child(
-    slot: Option<&UiSlot>,
+    placement: Option<UiGridSlotPlacement>,
     index: usize,
     columns: usize,
 ) -> UiGridSlotPlacement {
-    if let Some(placement) = slot.and_then(|slot| slot.grid_placement) {
+    if let Some(placement) = placement {
         return placement.with_span(placement.column_span, placement.row_span);
     }
 

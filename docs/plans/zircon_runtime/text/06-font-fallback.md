@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/text/model/shaped_run.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
-  - zircon_runtime/src/ui/text/font_registry.rs
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/text/font/mod.rs
   - zircon_runtime/src/text/font/backend.rs
@@ -41,7 +40,7 @@ status: in_progress
 
 # 06 字体回退规则 / 文本字体回退
 
-> 本计划定义"当首选 face 无某码点字形时,如何选回退 face"的**算法**(数据结构在 `01`)。承接 `editor_ui/03 §2.2` 缺口 3,根治当前 `font_registry.rs` 硬编码链与 CJK/emoji 缺字显示豆腐块(tofu)。
+> 本计划定义"当首选 face 无某码点字形时,如何选回退 face"的**算法**(数据结构在 `01`)。承接 `editor_ui/03 §2.2` 缺口 3,以 `FontDatabase`/`CompositeFontDescriptor` 的单一数据面根治旧 UI-local 硬编码回退链与 CJK/emoji 缺字显示豆腐块(tofu)。
 
 ## 1. 目标
 
@@ -53,7 +52,7 @@ status: in_progress
 
 ## 2. 现状与差距
 
-- `font_registry.rs` 的默认 family 已改为消费 runtime font database；`FallbackResolver` 已承接 script/range/locale 候选与深度上限。
+- `FontDatabase` 是默认 family 与 fallback chain 的唯一 owner；`FallbackResolver` 已承接 script/range/locale 候选与深度上限。
 - 2026-07-10 D4 硬切后，`FontDatabase` 持有权威 `fontdb::Database` lineage 与双向 ID map；shared locale shaping cache 和 native renderer 通过 generation snapshot 消费同一 lineage，`ShapedGlyph.font_id`/native report 均来自实际 `LayoutGlyph.font_id`。旧 `shaping/font_id.rs` post-shape 重算桥已删除且无 shim。
 - 2026-07-10 locale 数据面已贯通：可序列化的 `UiResolvedStyle.language` 从模板 `[font].language` 进入 layout/shaped cache key、direct/parallel `TextShapeRequest`、native rich spans 与 SDF atlas/bake fallback；`zh-Hans`/`ja` 等同码点不会跨 locale 复用缓存或 SDF 槽。
 - 2026-07-10 真实 WGPU 产品 framebuffer 已覆盖 Latin/CJK/Arabic/Hebrew/emoji/mixed BiDi/native/SDF、zh-Hans/ja 同码点与 VerticalRl SDF 十项；逐项 background delta、地区字体相对像素差与人工原图检查通过，证据只写入 `docs/tests/runtime/text`。
@@ -93,7 +92,7 @@ cluster(script from 02, codepoints) →
 
 实施切片:
 1. `text/font/fallback.rs`:回退解析器——首选→CompositeFont(script/range,查 `01` `composite_resolve`)→fontdb(码点)→last-resort;深度上限 10。
-2. `font_registry.rs` 硬编码链改为数据驱动 `CompositeFontDescriptor`(默认包含 latin/CJK/emoji/阿拉伯等 sub-font)。
+2. 已硬删除 UI-local 硬编码链；数据驱动 `CompositeFontDescriptor` 默认包含 latin/CJK/emoji/阿拉伯等 sub-font。
 3. ✅ cosmic-text fallback 与本链对齐：shared locale cache 与 native renderer 消费 process-shared `FontDatabase` generation snapshot，消除 backend database 双轨。
 4. ✅ (2026-07-02 评审收口,D4；2026-07-10 完成)建立 fontdb ID↔`FontFaceId` 双向映射，`ShapedGlyph.font_id` 从整形后端实际选择的 face 直出；删除 `shaping/font_id.rs` post-shape annotation 过渡路径。
 5. ✅ (2026-07-10)run language/locale 从公共样式进入 layout/shaped/SDF 三类缓存键以及 native/SDF fallback 查询；空 tag 归一为无标注，缓存键对 tag 大小写归一。
@@ -169,7 +168,7 @@ locale 取 run 的 `UiResolvedStyle.language` 标注(02 shaped key 含 language)
 
 | 现有 | 切换 |
 |------|------|
-| `font_registry.rs` 硬编码 5 字体链 | 删除常量;改默认 `CompositeFontDescriptor` 资产 + `FallbackResolver` |
+| UI-local 硬编码 fallback chain | 已硬删除；默认 `CompositeFontDescriptor` 资产 + `FallbackResolver` 直接消费 `FontDatabase` |
 | glyphon 内部 fontdb 独立回退 | 已硬切：`FontDatabase` 持有 backend DB；renderer 与 locale shaping cache 通过 snapshot/generation 共用同一 ID lineage |
 
 ### 测试与验收清单
@@ -206,3 +205,111 @@ locale 取 run 的 `UiResolvedStyle.language` 标注(02 shaped key 含 language)
 | 2026-06-29 | FB-M1 fallback resolver data-plane | runtime_text_fb_m1_fallback_resolver_data_plane_check_passed_test_compile_timeout | 新增 `text/font/fallback.rs` 作为回退解析器 leaf owner,承接 `FontDatabase`/`CompositeFontDescriptor`/`FontQuery`;按 primary coverage → CompositeFont script/range family → request/default/fallback families → last-resort 顺序解析 cluster face;加入 `DEFAULT_FALLBACK_MAX_DEPTH=10`、`FallbackResolutionSource`、`MissingGlyphLog`/`MissingGlyphDiagnostic`;`FontDatabase::fallback_candidates(...)` 改为委托 resolver 的候选顺序,并保留 cmap-aware coverage 预筛。实现前对照 UE `FCompositeFont` sub-typeface/range 分派与 Fyrox `MAX_FALLBACK_DEPTH=10`,未把规则散落到 UI 或 render facade。 | scoped `rustfmt --edition 2021 --check` 通过;`cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-fallback-resolver-check2 --message-format short --color never` 通过,但仍有既有/no-default warning 噪声,并包含本轮 resolver 在 FB-M2 真实 shaping bridge 接线前的未使用数据面 warnings;focused `cargo test -p zircon_runtime text_fallback --lib --no-default-features --locked ...` 编译超时无 Rust diagnostics,匹配验证进程已停止,不计测试通过;视觉证据 `docs/tests/runtime/text/runtime_text_fallback_resolver_preview_20260629.png` 已检查,不写 repo `target`。 | 继续 FB-M2:把 resolver 命中的 face 接入 cosmic/glyphon/SDF shaping bridge,让 `ShapedGlyph.font_id` 携带实际 fallback-selected `FontFaceId`;补 emoji/color fallback、cluster 同 face 断言、真实缺字 tofu/raster 诊断和完整 per-script fallback run。 |
 | 2026-06-28 | FB-M1 首段:cmap-aware fallback candidate filter | runtime_text_fr_m2_fb_m1_cmap_candidate_filter_rustfmt_metadata_passed_focused_test_timeout | `text/font/coverage.rs` 作为回退候选 coverage leaf,为可解析 sfnt project faces 保存 compact cmap ranges;`FontDatabase::fallback_candidates` 在 CompositeFont/request/default/fallback family 排序后按 codepoint 剔除 Known coverage 不覆盖的 face,Unknown coverage 对系统字体和 synthetic tests 维持 permissive,避免误删不可判定候选;新增 focused database 测试锁定 Latin known face 不应覆盖 CJK codepoint、Unknown face 保留的预筛行为 | scoped `rustfmt --check` 通过;scoped `git diff --check` 仅 CRLF 提示;`cargo metadata --locked --format-version 1 --no-default-features` 通过;截图证据仍在 `docs/tests/runtime/text/runtime_text_shared_metrics_preview_20260628.png`,未写 target;focused `text_font_fallback_candidates_filter_known_cmap_coverage` lib-test 编译超时无 Rust diagnostics,本次独立 target-dir 验证进程已停止,不计 Cargo/test 通过 | 后续实现完整 `FallbackResolver`、cluster 级一致性、`ShapedGlyph.font_id` 实际命中 face、缺字诊断、深度限制、emoji/color font 路由 |
 | 2026-06-27 | 计划建立 | planned | 脚本/范围感知回退 + cluster 一致性 + font_id 传出 + 缺字诊断路线 | 文档 | FB-M1 数据驱动回退链;依赖 01 CompositeFont、02 script 分段 |
+
+当前概述（2026-08-26 typed fallback receipt 实施前重审）：底层 `FallbackResolver` 已对完整 grapheme
+codepoint 集执行 coverage，并区分 Primary/Fallback/PartialCoverage/LastResort/DepthLimitExceeded；上层
+`FontShapingFaceResolver` 只返回 face，`FallbackTextSpan` 又可把同 face 的 complete 与 missing 决策合并，
+导致现有事实在 shaping 前丢失。无 primary face 目前还会成为空 spans，使 Cosmic 有机会走隐式 plain
+fallback。冻结修复是把既有 resolution 原样贯穿 span、按 receipt 分段，并把无 primary 映射成 typed
+`FontUnavailable`；PartialCoverage 继续使用实际 face 的 `.notdef` 和既有缺字诊断，保持基本文本可渲染。
+该切片不增加 coverage probe、candidate search 或 glyph pass，时间规模仍为现有
+`O(graphemes * bounded_candidates)`，span 存储为 `O(fallback_runs)`；只有静态结构事实，没有 profiler
+数据，不能声明性能收益。完整 candidate/capability trace、managed Cargo、真实 tofu raster、WGPU/PNG 和
+性能/功耗仍开放，不能关闭 `RTS-P1-008/009/013/018`。
+
+当前概述（2026-08-26 typed fallback receipt 非验收实现）：`FallbackResolution` 现作为 font owner
+生成、crate 内只读的 typed receipt 贯穿 shaping；`FallbackTextSpan` 删除重复的 optional face 真值，成功
+itemization 的 primary face 也改为必填。span 只有在 resolution、instance 与连续范围均相同时才合并，
+因此同 face 上的 PartialCoverage 与后续 Primary 不再丢失边界。`fallback_text_spans` 返回 typed
+`PrimaryFaceUnavailable`，Cosmic 与 service 两处均映射为 `TextLayoutError::FontUnavailable`，隐式空
+itemization 路径扫描为 0。聚焦契约覆盖 partial/complete 同 face 分段和无 primary failure；formatter、
+whitespace、调用点与重复 face 字段扫描通过，涉及生产文件均低于 800 行。状态为
+`typed_receipt_implemented / full_capability_trace_open / static_checks_complete /
+managed_validation_pending`；完整 sequence coverage、candidate/pending/policy/backend cause、Cargo、真实 tofu
+raster、WGPU/PNG、性能/功耗、commit 与 WeCom 仍开放。
+
+当前概述（2026-08-27 missing-primary/generation cause 非验收实现）：实际 shaping 路径不再把
+`PrimaryFaceUnavailable` 压成无receipt的 `FontUnavailable`，而是保留稳定
+`FontPrimaryUnavailable` + `FontResolution` + `FontDatabase` cause。稳定generation重试耗尽、session stale
+cache/ready和parallel stale worker统一产生 `FontGenerationChanged` deferred receipt；deferred与terminal分开计数，
+公开 `TextLayoutService` 仍只投影中性的 `TextLayoutError`。这不改变候选、coverage、span、backend或cache算法。
+完整candidate ordinal/coverage reject、pending dependency、policy reject和backend capability组合仍开放。状态：
+`primary_and_generation_capability_causes_implemented / deferred_terminal_split_implemented /
+full_capability_trace_open / static_checks_complete / managed_validation_pending`。
+
+当前概述（2026-08-27 request-owned candidate decision receipt 非验收实现）：同步 fallback resolver
+在原有循环内聚合 resolution/candidate cache hit-miss、真实 `face_covers_codepoint` probe、primary reject、
+complete/partial candidate visit、complete reject与五类最终选择。resolution cache hit不重放历史candidate/probe；
+candidate compiler的family-face首码点过滤也计入本请求。固定报告经transient shaping completion传到session/parallel，
+不进入serde `ShapedGlyphRun`、cache key或resident-byte预算，generation重试丢弃attempt的成本也保留。
+
+该切片没有新增coverage pass或候选分配，时间规模仍为既有
+`O(graphemes * bounded_candidates)`，新增成本只是原循环中的饱和加法。它只实现Runtime Font 80
+`RFF-P1-032`的同步可观测子集；exact candidate/face trace、Pending、collection generation、policy/budget/backend
+capability与真实tofu仍开放。状态：`bounded_candidate_decision_receipt_implemented /
+transient_completion_envelope_implemented / shaped_artifact_pollution_zero / static_checks_complete /
+managed_validation_pending / full_font_resolve_outcome_open`。
+
+当前概述（2026-08-27 fallback cache结构复审与测量门）：family/composite/candidate/resolution/
+line-metric五类可写LRU共用一个mutex，命中仍修改entry与`BTreeMap` LRU；cold composite编译也在同一锁内。
+whole-text primary coverage若在长文本后部失败，还可能让已验证前缀在cluster路径再次探测。对照本地Unreal的预编译
+composite range + binary search + grapheme顺序face-run合并后，这些被登记为四个独立可证伪假设，而不是直接重写理由。
+
+现有算法、cache容量、候选顺序与coverage语义未改。仅test/profiling构建在统一cache状态入口测量锁获取/等待/持有，
+并由request-scoped TLS一次发布三个固定profile名；普通构建无计时成本，并行请求不使用重叠全局快照差值。状态：
+`request_local_cache_lock_profile_implemented / structural_bottleneck_hypotheses_documented /
+resolver_algorithm_unchanged / structural_optimization_profile_gated / managed_profile_pending`。
+
+当前概述（2026-08-26 CompositeFont culture priority 非验收实现）：实施前沿本地 Unreal
+`Culture.cpp::GetPrioritizedParentCultureNames` 与
+`FontCacheCompositeFont.cpp::RefreshFontRanges/GetTypefaceForCodepoint` 重审。Unreal 对
+`language-script-region` 请求生成 exact、language-region、language-script、language 四种父文化组合；任何命中
+`FCompositeSubFont::Cultures` 的范围进入 priority bucket，并在普通范围之前查询，同一 bucket 保持资产声明顺序。
+这确认原先 `FontCultureTag::matches` 的大小写 prefix 比较和“通用 sub-font 可先于文化专用 sub-font”都是错误 owner/
+优先级。
+
+`FontCultureTag` 现在只保存资产作者输入，不再拥有匹配策略。`CompositeFontIndex` 在 cache miss 或项目字体 generation
+发布时把非空 cultures 编译为 Runtime Text 私有 `TextCultureSelector`；无效选择器保持受限且永不匹配，不能退化成
+unrestricted。查询使用 request-owned `TextLanguageFallbackKey` 做 language 必等、可选 script/region 必等的父文化
+组合匹配，文化专用 family 先于 generic family，再落 default/request/system fallback；同一 bucket 保持原声明顺序。
+显式 descriptor 的身份命中前只扫描/哈希作者字节，不执行 ICU 解析，项目默认 CompositeFont 则直接复用 generation
+持有的 identity/index。
+
+聚焦契约覆盖 generic-first 资产声明下 `zh-Hans-CN -> " ZH_cn "` 的文化专用优先、`ja-JP` 回到 generic、非法
+culture 不泄漏，以及 exact/script/region/language 四种父组合。生产旧 `FontCultureTag::matches`、raw language cache
+identity 和 shaping 请求二次解析扫描为 0；13 个触及的 production/test owner 均低于 800 行，最大 production owner
+为 668 行。该切片没有 likely-subtag、动态 corpus、Cargo、p50/p95/p99、RSS/功耗、真实 WGPU/PNG、commit 或 WeCom
+新证据。状态为 `canonical_locale_fallback_key_and_culture_priority_implemented /
+likely_subtag_receipt_open / static_checks_complete / managed_validation_pending`，因此不关闭 FB-M1/FB-M2 或
+`RTS-P1-002/008/009/018`。
+
+当前概述（2026-08-29 FontObject fallback scope 非验收实现）：对照 Unreal
+`FSlateFontInfo(FontObject, TypefaceFontName)` 与 FontObject-owned CompositeFont，`style.font` 不再退化为 family
+字符串。resolver 先在 owner 有序 face 集内匹配可选 typeface，再使用该 owner 的 generation-owned
+`Arc<CompositeFontIndex>`；owner 内存在同名 family 时不追加全局同名 face，避免跨项目/资产字形泄漏。owner fallback
+只与数据库 base/platform fallback 合并，不读取其他已加载 FontAsset 的 fallback 并集。无 asset owner 的请求维持既有
+project/runtime/global 链。
+
+fallback query identity 加入精确 owner 字节，owner attach/remove/composite/fallback 变化推进共享 generation 并清理
+family/candidate/resolution/line-metric cache。descriptor 只在 generation 发布时编译，cluster 循环仍为既有
+`O(graphemes * bounded_candidates)`，没有 URI 解析、I/O 或新增 coverage pass。资产 primary、资产 CJK composite、跨 owner
+fallback 隔离与发布时 compile-count 回归已落源码；Cargo、真实 multilingual shape/raster、WGPU/PNG、profile/RSS/power 未执行。
+状态为 `font_object_fallback_scope_static_implemented / cross_owner_leakage_guarded /
+generation_compiled_asset_composite / managed_validation_pending`，不关闭 FB-M1/FB-M2 或 Runtime80 资格门。
+
+Unavailable owner 也服从该隔离：显式 FontObject 未注册时，owner-local typeface 不参与 global family candidates；
+resolver 使用清空 families 的同 weight/style/stretch query 进入 project/runtime default。registered owner 或本来无
+family 的请求返回 borrowed query，不增加分配；未知 owner 与同名全局 face 的行为回归已落源码。
+
+Registered owner 内部不再使用“family 在 owner 缺失就自动全局搜索”的无来源规则。候选携带
+`OwnerLocalOnly` 或 `OwnerThenGlobal`，request typeface 属于前者，CompositeFont/asset fallback/base fallback 属于
+后者；规范化同名项只有遇到后者才升级外部权限。去重仍为 HashMap 索引的 O(n)，候选遍历规模不变。
+
+owner 的有序 face 集合在资产注册事务中一次发布为 `Arc<[FontFaceId]>`。primary 和每个 scoped family 查询借用
+同一代际切片，不再先按 sources 查 `asset_source_index` 并分配完整 face list；family candidate/coverage 输出仍按
+原合同构造。该结构修正未经过动态 profile，不能据此声称 p50/p95、RSS 或功耗达标。
+
+fallback 的 terminal `LastResort` 现在具有真实含义：在 primary、CompositeFont、asset fallback、base/platform 与
+partial-coverage 均失败后，选择 generation-owned `runtime_last_resort_face`，而不是返回请求 primary 并让其 glyph 0
+冒充全局缺字策略。`max_depth == 0` 仍按原预算返回 `DepthLimitExceeded`，不会绕过作者/系统禁用的 fallback 级别。
+missing diagnostic 保留原 codepoint/reason，并记录最终 engine face。

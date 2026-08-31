@@ -1,4 +1,5 @@
 use super::super::super::render_commands::HostPaintCommand;
+use super::super::super::style_selector::focus_visible_for_node;
 use super::super::super::template_row_metrics::{workbench_row_palette, WorkbenchRowPalette};
 use super::super::layers::field_text_order;
 use super::super::layout::{scalar_field_rect, value_text_rect};
@@ -39,7 +40,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sc
 }
 
 fn value_field_border_color(node: &TemplatePaneNodeData, palette: WorkbenchRowPalette) -> [u8; 4] {
-    if node.focused || node.pressed {
+    if focus_visible_for_node(node) || node.pressed {
         palette.property_field_focus_border
     } else {
         palette.property_field_border

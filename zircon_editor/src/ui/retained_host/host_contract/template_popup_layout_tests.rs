@@ -132,6 +132,82 @@ fn template_option_popup_frame_within_uses_projected_dropdown_popup_frame() {
     assert_eq!(row, rect(100.0, 108.0, 120.0, 24.0));
 }
 
+#[test]
+fn popup_rows_consume_projected_padding_and_spacing() {
+    let node = TemplatePaneNodeData {
+        layout_padding_left: 8.0,
+        layout_padding_right: 8.0,
+        layout_padding_top: 4.0,
+        layout_padding_bottom: 4.0,
+        layout_spacing: 4.0,
+        ..TemplatePaneNodeData::default()
+    };
+    let popup = rect(10.0, 20.0, 190.0, 148.0);
+
+    assert_rect_near(
+        &menu_item_row_frame(&node, &popup, 5, 0).expect("first row"),
+        &rect(18.0, 24.0, 174.0, 24.8),
+    );
+    assert_rect_near(
+        &menu_item_row_frame(&node, &popup, 5, 4).expect("last row"),
+        &rect(18.0, 139.2, 174.0, 24.8),
+    );
+    assert_eq!(menu_item_row_at_y(&node, &popup, 5, 48.0), Some(0));
+    assert_eq!(menu_item_row_at_y(&node, &popup, 5, 51.0), None);
+    assert_eq!(menu_item_row_at_y(&node, &popup, 5, 53.0), Some(1));
+}
+
+#[test]
+fn projected_menu_rows_compress_inside_a_clamped_popup_frame() {
+    let node = TemplatePaneNodeData {
+        layout_padding_left: 8.0,
+        layout_padding_right: 8.0,
+        layout_padding_top: 4.0,
+        layout_padding_bottom: 4.0,
+        layout_spacing: 4.0,
+        ..TemplatePaneNodeData::default()
+    };
+    let popup = rect(10.0, 20.0, 190.0, 100.0);
+
+    assert_rect_near(
+        &menu_item_row_frame(&node, &popup, 5, 0).expect("first compressed row"),
+        &rect(18.0, 24.0, 174.0, 15.2),
+    );
+    let last = menu_item_row_frame(&node, &popup, 5, 4).expect("last compressed row");
+    assert_rect_near(&last, &rect(18.0, 100.8, 174.0, 15.2));
+    assert!((last.y + last.height - (popup.y + popup.height - 4.0)).abs() <= 0.001);
+}
+
+#[test]
+fn projected_dropdown_rows_use_the_same_content_layout() {
+    let node = TemplatePaneNodeData {
+        role: "DropdownPopup".into(),
+        component_role: "dropdown-popup".into(),
+        layout_padding_left: 8.0,
+        layout_padding_right: 8.0,
+        layout_padding_top: 4.0,
+        layout_padding_bottom: 4.0,
+        layout_spacing: 4.0,
+        ..TemplatePaneNodeData::default()
+    };
+    let popup = rect(100.0, 60.0, 120.0, 126.0);
+    let row = template_option_row_frame_within(&node, &popup, 4, 2, &rect(0.0, 0.0, 320.0, 240.0))
+        .expect("third dropdown row");
+
+    assert_rect_near(&row, &rect(108.0, 125.0, 104.0, 26.5));
+}
+
+fn assert_rect_near(actual: &FrameRect, expected: &FrameRect) {
+    for (actual, expected) in [
+        (actual.x, expected.x),
+        (actual.y, expected.y),
+        (actual.width, expected.width),
+        (actual.height, expected.height),
+    ] {
+        assert!((actual - expected).abs() <= 0.001, "{actual} != {expected}");
+    }
+}
+
 fn rect(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
     FrameRect {
         x,

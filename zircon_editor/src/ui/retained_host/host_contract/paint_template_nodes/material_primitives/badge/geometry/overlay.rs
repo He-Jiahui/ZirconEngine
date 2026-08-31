@@ -77,14 +77,12 @@ mod tests {
             measure_runtime_text_width(display, badge_overlay_font_size()),
             false,
         );
-        let expected_width = expected_width.round();
 
         assert!((frame.width - expected_width).abs() <= 0.01);
         let (old_heuristic_width, _) = badge_overlay_size(
             display.chars().count() as f32 * badge_overlay_font_size() * 0.56,
             false,
         );
-        let old_heuristic_width = old_heuristic_width.round();
         assert!((expected_width - old_heuristic_width).abs() > 0.25);
     }
 

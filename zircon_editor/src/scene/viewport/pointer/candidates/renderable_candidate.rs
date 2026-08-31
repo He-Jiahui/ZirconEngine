@@ -10,7 +10,7 @@ use crate::scene::viewport::projection::ViewportProjectionContext;
 
 pub(in crate::scene::viewport::pointer) fn renderable_candidate(
     candidate: &ViewportRenderablePickCandidate,
-    projection: &ViewportProjectionContext<'_>,
+    projection: &ViewportProjectionContext,
 ) -> Option<PrecisionCandidate> {
     let projected = projection.projected_point(candidate.position)?;
     let radius_px = (candidate.radius_world / projection.world_units_per_pixel(candidate.position))

@@ -1,7 +1,5 @@
 use zircon_runtime_interface::ui::component::UiValue;
 
-use crate::ui::retained_host::popup_anchor_metrics::command_palette_anchor_frame;
-
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
 
@@ -21,9 +19,6 @@ const PLACEHOLDER: &str = "placeholder";
 const EMPTY_TEXT: &str = "empty_text";
 const ARIA_LABELLEDBY: &str = "aria_labelledby";
 const ARIA_DESCRIBEDBY: &str = "aria_describedby";
-const POPUP_ANCHOR_X: &str = "popup_anchor_x";
-const POPUP_ANCHOR_Y: &str = "popup_anchor_y";
-const POPUP_ANCHOR_WIDTH: &str = "popup_anchor_width";
 const CATALOG_GENERATION: &str = "catalog_generation";
 const MATCH_COUNT: &str = "match_count";
 const WINDOW_COUNT: &str = "window_count";
@@ -126,7 +121,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             ARIA_DESCRIBEDBY,
             UiValue::String(aria_description.to_string()),
         )?;
-        self.refresh_command_palette_popup_anchor()?;
         self.apply_command_palette_query_state(state)?;
         self.template_surface
             .refresh_after_state_change(self.runtime.as_ref())?;
@@ -270,52 +264,14 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .unwrap_or_default()
     }
 
-    pub(crate) fn refresh_command_palette_popup_anchor(
-        &mut self,
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        if !self.has_control(WORKBENCH_COMMAND_PALETTE_CONTROL_ID) {
-            return Ok(());
-        }
-        let anchor = command_palette_anchor_frame(self.mount_frame.width, self.mount_frame.height);
-        for (property, value) in [
-            (POPUP_ANCHOR_X, anchor.x),
-            (POPUP_ANCHOR_Y, anchor.y),
-            (POPUP_ANCHOR_WIDTH, anchor.width),
-        ] {
-            self.mutate_control_property(
-                WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
-                property,
-                UiValue::Float(value as f64),
-            )?;
-        }
-        Ok(())
-    }
-
     pub(crate) fn command_palette_catalog_generation(&self) -> Option<u64> {
-        self.command_palette_integer(CATALOG_GENERATION)
+        self.control_integer(WORKBENCH_COMMAND_PALETTE_CONTROL_ID, CATALOG_GENERATION)
             .and_then(|generation| u64::try_from(generation).ok())
     }
 
     pub(crate) fn command_palette_window_offset(&self) -> Option<usize> {
-        self.command_palette_integer(WINDOW_OFFSET)
+        self.control_integer(WORKBENCH_COMMAND_PALETTE_CONTROL_ID, WINDOW_OFFSET)
             .and_then(|offset| usize::try_from(offset).ok())
-    }
-
-    fn command_palette_integer(&self, property: &str) -> Option<i64> {
-        self.template_surface
-            .surface
-            .tree
-            .nodes
-            .values()
-            .find_map(|node| {
-                node.template_metadata
-                    .as_ref()
-                    .filter(|metadata| {
-                        metadata.control_id.as_deref() == Some(WORKBENCH_COMMAND_PALETTE_CONTROL_ID)
-                    })
-                    .and_then(|metadata| metadata.attributes.get(property))
-                    .and_then(toml::Value::as_integer)
-            })
     }
 }
 

@@ -1,8 +1,11 @@
 use crate::ui::binding::EditorUiBinding;
 use zircon_runtime::ui::tree::UiRuntimeTreeLayoutExt;
-use zircon_runtime_interface::ui::{binding::UiEventKind, component::UiValue};
+use zircon_runtime_interface::ui::{binding::UiEventKind, component::UiValue, layout::StretchMode};
 
-use crate::ui::retained_host::menu_popup_contract::menu_popup_content_height;
+use crate::ui::retained_host::host_contract::{current_host_metrics, menu_popup_text_width};
+use crate::ui::retained_host::menu_popup_contract::{
+    content_measured_structured_menu_popup_width, menu_popup_content_height,
+};
 
 use super::{
     componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge,
@@ -11,6 +14,7 @@ use super::{
 
 pub(super) const WORKBENCH_MODULE_OVERFLOW_TRIGGER_CONTROL_ID: &str = "WorkbenchModuleMore";
 pub(super) const WORKBENCH_MODULE_OVERFLOW_MENU_CONTROL_ID: &str = "WorkbenchModuleOverflowMenu";
+const LAYOUT_MIN_WIDTH: &str = "layout_min_width";
 
 const OVERFLOW_COMMANDS: &[OverflowCommand] = &[
     OverflowCommand {
@@ -77,18 +81,17 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .iter()
             .filter(|command| self.control_frame(command.source_control_id).is_none())
             .collect::<Vec<_>>();
-        let items = UiValue::Array(
-            commands
-                .iter()
-                .map(|command| UiValue::String(command.menu_item_value(self)))
-                .collect(),
-        );
+        let items = commands
+            .iter()
+            .map(|command| command.menu_item_value(self))
+            .collect::<Vec<_>>();
+        self.apply_workbench_module_overflow_menu_extent(&items)?;
         self.mutate_control_property(
             WORKBENCH_MODULE_OVERFLOW_MENU_CONTROL_ID,
             "menu_items",
-            items,
+            UiValue::Array(items.into_iter().map(UiValue::String).collect()),
         )?;
-        self.apply_workbench_module_overflow_menu_height(commands.len())
+        Ok(())
     }
 
     pub(crate) fn dispatch_workbench_module_overflow_menu_item_state(
@@ -109,23 +112,50 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.dispatch_control_state(command.source_control_id, UiEventKind::Click)
     }
 
-    fn apply_workbench_module_overflow_menu_height(
+    fn apply_workbench_module_overflow_menu_extent(
         &mut self,
-        item_count: usize,
+        items: &[String],
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        let scale_factor = normalized_scale_factor(self.presentation_scale_factor);
+        let logical_shell_width = (self.mount_frame.width / scale_factor).max(1.0);
+        let logical_shell_height = (self.mount_frame.height / scale_factor).max(1.0);
+        let metrics = current_host_metrics();
+        let trailing_adornment_reserve =
+            (metrics.font_large + metrics.gap_m * 2.0 - metrics.input_pad[1]).max(0.0)
+                / scale_factor;
+        let fallback_width = self
+            .control_float(WORKBENCH_MODULE_OVERFLOW_MENU_CONTROL_ID, LAYOUT_MIN_WIDTH)
+            .unwrap_or(1.0);
+        let width = content_measured_structured_menu_popup_width(
+            fallback_width,
+            logical_shell_width,
+            items.iter().map(String::as_str),
+            trailing_adornment_reserve,
+            |text| menu_popup_text_width(text) / scale_factor,
+        );
+        let height = menu_popup_content_height(items.len())
+            .min(logical_shell_height)
+            .max(1.0);
         let Some(node_id) = self.control_node_id(WORKBENCH_MODULE_OVERFLOW_MENU_CONTROL_ID) else {
             return Ok(());
         };
-        let height = menu_popup_content_height(item_count);
         let changed = {
             let Some(node) = self.template_surface.surface.tree.node_mut(node_id) else {
                 return Ok(());
             };
+            let mut next_width = node.constraints.width;
+            next_width.min = width;
+            next_width.preferred = width;
+            next_width.max = width;
+            next_width.stretch_mode = StretchMode::Fixed;
             let mut next_height = node.constraints.height;
             next_height.min = height;
             next_height.preferred = height;
             next_height.max = height;
-            let changed = node.constraints.height != next_height;
+            next_height.stretch_mode = StretchMode::Fixed;
+            let changed =
+                node.constraints.width != next_width || node.constraints.height != next_height;
+            node.constraints.width = next_width;
             node.constraints.height = next_height;
             changed
         };
@@ -139,6 +169,14 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 }
 
+fn normalized_scale_factor(scale_factor: f32) -> f32 {
+    if scale_factor.is_finite() && scale_factor > f32::EPSILON {
+        scale_factor
+    } else {
+        1.0
+    }
+}
+
 struct OverflowCommand {
     label: &'static str,
     menu_action_id: &'static str,
@@ -148,11 +186,14 @@ struct OverflowCommand {
 
 impl OverflowCommand {
     fn menu_item_value(&self, bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge) -> String {
-        let mut flags = vec![self.icon_flag];
+        let mut flags = vec![
+            format!("action={}", self.menu_action_id),
+            self.icon_flag.to_string(),
+        ];
         if bridge.control_bool(self.source_control_id, "selected")
             || bridge.control_bool(self.source_control_id, "checked")
         {
-            flags.insert(0, "checked");
+            flags.insert(0, "checked".to_string());
         }
         format!("{}|{}", self.label, flags.join(","))
     }

@@ -9,6 +9,7 @@ const RECORD_CONTROL: &str = "WorkbenchTransportRecord";
 const PLAY_CONTROL: &str = "WorkbenchTransportPlay";
 const PAUSE_CONTROL: &str = "WorkbenchTransportPause";
 const LOOP_CONTROL: &str = "WorkbenchTransportLoop";
+const PREVIEW_ASSET_CONTROL: &str = "WorkbenchExtensionBlendSpacePreviewAsset";
 const PREVIEW_STATUS_CONTROL: &str = "WorkbenchExtensionBlendSpacePreviewStatus";
 const PREVIEW_TIMELINE_CONTROL: &str = "WorkbenchExtensionBlendSpacePreviewTimeline";
 
@@ -50,6 +51,16 @@ fn animation_transport_control_id(action_id: &str) -> Option<&'static str> {
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    pub(super) fn initialize_blend_space_transport_state(
+        &mut self,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.set_control_active(RECORD_CONTROL, false)?;
+        self.set_control_active(PLAY_CONTROL, true)?;
+        self.set_control_active(PAUSE_CONTROL, false)?;
+        self.set_control_active(LOOP_CONTROL, true)?;
+        Ok(())
+    }
+
     pub(super) fn apply_blend_space_transport_action(
         &mut self,
         action_id: &str,
@@ -59,48 +70,48 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 let recording = !self.control_bool(RECORD_CONTROL, "checked");
                 self.set_control_active(RECORD_CONTROL, recording)?;
                 if recording {
-                    TransportFeedback::new("Recording armed", "Run_Fwd  |  Recording armed")
+                    TransportFeedback::new("Recording armed", "Recording armed")
                 } else {
-                    TransportFeedback::new("Recording disarmed", "Run_Fwd  |  Recording disarmed")
+                    TransportFeedback::new("Recording disarmed", "Recording disarmed")
                 }
             }
             "workbench.extension.animation_transport.play.invoke" => {
                 self.set_control_active(PLAY_CONTROL, true)?;
                 self.set_control_active(PAUSE_CONTROL, false)?;
-                TransportFeedback::new("Blend preview playing", "Run_Fwd  |  Previewing")
+                TransportFeedback::new("Blend preview playing", "Previewing")
             }
             "workbench.extension.animation_transport.pause.invoke" => {
                 self.set_control_active(PLAY_CONTROL, false)?;
                 self.set_control_active(PAUSE_CONTROL, true)?;
-                TransportFeedback::new("Blend preview paused", "Run_Fwd  |  Paused")
+                TransportFeedback::new("Blend preview paused", "Paused")
             }
             "workbench.extension.animation_transport.previous.invoke" => {
                 self.set_timeline_time(0.0)?;
-                TransportFeedback::new("Blend preview moved to start", "Run_Fwd  |  Start")
+                TransportFeedback::new("Blend preview moved to start", "Start")
             }
             "workbench.extension.animation_transport.next.invoke" => {
                 self.set_timeline_time(3.0)?;
-                TransportFeedback::new("Blend preview moved to end", "Run_Fwd  |  End")
+                TransportFeedback::new("Blend preview moved to end", "End")
             }
             "workbench.extension.animation_transport.loop.toggle" => {
                 let looping = !self.control_bool(LOOP_CONTROL, "checked");
                 self.set_control_active(LOOP_CONTROL, looping)?;
                 if looping {
-                    TransportFeedback::new("Blend preview loop enabled", "Run_Fwd  |  Loop enabled")
+                    TransportFeedback::new("Blend preview loop enabled", "Loop enabled")
                 } else {
-                    TransportFeedback::new(
-                        "Blend preview loop disabled",
-                        "Run_Fwd  |  Loop disabled",
-                    )
+                    TransportFeedback::new("Blend preview loop disabled", "Loop disabled")
                 }
             }
             _ => return Ok(()),
         };
 
+        let preview_asset = self
+            .control_string(PREVIEW_ASSET_CONTROL, "value")
+            .unwrap_or_else(|| "Selected sample".to_string());
         self.mutate_control_property(
             PREVIEW_STATUS_CONTROL,
             "text",
-            UiValue::String(feedback.preview_text.to_string()),
+            UiValue::String(format!("{preview_asset}  |  {}", feedback.preview_status)),
         )?;
         self.mutate_control_property(
             "WorkbenchStatusReady",
@@ -129,14 +140,14 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
 struct TransportFeedback {
     status_text: &'static str,
-    preview_text: &'static str,
+    preview_status: &'static str,
 }
 
 impl TransportFeedback {
-    const fn new(status_text: &'static str, preview_text: &'static str) -> Self {
+    const fn new(status_text: &'static str, preview_status: &'static str) -> Self {
         Self {
             status_text,
-            preview_text,
+            preview_status,
         }
     }
 }

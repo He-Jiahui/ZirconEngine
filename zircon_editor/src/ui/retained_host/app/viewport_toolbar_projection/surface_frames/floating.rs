@@ -26,7 +26,7 @@ pub(super) fn attach_floating_viewport_toolbar_surface_frames(
         };
         attach_viewport_toolbar_surface_frame_to_pane(
             viewport_toolbar_bridge,
-            window.window_id.to_string(),
+            window.window_id.as_str(),
             viewport_toolbar_size_for_width(window.frame.width - 2.0),
             &mut window.active_pane,
         );

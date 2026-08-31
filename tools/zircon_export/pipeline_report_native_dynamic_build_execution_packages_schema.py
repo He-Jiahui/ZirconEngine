@@ -199,37 +199,70 @@ def native_dynamic_build_execution_packages_schema_diagnostics(
                     )
                 if field == "copied_sidecars":
                     diagnostics.extend(
-                        string_array_no_blank_entries_schema_diagnostics(
-                            field_label,
-                            package.get(field),
-                        )
-                    )
-                    diagnostics.extend(
-                        string_array_trimmed_non_empty_entries_schema_diagnostics(
-                            field_label,
-                            package.get(field),
-                        )
-                    )
-                    diagnostics.extend(
-                        string_array_unique_entries_schema_diagnostics(
-                            field_label,
-                            package.get(field),
-                        )
-                    )
-                    diagnostics.extend(
-                        native_dynamic_build_execution_safe_relative_path_array_diagnostics(
-                            field_label,
-                            package.get(field),
-                        )
-                    )
-                    diagnostics.extend(
-                        native_dynamic_build_execution_package_path_scope_array_diagnostics(
-                            field_label,
-                            package,
-                            package.get(field),
+                        native_dynamic_build_execution_copied_sidecars_value_diagnostics(
+                            field_label, package, package.get(field)
                         )
                     )
     return diagnostics
+
+
+def native_dynamic_build_execution_copied_sidecars_value_diagnostics(
+    label: str,
+    package: dict[str, Any],
+    values: Any,
+) -> list[str]:
+    if not isinstance(values, list):
+        return []
+
+    has_blank = False
+    all_strings = True
+    trimmed: list[str] = []
+    duplicate: list[str] = []
+    unsafe: list[str] = []
+    outside_package: list[str] = []
+    seen: set[str] = set()
+    duplicate_found = False
+    package_prefix = native_dynamic_build_execution_package_path_prefix(package)
+
+    for index, value in enumerate(values):
+        if not isinstance(value, str):
+            all_strings = False
+            continue
+        stripped = value.strip()
+        if not stripped:
+            has_blank = True
+            continue
+        if stripped != value:
+            trimmed.append(
+                f"{label}[{index}] must be a non-empty trimmed string"
+            )
+            continue
+        if value in seen:
+            duplicate_found = True
+        else:
+            seen.add(value)
+
+        normalized = normalize_relative_path(value)
+        if (
+            native_dynamic_build_execution_has_drive_prefix(normalized)
+            or not is_safe_relative_path(normalized)
+        ):
+            unsafe.append(f"{label}[{index}] must be a safe relative path")
+        elif package_prefix is not None and not normalized.startswith(package_prefix):
+            outside_package.append(
+                f"{label}[{index}] must be inside {package_prefix}"
+            )
+
+    blank = (
+        [f"{label} must not contain blank entries"]
+        if all_strings and has_blank
+        else []
+    )
+    if not all_strings:
+        trimmed = []
+    if all_strings and duplicate_found:
+        duplicate.append(f"{label} must not contain duplicate entries")
+    return blank + trimmed + duplicate + unsafe + outside_package
 
 
 def native_dynamic_build_execution_package_path_scope_array_diagnostics(

@@ -4,10 +4,10 @@ var effects = %import("generated/m4_ability_effects");
 
 contractTest(): int {
     if (catalog.catalogSha() !=
-        "1790ccf62fec4666957db622cc96d0077a18ca0bb1c9cb8b0bef821f886bb3cd") {
+        "f4349aa828b6e6a1400b7889f76bf23421145f65326c2148d2cb519cdb00b230") {
         return -1;
     }
-    if (catalog.count() != 21 || catalog.indexOf("missing") != -1) { return -2; }
+    if (catalog.count() != 117 || catalog.indexOf("missing") != -1) { return -2; }
 
     var index = 0;
     while (index < catalog.count()) {

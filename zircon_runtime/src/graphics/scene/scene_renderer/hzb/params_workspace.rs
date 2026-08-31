@@ -1,17 +1,26 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::sync::Arc;
+use zr_rhi_wgpu::WgpuBufferUpload;
 
-use super::{HzbOcclusionCullParams, HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE};
+use super::{HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE, HzbOcclusionCullParams};
 
 #[derive(Default)]
 pub(super) struct HzbOcclusionParamsWorkspace {
-    entries: BTreeMap<u64, HzbOcclusionParamsEntry>,
+    entries: HashMap<u64, HzbOcclusionParamsEntry>,
+    next_buffer_revision: u64,
 }
 
 struct HzbOcclusionParamsEntry {
     buffer: Arc<wgpu::Buffer>,
+    buffer_revision: u64,
+    committed_args_count: Option<u32>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::graphics::scene::scene_renderer) struct HzbOcclusionParamsCommit {
+    workspace_id: u64,
+    buffer_revision: u64,
     args_count: u32,
-    initialized: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -22,6 +31,8 @@ pub(super) struct HzbOcclusionParamsPrepareStats {
 
 pub(super) struct PreparedHzbOcclusionParams {
     pub(super) buffer: Arc<wgpu::Buffer>,
+    pub(super) upload: Option<WgpuBufferUpload>,
+    pub(super) commit: Option<HzbOcclusionParamsCommit>,
     pub(super) stats: HzbOcclusionParamsPrepareStats,
 }
 
@@ -29,43 +40,68 @@ impl HzbOcclusionParamsWorkspace {
     pub(super) fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         workspace_id: u64,
         args_count: u32,
     ) -> PreparedHzbOcclusionParams {
+        let created = !self.entries.contains_key(&workspace_id);
+        if created {
+            self.next_buffer_revision = self.next_buffer_revision.wrapping_add(1).max(1);
+            self.entries.insert(
+                workspace_id,
+                HzbOcclusionParamsEntry {
+                    buffer: Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
+                        label: Some("zircon-hzb-occlusion-cull-params"),
+                        size: HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE,
+                        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                        mapped_at_creation: false,
+                    })),
+                    buffer_revision: self.next_buffer_revision,
+                    committed_args_count: None,
+                },
+            );
+        }
         let entry = self
             .entries
-            .entry(workspace_id)
-            .or_insert_with(|| HzbOcclusionParamsEntry {
-                buffer: Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some("zircon-hzb-occlusion-cull-params"),
-                    size: HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE,
-                    usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-                    mapped_at_creation: false,
-                })),
-                args_count: 0,
-                initialized: false,
-            });
-        let created_buffer_count = u32::from(!entry.initialized);
-        let uploaded_byte_count = if !entry.initialized || entry.args_count != args_count {
-            queue.write_buffer(
-                &entry.buffer,
-                0,
-                bytemuck::bytes_of(&HzbOcclusionCullParams::new(args_count)),
-            );
-            entry.args_count = args_count;
-            entry.initialized = true;
-            HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE
+            .get(&workspace_id)
+            .expect("HZB params workspace entry must exist after materialization");
+        let needs_upload = entry.committed_args_count != Some(args_count);
+        let (upload, commit, uploaded_byte_count) = if needs_upload {
+            (
+                Some(WgpuBufferUpload::from_bytes(
+                    entry.buffer.as_ref().clone(),
+                    0,
+                    bytemuck::bytes_of(&HzbOcclusionCullParams::new(args_count)),
+                )),
+                Some(HzbOcclusionParamsCommit {
+                    workspace_id,
+                    buffer_revision: entry.buffer_revision,
+                    args_count,
+                }),
+                HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE,
+            )
         } else {
-            0
+            (None, None, 0)
         };
         PreparedHzbOcclusionParams {
             buffer: Arc::clone(&entry.buffer),
+            upload,
+            commit,
             stats: HzbOcclusionParamsPrepareStats {
-                created_buffer_count,
+                created_buffer_count: u32::from(created),
                 uploaded_byte_count,
             },
         }
+    }
+
+    pub(super) fn commit(&mut self, commit: HzbOcclusionParamsCommit) -> bool {
+        let Some(entry) = self.entries.get_mut(&commit.workspace_id) else {
+            return false;
+        };
+        if entry.buffer_revision != commit.buffer_revision {
+            return false;
+        }
+        entry.committed_args_count = Some(commit.args_count);
+        true
     }
 }
 
@@ -74,26 +110,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn stable_hzb_params_workspace_reuses_buffer_and_skips_upload() {
-        let Some(backend) = crate::graphics::backend::RenderBackend::new_offscreen().ok() else {
-            return;
-        };
-        let mut workspace = HzbOcclusionParamsWorkspace::default();
+    fn hzb_params_prepare_is_retryable_until_post_admission_commit() {
+        let source = include_str!("params_workspace.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("HZB params workspace source");
 
-        let first = workspace.prepare(&backend.device, &backend.queue, 7, 64);
-        let second = workspace.prepare(&backend.device, &backend.queue, 7, 64);
-        let changed = workspace.prepare(&backend.device, &backend.queue, 7, 65);
-
-        assert_eq!(first.stats.created_buffer_count, 1);
-        assert_eq!(
-            first.stats.uploaded_byte_count,
-            HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE
-        );
-        assert_eq!(second.stats, HzbOcclusionParamsPrepareStats::default());
-        assert_eq!(changed.stats.created_buffer_count, 0);
-        assert_eq!(
-            changed.stats.uploaded_byte_count,
-            HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE
-        );
+        assert!(!production.contains("queue.write_buffer"));
+        assert!(!production.contains("queue: &wgpu::Queue"));
+        assert!(production.contains("committed_args_count: Option<u32>"));
+        assert!(production.contains("WgpuBufferUpload::from_bytes("));
+        assert!(production.contains("HzbOcclusionParamsCommit"));
+        assert!(production.contains("fn commit("));
+        let prepare = production.find("fn prepare(").expect("prepare method");
+        let commit = production.find("fn commit(").expect("commit method");
+        assert!(!production[prepare..commit].contains("committed_args_count ="));
     }
 }
+
+#[cfg(test)]
+#[path = "params_workspace/hash_index_tests.rs"]
+mod hash_index_tests;

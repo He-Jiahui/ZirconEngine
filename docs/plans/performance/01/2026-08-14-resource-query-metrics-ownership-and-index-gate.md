@@ -40,9 +40,10 @@ The current source facts are:
 
 - `ProjectAssetManager` reads the published immutable resource generation instead of rescanning
   the mutable registry or sorting a caller-local id list.
-- The generation uses 64 locator-sorted shards. Its scan/page merge chooses the next ordered row
-  by inspecting each shard's current candidate. A complete kind query is therefore a static
-  `O(shards * matching rows)` candidate-check path before the high-level rich-record work.
+- The generation uses 64 locator-sorted shards. Its scan/page merge retains one matching row per
+  non-empty shard in a min-heap. A complete kind query therefore performs `O(shards + matching
+  rows)` candidate advances plus `O(matching rows * log shards)` heap comparisons before the
+  high-level rich-record work, in addition to cursor advances through excluded rows.
 - `ProjectAssetManager` then loads typed assets and constructs model, mesh, scene, material, and
   shader management records. Scene entity records are derived from scene records. These are
   separate possible costs and must not be attributed to the shard merge without data.
@@ -52,13 +53,14 @@ Those facts identify measurement candidates, not a measured bottleneck.
 ### Static Cost Model And Index Invariant
 
 This is an algorithm review, not a timing claim. Let `S = 64` be the fixed shard count, `N` the
-published resource-row count, and `R` the rows matched by a complete query. `next_row` visits all
-`S` shard heads for each emitted row and once more when its caller asks for the terminal `None`.
-For a consumer that exhausts the scan, the direct work is therefore `S * (R + 1)` candidate checks
-plus up to `N - R` predicate/cursor advances through excluded rows. A page repeats the same merge
-until `offset + limit` candidates have been consumed, so a high-offset page can perform nearly the
-same work as a full scan even when it returns a small visible page. Reducing or retuning the fixed
-shard count only changes a constant; it does not change either growth path.
+published resource-row count, and `R` the rows matched by a complete query. Scan initialization
+advances each shard cursor until its first matching row and inserts that candidate into a min-heap.
+For an exhausted scan, direct candidate advances are bounded by `S + R`, heap work is
+`O(R * log S)`, and excluded rows contribute up to `N - R` predicate/cursor advances. A page uses
+the same merge until `offset + limit` candidates have been consumed, so a high-offset page can
+perform nearly the same work as a full scan even when it returns a small visible page. Reducing or
+retuning the fixed shard count changes the constant and heap depth; it does not remove the
+filtered-row or high-offset growth paths.
 
 The resource registry already owns the required locator identity invariant: its `id_by_locator`
 map rejects an occupied locator for a different `ResourceId` during both staging and commit. A
@@ -69,8 +71,8 @@ pages: any proposed latter index must retain `(primary_locator, id)` order and b
 against its publication and retained-memory cost.
 
 The first higher-level target remains the existing Runtime04 handoff, not a generalized resource
-index: one `asset_management_record_sets` aggregate exhausts five typed kind scans and eagerly
-loads/builds their rich records. The overview, family-summary, status-index, and issue-index APIs
+index: one `asset_management_record_sets` aggregate exhausts one unfiltered stable-order scan,
+buckets the five managed kinds, and eagerly loads/builds their rich records. The overview, family-summary, status-index, and issue-index APIs
 each invoke that aggregate again. A published immutable asset-management generation can eliminate
 that stable-consumer repetition without changing generic resource query behavior. Only a baseline
 that attributes material time or candidate work to the lower query path should promote a
@@ -82,10 +84,11 @@ Current source exposes two separate consumers of the immutable generation. They 
 collapsed into one alleged "resource query" bottleneck.
 
 - `ProjectAssetManager::asset_management_record_sets` builds Model, Mesh, Scene, Material, and
-  Shader record sets separately. Each family reaches `asset_ids_by_kind`, which creates a fresh
-  stable-order scan. One aggregate request therefore has five distinct kind-query consumers
-  before typed asset loads and rich record construction. The source already derives scene-entity
-  records from the one scene-record projection inside that aggregate; preserve that behavior.
+  Shader record sets separately, but obtains their IDs from one unfiltered stable-order scan and
+  buckets only those five kinds. This avoids five independent filtered merge initializations and
+  excluded-row walks while preserving the individual `asset_ids_by_kind` API for single-family
+  callers. The source derives scene-entity records from the one scene-record projection inside
+  that aggregate; preserve that behavior.
 - `AssetWorkspaceState::build_snapshot` maps each visible catalog asset and the current selection
   through `ResourceManagementGeneration::row_by_locator`. The current lookup visits shard maps in
   sequence and performs a binary search in each visited shard. The activity/explorer pair shares
@@ -180,14 +183,15 @@ logical caller query.
 
 `Write-ResourceManagementBaselineReport.ps1` is the reporting boundary for this matrix. It
 consumes an immutable scale-plan JSON and a future observation JSON; it does not launch a product,
-generate data assets, or manufacture counters. Before it emits a `measured` report, it verifies
-the source fingerprint, plan SHA-256, scenario inventory identity, every required repetition, the
-exact scan/page/workspace query shape, a non-negative integral `frame_index` and `timestamp_us` for
-each observed query, and every operation-specific counter. Its JSON and Markdown
-outputs are atomically published only below `E:\ZirconBuilds\mvp-resource-management-reports`.
-The report contains logical scenario IDs and immutable digests, not project physical paths. This
-is an analysis contract pending its focused Pester execution and a real Windows observation input;
-it is not performance evidence.
+generate data assets, or manufacture counters. It validates the source fingerprint, plan SHA-256,
+scenario inventory identity, every required repetition, the exact scan/page/workspace query shape,
+a non-negative integral `frame_index` and `timestamp_us` for each observed query, and every
+operation-specific counter. Until a trusted product observation producer binds a product receipt,
+process identity, trace/frame evidence, collector, and machine/cache context to that input, the
+report is fail-closed as `unverified` with reason `no-trusted-observation-producer`; structural
+validation alone must not yield `measured`. Its JSON and Markdown outputs are atomically published
+only below `E:\ZirconBuilds\mvp-resource-management-reports`. The report contains logical scenario
+IDs and immutable digests, not project physical paths. It is not performance evidence.
 
 The report must preserve independent `asset_management` and `asset_management_page` coverage.
 Missing all counters is `not_emitted`; emitting only a subset is `partial`; scan data must never
@@ -197,11 +201,14 @@ make a page query appear measured.
 
 `Write-RenderExtractBaselineReport.ps1` and its focused fixture already validate the scan/page
 counter schema and correctly classify missing or partial counter sets. That fixture is a report
-consumer contract, not proof that a product emits the counters. Current source has query-local
-metrics in `ResourceManagementScan`/the profiled page path, but no
-`ProjectAssetManager` profiling adapter that opens the required consumer spans or writes the scan
-batch after completing a kind query. Therefore both coverage fields remain `not_emitted` until the
-high-level adapter is implemented and a managed Windows capture contains the actual counters.
+consumer contract, not proof that a product emits the counters. The candidate
+`ProjectAssetManager` adapter now opens `project_asset_manager.kind_query` and
+`project_asset_manager.record_sets` spans only inside an active profiling frame, then writes the
+five scan counters once after a kind scan completes. It reads crate-visible immutable scan metrics
+and never introduces recorder access into `zr_resource`. The scan source contract is covered by
+profiling-feature unit tests, but it remains `not_emitted` for product acceptance until a managed
+Windows capture contains its actual counters; the page adapter remains absent, so
+`asset_management_page` is still `not_emitted`.
 
 The scale-specific report validator cannot change that status. It adds the missing link between a
 declared 1/1k/100k workload plan and a later real observation, so a partial capture cannot be
@@ -217,10 +224,11 @@ test-only counter producer stand in for that production boundary.
 
 ## Windows Measurement Gate
 
-After Frameworks01 exposes the assembly surface and the outer adapter is wired, collect a managed
-current-source Windows baseline only. Artifacts remain under an approved `D:`, `E:`, or `F:` root;
-no project data, capture output, cache, or report is written to `C:`. Use project-relative
-resource locators and the existing resolver; do not add a path prefix scheme.
+With the outer scan adapter wired, collect a managed current-source Windows baseline only.
+Artifacts remain under an approved `D:`, `E:`, or `F:` root; no project data, capture output,
+cache, or report is written to `C:`. Use project-relative resource locators and the existing
+resolver; do not add a path prefix scheme. The page portion of the matrix remains blocked on its
+own consumer adapter and must not be inferred from scan counters.
 
 For each workload, capture at least three repetitions and report median/p95 for query wall time,
 candidate checks, matching rows, returned rows, rich-record count, scene-entity count, product CPU
@@ -247,8 +255,8 @@ no comparison to another engine is valid until the workload and measurement meth
 
 ## Index Decision Rules
 
-Do not add an index merely because the 64-shard merge is statically linear. Make the decision from
-the measured baseline:
+Do not add an index merely because the 64-shard K-way merge exists. Make the decision from the
+measured baseline:
 
 1. If generation query time and candidate checks are insignificant beside rich-record or scene
    projection, optimize the measured high-level owner instead.
@@ -377,12 +385,14 @@ Editor-owned reconstruction of mutable registry data.
 Runtime04 handoff for the rich management-record projection. It remains open; this section is
 only a current-source design note and must not be used as a second handoff lifecycle.
 
-The current `ProjectAssetManager::asset_management_record_sets_with_prepared_materials` runs five
-independent kind queries for model, mesh, scene, material, and shader assets. Each query now reads
-the immutable resource generation, which removes the earlier mutable-registry scan and caller-side
-ID sort. It still builds typed records after every query. The aggregate shares the scene records
-when deriving scene-entity rows, but it does not publish an immutable management record generation;
-stable consumers can therefore rebuild all five record families without a resource mutation.
+`ProjectAssetManager::asset_management_record_sets_with_prepared_materials` now runs one
+unfiltered stable-order resource scan, buckets model, mesh, scene, material, and shader IDs, and
+then builds their typed records. Individual-family APIs retain their direct kind query. This
+removes the aggregate's five independent merge initializations and repeated excluded-row walks
+without adding a cache, index, or resource-layer diagnostics dependency. The aggregate shares the
+scene records when deriving scene-entity rows, but it does not publish an immutable management
+record generation; stable consumers can therefore still rebuild all five record families without a
+resource mutation.
 
 The current lifecycle has no hidden publication point that would make the rebuild safe to ignore.
 `ProjectAssetManager` retains the project-generation fence, active project, resource manager, and
@@ -403,11 +413,11 @@ The correct owner split is:
 3. Editor consumers retain and page that Runtime04 projection. They may not reconstruct it from
    the mutable registry or keep another full catalog cache.
 
-Before implementation, record the current five-query behavior and the typed record/scene-entity
+The profiling contract records one completed aggregate scan and the typed record/scene-entity
 projection work as separate counters. After Runtime04 publishes a projection, verify unchanged
 polling has zero management-record rebuilds while a changed workload is bounded by the typed delta
-plus the requested page. These are acceptance hypotheses, not measured results; no timing, memory,
-GPU, or power claim is made here.
+plus the requested page. The single-scan assertion is a source-level work-count invariant, not a
+timing, memory, GPU, or power result.
 
 ### Minimum Future Publication Cut
 
@@ -429,6 +439,7 @@ smallest coherent direction is:
    request reconciliation. No unbounded generation history or lower-layer diagnostics callback is
    permitted.
 
-The release gate is evidence, not source shape: compare the current five scans plus typed loads
-against this design for unchanged, one-percent, rename, and page workloads. Retain the existing
-implementation if those measurements show the user path is dominated elsewhere.
+The release gate is evidence, not source shape: compare the current one aggregate scan plus typed
+loads against the preceding five-scan implementation for unchanged, one-percent, rename, and page
+workloads. Retain this implementation only if managed measurements confirm the user path is not
+dominated elsewhere.

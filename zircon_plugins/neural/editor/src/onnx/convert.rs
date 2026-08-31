@@ -1,5 +1,9 @@
 use std::collections::BTreeMap;
 
+mod tensor_projection;
+
+use tensor_projection::TensorProjection;
+
 use zircon_plugin_neural_runtime::{
     NnConv2dAttrs, NnDataType, NnGemmAttrs, NnModelAsset, NnOp, NnOpAttrs, NnOpCode, NnPool2dAttrs,
     NnTensorDesc, NnTensorKind, NN_WEIGHT_ALIGNMENT,
@@ -12,20 +16,14 @@ use super::{
 use crate::NnConversionDiagnostic;
 
 pub fn convert_graph(graph: &OnnxGraph) -> Result<NnModelAsset, Vec<NnConversionDiagnostic>> {
-    let tensor_ids = graph
-        .tensors
-        .keys()
-        .enumerate()
-        .map(|(index, name)| u16::try_from(index).map(|id| (name.clone(), id)))
-        .collect::<Result<BTreeMap<_, _>, _>>()
-        .map_err(|_| {
-            vec![NnConversionDiagnostic {
-                node: "graph".to_string(),
-                op_type: "TensorIdAllocation".to_string(),
-                reason: "graph exceeds the V1 tensor id capacity".to_string(),
-                input_shapes: Vec::new(),
-            }]
-        })?;
+    let projection = TensorProjection::new(graph).map_err(|_| {
+        vec![NnConversionDiagnostic {
+            node: "graph".to_string(),
+            op_type: "TensorIdAllocation".to_string(),
+            reason: "graph exceeds the V1 tensor id capacity".to_string(),
+            input_shapes: Vec::new(),
+        }]
+    })?;
     let mut diagnostics = Vec::new();
     let mut tensors = Vec::with_capacity(graph.tensors.len());
     let mut weights = Vec::new();
@@ -42,7 +40,7 @@ pub fn convert_graph(graph: &OnnxGraph) -> Result<NnModelAsset, Vec<NnConversion
                 continue;
             }
         }
-        let kind = tensor_kind(name, tensor, graph);
+        let kind = projection.kind(name, tensor);
         let shape = match padded_shape(&tensor.shape) {
             Ok(shape) => shape,
             Err(reason) => {
@@ -93,12 +91,12 @@ pub fn convert_graph(graph: &OnnxGraph) -> Result<NnModelAsset, Vec<NnConversion
                 weights.extend_from_slice(&value.to_le_bytes());
             }
         }
-        tensors.push((name.clone(), descriptor));
+        tensors.push(descriptor);
     }
 
     let mut ops = Vec::with_capacity(graph.nodes.len());
     for node in &graph.nodes {
-        match convert_node(node, graph, &tensor_ids) {
+        match convert_node(node, graph, &projection) {
             Ok(op) => ops.push(op),
             Err(diagnostic) => diagnostics.push(diagnostic),
         }
@@ -108,7 +106,7 @@ pub fn convert_graph(graph: &OnnxGraph) -> Result<NnModelAsset, Vec<NnConversion
     }
     weights.resize(align_weight_offset(weights.len()), 0);
     let model = NnModelAsset {
-        tensors: tensors.into_iter().map(|(_, tensor)| tensor).collect(),
+        tensors,
         ops,
         weights,
     };
@@ -126,7 +124,7 @@ pub fn convert_graph(graph: &OnnxGraph) -> Result<NnModelAsset, Vec<NnConversion
 fn convert_node(
     node: &OnnxNode,
     graph: &OnnxGraph,
-    tensor_ids: &BTreeMap<String, u16>,
+    projection: &TensorProjection<'_>,
 ) -> Result<NnOp, NnConversionDiagnostic> {
     let code = map_op_code(node, graph)?;
     validate_executable_v1_arity(node, graph, code)?;
@@ -134,12 +132,12 @@ fn convert_node(
     let inputs = node
         .inputs
         .iter()
-        .map(|name| tensor_id(node, name, tensor_ids, graph))
+        .map(|name| tensor_id(node, name, projection, graph))
         .collect::<Result<Vec<_>, _>>()?;
     let outputs = node
         .outputs
         .iter()
-        .map(|name| tensor_id(node, name, tensor_ids, graph))
+        .map(|name| tensor_id(node, name, projection, graph))
         .collect::<Result<Vec<_>, _>>()?;
     let attrs = convert_attrs(node, graph, code)?;
     validate_executable_v1_shapes(node, graph, code, &attrs)?;
@@ -585,28 +583,16 @@ fn positive_integer_attribute(
 fn tensor_id(
     node: &OnnxNode,
     name: &str,
-    tensor_ids: &BTreeMap<String, u16>,
+    projection: &TensorProjection<'_>,
     graph: &OnnxGraph,
 ) -> Result<u16, NnConversionDiagnostic> {
-    tensor_ids.get(name).copied().ok_or_else(|| {
+    projection.id(name).ok_or_else(|| {
         diagnostic_for_node(
             node,
             graph,
             "node references a tensor without shape metadata",
         )
     })
-}
-
-fn tensor_kind(name: &str, tensor: &OnnxTensor, graph: &OnnxGraph) -> NnTensorKind {
-    if tensor.values.is_some() {
-        NnTensorKind::Weight
-    } else if graph.inputs.iter().any(|input| input == name) {
-        NnTensorKind::Input
-    } else if graph.outputs.iter().any(|output| output == name) {
-        NnTensorKind::Output
-    } else {
-        NnTensorKind::Intermediate
-    }
 }
 
 fn padded_shape(shape: &[u32]) -> Result<[u32; 4], &'static str> {

@@ -1,17 +1,23 @@
 use std::rc::Rc;
 
 use crate::ui::retained_host::primitives::{Color, Image, ModelRc, SharedString};
-use zircon_runtime_interface::ui::style::ResolvedButtonStyle;
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId, style::ResolvedButtonStyle, surface::UiRenderFrameCommandRef,
+};
 
 use super::{
     TemplateNodeFrameData, TemplatePaneActionData, TemplatePaneCollectionFieldData,
     TemplatePaneCollectionRowData, TemplatePaneMenuItemData, TemplatePaneOptionData,
     TemplatePaneSampleGridData, TemplatePaneTimelineStripData, TemplatePaneWeightHeatmapData,
+    TemplateSettingEntryData, TemplateSettingsCategoryData,
 };
 
 #[derive(Clone, Default)]
 pub(crate) struct TemplatePaneNodeData {
     pub node_id: SharedString,
+    pub surface_node_id: Option<UiNodeId>,
+    pub surface_render_command_ref: Option<UiRenderFrameCommandRef>,
+    pub has_workbench_icon_tooltip: bool,
     pub parent_node_id: SharedString,
     pub control_id: SharedString,
     pub role: SharedString,
@@ -24,6 +30,11 @@ pub(crate) struct TemplatePaneNodeData {
     pub layout_icon_size: f32,
     pub layout_content_offset_x: f32,
     pub layout_content_offset_y: f32,
+    pub layout_padding_left: f32,
+    pub layout_padding_right: f32,
+    pub layout_padding_top: f32,
+    pub layout_padding_bottom: f32,
+    pub layout_spacing: f32,
     pub layout_first_cell_offset_x: f32,
     pub layout_second_cell_offset_x: f32,
     pub layout_third_cell_offset_x: f32,
@@ -73,6 +84,18 @@ pub(crate) struct TemplatePaneNodeData {
     pub notification_selected_id: SharedString,
     pub notification_focused_index: i32,
     pub notification_visible_limit: usize,
+    pub settings_title: SharedString,
+    pub selected_settings_category_id: SharedString,
+    pub settings_editor_open_key: SharedString,
+    pub settings_editor_open_kind: SharedString,
+    pub settings_editor_open_row: i32,
+    pub settings_category_scroll_offset: f32,
+    pub settings_scroll_offset: f32,
+    pub settings_persistence_health_generation: u64,
+    pub settings_persistence_retry_scope: SharedString,
+    pub settings_persistence_status_text: SharedString,
+    pub settings_categories: ModelRc<TemplateSettingsCategoryData>,
+    pub settings_entries: ModelRc<TemplateSettingEntryData>,
     pub collection_items: ModelRc<SharedString>,
     pub collection_rows: ModelRc<TemplatePaneCollectionRowData>,
     pub collection_fields: ModelRc<TemplatePaneCollectionFieldData>,

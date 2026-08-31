@@ -4,9 +4,14 @@ use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_color_token(
     node: &TemplatePaneNodeData,
 ) -> &str {
-    for token in ["success", "info", "warning", "error", "danger"] {
-        if component_variant_contains(node, token)
-            || component_variant_contains(node, &format!("color{}", pascal_case(token)))
+    for (token, color_token) in [
+        ("success", "colorSuccess"),
+        ("info", "colorInfo"),
+        ("warning", "colorWarning"),
+        ("error", "colorError"),
+        ("danger", "colorDanger"),
+    ] {
+        if component_variant_contains(node, token) || component_variant_contains(node, color_token)
         {
             return token;
         }
@@ -32,10 +37,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_i
     component_variant_contains(node, "outlined")
 }
 
-fn pascal_case(value: &str) -> String {
-    let mut characters = value.chars();
-    let Some(first) = characters.next() else {
-        return String::new();
-    };
-    first.to_ascii_uppercase().to_string() + characters.as_str()
+#[cfg(test)]
+mod tests {
+    use super::alert_color_token;
+    use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
+
+    #[test]
+    fn mixed_case_material_alert_variant_preserves_color_precedence() {
+        let node = TemplatePaneNodeData {
+            component_variant: "colorWaRnInG colorSuccess".into(),
+            ..TemplatePaneNodeData::default()
+        };
+
+        assert_eq!(alert_color_token(&node), "success");
+    }
 }

@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use toml::Value;
 
 use crate::ui::template::UiAssetDocumentRuntimeExt;
@@ -9,41 +11,44 @@ use zircon_runtime_interface::ui::template::{
 
 pub fn collect_document_localization_report(document: &UiAssetDocument) -> UiLocalizationReport {
     let mut report = UiLocalizationReport::default();
+    let mut path = String::new();
     for node in document.iter_nodes() {
-        collect_values(
-            &format!("nodes.{}.props", node.node_id),
-            &node.props,
-            &mut report,
-        );
+        path.clear();
+        path.push_str("nodes.");
+        path.push_str(&node.node_id);
+        let node_prefix_len = path.len();
+
+        path.push_str(".props");
+        collect_values(&mut path, &node.props, &mut report);
         if let Some(layout) = &node.layout {
-            collect_values(
-                &format!("nodes.{}.layout", node.node_id),
-                layout,
-                &mut report,
-            );
+            path.truncate(node_prefix_len);
+            path.push_str(".layout");
+            collect_values(&mut path, layout, &mut report);
         }
-        collect_values(
-            &format!("nodes.{}.params", node.node_id),
-            &node.params,
-            &mut report,
-        );
+        path.truncate(node_prefix_len);
+        path.push_str(".params");
+        collect_values(&mut path, &node.params, &mut report);
     }
     for stylesheet in &document.stylesheets {
         for (rule_index, rule) in stylesheet.rules.iter().enumerate() {
-            let rule_path = match rule.id.as_deref() {
-                Some(rule_id) => format!("stylesheets.{}.rules.{rule_id}", stylesheet.id),
-                None => format!("stylesheets.{}.rules[{rule_index}]", stylesheet.id),
-            };
-            collect_values(
-                &format!("{rule_path}.set.self"),
-                &rule.set.self_values,
-                &mut report,
-            );
-            collect_values(
-                &format!("{rule_path}.set.slot"),
-                &rule.set.slot,
-                &mut report,
-            );
+            path.clear();
+            path.push_str("stylesheets.");
+            path.push_str(&stylesheet.id);
+            path.push_str(".rules");
+            match rule.id.as_deref() {
+                Some(rule_id) => {
+                    path.push('.');
+                    path.push_str(rule_id);
+                }
+                None => write!(path, "[{rule_index}]").expect("writing to String cannot fail"),
+            }
+            let rule_prefix_len = path.len();
+
+            path.push_str(".set.self");
+            collect_values(&mut path, &rule.set.self_values, &mut report);
+            path.truncate(rule_prefix_len);
+            path.push_str(".set.slot");
+            collect_values(&mut path, &rule.set.slot, &mut report);
         }
     }
     report.dependencies.sort();
@@ -64,51 +69,65 @@ pub fn validate_document_localization(document: &UiAssetDocument) -> Result<(), 
 }
 
 fn collect_values(
-    path_prefix: &str,
+    path: &mut String,
     values: &std::collections::BTreeMap<String, Value>,
     report: &mut UiLocalizationReport,
 ) {
+    let prefix_len = path.len();
     for (key, value) in values {
-        collect_value(&format!("{path_prefix}.{key}"), value, report);
+        path.truncate(prefix_len);
+        path.push('.');
+        path.push_str(key);
+        collect_value(path, value, report);
     }
+    path.truncate(prefix_len);
 }
 
-fn collect_value(path: &str, value: &Value, report: &mut UiLocalizationReport) {
+fn collect_value(path: &mut String, value: &Value, report: &mut UiLocalizationReport) {
     match value {
         Value::String(text) if is_text_path(path) => {
             report
                 .extraction_candidates
                 .push(UiLocalizationTextCandidate {
-                    path: path.to_string(),
+                    path: path.clone(),
                     text: text.clone(),
                 });
         }
         Value::Table(table) => {
             if let Some(reference) = localized_text_ref(table) {
-                if let Some(message) = reference.validate(path) {
+                if let Some(message) = reference.validate(path.as_str()) {
                     report.diagnostics.push(UiLocalizationDiagnostic::new(
                         "empty_localized_text_key",
                         UiLocalizationDiagnosticSeverity::Error,
-                        path,
+                        path.as_str(),
                         message,
                     ));
                     return;
                 }
                 report.dependencies.push(UiLocalizationDependency {
-                    path: path.to_string(),
+                    path: path.clone(),
                     reference,
                     direction: text_direction(table),
                 });
                 return;
             }
+            let prefix_len = path.len();
             for (key, nested) in table {
-                collect_value(&format!("{path}.{key}"), nested, report);
+                path.truncate(prefix_len);
+                path.push('.');
+                path.push_str(key);
+                collect_value(path, nested, report);
             }
+            path.truncate(prefix_len);
         }
         Value::Array(items) => {
+            let prefix_len = path.len();
             for (index, item) in items.iter().enumerate() {
-                collect_value(&format!("{path}[{index}]"), item, report);
+                path.truncate(prefix_len);
+                write!(path, "[{index}]").expect("writing to String cannot fail");
+                collect_value(path, item, report);
             }
+            path.truncate(prefix_len);
         }
         _ => {}
     }
@@ -140,3 +159,6 @@ fn text_direction(table: &toml::map::Map<String, Value>) -> UiTextDirection {
 fn is_text_path(path: &str) -> bool {
     path.ends_with(".text") || path.ends_with(".label") || path.ends_with(".title")
 }
+
+#[cfg(test)]
+mod performance_tests;

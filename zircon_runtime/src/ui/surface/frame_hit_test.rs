@@ -1,12 +1,16 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::ui::tree::{UiHitTestIndex, UiHitTestResult};
+use crate::ui::tree::{
+    bounded_cells_for_frame, bounded_hit_grid_dimensions, frame_is_finite_positive,
+    hit_grid_capacity_bounds, UiHitTestIndex, UiHitTestResult,
+};
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{UiFrame, UiPoint},
     surface::{
-        UiArrangedTree, UiHitCoordinateSpace, UiHitTestCell, UiHitTestDebugDump, UiHitTestEntry,
-        UiHitTestGrid, UiHitTestQuery, UiHitTestReject, UiHitTestRejectReason, UiSurfaceFrame,
+        UiArrangedTree, UiHitCoordinateSpace, UiHitRouteNode, UiHitTestCell, UiHitTestDebugDump,
+        UiHitTestEntry, UiHitTestGrid, UiHitTestQuery, UiHitTestReject, UiHitTestRejectReason,
+        UiPersistentSequenceCowStats, UiSurfaceFrame,
     },
     tree::UiInputPolicy,
 };
@@ -20,7 +24,7 @@ pub(super) struct UiProjectedHitTestIndex {
     overlay_z_base: i32,
     projection_roots: Vec<UiNodeId>,
     projected_node_ids: BTreeSet<UiNodeId>,
-    projected_paint_orders: BTreeMap<UiNodeId, u64>,
+    projected_order_keys: BTreeMap<UiNodeId, (i32, u64)>,
     projected_popup_roots: BTreeMap<UiNodeId, UiNodeId>,
     projected_source_sort_keys: BTreeMap<UiNodeId, (i32, u64)>,
     entry_cells: BTreeMap<UiNodeId, Vec<usize>>,
@@ -55,7 +59,26 @@ impl UiProjectedHitTestIndex {
         }
     }
 
-    fn rebuild(&mut self, base_grid: &UiHitTestGrid, projections: &[UiHitTestProjection]) {
+    pub(super) fn authoritative_entry<'a>(
+        &'a self,
+        base_grid: &'a UiHitTestGrid,
+        node_id: UiNodeId,
+    ) -> Option<&'a UiHitTestEntry> {
+        if self.initialized {
+            self.entry_indices
+                .get(&node_id)
+                .and_then(|entry_index| self.grid.entries.get(*entry_index))
+        } else {
+            base_grid
+                .entries
+                .iter()
+                .find(|entry| entry.node_id == node_id)
+        }
+    }
+
+    fn rebuild(&mut self, base_grid: &UiHitTestGrid, projections: &[UiHitTestProjection]) -> bool {
+        #[cfg(feature = "profiling")]
+        let rebuild_start = std::time::Instant::now();
         self.overlay_z_base = base_grid
             .entries
             .iter()
@@ -72,10 +95,11 @@ impl UiProjectedHitTestIndex {
             .iter()
             .map(|entry| {
                 let (entry, projected) = project_entry(
+                    base_grid,
                     entry,
                     &projection_by_root,
                     self.overlay_z_base,
-                    &order_plan.paint_orders,
+                    &order_plan.order_keys,
                 );
                 if projected {
                     self.projected_node_ids.insert(entry.node_id);
@@ -83,12 +107,21 @@ impl UiProjectedHitTestIndex {
                 entry
             })
             .collect();
-        self.projected_paint_orders = order_plan.paint_orders;
+        self.projected_order_keys = order_plan.order_keys;
         self.projected_popup_roots = order_plan.popup_roots;
         self.projected_source_sort_keys = order_plan.source_sort_keys;
-        self.grid = build_projected_grid(base_grid, entries);
+        let next_grid = build_projected_grid(base_grid, entries);
+        let changed = !self.initialized || self.grid != next_grid;
+        self.grid = next_grid;
         self.initialized = true;
         self.reindex_entries();
+        #[cfg(feature = "profiling")]
+        crate::core::diagnostics::profiling::record_counter(
+            "runtime",
+            "ui.surface_projected_hit.rebuild_elapsed_us",
+            rebuild_start.elapsed().as_micros() as f64,
+        );
+        changed
     }
 
     fn patch(
@@ -101,6 +134,7 @@ impl UiProjectedHitTestIndex {
             || self.projection_roots != projection_roots(projections)
             || self.grid.scope != base_index.grid.scope
             || self.grid.entries.len() != base_index.grid.entries.len()
+            || self.grid.route_nodes.len() != base_index.grid.route_nodes.len()
         {
             return Err(());
         }
@@ -113,6 +147,7 @@ impl UiProjectedHitTestIndex {
         // Keep incremental work bounded to changed entries plus the projected popup subtree.
         // A base-wide invariant change is repaired through the rebuild fallback below.
         let projection_by_root = projection_by_root(projections);
+        self.grid.route_nodes = base_index.grid.route_nodes.clone();
         let mut affected_node_ids = changed_node_ids.clone();
         affected_node_ids.extend(self.projected_node_ids.iter().copied());
         let mut updates = Vec::with_capacity(affected_node_ids.len());
@@ -126,7 +161,7 @@ impl UiProjectedHitTestIndex {
                         return Err(());
                     }
                     let current_projection_root =
-                        projection_for_entry(base_entry, &projection_by_root)
+                        projection_for_entry(&base_index.grid, base_entry, &projection_by_root)
                             .map(|projection| projection.popup_root);
                     if self.projected_popup_roots.get(&node_id).copied() != current_projection_root
                         || current_projection_root.is_some()
@@ -136,10 +171,11 @@ impl UiProjectedHitTestIndex {
                         return Err(());
                     }
                     let (next_entry, _) = project_entry(
+                        &base_index.grid,
                         base_entry,
                         &projection_by_root,
                         self.overlay_z_base,
-                        &self.projected_paint_orders,
+                        &self.projected_order_keys,
                     );
                     let Some(current_entry) = self.grid.entries.get(entry_index) else {
                         return Err(());
@@ -156,7 +192,7 @@ impl UiProjectedHitTestIndex {
                     }
                     let previous_cells =
                         self.entry_cells.get(&node_id).cloned().unwrap_or_default();
-                    let next_cells = projected_cells_for_frame(
+                    let next_cells = bounded_cells_for_frame(
                         self.grid.bounds,
                         self.grid.columns,
                         self.grid.rows,
@@ -180,6 +216,9 @@ impl UiProjectedHitTestIndex {
             .any(|(entry_index, next, previous_cells, next_cells)| {
                 self.grid.entries.get(*entry_index) != Some(next) || previous_cells != next_cells
             });
+        let mut entry_cow_stats = UiPersistentSequenceCowStats::default();
+        let mut cell_cow_stats = UiPersistentSequenceCowStats::default();
+        let mut cell_membership_clone_count = 0_usize;
         for (entry_index, next_entry, previous_cells, next_cells) in updates {
             if self.grid.entries.get(entry_index) == Some(&next_entry)
                 && previous_cells == next_cells
@@ -187,24 +226,34 @@ impl UiProjectedHitTestIndex {
                 continue;
             }
             for cell_index in previous_cells {
-                if let Some(cell) = self.grid.cells.get_mut(cell_index) {
-                    cell.entries.retain(|candidate| *candidate != entry_index);
+                if let Some((cell, stats)) = self.grid.cells.get_mut_with_stats(cell_index) {
+                    cell_cow_stats.accumulate(stats);
+                    cell_membership_clone_count = cell_membership_clone_count
+                        .saturating_add(cell.entries.retain(|candidate| *candidate != entry_index));
                 }
             }
             let node_id = next_entry.node_id;
-            if let Some(entry) = self.grid.entries.get_mut(entry_index) {
+            if let Some((entry, stats)) = self.grid.entries.get_mut_with_stats(entry_index) {
+                entry_cow_stats.accumulate(stats);
                 *entry = next_entry;
             }
             self.entry_cells.insert(node_id, next_cells.clone());
             for cell_index in next_cells {
-                if let Some(cell) = self.grid.cells.get_mut(cell_index) {
+                if let Some((cell, stats)) = self.grid.cells.get_mut_with_stats(cell_index) {
+                    cell_cow_stats.accumulate(stats);
                     let insertion_index = cell
                         .entries
                         .partition_point(|candidate| *candidate <= entry_index);
-                    cell.entries.insert(insertion_index, entry_index);
+                    cell_membership_clone_count = cell_membership_clone_count
+                        .saturating_add(cell.entries.insert(insertion_index, entry_index));
                 }
             }
         }
+        record_projected_hit_persistent_cow(
+            entry_cow_stats,
+            cell_cow_stats,
+            cell_membership_clone_count,
+        );
         Ok(changed)
     }
 
@@ -214,13 +263,41 @@ impl UiProjectedHitTestIndex {
         projections: &[UiHitTestProjection],
         changed_node_ids: &BTreeSet<UiNodeId>,
         base_grid_rebuilt: bool,
-    ) {
-        if base_grid_rebuilt
-            || self
-                .patch(base_index, projections, changed_node_ids)
-                .is_err()
-        {
-            self.rebuild(&base_index.grid, projections);
+    ) -> bool {
+        if base_grid_rebuilt {
+            return self.rebuild(&base_index.grid, projections);
+        }
+        #[cfg(feature = "profiling")]
+        let patch_start = std::time::Instant::now();
+        let patch_result = self.patch(base_index, projections, changed_node_ids);
+        #[cfg(feature = "profiling")]
+        let patch_elapsed_us = patch_start.elapsed().as_micros() as f64;
+        #[cfg(feature = "profiling")]
+        let affected_entry_count = changed_node_ids.union(&self.projected_node_ids).count() as f64;
+        #[cfg(feature = "profiling")]
+        crate::core::diagnostics::profiling::record_counter_batch(
+            "runtime",
+            &[
+                (
+                    "ui.surface_projected_hit.patch_elapsed_us",
+                    patch_elapsed_us,
+                ),
+                (
+                    "ui.surface_projected_hit.affected_entry_count",
+                    affected_entry_count,
+                ),
+            ],
+        );
+        match patch_result {
+            Ok(changed) => changed,
+            Err(()) => {
+                crate::profile_counter!(
+                    "runtime",
+                    "ui.surface_projected_hit.patch_fallback_count",
+                    1
+                );
+                self.rebuild(&base_index.grid, projections)
+            }
         }
     }
 
@@ -243,18 +320,57 @@ impl UiProjectedHitTestIndex {
     }
 }
 
+fn record_projected_hit_persistent_cow(
+    entry_stats: UiPersistentSequenceCowStats,
+    cell_stats: UiPersistentSequenceCowStats,
+    cell_membership_clone_count: usize,
+) {
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.persistent_entry_item_clone_count",
+        entry_stats.cloned_item_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.persistent_entry_segment_clone_count",
+        entry_stats.cloned_segment_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.persistent_cell_item_clone_count",
+        cell_stats.cloned_item_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.persistent_cell_segment_clone_count",
+        cell_stats.cloned_segment_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.persistent_cell_membership_clone_count",
+        cell_membership_clone_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui.surface_projected_hit.persistent_directory_node_clone_count",
+        entry_stats
+            .cloned_directory_node_count
+            .saturating_add(cell_stats.cloned_directory_node_count)
+    );
+}
+
 impl UiSurface {
-    pub(super) fn rebuild_projected_hit_test(&mut self) {
+    pub(super) fn rebuild_projected_hit_test(&mut self) -> bool {
         let projections = self.popup_hit_test_projections();
         self.projected_hit_test
-            .rebuild(&self.hit_test.grid, &projections);
+            .rebuild(&self.hit_test.grid, &projections)
     }
 
     pub(super) fn synchronize_projected_hit_test(
         &mut self,
         changed_node_ids: &BTreeSet<UiNodeId>,
         base_grid_rebuilt: bool,
-    ) {
+    ) -> bool {
         if !base_grid_rebuilt {
             self.hit_test.ensure_entry_lookup();
         }
@@ -264,7 +380,17 @@ impl UiSurface {
             &projections,
             changed_node_ids,
             base_grid_rebuilt,
-        );
+        )
+    }
+
+    pub(super) fn patch_projected_hit_test_strict(
+        &mut self,
+        changed_node_ids: &BTreeSet<UiNodeId>,
+    ) -> Result<bool, ()> {
+        self.hit_test.ensure_entry_lookup();
+        let projections = self.popup_hit_test_projections();
+        self.projected_hit_test
+            .patch(&self.hit_test, &projections, changed_node_ids)
     }
 
     fn popup_hit_test_projections(&self) -> Vec<UiHitTestProjection> {
@@ -275,7 +401,7 @@ impl UiSurface {
             .filter_map(|(stack_order, popup)| {
                 let popup_root = popup.popup_node?;
                 let arranged = self.arranged_node(popup_root)?;
-                let (target_frame, target_clip) = if self.popup_uses_control_anchor(popup_root) {
+                let (target_frame, target_clip) = if self.popup_uses_runtime_anchor(popup_root) {
                     self.rendered_popup_background(popup_root, arranged)
                         .map(|(_, command)| (Some(command.frame), command.clip_frame))
                         .unwrap_or((None, None))
@@ -294,12 +420,16 @@ impl UiSurface {
     }
 }
 
-pub(super) fn hit_test_projected_grid_with_query(
-    grid: &UiHitTestGrid,
-    arranged_tree: &UiArrangedTree,
+pub(super) fn hit_test_surface_frame_with_query_using_index(
+    surface_frame: &UiSurfaceFrame,
     query: UiHitTestQuery,
+    hit_test_index: &UiHitTestIndex,
 ) -> UiHitTestResult {
-    UiHitTestIndex::hit_test_grid_arranged_with_query(grid, arranged_tree, query)
+    hit_test_index.hit_test_owned_grid_arranged_with_query(
+        &surface_frame.hit_grid,
+        &surface_frame.arranged_tree,
+        query,
+    )
 }
 
 pub fn hit_test_surface_frame(surface_frame: &UiSurfaceFrame, point: UiPoint) -> UiHitTestResult {
@@ -310,7 +440,8 @@ pub fn hit_test_surface_frame_with_query(
     surface_frame: &UiSurfaceFrame,
     query: UiHitTestQuery,
 ) -> UiHitTestResult {
-    hit_test_projected_grid_with_query(&surface_frame.hit_grid, &surface_frame.arranged_tree, query)
+    let hit_test_index = UiHitTestIndex::default();
+    hit_test_surface_frame_with_query_using_index(surface_frame, query, &hit_test_index)
 }
 
 fn projection_roots(projections: &[UiHitTestProjection]) -> Vec<UiNodeId> {
@@ -330,17 +461,18 @@ fn projection_by_root(
 }
 
 fn project_entry(
+    grid: &UiHitTestGrid,
     entry: &UiHitTestEntry,
     projection_by_root: &BTreeMap<UiNodeId, &UiHitTestProjection>,
     overlay_z_base: i32,
-    projected_paint_orders: &BTreeMap<UiNodeId, u64>,
+    projected_order_keys: &BTreeMap<UiNodeId, (i32, u64)>,
 ) -> (UiHitTestEntry, bool) {
-    let Some(projection) = projection_for_entry(entry, projection_by_root) else {
+    let Some(projection) = projection_for_entry(grid, entry, projection_by_root) else {
         return (entry.clone(), false);
     };
     let Some(target_frame) = projection.target_frame else {
         return (
-            inactive_projected_entry(entry, overlay_z_base, projected_paint_orders),
+            inactive_projected_entry(entry, overlay_z_base, projected_order_keys),
             true,
         );
     };
@@ -353,43 +485,44 @@ fn project_entry(
         .filter(|clip| frame_has_area(*clip))
     else {
         return (
-            inactive_projected_entry(entry, overlay_z_base, projected_paint_orders),
+            inactive_projected_entry(entry, overlay_z_base, projected_order_keys),
             true,
         );
     };
     let mut projected = entry.clone();
     projected.frame = projected_frame;
     projected.clip_frame = clip_frame;
-    apply_projected_order(&mut projected, overlay_z_base, projected_paint_orders);
+    apply_projected_order(&mut projected, overlay_z_base, projected_order_keys);
     (projected, true)
 }
 
 fn inactive_projected_entry(
     entry: &UiHitTestEntry,
     overlay_z_base: i32,
-    projected_paint_orders: &BTreeMap<UiNodeId, u64>,
+    projected_order_keys: &BTreeMap<UiNodeId, (i32, u64)>,
 ) -> UiHitTestEntry {
     let mut projected = entry.clone();
     projected.frame = UiFrame::default();
     projected.clip_frame = UiFrame::default();
-    apply_projected_order(&mut projected, overlay_z_base, projected_paint_orders);
+    apply_projected_order(&mut projected, overlay_z_base, projected_order_keys);
     projected
 }
 
 fn apply_projected_order(
     entry: &mut UiHitTestEntry,
     overlay_z_base: i32,
-    projected_paint_orders: &BTreeMap<UiNodeId, u64>,
+    projected_order_keys: &BTreeMap<UiNodeId, (i32, u64)>,
 ) {
-    entry.z_index = overlay_z_base;
-    entry.paint_order = projected_paint_orders
+    let (z_index, paint_order) = projected_order_keys
         .get(&entry.node_id)
         .copied()
-        .unwrap_or(entry.paint_order);
+        .unwrap_or((overlay_z_base, entry.paint_order));
+    entry.z_index = z_index;
+    entry.paint_order = paint_order;
 }
 
 struct UiProjectionOrderPlan {
-    paint_orders: BTreeMap<UiNodeId, u64>,
+    order_keys: BTreeMap<UiNodeId, (i32, u64)>,
     popup_roots: BTreeMap<UiNodeId, UiNodeId>,
     source_sort_keys: BTreeMap<UiNodeId, (i32, u64)>,
 }
@@ -403,7 +536,7 @@ fn projection_order_plan(
         .entries
         .iter()
         .filter_map(|entry| {
-            projection_for_entry(entry, projection_by_root).map(|projection| {
+            projection_for_entry(base_grid, entry, projection_by_root).map(|projection| {
                 (
                     projection.stack_order,
                     entry.z_index,
@@ -423,34 +556,36 @@ fn projection_order_plan(
         .max()
         .unwrap_or_default()
         .saturating_add(1);
-    let mut paint_orders = BTreeMap::new();
+    let mut order_keys = BTreeMap::new();
     let mut popup_roots = BTreeMap::new();
     let mut source_sort_keys = BTreeMap::new();
     for (rank, (_, source_z, source_paint_order, node_id, popup_root)) in
         projected_entries.into_iter().enumerate()
     {
-        paint_orders.insert(
+        let rank = i32::try_from(rank).unwrap_or(i32::MAX);
+        order_keys.insert(
             node_id,
-            first_projected_paint_order.saturating_add(u64::try_from(rank).unwrap_or(u64::MAX)),
+            (
+                overlay_z_base.saturating_add(rank),
+                first_projected_paint_order.saturating_add(u64::try_from(rank).unwrap_or(u64::MAX)),
+            ),
         );
         popup_roots.insert(node_id, popup_root);
         source_sort_keys.insert(node_id, (source_z, source_paint_order));
     }
     UiProjectionOrderPlan {
-        paint_orders,
+        order_keys,
         popup_roots,
         source_sort_keys,
     }
 }
 
 fn projection_for_entry<'a>(
+    grid: &UiHitTestGrid,
     entry: &UiHitTestEntry,
     projection_by_root: &'a BTreeMap<UiNodeId, &UiHitTestProjection>,
 ) -> Option<&'a UiHitTestProjection> {
-    entry
-        .bubble_route
-        .iter()
-        .find_map(|node_id| projection_by_root.get(node_id).copied())
+    find_bubble_route_value(grid, entry, projection_by_root)
 }
 
 fn project_frame(frame: UiFrame, source: UiFrame, target: UiFrame) -> UiFrame {
@@ -497,7 +632,7 @@ fn build_projected_grid(
     mut entries: Vec<UiHitTestEntry>,
 ) -> UiHitTestGrid {
     entries.sort_by_key(projected_entry_sort_key);
-    let bounds = entries
+    let content_bounds = entries
         .iter()
         .filter(|entry| frame_has_area(entry.clip_frame))
         .map(|entry| entry.clip_frame)
@@ -508,21 +643,34 @@ fn build_projected_grid(
     } else {
         UiHitTestGrid::default().cell_size
     };
+    let combined_bounds = match (
+        frame_has_area(base_grid.bounds),
+        frame_has_area(content_bounds),
+    ) {
+        (true, true) => union_frames(base_grid.bounds, content_bounds),
+        (true, false) => base_grid.bounds,
+        (false, true) => content_bounds,
+        (false, false) => UiFrame::default(),
+    };
+    let bounds = hit_grid_capacity_bounds(combined_bounds, cell_size);
     if !frame_has_area(bounds) {
         return UiHitTestGrid {
             bounds,
             cell_size,
             scope: base_grid.scope.clone(),
-            entries,
+            route_nodes: base_grid.route_nodes.clone(),
+            entries: entries.into(),
             ..UiHitTestGrid::default()
         };
     }
-    let columns = (bounds.width / cell_size).ceil().max(1.0) as u32;
-    let rows = (bounds.height / cell_size).ceil().max(1.0) as u32;
-    let mut cells = vec![UiHitTestCell::default(); (columns * rows) as usize];
+    let (columns, rows, cell_size) = bounded_hit_grid_dimensions(bounds, &entries, cell_size);
+    let cell_count = (columns as usize)
+        .checked_mul(rows as usize)
+        .expect("hit grid dimensions are bounded");
+    let mut cells = vec![UiHitTestCell::default(); cell_count];
     for (entry_index, entry) in entries.iter().enumerate() {
         for cell_index in
-            projected_cells_for_frame(bounds, columns, rows, cell_size, entry.clip_frame)
+            bounded_cells_for_frame(bounds, columns, rows, cell_size, entry.clip_frame)
         {
             cells[cell_index].entries.push(entry_index);
         }
@@ -533,42 +681,14 @@ fn build_projected_grid(
         columns,
         rows,
         scope: base_grid.scope.clone(),
-        entries,
-        cells,
+        route_nodes: base_grid.route_nodes.clone(),
+        entries: entries.into(),
+        cells: cells.into(),
     }
-}
-
-fn projected_cells_for_frame(
-    bounds: UiFrame,
-    columns: u32,
-    rows: u32,
-    cell_size: f32,
-    frame: UiFrame,
-) -> Vec<usize> {
-    if columns == 0 || rows == 0 || !frame_has_area(frame) || frame.intersection(bounds).is_none() {
-        return Vec::new();
-    }
-    let left = ((frame.x - bounds.x) / cell_size).floor().max(0.0) as u32;
-    let top = ((frame.y - bounds.y) / cell_size).floor().max(0.0) as u32;
-    let right = ((frame.right() - bounds.x) / cell_size)
-        .floor()
-        .max(0.0)
-        .min((columns - 1) as f32) as u32;
-    let bottom = ((frame.bottom() - bounds.y) / cell_size)
-        .floor()
-        .max(0.0)
-        .min((rows - 1) as f32) as u32;
-    let mut cells = Vec::new();
-    for row in top..=bottom {
-        for column in left..=right {
-            cells.push((row * columns + column) as usize);
-        }
-    }
-    cells
 }
 
 fn frame_has_area(frame: UiFrame) -> bool {
-    frame.width > 0.0 && frame.height > 0.0
+    frame_is_finite_positive(frame)
 }
 
 fn frame_is_contained(bounds: UiFrame, frame: UiFrame) -> bool {
@@ -591,263 +711,8 @@ fn projected_entry_sort_key(entry: &UiHitTestEntry) -> (i32, u64, UiNodeId) {
 }
 
 #[cfg(test)]
-mod projected_grid_tests {
-    use super::*;
-
-    #[test]
-    fn incremental_patch_source_does_not_scan_all_base_entries() {
-        let source = include_str!("frame_hit_test.rs");
-        let patch_body = source
-            .split_once("    fn patch(")
-            .and_then(|(_, remainder)| remainder.split_once("\n    fn synchronize("))
-            .map(|(body, _)| body)
-            .expect("projected hit-test patch body should remain source-guardable");
-        let compact_patch = patch_body
-            .chars()
-            .filter(|character| !character.is_whitespace())
-            .collect::<String>();
-        let forbidden_global_scan = ["base_index", ".grid", ".entries", ".iter()"].concat();
-
-        assert!(!compact_patch.contains(&forbidden_global_scan));
-    }
-
-    #[test]
-    fn affine_projection_maps_frame_and_clip_with_non_uniform_scale() {
-        let source = UiFrame::new(10.0, 20.0, 40.0, 20.0);
-        let target = UiFrame::new(100.0, 200.0, 80.0, 60.0);
-
-        assert_eq!(
-            project_frame(UiFrame::new(20.0, 25.0, 10.0, 5.0), source, target),
-            UiFrame::new(120.0, 215.0, 20.0, 15.0)
-        );
-        assert_eq!(
-            project_frame(UiFrame::new(15.0, 22.0, 20.0, 10.0), source, target),
-            UiFrame::new(110.0, 206.0, 40.0, 30.0)
-        );
-    }
-
-    #[test]
-    fn incremental_z_crossing_overlay_base_falls_back_to_projected_rebuild() {
-        let popup_root = UiNodeId::new(10);
-        let popup_entry = hit_entry(UiNodeId::new(11), popup_root, 1, 0);
-        let mut ordinary_entry = hit_entry(UiNodeId::new(30), UiNodeId::new(30), 0, 0);
-        let base_grid = build_projected_grid(
-            &UiHitTestGrid::default(),
-            vec![ordinary_entry.clone(), popup_entry.clone()],
-        );
-        let frame = UiFrame::new(0.0, 0.0, 10.0, 10.0);
-        let projections = [UiHitTestProjection {
-            popup_root,
-            source_frame: frame,
-            target_frame: Some(frame),
-            target_clip: Some(frame),
-            stack_order: 0,
-        }];
-        let mut projected = UiProjectedHitTestIndex::default();
-        projected.rebuild(&base_grid, &projections);
-        assert_eq!(projected.overlay_z_base, 2);
-
-        ordinary_entry.z_index = 100;
-        let changed_node_ids = BTreeSet::from([ordinary_entry.node_id]);
-        let updated_base = UiHitTestIndex::from_grid(build_projected_grid(
-            &base_grid,
-            vec![ordinary_entry, popup_entry.clone()],
-        ));
-        projected.synchronize(&updated_base, &projections, &changed_node_ids, false);
-
-        assert_eq!(projected.overlay_z_base, 101);
-        let hit = hit_test_projected_grid_with_query(
-            &projected.grid,
-            &UiArrangedTree::default(),
-            UiHitTestQuery::new(UiPoint::new(5.0, 5.0)),
-        );
-        assert_eq!(hit.top_hit, Some(popup_entry.node_id));
-    }
-
-    #[test]
-    fn base_full_rebuild_refreshes_same_count_non_projected_entries() {
-        let popup_root = UiNodeId::new(10);
-        let popup_entry = hit_entry(UiNodeId::new(11), popup_root, 5, 0);
-        let mut ordinary_entry = hit_entry(UiNodeId::new(30), UiNodeId::new(30), 0, 0);
-        ordinary_entry.frame = UiFrame::new(20.0, 0.0, 10.0, 10.0);
-        ordinary_entry.clip_frame = ordinary_entry.frame;
-        let base_grid = build_projected_grid(
-            &UiHitTestGrid::default(),
-            vec![popup_entry.clone(), ordinary_entry.clone()],
-        );
-        let frame = UiFrame::new(0.0, 0.0, 10.0, 10.0);
-        let projections = [UiHitTestProjection {
-            popup_root,
-            source_frame: frame,
-            target_frame: Some(UiFrame::new(100.0, 0.0, 10.0, 10.0)),
-            target_clip: Some(UiFrame::new(100.0, 0.0, 10.0, 10.0)),
-            stack_order: 0,
-        }];
-        let mut projected = UiProjectedHitTestIndex::default();
-        projected.rebuild(&base_grid, &projections);
-
-        ordinary_entry.frame = UiFrame::new(40.0, 0.0, 10.0, 10.0);
-        ordinary_entry.clip_frame = ordinary_entry.frame;
-        ordinary_entry.bubble_route = vec![ordinary_entry.node_id, UiNodeId::new(31)];
-        let rebuilt_base = UiHitTestIndex::from_grid(build_projected_grid(
-            &base_grid,
-            vec![popup_entry, ordinary_entry.clone()],
-        ));
-
-        projected.synchronize(&rebuilt_base, &projections, &BTreeSet::new(), true);
-
-        let refreshed = projected
-            .grid
-            .entries
-            .iter()
-            .find(|entry| entry.node_id == ordinary_entry.node_id)
-            .expect("same-count base rebuild must keep the ordinary entry");
-        assert_eq!(refreshed.frame, ordinary_entry.frame);
-        assert_eq!(refreshed.clip_frame, ordinary_entry.clip_frame);
-        assert_eq!(refreshed.bubble_route, ordinary_entry.bubble_route);
-    }
-
-    #[test]
-    fn incremental_projection_refreshes_rendered_target_clip() {
-        let popup_root = UiNodeId::new(10);
-        let popup_entry = hit_entry(UiNodeId::new(11), popup_root, 5, 0);
-        let base_grid = build_projected_grid(&UiHitTestGrid::default(), vec![popup_entry.clone()]);
-        let base_index = UiHitTestIndex::from_grid(base_grid.clone());
-        let source_frame = UiFrame::new(0.0, 0.0, 10.0, 10.0);
-        let mut projected = UiProjectedHitTestIndex::default();
-        projected.rebuild(
-            &base_grid,
-            &[UiHitTestProjection {
-                popup_root,
-                source_frame,
-                target_frame: Some(source_frame),
-                target_clip: Some(source_frame),
-                stack_order: 0,
-            }],
-        );
-
-        let clipped_frame = UiFrame::new(2.0, 2.0, 4.0, 4.0);
-        projected.synchronize(
-            &base_index,
-            &[UiHitTestProjection {
-                popup_root,
-                source_frame,
-                target_frame: Some(source_frame),
-                target_clip: Some(clipped_frame),
-                stack_order: 0,
-            }],
-            &BTreeSet::new(),
-            false,
-        );
-
-        let refreshed = projected
-            .grid
-            .entries
-            .iter()
-            .find(|entry| entry.node_id == popup_entry.node_id)
-            .expect("projected popup entry should remain indexed");
-        assert_eq!(refreshed.frame, source_frame);
-        assert_eq!(refreshed.clip_frame, clipped_frame);
-        assert_eq!(
-            hit_test_projected_grid_with_query(
-                &projected.grid,
-                &UiArrangedTree::default(),
-                UiHitTestQuery::new(UiPoint::new(1.0, 1.0)),
-            )
-            .top_hit,
-            None
-        );
-        assert_eq!(
-            hit_test_projected_grid_with_query(
-                &projected.grid,
-                &UiArrangedTree::default(),
-                UiHitTestQuery::new(UiPoint::new(3.0, 3.0)),
-            )
-            .top_hit,
-            Some(popup_entry.node_id)
-        );
-    }
-
-    #[test]
-    fn projected_order_preserves_inner_z_and_places_next_popup_above_entire_subtree() {
-        let first_popup = UiNodeId::new(10);
-        let second_popup = UiNodeId::new(20);
-        let low_z_high_paint = hit_entry(UiNodeId::new(11), first_popup, 5, 100);
-        let high_z_low_paint = hit_entry(UiNodeId::new(12), first_popup, 6, 0);
-        let next_popup_low_z = hit_entry(UiNodeId::new(21), second_popup, -100, 0);
-        let base_grid = UiHitTestGrid {
-            entries: vec![
-                low_z_high_paint.clone(),
-                high_z_low_paint.clone(),
-                next_popup_low_z.clone(),
-            ],
-            ..UiHitTestGrid::default()
-        };
-        let frame = UiFrame::new(0.0, 0.0, 10.0, 10.0);
-        let projections = [
-            UiHitTestProjection {
-                popup_root: first_popup,
-                source_frame: frame,
-                target_frame: Some(frame),
-                target_clip: Some(frame),
-                stack_order: 0,
-            },
-            UiHitTestProjection {
-                popup_root: second_popup,
-                source_frame: frame,
-                target_frame: Some(frame),
-                target_clip: Some(frame),
-                stack_order: 1,
-            },
-        ];
-        let projection_by_root = projection_by_root(&projections);
-        let plan = projection_order_plan(&base_grid, &projection_by_root, 7);
-
-        assert!(
-            plan.paint_orders[&low_z_high_paint.node_id]
-                < plan.paint_orders[&high_z_low_paint.node_id]
-        );
-        assert!(
-            plan.paint_orders[&high_z_low_paint.node_id]
-                < plan.paint_orders[&next_popup_low_z.node_id]
-        );
-
-        let mut projected = UiProjectedHitTestIndex::default();
-        projected.rebuild(&base_grid, &projections);
-        let hit = hit_test_projected_grid_with_query(
-            &projected.grid,
-            &UiArrangedTree::default(),
-            UiHitTestQuery::new(UiPoint::new(5.0, 5.0)),
-        );
-        assert_eq!(hit.top_hit, Some(next_popup_low_z.node_id));
-        assert_eq!(
-            hit.stacked,
-            vec![
-                next_popup_low_z.node_id,
-                high_z_low_paint.node_id,
-                low_z_high_paint.node_id,
-            ]
-        );
-    }
-
-    fn hit_entry(
-        node_id: UiNodeId,
-        popup_root: UiNodeId,
-        z_index: i32,
-        paint_order: u64,
-    ) -> UiHitTestEntry {
-        UiHitTestEntry {
-            node_id,
-            frame: UiFrame::new(0.0, 0.0, 10.0, 10.0),
-            clip_frame: UiFrame::new(0.0, 0.0, 10.0, 10.0),
-            z_index,
-            paint_order,
-            control_id: None,
-            effective_input_policy: Some(UiInputPolicy::Receive),
-            bubble_route: vec![node_id, popup_root],
-        }
-    }
-}
+#[path = "frame_hit_test/tests.rs"]
+mod projected_grid_tests;
 
 pub fn debug_hit_test_surface_frame(
     surface_frame: &UiSurfaceFrame,

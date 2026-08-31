@@ -8,29 +8,16 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
-        self.prepare_hierarchy_pointer_target(width, height, true);
+        let scene_entries = self.prepare_hierarchy_pointer_target(width, height, true);
         match callback_dispatch::dispatch_shared_hierarchy_pointer_click(
             &self.runtime,
             &mut self.hierarchy_pointer_bridge,
+            scene_entries.as_ref(),
             UiPoint::new(x, y),
         ) {
             Ok(dispatch) => {
                 let rename_entry = dispatch
-                    .pointer
-                    .route
-                    .as_ref()
-                    .and_then(|route| match route {
-                        crate::ui::retained_host::hierarchy_pointer::HierarchyPointerRoute::Node {
-                            item_index,
-                            ..
-                        } => self
-                            .hierarchy_scene_entries
-                            .get(*item_index)
-                            .map(|row| row.entity),
-                        crate::ui::retained_host::hierarchy_pointer::HierarchyPointerRoute::ListSurface => {
-                            None
-                        }
-                    })
+                    .selected_entity
                     .and_then(|entity| self.runtime.scene_inspection_hierarchy_row(entity));
                 self.hierarchy_pointer_state = dispatch.pointer.state;
                 self.apply_hierarchy_pointer_state_to_ui();

@@ -87,6 +87,23 @@ impl ResourceLocator {
         self.label.as_deref()
     }
 
+    /// Compares this locator's canonical display form without allocating it.
+    pub fn matches_display(&self, value: &str) -> bool {
+        let Some(remainder) = value
+            .strip_prefix(self.scheme.as_str())
+            .and_then(|value| value.strip_prefix("://"))
+        else {
+            return false;
+        };
+        let Some(suffix) = remainder.strip_prefix(self.path.as_str()) else {
+            return false;
+        };
+        match self.label.as_deref() {
+            Some(label) => suffix.strip_prefix('#') == Some(label),
+            None => suffix.is_empty(),
+        }
+    }
+
     pub fn package_id(&self) -> Option<&str> {
         if self.scheme != ResourceScheme::Package {
             return None;
@@ -229,4 +246,19 @@ fn normalize_relative_path_components(path: &str) -> Result<Vec<String>, Resourc
     }
 
     Ok(normalized)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ResourceLocator;
+
+    #[test]
+    fn matches_display_without_formatting() {
+        let locator =
+            ResourceLocator::parse("package://com.zircon.navigation/nav/agent.znav#mesh").unwrap();
+
+        assert!(locator.matches_display("package://com.zircon.navigation/nav/agent.znav#mesh"));
+        assert!(!locator.matches_display("package://com.zircon.navigation/nav/agent.znav#other"));
+        assert!(!locator.matches_display("res://com.zircon.navigation/nav/agent.znav#mesh"));
+    }
 }

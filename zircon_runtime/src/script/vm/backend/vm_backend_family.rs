@@ -7,5 +7,5 @@ pub trait VmBackendFamily: Send + Sync {
 
     fn resolve(&self, selector: &str) -> Result<Arc<dyn VmBackend>, VmError>;
 
-    fn selectors(&self) -> Vec<String>;
+    fn visit_selectors(&self, visitor: &mut dyn FnMut(&str));
 }

@@ -1,6 +1,9 @@
 use super::*;
 use std::collections::BTreeMap;
-use zircon_runtime_interface::ui::template::UiActionRef;
+use zircon_runtime_interface::ui::{
+    template::UiActionRef,
+    widget::{UiWidgetBehavior, UiWidgetContract},
+};
 
 mod resize;
 mod selection;
@@ -132,7 +135,7 @@ fn table_pointer_route_surface_with_virtualization_options(
     } else {
         ""
     };
-    let table_attributes: BTreeMap<String, toml::Value> = toml::from_str(&format!(
+    let mut table_attributes: BTreeMap<String, toml::Value> = toml::from_str(&format!(
         r#"
 columns = [
     {{ field = "name", width = 160.0 }},
@@ -167,6 +170,14 @@ min_column_width = 40.0
 "#
     ))
     .expect("table attributes should parse");
+    table_attributes.insert(
+        "component_role".to_string(),
+        toml::Value::String(if data_grid {
+            "data-grid".to_string()
+        } else {
+            "table".to_string()
+        }),
+    );
 
     surface
         .tree
@@ -186,8 +197,10 @@ min_column_width = 40.0
                         binding("GeometryTable/DragDelta", UiEventKind::DragUpdate),
                         binding("GeometryTable/EndDrag", UiEventKind::DragEnd),
                         UiBindingRef {
+                            component_event: Some(UiComponentEventKind::SelectOption),
                             id: "GeometryTable/SelectOption".to_string(),
                             event: UiEventKind::Change,
+                            mode: Default::default(),
                             route: Some("GeometryTable/SelectOption".to_string()),
                             action: Some(UiActionRef {
                                 route: Some("test.navigation.surface".to_string()),
@@ -199,6 +212,7 @@ min_column_width = 40.0
                                             .to_string(),
                                     ),
                                 )]),
+                                payload_missing_policy: Default::default(),
                             }),
                             targets: Vec::new(),
                         },
@@ -244,8 +258,18 @@ min_column_width = 40.0
                     "TableColumnResizeHandle".to_string()
                 },
                 control_id: Some("TrianglesResize".to_string()),
-                attributes: toml::from_str(r#"field = "triangles""#)
-                    .expect("resize handle attributes should parse"),
+                attributes: toml::from_str(&format!(
+                    r#"
+field = "triangles"
+component_role = {:?}
+"#,
+                    if data_grid {
+                        "data-grid-column-resize-handle"
+                    } else {
+                        "table-column-resize-handle"
+                    }
+                ))
+                .expect("resize handle attributes should parse"),
                 ..Default::default()
             }),
         )
@@ -295,8 +319,10 @@ min_column_width = 40.0
                     attributes: toml::from_str(r#"text = "Bake selected""#)
                         .expect("button attributes should parse"),
                     bindings: vec![UiBindingRef {
+                        component_event: None,
                         id: "BakeSelected/Click".to_string(),
                         event: UiEventKind::Click,
+                        mode: Default::default(),
                         route: Some("test.navigation.bake.surface".to_string()),
                         action: Some(UiActionRef {
                             route: Some("test.navigation.bake.surface".to_string()),
@@ -311,9 +337,14 @@ min_column_width = 40.0
                                 ),
                                 ("force_full_rebuild".to_string(), toml::Value::Boolean(true)),
                             ]),
+                            payload_missing_policy: Default::default(),
                         }),
                         targets: Vec::new(),
                     }],
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Button,
+                        ..UiWidgetContract::default()
+                    },
                     ..Default::default()
                 }),
         )
@@ -346,8 +377,18 @@ fn insert_table_sort_header(
                         "TableColumnHeader".to_string()
                     },
                     control_id: Some(format!("{field}Header")),
-                    attributes: toml::from_str(&format!(r#"field = "{field}""#))
-                        .expect("sort header attributes should parse"),
+                    attributes: toml::from_str(&format!(
+                        r#"
+field = "{field}"
+component_role = {:?}
+"#,
+                        if data_grid {
+                            "data-grid-column-header"
+                        } else {
+                            "table-column-header"
+                        }
+                    ))
+                    .expect("sort header attributes should parse"),
                     ..Default::default()
                 }),
         )
@@ -384,7 +425,13 @@ fn insert_table_row(
 row_id = "{row_id}"
 row_index = {row_index}
 surface_entity = {surface_entity}
-"#
+component_role = {:?}
+"#,
+                        if data_grid {
+                            "data-grid-row"
+                        } else {
+                            "table-row"
+                        }
                     ))
                     .expect("row attributes should parse"),
                     ..Default::default()

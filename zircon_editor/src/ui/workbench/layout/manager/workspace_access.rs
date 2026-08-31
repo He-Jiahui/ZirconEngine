@@ -7,11 +7,7 @@ impl LayoutManager {
         page_id: &MainPageId,
         path: &[usize],
     ) -> Option<&'a mut DocumentNode> {
-        let page = layout
-            .main_pages
-            .iter_mut()
-            .find(|page| page.id() == page_id)?;
-        let workspace = page.document_workspace_mut()?;
+        let workspace = layout.content_workspace_for_page_mut(page_id)?;
         workspace.node_at_path_mut(path)
     }
 

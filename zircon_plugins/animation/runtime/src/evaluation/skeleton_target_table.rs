@@ -14,7 +14,6 @@ use super::{AnimationClipCompileError, TargetSlot, TargetTable, TargetTableError
 pub struct SkeletonTargetTable {
     targets: TargetTable<usize>,
     bone_slots: Box<[TargetSlot]>,
-    bone_names: Box<[String]>,
     bone_name_indices: BTreeMap<String, Option<usize>>,
     bone_paths: Box<[String]>,
     target_ids: Box<[AnimationTargetId]>,
@@ -53,12 +52,6 @@ impl SkeletonTargetTable {
         Ok(Self {
             targets,
             bone_slots: bone_slots.into_boxed_slice(),
-            bone_names: skeleton
-                .bones
-                .iter()
-                .map(|bone| bone.name.clone())
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
             bone_name_indices,
             bone_paths: bone_paths.into_boxed_slice(),
             target_ids: target_ids.into_boxed_slice(),
@@ -111,24 +104,17 @@ impl SkeletonTargetTable {
         track_index: usize,
         target: &str,
     ) -> Result<TargetSlot, AnimationClipCompileError> {
-        let mut matches = self
-            .bone_names
-            .iter()
-            .enumerate()
-            .filter_map(|(bone_index, name)| (name == target).then_some(bone_index));
-        let Some(bone_index) = matches.next() else {
-            return Err(AnimationClipCompileError::UnresolvedTrack {
+        match self.bone_name_indices.get(target).copied() {
+            Some(Some(bone_index)) => Ok(self.bone_slots[bone_index]),
+            Some(None) => Err(AnimationClipCompileError::AmbiguousTrack {
                 track_index,
                 target: target.to_string(),
-            });
-        };
-        if matches.next().is_some() {
-            return Err(AnimationClipCompileError::AmbiguousTrack {
+            }),
+            None => Err(AnimationClipCompileError::UnresolvedTrack {
                 track_index,
                 target: target.to_string(),
-            });
+            }),
         }
-        Ok(self.bone_slots[bone_index])
     }
 }
 

@@ -1,8 +1,13 @@
 use std::collections::BTreeMap;
+use std::collections::btree_map::Entry;
 
 use zircon_runtime_interface::ui::template::{
     UiAssetError, UiNodeDefinition, UiSelector, UiStyleSheet,
 };
+
+#[cfg(test)]
+#[path = "validation/single_lookup_tests.rs"]
+mod single_lookup_tests;
 
 pub(super) fn validate_node_tree<'a>(
     asset_id: &str,
@@ -16,19 +21,23 @@ pub(super) fn validate_node_tree<'a>(
             detail: format!("{scope} contains a node with an empty node_id"),
         });
     }
-    if let Some(existing) = seen.get(node.node_id.as_str()) {
-        if *existing == node {
-            return Ok(());
+    match seen.entry(node.node_id.as_str()) {
+        Entry::Occupied(existing) => {
+            if *existing.get() == node {
+                return Ok(());
+            }
+            return Err(UiAssetError::InvalidDocument {
+                asset_id: asset_id.to_string(),
+                detail: format!(
+                    "duplicate node_id {} resolves to conflicting subtrees",
+                    node.node_id
+                ),
+            });
         }
-        return Err(UiAssetError::InvalidDocument {
-            asset_id: asset_id.to_string(),
-            detail: format!(
-                "duplicate node_id {} resolves to conflicting subtrees",
-                node.node_id
-            ),
-        });
+        Entry::Vacant(slot) => {
+            slot.insert(node);
+        }
     }
-    let _ = seen.insert(node.node_id.as_str(), node);
     validate_action_refs(asset_id, node)?;
     for child in &node.children {
         validate_node_tree(asset_id, scope, &child.node, seen)?;

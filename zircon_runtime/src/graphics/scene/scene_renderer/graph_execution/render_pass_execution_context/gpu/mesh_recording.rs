@@ -1,4 +1,4 @@
-use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::pipeline::{PipelineAdmission, RenderPassStage};
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
@@ -13,6 +13,9 @@ use crate::render_graph::{
 
 use super::surface::record_depth_clear_pass;
 use super::{RenderPassGpuExecutionContext, RenderPassMeshCommandLists};
+
+const DEPTH_PREPASS_PIPELINE_CONSUMER: &str = "depth_prepass";
+const TAA_REACTIVE_PIPELINE_CONSUMER: &str = "taa_reactive_mask";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum MeshStageCommandSource {
@@ -121,16 +124,34 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 debug_assert_eq!(command.pipeline_kind, MeshPassPipelineKind::DepthPrepass);
                 if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id)
                 {
-                    let pipeline = mesh_pipelines
-                        .ensure_depth_prepass_pipeline_for_variant(
-                            self.device,
-                            streamer,
-                            command.pipeline_variant_id,
-                        )
-                        .expect(
-                            "depth prepass command must resolve a cache-backed pipeline variant",
-                        );
-                    pass.set_pipeline(pipeline);
+                    match mesh_pipelines.ensure_depth_prepass_pipeline_admission_for_variant(
+                        self.device,
+                        streamer,
+                        command.pipeline_variant_id,
+                    ) {
+                        PipelineAdmission::Ready(()) => {
+                            mesh_pipelines.record_bound_mesh_pass_pipeline(
+                                command.pipeline_kind,
+                                command.pipeline_variant_id,
+                            );
+                            pass.set_pipeline(
+                                mesh_pipelines.depth_prepass_pipeline_for_ready_variant(
+                                    command.pipeline_variant_id,
+                                ),
+                            );
+                        }
+                        PipelineAdmission::Deferred(unavailable)
+                        | PipelineAdmission::Failed(unavailable) => {
+                            mesh_pipelines.record_pipeline_fallback_for_command_variant(
+                                command,
+                                command.pipeline_variant_id,
+                                DEPTH_PREPASS_PIPELINE_CONSUMER,
+                                unavailable,
+                            );
+                            replayer.invalidate_state_after_external_pipeline();
+                            return false;
+                        }
+                    }
                 }
                 replayer.bind_forward_shadow_receiver_if_needed(
                     pass,
@@ -184,7 +205,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 })?;
                 let replay_stats = shadow_map_renderer.record_atlas_commands_with_attachment_ops(
                     self.device,
-                    self.queue,
                     self.encoder,
                     pass_name,
                     shadow_atlas_view,
@@ -195,7 +215,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     mesh_draw_lists.gpu_scene_bind_group,
                     mesh_draw_lists.shadow_stream(),
                     shadow_atlas_attachment_ops,
-                );
+                )?;
                 mesh_draw_lists.replay_stats.record(replay_stats);
             } else {
                 record_depth_clear_pass(
@@ -334,19 +354,19 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if stream.is_empty() && !mixes_transparent_sprites {
             return Ok(());
         }
-        let light_grid_params_buffer = Self::optional_buffer_by_name(
+        let light_grid_params_buffer = Self::optional_buffer_binding_by_name(
             resources,
             resource_resolver,
             crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let light_zbins_buffer = Self::optional_buffer_by_name(
+        let light_zbins_buffer = Self::optional_buffer_binding_by_name(
             resources,
             resource_resolver,
             crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_ZBINS,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let light_tile_masks_buffer = Self::optional_buffer_by_name(
+        let light_tile_masks_buffer = Self::optional_buffer_binding_by_name(
             resources,
             resource_resolver,
             crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
@@ -504,17 +524,38 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 
         let mut replayer = MeshDrawCommandReplayer::default();
         replayer.replay_command_stream(&mut pass, stream, |replayer, pass, command| {
-            if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id) {
-                let pipeline = mesh_pipelines
-                    .ensure_taa_reactive_mask_pipeline_for_variant(
-                        device,
-                        streamer,
-                        command.pipeline_variant_id,
-                    )
-                    .expect(
-                        "TAA reactive mask command must resolve a cache-backed pipeline variant",
-                    );
-                pass.set_pipeline(pipeline);
+            let kind = match command.pipeline_kind {
+                MeshPassPipelineKind::TaaReactiveMask
+                | MeshPassPipelineKind::TaaReactiveMaterialMask => command.pipeline_kind,
+                _ => return false,
+            };
+            if replayer.should_set_pipeline(kind, command.pipeline_variant_id) {
+                match mesh_pipelines.ensure_taa_reactive_pipeline_admission_for_variant(
+                    device,
+                    streamer,
+                    kind,
+                    command.pipeline_variant_id,
+                ) {
+                    PipelineAdmission::Ready(()) => {
+                        mesh_pipelines
+                            .record_bound_mesh_pass_pipeline(kind, command.pipeline_variant_id);
+                        pass.set_pipeline(mesh_pipelines.taa_reactive_pipeline_for_ready_variant(
+                            kind,
+                            command.pipeline_variant_id,
+                        ));
+                    }
+                    PipelineAdmission::Deferred(unavailable)
+                    | PipelineAdmission::Failed(unavailable) => {
+                        mesh_pipelines.record_pipeline_fallback_for_command_variant(
+                            command,
+                            command.pipeline_variant_id,
+                            TAA_REACTIVE_PIPELINE_CONSUMER,
+                            unavailable,
+                        );
+                        replayer.invalidate_state_after_external_pipeline();
+                        return false;
+                    }
+                }
             }
             replayer.bind_gpu_scene_if_needed(pass, command, mesh_draw_lists.gpu_scene_bind_group);
             replayer.bind_standard_material_if_needed(pass, command);

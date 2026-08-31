@@ -6,6 +6,9 @@ use crate::plugin::{PluginInterfaceMethodManifest, PluginPackageManifest};
 
 use super::abi_declarations::{NativePluginBridgeMethodCallV3, NativePluginBridgeMethodFnV3};
 
+#[cfg(test)]
+mod capacity_tests;
+
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct NativeBridgeCall {
@@ -208,6 +211,7 @@ pub fn native_bridge_method_descriptors_from_manifest(
     manifest: &PluginPackageManifest,
     bindings: impl IntoIterator<Item = NativeBridgeMethodBinding>,
 ) -> Result<Vec<NativeBridgeMethodDescriptor>, NativeBridgeMethodManifestError> {
+    let descriptor_capacity = manifest.bridge_methods().count();
     let mut bindings_by_method = BTreeMap::new();
     for binding in bindings {
         let key = (binding.interface_id, binding.method_name);
@@ -222,7 +226,7 @@ pub fn native_bridge_method_descriptors_from_manifest(
         }
     }
 
-    let mut descriptors = Vec::new();
+    let mut descriptors = Vec::with_capacity(descriptor_capacity);
     for (interface, method) in manifest.bridge_methods() {
         let key = (interface.id.clone(), method.name.clone());
         let Some(method_fn) = bindings_by_method.remove(&key) else {

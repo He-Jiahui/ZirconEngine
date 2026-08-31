@@ -1,11 +1,17 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ui::surface::{
-    arranged_bubble_route, arranged_bubble_route_indexed, arranged_effective_input_policy,
-    arranged_effective_input_policy_indexed, arranged_node_indexed, arranged_node_indices,
-    build_arranged_tree, is_arranged_child_hit_path_visible,
-    is_arranged_child_hit_path_visible_indexed,
+mod geometry_patch;
+mod query_scratch;
+mod route_index;
+
+use query_scratch::UiHitQueryScratchCell;
+pub(crate) use route_index::find_bubble_route_value;
+use route_index::{
+    bubble_route_for_entry, build_route_nodes, patch_route_nodes, route_node_for_entry,
+    route_node_index_for_node,
 };
+
+use crate::ui::surface::{arranged_node_indexed, arranged_node_indices, build_arranged_tree};
 use std::collections::{BTreeMap, BTreeSet};
 use zircon_runtime_interface::ui::surface::{
     UiArrangedTree, UiHitPath, UiHitTestCell, UiHitTestEntry, UiHitTestGrid, UiHitTestQuery,
@@ -17,6 +23,10 @@ use zircon_runtime_interface::ui::{
 };
 
 const HIT_GRID_CELL_SIZE: f32 = 64.0;
+const HIT_GRID_MAX_AXIS_CELLS: u32 = 128;
+const HIT_GRID_MAX_CELL_COUNT: usize =
+    HIT_GRID_MAX_AXIS_CELLS as usize * HIT_GRID_MAX_AXIS_CELLS as usize;
+const HIT_GRID_MAX_ENTRY_CELL_COUNT: usize = 4_096;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiHitTestResult {
@@ -41,6 +51,8 @@ pub struct UiHitTestIndex {
     entry_cells: BTreeMap<UiNodeId, Vec<usize>>,
     #[serde(default, skip_serializing, skip_deserializing)]
     entry_indices: BTreeMap<UiNodeId, usize>,
+    #[serde(default, skip_serializing, skip_deserializing)]
+    query_scratch: UiHitQueryScratchCell,
 }
 
 impl PartialEq for UiHitTestIndex {
@@ -55,6 +67,7 @@ impl UiHitTestIndex {
             grid,
             entry_cells: BTreeMap::new(),
             entry_indices: BTreeMap::new(),
+            query_scratch: UiHitQueryScratchCell::default(),
         };
         index.reindex_entry_cells();
         index
@@ -79,145 +92,21 @@ impl UiHitTestIndex {
         self.reindex_entry_cells();
     }
 
-    pub(crate) fn patch_arranged_geometry(
+    pub(crate) fn patch_arranged_input(
         &mut self,
         arranged_tree: &UiArrangedTree,
         changed_node_ids: &BTreeSet<UiNodeId>,
         arranged_node_indices: &BTreeMap<UiNodeId, usize>,
     ) -> Result<bool, ()> {
-        if changed_node_ids.is_empty() {
-            return Ok(false);
-        }
-        if (self.entry_cells.is_empty() || self.entry_indices.is_empty())
-            && !self.grid.entries.is_empty()
-        {
-            self.reindex_entry_cells();
-        }
-        let mut updates = Vec::with_capacity(changed_node_ids.len());
-        for node_id in changed_node_ids {
-            let Some(entry_index) = self.entry_index_by_node_id(*node_id) else {
-                // Entries with no positive visible area are omitted by the full
-                // build. If layout makes such a node eligible, the local patch
-                // cannot insert a new entry without rebuilding the index.
-                let Some(node) =
-                    arranged_node_for_patch(arranged_tree, arranged_node_indices, *node_id)
-                else {
-                    return Err(());
-                };
-                if hit_test_node_is_eligible(arranged_tree, arranged_node_indices, *node_id, node)?
-                {
-                    return Err(());
-                }
-                continue;
-            };
-            let Some(node) =
-                arranged_node_for_patch(arranged_tree, arranged_node_indices, *node_id)
-            else {
-                return Err(());
-            };
-            if !hit_test_node_is_eligible(arranged_tree, arranged_node_indices, *node_id, node)? {
-                return Err(());
-            }
-            let effective_input_policy = arranged_effective_input_policy_for_patch(
-                arranged_tree,
-                arranged_node_indices,
-                *node_id,
-            )?;
-            if effective_input_policy == UiInputPolicy::Ignore {
-                return Err(());
-            }
-            let Some(clip_frame) = node.frame.intersection(node.clip_frame) else {
-                return Err(());
-            };
-            if !frame_is_contained(self.grid.bounds, clip_frame) {
-                return Err(());
-            }
-            let Some(previous_cells) = self.entry_cells.get(node_id).cloned() else {
-                return Err(());
-            };
-            let next_cells = cells_for_frame(
-                self.grid.bounds,
-                self.grid.columns,
-                self.grid.rows,
-                self.grid.cell_size,
-                clip_frame,
-            );
-            if next_cells
-                .iter()
-                .any(|cell_index| self.grid.cells.get(*cell_index).is_none())
-            {
-                return Err(());
-            }
-            let bubble_route =
-                arranged_bubble_route_for_patch(arranged_tree, arranged_node_indices, *node_id)?;
-            updates.push((
-                entry_index,
-                UiHitTestEntry {
-                    node_id: *node_id,
-                    frame: node.frame,
-                    clip_frame,
-                    z_index: node.z_index,
-                    paint_order: node.paint_order,
-                    control_id: node.control_id.clone(),
-                    effective_input_policy: Some(effective_input_policy),
-                    bubble_route,
-                },
-                previous_cells,
-                next_cells,
-            ));
-        }
-
-        let changed = !updates.is_empty();
-        for (entry_index, entry, previous_cells, next_cells) in updates {
-            let entry_node_id = entry.node_id;
-            let order_unchanged = self
-                .grid
-                .entries
-                .get(entry_index)
-                .is_some_and(|current| entry_sort_key(current) == entry_sort_key(&entry));
-            if previous_cells == next_cells && order_unchanged {
-                if let Some(current) = self.grid.entries.get_mut(entry_index) {
-                    *current = entry;
-                }
-                continue;
-            }
-            for cell_index in previous_cells {
-                if let Some(cell) = self.grid.cells.get_mut(cell_index) {
-                    cell.entries.retain(|candidate| *candidate != entry_index);
-                }
-            }
-            if let Some(current) = self.grid.entries.get_mut(entry_index) {
-                *current = entry;
-            }
-            self.entry_cells.insert(entry_node_id, next_cells.clone());
-            for cell_index in &next_cells {
-                let insertion_index = self
-                    .grid
-                    .cells
-                    .get(*cell_index)
-                    .map(|cell| {
-                        let key = self
-                            .grid
-                            .entries
-                            .get(entry_index)
-                            .map(entry_sort_key)
-                            .unwrap_or_default();
-                        cell.entries.partition_point(|candidate| {
-                            self.grid
-                                .entries
-                                .get(*candidate)
-                                .map(entry_sort_key)
-                                .unwrap_or_default()
-                                <= key
-                        })
-                    })
-                    .unwrap_or_default();
-                if let Some(cell) = self.grid.cells.get_mut(*cell_index) {
-                    cell.entries.insert(insertion_index, entry_index);
-                }
-            }
-        }
-        Ok(changed)
+        let route_changed = patch_route_nodes(
+            &mut self.grid.route_nodes,
+            arranged_tree,
+            changed_node_ids,
+            arranged_node_indices,
+        )?;
+        let entry_changed =
+            self.patch_arranged_geometry(arranged_tree, changed_node_ids, arranged_node_indices)?;
+        Ok(route_changed || entry_changed)
     }
 
     fn entry_index_by_node_id(&self, node_id: UiNodeId) -> Option<usize> {
@@ -244,6 +133,12 @@ impl UiHitTestIndex {
                 .iter()
                 .enumerate()
                 .map(|(index, entry)| (entry.node_id, index)),
+        );
+        self.entry_cells.extend(
+            self.grid
+                .entries
+                .iter()
+                .map(|entry| (entry.node_id, Vec::new())),
         );
         for (cell_index, cell) in self.grid.cells.iter().enumerate() {
             for entry_index in &cell.entries {
@@ -275,7 +170,26 @@ impl UiHitTestIndex {
         arranged_tree: &UiArrangedTree,
         query: UiHitTestQuery,
     ) -> UiHitTestResult {
-        Self::hit_test_grid_arranged_with_query(&self.grid, arranged_tree, query)
+        self.hit_test_owned_grid_arranged_with_query(&self.grid, arranged_tree, query)
+    }
+
+    pub(crate) fn hit_test_owned_grid_arranged_with_query(
+        &self,
+        grid: &UiHitTestGrid,
+        arranged_tree: &UiArrangedTree,
+        query: UiHitTestQuery,
+    ) -> UiHitTestResult {
+        Self::hit_test_grid_arranged_with_query_using_scratch(
+            grid,
+            arranged_tree,
+            query,
+            &self.query_scratch,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn query_scratch_stats(&self) -> query_scratch::UiHitQueryScratchStats {
+        self.query_scratch.stats()
     }
 
     pub fn hit_test_grid_arranged(
@@ -290,6 +204,21 @@ impl UiHitTestIndex {
         grid: &UiHitTestGrid,
         arranged_tree: &UiArrangedTree,
         query: UiHitTestQuery,
+    ) -> UiHitTestResult {
+        let query_scratch = UiHitQueryScratchCell::default();
+        Self::hit_test_grid_arranged_with_query_using_scratch(
+            grid,
+            arranged_tree,
+            query,
+            &query_scratch,
+        )
+    }
+
+    fn hit_test_grid_arranged_with_query_using_scratch(
+        grid: &UiHitTestGrid,
+        _arranged_tree: &UiArrangedTree,
+        query: UiHitTestQuery,
+        query_scratch: &UiHitQueryScratchCell,
     ) -> UiHitTestResult {
         if !query.uses_surface_coordinates() || !grid.scope.accepts_query(&query.scope) {
             return UiHitTestResult {
@@ -311,8 +240,7 @@ impl UiHitTestIndex {
                     let Some(entry) = grid.entries.get(*entry_index) else {
                         continue;
                     };
-                    let Some((frame, input_policy)) =
-                        entry_frame_and_input_policy(entry, arranged_tree)
+                    let Some((frame, input_policy)) = entry_frame_and_input_policy(grid, entry)
                     else {
                         continue;
                     };
@@ -329,20 +257,19 @@ impl UiHitTestIndex {
                     stacked.push(entry.node_id);
                 }
             }
-            return hit_result_from_stacked(grid, arranged_tree, &query, stacked, top_entry_index);
+            return hit_result_from_stacked(grid, &query, stacked, top_entry_index);
         }
 
-        let entry_indices = hit_entry_indices_for_query(grid, point, cursor_radius);
+        let query_scratch = query_scratch.collect(grid, point, cursor_radius);
         let mut stacked = Vec::new();
         let mut top_entry_index = None;
         let mut radius_hits = Vec::new();
 
-        for entry_index in entry_indices {
+        for entry_index in query_scratch.candidates.iter().copied() {
             let Some(entry) = grid.entries.get(entry_index) else {
                 continue;
             };
-            let Some((frame, input_policy)) = entry_frame_and_input_policy(entry, arranged_tree)
-            else {
+            let Some((frame, input_policy)) = entry_frame_and_input_policy(grid, entry) else {
                 continue;
             };
             let clipped_frame = frame
@@ -374,188 +301,111 @@ impl UiHitTestIndex {
                 .into_iter()
                 .map(|(_, node_id, _entry_index)| node_id),
         );
-        hit_result_from_stacked(grid, arranged_tree, &query, stacked, top_entry_index)
+        hit_result_from_stacked(grid, &query, stacked, top_entry_index)
     }
 }
 
-fn hit_test_node_is_eligible(
-    arranged_tree: &UiArrangedTree,
-    arranged_node_indices: &BTreeMap<UiNodeId, usize>,
-    node_id: UiNodeId,
+fn stable_geometry_entry(
+    route_nodes: &[zircon_runtime_interface::ui::surface::UiHitRouteNode],
     node: &zircon_runtime_interface::ui::surface::UiArrangedNode,
-) -> Result<bool, ()> {
+    route_node_index: u32,
+) -> Option<UiHitTestEntry> {
     if !node.supports_pointer() {
-        return Ok(false);
+        return None;
     }
-    if !is_arranged_child_hit_path_visible_for_patch(arranged_tree, arranged_node_indices, node_id)?
+    if !frame_is_finite_positive(node.frame) {
+        crate::profile_counter!("runtime", "ui.hit_grid.invalid_geometry_entry_count", 1);
+        return None;
+    }
+    let route = route_nodes
+        .get(route_node_index as usize)
+        .filter(|route| route.node_id == node.node_id)?;
+    if !route.route_valid
+        || !route.pointer_path_visible
+        || route.effective_input_policy == UiInputPolicy::Ignore
     {
-        return Ok(false);
+        return None;
     }
-    let effective_input_policy =
-        arranged_effective_input_policy_for_patch(arranged_tree, arranged_node_indices, node_id)?;
-    if effective_input_policy == UiInputPolicy::Ignore {
-        return Ok(false);
-    }
-    Ok(node
+    let clip_frame = node
         .frame
         .intersection(node.clip_frame)
-        .is_some_and(|frame| frame.width > 0.0 && frame.height > 0.0))
-}
-
-fn arranged_node_for_patch<'a>(
-    arranged_tree: &'a UiArrangedTree,
-    arranged_node_indices: &BTreeMap<UiNodeId, usize>,
-    node_id: UiNodeId,
-) -> Option<&'a zircon_runtime_interface::ui::surface::UiArrangedNode> {
-    let index = arranged_node_indices.get(&node_id).copied()?;
-    arranged_tree
-        .nodes
-        .get(index)
-        .filter(|node| node.node_id == node_id)
-}
-
-fn is_arranged_child_hit_path_visible_for_patch(
-    arranged_tree: &UiArrangedTree,
-    arranged_node_indices: &BTreeMap<UiNodeId, usize>,
-    node_id: UiNodeId,
-) -> Result<bool, ()> {
-    let node = arranged_node_for_patch(arranged_tree, arranged_node_indices, node_id).ok_or(())?;
-    if !node.allows_self_pointer_hit_test() {
-        return Ok(false);
-    }
-    let mut current = node.parent;
-    while let Some(ancestor_id) = current {
-        let ancestor =
-            arranged_node_for_patch(arranged_tree, arranged_node_indices, ancestor_id).ok_or(())?;
-        if !ancestor.allows_child_pointer_hit_test() {
-            return Ok(false);
-        }
-        current = ancestor.parent;
-    }
-    Ok(true)
-}
-
-fn arranged_effective_input_policy_for_patch(
-    arranged_tree: &UiArrangedTree,
-    arranged_node_indices: &BTreeMap<UiNodeId, usize>,
-    node_id: UiNodeId,
-) -> Result<UiInputPolicy, ()> {
-    let mut current = Some(node_id);
-    while let Some(id) = current {
-        let node = arranged_node_for_patch(arranged_tree, arranged_node_indices, id).ok_or(())?;
-        match node.input_policy {
-            UiInputPolicy::Inherit => current = node.parent,
-            explicit => return Ok(explicit),
-        }
-    }
-    Ok(UiInputPolicy::Receive)
-}
-
-fn arranged_bubble_route_for_patch(
-    arranged_tree: &UiArrangedTree,
-    arranged_node_indices: &BTreeMap<UiNodeId, usize>,
-    node_id: UiNodeId,
-) -> Result<Vec<UiNodeId>, ()> {
-    let mut route = Vec::new();
-    let mut current = Some(node_id);
-    while let Some(id) = current {
-        let node = arranged_node_for_patch(arranged_tree, arranged_node_indices, id).ok_or(())?;
-        route.push(id);
-        current = node.parent;
-    }
-    Ok(route)
+        .filter(|frame| frame_is_finite_positive(*frame))
+        .unwrap_or_default();
+    Some(UiHitTestEntry {
+        node_id: node.node_id,
+        frame: node.frame,
+        clip_frame,
+        z_index: node.z_index,
+        paint_order: node.paint_order,
+        control_id: node.control_id.clone(),
+        route_node_index,
+    })
 }
 
 fn hit_result_from_stacked(
     grid: &UiHitTestGrid,
-    arranged_tree: &UiArrangedTree,
     query: &UiHitTestQuery,
     stacked: Vec<UiNodeId>,
     top_entry_index: Option<usize>,
 ) -> UiHitTestResult {
-    let top_hit = stacked.first().copied();
-    let bubble_route = top_entry_index
-        .and_then(|entry_index| grid.entries.get(entry_index))
-        .filter(|entry| Some(entry.node_id) == top_hit)
-        .and_then(cached_bubble_route)
-        .map(<[_]>::to_vec)
-        .or_else(|| top_hit.and_then(|node_id| arranged_bubble_route(arranged_tree, node_id).ok()))
-        .unwrap_or_default();
-    let mut root_to_leaf = bubble_route.clone();
-    root_to_leaf.reverse();
+    let Some(top_hit) = stacked.first().copied() else {
+        return UiHitTestResult {
+            top_hit: None,
+            top_entry_index: None,
+            stacked,
+            path: UiHitPath::from_query(query),
+        };
+    };
+    let Some((top_entry_index, bubble_route)) = top_entry_index.and_then(|entry_index| {
+        let entry = grid.entries.get(entry_index)?;
+        (entry.node_id == top_hit)
+            .then(|| bubble_route_for_entry(grid, entry))
+            .flatten()
+            .map(|bubble_route| (entry_index, bubble_route))
+    }) else {
+        return UiHitTestResult {
+            top_hit: None,
+            top_entry_index: None,
+            stacked: Vec::new(),
+            path: UiHitPath::from_query(query),
+        };
+    };
 
     UiHitTestResult {
-        top_hit,
-        top_entry_index,
+        top_hit: Some(top_hit),
+        top_entry_index: Some(top_entry_index),
         stacked,
-        path: UiHitPath::from_query(query).with_route(top_hit, root_to_leaf, bubble_route),
+        path: UiHitPath::from_bubble_route(query, Some(top_hit), bubble_route),
     }
 }
 
 fn entry_frame_and_input_policy(
+    grid: &UiHitTestGrid,
     entry: &UiHitTestEntry,
-    arranged_tree: &UiArrangedTree,
 ) -> Option<(UiFrame, UiInputPolicy)> {
-    if cached_bubble_route(entry).is_some() {
-        if let Some(input_policy) = entry.effective_input_policy {
-            return Some((entry.frame, input_policy));
-        }
-    }
-
-    let node = arranged_tree.get(entry.node_id)?;
-    let input_policy = entry.effective_input_policy.unwrap_or_else(|| {
-        arranged_effective_input_policy(arranged_tree, entry.node_id)
-            .unwrap_or(UiInputPolicy::Receive)
-    });
-    Some((node.frame, input_policy))
-}
-
-fn cached_bubble_route(entry: &UiHitTestEntry) -> Option<&[UiNodeId]> {
-    entry
-        .bubble_route
-        .first()
-        .is_some_and(|node_id| *node_id == entry.node_id)
-        .then_some(entry.bubble_route.as_slice())
+    let route = route_node_for_entry(grid, entry)?;
+    Some((entry.frame, route.effective_input_policy))
 }
 
 fn build_hit_grid(
     arranged_tree: &UiArrangedTree,
     node_indices: &BTreeMap<UiNodeId, usize>,
 ) -> UiHitTestGrid {
+    let route_nodes = build_route_nodes(arranged_tree, node_indices);
     let mut entries: Vec<_> = arranged_tree
         .draw_order
         .iter()
         .filter_map(|node_id| arranged_node_indexed(arranged_tree, node_indices, *node_id).ok())
-        .filter(|node| node.supports_pointer())
-        .filter(|node| {
-            is_arranged_child_hit_path_visible_indexed(arranged_tree, node_indices, node.node_id)
-                .unwrap_or(false)
-        })
         .filter_map(|node| {
-            let effective_input_policy =
-                arranged_effective_input_policy_indexed(arranged_tree, node_indices, node.node_id)
-                    .ok()?;
-            if effective_input_policy == UiInputPolicy::Ignore {
-                return None;
-            }
-            let bubble_route =
-                arranged_bubble_route_indexed(arranged_tree, node_indices, node.node_id).ok()?;
-            let clip_frame = node.frame.intersection(node.clip_frame)?;
-            Some(UiHitTestEntry {
-                node_id: node.node_id,
-                frame: node.frame,
-                clip_frame,
-                z_index: node.z_index,
-                paint_order: node.paint_order,
-                control_id: node.control_id.clone(),
-                effective_input_policy: Some(effective_input_policy),
-                bubble_route,
-            })
+            let route_node_index = route_node_index_for_node(node_indices, node.node_id)?;
+            stable_geometry_entry(&route_nodes, node, route_node_index)
         })
         .collect();
 
     entries.sort_by_key(|entry| (entry.z_index, entry.paint_order, entry.node_id));
-    let bounds = union_entry_bounds(&entries).unwrap_or_default();
+    let bounds = union_entry_bounds(&entries)
+        .map(|bounds| hit_grid_capacity_bounds(bounds, HIT_GRID_CELL_SIZE))
+        .unwrap_or_default();
     if entries.is_empty() || bounds.width <= 0.0 || bounds.height <= 0.0 {
         return UiHitTestGrid {
             bounds,
@@ -563,18 +413,27 @@ fn build_hit_grid(
             columns: 0,
             rows: 0,
             scope: Default::default(),
-            entries,
-            cells: Vec::new(),
+            route_nodes,
+            entries: entries.into(),
+            cells: Vec::new().into(),
             ..UiHitTestGrid::default()
         };
     }
 
-    let columns = (bounds.width / HIT_GRID_CELL_SIZE).ceil().max(1.0) as u32;
-    let rows = (bounds.height / HIT_GRID_CELL_SIZE).ceil().max(1.0) as u32;
-    let mut cells = vec![UiHitTestCell::default(); (columns * rows) as usize];
+    let (columns, rows, cell_size) =
+        bounded_hit_grid_dimensions(bounds, &entries, HIT_GRID_CELL_SIZE);
+    let mut cells = vec![
+        UiHitTestCell::default();
+        (columns as usize)
+            .checked_mul(rows as usize)
+            .expect("hit grid dimensions are bounded")
+    ];
     for (entry_index, entry) in entries.iter().enumerate() {
+        if entry.clip_frame.width <= 0.0 || entry.clip_frame.height <= 0.0 {
+            continue;
+        }
         for cell_index in
-            cells_for_frame(bounds, columns, rows, HIT_GRID_CELL_SIZE, entry.clip_frame)
+            bounded_cells_for_frame(bounds, columns, rows, cell_size, entry.clip_frame)
         {
             cells[cell_index].entries.push(entry_index);
         }
@@ -582,52 +441,75 @@ fn build_hit_grid(
 
     UiHitTestGrid {
         bounds,
-        cell_size: HIT_GRID_CELL_SIZE,
+        cell_size,
         columns,
         rows,
         scope: Default::default(),
-        entries,
-        cells,
+        route_nodes,
+        entries: entries.into(),
+        cells: cells.into(),
         ..UiHitTestGrid::default()
     }
 }
 
-fn hit_entry_indices_for_query(
+pub(crate) fn bounded_hit_grid_dimensions(
+    bounds: UiFrame,
+    entries: &[UiHitTestEntry],
+    minimum_cell_size: f32,
+) -> (u32, u32, f32) {
+    let minimum_cell_size = if minimum_cell_size.is_finite() && minimum_cell_size > 0.0 {
+        minimum_cell_size.max(HIT_GRID_CELL_SIZE)
+    } else {
+        HIT_GRID_CELL_SIZE
+    };
+    let requested_cell_size = minimum_cell_size
+        .max(bounds.width / HIT_GRID_MAX_AXIS_CELLS as f32)
+        .max(bounds.height / HIT_GRID_MAX_AXIS_CELLS as f32);
+    let columns = (bounds.width / requested_cell_size)
+        .ceil()
+        .clamp(1.0, HIT_GRID_MAX_AXIS_CELLS as f32) as u32;
+    let rows = (bounds.height / requested_cell_size)
+        .ceil()
+        .clamp(1.0, HIT_GRID_MAX_AXIS_CELLS as f32) as u32;
+    debug_assert!((columns as usize) * (rows as usize) <= HIT_GRID_MAX_CELL_COUNT);
+
+    let has_wide_entry = entries.iter().any(|entry| {
+        cell_count_for_frame(bounds, columns, rows, requested_cell_size, entry.clip_frame)
+            > HIT_GRID_MAX_ENTRY_CELL_COUNT
+    });
+    if has_wide_entry {
+        // Doubling a grid already capped at 128 cells per axis yields at most 64x64
+        // memberships for any one entry without collapsing unrelated local geometry.
+        let coarsened_cell_size = requested_cell_size * 2.0;
+        let coarsened_columns = (bounds.width / coarsened_cell_size)
+            .ceil()
+            .clamp(1.0, HIT_GRID_MAX_AXIS_CELLS as f32) as u32;
+        let coarsened_rows = (bounds.height / coarsened_cell_size)
+            .ceil()
+            .clamp(1.0, HIT_GRID_MAX_AXIS_CELLS as f32) as u32;
+        debug_assert!(entries.iter().all(|entry| {
+            cell_count_for_frame(
+                bounds,
+                coarsened_columns,
+                coarsened_rows,
+                coarsened_cell_size,
+                entry.clip_frame,
+            ) <= HIT_GRID_MAX_ENTRY_CELL_COUNT
+        }));
+        crate::profile_counter!("runtime", "ui.hit_grid.adaptive_coarsening_count", 1);
+        crate::profile_counter!("runtime", "ui.hit_grid.coarse_fallback_count", 1);
+        return (coarsened_columns, coarsened_rows, coarsened_cell_size);
+    }
+    (columns, rows, requested_cell_size)
+}
+
+fn cell_bounds_for_query(
     grid: &UiHitTestGrid,
     point: UiPoint,
     cursor_radius: f32,
-) -> Vec<usize> {
-    let cell_indices = cell_indices_for_query(grid, point, cursor_radius);
-    let mut entries = Vec::new();
-    for cell_index in cell_indices {
-        let Some(cell) = grid.cells.get(cell_index) else {
-            continue;
-        };
-        for entry_index in &cell.entries {
-            if !entries.contains(entry_index) {
-                entries.push(*entry_index);
-            }
-        }
-    }
-    entries.sort_by(|left, right| {
-        let left_entry = grid.entries.get(*left);
-        let right_entry = grid.entries.get(*right);
-        match (left_entry, right_entry) {
-            (Some(left_entry), Some(right_entry)) => {
-                entry_sort_key(right_entry).cmp(&entry_sort_key(left_entry))
-            }
-            _ => right.cmp(left),
-        }
-    });
-    entries
-}
-
-fn cell_indices_for_query(grid: &UiHitTestGrid, point: UiPoint, cursor_radius: f32) -> Vec<usize> {
+) -> Option<(u32, u32, u32, u32)> {
     if grid.columns == 0 || grid.rows == 0 {
-        return Vec::new();
-    }
-    if cursor_radius <= 0.0 {
-        return cell_index_for_point(grid, point).into_iter().collect();
+        return None;
     }
     let query_frame = UiFrame::new(
         point.x - cursor_radius,
@@ -636,19 +518,25 @@ fn cell_indices_for_query(grid: &UiHitTestGrid, point: UiPoint, cursor_radius: f
         cursor_radius * 2.0,
     );
     if query_frame.intersection(grid.bounds).is_none() {
-        return Vec::new();
+        return None;
     }
-    cells_for_frame(
+    Some(cell_bounds_for_frame(
         grid.bounds,
         grid.columns,
         grid.rows,
         grid.cell_size,
         query_frame,
-    )
+    ))
 }
 
 fn cell_index_for_point(grid: &UiHitTestGrid, point: UiPoint) -> Option<usize> {
-    if grid.columns == 0 || grid.rows == 0 || !grid.bounds.contains_point(point) {
+    if grid.columns == 0
+        || grid.rows == 0
+        || grid.columns > HIT_GRID_MAX_AXIS_CELLS
+        || grid.rows > HIT_GRID_MAX_AXIS_CELLS
+        || grid.cells.len() > HIT_GRID_MAX_CELL_COUNT
+        || !grid.bounds.contains_point(point)
+    {
         return None;
     }
     let column = ((point.x - grid.bounds.x) / grid.cell_size).floor() as i32;
@@ -661,13 +549,61 @@ fn cell_index_for_point(grid: &UiHitTestGrid, point: UiPoint) -> Option<usize> {
     Some((row * grid.columns + column) as usize)
 }
 
-fn cells_for_frame(
+pub(crate) fn bounded_cells_for_frame(
     bounds: UiFrame,
     columns: u32,
     rows: u32,
     cell_size: f32,
     frame: UiFrame,
 ) -> Vec<usize> {
+    let Some((left, right, top, bottom)) =
+        cell_span_for_frame(bounds, columns, rows, cell_size, frame)
+    else {
+        return Vec::new();
+    };
+    let capacity = (right - left + 1) as usize * (bottom - top + 1) as usize;
+    let mut indices = Vec::with_capacity(capacity);
+    for row in top..=bottom {
+        for column in left..=right {
+            indices.push((row * columns + column) as usize);
+        }
+    }
+    indices
+}
+
+fn cell_count_for_frame(
+    bounds: UiFrame,
+    columns: u32,
+    rows: u32,
+    cell_size: f32,
+    frame: UiFrame,
+) -> usize {
+    let Some((left, right, top, bottom)) =
+        cell_span_for_frame(bounds, columns, rows, cell_size, frame)
+    else {
+        return 0;
+    };
+    (right - left + 1) as usize * (bottom - top + 1) as usize
+}
+
+fn cell_span_for_frame(
+    bounds: UiFrame,
+    columns: u32,
+    rows: u32,
+    cell_size: f32,
+    frame: UiFrame,
+) -> Option<(u32, u32, u32, u32)> {
+    if columns == 0
+        || rows == 0
+        || columns > HIT_GRID_MAX_AXIS_CELLS
+        || rows > HIT_GRID_MAX_AXIS_CELLS
+        || !cell_size.is_finite()
+        || cell_size <= 0.0
+        || !frame_is_finite_positive(frame)
+        || frame.intersection(bounds).is_none()
+    {
+        return None;
+    }
     let left = ((frame.x - bounds.x) / cell_size).floor().max(0.0) as u32;
     let top = ((frame.y - bounds.y) / cell_size).floor().max(0.0) as u32;
     let right = ((frame.right() - bounds.x) / cell_size)
@@ -678,13 +614,27 @@ fn cells_for_frame(
         .floor()
         .max(0.0)
         .min((rows - 1) as f32) as u32;
-    let mut indices = Vec::new();
-    for row in top..=bottom {
-        for column in left..=right {
-            indices.push((row * columns + column) as usize);
-        }
-    }
-    indices
+    (left <= right && top <= bottom).then_some((left, right, top, bottom))
+}
+
+fn cell_bounds_for_frame(
+    bounds: UiFrame,
+    columns: u32,
+    rows: u32,
+    cell_size: f32,
+    frame: UiFrame,
+) -> (u32, u32, u32, u32) {
+    let left = ((frame.x - bounds.x) / cell_size).floor().max(0.0) as u32;
+    let top = ((frame.y - bounds.y) / cell_size).floor().max(0.0) as u32;
+    let right = ((frame.right() - bounds.x) / cell_size)
+        .floor()
+        .max(0.0)
+        .min((columns - 1) as f32) as u32;
+    let bottom = ((frame.bottom() - bounds.y) / cell_size)
+        .floor()
+        .max(0.0)
+        .min((rows - 1) as f32) as u32;
+    (left, right, top, bottom)
 }
 
 fn frame_accepts_point(frame: UiFrame, point: UiPoint, radius: f32) -> bool {
@@ -713,10 +663,10 @@ mod incremental_patch_tests {
         let node_id = UiNodeId::new(1);
         let arranged_tree = UiArrangedTree {
             tree_id: UiTreeId::new("ui.hit.lookup-reindex"),
-            roots: vec![node_id],
-            nodes: vec![pointer_node(node_id, 0, UiFrame::new(0.0, 0.0, 20.0, 20.0))],
-            draw_order: vec![node_id],
-            canvas_layers: Vec::new(),
+            roots: vec![node_id].into(),
+            nodes: vec![pointer_node(node_id, 0, UiFrame::new(0.0, 0.0, 20.0, 20.0))].into(),
+            draw_order: vec![node_id].into(),
+            canvas_layers: Vec::new().into(),
         };
         let mut index = UiHitTestIndex::default();
         index.rebuild_arranged(&arranged_tree);
@@ -737,13 +687,14 @@ mod incremental_patch_tests {
         let anchor_id = UiNodeId::new(2);
         let mut arranged_tree = UiArrangedTree {
             tree_id: UiTreeId::new("ui.hit.incremental.cross-cell"),
-            roots: vec![moving_id, anchor_id],
+            roots: vec![moving_id, anchor_id].into(),
             nodes: vec![
                 pointer_node(moving_id, 0, UiFrame::new(0.0, 0.0, 20.0, 20.0)),
                 pointer_node(anchor_id, 1, UiFrame::new(100.0, 0.0, 20.0, 20.0)),
-            ],
-            draw_order: vec![moving_id, anchor_id],
-            canvas_layers: Vec::new(),
+            ]
+            .into(),
+            draw_order: vec![moving_id, anchor_id].into(),
+            canvas_layers: Vec::new().into(),
         };
         let node_indices = BTreeMap::from([(moving_id, 0), (anchor_id, 1)]);
         let mut index = UiHitTestIndex::default();
@@ -783,6 +734,67 @@ mod incremental_patch_tests {
     }
 
     #[test]
+    fn geometry_patch_reuses_route_table() {
+        let node_id = UiNodeId::new(5);
+        let mut arranged_tree = UiArrangedTree {
+            tree_id: UiTreeId::new("ui.hit.geometry-route-reuse"),
+            roots: vec![node_id].into(),
+            nodes: vec![pointer_node(node_id, 0, UiFrame::new(0.0, 0.0, 20.0, 20.0))].into(),
+            draw_order: vec![node_id].into(),
+            canvas_layers: Vec::new().into(),
+        };
+        let node_indices = BTreeMap::from([(node_id, 0)]);
+        let mut index = UiHitTestIndex::default();
+        index.rebuild_arranged(&arranged_tree);
+        let route_nodes = index.grid.route_nodes.clone();
+
+        arranged_tree.nodes[0].frame = UiFrame::new(10.0, 0.0, 20.0, 20.0);
+        arranged_tree.nodes[0].clip_frame = arranged_tree.nodes[0].frame;
+        assert_eq!(
+            index.patch_arranged_geometry(
+                &arranged_tree,
+                &BTreeSet::from([node_id]),
+                &node_indices,
+            ),
+            Ok(true)
+        );
+        assert!(std::sync::Arc::ptr_eq(
+            &route_nodes,
+            &index.grid.route_nodes
+        ));
+    }
+
+    #[test]
+    fn malformed_parent_route_fails_closed() {
+        let parent_id = UiNodeId::new(6);
+        let child_id = UiNodeId::new(7);
+        let frame = UiFrame::new(0.0, 0.0, 20.0, 20.0);
+        let mut parent = pointer_node(parent_id, 0, frame);
+        parent.children.push(child_id);
+        let mut child = pointer_node(child_id, 1, frame);
+        child.parent = Some(parent_id);
+        let arranged_tree = UiArrangedTree {
+            tree_id: UiTreeId::new("ui.hit.malformed-parent-route"),
+            roots: vec![parent_id].into(),
+            nodes: vec![parent, child].into(),
+            draw_order: vec![parent_id, child_id].into(),
+            canvas_layers: Vec::new().into(),
+        };
+        let mut index = UiHitTestIndex::default();
+        index.rebuild_arranged(&arranged_tree);
+        let parent_route_index = index.grid.entries[0].route_node_index as usize;
+        std::sync::Arc::make_mut(&mut index.grid.route_nodes)[parent_route_index].route_valid =
+            false;
+
+        let hit = index.hit_test_arranged(&arranged_tree, UiPoint::new(5.0, 5.0));
+
+        assert_eq!(hit.top_hit, None);
+        assert_eq!(hit.top_entry_index, None);
+        assert!(hit.stacked.is_empty());
+        assert!(hit.path.has_consistent_route());
+    }
+
+    #[test]
     fn self_none_excludes_the_node_but_keeps_pointer_children() {
         let parent_id = UiNodeId::new(10);
         let child_id = UiNodeId::new(11);
@@ -794,10 +806,10 @@ mod incremental_patch_tests {
         child.parent = Some(parent_id);
         let arranged_tree = UiArrangedTree {
             tree_id: UiTreeId::new("ui.hit.pointer-events.self-none"),
-            roots: vec![parent_id],
-            nodes: vec![parent, child],
-            draw_order: vec![parent_id, child_id],
-            canvas_layers: Vec::new(),
+            roots: vec![parent_id].into(),
+            nodes: vec![parent, child].into(),
+            draw_order: vec![parent_id, child_id].into(),
+            canvas_layers: Vec::new().into(),
         };
 
         let mut index = UiHitTestIndex::default();
@@ -826,16 +838,137 @@ mod incremental_patch_tests {
         child.parent = Some(parent_id);
         let arranged_tree = UiArrangedTree {
             tree_id: UiTreeId::new("ui.hit.pointer-events.none"),
-            roots: vec![parent_id],
-            nodes: vec![parent, child],
-            draw_order: vec![parent_id, child_id],
-            canvas_layers: Vec::new(),
+            roots: vec![parent_id].into(),
+            nodes: vec![parent, child].into(),
+            draw_order: vec![parent_id, child_id].into(),
+            canvas_layers: Vec::new().into(),
         };
 
         let mut index = UiHitTestIndex::default();
         index.rebuild_arranged(&arranged_tree);
 
         assert!(index.grid.entries.is_empty());
+    }
+
+    #[test]
+    fn hit_grid_bounds_geometry_and_cell_count_are_bounded() {
+        let valid_id = UiNodeId::new(30);
+        let invalid_id = UiNodeId::new(31);
+        let huge_id = UiNodeId::new(32);
+        let valid_frame = UiFrame::new(0.0, 0.0, 20.0, 20.0);
+        let huge_frame = UiFrame::new(0.0, 0.0, 1_000_000.0, 1_000_000.0);
+        let arranged_tree = UiArrangedTree {
+            tree_id: UiTreeId::new("ui.hit.bounded-grid"),
+            roots: vec![valid_id, invalid_id, huge_id].into(),
+            nodes: vec![
+                pointer_node(valid_id, 0, valid_frame),
+                pointer_node(invalid_id, 1, UiFrame::new(f32::NAN, 0.0, 20.0, 20.0)),
+                pointer_node(huge_id, 2, huge_frame),
+            ]
+            .into(),
+            draw_order: vec![valid_id, invalid_id, huge_id].into(),
+            canvas_layers: Vec::new().into(),
+        };
+        let node_indices = BTreeMap::from([(valid_id, 0), (invalid_id, 1), (huge_id, 2)]);
+        let mut index = UiHitTestIndex::default();
+        index.rebuild_arranged_indexed(&arranged_tree, &node_indices);
+
+        assert!(index.grid.columns > 0);
+        assert!(index.grid.rows > 0);
+        assert!(
+            (index.grid.columns as usize) * (index.grid.rows as usize) <= HIT_GRID_MAX_CELL_COUNT
+        );
+        assert_eq!(index.grid.columns, 1);
+        assert_eq!(index.grid.rows, 1);
+        assert!(index
+            .grid
+            .entries
+            .iter()
+            .all(|entry| entry.node_id != invalid_id));
+        assert_eq!(
+            index
+                .hit_test_arranged(&arranged_tree, UiPoint::new(10.0, 10.0))
+                .top_hit,
+            Some(huge_id)
+        );
+    }
+
+    #[test]
+    fn ordinary_bounds_keep_fine_grained_cell_partitioning() {
+        let first_id = UiNodeId::new(40);
+        let second_id = UiNodeId::new(41);
+        let arranged_tree = UiArrangedTree {
+            tree_id: UiTreeId::new("ui.hit.fine-grid"),
+            roots: vec![first_id, second_id].into(),
+            nodes: vec![
+                pointer_node(first_id, 0, UiFrame::new(0.0, 0.0, 20.0, 20.0)),
+                pointer_node(second_id, 1, UiFrame::new(128.0, 0.0, 20.0, 20.0)),
+            ]
+            .into(),
+            draw_order: vec![first_id, second_id].into(),
+            canvas_layers: Vec::new().into(),
+        };
+        let node_indices = BTreeMap::from([(first_id, 0), (second_id, 1)]);
+        let mut index = UiHitTestIndex::default();
+        index.rebuild_arranged_indexed(&arranged_tree, &node_indices);
+
+        assert!(index.grid.columns >= 2);
+        assert_eq!(
+            index
+                .hit_test_arranged(&arranged_tree, UiPoint::new(10.0, 10.0))
+                .top_hit,
+            Some(first_id)
+        );
+        assert_eq!(
+            index
+                .hit_test_arranged(&arranged_tree, UiPoint::new(138.0, 10.0))
+                .top_hit,
+            Some(second_id)
+        );
+    }
+
+    #[test]
+    fn capacity_envelope_absorbs_small_growth_and_regrids_only_at_geometric_boundaries() {
+        let root_id = UiNodeId::new(50);
+        let mut arranged_tree = UiArrangedTree {
+            tree_id: UiTreeId::new("ui.hit.capacity-envelope"),
+            roots: vec![root_id].into(),
+            nodes: vec![pointer_node(
+                root_id,
+                0,
+                UiFrame::new(0.0, 0.0, 120.0, 60.0),
+            )]
+            .into(),
+            draw_order: vec![root_id].into(),
+            canvas_layers: Vec::new().into(),
+        };
+        let node_indices = BTreeMap::from([(root_id, 0)]);
+        let mut index = UiHitTestIndex::default();
+        index.rebuild_arranged_indexed(&arranged_tree, &node_indices);
+
+        assert_eq!(index.grid.bounds, UiFrame::new(0.0, 0.0, 128.0, 64.0));
+        arranged_tree.nodes[0].frame = UiFrame::new(0.0, 0.0, 121.0, 60.0);
+        arranged_tree.nodes[0].clip_frame = arranged_tree.nodes[0].frame;
+        assert_eq!(
+            index.patch_arranged_geometry(
+                &arranged_tree,
+                &BTreeSet::from([root_id]),
+                &node_indices,
+            ),
+            Ok(true)
+        );
+        assert_eq!(index.grid.bounds, UiFrame::new(0.0, 0.0, 128.0, 64.0));
+
+        arranged_tree.nodes[0].frame = UiFrame::new(0.0, 0.0, 129.0, 60.0);
+        arranged_tree.nodes[0].clip_frame = arranged_tree.nodes[0].frame;
+        assert_eq!(
+            index.patch_arranged_geometry(
+                &arranged_tree,
+                &BTreeSet::from([root_id]),
+                &node_indices,
+            ),
+            Err(())
+        );
     }
 
     fn pointer_node(node_id: UiNodeId, paint_order: u64, frame: UiFrame) -> UiArrangedNode {
@@ -874,7 +1007,9 @@ fn distance_sq_to_frame(frame: UiFrame, point: UiPoint) -> f32 {
 }
 
 fn union_entry_bounds(entries: &[UiHitTestEntry]) -> Option<UiFrame> {
-    let mut iter = entries.iter();
+    let mut iter = entries
+        .iter()
+        .filter(|entry| frame_is_finite_positive(entry.clip_frame));
     let first = iter.next()?.clip_frame;
     let (mut left, mut top, mut right, mut bottom) =
         (first.x, first.y, first.right(), first.bottom());
@@ -884,7 +1019,42 @@ fn union_entry_bounds(entries: &[UiHitTestEntry]) -> Option<UiFrame> {
         right = right.max(entry.clip_frame.right());
         bottom = bottom.max(entry.clip_frame.bottom());
     }
-    Some(UiFrame::new(left, top, right - left, bottom - top))
+    let bounds = UiFrame::new(left, top, right - left, bottom - top);
+    frame_is_finite_positive(bounds).then_some(bounds)
+}
+
+pub(crate) fn hit_grid_capacity_bounds(bounds: UiFrame, quantum: f32) -> UiFrame {
+    if !frame_is_finite_positive(bounds) || !quantum.is_finite() || quantum <= 0.0 {
+        return bounds;
+    }
+    let (x, width) = hit_grid_capacity_axis(bounds.x, bounds.right(), quantum);
+    let (y, height) = hit_grid_capacity_axis(bounds.y, bounds.bottom(), quantum);
+    UiFrame::new(x, y, width, height)
+}
+
+fn hit_grid_capacity_axis(origin: f32, end: f32, quantum: f32) -> (f32, f32) {
+    let capacity_origin = (origin / quantum).floor() * quantum;
+    let required = (end - capacity_origin).max(quantum);
+    let mut capacity = quantum;
+    while capacity < required && capacity <= f32::MAX / 2.0 {
+        capacity *= 2.0;
+    }
+    if capacity.is_finite() {
+        (capacity_origin, capacity)
+    } else {
+        (origin, end - origin)
+    }
+}
+
+pub(crate) fn frame_is_finite_positive(frame: UiFrame) -> bool {
+    frame.x.is_finite()
+        && frame.y.is_finite()
+        && frame.width.is_finite()
+        && frame.height.is_finite()
+        && frame.right().is_finite()
+        && frame.bottom().is_finite()
+        && frame.width > 0.0
+        && frame.height > 0.0
 }
 
 fn frame_is_contained(bounds: UiFrame, frame: UiFrame) -> bool {

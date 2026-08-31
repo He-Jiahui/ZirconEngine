@@ -1,20 +1,24 @@
 use std::sync::Arc;
 use std::time::Instant;
 
+use zr_rhi::RenderDeviceProfile;
+
 use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
-use crate::graphics::backend::GpuReadbackQueue;
+use crate::graphics::backend::SystemTextureGenerationLease;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::{
     GraphicsError, RenderFeatureDescriptor, RuntimePrepareCollectorRegistration,
 };
+use crate::text::font::FontCollectionService;
 
 use super::super::super::super::deferred::DeferredSceneResources;
+use super::super::super::super::environment::realtime_ibl_capture_wgpu::RealtimeIblCaptureWgpuPipelines;
 use super::super::super::super::environment::{IblBakeWgpuPipelineCache, RealtimeIblRuntime};
-use super::super::super::super::hzb::{hzb_occlusion_supported_by_limits, HzbOcclusionCuller};
+use super::super::super::super::hzb::{HzbOcclusionCuller, hzb_occlusion_supported_by_limits};
 use super::super::super::super::mesh::skinning::{
-    create_empty_skinned_joint_palette_buffer, skinned_joint_palette_storage_min_binding_size,
+    create_empty_skinned_joint_palette_arena_buffer, skinned_joint_palette_arena_min_binding_size,
 };
 use super::super::super::super::mesh::{
     CachedMeshDrawCommands, MeshIndirectDrawWorkspace, MeshPipelineCache,
@@ -23,11 +27,11 @@ use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRen
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::super::scene_clear::SceneRegionClearResources;
-use super::super::super::super::shadow::atlas::{
-    ShadowAtlasAllocator, ShadowAtlasConfig, ShadowAtlasResourceConfig, ShadowAtlasResources,
-    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
-};
 use super::super::super::super::shadow::ShadowMapRenderer;
+use super::super::super::super::shadow::atlas::{
+    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT, ShadowAtlasAllocator, ShadowAtlasConfig,
+    ShadowAtlasResourceConfig, ShadowAtlasResources,
+};
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::super::constants::{DEPTH_FORMAT, SCENE_COLOR_HDR_FORMAT};
@@ -49,17 +53,29 @@ impl SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) fn new_with_icon_source(
         asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        system_textures: SystemTextureGenerationLease,
         final_color_format: wgpu::TextureFormat,
         backend_name: &str,
-        adapter_info: &wgpu::AdapterInfo,
+        device_profile: &RenderDeviceProfile,
         icon_source: Arc<dyn ViewportIconSource>,
         render_features: &[RenderFeatureDescriptor],
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
         deferred_lighting_profile: SceneRendererDeferredLightingProfile,
+        font_collection: Arc<FontCollectionService>,
     ) -> Result<(Self, SceneRendererCoreStartupReport), GraphicsError> {
+        if system_textures.device_id() != device_profile.device_id()
+            || system_textures.generation() != device_profile.generation()
+        {
+            return Err(GraphicsError::WgpuValidation(format!(
+                "system texture lease belongs to device {} generation {}, expected device {} generation {}",
+                system_textures.device_id().raw(),
+                system_textures.generation().raw(),
+                device_profile.device_id().raw(),
+                device_profile.generation().raw(),
+            )));
+        }
         let setup_started = Instant::now();
         let resolved_asset_manager = asset_manager
             .resolve()
@@ -86,31 +102,28 @@ impl SceneRendererCore {
             .root()
             .to_path_buf();
         let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
-        let scene_bind_group_bundle = create_scene_bind_group_bundle(device, queue);
-        let skinned_joint_palette_fallback_buffer =
-            create_empty_skinned_joint_palette_buffer(device);
+        let scene_bind_group_bundle = create_scene_bind_group_bundle(device, &system_textures);
+        let skinned_joint_palette_arena_buffer =
+            create_empty_skinned_joint_palette_arena_buffer(device);
         let texture_bind_group_layout = create_texture_bind_group_layout(device);
         let material_texture_bind_group_layout = create_material_texture_bind_group_layout(device);
         let gpu_scene = GpuScene::new(
             device,
-            Arc::clone(&skinned_joint_palette_fallback_buffer),
-            skinned_joint_palette_storage_min_binding_size(),
+            Arc::clone(&skinned_joint_palette_arena_buffer),
+            skinned_joint_palette_arena_min_binding_size(),
         );
-        let advanced_plugin_resources = SceneRendererAdvancedPluginResources::new(
-            device,
-            render_features,
-            runtime_prepare_collectors,
-        );
+        let advanced_plugin_resources =
+            SceneRendererAdvancedPluginResources::new(render_features, runtime_prepare_collectors);
         let volumetric_fog_enabled = advanced_plugin_resources.volumetric_fog_enabled();
         let setup = setup_started.elapsed();
 
         let mesh_and_environment_started = Instant::now();
         let scene_color_format = SCENE_COLOR_HDR_FORMAT;
-        let mut mesh_pipelines = MeshPipelineCache::new_with_adapter_info(
+        let mut mesh_pipelines = MeshPipelineCache::new_with_adapter_facts(
             device,
-            queue,
+            &system_textures,
             scene_color_format,
-            adapter_info,
+            device_profile.adapter(),
             &project_root,
             &scene_bind_group_bundle.layout,
             &material_texture_bind_group_layout,
@@ -121,6 +134,7 @@ impl SceneRendererCore {
             mesh_pipelines.register_geometry_source_descriptor(descriptor);
         }
         let ibl_bake_pipeline_cache = IblBakeWgpuPipelineCache::new(device);
+        let environment_capture_mip_pipelines = RealtimeIblCaptureWgpuPipelines::new(device);
         let realtime_ibl = RealtimeIblRuntime::new();
         let scene_clear = deferred_lighting_profile
             .supports_compiled_scene_graph()
@@ -130,7 +144,12 @@ impl SceneRendererCore {
         let shadows_started = Instant::now();
         let shadow_map_renderer = deferred_lighting_profile
             .uses_shadow_map_renderer()
-            .then(|| ShadowMapRenderer::new(device, &scene_bind_group_bundle.layout));
+            .then(|| {
+                ShadowMapRenderer::new(
+                    &scene_bind_group_bundle.layout,
+                    scene_bind_group_bundle.shadow_environment_binding_lease(),
+                )
+            });
         // The zero-direct-light preview retains valid shared bindings without reserving the
         // full 4096-square shadow atlas used by scene-capable renderer profiles.
         let shadow_atlas_resource_config =
@@ -199,11 +218,14 @@ impl SceneRendererCore {
         let scene_effects_hzb = scene_effects_hzb_started.elapsed();
         let scene_effects_post_process_started = Instant::now();
         let post_process = match deferred_lighting_profile.post_process_startup_mode() {
-            ScenePostProcessStartupMode::Full => {
-                ScenePostProcessResources::new(device, queue, final_color_format, backend_name)
-            }
+            ScenePostProcessStartupMode::Full => ScenePostProcessResources::new(
+                device,
+                &system_textures,
+                final_color_format,
+                backend_name,
+            )?,
             ScenePostProcessStartupMode::OutputTransferOnly => {
-                ScenePostProcessResources::output_transfer_only(device, final_color_format)
+                ScenePostProcessResources::output_transfer_only(device, final_color_format)?
             }
         };
         let scene_effects_post_process = scene_effects_post_process_started.elapsed();
@@ -221,11 +243,11 @@ impl SceneRendererCore {
             deferred_lighting_profile.uses_interaction_overlays(),
         );
         let screen_space_ui_renderer = if deferred_lighting_profile.uses_screen_space_ui() {
-            Some(ScreenSpaceUiRenderer::new(
+            Some(ScreenSpaceUiRenderer::new_with_font_collection(
                 asset_manager,
                 device,
-                queue,
                 final_color_format,
+                font_collection,
             )?)
         } else {
             None
@@ -233,6 +255,8 @@ impl SceneRendererCore {
         let overlay_and_ui = overlay_and_ui_started.elapsed();
         Ok((
             Self {
+                device_id: device_profile.device_id(),
+                device_generation: device_profile.generation(),
                 texture_bind_group_layout,
                 scene_bind_group_layout: scene_bind_group_bundle.layout,
                 scene_uniform_buffer: scene_bind_group_bundle.uniform_buffer,
@@ -248,12 +272,14 @@ impl SceneRendererCore {
                 material_texture_bind_group_layout,
                 mesh_pipelines,
                 ibl_bake_pipeline_cache,
+                environment_capture_mip_pipelines,
                 realtime_ibl,
                 scene_bind_group_realtime_ibl_slot: None,
                 cached_mesh_draw_commands: CachedMeshDrawCommands::default(),
                 mesh_indirect_draw_workspace: MeshIndirectDrawWorkspace::default(),
                 neutral_graph_buffers: Default::default(),
                 gpu_scene,
+                hit_proxy_resources: Default::default(),
                 hzb_occlusion_culler,
                 scene_clear,
                 deferred_lighting_profile,
@@ -267,8 +293,7 @@ impl SceneRendererCore {
                 overlay_renderer,
                 screen_space_ui_renderer,
                 transient_resource_pool: Default::default(),
-                readback_queue: GpuReadbackQueue::new(device),
-                readback_frame_index: 0,
+                diagnostic_frame_index: 0,
                 ibl_bake_runtime_writebacks: Default::default(),
                 advanced_plugin_resources,
             },

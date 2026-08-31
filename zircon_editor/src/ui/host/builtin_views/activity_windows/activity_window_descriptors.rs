@@ -12,7 +12,7 @@ use super::prefab_view_descriptor::prefab_view_descriptor;
 use super::workbench_window_view_descriptor::workbench_window_view_descriptor;
 
 pub(in crate::ui::host::builtin_views) fn activity_window_descriptors() -> Vec<ViewDescriptor> {
-    let mut descriptors = vec![
+    [
         workbench_window_view_descriptor(),
         prefab_view_descriptor(),
         asset_browser_view_descriptor(),
@@ -22,7 +22,8 @@ pub(in crate::ui::host::builtin_views) fn activity_window_descriptors() -> Vec<V
         debug_observatory_view_descriptor(),
         animation_sequence_view_descriptor(),
         animation_graph_view_descriptor(),
-    ];
-    descriptors.extend(functional_window_view_descriptors());
-    descriptors
+    ]
+    .into_iter()
+    .chain(functional_window_view_descriptors())
+    .collect()
 }

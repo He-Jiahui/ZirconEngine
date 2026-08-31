@@ -6,6 +6,7 @@ fn zr_environment_pbr_components(
     metallic: f32,
     diffuse_color: vec3<f32>,
     base_color: vec3<f32>,
+    dielectric_f0: vec3<f32>,
     occlusion: f32,
     is_standard_pbr: bool,
 ) -> ZrEnvironmentPbrComponents {
@@ -30,10 +31,18 @@ fn zr_environment_pbr_components(
     }
     let clamped_metallic = clamp(metallic, 0.0, 1.0);
     let clamped_roughness = clamp(roughness, 0.0, 1.0);
-    let reflection = zr_environment_sky_reflection_color(
-        reflect(-view_dir, normal),
-        clamped_roughness,
+    var reflection_direction = zr_environment_perfect_specular_direction_normalized(
+        normal,
+        view_dir,
     );
+    if (zr_environment_is_source_cubemap() || zr_environment_is_realtime_ibl()) {
+        reflection_direction = zr_environment_dominant_specular_direction_normalized(
+            normal,
+            reflection_direction,
+            clamped_roughness,
+        );
+    }
+    let reflection = zr_environment_sky_reflection_color(reflection_direction, clamped_roughness);
     return zr_environment_pbr_components_from_reflection(
         normal,
         view_dir,
@@ -42,6 +51,7 @@ fn zr_environment_pbr_components(
         clamped_occlusion,
         diffuse_color,
         base_color,
+        dielectric_f0,
         has_global_environment,
         reflection,
     );
@@ -55,6 +65,7 @@ fn zr_environment_pbr_indirect(
     metallic: f32,
     diffuse_color: vec3<f32>,
     base_color: vec3<f32>,
+    dielectric_f0: vec3<f32>,
     occlusion: f32,
     is_standard_pbr: bool,
 ) -> vec3<f32> {
@@ -66,6 +77,7 @@ fn zr_environment_pbr_indirect(
         metallic,
         diffuse_color,
         base_color,
+        dielectric_f0,
         occlusion,
         is_standard_pbr,
     );

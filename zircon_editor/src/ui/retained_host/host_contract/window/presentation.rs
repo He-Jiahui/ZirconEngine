@@ -1,6 +1,9 @@
+mod asset_deletion_blocker;
 mod close_prompt;
 mod snapshot;
 mod template_hover_state;
+
+use std::sync::Arc;
 
 use crate::ui::retained_host::console_output::console_output_viewport_size;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
@@ -12,8 +15,8 @@ use zircon_runtime_interface::ui::layout::UiSize;
 use super::super::data::SceneViewportChromeData;
 use super::super::data::{
     FrameRect, HostDockPresentationPatch, HostMenuStateData, HostPaneInteractionStateData,
-    HostPresentationGeneration, HostWindowLayoutData, HostWindowPresentationData,
-    HostWindowShellData, TemplatePaneNodeData,
+    HostPresentationGeneration, HostWindowGeometryPresentationData, HostWindowLayoutData,
+    HostWindowPresentationData, HostWindowShellData, TemplatePaneNodeData,
 };
 use super::UiHostWindow;
 use crate::ui::retained_host::primitives::ModelRc;
@@ -45,6 +48,25 @@ impl UiHostWindow {
             }
         }
         state.replace_host_presentation(presentation);
+    }
+
+    pub(crate) fn set_host_geometry_presentation(
+        &self,
+        geometry: HostWindowGeometryPresentationData,
+        workbench_changed_rows: &[usize],
+    ) -> bool {
+        let committed = self
+            .state
+            .borrow_mut()
+            .replace_host_geometry_presentation(geometry, workbench_changed_rows);
+        if committed {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.window_resize.geometry_commit_count",
+                1_u8
+            );
+        }
+        committed
     }
 
     pub(crate) fn get_host_presentation(&self) -> HostWindowPresentationData {
@@ -116,9 +138,40 @@ impl UiHostWindow {
         )
     }
 
+    pub(crate) fn patch_native_scene_viewport_chrome(
+        &self,
+        row: usize,
+        window_id: &str,
+        viewport: SceneViewportChromeData,
+    ) -> bool {
+        self.state
+            .borrow_mut()
+            .patch_native_scene_viewport_chrome(row, window_id, viewport)
+    }
+
+    pub(crate) fn viewport_chrome_damage_frame(&self) -> Option<FrameRect> {
+        let state = self.state.borrow();
+        super::super::native_pointer::viewport_chrome_damage_frame(state.host_presentation.as_ref())
+    }
+
+    pub(crate) fn native_viewport_chrome_damage_frame(&self) -> Option<FrameRect> {
+        let state = self.state.borrow();
+        super::super::native_pointer::native_viewport_chrome_damage_frame(
+            state.host_presentation.as_ref(),
+        )
+    }
+
     pub(crate) fn get_host_presentation_generation(&self) -> HostPresentationGeneration {
         record_current_ui_perf_counter(UiPerfCounter::PresentationGenerationReadCount, 1.0);
         self.state.borrow().presentation_generation()
+    }
+
+    pub(crate) fn get_host_interaction_generation(&self) -> u64 {
+        self.state.borrow().interaction_generation()
+    }
+
+    pub(crate) fn get_pane_interaction_generation(&self) -> Arc<HostPaneInteractionStateData> {
+        Arc::clone(&self.state.borrow().pane_interaction_state)
     }
 
     pub(crate) fn sync_host_paint_theme(&self) -> bool {

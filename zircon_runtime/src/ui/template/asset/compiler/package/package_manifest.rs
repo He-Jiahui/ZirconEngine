@@ -1,7 +1,7 @@
 use crate::ui::template::UiRuntimeCompiledAssetArtifact;
 use zircon_runtime_interface::ui::template::{
     UiAssetFingerprint, UiCompiledAssetCacheRecord, UiCompiledAssetPackageArtifactEntry,
-    UiCompiledAssetPackageManifest, UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+    UiCompiledAssetPackageManifest, UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
 };
 
 pub fn compiled_asset_package_manifest_from_artifact_bytes(
@@ -14,7 +14,7 @@ pub fn compiled_asset_package_manifest_from_artifact_bytes(
         dependencies: artifact.report.dependencies.clone(),
         cache: compiled_asset_cache_record_from_artifact_bytes(artifact, artifact_bytes),
         artifact: UiCompiledAssetPackageArtifactEntry {
-            schema_version: UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+            schema_version: UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
             byte_len: artifact_bytes.len() as u64,
             fingerprint: artifact_fingerprint,
         },

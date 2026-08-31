@@ -10,7 +10,7 @@ fixing_plan: docs/plans/zircon_editor/editor/09-editor-asset-management.md
 origin_child_dir: docs/plans/zircon_editor/editor_ui/10
 fixing_child_dir: docs/plans/zircon_editor/editor/09
 related_code:
-  - zircon_editor/src/ui/layouts/views/asset_browser/tests.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/tests
 tests:
   - python -B .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json --repo-root E:\\Git\\ZirconEngine
   - cargo test -p zircon_editor --lib asset_browser --locked
@@ -49,10 +49,17 @@ asset-browser 的 browse/query/selection/presentation 场景累计到同一个 f
 
 ## 修复结果与回传
 
-Open state: `待修复`。本 handoff 未修改资产浏览业务测试，不能作为 fixed evidence。
+Open state: `implementation-complete / upstream-validation-blocked`。已删除 flat
+`tests.rs` 并按 virtualization、chrome/regions、list、thumbnail、reference 与 shared
+fixture 拆为 folder-backed 测试模块；未删除或弱化任何断言，未引入 `#[path]` 挂载、豁免或第二测试树。
+
+结构审计已不再报告 asset-browser owner，超限测试文件总数从 31 降至 30。聚焦 Cargo
+命令在编译 `zr_rhi_wgpu` 时被 14 个既有错误截断，尚未到达 `zircon_editor` 测试，因此本 artifact
+仍为 `open`，不得作为 fixed evidence 或回传 origin；待 RHI 依赖恢复后必须重跑声明的聚焦测试并完成
+failure return。独立源码复核发现的 virtualization private-helper import 已修复并复核通过，无其余 findings。
 
 ## 产出记录与时间
 
 | 时间 | 里程碑/切片 | 状态 | 完成项目与证据 | 后续门禁 |
 | --- | --- | --- | --- | --- |
-| 2026-08-13 | M3 asset-browser test-budget handoff | `open` | 从准确 48/0 审计隔离 997 行 asset-browser owner。 | 取得源码 lease 后按 asset-browser 行为 folder-backed 拆分，受管 asset-browser 回归和结构审计复验。 |
+| 2026-08-25 | M3 asset-browser test-budget handoff | `implementation-complete / upstream-validation-blocked` | 删除 1065 行的 flat `tests.rs`；新增薄 `tests/mod.rs` 与 6 个行为/fixture 子模块，所有文件均不超过 411 行；结构审计不再列出该 owner（31 -> 30）。主树 20 个测试与既有 reference-list 2 个测试均保留。独立 review 修复并复核了 virtualization private-helper import。`cargo test -p zircon_editor --lib --locked asset_browser` 在 `zr_rhi_wgpu` 的 14 个既有编译错误处截断。 | RHI 修复后重跑聚焦 Cargo 测试，并通过 coordinator failure return 回传 origin。 |

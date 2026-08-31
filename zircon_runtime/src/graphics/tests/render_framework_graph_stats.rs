@@ -6,7 +6,7 @@ use crate::core::framework::render::{
     RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle,
 };
 use crate::core::math::UVec2;
-use crate::graphics::{debug_markers, runtime::WgpuRenderFramework, RenderPipelineAsset};
+use crate::graphics::{RenderPipelineAsset, debug_markers, runtime::WgpuRenderFramework};
 use crate::scene::world::World;
 
 #[test]
@@ -91,6 +91,33 @@ fn render_framework_stats_report_graph_stage_execution() {
     assert!(report.unique_stage_count <= report.staged_pass_count);
     assert!(report.stage_transition_count <= report.staged_pass_count.saturating_sub(1));
     assert_eq!(report.stage_order_violation_count, 0);
+}
+
+#[test]
+fn render_framework_stats_report_compiled_execution_batches() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
+    let viewport_size = UVec2::new(320, 240);
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    let mut extract = test_extract();
+    extract.apply_viewport_size(viewport_size);
+    let (stats, capture) = submit_frame_with_capture(&server, viewport, extract);
+    let planned_live_pass_count =
+        non_culled_pass_names_from_graph_dump(captured_graph_dump(&capture)).len();
+    let report = stats.last_graph_execution_batch_report;
+
+    assert_eq!(report.planned_live_pass_count, planned_live_pass_count);
+    assert_eq!(
+        report.graphics_batch_count
+            + report.async_compute_batch_count
+            + report.async_copy_batch_count,
+        report.planned_batch_count
+    );
+    assert!(report.planned_batch_count > 0);
+    assert!(report.max_passes_per_batch > 0);
+    assert!(report.queue_transition_count <= report.planned_batch_count.saturating_sub(1));
 }
 
 #[test]

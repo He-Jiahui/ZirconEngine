@@ -27,7 +27,7 @@ fn runtime_single_line_text_uses_runtime_shaped_glyph_advances() {
         UiTextWrap::None,
         UiTextOverflow::Ellipsis,
     );
-    let shaped = shape_text_line(line.text.as_str(), &style);
+    let shaped = shape_text_line(line.text.as_str(), &style).expect("shape text");
     let shaped_width = shaped
         .lines
         .first()
@@ -51,6 +51,7 @@ fn retained_text_run_uses_runtime_ellipsis_for_narrow_editor_labels() {
         UiTextOverflow::Ellipsis,
     );
     let ellipsis_width = shape_text_line("\u{2026}", &style)
+        .expect("shape ellipsis")
         .lines
         .first()
         .expect("ellipsis shaped line")

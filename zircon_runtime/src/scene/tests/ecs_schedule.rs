@@ -16,8 +16,8 @@ use crate::scene::ecs::{
     CommandsParam, Component, EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES,
     EVENT_INLINE_PAYLOAD_MAX_BYTES, EventPayloadProfile, EventPayloadStorage, EventStore,
     EventSubscription, EventSubscriptionStatus, Events, FunctionRuntimeSceneSystem,
-    InternalSceneSystem, ResourceStore, SceneSystemClockDomain, SceneSystemDescriptor,
-    SceneSystemMetadata, Schedule, SystemOrderingConstraint, SystemRef, SystemSetRegistry,
+    InternalSceneSystem, ResourceStore, SceneSystemDescriptor, SceneSystemMetadata,
+    SceneSystemTickPolicy, Schedule, SystemOrderingConstraint, SystemRef, SystemSetRegistry,
     SystemStage, SystemState,
 };
 use crate::scene::{NodeKind, World, create_default_level, module_descriptor};
@@ -29,3 +29,4 @@ mod render_extract;
 mod resources_events;
 mod schedule_plan;
 mod world_driver;
+mod world_time_controller;

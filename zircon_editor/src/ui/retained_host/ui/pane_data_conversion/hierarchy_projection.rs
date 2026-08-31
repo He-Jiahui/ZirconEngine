@@ -3,6 +3,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
     HierarchyPaneViewData, PaneContentSize, PaneData, PanePayload, SceneNodeData,
 };
 use crate::ui::retained_host as host_contract;
+use crate::ui::retained_host::hierarchy_pointer::hierarchy_paint_metadata;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 
@@ -64,8 +65,9 @@ fn hierarchy_template_projection(
         payload.nodes.iter().any(|node| node.selected),
         hierarchy_filter_query,
     );
+    let metadata = hierarchy_paint_metadata(nodes.iter().map(|node| node.control_id.as_str()));
     Some(host_contract::HierarchyPaneData {
-        nodes: model_rc(nodes),
+        nodes: model_rc(nodes).replacing_metadata(metadata),
         hierarchy_nodes: model_rc(
             payload
                 .nodes
@@ -102,50 +104,44 @@ fn apply_hierarchy_template_state(
     has_selection: bool,
     hierarchy_filter_query: &str,
 ) {
-    if let Some(search) = nodes
-        .iter_mut()
-        .find(|node| node.control_id.as_str() == "HierarchySearchQuery")
-    {
-        search.value_text = hierarchy_filter_query.into();
-        search.text = hierarchy_filter_query.into();
-    }
-
-    if let Some(panel) = nodes
-        .iter_mut()
-        .find(|node| node.control_id.as_str() == "HierarchyListPanel")
-    {
-        panel.selected = has_selection;
-        panel.focused = has_selection;
-        panel.surface_variant = if has_selection {
-            "panel".into()
-        } else {
-            "inset".into()
-        };
-        panel.text_tone = if has_selection {
-            "default".into()
-        } else {
-            "muted".into()
-        };
-        panel.disabled = !has_nodes;
-    }
-
-    if let Some(select_root) = nodes
-        .iter_mut()
-        .find(|node| node.control_id.as_str() == "SelectRoot")
-    {
-        select_root.selected = has_selection;
-        select_root.focused = has_selection;
-        select_root.surface_variant = if has_selection {
-            "panel".into()
-        } else {
-            "inset".into()
-        };
-        select_root.text_tone = if has_nodes {
-            "default".into()
-        } else {
-            "muted".into()
-        };
-        select_root.disabled = !has_nodes;
+    for node in nodes {
+        match node.control_id.as_str() {
+            "HierarchySearchQuery" => {
+                node.value_text = hierarchy_filter_query.into();
+                node.text = hierarchy_filter_query.into();
+            }
+            "HierarchyListPanel" => {
+                node.selected = has_selection;
+                node.focused = has_selection;
+                node.surface_variant = if has_selection {
+                    "panel".into()
+                } else {
+                    "inset".into()
+                };
+                node.text_tone = if has_selection {
+                    "default".into()
+                } else {
+                    "muted".into()
+                };
+                node.disabled = !has_nodes;
+            }
+            "SelectRoot" => {
+                node.selected = has_selection;
+                node.focused = has_selection;
+                node.surface_variant = if has_selection {
+                    "panel".into()
+                } else {
+                    "inset".into()
+                };
+                node.text_tone = if has_nodes {
+                    "default".into()
+                } else {
+                    "muted".into()
+                };
+                node.disabled = !has_nodes;
+            }
+            _ => {}
+        }
     }
 }
 

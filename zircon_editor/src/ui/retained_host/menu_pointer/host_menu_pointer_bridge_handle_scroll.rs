@@ -53,9 +53,9 @@ impl HostMenuPointerBridge {
             }) => {
                 self.state.hovered_menu_index = Some(*menu_index);
                 self.state.hovered_item_index = Some(*item_index);
-                self.state.hovered_item_path = item_path.clone();
+                reuse_menu_path(&mut self.state.hovered_item_path, item_path);
                 if self.state.open_submenu_path != *item_path {
-                    self.state.open_submenu_path = item_path.clone();
+                    reuse_menu_path(&mut self.state.open_submenu_path, item_path);
                     rebuild_after_hover = true;
                 }
             }
@@ -67,7 +67,7 @@ impl HostMenuPointerBridge {
             }) => {
                 self.state.hovered_menu_index = Some(*menu_index);
                 self.state.hovered_item_index = Some(*item_index);
-                self.state.hovered_item_path = item_path.clone();
+                reuse_menu_path(&mut self.state.hovered_item_path, item_path);
                 let parent = parent_path(item_path);
                 if self.state.open_submenu_path != parent {
                     self.state.open_submenu_path = parent;
@@ -100,3 +100,12 @@ impl HostMenuPointerBridge {
         })
     }
 }
+
+fn reuse_menu_path(target: &mut Vec<usize>, source: &[usize]) {
+    target.clear();
+    target.extend_from_slice(source);
+}
+
+#[cfg(test)]
+#[path = "host_menu_pointer_bridge_handle_scroll/reused_path_tests.rs"]
+mod reused_path_tests;

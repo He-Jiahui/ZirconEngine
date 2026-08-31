@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::error::Error;
 use std::ffi::OsString;
 use std::fmt;
@@ -313,7 +314,7 @@ fn capture_output_stream(
     mut reader: impl Read,
     mut output: File,
 ) -> std::io::Result<CapturedCommandOutput> {
-    let mut tail = std::collections::VecDeque::with_capacity(MAX_COMMAND_OUTPUT_TAIL_BYTES);
+    let mut tail = VecDeque::with_capacity(MAX_COMMAND_OUTPUT_TAIL_BYTES);
     let mut byte_count = 0_u64;
     let mut digest = blake3::Hasher::new();
     let mut chunk = [0_u8; 16 * 1024];
@@ -333,10 +334,14 @@ fn capture_output_stream(
     }
     output.sync_all()?;
     Ok(CapturedCommandOutput {
-        tail: tail.into_iter().collect(),
+        tail: finalize_captured_output_tail(tail),
         byte_count,
         digest: digest.finalize(),
     })
+}
+
+fn finalize_captured_output_tail(tail: VecDeque<u8>) -> Vec<u8> {
+    Vec::from(tail)
 }
 
 fn join_output_capture(
@@ -418,3 +423,7 @@ mod tests {
         hasher.finish()
     }
 }
+
+#[cfg(test)]
+#[path = "compile_host/zero_copy_tail_finalization_tests.rs"]
+mod zero_copy_tail_finalization_tests;

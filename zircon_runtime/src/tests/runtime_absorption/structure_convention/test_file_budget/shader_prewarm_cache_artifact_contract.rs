@@ -25,7 +25,9 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
     let prewarm_report =
         read_repo("zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs");
     let prewarm_write_path =
-        read_repo("zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs");
+        read_repo("zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs");
+    let prewarm_tests =
+        read_repo("zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs");
     let cache_contract = read_repo("tools/zircon_build_shader_prewarm_cache_artifacts.py");
     let written_variants_helper =
         read_repo("tools/zircon_build_shader_prewarm_written_variants.py");
@@ -69,6 +71,12 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
             "report.record_written_cache_entry(",
             "disk_key.hash",
             "disk_key.canonical_string",
+        ],
+    );
+    assert_contains_all(
+        "rust shader prewarm regressions cover custom ids and staged fallback lookup",
+        &prewarm_tests,
+        &[
             "render_shader_variant_prewarm_custom_ids_survive_disk_lookup",
             "variant_key_for_custom_ids(4, 16)",
             "GeometrySourceId::new(geometry_source)",

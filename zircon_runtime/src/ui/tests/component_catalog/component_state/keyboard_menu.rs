@@ -545,6 +545,38 @@ fn dropdown_popup_keyboard_text_reuses_menu_typeahead_focus_rules() {
     );
 }
 
+#[test]
+fn popup_directional_navigation_enters_from_no_focused_row() {
+    let registry = UiComponentDescriptorRegistry::material_editor_foundation();
+    let context_menu = registry
+        .descriptor("ContextMenu")
+        .expect("ContextMenu descriptor");
+    let options = UiValue::Array(vec![
+        menu_option("open", "Open Scene"),
+        menu_option("rename", "Rename"),
+        menu_option("close", "Close View"),
+    ]);
+
+    for (action, expected) in [
+        (UiComponentKeyboardAction::Next, 0),
+        (UiComponentKeyboardAction::Previous, 2),
+    ] {
+        let mut state = UiComponentState::new()
+            .with_value("options", options.clone())
+            .with_value("focused_index", UiValue::Int(-1));
+
+        state
+            .apply_event(context_menu, UiComponentEvent::KeyboardAction { action })
+            .unwrap();
+
+        assert_eq!(
+            state.value("focused_index"),
+            Some(&UiValue::Int(expected)),
+            "the first directional key must enter at its corresponding menu edge"
+        );
+    }
+}
+
 fn menu_option(id: &str, label: &str) -> UiValue {
     UiValue::Map(
         [

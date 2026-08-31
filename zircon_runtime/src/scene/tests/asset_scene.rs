@@ -1,9 +1,10 @@
 use std::fs;
 
 use crate::asset::{
-    AssetReference, AssetUri, AssetUuid, ImportedAsset, SceneAsset, SceneCameraTargetAsset,
-    SceneEntityAsset, SceneMeshInstanceAsset, SceneMeshLodLevelAsset,
-    SceneMeshPrimitiveBindingAsset, SceneMobilityAsset, SceneScriptBindingAsset, TransformAsset,
+    AssetReference, AssetUri, AssetUuid, ImportedAsset, PrefabInstanceAsset,
+    PrefabPropertyOverrideAsset, SceneAsset, SceneCameraTargetAsset, SceneEntityAsset,
+    SceneMeshInstanceAsset, SceneMeshLodLevelAsset, SceneMeshPrimitiveBindingAsset,
+    SceneMobilityAsset, SceneScriptBindingAsset, TransformAsset,
 };
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::render::{
@@ -20,7 +21,7 @@ use crate::scene::components::NodeKind;
 use crate::scene::world::{SceneProjectError, World};
 
 use super::authoring_boundary::{
-    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
+    SERIALIZED_AUTHORING_TOKENS, assert_text_excludes_authoring_tokens,
 };
 use super::support::{
     create_test_project, project_animation_clip_handle, project_animation_graph_handle,

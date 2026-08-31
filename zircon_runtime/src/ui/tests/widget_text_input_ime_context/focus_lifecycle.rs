@@ -39,7 +39,7 @@ fn text_input_focus_enables_ime_and_clear_focus_disables_it() {
 }
 
 #[test]
-fn text_input_focus_loss_commits_active_preedit_before_disabling_ime() {
+fn text_input_focus_loss_cancels_active_preedit_before_disabling_ime() {
     let mut surface = focused_text_input_with_active_preedit();
 
     let result = surface.apply_dispatch_reply(
@@ -50,9 +50,10 @@ fn text_input_focus_loss_commits_active_preedit_before_disabling_ime() {
         }),
     );
 
-    assert_eq!(text_attr(&surface, "content"), "aXc");
+    assert_eq!(text_attr(&surface, "content"), "abc");
     assert_eq!(text_attr(&surface, "composition_text"), "");
     assert_eq!(surface.input.input_method_owner, None);
+    assert!(result.widget_events.is_empty());
     assert!(has_input_method_host_request(
         &result,
         UiInputMethodRequestKind::Disable,
@@ -62,9 +63,120 @@ fn text_input_focus_loss_commits_active_preedit_before_disabling_ime() {
         matches!(
             &report.event,
             UiComponentEvent::Commit { property, value }
-                if property == "content" && value.display_text() == "aXc"
+                if property == "content" && value.display_text() == "abc"
         )
     }));
+}
+
+#[test]
+fn text_input_focus_loss_without_preedit_publishes_current_value_commit() {
+    let mut surface = text_input_surface_with_selection("abc", 3, 3, 3);
+    surface
+        .tree
+        .nodes
+        .get_mut(&UiNodeId::new(2))
+        .and_then(|node| node.template_metadata.as_mut())
+        .expect("text input metadata")
+        .bindings
+        .push(binding("SearchBox/Submit", UiEventKind::Submit));
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = surface.apply_dispatch_reply(
+        input_method_lifecycle_event(),
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::ClearFocus {
+            target: UiNodeId::new(2),
+            reason: UiFocusEffectReason::Dismissal,
+        }),
+    );
+
+    assert!(result.component_events.iter().any(|report| {
+        matches!(
+            &report.event,
+            UiComponentEvent::Commit { property, value }
+                if property == "content" && value.display_text() == "abc"
+        )
+    }));
+    assert!(result.widget_events.is_empty());
+}
+
+#[test]
+fn secure_text_input_focus_loss_publishes_opaque_commit_without_an_ime_owner() {
+    let mut surface = text_input_surface_with_selection_and_attributes(
+        "secret",
+        6,
+        6,
+        6,
+        [("secure", toml::Value::Boolean(true))],
+    );
+    surface
+        .tree
+        .nodes
+        .get_mut(&UiNodeId::new(2))
+        .and_then(|node| node.template_metadata.as_mut())
+        .expect("text input metadata")
+        .bindings
+        .push(binding("SearchBox/Submit", UiEventKind::Submit));
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+    assert_eq!(surface.input.input_method_owner, None);
+
+    let result = surface.apply_dispatch_reply(
+        input_method_lifecycle_event(),
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::ClearFocus {
+            target: UiNodeId::new(2),
+            reason: UiFocusEffectReason::Dismissal,
+        }),
+    );
+
+    assert!(result.component_events.iter().any(|report| {
+        matches!(
+            &report.event,
+            UiComponentEvent::SecureCommit { property, .. } if property == "content"
+        ) && report
+            .template_action
+            .as_ref()
+            .is_some_and(|action| action.target_id() == "SearchBox.Submit")
+    }));
+    assert!(!result.component_events.iter().any(|report| {
+        matches!(
+            &report.event,
+            UiComponentEvent::Commit { value, .. } if value.display_text() == "secret"
+        )
+    }));
+}
+
+#[test]
+fn read_only_text_input_focus_loss_cancels_preedit_without_commit_notification() {
+    let mut surface = focused_text_input_with_active_preedit();
+    surface
+        .tree
+        .nodes
+        .get_mut(&UiNodeId::new(2))
+        .and_then(|node| node.template_metadata.as_mut())
+        .expect("text input metadata")
+        .attributes
+        .insert("read_only".to_string(), toml::Value::Boolean(true));
+
+    let result = surface.apply_dispatch_reply(
+        input_method_lifecycle_event(),
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::ClearFocus {
+            target: UiNodeId::new(2),
+            reason: UiFocusEffectReason::Dismissal,
+        }),
+    );
+
+    assert_eq!(text_attr(&surface, "content"), "abc");
+    assert_eq!(text_attr(&surface, "composition_text"), "");
+    assert!(
+        !result
+            .component_events
+            .iter()
+            .any(|report| matches!(&report.event, UiComponentEvent::Commit { .. }))
+    );
+    assert!(has_input_method_host_request(
+        &result,
+        UiInputMethodRequestKind::Disable,
+        UiNodeId::new(2)
+    ));
 }
 
 #[test]
@@ -74,7 +186,7 @@ fn secure_text_input_focus_disables_ime_without_exposing_an_owner() {
         8,
         8,
         8,
-        [("secure", toml::Value::Boolean(true))],
+        [("input_kind", toml::Value::String("password".to_string()))],
     );
 
     let result = surface.apply_dispatch_reply(
@@ -181,7 +293,7 @@ fn modal_redirect_to_another_text_input_enables_the_actual_focus_target_ime() {
 }
 
 #[test]
-fn hidden_text_input_commits_preedit_and_disables_ime_on_next_tick() {
+fn hidden_text_input_cancels_preedit_and_disables_ime_on_next_tick() {
     let mut surface = focused_text_input_with_active_preedit();
     let mut manager = UiInputManager::default();
     let focus_change_count = surface.focus.changes.len();
@@ -196,7 +308,7 @@ fn hidden_text_input_commits_preedit_and_disables_ime_on_next_tick() {
 
     assert_eq!(surface.focus.focused, None);
     assert_eq!(surface.focus.changes.len(), focus_change_count + 1);
-    assert_eq!(text_attr(&surface, "content"), "aXc");
+    assert_eq!(text_attr(&surface, "content"), "abc");
     assert_eq!(text_attr(&surface, "composition_text"), "");
     manager
         .tick(&mut surface, UiInputTimestamp::from_micros(48))
@@ -208,7 +320,7 @@ fn hidden_text_input_commits_preedit_and_disables_ime_on_next_tick() {
 }
 
 #[test]
-fn disabled_text_input_commits_preedit_and_disables_ime_on_next_tick() {
+fn disabled_text_input_cancels_preedit_and_disables_ime_on_next_tick() {
     let mut surface = focused_text_input_with_active_preedit();
     let mut manager = UiInputManager::default();
 
@@ -221,7 +333,7 @@ fn disabled_text_input_commits_preedit_and_disables_ime_on_next_tick() {
         .unwrap();
 
     assert_eq!(surface.focus.focused, None);
-    assert_eq!(text_attr(&surface, "content"), "aXc");
+    assert_eq!(text_attr(&surface, "content"), "abc");
     assert_eq!(text_attr(&surface, "composition_text"), "");
     manager
         .tick(&mut surface, UiInputTimestamp::from_micros(48))
@@ -233,7 +345,7 @@ fn disabled_text_input_commits_preedit_and_disables_ime_on_next_tick() {
 }
 
 #[test]
-fn detached_text_input_commits_preedit_before_recycling_and_disables_ime() {
+fn detached_text_input_cancels_preedit_before_recycling_and_disables_ime() {
     let mut surface = focused_text_input_with_active_preedit();
     let mut manager = UiInputManager::default();
 
@@ -248,20 +360,22 @@ fn detached_text_input_commits_preedit_before_recycling_and_disables_ime() {
         manager.drain_ime_host_requests(),
         vec![ImeHostRequest::Disable]
     );
-    assert!(results
-        .iter()
-        .flat_map(|result| &result.component_events)
-        .any(|report| {
-            matches!(
-                &report.event,
-                UiComponentEvent::Commit { property, value }
-                    if property == "content" && value.display_text() == "aXc"
-            )
-        }));
+    assert!(
+        results
+            .iter()
+            .flat_map(|result| &result.component_events)
+            .any(|report| {
+                matches!(
+                    &report.event,
+                    UiComponentEvent::Commit { property, value }
+                        if property == "content" && value.display_text() == "abc"
+                )
+            })
+    );
 }
 
 #[test]
-fn detached_unfocused_ime_owner_commits_preedit_and_disables_ime_on_the_same_tick() {
+fn detached_unfocused_ime_owner_cancels_preedit_without_a_focus_commit() {
     let mut surface = unfocused_text_input_with_active_preedit();
     let mut manager = UiInputManager::default();
 
@@ -275,16 +389,12 @@ fn detached_unfocused_ime_owner_commits_preedit_and_disables_ime_on_the_same_tic
         manager.drain_ime_host_requests(),
         vec![ImeHostRequest::Disable]
     );
-    assert!(results
-        .iter()
-        .flat_map(|result| &result.component_events)
-        .any(|report| {
-            matches!(
-                &report.event,
-                UiComponentEvent::Commit { property, value }
-                    if property == "content" && value.display_text() == "aXc"
-            )
-        }));
+    assert!(
+        !results
+            .iter()
+            .flat_map(|result| &result.component_events)
+            .any(|report| matches!(&report.event, UiComponentEvent::Commit { .. }))
+    );
 }
 
 fn has_input_method_host_request(

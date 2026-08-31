@@ -1,5 +1,6 @@
 use super::super::super::invalidation::HostInvalidationDiagnostics;
 use super::super::overlay_text::refresh_overlay_text;
+use super::super::overlay_text::refresh_overlay_text_with_invalidation;
 use super::super::timing::{record_present_timing, refresh_fps};
 use super::HostRefreshDiagnostics;
 
@@ -54,5 +55,12 @@ impl HostRefreshDiagnostics {
 
     pub(crate) fn overlay_text(&self) -> String {
         refresh_overlay_text(self)
+    }
+
+    pub(crate) fn overlay_text_with_invalidation_diagnostics(
+        &self,
+        invalidation: HostInvalidationDiagnostics,
+    ) -> String {
+        refresh_overlay_text_with_invalidation(self, invalidation)
     }
 }

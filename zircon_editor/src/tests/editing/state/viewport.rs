@@ -1,6 +1,3 @@
-use std::any::Any;
-use std::sync::Arc;
-
 use crate::core::editing::engine::{
     CommandExecutionError, EditCommand, EditCommandError, EditContext, HistoryContextId,
 };
@@ -8,12 +5,15 @@ use crate::core::editing::intent::EditorIntent;
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, HandleElementExtract, OverlayAxis, ProjectionMode, TransformHandleKind,
-    ViewportCameraSnapshot,
+    DisplayMode, GridMode, HandleElementExtract, OverlayAxis, PivotMode, ProjectionMode,
+    TransformHandleKind, ViewportCameraSnapshot,
 };
 use crate::ui::binding::ViewportCommand;
 use crate::ui::workbench::startup::WelcomePaneSnapshot;
-use crate::ui::workbench::state::EditorState;
+use crate::ui::workbench::state::{
+    EditorState, EditorStateOperationError, EditorViewportStateError, GizmoTransactionError,
+};
+use std::{any::Any, sync::Arc};
 use zircon_runtime::asset::pipeline::manager::{ProjectAssetManager, ProjectAssetManagerAccess};
 use zircon_runtime::core::framework::render::{
     CapturedFrame, RenderFramework, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
@@ -122,7 +122,7 @@ fn box_selection_applies_extend_and_toggle_mutations_across_pointer_lifecycle() 
 #[test]
 fn viewport_clicking_light_gizmo_selects_light_node() {
     let mut state = test_state();
-    let light = state.world.with_world(|scene| {
+    let light = state.world.expect_with_world(|scene| {
         scene
             .nodes()
             .iter()
@@ -231,8 +231,10 @@ fn render_frame_submission_projects_active_domain_multiselection_through_gateway
 #[test]
 fn viewport_authoring_commands_do_not_mutate_runtime_world_or_default_extract() {
     let mut state = test_state();
-    let world_before = state.world.with_world(|scene| scene.clone());
-    let runtime_before = state.world.with_world(|scene| scene.to_render_extract());
+    let world_before = state.world.expect_with_world(|scene| scene.clone());
+    let runtime_before = state
+        .world
+        .expect_with_world(|scene| scene.to_render_extract());
 
     let _ = state.apply_viewport_command(&ViewportCommand::SetProjectionMode(
         ProjectionMode::Orthographic,
@@ -255,8 +257,10 @@ fn viewport_authoring_commands_do_not_mutate_runtime_world_or_default_extract() 
     assert!(!authored.preview.lighting_enabled);
     assert!(!authored.preview.skybox_enabled);
 
-    let world_after = state.world.with_world(|scene| scene.clone());
-    let runtime_after = state.world.with_world(|scene| scene.to_render_extract());
+    let world_after = state.world.expect_with_world(|scene| scene.clone());
+    let runtime_after = state
+        .world
+        .expect_with_world(|scene| scene.to_render_extract());
     assert_eq!(
         world_after, world_before,
         "viewport authoring commands should stay editor-owned instead of mutating the runtime world"
@@ -290,7 +294,7 @@ fn render_frame_submission_hud_text_renders_through_runtime_glyph_capture() {
     assert_eq!(with_text_stats.last_ui_quad_count, 1);
     assert_eq!(with_text_stats.last_ui_text_payload_count, 1);
 
-    let mut background_only = ui;
+    let mut background_only = ui.as_ref().clone();
     background_only.tree_id = UiTreeId::new("zircon.editor.viewport.hud.background-only");
     background_only
         .list
@@ -301,7 +305,7 @@ fn render_frame_submission_hud_text_renders_through_runtime_glyph_capture() {
 
     let (without_text, without_text_stats) = capture_editor_submission(
         submission.extract,
-        Some(background_only),
+        Some(Arc::new(background_only)),
         state.viewport_state().size,
     );
     assert_eq!(without_text_stats.last_ui_command_count, 1);
@@ -342,7 +346,7 @@ fn viewport_handle_drag_collapses_into_single_undoable_command() {
     assert_ne!(
         state
             .world
-            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+            .expect_with_world(|scene| scene.find_node(cube).unwrap().transform),
         start
     );
 
@@ -350,7 +354,7 @@ fn viewport_handle_drag_collapses_into_single_undoable_command() {
     assert_eq!(
         state
             .world
-            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+            .expect_with_world(|scene| scene.find_node(cube).unwrap().transform),
         start
     );
     let after_undo = state.snapshot();
@@ -361,7 +365,7 @@ fn viewport_handle_drag_collapses_into_single_undoable_command() {
     assert_ne!(
         state
             .world
-            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+            .expect_with_world(|scene| scene.find_node(cube).unwrap().transform),
         start
     );
 }
@@ -375,7 +379,7 @@ fn ordinary_scene_edit_cancels_gizmo_before_command_capture() {
         .apply_intent(EditorIntent::RenameNode(cube, "Renamed cube".to_string()))
         .unwrap();
 
-    let (name, transform) = state.world.with_world(|scene| {
+    let (name, transform) = state.world.expect_with_world(|scene| {
         let node = scene.find_node(cube).unwrap();
         (node.name.clone(), node.transform)
     });
@@ -383,7 +387,7 @@ fn ordinary_scene_edit_cancels_gizmo_before_command_capture() {
     assert_eq!(transform, start);
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
-    let (name, transform) = state.world.with_world(|scene| {
+    let (name, transform) = state.world.expect_with_world(|scene| {
         let node = scene.find_node(cube).unwrap();
         (node.name.clone(), node.transform)
     });
@@ -398,8 +402,10 @@ fn deleting_during_drag_cancels_preview_before_command_capture() {
 
     assert!(state.apply_intent(EditorIntent::DeleteNode(cube)).unwrap());
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
-    assert!(state.begin_gizmo_transaction().unwrap());
-    assert!(state.cancel_gizmo_transaction().unwrap());
+    let _ = begin_moved_gizmo_drag(&mut state);
+    state
+        .apply_viewport_command(&ViewportCommand::CancelInteraction)
+        .unwrap();
 }
 
 #[test]
@@ -416,7 +422,36 @@ fn cancel_interaction_command_restores_an_active_gizmo_preview() {
     assert_eq!(
         state
             .world
-            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+            .expect_with_world(|scene| scene.find_node(cube).unwrap().transform),
+        initial
+    );
+}
+
+#[test]
+fn secondary_navigation_buttons_cannot_replace_an_active_gizmo_capture() {
+    let mut state = test_state();
+    let (cube, initial) = begin_moved_gizmo_drag(&mut state);
+
+    for command in [
+        ViewportCommand::RightPressed { x: 640.0, y: 360.0 },
+        ViewportCommand::RightReleased,
+        ViewportCommand::MiddlePressed { x: 640.0, y: 360.0 },
+        ViewportCommand::MiddleReleased,
+    ] {
+        state
+            .apply_viewport_command(&command)
+            .expect("a rejected secondary navigation input must not finish the gizmo edit");
+        assert!(state.viewport_controller.is_handle_drag_active());
+    }
+
+    state
+        .apply_viewport_command(&ViewportCommand::CancelInteraction)
+        .expect("the original gizmo capture remains cancellable");
+
+    assert_eq!(
+        state
+            .world
+            .expect_with_world(|scene| scene.find_node(cube).unwrap().transform),
         initial
     );
 }
@@ -425,7 +460,7 @@ fn cancel_interaction_command_restores_an_active_gizmo_preview() {
 fn missing_drag_target_release_cleans_gizmo_lifecycle() {
     let mut state = test_state();
     let (cube, _) = begin_moved_gizmo_drag(&mut state);
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         assert!(scene.remove_entity(cube).is_ok());
     });
 
@@ -438,6 +473,27 @@ fn missing_drag_target_release_cleans_gizmo_lifecycle() {
     state
         .replace_world(manager.create_default_level(), "replacement-project")
         .expect("release failure must not leave a latched gizmo capture");
+}
+
+#[test]
+fn scene_intent_preserves_stale_interactive_transform_cause() {
+    let mut state = test_state();
+    let (cube, camera) = cube_and_camera(&state);
+    let _ = begin_moved_gizmo_drag(&mut state);
+    state.world.expect_with_world_mut(|scene| {
+        assert!(scene.remove_entity(cube).is_ok());
+    });
+
+    let error = state
+        .apply_intent(EditorIntent::SelectNode(camera))
+        .expect_err("scene intent must preserve active gizmo rollback failure");
+
+    assert!(matches!(
+        error,
+        EditorStateOperationError::GizmoTransaction(
+            GizmoTransactionError::InteractiveTransform { message }
+        ) if message.contains("world generation changed")
+    ));
 }
 
 #[test]
@@ -478,11 +534,17 @@ fn gizmo_transaction_failure_restores_transform() {
         })
         .expect_err("a faulted transaction engine must reject the next gizmo mutation");
 
-    assert!(error.contains("faulted"));
+    assert!(matches!(
+        error,
+        EditorViewportStateError::StateMutation(GizmoTransactionError::EditCommand {
+            source: EditCommandError::EngineFaulted { .. },
+            ..
+        })
+    ));
     assert_eq!(
         state
             .world
-            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+            .expect_with_world(|scene| scene.find_node(cube).unwrap().transform),
         start
     );
     assert!(!state.viewport_controller.is_handle_drag_active());
@@ -502,8 +564,10 @@ fn replacing_world_cancels_the_old_gizmo_capture() {
     state
         .apply_intent(EditorIntent::SelectNode(replacement_cube))
         .unwrap();
-    assert!(state.begin_gizmo_transaction().unwrap());
-    assert!(state.cancel_gizmo_transaction().unwrap());
+    let _ = begin_moved_gizmo_drag(&mut state);
+    state
+        .apply_viewport_command(&ViewportCommand::CancelInteraction)
+        .unwrap();
 }
 
 #[test]
@@ -522,15 +586,41 @@ fn scene_mode_activation_cancels_an_active_gizmo_transaction() {
     assert_eq!(
         state
             .world
-            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+            .expect_with_world(|scene| scene.find_node(cube).unwrap().transform),
         initial
     );
     assert_eq!(
         state.viewport_controller.active_scene_mode(),
         SceneModeActivation::Select
     );
-    assert!(state.begin_gizmo_transaction().unwrap());
-    assert!(state.cancel_gizmo_transaction().unwrap());
+    let _ = begin_moved_gizmo_drag(&mut state);
+    state
+        .apply_viewport_command(&ViewportCommand::CancelInteraction)
+        .unwrap();
+}
+
+#[test]
+fn pivot_mode_change_cancels_an_active_gizmo_transaction_before_switching() {
+    let mut state = test_state();
+    let (cube, initial) = begin_moved_gizmo_drag(&mut state);
+    assert!(state.viewport_controller.is_handle_drag_active());
+
+    let feedback = state
+        .apply_viewport_command(&ViewportCommand::SetPivotMode(PivotMode::Primary))
+        .expect("pivot mode change should cancel and restore the active preview");
+
+    assert!(!state.viewport_controller.is_handle_drag_active());
+    assert!(feedback.settings_changed);
+    assert_eq!(
+        state
+            .world
+            .expect_with_world(|scene| scene.find_node(cube).unwrap().transform),
+        initial
+    );
+    assert_eq!(
+        state.viewport_controller.interactive_transform_pivot_mode(),
+        PivotMode::Primary
+    );
 }
 
 #[test]
@@ -544,7 +634,12 @@ fn faulted_transaction_engine_blocks_world_replacement() {
         .replace_world(manager.create_default_level(), "replacement-project")
         .expect_err("faulted transaction state must not cross into a new world");
 
-    assert!(error.contains("faulted"));
+    assert!(matches!(
+        error,
+        crate::ui::workbench::state::EditorStateOperationError::EditCommand(
+            EditCommandError::EngineFaulted { .. }
+        )
+    ));
     assert_eq!(state.world.snapshot(), original);
 }
 
@@ -558,16 +653,21 @@ fn faulted_transaction_engine_blocks_project_clear() {
         .clear_project(WelcomePaneSnapshot::default())
         .expect_err("faulted transaction state must not be hidden by project clear");
 
-    assert!(error.contains("faulted"));
+    assert!(matches!(
+        error,
+        crate::ui::workbench::state::EditorStateOperationError::EditCommand(
+            EditCommandError::EngineFaulted { .. }
+        )
+    ));
     assert_eq!(state.world.snapshot(), original);
     assert!(state.has_project_world());
 }
 
-pub(super) fn begin_moved_gizmo_drag(state: &mut EditorState) -> (u64, Transform) {
+pub(crate) fn begin_moved_gizmo_drag(state: &mut EditorState) -> (u64, Transform) {
     let cube = cube_id(state);
     let start = state
         .world
-        .with_world(|scene| scene.find_node(cube).unwrap().transform);
+        .expect_with_world(|scene| scene.find_node(cube).unwrap().transform);
     state
         .apply_viewport_command(&ViewportCommand::ActivateSceneMode(
             SceneModeActivation::Transform(TransformHandleKind::Move),
@@ -590,7 +690,7 @@ pub(super) fn begin_moved_gizmo_drag(state: &mut EditorState) -> (u64, Transform
     assert_ne!(
         state
             .world
-            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+            .expect_with_world(|scene| scene.find_node(cube).unwrap().transform),
         start
     );
     (cube, start)
@@ -645,7 +745,7 @@ fn project_entity_cursor(
     let packet = state.render_snapshot().expect("render packet");
     let transform = state
         .world
-        .with_world(|scene| scene.world_transform(entity).unwrap());
+        .expect_with_world(|scene| scene.world_transform(entity).unwrap());
     project_world_position(
         &packet.scene.camera,
         state.viewport_state().size,
@@ -654,7 +754,7 @@ fn project_entity_cursor(
     .expect("entity cursor")
 }
 
-fn move_handle_drag_cursor_pair(state: &EditorState, cube: u64) -> (Vec2, Vec2) {
+pub(crate) fn move_handle_drag_cursor_pair(state: &EditorState, cube: u64) -> (Vec2, Vec2) {
     let packet = state.render_snapshot().expect("render packet");
     let handle = packet
         .overlays
@@ -724,14 +824,18 @@ fn project_world_position(
 
 fn capture_editor_submission(
     extract: zircon_runtime::core::framework::render::RenderFrameExtract,
-    ui: Option<UiRenderExtract>,
+    ui: Option<Arc<UiRenderExtract>>,
     viewport_size: UVec2,
 ) -> (CapturedFrame, RenderStats) {
     const ASYNC_TEXT_SETTLE_FRAME_COUNT: usize = 24;
 
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let (_asset_runtime, asset_manager_access) = editor_render_asset_access(asset_manager);
-    let framework = WgpuRenderFramework::new(asset_manager_access).expect("render framework");
+    let (asset_runtime, asset_manager_access) = editor_render_asset_access(asset_manager);
+    let framework = WgpuRenderFramework::new(
+        asset_manager_access,
+        asset_runtime.task_graph().worker_pool().clone(),
+    )
+    .expect("render framework");
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .expect("viewport");
@@ -745,8 +849,11 @@ fn capture_editor_submission(
         )
         .expect("quality profile");
     for _ in 0..ASYNC_TEXT_SETTLE_FRAME_COUNT {
+        let ui = ui.as_ref().map(|extract| {
+            zircon_runtime::core::framework::render::UiRenderSubmission::single(Arc::clone(extract))
+        });
         framework
-            .submit_frame_extract_with_ui(viewport, extract.clone(), ui.clone())
+            .submit_frame_extract_with_ui(viewport, extract.clone(), ui)
             .expect("frame submission");
     }
     let stats = framework.query_stats().expect("render stats");

@@ -7,6 +7,10 @@ use super::{
     NativePluginDiscoveryRefreshWork,
 };
 
+#[cfg(test)]
+#[path = "manifest_index/capacity_tests.rs"]
+mod capacity_tests;
+
 /// Immutable manifest-path truth used to project deterministic candidates and duplicate reports.
 #[derive(Clone, Debug, Default)]
 pub(super) struct NativePluginDiscoveryManifestIndex {
@@ -82,7 +86,7 @@ impl NativePluginDiscoveryManifestIndex {
 
     pub(super) fn project(&self) -> (Vec<NativePluginCandidate>, Vec<String>) {
         let mut selected = BTreeMap::<String, PathBuf>::new();
-        let mut candidates = Vec::new();
+        let mut candidates = Vec::with_capacity(self.candidates.len());
         let mut diagnostics = Vec::new();
 
         for (manifest_path, candidate) in &self.candidates {

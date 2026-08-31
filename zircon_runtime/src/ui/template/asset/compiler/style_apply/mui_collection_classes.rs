@@ -163,28 +163,29 @@ fn append_list_subheader_classes(node: &mut UiTemplateNode, prefix: &str) {
 }
 
 fn append_image_list_item_classes(node: &mut UiTemplateNode, prefix: &str) {
-    let variant =
-        string_attribute_any(node, &["variant"]).unwrap_or_else(|| "standard".to_string());
+    let variant = borrowed_collection_attribute(&node.attributes, &["variant"], "standard");
     append_class(&mut node.classes, format!("{prefix}-{variant}"));
 }
 
 fn append_image_list_item_bar_classes(node: &mut UiTemplateNode, prefix: &str) {
-    let position =
-        string_attribute_any(node, &["position"]).unwrap_or_else(|| "bottom".to_string());
-    let action_position = string_attribute_any(node, &["actionPosition", "action_position"])
-        .unwrap_or_else(|| "right".to_string());
-    append_class(
-        &mut node.classes,
-        format!("{prefix}-position{}", pascal_case(&position)),
+    let position = borrowed_collection_attribute(&node.attributes, &["position"], "bottom");
+    let action_position = borrowed_collection_attribute(
+        &node.attributes,
+        &["actionPosition", "action_position"],
+        "right",
     );
     append_class(
         &mut node.classes,
-        format!("{prefix}-actionPosition{}", pascal_case(&action_position)),
+        format!("{prefix}-position{}", pascal_case(position)),
+    );
+    append_class(
+        &mut node.classes,
+        format!("{prefix}-actionPosition{}", pascal_case(action_position)),
     );
 }
 
 fn append_table_cell_classes(node: &mut UiTemplateNode, prefix: &str) {
-    let variant = string_attribute_any(node, &["variant"]).unwrap_or_else(|| "body".to_string());
+    let variant = borrowed_collection_attribute(&node.attributes, &["variant"], "body");
     append_class(&mut node.classes, format!("{prefix}-{variant}"));
     if bool_attribute_any(node, &["stickyHeader", "sticky_header"]) {
         append_class(&mut node.classes, format!("{prefix}-stickyHeader"));
@@ -203,10 +204,10 @@ fn append_table_cell_classes(node: &mut UiTemplateNode, prefix: &str) {
             format!("{prefix}-padding{}", pascal_case(&padding)),
         );
     }
-    let size = string_attribute_any(node, &["size"]).unwrap_or_else(|| "medium".to_string());
+    let size = borrowed_collection_attribute(&node.attributes, &["size"], "medium");
     append_class(
         &mut node.classes,
-        format!("{prefix}-size{}", pascal_case(&size)),
+        format!("{prefix}-size{}", pascal_case(size)),
     );
 }
 
@@ -228,11 +229,32 @@ fn append_table_sort_label_classes(node: &mut UiTemplateNode, prefix: &str) {
     if bool_attribute(node, "active") {
         append_class(&mut node.classes, format!("{prefix}-active"));
     }
-    let direction = string_attribute_any(node, &["direction"]).unwrap_or_else(|| "asc".to_string());
+    let direction = borrowed_collection_attribute(&node.attributes, &["direction"], "asc");
     append_class(
         &mut node.classes,
-        format!("{prefix}-direction{}", pascal_case(&direction)),
+        format!("{prefix}-direction{}", pascal_case(direction)),
     );
+}
+
+fn borrowed_collection_attribute<'a>(
+    attributes: &'a BTreeMap<String, Value>,
+    names: &[&str],
+    default: &'a str,
+) -> &'a str {
+    borrowed_string_from_attributes_any(attributes, names).unwrap_or(default)
+}
+
+fn borrowed_string_from_attributes_any<'a>(
+    attributes: &'a BTreeMap<String, Value>,
+    names: &[&str],
+) -> Option<&'a str> {
+    names.iter().find_map(|name| {
+        attributes
+            .get(*name)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+    })
 }
 
 fn has_text_node(node: &UiTemplateNode, attributes: &[&str]) -> bool {
@@ -248,3 +270,7 @@ fn has_text_slot(owner_attributes: &BTreeMap<String, Value>, slot_name: &str) ->
         _ => false,
     }
 }
+
+#[cfg(test)]
+#[path = "mui_collection_classes/borrowed_default_tests.rs"]
+mod borrowed_default_tests;

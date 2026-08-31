@@ -3,6 +3,8 @@ use zircon_runtime_interface::ui::{
     surface::UiNavigationEventKind,
 };
 
+const MAX_NORMALIZED_DIRECTION_KEY_BYTES: usize = "gamepaddpadright".len();
+
 pub(super) fn keyboard_navigation_kind(
     keyboard: &UiKeyboardInputEvent,
 ) -> Option<UiNavigationEventKind> {
@@ -43,25 +45,31 @@ fn directional_navigation_kind(keyboard: &UiKeyboardInputEvent) -> Option<UiNavi
 }
 
 fn logical_directional_navigation_kind(logical_key: &str) -> Option<UiNavigationEventKind> {
-    if normalized_key_matches_any(logical_key, &["arrowleft", "left", "gamepaddpadleft"]) {
-        Some(UiNavigationEventKind::Left)
-    } else if normalized_key_matches_any(logical_key, &["arrowup", "up", "gamepaddpadup"]) {
-        Some(UiNavigationEventKind::Up)
-    } else if normalized_key_matches_any(logical_key, &["arrowright", "right", "gamepaddpadright"])
-    {
-        Some(UiNavigationEventKind::Right)
-    } else if normalized_key_matches_any(logical_key, &["arrowdown", "down", "gamepaddpaddown"]) {
-        Some(UiNavigationEventKind::Down)
-    } else {
-        None
+    let (normalized, len) = normalized_direction_key(logical_key)?;
+    match &normalized[..len] {
+        b"arrowleft" | b"left" | b"gamepaddpadleft" => Some(UiNavigationEventKind::Left),
+        b"arrowup" | b"up" | b"gamepaddpadup" => Some(UiNavigationEventKind::Up),
+        b"arrowright" | b"right" | b"gamepaddpadright" => Some(UiNavigationEventKind::Right),
+        b"arrowdown" | b"down" | b"gamepaddpaddown" => Some(UiNavigationEventKind::Down),
+        _ => None,
     }
 }
 
-fn normalized_key_matches_any(key: &str, expected: &[&str]) -> bool {
-    expected.iter().any(|expected| {
-        key.bytes()
-            .filter(u8::is_ascii_alphanumeric)
-            .map(|byte| byte.to_ascii_lowercase())
-            .eq(expected.bytes())
-    })
+fn normalized_direction_key(
+    key: &str,
+) -> Option<([u8; MAX_NORMALIZED_DIRECTION_KEY_BYTES], usize)> {
+    let mut normalized = [0; MAX_NORMALIZED_DIRECTION_KEY_BYTES];
+    let mut len = 0;
+    for byte in key.bytes().filter(u8::is_ascii_alphanumeric) {
+        if len == normalized.len() {
+            return None;
+        }
+        normalized[len] = byte.to_ascii_lowercase();
+        len += 1;
+    }
+    Some((normalized, len))
 }
+
+#[cfg(test)]
+#[path = "keyboard_navigation/single_normalize_tests.rs"]
+mod single_normalize_tests;

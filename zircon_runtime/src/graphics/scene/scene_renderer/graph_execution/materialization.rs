@@ -1,18 +1,23 @@
-use crate::render_graph::CompiledRenderGraph;
+use crate::render_graph::{CompiledRenderGraph, RenderGraphResource};
 use crate::rhi::{
-    BufferDesc, BufferUsage, TextureDesc, TextureDimension, TextureFormat, TextureUsage,
+    BufferDesc, BufferUsage, RenderDeviceProfile, TextureDesc, TextureDimension, TextureFormat,
+    TextureUsage,
 };
 
 use super::{
-    render_graph_execution_resources::RenderGraphExecutionResources, TransientResourcePool,
+    TransientResourcePool, render_graph_execution_resources::RenderGraphExecutionResources,
 };
 
 pub(super) fn materialize_transient_resources(
     resources: &mut RenderGraphExecutionResources,
     device: &wgpu::Device,
+    device_profile: &RenderDeviceProfile,
     graph: &CompiledRenderGraph,
     pool: &mut TransientResourcePool,
 ) -> Result<(), String> {
+    pool.ensure_active_device_profile(device_profile)?;
+    resources.clear_transient_access_bindings();
+    resources.clear_persistent_texture_access_bindings();
     // Compiled lifetimes only include live passes, so culled scratch writers
     // never receive concrete WGPU backing.
     let lifetimes = graph.resource_lifetimes();
@@ -23,25 +28,39 @@ pub(super) fn materialize_transient_resources(
         resources, device, graph, pool,
     )?;
     for lifetime in lifetimes {
-        if lifetime.imported {
-            continue;
-        }
-        let Some((parent, mip_level)) =
-            super::transient_materialization::ssr_pyramid_mip_alias_for_lifetimes(
-                lifetimes,
-                &lifetime.name,
-            )
-        else {
+        let Some(alias) = lifetime.texture_view_alias else {
             continue;
         };
-        let view = resources.owned_texture_mip_view(parent, mip_level)?;
-        resources.import_texture_view(lifetime.name.clone(), view);
+        let parent = graph
+            .resource_lifetime(RenderGraphResource::TransientTexture(alias.parent))
+            .ok_or_else(|| {
+                format!(
+                    "render graph texture view alias `{}` references undeclared parent {:?}",
+                    lifetime.name, alias.parent
+                )
+            })?;
+        resources.bind_owned_texture_subresource_view(
+            lifetime.name.clone(),
+            &parent.name,
+            alias.range,
+        )?;
     }
+    resources.materialize_transient_access_bindings(graph)?;
+    resources.materialize_persistent_texture_access_bindings(graph)?;
     Ok(())
 }
 
-pub(super) fn create_wgpu_texture(device: &wgpu::Device, desc: &TextureDesc) -> wgpu::Texture {
-    device.create_texture(&wgpu::TextureDescriptor {
+pub(super) fn create_wgpu_texture(
+    device: &wgpu::Device,
+    desc: &TextureDesc,
+) -> Result<wgpu::Texture, String> {
+    let view_formats = desc
+        .view_formats
+        .iter()
+        .copied()
+        .map(wgpu_texture_format)
+        .collect::<Vec<_>>();
+    Ok(device.create_texture(&wgpu::TextureDescriptor {
         label: desc.label.as_deref(),
         size: wgpu::Extent3d {
             width: desc.width,
@@ -52,9 +71,9 @@ pub(super) fn create_wgpu_texture(device: &wgpu::Device, desc: &TextureDesc) -> 
         sample_count: desc.sample_count,
         dimension: wgpu_texture_dimension(desc.dimension),
         format: wgpu_texture_format(desc.format),
-        usage: wgpu_texture_usages(desc.format, desc.usage),
-        view_formats: &[],
-    })
+        usage: wgpu_texture_usages(desc.format, desc.usage)?,
+        view_formats: &view_formats,
+    }))
 }
 
 pub(super) fn create_wgpu_buffer(device: &wgpu::Device, desc: &BufferDesc) -> wgpu::Buffer {
@@ -98,7 +117,12 @@ pub(super) fn wgpu_texture_format(format: TextureFormat) -> wgpu::TextureFormat 
 pub(super) fn wgpu_texture_usages(
     format: TextureFormat,
     usage: TextureUsage,
-) -> wgpu::TextureUsages {
+) -> Result<wgpu::TextureUsages, String> {
+    if usage.contains(TextureUsage::STORAGE) && !format.supports_write_only_storage() {
+        return Err(format!(
+            "texture format {format:?} does not support declared STORAGE usage"
+        ));
+    }
     let mut usages = wgpu::TextureUsages::empty();
     if usage.contains(TextureUsage::RENDER_ATTACHMENT) || usage.contains(TextureUsage::PRESENT) {
         usages |= wgpu::TextureUsages::RENDER_ATTACHMENT;
@@ -106,7 +130,7 @@ pub(super) fn wgpu_texture_usages(
     if usage.contains(TextureUsage::SAMPLED) {
         usages |= wgpu::TextureUsages::TEXTURE_BINDING;
     }
-    if usage.contains(TextureUsage::STORAGE) && supports_storage_binding_usage(format) {
+    if usage.contains(TextureUsage::STORAGE) {
         usages |= wgpu::TextureUsages::STORAGE_BINDING;
     }
     if usage.contains(TextureUsage::COPY_SRC) {
@@ -115,17 +139,7 @@ pub(super) fn wgpu_texture_usages(
     if usage.contains(TextureUsage::COPY_DST) {
         usages |= wgpu::TextureUsages::COPY_DST;
     }
-    usages
-}
-
-fn supports_storage_binding_usage(format: TextureFormat) -> bool {
-    matches!(
-        format,
-        TextureFormat::R32Float
-            | TextureFormat::Rgba8Unorm
-            | TextureFormat::Rgba16Float
-            | TextureFormat::Rgba32Float
-    )
+    Ok(usages)
 }
 
 fn wgpu_buffer_usages(usage: BufferUsage) -> wgpu::BufferUsages {

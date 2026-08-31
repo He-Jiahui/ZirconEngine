@@ -91,6 +91,10 @@ impl ProfileFrameContext {
         }
     }
 
+    pub(crate) fn is_active() -> bool {
+        FRAME_STACK.with(|stack| !stack.borrow().is_empty())
+    }
+
     pub(crate) fn attach(self) -> ProfileFrameContextGuard {
         if let Some(frame_index) = self.frame_index {
             FRAME_STACK.with(|stack| stack.borrow_mut().push(frame_index));

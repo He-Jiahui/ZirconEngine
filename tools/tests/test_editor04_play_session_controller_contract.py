@@ -73,6 +73,36 @@ class PlaySessionControllerContractTests(unittest.TestCase):
         self.assertNotIn(".backend().enter_play_mode", menu)
         self.assertNotIn(".backend().exit_play_mode", menu)
 
+    def test_editor_profile_runtime_is_not_attached_as_a_play_world_at_startup(self) -> None:
+        startup = self.source(
+            "ui/retained_host/app/host_lifecycle/startup/with_viewport.rs"
+        )
+        product = startup.split("#[cfg(test)]", 1)[0]
+
+        self.assertNotIn("attach_play_gateway(runtime_gateway", product)
+
+    def test_backend_without_a_gateway_is_not_attachable_by_default(self) -> None:
+        report = self.source("core/play/backend/report.rs")
+
+        self.assertIn("gateway: None", report)
+        self.assertIn("self.gateway.is_some()", report)
+        self.assertNotIn("pub attachable: bool", report)
+
+    def test_terminal_play_paths_detach_the_identity_qualified_gateway(self) -> None:
+        shutdown = self.source(
+            "ui/host/editor_host_event_controller/runtime_shutdown.rs"
+        )
+        core_controller = self.source("core/play/controller.rs")
+        host_controller = self.source("ui/host/editor_host_event_controller.rs")
+        menu = self.source("ui/host/editor_event_execution/menu_action.rs")
+
+        self.assertIn("detach_terminal_play_gateway", shutdown)
+        self.assertIn("fn detach_terminal_play_gateway", core_controller)
+        self.assertIn("if mode.has_active_runtime()", core_controller)
+        self.assertIn("detach_matching_identity", core_controller)
+        self.assertIn("detach_terminal_play_gateway", host_controller)
+        self.assertGreaterEqual(menu.count("detach_terminal_play_gateway"), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

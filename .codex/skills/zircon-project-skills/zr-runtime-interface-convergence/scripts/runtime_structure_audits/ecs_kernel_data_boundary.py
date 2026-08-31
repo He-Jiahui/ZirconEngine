@@ -100,6 +100,7 @@ def ecs_kernel_data_boundary_audit(root: Path) -> dict[str, object]:
             "zircon_runtime/src/scene/ecs/storage/component_storage/entry.rs",
             "zircon_runtime/src/scene/ecs/storage/component_storage/location.rs",
             "zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs",
+            "zircon_runtime/src/scene/ecs/storage/component_storage/sparse/locator.rs",
             "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
             "zircon_runtime/src/scene/ecs/storage/component_storage/table.rs",
             "zircon_runtime/src/scene/ecs/storage/component_storage/component_results.rs",
@@ -113,6 +114,7 @@ def ecs_kernel_data_boundary_audit(root: Path) -> dict[str, object]:
             "zircon_runtime/src/scene/ecs/component/id.rs",
             "zircon_runtime/src/scene/ecs/component/marker.rs",
             "zircon_runtime/src/scene/ecs/component/registry.rs",
+            "zircon_runtime/src/scene/ecs/component/registry/transferred.rs",
         )
         if (root / file_name).exists()
     )

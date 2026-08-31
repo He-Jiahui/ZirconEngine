@@ -5,11 +5,13 @@ use zr_rhi::{
     UiSurfaceImageResource, UiSurfaceImageUvRect, UiSurfaceRect,
 };
 
-use super::image_cache::UI_IMAGE_TEXTURE_FORMAT;
+use super::color_space::UI_IMAGE_TEXTURE_FORMAT;
 use super::*;
 
 #[path = "tests/native_submission.rs"]
 mod native_submission;
+#[path = "tests/timeline_ownership.rs"]
+mod timeline_ownership;
 
 #[test]
 fn retryable_surface_acquisition_does_not_advance_the_presented_frame_count() {
@@ -254,7 +256,7 @@ fn wgpu_ui_surface_headless_reuses_a_versioned_damage_projection() {
     let second = presenter.present(&draw_list).unwrap();
 
     assert_eq!(first.batch_plan_build_count, 1);
-    assert_eq!(first.command_visibility_scan_count, 1);
+    assert_eq!(first.command_visibility_scan_count, 4);
     assert_eq!(first.command_stats_cache_hit_count, 0);
     assert_eq!(first.visible_command_count, 1);
     assert_eq!(second.batch_plan_build_count, 0);
@@ -326,9 +328,12 @@ fn wgpu_ui_surface_prefers_opaque_swapchain_alpha() {
 
 #[test]
 fn wgpu_ui_surface_requests_gpu_timestamps_only_when_enabled_and_fully_supported() {
-    let disabled = requested_device_features(GPU_TIMESTAMP_REQUIRED_FEATURES, false);
-    let partial = requested_device_features(wgpu::Features::TIMESTAMP_QUERY, true);
-    let full = requested_device_features(GPU_TIMESTAMP_REQUIRED_FEATURES, true);
+    let disabled = requested_device_features(GPU_TIMESTAMP_REQUIRED_FEATURES, false)
+        .expect("baseline UI device policy must negotiate");
+    let partial = requested_device_features(wgpu::Features::TIMESTAMP_QUERY, true)
+        .expect("unavailable optional timing must not reject the UI device");
+    let full = requested_device_features(GPU_TIMESTAMP_REQUIRED_FEATURES, true)
+        .expect("fully supported timing profile must negotiate");
 
     assert!(!disabled.intersects(GPU_TIMESTAMP_REQUIRED_FEATURES));
     assert!(!partial.intersects(GPU_TIMESTAMP_REQUIRED_FEATURES));
@@ -336,8 +341,16 @@ fn wgpu_ui_surface_requests_gpu_timestamps_only_when_enabled_and_fully_supported
 }
 
 #[test]
-fn wgpu_ui_surface_uses_non_srgb_formats_for_byte_exact_editor_parity() {
-    assert_eq!(UI_IMAGE_TEXTURE_FORMAT, wgpu::TextureFormat::Rgba8Unorm);
+fn wgpu_ui_surface_baseline_does_not_implicitly_request_indirect_first_instance() {
+    let features = requested_device_features(wgpu::Features::INDIRECT_FIRST_INSTANCE, false)
+        .expect("baseline UI device policy must negotiate");
+
+    assert!(!features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE));
+}
+
+#[test]
+fn wgpu_ui_surface_prefers_srgb_formats_for_linear_light_editor_composition() {
+    assert_eq!(UI_IMAGE_TEXTURE_FORMAT, wgpu::TextureFormat::Rgba8UnormSrgb);
     assert_eq!(
         choose_surface_format(&[
             wgpu::TextureFormat::Bgra8UnormSrgb,
@@ -345,7 +358,7 @@ fn wgpu_ui_surface_uses_non_srgb_formats_for_byte_exact_editor_parity() {
             wgpu::TextureFormat::Rgba8UnormSrgb,
             wgpu::TextureFormat::Rgba8Unorm,
         ]),
-        Some(wgpu::TextureFormat::Bgra8Unorm)
+        Some(wgpu::TextureFormat::Bgra8UnormSrgb)
     );
     assert_eq!(
         choose_surface_format(&[wgpu::TextureFormat::Rgba8Unorm]),
@@ -356,7 +369,7 @@ fn wgpu_ui_surface_uses_non_srgb_formats_for_byte_exact_editor_parity() {
             wgpu::TextureFormat::Bgra8UnormSrgb,
             wgpu::TextureFormat::Rgba8UnormSrgb,
         ]),
-        None
+        Some(wgpu::TextureFormat::Bgra8UnormSrgb)
     );
 }
 
@@ -512,13 +525,20 @@ fn full_redraw_ignores_damage_without_rebuilding_the_draw_list() {
 }
 
 #[test]
-fn damage_patch_preserves_the_requested_damage_scissor() {
+fn damage_patch_expands_for_analytic_coverage_and_clamps_to_the_surface() {
     let damage = UiSurfaceRect::new(10.0, 10.0, 20.0, 20.0);
     let draw_list = UiSurfaceDrawList::new((100, 100), Some(damage), Vec::new());
 
     assert_eq!(
         render_damage(&draw_list, SurfaceRenderMode::DamagePatch),
-        Some(damage)
+        Some(UiSurfaceRect::new(9.0, 9.0, 22.0, 22.0))
+    );
+
+    let edge_damage = UiSurfaceRect::new(0.0, 0.0, 2.0, 2.0);
+    let edge_draw_list = UiSurfaceDrawList::new((100, 100), Some(edge_damage), Vec::new());
+    assert_eq!(
+        render_damage(&edge_draw_list, SurfaceRenderMode::DamagePatch),
+        Some(UiSurfaceRect::new(0.0, 0.0, 3.0, 3.0))
     );
 }
 

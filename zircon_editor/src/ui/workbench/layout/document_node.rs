@@ -5,6 +5,7 @@ use crate::ui::workbench::view::ViewInstanceId;
 use super::{SplitAxis, TabStackLayout};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub enum DocumentNode {
     SplitNode {
         axis: SplitAxis,

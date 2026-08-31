@@ -5,15 +5,25 @@ use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
 use zircon_runtime::core::framework::render::RenderParticleGpuReadbackOutputs;
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
+use zircon_runtime::graphics::RenderPassBufferUploadSink;
+
+struct QueueUploadSink<'a>(&'a wgpu::Queue);
+
+impl RenderPassBufferUploadSink for QueueUploadSink<'_> {
+    fn write_buffer(&mut self, buffer: &wgpu::Buffer, offset: u64, bytes: &[u8]) {
+        self.0.write_buffer(buffer, offset, bytes);
+    }
+}
 
 use crate::{
     compile_particle_gpu_layout, compile_particle_gpu_program, ParticleBurst, ParticleColorKey,
     ParticleEmitterAsset, ParticleGpuBackend, ParticleGpuCounterReadback,
-    ParticleGpuCpuParityReport, ParticleGpuEmitterFrameParams, ParticleGpuFramePlanner,
-    ParticleGpuPassKind, ParticleGpuReadbackRequest, ParticleGpuRuntimeOwner,
-    ParticleGpuTransparentRenderConfig, ParticleGpuTransparentRenderParams, ParticleShape,
-    ParticleSimulationBackend, ParticleSystemAsset, ParticleSystemComponent, ParticleVec3Range,
-    ParticlesManager, PARTICLE_GPU_MAX_PARTICLES,
+    ParticleGpuCpuParityReport, ParticleGpuEmitterFrameParams, ParticleGpuFrameParams,
+    ParticleGpuFramePlanner, ParticleGpuPassKind, ParticleGpuReadbackRequest,
+    ParticleGpuRuntimeOwner, ParticleGpuTransparentRenderConfig,
+    ParticleGpuTransparentRenderParams, ParticleShape, ParticleSimulationBackend,
+    ParticleSystemAsset, ParticleSystemComponent, ParticleVec3Range, ParticlesManager,
+    PARTICLE_GPU_MAX_PARTICLES,
 };
 
 use super::support::spawn_rate_asset;
@@ -248,6 +258,67 @@ fn gpu_frame_planner_accumulates_spawn_requests_and_encodes_params() {
 }
 
 #[test]
+fn gpu_frame_planner_does_not_consume_bursts_until_prepared_frame_commit() {
+    let asset = ParticleSystemAsset::new("gpu-frame-transaction")
+        .with_backend(ParticleSimulationBackend::Gpu)
+        .with_emitters(vec![ParticleEmitterAsset::sprite("gpu")
+            .with_spawn_rate(0.0)
+            .with_burst(ParticleBurst::new(0.0, 3))
+            .with_max_particles(16)]);
+    let mut planner = ParticleGpuFramePlanner::new(asset);
+
+    let abandoned = planner
+        .prepare_frame(0.25, Transform::default())
+        .expect("particle frame preparation should succeed");
+    assert_eq!(abandoned.frame().total_spawn_count(), 3);
+    drop(abandoned);
+
+    let retry = planner
+        .build_frame(0.25, Transform::default())
+        .expect("abandoned preparation must leave the planner retryable");
+    assert_eq!(retry.total_spawn_count(), 3);
+}
+
+#[test]
+fn gpu_emitter_encoding_uses_dense_lookup_with_first_match_and_zero_fill() {
+    let asset = ParticleSystemAsset::new("gpu-encode-index").with_emitters(vec![
+        ParticleEmitterAsset::sprite("first").with_max_particles(8),
+        ParticleEmitterAsset::sprite("missing").with_max_particles(8),
+        ParticleEmitterAsset::sprite("last").with_max_particles(8),
+    ]);
+    let mut planner = ParticleGpuFramePlanner::new(asset);
+    let planned = planner
+        .build_frame(0.25, Transform::default())
+        .expect("particle GPU frame should build");
+    let first = planned.emitters[0].clone();
+    let last = planned.emitters[2].clone();
+    let mut duplicate = first.clone();
+    duplicate.spawn_count = 7;
+    let sparse = ParticleGpuFrameParams {
+        dt: planned.dt,
+        age_seconds: planned.age_seconds,
+        emitters: vec![first.clone(), duplicate, last.clone()],
+    };
+
+    let encoded = sparse.encode_emitters(planner.layout());
+    let mut expected = Vec::new();
+    first.encode(&mut expected);
+    expected.resize(
+        expected.len() + ParticleGpuEmitterFrameParams::ENCODED_SIZE,
+        0,
+    );
+    last.encode(&mut expected);
+    assert_eq!(encoded, expected);
+
+    let source = include_str!("../render/gpu/planner.rs");
+    let encode = &source[source
+        .find("pub fn encode_emitters")
+        .expect("particle GPU frame must expose emitter encoding")..];
+    assert!(encode.contains("indexed_emitters"));
+    assert!(!encode.contains(".find(|params|"));
+}
+
+#[test]
 fn gpu_layout_clamps_capacity_and_reports_diagnostic() {
     let asset = ParticleSystemAsset::new("huge-gpu")
         .with_backend(ParticleSimulationBackend::Gpu)
@@ -294,8 +365,9 @@ fn particle_gpu_runtime_owner_executes_backend_and_exposes_active_buffers() {
     });
     let mut owner = ParticleGpuRuntimeOwner::default();
 
+    let mut upload_sink = QueueUploadSink(&queue);
     let frame = owner
-        .execute_instances(&device, &queue, &mut encoder, &instances)
+        .execute_instances(&device, &mut upload_sink, &mut encoder, &instances)
         .unwrap()
         .expect("playing GPU particle instance should execute a backend frame");
 
@@ -307,6 +379,60 @@ fn particle_gpu_runtime_owner_executes_backend_and_exposes_active_buffers() {
     assert_eq!(bindings.particles_a.size(), bindings.particles_b.size());
     assert!(!std::ptr::eq(bindings.particles_a, bindings.particles_b));
     queue.submit([encoder.finish()]);
+    owner.commit_frame_transaction(frame.transaction_id());
+}
+
+#[test]
+fn particle_gpu_runtime_owner_retries_abandoned_planner_and_ping_pong_state() {
+    let Some((device, queue)) = offscreen_wgpu_device() else {
+        return;
+    };
+    let manager = ParticlesManager::default();
+    manager
+        .instantiate(ParticleSystemComponent::new(
+            78,
+            ParticleSystemAsset::new("gpu-owner-rollback")
+                .with_backend(ParticleSimulationBackend::Gpu)
+                .with_emitters(vec![ParticleEmitterAsset::sprite("gpu")
+                    .with_spawn_rate(0.0)
+                    .with_burst(ParticleBurst::new(0.0, 5))
+                    .with_max_particles(16)]),
+        ))
+        .unwrap();
+    manager.tick(0.001).unwrap();
+    let instances = manager.gpu_runtime_instances();
+    let mut owner = ParticleGpuRuntimeOwner::default();
+
+    let abandoned = {
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("zircon-particle-gpu-runtime-owner-abandoned-test"),
+        });
+        let mut upload_sink = QueueUploadSink(&queue);
+        owner
+            .execute_instances(&device, &mut upload_sink, &mut encoder, &instances)
+            .unwrap()
+            .expect("first particle frame should prepare")
+    };
+    assert_eq!(abandoned.outputs.spawned_total, 5);
+    owner.rollback_frame_transaction(abandoned.transaction_id());
+
+    let mut retry_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-particle-gpu-runtime-owner-retry-test"),
+    });
+    let mut retry_upload_sink = QueueUploadSink(&queue);
+    let retry = owner
+        .execute_instances(
+            &device,
+            &mut retry_upload_sink,
+            &mut retry_encoder,
+            &instances,
+        )
+        .unwrap()
+        .expect("rolled-back particle frame should remain retryable");
+
+    assert_eq!(retry.outputs.spawned_total, 5);
+    queue.submit([retry_encoder.finish()]);
+    owner.commit_frame_transaction(retry.transaction_id());
 }
 
 #[test]
@@ -348,8 +474,9 @@ fn particle_gpu_runtime_owner_aggregates_playing_gpu_instances() {
     });
     let mut owner = ParticleGpuRuntimeOwner::default();
 
+    let mut upload_sink = QueueUploadSink(&queue);
     let frame = owner
-        .execute_instances(&device, &queue, &mut encoder, &instances)
+        .execute_instances(&device, &mut upload_sink, &mut encoder, &instances)
         .unwrap()
         .expect("playing GPU particle instances should execute an aggregate backend frame");
 
@@ -361,6 +488,7 @@ fn particle_gpu_runtime_owner_aggregates_playing_gpu_instances() {
     assert_eq!(bindings.particles_a.size(), bindings.particles_b.size());
     assert!(!std::ptr::eq(bindings.particles_a, bindings.particles_b));
     queue.submit([encoder.finish()]);
+    owner.commit_frame_transaction(frame.transaction_id());
 }
 
 #[test]
@@ -402,15 +530,17 @@ fn render_particle_cpu_gpu_parity_small_scene_matches_counts_and_indirect_args()
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-particle-gpu-cpu-parity-small-scene-test"),
     });
-    backend
+    let mut upload_sink = QueueUploadSink(&queue);
+    let backend_commit = backend
         .execute_frame(
-            &queue,
+            &mut upload_sink,
             &mut encoder,
             &frame,
             ParticleGpuReadbackRequest::Counters,
         )
         .unwrap();
     queue.submit([encoder.finish()]);
+    assert!(backend.commit_prepared_frame(backend_commit));
 
     let gpu_counters = backend.read_counter_readback(&device).unwrap();
     let parity = ParticleGpuCpuParityReport::compare_counts(
@@ -457,8 +587,9 @@ fn particle_gpu_runtime_owner_records_transparent_draw_from_executed_backend() {
         label: Some("zircon-particle-gpu-runtime-owner-transparent-test"),
     });
     let mut owner = ParticleGpuRuntimeOwner::default();
-    owner
-        .execute_instances(&device, &queue, &mut encoder, &instances)
+    let mut runtime_upload_sink = QueueUploadSink(&queue);
+    let frame = owner
+        .execute_instances(&device, &mut runtime_upload_sink, &mut encoder, &instances)
         .unwrap()
         .expect("playing GPU particle instance should execute before transparent draw");
 
@@ -478,26 +609,30 @@ fn particle_gpu_runtime_owner_records_transparent_draw_from_executed_backend() {
     );
     clear_test_render_targets(&mut encoder, &color_view, &depth_view);
 
-    let recorded = owner
-        .record_transparent_render(
-            &device,
-            &scene_layout,
-            ParticleGpuTransparentRenderConfig::new(
-                wgpu::TextureFormat::Rgba8Unorm,
-                wgpu::TextureFormat::Depth32Float,
-            ),
-            &queue,
-            &mut encoder,
-            &color_view,
-            &depth_view,
-            &scene_bind_group,
-            ParticleGpuTransparentRenderParams::new(Vec3::X, Vec3::Y, 1.0),
-            zircon_runtime::graphics::ViewportRenderRegion::full_target(UVec2::new(32, 32)),
-        )
-        .unwrap();
+    let recorded = {
+        let mut upload_sink = QueueUploadSink(&queue);
+        owner
+            .record_transparent_render(
+                &device,
+                &scene_layout,
+                ParticleGpuTransparentRenderConfig::new(
+                    wgpu::TextureFormat::Rgba8Unorm,
+                    wgpu::TextureFormat::Depth32Float,
+                ),
+                &mut upload_sink,
+                &mut encoder,
+                &color_view,
+                &depth_view,
+                &scene_bind_group,
+                ParticleGpuTransparentRenderParams::new(Vec3::X, Vec3::Y, 1.0),
+                zircon_runtime::graphics::ViewportRenderRegion::full_target(UVec2::new(32, 32)),
+            )
+            .unwrap()
+    };
 
     assert!(recorded);
     queue.submit([encoder.finish()]);
+    owner.commit_frame_transaction(frame.transaction_id());
 
     let color_pixels = read_test_texture_rgba8(&device, &queue, &color_texture, 32, 32);
     let visible_pixel_count = color_pixels
@@ -535,23 +670,26 @@ fn particle_gpu_runtime_owner_skips_transparent_draw_without_executed_backend() 
     clear_test_render_targets(&mut encoder, &color_view, &depth_view);
 
     let mut owner = ParticleGpuRuntimeOwner::default();
-    let recorded = owner
-        .record_transparent_render(
-            &device,
-            &scene_layout,
-            ParticleGpuTransparentRenderConfig::new(
-                wgpu::TextureFormat::Rgba8Unorm,
-                wgpu::TextureFormat::Depth32Float,
-            ),
-            &queue,
-            &mut encoder,
-            &color_view,
-            &depth_view,
-            &scene_bind_group,
-            ParticleGpuTransparentRenderParams::new(Vec3::X, Vec3::Y, 1.0),
-            zircon_runtime::graphics::ViewportRenderRegion::full_target(UVec2::new(32, 32)),
-        )
-        .unwrap();
+    let recorded = {
+        let mut upload_sink = QueueUploadSink(&queue);
+        owner
+            .record_transparent_render(
+                &device,
+                &scene_layout,
+                ParticleGpuTransparentRenderConfig::new(
+                    wgpu::TextureFormat::Rgba8Unorm,
+                    wgpu::TextureFormat::Depth32Float,
+                ),
+                &mut upload_sink,
+                &mut encoder,
+                &color_view,
+                &depth_view,
+                &scene_bind_group,
+                ParticleGpuTransparentRenderParams::new(Vec3::X, Vec3::Y, 1.0),
+                zircon_runtime::graphics::ViewportRenderRegion::full_target(UVec2::new(32, 32)),
+            )
+            .unwrap()
+    };
 
     assert!(!recorded);
     queue.submit([encoder.finish()]);

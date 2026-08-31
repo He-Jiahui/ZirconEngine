@@ -66,7 +66,7 @@ children = [{ node = "component_body" }, { node = "console_body" }]
 component = "WorkbenchTab"
 control_id = "WorkbenchDrawerTabComponents"
 classes = ["workbench-tab"]
-props = { text = "UI Components", checked = true, selected = true, value = true, layout_min_height = "$editor.chrome.panel_header.height" }
+props = { text = "UI Components", layout_min_height = "$editor.chrome.panel_header.height" }
 layout = { width = { min = 150.0, preferred = 150.0, max = 170.0, stretch = "Fixed" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
 events = [{ id = "PanelTab/ComponentDrawerComponents", event = "Click", route = "workbench.panel_tab.select.component_drawer_components" }]
 
@@ -74,36 +74,36 @@ events = [{ id = "PanelTab/ComponentDrawerComponents", event = "Click", route = 
 component = "WorkbenchTab"
 control_id = "WorkbenchDrawerTabConsole"
 classes = ["workbench-tab"]
-props = { text = "Console", checked = false, selected = false, value = false, layout_min_height = "$editor.chrome.panel_header.height" }
+props = { text = "Console", layout_min_height = "$editor.chrome.panel_header.height" }
 layout = { width = { min = 110.0, preferred = 110.0, max = 130.0, stretch = "Fixed" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
 events = [{ id = "PanelTab/ComponentDrawerConsole", event = "Click", route = "workbench.panel_tab.select.component_drawer_console" }]
 
 [nodes.component_body]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchComponentDrawerBody"
 classes = ["workbench-component-drawer-body"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.large" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.large", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "component_top_row" }, { node = "component_lower_row" }]
 
 [nodes.component_top_row]
-component = "HorizontalGroup"
+component = "MasonryBox"
 control_id = "WorkbenchComponentTopRow"
 classes = ["workbench-component-grid-row"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.large" }, width = { stretch = "Stretch" }, height = { min = 202.0, preferred = 202.0, max = 202.0, stretch = "Fixed" } }
+layout = { container = { kind = "MasonryBox", columns = 2, gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
 children = [{ node = "component_buttons" }, { node = "component_icon_buttons" }, { node = "component_inputs" }, { node = "component_selection" }, { node = "component_sliders" }, { node = "component_labs" }, { node = "component_list" }]
 
 [nodes.component_lower_row]
-component = "HorizontalGroup"
+component = "VerticalGroup"
 control_id = "WorkbenchComponentLowerRow"
 classes = ["workbench-lower-demo"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
 children = [{ node = "component_table" }, { node = "component_feedback" }]
 
 [nodes.console_body]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentDrawerConsoleBody"
 classes = ["workbench-panel", "workbench-console-panel"]
-props = { visibility = "collapsed" }
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "console_info" }, { node = "console_warning" }, { node = "console_ok" }]
 
@@ -133,8 +133,8 @@ component = "VerticalGroup"
 control_id = "WorkbenchComponentButtons"
 classes = ["workbench-panel", "workbench-component-sample-card"]
 props = { surface_variant = "component-panel" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 204.0, preferred = 204.0, max = 204.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "buttons_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "buttons_row_primary", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "buttons_row_variant", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "buttons_row_icon", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "buttons_row_tail", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 188.0, preferred = 204.0, max = 204.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "buttons_title", slot = { layout = { padding = { left = "$editor.density.gap.medium", top = "$editor.density.gap.small", right = "$editor.density.gap.medium" } } } }, { node = "buttons_row_primary", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "buttons_row_variant", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "buttons_row_icon", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "buttons_row_tail", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium", bottom = "$editor.density.gap.small" } } } }]
 
 [nodes.buttons_title]
 component = "WorkbenchSectionTitle"
@@ -208,7 +208,7 @@ events = [{ id = "ComponentLab/IconButton", event = "Click", route = "component_
 component = "WorkbenchButton"
 control_id = "WorkbenchButtonDelete"
 classes = ["workbench-control-button", "workbench-danger"]
-props = { text = "", icon = "zircon_editor_shell/controls/delete.svg", button_variant = "outlined", button_color = "danger", button_size = "small", validation_level = "danger" }
+props = { text = "", icon = "zircon_editor_shell/controls/delete.svg", tooltip = "Delete", button_variant = "outlined", button_color = "danger", button_size = "small", validation_level = "danger" }
 layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "ComponentLab/DeleteButton", event = "Click", route = "component_lab.delete_button" }]
 
@@ -230,17 +230,17 @@ layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed"
 component = "WorkbenchDropdown"
 control_id = "WorkbenchDropdownButton"
 classes = ["workbench-field", "workbench-button-dropdown"]
-props = { value = "dropdown", value_text = "Dropdown", options = ["dropdown", "option_a", "option_b"], popup_open = false, layout_width = 82.0 }
+props = { value = "dropdown", value_text = "Dropdown", options = ["dropdown|label=Dropdown", "option_a|label=Option A", "option_b|label=Option B"], popup_open = false, layout_width = 82.0 }
 layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
-events = [{ id = "ComponentLab/ButtonDropdownOpen", event = "Click", route = "component_lab.open_popup.button_dropdown" }, { id = "ComponentLab/ButtonDropdownSelect", event = "Change", route = "component_lab.select_option.button_dropdown" }]
+events = [{ id = "ComponentLab/ButtonDropdownOpen", event = "Click", component_event = "OpenPopup", route = "component_lab.open_popup.button_dropdown" }, { id = "ComponentLab/ButtonDropdownSelect", event = "Change", component_event = "SelectOption", route = "component_lab.select_option.button_dropdown" }]
 
 [nodes.component_icon_buttons]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentIconButtons"
 classes = ["workbench-panel", "workbench-component-sample-card"]
 props = { surface_variant = "component-panel" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 210.0, preferred = 210.0, max = 210.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "icon_buttons_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "icon_grid_row_top", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "icon_grid_row_bottom", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "icon_toggle_title", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "icon_toggle_segment", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 188.0, preferred = 210.0, max = 210.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "icon_buttons_title", slot = { layout = { padding = { left = "$editor.density.gap.medium", top = "$editor.density.gap.small", right = "$editor.density.gap.medium" } } } }, { node = "icon_grid_row_top", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "icon_grid_row_bottom", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "icon_toggle_title", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "icon_toggle_segment", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium", bottom = "$editor.density.gap.small" } } } }]
 
 [nodes.icon_buttons_title]
 component = "WorkbenchSectionTitle"
@@ -252,8 +252,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 2
 [nodes.icon_grid_row_top]
 component = "HorizontalGroup"
 control_id = "WorkbenchIconButtonGridTop"
-props = { layout_gap = 6.0 }
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+props = { layout_gap = "$editor.density.gap.regular" }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.regular" }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 children = [{ node = "mini_add" }, { node = "mini_folder" }, { node = "mini_save" }, { node = "mini_delete" }]
 
 [nodes.mini_add]
@@ -262,6 +262,7 @@ control_id = "WorkbenchMiniAdd"
 classes = ["workbench-icon-button"]
 props = { icon = "zircon_editor_shell/controls/add.svg", label = "Add", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/MiniAdd", event = "Click", route = "component_lab.icon_button.add" }]
 
 [nodes.mini_folder]
 component = "WorkbenchIconButton"
@@ -269,6 +270,7 @@ control_id = "WorkbenchMiniFolder"
 classes = ["workbench-icon-button"]
 props = { icon = "zircon_editor_shell/toolbar/folder-open.svg", label = "Open", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/MiniOpen", event = "Click", route = "component_lab.icon_button.open" }]
 
 [nodes.mini_save]
 component = "WorkbenchIconButton"
@@ -276,6 +278,7 @@ control_id = "WorkbenchMiniSave"
 classes = ["workbench-icon-button"]
 props = { icon = "zircon_editor_shell/toolbar/save.svg", label = "Save", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/MiniSave", event = "Click", route = "component_lab.icon_button.save" }]
 
 [nodes.mini_delete]
 component = "WorkbenchIconButton"
@@ -283,12 +286,13 @@ control_id = "WorkbenchMiniDelete"
 classes = ["workbench-icon-button", "workbench-danger"]
 props = { icon = "zircon_editor_shell/controls/delete.svg", label = "Delete", button_color = "danger", validation_level = "danger", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/MiniDelete", event = "Click", route = "component_lab.icon_button.delete" }]
 
 [nodes.icon_grid_row_bottom]
 component = "HorizontalGroup"
 control_id = "WorkbenchIconButtonGridBottom"
-props = { layout_gap = 6.0 }
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+props = { layout_gap = "$editor.density.gap.regular" }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.regular" }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 children = [{ node = "mini_eye" }, { node = "mini_eye_off" }, { node = "mini_lock" }, { node = "mini_more" }]
 
 [nodes.mini_eye]
@@ -297,6 +301,7 @@ control_id = "WorkbenchMiniEye"
 classes = ["workbench-icon-button"]
 props = { icon = "zircon_editor_shell/scene/eye.svg", label = "Visible", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/MiniShow", event = "Click", route = "component_lab.icon_button.show" }]
 
 [nodes.mini_eye_off]
 component = "WorkbenchIconButton"
@@ -304,6 +309,7 @@ control_id = "WorkbenchMiniEyeOff"
 classes = ["workbench-icon-button"]
 props = { icon = "zircon_editor_shell/scene/eye-off.svg", label = "Hidden", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/MiniHide", event = "Click", route = "component_lab.icon_button.hide" }]
 
 [nodes.mini_lock]
 component = "WorkbenchIconButton"
@@ -311,6 +317,7 @@ control_id = "WorkbenchMiniLock"
 classes = ["workbench-icon-button"]
 props = { icon = "zircon_editor_shell/scene/lock.svg", label = "Locked", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/MiniLock", event = "Click", route = "component_lab.icon_button.lock" }]
 
 [nodes.mini_more]
 component = "WorkbenchIconButton"
@@ -318,6 +325,7 @@ control_id = "WorkbenchMiniMore"
 classes = ["workbench-icon-button"]
 props = { icon = "zircon_editor_shell/toolbar/more-vertical.svg", label = "More", layout_icon_size = 18.0, icon_size = 18.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/MiniMore", event = "Click", route = "component_lab.icon_button.more" }]
 
 [nodes.icon_toggle_title]
 component = "WorkbenchSectionTitle"
@@ -332,15 +340,15 @@ control_id = "WorkbenchIconToggleSegmented"
 classes = ["workbench-segmented-control", "workbench-icon-toggle-segmented"]
 props = { value = "grid", options = ["grid", "list", "columns"], selection_state = "single", layout_width = 150.0 }
 layout = { width = { min = 150.0, preferred = 150.0, max = 150.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-events = [{ id = "ComponentLab/IconToggleSegmentedSelect", event = "Change", route = "component_lab.select_option.icon_toggle_segmented" }]
+events = [{ id = "ComponentLab/IconToggleSegmentedSelect", event = "Change", component_event = "SelectOption", route = "component_lab.select_option.icon_toggle_segmented" }]
 
 [nodes.component_inputs]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentInputs"
 classes = ["workbench-panel", "workbench-component-sample-card"]
 props = { surface_variant = "component-panel" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 214.0, preferred = 214.0, max = 214.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "inputs_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "input_search", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_text", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_focused", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_disabled", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_dropdown_row", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 188.0, preferred = 214.0, max = 214.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "inputs_title", slot = { layout = { padding = { left = "$editor.density.gap.medium", top = "$editor.density.gap.small", right = "$editor.density.gap.medium" } } } }, { node = "input_search", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "input_text", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "input_focused", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "input_disabled", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "input_dropdown_row", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium", bottom = "$editor.density.gap.small" } } } }]
 
 [nodes.inputs_title]
 component = "WorkbenchSectionTitle"
@@ -355,20 +363,20 @@ control_id = "WorkbenchInputText"
 classes = ["workbench-field", "workbench-component-field"]
 props = { value = "Text field", placeholder = "Text field", layout_width = 170.0 }
 layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
-events = [{ id = "ComponentLab/InputTextEdit", event = "Change", route = "component_lab.value_changed.input_text" }, { id = "ComponentLab/InputTextCommit", event = "Submit", route = "component_lab.commit.input_text" }]
+events = [{ id = "ComponentLab/InputTextEdit", event = "Change", component_event = "ValueChanged", route = "component_lab.value_changed.input_text" }, { id = "ComponentLab/InputTextCommit", event = "Submit", component_event = "Commit", route = "component_lab.commit.input_text" }]
 
 [nodes.input_focused]
 component = "WorkbenchField"
 control_id = "WorkbenchInputFocused"
-classes = ["workbench-field", "workbench-component-field", "workbench-focused"]
-props = { value = "Focused input", placeholder = "Focused input", focused = true, layout_width = 170.0 }
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Focused input", placeholder = "Focused input", focus_visible = true, layout_width = 170.0 }
 layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
-events = [{ id = "ComponentLab/InputFocusedEdit", event = "Change", route = "component_lab.value_changed.input_focused" }, { id = "ComponentLab/InputFocusedCommit", event = "Submit", route = "component_lab.commit.input_focused" }]
+events = [{ id = "ComponentLab/InputFocusedEdit", event = "Change", component_event = "ValueChanged", route = "component_lab.value_changed.input_focused" }, { id = "ComponentLab/InputFocusedCommit", event = "Submit", component_event = "Commit", route = "component_lab.commit.input_focused" }]
 
 [nodes.input_disabled]
 component = "WorkbenchField"
 control_id = "WorkbenchInputDisabled"
-classes = ["workbench-field", "workbench-component-field", "workbench-disabled"]
+classes = ["workbench-field", "workbench-component-field"]
 props = { value = "", placeholder = "Disabled input", disabled = true, layout_width = 170.0 }
 layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 
@@ -379,7 +387,7 @@ classes = ["workbench-search-input", "workbench-component-field"]
 props = { query = "", placeholder = "Search components", layout_width = 170.0 }
 widget = { value_property = "query" }
 layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
-events = [{ id = "ComponentLab/InputSearchEdit", event = "Change", route = "component_lab.value_changed.input_search" }, { id = "ComponentLab/InputSearchCommit", event = "Submit", route = "component_lab.commit.input_search" }]
+events = [{ id = "ComponentLab/InputSearchEdit", event = "Change", component_event = "ValueChanged", route = "component_lab.value_changed.input_search" }, { id = "ComponentLab/InputSearchCommit", event = "Submit", component_event = "Commit", route = "component_lab.commit.input_search" }]
 
 [nodes.input_dropdown_row]
 component = "HorizontalGroup"
@@ -392,9 +400,9 @@ children = [{ node = "input_dropdown" }, { node = "input_stepper" }]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchInputDropdown"
 classes = ["workbench-field"]
-props = { value = "dropdown", value_text = "Dropdown", options = ["dropdown", "option_a", "option_b"], special_options = ["dropdown"], focused_options = ["option_a"], hovered_options = ["option_a"], disabled_options = ["option_b"], popup_open = false, layout_width = 95.0 }
+props = { value = "dropdown", value_text = "Dropdown", options = ["dropdown|label=Dropdown", "option_a|label=Option A", "option_b|label=Option B"], special_options = ["dropdown"], focused_options = ["option_a"], hovered_options = ["option_a"], disabled_options = ["option_b"], popup_open = false, layout_width = 95.0 }
 layout = { width = { min = 95.0, preferred = 95.0, max = 95.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
-events = [{ id = "ComponentLab/InputDropdownOpen", event = "Click", route = "component_lab.open_popup.input_dropdown" }, { id = "ComponentLab/InputDropdownSelect", event = "Change", route = "component_lab.select_option.input_dropdown" }]
+events = [{ id = "ComponentLab/InputDropdownOpen", event = "Click", component_event = "OpenPopup", route = "component_lab.open_popup.input_dropdown" }, { id = "ComponentLab/InputDropdownSelect", event = "Change", component_event = "SelectOption", route = "component_lab.select_option.input_dropdown" }]
 
 [nodes.input_stepper]
 component = "WorkbenchNumberField"
@@ -402,6 +410,10 @@ control_id = "WorkbenchInputStepper"
 classes = ["workbench-field", "workbench-number-field", "workbench-component-field"]
 props = { value = 42.0, value_text = "42", placeholder = "0", min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, precision = 0.0, layout_width = 67.0, layout_stepper = true }
 layout = { width = { min = 67.0, preferred = 67.0, max = 67.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [
+  { id = "ComponentLab/InputStepperEdit", event = "Change", component_event = "ValueChanged", route = "component_lab.input_stepper.edit" },
+  { id = "ComponentLab/InputStepperCommit", event = "Submit", component_event = "Commit", route = "component_lab.input_stepper.commit" },
+]
 
 [nodes.input_slider]
 component = "WorkbenchSlider"
@@ -409,6 +421,10 @@ control_id = "WorkbenchInputSlider"
 classes = ["workbench-slider"]
 props = { label_text = "Value", value = 75.0, value_text = "0.75", min = 0.0, max = 100.0, step = 1.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [
+  { id = "ComponentLab/InputSliderEdit", event = "Change", component_event = "ValueChanged", route = "component_lab.input_slider.edit" },
+  { id = "ComponentLab/InputSliderCommit", event = "Submit", component_event = "Commit", route = "component_lab.input_slider.commit" },
+]
 
 [nodes.input_slider_range]
 component = "WorkbenchRangeSlider"
@@ -416,6 +432,10 @@ control_id = "WorkbenchInputRangeSlider"
 classes = ["workbench-slider", "workbench-slider-range"]
 props = { label_text = "Range", range_min = 20.0, value = 80.0, range_min_percent = 0.2, value_percent = 0.8, value_text = "0.80", min = 0.0, max = 100.0, step = 1.0, large_step = 10.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+events = [
+  { id = "ComponentLab/InputRangeSliderEdit", event = "Change", component_event = "ValueChanged", route = "component_lab.input_range_slider.edit" },
+  { id = "ComponentLab/InputRangeSliderCommit", event = "Submit", component_event = "Commit", route = "component_lab.input_range_slider.commit" },
+]
 
 [nodes.input_slider_steps]
 component = "WorkbenchSlider"
@@ -423,14 +443,18 @@ control_id = "WorkbenchInputStepsSlider"
 classes = ["workbench-slider", "workbench-slider-steps"]
 props = { label_text = "Steps", value = 86.0, value_text = "3", min = 0.0, max = 100.0, step = 1.0, step_tick_count = 5.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [
+  { id = "ComponentLab/InputStepsSliderEdit", event = "Change", component_event = "ValueChanged", route = "component_lab.input_steps_slider.edit" },
+  { id = "ComponentLab/InputStepsSliderCommit", event = "Submit", component_event = "Commit", route = "component_lab.input_steps_slider.commit" },
+]
 
 [nodes.component_sliders]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentSliders"
 classes = ["workbench-panel", "workbench-component-sample-card"]
 props = { surface_variant = "component-panel" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 260.0, preferred = 260.0, max = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "sliders_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "input_slider", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_slider_range", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_slider_steps", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 188.0, preferred = 260.0, max = 260.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sliders_title", slot = { layout = { padding = { left = "$editor.density.gap.medium", top = "$editor.density.gap.small", right = "$editor.density.gap.medium" } } } }, { node = "input_slider", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "input_slider_range", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "input_slider_steps", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium", bottom = "$editor.density.gap.small" } } } }]
 
 [nodes.sliders_title]
 component = "WorkbenchSectionTitle"
@@ -445,15 +469,15 @@ control_id = "WorkbenchInputSegmented"
 classes = ["workbench-segmented-control"]
 props = { value = "center", options = ["left", "center", "right"], selection_state = "single", label_text = "Segmented Control" }
 layout = { width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
-events = [{ id = "ComponentLab/InputSegmentedSelect", event = "Change", route = "component_lab.select_option.input_segmented" }]
+events = [{ id = "ComponentLab/InputSegmentedSelect", event = "Change", component_event = "SelectOption", route = "component_lab.select_option.input_segmented" }]
 
 [nodes.component_selection]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentSelection"
 classes = ["workbench-panel", "workbench-component-sample-card"]
 props = { layout_gap = "$editor.density.gap.medium", surface_variant = "component-panel" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 168.0, preferred = 168.0, max = 168.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "selection_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "checkbox_on", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "checkbox_off", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "radio_on", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "radio_off", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 168.0, preferred = 188.0, max = 204.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "selection_title", slot = { layout = { padding = { left = "$editor.density.gap.medium", top = "$editor.density.gap.small", right = "$editor.density.gap.medium" } } } }, { node = "checkbox_on", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "checkbox_off", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "radio_on", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "radio_off", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium", bottom = "$editor.density.gap.small" } } } }]
 
 [nodes.selection_title]
 component = "WorkbenchSectionTitle"
@@ -507,8 +531,8 @@ component = "VerticalGroup"
 control_id = "WorkbenchComponentLabs"
 classes = ["workbench-panel", "workbench-component-sample-card"]
 props = { surface_variant = "component-panel" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 236.0, preferred = 236.0, max = 236.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "labs_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "labs_tabs", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "input_segmented", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "visual_atom_row", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "visual_divider", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "toggle_on", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 188.0, preferred = 236.0, max = 236.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "labs_title", slot = { layout = { padding = { left = "$editor.density.gap.medium", top = "$editor.density.gap.small", right = "$editor.density.gap.medium" } } } }, { node = "labs_tabs", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "input_segmented", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "visual_atom_row", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "visual_divider", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "toggle_on", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium", bottom = "$editor.density.gap.small" } } } }]
 
 [nodes.labs_title]
 component = "WorkbenchSectionTitle"
@@ -578,18 +602,18 @@ layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed"
 events = [{ id = "ComponentLab/LabsTabThree", event = "Click", route = "component_lab.labs_tab_three.select" }]
 
 [nodes.component_feedback]
-component = "HorizontalGroup"
+component = "VerticalGroup"
 control_id = "WorkbenchComponentFeedback"
 classes = ["workbench-panel", "workbench-component-sample-card"]
 props = { surface_variant = "component-panel" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "feedback_alerts", slot = { layout = { padding = { left = 8.0, top = 4.0, bottom = 4.0 } } } }, { node = "feedback_tooltip", slot = { layout = { padding = { top = 4.0, bottom = 4.0 } } } }, { node = "feedback_toast_column", slot = { layout = { padding = { top = 4.0, right = 8.0, bottom = 4.0 } } } }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "feedback_alerts", slot = { layout = { padding = { left = "$editor.density.gap.medium", top = "$editor.density.gap.small", bottom = "$editor.density.gap.small" } } } }, { node = "feedback_tooltip", slot = { layout = { padding = { top = "$editor.density.gap.small", bottom = "$editor.density.gap.small" } } } }, { node = "feedback_toast_column", slot = { layout = { padding = { top = "$editor.density.gap.small", right = "$editor.density.gap.medium", bottom = "$editor.density.gap.small" } } } }]
 
 [nodes.feedback_alerts]
 component = "VerticalGroup"
 control_id = "WorkbenchFeedbackAlerts"
 classes = ["workbench-feedback-alerts"]
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 390.0, preferred = 390.0, max = 390.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = "$editor.density.notification_panel.min_width", preferred = "$editor.density.notification_panel.preferred_width", max = "$editor.density.notification_panel.max_width", stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "info_alert" }, { node = "success_alert" }, { node = "warning_alert" }, { node = "error_alert" }]
 
 [nodes.info_alert]
@@ -631,7 +655,7 @@ layout = { width = { min = 110.0, preferred = 110.0, max = 120.0, stretch = "Fix
 component = "VerticalGroup"
 control_id = "WorkbenchFeedbackToastColumn"
 classes = ["workbench-feedback-toast-column"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 390.0, preferred = 390.0, max = 390.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.regular" }, width = { min = "$editor.density.notification_panel.min_width", preferred = "$editor.density.notification_panel.preferred_width", max = "$editor.density.notification_panel.max_width", stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "feedback_progress" }, { node = "feedback_skeleton" }, { node = "feedback_toast_spacer" }, { node = "feedback_toast" }]
 
 [nodes.feedback_progress]
@@ -663,8 +687,8 @@ component = "VerticalGroup"
 control_id = "WorkbenchComponentList"
 classes = ["workbench-panel", "workbench-component-sample-card"]
 props = { surface_variant = "component-panel" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 260.0, preferred = 260.0, max = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "list_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "list_group", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "menu_title", slot = { layout = { padding = { left = 8.0, right = 8.0 } } } }, { node = "popup_menu", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 188.0, preferred = 260.0, max = 260.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "list_title", slot = { layout = { padding = { left = "$editor.density.gap.medium", top = "$editor.density.gap.small", right = "$editor.density.gap.medium" } } } }, { node = "list_group", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "menu_title", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium" } } } }, { node = "popup_menu", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium", bottom = "$editor.density.gap.small" } } } }]
 
 [nodes.list_title]
 component = "WorkbenchSectionTitle"
@@ -707,7 +731,7 @@ events = [{ id = "ComponentLab/ListSelectedSelect", event = "Click", route = "co
 [nodes.list_disabled]
 component = "WorkbenchListRow"
 control_id = "WorkbenchListDisabled"
-classes = ["workbench-tree-item", "workbench-disabled"]
+classes = ["workbench-tree-item"]
 props = { text = "Disabled item", value = "disabled_item", disabled = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 
@@ -716,8 +740,8 @@ component = "VerticalGroup"
 control_id = "WorkbenchComponentTable"
 classes = ["workbench-panel", "workbench-component-sample-card"]
 props = { surface_variant = "component-panel" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 590.0, preferred = 590.0, max = 590.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "table_title", slot = { layout = { padding = { left = 8.0, top = 4.0, right = 8.0 } } } }, { node = "table_group", slot = { layout = { padding = { left = 8.0, right = 8.0, bottom = 4.0 } } } }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 590.0, max = 590.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "table_title", slot = { layout = { padding = { left = "$editor.density.gap.medium", top = "$editor.density.gap.small", right = "$editor.density.gap.medium" } } } }, { node = "table_group", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.medium", bottom = "$editor.density.gap.small" } } } }]
 
 [nodes.table_title]
 component = "WorkbenchSectionTitle"
@@ -769,5 +793,6 @@ events = [{ id = "ComponentLab/TableTailSelect", event = "Click", route = "compo
 component = "WorkbenchPopupMenu"
 control_id = "WorkbenchPopupMenu"
 classes = ["workbench-popup-menu"]
-props = { value = "Open", menu_items = ["New|icon=plus", "Open|icon=folder", "Save|icon=save", "Delete|danger,hovered,icon=trash", "More Tools|submenu"], popup_open = true, disable_enforce_focus = true, popup_anchor_x = 16.0, popup_anchor_y = 20.0 }
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchMenuTitle" }, open_property = "popup_open" }
+props = { value = "Open", menu_items = ["New|action=menu.item.new,icon=plus", "Open|action=menu.item.open,icon=folder", "Save|action=menu.item.save,icon=save", "Delete|action=menu.item.delete,danger,hovered,icon=trash", "More Tools|action=menu.item.more_tools,icon=more"], popup_open = true, disable_enforce_focus = true, placement = "bottom-start", popup_offset_y = "$editor.density.gap.small" }
 layout = { width = { min = 145.0, preferred = 145.0, max = 145.0, stretch = "Fixed" }, height = { min = 140.0, preferred = 150.0, max = 156.0, stretch = "Fixed" } }

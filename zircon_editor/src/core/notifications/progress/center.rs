@@ -28,13 +28,21 @@ impl ProgressNotificationSnapshot {
 }
 
 pub struct ProgressNotificationCenter {
-    entries: Mutex<BTreeMap<NotificationId, ProgressNotification>>,
+    state: Mutex<ProgressNotificationState>,
+}
+
+#[derive(Default)]
+struct ProgressNotificationState {
+    entries: BTreeMap<NotificationId, ProgressNotification>,
+    jobs: BTreeMap<JobId, NotificationId>,
+    #[cfg(test)]
+    job_lookup_probes: usize,
 }
 
 impl Default for ProgressNotificationCenter {
     fn default() -> Self {
         Self {
-            entries: Mutex::new(BTreeMap::new()),
+            state: Mutex::new(ProgressNotificationState::default()),
         }
     }
 }
@@ -44,63 +52,87 @@ impl ProgressNotificationCenter {
         &self,
         notification: ProgressNotification,
     ) -> Result<(), ProgressNotificationError> {
-        let mut entries = self
-            .entries
+        let mut state = self
+            .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         // The job-system fallback is intentionally replaceable by a source-specific producer.
-        if let Some(existing) = entries.get(notification.id()) {
-            if existing.job() == notification.job()
-                && is_automatic_binding(existing)
+        if let Some((existing_job, existing_is_automatic)) = state
+            .entries
+            .get(notification.id())
+            .map(|existing| (existing.job(), is_automatic_binding(existing)))
+        {
+            if existing_job == notification.job()
+                && existing_is_automatic
                 && !is_automatic_binding(&notification)
             {
-                entries.insert(notification.id().clone(), notification);
+                state
+                    .entries
+                    .insert(notification.id().clone(), notification);
                 return Ok(());
             }
             return Err(ProgressNotificationError::DuplicateNotification {
                 notification: notification.id().clone(),
             });
         }
-        if let Some((existing_id, automatic)) = entries
-            .iter()
-            .find(|(_, entry)| entry.job() == notification.job())
-            .map(|(id, entry)| (id.clone(), is_automatic_binding(entry)))
+
+        #[cfg(test)]
         {
-            if automatic && !is_automatic_binding(&notification) {
-                entries.remove(&existing_id);
-                entries.insert(notification.id().clone(), notification);
+            state.job_lookup_probes = state.job_lookup_probes.saturating_add(1);
+        }
+        if let Some(existing_id) = state.jobs.get(&notification.job()).cloned() {
+            let existing_is_automatic = state
+                .entries
+                .get(&existing_id)
+                .map(is_automatic_binding)
+                .unwrap_or(false);
+            if existing_is_automatic && !is_automatic_binding(&notification) {
+                state.entries.remove(&existing_id);
+                state
+                    .jobs
+                    .insert(notification.job(), notification.id().clone());
+                state
+                    .entries
+                    .insert(notification.id().clone(), notification);
                 return Ok(());
             }
             return Err(ProgressNotificationError::DuplicateJob {
                 job: notification.job(),
             });
         }
-        if entries.len() >= MAX_PROGRESS_NOTIFICATIONS {
+        if state.entries.len() >= MAX_PROGRESS_NOTIFICATIONS {
             return Err(ProgressNotificationError::CapacityExceeded {
                 maximum: MAX_PROGRESS_NOTIFICATIONS,
             });
         }
-        entries.insert(notification.id().clone(), notification);
+        state
+            .jobs
+            .insert(notification.job(), notification.id().clone());
+        state
+            .entries
+            .insert(notification.id().clone(), notification);
         Ok(())
     }
 
     pub fn snapshot(&self, jobs: &EditorJobProgressSource) -> Vec<ProgressNotificationSnapshot> {
         let (captured, ids) = {
-            let entries = self
-                .entries
+            let state = self
+                .state
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-            if entries.is_empty() {
+            if state.entries.is_empty() {
                 return Vec::new();
             }
             (
                 // Keep the job identity with the stable producer key so a replacement
                 // notification using the same ID cannot be pruned as stale.
-                entries
+                state
+                    .entries
                     .iter()
                     .map(|(id, notification)| (id.clone(), notification.job()))
                     .collect::<BTreeMap<_, _>>(),
-                entries
+                state
+                    .entries
                     .values()
                     .map(ProgressNotification::job)
                     .collect::<Vec<_>>(),
@@ -110,27 +142,32 @@ impl ProgressNotificationCenter {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.entries
+        self.state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .entries
             .is_empty()
     }
 
     pub fn remaining_capacity(&self) -> usize {
         MAX_PROGRESS_NOTIFICATIONS.saturating_sub(
-            self.entries
+            self.state
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .entries
                 .len(),
         )
     }
 
     /// Removes an authoritative job binding after its lifecycle has terminally completed.
     pub fn retire_job(&self, job: JobId) {
-        self.entries
+        let mut state = self
+            .state
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .retain(|_, notification| notification.job() != job);
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(notification_id) = state.jobs.remove(&job) {
+            state.entries.remove(&notification_id);
+        }
     }
 
     pub fn synchronize(
@@ -141,12 +178,16 @@ impl ProgressNotificationCenter {
             .into_iter()
             .map(|snapshot| (snapshot.id(), snapshot))
             .collect::<BTreeMap<JobId, _>>();
-        let mut entries = self
-            .entries
+        let mut state = self
+            .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        entries.retain(|_, notification| jobs.contains_key(&notification.job()));
-        entries
+        state
+            .entries
+            .retain(|_, notification| jobs.contains_key(&notification.job()));
+        state.jobs.retain(|job, _| jobs.contains_key(job));
+        state
+            .entries
             .values()
             .filter_map(|notification| {
                 jobs.get(&notification.job())
@@ -165,17 +206,25 @@ impl ProgressNotificationCenter {
             .into_iter()
             .map(|snapshot| (snapshot.id(), snapshot))
             .collect::<BTreeMap<JobId, _>>();
-        let mut entries = self
-            .entries
+        let mut state = self
+            .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        entries.retain(|id, notification| {
-            let Some(captured_job) = captured.get(id) else {
-                return true;
-            };
-            notification.job() != *captured_job || jobs.contains_key(&notification.job())
-        });
-        entries
+        for (notification_id, captured_job) in captured {
+            if jobs.contains_key(captured_job) {
+                continue;
+            }
+            let remove_captured_binding = state
+                .entries
+                .get(notification_id)
+                .is_some_and(|notification| notification.job() == *captured_job);
+            if remove_captured_binding {
+                state.entries.remove(notification_id);
+                state.jobs.remove(captured_job);
+            }
+        }
+        state
+            .entries
             .values()
             .filter_map(|notification| {
                 jobs.get(&notification.job())
@@ -183,6 +232,14 @@ impl ProgressNotificationCenter {
                     .map(|job| ProgressNotificationSnapshot::new(notification.clone(), job))
             })
             .collect()
+    }
+
+    #[cfg(test)]
+    fn job_lookup_probe_count(&self) -> usize {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .job_lookup_probes
     }
 }
 
@@ -194,11 +251,16 @@ fn is_automatic_binding(notification: &ProgressNotification) -> bool {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
+    use std::hint::black_box;
+    use std::time::Instant;
 
     use crate::core::jobs::{EditorJobProgressSnapshot, JobCategory, JobId};
     use crate::core::notifications::{NotificationId, NotificationSource};
 
-    use super::{ProgressNotification, ProgressNotificationCenter};
+    use super::{
+        AUTOMATIC_PROGRESS_SOURCE_ID, MAX_PROGRESS_NOTIFICATIONS, ProgressNotification,
+        ProgressNotificationCenter,
+    };
 
     fn notification(id: &str, job: JobId) -> ProgressNotification {
         ProgressNotification::new(
@@ -250,9 +312,79 @@ mod tests {
             .publish(notification(id.as_str(), replacement_job))
             .unwrap();
 
-        assert!(center
-            .synchronize_captured(&captured, std::iter::empty::<EditorJobProgressSnapshot>(),)
-            .is_empty());
+        assert!(
+            center
+                .synchronize_captured(&captured, std::iter::empty::<EditorJobProgressSnapshot>(),)
+                .is_empty()
+        );
         assert_eq!(center.synchronize([job(replacement_job)]).len(), 1);
+    }
+
+    #[test]
+    fn retiring_a_manual_replacement_releases_its_job_index_entry() {
+        let center = ProgressNotificationCenter::default();
+        let job_id = JobId::new(7);
+        let automatic = ProgressNotification::new(
+            NotificationId::parse("editor.progress.automatic").unwrap(),
+            NotificationSource::builtin(AUTOMATIC_PROGRESS_SOURCE_ID).unwrap(),
+            job_id,
+            "editor.progress.title",
+        )
+        .unwrap();
+        center.publish(automatic).unwrap();
+        center
+            .publish(notification("editor.progress.manual", job_id))
+            .unwrap();
+
+        center.retire_job(job_id);
+
+        assert!(
+            center
+                .publish(notification("editor.progress.reused", job_id))
+                .is_ok()
+        );
+    }
+
+    #[test]
+    #[ignore = "managed release performance evidence"]
+    fn optimization_wave_20260825_editor10_progress_job_index_evidence() {
+        const LOOKUPS: usize = 100_000;
+        const MAX_ELAPSED_NS: u128 = 3_000_000_000;
+
+        let center = ProgressNotificationCenter::default();
+        for index in 0..MAX_PROGRESS_NOTIFICATIONS {
+            center
+                .publish(notification(
+                    &format!("editor.progress.bench.{index:02}"),
+                    JobId::new(index as u64),
+                ))
+                .unwrap();
+        }
+        let candidate = notification(
+            "editor.progress.bench.duplicate",
+            JobId::new((MAX_PROGRESS_NOTIFICATIONS - 1) as u64),
+        );
+        let probes_before = center.job_lookup_probe_count();
+        let started = Instant::now();
+        for _ in 0..LOOKUPS {
+            black_box(center.publish(candidate.clone()).unwrap_err());
+        }
+        let elapsed_ns = started.elapsed().as_nanos();
+        let indexed_job_probes = center
+            .job_lookup_probe_count()
+            .saturating_sub(probes_before);
+        let legacy_candidate_checks = LOOKUPS * MAX_PROGRESS_NOTIFICATIONS;
+        let probe_reduction_bps = legacy_candidate_checks
+            .saturating_sub(indexed_job_probes)
+            .saturating_mul(10_000)
+            / legacy_candidate_checks;
+
+        println!(
+            "EDITOR_PROGRESS_JOB_INDEX_BENCH_V1 entries={MAX_PROGRESS_NOTIFICATIONS} lookups={LOOKUPS} legacy_candidate_checks={legacy_candidate_checks} indexed_job_probes={indexed_job_probes} probe_reduction_bps={probe_reduction_bps} elapsed_ns={elapsed_ns} max_elapsed_ns={MAX_ELAPSED_NS}"
+        );
+
+        assert_eq!(indexed_job_probes, LOOKUPS);
+        assert_eq!(probe_reduction_bps, 9_843);
+        assert!(elapsed_ns <= MAX_ELAPSED_NS);
     }
 }

@@ -110,7 +110,7 @@ impl ExportWizardJobState {
 
     pub fn record_stage_execution(&mut self, stage_execution: ExportWizardStageExecution) {
         self.snapshot.current_stage = Some(stage_execution.stage);
-        self.snapshot.progress = stage_execution.progress.clone();
+        reuse_progress_state(&mut self.snapshot.progress, &stage_execution.progress);
         self.snapshot
             .diagnostics
             .extend(stage_execution.diagnostics.iter().cloned());
@@ -148,6 +148,17 @@ impl ExportWizardJobState {
         self.snapshot
     }
 }
+
+fn reuse_progress_state(
+    target: &mut ExportWizardProgressState,
+    source: &ExportWizardProgressState,
+) {
+    target.clone_from(source);
+}
+
+#[cfg(test)]
+#[path = "job/reused_progress_tests.rs"]
+mod reused_progress_tests;
 
 impl ExportWizardJobSnapshot {
     pub fn is_terminal(&self) -> bool {

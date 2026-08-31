@@ -2,6 +2,9 @@ use crate::ui::retained_host::measure_runtime_text_width;
 
 const FILE_NAME_ELLIPSIS: &str = "...";
 const MEASURE_EPSILON: f32 = 0.01;
+const THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS: usize = 4;
+const THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS: usize = 3;
+const THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS: usize = 4;
 
 #[derive(Clone, Copy)]
 pub(crate) struct RuntimeFileNameCompaction {
@@ -31,6 +34,25 @@ pub(crate) fn compact_file_like_display_name(
 
     compact_chars(&name.chars().collect::<Vec<_>>(), None, compaction)
         .unwrap_or_else(|| name.to_string())
+}
+
+pub(crate) fn compact_thumbnail_file_name_to_width(
+    display_name: &str,
+    extension: &str,
+    max_width: f32,
+    font_size: f32,
+) -> String {
+    compact_file_like_display_name(
+        display_name,
+        extension,
+        RuntimeFileNameCompaction {
+            max_width,
+            font_size,
+            min_prefix_chars: THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS,
+            min_tail_stem_chars: THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS,
+            preferred_tail_stem_chars: THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS,
+        },
+    )
 }
 
 fn matching_file_parts<'a>(display_name: &'a str, extension: &str) -> Option<(&'a str, &'a str)> {

@@ -60,7 +60,7 @@ impl RenderMaterialManagementQuery {
     pub fn has_active_filters(&self) -> bool {
         self.status.is_some()
             || self.issue_kind.is_some()
-            || normalized_text_filter(&self.text_filter).is_some()
+            || normalized_text_filter_ref(&self.text_filter).is_some()
     }
 
     pub fn is_paged(&self) -> bool {
@@ -82,9 +82,16 @@ impl RenderMaterialManagementQuery {
 }
 
 fn normalized_text_filter(text_filter: &Option<String>) -> Option<String> {
+    normalized_text_filter_ref(text_filter).map(str::to_string)
+}
+
+fn normalized_text_filter_ref(text_filter: &Option<String>) -> Option<&str> {
     text_filter
         .as_deref()
         .map(str::trim)
         .filter(|text_filter| !text_filter.is_empty())
-        .map(str::to_string)
 }
+
+#[cfg(test)]
+#[path = "query_state/borrowed_text_filter_tests.rs"]
+mod borrowed_text_filter_tests;

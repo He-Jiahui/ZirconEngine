@@ -8,10 +8,10 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
     assert_virtual_row_repeat(
         &bridge,
-        "WorkbenchInspectorMesh",
+        "WorkbenchInspectorMeshProperties",
         "WorkbenchComponentPropertySlot04Row",
         "WorkbenchComponentPropertyVirtualRow",
-        4,
+        1,
         "v2",
     );
     let scene_entries = SceneEntries::from_entries(
@@ -40,6 +40,7 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         parent: "World".to_string(),
         translation: ["12.0".to_string(), "3.5".to_string(), "-8.0".to_string()],
         scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
+        render_layer_mask: 0x21,
         plugin_components: vec![InspectorPluginComponentSnapshot {
             component_id: "zircon.transform".to_string(),
             display_name: "Transform Component".to_string(),
@@ -106,6 +107,10 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         .unwrap();
 
     assert_eq!(
+        control_string(&bridge, "WorkbenchInspectorRenderLayerMask", "value").as_deref(),
+        Some("33")
+    );
+    assert_eq!(
         control_string(&bridge, "WorkbenchSceneRootItem", "text").as_deref(),
         Some("World")
     );
@@ -169,29 +174,39 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         Some("Transform Component")
     );
     assert_eq!(
-        control_string(&bridge, "WorkbenchMeshRow", "text").as_deref(),
+        control_string(&bridge, "WorkbenchComponentPropertySlot04Row", "text").as_deref(),
         Some("Visible")
     );
     assert_eq!(
-        control_string(&bridge, "WorkbenchMeshRow", "value_text").as_deref(),
+        control_string(&bridge, "WorkbenchComponentPropertySlot04Row", "value_text").as_deref(),
         Some("true")
     );
     assert_eq!(
-        control_string(&bridge, "WorkbenchMaterialRow", "text").as_deref(),
+        control_string(&bridge, "WorkbenchComponentPropertyVirtualRow02", "text").as_deref(),
         Some("Cast Shadows")
     );
     assert_eq!(
-        control_string(&bridge, "WorkbenchMaterialRow", "value_text").as_deref(),
+        control_string(
+            &bridge,
+            "WorkbenchComponentPropertyVirtualRow02",
+            "value_text"
+        )
+        .as_deref(),
         Some("false")
     );
     assert_eq!(
-        control_string(&bridge, "WorkbenchMeshRow", "inspector_property_field_id").as_deref(),
+        control_string(
+            &bridge,
+            "WorkbenchComponentPropertySlot04Row",
+            "inspector_property_field_id"
+        )
+        .as_deref(),
         Some("visible")
     );
     assert_eq!(
         control_string(
             &bridge,
-            "WorkbenchMaterialRow",
+            "WorkbenchComponentPropertyVirtualRow02",
             "inspector_property_field_id"
         )
         .as_deref(),
@@ -200,41 +215,38 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
     assert_eq!(
         control_string(
             &bridge,
-            "WorkbenchMaterialRow",
+            "WorkbenchComponentPropertyVirtualRow02",
             "inspector_property_value_kind"
         )
         .as_deref(),
         Some("bool")
     );
     assert_eq!(
-        control_string(&bridge, "WorkbenchMaterialRow", "value").as_deref(),
+        control_string(&bridge, "WorkbenchComponentPropertyVirtualRow02", "value").as_deref(),
         Some("false")
     );
     assert!(!control_bool(
         &bridge,
-        "WorkbenchMaterialRow",
+        "WorkbenchComponentPropertyVirtualRow02",
         "inspector_property_editable"
     ));
     assert_eq!(
-        control_string(&bridge, "WorkbenchComponentPropertySlot03Row", "text").as_deref(),
+        control_string(&bridge, "WorkbenchComponentPropertyVirtualRow03", "text").as_deref(),
         Some("Receive Shadows")
-    );
-    assert_eq!(
-        control_string(&bridge, "WorkbenchComponentPropertySlot03Row", "value_text").as_deref(),
-        Some("true")
-    );
-    assert_eq!(
-        template_contract_node(
-            &to_host_contract_workbench_window_nodes(Some(bridge.host_projection())),
-            "WorkbenchComponentPropertySlot03Row",
-        )
-        .layout_content_offset_x,
-        34.0
     );
     assert_eq!(
         control_string(
             &bridge,
-            "WorkbenchComponentPropertySlot04Row",
+            "WorkbenchComponentPropertyVirtualRow03",
+            "value_text"
+        )
+        .as_deref(),
+        Some("true")
+    );
+    assert_eq!(
+        control_string(
+            &bridge,
+            "WorkbenchComponentPropertyVirtualRow04",
             "inspector_property_field_id"
         )
         .as_deref(),
@@ -266,29 +278,32 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         ));
     let mesh_row = bridge
         .host_projection()
-        .node_by_control_id("WorkbenchMeshRow")
+        .node_by_control_id("WorkbenchComponentPropertySlot04Row")
         .expect("mesh/property row projection");
     assert_eq!(mesh_row.component, "InputField");
     assert!(control_has_class(
         &bridge,
-        "WorkbenchMeshRow",
+        "WorkbenchComponentPropertySlot04Row",
         "workbench-component-property-row"
     ));
     assert!(mesh_row.routes.iter().any(|route| {
-        route.binding_id == "Inspector/ComponentProperty01Edit"
+        route.binding_id == "Inspector/ComponentProperty04Edit"
             && route.event_kind == UiEventKind::Change
     }));
     assert!(mesh_row.routes.iter().any(|route| {
-        route.binding_id == "Inspector/ComponentProperty01Commit"
+        route.binding_id == "Inspector/ComponentProperty04Commit"
             && route.event_kind == UiEventKind::Submit
     }));
     let material_row = bridge
         .host_projection()
-        .node_by_control_id("WorkbenchMaterialRow")
+        .node_by_control_id("WorkbenchComponentPropertyVirtualRow02")
         .expect("material/property row projection");
     let material_host_nodes =
         to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
-    let material_host_row = template_contract_node(&material_host_nodes, "WorkbenchMaterialRow");
+    let material_host_row = template_contract_node(
+        &material_host_nodes,
+        "WorkbenchComponentPropertyVirtualRow02",
+    );
     assert_eq!(
         style_color_u8(
             material_host_row
@@ -308,11 +323,11 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         crate::ui::retained_host::primitives::Color::from_rgb_u8(181, 192, 197)
     );
     assert!(material_row.routes.iter().any(|route| {
-        route.binding_id == "Inspector/ComponentProperty02Edit"
+        route.binding_id == "Inspector/ComponentProperty04Edit"
             && route.event_kind == UiEventKind::Change
     }));
     assert!(material_row.routes.iter().any(|route| {
-        route.binding_id == "Inspector/ComponentProperty02Commit"
+        route.binding_id == "Inspector/ComponentProperty04Commit"
             && route.event_kind == UiEventKind::Submit
     }));
 
@@ -371,34 +386,8 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         control_visibility(&bridge, "WorkbenchInspectorTransform"),
         Some(UiVisibility::Collapsed)
     );
-    let cleared_material_host_nodes =
-        to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
-    let cleared_material_row =
-        template_contract_node(&cleared_material_host_nodes, "WorkbenchMaterialRow");
-    assert_eq!(
-        style_color_u8(
-            cleared_material_row
-                .button_style
-                .element
-                .background_color
-                .as_ref()
-        ),
-        None
-    );
-    assert_eq!(
-        style_color_u8(
-            cleared_material_row
-                .button_style
-                .element
-                .border_color
-                .as_ref()
-        ),
-        None
-    );
-    assert_eq!(
-        cleared_material_row.value_color,
-        crate::ui::retained_host::primitives::Color::from_rgb_u8(216, 227, 231)
-    );
+    assert!(!bridge.has_control_index_entry("WorkbenchComponentPropertySlot04Row"));
+    assert!(!bridge.has_control_index_entry("WorkbenchComponentPropertyVirtualRow02"));
 
     bridge
         .sync_scene_and_inspector(&scene_entries, Some(&inspector))
@@ -415,7 +404,7 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
 }
 
 #[test]
-fn componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_snapshot_state() {
+fn componentized_workbench_scene_tree_keeps_only_the_authored_retained_skeleton() {
     let _guard = env_lock().lock().unwrap();
 
     let mut bridge =
@@ -434,6 +423,7 @@ fn componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_sna
         parent: "SceneNode_12".to_string(),
         translation: ["0.0".to_string(), "1.0".to_string(), "2.0".to_string()],
         scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
+        render_layer_mask: 1,
         plugin_components: Vec::new(),
     };
     let thirteen_entries = numbered_scene_entries(13, 12);
@@ -442,40 +432,13 @@ fn componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_sna
         .unwrap();
 
     assert_eq!(
-        control_string(&bridge, "WorkbenchSceneVirtualItem11", "text").as_deref(),
-        Some("SceneNode_11")
+        control_string(&bridge, "WorkbenchSceneSlot10Item", "text").as_deref(),
+        Some("SceneNode_10")
     );
-    assert_eq!(
-        control_integer(&bridge, "WorkbenchSceneVirtualItem12", "scene_node_id"),
-        Some(12)
-    );
-    assert_eq!(
-        control_string(&bridge, "WorkbenchSceneVirtualItem13", "text").as_deref(),
-        Some("SceneNode_13")
-    );
-    assert!(control_bool(
-        &bridge,
-        "WorkbenchSceneVirtualItem13",
-        "selected"
-    ));
     assert!(bridge
         .host_projection()
         .node_by_control_id("WorkbenchSceneVirtualItem13")
-        .is_some());
-    let virtual_binding = bridge
-        .binding_for_control("WorkbenchSceneVirtualItem13", UiEventKind::Click)
-        .expect("virtual scene row binding should resolve through authored prototype route");
-    assert!(matches!(
-        virtual_binding.payload(),
-        EditorUiBindingPayload::SelectionCommand(_)
-    ));
-    assert!(
-        bridge
-            .surface()
-            .last_rebuild_report
-            .control_pool_created_count
-            >= 3
-    );
+        .is_none());
 
     let two_entries = numbered_scene_entries(2, 1);
     bridge
@@ -485,31 +448,13 @@ fn componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_sna
         .host_projection()
         .node_by_control_id("WorkbenchSceneVirtualItem11")
         .is_none());
-    assert!(
-        bridge
-            .surface()
-            .last_rebuild_report
-            .control_pool_recycled_count
-            >= 3
-    );
 
     let twelve_entries = numbered_scene_entries(12, 11);
     bridge
         .sync_scene_and_inspector(&twelve_entries, Some(&inspector))
         .unwrap();
-    assert_eq!(
-        control_string(&bridge, "WorkbenchSceneVirtualItem12", "text").as_deref(),
-        Some("SceneNode_12")
-    );
     assert!(bridge
         .host_projection()
         .node_by_control_id("WorkbenchSceneVirtualItem12")
-        .is_some());
-    assert!(
-        bridge
-            .surface()
-            .last_rebuild_report
-            .control_pool_reused_count
-            >= 2
-    );
+        .is_none());
 }

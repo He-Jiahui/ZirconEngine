@@ -12,7 +12,10 @@ use zircon_runtime_interface::ui::{
 
 use super::arrange::{arrange_node, hide_subtree_layout};
 use super::engine::UiLayoutPassEngineContext;
-use super::slot::{ordered_children_for_container, slot_for_container_child, UiLayoutSlotIndex};
+use super::slot::{slot_for_container_child, UiLayoutSlotIndex};
+use super::workspace::{
+    recycle_taffy_arrange_scratch, take_taffy_arrange_scratch, UiTaffyArrangeScratch,
+};
 
 pub(super) fn try_arrange_taffy_owned_children(
     tree: &mut UiTree,
@@ -40,13 +43,42 @@ pub(super) fn try_arrange_taffy_owned_children(
         return Ok(false);
     }
 
-    let (layout_children, hidden_children) =
-        taffy_layout_children(tree, slot_index, parent_id, children, container)?;
+    let mut scratch = take_taffy_arrange_scratch();
+    let result = try_arrange_taffy_owned_children_with_scratch(
+        tree,
+        parent_id,
+        children,
+        frame,
+        inherited_clip,
+        slot_index,
+        engine_context,
+        container,
+        axis,
+        &mut scratch,
+    );
+    recycle_taffy_arrange_scratch(scratch);
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+fn try_arrange_taffy_owned_children_with_scratch(
+    tree: &mut UiTree,
+    parent_id: UiNodeId,
+    children: &[UiNodeId],
+    frame: UiFrame,
+    inherited_clip: Option<UiFrame>,
+    slot_index: &UiLayoutSlotIndex,
+    engine_context: &mut UiLayoutPassEngineContext,
+    container: UiContainerKind,
+    axis: Option<UiAxis>,
+    scratch: &mut UiTaffyArrangeScratch,
+) -> Result<bool, UiTreeError> {
+    taffy_layout_children(tree, children, container, scratch)?;
     if let Some(reason) = taffy_child_contracts_unsupported(
         tree,
         slot_index,
         parent_id,
-        &layout_children,
+        &scratch.layout_children,
         container,
         axis,
     )? {
@@ -54,21 +86,31 @@ pub(super) fn try_arrange_taffy_owned_children(
         return Ok(false);
     }
 
-    let outcome = {
-        let mut child_inputs = Vec::with_capacity(layout_children.len());
-        for child_id in &layout_children {
-            let child = tree
-                .node(*child_id)
-                .ok_or(UiTreeError::MissingNode(*child_id))?;
-            let slot = slot_for_container_child(tree, slot_index, parent_id, *child_id, container);
-            child_inputs.push(TaffyChildLayoutInput {
-                node_id: *child_id,
+    scratch.bridge.begin_children(container);
+    for child_id in scratch.layout_children.iter().copied() {
+        let child = tree
+            .node(child_id)
+            .ok_or(UiTreeError::MissingNode(child_id))?;
+        let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
+        if let Err(error) = scratch.bridge.push_child(
+            container,
+            axis,
+            TaffyChildLayoutInput {
+                node_id: child_id,
                 node: child,
                 slot,
-            });
+            },
+        ) {
+            engine_context.record_taffy_fallback(
+                parent_id,
+                container,
+                error.fallback_reason(),
+                Some(error.tree_build()),
+            );
+            return Ok(false);
         }
-        compute_taffy_child_frames(container, frame, &child_inputs)
-    };
+    }
+    let outcome = compute_taffy_child_frames(container, frame, &mut scratch.bridge);
     let outcome = match outcome {
         Ok(outcome) => outcome,
         Err(error) => {
@@ -83,10 +125,10 @@ pub(super) fn try_arrange_taffy_owned_children(
     };
 
     engine_context.record_taffy_native(parent_id, container, outcome.tree_build);
-    for child_id in hidden_children {
-        hide_subtree_layout(tree, child_id)?;
+    for child_id in scratch.hidden_children.iter().copied() {
+        hide_subtree_layout(tree, child_id, slot_index, engine_context)?;
     }
-    for child_frame in outcome.child_frames {
+    for child_frame in scratch.bridge.child_frames().iter().copied() {
         arrange_node(
             tree,
             child_frame.node_id,
@@ -102,28 +144,28 @@ pub(super) fn try_arrange_taffy_owned_children(
 
 fn taffy_layout_children(
     tree: &mut UiTree,
-    slot_index: &UiLayoutSlotIndex,
-    parent_id: UiNodeId,
     children: &[UiNodeId],
     container: UiContainerKind,
-) -> Result<(Vec<UiNodeId>, Vec<UiNodeId>), UiTreeError> {
-    let ordered_children =
-        ordered_children_for_container(tree, slot_index, parent_id, children, container);
-    let mut layout_children = Vec::with_capacity(ordered_children.len());
-    let mut hidden_children = Vec::new();
-    for child_id in ordered_children {
+    scratch: &mut UiTaffyArrangeScratch,
+) -> Result<(), UiTreeError> {
+    scratch.layout_children.clear();
+    scratch.hidden_children.clear();
+    for child_id in children.iter().copied() {
         let child = tree
             .node(child_id)
             .ok_or(UiTreeError::MissingNode(child_id))?;
         if child.effective_visibility().occupies_layout() {
-            layout_children.push(child_id);
+            scratch.layout_children.push(child_id);
         } else if matches!(container, UiContainerKind::GridBox(_)) {
-            return Ok((children.to_vec(), Vec::new()));
+            scratch.layout_children.clear();
+            scratch.layout_children.extend_from_slice(children);
+            scratch.hidden_children.clear();
+            return Ok(());
         } else {
-            hidden_children.push(child_id);
+            scratch.hidden_children.push(child_id);
         }
     }
-    Ok((layout_children, hidden_children))
+    Ok(())
 }
 
 fn taffy_child_contracts_unsupported(
@@ -134,10 +176,10 @@ fn taffy_child_contracts_unsupported(
     container: UiContainerKind,
     parent_axis: Option<UiAxis>,
 ) -> Result<Option<UiLayoutEngineFallbackReason>, UiTreeError> {
-    for child_id in children {
+    for child_id in children.iter().copied() {
         let child = tree
-            .node(*child_id)
-            .ok_or(UiTreeError::MissingNode(*child_id))?;
+            .node(child_id)
+            .ok_or(UiTreeError::MissingNode(child_id))?;
         if !child.effective_visibility().occupies_layout() {
             return Ok(Some(
                 UiLayoutEngineFallbackReason::UnsupportedChildVisibility,
@@ -158,7 +200,7 @@ fn taffy_child_contracts_unsupported(
             return Ok(Some(UiLayoutEngineFallbackReason::InvalidLayoutValue));
         }
 
-        let slot = slot_for_container_child(tree, slot_index, parent_id, *child_id, container);
+        let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
         if let Some(slot) = slot {
             if slot.canvas_placement.is_some() {
                 return Ok(Some(UiLayoutEngineFallbackReason::SlotCanvasPlacement));

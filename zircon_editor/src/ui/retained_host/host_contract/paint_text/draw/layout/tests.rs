@@ -4,7 +4,11 @@ use zircon_runtime::text::{
 };
 use zircon_runtime_interface::ui::surface::{UiTextDirection, UiTextRange, UiTextRunPaintStyle};
 
-use super::{layout_text_run, layout_text_run_with_smoothing, runtime_positioned_glyphs};
+use super::runtime_lines::RuntimeTextLine;
+use super::{
+    display_text_from_lines, layout_text_run, layout_text_run_with_smoothing,
+    runtime_positioned_glyphs,
+};
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_text::font::{
     host_font_snapshot_for_face, HostTextFontFace,
@@ -13,6 +17,37 @@ use crate::ui::retained_host::host_contract::paint_text::font::{
 mod artifact;
 mod runtime_lines;
 use crate::ui::retained_host::host_contract::paint_theme::HostTextSmoothing;
+
+fn runtime_text_line(text: &str) -> RuntimeTextLine {
+    RuntimeTextLine {
+        text: text.to_string(),
+        frame_x: 0.0,
+        frame_y: 0.0,
+        glyph_advances: Vec::new(),
+        shaped_glyphs: Vec::new(),
+        artifact_line: None,
+    }
+}
+
+#[test]
+fn display_text_moves_the_single_runtime_line() {
+    assert_eq!(
+        display_text_from_lines(vec![runtime_text_line("Preview")]),
+        "Preview"
+    );
+}
+
+#[test]
+fn display_text_preserves_multiline_and_empty_line_boundaries() {
+    assert_eq!(
+        display_text_from_lines(vec![
+            runtime_text_line("first"),
+            runtime_text_line(""),
+            runtime_text_line("third"),
+        ]),
+        "first\n\nthird"
+    );
+}
 
 #[test]
 fn runtime_positioned_glyphs_use_runtime_grapheme_advances_when_widths_match() {

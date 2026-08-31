@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime_interface/src/resource
   - zircon_runtime_interface/src/handles.rs
   - zircon_runtime_interface/src/runtime_api
-  - zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs
+  - zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs
   - zircon_runtime_interface/src/world_sync
   - zircon_runtime/src/core/resource
   - zircon_runtime/src/scene/mod.rs
@@ -28,7 +28,6 @@ related_code:
   - zircon_runtime/src/navigation
   - zircon_runtime/src/core/framework/net
   - zircon_runtime/src/ui/surface/timeline.rs
-  - zircon_runtime/src/ui/text/font_registry.rs
   - zircon_runtime/src/text/sdf/font_bake
   - zircon_plugins/particles/runtime/src/component.rs
   - zircon_plugins/particles/runtime/src/service.rs

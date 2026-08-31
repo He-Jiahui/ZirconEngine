@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AssetUri, TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    AssetUri, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureAsset, TextureAssetDescriptor,
 };
 use crate::core::framework::render::{
     CameraRenderDescriptor, CameraRenderType, CapturedFrame, FallbackSkyboxKind,
@@ -12,13 +12,13 @@ use crate::core::framework::render::{
     RenderPipelineHandle, RenderQualityProfile, RenderSamplerDescriptor,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderSubmissionConfig,
     RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
-    RenderVirtualGeometryDebugSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderVirtualGeometryDebugSnapshot, RenderWorldSnapshotHandle, UiRenderSubmission,
+    ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
 use crate::graphics::{ViewportRenderFrame, WgpuRenderFramework};
 use crate::rhi::RenderNativeSurfaceTarget;
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 const CAMERA_TEXTURE_TARGET_ASSET_CAPABILITY: &str = "camera texture render target asset";
 const CAMERA_TEXTURE_SURFACE_PRESENT_CAPABILITY: &str = "camera texture surface present";
@@ -43,7 +43,7 @@ fn graphics_scene_keeps_viewport_surface_owned_by_the_render_framework() {
     assert!(!renderer_facade.contains("SceneViewportSurface"));
     assert!(factory_source.contains("self.backend.create_viewport_surface(descriptor)"));
     assert!(binding_source.contains("create_framework_viewport_surface(descriptor)"));
-    assert!(binding_source.contains("record.bind_surface(surface);"));
+    assert!(binding_source.contains(".replace_surface_and_extent(surface, descriptor.size)"));
     assert!(record_source.contains("surface: ViewportSurface"));
 }
 
@@ -53,9 +53,54 @@ fn graphics_viewport_binding_moves_the_native_surface_into_the_viewport_record()
         include_str!("../runtime/render_framework/viewport_surface/viewport_surface.rs");
     let record_source = include_str!("../runtime/render_framework/viewport_record/surface.rs");
 
-    assert!(bind_source.contains("record.bind_surface(surface);"));
+    assert!(bind_source.contains(".replace_surface_and_extent(surface, descriptor.size)"));
     assert!(record_source.contains("surface: ViewportSurface"));
     assert!(!record_source.contains("SceneViewportSurface"));
+}
+
+#[test]
+fn graphics_surface_rebind_prepares_fences_and_publishes_before_retiring_the_old_surface() {
+    let bind_source =
+        include_str!("../runtime/render_framework/viewport_surface/viewport_surface.rs");
+    let record_source = include_str!("../runtime/render_framework/viewport_record/surface.rs");
+    let runtime_bridge_source = include_str!("../../dynamic_api/runtime_loop.rs");
+
+    let prepared_surface = bind_source
+        .find("create_framework_viewport_surface(descriptor)")
+        .expect("surface rebind must prepare a replacement surface");
+    let submission_fence = bind_source
+        .find("framework.finish_submission()?;")
+        .expect("surface rebind must finish prior submissions before publication");
+    let publish = bind_source
+        .find(".replace_surface_and_extent(surface, descriptor.size)")
+        .expect("surface rebind must atomically publish the replacement extent and surface");
+
+    assert!(
+        prepared_surface < submission_fence && submission_fence < publish,
+        "surface rebind must prepare, fence, then publish"
+    );
+    assert!(
+        runtime_bridge_source.contains("ensure_viewport_for_surface_rebind"),
+        "surface rebind must retain its viewport handle instead of recreating it for a size change"
+    );
+
+    let publish_extent = record_source
+        .find("self.descriptor.size = size;")
+        .expect("surface replacement must publish its extent");
+    let publish_surface = record_source
+        .find("self.surface.replace(surface)")
+        .expect("surface replacement must publish the prepared surface");
+    let retire_surface = record_source
+        .find("drop(previous_surface);")
+        .expect("surface replacement must retire the old surface after publication");
+    assert!(
+        publish_extent < publish_surface && publish_surface < retire_surface,
+        "surface replacement must publish both new values before retiring the old surface"
+    );
+    assert!(
+        record_source.contains("self.capture_mailbox = Default::default();"),
+        "surface replacement must isolate late readback callbacks in the retired mailbox"
+    );
 }
 
 #[test]
@@ -143,10 +188,12 @@ fn graphics_surface_missing_surface_clears_pending_graphics_debugger_capture() {
     assert!(!status.active_capture);
     assert!(!status.capture_pending);
     assert_eq!(status.last_capture_frame, None);
-    assert!(status
-        .last_error
-        .as_deref()
-        .is_some_and(|message| message.contains(SURFACE_PRESENT_CAPABILITY)));
+    assert!(
+        status
+            .last_error
+            .as_deref()
+            .is_some_and(|message| message.contains(SURFACE_PRESENT_CAPABILITY))
+    );
     assert_eq!(framework.query_stats().unwrap().captured_frames, 0);
 }
 
@@ -296,10 +343,11 @@ fn graphics_surface_runtime_frame_exposes_retained_linear_hdr_scene_color() {
 
     assert_eq!((hdr.width, hdr.height), (size.x, size.y));
     assert_eq!(hdr.rgba16f.len(), (size.x * size.y) as usize);
-    assert!(hdr
-        .rgba16f
-        .iter()
-        .all(|texel| texel.iter().all(|channel| channel.is_finite())));
+    assert!(
+        hdr.rgba16f
+            .iter()
+            .all(|texel| texel.iter().all(|channel| channel.is_finite()))
+    );
     assert_eq!(
         hdr.generation,
         framework.query_stats().unwrap().last_generation.unwrap()
@@ -337,10 +385,12 @@ fn graphics_surface_hdr_capture_never_returns_another_viewports_retained_scene_c
         )
         .unwrap();
 
-    assert!(framework
-        .capture_scene_color_hdr(first_viewport)
-        .unwrap()
-        .is_none());
+    assert!(
+        framework
+            .capture_scene_color_hdr(first_viewport)
+            .unwrap()
+            .is_none()
+    );
     let second_hdr = framework
         .capture_scene_color_hdr(second_viewport)
         .unwrap()
@@ -416,14 +466,16 @@ fn graphics_camera_target_headless_present_reports_unsupported_surface_fallback(
 }
 
 #[test]
-fn graphics_surface_present_path_source_uses_swapchain_present_without_readback_fallback() {
+fn graphics_surface_present_path_uses_neutral_present_without_readback_fallback() {
     let framework_present_source = include_str!(
         "../runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs"
     );
     let backend_surface_source = include_str!("../backend/render_backend/viewport_surface.rs");
 
     assert!(framework_present_source.contains("record_present_submission"));
-    assert!(backend_surface_source.contains("surface_texture.present()"));
+    assert!(backend_surface_source.contains(".present_surface_frame(frame.clone(), submission)"));
+    assert!(!backend_surface_source.contains("get_current_texture"));
+    assert!(!backend_surface_source.contains("surface_texture.present()"));
     assert!(!framework_present_source.contains("capture_frame"));
     assert!(!framework_present_source.contains("read_texture_rgba"));
     assert!(!backend_surface_source.contains("read_texture_rgba"));
@@ -643,7 +695,7 @@ impl RenderFramework for UnsupportedSurfaceFramework {
         &self,
         _viewport: RenderViewportHandle,
         _extract: RenderFrameExtract,
-        _ui: Option<UiRenderExtract>,
+        _ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError> {
         Ok(())
     }

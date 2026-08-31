@@ -63,12 +63,6 @@ fn compact_stem_with_suffix(
                 .len()
                 .saturating_sub(compaction.min_prefix_chars + 1),
         );
-    let fallback = candidate_with_suffix(
-        &stem_chars,
-        compaction.min_prefix_chars,
-        compaction.min_tail_stem_chars,
-        suffix,
-    );
     for tail_count in (compaction.min_tail_stem_chars..=max_tail).rev() {
         let max_prefix = stem_chars.len().saturating_sub(tail_count + 1);
         if max_prefix < compaction.min_prefix_chars {
@@ -84,7 +78,12 @@ fn compact_stem_with_suffix(
         }
     }
 
-    Some(fallback)
+    Some(candidate_with_suffix(
+        &stem_chars,
+        compaction.min_prefix_chars,
+        compaction.min_tail_stem_chars,
+        suffix,
+    ))
 }
 
 fn compact_whole_text(text: &str, compaction: RuntimeFileNameCompaction) -> String {
@@ -101,11 +100,6 @@ fn compact_whole_text(text: &str, compaction: RuntimeFileNameCompaction) -> Stri
                 .len()
                 .saturating_sub(compaction.min_prefix_chars + 1),
         );
-    let fallback = candidate_without_suffix(
-        &text_chars,
-        compaction.min_prefix_chars,
-        compaction.min_tail_stem_chars,
-    );
     for tail_count in (compaction.min_tail_stem_chars..=max_tail).rev() {
         let max_prefix = text_chars.len().saturating_sub(tail_count + 1);
         if max_prefix < compaction.min_prefix_chars {
@@ -121,7 +115,11 @@ fn compact_whole_text(text: &str, compaction: RuntimeFileNameCompaction) -> Stri
         }
     }
 
-    fallback
+    candidate_without_suffix(
+        &text_chars,
+        compaction.min_prefix_chars,
+        compaction.min_tail_stem_chars,
+    )
 }
 
 fn largest_fitting_candidate(
@@ -155,15 +153,28 @@ fn candidate_with_suffix(
     tail_count: usize,
     suffix: &str,
 ) -> String {
-    let prefix = collect_prefix(stem_chars, prefix_count);
-    let tail = collect_tail(stem_chars, tail_count);
-    format!("{prefix}{FILE_NAME_ELLIPSIS}{tail}.{suffix}")
+    let prefix = &stem_chars[..prefix_count.min(stem_chars.len())];
+    let tail = &stem_chars[stem_chars.len().saturating_sub(tail_count)..];
+    let capacity =
+        char_byte_len(prefix) + FILE_NAME_ELLIPSIS.len() + char_byte_len(tail) + 1 + suffix.len();
+    let mut candidate = String::with_capacity(capacity);
+    candidate.extend(prefix.iter().copied());
+    candidate.push_str(FILE_NAME_ELLIPSIS);
+    candidate.extend(tail.iter().copied());
+    candidate.push('.');
+    candidate.push_str(suffix);
+    candidate
 }
 
 fn candidate_without_suffix(chars: &[char], prefix_count: usize, tail_count: usize) -> String {
-    let prefix = collect_prefix(chars, prefix_count);
-    let tail = collect_tail(chars, tail_count);
-    format!("{prefix}{FILE_NAME_ELLIPSIS}{tail}")
+    let prefix = &chars[..prefix_count.min(chars.len())];
+    let tail = &chars[chars.len().saturating_sub(tail_count)..];
+    let capacity = char_byte_len(prefix) + FILE_NAME_ELLIPSIS.len() + char_byte_len(tail);
+    let mut candidate = String::with_capacity(capacity);
+    candidate.extend(prefix.iter().copied());
+    candidate.push_str(FILE_NAME_ELLIPSIS);
+    candidate.extend(tail.iter().copied());
+    candidate
 }
 
 fn fits_runtime_width(text: &str, compaction: RuntimeFileNameCompaction) -> bool {
@@ -174,13 +185,8 @@ fn chars(text: &str) -> Vec<char> {
     text.chars().collect()
 }
 
-fn collect_prefix(chars: &[char], count: usize) -> String {
-    chars.iter().take(count).copied().collect()
-}
-
-fn collect_tail(chars: &[char], count: usize) -> String {
-    let start = chars.len().saturating_sub(count);
-    chars[start..].iter().copied().collect()
+fn char_byte_len(chars: &[char]) -> usize {
+    chars.iter().map(|character| character.len_utf8()).sum()
 }
 
 #[cfg(test)]
@@ -258,5 +264,131 @@ mod tests {
             compact_file_like_display_name("workbench_page_chrome.zui", "zui", compaction),
             ""
         );
+    }
+
+    #[test]
+    fn single_allocation_name_candidates_preserve_unicode_content() {
+        let chars = chars("资产BrowserWorkbenchPreviewAlphaBetaGamma");
+
+        assert_eq!(
+            candidate_with_suffix(&chars, 7, 5, "zasset"),
+            retired_candidate_with_suffix(&chars, 7, 5, "zasset")
+        );
+        assert_eq!(
+            candidate_without_suffix(&chars, 9, 6),
+            retired_candidate_without_suffix(&chars, 9, 6)
+        );
+    }
+
+    #[test]
+    fn single_allocation_name_candidates_build_directly_into_output() {
+        let source = include_str!("name_compaction.rs");
+        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
+
+        assert!(implementation.contains("String::with_capacity"));
+        assert!(implementation.contains("extend(prefix.iter().copied())"));
+        assert!(implementation.contains("extend(tail.iter().copied())"));
+        assert!(!implementation.contains("fn collect_prefix"));
+        assert!(!implementation.contains("fn collect_tail"));
+        assert!(!implementation.contains("let fallback = candidate_"));
+    }
+
+    #[test]
+    #[ignore = "release performance benchmark"]
+    fn single_allocation_name_candidates_release_benchmark() {
+        const SAMPLES: usize = 11;
+        const ITERATIONS: usize = 32;
+        const NAME_COUNT: usize = 48;
+        const CANDIDATES_PER_NAME: usize = 4;
+        const RETIRED_BUFFERS_PER_CANDIDATE: usize = 3;
+        const OPTIMIZED_BUFFERS_PER_CANDIDATE: usize = 1;
+
+        let names = (0..NAME_COUNT)
+            .map(|index| {
+                format!("AssetBrowserName{index:02}WorkbenchPreviewAlphaBetaGamma")
+                    .chars()
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let mut retired_samples = Vec::with_capacity(SAMPLES);
+        let mut optimized_samples = Vec::with_capacity(SAMPLES);
+
+        for sample in 0..SAMPLES {
+            let benchmark = |builder: fn(&[char], usize, usize, &str) -> String| {
+                let started = std::time::Instant::now();
+                for _ in 0..ITERATIONS {
+                    for name in &names {
+                        for tail_count in 3..=6 {
+                            std::hint::black_box(builder(name, 8, tail_count, "zasset"));
+                        }
+                    }
+                }
+                started.elapsed().as_nanos()
+            };
+
+            if sample % 2 == 0 {
+                retired_samples.push(benchmark(retired_candidate_with_suffix));
+                optimized_samples.push(benchmark(candidate_with_suffix));
+            } else {
+                optimized_samples.push(benchmark(candidate_with_suffix));
+                retired_samples.push(benchmark(retired_candidate_with_suffix));
+            }
+        }
+
+        let retired_p95_ns = percentile_95(&mut retired_samples);
+        let optimized_p95_ns = percentile_95(&mut optimized_samples);
+        let reduction_bps = retired_p95_ns
+            .saturating_sub(optimized_p95_ns)
+            .saturating_mul(10_000)
+            / retired_p95_ns.max(1);
+        println!(
+            "EDITOR57_SINGLE_ALLOCATION_NAME_CANDIDATES_BENCH_V1 \
+             retired_p95_ns={retired_p95_ns} optimized_p95_ns={optimized_p95_ns} \
+             reduction_bps={reduction_bps} samples={SAMPLES} iterations={ITERATIONS} \
+             names={NAME_COUNT} candidates_per_name={CANDIDATES_PER_NAME} \
+             buffers_per_candidate={RETIRED_BUFFERS_PER_CANDIDATE}->{OPTIMIZED_BUFFERS_PER_CANDIDATE} \
+             eager_fallback_candidates=1->0"
+        );
+
+        assert!(
+            optimized_p95_ns.saturating_mul(100) <= retired_p95_ns.saturating_mul(85),
+            "optimized P95 must be at least 15% faster: retired={retired_p95_ns}ns optimized={optimized_p95_ns}ns"
+        );
+    }
+
+    fn retired_candidate_with_suffix(
+        chars: &[char],
+        prefix_count: usize,
+        tail_count: usize,
+        suffix: &str,
+    ) -> String {
+        let prefix = retired_collect_prefix(chars, prefix_count);
+        let tail = retired_collect_tail(chars, tail_count);
+        format!("{prefix}{FILE_NAME_ELLIPSIS}{tail}.{suffix}")
+    }
+
+    fn retired_candidate_without_suffix(
+        chars: &[char],
+        prefix_count: usize,
+        tail_count: usize,
+    ) -> String {
+        let prefix = retired_collect_prefix(chars, prefix_count);
+        let tail = retired_collect_tail(chars, tail_count);
+        format!("{prefix}{FILE_NAME_ELLIPSIS}{tail}")
+    }
+
+    fn retired_collect_prefix(chars: &[char], count: usize) -> String {
+        chars.iter().take(count).copied().collect()
+    }
+
+    fn retired_collect_tail(chars: &[char], count: usize) -> String {
+        let start = chars.len().saturating_sub(count);
+        chars[start..].iter().copied().collect()
+    }
+
+    fn percentile_95(samples: &mut [u128]) -> u128 {
+        samples.sort_unstable();
+        let index = (samples.len() * 95).div_ceil(100).saturating_sub(1);
+        samples[index]
     }
 }

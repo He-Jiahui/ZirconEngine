@@ -7,7 +7,8 @@ use super::{
 use crate::asset::ProjectAssetManager;
 use crate::asset::{AssetId, AssetUri};
 use crate::core::resource::{
-    ResourceHandle, ResourceMarker, ResourceReadinessGeneration, ResourceState,
+    ResourceHandle, ResourceMarker, ResourceReadinessGeneration,
+    ResourceReadinessGenerationAssemblyExt, ResourceState,
 };
 use crate::core::{CoreError, CoreError::Initialization};
 

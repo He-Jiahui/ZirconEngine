@@ -1,19 +1,21 @@
 use std::fmt;
-use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::Duration;
 
+use super::callback_dispatcher::{TaskCallback, TaskCallbackDispatcher};
 use super::pool::{assist_current_thread_once, TaskPoolYield};
-use super::JobSchedulerDiagnosticsState;
+use super::{JobSchedulerDiagnosticsState, TaskId, TaskState, TaskStatus};
 
-type JobContinuation = Box<dyn FnOnce() + Send + 'static>;
-type JobTerminalObserver = Box<dyn FnOnce() + Send + 'static>;
+type JobContinuation = TaskCallback;
+type JobTerminalObserver = TaskCallback;
 const WORKER_WAIT_IDLE_PARK: Duration = Duration::from_millis(1);
 
 #[derive(Clone)]
 pub struct JobHandle {
     state: Arc<JobState>,
+    callback_dispatcher: TaskCallbackDispatcher,
     wait_diagnostics: Option<Arc<JobSchedulerDiagnosticsState>>,
 }
 
@@ -24,8 +26,10 @@ struct JobState {
 }
 
 struct JobStateInner {
-    is_complete: bool,
+    lifecycle: TaskState,
+    is_cancelled: bool,
     dependency_continuations_published: bool,
+    terminal_observer_delivery_active: bool,
     panic_message: Option<Arc<str>>,
     remaining_dependencies: usize,
     dependents: Vec<JobContinuation>,
@@ -34,25 +38,44 @@ struct JobStateInner {
 
 impl JobHandle {
     pub(super) fn pending_with_dependencies(remaining_dependencies: usize) -> Self {
-        Self::pending_with_wait_diagnostics(remaining_dependencies, None)
+        Self::pending_with_wait_diagnostics(
+            remaining_dependencies,
+            None,
+            default_callback_dispatcher(),
+        )
     }
 
     pub(super) fn pending_with_scheduler_diagnostics(
         remaining_dependencies: usize,
         wait_diagnostics: Arc<JobSchedulerDiagnosticsState>,
+        callback_dispatcher: TaskCallbackDispatcher,
     ) -> Self {
-        Self::pending_with_wait_diagnostics(remaining_dependencies, Some(wait_diagnostics))
+        Self::pending_with_wait_diagnostics(
+            remaining_dependencies,
+            Some(wait_diagnostics),
+            callback_dispatcher,
+        )
+    }
+
+    pub(super) fn pending_with_callback_dispatcher(
+        remaining_dependencies: usize,
+        callback_dispatcher: TaskCallbackDispatcher,
+    ) -> Self {
+        Self::pending_with_wait_diagnostics(remaining_dependencies, None, callback_dispatcher)
     }
 
     fn pending_with_wait_diagnostics(
         remaining_dependencies: usize,
         wait_diagnostics: Option<Arc<JobSchedulerDiagnosticsState>>,
+        callback_dispatcher: TaskCallbackDispatcher,
     ) -> Self {
         Self {
             state: Arc::new(JobState {
                 inner: Mutex::new(JobStateInner {
-                    is_complete: false,
+                    lifecycle: TaskState::Pending,
+                    is_cancelled: false,
                     dependency_continuations_published: false,
+                    terminal_observer_delivery_active: false,
                     panic_message: None,
                     remaining_dependencies,
                     dependents: Vec::new(),
@@ -61,6 +84,7 @@ impl JobHandle {
                 complete: Condvar::new(),
                 terminal_observer_panics: AtomicUsize::new(0),
             }),
+            callback_dispatcher,
             wait_diagnostics,
         }
     }
@@ -95,46 +119,83 @@ impl JobHandle {
             return Self::completed();
         }
 
-        let combined = Self::pending_with_wait_diagnostics(handles.len(), wait_diagnostics);
+        let callback_dispatcher = handles
+            .first()
+            .map(|handle| handle.callback_dispatcher.clone())
+            .unwrap_or_else(default_callback_dispatcher);
+        let combined = Self::pending_with_wait_diagnostics(
+            handles.len(),
+            wait_diagnostics,
+            callback_dispatcher,
+        );
         for handle in handles {
             let handle_for_callback = handle.clone();
             let combined_for_callback = combined.clone();
             let callback = Box::new(move || {
-                combined_for_callback
-                    .combined_dependency_completed(handle_for_callback.panic_message());
+                combined_for_callback.combined_dependency_completed(
+                    handle_for_callback.panic_message(),
+                    handle_for_callback.is_cancelled(),
+                );
             });
             if !handle.add_dependent(callback) {
-                combined.combined_dependency_completed(handle.panic_message());
+                combined
+                    .combined_dependency_completed(handle.panic_message(), handle.is_cancelled());
             }
         }
         combined
     }
 
     pub fn is_complete(&self) -> bool {
-        self.state.lock_inner().is_complete
+        self.state.lock_inner().lifecycle.is_terminal()
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        let inner = self.state.lock_inner();
+        inner.lifecycle == TaskState::Cancelled
+    }
+
+    pub fn terminal_state(&self) -> Option<TaskState> {
+        let inner = self.state.lock_inner();
+        inner.lifecycle.is_terminal().then_some(inner.lifecycle)
+    }
+
+    pub(super) fn task_status(&self, id: TaskId) -> TaskStatus {
+        let inner = self.state.lock_inner();
+        TaskStatus {
+            id,
+            state: inner.lifecycle,
+            failure_message: inner
+                .panic_message
+                .as_ref()
+                .filter(|_| inner.lifecycle == TaskState::Failed)
+                .map(|message| message.to_string()),
+        }
     }
 
     /// Runs `observer` once after this handle reaches any terminal state.
     ///
-    /// Registration after dependency continuations have been published invokes the observer before
-    /// this method returns. Registration during continuation publication joins the queued observers,
-    /// which run outside the state lock after every continuation has been released. `wait()`
-    /// synchronizes terminal state, not observer completion, so observers must stay bounded and must
-    /// own any stronger completion signal their consumer requires.
+    /// Scheduler-backed handles deliver through their owner dispatcher after all dependency
+    /// continuations are released. Standalone handles and registrations made after the owner
+    /// stops use the same ordered callback queue with inline delivery. `wait()` synchronizes
+    /// terminal state, not observer completion.
     pub fn on_terminal(&self, observer: impl FnOnce() + Send + 'static) {
         let observer: JobTerminalObserver = Box::new(observer);
-        let observer = {
+        let observers = {
             let mut inner = self.state.lock_inner();
-            if inner.is_complete && inner.dependency_continuations_published {
-                Some(observer)
+            inner.terminal_observers.push(observer);
+            if inner.lifecycle.is_terminal() && inner.dependency_continuations_published {
+                JobState::take_terminal_observer_batch(&mut inner)
             } else {
-                inner.terminal_observers.push(observer);
                 None
             }
         };
 
-        if let Some(observer) = observer {
-            self.state.run_terminal_observer(observer);
+        if let Some(observers) = observers {
+            dispatch_terminal_observer_batch(
+                Arc::clone(&self.state),
+                self.callback_dispatcher.clone(),
+                observers,
+            );
         }
     }
 
@@ -159,16 +220,16 @@ impl JobHandle {
 
     fn wait_for_terminal(&self) -> Option<Arc<str>> {
         let mut inner = self.state.lock_inner();
-        while !inner.is_complete {
+        while !inner.lifecycle.is_terminal() {
             drop(inner);
             if let Some(result) = assist_current_thread_once() {
                 inner = self.state.lock_inner();
-                if !inner.is_complete && result == TaskPoolYield::Idle {
+                if !inner.lifecycle.is_terminal() && result == TaskPoolYield::Idle {
                     inner = self.state.wait_inner_timeout(inner, WORKER_WAIT_IDLE_PARK);
                 }
             } else {
                 inner = self.state.lock_inner();
-                if !inner.is_complete {
+                if !inner.lifecycle.is_terminal() {
                     inner = self.state.wait_inner(inner);
                 }
             }
@@ -177,34 +238,52 @@ impl JobHandle {
     }
 
     pub(super) fn mark_complete(&self) {
-        self.mark_terminal(None);
+        self.mark_terminal(None, false);
+    }
+
+    pub(super) fn mark_running(&self) {
+        let mut inner = self.state.lock_inner();
+        if inner.lifecycle == TaskState::Pending {
+            inner.lifecycle = TaskState::Running;
+        }
     }
 
     pub(super) fn mark_panicked(&self, panic_message: impl Into<Arc<str>>) {
-        self.mark_terminal(Some(panic_message.into()));
+        self.mark_terminal(Some(panic_message.into()), false);
+    }
+
+    pub(super) fn mark_cancelled(&self) {
+        self.mark_terminal(None, true);
     }
 
     pub(super) fn panic_message(&self) -> Option<Arc<str>> {
         self.state.lock_inner().panic_message.clone()
     }
 
-    fn mark_terminal(&self, panic_message: Option<Arc<str>>) {
+    fn mark_terminal(&self, panic_message: Option<Arc<str>>, is_cancelled: bool) {
         let dependents = {
             let mut inner = self.state.lock_inner();
-            if inner.is_complete {
+            if inner.lifecycle.is_terminal() {
                 return;
             }
-            inner.is_complete = true;
             inner.panic_message = panic_message;
+            inner.is_cancelled = is_cancelled;
+            inner.lifecycle = if inner.panic_message.is_some() {
+                TaskState::Failed
+            } else if inner.is_cancelled {
+                TaskState::Cancelled
+            } else {
+                TaskState::Completed
+            };
             std::mem::take(&mut inner.dependents)
         };
 
-        self.state.publish_terminal(dependents);
+        self.dispatch_terminal(dependents);
     }
 
     pub(super) fn add_dependent(&self, dependent: JobContinuation) -> bool {
         let mut inner = self.state.lock_inner();
-        if inner.is_complete {
+        if inner.lifecycle.is_terminal() {
             false
         } else {
             inner.dependents.push(dependent);
@@ -214,33 +293,82 @@ impl JobHandle {
 
     pub(super) fn dependency_completed(&self) -> bool {
         let mut inner = self.state.lock_inner();
-        if inner.is_complete || inner.remaining_dependencies == 0 {
+        if inner.lifecycle.is_terminal() || inner.remaining_dependencies == 0 {
             return false;
         }
 
         inner.remaining_dependencies -= 1;
-        inner.remaining_dependencies == 0 && !inner.is_complete
+        inner.remaining_dependencies == 0 && !inner.lifecycle.is_terminal()
     }
 
-    fn combined_dependency_completed(&self, panic_message: Option<Arc<str>>) {
+    fn combined_dependency_completed(&self, panic_message: Option<Arc<str>>, is_cancelled: bool) {
         let dependents = {
             let mut inner = self.state.lock_inner();
-            if inner.is_complete || inner.remaining_dependencies == 0 {
+            if inner.lifecycle.is_terminal() || inner.remaining_dependencies == 0 {
                 return;
             }
             if inner.panic_message.is_none() {
                 inner.panic_message = panic_message;
             }
+            inner.is_cancelled |= is_cancelled;
             inner.remaining_dependencies -= 1;
             if inner.remaining_dependencies != 0 {
                 return;
             }
-            inner.is_complete = true;
+            inner.lifecycle = if inner.panic_message.is_some() {
+                TaskState::Failed
+            } else if inner.is_cancelled {
+                TaskState::Cancelled
+            } else {
+                TaskState::Completed
+            };
             std::mem::take(&mut inner.dependents)
         };
 
-        self.state.publish_terminal(dependents);
+        self.dispatch_terminal(dependents);
     }
+
+    fn dispatch_terminal(&self, dependents: Vec<JobContinuation>) {
+        self.state.complete.notify_all();
+        let state = Arc::clone(&self.state);
+        let dispatcher = self.callback_dispatcher.clone();
+        self.callback_dispatcher.dispatch(
+            dependents,
+            Some(Box::new(move || {
+                if let Some(observers) = state.release_dependency_continuations() {
+                    dispatch_terminal_observer_batch(state, dispatcher, observers);
+                }
+            })),
+        );
+    }
+}
+
+fn dispatch_terminal_observer_batch(
+    state: Arc<JobState>,
+    dispatcher: TaskCallbackDispatcher,
+    observers: Vec<JobTerminalObserver>,
+) {
+    let callbacks = observers
+        .into_iter()
+        .map(|observer| {
+            let state = Arc::clone(&state);
+            Box::new(move || state.run_terminal_observer(observer)) as TaskCallback
+        })
+        .collect();
+    let state_for_completion = Arc::clone(&state);
+    let dispatcher_for_completion = dispatcher.clone();
+    dispatcher.dispatch(
+        callbacks,
+        Some(Box::new(move || {
+            if let Some(observers) = state_for_completion.finish_terminal_observer_batch() {
+                dispatch_terminal_observer_batch(
+                    state_for_completion,
+                    dispatcher_for_completion,
+                    observers,
+                );
+            }
+        })),
+    );
 }
 
 impl JobState {
@@ -270,25 +398,24 @@ impl JobState {
             .0
     }
 
-    fn publish_terminal(&self, dependents: Vec<JobContinuation>) {
-        self.complete.notify_all();
+    fn release_dependency_continuations(&self) -> Option<Vec<JobTerminalObserver>> {
+        let mut inner = self.lock_inner();
+        inner.dependency_continuations_published = true;
+        Self::take_terminal_observer_batch(&mut inner)
+    }
 
-        let mut first_continuation_panic = None;
-        for dependent in dependents {
-            if let Err(payload) = catch_unwind(AssertUnwindSafe(dependent)) {
-                first_continuation_panic.get_or_insert(payload);
-            }
-        }
-        let terminal_observers = {
-            let mut inner = self.lock_inner();
-            inner.dependency_continuations_published = true;
-            std::mem::take(&mut inner.terminal_observers)
-        };
-        for observer in terminal_observers {
-            self.run_terminal_observer(observer);
-        }
-        if let Some(payload) = first_continuation_panic {
-            resume_unwind(payload);
+    fn finish_terminal_observer_batch(&self) -> Option<Vec<JobTerminalObserver>> {
+        let mut inner = self.lock_inner();
+        inner.terminal_observer_delivery_active = false;
+        Self::take_terminal_observer_batch(&mut inner)
+    }
+
+    fn take_terminal_observer_batch(inner: &mut JobStateInner) -> Option<Vec<JobTerminalObserver>> {
+        if inner.terminal_observer_delivery_active || inner.terminal_observers.is_empty() {
+            None
+        } else {
+            inner.terminal_observer_delivery_active = true;
+            Some(std::mem::take(&mut inner.terminal_observers))
         }
     }
 
@@ -298,6 +425,10 @@ impl JobState {
                 .fetch_add(1, Ordering::Release);
         }
     }
+}
+
+fn default_callback_dispatcher() -> TaskCallbackDispatcher {
+    TaskCallbackDispatcher::inline()
 }
 
 impl Default for JobHandle {
@@ -310,146 +441,11 @@ impl fmt::Debug for JobHandle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("JobHandle")
             .field("is_complete", &self.is_complete())
+            .field("terminal_state", &self.terminal_state())
             .finish()
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use std::panic::{self, AssertUnwindSafe};
-    use std::sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
-        Arc,
-    };
-    use std::thread;
-    use std::time::Duration;
-
-    use super::JobHandle;
-
-    #[test]
-    fn job_handle_accessors_recover_poisoned_state_lock() {
-        let handle = JobHandle::pending_with_dependencies(1);
-
-        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = handle.state.inner.lock().unwrap();
-            panic!("poison job handle state");
-        }));
-
-        assert!(!handle.is_complete());
-        let dependent_ran = Arc::new(AtomicBool::new(false));
-        let dependent_ran_for_callback = Arc::clone(&dependent_ran);
-        assert!(handle.add_dependent(Box::new(move || {
-            dependent_ran_for_callback.store(true, Ordering::SeqCst);
-        })));
-        assert!(handle.dependency_completed());
-        handle.mark_complete();
-
-        assert!(handle.is_complete());
-        assert!(handle.panic_message().is_none());
-        assert!(dependent_ran.load(Ordering::SeqCst));
-    }
-
-    #[test]
-    fn job_handle_wait_recovers_poisoned_state_lock() {
-        let handle = JobHandle::pending_with_dependencies(0);
-
-        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = handle.state.inner.lock().unwrap();
-            panic!("poison job handle wait state");
-        }));
-
-        let completer = handle.clone();
-        let completion_thread = thread::spawn(move || {
-            thread::sleep(Duration::from_millis(1));
-            completer.mark_complete();
-        });
-
-        handle.wait();
-        completion_thread.join().unwrap();
-        assert!(handle.is_complete());
-    }
-
-    #[test]
-    fn combined_dependency_terminal_path_uses_one_state_lock() {
-        let source = include_str!("job_handle.rs");
-        let start = source
-            .find("fn combined_dependency_completed")
-            .expect("combined dependency implementation");
-        let end = source[start..]
-            .find("impl JobState")
-            .map(|offset| start + offset)
-            .expect("job state implementation");
-        let implementation = &source[start..end];
-
-        assert!(implementation.contains("inner.is_complete = true;"));
-        assert!(implementation.contains("std::mem::take(&mut inner.dependents)"));
-        assert!(!implementation.contains("self.panic_message()"));
-        assert!(!implementation.contains("self.mark_panicked"));
-        assert!(!implementation.contains("self.mark_complete"));
-    }
-
-    #[test]
-    fn job_terminal_observer_runs_once_when_dependency_continuation_unwinds() {
-        let handle = JobHandle::pending_with_dependencies(0);
-        let sibling = JobHandle::pending_with_dependencies(0);
-        let observer_runs = Arc::new(AtomicUsize::new(0));
-        let observer_runs_for_callback = Arc::clone(&observer_runs);
-        assert!(handle.add_dependent(Box::new(|| {
-            panic!("dependency continuation failure");
-        })));
-        let combined = JobHandle::combine(&[handle.clone(), sibling.clone()]);
-        handle.on_terminal(move || {
-            observer_runs_for_callback.fetch_add(1, Ordering::SeqCst);
-        });
-
-        let terminal_result = panic::catch_unwind(AssertUnwindSafe(|| handle.mark_complete()));
-
-        assert!(terminal_result.is_err());
-        assert!(handle.is_complete());
-        assert!(
-            !combined.is_complete(),
-            "the survivor continuation must decrement the combined barrier"
-        );
-        sibling.mark_complete();
-        assert!(
-            combined.is_complete(),
-            "the continuation after the panic must preserve combined-barrier completion"
-        );
-        combined.wait();
-        handle.wait();
-        handle.mark_complete();
-        assert_eq!(observer_runs.load(Ordering::SeqCst), 1);
-    }
-
-    #[test]
-    fn late_terminal_observer_waits_until_dependency_continuations_finish() {
-        let handle = JobHandle::pending_with_dependencies(0);
-        let continuation_entered = Arc::new(std::sync::Barrier::new(2));
-        let release_continuation = Arc::new(std::sync::Barrier::new(2));
-        let observer_ran = Arc::new(AtomicBool::new(false));
-
-        let continuation_entered_for_callback = Arc::clone(&continuation_entered);
-        let release_continuation_for_callback = Arc::clone(&release_continuation);
-        assert!(handle.add_dependent(Box::new(move || {
-            continuation_entered_for_callback.wait();
-            release_continuation_for_callback.wait();
-        })));
-
-        let handle_for_completion = handle.clone();
-        let completion = thread::spawn(move || handle_for_completion.mark_complete());
-        continuation_entered.wait();
-
-        let observer_ran_for_callback = Arc::clone(&observer_ran);
-        handle.on_terminal(move || {
-            observer_ran_for_callback.store(true, Ordering::SeqCst);
-        });
-        assert!(
-            !observer_ran.load(Ordering::SeqCst),
-            "a late observer must not overtake an in-flight dependency continuation"
-        );
-
-        release_continuation.wait();
-        completion.join().unwrap();
-        assert!(observer_ran.load(Ordering::SeqCst));
-    }
-}
+#[path = "job_handle/tests.rs"]
+mod tests;

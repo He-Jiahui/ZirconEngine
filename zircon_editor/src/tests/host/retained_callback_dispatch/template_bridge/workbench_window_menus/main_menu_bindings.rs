@@ -13,15 +13,15 @@ fn workbench_main_menu_business_items_resolve_canonical_bindings() {
         &EditorUiBindingPayload::asset_command(AssetCommand::OpenAssetBrowser)
     );
     for (action_id, expected) in [
-        ("menu.item.open_project", "workbench.project.open"),
-        ("menu.item.save_project", "workbench.project.save"),
+        ("menu.item.open_project", "file.project.open"),
+        ("menu.item.save_project", "file.project.save"),
     ] {
         let binding = bridge
             .main_menu_item_binding("WorkbenchToolbarMainMenu", action_id)
             .unwrap_or_else(|| panic!("{action_id} should resolve a canonical binding"));
         assert!(matches!(
             binding.payload(),
-            EditorUiBindingPayload::MenuAction { action_id } if action_id == expected
+            EditorUiBindingPayload::EditorCommand { command_id } if command_id == expected
         ));
     }
     let command_palette = bridge
@@ -180,13 +180,13 @@ fn workbench_main_menu_projects_registered_asset_creation_templates() {
     assert_eq!(
         control_string_array(&bridge, "WorkbenchToolbarMainMenu", "menu_items"),
         vec![
-            "Asset Browser|icon=folder",
+            "Asset Browser|action=menu.item.asset_browser,icon=folder",
             "---",
             chrome.asset_browser.creation_menu.entries()[0].raw_item(),
             "---",
-            "Open Project|icon=folder",
-            "Save Project|icon=save",
-            "Command Palette|submenu",
+            "Open Project|action=menu.item.open_project,icon=folder|Ctrl+O",
+            "Save Project|action=menu.item.save_project,icon=save|Ctrl+S",
+            "Command Palette|action=menu.item.command_palette,icon=search|Ctrl+Shift+P",
         ]
     );
     assert_near(

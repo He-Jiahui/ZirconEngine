@@ -373,7 +373,8 @@ fn wide_name_asset_snapshot() -> AssetWorkspaceSnapshot {
             selected: true,
             resource_state: None,
             resource_revision: Some(42),
-        }],
+        }]
+        .into(),
         ..AssetWorkspaceSnapshot::default()
     }
 }

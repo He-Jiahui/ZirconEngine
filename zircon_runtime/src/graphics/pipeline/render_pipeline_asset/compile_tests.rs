@@ -9,14 +9,17 @@ use crate::core::framework::render::{
 use crate::core::math::{Vec2, Vec3, Vec4};
 use crate::graphics::feature::{
     BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
+    RenderResourceSchema, RenderTextureSchema,
 };
 use crate::graphics::pipeline::{
+    RenderGraphCompileCameraTargetFingerprint, RenderGraphCompileTextureTargetFormat,
     RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions, RendererAsset,
 };
 use crate::render_graph::{
     QueueLane, RenderGraphAttachmentOps, RenderGraphComputeDispatchExtent,
-    RenderGraphComputeWorkload, RenderGraphExternalResourceBinding, RenderGraphResourceAccessKind,
-    RenderGraphResourceKind,
+    RenderGraphComputeWorkload, RenderGraphExternalResourceBinding,
+    RenderGraphResourceAccessIntent, RenderGraphResourceAccessKind, RenderGraphResourceKind,
+    RenderGraphShaderStages,
 };
 use crate::scene::world::World;
 
@@ -80,6 +83,80 @@ fn graph_resource_authoring_reports_invalid_resource_kind_without_panicking() {
 }
 
 #[test]
+fn schema_backed_external_texture_is_resolved_into_the_compiled_graph_contract() {
+    let schema = RenderResourceSchema::texture(RenderTextureSchema::new(
+        crate::rhi::TextureFormat::Rgba8Unorm,
+        crate::rhi::TextureUsage::SAMPLED | crate::rhi::TextureUsage::STORAGE,
+    ));
+    let compiled = pipeline_with_post_process_passes(vec![
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "schema-backed-plugin-output",
+            QueueLane::AsyncCompute,
+        )
+        .with_side_effects()
+        .write_storage_external_texture_with_schema("plugin.compute-output", schema),
+    ])
+    .compile(&test_extract())
+    .expect("schema-backed external texture pipeline should compile");
+
+    let external = compiled
+        .graph()
+        .resource_lifetime_by_name("plugin.compute-output")
+        .expect("compiled external texture lifetime");
+    let desc = external
+        .external_texture_desc
+        .as_ref()
+        .expect("schema-backed external texture must retain its resolved descriptor");
+
+    assert_eq!(desc.format, crate::rhi::TextureFormat::Rgba8Unorm);
+    assert_eq!(
+        desc.usage,
+        crate::rhi::TextureUsage::SAMPLED | crate::rhi::TextureUsage::STORAGE
+    );
+}
+
+#[test]
+fn plugin_transient_texture_without_schema_fails_before_graph_materialization() {
+    let error = pipeline_with_post_process_passes(vec![
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "untyped-plugin-texture",
+            QueueLane::Graphics,
+        )
+        .with_side_effects()
+        .write_texture("plugin.untyped-transient-texture"),
+    ])
+    .compile(&test_extract())
+    .expect_err("custom transient textures require an explicit schema");
+
+    assert!(
+        error.contains("transient texture resource `plugin.untyped-transient-texture` requires an explicit RenderResourceSchema"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn plugin_transient_buffer_without_schema_fails_before_graph_materialization() {
+    let error = pipeline_with_post_process_passes(vec![
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "untyped-plugin-buffer",
+            QueueLane::AsyncCompute,
+        )
+        .with_side_effects()
+        .write_buffer("plugin.untyped-transient-buffer"),
+    ])
+    .compile(&test_extract())
+    .expect_err("custom transient buffers require an explicit schema");
+
+    assert!(
+        error.contains("transient buffer resource `plugin.untyped-transient-buffer` requires an explicit RenderResourceSchema"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
 fn runtime89_compiled_pass_stages_retain_their_graph_pass_identity() {
     let compiled = pipeline_with_post_process_passes(vec![
         RenderFeaturePassDescriptor::new(
@@ -89,7 +166,7 @@ fn runtime89_compiled_pass_stages_retain_their_graph_pass_identity() {
         )
         .with_executor_id("test.identity-left")
         .with_side_effects()
-        .write_texture("test.identity-left"),
+        .write_texture_with_schema("test.identity-left", test_transient_texture_schema()),
         RenderFeaturePassDescriptor::new(
             RenderPassStage::PostProcess,
             "identity-right",
@@ -97,18 +174,25 @@ fn runtime89_compiled_pass_stages_retain_their_graph_pass_identity() {
         )
         .with_executor_id("test.identity-right")
         .with_side_effects()
-        .write_texture("test.identity-right"),
+        .write_texture_with_schema("test.identity-right", test_transient_texture_schema()),
     ])
     .compile(&test_extract())
     .expect("identity pipeline should compile");
 
-    assert_eq!(compiled.pass_stages.len(), compiled.graph().passes().len());
-    for stage_entry in &compiled.pass_stages {
+    assert_eq!(
+        compiled.execution_passes_in_graph_order().count(),
+        compiled.graph().passes().len()
+    );
+    for execution_pass in compiled.execution_passes_in_graph_order() {
         let graph_pass = compiled
             .graph()
-            .pass(stage_entry.pass_id)
+            .passes()
+            .get(execution_pass.graph_pass_index)
             .expect("stage pass identity should resolve directly");
-        assert_eq!(graph_pass.name, stage_entry.pass_name);
+        assert_eq!(
+            compiled.pass_stage(&graph_pass.name),
+            Some(execution_pass.stage)
+        );
     }
 }
 
@@ -129,7 +213,10 @@ fn runtime89_full_ibl_stage_rows_retain_production_graph_identity_and_name() {
         )
         .with_executor_id("test.runtime89-feature-pass")
         .with_side_effects()
-        .write_texture("test.runtime89-feature-output"),
+        .write_texture_with_schema(
+            "test.runtime89-feature-output",
+            test_transient_texture_schema(),
+        ),
     ])
     .compile_with_options(
         &test_extract(),
@@ -143,16 +230,19 @@ fn runtime89_full_ibl_stage_rows_retain_production_graph_identity_and_name() {
     expected_names.push(crate::graphics::scene::IBL_BAKE_IRRADIANCE_SH9_PASS.to_string());
     expected_names.push(crate::graphics::scene::IBL_BAKE_IRRADIANCE_CUBE_PASS.to_string());
 
-    assert_eq!(compiled.pass_stages.len(), expected_names.len());
-    for (stage_entry, expected_name) in compiled.pass_stages.iter().zip(expected_names) {
-        let (_, graph_pass) = compiled
+    assert_eq!(
+        compiled.execution_passes_in_graph_order().count(),
+        compiled.graph().passes().len()
+    );
+    assert_eq!(
+        compiled
             .graph()
-            .indexed_pass(stage_entry.pass_id)
-            .expect("production-authored pass identity should resolve directly");
-        assert_eq!(graph_pass.id, stage_entry.pass_id);
-        assert_eq!(stage_entry.pass_name, expected_name);
-        assert_eq!(graph_pass.name, expected_name);
-    }
+            .passes()
+            .iter()
+            .map(|pass| pass.name.clone())
+            .collect::<Vec<_>>(),
+        expected_names
+    );
 }
 
 #[test]
@@ -171,7 +261,7 @@ fn runtime89_generated_ibl_pass_name_collisions_fail_during_pipeline_compile() {
         )
         .with_executor_id("test.ibl-name-collision")
         .with_side_effects()
-        .write_texture("test.ibl-name-collision"),
+        .write_texture_with_schema("test.ibl-name-collision", test_transient_texture_schema()),
     ]);
 
     let error = pipeline
@@ -214,7 +304,7 @@ fn compile_keeps_independent_resource_producers_unordered_until_their_consumer()
         )
         .with_executor_id("test.independent-left")
         .with_side_effects()
-        .write_texture("test.independent-left"),
+        .write_texture_with_schema("test.independent-left", test_transient_texture_schema()),
         RenderFeaturePassDescriptor::new(
             RenderPassStage::PostProcess,
             "independent-right",
@@ -222,7 +312,7 @@ fn compile_keeps_independent_resource_producers_unordered_until_their_consumer()
         )
         .with_executor_id("test.independent-right")
         .with_side_effects()
-        .write_texture("test.independent-right"),
+        .write_texture_with_schema("test.independent-right", test_transient_texture_schema()),
         RenderFeaturePassDescriptor::new(
             RenderPassStage::PostProcess,
             "independent-join",
@@ -271,7 +361,7 @@ fn compile_preserves_read_write_hazards_for_reused_resources() {
         )
         .with_executor_id("test.history-seed")
         .with_side_effects()
-        .write_texture("test.history"),
+        .write_texture_with_schema("test.history", test_transient_texture_schema()),
         RenderFeaturePassDescriptor::new(
             RenderPassStage::PostProcess,
             "history-sample",
@@ -287,7 +377,7 @@ fn compile_preserves_read_write_hazards_for_reused_resources() {
         )
         .with_executor_id("test.history-overwrite")
         .with_side_effects()
-        .write_texture("test.history"),
+        .write_texture_with_schema("test.history", test_transient_texture_schema()),
     ]);
 
     let compiled = pipeline
@@ -314,6 +404,50 @@ fn compile_preserves_read_write_hazards_for_reused_resources() {
 
     assert_eq!(sample.dependencies, vec![seed.id]);
     assert_eq!(overwrite.dependencies, vec![seed.id, sample.id]);
+
+    let seed_write = seed
+        .resources
+        .iter()
+        .find(|access| access.kind == RenderGraphResourceAccessKind::Write)
+        .expect("seed write access");
+    let overwrite_write = overwrite
+        .resources
+        .iter()
+        .find(|access| access.kind == RenderGraphResourceAccessKind::Write)
+        .expect("overwrite write access");
+    assert_eq!(
+        seed_write.attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    assert_eq!(
+        overwrite_write.attachment_ops,
+        Some(RenderGraphAttachmentOps::load_store())
+    );
+}
+
+#[test]
+fn compile_rejects_an_attachment_load_without_a_producer() {
+    let pipeline = pipeline_with_post_process_passes(vec![
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "orphaned-attachment-load",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("test.orphaned-attachment-load")
+        .with_side_effects()
+        .write_texture_with_ops_and_schema(
+            "test.orphaned-attachment-load",
+            RenderGraphAttachmentOps::load_store(),
+            test_transient_texture_schema(),
+        ),
+    ]);
+
+    let error = pipeline
+        .compile(&test_extract())
+        .expect_err("an internal attachment load requires a declared producer");
+
+    assert!(error.contains("orphaned-attachment-load"), "{error}");
+    assert!(error.contains("no prior producer"), "{error}");
 }
 
 #[test]
@@ -334,7 +468,7 @@ fn compile_orders_explicit_resource_version_consumers_after_their_producer() {
         )
         .with_executor_id("test.version-producer")
         .with_side_effects()
-        .write_texture("test.versioned-color"),
+        .write_texture_with_schema("test.versioned-color", test_transient_texture_schema()),
     ]);
 
     let compiled = pipeline
@@ -358,6 +492,97 @@ fn compile_orders_explicit_resource_version_consumers_after_their_producer() {
             < graph_pass_index(&compiled, "version-consumer")
     );
     assert_eq!(consumer.dependencies, vec![producer.id]);
+    let resource = compiled
+        .graph()
+        .resource_declaration_by_name("test.versioned-color")
+        .expect("versioned color declaration")
+        .resource;
+    let producer_version = compiled
+        .graph()
+        .resource_version_for_access(producer.id, resource, RenderGraphResourceAccessKind::Write)
+        .expect("producer compiled version");
+    assert_eq!(
+        compiled.graph().input_version_for_access(
+            consumer.id,
+            resource,
+            RenderGraphResourceAccessKind::Read,
+        ),
+        Some(producer_version)
+    );
+}
+
+#[test]
+fn compile_orders_versioned_attachment_load_after_its_producer() {
+    let pipeline = pipeline_with_post_process_passes(vec![
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "attachment-load-consumer",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("test.attachment-load-consumer")
+        .with_side_effects()
+        .write_texture_load_from_with_schema(
+            "test.versioned-attachment",
+            "attachment-load-producer",
+            test_transient_texture_schema(),
+        ),
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "attachment-load-producer",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("test.attachment-load-producer")
+        .with_side_effects()
+        .write_texture_with_schema("test.versioned-attachment", test_transient_texture_schema()),
+    ]);
+
+    let compiled = pipeline
+        .compile(&test_extract())
+        .expect("versioned attachment load should order after its producer");
+    let producer = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "attachment-load-producer")
+        .expect("attachment load producer");
+    let consumer = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "attachment-load-consumer")
+        .expect("attachment load consumer");
+    let consumer_write = consumer
+        .resources
+        .iter()
+        .find(|access| access.kind == RenderGraphResourceAccessKind::Write)
+        .expect("attachment load write access");
+
+    assert!(
+        graph_pass_index(&compiled, "attachment-load-producer")
+            < graph_pass_index(&compiled, "attachment-load-consumer")
+    );
+    assert_eq!(consumer.dependencies, vec![producer.id]);
+    assert_eq!(
+        consumer_write.attachment_ops,
+        Some(RenderGraphAttachmentOps::load_store())
+    );
+    let resource = compiled
+        .graph()
+        .resource_declaration_by_name("test.versioned-attachment")
+        .expect("versioned attachment declaration")
+        .resource;
+    let producer_version = compiled
+        .graph()
+        .resource_version_for_access(producer.id, resource, RenderGraphResourceAccessKind::Write)
+        .expect("attachment producer compiled version");
+    assert_eq!(
+        compiled.graph().input_version_for_access(
+            consumer.id,
+            resource,
+            RenderGraphResourceAccessKind::Write,
+        ),
+        Some(producer_version)
+    );
 }
 
 #[test]
@@ -632,6 +857,13 @@ fn test_extract() -> RenderFrameExtract {
         RenderWorldSnapshotHandle::new(1),
         World::new().to_render_snapshot(),
     )
+}
+
+fn test_transient_texture_schema() -> RenderResourceSchema {
+    RenderResourceSchema::texture(RenderTextureSchema::new(
+        crate::rhi::TextureFormat::Rgba8Unorm,
+        crate::rhi::TextureUsage::RENDER_ATTACHMENT | crate::rhi::TextureUsage::SAMPLED,
+    ))
 }
 
 fn pipeline_with_post_process_passes(

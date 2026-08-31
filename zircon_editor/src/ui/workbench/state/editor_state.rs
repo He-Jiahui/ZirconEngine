@@ -2,9 +2,11 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::core::context::EditorContext;
-use crate::core::editing::authoring_world::EditorAuthoringWorld;
+use crate::core::editing::authoring_world::{AuthoringWorldAccessError, EditorAuthoringWorld};
 use crate::core::editing::context::CoreEditContext;
 use crate::core::editing::engine::SelectionSnapshot;
+use crate::core::editor_message::DocumentId;
+use crate::core::logging::{LogEntry, LogSeverity, LogSource};
 use crate::scene::selection::SelectionModel;
 use crate::scene::viewport::SceneViewportController;
 use crate::ui::workbench::project::AssetWorkspaceState;
@@ -15,7 +17,8 @@ use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 
 use super::console_history::EditorConsoleHistory;
 use super::editor_state_play_mode::EditorPlaySession;
-use super::editor_state_viewport::GizmoTransactionCapture;
+use super::EditorStateOperationError;
+use crate::core::editing::interactive_transform::InteractiveTransformSession;
 use zircon_runtime_interface::math::Vec3;
 
 /// UI state which must be restored if a binding batch fails after changing selection.
@@ -54,39 +57,66 @@ pub struct EditorState {
     pub(in crate::ui::workbench) console_history: EditorConsoleHistory,
     pub(crate) status_task_progress: Option<StatusTaskProgressSnapshot>,
     pub(crate) bridge_diagnostics: EditorBridgeDiagnosticsSnapshot,
+    /// A binding copied from the committed document lifecycle transition, not a second identity
+    /// authority. Scene commands may only target this document-local history.
+    pub(crate) active_scene_document: Option<DocumentId>,
     pub(in crate::ui::workbench) scene_entry_projection_cache: SceneEntryProjectionCache,
-    pub(in crate::ui::workbench) gizmo_transaction: Option<GizmoTransactionCapture>,
+    pub(in crate::ui::workbench) interactive_transform: Option<InteractiveTransformSession>,
     pub(crate) play_session: Option<EditorPlaySession>,
     #[cfg(test)]
     pub(crate) fail_next_transaction_selection_sync: bool,
+    #[cfg(test)]
+    pub(crate) fail_next_inspector_checkpoint_restore: bool,
 }
 
 impl EditorState {
+    /// Projects a non-interactive authoring-world failure without turning it into a fake empty
+    /// scene. The facade suppresses duplicates until a healthy access succeeds.
+    pub(crate) fn report_authoring_world_access_failure(
+        &self,
+        surface: &'static str,
+        error: &AuthoringWorldAccessError,
+    ) {
+        if !self.world.should_report_access_failure(error) {
+            return;
+        }
+        let entry = LogEntry::new(
+            LogSource::runtime(),
+            LogSeverity::Error,
+            format!("editor {surface} lost authoring-world access: {error}"),
+            0,
+            None,
+        );
+        if let Ok(entry) = entry {
+            let _ = self.context.logs().emit(entry);
+        }
+    }
+
     pub(crate) fn transactions(&self) -> &crate::core::editing::engine::EditorTransactionEngine {
         self.context.transactions()
     }
 
-    pub(crate) fn ensure_inspector_binding_can_begin(&self) -> Result<(), String> {
-        if self.gizmo_transaction.is_some() || self.viewport_controller.is_handle_drag_active() {
-            return Err(
-                "cannot apply inspector changes while a gizmo interaction is active".to_string(),
-            );
+    pub(crate) fn ensure_inspector_binding_can_begin(
+        &self,
+    ) -> Result<(), EditorStateOperationError> {
+        if self.interactive_transform.is_some() || self.viewport_controller.is_handle_drag_active()
+        {
+            return Err(EditorStateOperationError::InspectorBindingActiveGizmo);
         }
         Ok(())
     }
 
     pub(crate) fn has_active_gizmo_interaction(&self) -> bool {
-        self.gizmo_transaction.is_some() || self.viewport_controller.is_handle_drag_active()
+        self.interactive_transform.is_some() || self.viewport_controller.is_handle_drag_active()
     }
 
     pub(crate) fn inspector_binding_ui_checkpoint(
         &self,
-    ) -> Result<InspectorBindingUiCheckpoint, String> {
+    ) -> Result<InspectorBindingUiCheckpoint, EditorStateOperationError> {
         let transaction_selection = self
             .transactions()
-            .with_context::<CoreEditContext, _>(CoreEditContext::selection_snapshot)
-            .map_err(|error| error.to_string())?
-            .ok_or_else(|| "editor transaction context is not CoreEditContext".to_string())?;
+            .with_context::<CoreEditContext, _>(CoreEditContext::selection_snapshot)?
+            .ok_or(EditorStateOperationError::TransactionContextMissing)?;
         Ok(InspectorBindingUiCheckpoint {
             selection: self.viewport_controller.selection().clone(),
             transaction_selection,
@@ -104,7 +134,11 @@ impl EditorState {
     pub(crate) fn restore_inspector_binding_ui_checkpoint(
         &mut self,
         checkpoint: InspectorBindingUiCheckpoint,
-    ) -> Result<(), String> {
+    ) -> Result<(), EditorStateOperationError> {
+        #[cfg(test)]
+        if std::mem::take(&mut self.fail_next_inspector_checkpoint_restore) {
+            return Err(EditorStateOperationError::InspectorCheckpointRestoreFailed);
+        }
         let InspectorBindingUiCheckpoint {
             selection,
             transaction_selection,
@@ -129,11 +163,14 @@ impl EditorState {
         self.transactions()
             .with_context_mut::<CoreEditContext, _>(|context| {
                 context.restore_selection_snapshot(&transaction_selection)
-            })
-            .map_err(|error| error.to_string())?
-            .ok_or_else(|| "editor transaction context is not CoreEditContext".to_string())?
-            .map_err(|error| error.to_string())?;
+            })?
+            .ok_or(EditorStateOperationError::TransactionContextMissing)??;
         Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fail_next_inspector_checkpoint_restore_for_test(&mut self) {
+        self.fail_next_inspector_checkpoint_restore = true;
     }
 }
 

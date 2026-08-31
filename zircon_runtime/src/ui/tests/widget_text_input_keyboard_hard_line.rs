@@ -230,8 +230,10 @@ fn int_attr(surface: &UiSurface, key: &str) -> i64 {
 
 fn binding(path: &str, event: UiEventKind) -> UiBindingRef {
     UiBindingRef {
+        component_event: super::typed_component_event_kind_for_test(path),
         id: path.to_string(),
         event,
+        mode: Default::default(),
         route: Some(path.replace('/', ".")),
         action: None,
         targets: Vec::new(),

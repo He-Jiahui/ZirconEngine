@@ -13,8 +13,7 @@ widgets = [
   "res://ui/editor/components/workbench/shell/workbench_status_bar.zui#WorkbenchStatusBar",
 ]
 styles = [
-  "res://ui/theme/editor_workbench_strict.zui",
-  "res://ui/editor/theme/editor_tokens.zui",
+  "res://ui/theme/editor_workbench_spatial.zui",
 ]
 
 [components.WorkbenchSkeleton]
@@ -32,12 +31,12 @@ children = [{ node = "top_toolbar" }, { node = "document_tabs" }, { node = "main
 [nodes.top_toolbar]
 component = "WorkbenchTopToolbar"
 control_id = "WorkbenchSkeletonTopToolbar"
-layout = { width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.chrome.workbench_toolbar.height", preferred = "$editor.chrome.workbench_toolbar.height", max = "$editor.chrome.workbench_toolbar.height", stretch = "Fixed" } }
 
 [nodes.document_tabs]
 component = "WorkbenchTabStrip"
 control_id = "WorkbenchSkeletonDocumentTabs"
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 
 [nodes.main_band]
 component = "WorkbenchMainBand"
@@ -47,4 +46,4 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.status_bar]
 component = "WorkbenchStatusBar"
 control_id = "WorkbenchSkeletonStatusBar"
-layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }

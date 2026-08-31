@@ -10,7 +10,7 @@ pub(super) fn collect_tabs(
     tabs: &ModelRc<HostChromeTabData>,
     origin: &FrameRect,
 ) -> Vec<UiProfileTabFrame> {
-    let mut out = Vec::new();
+    let mut out = Vec::with_capacity(tabs.row_count());
     for row in 0..tabs.row_count() {
         let Some(tab) = tabs.row_data(row) else {
             continue;
@@ -31,3 +31,7 @@ pub(super) fn collect_tabs(
     }
     out
 }
+
+#[cfg(test)]
+#[path = "collect/capacity_tests.rs"]
+mod capacity_tests;

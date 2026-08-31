@@ -41,6 +41,7 @@ fn mixed_bidi_layout() -> UiResolvedTextLayout {
         direction: UiTextDirection::LeftToRight,
         lines: vec![UiResolvedTextLine {
             text: "abc בא".to_string(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(10.0, 20.0, 60.0, 12.0),
             source_range: UiTextRange { start: 0, end: 8 },
             visual_range: UiTextRange { start: 0, end: 8 },

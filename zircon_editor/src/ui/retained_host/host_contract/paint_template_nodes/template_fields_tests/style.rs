@@ -130,7 +130,7 @@ fn search_field_uses_placeholder_tone_and_icon_text_inset() {
 }
 
 #[test]
-fn search_field_paint_rect_clamps_tall_authored_frames_to_compact_control_height() {
+fn search_field_paint_rect_clamps_tall_authored_frames_without_quantizing_dpi_geometry() {
     let search = positioned_field_node("SearchEdited", "workbench", 12.3, 8.2, 170.4, 44.0);
 
     let rect = field_paint_rect(
@@ -144,10 +144,10 @@ fn search_field_paint_rect_clamps_tall_authored_frames_to_compact_control_height
     );
 
     assert_eq!(rect.height, workbench_field_metrics().search_max_height);
-    let expected_y = (8.0 + (44.0 - workbench_field_metrics().search_max_height) * 0.5).round();
+    let expected_y = 8.2 + (44.0 - workbench_field_metrics().search_max_height) * 0.5;
     assert_eq!(rect.y, expected_y);
-    assert_eq!(rect.x, 12.0);
-    assert_eq!(rect.width, 170.0);
+    assert_eq!(rect.x, 12.3);
+    assert_eq!(rect.width, 170.4);
 
     let normal = positioned_field_node("WorkbenchInputText", "workbench", 12.3, 8.2, 170.4, 44.0);
     let normal_rect = field_paint_rect(
@@ -160,7 +160,7 @@ fn search_field_paint_rect_clamps_tall_authored_frames_to_compact_control_height
         },
     );
     assert_eq!(normal_rect.height, 44.0);
-    assert_eq!(normal_rect.y, 8.0);
+    assert_eq!(normal_rect.y, 8.2);
 }
 
 fn field_surface(node: &TemplatePaneNodeData) -> [u8; 4] {

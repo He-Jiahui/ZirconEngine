@@ -50,7 +50,7 @@ pending-page, raw-payload and empty-page architecture has changed materially.
    per visited subscription remains.
 4. Delivery payload is now `Box<RawValue>`. Runtime writes retained producer JSON bytes directly into
    the ABI batch and the editor performs typed `from_str` only at the consumer boundary
-   (`zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs:59-88`;
+   (`zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs:59-88`;
    `registration.rs:44-95`). The old producer `Value -> wire Value -> editor Value` description is
    stale.
 5. Round-robin resumes at the first unvisited consumer, gateway failure does not starve later

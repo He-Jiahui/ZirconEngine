@@ -11,10 +11,14 @@ tests:
   - detail scroll source boundary RED then GREEN
   - existing retained detail pointer behavior tests and current-source Windows focused Cargo pending
 doc_type: implementation-evidence
-status: static_complete_dynamic_pending
+status: superseded_by_2026-08-23_current_source_review
 ---
 
 # Editor Retained Detail Pointer 逐文件性能静态审查（2026-07-17）
+
+> Superseded on 2026-08-23 by
+> `2026-08-23-editor-retained-detail-scroll-direct-change-receipt-hard-cutover-architecture-review.md`.
+> Current source no longer owns a two-node runtime pointer surface for detail scrolling.
 
 ## 范围与覆盖
 

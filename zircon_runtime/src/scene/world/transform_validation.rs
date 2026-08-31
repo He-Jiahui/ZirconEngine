@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::core::math::{Real, Transform};
-use crate::scene::components::LocalTransform;
 use crate::scene::EntityId;
+use crate::scene::components::LocalTransform;
 
 use super::{SceneError, SceneResult, World};
 

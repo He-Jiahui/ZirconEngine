@@ -36,6 +36,14 @@ pub struct UiSurfaceRebuildReport {
     #[serde(default)]
     pub layout_skipped_node_count: usize,
     #[serde(default)]
+    pub layout_measure_probe_node_count: usize,
+    #[serde(default)]
+    pub layout_arrange_probe_node_count: usize,
+    #[serde(default)]
+    pub layout_taffy_tree_build_count: u64,
+    #[serde(default)]
+    pub layout_taffy_tree_node_build_count: u64,
+    #[serde(default)]
     pub render_command_reused_count: usize,
     #[serde(default)]
     pub render_command_rebuilt_count: usize,
@@ -86,6 +94,10 @@ impl UiSurfaceRebuildReport {
             layout_visited_node_count: self.layout_visited_node_count,
             layout_geometry_changed_node_count: self.layout_geometry_changed_node_count,
             layout_skipped_node_count: self.layout_skipped_node_count,
+            layout_measure_probe_node_count: self.layout_measure_probe_node_count,
+            layout_arrange_probe_node_count: self.layout_arrange_probe_node_count,
+            layout_taffy_tree_build_count: self.layout_taffy_tree_build_count,
+            layout_taffy_tree_node_build_count: self.layout_taffy_tree_node_build_count,
             render_command_reused_count: self.render_command_reused_count,
             render_command_rebuilt_count: self.render_command_rebuilt_count,
             render_damage_rect_count: self.render_damage_rect_count,
@@ -218,6 +230,84 @@ impl UiSurfaceRebuildReport {
         self.text_shape_cache_hit_count = stats.shape_hit_count;
         self.text_shape_cache_miss_count = stats.shape_miss_count;
         self
+    }
+}
+
+#[cfg(feature = "profiling")]
+pub(super) fn record_surface_rebuild_profile(
+    report: &UiSurfaceRebuildReport,
+    total_elapsed_us: u64,
+) {
+    use crate::core::diagnostics::profiling::{record_counter, record_counter_batch};
+
+    record_counter_batch(
+        "runtime",
+        &[
+            (
+                "ui.surface_rebuild.total_elapsed_us",
+                total_elapsed_us as f64,
+            ),
+            (
+                "ui.surface_rebuild.dirty_node_count",
+                report.dirty_node_count as f64,
+            ),
+            (
+                "ui.surface_rebuild.layout_visited_node_count",
+                report.layout_visited_node_count as f64,
+            ),
+            (
+                "ui.surface_rebuild.arranged_outer_node_visit_count",
+                report.arranged_outer_node_visit_count as f64,
+            ),
+            (
+                "ui.surface_rebuild.hit_grid_outer_node_visit_count",
+                report.hit_grid_outer_node_visit_count as f64,
+            ),
+            (
+                "ui.surface_rebuild.render_outer_node_visit_count",
+                report.render_outer_node_visit_count as f64,
+            ),
+            (
+                "ui.surface_rebuild.render_command_reused_count",
+                report.render_command_reused_count as f64,
+            ),
+            (
+                "ui.surface_rebuild.render_command_rebuilt_count",
+                report.render_command_rebuilt_count as f64,
+            ),
+        ],
+    );
+    if report.layout_recomputed {
+        record_counter(
+            "runtime",
+            "ui.surface_rebuild.layout_elapsed_us",
+            report.layout_elapsed_micros as f64,
+        );
+    }
+    if report.arranged_rebuilt {
+        record_counter(
+            "runtime",
+            "ui.surface_rebuild.post_layout_elapsed_us",
+            report.arranged_elapsed_micros as f64,
+        );
+    }
+    let base_picking_ran = report.hit_grid_rebuilt
+        || report.layout_recomputed
+        || report.dirty_flags.hit_test
+        || report.dirty_flags.input;
+    if base_picking_ran {
+        record_counter(
+            "runtime",
+            "ui.surface_rebuild.base_picking_elapsed_us",
+            report.hit_grid_elapsed_micros as f64,
+        );
+    }
+    if report.render_rebuilt {
+        record_counter(
+            "runtime",
+            "ui.surface_rebuild.render_extract_elapsed_us",
+            report.render_elapsed_micros as f64,
+        );
     }
 }
 

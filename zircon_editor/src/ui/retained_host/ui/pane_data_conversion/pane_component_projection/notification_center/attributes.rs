@@ -6,9 +6,15 @@ pub(super) fn first_string_value(
     values: &toml::map::Map<String, Value>,
     keys: &[&str],
 ) -> Option<String> {
+    first_string_value_ref(values, keys).map(str::to_string)
+}
+
+pub(super) fn first_string_value_ref<'a>(
+    values: &'a toml::map::Map<String, Value>,
+    keys: &[&str],
+) -> Option<&'a str> {
     keys.iter()
-        .filter_map(|key| values.get(*key).and_then(string_value))
-        .find(|value| !value.is_empty())
+        .find_map(|key| values.get(*key).and_then(string_value_ref))
 }
 
 pub(super) fn string_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<String> {
@@ -20,10 +26,6 @@ pub(super) fn string_attribute_ref<'a>(
     key: &str,
 ) -> Option<&'a str> {
     attributes.get(key).and_then(string_value_ref)
-}
-
-fn string_value(value: &Value) -> Option<String> {
-    string_value_ref(value).map(str::to_string)
 }
 
 fn string_value_ref(value: &Value) -> Option<&str> {
@@ -57,12 +59,22 @@ pub(super) fn usize_attribute(value: Option<&Value>) -> Option<usize> {
     }
 }
 
-pub(super) fn normalized_tone(value: &str) -> String {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "success" | "ok" | "done" => "success",
-        "warning" | "warn" => "warning",
-        "error" | "danger" | "failed" | "failure" => "error",
-        _ => "info",
+pub(super) fn normalized_tone(value: &str) -> &'static str {
+    let value = value.trim();
+    if value.eq_ignore_ascii_case("success")
+        || value.eq_ignore_ascii_case("ok")
+        || value.eq_ignore_ascii_case("done")
+    {
+        "success"
+    } else if value.eq_ignore_ascii_case("warning") || value.eq_ignore_ascii_case("warn") {
+        "warning"
+    } else if value.eq_ignore_ascii_case("error")
+        || value.eq_ignore_ascii_case("danger")
+        || value.eq_ignore_ascii_case("failed")
+        || value.eq_ignore_ascii_case("failure")
+    {
+        "error"
+    } else {
+        "info"
     }
-    .to_string()
 }

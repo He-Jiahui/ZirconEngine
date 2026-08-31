@@ -35,7 +35,7 @@ plugin_id = "gltf_importer"
 priority = 120
 source_extensions = ["gltf", "glb"]
 output_kind = "Model"
-importer_version = 1
+importer_version = 2
 required_capabilities = ["runtime.asset.importer.model.gltf"]
 
 [[modules]]

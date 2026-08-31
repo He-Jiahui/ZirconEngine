@@ -17,14 +17,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     if label.is_empty() {
         return;
     }
-    let Some((frame, font_size, line_height)) = chip_label_frame(node, rect, &label) else {
+    let Some((frame, font_size, line_height)) = chip_label_frame(node, rect, label) else {
         return;
     };
     commands.push(HostPaintCommand::text(
         frame,
         Some(clip.clone()),
         order,
-        label,
+        label.to_string(),
         chip_foreground_color(node),
         font_size,
         line_height,
@@ -33,6 +33,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     ));
 }
 
-fn chip_label(node: &TemplatePaneNodeData) -> String {
-    first_non_empty(&[node.text.as_str(), node.value_text.as_str()]).to_string()
+fn chip_label(node: &TemplatePaneNodeData) -> &str {
+    first_non_empty(&[node.text.as_str(), node.value_text.as_str()])
 }
+
+#[cfg(test)]
+#[path = "text/capacity_tests.rs"]
+mod capacity_tests;

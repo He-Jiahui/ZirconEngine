@@ -60,6 +60,16 @@ pub enum ReflectError {
         type_path: String,
         reason: String,
     },
+    InvalidFieldRegistration {
+        type_path: String,
+        field_name: String,
+        reason: String,
+    },
+    InvalidValue {
+        type_path: String,
+        field_name: String,
+        reason: String,
+    },
 }
 
 impl fmt::Display for ReflectError {
@@ -131,6 +141,22 @@ impl fmt::Display for ReflectError {
             Self::InvalidRegistration { type_path, reason } => write!(
                 formatter,
                 "invalid reflected registration `{type_path}`: {reason}"
+            ),
+            Self::InvalidFieldRegistration {
+                type_path,
+                field_name,
+                reason,
+            } => write!(
+                formatter,
+                "invalid reflected field `{field_name}` on `{type_path}`: {reason}"
+            ),
+            Self::InvalidValue {
+                type_path,
+                field_name,
+                reason,
+            } => write!(
+                formatter,
+                "invalid reflected value for field `{field_name}` on `{type_path}`: {reason}"
             ),
         }
     }

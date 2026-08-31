@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicU64;
+use std::sync::{atomic::AtomicU64, Arc};
 
 use crate::hybrid_gi::scene_representation::{
     GLOBAL_SDF_CLIPMAP_COUNT, GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT, GLOBAL_SDF_PAGES_PER_EDGE,
@@ -16,7 +16,7 @@ pub(super) const GLOBAL_SDF_TRACE_PAGE_UNAVAILABLE_SLOT: u32 = u32::MAX;
 pub(in crate::hybrid_gi::renderer) struct GlobalSdfGpuState {
     pub(super) atlas_buffer: wgpu::Buffer,
     pub(super) trace_page_table_buffer: wgpu::Buffer,
-    pub(super) trace_page_signature: AtomicU64,
+    pub(super) trace_page_signature: Arc<AtomicU64>,
 }
 
 impl GlobalSdfGpuState {
@@ -34,7 +34,7 @@ impl GlobalSdfGpuState {
                 &[GLOBAL_SDF_TRACE_PAGE_UNAVAILABLE_SLOT; GLOBAL_SDF_TRACE_PAGE_TABLE_ENTRY_COUNT],
                 wgpu::BufferUsages::STORAGE,
             ),
-            trace_page_signature: AtomicU64::new(0),
+            trace_page_signature: Arc::new(AtomicU64::new(0)),
         }
     }
 

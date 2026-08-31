@@ -1,6 +1,6 @@
 use crate::core::runtime::diagnostics::profiling::{
-    reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig,
-    ProfileSnapshot,
+    ProfileCaptureConfig, ProfileSnapshot, reset_capture, snapshot, start_capture,
+    test_capture_lock,
 };
 use crate::text::TextDocumentKey;
 use crate::ui::surface::UiSurface;
@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
-use super::{resolve_missing_render_command_text_layouts, PendingOwnerTextLayouts};
+use super::{PendingOwnerTextLayouts, resolve_missing_render_command_text_layouts};
 
 #[test]
 fn render_command_profile_records_fixed_extract_prewarm_and_layout_stages() {
@@ -20,7 +20,7 @@ fn render_command_profile_records_fixed_extract_prewarm_and_layout_stages() {
     let mut config = ProfileCaptureConfig::default();
     config.session_id = "ui-text-render-command-profile".to_string();
     config.max_spans = 8;
-    config.max_counters = 64;
+    config.max_counters = 160;
     start_capture(config);
 
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.text.profile"));
@@ -155,6 +155,29 @@ wrap = "None"
         0.0,
         "the first shaped runs must not evict an entry below capacity"
     );
+    assert!(
+        counter_value(&profile, "text_analysis_request_count") >= 1.0,
+        "the complete UI path must retain shape-request analysis construction counts"
+    );
+    assert!(
+        counter_value(&profile, "text_analysis_bidi_build_count") >= 1.0,
+        "the complete UI path must expose Bidi construction work"
+    );
+    assert!(
+        counter_value(&profile, "text_analysis_script_emoji_build_count") >= 1.0,
+        "the complete UI path must expose script/emoji construction work"
+    );
+    assert!(
+        counter_value(&profile, "text_analysis_line_break_build_count") >= 1.0,
+        "the complete UI path must expose line-break construction work"
+    );
+    assert!(
+        counter_value(
+            &profile,
+            "text_font_fallback_cache_state_lock_acquire_count"
+        ) >= 0.0,
+        "fallback cache lock work must retain a fixed counter even on a primary fast path"
+    );
 }
 
 #[test]
@@ -163,7 +186,7 @@ fn rich_owner_profile_does_not_report_plain_document_layout_bypass() {
     let mut config = ProfileCaptureConfig::default();
     config.session_id = "ui-text-rich-owner-layout-profile".to_string();
     config.max_spans = 4;
-    config.max_counters = 32;
+    config.max_counters = 160;
     start_capture(config);
 
     let mut commands = vec![UiRenderCommand {
@@ -173,7 +196,7 @@ fn rich_owner_profile_does_not_report_plain_document_layout_bypass() {
         clip_frame: None,
         z_index: 0,
         style: UiResolvedStyle {
-            rich_text_format: UiRichTextFormat::Markdown,
+            rich_text_format: UiRichTextFormat::MarkdownInlineV1,
             font_size: 10.0,
             line_height: 12.0,
             ..UiResolvedStyle::default()
@@ -186,13 +209,13 @@ fn rich_owner_profile_does_not_report_plain_document_layout_bypass() {
     let mut pending = PendingOwnerTextLayouts::default();
     pending.push(
         0,
-        TextDocumentKey::new(7, 1),
+        Some(TextDocumentKey::new(7, 1)),
         UiTextViewport::new(0.0, 24.0, 2),
         None,
     );
     let mut cache = UiTextMeasureCache::default();
     cache.begin_frame();
-    resolve_missing_render_command_text_layouts(&mut commands, &pending, Some(&mut cache));
+    resolve_missing_render_command_text_layouts(&mut commands, &pending, &mut cache);
     let profile = snapshot();
     reset_capture();
 

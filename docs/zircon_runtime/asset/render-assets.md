@@ -126,7 +126,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -276,7 +276,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -1052,6 +1052,14 @@ Tracked material/zmaterial fixtures now use schema `version = 2` in the touched 
 Evidence: touched-file rustfmt passed for the shader readiness owners and the material fixture owners. `cargo test -p zircon_runtime --lib shader_readiness_reports_import_rows_without_blocking_source_only_imports --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 1/1 with existing warnings only. The first `E:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704` run failed in a third-party `proc-macro2` build-script link step with MSVC `link.exe` exit code 1318 before project code compiled, so it is recorded as environment/linker noise, not as a source regression.
 
 ## Texture Streaming and Separate Transparency
+
+## 2026-08-26 Prepared Material Last-Good Leaf
+
+`PreparedMaterial` now keeps an optional rejected candidate beside the published GPU-ready bundle. Blocking material readiness, shader dependency preparation failure, and texture residency failure no longer replace an existing renderable revision or abort that material's frame preparation. `material(...)`, `material_revision(...)`, `material_uniform(...)`, and `standard_material_uniform(...)` continue to project the published runtime, pipeline identity, and matching GPU buffers. `material_readiness_report(...)` and the management/statistics views derived from it project the rejected candidate report until a renderable candidate is published or the published identity becomes current again. Focused product regressions lock the published revision, pipeline key, both uniform `Arc` identities, and last-good root shader source while exposing rejected readiness.
+
+The draw-facing revision, shader/texture dependency identities, runtime, and both GPU uniform bindings are owned by one `PreparedMaterialBundle`. This does not yet delay a successful replacement for PSO readiness, but it gives the future renderer-side cross-pass coordinator one indivisible value to stage and publish instead of a set of independently mutable fields.
+
+Each published material also snapshots its shader locator/id/root revision and the process-local readiness revision of the complete shader dependency closure, so direct or transitive shader edits invalidate the material cache without a synthetic material revision. Root prepared shader publication occurs after current dependency preparation succeeds. Stable cache hits compare the immutable readiness generation in O(1), while dependency traversal remains on rebuild paths. That runtime dependency revision also participates in `PipelineKey`, so Base, GBuffer, DepthPrepass, Shadow, Velocity, TAA, and OIT derive a distinct runtime generation; it deliberately does not participate in persistent `ShaderVariantKey`, whose disk identity remains content-addressed by assembled WGSL and include hashes. Successful material candidates ensure texture residency before allocating custom and standard uniform buffers. Atomic shared-texture publication, PSO readiness, cold error material, cross-pass generation swap, old-generation retirement, and submission-fence ownership remain open. Failed candidates are not retry-suppressed until one exact candidate identity also covers root load-state and texture-residency recovery signals; a standalone fallback PSO is not an acceptable substitute.
 
 `TextureMetadata.streaming_enabled` is the opt-out capable policy bit for normal asset textures. It defaults to enabled, while UI, small, single-mip, runtime-mip, and SVT textures remain fully resident. `PreparedTexture.resident_mip_range` always describes one contiguous sampleable mip chain; a streaming transition constructs a replacement texture, copies the overlap, uploads only missing RGBA8 mips, and publishes the replacement only after the new chain is valid. The resource streamer computes visible-texture demand from the primary view, applies hysteresis and a per-frame migration limit, and accounts physical resident bytes against the persistent-texture budget before it promotes a mip. Unsupported physical layouts remain fully resident instead of claiming partial-mip support.
 

@@ -1,19 +1,18 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 
-use crate::asset::{MaterialAsset, ProjectAssetManager};
+use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
     AdvancedPbrMaterialFrameUsage, RenderFrameExtract, RenderLayerSet,
 };
-use crate::core::resource::ResourceId;
-
-const MAX_MATERIAL_PARENT_DEPTH: usize = 4;
 
 pub(super) fn resolve_advanced_pbr_material_usage(
     asset_manager: &ProjectAssetManager,
-    extract: &mut RenderFrameExtract,
-) {
+    extract: &RenderFrameExtract,
+) -> AdvancedPbrMaterialFrameUsage {
+    crate::profile_scope!("render", "material", "advanced_feature_census");
     let mut usage = AdvancedPbrMaterialFrameUsage::default();
     let mut features_by_material = HashMap::new();
+    let mut _parent_diagnostic_count = 0_u64;
     for mesh in &extract.geometry.meshes {
         if !material_is_visible_to_selected_camera(
             extract.view.selected_camera_layers(),
@@ -24,15 +23,30 @@ pub(super) fn resolve_advanced_pbr_material_usage(
         let features = features_by_material
             .entry(mesh.material.id())
             .or_insert_with(|| {
-                effective_material(asset_manager, mesh.material.id())
-                    .map(|material| material.advanced_pbr_features())
+                asset_manager
+                    .load_effective_material_asset(mesh.material.id())
+                    .ok()
+                    .map(|(material, diagnostics)| {
+                        _parent_diagnostic_count += diagnostics.len() as u64;
+                        material.advanced_pbr_features()
+                    })
             });
         let Some(features) = features.as_ref() else {
             continue;
         };
         usage.record(features);
     }
-    extract.lighting.advanced_lighting.material_features = usage;
+    crate::profile_counter!(
+        "render",
+        "advanced_feature_material_resolutions",
+        features_by_material.len()
+    );
+    crate::profile_counter!(
+        "render",
+        "advanced_feature_parent_diagnostics",
+        _parent_diagnostic_count
+    );
+    usage
 }
 
 fn material_is_visible_to_selected_camera(
@@ -42,51 +56,34 @@ fn material_is_visible_to_selected_camera(
     selected_camera_layers.intersects(material_layers)
 }
 
-fn effective_material(
-    asset_manager: &ProjectAssetManager,
-    root_id: ResourceId,
-) -> Option<MaterialAsset> {
-    let root = asset_manager.load_material_asset(root_id).ok()?;
-    let root_shader = root.shader.clone();
-    let mut visited = BTreeSet::from([root_id]);
-    let mut lineage = vec![root];
-
-    while lineage.len() <= MAX_MATERIAL_PARENT_DEPTH {
-        let Some(parent_reference) = lineage.last().and_then(|material| material.parent.clone())
-        else {
-            break;
-        };
-        let Some(parent_id) = asset_manager.resolve_asset_id(&parent_reference.locator) else {
-            break;
-        };
-        if !visited.insert(parent_id) {
-            break;
-        }
-        let Ok(parent) = asset_manager.load_material_asset(parent_id) else {
-            break;
-        };
-        if parent.shader != root_shader {
-            break;
-        }
-        lineage.push(parent);
-    }
-
-    let mut effective = lineage.pop()?;
-    while let Some(mut child) = lineage.pop() {
-        child.inherit_parent_values_from(&effective);
-        effective = child;
-    }
-    effective.parent = None;
-    Some(effective)
-}
-
 #[cfg(test)]
 mod tests {
     use crate::asset::{AssetReference, AssetUri, MaterialAsset, ProjectAssetManager};
-    use crate::core::framework::render::RenderLayerSet;
+    use crate::core::framework::render::{
+        AdvancedPbrMaterialFrameUsage, RenderFrameExtract, RenderLayerSet,
+        RenderWorldSnapshotHandle,
+    };
     use crate::core::resource::{ResourceId, ResourceKind, ResourceRecord};
+    use crate::scene::world::World;
 
-    use super::{effective_material, material_is_visible_to_selected_camera};
+    use super::{material_is_visible_to_selected_camera, resolve_advanced_pbr_material_usage};
+
+    #[test]
+    fn runtime07_renderer_derived_lighting_material_resolver_does_not_mutate_extract() {
+        let manager = ProjectAssetManager::default();
+        let extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(1),
+            World::new().to_render_snapshot(),
+        );
+
+        let usage = resolve_advanced_pbr_material_usage(&manager, &extract);
+
+        assert_eq!(usage, AdvancedPbrMaterialFrameUsage::default());
+        assert_eq!(
+            extract.lighting.advanced_lighting.material_features,
+            AdvancedPbrMaterialFrameUsage::default()
+        );
+    }
 
     #[test]
     fn render_advanced_lighting_material_usage_ignores_meshes_outside_selected_camera_layers() {
@@ -133,7 +130,8 @@ specular_transmission = 0.75
             )
             .expect("child material insert");
 
-        let effective = effective_material(&manager, material_id)
+        let (effective, diagnostics) = manager
+            .load_effective_material_asset(material_id)
             .expect("missing parent must not discard the renderable child material");
 
         assert_eq!(
@@ -141,6 +139,7 @@ specular_transmission = 0.75
             0.75
         );
         assert!(effective.parent.is_none());
+        assert_eq!(diagnostics.len(), 1);
     }
 
     #[test]
@@ -149,5 +148,17 @@ specular_transmission = 0.75
 
         assert!(source.contains("features_by_material"));
         assert!(source.contains(".entry(mesh.material.id())"));
+    }
+
+    #[test]
+    fn render_advanced_lighting_uses_the_canonical_effective_material_loader() {
+        let production = include_str!("material_feature_extract.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("material feature extract test boundary");
+
+        assert!(production.contains("load_effective_material_asset"));
+        assert!(!production.contains("fn effective_material("));
+        assert!(!production.contains("MAX_MATERIAL_PARENT_DEPTH"));
     }
 }

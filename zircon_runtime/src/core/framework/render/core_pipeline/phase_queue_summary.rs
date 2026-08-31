@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -185,21 +187,23 @@ const fn phase_count_index(phase: RenderPhase) -> usize {
 }
 
 fn phase_order_spans() -> Vec<RenderPhaseQueueSummaryPhaseOrderSpan> {
-    let mut spans: Vec<RenderPhaseQueueSummaryPhaseOrderSpan> = Vec::new();
-    for phase in RENDER_PHASES_BY_QUEUE_ORDER {
-        let phase_order = phase.queue_order();
-        if let Some(index) = spans
-            .iter()
-            .position(|span| span.phase_order == phase_order)
-        {
-            spans[index].phases.push(phase);
-            spans[index].diagnostic_name = phase_diagnostic_name(&spans[index].phases);
-        } else {
-            spans.push(RenderPhaseQueueSummaryPhaseOrderSpan::new(
-                phase_order,
-                vec![phase],
-            ));
-        }
+    phase_order_span_template().to_vec()
+}
+
+fn phase_order_span_template() -> &'static [RenderPhaseQueueSummaryPhaseOrderSpan] {
+    static TEMPLATE: OnceLock<Vec<RenderPhaseQueueSummaryPhaseOrderSpan>> = OnceLock::new();
+    TEMPLATE.get_or_init(build_phase_order_span_template)
+}
+
+fn build_phase_order_span_template() -> Vec<RenderPhaseQueueSummaryPhaseOrderSpan> {
+    let mut spans = Vec::with_capacity(RENDER_PHASES_BY_QUEUE_ORDER.len());
+    for phases in RENDER_PHASES_BY_QUEUE_ORDER
+        .chunk_by(|left, right| left.queue_order() == right.queue_order())
+    {
+        spans.push(RenderPhaseQueueSummaryPhaseOrderSpan::new(
+            phases[0].queue_order(),
+            phases.to_vec(),
+        ));
     }
     spans
 }
@@ -237,3 +241,7 @@ mod tests {
         assert!(source.contains(concat!("String::with_", "capacity(capacity)")));
     }
 }
+
+#[cfg(test)]
+#[path = "phase_queue_summary/ordered_span_build_tests.rs"]
+mod ordered_span_build_tests;

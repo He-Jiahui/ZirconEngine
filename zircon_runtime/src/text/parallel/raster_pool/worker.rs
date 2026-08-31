@@ -10,9 +10,9 @@ use crossbeam_channel::SendTimeoutError;
 
 use super::super::completion_queue::CompletionByteBudget;
 use super::{
-    request_channel, TextRasterWorkId, TextRasterWorkItem, TextRasterWorkResult,
-    TextRasterWorkerPool, TextRasterWorkerPoolDiagnostics, TextRasterWorkerPoolOptions,
-    TextRasterWorkerWorkState, TEXT_RASTER_WORKER_MAX_SCALER_BATCH_SIZE,
+    TEXT_RASTER_WORKER_MAX_SCALER_BATCH_SIZE, TextRasterWorkId, TextRasterWorkItem,
+    TextRasterWorkResult, TextRasterWorkerPool, TextRasterWorkerPoolDiagnostics,
+    TextRasterWorkerPoolOptions, TextRasterWorkerWorkState, request_channel,
 };
 
 const TEXT_RASTER_WORKER_COMPLETION_SEND_TIMEOUT: Duration = Duration::from_millis(1);

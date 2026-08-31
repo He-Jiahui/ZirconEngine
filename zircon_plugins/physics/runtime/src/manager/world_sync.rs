@@ -1,17 +1,14 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
-use zircon_runtime::core::framework::scene::WorldHandle;
-use zircon_runtime::core::framework::{
-    physics::{
-        PhysicsBodySyncState, PhysicsBodyType, PhysicsColliderShape, PhysicsColliderSyncState,
-        PhysicsContactEvent, PhysicsJointSyncState, PhysicsJointType, PhysicsMaterialSyncState,
-        PhysicsTriggerEvent, PhysicsWorldSyncState,
-    },
-    scene::physics::PhysicsMaterialMetadata,
+use zircon_runtime::core::framework::physics::{
+    PhysicsBodySyncState, PhysicsBodyType, PhysicsColliderShape, PhysicsColliderSyncState,
+    PhysicsContactEvent, PhysicsJointSyncState, PhysicsJointType, PhysicsMaterialSyncState,
+    PhysicsTriggerEvent, PhysicsWorldSyncState,
 };
+use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::{Transform, Vec3};
-use zircon_runtime::scene::components::{ColliderShape, JointKind, RigidBodyType};
+use zircon_runtime::scene::components::{ColliderShape, JointKind, RigidBodyType, SceneNode};
 use zircon_runtime::scene::world::World;
 
 use super::poison_recovery::recover_lock;
@@ -25,19 +22,26 @@ use super::validation::{
 use crate::backend::builtin::PhysicsTriggerPairMap;
 
 pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> PhysicsWorldSyncState {
+    let nodes = world.node_records();
+    let (body_capacity, collider_capacity, joint_capacity, material_capacity) =
+        world_sync_projection_capacities(&nodes);
     let mut sync = PhysicsWorldSyncState {
         world: world_handle,
-        ..PhysicsWorldSyncState::default()
+        bodies: Vec::with_capacity(body_capacity),
+        colliders: Vec::with_capacity(collider_capacity),
+        joints: Vec::with_capacity(joint_capacity),
+        materials: Vec::with_capacity(material_capacity),
     };
 
-    for node in world.node_records() {
-        let entity_transform = world.world_transform(node.id).unwrap_or(node.transform);
+    for node in nodes {
+        let entity = node.id;
+        let entity_transform = world.world_transform(entity).unwrap_or(node.transform);
 
-        if let Some(rigid_body) = node.rigid_body.as_ref() {
-            if transform_is_finite(entity_transform) && rigid_body_sync_input_is_finite(rigid_body)
+        if let Some(rigid_body) = node.rigid_body {
+            if transform_is_finite(entity_transform) && rigid_body_sync_input_is_finite(&rigid_body)
             {
                 sync.bodies.push(PhysicsBodySyncState {
-                    entity: node.id,
+                    entity,
                     body_type: match rigid_body.body_type {
                         RigidBodyType::Static => PhysicsBodyType::Static,
                         RigidBodyType::Dynamic => PhysicsBodyType::Dynamic,
@@ -59,7 +63,7 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
             }
         }
 
-        if let Some(collider) = node.collider.as_ref() {
+        if let Some(collider) = node.collider {
             let transform = combine_transforms(entity_transform, collider.local_transform);
             if transform_is_finite(transform)
                 && collider_shape_sync_input_is_valid(&collider.shape)
@@ -69,35 +73,36 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
                     .as_ref()
                     .is_none_or(material_metadata_sync_input_is_finite)
             {
+                let material_locator = collider.material.map(|handle| handle.id().to_string());
+                let material_override = collider.material_override;
+                let material = if material_locator.is_some() || material_override.is_some() {
+                    Some(PhysicsMaterialSyncState {
+                        entity,
+                        locator: material_locator.clone(),
+                        material: material_override.clone().unwrap_or_default(),
+                    })
+                } else {
+                    None
+                };
                 sync.colliders.push(PhysicsColliderSyncState {
-                    entity: node.id,
-                    shape: collider_shape_to_physics(&collider.shape),
+                    entity,
+                    shape: collider_shape_into_physics(collider.shape),
                     sensor: collider.sensor,
                     layer: collider.layer,
                     collision_group: collider.collision_group,
                     collision_mask: collider.collision_mask,
-                    material: collider.material.map(|handle| handle.id().to_string()),
-                    material_override: collider.material_override.clone(),
+                    material: material_locator,
+                    material_override,
                     transform,
                 });
-
-                if collider.material.is_some() || collider.material_override.is_some() {
-                    sync.materials.push(PhysicsMaterialSyncState {
-                        entity: node.id,
-                        locator: collider.material.map(|handle| handle.id().to_string()),
-                        material: collider
-                            .material_override
-                            .clone()
-                            .unwrap_or_else(PhysicsMaterialMetadata::default),
-                    });
-                }
+                sync.materials.extend(material);
             }
         }
 
-        if let Some(joint) = node.joint.as_ref() {
-            if joint_sync_input_is_finite(joint) {
+        if let Some(joint) = node.joint {
+            if joint_sync_input_is_finite(&joint) {
                 sync.joints.push(PhysicsJointSyncState {
-                    entity: node.id,
+                    entity,
                     kind: match joint.joint_type {
                         JointKind::Fixed => PhysicsJointType::Fixed,
                         JointKind::Distance => PhysicsJointType::Distance,
@@ -111,14 +116,31 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
                     axis: joint.axis.to_array(),
                     limits: joint.limits,
                     collide_connected: joint.collide_connected,
-                    constraint: joint.constraint.clone(),
-                    skeleton_binding: joint.skeleton_binding.clone(),
+                    constraint: joint.constraint,
+                    skeleton_binding: joint.skeleton_binding,
                 });
             }
         }
     }
 
     sync
+}
+
+fn world_sync_projection_capacities(nodes: &[SceneNode]) -> (usize, usize, usize, usize) {
+    nodes.iter().fold(
+        (0, 0, 0, 0),
+        |(bodies, colliders, joints, materials), node| {
+            let has_material = node.collider.as_ref().is_some_and(|collider| {
+                collider.material.is_some() || collider.material_override.is_some()
+            });
+            (
+                bodies + usize::from(node.rigid_body.is_some()),
+                colliders + usize::from(node.collider.is_some()),
+                joints + usize::from(node.joint.is_some()),
+                materials + usize::from(has_material),
+            )
+        },
+    )
 }
 
 pub(super) fn collider_shape_to_physics(shape: &ColliderShape) -> PhysicsColliderShape {
@@ -158,6 +180,48 @@ pub(super) fn collider_shape_to_physics(shape: &ColliderShape) -> PhysicsCollide
             children: children
                 .iter()
                 .map(|(transform, child)| (*transform, Box::new(collider_shape_to_physics(child))))
+                .collect(),
+        },
+    }
+}
+
+fn collider_shape_into_physics(shape: ColliderShape) -> PhysicsColliderShape {
+    match shape {
+        ColliderShape::Box { half_extents } => PhysicsColliderShape::Box {
+            half_extents: half_extents.to_array(),
+        },
+        ColliderShape::Sphere { radius } => PhysicsColliderShape::Sphere { radius },
+        ColliderShape::Capsule {
+            radius,
+            half_height,
+        } => PhysicsColliderShape::Capsule {
+            radius,
+            half_height,
+        },
+        ColliderShape::Cylinder {
+            radius,
+            half_height,
+        } => PhysicsColliderShape::Cylinder {
+            radius,
+            half_height,
+        },
+        ColliderShape::ConvexHull { points } => PhysicsColliderShape::ConvexHull {
+            points: points.into_iter().map(|point| point.to_array()).collect(),
+        },
+        ColliderShape::TriangleMesh { mesh } => PhysicsColliderShape::TriangleMesh { mesh },
+        ColliderShape::HeightField {
+            resolution,
+            heights,
+        } => PhysicsColliderShape::HeightField {
+            resolution,
+            heights,
+        },
+        ColliderShape::Compound { children } => PhysicsColliderShape::Compound {
+            children: children
+                .into_iter()
+                .map(|(transform, child)| {
+                    (transform, Box::new(collider_shape_into_physics(*child)))
+                })
                 .collect(),
         },
     }
@@ -241,5 +305,30 @@ fn combine_transforms(parent: Transform, local: Transform) -> Transform {
         translation: parent.translation + parent.rotation * (parent.scale * local.translation),
         rotation: parent.rotation * local.rotation,
         scale: parent.scale * local.scale,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn owned_projection_preserves_nested_payloads() {
+        let shape = ColliderShape::Compound {
+            children: vec![(
+                Transform::default(),
+                Box::new(ColliderShape::ConvexHull {
+                    points: vec![Vec3::new(1.0, 2.0, 3.0), Vec3::new(4.0, 5.0, 6.0)],
+                }),
+            )],
+        };
+
+        let PhysicsColliderShape::Compound { children } = collider_shape_into_physics(shape) else {
+            panic!("owned compound projection must preserve its variant");
+        };
+        let PhysicsColliderShape::ConvexHull { points } = children[0].1.as_ref() else {
+            panic!("owned compound projection must preserve its child variant");
+        };
+        assert_eq!(points, &[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
     }
 }

@@ -1,6 +1,6 @@
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     Arc, OnceLock,
+    atomic::{AtomicUsize, Ordering},
 };
 
 use crate::asset::pipeline::manager::{ProjectAssetManager, ProjectAssetManagerAccess};
@@ -449,6 +449,7 @@ fn render_parallel_recording_product_frame(
                     .with_worker_threads(2)
                     .with_thread_name(PARALLEL_RECORDING_TEST_POOL_NAME),
             ),
+            crate::text::font::shared_font_collection_service(),
         )
         .expect("parallel recording product framework");
     let viewport = framework

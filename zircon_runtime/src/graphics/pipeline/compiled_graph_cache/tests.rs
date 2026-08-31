@@ -1,14 +1,16 @@
 use crate::core::framework::render::{
-    CameraRenderType, CookieProjection, CorePipelineKind, IrradianceVolumeData, LightCookieData,
-    OitSettings, PlanarReflectionProbeData, RenderCameraTarget, RenderCapabilitySummary,
+    AdvancedPbrMaterialFrameUsage, AoSourceSettings, CameraRenderType, CookieProjection,
+    CorePipelineKind, IrradianceVolumeData, LightCookieData, OitSettings,
+    PlanarReflectionProbeData, RenderCameraTarget, RenderCapabilitySummary,
     RenderDynamicResolutionSettings, RenderFrameExtract, RenderLayerSet,
-    RenderParticleSpriteSnapshot, RenderPipelineHandle, RenderViewportRect,
-    RenderWorldSnapshotHandle, SubsurfaceProfileData,
+    RenderParticleSpriteSnapshot, RenderPipelineHandle, RenderResolutionPolicy, RenderUpscalerKind,
+    RenderViewFamilyPipeline, RenderViewportRect, RenderWorldSnapshotHandle, SubsurfaceProfileData,
 };
 use crate::core::math::{Mat4, UVec2, Vec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
 use crate::graphics::pipeline::{
-    CompiledGraphCache, CompiledGraphCacheKey, RenderPipelineAsset, RenderPipelineCompileOptions,
+    AdvancedLightingCompileInputs, CompiledGraphCache, CompiledGraphCacheKey, RenderPipelineAsset,
+    RenderPipelineCompileOptions,
 };
 use crate::render_graph::RenderGraphBuilder;
 use crate::scene::world::World;
@@ -71,6 +73,77 @@ fn compiled_render_pipeline_cache_reports_lookup_status() {
 }
 
 #[test]
+fn compiled_graph_cache_keys_ao_settings_only_when_the_feature_is_requested() {
+    let pipeline = RenderPipelineAsset::default_deferred();
+    let baseline = test_extract();
+    let mut changed = baseline.clone();
+    changed.post_process.ambient_occlusion = AoSourceSettings {
+        radius_meters: 2.0,
+        ..AoSourceSettings::default()
+    };
+
+    assert_eq!(
+        key_for(
+            &pipeline,
+            &baseline,
+            &RenderPipelineCompileOptions::default()
+        ),
+        key_for(
+            &pipeline,
+            &changed,
+            &RenderPipelineCompileOptions::default()
+        )
+    );
+
+    let enabled = RenderPipelineCompileOptions::default().with_feature_enabled(
+        crate::graphics::feature::BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
+    );
+    assert_ne!(
+        key_for(&pipeline, &baseline, &enabled),
+        key_for(&pipeline, &changed, &enabled)
+    );
+
+    let resolved = enabled
+        .clone()
+        .with_ambient_occlusion_source(AoSourceSettings {
+            radius_meters: 3.0,
+            ..AoSourceSettings::default()
+        });
+    assert_eq!(
+        key_for(&pipeline, &baseline, &resolved),
+        key_for(&pipeline, &changed, &resolved),
+        "renderer-owned resolved AO must be the cache authority",
+    );
+    assert_ne!(
+        key_for(&pipeline, &baseline, &enabled),
+        key_for(&pipeline, &baseline, &resolved),
+    );
+}
+
+#[test]
+fn compiled_graph_cache_key_rejects_a_frame_without_selected_camera() {
+    let pipeline = RenderPipelineAsset::default_forward_plus();
+    let mut extract = test_extract();
+    extract.view.cameras.clear();
+    extract.view.scene_camera_entity = None;
+
+    let error = CompiledGraphCacheKey::from_inputs(
+        &pipeline,
+        &extract,
+        super::RenderGraphCompileCameraTargetFingerprint::PrimarySurface,
+        &RenderPipelineCompileOptions::default(),
+        &RenderCapabilitySummary::default(),
+        crate::core::framework::render::ShaderQualityTier::High,
+    )
+    .expect_err("cache-key construction must reject a missing selected camera");
+
+    assert_eq!(
+        error,
+        super::RenderGraphCompileInputError::MissingSelectedCamera
+    );
+}
+
+#[test]
 fn render_graph_compile_frame_fingerprint_tracks_compile_extract_inputs() {
     let mut baseline = test_extract();
     baseline.apply_viewport_size(UVec2::new(128, 64));
@@ -126,6 +199,32 @@ fn render_graph_compile_frame_fingerprint_tracks_compile_extract_inputs() {
         .material_features
         .late_forward_opaque = true;
     assert_ne!(baseline_fingerprint, fingerprint_for(&late_forward_opaque));
+}
+
+#[test]
+fn render_graph_compile_frame_fingerprint_tracks_view_family_allocations() {
+    let mut baseline = test_extract();
+    baseline.apply_viewport_size(UVec2::new(1920, 1080));
+    let baseline_fingerprint = fingerprint_for(&baseline);
+
+    let mut temporal = baseline.clone();
+    temporal
+        .view
+        .apply_view_family_pipeline(RenderViewFamilyPipeline::resolve(
+            UVec2::new(1920, 1080),
+            RenderResolutionPolicy::with_temporal_fractions(0.5, 0.75),
+            RenderUpscalerKind::Temporal,
+        ));
+    let temporal_fingerprint = fingerprint_for(&temporal);
+
+    assert_ne!(baseline_fingerprint, temporal_fingerprint);
+    assert_eq!(temporal_fingerprint.primary_allocation_width, 960);
+    assert_eq!(temporal_fingerprint.primary_allocation_height, 544);
+    assert_eq!(temporal_fingerprint.secondary_allocation_width, 1440);
+    assert_eq!(temporal_fingerprint.secondary_allocation_height, 816);
+    assert_eq!(temporal_fingerprint.display_allocation_width, 1920);
+    assert_eq!(temporal_fingerprint.display_allocation_height, 1080);
+    assert_eq!(temporal_fingerprint.upscaler, RenderUpscalerKind::Temporal);
 }
 
 #[test]
@@ -213,6 +312,72 @@ fn render_graph_compile_frame_fingerprint_tracks_advanced_descriptor_filter_inpu
         .subsurface_material_profile_indices
         .push(3);
     assert_ne!(baseline_fingerprint, fingerprint_for(&subsurface));
+}
+
+#[test]
+fn runtime07_renderer_derived_lighting_cache_key_tracks_exact_subsurface_profile_contents() {
+    let pipeline = RenderPipelineAsset::default_deferred();
+    let mut baseline = test_extract();
+    baseline
+        .lighting
+        .advanced_lighting
+        .subsurface_profiles
+        .push(SubsurfaceProfileData::new(
+            3,
+            Vec3::new(0.8, 1.2, 1.8),
+            Vec3::new(1.0, 0.45, 0.3),
+            1.0,
+        ));
+    baseline
+        .lighting
+        .advanced_lighting
+        .subsurface_material_profile_indices
+        .push(3);
+    let mut changed = baseline.clone();
+    changed.lighting.advanced_lighting.subsurface_profiles[0].world_unit_scale =
+        f32::from_bits(1.0_f32.to_bits() + 1);
+
+    assert_ne!(
+        key_for(
+            &pipeline,
+            &baseline,
+            &RenderPipelineCompileOptions::default()
+        ),
+        key_for(
+            &pipeline,
+            &changed,
+            &RenderPipelineCompileOptions::default()
+        )
+    );
+}
+
+#[test]
+fn runtime07_renderer_derived_lighting_cache_key_does_not_mutate_extract() {
+    let pipeline = RenderPipelineAsset::default_forward_plus();
+    let extract = test_extract();
+    let baseline = key_for(
+        &pipeline,
+        &extract,
+        &RenderPipelineCompileOptions::default(),
+    );
+    let options = RenderPipelineCompileOptions::default().with_advanced_lighting_inputs(
+        AdvancedLightingCompileInputs::new(
+            AdvancedPbrMaterialFrameUsage {
+                late_forward_opaque: true,
+                ..Default::default()
+            },
+            Vec::new(),
+            Vec::new(),
+        ),
+    );
+    let renderer_derived = key_for(&pipeline, &extract, &options);
+
+    assert_eq!(
+        extract.lighting.advanced_lighting.material_features,
+        AdvancedPbrMaterialFrameUsage::default()
+    );
+    assert_ne!(baseline, renderer_derived);
+    assert!(renderer_derived.frame.requires_late_forward_opaque_pass);
 }
 
 #[test]
@@ -463,10 +628,12 @@ fn key_for_with_camera_target(
         &RenderCapabilitySummary::default(),
         Default::default(),
     )
+    .expect("cache test extract has a selected camera")
 }
 
 fn fingerprint_for(extract: &RenderFrameExtract) -> super::RenderGraphCompileFrameFingerprint {
     super::extract_compile_fingerprint(extract, camera_target_fingerprint_for_extract(extract))
+        .expect("cache test extract has a selected camera")
 }
 
 fn camera_target_fingerprint_for_extract(
@@ -492,18 +659,19 @@ fn empty_compiled_pipeline(
             handle: pipeline.handle,
             name: pipeline.name.clone(),
             renderer_name: pipeline.renderer.name.clone(),
-            stages: Vec::new(),
-            pass_stages: Vec::new(),
+            execution_pass_metadata: Vec::new(),
             enabled_features: Vec::new(),
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            ambient_occlusion_profile: None,
             half_resolution_transparency_depth_sigma:
                 crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
             graph: RenderGraphBuilder::new("cache-test").compile().unwrap(),
         },
     )
+    .expect("empty cache pipeline execution packet")
 }
 
 fn particle_sprite_snapshot() -> RenderParticleSpriteSnapshot {

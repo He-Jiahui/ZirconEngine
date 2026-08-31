@@ -1,18 +1,19 @@
 use std::{array, marker::PhantomData};
 
 use crate::scene::ecs::{
-    single_from_iter, CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter,
-    ChangeTickWindow, QueryCombinationIter, QueryCombinationMutIter, QueryData, QueryEntityError,
-    QueryEntityItem, QueryFilter, QueryIter, QueryManyCachedIter, QueryManyIter, QueryManyMutIter,
+    CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter, ChangeTickWindow,
+    QueryCombinationIter, QueryCombinationMutIter, QueryData, QueryEntityError, QueryEntityItem,
+    QueryFilter, QueryIter, QueryManyCachedIter, QueryManyIter, QueryManyMutIter,
     QueryManyUniqueMutIter, QueryMutData, QueryMutIter, QuerySingleError, QueryState,
-    UniqueEntityArray,
+    UniqueEntityArray, single_from_iter,
 };
 use crate::scene::{EntityId, World};
 
 pub struct Query<'world, D, F = ()> {
     world: *mut World,
-    // SystemState owns the persistent QueryState; this run item borrows it so
-    // default read-only iteration can reuse structural cache candidates.
+    // SystemState owns the persistent QueryState for this run. Any entry point
+    // that refreshes or lends its cache requires `&mut self`, preventing a
+    // second refresh from invalidating plans held by a live iterator.
     state: *mut QueryState<D, F>,
     ticks: ChangeTickWindow,
     _marker: PhantomData<(&'world mut World, &'world mut QueryState<D, F>)>,
@@ -38,11 +39,10 @@ where
     D: QueryData,
     F: QueryFilter,
 {
-    pub fn iter(&self) -> QueryIter<'_, '_, D, F> {
+    pub fn iter(&mut self) -> QueryIter<'_, '_, D, F> {
         let world = unsafe { &*self.world };
-        // This run item uniquely owns the system state through SystemState,
-        // so refreshing the cache before handing out borrowed cache rows
-        // preserves normal read-only iteration semantics.
+        // The exclusive receiver keeps the cache borrow valid for the
+        // iterator's full lifetime.
         let state = unsafe { &mut *self.state };
         state.iter_cached_with_ticks(world, self.ticks)
     }
@@ -97,7 +97,7 @@ where
         state.iter_many_unique_cached_with_ticks(world, entities, self.ticks)
     }
 
-    pub fn iter_combinations<const K: usize>(&self) -> QueryCombinationIter<'_, '_, D, F, K> {
+    pub fn iter_combinations<const K: usize>(&mut self) -> QueryCombinationIter<'_, '_, D, F, K> {
         let world = unsafe { &*self.world };
         let state = unsafe { &mut *self.state };
         state.iter_combinations_cached_with_ticks(world, self.ticks)
@@ -111,7 +111,7 @@ where
         state.iter_combinations_cached_with_ticks(world, self.ticks)
     }
 
-    pub fn single(&self) -> Result<D::Item<'_>, QuerySingleError> {
+    pub fn single(&mut self) -> Result<D::Item<'_>, QuerySingleError> {
         single_from_iter(self.iter())
     }
 
@@ -167,13 +167,13 @@ where
         state.get_many_unique_cached_with_ticks(world, entities, self.ticks)
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub fn is_empty(&mut self) -> bool {
         let world = unsafe { &*self.world };
         let state = unsafe { &mut *self.state };
         state.is_empty_cached_with_ticks(world, self.ticks)
     }
 
-    pub fn count(&self) -> usize {
+    pub fn count(&mut self) -> usize {
         let world = unsafe { &*self.world };
         let state = unsafe { &mut *self.state };
         state.count_cached_with_ticks(world, self.ticks)

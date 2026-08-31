@@ -24,10 +24,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_gl
             | UiPainterResolvedState::Checked
             | UiPainterResolvedState::Open
             | UiPainterResolvedState::Dragging
-            | UiPainterResolvedState::DropHovered => palette.focus_ring,
+            | UiPainterResolvedState::DropHovered => palette.accent,
             UiPainterResolvedState::Focused => {
                 if icon_button_node_uses_active_glyph(node) {
-                    palette.focus_ring
+                    palette.accent
                 } else if node.hovered {
                     palette.text
                 } else {

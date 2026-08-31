@@ -3,29 +3,39 @@ use super::*;
 #[test]
 fn ambient_and_rect_light_reflection_roundtrips_authoring_fields() {
     let mut world = World::empty();
-    let ambient = world.spawn_node(NodeKind::AmbientLight);
-    let rect = world.spawn_node(NodeKind::RectLight);
+    let ambient = world
+        .spawn_node(NodeKind::AmbientLight)
+        .expect("test scene spawn should succeed");
+    let rect = world
+        .spawn_node(NodeKind::RectLight)
+        .expect("test scene spawn should succeed");
     let ambient_address = fixed_component_address(ambient, "AmbientLight");
     let rect_address = fixed_component_address(rect, "RectLight");
 
     world
         .reflect_write(ReflectWriteRequest::new(
             ambient_address.clone(),
-            "color",
+            reflected_field_id("zircon_runtime::scene::components::AmbientLight", "color"),
             ReflectedValue::Vec3([0.05, 0.06, 0.07]),
         ))
         .expect("ambient color should be writable");
     world
         .reflect_write(ReflectWriteRequest::new(
             ambient_address.clone(),
-            "intensity",
+            reflected_field_id(
+                "zircon_runtime::scene::components::AmbientLight",
+                "intensity",
+            ),
             ReflectedValue::Scalar(0.35),
         ))
         .expect("ambient intensity should be writable");
     world
         .reflect_write(ReflectWriteRequest::new(
             ambient_address.clone(),
-            "affects_lightmapped_meshes",
+            reflected_field_id(
+                "zircon_runtime::scene::components::AmbientLight",
+                "affects_lightmapped_meshes",
+            ),
             ReflectedValue::Bool(false),
         ))
         .expect("ambient lightmap flag should be writable");
@@ -41,6 +51,10 @@ fn ambient_and_rect_light_reflection_roundtrips_authoring_fields() {
         .expect("ambient fields should be enumerable")
         .fields
         .contains(&ReflectFieldValue::new(
+            reflected_field_id(
+                "zircon_runtime::scene::components::AmbientLight",
+                "affects_lightmapped_meshes",
+            ),
             "affects_lightmapped_meshes",
             ReflectedValue::Bool(false)
         )));
@@ -48,14 +62,14 @@ fn ambient_and_rect_light_reflection_roundtrips_authoring_fields() {
     world
         .reflect_write(ReflectWriteRequest::new(
             rect_address.clone(),
-            "range",
+            reflected_field_id("zircon_runtime::scene::components::RectLight", "range"),
             ReflectedValue::Scalar(16.0),
         ))
         .expect("rect range should be writable");
     world
         .reflect_write(ReflectWriteRequest::new(
             rect_address.clone(),
-            "size",
+            reflected_field_id("zircon_runtime::scene::components::RectLight", "size"),
             ReflectedValue::Vec2([2.0, 0.5]),
         ))
         .expect("rect size should be writable");
@@ -68,6 +82,7 @@ fn ambient_and_rect_light_reflection_roundtrips_authoring_fields() {
         .expect("rect fields should be enumerable")
         .fields
         .contains(&ReflectFieldValue::new(
+            reflected_field_id("zircon_runtime::scene::components::RectLight", "size"),
             "size",
             ReflectedValue::Vec2([2.0, 0.5])
         )));
@@ -76,23 +91,32 @@ fn ambient_and_rect_light_reflection_roundtrips_authoring_fields() {
 #[test]
 fn name_component_reads_and_writes_through_world_reflection() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let address =
         ReflectObjectAddress::component(entity, "zircon_runtime::scene::components::Name")
             .expect("fixed component full-path address");
 
     assert_eq!(
         world
-            .reflect_read(ReflectReadRequest::new(address.clone(), "value"))
+            .reflect_read(ReflectReadRequest::new(
+                address.clone(),
+                reflected_field_id("zircon_runtime::scene::components::Name", "value"),
+            ))
             .expect("name should be readable")
             .field,
-        ReflectFieldValue::new("value", ReflectedValue::String("Mesh 1".to_string()))
+        ReflectFieldValue::new(
+            reflected_field_id("zircon_runtime::scene::components::Name", "value"),
+            "value",
+            ReflectedValue::String("Mesh 1".to_string()),
+        )
     );
 
     let response = world
         .reflect_write(ReflectWriteRequest::new(
             address,
-            "value",
+            reflected_field_id("zircon_runtime::scene::components::Name", "value"),
             ReflectedValue::String("Reflected Name".to_string()),
         ))
         .expect("name should be writable");
@@ -101,6 +125,7 @@ fn name_component_reads_and_writes_through_world_reflection() {
     assert_eq!(
         response.field,
         ReflectFieldValue::new(
+            reflected_field_id("zircon_runtime::scene::components::Name", "value"),
             "value",
             ReflectedValue::String("Reflected Name".to_string())
         )

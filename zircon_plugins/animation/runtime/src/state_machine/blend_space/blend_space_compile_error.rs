@@ -8,6 +8,7 @@ pub enum BlendSpaceCompileError {
     DuplicatePoint,
     CollinearPoints,
     CapacityExceeded,
+    TopologyFailure,
 }
 
 impl fmt::Display for BlendSpaceCompileError {

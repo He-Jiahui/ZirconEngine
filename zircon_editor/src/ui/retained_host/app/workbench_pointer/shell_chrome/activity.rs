@@ -18,7 +18,6 @@ impl RetainedEditorHost {
         };
         match callback_dispatch::dispatch_shared_activity_rail_pointer_click(
             &self.runtime,
-            &self.template_bridge,
             &mut self.activity_rail_pointer_bridge,
             side,
             UiPoint::new(x, y),

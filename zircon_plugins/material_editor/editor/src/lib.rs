@@ -16,9 +16,9 @@ pub use extension_ids::{
     MATERIAL_EDITOR_DRAWER_ID, MATERIAL_EDITOR_TEMPLATE_ID, MATERIAL_EDITOR_VIEW_ID,
 };
 pub use plugin::{
+    MATERIAL_EDITOR_DIST_CRATE_NAME, MATERIAL_EDITOR_DIST_EDITOR_ENTRY, MaterialEditorPlugin,
     editor_capabilities, editor_plugin, editor_plugin_descriptor,
     material_editor_dist_module_manifest, package_manifest, plugin_registration,
-    MaterialEditorPlugin, MATERIAL_EDITOR_DIST_CRATE_NAME, MATERIAL_EDITOR_DIST_EDITOR_ENTRY,
 };
 use zircon_runtime::asset::{
     AlphaMode, AssetReference, MaterialAsset, MaterialGraphAsset, MaterialGraphLinkAsset,
@@ -26,6 +26,14 @@ use zircon_runtime::asset::{
 };
 
 pub fn validate_material_graph(graph: &MaterialGraphAsset) -> Vec<String> {
+    let index = MaterialGraphIndex::new(graph);
+    validate_material_graph_with_index(graph, &index)
+}
+
+fn validate_material_graph_with_index(
+    graph: &MaterialGraphAsset,
+    index: &MaterialGraphIndex<'_>,
+) -> Vec<String> {
     let mut diagnostics = Vec::new();
     let mut seen_ids = BTreeSet::new();
     let mut node_ids = BTreeSet::new();
@@ -51,7 +59,7 @@ pub fn validate_material_graph(graph: &MaterialGraphAsset) -> Vec<String> {
             graph.name
         )),
         1 => {
-            if incoming_link(graph, output_nodes[0], "base_color").is_none() {
+            if index.incoming_link(output_nodes[0], "base_color").is_none() {
                 diagnostics.push(format!(
                     "material graph output `{}` is missing required input `base_color`",
                     output_nodes[0]
@@ -79,14 +87,23 @@ pub fn validate_material_graph(graph: &MaterialGraphAsset) -> Vec<String> {
         }
     }
 
-    let nodes = material_node_map(graph);
+    for (node_id, pins) in &index.incoming_links {
+        for (pin, entry) in pins {
+            if entry.count > 1 {
+                diagnostics.push(format!(
+                    "material graph has multiple links target `{node_id}.{pin}`"
+                ));
+            }
+        }
+    }
+
     for node in &graph.nodes {
         if matches!(
             &node.kind,
             MaterialGraphNodeKindAsset::Add | MaterialGraphNodeKindAsset::Multiply
         ) {
             for pin in ["a", "b"] {
-                if incoming_link(graph, &node.id, pin).is_none() {
+                if index.incoming_link(&node.id, pin).is_none() {
                     diagnostics.push(format!(
                         "material graph node `{}` is missing required input `{}`",
                         node.id, pin
@@ -95,8 +112,9 @@ pub fn validate_material_graph(graph: &MaterialGraphAsset) -> Vec<String> {
             }
         }
         if let MaterialGraphNodeKindAsset::Output = &node.kind {
-            if incoming_link(graph, &node.id, "base_color")
-                .and_then(|link| nodes.get(link.from_node.as_str()))
+            if index
+                .incoming_link(&node.id, "base_color")
+                .and_then(|link| index.node(&link.from_node))
                 .is_none()
             {
                 diagnostics.push(format!(
@@ -113,7 +131,8 @@ pub fn validate_material_graph(graph: &MaterialGraphAsset) -> Vec<String> {
 }
 
 pub fn compile_material_graph(graph: &MaterialGraphAsset) -> Result<MaterialAsset, Vec<String>> {
-    let mut diagnostics = validate_material_graph(graph);
+    let index = MaterialGraphIndex::new(graph);
+    let mut diagnostics = validate_material_graph_with_index(graph, &index);
     let Some(shader) = graph.shader.clone() else {
         diagnostics.push(format!(
             "material graph `{}` has no shader target for MaterialAsset compile",
@@ -130,11 +149,13 @@ pub fn compile_material_graph(graph: &MaterialGraphAsset) -> Result<MaterialAsse
         .iter()
         .find(|node| matches!(&node.kind, MaterialGraphNodeKindAsset::Output))
         .expect("validated material graph has an output node");
-    let base_color_link =
-        incoming_link(graph, &output.id, "base_color").expect("validated output has base_color");
+    let base_color_link = index
+        .incoming_link(&output.id, "base_color")
+        .expect("validated output has base_color");
     let mut evaluating = BTreeSet::new();
-    let base_color_input = evaluate_color_input(graph, &base_color_link.from_node, &mut evaluating)
-        .map_err(|error| vec![error])?;
+    let base_color_input =
+        evaluate_color_input(graph, &index, &base_color_link.from_node, &mut evaluating)
+            .map_err(|error| vec![error])?;
 
     let (base_color, base_color_texture) = match base_color_input {
         MaterialColorInput::Constant(value) => (value, None),
@@ -189,17 +210,65 @@ enum MaterialColorInput {
     Texture(AssetReference),
 }
 
-fn evaluate_color_input(
-    graph: &MaterialGraphAsset,
-    node_id: &str,
-    evaluating: &mut BTreeSet<String>,
+struct MaterialGraphIndex<'a> {
+    nodes: BTreeMap<&'a str, &'a MaterialGraphNodeAsset>,
+    incoming_links: BTreeMap<&'a str, BTreeMap<&'a str, IncomingLinkIndexEntry<'a>>>,
+}
+
+impl<'a> MaterialGraphIndex<'a> {
+    fn new(graph: &'a MaterialGraphAsset) -> Self {
+        let nodes = graph
+            .nodes
+            .iter()
+            .map(|node| (node.id.as_str(), node))
+            .collect();
+        let mut incoming_links = BTreeMap::new();
+        for link in &graph.links {
+            incoming_links
+                .entry(link.to_node.as_str())
+                .or_insert_with(BTreeMap::new)
+                .entry(link.to_pin.as_str())
+                .and_modify(|entry: &mut IncomingLinkIndexEntry<'a>| entry.count += 1)
+                .or_insert(IncomingLinkIndexEntry {
+                    first: link,
+                    count: 1,
+                });
+        }
+        Self {
+            nodes,
+            incoming_links,
+        }
+    }
+
+    fn node(&self, node_id: &str) -> Option<&'a MaterialGraphNodeAsset> {
+        self.nodes.get(node_id).copied()
+    }
+
+    fn incoming_link(&self, node_id: &str, pin: &str) -> Option<&'a MaterialGraphLinkAsset> {
+        self.incoming_links
+            .get(node_id)?
+            .get(pin)
+            .map(|entry| entry.first)
+    }
+}
+
+struct IncomingLinkIndexEntry<'a> {
+    first: &'a MaterialGraphLinkAsset,
+    count: usize,
+}
+
+fn evaluate_color_input<'a>(
+    graph: &'a MaterialGraphAsset,
+    index: &MaterialGraphIndex<'a>,
+    node_id: &'a str,
+    evaluating: &mut BTreeSet<&'a str>,
 ) -> Result<MaterialColorInput, String> {
-    if !evaluating.insert(node_id.to_string()) {
+    if !evaluating.insert(node_id) {
         return Err(format!(
             "material graph contains a cycle at node `{node_id}`"
         ));
     }
-    let result = match material_node_map(graph).get(node_id).map(|node| &node.kind) {
+    let result = match index.node(node_id).map(|node| &node.kind) {
         Some(MaterialGraphNodeKindAsset::TextureSample { texture }) => {
             Ok(MaterialColorInput::Texture(texture.clone()))
         }
@@ -218,13 +287,13 @@ fn evaluate_color_input(
             Ok(MaterialColorInput::Constant(value))
         }
         Some(MaterialGraphNodeKindAsset::Add) => {
-            let a = evaluate_color_pin(graph, node_id, "a", evaluating)?;
-            let b = evaluate_color_pin(graph, node_id, "b", evaluating)?;
+            let a = evaluate_color_pin(graph, index, node_id, "a", evaluating)?;
+            let b = evaluate_color_pin(graph, index, node_id, "b", evaluating)?;
             combine_color_inputs("add", a, b, |left, right| left + right)
         }
         Some(MaterialGraphNodeKindAsset::Multiply) => {
-            let a = evaluate_color_pin(graph, node_id, "a", evaluating)?;
-            let b = evaluate_color_pin(graph, node_id, "b", evaluating)?;
+            let a = evaluate_color_pin(graph, index, node_id, "a", evaluating)?;
+            let b = evaluate_color_pin(graph, index, node_id, "b", evaluating)?;
             combine_color_inputs("multiply", a, b, |left, right| left * right)
         }
         Some(MaterialGraphNodeKindAsset::Output) => Err(format!(
@@ -238,15 +307,17 @@ fn evaluate_color_input(
     result
 }
 
-fn evaluate_color_pin(
-    graph: &MaterialGraphAsset,
-    node_id: &str,
+fn evaluate_color_pin<'a>(
+    graph: &'a MaterialGraphAsset,
+    index: &MaterialGraphIndex<'a>,
+    node_id: &'a str,
     pin: &str,
-    evaluating: &mut BTreeSet<String>,
+    evaluating: &mut BTreeSet<&'a str>,
 ) -> Result<MaterialColorInput, String> {
-    let link = incoming_link(graph, node_id, pin)
+    let link = index
+        .incoming_link(node_id, pin)
         .ok_or_else(|| format!("material graph node `{node_id}` missing input `{pin}`"))?;
-    evaluate_color_input(graph, &link.from_node, evaluating)
+    evaluate_color_input(graph, index, &link.from_node, evaluating)
 }
 
 fn combine_color_inputs(
@@ -268,23 +339,4 @@ fn combine_color_inputs(
             "material graph `{op}` node cannot combine texture-backed inputs in v1"
         )),
     }
-}
-
-fn material_node_map(graph: &MaterialGraphAsset) -> BTreeMap<&str, &MaterialGraphNodeAsset> {
-    graph
-        .nodes
-        .iter()
-        .map(|node| (node.id.as_str(), node))
-        .collect()
-}
-
-fn incoming_link<'a>(
-    graph: &'a MaterialGraphAsset,
-    node_id: &str,
-    pin: &str,
-) -> Option<&'a MaterialGraphLinkAsset> {
-    graph
-        .links
-        .iter()
-        .find(|link| link.to_node == node_id && link.to_pin == pin)
 }

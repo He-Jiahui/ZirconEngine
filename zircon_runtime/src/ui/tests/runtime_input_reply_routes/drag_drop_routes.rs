@@ -1,6 +1,118 @@
 use super::*;
 
 #[test]
+fn drag_drop_summary_shares_payload_authority_and_skips_optional_trace_projection() {
+    let payload = Arc::new(zircon_runtime_interface::ui::component::UiDragPayload::new(
+        zircon_runtime_interface::ui::component::UiDragPayloadKind::Asset,
+        "res://materials/shared.mat",
+    ));
+    let begin_event = || {
+        UiInputEvent::DragDrop(UiDragDropInputEvent {
+            metadata: input_metadata(),
+            kind: UiDragDropInputEventKind::Begin,
+            session_id: Some(UiDragSessionId::new(42)),
+            point: UiPoint::new(20.0, 20.0),
+            payload: Some(Arc::clone(&payload)),
+        })
+    };
+    let mut summary_surface = route_surface();
+    let mut full_surface = route_surface();
+    let summary = summary_surface
+        .dispatch_input_event_with_diagnostics_mode(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            begin_event(),
+            zircon_runtime_interface::ui::dispatch::UiInputDiagnosticsMode::Summary,
+        )
+        .unwrap();
+    let full = full_surface
+        .dispatch_input_event_with_diagnostics_mode(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            begin_event(),
+            zircon_runtime_interface::ui::dispatch::UiInputDiagnosticsMode::Full,
+        )
+        .unwrap();
+
+    assert_eq!(summary.event, full.event);
+    assert_eq!(summary.reply, full.reply);
+    assert_eq!(summary.applied_effects, full.applied_effects);
+    assert_eq!(summary.rejected_effects, full.rejected_effects);
+    assert_eq!(summary.diagnostics.routed, full.diagnostics.routed);
+    assert_eq!(
+        summary.diagnostics.route_target,
+        full.diagnostics.route_target
+    );
+    assert_eq!(summary_surface.focus.captured, full_surface.focus.captured);
+    assert_eq!(
+        summary.diagnostics.route_policy,
+        UiInputRoutePolicy::default()
+    );
+    assert_eq!(summary.diagnostics.route_trace, Default::default());
+    assert!(summary.diagnostics.route_steps.is_empty());
+    assert!(summary.diagnostics.notes.is_empty());
+    assert_eq!(summary.diagnostics.handled_phase, None);
+    assert_eq!(full.diagnostics.route_policy, UiInputRoutePolicy::Direct);
+    assert_eq!(
+        full.diagnostics.route_trace.direct_target,
+        Some(UiNodeId::new(2))
+    );
+
+    let UiInputEvent::DragDrop(summary_event) = &summary.event else {
+        panic!("drag-drop event family changed");
+    };
+    let UiDispatchEffect::DragDrop {
+        payload: Some(reply_payload),
+        ..
+    } = &summary.reply.effects[0]
+    else {
+        panic!("drag-drop reply effect changed");
+    };
+    let UiDispatchEffect::DragDrop {
+        payload: Some(applied_payload),
+        ..
+    } = &summary.applied_effects[0].effect
+    else {
+        panic!("drag-drop applied effect changed");
+    };
+    let retained_payload = summary_surface
+        .input
+        .drag_drop
+        .as_ref()
+        .and_then(|drag| drag.payload.as_ref())
+        .expect("retained drag payload");
+    assert!(Arc::ptr_eq(
+        summary_event.payload.as_ref().expect("event payload"),
+        &payload,
+    ));
+    assert!(Arc::ptr_eq(reply_payload, &payload));
+    assert!(Arc::ptr_eq(applied_payload, &payload));
+    assert!(Arc::ptr_eq(retained_payload, &payload));
+
+    let end = summary_surface
+        .dispatch_input_event_with_diagnostics_mode(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            UiInputEvent::DragDrop(UiDragDropInputEvent {
+                metadata: input_metadata(),
+                kind: UiDragDropInputEventKind::End,
+                session_id: Some(UiDragSessionId::new(42)),
+                point: UiPoint::new(20.0, 20.0),
+                payload: Some(Arc::clone(&payload)),
+            }),
+            zircon_runtime_interface::ui::dispatch::UiInputDiagnosticsMode::Summary,
+        )
+        .unwrap();
+    assert!(end.rejected_effects.is_empty());
+    assert!(summary_surface.input.drag_drop.is_none());
+    assert_eq!(summary_surface.focus.captured, None);
+    assert_eq!(end.diagnostics.route_trace, Default::default());
+    assert!(end.diagnostics.route_steps.is_empty());
+    assert!(end.diagnostics.notes.is_empty());
+    assert_eq!(end.diagnostics.handled_phase, None);
+}
+
+#[test]
 fn drag_drop_over_trace_uses_drop_target_path_and_preserves_capture_source() {
     let mut surface = route_surface();
     let session_id = UiDragSessionId::new(42);

@@ -149,7 +149,235 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
   `#[doc(hidden)] pub mod assembly`（内部条目保持最小可见性）向 sibling Runtime crate 提供组装能力，
   Runtime facade 不 re-export `assembly`；rustdoc/public-API seal 与编译 guard 必须证明外部产品 surface
   仍只包含批准的 resource DTO/registry/runtime/snapshot，禁止为跨 crate 编译把全部内部符号改成公开 API；
-- `core/framework` 迁入 `zr_contracts` 时按域拆 feature（ai/physics/sound/net/render/ui/... 各成 feature，默认全开，勾稽计划 03）；
+- `core/framework` 不得按目录名整体迁入 `zr_contracts`。2026-08-24 schema-1 可复现审计的迁移前基线为
+  205 个 declaration-only、380 个 declaration/behavior mixed 与 22 个 behavior-only production 文件；
+  原样移动会把 render/animation/picking 等实现算法错误下沉到“纯 trait/DTO”层。
+  物理 crate move 前先在当前 Runtime 中完成 declaration/behavior hard partition：`zr_contracts` 只接收
+  trait、error、opaque handle、descriptor、immutable snapshot/receipt 与维护自身不变量的轻量 DTO 方法；
+  compiler/evaluator、IBL/PMREM、post-process、camera ordering/sequence、virtual-geometry stream decode、
+  picking resolution 等行为随 animation/graphics/scene 等 implementation owner 走，旧文件不保留 forwarding
+  module、alias 或副本。分区后再按域拆 feature（ai/physics/sound/net/render/ui/... 各成 feature，默认全开，
+  勾稽计划 03）；
+- runtime-wide finite-state machine 已作为首个 physical partition 整体硬切到
+  `core/runtime/state_machine`，未来随 `zr_kernel` 迁移；12 文件/519 行旧 framework owner、10 处消费路径和
+  旧 module declaration 同批删除，不保留 forwarding surface。当前可复现基线为 204 declaration-only、
+  369 mixed、22 behavior-only，chained alias mutation RED→GREEN 后 owner guard `5/5` GREEN；详见
+  [`01/2026-08-24-m1-state-kernel-owner-hard-cut.md`](01/2026-08-24-m1-state-kernel-owner-hard-cut.md)；
+- animation 已完成一项 compiler/evaluator declaration-behavior partition：
+  `core/framework/animation/compiler` 是唯一纯 source semantic IR owner，animation plugin 只把成功 artifact
+  降低为 executable graph/state/layer 与 Spade 2.15.1 Delaunay topology。production cache 不再独立解析
+  graph/state/transition/condition source string；旧 associated source compiler、公开 `BlendSpacePoint*` 与手写
+  `O(N^4)` triangulation/overlap path 均为 0。96/128 点共圆 RED 的 0 triangle 已恢复为 94/126，post-profile
+  median 为 142.8/194.2 us；128 点随机从旧 11.434 ms probe 收敛到 245.0 us median。source guard
+  又锁定 shared validation：canonical float-bit `BTreeSet` 去重和 `robust::orient2d` 基线线性扫描替代
+  `Vec::contains` + triple enumeration；4096 点有效输入从 5.849 ms 收敛到 0.437 ms，512 点共线拒绝从
+  38.257 ms 收敛到 0.112 ms。source guard `11/11` GREEN，完整证据见
+  [`performance/01/2026-08-24-animation-state-machine-pose-capability-current-source-algorithm-performance-review.md`](../../performance/01/2026-08-24-animation-state-machine-pose-capability-current-source-algorithm-performance-review.md)。
+  graph IR 的 blend/additive weight parameter 也已从残留 `Option<String>` 硬切为 dense
+  `Option<usize>`；plugin lowering 删除第二份参数 `BTreeMap` 与逐节点字符串查找，只保留 slot 容量收窄。
+  runtime barycentric/hull projection 也已移除 `f32::EPSILON` 尺度退化与 f32 cross overflow：极小/极大
+  triangle 均恢复 0.5/0.25/0.25 权重，常规坐标 probe 的 f64 中位额外成本为 1.822 ns/query；
+  per-instance previous-triangle hint 已由 `MachineInstanceKey` keyed、4,096-entry bounded instance cache 收口，稠密
+  state-slot hint 贯穿 entry/transition/time/event/pose 的真实 graph sampling；共享 compiled asset 保持不可变，
+  replacement reset 与 nested/layer instance 均已接线。hint 不进入 semantic event checkpoint：16-slot
+  deep-copy probe 在 128/512/4,096 active instances 的增量中位成本为 22.4/225.7/2,127.7 us，会抵消
+  warm-start 收益；source guard 明确封锁该回归。smooth trajectory standalone probe 相对 triangle-zero seed
+  改善约 14x--16.5x；source guard `11/11` 于 34.349 秒 GREEN。最新 managed Windows request
+  `9fd854d4743f49959bea70760f862d27` 在 Cargo 前因未登记共享产物
+  `E:/ZirconBuilds/mvp-resource-management-projects` 终态失败，未创建 job/test binary；插件 tests、
+  allocation/power/product frame evidence 仍 pending，当前只记
+  `source_implemented / static_and_algorithm_profile_green / managed_cargo_preflight_blocked`，不提升 M1。
+  后续 whole-module review 又定位到 compiled dense slot 之前仍反复执行字符串投影：普通 root sample 的
+  entry/time/event/pose 四个消费者会各自遍历 parameter name、查 `BTreeMap` 并分配引用 `Vec`。独立 release
+  probe 在 8/32/128/512 parameters 下把四次投影收敛为一次后，中位耗时从
+  2.0/11.9/76.0/363.2 us 降至 0.6/3.2/19.5/92.1 us（3.33x--3.94x）。生产修正计划已先写入
+  performance record：compiled asset 拥有不可变 layout identity，`MachineInstanceKey` bounded instance cache 缓存
+  owned dense row，nested/layer/transition/time/event/pose 贯穿同一 typed revision；纯 evaluator 只允许单次
+  临时投影，不保留旧 production map-projection 双轨。首版按 ECS player change tick 失效的实现已在产品路径
+  二次复核中否决：`active_state` 与参数共处同一 component，正常状态推进也会刷新该 tick，并且 scan request
+  仍克隆完整 parameter map，稳定帧会错误重建 dense row。instance
+  cache 同时拥有 layout identity、dense values 与 triangle hint，按 inactive entity/replacement/bounded eviction 退休；产品
+  pipeline 删除会克隆整张 parameter map 且携带未消费 graph/transitioned 字段的共享 evaluation DTO，改为仅含
+  active state/requested transition 的 plugin-private result。post harness（SHA-256
+  `a1509abd27755a60e2304b4d5d9d4ce2f2bd6901d71312725947fc82e04568ea`）在稳定 revision 的
+  8/32/128/512 parameters 下为 0.028/0.089/0.414/1.815 us median；每次 revision 变化并重建 row 为
+  0.590/3.168/20.082/104.743 us；旧 clone + 四投影为 2.742/16.957/144.017/491.103 us。
+  source guard `11/11` 于 35.192 秒 GREEN，但该结果只覆盖被否决首版的下游 cache 结构。后续已新增共享
+  `AnimationParameterSet`（`Arc<AnimationParameterMap>` + 独立 content revision + COW mutation），graph/state
+  ECS projection 各保留 per-entity runtime snapshot，frame request 与 graph cache 改为常量大小 clone；state
+  instance cache 仅按 content revision 与 compiled layout identity 重建。测量当前仍含 map equality 的实际
+  proxy 时，8/32/128/512 parameters 的稳定路径为 0.196/0.742/3.029/13.123 us median，旧 map clone + rebuild
+  为 1.632/7.806/39.771/182.368 us（8.33x--13.90x）；changed proxy + rebuild 为
+  1.790/7.845/40.918/178.129 us。当前 runtime proxy/source guards GREEN，但 graph/state player component 与
+  scene schema 尚未硬切：所需 `scene_asset.rs` 仍由 active MVP00 owner 占有；baseline epoch 443 的 transfer
+  preview request `b4e6860a973d4ad8a6435cbd5aa1fd37` 对当前 blob
+  `e3305645731840b122ee2b4f41636a74796ea2e1f27716482f89fd327654aa92` 返回
+  `source_owner_executable`。遗漏的 `scene/tests/support.rs` fixture 已按 fingerprint
+  `0f7a18551f898541e09aace5cc52d646065f43f0c94c98bfb2b5a77cdc064c7c` 转入本 session，未改写代码。
+  Frameworks01 不越权、不留兼容字段；完整 boundary batch 当前 `13/14`（37.219 秒），唯一失败即 component
+  owner hard-cut guard，故本项状态为 `parameter_proxy_implemented /
+  component_parameter_owner_hard_cut_red / managed_rust_compile_blocked`。managed job
+  `75f8a49cf9c34f3099a12150a5c34a4a` 仍先失败于 foreign interface edition-2024 let-chain；带固定
+  ZrVM commit 的 validation-copy `fc2edfe9091341289f62e2fef02b32a3` 又被已知 missing `skybox.rs`
+  closure bug 截断；该 Rust 动态验证阻塞仍未解除，不把 standalone ratio 当作 frame/power 验收，也不提升 M1；
+  同一 whole-module review 继续修正 2D BlendSpace hull-exit 定位：旧路径在 adjacency walk 已证明越界后仍全扫
+  `T` 个 triangles、再扫 `H` 个 hull edges，并丢弃 hint，连续越界输入每帧为 `O(T+H)`。对照 Unreal
+  `FBlendSpaceData::GetSamples2D` 后，runtime 现区分 inside/proven-hull-exit/abnormal-failure，无 hint 从中间
+  triangle 起步，正常越界直接走 prepared unique hull 并保留 boundary triangle；只有异常失败才全量 fallback。
+  含真实 adjacency walk 与连续 hint 的 F-drive release model 在 450/1,922/7,938/32,258 triangles 下把中位
+  3.9369/24.1178/67.0902/258.4417 us 收敛为 0.6364/1.7345/2.1968/5.2138 us（6.19x--49.57x）。
+  source guard GREEN，产品单元测试新增 rolling hinted walk 与 exhaustive 权重等价覆盖；managed Rust 执行仍
+  pending，不据此声称 frame/power/engine parity；
+  后续 eviction review 又确认旧 nominal-LRU 在 4,096 容量的每次 miss 都以 `min_by_key` 全扫实例表，连续
+  4,096 churn 的 realistic-key model 为 180.333 ms median。首版 `BTreeSet` exact-LRU 虽把 churn 降到
+  5.859 ms，却让 262,144 stable hits 从 36.201 ms 回退到 169.620 ms，已否决并删除。最终 production hard-cut
+  使用 `BTreeMap` + fixed-length second-chance `VecDeque`：hit 只置 reference bit，cold miss 旋转一次命中项后
+  淘汰 probationary key，inactive-entity/reset 同步收缩两结构，不保留全表最小值 fallback。final mixed model
+  的 4,096 churn 为 6.556 ms（27.51x），hit-only model 为 1.016x；source/unit guards 已锁定 clock invariant。
+  随后的 admission rollback review 又删除每帧按全部 active entities 过滤/深拷贝三张状态表的 checkpoint，
+  改为 evaluation 前空 journal、每个 `MachineInstanceKey` 首写时合并保存三表旧值、admission 后只恢复 deferred
+  journal keys。精确模拟三个 owner lookup 的 4,096-instance model 在 10%/100% writes、无 rollback 时为
+  7.70x/1.30x，50% deferred 时为 7.67x/1.27x；512-instance 的 100% writes + 50% deferred 单批中位为
+  0.887x，故不声明零回退。source guard 与 admitted/deferred/present/absent unit coverage 已加入，完整批次仍为
+  `13/14`，唯一 RED 是 foreign component parameter owner。以上仍是 F-drive 数据结构 probe，不声明
+  product frame、功耗或 reference-engine parity；随后 graph evaluation cache 的 whole-module review 又确认
+  旧 `VecDeque::iter().find` 对同 graph/skeleton 的 `E` 个不同参数集执行全内容比较，帧复杂度可达
+  `O(E^2 * P)`。现由 `AnimationParameterSet` 维护 process-local content fingerprint（signed zero 归一，命中后
+  仍完整 equality 防碰撞），per-frame cache 硬切为最多 256 项的
+  `BTreeMap<(graph, skeleton, fingerprint), entry>`，满额后停止 admission、帧边界整体清空，不保留旧线性/FIFO
+  路径。256 entries、8/32/128 parameters 的 post release model 把 lookup median 从
+  17.989/88.563/801.954 us 收敛为 0.0566/0.0553/0.0619 us（317.60x--12,952.70x）；实际变更时全量
+  fingerprint refresh 为 0.253/1.025/9.954 us median，仍是 `O(P)`。signed-zero/mutation/collision equality、
+  bounded admission、same-content reuse、distinct-content separation 与无 sequential scan 已有 unit/source guard；
+  完整 Scene/Animation boundary batch 为 `13/14`（39.653 秒），唯一 RED 仍是 foreign component parameter
+  owner；随后 compiled graph DAG review 确认 shared compiler 已生成 dependency-first order，但 plugin runtime
+  丢弃该顺序并递归按路径展开；20-layer/61-node diamond 会输出 1,048,576 个 clip contribution。runtime 现保留
+  compiled order，以 `Empty / One / Many(BTreeMap)` context accumulator 反向拓扑传播，删除 `collect_clips`，同一
+  clip/mask/additive context 只物化一次；Base/Additive、clip source slot、mask source slot 构成新版确定性输出顺序。
+  exact production-shaped post probe 在 25/37/49/61 nodes 下的 topology median 为
+  0.865/1.104/1.367/1.779 us，旧 recursive median 为 6.721/83.082/2,788.200/57,462.000 us，20-layer
+  ratio 为 32,300.17x，输出收敛到 1。diamond、nested mask/additive、source-slot order、4,096-depth contract tests
+  与无递归 source guard 已加入；独立 Rust 2021 exact-source typecheck/semantic smoke GREEN；fresh complete
+  boundary batch 为 `13/14`（41.615 秒），唯一 RED 仍是 foreign component parameter owner。Rust product 执行仍被
+  foreign current source 阻塞，故该项状态为 `source_implemented / static_and_isolated_profile_green /
+  managed_product_validation_blocked`，不据此声明产品帧耗、功耗、完整 pose program、引擎 parity 或 M1 验收；
+  随后的最终姿态 publication review 又确认旧 `Arc<BTreeMap<EntityId, AnimationPoseOutput>>` 在 partial
+  admission 时深拷贝全部 bone/name payload，并让 physics 清空重建、render extract 与 history 再各复制一次。
+  production 已硬切为 `AnimationPoseSnapshot` 外层快照 + `Arc<AnimationPoseOutput>` 密封行；partial update 只比较
+  supplied/removal identities，未变化批次零分配返回，变化批次复用未变 row handle 并把 exact delta 交给
+  `SkeletalPoseTargets`。旧 whole-map recording 与 owned render row 未保留兼容入口。64-bone exact post probe 在
+  4,096 entities 的 0%/1%/10% update 下把 publication median 从 61,729.0/83,535.9/82,914.0 us 收敛为
+  236.3/829.9/6,248.2 us（261.23x/100.66x/13.27x）；1% allocation bytes 从 50,298,128 降到
+  338,542。完整替换并非普遍胜出：512 entities median 为 0.92x，4,096 entities 虽为 1.08x 但增加
+  4,473 allocations/468,384 bytes，后续须由 instance-local dense pose page/arena 收口，禁止恢复旧深拥有 API。
+  二次实现复核又发现 `LevelSystem::record_animation_pose_snapshot` 在 pointer fast path 前对整张 pose map 做
+  semantic equality；production 已删除该兼容比较，以 sealed outer `Arc` identity 作为 publication identity。
+  4,096 entities × 64 bones 的独立 Level admission probe 把 same-outer median 从 17,114.562 us 收敛到
+  6.294 ns（2,719,186.84x）；该子路径数据不与 pipeline/physics 独立样本相加伪造 whole-frame ratio。
+  temporal history 的派生 pose equality 也已改为 entity/skeleton/handle identity；4,096 visible rows 的独立
+  post probe 从 13,492.200 us 收敛到 5.810 us（2,322.24x），保留检测可见 pose 集变化所需的 `O(V)`。
+  sealed-publication guard GREEN，fresh complete boundary batch 为 `14/15`（40.692 秒），唯一 RED 仍是 foreign
+  component parameter owner。managed request `8484973835bc46a2a5066129b6eac35b` 在 Cargo 前因 foreign unmanaged
+  `E:/ZirconBuilds/mvp-resource-management-projects` 终态失败；本项状态为 `source_implemented /
+  static_and_isolated_post_profile_green / managed_product_validation_blocked`，不声明 frame/power/parity 或 M1 验收；
+- camera-controller 已完成一项独立 declaration/behavior hard partition：input/settings/state/output DTO 保留在
+  `core/framework/camera_controller`，Free/Orbit/Pan 执行唯一 owner 硬切到 `input/camera_controller`；旧 controller
+  文件、旧 Framework 导出、consumer import 与 compatibility forwarding 均为 0。current guard `15/15` GREEN
+  （35.755 秒）；cancelled r10 留下的 7 个新增 owner blob 已按 current hash 通过 transfer fingerprint
+  `47c8d704901c0545ba2b3939d0668c49b5c02332c4b7fce4315e9401405afbcd` 原子接续到 r12，完整 21-path dirty
+  candidate 已租赁/attribution。算法复核发现 Orbit zoom 目前只消费 `delta.signum()`、不保留输入幅值；本次 owner
+  迁移不改写该产品语义，也不声称性能收益。后续修正前必须由 Input/Editor 产品路径记录真实 viewport wheel/gesture
+  delta 分布、交互回放和 controller update/frame-time 基线，再在 input implementation owner 内完成 TDD 与 profile
+  对比；当前状态为 `source_implemented / managed_validation_pending`，不提升 M1；
+- deterministic random 已完成第二项 physical partition：algorithm/key/state/service-state/receipt DTO
+  保留在 `core/framework/random`，BLAKE3 stream derivation、master-seed authority 与 PCG32 执行硬切到
+  `core/runtime/random`，未来分别随 `zr_contracts`/`zr_kernel` 迁移。旧 framework implementation 文件、
+  三处 implementation consumer 和兼容导出均为 0；implicit module-leaf alias mutation RED→GREEN 后 owner
+  guard `13/13` GREEN（新增 glob-import、renamed raw-selector、四类 implicit stream-copy mutation，及
+  master-seed service/accessor/私有 backing field 单一 authority 守卫）。后续正确性复核已用受检
+  `RandomSequenceId` 显式锁定 PCG32 的 63-bit stream space，
+  `reseed` 在 generation 终点改为 typed reject 且失败不改变 seed authority；完整 BLAKE3->PCG 初始状态向量与
+  12/12 exact-source Rust tests 已锁定；独立复核指出的逃逸均已以 mutation 与 rejection
+  draw accounting 收口；mutable `RandomStream` 与 master-seed `RandomService` 均已删除 `Clone/Copy`，
+  `CoreRuntimeInner` backing field 已私有化，`CoreHandle/CoreRuntime` 只返回 `&RandomService`，禁止
+  assignment/argument 隐式 state/authority duplication，也禁止 crate 内经 `Arc::get_mut` 直达 reseed。
+  owner guard 现扫描全部命中 `RandomService` 的产品 Rust 候选，拒绝任意其他模块新增 authority-returning
+  impl 或 `Clone/Copy`，拒绝 `type`/`use as` authority alias 源，并要求 Runtime、Handle、
+  `CoreRuntimeInner` 三个 owner 各且仅各有一个共享借用 accessor；split-file alias mutation 与最终独立
+  复核均已 GREEN（0 Critical / 0 Important / 0 Minor）。
+  `RandomState`/`RandomServiceState` snapshot/restore 只是显式状态重建，不是最终 fork policy；stable-key
+  admission/registry 仍归 Runtime22。camera-controller owner 15 + random contract/kernel 13 +
+  scene-animation boundary 11 的明确组合边界为 `39/39`（其中本轮 animation boundary `11/11` GREEN，
+  历史组合耗时 104.517 秒未重跑）；当前
+  可复现基线为 204 declaration-only、368 mixed、22 behavior-only；
+  2026-08-25 又以 transfer fingerprint
+  `ce98561b713ab6784d030145e8e9ad7d01731a4898eca55ad8417bbecbd0161c` 将 cancelled r10 留下的 10 个
+  未漂移 contract/kernel blob 原子转入 r12，preview/apply requests 分别为
+  `1102cbf209764560b1c72abde14cf91a` / `9b9931b9b0664362837f44c73b8cd044`，没有改写源码。
+  但 `core/runtime/handle/mod.rs` 仍属于 archived Runtime core lifecycle owner 且 current hash 已漂移，
+  `runtime.rs`/`core_runtime_state.rs` 又是 Random/Time/State/lifecycle mixed gateway；完成 scope rotation 或
+  exact transfer 与 managed Runtime 验证前，本项继续 `source_implemented / ownership_pending`；canonical
+  Runtime01 node `2493698` 见
+  [`open`](01/failure-2026-08-25-random-runtime-handle-gateway-ownership.md)，不提升 M1；
+- state kernel 后续结构/性能复核已达到
+  [`source_implemented / static_and_profile_validation_green / managed_cargo_foreign_blocked`](01/2026-08-25-m1-state-transition-retention-performance-review.md)：
+  current `Vec` 永久历史的 retained payload `O(N)` 与整段 query clone `O(N)` 已硬切为 singular latest event；
+  旧 plural API/产品 consumer/compatibility path 为 0，owner guard TDD RED 后 `6/6` GREEN（32.119 秒）。D 盘
+  production-source harness 在 1,000--1,000,000 次 transition 均只保留 40 B；1,000,000 次时 query median 从
+  pre-cut 45.498 ms 降为 34 ns，完整 registry transition 为 168.466 ms（约 168.5 ns/次）。Unreal/Bevy 的
+  bounded update-lifetime working-set 原则得到 current-source 对照支持；managed Cargo 与能耗仍 pending，
+  不声明产品帧耗时或功耗改善；
+- state managed validation 已把两个前置层逐项分离：`Cargo.lock` 经 D 盘 shadow workspace offline resolver
+  校正后与解析器输出逐字一致，SHA-256 为
+  `f8df4d979bd86eb91e58df1031a828a65ca2de43de64a5362ad166ccaa8023de`；随后 job
+  `673d51016b2d4679842de468abca4ec0` 越过 locked resolution，在生成 Runtime test target 前停止于
+  `zircon_runtime_interface/build.rs` 的 E0106。最低共享层已交由
+  `interface08-build-spec-lifetime-fix-r1-1b2684b4-20260825`，canonical handoff 为
+  [`Interface08 slot-list lifetime failure`](../../optimize/zircon_runtime_interface/08/failure-2026-08-25-interface-spec-slot-list-lifetime.md)。
+  当前签名已把返回 slice 只绑定到 InterfaceSpec value，scoped rustfmt/diff/handoff validation GREEN；真实
+  build script 的 D 盘 standalone `rustc --test` 为 5/5 GREEN（0.10 秒，测试 executable SHA-256
+  `e7a2fa792ed95d7b0d319b0186a3ca75c253c93529275113cfbd49b0ddcee0a4`）。首次
+  managed Interface acquire 因 foreign job `e6317bbbd76747258772c039543379f4` 持有兼容池而未创建新 job；
+  后续 request `d42bd1c1cb154b9a8b23d7a85c154df4` 精确对账为
+  `admission_checkpoint_stale` terminal failed，fresh retry 又被 running foreign Runtime job
+  `12c25c64e2a14bb0848aa24788755168` 的 compatible pool 拒绝，仍未创建 Interface08 Cargo job。
+  因此这里仍是 `managed_cargo_pending`，不把 Interface 修复或 state 行为记为已验收；
+- time product policy 已完成第三项 contract/kernel behavior partition：version/profile/budget/validation DTO
+保留在 `core/framework/time`，client/headless/editor/test preset selection 与 canonical BLAKE3 digest 唯一实现
+  硬切到 `core/runtime/time/product_policy.rs`。旧 inherent preset/digest API、framework BLAKE3 命中和生产
+  consumer 均为 0。2026-08-25 又将 `Time<T>` 的 `context_mut`/advance、virtual pause/resume、fixed debt
+  accumulation 和旧 batch `drain_steps` 全部收为 production crate-internal authority；产品源码 batch drain
+  caller 为 0，旧 drain 只在 crate test 配置存在。owner guard `6/6` GREEN（50.107 秒），精确 rustfmt/diff-check
+  GREEN。首张 Windows/D 盘 managed `core-min` job 在本切片编译前被 foreign Runtime Interface BuildSet
+  `String`/ABI-symbol bytes 表示漂移截断；其 owner 随后已继续改写该 blob。current-source 复验请求
+  `4d72209f4f49492ca8e5d5cf1ed7caac` 在 `cargo.acquire` accepted 后进入 coordinator post-response timeout，
+  没有可声称的 Cargo 终态，因此本项为 `source_implemented / managed_validation_pending`，不提升 M1；该切片
+  不改变 Runtime22 的 World-local fixed-step transaction 语义，也不在 managed profile 前声明性能或功耗结果；
+- 2026-08-25 fresh contract-partition audit 以当前 production source 重新分类 `core/framework`：667 files、
+  55,285 non-empty lines、3,842 function bodies，其中 226 declaration-only / 418 mixed / 23 behavior-only。
+  render 单域已有 244 files / 2,199 bodies / 176 mixed，animation 为 47 / 276 / 31，time 为 15 / 85 / 9；
+  因此不得把整个目录按名称搬入 `zr_contracts`。可复现 JSON 位于
+  `D:\zircon-frameworks01-r12-current-contract-partition.json`，SHA-256 为
+  `b17c3f28b52c7444c1bbef6dac3881563378f430c08983afe1b858d9ca87e937`，产物未写入 C 盘。
+  Time 深读确认 Runtime22 当前方向应保留：`RuntimeTimeAuthority` 只拥有 outer monotonic real input 与默认
+  policy，`WorldTimeController` 在 scene/Level owner 内拥有 virtual/fixed debt 和 proposal/begin/commit/abort，
+  contract 层只保留 immutable stamp/snapshot/policy/receipt 或维护自身不变量的只读值对象。Bevy 的公开
+  `Time<T>` mutator 是其 ECS resource owner 形态，不是把 mutation authority 下沉到纯 contracts 的依据；Unreal
+  `FApp` 的全局 time setters 已标注 delta-time refactor deprecation TODO，Godot 也把 process 与 physics process
+  分开。Zircon 后续物理硬切禁止为跨 crate 编译把 `advance`/pause/rate/debt/commit setter 扩为 public，禁止
+  hidden assembly re-export 或重复 core/world clock。
+  当前 `core/framework/time/domain/*`、`fixed_step_plan.rs`、`virtual_clock.rs`、`core/runtime/time.rs` 和 5 个
+  `scene/world_time/*` blob 仍为 `attribution_missing`；原 Runtime22 Session 已 stale，且其
+  `2026-08-24-fixed-step-transaction-architecture-and-performance-plan.md` 明确 managed validation/profiling pending。
+  ownership matrix requests `d335f1e81c87472e847802b1e704355d` / `bd54c2f4b75b41e2bad8085c5c82fc56`
+  固化该状态；audited scope 扩展 request `f08d0769014947af8928bb4d0b1b81aa` 终态拒绝且未改变 scope，
+  Frameworks01 不改写或冒领这些 blob。entry gate 是 Runtime22 原子 current-hash 归属、focused/upward managed
+  Cargo，以及其既定 0/1/8/capped steps、1/100/1000 systems 的锁等待/分配/CPU profile；取得前不开始该项代码
+  优化，不声明性能、功耗或整机帧耗时。
+- `zr_contracts -> zr_rhi` 是批准的独立低层 contract edge，只用于
+  `RenderNativeSurfaceTarget`/`UiSurface{Descriptor,Presenter}`；`zr_rhi` 不得反向依赖 `zr_contracts`，
+  App/Editor/plugins 仍只消费 Runtime curated facade。该边不授权把 `zr_rhi_wgpu`、`wgpu`、`naga`、
+  `glyphon` 或 graphics backend 实现带入 contracts；
 - 移动后同批修正所有 crate 内引用（`crate::core::…` → `zr_kernel::…` 等），不留旧路径别名。
 
 测试阶段：
@@ -228,7 +456,7 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 - fixed 已修复：[`core/contracts` 反向依赖上层域与 facade](01/fixed-2026-07-13-core-contract-reverse-dependencies.md)（修复责任：Frameworks05；禁止方向 current-source 引用已清零，编译与核心行为门已通过）
 - 产出记录：[`01/2026-07-13-m0-current-structure-and-dependency-baseline.md`](01/2026-07-13-m0-current-structure-and-dependency-baseline.md)
 - M1 DAG 前置记录：[`01/2026-07-17-m1-resource-error-owner-dag-prerequisite.md`](01/2026-07-17-m1-resource-error-owner-dag-prerequisite.md)（resource registry error owner hard-cut 已实现，locked Cargo 验收 pending）
-- M1 DAG 前置记录：[`01/2026-07-18-m1-runtime-diagnostics-facade-collector-hardcut.md`](01/2026-07-18-m1-runtime-diagnostics-facade-collector-hardcut.md)（manager-resolving diagnostics 已移出 core，静态门通过，Cargo 与 Shader06 foreign doc pending）
+- M1 DAG 前置记录：[`01/2026-07-18-m1-runtime-diagnostics-facade-collector-hardcut.md`](01/2026-07-18-m1-runtime-diagnostics-facade-collector-hardcut.md)（manager-resolving diagnostics 已移出 core；2026-08-25 current guard 又锁定 Framework `CoreError` consumer 为 0、folder-backed collector 仅由 Runtime 根私有挂载，focused 3/3 GREEN（92.448 秒）；Cargo 与 Shader06 foreign doc pending）
 - M1 DAG 前置记录：[`01/2026-07-18-m1-runtime-error-owner-dag-prerequisite.md`](01/2026-07-18-m1-runtime-error-owner-dag-prerequisite.md)（`CoreError/CoreResult` 已硬切到 runtime kernel owner，静态门通过，复审/Cargo pending）
 - M2 RHI/WGPU failure：[`01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md`](01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md)（2026-08-03 物理 `zr_rhi`/`zr_rhi_wgpu`、curated facade、测试 owner 与旧目录删除已实现；静态门 GREEN，managed Cargo/固定回传 pending，状态 `resolving`）
 - 2026-08-13 M1 math/resource 原子迁移合同已同步到本计划、`index.md` 与规范性
@@ -240,6 +468,165 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
   联集 470（production 259 / test-only 211），并明确 `zr_resource` 只是 Runtime 内部私有 build-unit，
   不复活旧顶层 `zircon_resource`。当前 R8 immutable scope 不含 manifests 与完整联集所有权，因此没有创建
   占位 crate、forwarding module 或兼容路径；物理硬切、验证与提交仍未开始。
+- 2026-08-24 M1 `zr_math` physical hard cut 已达到
+  [`source_implemented / focused_validation_green`](01/2026-08-24-m1-zr-math-physical-hard-cut.md)：
+  `zircon_runtime/crates/zr_math` 是唯一实现 owner，Runtime/Interface 仅保留批准的 curated projection，
+  旧 Interface 实现已删除。当前 14 个 crate Rust 文件共 1,306 行；locked production build、完整 lib
+  tests、math boundary 4/4 与退化 look-at RED→GREEN 均通过。`Transform::looking_at` 已按 Unreal/Bevy/Fyrox
+  参考收敛为确定、有限、正交的 fallback，严格 `try_looking_at` 仍拒绝非法输入。Runtime 产品 build
+  随后停止在 foreign `zr_rhi_wgpu`，所以 M1 未 accepted、未提交、未发送企微，也不声明性能或功耗结果。
+- 2026-08-25 shader invocation hard-cut 已完成
+  [`current-source preflight`](01/2026-08-25-m1-shader-invocation-binding-hard-cut-preflight.md) 与 RED fixture，
+  但仍未进入生产迁移：最新 12-file exact consumer transfer-preview request
+  `cefad0f7135c4078a8ba2216b55bdac9` / fingerprint
+  `2e030adee42a846134e0aaf7885da24bc5cf04867ffd9a13091c8550015629a1` 为 10 eligible / 2 blocked；
+  `core/framework/render/mod.rs` 仍由 active `mvp00-current-source-convergence-r2-01a00797-20260818` 持有，
+  `asset/assets/mod.rs` 仍由 resolving `text01-font-artifact-service-20260825` 持有，均返回
+  `source_owner_executable`。因此 4 个 shader owner guard 保持预期 RED；Frameworks01 不做部分迁移、
+  不建立 forwarding/compatibility owner，也不把该 RED 计为 current-source 回退。排除这 4 个预期 RED 后，
+  当前 Frameworks01 静态集合 59/59 GREEN（377.603 秒）；该结果不替代 Shader 生产迁移或 managed Cargo
+  验收，因此不提升 M1 状态。
+- 2026-08-25 baseline epoch 436 的 Shader contract-owner 复核确认，上述 2 个 mixed consumer 并不是
+  唯一准入条件：`core/framework/render/shader` 下 12 个 contract blob 仍为 `attribution_missing`，
+  `compute_dispatch.rs` current hash `5779f98dda52eac00bd9dbe9d9d1656ae5fb2cc0606f1c1085276d92856b62ce`
+  仍指向 archived Shader04 attribution 且 hash/baseline stale；render root current hash `b8b5908e...`、
+  asset root current hash `76003c49...` 继续分别由 MVP00/Text01 executable owner 持有。最新 hard-cut guard
+  在 18.391 秒内取得 2 passed / 4 expected failures。完整 contract/behavior、asset schema、graphics compiler、
+  mixed consumers、old-export 删除面与 product fixture 未形成同一 current-hash owner union 前，禁止开始
+  Shader ABI 半迁移；历史 12-file preview 不得复用，也不得用 re-export、type alias 或 wrapper 保持旧架构。
+- 2026-08-25 M1 state-transition retention 的最低层 InterfaceSpec E0106 已由 Interface08 完成并
+  [`fixed 回传`](01/fixed-2026-08-25-interface-spec-slot-list-lifetime.md)：真实 `build.rs` 定向测试 5/5 GREEN
+  （0.10 秒），Windows managed job `7f8adbb03fdf4616a9d6d887045c74a2` 的
+  `cargo build -p zircon_runtime_interface --locked` 在 D 盘 pool 用时 3 分 12 秒通过，原 Frameworks01 Runtime
+  gate 已越过该编译前沿。随后 Interface lib-test 在执行 filter 前被 9 条
+  foreign UI text-shape / Project GUID 测试源码错误阻断；managed job
+  `29a2e88837ab4890863b3b59ce7fd251` 的 Frameworks01 state build/test 则同时停止在
+  `project/manifest_summary/summary.rs` 的 transient `super::ProjectGuid` E0432。作业结束后 current 文件已改回
+  `crate::project::ProjectGuid`，SHA-256 为
+  `4302116d5634d08b1ec62156a281d1015b415e32562d9654fc8d328f60f15c4c`，但 Project 全域 ownership matrix 仍为
+  `attribution_missing`、无 owner、无 live lease。两张 job 均已 released 且 process tree 为空。Frameworks01
+  不吸收该 Project06 blob。其共享树在本次 job 后继续从 71 files / 100,823 bytes 漂移到 74 files /
+  112,187 bytes，再到 75 files / 123,232 bytes；最新 deterministic tree SHA-256 为
+  `e4c2c3da3b57c68d53f3f7ca04844c3f3b4b5ccb2641e6a7a46bec142799d12d`，最后写入为
+  `2026-08-25T13:49:57.2819771Z`。当前新增 `CanonicalDescriptorIdentity` 仍把裸 `PathBuf` 序列化为跨进程
+  identity 并把 physical filesystem resolution 前置条件交给 caller，`ProjectIdentity` 未拒绝未知字段，
+  `ProjectManifestSummary` 仍可通过 public fields 绕过 domain construction，compatibility product state 也未
+  收敛到计划要求的 Open/Copy/Migrate/Safe/Reject typed decisions；因此单个 import 修复不能把该 blob 提升为
+  可接受基线。Frameworks01 仅在 Project06 提供稳定、已归属且符合 wire/domain 边界的原子快照后重跑 state
+  gate；当前 state slice 仍是 `managed_cargo_foreign_blocked`，M1 不提升，也不声明产品编译、功耗或整机帧耗时。
+- 2026-08-24 `zr_resource` current-source admission 已由
+  [`preflight_complete`](01/2026-08-24-m1-zr-resource-current-source-preflight.md) 刷新：57 个 tracked Rust
+  文件、11,111 行、412,214 bytes、tree SHA-256
+  `c824c74936e8a533954de2017aed726269ac3df4edd01a18c6323cf0684b23c2`，因此 epoch-321 manifest 不得复用。
+  Runtime51/Runtime25 仍持有 mutation/I/O 输入，Runtime24 仍持有 Interface stable-UUID ABI 输入；当前 r9
+  scope 不含完整 Resource/consumer 原子联集，物理
+  hard cut 尚未启动。UI12 的 IBL E0432 已确认为旧/混合指纹：current facade 与 implementation 各保留唯一
+  public `core::resource::io::atomic_write`，runtime cache 与无配对 source 的 asset-derived 单文件 store 保持该
+  curated publication 入口；需要同时发布 source/derived 两文件的 staging 已消费 durable transaction，不迁移或
+  改写 Shader06 consumer。current 五个关键 blob SHA-256 为 façade
+  `8977312a56e9a4228c0534092c8e91882a56b449553596590a686d82b0d3bed8`、implementation
+  `0b192fe6bc73802bc7f83f3fb968d3d11313c0f25aa5b15c545811041bdc1746`、asset-derived
+  `a6b804ce5da2b69b4376d20c51633f5239ce859df4e5cde359db57c1300955cf`、runtime cache
+  `09a8bae2c523c6e5c9cce8591a49d48a97b796228078517c7ea4762f08420b18`、staging
+  `257c0499e5a8a81e42dbb6204463271719aacc56aa0ea2851533b637b48a3a77`。Windows managed editor production
+  build job `b8c230e7d5da41bd855c1b2d3fa82278` 于 19:00:23--19:00:52 执行约 29.6 秒并 release，进入
+  `zircon_runtime`/IBL 前被 unowned 新增 `zr_rhi/src/surface.rs` 的 2 条 E0499 截断；因此该 job 只否定旧行号
+  指纹，不作为三条 import 的 compile GREEN，也不把 foreign RHI 阻断归给 Shader06。
+  同一 current-source 复核发现后续无 owner 漂移新增的 `atomic_write_if_unchanged` 不是文件内容 CAS：compare
+  与 replace 之间可插入另一个 writer，而 Editor06 已把 `Replaced` 当成无外部冲突并更新 disk baseline。
+  `atomic_write_new` 的 Unix hard-link/Windows no-replace move 方向可保留，但仍缺 create-race test；conditional
+  save 必须由 DocumentToolkit normalized-path authority 与 Resource durability owner 联合硬切，不能用多读一次或
+  公开 transaction internals 伪装原子性。canonical node `2495781` 见
+  [`open / source_implemented / static_and_review_green / managed_rust_blocked`](01/failure-2026-08-25-resource-conditional-atomic-write-authority.md)；
+  r12 已通过 transfer request `3098bc07218c4d4cafd4495fac60ce75` 与
+  `b82da4b538994cea99e200c8670f8390` 收口 Resource、Editor caller 和
+  `DocumentToolkitRegistry` 精确 owner，删除 `atomic_write_if_unchanged`/`AtomicWriteCompare` 及全部
+  Runtime+Editor Rust 引用，不保留 compatibility；新 normalized physical-path authority 持有 lease 直到 durable
+  publication、disk baseline/digest 与 persisted revision 同步提交。首轮独立复核为 `C1/I2/M1`：animation save 与
+  UI asset undo/redo external effects 绕过 authority、可见 replace 后 durability-barrier failure 会留下错误 baseline、
+  save report 未公开 best-effort external-writer guarantee，且旧 wait test 未证明 Condvar admission。r12 通过 transfer
+  `7edcc10fa443472696e446c4b0ff620d` 扩展 exact owner 后已修正：所有 cooperating document writer 共用同一 normalized
+  path lease，publication outcome 区分 `NotPublished`/`PublishedNotDurable`/`SourceChanged`/durable best effort；
+  post-publication failure 更新 disk baseline 但不确认 persisted save token，`DocumentSaveReport` 显式公开
+  cooperating-writer serialization 与 external-conflict best-effort 保证。durable receipt 由 authority 私有铸造并由
+  `SaveCtx` 消费，caller 不能自证；pre-publication observation 以 missing/matching/different/unknown 四态保守归因，
+  same-content 或 unknown post-image 不会被误报为本次 durable publication。15 个 Editor authority tests、1 个
+  save-report guarantee test 与 Resource 双 staging create-only contention test 已写入；当前 18 个 attributed Rust blob
+  的 exact rustfmt/diff-check、production-writer 与 retired-API 扫描均 GREEN。新增 Frameworks01 current-source guard
+  的 TDD RED 精确暴露 2/7 缺口，最终 primary 为 `7/7` GREEN / 6.747 秒；独立 reviewer 复跑为 `7/7` GREEN /
+  6.263 秒，post-record 复核为 `7/7` GREEN / 8.826 秒；session
+  `frameworks01-interface08-lifetime-review-r1-20260825` 的最终结论为 `C0/I0/M0`，authority/guard
+  SHA-256 分别为 `78227abf4b98cc36cf419096d7729efee49bbf6448210b6f3054186a011ebc85` 与
+  `2d1055f530b11074280991fb37e16cef618a84288b0f15a52b800c99c4f197d8`。Windows managed job
+  `dc439b2ec8a14db6a0a1b4d2ea34fbfe` 仅使用 D 盘 ephemeral
+  target，于 16:45:57--17:11:00 UTC 运行后以 101 退出；共享 Runtime lib-test 图在执行测试前产生
+  416 errors / 1,517 warnings，覆盖 139 个 error-bearing Rust 文件，本轮 8 个 owned implementation 文件直接诊断为
+  0、执行测试数为 0。job 已 release 且进程树为空。随后 Editor managed job
+  `2d839ac9d78b4b56a829bb015784a36f` 仅使用 D 盘 target，于 21:24:24--21:32:51 UTC 运行后以 101
+  退出；它在共享 `zircon_runtime` dependency 编译阶段被 80 errors / 118 warnings 阻断，Editor test binary
+  未生成、执行测试数为 0。完整 stderr 有 81 个 error heading，对本轮 9 个 owned Rust path 的直接命中为 0；
+  journal/recovery visibility 与 Platform host/window-registry 等均为 foreign current-source failure。release request
+  `3269486b865e4c51ba8e4aa27c244c04` 确认进程树为空、job 为 `released` 且 D 盘 target cleanup 已排队；
+  随后的 production build job `af4dbe2fcadf47a0a1e9c660c1966c33` 复用 coordinator D 盘 compatibility pool，
+  06:36:02--06:40:42 Asia/Shanghai 在 shared `zircon_runtime` dependency 以 83 errors / 119 warnings 截断，未生成
+  `zircon_editor` 或 authority test binary，执行测试数为 0；error cluster 为 foreign animation compiler、render
+  visibility、Resource transaction journal/engine、ECS tick-policy、Platform host/window registry 与 material move
+  drift，未观察到本轮 3 个 Resource atomic-file facade 文件诊断。06:40:44 job 已 release 且进程树为空。
+  后续 isolated cargo-copy `b5a8fc35080148928c87fc59aaecf992` 在未提供 sibling descriptor 时按契约于
+  closure planning 拒绝；固定 immutable `zr_vm` commit `61b79becf64efdae8406385ba2c880620831b4b3`、mount
+  `zr_vm` 与 binding/sys roots 后，copy `79657cb067264d0dad6db28ab28dd9d6` 仍被 loaded daemon 扫描
+  unrelated dirty Runtime test，因其引用 worktree 已删、HEAD 仍一致存在的 `render/environment/skybox.rs` 而在
+  Cargo 前终止。这归入既有
+  [`Coordinator01 wrapped package closure failure`](../../zircon_tooling/session_coordinator/01/failure-2026-08-25-wrapped-cargo-package-closure-scope.md)。
+  full explicit copy `405fc4d9c26347b4bd5c936cc01b5650` 已以 21 overlay、input manifest
+  `350790704da044d45e689dc9d10331740d61ceb5a2c4dcc655fd84da9b303876` 和 external-source hash
+  `984a7062d9607791aa97e338032e547e00d658a81795a56973d7109a32c2c404` materialize，但显式 copy 不含
+  workspace `Cargo.toml`，run `c40f6af8ce574115b3cdad3500d22c5c` 只在 Cargo root discovery 以 101 退出，
+  编译/测试均为 0；不得用 foreign dirty workspace 路径扩容绕过。managed race matrix、profile、foreign
+  current-source compile closure 与 Coordinator01 forward fix/daemon load 完成前仍不提升。
+  normalized-identity 后续独立复核先后返回 `C0/I2/M2`、`C0/I3/M1` 与 `C0/I1/M2`，暴露 lossy
+  fallback key、错误折叠、raw recovery entry 绕过和 multi-path waiter 饥饿风险。当前已硬切为唯一
+  `ResolvedProjectPathIdentity` 有序契约；路径解析 fail-closed；artifact/import recovery 同时校验 canonical target
+  与 resolved raw parent + original leaf 的同一布局规则；meta authority 使用 ticketed conflict-aware waiter queue，
+  仍允许 disjoint waiter 并发。最终定向复核为 `C0/I0/M0` / `Ready`；architecture guard 为 `10/10` GREEN /
+  13.866 秒，exact rustfmt/diff 与 legacy helper/facade scan GREEN，production owners 均低于 800 物理行。
+  managed Rust 行为测试仍被 artifact audit `05a2ae944da84de8a8e3ab31f22b49b1` 的 9 份 foreign unmanaged
+  output 在 Cargo 前阻断，profile/power 与产品验收均 pending，因此状态为 `source_implemented /
+  static_and_review_green / managed_product_validation_blocked`，不提升 M1。
+  同日 `zr_contracts` 创建前置继续 source hard cut：state、random 与 time product-policy contract/kernel
+  分区后，共享 current `core/framework` 为 641 个 Rust 文件、71,953 行、2,664,501 bytes；按
+  `path<TAB>bytes<TAB>lines<TAB>file-sha256<LF>` 复算的 manifest SHA-256 为
+  `7d34b55b7eac23296cf81f7258ba63ae4d2c392e67820c34cd2b03ac7887ae3f`。结构化审计发现并移除仅有的
+  2 条合同到 kernel-error 反向边；`ConfigManagerError`/`LevelManagerError` 成为合同自有错误，runtime
+  implementation 显式映射，不保留 `CoreError` compatibility。边界守卫 TDD RED 精确 2 violations，当前
+  `3/3` GREEN。可复现 partition audit 为 `5/5` GREEN，state/random owner guards 为 `5/5` 与 `6/6`
+  GREEN；time policy 分区后的 production contracts 候选为 594 文件/51,925 行、3,553 个函数体/
+  2,514 个 public 函数体，分类 204/368/22；对应 D 盘 audit SHA-256 为
+  `b56335397cf752dc9e783686262d2bdd9647571165004ed824562c4700b0fb48`。Runtime55 仍拥有唯一 stale typed
+  assertion，已路由到
+  [`Runtime55 consumer handoff`](../../optimize/zircon_runtime/55/failure-2026-08-24-config-manager-domain-error-consumer.md)；
+  foreign RHI 与该 consumer 返回前不声明 Rust product GREEN、不开始 `zr_contracts` 物理 move。random 的
+  generation exhaustion 与 63-bit PCG sequence identity 已按
+  [`source_implemented / focused_validation_green`](01/2026-08-24-m1-random-contract-kernel-partition.md)
+  收口；BLAKE3 stream-creation 独立 release 预检已于 2026-08-27 完成：unique key derivation median
+  426.462 ns，相对 PCG seed init 2.559 ns 与 contiguous draw 1.657 ns 分别约 166.7x/257.4x，same-key
+  与 unique-key 同量级，未观察到可复用路径。Frameworks01 因此否决局部 hash 替换或隐藏 cache；权威
+  stream registry/reuse、replay 与 CPU/GPU parity 仍归 Runtime22 的结构性产品切片。本轮不把独立 harness
+  数据外推为产品帧耗、功耗或算法最优。2026-08-24 23:33:04 至 2026-08-25
+  00:08:34 的 Windows managed F 盘 ephemeral job `bffbcc35cb1e48fe98e46697df13bd81` 已编译通过
+  `zr_math`/`zircon_runtime_interface`/`zr_rhi`，build 与 random-filter lib test 均在进入 Runtime 前被 foreign
+  `zr_rhi_wgpu` 同一组 14 errors 截断；最低为 `production/device/context.rs:6` E0432 unresolved
+  `wgpu_device_features`。job exit 1 后由协调器删除 target，Frameworks01 未改写或接管 RHI blob，故仍不声明
+  Rust product GREEN。
+- 2026-08-24 open-failure re-audit：typed CoreError single-source guards GREEN 2/2；Scene/Animation
+  hard-cut guard GREEN 9/9，并锁定 neutral manager 不再暴露进程级 IK inbox。Plugins04 明确把 graph-local
+  IK 产品集成保持 reopened，Frameworks01 不恢复旧 queue。time product-policy split 后的 fresh Runtime 只读审计为
+  2,791 production references / 71 edges、`rhi -> rhi_wgpu = 0`，审计 SHA-256 为
+  `e069a73204d68e603152444a1cbf509315fee3b5e994a2cf426ad651220ffc1e`；`zr_rhi` tree 23 行且 backend 命中 0；
+  四个 diagnostics
+  compile blockers 原 hash 未变，canonical open handoff 已落到
+  [`Runtime90 fixing child`](../../optimize/zircon_runtime/90/failure-2026-08-24-rhi-wgpu-diagnostics-current-source-compile-blocker.md)。
+  三条 failure 均仍为 `open`，等待 exact Rust product GREEN、current immutable review 与 canonical return。
 
 ## Code Review 收敛 (2026-07-31)
 
@@ -308,9 +695,24 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
   测试仍未运行。可见末条错误为外部 Text blob `text/cache/rich_cache.rs:477` 的 `String`/`Arc<str>` 不匹配，
   同期 Runtime 源树共有 1,970 个 dirty path；本计划不把全局 current-source 编译失败冒充 focused 行为失败，也不
   越权修复外部模块。
-  高层 asset/scene profiling adapter、
-  current-source benchmark 与产品 trace 仍 pending；没有性能样本前不实施 heap merge、secondary index 或
-  continuation token 优化，也不声明瓶颈、功耗或跨引擎经验值已经达标。
+  2026-08-27 已在实现前重新审计全部 production consumer，并确认真正的当前读侧热点不是无生产调用者的
+  `page(offset, limit)`，而是 Editor asset workspace 对每个 asset 调用 `row_by_locator`；对照 Unreal
+  `FAssetRegistryState` 的同 owner secondary-index 规则后，采用 generation-owned 64-shard
+  `locator -> ResourceId` 索引，拒绝 Editor cache 与每次 mutation 全量复制的单 HashMap。Rust 1.94.1
+  D 盘 frozen release harness 的配对 rerun 显示，1k/10k/100k 单次 locator 查询中位数由
+  2,947.740/31,342.000/118,931.573 ns 降为 170.273/540.427/911.293 ns，即
+  17.31x/57.99x/130.51x；100k 普通 revision update 中位数改善 5.28%，但 add/remove、rename 与
+  locator-skewed rename 分别付出 21.70%、34.77%、10.71% 的 publication 成本。100k locator index
+  capacity/entry 为 1.1469，保守增量模型约 6.87 MiB；locator 字符串通过 `Arc<str>` 共享。实现只 clone
+  发生 membership 变化的 locator shards，并先完成全部 remove 再 insert，exact-source smoke 覆盖 10,000
+  records、swap、replacement、rename/remove、非派生 ID 与 shard/outer-Arc sharing 后 GREEN；独立复审
+  C0/I0/M0。详细输入、输出 hash 与决策见
+  `01/2026-08-27-m1-resource-management-current-source-read-profile.md`。这些仍是 isolated algorithm
+  数据，不是 Editor frame time 或功耗；managed Cargo、真实产品 trace、system power 与跨引擎经验值验证
+  仍 pending，offset pagination 因无 production consumer 保持不变。指定 Tooling job
+  `57769fdbe2394a6f9919dc66b5f81946` 当前已自然 `released` 且无 live PID；随后恢复的受管 Windows
+  `zircon_runtime core-min` check 在 Cargo 启动前被 foreign unmanaged artifact
+  `D:\ZirconBuilds\tooling15-wave163-runtime-20260827-135832` 拒绝，Frameworks01 不越权删除或接管该目录。
 - 2026-08-14 对 owner 周边 mutation path 的第二轮完整复核发现一个先于查询性能的 Critical 一致性问题：
   `ResourceRegistry::upsert` 遇到同 locator、不同 id 时只从 `by_id` 移除旧记录并覆盖 `id_by_locator`，而
   `ResourceAuthorityWriteGuard` 只把新记录发布到 management generation；旧 id 的 management row、summary、
@@ -531,3 +933,434 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
   `ImportedAsset` 的 31 个类型 match arms，`register_lazy_records` 仅有 project runtime 3 处，`store_payload` 仅有另一组
   31 个 ImportedAsset match arms。故 successor 必须把两组重复分派收敛为一次 erased `Arc<dyn ResourceData>` 转换，
   project sync 将 remove/lazy/ready 合入一个 batch；不得以调用面大为由保留旧 API。
+- 2026-08-27 M1 `ResourceManager::commit` ordered-staging 结构优化已达到
+  [`source_implemented / exact_rustc_and_profiles_green / independent_review_green /
+  managed_cargo_foreign_blocked`](01/2026-08-27-m1-resource-commit-ordering-preflight.md)：完整 owner/consumer 与
+  Unreal Asset Registry/Bevy event queue 复核确认旧实现用 `HashMap<ResourceId, StagedResource { order }>` 暂存，
+  apply 在 authority 写锁内再执行 `into_values().collect::<Vec<_>>() + sort_by_key` 重建 first-touch 顺序。新实现硬切为
+  `HashMap<ResourceId, usize> + Vec<StagedResource>` 单一顺序 authority，删除 `order`/`next_order`/排序，保持
+  prepared gate、rollback、generation、residency 与解锁后事件发布边界。首轮独立复核发现按 operation count
+  eager reserve 会使 repeated batch staged storage 退化为 `O(N)`；修复后 staged/ID/locator 初始容量统一限制为
+  `min(N, 64)`，实际空间为 `O(K + L)`。D 盘 exact isolation 为 focused `4/4`、完整
+  `112 passed / 0 failed / 3 ignored`；最终复核撤销了含 unstable sort/pre-sized receipt map 的 hybrid 基线，按
+  Git blob `bf7b8d69e` 重建后，真实旧容器结构模型在 32,768 distinct、1,000 distinct、
+  100,000/4,096 random 分别降低 88.51%、92.00%、79.68%，100,000/64 repeated 回归 7.69% 且仍在门内。真实 pre/post
+  commit-window allocation requested bytes 在 32,768 distinct、100,000/64、100,000/4,096 分别降低
+  27.13%、2.11%、22.94%，最大单次请求均约减半。同进程 12 对 AB/BA public timing 对高方差 10K/100K
+  case 明确记为 inconclusive；独立复核 `C0 / I0 / M0, Ready`，只确认没有 paired median 超过 15% 回归门，不声明产品级 speedup、功耗或整条
+  commit 已最优。managed job `433c40bf07154cbf9bc1d712f94dcf09` 仍停在 55 条 foreign current-source
+  errors，故不提升 M1、不提交、不发送企微。
+- 2026-08-27 M1 `ResourceManager::ready_records_for_kind` 已达到
+  [`implementation_complete / direct_projection_and_review_fixed_profile_green /
+  independent_review_green / managed_cargo_foreign_blocked`](01/2026-08-27-m1-resource-registry-export-snapshot-preflight.md)：
+  先复核 Resource authority、三份真实 consumer 与 Unreal Asset Registry/Bevy/Fyrox 查询策略，再用完整 API、锁
+  持有时间、writer collision 和分配计数拒绝只比较 stable/unstable sort 的旧微基准。实现以同一 authority 读锁
+  O(1) 克隆 COW registry 与 management generation 后立即解锁，并按已发布 N/K summary 自适应选择 registry
+  snapshot scan + sort 或现有 64-shard canonical-display locator/id ordered management scan；两条路径统一跨 scheme
+  顺序，旧 `ResourceScheme` enum-order 不作为兼容语义保留。未增加 persistent per-kind index、公开 snapshot API、
+  兼容分支或 mutation-time memory；scan 缺行/多行、registry id 缺失或 kind/locator/revision/state 漂移均回到完整
+  registry 真值，不返回半截结果。首轮独立 review 的 `C1/I2/M1 Not Ready` 精确发现排序、fallback、单 Barrier
+  writer 证据和历史 hash 保留问题；修复后 focused `10/10`、完整 `zr_resource` 投影
+  `120 passed / 0 failed / 2 ignored`，stdout 已保留到 D 盘。两轮 11-sample 复测暴露互相矛盾的 isolated regression，
+  第一轮 review profile 又因 comparator 不等价被撤销；最终两轮等价 31-sample/3-warmup release matrix 均过门，
+  canonical run 最差 median 为 +11.027%，100,000 全命中由 310.55 ms 降至 170.79 ms（-45.003%），所有 10,000+
+  workload 的 lock p95 至少降低 99.893%，writer-attempt handoff 下 writer-wait p95 由 362.89 ms 降至
+  66 us（-99.982%），100,000
+  全命中 requested/peak allocation 分别降低 58.79%/21.47%。证据只覆盖本机 CPU/锁/分配，不声明功耗或跨引擎
+  能耗等价；修复后独立复审为 `C0/I0/M0, Ready`。current-hash managed job
+  `03ec12d4aed34026a43ca913a6c901e8` 在进入本切片前仅被 foreign
+  `zircon_runtime_interface/src/runtime_api/session/editor_transform.rs:182` 的 E0599 截断：
+  `ZrByteSliceError` 未实现 `Display`；job exit 101 后已 release，Cargo 进程树为空且 D 盘 ephemeral target 已删除。
+  因此 managed Cargo 记为 foreign blocked，Frameworks01 不越权接管 interface owner，仍不提升 M1、不提交、
+  不发送企微。
+- 2026-08-27 M1 `ResourceManagementProjection::apply_delta` 已达到
+  [`three_authority_source_and_direct_profile_green / independent_review_green /
+  managed_cargo_current_hash_pending / milestone_not_accepted`](01/2026-08-27-m1-resource-management-projection-cow-page-plan.md)：
+  在完整 Resource authority、真实 runtime/editor/graphics consumer 与 Unreal Asset Registry/Bevy 参考复核及 D 盘
+  pre-profile 后，私有 64 个 ID-hash ordered-row shard + 64-way merge scan 已硬切为全局 canonical 256-row COW page、
+  1,024 个随机化 UUID ID shard 与 1,024 个 locator shard；首版 exact8 profile 揭示全局 `Sparse|Rebuild` 会把
+  summary/locator/ID 三个 authority 一起重建，4,096 mixed/remove/rename 分别回退 184.62%/107.57%/98.17%。
+  分阶段 profiler 定位 summary+locator 与 ID 全量重建占可拆分工作约 76%，随后硬切为 ordered storage、ID index、
+  locator index 三策略独立选择：summary 永远 delta，结构 merge 只排序 order-key 变化项，dense 同键页替换线性扫描，
+  sparse 页替换按页二分，ID/locator 各自按规模选择 COW 或 rebuild。最终 direct current-source 为行为 `11/11`、
+  mixed differential `24/24`；旧 shard/heap/固定 hasher/compatibility path 均无正向 consumer。
+  三轮 reconstructed-old/final median-of-medians 中，100k/64 spread time/bytes 改善 98.86%/88.57%，
+  100k/4,096 spread 改善 72.84%，100k 全量 revision 改善 25.54%，4,096 全量改善 35.76%，no-op +0.15%；
+  4,096 structural add/mixed/remove/rename 改善 73.57%/43.91%/44.46%/47.63%，均过既定 timing 门。
+  小规模 initial build 的固定 1,024-shard 成本为 0.34-0.48 ms，保留为后续 adaptive/empty-shard-sharing 项；
+  shared-machine round spread 为 22-174%，故不升级为功耗或跨引擎绝对值结论。
+  最终独立只读复核逐一匹配六份源码指纹并返回 `C0/I0/M0, Ready`：三类 authority、重复/交换/全删恢复、
+  结构 range merge、页上限与 `Arc` identity、delta summary、随机 hash authority 及 sparse/dense 门槛均未发现问题；
+  此 Ready 只允许进入受管验收，不等同于 managed Cargo 或里程碑 accepted。
+  优先 docs convention gate 在共享树仍为 1,352 条/372 文档 RED，但本父计划与 ResourceManagement 子计划均为 0 条；
+  `engine-code-review-findings-2026-06.md` 对三项 ResourceManagement 专属符号定向扫描为 0 命中，通用的大文件、
+  单 authority、复制热点与禁止兼容双轨要求已由本切片的结构和 profile 证据覆盖。
+  managed job `a576e52426bf4a7e9928b7ebc8093f7e` 自然运行约 36 分 54 秒后，在进入本切片编译前被 foreign
+  `zr_rhi_wgpu` 3 条 `u32 -> u64` E0308 阻断，已 release 且 D 盘 target 删除；又因 job 早于最终 exact-reserve
+  source，不冒充 current-hash 票。最终 real-interface/UUID harness 也没有 current-source rlib 票，必须等待
+  managed current-hash Cargo，因此不提升 M1、不提交、不发送企微；
+  `core::resource::io::{atomic_write, atomic_write_new}` 保持稳定 façade，未改写 IBL 或两份冻结 Editor blob。
+- 2026-08-28 `zr_resource` schema-3 已修正为显式 read-set/write-set 模型：779 个 atomic inputs、555 个 Rust
+  consumers 与 225 个 supplemental candidates 只作为封存读集；真实迁移图为 87 个 no-compat operations、
+  156 个写路径，write manifest 为 `12377714...`。旧 56 条 executable-owner 门禁是把 dirty read inputs
+  错当成 writes 的假阻塞；真实外域写路径只有根 `Cargo.toml`，已由 coordinator delayed patch 151 精确接线并
+  转移归属。108 个其余 eligible 路径完成原子 transfer，156 条租约零冲突。共享树随后应用确定性
+  `4ee6898d...` 补丁：155 个 emitted changes + 1 个 pre-applied root path，建立 71-file `zr_resource` 唯一实现，
+  删除 69 个旧实现路径，只保留 2 个 curated Runtime facades；旧 private-owner 引用为 0，
+  `core::resource::io::{atomic_write, atomic_write_new}` 继续服务 IBL。完整量化记录见
+  [`01/2026-08-24-m1-zr-resource-current-source-preflight.md`](01/2026-08-24-m1-zr-resource-current-source-preflight.md)。
+  非 Cargo 工具链与静态结构检查已绿；Windows managed `zr_resource` build 已绿，同一 current-hash test
+  binary 三次为 `150 passed / 0 failed / 3 ignored`，但 Cargo wrapper 两次只返回无 test stdout 的 exit 101，
+  故受管测试不冒充 GREEN。覆盖全部 156 路径/69 deletion tombstones 的验证票 `ccf45045...` 已排队且不轮询；
+  Runtime/App/Editor upward gates、integration review、M1 commit 与企微通知仍 pending，不把 source
+  implementation 冒充 milestone accepted。
+- 2026-08-28 M2 RHI/WGPU surface owner 复审确认一项 fail-closed 缺口并完成 source repair：公开可构造的
+  `SurfaceFrameLease` 此前在 deterministic/production present/discard 只按 frame id 终结，伪造 session、target、
+  default view 或 descriptor 可消费真实 acquired frame，production discard 还会在完整 lease 校验前取消真实 frame
+  的 Accepted tickets。两套 backend 现在保存并比较完整 lease identity，public discard 在任何 cancellation/
+  terminalization 前校验；session/device teardown 继续走私有 trusted frame-id owner。新增行为回归覆盖四类 forged
+  lease 并要求真实 frame 保持可用。精确 `rustfmt`/diff GREEN、source invariant `8/8`，四个 touched production/
+  test owner 为 769/483/586/434 行，均低于 800 行；434 行 owner 的本轮新增内容仅位于 `#[cfg(test)]`。二次源码复审还
+  发现 reconfigure/discard/destroy 原先逐 ticket 执行 `status -> cancel`，并发 flush 可在两次锁获取之间把
+  Accepted 推进到 Submitted。production surface lifecycle 已硬切到 submission owner 的单 `queue/state` 锁批量
+  `settle_abandoned_submissions`，并在锁释放后一次性投影 Cancelled diagnostics；旧逐 ticket 路径为 0。
+  独立首轮 review 为 `C0/I1/M0`，I1 是缺少真实批结算/并发行为回归。首版 mixed unknown、reserved + pending +
+  duplicate、diagnostic exactly-once 与单-ticket barrier race 虽有 5/5 票，第二轮仍为 `C0/I1/M1 Not Ready`：
+  单 ticket 无法检测批内 partial cancel、两种执行顺序没有确定性覆盖，且设备初始化可能静默跳过。最终测试硬切为
+  同批 4 个 committed-pending tickets，分别确定执行 settle-first/flush-first 后再做 16 轮竞争，任何 `1..3/4`
+  partial flush 立即失败；adapter/device 不可用改为 fail-fast，并接受合法 Submitted/Completed 回调。最终 source hash
+  `9c8bf87e5c2be96ff80f5e83dee324a3ff5988e365da9d3c0ed9d6436dd5719a` 的 managed job
+  `5cf107ed3fd4438183c0040f4945962d` / run `cb6d67c9e1944979b8705f1f9b07f691` 已终态
+  `5 passed / 0 failed / 389 filtered`，测试 14.75 秒、编译 1m24s、exit 0；第三轮独立 review 为
+  `C0/I0/M0 Ready`。fresh domain audit 为 3,258 refs / 72 edges，
+  `rhi→rhi_wgpu` 保持 0；docs convention 全局仍为 1,514 条/401 文档 RED，但本父计划、Failure 与新 preflight
+  为 0 条。完整架构/参考与验收状态见
+  [`01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md`](01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md)。
+  同次 review 识别 acquire/session teardown 的 `O(active_frames)` 扫描与 deterministic submission attachment 的
+  `O(active_frames * commands)` 候选瓶颈；已在
+  [`01/2026-08-28-rhi-wgpu-surface-session-index-preflight.md`](01/2026-08-28-rhi-wgpu-surface-session-index-preflight.md)
+  写入 Unreal/Bevy 约束、E 盘 pre-profile、WPR/WPA/power 与斜率门。没有 pre-profile 数据前不实现索引优化，
+  不声明耗时/功耗改善。focused managed `zr_rhi_wgpu` 与独立 review 已完成；Runtime/Editor upward gate、
+  真实窗口/PNG/RenderDoc/WPR、fixed return、M2 commit 与企微仍 pending，因此 M2 和计划 01 均不 accepted。
+- 2026-08-30 R7-C namespace-admission profile harness 已落到
+  `zr_resource/src/io/transaction/engine/tests/namespace_profile.rs`，覆盖 depth `2/16`、规模
+  `1/100/1,000/10,000` 与最少 `31` 个样本，并把 CPU/墙钟、MAD 与 metadata/alloc/RSS/power unavailable
+  明确输出到 D 盘 managed target。首个 current-source managed job `973eb8ed8f9044b39a5e15d361675b83`
+  以 exit `101` 暴露夹具错误：单路径样本不可能构成祖先/后代冲突，却被错误断言为 RED；生产
+  `reject_live_namespace_overlaps` 未被该失败证明有缺陷。夹具已修为 `path_count=1` 归入
+  `no_conflict`，`rustfmt +1.94.1 --check` 与 Frameworks01 resource static guard `15/15` GREEN；
+  当前修复哈希为 `8F0206FC41F8AC0FFE7036434E73186EA0B66D3C4FCA4EEB2A7BFD8B0070D8A3`；report 写入只增加
+  可审计输出，不改变生产校验算法，尚不声明 R7-C/R7-D、功耗或优化收益。
+- 2026-08-30 R7-C 修复夹具的 managed rerun 已登记为 job
+  `92f7f054159f411ca855aeb055e21f6c`，使用 D 盘隔离 target，开始于 `01:13:36`；截至 `03:20`
+  仍自然运行在 `last_ancestor_collision-16-10000`，测试进程 CPU 约 `5,900 s`，无 failure/error 输出，
+  进程树与临时输出目录均存活。该中间状态只证明深层大批量物理路径解析是 material-cost 候选，不能代替
+  16 组 `p50/p95/MAD` 样本；作业仍不得取消，R7-C/R7-D 与功耗结论继续保持 pending。
+- 上述 job 已于 `03:38:35` 以 exit `0` 完成并于 `03:38:45` release，但 validator wrapper 没有把测试
+  stdout 暴露到外部日志，故不把成功状态误记为量化证据。为保留可审计指标，profile 夹具仅增加了 D 盘
+  独立 report 文件写入（不改变 `validate_inputs` 或断言），同一 current source 的第二次 managed job
+  `2794501fb32743a794423b8bab0279d6` 于 `03:49:07` 启动，构建已 OK；该作业随后以 exit `0` 完成并产出
+  report，详见下一条完成记录。
+- 第二次 job 已于 `06:12:55` 以 exit `0` 完成并于 `06:13:10` release，进程树为空；D 盘 report
+  `zircon-namespace-profile-report-36316.txt` 共 16 行，SHA-256=`ECDC6C1E3D04EA41E79996C41D46406977C534F89285BEA44B970BE0F4BBB744`。
+  关键 current-source admission p50/p95（31 samples）为：depth=2 无冲突的 100/1,000/10,000
+  路径分别 `343.4165/379.7604 ms`、`3.5643/3.8088 s`、`38.1404/41.5826 s`；depth=16 无冲突
+  分别 `1.4248/1.9142 s`、`9.0043/17.5372 s`、`82.7582/86.0916 s`。depth=16 末项祖先冲突
+  的 100/1,000/10,000 路径分别为 `750.6735/831.3955 ms`、`7.8062/8.4091 s`、
+  `80.1322/84.0125 s`；MAD 同样已写入 report。测试仅测 admission wall-clock；metadata query、
+  allocations、RSS 与 power 由夹具按约定标记 `unavailable`，所以 R7-C 仍是 partial baseline，
+  不得提升为完整 WPR/ETW/RSS/I/O/功耗证据；后续 R7-D 仅允许在不改变这些合同的前提下做受限实现，
+  且必须补齐同条件复测后才能声明收益。
+- 2026-08-30 R7-D 受限切片已落到 `zr_resource::io::transaction::engine::validate_inputs`：对已解析的
+  `PathIdentity` 引用做 component-aware ordering，再做相邻 containment 检查，移除逐项物化全部
+  strict ancestor identity 及其重复 `PathBuf` 克隆。排序比较仍受路径深度 `D` 影响，重叠阶段
+  最坏为 `O(P log P * D + P * D)`、临时内存为 `O(P)` 引用；不改变 `O(P*D)` 的物理解析，也不
+  缓存 filesystem metadata；Windows 使用 UTF-16、大小写不敏感的
+  `CompareStringOrdinal` 组件序，非 Windows 保留 raw basename 语义。新增
+  `component_ordering_catches_interleaved_ancestor_targets` 回归测试；`rustfmt +1.94.1 --check`、
+  `git diff --check` 与 resource static guard `15/15` 通过。focused managed job
+  `ea010f901c064decab4956a8b3bb1063` 因宿主等待窗口结束而记录为 `orphaned/exit_code=null`，已由
+  request `85190d6bf37d4ce7a266896b2ce6c2a9 release`；第二次尝试因活动 job
+  `153344c01616403fa7732f0d1a03f43d` 占用兼容池而被 `cargo_reuse_pool_busy` 拒绝。故 R7-D 仍为
+  partial implementation，尚无 terminal Cargo ticket、paired profile 或任何性能/功耗收益结论。
+- 随后重试仍在 Cargo 启动前被协调器以 `cargo_reuse_pool_busy` 拒绝，当前持有者为 leased job
+  `8f1caadae3ac484d85b8c9b82a8b887b`（观测时无运行进程）；这是调度门禁而非测试结果，不再重复
+  占用同一兼容池。
+- 2026-08-30 R14 根据 R7-C wall-clock 证据完成路径解析结构复核：`PathIdentity` 缺失路径解析已从
+  根到叶逐组件探测改为叶到根寻找最近存在祖先，保留一次 canonicalize 与既有尾部规范化；新增
+  `split_at_deepest_existing_ancestor_scans_from_leaf` 回归，`pathing.rs` SHA-256=`E22FC4FF9A9D943B9F4A9834AD229EDCE2A0CD6D30AE5D18B9F254B85E127471`，Rustfmt/diff-check 通过。
+  focused managed Cargo 在 build 前仍被外部 `D:\ZirconBuilds\mvp-test-fixtures-36724` 的
+  `unmanaged_artifacts_detected` 阻断；先前 profile job `738d82371b2c41808724ae44dac61708` 因
+  超时后以 exit 137 终止，未产出报告。R14/R7-C 仍 pending，未声明性能或功耗收益。
+- 2026-08-30 R14 独立只读复核返回 `C0/I1/M0, Not Ready`：component ordering + adjacent
+  containment 的 R7-D 算法未发现漏判，但 leaf-to-root 初版依赖 `Path::file_name()`，会在未创建 tail
+  中的 `..` 上错误拒绝旧版可规范化的绝对路径。修复后先用 `Path::components()` 构造 probe path，
+  并在 filesystem probe 前显式剥离 trailing `ParentDir/CurDir`；这同时避免 Windows 把
+  `missing\..` 的 metadata probe 误判为一个已存在物理祖先。新增
+  `split_at_deepest_existing_ancestor_preserves_parent_components`，并把 commit/recovery 测试夹具改为
+  canonical Windows wire path，保留 recovery 的 `has_exact_operation_path_encoding` hard cut。
+  当前 `pathing.rs` SHA-256=`A1494DD1D9BB8D269A7CF0E4B550F2E069CB8D2F9251F9852720667B11BB6FDC`；
+  Frameworks01 resource static guards `20/20`、Rustfmt 与 diff-check 通过。
+- 本轮 managed `zr_resource --lib` 首次完整 job `f295a8ef81464f64af1a3c0b9be312da` 为
+  `188 passed / 2 failed / 4 ignored`：两处失败均由恢复测试夹具把非 verbatim `D:\...` 当成 normalized
+  physical wire path 引起，生产 recovery 正确 fail-closed；夹具 canonicalize 后第二次完整 job
+  `17022bc8a1d84629be775fd5e56a055a` 为 `190 passed / 1 failed / 4 ignored`，唯一失败是新增
+  ParentDir 回归暴露 Windows metadata 的 `missing\..` 规范化差异，随后已按上一条修复。最终 focused
+  rerun request `482b996bb963487f9f4642c114c335c8` 在 Cargo 启动前终态失败为
+  `cargo_cpu_lane_reserved`（reservation `531837a1b7fe442a8dfa057afbed4a4d`，foreign Session），不是测试
+  结果。第二次独立只读复核已对当前 `A1494D...B6FDC` blob 返回 `C0/I0/M0, Ready`，确认
+  ParentDir/CurDir、Windows prefix/root、symlink ancestor 与非 `NotFound` 错误语义未回退；因此 R14
+  仅剩相同 current-source managed terminal GREEN 才可进入集成候选。
+  当前没有 paired post-change profile、WPR/ETW metadata query、allocation/RSS 或 power 证据，继续禁止
+  声明 R7-D/R14 的实测耗时/功耗收益、瓶颈消失或最优规模。
+- 2026-08-31 R14/current-source Resource 行为门已由 coordinator-native 终态证据收口：最终
+  `pathing.rs` SHA-256=`EE5EADBD55DAFB10F098D1DB102C3CF1443BC7E8C6A29DC9964E43835C107AFD`；focused
+  parent-component job `6dacbed14ba7471b855d6d58e27e1a9b` 为 `1 passed / 0 failed / 194 filtered`，完整
+  job `bf4648ee2deb47efaba2dbb6ef22b000` 为 `191 passed / 0 failed / 4 ignored`，libtest 12.16 秒。
+  同一 current source 的 event-stream owner 已从 780 行内联混合文件机械拆为 615 行 production root 与
+  610 行 folder-backed tests，哈希分别为 `C34D625D...27D313`、`B3CD7783...63A02`；完整 managed job
+  `4bcc417333ec45039d835225e5c41448` / run `d6f1b5b6fdd645e0a8c76b4bbab4b424` 再次为
+  `191 passed / 0 failed / 4 ignored`，libtest 9.48 秒、exit 0。durable transaction test owner 又把三条
+  pre-active abort 测试移入既有 leaf，使 root/leaf 为 782/128 行，哈希为
+  `77DBA07F...1F17D` / `3F49B38D...410BD`；focused managed job
+  `6a9b7c043d7f4c089a24b1562c9930a3` / run `4b8741119d634c67aa91d59f85652196`
+  为 `4 passed / 0 failed / 191 filtered`，libtest 0.20 秒、exit 0。全 crate Rust owner 当前 0 个超过
+  800 行，Resource priority static guards 为 20/20 GREEN。两次 F 盘冷构建主要成本来自协调器 release 后删除
+  target 并重新物化索引/依赖，不作为引擎性能数据。以上只收口结构与 current-source 行为票；R7-C/R7-D 的
+  same-source paired profile、WPR/ETW allocation/RSS/I/O 与功耗仍 pending。
+- 2026-08-31 ResourceManagement 算法重审继续保留已验证的三 authority COW 结构，不做无 profile 的局部改写。
+  当前物理 owner 已在 hard cut 后漂移，旧 performance report 不能冒充 current-hash 票；后续必须用同一当前源码
+  复跑 release workload 与功耗观测，再判断 page/shard/threshold。Unreal Asset Registry 的独立 canonical asset
+  storage 加 package/path/class/tag accelerator、stable slot 与解锁后事件发布仍是本轮结构基准。既有旧/新对照中
+  100k/64 spread 改善 98.86%、100k/4096 spread 改善 72.84%、dense 100k 改善 25.54%，但这些数值只证明
+  当前三 authority 方向，不能证明 hard-cut 后当前 blob 的产品级收益或功耗等价。
+- 2026-08-31 Random checkpoint schema hard cut 由 Runtime22 Session
+  `root-runtime22-checkpoint-atomicity-20260829` 独占；Frameworks01 不编辑其 DTO、registry、service、restore、
+  replay 或 eviction owners。验收固定为 version-2-only：每条 stream 绑定 master-seed generation，constructor、
+  manual serde 与 restore fail-closed 拒绝 mismatch；checkpoint/evict_world/evict_entity 在唯一
+  `registry -> seed` 锁序下原子捕获 entries+generation；`evict_stream -> Option<RandomState>` 仅为不可独立恢复
+  的移除观测，除非统一硬切为 generation-bound checkpoint。root `Cargo.toml`、`Cargo.lock` 与 Runtime manifest 的
+  fresh preview `95c197de4b6c46e6a3a35663ed139da4` 仍只被 foreign executable owner 阻断；不得局部接线或先创建
+  disconnected `zr_kernel`。先完成 Runtime22 v2，再原子接线 `zr_contracts`，最后才 materialize `zr_kernel`。
+- 当前 M1 仍为 `source infrastructure materially advanced / milestone_not_accepted`：Runtime/App/Editor upward
+  product gate、ResourceManagement product trace/power、Random v2 + manifest integration、独立集成复审均未
+  完成。因此本轮不提交 coordinator milestone commit，也不发送企微；计划继续转向不依赖这些验收门的可落地基础设施。
+- 2026-08-31 Resource readiness graph 已先完成整体算法重审，未直接改生产代码。current DFS 的依赖顺序/重复项
+  不规范、原生栈深度、cycle synthetic `Loaded`、64-bit fingerprint 语义相等与 64-shard sparse clone 风险已写入
+  `frameworks/01/2026-08-31-m1-resource-readiness-graph-architecture-audit.md`；候选方向为 iterative、fail-closed
+  SCC + incremental work queue，但必须先由 current-source RED/profile 决策。第二轮 whole-module review 又确认
+  generation/dependency revision 的 `wrapping_add` 会破坏 cache identity 单调性，semantic stamp 必须保留 exact
+  canonical edge/child revision equality，hash 只能加速而不能决定 revision。Unreal `FDependsNode` 的显式
+  dependency/referencer + sorted state 与 `FEventLoadNode2` barrier/work queue 分层作为主要结构依据。test-only 基础设施已形成首版：生产 owner
+  由 432 行降至 357 行，新增 cycle/依赖规范化/10k deep-chain behavior RED，以及隔离子进程的 1k--100k release
+  profile（p50/p95/MAD、allocation count/bytes/peak、graph cardinality，报告根强制非 C 盘）。复审发现当前
+  `iter().cloned()` 在计时区内混入 registry-to-update 快照成本后，worker 已硬切为每个 topology 两个独立进程：
+  `manager_end_to_end` 保留输入快照成本，`evaluator_only` 在计时/allocator 前准备 owned updates；orchestration、
+  raw/summary CSV 与 metadata 均携带稳定 scope，schema 升为 v2。profile owner 637 行，SHA-256=
+  `2F020B4C...6EDBC9`，focused 静态契约 1/1、Rustfmt/whitespace GREEN，但两类 scope 均尚未执行，不存在性能样本。
+  Resource 静态边界 22/22 GREEN。两次受管执行中，首轮按 `--locked`
+  正确拒绝新增依赖，移除 `sha2` 后第二轮已越过 lock 与依赖编译，
+  但在 foreign Runtime Interface `ActivateLink { href } -> { link_target }` mixed-era bridge 处以 E0026/E0027 终止，
+  尚未编译/执行 `zr_resource`。因此 production readiness hard cut、性能/功耗结论和算法最优规模声明继续保持 blocked。
+- Open cross-plan Failure：RuntimeInterface03 已完成 `ActivateLink` generic host bridge 的 typed
+  current-source hard cut；ResourceManagement profile R3 已证明原 E0026/E0027 消失，但 managed interface
+  integration 仍未回传；见
+  [runtime-interface-ui-activate-link-field-mismatch](../../optimize/zircon_runtime_interface/03/failure-2026-08-31-runtime-interface-ui-activate-link-field-mismatch.md)。
+- 2026-08-31 ResourceManagement profile R3：managed job `28eb6b1ee6a649e79a8cac8c19dc5c21` / run
+  `071e0c99214e4abd965e52a0ebf9bfda` 以相同 release harness 越过 typed-link bridge，随后在 foreign
+  `zircon_runtime_interface/reflect/schema_catalog/admission.rs` 的两条 E0502 停止，仍未编译 `zr_resource`。
+  coordinator rollover 后以 `cargo_run_reconciled_from_orphaned_job` 终态回收，stderr SHA-256=
+  `8EBDBF17...45E0C4`，release request `823f601d...` 后 Cargo/rustc 为空。该 foreign source 随后已由 owner
+  改为 immutable alias validation、drop borrowed set、再 sort 的形态（current SHA-256=`18D866B7...B2BA7`），
+  但尚无 managed owner receipt；Frameworks01 未编辑/claim。当前仍无 latency/allocation/RSS/power 样本，
+  不启动 ResourceManagement 或 readiness production 算法改写。
+- 2026-08-31 ResourceManagement profile R4：managed job `84f3507f1dee480184e94f5cbaf9fdb2`
+  在 sccache 编译 Runtime Interface 依赖时，job-scoped
+  `scratch/<job>/temporary/sccacheFuHIFi/deps.d` 父路径已消失，rustc 以 OS error 3、Cargo 101、wrapper 1
+  终止；03:32:31 +08:00 已释放，Cargo/rustc 为空。该执行仍未进入 `zr_resource`，没有任何 profile 样本。
+  唯一 handoff 为
+  `frameworks/01/failure-2026-08-31-managed-cargo-sccache-temporary-path-lifecycle.md`，已路由给 active App08
+  runtime-artifact-reuse/compact-validation owner；Frameworks01 不修改 Tooling source，也不在修复回执前重复
+  Cargo。M1 继续为 `source infrastructure materially advanced / milestone_not_accepted`，不提交、不发企微。
+- 2026-08-31 ResourceManagement profile R5：App08 第一版回传虽设置 `SCCACHE_CLIENT_SIDE=1` 并报告
+  Pester 5/5，但 exact managed job `680c28eeb45f44ada781073ea28a3e50` 仍在进入 `zr_resource` 前失败。
+  coordinator receipt 明确 `reused_from_job_id=84f3507f...`；常驻 sccache PID 1660 继续尝试在已删除的 R4
+  `scratch/84f3507f.../temporary/sccacheY8m77e` 下创建服务端临时目录，Cargo 101、wrapper 1，无 profile
+  产物。该回传已拒绝，canonical Failure 保持 open；修复必须提供稳定的非 C 盘 daemon TEMP 或受控
+  health/rebind，并用真实 `--emit=dep-info,metadata,link` 请求复现/验证。M1 状态、禁止提交与禁止企微不变。
+- 2026-08-31 Resource lease identity I0：在验收基础设施阻塞期间继续完成非验收生产基础设施。整模块复核确认
+  wrapping residency token 与手工 `usize` ref-count 是同一错误生命周期 authority，已一起硬切为每个 payload
+  incarnation 独立的 `Arc<ResourceLeaseIdentity>`。lease Drop 把精确 identity 移入 manager，在 Resource write lock
+  内先消费该 owner，再以 slot sole-owner 判定最后释放；因此同时封闭 token 复用、count overflow、旧 lease 污染
+  直接替换/重注册 payload，以及两个并发 Drop 都误判非最后 owner。结构 RED/GREEN、rustfmt parse、diff check 已
+  通过，新增直接替换与并发最终释放回归；完整设计和 Unreal/Bevy 对照见
+  `frameworks/01/2026-08-31-m1-resource-identity-rollover-architecture-audit.md`。managed Cargo 仍由 open sccache
+  Failure 与共享 foreign compiler window 阻断，本 slice 仅 source-complete，未验收、未提交、不发企微。
+- 2026-08-31 ResourceManagement profile R6：App08 的稳定非 C 盘 sccache daemon TEMP、独立端口与
+  PID/start-time marker 已通过 exact origin 的真实 dep-info/metadata/link 验证。job
+  `96c7732d445d4596b5e86f662d8333ed` 已同时编译 Runtime Interface 与 `zr_resource`，未复现 deleted TEMP、
+  `deps.d` 或 OS error 3；基础设施根因按 origin 证据消失。该 run 随后在 Frameworks 自有 ignored readiness RED
+  构造上触发 E0382，已以“move 前保存 ResourceId”修复，当前 SHA-256=`F7A2E749...DE7282`、rustfmt/diff-check 与
+  attribution `423fe159...` 通过。下一次 exact acquire request `b2b1a4b0...` 因 RuntimeInterface03 FIFO
+  reservation 未创建 job；canonical Failure 继续 open 到相同命令实际产出两类 profile artifact。当前仍无
+  current-source latency/allocation/RSS/power 样本，M1 不验收、不提交、不发企微。
+- 2026-08-31 Resource event order I2 已完成代码前原子性预检，生产源保持不变。整模块复核确认当前
+  `next_sequence`/receiver cursor 的 `wrapping_add` 会复用事件顺序，mandatory
+  `oldest_available_sequence: u64` 无法表达终态，手工 `AtomicUsize publisher_count` 又形成第二生命周期
+  authority；同时 Resource authority 已提交后再做 fallible publish 会丢事件。锁定方案是在
+  `prepare_commit` 持有 `commit_serial` 时先导出 exact event batch 并做不推进游标的 private permit preflight，
+  空间不足则在任何 Resource mutation 前 typed reject；commit 释放 Resource write lock 后再不可失败地消费
+  permit。顺序硬切为 `Option<u64>`，允许 `u64::MAX` 恰好发布一次后进入 `SequenceExhausted`，Gap successor
+  同样为 `Option<u64>`；publisher 断开改由 `Arc/Weak` 生命周期投影，旧 raw publish、wrap 和 manual count
+  均不保留兼容入口。Unreal Asset Registry 的 write-lock 内聚合 `FEventContext`、解锁后 broadcast 是主要锁序
+  参考。完整协议和 RED/GREEN 矩阵见
+  `frameworks/01/2026-08-31-m1-resource-event-order-exhaustion-atomicity-preflight.md`。I2 仍为
+  `architecture_locked / production_not_started / current_profile_pending`，不据此提升 M1、提交或发送企微。
+- 2026-08-31 ResourceManagement profile R7 调度：App08 已把 R6 helper 的职责进一步收紧为“只有 sccache
+  daemon 初始化使用稳定 `cache/sccache-temporary`，Cargo/rustc/build scripts 继续使用
+  `scratch/<job>/temporary`”。线上又发现 `\\?\E:\...` 与 `E:\...` 被字符串比较误判，Python 与
+  validate-matrix 会交替无谓 rebind；已改为 Windows path identity 等价比较。Frameworks01 精确核对最新
+  helper/test SHA-256 为 `7D1EB4FE...F74D9` / `4798293A...2CC9`，旧哈希不再作为 return contract；owner
+  TDD 为旧实现 6/7、修正后 7/7，extended/display 正反向均复用。线上票
+  `8b0d0f42f3854ce28982fb3400d2583e` 为 passed，物化约 56 秒、Cargo/link 10.63 秒，42261 daemon PID
+  14596 全程不变且 `Restarted=false`。Frameworks01 artifact audit request
+  `0943b0b4b4e847029b52a894ae86a81b` 终态 `completed`、`unmanaged=[]`。相同
+  origin acquire 随后分别在创建 job 前让位于 RuntimeInterface02 reservation `FDDB9268...` 与 Runtime04
+  reservation `B6AA834B...`，后者已消费为 foreign leased job `98F39BA0...`。Frameworks01 未取消、消费或
+  绕过队首。最新 exact acquire request `16c82d55152a49f685c381263053016a` 又在创建 job 前终态失败为
+  `cargo_cpu_lane_reserved`，队首是 RuntimeEditor reservation `7551B566...`；当前不存在 R7 profile
+  job/artifact。canonical Failure、M1 未验收、禁止提交和禁止企微状态不变。
+- 2026-08-31 Resource generation identity I1 已完成 whole-consumer 代码重审和架构预检，未改生产源码。除
+  management/readiness 的 `wrapping_add` 外，复核确认 page/receipt、ProjectAsset 聚合、Render residency
+  ticket、shader/material/pipeline cache 与 Editor09 workspace 仍把 immutable `Arc` 身份降级为 `u64`；同时
+  management/readiness 两个 getter 分别加锁，paired Render 读取可能混合两个 commit era。锁定硬切为一次
+  Resource authority read lock 捕获 `ResourceProjectionSnapshot`，对 generation/row 发布 opaque Arc identity，
+  page/receipt 携带对象身份，ticket/cache key 停止 `Copy`/数值比较，missing 使用 `None` 而非 `0`。Unreal
+  Asset Registry 的锁内 exact context + 解锁后分发、shared handle lifetime 是主要参考；不采用 Bevy 可回收有限
+  generation。完整 source hash、owner matrix、RED/GREEN、复杂度和分层执行门见
+  `frameworks/01/2026-08-31-m1-resource-generation-object-identity-consumer-preflight.md`。Asset、Render、
+  resource-streamer 与 Editor09 当前没有一个可合法覆盖全 union 的 owner，Frameworks01 不吸收 mixed blob；
+  I1 状态为 `architecture_locked / production_not_started / current_source_profile_pending`，M1 仍不提交、不发企微。
+- 2026-08-31 durable I/O artifact identity I3 已完成整模块代码重审和代码前架构预检，未改生产源码。
+  `atomic_file` 与 durable transaction 的 `fetch_add` identity 都会回绕；transaction artifact 又只带
+  `{pid}-{sequence}`，不同 journal owner 指向同一 target 时，后发 owner 的
+  `remove_reserved_if_exists` 可能删除前者 artifact。锁定硬切为共享 checked nonzero sequence：
+  `u64::MAX` 只发放一次后进入 zero terminal exhaustion；transaction ID 增加 canonical journal-directory
+  的完整 BLAKE3 owner token，journal version 6 硬切 version 7，旧两段 ID/version 6 无兼容 reader。
+  `create_new`、WAL、owner lock、`PathIdentity` 与 fail-closed recovery 均保留；owner token 只做 namespace
+  partition，不替代路径身份或扩张为全局 target lock。Unreal GUID + no-replace 分层是主要参考，Godot
+  datetime/ticks suffix 只作较弱对照；当前本地 Bevy snapshot 未找到等价 durable multi-file journal，故不作
+  正面设计证据。完整 hash、文件名预算、复杂度、RED/GREEN、
+  profile 与 ownership gate 见
+  `frameworks/01/2026-08-31-m1-durable-io-artifact-identity-exhaustion-preflight.md`。I3 状态为
+  `architecture_locked / production_not_started / current_source_profile_pending`；M1 状态、禁止提交和禁止
+  企微不变。
+- 2026-08-31 Resource I/O false-capability hard cut：current-source 全联集确认公开
+  `ResourceIo` 被 private supertrait sealing，且 Runtime/Interface/Editor/Plugins 中实现与调用均为 0；配套
+  `ResourceIoError` 也只服务于该 dead trait。依据 no-placeholder 规则以及 Runtime25/160 的
+  `FILESYSTEM-P1-011`，已删除两个声明文件和 `zr_resource`/Runtime 四处 re-export，不保留 compatibility。
+  当前真正工作的 `io::{atomic_write, atomic_write_new}` 与 private durable transaction assembly 保持不变；
+  future filesystem/source/mount provider 必须在具有 local provider、typed error、queue/cancel/shutdown 和真实
+  Asset consumer 后以新契约发布。结构 TDD 为 RED 1 项、GREEN focused 1/1、full 8/8，产品 Rust 扫描
+  `ResourceIo*` 为 0。完整参考、hash 与限制见
+  `frameworks/01/2026-08-31-m1-resource-io-false-capability-hard-cut.md`。managed Cargo 仍待 FIFO exact profile，
+  M1 不验收、不提交、不发企微。
+- 2026-08-31 ResourceManagement profile R8/R9：首次 accepted acquire request `721ee523...` 只创建
+  未 start、无 command/run/process 的空 leased job `a7829ba0...`，已通过 exact release request
+  `7de2f504...` 回收。R8 job `9acd911f...` 真正编译到测试后暴露原记录命令遗漏 mandatory
+  `ZR_RESOURCE_MANAGEMENT_PROFILE_DIR`；E 盘 binary 直接复现 `profile.rs:188` panic。R9 把报告目录显式
+  绑定到 E 盘并保持 package/profile/filter/target 不变，job `f2f32800...` exit 0、release，42261 daemon
+  PID 14596 未重启，sccache lifecycle Failure 已 fixed。产物为 14 场景 × 31 samples + 3 warmups：raw
+  435 行 SHA-256 `8C8BB282...01230`、summary 15 行 `1244BF20...D05CD`、metadata 10 行
+  `F7CC3E2B...79A07`。关键基线：100k no-change 为 p50 51.1567 ms、0 allocation，单条 revision 为
+  p50 14.3 us，100k initial build 为 p50 420.7386 ms / 410,112 alloc / 46.86 MB requested，100k dense
+  revision 为 p50 284.2293 ms。后续 whole-call-graph 复核确认 `no_projected_change_100000` 是 profile 直接向
+  private `ResourceManagementProjection::apply_delta` 重放 100k 个相同 record 的防御路径；唯一 production caller
+  `manager/commit.rs` 已在调用前以 `before != record` 只传真实 delta。因此 51.1567 ms 只能量化错误重放完整
+  snapshot 的上界，不能证明当前引擎存在 no-change 全量扫描瓶颈，也不授权继续修改 page/shard/threshold。
+  sparse/dense/initial-build 数据仍是有效的 projection 算法基线；下一轮热点结论必须来自 transaction/commit 或
+  产品 trace。RSS/power unavailable，尚无能耗、engine parity 或额外瓶颈消失结论。I1 Resource support 可开始，但跨 Asset/Render/Editor
+  owner 仍须合法分层；M1 不验收、不提交、不发企微。
+- 2026-08-31 Resource generation identity I1 owned support 已完成 production hard cut：
+  management/readiness generation 与 row 以 retained `Arc` 对象身份作为正确性 authority，
+  `ResourceProjectionSnapshot` 在同一 authority lock 下捕获配对快照，page/receipt 不再把有限数字当身份；公开
+  `sequence()` / `dependency_revision()` 正确性入口与 wrapping identity 均已删除，诊断计数只允许饱和观察。
+  当前核心 hash 为 management `016E75CF...B24A5`、readiness `8441FC69...762D`、manager
+  `F63C6A7F...805DA`、receipt `2E1581E2...F27C4`。Frameworks static boundary 为 `14/14`；Asset、Render、
+  resource-streamer 与 Editor mixed consumer 仍按各自 owner 分层，不由 Frameworks01 吸收。I1 为
+  `resource_support_implemented / managed_validation_blocked / consumer_migrations_pending`，未验收。
+- 2026-08-31 Resource event order I2 已完成 production hard cut：顺序/cursor 改为 `Option<u64>` terminal，
+  `u64::MAX` 只发布一次；prepare 在 `commit_serial` 内生成 exact batch 并做不推进状态的 private permit admission，
+  空间不足在 Resource mutation 前 typed reject，commit 解锁 Resource authority 后不可失败地消费 permit；publisher
+  lifetime 由 `Arc/Weak` 替代手工 `AtomicUsize`。final sequence、terminal lag、三种 receive、event-free terminal
+  commit、dropped prepare、range rejection 与 final-publisher wakeup 均有 focused tests。核心 hash 为 event stream
+  `BDCC7D4E...1D1E6`、commit `E227C5B5...BE5A`、error `E9BE4161...6678`。Editor exhaustive consumer 已交给
+  legal Editor owner，Frameworks01 未改 mixed blob；I2 source-complete、未验收。
+- 2026-08-31 durable I/O artifact identity I3 已完成 production hard cut：共享 checked nonzero allocator 在
+  `u64::MAX` 后 typed terminal exhaustion；transaction ID 采用完整 canonical journal-owner BLAKE3 token + PID +
+  nonzero sequence；journal v6 硬切 v7，legacy/malformed/owner mismatch 在任何 artifact mutation 前拒绝。不同 journal
+  owner 不再能删除彼此的 staging/backup artifact，既有 create-new/WAL/owner-lock/PathIdentity 保持。新增 ignored
+  release profile 固定 1/16/256 writes、31 samples、3 warmups，真实计时完整 durable commit，输出 p50/p95/MAD、
+  allocation/requested-bytes/peak-live 与 source hashes 到显式非 C 盘；profile source hash
+  `8CB2A4EE...629DC`。当前仅 `14/14` static GREEN，profile 尚未运行，RSS/I/O counters/power unavailable。
+- 2026-08-31 I1-I3 首个合并 full managed job `8af64b6fdf4a4d928cc31fb92ea934ae` 于
+  `08:47:50` 开始、`08:53:16` 结束、`08:53:26` release，exit `1`；rustc 在编译 foreign
+  `zircon_runtime_interface/src/ui/dispatch/input/result.rs:116` 时 E0277，未到达 `zr_resource`。文件由
+  RuntimeInterface03 exact owner 持有，Frameworks01 未 claim/edit；canonical Failure
+  `frameworks/01/failure-2026-08-31-runtime-interface-input-route-clone-contract.md` 已由 request
+  `a3c5aecac4594a2aa2cfeabae44ea2ec` 完成 import 并路由。该 failure 只阻断 managed evidence，不回滚
+  production source；M1 仍不验收、不提交、不发企微。
+- 2026-08-31 I1-I3 current-source 验证续跑：RuntimeInterface03 已由其 exact owner 修复 Clone 契约，
+  `zr_resource` 现可独立到达。后台 managed job `a31f2a72cba34ced8b5dce40854359de` 首次暴露并收口 5 条
+  owned compile diagnostics：transaction-private journal frame visibility、current fallible locator fixture 与 redundant
+  mutable reborrow。后续 job `6486a2ea6b664b2ba0130ab61193090b` 的 production build 为 GREEN，并链接
+  lib-test binary SHA-256 `D22BC22C...BCAEE`；单线程执行 229 tests 得到 217 passed / 1 failed / 11 ignored，
+  I1/I2/I3 行为测试全部通过，唯一失败是 crate source guard 仍匹配旧两参数 `apply_staged` 文本。该 guard 已硬切到
+  `self.events.len()`，同时清理一条 test-only must-use warning。精确 full rerun 当前在 Cargo 前让位于 foreign FIFO
+  reservation `58f2405d88c346c786232b6a5bc956ab`，未创建 Frameworks job；因此 build GREEN 不外推为 full-suite
+  GREEN，I3 release profile、RSS/power、独立复核、milestone commit 与企微仍 pending。
+ - 2026-08-31 I2 blocking receiver 复核：更新 stale source guard 后，managed job
+  `8295343708a64b3c91a2bf7feda1c96e` 再次 production build GREEN，但 current libtest binary
+  `361E13E4...B9202` 卡在 `blocking_resource_event_receiver_wakes_when_the_last_publisher_is_dropped`。
+  持久化 direct output 定位到生命周期自死锁：receiver 在持 event-state mutex 时 `Weak::upgrade()`，竞态下临时
+  `Arc` 成为最后 owner，其析构进入 lifetime Drop 并重锁同一 mutex，Condvar notify 永远不可达。生产修复改为持锁
+  读取不提升所有权的 `Weak::strong_count() == 0`；last-owner Drop 仍在同一 state mutex 下 notify，保留无丢唤醒
+  握手。回归测试增加 1 秒结果通道上界，Frameworks static guard 禁止 locked upgrade；focused static `1/1`
+  GREEN。foreign job `42419d28...` 与随后 fmt job 已自然结束，`cargo/rustc=0`后完整 Frameworks
+  static boundary 复跑为 `14/14` GREEN（13.640 秒）。最新 managed-storage helper/test 精确 SHA-256 已
+  核对为 `7D1EB4FE...F74D9` / `4798293A...2CC9`，不再接受旧哈希；与 storage lifecycle 相关的
+  artifact-governance 定向审计 `4/4` GREEN（14.366 秒），42261 仍由 PID 14596 监听且未 rebind。
+  exact focused managed request 随后在创建 job 前被 `request_overloaded` 拒绝；协调器一度显示 Frameworks
+  successor leased job `b1f56fd4aad040119a839bcd90a8d072`，紧接着 daemon rollover 移除 runtime descriptor，
+  `tray-recovery.json` 为 `circuit_open=true`。Frameworks01 不重复物化、不绕过 governance、不自行重启；
+  focused/full Cargo、I3 profile 和独立复审仍 pending，当前仍不验收、不提交、不发企微。
+ - 2026-08-31 full rerun reconciliation：在 artifact audit `47003a24...` 返回 `unmanaged=[]` 后，重新
+   managed job `7111bf72605e4181ab5e46ab695228c6` 于 `12:01:40` 启动，build 于 3.05 秒完成，但
+   libtest 终态 exit `101`；该次没有保留 harness 失败行。同一最新 binary 在持久 E 盘日志中
+   单线程与默认并发各执行都得到 `218 passed / 0 failed / 11 ignored`（单线程 13.38 秒，5 次并发
+   2.30--4.12 秒），因此无法将 `7111bf...` 的 exit 101 归因于当前 I2 生产逻辑。
+   待 foreign Cargo 自然结束后必须按同一 current source 重跑 full managed 并收集 coordinator-native
+   test 终态；I3 profile、RSS/power、独立复审、milestone commit 与企微仍 pending，不提产品性能结论。
+- 2026-08-31 current-source Resource 行为门最终 GREEN：开启 `RUST_TEST_NOCAPTURE=1` 后，job
+  `338da8564d6d4a8eab23b2b73968c76d` 将 opaque Cargo 101 定位为 Windows parent-component 夹具与词法
+  authority 混用。生产 path resolver 现从平台原生 UTF-16/raw bytes 读取词法尾段，Win32 metadata 只判定物理
+  ancestor；回归夹具用 `OsString::push` 传入未被 `PathBuf::join` 预先折叠的 `missing/../asset.zmeta`。
+  `pathing.rs` SHA-256=`2AF0BAF1E6E5F5769E398D5537DFFB9850FA2CDFFA7A728E5DE4EA6626856445`。
+  focused managed job `8bdf433f83b9403ebfc590c70f9f9c4a` exit 0；新 binary 默认并发全量 5/5 次均为
+  `218 passed / 0 failed / 11 ignored`（1.77--2.84 秒）；full managed job
+  `e0005cfdfca4412db14497195d7a52cc` 的 build/test 均 GREEN、exit 0。artifact audit
+  `a52f5b4be1354507b81e488af0e46018` 为 `unmanaged=[]`，storage helper/test 仍精确为
+  `7D1EB4FE...F74D9` / `4798293A...2CC9`。I1-I3 行为正确性门已通过；I3 release profile 正等待 foreign
+  unmanaged structure-convention Cargo 自然结束，RSS/I/O counters/power、独立复审、milestone commit 与企微仍
+  pending，不声明瓶颈消失、引擎对标或功耗收益。
+- 2026-08-31 durable I/O release profile 已完成：foreign structure-convention Cargo 自然结束且
+  `cargo/rustc=0` 后，artifact audit `32286d5a17f54e368eca884f86cfdeb7` 返回 `unmanaged=[]`；Windows
+  managed job `04e2338eebc74091a4827eaedae49d98` 在 E 盘 target/report 上 `released / exit 0`。固定
+  1/16/256 writes、31 samples + 3 warmups、128 B/write 的完整 durable commit p50/p95 分别为
+  49.1682/74.8593 ms、269.5669/335.7085 ms、3594.3007/3996.5201 ms；对应 p50 吞吐为
+  20.34/59.35/71.22 writes/s。raw 93 samples SHA-256=`B78344E1...8D0C1`，summary
+  `BFB2A48D...C3EE9`，metadata `51A5CED6...90E1B`。256-write case 仍为约 362.10 allocations/write、
+  60,503.50 requested bytes/write，说明固定事务成本被批量摊销但 allocation 工作仍近似 O(W)；没有
+  before baseline 或 profiler 分解，不声称 hard cut 带来 speedup 或已定位下一结构优化。I3 当前为
+  `source_complete / managed_behavior_green / release_profile_green / independent_review_pending`；RSS、OS I/O
+  counters、功耗、引擎对标、独立复审、milestone commit 与企微仍 pending。

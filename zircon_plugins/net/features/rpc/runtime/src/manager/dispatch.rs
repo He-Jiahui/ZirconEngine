@@ -6,8 +6,8 @@ use zircon_runtime::core::framework::net::{
 };
 
 use super::{
-    NetRpcRuntimeManager, RpcHandler,
     state::{NetRpcRuntimeState, PendingRpcRequest, QueuedRpcInvocation},
+    NetRpcRuntimeManager, RpcHandler,
 };
 
 impl NetRpcRuntimeManager {
@@ -150,25 +150,24 @@ impl NetRpcRuntimeManager {
     pub fn expire_pending_requests(&self) -> Vec<RpcDispatchReport> {
         let now = Instant::now();
         let mut state = self.state.lock().expect("net RPC state mutex poisoned");
-        let expired = state
-            .pending_requests
-            .iter()
-            .filter_map(|(request, pending)| {
-                pending.invocation.timeout_ms.and_then(|timeout_ms| {
-                    (timeout_ms == 0
-                        || now.duration_since(pending.started_at).as_millis() > timeout_ms as u128)
-                        .then_some(*request)
-                })
-            })
-            .collect::<Vec<_>>();
-        expired
-            .into_iter()
-            .filter_map(|request| state.pending_requests.remove(&request))
-            .map(|pending| {
-                RpcDispatchReport::for_invocation(&pending.invocation, RpcDispatchStatus::TimedOut)
-                    .with_diagnostic("pending RPC request timed out")
-            })
-            .collect()
+        let mut expired_reports = Vec::new();
+        state.pending_requests.retain(|_, pending| {
+            let expired = pending.invocation.timeout_ms.is_some_and(|timeout_ms| {
+                timeout_ms == 0
+                    || now.duration_since(pending.started_at).as_millis() > timeout_ms as u128
+            });
+            if expired {
+                expired_reports.push(
+                    RpcDispatchReport::for_invocation(
+                        &pending.invocation,
+                        RpcDispatchStatus::TimedOut,
+                    )
+                    .with_diagnostic("pending RPC request timed out"),
+                );
+            }
+            !expired
+        });
+        expired_reports
     }
 
     fn validate_invocation(
@@ -339,6 +338,66 @@ impl NetRpcRuntimeManager {
     }
 }
 
+#[cfg(test)]
+mod expiration_sweep_tests {
+    use std::time::{Duration, Instant};
+
+    use zircon_runtime::core::framework::net::{
+        NetRequestId, RpcDirection, RpcDispatchStatus, RpcInvocationDescriptor,
+    };
+
+    use super::{NetRpcRuntimeManager, PendingRpcRequest};
+
+    #[test]
+    fn expiration_sweep_removes_only_timed_out_requests() {
+        let manager = NetRpcRuntimeManager::new();
+        let expired_request = NetRequestId::new(501);
+        let live_request = NetRequestId::new(502);
+        let now = Instant::now();
+        {
+            let mut state = manager.state.lock().expect("net RPC state mutex poisoned");
+            state.pending_requests.insert(
+                expired_request,
+                PendingRpcRequest {
+                    invocation: RpcInvocationDescriptor::new(
+                        "expiration.expired",
+                        RpcDirection::ServerToClient,
+                        Vec::new(),
+                    )
+                    .with_request(expired_request)
+                    .with_timeout_ms(1),
+                    started_at: now - Duration::from_millis(10),
+                },
+            );
+            state.pending_requests.insert(
+                live_request,
+                PendingRpcRequest {
+                    invocation: RpcInvocationDescriptor::new(
+                        "expiration.live",
+                        RpcDirection::ServerToClient,
+                        Vec::new(),
+                    )
+                    .with_request(live_request)
+                    .with_timeout_ms(60_000),
+                    started_at: now,
+                },
+            );
+        }
+
+        let reports = manager.expire_pending_requests();
+
+        assert_eq!(reports.len(), 1);
+        assert_eq!(reports[0].status, RpcDispatchStatus::TimedOut);
+        assert_eq!(reports[0].request, Some(expired_request));
+        assert_eq!(
+            reports[0].diagnostic.as_deref(),
+            Some("pending RPC request timed out")
+        );
+        assert!(manager.pending_request(expired_request).is_none());
+        assert!(manager.pending_request(live_request).is_some());
+    }
+}
+
 fn take_queued_invocations(
     queued: &mut std::collections::BinaryHeap<QueuedRpcInvocation>,
     max_invocations: usize,
@@ -361,7 +420,7 @@ mod priority_queue_tests {
         RpcDirection, RpcInvocationDescriptor, RpcPeerRole,
     };
 
-    use super::{QueuedRpcInvocation, take_queued_invocations};
+    use super::{take_queued_invocations, QueuedRpcInvocation};
 
     const RPC_QUEUE_BENCHMARK_DEPTH: usize = 100_000;
     const RPC_QUEUE_BENCHMARK_DRAIN: usize = 64;

@@ -4,10 +4,19 @@ use thiserror::Error;
 pub enum GatewayError {
     #[error("runtime gateway generation exhausted")]
     GenerationExhausted,
+    #[error(
+        "runtime gateway generation changed from {expected_generation} to {current_generation}"
+    )]
+    StaleGeneration {
+        expected_generation: u64,
+        current_generation: u64,
+    },
     #[error("runtime session is no longer available")]
     SessionLost,
     #[error("runtime access requires a serialized gateway operation")]
     RequiresSerializedAccess,
+    #[error("runtime viewport-surface transition is already in flight for viewport {viewport}")]
+    ViewportSurfaceTransitionInFlight { viewport: u64 },
     #[error("borrowed runtime world access cannot be re-entered from its callback")]
     ReentrantBorrowedWorldAccess,
     #[error("runtime gateway capability `{capability}` is unavailable")]

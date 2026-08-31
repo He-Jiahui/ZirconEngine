@@ -46,7 +46,7 @@ Keeping drag/drop in child modules isolates target-group sync and runtime `dispa
 
 ## Drawer Resize
 
-`app/workspace_docking/drawer_resize.rs` is the structural drawer resize entry. `drawer_resize/capture.rs` owns resize-region capture from shell pointer routes and starting preferred-size resolution from current workbench layout frames. `drawer_resize/movement.rs` owns transient preferred-size updates during drag, layout dirty marking, final runtime resize dispatch, and presentation invalidation when layout is otherwise clean.
+`app/workspace_docking/drawer_resize.rs` is the structural drawer resize entry. `drawer_resize/capture.rs` owns resize-region capture from shell pointer routes and starting preferred-size resolution from current workbench layout frames. `drawer_resize/movement.rs` owns transient preferred-size updates during drag, window-metrics invalidation that reuses the committed shell model/chrome stage, final runtime resize dispatch, and presentation invalidation when layout is otherwise clean. The final persisted resize command may still request a full layout recompute; transient pointer movement must not rebuild the Workbench model or chrome snapshot.
 
 Keeping drawer resize in child modules leaves size capture, shell-frame conversion, transient preference mutation, and resize dispatch policy separate from tab drag/drop routing.
 

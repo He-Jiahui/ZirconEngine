@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeModuleCompositionReceiptV1;
 use zircon_runtime_interface::world_sync::{
     InvalidationBatch, WatchRegistration, WatchToken, WorldQuery, WorldQueryResult,
 };
@@ -8,6 +9,7 @@ use zircon_runtime_interface::{
     ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeOperationHandle,
     ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
     ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportPickRequestV1, ZrRuntimeViewportPickResultV1, ZrRuntimeViewportPickTicket,
     ZrRuntimeViewportSizeV1,
 };
 
@@ -22,8 +24,16 @@ impl EditorRuntimeGateway for SessionGateway {
         self.capabilities.clone()
     }
 
+    fn module_composition_receipt(&self) -> Option<Arc<ZrRuntimeModuleCompositionReceiptV1>> {
+        self.module_composition_receipt.clone()
+    }
+
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         self.session
+    }
+
+    fn session_identity(&self) -> super::super::GatewaySessionIdentity {
+        self.identity.clone()
     }
 
     fn query_world(&self, query: WorldQuery) -> Result<WorldQueryResult, GatewayError> {
@@ -78,6 +88,27 @@ impl EditorRuntimeGateway for SessionGateway {
 
     fn submit_highlight_set(&self, set: EditorRuntimeHighlightSet) -> Result<(), GatewayError> {
         SessionGateway::submit_highlight_set(self, set)
+    }
+
+    fn request_viewport_pick(
+        &self,
+        request: ZrRuntimeViewportPickRequestV1,
+    ) -> Result<ZrRuntimeViewportPickTicket, GatewayError> {
+        SessionGateway::request_viewport_pick(self, request)
+    }
+
+    fn poll_viewport_pick(
+        &self,
+        ticket: ZrRuntimeViewportPickTicket,
+    ) -> Result<ZrRuntimeViewportPickResultV1, GatewayError> {
+        SessionGateway::poll_viewport_pick(self, ticket)
+    }
+
+    fn cancel_viewport_pick(
+        &self,
+        ticket: ZrRuntimeViewportPickTicket,
+    ) -> Result<(), GatewayError> {
+        SessionGateway::cancel_viewport_pick(self, ticket)
     }
 
     fn profile_control(

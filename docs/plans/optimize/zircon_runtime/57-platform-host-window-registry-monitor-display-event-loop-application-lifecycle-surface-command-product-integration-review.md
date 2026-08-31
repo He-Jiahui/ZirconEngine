@@ -23,12 +23,12 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
-  - zircon_runtime_interface/src/runtime_api/events.rs
-  - zircon_runtime_interface/src/runtime_api/host_requests.rs
-  - zircon_runtime_interface/src/runtime_api/session.rs
-  - zircon_runtime_interface/src/runtime_api/viewport.rs
+  - zircon_runtime_interface/src/runtime_api/session/events.rs
+  - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/session/session.rs
+  - zircon_runtime_interface/src/runtime_api/session/viewport.rs
   - zircon_app/src/entry/runtime_entry_app
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs

@@ -1,4 +1,5 @@
-use crate::ui::template::{UiTemplateInstance, UiTemplateLoader, UiTemplateSurfaceBuilder};
+use super::template::compiled_instance_from_toml;
+use crate::ui::template::UiTemplateSurfaceBuilder;
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
@@ -25,7 +26,7 @@ use zircon_runtime_interface::ui::{
         UiHitTestQuery, UiNavigationEventKind, UiPointerButton, UiPointerEventKind,
         UiVirtualPointerPosition,
     },
-    template::UiBindingRef,
+    template::{UiBindingRef, UiTemplateNode},
     tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
 };
 
@@ -50,8 +51,12 @@ fn pointer_hot_path_reuses_hit_routes_and_skips_empty_handler_contexts() {
     let dispatcher_source = include_str!("../dispatch/pointer/dispatcher.rs");
 
     assert!(
-        routing_source.contains("hit.path.bubble_route.clone()"),
-        "top-hit pointer routing should reuse the bubble route cached by hit testing"
+        routing_source.contains("UiPointerRoutingPath::HitPath"),
+        "top-hit pointer routing should reuse the canonical hit path"
+    );
+    assert!(
+        !routing_source.contains("hit.path.bubble_route.clone()"),
+        "top-hit pointer routing must not copy the hit path"
     );
     assert!(
         dispatcher_source.contains("if self.handlers.is_empty() && self.phase_handlers.is_empty()"),
@@ -87,12 +92,27 @@ fn button_surface() -> UiSurface {
 }
 
 fn bound_button_surface(bindings: Vec<UiBindingRef>) -> UiSurface {
-    button_surface_with_metadata(Some(UiTemplateNodeMetadata {
+    let program_root = UiTemplateNode {
+        component: Some("Root".to_string()),
+        children: vec![UiTemplateNode {
+            component: Some("MaterialButton".to_string()),
+            control_id: Some("MaterialButton".to_string()),
+            bindings: bindings.clone(),
+            ..UiTemplateNode::default()
+        }],
+        ..UiTemplateNode::default()
+    };
+    let mut surface = button_surface_with_metadata(Some(UiTemplateNodeMetadata {
         component: "MaterialButton".to_string(),
         control_id: Some("MaterialButton".to_string()),
         bindings,
         ..Default::default()
-    }))
+    }));
+    surface.install_compiled_binding_program(
+        crate::ui::template::compile_binding_program(&program_root, "runtime.ui.events")
+            .expect("test binding program should compile"),
+    );
+    surface
 }
 
 fn two_button_surface(
@@ -294,8 +314,10 @@ fn editable_attr_usize(surface: &UiSurface, key: &str) -> usize {
 
 fn binding(id: &str, event: UiEventKind) -> UiBindingRef {
     UiBindingRef {
+        component_event: super::typed_component_event_kind_for_test(id),
         id: id.to_string(),
         event,
+        mode: Default::default(),
         route: Some(id.replace('/', ".")),
         action: None,
         targets: Vec::new(),
@@ -303,14 +325,12 @@ fn binding(id: &str, event: UiEventKind) -> UiBindingRef {
 }
 
 fn template_surface_from_root_toml(root: String) -> UiSurface {
-    let document =
-        UiTemplateLoader::load_toml_str(&format!("version = 1\n\n[root]\n{root}")).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(&format!("version = 1\n\n[root]\n{root}"));
     UiTemplateSurfaceBuilder::build_surface(UiTreeId::new("runtime.ui.events"), &instance).unwrap()
 }
 
 fn root_with_inline_node(node: &str) -> String {
-    format!("template = \"Root\"\n\n[components.Root]\nroot = {node}")
+    node.to_string()
 }
 
 fn input_metadata() -> UiInputEventMetadata {

@@ -70,7 +70,7 @@ pub(super) fn assert_ecs_frame_diagnostic_aggregation(sources: &HotspotInventory
                     .query_many_iter
                     .contains(required_ecs_frame_diagnostic_anchor)
                 || sources
-                    .query_state_root
+                    .query_state_state
                     .contains(required_ecs_frame_diagnostic_anchor)
                 || sources
                     .query_state_cache

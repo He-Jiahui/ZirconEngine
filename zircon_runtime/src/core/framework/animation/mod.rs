@@ -3,20 +3,21 @@
 pub mod asset;
 mod avatar_mask;
 mod clip_event_sampling;
+pub mod compiler;
 mod error;
 mod event;
 mod gpu_skinning;
 mod graph_blend_mode;
 mod graph_clip_instance;
 mod graph_evaluation;
-mod ik_command;
-mod ik_command_error;
 mod manager;
 mod parameter_map;
+mod parameter_set;
 mod parameter_value;
 mod playback_settings;
 mod pose_bone;
 mod pose_output;
+mod pose_snapshot;
 mod pose_source;
 mod runtime_status;
 mod sequence_apply_report;
@@ -53,14 +54,16 @@ pub use gpu_skinning::{AnimationGpuSkinningReadiness, AnimationSkinningBackend};
 pub use graph_blend_mode::AnimationGraphBlendMode;
 pub use graph_clip_instance::AnimationGraphClipInstance;
 pub use graph_evaluation::AnimationGraphEvaluation;
-pub use ik_command::{AnimationIkCommand, AnimationLookAtCommand, AnimationTwoBoneIkCommand};
-pub use ik_command_error::AnimationIkCommandError;
 pub use manager::AnimationManager;
 pub use parameter_map::AnimationParameterMap;
+pub use parameter_set::{
+    AnimationParameterContentFingerprint, AnimationParameterRevision, AnimationParameterSet,
+};
 pub use parameter_value::AnimationParameterValue;
 pub use playback_settings::AnimationPlaybackSettings;
 pub use pose_bone::AnimationPoseBone;
 pub use pose_output::AnimationPoseOutput;
+pub use pose_snapshot::{AnimationPoseHandle, AnimationPoseMap, AnimationPoseSnapshot};
 pub use pose_source::AnimationPoseSource;
 pub use runtime_status::{
     AnimationPlayerKind, AnimationPlayerRuntimeState, AnimationPlayerRuntimeStatus,

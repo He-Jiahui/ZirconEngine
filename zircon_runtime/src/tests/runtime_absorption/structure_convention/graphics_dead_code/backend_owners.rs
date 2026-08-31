@@ -108,17 +108,18 @@ fn runtime_15_render_backend_state_owner_cleanup() {
         "RenderBackend state owners should be live ownership contracts, not dead-code suppressions"
     );
     assert_contains_all(
-        "render backend retained state owner contract",
+        "render backend generation owner contract",
         &render_backend,
         &[
-            "pub(crate) const RETAINED_STATE_OWNER_COUNT: usize = 3;",
-            "pub(crate) fn retained_state_owner_count(&self) -> usize",
-            "&self.instance",
-            "&self.adapter",
-            "&self.config",
-            "self.retained_state_owner_count()",
-            "RenderBackend must retain instance, adapter, and config owners while reporting caps",
+            "pub(crate) render_device: Arc<WgpuRenderDevice>",
+            "pub(crate) fn device_profile(&self) -> &RenderDeviceProfile",
+            "self.render_device.caps().clone()",
+            "self.render_device.ui_surface_context()",
         ],
+    );
+    assert!(
+        !render_backend.contains("pub(crate) instance: wgpu::Instance"),
+        "the one-shot WGPU context must consume Instance instead of cloning it into RenderBackend"
     );
 
     for (label, source) in [

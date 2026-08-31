@@ -59,21 +59,28 @@ mod reflection {
                 actual: value.type_name().to_string(),
             });
         };
-        let next = match value.trim().to_ascii_lowercase().as_str() {
-            "dynamic" => Mobility::Dynamic,
-            "static" => Mobility::Static,
-            _ => {
-                return Err(ReflectError::UnsupportedConversion {
-                    source: value,
-                    target: "Mobility".to_string(),
-                })
-            }
+        let Some(next) = parse_mobility(&value) else {
+            return Err(ReflectError::UnsupportedConversion {
+                source: value,
+                target: "Mobility".to_string(),
+            });
         };
         if *current == next {
             return Ok(false);
         }
         *current = next;
         Ok(true)
+    }
+
+    pub(super) fn parse_mobility(value: &str) -> Option<Mobility> {
+        let value = value.trim();
+        if value.eq_ignore_ascii_case("dynamic") {
+            Some(Mobility::Dynamic)
+        } else if value.eq_ignore_ascii_case("static") {
+            Some(Mobility::Static)
+        } else {
+            None
+        }
     }
 }
 
@@ -82,3 +89,7 @@ impl Default for Mobility {
         Self::Dynamic
     }
 }
+
+#[cfg(test)]
+#[path = "mobility/borrowed_parse_tests.rs"]
+mod borrowed_parse_tests;

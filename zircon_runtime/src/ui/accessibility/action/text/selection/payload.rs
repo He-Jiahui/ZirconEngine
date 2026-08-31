@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::accessibility::{
     UiAccessibilityActionRequest, UiAccessibilityNode,
 };
 
-use super::super::super::text_state::clamp_text_boundary;
+use crate::ui::text::clamp_grapheme_boundary;
 
 pub(super) const MISSING_TEXT_SELECTION_CODE: &str = "missing_text_selection";
 pub(super) const MISSING_TEXT_SELECTION_REASON: &str =
@@ -21,8 +21,8 @@ pub(super) fn set_text_selection_payload(
     let selection = request.text_selection.as_ref()?;
     let text = snapshot_node.state.value.as_deref().unwrap_or_default();
     Some(SetTextSelectionPayload {
-        caret: clamp_text_boundary(text, selection.caret),
-        anchor: clamp_text_boundary(text, selection.anchor),
-        focus: clamp_text_boundary(text, selection.focus),
+        caret: clamp_grapheme_boundary(text, selection.caret),
+        anchor: clamp_grapheme_boundary(text, selection.anchor),
+        focus: clamp_grapheme_boundary(text, selection.focus),
     })
 }

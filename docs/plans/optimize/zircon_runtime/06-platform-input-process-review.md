@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime/src/core/framework/input
   - zircon_runtime/src/core/framework/window
   - zircon_app/src/entry/runtime_entry_app
-  - zircon_runtime_interface/src/runtime_api/events.rs
+  - zircon_runtime_interface/src/runtime_api/session/events.rs
   - zircon_editor/src/core/process.rs
   - zircon_editor/src/core/play/process_backend
   - zircon_editor/src/ui/host/export_cargo_process.rs

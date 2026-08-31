@@ -57,21 +57,15 @@ impl World {
             let render_layer_mask = self
                 .render_layer_mask(entity)
                 .unwrap_or(default_render_layer_mask());
-            let mut entity_sprites = Vec::new();
-            let mut entity_gpu_bounds = Vec::new();
+            let sprite_start = sprites.len();
+            let mut entity_gpu_bounds: [Option<RenderParticleBoundsSnapshot>;
+                PARTICLE_COMPONENT_IDS.len()] = std::array::from_fn(|_| None);
             let mut has_gpu_frame = false;
-            for value in particle_values.into_iter().flatten() {
-                collect_particle_sprites_from_value(
-                    entity,
-                    render_layer_mask,
-                    value,
-                    &mut entity_sprites,
-                );
+            for (component_index, value) in particle_values.into_iter().flatten().enumerate() {
+                collect_particle_sprites_from_value(entity, render_layer_mask, value, &mut sprites);
                 if let Some(contribution) = particle_gpu_frame_contribution(value) {
                     has_gpu_frame = true;
-                    if let Some(bound) = contribution.bounds {
-                        entity_gpu_bounds.push(bound);
-                    }
+                    entity_gpu_bounds[component_index] = contribution.bounds;
                     gpu_frame_builder.push(contribution.frame);
                 }
             }
@@ -80,9 +74,10 @@ impl World {
                     entity,
                     render_layer_mask,
                     value,
-                    &mut entity_sprites,
+                    &mut sprites,
                 );
             }
+            let entity_sprites = &sprites[sprite_start..];
             if entity_sprites.is_empty() && !has_gpu_frame {
                 continue;
             }
@@ -90,7 +85,13 @@ impl World {
             let center = self
                 .world_transform(entity)
                 .map(|transform| transform.translation)
-                .or_else(|| entity_gpu_bounds.first().map(|bound| bound.center))
+                .or_else(|| {
+                    entity_gpu_bounds
+                        .iter()
+                        .flatten()
+                        .next()
+                        .map(|bound| bound.center)
+                })
                 .unwrap_or(camera_position);
             let sprite_radius = entity_sprites
                 .iter()
@@ -99,6 +100,7 @@ impl World {
                 .fold(0.0_f32, f32::max);
             let gpu_radius = entity_gpu_bounds
                 .iter()
+                .flatten()
                 .map(|bound| (bound.center - center).length() + bound.radius)
                 .filter(|value| value.is_finite())
                 .fold(0.0_f32, f32::max);
@@ -108,7 +110,6 @@ impl World {
                 center,
                 radius: sprite_radius.max(gpu_radius).max(0.01),
             });
-            sprites.extend(entity_sprites);
         }
 
         sprites.sort_by(|left, right| {
@@ -516,6 +517,187 @@ mod tests {
                 && !collect.contains("emitters.sort_unstable();")
                 && !collect.contains("bounds.sort_by_key"),
             "render particle extraction must scan dynamic-component owners instead of probing every world entity"
+        );
+    }
+
+    #[test]
+    fn optimization_wave_20260825vw_runtime26_particle_extract_reuses_frame_storage() {
+        let source = include_str!("render_particles.rs");
+        let collect = source
+            .split("pub(super) fn collect_render_particles")
+            .nth(1)
+            .and_then(|source| source.split("#[derive(Clone, Debug, PartialEq)]").next())
+            .expect("read render particle collection body");
+
+        assert!(collect.contains("let sprite_start = sprites.len();"));
+        assert!(collect.contains("let entity_sprites = &sprites[sprite_start..];"));
+        assert!(collect.contains("std::array::from_fn(|_| None)"));
+        assert!(!collect.contains("let mut entity_sprites = Vec::new();"));
+        assert!(!collect.contains("let mut entity_gpu_bounds = Vec::new();"));
+        assert!(!collect.contains("sprites.extend(entity_sprites);"));
+    }
+
+    fn particle_scratch_checksum(
+        checksum: u64,
+        entity: EntityId,
+        sprites: &[RenderParticleSpriteSnapshot],
+        bounds: &RenderParticleBoundsSnapshot,
+    ) -> u64 {
+        checksum.rotate_left(7)
+            ^ entity
+            ^ sprites.len() as u64
+            ^ sprites[0].stable_sprite_key
+            ^ u64::from(bounds.radius.to_bits())
+    }
+
+    fn legacy_particle_extract_scratch_workload(
+        particle: &serde_json::Value,
+        entity_count: usize,
+    ) -> u64 {
+        let mut sprites = Vec::with_capacity(entity_count);
+        let mut checksum = 0_u64;
+        for entity in 0..entity_count as u64 {
+            let mut entity_sprites = Vec::new();
+            let mut entity_gpu_bounds = Vec::new();
+            collect_particle_sprites_from_value(entity, u32::MAX, particle, &mut entity_sprites);
+            entity_gpu_bounds.push(RenderParticleBoundsSnapshot {
+                entity,
+                center: Vec3::new(1.0, 2.0, 3.0),
+                radius: 0.5,
+            });
+            std::hint::black_box((&entity_sprites, &entity_gpu_bounds));
+            checksum =
+                particle_scratch_checksum(checksum, entity, &entity_sprites, &entity_gpu_bounds[0]);
+            sprites.extend(entity_sprites);
+        }
+        std::hint::black_box(sprites.len() as u64 ^ checksum)
+    }
+
+    fn optimized_particle_extract_scratch_workload(
+        particle: &serde_json::Value,
+        entity_count: usize,
+    ) -> u64 {
+        let mut sprites = Vec::with_capacity(entity_count);
+        let mut checksum = 0_u64;
+        for entity in 0..entity_count as u64 {
+            let sprite_start = sprites.len();
+            let gpu_bounds = [
+                Some(RenderParticleBoundsSnapshot {
+                    entity,
+                    center: Vec3::new(1.0, 2.0, 3.0),
+                    radius: 0.5,
+                }),
+                None,
+            ];
+            collect_particle_sprites_from_value(entity, u32::MAX, particle, &mut sprites);
+            let entity_sprites = &sprites[sprite_start..];
+            std::hint::black_box((entity_sprites, &gpu_bounds));
+            checksum = particle_scratch_checksum(
+                checksum,
+                entity,
+                entity_sprites,
+                gpu_bounds[0].as_ref().expect("benchmark bound"),
+            );
+        }
+        std::hint::black_box(sprites.len() as u64 ^ checksum)
+    }
+
+    fn measure_particle_extract_scratch(operation: impl FnOnce() -> u64) -> (u128, u64) {
+        let started = std::time::Instant::now();
+        let checksum = std::hint::black_box(operation());
+        (started.elapsed().as_nanos(), checksum)
+    }
+
+    fn particle_scratch_percentile(mut samples: [u128; 21], percentile: usize) -> u128 {
+        samples.sort_unstable();
+        let rank = (samples.len() * percentile).div_ceil(100);
+        samples[rank.saturating_sub(1)]
+    }
+
+    fn particle_scratch_reduction_percent(legacy_ns: u128, optimized_ns: u128) -> f64 {
+        legacy_ns.saturating_sub(optimized_ns) as f64 * 100.0 / legacy_ns as f64
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_wave_20260825vw_runtime26_particle_extract_scratch_evidence() {
+        const ENTITY_COUNT: usize = 100_000;
+        const WARMUP_PAIRS: usize = 4;
+        const SAMPLE_PAIRS: usize = 21;
+        const TARGET_MILLIS: u128 = 500;
+        const MARKER: &str = "RUNTIME26_PARTICLE_EXTRACT_SCRATCH_BENCH_V1";
+
+        let particle = json!({
+            "position": [1.0, 2.0, 3.0],
+            "size": 0.25,
+            "stable_sprite_key": 7
+        });
+        for _ in 0..WARMUP_PAIRS {
+            std::hint::black_box(legacy_particle_extract_scratch_workload(
+                &particle,
+                ENTITY_COUNT,
+            ));
+            std::hint::black_box(optimized_particle_extract_scratch_workload(
+                &particle,
+                ENTITY_COUNT,
+            ));
+        }
+
+        let mut legacy_ns_raw = [0_u128; SAMPLE_PAIRS];
+        let mut optimized_ns_raw = [0_u128; SAMPLE_PAIRS];
+        let mut checksum = None;
+        for sample_index in 0..SAMPLE_PAIRS {
+            let (legacy, optimized) = if sample_index % 2 == 0 {
+                (
+                    measure_particle_extract_scratch(|| {
+                        legacy_particle_extract_scratch_workload(&particle, ENTITY_COUNT)
+                    }),
+                    measure_particle_extract_scratch(|| {
+                        optimized_particle_extract_scratch_workload(&particle, ENTITY_COUNT)
+                    }),
+                )
+            } else {
+                let optimized = measure_particle_extract_scratch(|| {
+                    optimized_particle_extract_scratch_workload(&particle, ENTITY_COUNT)
+                });
+                let legacy = measure_particle_extract_scratch(|| {
+                    legacy_particle_extract_scratch_workload(&particle, ENTITY_COUNT)
+                });
+                (legacy, optimized)
+            };
+            assert_eq!(legacy.1, optimized.1);
+            let expected_checksum = *checksum.get_or_insert(legacy.1);
+            assert_eq!(expected_checksum, legacy.1);
+            legacy_ns_raw[sample_index] = legacy.0;
+            optimized_ns_raw[sample_index] = optimized.0;
+        }
+
+        let p50_legacy_ns = particle_scratch_percentile(legacy_ns_raw, 50);
+        let p50_optimized_ns = particle_scratch_percentile(optimized_ns_raw, 50);
+        let p95_legacy_ns = particle_scratch_percentile(legacy_ns_raw, 95);
+        let p95_optimized_ns = particle_scratch_percentile(optimized_ns_raw, 95);
+        let p50_reduction_percent =
+            particle_scratch_reduction_percent(p50_legacy_ns, p50_optimized_ns);
+        let p95_reduction_percent =
+            particle_scratch_reduction_percent(p95_legacy_ns, p95_optimized_ns);
+        println!(
+            "{MARKER} emitters={ENTITY_COUNT} legacy_transient_buffers={} \
+             optimized_transient_buffers=0 reduction_pct=100.00 \
+             p50_legacy_ns={p50_legacy_ns} p50_optimized_ns={p50_optimized_ns} \
+             p50_reduction_percent={p50_reduction_percent:.4} \
+             p95_legacy_ns={p95_legacy_ns} p95_optimized_ns={p95_optimized_ns} \
+             p95_reduction_percent={p95_reduction_percent:.4} \
+             checksum={} target_ms={TARGET_MILLIS} \
+             legacy_ns_raw={legacy_ns_raw:?} optimized_ns_raw={optimized_ns_raw:?}",
+            ENTITY_COUNT * 2,
+            checksum.expect("samples record a checksum"),
+        );
+
+        assert!(p50_reduction_percent >= 15.0);
+        assert!(p95_reduction_percent >= 5.0);
+        assert!(
+            p95_optimized_ns <= TARGET_MILLIS * 1_000_000,
+            "{MARKER} p95_optimized_ns={p95_optimized_ns} target_ms={TARGET_MILLIS}"
         );
     }
 

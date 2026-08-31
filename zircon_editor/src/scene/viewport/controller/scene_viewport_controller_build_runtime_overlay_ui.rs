@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{DisplayMode, GridMode, ProjectionMode, TransformHandleKind};
+use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiTreeId},
     layout::UiFrame,
@@ -26,8 +29,55 @@ const VIEWPORT_HUD_FOREGROUND: &str = "#eef3ff";
 const VIEWPORT_HUD_FONT: &str = "res://fonts/default.font.toml";
 const VIEWPORT_HUD_OPACITY: f32 = 1.0;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct RuntimeOverlayUiExtractCacheKey {
+    scene_mode_revision: u64,
+    projection_mode: ProjectionMode,
+    display_mode: DisplayMode,
+    grid_mode: GridMode,
+    viewport_size: UVec2,
+}
+
+#[derive(Default)]
+pub(super) struct RuntimeOverlayUiExtractCache {
+    key: Option<RuntimeOverlayUiExtractCacheKey>,
+    extract: Option<Arc<UiRenderExtract>>,
+}
+
+impl RuntimeOverlayUiExtractCache {
+    fn current(&self, key: RuntimeOverlayUiExtractCacheKey) -> Option<Arc<UiRenderExtract>> {
+        (self.key == Some(key))
+            .then(|| self.extract.as_ref().map(Arc::clone))
+            .flatten()
+    }
+
+    fn publish(&mut self, key: RuntimeOverlayUiExtractCacheKey, extract: Arc<UiRenderExtract>) {
+        self.key = Some(key);
+        self.extract = Some(extract);
+    }
+}
+
 impl SceneViewportController {
-    pub(crate) fn build_runtime_overlay_ui(&self) -> Option<UiRenderExtract> {
+    pub(crate) fn build_runtime_overlay_ui(&self) -> Option<Arc<UiRenderExtract>> {
+        let key = RuntimeOverlayUiExtractCacheKey {
+            scene_mode_revision: self.state.scene_modes.revision(),
+            projection_mode: self.state.settings.projection_mode,
+            display_mode: self.state.settings.display_mode,
+            grid_mode: self.state.settings.grid_mode,
+            viewport_size: self.state.viewport.size,
+        };
+        if let Some(extract) = self.runtime_overlay_ui_cache.borrow().current(key) {
+            return Some(extract);
+        }
+
+        let extract = Arc::new(self.build_runtime_overlay_ui_extract());
+        self.runtime_overlay_ui_cache
+            .borrow_mut()
+            .publish(key, Arc::clone(&extract));
+        Some(extract)
+    }
+
+    fn build_runtime_overlay_ui_extract(&self) -> UiRenderExtract {
         let max_width =
             (self.state.viewport.size.x as f32 - VIEWPORT_HUD_MARGIN_X - VIEWPORT_HUD_MARGIN_X)
                 .max(VIEWPORT_HUD_MIN_WIDTH);
@@ -38,7 +88,7 @@ impl SceneViewportController {
             VIEWPORT_HUD_HEIGHT,
         );
 
-        Some(UiRenderExtract {
+        UiRenderExtract {
             tree_id: UiTreeId::new(VIEWPORT_HUD_TREE_ID),
             list: UiRenderList {
                 commands: vec![UiRenderCommand {
@@ -65,7 +115,7 @@ impl SceneViewportController {
                 }],
             },
             raster_scale: 1.0,
-        })
+        }
     }
 
     fn runtime_hud_text(&self) -> String {
@@ -76,6 +126,38 @@ impl SceneViewportController {
             display_label(self.state.settings.display_mode),
             grid_label(self.state.settings.grid_mode)
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use zircon_runtime_interface::math::UVec2;
+
+    use super::SceneViewportController;
+
+    #[test]
+    fn stable_viewport_hud_generation_reuses_the_same_allocation() {
+        let controller = SceneViewportController::new(UVec2::new(1280, 720));
+
+        let first = controller.build_runtime_overlay_ui().unwrap();
+        let second = controller.build_runtime_overlay_ui().unwrap();
+
+        assert!(Arc::ptr_eq(&first, &second));
+    }
+
+    #[test]
+    fn viewport_hud_key_change_publishes_one_new_allocation() {
+        let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
+        let first = controller.build_runtime_overlay_ui().unwrap();
+
+        controller.apply_viewport_size(UVec2::new(960, 540));
+        let resized = controller.build_runtime_overlay_ui().unwrap();
+        let stable = controller.build_runtime_overlay_ui().unwrap();
+
+        assert!(!Arc::ptr_eq(&first, &resized));
+        assert!(Arc::ptr_eq(&resized, &stable));
     }
 }
 

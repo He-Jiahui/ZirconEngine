@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use toml::Value;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
@@ -530,22 +530,24 @@ fn component_slot_target_overlays(
 }
 
 fn ordered_component_slot_names(available: &[String], groups: &[&[&str]]) -> Vec<String> {
-    let mut ordered = Vec::new();
+    let mut admitted = HashSet::with_capacity(available.len());
+    let mut ordered = Vec::with_capacity(available.len());
     for semantics in groups {
         for slot_name in available {
-            if ordered.iter().any(|existing| existing == slot_name) {
+            if admitted.contains(slot_name.as_str()) {
                 continue;
             }
             if semantics
                 .iter()
                 .any(|semantic| normalized_slot_name(slot_name).contains(semantic))
             {
+                let _ = admitted.insert(slot_name.as_str());
                 ordered.push(slot_name.clone());
             }
         }
     }
     for slot_name in available {
-        if !ordered.iter().any(|existing| existing == slot_name) {
+        if admitted.insert(slot_name.as_str()) {
             ordered.push(slot_name.clone());
         }
     }
@@ -949,3 +951,6 @@ pub(crate) fn table_value(entries: &[(&str, Value)]) -> Value {
             .collect(),
     )
 }
+
+#[cfg(test)]
+mod hash_membership_tests;

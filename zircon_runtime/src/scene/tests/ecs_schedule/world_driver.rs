@@ -1,5 +1,67 @@
 use super::*;
 
+use crate::scene::ecs::{
+    Commands, FunctionSceneSystem, Message, MessageRetention, RemovedComponentRetention,
+};
+
+#[derive(Debug)]
+struct PausedFrameMaintenanceMessage;
+
+impl Message for PausedFrameMaintenanceMessage {}
+
+#[derive(Debug)]
+struct PausedFrameMaintenanceEvent;
+
+#[derive(Debug)]
+struct PausedFrameMaintenanceComponent;
+
+impl crate::scene::ecs::Component for PausedFrameMaintenanceComponent {}
+
+#[test]
+fn delayed_outer_snapshot_keeps_one_atomic_monotonic_real_tuple() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let observed = Arc::new(Mutex::new(None));
+
+    {
+        let observed = Arc::clone(&observed);
+        level
+            .with_world_mut(|world| {
+                world.register_boxed_runtime_scene_system(Box::new(
+                    FunctionRuntimeSceneSystem::new(
+                        SceneSystemMetadata::new(
+                            "runtime22.delayed-outer-frame",
+                            SystemStage::Update,
+                            0,
+                        )
+                        .with_tick_policy(SceneSystemTickPolicy::monotonic_real()),
+                        move |context| {
+                            *observed.lock().unwrap() = Some(context.tick());
+                            Ok(())
+                        },
+                    ),
+                ))
+            })
+            .expect("real-time observer should register");
+    }
+
+    let first = runtime.advance_time_by(Duration::from_millis(11), 4);
+    let _second = runtime.advance_time_by(Duration::from_millis(37), 4);
+    level.tick(&runtime.handle(), first).unwrap();
+
+    let tick = observed
+        .lock()
+        .unwrap()
+        .expect("delayed frame should run the real-time observer once");
+    assert_eq!(tick.outer_frame_index(), first.outer_frame_index());
+    assert_eq!(tick.delta(), first.raw_real_delta());
+    assert_eq!(tick.elapsed(), first.real_elapsed());
+    assert_eq!(tick.clock_domain_stamp(), first.real_clock_domain_stamp());
+    assert_eq!(runtime.real_time().elapsed(), Duration::from_millis(48));
+}
+
 #[test]
 fn world_driver_defers_runtime_system_mutations_until_builtin_post_update_systems_run() {
     let runtime = CoreRuntime::new();
@@ -77,18 +139,46 @@ fn world_driver_consumes_runtime_time_advance_without_advancing_clocks_again() {
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
-    runtime.set_fixed_timestep(Duration::from_millis(10));
+    runtime
+        .apply_time_policy(crate::core::TimePolicyTransaction::new(
+            runtime
+                .time_policy()
+                .with_fixed_timestep(Duration::from_millis(10)),
+        ))
+        .expect("test fixed timestep should commit");
     let level = create_default_level(&runtime.handle()).unwrap();
 
     let advance = runtime.advance_time_by(Duration::from_millis(25), 8);
-    assert_eq!(advance.fixed_step_plan().step_count, 2);
+    assert_eq!(advance.fixed_step_budget(), 8);
 
     level.tick(&runtime.handle(), advance).unwrap();
 
-    let clocks = runtime.time_clocks();
-    assert_eq!(clocks.real().frame_index(), 1);
-    assert_eq!(clocks.fixed().frame_index(), 2);
-    assert_eq!(clocks.fixed().overstep(), Duration::from_millis(5));
+    assert_eq!(runtime.real_time().frame_index(), 1);
+    assert_eq!(level.world_time().fixed_time().frame_index(), 2);
+    assert_eq!(
+        level.world_time().fixed_time().overstep(),
+        Duration::from_millis(5)
+    );
+}
+
+#[test]
+fn core_default_time_policy_applies_only_to_levels_created_after_the_change() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let existing_level = create_default_level(&runtime.handle()).unwrap();
+    let existing_policy = existing_level.time_policy();
+    let requested_policy = existing_policy
+        .with_virtual_relative_speed(0.5)
+        .with_fixed_timestep(Duration::from_millis(10));
+
+    runtime
+        .apply_time_policy(crate::core::TimePolicyTransaction::new(requested_policy))
+        .expect("default policy should accept a valid change");
+    let later_level = create_default_level(&runtime.handle()).unwrap();
+
+    assert_eq!(existing_level.time_policy(), existing_policy);
+    assert_eq!(later_level.time_policy(), requested_policy);
 }
 
 #[test]
@@ -268,10 +358,10 @@ fn world_driver_runs_runtime_scene_systems_in_schedule_order() {
             SceneSystemMetadata::new("gameplay.runtime.context", SystemStage::Update, 0),
             move |context| {
                 context.level.with_world(|_| {
-                    events
-                        .lock()
-                        .unwrap()
-                        .push(format!("runtime-delta={:.3}", context.delta_seconds));
+                    events.lock().unwrap().push(format!(
+                        "runtime-delta={:.3}",
+                        context.tick().delta_seconds()
+                    ));
                 });
                 assert!(
                     context
@@ -414,10 +504,10 @@ fn world_driver_pauses_virtual_systems_and_runs_explicit_real_time_systems() {
         let system = FunctionRuntimeSceneSystem::new(
             SceneSystemMetadata::new("gameplay.runtime.virtual-delta", SystemStage::Update, 0),
             move |context| {
-                events
-                    .lock()
-                    .unwrap()
-                    .push(format!("runtime-delta={:.3}", context.delta_seconds));
+                events.lock().unwrap().push(format!(
+                    "runtime-delta={:.3}",
+                    context.tick().delta_seconds()
+                ));
                 Ok(())
             },
         );
@@ -440,13 +530,13 @@ fn world_driver_pauses_virtual_systems_and_runs_explicit_real_time_systems() {
                         events
                             .lock()
                             .unwrap()
-                            .push(format!("real-delta={:.3}", context.delta_seconds));
+                            .push(format!("real-delta={:.3}", context.tick().delta_seconds()));
                         Ok(())
                     }
                 },
             )
             .with_order(1)
-            .with_clock_domain(SceneSystemClockDomain::Real)
+            .with_tick_policy(SceneSystemTickPolicy::monotonic_real())
             .register()
             .unwrap();
         apply_runtime_scene_systems(&level, &registry);
@@ -458,11 +548,11 @@ fn world_driver_pauses_virtual_systems_and_runs_explicit_real_time_systems() {
         .unwrap();
     assert!(level.with_world(|world| world.has_pending_scene_systems()));
 
-    runtime.pause_virtual_time();
+    level.pause_virtual_time();
     let paused = runtime.advance_time_by(Duration::from_millis(16), 8);
-    assert_eq!(paused.real_delta(), Duration::from_millis(16));
-    assert_eq!(paused.virtual_delta(), Duration::ZERO);
+    assert_eq!(paused.raw_real_delta(), Duration::from_millis(16));
     level.tick(&runtime.handle(), paused).unwrap();
+    assert_eq!(level.world_time().virtual_time().delta(), Duration::ZERO);
     assert_eq!(
         *events.lock().unwrap(),
         vec!["real-delta=0.016".to_string()]
@@ -470,11 +560,18 @@ fn world_driver_pauses_virtual_systems_and_runs_explicit_real_time_systems() {
     assert!(level.with_world(|world| world.has_pending_scene_systems()));
 
     events.lock().unwrap().clear();
-    runtime.unpause_virtual_time();
-    runtime.set_virtual_time_relative_speed_f64(0.5);
+    level.unpause_virtual_time();
+    level
+        .apply_time_policy(crate::core::TimePolicyTransaction::new(
+            level.time_policy().with_virtual_relative_speed(0.5),
+        ))
+        .expect("test virtual speed should commit");
     let scaled = runtime.advance_time_by(Duration::from_millis(16), 8);
-    assert_eq!(scaled.virtual_delta(), Duration::from_millis(8));
     level.tick(&runtime.handle(), scaled).unwrap();
+    assert_eq!(
+        level.world_time().virtual_time().delta(),
+        Duration::from_millis(8)
+    );
     assert_eq!(
         *events.lock().unwrap(),
         vec![
@@ -486,5 +583,167 @@ fn world_driver_pauses_virtual_systems_and_runs_explicit_real_time_systems() {
     assert!(!level.with_world(|world| world.has_pending_scene_systems()));
     println!(
         "PERF_RESULT runtime22_clock_domain paused_virtual_callbacks=0 paused_real_callbacks=1 paused_virtual_work_reduction_percent=100 scaled_virtual_delta_ms=8 scaled_real_delta_ms=16"
+    );
+}
+
+#[test]
+fn world_driver_advances_event_maintenance_while_virtual_time_is_paused() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+
+    level.with_world_mut(|world| {
+        world.configure_message_retention::<PausedFrameMaintenanceMessage>(MessageRetention::new(
+            8,
+            usize::MAX,
+            0,
+        ));
+        world.send_message(PausedFrameMaintenanceMessage);
+    });
+    level.pause_virtual_time();
+
+    let paused = runtime.advance_time_by(Duration::from_millis(16), 8);
+    level.tick(&runtime.handle(), paused).unwrap();
+
+    level.with_world(|world| {
+        assert_eq!(
+            world
+                .messages::<PausedFrameMaintenanceMessage>()
+                .map(|messages| messages.len()),
+            Some(0)
+        );
+        assert_eq!(
+            world
+                .message_retention_metrics::<PausedFrameMaintenanceMessage>()
+                .expect("message retention metrics")
+                .age_dropped_entries,
+            1
+        );
+        assert_eq!(world.last_message_advance_channel_visits(), 1);
+    });
+}
+
+#[test]
+fn world_driver_keeps_event_removal_and_deferred_boundaries_while_virtual_time_is_paused() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let real_runtime_calls = Arc::new(Mutex::new(0_usize));
+
+    {
+        let real_runtime_calls = Arc::clone(&real_runtime_calls);
+        level.with_world_mut(|world| {
+            world.register_event::<PausedFrameMaintenanceEvent>();
+            let _ = world.send_event(PausedFrameMaintenanceEvent);
+
+            world.configure_removed_component_retention::<PausedFrameMaintenanceComponent>(
+                RemovedComponentRetention::new(8, usize::MAX, 0),
+            );
+            let entity = world
+                .spawn((PausedFrameMaintenanceComponent,))
+                .expect("paused maintenance component should spawn");
+            assert!(
+                world
+                    .remove::<PausedFrameMaintenanceComponent>(entity)
+                    .expect("paused maintenance component should remove")
+                    .is_some()
+            );
+
+            world.commands().spawn_empty();
+            world
+                .register_boxed_runtime_scene_system(Box::new(FunctionRuntimeSceneSystem::new(
+                    SceneSystemMetadata::new(
+                        "diagnostic.pause.monotonic-real",
+                        SystemStage::Update,
+                        -1,
+                    )
+                    .with_tick_policy(SceneSystemTickPolicy::monotonic_real()),
+                    move |_| {
+                        *real_runtime_calls.lock().unwrap() += 1;
+                        Ok(())
+                    },
+                )))
+                .expect("monotonic real runtime system should register");
+            world
+                .register_native_system::<CommandsParam, _>(
+                    "gameplay.pause.virtual-apply-deferred",
+                    SystemStage::Update,
+                    0,
+                    |_: Commands<'_>| {},
+                )
+                .expect("virtual deferred barrier system should register");
+        });
+    }
+    assert!(level.with_world(|world| {
+        world
+            .scheduled_native_system_steps_for_stage(SystemStage::Update)
+            .iter()
+            .any(|step| {
+                matches!(
+                    step,
+                    crate::scene::ecs::ScheduledSceneStep::ApplyDeferred {
+                        after_system_id,
+                        tick_policy,
+                        ..
+                    } if after_system_id == "gameplay.pause.virtual-apply-deferred"
+                        && *tick_policy == SceneSystemTickPolicy::virtual_time()
+                )
+            })
+    }));
+    level.pause_virtual_time();
+
+    let paused = runtime.advance_time_by(Duration::from_millis(16), 8);
+    level.tick(&runtime.handle(), paused).unwrap();
+
+    level.with_world(|world| {
+        assert_eq!(*real_runtime_calls.lock().unwrap(), 1);
+        assert_eq!(
+            world
+                .events::<PausedFrameMaintenanceEvent>()
+                .map(|events| events.len()),
+            Some(1)
+        );
+        assert_eq!(
+            world
+                .removed_component_retention_metrics::<PausedFrameMaintenanceComponent>()
+                .expect("removed-component retention metrics")
+                .age_dropped_entries,
+            1
+        );
+        assert_eq!(
+            world
+                .removed_component_retention_metrics::<PausedFrameMaintenanceComponent>()
+                .expect("removed-component retention metrics")
+                .retained_entries,
+            0
+        );
+        assert!(
+            world.has_deferred_commands(),
+            "the virtual ApplyDeferred barrier must not commit commands while paused"
+        );
+    });
+}
+
+#[test]
+fn world_rejects_paused_native_systems_that_declare_deferred_commands() {
+    let mut world = World::empty();
+    let system = FunctionSceneSystem::<CommandsParam, _>::new(
+        SceneSystemMetadata::new("diagnostic.pause.deferred-commands", SystemStage::Update, 0)
+            .with_tick_policy(SceneSystemTickPolicy::monotonic_real()),
+        &mut world,
+        |_: Commands<'_>| {},
+    )
+    .expect("commands system parameters should initialize");
+
+    assert_eq!(
+        world.register_boxed_native_system(Box::new(system)),
+        Err(
+            crate::scene::ecs::ScheduleError::PausedSystemDeferredCommands {
+                system_id: "diagnostic.pause.deferred-commands".to_string(),
+                tick_policy: SceneSystemTickPolicy::monotonic_real(),
+            }
+        )
     );
 }

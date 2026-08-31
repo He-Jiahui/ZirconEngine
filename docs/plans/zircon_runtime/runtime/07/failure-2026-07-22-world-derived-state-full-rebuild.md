@@ -66,3 +66,9 @@ Open state: `待修复`; no pass is claimed.
 - `HierarchyMutationIndex` 的 current 判定同时要求 indexed entity 数量覆盖 World 的全部 stable entity；`spawn_empty_at` 直接将没有 `Hierarchy` 组件的空 root 以 O(1) 注册入唯一拓扑，计数不一致时仍在派生传播前重建，回归覆盖其 subtree、matrix 与 active 输出。
 - bundle 创建、空实体创建、插入与 deferred entry 从 `typed_api.rs` 提取到 folder-backed `typed_api/bundle_entry.rs`；接口不变，`typed_api.rs` 保持组件访问/存储职责并回落到 800 行以下。
 - 这仍未完成 dirty-frontier、NodeCache/render/inspection 增量投影与 1/1k/100k 确定性计数。未运行 Cargo 或 WGPU，failure 保持 open。
+
+## 2026-08-30 当前源复审
+
+- `HierarchyTopology` 现同时持有 `parent_by_entity`、稳定根序与有序 child adjacency；结构更新、重建和删除会同步父投影，派生 active/world propagation 与 dirty-frontier root 选择直接读取该拓扑，不再在传播路径重新查询组件 `Hierarchy` 的 parent。
+- 新增 parent projection 的结构更新/重建/删除回归与 source guard；当前文件已通过 rustfmt 与 scoped `git diff --check`。受管 Cargo、100k-node deterministic visit counters 与 WGPU extract 证据仍未取得，因此 failure 继续保持 `open`。
+- current 判定同时要求 `indexed_entities` 与 `parent_by_entity` 覆盖同一 entity 数量；缺失父投影行会保守触发 topology source rebuild，并有对应回归保护。

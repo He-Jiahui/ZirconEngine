@@ -5,10 +5,10 @@ use crate::core::i18n::{EditorI18nService, EditorLocale};
 use crate::core::jobs::{EditorJobProgress, EditorJobProgressSnapshot, JobCategory, JobId};
 
 use super::{
-    present_decision, present_progress, present_toast, DecisionCenterConfig, DecisionNotification,
-    DecisionNotificationCenter, DecisionOption, DecisionOptionId, NotificationId,
-    NotificationSource, ProgressNotification, ProgressNotificationCenter, ToastCenterConfig,
-    ToastNotification, ToastNotificationCenter, ToastSeverity,
+    DecisionCenterConfig, DecisionNotification, DecisionNotificationCenter, DecisionOption,
+    DecisionOptionId, NotificationId, NotificationSource, ProgressNotification,
+    ProgressNotificationCenter, ToastCenterConfig, ToastNotification, ToastNotificationCenter,
+    ToastSeverity, present_decision, present_progress, present_toast,
 };
 
 #[test]
@@ -30,6 +30,8 @@ fn decision_projection_localizes_active_locale_without_losing_action_identity() 
                         .unwrap(),
                 ],
             )
+            .unwrap()
+            .with_display_subject("assets/scenes/main.zscene")
             .unwrap()
             .with_message_argument("pending_count", 2)
             .unwrap()
@@ -54,6 +56,7 @@ fn decision_projection_localizes_active_locale_without_losing_action_identity() 
     );
     assert_eq!(english.options()[0].id(), &apply);
     assert_eq!(english.options()[0].label(), "Apply changes");
+    assert_eq!(english.display_subject(), Some("assets/scenes/main.zscene"));
     assert_eq!(english.default_option(), Some(&apply));
     assert_eq!(english.cancel_option(), Some(&discard));
     assert_eq!(english.locale().as_str(), "en");

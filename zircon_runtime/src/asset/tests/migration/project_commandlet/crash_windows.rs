@@ -193,8 +193,8 @@ fn direct_transaction_replacement_keeps_platform_durability_barrier() {
     const ATOMIC_PLATFORM_SOURCE: &str =
         include_str!("../../../../core/resource/io/atomic_file/platform.rs");
     const COMMIT_SOURCE: &str = include_str!("../../../../core/resource/io/transaction/commit.rs");
-    const JOURNAL_SOURCE: &str =
-        include_str!("../../../../core/resource/io/transaction/journal.rs");
+    const JOURNAL_INTENT_SOURCE: &str =
+        include_str!("../../../../../crates/zr_resource/src/io/transaction/journal/intent.rs");
 
     assert!(
         ATOMIC_TRANSACTION_SOURCE.contains("sync_parent_directory(target)"),
@@ -213,15 +213,16 @@ fn direct_transaction_replacement_keeps_platform_durability_barrier() {
         "Windows first-write promotion must request a write-through rename"
     );
     assert!(
-        JOURNAL_SOURCE.contains(".open(path)?") && JOURNAL_SOURCE.contains(".sync_all()"),
+        JOURNAL_INTENT_SOURCE.contains(".open(path)?")
+            && JOURNAL_INTENT_SOURCE.contains(".sync_all()"),
         "the immutable intent must be synced after its atomic replacement"
     );
     assert!(
-        JOURNAL_SOURCE.contains(".write(true)"),
+        JOURNAL_INTENT_SOURCE.contains(".write(true)"),
         "Windows journal flushing requires a read-write committed-file handle"
     );
     assert!(
-        JOURNAL_SOURCE.contains("sync_parent_directory(path)"),
+        JOURNAL_INTENT_SOURCE.contains("sync_parent_directory(path)"),
         "the immutable intent must persist its parent directory entry on Unix"
     );
 }

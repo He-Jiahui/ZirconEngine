@@ -2,9 +2,10 @@ use std::sync::Arc;
 
 use zircon_runtime::core::framework::navigation::NavigationManager;
 use zircon_runtime::core::manager::RegisteredManagerService;
-use zircon_runtime::core::runtime::ServiceObject;
+use zircon_runtime::core::runtime::{ServiceObject, TASKS_MODULE_NAME};
 use zircon_runtime::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    CoreError, DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
+    ServiceKind, StartupMode,
 };
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name};
 use zircon_runtime::scene::SceneNavigationRuntimeHandle;
@@ -20,6 +21,9 @@ mod plugin;
 mod runtime_obstacles;
 mod settings_hash;
 mod settings_validation;
+
+#[cfg(test)]
+mod test_support;
 
 pub use capability::{
     NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES, NATIVE_RUNTIME_ENTRY,
@@ -52,6 +56,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         NAVIGATION_MODULE_NAME,
         "Navigation path query, bake, and agent runtime plugin",
     )
+    .with_module_dependency(ModuleDependencySpec::named(TASKS_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(
             NAVIGATION_MODULE_NAME,
@@ -60,7 +65,12 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ),
         StartupMode::Lazy,
         Vec::new(),
-        factory(|_| Ok(Arc::new(DefaultNavigationManager::new()) as ServiceObject)),
+        factory(|core| {
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            Ok(Arc::new(DefaultNavigationManager::new(
+                core.task_graph().worker_pool().clone(),
+            )) as ServiceObject)
+        }),
     ))
     .with_driver(DriverDescriptor::new(
         qualified_name(

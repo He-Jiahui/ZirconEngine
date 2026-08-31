@@ -7,10 +7,10 @@ use zircon_runtime_interface::export::ExportStage;
 
 use super::args::{parse, usage};
 use super::error::{ExportPackError, ExportPackResult};
-use super::manifest::ExportAssetPackManifest;
+use super::manifest::{ExportAssetPackManifest, ExportPackInputSource};
 use crate::pack::{
     ZrPackDeltaDocumentManifest, ZrPackDeltaReader, ZrPackDeltaWriter, ZrPackDocumentManifest,
-    ZrPackInputAsset, ZrPackReader, ZrPackTrimReport, ZrPackWriter,
+    ZrPackReader, ZrPackTrimReport, ZrPackWriter,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -98,11 +98,16 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> ExportPackResult<ExitCod
             delta_apply_verified: false,
         }
     } else {
-        match ZrPackWriter::write(pack_inputs.pack_assets.iter()) {
+        match ZrPackWriter::write_files(
+            pack_inputs
+                .pack_sources
+                .iter()
+                .map(|source| (source.path.as_str(), source.source.as_path())),
+        ) {
             Ok(write_report) => {
                 let deterministic_double_run = deterministic_double_run(
                     args.determinism_check,
-                    &pack_inputs.pack_assets,
+                    &pack_inputs.pack_sources,
                     &write_report.bytes,
                     &mut diagnostics,
                 )?;
@@ -171,38 +176,41 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> ExportPackResult<ExitCod
                     delta_manifest: delta_report.map(|report| report.manifest),
                 }
             }
-            Err(error) => ExportPackReport {
-                stage: ExportStage::Pack,
-                profile: args.profile.clone(),
-                asset_manifest: args.manifest.display().to_string(),
-                pack: args.pack.display().to_string(),
-                previous_pack: args
-                    .previous_pack
-                    .as_ref()
-                    .map(|path| path.display().to_string()),
-                delta_pack: args
-                    .delta_pack
-                    .as_ref()
-                    .map(|path| path.display().to_string()),
-                stage_output: args
-                    .stage_output
-                    .as_ref()
-                    .map(|path| path.display().to_string()),
-                fatal: true,
-                diagnostics: vec![format!("failed to write zrpack: {error}")],
-                asset_count: 0,
-                chunk_count: 0,
-                deduplicated_assets: Vec::new(),
-                trim_report: pack_inputs.trim_report,
-                manifest: None,
-                deterministic_double_run: false,
-                delta_manifest: None,
-                delta_asset_count: 0,
-                delta_chunk_count: 0,
-                delta_removed_assets: Vec::new(),
-                delta_reused_assets: Vec::new(),
-                delta_apply_verified: false,
-            },
+            Err(error) => {
+                diagnostics.push(format!("failed to write zrpack: {error}"));
+                ExportPackReport {
+                    stage: ExportStage::Pack,
+                    profile: args.profile.clone(),
+                    asset_manifest: args.manifest.display().to_string(),
+                    pack: args.pack.display().to_string(),
+                    previous_pack: args
+                        .previous_pack
+                        .as_ref()
+                        .map(|path| path.display().to_string()),
+                    delta_pack: args
+                        .delta_pack
+                        .as_ref()
+                        .map(|path| path.display().to_string()),
+                    stage_output: args
+                        .stage_output
+                        .as_ref()
+                        .map(|path| path.display().to_string()),
+                    fatal: true,
+                    diagnostics,
+                    asset_count: 0,
+                    chunk_count: 0,
+                    deduplicated_assets: Vec::new(),
+                    trim_report: pack_inputs.trim_report,
+                    manifest: None,
+                    deterministic_double_run: false,
+                    delta_manifest: None,
+                    delta_asset_count: 0,
+                    delta_chunk_count: 0,
+                    delta_removed_assets: Vec::new(),
+                    delta_reused_assets: Vec::new(),
+                    delta_apply_verified: false,
+                }
+            }
         }
     };
 
@@ -311,15 +319,26 @@ fn write_delta_pack_if_requested(
 
 fn deterministic_double_run(
     enabled: bool,
-    pack_assets: &[ZrPackInputAsset],
+    pack_sources: &[ExportPackInputSource],
     first_bytes: &[u8],
     diagnostics: &mut Vec<String>,
 ) -> ExportPackResult<bool> {
     if !enabled {
         return Ok(false);
     }
-    let second = ZrPackWriter::write(pack_assets.iter())
-        .map_err(|source| ExportPackError::DeterministicComparisonWrite { source })?;
+    let second = match ZrPackWriter::write_files(
+        pack_sources
+            .iter()
+            .map(|source| (source.path.as_str(), source.source.as_path())),
+    ) {
+        Ok(report) => report,
+        Err(error) => {
+            diagnostics.push(format!(
+                "deterministic pack comparison source read failed: {error}"
+            ));
+            return Ok(false);
+        }
+    };
     if second.bytes != first_bytes {
         diagnostics.push("deterministic pack double-run byte comparison failed".to_string());
         return Ok(false);

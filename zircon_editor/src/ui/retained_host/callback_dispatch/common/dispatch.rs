@@ -20,7 +20,9 @@ pub(crate) fn dispatch_envelope(
     runtime: &EditorHostEventController,
     envelope: EditorEventEnvelope,
 ) -> Result<UiHostEventEffects, String> {
-    let record = runtime.dispatch_envelope(envelope)?;
+    let record = runtime
+        .dispatch_envelope(envelope)
+        .map_err(|error| error.to_string())?;
     let mut effects = UiHostEventEffects::default();
     apply_record_effects(&mut effects, &record);
     Ok(effects)
@@ -31,24 +33,30 @@ pub(crate) fn dispatch_editor_binding(
     binding: EditorUiBinding,
 ) -> Result<UiHostEventEffects, String> {
     if is_reference_preview_action(&binding) {
-        let record = runtime.dispatch_binding(binding, EditorEventSource::RetainedHost)?;
+        let record = runtime
+            .dispatch_binding(binding, EditorEventSource::RetainedHost)
+            .map_err(|error| error.to_string())?;
         let mut effects = UiHostEventEffects::default();
         apply_record_effects(&mut effects, &record);
         return Ok(effects);
     }
 
     if let Some(invocation) = operation_invocation_for_binding(&binding)? {
-        let record = runtime.invoke_operation_with_binding_path(
-            EditorOperationSource::UiBinding,
-            invocation,
-            Some(binding.path().native_prefix()),
-        )?;
+        let record = runtime
+            .invoke_operation_with_binding_path(
+                EditorOperationSource::UiBinding,
+                invocation,
+                Some(binding.path().native_prefix()),
+            )
+            .map_err(|error| error.to_string())?;
         let mut effects = UiHostEventEffects::default();
         apply_record_effects(&mut effects, &record);
         return Ok(effects);
     }
 
-    let record = runtime.dispatch_binding(binding, EditorEventSource::RetainedHost)?;
+    let record = runtime
+        .dispatch_binding(binding, EditorEventSource::RetainedHost)
+        .map_err(|error| error.to_string())?;
     let mut effects = UiHostEventEffects::default();
     apply_record_effects(&mut effects, &record);
     Ok(effects)
@@ -65,7 +73,9 @@ pub(crate) fn dispatch_template_action_invocation(
         .map_err(|error| error.to_string())?;
     let invocation = EditorOperationInvocation::new(operation)
         .with_arguments(ui_template_action_payload_to_json(&action.payload));
-    let record = runtime.invoke_operation(EditorOperationSource::UiBinding, invocation)?;
+    let record = runtime
+        .invoke_operation(EditorOperationSource::UiBinding, invocation)
+        .map_err(|error| error.to_string())?;
     let mut effects = UiHostEventEffects::default();
     apply_record_effects(&mut effects, &record);
     Ok(effects)
@@ -125,19 +135,7 @@ fn ui_binding_arguments_to_json(arguments: &[UiBindingValue]) -> Value {
 }
 
 fn ui_binding_value_to_json(value: &UiBindingValue) -> Value {
-    match value {
-        UiBindingValue::String(value) => Value::String(value.clone()),
-        UiBindingValue::Unsigned(value) => Value::Number(Number::from(*value)),
-        UiBindingValue::Signed(value) => Value::Number(Number::from(*value)),
-        UiBindingValue::Float(value) => Number::from_f64(*value)
-            .map(Value::Number)
-            .unwrap_or(Value::Null),
-        UiBindingValue::Bool(value) => Value::Bool(*value),
-        UiBindingValue::Null => Value::Null,
-        UiBindingValue::Array(values) => {
-            Value::Array(values.iter().map(ui_binding_value_to_json).collect())
-        }
-    }
+    value.to_json_value()
 }
 
 fn ui_template_action_payload_to_json(payload: &BTreeMap<String, UiValue>) -> Value {

@@ -1,5 +1,6 @@
 mod action_policy;
 mod binding;
+mod binding_reload_transaction;
 mod compiler;
 mod component_contract;
 mod dependency_index;
@@ -19,6 +20,12 @@ mod watch_invalidation;
 
 pub use action_policy::validate_document_action_policy;
 pub use binding::{collect_asset_binding_report, validate_asset_bindings};
+pub(crate) use binding_reload_transaction::UiBindingReloadTransaction;
+pub use binding_reload_transaction::{UiBindingQuiescenceReceipt, UiBindingReloadPrepareError};
+pub(crate) use compiler::{
+    compile_binding_program, resolve_component_binding_params, resolve_component_param_value,
+    resolve_component_param_value_map, validate_typed_component_params,
+};
 pub use compiler::{
     compile_cache_key_from_compiler, compiled_asset_package_manifest_from_artifact_bytes,
     UiAssetCompileCache, UiAssetCompileCacheEvictionReport, UiCompileCacheOutcome,
@@ -28,7 +35,10 @@ pub use compiler::{
 pub use component_contract::component_contract_diagnostic;
 pub use dependency_index::{UiAssetDependencyIndex, UiAssetDependencyQueryReport};
 pub use document::{UiAssetDocumentRuntimeExt, UiAssetNodeIter, UiNodeParent};
-pub use hot_reload_executor::{UiAssetHotReloadExecutionReport, UiAssetHotReloadExecutor};
+pub use hot_reload_executor::{
+    UiAssetHotReloadExecutionError, UiAssetHotReloadExecutionReport, UiAssetHotReloadExecutor,
+    UiAssetSurfaceRebuildRequest, UiAssetSurfaceRebuilder, UiAssetTemplateRebuildReceipt,
+};
 pub use hot_reload_plan::{
     classify_ui_hot_reload_asset, UiAssetHotReloadPlan, UiAssetHotReloadSurfaceDirtyReport,
     UiHotReloadAssetKind,
@@ -55,8 +65,9 @@ pub use resource_ref::{
 };
 pub use schema::UiAssetSchemaMigrator;
 pub use surface_index::{
-    UiAssetHotReloadNodeDirtyReport, UiAssetNodeHotReloadTargets, UiAssetNodeTarget,
-    UiAssetSurfaceHotReloadApplyReport, UiAssetSurfaceHotReloadTargets, UiAssetSurfaceIndex,
+    UiAssetBindingTarget, UiAssetCompiledNodeTarget, UiAssetHotReloadNodeDirtyReport,
+    UiAssetNodeHotReloadTargets, UiAssetNodeTarget, UiAssetSurfaceHotReloadApplyReport,
+    UiAssetSurfaceHotReloadTargets, UiAssetSurfaceIndex,
     UiAssetSurfaceNodeResourceRegistrationReport,
 };
 pub use watch_invalidation::UiAssetWatchInvalidationReport;

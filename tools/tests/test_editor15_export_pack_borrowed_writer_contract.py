@@ -35,16 +35,37 @@ class Editor15ExportPackBorrowedWriterContractTests(unittest.TestCase):
         self.assertIn("A: Borrow<ZrPackInputAsset>", writer)
         self.assertNotIn("asset.bytes.clone()", writer)
 
-    def test_export_pack_reuses_inputs_for_first_and_determinism_writes(self) -> None:
+    def test_export_pack_streams_sources_for_first_and_determinism_writes(self) -> None:
         run = EXPORT_RUN.read_text(encoding="utf-8")
 
-        self.assertIn(
-            "ZrPackWriter::write(pack_inputs.pack_assets.iter())",
-            run,
-        )
-        self.assertIn("ZrPackWriter::write(pack_assets.iter())", run)
-        self.assertNotIn("pack_inputs.pack_assets.clone()", run)
-        self.assertNotIn("ZrPackWriter::write(pack_assets.to_vec())", run)
+        self.assertEqual(run.count("ZrPackWriter::write_files"), 2)
+        self.assertNotIn("pack_inputs.pack_assets", run)
+        self.assertNotIn("ZrPackWriter::write(pack_assets", run)
+
+    def test_export_manifest_keeps_source_paths_instead_of_all_payload_bytes(self) -> None:
+        manifest = EXPORT_MANIFEST.read_text(encoding="utf-8")
+
+        self.assertIn("pub pack_sources: Vec<ExportPackInputSource>", manifest)
+        self.assertIn("source: source_path(manifest_dir, source)", manifest)
+        self.assertNotIn("std::fs::read(&source)", manifest)
+        self.assertNotIn("pub pack_assets: Vec<ZrPackInputAsset>", manifest)
+
+    def test_export_writer_streams_file_sources_through_a_fixed_buffer(self) -> None:
+        writer = WRITER.read_text(encoding="utf-8")
+        run = EXPORT_RUN.read_text(encoding="utf-8")
+
+        self.assertIn("const FILE_READ_BUFFER_SIZE: usize = 64 * 1024;", writer)
+        self.assertIn("pub(crate) fn write_files", writer)
+        self.assertIn("let mut read_buffer = [0_u8; FILE_READ_BUFFER_SIZE];", writer)
+        self.assertIn("ZrPackWriter::write_files", run)
+        self.assertNotIn("pack_inputs.pack_assets", run)
+
+    def test_duplicate_file_sources_are_identified_before_payload_append(self) -> None:
+        writer = WRITER.read_text(encoding="utf-8")
+
+        self.assertIn("file.seek(SeekFrom::Start(0))", writer)
+        self.assertIn("ZrPackFileWriteError::SourceChanged", writer)
+        self.assertNotIn("self.bytes.truncate(payload_offset)", writer)
 
 
 if __name__ == "__main__":

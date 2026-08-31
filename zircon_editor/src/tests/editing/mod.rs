@@ -1,10 +1,12 @@
 mod asset_workspace;
 mod authoring_world;
 mod context_transactions;
+mod detached_entity_batch;
 mod editor_projection;
 mod history;
 mod import;
 mod inspector;
+mod interactive_transform;
 mod node_ops;
 mod reflected_command;
 mod state;
@@ -16,3 +18,5 @@ mod ui_asset_preview_binding_authoring;
 mod ui_asset_replay;
 mod ui_asset_theme_authoring;
 mod viewport;
+
+pub(crate) use state::{begin_moved_gizmo_drag, move_handle_drag_cursor_pair};

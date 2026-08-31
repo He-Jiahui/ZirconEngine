@@ -44,14 +44,21 @@ pub(in super::super) unsafe fn read_v4_byte_slices(
 }
 
 pub(in super::super) unsafe fn read_utf8(slice: ZrByteSlice) -> AbiDecodeResult<String> {
+    unsafe { read_utf8_with(slice, str::to_string) }
+}
+
+pub(in super::super) unsafe fn read_utf8_with<T>(
+    slice: ZrByteSlice,
+    visitor: impl FnOnce(&str) -> T,
+) -> AbiDecodeResult<T> {
     let bytes = unsafe { slice.checked_slice(ZR_RUNTIME_NATIVE_STRING_MAX_ENCODED_BYTES_V1) }
         .map_err(|_| AbiDecodeError::InvalidV4StringListPointer {
             field: "string value",
             count: slice.len,
         })?;
-    std::str::from_utf8(bytes)
-        .map(str::to_string)
-        .map_err(|source| AbiDecodeError::InvalidUtf8 { source })
+    let value =
+        std::str::from_utf8(bytes).map_err(|source| AbiDecodeError::InvalidUtf8 { source })?;
+    Ok(visitor(value))
 }
 
 #[cfg(test)]
@@ -75,5 +82,17 @@ mod tests {
                 count: 1
             }
         ));
+    }
+
+    #[test]
+    fn borrowed_utf8_mapping_preserves_exact_projection() {
+        let projected = unsafe {
+            read_utf8_with(ZrByteSlice::from_static(b"weather.velocity"), |stable_id| {
+                format!("read:component:{stable_id}")
+            })
+        }
+        .unwrap();
+
+        assert_eq!(projected, "read:component:weather.velocity");
     }
 }

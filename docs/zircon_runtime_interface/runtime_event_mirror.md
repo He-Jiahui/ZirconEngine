@@ -1,9 +1,9 @@
 ---
 related_code:
-  - zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
 implementation_files:
-  - zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs
+  - zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs
   - zircon_runtime/src/dynamic_api/session/event_mirror.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
 plan_sources:

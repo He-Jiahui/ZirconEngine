@@ -8,6 +8,12 @@ impl RetainedEditorHost {
         &mut self,
         keyboard: UiKeyboardInputEvent,
     ) {
+        if self.route_focused_game_keyboard_input(&keyboard) {
+            return;
+        }
+        if keyboard.state != UiKeyboardInputState::Pressed {
+            return;
+        }
         if self.try_begin_hierarchy_rename_from_keyboard(&keyboard) {
             return;
         }

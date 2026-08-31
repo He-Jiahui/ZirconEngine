@@ -4,7 +4,6 @@ import re
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable
 
 
 ENGINE_MODULE_IMPL_RE = re.compile(r"\bimpl\s+EngineModule\s+for\s+([A-Za-z_][A-Za-z0-9_]*)")
@@ -58,33 +57,28 @@ def _is_production_file(path: Path) -> bool:
     return "tests" not in path.parts and path.name != "tests.rs"
 
 
-def _find_locations(
+def _scan_production_file(
     root: Path,
-    files: Iterable[Path],
-    pattern: re.Pattern[str],
-) -> list[Location]:
-    results: list[Location] = []
-    for path in files:
-        for line_no, line in enumerate(_read_text(path).splitlines(), start=1):
-            if pattern.search(line):
-                results.append(
-                    Location(
-                        path=_relative(root, path),
-                        line=line_no,
-                        snippet=line.strip(),
-                    )
-                )
-    return results
-
-
-def _engine_module_impls(files: Iterable[Path]) -> list[str]:
+    path: Path,
+) -> tuple[list[Location], list[Location], list[str], int]:
+    relative_path = _relative(root, path)
+    descriptors: list[Location] = []
+    stubs: list[Location] = []
     owners: list[str] = []
-    for path in files:
-        for line in _read_text(path).splitlines():
-            match = ENGINE_MODULE_IMPL_RE.search(line)
-            if match:
-                owners.append(match.group(1))
-    return owners
+    lines = _read_text(path).splitlines()
+    for line_no, line in enumerate(lines, start=1):
+        if MODULE_DESCRIPTOR_RE.search(line):
+            descriptors.append(
+                Location(path=relative_path, line=line_no, snippet=line.strip())
+            )
+        if STUB_MODULE_RE.search(line):
+            stubs.append(
+                Location(path=relative_path, line=line_no, snippet=line.strip())
+            )
+        owner = ENGINE_MODULE_IMPL_RE.search(line)
+        if owner:
+            owners.append(owner.group(1))
+    return descriptors, stubs, owners, len(lines)
 
 
 def runtime_inventory(root: Path, hotspot_threshold: int) -> RuntimeInventory:
@@ -105,18 +99,19 @@ def runtime_inventory(root: Path, hotspot_threshold: int) -> RuntimeInventory:
             if _is_production_file(path)
         ]
         all_rs_files.extend(production_files)
-        descriptor_locations[crate_name] = _find_locations(
-            root,
-            production_files,
-            MODULE_DESCRIPTOR_RE,
-        )
-        stub_usage[crate_name] = _find_locations(root, production_files, STUB_MODULE_RE)
-        owner_impls[crate_name] = _engine_module_impls(production_files)
-
+        crate_descriptors: list[Location] = []
+        crate_stubs: list[Location] = []
+        crate_owners: list[str] = []
         for path in production_files:
-            count = len(_read_text(path).splitlines())
-            if count >= hotspot_threshold:
-                hotspots[crate_name].append((_relative(root, path), count))
+            descriptors, stubs, owners, line_count = _scan_production_file(root, path)
+            crate_descriptors.extend(descriptors)
+            crate_stubs.extend(stubs)
+            crate_owners.extend(owners)
+            if line_count >= hotspot_threshold:
+                hotspots[crate_name].append((_relative(root, path), line_count))
+        descriptor_locations[crate_name] = crate_descriptors
+        stub_usage[crate_name] = crate_stubs
+        owner_impls[crate_name] = crate_owners
         hotspots[crate_name].sort(key=lambda item: item[1], reverse=True)
 
     module_crates = sorted(

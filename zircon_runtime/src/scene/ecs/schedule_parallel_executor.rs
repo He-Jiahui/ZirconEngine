@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc, Mutex, MutexGuard,
+    atomic::{AtomicBool, Ordering},
 };
 
 use crate::core::{CoreHandle, JobHandle, JobScheduler};
@@ -99,7 +99,7 @@ impl ScheduleParallelExecutor {
             let registry_for_task = registry.clone();
             let scheduler_for_task = self.scheduler.clone();
             let aborted_for_task = Arc::clone(&aborted);
-            let batch_system_ids = system_ids.to_vec();
+            let batch_systems = batch.shared_systems();
             let dependency = previous_batch.clone();
             let parallel_enabled = self.parallel_enabled;
 
@@ -111,7 +111,7 @@ impl ScheduleParallelExecutor {
                         } else {
                             run_scheduled_batch(
                                 &scheduler_for_task,
-                                &batch_system_ids,
+                                batch_systems.system_ids(),
                                 &registry_for_task,
                                 parallel_enabled,
                             )
@@ -285,7 +285,13 @@ where
         return Ok(());
     }
 
-    if let [first_system_id, second_system_id, third_system_id, fourth_system_id] = system_ids {
+    if let [
+        first_system_id,
+        second_system_id,
+        third_system_id,
+        fourth_system_id,
+    ] = system_ids
+    {
         let first_task = registry.task_for_system(first_system_id)?;
         let second_task = registry.task_for_system(second_system_id)?;
         let third_task = registry.task_for_system(third_system_id)?;
@@ -303,8 +309,13 @@ where
         return Ok(());
     }
 
-    if let [first_system_id, second_system_id, third_system_id, fourth_system_id, fifth_system_id] =
-        system_ids
+    if let [
+        first_system_id,
+        second_system_id,
+        third_system_id,
+        fourth_system_id,
+        fifth_system_id,
+    ] = system_ids
     {
         let first_task = registry.task_for_system(first_system_id)?;
         let second_task = registry.task_for_system(second_system_id)?;
@@ -335,8 +346,14 @@ where
         return Ok(());
     }
 
-    if let [first_system_id, second_system_id, third_system_id, fourth_system_id, fifth_system_id, sixth_system_id] =
-        system_ids
+    if let [
+        first_system_id,
+        second_system_id,
+        third_system_id,
+        fourth_system_id,
+        fifth_system_id,
+        sixth_system_id,
+    ] = system_ids
     {
         let first_task = registry.task_for_system(first_system_id)?;
         let second_task = registry.task_for_system(second_system_id)?;
@@ -452,7 +469,7 @@ fn lock_batch_result<E>(
 
 #[cfg(test)]
 mod tests {
-    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::panic::{AssertUnwindSafe, catch_unwind};
 
     use super::*;
 

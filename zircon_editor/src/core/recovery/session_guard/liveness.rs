@@ -4,8 +4,8 @@ use std::time::SystemTime;
 use zircon_runtime::asset::project::ProjectPaths;
 
 use super::{
-    read_lock, session_lock_path, SessionGuard, SessionGuardError, SessionLockRecord,
-    SessionOwnershipLease,
+    ProjectSessionAdmissionRecordV1, SessionAdmissionRequest, SessionGuard, SessionGuardError,
+    SessionOwnershipLease, read_lock, session_lock_path,
 };
 
 /// The result of atomically claiming a project's session admission boundary.
@@ -16,7 +16,9 @@ use super::{
 #[derive(Debug)]
 pub enum SessionGuardAdmission {
     Acquired(SessionGuard),
-    Active { record: Option<SessionLockRecord> },
+    Active {
+        record: Option<ProjectSessionAdmissionRecordV1>,
+    },
     Residual(SessionGuardResidual),
 }
 
@@ -24,12 +26,12 @@ pub enum SessionGuardAdmission {
 #[derive(Debug)]
 pub struct SessionGuardResidual {
     path: PathBuf,
-    record: SessionLockRecord,
+    record: ProjectSessionAdmissionRecordV1,
     ownership: Option<SessionOwnershipLease>,
 }
 
 impl SessionGuardResidual {
-    pub fn record(&self) -> &SessionLockRecord {
+    pub fn record(&self) -> &ProjectSessionAdmissionRecordV1 {
         &self.record
     }
 
@@ -38,22 +40,31 @@ impl SessionGuardResidual {
     }
 
     /// Replaces this exact residual record while retaining the lease through publication.
-    pub fn take_over_at(mut self, now: SystemTime) -> Result<SessionGuard, SessionGuardError> {
+    pub fn take_over_at(
+        mut self,
+        admission: &SessionAdmissionRequest,
+        now: SystemTime,
+    ) -> Result<SessionGuard, SessionGuardError> {
         let path = self.path.clone();
         let ownership = self
             .ownership
             .take()
             .ok_or_else(|| SessionGuardError::OwnershipLost { path })?;
-        SessionGuard::replace_with_owned_lease(self.path, self.record, ownership, now)
+        SessionGuard::replace_with_owned_lease(self.path, self.record, ownership, admission, now)
     }
 
-    pub fn take_over(self) -> Result<SessionGuard, SessionGuardError> {
-        self.take_over_at(SystemTime::now())
+    pub fn take_over(
+        self,
+        admission: &SessionAdmissionRequest,
+    ) -> Result<SessionGuard, SessionGuardError> {
+        self.take_over_at(admission, SystemTime::now())
     }
 }
 
 pub(super) fn claim(
     project_root: impl AsRef<Path>,
+    admission: &SessionAdmissionRequest,
+    now: SystemTime,
 ) -> Result<SessionGuardAdmission, SessionGuardError> {
     let root = ProjectPaths::resolve_path(project_root.as_ref())
         .map(|root| root.into_operation_path())
@@ -77,7 +88,7 @@ pub(super) fn claim(
             record,
             ownership: Some(ownership),
         })),
-        None => SessionGuard::create_with_owned_lease(path, ownership, SystemTime::now())
+        None => SessionGuard::create_with_owned_lease(path, ownership, admission, now)
             .map(SessionGuardAdmission::Acquired),
     }
 }

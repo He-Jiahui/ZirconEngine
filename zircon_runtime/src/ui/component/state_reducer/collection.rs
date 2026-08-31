@@ -103,25 +103,39 @@ pub(super) fn rename_map_key(
     if from_key == to_key {
         return Ok(());
     }
-    if map_value_mut(state, &property).contains_key(&to_key) {
-        state.validation = UiValidationState::error(format!("map key `{to_key}` already exists"));
-        return Err(UiComponentEventError::DuplicateMapKey {
-            property,
-            key: to_key,
-        });
+    let error = {
+        let values = map_value_mut(state, &property);
+        if values.contains_key(&to_key) {
+            Some(UiComponentEventError::DuplicateMapKey {
+                property: property.clone(),
+                key: to_key,
+            })
+        } else if !values.contains_key(&from_key) {
+            Some(UiComponentEventError::MissingMapKey {
+                property: property.clone(),
+                key: from_key,
+            })
+        } else {
+            let value = values
+                .remove(&from_key)
+                .expect("map key was verified before rename");
+            values.insert(to_key, value);
+            None
+        }
+    };
+    if let Some(error) = error {
+        let message = match &error {
+            UiComponentEventError::DuplicateMapKey { key, .. } => {
+                format!("map key `{key}` already exists")
+            }
+            UiComponentEventError::MissingMapKey { key, .. } => {
+                format!("map key `{key}` does not exist")
+            }
+            _ => unreachable!("rename only reports map-key validation errors"),
+        };
+        state.validation = UiValidationState::error(message);
+        return Err(error);
     }
-    if !map_value_mut(state, &property).contains_key(&from_key) {
-        state.validation = UiValidationState::error(format!("map key `{from_key}` does not exist"));
-        return Err(UiComponentEventError::MissingMapKey {
-            property,
-            key: from_key,
-        });
-    }
-    let values = map_value_mut(state, &property);
-    let value = values
-        .remove(&from_key)
-        .expect("map key was verified before rename");
-    values.insert(to_key, value);
     clear_reference_source(state, &property);
     Ok(())
 }
@@ -155,6 +169,10 @@ fn array_value_mut<'a>(state: &'a mut UiComponentState, property: &str) -> &'a m
         _ => unreachable!("array value was inserted before mutable access"),
     }
 }
+
+#[cfg(test)]
+#[path = "collection/map_single_resolution_tests.rs"]
+mod map_single_resolution_tests;
 
 fn map_value_mut<'a>(
     state: &'a mut UiComponentState,

@@ -3,39 +3,33 @@ use crate::ui::retained_host::tab_drag::{
     resolve_host_tab_drop_route_with_workbench_layout_frames, HostDragTargetGroup,
     ResolvedHostTabDropRoute, ResolvedHostTabDropTarget,
 };
-use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 impl RetainedEditorHost {
     pub(super) fn resolve_drag_drop_route_from_pointer(
-        &mut self,
+        &self,
         tab_id: &str,
         source_group: &str,
         target_group: &str,
+        pointer_route: Option<HostShellPointerRoute>,
         x: f32,
         y: f32,
     ) -> Option<ResolvedHostTabDropRoute> {
-        let layout = self.runtime.current_layout();
-        let chrome = self.build_chrome();
-        record_current_ui_perf_counter(UiPerfCounter::WorkbenchModelBuildCount, 1.0);
-        let context = self.runtime.project_command_eval_snapshot(&chrome);
-        let commands = self.runtime.commands().lock();
-        let model = WorkbenchViewModel::build_with_context(&commands, &chrome, &context);
-        let pointer_route = self.shell_pointer_bridge.drag_route_at(UiPoint::new(x, y));
         if target_group.is_empty() && pointer_route.is_none() {
-            Some(detached_window_drop_route(tab_id, source_group))
-        } else {
-            resolve_host_tab_drop_route_with_workbench_layout_frames(
-                &layout,
-                &model,
-                &self.chrome_metrics,
-                tab_id,
-                pointer_route,
-                target_group,
-                x,
-                y,
-                self.workbench_window_bridge.layout_frames(),
-            )
+            return Some(detached_window_drop_route(tab_id, source_group));
         }
+
+        let committed = self.committed_shell_state.as_ref()?;
+        resolve_host_tab_drop_route_with_workbench_layout_frames(
+            &committed.layout,
+            &committed.model,
+            &self.chrome_metrics,
+            tab_id,
+            pointer_route,
+            target_group,
+            x,
+            y,
+            committed.layout_frames,
+        )
     }
 }
 

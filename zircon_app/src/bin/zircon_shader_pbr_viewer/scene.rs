@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fs;
+use std::io;
 use std::path::Path;
 use std::time::Instant;
 
@@ -28,12 +29,14 @@ use zircon_runtime::graphics::{
 };
 use zircon_runtime_interface::project::RelPath;
 
+use crate::background_load::BackgroundTaskCancellation;
 use crate::camera::{camera_render_descriptor, OrbitCamera};
 use crate::hdri::{
     preflight_viewer_hdri, source_cubemap_environment, SourceCubemapEnvironmentLoad,
 };
+use crate::material_fixture::ViewerMaterialFixture;
 use crate::project_assets::{
-    viewer_project_assets_are_ready, write_viewer_project_assets,
+    viewer_project_assets_are_ready_for_fixture, write_viewer_project_assets_for_fixture,
     ViewerProjectAssetGenerationReport, VIEWER_PROJECT_ASSET_ROOT,
 };
 use crate::work_paths::ViewerWorkPaths;
@@ -74,7 +77,8 @@ pub(crate) struct PbrMirrorScene {
     environment: EnvironmentExtract,
     preview: PreviewEnvironmentExtract,
     ibl_load_report: PbrMirrorSceneIblLoadReport,
-    base_prewarm_report: PbrMirrorSceneBasePrewarmReport,
+    material_fixture: ViewerMaterialFixture,
+    base_prewarm_report: Option<PbrMirrorSceneBasePrewarmReport>,
     startup_timing: PbrMirrorSceneStartupTiming,
     frame_timing_report_requested: bool,
     last_frame_timing: PbrMirrorSceneFrameTimingReport,
@@ -201,6 +205,10 @@ pub(crate) struct PbrMirrorSceneStartupTiming {
     world_load: std::time::Duration,
     renderer_initialization: std::time::Duration,
     renderer_backend_initialization: std::time::Duration,
+    renderer_environment_brdf_lut_builtin_payload_materialized: bool,
+    renderer_environment_brdf_lut_builtin_payload_cache_wait: std::time::Duration,
+    renderer_environment_brdf_lut_builtin_payload_materialization: std::time::Duration,
+    renderer_environment_brdf_lut_texture_upload_submission: std::time::Duration,
     renderer_deferred_initialization: std::time::Duration,
     renderer_deferred_standard_pipeline: std::time::Duration,
     resource_streamer_initialization: std::time::Duration,
@@ -235,6 +243,28 @@ impl PbrMirrorSceneStartupTiming {
 
     pub(crate) const fn renderer_backend_initialization(self) -> std::time::Duration {
         self.renderer_backend_initialization
+    }
+
+    pub(crate) const fn renderer_environment_brdf_lut_builtin_payload_materialized(self) -> bool {
+        self.renderer_environment_brdf_lut_builtin_payload_materialized
+    }
+
+    pub(crate) const fn renderer_environment_brdf_lut_builtin_payload_cache_wait(
+        self,
+    ) -> std::time::Duration {
+        self.renderer_environment_brdf_lut_builtin_payload_cache_wait
+    }
+
+    pub(crate) const fn renderer_environment_brdf_lut_builtin_payload_materialization(
+        self,
+    ) -> std::time::Duration {
+        self.renderer_environment_brdf_lut_builtin_payload_materialization
+    }
+
+    pub(crate) const fn renderer_environment_brdf_lut_texture_upload_submission(
+        self,
+    ) -> std::time::Duration {
+        self.renderer_environment_brdf_lut_texture_upload_submission
     }
 
     pub(crate) const fn renderer_deferred_initialization(self) -> std::time::Duration {
@@ -296,22 +326,30 @@ impl PbrMirrorSceneFrameTimingReport {
 
 impl PbrMirrorScene {
     // The HDRI loader resolves an omitted face size after decoding the source dimensions.
-    pub(crate) fn new(
+    pub(crate) fn new_with_cancellation(
         hdri_path: &Path,
         face_size: Option<u32>,
         pmrem_face_size: Option<u32>,
         work_dir: &Path,
         ibl_cache_dir: Option<&Path>,
+        material_fixture: ViewerMaterialFixture,
         gpu_timing_enabled: bool,
+        cancellation: &BackgroundTaskCancellation,
     ) -> Result<Self, Box<dyn Error>> {
         let scene_load_started = Instant::now();
+        check_scene_load_cancellation(cancellation, "before HDRI preflight")?;
         let hdri_preflight_started = Instant::now();
         let hdri = preflight_viewer_hdri(hdri_path, face_size, pmrem_face_size)?;
+        check_scene_load_cancellation(cancellation, "after HDRI preflight")?;
         let hdri_preflight_elapsed = hdri_preflight_started.elapsed();
         let project_assets_started = Instant::now();
         let work_paths = ViewerWorkPaths::new(work_dir, ibl_cache_dir);
-        fs::create_dir_all(work_paths.project_root())?;
-        let paths = ProjectPaths::from_root(work_paths.project_root())?;
+        let project_root = material_fixture.project_root_component().map_or_else(
+            || work_paths.project_root().to_path_buf(),
+            |component| work_paths.project_root().join(component),
+        );
+        fs::create_dir_all(&project_root)?;
+        let paths = ProjectPaths::from_root(&project_root)?;
         let scene_uri = AssetUri::parse("res://scenes/single_pbr_sphere.scene.toml")?;
         let mut manifest = ProjectManifest::new("ShaderPbrMirrorViewer", scene_uri.clone(), 1);
         manifest.asset_roots = vec![RelPath::parse(VIEWER_PROJECT_ASSET_ROOT)?];
@@ -320,17 +358,19 @@ impl PbrMirrorScene {
             manifest.save(paths.manifest_path())?;
         }
         let asset_root = manifest.primary_asset_root_path(&paths)?;
-        let project_assets_reused = viewer_project_assets_are_ready(&asset_root);
+        let project_assets_reused =
+            viewer_project_assets_are_ready_for_fixture(&asset_root, material_fixture);
         let project_asset_generation = if project_assets_reused {
             ViewerProjectAssetGenerationReport::reused()
         } else {
-            write_viewer_project_assets(&asset_root)?
+            write_viewer_project_assets_for_fixture(&asset_root, material_fixture)?
         };
         paths.ensure_layout(&manifest.asset_roots)?;
         let project_manifest_writes = u32::from(manifest_needs_publish);
         let project_startup_filesystem_writes =
             project_asset_generation.filesystem_writes() + project_manifest_writes;
         let project_assets_elapsed = project_assets_started.elapsed();
+        check_scene_load_cancellation(cancellation, "after project assets")?;
 
         let runtime_bootstrap_started = Instant::now();
         let asset_runtime = CoreRuntime::new();
@@ -344,12 +384,12 @@ impl PbrMirrorScene {
         let asset_access =
             ProjectAssetManagerAccess::new(core.clone(), project_asset_manager_handle(&core)?);
         let runtime_bootstrap_elapsed = runtime_bootstrap_started.elapsed();
+        check_scene_load_cancellation(cancellation, "after runtime bootstrap")?;
 
         let project_open_started = Instant::now();
         let asset_manager = asset_access.resolve()?;
         let mut project_runtime_report = ViewerProjectRuntimeOpenReport::default();
-        let project_info =
-            asset_manager.open_project(work_paths.project_root().to_string_lossy().as_ref())?;
+        let project_info = asset_manager.open_project(project_root.to_string_lossy().as_ref())?;
         project_runtime_report.record_open(&project_info);
         let project = asset_manager.current_project_manager().ok_or_else(|| {
             std::io::Error::new(
@@ -358,14 +398,21 @@ impl PbrMirrorScene {
             )
         })?;
         let project_open_elapsed = project_open_started.elapsed();
+        check_scene_load_cancellation(cancellation, "after project open")?;
 
         let world_load_started = Instant::now();
         let world = zircon_runtime::scene::world::World::load_scene_from_uri(&project, &scene_uri)?;
         let world_load_elapsed = world_load_started.elapsed();
+        check_scene_load_cancellation(cancellation, "after world load")?;
 
         let renderer_init_started = Instant::now();
-        let startup_options = SceneRendererStartupOptions::environment_only_pbr_preview()
-            .with_async_pipeline_compile();
+        let startup_options = SceneRendererStartupOptions::environment_only_pbr_preview();
+        let startup_options = if material_fixture.requires_generic_forward_pipeline() {
+            startup_options.without_environment_only_pbr_base_prewarm()
+        } else {
+            startup_options
+        }
+        .with_async_pipeline_compile();
         let startup_options = if gpu_timing_enabled {
             startup_options.with_gpu_timing()
         } else {
@@ -375,6 +422,7 @@ impl PbrMirrorScene {
             WgpuRenderFramework::new_with_startup_options_and_report(
                 asset_access,
                 startup_options,
+                asset_runtime.task_graph().worker_pool().clone(),
             )?;
         let submission_config = RenderSubmissionConfig::synchronous().with_async_pipeline_compile();
         let submission_config = if gpu_timing_enabled {
@@ -383,6 +431,9 @@ impl PbrMirrorScene {
             submission_config
         };
         render_framework.set_submission_config(submission_config)?;
+        if material_fixture.requires_generic_forward_pipeline() {
+            render_framework.queue_pbr_ior_forward_base_pipeline_admission()?;
+        }
         let viewport = render_framework.create_viewport(
             RenderViewportDescriptor::new(UVec2::new(1, 1)).with_label("pbr-mirror-viewer"),
         )?;
@@ -390,6 +441,7 @@ impl PbrMirrorScene {
             .query_graphics_debugger_status()?
             .backend_name;
         let renderer_init_elapsed = renderer_init_started.elapsed();
+        check_scene_load_cancellation(cancellation, "after renderer bootstrap")?;
 
         let ibl_restore_started = Instant::now();
         let SourceCubemapEnvironmentLoad {
@@ -407,13 +459,14 @@ impl PbrMirrorScene {
         } = source_cubemap_environment(
             hdri,
             work_paths.ibl_cache_root(),
-            asset_runtime.task_pools().compute(),
+            asset_runtime.task_graph().worker_pool(),
         )?;
         let ibl_restore_elapsed = ibl_restore_started
             .elapsed()
             .saturating_sub(source_pixel_decode_elapsed);
         let hdri_decode_elapsed =
             hdri_preflight_elapsed.saturating_add(source_pixel_decode_elapsed);
+        check_scene_load_cancellation(cancellation, "after IBL restore")?;
         let ibl_load_report = PbrMirrorSceneIblLoadReport::new(
             staging_status,
             staging_elapsed,
@@ -436,13 +489,14 @@ impl PbrMirrorScene {
                 shader_source_resolution: report.shader_source_resolution(),
                 pipeline_creation: report.pipeline_creation(),
                 elapsed: report.elapsed(),
-            })
-            .ok_or_else(|| {
-                std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    "environment-only PBR viewer did not retain its Base prewarm report",
-                )
-            })?;
+            });
+        if material_fixture == ViewerMaterialFixture::MetalMirror && base_prewarm_report.is_none() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "environment-only PBR viewer did not retain its Base prewarm report",
+            )
+            .into());
+        }
         let startup_timing = PbrMirrorSceneStartupTiming {
             hdri_decode: hdri_decode_elapsed,
             project_assets: project_assets_elapsed,
@@ -451,6 +505,14 @@ impl PbrMirrorScene {
             world_load: world_load_elapsed,
             renderer_initialization: renderer_init_elapsed,
             renderer_backend_initialization: renderer_startup_report.backend_initialization(),
+            renderer_environment_brdf_lut_builtin_payload_materialized: renderer_startup_report
+                .system_texture_builtin_payload_materialized(),
+            renderer_environment_brdf_lut_builtin_payload_cache_wait: renderer_startup_report
+                .system_texture_builtin_payload_cache_wait(),
+            renderer_environment_brdf_lut_builtin_payload_materialization: renderer_startup_report
+                .system_texture_builtin_payload_materialization(),
+            renderer_environment_brdf_lut_texture_upload_submission: core_startup
+                .environment_brdf_lut_texture_upload_submission(),
             renderer_deferred_initialization: core_startup.deferred(),
             renderer_deferred_standard_pipeline: core_startup.deferred_lighting_standard_pipeline(),
             resource_streamer_initialization: renderer_startup_report
@@ -467,6 +529,7 @@ impl PbrMirrorScene {
             environment,
             preview,
             ibl_load_report,
+            material_fixture,
             base_prewarm_report,
             startup_timing,
             frame_timing_report_requested: false,
@@ -474,7 +537,7 @@ impl PbrMirrorScene {
             _asset_runtime: Some(asset_runtime),
         };
         println!(
-            "PBR viewer startup timing: hdr_decode={hdri_decode_elapsed:.2?}, project_assets={project_assets_elapsed:.2?} ({project_assets_cache}; mesh_generation_samples={}; serialized_source_bytes={}; asset_filesystem_writes={}; project_manifest_writes={}; startup_filesystem_writes={}), runtime_bootstrap={runtime_bootstrap_elapsed:.2?}, project_open={project_open_elapsed:.2?} (project_open_count={}; imported_assets={}; ready_assets={}), world_load={world_load_elapsed:.2?}, renderer_init={renderer_init_elapsed:.2?} (backend={:.2?}, core={:.2?} [setup={:.2?}, mesh_environment={:.2?}, shadows={:.2?}, deferred={:.2?} [lighting_pipelines={:.2?} [lighting_source_assembly={:.2?}, pipeline_foundation={:.2?}, standard_pso={:.2?}], fallback_resources={:.2?}], scene_effects={:.2?} [particles={:.2?}, sprites={:.2?}, hzb={:.2?}, post_process={:.2?}], overlay_ui={:.2?}], streamer={:.2?}, base_prewarm={base_prewarm_report:?}), ibl_restore={ibl_restore_elapsed:.2?}, total={:.2?}",
+            "PBR viewer startup timing: hdr_decode={hdri_decode_elapsed:.2?}, project_assets={project_assets_elapsed:.2?} ({project_assets_cache}; mesh_generation_samples={}; serialized_source_bytes={}; asset_filesystem_writes={}; project_manifest_writes={}; startup_filesystem_writes={}), runtime_bootstrap={runtime_bootstrap_elapsed:.2?}, project_open={project_open_elapsed:.2?} (project_open_count={}; imported_assets={}; ready_assets={}), world_load={world_load_elapsed:.2?}, renderer_init={renderer_init_elapsed:.2?} (backend={:.2?}, core={:.2?} [setup={:.2?}, brdf_lut=[builtin_materialized={}, builtin_cache_wait={:.2?}, builtin_materialization={:.2?}, upload_submit={:.2?}], mesh_environment={:.2?}, shadows={:.2?}, deferred={:.2?} [lighting_pipelines={:.2?} [lighting_source_assembly={:.2?}, pipeline_foundation={:.2?}, standard_pso={:.2?}], fallback_resources={:.2?}], scene_effects={:.2?} [particles={:.2?}, sprites={:.2?}, hzb={:.2?}, post_process={:.2?}], overlay_ui={:.2?}], streamer={:.2?}, base_prewarm={base_prewarm_report:?}), ibl_restore={ibl_restore_elapsed:.2?}, total={:.2?}",
             project_asset_generation.mesh_generation_samples(),
             project_asset_generation.serialized_source_bytes(),
             project_asset_generation.filesystem_writes(),
@@ -486,6 +549,10 @@ impl PbrMirrorScene {
             renderer_startup_report.backend_initialization(),
             renderer_startup_report.core_initialization(),
             core_startup.setup(),
+            renderer_startup_report.system_texture_builtin_payload_materialized(),
+            renderer_startup_report.system_texture_builtin_payload_cache_wait(),
+            renderer_startup_report.system_texture_builtin_payload_materialization(),
+            core_startup.environment_brdf_lut_texture_upload_submission(),
             core_startup.mesh_and_environment(),
             core_startup.shadows(),
             core_startup.deferred(),
@@ -671,7 +738,7 @@ impl PbrMirrorScene {
         self.ibl_load_report
     }
 
-    pub(crate) const fn base_prewarm_report(&self) -> PbrMirrorSceneBasePrewarmReport {
+    pub(crate) const fn base_prewarm_report(&self) -> Option<PbrMirrorSceneBasePrewarmReport> {
         self.base_prewarm_report
     }
 
@@ -679,24 +746,36 @@ impl PbrMirrorScene {
         self.startup_timing
     }
 
-    /// Drains completed Base-PSO work without blocking and reports whether a
-    /// one-shot screenshot or graphics capture can contain the PBR mesh.
-    pub(crate) fn environment_only_base_pipeline_ready(&mut self) -> Result<bool, Box<dyn Error>> {
-        Ok(self
-            .render_framework
-            .as_ref()
-            .ok_or("PBR mirror scene render framework has already shut down")?
-            .environment_only_pbr_base_pipeline_ready()?)
+    pub(crate) const fn material_fixture(&self) -> ViewerMaterialFixture {
+        self.material_fixture
     }
 
-    /// Retries nonblocking Base-PSO admission after the bounded worker frees capacity.
-    pub(crate) fn retry_environment_only_base_pipeline_admission(
+    /// Drains the actual static material's Base-PSO work without blocking.
+    pub(crate) fn required_material_base_pipeline_ready(&mut self) -> Result<bool, Box<dyn Error>> {
+        let framework = self
+            .render_framework
+            .as_ref()
+            .ok_or("PBR mirror scene render framework has already shut down")?;
+        if self.material_fixture.requires_generic_forward_pipeline() {
+            Ok(framework.pbr_ior_forward_base_pipeline_ready()?)
+        } else {
+            Ok(framework.environment_only_pbr_base_pipeline_ready()?)
+        }
+    }
+
+    /// Retries bounded admission for the actual material PSO after backpressure.
+    pub(crate) fn retry_required_material_base_pipeline_admission(
         &mut self,
     ) -> Result<(), Box<dyn Error>> {
-        self.render_framework
+        let framework = self
+            .render_framework
             .as_ref()
-            .ok_or("PBR mirror scene render framework has already shut down")?
-            .retry_environment_only_pbr_base_pipeline_admission()?;
+            .ok_or("PBR mirror scene render framework has already shut down")?;
+        if self.material_fixture.requires_generic_forward_pipeline() {
+            framework.queue_pbr_ior_forward_base_pipeline_admission()?;
+        } else {
+            framework.retry_environment_only_pbr_base_pipeline_admission()?;
+        }
         Ok(())
     }
 
@@ -733,6 +812,22 @@ impl PbrMirrorScene {
         }
         Ok(())
     }
+}
+
+// The worker owns all partial scene resources until this construction returns, so a checkpoint
+// can abort publication and let Rust release the local runtime/renderer in dependency order.
+fn check_scene_load_cancellation(
+    cancellation: &BackgroundTaskCancellation,
+    completed_stage: &str,
+) -> Result<(), Box<dyn Error>> {
+    if cancellation.is_cancel_requested() {
+        return Err(io::Error::new(
+            io::ErrorKind::Interrupted,
+            format!("PBR viewer scene load cancelled {completed_stage}"),
+        )
+        .into());
+    }
+    Ok(())
 }
 
 impl Drop for PbrMirrorScene {
@@ -858,10 +953,35 @@ mod tests {
     #[test]
     fn viewer_exposes_nonblocking_base_pipeline_admission_retry() {
         assert_source_order(&[
-            "pub(crate) fn environment_only_base_pipeline_ready(",
-            "pub(crate) fn retry_environment_only_base_pipeline_admission(",
+            "pub(crate) fn required_material_base_pipeline_ready(",
+            "pub(crate) fn retry_required_material_base_pipeline_admission(",
             ".retry_environment_only_pbr_base_pipeline_admission()?;",
         ]);
+        let source = production_source();
+        assert!(source.contains("framework.pbr_ior_forward_base_pipeline_ready()?"));
+        assert!(
+            source.contains("framework.queue_pbr_ior_forward_base_pipeline_admission()?"),
+            "the IOR fixture must retry its exact generic Forward variant"
+        );
+    }
+
+    #[test]
+    fn dielectric_fixture_uses_an_isolated_project_and_only_its_generic_forward_pso() {
+        let source = production_source();
+
+        assert_source_order(&[
+            "material_fixture.project_root_component()",
+            "work_paths.project_root().join(component)",
+            "write_viewer_project_assets_for_fixture(&asset_root, material_fixture)?",
+            "startup_options.without_environment_only_pbr_base_prewarm()",
+            "WgpuRenderFramework::new_with_startup_options_and_report(",
+            "render_framework.queue_pbr_ior_forward_base_pipeline_admission()?",
+        ]);
+        assert!(
+            source.contains("if material_fixture == ViewerMaterialFixture::MetalMirror")
+                && source.contains("base_prewarm_report.is_none()"),
+            "only the mirror baseline may require the specialized prewarm report"
+        );
     }
 
     #[test]
@@ -1023,14 +1143,34 @@ mod tests {
     }
 
     #[test]
+    fn cancelled_scene_load_checks_each_bootstrap_boundary_before_publication() {
+        let source = production_source();
+
+        assert!(!source.contains("pub(crate) fn new("));
+        assert_source_order(&[
+            "pub(crate) fn new_with_cancellation(",
+            "check_scene_load_cancellation(cancellation, \"before HDRI preflight\")?;",
+            "let hdri = preflight_viewer_hdri(hdri_path, face_size, pmrem_face_size)?;",
+            "check_scene_load_cancellation(cancellation, \"after HDRI preflight\")?;",
+            "check_scene_load_cancellation(cancellation, \"after project assets\")?;",
+            "check_scene_load_cancellation(cancellation, \"after runtime bootstrap\")?;",
+            "check_scene_load_cancellation(cancellation, \"after project open\")?;",
+            "check_scene_load_cancellation(cancellation, \"after world load\")?;",
+            "check_scene_load_cancellation(cancellation, \"after renderer bootstrap\")?;",
+            "check_scene_load_cancellation(cancellation, \"after IBL restore\")?;",
+            "Ok(scene)",
+        ]);
+    }
+
+    #[test]
     fn viewer_reuses_completed_project_assets_before_opening_the_runtime_project() {
         assert_source_order(&[
             "let asset_root = manifest.primary_asset_root_path(&paths)?;",
-            "let project_assets_reused = viewer_project_assets_are_ready(&asset_root);",
+            "viewer_project_assets_are_ready_for_fixture(&asset_root, material_fixture);",
             "let project_asset_generation = if project_assets_reused {",
             "ViewerProjectAssetGenerationReport::reused()",
-            "write_viewer_project_assets(&asset_root)?",
-            "asset_manager.open_project(work_paths.project_root().to_string_lossy().as_ref())",
+            "write_viewer_project_assets_for_fixture(&asset_root, material_fixture)?",
+            "asset_manager.open_project(project_root.to_string_lossy().as_ref())",
             "project_runtime_report.record_open(&project_info);",
         ]);
     }

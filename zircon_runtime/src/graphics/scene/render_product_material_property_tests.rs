@@ -16,14 +16,15 @@ use crate::core::resource::{
 };
 use crate::graphics::backend::RenderBackend;
 
-use super::resources::{ResourceStreamer, GPU_MATERIAL_UNIFORM_MIN_SIZE};
+use super::resources::{GPU_MATERIAL_UNIFORM_MIN_SIZE, ResourceStreamer};
 
 mod uniform_debug_counts;
 
 #[test]
 fn render_product_material_properties_prepare_uniform_payload() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/runtime-property-uniform.zmaterial");
@@ -59,6 +60,7 @@ fn render_product_material_properties_prepare_uniform_payload() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -83,6 +85,7 @@ fn render_product_material_properties_prepare_uniform_payload() {
     assert_eq!(u32_at(&payload.bytes, 32), 1);
     assert_eq!(payload.bytes.len(), 48);
     assert!(payload.unsupported.is_empty());
+    assert_eq!(GPU_MATERIAL_UNIFORM_MIN_SIZE, 256);
     assert_eq!(
         streamer.material_uniform_payload_byte_len(&material_id),
         Some(48)
@@ -96,7 +99,8 @@ fn render_product_material_properties_prepare_uniform_payload() {
 #[test]
 fn render_product_streamer_reuses_material_uniforms_for_unchanged_revision() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/runtime-property-uniform-cache.zmaterial");
@@ -132,6 +136,7 @@ fn render_product_streamer_reuses_material_uniforms_for_unchanged_revision() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -143,6 +148,7 @@ fn render_product_streamer_reuses_material_uniforms_for_unchanged_revision() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -163,7 +169,8 @@ fn render_product_streamer_reuses_material_uniforms_for_unchanged_revision() {
 #[test]
 fn render_product_streamer_reports_material_uniform_diagnostics_in_readiness_report() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/runtime-property-uniform-report.zmaterial");
@@ -204,6 +211,7 @@ fn render_product_streamer_reports_material_uniform_diagnostics_in_readiness_rep
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -232,7 +240,8 @@ fn render_product_streamer_reports_material_uniform_diagnostics_in_readiness_rep
 #[test]
 fn render_product_streamer_reports_material_uniform_diagnostics_for_shader_string_defaults() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/runtime-property-uniform-default.zmaterial");
@@ -263,6 +272,7 @@ fn render_product_streamer_reports_material_uniform_diagnostics_for_shader_strin
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,

@@ -1,8 +1,6 @@
-use std::path::Path;
+use std::sync::Arc;
 
-use glyphon::{FontSystem, SwashCache, TextArea, TextAtlas, TextRenderer, Viewport};
-
-use crate::asset::{FontAsset, ProjectAssetManager};
+use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
 use crate::core::runtime::tasks::TaskPools;
 
@@ -10,12 +8,13 @@ use super::atlas::{
     GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapRetryFrameState, GlyphAtlasSet,
 };
 use super::font::{
-    mutate_shared_font_database, shared_font_database_generation, shared_font_database_snapshot,
-    FontDatabase, MissingGlyphDiagnosticsReport, TextDecorationMetrics,
+    FontCollectionRevision, FontCollectionService, FontDatabase, MissingGlyphDiagnosticsReport,
+    TextDecorationMetrics, shared_font_collection_service,
 };
 use super::native_bitmap_atlas::{
-    native_bitmap_atlas_frame, native_bitmap_atlas_idle_prepare_report, NativeBitmapAtlasFrame,
-    NativeBitmapAtlasPrepareReport, NativeBitmapAtlasSourceCache, NativeBitmapAtlasTextArea,
+    NativeBitmapAtlasFrame, NativeBitmapAtlasGlyphRun, NativeBitmapAtlasPrepareReport,
+    NativeBitmapAtlasSourceCache, native_bitmap_atlas_frame,
+    native_bitmap_atlas_idle_prepare_report,
 };
 use super::parallel::raster_pool::{
     TextRasterThreadBudgetSource, TextRasterWorkerPool, TextRasterWorkerPoolOptions,
@@ -24,13 +23,11 @@ use super::sdf::{
     SdfAtlasBake, SdfAtlasGlyphKey, SdfAtlasSlot, SdfFontBakeCache, SdfGenerationScheduler,
     SdfGenerationSchedulerOptions, SdfRunCpuPreparation, SdfTextRun,
 };
-use super::system_text_locale;
 
 pub(crate) struct TextRenderState {
-    font_system: FontSystem,
+    font_collection: Arc<FontCollectionService>,
     font_database: FontDatabase,
     font_generation: u64,
-    swash_cache: SwashCache,
     bitmap_source_cache: NativeBitmapAtlasSourceCache,
     bitmap_retry_state: GlyphAtlasBitmapRetryFrameState,
     bitmap_atlas: GlyphAtlasSet,
@@ -43,13 +40,29 @@ pub(crate) struct TextRenderState {
 
 impl TextRenderState {
     pub(crate) fn new(raster_worker_count: usize) -> Self {
+        Self::new_with_font_collection(raster_worker_count, shared_font_collection_service())
+    }
+
+    pub(crate) fn new_with_font_collection(
+        raster_worker_count: usize,
+        font_collection: Arc<FontCollectionService>,
+    ) -> Self {
         Self::new_with_raster_worker_options(
             TextRasterWorkerPoolOptions::new(raster_worker_count),
             None,
+            font_collection,
         )
     }
 
     pub(crate) fn new_with_process_raster_worker_budget() -> Self {
+        Self::new_with_font_collection_and_process_raster_worker_budget(
+            shared_font_collection_service(),
+        )
+    }
+
+    pub(crate) fn new_with_font_collection_and_process_raster_worker_budget(
+        font_collection: Arc<FontCollectionService>,
+    ) -> Self {
         let task_pools = TaskPools::process_default();
         let sdf_parallelism = task_pools.compute().parallelism();
         let sdf_generation_scheduler = SdfGenerationScheduler::new(
@@ -59,6 +72,7 @@ impl TextRenderState {
         Self::new_with_raster_worker_options(
             Self::process_raster_worker_options(&task_pools),
             Some(sdf_generation_scheduler),
+            font_collection,
         )
     }
 
@@ -71,53 +85,24 @@ impl TextRenderState {
     fn new_with_raster_worker_options(
         raster_worker_options: TextRasterWorkerPoolOptions,
         sdf_generation_scheduler: Option<SdfGenerationScheduler>,
+        font_collection: Arc<FontCollectionService>,
     ) -> Self {
-        let (font_generation, font_database) = shared_font_database_snapshot();
-        let font_system = FontSystem::new_with_locale_and_db(
-            system_text_locale(),
-            font_database.backend_database_snapshot(),
-        );
+        let (font_generation, font_database) = font_collection.snapshot();
+        let sdf_font_bake =
+            SdfFontBakeCache::new_with_font_collection(Arc::clone(&font_collection));
         Self {
-            font_system,
+            font_collection,
             font_database,
             font_generation,
-            swash_cache: SwashCache::new(),
             bitmap_source_cache: NativeBitmapAtlasSourceCache::default(),
             bitmap_retry_state: GlyphAtlasBitmapRetryFrameState::new(),
             bitmap_atlas: GlyphAtlasSet::default(),
             bitmap_raster_worker_pool: TextRasterWorkerPool::new(raster_worker_options).ok(),
             bitmap_atlas_frame_index: 0,
-            sdf_font_bake: SdfFontBakeCache::new(),
+            sdf_font_bake,
             sdf_generation_scheduler,
             sdf_generation_frame_index: 0,
         }
-    }
-
-    pub(crate) fn replace_font_source(
-        &mut self,
-        owner: &str,
-        source_path: &Path,
-        asset: Option<&FontAsset>,
-        family: Option<&str>,
-        face_index: u32,
-    ) -> Option<super::font::FontAssetUpdateReport> {
-        let (generation, database, result) = mutate_shared_font_database(|database| match asset {
-            Some(asset) => database.replace_font_asset(owner, asset, source_path),
-            None => database.replace_font_source(owner, source_path, family, face_index),
-        });
-        self.adopt_font_database(generation, database);
-        let report = result.ok()?;
-        if report.faces.is_empty() {
-            return None;
-        }
-        Some(report)
-    }
-
-    pub(crate) fn remove_font_asset(&mut self, owner: &str) -> super::font::FontAssetUpdateReport {
-        let (generation, database, report) =
-            mutate_shared_font_database(|database| database.remove_font_asset(owner));
-        self.adopt_font_database(generation, database);
-        report
     }
 
     #[cfg(test)]
@@ -125,49 +110,30 @@ impl TextRenderState {
         self.font_database.face_count()
     }
 
-    pub(crate) fn font_face_id(&self, backend: glyphon::fontdb::ID) -> Option<super::FontFaceId> {
-        self.font_database.font_face_id(backend)
-    }
-
-    pub(crate) fn set_project_composite_font(
-        &mut self,
-        descriptor: Option<super::CompositeFontDescriptor>,
-    ) -> bool {
-        let (generation, database, changed) =
-            mutate_shared_font_database(|database| database.set_project_composite_font(descriptor));
-        self.adopt_font_database(generation, database);
-        changed
-    }
-
-    pub(crate) fn set_default_ui_family(&mut self, family: &str) -> bool {
-        let (generation, database, changed) =
-            mutate_shared_font_database(|database| database.set_default_ui_family(family));
-        self.adopt_font_database(generation, database);
-        changed
-    }
-
-    pub(crate) fn set_default_ui_family_asset(&mut self, family: Option<&str>) -> bool {
-        if let Some(family) = family {
-            return self.set_default_ui_family(family);
-        }
-        let (generation, database, changed) =
-            mutate_shared_font_database(|database| database.clear_default_ui_family());
-        self.adopt_font_database(generation, database);
-        changed
-    }
-
     pub(crate) fn take_missing_glyph_diagnostics(&self) -> MissingGlyphDiagnosticsReport {
         self.font_database.take_missing_glyph_diagnostics()
+    }
+
+    pub(crate) fn font_collection_revision(&self) -> FontCollectionRevision {
+        FontCollectionRevision::new(self.font_collection.collection_id(), self.font_generation)
+    }
+
+    pub(crate) fn published_font_collection_revision(&self) -> FontCollectionRevision {
+        self.font_collection.revision()
+    }
+
+    pub(crate) fn font_collection(&self) -> Arc<FontCollectionService> {
+        Arc::clone(&self.font_collection)
     }
 
     /// Refresh a long-lived renderer only when another text owner advanced the
     /// authoritative font lineage. The atomic generation probe keeps the
     /// ordinary frame path free of a shared lock and FontDatabase clone.
-    pub(crate) fn refresh_shared_font_database(&mut self) -> bool {
-        if shared_font_database_generation() == self.font_generation {
+    pub(crate) fn refresh_font_collection(&mut self) -> bool {
+        if self.font_collection.generation() == self.font_generation {
             return false;
         }
-        let (generation, database) = shared_font_database_snapshot();
+        let (generation, database) = self.font_collection.snapshot();
         if generation == self.font_generation {
             return false;
         }
@@ -188,7 +154,6 @@ impl TextRenderState {
             if let Some(scheduler) = self.sdf_generation_scheduler.as_ref() {
                 self.sdf_font_bake.cancel_scheduled_generation(scheduler);
             }
-            self.font_database.sync_font_system(&mut self.font_system);
         }
     }
 
@@ -232,14 +197,16 @@ impl TextRenderState {
         self.sdf_generation_frame_index = self.sdf_generation_frame_index.saturating_add(1).max(1);
     }
 
-    pub(crate) fn prepare_bitmap_atlas(
+    pub(crate) fn prepare_bitmap_atlas<'a, GlyphRuns>(
         &mut self,
         viewport_size: UVec2,
-        text_areas: &[NativeBitmapAtlasTextArea<'_, '_>],
-    ) -> NativeBitmapAtlasFrame {
+        glyph_runs: GlyphRuns,
+    ) -> NativeBitmapAtlasFrame
+    where
+        GlyphRuns: Clone + IntoIterator<Item = &'a NativeBitmapAtlasGlyphRun>,
+    {
         self.advance_bitmap_atlas_frame_index();
         let frame = native_bitmap_atlas_frame(
-            &mut self.font_system,
             &mut self.font_database,
             self.bitmap_raster_worker_pool.as_ref(),
             &mut self.bitmap_source_cache,
@@ -247,7 +214,7 @@ impl TextRenderState {
             std::mem::take(&mut self.bitmap_atlas),
             viewport_size,
             self.bitmap_atlas_frame_index,
-            text_areas,
+            glyph_runs,
         );
         frame
     }
@@ -284,34 +251,6 @@ impl TextRenderState {
             .atlas
             .commit_bitmap_page_shadow(shadow_commit);
         self.bitmap_atlas = frame.submission.run.atlas;
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn prepare_glyphon_fallback(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        renderer: &mut TextRenderer,
-        atlas: &mut TextAtlas,
-        viewport: &Viewport,
-        text_areas: Vec<TextArea<'_>>,
-    ) {
-        let _ = renderer.prepare(
-            device,
-            queue,
-            &mut self.font_system,
-            atlas,
-            viewport,
-            text_areas,
-            &mut self.swash_cache,
-        );
-    }
-
-    pub(super) fn with_native_text_backend<R>(
-        &mut self,
-        operation: impl FnOnce(&mut FontSystem, &FontDatabase) -> R,
-    ) -> R {
-        operation(&mut self.font_system, &self.font_database)
     }
 
     pub(crate) fn build_sdf_atlas(
@@ -355,8 +294,20 @@ impl TextRenderState {
         asset_manager: &ProjectAssetManager,
         runs: &mut Vec<SdfRunCpuPreparation>,
     ) {
+        self.prepare_sdf_runs_cpu_iter_into(texts.iter(), asset_manager, runs);
+    }
+
+    pub(crate) fn prepare_sdf_runs_cpu_iter_into<'a, T, Texts>(
+        &mut self,
+        texts: Texts,
+        asset_manager: &ProjectAssetManager,
+        runs: &mut Vec<SdfRunCpuPreparation>,
+    ) where
+        T: SdfTextRun + 'a,
+        Texts: IntoIterator<Item = &'a T>,
+    {
         runs.clear();
-        runs.extend(texts.iter().map(|text| {
+        runs.extend(texts.into_iter().map(|text| {
             self.sdf_font_bake
                 .prepare_run_cpu(text, &mut self.font_database, asset_manager)
         }));
@@ -368,8 +319,20 @@ impl TextRenderState {
         asset_manager: &ProjectAssetManager,
         metrics: &mut Vec<TextDecorationMetrics>,
     ) {
+        self.prepare_sdf_decoration_metrics_iter_into(texts.iter(), asset_manager, metrics);
+    }
+
+    pub(crate) fn prepare_sdf_decoration_metrics_iter_into<'a, T, Texts>(
+        &mut self,
+        texts: Texts,
+        asset_manager: &ProjectAssetManager,
+        metrics: &mut Vec<TextDecorationMetrics>,
+    ) where
+        T: SdfTextRun + 'a,
+        Texts: IntoIterator<Item = &'a T>,
+    {
         metrics.clear();
-        metrics.extend(texts.iter().map(|text| {
+        metrics.extend(texts.into_iter().map(|text| {
             self.sdf_font_bake
                 .text_decoration_metrics(text, &mut self.font_database, asset_manager)
         }))
@@ -378,12 +341,15 @@ impl TextRenderState {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::TextRenderState;
     use crate::core::math::UVec2;
     use crate::core::runtime::tasks::TaskPools;
     use crate::text::atlas::{
         GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet,
     };
+    use crate::text::font::{FontCollectionService, runtime_default_font_database_for_test};
     use crate::text::parallel::raster_pool::TextRasterThreadBudgetSource;
 
     #[test]
@@ -457,24 +423,73 @@ mod tests {
     }
 
     #[test]
-    fn shared_font_database_refresh_adopts_another_renderer_mutation() {
+    fn renderers_bound_to_one_collection_observe_its_publications() {
         let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
         let mut reader = TextRenderState::new(0);
-        let mut writer = TextRenderState::new(0);
-        let previous_family = reader
+        let writer = TextRenderState::new(0);
+        let previous_project_family = reader
             .font_database()
-            .default_ui_family_for_test()
+            .project_default_ui_family_for_test()
             .map(str::to_owned);
 
-        assert!(writer.set_default_ui_family("Text Render State Refresh Family"));
-        assert!(reader.refresh_shared_font_database());
+        let writer_collection = writer.font_collection();
+        let (_, _, changed) = writer_collection
+            .mutate(|database| database.set_default_ui_family("Text Render State Refresh Family"));
+        assert!(changed);
+        assert!(reader.refresh_font_collection());
         assert_eq!(
             reader.font_database().default_ui_family_for_test(),
             Some("Text Render State Refresh Family")
         );
-        assert!(!reader.refresh_shared_font_database());
+        assert!(!reader.refresh_font_collection());
 
-        let _ = writer.set_default_ui_family_asset(previous_family.as_deref());
-        assert!(reader.refresh_shared_font_database());
+        let (_, _, changed) =
+            writer_collection.mutate(|database| match previous_project_family.as_deref() {
+                Some(family) => database.set_default_ui_family(family),
+                None => database.clear_default_ui_family(),
+            });
+        assert!(changed);
+        assert!(reader.refresh_font_collection());
+    }
+
+    #[test]
+    fn renderer_font_mutation_is_isolated_by_collection_service() {
+        let first_collection =
+            FontCollectionService::from_database(runtime_default_font_database_for_test());
+        let second_collection =
+            FontCollectionService::from_database(runtime_default_font_database_for_test());
+        let first = TextRenderState::new_with_font_collection(0, Arc::clone(&first_collection));
+        let mut second = TextRenderState::new_with_font_collection(0, second_collection);
+
+        let (_, _, changed) = first_collection
+            .mutate(|database| database.set_default_ui_family("Isolated Renderer Family"));
+        assert!(changed);
+
+        assert!(!second.refresh_font_collection());
+        assert_ne!(
+            second.font_database().default_ui_family_for_test(),
+            Some("Isolated Renderer Family")
+        );
+    }
+
+    #[test]
+    fn published_revision_advances_before_render_state_adopts_the_database() {
+        let font_collection =
+            FontCollectionService::from_database(runtime_default_font_database_for_test());
+        let mut state = TextRenderState::new_with_font_collection(0, Arc::clone(&font_collection));
+        let adopted_before = state.font_collection_revision();
+
+        let (_, _, changed) = font_collection.mutate(|database| {
+            database.set_default_ui_family("Externally Published Renderer Family")
+        });
+
+        assert!(changed);
+        assert_eq!(state.font_collection_revision(), adopted_before);
+        assert_ne!(state.published_font_collection_revision(), adopted_before);
+        assert!(state.refresh_font_collection());
+        assert_eq!(
+            state.font_collection_revision(),
+            state.published_font_collection_revision()
+        );
     }
 }

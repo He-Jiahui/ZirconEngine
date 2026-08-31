@@ -15,6 +15,7 @@ mod view_instance_id;
 mod view_kind;
 mod view_registry;
 mod view_registry_descriptor_access;
+mod view_registry_descriptor_mutation;
 mod view_registry_instance_access;
 mod view_registry_instance_mutation;
 mod view_registry_open_descriptor;

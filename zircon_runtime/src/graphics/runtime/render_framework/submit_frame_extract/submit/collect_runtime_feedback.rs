@@ -86,28 +86,28 @@ fn merge_hybrid_gi_readback_outputs(
     }
 
     let RenderHybridGiReadbackOutputs {
-        cache_entries,
-        completed_probe_ids,
-        completed_trace_region_ids,
-        probe_irradiance_rgb,
-        probe_rt_lighting_rgb,
+        mut cache_entries,
+        mut completed_probe_ids,
+        mut completed_trace_region_ids,
+        mut probe_irradiance_rgb,
+        mut probe_rt_lighting_rgb,
         radiance_cache_gpu_stage_dispatch_counts,
         global_sdf_stats,
         scene_prepare,
     } = sideband_outputs;
-    renderer_outputs.cache_entries.extend(cache_entries);
+    renderer_outputs.cache_entries.append(&mut cache_entries);
     renderer_outputs
         .completed_probe_ids
-        .extend(completed_probe_ids);
+        .append(&mut completed_probe_ids);
     renderer_outputs
         .completed_trace_region_ids
-        .extend(completed_trace_region_ids);
+        .append(&mut completed_trace_region_ids);
     renderer_outputs
         .probe_irradiance_rgb
-        .extend(probe_irradiance_rgb);
+        .append(&mut probe_irradiance_rgb);
     renderer_outputs
         .probe_rt_lighting_rgb
-        .extend(probe_rt_lighting_rgb);
+        .append(&mut probe_rt_lighting_rgb);
     for (renderer_count, sideband_count) in renderer_outputs
         .radiance_cache_gpu_stage_dispatch_counts
         .iter_mut()
@@ -134,23 +134,23 @@ fn append_hybrid_gi_scene_prepare_readback(
     sideband_outputs: crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs,
 ) {
     let crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs {
-        occupied_atlas_slots,
-        occupied_capture_slots,
-        atlas_samples,
-        capture_samples,
-        surface_cache_depth_samples,
-        surface_cache_pages,
-        voxel_clipmaps,
-        voxel_clipmap_ids,
-        voxel_samples,
-        voxel_occupancy,
-        voxel_occupancy_masks,
-        voxel_cells,
-        voxel_cell_samples,
-        voxel_cell_dominant_nodes,
-        voxel_cell_dominant_samples,
-        probe_trace_tiles,
-        probe_trace_diagnostics,
+        mut occupied_atlas_slots,
+        mut occupied_capture_slots,
+        mut atlas_samples,
+        mut capture_samples,
+        mut surface_cache_depth_samples,
+        mut surface_cache_pages,
+        mut voxel_clipmaps,
+        mut voxel_clipmap_ids,
+        mut voxel_samples,
+        mut voxel_occupancy,
+        mut voxel_occupancy_masks,
+        mut voxel_cells,
+        mut voxel_cell_samples,
+        mut voxel_cell_dominant_nodes,
+        mut voxel_cell_dominant_samples,
+        mut probe_trace_tiles,
+        mut probe_trace_diagnostics,
         probe_trace_dispatch,
         texture_width,
         texture_height,
@@ -159,39 +159,47 @@ fn append_hybrid_gi_scene_prepare_readback(
 
     renderer_outputs
         .occupied_atlas_slots
-        .extend(occupied_atlas_slots);
+        .append(&mut occupied_atlas_slots);
     renderer_outputs
         .occupied_capture_slots
-        .extend(occupied_capture_slots);
-    renderer_outputs.atlas_samples.extend(atlas_samples);
-    renderer_outputs.capture_samples.extend(capture_samples);
+        .append(&mut occupied_capture_slots);
+    renderer_outputs.atlas_samples.append(&mut atlas_samples);
+    renderer_outputs
+        .capture_samples
+        .append(&mut capture_samples);
     renderer_outputs
         .surface_cache_depth_samples
-        .extend(surface_cache_depth_samples);
+        .append(&mut surface_cache_depth_samples);
     renderer_outputs
         .surface_cache_pages
-        .extend(surface_cache_pages);
-    renderer_outputs.voxel_clipmaps.extend(voxel_clipmaps);
-    renderer_outputs.voxel_clipmap_ids.extend(voxel_clipmap_ids);
-    renderer_outputs.voxel_samples.extend(voxel_samples);
-    renderer_outputs.voxel_occupancy.extend(voxel_occupancy);
+        .append(&mut surface_cache_pages);
+    renderer_outputs.voxel_clipmaps.append(&mut voxel_clipmaps);
+    renderer_outputs
+        .voxel_clipmap_ids
+        .append(&mut voxel_clipmap_ids);
+    renderer_outputs.voxel_samples.append(&mut voxel_samples);
+    renderer_outputs
+        .voxel_occupancy
+        .append(&mut voxel_occupancy);
     renderer_outputs
         .voxel_occupancy_masks
-        .extend(voxel_occupancy_masks);
-    renderer_outputs.voxel_cells.extend(voxel_cells);
+        .append(&mut voxel_occupancy_masks);
+    renderer_outputs.voxel_cells.append(&mut voxel_cells);
     renderer_outputs
         .voxel_cell_samples
-        .extend(voxel_cell_samples);
+        .append(&mut voxel_cell_samples);
     renderer_outputs
         .voxel_cell_dominant_nodes
-        .extend(voxel_cell_dominant_nodes);
+        .append(&mut voxel_cell_dominant_nodes);
     renderer_outputs
         .voxel_cell_dominant_samples
-        .extend(voxel_cell_dominant_samples);
-    renderer_outputs.probe_trace_tiles.extend(probe_trace_tiles);
+        .append(&mut voxel_cell_dominant_samples);
+    renderer_outputs
+        .probe_trace_tiles
+        .append(&mut probe_trace_tiles);
     renderer_outputs
         .probe_trace_diagnostics
-        .extend(probe_trace_diagnostics);
+        .append(&mut probe_trace_diagnostics);
     renderer_outputs.probe_trace_dispatch = [
         renderer_outputs.probe_trace_dispatch[0].max(probe_trace_dispatch[0]),
         renderer_outputs.probe_trace_dispatch[1].max(probe_trace_dispatch[1]),
@@ -280,6 +288,9 @@ fn merge_virtual_geometry_readback_outputs(
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use super::{
         merge_hybrid_gi_readback_outputs, merge_particle_readback_outputs,
         merge_virtual_geometry_readback_outputs,
@@ -407,5 +418,98 @@ mod tests {
             merge_particle_readback_outputs(renderer.clone(), sideband),
             renderer
         );
+    }
+
+    #[test]
+    fn optimization_batch_dn_hybrid_readback_append_preserves_owned_vectors() {
+        let source = include_str!("collect_runtime_feedback.rs");
+        let merge = source
+            .split("fn merge_hybrid_gi_readback_outputs")
+            .nth(1)
+            .expect("hybrid readback merge")
+            .split("fn merge_particle_readback_outputs")
+            .next()
+            .expect("hybrid readback merge body");
+        let prepare = source
+            .split("fn append_hybrid_gi_scene_prepare_readback")
+            .nth(1)
+            .expect("scene prepare merge")
+            .split("fn merge_virtual_geometry_readback_outputs")
+            .next()
+            .expect("scene prepare merge body");
+
+        assert!(merge.matches(".append(&mut").count() >= 5);
+        assert!(prepare.matches(".append(&mut").count() >= 15);
+        assert!(!merge.contains(".extend(") && !prepare.contains(".extend("));
+    }
+
+    #[test]
+    #[ignore = "release-only alternating p95 performance gate"]
+    fn optimization_batch_dn_hybrid_readback_append_p95() {
+        const SAMPLE_PAIRS: usize = 17;
+        const MERGES_PER_SAMPLE: usize = 8_192;
+        const VALUES_PER_VECTOR: usize = 4_096;
+
+        let template = (0..VALUES_PER_VECTOR as u64).collect::<Vec<_>>();
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample_index in 0..SAMPLE_PAIRS {
+            if sample_index % 2 == 0 {
+                legacy_samples.push(measure_hybrid_readback_merge(
+                    &template,
+                    MERGES_PER_SAMPLE,
+                    true,
+                ));
+                optimized_samples.push(measure_hybrid_readback_merge(
+                    &template,
+                    MERGES_PER_SAMPLE,
+                    false,
+                ));
+            } else {
+                optimized_samples.push(measure_hybrid_readback_merge(
+                    &template,
+                    MERGES_PER_SAMPLE,
+                    false,
+                ));
+                legacy_samples.push(measure_hybrid_readback_merge(
+                    &template,
+                    MERGES_PER_SAMPLE,
+                    true,
+                ));
+            }
+        }
+
+        let legacy_p95 = p95(&mut legacy_samples);
+        let optimized_p95 = p95(&mut optimized_samples);
+        println!(
+            "RUNTIME422_HYBRID_READBACK_APPEND_BENCH_V1 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} ratio={:.4}",
+            optimized_p95 as f64 / legacy_p95.max(1) as f64
+        );
+        assert!(
+            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(70),
+            "hybrid readback append p95 {optimized_p95}ns exceeded 70% of legacy {legacy_p95}ns"
+        );
+    }
+
+    fn measure_hybrid_readback_merge(template: &[u64], merge_count: usize, legacy: bool) -> u128 {
+        let started_at = Instant::now();
+        let mut checksum = 0_u64;
+        for _ in 0..merge_count {
+            let mut target = vec![black_box(1_u64)];
+            let mut incoming = black_box(template).to_vec();
+            if legacy {
+                target.extend(incoming);
+            } else {
+                target.append(&mut incoming);
+            }
+            checksum = checksum.wrapping_add(black_box(target.len()) as u64);
+        }
+        black_box(checksum);
+        started_at.elapsed().as_nanos()
+    }
+
+    fn p95(samples: &mut [u128]) -> u128 {
+        samples.sort_unstable();
+        samples[(samples.len() * 95).div_ceil(100).saturating_sub(1)]
     }
 }

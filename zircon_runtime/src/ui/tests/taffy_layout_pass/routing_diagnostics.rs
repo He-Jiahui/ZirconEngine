@@ -129,7 +129,7 @@ fn layout_pass_reports_taffy_native_and_zircon_fallback_routes() {
             })),
         );
     insert_child(&mut slotted.tree, 20, node(21));
-    slotted.tree.slots.push(
+    slotted.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(20), UiNodeId::new(21), UiSlotKind::Linear)
             .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::Start)),
     );
@@ -151,7 +151,7 @@ fn layout_pass_reports_taffy_native_and_zircon_fallback_routes() {
             })),
         );
     insert_child(&mut canvas_slot.tree, 25, node(26));
-    canvas_slot.tree.slots.push(
+    canvas_slot.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(25), UiNodeId::new(26), UiSlotKind::Linear)
             .with_canvas_placement(UiCanvasSlotPlacement::default()),
     );
@@ -281,7 +281,7 @@ fn taffy_layout_pass_aggregates_distinct_fallback_reason_counts() {
         )),
     );
     insert_child(&mut tree, 540, fixed_node(541, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(540), UiNodeId::new(541), UiSlotKind::Linear)
             .with_padding(UiMargin::new(-1.0, 0.0, 0.0, 0.0)),
     );
@@ -293,7 +293,7 @@ fn taffy_layout_pass_aggregates_distinct_fallback_reason_counts() {
         )),
     );
     insert_child(&mut tree, 550, fixed_node(551, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(550), UiNodeId::new(551), UiSlotKind::Linear)
             .with_canvas_placement(UiCanvasSlotPlacement::default()),
     );

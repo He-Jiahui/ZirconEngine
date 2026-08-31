@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::core::framework::project::ProjectPluginManifest;
 
 use super::tokens::{
@@ -21,7 +23,7 @@ pub(in crate::plugin::export_build_plan) fn project_plugin_package_id_diagnostic
         }
         let first_diagnostic = diagnostics.len();
         validate_project_plugin_package_id(
-            "project plugin selection id",
+            format_args!("project plugin selection id"),
             &selection.id,
             &mut diagnostics,
         );
@@ -92,7 +94,7 @@ pub(in crate::plugin::export_build_plan) fn sanitize_project_identity_rows(
 }
 
 pub(super) fn validate_project_plugin_package_id(
-    context: &str,
+    context: fmt::Arguments<'_>,
     package_id: &str,
     diagnostics: &mut Vec<String>,
 ) {
@@ -199,6 +201,35 @@ fn project_feature_id_has_owner(owner_plugin_id: &str, feature_id: &str) -> bool
 
 #[cfg(test)]
 mod tests {
+    use super::validate_project_plugin_package_id;
+
+    #[test]
+    fn deferred_provider_diagnostic_context_preserves_contract() {
+        let mut diagnostics = Vec::new();
+        validate_project_plugin_package_id(
+            format_args!("project plugin selection id"),
+            "Bad__",
+            &mut diagnostics,
+        );
+        validate_project_plugin_package_id(
+            format_args!("project plugin feature streaming provider_package_id"),
+            "Bad__",
+            &mut diagnostics,
+        );
+
+        assert_eq!(
+            diagnostics,
+            vec![
+                "project plugin selection id `Bad__` must start with a lowercase ASCII letter".to_string(),
+                "project plugin selection id `Bad__` must contain only lowercase ASCII letters, digits, and underscores".to_string(),
+                "project plugin selection id `Bad__` must not end with an underscore or contain repeated underscores".to_string(),
+                "project plugin feature streaming provider_package_id `Bad__` must start with a lowercase ASCII letter".to_string(),
+                "project plugin feature streaming provider_package_id `Bad__` must contain only lowercase ASCII letters, digits, and underscores".to_string(),
+                "project plugin feature streaming provider_package_id `Bad__` must not end with an underscore or contain repeated underscores".to_string(),
+            ]
+        );
+    }
+
     #[test]
     fn project_feature_identity_validation_does_not_allocate_scan_helpers() {
         let source = include_str!("identity.rs");

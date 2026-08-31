@@ -4,14 +4,27 @@ Builds a runnable Zircon editor debug bundle for Windows.
 
 .DESCRIPTION
 Builds zircon_editor.exe and zircon_runtime.dll through the repository-managed
-Cargo validator, copies runtime assets, and publishes the bundle only after all
-steps succeed. The final directory is never overwritten.
+Cargo validator, merges runtime and editor assets into the product asset root,
+and publishes the bundle only after all steps succeed. The final directory is
+never overwritten.
 
 .PARAMETER OutputDirectory
 Final bundle directory. It must be below an approved
 D:\ZirconBuilds, E:\ZirconBuilds, or F:\ZirconBuilds root. Relative paths are
 resolved below the first available approved root. When omitted, a unique directory below the
 first available approved root is used. A requested parent directory must already exist.
+
+.PARAMETER TargetDir
+Optional Cargo target directory forwarded to both managed package builds. The repository
+validator and Session coordinator remain responsible for validating and leasing this path.
+
+.PARAMETER Ephemeral
+Uses a coordinator-managed ephemeral Cargo lane for each package build. This avoids the shared
+compatibility pool and is intended for isolated current-source validation.
+
+.PARAMETER StorageMode
+Managed Cargo storage policy forwarded to both package builds. Use diagnostic to disable the
+shared compiler cache while investigating cache or temporary-directory failures.
 
 .PARAMETER SkipSmokeTest
 Skips the zircon_editor.exe --help launch check. Intended for script tests only.
@@ -25,6 +38,10 @@ Skips the zircon_editor.exe --help launch check. Intended for script tests only.
 [CmdletBinding()]
 param(
     [string]$OutputDirectory,
+    [string]$TargetDir,
+    [ValidateSet("reuse", "compact", "diagnostic")]
+    [string]$StorageMode = "reuse",
+    [switch]$Ephemeral,
     [switch]$SkipSmokeTest
 )
 
@@ -44,6 +61,13 @@ function Invoke-ManagedBuild {
 
         [string]$Binary,
 
+        [string]$TargetDir,
+
+        [ValidateSet("reuse", "compact", "diagnostic")]
+        [string]$StorageMode = "reuse",
+
+        [switch]$Ephemeral,
+
         [Parameter(Mandatory = $true)]
         [string]$ArtifactOutputDirectory,
 
@@ -60,6 +84,13 @@ function Invoke-ManagedBuild {
     )
     if (-not [string]::IsNullOrWhiteSpace($Binary)) {
         $arguments += @('-Bin', $Binary)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($TargetDir)) {
+        $arguments += @('-TargetDir', $TargetDir)
+    }
+    $arguments += @('-StorageMode', $StorageMode)
+    if ($Ephemeral) {
+        $arguments += '-Ephemeral'
     }
     $arguments += @(
         '-NoDefaultFeatures'
@@ -276,7 +307,8 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $validator = Join-Path $repoRoot '.codex\skills\zircon-dev\scripts\validate-matrix.ps1'
 $pathResolver = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
 $coordinator = Join-Path $repoRoot 'tools\zircon-session.ps1'
-$assetSource = Join-Path $repoRoot 'zircon_runtime\assets'
+$runtimeAssetSource = Join-Path $repoRoot 'zircon_runtime\assets'
+$editorAssetSource = Join-Path $repoRoot 'zircon_editor\assets'
 
 if (-not (Test-Path -LiteralPath $validator -PathType Leaf)) {
     throw "Managed Cargo validator was not found: $validator"
@@ -289,10 +321,16 @@ if (-not (Test-Path -LiteralPath $coordinator -PathType Leaf)) {
 }
 Import-Module $pathResolver -Force -DisableNameChecking -ErrorAction Stop
 
-if (-not (Test-Path -LiteralPath $assetSource -PathType Container)) {
-    throw "Runtime asset directory was not found: $assetSource"
+if (-not (Test-Path -LiteralPath $runtimeAssetSource -PathType Container)) {
+    throw "Runtime asset directory was not found: $runtimeAssetSource"
 }
-$assetSourceOperationalPath = (Resolve-ZirconWindowsPath -Path $assetSource).OperationalPath
+if (-not (Test-Path -LiteralPath $editorAssetSource -PathType Container)) {
+    throw "Editor asset directory was not found: $editorAssetSource"
+}
+$runtimeAssetSourceOperationalPath =
+    (Resolve-ZirconWindowsPath -Path $runtimeAssetSource).OperationalPath
+$editorAssetSourceOperationalPath =
+    (Resolve-ZirconWindowsPath -Path $editorAssetSource).OperationalPath
 $bundleOutput = Resolve-BundleOutputDirectory -RequestedPath $OutputDirectory -RepositoryRoot $repoRoot
 $finalDisplayDirectory = $bundleOutput.DisplayPath
 $finalDirectory = $bundleOutput.OperationalPath
@@ -381,6 +419,9 @@ try {
         -RepositoryRoot $repoRoot `
         -Package 'zircon_app' `
         -Binary 'zircon_editor' `
+        -TargetDir $TargetDir `
+        -StorageMode $StorageMode `
+        -Ephemeral:$Ephemeral `
         -ArtifactOutputDirectory $stagingDirectory `
         -Artifact 'zircon_editor.exe'
 
@@ -389,13 +430,21 @@ try {
         -Validator $validator `
         -RepositoryRoot $repoRoot `
         -Package 'zircon_runtime' `
+        -TargetDir $TargetDir `
+        -StorageMode $StorageMode `
+        -Ephemeral:$Ephemeral `
         -ArtifactOutputDirectory $stagingDirectory `
         -Artifact 'zircon_runtime.dll'
 
-    Write-Host 'Copying runtime assets...' -ForegroundColor Cyan
+    Write-Host 'Copying runtime and editor assets...' -ForegroundColor Cyan
+    $stagedAssetDirectory =
+        Join-ZirconWindowsPath -Path $stagingDirectory -ChildPath 'assets'
     Copy-BundleDirectoryTree `
-        -Source $assetSourceOperationalPath `
-        -Destination (Join-ZirconWindowsPath -Path $stagingDirectory -ChildPath 'assets')
+        -Source $runtimeAssetSourceOperationalPath `
+        -Destination $stagedAssetDirectory
+    Copy-BundleDirectoryTree `
+        -Source $editorAssetSourceOperationalPath `
+        -Destination $stagedAssetDirectory
 
     $editorPath = Join-ZirconWindowsPath -Path $stagingDirectory -ChildPath 'zircon_editor.exe'
     $runtimePath = Join-ZirconWindowsPath -Path $stagingDirectory -ChildPath 'zircon_runtime.dll'

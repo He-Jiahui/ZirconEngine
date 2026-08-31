@@ -34,7 +34,7 @@ pub(super) fn dispatch_activate(
                 result,
                 report.component_events,
                 report.binding_reports,
-            )
+            );
         }
         Ok(_) => {}
         Err(error) => return finish_activate_widget_error(target, result, error),

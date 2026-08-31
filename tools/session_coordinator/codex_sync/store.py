@@ -35,14 +35,19 @@ class CodexSessionStore:
         unavailable_count = 0
         discovered_ids = {item.thread_id for item in discovery.sessions}
         with self.database.transaction() as connection:
+            existing_by_thread_id = {
+                str(row["thread_id"]): row
+                for row in connection.execute("SELECT * FROM codex_sessions")
+            }
+            bound_session_ids = {
+                str(row["session_id"])
+                for row in connection.execute("SELECT session_id FROM sessions")
+            }
             for item in discovery.sessions:
-                existing = connection.execute(
-                    "SELECT * FROM codex_sessions WHERE thread_id=?", (item.thread_id,)
-                ).fetchone()
-                binding = connection.execute(
-                    "SELECT session_id FROM sessions WHERE session_id=?", (item.thread_id,)
-                ).fetchone()
-                bound_session_id = binding[0] if binding is not None else None
+                existing = existing_by_thread_id.get(item.thread_id)
+                bound_session_id = (
+                    item.thread_id if item.thread_id in bound_session_ids else None
+                )
                 values = (
                     item.rollout_path,
                     item.source_location.value,
@@ -112,10 +117,7 @@ class CodexSessionStore:
                             )
 
             if discovery.membership_complete:
-                rows = connection.execute(
-                    "SELECT thread_id, missing_scan_count FROM codex_sessions"
-                ).fetchall()
-                for row in rows:
+                for row in existing_by_thread_id.values():
                     thread_id = str(row["thread_id"])
                     if thread_id in discovered_ids:
                         continue

@@ -5,7 +5,7 @@ use crate::{
     core::framework::project::ExportProfile, core::framework::project::ProjectPluginManifest,
 };
 use zircon_runtime_interface::project::{
-    ProjectManifestSummary, RelPath, PROJECT_MANIFEST_FORMAT_VERSION,
+    ProjectGuid, ProjectManifestSummary, RelPath, PROJECT_MANIFEST_FORMAT_VERSION,
 };
 
 use super::export_profiles::deserialize_export_profiles;
@@ -19,6 +19,7 @@ pub struct ProjectManifest {
     pub name: String,
     #[serde(default = "default_project_format_version")]
     pub format_version: u32,
+    pub project_guid: ProjectGuid,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub engine_version_req: Option<String>,
     pub default_scene: AssetUri,
@@ -30,7 +31,6 @@ pub struct ProjectManifest {
     pub settings: Option<RelPath>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asset_manifest: Option<String>,
-    #[serde(alias = "schema_version")]
     pub library_version: u32,
     #[serde(default, skip_serializing_if = "ProjectPluginManifest::is_empty")]
     pub plugins: ProjectPluginManifest,
@@ -49,6 +49,7 @@ impl ProjectManifest {
         Self {
             name: name.into(),
             format_version: PROJECT_MANIFEST_FORMAT_VERSION,
+            project_guid: ProjectGuid::new(),
             engine_version_req: None,
             default_scene,
             ui_roots: Vec::new(),
@@ -68,6 +69,7 @@ impl ProjectManifest {
             engine_version_req: self.engine_version_req.clone(),
             default_scene: self.default_scene.to_string(),
             format_version: self.format_version,
+            project_guid: Some(self.project_guid),
         }
     }
 }

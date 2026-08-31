@@ -400,7 +400,6 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
                 public_operation.clone(),
             )
             .with_priority(20)
-            .with_shortcut("Ctrl+Alt+R")
             .with_enabled(false),
         )
         .unwrap();
@@ -411,7 +410,6 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
                 gated_operation.clone(),
             )
             .with_priority(-10)
-            .with_shortcut("Ctrl+Alt+S")
             .with_required_capabilities([weather_capability]),
         )
         .unwrap();
@@ -463,7 +461,7 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
             .children
             .first()
             .and_then(|item| item.shortcut.as_deref()),
-        Some("Ctrl+Alt+S")
+        None
     );
     assert!(!disabled_tools.items[0].enabled);
     assert_eq!(
@@ -546,9 +544,6 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
         extent: 288.0,
         visible: true,
     };
-    let mut stale_root_drawer = workbench_drawer.clone();
-    stale_root_drawer.extent = 416.0;
-
     let layout = WorkbenchLayout {
         active_main_page,
         main_pages: vec![
@@ -556,22 +551,13 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
                 id: workbench_page_id.clone(),
                 title: "Workbench".to_string(),
                 activity_window: ActivityWindowId::new("window:workbench"),
-                document_workspace: DocumentNode::Tabs(TabStackLayout {
-                    tabs: vec![scene_instance.instance_id.clone()],
-                    active_tab: Some(scene_instance.instance_id.clone()),
-                }),
             },
             MainHostPageLayout::WorkbenchPage {
                 id: asset_page_id.clone(),
                 title: "Asset Browser".to_string(),
                 activity_window: ActivityWindowId::new("window:z_asset_browser"),
-                document_workspace: DocumentNode::Tabs(TabStackLayout {
-                    tabs: vec![asset_browser_instance.instance_id.clone()],
-                    active_tab: Some(asset_browser_instance.instance_id.clone()),
-                }),
             },
         ],
-        drawers: BTreeMap::from([(ActivityDrawerSlot::LeftTop, stale_root_drawer)]),
         activity_windows: BTreeMap::from([
             (
                 ActivityWindowId::new("window:workbench"),
@@ -583,7 +569,10 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
                         ActivityDrawerSlot::LeftTop,
                         workbench_drawer,
                     )]),
-                    content_workspace: DocumentNode::default(),
+                    content_workspace: DocumentNode::Tabs(TabStackLayout {
+                        tabs: vec![scene_instance.instance_id.clone()],
+                        active_tab: Some(scene_instance.instance_id.clone()),
+                    }),
                     menu_overflow_mode: Default::default(),
                     region_overrides: BTreeMap::new(),
                     view_overrides: BTreeMap::new(),
@@ -596,7 +585,10 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
                     descriptor_id: ViewDescriptorId::new("editor.asset_browser"),
                     host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
                     activity_drawers: BTreeMap::new(),
-                    content_workspace: DocumentNode::default(),
+                    content_workspace: DocumentNode::Tabs(TabStackLayout {
+                        tabs: vec![asset_browser_instance.instance_id.clone()],
+                        active_tab: Some(asset_browser_instance.instance_id.clone()),
+                    }),
                     menu_overflow_mode: Default::default(),
                     region_overrides: BTreeMap::new(),
                     view_overrides: BTreeMap::new(),
@@ -604,8 +596,6 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
             ),
         ]),
         floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
     };
 
     EditorChromeSnapshot::build(

@@ -58,7 +58,9 @@ mod tests {
         let metrics = HostControlMetrics {
             control_default_height: 32.0,
             control_large_height: 48.0,
+            radius_small: 2.0,
             radius_control: 3.0,
+            radius_panel: 4.0,
             border_width: 1.5,
             font_small: 8.0,
             font_body: 10.0,

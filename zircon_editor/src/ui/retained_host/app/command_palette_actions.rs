@@ -4,6 +4,7 @@ use crate::core::commands::{
     CommandEvalCtx, EditorCommandPaletteCatalog, EditorCommandPaletteMru,
     EditorCommandPaletteQueryWindow,
 };
+use crate::core::i18n::{EditorI18nService, EditorLocale};
 use crate::ui::binding::EditorUiEventKind;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
@@ -25,8 +26,12 @@ impl RetainedEditorHost {
             let commands = self.runtime.commands().lock();
             commands.command_palette_catalog()
         };
+        let i18n = self.runtime.context().i18n();
+        let locale = i18n.active_locale();
         let state = workbench_command_palette_query_state(
             &catalog,
+            i18n,
+            &locale,
             context.as_ref(),
             "",
             0,
@@ -65,8 +70,12 @@ impl RetainedEditorHost {
             let commands = self.runtime.commands().lock();
             commands.command_palette_catalog()
         };
+        let i18n = self.runtime.context().i18n();
+        let locale = i18n.active_locale();
         let state = workbench_command_palette_query_state(
             &catalog,
+            i18n,
+            &locale,
             context.as_ref(),
             query,
             0,
@@ -112,7 +121,7 @@ impl RetainedEditorHost {
             return Some(Ok(UiHostEventEffects::default()));
         }
         let query = self.workbench_window_bridge.command_palette_query();
-        if query != request_query {
+        if query.as_str() != request_query {
             return Some(Ok(UiHostEventEffects::default()));
         }
         let Some(catalog_generation) = self
@@ -130,7 +139,11 @@ impl RetainedEditorHost {
         if catalog.generation() != catalog_generation {
             return Some(Ok(UiHostEventEffects::default()));
         }
+        let i18n = self.runtime.context().i18n();
+        let locale = i18n.active_locale();
         let window = catalog.query_window_with_mru(
+            i18n,
+            &locale,
             context.as_ref(),
             &query,
             target_offset,
@@ -158,12 +171,12 @@ enum WindowRequestFocus {
     Last,
 }
 
-fn parse_window_request(value: &str) -> Option<(usize, usize, WindowRequestFocus, String)> {
+fn parse_window_request(value: &str) -> Option<(usize, usize, WindowRequestFocus, &str)> {
     let mut fields = value.splitn(4, '|');
     let current_offset = fields.next()?.parse().ok()?;
     let target_offset = fields.next()?.parse().ok()?;
     let focus = fields.next()?;
-    let query = fields.next()?.to_string();
+    let query = fields.next()?;
     let focus = match focus {
         "first" => WindowRequestFocus::First,
         "last" => WindowRequestFocus::Last,
@@ -174,6 +187,8 @@ fn parse_window_request(value: &str) -> Option<(usize, usize, WindowRequestFocus
 
 fn workbench_command_palette_query_state(
     catalog: &std::sync::Arc<EditorCommandPaletteCatalog>,
+    i18n: &EditorI18nService,
+    locale: &EditorLocale,
     context: &CommandEvalCtx,
     query_text: &str,
     offset: usize,
@@ -181,6 +196,8 @@ fn workbench_command_palette_query_state(
     mru: &EditorCommandPaletteMru,
 ) -> WorkbenchCommandPaletteOpenState {
     let window = catalog.query_window_with_mru(
+        i18n,
+        locale,
         context,
         query_text,
         offset,
@@ -238,3 +255,7 @@ fn focused_command_index(
     };
     entry.map(|(index, _)| index as i64).unwrap_or(-1)
 }
+
+#[cfg(test)]
+#[path = "command_palette_actions/borrowed_window_request_tests.rs"]
+mod borrowed_window_request_tests;

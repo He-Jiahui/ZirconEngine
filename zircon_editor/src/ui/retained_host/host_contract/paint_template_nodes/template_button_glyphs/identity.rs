@@ -9,6 +9,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) enum Butto
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_glyph_for_key(
     key: &str,
 ) -> ButtonGlyph {
+    if key.len() < 3 {
+        return ButtonGlyph::None;
+    }
     if key.contains("delete") || key.contains("trash") || key.contains("danger") {
         ButtonGlyph::Trash
     } else if key.contains("dropdown") || key.contains("drop-down") || key.contains("menu") {
@@ -19,3 +22,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
         ButtonGlyph::None
     }
 }
+
+#[cfg(test)]
+#[path = "identity/short_key_tests.rs"]
+mod short_key_tests;

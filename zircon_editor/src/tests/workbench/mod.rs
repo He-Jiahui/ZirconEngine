@@ -6,4 +6,5 @@ mod project;
 mod reference_surface;
 mod reflection;
 mod registry;
+mod transaction_history_snapshot;
 mod view_model;

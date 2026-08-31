@@ -124,9 +124,11 @@ impl PreparedMeshVirtualGeometryExecutionStats {
     pub(crate) fn from_execution_draws(
         execution_draws: impl IntoIterator<Item = RenderVirtualGeometryExecutionDraw>,
     ) -> Self {
+        let execution_draws = execution_draws.into_iter();
+        let (draw_capacity, _) = execution_draws.size_hint();
         let mut stats = Self::default();
-        let mut segments = HashSet::new();
-        let mut pages = HashSet::new();
+        let mut segments = HashSet::with_capacity(draw_capacity);
+        let mut pages = HashSet::with_capacity(draw_capacity);
 
         for draw in execution_draws {
             if !draw.uses_indirect_draw || draw.execution_selection_key.is_none() {
@@ -199,3 +201,7 @@ fn encode_virtual_geometry_execution_state(state: RenderVirtualGeometryExecution
         RenderVirtualGeometryExecutionState::Missing => 2,
     }
 }
+
+#[cfg(test)]
+#[path = "stats/preallocated_sets_tests.rs"]
+mod preallocated_sets_tests;

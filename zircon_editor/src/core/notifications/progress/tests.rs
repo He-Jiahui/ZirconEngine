@@ -2,8 +2,8 @@ use crate::core::jobs::{EditorJobProgress, EditorJobProgressSnapshot, JobCategor
 use crate::core::notifications::{NotificationId, NotificationSource};
 
 use super::{
-    ProgressNotification, ProgressNotificationCenter, ProgressNotificationError,
-    AUTOMATIC_PROGRESS_SOURCE_ID, MAX_PROGRESS_NOTIFICATIONS,
+    AUTOMATIC_PROGRESS_SOURCE_ID, MAX_PROGRESS_NOTIFICATIONS, ProgressNotification,
+    ProgressNotificationCenter, ProgressNotificationError,
 };
 
 fn notification(suffix: &str, job: JobId) -> ProgressNotification {
@@ -43,9 +43,11 @@ fn projection_tracks_one_bound_job_and_removes_terminal_entries() {
         .publish(notification("import", JobId::new(7)))
         .unwrap();
     assert_eq!(center.synchronize([job(7)]).len(), 1);
-    assert!(center
-        .synchronize(std::iter::empty::<EditorJobProgressSnapshot>())
-        .is_empty());
+    assert!(
+        center
+            .synchronize(std::iter::empty::<EditorJobProgressSnapshot>())
+            .is_empty()
+    );
     assert!(center.synchronize([job(7)]).is_empty());
 }
 
@@ -101,12 +103,14 @@ fn progress_center_bounds_entries_and_releases_a_retired_job_slot() {
     ));
 
     center.retire_job(JobId::new(0));
-    assert!(center
-        .publish(notification(
-            "capacity_released",
-            JobId::new(MAX_PROGRESS_NOTIFICATIONS as u64),
-        ))
-        .is_ok());
+    assert!(
+        center
+            .publish(notification(
+                "capacity_released",
+                JobId::new(MAX_PROGRESS_NOTIFICATIONS as u64),
+            ))
+            .is_ok()
+    );
 }
 
 #[test]

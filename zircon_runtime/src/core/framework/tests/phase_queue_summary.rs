@@ -331,7 +331,8 @@ fn render_frame_phase_queue_summary_merges_geometry_and_sprite_counts() {
             GeometryPhaseInput::new(10, 0, RenderMaterialAlphaMode::Opaque, 1.0),
             GeometryPhaseInput::new(20, 1, RenderMaterialAlphaMode::Blend, 10.0),
         ],
-    );
+    )
+    .into();
     frame.sprites = SpriteExtract::from_sprites_and_phase_inputs(
         CorePipelineKind::Core2d,
         Vec::new(),
@@ -339,7 +340,8 @@ fn render_frame_phase_queue_summary_merges_geometry_and_sprite_counts() {
             SpritePhaseExtractInput::new(30, 0, RenderMaterialAlphaMode::Opaque, 0, 0.0),
             SpritePhaseExtractInput::new(40, 1, RenderMaterialAlphaMode::Blend, 2, 2.0),
         ],
-    );
+    )
+    .into();
 
     let summary = frame.phase_queue_summary();
     let serialized_summary = serde_json::to_string(&summary).unwrap();

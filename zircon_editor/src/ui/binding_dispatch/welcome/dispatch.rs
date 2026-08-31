@@ -22,6 +22,12 @@ pub fn dispatch_welcome_binding(
         WelcomeCommand::OpenRecentProject { path } => {
             Ok(WelcomeHostEvent::OpenRecentProject { path: path.clone() })
         }
+        WelcomeCommand::SafeRecentProject { path } => {
+            Ok(WelcomeHostEvent::SafeRecentProject { path: path.clone() })
+        }
+        WelcomeCommand::RecoverRecentProject { path } => {
+            Ok(WelcomeHostEvent::RecoverRecentProject { path: path.clone() })
+        }
         WelcomeCommand::RemoveRecentProject { path } => {
             Ok(WelcomeHostEvent::RemoveRecentProject { path: path.clone() })
         }

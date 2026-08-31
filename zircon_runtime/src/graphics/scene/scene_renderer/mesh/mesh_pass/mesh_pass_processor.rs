@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use super::{
     DrawInstanceSource, MeshBindHandle, MeshDrawArgs, MeshDrawCommand, MeshDrawCommandList,
-    MeshGeometryHandle, MeshPassPipelineKind, MeshPipelineVariantId,
+    MeshDrawCommandPayload, MeshGeometryHandle, MeshPassPipelineKind, MeshPipelineVariantId,
 };
 use crate::core::framework::render::{
-    packed_sort_key_u64, PrimitiveRelevance, RenderMeshStaticState, RenderPhase,
-    RenderPhaseSortComponents, ShaderQualityTier,
+    PrimitiveRelevance, RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
+    RenderViewportPickPolicy, ShaderQualityTier, packed_sort_key_u64,
 };
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::resources::{MaterialDisabledPasses, PipelineKey};
@@ -26,6 +28,7 @@ pub(crate) struct MeshBatchRef {
     pub(crate) cache_identity: Option<MeshBatchCacheIdentity>,
     pub(crate) queue_profile: MeshDrawQueueProfile,
     pub(crate) casts_shadow: bool,
+    shadow_two_sided: bool,
     pub(crate) disabled_passes: MaterialDisabledPasses,
     pub(crate) primitive_relevance: Option<PrimitiveRelevance>,
     pub(crate) main_view_visible: bool,
@@ -89,6 +92,21 @@ pub(crate) fn shadow_command_spec(batch: &MeshBatchRef) -> Option<MeshPassComman
     Some(MeshPassCommandSpec {
         phase: RenderPhase::Shadow,
         pipeline_kind,
+    })
+}
+
+pub(crate) fn hit_proxy_command_spec(
+    batch: &MeshBatchRef,
+    policy: RenderViewportPickPolicy,
+) -> Option<MeshPassCommandSpec> {
+    if !batch.main_view_visible
+        || (batch.phase() == MeshDrawQueuePhase::Transparent && !policy.includes_translucent())
+    {
+        return None;
+    }
+    Some(MeshPassCommandSpec {
+        phase: RenderPhase::Opaque3d,
+        pipeline_kind: MeshPassPipelineKind::HitProxy,
     })
 }
 
@@ -179,6 +197,7 @@ impl MeshBatchRef {
             cache_identity: None,
             queue_profile,
             casts_shadow: false,
+            shadow_two_sided: false,
             disabled_passes: MaterialDisabledPasses::default(),
             primitive_relevance: None,
             main_view_visible: true,
@@ -237,6 +256,17 @@ impl MeshBatchRef {
     pub(crate) fn with_casts_shadow(mut self, casts_shadow: bool) -> Self {
         self.casts_shadow = casts_shadow;
         self
+    }
+
+    pub(crate) fn with_shadow_two_sided(mut self, shadow_two_sided: bool) -> Self {
+        self.shadow_two_sided = shadow_two_sided;
+        self
+    }
+
+    pub(crate) fn effective_shadow_pipeline_key(&self) -> PipelineKey {
+        let mut pipeline_key = self.pipeline_key.clone();
+        pipeline_key.double_sided |= self.shadow_two_sided;
+        pipeline_key
     }
 
     pub(crate) fn with_disabled_passes(mut self, disabled_passes: MaterialDisabledPasses) -> Self {
@@ -347,6 +377,21 @@ impl MeshBatchRef {
         pipeline_kind: MeshPassPipelineKind,
         pipeline_variant_id: MeshPipelineVariantId,
     ) -> MeshDrawCommand {
+        self.command_with_pipeline_key(
+            phase,
+            pipeline_kind,
+            pipeline_variant_id,
+            &self.pipeline_key,
+        )
+    }
+
+    pub(crate) fn command_with_pipeline_key(
+        &self,
+        phase: RenderPhase,
+        pipeline_kind: MeshPassPipelineKind,
+        pipeline_variant_id: MeshPipelineVariantId,
+        pipeline_key: &PipelineKey,
+    ) -> MeshDrawCommand {
         let sort_key = packed_sort_key_u64(
             phase,
             self.sort_components,
@@ -367,7 +412,7 @@ impl MeshBatchRef {
         let mut command = MeshDrawCommand::new(
             phase,
             pipeline_kind,
-            self.pipeline_key.clone(),
+            pipeline_key.clone(),
             pipeline_variant_id,
             sort_key,
             instance_source,
@@ -403,6 +448,25 @@ impl MeshBatchRef {
         command
     }
 
+    pub(crate) fn project_cached_command(
+        &self,
+        payload: Arc<MeshDrawCommandPayload>,
+    ) -> MeshDrawCommand {
+        let gpu_scene_instance_span = self
+            .gpu_scene_instance_span
+            .expect("mesh pass batches must carry a GPUScene instance span");
+        MeshDrawCommand::from_cached_payload(
+            payload,
+            self.cache_identity
+                .map(|identity| identity.source_entity)
+                .unwrap_or_default(),
+            self.source_draw_index,
+            self.sort_components,
+            gpu_scene_instance_span,
+            self.gpu_scene_bind_group.clone(),
+        )
+    }
+
     fn material_discriminant(&self) -> u16 {
         self.material
             .as_ref()
@@ -428,6 +492,10 @@ where
         }
     }
 
+    pub(crate) const fn shader_quality(&self) -> ShaderQualityTier {
+        self.shader_quality
+    }
+
     #[cfg(test)]
     pub(crate) fn with_default_quality(variant_resolver: &'a mut R) -> Self {
         Self::new(variant_resolver, ShaderQualityTier::default())
@@ -438,9 +506,18 @@ where
         pipeline_kind: MeshPassPipelineKind,
         batch: &MeshBatchRef,
     ) -> MeshPipelineVariantId {
+        self.pipeline_variant_id_with_key(pipeline_kind, batch, &batch.pipeline_key)
+    }
+
+    pub(crate) fn pipeline_variant_id_with_key(
+        &mut self,
+        pipeline_kind: MeshPassPipelineKind,
+        batch: &MeshBatchRef,
+        pipeline_key: &PipelineKey,
+    ) -> MeshPipelineVariantId {
         self.variant_resolver.resolve_variant_for_geometry(
             pipeline_kind,
-            &batch.pipeline_key,
+            pipeline_key,
             batch.queue_profile.shader_geometry_source_id(),
             self.shader_quality,
         )
@@ -460,11 +537,11 @@ pub(crate) trait MeshPassProcessor {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GeometrySourceId, RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
-        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GeometrySourceId,
+        RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
     };
     use crate::core::framework::scene::Mobility;
-    use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
+    use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
     use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
         MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
     };

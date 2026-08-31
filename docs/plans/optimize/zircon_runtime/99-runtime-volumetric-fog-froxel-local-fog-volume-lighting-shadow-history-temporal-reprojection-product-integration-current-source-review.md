@@ -420,4 +420,6 @@ Public package形态不变：Scene truth留在`zircon_runtime::scene`，backend-
 
 Runtime99完成不是“三个compute pass存在”或“RenderDoc里有3D纹理”，而是：Scene能够显式保存global/local介质和light participation；Local Fog保留真实shape/transform/material；VBuffer随view和budget解析；GPU candidate/voxelization有界且resident；lighting、shadow、cookie与environment共享Prepared Lighting generation；history在cut/DRS/scene mutation下可信；opaque/transparent/OIT/particle按depth segment正确合成；Editor可创建、撤销、保存、诊断与cook；fault/scale/soak/required GPU和竞争基准全部通过。
 
-本轮没有实施代码修正。实现阶段必须从M0开始，先关闭默认隐式雾、失败产品证据与测试skip语义，再推进Scene hard cutover；不得在当前AABB+固定网格上继续堆叠材质或画质选项。
+原始审查轮次没有实施代码修正。2026-08-30 的后续基础设施切片仅收敛了 previous scattering history 的 RDG ownership：plugin 声明 catalog-backed compute sampled full-texture access，current/previous 共享 shader-quality-driven `160x90x48/64/96` D3 descriptor，history binder 发布 physical texture/view/descriptor。该变化对应 UE `RegisterExternalTexture(LightScatteringHistory)` 与 current scattering extraction 的资源身份模型，但没有修改 fixed grid、temporal weight/jitter/rejection、介质 voxelization、lighting、composition 或任何性能算法，也没有取得 WGPU/PNG/RDC/profile/power 证据；状态为 `render_plan18_volumetric_dynamic_external_history_exact_lease_source_implemented_dynamic_validation_pending`。
+
+实现阶段仍必须从M0开始，先关闭默认隐式雾、失败产品证据与测试skip语义，再推进Scene hard cutover；不得在当前AABB+固定网格上继续堆叠材质或画质选项。上述资源身份切片不关闭本报告的 P0/P1、M0-M6 或 44 个资格门。

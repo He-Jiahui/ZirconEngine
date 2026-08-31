@@ -297,16 +297,9 @@ fn migrate_flattened_material_slot(
     let Some(values) = slot.as_table_mut() else {
         return Ok(false);
     };
-    if !values.contains_key("uuid") && !values.contains_key("url") {
+    let Some(exact) = take_retired_material_reference_fields(values) else {
         return Ok(false);
-    }
-    let mut exact = toml::Table::new();
-    if let Some(uuid) = values.remove("uuid") {
-        exact.insert("uuid".to_string(), uuid);
-    }
-    if let Some(url) = values.remove("url") {
-        exact.insert("url".to_string(), url);
-    }
+    };
     let migrated = migrate_one_reference(
         toml::Value::Table(exact),
         resolver,
@@ -318,6 +311,17 @@ fn migrate_flattened_material_slot(
     };
     values.extend(fields);
     Ok(true)
+}
+
+fn take_retired_material_reference_fields(values: &mut toml::Table) -> Option<toml::Table> {
+    let mut exact = toml::Table::new();
+    if let Some(uuid) = values.remove("uuid") {
+        exact.insert("uuid".to_string(), uuid);
+    }
+    if let Some(url) = values.remove("url") {
+        exact.insert("url".to_string(), url);
+    }
+    (!exact.is_empty()).then_some(exact)
 }
 
 fn migrate_one_reference(
@@ -402,6 +406,17 @@ fn migration_issue(
             Some(path.to_path_buf()),
             message,
         ),
+        RetiredAssetRefMigrationError::ResourceLimitExceeded {
+            resource,
+            max,
+            found,
+        } => AssetMigrationIssue::new(
+            AssetMigrationIssueKind::InvalidDocument,
+            Some(path.to_path_buf()),
+            format!(
+                "retired asset reference migration {resource} limit {max} exceeded (found {found})"
+            ),
+        ),
         RetiredAssetRefMigrationError::Resolve(error) => {
             AssetMigrationIssue::new(error.kind, Some(path.to_path_buf()), error.message)
         }
@@ -415,3 +430,7 @@ fn invalid(path: &Path, message: String) -> AssetMigrationIssue {
         message,
     )
 }
+
+#[cfg(test)]
+#[path = "document/single_pass_material_reference_tests.rs"]
+mod single_pass_material_reference_tests;

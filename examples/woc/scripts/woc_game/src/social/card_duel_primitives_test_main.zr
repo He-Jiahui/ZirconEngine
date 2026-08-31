@@ -104,6 +104,21 @@ contractTest(): int {
         emptyPair.ready) {
         return -10;
     }
+
+    var tracked = new queue.CardDuelQueue();
+    var staleJoin = tracked.joinTracked(<uint>21, false, false, 0);
+    if (staleJoin.status != 1 ||
+        !tracked.leaveTracked(staleJoin.slot, staleJoin.generation, <uint>21)) {
+        return -11;
+    }
+    var reusedJoin = tracked.joinTracked(<uint>22, false, false, 1);
+    if (reusedJoin.status != 1 || reusedJoin.slot != staleJoin.slot ||
+        reusedJoin.generation == staleJoin.generation ||
+        tracked.leaveTracked(staleJoin.slot, staleJoin.generation, <uint>21) ||
+        !tracked.leaveTracked(reusedJoin.slot, reusedJoin.generation, <uint>22) ||
+        tracked.size() != 0) {
+        return -12;
+    }
     return 1;
 }
 

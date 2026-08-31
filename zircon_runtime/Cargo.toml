@@ -5,6 +5,24 @@ edition.workspace = true
 license.workspace = true
 description = "Runtime absorption layer for high-level engine subsystems."
 
+[package.metadata.zircon.validation]
+test-dependency-roots = [
+    "../docs/assets-and-rendering",
+    "../docs/cli-and-tooling",
+    "../docs/editor-and-tooling",
+    "../docs/engine-architecture",
+    "../docs/plans/_archive/zircon_runtime",
+    "../docs/plans/engine-code-review-findings-2026-06.md",
+    "../docs/plans/engine-code-structure-convention.md",
+    "../docs/plans/optimize/zircon_runtime/74/2026-08-22-single-template-compiler-authority.md",
+    "../docs/plans/performance/01/renderdoc_capture_audit.py",
+    "../docs/plans/zircon_plugins",
+    "../docs/plans/zircon_runtime",
+    "../docs/zircon_hub",
+    "../docs/zircon_plugins",
+    "../docs/zircon_runtime",
+]
+
 [lib]
 crate-type = ["rlib", "cdylib"]
 
@@ -34,6 +52,11 @@ required-features = ["dynamic-api"]
 [[bin]]
 name = "zircon_shader_ide_env"
 path = "src/bin/zircon_shader_ide_env/main.rs"
+required-features = ["graphics"]
+
+[[bin]]
+name = "zircon_neutral_mvp_capture"
+path = "src/bin/zircon_neutral_mvp_capture.rs"
 required-features = ["graphics"]
 
 [[bin]]
@@ -75,6 +98,8 @@ text = [
     "dep:fdsm-ttf-parser",
     "dep:fontsdf",
     "dep:glyphon",
+    "dep:icu_locale_core",
+    "dep:icu_properties",
     "dep:nalgebra",
     "dep:naga",
     "dep:rustybuzz",
@@ -86,6 +111,7 @@ text = [
     "dep:unicode-bidi",
     "dep:unicode-bidi-mirroring",
     "dep:unicode-normalization",
+    "dep:unicode-properties",
     "dep:unicode-script",
     "dep:unicode-segmentation",
     "dep:unicode-vo",
@@ -94,7 +120,7 @@ text = [
 ]
 ui = ["graphics", "dep:taffy"]
 accessibility-accesskit = ["dep:accesskit"]
-profiling = []
+profiling = ["zr_resource/profiling"]
 profiling-chrome = ["profiling"]
 profiling-tracy = ["profiling", "dep:tracing-subscriber", "dep:tracing-tracy"]
 profiling-memory = ["profiling"]
@@ -171,6 +197,7 @@ target-editor-host = [
 [dependencies]
 accesskit = { version = "0.22.0", default-features = false, optional = true }
 arc-swap.workspace = true
+bevy_mikktspace.workspace = true
 bincode.workspace = true
 blake3.workspace = true
 bytemuck.workspace = true
@@ -183,6 +210,8 @@ fontsdf = { version = "0.5.3", optional = true }
 glam.workspace = true
 gltf.workspace = true
 glyphon = { version = "0.11.0", optional = true }
+icu_locale_core = { version = "=2.2.0", features = ["alloc"], optional = true }
+icu_properties = { version = "=2.2.0", optional = true }
 image.workspace = true
 meshopt.workspace = true
 naga = { workspace = true, optional = true }
@@ -191,6 +220,7 @@ notify.workspace = true
 pollster = { workspace = true, optional = true }
 raw-window-handle = { version = "0.6.2", optional = true }
 rayon = "1.11.0"
+robust = "1.2.0"
 ron = "0.12.1"
 rustybuzz = { version = "0.20.1", optional = true }
 same-file = "1.0.6"
@@ -208,24 +238,28 @@ tracing.workspace = true
 tracing-subscriber = { version = "0.3.20", optional = true }
 tracing-tracy = { version = "0.11.4", optional = true }
 ttf-parser = { version = "0.25.1", optional = true }
-unicode-linebreak = { version = "0.1.5", optional = true }
-unicode-bidi = { version = "0.3.18", optional = true }
-unicode-bidi-mirroring = { version = "0.4.0", optional = true }
-unicode-normalization = { version = "0.1.24", optional = true }
-unicode-script = { version = "0.5.8", optional = true }
-unicode-segmentation = { version = "1.13.2", optional = true }
-unicode-vo = { version = "0.1.0", optional = true }
+unicode-linebreak = { version = "=0.1.5", optional = true }
+unicode-bidi = { version = "=0.3.18", optional = true }
+unicode-bidi-mirroring = { version = "=0.4.0", optional = true }
+unicode-normalization = { version = "=0.1.25", optional = true }
+unicode-properties = { version = "=0.1.4", default-features = false, features = ["emoji", "general-category"], optional = true }
+unicode-script = { version = "=0.5.8", optional = true }
+unicode-segmentation = { version = "=1.13.3", optional = true }
+unicode-vo = { version = "=0.1.0", optional = true }
 uuid.workspace = true
 wgpu = { workspace = true, optional = true }
 winit = { workspace = true, default-features = false, optional = true }
 woff2-patched = { version = "0.4.0", optional = true }
 libloading = "0.9.0"
 libm = "0.2.16"
+zeroize = "1.8.2"
 zstd = "0.13.3"
 zip = { version = "9.0.0-pre2", default-features = false, features = ["deflate-flate2"] }
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
 zircon_reflect_derive.workspace = true
 zircon_runtime_reflection_macros = { path = "reflection_macros" }
+zr_math.workspace = true
+zr_resource.workspace = true
 zr_rhi.workspace = true
 zr_rhi_wgpu = { workspace = true, optional = true }
 
@@ -235,3 +269,4 @@ toml.workspace = true
 
 [dev-dependencies]
 ttf2woff2 = { version = "0.13.1", default-features = false }
+zr_resource = { workspace = true, features = ["test-support"] }

@@ -20,6 +20,10 @@ use super::requests::{
     PendingSequenceSample, PendingStateMachinePoseSample,
 };
 
+#[cfg(test)]
+#[path = "parameter_apply/performance_tests.rs"]
+mod optimization_batch_20260830cp_tests;
+
 /// Persistent typed projection for the animation system. It caches only ECS
 /// candidates that own animation components and records the last observed
 /// component/resource revision for paused instances.
@@ -75,13 +79,9 @@ struct StateMachineProjectionRevision {
 #[derive(Debug, Default)]
 pub(super) struct AnimationProjectionRevisionStage {
     clip_revisions: Vec<(EntityId, ClipProjectionRevision)>,
-    clip_entities: BTreeSet<EntityId>,
     sequence_revisions: Vec<(EntityId, SequenceProjectionRevision)>,
-    sequence_entities: BTreeSet<EntityId>,
     graph_revisions: Vec<(EntityId, GraphProjectionRevision)>,
-    graph_entities: BTreeSet<EntityId>,
     state_machine_revisions: Vec<(EntityId, StateMachineProjectionRevision)>,
-    state_machine_entities: BTreeSet<EntityId>,
 }
 
 pub(super) struct AnimationSceneTransaction {
@@ -104,25 +104,21 @@ impl AnimationEvaluationProjection {
         commit_revision_entries(
             &mut self.clip_revisions,
             stage.clip_revisions,
-            &stage.clip_entities,
             deferred_entities,
         );
         commit_revision_entries(
             &mut self.sequence_revisions,
             stage.sequence_revisions,
-            &stage.sequence_entities,
             deferred_entities,
         );
         commit_revision_entries(
             &mut self.graph_revisions,
             stage.graph_revisions,
-            &stage.graph_entities,
             deferred_entities,
         );
         commit_revision_entries(
             &mut self.state_machine_revisions,
             stage.state_machine_revisions,
-            &stage.state_machine_entities,
             deferred_entities,
         );
     }
@@ -245,7 +241,6 @@ impl AnimationEvaluationProjection {
                 Some(world.query::<(EntityId, Ref<'static, AnimationPlayerComponent>)>());
         }
 
-        let mut seen = BTreeSet::new();
         for (entity, player) in self
             .clip_players
             .as_mut()
@@ -254,7 +249,6 @@ impl AnimationEvaluationProjection {
         {
             self.stats.clip_player_candidate_count =
                 self.stats.clip_player_candidate_count.saturating_add(1);
-            seen.insert(entity);
             let clip_id = player.clip.id();
             let skeleton_id = skeletons.get(&entity).copied();
             if skeleton_id.is_some() {
@@ -267,7 +261,6 @@ impl AnimationEvaluationProjection {
             };
             let should_sample =
                 player.playing || self.clip_revisions.get(&entity) != Some(&revision);
-            revision_stage.clip_entities.insert(entity);
             revision_stage.clip_revisions.push((entity, revision));
             if !should_sample {
                 continue;
@@ -307,7 +300,6 @@ impl AnimationEvaluationProjection {
                     self.stats.clip_pose_request_count.saturating_add(1);
             }
         }
-        revision_stage.clip_entities = seen;
     }
 
     fn scan_sequence_players(
@@ -329,7 +321,6 @@ impl AnimationEvaluationProjection {
                 Some(world.query::<(EntityId, Ref<'static, AnimationSequencePlayerComponent>)>());
         }
 
-        let mut seen = BTreeSet::new();
         for (entity, player) in self
             .sequence_players
             .as_mut()
@@ -338,7 +329,6 @@ impl AnimationEvaluationProjection {
         {
             self.stats.sequence_player_candidate_count =
                 self.stats.sequence_player_candidate_count.saturating_add(1);
-            seen.insert(entity);
             let sequence_id = player.sequence.id();
             let revision = SequenceProjectionRevision {
                 player_change: player.last_changed(),
@@ -370,7 +360,6 @@ impl AnimationEvaluationProjection {
             });
             self.stats.sequence_request_count = self.stats.sequence_request_count.saturating_add(1);
         }
-        revision_stage.sequence_entities = seen;
     }
 
     fn scan_graph_players(
@@ -394,7 +383,6 @@ impl AnimationEvaluationProjection {
                 Some(world.query::<(EntityId, Ref<'static, AnimationGraphPlayerComponent>)>());
         }
 
-        let mut seen = BTreeSet::new();
         for (entity, player) in self
             .graph_players
             .as_mut()
@@ -403,7 +391,6 @@ impl AnimationEvaluationProjection {
         {
             self.stats.graph_player_candidate_count =
                 self.stats.graph_player_candidate_count.saturating_add(1);
-            seen.insert(entity);
             let previous_time_seconds = previous_times.get(&entity).copied().unwrap_or(0.0);
             let next_time_seconds =
                 previous_time_seconds + if player.playing { delta_seconds } else { 0.0 };
@@ -437,7 +424,6 @@ impl AnimationEvaluationProjection {
             self.stats.graph_pose_request_count =
                 self.stats.graph_pose_request_count.saturating_add(1);
         }
-        revision_stage.graph_entities = seen;
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -467,7 +453,6 @@ impl AnimationEvaluationProjection {
             );
         }
 
-        let mut seen = BTreeSet::new();
         for (entity, player) in self
             .state_machine_players
             .as_mut()
@@ -478,7 +463,6 @@ impl AnimationEvaluationProjection {
                 .stats
                 .state_machine_player_candidate_count
                 .saturating_add(1);
-            seen.insert(entity);
             let previous_time_seconds = previous_times.get(&entity).copied().unwrap_or(0.0);
             let next_time_seconds =
                 previous_time_seconds + if player.playing { delta_seconds } else { 0.0 };
@@ -521,17 +505,26 @@ impl AnimationEvaluationProjection {
                 .state_machine_pose_request_count
                 .saturating_add(1);
         }
-        revision_stage.state_machine_entities = seen;
     }
+}
+
+fn sort_revision_entries<T>(entries: &mut [(EntityId, T)]) {
+    entries.sort_unstable_by_key(|(entity, _)| *entity);
+}
+
+fn revision_stage_contains<T>(entries: &[(EntityId, T)], entity: &EntityId) -> bool {
+    entries
+        .binary_search_by_key(entity, |(candidate, _)| *candidate)
+        .is_ok()
 }
 
 fn commit_revision_entries<T>(
     current: &mut BTreeMap<EntityId, T>,
-    staged: Vec<(EntityId, T)>,
-    seen_entities: &BTreeSet<EntityId>,
+    mut staged: Vec<(EntityId, T)>,
     deferred_entities: &BTreeSet<EntityId>,
 ) {
-    current.retain(|entity, _| seen_entities.contains(entity));
+    sort_revision_entries(&mut staged);
+    current.retain(|entity, _| revision_stage_contains(&staged, entity));
     current.extend(
         staged
             .into_iter()

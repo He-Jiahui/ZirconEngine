@@ -64,6 +64,14 @@ impl EditorKeyChord {
         self.meta
     }
 
+    pub fn is_valid(&self) -> bool {
+        let key = self.key.trim();
+        !key.is_empty()
+            && !is_modifier_key_name(key)
+            && !starts_with_ignore_ascii_case(key, "dead")
+            && !starts_with_ignore_ascii_case(key, "unidentified")
+    }
+
     pub fn from_keyboard_input(keyboard: &UiKeyboardInputEvent) -> Option<Self> {
         EditorKeyboardChordInput::from_keyboard_input(keyboard).map(|input| input.into_chord())
     }
@@ -205,19 +213,21 @@ fn keyboard_input_key(keyboard: &UiKeyboardInputEvent) -> Option<KeyboardInputKe
     if logical_key == " " || logical_key.eq_ignore_ascii_case("spacebar") {
         return Some(KeyboardInputKey::Fixed("Space"));
     }
-    if [
-        "control", "ctrl", "shift", "alt", "meta", "super", "capslock", "numlock",
-    ]
-    .iter()
-    .any(|modifier| logical_key.eq_ignore_ascii_case(modifier))
-        || starts_with_ignore_ascii_case(logical_key, "dead")
-    {
+    if is_modifier_key_name(logical_key) || starts_with_ignore_ascii_case(logical_key, "dead") {
         return None;
     }
     if starts_with_ignore_ascii_case(logical_key, "unidentified") {
         return fallback_keyboard_key_for_code(keyboard.key_code);
     }
     Some(normalized_keyboard_key(logical_key))
+}
+
+fn is_modifier_key_name(key: &str) -> bool {
+    [
+        "control", "ctrl", "shift", "alt", "meta", "super", "capslock", "numlock",
+    ]
+    .iter()
+    .any(|modifier| key.eq_ignore_ascii_case(modifier))
 }
 
 fn starts_with_ignore_ascii_case(value: &str, prefix: &str) -> bool {
@@ -439,6 +449,15 @@ mod tests {
         );
         assert_eq!(EditorKeyChord::new("escape").to_string(), "Escape");
         assert_eq!(EditorKeyChord::new("f12").to_string(), "F12");
+    }
+
+    #[test]
+    fn chord_validity_requires_one_non_modifier_key() {
+        assert!(EditorKeyChord::from_str("Ctrl+S").unwrap().is_valid());
+        assert!(!EditorKeyChord::new("").is_valid());
+        assert!(!EditorKeyChord::new("Ctrl").is_valid());
+        assert!(!EditorKeyChord::new("DeadAcute").is_valid());
+        assert!(!EditorKeyChord::new("Unidentified").is_valid());
     }
 
     #[test]

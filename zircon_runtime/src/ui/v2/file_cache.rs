@@ -113,7 +113,8 @@ impl UiV2PrototypeStoreFileCache {
         let request_key = UiV2FileStoreRequestKey::from_paths(&paths);
         let explicit_cache_key = UiV2FileStoreCacheKey::from_paths(&paths);
         if let Some(entry) = self.entries.get(&explicit_cache_key) {
-            let current_source_key = UiV2FileStoreCacheKey::from_paths(&entry.source_paths);
+            let current_source_key =
+                UiV2FileStoreCacheKey::from_canonical_paths(&entry.source_paths);
             if entry.source_key == current_source_key {
                 let outcome = entry.to_outcome(true, false);
                 self.request_entries.insert(request_key, explicit_cache_key);
@@ -202,6 +203,15 @@ impl UiV2FileStoreCacheKey {
                 .collect(),
         }
     }
+
+    fn from_canonical_paths(paths: &[PathBuf]) -> Self {
+        Self {
+            sources: paths
+                .iter()
+                .map(|path| UiV2FileCacheSourceKey::from_canonical_path(path))
+                .collect(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -214,7 +224,11 @@ struct UiV2FileCacheSourceKey {
 impl UiV2FileCacheSourceKey {
     fn from_path(path: &Path) -> Self {
         let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-        let metadata = std::fs::metadata(&path).ok();
+        Self::from_canonical_path(&path)
+    }
+
+    fn from_canonical_path(path: &Path) -> Self {
+        let metadata = std::fs::metadata(path).ok();
         let modified_unix_ns = metadata
             .as_ref()
             .and_then(|metadata| metadata.modified().ok())
@@ -222,7 +236,7 @@ impl UiV2FileCacheSourceKey {
             .map(|duration| duration.as_nanos());
         let len = metadata.as_ref().map(std::fs::Metadata::len);
         Self {
-            path,
+            path: path.to_path_buf(),
             modified_unix_ns,
             len,
         }
@@ -284,7 +298,7 @@ fn load_persistent_entry(
     if record.record_version != UI_V2_PERSISTENT_FILE_CACHE_RECORD_VERSION {
         return Ok(None);
     }
-    let current_source_key = UiV2FileStoreCacheKey::from_paths(&record.source_paths);
+    let current_source_key = UiV2FileStoreCacheKey::from_canonical_paths(&record.source_paths);
     if record.source_key != current_source_key {
         return Ok(None);
     }
@@ -467,7 +481,7 @@ fn build_file_store_cache_entry(
         .iter()
         .map(|source| source.path.clone())
         .collect::<Vec<_>>();
-    let source_key = UiV2FileStoreCacheKey::from_paths(&source_paths);
+    let source_key = UiV2FileStoreCacheKey::from_canonical_paths(&source_paths);
 
     let mut builder = UiV2PrototypeStoreBuilder::new();
     for (index, source) in sources.into_iter().enumerate() {
@@ -618,3 +632,6 @@ fn lower_file_name(path: &Path) -> Option<String> {
         .and_then(|name| name.to_str())
         .map(str::to_ascii_lowercase)
 }
+
+#[cfg(test)]
+mod canonical_revalidation_tests;

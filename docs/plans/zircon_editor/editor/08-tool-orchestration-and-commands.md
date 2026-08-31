@@ -46,34 +46,34 @@ status: in_progress
 
 **UE 模式调度**（`EditorModeManager.h`）：`FEditorModeTools` 是独占资源仲裁者——视口输入先问活跃模式栈；互斥组内先退后进。`ToolScheduler` 直译并泛化到「模态向导/独占面板」。
 
-## 现状与证据（zircon，2026-08-01 current-source 复核）
+## 现状与证据（zircon，2026-08-31 current-source 复核）
 
 ### 命令与操作已收敛到 core 单一注册表
 
 `EditorCommandRegistry` 现位于 `core/commands/registry.rs`，以 `BTreeMap<EditorOperationPath, EditorCommandDescriptor>` 持有唯一命令元数据，并在同一 owner 内保存 operation factory registration、generation 与 `OnceLock<Arc<EditorCommandPaletteCatalog>>`。`EditorCommandDescriptor` 已包含 menu/when/payload/headless/remote/capability/asset-write 元数据；`EditorCommandAction` 的当前形状是 `Emit(EditorEvent) | Operation | HeadlessAssetMigration | HeadlessPluginList`，operation factory 由 registry 内部 map 绑定，不内联到 enum，也没有旧 `Menu` 变体。
 
-### when 与 keymap 已落地，域感知冲突仍待完成
+### when enablement 分派已落地，binding context 仍待硬切
 
 `WhenClause` 已覆盖 `ProjectOpen/UndoAvailable/RedoAvailable/FocusedDocumentKind/SceneModeActive/SelectionNonEmpty/AssetWritable/PlayMode/Capability` 与 `All/Any/Not`。`CommandEvalCtx` 以 `interactive` 区分 UI/headless；headless 对不可求值的 UI 谓词返回 inapplicable，组合子按 `Option<bool>` 传播，最终 `eval` 才把 inapplicable 收敛为 false。
 
-`EditorKeymap` 已支持内建 preset + typed settings override、chord conflict 列表、borrowed keyboard signature index 与按 command id 二分回查。当前 conflict/resolve 只按 chord，不读取 `WhenClause` 域；“同 chord 异域可并存”的最终合同仍未落地。
+`EditorKeymap` 已支持内建 preset + typed settings override、borrowed keyboard signature index、按 command id 二分回查，以及按当前 `CommandEvalCtx` 过滤同 chord 候选的输入分派。current source 还新增了基于 `WhenClause` 可满足性的 conflict API，但生产设置/注册链没有 consumer，且 enablement predicate 不能替代稳定 binding context。默认 chord 又同时存在于 descriptor 与 `default.keymap.toml`，manager 输入与 menu/palette 仍有双权威；共享 command contribution v3 同时缺少 chord/context/when，插件 materialization 只能得到无默认 chord 的 `Always` descriptor。2026-08-31 复审已用真实四态枚举修复 PlayMode exact-one containment；最终合同改为 registry-derived descriptor defaults + preset delta + settings override、显式 context registry、父子域与 context-local signature index，并要求 runtime interface/SDK/materializer/registry transaction 退役 v3 后原子硬切，详见子计划 `08/2026-08-31-keymap-binding-context-current-review.md`。
 
 ### 菜单与 ToolScheduler 的真实边界
 
-菜单当前是两阶段投影：`core/commands/menu.rs` 只物化 `CommandRegistry` owner；`ui/workbench/model/menu/extension_menu.rs` 再按 priority/path 合并 extension `menu_items` 和 extension views，并通过 canonical command registry 求值 enablement。仓库中没有 `DocumentToolkit::contribute_menus` owner，因此原“三源合成”目标尚未完成，不能把 `EditorCommandMenuProjection::{CommandRegistry, ExtensionRegistry}` 二选一误写成三源合成器。
+菜单保持两阶段投影：`core/commands/menu.rs` 物化 command-registry base；`ui/workbench/model/menu/extension_menu.rs` 再合并 extension `menu_items`、focused `DocumentToolkitDescriptor::menu_items` 与 extension views。extension/toolkit 项按 priority/path/operation 稳定排序，以 operation path 跨源去重，要求 canonical command 存在，并复用同一 when/keymap/i18n 投影；失焦后 toolkit 第三源立即退出。`EditorCommandMenuProjection::{CommandRegistry, ExtensionRegistry}` 仍只描述 base/append 两阶段 ownership，不承担 toolkit 生命周期。
 
 `ToolScheduler` 已实现单资源和 canonical `ToolResourceSet` 原子租约、FIFO set queue、有界拒绝、withdraw/release-all，以及 `#[must_use] ToolScheduleReport` 生命周期事件发布合同；`ToolSchedulerService` 已挂入 `EditorContext`。当前源码只有 service/core tests 使用 acquire API，05 scene-mode 与 15 export-wizard 的真实生产接入仍是开放项。
 
 ### 剩余缺口
 
-1. toolkit 菜单第三源与统一去重/排序合同；2. keymap 的 when-domain 冲突和分派；3. scene mode/export wizard 对 set-lease scheduler 的生产接入；4. palette/menu 的 1k/10k 规模、锁等待和 clone-byte 产品证据。上述缺口保持 open，不恢复已删除的 `ui/host/commands`、全量 `command_palette_value` 或第二 operation registry。
+1. keymap 显式 binding context、生产 conflict generation 与设置/extension 消费；2. scene mode/export wizard 对 set-lease scheduler 的生产接入；3. palette/menu 的 1k/10k 规模、锁等待和 clone-byte 产品证据。上述缺口保持 open，不恢复已删除的 `ui/host/commands`、全量 `command_palette_value` 或第二 operation registry。
 
 ## 目标
 
 1. **单一命令权威**：保持 `EditorCommandDescriptor` + registry-owned operation factory 的单一 id/metadata owner；CLI、面板和菜单都从该 registry 解析，不再引入 enum-inline factory 或第二 operation registry。
 2. **when 谓词**：保留当前结构化 `WhenClause` 与 interactive/headless applicability 语义，所有入口复用同一 `CommandEvalCtx`。
-3. **菜单合流**：在现有 command-base + extension-append 两阶段投影上补 toolkit 第三源、稳定去重/排序和统一 enablement，不把 projection ownership enum 伪装成已完成的三源合成。
-4. **keymap 双层**：保留内建 preset + settings override + signature index；补 when-domain 冲突与域感知分派，使同 chord 同域告警、异域放行。
+3. **菜单合流**：保持 command-base + extension/toolkit/view append 两阶段投影、跨源稳定去重/排序和统一 enablement；toolkit 菜单只随 focused toolkit 生命周期出现，不把 projection ownership enum 扩成第二套菜单权威。
+4. **keymap 分层**：command descriptor/registry 作为 default binding 唯一 owner，preset 只存 delta，再叠加 settings override；保留 signature index 与 current enablement dispatch，新增 registry-owned typed binding context，把父子域冲突、兄弟域共存和 active-context 查找从 `WhenClause` SAT 中硬切出来。
 5. **`ToolScheduler`**：保留单资源/set-lease、有界队列和 lifecycle report；完成 05 模式栈与 15 导出向导生产接入。
 6. **命令面板成型**：保留 generation-owned catalog、typed query window、when 过滤与 MRU，并补规模/锁/分配验收（外观归 editor_layout）。
 
@@ -91,13 +91,13 @@ zircon_editor/src/core/commands/
   descriptor.rs        # canonical descriptor + action route
   registry.rs          # command metadata + operation factories + palette generation
   when.rs              # WhenClause + CommandEvalCtx
-  keymap.rs            # preset + settings override + signature index
+  keymap.rs            # preset + settings override + context-local signature index
   menu.rs              # command-registry base menu projection
   palette.rs           # generation-owned catalog/query window/MRU
 zircon_editor/src/core/tools/
   mod.rs / scheduler.rs
 zircon_editor/src/ui/workbench/model/menu/
-  extension_menu.rs    # extension menu/view append；toolkit 第三源待接入
+  extension_menu.rs    # extension/toolkit/view append + cross-source dedup
 ```
 
 ### 关键类型
@@ -138,7 +138,7 @@ impl ToolScheduler {
 
 | 入口 | 路径 | 过滤 |
 | --- | --- | --- |
-| 菜单/工具栏 | `commands/menu.rs` base + workbench extension append；toolkit 第三源待接入 | when 置灰 |
+| 菜单/工具栏 | `commands/menu.rs` base + workbench extension/toolkit/view append | when 置灰 |
 | 命令面板 | `palette.rs` 模糊+MRU | when 隐藏 |
 | CLI `--run/--operation` | 16 commandlet → `command(id)` | `callable_from_remote` 且 headless-when 通过 |
 
@@ -149,7 +149,7 @@ impl ToolScheduler {
 | 旧 `ui/host/commands` owner | 已硬切到 `core/commands/registry.rs`；全量 palette value 入口已删除，统一为 generation-owned query window |
 | 旧 command→operation 字符串链接/第二 registry | 已收敛为 descriptor `Operation` route + 同 registry id 下的 factory registration；不内联 factory，不恢复第二 registry |
 | 旧无 when descriptor | 已并入 `WhenClause`、`CommandEvalCtx`、remote/headless/capability/asset-write metadata |
-| 旧单层 `EditorKeymap` | 已收敛为 preset + settings override + signature index + chord conflicts；when-domain 仍 pending |
+| 旧单层 `EditorKeymap` | current 已有 preset + settings override + signature index + contextual enablement dispatch；后续硬切为 registry descriptor defaults + preset delta + settings override，并删除默认 chord 双权威。PlayMode exact-one containment 已落地，显式 binding context 与生产 conflict generation 仍 pending |
 | 旧无调度 owner | `ToolSchedulerService` 已挂 `EditorContext`；05/15 真实 consumer 接入仍 pending |
 
 ### 深度测试
@@ -165,9 +165,9 @@ impl ToolScheduler {
 
 ### M2 菜单合流与 keymap 双层
 
-- 切片 2.1：command base 与 extension menu/view append 已落地；toolkit 第三源、跨源去重/排序和三源快照测试仍 pending。`CommandAction::Menu` 已不存在，不再保留其迁移任务。
-- 切片 2.2：settings override、signature index 与 chord-only conflict 已落地；when-domain 分派/冲突仍 pending。
-- 测试阶段：补 toolkit 第三源快照、同 chord 同域告警/异域放行，以及输入事件→域感知命令端到端。
+- 切片 2.1：command base 与 extension/toolkit/view append 已落地；focused toolkit 第三源、capability filter、跨源 operation 去重、稳定排序、canonical command gate 与失焦退出已有源码和聚焦测试。`CommandAction::Menu` 已不存在，不再保留其迁移任务；current-source Cargo 与产品链路仍待验收。
+- 切片 2.2：settings override、signature index 与上下文 enablement dispatch 已落地；PlayMode exact-one correctness containment 已静态完成。当前通用 SAT conflict API 无生产 consumer，不作为完成态；显式 binding context、父子冲突、兄弟共存与 conflict generation 仍 pending。共享 command contribution v3 无法表达该结构，必须与 SDK/materializer/registry transaction 一次性硬切为新 schema，不保留旧 schema 或静默默认域。
+- 测试阶段：运行现有 toolkit 三源快照，并补 same-context/parent-child/sibling、missing/cycle/depth-limit，以及输入事件→active-context→命令端到端。
 
 ### M3 面板与 ToolScheduler
 
@@ -179,7 +179,6 @@ impl ToolScheduler {
 
 - registry 迁 core 与 01 M1 context 服务化排程耦合——M1 硬排在 01 M1 后。
 - `CommandAction::Emit` 依赖 01 类型化载荷已落地；01 未完时以 `Custom` 过渡记债。
-- `CommandAction::Menu` 变体的存废：菜单合流后若全部菜单动作可折算 Emit/Operation 则删除该变体（M2 清点裁决记状态节）；不预判。
 - when 谓词不给插件自定义（序列化限制）：插件组合内建谓词，不足场景走 `Capability` 自定义能力名兜底——契约注释声明。
 
 ## 产出记录与时间

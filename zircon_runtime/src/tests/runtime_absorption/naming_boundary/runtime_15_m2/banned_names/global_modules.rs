@@ -99,8 +99,12 @@ fn runtime_15_no_banned_name_modules() {
             "impl WgpuRenderFramework",
             "pub fn new(",
             "pub fn new_with_plugin_render_extensions(",
-            "TaskPool::new(TaskPoolDescriptor::compute())",
+            "compute_task_pool: TaskPool",
         ],
+    );
+    assert!(
+        !construction_owner.contains("TaskPool::new(TaskPoolDescriptor::compute())"),
+        "WGPU construction must use the Runtime-owned task graph instead of creating a private worker owner"
     );
 
     let runtime_15_plan = read_repo_text(

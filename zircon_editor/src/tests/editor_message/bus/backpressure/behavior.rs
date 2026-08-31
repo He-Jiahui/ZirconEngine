@@ -3,14 +3,23 @@
 use crate::core::editing::engine::{HistoryContextId, TransactionId};
 use crate::core::editor_message::{
     DocumentId, EditorMessage, EditorMessageBus, EditorMessageBusError, EditorMessageDispatchError,
-    EditorMessageInboxLimits, EditorMessagePayload, EditorViewInvalidationMask, ModeMessage,
-    PlayStateKind, SceneInspectionFieldsDelta, SceneInspectionHierarchyAnchor,
-    SceneInspectionMessage, SceneInspectionSelectionDelta, SceneModeId, SelectionDomain,
-    SharedEditorMessageBus, TransactionMessage, TOPIC_SCENE_INSPECTION,
+    EditorMessageInboxLimits, EditorMessagePayload, EditorMessageSchemaId,
+    EditorViewInvalidationMask, ModeMessage, PlayStateKind, SceneInspectionFieldsDelta,
+    SceneInspectionHierarchyAnchor, SceneInspectionMessage, SceneInspectionSelectionDelta,
+    SceneModeId, SelectionDomain, SharedEditorMessageBus, TransactionMessage,
+    TOPIC_SCENE_INSPECTION,
 };
 
 use super::super::fixture::{topic, view};
 use super::fixture::{document_opened, selection_changed, CountingHandler, PayloadSharingHandler};
+
+fn editor_schema_id(local_schema: &str) -> EditorMessageSchemaId {
+    EditorMessageSchemaId::editor(local_schema).unwrap()
+}
+
+fn plugin_schema_id(plugin_id: &str, local_schema: &str) -> EditorMessageSchemaId {
+    EditorMessageSchemaId::plugin(plugin_id, local_schema).unwrap()
+}
 
 #[test]
 fn fanout_clones_share_one_immutable_delivery_payload() {
@@ -20,7 +29,7 @@ fn fanout_clones_share_one_immutable_delivery_payload() {
 
     bus.publish(
         topic("editor.focus"),
-        selection_changed(SelectionDomain::Scene, 1),
+        selection_changed(SelectionDomain::edit_scene(), 1),
     );
 
     let first_deliveries = bus.deliveries_for(first);
@@ -35,7 +44,7 @@ fn shared_request_reuses_the_enqueued_delivery_payload() {
         .register_subscriber([topic("editor.request.payload")])
         .unwrap();
     let message = EditorMessage::custom(
-        "editor.request.payload.v1",
+        editor_schema_id("request.payload.v1"),
         serde_json::json!({ "blob": "x".repeat(64 * 1024) }),
     );
     let mut handler = PayloadSharingHandler::default();
@@ -69,7 +78,7 @@ fn paused_hundred_subscriber_selection_storm_stays_one_delivery_per_inbox() {
     for revision in 0..10_000 {
         bus.publish(
             topic("editor.focus"),
-            selection_changed(SelectionDomain::Scene, revision),
+            selection_changed(SelectionDomain::edit_scene(), revision),
         );
     }
 
@@ -95,11 +104,11 @@ fn latest_state_coalesces_but_document_edges_remain_ordered() {
 
     bus.publish(
         topic("editor.focus"),
-        selection_changed(SelectionDomain::Scene, 1),
+        selection_changed(SelectionDomain::edit_scene(), 1),
     );
     let coalesced = bus.publish(
         topic("editor.focus"),
-        selection_changed(SelectionDomain::Scene, 2),
+        selection_changed(SelectionDomain::edit_scene(), 2),
     );
     bus.publish(
         topic("editor.document"),
@@ -115,7 +124,7 @@ fn latest_state_coalesces_but_document_edges_remain_ordered() {
     assert_eq!(deliveries.len(), 3);
     assert_eq!(
         deliveries[0].message(),
-        &selection_changed(SelectionDomain::Scene, 2)
+        &selection_changed(SelectionDomain::edit_scene(), 2)
     );
     assert_eq!(
         deliveries[1].message(),
@@ -178,7 +187,7 @@ fn bounded_custom_messages_evict_oldest_with_visible_pressure_stats() {
         bus.publish(
             topic("plugin.telemetry"),
             EditorMessage::custom(
-                "plugin.telemetry.v1",
+                plugin_schema_id("telemetry", "v1"),
                 serde_json::json!({ "seq": sequence }),
             ),
         );
@@ -189,7 +198,7 @@ fn bounded_custom_messages_evict_oldest_with_visible_pressure_stats() {
     assert_eq!(
         deliveries[0].message().payload(),
         &EditorMessagePayload::Custom {
-            schema_id: "plugin.telemetry.v1".to_string(),
+            schema_id: plugin_schema_id("telemetry", "v1"),
             payload: serde_json::json!({ "seq": 1 }),
         }
     );
@@ -353,11 +362,14 @@ fn mixed_lane_depths_bytes_and_drain_stay_consistent() {
     bus.publish(topic("editor.mixed"), document_opened(DocumentId::new(1)));
     bus.publish(
         topic("editor.mixed"),
-        EditorMessage::custom("editor.mixed.v1", serde_json::json!({ "seq": 1 })),
+        EditorMessage::custom(
+            editor_schema_id("mixed.v1"),
+            serde_json::json!({ "seq": 1 }),
+        ),
     );
     bus.publish(
         topic("editor.mixed"),
-        selection_changed(SelectionDomain::Scene, 1),
+        selection_changed(SelectionDomain::edit_scene(), 1),
     );
     let initial = bus.inbox_stats(subscriber).unwrap();
     assert_eq!(initial.depth(), 3);
@@ -372,15 +384,21 @@ fn mixed_lane_depths_bytes_and_drain_stay_consistent() {
 
     bus.publish(
         topic("editor.mixed"),
-        selection_changed(SelectionDomain::Scene, 2),
+        selection_changed(SelectionDomain::edit_scene(), 2),
     );
     bus.publish(
         topic("editor.mixed"),
-        EditorMessage::custom("editor.mixed.v1", serde_json::json!({ "seq": 2 })),
+        EditorMessage::custom(
+            editor_schema_id("mixed.v1"),
+            serde_json::json!({ "seq": 2 }),
+        ),
     );
     bus.publish(
         topic("editor.mixed"),
-        EditorMessage::custom("editor.mixed.v1", serde_json::json!({ "seq": 3 })),
+        EditorMessage::custom(
+            editor_schema_id("mixed.v1"),
+            serde_json::json!({ "seq": 3 }),
+        ),
     );
     let pressured = bus.inbox_stats(subscriber).unwrap();
     assert_eq!(pressured.lossless_depth(), 1);
@@ -414,7 +432,7 @@ fn zero_capacity_and_byte_budget_reject_without_mutation() {
     assert_eq!(
         zero.publish(
             topic("editor.zero"),
-            selection_changed(SelectionDomain::Scene, 1),
+            selection_changed(SelectionDomain::edit_scene(), 1),
         )
         .dropped(),
         &[subscriber]
@@ -422,7 +440,10 @@ fn zero_capacity_and_byte_budget_reject_without_mutation() {
     assert_eq!(
         zero.publish(
             topic("editor.zero"),
-            EditorMessage::custom("editor.zero.v1", serde_json::json!({ "value": 1 })),
+            EditorMessage::custom(
+                editor_schema_id("zero.v1"),
+                serde_json::json!({ "value": 1 }),
+            ),
         )
         .dropped(),
         &[subscriber]
@@ -447,7 +468,7 @@ fn zero_capacity_and_byte_budget_reject_without_mutation() {
         mode: SceneModeId::new("x".repeat(1_024)),
     }));
     let bounded = EditorMessage::custom(
-        "editor.bytes.v1",
+        editor_schema_id("bytes.v1"),
         serde_json::json!({ "blob": "x".repeat(1_024) }),
     );
     assert_eq!(
@@ -477,7 +498,7 @@ fn zero_capacity_and_byte_budget_reject_without_mutation() {
     let first = total.publish(
         topic("editor.total"),
         EditorMessage::custom(
-            "editor.total.v1",
+            editor_schema_id("total.v1"),
             serde_json::json!({ "blob": "a".repeat(400) }),
         ),
     );
@@ -485,7 +506,7 @@ fn zero_capacity_and_byte_budget_reject_without_mutation() {
     let second = total.publish(
         topic("editor.total"),
         EditorMessage::custom(
-            "editor.total.v1",
+            editor_schema_id("total.v1"),
             serde_json::json!({ "blob": "b".repeat(400) }),
         ),
     );
@@ -547,7 +568,7 @@ fn latest_replacement_evicts_other_latest_state_atomically_under_byte_pressure()
     );
     bus.publish(
         topic("editor.latest"),
-        selection_changed(SelectionDomain::Scene, 1),
+        selection_changed(SelectionDomain::edit_scene(), 1),
     );
 
     let replacement =
@@ -578,7 +599,7 @@ fn dirty_view_bytes_respect_delivery_budget_without_mutating_dirty_state() {
     let latest_view = view(&"latest".repeat(256));
     let lossless_view = view(&"lossless".repeat(256));
 
-    let latest = selection_changed(SelectionDomain::Scene, 1).with_dirty(
+    let latest = selection_changed(SelectionDomain::edit_scene(), 1).with_dirty(
         latest_view.clone(),
         EditorViewInvalidationMask::PRESENTATION_DATA,
     );
@@ -623,7 +644,7 @@ fn identifier_exhaustion_is_typed_and_atomic() {
     bus.set_next_delivery_sequence_for_test(u64::MAX);
     let failed = bus.publish(
         topic("editor.exhaustion"),
-        selection_changed(SelectionDomain::Scene, 2).with_dirty(
+        selection_changed(SelectionDomain::edit_scene(), 2).with_dirty(
             dirty_view.clone(),
             EditorViewInvalidationMask::PRESENTATION_DATA,
         ),

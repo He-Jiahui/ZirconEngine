@@ -11,7 +11,6 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
 ]
 styles = []
@@ -38,37 +37,13 @@ component = "VerticalGroup"
 control_id = "WorkbenchExtensionUiAssetEditorLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
 layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "ui_asset_editor_title" }, { node = "ui_asset_editor_hierarchy_tab" }, { node = "ui_asset_editor_states_tab" }, { node = "ui_asset_editor_bindings_tab" }, { node = "ui_asset_editor_inventory_row" }, { node = "ui_asset_editor_panel_root_row" }, { node = "ui_asset_editor_equip_button_row" }]
+children = [{ node = "ui_asset_editor_title" }, { node = "ui_asset_editor_inventory_row" }, { node = "ui_asset_editor_panel_root_row" }, { node = "ui_asset_editor_equip_button_row" }]
 
 [nodes.ui_asset_editor_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionUiAssetEditorTitle"
 props = { text = "UI Asset Editor" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.ui_asset_editor_hierarchy_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionUiAssetEditorHierarchyTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Hierarchy", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/UiAssetEditorHierarchyTab", event = "Click", route = "workbench.extension.ui_asset_editor.hierarchy" }]
-
-[nodes.ui_asset_editor_states_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionUiAssetEditorStatesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "States", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/UiAssetEditorStatesTab", event = "Click", route = "workbench.extension.ui_asset_editor.states" }]
-
-[nodes.ui_asset_editor_bindings_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionUiAssetEditorBindingsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Bindings", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/UiAssetEditorBindingsTab", event = "Click", route = "workbench.extension.ui_asset_editor.bindings" }]
 
 [nodes.ui_asset_editor_inventory_row]
 component = "WorkbenchListRow"
@@ -131,7 +106,7 @@ events = [{ id = "WorkbenchExtension/UiAssetEditorPreview", event = "Click", rou
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionUiAssetEditorValidateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Validate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Validate", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 88.0, preferred = 88.0, max = 98.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/UiAssetEditorValidate", event = "Click", route = "workbench.extension.ui_asset_editor.validate" }]
 

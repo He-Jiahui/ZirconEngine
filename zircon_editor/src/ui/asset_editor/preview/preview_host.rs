@@ -70,7 +70,8 @@ impl UiAssetPreviewHost {
         }
 
         self.preview_size = preview_size;
-        for root_id in self.surface.tree.roots.clone() {
+        for root_index in 0..self.surface.tree.roots.len() {
+            let root_id = self.surface.tree.roots[root_index];
             if let Some(root) = self.surface.tree.node_mut(root_id) {
                 root.dirty.layout = true;
                 root.dirty.hit_test = true;

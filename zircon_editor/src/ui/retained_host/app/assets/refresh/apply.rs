@@ -1,14 +1,16 @@
 use super::super::super::backend_refresh::AssetBackendRefreshPlan;
 use super::super::super::*;
+use super::AssetRefreshEvents;
 
 impl RetainedEditorHost {
     pub(super) fn apply_asset_refresh_plan(
         &mut self,
         plan: &AssetBackendRefreshPlan,
+        events: &AssetRefreshEvents,
     ) -> Result<(), String> {
         if plan.sync_catalog {
             zircon_runtime::profile_scope!("editor", "retained_host", "asset_refresh_sync_catalog");
-            self.sync_asset_catalog_snapshot();
+            self.sync_asset_catalog_snapshot(&events.editor_asset_changes);
         }
         if plan.sync_resources {
             zircon_runtime::profile_scope!(
@@ -16,7 +18,10 @@ impl RetainedEditorHost {
                 "retained_host",
                 "asset_refresh_sync_resources"
             );
-            self.sync_asset_resources_snapshot();
+            self.sync_asset_resources_snapshot(
+                &events.resource_changes,
+                events.resource_generation_lagged,
+            );
         }
         if plan.refresh_selected_asset_details {
             zircon_runtime::profile_scope!(
@@ -34,13 +39,13 @@ impl RetainedEditorHost {
             );
             self.refresh_visible_asset_previews();
         }
-        if plan.reload_default_scene {
+        if plan.reload_active_scene {
             zircon_runtime::profile_scope!(
                 "editor",
                 "retained_host",
-                "asset_refresh_reload_default_scene"
+                "asset_refresh_reload_active_scene"
             );
-            self.reload_default_scene()?;
+            self.request_active_scene_reload()?;
         }
         self.apply_asset_refresh_invalidation(plan);
         Ok(())

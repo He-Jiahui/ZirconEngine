@@ -91,13 +91,14 @@ fn ui_surface_draw_list_from_owned_stream_with_optional_generation(
     stream.compact_image_resources_with_residency(is_resident);
     let surface_size = stream.surface_size();
     let damage = stream.damage().map(ui_rect);
-    let (commands, image_resources) = stream.into_parts();
+    let (commands, image_resources, render_sources) = stream.into_parts();
     let mut text_faces = None;
     let commands = commands
         .into_iter()
         .map(|command| ui_surface_command_from_owned_chrome(command, &mut text_faces))
         .collect();
     let image_resources = ui_surface_image_resources_from_stream(image_resources);
+    drop(render_sources);
     match generation {
         Some(generation) => {
             UiSurfaceDrawList::with_generation_and_compact_styles_and_image_resources(

@@ -8,33 +8,39 @@ pub(crate) struct DecodedManifestImage {
     pub(crate) rgba: RgbaImage,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct ResolvedManifestSource {
+    pub(crate) path: PathBuf,
+    pub(crate) uri: AssetUri,
+}
+
 pub(crate) fn decode_manifest_image(
     context: &AssetImportContext,
     source: &str,
 ) -> Result<DecodedManifestImage, AssetImportError> {
-    let path = manifest_source_path(context, source)?;
-    let bytes = std::fs::read(&path).map_err(|error| {
+    let resolved = resolve_manifest_source(context, source)?;
+    let bytes = std::fs::read(&resolved.path).map_err(|error| {
         AssetImportError::Parse(format!(
             "read texture manifest source {}: {error}",
-            path.display()
+            resolved.path.display()
         ))
     })?;
     let rgba = image::load_from_memory(&bytes).map_err(|error| {
         AssetImportError::Parse(format!(
             "decode texture manifest source {}: {error}",
-            path.display()
+            resolved.path.display()
         ))
     })?;
     Ok(DecodedManifestImage {
-        reference: AssetReference::from_locator(manifest_source_uri(context, source)?),
+        reference: AssetReference::from_locator(resolved.uri),
         rgba: rgba.to_rgba8(),
     })
 }
 
-fn manifest_source_path(
+pub(crate) fn resolve_manifest_source(
     context: &AssetImportContext,
     source: &str,
-) -> Result<PathBuf, AssetImportError> {
+) -> Result<ResolvedManifestSource, AssetImportError> {
     let relative = validated_relative_source(source)?;
     let parent = context.source_path.parent().ok_or_else(|| {
         AssetImportError::Parse(format!(
@@ -42,33 +48,22 @@ fn manifest_source_path(
             context.source_path.display()
         ))
     })?;
-    Ok(parent.join(relative))
-}
-
-fn manifest_source_uri(
-    context: &AssetImportContext,
-    source: &str,
-) -> Result<AssetUri, AssetImportError> {
-    if source.contains("://") {
-        return AssetUri::parse(source).map_err(|error| {
-            AssetImportError::Parse(format!(
-                "invalid texture manifest source URI `{source}`: {error}"
-            ))
-        });
-    }
-    let relative = validated_relative_source(source)?;
-    let manifest_uri = context.uri.to_string();
-    let (scheme, _) = manifest_uri.split_once("://").ok_or_else(|| {
-        AssetImportError::Parse(format!("invalid texture manifest URI `{manifest_uri}`"))
-    })?;
-    let parent = Path::new(context.uri.path())
+    let filesystem_path = parent.join(relative);
+    let uri_parent = Path::new(context.uri.path())
         .parent()
         .unwrap_or_else(|| Path::new(""));
-    let path = parent.join(relative).to_string_lossy().replace('\\', "/");
-    AssetUri::parse(&format!("{scheme}://{path}")).map_err(|error| {
+    let uri_path = uri_parent
+        .join(relative)
+        .to_string_lossy()
+        .replace('\\', "/");
+    let uri = AssetUri::new(context.uri.scheme(), uri_path, None).map_err(|error| {
         AssetImportError::Parse(format!(
             "invalid texture manifest source `{source}`: {error}"
         ))
+    })?;
+    Ok(ResolvedManifestSource {
+        path: filesystem_path,
+        uri,
     })
 }
 

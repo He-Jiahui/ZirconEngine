@@ -1,18 +1,23 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::core::editor_event::EditorEvent;
 use crate::core::editor_operation::EditorOperationPath;
+use crate::core::i18n::{EditorI18nService, EditorLocale, EditorLocalizationBundle};
 
-use super::{AssetWriteTargetDescriptor, CommandEvalCtx, EditorKeyChord, WhenClause};
+use super::{
+    AssetWriteTargetDescriptor, CommandEvalCtx, EditorCommandExecutionContract,
+    EditorCommandMenuPath, EditorCommandPresentation, EditorKeyChord, WhenClause,
+};
 
 /// Canonical metadata and executable route for every editor command.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EditorCommandDescriptor {
     id: EditorOperationPath,
-    display_name: String,
-    description: String,
+    presentation: EditorCommandPresentation,
     category: EditorCommandCategory,
-    menu_path: Option<String>,
+    menu_path: Option<EditorCommandMenuPath>,
     menu_projection: EditorCommandMenuProjection,
     action: EditorCommandAction,
     default_chord: Option<EditorKeyChord>,
@@ -29,6 +34,8 @@ pub struct EditorCommandDescriptor {
     callable_from_remote: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     asset_write_target: Option<AssetWriteTargetDescriptor>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    execution_contract: Option<EditorCommandExecutionContract>,
     #[serde(
         default,
         skip_serializing_if = "Vec::is_empty",
@@ -40,15 +47,13 @@ pub struct EditorCommandDescriptor {
 impl EditorCommandDescriptor {
     pub fn new(
         id: EditorOperationPath,
-        display_name: impl Into<String>,
         category: EditorCommandCategory,
         action: EditorCommandAction,
     ) -> Self {
-        let display_name = display_name.into();
+        let presentation = EditorCommandPresentation::builtin(&id);
         Self {
             id,
-            description: display_name.clone(),
-            display_name,
+            presentation,
             category,
             menu_path: None,
             menu_projection: EditorCommandMenuProjection::CommandRegistry,
@@ -61,22 +66,48 @@ impl EditorCommandDescriptor {
             headless_commandlet_name: None,
             callable_from_remote: true,
             asset_write_target: None,
+            execution_contract: None,
             required_capabilities: Vec::new(),
         }
     }
 
-    pub fn operation(id: EditorOperationPath, display_name: impl Into<String>) -> Self {
+    pub fn localized(
+        id: EditorOperationPath,
+        presentation: EditorCommandPresentation,
+        category: EditorCommandCategory,
+        action: EditorCommandAction,
+    ) -> Self {
+        let mut descriptor = Self::new(id, category, action);
+        descriptor.presentation = presentation;
+        descriptor
+    }
+
+    pub fn operation(id: EditorOperationPath) -> Self {
         Self::new(
             id,
-            display_name,
             EditorCommandCategory::Command,
             EditorCommandAction::Operation,
         )
     }
 
-    pub fn with_description(mut self, description: impl Into<String>) -> Self {
-        self.description = description.into();
-        self
+    pub fn native(id: EditorOperationPath) -> Self {
+        Self::new(
+            id,
+            EditorCommandCategory::Command,
+            EditorCommandAction::NativeEndpoint,
+        )
+    }
+
+    pub fn localized_operation(
+        id: EditorOperationPath,
+        presentation: EditorCommandPresentation,
+    ) -> Self {
+        Self::localized(
+            id,
+            presentation,
+            EditorCommandCategory::Command,
+            EditorCommandAction::Operation,
+        )
     }
 
     pub fn with_category(mut self, category: EditorCommandCategory) -> Self {
@@ -84,8 +115,8 @@ impl EditorCommandDescriptor {
         self
     }
 
-    pub fn with_menu_path(mut self, menu_path: impl Into<String>) -> Self {
-        self.menu_path = Some(menu_path.into());
+    pub fn with_menu_path(mut self, menu_path: EditorCommandMenuPath) -> Self {
+        self.menu_path = Some(menu_path);
         self
     }
 
@@ -109,8 +140,11 @@ impl EditorCommandDescriptor {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.keywords = keywords.into_iter().map(Into::into).collect();
-        self.keywords.sort();
+        let keywords = keywords.into_iter();
+        let (lower_bound, _) = keywords.size_hint();
+        self.keywords = Vec::with_capacity(lower_bound);
+        self.keywords.extend(keywords.map(Into::into));
+        self.keywords.sort_unstable();
         self.keywords.dedup();
         self
     }
@@ -166,24 +200,37 @@ impl EditorCommandDescriptor {
         self
     }
 
+    pub fn with_execution_contract(mut self, contract: EditorCommandExecutionContract) -> Self {
+        self.execution_contract = Some(contract);
+        self
+    }
+
     pub fn id(&self) -> &EditorOperationPath {
         &self.id
     }
 
-    pub fn display_name(&self) -> &str {
-        &self.display_name
+    pub fn presentation(&self) -> &EditorCommandPresentation {
+        &self.presentation
     }
 
-    pub fn description(&self) -> &str {
-        &self.description
+    pub fn localized_label(&self, i18n: &EditorI18nService, locale: &EditorLocale) -> Arc<str> {
+        self.presentation.resolve_label(i18n, locale)
+    }
+
+    pub fn localized_description(
+        &self,
+        i18n: &EditorI18nService,
+        locale: &EditorLocale,
+    ) -> Arc<str> {
+        self.presentation.resolve_description(i18n, locale)
     }
 
     pub fn category(&self) -> EditorCommandCategory {
         self.category
     }
 
-    pub fn menu_path(&self) -> Option<&str> {
-        self.menu_path.as_deref()
+    pub fn menu_path(&self) -> Option<&EditorCommandMenuPath> {
+        self.menu_path.as_ref()
     }
 
     pub fn menu_projection(&self) -> EditorCommandMenuProjection {
@@ -198,6 +245,7 @@ impl EditorCommandDescriptor {
         match &self.action {
             EditorCommandAction::Emit(event) => Some(event),
             EditorCommandAction::Operation
+            | EditorCommandAction::NativeEndpoint
             | EditorCommandAction::HeadlessAssetMigration
             | EditorCommandAction::HeadlessPluginList
             | EditorCommandAction::HeadlessAuthoringAutomation => None,
@@ -239,11 +287,13 @@ impl EditorCommandDescriptor {
     }
 
     pub(crate) fn missing_required_capabilities(&self, context: &CommandEvalCtx) -> Vec<String> {
-        self.required_capabilities
-            .iter()
-            .filter(|capability| !context.has_capability(capability))
-            .cloned()
-            .collect()
+        let mut missing = Vec::with_capacity(self.required_capabilities.len());
+        for capability in &self.required_capabilities {
+            if !context.has_capability(capability) {
+                missing.push(capability.clone());
+            }
+        }
+        missing
     }
 
     pub fn keywords(&self) -> &[String] {
@@ -276,6 +326,17 @@ impl EditorCommandDescriptor {
 
     pub fn required_capabilities(&self) -> &[String] {
         &self.required_capabilities
+    }
+
+    pub fn execution_contract(&self) -> Option<&EditorCommandExecutionContract> {
+        self.execution_contract.as_ref()
+    }
+
+    pub(crate) fn bind_localization_bundle(
+        &mut self,
+        bundle: &EditorLocalizationBundle,
+    ) -> Result<(), String> {
+        self.presentation.bind_bundle(bundle)
     }
 }
 
@@ -313,16 +374,16 @@ pub enum EditorCommandCategory {
 }
 
 impl EditorCommandCategory {
-    pub fn as_str(self) -> &'static str {
+    pub fn localization_key(self) -> &'static str {
         match self {
-            Self::File => "File",
-            Self::Edit => "Edit",
-            Self::Selection => "Selection",
-            Self::Runtime => "Play",
-            Self::View => "View",
-            Self::Window => "Window",
-            Self::Help => "Help",
-            Self::Command => "Command",
+            Self::File => "command.category.file",
+            Self::Edit => "command.category.edit",
+            Self::Selection => "command.category.selection",
+            Self::Runtime => "command.category.runtime",
+            Self::View => "command.category.view",
+            Self::Window => "command.category.window",
+            Self::Help => "command.category.help",
+            Self::Command => "command.category.command",
         }
     }
 
@@ -344,6 +405,7 @@ impl EditorCommandCategory {
 pub enum EditorCommandAction {
     Emit(EditorEvent),
     Operation,
+    NativeEndpoint,
     HeadlessAssetMigration,
     HeadlessPluginList,
     HeadlessAuthoringAutomation,
@@ -351,7 +413,11 @@ pub enum EditorCommandAction {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::editor_operation::EditorOperationPath;
+
     use crate::core::commands::EditorCommandRegistry;
+
+    use super::EditorCommandDescriptor;
 
     #[test]
     fn headless_commandlet_route_is_canonical_descriptor_metadata() {
@@ -374,4 +440,36 @@ mod tests {
         let allocating_eval = ["self", ".effective_when().eval(context)"].concat();
         assert!(!source.contains(&allocating_eval));
     }
+
+    #[test]
+    fn command_presentation_is_derived_from_stable_localization_keys() {
+        let descriptor = EditorCommandDescriptor::operation(
+            EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap(),
+        );
+
+        assert_eq!(
+            descriptor.presentation().label_key(),
+            "command.weather.cloud_layer.refresh.label"
+        );
+        assert_eq!(
+            descriptor.presentation().description_key(),
+            "command.weather.cloud_layer.refresh.description"
+        );
+    }
+
+    #[test]
+    fn descriptor_production_shape_has_no_literal_presentation_fields() {
+        let production = include_str!("descriptor.rs")
+            .split_once("#[cfg(test)]")
+            .expect("descriptor tests should remain below production code")
+            .0;
+
+        assert!(!production.contains("display_name:"));
+        assert!(!production.contains("description: String"));
+        assert!(!production.contains("menu_path: Option<String>"));
+    }
 }
+
+#[cfg(test)]
+#[path = "descriptor/optimization_tests.rs"]
+mod optimization_tests;

@@ -236,14 +236,15 @@ def run_stage_with_read_failure(
     unreadable_file: Path,
     message: str,
 ) -> int:
-    original_read_bytes = Path.read_bytes
+    original_open = Path.open
 
-    def read_bytes_or_fail(path: Path) -> bytes:
-        if path.resolve() == unreadable_file:
+    def open_or_fail(path: Path, *open_args: object, **open_kwargs: object):
+        mode = open_args[0] if open_args else open_kwargs.get("mode", "r")
+        if path.resolve() == unreadable_file and mode == "rb":
             raise OSError(message)
-        return original_read_bytes(path)
+        return original_open(path, *open_args, **open_kwargs)
 
-    with mock.patch.object(Path, "read_bytes", read_bytes_or_fail):
+    with mock.patch.object(Path, "open", open_or_fail):
         return _run_stage_quiet(args)
 
 
@@ -252,14 +253,15 @@ def build_report_with_read_failure(
     unreadable_file: Path,
     message: str,
 ) -> dict[str, object]:
-    original_read_bytes = Path.read_bytes
+    original_open = Path.open
 
-    def read_bytes_or_fail(path: Path) -> bytes:
-        if path.resolve() == unreadable_file:
+    def open_or_fail(path: Path, *open_args: object, **open_kwargs: object):
+        mode = open_args[0] if open_args else open_kwargs.get("mode", "r")
+        if path.resolve() == unreadable_file and mode == "rb":
             raise OSError(message)
-        return original_read_bytes(path)
+        return original_open(path, *open_args, **open_kwargs)
 
-    with mock.patch.object(Path, "read_bytes", read_bytes_or_fail):
+    with mock.patch.object(Path, "open", open_or_fail):
         return build_pipeline_report(out, "windows-release")
 
 

@@ -1,7 +1,7 @@
 use zircon_runtime::core::framework::render::{
     reflection_probe_box_project_direction, reflection_probe_influence_weight,
-    select_reflection_probe_blend, EnvironmentExtract, ProbeBakeTiming, ProbeInfluenceShape,
-    ReflectionProbeData, ReflectionProbeValidationError, RenderLayerSet,
+    select_reflection_probe_blend, EnvironmentExtract, ProbeInfluenceShape, ReflectionProbeData,
+    ReflectionProbeValidationError, RenderLayerSet,
 };
 use zircon_runtime::core::math::{Quat, Vec3};
 use zircon_runtime::core::resource::ResourceId;
@@ -117,8 +117,7 @@ fn reflection_probe_contract_roundtrips_and_is_owned_by_environment_extract() {
         0.75,
         4,
         "probe-roundtrip",
-    )
-    .with_bake_timing(ProbeBakeTiming::RuntimeManual);
+    );
     let encoded = serde_json::to_string(&probe).expect("serialize reflection probe");
     let decoded: ReflectionProbeData =
         serde_json::from_str(&encoded).expect("deserialize reflection probe");
@@ -126,6 +125,7 @@ fn reflection_probe_contract_roundtrips_and_is_owned_by_environment_extract() {
 
     assert_eq!(decoded, probe);
     assert_eq!(environment.reflection_probes(), &[probe]);
+    assert!(!encoded.contains("bake_timing"));
 }
 
 #[test]

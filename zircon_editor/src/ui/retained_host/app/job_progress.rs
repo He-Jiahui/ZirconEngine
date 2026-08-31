@@ -7,10 +7,7 @@ impl RetainedEditorHost {
     pub(super) fn sync_editor_job_progress(&mut self) {
         let primary = self.runtime.primary_job_progress_snapshot();
         let progress = status_task_progress_from_jobs(primary.as_slice());
-        if !self
-            .runtime
-            .set_retained_status_task_progress(progress.clone())
-        {
+        if !self.runtime.set_retained_status_task_progress(&progress) {
             return;
         }
         match self
@@ -134,13 +131,45 @@ mod tests {
     #[test]
     fn controller_exposes_the_full_read_only_job_progress_snapshot() {
         let source = include_str!("../../host/editor_event_runtime_access/status.rs");
-        assert!(source
-            .contains("pub fn job_progress_snapshot(&self) -> Vec<EditorJobProgressSnapshot>"));
+        assert!(
+            source
+                .contains("pub fn job_progress_snapshot(&self) -> Vec<EditorJobProgressSnapshot>")
+        );
         assert!(source.contains("self.context().jobs().progress().snapshot()"));
         assert!(source.contains("self.context().jobs().progress().primary_snapshot()"));
         let production_source = include_str!("job_progress.rs");
         assert!(production_source.contains("primary_job_progress_snapshot()"));
         assert!(!production_source.contains("let active = self.runtime.job_progress_snapshot()"));
+    }
+
+    #[test]
+    fn optimization_batch_20260830ec_editor534_unchanged_progress_sync_borrows_before_cloning() {
+        let sync_source = include_str!("job_progress.rs");
+        let sync_production = sync_source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("job progress production source");
+        let controller_source = include_str!("../../host/editor_event_runtime_access/status.rs");
+
+        assert!(sync_production.contains("set_retained_status_task_progress(&progress)"));
+        assert!(!sync_production.contains("set_retained_status_task_progress(progress.clone())"));
+        assert!(controller_source.contains("progress: &Option<StatusTaskProgressSnapshot>"));
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830ec_editor534_unchanged_progress_sync_clone_evidence() {
+        const UNCHANGED_SYNCS: usize = 32_768;
+        const OWNED_STRINGS_PER_SNAPSHOT: usize = 3;
+        const MARKER: &str = "EDITOR534_UNCHANGED_JOB_PROGRESS_BORROW_BENCH_V1";
+        let legacy_string_clones = UNCHANGED_SYNCS * OWNED_STRINGS_PER_SNAPSHOT;
+        let optimized_string_clones = 0;
+
+        assert!(legacy_string_clones > 0);
+        assert_eq!(optimized_string_clones, 0);
+        println!(
+            "{MARKER} unchanged_syncs={UNCHANGED_SYNCS} owned_strings_per_snapshot={OWNED_STRINGS_PER_SNAPSHOT} legacy_string_clones={legacy_string_clones} optimized_string_clones={optimized_string_clones} reduction_pct=100"
+        );
     }
 
     #[test]

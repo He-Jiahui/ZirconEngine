@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use zircon_runtime::scene::{EntityId, ReflectComponent, TypeRegistry, World};
 use zircon_runtime::script::VmReflectionRegistrySnapshot;
@@ -74,7 +74,10 @@ impl ScriptCallTable {
                 let site = CompiledCallSite::new(token, type_slot, member_slot, layout.clone());
                 members.push(layout);
                 by_name.insert(
-                    (registration.type_path.type_path.clone(), field.name.clone()),
+                    (
+                        registration.type_path.type_path().to_string(),
+                        field.name.clone(),
+                    ),
                     site.clone(),
                 );
                 sites.push(site);

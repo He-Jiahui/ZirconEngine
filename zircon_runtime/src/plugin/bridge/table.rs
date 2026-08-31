@@ -251,8 +251,10 @@ impl FrozenBridgeTable {
     pub(crate) fn from_exports(
         exports: impl IntoIterator<Item = (PluginModuleId, String, InterfaceExport)>,
     ) -> Self {
-        let mut entries = Vec::new();
-        let mut slots_by_interface = HashMap::new();
+        let exports = exports.into_iter();
+        let (export_count, _) = exports.size_hint();
+        let mut entries = Vec::with_capacity(export_count);
+        let mut slots_by_interface = HashMap::with_capacity(export_count);
         for (owner, interface_id, export) in exports {
             let slot = InterfaceSlot::from_raw(entries.len() as u32);
             slots_by_interface.insert(interface_id.clone(), slot);
@@ -584,13 +586,12 @@ impl FrozenBridgeTable {
         mode: BridgeOwnerTransitionMode,
         affected_slots: Vec<InterfaceSlot>,
     ) -> BridgeOwnerTransitionReport {
-        let snapshots = affected_slots
-            .iter()
-            .filter_map(|slot| {
-                self.entry(*slot)
-                    .map(|entry| self.snapshot_for_entry(slot.index(), entry))
-            })
-            .collect();
+        let mut snapshots = Vec::with_capacity(affected_slots.len());
+        for slot in &affected_slots {
+            if let Some(entry) = self.entry(*slot) {
+                snapshots.push(self.snapshot_for_entry(slot.index(), entry));
+            }
+        }
         BridgeOwnerTransitionReport {
             owner,
             mode,
@@ -679,3 +680,7 @@ mod tests {
         Arc::new(provider)
     }
 }
+
+#[cfg(test)]
+#[path = "table/optimization_tests.rs"]
+mod optimization_tests;

@@ -2,22 +2,6 @@ use super::super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(in super::super) const DIAGNOSTICS_OBSERVABILITY_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
-        "ConsoleDiagnosticsOpen",
-        "workbench.extension.console_diagnostics.open",
-    ),
-    click(
-        "ConsoleDiagnosticsLiveLogTab",
-        "workbench.extension.console_diagnostics.live_log_tab.select",
-    ),
-    click(
-        "ConsoleDiagnosticsCountersTab",
-        "workbench.extension.console_diagnostics.counters_tab.select",
-    ),
-    click(
-        "ConsoleDiagnosticsReportTab",
-        "workbench.extension.console_diagnostics.report_tab.select",
-    ),
-    click(
         "ConsoleDiagnosticsSessionRow",
         "workbench.extension.console_diagnostics.session_row.select",
     ),
@@ -46,32 +30,12 @@ pub(in super::super) const DIAGNOSTICS_OBSERVABILITY_BINDINGS: &[ExtensionBindin
         "workbench.extension.console_diagnostics.error_table_row.select",
     ),
     click(
-        "ConsoleDiagnosticsOutput",
-        "workbench.extension.console_diagnostics.output.select",
-    ),
-    click(
         "ConsoleDiagnosticsFilterConsole",
         "workbench.extension.console_diagnostics.filter_console.invoke",
     ),
     click(
         "ConsoleDiagnosticsClearConsole",
         "workbench.extension.console_diagnostics.clear_console.invoke",
-    ),
-    click(
-        "RuntimeDiagnosticsOpen",
-        "workbench.extension.runtime_diagnostics.open",
-    ),
-    click(
-        "RuntimeDiagnosticsWatchTab",
-        "workbench.extension.runtime_diagnostics.watch_tab.select",
-    ),
-    click(
-        "RuntimeDiagnosticsEventsTab",
-        "workbench.extension.runtime_diagnostics.events_tab.select",
-    ),
-    click(
-        "RuntimeDiagnosticsConsoleTab",
-        "workbench.extension.runtime_diagnostics.console_tab.select",
     ),
     click(
         "RuntimeDiagnosticsSessionPlayerRow",
@@ -102,29 +66,12 @@ pub(in super::super) const DIAGNOSTICS_OBSERVABILITY_BINDINGS: &[ExtensionBindin
         "workbench.extension.runtime_diagnostics.weapon_target_table_row.select",
     ),
     click(
-        "RuntimeDiagnosticsOutput",
-        "workbench.extension.runtime_diagnostics.output.select",
-    ),
-    click(
         "RuntimeDiagnosticsCaptureSnapshot",
         "workbench.extension.runtime_diagnostics.capture_snapshot.invoke",
     ),
     click(
         "RuntimeDiagnosticsExportReport",
         "workbench.extension.runtime_diagnostics.export_report.invoke",
-    ),
-    click("PerformanceOpen", "workbench.extension.performance.open"),
-    click(
-        "PerformanceFrameCaptureTab",
-        "workbench.extension.performance.frame_capture_tab.select",
-    ),
-    click(
-        "PerformanceCpuLaneTab",
-        "workbench.extension.performance.cpu_lane_tab.select",
-    ),
-    click(
-        "PerformanceGpuLaneTab",
-        "workbench.extension.performance.gpu_lane_tab.select",
     ),
     click(
         "PerformanceCaptureRow",
@@ -155,32 +102,12 @@ pub(in super::super) const DIAGNOSTICS_OBSERVABILITY_BINDINGS: &[ExtensionBindin
         "workbench.extension.performance.texture_upload_table_row.select",
     ),
     click(
-        "PerformanceOutput",
-        "workbench.extension.performance.output.select",
-    ),
-    click(
         "PerformanceCaptureFrame",
         "workbench.extension.performance.capture_frame.invoke",
     ),
     click(
         "PerformanceFilterSamples",
         "workbench.extension.performance.filter_samples.invoke",
-    ),
-    click(
-        "TelemetryDashboardOpen",
-        "workbench.extension.telemetry_dashboard.open",
-    ),
-    click(
-        "TelemetryDashboardMetricsTab",
-        "workbench.extension.telemetry_dashboard.metrics_tab.select",
-    ),
-    click(
-        "TelemetryDashboardSegmentsTab",
-        "workbench.extension.telemetry_dashboard.segments_tab.select",
-    ),
-    click(
-        "TelemetryDashboardRawEventsTab",
-        "workbench.extension.telemetry_dashboard.raw_events_tab.select",
     ),
     click(
         "TelemetryDashboardRetentionQueryRow",
@@ -209,10 +136,6 @@ pub(in super::super) const DIAGNOSTICS_OBSERVABILITY_BINDINGS: &[ExtensionBindin
     click(
         "TelemetryDashboardQueueWaitTableRow",
         "workbench.extension.telemetry_dashboard.queue_wait_table_row.select",
-    ),
-    click(
-        "TelemetryDashboardOutput",
-        "workbench.extension.telemetry_dashboard.output.select",
     ),
     click(
         "TelemetryDashboardFilterTelemetry",

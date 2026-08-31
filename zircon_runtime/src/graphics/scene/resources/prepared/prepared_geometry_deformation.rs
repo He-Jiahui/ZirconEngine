@@ -1,4 +1,7 @@
-use crate::asset::{MeshAsset, MeshAttributeValues, ModelPrimitiveAsset, MESH_ATTRIBUTE_POSITION};
+use crate::asset::{
+    MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_POSITION, MeshAsset, MeshAttributeValues,
+    ModelPrimitiveAsset,
+};
 use crate::core::framework::render::RenderMeshBounds;
 use crate::core::math::Vec3;
 
@@ -17,8 +20,15 @@ impl PreparedGeometryDeformation {
 
     pub(in crate::graphics::scene::resources) fn include_mesh_asset(&mut self, asset: &MeshAsset) {
         self.has_skinning |= asset.skin.is_some();
-        if let Ok(primitive) = asset.to_model_primitive() {
-            self.include_primitive(&primitive);
+        if !self.has_skinning
+            && let Some(MeshAttributeValues::Float32x4(joint_weights)) =
+                asset.attributes.get(MESH_ATTRIBUTE_JOINT_WEIGHT)
+            && joint_weights
+                .iter()
+                .any(|weights| weights.iter().any(|weight| weight.abs() > f32::EPSILON))
+            && asset.validate().is_ok()
+        {
+            self.has_skinning = true;
         }
         for (target_index, target) in asset.morph_targets.iter().enumerate() {
             let Some(MeshAttributeValues::Float32x3(position_deltas)) =
@@ -87,7 +97,11 @@ fn union_bounds(left: RenderMeshBounds, right: RenderMeshBounds) -> RenderMeshBo
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::*;
+    use crate::asset::{AssetUri, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_POSITION};
+    use crate::core::framework::render::RenderMeshTopology;
 
     #[test]
     fn morph_bounds_cover_positive_and_negative_weighted_delta_extrema() {
@@ -106,5 +120,71 @@ mod tests {
 
         assert_eq!(bounds.min, [8.5, 17.0, 25.5]);
         assert_eq!(bounds.max, [14.75, 26.25, 37.75]);
+    }
+
+    #[test]
+    fn mesh_skinning_detection_does_not_build_a_model_primitive() {
+        let source = include_str!("prepared_geometry_deformation.rs")
+            .split_once("#[cfg(test)]")
+            .expect("production source and tests must remain separated")
+            .0;
+
+        assert!(!source.contains("to_model_primitive"));
+    }
+
+    #[test]
+    fn mesh_skinning_detection_reads_joint_weight_attributes_directly() {
+        let mut attributes = BTreeMap::new();
+        attributes.insert(
+            MESH_ATTRIBUTE_POSITION.to_string(),
+            MeshAttributeValues::Float32x3(vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]),
+        );
+        attributes.insert(
+            MESH_ATTRIBUTE_JOINT_WEIGHT.to_string(),
+            MeshAttributeValues::Float32x4(vec![
+                [0.0, 0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ]),
+        );
+        let mesh = MeshAsset {
+            uri: AssetUri::parse("res://meshes/skinned.zmesh").expect("valid test URI"),
+            topology: RenderMeshTopology::TriangleList,
+            attributes,
+            indices: None,
+            asset_usage: Default::default(),
+            morph_targets: Vec::new(),
+            skin: None,
+            mesh_sdf: None,
+            virtual_geometry: None,
+        };
+
+        assert!(PreparedGeometryDeformation::from_mesh_asset(&mesh).has_skinning());
+    }
+
+    #[test]
+    fn invalid_mesh_attributes_do_not_enable_skinning() {
+        let mut attributes = BTreeMap::new();
+        attributes.insert(
+            MESH_ATTRIBUTE_POSITION.to_string(),
+            MeshAttributeValues::Float32x3(vec![[0.0, 0.0, 0.0]]),
+        );
+        attributes.insert(
+            MESH_ATTRIBUTE_JOINT_WEIGHT.to_string(),
+            MeshAttributeValues::Float32x4(vec![[0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0]]),
+        );
+        let mesh = MeshAsset {
+            uri: AssetUri::parse("res://meshes/invalid-skinned.zmesh").expect("valid test URI"),
+            topology: RenderMeshTopology::TriangleList,
+            attributes,
+            indices: None,
+            asset_usage: Default::default(),
+            morph_targets: Vec::new(),
+            skin: None,
+            mesh_sdf: None,
+            virtual_geometry: None,
+        };
+
+        assert!(!PreparedGeometryDeformation::from_mesh_asset(&mesh).has_skinning());
     }
 }

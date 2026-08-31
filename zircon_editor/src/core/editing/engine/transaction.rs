@@ -2,10 +2,10 @@ use crate::core::editor_message::DocumentId;
 
 use super::{
     CommandBox, CommandEffect, DetachedTransactionEventSink, EditCommand, EditCommandError,
-    EditContext, HistoryContextId, HistoryDetailPage, HistoryPageCursor, HistoryStatus,
-    HistoryStore, MergeOutcome, SelectionSnapshot, TransactionEvent, TransactionEventDelivery,
-    TransactionEventKind, TransactionEventSink, TransactionId, TransactionJournal,
-    TransactionJournalError, TransactionRecord,
+    EditContext, EditWorldRoute, HistoryContextId, HistoryDetailPage, HistoryPageCursor,
+    HistoryStatus, HistoryStore, MergeOutcome, SelectionSnapshot, TransactionEvent,
+    TransactionEventDelivery, TransactionEventKind, TransactionEventSink, TransactionId,
+    TransactionJournal, TransactionJournalError, TransactionRecord,
 };
 
 mod dirty_batch;
@@ -17,6 +17,7 @@ mod operation_group;
 mod replay;
 mod save_token;
 mod scope;
+mod volatile;
 
 pub use dirty_batch::{
     HistoryDirtyBatch, HistoryDirtyBatchKind, HistoryDirtyCursor, HistoryDirtyState,

@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn text_rich_bbcode_table_places_cells_in_shared_columns_and_rows() {
     let mut style = test_style(UiTextWrap::WordSmart, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let layout = layout_text(
         "[table=2][cell]Name[/cell][cell]Value[/cell][cell]alpha[/cell][cell]beta[/cell][/table]",
         &style,
@@ -23,7 +23,7 @@ fn text_rich_bbcode_table_places_cells_in_shared_columns_and_rows() {
 #[test]
 fn text_rich_bbcode_table_wraps_each_cell_inside_its_column() {
     let mut style = test_style(UiTextWrap::WordSmart, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let frame = UiFrame::new(0.0, 0.0, 120.0, 220.0);
     let layout = layout_text(
         "[table=2][cell]alpha beta gamma delta[/cell][cell]short[/cell][/table]",
@@ -33,16 +33,18 @@ fn text_rich_bbcode_table_wraps_each_cell_inside_its_column() {
     );
 
     assert!(layout.lines.len() >= 3);
-    assert!(layout
-        .lines
-        .iter()
-        .all(|line| line.frame.x >= frame.x && line.frame.right() <= frame.right() + 0.01));
+    assert!(
+        layout
+            .lines
+            .iter()
+            .all(|line| line.frame.x >= frame.x && line.frame.right() <= frame.right() + 0.01)
+    );
 }
 
 #[test]
 fn text_rich_bbcode_table_row_height_tracks_tallest_cell() {
     let mut style = test_style(UiTextWrap::WordSmart, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let layout = layout_text(
         "[table=2][cell]alpha beta gamma delta epsilon[/cell][cell]one[/cell][cell]next[/cell][cell]row[/cell][/table]",
         &style,
@@ -66,7 +68,7 @@ fn text_rich_bbcode_table_row_height_tracks_tallest_cell() {
 #[test]
 fn text_rich_bbcode_table_preserves_surrounding_block_order() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let layout = layout_text(
         "before[table=2][cell]A[/cell][cell]B[/cell][/table]after",
         &style,
@@ -102,7 +104,7 @@ fn text_rich_bbcode_table_preserves_surrounding_block_order() {
 #[test]
 fn text_rich_bbcode_table_colspan_uses_the_combined_track_width() {
     let mut style = test_style(UiTextWrap::WordSmart, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let layout = layout_text(
         "[table=3][cell colspan=3]merged heading across tracks[/cell][cell]A[/cell][cell]B[/cell][cell]C[/cell][/table]",
         &style,
@@ -110,10 +112,12 @@ fn text_rich_bbcode_table_colspan_uses_the_combined_track_width() {
         None,
     );
 
-    assert!(layout
-        .lines
-        .iter()
-        .any(|line| line.text == "merged heading across tracks"));
+    assert!(
+        layout
+            .lines
+            .iter()
+            .any(|line| line.text == "merged heading across tracks")
+    );
     let heading = find_line(&layout, "merged heading");
     let first = find_line(&layout, "A");
     let second = find_line(&layout, "B");
@@ -125,7 +129,7 @@ fn text_rich_bbcode_table_colspan_uses_the_combined_track_width() {
 #[test]
 fn text_rich_bbcode_table_rowspan_reserves_its_column_on_following_rows() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let layout = layout_text(
         "[table=2][cell rowspan=2]span[/cell][cell]top[/cell][cell]beside[/cell][cell]after[/cell][/table]",
         &style,
@@ -147,7 +151,7 @@ fn text_rich_bbcode_table_rowspan_reserves_its_column_on_following_rows() {
 #[test]
 fn text_rich_bbcode_table_colspan_reduces_before_a_rowspan_collision() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let layout = layout_text(
         "[table=3][cell]A0[/cell][cell rowspan=2]B0[/cell][cell]C0[/cell][cell colspan=2]D1[/cell][cell]E1[/cell][/table]",
         &style,
@@ -171,7 +175,7 @@ fn text_rich_bbcode_table_colspan_reduces_before_a_rowspan_collision() {
 #[test]
 fn text_rich_bbcode_table_rowspan_height_keeps_the_next_row_below_its_content() {
     let mut style = test_style(UiTextWrap::WordSmart, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let layout = layout_text(
         "[table=2][cell rowspan=2]alpha beta gamma delta epsilon zeta eta theta[/cell][cell]top[/cell][cell]beside[/cell][cell]after[/cell][/table]",
         &style,
@@ -195,7 +199,7 @@ fn text_rich_bbcode_table_rowspan_height_keeps_the_next_row_below_its_content() 
 #[test]
 fn text_rich_bbcode_table_authored_padding_controls_content_origin_and_measure() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let layout = layout_text(
         "[table=1][cell bg=#12202C padding=18,9,24,11]padded[/cell][/table]",
         &style,
@@ -214,7 +218,7 @@ fn text_rich_bbcode_table_authored_padding_controls_content_origin_and_measure()
 #[test]
 fn text_rich_bbcode_table_span_box_uses_final_combined_tracks_and_rows() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let layout = layout_text(
         "[table=3][cell colspan=2 rowspan=2 border=#73D7FF bg=#12202C,#182F3D padding=8,4,12,6]span[/cell][cell]right[/cell][cell]below[/cell][cell]tail[/cell][/table]",
         &style,

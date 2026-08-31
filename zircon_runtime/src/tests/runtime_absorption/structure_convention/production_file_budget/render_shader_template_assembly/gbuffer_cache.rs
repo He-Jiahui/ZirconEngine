@@ -139,12 +139,12 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
         &ensure_gbuffer,
         &[
             "GBUFFER_MESH_SHADER_KEY_PREFIX",
-            "gbuffer_variant_id_for_command_variant",
+            "gbuffer_variant_admission_for_command_variant",
             "mesh_pipeline_deferred_gbuffer_template_source_for_geometry",
             "mesh_pipeline_shader_source_with_cache",
             "gbuffer_mesh_shader_key",
             "variant_key.canonical_string()",
-            "ensure_gbuffer_pipeline_for_variant",
+            "ensure_gbuffer_pipeline_admission_for_variant",
         ],
     );
     assert_contains_all(
@@ -169,8 +169,8 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
         &deferred_record,
         &[
             "record_gbuffer_geometry",
-            "gbuffer_variant_id_for_command_variant(command.pipeline_variant_id)",
-            "ensure_gbuffer_pipeline_for_variant(device, streamer, gbuffer_variant_id)",
+            "gbuffer_variant_admission_for_command_variant(command.pipeline_variant_id)",
+            "ensure_gbuffer_pipeline_admission_for_variant",
             "MeshPassPipelineKind::GBuffer",
             "gbuffer_normal_view",
             "bind_standard_material_if_needed(pass, command)",
@@ -222,7 +222,7 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
                 "Deferred GBuffer template source cache cutover",
                 "render_plan08_deferred_gbuffer_template_source_cache_static_passed_cargo_check_wgpu_deferred",
                 "render_plan08_deferred_gbuffer_wgpu_device_pipeline_validation_passed_renderdoc_deferred",
-                "ensure_gbuffer_pipeline_for_variant",
+                "ensure_gbuffer_pipeline_admission_for_variant",
                 "create_gbuffer_mesh_pipeline.rs",
                 "gbuffer_mesh_pipeline_creates_on_wgpu_device_with_template_shader",
             ],

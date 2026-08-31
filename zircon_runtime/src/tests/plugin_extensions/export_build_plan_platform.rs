@@ -16,6 +16,25 @@ mod browser_hosts;
 #[path = "export_build_plan_platform/release_adapters.rs"]
 mod release_adapters;
 
+fn generated_rust_function_body<'a>(source: &'a str, function_name: &str) -> Option<&'a str> {
+    let function_start = source.find(&format!("fn {function_name}("))?;
+    let body_start = function_start + source[function_start..].find('{')?;
+    let mut depth = 0_usize;
+    for (offset, character) in source[body_start..].char_indices() {
+        match character {
+            '{' => depth += 1,
+            '}' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return Some(&source[body_start..=body_start + offset]);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 #[test]
 fn mobile_and_web_targets_reject_native_dynamic_packaging() {
     assert!(!ExportTargetPlatform::Android.supports_native_dynamic());
@@ -208,7 +227,9 @@ fn source_template_emits_headless_host_scaffold_without_platform_shell() {
         generated_file_purpose(&plan, "src/main.rs"),
         "generated headless runtime entry point"
     );
-    assert!(generated_file(&plan, "src/zircon_plugins.rs").contains("EntryProfile::Headless"));
+    let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
+    assert!(!plugin_source.contains("EntryProfile"));
+    assert!(plugin_source.contains("ExportTargetPlatform::Headless"));
     assert!(generated_file(&plan, "src/main.rs").contains("zircon_app::bootstrap_export_runtime"));
     assert!(
         generated_file(&plan, "src/zircon_plugins.rs").contains("ExportTargetPlatform::Headless")
@@ -280,8 +301,52 @@ fn source_template_emits_mobile_and_browser_host_scaffolds() {
             generated_file_purpose(&plan, runtime_entry),
             format!("generated {host_label} runtime library entry point")
         );
-        assert!(generated_file(&plan, runtime_entry).contains("zircon_export_start"));
-        assert!(generated_file(&plan, runtime_entry).contains(platform.as_str()));
+        let generated_runtime_entry = generated_file(&plan, runtime_entry);
+        assert!(generated_runtime_entry.contains("zircon_export_start"));
+        assert!(generated_runtime_entry.contains("zircon_export_shutdown"));
+        assert!(generated_runtime_entry.contains("fn zircon_export_ffi_guard("));
+        assert!(generated_runtime_entry
+            .contains("std::panic::catch_unwind(std::panic::AssertUnwindSafe(operation))"));
+        let guarded_exports = [
+            "zircon_export_start",
+            "zircon_export_shutdown",
+            "zircon_export_handle_lifecycle",
+            "zircon_export_handle_touch",
+            "zircon_export_handle_keyboard",
+            "zircon_export_handle_viewport_metrics",
+            "Java_dev_zircon_export_ZirconRuntime_start",
+            "Java_dev_zircon_export_ZirconRuntime_shutdown",
+            "Java_dev_zircon_export_ZirconRuntime_dispatchLifecycle",
+            "Java_dev_zircon_export_ZirconRuntime_dispatchTouch",
+            "Java_dev_zircon_export_ZirconRuntime_dispatchKeyboard",
+            "Java_dev_zircon_export_ZirconRuntime_dispatchViewportMetrics",
+            "zircon_export_fetch_resource",
+        ];
+        assert_eq!(
+            generated_runtime_entry.matches("pub extern").count(),
+            guarded_exports.len(),
+            "{platform:?} generated runtime export inventory changed"
+        );
+        for function_name in guarded_exports {
+            let body = generated_rust_function_body(generated_runtime_entry, function_name)
+                .unwrap_or_else(|| panic!("missing generated runtime export `{function_name}`"));
+            assert!(
+                body.contains("zircon_export_ffi_guard("),
+                "{platform:?} generated runtime export `{function_name}` must delegate through the panic guard"
+            );
+        }
+        assert!(generated_runtime_entry.contains("static ZIRCON_PRODUCT_COMPOSITION:"));
+        for state in ["Vacant", "Starting", "Running", "Stopping"] {
+            assert!(
+                generated_runtime_entry
+                    .contains(&format!("ZirconProductCompositionState::{state}")),
+                "{platform:?} generated runtime owner must represent the {state} state"
+            );
+        }
+        assert!(generated_runtime_entry
+            .contains("*composition_state = ZirconProductCompositionState::Running(composition);"));
+        assert!(!generated_runtime_entry.contains("let _composition ="));
+        assert!(generated_runtime_entry.contains(platform.as_str()));
         assert!(!plan
             .generated_files
             .iter()
@@ -397,41 +462,47 @@ fn generated_mobile_and_browser_hosts_translate_platform_callbacks_to_runtime_ab
         (
             ExportTargetPlatform::Android,
             "platform/android/app/src/main/java/dev/zircon/export/MainActivity.kt",
-            [
+            &[
                 "dispatchLifecycle(ZIRCON_LIFECYCLE_RESUMED)",
                 "dispatchTouch(event.getPointerId(index).toLong(), phase, event.getX(index), event.getY(index))",
                 "dispatchKeyboard(ZIRCON_KEY_PRESSED, event.keyCode, event.scanCode, null)",
                 "dispatchViewportMetrics(width, height, resources.displayMetrics.density)",
+                "override fun onDestroy()",
+                "ZirconRuntime.shutdown()",
             ],
         ),
         (
             ExportTargetPlatform::Ios,
             "platform/ios/ZirconRuntimeHost/Sources/ZirconRuntimeHostApp.swift",
-            [
+            &[
                 "zircon_export_handle_lifecycle(ZIRCON_LIFECYCLE_RESUMED)",
                 "zircon_export_handle_touch(UInt64(touch.hash), ZIRCON_TOUCH_MOVED",
                 "zircon_export_handle_keyboard(ZIRCON_KEY_TEXT, 0, 0",
                 "zircon_export_handle_viewport_metrics(UInt32(size.width), UInt32(size.height), Float(scale))",
+                "func applicationWillTerminate(_ application: UIApplication)",
+                "zircon_export_shutdown()",
             ],
         ),
         (
             ExportTargetPlatform::WebGpu,
             "platform/webgpu/src/zircon_webgpu_host.js",
-            [
+            &[
                 "zirconExportDispatchLifecycle('resumed')",
                 "zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY)",
                 "zirconExportDispatchKeyboard('pressed', event.code, event.key)",
                 "zirconExportFetchResource(uri, { streaming = false } = {})",
+                "zirconRuntimeExports.zircon_export_shutdown?.()",
             ],
         ),
         (
             ExportTargetPlatform::Wasm,
             "platform/wasm/src/zircon_wasm_host.js",
-            [
+            &[
                 "zirconExportDispatchLifecycle('resumed')",
                 "zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY)",
                 "zirconExportDispatchKeyboard('pressed', event.code, event.key)",
                 "zirconExportFetchResource(uri, { streaming = false } = {})",
+                "zirconRuntimeExports.zircon_export_shutdown?.()",
             ],
         ),
     ];
@@ -455,10 +526,16 @@ fn generated_mobile_and_browser_hosts_translate_platform_callbacks_to_runtime_ab
         let plan = ExportBuildPlan::from_project_manifest(&manifest, &profile_name).unwrap();
         let generated = generated_file(&plan, path);
 
-        for expected_fragment in expected_fragments {
+        for &expected_fragment in expected_fragments {
             assert!(
                 generated.contains(expected_fragment),
                 "{platform:?} generated `{path}` should contain `{expected_fragment}`"
+            );
+        }
+        if platform == ExportTargetPlatform::Android {
+            assert!(
+                !generated.contains("object ZirconRuntime"),
+                "the Android JNI binding owner must be declared in exactly one generated Kotlin file"
             );
         }
     }
@@ -474,6 +551,7 @@ fn generated_platform_hosts_include_repo_owned_binding_and_resource_glue() {
                     "platform/android/app/src/main/java/dev/zircon/export/ZirconRuntime.kt",
                     [
                         "external fun start(): Boolean",
+                        "external fun shutdown(): Boolean",
                         "external fun dispatchLifecycle(state: Int): Boolean",
                         "external fun dispatchTouch(pointerId: Long, phase: Int, x: Float, y: Float): Boolean",
                         "external fun dispatchKeyboard(action: Int, keyCode: Int, scanCode: Int, text: String?): Boolean",
@@ -498,6 +576,7 @@ fn generated_platform_hosts_include_repo_owned_binding_and_resource_glue() {
                 (
                     "platform/ios/ZirconRuntimeHost/Linking/zircon_runtime_native.h",
                     [
+                        "bool zircon_export_shutdown(void);",
                         "bool zircon_export_fetch_resource(const char *uri, uint32_t flags);",
                         "bool zircon_export_handle_viewport_metrics(uint32_t logical_width, uint32_t logical_height, float scale);",
                         "bool zircon_export_handle_keyboard(uint32_t action, uint32_t key_code, uint32_t scan_code, const uint8_t *text, size_t text_len);",

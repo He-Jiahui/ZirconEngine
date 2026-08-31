@@ -91,14 +91,18 @@ fn text_font_database_registers_font_asset_family_members_and_fallbacks() {
         registered[1]
     );
     assert_eq!(database.match_face(&fallback_query).unwrap().face, fallback);
-    assert!(database
-        .fallback_families()
-        .iter()
-        .any(|family| family.as_str() == "Fallback Sans"));
-    assert!(!database
-        .fallback_families()
-        .iter()
-        .any(|family| family.as_str() == "Composite Han"));
+    assert!(
+        database
+            .fallback_families()
+            .iter()
+            .any(|family| family.as_str() == "Fallback Sans")
+    );
+    assert!(
+        !database
+            .fallback_families()
+            .iter()
+            .any(|family| family.as_str() == "Composite Han")
+    );
     assert_ne!(
         database
             .fallback_candidates_for_codepoint('界', &fallback_query, None, Some("zh-Hans-CN"),)
@@ -209,6 +213,62 @@ fn text_font_database_composite_activation_is_explicit_and_replaceable() {
 }
 
 #[test]
+fn text_font_database_project_composite_clear_restores_runtime_default() {
+    let mut database = FontDatabase::default();
+    let runtime_han = database
+        .register_stored_face(
+            FontFaceDescriptor::regular("Runtime Han"),
+            Arc::from([1_u8].as_slice()),
+            None,
+        )
+        .unwrap();
+    let project_han = database
+        .register_stored_face(
+            FontFaceDescriptor::regular("Project Han"),
+            Arc::from([2_u8].as_slice()),
+            None,
+        )
+        .unwrap();
+    let composite = |family: &'static str| CompositeFontDescriptor {
+        default_family: FontFamilyName::from(family),
+        sub_fonts: vec![SubFontRange {
+            family: FontFamilyName::from(family),
+            scripts: vec![FontScript::Han],
+            ranges: vec![(0x3400, 0x9FFF)],
+            cultures: Vec::new(),
+        }],
+    };
+    let query = FontQuery::single_family("Missing Primary");
+
+    assert!(database.set_runtime_default_composite_font(Some(composite("Runtime Han"))));
+    assert_eq!(
+        database
+            .fallback_candidates_for_codepoint('界', &query, None, None)
+            .first()
+            .copied(),
+        Some(runtime_han)
+    );
+
+    assert!(database.set_project_composite_font(Some(composite("Project Han"))));
+    assert_eq!(
+        database
+            .fallback_candidates_for_codepoint('界', &query, None, None)
+            .first()
+            .copied(),
+        Some(project_han)
+    );
+
+    assert!(database.set_project_composite_font(None));
+    assert_eq!(
+        database
+            .fallback_candidates_for_codepoint('界', &query, None, None)
+            .first()
+            .copied(),
+        Some(runtime_han)
+    );
+}
+
+#[test]
 fn text_font_database_composite_candidates_prioritize_matching_subfont() {
     let mut database = FontDatabase::with_default_fallbacks();
     let latin = database
@@ -313,6 +373,76 @@ fn text_composite_font_resolves_default_and_subfont_ranges() {
 }
 
 #[test]
+fn text_composite_font_prioritizes_compiled_culture_selectors() {
+    let mut database = FontDatabase::default();
+    let generic = database
+        .register_stored_face(
+            FontFaceDescriptor::regular("Generic Han"),
+            Arc::from([1_u8].as_slice()),
+            None,
+        )
+        .unwrap();
+    let simplified_han = database
+        .register_stored_face(
+            FontFaceDescriptor::regular("Simplified Han"),
+            Arc::from([2_u8].as_slice()),
+            None,
+        )
+        .unwrap();
+    let invalid_culture = database
+        .register_stored_face(
+            FontFaceDescriptor::regular("Invalid Culture Han"),
+            Arc::from([3_u8].as_slice()),
+            None,
+        )
+        .unwrap();
+    let query = FontQuery::single_family("Generic Han");
+    let composite = CompositeFontDescriptor {
+        default_family: FontFamilyName::from("Generic Han"),
+        sub_fonts: vec![
+            SubFontRange {
+                family: FontFamilyName::from("Generic Han"),
+                scripts: vec![FontScript::Han],
+                ranges: vec![(0x3400, 0x9FFF)],
+                cultures: Vec::new(),
+            },
+            SubFontRange {
+                family: FontFamilyName::from("Simplified Han"),
+                scripts: vec![FontScript::Han],
+                ranges: vec![(0x3400, 0x9FFF)],
+                cultures: vec![FontCultureTag::from(" ZH_cn ")],
+            },
+            SubFontRange {
+                family: FontFamilyName::from("Invalid Culture Han"),
+                scripts: vec![FontScript::Han],
+                ranges: vec![(0x3400, 0x9FFF)],
+                cultures: vec![FontCultureTag::from("not a tag")],
+            },
+        ],
+    };
+
+    assert_eq!(
+        database
+            .fallback_candidates_for_codepoint('界', &query, Some(&composite), Some("zh-Hans-CN"),)
+            .first()
+            .copied(),
+        Some(simplified_han)
+    );
+    assert_eq!(
+        database
+            .fallback_candidates_for_codepoint('界', &query, Some(&composite), Some("ja-JP"))
+            .first()
+            .copied(),
+        Some(generic)
+    );
+    assert!(
+        !database
+            .fallback_candidates_for_codepoint('界', &query, Some(&composite), Some("zh-Hans-CN"),)
+            .contains(&invalid_culture)
+    );
+}
+
+#[test]
 fn text_font_runtime_default_composite_selects_checked_in_zh_hans_face() {
     let font_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts");
     let manifest_path = font_dir.join("default.font.toml");
@@ -325,7 +455,7 @@ fn text_font_runtime_default_composite_selects_checked_in_zh_hans_face() {
     database
         .replace_font_asset("res://fonts/default.font.toml", &asset, &source_path)
         .expect("register checked-in default CompositeFont source");
-    database.set_project_composite_font(asset.composite_font.clone());
+    database.set_runtime_default_composite_font(asset.composite_font.clone());
 
     let selected = database
         .fallback_candidates_for_codepoint(
@@ -348,7 +478,9 @@ fn text_font_runtime_default_composite_selects_checked_in_zh_hans_face() {
     assert_eq!(database.face_index(selected).unwrap(), 1);
     let bytes = database.face_bytes(selected).unwrap();
     let face = ttf_parser::Face::parse(bytes.as_ref(), 1).expect("checked-in CJK TTC face");
-    assert!("中文排版引擎文本与布局"
-        .chars()
-        .all(|character| face.glyph_index(character).is_some()));
+    assert!(
+        "中文排版引擎文本与布局"
+            .chars()
+            .all(|character| face.glyph_index(character).is_some())
+    );
 }

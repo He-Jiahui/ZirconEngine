@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::scene::viewport::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
     RenderViewportProduct,
 };
+use zircon_runtime::core::framework::render::UiRenderSubmission;
 use zircon_runtime_interface::math::UVec2;
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 #[derive(Default)]
 pub(super) struct FakeRenderFramework {
@@ -137,7 +137,7 @@ impl RenderFramework for FakeRenderFramework {
         &self,
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
-        ui: Option<UiRenderExtract>,
+        ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError> {
         {
             let mut state = self.state.lock().unwrap();
@@ -155,16 +155,14 @@ impl RenderFramework for FakeRenderFramework {
                 .push(size.x as f32 / size.y as f32);
             state.submitted_ui_command_counts.push(
                 ui.as_ref()
-                    .map(|extract| extract.list.commands.len())
+                    .map(|submission| submission.command_count())
                     .unwrap_or(0),
             );
             state.submitted_ui_texts.push(
                 ui.as_ref()
-                    .map(|extract| {
-                        extract
-                            .list
-                            .commands
-                            .iter()
+                    .map(|submission| {
+                        submission
+                            .commands()
                             .filter_map(|command| command.text.clone())
                             .collect::<Vec<_>>()
                     })

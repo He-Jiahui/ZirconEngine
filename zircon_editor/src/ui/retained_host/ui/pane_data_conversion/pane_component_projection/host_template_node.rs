@@ -22,7 +22,7 @@ pub(in super::super) fn host_template_node(
     node: RetainedUiHostNodeProjection,
 ) -> Option<host_contract::TemplatePaneNodeData> {
     let control_id = node.control_id?;
-    let component = node.component.clone();
+    let component = node.component;
     let component_descriptor = descriptor_for_component(&component);
     let component_role = component_descriptor
         .map(|descriptor| descriptor.role.clone())

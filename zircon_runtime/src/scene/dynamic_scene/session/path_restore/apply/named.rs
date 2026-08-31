@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::scene::{EntityRemap, LevelSystem, World};
 
-use super::super::super::{io, RuntimeSessionArchiveError};
+use super::super::super::{RuntimeSessionArchiveError, io};
 
 pub(in crate::scene::dynamic_scene::session) fn apply_slot_from_path_to_world(
     path: impl AsRef<Path>,

@@ -120,6 +120,8 @@ fn slot_entry_node(
             slot.control_id,
             stable_entry_key(&entry.key)
         ),
+        surface_node_id: None,
+        has_workbench_icon_tooltip: false,
         parent_id: Some(parent_id.to_string()),
         kind: RetainedUiHostComponentKind::Label,
         component: "Label".to_string(),

@@ -3,9 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;
 use zircon_runtime_interface::ui::{
-    binding::UiEventKind,
-    layout::UiSlotKind,
-    template::{UiAssetError, UiTemplateError},
+    binding::UiEventKind, layout::UiSlotKind, template::UiAssetError,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -416,8 +414,6 @@ pub enum EditorTemplateError {
         expected: UiEventKind,
         actual: UiEventKind,
     },
-    #[error(transparent)]
-    Template(#[from] UiTemplateError),
     #[error(transparent)]
     Asset(#[from] UiAssetError),
 }

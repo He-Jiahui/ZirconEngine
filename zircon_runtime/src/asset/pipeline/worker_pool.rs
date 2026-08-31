@@ -121,9 +121,10 @@ impl AssetWorkerPool {
                 "asset worker pool is shutting down".to_string(),
             ));
         }
-        if let Some(entry) = state.in_flight.get(&request).cloned() {
+        if let Some(entry) = state.in_flight.get(&request) {
             match entry.try_add_waiter(self.options.waiter_capacity) {
                 WaiterAdmission::Added => {
+                    let entry = Arc::clone(entry);
                     self.record_merge(true);
                     return Ok(self.completion_ticket(entry));
                 }
@@ -134,7 +135,10 @@ impl AssetWorkerPool {
                     )));
                 }
                 WaiterAdmission::Terminal => {
-                    state.in_flight.remove(&request);
+                    let entry = state
+                        .in_flight
+                        .remove(&request)
+                        .expect("terminal in-flight entry must remain registered");
                     let waiters = entry.waiter_count();
                     entry.cancel_expiry();
                     self.record_expiry(ExpiryReport {

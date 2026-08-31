@@ -43,21 +43,21 @@ fn project_overview_uses_the_shared_editor_surface_and_control_tokens() {
 }
 
 #[test]
-fn project_overview_projection_loads_its_declared_theme_assets() {
-    for required in [
-        "PROJECT_OVERVIEW_STYLE_ASSET_PATH",
-        "PROJECT_OVERVIEW_STYLE_ASSET_ID",
-        "PROJECT_OVERVIEW_MATERIAL_STYLE_ASSET_PATH",
-        "PROJECT_OVERVIEW_MATERIAL_STYLE_ASSET_ID",
-        "PROJECT_OVERVIEW_TOKENS_STYLE_ASSET_PATH",
-        "PROJECT_OVERVIEW_TOKENS_STYLE_ASSET_ID",
-        "/assets/ui/theme/editor_base.zui",
-        "/assets/ui/theme/editor_material.zui",
-        "/assets/ui/editor/theme/editor_tokens.zui",
-    ] {
+fn project_overview_projection_uses_the_document_import_graph() {
+    for required in ["PROJECT_OVERVIEW_LAYOUT_ASSET_PATH", "&[]"] {
         assert!(
             PROJECT_OVERVIEW_PROJECTION.contains(required),
-            "Project Overview projection must resolve `{required}`"
+            "Project Overview projection must retain `{required}`"
+        );
+    }
+    for legacy_source in [
+        "editor_base.zui",
+        "editor_material.zui",
+        "editor_tokens.zui",
+    ] {
+        assert!(
+            !PROJECT_OVERVIEW_PROJECTION.contains(legacy_source),
+            "Project Overview projection must not inject `{legacy_source}`"
         );
     }
 }

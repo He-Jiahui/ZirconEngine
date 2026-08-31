@@ -64,9 +64,12 @@ fn command_list_records_clear_values_for_color_depth_and_stencil() {
             zr_rhi::CommandListCommand::EndRenderPass,
         ]
     );
-    assert!(device
-        .is_fence_complete(device.submit(command_list).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(command_list).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 }
 
 #[test]

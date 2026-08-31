@@ -11,11 +11,21 @@ pub(crate) fn dropdown_option_popup_frame(
         return None;
     }
     let row_height = dropdown_option_row_height(control_frame);
+    dropdown_option_popup_frame_for_height(control_frame, row_height * row_count as f32)
+}
+
+fn dropdown_option_popup_frame_for_height(
+    control_frame: &FrameRect,
+    popup_height: f32,
+) -> Option<FrameRect> {
+    if !popup_height.is_finite() || popup_height <= 0.0 {
+        return None;
+    }
     Some(FrameRect {
         x: control_frame.x,
         y: control_frame.y + control_frame.height + TEMPLATE_POPUP_ANCHOR_GAP,
         width: control_frame.width.max(1.0),
-        height: row_height * row_count as f32,
+        height: popup_height,
     })
 }
 
@@ -24,7 +34,16 @@ pub(crate) fn dropdown_option_popup_frame_within(
     row_count: usize,
     bounds: &FrameRect,
 ) -> Option<FrameRect> {
-    let mut popup = dropdown_option_popup_frame(control_frame, row_count)?;
+    let popup_height = dropdown_option_row_height(control_frame) * row_count as f32;
+    dropdown_option_popup_frame_with_height_within(control_frame, popup_height, bounds)
+}
+
+pub(super) fn dropdown_option_popup_frame_with_height_within(
+    control_frame: &FrameRect,
+    popup_height: f32,
+    bounds: &FrameRect,
+) -> Option<FrameRect> {
+    let mut popup = dropdown_option_popup_frame_for_height(control_frame, popup_height)?;
     if !valid_bounds(bounds) {
         return Some(popup);
     }

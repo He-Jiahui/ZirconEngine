@@ -1,8 +1,7 @@
 use super::super::super::super::super::data::{FrameRect, PaneData};
 use super::super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::super::paint_primitives::{
-    draw_rect_clipped, draw_rounded_border_clipped, draw_rounded_rect_clipped,
-    draw_text_bars_clipped,
+    draw_rect_clipped, draw_rounded_box_clipped, draw_text_bars_clipped,
 };
 use super::super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::super::super::paint_theme::{
@@ -36,17 +35,11 @@ pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer::docks:
         return;
     };
     let palette = current_host_palette();
-    draw_rounded_rect_clipped(
+    draw_rounded_box_clipped(
         frame,
         card.clone(),
         Some(clip),
         palette.surface,
-        metrics.radius_control,
-    );
-    draw_rounded_border_clipped(
-        frame,
-        card.clone(),
-        Some(clip),
         palette.separator_soft,
         metrics.border_width,
         metrics.radius_control,

@@ -30,8 +30,8 @@ use self::value_sync::{
 use super::{
     dependency_set, is_standard_texture_slot_alias, material_control,
     shader_property_values_for_shader, validate_alpha_mode, validate_render_queue_alpha_mode,
-    validate_shader_contract, AlphaMode, MaterialTextureSlotValue, ZMaterialDocument,
-    ZMaterialQueueOverride,
+    validate_shader_contract, validate_standard_material_texture_uv_channels, AlphaMode,
+    MaterialTextureSlotValue, ZMaterialDocument, ZMaterialQueueOverride,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -169,6 +169,9 @@ impl MaterialAsset {
         ));
         errors.extend(material_control::validation_errors(&self.property_values));
         errors.extend(advanced_features::validation_errors(&self.property_values));
+        errors.extend(validate_standard_material_texture_uv_channels(
+            &self.standard_material_descriptor(),
+        ));
         errors
     }
 
@@ -270,6 +273,7 @@ impl MaterialAsset {
             .collect::<Vec<_>>();
         let descriptor = self.standard_material_descriptor_for_shader(shader);
         let texture_slots = self.shader_aware_texture_slots_from_descriptor(&descriptor);
+        let texture_uv_errors = validate_standard_material_texture_uv_channels(&descriptor);
         let mut report = self.readiness_report_from_texture_slots(
             descriptor.dependencies,
             texture_slots,
@@ -277,6 +281,9 @@ impl MaterialAsset {
             texture_resolves,
         );
         for error in self.shader_contract_diagnostics(shader) {
+            report.push_validation_error_once(error);
+        }
+        for error in texture_uv_errors {
             report.push_validation_error_once(error);
         }
         for reference in unresolved_shader_imports {
@@ -315,6 +322,7 @@ impl MaterialAsset {
             normal_texture: self.normal_texture.clone(),
             normal_texture_transform: self.texture_slot_transform(&["normal", "normal_texture"]),
             normal_texture_uv_channel: self.texture_slot_uv_channel(&["normal", "normal_texture"]),
+            normal_scale: self.normal_scale(),
             metallic: self.metallic,
             roughness: self.roughness,
             metallic_roughness_texture: self.metallic_roughness_texture.clone(),
@@ -334,6 +342,10 @@ impl MaterialAsset {
                 .texture_slot_transform(&["emissive", "emissive_texture"]),
             emissive_texture_uv_channel: self
                 .texture_slot_uv_channel(&["emissive", "emissive_texture"]),
+            clearcoat_normal_texture_transform: self
+                .texture_slot_transform(&["clearcoat_normal", "clearcoat_normal_texture"]),
+            clearcoat_normal_texture_uv_channel: self
+                .texture_slot_uv_channel(&["clearcoat_normal", "clearcoat_normal_texture"]),
             alpha_mode: (&self.alpha_mode).into(),
             lighting_model,
             unlit,
@@ -410,6 +422,15 @@ impl MaterialAsset {
             }
             descriptor.emissive_texture_transform = slot.texture_transform();
             descriptor.emissive_texture_uv_channel = slot.texture_uv_channel();
+        }
+        if let Some(slot) =
+            self.shader_texture_slot(shader, &["clearcoat_normal", "clearcoat_normal_texture"])
+        {
+            if let Some(reference) = slot.reference.clone() {
+                descriptor.advanced_features.clearcoat_normal_texture = Some(reference);
+            }
+            descriptor.clearcoat_normal_texture_transform = slot.texture_transform();
+            descriptor.clearcoat_normal_texture_uv_channel = slot.texture_uv_channel();
         }
         if descriptor.advanced_features.uses_transmission() {
             descriptor.render_queue_value = Some(STANDARD_PBR_TRANSMISSION_RENDER_QUEUE);
@@ -514,6 +535,10 @@ impl MaterialAsset {
 
     pub fn occlusion_strength(&self) -> f32 {
         self.occlusion_strength_from_property().unwrap_or(1.0)
+    }
+
+    pub fn normal_scale(&self) -> f32 {
+        self.normal_scale_from_property().unwrap_or(1.0)
     }
 
     pub fn separate_translucency(&self) -> bool {
@@ -693,6 +718,10 @@ impl MaterialAsset {
 
     fn occlusion_strength_from_property(&self) -> Option<f32> {
         material_control::occlusion_strength(&self.property_values)
+    }
+
+    fn normal_scale_from_property(&self) -> Option<f32> {
+        material_control::normal_scale(&self.property_values)
     }
 
     fn separate_translucency_from_property(&self) -> Option<bool> {

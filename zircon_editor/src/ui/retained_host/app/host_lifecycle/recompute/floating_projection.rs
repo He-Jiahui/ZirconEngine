@@ -29,6 +29,11 @@ impl RetainedEditorHost {
                 "retained_host",
                 "recompute_sync_floating_bounds"
             );
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.floating_projection.bounds_sync_candidate_count",
+                model.floating_windows.len()
+            );
             for (window_index, window) in model.floating_windows.iter().enumerate() {
                 let frame = resolve_floating_window_projection_base_outer_frame(
                     window,

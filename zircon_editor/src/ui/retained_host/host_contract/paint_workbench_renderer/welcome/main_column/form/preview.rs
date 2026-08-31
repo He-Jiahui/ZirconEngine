@@ -1,8 +1,6 @@
 use super::super::super::super::super::data::{FrameRect, PaneData};
 use super::super::super::super::super::paint_frame::HostRgbaFrame;
-use super::super::super::super::super::paint_primitives::{
-    draw_rounded_border_clipped, draw_rounded_rect_clipped,
-};
+use super::super::super::super::super::paint_primitives::draw_rounded_box_clipped;
 use super::super::super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::super::super::paint_theme::current_host_metrics;
 use super::super::super::super::{first_non_empty, SEPARATOR};
@@ -18,17 +16,11 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_preview(
     clip: &FrameRect,
 ) {
     let metrics = current_host_metrics();
-    draw_rounded_rect_clipped(
+    draw_rounded_box_clipped(
         frame,
         preview.clone(),
         Some(clip),
         WELCOME_SURFACE,
-        metrics.radius_control,
-    );
-    draw_rounded_border_clipped(
-        frame,
-        preview.clone(),
-        Some(clip),
         SEPARATOR,
         metrics.border_width,
         metrics.radius_control,

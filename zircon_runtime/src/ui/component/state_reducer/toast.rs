@@ -155,6 +155,7 @@ fn expire_toast(
     let mut removed = false;
     let mut remaining = Vec::new();
     if let Some(queue) = queue_value(state, descriptor) {
+        remaining.reserve(toast_queue_root_capacity(queue));
         visit_toast_entries(queue, &mut |entry| {
             entry_count += 1;
             if !removed && entry.matches_id(&expired_id) {
@@ -273,6 +274,14 @@ fn toast_sync_property(property: &str) -> bool {
             | AUTO_HIDE_DURATION_MS
             | AUTO_HIDE_DURATION_CAMEL
     )
+}
+
+fn toast_queue_root_capacity(value: &UiValue) -> usize {
+    match value {
+        UiValue::Array(values) => values.len(),
+        UiValue::String(_) | UiValue::Enum(_) | UiValue::Map(_) => 1,
+        _ => 0,
+    }
 }
 
 fn visit_toast_entries<'a>(value: &'a UiValue, visitor: &mut impl FnMut(BorrowedToastEntry<'a>)) {
@@ -571,5 +580,64 @@ mod scan_tests {
             retained,
             vec![UiValue::String("notice|message=Hello".to_string())]
         );
+    }
+
+    #[test]
+    fn optimization_batch_20260830da_toast_queue_capacity_uses_root_shape() {
+        let flat = UiValue::Array(vec![
+            UiValue::String("first".to_string()),
+            UiValue::String("second".to_string()),
+            UiValue::Bool(false),
+        ]);
+
+        assert_eq!(toast_queue_root_capacity(&flat), 3);
+        assert_eq!(
+            toast_queue_root_capacity(&UiValue::String("single".to_string())),
+            1
+        );
+        assert_eq!(toast_queue_root_capacity(&UiValue::Bool(false)), 0);
+
+        let source = include_str!("toast.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("toast reducer production source");
+        assert!(production.contains("remaining.reserve(toast_queue_root_capacity(queue));"));
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830da_toast_queue_root_capacity_evidence() {
+        const BATCH_COUNT: usize = 32_768;
+        const QUEUE_ENTRY_COUNT: usize = 32;
+        const MARKER: &str = "RUNTIME513_TOAST_QUEUE_ROOT_CAPACITY_BENCH_V1";
+
+        let legacy_growth_events = queue_growth_events(BATCH_COUNT, QUEUE_ENTRY_COUNT, false);
+        let optimized_growth_events = queue_growth_events(BATCH_COUNT, QUEUE_ENTRY_COUNT, true);
+
+        assert!(legacy_growth_events > 0);
+        assert_eq!(optimized_growth_events, 0);
+        println!(
+            "{MARKER} batches={BATCH_COUNT} root_entries={QUEUE_ENTRY_COUNT} \
+             legacy_growth_events={legacy_growth_events} \
+             optimized_growth_events={optimized_growth_events} reduction_pct=100"
+        );
+    }
+
+    fn queue_growth_events(batch_count: usize, entry_count: usize, reserve: bool) -> usize {
+        let mut growth_events = 0;
+        for _ in 0..batch_count {
+            let mut remaining = if reserve {
+                Vec::with_capacity(entry_count)
+            } else {
+                Vec::new()
+            };
+            for entry in 0..entry_count {
+                let previous_capacity = remaining.capacity();
+                remaining.push(entry);
+                growth_events += usize::from(remaining.capacity() != previous_capacity);
+            }
+        }
+        growth_events
     }
 }

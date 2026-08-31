@@ -7,6 +7,7 @@ use super::{
 
 mod data_production;
 mod gameplay_state;
+mod live_input_summary;
 mod online_sessions;
 mod runtime_state;
 mod simulation_physics;
@@ -20,6 +21,8 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let Some(feedback) = extension_module_feedback(action_id) else {
             return Ok(());
         };
+        let output_text = live_input_summary::for_command(self, action_id)
+            .unwrap_or_else(|| feedback.output_text.to_string());
 
         self.mutate_control_property(
             "WorkbenchStatusReady",
@@ -34,7 +37,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.mutate_control_property(
             feedback.output_control_id,
             "value_text",
-            UiValue::String(feedback.output_text.to_string()),
+            UiValue::String(output_text),
         )?;
         Ok(())
     }
@@ -198,28 +201,31 @@ fn extension_module_feedback(action_id: &str) -> Option<ExtensionModuleFeedback>
             status_text: "Blend space opened",
             output_text: "Native extension workspace opened for BS_Locomotion",
         },
-        "workbench.extension.blend_space.preview.invoke" => ExtensionModuleFeedback {
+        "workbench.extension.blend_space.validation.filter_all" => ExtensionModuleFeedback {
             output_control_id: "WorkbenchExtensionBlendSpaceOutputRow",
-            status_text: "Blend space preview queued",
-            output_text: "Preview queued   BS_Locomotion   speed/direction axes",
+            status_text: "Validation filter: All",
+            output_text: "Showing all validation diagnostics   3 info   1 warning   0 errors",
         },
-        "workbench.extension.blend_space.apply.invoke" => ExtensionModuleFeedback {
+        "workbench.extension.blend_space.validation.filter_errors" => ExtensionModuleFeedback {
             output_control_id: "WorkbenchExtensionBlendSpaceOutputRow",
-            status_text: "Blend space apply queued",
-            output_text: "Apply queued   8 samples   triangulated interpolation",
+            status_text: "Validation filter: Errors",
+            output_text: "Showing validation errors   0 results",
         },
-        "workbench.extension.blend_space.idle_sample_table_row.select" => ExtensionModuleFeedback {
+        "workbench.extension.blend_space.validation.filter_warnings" => ExtensionModuleFeedback {
             output_control_id: "WorkbenchExtensionBlendSpaceOutputRow",
-            status_text: "Blend space idle sample selected",
-            output_text: "Selected Idle Sample   Speed 0   Direction 0",
+            status_text: "Validation filter: Warnings",
+            output_text: "Showing validation warnings   1 result",
         },
-        "workbench.extension.blend_space.diagonal_sample_table_row.select" => {
-            ExtensionModuleFeedback {
-                output_control_id: "WorkbenchExtensionBlendSpaceOutputRow",
-                status_text: "Blend space diagonal sample selected",
-                output_text: "Selected Diagonal Sample   missing mirror sample",
-            }
-        }
+        "workbench.extension.blend_space.validation.filter_infos" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionBlendSpaceOutputRow",
+            status_text: "Validation filter: Infos",
+            output_text: "Showing validation info   3 results",
+        },
+        "workbench.extension.blend_space.validation.clear" => ExtensionModuleFeedback {
+            output_control_id: "WorkbenchExtensionBlendSpaceOutputRow",
+            status_text: "Validation log cleared",
+            output_text: "Validation diagnostics cleared   0 results",
+        },
         "workbench.extension.pose_library.open" => ExtensionModuleFeedback {
             output_control_id: "WorkbenchExtensionPoseLibraryOutputRow",
             status_text: "Pose library opened",

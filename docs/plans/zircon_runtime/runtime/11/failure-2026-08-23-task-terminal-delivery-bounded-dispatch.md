@@ -98,10 +98,10 @@ pre-change 100000 panic chain is a crash-safety baseline, not a throughput basel
 
 - `JobHandle`, `JobScheduler`, and `TaskTimer` share the same domain-neutral dispatcher contract;
   no consumer-specific queue, thread, compatibility path, or direct callback bypass remains.
-- Default standalone handles and timers reuse one process dispatcher state; a scheduler still
+- Standalone `JobHandle` callbacks and timers reuse one process dispatcher state; every scheduler
   binds its dispatcher to its explicitly injected `TaskPool`.
-- Repeated `JobScheduler::process_io()` construction reuses one process-I/O dispatcher state,
-  so its two-runner budget is not multiplied per facade.
+- `JobScheduler` exposes neither `Default` nor `process_io()`. Repeated consumers cannot acquire
+  an implicit process-I/O dispatcher or manufacture a private full-CPU pool through the facade.
 - A terminal producer performs no unbounded recursive callback delivery, and the timer thread
   performs no arbitrary callback body.
 - Focused task, timer, panic-chain, fan-out, and observer ordering regressions pass through the

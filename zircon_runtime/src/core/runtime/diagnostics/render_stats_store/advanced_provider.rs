@@ -78,6 +78,7 @@ fn record_availability(store: &mut DiagnosticStore, stats: &RenderStats) {
 fn record_reports(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     let reports = &stats.last_advanced_provider_reports;
+    let counts = advanced_provider_aggregate_counts(reports);
     record_count(
         store,
         "render.advanced_provider.report_count",
@@ -89,58 +90,49 @@ fn record_reports(store: &mut DiagnosticStore, stats: &RenderStats) {
         store,
         "render.advanced_provider.requested_count",
         frame_index,
-        reports.iter().filter(|report| report.requested).count(),
+        counts.requested,
         &["render", "advanced_provider", "requested"],
     );
     record_count(
         store,
         "render.advanced_provider.ready_count",
         frame_index,
-        reports
-            .iter()
-            .filter(|report| report.status == AdvancedProviderStatus::Ready)
-            .count(),
+        counts.ready,
         &["render", "advanced_provider", "ready"],
     );
     record_count(
         store,
         "render.advanced_provider.degraded_count",
         frame_index,
-        reports
-            .iter()
-            .filter(|report| report.status == AdvancedProviderStatus::Degraded)
-            .count(),
+        counts.degraded,
         &["render", "advanced_provider", "degraded"],
     );
     record_count(
         store,
         "render.advanced_provider.enabled_count",
         frame_index,
-        reports.iter().filter(|report| report.enabled()).count(),
+        counts.enabled,
         &["render", "advanced_provider", "enabled"],
     );
     record_count(
         store,
         "render.advanced_provider.degradation_count",
         frame_index,
-        degradation_count(reports),
+        counts.degradations,
         &["render", "advanced_provider", "degradation"],
     );
     record_count(
         store,
         "render.advanced_provider.missing_capability_degradation_count",
         frame_index,
-        degradation_reason_count(
-            reports,
-            AdvancedRenderDegradationReason::BackendCapabilityMissing,
-        ),
+        counts.missing_capability_degradations,
         &["render", "advanced_provider", "degradation", "capability"],
     );
     record_count(
         store,
         "render.advanced_provider.missing_provider_degradation_count",
         frame_index,
-        degradation_reason_count(reports, AdvancedRenderDegradationReason::ProviderMissing),
+        counts.missing_provider_degradations,
         &["render", "advanced_provider", "degradation", "provider"],
     );
 }
@@ -243,19 +235,39 @@ fn record_feature(
     );
 }
 
-fn degradation_count(reports: &[AdvancedProviderReport]) -> usize {
-    reports.iter().map(|report| report.degradations.len()).sum()
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct AdvancedProviderAggregateCounts {
+    requested: usize,
+    ready: usize,
+    degraded: usize,
+    enabled: usize,
+    degradations: usize,
+    missing_capability_degradations: usize,
+    missing_provider_degradations: usize,
 }
 
-fn degradation_reason_count(
+fn advanced_provider_aggregate_counts(
     reports: &[AdvancedProviderReport],
-    reason: AdvancedRenderDegradationReason,
-) -> usize {
-    reports
-        .iter()
-        .flat_map(|report| &report.degradations)
-        .filter(|degradation| degradation.reason == reason)
-        .count()
+) -> AdvancedProviderAggregateCounts {
+    let mut counts = AdvancedProviderAggregateCounts::default();
+    for report in reports {
+        counts.requested += usize::from(report.requested);
+        counts.ready += usize::from(report.status == AdvancedProviderStatus::Ready);
+        counts.degraded += usize::from(report.status == AdvancedProviderStatus::Degraded);
+        counts.enabled += usize::from(report.enabled());
+        counts.degradations += report.degradations.len();
+        for degradation in &report.degradations {
+            match degradation.reason {
+                AdvancedRenderDegradationReason::BackendCapabilityMissing => {
+                    counts.missing_capability_degradations += 1;
+                }
+                AdvancedRenderDegradationReason::ProviderMissing => {
+                    counts.missing_provider_degradations += 1;
+                }
+            }
+        }
+    }
+    counts
 }
 
 struct AdvancedProviderFeaturePaths {
@@ -268,3 +280,7 @@ struct AdvancedProviderFeaturePaths {
     missing_capability_degradation_count: &'static str,
     missing_provider_degradation_count: &'static str,
 }
+
+#[cfg(test)]
+#[path = "advanced_provider/single_pass_aggregate_tests.rs"]
+mod single_pass_aggregate_tests;

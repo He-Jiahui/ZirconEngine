@@ -16,11 +16,11 @@ use crate::backend::{
     PhysicsBackend, PhysicsBackendError, PhysicsBackendObjectKind, PhysicsEventBuffer, ShapeHandle,
 };
 
-use super::DefaultPhysicsManager;
 use super::change_detection::{collider_requires_recreation, detect_body_change};
-use super::command_buffer::{PhysicsBodyCommand, apply_commands_to_sync};
+use super::command_buffer::{apply_commands_to_sync, PhysicsBodyCommand};
 use super::poison_recovery::recover_lock;
 use super::world_sync::sanitize_world_sync_state;
+use super::DefaultPhysicsManager;
 
 #[derive(Debug)]
 pub(super) struct JoltManagedWorld {

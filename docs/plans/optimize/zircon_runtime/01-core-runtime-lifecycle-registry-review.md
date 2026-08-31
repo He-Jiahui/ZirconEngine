@@ -154,6 +154,17 @@ registration 子树约 2,470 行，其中 `descriptor_entries_three/four/five.rs
 
 当前没有与这些分支绑定的端到端 benchmark 证明收益，却显著扩大生命周期内核的正确性矩阵。目标先建立 registry build、resolve hit/miss、并发 lazy init、unload graph 的基准，再硬切为可审计的统一算法（例如 small inline storage + graph index）。只保留 profile 证明有效且不复制状态语义的局部特化。
 
+**2026-08-28 current-source 复审补充：** `service_lists/{mod,multi,shutdown,specialized}.rs`
+当前仍由 `mod.rs` 对 1–5 项逐项分派，`specialized.rs` 以 484 行组合匹配生成 startup/shutdown
+列表；6 项以上才进入统一扫描。静态调用链确认 shutdown 通用路径也只是按
+Plugin→Manager→Driver 分类，单一类别会直接复用 owner order，仍未消费 service dependency DAG，
+因此 P1-3 的正确性问题优先级高于是否保留 small-cardinality fast path。Unreal 的实际 load-order
+逆序 shutdown 只能作为生命周期原则，不能证明 Zircon 分类顺序正确。当前 profile/benchmark
+通道受阻，本轮不修改算法、不冻结阈值，也不声称组合展开更快；下一实现门必须先采集
+1/2/3/4/5/6/32/1k services 的 registry-build allocations、bytes、p50/p95，以及含同类依赖边的
+shutdown order 正确性，再决定统一 DAG plan 是否需要 inline-small storage。状态：
+`core_service_list_specialization_current_source_reaudited_profile_blocked_no_algorithm_change`。
+
 ### P2-2：结构文本测试掩盖了缺失的状态机行为测试
 
 activation/registration/resolution 共 96 个 test，但有 94 次 `include_str!` 和 641 次 `.contains(...)`。这些守卫适合约束禁止路径和 canonical owner，不适合证明并发、异常与资源寿命。

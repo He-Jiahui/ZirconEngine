@@ -17,6 +17,7 @@ mod template_chip_glyphs;
 mod template_chips;
 mod template_command_palette;
 mod template_dialogs;
+mod template_diamond_glyph;
 mod template_drag_overlay;
 mod template_dropdown_glyphs;
 mod template_dropdown_metrics;
@@ -24,9 +25,6 @@ mod template_dropdowns;
 mod template_field_stepper;
 mod template_fields;
 mod template_icon_assets;
-mod template_icon_button_glyph_kind;
-mod template_icon_button_glyph_segments;
-mod template_icon_button_glyph_shapes;
 mod template_icon_button_glyphs;
 mod template_icon_buttons;
 mod template_inspector_row_geometry;
@@ -55,6 +53,7 @@ mod template_segmented_control_geometry;
 mod template_segmented_controls;
 mod template_selection_control_geometry;
 mod template_selection_controls;
+mod template_settings_window;
 mod template_shell_panels;
 mod template_slider_geometry;
 mod template_sliders;
@@ -90,9 +89,10 @@ pub(super) use template_node_pipeline::{
 };
 pub(super) use template_viewport_scene::is_viewport_fallback_scene_node;
 pub(in crate::ui::retained_host) use visual_assets::{
-    clear_svg_tree_cache, clear_visual_asset_pixels_cache, invalidate_svg_tree_paths,
-    invalidate_visual_asset_pixel_paths, reconcile_svg_tree_sources,
-    reconcile_visual_asset_pixel_sources,
+    bind_visual_asset_loader, clear_svg_tree_cache, clear_visual_asset_pixels_cache,
+    invalidate_svg_tree_paths, invalidate_visual_asset_pixel_paths, reconcile_svg_tree_sources,
+    reconcile_visual_asset_pixel_sources, take_visual_asset_completion, unbind_visual_asset_loader,
+    VisualAssetLoadCompletion,
 };
 
 #[cfg(test)]

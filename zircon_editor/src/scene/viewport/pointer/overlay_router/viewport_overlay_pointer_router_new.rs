@@ -22,6 +22,7 @@ impl ViewportOverlayPointerRouter {
             renderable_candidates: Vec::new().into(),
             scene_world_generation: None,
             renderer_visible_spatial_snapshot: None,
+            retained_candidate_ids: Vec::new().into(),
         };
         router.rebuild_surface();
         router

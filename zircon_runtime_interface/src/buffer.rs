@@ -25,6 +25,11 @@ pub const ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1: usize = 4 * 1024;
 pub const ZR_RUNTIME_SESSION_PROFILE_MAX_ENCODED_BYTES_V1: usize = 64;
 pub const ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1: usize = 32 * 1024;
 pub const ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1: usize = 256 * 1024;
+/// Maximum UTF-8 text body admitted by the clipboard host bridge.
+///
+/// This leaves deterministic room for the typed JSON request/result envelope under the
+/// 256 KiB host-output and runtime-event ceilings.
+pub const ZR_RUNTIME_CLIPBOARD_TEXT_MAX_ENCODED_BYTES_V1: usize = 32 * 1024;
 pub const ZR_RUNTIME_NATIVE_STRING_MAX_ENCODED_BYTES_V1: usize = 256 * 1024;
 pub const ZR_RUNTIME_NATIVE_STRING_LIST_MAX_ITEMS_V1: usize = 16_384;
 
@@ -73,6 +78,10 @@ pub const ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1: ZrRuntimePayloadLimitV1 =
     ZrRuntimePayloadLimitV1::new(256 * 1024, 1_024, 10_000);
 pub const ZR_RUNTIME_ACCESSIBILITY_ACTION_REQUEST_LIMIT_V1: ZrRuntimePayloadLimitV1 =
     ZrRuntimePayloadLimitV1::new(256 * 1024, 4_096, 10_000);
+pub const ZR_RUNTIME_CLIPBOARD_RESULT_REQUEST_LIMIT_V1: ZrRuntimePayloadLimitV1 =
+    ZrRuntimePayloadLimitV1::new(256 * 1024, 1, 10_000);
+pub const ZR_RUNTIME_VIEWPORT_CAMERA_REQUEST_LIMIT_V1: ZrRuntimePayloadLimitV1 =
+    ZrRuntimePayloadLimitV1::new(4 * 1024, 1, 1_000);
 
 pub const ZR_RUNTIME_ACCESSIBILITY_TREE_OUTPUT_LIMIT_V1: ZrRuntimePayloadLimitV1 =
     ZrRuntimePayloadLimitV1::new(16 * 1024 * 1024, 65_536, 250_000);

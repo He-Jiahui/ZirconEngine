@@ -5,7 +5,7 @@ use super::binary::{
     AnimationBinaryAssetKind,
 };
 use super::error::{AnimationAssetError, AnimationAssetResult};
-use super::reference::AnimationAssetReferenceBinary;
+use super::reference::{AnimationAssetReferenceBinary, DirectReferenceCollector};
 use super::state_kind::{AnimationStateKindAsset, AnimationStateKindBinaryAsset};
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::math::Real;
@@ -285,14 +285,15 @@ impl AnimationStateMachineAsset {
     }
 
     pub fn direct_references(&self) -> Vec<AssetReference> {
-        let mut references = Vec::new();
+        let mut references =
+            DirectReferenceCollector::with_capacity(self.states.len() + self.layers.len());
         for state in &self.states {
             state.kind.push_direct_references(&mut references);
         }
         for layer in &self.layers {
-            super::reference::push_unique_reference(&mut references, layer.state_machine.clone());
+            references.push(&layer.state_machine);
         }
-        references
+        references.into_references()
     }
 }
 

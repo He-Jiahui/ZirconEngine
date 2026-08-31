@@ -305,6 +305,7 @@ def persist_cleanup_unproven_spawn(
     """Fail closed around a spawned process whose termination is unproven."""
 
     now = utc_text()
+    command_json = json.dumps(tuple(command))
     with database.transaction() as connection:
         job = connection.execute(
             "SELECT * FROM cargo_jobs WHERE job_id=?", (job_id,)
@@ -331,7 +332,7 @@ def persist_cleanup_unproven_spawn(
                     observation.pid,
                     observation.creation_time,
                     observation.root_kind,
-                    json.dumps(tuple(command)),
+                    command_json,
                     started_at,
                     now,
                     now,
@@ -363,7 +364,7 @@ def persist_cleanup_unproven_spawn(
                     run_id,
                     job_id,
                     session_id,
-                    json.dumps(tuple(command)),
+                    command_json,
                     json.dumps(dict(environment), sort_keys=True),
                     str(stdout_path),
                     str(stderr_path),

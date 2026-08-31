@@ -28,7 +28,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
   - zircon_runtime_interface/src/ui/dispatch/input
   - zircon_runtime_interface/src/ui/window/input
-  - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
@@ -70,21 +70,38 @@ reference_engines:
   - dev/Fyrox/fyrox-ui/src/text_box.rs
 doc_type: current_source_review
 review_status: complete
-implementation_status: not_started
+implementation_status: in_progress
 source_recheck_required: true
 ---
 
 # Runtime Text Editing、Document、Selection、Caret、Hit Test、IME Composition、Clipboard、Secure Text 与 Product Integration 当前源码工程化差距
 
+## 2026-08-29 NumberField invariant edit-session update
+
+NumberField 已完成 invariant MVP edit session：canonical `value` 保持 Float，活动文本进入
+`value_text` 并由 `number_edit_active` 控制 input/render；共享 property transaction 一次
+preflight/commit typed value、buffer、active flag 和 caret/selection/composition，不增加第二 authority。
+V1 content-free receipt 固定 format/parse/commit 状态。默认 per-key 只改 buffer，显式 opt-in 仅对完整
+finite/range-valid 输入发布 Float Change；Enter/blur/Escape 统一 parse、clamp、optional snap 并发布
+Float Commit、保留非法 Enter 或恢复失焦/Escape。IME commit 只结束 preedit，不等价于字段提交。
+
+源码回归覆盖 buffer、typed clamp commit、intermediate reject、cancel 和 blur restore；Rustfmt/diff check
+通过。managed Cargo、平台 IME/a11y/clipboard、WGPU/PNG、profile/power、locale type interface、focused
+numeric refresh 和 format cache 仍开放。状态更新为
+`number_field_invariant_edit_session_implemented_unvalidated /
+typed_numeric_publication_implemented_unvalidated /
+number_field_commit_cancel_blur_policy_implemented_unvalidated /
+managed_runtime_platform_wgpu_profile_pending`。
+
 ## 1. 结论
 
 当前文本输入链已经不是纯占位：编辑操作按grapheme执行插入和删除，selection/caret/preedit有中立DTO，pointer hit-test能够优先复用resolved layout，IME surrounding text有grapheme与byte上限，App也会把winit IME事件和cursor/surrounding-text请求接到平台窗口。这些底座应保留。
 
-但产品级authority仍停留在“控件属性里放一份`String`”的阶段。widget input与component reducer各自从TOML metadata重建编辑状态，再通过多次独立property mutation写回text、caret、selection和composition；没有document identity、revision、expected-revision、transaction、operation receipt、undo/redo或外部编辑rebase。selection公开入口只保证UTF-8 char boundary，垂直移动、Home/End和triple-click仍按source hard line工作，无法以Runtime81产出的visual cluster/line geometry作为唯一真值。
+但产品级authority仍停留在“控件属性里放一份`String`”的阶段。widget input仍从TOML metadata重建编辑状态；2026-08-27 current source 已将其 value/caret/selection/composition 写回收敛为一次轻量 prepare/commit，关闭 reserved value property 导致的半提交，并按语义 value 统一 text dirty/revision。accessibility与generic external正文更新已进入同一事务，generic派生编辑字段单写也已fail closed；Material editable descriptor的raw `KeyboardText`与component reducer内第二套edit-state/write-back随后删除，reducer只消费semantic ValueChanged/Commit/Focus，当前surface/component直写旁路均已静态收敛。仍没有产品document identity、revision、operation receipt、undo/redo、focused bound-text policy或外部编辑rebase。selection公开入口只保证UTF-8 char boundary，垂直移动、Home/End和triple-click仍按source hard line工作，无法以Runtime81产出的visual cluster/line geometry作为唯一真值。
 
-IME链在UI层拥有composition rects和surrounding text，但转为core host request时丢掉composition rects；动态ABI只携带preedit string/cursor并在production构造空clause。composition直接写入可提交`String`并保存明文restore副本，focus-loss提交又是best-effort。剪贴板更严重：Runtime能生成`UiClipboardRequest`，但App、Editor和动态ABI没有产品consumer或result route；cut会先删除文档再等待一个实际上没有回执的write，paste也没有可关联的read result。
+IME链在UI层拥有composition rects和surrounding text，但转为core host request时丢掉composition rects；动态ABI只携带preedit string/cursor并在production构造空clause。composition直接写入可提交`String`并保存明文restore副本，focus-loss提交又是best-effort。剪贴板的当前源码已在2026-08-27补上runtime transfer/revision/result transaction，cut不再先删除，paste可在匹配回执上走约束化编辑；但App、Editor和动态ABI仍没有产品consumer/result producer，surface-local edit revision也不是产品document revision，因此产品闭环仍开放。
 
-安全文本的既有P0仍开放且更加确定：WOC密码字段使用`input_kind = "password"`，当前secure classifier却只识别三个布尔metadata key；原文随后进入render command、editable snapshot、component event、binding report和accessibility value。该阻断继续由Runtime11B唯一计数，本报告不新增P0。Runtime77拥有一般dispatch effect非原子P0，本报告只登记编辑域内具体事务差距。结论为 **0项新增P0、48项P1、12项P2、48项资格门**；任何实现不得以再加widget分支、同步系统剪贴板调用或隐藏paint文字冒充工程化闭环。
+安全文本的既有P0仍开放，但2026-08-27 current source已关闭最前端classifier绕过，并完成未验收的输入结果投影：WOC `input_kind=password`进入唯一internal typed policy；secure Change/Submit改发surface-owned opaque reference，input/effect/host/component/binding/action result统一redact。focused bound-refresh pending store现也会在overwrite/discard/clear/Drop时zeroize allocation，但这只覆盖一个transient owner。P0仍不能关闭，因为WOC尚无受信reference consumer，retained state/history/export/crash路径和端到端zeroization未收敛，secure focus仍禁用IME，公开versioned policy/host session、真实WOC/Cargo/capture均未完成。该阻断继续由Runtime11B唯一计数，本报告不新增P0。Runtime77拥有一般dispatch effect非原子P0，本报告只登记编辑域内具体事务差距。结论仍为 **0项新增P0、48项P1、12项P2、48项资格门**；任何实现不得以再加widget分支、同步系统剪贴板调用或隐藏paint文字冒充工程化闭环。
 
 ## 2. 审查边界与可复现冻结
 
@@ -137,7 +154,7 @@ Unity Graphics本地corpus是render pipeline/post-processing/atlas shader侧源�
 
 | 仍开放阻断 | 当前证据 | 唯一owner |
 |---|---|---|
-| Secure字段可显示、复制、事件传播并暴露给accessibility的明文，同时通过禁用IME规避安全输入 | WOC使用`input_kind = "password"`，classifier不识别；render/snapshot/a11y仍复制原文 | Runtime11B secure text P0 |
+| Secure字段的classifier/render/a11y/clipboard与input-result事件投影已收敛，但retained secret owner、受信host consumer和secure IME仍缺 | `input_kind=password`进入shared policy；Change/Commit使用opaque reference且dispatch result统一redact；WOC未消费该引用，surface state仍持有原文 | Runtime11B secure text P0 |
 | dispatch reply的多effect顺序提交，尾项失败不回滚已应用前缀 | text mutation同样受影响，但属于通用input/effect transaction问题 | Runtime77 effect atomicity P0 |
 
 ### 4.2 旧计划状态需要纠正
@@ -151,13 +168,13 @@ Unity Graphics本地corpus是render pipeline/post-processing/atlas shader侧源�
 | ID | 当前差距 | 当前源码证据 | 工程级要求 |
 |---|---|---|---|
 | RTE-P1-001 | Widget属性仍是编辑文档authority | `text_state.rs`每次从TOML metadata与value重建`UiEditableTextSnapshot` | Runtime service拥有稳定document/session，widget只投影snapshot并发送intent |
-| RTE-P1-002 | Component reducer形成第二套编辑authority | `state_reducer/text_input.rs`独立实现selection、composition、write-back | reducer必须调用同一document transaction API，不得复制编辑语义 |
-| RTE-P1-003 | 没有document id与revision | public snapshot只有text/selection/composition | 所有snapshot、geometry、host request和receipt绑定`TextDocumentId + Revision` |
-| RTE-P1-004 | 每个输入事件复制整份`String`和metadata | state重建、render snapshot、component event、binding report均clone原文 | retained buffer、snapshot lease与delta projection，复制量受byte budget约束 |
-| RTE-P1-005 | 没有大文档增量存储 | edit action直接对`String`切片/replace | 引入rope/piece-tree等经benchmark选择的数据结构及stable marker |
-| RTE-P1-006 | 单次语义编辑不是原子事务 | text/caret/selection/composition以多个generic mutation依次提交 | prepare/validate/commit/publish一体，失败不留下部分状态 |
-| RTE-P1-007 | Generic property mutation可绕过文档不变量 | surface/component/accessibility都能分别写text与selection字段 | 唯一typed edit gateway，派生属性只读且由commit同步发布 |
-| RTE-P1-008 | 外部model更新没有rebase或stale拒绝 | action无expected revision，hit-test也无generation | 明确replace/rebase/conflict policy并返回typed stale receipt |
+| RTE-P1-002 | Current-source直写旁路已关闭、动态验收待完成 | Material editable descriptor不再声明raw `KeyboardText`；`state_reducer/text_input.rs`已删除selection/composition/edit write-back，reducer只消费semantic event做mirror/validation | 保持Surface/document transaction为唯一raw edit owner；component层只能消费已提交semantic projection，不得恢复编辑语义 |
+| RTE-P1-003 | 产品合同没有document id与revision；2026-08-27新增的crate-private底座已有owner+revision但未接任何surface/service；surface临时layout key已修复revision exhaustion但不是产品document authority | public snapshot仍只有text/selection/composition；内部`text/document`不能证明产品authority，`node_id + layout_revision`也不能替代服务分配的document identity | 所有snapshot、geometry、host request和receipt绑定`TextDocumentId + Revision` |
+| RTE-P1-004 | 每个产品输入事件仍复制整份`String`和metadata | state重建、render snapshot、component event、binding report均clone原文；内部piece owner未被消费 | retained buffer、snapshot lease与delta projection，复制量受byte budget约束 |
+| RTE-P1-005 | 产品路径没有大文档增量存储；内部piece storage现有separator-aware stable hard-line ID与局部edit envelope，但grapheme index仍全文snapshot重建 | edit action仍直接对`String`切片/replace；内部line owner、stable marker与paragraph reflow均未接入产品 | 经benchmark选择并接入唯一authority的数据结构、stable marker与bounded index repair；内部line ID只能算前置，不得冒充M1完成 |
+| RTE-P1-006 | current widget/accessibility/generic external surface 多属性半提交已关闭，产品document事务仍开放；内部document replace已有prepare-before-mutation与typed `Unchanged/Changed` | keyboard/text/IME/clipboard、a11y SetValue/Replace/Selection与generic外部正文更新以固定十项prepare/commit原子发布value/caret/selection/composition，reserved property与非法state零写入，value change只登记一次text revision；authority仍是TOML metadata且无产品receipt/history消费者 | 接入唯一document authority的prepare/validate/commit/publish，fault injection证明失败零发布；history只消费`Changed`receipt |
+| RTE-P1-007 | Current surface generic与component raw edit绕过已关闭，产品document gateway仍开放 | accessibility保留`AccessibilityAction`来源进入共享事务；generic正文更新也进入同一事务，派生caret/selection/composition单写拒绝，NumberField外部Float保留类型；component只消费semantic projection，但仍无focused binding/rebase政策和产品document owner | 唯一typed edit gateway，派生属性只读且由commit同步发布；外部model写入必须消费同一document transaction |
+| RTE-P1-008 | 产品外部model更新仍没有rebase或stale拒绝；内部replace已要求expected key并typed拒绝stale/exhaustion；surface layout revision也已在耗尽时停止发布retained key | widget action与hit-test仍无document revision/generation，两个内部合同均无产品edit消费者 | 明确replace/rebase/conflict policy并把typed stale receipt贯穿唯一edit gateway |
 
 ### 5.2 History、约束与验证
 
@@ -166,7 +183,7 @@ Unity Graphics本地corpus是render pipeline/post-processing/atlas shader侧源�
 | RTE-P1-009 | 没有Undo/Redo | action enum、keyboard mapping与state均无history | operation-based history，恢复text/selection/composition前后状态 |
 | RTE-P1-010 | 没有transaction grouping/coalescing | 每个key/preedit都独立写属性 | typing、IME commit、paste、accessibility edit有明确group boundary |
 | RTE-P1-011 | 没有edit origin与receipt | action只有payload，dispatch结果不描述document mutation | 记录keyboard/pointer/IME/clipboard/a11y/script来源、revision与change range |
-| RTE-P1-012 | Constraints全量扫描且静默截断 | max grapheme/filter在replacement前后重扫`String` | 增量验证、typed rejection/truncation reason和可配置policy |
+| RTE-P1-012 | Constraints仍对当前prefix/suffix做全文grapheme计数，但过滤/单行移除/容量截断已不再静默 | replacement以单趟filter+canonical hard-line admission生成`UiTextInputConstraintReceipt`，accepted buffer原地截断；keyboard/text/IME/a11y共享该结果，`max_length=0`恢复不限长 | 将retained document/index接入增量验证；补byte/work/deadline预算、typed policy与managed规模profile |
 | RTE-P1-013 | 没有只读、protected与marked range | snapshot只有全字段`read_only`语义 | range-level editability与marker随operation稳定迁移 |
 | RTE-P1-014 | 只有grapheme count，没有byte/work/memory预算 | retained prefix/suffix与filter成本可随文档增长 | admission同时限制bytes、ops、allocation、deadline与cancel |
 | RTE-P1-015 | 输入过滤是简单char predicate | number/email/password等产品语义没有locale grammar | typed input policy，locale-aware parse与intermediate-invalid state |
@@ -192,11 +209,11 @@ Unity Graphics本地corpus是render pipeline/post-processing/atlas shader侧源�
 | RTE-P1-025 | Preedit直接混入committed `String` | composition保存`restore_text`明文副本 | committed document与ephemeral composition overlay分离 |
 | RTE-P1-026 | 没有composition session id/generation | SetComposition只有range/text/clauses | activate/begin/update/commit/cancel/end状态机与stale event拒绝 |
 | RTE-P1-027 | Preedit cursor只校验UTF-8 boundary | cursor/range可落在grapheme或cluster内部 | 以IME/platform约定映射UTF-16/UTF-8后再落到cluster caret stop |
-| RTE-P1-028 | Sanitize改变字符串后直接丢clause | `state_transition.rs`无法保留原range映射 | clause/attribute通过edit mapping重映射，失败返回typed diagnostic |
+| RTE-P1-028 | current-source约束映射已关闭；不得回退为sanitize后直接丢clause或用旧offset解释新串 | sanitizer单趟记录cursor/clause实际引用的UTF-8边界，cursor再clamp到grapheme；range移动/完全删除均有typed receipt，合法空clause保留 | 保持filter/CRLF/truncation/空clause回归；平台UTF-16/ACP转换归host，真实clause producer归RTE-P1-029 |
 | RTE-P1-029 | Production preedit clause永远为空 | winit/dynamic session只构造string与cursor | ABI保留clause/attribute/segment并按平台能力降级 |
 | RTE-P1-030 | `composition_rects`在host转换时丢失 | UI request有rect list，core `ImeHostRequest`没有 | host contract携带document/session/generation和完整range geometry |
 | RTE-P1-031 | IME context事件同步刷新render extract | 每次相关事件调用`refresh_render_extract_for_current_tree`，fallback用uniform advance | document/layout订阅异步生成qualified context，禁止输入线程全树刷新 |
-| RTE-P1-032 | Focus loss提交是best-effort且无平台ack | mutation失败被忽略，无cancel/reset receipt | teardown先结束composition并确认host state，再发布focus/session关闭 |
+| RTE-P1-032 | Focus loss属性半提交已关闭，但仍无平台ack | composition commit复用同一surface property transaction，prepare失败不写属性或发commit event；仍无host cancel/reset receipt | teardown先结束composition并确认host state，再发布focus/session关闭 |
 
 ### 5.5 Clipboard与异步host闭环
 
@@ -204,24 +221,24 @@ Unity Graphics本地corpus是render pipeline/post-processing/atlas shader侧源�
 |---|---|---|---|
 | RTE-P1-033 | 没有产品clipboard backend | Runtime只生产`UiDispatchHostRequestKind::Clipboard`，App/Editor无consumer | App平台服务拥有clipboard，Runtime通过中立异步合同访问 |
 | RTE-P1-034 | Clipboard没有进入dynamic ABI | `ZrRuntimeHostRequestV1`只有IME、rumble、cursor等变体 | versioned request/result ABI并保留unsupported/error语义 |
-| RTE-P1-035 | Request无transfer id/revision/result | 只有kind、owner、text | `ClipboardTransferId`、document revision、principal、deadline和typed result |
-| RTE-P1-036 | Cut在write成功前删除选择 | keyboard handler先应用delete再发write | 先写clipboard成功，再按expected revision原子删除；失败保留选择 |
-| RTE-P1-037 | Paste没有read result应用与关联 | read request发出后无返回通道 | async result路由到原session，stale focus/revision时拒绝或显式rebase |
+| RTE-P1-035 | runtime transfer合同已补，产品session合同仍不完整 | request已有UUID transfer/intent/surface-local edit revision，入站有typed read/write/failure outcome与receipt；无principal/deadline/ABI/product document identity | 接入`TextDocumentId + Revision`、principal、deadline和versioned host ABI，保留当前typed result |
+| RTE-P1-036 | 当前keyboard先删后写已修复，产品原子性仍未验收 | cut只在匹配WriteText成功回执后执行Delete；失败、stale、wrong owner/outcome不改文本；App尚无真实write producer | 真实host write成功后按产品document revision原子删除；fault/timeout/teardown证明失败保留选择 |
+| RTE-P1-037 | runtime paste result route已补，产品read producer仍缺 | ReadText回执按transfer/owner/edit revision匹配并走共享constraint owner；duplicate、clone/serde、focus/edit stale fail closed | App/ABI把async result路由到原window/session，补timeout、cancel、rebase与真实系统测试 |
 | RTE-P1-038 | 只支持无类型文本 | 无MIME、primary selection、rich fragment或payload cap | typed offer、plain-text mandatory fallback、size/policy/admission budget |
-| RTE-P1-039 | Clipboard没有secure policy | copy/cut不检查secure，paste也无审计 | secure字段默认禁止export，paste遵循principal/field policy并redact receipt |
+| RTE-P1-039 | internal secure clipboard policy已部分收敛，公开session policy仍缺 | WOC-shaped password由统一classifier禁止copy/cut；secure paste result与公开dispatch payload统一redact，但无principal/window policy和产品审计 | secure字段默认禁止export，paste遵循principal/field policy并发布无原文receipt |
 | RTE-P1-040 | Host请求不绑定window/seat/shortcut policy | owner不能表达platform focus与多窗口身份 | per-window/per-seat host session、平台keymap/command routing和teardown |
 
 ### 5.6 Secure text、accessibility与真实产品
 
 | ID | 当前差距 | 当前源码证据 | 工程级要求 |
 |---|---|---|---|
-| RTE-P1-041 | `input_kind=password`不触发secure | classifier只读取`secure`、`secure_input`、`secureInput`布尔键 | schema编译阶段生成typed `SecureTextPolicy`，未知/冲突配置fail-closed |
+| RTE-P1-041 | internal classifier前置已关闭，public/versioned secure policy仍缺失 | TextField catalog声明input-kind enum；唯一`UiSecureTextPolicy`识别password/type/secure aliases，冲突/畸形/未知fail-closed；尚未进入Runtime Interface/host session | 将policy升级为document/session-qualified中立合同并迁移event/binding/IME，而不是恢复route-local TOML解析 |
 | RTE-P1-042 | Render command持有原文 | visible text解析与node visual data写入raw text | paint只接收masked glyph/display projection，不复制secret model |
 | RTE-P1-043 | Public editable snapshot含原文和restore副本 | `UiEditableTextSnapshot`序列化`String`与composition | secure snapshot使用opaque handle/redacted projection，禁止跨ABI明文默认序列化 |
 | RTE-P1-044 | Accessibility value暴露原文 | semantic extract把value/text直接写入accessible value | password role/value/selection按平台安全规范投影，不泄露字符 |
-| RTE-P1-045 | Event/binding/report复制secret | component event、UiValue、binding mutation report携带text | 数据分类贯穿event/log/diagnostic/telemetry，默认redact且禁止Debug泄露 |
+| RTE-P1-045 | input dispatch投影已关闭，跨系统secret分类仍开放 | secure Change/Submit发布latest surface-owned opaque reference；input/effect/host/component/binding/action result统一redact，clone/serde不复制lease；日志、crash、plugin/export与WOC host consumer未验收 | 将同一分类扩展到session/log/diagnostic/telemetry/export并以managed corpus证明无Debug/serde泄露 |
 | RTE-P1-046 | Secure字段通过禁用IME规避风险 | focus/effect明确拒绝secure IME enable | secure-aware IME context，最小surrounding disclosure与平台能力降级 |
-| RTE-P1-047 | 没有secret reveal/store生命周期 | 无last-character reveal timeout、zeroization或secret lease | 可配置reveal、内存/日志最小化、teardown清理及crash dump policy |
+| RTE-P1-047 | secret reveal/store生命周期仅关闭pending子集 | focused bound-refresh pending值使用`Zeroizing<String>`，覆盖、拒绝、切换与teardown擦除；component/document/history/layout/platform/crash仍为普通明文owner，且无last-character reveal timeout | 可配置reveal、统一secure document/session custody、全owner内存/日志最小化、teardown与crash dump policy |
 | RTE-P1-048 | 真实产品没有安全输入资格 | WOC auth/recovery字段只设`input_kind=password` | App/Editor/WOC跨平台密码、IME、clipboard、a11y与录屏/诊断泄露测试 |
 
 ## 6. P2产品完整度差距
@@ -410,4 +427,55 @@ M0不是临时mask补丁：它必须先建立能够贯穿所有projection的secu
 
 ## 12. 本轮产出边界
 
-本文只完成current-source静态review、物理冻结、参考对照、差距登记、目标架构与资格合同；没有实施Rust/Cargo/ZUI修改。建议下一专题转向Runtime UI animation/timeline或继续按未覆盖物理域推进；进入文本实现时必须从M0 secure truth与M1 document authority开始，不能先向现有widget state追加rich-editor功能。工具链按用户要求暂不纳入本轮优化专题。
+原始冻结只完成current-source静态review。2026-08-27 follow-up新增内部revision基础设施硬切：expected key成为replace必填输入，stale key与revision exhaustion均在mutation前typed fail closed，并修正多行replacement byte-delta回归。后续内部前置已建立separator-aware stable hard-line ID：edit只重扫带前后context的局部line envelope，split新增ID、merge保留左ID，并发布old/new reanalyzed ordinal span；grapheme index仍全文重建。内部replace现也以跨piece、allocation-free range equality区分typed `Unchanged/Changed`：相同source不推进revision、不追加chunk、不重扫hard line、不失效grapheme index，MAX revision下的no-op仍合法；真实变化的late mismatch额外比较成本须进入edit-scale profile。surface临时layout revision也已从wrap改为不可发布的exhausted sentinel，耗尽只禁用retained reuse而不丢失layout。该surface key仍只是`node_id + layout_revision`，内部document owner也未接UI/service/public snapshot，二者都不能视为M1 Document authority完成；stable marker、paragraph reflow、history grouping、external model rebase、managed Cargo和产品验证仍开放。进入文本实现仍必须从M0 secure truth与M1 document authority收敛，不能先向现有widget state追加rich-editor功能。
+
+同日输入约束follow-up把filter、canonical hard-line移除和max-grapheme截断收敛为共享typed `UiTextInputConstraintReceipt`，贯穿keyboard/text/IME与accessibility，并修复catalog默认`max_length=0`被热路径误解释为零容量的问题。constrained preedit现以只保存cursor/clause实际端点的UTF-8 byte edit map重映射range；cursor再落到grapheme boundary，完全删除的非空clause发布typed drop count，合法空clause保留。single-line Enter也按Unreal与Editor19合同硬切为handled Submit：不写十个unchanged属性、不伪造newline约束receipt，repeat只消费不重复commit。当前文档prefix/suffix仍重复计数grapheme，production平台clause仍为空。状态为`typed_constraint_receipt_implemented / canonical_single_line_separators_implemented / zero_max_length_unbounded_contract_restored / constrained_preedit_edit_mapping_implemented / single_line_enter_submit_implemented / incremental_validation_open / platform_clause_producer_open / managed_validation_pending`；RTE-P1-028的current-source sanitize mapping已关闭，RTE-P1-012与RTE-P1-029继续开放。
+
+同日secure classifier follow-up为TextField声明typed `input_kind` enum，并建立唯一internal `UiSecureTextPolicy`供render与input/a11y/clipboard/IME分类入口消费。WOC形态`input_kind=password`不再绕过masked render、a11y redaction和clipboard deny；畸形secure alias、未知/非字符串input kind fail-closed。该前置随后由下一段event projection继续收敛；secure focus、public/versioned policy与host session仍缺，因此Runtime11B P0和Runtime82 M0保持open。
+
+随后secure event projection把安全字段Change/Submit硬切为`UiSecureTextValueRef`，由surface保存每个node/property最新UUID lease并用非耗尽layout revision校验；下一事件、跨surface、clone/serde、policy变化或revision exhaustion均fail closed。普通dispatch和direct reply出口统一清洗原始Text/Keyboard/IME/a11y输入、binding previous/value、reply/applied/rejected effect、IME surrounding、clipboard write、host/component report和template action payload，并发布typed `secure_text_redacted`证据。WOC仍没有受信consumer，retained state/history/export/crash/zeroization与secure IME session仍开放，因此P0/M0不关闭。状态为`secure_event_projection_implemented_unvalidated / latest_reference_fence_implemented / trusted_host_session_open / secure_ime_session_open / managed_validation_pending`。
+
+同日clipboard transaction follow-up新增UUID transfer、intent、surface-local edit revision、typed result/failure与receipt，并把host completion作为中立`UiInputEvent::Clipboard`路由。keyboard cut不再提前删除，只有匹配的WriteText成功回执才提交Delete；paste ReadText回执复用共享constraint/edit owner。相关edit/focus/policy变化使revision stale，unknown/duplicate/wrong owner/outcome、clone/serde/detach均fail closed；每editable owner最多一个pending且不保存全文，无pending的普通编辑不更新revision map。该实现尚无App/Editor producer和dynamic ABI，surface revision也不等于产品document revision，因此RTE-P1-033至040产品簇继续open。状态为`runtime_transfer_contract_implemented_unvalidated / cut_delete_after_write_ack_implemented_unvalidated / paste_result_route_implemented_unvalidated / app_backend_open / dynamic_abi_open / managed_validation_pending`。
+
+同日editable property transaction follow-up关闭当前widget input、accessibility与generic external正文入口的逐属性半提交：动态value property、node/metadata和完整grapheme state先prepare，失败零写入；成功以固定十项batch提交value/caret/selection/composition，统一同步style/component/binding并只登记一次dirty与clipboard revision。a11y SetValue/Replace/Selection保留`AccessibilityAction`来源进入同一事务，旧8–9份binding report收敛为一份，并补齐composition clauses清理。generic外部正文按Unreal `SetEditableText`的保守子集保留合法caret或按grapheme clamp，清selection/composition后一次提交；同值no-op，派生编辑字段单写拒绝。存储`UiValue`与显示文本分离，NumberField外部Float保持数值类型。value变化按语义角色强制layout/text/render dirty，任意业务属性名不再漏掉reshape；caret/selection-only不推进text revision。focus-loss composition复用同一边界。该实现没有全树snapshot，候选属性在栈上，只有变化字段分配记录；限定Windows no-run Cargo在184秒无输出后超时终止，不能算通过。产品document authority、edit origin/change-range receipt、history/rebase、focused bound-text policy、host ack与数值内部编辑parse/commit仍未收敛，managed profile/WGPU未执行；component reducer旁路由下一段继续关闭。状态为`surface_property_prepare_commit_implemented_unvalidated / widget_and_accessibility_projection_converged_unvalidated / generic_external_projection_converged_unvalidated / derived_property_write_bypass_closed_unvalidated / numeric_external_value_type_preserved_unvalidated / partial_metadata_write_path_closed / composition_clause_clear_path_closed / semantic_text_dirty_invalidation_implemented / product_document_transaction_open / managed_validation_pending`。
+
+随后component authority follow-up把Material editable descriptor统一硬切为`Focus/ValueChanged/Commit` semantic事件，不再声明raw `KeyboardText`；`state_reducer/text_input.rs`删除独立正文、caret、selection、composition重建与write-back约315行，菜单typeahead/command palette不受影响。SearchField、FieldEditor、SourceEditor复用同一text-input descriptor合同；`UiWidgetBehavior`补齐完整role/component alias，V1 compiler按`query -> value -> value_text -> text`推断canonical value property且保留显式override，Surface fallback同步识别`value_text`。FieldEditor因此不会再写`text`却让validation读取旧`value_text`。该推断在编译/状态边界完成，不进入逐grapheme/glyph热循环。Rust 2024 formatter、scoped diff check与production reference scan通过；限定Windows interface窄测在64秒仍处依赖编译，终止对应Cargo/Rustc后无测试结果，不能算测试通过。后续`cargo check -p zircon_runtime_interface --lib`复用E盘target并在114.5秒通过，只有9项既有warning；runtime与测试执行仍未验证。`RTE-P1-002`当前源码旁路静态关闭，M1/M2、RTE-P1-006/007、focused binding、numeric parse/commit、managed profile/WGPU仍开放。状态为`component_raw_keyboard_edit_authority_removed_unvalidated / canonical_editable_value_property_inference_implemented_unvalidated / semantic_component_projection_only_unvalidated / interface_lib_compile_passed / managed_validation_pending`。
+
+focused bound-text policy follow-up对照Unreal `SlateEditableTextLayout.cpp:3622-3636,4508-4547`确认：普通bound refresh在聚焦时不得替换editable text，只有显式SetText/LoadText式force review可以覆盖并修正caret。当前Zircon mutation request只有反射source与下游binding source kind，不能表达bound refresh、显式replace和edit projection的差异；Surface metadata还同时承担model value与edit buffer。直接覆盖会丢用户编辑，focus early-return会丢模型更新，因此本轮没有加入假修复。正确前置是产品document/edit session拆开model/edit authority，携带typed origin与expected revision，每owner只保留一个latest pending refresh，在blur/commit时兼容应用或发布typed conflict/rebase receipt；secure pending value归secure owner并随detach/policy/session失效。常态lookup/storage为`O(1)`且按editable session有界，禁止在Surface再建第二份全文cache。状态为`unreal_focused_refresh_policy_reviewed / mutation_origin_not_expressive / bound_editable_value_split_open / product_document_session_required / focused_refresh_implementation_deferred_without_false_fix`。
+
+2026-08-28 current-source correction：前述前置现已接入 paired `UiInputManager` document session。
+版本化 `UiTextModelUpdateRequest/Receipt` 区分 `BoundRefresh`、`ExplicitSetText` 与
+`ExplicitLoadText`，并以 expected document UUID/revision 做 CAS。聚焦 bound refresh 每 owner 只保留
+最新 pending，失焦 exact match 才走 existing document+Surface dual transaction；本地 edit 改变
+revision 时返回 content-free `StaleDocument` conflict。显式 Set/Load 聚焦立即应用，IME preedit 先恢复
+committed base，因此临时组合串不进入 document range/revision。secure pending 正文只在 Surface store；
+clear-only opaque handle 覆盖 detach/policy/supersede/Surface switch/manager Drop，manager 不获得正文读取
+接口。lifetime follow-up 将 store value 从普通 `String` 改为 `Zeroizing<String>`；覆盖、丢弃、clear 与
+Drop 擦除 pending allocation，accepted transfer 以 `mem::take` 无全文复制移交现有持久状态。该改动不
+覆盖 request rejection、component/document/history/layout/platform/crash 明文 owner，RTE-P1-047 仍开放。
+queue/transaction/profile owners 为 535/282/137 行，容量为 256 rows、4 MiB/value、16 MiB
+aggregate；16 个固定 profile counters 不含动态 identity 或正文。lookup 为 `O(log E), E<=256`，不再
+错误声称 `O(1)`；accepted Surface replacement 仍至少 `O(N)`。31-sample managed matrix、allocation/
+RSS/p50/p95/p99、power、matched Unreal、dynamic binding producer、平台 IME 与 WGPU 仍开放，未执行前
+不改容器、锁、阈值或 merge 算法。状态更新为
+`focused_bound_model_update_gateway_implemented_unvalidated /
+revision_cas_conflict_implemented_unvalidated /
+secure_pending_lifecycle_implemented_unvalidated /
+secure_pending_drop_zeroization_implemented_unvalidated /
+persistent_secure_document_zeroization_open /
+fixed_profile_counters_implemented_unvalidated /
+managed_profile_power_wgpu_pending`。
+
+NumberField follow-up确认current-source存在typed schema破坏：catalog `value`为Float，而内部字符/IME text transaction无条件用`UiValue::String(state.text)`提交canonical正文。Unreal `SSpinBox.cpp:937-1076`和`SNumericEntryBox.h:719-741`以独立EditableText、typed ValueAttribute、INumericTypeInterface parse/clamp与formatted cache保持双authority，中间输入不直接改变typed value。本轮先完成不依赖产品session的安全底座：共享editable transaction preflight比较retained/next `UiValue` variant，Float目标收到String edit时以`value_kind_mismatch`在首写前拒绝；Float value、caret、event、binding和dirty保持不变，外部Float-to-Float仍合法。该常数时间guard不是性能优化，也不代表NumberField可键入；独立edit buffer、locale parser、intermediate-invalid、typed change/commit/cancel/blur、format cache和focused external refresh仍开放。状态为`numeric_value_kind_corruption_fail_closed_unvalidated / number_edit_buffer_open / locale_parse_commit_open / managed_validation_pending`。
+
+canonical property follow-up进一步修正Autocomplete render/input split：Surface原有query编辑测试已证明`query`是edit authority且`value`是selected model，但renderer在共享editable classifier后仍默认用value生成visible/editable layout state。现将metadata-level resolver提取为共享borrowed `&str` owner，显式override优先，否则按`query -> value -> value_text -> text`；input只在transaction边界克隆，render的visible/editable/caret/selection复用借用，不引入逐帧属性名allocation。resolve回归固定query与selected value分离。NumberField focused runtime窄测约70秒无输出后终止exact Cargo/Rustc tree，无动态pass。状态为`autocomplete_query_render_edit_property_converged_unvalidated / canonical_metadata_property_resolver_shared / managed_validation_pending`。
+
+public edit event follow-up硬删除旧`UiTextEdit`携带的raw action和完整before/after editable snapshot，`UiWidgetEvent::TextEditChange`改为固定大小、无正文的versioned document receipt。receipt只包含document UUID、strictly consecutive revision、typed kind/source、old/new byte range与最终selection；schema、nil identity、revision跳变/耗尽和反向range均在消费前typed fail closed。该改动消除公共事件随document长度线性复制的结构性缺陷，但内部`TextDocument`尚未接产品registry/producer，product snapshot lease绑定、range/source/grapheme验证、history/rebase和secure document session仍开放；禁止把非Clone document塞进clone/serde Surface形成第二authority。Rustfmt、旧DTO reference scan和diff check只构成静态证据，本轮接口改动尚无Cargo pass。状态为`public_text_edit_snapshot_event_removed_unvalidated / versioned_document_edit_receipt_contract_implemented_unvalidated / runtime_document_receipt_producer_open / product_snapshot_lease_integration_open / m1_document_authority_open`。
+
+revision-bound snapshot follow-up为内部piece document增加每revision一个lazy `OnceLock<Arc<str>>`：初始source直接复用original Arc；同revision lease只clone Arc；changed edit在全部fallible prepare通过后为新revision清空连续snapshot槽，旧lease继续稳定；typed no-op保持当前pointer identity。grapheme source index改为借用lease，删除原先先构造临时`String`再全文扫描的第二份N-byte复制，但boundary rebuild仍为`O(N)`。TextDocument与lease的Debug只输出identity/revision/byte length/chunk count，不输出正文。该前置没有产品registry/Surface consumer，也没有snapshot byte/age/count budget、retention/zeroization或managed allocation/RSS/power数据；M1不关闭。状态为`revision_bound_snapshot_lease_implemented_unvalidated / single_flatten_per_requested_revision_implemented_unvalidated / source_index_secondary_source_copy_removed_unvalidated / document_debug_source_redacted / product_registry_open / snapshot_budget_and_managed_profile_pending`。
+
+document receipt producer preflight继续把public identity绑定进非Clone document authority：document构造时自行签发UUID，snapshot lease携带UUID+typed revision，changed receipt携带UUID及previous/current byte length；cache-oriented `u64 owner + revision`不穿过产品边界。public projection不再接受调用方提供的document id或length，仅接node/source/kind/final selection，并以固定字段检查owner、consecutive revision、range/document length delta、u32 narrowing、old/new bounds及selection bounds；byte selection新增focus affinity以保留wrapped/BiDi边界caret归属。公共receipt的serde反序列化也调用同一validate，nested widget event不能接收unsupported schema、nil UUID、跳号/耗尽revision或反向range。整个projection为`O(1)`且不读/hash/copy正文。bounded service registry/session、Surface gateway、snapshot-bound source/grapheme消费和managed Cargo仍开放。状态为`document_authority_uuid_bound_unvalidated / content_free_changed_receipt_projection_implemented_unvalidated / wire_receipt_deserialization_validation_implemented_unvalidated / runtime_document_service_gateway_open / surface_consumer_open / managed_validation_pending`。
+
+document storage residency follow-up没有直接修改piece算法，而是先固定内容无关的观测边界。当前每次非空replacement追加一个immutable addition `Arc<str>`，仅同chunk连续range可coalesce；回归明确记录8次单字符尾插入产生8个addition chunk与8个piece，说明metadata随edit count线性增长的结构风险。`TextDocumentStorageReport`报告original/addition bytes、chunk/piece数量与capacity、hard-line/grapheme index capacity、当前flattened snapshot及retained-byte lower bound；allocator header、Arc control block和外部旧lease明确不计，因此不能充当admission limit。Unreal Slate参考确认editable transaction在retained line text/run/view owner上更新，但不为Zircon选择容器或阈值。算法保持不变，先执行1/100/1k/10k edit stream、一百万字符base、31次cold/warm、snapshot/no-snapshot、allocation/RSS/p50/p95/p99/index rebuild/power与matched Unreal对照，再决定append batching、compaction、gap buffer、tree piece table或rope。状态为`document_storage_residency_report_implemented_unvalidated / linear_tail_insert_chunk_growth_encoded / storage_algorithm_unchanged / compaction_policy_deferred_pending_profile / managed_allocation_rss_power_profile_pending`。
+
+surface-session document store follow-up先复核生命周期：产品`RuntimeUiSurface`是一组`UiSurface + UiInputManager`，而Surface本身可Clone/serde；把非Clone document塞进Surface会分叉authority，注册全局manager又会让不同surface的node identity串状态。对应Unreal的`FSlateEditableTextLayout`也属于editable owner并以scoped transaction提交，不是全局document单例。因此内部replace拆成零mutation `prepare_replace`和重验expected key的`commit_replace`；新增store只有`with_limits`构造，无Default/全局注册，显式限制document/visible bytes/replacement/retained source/chunk/piece/current snapshot/active lease count+bytes。changed edit在exact prepare后、commit前admit，snapshot在flatten前admit，managed non-Clone lease在Drop释放预算；错误/报告不含正文。生产阈值仍需profile，Surface/UiInputManager接线、teardown、secure policy、grapheme handles与public receipt product publication保持open。默认Runtime Cargo在到达text前被未跟踪`zr_rhi_wgpu` readback的三处u32/u64错误阻断，text-only编译与focused test继续尝试。状态为`document_prepare_commit_boundary_implemented_unvalidated / explicit_limit_session_store_implemented_unvalidated / snapshot_lease_admission_and_release_implemented_unvalidated / global_manager_registration_rejected / surface_input_session_integration_open / product_thresholds_and_managed_profile_pending`。

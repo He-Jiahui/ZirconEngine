@@ -1,6 +1,6 @@
 use crate::core::framework::scene::EntityPath;
-use crate::scene::components::Name;
 use crate::scene::EntityId;
+use crate::scene::components::Name;
 
 use super::super::World;
 

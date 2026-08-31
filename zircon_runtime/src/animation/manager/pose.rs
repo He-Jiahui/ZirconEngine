@@ -1,3 +1,8 @@
+#[cfg(test)]
+mod performance_tests;
+
+use std::collections::HashMap;
+
 use crate::core::framework::animation::{
     AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationSkeletonAsset,
     AnimationSkeletonBoneAsset,
@@ -25,9 +30,10 @@ pub(super) fn sample_clip_pose(
         .iter()
         .map(animation_pose_bone_from_skeleton)
         .collect::<AnimationResult<Vec<_>>>()?;
+    let track_bone_index = ClipTrackBoneIndex::new(skeleton, &clip.tracks);
 
     for track in &clip.tracks {
-        let Some(bone_index) = resolve_clip_track_bone_index(skeleton, track) else {
+        let Some(bone_index) = track_bone_index.resolve(track) else {
             continue;
         };
         let Some(bone) = bones.get_mut(bone_index) else {
@@ -88,34 +94,64 @@ fn animation_pose_bone_from_skeleton(
     })
 }
 
-fn resolve_clip_track_bone_index(
-    skeleton: &AnimationSkeletonAsset,
-    track: &AnimationClipBoneTrackAsset,
-) -> Option<usize> {
-    if let Some(target_id) = track
-        .target_id
-        .as_deref()
-        .map(str::trim)
-        .filter(|id| !id.is_empty())
-    {
-        if let Some(index) = skeleton
-            .bones
-            .iter()
-            .position(|bone| bone.name == target_id)
-        {
-            return Some(index);
+struct ClipTrackBoneIndex<'skeleton> {
+    bone_names: HashMap<&'skeleton str, usize>,
+    bone_paths: HashMap<String, usize>,
+}
+
+impl<'skeleton> ClipTrackBoneIndex<'skeleton> {
+    fn new(
+        skeleton: &'skeleton AnimationSkeletonAsset,
+        tracks: &[AnimationClipBoneTrackAsset],
+    ) -> Self {
+        let mut bone_names = HashMap::with_capacity(skeleton.bones.len());
+        for (index, bone) in skeleton.bones.iter().enumerate() {
+            bone_names.entry(bone.name.as_str()).or_insert(index);
         }
-        if let Some(index) = skeleton.bones.iter().enumerate().find_map(|(index, _)| {
-            (skeleton_bone_path(skeleton, index)? == target_id).then_some(index)
-        }) {
-            return Some(index);
+
+        let needs_path_index = tracks.iter().any(|track| {
+            track
+                .target_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|target_id| !target_id.is_empty())
+                .is_some_and(|target_id| !bone_names.contains_key(target_id))
+        });
+        let mut bone_paths = HashMap::with_capacity(if needs_path_index {
+            skeleton.bones.len()
+        } else {
+            0
+        });
+        if needs_path_index {
+            for index in 0..skeleton.bones.len() {
+                if let Some(path) = skeleton_bone_path(skeleton, index) {
+                    bone_paths.entry(path).or_insert(index);
+                }
+            }
+        }
+
+        Self {
+            bone_names,
+            bone_paths,
         }
     }
 
-    skeleton
-        .bones
-        .iter()
-        .position(|bone| bone.name == track.bone_name)
+    fn resolve(&self, track: &AnimationClipBoneTrackAsset) -> Option<usize> {
+        if let Some(target_id) = track
+            .target_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|target_id| !target_id.is_empty())
+        {
+            if let Some(index) = self.bone_names.get(target_id) {
+                return Some(*index);
+            }
+            if let Some(index) = self.bone_paths.get(target_id) {
+                return Some(*index);
+            }
+        }
+        self.bone_names.get(track.bone_name.as_str()).copied()
+    }
 }
 
 fn skeleton_bone_path(skeleton: &AnimationSkeletonAsset, index: usize) -> Option<String> {

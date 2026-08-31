@@ -3,6 +3,7 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas.rs");
+    let text_keys = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs");
     let tests_mod = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs");
     let plan = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs");
     let allocation =
@@ -38,6 +39,22 @@ fn runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split() {
             "pub(super) fn cache_report(&self) -> SdfAtlasCacheReport",
             "pub(super) fn plan_sdf_atlas(texts: &[ScreenSpaceUiTextBatch]) -> SdfAtlasPlan",
             "#[cfg(test)]\nmod tests;",
+        ],
+    );
+    assert_contains_all(
+        "all production slice entry points consume the canonical iterator key owner",
+        &parent,
+        &[
+            "collect_sdf_atlas_text_keys_iter(texts.iter())",
+            "collect_sdf_atlas_text_keys_iter(texts);",
+        ],
+    );
+    assert_contains_all(
+        "the slice key helper remains test-only instead of becoming a production facade",
+        &text_keys,
+        &[
+            "#[cfg(test)]\npub(super) fn collect_sdf_atlas_text_keys(",
+            "collect_sdf_atlas_text_keys_iter(texts.iter())",
         ],
     );
 
@@ -82,6 +99,10 @@ fn runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split() {
 
     for (path, source) in [
         ("scene_renderer/ui/sdf_atlas.rs", parent.as_str()),
+        (
+            "scene_renderer/ui/sdf_atlas/text_keys.rs",
+            text_keys.as_str(),
+        ),
         (
             "scene_renderer/ui/sdf_atlas/tests/mod.rs",
             tests_mod.as_str(),

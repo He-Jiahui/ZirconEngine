@@ -30,7 +30,6 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 PARTICLE_GPU_COMPUTE_WORKGROUP_SIZE,
                 PARTICLE_GPU_DYNAMIC_DISPATCH_GROUPS,
             ))
-            .with_side_effects()
             .read_external_buffer("particles.gpu.particles-a")
             .read_external_buffer("particles.gpu.emitter-params")
             .write_external_buffer("particles.gpu.particles-b")
@@ -46,7 +45,6 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 PARTICLE_GPU_COMPUTE_WORKGROUP_SIZE,
                 PARTICLE_GPU_DYNAMIC_DISPATCH_GROUPS,
             ))
-            .with_side_effects()
             .read_external_buffer("particles.gpu.particles-b")
             .write_external_buffer("particles.gpu.alive-indices")
             .write_external_buffer("particles.gpu.counters"),

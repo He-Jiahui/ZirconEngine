@@ -270,12 +270,14 @@ fn runtime_08_ecs_root_leaf_owners_stay_explicit_after_data_cutover() {
         ),
         (
             "removal",
-            "pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};",
+            "pub use removal::{",
             &[
                 "pub struct RemovedComponentEvent",
                 "pub struct RemovedComponentEvents",
                 "pub struct RemovedComponentReader<T>",
-                "pub fn read(&mut self, events: &RemovedComponentEvents) -> Vec<EntityId>",
+                "pub struct RemovedComponentRetention",
+                "pub struct RemovedComponentRetentionMetrics",
+                "pub fn read<'reader, 'events>(",
             ],
         ),
         (

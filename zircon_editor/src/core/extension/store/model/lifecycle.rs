@@ -13,6 +13,14 @@ pub(super) fn validate_source_namespace(
     batch: &ContributionBatch,
 ) -> Result<(), ContributionError> {
     let ContributionSource::Plugin(plugin_id) = source else {
+        if let Some(declaration) = batch.tool_resource_kinds().next() {
+            return Err(ContributionError::ToolResourceKindRequiresPluginSource {
+                kind: declaration.kind().as_str().to_owned(),
+            });
+        }
+        if let Some((command_id, binding)) = batch.native_command_bindings().next() {
+            return validate_native_binding_source(source, command_id, binding.plugin_id());
+        }
         return Ok(());
     };
     let prefix = plugin_id.namespace_prefix();
@@ -59,6 +67,17 @@ pub(super) fn validate_source_namespace(
             .keys()
             .map(AssetTypeId::as_str)
     );
+    for bundle_id in batch.localization_bundles.keys() {
+        if bundle_id != plugin_id.as_str() {
+            return Err(ContributionError::PluginLocalizationBundleOwner {
+                plugin_id: plugin_id.clone(),
+                bundle_id: bundle_id.clone(),
+            });
+        }
+    }
+    for (command_id, binding) in batch.native_command_bindings() {
+        validate_native_binding_source(source, command_id, binding.plugin_id())?;
+    }
     validate_keys!(
         "settings page",
         batch.settings_pages.keys().map(String::as_str)
@@ -83,6 +102,12 @@ pub(super) fn validate_source_namespace(
     validate_keys!(
         "timeline track type",
         batch.timeline_track_types.keys().map(String::as_str)
+    );
+    validate_keys!(
+        "tool resource kind",
+        batch
+            .tool_resource_kinds()
+            .map(|declaration| declaration.kind().as_str())
     );
     validate_keys!(
         "command",
@@ -112,6 +137,71 @@ fn validate_plugin_key(
         kind,
         id: id.to_owned(),
     })
+}
+
+fn validate_native_binding_owner(
+    plugin_id: &PluginContributionId,
+    command_id: &EditorOperationPath,
+    binding_plugin_id: &str,
+) -> Result<(), ContributionError> {
+    if binding_plugin_id == plugin_id.as_str() {
+        return Ok(());
+    }
+    Err(ContributionError::NativeBindingOwner {
+        plugin_id: plugin_id.clone(),
+        command_id: command_id.clone(),
+        binding_plugin_id: binding_plugin_id.to_owned(),
+    })
+}
+
+fn validate_native_binding_source(
+    source: &ContributionSource,
+    command_id: &EditorOperationPath,
+    binding_plugin_id: &str,
+) -> Result<(), ContributionError> {
+    match source {
+        ContributionSource::Builtin => Err(ContributionError::NativeBindingRequiresPluginSource {
+            command_id: command_id.clone(),
+            binding_plugin_id: binding_plugin_id.to_owned(),
+        }),
+        ContributionSource::Plugin(plugin_id) => {
+            validate_native_binding_owner(plugin_id, command_id, binding_plugin_id)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_binding_owner_mismatch_is_rejected_at_store_namespace_boundary() {
+        let plugin_id = PluginContributionId::parse("sample").unwrap();
+        let command_id = EditorOperationPath::parse("plugin.sample.command").unwrap();
+
+        let error = validate_native_binding_owner(&plugin_id, &command_id, "other")
+            .expect_err("a callback from another plugin must not enter the contribution store");
+        assert!(matches!(
+            error,
+            ContributionError::NativeBindingOwner {
+                plugin_id: owner,
+                command_id: id,
+                binding_plugin_id,
+            } if owner == plugin_id && id == command_id && binding_plugin_id == "other"
+        ));
+        assert!(validate_native_binding_owner(&plugin_id, &command_id, "sample").is_ok());
+
+        let builtin_error =
+            validate_native_binding_source(&ContributionSource::Builtin, &command_id, "sample")
+                .expect_err("native callbacks must be attached to a plugin contribution source");
+        assert!(matches!(
+            builtin_error,
+            ContributionError::NativeBindingRequiresPluginSource {
+                command_id: id,
+                binding_plugin_id,
+            } if id == command_id && binding_plugin_id == "sample"
+        ));
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -153,6 +243,22 @@ pub enum ContributionError {
         kind: &'static str,
         id: String,
     },
+    PluginLocalizationBundleOwner {
+        plugin_id: PluginContributionId,
+        bundle_id: String,
+    },
+    NativeBindingOwner {
+        plugin_id: PluginContributionId,
+        command_id: EditorOperationPath,
+        binding_plugin_id: String,
+    },
+    NativeBindingRequiresPluginSource {
+        command_id: EditorOperationPath,
+        binding_plugin_id: String,
+    },
+    ToolResourceKindRequiresPluginSource {
+        kind: String,
+    },
     DuplicateContribution {
         kind: &'static str,
         id: String,
@@ -189,6 +295,32 @@ impl fmt::Display for ContributionError {
             } => write!(
                 formatter,
                 "plugin `{plugin_id}` {kind} `{id}` must use namespace `plugin.{plugin_id}.`"
+            ),
+            Self::PluginLocalizationBundleOwner {
+                plugin_id,
+                bundle_id,
+            } => write!(
+                formatter,
+                "plugin `{plugin_id}` localization bundle `{bundle_id}` must use the plugin package id"
+            ),
+            Self::NativeBindingOwner {
+                plugin_id,
+                command_id,
+                binding_plugin_id,
+            } => write!(
+                formatter,
+                "plugin `{plugin_id}` native command `{command_id}` binds plugin `{binding_plugin_id}`; native bindings must use the contribution owner"
+            ),
+            Self::NativeBindingRequiresPluginSource {
+                command_id,
+                binding_plugin_id,
+            } => write!(
+                formatter,
+                "builtin native command `{command_id}` binds plugin `{binding_plugin_id}`; native bindings require a plugin contribution source"
+            ),
+            Self::ToolResourceKindRequiresPluginSource { kind } => write!(
+                formatter,
+                "builtin contribution cannot register tool resource kind `{kind}`; extension tool resource kinds require a plugin contribution source"
             ),
             Self::DuplicateContribution { kind, id } => {
                 write!(formatter, "editor {kind} `{id}` already contributed")

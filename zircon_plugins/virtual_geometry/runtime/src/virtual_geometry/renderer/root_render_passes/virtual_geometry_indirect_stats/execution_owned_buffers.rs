@@ -2,6 +2,35 @@ use std::sync::Arc;
 
 use zircon_runtime::core::framework::render::RenderVirtualGeometryExecutionDraw;
 
+fn visit_coalesced_execution_copy_ranges(
+    draw_ref_indices: impl IntoIterator<Item = u32>,
+    mut visit: impl FnMut(u64, u64, u64),
+) {
+    let mut indexed_draw_refs = draw_ref_indices.into_iter().enumerate();
+    let Some((first_destination_index, first_draw_ref_index)) = indexed_draw_refs.next() else {
+        return;
+    };
+
+    let mut source_start = first_draw_ref_index;
+    let mut previous_source = first_draw_ref_index;
+    let mut destination_start = first_destination_index as u64;
+    let mut record_count = 1_u64;
+    for (destination_index, draw_ref_index) in indexed_draw_refs {
+        if previous_source.checked_add(1) == Some(draw_ref_index) {
+            previous_source = draw_ref_index;
+            record_count = record_count.saturating_add(1);
+            continue;
+        }
+
+        visit(source_start.into(), destination_start, record_count);
+        source_start = draw_ref_index;
+        previous_source = draw_ref_index;
+        destination_start = destination_index as u64;
+        record_count = 1;
+    }
+    visit(source_start.into(), destination_start, record_count);
+}
+
 pub(super) fn build_execution_submission_buffer(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
@@ -22,16 +51,20 @@ pub(super) fn build_execution_submission_buffer(
         mapped_at_creation: false,
     }));
 
-    for (execution_index, draw) in indirect_execution_draws.iter().enumerate() {
-        let draw_ref_index = draw.execution_draw_ref_index as u64;
-        encoder.copy_buffer_to_buffer(
-            shared_submission_buffer,
-            draw_ref_index * record_stride_bytes,
-            &buffer,
-            (execution_index as u64) * record_stride_bytes,
-            record_stride_bytes,
-        );
-    }
+    visit_coalesced_execution_copy_ranges(
+        indirect_execution_draws
+            .iter()
+            .map(|draw| draw.execution_draw_ref_index),
+        |source_record_index, destination_record_index, record_count| {
+            encoder.copy_buffer_to_buffer(
+                shared_submission_buffer,
+                source_record_index * record_stride_bytes,
+                &buffer,
+                destination_record_index * record_stride_bytes,
+                record_count * record_stride_bytes,
+            );
+        },
+    );
 
     Some(buffer)
 }
@@ -57,16 +90,23 @@ pub(super) fn build_execution_authority_buffer(
         mapped_at_creation: false,
     }));
 
-    for (execution_index, draw) in indirect_execution_draws.iter().enumerate() {
-        let draw_ref_index = draw.execution_draw_ref_index as u64;
-        encoder.copy_buffer_to_buffer(
-            shared_authority_buffer,
-            draw_ref_index * record_stride_bytes,
-            &buffer,
-            (execution_index as u64) * record_stride_bytes,
-            record_stride_bytes,
-        );
-    }
+    visit_coalesced_execution_copy_ranges(
+        indirect_execution_draws
+            .iter()
+            .map(|draw| draw.execution_draw_ref_index),
+        |source_record_index, destination_record_index, record_count| {
+            encoder.copy_buffer_to_buffer(
+                shared_authority_buffer,
+                source_record_index * record_stride_bytes,
+                &buffer,
+                destination_record_index * record_stride_bytes,
+                record_count * record_stride_bytes,
+            );
+        },
+    );
 
     Some(buffer)
 }
+
+#[cfg(test)]
+mod performance_tests;

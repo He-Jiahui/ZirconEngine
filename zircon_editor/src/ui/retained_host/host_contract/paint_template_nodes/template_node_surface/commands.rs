@@ -25,6 +25,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_su
     }
     let border_width = template_border_width(node);
     let corner_radius = corner_radius_for_frame(rect, template_corner_radius(node));
+    let draws_asset_thumbnail_name_area =
+        draws_asset_thumbnail_name_area_surface(node, corner_radius);
     if draws_elevation_shadow(node) {
         commands.push(HostPaintCommand::quad(
             elevation_shadow_rect(rect, node.elevation),
@@ -37,7 +39,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_su
             MATERIAL_ELEVATION_SHADOW_OPACITY * opacity,
         ));
     }
-    if draws_asset_thumbnail_name_area_surface(node, corner_radius) {
+    if draws_asset_thumbnail_name_area {
         push_asset_thumbnail_name_area_surface_commands(
             commands,
             node,
@@ -60,7 +62,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_su
             opacity,
         ));
     }
-    if draws_asset_thumbnail_name_area_surface(node, corner_radius) {
+    if draws_asset_thumbnail_name_area {
         push_asset_thumbnail_name_area_state_layer_commands(
             commands,
             node,
@@ -190,6 +192,10 @@ fn push_asset_thumbnail_name_area_state_layer_commands(
         state_layer_opacity,
     ));
 }
+
+#[cfg(test)]
+#[path = "commands/cached_asset_surface_tests.rs"]
+mod cached_asset_surface_tests;
 
 #[cfg(test)]
 mod tests {

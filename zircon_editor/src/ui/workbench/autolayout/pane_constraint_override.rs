@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::axis_constraint_override::AxisConstraintOverride;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct PaneConstraintOverride {
     #[serde(default)]
     pub width: AxisConstraintOverride,

@@ -1,9 +1,24 @@
 use super::super::*;
+use std::sync::OnceLock;
 
 mod draft;
 mod project;
 mod recent;
 mod startup_views;
+
+use zircon_runtime_interface::project::{
+    ProjectActivationOperationId, ProjectActivationOperationIdGenerator, ProjectLaunchInstanceId,
+};
+
+static PROJECT_LAUNCH_OPERATION_IDS: OnceLock<ProjectActivationOperationIdGenerator> =
+    OnceLock::new();
+
+pub(super) fn next_project_launch_operation_id() -> Result<ProjectActivationOperationId, String> {
+    PROJECT_LAUNCH_OPERATION_IDS
+        .get_or_init(|| ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new()))
+        .allocate()
+        .ok_or_else(|| "project launch operation sequence is exhausted".to_string())
+}
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn handle_welcome_surface_event(
@@ -21,6 +36,12 @@ impl RetainedEditorHost {
             WelcomeHostEvent::OpenExistingProject => self.open_existing_project_from_welcome(),
             WelcomeHostEvent::OpenRecentProject { path } => {
                 self.open_recent_project(path.as_str());
+            }
+            WelcomeHostEvent::SafeRecentProject { path } => {
+                self.safe_recent_project(path.as_str());
+            }
+            WelcomeHostEvent::RecoverRecentProject { path } => {
+                self.recover_recent_project(path.as_str());
             }
             WelcomeHostEvent::RemoveRecentProject { path } => {
                 self.remove_recent_project(path.as_str());

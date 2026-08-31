@@ -18,17 +18,16 @@ pub(super) fn preview_mock_entries(
         .iter()
         .filter_map(|(key, value)| {
             let kind = preview_mock_kind_for_property(key, value)?;
-            let effective_value = overrides
-                .and_then(|props| props.get(key))
-                .cloned()
-                .unwrap_or_else(|| value.clone());
-            Some(UiAssetPreviewMockEntry {
-                key: key.clone(),
-                display_key: preview_mock_display_key(node, node_id, key, qualify_display),
+            let override_value = overrides.and_then(|props| props.get(key));
+            Some(preview_mock_entry(
+                node,
+                node_id,
+                key,
+                value,
                 kind,
-                effective_value,
-                overridden: overrides.and_then(|props| props.get(key)).is_some(),
-            })
+                override_value,
+                qualify_display,
+            ))
         })
         .collect::<Vec<_>>();
     entries.sort_by(|left, right| {
@@ -87,22 +86,77 @@ pub(super) fn selected_preview_mock_entry(
     selection: &UiDesignerSelectionModel,
     state: &UiAssetPreviewMockState,
 ) -> Option<(String, UiAssetPreviewMockEntry)> {
-    let node_id = preview_mock_subject_node_id(document, selection, state)?.to_string();
-    let entries = preview_mock_entries(document, selection, state);
-    let selected_index = selected_entry_index(&entries, state.selected_property.as_deref())?;
-    Some((node_id, entries.get(selected_index)?.clone()))
+    let node_id = preview_mock_subject_node_id(document, selection, state)?;
+    let node = document.node(node_id)?;
+    let (key, value, kind) =
+        selected_preview_mock_property(node, state.selected_property.as_deref())?;
+    let override_value = state
+        .overrides
+        .get(node_id)
+        .and_then(|props| props.get(key));
+    let qualify_display = selection.primary_node_id.as_deref() != Some(node_id);
+    Some((
+        node_id.to_string(),
+        preview_mock_entry(
+            node,
+            node_id,
+            key,
+            value,
+            kind,
+            override_value,
+            qualify_display,
+        ),
+    ))
 }
 
 pub(super) fn selected_preview_mock_nested_entry_state(
-    document: &UiAssetDocument,
-    selection: &UiDesignerSelectionModel,
+    entry: &UiAssetPreviewMockEntry,
     state: &UiAssetPreviewMockState,
 ) -> Option<UiAssetPreviewMockNestedEntry> {
-    let (_, entry) = selected_preview_mock_entry(document, selection, state)?;
     let nested_entries = preview_mock_nested_entries(&entry.effective_value);
     let selected_index =
         selected_nested_entry_index(&nested_entries, state.selected_nested_key.as_deref())?;
-    nested_entries.get(selected_index).cloned()
+    nested_entries.into_iter().nth(selected_index)
+}
+
+fn preview_mock_entry(
+    node: &UiNodeDefinition,
+    node_id: &str,
+    key: &str,
+    value: &Value,
+    kind: UiAssetPreviewMockKind,
+    override_value: Option<&Value>,
+    qualify_display: bool,
+) -> UiAssetPreviewMockEntry {
+    UiAssetPreviewMockEntry {
+        key: key.to_string(),
+        display_key: preview_mock_display_key(node, node_id, key, qualify_display),
+        kind,
+        effective_value: override_value.unwrap_or(value).clone(),
+        overridden: override_value.is_some(),
+    }
+}
+
+fn selected_preview_mock_property<'a>(
+    node: &'a UiNodeDefinition,
+    selected_property: Option<&str>,
+) -> Option<(&'a str, &'a Value, UiAssetPreviewMockKind)> {
+    if let Some(selected) = selected_property {
+        if let Some((key, value)) = node.props.get_key_value(selected) {
+            if let Some(kind) = preview_mock_kind_for_property(key, value) {
+                return Some((key.as_str(), value, kind));
+            }
+        }
+    }
+
+    node.props
+        .iter()
+        .filter_map(|(key, value)| {
+            preview_mock_kind_for_property(key, value).map(|kind| (key.as_str(), value, kind))
+        })
+        .min_by(|left, right| {
+            preview_mock_sort_key(left.0, left.2).cmp(&preview_mock_sort_key(right.0, right.2))
+        })
 }
 
 pub(super) fn selected_entry_index(

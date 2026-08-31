@@ -10,6 +10,8 @@ use super::JobId;
 pub enum JobAdmissionKeyError {
     #[error("editor job admission key must not be empty")]
     Empty,
+    #[error("editor job admission key length {len} exceeds {max} UTF-8 bytes")]
+    TooLong { len: usize, max: usize },
 }
 
 #[derive(Clone)]
@@ -133,6 +135,8 @@ pub enum JobSubmitError {
 pub enum MutexGroupError {
     #[error("editor job mutex group must not be empty")]
     Empty,
+    #[error("editor job mutex group length {len} exceeds {max} UTF-8 bytes")]
+    TooLong { len: usize, max: usize },
     #[error("editor job mutex group segment is invalid: {value}")]
     Invalid { value: String },
 }

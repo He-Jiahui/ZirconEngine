@@ -16,10 +16,6 @@ pub(in crate::ui::retained_host::host_contract) fn profile_screenshot_capture_en
     env_truthy("ZIRCON_PROFILE_CAPTURE_SCREENSHOTS")
 }
 
-pub(in crate::ui::retained_host::host_contract) fn is_forced_softbuffer_screenshot_run() -> bool {
-    env_truthy("ZIRCON_PROFILE_FORCE_SOFTBUFFER") && !profile_capture_enabled()
-}
-
 pub(in crate::ui::retained_host::host_contract) fn profile_export_dir(
 ) -> Result<Option<PathBuf>, ProfileOutputRootError> {
     let output_root = match std::env::var("ZIRCON_PROFILE_OUTPUT_ROOT") {

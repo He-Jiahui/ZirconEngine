@@ -54,94 +54,87 @@ pub(crate) fn apply_asset_editor_component_envelope(
 
     let literal =
         asset_editor_literal_value(value, &envelope.target.domain, &envelope.target.path)?;
-    let changed =
-        match envelope.target.path.as_str() {
-            "widget.control_id" => manager
-                .set_ui_asset_editor_selected_widget_control_id(&instance_id, literal.clone()),
-            "widget.text" => manager
-                .set_ui_asset_editor_selected_widget_text_property(&instance_id, literal.clone()),
-            path if path.starts_with("widget.prop.") => manager
-                .set_ui_asset_editor_selected_widget_prop_literal(
-                    &instance_id,
-                    path.trim_start_matches("widget.prop."),
-                    literal.clone(),
-                ),
-            path if path.starts_with("widget.state.") => manager
-                .set_ui_asset_editor_selected_widget_state_literal(
-                    &instance_id,
-                    path.trim_start_matches("widget.state."),
-                    literal.clone(),
-                ),
-            "component.root_class_policy" => manager
-                .set_ui_asset_editor_selected_component_root_class_policy(
-                    &instance_id,
-                    literal.clone(),
-                ),
-            "slot.mount" => {
-                manager.set_ui_asset_editor_selected_slot_mount(&instance_id, literal.clone())
-            }
-            "slot.padding" => {
-                manager.set_ui_asset_editor_selected_slot_padding(&instance_id, literal.clone())
-            }
-            "slot.width_preferred" => manager
-                .set_ui_asset_editor_selected_slot_width_preferred(&instance_id, literal.clone()),
-            "slot.height_preferred" => manager
-                .set_ui_asset_editor_selected_slot_height_preferred(&instance_id, literal.clone()),
-            "layout.width_preferred" => manager
-                .set_ui_asset_editor_selected_layout_width_preferred(&instance_id, literal.clone()),
-            "layout.height_preferred" => manager
-                .set_ui_asset_editor_selected_layout_height_preferred(
-                    &instance_id,
-                    literal.clone(),
-                ),
-            "slot.semantic.value" => manager
-                .set_ui_asset_editor_selected_slot_semantic_value(&instance_id, literal.clone()),
-            "layout.semantic.value" => manager
-                .set_ui_asset_editor_selected_layout_semantic_value(&instance_id, literal.clone()),
-            "binding.id" => {
-                manager.set_ui_asset_editor_selected_binding_id(&instance_id, literal.clone())
-            }
-            "binding.event" => {
-                manager.set_ui_asset_editor_selected_binding_event(&instance_id, literal.clone())
-            }
-            "binding.route" => {
-                manager.set_ui_asset_editor_selected_binding_route(&instance_id, literal.clone())
-            }
-            "binding.route_target" => manager
-                .set_ui_asset_editor_selected_binding_route_target(&instance_id, literal.clone()),
-            "binding.action_target" => manager
-                .set_ui_asset_editor_selected_binding_action_target(&instance_id, literal.clone()),
-            path if path.starts_with("slot.semantic.field.") => manager
-                .set_ui_asset_editor_selected_slot_semantic_field(
-                    &instance_id,
-                    path.trim_start_matches("slot.semantic.field."),
-                    literal.clone(),
-                ),
-            path if path.starts_with("layout.semantic.field.") => manager
-                .set_ui_asset_editor_selected_layout_semantic_field(
-                    &instance_id,
-                    path.trim_start_matches("layout.semantic.field."),
-                    literal.clone(),
-                ),
-            _ => {
-                return Err(UiComponentAdapterError::UnsupportedTargetPath {
-                    domain: envelope.target.domain.clone(),
-                    path: envelope.target.path.clone(),
-                });
-            }
+    let changed = match envelope.target.path.as_str() {
+        "widget.control_id" => {
+            manager.set_ui_asset_editor_selected_widget_control_id(&instance_id, &literal)
         }
-        .map_err(|error| UiComponentAdapterError::HostMutation {
-            domain: envelope.target.domain.clone(),
-            path: envelope.target.path.clone(),
-            reason: error.to_string(),
-        })?;
+        "widget.text" => {
+            manager.set_ui_asset_editor_selected_widget_text_property(&instance_id, &literal)
+        }
+        path if path.starts_with("widget.prop.") => manager
+            .set_ui_asset_editor_selected_widget_prop_literal(
+                &instance_id,
+                path.trim_start_matches("widget.prop."),
+                &literal,
+            ),
+        path if path.starts_with("widget.state.") => manager
+            .set_ui_asset_editor_selected_widget_state_literal(
+                &instance_id,
+                path.trim_start_matches("widget.state."),
+                &literal,
+            ),
+        "component.root_class_policy" => {
+            manager.set_ui_asset_editor_selected_component_root_class_policy(&instance_id, &literal)
+        }
+        "slot.mount" => manager.set_ui_asset_editor_selected_slot_mount(&instance_id, &literal),
+        "slot.padding" => manager.set_ui_asset_editor_selected_slot_padding(&instance_id, &literal),
+        "slot.width_preferred" => {
+            manager.set_ui_asset_editor_selected_slot_width_preferred(&instance_id, &literal)
+        }
+        "slot.height_preferred" => {
+            manager.set_ui_asset_editor_selected_slot_height_preferred(&instance_id, &literal)
+        }
+        "layout.width_preferred" => {
+            manager.set_ui_asset_editor_selected_layout_width_preferred(&instance_id, &literal)
+        }
+        "layout.height_preferred" => {
+            manager.set_ui_asset_editor_selected_layout_height_preferred(&instance_id, &literal)
+        }
+        "slot.semantic.value" => {
+            manager.set_ui_asset_editor_selected_slot_semantic_value(&instance_id, &literal)
+        }
+        "layout.semantic.value" => {
+            manager.set_ui_asset_editor_selected_layout_semantic_value(&instance_id, &literal)
+        }
+        "binding.id" => manager.set_ui_asset_editor_selected_binding_id(&instance_id, &literal),
+        "binding.event" => {
+            manager.set_ui_asset_editor_selected_binding_event(&instance_id, &literal)
+        }
+        "binding.route" => {
+            manager.set_ui_asset_editor_selected_binding_route(&instance_id, &literal)
+        }
+        "binding.route_target" => {
+            manager.set_ui_asset_editor_selected_binding_route_target(&instance_id, &literal)
+        }
+        "binding.action_target" => {
+            manager.set_ui_asset_editor_selected_binding_action_target(&instance_id, &literal)
+        }
+        path if path.starts_with("slot.semantic.field.") => manager
+            .set_ui_asset_editor_selected_slot_semantic_field(
+                &instance_id,
+                path.trim_start_matches("slot.semantic.field."),
+                &literal,
+            ),
+        path if path.starts_with("layout.semantic.field.") => manager
+            .set_ui_asset_editor_selected_layout_semantic_field(
+                &instance_id,
+                path.trim_start_matches("layout.semantic.field."),
+                &literal,
+            ),
+        _ => {
+            return Err(UiComponentAdapterError::UnsupportedTargetPath {
+                domain: envelope.target.domain.clone(),
+                path: envelope.target.path.clone(),
+            });
+        }
+    }
+    .map_err(|error| UiComponentAdapterError::HostMutation {
+        domain: envelope.target.domain.clone(),
+        path: envelope.target.path.clone(),
+        reason: error.to_string(),
+    })?;
 
-    let patch = UiComponentProjectionPatch::new(envelope.control_id.clone())
-        .with_attribute(VALUE_PROPERTY, UiValue::String(literal.clone()))
-        .with_state_value(
-            envelope.target.path.clone(),
-            UiValue::String(literal.clone()),
-        );
+    let patch = asset_editor_projection_patch(&envelope.control_id, &envelope.target.path, literal);
 
     let result = if changed {
         UiComponentAdapterResult::changed()
@@ -167,6 +160,16 @@ pub(crate) fn apply_asset_editor_component_envelope(
     Ok(result)
 }
 
+fn asset_editor_projection_patch(
+    control_id: &str,
+    path: &str,
+    literal: String,
+) -> UiComponentProjectionPatch {
+    UiComponentProjectionPatch::new(control_id)
+        .with_attribute(VALUE_PROPERTY, UiValue::String(literal.clone()))
+        .with_state_value(path, UiValue::String(literal))
+}
+
 fn asset_editor_literal_value(
     value: &UiValue,
     domain: &str,
@@ -190,3 +193,7 @@ fn asset_editor_literal_value(
         }),
     }
 }
+
+#[cfg(test)]
+#[path = "asset_editor/borrowed_literal_tests.rs"]
+mod borrowed_literal_tests;

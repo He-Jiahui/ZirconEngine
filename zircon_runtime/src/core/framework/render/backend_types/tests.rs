@@ -3,7 +3,9 @@ use crate::core::math::UVec2;
 use super::{
     normalize_texture_max_anisotropy, RenderCameraTargetWritebackReport, RenderCapabilityClass,
     RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
-    RenderGraphExecutionCoverageReport, RenderGraphStageExecutionReport, RenderHistoryCopyReport,
+    RenderGraphExecutionBatchReport, RenderGraphExecutionCoverageReport,
+    RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderHistoryDomain,
+    RenderHistoryDomainResetReason, RenderHistoryDomainStatus, RenderHistoryDomainsReport,
     RenderQualityProfile,
 };
 use crate::core::framework::render::{TaaQualityPreset, DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA};
@@ -54,6 +56,78 @@ fn history_copy_report_counts_copied_slots_from_slot_flags() {
 }
 
 #[test]
+fn history_domains_report_preserves_independent_committed_state() {
+    let mut states = [RenderHistoryDomainStatus::default(); RenderHistoryDomain::COUNT];
+    states[RenderHistoryDomain::TaaSceneColor.index()] =
+        RenderHistoryDomainStatus::new(3, true, Some(41), None, None);
+    states[RenderHistoryDomain::Exposure.index()] = RenderHistoryDomainStatus::new(
+        8,
+        false,
+        Some(40),
+        Some(RenderHistoryDomainResetReason::SourceUnavailable),
+        Some(RenderHistoryDomainResetReason::SourceUnavailable),
+    );
+
+    let report = RenderHistoryDomainsReport::new(true, states);
+
+    assert!(report.history_target_present);
+    assert!(report.state(RenderHistoryDomain::TaaSceneColor).valid);
+    assert_eq!(
+        report
+            .state(RenderHistoryDomain::TaaSceneColor)
+            .last_successful_frame,
+        Some(41)
+    );
+    assert!(!report.state(RenderHistoryDomain::Exposure).valid);
+    assert_eq!(
+        report
+            .state(RenderHistoryDomain::Exposure)
+            .active_reset_reason,
+        Some(RenderHistoryDomainResetReason::SourceUnavailable)
+    );
+    assert_eq!(
+        report
+            .state(RenderHistoryDomain::Exposure)
+            .frame_reset_reason,
+        Some(RenderHistoryDomainResetReason::SourceUnavailable)
+    );
+    assert_eq!(RenderHistoryDomain::Exposure.label(), "exposure");
+    assert_eq!(
+        RenderHistoryDomainResetReason::StructuralCompatibilityChanged.diagnostic_code(),
+        7
+    );
+}
+
+#[test]
+fn history_domain_contract_keeps_fixed_order_and_reset_codes() {
+    assert_eq!(
+        RenderHistoryDomain::ALL.map(RenderHistoryDomain::label),
+        [
+            "taa_scene_color",
+            "hybrid_global_illumination",
+            "ambient_occlusion",
+            "screen_space_reflection",
+            "hzb_furthest",
+            "exposure",
+            "volumetric_scattering",
+        ]
+    );
+    assert_eq!(
+        [
+            RenderHistoryDomainResetReason::NeverProduced,
+            RenderHistoryDomainResetReason::PreviousFrameUnavailable,
+            RenderHistoryDomainResetReason::CameraCut,
+            RenderHistoryDomainResetReason::AllocationChanged,
+            RenderHistoryDomainResetReason::FeatureDisabled,
+            RenderHistoryDomainResetReason::SourceUnavailable,
+            RenderHistoryDomainResetReason::StructuralCompatibilityChanged,
+        ]
+        .map(RenderHistoryDomainResetReason::diagnostic_code),
+        [1, 2, 3, 4, 5, 6, 7]
+    );
+}
+
+#[test]
 fn camera_target_writeback_report_separates_copy_and_conversion_debug_markers() {
     let size = UVec2::new(72, 40);
     let copied = RenderCameraTargetWritebackReport::copied(size);
@@ -83,6 +157,19 @@ fn graph_stage_execution_report_preserves_neutral_counts() {
     assert_eq!(report.unique_stage_count, 5);
     assert_eq!(report.stage_transition_count, 4);
     assert_eq!(report.stage_order_violation_count, 1);
+}
+
+#[test]
+fn graph_execution_batch_report_preserves_neutral_counts() {
+    let report = RenderGraphExecutionBatchReport::new(5, 18, 3, 1, 1, 7, 4);
+
+    assert_eq!(report.planned_batch_count, 5);
+    assert_eq!(report.planned_live_pass_count, 18);
+    assert_eq!(report.graphics_batch_count, 3);
+    assert_eq!(report.async_compute_batch_count, 1);
+    assert_eq!(report.async_copy_batch_count, 1);
+    assert_eq!(report.max_passes_per_batch, 7);
+    assert_eq!(report.queue_transition_count, 4);
 }
 
 #[test]

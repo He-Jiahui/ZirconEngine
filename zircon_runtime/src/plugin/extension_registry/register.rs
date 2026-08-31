@@ -29,6 +29,14 @@ pub(in crate::plugin::extension_registry) use resource_registration::ResourceReg
 pub(in crate::plugin::extension_registry) use runtime_scene_system_registration::RuntimeSceneSystemRegistration;
 pub(in crate::plugin::extension_registry) use system_registration::SystemRegistration;
 
+fn runtime_owner_key(plugin_id: &str) -> String {
+    let capacity = plugin_id.len() + ".runtime".len();
+    let mut owner = String::with_capacity(capacity);
+    owner.push_str(plugin_id);
+    owner.push_str(".runtime");
+    owner
+}
+
 impl RuntimeExtensionRegistry {
     pub fn register_plugin_shader_module_source(
         &mut self,
@@ -87,6 +95,7 @@ impl RuntimeExtensionRegistry {
         &mut self,
         name: impl Into<String>,
     ) -> Result<SystemSetId, RuntimeExtensionRegistryError> {
+        let name: String = name.into();
         self.system_sets
             .intern(name)
             .map_err(|error| RuntimeExtensionRegistryError::InvalidPluginSystem(error.to_string()))
@@ -251,7 +260,7 @@ impl RuntimeExtensionRegistry {
         &mut self,
         plugin_id: &str,
     ) -> Result<PluginModuleId, RuntimeExtensionRegistryError> {
-        self.intern_plugin_module(format!("{plugin_id}.runtime"))
+        self.intern_plugin_module(runtime_owner_key(plugin_id))
     }
 
     pub(super) fn intern_owner_from_namespaced_key(
@@ -264,5 +273,15 @@ impl RuntimeExtensionRegistry {
             ));
         };
         self.intern_runtime_owner(plugin_id)
+    }
+}
+
+#[cfg(test)]
+mod runtime_owner_key_tests {
+    use super::runtime_owner_key;
+
+    #[test]
+    fn exact_runtime_owner_key_preserves_identity() {
+        assert_eq!(runtime_owner_key("rendering"), "rendering.runtime");
     }
 }

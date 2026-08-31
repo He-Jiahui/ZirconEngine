@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
 fixing_plan: docs/plans/zircon_plugins/13-standalone-plugin-build.md
 origin_child_dir: docs/plans/zircon_runtime/runtime/04
 fixing_child_dir: docs/plans/zircon_plugins/13
+plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/tests/support/mod.rs
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs

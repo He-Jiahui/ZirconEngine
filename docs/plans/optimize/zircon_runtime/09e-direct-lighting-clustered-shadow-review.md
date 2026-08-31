@@ -453,6 +453,20 @@ world reconstruction、light-direction ray/HZB traversal、per-light mask、worl
 - 没有Contact Shadow逐光源语义、camera projection invariance、temporal/disocclusion测试。
 - 没有device loss、VRAM pressure、atlas thrash、24h soak或与Unreal匹配画质benchmark。
 
+### 2026-08-29 P0-3 current-source correction
+
+The clean CPU light-grid owner now closes the two narrowly scoped projection false-negative cases
+identified by this review: `ortho_size` is consumed as the shared canonical half-height, and
+near-plane-crossing perspective spheres are conservatively projected instead of rejected from center
+`clip.w`. Camera-inside spheres cover the viewport tile rect; fully behind-camera spheres remain
+depth-culled. RED isolation and five focused checks pass, with the implementation record at
+`docs/plans/zircon_runtime/render/05/2026-08-29-light-grid-projection-correctness.md`.
+
+This does not close the broader P0-3/P1-3 requirements: one canonical bounds library still needs to
+cover reversed-Z, oblique, jittered, stereo and viewport-subrect views, and spot/rect exact bounds
+remain open. No performance improvement is claimed and managed Cargo/WGPU/product evidence remains
+pending.
+
 ### 12.3 实施风险
 
 - photometric迁移会改变旧scene观感，必须提供版本化转换和before/after capture，不能用“更物理”掩盖breaking change。

@@ -169,7 +169,7 @@ impl ScriptSceneRuntimeSystem {
         tick_script_bindings(
             context.core,
             context.level,
-            context.delta_seconds,
+            context.tick().delta_seconds(),
             self.phase,
         )
         .map_err(|error| CoreError::Initialization(self.id().to_string(), error.to_string()))
@@ -527,7 +527,9 @@ mod tests {
     #[test]
     fn runtime13_script_binding_projection_ignores_unrelated_world_mutations() {
         let mut world = World::empty();
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,
@@ -623,7 +625,9 @@ mod tests {
         assert!(empty_projection.update_bindings.is_empty());
 
         let mut persisted = World::empty();
-        let entity = persisted.spawn_node(NodeKind::Empty);
+        let entity = persisted
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         persisted
             .set_dynamic_component(
                 entity,
@@ -659,7 +663,9 @@ mod tests {
     #[test]
     fn runtime13_projection_invalidates_when_world_replacement_removes_bindings() {
         let mut persisted = World::empty();
-        let entity = persisted.spawn_node(NodeKind::Empty);
+        let entity = persisted
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         persisted
             .set_dynamic_component(
                 entity,
@@ -700,7 +706,9 @@ mod tests {
     #[test]
     fn runtime13_projection_invalidates_when_staged_world_removes_bindings() {
         let mut persisted = World::empty();
-        let entity = persisted.spawn_node(NodeKind::Empty);
+        let entity = persisted
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         persisted
             .set_dynamic_component(
                 entity,
@@ -737,7 +745,9 @@ mod tests {
     #[test]
     fn runtime13_projection_keeps_duplicate_activation_and_reload_start_state_independent() {
         let mut world = World::empty();
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,

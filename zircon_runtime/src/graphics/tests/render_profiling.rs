@@ -5,20 +5,22 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 #[cfg(feature = "profiling-chrome")]
 use crate::core::diagnostics::profiling::{
-    export_report, stop_capture, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
-    PROFILE_TIMELINE_NATIVE_FILE, PROFILE_TIMELINE_PERFETTO_FILE,
+    PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE,
+    PROFILE_TIMELINE_PERFETTO_FILE, export_report, stop_capture,
 };
 use crate::core::diagnostics::profiling::{
-    reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig,
+    ProfileCaptureConfig, reset_capture, snapshot, start_capture, test_capture_lock,
 };
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFramework, RenderViewportDescriptor, RenderWorldSnapshotHandle,
+    UiRenderSubmission,
 };
 #[cfg(feature = "ui")]
 use crate::core::framework::render::{RenderPipelineHandle, RenderQualityProfile};
 use crate::core::math::UVec2;
-use crate::graphics::{runtime::WgpuRenderFramework, ViewportRenderFrame};
+use crate::graphics::{ViewportRenderFrame, runtime::WgpuRenderFramework};
 use crate::scene::world::World;
+use zircon_runtime_interface::ProfileSnapshot;
 #[cfg(feature = "ui")]
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 #[cfg(feature = "ui")]
@@ -28,7 +30,6 @@ use zircon_runtime_interface::ui::surface::{
     UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
     UiTextAlign, UiTextRenderMode, UiTextWrap,
 };
-use zircon_runtime_interface::ProfileSnapshot;
 
 #[cfg(feature = "ui")]
 const UI_TEXT_PROFILE_SETTLE_MAX_FRAMES: usize = 120;
@@ -135,11 +136,15 @@ fn ui_text_prepare_profiles_mixed_native_and_sdf_batches() {
         )
         .unwrap();
 
-    let ui = mixed_text_ui_extract();
+    let ui = Arc::new(mixed_text_ui_extract());
     let mut warm_stats = None;
     for frame_index in 0..UI_TEXT_PROFILE_SETTLE_MAX_FRAMES {
         framework
-            .submit_frame_extract_with_ui(viewport, test_extract(), Some(ui.clone()))
+            .submit_frame_extract_with_ui(
+                viewport,
+                test_extract(),
+                Some(UiRenderSubmission::single(ui.clone())),
+            )
             .unwrap();
         let stats = framework.query_stats().unwrap();
         if native_text_raster_is_settled(&stats) {
@@ -165,7 +170,11 @@ fn ui_text_prepare_profiles_mixed_native_and_sdf_batches() {
     start_capture(config);
 
     framework
-        .submit_frame_extract_with_ui(viewport, test_extract(), Some(ui))
+        .submit_frame_extract_with_ui(
+            viewport,
+            test_extract(),
+            Some(UiRenderSubmission::single(ui)),
+        )
         .unwrap();
     let stats = framework.query_stats().unwrap();
     let profile = snapshot();

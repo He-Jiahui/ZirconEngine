@@ -24,13 +24,9 @@ fn alert_state_style_from_palette(
             text: palette.disabled_text,
             state,
         },
-        UiPainterResolvedState::Pressed => {
-            let mut style = alert_tone_style_from_palette(tone, state, palette);
-            style.border = palette.active_border;
-            style
-        }
-        UiPainterResolvedState::Focused => alert_tone_style_from_palette(tone, state, palette),
-        UiPainterResolvedState::Hovered
+        UiPainterResolvedState::Pressed
+        | UiPainterResolvedState::Focused
+        | UiPainterResolvedState::Hovered
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
@@ -75,11 +71,10 @@ mod tests {
     }
 
     #[test]
-    fn alert_pressed_state_projects_active_border_from_host_palette() {
+    fn alert_pressed_state_preserves_status_tone_border_from_host_palette() {
         let mut palette = PALETTE;
         palette.warning_container = [20, 21, 22, 255];
         palette.warning = [23, 24, 25, 255];
-        palette.focus_ring = [26, 27, 28, 255];
 
         let style = alert_state_style_from_palette(
             WorkbenchAlertTone::Warning,
@@ -88,7 +83,7 @@ mod tests {
         );
 
         assert_eq!(style.surface, [20, 21, 22, 255]);
-        assert_eq!(style.border, [26, 27, 28, 255]);
+        assert_eq!(style.border, [23, 24, 25, 255]);
         assert_eq!(style.mark, [23, 24, 25, 255]);
         assert_eq!(style.text, [23, 24, 25, 255]);
     }

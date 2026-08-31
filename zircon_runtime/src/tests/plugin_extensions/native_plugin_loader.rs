@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-use crate::plugin::NativePluginLoader;
+use crate::plugin::native::NativePluginLoader;
 
 #[path = "native_plugin_loader/real_fixture.rs"]
 mod real_fixture;
@@ -41,14 +41,12 @@ manifest = "plugins/weather/plugin.toml"
         report.discovered()[0].manifest_path,
         plugin_root.join("plugin.toml")
     );
-    assert!(
-        report.discovered()[0]
-            .library_path
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .contains("zircon_plugin_weather_runtime")
-    );
+    assert!(report.discovered()[0]
+        .library_path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .contains("zircon_plugin_weather_runtime"));
     assert_eq!(
         report.discovered()[0].library_path,
         plugin_root
@@ -81,12 +79,10 @@ manifest = "plugins/weather/plugin.toml"
 
     let root_scan = NativePluginLoader.discover(root.join("plugins").join("native_plugins.toml"));
     assert!(root_scan.discovered().is_empty());
-    assert!(
-        root_scan
-            .diagnostics()
-            .iter()
-            .any(|message| { message.contains("native plugin root does not exist") })
-    );
+    assert!(root_scan
+        .diagnostics()
+        .iter()
+        .any(|message| { message.contains("native plugin root does not exist") }));
 
     fs::write(
         plugin_root.join("plugin.toml"),
@@ -133,12 +129,10 @@ manifest = "plugins/weather/plugin.toml"
     assert_eq!(selection.discovered().len(), 1);
     assert_eq!(selection.discovered()[0].plugin_id, "weather");
     assert!(root_scan.discovered().is_empty());
-    assert!(
-        root_scan
-            .diagnostics()
-            .iter()
-            .any(|message| { message.contains("native plugin root does not exist") })
-    );
+    assert!(root_scan
+        .diagnostics()
+        .iter()
+        .any(|message| { message.contains("native plugin root does not exist") }));
 
     let _ = fs::remove_dir_all(root.as_ref());
 }
@@ -167,23 +161,16 @@ manifest = "plugins/actual_weather/plugin.toml"
     assert!(report.discovered().is_empty());
     assert!(report.loaded().is_empty());
     assert!(report.runtime_plugin_registration_reports().is_empty());
-    assert!(
-        report.diagnostics().iter().any(|message| message.contains(
-            "native plugin weather load manifest id mismatch: entry id declared_weather"
-        ))
-    );
-    assert!(
-        report
-            .diagnostics()
-            .iter()
-            .any(|message| message.contains("native plugin weather load manifest path mismatch"))
-    );
-    assert!(
-        !report
-            .diagnostics()
-            .iter()
-            .any(|message| message.contains("library-open"))
-    );
+    assert!(report.diagnostics().iter().any(|message| message
+        .contains("native plugin weather load manifest id mismatch: entry id declared_weather")));
+    assert!(report
+        .diagnostics()
+        .iter()
+        .any(|message| message.contains("native plugin weather load manifest path mismatch")));
+    assert!(!report
+        .diagnostics()
+        .iter()
+        .any(|message| message.contains("library-open")));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -369,14 +356,12 @@ fn native_loader_discovers_editor_only_native_package() {
     );
     assert_eq!(report.discovered().len(), 1);
     assert_eq!(report.discovered()[0].plugin_id, "native_window_hosting");
-    assert!(
-        report.discovered()[0]
-            .library_path
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .contains("zircon_plugin_native_window_hosting_editor")
-    );
+    assert!(report.discovered()[0]
+        .library_path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .contains("zircon_plugin_native_window_hosting_editor"));
     assert!(
         report.runtime_plugin_registration_reports().is_empty(),
         "editor-only native packages must not enter runtime plugin registration"
@@ -388,11 +373,9 @@ fn native_loader_discovers_editor_only_native_package() {
         runtime_report.diagnostics()
     );
     assert!(runtime_report.loaded().is_empty());
-    assert!(
-        runtime_report
-            .runtime_plugin_registration_reports()
-            .is_empty()
-    );
+    assert!(runtime_report
+        .runtime_plugin_registration_reports()
+        .is_empty());
 
     let _ = fs::remove_dir_all(root);
 }
@@ -420,14 +403,12 @@ fn native_loader_discovers_feature_extension_package_from_feature_runtime_module
         report.discovered()[0].plugin_id,
         "sound_timeline_animation_track"
     );
-    assert!(
-        report.discovered()[0]
-            .library_path
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .contains("zircon_plugin_sound_timeline_animation_runtime")
-    );
+    assert!(report.discovered()[0]
+        .library_path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .contains("zircon_plugin_sound_timeline_animation_runtime"));
     assert!(report.runtime_plugin_registration_reports().is_empty());
 
     let feature_reports = report.runtime_plugin_feature_registration_reports();
@@ -637,8 +618,11 @@ fn native_dynamic_fixture_build_uses_isolated_offline_workspace() {
     assert!(manifest.contains("zircon_plugin_sdk"));
 
     let target_dir = build_root.join("target");
-    let command =
-        native_dynamic_fixture_build_command(&workspace_manifest, &target_dir, &["abi_v2_only"]);
+    let command = native_dynamic_fixture_build_command(
+        &workspace_manifest,
+        &target_dir,
+        &["abi_unknown_version"],
+    );
     let arguments = command
         .get_args()
         .map(|argument| argument.to_string_lossy().into_owned())
@@ -652,16 +636,12 @@ fn native_dynamic_fixture_build_uses_isolated_offline_workspace() {
     assert!(arguments.windows(2).any(|arguments| {
         arguments[0] == "--manifest-path" && arguments[1] == workspace_manifest_text
     }));
-    assert!(
-        !arguments
-            .iter()
-            .any(|argument| argument == &plugin_workspace_manifest)
-    );
-    assert!(
-        arguments
-            .windows(2)
-            .any(|arguments| { arguments[0] == "--features" && arguments[1] == "abi_v2_only" })
-    );
+    assert!(!arguments
+        .iter()
+        .any(|argument| argument == &plugin_workspace_manifest));
+    assert!(arguments.windows(2).any(|arguments| {
+        arguments[0] == "--features" && arguments[1] == "abi_unknown_version"
+    }));
 
     let _ = fs::remove_dir_all(build_root);
 }

@@ -1,17 +1,19 @@
-use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
-use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 
+use blake3::Hash;
+
 use crate::ui::asset_editor::UiAssetEditorSession;
+
+pub(crate) type UiAssetSourceDigest = Hash;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiAssetExternalConflict {
     pub(crate) asset_id: String,
     pub(crate) source_path: PathBuf,
-    pub(crate) baseline_hash: u64,
-    pub(crate) local_hash: u64,
-    pub(crate) external_hash: u64,
+    pub(crate) baseline_digest: UiAssetSourceDigest,
+    pub(crate) local_digest: UiAssetSourceDigest,
+    pub(crate) external_digest: UiAssetSourceDigest,
     pub(crate) local_source: String,
     pub(crate) external_source: String,
 }
@@ -25,9 +27,9 @@ pub(crate) struct UiAssetStaleImportDiagnostic {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiAssetDiffSnapshot {
     pub asset_id: String,
-    pub baseline_hash: u64,
-    pub local_hash: u64,
-    pub external_hash: u64,
+    pub baseline_digest: UiAssetSourceDigest,
+    pub local_digest: UiAssetSourceDigest,
+    pub external_digest: UiAssetSourceDigest,
     pub local_source: String,
     pub external_source: String,
     pub summary: String,
@@ -37,14 +39,16 @@ impl From<&UiAssetExternalConflict> for UiAssetDiffSnapshot {
     fn from(conflict: &UiAssetExternalConflict) -> Self {
         Self {
             asset_id: conflict.asset_id.clone(),
-            baseline_hash: conflict.baseline_hash,
-            local_hash: conflict.local_hash,
-            external_hash: conflict.external_hash,
+            baseline_digest: conflict.baseline_digest,
+            local_digest: conflict.local_digest,
+            external_digest: conflict.external_digest,
             local_source: conflict.local_source.clone(),
             external_source: conflict.external_source.clone(),
             summary: format!(
                 "External change detected for {} (local {}, external {})",
-                conflict.asset_id, conflict.local_hash, conflict.external_hash
+                conflict.asset_id,
+                conflict.local_digest.to_hex(),
+                conflict.external_digest.to_hex()
             ),
         }
     }
@@ -54,16 +58,16 @@ impl UiAssetExternalConflict {
     pub(crate) fn new(
         asset_id: String,
         source_path: PathBuf,
-        baseline_hash: u64,
+        baseline_digest: UiAssetSourceDigest,
         local_source: String,
         external_source: String,
     ) -> Self {
         Self {
             asset_id,
             source_path,
-            baseline_hash,
-            local_hash: ui_asset_source_hash(&local_source),
-            external_hash: ui_asset_source_hash(&external_source),
+            baseline_digest,
+            local_digest: ui_asset_source_digest(&local_source),
+            external_digest: ui_asset_source_digest(&external_source),
             local_source,
             external_source,
         }
@@ -74,7 +78,7 @@ pub(crate) struct UiAssetWorkspaceEntry {
     pub(crate) source_path: PathBuf,
     pub(crate) session: UiAssetEditorSession,
     pub(crate) disk_source: String,
-    pub(crate) disk_source_hash: u64,
+    pub(crate) disk_source_digest: UiAssetSourceDigest,
     pub(crate) conflict: Option<UiAssetExternalConflict>,
     pub(crate) stale_imports: BTreeMap<String, UiAssetStaleImportDiagnostic>,
     pub(crate) diff_snapshot: Option<UiAssetDiffSnapshot>,
@@ -82,12 +86,12 @@ pub(crate) struct UiAssetWorkspaceEntry {
 
 impl UiAssetWorkspaceEntry {
     pub(crate) fn new(source_path: PathBuf, source: String, session: UiAssetEditorSession) -> Self {
-        let disk_source_hash = ui_asset_source_hash(&source);
+        let disk_source_digest = ui_asset_source_digest(&source);
         Self {
             source_path,
             session,
             disk_source: source,
-            disk_source_hash,
+            disk_source_digest,
             conflict: None,
             stale_imports: BTreeMap::new(),
             diff_snapshot: None,
@@ -95,7 +99,7 @@ impl UiAssetWorkspaceEntry {
     }
 
     pub(crate) fn update_disk_baseline(&mut self, source: String) {
-        self.disk_source_hash = ui_asset_source_hash(&source);
+        self.disk_source_digest = ui_asset_source_digest(&source);
         self.disk_source = source;
     }
 
@@ -118,8 +122,6 @@ impl UiAssetWorkspaceEntry {
     }
 }
 
-pub(crate) fn ui_asset_source_hash(source: &str) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    source.hash(&mut hasher);
-    hasher.finish()
+pub(crate) fn ui_asset_source_digest(source: &str) -> UiAssetSourceDigest {
+    blake3::hash(source.as_bytes())
 }

@@ -16,7 +16,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
-  - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
 tests:
   - cargo test -p zircon_runtime project_script_scene_transition --locked --jobs 1 -- --nocapture --test-threads=1

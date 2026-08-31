@@ -35,6 +35,9 @@ pub enum WorldFact {
     SceneUnloaded {
         scene: ResourceId,
     },
+    WorldReplaced {
+        replacement_epoch: u64,
+    },
     AssetReloadApplied(AssetReloadFrameApplyReportDto),
 }
 

@@ -1,5 +1,5 @@
 use zircon_editor::core::asset::AssetTypeContribution;
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 use zircon_editor::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodePaletteDescriptor, TimelineEditorDescriptor,
     TimelineTrackDescriptor,
@@ -18,21 +18,14 @@ pub struct EditorAuthoringSurface<'a> {
     pub view_id: &'a str,
     pub display_name: &'a str,
     pub category: &'a str,
-    pub menu_path: &'a str,
 }
 
 impl<'a> EditorAuthoringSurface<'a> {
-    pub const fn new(
-        view_id: &'a str,
-        display_name: &'a str,
-        category: &'a str,
-        menu_path: &'a str,
-    ) -> Self {
+    pub const fn new(view_id: &'a str, display_name: &'a str, category: &'a str) -> Self {
         Self {
             view_id,
             display_name,
             category,
-            menu_path,
         }
     }
 }
@@ -124,19 +117,16 @@ pub fn register_authoring_surface(
         .open_operation_path()
         .map_err(EditorExtensionRegistryError::OperationPath)?;
     registry.register_command(
-        EditorCommandDescriptor::operation(
-            operation_path.clone(),
-            format!("Open {}", view.display_name()),
-        )
-        .with_menu_path(surface.menu_path)
-        .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
-            ViewDescriptorId::new(view.id()),
-        ))),
+        EditorCommandDescriptor::operation(operation_path.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &operation_path,
+                "view",
+                &["plugins"],
+            ))
+            .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
+                ViewDescriptorId::new(view.id()),
+            ))),
     )?;
-    registry.register_menu_item(EditorMenuItemDescriptor::new(
-        surface.menu_path,
-        operation_path,
-    ))?;
     registry.register_view(view)
 }
 
@@ -200,20 +190,16 @@ mod tests {
             &mut registry,
             EditorAuthoringContributionBatch {
                 commands: vec![
-                    EditorCommandDescriptor::operation(import.clone(), "Import Support Asset")
-                        .with_menu_path("Plugins/Support/Import")
+                    EditorCommandDescriptor::operation(import.clone())
                         .with_payload_schema_id("support.import.v1"),
-                    EditorCommandDescriptor::operation(open.clone(), "Open Support Asset"),
-                    EditorCommandDescriptor::operation(validate.clone(), "Validate Support Asset"),
-                    EditorCommandDescriptor::operation(compile.clone(), "Compile Support Asset"),
-                    EditorCommandDescriptor::operation(create.clone(), "Create Support Asset"),
-                    EditorCommandDescriptor::operation(activate.clone(), "Activate Support Tool"),
+                    EditorCommandDescriptor::operation(open.clone()),
+                    EditorCommandDescriptor::operation(validate.clone()),
+                    EditorCommandDescriptor::operation(compile.clone()),
+                    EditorCommandDescriptor::operation(create.clone()),
+                    EditorCommandDescriptor::operation(activate.clone()),
                 ],
-                menu_items: vec![EditorMenuItemDescriptor::new(
-                    "Plugins/Support/Import",
-                    import.clone(),
-                )
-                .with_required_capabilities(["editor.extension.support_authoring"])],
+                menu_items: vec![EditorMenuItemDescriptor::for_operation(import.clone())
+                    .with_required_capabilities(["editor.extension.support_authoring"])],
                 asset_importers: vec![AssetImporterDescriptor::new(
                     "support.asset.importer",
                     "Support Asset",
@@ -300,7 +286,7 @@ mod tests {
         );
         let support_capabilities = vec!["editor.extension.support_authoring".to_string()];
         assert!(registry.menu_items().iter().any(|item| {
-            item.path() == "Plugins/Support/Import"
+            item.path() == "support/authoring/support.authoring.import"
                 && item.operation() == &import
                 && item.required_capabilities() == support_capabilities.as_slice()
         }));

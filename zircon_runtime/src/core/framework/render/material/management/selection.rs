@@ -9,6 +9,10 @@ use super::{
 };
 use crate::core::resource::ResourceId;
 
+#[cfg(test)]
+#[path = "selection/id_capacity_tests.rs"]
+mod id_capacity_tests;
+
 /// Full management records selected by material id, preserving request order.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RenderMaterialManagementSelection {
@@ -86,8 +90,10 @@ impl RenderMaterialManagementSelection {
 }
 
 fn unique_material_ids(material_ids: impl IntoIterator<Item = ResourceId>) -> Vec<ResourceId> {
-    let mut unique_ids = Vec::new();
-    let mut seen_ids = HashSet::new();
+    let material_ids = material_ids.into_iter();
+    let (minimum_ids, _) = material_ids.size_hint();
+    let mut unique_ids = Vec::with_capacity(minimum_ids);
+    let mut seen_ids = HashSet::with_capacity(minimum_ids);
     for material_id in material_ids {
         if seen_ids.insert(material_id) {
             unique_ids.push(material_id);

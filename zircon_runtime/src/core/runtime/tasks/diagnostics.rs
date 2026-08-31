@@ -1,13 +1,18 @@
 use std::cell::Cell;
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
-    Mutex, MutexGuard,
+    Arc, Mutex, MutexGuard,
 };
 use std::time::{Duration, Instant};
 
 use crate::core::diagnostics::DiagnosticStore;
 
-use super::JobSchedulerReport;
+use super::diagnostic_observation::TaskDiagnosticJournal;
+use super::{JobSchedulerReport, TaskDiagnosticIdentity, TaskDiagnosticKind, TaskDiagnosticSource};
+
+mod snapshot;
+
+use snapshot::{JobDiagnosticsSnapshot, JobLifecycleSnapshot, StableDiagnosticsSnapshot};
 
 pub const TASKS_SCHEDULED_DIAGNOSTIC: &str = "tasks.scheduled";
 pub const TASKS_COMPLETED_DIAGNOSTIC: &str = "tasks.completed";
@@ -35,16 +40,20 @@ thread_local! {
 
 pub(super) struct JobSchedulerDiagnosticsState {
     enabled: AtomicBool,
+    observation_enabled: AtomicBool,
     shards: [DiagnosticsShard; DIAGNOSTIC_SHARD_COUNT],
     last_stable_snapshot: Mutex<JobDiagnosticsSnapshot>,
+    observation_journal: Arc<TaskDiagnosticJournal>,
 }
 
 impl Default for JobSchedulerDiagnosticsState {
     fn default() -> Self {
         Self {
             enabled: AtomicBool::new(false),
-            shards: std::array::from_fn(|_| DiagnosticsShard::default()),
+            observation_enabled: AtomicBool::new(false),
+            shards: std::array::from_fn(DiagnosticsShard::for_index),
             last_stable_snapshot: Mutex::new(JobDiagnosticsSnapshot::default()),
+            observation_journal: Arc::default(),
         }
     }
 }
@@ -52,6 +61,32 @@ impl Default for JobSchedulerDiagnosticsState {
 impl JobSchedulerDiagnosticsState {
     pub(super) fn enable(&self) {
         self.enabled.store(true, Ordering::Release);
+    }
+
+    pub(super) fn task_diagnostic_source(&self) -> TaskDiagnosticSource {
+        self.observation_enabled.store(true, Ordering::Release);
+        TaskDiagnosticSource::new(Arc::clone(&self.observation_journal))
+    }
+
+    pub(super) fn task_identity(&self) -> Option<TaskDiagnosticIdentity> {
+        self.observation_enabled.load(Ordering::Acquire).then(|| {
+            TaskDiagnosticIdentity::new(
+                self.observation_journal.source_id(),
+                self.current_shard().allocate_task_sequence(),
+            )
+        })
+    }
+
+    pub(super) fn record_task_observation(
+        &self,
+        identity: Option<TaskDiagnosticIdentity>,
+        kind: TaskDiagnosticKind,
+        message: Arc<str>,
+    ) {
+        let Some(identity) = identity else {
+            return;
+        };
+        self.observation_journal.record(identity, kind, message);
     }
 
     pub(super) fn record_scheduled(&self) -> bool {
@@ -115,6 +150,18 @@ impl JobSchedulerDiagnosticsState {
         }
     }
 
+    pub(super) fn record_active_cancelled(&self, execution_started_at: Option<Instant>) {
+        let Some(execution_started_at) = execution_started_at else {
+            return;
+        };
+        let shard = self.current_shard();
+        let _update = shard.begin_update();
+        add_duration_ns(&shard.execution_ns, execution_started_at.elapsed());
+        shard.execution_samples.fetch_add(1, Ordering::Relaxed);
+        shard.cancelled.fetch_add(1, Ordering::Relaxed);
+        shard.cancelled_after_start.fetch_add(1, Ordering::Relaxed);
+    }
+
     pub(super) fn record_cancelled(&self, tracked: bool) {
         if !tracked {
             return;
@@ -122,6 +169,15 @@ impl JobSchedulerDiagnosticsState {
         let shard = self.current_shard();
         let _update = shard.begin_update();
         shard.cancelled.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub(super) fn record_panicked(&self, tracked: bool) {
+        if !tracked {
+            return;
+        }
+        let shard = self.current_shard();
+        let _update = shard.begin_update();
+        shard.panicked.fetch_add(1, Ordering::Relaxed);
     }
 
     pub(super) fn record_dependency_wait(&self, created_at: Option<Instant>) {
@@ -181,30 +237,46 @@ impl JobSchedulerDiagnosticsState {
     }
 
     fn try_stable_snapshot(&self) -> Option<JobDiagnosticsSnapshot> {
-        for _ in 0..MAX_AGGREGATE_SNAPSHOT_ATTEMPTS {
-            let mut total = JobDiagnosticsSnapshot::default();
-            let mut epochs = [0; DIAGNOSTIC_SHARD_COUNT];
+        self.try_stable_snapshot_with_attempt_hook(|_| {})
+    }
 
-            for (index, shard) in self.shards.iter().enumerate() {
-                let snapshot = shard.try_stable_snapshot()?;
-                epochs[index] = snapshot.epoch;
-                total.merge(snapshot.diagnostics);
-            }
-
-            // A lifecycle transition can move work from a submitting shard to a worker shard.
-            // Recheck every shard after the merge so the aggregate is not assembled across that
-            // transition. This stays on the reporting path; writers remain shard-local.
-            if self.shards.iter().zip(epochs).all(|(shard, epoch)| {
-                shard.updates_in_flight.load(Ordering::Acquire) == 0
-                    && shard.update_epoch.load(Ordering::Acquire) == epoch
-            }) {
-                return Some(total);
+    fn try_stable_snapshot_with_attempt_hook(
+        &self,
+        mut before_attempt: impl FnMut(usize),
+    ) -> Option<JobDiagnosticsSnapshot> {
+        for attempt in 0..MAX_AGGREGATE_SNAPSHOT_ATTEMPTS {
+            before_attempt(attempt);
+            if let Some(snapshot) = self.try_stable_snapshot_attempt() {
+                return Some(snapshot);
             }
 
             std::hint::spin_loop();
         }
 
         None
+    }
+
+    fn try_stable_snapshot_attempt(&self) -> Option<JobDiagnosticsSnapshot> {
+        let mut total = JobDiagnosticsSnapshot::default();
+        let mut epochs = [0; DIAGNOSTIC_SHARD_COUNT];
+
+        for (index, shard) in self.shards.iter().enumerate() {
+            let snapshot = shard.try_stable_snapshot()?;
+            epochs[index] = snapshot.epoch;
+            total.merge(snapshot.diagnostics);
+        }
+
+        // A lifecycle transition can move work from a submitting shard to a worker shard.
+        // Recheck every shard after the merge so the aggregate is not assembled across that
+        // transition. This stays on the reporting path; writers remain shard-local.
+        self.shards
+            .iter()
+            .zip(epochs)
+            .all(|(shard, epoch)| {
+                shard.updates_in_flight.load(Ordering::Acquire) == 0
+                    && shard.update_epoch.load(Ordering::Acquire) == epoch
+            })
+            .then_some(total)
     }
 
     fn lock_last_stable_snapshot(&self) -> MutexGuard<'_, JobDiagnosticsSnapshot> {
@@ -229,11 +301,13 @@ struct DiagnosticsShard {
     succeeded: AtomicU64,
     panicked: AtomicU64,
     cancelled: AtomicU64,
+    cancelled_after_start: AtomicU64,
     queue_wait_ns: AtomicU64,
     execution_ns: AtomicU64,
     execution_samples: AtomicU64,
     dependency_wait_ns: AtomicU64,
     explicit_wait_ns: AtomicU64,
+    next_task_sequence: AtomicU64,
 }
 
 impl Default for DiagnosticsShard {
@@ -247,16 +321,30 @@ impl Default for DiagnosticsShard {
             succeeded: AtomicU64::new(0),
             panicked: AtomicU64::new(0),
             cancelled: AtomicU64::new(0),
+            cancelled_after_start: AtomicU64::new(0),
             queue_wait_ns: AtomicU64::new(0),
             execution_ns: AtomicU64::new(0),
             execution_samples: AtomicU64::new(0),
             dependency_wait_ns: AtomicU64::new(0),
             explicit_wait_ns: AtomicU64::new(0),
+            next_task_sequence: AtomicU64::new(1),
         }
     }
 }
 
 impl DiagnosticsShard {
+    fn for_index(index: usize) -> Self {
+        Self {
+            next_task_sequence: AtomicU64::new(index as u64 + 1),
+            ..Self::default()
+        }
+    }
+
+    fn allocate_task_sequence(&self) -> u64 {
+        self.next_task_sequence
+            .fetch_add(DIAGNOSTIC_SHARD_COUNT as u64, Ordering::Relaxed)
+    }
+
     fn begin_update(&self) -> DiagnosticsUpdate<'_> {
         self.updates_in_flight.fetch_add(1, Ordering::AcqRel);
         self.update_epoch.fetch_add(1, Ordering::Release);
@@ -300,6 +388,7 @@ impl DiagnosticsShard {
                 succeeded: self.succeeded.load(Ordering::Relaxed),
                 panicked: self.panicked.load(Ordering::Relaxed),
                 cancelled: self.cancelled.load(Ordering::Relaxed),
+                cancelled_after_start: self.cancelled_after_start.load(Ordering::Relaxed),
             },
             queue_wait_ns: self.queue_wait_ns.load(Ordering::Relaxed),
             execution_ns: self.execution_ns.load(Ordering::Relaxed),
@@ -308,12 +397,6 @@ impl DiagnosticsShard {
             explicit_wait_ns: self.explicit_wait_ns.load(Ordering::Relaxed),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug)]
-struct StableDiagnosticsSnapshot {
-    epoch: u64,
-    diagnostics: JobDiagnosticsSnapshot,
 }
 
 struct DiagnosticsUpdate<'a> {
@@ -328,185 +411,15 @@ impl Drop for DiagnosticsUpdate<'_> {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
-struct JobDiagnosticsSnapshot {
-    lifecycle: JobLifecycleSnapshot,
-    queue_wait_ns: u64,
-    execution_ns: u64,
-    execution_samples: u64,
-    dependency_wait_ns: u64,
-    explicit_wait_ns: u64,
-}
-
-impl JobDiagnosticsSnapshot {
-    fn merge(&mut self, other: Self) {
-        self.lifecycle.merge(other.lifecycle);
-        self.queue_wait_ns = self.queue_wait_ns.saturating_add(other.queue_wait_ns);
-        self.execution_ns = self.execution_ns.saturating_add(other.execution_ns);
-        self.execution_samples = self
-            .execution_samples
-            .saturating_add(other.execution_samples);
-        self.dependency_wait_ns = self
-            .dependency_wait_ns
-            .saturating_add(other.dependency_wait_ns);
-        self.explicit_wait_ns = self.explicit_wait_ns.saturating_add(other.explicit_wait_ns);
-    }
-
-    fn report(self) -> JobSchedulerReport {
-        let lifecycle = self.lifecycle;
-        JobSchedulerReport {
-            scheduled: lifecycle.scheduled,
-            completed: lifecycle.completed(),
-            dependency_waiting: lifecycle.dependency_waiting(),
-            queued: lifecycle.queued(),
-            active: lifecycle.active(),
-            queue_wait_samples: lifecycle.started,
-            queue_wait_ms: duration_ms(self.queue_wait_ns),
-            execution_samples: self.execution_samples,
-            execution_ms: duration_ms(self.execution_ns),
-            panicked: lifecycle.panicked,
-            cancelled: lifecycle.cancelled,
-            dependency_wait_ms: duration_ms(self.dependency_wait_ns),
-            explicit_wait_ms: duration_ms(self.explicit_wait_ns),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-struct JobLifecycleSnapshot {
-    scheduled: u64,
-    enqueued: u64,
-    started: u64,
-    succeeded: u64,
-    panicked: u64,
-    cancelled: u64,
-}
-
-impl JobLifecycleSnapshot {
-    fn merge(&mut self, other: Self) {
-        self.scheduled = self.scheduled.saturating_add(other.scheduled);
-        self.enqueued = self.enqueued.saturating_add(other.enqueued);
-        self.started = self.started.saturating_add(other.started);
-        self.succeeded = self.succeeded.saturating_add(other.succeeded);
-        self.panicked = self.panicked.saturating_add(other.panicked);
-        self.cancelled = self.cancelled.saturating_add(other.cancelled);
-    }
-
-    fn completed(self) -> u64 {
-        self.succeeded
-            .saturating_add(self.panicked)
-            .saturating_add(self.cancelled)
-    }
-
-    fn queued(self) -> u64 {
-        self.enqueued.saturating_sub(self.started)
-    }
-
-    fn dependency_waiting(self) -> u64 {
-        self.scheduled
-            .saturating_sub(self.completed())
-            .saturating_sub(self.queued())
-            .saturating_sub(self.active())
-    }
-
-    fn active(self) -> u64 {
-        self.started
-            .saturating_sub(self.succeeded.saturating_add(self.panicked))
-    }
-}
-
 fn add_duration_ns(target: &AtomicU64, elapsed: Duration) {
     let elapsed_ns = elapsed.as_nanos().min(u128::from(u64::MAX)) as u64;
     target.fetch_add(elapsed_ns, Ordering::Relaxed);
 }
 
-fn duration_ms(nanos: u64) -> f64 {
+pub(super) fn duration_ms(nanos: u64) -> f64 {
     nanos as f64 / 1_000_000.0
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::{Arc, Barrier};
-    use std::thread;
-
-    use super::JobSchedulerDiagnosticsState;
-
-    #[test]
-    fn disabled_diagnostics_do_not_allocate_lifecycle_samples() {
-        let state = JobSchedulerDiagnosticsState::default();
-
-        assert!(state.record_scheduled_and_enqueued().is_none());
-        assert_eq!(state.report().scheduled, 0);
-
-        state.enable();
-        let enqueued_at = state
-            .record_scheduled_and_enqueued()
-            .expect("enabled diagnostics should record queue admission");
-        assert!(state.record_started(Some(enqueued_at)));
-        state.record_active_terminal(false, state.execution_started_at(true));
-
-        let report = state.report();
-        assert_eq!(report.scheduled, 1);
-        assert_eq!(report.completed, 1);
-        assert_eq!(report.execution_samples, 1);
-        assert!(report.execution_ms >= 0.0);
-    }
-
-    #[test]
-    fn cancelled_task_without_worker_start_has_no_execution_sample() {
-        let state = JobSchedulerDiagnosticsState::default();
-        state.enable();
-
-        assert!(state.record_scheduled());
-        state.record_cancelled(true);
-
-        let report = state.report();
-        assert_eq!(report.scheduled, 1);
-        assert_eq!(report.completed, 1);
-        assert_eq!(report.cancelled, 1);
-        assert_eq!(report.execution_samples, 0);
-        assert_eq!(report.execution_ms, 0.0);
-    }
-
-    #[test]
-    fn overlapping_diagnostic_writers_publish_one_stable_lifecycle_snapshot() {
-        let state = Arc::new(JobSchedulerDiagnosticsState::default());
-        state.enable();
-        let entered = Arc::new(Barrier::new(3));
-        let release = Arc::new(Barrier::new(3));
-        let mut writers = Vec::new();
-
-        for _ in 0..2 {
-            let state = Arc::clone(&state);
-            let entered = Arc::clone(&entered);
-            let release = Arc::clone(&release);
-            writers.push(thread::spawn(move || {
-                let shard = &state.shards[0];
-                let _update = shard.begin_update();
-                shard
-                    .scheduled
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                shard
-                    .enqueued
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                entered.wait();
-                release.wait();
-            }));
-        }
-
-        entered.wait();
-        release.wait();
-        for writer in writers {
-            writer.join().unwrap();
-        }
-
-        let report = state.report();
-        assert_eq!(report.scheduled, 2);
-        assert_eq!(report.queued, 2);
-        assert_eq!(report.dependency_waiting, 0);
-
-        let source = include_str!("diagnostics.rs");
-        assert!(source.contains("const DIAGNOSTIC_SHARD_COUNT: usize = 64"));
-        assert!(source.contains("#[repr(align(64))]"));
-    }
-}
+#[path = "diagnostics/tests.rs"]
+mod tests;

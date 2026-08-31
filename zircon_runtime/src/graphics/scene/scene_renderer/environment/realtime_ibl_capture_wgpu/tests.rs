@@ -15,6 +15,15 @@ fn realtime_capture_and_downsample_shaders_parse() {
 }
 
 #[test]
+fn realtime_source_identity_is_derived_from_capture_and_downsample_wgsl() {
+    assert_eq!(
+        REALTIME_IBL_SOURCE_SHADER_CONTENT_IDENTITY,
+        shader_source_pair_content_identity(CAPTURE_WGSL, DOWNSAMPLE_WGSL)
+    );
+    assert_ne!(REALTIME_IBL_SOURCE_SHADER_CONTENT_IDENTITY, [0; 4]);
+}
+
+#[test]
 fn capture_uniform_carries_directional_sun_without_final_sampling_parameters() {
     let mut params = ProceduralSkyParams::default_gradient();
     params.sun_direction = crate::core::math::Vec4::new(0.25, 0.5, 0.75, 0.0);
@@ -76,25 +85,43 @@ fn capture_and_downsample_bindings_pass_wgpu_validation() {
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::STORAGE_BINDING,
         view_formats: &[],
     });
-    let mip0_storage = texture.create_view(&storage_view(0));
-    let mip0_sampled = texture.create_view(&sampled_view(0));
-    let mip1_storage = texture.create_view(&storage_view(1));
+    let sampled_mips = (0..5)
+        .map(|mip_level| texture.create_view(&sampled_view(mip_level)))
+        .collect::<Vec<_>>();
+    let storage_mips = (0..5)
+        .map(|mip_level| texture.create_view(&storage_view(mip_level)))
+        .collect::<Vec<_>>();
     let pipelines = RealtimeIblCaptureWgpuPipelines::new(&device);
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-realtime-ibl-kernel-test"),
     });
     let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
 
-    pipelines.record_capture(
+    let capture_stats = pipelines.record_capture(
         &device,
         &mut encoder,
         &ProceduralSkyParams::default_gradient(),
+        false,
         16,
         CubeFaceRange::ALL,
-        &mip0_storage,
+        &storage_mips[0],
     );
-    pipelines.record_downsample_mip(&device, &mut encoder, 16, 8, &mip0_sampled, &mip1_storage);
+    let downsample_stats = pipelines
+        .record_source_mip_chain(
+            &device,
+            &mut encoder,
+            false,
+            16,
+            &sampled_mips,
+            &storage_mips,
+        )
+        .expect("paired HDR cube views should record a full source mip chain");
     queue.submit([encoder.finish()]);
+
+    assert_eq!(capture_stats.params_buffer_creations, 1);
+    assert_eq!(capture_stats.bind_group_creations, 1);
+    assert_eq!(downsample_stats.params_buffer_creations, 4);
+    assert_eq!(downsample_stats.bind_group_creations, 4);
 
     let validation_error = pollster::block_on(error_scope.pop());
     assert!(validation_error.is_none(), "{validation_error:?}");

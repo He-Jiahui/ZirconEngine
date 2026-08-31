@@ -45,7 +45,7 @@ pub(super) fn typed_messages() -> Vec<(&'static str, EditorMessage)> {
             "editor.focus",
             EditorMessage::new(EditorMessagePayload::Focus(
                 FocusMessage::SelectionChanged {
-                    domain: SelectionDomain::Scene,
+                    domain: SelectionDomain::edit_scene(),
                     revision: 13,
                 },
             )),

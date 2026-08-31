@@ -1,13 +1,15 @@
 use std::time::{Duration, Instant};
 
+use serde::ser::{SerializeSeq, SerializeStruct};
+use serde::{Serialize, Serializer};
 use zircon_runtime_interface::world_sync::{
-    InvalidationBatch, WatchRegistration, WatchToken, WorldQuery, WorldQueryResult,
+    InvalidationBatch, WatchRegistration, WatchToken, WorldFact, WorldQuery, WorldQueryResult,
 };
 use zircon_runtime_interface::{
     ZR_RUNTIME_WORLD_INVALIDATION_OUTPUT_LIMIT_V1, ZR_RUNTIME_WORLD_QUERY_OUTPUT_LIMIT_V1,
 };
 
-use super::super::bounded_json::BoundedJsonError;
+use super::super::bounded_json::{self, BoundedJsonError};
 use super::super::frame::encode_world_invalidations_payload;
 use super::RuntimeDynamicSession;
 use crate::scene::WorldQueryBudgetError;
@@ -19,8 +21,12 @@ impl RuntimeDynamicSession {
         query: WorldQuery,
     ) -> Result<WorldQueryResult, BoundedJsonError> {
         self.level
-            .with_world(|world| {
-                world.query_world_bounded(&query, ZR_RUNTIME_WORLD_QUERY_OUTPUT_LIMIT_V1)
+            .with_world_and_replacement_epoch(|world, world_replacement_epoch| {
+                world.query_world_bounded_at_replacement_epoch(
+                    &query,
+                    ZR_RUNTIME_WORLD_QUERY_OUTPUT_LIMIT_V1,
+                    world_replacement_epoch,
+                )
             })
             .map_err(|error| match error {
                 WorldQueryBudgetError::EncodedBytes { observed, limit } => {
@@ -35,6 +41,7 @@ impl RuntimeDynamicSession {
                 WorldQueryBudgetError::ProcessingTime { limit_micros } => {
                     BoundedJsonError::ProcessingTime { limit_micros }
                 }
+                WorldQueryBudgetError::ReflectValue(message) => BoundedJsonError::Json(message),
                 WorldQueryBudgetError::Json(message) => BoundedJsonError::Json(message),
             })
     }
@@ -110,37 +117,153 @@ fn reverse_pending_world_invalidations(pending: &mut [InvalidationBatch]) {
     pending.reverse();
 }
 
+struct BorrowedWorldInvalidationItems<'a, T> {
+    items: &'a [T],
+    len: usize,
+}
+
+impl<T> Serialize for BorrowedWorldInvalidationItems<'_, T>
+where
+    T: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut sequence = serializer.serialize_seq(Some(self.len))?;
+        for item in self.items.iter().rev().take(self.len) {
+            sequence.serialize_element(item)?;
+        }
+        sequence.end()
+    }
+}
+
+struct BorrowedWorldInvalidationBatch<'a> {
+    generation: u64,
+    dirty: BorrowedWorldInvalidationItems<'a, WatchToken>,
+    facts: BorrowedWorldInvalidationItems<'a, WorldFact>,
+}
+
+impl Serialize for BorrowedWorldInvalidationBatch<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let field_count = 1 + (self.dirty.len > 0) as usize + (self.facts.len > 0) as usize;
+        let mut batch = serializer.serialize_struct("InvalidationBatch", field_count)?;
+        batch.serialize_field("generation", &self.generation)?;
+        if self.dirty.len > 0 {
+            batch.serialize_field("dirty", &self.dirty)?;
+        }
+        if self.facts.len > 0 {
+            batch.serialize_field("facts", &self.facts)?;
+        }
+        batch.end()
+    }
+}
+
+struct BorrowedWorldInvalidationPage<'a> {
+    pending: &'a [InvalidationBatch],
+    max_items: usize,
+}
+
+impl<'a> BorrowedWorldInvalidationPage<'a> {
+    fn new(pending: &'a [InvalidationBatch], max_items: usize) -> Self {
+        Self { pending, max_items }
+    }
+
+    fn batches(&self) -> BorrowedWorldInvalidationBatchIter<'a> {
+        BorrowedWorldInvalidationBatchIter {
+            pending: self.pending.iter().rev(),
+            remaining_items: self.max_items,
+        }
+    }
+
+    fn item_count(&self) -> usize {
+        self.batches()
+            .map(|batch| 1 + batch.dirty.len + batch.facts.len)
+            .sum()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.max_items == 0 || self.pending.is_empty()
+    }
+}
+
+impl Serialize for BorrowedWorldInvalidationPage<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut sequence = serializer.serialize_seq(None)?;
+        for batch in self.batches() {
+            sequence.serialize_element(&batch)?;
+        }
+        sequence.end()
+    }
+}
+
+struct BorrowedWorldInvalidationBatchIter<'a> {
+    pending: std::iter::Rev<std::slice::Iter<'a, InvalidationBatch>>,
+    remaining_items: usize,
+}
+
+impl<'a> Iterator for BorrowedWorldInvalidationBatchIter<'a> {
+    type Item = BorrowedWorldInvalidationBatch<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.remaining_items == 0 {
+            return None;
+        }
+        let batch = self.pending.next()?;
+        self.remaining_items -= 1;
+        let dirty_count = batch.dirty.len().min(self.remaining_items);
+        self.remaining_items -= dirty_count;
+        let fact_count = batch.facts.len().min(self.remaining_items);
+        self.remaining_items -= fact_count;
+        if dirty_count != batch.dirty.len() || fact_count != batch.facts.len() {
+            self.remaining_items = 0;
+        }
+        Some(BorrowedWorldInvalidationBatch {
+            generation: batch.generation,
+            dirty: BorrowedWorldInvalidationItems {
+                items: &batch.dirty,
+                len: dirty_count,
+            },
+            facts: BorrowedWorldInvalidationItems {
+                items: &batch.facts,
+                len: fact_count,
+            },
+        })
+    }
+}
+
 fn build_world_invalidation_page(
     pending: &[InvalidationBatch],
     max_items: usize,
 ) -> Vec<InvalidationBatch> {
-    let mut remaining_items = max_items;
-    let mut page = Vec::new();
-    for batch in pending.iter().rev() {
-        if remaining_items == 0 {
-            break;
-        }
-        remaining_items -= 1;
-        let dirty_count = batch.dirty.len().min(remaining_items);
-        remaining_items -= dirty_count;
-        let fact_count = batch.facts.len().min(remaining_items);
-        remaining_items -= fact_count;
-        page.push(InvalidationBatch {
+    BorrowedWorldInvalidationPage::new(pending, max_items)
+        .batches()
+        .map(|batch| InvalidationBatch {
             generation: batch.generation,
             dirty: batch
                 .dirty
+                .items
                 .iter()
                 .rev()
-                .take(dirty_count)
+                .take(batch.dirty.len)
                 .copied()
                 .collect(),
-            facts: batch.facts.iter().rev().take(fact_count).cloned().collect(),
-        });
-        if dirty_count != batch.dirty.len() || fact_count != batch.facts.len() {
-            break;
-        }
-    }
-    page
+            facts: batch
+                .facts
+                .items
+                .iter()
+                .rev()
+                .take(batch.facts.len)
+                .cloned()
+                .collect(),
+        })
+        .collect()
 }
 
 fn build_largest_world_invalidation_page(
@@ -148,34 +271,58 @@ fn build_largest_world_invalidation_page(
 ) -> Result<(Vec<InvalidationBatch>, Vec<u8>), BoundedJsonError> {
     let started = Instant::now();
     let max_items = ZR_RUNTIME_WORLD_INVALIDATION_OUTPUT_LIMIT_V1.max_items;
-    let page = build_world_invalidation_page(pending, max_items);
-    match encode_world_invalidation_page_at(&page, started) {
-        Ok(bytes) => return Ok((page, bytes)),
-        Err(error) if !deterministic_world_invalidation_failure(&error) => return Err(error),
-        Err(_) => {}
-    }
-
-    let minimum_items = pending.last().map_or(1, |batch| {
-        usize::from(!batch.dirty.is_empty() || !batch.facts.is_empty()) + 1
-    });
-    let first = build_world_invalidation_page(pending, minimum_items);
-    let first_bytes = encode_world_invalidation_page_at(&first, started)?;
-    let mut best = (first, first_bytes);
-    let mut low = minimum_items.saturating_add(1);
-    let mut high = max_items;
-    while low < high {
-        let candidate = low + (high - low) / 2;
-        let page = build_world_invalidation_page(pending, candidate);
-        match encode_world_invalidation_page_at(&page, started) {
-            Ok(bytes) => {
-                best = (page, bytes);
-                low = candidate + 1;
+    let (best_items, best_bytes) =
+        match encode_borrowed_world_invalidation_page_at(pending, max_items, started) {
+            Ok(bytes) => (max_items, bytes),
+            Err(error) if !deterministic_world_invalidation_failure(&error) => return Err(error),
+            Err(_) => {
+                let minimum_items = pending.last().map_or(1, |batch| {
+                    usize::from(!batch.dirty.is_empty() || !batch.facts.is_empty()) + 1
+                });
+                let mut best_items = minimum_items;
+                let mut best_bytes =
+                    encode_borrowed_world_invalidation_page_at(pending, minimum_items, started)?;
+                let mut low = minimum_items.saturating_add(1);
+                let mut high = max_items.saturating_sub(1);
+                while low <= high {
+                    let candidate = low + (high - low) / 2;
+                    match encode_borrowed_world_invalidation_page_at(pending, candidate, started) {
+                        Ok(bytes) => {
+                            best_items = candidate;
+                            best_bytes = bytes;
+                            low = candidate.saturating_add(1);
+                        }
+                        Err(error) if deterministic_world_invalidation_failure(&error) => {
+                            high = candidate.saturating_sub(1);
+                        }
+                        Err(error) => return Err(error),
+                    }
+                }
+                (best_items, best_bytes)
             }
-            Err(error) if deterministic_world_invalidation_failure(&error) => high = candidate,
-            Err(error) => return Err(error),
-        }
-    }
-    Ok(best)
+        };
+    Ok((
+        build_world_invalidation_page(pending, best_items),
+        best_bytes,
+    ))
+}
+
+fn encode_borrowed_world_invalidation_page_at(
+    pending: &[InvalidationBatch],
+    max_items: usize,
+    started: Instant,
+) -> Result<Vec<u8>, BoundedJsonError> {
+    check_world_invalidation_encoding_deadline(started)?;
+    let page = BorrowedWorldInvalidationPage::new(pending, max_items);
+    let bytes = if page.is_empty() {
+        Ok(Vec::new())
+    } else {
+        bounded_json::encode(&page, ZR_RUNTIME_WORLD_INVALIDATION_OUTPUT_LIMIT_V1, || {
+            page.item_count()
+        })
+    }?;
+    check_world_invalidation_encoding_deadline(started)?;
+    Ok(bytes)
 }
 
 fn encode_world_invalidation_page(page: &[InvalidationBatch]) -> Result<Vec<u8>, BoundedJsonError> {
@@ -280,6 +427,35 @@ mod tests {
         assert_eq!(page, original);
         commit_world_invalidation_page(&mut pending, &page);
         assert!(pending.is_empty());
+    }
+
+    #[test]
+    fn borrowed_world_invalidation_pages_match_owned_wire_bytes() {
+        let mut pending = vec![
+            InvalidationBatch {
+                generation: 7,
+                dirty: vec![WatchToken::new(1), WatchToken::new(2)],
+                facts: vec![
+                    WorldFact::AssetReloadApplied(Default::default()),
+                    WorldFact::AssetReloadApplied(Default::default()),
+                ],
+            },
+            InvalidationBatch {
+                generation: 8,
+                dirty: vec![WatchToken::new(3), WatchToken::new(4)],
+                facts: vec![WorldFact::AssetReloadApplied(Default::default())],
+            },
+        ];
+        reverse_pending_world_invalidations(&mut pending);
+
+        for max_items in 0..=9 {
+            let owned = build_world_invalidation_page(&pending, max_items);
+            let owned_bytes = encode_world_invalidation_page(&owned).unwrap();
+            let borrowed_bytes =
+                encode_borrowed_world_invalidation_page_at(&pending, max_items, Instant::now())
+                    .unwrap();
+            assert_eq!(borrowed_bytes, owned_bytes, "max_items={max_items}");
+        }
     }
 
     #[test]

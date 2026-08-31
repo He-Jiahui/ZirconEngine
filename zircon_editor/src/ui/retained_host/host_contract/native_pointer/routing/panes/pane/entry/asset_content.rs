@@ -1,10 +1,9 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, PaneData};
 use crate::ui::workbench::asset_content_layout::{AssetContentPaintMetadata, AssetContentSurface};
 
-use super::super::super::super::{geometry::contains, PanePointerRoute, PanePointerTarget};
-
-const ACTIVITY_ASSET_SURFACE_MODE: &str = "activity";
-const BROWSER_ASSET_SURFACE_MODE: &str = "browser";
+use super::super::super::super::{
+    geometry::contains, PaneAssetSurface, PanePointerRoute, PanePointerTarget,
+};
 
 pub(super) fn route_asset_content_hit(
     pane: &PaneData,
@@ -16,12 +15,12 @@ pub(super) fn route_asset_content_hit(
         "Assets" => (
             &pane.assets_activity.nodes,
             AssetContentSurface::Activity,
-            ACTIVITY_ASSET_SURFACE_MODE,
+            PaneAssetSurface::Activity,
         ),
         "AssetBrowser" => (
             &pane.asset_browser.nodes,
             AssetContentSurface::Browser,
-            BROWSER_ASSET_SURFACE_MODE,
+            PaneAssetSurface::Browser,
         ),
         _ => return None,
     };
@@ -41,7 +40,7 @@ pub(super) fn route_asset_content_hit(
     }
 
     Some(PanePointerRoute::new(
-        PanePointerTarget::AssetContent(surface_mode.into()),
+        PanePointerTarget::AssetContent(surface_mode),
         &panel_frame,
         x,
         y,
@@ -76,6 +75,7 @@ mod tests {
                 },
                 ..TemplatePaneNodeData::default()
             }]),
+            ..AssetBrowserPaneData::default()
         };
         let body = FrameRect {
             x: 100.0,
@@ -114,6 +114,7 @@ mod tests {
                 },
                 ..TemplatePaneNodeData::default()
             }]),
+            ..AssetBrowserPaneData::default()
         };
         let body = FrameRect {
             x: 100.0,
@@ -164,6 +165,7 @@ mod tests {
                     ..TemplatePaneNodeData::default()
                 },
             ]),
+            ..AssetBrowserPaneData::default()
         };
         let body = FrameRect {
             x: 100.0,

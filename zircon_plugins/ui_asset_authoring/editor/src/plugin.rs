@@ -61,7 +61,6 @@ impl zircon_editor::EditorPlugin for UiAssetAuthoringEditorPlugin {
                     UI_ASSET_VIEW_ID,
                     "UI Asset",
                     "Assets",
-                    "Plugins/UI Asset",
                 )],
             },
         )?;
@@ -95,14 +94,11 @@ impl zircon_editor::EditorPlugin for UiAssetAuthoringEditorPlugin {
                 zircon_editor::core::editor_extension::EditorExtensionRegistryError::OperationPath,
             )?;
             registry.register_command(
-                EditorCommandDescriptor::operation(
-                    create.clone(),
-                    format!("Create {display_name}"),
-                )
-                .with_required_capabilities([CAPABILITY])
-                .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
-                    ViewDescriptorId::new(UI_ASSET_VIEW_ID),
-                ))),
+                EditorCommandDescriptor::operation(create.clone())
+                    .with_required_capabilities([CAPABILITY])
+                    .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
+                        ViewDescriptorId::new(UI_ASSET_VIEW_ID),
+                    ))),
             )?;
             registry.register_asset_type_contribution(
                 AssetTypeContribution::augment(AssetTypeId::from_resource_kind(kind))

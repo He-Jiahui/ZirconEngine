@@ -1,15 +1,20 @@
 use std::collections::{HashMap, HashSet};
-use std::mem::size_of;
 
+use std::mem::size_of;
+use unicode_script::UnicodeScript;
+
+use crate::text::language::{TextCultureSelector, TextLanguageFallbackKey};
 use crate::text::{CompositeFontDescriptor, FontFaceId, FontFamilyName, FontQuery, FontScript};
 
 use super::database::FontDatabase;
-use super::matching::dedupe_families;
+use super::matching::{
+    FontFamilyCandidateScope, ScopedFontFamilyCandidate, dedupe_scoped_families,
+};
 
 #[derive(Clone, Debug)]
 struct CompiledSubFont {
     family: FontFamilyName,
-    cultures: Vec<crate::text::FontCultureTag>,
+    cultures: Option<Vec<TextCultureSelector>>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -39,7 +44,13 @@ impl CompositeFontIndex {
             .iter()
             .map(|sub_font| CompiledSubFont {
                 family: sub_font.family.clone(),
-                cultures: sub_font.cultures.clone(),
+                cultures: (!sub_font.cultures.is_empty()).then(|| {
+                    sub_font
+                        .cultures
+                        .iter()
+                        .filter_map(|culture| TextCultureSelector::compile(culture.as_str()))
+                        .collect()
+                }),
             })
             .collect::<Vec<_>>();
         let mut scripts: HashMap<FontScript, Vec<usize>> = HashMap::new();
@@ -72,9 +83,13 @@ impl CompositeFontIndex {
                     sub_font.family.as_str().len()
                         + sub_font
                             .cultures
-                            .iter()
-                            .map(|culture| culture.as_str().len())
-                            .sum::<usize>()
+                            .as_ref()
+                            .map(|cultures| {
+                                cultures
+                                    .len()
+                                    .saturating_mul(size_of::<TextCultureSelector>())
+                            })
+                            .unwrap_or_default()
                 })
                 .sum::<usize>()
             + scripts
@@ -95,11 +110,29 @@ impl CompositeFontIndex {
         self.approximate_bytes
     }
 
+    /// Returns every culture-eligible family that a project composite can select.
+    ///
+    /// A line-metric envelope must bound future source text, so it cannot use the
+    /// script/codepoint filter that narrows normal fallback resolution.
+    pub(super) fn line_metric_envelope_families(
+        &self,
+        language: Option<TextLanguageFallbackKey>,
+    ) -> Vec<FontFamilyName> {
+        let mut families = self
+            .sub_fonts
+            .iter()
+            .filter(|sub_font| culture_matches(sub_font.cultures.as_deref(), language))
+            .map(|sub_font| sub_font.family.clone())
+            .collect::<Vec<_>>();
+        families.push(self.default_family.clone());
+        families
+    }
+
     fn matching_families(
         &self,
         script: FontScript,
         codepoints: &[char],
-        language: Option<&str>,
+        language: Option<TextLanguageFallbackKey>,
     ) -> Vec<FontFamilyName> {
         let mut matched = vec![false; self.sub_fonts.len()];
         if let Some(entries) = self.scripts.get(&script) {
@@ -110,15 +143,23 @@ impl CompositeFontIndex {
         for codepoint in codepoints {
             self.mark_range_matches(*codepoint as u32, &mut matched);
         }
-        let mut families = self
-            .sub_fonts
-            .iter()
-            .zip(matched)
-            .filter(|(sub_font, matched)| *matched && culture_matches(&sub_font.cultures, language))
-            .map(|(sub_font, _)| sub_font.family.clone())
-            .collect::<Vec<_>>();
-        families.push(self.default_family.clone());
-        families
+        let mut priority_families = Vec::new();
+        let mut generic_families = Vec::new();
+        for (sub_font, matched) in self.sub_fonts.iter().zip(matched) {
+            if !matched {
+                continue;
+            }
+            match sub_font.cultures.as_deref() {
+                None => generic_families.push(sub_font.family.clone()),
+                Some(cultures) if culture_matches(Some(cultures), language) => {
+                    priority_families.push(sub_font.family.clone());
+                }
+                Some(_) => {}
+            }
+        }
+        priority_families.extend(generic_families);
+        priority_families.push(self.default_family.clone());
+        priority_families
     }
 
     fn mark_range_matches(&self, codepoint: u32, matched: &mut [bool]) {
@@ -138,64 +179,133 @@ impl CompositeFontIndex {
     }
 }
 
+pub(super) struct ClusterFallbackCandidates {
+    pub(super) faces: Vec<FontFaceId>,
+    pub(super) coverage_probe_count: usize,
+}
+
 pub(super) fn candidate_faces_for_cluster(
     database: &FontDatabase,
     query: &FontQuery,
     composite: Option<&CompositeFontIndex>,
+    font_asset_owner: Option<&str>,
     script: FontScript,
     codepoints: &[char],
-    language: Option<&str>,
-) -> Vec<FontFaceId> {
+    language: Option<TextLanguageFallbackKey>,
+) -> ClusterFallbackCandidates {
     let Some(first_codepoint) = codepoints.first().copied() else {
-        return Vec::new();
+        return ClusterFallbackCandidates {
+            faces: Vec::new(),
+            coverage_probe_count: 0,
+        };
     };
     let mut candidates = Vec::new();
+    let mut coverage_probe_count = 0_usize;
     let mut seen = HashSet::new();
-    let families = candidate_families(composite, query, database, script, codepoints, language);
+    let families = candidate_families(
+        composite,
+        query,
+        database,
+        font_asset_owner,
+        script,
+        codepoints,
+        language,
+    );
     database.record_fallback_family_visits(families.len());
-    for family in families {
-        for face in database.family_candidates_for_codepoint(&family, query, first_codepoint) {
+    for candidate in families {
+        let (family_candidates, family_coverage_probe_count) = match font_asset_owner {
+            Some(owner) => database.font_asset_family_candidates_for_codepoint(
+                owner,
+                &candidate.family,
+                query,
+                first_codepoint,
+                candidate.scope,
+            ),
+            None => {
+                database.family_candidates_for_codepoint(&candidate.family, query, first_codepoint)
+            }
+        };
+        coverage_probe_count = coverage_probe_count.saturating_add(family_coverage_probe_count);
+        for face in family_candidates {
             if seen.insert(face) {
                 candidates.push(face);
             }
         }
     }
-    candidates
+    ClusterFallbackCandidates {
+        faces: candidates,
+        coverage_probe_count,
+    }
 }
 
 fn candidate_families(
     composite: Option<&CompositeFontIndex>,
     query: &FontQuery,
     database: &FontDatabase,
+    font_asset_owner: Option<&str>,
     script: FontScript,
     codepoints: &[char],
-    language: Option<&str>,
-) -> Vec<FontFamilyName> {
-    let mut families = composite.map_or_else(Vec::new, |composite| {
-        composite.matching_families(script, codepoints, language)
-    });
-    families.extend(query.families.iter().cloned());
-    families.extend(database.fallback_families().iter().cloned());
-    dedupe_families(families)
+    language: Option<TextLanguageFallbackKey>,
+) -> Vec<ScopedFontFamilyCandidate> {
+    let external = FontFamilyCandidateScope::OwnerThenGlobal;
+    let query_scope = if font_asset_owner.is_some() {
+        FontFamilyCandidateScope::OwnerLocalOnly
+    } else {
+        external
+    };
+    let mut families = composite
+        .map_or_else(Vec::new, |composite| {
+            composite.matching_families(script, codepoints, language)
+        })
+        .into_iter()
+        .map(|family| (family, external))
+        .collect::<Vec<_>>();
+    families.extend(
+        query
+            .families
+            .iter()
+            .cloned()
+            .map(|family| (family, query_scope)),
+    );
+    if let Some(owner) = font_asset_owner {
+        if let Some(asset_fallbacks) = database.font_asset_fallback_families(owner) {
+            families.extend(
+                asset_fallbacks
+                    .iter()
+                    .cloned()
+                    .map(|family| (family, external)),
+            );
+        }
+        families.extend(
+            database
+                .font_asset_base_fallback_families()
+                .iter()
+                .cloned()
+                .map(|family| (family, external)),
+        );
+    } else {
+        families.extend(
+            database
+                .fallback_families()
+                .iter()
+                .cloned()
+                .map(|family| (family, external)),
+        );
+    }
+    dedupe_scoped_families(families)
 }
 
-fn culture_matches(cultures: &[crate::text::FontCultureTag], language: Option<&str>) -> bool {
-    cultures.is_empty()
-        || language.is_some_and(|language| cultures.iter().any(|culture| culture.matches(language)))
+fn culture_matches(
+    cultures: Option<&[TextCultureSelector]>,
+    language: Option<TextLanguageFallbackKey>,
+) -> bool {
+    match cultures {
+        None => true,
+        Some(cultures) => language
+            .is_some_and(|language| cultures.iter().any(|culture| culture.matches(language))),
+    }
 }
 
 pub(super) fn script_for_char(codepoint: char) -> FontScript {
-    match codepoint as u32 {
-        0x0041..=0x007A | 0x00C0..=0x024F | 0x1E00..=0x1EFF => FontScript::Latin,
-        0x0370..=0x03FF | 0x1F00..=0x1FFF => FontScript::Greek,
-        0x0400..=0x052F | 0x2DE0..=0x2DFF | 0xA640..=0xA69F => FontScript::Cyrillic,
-        0x0590..=0x05FF => FontScript::Hebrew,
-        0x0600..=0x06FF | 0x0750..=0x077F | 0x08A0..=0x08FF => FontScript::Arabic,
-        0x0900..=0x097F => FontScript::Devanagari,
-        0x3040..=0x309F => FontScript::Hiragana,
-        0x30A0..=0x30FF | 0x31F0..=0x31FF => FontScript::Katakana,
-        0x3400..=0x4DBF | 0x4E00..=0x9FFF | 0xF900..=0xFAFF => FontScript::Han,
-        0xAC00..=0xD7AF | 0x1100..=0x11FF | 0x3130..=0x318F => FontScript::Hangul,
-        other => FontScript::Other(other),
-    }
+    FontScript::from_iso15924_tag(codepoint.script().short_name())
 }

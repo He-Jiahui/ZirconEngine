@@ -13,10 +13,15 @@ pub(super) fn output_transfer_input_resource(
     context: &RenderPassExecutionContext<'_>,
 ) -> &'static str {
     if context.declares_resource_name_access(
-        PostProcessGraphResourceNames::UPSCALED,
+        PostProcessGraphResourceNames::SECONDARY_UPSCALED,
         RenderGraphResourceAccessKind::Read,
     ) {
-        PostProcessGraphResourceNames::UPSCALED
+        PostProcessGraphResourceNames::SECONDARY_UPSCALED
+    } else if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::PRIMARY_UPSCALED,
+        RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::PRIMARY_UPSCALED
     } else if context.declares_resource_name_access(
         PostProcessGraphResourceNames::FINAL_COMPOSITED,
         RenderGraphResourceAccessKind::Read,
@@ -29,6 +34,11 @@ pub(super) fn output_transfer_input_resource(
 
 pub(super) fn upscale_input_resource(context: &RenderPassExecutionContext<'_>) -> &'static str {
     if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::PRIMARY_UPSCALED,
+        RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::PRIMARY_UPSCALED
+    } else if context.declares_resource_name_access(
         PostProcessGraphResourceNames::FINAL_COMPOSITED,
         RenderGraphResourceAccessKind::Read,
     ) {
@@ -51,6 +61,17 @@ pub(super) fn terminal_anti_alias_input_resource(
     }
 }
 
+pub(super) fn taa_input_resource(context: &RenderPassExecutionContext<'_>) -> &'static str {
+    if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
+        RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::DEPTH_OF_FIELDED
+    } else {
+        PostProcessGraphResourceNames::SCENE_COLOR
+    }
+}
+
 pub(super) fn bloom_input_resource(context: &RenderPassExecutionContext<'_>) -> &'static str {
     if context.declares_resource_name_access(
         PostProcessGraphResourceNames::MOTION_BLURRED,
@@ -58,15 +79,15 @@ pub(super) fn bloom_input_resource(context: &RenderPassExecutionContext<'_>) -> 
     ) {
         PostProcessGraphResourceNames::MOTION_BLURRED
     } else if context.declares_resource_name_access(
-        PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
-        RenderGraphResourceAccessKind::Read,
-    ) {
-        PostProcessGraphResourceNames::DEPTH_OF_FIELDED
-    } else if context.declares_resource_name_access(
         PostProcessGraphResourceNames::TAA_OUTPUT,
         RenderGraphResourceAccessKind::Read,
     ) {
         PostProcessGraphResourceNames::TAA_OUTPUT
+    } else if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
+        RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::DEPTH_OF_FIELDED
     } else {
         PostProcessGraphResourceNames::SCENE_COLOR
     }
@@ -90,15 +111,15 @@ pub(super) fn uber_input_resource(context: &RenderPassExecutionContext<'_>) -> &
     ) {
         PostProcessGraphResourceNames::MOTION_BLURRED
     } else if context.declares_resource_name_access(
-        PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
-        RenderGraphResourceAccessKind::Read,
-    ) {
-        PostProcessGraphResourceNames::DEPTH_OF_FIELDED
-    } else if context.declares_resource_name_access(
         PostProcessGraphResourceNames::TAA_OUTPUT,
         RenderGraphResourceAccessKind::Read,
     ) {
         PostProcessGraphResourceNames::TAA_OUTPUT
+    } else if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
+        RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::DEPTH_OF_FIELDED
     } else {
         PostProcessGraphResourceNames::SCENE_COLOR
     }
@@ -108,7 +129,8 @@ pub(super) fn uber_input_resource(context: &RenderPassExecutionContext<'_>) -> &
 mod tests {
     use super::{
         bloom_input_resource, output_transfer_input_resource, output_transfer_output_resource,
-        terminal_anti_alias_input_resource, uber_input_resource, upscale_input_resource,
+        taa_input_resource, terminal_anti_alias_input_resource, uber_input_resource,
+        upscale_input_resource,
     };
     use crate::core::framework::render::PostProcessGraphResourceNames;
     use crate::graphics::RenderPassExecutorId;
@@ -141,6 +163,43 @@ mod tests {
     }
 
     #[test]
+    fn taa_executor_reads_pre_reconstruction_depth_of_field_output_when_declared() {
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "taa-resolve",
+            RenderPassExecutorId::new("temporal.taa-resolve"),
+            QueueLane::Graphics,
+            PassFlags::default(),
+            vec![RenderGraphPassResourceAccess {
+                name: PostProcessGraphResourceNames::DEPTH_OF_FIELDED.to_string(),
+                kind: RenderGraphResourceKind::TransientTexture,
+                access: RenderGraphResourceAccessKind::Read,
+                attachment_ops: None,
+            }],
+        );
+
+        assert_eq!(
+            taa_input_resource(&context),
+            PostProcessGraphResourceNames::DEPTH_OF_FIELDED
+        );
+    }
+
+    #[test]
+    fn taa_executor_falls_back_to_scene_color_without_pre_reconstruction_effect() {
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "taa-resolve",
+            RenderPassExecutorId::new("temporal.taa-resolve"),
+            QueueLane::Graphics,
+            PassFlags::default(),
+            Vec::new(),
+        );
+
+        assert_eq!(
+            taa_input_resource(&context),
+            PostProcessGraphResourceNames::SCENE_COLOR
+        );
+    }
+
+    #[test]
     fn output_transfer_executor_defaults_to_final_color() {
         let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
             "output-transfer",
@@ -157,14 +216,14 @@ mod tests {
     }
 
     #[test]
-    fn output_transfer_executor_reads_upscaled_input_when_declared() {
+    fn output_transfer_executor_reads_secondary_upscaled_input_when_declared() {
         let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
             "output-transfer",
             RenderPassExecutorId::new("post.output-transfer"),
             QueueLane::Graphics,
             PassFlags::default(),
             vec![RenderGraphPassResourceAccess {
-                name: PostProcessGraphResourceNames::UPSCALED.to_string(),
+                name: PostProcessGraphResourceNames::SECONDARY_UPSCALED.to_string(),
                 kind: RenderGraphResourceKind::TransientTexture,
                 access: RenderGraphResourceAccessKind::Read,
                 attachment_ops: None,
@@ -173,7 +232,28 @@ mod tests {
 
         assert_eq!(
             output_transfer_input_resource(&context),
-            PostProcessGraphResourceNames::UPSCALED
+            PostProcessGraphResourceNames::SECONDARY_UPSCALED
+        );
+    }
+
+    #[test]
+    fn output_transfer_executor_reads_primary_upscaled_input_when_declared() {
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "output-transfer",
+            RenderPassExecutorId::new("post.output-transfer"),
+            QueueLane::Graphics,
+            PassFlags::default(),
+            vec![RenderGraphPassResourceAccess {
+                name: PostProcessGraphResourceNames::PRIMARY_UPSCALED.to_string(),
+                kind: RenderGraphResourceKind::TransientTexture,
+                access: RenderGraphResourceAccessKind::Read,
+                attachment_ops: None,
+            }],
+        );
+
+        assert_eq!(
+            output_transfer_input_resource(&context),
+            PostProcessGraphResourceNames::PRIMARY_UPSCALED
         );
     }
 
@@ -199,10 +279,10 @@ mod tests {
     }
 
     #[test]
-    fn upscale_executor_reads_terminal_anti_alias_result_when_declared() {
+    fn primary_upscale_executor_reads_terminal_anti_alias_result_when_declared() {
         let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
-            "upscale",
-            RenderPassExecutorId::new("post.upscale"),
+            "primary-upscale",
+            RenderPassExecutorId::new("post.primary-upscale"),
             QueueLane::Graphics,
             PassFlags::default(),
             vec![RenderGraphPassResourceAccess {
@@ -216,6 +296,27 @@ mod tests {
         assert_eq!(
             upscale_input_resource(&context),
             PostProcessGraphResourceNames::FINAL_COMPOSITED
+        );
+    }
+
+    #[test]
+    fn secondary_upscale_executor_reads_primary_upscale_result_when_declared() {
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "secondary-upscale",
+            RenderPassExecutorId::new("post.secondary-upscale"),
+            QueueLane::Graphics,
+            PassFlags::default(),
+            vec![RenderGraphPassResourceAccess {
+                name: PostProcessGraphResourceNames::PRIMARY_UPSCALED.to_string(),
+                kind: RenderGraphResourceKind::TransientTexture,
+                access: RenderGraphResourceAccessKind::Read,
+                attachment_ops: None,
+            }],
+        );
+
+        assert_eq!(
+            upscale_input_resource(&context),
+            PostProcessGraphResourceNames::PRIMARY_UPSCALED
         );
     }
 

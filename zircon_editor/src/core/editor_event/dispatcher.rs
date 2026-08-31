@@ -4,18 +4,22 @@ use crate::core::editor_event::{
 use zircon_runtime_interface::ui::binding::UiEventBinding;
 
 pub trait EditorEventDispatcher {
-    fn dispatch_envelope(&self, envelope: EditorEventEnvelope)
-        -> Result<EditorEventRecord, String>;
+    type Error: std::error::Error + 'static;
+
+    fn dispatch_envelope(
+        &self,
+        envelope: EditorEventEnvelope,
+    ) -> Result<EditorEventRecord, Self::Error>;
 
     fn dispatch_binding(
         &self,
         binding: UiEventBinding,
         source: EditorEventSource,
-    ) -> Result<EditorEventRecord, String>;
+    ) -> Result<EditorEventRecord, Self::Error>;
 
     fn dispatch_event(
         &self,
         source: EditorEventSource,
         event: EditorEvent,
-    ) -> Result<EditorEventRecord, String>;
+    ) -> Result<EditorEventRecord, Self::Error>;
 }

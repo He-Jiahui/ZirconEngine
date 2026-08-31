@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use crate::core::framework::render::RenderImageDescriptor;
+use crate::core::framework::render::{RenderFrameSubmissionTransaction, RenderImageDescriptor};
 use crate::core::resource::ResourceId;
+use crate::graphics::backend::RenderBackend;
 use crate::graphics::types::GraphicsError;
 
 use super::super::PostProcessLutTextureResource;
@@ -25,11 +26,11 @@ impl IrradianceVolumeTextureBinding {
 impl ResourceStreamer {
     pub(crate) fn ensure_irradiance_volume_texture(
         &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        backend: &RenderBackend,
         id: ResourceId,
+        submission_transaction: &mut RenderFrameSubmissionTransaction,
     ) -> Result<(), GraphicsError> {
-        self.ensure_post_process_lut_texture(device, queue, id)
+        self.ensure_post_process_lut_texture(backend, id, submission_transaction)
     }
 
     pub(crate) fn irradiance_volume_texture(

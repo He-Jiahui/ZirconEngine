@@ -32,6 +32,11 @@ pub enum RenderMaterialValidationError {
         expected: RenderMaterialTextureDimension,
         actual: RenderMaterialTextureDimension,
     },
+    UnsupportedTextureUvChannel {
+        slot: String,
+        channel: u32,
+        supported_channel_count: u32,
+    },
     InvalidLightingModel {
         path: String,
         value: String,

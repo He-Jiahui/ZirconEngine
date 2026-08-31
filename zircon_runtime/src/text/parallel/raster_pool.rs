@@ -1,13 +1,13 @@
 //! Worker queue for CPU glyph rasterization.
 
-use crossbeam_channel::{bounded, TrySendError};
+use crossbeam_channel::{TrySendError, bounded};
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
 
 use crate::core::framework::channel::{ChannelReceiver, ChannelSender};
-use crate::core::runtime::tasks::{spawn_named_thread, TaskPoolOptions};
+use crate::core::runtime::tasks::{TaskPoolOptions, spawn_named_thread};
 use crate::core::{CoreError, CoreResult};
 use crate::text::raster::{GlyphBitmap, SwashRasterError, SwashRasterRequest, SwashRasterizer};
 
@@ -17,12 +17,12 @@ mod diagnostics;
 mod worker;
 
 pub(crate) use diagnostics::{
-    TextRasterThreadBudgetSource, TextRasterWorkerPoolDiagnostics,
-    TextRasterWorkerPoolFrameDiagnostics, TextRasterWorkerPoolFrameSampler,
     TEXT_RASTER_WORKER_BUDGETED_THREADS_DIAGNOSTIC, TEXT_RASTER_WORKER_COMPLETED_DIAGNOSTIC,
     TEXT_RASTER_WORKER_FRAME_COMPLETED_DIAGNOSTIC, TEXT_RASTER_WORKER_FRAME_FAILED_DIAGNOSTIC,
     TEXT_RASTER_WORKER_IN_FLIGHT_DIAGNOSTIC, TEXT_RASTER_WORKER_QUEUED_DIAGNOSTIC,
-    TEXT_RASTER_WORKER_RUNNING_DIAGNOSTIC,
+    TEXT_RASTER_WORKER_RUNNING_DIAGNOSTIC, TextRasterThreadBudgetSource,
+    TextRasterWorkerPoolDiagnostics, TextRasterWorkerPoolFrameDiagnostics,
+    TextRasterWorkerPoolFrameSampler,
 };
 
 const TEXT_RASTER_WORKER_QUEUE_DEPTH_PER_THREAD: usize = 64;

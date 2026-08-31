@@ -20,13 +20,23 @@ tests:
 
 This product-level integration test renders the standard 8x8 metallic/smoothness matrix through `SceneRenderer` with a procedural sky.
 
-The ignored export first renders one complete real-time IBL publication. It then changes the procedural sky bake identity and renders the same snapshot for 16 compute frames, matching the scheduler's twelve-state, sixteen-frame update sequence. A seventeenth presentation-only frame samples the newly published ready slot and is saved only below `docs/tests/runtime/shader`.
+The ignored export first renders one complete real-time IBL publication. It then changes the procedural sky bake identity and renders the same snapshot for 21 compute frames: three sky-capture batches, seven source-mip batches, ten PMREM batches, and one terminal `ProjectDiffuseSh9` batch. A twenty-second presentation-only frame samples the newly published ready slot and is saved only below `docs/tests/runtime/shader`.
 
-The CPU companion record reports wall time for the initial full update and each sliced update frame. The GPU record comes from production WGPU timestamp queries around the realtime IBL command batch; it reports the complete publication and all sixteen sliced batches independently from CPU submission and polling time.
+The CPU companion record reports wall time for the initial full update and each sliced update frame. The GPU record comes from production WGPU timestamp queries around the realtime IBL command batch; it reports the complete publication and all 21 sliced batches independently from CPU submission and polling time. The two generations therefore provide 42 timestamp samples when the product export runs successfully.
 
 The product gate also compares the heaviest sliced GPU batch with the initial complete publication. A sliced batch must remain below 75% of the full update, preventing the final SH9 state from silently serializing the complete projection and recreating a frame-time spike.
 
-Setting `ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9=1` wraps only the sixteenth update frame in the graphics-debugger capture API. That frame owns state 11, `ProjectDiffuseSh9`, and publication, so a resulting RDC cannot be mistaken for a capture of an unrelated presentation frame.
+Setting `ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9=1` wraps only the twenty-first update batch in the graphics-debugger capture API. That batch owns terminal `ProjectDiffuseSh9` and publication, so a resulting RDC cannot be mistaken for a capture of an unrelated presentation frame.
+
+The dated evidence sections below are historical 16-batch baselines. They remain useful for regression context but do not attest the current 21-batch product contract; a current screenshot, timing report, and RDC are required for that claim.
+
+## External glTF zero-roughness acceptance launch
+
+`export_realtime_ibl_external_gltf_zero_roughness_mirror_png` is the current-source product fixture for the glTF `roughnessFactor = 0` path. It creates its project only under `docs/tests/runtime/shader/.work`, writes its PNG and per-slice GPU timestamp sidecar below `docs/tests/runtime/shader`, and arms RenderDoc only for terminal `ProjectDiffuseSh9` when `ZR_RENDERDOC_CAPTURE_GLTF_ZERO_ROUGHNESS_FINAL_SH9=1`.
+
+Run it only through the coordinator-managed Windows validation owner. When a capture is authorized, launch the managed Cargo child through the locally installed `D:\Tools\renderdoc\renderdoccmd.exe capture` with `--working-dir E:\Git\ZirconEngine`, `--capture-file E:\Git\ZirconEngine\docs\tests\runtime\shader\runtime_shader_pbr_realtime_ibl_external_gltf_zero_roughness_mirror_current_source`, `--wait-for-exit`, and `--opt-hook-children`; set `ZR_RENDERDOC_CAPTURE_GLTF_ZERO_ROUGHNESS_FINAL_SH9=1` in the child environment and execute the exact ignored test `gltf_zero_roughness::export_realtime_ibl_external_gltf_zero_roughness_mirror_png`. RenderDoc appends the frame suffix and `.rdc` itself. This launch contract keeps the capture on E: and prevents generic startup captures from being accepted as the terminal SH9 evidence.
+
+This fixture and its launch recipe are source-level readiness only until the managed run produces fresh PNG, TXT, and replayable RDC evidence.
 
 ## Render graph lifetime regression
 

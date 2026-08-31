@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::time::Instant;
 
 use zircon_runtime::asset::AssetUri;
 
@@ -19,7 +20,6 @@ pub(super) struct ImportFlight {
     uri: Arc<AssetUri>,
     reasons: Arc<SharedImportReasons>,
     admission: Mutex<Option<ImportAdmission>>,
-    admitted: Condvar,
     result: Mutex<Option<Result<EditorAssetImportResult, JobError>>>,
     completed: Condvar,
 }
@@ -32,7 +32,6 @@ impl ImportFlight {
             uri,
             reasons,
             admission: Mutex::new(None),
-            admitted: Condvar::new(),
             result: Mutex::new(None),
             completed: Condvar::new(),
         }
@@ -59,24 +58,14 @@ impl ImportFlight {
             return false;
         }
         *slot = Some(admission);
-        self.admitted.notify_all();
         true
     }
 
-    pub(super) fn wait_admission(&self) -> ImportAdmission {
-        let mut admission = self
-            .admission
+    pub(super) fn try_admission(&self) -> Option<ImportAdmission> {
+        self.admission
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        loop {
-            if let Some(admission) = admission.as_ref() {
-                return admission.clone();
-            }
-            admission = self
-                .admitted
-                .wait(admission)
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-        }
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
     }
 
     pub(super) fn complete(&self, result: Result<EditorAssetImportResult, JobError>) -> bool {
@@ -93,16 +82,21 @@ impl ImportFlight {
         self.lock_result().clone()
     }
 
-    pub(super) fn wait(&self) -> Result<EditorAssetImportResult, JobError> {
+    pub(super) fn wait_until(
+        &self,
+        deadline: Instant,
+    ) -> Option<Result<EditorAssetImportResult, JobError>> {
         let mut result = self.lock_result();
         loop {
             if let Some(result) = result.as_ref() {
-                return result.clone();
+                return Some(result.clone());
             }
-            result = self
+            let remaining = deadline.checked_duration_since(Instant::now())?;
+            let (next, _) = self
                 .completed
-                .wait(result)
+                .wait_timeout(result, remaining)
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
+            result = next;
         }
     }
 

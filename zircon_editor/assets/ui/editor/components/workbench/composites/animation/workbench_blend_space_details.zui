@@ -20,10 +20,11 @@ root = "root"
 default_classes = ["workbench-blend-space-details", "workbench-composite"]
 
 [nodes.root]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchBlendSpaceDetailsRoot"
 classes = ["workbench-blend-space-details"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.xsmall", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "samples_title" }, { node = "run_forward" }, { node = "strafe_left" }, { node = "strafe_right" }, { node = "idle" }, { node = "axes_title" }, { node = "horizontal_axis" }, { node = "vertical_axis" }, { node = "grid_divisions" }, { node = "sample_title" }, { node = "asset_row" }, { node = "x_axis_row" }, { node = "interpolation_row" }, { node = "sample_position" }, { node = "rate_scale" }, { node = "fill" }]
 
 [nodes.samples_title]
@@ -105,7 +106,7 @@ children = [{ node = "asset", slot = { name = "value" } }]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionBlendSpaceAssetDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "BS_Locomotion", value = "BS_Locomotion", options = ["BS_Locomotion", "BS_Strafe", "BS_SprintLean"] }
+props = { value_text = "BS_Locomotion", value = "BS_Locomotion", options = ["BS_Locomotion", "BS_Idle_Run", "BS_Strafe_Grid", "BS_Sprint_Lean"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/BlendSpaceAssetEdit", event = "Change", route = "workbench.extension.blend_space.asset.edit" },
@@ -141,7 +142,7 @@ children = [{ node = "interpolation", slot = { name = "value" } }]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionBlendSpaceInterpolationDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Triangulated", value = "Triangulated", options = ["Triangulated", "Grid", "Weighted"] }
+props = { value_text = "Triangulated", value = "Triangulated", options = ["Triangulated", "Grid", "Weighted"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/BlendSpaceInterpolationEdit", event = "Change", route = "workbench.extension.blend_space.interpolation.edit" },

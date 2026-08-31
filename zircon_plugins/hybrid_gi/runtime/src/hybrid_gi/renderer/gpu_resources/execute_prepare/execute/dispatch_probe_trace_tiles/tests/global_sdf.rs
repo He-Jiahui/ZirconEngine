@@ -14,6 +14,9 @@ use zircon_runtime::core::framework::render::{
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+use zircon_runtime::graphics::{
+    RenderPassBufferUploadSink, RuntimePrepareFrameTransactionRecorder,
+};
 
 use crate::hybrid_gi::scene_representation::{
     HybridGiGlobalSdfSceneState, HybridGiMeshSdfAssetState, HybridGiMeshSdfMaterialFlags,
@@ -25,6 +28,14 @@ use super::*;
 const GLOBAL_SDF_TRACE_WGPU_PNG: &str = "plan18_hybrid_gi_m5_global_sdf_trace_wgpu_20260810.png";
 const MATRIX_CELL_SIDE: u32 = 32;
 const MATRIX_SIDE: u32 = MATRIX_CELL_SIDE * 4;
+
+struct QueueUploadSink<'a>(&'a wgpu::Queue);
+
+impl RenderPassBufferUploadSink for QueueUploadSink<'_> {
+    fn write_buffer(&mut self, buffer: &wgpu::Buffer, offset: u64, bytes: &[u8]) {
+        self.0.write_buffer(buffer, offset, bytes);
+    }
+}
 
 #[test]
 fn trace_probe_tiles_pipeline_keeps_diagnostics_entrypoint_in_the_output_owner() {
@@ -273,8 +284,15 @@ fn export_hybrid_gi_m5_global_sdf_trace_wgpu_png() {
     let pipeline = create_probe_trace_tile_dispatch_pipeline(&device, &bind_group_layout);
     let fallback_surface_cache = create_probe_trace_tile_fallback_surface_cache_textures(&device);
     let (global_sdf_state, global_sdf_scene_state) = build_sphere_global_sdf(&device, &queue, 1.25);
-    let global_sdf_bindings =
-        global_sdf_state.create_trace_bindings(&queue, &global_sdf_scene_state);
+    let mut upload_sink = QueueUploadSink(&queue);
+    let mut frame_transactions = Vec::new();
+    let mut frame_transaction_recorder =
+        RuntimePrepareFrameTransactionRecorder::new(&mut frame_transactions);
+    let global_sdf_bindings = global_sdf_state.create_trace_bindings(
+        &mut upload_sink,
+        &mut frame_transaction_recorder,
+        &global_sdf_scene_state,
+    );
     assert_eq!(global_sdf_bindings.page_count, 1);
     let mut samples = [0_u32; 16];
     for (tile_sample_id, sample) in samples.iter_mut().enumerate() {

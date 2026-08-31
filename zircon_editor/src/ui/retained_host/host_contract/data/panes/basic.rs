@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
+use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
+
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
+use crate::ui::workbench::snapshot::ConsoleOutputSnapshot;
 
 use super::super::TemplatePaneNodeData;
 
@@ -19,17 +22,19 @@ pub(crate) struct ProjectOverviewData {
 #[derive(Clone, Default)]
 pub(crate) struct ConsolePaneData {
     pub nodes: ModelRc<TemplatePaneNodeData>,
-    pub status_text: Arc<str>,
+    pub output: ConsoleOutputSnapshot,
 }
 
 #[derive(Clone, Default)]
 pub(crate) struct AssetsActivityPaneData {
     pub nodes: ModelRc<TemplatePaneNodeData>,
+    pub render_source_frame: Option<Arc<UiSurfaceFrame>>,
 }
 
 #[derive(Clone, Default)]
 pub(crate) struct AssetBrowserPaneData {
     pub nodes: ModelRc<TemplatePaneNodeData>,
+    pub render_source_frame: Option<Arc<UiSurfaceFrame>>,
 }
 
 #[derive(Clone, Default)]

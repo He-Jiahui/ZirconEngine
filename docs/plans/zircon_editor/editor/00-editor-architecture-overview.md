@@ -5,7 +5,7 @@ related_code:
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/core/editor_event/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
 reference_sources:
   - dev/Fyrox/editor/src/lib.rs
   - dev/godot/editor/editor_node.h

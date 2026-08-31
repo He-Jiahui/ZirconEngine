@@ -6,15 +6,15 @@ use zircon_runtime::core::framework::render::{
 };
 use zircon_runtime::graphics::{
     GraphicsError, RuntimeGpuReadback, RuntimePrepareCollector, RuntimePrepareCollectorContext,
-    RuntimePrepareCollectorRegistration,
+    RuntimePrepareCollectorRegistration, RuntimePrepareFrameTransaction,
 };
 
 use crate::ParticlesManager;
 
 use super::gpu::{
-    ParticleGpuCounterReadback, ParticleGpuRuntimeBufferBindings, ParticleGpuRuntimeOwnerHandle,
     PARTICLE_GPU_COUNTER_WORDS_BASE, PARTICLE_GPU_INDIRECT_DRAW_WORDS, PARTICLE_GPU_MAX_PARTICLES,
-    PARTICLE_GPU_NEUTRAL_MAX_EMITTERS,
+    PARTICLE_GPU_NEUTRAL_MAX_EMITTERS, ParticleGpuCounterReadback,
+    ParticleGpuRuntimeBufferBindings, ParticleGpuRuntimeOwnerHandle,
 };
 
 const COLLECTOR_ID: &str = "particles.runtime-prepare";
@@ -57,7 +57,7 @@ pub fn particle_runtime_prepare_collector_registration_with_manager_and_owner(
 struct ParticleRuntimePrepareCollector {
     manager: ParticlesManager,
     runtime_owner: ParticleGpuRuntimeOwnerHandle,
-    pending_readbacks: Mutex<VecDeque<ParticleGpuSharedReadback>>,
+    pending_readbacks: Arc<Mutex<VecDeque<ParticleGpuSharedReadback>>>,
 }
 
 struct NeutralParticleRuntimePrepareCollector {
@@ -78,12 +78,16 @@ impl ParticleRuntimePrepareCollector {
         Self {
             manager,
             runtime_owner,
-            pending_readbacks: Mutex::new(VecDeque::new()),
+            pending_readbacks: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
 }
 
 impl RuntimePrepareCollector for ParticleRuntimePrepareCollector {
+    fn requests_gpu_readback(&self) -> bool {
+        true
+    }
+
     fn collect(
         &self,
         context: &mut RuntimePrepareCollectorContext<'_>,
@@ -104,19 +108,23 @@ fn collect_neutral_particle_gpu_runtime_prepare(
     let mut owner = runtime_owner
         .lock()
         .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+    owner.activate_device_epoch(context.device_epoch());
     owner.deactivate();
     let Some(frame) = context.frame_extract().particles.gpu_frame.as_ref() else {
         return Ok(RenderPluginRendererOutputs::default());
     };
 
-    if let Some(bindings) =
-        owner.prepare_neutral_frame(context.device, context.queue, context.encoder, frame)
-    {
+    let bindings = {
+        let gpu = context.gpu_recording_context();
+        owner.prepare_neutral_frame(gpu.device, frame)
+    };
+    let particles = neutral_readback_outputs_from_frame(frame);
+    if let Some(bindings) = bindings {
         register_neutral_particle_external_buffers(context, bindings);
     }
 
     Ok(RenderPluginRendererOutputs {
-        particles: neutral_readback_outputs_from_frame(frame),
+        particles,
         ..RenderPluginRendererOutputs::default()
     })
 }
@@ -125,8 +133,18 @@ fn collect_real_particle_gpu_runtime_prepare(
     context: &mut RuntimePrepareCollectorContext<'_>,
     manager: &ParticlesManager,
     runtime_owner: &ParticleGpuRuntimeOwnerHandle,
-    pending_readbacks: &Mutex<VecDeque<ParticleGpuSharedReadback>>,
+    pending_readbacks: &Arc<Mutex<VecDeque<ParticleGpuSharedReadback>>>,
 ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
+    let device_epoch_changed = runtime_owner
+        .lock()
+        .map_err(|error| GraphicsError::Asset(error.to_string()))?
+        .activate_device_epoch(context.device_epoch());
+    if device_epoch_changed {
+        pending_readbacks
+            .lock()
+            .map_err(|_| GraphicsError::BufferMap("particle readback queue lock poisoned".into()))?
+            .clear();
+    }
     let instances = manager.gpu_runtime_instances();
     if instances.is_empty() {
         pending_readbacks
@@ -137,7 +155,12 @@ fn collect_real_particle_gpu_runtime_prepare(
     }
 
     let completed_outputs = take_completed_particle_readback(pending_readbacks)?;
-    if !context.gpu_work_admitted() {
+    let readback_capacity_available = pending_readbacks
+        .lock()
+        .map_err(|_| GraphicsError::BufferMap("particle readback queue lock poisoned".into()))?
+        .len()
+        < RuntimePrepareCollectorContext::MAX_IN_FLIGHT_GPU_READBACK_FRAMES;
+    if !context.gpu_work_admitted() || !readback_capacity_available {
         let owner = runtime_owner
             .lock()
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
@@ -152,23 +175,57 @@ fn collect_real_particle_gpu_runtime_prepare(
     let mut owner = runtime_owner
         .lock()
         .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-    let Some(frame) = owner
-        .execute_instances(context.device, context.queue, context.encoder, &instances)
-        .map_err(|error| GraphicsError::Asset(error.to_string()))?
-    else {
+    let frame = {
+        let gpu = context.gpu_recording_context();
+        let zircon_runtime::graphics::RuntimePrepareGpuRecordingContext {
+            device,
+            device_epoch: _,
+            encoder,
+            mut buffer_uploads,
+            frame_transactions: _,
+        } = gpu;
+        owner
+            .execute_instances(device, &mut buffer_uploads, encoder, &instances)
+            .map_err(|error| GraphicsError::Asset(error.to_string()))?
+    };
+    let Some(frame) = frame else {
         return Ok(RenderPluginRendererOutputs::default());
     };
+    let transaction_id = frame.transaction_id();
+    context.register_frame_transaction(RuntimePrepareFrameTransaction::new(
+        "particles.gpu.runtime-frame",
+        {
+            let runtime_owner = runtime_owner.clone();
+            move || runtime_owner.commit_frame_transaction(transaction_id)
+        },
+        {
+            let runtime_owner = runtime_owner.clone();
+            move || runtime_owner.rollback_frame_transaction(transaction_id)
+        },
+    ));
 
     let fallback_outputs = frame.outputs;
     let bindings = owner
         .active_bindings()
         .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-    enqueue_particle_readback(
+    let pending_readback = enqueue_particle_readback(
         context,
         &bindings,
         fallback_outputs.per_emitter_spawned.len() as u32,
-        pending_readbacks,
     )?;
+    context.register_frame_transaction(RuntimePrepareFrameTransaction::new(
+        "particles.gpu.readback",
+        {
+            let pending_readbacks = Arc::clone(pending_readbacks);
+            move || {
+                pending_readbacks
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .push_back(pending_readback);
+            }
+        },
+        || {},
+    ));
     register_real_particle_external_buffers(context, bindings);
 
     Ok(RenderPluginRendererOutputs {
@@ -215,8 +272,7 @@ fn enqueue_particle_readback(
     context: &mut RuntimePrepareCollectorContext<'_>,
     bindings: &ParticleGpuRuntimeBufferBindings<'_>,
     emitter_count: u32,
-    pending_readbacks: &Mutex<VecDeque<ParticleGpuSharedReadback>>,
-) -> Result<(), GraphicsError> {
+) -> Result<ParticleGpuSharedReadback, GraphicsError> {
     let counter_words = PARTICLE_GPU_COUNTER_WORDS_BASE + emitter_count;
     let counters = context.request_gpu_readback(
         "particles.counters",
@@ -228,15 +284,11 @@ fn enqueue_particle_readback(
         bindings.indirect_draw_args,
         0..u64::from(PARTICLE_GPU_INDIRECT_DRAW_WORDS) * std::mem::size_of::<u32>() as u64,
     )?;
-    pending_readbacks
-        .lock()
-        .map_err(|_| GraphicsError::BufferMap("particle readback queue lock poisoned".into()))?
-        .push_back(ParticleGpuSharedReadback {
-            emitter_count,
-            counters,
-            indirect_draw_args,
-        });
-    Ok(())
+    Ok(ParticleGpuSharedReadback {
+        emitter_count,
+        counters,
+        indirect_draw_args,
+    })
 }
 
 fn take_completed_particle_readback(
@@ -416,7 +468,7 @@ mod tests {
     }
 
     #[test]
-    fn neutral_readback_never_exceeds_the_neutral_gpu_buffer_budget() {
+    fn neutral_readback_never_exceeds_the_cpu_projection_bounds() {
         let frame = RenderParticleGpuFrameExtract {
             alive_count: PARTICLE_GPU_MAX_PARTICLES + 1,
             spawned_total: PARTICLE_GPU_MAX_PARTICLES + 2,
@@ -457,14 +509,52 @@ mod tests {
     }
 
     #[test]
+    fn neutral_runtime_prepare_splits_frame_from_mutable_context_borrows() {
+        let source = include_str!("runtime_prepare.rs")
+            .split("\n#[cfg(test)]")
+            .next()
+            .unwrap_or_default();
+        let start = source
+            .find("fn collect_neutral_particle_gpu_runtime_prepare")
+            .expect("neutral collector must remain present");
+        let end = source[start..]
+            .find("fn collect_real_particle_gpu_runtime_prepare")
+            .map(|offset| start + offset)
+            .expect("real collector must follow the neutral collector");
+        let neutral = &source[start..end];
+
+        assert!(neutral.contains("context.frame_extract()"));
+        assert!(neutral.contains("context.gpu_recording_context()"));
+        assert!(!neutral.contains("context.frame_extract;"));
+        assert!(!neutral.contains("context.device"));
+        assert!(!neutral.contains("context.queue"));
+        assert!(!neutral.contains("context.encoder"));
+        let outputs = neutral
+            .find("let particles = neutral_readback_outputs_from_frame(frame);")
+            .expect("bounded outputs must be materialized before mutating context bindings");
+        let registration = neutral
+            .find("register_neutral_particle_external_buffers(context, bindings);")
+            .expect("neutral backing bindings must still be registered");
+        assert!(outputs < registration);
+    }
+
+    #[test]
     fn readback_capacity_degradation_reuses_an_executed_backend_before_compute() {
         let source = include_str!("runtime_prepare.rs");
-        let admission_gate = ["if !context.", "gpu_work_admitted() {"].concat();
+        let capacity_check = "let readback_capacity_available = pending_readbacks";
+        let admission_gate = [
+            "if !context.",
+            "gpu_work_admitted() || !readback_capacity_available {",
+        ]
+        .concat();
         let retained_bindings = ["owner.", "active_bindings()"].concat();
         let compute_execution = ["owner\n        .", "execute_instances("].concat();
+        let capacity_check = source
+            .find(capacity_check)
+            .expect("particle runtime prepare must retain a local in-flight readback bound");
         let admission_gate = source
             .find(&admission_gate)
-            .expect("particle runtime prepare must guard new GPU work on readback admission");
+            .expect("particle runtime prepare must guard work on admission and local capacity");
         let retained_bindings = source[admission_gate..]
             .find(&retained_bindings)
             .map(|offset| admission_gate + offset)
@@ -473,7 +563,90 @@ mod tests {
             .find(&compute_execution)
             .expect("particle runtime prepare must retain its GPU compute path");
 
+        assert!(capacity_check < admission_gate);
         assert!(admission_gate < retained_bindings);
         assert!(retained_bindings < compute_execution);
+        assert!(
+            source[capacity_check..admission_gate]
+                .contains("RuntimePrepareCollectorContext::MAX_IN_FLIGHT_GPU_READBACK_FRAMES")
+        );
+    }
+
+    #[test]
+    fn real_runtime_prepare_uses_queue_free_uploads_and_registers_rollback_before_readback() {
+        let source = include_str!("runtime_prepare.rs")
+            .split("\n#[cfg(test)]")
+            .next()
+            .unwrap_or_default();
+        let real_start = source
+            .find("fn collect_real_particle_gpu_runtime_prepare")
+            .expect("real particle collector");
+        let real = &source[real_start..];
+        let recording = real
+            .find("context.gpu_recording_context()")
+            .expect("queue-free runtime prepare recording context");
+        let transaction = real
+            .find("context.register_frame_transaction(")
+            .expect("particle prepared state transaction");
+        let readback = real
+            .find("enqueue_particle_readback(")
+            .expect("particle readback registration");
+
+        assert!(!real.contains("context.queue"));
+        assert!(!real.contains("context.device"));
+        assert!(!real.contains("context.encoder"));
+        assert!(recording < transaction);
+        assert!(transaction < readback);
+        let readback_publish = real[readback..]
+            .find("\"particles.gpu.readback\"")
+            .map(|offset| readback + offset)
+            .expect("particle readback must publish with the accepted frame");
+        assert!(readback < readback_publish);
+        assert_eq!(
+            real.matches("context.register_frame_transaction(").count(),
+            2
+        );
+        let enqueue = &real[readback..readback_publish];
+        assert!(!enqueue.contains("push_back"));
+        assert!(real[readback_publish..].contains(".push_back(pending_readback);"));
+    }
+
+    #[test]
+    fn device_epoch_is_activated_before_particle_early_returns_and_old_readbacks() {
+        let source = include_str!("runtime_prepare.rs")
+            .split("\n#[cfg(test)]")
+            .next()
+            .unwrap_or_default();
+        let neutral_start = source
+            .find("fn collect_neutral_particle_gpu_runtime_prepare")
+            .expect("neutral particle collector");
+        let real_start = source
+            .find("fn collect_real_particle_gpu_runtime_prepare")
+            .expect("real particle collector");
+        let neutral = &source[neutral_start..real_start];
+        let real = &source[real_start..];
+
+        assert!(
+            neutral
+                .find("owner.activate_device_epoch(context.device_epoch())")
+                .expect("neutral owner epoch activation")
+                < neutral
+                    .find("owner.deactivate()")
+                    .expect("neutral deactivation")
+        );
+        let activation = real
+            .find(".activate_device_epoch(context.device_epoch())")
+            .expect("real owner epoch activation");
+        let completed_readback = real
+            .find("take_completed_particle_readback(pending_readbacks)")
+            .expect("completed readback consumption");
+        let admission = real
+            .find("if !context.gpu_work_admitted()")
+            .expect("GPU admission early return");
+
+        assert!(activation < completed_readback);
+        assert!(completed_readback < admission);
+        assert!(real[activation..completed_readback].contains("if device_epoch_changed"));
+        assert!(real[activation..completed_readback].contains(".clear();"));
     }
 }

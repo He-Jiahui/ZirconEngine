@@ -1,8 +1,13 @@
 use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::{
-    ActivityDrawerMode, DocumentNode, LayoutManager, MainHostPageLayout, WorkbenchLayout,
+    ActivityDrawerMode, DocumentNode, LayoutManager, MainHostPageLayout, MainPageId,
+    WorkbenchLayout,
 };
+
+fn active_main_page_differs(active: &MainPageId, candidate: &MainPageId) -> bool {
+    active != candidate
+}
 
 impl LayoutManager {
     pub(crate) fn focus_instance(
@@ -10,9 +15,6 @@ impl LayoutManager {
         layout: &mut WorkbenchLayout,
         instance_id: &ViewInstanceId,
     ) -> bool {
-        if layout.activity_windows.is_empty() {
-            layout.default_activity_window_mut();
-        }
         let mut focused_activity_window = None;
         for (activity_window_id, activity_window) in layout.activity_windows.iter_mut() {
             let target_slot = activity_window
@@ -24,12 +26,10 @@ impl LayoutManager {
             let Some(target_slot) = target_slot else {
                 continue;
             };
-            let mut changed = activity_window.collapse_drawer_region_siblings(target_slot);
-            let drawer = activity_window
-                .activity_drawers
-                .get_mut(&target_slot)
-                .expect("located drawer must remain present");
-            changed |= drawer.tab_stack.active_tab.as_ref() != Some(instance_id)
+            let Some(drawer) = activity_window.activity_drawers.get_mut(&target_slot) else {
+                continue;
+            };
+            let mut changed = drawer.tab_stack.active_tab.as_ref() != Some(instance_id)
                 || drawer.active_view.as_ref() != Some(instance_id)
                 || drawer.mode == ActivityDrawerMode::Collapsed;
             drawer.tab_stack.active_tab = Some(instance_id.clone());
@@ -37,6 +37,7 @@ impl LayoutManager {
             if drawer.mode == ActivityDrawerMode::Collapsed {
                 drawer.mode = ActivityDrawerMode::Pinned;
             }
+            changed |= activity_window.collapse_drawer_region_siblings(target_slot);
             focused_activity_window = Some((activity_window_id.clone(), changed));
             break;
         }
@@ -50,24 +51,34 @@ impl LayoutManager {
             return changed;
         }
 
-        for page in &mut layout.main_pages {
-            if let Some(workspace) = page.document_workspace_mut() {
-                if let Some(mut changed) = Self::focus_in_document_node(workspace, instance_id) {
-                    let page_id = page.id().clone();
-                    changed |= layout.active_main_page != page_id;
-                    if changed {
-                        layout.active_main_page = page_id;
-                    }
-                    return changed;
+        let mut focused_content_window = None;
+        for (activity_window_id, activity_window) in &mut layout.activity_windows {
+            if let Some(changed) =
+                Self::focus_in_document_node(&mut activity_window.content_workspace, instance_id)
+            {
+                focused_content_window = Some((activity_window_id.clone(), changed));
+                break;
+            }
+        }
+        if let Some((activity_window_id, mut changed)) = focused_content_window {
+            if let Some(page_id) = layout.page_id_for_activity_window(&activity_window_id) {
+                changed |= layout.active_main_page != page_id;
+                if changed {
+                    layout.active_main_page = page_id;
                 }
-            } else if let MainHostPageLayout::ExclusiveActivityWindowPage {
+            }
+            return changed;
+        }
+
+        for page in &layout.main_pages {
+            if let MainHostPageLayout::ExclusiveActivityWindowPage {
                 id,
                 window_instance,
                 ..
             } = page
             {
                 if window_instance == instance_id {
-                    let changed = layout.active_main_page != id.clone();
+                    let changed = active_main_page_differs(&layout.active_main_page, id);
                     if changed {
                         layout.active_main_page = id.clone();
                     }
@@ -110,5 +121,25 @@ impl LayoutManager {
                     .or_else(|| Self::focus_in_document_node(second, instance_id))
             }
         }
+    }
+}
+
+#[cfg(test)]
+#[path = "focus/borrowed_exclusive_page_comparison_tests.rs"]
+mod borrowed_exclusive_page_comparison_tests;
+
+#[cfg(test)]
+mod source_guards {
+    #[test]
+    fn production_focus_path_is_fail_closed_without_legacy_window_synthesis() {
+        let source = include_str!("focus.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production focus source");
+
+        assert!(!production.contains(".expect("));
+        assert!(!production.contains("activity_windows.is_empty()"));
+        assert!(!production.contains("default_activity_window_mut()"));
     }
 }

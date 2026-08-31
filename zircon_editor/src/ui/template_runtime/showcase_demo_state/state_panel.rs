@@ -5,6 +5,8 @@ use zircon_runtime_interface::ui::component::{UiComponentState, UiDragSourceMeta
 
 use super::{primary_property_for_control, UiComponentShowcaseDemoState};
 
+const STATE_FLAG_SUMMARY_CAPACITY: usize = 8;
+
 pub(super) fn project_state_panel_node(
     state: &UiComponentShowcaseDemoState,
     control_id: &str,
@@ -105,7 +107,7 @@ fn drag_payload_summary(showcase: &UiComponentShowcaseDemoState) -> String {
 
 fn state_flags_summary(state: &UiComponentState) -> String {
     let flags = &state.flags;
-    let mut states = Vec::new();
+    let mut states = Vec::with_capacity(STATE_FLAG_SUMMARY_CAPACITY);
     if flags.focused {
         states.push("focused");
     }
@@ -136,3 +138,7 @@ fn state_flags_summary(state: &UiComponentState) -> String {
         states.join(", ")
     }
 }
+
+#[cfg(test)]
+#[path = "state_panel/capacity_tests.rs"]
+mod capacity_tests;

@@ -882,11 +882,18 @@ The active engine can be renamed from the Editor page, and any registered engine
 
 ## Editor Launch Contract
 
-Hub launches `zircon_editor` as an independent child process. Existing projects use `--project <path>`. New projects use `--create-project --project-name <name> --location <dir> --template renderable-empty`.
+Hub launches `zircon_editor` as an independent child process. It creates one validated,
+versioned `ProjectLaunchIntent` with `source = hub`, a Hub-process operation identity, and the
+requested target, serializes it as the single `--project-launch-intent <json>` argument, then adds
+the v1 Hub session/protocol handshake. The Editor deserializes and preserves that exact operation
+identity; Hub does not use the old `--project` or create-project flag bundle across this process
+boundary.
 
 Before opening or creating a project, Hub checks whether a preferred editor executable is available. A sibling staged `zircon_editor(.exe)` beside the running Hub takes priority; otherwise Hub uses the configured staged output path. If neither exists, Hub runs the source-install build command first so project launch can use the freshly staged editor/runtime payload.
 
-`zircon_app` parses these GUI startup arguments before the headless operation parser. When one is present, `zircon_editor` receives an `EditorGuiStartupRequest` and opens or creates that project directly through `EditorManager`; it does not call the normal last-project restore path. Empty editor args still use the existing fallback behavior.
+`zircon_app` parses this GUI launch intent before the headless operation parser. When it is
+present, `zircon_editor` receives the typed project request and enters data-only project preflight;
+it does not call the normal last-project restore path. Empty editor args open the Welcome chooser.
 
 ## Staged Builds
 

@@ -30,7 +30,7 @@ pub(super) fn feature_status(
         status.mark_invalid_owner_dependency();
     }
     if !plugin_is_enabled_for_target(&feature.owner_plugin_id, plugin_selections, enabled_plugins) {
-        status.add_missing_plugin(feature.owner_plugin_id.clone());
+        status.add_missing_plugin(&feature.owner_plugin_id);
     }
     if feature_definition.provider_package_id != feature.owner_plugin_id
         && !plugin_is_enabled_for_target(
@@ -39,7 +39,7 @@ pub(super) fn feature_status(
             enabled_plugins,
         )
     {
-        status.add_missing_plugin(feature_definition.provider_package_id.clone());
+        status.add_missing_plugin(&feature_definition.provider_package_id);
     }
     if !feature_manifest_supports_target(feature, target) || !selection.supports_target(target) {
         status.mark_target_unsupported();

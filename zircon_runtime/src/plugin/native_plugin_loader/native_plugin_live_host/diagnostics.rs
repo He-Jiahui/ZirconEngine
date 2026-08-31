@@ -105,11 +105,20 @@ pub(super) fn report_diagnostics(
 pub(super) fn combine_diagnostics<const N: usize>(
     diagnostic_groups: [Vec<String>; N],
 ) -> Vec<String> {
-    sorted_unique_diagnostics(diagnostic_groups.into_iter().flatten().collect::<Vec<_>>())
+    let capacity = diagnostic_groups.iter().map(Vec::len).sum();
+    let mut diagnostics = Vec::with_capacity(capacity);
+    for group in diagnostic_groups {
+        diagnostics.extend(group);
+    }
+    sorted_unique_diagnostics(diagnostics)
 }
 
 pub(super) fn sorted_unique_diagnostics(mut diagnostics: Vec<String>) -> Vec<String> {
-    diagnostics.sort();
+    diagnostics.sort_unstable();
     diagnostics.dedup();
     diagnostics
 }
+
+#[cfg(test)]
+#[path = "diagnostics/optimization_tests.rs"]
+mod optimization_tests;

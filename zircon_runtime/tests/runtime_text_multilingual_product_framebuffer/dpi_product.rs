@@ -13,7 +13,8 @@ fn render_text_dpi_rerasterizes_with_distinct_native_cache_entries() {
         (logical_viewport.y as f32 * DPI_SCALE) as u32,
     );
     let physical_frame = scale_frame(logical_frame, DPI_SCALE);
-    let (asset_manager, fixture_root) = product_fixture_asset_manager("dpi-fixture");
+    let fixture = product_fixture("dpi-fixture");
+    let asset_manager = fixture.asset_manager();
     let mut renderer = ProductUiFrameRenderer::new(physical_viewport, asset_manager);
 
     let (one_x, one_x_background, one_x_stats, one_x_trace) = render_native_text_frame(
@@ -82,7 +83,6 @@ fn render_text_dpi_rerasterizes_with_distinct_native_cache_entries() {
     );
 
     drop(renderer);
-    let _ = std::fs::remove_dir_all(fixture_root);
 }
 
 fn render_native_text_frame(

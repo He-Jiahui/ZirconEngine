@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
 };
 use zircon_runtime::scene::DefaultLevelManager;
 
@@ -156,6 +156,7 @@ pub(crate) fn editor_runtime_with_config_path(path: &Path) -> CoreRuntime {
         .activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
         .unwrap();
     runtime.activate_module(module::EDITOR_MODULE_NAME).unwrap();
+    crate::tests::support::configure_editor_test_runtime_build_set(&runtime);
     runtime
 }
 
@@ -188,7 +189,13 @@ pub(crate) fn setup_theme_project(
     let world = DefaultLevelManager::default()
         .create_default_level()
         .snapshot();
-    EditorProjectDocument::save_to_project(&project, &world, None).unwrap();
+    EditorProjectDocument::save_scene_to_project(
+        &project,
+        &project.manifest().default_scene,
+        &world,
+        None,
+    )
+    .unwrap();
 
     let layout_path = project_root
         .join("assets")

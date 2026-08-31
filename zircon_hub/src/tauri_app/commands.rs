@@ -1,7 +1,4 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc, Mutex, MutexGuard,
-};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 
 use tauri::Emitter;
@@ -13,16 +10,20 @@ use super::runtime_state::action_tasks::run_background_worker_loop;
 use super::runtime_state::HubRuntimeSession;
 use super::view_model::HubViewModel;
 
+mod focus_refresh_gate;
+
+use focus_refresh_gate::FocusRefreshGate;
+
 pub(super) struct HubCommandState {
     session: Arc<Mutex<HubRuntimeSession>>,
-    focus_refresh_pending: Arc<AtomicBool>,
+    focus_refresh_gate: FocusRefreshGate,
 }
 
 impl HubCommandState {
     pub(super) fn load() -> Result<Self, HubError> {
         Ok(Self {
             session: Arc::new(Mutex::new(HubRuntimeSession::load()?)),
-            focus_refresh_pending: Arc::new(AtomicBool::new(false)),
+            focus_refresh_gate: FocusRefreshGate::default(),
         })
     }
 
@@ -38,13 +39,13 @@ impl HubCommandState {
     }
 
     pub(super) fn refresh_recent_projects_on_window_focus(&self, app: tauri::AppHandle) {
-        if self.focus_refresh_pending.swap(true, Ordering::AcqRel) {
+        let Some(focus_refresh_permit) = self.focus_refresh_gate.try_enter() else {
             return;
-        }
+        };
 
         let session_handle = self.session_handle();
-        let focus_refresh_pending = Arc::clone(&self.focus_refresh_pending);
         thread::spawn(move || {
+            let _focus_refresh_permit = focus_refresh_permit;
             let view_model = match session_handle.lock() {
                 Ok(mut session) => {
                     let should_emit = match session.refresh_shared_recent_projects_on_focus() {
@@ -63,7 +64,6 @@ impl HubCommandState {
                     None
                 }
             };
-            focus_refresh_pending.store(false, Ordering::Release);
             if let Some(view_model) = view_model {
                 let _ = app.emit("hub-state-changed", &view_model);
             }

@@ -58,12 +58,91 @@ fn shader_readiness_reports_runtime_source_kinds() {
     assert!(emitted_report.is_ready());
     assert!(fallback_report.is_ready());
     assert!(!unavailable_report.is_ready());
+    assert_eq!(emitted_report.kind, ShaderAssetKind::Module);
+    assert!(emitted_report.kind_diagnostic.is_none());
     assert!(unavailable_report
         .runtime_source
         .diagnostic
         .as_deref()
         .unwrap()
         .contains("does not provide emitted WGSL"));
+}
+
+#[test]
+fn shader_readiness_enforces_explicit_kind_contracts() {
+    let module = base_shader("res://shaders/module.wgsl");
+    assert!(module.readiness_report().is_ready());
+
+    let mut surface = module.clone();
+    surface.kind = ShaderAssetKind::Surface;
+    let missing_shading_model = surface.readiness_report();
+    assert!(!missing_shading_model.is_ready());
+    assert!(missing_shading_model
+        .kind_diagnostic
+        .as_deref()
+        .is_some_and(|diagnostic| diagnostic.contains("requires a non-empty shading model")));
+    assert_eq!(missing_shading_model.summary().kind_diagnostic_count, 1);
+    surface.shading_model = Some("standard_pbr".to_string());
+    surface.source = "fn zr_material_surface(_input: ZrVertexOutput) -> ZrSurfaceOutput { return zr_surface_from_base_color(vec4<f32>(1.0)); }".to_string();
+    assert!(surface.readiness_report().is_ready());
+
+    let mut duplicate_surface = surface.clone();
+    duplicate_surface.source = "fn zr_material_surface(_input: ZrVertexOutput) -> ZrSurfaceOutput { return zr_surface_from_base_color(vec4<f32>(1.0)); }\nfn zr_material_surface(_input: ZrVertexOutput) -> ZrSurfaceOutput { return zr_surface_from_base_color(vec4<f32>(1.0)); }".to_string();
+    let duplicate_surface_report = duplicate_surface.readiness_report();
+    assert!(!duplicate_surface_report.is_ready());
+    assert!(duplicate_surface_report
+        .kind_diagnostic
+        .as_deref()
+        .is_some_and(|diagnostic| diagnostic.contains("more than once")));
+
+    let mut legacy_full_pass = surface.clone();
+    legacy_full_pass.source = "@vertex fn vs_main() {}\n@fragment fn fs_main() {}".to_string();
+    legacy_full_pass.entry_points = vec![
+        ShaderEntryPointAsset {
+            name: "vs_main".to_string(),
+            stage: "vertex".to_string(),
+        },
+        ShaderEntryPointAsset {
+            name: "fs_main".to_string(),
+            stage: "fragment".to_string(),
+        },
+    ];
+    assert!(legacy_full_pass.readiness_report().is_ready());
+
+    let mut include = module.clone();
+    include.kind = ShaderAssetKind::Include;
+    include.source = "fn helper() {}".to_string();
+    assert!(include.readiness_report().is_ready());
+    include.entry_points = vec![ShaderEntryPointAsset {
+        name: "fs_main".to_string(),
+        stage: "fragment".to_string(),
+    }];
+    assert!(!include.readiness_report().is_ready());
+
+    let mut compute = module.clone();
+    compute.kind = ShaderAssetKind::Compute;
+    compute.entry_points.clear();
+    assert!(!compute.readiness_report().is_ready());
+    compute.entry_points.push(ShaderEntryPointAsset {
+        name: "cs_main".to_string(),
+        stage: "compute".to_string(),
+    });
+    assert!(compute.readiness_report().is_ready());
+    compute.entry_points[0].stage = "fragment".to_string();
+    assert!(!compute.readiness_report().is_ready());
+
+    let mut fullscreen = module;
+    fullscreen.kind = ShaderAssetKind::Fullscreen;
+    fullscreen.entry_points.clear();
+    assert!(!fullscreen.readiness_report().is_ready());
+    fullscreen.entry_points.push(ShaderEntryPointAsset {
+        name: "fs_main".to_string(),
+        stage: "fragment".to_string(),
+    });
+    let fullscreen_summary = fullscreen.readiness_summary();
+    assert!(fullscreen_summary.ready);
+    assert_eq!(fullscreen_summary.kind, ShaderAssetKind::Fullscreen);
+    assert_eq!(fullscreen_summary.kind_diagnostic_count, 0);
 }
 
 #[test]
@@ -153,6 +232,22 @@ blend = "alpha_blend"
     assert_eq!(fullscreen.kind(), ShaderAssetKind::Fullscreen);
     assert!(surface.kind().participates_in_material_variants());
     assert!(!compute.kind().participates_in_material_variants());
+    assert!(!ShaderAssetKind::Module.participates_in_material_variants());
+    assert_eq!(ShaderAssetKind::Module.token(), "module");
+
+    let module = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "module"
+version = 2
+"#,
+    )
+    .expect_err("raw module is an importer-owned kind, not a zshader domain");
+    assert_eq!(
+        module,
+        ZShaderV2Error::UnsupportedKind {
+            kind: "module".to_string()
+        }
+    );
 }
 
 #[test]
@@ -506,6 +601,8 @@ fn shader_readiness_summary_counts_management_panel_fields() {
     assert_eq!(summary.entry_point_diagnostic_count, 1);
     assert_eq!(summary.shader_definition_count, 2);
     assert_eq!(summary.shader_definition_diagnostic_count, 1);
+    assert_eq!(summary.kind, ShaderAssetKind::Module);
+    assert_eq!(summary.kind_diagnostic_count, 0);
     assert_eq!(summary.validation_diagnostic_count, 1);
     assert_eq!(summary.dependency_count, 1);
     assert!(summary.has_pipeline_layout);
@@ -609,7 +706,7 @@ fn shader_asset_management_record_set_sorts_and_summarizes_records() {
 fn base_shader(uri: &str) -> ShaderAsset {
     ShaderAsset {
         uri: locator(uri),
-        kind: ShaderAssetKind::Surface,
+        kind: ShaderAssetKind::Module,
         source_language: ShaderSourceLanguage::Wgsl,
         source: "@fragment fn fs_main() -> @location(0) vec4f { return vec4f(); }".to_string(),
         wgsl_source: String::new(),

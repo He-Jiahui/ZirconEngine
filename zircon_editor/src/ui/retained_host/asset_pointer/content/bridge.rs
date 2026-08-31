@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerEvent,
-    layout::{UiFrame, UiPoint},
+    layout::{UiFrame, UiPoint, UiSize},
     surface::UiPointerEventKind,
 };
 
@@ -62,6 +62,7 @@ impl AssetContentListPointerBridge {
         state: AssetListPointerState,
     ) -> bool {
         if self.layout == layout && self.state == state {
+            self.layout = layout;
             return false;
         }
 
@@ -70,6 +71,18 @@ impl AssetContentListPointerBridge {
         self.clamp_scroll_offset();
         self.patch_surface_geometry();
         true
+    }
+
+    pub(crate) fn sync_pane_size(&mut self, pane_size: UiSize) -> Option<AssetListPointerState> {
+        if self.layout.pane_size == pane_size {
+            return None;
+        }
+
+        let previous_state = self.state.clone();
+        self.layout.pane_size = pane_size;
+        self.clamp_scroll_offset();
+        self.patch_surface_geometry();
+        (self.state != previous_state).then(|| self.state.clone())
     }
 
     pub(crate) fn handle_click(
@@ -94,6 +107,10 @@ impl AssetContentListPointerBridge {
             route: route.map(to_public_route),
             state: self.state.clone(),
         })
+    }
+
+    pub(crate) fn route_at(&self, point: UiPoint) -> Option<super::AssetPointerContentRoute> {
+        self.move_target(point).map(to_public_route)
     }
 
     pub(crate) fn handle_move(
@@ -164,7 +181,7 @@ impl AssetContentListPointerBridge {
             AssetContentMoveHit::Item(item_index) => Some(AssetContentListPointerTarget::Item {
                 row_index: self.layout.folder_ids.len() + item_index,
                 item_index,
-                asset_uuid: self.layout.item_ids[item_index].clone(),
+                asset_uuid: self.layout.item_uuid(item_index)?.to_owned(),
             }),
             AssetContentMoveHit::ContentSurface => {
                 Some(AssetContentListPointerTarget::ContentSurface)
@@ -181,7 +198,7 @@ impl AssetContentListPointerBridge {
         if self.is_browser_thumbnail_grid() {
             let grid = AssetThumbnailGridMetrics::new(
                 self.layout.pane_size.width,
-                self.layout.item_ids.len(),
+                self.layout.item_count(),
             );
             let content_point = UiPoint::new(point.x, point.y + self.state.scroll_offset);
             return grid
@@ -215,7 +232,7 @@ impl AssetContentListPointerBridge {
             item_start_y,
             metrics.item_height,
             metrics.row_gap,
-            self.layout.item_ids.len(),
+            self.layout.item_count(),
         ) {
             return Some(AssetContentMoveHit::Item(item_index));
         }
@@ -275,11 +292,107 @@ impl AssetContentListPointerBridge {
 
     fn content_extent(&self) -> f32 {
         if self.is_browser_thumbnail_grid() {
-            AssetThumbnailGridMetrics::new(self.layout.pane_size.width, self.layout.item_ids.len())
+            AssetThumbnailGridMetrics::new(self.layout.pane_size.width, self.layout.item_count())
                 .content_extent()
         } else {
             self.metrics()
-                .list_height(self.layout.folder_ids.len(), self.layout.item_ids.len())
+                .list_height(self.layout.folder_ids.len(), self.layout.item_count())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pane_size_patch_preserves_content_projection() {
+        let mut bridge = AssetContentListPointerBridge::new();
+        let item_ids = (0..1_024)
+            .map(|index| format!("asset-{index}"))
+            .collect::<Vec<_>>();
+        bridge.sync(
+            AssetContentListPointerLayout::for_test(
+                UiSize::new(320.0, 180.0),
+                AssetContentSurfaceProfile::Browser,
+                AssetViewMode::List,
+                vec![String::from("res://materials")],
+                item_ids.clone(),
+            ),
+            AssetListPointerState::default(),
+        );
+
+        let state_change = bridge.sync_pane_size(UiSize::new(640.0, 360.0));
+
+        assert!(state_change.is_none());
+        assert_eq!(
+            bridge
+                .layout
+                .items
+                .iter()
+                .map(|item| &item.uuid)
+                .collect::<Vec<_>>(),
+            item_ids.iter().collect::<Vec<_>>()
+        );
+        assert_eq!(
+            bridge.layout.folder_ids,
+            vec![String::from("res://materials")]
+        );
+        assert_eq!(bridge.surface_node_count_for_test(), 2);
+    }
+
+    #[test]
+    fn payload_only_generation_refresh_preserves_pointer_geometry() {
+        let mut bridge = AssetContentListPointerBridge::new();
+        let layout = AssetContentListPointerLayout::for_test(
+            UiSize::new(320.0, 180.0),
+            AssetContentSurfaceProfile::Browser,
+            AssetViewMode::List,
+            Vec::new(),
+            vec!["asset-runtime-material".to_string()],
+        );
+        let source_items = layout.items.clone();
+        assert!(bridge.sync(layout, AssetListPointerState::default()));
+
+        let mut changed = source_items[0].clone();
+        changed.display_name.push_str(" updated");
+        let next_items = source_items
+            .replace_existing_items([changed])
+            .expect("payload-only replacement must preserve item identity");
+        assert!(source_items.shares_item_identity_with(&next_items));
+        assert!(!source_items.shares_items_with(&next_items));
+
+        let authority_generation = bridge.surface_authority_generation_for_test();
+        let next_layout = AssetContentListPointerLayout {
+            items: next_items.clone(),
+            ..bridge.layout.clone()
+        };
+        assert!(!bridge.sync(next_layout, AssetListPointerState::default()));
+        assert_eq!(
+            bridge.surface_authority_generation_for_test(),
+            authority_generation
+        );
+        assert!(bridge.layout.items.shares_items_with(&next_items));
+    }
+
+    #[test]
+    fn route_at_resolves_the_stable_asset_uuid_without_dispatching_input() {
+        let mut bridge = AssetContentListPointerBridge::new();
+        bridge.sync(
+            AssetContentListPointerLayout::for_test(
+                UiSize::new(320.0, 180.0),
+                AssetContentSurfaceProfile::Browser,
+                AssetViewMode::Thumbnail,
+                Vec::new(),
+                vec!["asset-runtime-material".to_string()],
+            ),
+            AssetListPointerState::default(),
+        );
+
+        assert!(matches!(
+            bridge.route_at(UiPoint::new(24.0, 24.0)),
+            Some(AssetPointerContentRoute::Item { asset_uuid, .. })
+                if asset_uuid == "asset-runtime-material"
+        ));
     }
 }

@@ -303,8 +303,8 @@ impl BakedPolygon {
         let end = start
             .saturating_add(polygon.index_count as usize)
             .min(asset.indices.len());
-        let index_set = asset.indices[start.min(asset.indices.len())..end].to_vec();
-        let edge_keys = polygon_edge_keys(&index_set);
+        let index_set = &asset.indices[start.min(asset.indices.len())..end];
+        let edge_keys = polygon_edge_keys(index_set);
         let mut vertices = index_set
             .iter()
             .filter_map(|index| asset.vertices.get(*index as usize).copied())

@@ -218,7 +218,8 @@ def contents_artifact_handoff_diagnostics(
                 "compact Validate metadata"
             )
             continue
-        actual_byte_length = len(artifact["contents"].encode("utf-8"))
+        encoded_contents = artifact["contents"].encode("utf-8")
+        actual_byte_length = len(encoded_contents)
         if compact.get("byte_length") != actual_byte_length:
             diagnostics.append(
                 f"generated contents artifact byte length for {path} does not match "
@@ -234,7 +235,7 @@ def contents_artifact_handoff_diagnostics(
                 "64-character lowercase SHA-256 digest"
             )
         elif (
-            hashlib.sha256(artifact["contents"].encode("utf-8")).hexdigest()
+            hashlib.sha256(encoded_contents).hexdigest()
             != content_digest
         ):
             diagnostics.append(

@@ -1,7 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::identity::{is_segmented_control, is_workbench_tab};
-use super::options::segmented_options;
+use super::options::segmented_option_count;
 use super::segments::push_segmented_control;
 use super::tabs::push_workbench_tab;
 
@@ -14,11 +14,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     opacity: f32,
 ) -> bool {
     if is_segmented_control(node) {
-        let options = segmented_options(node);
-        if options.is_empty() {
+        let option_count = segmented_option_count(node);
+        if option_count == 0 {
             return false;
         }
-        push_segmented_control(commands, node, rect, clip, order, opacity, &options);
+        push_segmented_control(commands, node, rect, clip, order, opacity, option_count);
         return true;
     }
 

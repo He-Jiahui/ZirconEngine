@@ -1,0 +1,15 @@
+[package]
+name = "zr_math"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Canonical low-dependency math implementation for Zircon runtime products."
+
+[dependencies]
+glam.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json = "1.0.149"

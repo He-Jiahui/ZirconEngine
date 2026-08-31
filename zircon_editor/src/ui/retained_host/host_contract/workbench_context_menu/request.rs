@@ -19,13 +19,15 @@ pub(in crate::ui::retained_host::host_contract) fn workbench_context_menu_reques
     }
 
     let provider = context_menu_provider_for_hit(hit)?;
+    let target_value = target_value_text(hit);
+    let target_path = provider.target_path(hit, target_value.as_str());
     Some(WorkbenchContextMenuRequestData {
         target_control_id: hit.control_id.clone(),
         target_action_id: hit.action_id.clone(),
         target_dispatch_kind: hit.dispatch_kind.clone(),
         target_role: hit.component_role.clone(),
-        target_value_text: target_value_text(hit),
-        target_path: provider.target_path(hit),
+        target_value_text: target_value,
+        target_path,
         popup_anchor_x: x,
         popup_anchor_y: y,
         menu_items: provider.menu_items(),

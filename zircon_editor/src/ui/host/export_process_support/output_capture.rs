@@ -9,6 +9,7 @@ use super::ExportProcessError;
 
 static OUTPUT_CAPTURE_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 const OUTPUT_CAPTURE_READ_CHUNK_BYTES: u64 = 64 * 1024;
+const OUTPUT_CAPTURE_READ_PREFIX_BYTES: usize = 4 * 1024;
 
 pub(in crate::ui::host) trait ExportProcessJoin: Sync {
     fn join<A, B, RA, RB>(&self, task_a: A, task_b: B) -> (RA, RB)
@@ -52,22 +53,41 @@ pub(in crate::ui::host) struct ExportProcessOutputReader {
 
 impl ExportProcessOutputReader {
     fn read_available(&mut self) -> Result<Vec<u8>, ExportProcessError> {
-        let mut bytes = Vec::new();
-        self.file
-            .by_ref()
-            .take(OUTPUT_CAPTURE_READ_CHUNK_BYTES)
-            .read_to_end(&mut bytes)
-            .map_err(|error| {
-                ExportProcessError::io(
-                    "failed to read export output capture",
-                    self.label.clone(),
-                    Some(self.stream_name),
-                    None,
-                    error,
-                )
-            })?;
-        Ok(bytes)
+        read_capture_chunk(self.file.by_ref()).map_err(|error| {
+            ExportProcessError::io(
+                "failed to read export output capture",
+                self.label.clone(),
+                Some(self.stream_name),
+                None,
+                error,
+            )
+        })
     }
+}
+
+fn read_capture_chunk(reader: &mut impl Read) -> io::Result<Vec<u8>> {
+    let mut reader = reader.take(OUTPUT_CAPTURE_READ_CHUNK_BYTES);
+    let mut prefix = [0; OUTPUT_CAPTURE_READ_PREFIX_BYTES];
+    let prefix_len = loop {
+        match reader.read(&mut prefix) {
+            Ok(prefix_len) => break prefix_len,
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
+        }
+    };
+    if prefix_len == 0 {
+        return Ok(Vec::new());
+    }
+
+    let capacity = if prefix_len == prefix.len() {
+        OUTPUT_CAPTURE_READ_CHUNK_BYTES as usize
+    } else {
+        prefix_len
+    };
+    let mut bytes = Vec::with_capacity(capacity);
+    bytes.extend_from_slice(&prefix[..prefix_len]);
+    reader.read_to_end(&mut bytes)?;
+    Ok(bytes)
 }
 
 pub(in crate::ui::host) struct ExportProcessOutputReaders {
@@ -265,3 +285,7 @@ mod tests {
         assert_eq!((first_poll, second_poll), (1, 2));
     }
 }
+
+#[cfg(test)]
+#[path = "output_capture/capacity_tests.rs"]
+mod capacity_tests;

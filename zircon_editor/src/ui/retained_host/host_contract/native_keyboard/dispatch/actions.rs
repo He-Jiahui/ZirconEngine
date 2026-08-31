@@ -4,12 +4,20 @@ use super::super::super::redraw::NativePointerDispatchResult;
 use super::super::super::window::UiHostWindow;
 use super::super::target::{
     PopupKeyboardRow, PopupKeyboardTarget, PopupKeyboardWindowFocus, PopupKeyboardWindowRequest,
-    HOST_PAGE_OVERFLOW_DISPATCH_KIND,
+    HOST_DOCK_OVERFLOW_DISPATCH_KIND, HOST_PAGE_OVERFLOW_DISPATCH_KIND,
+};
+use crate::ui::retained_host::asset_control_ids::{
+    asset_dispatch_source, asset_surface_binding_control_id,
 };
 use crate::ui::retained_host::callback_dispatch::{
     WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
 };
-use crate::ui::retained_host::host_contract::data::HostPageOverflowMenuStateData;
+use crate::ui::retained_host::host_contract::data::{
+    HostDockOverflowMenuStateData, HostPageOverflowMenuStateData,
+};
+use crate::ui::retained_host::host_contract::host_dock_overflow_menu::{
+    host_dock_overflow_projection, host_dock_overflow_scroll_offset_for_tab,
+};
 use crate::ui::retained_host::host_contract::host_page_overflow_menu::host_page_overflow_scroll_offset_for_page_with_state;
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
 
@@ -21,22 +29,58 @@ pub(super) fn dispatch_popup_accept(
         return NativePointerDispatchResult::idle();
     };
     let popup_frame = target.popup_frame.clone();
+    if target.dispatch_kind.as_str() == HOST_DOCK_OVERFLOW_DISPATCH_KIND {
+        let Some(tab_index) = row.source_index else {
+            return NativePointerDispatchResult::idle();
+        };
+        let generation = ui.get_host_presentation_generation();
+        let Some(projection) = host_dock_overflow_projection(
+            generation.structure(),
+            generation.dock_overflow_menu_state(),
+        ) else {
+            return NativePointerDispatchResult::idle();
+        };
+        let surface_key = projection.surface_key.into();
+        let drawer = projection.drawer;
+        let host = ui.global::<UiHostContext>();
+        host.set_host_dock_overflow_menu_state(HostDockOverflowMenuStateData::default());
+        if drawer {
+            host.invoke_drawer_header_pointer_clicked(
+                surface_key,
+                tab_index as i32,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            );
+        } else {
+            host.invoke_document_tab_pointer_clicked(
+                surface_key,
+                tab_index as i32,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            );
+        }
+        return NativePointerDispatchResult::region_with_frame_update(popup_frame);
+    }
     if target.dispatch_kind.as_str() == HOST_PAGE_OVERFLOW_DISPATCH_KIND {
         let Some(page_index) = row.source_index else {
             return NativePointerDispatchResult::idle();
         };
         let host = ui.global::<UiHostContext>();
         host.set_host_page_overflow_menu_state(HostPageOverflowMenuStateData::default());
-        host.invoke_host_page_pointer_clicked(
-            page_index as i32,
-            row.frame.x,
-            row.frame.width,
-            row.frame.width * 0.5,
-            row.frame.height * 0.5,
-        );
+        host.invoke_host_page_pointer_clicked(page_index as i32, false);
         return NativePointerDispatchResult::region_with_frame_update(popup_frame);
     }
     let pane_host = ui.global::<PaneSurfaceHostContext>();
+    if let Some(source) = asset_dispatch_source(target.dispatch_kind.as_str()) {
+        let control_id = asset_surface_binding_control_id(row.action_id.as_str())
+            .unwrap_or(row.action_id.as_str());
+        pane_host.invoke_asset_control_changed(source.into(), control_id.into(), row.value_text);
+        return NativePointerDispatchResult::region_with_frame_update(popup_frame);
+    }
     match target.dispatch_kind.as_str() {
         "workbench_option"
             if target.control_id.as_str() == WORKBENCH_COMMAND_PALETTE_CONTROL_ID =>
@@ -65,6 +109,11 @@ pub(super) fn dispatch_popup_cancel(
     target: PopupKeyboardTarget,
 ) -> NativePointerDispatchResult {
     let popup_frame = target.popup_frame.clone();
+    if target.dispatch_kind.as_str() == HOST_DOCK_OVERFLOW_DISPATCH_KIND {
+        ui.global::<UiHostContext>()
+            .set_host_dock_overflow_menu_state(HostDockOverflowMenuStateData::default());
+        return NativePointerDispatchResult::region_with_frame_update(popup_frame);
+    }
     if target.dispatch_kind.as_str() == HOST_PAGE_OVERFLOW_DISPATCH_KIND {
         ui.global::<UiHostContext>()
             .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData::default());
@@ -82,6 +131,27 @@ pub(super) fn dispatch_popup_hover_row(
     target: PopupKeyboardTarget,
     next: PopupKeyboardRow,
 ) -> NativePointerDispatchResult {
+    if target.dispatch_kind.as_str() == HOST_DOCK_OVERFLOW_DISPATCH_KIND {
+        let Some(tab_index) = next.source_index else {
+            return NativePointerDispatchResult::idle();
+        };
+        let generation = ui.get_host_presentation_generation();
+        let state = generation.dock_overflow_menu_state();
+        let scroll_offset = host_dock_overflow_scroll_offset_for_tab(
+            generation.structure(),
+            &target.popup_frame,
+            state,
+            tab_index,
+        );
+        ui.global::<UiHostContext>()
+            .set_host_dock_overflow_menu_state(HostDockOverflowMenuStateData {
+                open: true,
+                surface_key: state.surface_key.clone(),
+                hovered_tab_index: tab_index as i32,
+                scroll_offset,
+            });
+        return NativePointerDispatchResult::region(target.popup_frame);
+    }
     if target.dispatch_kind.as_str() == HOST_PAGE_OVERFLOW_DISPATCH_KIND {
         let Some(page_index) = next.source_index else {
             return NativePointerDispatchResult::idle();
@@ -102,11 +172,11 @@ pub(super) fn dispatch_popup_hover_row(
         return NativePointerDispatchResult::region(target.popup_frame);
     }
     ui.set_hovered_template_row_for_pointer_move(
-        target.control_id.clone(),
-        target.dispatch_kind,
-        next.action_id,
-        next.value_text,
-        next.frame.clone(),
+        &target.control_id,
+        &target.dispatch_kind,
+        &next.action_id,
+        &next.value_text,
+        &next.frame,
     );
     NativePointerDispatchResult::region(
         union_optional_frames(Some(target.current_frame), Some(next.frame)).unwrap_or_default(),

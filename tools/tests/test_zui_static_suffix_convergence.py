@@ -29,21 +29,21 @@ ACTIVE_SUPPORT_FILES = [
     "zircon_editor/src/ui/asset_editor/style/theme_authoring/merge.rs",
 ]
 
-USER_VISIBLE_SAMPLE_FILES = [
+USER_VISIBLE_SAMPLE_PATHS = [
     "zircon_editor/src/ui/layouts/views/asset_browser/summary_layout.rs",
     "zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes.rs",
     "zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs",
-    "zircon_editor/src/ui/layouts/views/asset_browser/tests.rs",
+    "zircon_editor/src/ui/layouts/views/asset_browser/tests",
     "zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs",
     "zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs",
 ]
 
 EDITOR_UI_ASSET_EDITING_TEST_PATHS = [
     "zircon_editor/src/tests/editing/ui_asset",
-    "zircon_editor/src/tests/editing/ui_asset_palette_drop.rs",
-    "zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs",
+    "zircon_editor/src/tests/editing/ui_asset_palette_drop",
+    "zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring",
     "zircon_editor/src/tests/editing/ui_asset_replay.rs",
-    "zircon_editor/src/tests/editing/ui_asset_theme_authoring.rs",
+    "zircon_editor/src/tests/editing/ui_asset_theme_authoring",
 ]
 
 EDITOR_HOST_MANAGER_UI_ASSET_TEST_PATHS = [
@@ -69,14 +69,13 @@ RUNTIME_UI_ACTIVE_TEST_FILES = [
     "zircon_runtime/src/ui/tests/asset_prototype_store.rs",
 ]
 
-EDITOR_UI_COMPONENT_ADAPTER_TEST_FILES = [
-    "zircon_editor/src/tests/ui/component_adapter.rs",
+EDITOR_UI_COMPONENT_ADAPTER_TEST_PATHS = [
+    "zircon_editor/src/tests/ui/component_adapter",
 ]
 
-EDITOR_RETAINED_HOST_PROJECTION_TEST_FILES = [
-    "zircon_editor/src/tests/host/retained_window/native_host_contract.rs",
-    "zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs",
-    "zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection/assertions.rs",
+EDITOR_RETAINED_HOST_PROJECTION_TEST_PATHS = [
+    "zircon_editor/src/tests/host/retained_window/native_host_contract",
+    "zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection",
 ]
 
 EDITOR_EXTENSION_CONTRACT_TEST_FILES = [
@@ -192,11 +191,19 @@ class ZuiStaticSuffixConvergenceTests(unittest.TestCase):
 
     def test_asset_browser_user_visible_samples_use_zui_suffix(self):
         failures: list[str] = []
-        for relative_path in USER_VISIBLE_SAMPLE_FILES:
-            text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
-            for suffix in RETIRED_ACTIVE_SUFFIXES:
-                if suffix in text:
-                    failures.append(f"{relative_path}: {suffix}")
+        for relative_path in USER_VISIBLE_SAMPLE_PATHS:
+            root = REPO_ROOT / relative_path
+            rust_files = sorted(root.rglob("*.rs")) if root.is_dir() else [root]
+            self.assertTrue(
+                rust_files and all(path.is_file() for path in rust_files),
+                f"expected Asset Browser sample Rust sources under {relative_path}",
+            )
+            for rust_file in rust_files:
+                text = rust_file.read_text(encoding="utf-8")
+                source_path = rust_file.relative_to(REPO_ROOT).as_posix()
+                for suffix in RETIRED_ACTIVE_SUFFIXES:
+                    if suffix in text:
+                        failures.append(f"{source_path}: {suffix}")
 
         if failures:
             self.fail(
@@ -306,12 +313,19 @@ class ZuiStaticSuffixConvergenceTests(unittest.TestCase):
 
     def test_editor_ui_component_adapter_tests_use_zui_suffix(self):
         failures: list[str] = []
-        for relative_path in EDITOR_UI_COMPONENT_ADAPTER_TEST_FILES:
-            rust_file = REPO_ROOT / relative_path
-            text = rust_file.read_text(encoding="utf-8")
-            for suffix in RETIRED_ACTIVE_SUFFIXES:
-                if suffix in text:
-                    failures.append(f"{relative_path}: {suffix}")
+        for relative_path in EDITOR_UI_COMPONENT_ADAPTER_TEST_PATHS:
+            root = REPO_ROOT / relative_path
+            rust_files = sorted(root.rglob("*.rs")) if root.is_dir() else [root]
+            self.assertTrue(
+                rust_files and all(path.is_file() for path in rust_files),
+                f"expected component adapter Rust sources under {relative_path}",
+            )
+            for rust_file in rust_files:
+                text = rust_file.read_text(encoding="utf-8")
+                source_path = rust_file.relative_to(REPO_ROOT).as_posix()
+                for suffix in RETIRED_ACTIVE_SUFFIXES:
+                    if suffix in text:
+                        failures.append(f"{source_path}: {suffix}")
 
         if failures:
             self.fail(
@@ -321,12 +335,19 @@ class ZuiStaticSuffixConvergenceTests(unittest.TestCase):
 
     def test_editor_retained_host_projection_tests_use_zui_suffix(self):
         failures: list[str] = []
-        for relative_path in EDITOR_RETAINED_HOST_PROJECTION_TEST_FILES:
-            rust_file = REPO_ROOT / relative_path
-            text = rust_file.read_text(encoding="utf-8")
-            for suffix in RETIRED_ACTIVE_SUFFIXES:
-                if suffix in text:
-                    failures.append(f"{relative_path}: {suffix}")
+        for relative_path in EDITOR_RETAINED_HOST_PROJECTION_TEST_PATHS:
+            root = REPO_ROOT / relative_path
+            rust_files = sorted(root.rglob("*.rs")) if root.is_dir() else [root]
+            self.assertTrue(
+                rust_files and all(path.is_file() for path in rust_files),
+                f"expected retained host projection Rust sources under {relative_path}",
+            )
+            for rust_file in rust_files:
+                text = rust_file.read_text(encoding="utf-8")
+                source_path = rust_file.relative_to(REPO_ROOT).as_posix()
+                for suffix in RETIRED_ACTIVE_SUFFIXES:
+                    if suffix in text:
+                        failures.append(f"{source_path}: {suffix}")
 
         if failures:
             self.fail(

@@ -1,24 +1,5 @@
 use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
-const SPAWN_RULES_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionSpawnRulesRulesTab",
-    "WorkbenchExtensionSpawnRulesStateTab",
-    "WorkbenchExtensionSpawnRulesValidationTab",
-];
-const SPAWN_RULES_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.spawn_rules.rules_tab.select",
-        "WorkbenchExtensionSpawnRulesRulesTab",
-    ),
-    action(
-        "workbench.extension.spawn_rules.state_tab.select",
-        "WorkbenchExtensionSpawnRulesStateTab",
-    ),
-    action(
-        "workbench.extension.spawn_rules.validation_tab.select",
-        "WorkbenchExtensionSpawnRulesValidationTab",
-    ),
-];
 const SPAWN_RULES_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionSpawnRulesEnemyRow",
     "WorkbenchExtensionSpawnRulesZoneARow",
@@ -27,7 +8,6 @@ const SPAWN_RULES_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionSpawnRulesConditionNightTableRow",
     "WorkbenchExtensionSpawnRulesTagCombatTableRow",
     "WorkbenchExtensionSpawnRulesConflictTableRow",
-    "WorkbenchExtensionSpawnRulesOutputRow",
 ];
 const SPAWN_RULES_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -58,20 +38,16 @@ const SPAWN_RULES_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.spawn_rules.conflict_table_row.select",
         "WorkbenchExtensionSpawnRulesConflictTableRow",
     ),
-    action(
-        "workbench.extension.spawn_rules.output.select",
-        "WorkbenchExtensionSpawnRulesOutputRow",
-    ),
 ];
 const SPAWN_RULES_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsSpawnRulesButton",
+    "WorkbenchAssetsGameplayToolsMenu",
     "WorkbenchExtensionSpawnRulesSimulateButton",
     "WorkbenchExtensionSpawnRulesValidateButton",
 ];
 const SPAWN_RULES_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.spawn_rules.open",
-        "WorkbenchAssetsSpawnRulesButton",
+        "WorkbenchAssetsGameplayToolsMenu",
     ),
     action(
         "workbench.extension.spawn_rules.simulate.invoke",
@@ -94,8 +70,6 @@ const SPAWN_RULES_FIELD_ACTIONS: &[&str] = &[
 pub(super) const SPAWN_RULES_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.spawn_rules.open",
     "WorkbenchExtensionSpawnRulesWorkspace",
-    SPAWN_RULES_TAB_CONTROLS,
-    SPAWN_RULES_TAB_ACTIONS,
     SPAWN_RULES_ROW_CONTROLS,
     SPAWN_RULES_ROW_ACTIONS,
     SPAWN_RULES_COMMAND_CONTROLS,
@@ -103,25 +77,6 @@ pub(super) const SPAWN_RULES_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     SPAWN_RULES_FIELD_ACTIONS,
 );
 
-const WORLD_STATE_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionWorldStateKeysTab",
-    "WorkbenchExtensionWorldStateScenarioTab",
-    "WorkbenchExtensionWorldStateTimelineTab",
-];
-const WORLD_STATE_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.world_state.keys_tab.select",
-        "WorkbenchExtensionWorldStateKeysTab",
-    ),
-    action(
-        "workbench.extension.world_state.scenario_tab.select",
-        "WorkbenchExtensionWorldStateScenarioTab",
-    ),
-    action(
-        "workbench.extension.world_state.timeline_tab.select",
-        "WorkbenchExtensionWorldStateTimelineTab",
-    ),
-];
 const WORLD_STATE_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionWorldStateNightRaidRow",
     "WorkbenchExtensionWorldStateGlobalLayerRow",
@@ -130,7 +85,6 @@ const WORLD_STATE_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionWorldStateWeatherModeTableRow",
     "WorkbenchExtensionWorldStateAiAlertTableRow",
     "WorkbenchExtensionWorldStateQuestFlagTableRow",
-    "WorkbenchExtensionWorldStateOutputRow",
 ];
 const WORLD_STATE_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -161,20 +115,16 @@ const WORLD_STATE_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.world_state.quest_flag_table_row.select",
         "WorkbenchExtensionWorldStateQuestFlagTableRow",
     ),
-    action(
-        "workbench.extension.world_state.output.select",
-        "WorkbenchExtensionWorldStateOutputRow",
-    ),
 ];
 const WORLD_STATE_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsWorldStateButton",
+    "WorkbenchAssetsGameplayToolsMenu",
     "WorkbenchExtensionWorldStateSimulateButton",
     "WorkbenchExtensionWorldStateValidateButton",
 ];
 const WORLD_STATE_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.world_state.open",
-        "WorkbenchAssetsWorldStateButton",
+        "WorkbenchAssetsGameplayToolsMenu",
     ),
     action(
         "workbench.extension.world_state.simulate.invoke",
@@ -197,8 +147,6 @@ const WORLD_STATE_FIELD_ACTIONS: &[&str] = &[
 pub(super) const WORLD_STATE_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.world_state.open",
     "WorkbenchExtensionWorldStateWorkspace",
-    WORLD_STATE_TAB_CONTROLS,
-    WORLD_STATE_TAB_ACTIONS,
     WORLD_STATE_ROW_CONTROLS,
     WORLD_STATE_ROW_ACTIONS,
     WORLD_STATE_COMMAND_CONTROLS,
@@ -206,25 +154,6 @@ pub(super) const WORLD_STATE_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     WORLD_STATE_FIELD_ACTIONS,
 );
 
-const NAVMESH_AI_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionNavmeshAiTilesTab",
-    "WorkbenchExtensionNavmeshAiAgentsTab",
-    "WorkbenchExtensionNavmeshAiQueriesTab",
-];
-const NAVMESH_AI_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.navmesh_ai.tiles_tab.select",
-        "WorkbenchExtensionNavmeshAiTilesTab",
-    ),
-    action(
-        "workbench.extension.navmesh_ai.agents_tab.select",
-        "WorkbenchExtensionNavmeshAiAgentsTab",
-    ),
-    action(
-        "workbench.extension.navmesh_ai.queries_tab.select",
-        "WorkbenchExtensionNavmeshAiQueriesTab",
-    ),
-];
 const NAVMESH_AI_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionNavmeshAiMainNavmeshRow",
     "WorkbenchExtensionNavmeshAiHumanoidAgentRow",
@@ -233,7 +162,6 @@ const NAVMESH_AI_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionNavmeshAiTile1209TableRow",
     "WorkbenchExtensionNavmeshAiAgentRadiusTableRow",
     "WorkbenchExtensionNavmeshAiBlockedLinkTableRow",
-    "WorkbenchExtensionNavmeshAiOutputRow",
 ];
 const NAVMESH_AI_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -264,20 +192,16 @@ const NAVMESH_AI_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.navmesh_ai.blocked_link_table_row.select",
         "WorkbenchExtensionNavmeshAiBlockedLinkTableRow",
     ),
-    action(
-        "workbench.extension.navmesh_ai.output.select",
-        "WorkbenchExtensionNavmeshAiOutputRow",
-    ),
 ];
 const NAVMESH_AI_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsNavmeshAiButton",
+    "WorkbenchAssetsGameplayToolsMenu",
     "WorkbenchExtensionNavmeshAiRebuildButton",
     "WorkbenchExtensionNavmeshAiQueryPathButton",
 ];
 const NAVMESH_AI_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.navmesh_ai.open",
-        "WorkbenchAssetsNavmeshAiButton",
+        "WorkbenchAssetsGameplayToolsMenu",
     ),
     action(
         "workbench.extension.navmesh_ai.rebuild.invoke",
@@ -300,8 +224,6 @@ const NAVMESH_AI_FIELD_ACTIONS: &[&str] = &[
 pub(super) const NAVMESH_AI_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.navmesh_ai.open",
     "WorkbenchExtensionNavmeshAiWorkspace",
-    NAVMESH_AI_TAB_CONTROLS,
-    NAVMESH_AI_TAB_ACTIONS,
     NAVMESH_AI_ROW_CONTROLS,
     NAVMESH_AI_ROW_ACTIONS,
     NAVMESH_AI_COMMAND_CONTROLS,

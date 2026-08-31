@@ -79,6 +79,7 @@ def collect_shader_module_specs(
         )
     modules: list[dict[str, object]] = []
     seen: set[str] = set()
+    content_hash_by_source: dict[Path, str] = {}
     for index, entry in enumerate(entries, start=1):
         if not isinstance(entry, dict):
             raise SystemExit(
@@ -98,11 +99,13 @@ def collect_shader_module_specs(
             continue
         seen.add(import_path)
         source_path = _shader_module_source_path(manifest_path, source, index)
+        if source_path not in content_hash_by_source:
+            content_hash_by_source[source_path] = _shader_module_content_hash(source_path)
         modules.append(
             {
                 "import_path": import_path,
                 "source": source,
-                "content_hash": _shader_module_content_hash(source_path),
+                "content_hash": content_hash_by_source[source_path],
             }
         )
     return tuple(modules)

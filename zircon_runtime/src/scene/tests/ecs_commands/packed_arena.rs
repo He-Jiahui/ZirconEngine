@@ -64,6 +64,21 @@ fn ecs_commands_structural_barrier_uses_typed_api_transaction_owner() {
 }
 
 #[test]
+fn deferred_command_queue_empty_append_skips_identity_arena_remapping() {
+    let source = include_str!("../../ecs/commands/command_queue.rs");
+    let append = source
+        .split("pub(crate) fn append(&mut self, other: &mut Self)")
+        .nth(1)
+        .and_then(|source| source.split("pub(crate) fn append_worker").next())
+        .expect("command queue append implementation");
+
+    assert!(append.contains("if queue_block_offset != 0 || !worker_arena_remaps.is_empty() {"));
+    assert!(
+        append.contains("command.remap_appended_arena(queue_block_offset, &worker_arena_remaps);")
+    );
+}
+
+#[test]
 fn deferred_command_queue_inlines_small_commands_and_reports_explicit_fallbacks() {
     let mut queue = CommandQueue::default();
     queue.push(SmallNoop(1));
@@ -164,6 +179,39 @@ fn deferred_command_queue_prewarms_reusable_storage_without_per_command_growth()
 }
 
 #[test]
+fn deferred_command_queue_explicitly_trims_only_idle_inline_storage() {
+    const INLINE_BLOCK_BYTES: usize = 64 * 1024;
+
+    let mut queue = CommandQueue::with_capacity(1);
+    queue.push(SmallNoop(1));
+    assert_eq!(queue.trim_retained_inline_storage(), 0);
+    assert_eq!(queue.metrics().inline_arena_trim_count(), 0);
+
+    queue.apply(&mut World::empty());
+    let released_bytes = queue.trim_retained_inline_storage();
+    assert_eq!(released_bytes, INLINE_BLOCK_BYTES);
+    assert_eq!(queue.metrics().inline_arena_trim_count(), 1);
+    assert_eq!(
+        queue.metrics().inline_arena_trimmed_storage_bytes(),
+        INLINE_BLOCK_BYTES
+    );
+
+    queue.push(SmallNoop(2));
+    assert_eq!(queue.metrics().inline_block_storage_growths(), 2);
+}
+
+#[test]
+fn world_and_worker_buffers_expose_explicit_idle_inline_storage_trimming() {
+    let mut world = World::empty();
+    world.commands().queue_fn(|_: &mut World| {});
+    world.apply_deferred();
+    assert!(world.trim_deferred_command_storage() > 0);
+
+    let mut worker = WorkerCommandBuffer::with_capacity(0, "commands.trim", 1);
+    assert!(worker.trim_retained_inline_storage() > 0);
+}
+
+#[test]
 fn deferred_command_queue_keeps_large_arena_capacity_after_a_small_merge() {
     const COMMANDS_PER_BLOCK: usize = (64 * 1024) / 192;
 
@@ -259,6 +307,24 @@ fn deferred_command_queue_merges_sixty_four_worker_arenas_without_per_item_fallb
     let report = merged.apply(&mut World::empty());
 
     assert_eq!(report.applied_count(), 6_400);
+}
+
+#[test]
+fn deferred_command_queue_batch_merge_skips_worker_arena_linear_lookup_when_empty() {
+    let queue = include_str!("../../ecs/commands/command_queue.rs");
+    let worker_buffer = include_str!("../../ecs/commands/worker_command_buffer.rs");
+    let fast_path = queue
+        .split("fn append_worker_with_known_absent_arena")
+        .nth(1)
+        .and_then(|source| source.split("pub(crate) fn reclaim_worker_arena").next())
+        .expect("read the known-absent worker arena fast path");
+
+    assert!(
+        worker_buffer
+            .contains("let destination_has_worker_arenas = self.has_worker_inline_arenas();")
+    );
+    assert!(worker_buffer.contains("buffer.merge_into_with_known_absent_arena(self);"));
+    assert!(!fast_path.contains(".position("));
 }
 
 #[test]

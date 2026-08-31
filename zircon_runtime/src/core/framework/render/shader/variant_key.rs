@@ -6,6 +6,12 @@ use crate::core::framework::render::ShadingModelId;
 use super::geometry_source::GeometrySourceId;
 use super::RenderShaderDefinitionValue;
 
+const SHADING_MODEL_PACKED_SHIFT: u32 = u8::BITS;
+const SHADER_PASS_PACKED_WIDTH: u32 = 4;
+const SHADER_PASS_PACKED_SHIFT: u32 = SHADING_MODEL_PACKED_SHIFT + u8::BITS;
+const SHADER_FEATURE_PACKED_SHIFT: u32 = SHADER_PASS_PACKED_SHIFT + SHADER_PASS_PACKED_WIDTH;
+const SHADER_QUALITY_PACKED_SHIFT: u32 = SHADER_FEATURE_PACKED_SHIFT + u32::BITS;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RenderShaderVariantKey {
     pub entry_point: Option<String>,
@@ -23,6 +29,7 @@ pub enum ShaderPassType {
     Shadow,
     Velocity,
     TaaReactiveMask,
+    HitProxy,
 }
 
 impl ShaderPassType {
@@ -34,6 +41,7 @@ impl ShaderPassType {
             Self::Shadow => 3,
             Self::Velocity => 4,
             Self::TaaReactiveMask => 5,
+            Self::HitProxy => 6,
         }
     }
 
@@ -45,6 +53,7 @@ impl ShaderPassType {
             Self::Shadow => "shadow",
             Self::Velocity => "velocity",
             Self::TaaReactiveMask => "taa_reactive_mask",
+            Self::HitProxy => "hit_proxy",
         }
     }
 }
@@ -130,12 +139,14 @@ pub struct ShaderVariantKey {
 }
 
 impl ShaderVariantKey {
+    /// Packs only in-memory specialization dimensions. The complete persisted
+    /// identity remains [`Self::canonical_string`].
     pub fn packed_dims(&self) -> u64 {
         u64::from(self.geometry_source.value())
-            | (u64::from(self.shading_model.value()) << 4)
-            | (self.pass_type.packed_value() << 12)
-            | (u64::from(self.features.bits()) << 16)
-            | (self.quality.packed_value() << 48)
+            | (u64::from(self.shading_model.value()) << SHADING_MODEL_PACKED_SHIFT)
+            | (self.pass_type.packed_value() << SHADER_PASS_PACKED_SHIFT)
+            | (u64::from(self.features.bits()) << SHADER_FEATURE_PACKED_SHIFT)
+            | (self.quality.packed_value() << SHADER_QUALITY_PACKED_SHIFT)
     }
 
     pub fn canonical_string(&self) -> String {
@@ -173,7 +184,7 @@ mod tests {
 
     use crate::core::framework::render::{
         GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
-        SHADING_MODEL_ID_BLINN_PHONG,
+        ShadingModelId, SHADING_MODEL_ID_BLINN_PHONG,
     };
 
     #[test]
@@ -195,7 +206,7 @@ mod tests {
 
         assert_eq!(
             key.packed_dims(),
-            3 | (1 << 4) | (4 << 12) | (0b101 << 16) | (2 << 48)
+            3 | (1 << 8) | (4 << 16) | (0b101 << 20) | (2 << 52)
         );
         assert_eq!(
             key.canonical_string(),
@@ -219,6 +230,32 @@ mod tests {
     }
 
     #[test]
+    fn render_shader_variant_key_keeps_plugin_geometry_and_shading_fields_disjoint() {
+        let plugin_geometry = ShaderVariantKey {
+            material_shader: ResourceId::from_stable_label("builtin://pbr"),
+            material_revision: 1,
+            material_layout_hash: 0,
+            material_option_bits: 0,
+            geometry_source: GeometrySourceId::new(16),
+            shading_model: ShadingModelId::new(0),
+            pass_type: ShaderPassType::Forward,
+            features: ShaderFeatureBits::default(),
+            quality: ShaderQualityTier::Low,
+            platform_token: "test".to_string(),
+        };
+        let mut first_plugin_shading_model = plugin_geometry.clone();
+        first_plugin_shading_model.geometry_source = GeometrySourceId::new(0);
+        first_plugin_shading_model.shading_model = ShadingModelId::new(1);
+
+        assert_eq!(plugin_geometry.packed_dims(), 16);
+        assert_eq!(first_plugin_shading_model.packed_dims(), 1 << 8);
+        assert_ne!(
+            plugin_geometry.packed_dims(),
+            first_plugin_shading_model.packed_dims()
+        );
+    }
+
+    #[test]
     fn render_shader_feature_bits_reports_named_flags() {
         let features = ShaderFeatureBits::new(ShaderFeatureBits::ALPHA_TEST).union(
             ShaderFeatureBits::new(ShaderFeatureBits::INSTANCED_PREV_TRANSFORM),
@@ -235,5 +272,11 @@ mod tests {
         assert_eq!(ShaderPassType::Forward.packed_value(), 0);
         assert_eq!(ShaderPassType::TaaReactiveMask.packed_value(), 5);
         assert_eq!(ShaderPassType::TaaReactiveMask.token(), "taa_reactive_mask");
+    }
+
+    #[test]
+    fn render_shader_pass_type_reserves_a_stable_hit_proxy_identity() {
+        assert_eq!(ShaderPassType::HitProxy.packed_value(), 6);
+        assert_eq!(ShaderPassType::HitProxy.token(), "hit_proxy");
     }
 }

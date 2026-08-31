@@ -194,6 +194,10 @@ pub(super) const fn enum_param(name: &'static str, default: u32) -> VolumeParamS
     VolumeParamSchema::new(name, VolumeParamValue::Enum(default), interp_discrete)
 }
 
+pub(super) const fn bool_param(name: &'static str, default: bool) -> VolumeParamSchema {
+    VolumeParamSchema::new(name, VolumeParamValue::Bool(default), interp_bool)
+}
+
 const fn lerp(from: Real, to: Real, weight: Real) -> Real {
     from + (to - from) * weight
 }

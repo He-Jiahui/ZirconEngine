@@ -2,6 +2,7 @@ use crate::core::math::Vec4;
 use crate::graphics::types::{
     ViewportRenderFrame, ViewportRenderRegion, ViewportSceneClearPlan, ViewportSceneColorClear,
 };
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use super::scene_region_clear_color_uniform::SceneRegionClearColorUniform;
 use super::scene_region_clear_shader::SCENE_REGION_CLEAR_SHADER;
@@ -99,50 +100,48 @@ impl SceneRegionClearResources {
 
     pub(crate) fn record_frame_clear(
         &self,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         scene_color_view: &wgpu::TextureView,
         scene_depth_view: &wgpu::TextureView,
         frame: &ViewportRenderFrame,
-    ) {
+    ) -> WgpuBufferUploadBatch {
         let plan: ViewportSceneClearPlan =
             frame.camera_stack_attachment_policy().scene_clear_plan();
         if !plan.has_clear() {
-            return;
+            return WgpuBufferUploadBatch::new();
         }
         let color = plan
             .scene_color()
             .map(|clear| resolve_scene_clear_color(clear, frame));
         self.record(
-            queue,
             encoder,
             scene_color_view,
             scene_depth_view,
             frame.render_region(),
             color,
             plan.scene_depth(),
-        );
+        )
     }
 
     fn record(
         &self,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         scene_color_view: &wgpu::TextureView,
         scene_depth_view: &wgpu::TextureView,
         render_region: ViewportRenderRegion,
         color: Option<Vec4>,
         depth: bool,
-    ) {
+    ) -> WgpuBufferUploadBatch {
         if render_region.is_empty() || (color.is_none() && !depth) {
-            return;
+            return WgpuBufferUploadBatch::new();
         }
+        let mut uploads = WgpuBufferUploadBatch::new();
         if let Some(color) = color {
-            queue.write_buffer(
-                &self.color_buffer,
+            uploads.push(WgpuBufferUpload::from_bytes(
+                self.color_buffer.clone(),
                 0,
                 bytemuck::bytes_of(&SceneRegionClearColorUniform::new(color)),
-            );
+            ));
         }
         match (color.is_some(), depth) {
             (true, true) => {
@@ -206,6 +205,7 @@ impl SceneRegionClearResources {
             }
             (false, false) => {}
         }
+        uploads
     }
 }
 
@@ -324,8 +324,7 @@ mod tests {
                 label: Some("zircon-scene-region-clear-test-encoder"),
             });
 
-        resources.record(
-            &backend.queue,
+        let color_uploads = resources.record(
             &mut encoder,
             &target.scene_color_view,
             &target.depth_view,
@@ -333,7 +332,52 @@ mod tests {
             Some(Vec4::ONE),
             true,
         );
+        assert!(!color_uploads.is_empty());
 
+        let depth_only_uploads = resources.record(
+            &mut encoder,
+            &target.scene_color_view,
+            &target.depth_view,
+            ViewportRenderRegion::full_target(target.size),
+            None,
+            true,
+        );
+        assert!(depth_only_uploads.is_empty());
+
+        let _upload_submission = backend
+            .enqueue_copy_buffer_upload_batch(color_uploads)
+            .unwrap();
         backend.queue.submit([encoder.finish()]);
+    }
+
+    #[test]
+    fn scene_region_clear_defers_color_upload_to_frame_transaction() {
+        let source = include_str!("scene_region_clear_resources.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap();
+        let stage_source = include_str!(
+            "../core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs"
+        );
+        let frame_source =
+            include_str!("../core/scene_renderer_core_render_compiled_scene/render/render.rs");
+
+        assert!(production.contains("WgpuBufferUpload::from_bytes("));
+        assert!(!production.contains("queue.write_buffer("));
+        assert!(!production.contains("queue: &wgpu::Queue"));
+
+        let clear_record = stage_source
+            .find("let mut scene_clear_uploads = scene_clear.record_frame_clear(")
+            .expect("scene clear must prepare its color upload while recording the clear draw");
+        let graph_append = stage_source
+            .find("graph_execution.append_buffer_uploads(&mut scene_clear_uploads)")
+            .expect("scene clear upload must join graph-owned pending uploads");
+        assert!(clear_record < graph_append);
+
+        let graph_success = frame_source
+            .find("let mut graph_buffer_uploads = graph_execution.take_buffer_uploads()")
+            .expect("frame owner must retain graph uploads only after graph success");
+        let upload_accept = frame_source
+            .find(".enqueue_copy_resource_upload_batch(")
+            .expect("frame owner must accept one merged buffer upload batch");
+        assert!(graph_success < upload_accept);
     }
 }

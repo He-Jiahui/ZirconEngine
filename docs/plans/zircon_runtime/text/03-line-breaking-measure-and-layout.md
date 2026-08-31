@@ -5,6 +5,8 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/direction.rs
   - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
   - zircon_runtime/src/ui/text/layout_engine/line_box.rs
+  - zircon_runtime/src/ui/text/layout_engine/physical_line_metrics.rs
+  - zircon_runtime/src/ui/text/layout_engine/virtual_fragment_sequence.rs
   - zircon_runtime/src/ui/text/layout_engine/overflow_style.rs
   - zircon_runtime/src/ui/text/layout_engine/range_mapping.rs
   - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
@@ -19,17 +21,20 @@ related_code:
   - zircon_runtime/src/text/mod.rs
   - zircon_runtime/src/text/hard_line.rs
   - zircon_runtime/src/text/layout/mod.rs
+  - zircon_runtime/src/text/layout/logical_virtual_line.rs
   - zircon_runtime/src/text/layout/advance_index.rs
   - zircon_runtime/src/text/layout/rich.rs
   - zircon_runtime/src/text/layout/rich/materialize.rs
   - zircon_runtime/src/text/layout/rich/metrics.rs
   - zircon_runtime/src/text/layout/rich_advance_index.rs
+  - zircon_runtime/src/text/layout/rich_source.rs
   - zircon_runtime/src/text/layout/rich_advance_index/tests.rs
   - zircon_runtime/src/text/layout/rich_vertical.rs
   - zircon_runtime/src/text/layout/rich_vertical/tests.rs
   - zircon_runtime/src/ui/text/layout_engine/wrapping/tests.rs
-  - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
-  - zircon_runtime/src/ui/text/layout_engine/rich_inline_vertical.rs
+  - zircon_runtime/src/ui/text/layout_engine/rich_layout.rs
+  - zircon_runtime/src/ui/text/layout_engine/rich_layout_vertical.rs
+  - zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/soft_hyphen.rs
   - zircon_runtime/src/text/layout/line_break/mod.rs
   - zircon_runtime/src/text/layout/line_break/boundary_correction.rs
@@ -47,6 +52,8 @@ related_code:
   - zircon_runtime/src/text/layout/tab.rs
   - zircon_runtime/src/text/layout/measure.rs
   - zircon_runtime/src/text/layout/measure/tests.rs
+  - zircon_runtime/src/text/glyph_artifact.rs
+  - zircon_runtime/src/text/glyph_artifact/projection.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
@@ -138,7 +145,7 @@ status: in_progress
 
 - `layout_engine.rs`:`layout_text`/`wrap_source_runs`/`append_word_wrapped_segment`/`ellipsize_line`/`aligned_x` 全部建立在 `text_advance(font_size)=font_size*0.5` 等宽近似上 → `editor_layout/17 G1` 根因;`baseline: font_size*0.8` 硬编码 → 垂直错位。
 - 换行:有 `UiTextWrap::{None,Word,Glyph}`,但 word 仅按空格(不识 CJK 无空格断点、不走 UAX#14)、无禁则、无连字符。
-- `measure_cache.rs`:宽度桶缓存在,但喂启发式宽度;`text/layout/measure.rs` 已有 owner-local source byte 子范围度量首段并喂回 `measured_grapheme_widths(...)`;2026-07-03 已通过 `ui::surface::measure_text_source_range_width(...)` 暴露 include-kerning=true 的 public source-range measure 入口;2026-07-04 `ui/text/geometry.rs` 的 IME/caret 简单 LTR source-isomorphic 路径已直接消费 source-range shaped width,并通过 `ui/surface/text_geometry.rs` 暴露 public cursor/range geometry surface;同日 `TextShapeRequest.include_kerning` 已接到 cosmic-text `kern=0` feature,`measure_text_source_range_width_with_kerning(...)` 在请求 unkerned 时重新走同一后端 shaping；同日晚间 `UiSurface` 渲染提取已成为 `UiTextMeasureCache` 的真实生产 consumer,owner text 与 TextField 统一走 `resolve_text_layout_with_cache(...)`;随后 IME update 路径在请求 cursor/composition rect 前刷新当前树的 render extract,并直接消费 `UiRenderCommand.text_layout`,不再单独重跑 direct layout resolve。2026-07-06 `UiTextMeasureCache` 已接入 generic measure/layout cache 与同帧 frame dedup,重复 natural-size/full-layout 请求同帧先命中 dedup；随后 shared shaped-run provider routing 已接通,measure miss 与 full layout miss 共享 `ShapedRunCache`,`layout_engine/line_box.rs` 对不含 tab 的小字号 label 直接采用 provider grapheme advances,只有真实包含 `\t` 时才额外测量空格宽度做 tab stop。`render_perf_text_measure_then_layout_shapes_once` 已关闭单 label shape-count evidence:稳定 `"Hg"` line metrics 预热后,`editor base.zui` 的 measure+layout 只对真实 source label miss/insert 一次 shaped run；2026-07-07 `render_perf_text_scroll_list_reuses_cache` 已关闭 scroll-list shape/layout 首段:滚动 3 行后只为新进入视口 row 增加 shaped miss/insert,重叠 row 命中 shaped cache。2026-07-08 `UiTextShapePrewarmRequest` / `UiTextMeasureCache::prewarm_horizontal_paragraphs(...)` 已把 PF-M2 parallel shape pool 接到 UI cache 显式预热入口,可见 editor row 先批量进入同一个 `ShapedRunCache`,后续 layout 只增加 shaped hits;随后 `ui/surface/render/text_prewarm.rs` 在 render extract 前自动收集可见 owner text 并预热同一 cache,组件 painter 生成的 `Text` command 与 rich/vertical prewarm 也已由阶段 09 PF-M2 follow-up 接到同一 cache。本轮没有保留“用真实字符串行高替换 metrics sample”的实验方案,避免改变既有换行容量。复杂 BIDI/竖排 source-range 几何、完整 backend cluster reverse lookup、scroll raster/upload counters 与窗口级 QA 仍等待。
+- `measure_cache.rs`:历史 width bucket 曾以启发式辅助度量参与 cache key；该非语义字段已于 2026-08-22 删除，cache key 现在只保留真实请求几何与 `TextLayoutWidthValidity`。`text/layout/measure.rs` 已有 owner-local source byte 子范围度量首段并喂回 `measured_grapheme_widths(...)`;2026-07-03 已通过 `ui::surface::measure_text_source_range_width(...)` 暴露 include-kerning=true 的 public source-range measure 入口;2026-07-04 `ui/text/geometry.rs` 的 IME/caret 简单 LTR source-isomorphic 路径已直接消费 source-range shaped width,并通过 `ui/surface/text_geometry.rs` 暴露 public cursor/range geometry surface;同日 `TextShapeRequest.include_kerning` 已接到 cosmic-text `kern=0` feature,`measure_text_source_range_width_with_kerning(...)` 在请求 unkerned 时重新走同一后端 shaping；同日晚间 `UiSurface` 渲染提取已成为 `UiTextMeasureCache` 的真实生产 consumer,owner text 与 TextField 统一走 `resolve_text_layout_with_cache(...)`;随后 IME update 路径在请求 cursor/composition rect 前刷新当前树的 render extract,并直接消费 `UiRenderCommand.text_layout`,不再单独重跑 direct layout resolve。2026-07-06 `UiTextMeasureCache` 已接入 generic measure/layout cache 与同帧 frame dedup,重复 natural-size/full-layout 请求同帧先命中 dedup；随后 shared shaped-run provider routing 已接通,measure miss 与 full layout miss 共享 `ShapedRunCache`,`layout_engine/line_box.rs` 对不含 tab 的小字号 label 直接采用 provider grapheme advances,只有真实包含 `\t` 时才额外测量空格宽度做 tab stop。`render_perf_text_measure_then_layout_shapes_once` 已关闭单 label shape-count evidence:稳定 `"Hg"` line metrics 预热后,`editor base.zui` 的 measure+layout 只对真实 source label miss/insert 一次 shaped run；2026-07-07 `render_perf_text_scroll_list_reuses_cache` 已关闭 scroll-list shape/layout 首段:滚动 3 行后只为新进入视口 row 增加 shaped miss/insert,重叠 row 命中 shaped cache。2026-07-08 `UiTextShapePrewarmRequest` / `UiTextMeasureCache::prewarm_horizontal_paragraphs(...)` 已把 PF-M2 parallel shape pool 接到 UI cache 显式预热入口,可见 editor row 先批量进入同一个 `ShapedRunCache`,后续 layout 只增加 shaped hits;随后 `ui/surface/render/text_prewarm.rs` 在 render extract 前自动收集可见 owner text 并预热同一 cache,组件 painter 生成的 `Text` command 与 rich/vertical prewarm 也已由阶段 09 PF-M2 follow-up 接到同一 cache。本轮没有保留“用真实字符串行高替换 metrics sample”的实验方案,避免改变既有换行容量。复杂 BIDI/竖排 source-range 几何、完整 backend cluster reverse lookup、scroll raster/upload counters 与窗口级 QA 仍等待。
 - `hit_test.rs`:已优先消费 `UiResolvedTextLine.glyph_advances` 做视觉 grapheme midpoint 反查,tab/justify/kashida 等 layout-stage advance 结果不再被默认样式重测量覆盖；post-wrap visual-order adapter 已硬切到 02 `bidi.rs` 的 UAX#9 level/isolate/L1/L2 owner，旧 ASCII/RTL-block 猜测已删除。2026-07-10 `hit_test/visual_source.rs` 已把 visual cluster source range + direction 贯穿 midpoint hit，RTL cluster leading/trailing edge 分别回到 logical end/start 并返回 Downstream/Upstream affinity；caret/range geometry 与完整 backend `ShapedGlyph.source_range` map 仍需同样硬切。
 - Justify、shrink-to-fit、clamp font size、tab stop 已有首段；kashida 已有 advance-based 首段但尚未插入真实 tatweel glyph；2026-07-03 已补 SDF char-run 对 resolved grapheme advances 的投影与 mixed overlay whole-grapheme fallback 首段,并补 `sdf_char_run.rs` 对 ZWJ/zero-width/Bidi format/variation selector 等 invisible format controls 的零槽位/零 advance 规则,避免 `glyph_advances` 契约在组合字符/emoji cluster 或 format-control scalar 上被字符数校验/错误 fallback advance 打断；同日 `text_pixel_snap.rs` 把 native glyphon `TextArea` 与 SDF draw planning 的文本 frame 原点贴像素规则合并到单一 owner,避免布局 frame 小数原点在 native/SDF 上屏阶段重新制造左右落点漂移；后续又把 horizontal/vertical SDF glyph bitmap frame 的 x/y 原点经 `text_glyph_device_frame(...)` 同步吸附,保留 layout advances 与 bitmap extent 但消除小字号 glyph bitmap 左右小数落点；editor retained-host 已把 runtime/host advance 与 shaped-origin 接受路径改成 fail-closed,并在 2026-07-04 将每 grapheme/shaped-origin advance 可接受窗固定为 `0.0625px`,让 `editor base.zui` 这类小字号 label 的 0.125px 局部借位直接回退 host natural spacing；同日又新增 retained 1/8px phase-bin 接受门,即使 `folder-open.svg` 这类 label 只有 +0.05px shaped-origin delta,只要会把 glyph 推到另一个最终 raster phase 也会回退 host natural spacing；仍缺复杂 overflow/shrink/clamp/tab 交互、完整 native/SDF paragraph parity、真实 shaping cluster backend 数据与竖排布局。
 
@@ -323,11 +330,11 @@ ShapedGlyphRun(02, 无宽度约束 + 断点机会) + LayoutConstraints { wrap_wi
 | `line_break/mod.rs` | UAX#14 机会 + 贪心断行 + 长词逐字 + 连字符 |
 | `line_break/glue.rs` | NBSP/ZWJ/NBHY/NNBSP/WJ/ZWNBSP/variation selector 等不可断 glue 分类,输出给 `LineBreakChunk.allow_glyph_fallback` |
 | `line_break/glyph_fallback.rs` | 普通过宽 chunk 是否退回 glyph wrapping 的 shared measured-width + grapheme-count predicate |
-| `line_break/soft_hyphen.rs` | U+00AD soft hyphen visual chunk 剥离、断点 `-` suffix metadata 与 source range 归属 |
+| `line_break/soft_hyphen.rs` | U+00AD visual chunk 剥离与 typed `DiscretionaryHyphenDecision`；发布 consumed source range、marker mode、virtual anchor，不选择字体或生成 glyph |
 | `line_break/wrap_space.rs` | ASCII wrap-space 行首/行尾 trimming 策略,输出 source offset 与 byte count 给 UI run/range mutation |
-| `line_break/smart.rs` | WordSmart 首段 smart-wrap 策略:ASCII 收尾标点 `,.:;!?`、Unicode ellipsis/leader `…`/`‥`、standalone interrobang `‽`、Unicode double/interrobang punctuation `‼`/`⁇`/`⁈`/`⁉` 与 Arabic/RTL 常见收尾标点 `،`/`؛`/`؟` 绑定前一词,支持标点后 ASCII/Unicode right closing quote 链 `"`/`'`/`’`/`”`,并覆盖全角/CJK 收尾标点 `、。，．・：；！？`、其后的 CJK/fullwidth 闭合符号链 `）］｝｠】〕〉》」』〗〙〛〟〞＂＇`、以及 `go?!` / `go！？` / `go，」！` / `go‽!` / `go⁉!` / `go؟!` 这类连续收尾标点 cluster,必要时在 chunk 内循环切分并关闭 protected 段 glyph fallback,但不吸收后续词 |
+| `line_break/smart.rs` | WordSmart style policy：复用 `WordBoundaryMap` 的 UAX #29 word end，不维护本地 word/字符表；以 snapshot-bound Unicode `General_Category::OtherPunctuation` 触发前词保护，`ClosePunctuation/FinalPunctuation` 只延伸已触发的收尾 run。对有序 chunk 使用单调 word-end cursor；仅在 text/visual/source 同构且双范围连续时切分或合并，非同构 virtual/soft-hyphen 映射保守跳过 |
 | `ui/text/layout_engine/wrapping.rs` | UI Word/Glyph wrapping orchestration、newline segmentation、leading grapheme continuation 与 line width fit helper |
-| `ui/text/layout_engine/candidate_line.rs` | UI candidate line text/run/source/visual range mutation、pending break suffix 追加与 trailing wrap-space run 修剪 |
+| `ui/text/layout_engine/candidate_line.rs` | UI candidate line text/run/source/visual range mutation、Plain virtual-anchor 与 rich source-owned discretionary-hyphen 投影、trailing wrap-space run 修剪 |
 | `ui/text/layout_engine/direction.rs` | UI paragraph/base direction first-strong 解析、strong char helpers 与 RTL direction predicate |
 | `ui/text/layout_engine/ellipsis.rs` | UI ellipsis projection: clipped-line merge、shared overflow segment 到 rich run/source/visual range remap、ellipsis marker run insertion |
 | `ui/text/layout_engine/line_box.rs` | UI line-box measured/tab-aligned advances、Justify gating、line width clamp、logical Start/End x alignment 与 fallback advance minimum |
@@ -456,7 +463,8 @@ pub fn measure_text_size(run: &ShapedGlyphRun, c: &LayoutConstraints) -> Vec2;
 | `text_wrap_cjk_kinsoku_no_trailing_cjk_white_open_punctuation` | CJK 白开括号/引号 `〖〘〚〝` 不可留在行尾;与后续 glyph 同 chunk |
 | `text_wrap_cjk_kinsoku_no_trailing_fullwidth_white_open_parenthesis` | 全角白左圆括号 `｟` 不可留在行尾;与后续 glyph 同 chunk |
 | `text_wrap_long_word_falls_back_to_glyph` | 超宽单词 Word 模式逐字断 |
-| `text_wrap_soft_hyphen_inserts_hyphen` | U+00AD 断点末尾出连字符字形 |
+| `text_wrap_soft_hyphen_inserts_hyphen` | U+00AD 断点末尾出连字符字形；Plain marker 为 zero-width source anchor，行范围仍消费 U+00AD，并发布 retained glyph artifact |
+| `soft_hyphen_projects_the_retained_logical_fragment_without_renderer_reshape` | profiling build 锁定 Plain soft-hyphen 只 shape 一次 logical virtual fragment，artifact 投影不二次 shape；managed 执行待完成 |
 | `word_wrap_keeps_variation_selector_sequence_together` | variation selector 与 base glyph 保持 glue;过窄 frame 下允许 overhang |
 | `word_wrap_keeps_additional_glue_sequences_together` | NBHY/NNBSP/WJ/ZWNBSP 不被 glyph fallback 拆开 |
 | `word_smart_keeps_ascii_trailing_punctuation_with_previous_word` | WordSmart 下 ASCII 收尾标点不可成为 wrapped line leader;`go,` 可 protected overhang |
@@ -629,6 +637,17 @@ line count、backend calls、最大 shaping window 与 p50/p95 ns；它不以机
 Text02实现完成后的定向二次审查又发现Text03仍只消费LF风格分行，并把每个shaped line的相对`visual_range`当全文offset。现已前向修复：`text/hard_line.rs`成为shaping/layout/UI共用mandatory hard-line owner；measure、rich forced ranges与UI source segmentation统一识别CR、CRLF、LF、VT、FF、NEL、LS、PS；line-break chunk使用absolute source range并携带mandatory标记，kinsoku/word-smart不得跨强制边界合并。`BidiParagraph::line_order`也从一次reordered-level结果同时生成logical levels与visual indices，L1/L2仍只在确定行边界后执行。对应Unicode separator、跨hard-line kinsoku和UI source-range回归已写入，格式/whitespace静态检查通过，managed Cargo仍待coordinator。
 
 当前状态为 `implementation_complete / resolving_failure / managed_validation_pending`。
+
+2026-08-27 whitespace layout admission follow-up: render-command resolution and owner-overlap
+prewarm no longer use `trim().is_empty()` as a layout-existence test. Every non-empty source is
+admitted: spaces retain shaped advance, tabs retain tab-stop geometry, and hard separators retain
+line boxes/caret/selection/IME geometry. A truly empty ordinary display source still skips layout,
+while the existing editable empty-source owner continues to publish editable state. The
+whitespace-only Justify rejection remains a separate policy and is unchanged. Behavior regressions
+are authored; scoped Rust 2024 formatting/diff/source checks pass, while managed Cargo and real
+WGPU/PNG acceptance remain pending. Status:
+`nonempty_whitespace_layout_admission_implemented / empty_display_source_fast_path_preserved /
+static_checks_complete / managed_validation_pending`.
 本计划及 child failure 仍保持 open，直到 coordinator 执行 focused/upward Cargo、
 上述 grapheme/run 受管规模回归与 p50/p95、Text09 cache 回归以及新鲜真实 WGPU 产品帧；
 等待这些受管验收只延迟 accepted closeout，不构成 blocked，也不生成或登记占位 PNG。
@@ -715,12 +734,733 @@ non-validation foundation work; status remains `implementation_complete / resolv
 managed_validation_pending` while UI12 retains the Cargo lane. No Cargo, framebuffer test, PNG,
 milestone acceptance, commit, or WeCom message is claimed.
 
-2026-08-15 static structure update: the same measure owner is now physically split into the
-452-line production leaf `text/layout/measure.rs` and the 320-line folder-backed behavior and
-profiling owner `text/layout/measure/tests.rs`. This removes the production-file soft-budget
-pressure and satisfies the convention that behavior tests beyond the small inline threshold have
-their own owner, without changing the measurement algorithm, public surface, or the existing ten
-functional regressions plus ignored p50/p95 probe. Scoped Rust 2021 `rustfmt --check` and
-`git diff --check` pass; Cargo remains deliberately unstarted until UI12 releases the shared lane.
+2026-08-30 static structure follow-up: later single-shape/physical-line metric regressions had
+regrown `text/layout/measure.rs` to 862 lines despite the earlier test split. That cohesive 118-line
+contract block now lives in the folder-backed
+`text/layout/measure/measured_line_contract_tests.rs`; the production owner, general test owner,
+and focused contract owner are 746/437/116 lines. This restores the 800-line review budget without
+changing measurement algorithms, public surface, providers, fixtures, or assertions. The focused
+structure contract, Rust 2024 rustfmt, whitespace, and scoped diff-check pass; managed Cargo remains
+pending with the Text milestone validation batch.
 Status remains `implementation_complete / resolving_failure / managed_validation_pending`: no
 performance data, framebuffer, PNG, milestone acceptance, commit, or WeCom message is claimed.
+
+2026-08-22 cache-key algorithm review and profiling gate: current-source tracing found a
+deterministic hot-path cost in `UiTextMeasureKey::from_request`. `resolve_or_shape(...)` creates
+that key before same-frame or persistent layout-cache lookup. For every wrapping request,
+`UiWidthBucket::from_request(...)` then calls `measure_line_width("n", ...)`; that helper creates
+a `DirectTextShapeRunProvider`, so the auxiliary sample bypasses the request's
+`SharedTextLayoutSession` and performs a separate shape before an otherwise valid cache hit can
+return. The bucket is redundant: the key already contains exact `frame` and `clip_frame` geometry,
+while `TextLayoutCache` separately enforces `TextLayoutWidthValidity` (currently exact width).
+No lookup, validity predicate, or collision check consumes the bucket other than key equality.
+
+The correction is therefore structural rather than heuristic: remove `UiWidthBucket` and the
+auxiliary direct shape, preserving the exact geometry, style, text, font-generation, viewport,
+collision, and width-validity contracts. A source regression will prohibit both the retired key
+type and the `measure_line_width("n", ...)` sample in the cache-key constructor. The measurable
+effect is exactly one avoided uncached auxiliary shaping call per wrapping
+`resolve_or_shape(...)` entry, including frame/persistent cache hits; its CPU time, p50/p95,
+power, and cross-engine comparison are intentionally unreported until the lower Runtime74 compile
+gate clears. The pending measurement sequence is: focused
+`render_perf_text_measure_then_layout_shapes_once` and
+`render_perf_text_scroll_list_reuses_cache`, ignored
+`plain_layout_artifact_scale_reports_cold_and_warm_p50_p95`, then the existing Text03 grapheme
+projection p50/p95 reporter and the real WGPU framebuffer exporter. The final exporter remains
+the only source of a new product PNG under `docs/tests/runtime/text`.
+
+Status is now `implementation_in_progress / resolving_failure / managed_validation_pending` for
+this cache-key repair. No Cargo, profiler, WGPU, screenshot, milestone acceptance, commit, or
+WeCom claim is made by this static review.
+
+2026-08-22 cache-key repair implementation update: `UiWidthBucket`, its public test-only
+re-export, and its `measure_line_width("n", ...)` direct-shaping sample are deleted. The
+`UiTextMeasureKey` now derives only from the real request dimensions, content, viewport, style,
+and font-database generation; `TextLayoutCache` retains its existing exact-width validity check.
+The existing same-request cache-hit regression remains, and the hot-path source regression now
+requires the cache-key owner to contain neither the retired bucket nor the auxiliary sample.
+Scoped Rust 2024 `rustfmt --config skip_children=true --check` and `git diff --check` pass;
+production-symbol scan confirms the removed auxiliary path is absent. No managed Cargo was started
+because Runtime74 remains the lower compile gate, so this is not a runtime performance result.
+
+Completed items: current-source algorithm review, profile/acceptance measurement plan, cache-key
+contract repair, source regression, scoped formatting, whitespace, and retired-symbol checks.
+Remaining items: coordinator-managed compile recovery, focused cache regressions, p50/p95 capture,
+and fresh real-WGPU framebuffer export/inspection. Status is
+`implementation_complete / resolving_failure / managed_validation_pending`; no PNG, milestone
+acceptance, commit, or WeCom notification is claimed.
+
+2026-08-23 paragraph-layout profiling plan: before considering a structural cache or line-model
+change, profile one real `WordSmart` BBCode list at 1/100/1k/10k physical paragraphs with 31
+independent captures. Each capture records the root layout span, full-document candidate
+materialization span, paragraph-line-constraint span, and exactly two aggregate counters:
+`paragraph_wrap_inset_resolution_count = paragraphs` and
+`paragraph_constraint_inset_resolution_count = 2 * paragraphs`. The former per-inset span was
+removed because it would allocate and retain `3 * paragraphs` trace records (30,000 at the largest
+sample), contaminating the measured algorithm with profiler work. Cold/warm wall-time p50/p95 is
+reported separately by the non-capturing scale probe; capture spans are for attribution only.
+
+The architectural comparison target is Unreal Slate's separation of stable line models from
+viewport line views. Current plain unwrapped text can select visible hard lines, while rich/block
+text deliberately falls back to full materialization so source/range, indentation, and visual-order
+semantics stay correct. The data-driven decision gate is: if full materialization dominates and
+scales with document paragraphs after shaping-cache hits, design a document-revision-owned line
+model plus viewport view projection under Text09; if paragraph constraints dominate, design a
+revision-owned physical-paragraph constraint table; if shaping dominates, retain the existing
+shared shaped-run cache investigation instead. No model split, time/power comparison, or
+"optimal" complexity claim is accepted before the managed focused tests, this scale capture, and
+the real WGPU framebuffer exporter complete. Status remains
+`implementation_complete / resolving_failure / managed_validation_pending` because Runtime74
+still owns the lower lib-test compile repair.
+
+The repository currently has no Text03-owned platform energy or thermal sampler; WPR/energy
+evidence referenced by other product tools is not a substitute for this text-layout workload.
+Consequently a cross-engine power comparison remains explicitly unreported until a runtime-wide
+telemetry owner and matched scene/build/power-policy protocol exist.
+
+2026-08-23 Slate-aligned structural review: the cache-key repair is complete, but it does not
+make rich/block documents virtualized. The current `UiTextLayoutRequest` includes viewport
+offset/extent in `UiTextMeasureKey`, so a scroll position keys a complete `UiTextLayoutResolution`.
+`UiTextMeasureCache` deliberately retains a parsed document only for horizontal `Plain + None +
+Clip` requests with a document revision, and `visible_plain_text_lines(...)` can then select hard
+lines without wrapping. Any block paragraph (or rich/wrapped/vertical/editable request) instead
+falls through `layout_parsed_text_without_tables_with_viewport(...)` to full candidate-line
+materialization, followed by a second full physical-paragraph constraint projection. This is the
+present structural scaling risk; cache or loop micro-optimizations cannot change its `O(P + L)`
+per new viewport result cost, where `P` is physical paragraphs and `L` is candidate lines.
+
+The local Unreal reference confirms the required direction, rather than a temporary cache shim:
+`FTextLayout` owns stable `FLineModel` records (source/runs, shaping cache, break candidates,
+dirty flags, and estimated vertical offsets), while `FSlateTextLayout` projects/culls lazy
+`FLineView` objects at arrange/paint time. A Zircon follow-up must adopt the same ownership split:
+the document-revision/layout-input key owns immutable paragraph models and their first/
+continuation constraints; a viewport request selects view lines by an estimated-offset index and
+only materializes/refines the visible paragraph window; scrolling is view state, not a key for a
+whole-document layout artifact. Revision, font generation, width/style/wrap, paragraph metadata,
+and edit/IME invalidation must invalidate the document model atomically. Ellipsis, selection/IME,
+vertical writing, and unknown-height scroll anchoring stay on the complete-layout path until their
+equivalent line-model contracts exist.
+
+No implementation of that migration begins from this static diagnosis alone. The already-added
+31-sample profile must first attribute a real `WordSmart` BBCode list at 1/100/1k/10k paragraphs:
+root wall-time p50/p95 (cold and warm), `materialize_full_document_lines`,
+`resolve_paragraph_line_constraints`, and the two aggregate inset counters. Runtime74's lower
+compile fix is now applied through coordinator patch 146, but the new managed Cargo request was
+rejected because another compatible pool job still owns the lane; therefore no profiler numbers,
+power result, complexity acceptance, WGPU readback, or screenshot is claimed. The next action is
+to acquire the managed lane and record those data. Only if full materialization remains dominant
+after shaped-run cache warm-up will the Text09 document-model migration be opened; otherwise the
+measured dominant owner is fixed at its own boundary first. Status remains
+`implementation_complete / resolving_failure / managed_validation_pending`.
+
+2026-08-23 managed-validation coordination update: the Runtime74 lower compile repair is applied
+as coordinator patch 146. The first two fresh Text03 requests did not execute Cargo: one was
+rejected by occupied pool job `c32547af1eef4453b5aa24f5c68228c8`; one acquired a lease but its
+client hit the coordinator's old 15-second response limit before the script could register its
+supervisor, so the unused lease was explicitly released. Retrying with a 90-second coordinator
+response limit was then correctly rejected by active pool job
+`c5b882532d754d69a63c12308f22ad19` (live Cargo process tree observed). These are coordinator
+availability outcomes, not Rust test or profiler outcomes. The current proof fixture remains
+unrun and `runtime_text_mvp_foundation_product_framebuffer_20260831.png` does not exist; no
+WGPU readback, screenshot inspection, performance number, milestone acceptance, commit, or WeCom
+notification is claimed.
+
+2026-08-23 focused product-framebuffer execution update: the managed Windows command
+`validate-matrix.ps1 -Package zircon_runtime -TestTarget runtime_text_multilingual_product_framebuffer
+-TestFilter export_runtime_multilingual_text_product_framebuffer_png -IgnoredTests -SkipBuild`
+compiled the integration target in the D: managed target lane and then returned Cargo exit 101 from
+the ignored WGPU exporter. Its wrapper did not retain the specific Rust test assertion; a diagnostic
+rerun with standard test output was stopped before execution because unrelated shared-runtime source
+files changed and forced another full package rebuild. This is an execution failure, not a passing
+WGPU result. The exact proof path
+`docs/tests/runtime/text/runtime_text_mvp_foundation_product_framebuffer_20260831.png` remains
+absent, as does any proof in the repository `target` directory; no image is registered or inspected.
+
+The failed exporter left a fixture project under the already-approved docs test work root. To prevent
+new failed exporter runs from accumulating such fixture projects, `product_project_fixture.rs` now
+owns a `ProductFixtureWorkRoot` RAII guard. Both multilingual and DPI product paths retain that
+guard until their renderer and asset-manager clones drop, and a narrow regression proves a seeded
+failed fixture directory is removed on guard drop. Scoped Rust 2021 `rustfmt --check` and
+`git diff --check` pass. Existing historical fixture roots were not deleted from a shared worktree.
+
+Completed this slice: cache-test import repair, failed-fixture lifetime ownership, and static format/
+diff checks. Remaining: obtain the exact WGPU exporter assertion on a stable shared snapshot; repair
+the lowest confirmed owner; rerun the exporter to create and inspect a real framebuffer PNG; and run
+the 31-sample Text03 layout profiler. Status is now
+`implementation_in_progress / resolving_failure / managed_validation_pending`; no p50/p95,
+power comparison, accepted milestone, commit, or WeCom notification is claimed.
+
+2026-08-24 clip/intrinsic-extent structural repair: render clipping is now a view projection only.
+Plain, rich-inline, VerticalRl, and rich-inline VerticalRl layout calculate `measured_width` and
+`measured_height` from the complete post-overflow candidate layout before culling lines against the
+paint clip; `UiResolvedTextLayout.lines` remains the clipped render set. The plain nonvirtual path
+uses the complete candidate line count for height, while the existing virtualized width limitation
+remains explicitly deferred to the planned document-model owner rather than being inferred from a
+visible window. New layout regressions cover plain, rich, and VerticalRl clips, asserting that the
+paint-line count changes while intrinsic extent does not. This follows Slate's full line-model
+layout followed by paint-time culling and does not claim a completed virtual document model.
+
+The source slice has passed scoped Rust formatting, whitespace/diff checks, and removal scans for
+the retired visible-column extent reconstruction. Status remains
+`implementation_in_progress / resolving_failure / managed_validation_pending`: coordinator-managed
+Cargo, the 31-sample profile, and the real WGPU exporter must still run before a milestone can be
+accepted. No timing, power, cross-engine comparison, or PNG is claimed by this update.
+
+2026-08-24 profiling diagnostic fail-closed follow-up: the pre-artifact shaped-cache delta path
+now consumes its optional baseline with an explicit `if let` branch instead of a production
+`expect`. A missing profiling baseline therefore skips only the two diagnostic counters; it cannot
+terminate text layout, publish fallback geometry, or change shaped/layout cache admission. The
+existing profiling-feature regression continues to require both counters whenever an active
+capture supplies the baseline. Scoped Rust formatting, whitespace/diff checks, and the production
+`unwrap`/`expect` scan for the layout owner pass. Managed Cargo, the 31-sample profile, real WGPU
+framebuffer evidence, and a new PNG remain pending; the Text03 status is unchanged.
+
+2026-08-26 stale glyph-artifact snapshot correction: the public resolved-layout DTO can be cloned
+or mutated independently of its process-local glyph artifact, so font generation and writing mode
+alone were not a sufficient reuse certificate. Plain command preparation now reuses an artifact
+only when source text, effective style, font generation, writing mode, line count, and every stored
+layout-line snapshot match. The renderer repeats the exact per-line check in its existing line
+projection loop and rejects a mismatched artifact before exposing text-owned glyphs. This prevents
+old glyph/source/advance state from being paired with a new line DTO; it does not add a renderer
+shaper, cache, compatibility path, or extra traversal. The shared contract lives in the 66-line
+`text/glyph_artifact/snapshot.rs` child, leaving `glyph_artifact.rs` at 797 lines. Focused regressions
+cover preparation rebuild and final-consumer rejection. Static rustfmt/diff and production
+panic/unwrap/expect scans pass; managed Cargo, profiler/power evidence, real WGPU output, and a new
+PNG under `docs/tests/runtime/text` remain pending. Performance work must first measure the existing
+line DTO cloning/materialization owner; no timing or optimization claim is made by this correctness
+repair.
+
+2026-08-26 Plain post-wrap BiDi receipt correction: current source correctly keeps shaping glyphs
+in logical/source order because UAX#9 L1/L2 depends on the final physical-line boundary. The defect
+was not that line layout owned reordering; it was that UI rebuilt an unretained order from paragraph
+text after `CanonicalPhysicalLineFragment` had already become the final-line geometry owner.
+The fragment now retains Text02's grapheme-level `BidiLineOrder` beside the same shaped run,
+metrics, advances, and font generation. The ordinary Plain path borrows that receipt during visual
+materialization; a deliberately invalid paragraph input cannot alter the result when the receipt is
+present. Generated virtual/ellipsis lines retain their display-owned route, and missing fragment
+receipts retain the existing typed fallback analysis.
+
+This is `non_validation_implementation_complete / managed_validation_pending`, not completion of
+the full `LaidOutLine.visual_order` design. Rich horizontal, VerticalRl, viewport paths without a
+physical fragment, backend cluster carets, and public hit/accessibility consumers still need the
+same canonical cluster/source artifact. Scoped formatter, whitespace, call-site, file-budget, and
+production exception checks pass. The new `resolve_physical_line_bidi_order` and
+`resolve_visual_order_fallback` scopes are measurement hooks only; no Cargo, BidiTest corpus,
+p50/p95, power, WGPU framebuffer, or PNG result is claimed.
+
+2026-08-26 backend cluster break-safety handoff：Text02 的 direct RustyBuzz horizontal/vertical 路径现在在每个
+cluster 头发布 `Safe/RequiresReshape`，Cosmic 与旧 artifact 明确发布 `Unknown`。该三态值只表达“在 cluster 起点
+断开是否必须重塑两侧”，不是新的 UAX#14 opportunity，也不会清除 soft break。Text03 当前仍按既有 shaped cluster
+和固定 8-grapheme boundary correction 形成 line break chunk；在 final-line owner 实现 exact two-sided reshape 或可证明
+context plan 前，不得把 `RequiresReshape` 当作 no-break，也不得把 `Unknown` 当作 safe。
+
+这只关闭 `RTS-P1-017/035` 的 typed provenance 前置，未改变当前布局输出或 shape-call 数量。managed Cargo、官方
+corpus、unsafe/unknown 边界重塑回归、1/100/1k/10k grapheme shape-call 与 p50/p95/p99、RSS/功耗、真实 WGPU/PNG 仍
+开放；Text03 保持 `implementation_in_progress / resolving_failure / managed_validation_pending`。
+
+2026-08-26 soft-hyphen partial hard cut：`line_break/soft_hyphen.rs` 不再发布松散的 static suffix DTO，而是发布
+`DiscretionaryHyphenDecision`，显式携带 consumed U+00AD source range、`HyphenMinus` marker mode、断点后的
+zero-width virtual anchor，并支持 checked source rebase。Plain Word wrapping 只把 marker 挂到 zero-width anchor，
+同时让 resolved line range 消费隐藏 U+00AD；现有 `LogicalVirtualLineSequence` 因而可在视觉排序前保存逻辑显示序列，
+用当前 Plain `TextStyle` 一次 shape，并把同一 canonical fragment 投影到 glyph artifact。profiling-feature 回归锁定
+`logical_virtual_fragment_shape_request_count=1`、retained projection=1、renderer projection/fallback reshape=0；该回归
+尚未经过 managed Cargo 执行。
+
+后续 hard cut 已让 rich horizontal/VerticalRl 共享 display-owned UAX#9 sidecar：显示 `-` 使用断点后的 zero-width
+anchor，consumed U+00AD 只进入 replaced-source receipt，并以 typed `DiscretionaryHyphen` role 进入 artifact identity。
+VerticalRl rich 在 marker/ellipsis 物化后、UAX#9 前 capture sequence，并把可见列 sidecar 保留到 composite glyph
+artifact。rich style identity、accessibility source value 与 renderer typed run directory 均消费同一 owner。状态为
+`typed_discretionary_hyphen_decision_and_plain_horizontal_vertical_rich_canonical_virtual_artifact_implemented /
+typed_virtual_fragment_role_implemented / static_checks_complete / managed_validation_pending`；动态 corpus、managed
+Cargo、性能/功耗和真实 WGPU/PNG 仍开放，`RTS-P1-031` 继续开放。
+
+2026-08-26 line-break provenance handoff：Text02 的 shaped cluster 现携 2-byte typed receipt，区分
+`UnicodeDefault` profile 下的 provider allowed/mandatory、显式 mandatory control 与 legacy unknown；run-level
+`UnicodeDataSnapshotId` 给出 `unicode-linebreak 0.1.5 / Unicode 15.0.0` 数据身份。Text03 仍只消费已有
+`soft_break/mandatory_break`，没有把 provenance 变成第二套断行 policy。规则号、locale tailoring、官方 corpus 和
+Editor rule trace 仍开放。状态为 `line_break_profile_opportunity_receipt_implemented /
+rule_number_and_locale_tailoring_open / static_checks_complete / managed_validation_pending`；Text03 总状态不变。
+
+2026-08-26 ligature caret/advance architecture review：当前 `text/layout/measure.rs` 会把一个 backend cluster 的
+advance 按覆盖 grapheme 数量均分进 `GraphemeAdvanceIndex`，而 retained glyph artifact 的 hit path 已把多 grapheme
+cluster 当作不可拆分整体。artifact 缺失/过期时，UI fallback 因而会发布另一套伪精确 caret 语义。该分叉不能在
+measure helper 内单点修补，否则 wrap、selection、hit/accessibility 仍会各自解释 cluster。
+
+本地 Unreal `SlateTextShaper.cpp`/`FontCache.h/.cpp` 保留 `NumCharactersInGlyph` 与
+`NumGraphemeClustersInGlyph`；当后者大于 1 时，offset 命中与 overflow clip 采用 atomic ligature，而不是按中点均分。
+当前本地 `ttf-parser 0.21.1/0.25.1` 明确跳过 GDEF LigCaretList，RustyBuzz 0.20.1 也无 caret API，因此 Zircon 现阶段
+不能声称有 font-derived caret。正确 hard cut 是先让 cluster/source map 成为 layout/public geometry 的唯一 owner，
+显式发布 `FontCaret/AtomicCluster` fallback policy；将来接入可读 GDEF/backend caret provider 后再升级能力。
+
+状态为 `architecture_review_complete / atomic_cluster_artifact_present / cluster_aware_layout_contract_open /
+gdef_caret_provider_open / managed_validation_pending`。没有改变 advance/caret 行为，不关闭 `RTS-P1-034`。
+
+2026-08-26 EndWord Unicode boundary 非验收实现：旧 `word_ellipsis_prefix_end` 只反向寻找空白，`alpha-beta`、CJK
+无空格文本和其它 UAX #29 分段均可能错误丢弃全部已完成内容。该 helper 已删除；EndWord 现在消费 Text02 的
+request-snapshot-bound `WordBoundaryMap`，仅保留 fitted prefix 内最后一个完整 Unicode word，并丢弃其后的 separator/
+punctuation。实现按需扫描到拟合点，不新增按段落长度分配的 boundary Vec；UI word navigation 也复用同一 owner。
+
+源码回归覆盖 `alpha-beta` 保留 `alpha`、CJK 无空格 prefix、apostrophe word 与 UI navigation。状态为
+`endword_unicode_boundary_selection_implemented / horizontal_text_only_rich_marker_artifact_implemented /
+private_omitted_source_geometry_receipt_implemented / accessibility_source_preservation_confirmed /
+locale_dictionary_open / static_checks_complete / managed_validation_pending`。横排 text-only rich 省略号现拥有
+current-run style identity、canonical virtual glyph slice 与 single-gap replaced-source geometry；accessibility
+保持原始 source value。horizontal compiled inline external block、ordinary styled VerticalRl、vertical external
+block、U+2026 ellipsis 与 typed vertical soft-hyphen 已完成静态实现；固定尺寸 direct-child widget 已完成
+静态布局/渲染/hit-test 主链，但 desired-size、surface/owner/generation 与 destroy/rebind 资格仍开放，因此
+`RTS-P1-032` 仅部分完成。Cargo、WordBreakTest、
+性能/功耗、WGPU/PNG、commit 与 WeCom 均未完成。
+
+2026-08-26 ligature/cluster layout 非验收实现：measurement 现在从 Text02 的共享 backend-cluster iterator 同时生成
+兼容 grapheme advances 与 typed cluster receipt。`GraphemeAdvanceIndex`、plain physical/logical fragment 和
+`RichAdvanceIndex` 保留该 receipt；plain/rich glyph fallback 的 tentative ranges 在提交前以单调 cluster 游标合并，
+不会在 `AtomicCluster` 内断开。UI 普通文本在当前行已有内容且没有跨-run grapheme continuation 时也先按剩余宽度生成
+经 boundary correction 的 ranges，再整 range 提交；首个完整 cluster 自身放不下剩余宽度时先换行并以新行宽重算。
+
+共享 cluster scan 为 `O(glyphs)`；boundary coalescing 为 `O(candidate_ranges + clusters)`，没有嵌套逐边界扫描。
+普通 width-only 投影不保留 cluster Vec；retained fragment/index 增加一份紧凑 cluster Vec，rich 每 style segment 仍只
+shape 一次。只有“已有行 + 首个完整原子单元仍超出剩余宽度”的罕见分支会按新行宽重算 corrected ranges。以上均为
+源码复杂度事实，不是 profiler、RSS 或功耗结果。
+
+仍开放：跨 rich/source run 的 leading grapheme continuation 需要 paragraph-owned shaping 才能消除孤立 segment 语义；
+public caret/hit/accessibility fallback 尚未消费 typed cluster policy；`measured_width` 的任意 source 子范围仍有比例兼容
+投影；GDEF LigCaretList provider 不存在。状态为
+`shared_cluster_geometry_receipt_and_plain_rich_atomic_boundary_coalescing_implemented /
+cross_run_continuation_and_public_geometry_open / gdef_caret_provider_open / static_checks_complete /
+managed_validation_pending`。这只部分推进 `RTS-P1-034`，未执行 Cargo/corpus/profiler/功耗/WGPU/PNG，也未形成提交或
+WeCom 量化里程碑。
+
+2026-08-26 WordSmart Unicode policy 非验收实现：旧 `smart.rs` 的 ASCII/CJK/Arabic/Unicode 手写字符表已经删除。
+策略先要求 punctuation 紧邻共享 UAX #29 word end，再由 compiled Unicode snapshot 的 GeneralCategory capability 判断
+`OtherPunctuation` trigger 与 `ClosePunctuation/FinalPunctuation` extension；open punctuation、dash、symbol/emoji、separator
+均不进入尾标点保护。`WordEndCursor` 与 chunk 顺序一起单调推进，整体为 `O(text + chunks + word ranges)`，不物化第二张
+段落边界 Vec，也不增加 shape call。
+
+切分和相邻合并现在要求 text/visual/source 长度同构，合并还要求 visual/source 两条范围都连续；不满足时 fail closed，
+避免把 U+00AD 隐藏范围或 virtual bytes 拼回视觉文本。源码回归覆盖手写表之外的 Armenian punctuation、排除 open/
+symbol/dash/space、非连续 source range 与非同构 mapping。状态为
+`word_smart_uax29_context_and_general_category_policy_implemented / locale_dictionary_and_tailoring_open /
+static_checks_complete / managed_validation_pending`。`RTS-P1-028/029/030`、官方 corpus、managed Cargo、性能/功耗、真实
+WGPU/PNG、commit 与 WeCom 仍开放。
+
+2026-08-26 rich repeated-shaping observability 非验收实现：源码调用链确认 horizontal rich `Glyph` 路径会先通过
+`rich_glyph_line_ranges_with_provider` 建 advance/range index，再由 layout materialization 建自己的 index；所有 rich
+模式随后在 UI item projection 中重新请求各文字 item 的 grapheme geometry。该事实只构成待验证 hypothesis，尚无
+cache hit/miss、backend call、耗时或功耗数据，未据此修改 artifact/cache/paragraph model。
+
+新增 `layout_engine/rich_layout/profile.rs` 只在 profiling build 聚合三个 phase 的 shape request/input bytes，并在 phase
+结束时各发布一次；主 layout owner 只保留 `rich_range_index`、`rich_layout_materialization`、
+`ui_rich_item_projection` 三个 scope handoff。普通 build 直接转发 provider，不增加全局状态、per-run span 或 shape-result
+复制。profiling-feature contract 要求真实 styled BBCode Glyph-wrap 每 phase 恰好一个 span 和两个 counter sample。
+状态为 `rich_shape_phase_instrumentation_implemented / repeated_shaping_hypothesis_unconfirmed /
+static_checks_complete / managed_profile_pending`。31-sample 1/100/1k/10k workload、allocation/RSS/p50/p95/p99、功耗、
+真实 WGPU/PNG 与任何结构优化决定仍开放。
+
+2026-08-26 Arabic joining candidate 非验收实现：justification 候选不再由 `align.rs` 的手写 Arabic 范围判断，
+而是消费 Text02 单一 `TextJoiningTypeMap`。逻辑左字符必须具备向后连接能力，逻辑右字符必须具备向前连接能力；双方
+grapheme base 还必须属于 Arabic script，透明 marks/ZWJ 可保留连接，ZWNJ 继续阻断。源码回归覆盖旧表遗漏的
+U+0870、非 Arabic 的 LeftJoining 字符排除、combining mark、ZWJ 与 ZWNJ。
+
+候选现在还必须通过 `arabic_justification.rs` 的 backend shape receipt：候选 source/line identity 完整，Tatweel 独占 backend
+cluster，glyph id 非零且 advance 为正，并与左右 RTL cluster 使用相同 face/instance；generated 与普通 source 混合 cluster、
+tofu、不同 fallback face、缺邻接或非增长 candidate 都会拒绝。该 validator 复用 `MeasuredTextLine` 与共享 cluster iterator，
+没有第三套 grouping policy；UI probe 闭包返回 `Option<width>` typed outcome，unsafe candidate 最多退到单 Tatweel 后停止。
+
+这仍不是完整 Kashida 验收。UI 仍最多选择 32 个候选、最多重 shape 5 次，font/language justification capability 也未
+实现；这些结构/预算只有在 1/100/1k/10k Arabic workload、shape-call、p50/p95/p99、RSS/功耗数据证明瓶颈后才能调整。
+状态为 `unicode_joining_type_and_backend_tatweel_safety_receipt_implemented /
+language_font_justification_and_probe_strategy_open / static_checks_complete / managed_validation_pending`；managed Cargo、
+Arabic corpus、真实 WGPU/PNG、commit 与 WeCom 均开放。
+
+Arabic candidate fit 的低基数 profiling owner 已落在 108 行的 `layout_engine/line_box/profile.rs`，而不是继续扩大
+`line_box.rs` 或在 probe loop 中发事件。每条实际进入 fit 的 justified physical line 只有一个
+`arabic_tatweel_candidate_fit` scope，以及 requested/probe/candidate-byte/safe/accepted/last-rejection 六个行结束聚合值；
+普通 build 不保留计数字段。profiling-feature 回归使用真实 `سلام\nذ` shaping/layout fixture，要求只产生一条候选行回执并
+最终 materialize Tatweel。状态为 `arabic_tatweel_probe_instrumentation_implemented / algorithm_unchanged /
+static_checks_complete / managed_profile_pending`；该测试代码尚未经过 managed Cargo 执行，不能写成动态通过。
+
+2026-08-26 rich canonical glyph artifact 非验收实现：对照本地 Unreal
+`FSlateTextRun`、`FShapedGlyphSequence` 与 `FShapedTextCache` 后，确认样式属于 run，整行 shaping
+结果属于不可变 sequence，measure/paint/hit 只引用同一 sequence 的子范围。Zircon 旧
+`UiResolvedTextLayout.rich_text_artifact` 只能 exact-downcast 为 compiled metadata 或 resolved glyph
+artifact，两个能力互斥；renderer 还会对每个 visual paint run 独立 reshape，RTL 重排后可能把一个逻辑
+Arabic run 拆成多个 grapheme shaping 请求。
+
+现以 private `ResolvedRichTextArtifact` 在一个公共 handle 下同时强持有 compiled metadata、完整
+`ResolvedTextGlyphArtifact`、精确 layout-line snapshot 与 source/visual/glyph run directory。glyph
+按物理行只存一份，renderer run 只借用 `glyph_range`；跨样式 ligature 由首个 run 唯一拥有，后续
+run 发布空切片回执，禁止 fallback 重复绘制。unsupported/malformed generated marker 等无法形成 glyph
+的行保留显式 negative receipt，避免 extract 每帧重复构建。
+
+rich horizontal builder 按 `resolved_text_spans` 解析样式并在每行一次注册全部 font pair；静态规模为
+`O(line/style intersections + glyphs + clusters + paint runs)`，没有 renderer 侧二次 paragraph scan。
+当前状态为
+`rich_compiled_glyph_composite_and_run_slice_implemented /
+rich_horizontal_soft_hyphen_virtual_artifact_implemented /
+rich_vertical_soft_hyphen_virtual_artifact_implemented /
+static_checks_complete / managed_validation_pending`。该切片尚未执行 managed Cargo、语料、shape-call、
+p50/p95/p99、allocation/RSS、功耗、真实 WGPU 或 PNG，因此不关闭 `RTS-P1-031`，也不声称已达到
+Unreal 经验耗时或最优规模。
+
+rich horizontal U+00AD 后续切片已复用 Plain 的 `LogicalVirtualLineSequence`：换行消费 U+00AD，但显示
+run 只发布其 end offset 的 zero-width anchor；display-owned UAX#9 在 logical rich line 上执行，sidecar
+按 cluster source range 单调解析回 coalesced rich style span，glyph builder 分段 shape 后统一投影视觉顺序。
+virtual glyph 只进入该零宽 run 的 glyph slice；字体代际变化时仅在 source/style/完整 layout-line snapshot
+仍相等时复用 rebuild sidecar。profiling 增加一个行级聚合 `rich_artifact_virtual_line_count`，没有 per-glyph
+事件。统一 replacement receipt 已保留被消费 U+00AD，accessibility 继续使用原始 source value；VerticalRl
+现以 typed `DiscretionaryHyphen` role 复用同一 zero-anchor、style owner 与 canonical vertical provider。
+
+2026-08-26 rich ellipsis marker 后续切片：对照本地 Unreal `FSlateTextRun::CreateBlock`、
+`FindOrAddOverflowEllipsisText` 与 shaped-text cache 后，省略号样式不再由 neutral/base style 或 renderer
+零宽范围猜测。`CandidateLine` 为每个 generated cluster 保留非空 `style_source_range`；End/EndWord/Middle
+选择逻辑插入点之前的 run，Start 选择之后的 run。横排 rich 先用该 current-run style 度量并生成逻辑省略号，
+再由同一 `LogicalVirtualLineSequence` 完成 UAX#9、style span shaping 和 glyph projection。run-slice directory
+把 style owner 随零宽 glyph slice 交给 renderer，因此 font/color/decoration 查询与 glyph shaping 使用同一 owner。
+
+该路径的静态规模是 `O(graphemes + style intersections + glyphs + paint runs)`；没有按 style run 重扫整行，
+也没有 renderer 侧 paragraph search。后续结构复审确认 zero-width anchor 只能表达插入点，不能表达被省略的
+源码区间；因此 generated cluster receipt 现同时携带非空 style owner 与可选 `replaced_source_range`。final-line
+ellipsis owner 只在 retained source ranges 的补集恰好为一个连续非空区间时发布该回执，多段或歧义缺口 fail
+closed。immutable logical/glyph artifact 将它纳入 rebuild identity，并由 glyph geometry owner 直接处理省略区间内
+caret affinity、marker hit-test 中点和 selection span 合并；公共 `UiTextLineSourceMap` 与 renderer DTO 均不扩散
+内部字段。查询保持 `O(clusters + glyphs)`、不增加持久 paragraph map。
+
+accessibility 仍从 template metadata、component state 或 widget value 读取原始语义文本，不从
+`UiResolvedTextLine.text` 或 visual marker 反推内容，因此显示省略不会覆盖屏幕阅读器的 source value。状态为
+`rich_text_only_ellipsis_virtual_artifact_implemented / virtual_source_and_style_receipt_implemented /
+private_omitted_source_geometry_receipt_implemented /
+horizontal_inline_external_cluster_artifact_implemented /
+inline_empty_glyph_slice_and_geometry_receipt_implemented /
+vertical_rich_and_external_block_canonical_artifact_implemented /
+vertical_rich_ellipsis_virtual_artifact_implemented /
+vertical_rich_soft_hyphen_virtual_artifact_implemented /
+typed_virtual_fragment_role_implemented /
+virtual_receipt_linear_capture_implemented /
+logical_virtual_glyph_projection_owner_split_implemented /
+logical_virtual_fragment_validation_owner_split_implemented /
+rich_renderer_typed_linear_run_directory_implemented /
+accessibility_source_preservation_confirmed / static_checks_complete / managed_validation_pending`。horizontal
+compiled inline image/widget 现由精确 compiled source range 标记为 external layout block：保留其 UAX#9 cluster
+和 final advance，但 rich shaping/glyph projection 不再生成 U+FFFC 字体 glyph；普通、ellipsis 与 inline-only
+行共享显式空 glyph slice 和 visual geometry owner。literal U+FFFC 不受影响。ordinary styled VerticalRl、
+inline external block、U+2026 ellipsis 与 typed discretionary hyphen 已复用 canonical vertical provider；gate
+按 role 校验精确 marker grapheme，并要求 soft hyphen 保留 non-empty replaced U+00AD range。固定尺寸
+direct-child widget 已完成静态实现，artifact 使用 typed owner-local slot，Surface 只在当前树布局期解析且不
+保留 child binding；desired-size retained session/incarnation lease、managed Cargo、
+31-sample profile/RSS/功耗、真实 WGPU/PNG 仍开放；`RTS-P1-032` 不关闭，也不声称耗时或功耗
+已达到 Unreal 经验值。
+
+## 2026-08-27 atomic-cluster source fallback geometry
+
+`RTS-P1-034` 的 UI geometry 缺口进一步收敛：canonical resolved glyph artifact 的 caret/hit/selection
+快路保持不变；artifact 缺失或 stale 时，只有 exact source-congruent、单一 LTR run、HorizontalTb、非
+Justify/ellipsis/tab 的行可以完整 shape 一次并建立 `GraphemeAdvanceIndex`。该 index 直接消费已有
+`MeasuredClusterCaretPolicy::AtomicCluster`，使 interior caret 按 affinity 吸附到两端、physical hit 按 cluster
+中点选择合法端点、partial selection 扩为完整 cluster。editable pointer 复用 render command 的原始 text 与完整
+style 接入同一资格路径；rich/secure/virtual/BiDi/vertical 仍要求 canonical artifact，不从 source order 推断。
+
+atomic caret/hit 查询在 index 构建后为 `O(log graphemes + log clusters)`；selection 对每个合格物理行只 shape
+一次并单调扩张 cluster，替代旧 visual-span prefix 的重复 shape。没有 public ABI/serde/layout DTO/cache/renderer
+变更。行为回归已编写，Rust 2024 rustfmt、scoped diff-check、调用点与文件预算静态检查通过；managed Cargo、
+official corpus、31-sample shape-call/CPU/RSS/功耗、WGPU/PNG 未执行。cross-run continuation、rich/BiDi/vertical
+missing-artifact geometry、任意 source-range 与 GDEF LigCaretList provider 继续开放，因此 `RTS-P1-034` 仍为
+`partially_implemented / static_checks_complete / managed_validation_pending`。
+
+## 2026-08-27 invalid resolved-advance geometry hard cut
+
+`UiResolvedTextLine.glyph_advances` 的合同是一项对应一个 visual grapheme。neutral interface source-map
+过去在数量不匹配时仍把 `measured_width` 等分给全部 grapheme，这会从无效/legacy DTO 伪造内部 caret、selection、
+decoration 与 IME 位置。interface owner 没有 font database、shape session、selected face 或 backend cluster
+artifact，不能承担恢复职责。
+
+现在只有 cardinality 精确且所有 advance finite、非负时才进入原 exact-prefix cache；无效数据仅发布 leading
+`0` 与 trailing sanitized `measured_width` 两个已知端点，内部查询收敛到 leading edge。Runtime 持有 command
+text/style 的 hit-test route 仍可交给 shaping owner 恢复精确几何。有效 DTO 的算法、cache、ABI、serde 与 renderer
+contract 均未改变；无效路径为 `O(1)`，但不作性能收益声明。
+
+follow-up 已删除 no-source runtime hit-test 的默认 style 临时重塑。canonical artifact 保持第一优先级；严格
+source-congruent LTR route 用同一 `GraphemeAdvanceIndex` 返回普通 grapheme midpoint 或 atomic cluster endpoint；
+无 source owner 时仅消费完整有效 DTO，否则按 aggregate midpoint 选择两个整行端点。旧临时 session、fallback
+advance allocation 与 layout-level default style 均为零命中，有效 tab/BiDi/vertical DTO 路径不变。
+
+数量不匹配和 `NaN`/负值回归已编写，Rust 2024 rustfmt、scoped diff-check、source scan 与 255-line owner
+budget 静态通过；Cargo、corpus、profile/功耗、WGPU/PNG 未执行。状态为
+`invalid_resolved_advance_endpoint_geometry_implemented / runtime_default_style_reshape_removed /
+proportional_fallback_removed / valid_exact_prefix_fast_path_preserved / static_checks_complete /
+managed_validation_pending`，`RTS-P1-012`
+仍因 rich/virtual/non-isomorphic backend cluster map 保持开放。
+
+## 2026-08-26 break-safety measurement/index retention
+
+Text02 发布的 cluster-head `ShapedGlyphBreakSafety` 现在不会在 Text03 measurement 边界丢失。
+`MeasuredGlyphCluster` 保留该 receipt，缺失或不是 cluster 头的 provenance 归为 `Unknown`；
+`GraphemeAdvanceIndex` 在文档端点返回 `Safe`，cluster 内部返回 `RequiresReshape`，精确 cluster 起点按
+`RequiresReshape > Unknown > Safe` 保守合并。compatibility metric 合成的 cluster 保持 `Unknown`，由引擎
+拥有语义的 hard separator 与 inline external block 为 `Safe`。
+
+profiling build 在既有 boundary correction 选出 ranges 后，以单调 cluster cursor 聚合候选 range 数与
+safe/requires-reshape/unknown boundary 数，复杂度为 `O(candidate boundaries + measured clusters)`；不分配
+boundary Vec、不发 per-boundary event、不携带 source 文本。普通 build 没有新增查询。本切片没有修改
+UAX#14 opportunity、atomic-cluster coalescing、固定 8-grapheme correction、layout 输出或 shape-call 数量。
+
+源码回归已补 receipt 保留与候选边界分类；Rust 2024 rustfmt、scoped diff-check、构造点/profile 名和文件预算
+静态检查通过。managed Cargo、official corpus、候选分布 profile、exact two-sided final-line reshape、
+p50/p95/p99、RSS/功耗、真实 WGPU/PNG 仍开放。状态为
+`break_safety_measurement_retention_implemented / monotonic_candidate_boundary_profile_implemented /
+algorithm_unchanged / static_checks_complete / exact_final_line_reshape_and_managed_profile_pending`；
+`RTS-P1-017/035` 均不关闭。
+
+## 2026-08-28 advance-index test owner split
+
+`text/layout/advance_index.rs` 的生产 owner 已从 719 行收敛到 521 行；四个 cluster geometry、
+caret/hit/selection 与 break-safety 回归原样迁入 192 行的 folder-backed
+`text/layout/advance_index/tests.rs`。本切片不改变 grapheme metric、prefix advance、atomic cluster、
+wrap correction、break-safety、cache、ABI/serde 或 renderer 行为，只关闭接近结构审查阈值的混合 owner。
+
+Rust 2024 rustfmt、scoped diff-check、冲突标记、四个测试名唯一性与文件预算静态通过。Cargo、corpus、
+profiling、功耗和真实 WGPU/PNG 均未执行；exact final-line reshape 仍必须等待候选分布与 two-sided
+reshape 数据。状态为
+`advance_index_test_owner_split_static_passed / production_algorithm_unchanged /
+managed_profile_power_wgpu_pending`，不关闭 `RTS-P1-017/034/035`。
+
+## 2026-08-30 glyph-artifact cluster-geometry test owner split
+
+`text/glyph_artifact/tests.rs` 中 ligature caret/selection、RTL affinity、multiglyph backend cluster 与
+stale font-generation 四项回归原样迁入 318 行的
+`text/glyph_artifact/tests/cluster_geometry.rs`；根测试 owner 从 989 行降到 673 行。共享
+`visual_run`/`glyph` fixture 仍由根 owner 提供，没有复制 geometry 构造或改变生产 artifact 路径。
+
+结构合同 failing-first 后转绿，完整 Runtime Text infrastructure 静态批次 47/47（1.744 s）与
+Rust 2024 rustfmt 通过。Cargo、性能/功耗和真实 WGPU/PNG 未执行；状态为
+`glyph_artifact_cluster_geometry_test_owner_split_complete / behavior_unchanged /
+managed_validation_pending`。
+
+## 2026-08-28 plain layout owner split
+
+`ui/text/layout_engine.rs` 已从恰好 800 行拆为 404 行 entry/artifact root 与 400 行
+`layout_engine/plain_layout.rs`。child 唯一持有 plain viewport/full-line selection、paragraph constraints、
+ellipsis/justify、physical fragment/visual order 和 resolved-line materialization；root 继续持有公开入口、
+rich/table 路由与 glyph artifact attachment。child 返回原有 request-local `LayoutWithoutArtifact`，不建立
+第二套 layout engine、cache 或 DTO；backend size measure 与 `UiSize` 依赖现在在实际 owner 内显式导入。
+
+Rust 2024 rustfmt、scoped diff-check、冲突扫描、定义唯一性和生产文件预算静态通过。没有运行 Cargo、
+layout corpus、profiling/功耗或 WGPU/PNG，因此状态为
+`plain_layout_owner_split_static_passed / layout_algorithm_unchanged /
+managed_profile_power_wgpu_pending`；exact final-line reshape 与 `RTS-P1-017/034/035` 继续开放。
+
+## 2026-08-29 FontObject-scoped line-metric certification
+
+固定行高的 font-chain envelope 与 primary-only hard-line shortcut 现复用规范整形的 FontObject owner、
+typeface query、language key、owner CompositeFont 和 owner/base fallback 集合。line-metric cache key 同样带
+owner identity；owner CompositeFont index 在 generation 发布时编译，请求只克隆共享 index。这样常规整形不能再
+选中资产 face、而布局快捷路径却按项目默认 face 认证高度或 coverage。
+
+聚焦回归按真实 Fira Mono 资产 face 的 ascent/descent/line-gap 锁定 envelope，不把另一资产同名 family 或 fallback
+纳入证书。本切片不改变 line-break、wrap、ellipsis、justify 或 glyph placement 算法，也没有新增逐 glyph 工作。
+Rustfmt/static checks完成；Cargo、layout corpus、WGPU/PNG、profile/RSS/power未执行。状态为
+`font_object_line_metric_scope_static_implemented / layout_certificate_owner_parity_restored /
+managed_validation_pending`，Text03 总计划不关闭。
+
+显式 FontObject 不可用时，line-metric envelope 与 primary-only coverage 也会清除其 owner-local family 后再
+进入 project/runtime default 链，避免 shaping 已恢复默认 face、固定行高证书却命中全局同名 face。真实 Fira Sans
+同名竞争者与 Fira Mono runtime primary 的回归锁定默认 metrics；registered owner 热路径仍借用原 query，无新分配。
+
+Registered owner 的 envelope family 同样保留来源 scope：local typeface 不允许在 owner 缺失时纳入全局同名 metrics，
+而 CompositeFont/asset/base fallback 仍可扩展外部 face。scope 与 family 一起规范化去重，布局证书和 shaping 不会因
+各自重新推断候选来源而漂移。
+
+owner line-metric envelope 也借用注册阶段发布的 generation-local face slice，不再为每个 family 先重建完整
+owner face `Vec`。证书仍遍历相同候选并保留全 family metrics；这只是消除重复中间物化，动态耗时/分配结论待 profile。
+
+任意未来行可能包含 fallback 全链均不覆盖的标量，因此固定行高 font-chain envelope 现在显式纳入
+`runtime_last_resort_face` 的 ascent/descent，同时继续使用请求 primary 的 line-gap policy。这样 custom FontObject
+的普通行与缺字行不会因最终 face 切换而绕过高度证书；line break/wrap/placement 算法不变。
+
+## 2026-08-30 layout range invariant hardening
+
+断行与 UI glyph-wrap 的内部 source-range 防御现在 fail closed：hard-line 切片、backend glyph
+cluster、grapheme metric 和 corrected range 只要无法映射回合法 UTF-8 边界，就返回
+`TextShapingOutcome::Failed(LayoutFailed/BidiInvariant)`，不再以 `continue` 丢弃文本后发布部分
+行。零宽 virtual anchor 仍允许在合法 source boundary 上存在；普通 cluster range 必须完整落在
+当前 hard line 内。新增 wrapping malformed-metric、RTL visual-order 和非法 UTF-8 cluster 回归与静态
+owner guard；稳定的逻辑顺序只做 O(B) 检测，异常视觉顺序才做一次 O(B log B) 归一化，不新增逐
+grapheme reshape。当前状态为
+`range_invariant_fail_closed_implemented / malformed_metric_regression_static_passed /
+managed_cargo_wgpu_profile_power_pending`；本次 Cargo 已尝试两次但均在 E 盘依赖 target 写入阶段失败，
+未进入 `zircon_runtime` 源码检查；未生成 PNG，也不关闭 Text03 验收。
+
+同日补强 backend 请求 owner：`BackendShapeRequest::canonicalized` 使用 checked subtraction，要求
+局部 UTF-8 source view 与绝对 `source_range` 具有相同字节跨度；反向或不一致范围在 fallback/cache/backend
+之前返回 `BidiInvariant`。`measure_text_size_with_provider` 对 hard-line slice 失败也改为返回
+`LayoutFailed`，不再静默发布空行高度。合法非零绝对起点与 source-range 子范围测量保持不变；模型、
+多硬行绝对范围和静态契约已覆盖。当前状态仍为
+`range_invariant_fail_closed_implemented / backend_source_identity_guard_static_implemented /
+managed_cargo_wgpu_profile_power_pending`。
+
+同日 glyph artifact admission 继续沿用 source owner 的 UTF-8 边界：普通与富文本构建在投影前
+校验每个 line/run range 可由当前 source snapshot 切出，空的 generated marker 也必须是合法
+边界锚点。这样 projection 不会把坏切片默认为整行 source range；新增回归覆盖 run scalar-split
+和非法 virtual anchor。状态：`glyph_artifact_source_slice_admission_static_implemented /
+managed_cargo_wgpu_profile_power_pending`。
+
+## 2026-08-30 Surface input source-metric collection ownership
+
+对 Core-owned `UiSurface` 的生产调用链复审发现：保留 glyph artifact 缺失时，caret、selection、IME
+composition rect 与 pointer hit-test 会通过 `SourceLineGeometry` 恢复简单 LTR source metrics；旧实现使用
+process-global `DirectTextShapeRunProvider`，可能与生成当前 layout 的 Surface collection 不同。现在新增
+只读 `FontCollectionTextShapeRunProvider`，由调用方传入 exact `FontCollectionSnapshot`；Surface input 从
+自身 `UiTextMeasureCache` 取一次 snapshot，并沿 geometry/hit-test 显式边界传入。generation 不一致时
+fail closed 到已发布 artifact/glyph advances，等待正常 layout pass 更新。
+
+该 owner 关系对齐 Unreal `FSlateFontMeasure::Create/FSlateFontMeasure` 持有具体 `FSlateFontCache` 的结构：
+measure 与 `FindCharacterIndexAtOffset` 不在一次查询中切换到另一字体 cache。改动不改变 shaping、cluster、
+caret 或 hit-test 算法；每次 Surface 输入几何查询只增加一次 Arc-backed snapshot lease，不增加逐 glyph
+lookup。独立 collection glyph identity 的 Rust 回归已写入但未运行；静态 ownership suite 19/19、rustfmt 与
+scoped diff-check 通过。状态：`surface_input_source_metrics_collection_bound_static_implemented /
+process_global_geometry_fallback_removed / managed_cargo_ime_wgpu_pending`。
+
+## 2026-08-30 rich source contract validation
+
+`RichTextLayoutSource` 的 rich index、glyph artifact 和 UI prewarm cache 消费入口现在共用同一处
+校验，先检查 run 索引、非哨兵且严格递增的父级 source index、范围重叠、u32/usize 转换和 UTF-8 边界；合法空洞仍由
+`RichAdvanceIndex` 用 base style 填充。缺失 run、反向/越界范围或非边界切片统一返回既有
+`TextLayoutError::LayoutFailed`，不再让 rich materialization 把损坏输入继续发布为空几何。
+新增覆盖空文本、部分覆盖、重叠、空范围和越界的 source-contract 回归。
+
+同一 fail-closed 规则也覆盖 rich 横排 glyph/word 与 VerticalRl word line-range 提取：hard-line 的
+UTF-8 slice 若无法恢复，直接返回 `LayoutFailed`，不再 `continue` 丢弃整行。正常换行、测量和
+fallback 算法不变。
+
+rich UI 横排与 VerticalRl item projection 对内部 `LayoutItem` 的 run identity、u32 range 或 UTF-8
+slice 不可恢复时也返回 `LayoutFailed`，不再以 `Ready(Vec::new())` 伪造成功的零 advance 项或
+静默退出完整 rich 路径。
+
+rich table 的绝对 table/cell source range 现由 table layout owner 做 checked arithmetic、父表包含和
+UTF-8 边界校验；合法空 cell 保留，反向、越界或跨 projection 的范围直接 `LayoutFailed`，不再通过
+`min/max` 静默夹成空 cell；同一 table 内 cell range 还必须按 source 顺序非重叠，合法 gap 仍可存在。
+表格前后段 source slicing 也在 UTF-8 边界上 fail closed，并复用 canonical hard-line separator owner
+处理 CRLF 与 Unicode mandatory separators，避免恢复为 LF-only 私有策略。
+`UiParsedText::project_range` 是唯一 checked projection owner，适配器不再复制范围夹取逻辑。
+这是非验收正确性修复，不改变换行、测量或 fallback 算法；Cargo、真实 WGPU/PNG、profile、
+RSS/power 与 Unreal 对照仍待受管验证。状态：
+`rich_source_contract_fail_closed_static_implemented / base_style_gap_fill_preserved /
+managed_validation_pending`。
+
+## 2026-08-30 measurement shaped-geometry source guard
+
+测量 projection 现在也把 `ShapedGlyphRun` 作为独立输入契约处理：在按 grapheme 投影前检查
+`source_range` 与 source snapshot 的精确字节跨度、文本内容、hard-line/glyph 包含关系及 UTF-8
+边界。缓存或兼容路径若绕过 direct backend admission，非法 cluster 不会再由
+`source_grapheme_span` 的 `min/max` 夹取变成宽度 1；geometry/advance 入口返回既有
+`BidiInvariant` 或 `LayoutFailed`，fragment 构造沿 `TextShapingOutcome` 传播失败，合法 virtual
+anchor 仍只要求位于 UTF-8 边界。`measured_width` 的非 outcome 兼容入口对同类坏 run 返回零宽并停止
+消费，不伪造局部 advance。新增非边界 glyph regression 与静态 owner guard；未改变正常 grapheme
+分摊算法或 shaping 请求数。状态：
+`measurement_source_guard_static_implemented / typed_projection_failure_propagated /
+managed_cargo_wgpu_profile_power_pending`。
+
+同日 VerticalRl rich column projection 也收敛到 checked range owner：`u32/usize` 转换、chunk
+绝对偏移、leading-space slice、fallback range 与最终 column range 均在进入 advance index 前
+检查；任何转换/UTF-8/父范围错误返回 `LayoutFailed`，不再以 `usize::MAX`、`u32::MAX` 或原起点
+作为静默恢复。正常 glyph/word wrap 与合法空列保持不变。状态：
+`vertical_rich_column_range_fail_closed_static_implemented / numeric_sentinel_recovery_removed /
+managed_cargo_wgpu_profile_power_pending`。
+
+同日富文本 advance index 的 append 阶段改为返回 `TextLayoutOutcome`：字体 generation 变化保留
+`Deferred` 交由 publication owner 重试，只有 source/range 结构错误才进入 `Failed`，避免把可重试
+的代际变化错误降级为永久失败。
+
+同日横排与 VerticalRl forced hard-line range 统一消费 `rich_source.rs::checked_source_range`；
+forced range 的 u32 转换、chunk 偏移、leading-space trim 与 fallback range 均 fail closed，禁止
+`usize::MAX`/`u32::MAX` 或原起点作为成功恢复值。
+
+forced range 生成进一步改为 `hard_line_count` 预分配加 `visit_hard_lines` 填充，避免先物化
+中间 `HardLine` 列表；两个 canonical 扫描保持有界且不复制行对象，CRLF/Unicode separator
+语义保持不变。
+
+source validator 与 `RichAdvanceIndex::source_spans` 共用单次 `for_each_validated_rich_run` 迭代，
+u32 publication 也由同一 `rich_source.rs` owner 提供；当前静态 rich-source 契约为 13/13，组合
+文本静态回归为 18/18。
+
+## 2026-08-31 rich paint-run cardinality fail-closed
+
+复审 retained layout 到 rich paint 的发布边界时发现，单个非空 run 的 frame 无法解析会被 `continue`
+跳过，从而发布部分 `UiTextPaintRun`；renderer 随后的 run 对齐失败还可能重新落入 generic whole-line
+fallback，丢失 rich style 与 inline object 语义。该行为违反 Text03 已采用的完整输入或失败原则。
+
+现在非空 resolved run 的 paint projection 为 all-or-empty；合法空 run 仍跳过。layout 与 paint 的基数、
+顺序、文本或 range 不一致由 typed `PaintLayoutMismatch` 持有，renderer 记录一次 command-level
+`Rejected(Incomplete)` 并停止该命令，不生成 Native/SDF/image 或 whole-line fallback batch。
+缺失或不完整 glyph artifact 的早退也必须先通过同一 paint/layout congruence 检查，不能绕开基数校验。
+route 构造已迁入 148 行 `resolved_layout/rich_artifact_routes.rs`，其 orchestration/report root 为 711 行。
+批次 owner 的 `TextPlanOutcome::{NotHandled, Planned, Rejected}` 统一普通与富文本的兼容路由、正常提交与结构损坏；`Rejected` 会撤销
+本命令 text-dependent pre-decoration 并跳过 post-decoration，但保留控件 background/border chrome。
+普通 resolved layout 的 `Rejected` receipt 也会传播为同一 command outcome，避免非 source-isomorphic
+BiDi 文本被拒绝后仍留下 selection/caret 等孤立装饰；source-isomorphic fallback 与 visual-only 路径不变。
+resolved-layout 批次准入还会在所有 plain/rich 物化前拒绝非有限 font/line metric、frame，以及非有限或负
+glyph advance；source-isomorphic fallback 重用同一谓词，不能把 `Incomplete` 几何错误恢复成批次。
+`Some(empty layout)` 现在视为 layout owner 的安全失败发布，记录 command-level `Incomplete` 并停止；只有
+`text_layout: None` 的兼容命令可以使用 raw renderer fallback，普通失败与 secure TextField 不再被二次 shape。
+
+paint frame 入口还会在 grapheme 投影前拒绝反向、越界或非 UTF-8 scalar boundary 的 visual range，
+不再以 `min`、floor/ceil 把损坏字节偏移修成成功。合法 scalar-aligned style boundary 即使位于同一
+grapheme 内仍保留，相关 runs 共享该 grapheme frame。
+
+这是一项 MVP 正确性修复，不是 block-geometry 性能切换，也不改变正常换行、测量、布局或 raster
+算法。Rust 回归覆盖 Interface 整批拒绝、visual UTF-8 range、combining-mark style boundary，以及
+artifact 存在/缺失时 renderer 均无回退且不保留 text decorations；rustfmt、scoped diff-check、新契约 3/3
+及完整文本静态契约 91/91 通过。当前状态：
+`rich_paint_run_projection_all_or_empty_static_implemented /
+plain_and_rich_command_rejection_fail_closed / text_plan_outcome_hard_cut /
+non_finite_layout_geometry_rejected_before_batch_materialization /
+safe_empty_layout_reshape_bypass_removed /
+managed_validation_pending`。Cargo、31 样本 profile、功耗、
+真实 WGPU/PNG、commit 与企微仍开放；详细记录见
+`docs/plans/zircon_runtime/text/03/2026-08-31-rich-paint-run-cardinality-fail-closed.md`。
+
+## 2026-08-31 text batch owner split
+
+`scene_renderer/ui/render.rs` 中的文本 route 选择、resolved/rich/fallback 分流与
+`ScreenSpaceUiTextBatch` 物化曾共处同一根模块，接近仓库 800 行结构告警线。现在新增
+`render/text_batches.rs` 作为唯一文本批次 owner；根模块只保留 frame/command orchestration，
+`resolved_layout.rs` 与 `rich_text.rs` 通过同一 `push_text_batch` 复用批次物化。迁移保持
+Native/SDF/Auto、VerticalRl、decorations、background 与 route identity 行为不变；结构契约
+3/3、rustfmt 与 scoped diff-check 通过；根模块 534 行，批次 owner 358 行，resolved owner 711 行，rich owner 588 行。
+普通与富文本 command outcome 已由批次 owner 统一持有，不再使用 rich-only 命名。当前状态：
+`text_batch_owner_split_static_implemented / text_plan_outcome_hard_cut /
+plain_rejection_decoration_fail_closed / non_finite_layout_geometry_rejected /
+safe_empty_layout_reshape_bypass_removed /
+raw_fallback_frame_admission_completed / managed_validation_pending`。
+这不是性能结论，也不关闭 Cargo、31 样本 profile、功耗或真实 WGPU/PNG 验收。
+
+## 2026-08-31 rich artifact admission command atomicity
+
+进一步复审发现 rich glyph artifact 的 Missing/Stale/Incomplete 虽有 typed run route，但旧循环会先物化
+前面的合法 run，再对后续不可恢复 run 执行 `continue`，同一命令因此可能只画出部分文本、run 背景或
+inline resource。现在 renderer 在任何 rich 材质化前构建一次有序 admission vector，同时保留 canonical
+artifact route、compiled-rich style、inline block 分类和严格整行 source-isomorphic fallback provenance。
+任一非 inline run 不可恢复时整条命令返回 `TextPlanOutcome::Rejected`；先前可 fallback 的 run 不会提前提交，
+text-owned pre/post decorations 同步被抑制，外层 command chrome 保留。
+
+styled sub-run 不会被提升为 `is_source_isomorphic_layout_line`，因为该标记还授权 SDF atlas 失败 span 的
+native overlay；缺 canonical artifact 的多 run rich command 统一 fail closed。预检在 route 构造后为
+`O(R)`，不增加 renderer-side shaping，成功与拒绝路径都发布同一组 `rich_render_*` counters，且不把未执行
+的 fallback 记为 shape request。同一 command preflight 现在还要求 `font_size` 与 `line_height` 为有限正值，
+避免非正指标在 batch owner 中被静默夹到 1.0 后造成 layout/render 指标漂移；零尺寸 control frame 保留，
+其 non-painting 身份等待 typed role，不用几何启发式判断。`rich_text.rs` 当前 689 行、artifact-route regression owner 686 行，
+新的 projection-admission regression owner 132 行，均低于仓库 800 行结构告警线。存在 rich layout 时，空 paint projection
+不再返回 `NotHandled` 落入 generic plain batches，而是进入既有基数校验并以 `PaintLayoutMismatch` 拒绝；只有无 layout 的
+compatibility route 保留 `NotHandled`。focused fail-closed 静态合同 6/6、完整 Runtime Text 静态合同 94/94、Rust 2024
+格式与 scoped diff-check 通过。Rust/Cargo、31 样本 timing/allocation/RSS、功耗、真实 WGPU/PNG、commit 与
+企微仍待受管验收。当前状态：
+`rich_artifact_admission_atomic_completed / styled_subrun_overlay_provenance_rejected /
+rich_run_positive_metric_admission_completed /
+rich_renderer_style_admission_parity_static_completed /
+rich_empty_projection_plain_fallback_bypass_removed /
+resolved_run_visual_slice_congruence_static_completed /
+managed_validation_pending`。
+
+同一 resolved paint projection 入口现在还会以单调游标验证所有非空 run：run 必须从前一 run 的视觉末端开始、
+其文本必须等于 `line.text` 的精确 UTF-8-safe visual slice，最后一个 run 必须到达行视觉末端。合法空 metadata run
+继续忽略，grapheme 内 scalar-aligned 样式边界继续允许。该入口仍为单遍 `O(lines + runs)` admission，不增加第二
+份几何/样式缓存；两条 Rust 回归已写入但尚未通过 managed Cargo 执行，因此仅记静态实现完成。

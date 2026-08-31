@@ -23,10 +23,9 @@ impl ChartRaster {
         let max_y = start.1.max(end.1) + radius;
         for y in clamp_pixel_range(min_y, max_y, self.height) {
             for x in clamp_pixel_range(min_x, max_x, self.width) {
-                let point = (x as f32 + 0.5, y as f32 + 0.5);
-                if distance_to_segment(point, start, end) <= radius {
-                    self.set_pixel(x, y, color);
-                }
+                self.sample_pixel(x, y, |px, py| {
+                    (distance_to_segment((px, py), start, end) <= radius).then_some(color)
+                });
             }
         }
     }

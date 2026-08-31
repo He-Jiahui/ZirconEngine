@@ -1,9 +1,12 @@
 mod column_budget;
+#[cfg(test)]
+mod optimization_tests;
 mod source_panel_layout;
 mod utility_layout;
 
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::workbench::snapshot::AssetViewMode;
+use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use self::column_budget::{resolve_compact_column_budget, CompactColumnBudget};
@@ -28,16 +31,50 @@ const COMPACT_CONTENT_GAP: f32 = 8.0;
 const COMPACT_CONTENT_HEADER_HEIGHT: f32 = 20.0;
 const COMPACT_HEADER_TABLE_GAP: f32 = 4.0;
 const COMPACT_HEADER_HORIZONTAL_PADDING: f32 = 8.0;
+const COMPACT_CONTENT_TITLE_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+const COMPACT_CONTENT_PATH_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
 const COMPACT_COLLAPSED_DETAILS_MAIN_HEIGHT_THRESHOLD: f32 = 300.0;
 const COMPACT_PREVIEW_CARD_HEIGHT: f32 = 50.0;
 const COMPACT_DETAILS_HEADER_HEIGHT: f32 = 42.0;
 const COMPACT_DETAILS_DIVIDER_HEIGHT: f32 = 1.0;
 const COMPACT_DETAILS_PREVIEW_HEIGHT: f32 = 96.0;
-const COMPACT_DETAILS_FIELD_HEIGHT: f32 = 42.0;
-const COMPACT_DETAILS_IDENTITY_HEIGHT: f32 = 50.0;
-const COMPACT_DETAILS_METADATA_HEIGHT: f32 = 52.0;
-const COMPACT_DETAILS_DIAGNOSTICS_HEIGHT: f32 = 54.0;
+const DETAILS_CAPTION_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+const DETAILS_BODY_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+const DETAILS_TEXT_TOP: f32 = 6.0;
+const DETAILS_TEXT_GAP: f32 = 2.0;
+const DETAILS_TEXT_BOTTOM: f32 = 6.0;
+const DETAILS_VALUE_OFFSET: f32 = DETAILS_TEXT_TOP + DETAILS_CAPTION_LINE_HEIGHT + DETAILS_TEXT_GAP;
+const DETAILS_TERTIARY_OFFSET: f32 =
+    DETAILS_VALUE_OFFSET + DETAILS_BODY_LINE_HEIGHT + DETAILS_TEXT_GAP;
+const COMPACT_DETAILS_FIELD_HEIGHT: f32 =
+    DETAILS_VALUE_OFFSET + DETAILS_BODY_LINE_HEIGHT + DETAILS_TEXT_BOTTOM;
+const COMPACT_DETAILS_IDENTITY_HEIGHT: f32 =
+    DETAILS_TERTIARY_OFFSET + DETAILS_CAPTION_LINE_HEIGHT + DETAILS_TEXT_BOTTOM;
+const COMPACT_DETAILS_METADATA_HEIGHT: f32 = COMPACT_DETAILS_IDENTITY_HEIGHT;
+const COMPACT_DETAILS_DIAGNOSTICS_HEIGHT: f32 =
+    DETAILS_VALUE_OFFSET + DETAILS_BODY_LINE_HEIGHT * 2.0 + DETAILS_TEXT_BOTTOM;
 const COMPACT_MINIMUM_DRAWABLE_EXTENT: f32 = f32::EPSILON;
+
+#[derive(Default)]
+struct CompactLayoutAnchors {
+    root: Option<ViewTemplateFrameData>,
+    main: Option<ViewTemplateFrameData>,
+    utility: Option<ViewTemplateFrameData>,
+    sources: Option<ViewTemplateFrameData>,
+    content: Option<ViewTemplateFrameData>,
+    details: Option<ViewTemplateFrameData>,
+}
+
+#[derive(Clone, Copy)]
+struct CompactPanelPresence {
+    sources: bool,
+    content: bool,
+    details: bool,
+}
 
 pub(super) fn apply_asset_browser_compact_layout(
     nodes: &mut [ViewTemplateNodeData],
@@ -51,13 +88,29 @@ pub(super) fn apply_asset_browser_compact_layout(
         return;
     }
 
-    let Some(root) = node_frame(nodes, "AssetBrowserRoot") else {
+    let anchors = compact_layout_anchors(nodes);
+    let panel_presence = CompactPanelPresence {
+        sources: anchors.sources.is_some(),
+        content: anchors.content.is_some(),
+        details: anchors.details.is_some(),
+    };
+    let sources_width = anchors
+        .sources
+        .as_ref()
+        .map(|frame| frame.width)
+        .unwrap_or(0.0);
+    let details_width = anchors
+        .details
+        .as_ref()
+        .map(|frame| frame.width)
+        .unwrap_or(0.0);
+    let Some(root) = anchors.root else {
         return;
     };
-    let Some(main) = node_frame(nodes, "AssetBrowserMainPanel") else {
+    let Some(main) = anchors.main else {
         return;
     };
-    let Some(utility) = node_frame(nodes, "AssetBrowserUtilityPanel") else {
+    let Some(utility) = anchors.utility else {
         return;
     };
 
@@ -103,12 +156,6 @@ pub(super) fn apply_asset_browser_compact_layout(
         compact_utility_height,
     );
 
-    let sources_width = node_frame(nodes, "AssetBrowserSourcesPanel")
-        .map(|frame| frame.width)
-        .unwrap_or(0.0);
-    let details_width = node_frame(nodes, "AssetBrowserDetailsPanel")
-        .map(|frame| frame.width)
-        .unwrap_or(0.0);
     let details_allowed_by_height = main_height >= COMPACT_COLLAPSED_DETAILS_MAIN_HEIGHT_THRESHOLD
         && viewport_height >= COMPACT_COLLAPSED_UTILITY_HEIGHT_THRESHOLD;
     let column_budget = resolve_compact_column_budget(
@@ -118,7 +165,15 @@ pub(super) fn apply_asset_browser_compact_layout(
         COMPACT_PANEL_GAP,
         details_allowed_by_height,
     );
-    apply_compact_main_panel_layout(nodes, main, main_y, main_height, column_budget, view_mode);
+    apply_compact_main_panel_layout(
+        nodes,
+        main,
+        main_y,
+        main_height,
+        column_budget,
+        panel_presence,
+        view_mode,
+    );
     apply_compact_utility_panel_layout(
         nodes,
         finite_coordinate(utility.x),
@@ -134,6 +189,7 @@ fn apply_compact_main_panel_layout(
     main_y: f32,
     main_height: f32,
     column_budget: CompactColumnBudget,
+    panel_presence: CompactPanelPresence,
     view_mode: AssetViewMode,
 ) {
     if main_height <= COMPACT_MINIMUM_DRAWABLE_EXTENT {
@@ -173,7 +229,7 @@ fn apply_compact_main_panel_layout(
         };
     let content_width = finite_non_negative(content_right - content_x);
 
-    if node_frame(nodes, "AssetBrowserSourcesPanel").is_some() {
+    if panel_presence.sources {
         if sources_visible {
             apply_compact_sources_panel_layout(nodes, source_x, main_y, sources_width, main_height);
         } else {
@@ -181,7 +237,7 @@ fn apply_compact_main_panel_layout(
         }
     }
 
-    if node_frame(nodes, "AssetBrowserContentPanel").is_some() {
+    if panel_presence.content {
         set_node_frame(
             nodes,
             "AssetBrowserContentPanel",
@@ -200,7 +256,7 @@ fn apply_compact_main_panel_layout(
         );
     }
 
-    if node_frame(nodes, "AssetBrowserDetailsPanel").is_some() {
+    if panel_presence.details {
         if details_visible {
             set_node_frame(
                 nodes,
@@ -366,8 +422,8 @@ fn apply_compact_content_header_layout(
     let path_width = (inner_width * 0.32).min(220.0);
     let title_width =
         finite_non_negative(inner_width - path_width - COMPACT_HEADER_HORIZONTAL_PADDING);
-    let title_height = 12.0_f32.min(height);
-    let path_height = 10.0_f32.min(height);
+    let title_height = complete_text_line_height(height, COMPACT_CONTENT_TITLE_LINE_HEIGHT);
+    let path_height = complete_text_line_height(height, COMPACT_CONTENT_PATH_LINE_HEIGHT);
     let text_y = y + finite_non_negative((height - title_height) * 0.5);
 
     set_node_frame(
@@ -525,25 +581,25 @@ fn apply_compact_details_field_layout(
                 nodes,
                 "AssetBrowserDetailsIdentityLabel",
                 label_x,
-                y + 6.0,
+                y + DETAILS_TEXT_TOP,
                 text_width,
-                compact_line_height(height, 6.0, 10.0),
+                details_line_height(height, DETAILS_TEXT_TOP, DETAILS_CAPTION_LINE_HEIGHT),
             );
             set_node_frame(
                 nodes,
                 "AssetBrowserDetailsIdentityUuidValue",
                 value_x,
-                y + 20.0,
+                y + DETAILS_VALUE_OFFSET,
                 text_width,
-                compact_line_height(height, 20.0, 12.0),
+                details_line_height(height, DETAILS_VALUE_OFFSET, DETAILS_BODY_LINE_HEIGHT),
             );
             set_node_frame(
                 nodes,
                 "AssetBrowserDetailsIdentityRevisionValue",
                 value_x,
-                y + 34.0,
+                y + DETAILS_TERTIARY_OFFSET,
                 text_width,
-                compact_line_height(height, 34.0, 10.0),
+                details_line_height(height, DETAILS_TERTIARY_OFFSET, DETAILS_CAPTION_LINE_HEIGHT),
             );
         }
         "AssetBrowserDetailsMetadataPanel" => {
@@ -551,25 +607,25 @@ fn apply_compact_details_field_layout(
                 nodes,
                 "AssetBrowserDetailsMetadataLabel",
                 label_x,
-                y + 6.0,
+                y + DETAILS_TEXT_TOP,
                 text_width,
-                compact_line_height(height, 6.0, 10.0),
+                details_line_height(height, DETAILS_TEXT_TOP, DETAILS_CAPTION_LINE_HEIGHT),
             );
             set_node_frame(
                 nodes,
                 "AssetBrowserDetailsMetadataMetaPathValue",
                 value_x,
-                y + 20.0,
+                y + DETAILS_VALUE_OFFSET,
                 text_width,
-                compact_line_height(height, 20.0, 12.0),
+                details_line_height(height, DETAILS_VALUE_OFFSET, DETAILS_BODY_LINE_HEIGHT),
             );
             set_node_frame(
                 nodes,
                 "AssetBrowserDetailsMetadataToolkitValue",
                 value_x,
-                y + 34.0,
+                y + DETAILS_TERTIARY_OFFSET,
                 text_width,
-                compact_line_height(height, 34.0, 10.0),
+                details_line_height(height, DETAILS_TERTIARY_OFFSET, DETAILS_CAPTION_LINE_HEIGHT),
             );
         }
         "AssetBrowserDetailsDiagnosticsPanel" => {
@@ -577,17 +633,21 @@ fn apply_compact_details_field_layout(
                 nodes,
                 "AssetBrowserDetailsDiagnosticsLabel",
                 label_x,
-                y + 6.0,
+                y + DETAILS_TEXT_TOP,
                 text_width,
-                compact_line_height(height, 6.0, 10.0),
+                details_line_height(height, DETAILS_TEXT_TOP, DETAILS_CAPTION_LINE_HEIGHT),
             );
             set_node_frame(
                 nodes,
                 "AssetBrowserDetailsDiagnosticsText",
                 value_x,
-                y + 20.0,
+                y + DETAILS_VALUE_OFFSET,
                 text_width,
-                compact_line_height(height, 20.0, finite_non_negative(height - 28.0)),
+                details_remaining_text_height(
+                    height,
+                    DETAILS_VALUE_OFFSET,
+                    DETAILS_BODY_LINE_HEIGHT,
+                ),
             );
         }
         _ => {}
@@ -608,17 +668,17 @@ fn layout_label_value_field(
         nodes,
         label_control_id,
         label_x,
-        y + 6.0,
+        y + DETAILS_TEXT_TOP,
         text_width,
-        compact_line_height(height, 6.0, 10.0),
+        details_line_height(height, DETAILS_TEXT_TOP, DETAILS_CAPTION_LINE_HEIGHT),
     );
     set_node_frame(
         nodes,
         value_control_id,
         value_x,
-        y + 20.0,
+        y + DETAILS_VALUE_OFFSET,
         text_width,
-        compact_line_height(height, 20.0, 12.0),
+        details_line_height(height, DETAILS_VALUE_OFFSET, DETAILS_BODY_LINE_HEIGHT),
     );
 }
 
@@ -634,41 +694,122 @@ fn apply_compact_details_preview_layout(
     let visual_width = 48.0_f32.min(width * 0.34);
     let text_x = x + visual_width + 14.0;
     let text_width = finite_non_negative(x + width - text_x - 8.0);
-    set_node_frame(
-        nodes,
-        "AssetBrowserDetailsPreviewPanel",
-        x,
-        y,
-        width,
-        preview_height,
-    );
-    set_node_frame(
-        nodes,
-        "AssetBrowserDetailsPreviewVisualPanel",
-        x + 8.0,
-        y + 8.0,
-        visual_width,
-        finite_non_negative(preview_height - 16.0),
-    );
-    for (control_id, offset_y, line_height) in [
-        ("AssetBrowserDetailsPreviewNameText", 10.0, 14.0),
-        ("AssetBrowserDetailsPreviewLocatorText", 27.0, 12.0),
-        ("AssetBrowserDetailsPreviewKindText", 42.0, 12.0),
-        ("AssetBrowserDetailsPreviewIdentityText", 56.0, 12.0),
-        ("AssetBrowserDetailsPreviewToolkitText", 69.0, 12.0),
-        ("AssetBrowserDetailsPreviewMetaPathText", 82.0, 10.0),
-        ("AssetBrowserDetailsPreviewDiagnosticsText", 94.0, 10.0),
-    ] {
-        let line_height = compact_line_height(preview_height, offset_y, line_height);
-        set_node_frame(
-            nodes,
-            control_id,
-            text_x,
-            y + offset_y,
-            text_width,
-            line_height,
-        );
+    for node in nodes {
+        let frame = match node.control_id.as_str() {
+            "AssetBrowserDetailsPreviewPanel" => ViewTemplateFrameData {
+                x: finite_coordinate(x),
+                y: finite_coordinate(y),
+                width,
+                height: preview_height,
+            },
+            "AssetBrowserDetailsPreviewVisualPanel" => ViewTemplateFrameData {
+                x: finite_coordinate(x + 8.0),
+                y: finite_coordinate(y + 8.0),
+                width: visual_width,
+                height: finite_non_negative(preview_height - 16.0),
+            },
+            control_id => {
+                let (offset_y, preferred_height) = match control_id {
+                    "AssetBrowserDetailsPreviewNameText" => (10.0, DETAILS_BODY_LINE_HEIGHT),
+                    "AssetBrowserDetailsPreviewLocatorText" => (
+                        10.0 + DETAILS_BODY_LINE_HEIGHT + DETAILS_TEXT_GAP,
+                        DETAILS_CAPTION_LINE_HEIGHT,
+                    ),
+                    "AssetBrowserDetailsPreviewKindText" => (
+                        10.0 + DETAILS_BODY_LINE_HEIGHT
+                            + DETAILS_TEXT_GAP
+                            + DETAILS_CAPTION_LINE_HEIGHT
+                            + DETAILS_TEXT_GAP,
+                        DETAILS_CAPTION_LINE_HEIGHT,
+                    ),
+                    "AssetBrowserDetailsPreviewIdentityText" => (
+                        10.0 + DETAILS_BODY_LINE_HEIGHT
+                            + DETAILS_TEXT_GAP
+                            + (DETAILS_CAPTION_LINE_HEIGHT + DETAILS_TEXT_GAP) * 2.0,
+                        DETAILS_CAPTION_LINE_HEIGHT,
+                    ),
+                    "AssetBrowserDetailsPreviewToolkitText" => (
+                        10.0 + DETAILS_BODY_LINE_HEIGHT
+                            + DETAILS_TEXT_GAP
+                            + (DETAILS_CAPTION_LINE_HEIGHT + DETAILS_TEXT_GAP) * 3.0,
+                        DETAILS_CAPTION_LINE_HEIGHT,
+                    ),
+                    "AssetBrowserDetailsPreviewMetaPathText" => (
+                        10.0 + DETAILS_BODY_LINE_HEIGHT
+                            + DETAILS_TEXT_GAP
+                            + (DETAILS_CAPTION_LINE_HEIGHT + DETAILS_TEXT_GAP) * 4.0,
+                        DETAILS_CAPTION_LINE_HEIGHT,
+                    ),
+                    "AssetBrowserDetailsPreviewDiagnosticsText" => (
+                        10.0 + DETAILS_BODY_LINE_HEIGHT
+                            + DETAILS_TEXT_GAP
+                            + (DETAILS_CAPTION_LINE_HEIGHT + DETAILS_TEXT_GAP) * 5.0,
+                        DETAILS_BODY_LINE_HEIGHT,
+                    ),
+                    _ => continue,
+                };
+                ViewTemplateFrameData {
+                    x: finite_coordinate(text_x),
+                    y: finite_coordinate(y + offset_y),
+                    width: text_width,
+                    height: details_line_height(preview_height, offset_y, preferred_height),
+                }
+            }
+        };
+        node.frame = frame;
     }
+}
+
+fn details_line_height(container_height: f32, offset: f32, line_height: f32) -> f32 {
+    let available = finite_non_negative(container_height - offset);
+    complete_text_line_height(available, line_height)
+}
+
+fn complete_text_line_height(container_height: f32, line_height: f32) -> f32 {
+    if finite_non_negative(container_height) + f32::EPSILON >= line_height {
+        line_height
+    } else {
+        0.0
+    }
+}
+
+fn details_remaining_text_height(
+    container_height: f32,
+    offset: f32,
+    minimum_line_height: f32,
+) -> f32 {
+    let available = finite_non_negative(container_height - offset - DETAILS_TEXT_BOTTOM);
+    if available + f32::EPSILON >= minimum_line_height {
+        available
+    } else {
+        0.0
+    }
+}
+
+fn compact_layout_anchors(nodes: &[ViewTemplateNodeData]) -> CompactLayoutAnchors {
+    let mut anchors = CompactLayoutAnchors::default();
+    for node in nodes {
+        let target = match node.control_id.as_str() {
+            "AssetBrowserRoot" if anchors.root.is_none() => &mut anchors.root,
+            "AssetBrowserMainPanel" if anchors.main.is_none() => &mut anchors.main,
+            "AssetBrowserUtilityPanel" if anchors.utility.is_none() => &mut anchors.utility,
+            "AssetBrowserSourcesPanel" if anchors.sources.is_none() => &mut anchors.sources,
+            "AssetBrowserContentPanel" if anchors.content.is_none() => &mut anchors.content,
+            "AssetBrowserDetailsPanel" if anchors.details.is_none() => &mut anchors.details,
+            _ => continue,
+        };
+        *target = Some(node.frame.clone());
+        if anchors.root.is_some()
+            && anchors.main.is_some()
+            && anchors.utility.is_some()
+            && anchors.sources.is_some()
+            && anchors.content.is_some()
+            && anchors.details.is_some()
+        {
+            break;
+        }
+    }
+    anchors
 }
 
 fn node_frame(nodes: &[ViewTemplateNodeData], control_id: &str) -> Option<ViewTemplateFrameData> {
@@ -741,6 +882,44 @@ mod tests {
     fn compact_text_line_is_clipped_to_the_remaining_parent_height() {
         assert_eq!(compact_line_height(18.0, 12.0, 10.0), 6.0);
         assert_eq!(compact_line_height(8.0, 12.0, 10.0), 0.0);
+    }
+
+    #[test]
+    fn compact_details_keep_complete_typography_lines_or_hide_them() {
+        assert_eq!(
+            details_line_height(
+                DETAILS_CAPTION_LINE_HEIGHT + DETAILS_TEXT_TOP,
+                DETAILS_TEXT_TOP,
+                DETAILS_CAPTION_LINE_HEIGHT,
+            ),
+            DETAILS_CAPTION_LINE_HEIGHT
+        );
+        assert_eq!(
+            details_line_height(
+                DETAILS_CAPTION_LINE_HEIGHT + DETAILS_TEXT_TOP - 0.5,
+                DETAILS_TEXT_TOP,
+                DETAILS_CAPTION_LINE_HEIGHT,
+            ),
+            0.0
+        );
+    }
+
+    #[test]
+    fn compact_content_header_keeps_complete_typography_lines_or_hides_them() {
+        assert_eq!(
+            complete_text_line_height(
+                COMPACT_CONTENT_TITLE_LINE_HEIGHT,
+                COMPACT_CONTENT_TITLE_LINE_HEIGHT,
+            ),
+            COMPACT_CONTENT_TITLE_LINE_HEIGHT
+        );
+        assert_eq!(
+            complete_text_line_height(
+                COMPACT_CONTENT_PATH_LINE_HEIGHT - 0.5,
+                COMPACT_CONTENT_PATH_LINE_HEIGHT,
+            ),
+            0.0
+        );
     }
 }
 

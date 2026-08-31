@@ -1,6 +1,6 @@
 use crate::core::math::{Transform, Vec3};
-use crate::scene::components::{ActiveSelf, Hierarchy, LocalTransform, Name};
 use crate::scene::World;
+use crate::scene::components::{ActiveSelf, Hierarchy, LocalTransform, Name};
 
 #[test]
 fn persistent_entity_core_components_use_generic_storage_across_clone_serde_and_records() {

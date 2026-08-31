@@ -30,8 +30,8 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
 
     let effects = dispatch_componentized_workbench_surface_control_edited(
         &mut bridge,
-        "WorkbenchMaterialRow",
-        "Inspector/ComponentProperty02Edit",
+        "WorkbenchComponentPropertyVirtualRow02",
+        "Inspector/ComponentProperty04Edit",
         "true",
     )
     .expect("inspector property edit route should be handled")
@@ -43,17 +43,22 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
     assert!(!effects.render_dirty);
     assert!(!effects.presentation_dirty);
     assert_eq!(
-        control_string(&bridge, "WorkbenchMaterialRow", "value").as_deref(),
+        control_string(&bridge, "WorkbenchComponentPropertyVirtualRow02", "value").as_deref(),
         Some("true")
     );
     assert_eq!(
-        control_string(&bridge, "WorkbenchMaterialRow", "value_text").as_deref(),
+        control_string(
+            &bridge,
+            "WorkbenchComponentPropertyVirtualRow02",
+            "value_text"
+        )
+        .as_deref(),
         Some("true")
     );
     assert_eq!(
         bridge
             .host_projection()
-            .node_by_control_id("WorkbenchMaterialRow")
+            .node_by_control_id("WorkbenchComponentPropertyVirtualRow02")
             .expect("material property row projection")
             .value_text
             .as_deref(),
@@ -62,8 +67,8 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
 
     let commit_effects = dispatch_componentized_workbench_surface_control_edited(
         &mut bridge,
-        "WorkbenchMeshRow",
-        "Inspector/ComponentProperty01Commit",
+        "WorkbenchComponentPropertySlot04Row",
+        "Inspector/ComponentProperty04Commit",
         "Visible    false",
     )
     .expect("inspector property commit route should be handled")
@@ -73,11 +78,11 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
         .dirty_domains()
         .contains(HostInvalidationMask::PAINT_ONLY));
     assert_eq!(
-        control_string(&bridge, "WorkbenchMeshRow", "value").as_deref(),
+        control_string(&bridge, "WorkbenchComponentPropertySlot04Row", "value").as_deref(),
         Some("false")
     );
     assert_eq!(
-        control_string(&bridge, "WorkbenchMeshRow", "value_text").as_deref(),
+        control_string(&bridge, "WorkbenchComponentPropertySlot04Row", "value_text").as_deref(),
         Some("false")
     );
 
@@ -109,6 +114,69 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
 }
 
 #[test]
+fn componentized_workbench_inspector_scroll_rebinds_only_the_shifted_physical_rows() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_componentized_workbench_property_scroll");
+    let mut inspector = inspector_with_component_properties();
+    let prototype = inspector.plugin_components[0].properties[0].clone();
+    for index in 5..64 {
+        let mut property = prototype.clone();
+        property.field_id = format!("property_{index:02}");
+        property.name = property.field_id.clone();
+        property.label = format!("Property {index:02}");
+        property.value = index.to_string();
+        inspector.plugin_components[0].properties.push(property);
+    }
+    let properties = inspector.plugin_components[0].properties.clone();
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge
+        .sync_scene_and_inspector(
+            &crate::ui::workbench::snapshot::SceneEntries::default(),
+            Some(&inspector),
+        )
+        .unwrap();
+
+    let owner_id = bridge
+        .surface()
+        .unique_control_node_id("WorkbenchInspectorMeshProperties")
+        .expect("virtualized component property owner");
+    let first_root = bridge
+        .surface()
+        .virtual_list_prototype_slot_roots(owner_id)
+        .unwrap()[0];
+    let first_before = bridge
+        .surface()
+        .virtual_list_binding_for_node(owner_id, first_root)
+        .expect("initial physical slot binding")
+        .logical_index;
+    let scroll_point = control_center(&bridge, "WorkbenchInspectorMeshProperties");
+
+    let effects = dispatch_componentized_workbench_pointer_event(
+        &harness.runtime,
+        &mut bridge,
+        UiPointerEvent::new(UiPointerEventKind::Scroll, scroll_point).with_scroll_delta(196.0),
+    )
+    .expect("component property scroll should publish an incremental paint")
+    .unwrap();
+
+    let first_after = bridge
+        .surface()
+        .virtual_list_binding_for_node(owner_id, first_root)
+        .expect("shifted physical slot binding")
+        .logical_index;
+    assert!(first_after > first_before);
+    assert!(effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
+    assert_eq!(
+        control_string(&bridge, "WorkbenchComponentPropertySlot04Row", "value_text").as_deref(),
+        Some(properties[first_after].value.as_str())
+    );
+}
+
+#[test]
 fn componentized_workbench_inspector_property_edit_rejects_disabled_customizations() {
     let _guard = env_lock().lock().unwrap();
 
@@ -125,14 +193,14 @@ fn componentized_workbench_inspector_property_edit_rejects_disabled_customizatio
 
     assert!(!control_bool(
         &bridge,
-        "WorkbenchMeshRow",
+        "WorkbenchComponentPropertySlot04Row",
         "inspector_property_editable"
     ));
 
     let effects = dispatch_componentized_workbench_surface_control_edited(
         &mut bridge,
-        "WorkbenchMeshRow",
-        "Inspector/ComponentProperty01Edit",
+        "WorkbenchComponentPropertySlot04Row",
+        "Inspector/ComponentProperty04Edit",
         "Visible false",
     )
     .expect("disabled customization edit route should be handled")
@@ -142,7 +210,7 @@ fn componentized_workbench_inspector_property_edit_rejects_disabled_customizatio
         .dirty_domains()
         .contains(HostInvalidationMask::PAINT_ONLY));
     assert_eq!(
-        control_string(&bridge, "WorkbenchMeshRow", "value").as_deref(),
+        control_string(&bridge, "WorkbenchComponentPropertySlot04Row", "value").as_deref(),
         Some("true")
     );
 }
@@ -337,6 +405,7 @@ fn inspector_with_component_properties() -> InspectorSnapshot {
         parent: "World".to_string(),
         translation: ["12.0".to_string(), "3.5".to_string(), "-8.0".to_string()],
         scale: ["1.25".to_string(), "2.50".to_string(), "0.75".to_string()],
+        render_layer_mask: 1,
         plugin_components: vec![InspectorPluginComponentSnapshot {
             component_id: "zircon.transform".to_string(),
             display_name: "Transform Component".to_string(),

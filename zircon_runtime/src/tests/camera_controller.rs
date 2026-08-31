@@ -1,9 +1,11 @@
 use crate::core::framework::camera_controller::{
-    FreeCameraController, FreeCameraInput, FreeCameraSettings, FreeCameraState,
-    OrbitCameraController, OrbitCameraInput, PanCameraController, PanCameraInput,
+    FreeCameraInput, FreeCameraSettings, FreeCameraState, OrbitCameraInput, PanCameraInput,
     PanCameraSettings, PanCameraState,
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec3};
+use crate::input::camera_controller::{
+    FreeCameraController, OrbitCameraController, PanCameraController,
+};
 
 #[test]
 fn free_camera_controller_moves_forward_clamps_pitch_and_requests_cursor_grab() {
@@ -145,7 +147,7 @@ fn camera_controller_idle_paths_skip_expensive_delta_math() {
         "unchanged transforms must skip quaternion inverse and delta projection"
     );
 
-    let free_source = include_str!("../core/framework/camera_controller/free/controller.rs");
+    let free_source = include_str!("../input/camera_controller/free/controller.rs");
     assert!(
         free_source.contains("if self.state.velocity == Vec3::ZERO"),
         "idle free-camera updates must skip exponential damping"

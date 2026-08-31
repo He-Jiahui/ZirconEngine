@@ -11,15 +11,15 @@ use zircon_runtime_interface::ui::{
     component::UiValue,
     dispatch::UiTemplateActionInvocation,
     event_ui::UiNodeId,
-    template::{UiActionRef, UiBindingExpression, UiTemplateNode},
+    template::{UiActionRef, UiBindingExpression, UiBindingMissingValueResolution, UiTemplateNode},
     v2::UiV2NodeHandle,
 };
 
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::template_runtime::{
-    RetainedUiBindingProjection, RetainedUiHostBindingProjection, RetainedUiHostModel,
-    RetainedUiHostNodeProjection, RetainedUiNodeProjection, RetainedUiProjection,
-    RetainedUiProjectionSurfaceMetadataIndex,
+    workbench_icon_tooltip_text, RetainedUiBindingProjection, RetainedUiHostBindingProjection,
+    RetainedUiHostModel, RetainedUiHostNodeProjection, RetainedUiNodeProjection,
+    RetainedUiProjection, RetainedUiProjectionSurfaceMetadataIndex,
 };
 
 use super::runtime_host::EditorUiHostRuntimeError;
@@ -396,6 +396,8 @@ fn collect_host_nodes(
         let node_bindings = node_bindings_from_ids(&frame.node.binding_ids, bindings)?;
         host_nodes.push(RetainedUiHostNodeProjection {
             node_id: frame.node_id.clone(),
+            surface_node_id: None,
+            has_workbench_icon_tooltip: false,
             parent_id: frame.parent_id.clone(),
             component: frame.node.component.clone(),
             control_id: frame.node.control_id.clone(),
@@ -471,6 +473,8 @@ fn surface_host_node(
 
     Ok(RetainedUiHostNodeProjection {
         node_id: node.node_path.0.clone(),
+        surface_node_id: Some(node_id),
+        has_workbench_icon_tooltip: workbench_icon_tooltip_text(metadata).is_some(),
         parent_id: node
             .parent
             .and_then(|parent_id| tree.node(parent_id))
@@ -560,19 +564,41 @@ fn retained_action_id_for_binding(binding: &EditorUiBinding) -> String {
 }
 
 fn resolve_template_actions(nodes: &mut [RetainedUiHostNodeProjection]) {
-    let attributes_by_control = nodes
+    let mut control_indices = BTreeMap::<String, usize>::new();
+    for (index, node) in nodes.iter().enumerate() {
+        if let Some(control_id) = node.control_id.as_deref() {
+            // Match the previous BTreeMap collect semantics: a later duplicate wins.
+            control_indices.insert(control_id.to_string(), index);
+        }
+    }
+
+    let resolved_actions = nodes
         .iter()
-        .filter_map(|node| {
-            node.control_id
-                .as_ref()
-                .map(|control_id| (control_id.clone(), node.attributes.clone()))
+        .map(|node| {
+            node.bindings
+                .iter()
+                .map(|binding| {
+                    binding.template_action_source.as_ref().and_then(|action| {
+                        resolve_template_action_with_control_lookup(
+                            action,
+                            &node.attributes,
+                            |control_id, property| {
+                                control_indices
+                                    .get(control_id)
+                                    .and_then(|index| nodes.get(*index))
+                                    .and_then(|node| node.attributes.get(property))
+                                    .map(UiValue::from_toml)
+                            },
+                        )
+                    })
+                })
+                .collect::<Vec<_>>()
         })
-        .collect::<BTreeMap<_, _>>();
-    for node in nodes {
-        for binding in &mut node.bindings {
-            binding.template_action = binding.template_action_source.as_ref().and_then(|action| {
-                resolve_template_action(action, &node.attributes, &attributes_by_control)
-            });
+        .collect::<Vec<_>>();
+
+    for (node, actions) in nodes.iter_mut().zip(resolved_actions) {
+        for (binding, action) in node.bindings.iter_mut().zip(actions) {
+            binding.template_action = action;
         }
     }
 }
@@ -581,6 +607,23 @@ pub(super) fn resolve_template_action(
     action: &UiActionRef,
     source_attributes: &BTreeMap<String, Value>,
     attributes_by_control: &BTreeMap<String, BTreeMap<String, Value>>,
+) -> Option<UiTemplateActionInvocation> {
+    resolve_template_action_with_control_lookup(
+        action,
+        source_attributes,
+        |control_id, property| {
+            attributes_by_control
+                .get(control_id)
+                .and_then(|attributes| attributes.get(property))
+                .map(UiValue::from_toml)
+        },
+    )
+}
+
+fn resolve_template_action_with_control_lookup(
+    action: &UiActionRef,
+    source_attributes: &BTreeMap<String, Value>,
+    control_property: impl Fn(&str, &str) -> Option<UiValue>,
 ) -> Option<UiTemplateActionInvocation> {
     let route = action
         .route
@@ -599,23 +642,30 @@ pub(super) fn resolve_template_action(
         (Some(_), None) => {}
         _ => return None,
     }
-    let payload = action
-        .payload
-        .iter()
-        .map(|(key, value)| {
-            Some((
-                key.clone(),
-                resolve_template_action_value(value, source_attributes, attributes_by_control)?,
-            ))
-        })
-        .collect::<Option<_>>()?;
+    let mut payload = BTreeMap::new();
+    for (key, value) in &action.payload {
+        match action
+            .payload_missing_policy
+            .resolve(resolve_template_action_value_with_lookup(
+                value,
+                source_attributes,
+                &control_property,
+            )) {
+            UiBindingMissingValueResolution::Value(value) => {
+                payload.insert(key.clone(), value);
+            }
+            UiBindingMissingValueResolution::Omitted => {}
+            UiBindingMissingValueResolution::RequiredMissing
+            | UiBindingMissingValueResolution::ExplicitError => return None,
+        }
+    }
     Some(UiTemplateActionInvocation::route(route?, payload))
 }
 
-fn resolve_template_action_value(
+fn resolve_template_action_value_with_lookup(
     value: &Value,
     source_attributes: &BTreeMap<String, Value>,
-    attributes_by_control: &BTreeMap<String, BTreeMap<String, Value>>,
+    control_property: &impl Fn(&str, &str) -> Option<UiValue>,
 ) -> Option<UiValue> {
     let Value::String(expression_text) = value else {
         return Some(UiValue::from_toml(value));
@@ -626,81 +676,14 @@ fn resolve_template_action_value(
     UiBindingExpression::parse(expression_text)
         .ok()
         .and_then(|expression| {
-            resolve_template_action_expression(
-                &expression,
-                source_attributes,
-                attributes_by_control,
-            )
+            expression
+                .evaluate_with(
+                    |_| None,
+                    |property| source_attributes.get(property).map(UiValue::from_toml),
+                    |control_id, property| control_property(control_id, property),
+                )
+                .ok()
         })
-}
-
-fn resolve_template_action_expression(
-    expression: &UiBindingExpression,
-    source_attributes: &BTreeMap<String, Value>,
-    attributes_by_control: &BTreeMap<String, BTreeMap<String, Value>>,
-) -> Option<UiValue> {
-    match expression {
-        UiBindingExpression::Literal(value) => Some(value.clone()),
-        UiBindingExpression::ParamRef(_) => None,
-        UiBindingExpression::PropRef(property) => {
-            source_attributes.get(property).map(UiValue::from_toml)
-        }
-        UiBindingExpression::ControlPropRef {
-            control_id,
-            property,
-        } => attributes_by_control
-            .get(control_id.as_str())
-            .and_then(|attributes| attributes.get(property))
-            .map(UiValue::from_toml),
-        UiBindingExpression::Equals(lhs, rhs) => Some(UiValue::Bool(
-            resolve_template_action_expression(lhs, source_attributes, attributes_by_control)?
-                == resolve_template_action_expression(
-                    rhs,
-                    source_attributes,
-                    attributes_by_control,
-                )?,
-        )),
-        UiBindingExpression::NotEquals(lhs, rhs) => Some(UiValue::Bool(
-            resolve_template_action_expression(lhs, source_attributes, attributes_by_control)?
-                != resolve_template_action_expression(
-                    rhs,
-                    source_attributes,
-                    attributes_by_control,
-                )?,
-        )),
-        UiBindingExpression::And(lhs, rhs) => Some(UiValue::Bool(
-            template_action_bool(&resolve_template_action_expression(
-                lhs,
-                source_attributes,
-                attributes_by_control,
-            )?)? && template_action_bool(&resolve_template_action_expression(
-                rhs,
-                source_attributes,
-                attributes_by_control,
-            )?)?,
-        )),
-        UiBindingExpression::Or(lhs, rhs) => Some(UiValue::Bool(
-            template_action_bool(&resolve_template_action_expression(
-                lhs,
-                source_attributes,
-                attributes_by_control,
-            )?)? || template_action_bool(&resolve_template_action_expression(
-                rhs,
-                source_attributes,
-                attributes_by_control,
-            )?)?,
-        )),
-        UiBindingExpression::Not(value) => Some(UiValue::Bool(!template_action_bool(
-            &resolve_template_action_expression(value, source_attributes, attributes_by_control)?,
-        )?)),
-    }
-}
-
-fn template_action_bool(value: &UiValue) -> Option<bool> {
-    match value {
-        UiValue::Bool(value) => Some(*value),
-        _ => None,
-    }
 }
 
 #[cfg(test)]
@@ -709,7 +692,9 @@ mod tests {
 
     use toml::Value;
     use zircon_runtime_interface::ui::{
-        component::UiValue, dispatch::UiTemplateActionInvocation, template::UiActionRef,
+        component::UiValue,
+        dispatch::UiTemplateActionInvocation,
+        template::{UiActionRef, UiBindingMissingValuePolicy},
     };
 
     use super::resolve_template_action;
@@ -723,6 +708,7 @@ mod tests {
                 "entity".to_string(),
                 Value::String("=control.RowList.prop.selected_row_identity".to_string()),
             )]),
+            payload_missing_policy: Default::default(),
         };
         let control_attributes = BTreeMap::from([(
             "RowList".to_string(),
@@ -744,6 +730,7 @@ mod tests {
             route: None,
             action: Some("view.console.clear".to_string()),
             payload: BTreeMap::new(),
+            payload_missing_policy: Default::default(),
         };
 
         assert_eq!(
@@ -758,6 +745,7 @@ mod tests {
             route: Some("view.console.clear".to_string()),
             action: Some("view.console.clear".to_string()),
             payload: BTreeMap::new(),
+            payload_missing_policy: Default::default(),
         };
 
         assert_eq!(
@@ -775,12 +763,42 @@ mod tests {
                 "legacy_route_argument".to_string(),
                 toml::Value::Boolean(true),
             )]),
+            payload_missing_policy: Default::default(),
         };
 
         assert_eq!(
             resolve_template_action(&action, &BTreeMap::new(), &BTreeMap::new()),
             None
         );
+    }
+
+    #[test]
+    fn source_action_missing_value_policy_distinguishes_omit_substitute_and_reject() {
+        let mut action = UiActionRef {
+            route: Some("plugin.operation".to_string()),
+            action: None,
+            payload: BTreeMap::from([(
+                "entity".to_string(),
+                Value::String("=prop.missing".to_string()),
+            )]),
+            payload_missing_policy: UiBindingMissingValuePolicy::Optional,
+        };
+
+        let optional = resolve_template_action(&action, &BTreeMap::new(), &BTreeMap::new())
+            .expect("optional missing payload should preserve its route");
+        assert!(optional.payload.is_empty());
+
+        action.payload_missing_policy = UiBindingMissingValuePolicy::Fallback {
+            value: UiValue::Int(73),
+        };
+        assert_eq!(
+            resolve_template_action(&action, &BTreeMap::new(), &BTreeMap::new())
+                .and_then(|invocation| invocation.payload.get("entity").cloned()),
+            Some(UiValue::Int(73))
+        );
+
+        action.payload_missing_policy = UiBindingMissingValuePolicy::Error;
+        assert!(resolve_template_action(&action, &BTreeMap::new(), &BTreeMap::new()).is_none());
     }
 
     #[test]

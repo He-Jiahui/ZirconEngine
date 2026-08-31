@@ -1,6 +1,6 @@
-use zircon_runtime::asset::{project::ProjectManager, ProjectInfo};
-use zircon_runtime::scene::world::SceneProjectError;
+use zircon_runtime::asset::{ProjectInfo, project::ProjectManager};
 use zircon_runtime::scene::Scene;
+use zircon_runtime::scene::world::SceneProjectError;
 
 use crate::core::settings::SettingsAuthority;
 #[cfg(test)]
@@ -14,17 +14,24 @@ impl EditorProjectDocument {
         project: &ProjectManager,
         project_info: ProjectInfo,
         settings: &SettingsAuthority,
+        allows_scene_restore: bool,
     ) -> Result<Self, SceneProjectError> {
         let project_settings = ProjectSettingsLoadState::from_authority_load(
             settings.load_project_layer_from_environment(project.paths().root()),
         );
-        Self::assemble(project, project_info, project_settings)
+        Self::assemble(
+            project,
+            project_info,
+            project_settings,
+            allows_scene_restore,
+        )
     }
 
     fn assemble(
         project: &ProjectManager,
         project_info: ProjectInfo,
         project_settings: ProjectSettingsLoadState,
+        allows_scene_restore: bool,
     ) -> Result<Self, SceneProjectError> {
         let root = project.paths().root().to_path_buf();
         let (editor_workspace, workspace_restore_diagnostics) =
@@ -35,7 +42,11 @@ impl EditorProjectDocument {
             manifest: project.manifest().clone(),
             project_info,
             project_settings,
-            world: Scene::load_scene_from_uri(project, &project.manifest().default_scene)?,
+            world: if allows_scene_restore {
+                Scene::load_scene_from_uri(project, &project.manifest().default_scene)?
+            } else {
+                Scene::new()
+            },
             editor_workspace,
             workspace_restore_diagnostics,
         })
@@ -55,6 +66,7 @@ impl EditorProjectDocument {
             project,
             ProjectInfo::from_project(project),
             project_settings,
+            true,
         )
     }
 }
@@ -74,11 +86,14 @@ mod tests {
         assert!(!production_source.contains(&retired_loader_signature));
         assert!(!production_source.contains("SettingsAuthority::with_defaults()"));
         assert!(production_source.contains("pub(crate) fn load_from_activated_project("));
+        assert!(production_source.contains("world: if allows_scene_restore"));
+        assert!(production_source.contains("Scene::load_scene_from_uri"));
+        assert!(production_source.contains("Scene::new()"));
 
         let test_helper_source = &document_source[test_helper_gate..];
         assert!(test_helper_source.contains("SettingsAuthority::with_defaults()"));
         assert!(host_source.contains(
-            "EditorProjectDocument::load_from_activated_project(\n            &project,\n            project_info,\n            self.settings.as_ref(),\n        )?;"
+            "EditorProjectDocument::load_from_activated_project(\n            &project,\n            project_info,\n            self.settings.as_ref(),\n            allows_scene_restore,\n        )?;"
         ));
     }
 }

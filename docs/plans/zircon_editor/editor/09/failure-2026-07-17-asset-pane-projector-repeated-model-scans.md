@@ -60,13 +60,14 @@ Activity projector初始化曾两次扫描完整node model；Browser projector�
 
 ## 修复结果与回传
 
-Open state: `2026-07-19 generation-owned geometry/identity/fixed+visible row plan、中立generation input、跨DTO共享元数据、projector/scrollbar zero-stable-scan 与旧identity owner删除已落地；静态合同6/6且production workbench→layouts反向依赖为0。独立review从0/1/0收敛为0/0/0，exact manifest已自洽。待managed Cargo、产品像素等价、1/1k/10k row_data/parse/clone/alloc/CPU p95、failure return与managed commit，因此本记录保持open。`
+Open state: `2026-07-19 generation-owned geometry/fixed+visible row plan、中立generation input、跨DTO共享元数据与旧 painter-owned identity 文件删除已落地；但 2026-08-25 重审确认 projector 仍通过 metadata 与辅助 helper 在 stable paint 重新解析 control_id，并以 contains 推断缩略图角色。因此“zero-stable-scan/zero-parse”静态结论撤回，原 static contract 存在盲点。2026-08-25 已完成按行 identity descriptor 与 row-aware transform 硬切：generation 负责 descriptor、geometry 和辅助 viewport，paint 仅按 row 消费 typed descriptor，旧 parser/index/contains 路径均删除。独立审查指出 virtual thumbnail slot 未按重绑定项更新子节点几何；现已通过 generation payload 的扩展名/类型宽度、metadata materialized card frame 与共享纯几何函数修正，且加入深滚动回归。修正后的独立复审为 0 Critical / 0 Important，格式门禁已收束。Windows 受管 focused Cargo 以 exit 101 停在既有 zr_rhi_wgpu 14 项诊断，未开始编译 zircon_editor；该 failure 仍保持 open，等待 RHI 恢复后的 Rust、像素和 1/1k/10k 动态基线后才可作性能结论。`
 
-当前切片记录：[2026-07-19-asset-content-generation-projection.md](2026-07-19-asset-content-generation-projection.md)。
+当前切片记录：[2026-07-19-asset-content-generation-projection.md](2026-07-19-asset-content-generation-projection.md)。重审与采样方案：[2026-08-25-asset-pane-identity-index-performance-research.md](2026-08-25-asset-pane-identity-index-performance-research.md)。
 
 ## 产出记录与时间
 
 | 时间 | 状态 | 完成项目与当前门禁 |
 |---|---|---|
+| 2026-08-25 | `OPEN / source-hardcut-static-verified / focused-rust-blocked-upstream-rhi / dynamic-baseline-blocked` | 重审后完成 generation-owned dense row descriptor、descriptor 驱动 content/header/grid/preview 与辅助 viewport 几何、以及必需 `transform_row` 合同；Activity/Browser projector 不再调用 `identity`、`is_scroll_node`、reference/source-tree parser 或 thumbnail `contains`。独立审查发现的虚拟缩略图重绑定子几何漂移已由 generation payload、materialized card frame 和共享纯函数修正，并新增深滚动长文件名/双行/宽徽标回归；修正后的独立复审为 `0 Critical / 0 Important`。Python 合同 `7/7`、`rustfmt --check`、scoped diff check 通过。Windows 受管 focused Cargo 终态 exit 101，停在既有 `zr_rhi_wgpu` 14 项诊断、未编译 `zircon_editor`；外部 RHI 仍阻断真实 1/1k/10k、CPU、alloc、GPU、功耗与像素基线，不将该静态修复标记为 fixed 或性能验收。 |
 | 2026-07-23 13:17 +08:00 | `OPEN / source_review_zero_validation_pending` | 独立复审 0/1/0：业务源码的 generation metadata、zero-stable-scan、visible-row plan 与旧 identity owner 删除均成立；唯一 Important 为 failure exact manifest 遗漏 `asset_content_layout/mod.rs`、asset-content `mod.rs`、template-node `transform.rs` 与 exact-row transform test。现已补齐并保留 `identity.rs` 作为待提交删除项，增量复审 0/0/0；Cargo、像素/规模/p95、fixed return 仍待。 |
 | 2026-07-19 15:02-15:22 +08:00 | `OPEN / source_complete_static_green_validation_pending` | 生成期 typed metadata、中立 generation input、DTO 共享保留、Activity/Browser 零扫描投影、精确可见行与旧 parser 删除已完成，静态 6/6、反向层级依赖 0；managed Cargo、产品等价、规模数据、独立 review 与 fixed return 尚未完成。 |

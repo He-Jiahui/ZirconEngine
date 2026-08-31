@@ -1,19 +1,19 @@
+use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::scene::scene_renderer::advanced_lighting::irradiance_volume::IrradianceVolumeResources;
 use crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::LightCookieAtlasResources;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::scene::scene_renderer::shadow::atlas::{
-    ShadowAtlasResources, SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING,
-    SHADOW_ATLAS_SLOT_BUFFER_BINDING, SHADOW_GLOBALS_BINDING,
+    SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING, SHADOW_ATLAS_SLOT_BUFFER_BINDING,
+    SHADOW_GLOBALS_BINDING, ShadowAtlasResources,
 };
-use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::DeferredSceneResources;
 
-// 12 base entries + 5 probes + 3 lightmap + 3 volumetric + 2 cookies + 3 irradiance volume.
-const DEFERRED_LIGHTING_BIND_GROUP_ENTRY_CAPACITY: usize = 28;
+// 13 base entries (including AO) + 5 probes + 3 lightmap + 3 volumetric + 2 cookies + 3 irradiance volume.
+const DEFERRED_LIGHTING_BIND_GROUP_ENTRY_CAPACITY: usize = 29;
 const ENVIRONMENT_ONLY_PBR_BIND_GROUP_ENTRY_CAPACITY: usize = 10;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -58,13 +58,14 @@ impl DeferredSceneResources {
         gpu_scene_bind_group: &wgpu::BindGroup,
         gbuffer_albedo_view: &wgpu::TextureView,
         normal_view: &wgpu::TextureView,
+        ambient_occlusion_view: Option<&wgpu::TextureView>,
         gbuffer_material_view: &wgpu::TextureView,
         gbuffer_emissive_view: &wgpu::TextureView,
         scene_depth_view: &wgpu::TextureView,
         shadow_atlas_resources: Option<&ShadowAtlasResources>,
-        light_grid_params_buffer: &wgpu::Buffer,
-        light_zbins_buffer: &wgpu::Buffer,
-        light_tile_masks_buffer: &wgpu::Buffer,
+        light_grid_params_buffer: wgpu::BufferBinding<'_>,
+        light_zbins_buffer: wgpu::BufferBinding<'_>,
+        light_tile_masks_buffer: wgpu::BufferBinding<'_>,
         integrated_volumetric_view: Option<&wgpu::TextureView>,
         light_cookies: &LightCookieAtlasResources,
         irradiance_volume: &IrradianceVolumeResources,
@@ -74,7 +75,7 @@ impl DeferredSceneResources {
         subsurface_retained_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
         render_region: ViewportRenderRegion,
-    ) {
+    ) -> Result<(), String> {
         let execution_plan = DeferredLightingExecutionPlan::new(
             self.deferred_lighting_profile,
             subsurface_diffuse_view.is_some(),
@@ -116,6 +117,13 @@ impl DeferredSceneResources {
             )
         });
         if execution_plan.full_lighting_bind_group {
+            let ambient_occlusion_view = ambient_occlusion_view.ok_or_else(|| {
+                "full deferred lighting requires an AO texture or neutral fallback".to_string()
+            })?;
+            entries.push(wgpu::BindGroupEntry {
+                binding: 2,
+                resource: wgpu::BindingResource::TextureView(ambient_occlusion_view),
+            });
             let shadow_atlas_view = shadow_atlas_resources
                 .map(ShadowAtlasResources::atlas_view)
                 .unwrap_or(&self.shadow_atlas_fallback_view);
@@ -128,9 +136,11 @@ impl DeferredSceneResources {
             let shadow_atlas_globals_buffer = shadow_atlas_resources
                 .map(ShadowAtlasResources::globals_buffer)
                 .unwrap_or(&self.shadow_atlas_fallback_globals_buffer);
-            let volumetric_params_buffer = volumetric_params_buffer
-                .as_ref()
-                .expect("full deferred lighting creates volumetric parameters");
+            let Some(volumetric_params_buffer) = volumetric_params_buffer.as_ref() else {
+                return Err(
+                    "deferred lighting execution plan requires volumetric parameters".to_string(),
+                );
+            };
             entries.extend([
                 wgpu::BindGroupEntry {
                     binding: SHADOW_ATLAS_BINDING,
@@ -150,15 +160,15 @@ impl DeferredSceneResources {
                 },
                 wgpu::BindGroupEntry {
                     binding: 20,
-                    resource: light_grid_params_buffer.as_entire_binding(),
+                    resource: wgpu::BindingResource::Buffer(light_grid_params_buffer),
                 },
                 wgpu::BindGroupEntry {
                     binding: 21,
-                    resource: light_zbins_buffer.as_entire_binding(),
+                    resource: wgpu::BindingResource::Buffer(light_zbins_buffer),
                 },
                 wgpu::BindGroupEntry {
                     binding: 22,
-                    resource: light_tile_masks_buffer.as_entire_binding(),
+                    resource: wgpu::BindingResource::Buffer(light_tile_masks_buffer),
                 },
             ]);
             entries.extend(self.lightmap_bindings.bind_group_entries());
@@ -186,10 +196,14 @@ impl DeferredSceneResources {
             None,
         ];
         if execution_plan.subsurface_mrt {
-            let (diffuse_view, retained_view) = (
-                subsurface_diffuse_view.expect("subsurface MRT requires a diffuse target"),
-                subsurface_retained_view.expect("subsurface MRT requires a retained target"),
-            );
+            let (Some(diffuse_view), Some(retained_view)) =
+                (subsurface_diffuse_view, subsurface_retained_view)
+            else {
+                return Err(
+                    "deferred lighting subsurface MRT requires diffuse and retained targets"
+                        .to_string(),
+                );
+            };
             color_attachments[1] = Some(wgpu::RenderPassColorAttachment {
                 view: diffuse_view,
                 resolve_target: None,
@@ -218,7 +232,7 @@ impl DeferredSceneResources {
             multiview_mask: None,
         });
         if !render_region.apply_local_to_render_pass(&mut pass) {
-            return;
+            return Ok(());
         }
         pass.set_pipeline(self.lighting_pipelines.pipeline(
             device,
@@ -231,6 +245,7 @@ impl DeferredSceneResources {
             pass.set_bind_group(3, gpu_scene_bind_group, &[]);
         }
         pass.draw(0..3, 0..1);
+        Ok(())
     }
 }
 
@@ -246,6 +261,18 @@ mod tests {
     };
     use crate::core::math::{UVec2, Vec4};
     use crate::graphics::scene::scene_renderer::{SceneRenderer, SceneRendererStartupOptions};
+
+    #[test]
+    fn deferred_lighting_production_path_is_fail_closed() {
+        let production = include_str!("execute_lighting.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("deferred lighting test boundary");
+        assert!(production.contains(") -> Result<(), String>"));
+        assert!(!production.contains("expect("));
+        assert!(!production.contains("unwrap("));
+        assert!(!production.contains("panic!("));
+    }
 
     fn empty_lit_snapshot() -> RenderSceneSnapshot {
         RenderSceneSnapshot {
@@ -305,8 +332,10 @@ mod tests {
             .next()
             .expect("deferred lighting implementation");
 
-        assert!(implementation
-            .contains("const DEFERRED_LIGHTING_BIND_GROUP_ENTRY_CAPACITY: usize = 28"));
+        assert!(
+            implementation
+                .contains("const DEFERRED_LIGHTING_BIND_GROUP_ENTRY_CAPACITY: usize = 29")
+        );
         assert!(implementation.contains("ENVIRONMENT_ONLY_PBR_BIND_GROUP_ENTRY_CAPACITY"));
         assert!(
             implementation.contains("Vec::with_capacity(execution_plan.bind_group_entry_capacity)")
@@ -357,8 +386,10 @@ mod tests {
             .next()
             .expect("deferred lighting implementation");
 
-        assert!(implementation
-            .contains("entries.extend(self.reflection_probe_bindings.bind_group_entries());"));
+        assert!(
+            implementation
+                .contains("entries.extend(self.reflection_probe_bindings.bind_group_entries());")
+        );
         assert!(!implementation.contains("uses_local_reflection_provider"));
     }
 

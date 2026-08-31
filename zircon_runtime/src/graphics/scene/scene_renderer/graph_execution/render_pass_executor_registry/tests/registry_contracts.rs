@@ -1,5 +1,6 @@
 use super::super::noop_render_pass_executor;
 use super::*;
+use crate::graphics::pipeline::{RenderGraphExecutionPassMetadata, RenderPassStage};
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::{
     IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
     IBL_BAKE_PMREM_EXECUTOR_ID,
@@ -7,6 +8,16 @@ use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::{
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderPassExecutor, RenderPassRecordingPolicy,
 };
+
+fn execution_pass_metadata(
+    graph: &crate::render_graph::CompiledRenderGraph,
+) -> Vec<RenderGraphExecutionPassMetadata> {
+    graph
+        .passes()
+        .iter()
+        .map(|pass| RenderGraphExecutionPassMetadata::new(pass.id, RenderPassStage::PostProcess))
+        .collect()
+}
 #[test]
 fn registry_rejects_unregistered_executor_ids() {
     let registry = RenderPassExecutorRegistry::default();
@@ -145,7 +156,6 @@ fn builtin_registry_excludes_pluginized_advanced_executor_ids() {
         "hybrid-gi.scene-prepare",
         "hybrid-gi.trace-schedule",
         "hybrid-gi.resolve",
-        "hybrid-gi.history",
     ] {
         assert!(
             !registry.contains(&RenderPassExecutorId::new(executor_id)),
@@ -221,7 +231,8 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
         "transparency.halfres-composite",
         "post.color-lut-bake",
         "post.uber",
-        "post.upscale",
+        "post.primary-upscale",
+        "post.secondary-upscale",
         "post.output-transfer",
         "post.fxaa",
         "post.smaa",
@@ -338,25 +349,27 @@ fn registry_rejects_compiled_pipeline_with_unknown_executor_id() {
     let mut graph = RenderGraphBuilder::new("custom-pipeline");
     let custom_pass =
         graph.add_pass_with_executor("custom-pass", QueueLane::Graphics, Some("custom.executor"));
-    let output = graph.import_external_resource("custom-output");
+    let output = graph.import_present_external_resource("custom-output");
     graph.write_external(custom_pass, output).unwrap();
+    let graph = graph.compile().unwrap();
     let pipeline = CompiledRenderPipeline::from_parts(
         crate::graphics::pipeline::CompiledRenderPipelineParts {
             handle: RenderPipelineHandle::new(42),
             name: "custom pipeline".to_string(),
             renderer_name: "custom renderer".to_string(),
-            stages: Vec::new(),
-            pass_stages: Vec::new(),
+            execution_pass_metadata: execution_pass_metadata(&graph),
             enabled_features: Vec::new(),
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            ambient_occlusion_profile: None,
             half_resolution_transparency_depth_sigma:
                 crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
-            graph: graph.compile().unwrap(),
+            graph,
         },
-    );
+    )
+    .expect("registry pipeline execution packet");
 
     let error = RenderPassExecutorRegistry::with_builtin_noop_executors()
         .validate_compiled_pipeline(&pipeline)
@@ -372,25 +385,27 @@ fn registry_rejects_compiled_pipeline_with_unknown_executor_id() {
 fn registry_rejects_executable_compiled_pipeline_pass_without_executor_id() {
     let mut graph = RenderGraphBuilder::new("custom-pipeline");
     let custom_pass = graph.add_pass("custom-pass", QueueLane::Graphics);
-    let output = graph.import_external_resource("custom-output");
+    let output = graph.import_present_external_resource("custom-output");
     graph.write_external(custom_pass, output).unwrap();
+    let graph = graph.compile().unwrap();
     let pipeline = CompiledRenderPipeline::from_parts(
         crate::graphics::pipeline::CompiledRenderPipelineParts {
             handle: RenderPipelineHandle::new(44),
             name: "custom pipeline".to_string(),
             renderer_name: "custom renderer".to_string(),
-            stages: Vec::new(),
-            pass_stages: Vec::new(),
+            execution_pass_metadata: execution_pass_metadata(&graph),
             enabled_features: Vec::new(),
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            ambient_occlusion_profile: None,
             half_resolution_transparency_depth_sigma:
                 crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
-            graph: graph.compile().unwrap(),
+            graph,
         },
-    );
+    )
+    .expect("registry pipeline execution packet");
 
     let error = RenderPassExecutorRegistry::with_builtin_noop_executors()
         .validate_compiled_pipeline(&pipeline)
@@ -407,7 +422,7 @@ fn registry_ignores_culled_pass_with_unknown_executor_id() {
         QueueLane::Graphics,
         Some("lighting.baked-composite"),
     );
-    let output = graph.import_external_resource("custom-output");
+    let output = graph.import_present_external_resource("custom-output");
     graph.write_external(root, output).unwrap();
     let unused = graph.create_texture(TextureDesc::new(
         "unused-target",
@@ -427,23 +442,25 @@ fn registry_ignores_culled_pass_with_unknown_executor_id() {
             .any(|pass| pass.name == "culled-pass" && pass.culled),
         "test fixture should produce a culled pass"
     );
+    let execution_pass_metadata = execution_pass_metadata(&compiled_graph);
     let pipeline = CompiledRenderPipeline::from_parts(
         crate::graphics::pipeline::CompiledRenderPipelineParts {
             handle: RenderPipelineHandle::new(43),
             name: "custom pipeline".to_string(),
             renderer_name: "custom renderer".to_string(),
-            stages: Vec::new(),
-            pass_stages: Vec::new(),
+            execution_pass_metadata,
             enabled_features: Vec::new(),
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            ambient_occlusion_profile: None,
             half_resolution_transparency_depth_sigma:
                 crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
             graph: compiled_graph,
         },
-    );
+    )
+    .expect("registry pipeline execution packet");
 
     RenderPassExecutorRegistry::with_builtin_noop_executors()
         .validate_compiled_pipeline(&pipeline)

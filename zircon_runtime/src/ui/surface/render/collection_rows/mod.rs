@@ -11,7 +11,7 @@ use zircon_runtime_interface::ui::{
     tree::UiTemplateNodeMetadata,
 };
 
-use self::shared::{collection_row_kind, CollectionRowKind, RowRenderState};
+use self::shared::{CollectionRowKind, RowRenderState, collection_row_kind};
 
 pub(super) fn collection_row_suppresses_owner_text(
     metadata: Option<&UiTemplateNodeMetadata>,

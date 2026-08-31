@@ -15,10 +15,9 @@ use super::sync::lock_recovering_poison;
 mod metrics;
 
 use self::metrics::{
-    fallback_raster_font_size, fallback_raster_scale, fontdue_fallback_sample_offset_x,
-    logical_font_size, missing_fontdue_y_offset, normalized_subpixel_offset, raster_metric_scale,
-    swash_hinting_for_size, NATIVE_SWASH_RASTER_SCALE, NATIVE_SWASH_SAMPLE_OFFSET_X,
-    NATIVE_SWASH_SAMPLE_OFFSET_Y,
+    fontdue_fallback_sample_offset_x, missing_fontdue_y_offset, normalized_subpixel_offset,
+    physical_raster_px_size, swash_hinting_for_physical_size, NATIVE_RASTER_SAMPLE_SCALE,
+    NATIVE_SWASH_SAMPLE_OFFSET_X, NATIVE_SWASH_SAMPLE_OFFSET_Y,
 };
 
 #[derive(Clone)]
@@ -27,7 +26,8 @@ pub(in crate::ui::retained_host::host_contract) struct CachedGlyphRaster {
     pub(in crate::ui::retained_host::host_contract) bitmap: Arc<[u8]>,
     pub(in crate::ui::retained_host::host_contract) source: CachedGlyphRasterSource,
     pub(in crate::ui::retained_host::host_contract) format: CachedGlyphRasterFormat,
-    pub(in crate::ui::retained_host::host_contract) raster_scale: f32,
+    pub(in crate::ui::retained_host::host_contract) raster_px_size: u32,
+    pub(in crate::ui::retained_host::host_contract) sample_scale: f32,
     pub(in crate::ui::retained_host::host_contract) sample_offset_x: f32,
 }
 
@@ -57,9 +57,8 @@ struct GlyphRasterKey {
     font_source: GlyphRasterFontSource,
     font_cache_key: u64,
     glyph_index: u16,
-    logical_px_bits: u32,
+    raster_px_size: u32,
     subpixel_offset_bits: u32,
-    fallback_raster_scale_bits: u32,
     text_smoothing: HostTextSmoothing,
 }
 
@@ -68,9 +67,8 @@ impl PartialEq for GlyphRasterKey {
         self.font_source == other.font_source
             && self.font_cache_key == other.font_cache_key
             && self.glyph_index == other.glyph_index
-            && self.logical_px_bits == other.logical_px_bits
+            && self.raster_px_size == other.raster_px_size
             && self.subpixel_offset_bits == other.subpixel_offset_bits
-            && self.fallback_raster_scale_bits == other.fallback_raster_scale_bits
             && self.text_smoothing == other.text_smoothing
     }
 }
@@ -80,9 +78,8 @@ impl Hash for GlyphRasterKey {
         self.font_source.hash(state);
         self.font_cache_key.hash(state);
         self.glyph_index.hash(state);
-        self.logical_px_bits.hash(state);
+        self.raster_px_size.hash(state);
         self.subpixel_offset_bits.hash(state);
-        self.fallback_raster_scale_bits.hash(state);
         self.text_smoothing.hash(state);
     }
 }
@@ -93,21 +90,91 @@ enum GlyphRasterFontSource {
     RuntimeArtifact,
 }
 
+#[derive(Default)]
+struct GlyphRasterCache {
+    entries: HashMap<GlyphRasterKey, CachedGlyphRaster>,
+    #[cfg(any(test, feature = "profiling"))]
+    resident_bitmap_bytes: usize,
+    #[cfg(any(test, feature = "profiling"))]
+    peak_entry_count: usize,
+    #[cfg(any(test, feature = "profiling"))]
+    peak_resident_bitmap_bytes: usize,
+}
+
+#[cfg(any(test, feature = "profiling"))]
+#[derive(Clone, Copy)]
+struct GlyphRasterCachePublication {
+    duplicate: bool,
+    entry_count: usize,
+    resident_bitmap_bytes: usize,
+    peak_entry_count: usize,
+    peak_resident_bitmap_bytes: usize,
+}
+
+impl GlyphRasterCache {
+    #[cfg(any(test, feature = "profiling"))]
+    fn publish_profiled(
+        &mut self,
+        key: GlyphRasterKey,
+        raster: CachedGlyphRaster,
+    ) -> GlyphRasterCachePublication {
+        let bitmap_bytes = raster.bitmap.len();
+        let previous = self.entries.insert(key, raster);
+        let duplicate = previous.is_some();
+        let replaced_bitmap_bytes = previous.map_or(0, |previous| previous.bitmap.len());
+        self.resident_bitmap_bytes = self
+            .resident_bitmap_bytes
+            .saturating_sub(replaced_bitmap_bytes)
+            .saturating_add(bitmap_bytes);
+        self.peak_entry_count = self.peak_entry_count.max(self.entries.len());
+        self.peak_resident_bitmap_bytes = self
+            .peak_resident_bitmap_bytes
+            .max(self.resident_bitmap_bytes);
+
+        GlyphRasterCachePublication {
+            duplicate,
+            entry_count: self.entries.len(),
+            resident_bitmap_bytes: self.resident_bitmap_bytes,
+            peak_entry_count: self.peak_entry_count,
+            peak_resident_bitmap_bytes: self.peak_resident_bitmap_bytes,
+        }
+    }
+}
+
 pub(in crate::ui::retained_host::host_contract) fn rasterize_cached_glyph(
     font_face: HostTextFontFace,
     glyph_index: u16,
     logical_px: f32,
-    raster_scale: f32,
+    surface_scale_factor: f32,
     subpixel_offset: f32,
 ) -> CachedGlyphRaster {
     let font = host_font_snapshot_for_face(font_face);
+    let text_smoothing = current_host_text_preferences().smoothing;
     rasterize_cached_font_glyph(
         GlyphRasterFontSource::Host(font_face),
         &font,
         glyph_index,
-        logical_px,
-        raster_scale,
+        physical_raster_px_size(logical_px, surface_scale_factor),
         subpixel_offset,
+        text_smoothing,
+    )
+}
+
+pub(super) fn rasterize_cached_host_glyph(
+    font_face: HostTextFontFace,
+    font: &HostTextFontSnapshot,
+    glyph_index: u16,
+    physical_px: f32,
+    subpixel_offset: f32,
+    text_smoothing: HostTextSmoothing,
+) -> CachedGlyphRaster {
+    rasterize_cached_font_glyph(
+        GlyphRasterFontSource::Host(font_face),
+        font,
+        glyph_index,
+        physical_raster_px_size(physical_px, 1.0),
+        subpixel_offset,
+        text_smoothing,
     )
 }
 
@@ -115,17 +182,17 @@ pub(in crate::ui::retained_host::host_contract) fn rasterize_cached_glyph(
 pub(in crate::ui::retained_host::host_contract) fn rasterize_cached_runtime_artifact_glyph(
     font: &HostTextFontSnapshot,
     glyph_index: u16,
-    logical_px: f32,
-    raster_scale: f32,
+    physical_px: f32,
     subpixel_offset: f32,
+    text_smoothing: HostTextSmoothing,
 ) -> CachedGlyphRaster {
     rasterize_cached_font_glyph(
         GlyphRasterFontSource::RuntimeArtifact,
         font,
         glyph_index,
-        logical_px,
-        raster_scale,
+        physical_raster_px_size(physical_px, 1.0),
         subpixel_offset,
+        text_smoothing,
     )
 }
 
@@ -133,53 +200,93 @@ fn rasterize_cached_font_glyph(
     font_source: GlyphRasterFontSource,
     font: &HostTextFontSnapshot,
     glyph_index: u16,
-    logical_px: f32,
-    raster_scale: f32,
+    raster_px_size: u32,
     subpixel_offset: f32,
+    text_smoothing: HostTextSmoothing,
 ) -> CachedGlyphRaster {
-    static CACHE: OnceLock<Mutex<HashMap<GlyphRasterKey, CachedGlyphRaster>>> = OnceLock::new();
-    let logical_px = logical_font_size(logical_px);
-    let fallback_raster_scale = fallback_raster_scale(raster_scale);
+    static CACHE: OnceLock<Mutex<GlyphRasterCache>> = OnceLock::new();
     let subpixel_offset = normalized_subpixel_offset(subpixel_offset);
-    let text_smoothing = current_host_text_preferences().smoothing;
     let key = GlyphRasterKey {
         font_source,
         font_cache_key: font.cache_key(),
         glyph_index,
-        logical_px_bits: logical_px.to_bits(),
+        raster_px_size,
         subpixel_offset_bits: subpixel_offset.to_bits(),
-        fallback_raster_scale_bits: fallback_raster_scale.to_bits(),
         text_smoothing,
     };
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    if let Some(raster) = lock_recovering_poison(cache).get(&key).cloned() {
+    let cache = CACHE.get_or_init(|| Mutex::new(GlyphRasterCache::default()));
+    if let Some(raster) = lock_recovering_poison(cache).entries.get(&key).cloned() {
+        zircon_runtime::profile_counter!("editor", "retained_text_raster_cache_hit_count", 1);
+        zircon_runtime::profile_counter!("editor", "retained_text_raster_cache_miss_count", 0);
         return raster;
     }
 
+    zircon_runtime::profile_counter!("editor", "retained_text_raster_cache_hit_count", 0);
+    zircon_runtime::profile_counter!("editor", "retained_text_raster_cache_miss_count", 1);
+    zircon_runtime::profile_scope!("editor", "host_painter", "text_raster_cache_miss");
     let raster = rasterize_swash_glyph(
         font,
         glyph_index,
-        logical_px,
+        raster_px_size,
         subpixel_offset,
         text_smoothing,
     )
-    .unwrap_or_else(|| {
-        rasterize_fontdue_glyph(
-            font,
-            glyph_index,
-            logical_px,
-            fallback_raster_scale,
-            subpixel_offset,
-        )
-    });
-    lock_recovering_poison(cache).insert(key, raster.clone());
+    .unwrap_or_else(|| rasterize_fontdue_glyph(font, glyph_index, raster_px_size, subpixel_offset));
+    zircon_runtime::profile_counter!(
+        "editor",
+        "retained_text_raster_cache_miss_bitmap_bytes",
+        raster.bitmap.len()
+    );
+    zircon_runtime::profile_counter!(
+        "editor",
+        "retained_text_raster_cache_miss_swash_count",
+        usize::from(raster.source == CachedGlyphRasterSource::Swash)
+    );
+    zircon_runtime::profile_counter!(
+        "editor",
+        "retained_text_raster_cache_miss_fontdue_fallback_count",
+        usize::from(raster.source == CachedGlyphRasterSource::FontdueFallback)
+    );
+    #[cfg(any(test, feature = "profiling"))]
+    {
+        let publication = lock_recovering_poison(cache).publish_profiled(key, raster.clone());
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_raster_cache_duplicate_publish_count",
+            usize::from(publication.duplicate)
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_raster_cache_resident_entry_count",
+            publication.entry_count
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_raster_cache_resident_bitmap_bytes",
+            publication.resident_bitmap_bytes
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_raster_cache_peak_entry_count",
+            publication.peak_entry_count
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_raster_cache_peak_bitmap_bytes",
+            publication.peak_resident_bitmap_bytes
+        );
+    }
+    #[cfg(not(any(test, feature = "profiling")))]
+    lock_recovering_poison(cache)
+        .entries
+        .insert(key, raster.clone());
     raster
 }
 
 fn rasterize_swash_glyph(
     font: &HostTextFontSnapshot,
     glyph_index: u16,
-    logical_px: f32,
+    raster_px_size: u32,
     subpixel_offset: f32,
     text_smoothing: HostTextSmoothing,
 ) -> Option<CachedGlyphRaster> {
@@ -188,10 +295,11 @@ fn rasterize_swash_glyph(
     let swash_font = FontRef::from_index(font.bytes(), font.collection_index() as usize)?;
     let context = SWASH_CONTEXT.get_or_init(|| Mutex::new(ScaleContext::new()));
     let mut context = lock_recovering_poison(context);
+    let physical_px = raster_px_size as f32;
     let mut scaler = context
         .builder(swash_font)
-        .size(logical_px)
-        .hint(swash_hinting_for_size(logical_px))
+        .size(physical_px)
+        .hint(swash_hinting_for_physical_size(physical_px))
         .build();
     let mut render = Render::new(&[
         Source::ColorOutline(0),
@@ -206,27 +314,26 @@ fn rasterize_swash_glyph(
     let height = image.placement.height as usize;
     let left = image.placement.left;
     let top = image.placement.top;
-    let (format, bitmap) = swash_bitmap(image.content, image.data, width, height, text_smoothing)?;
+    let (format, bitmap) = swash_bitmap(
+        image.content,
+        image.source,
+        image.data,
+        width,
+        height,
+        text_smoothing,
+    )?;
     if !bitmap_has_visible_ink(format, &bitmap) {
         return None;
     }
-    let metrics = swash_metrics(
-        font,
-        glyph_index,
-        logical_px,
-        NATIVE_SWASH_RASTER_SCALE,
-        width,
-        height,
-        left,
-        top,
-    );
+    let metrics = swash_metrics(font, glyph_index, physical_px, width, height, left, top);
 
     Some(CachedGlyphRaster {
         metrics,
         bitmap: Arc::from(bitmap),
         source: CachedGlyphRasterSource::Swash,
         format,
-        raster_scale: NATIVE_SWASH_RASTER_SCALE,
+        raster_px_size,
+        sample_scale: NATIVE_RASTER_SAMPLE_SCALE,
         sample_offset_x: NATIVE_SWASH_SAMPLE_OFFSET_X,
     })
 }
@@ -241,23 +348,21 @@ fn swash_format_for_smoothing(smoothing: HostTextSmoothing) -> Format {
 fn swash_metrics(
     font: &HostTextFontSnapshot,
     glyph_index: u16,
-    logical_px: f32,
-    raster_scale: f32,
+    physical_px: f32,
     width: usize,
     height: usize,
     left: i32,
     top: i32,
 ) -> CachedGlyphMetrics {
-    let scale = raster_metric_scale(raster_scale);
     let fontdue_y = font
         .font()
         .map(|font| {
-            let metrics = font.metrics_indexed(glyph_index, logical_px);
+            let metrics = font.metrics_indexed(glyph_index, physical_px);
             (-metrics.bounds.height - metrics.bounds.ymin).floor()
         })
         .unwrap_or_else(missing_fontdue_y_offset);
-    let swash_x = left as f32 / scale;
-    let swash_y = -(top as f32) / scale;
+    let swash_x = left as f32;
+    let swash_y = -(top as f32);
 
     CachedGlyphMetrics {
         width,
@@ -269,7 +374,8 @@ fn swash_metrics(
 
 fn swash_bitmap(
     content: Content,
-    data: Vec<u8>,
+    source: Source,
+    mut data: Vec<u8>,
     width: usize,
     height: usize,
     text_smoothing: HostTextSmoothing,
@@ -280,10 +386,8 @@ fn swash_bitmap(
             if data.len() < pixel_count {
                 None
             } else {
-                Some((
-                    CachedGlyphRasterFormat::AlphaMask,
-                    data.into_iter().take(pixel_count).collect(),
-                ))
+                data.truncate(pixel_count);
+                Some((CachedGlyphRasterFormat::AlphaMask, data))
             }
         }
         Content::SubpixelMask => {
@@ -294,20 +398,21 @@ fn swash_bitmap(
                 match text_smoothing {
                     HostTextSmoothing::Grayscale => rgba_to_alpha(data, pixel_count, true)
                         .map(|alpha| (CachedGlyphRasterFormat::AlphaMask, alpha)),
-                    HostTextSmoothing::Subpixel => Some((
-                        CachedGlyphRasterFormat::SubpixelMask,
-                        data.into_iter().take(byte_count).collect(),
-                    )),
+                    HostTextSmoothing::Subpixel => {
+                        data.truncate(byte_count);
+                        Some((CachedGlyphRasterFormat::SubpixelMask, data))
+                    }
                 }
             }
         }
         Content::Color => {
             let byte_count = pixel_count.checked_mul(4)?;
             (data.len() >= byte_count).then(|| {
-                (
-                    CachedGlyphRasterFormat::ColorRgba,
-                    data.into_iter().take(byte_count).collect(),
-                )
+                data.truncate(byte_count);
+                if matches!(source, Source::ColorOutline(_)) {
+                    unpremultiply_rgba8_in_place(&mut data);
+                }
+                (CachedGlyphRasterFormat::ColorRgba, data)
             })
         }
     }
@@ -338,19 +443,36 @@ fn rgba_to_alpha(data: Vec<u8>, pixel_count: usize, subpixel_mask: bool) -> Opti
     Some(alpha)
 }
 
+fn unpremultiply_rgba8_in_place(data: &mut [u8]) {
+    for pixel in data.chunks_exact_mut(4) {
+        let alpha = u32::from(pixel[3]);
+        if alpha == 0 {
+            pixel[..3].fill(0);
+            continue;
+        }
+        if alpha == u32::from(u8::MAX) {
+            continue;
+        }
+
+        for channel in &mut pixel[..3] {
+            let straight = (u32::from(*channel) * u32::from(u8::MAX) + alpha / 2) / alpha;
+            *channel = straight.min(u32::from(u8::MAX)) as u8;
+        }
+    }
+}
+
 fn rasterize_fontdue_glyph(
     font: &HostTextFontSnapshot,
     glyph_index: u16,
-    logical_px: f32,
-    raster_scale: f32,
+    raster_px_size: u32,
     subpixel_offset: f32,
 ) -> CachedGlyphRaster {
     let Some(font) = font.font() else {
-        return empty_fontdue_raster(raster_scale, subpixel_offset);
+        return empty_fontdue_raster(raster_px_size, subpixel_offset);
     };
-    let raster_px = fallback_raster_font_size(logical_px, raster_scale);
+    let raster_px = raster_px_size as f32;
     let (metrics, bitmap) = font.rasterize_indexed(glyph_index, raster_px);
-    let raster_left_px = metrics.xmin as f32 / raster_scale;
+    let raster_left_px = metrics.xmin as f32;
     let x_offset = raster_left_px.floor() as i32;
     CachedGlyphRaster {
         metrics: CachedGlyphMetrics {
@@ -362,7 +484,8 @@ fn rasterize_fontdue_glyph(
         bitmap: Arc::from(bitmap),
         source: CachedGlyphRasterSource::FontdueFallback,
         format: CachedGlyphRasterFormat::AlphaMask,
-        raster_scale,
+        raster_px_size,
+        sample_scale: NATIVE_RASTER_SAMPLE_SCALE,
         sample_offset_x: fontdue_fallback_sample_offset_x(
             subpixel_offset,
             raster_left_px,
@@ -371,13 +494,14 @@ fn rasterize_fontdue_glyph(
     }
 }
 
-fn empty_fontdue_raster(raster_scale: f32, subpixel_offset: f32) -> CachedGlyphRaster {
+fn empty_fontdue_raster(raster_px_size: u32, subpixel_offset: f32) -> CachedGlyphRaster {
     CachedGlyphRaster {
         metrics: CachedGlyphMetrics::default(),
         bitmap: Arc::<[u8]>::from(Vec::<u8>::new()),
         source: CachedGlyphRasterSource::FontdueFallback,
         format: CachedGlyphRasterFormat::AlphaMask,
-        raster_scale,
+        raster_px_size,
+        sample_scale: NATIVE_RASTER_SAMPLE_SCALE,
         sample_offset_x: normalized_subpixel_offset(subpixel_offset),
     }
 }

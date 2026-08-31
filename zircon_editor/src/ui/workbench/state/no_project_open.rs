@@ -1,3 +1,5 @@
-pub(super) fn no_project_open() -> String {
-    "No project open".to_string()
+use super::EditorStateOperationError;
+
+pub(super) fn no_project_open() -> EditorStateOperationError {
+    EditorStateOperationError::NoProjectOpen
 }

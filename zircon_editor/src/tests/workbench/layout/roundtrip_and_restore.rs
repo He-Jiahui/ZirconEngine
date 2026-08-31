@@ -45,7 +45,7 @@ fn layout_manager_moves_views_and_roundtrips_layouts() {
     let restored: WorkbenchLayout = serde_json::from_str(&json).unwrap();
 
     assert!(restored
-        .drawers
+        .active_activity_window_drawers()
         .get(&ActivityDrawerSlot::RightTop)
         .unwrap()
         .tab_stack
@@ -69,7 +69,6 @@ fn restore_policy_prefers_project_workspace_before_global_default() {
         .restore_workspace(
             RestorePolicy::ProjectThenGlobal,
             Some(ProjectEditorWorkspace {
-                layout_version: 1,
                 workbench: project.clone(),
                 open_view_instances: Vec::new(),
                 focused_view: None,

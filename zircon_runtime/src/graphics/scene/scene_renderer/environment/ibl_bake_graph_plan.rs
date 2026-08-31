@@ -37,6 +37,8 @@ pub(in crate::graphics) const IBL_BAKE_IRRADIANCE_CUBE_PIPELINE_LABEL: &str =
 
 const IBL_BAKE_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 const IBL_BAKE_CUBE_FACE_COUNT: u32 = 6;
+// The SH9 shader reduces a fixed 8x8 sample lattice; it does not scale with cubemap resolution.
+pub(in crate::graphics) const IBL_BAKE_IRRADIANCE_SH9_DISPATCH_GROUPS: [u32; 3] = [1, 1, 1];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::graphics) enum IblBakeGraphPassKind {
@@ -218,7 +220,7 @@ fn irradiance_sh9_workload() -> RenderGraphComputeWorkload {
     RenderGraphComputeWorkload::fixed(
         IBL_BAKE_IRRADIANCE_SH9_PIPELINE_LABEL,
         IBL_BAKE_WORKGROUP_SIZE,
-        [1, 1, 1],
+        IBL_BAKE_IRRADIANCE_SH9_DISPATCH_GROUPS,
     )
 }
 
@@ -255,6 +257,31 @@ pub(in crate::graphics) const fn ibl_bake_pmrem_dispatch_groups(
             IBL_BAKE_CUBE_FACE_COUNT
         },
     ]
+}
+
+pub(in crate::graphics) const fn ibl_bake_pmrem_dispatch_groups_for_face_range(
+    face_size: u32,
+    mip_count: u32,
+    mip_level: u32,
+    first_face: u32,
+    face_count: u32,
+) -> Option<[u32; 3]> {
+    if face_count == 0
+        || first_face >= IBL_BAKE_CUBE_FACE_COUNT
+        || face_count > IBL_BAKE_CUBE_FACE_COUNT - first_face
+        || mip_level >= mip_count
+    {
+        return None;
+    }
+
+    let mut groups = ibl_bake_pmrem_dispatch_groups(face_size, mip_count, mip_level);
+    if first_face != 0
+        || face_count != IBL_BAKE_CUBE_FACE_COUNT
+        || !ibl_bake_terminal_pmrem_average_mip(face_size, mip_count, mip_level)
+    {
+        groups[2] = face_count;
+    }
+    Some(groups)
 }
 
 pub(in crate::graphics) const fn ibl_bake_terminal_pmrem_average_mip(

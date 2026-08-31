@@ -392,21 +392,15 @@ def _validate_expected_pass_types(
     expected = tuple(
         _normalize_dimension_token(pass_type) for pass_type in expected_pass_types
     )
-    group = summary.get("pass_types")
-    if not isinstance(group, Mapping):
-        missing = expected
-    else:
-        missing = tuple(
-            pass_type
-            for pass_type in expected
-            if not _dimension_has_requested_count(group, pass_type)
-        )
+    missing, incomplete = _expected_dimension_count_failures(
+        summary.get("pass_types"),
+        tuple((pass_type, pass_type) for pass_type in expected),
+    )
     if missing:
         raise RuntimeError(
             "shader prewarm report is missing requested pass types: "
             + ", ".join(missing)
         )
-    incomplete = _incomplete_dimension_counts(group, expected)
     if incomplete:
         raise RuntimeError(
             "shader prewarm report did not fully write requested pass types: "
@@ -421,21 +415,15 @@ def _validate_expected_quality_tiers(
     if not expected_quality_tiers:
         return
     expected = tuple(_normalize_dimension_token(tier) for tier in expected_quality_tiers)
-    group = summary.get("quality_tiers")
-    if not isinstance(group, Mapping):
-        missing = expected
-    else:
-        missing = tuple(
-            tier
-            for tier in expected
-            if not _dimension_has_requested_count(group, tier)
-        )
+    missing, incomplete = _expected_dimension_count_failures(
+        summary.get("quality_tiers"),
+        tuple((tier, tier) for tier in expected),
+    )
     if missing:
         raise RuntimeError(
             "shader prewarm report is missing requested quality tiers: "
             + ", ".join(missing)
         )
-    incomplete = _incomplete_dimension_counts(group, expected)
     if incomplete:
         raise RuntimeError(
             "shader prewarm report did not fully write requested quality tiers: "
@@ -452,21 +440,15 @@ def _validate_expected_geometry_sources(
     expected = tuple(
         _geometry_source_dimension_id(source) for source in expected_geometry_sources
     )
-    group = summary.get("geometry_source_ids")
-    if not isinstance(group, Mapping):
-        missing = expected
-    else:
-        missing = tuple(
-            source_id
-            for source_id in expected
-            if not _dimension_has_requested_count(group, source_id)
-        )
+    missing, incomplete = _expected_dimension_count_failures(
+        summary.get("geometry_source_ids"),
+        tuple((source_id, source_id) for source_id in expected),
+    )
     if missing:
         raise RuntimeError(
             "shader prewarm report is missing requested geometry sources: "
             + ", ".join(missing)
         )
-    incomplete = _incomplete_dimension_counts(group, expected)
     if incomplete:
         raise RuntimeError(
             "shader prewarm report did not fully write requested geometry sources: "
@@ -483,23 +465,19 @@ def _validate_expected_shader_dimension_ids(
     if not expected_specs:
         return
     expected_records = _shader_dimension_id_records(expected_specs, label)
-    group = summary.get(field)
-    if not isinstance(group, Mapping):
-        missing = expected_records
-    else:
-        missing = tuple(
-            record
-            for record in expected_records
-            if not _dimension_has_requested_count(group, str(record[1]))
-        )
+    missing, incomplete = _expected_dimension_count_failures(
+        summary.get(field),
+        tuple(
+            (_format_shader_id_record(token, id_value), str(id_value))
+            for token, id_value in expected_records
+        ),
+    )
     if missing:
         raise RuntimeError(
             _shader_dimension_missing_message(label)
             + ": "
-            + ", ".join(_format_shader_id_record(token, id_value) for token, id_value in missing)
+            + ", ".join(missing)
         )
-    expected_ids = tuple(str(id_value) for _, id_value in expected_records)
-    incomplete = _incomplete_dimension_counts(group, expected_ids)
     if incomplete:
         raise RuntimeError(
             _shader_dimension_incomplete_message(label)
@@ -545,6 +523,33 @@ def _format_shader_id_record(token: str, id_value: int) -> str:
     return f"{token}={id_value}"
 
 
+def _expected_dimension_count_failures(
+    group: object,
+    expected: Sequence[tuple[str, str]],
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    if not isinstance(group, Mapping):
+        return tuple(display for display, _ in expected), ()
+
+    missing: list[str] = []
+    incomplete: list[str] = []
+    for display, key in expected:
+        counts = group.get(key)
+        if not isinstance(counts, Mapping):
+            missing.append(display)
+            continue
+        requested = _count_value(counts, "requested")
+        if requested <= 0:
+            missing.append(display)
+            continue
+        written = _count_value(counts, "written")
+        failed = _count_value(counts, "failed")
+        if written != requested or failed != 0:
+            incomplete.append(
+                f"{key} requested={requested} written={written} failed={failed}"
+            )
+    return tuple(missing), tuple(incomplete)
+
+
 def _dimension_has_requested_count(group: Mapping[str, object], key: str) -> bool:
     counts = group.get(key)
     return isinstance(counts, Mapping) and _count_value(counts, "requested") > 0
@@ -554,19 +559,11 @@ def _incomplete_dimension_counts(
     group: Mapping[str, object],
     keys: Sequence[str],
 ) -> tuple[str, ...]:
-    incomplete: list[str] = []
-    for key in keys:
-        counts = group.get(key)
-        if not isinstance(counts, Mapping):
-            continue
-        requested = _count_value(counts, "requested")
-        written = _count_value(counts, "written")
-        failed = _count_value(counts, "failed")
-        if requested > 0 and (written != requested or failed != 0):
-            incomplete.append(
-                f"{key} requested={requested} written={written} failed={failed}"
-            )
-    return tuple(incomplete)
+    _, incomplete = _expected_dimension_count_failures(
+        group,
+        tuple((key, key) for key in keys),
+    )
+    return incomplete
 
 
 def _geometry_source_dimension_id(source: str) -> str:

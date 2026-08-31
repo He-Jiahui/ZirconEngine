@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::scene::World;
 use crate::scene::ecs::{
-    DeferredSystemKey, SceneSystemClockDomain, SceneSystemMetadata, SceneSystemThreadAffinity,
+    DeferredSystemKey, SceneSystemMetadata, SceneSystemThreadAffinity, SceneSystemTickPolicy,
     SystemOrderingConstraint, SystemParamAccess, SystemSetId, SystemStage, WorkerCommandBuffer,
 };
 
@@ -12,6 +12,10 @@ pub trait SceneSystem: Send + 'static {
     fn metadata(&self) -> &SceneSystemMetadata;
     fn access(&self) -> &SystemParamAccess;
     fn run(&mut self, world: &mut World);
+
+    /// Permanently releases World-bound state after the executor has reached
+    /// quiescence for this system.
+    fn retire(&mut self, _world: &mut World) {}
 
     /// Runs a foreign callback that was registered without a `World` parameter. Only systems
     /// returning `true` from `supports_worldless_execution` may be dispatched to a worker.
@@ -64,8 +68,8 @@ pub trait SceneSystem: Send + 'static {
         self.metadata().thread_affinity()
     }
 
-    fn clock_domain(&self) -> SceneSystemClockDomain {
-        self.metadata().clock_domain()
+    fn tick_policy(&self) -> SceneSystemTickPolicy {
+        self.metadata().tick_policy()
     }
 
     fn has_deferred_commands(&self) -> bool {
@@ -82,7 +86,7 @@ impl fmt::Debug for dyn SceneSystem {
             .field("order", &self.order())
             .field("has_deferred_commands", &self.has_deferred_commands())
             .field("thread_affinity", &self.thread_affinity())
-            .field("clock_domain", &self.clock_domain())
+            .field("tick_policy", &self.tick_policy())
             .finish_non_exhaustive()
     }
 }

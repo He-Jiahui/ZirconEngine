@@ -12,7 +12,10 @@ use zircon_runtime_interface::{
     ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
 };
 
-use super::{EditorRuntimeGateway, EditorRuntimeHighlightSet, GatewayError, RuntimeCapabilities};
+use super::{
+    EditorRuntimeGateway, EditorRuntimeHighlightSet, GatewayError, GatewaySessionIdentity,
+    RuntimeCapabilities,
+};
 
 thread_local! {
     static BORROWED_WORLD_CALLBACK_ACTIVE: Cell<bool> = const { Cell::new(false) };
@@ -73,6 +76,10 @@ impl EditorRuntimeGateway for InProcessGateway {
         ZrRuntimeSessionHandle::invalid()
     }
 
+    fn session_identity(&self) -> GatewaySessionIdentity {
+        GatewaySessionIdentity::detached()
+    }
+
     fn with_world(&self, read: &mut dyn FnMut(&World)) -> Result<(), GatewayError> {
         let _callback_guard = BorrowedWorldCallbackGuard::enter()?;
         self.level.with_world(read);
@@ -86,7 +93,7 @@ impl EditorRuntimeGateway for InProcessGateway {
     }
 
     fn query_world(&self, query: WorldQuery) -> Result<WorldQueryResult, GatewayError> {
-        Ok(self.level.with_world(|world| world.query_world(&query)))
+        Ok(self.level.query_world(&query))
     }
 
     fn watch_world(&self, registration: WatchRegistration) -> Result<WatchToken, GatewayError> {

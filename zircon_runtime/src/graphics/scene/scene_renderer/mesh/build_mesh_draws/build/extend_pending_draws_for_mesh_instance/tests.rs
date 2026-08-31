@@ -3,15 +3,44 @@ use std::collections::BTreeMap;
 use super::super::pending_mesh_draw::PendingSkinnedGpuSource;
 use super::{
     direct_skinned_gpu_source, morph_shape_signature, morphed_mesh_asset_primitive,
-    skinned_gpu_source_candidate_available,
+    pipeline_key_with_raster_winding, skinned_gpu_source_candidate_available,
 };
 use crate::asset::{
-    AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
-    MESH_ATTRIBUTE_POSITION,
+    AssetUri, MESH_ATTRIBUTE_POSITION, MeshAsset, MeshAttributeValues, MeshIndices,
+    MeshMorphTargetAsset,
 };
 use crate::core::framework::render::RenderMeshTopology;
 use crate::core::math::Vec3;
 use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteStorage;
+use crate::graphics::scene::{
+    gpu_scene::GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT, resources::default_pipeline_key,
+};
+
+#[test]
+fn capture_view_and_model_reflections_compose_with_xor_winding() {
+    assert!(
+        !pipeline_key_with_raster_winding(default_pipeline_key(), 0, false).reverse_raster_winding
+    );
+    assert!(
+        pipeline_key_with_raster_winding(default_pipeline_key(), 0, true).reverse_raster_winding
+    );
+    assert!(
+        pipeline_key_with_raster_winding(
+            default_pipeline_key(),
+            GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT,
+            false,
+        )
+        .reverse_raster_winding
+    );
+    assert!(
+        !pipeline_key_with_raster_winding(
+            default_pipeline_key(),
+            GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT,
+            true,
+        )
+        .reverse_raster_winding
+    );
+}
 
 #[test]
 fn morphed_mesh_asset_primitive_ignores_zero_weights_for_static_direct_mesh_fallback() {
@@ -26,8 +55,10 @@ fn morphed_mesh_asset_primitive_applies_nonzero_weights_for_dynamic_direct_mesh(
 
     let primitive = morphed_mesh_asset_primitive(&mesh, &[0.5]).expect("morphed primitive");
 
-    assert!(Vec3::from_array(primitive.vertices[0].position)
-        .abs_diff_eq(Vec3::new(1.0, 0.0, 0.5), 1.0e-6));
+    assert!(
+        Vec3::from_array(primitive.vertices[0].position)
+            .abs_diff_eq(Vec3::new(1.0, 0.0, 0.5), 1.0e-6)
+    );
     assert_eq!(primitive.indices, vec![0, 1, 2]);
 }
 

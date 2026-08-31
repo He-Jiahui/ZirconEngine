@@ -30,13 +30,19 @@ fn runtime_15_vg_debug_snapshot_stream_types_are_child_owner() {
             "mod diagnostics;",
             "mod metrics;",
             "mod types;",
-            "pub use types::*;",
+            "pub use types::{",
+            "RenderVirtualGeometryDebugSnapshotReadbackStreams",
+            "RenderVirtualGeometryVisBuffer64ReadbackStreamDecodeError",
             "impl RenderVirtualGeometryDebugSnapshot {",
             "pub fn try_decode_debug_readback_streams(",
             "pub fn try_decode_node_and_cluster_cull_word_streams(",
             "pub fn try_decode_render_path_word_streams(",
             "pub fn try_decode_visbuffer64_readback_stream(",
         ],
+    );
+    assert!(
+        !parent.contains("pub use types::*;"),
+        "VG stream parent must preserve an explicit public type contract"
     );
 
     for moved_type in [

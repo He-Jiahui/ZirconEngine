@@ -1,4 +1,6 @@
-use crate::scene::ecs::events::{Event, EventCursor, EventReadIter, EventStore, EventTypeId};
+use crate::scene::ecs::events::{
+    Event, EventCursor, EventReadIter, EventReaderLease, EventStore, EventTypeId,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EventSubscriptionStatus {
@@ -15,6 +17,7 @@ pub enum EventSubscriptionStatus {
 pub struct EventSubscription<T> {
     cursor: EventCursor<T>,
     event_type_id: EventTypeId,
+    reader_lease: Option<EventReaderLease>,
     status: EventSubscriptionStatus,
 }
 
@@ -26,6 +29,7 @@ where
         Self {
             cursor: EventCursor::default(),
             event_type_id: store.register::<T>(),
+            reader_lease: None,
             status: EventSubscriptionStatus::Dormant,
         }
     }
@@ -43,17 +47,28 @@ where
     }
 
     pub fn connect(&mut self, store: &mut EventStore) -> bool {
-        if self.is_connected() || !store.connect_reader(self.event_type_id) {
+        if self.is_connected() {
             return false;
         }
+        let Some(reader_lease) = store.connect_reader(self.event_type_id) else {
+            return false;
+        };
         self.cursor
             .clear(store.events_by_id::<T>(self.event_type_id));
+        self.reader_lease = Some(reader_lease);
         self.status = EventSubscriptionStatus::Connected;
         true
     }
 
     pub fn disconnect(&mut self, store: &mut EventStore) -> bool {
-        if !self.is_connected() || !store.disconnect_reader(self.event_type_id) {
+        if !self.is_connected() {
+            return false;
+        }
+        let Some(mut reader_lease) = self.reader_lease.take() else {
+            return false;
+        };
+        if !store.disconnect_reader(&mut reader_lease) {
+            self.reader_lease = Some(reader_lease);
             return false;
         }
         self.cursor.clear(None);

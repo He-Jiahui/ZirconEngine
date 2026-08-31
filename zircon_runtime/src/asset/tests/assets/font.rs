@@ -5,9 +5,9 @@ use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
     AssetImportError, AssetImporter, AssetKind, AssetUri, FontAsset, FontAssetError,
-    FontAssetRenderStrategy, ImportedAsset,
+    FontAssetRenderStrategy, FontAssetSourceFormat, ImportedAsset,
 };
-use crate::text::FontScript;
+use crate::text::{FontScript, FontScriptTag};
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 const FONT_TOML: &str = r#"
@@ -38,6 +38,18 @@ fn standalone_collection_face_copies_each_table_directly_into_the_output() {
 }
 
 #[test]
+fn font_importer_version_invalidates_pre_cooked_blob_artifacts() {
+    let importer = AssetImporter::default();
+    let descriptor = importer
+        .registry()
+        .descriptor_for_source(std::path::Path::new("fonts/default.font.toml"))
+        .expect("font manifest importer should be registered");
+
+    assert_eq!(descriptor.id, "zircon.builtin.toml.font");
+    assert_eq!(descriptor.importer_version, 2);
+}
+
+#[test]
 fn font_asset_wrapper_parses_runtime_font_manifest_fields() {
     let font = FontAsset::from_toml_str(FONT_TOML).unwrap();
 
@@ -61,7 +73,40 @@ fn font_asset_parses_composite_font_culture_ranges() {
     assert_eq!(composite.sub_fonts.len(), 1);
     assert_eq!(composite.sub_fonts[0].family.as_str(), "Noto Sans CJK SC");
     assert_eq!(composite.sub_fonts[0].cultures[0].as_str(), "zh-Hans");
-    assert!(composite.sub_fonts[0].cultures[0].matches("zh-Hans-CN"));
+}
+
+#[test]
+fn font_script_tag_preserves_the_existing_packed_numeric_serde_shape() {
+    let packed = u32::from_be_bytes(*b"Cher");
+    let tag = FontScriptTag::parse("Cher").expect("canonical ISO 15924 tag");
+
+    assert_eq!(tag.packed(), packed);
+    assert_eq!(
+        serde_json::to_value(tag).unwrap(),
+        serde_json::json!(packed)
+    );
+
+    let script = FontScript::Other(tag);
+    let serialized = serde_json::to_value(script).unwrap();
+    assert_eq!(serialized, serde_json::json!({ "other": packed }));
+    assert_eq!(
+        serde_json::from_value::<FontScript>(serialized).unwrap(),
+        script
+    );
+}
+
+#[test]
+fn font_script_tag_rejects_non_canonical_and_non_alpha_packed_values() {
+    assert!(FontScriptTag::parse("cher").is_none());
+    assert!(FontScriptTag::parse("Ch3r").is_none());
+    assert!(FontScriptTag::parse("Cherokee").is_none());
+
+    let malformed = serde_json::json!({
+        "other": u32::from_be_bytes(*b"cher")
+    });
+    let error = serde_json::from_value::<FontScript>(malformed)
+        .expect_err("non-canonical packed values must not enter the asset schema");
+    assert!(error.to_string().contains("ISO 15924"));
 }
 
 #[test]
@@ -91,7 +136,7 @@ fn runtime_default_font_manifest_declares_culture_aware_composite_font() {
             && sub_font
                 .cultures
                 .iter()
-                .any(|culture| culture.matches("zh-Hans-CN"))
+                .any(|culture| culture.as_str() == "zh-Hans")
     }));
     let source_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("assets/fonts/")
@@ -104,7 +149,7 @@ fn runtime_default_font_manifest_declares_culture_aware_composite_font() {
             && sub_font
                 .cultures
                 .iter()
-                .any(|culture| culture.matches("ja-JP"))
+                .any(|culture| culture.as_str() == "ja")
     }));
     assert!(composite.sub_fonts.iter().any(|sub_font| {
         sub_font.family.as_str() == "Noto Sans Arabic"
@@ -181,6 +226,17 @@ fn importer_decodes_font_assets_from_font_toml() {
             assert_eq!(metadata.face_count, 1);
             assert!(metadata.faces[0].cmap.contains_codepoint('A' as u32));
             assert!(!asset.family_members.is_empty());
+            let blob = metadata
+                .cooked_blob
+                .as_ref()
+                .expect("font import must retain decoded bytes in its cooked artifact");
+            assert_eq!(blob.source_format(), FontAssetSourceFormat::Sfnt);
+            assert_eq!(
+                blob.bytes(),
+                fs::read(root.join("FiraMono-subset.ttf")).unwrap()
+            );
+            assert_eq!(blob.content_hash(), *blake3::hash(blob.bytes()).as_bytes());
+            assert!(blob.has_valid_content_hash());
         }
         other => panic!("unexpected font import: {other:?}"),
     }
@@ -236,6 +292,7 @@ fn project_manager_scans_font_assets_and_assigns_font_asset_kind() {
     fs::create_dir_all(&font_dir).unwrap();
     fs::write(font_dir.join("default.font.toml"), FONT_TOML).unwrap();
     fs::copy(runtime_font_fixture(), font_dir.join("FiraMono-subset.ttf")).unwrap();
+    let expected_cooked_bytes = fs::read(font_dir.join("FiraMono-subset.ttf")).unwrap();
 
     let mut manager = ProjectManager::open(&root).unwrap();
     let imported = manager.scan_and_import().unwrap();
@@ -247,13 +304,25 @@ fn project_manager_scans_font_assets_and_assigns_font_asset_kind() {
         .unwrap();
     assert_eq!(record.kind, AssetKind::Font);
 
+    // The artifact is the packaged runtime input. Once import has completed, reopening the
+    // project source file must not be necessary to acquire font bytes for shaping or raster.
+    fs::remove_file(font_dir.join("FiraMono-subset.ttf")).unwrap();
+
     match manager
         .load_artifact(&AssetUri::parse("res://fonts/default.font.toml").unwrap())
         .unwrap()
     {
         ImportedAsset::Font(asset) => {
             assert_eq!(asset.family.as_deref(), Some("Fira Mono"));
-            assert!(asset.metadata.is_some());
+            let metadata = asset
+                .metadata
+                .expect("font artifact should retain parsed metadata");
+            let blob = metadata
+                .cooked_blob
+                .expect("font artifact should retain cooked decoded bytes");
+            assert_eq!(blob.bytes(), expected_cooked_bytes);
+            assert_eq!(blob.content_hash(), *blake3::hash(blob.bytes()).as_bytes());
+            assert!(blob.has_valid_content_hash());
         }
         other => panic!("unexpected project font asset: {other:?}"),
     }

@@ -8,7 +8,7 @@ display_name = "workbench dock header"
 
 [imports]
 widgets = []
-styles = ["res://ui/theme/editor_base.zui", "res://ui/editor/theme/editor_tokens.zui"]
+styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]
 node = "dock_header_root"
@@ -16,7 +16,7 @@ node = "dock_header_root"
 [nodes.dock_header_root]
 component = "Overlay"
 control_id = "DockHeaderRoot"
-classes = ["dock-header", "editor-shell"]
+classes = ["dock-header", "editor-shell", "workbench-shell-root"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "dock_header_bar" },
@@ -31,6 +31,7 @@ children = [
 [nodes.dock_header_bar]
 component = "Container"
 control_id = "DockHeaderBar"
+classes = ["workbench-tabs"]
 props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
 layout = { position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.document_header.height", preferred = "$editor.chrome.document_header.height", max = "$editor.chrome.document_header.height", stretch = "Fixed" } }
 
@@ -43,29 +44,34 @@ layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position
 [nodes.dock_tab_0]
 component = "Label"
 control_id = "DockTab0"
-props = { text = "Project", text_tone = "default", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
+classes = ["workbench-tab"]
+props = { text = "Project", surface_variant = "transparent", radius = "$editor.control.radius.small", text_tone = "default", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
 layout = { position = { x = 8.0, y = 1.0 }, width = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 
 [nodes.dock_tab_close_0]
 component = "IconButton"
 control_id = "DockTabClose0"
-props = { surface_variant = "", icon = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = "$editor.control.radius.small", border_width = 0.0 }
+classes = ["workbench-icon-button", "workbench-quiet-action"]
+props = { surface_variant = "transparent", icon = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = "$editor.control.radius.small", border_width = 0.0 }
 layout = { position = { x = 136.0, y = 6.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.dock_tab_1]
 component = "Label"
 control_id = "DockTab1"
-props = { text = "Assets", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
+classes = ["workbench-tab"]
+props = { text = "Assets", surface_variant = "transparent", radius = "$editor.control.radius.small", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
 layout = { position = { x = 168.0, y = 1.0 }, width = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 
 [nodes.dock_tab_close_1]
 component = "IconButton"
 control_id = "DockTabClose1"
-props = { surface_variant = "", icon = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = "$editor.control.radius.small", border_width = 0.0 }
+classes = ["workbench-icon-button", "workbench-quiet-action"]
+props = { surface_variant = "transparent", icon = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = "$editor.control.radius.small", border_width = 0.0 }
 layout = { position = { x = 296.0, y = 6.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.dock_tab_2]
 component = "Label"
 control_id = "DockTab2"
-props = { text = "Hierarchy", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
+classes = ["workbench-tab"]
+props = { text = "Hierarchy", surface_variant = "transparent", radius = "$editor.control.radius.small", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
 layout = { position = { x = 328.0, y = 1.0 }, width = { min = 124.0, preferred = 124.0, max = 124.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }

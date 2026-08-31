@@ -7,12 +7,13 @@ use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::World;
 
+use crate::navigation_component_descriptors;
+use crate::test_support::navigation_manager;
 use crate::tests::support::two_island_navmesh;
-use crate::{navigation_component_descriptors, DefaultNavigationManager};
 
 #[test]
 fn jump_link_end_to_end_traverse() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = agent_world();
     world.register_event::<OffMeshTraverseEvent>();
     let agent = spawn_agent(&mut world, 0.0);
@@ -41,7 +42,7 @@ fn jump_link_end_to_end_traverse() {
 
 #[test]
 fn bridge_capacity_queues_agents() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = agent_world();
     let first = spawn_agent(&mut world, -0.2);
     let second = spawn_agent(&mut world, 0.2);
@@ -82,7 +83,7 @@ fn disabling_queued_agent_position_updates_releases_bridge_capacity() {
 }
 
 fn assert_cancelled_waiter_releases_capacity(cancel: impl FnOnce(&mut NavMeshAgentDescriptor)) {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = agent_world();
     let first = spawn_agent(&mut world, -0.2);
     let waiter = spawn_agent(&mut world, 0.2);

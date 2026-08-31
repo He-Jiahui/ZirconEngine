@@ -17,6 +17,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_in
 ) {
     let style = select_workbench_alert_style(node, tone);
     let metrics = alert_metrics();
+    let surface_radius = alert_surface_radius(node, metrics);
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
@@ -24,7 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_in
         Some(style.surface),
         Some(style.border),
         metrics.border_width,
-        metrics.radius,
+        surface_radius,
         opacity,
     ));
 
@@ -75,4 +76,28 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_in
         )
     };
     commands.push(command);
+}
+
+fn alert_surface_radius(
+    node: &TemplatePaneNodeData,
+    metrics: super::layout::WorkbenchAlertMetrics,
+) -> f32 {
+    if node.corner_radius.is_finite() && node.corner_radius > 0.0 {
+        node.corner_radius
+    } else {
+        metrics.radius
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn inline_alert_prefers_the_projected_panel_radius() {
+        let mut node = TemplatePaneNodeData::default();
+        node.corner_radius = 14.0;
+
+        assert_eq!(alert_surface_radius(&node, alert_metrics()), 14.0);
+    }
 }

@@ -245,7 +245,6 @@ fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
     let _guard = env_lock().lock().unwrap();
 
     let mut runtime = EventRuntimeHarness::new("zircon_editor_event_animation_asset_open");
-    runtime.register_animation_asset_toolkits();
     let catalog = runtime.open_project_with_assets(
         "zircon_editor_event_animation_asset_open_project",
         write_animation_open_route_assets,

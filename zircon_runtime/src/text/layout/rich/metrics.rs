@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::core::math::Vec2;
 use crate::text::{InlineBaseline, InlineObjectRef, TextStyle};
 
@@ -10,6 +12,12 @@ pub(crate) fn resolve_rich_run_style(
     let mut style = base.clone();
     if let Some(weight) = override_style.weight {
         style.font_weight = TextStyle::normalized_font_weight(weight);
+    }
+    if let Some(italic) = override_style.italic {
+        style.italic = italic;
+    }
+    if let Some(features) = override_style.features.as_ref() {
+        style.features = Arc::from(features.as_slice());
     }
     if let Some(font_size) = override_style
         .font_size
@@ -44,12 +52,9 @@ pub(super) fn inline_box_metrics(
     text_descent: f32,
 ) -> InlineBoxMetrics {
     let (size, baseline) = match inline {
-        InlineObjectRef::Image { size, baseline, .. } => (*size, *baseline),
+        InlineObjectRef::Image { size, baseline, .. }
+        | InlineObjectRef::Icon { size, baseline, .. } => (*size, *baseline),
         InlineObjectRef::Widget { size, .. } => (*size, InlineBaseline::Baseline),
-        InlineObjectRef::Icon { .. } => (
-            Vec2::new(text_ascent + text_descent, text_ascent + text_descent),
-            InlineBaseline::Baseline,
-        ),
     };
     let size = Vec2::new(finite_non_negative(size.x), finite_non_negative(size.y));
     let (ascent, descent) = match baseline {

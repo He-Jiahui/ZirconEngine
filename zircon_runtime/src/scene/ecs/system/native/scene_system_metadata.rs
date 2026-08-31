@@ -1,17 +1,12 @@
-use crate::scene::ecs::{SystemOrderingConstraint, SystemSetId, SystemStage};
+use crate::scene::ecs::{
+    SceneSystemTickPolicy, SystemOrderingConstraint, SystemSetId, SystemStage,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum SceneSystemThreadAffinity {
     #[default]
     MainThreadOnly,
     WorkerSafe,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum SceneSystemClockDomain {
-    #[default]
-    Virtual,
-    Real,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -22,7 +17,7 @@ pub struct SceneSystemMetadata {
     sets: Vec<SystemSetId>,
     constraints: Vec<SystemOrderingConstraint>,
     thread_affinity: SceneSystemThreadAffinity,
-    clock_domain: SceneSystemClockDomain,
+    tick_policy: SceneSystemTickPolicy,
 }
 
 impl SceneSystemMetadata {
@@ -34,7 +29,7 @@ impl SceneSystemMetadata {
             sets: Vec::new(),
             constraints: Vec::new(),
             thread_affinity: SceneSystemThreadAffinity::MainThreadOnly,
-            clock_domain: SceneSystemClockDomain::Virtual,
+            tick_policy: SceneSystemTickPolicy::for_stage(stage),
         }
     }
 
@@ -62,8 +57,8 @@ impl SceneSystemMetadata {
         self.thread_affinity
     }
 
-    pub const fn clock_domain(&self) -> SceneSystemClockDomain {
-        self.clock_domain
+    pub const fn tick_policy(&self) -> SceneSystemTickPolicy {
+        self.tick_policy
     }
 
     pub fn with_set(mut self, set: SystemSetId) -> Self {
@@ -94,8 +89,8 @@ impl SceneSystemMetadata {
         self
     }
 
-    pub const fn with_clock_domain(mut self, clock_domain: SceneSystemClockDomain) -> Self {
-        self.clock_domain = clock_domain;
+    pub const fn with_tick_policy(mut self, tick_policy: SceneSystemTickPolicy) -> Self {
+        self.tick_policy = tick_policy;
         self
     }
 }

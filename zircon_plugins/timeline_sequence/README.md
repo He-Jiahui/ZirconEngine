@@ -18,3 +18,9 @@ operation menu items, and payload schema ids. V1 track types are `transform`,
 Validation covers time ranges, deterministic track ordering, keyframe bounds,
 event payload shape, and dependency gate behavior when the animation package is
 disabled.
+
+Keyframe moves preflight the complete sequence and publish only after all
+indices, finite-time bounds, and existing sequence invariants pass. A rejected
+move leaves the sequence unchanged. Accepted moves preserve stable equal-time
+ordering through a direction-aware binary position and one slice rotation
+instead of sorting the full track after mutation.

@@ -17,6 +17,10 @@ pub enum ProjectManifestError {
     },
     #[error(transparent)]
     Summary(#[from] ProjectManifestSummaryError),
+    #[error(
+        "project manifest format_version {source_format_version} requires an explicit migration before runtime open"
+    )]
+    MigrationRequired { source_format_version: u32 },
     #[error("project manifest JSON value could not decode into the current schema: {source}")]
     Decode {
         #[source]

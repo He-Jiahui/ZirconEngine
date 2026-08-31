@@ -1,5 +1,7 @@
-use super::super::super::super::fallback_texture::create_fallback_texture_view;
+use crate::graphics::backend::SystemTextureGenerationLease;
 
-pub(super) fn white_texture_view(device: &wgpu::Device, queue: &wgpu::Queue) -> wgpu::TextureView {
-    create_fallback_texture_view(device, queue, [255, 255, 255, 255], "zircon-white-fallback")
+pub(super) fn white_texture_view(
+    system_textures: &SystemTextureGenerationLease,
+) -> wgpu::TextureView {
+    system_textures.white_rgba8_view().clone()
 }

@@ -360,9 +360,18 @@ impl ExampleBackend {
             ADAPTER_ROOT / "native_plugin_host_handle.rs"
         ).read_text(encoding="utf-8")
         handle_code = _rust_code_shape(handle_source)
+        loader_projection_code = _rust_code_shape(
+            (ADAPTER_ROOT / "native_plugin_discovery.rs").read_text(encoding="utf-8")
+        )
         loader_surface = (ADAPTER_ROOT / "mod.rs").read_text(encoding="utf-8")
         public_native_surface = (
             REPO_ROOT / "zircon_runtime/src/plugin/native.rs"
+        ).read_text(encoding="utf-8")
+        public_native_discovery_surface = (
+            REPO_ROOT / "zircon_runtime/src/plugin/native/discovery.rs"
+        ).read_text(encoding="utf-8")
+        public_native_host_surface = (
+            REPO_ROOT / "zircon_runtime/src/plugin/native/host.rs"
         ).read_text(encoding="utf-8")
 
         live_host_source = (ADAPTER_ROOT / "native_plugin_live_host.rs").read_text(
@@ -385,6 +394,9 @@ impl ExampleBackend {
             )
 
         loader_projection = {
+            "resolve_discovery_root": "resolve_native_plugin_discovery_root",
+            "request_discovery_refresh": "request_native_plugin_discovery_refresh",
+            "latest_discovery_snapshot": "latest_native_plugin_discovery_snapshot",
             "discover": "discover_native_plugins",
             "refresh_discovery_manifest": "refresh_native_plugin_discovery_manifest",
             "remove_discovered_path": "remove_discovered_native_plugin_path",
@@ -402,20 +414,22 @@ impl ExampleBackend {
         )
         self.assertEqual(set(loader_projection), backend_loader_methods)
         for backend_method, function in loader_projection.items():
-            self.assertIn(f"pub fn {function}(", handle_code, function)
+            self.assertIn(f"pub fn {function}(", loader_projection_code, function)
             self.assertRegex(
-                handle_code,
+                loader_projection_code,
                 rf"{PUBLIC_FN_PREFIX}{re.escape(function)}\b"
                 rf"(?:(?!\n\s*{PUBLIC_FN_PREFIX})[\s\S])*?NativePluginLoader\s*\.\s*"
                 rf"{re.escape(backend_method)}\s*\(",
                 f"runtime-owned loader function {function} must delegate to {backend_method}",
             )
             self.assertRegex(loader_surface, rf"\b{function}\b", function)
-            self.assertRegex(public_native_surface, rf"\b{function}\b", function)
+            self.assertRegex(
+                public_native_discovery_surface, rf"\b{function}\b", function
+            )
 
         for handle in ("NativePluginHostHandle", "NativePluginHostWeakHandle"):
             self.assertRegex(loader_surface, rf"\b{handle}\b", handle)
-            self.assertRegex(public_native_surface, rf"\b{handle}\b", handle)
+            self.assertRegex(public_native_host_surface, rf"\b{handle}\b", handle)
 
 
 if __name__ == "__main__":

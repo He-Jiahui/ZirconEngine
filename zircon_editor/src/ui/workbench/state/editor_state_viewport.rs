@@ -1,24 +1,27 @@
-use zircon_runtime::scene::NodeId;
-use zircon_runtime_interface::math::{Transform, UVec2};
+use zircon_runtime_interface::math::UVec2;
 
 use crate::core::commands::CommandEvalCtx;
-use crate::core::editing::command::{EditorCommand, NodeEditState};
-use crate::core::editing::engine::EditCommandError;
-use crate::scene::viewport::ViewportInput;
+use crate::core::editing::authoring_world::AuthoringWorldAccessError;
+use crate::core::editing::command::EditorCommand;
+use crate::core::editing::interactive_transform::InteractiveTransformSession;
 use crate::scene::viewport::{SceneViewportChromeSettings, SceneViewportSettings};
-use crate::scene::viewport::{ViewportFeedback, ViewportTransformPreview};
+use crate::scene::viewport::{ViewportCameraSnapshot, ViewportInput};
+use crate::scene::viewport::{ViewportFeedback, ViewportTransformRequest};
 use crate::ui::binding::ViewportCommand;
 
-use super::editor_state::EditorState;
-
-#[derive(Clone, Debug)]
-pub(in crate::ui::workbench) struct GizmoTransactionCapture {
-    node_id: NodeId,
-    initial: Transform,
-    latest: Transform,
-}
+use super::{
+    editor_state::EditorState, EditorViewportStateError, GizmoTransactionError,
+    GizmoTransactionPhase,
+};
 
 impl EditorState {
+    pub(crate) fn viewport_camera_snapshot(
+        &self,
+    ) -> Result<Option<ViewportCameraSnapshot>, AuthoringWorldAccessError> {
+        self.world
+            .with_world(|scene| self.viewport_controller.current_camera(scene))
+    }
+
     pub fn scene_viewport_settings(&self) -> SceneViewportChromeSettings {
         self.viewport_controller.chrome_settings()
     }
@@ -29,9 +32,6 @@ impl EditorState {
     ) -> bool {
         let mut next = self.viewport_controller.settings().clone();
         update(&mut next);
-        if self.is_playing() {
-            next.gizmos_enabled = false;
-        }
         if next == *self.viewport_controller.settings() {
             return false;
         }
@@ -43,54 +43,85 @@ impl EditorState {
         self.viewport_controller.project_command_eval_ctx(context)
     }
 
-    pub fn frame_selection(&mut self) -> bool {
+    pub fn frame_selection(&mut self) -> Result<bool, EditorViewportStateError> {
         let Some(node_id) = self.viewport_controller.selection().active_primary() else {
-            return false;
+            return Ok(false);
         };
-        let _ = self.world.try_with_world_mut(|scene| {
+        let Some(outcome) = self.world.with_world_mut(|scene| {
             self.viewport_controller
                 .apply_command(Some(scene), &ViewportCommand::FrameSelection)
-        });
+        })?
+        else {
+            return Ok(false);
+        };
+        let (feedback, post_callback_error) = outcome.into_parts();
+        if let Some(error) = post_callback_error {
+            return Err(error.into());
+        }
+        feedback.map_err(EditorViewportStateError::ViewportController)?;
         self.set_status_line(format!("Framed node {node_id}"));
-        true
+        Ok(true)
     }
 
     pub fn handle_viewport_input(
         &mut self,
         input: ViewportInput,
-    ) -> Result<ViewportFeedback, String> {
+    ) -> Result<ViewportFeedback, EditorViewportStateError> {
         let selected_before = self.viewport_controller.selection().active_primary();
         let was_handle_drag = self.viewport_controller.is_handle_drag_active();
         if was_handle_drag {
             if let Err(error) = self.transactions().ensure_mutation_available() {
-                return Err(self.rollback_gizmo_transaction(error.to_string()));
+                return Err(EditorViewportStateError::StateMutation(
+                    self.rollback_interactive_transform(GizmoTransactionError::EditCommand {
+                        phase: GizmoTransactionPhase::MutationPreflight,
+                        source: error,
+                    }),
+                ));
             }
         }
-        let Some(mut feedback) = self
+        let outcome = match self
             .world
-            .try_with_world_mut(|scene| self.viewport_controller.handle_input(scene, input))
-        else {
-            return Ok(ViewportFeedback::default());
+            .with_world_mut(|scene| self.viewport_controller.handle_input(scene, input))
+        {
+            Ok(Some(outcome)) => outcome,
+            Ok(None) => return Ok(ViewportFeedback::default()),
+            Err(error) if was_handle_drag => {
+                return Err(EditorViewportStateError::StateMutation(
+                    self.rollback_interactive_transform(error.into()),
+                ));
+            }
+            Err(error) => return Err(error.into()),
         };
+        let (feedback, post_callback_error) = outcome.into_parts();
+        if let Some(error) = post_callback_error {
+            return Err(EditorViewportStateError::StateMutation(
+                self.rollback_interactive_transform(error.into()),
+            ));
+        }
+        let mut feedback = feedback.map_err(EditorViewportStateError::PointerRoute)?;
         let is_handle_drag = self.viewport_controller.is_handle_drag_active();
 
         if !was_handle_drag && is_handle_drag {
-            if let Err(error) = self.begin_gizmo_transaction() {
-                return Err(self.rollback_gizmo_transaction(error));
+            if let Err(error) = self.begin_interactive_transform() {
+                return Err(EditorViewportStateError::StateMutation(
+                    self.rollback_interactive_transform(error),
+                ));
             }
         }
 
-        if let Some(preview) = feedback.transform_preview.take() {
-            let node_id = preview.node_id;
-            if let Err(error) = self.apply_gizmo_transform_preview(preview) {
-                return Err(self.rollback_gizmo_transaction(error));
+        if let Some(request) = feedback.transform_request.take() {
+            let primary = request.primary;
+            if let Err(error) = self.apply_interactive_transform_request(request) {
+                return Err(EditorViewportStateError::StateMutation(
+                    self.rollback_interactive_transform(error),
+                ));
             }
-            feedback.transformed_node = Some(node_id);
-            self.record_gizmo_transaction_step()?;
+            feedback.transformed_node = Some(primary);
         }
 
         if was_handle_drag && !is_handle_drag {
-            self.finish_gizmo_transaction()?;
+            self.finish_interactive_transform()
+                .map_err(EditorViewportStateError::StateMutation)?;
         }
 
         let selected_after = self.viewport_controller.selection().active_primary();
@@ -103,178 +134,223 @@ impl EditorState {
         Ok(feedback)
     }
 
-    fn apply_gizmo_transform_preview(
+    fn apply_interactive_transform_request(
         &mut self,
-        preview: ViewportTransformPreview,
-    ) -> Result<(), String> {
+        request: ViewportTransformRequest,
+    ) -> Result<(), GizmoTransactionError> {
+        let document = self.active_scene_document;
+        let session = self
+            .interactive_transform
+            .as_mut()
+            .ok_or(GizmoTransactionError::TransactionContextMissing)?;
         let viewport = &mut self.viewport_controller;
-        self.world
-            .try_with_world_mut(|scene| {
-                scene
-                    .update_transform(preview.node_id, preview.transform)
-                    .map_err(|error| error.to_string())?;
-                viewport.accept_transform_preview(scene, preview);
+        let outcome = self
+            .world
+            .with_world_mut(|scene| {
+                let active_camera = scene.active_camera();
+                let active_camera_transform_before = scene.world_transform(active_camera);
+                session.preview(scene, document, request.primary, request.target_pivot_world)?;
+                viewport.resync_after_interactive_transform(
+                    scene,
+                    request.primary,
+                    active_camera,
+                    active_camera_transform_before,
+                );
                 Ok(())
-            })
-            .ok_or_else(|| "No project open".to_string())?
+            })?
+            .ok_or(GizmoTransactionError::NoProjectOpen)?;
+        let (result, post_callback_error) = outcome.into_parts();
+        if let Some(error) = post_callback_error {
+            return Err(error.into());
+        }
+        result
     }
 
-    pub(crate) fn begin_gizmo_transaction(&mut self) -> Result<bool, String> {
-        if self.gizmo_transaction.is_some() {
+    pub(crate) fn begin_interactive_transform(&mut self) -> Result<bool, GizmoTransactionError> {
+        if self.interactive_transform.is_some() {
             return Ok(false);
         }
         self.transactions()
             .ensure_mutation_available()
-            .map_err(|error| error.to_string())?;
-        let Some(node_id) = self.viewport_controller.selection().active_primary() else {
+            .map_err(|source| GizmoTransactionError::EditCommand {
+                phase: GizmoTransactionPhase::MutationPreflight,
+                source,
+            })?;
+        let Some(primary) = self.viewport_controller.selection().active_primary() else {
             return Ok(false);
         };
-        let initial = self.capture_node_transform(node_id)?;
-        self.gizmo_transaction = Some(GizmoTransactionCapture {
-            node_id,
-            initial,
-            latest: initial,
-        });
+        let Some(spec) = self.viewport_controller.active_interactive_transform_spec() else {
+            return Ok(false);
+        };
+        let pivot_mode = self.viewport_controller.interactive_transform_pivot_mode();
+        let document = self
+            .active_scene_document
+            .ok_or(GizmoTransactionError::SceneDocumentNotActive)?;
+        let selected = self
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>();
+        let session = self
+            .world
+            .with_world(|scene| {
+                InteractiveTransformSession::begin(
+                    scene, &selected, primary, spec, pivot_mode, document,
+                )
+            })?
+            .ok_or(GizmoTransactionError::NoProjectOpen)??;
+        self.interactive_transform = Some(session);
         Ok(true)
     }
 
-    pub(crate) fn record_gizmo_transaction_step(&mut self) -> Result<bool, String> {
-        let Some(capture) = self.gizmo_transaction.as_ref() else {
+    pub(crate) fn finish_interactive_transform(&mut self) -> Result<bool, GizmoTransactionError> {
+        let Some(session) = self.interactive_transform.as_ref() else {
             return Ok(false);
         };
-        let node_id = capture.node_id;
-        let before = capture.latest;
-        let after = match self.capture_node_transform(node_id) {
-            Ok(after) => after,
-            Err(error) => return Err(self.rollback_gizmo_transaction(error)),
-        };
-        if before == after {
-            return Ok(false);
-        }
-        if let Some(capture) = self.gizmo_transaction.as_mut() {
-            capture.latest = after;
-        }
-        Ok(true)
-    }
-
-    pub(crate) fn finish_gizmo_transaction(&mut self) -> Result<bool, String> {
-        self.record_gizmo_transaction_step()?;
-        let Some(capture) = self.gizmo_transaction.as_ref() else {
+        let document = self.active_scene_document;
+        let label = session.spec().kind().history_label();
+        let command = self
+            .world
+            .with_world(|scene| session.finish(scene, document))?
+            .ok_or(GizmoTransactionError::NoProjectOpen)??;
+        let Some(command) = command else {
+            self.interactive_transform = None;
             return Ok(false);
         };
-        if capture.initial == capture.latest {
-            self.gizmo_transaction = None;
-            return Ok(false);
-        }
-        let node_id = capture.node_id;
-        let initial = capture.initial;
-        let after = match self.capture_scene_command(|scene| NodeEditState::capture(scene, node_id))
+        if let Err(error) =
+            self.execute_gizmo_scene_command(label, EditorCommand::applied_transform_batch(command))
         {
-            Ok(after) => after,
-            Err(error) => return Err(self.rollback_gizmo_transaction(error)),
-        };
-        let mut before = after.clone();
-        before.transform = initial;
-        let Some(command) = EditorCommand::applied_transform(node_id, before, after) else {
-            self.gizmo_transaction = None;
-            return Ok(false);
-        };
-        if let Err(error) = self.execute_gizmo_scene_command("Move scene node", command) {
-            return Err(self.rollback_gizmo_transaction(error));
+            return Err(self.rollback_interactive_transform(error));
         }
-        self.gizmo_transaction = None;
+        self.interactive_transform = None;
         Ok(true)
     }
 
-    pub(crate) fn prepare_non_gizmo_scene_action(&mut self) -> Result<(), String> {
-        self.cancel_gizmo_transaction().map(|_| ())
+    pub(crate) fn prepare_non_gizmo_scene_action(&mut self) -> Result<(), GizmoTransactionError> {
+        self.cancel_interactive_transform().map(|_| ())
     }
 
-    pub(crate) fn cancel_gizmo_transaction(&mut self) -> Result<bool, String> {
-        let restore = self
-            .gizmo_transaction
-            .as_ref()
-            .map(|capture| (capture.node_id, capture.initial));
-        let had_transaction = restore.is_some() || self.viewport_controller.is_handle_drag_active();
+    pub(crate) fn cancel_interactive_transform(&mut self) -> Result<bool, GizmoTransactionError> {
+        let session = self.interactive_transform.take();
+        let had_transaction = session.is_some() || self.viewport_controller.is_handle_drag_active();
         if !had_transaction {
             return Ok(false);
         }
-        let reset = self.reset_gizmo_interaction(restore);
-        self.gizmo_transaction = None;
+        let reset = self.reset_interactive_transform(session);
         self.sync_selection_state();
         reset?;
         Ok(true)
     }
 
-    fn rollback_gizmo_transaction(&mut self, cause: String) -> String {
-        let restore = self
-            .gizmo_transaction
-            .as_ref()
-            .map(|capture| (capture.node_id, capture.initial));
-        let rollback = self.reset_gizmo_interaction(restore);
-        self.gizmo_transaction = None;
+    fn rollback_interactive_transform(
+        &mut self,
+        cause: GizmoTransactionError,
+    ) -> GizmoTransactionError {
+        let session = self.interactive_transform.take();
+        let rollback = self.reset_interactive_transform(session);
         self.sync_selection_state();
         match rollback {
             Ok(()) => cause,
-            Err(error) => format!("{cause}; gizmo transaction rollback failed: {error}"),
+            Err(rollback) => GizmoTransactionError::RollbackFailed {
+                cause: Box::new(cause),
+                rollback: Box::new(rollback),
+            },
         }
     }
 
-    fn reset_gizmo_interaction(
+    fn reset_interactive_transform(
         &mut self,
-        restore: Option<(NodeId, Transform)>,
-    ) -> Result<(), String> {
+        session: Option<InteractiveTransformSession>,
+    ) -> Result<(), GizmoTransactionError> {
+        let document = self.active_scene_document;
         let viewport = &mut self.viewport_controller;
-        match self.world.try_with_world_mut(|scene| {
-            let restore_result = match restore {
-                Some((node_id, transform)) => scene
-                    .update_transform(node_id, transform)
-                    .map(|_| ())
-                    .map_err(|error| error.to_string()),
+        match self.world.with_world_mut(|scene| {
+            let restore_result = match session {
+                Some(session) => session
+                    .cancel(scene, document)
+                    .map_err(GizmoTransactionError::from),
                 None => Ok(()),
             };
             viewport.reset_from_scene(Some(scene));
             restore_result
         }) {
-            Some(result) => result,
-            None => {
+            Ok(Some(outcome)) => {
+                let (result, post_callback_error) = outcome.into_parts();
+                if let Some(error) = post_callback_error {
+                    return Err(error.into());
+                }
+                result
+            }
+            Ok(None) => {
                 viewport.reset_from_scene(None);
-                Err("No project open".to_string())
+                Err(GizmoTransactionError::NoProjectOpen)
+            }
+            Err(error) => {
+                viewport.reset_from_scene(None);
+                Err(error.into())
             }
         }
-    }
-
-    fn capture_node_transform(&self, node_id: NodeId) -> Result<Transform, String> {
-        self.capture_scene_command(|scene| {
-            scene
-                .find_node(node_id)
-                .map(|node| node.transform)
-                .ok_or_else(|| EditCommandError::TargetMissing {
-                    target: format!("scene node {node_id}"),
-                })
-        })
     }
 
     pub fn apply_viewport_command(
         &mut self,
         command: &ViewportCommand,
-    ) -> Result<ViewportFeedback, String> {
+    ) -> Result<ViewportFeedback, EditorViewportStateError> {
         match command {
+            ViewportCommand::LeftPressed { .. } | ViewportCommand::LeftReleased
+                if self.is_playing() =>
+            {
+                Ok(ViewportFeedback::default())
+            }
+            ViewportCommand::FrameSelection if self.is_playing() => Ok(ViewportFeedback::default()),
+            ViewportCommand::PointerMoved { x, y } if self.is_playing() => self
+                .handle_play_viewport_navigation(ViewportInput::PointerMoved(
+                    zircon_runtime_interface::math::Vec2::new(*x, *y),
+                )),
+            ViewportCommand::RightPressed { x, y } if self.is_playing() => self
+                .handle_play_viewport_navigation(ViewportInput::RightPressed(
+                    zircon_runtime_interface::math::Vec2::new(*x, *y),
+                )),
+            ViewportCommand::RightReleased if self.is_playing() => {
+                self.handle_play_viewport_navigation(ViewportInput::RightReleased)
+            }
+            ViewportCommand::MiddlePressed { x, y } if self.is_playing() => self
+                .handle_play_viewport_navigation(ViewportInput::MiddlePressed(
+                    zircon_runtime_interface::math::Vec2::new(*x, *y),
+                )),
+            ViewportCommand::MiddleReleased if self.is_playing() => {
+                self.handle_play_viewport_navigation(ViewportInput::MiddleReleased)
+            }
+            ViewportCommand::Scrolled { delta } if self.is_playing() => {
+                self.handle_play_viewport_navigation(ViewportInput::Scrolled(*delta))
+            }
+            ViewportCommand::Resized { width, height } if self.is_playing() => self
+                .handle_play_viewport_navigation(ViewportInput::Resized(UVec2::new(
+                    *width, *height,
+                ))),
             ViewportCommand::SetGizmosEnabled(_) if self.is_playing() => {
                 Ok(ViewportFeedback::default())
             }
-            ViewportCommand::ActivateSceneMode(_) => {
-                self.cancel_gizmo_transaction()?;
-                self.viewport_controller.apply_command(None, command)
+            ViewportCommand::ActivateSceneMode(_) | ViewportCommand::SetPivotMode(_) => {
+                self.cancel_interactive_transform()
+                    .map_err(EditorViewportStateError::StateMutation)?;
+                self.viewport_controller
+                    .apply_command(None, command)
+                    .map_err(EditorViewportStateError::ViewportController)
             }
             ViewportCommand::CancelInteraction => {
                 let transformed_node = self
-                    .gizmo_transaction
+                    .interactive_transform
                     .as_ref()
-                    .map(|capture| capture.node_id)
+                    .map(InteractiveTransformSession::primary_root)
                     .or_else(|| self.viewport_controller.selection().active_primary());
                 let mut feedback = ViewportFeedback::default();
-                if self.cancel_gizmo_transaction()? {
+                if self
+                    .cancel_interactive_transform()
+                    .map_err(EditorViewportStateError::StateMutation)?
+                {
                     feedback.transformed_node = transformed_node;
                 }
                 self.viewport_controller.cancel_interaction();
@@ -312,13 +388,57 @@ impl EditorState {
             ViewportCommand::Resized { width, height } => {
                 self.handle_viewport_input(ViewportInput::Resized(UVec2::new(*width, *height)))
             }
-            ViewportCommand::FrameSelection => self
-                .world
-                .try_with_world_mut(|scene| {
+            ViewportCommand::FrameSelection => {
+                let Some(outcome) = self.world.with_world_mut(|scene| {
                     self.viewport_controller.apply_command(Some(scene), command)
-                })
-                .unwrap_or_else(|| Ok(ViewportFeedback::default())),
-            _ => self.viewport_controller.apply_command(None, command),
+                })?
+                else {
+                    return Ok(ViewportFeedback::default());
+                };
+                let (feedback, post_callback_error) = outcome.into_parts();
+                if let Some(error) = post_callback_error {
+                    return Err(error.into());
+                }
+                feedback.map_err(EditorViewportStateError::ViewportController)
+            }
+            _ => self
+                .viewport_controller
+                .apply_command(None, command)
+                .map_err(EditorViewportStateError::ViewportController),
         }
+    }
+
+    fn handle_play_viewport_navigation(
+        &mut self,
+        input: ViewportInput,
+    ) -> Result<ViewportFeedback, EditorViewportStateError> {
+        let Some(outcome) = self.world.with_world_mut(|scene| {
+            self.viewport_controller
+                .handle_editor_camera_input(scene, input)
+        })?
+        else {
+            return Ok(ViewportFeedback::default());
+        };
+        let (feedback, post_callback_error) = outcome.into_parts();
+        if let Some(error) = post_callback_error {
+            return Err(error.into());
+        }
+        feedback.map_err(EditorViewportStateError::PointerRoute)
+    }
+}
+
+#[cfg(test)]
+mod play_viewport_route_contract_tests {
+    #[test]
+    fn play_pointer_commands_use_the_navigation_only_entry_and_block_authoring_frame_selection() {
+        let source = include_str!("editor_state_viewport.rs");
+        let production = source
+            .split_once("#[cfg(test)]")
+            .map_or(source, |(production, _)| production);
+
+        assert!(production.contains("handle_play_viewport_navigation"));
+        assert!(production.contains("ViewportCommand::FrameSelection if self.is_playing()"));
+        assert!(production.contains("ViewportCommand::LeftPressed { .. }"));
+        assert!(production.contains("ViewportCommand::LeftReleased"));
     }
 }

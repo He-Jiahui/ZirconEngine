@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AlphaMode, AssetUri, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, MeshSkinAsset,
-    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    AlphaMode, AssetUri, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0, MaterialAsset, MeshAsset,
+    MeshAttributeValues, MeshIndices, MeshSkinAsset,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
@@ -23,8 +23,8 @@ use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind,
     ResourceRecord,
 };
-use crate::graphics::shader::standard_material_surface_source_for_features;
 use crate::graphics::WgpuRenderFramework;
+use crate::graphics::shader::standard_material_surface_source_for_features;
 
 use super::render_product_submit::{
     material_with_import_note, snapshot_with_projection_for_mesh_cache_tests,
@@ -564,7 +564,7 @@ fn static_cache_transparent_extract(material_id: ResourceId, world: u64) -> Rend
         snapshot_with_projection_for_mesh_cache_tests(ProjectionMode::Perspective),
     );
     let mesh = static_command_cache_mesh(material_id);
-    extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
+    *extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
         extract.view.core_pipeline,
         vec![mesh],
         vec![GeometryPhaseInput::new(
@@ -587,14 +587,14 @@ fn static_cache_skinned_extract(
         RenderWorldSnapshotHandle::new(world),
         snapshot_with_projection_for_mesh_cache_tests(ProjectionMode::Perspective),
     );
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![static_skinned_command_cache_mesh(material_id, mesh_id)],
     );
-    extract.animation_poses = vec![RenderSkeletalPoseExtract {
+    *extract.animation_poses = vec![RenderSkeletalPoseExtract {
         entity: 703,
         skeleton: skeleton_id,
-        pose: static_skinned_pose(),
+        pose: Arc::new(static_skinned_pose()),
     }];
     extract
 }
@@ -620,7 +620,7 @@ fn static_cache_extract_with_instance_count(
             mesh
         })
         .collect();
-    extract.geometry = GeometryExtract::from_meshes(extract.view.core_pipeline, meshes);
+    *extract.geometry = GeometryExtract::from_meshes(extract.view.core_pipeline, meshes);
     extract
 }
 

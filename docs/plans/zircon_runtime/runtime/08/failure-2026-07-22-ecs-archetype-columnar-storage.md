@@ -82,3 +82,24 @@ Open state: `前向修复中`; no pass is claimed.
 - Removed the destructive second registry rebuild from project normalization. The former order cleared archetype-owned component rows before `rebuild_typed_component_presence` could snapshot them after the table hard cut.
 - Source regressions now require the direct final-row owner, and clone/serde coverage asserts two entities produce exactly two row appends while persistent names and dynamic presence survive. Exact `rustfmt +1.94.1` and scoped `git diff --check` pass; no Cargo result is claimed in this update.
 - `SparseComponentStorage` no longer hashes `InternalEntity` on every access. Its dense entity/value arrays are indexed by a generation-aware sparse slot vector keyed by `InternalEntity::index`; stale generations cannot alias a reused entity slot, and swap-remove repairs exactly one sparse locator. Structural guards reject the retired `HashMap<InternalEntity, usize>` owner.
+
+### 2026-08-28 sparse locator high-water repair
+
+- The generation-aware locator no longer retains a continuous vector through the highest entity
+  index. It now uses 256-slot pages, a zero-based packed prefix, and one page-aligned offset window;
+  either flat span is promoted only within a 1,024-slots-per-live-location density bound. Further
+  disjoint pages use a private identity-hashed directory plus an ordered `BTreeSet` ownership index.
+- Empty pages retire immediately. Low-density owners trim edges or rebase before the 1/2,048
+  demotion threshold, and an empty locator releases all owners. The packed
+  `(generation, dense_row + 1)` slot is 8 B on x86_64 while preserving stale-generation rejection
+  and one-locator swap-remove repair.
+- The standalone release model records `96,000,024 -> 2,048 B` at entity index 4,000,000 and
+  `6,291,456 -> 2,097,152 B` for 262,144 contiguous rows. Three final dense runs range from 10.3439%
+  faster to 4.2631% slower; partial P50 regresses at most 28.0677%, high offset mixed/hits improve
+  6.4199%-15.0733% / 7.2077%-13.7094%, and dual-span hits regress 4.3081%-16.1994%. Truly disjoint
+  overflow remains a memory-first profile boundary.
+- Focused source/status contract 3/3 and direct real-owner Rust behavior harness 16/16 pass,
+  including cross-representation deletion compaction. Status is
+  `runtime_08_60_sparse_component_locator_algorithm_source_passed_diagnostics_cargo_product_profile_deferred`.
+  Production locator-byte aggregation, managed Cargo, million-entity counters/RSS, real-scene P95,
+  WPR/CPU/power, and wider query/table acceptance remain open, so `RECS-P1-11` is partial.

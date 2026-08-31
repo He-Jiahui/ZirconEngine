@@ -110,7 +110,7 @@ fn direct_morph_velocity_extract(
         CameraRenderDescriptor::from_camera_payload(Some(DIRECT_MORPH_VELOCITY_NODE_ID), camera);
     descriptor.clear = RenderCameraClear::Color(Vec4::ZERO);
     extract.view.select_camera_descriptor(descriptor);
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![direct_morph_velocity_mesh_snapshot(
             material_id,

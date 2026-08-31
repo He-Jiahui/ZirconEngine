@@ -1,5 +1,9 @@
 mod dispatch;
 
+#[cfg(test)]
+#[path = "transport_runtime/performance_tests.rs"]
+mod performance_tests;
+
 use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::net::SocketAddr;
@@ -24,10 +28,12 @@ use super::shutdown::NetWorkerShutdownReport;
 pub(super) use dispatch::run_worker;
 
 const TCP_ACCEPT_POLL_TIMEOUT: Duration = Duration::from_millis(1);
+const UDP_RECEIVE_BUFFER_BYTES: usize = u16::MAX as usize;
 
 #[derive(Debug)]
 struct WorkerUdpSocket {
     socket: UdpSocket,
+    receive_buffer: Vec<u8>,
 }
 
 #[derive(Debug)]
@@ -84,8 +90,13 @@ impl WorkerCore {
             .local_addr()
             .map(endpoint_from_addr)
             .map_err(|error| NetError::Io(error.to_string()))?;
-        self.udp_sockets
-            .insert(socket, WorkerUdpSocket { socket: udp_socket });
+        self.udp_sockets.insert(
+            socket,
+            WorkerUdpSocket {
+                socket: udp_socket,
+                receive_buffer: udp_receive_buffer(),
+            },
+        );
         self.push_event(NetEvent::UdpSocketBound {
             socket,
             endpoint: local_endpoint.clone(),
@@ -110,7 +121,7 @@ impl WorkerCore {
     }
 
     fn poll_udp(
-        &self,
+        &mut self,
         socket: NetSocketId,
         max_packets: usize,
     ) -> Result<Vec<NetPacket>, NetError> {
@@ -120,15 +131,14 @@ impl WorkerCore {
 
         let entry = self
             .udp_sockets
-            .get(&socket)
+            .get_mut(&socket)
             .ok_or(NetError::UnknownSocket { socket })?;
         let mut packets = Vec::new();
-        let mut buffer = vec![0_u8; u16::MAX as usize];
         while packets.len() < max_packets {
-            match entry.socket.try_recv_from(&mut buffer) {
+            match entry.socket.try_recv_from(&mut entry.receive_buffer) {
                 Ok((received, source)) => packets.push(NetPacket {
                     source: endpoint_from_addr(source),
-                    payload: buffer[..received].to_vec(),
+                    payload: entry.receive_buffer[..received].to_vec(),
                 }),
                 Err(error) if error.kind() == ErrorKind::WouldBlock => break,
                 Err(error) => return Err(NetError::Io(error.to_string())),
@@ -393,6 +403,10 @@ impl WorkerCore {
     fn push_event(&self, event: NetEvent) {
         let _ = self.ingress.try_send(NetIngress::Event(event));
     }
+}
+
+fn udp_receive_buffer() -> Vec<u8> {
+    vec![0; UDP_RECEIVE_BUFFER_BYTES]
 }
 
 fn endpoint_from_addr(addr: SocketAddr) -> NetEndpoint {

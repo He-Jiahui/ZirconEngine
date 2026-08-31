@@ -6,7 +6,7 @@ mod rows;
 mod search;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use common::{
-    min_frame_extent, pixel_aligned_rect,
+    min_frame_extent, paint_rect,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use indicator::{
     match_indicator_radius, match_indicator_rect,

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "registry_kind": "zircon.resource-management-workload-registry",
+  "profiles": [
+    {
+      "schema_version": 1,
+      "profile_kind": "zircon.resource-management-workload-profile",
+      "profile_id": "json-data-flat-v1",
+      "asset_kinds": [
+        "Data"
+      ],
+      "dependency_graph_shape": "none",
+      "tag_cardinality": 0,
+      "query_mix": [
+        "scan",
+        "page",
+        "asset-workspace-snapshot"
+      ],
+      "minimum_asset_count": 1,
+      "maximum_asset_count": 100000,
+      "change_percent": 1
+    }
+  ]
+}

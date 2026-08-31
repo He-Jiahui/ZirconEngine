@@ -11,6 +11,8 @@ use super::{
     TextLayoutWidthValidity, TextMeasureCache,
 };
 
+mod residency;
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 struct MeasureKey {
     text_hash: u64,
@@ -527,6 +529,15 @@ fn shaped_run_cache_key_includes_normalized_language() {
 }
 
 #[test]
+fn shaped_run_cache_key_keeps_canonical_equivalents_source_distinct() {
+    let style = TextStyle::default();
+    let composed = "\u{00E9}";
+    let decomposed = "e\u{0301}";
+
+    assert_ne!(key_for(composed, &style), key_for(decomposed, &style));
+}
+
+#[test]
 fn shaped_run_cache_key_separates_resolved_style_languages() {
     let source_range = source_range_for("界");
     let simplified_style = TextStyle {
@@ -572,6 +583,14 @@ fn shaped_run_cache_key_normalizes_open_type_feature_order() {
         OpenTypeFeature::new(*b"tnum", 1),
     ];
     let changed_features = [OpenTypeFeature::new(*b"liga", 1)];
+    let conflicting_last_disabled = [
+        OpenTypeFeature::new(*b"liga", 1),
+        OpenTypeFeature::new(*b"liga", 0),
+    ];
+    let conflicting_last_enabled = [
+        OpenTypeFeature::new(*b"liga", 0),
+        OpenTypeFeature::new(*b"liga", 1),
+    ];
     let key_for_features = |features: &[OpenTypeFeature]| {
         let request = BackendShapeRequest::horizontal(
             "0123",
@@ -580,7 +599,8 @@ fn shaped_run_cache_key_normalizes_open_type_feature_order() {
             source_range,
         )
         .with_features(features)
-        .canonicalized();
+        .canonicalized()
+        .expect("valid language and feature fixture");
         let request = request.request();
         ShapedRunCacheKey::from_request(&request)
     };
@@ -588,10 +608,17 @@ fn shaped_run_cache_key_normalizes_open_type_feature_order() {
     let reordered = key_for_features(&reordered_features);
     let changed = key_for_features(&changed_features);
     let duplicated = key_for_features(&duplicated_features);
+    let last_disabled = key_for_features(&conflicting_last_disabled);
+    let last_enabled = key_for_features(&conflicting_last_enabled);
 
     assert_eq!(first, reordered);
     assert_eq!(first, duplicated);
     assert_ne!(first, changed);
+    assert_eq!(
+        last_disabled,
+        key_for_features(&[OpenTypeFeature::new(*b"liga", 0)])
+    );
+    assert_eq!(last_enabled, changed);
 }
 
 #[test]
@@ -741,12 +768,17 @@ fn dummy_run(text: &str, measured_width: f32) -> ShapedGlyphRun {
     ShapedGlyphRun {
         source_text: Arc::from(text),
         source_range: source_range_for(text),
+        unicode_data_snapshot: crate::text::compiled_unicode_data_snapshot_id(),
+        primary_face_id: None,
         direction: TextDirection::LeftToRight,
         orientation: TextOrientation::Horizontal,
         vertical_mode: VerticalMode::Mixed,
         include_kerning: true,
         measured_width,
         measured_height: 16.0,
+        horizontal_composition_receipt: None,
+        horizontal_line_raw_metrics: Vec::new(),
+        horizontal_glyph_metric_spans: Vec::new(),
         lines: Vec::new(),
     }
 }

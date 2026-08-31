@@ -17,7 +17,7 @@ fn runtime_15_ui_text_layout_engine_visual_order_is_child_owner() {
         &parent,
         &[
             "mod visual_order;",
-            "visual_order::apply_visual_order(line, visible_text, direction);",
+            "visual_order::apply_visual_order(line, visible_text, direction).is_err()",
             "pub(crate) fn measure_text_size",
             "pub(crate) fn layout_text",
             "mod range_mapping;",
@@ -31,7 +31,7 @@ fn runtime_15_ui_text_layout_engine_visual_order_is_child_owner() {
     for moved_owner in [
         "struct VisualTextToken",
         "struct VisualTextCluster",
-        "struct VisualTextFragment",
+        "struct VisualRunProjection",
         "fn visual_text_fragments(",
         "fn neutral_token_direction(",
         "fn push_visual_fragment(",
@@ -48,7 +48,7 @@ fn runtime_15_ui_text_layout_engine_visual_order_is_child_owner() {
             "pub(super) fn apply_visual_order",
             "struct VisualTextToken",
             "struct VisualTextCluster",
-            "struct VisualTextFragment",
+            "struct VisualRunProjection",
             "fn logical_text_clusters(",
             "analyze_bidi_line",
             "mirrored_bidi_char",

@@ -25,7 +25,7 @@ fn free_canvas_slot_stretches_between_min_and_max_anchors() {
             pointer_node(child_id(), "root/stretch_child", BoxConstraints::default()),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(root_id(), child_id(), UiSlotKind::Free).with_canvas_placement(
             UiCanvasSlotPlacement::new(
                 Anchor::new(0.25, 0.0),
@@ -77,7 +77,7 @@ fn free_canvas_slot_can_stretch_one_axis_and_keep_pivot_on_the_other() {
             ),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(root_id(), child_id(), UiSlotKind::Free).with_canvas_placement(
             UiCanvasSlotPlacement::new(
                 Anchor::new(0.0, 0.5),
@@ -119,7 +119,7 @@ fn canvas_container_canvas_slot_drives_layout_render_hit_and_z_order() {
             ),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(root_id(), child_id(), UiSlotKind::Canvas)
             .with_canvas_placement(
                 UiCanvasSlotPlacement::new(
@@ -188,10 +188,18 @@ fn canvas_container_groups_same_z_order_children_into_one_layer() {
             .with_visibility(UiVisibility::Hidden),
         )
         .unwrap();
-    surface.tree.slots.push(canvas_slot(UiNodeId::new(2), 4));
-    surface.tree.slots.push(canvas_slot(UiNodeId::new(3), 4));
-    surface.tree.slots.push(canvas_slot(UiNodeId::new(4), 9));
-    surface.tree.slots.push(canvas_slot(UiNodeId::new(5), 4));
+    surface
+        .tree
+        .push_layout_slot(canvas_slot(UiNodeId::new(2), 4));
+    surface
+        .tree
+        .push_layout_slot(canvas_slot(UiNodeId::new(3), 4));
+    surface
+        .tree
+        .push_layout_slot(canvas_slot(UiNodeId::new(4), 9));
+    surface
+        .tree
+        .push_layout_slot(canvas_slot(UiNodeId::new(5), 4));
 
     surface.compute_layout(UiSize::new(200.0, 100.0)).unwrap();
     let frame = surface.surface_frame();

@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use super::error::SwashRasterError;
 use crate::core::math::Vec2;
-use glyphon::cosmic_text::{CacheKey as GlyphonCacheKey, CacheKeyFlags as GlyphonCacheKeyFlags};
 use swash::scale::{Source as SwashSource, StrikeWith};
 use swash::zeno::{Angle, Format as SwashRenderFormat, Transform as SwashTransform};
 
 use crate::text::VariationCoords;
+use crate::text::atlas::{GlyphHintingMode, GlyphRasterKey};
 
 const SWASH_RASTER_SOURCE_CAPACITY: usize = 3;
 const FAKE_ITALIC_SKEW_DEGREES: f32 = 14.0;
@@ -70,29 +70,34 @@ impl SwashRasterRequest {
         }
     }
 
-    pub(crate) fn glyphon_cache_key(face_index: usize, cache_key: GlyphonCacheKey) -> Self {
-        Self {
+    /// Builds a worker request from the renderer-independent atlas key emitted by the text
+    /// pipeline. Color sources remain first so an emoji glyph can promote its eventual atlas
+    /// format without re-shaping the text run.
+    pub(crate) fn native_bitmap_atlas_glyph(
+        face_index: usize,
+        raster_key: GlyphRasterKey,
+    ) -> Option<Self> {
+        let glyph_id = u16::try_from(raster_key.glyph_id).ok()?;
+        Some(Self {
             face_index,
             font_identity: None,
-            glyph_id: cache_key.glyph_id,
-            px_size: f32::from_bits(cache_key.font_size_bits),
-            hint: !cache_key
-                .flags
-                .contains(GlyphonCacheKeyFlags::DISABLE_HINTING),
-            offset: glyphon_cache_key_offset(cache_key),
+            glyph_id,
+            px_size: raster_key.px_size_bucket.max(1) as f32,
+            hint: !matches!(raster_key.hinting, GlyphHintingMode::None),
+            offset: Vec2::new(
+                raster_key.subpixel_bin.min(2) as f32 / 3.0,
+                raster_key.vertical_subpixel_bin.min(3) as f32 / 4.0,
+            ),
             render_format: SwashRenderFormat::Alpha,
-            fake_italic: cache_key.flags.contains(GlyphonCacheKeyFlags::FAKE_ITALIC),
-            variations: Arc::new(VariationCoords(vec![(
-                u32::from_be_bytes(*b"wght"),
-                f32::from(cache_key.font_weight.0),
-            )])),
+            fake_italic: raster_key.synthetic.oblique,
+            variations: Arc::new(VariationCoords::default()),
             sources: [
                 SwashRasterSource::ColorOutline { palette_index: 0 },
                 SwashRasterSource::ColorBitmap(SwashBitmapStrike::BestFit),
                 SwashRasterSource::AlphaOutline,
             ],
             source_count: 3,
-        }
+        })
     }
 
     pub(crate) fn sources(&self) -> &[SwashRasterSource] {
@@ -159,17 +164,6 @@ impl SwashRasterRequest {
         }
 
         Ok(())
-    }
-}
-
-fn glyphon_cache_key_offset(cache_key: GlyphonCacheKey) -> Vec2 {
-    if cache_key.flags.contains(GlyphonCacheKeyFlags::PIXEL_FONT) {
-        Vec2::new(
-            cache_key.x_bin.as_float().round() + 1.0,
-            cache_key.y_bin.as_float().round(),
-        )
-    } else {
-        Vec2::new(cache_key.x_bin.as_float(), cache_key.y_bin.as_float())
     }
 }
 

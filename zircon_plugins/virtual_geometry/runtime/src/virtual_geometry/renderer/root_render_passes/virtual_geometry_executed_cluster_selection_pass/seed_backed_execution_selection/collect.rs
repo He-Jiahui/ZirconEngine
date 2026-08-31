@@ -51,8 +51,10 @@ pub(crate) fn collect_execution_cluster_selection_collection_from_root_seeds(
     let cluster_ordering =
         seed_backed_cluster_ordering_from_cluster_work_items(extract, cluster_work_items);
     let mut frontier_ranking = SeedBackedFrontierRanking::default();
-    let mut execution_records = Vec::new();
-    let mut selected_cluster_record_index = HashMap::<(u64, u32), usize>::new();
+    let record_capacity = cluster_work_items.len();
+    let mut execution_records = Vec::with_capacity(record_capacity);
+    let mut selected_cluster_record_index =
+        HashMap::<(u64, u32), usize>::with_capacity(record_capacity);
     for work_item in cluster_work_items {
         extend_seed_backed_execution_selection_records_from_cluster_work_item(
             &clusters_by_id,
@@ -65,10 +67,20 @@ pub(crate) fn collect_execution_cluster_selection_collection_from_root_seeds(
             work_item,
         );
     }
-    execution_records.sort_by_key(seed_backed_record_sort_key);
+    finalize_seed_backed_execution_records(&mut execution_records, cluster_budget);
+    ExecutedClusterSelectionCollection::from_seed_backed_records(execution_records)
+}
+
+fn finalize_seed_backed_execution_records(
+    execution_records: &mut Vec<super::record::SeedBackedExecutionSelectionRecord>,
+    cluster_budget: usize,
+) {
+    execution_records.sort_unstable_by_key(seed_backed_record_sort_key);
     if execution_records.len() > cluster_budget {
         execution_records.truncate(cluster_budget);
     }
-    refresh_seed_backed_frontier_ranks(&mut execution_records);
-    ExecutedClusterSelectionCollection::from_seed_backed_records(execution_records)
+    refresh_seed_backed_frontier_ranks(execution_records);
 }
+
+#[cfg(test)]
+mod allocation_tests;

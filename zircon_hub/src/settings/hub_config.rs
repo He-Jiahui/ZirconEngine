@@ -340,10 +340,13 @@ impl BuildProfile {
     }
 
     pub fn from_ui_value(value: &str) -> Option<Self> {
-        match value.trim().to_ascii_lowercase().as_str() {
-            "debug" => Some(Self::Debug),
-            "release" => Some(Self::Release),
-            _ => None,
+        let value = value.trim();
+        if value.eq_ignore_ascii_case("debug") {
+            Some(Self::Debug)
+        } else if value.eq_ignore_ascii_case("release") {
+            Some(Self::Release)
+        } else {
+            None
         }
     }
 }
@@ -357,10 +360,16 @@ impl HubLanguage {
     }
 
     pub fn from_ui_value(value: &str) -> Option<Self> {
-        match value.trim().to_ascii_lowercase().as_str() {
-            "english" | "en" => Some(Self::English),
-            "chinese" | "zh" | "cn" => Some(Self::Chinese),
-            _ => None,
+        let value = value.trim();
+        if value.eq_ignore_ascii_case("english") || value.eq_ignore_ascii_case("en") {
+            Some(Self::English)
+        } else if value.eq_ignore_ascii_case("chinese")
+            || value.eq_ignore_ascii_case("zh")
+            || value.eq_ignore_ascii_case("cn")
+        {
+            Some(Self::Chinese)
+        } else {
+            None
         }
     }
 }
@@ -674,7 +683,7 @@ command_line = []
     #[test]
     fn settings_parse_profile_and_language_from_ui_values() {
         assert_eq!(
-            BuildProfile::from_ui_value("release"),
+            BuildProfile::from_ui_value(" RELEASE "),
             Some(BuildProfile::Release)
         );
         assert_eq!(
@@ -682,7 +691,12 @@ command_line = []
             Some(BuildProfile::Debug)
         );
         assert_eq!(BuildProfile::from_ui_value("fast"), None);
+        assert_eq!(
+            HubLanguage::from_ui_value(" ENGLISH "),
+            Some(HubLanguage::English)
+        );
         assert_eq!(HubLanguage::from_ui_value("zh"), Some(HubLanguage::Chinese));
+        assert_eq!(HubLanguage::from_ui_value("\u{00c9}NGLISH"), None);
         assert_eq!(HubLanguage::English.as_ui_value(), "English");
     }
 

@@ -295,7 +295,7 @@ These byte ranges are the foundation for later caret, selection, composition und
 
 ## M6 Shared Shape And Editing Paint
 
-The M6 continuation makes the shared render DTO consume this layout output more directly. `UiShapedText::from_resolved_layout(...)` now derives per-grapheme synthetic glyph records from each resolved line. Those records are not final backend glyph ids, but they give Widget Reflector, editor painter, and runtime debug payloads stable glyph count, visual frame, advance, and source range data for combining marks and emoji clusters.
+The shared render DTO consumes this layout output only as geometry. Resolved lines publish source/visual ranges, line frames, and measured grapheme advances; they do not construct glyph ids, font identities, atlas resources, or fallback glyph frames. Runtime shaping and glyph-artifact owners publish those facts as canonical glyph artifacts, while interface consumers receive an explicit unavailable state until such an artifact exists.
 
 `hit_test.rs` now consumes the same `UiResolvedTextLayout` and maps a surface-space pointer point back to a nearest source byte caret. The helper uses the resolved line frames, alignment, direction, fixed text advance, and grapheme runs that render extraction already emitted. `surface/input/text_pointer.rs` consumes that geometry for TextInput pointer press and captured drag, mirroring Bevy's editable text flow where `dev/bevy/crates/bevy_ui_widgets/src/editable_text.rs` converts a local pointer position into `TextEdit::MoveToPoint`, `TextEdit::ShiftClickExtension`, or `TextEdit::ExtendSelectionToPoint`, and `dev/bevy/crates/bevy_text/src/text_edit.rs` applies those edits through the text driver.
 

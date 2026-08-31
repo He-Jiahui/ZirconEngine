@@ -20,6 +20,10 @@ pub(super) const EXPECTED_RUNTIME_13_SOURCE_FILES: &[&str] = &[
     "src/script/vm/host/script_call_table.rs",
     "src/core/framework/script.rs",
     "src/core/framework/script/argument_views.rs",
+    "src/core/framework/script/argument_views/argument_source.rs",
+    "src/core/framework/script/argument_views/byte_view.rs",
+    "src/core/framework/script/argument_views/typed_conversion.rs",
+    "src/core/framework/script/argument_views/value_ref.rs",
     "src/core/framework/script/call_frame.rs",
     "src/core/framework/script/descriptors.rs",
     "src/core/framework/script/hot_path_metrics.rs",
@@ -63,7 +67,7 @@ pub(super) const RUNTIME_13_GUARD_ANCHORS: &[&str] = &[
 
 pub(super) const SCRIPT_BINDING_MIRROR_DOC_ANCHORS: &[&str] = &[
     "script_binding_boundary",
-    "expected_source_file_count = 24",
+    "expected_source_file_count = 28",
     "expected_test_file_count = 3",
     "expected_guard_file_count = 8",
     "missing_guard_files = []",

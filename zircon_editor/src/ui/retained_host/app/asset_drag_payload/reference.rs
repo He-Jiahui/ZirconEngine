@@ -74,14 +74,16 @@ fn reference_control_id(surface_mode: &str, list_kind: &str) -> Option<&'static 
 }
 
 fn extension_from_locator(locator: &str) -> String {
-    let file_name = locator
-        .rsplit(|ch| ch == '/' || ch == '\\')
-        .next()
-        .unwrap_or(locator);
-    file_name
-        .rsplit_once('.')
-        .map(|(_, extension)| extension)
-        .filter(|extension| !extension.is_empty())
-        .unwrap_or_default()
-        .to_string()
+    for (index, byte) in locator.bytes().enumerate().rev() {
+        match byte {
+            b'.' => return locator[index + 1..].to_string(),
+            b'/' | b'\\' => return String::new(),
+            _ => {}
+        }
+    }
+    String::new()
 }
+
+#[cfg(test)]
+#[path = "reference/single_scan_extension_tests.rs"]
+mod single_scan_extension_tests;

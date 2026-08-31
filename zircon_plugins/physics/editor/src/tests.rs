@@ -5,61 +5,45 @@ fn physics_editor_plugin_contributes_authoring_extensions() {
     let registration = plugin_registration();
 
     assert!(registration.is_success(), "{:?}", registration.diagnostics);
-    assert!(
-        registration
-            .capabilities
-            .contains(&PHYSICS_AUTHORING_CAPABILITY.to_string())
-    );
+    assert!(registration
+        .capabilities
+        .contains(&PHYSICS_AUTHORING_CAPABILITY.to_string()));
     assert_eq!(
         editor_plugin().declaration().mirrored_runtime_package_id(),
         Some(PLUGIN_ID)
     );
-    assert!(
-        registration
-            .package_manifest
-            .capabilities
-            .contains(&zircon_plugin_physics_runtime::PHYSICS_RUNTIME_CAPABILITY.to_string())
-    );
-    assert!(
-        registration
-            .package_manifest
-            .capabilities
-            .contains(&PHYSICS_AUTHORING_CAPABILITY.to_string())
-    );
-    assert!(
-        registration
-            .extensions
-            .views()
-            .iter()
-            .any(|view| view.id() == PHYSICS_AUTHORING_VIEW_ID)
-    );
-    assert!(
-        registration
-            .extensions
-            .drawers()
-            .iter()
-            .any(|drawer| drawer.id() == PHYSICS_DRAWER_ID)
-    );
-    assert!(
-        registration
-            .extensions
-            .ui_templates()
-            .iter()
-            .any(|template| template.id() == PHYSICS_TEMPLATE_ID)
-    );
-    assert!(
-        registration
-            .extensions
-            .menu_items()
-            .iter()
-            .any(|menu| menu.operation().as_str() == "view.physics.authoring.open")
-    );
-    assert!(
-        registration
-            .extensions
-            .command_ids()
-            .any(|operation| operation.as_str() == "view.physics.authoring.open")
-    );
+    assert!(registration
+        .package_manifest
+        .capabilities
+        .contains(&zircon_plugin_physics_runtime::PHYSICS_RUNTIME_CAPABILITY.to_string()));
+    assert!(registration
+        .package_manifest
+        .capabilities
+        .contains(&PHYSICS_AUTHORING_CAPABILITY.to_string()));
+    assert!(registration
+        .extensions
+        .views()
+        .iter()
+        .any(|view| view.id() == PHYSICS_AUTHORING_VIEW_ID));
+    assert!(registration
+        .extensions
+        .drawers()
+        .iter()
+        .any(|drawer| drawer.id() == PHYSICS_DRAWER_ID));
+    assert!(registration
+        .extensions
+        .ui_templates()
+        .iter()
+        .any(|template| template.id() == PHYSICS_TEMPLATE_ID));
+    assert!(registration
+        .extensions
+        .menu_items()
+        .iter()
+        .any(|menu| menu.operation().as_str() == "view.physics.authoring.open"));
+    assert!(registration
+        .extensions
+        .command_ids()
+        .any(|operation| operation.as_str() == "view.physics.authoring.open"));
 }
 
 #[test]
@@ -68,17 +52,23 @@ fn overlay_registration_snapshot_matches_physics_debug_contract() {
 
     assert!(registration.is_success(), "{:?}", registration.diagnostics);
     assert!(registration.extensions.scene_mode_descriptors().is_empty());
-    assert!(registration.extensions.menu_items().iter().any(|menu| {
-        menu.path() == "View/Debug Overlays/Physics"
-            && menu.operation().as_str() == PHYSICS_TOGGLE_OVERLAY_OPERATION
-    }));
-    assert!(
+    let operation = EditorOperationPath::parse(PHYSICS_TOGGLE_OVERLAY_OPERATION)
+        .expect("physics overlay operation");
+    assert_eq!(
         registration
             .extensions
-            .views()
-            .iter()
-            .any(|view| view.id() == PHYSICS_DIAGNOSTICS_VIEW_ID)
+            .commands()
+            .command(&operation)
+            .and_then(|command| command.menu_path())
+            .map(|path| path.stable_path()),
+        Some("view/debug_overlays/debug.physics.overlay.toggle".to_owned())
     );
+    assert!(registration.extensions.menu_items().next().is_none());
+    assert!(registration
+        .extensions
+        .views()
+        .iter()
+        .any(|view| view.id() == PHYSICS_DIAGNOSTICS_VIEW_ID));
 }
 
 #[test]
@@ -120,13 +110,11 @@ fn generated_profile_covers_all_mapped_bones() {
     assert!(profile.validate().is_ok());
 
     let registration = plugin_registration();
-    assert!(
-        registration
-            .extensions
-            .asset_type_contributions()
-            .iter()
-            .any(|contribution| contribution.asset_type().as_str() == RAGDOLL_PROFILE_ASSET_KIND)
-    );
+    assert!(registration
+        .extensions
+        .asset_type_contributions()
+        .iter()
+        .any(|contribution| contribution.asset_type().as_str() == RAGDOLL_PROFILE_ASSET_KIND));
 }
 
 #[test]

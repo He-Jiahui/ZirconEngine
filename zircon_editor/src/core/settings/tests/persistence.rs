@@ -22,6 +22,7 @@ fn definition_constructor_rejects_invalid_schema() {
         SettingSchema::Float {
             minimum: f64::NAN,
             maximum: 1.0,
+            step: 0.1,
         },
         SettingValue::Float(0.5),
         false,
@@ -39,12 +40,112 @@ fn definition_constructor_rejects_invalid_schema() {
         SettingSchema::Int {
             minimum: 10,
             maximum: 1,
+            step: 1,
         },
         SettingValue::Int(5),
         false,
         presentation(
             "settings.editor.invalid.range.label",
             "settings.editor.invalid.range.description",
+            &["settings.category.editor"],
+        ),
+    )
+    .is_err());
+
+    assert!(SettingDefinition::new(
+        key("editor.invalid.step"),
+        SettingsScope::User,
+        SettingSchema::Int {
+            minimum: 0,
+            maximum: 10,
+            step: 0,
+        },
+        SettingValue::Int(5),
+        false,
+        presentation(
+            "settings.editor.invalid.step.label",
+            "settings.editor.invalid.step.description",
+            &["settings.category.editor"],
+        ),
+    )
+    .is_err());
+}
+
+#[test]
+fn numeric_schema_steps_are_bounded_and_float_quantized() {
+    let integer = SettingSchema::Int {
+        minimum: i64::MIN + 1,
+        maximum: i64::MAX - 1,
+        step: 4,
+    };
+    assert_eq!(
+        integer.stepped_numeric_value(
+            &SettingValue::Int(i64::MAX - 2),
+            SettingNumericStepDirection::Increment,
+        ),
+        Some(SettingValue::Int(i64::MAX - 1))
+    );
+    assert_eq!(
+        integer.stepped_numeric_value(
+            &SettingValue::Int(i64::MIN + 2),
+            SettingNumericStepDirection::Decrement,
+        ),
+        Some(SettingValue::Int(i64::MIN + 1))
+    );
+
+    let float = SettingSchema::Float {
+        minimum: 0.0,
+        maximum: 0.3,
+        step: 0.1,
+    };
+    assert_eq!(
+        float.stepped_numeric_value(
+            &SettingValue::Float(0.1),
+            SettingNumericStepDirection::Increment,
+        ),
+        Some(SettingValue::Float(0.2))
+    );
+    assert_eq!(
+        float.stepped_numeric_value(
+            &SettingValue::Float(0.3),
+            SettingNumericStepDirection::Increment,
+        ),
+        Some(SettingValue::Float(0.3))
+    );
+}
+
+#[test]
+fn color_schema_steps_one_typed_channel_with_saturating_bounds() {
+    let color = SettingSchema::Color { channel_step: 16 };
+    assert_eq!(
+        color.stepped_color_value(
+            &SettingValue::Color([250, 16, 32, 0]),
+            SettingColorChannel::Red,
+            SettingNumericStepDirection::Increment,
+        ),
+        Some(SettingValue::Color([255, 16, 32, 0]))
+    );
+    assert_eq!(
+        color.stepped_color_value(
+            &SettingValue::Color([250, 16, 32, 0]),
+            SettingColorChannel::Alpha,
+            SettingNumericStepDirection::Decrement,
+        ),
+        Some(SettingValue::Color([250, 16, 32, 0]))
+    );
+}
+
+#[test]
+fn color_schema_rejects_a_zero_channel_step() {
+    assert!(SettingDefinition::new(
+        key("editor.invalid.color_step"),
+        SettingsScope::User,
+        SettingSchema::Color { channel_step: 0 },
+        SettingValue::Color([0, 0, 0, 255]),
+        false,
+        presentation(
+            "settings.editor.invalid.color_step.label",
+            "settings.editor.invalid.color_step.description",
             &["settings.category.editor"],
         ),
     )
@@ -80,7 +181,7 @@ fn scope_and_schema_boundaries_remain_explicit() {
         key("editor.shortcut"),
         SettingsScope::User,
         SettingSchema::Chord,
-        SettingValue::Chord("Ctrl+S".to_string()),
+        SettingValue::Chord("Ctrl+S".parse::<EditorKeyChord>().unwrap()),
         false,
         presentation(
             "settings.editor.shortcut.label",
@@ -106,7 +207,7 @@ fn scope_and_schema_boundaries_remain_explicit() {
         registry.set(
             SettingsScope::User,
             &key("editor.shortcut"),
-            SettingValue::Chord("   ".to_string())
+            SettingValue::Chord(EditorKeyChord::new("Ctrl"))
         ),
         Err(SettingsError::InvalidValue { .. })
     ));

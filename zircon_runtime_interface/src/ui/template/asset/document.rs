@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use toml::Value;
 
-use super::{UiComponentApiVersion, UiComponentPublicContract, UiResourceRef};
+use super::{
+    UiBindingMissingValuePolicy, UiComponentApiVersion, UiComponentPublicContract, UiResourceRef,
+};
 use crate::ui::accessibility::UiAccessibilityContract;
 use crate::ui::focus::UiFocusContract;
 use crate::ui::layout::UiSlotKind;
@@ -213,6 +215,11 @@ pub struct UiActionRef {
     pub action: Option<String>,
     #[serde(default)]
     pub payload: BTreeMap<String, Value>,
+    #[serde(
+        default,
+        skip_serializing_if = "UiBindingMissingValuePolicy::is_required"
+    )]
+    pub payload_missing_policy: UiBindingMissingValuePolicy,
 }
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]

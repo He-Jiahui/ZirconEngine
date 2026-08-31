@@ -67,14 +67,35 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
     let render = include_str!(
         "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs"
     );
+    let foundation = include_str!(
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/compiled_scene_frame_foundation.rs"
+    );
+    let mesh_preparation = include_str!(
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/prepare_compiled_scene_mesh_submission.rs"
+    );
+    let graph_preparation = include_str!(
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/prepare_compiled_scene_graph_frame.rs"
+    );
+    let success_commit = include_str!(
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/commit_compiled_scene_frame_success.rs"
+    );
     let bind = include_str!(
         "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_compiled_scene_graph_resources.rs"
+    );
+    let bind_ssao = include_str!(
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_ssao_compute_graph_resources.rs"
     );
     let execute = include_str!(
         "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs"
     );
     let submit = include_str!(
         "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs"
+    );
+    let submit_hzb = include_str!(
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame/hzb_readback.rs"
+    );
+    let submit_tests = include_str!(
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame/tests.rs"
     );
     let sprite_stage_selection = include_str!(
         "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs"
@@ -99,8 +120,13 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         render_mod,
         &[
             "mod bind_compiled_scene_graph_resources;",
+            "mod bind_ssao_compute_graph_resources;",
+            "mod commit_compiled_scene_frame_success;",
+            "mod compiled_scene_frame_foundation;",
             "mod execute_compiled_scene_graph_stages;",
             "mod pipeline_resource_usage;",
+            "mod prepare_compiled_scene_graph_frame;",
+            "mod prepare_compiled_scene_mesh_submission;",
             "mod sprite_stage_selection;",
             "mod submit_compiled_scene_frame;",
         ],
@@ -110,11 +136,12 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         "render orchestration",
         render,
         &[
-            "bind_compiled_scene_graph_resources(",
+            "self.prepare_compiled_scene_frame_foundation(",
+            "self.prepare_compiled_scene_mesh_submission(",
+            "self.prepare_compiled_scene_graph_frame(",
             "self.execute_compiled_scene_graph_stages(CompiledSceneGraphStageContext",
             "self.submit_compiled_scene_frame(CompiledSceneFrameSubmissionContext",
-            "use super::pipeline_resource_usage::pipeline_writes_resource;",
-            "use super::sprite_stage_selection::active_sprite_graph_stages;",
+            "self.commit_compiled_scene_frame_success(CompiledSceneFrameSuccessContext",
         ],
     );
     assert_not_contains(
@@ -129,6 +156,50 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
             "fn active_sprite_graph_stages(",
             "fn pipeline_has_active_sprite_stage(",
             "fn pipeline_writes_resource(",
+            "bind_compiled_scene_graph_resources(",
+            "gpu_scene_prepared_upload.commit(&mut self.gpu_scene)",
+        ],
+    );
+
+    assert_contains_all(
+        "compiled-scene foundation owner",
+        foundation,
+        &[
+            "pub(super) struct PreparedCompiledSceneFrameFoundation",
+            "pub(super) fn prepare_compiled_scene_frame_foundation(",
+            "self.write_scene_uniform(",
+            "MaterialPipelineFeatureSet::from_executor_ids(",
+        ],
+    );
+    assert_contains_all(
+        "compiled-scene mesh preparation owner",
+        mesh_preparation,
+        &[
+            "pub(super) struct PreparedCompiledSceneMeshSubmission",
+            "pub(super) fn prepare_compiled_scene_mesh_submission(",
+            "build_compiled_scene_draws(",
+            "project_compiled_scene_mesh_draw_lists",
+        ],
+    );
+    assert_contains_all(
+        "compiled-scene graph preparation owner",
+        graph_preparation,
+        &[
+            "pub(super) struct PreparedCompiledSceneGraphFrame",
+            "pub(super) fn prepare_compiled_scene_graph_frame",
+            "bind_compiled_scene_graph_resources(",
+            "validate_materialized_graph_resources",
+            "use super::pipeline_resource_usage::pipeline_writes_resource;",
+        ],
+    );
+    assert_contains_all(
+        "compiled-scene success commit owner",
+        success_commit,
+        &[
+            "pub(super) struct CompiledSceneFrameSuccessContext",
+            "pub(super) fn commit_compiled_scene_frame_success(",
+            "gpu_scene_prepared_upload.commit(&mut self.gpu_scene)",
+            "roll_prev_transforms_after_success()",
         ],
     );
 
@@ -175,6 +246,15 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         ],
     );
     assert_contains_all(
+        "compiled-scene SSAO binding owner",
+        bind_ssao,
+        &[
+            "pub(super) fn bind_ssao_compute_graph_resources",
+            "prepare_ssao_compute_params_upload(",
+            "import_borrowed_buffer_with_physical_desc(",
+        ],
+    );
+    assert_contains_all(
         "compiled-scene stage execution owner",
         execute,
         &[
@@ -192,21 +272,36 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         &[
             "pub(super) struct CompiledSceneFrameSubmissionContext",
             "pub(super) fn submit_compiled_scene_frame",
-            "queue.submit([encoder.finish()])",
-            "attach_hzb_occlusion_readback_stats",
-            "release_transient_backings_into_pool",
+            "submit_graphics_command_buffers_with_frame_diagnostics_and_surface(",
+            "retire_transient_backings_after_submission(",
             "self.transient_resource_pool.end_frame()",
         ],
     );
+    assert_contains_all(
+        "compiled-scene HZB readback attachment owner",
+        submit_hzb,
+        &[
+            "pub(super) fn attach_hzb_occlusion_readback_stats",
+            "collect_last_readback_stats()",
+            "set_hzb_occlusion_cull_report(report)",
+        ],
+    );
+    assert!(submit.contains("mod hzb_readback;"));
+    assert!(submit.contains("mod submission_order_tests;"));
 
     assert!(
         render.lines().count() < 500,
         "render.rs should remain below the F16 orchestration budget"
     );
+    assert!(foundation.lines().count() < 300);
+    assert!(mesh_preparation.lines().count() < 300);
+    assert!(graph_preparation.lines().count() < 300);
+    assert!(success_commit.lines().count() < 200);
     assert!(
         bind.lines().count() < 160,
         "bind_compiled_scene_graph_resources.rs should remain a focused owner"
     );
+    assert!(bind_ssao.lines().count() < 100);
     assert!(
         execute.lines().count() < 420,
         "execute_compiled_scene_graph_stages.rs should remain a focused owner"
@@ -215,6 +310,8 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         submit.lines().count() < 650,
         "submit_compiled_scene_frame.rs should remain a focused owner"
     );
+    assert!(submit_hzb.lines().count() < 80);
+    assert!(submit_tests.lines().count() < 200);
     assert!(
         sprite_stage_selection.lines().count() < 180,
         "sprite_stage_selection.rs should remain a focused owner"
@@ -248,3 +345,6 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         ],
     );
 }
+
+#[path = "render_structure/submission.rs"]
+mod submission;

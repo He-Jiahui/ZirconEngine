@@ -117,6 +117,7 @@ fn borrowed_and_owned_runtime_draw_lists_project_resolved_editor_text_style() {
             height: 16.0,
         },
         clip: None,
+        source: None,
         kind: ChromeCommandKind::Text {
             text: "Code".to_string(),
             color: [220, 220, 220, 255],
@@ -138,6 +139,7 @@ fn borrowed_and_owned_runtime_draw_lists_project_resolved_editor_text_style() {
             height: 16.0,
         },
         clip: None,
+        source: None,
         kind: ChromeCommandKind::Text {
             text: "Strong".to_string(),
             color: [240, 240, 240, 255],
@@ -209,6 +211,7 @@ fn runtime_draw_list_font_projection_work_is_bounded_per_stream() {
             z_index: index,
             frame: FrameRect::default(),
             clip: None,
+            source: None,
             kind: ChromeCommandKind::Text {
                 text: format!("label-{index}"),
                 color: [255; 4],
@@ -255,6 +258,7 @@ fn owned_runtime_draw_list_moves_image_pixels_into_the_draw_list_resource_table(
         z_index: 1,
         frame: FrameRect::default(),
         clip: None,
+        source: None,
         kind: ChromeCommandKind::Text {
             text: "move-me".to_string(),
             color: [255; 4],

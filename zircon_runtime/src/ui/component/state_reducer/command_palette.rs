@@ -1,9 +1,11 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventError, UiComponentKeyboardAction, UiComponentState,
     UiValidationState, UiValue,
 };
+
+use super::text_search::contains_lowercase_query;
 
 const COMMANDS: &str = "commands";
 const FILTERED_COMMANDS: &str = "filtered_commands";
@@ -134,7 +136,15 @@ pub(super) fn apply_commit(
     Ok(true)
 }
 
-fn sync_filter_state(state: &mut UiComponentState, descriptor: &UiComponentDescriptor) {
+struct CommandFilterProjection {
+    filtered: Vec<String>,
+    disabled: HashSet<String>,
+}
+
+fn sync_filter_state(
+    state: &mut UiComponentState,
+    descriptor: &UiComponentDescriptor,
+) -> CommandFilterProjection {
     let entries = command_entries(state, descriptor);
     let query = string_setting(state, descriptor, QUERY)
         .map(|query| query.trim().to_lowercase())
@@ -172,6 +182,7 @@ fn sync_filter_state(state: &mut UiComponentState, descriptor: &UiComponentDescr
         focus_index,
     );
     state.flags.focused = focus_index >= 0;
+    CommandFilterProjection { filtered, disabled }
 }
 
 fn navigate_filtered_commands(
@@ -179,20 +190,19 @@ fn navigate_filtered_commands(
     descriptor: &UiComponentDescriptor,
     action: UiComponentKeyboardAction,
 ) {
-    sync_filter_state(state, descriptor);
-    let filtered = filtered_command_ids(state, descriptor);
+    let projection = sync_filter_state(state, descriptor);
+    let filtered = projection.filtered;
     if filtered.is_empty() {
         write_selected_command(state, "", -1);
         return;
     }
 
-    let entries = command_entries(state, descriptor);
-    let disabled = disabled_command_ids(state, &entries);
+    let disabled = projection.disabled;
     let max_index = (filtered.len() - 1) as i64;
     let current = int_setting(state, descriptor, FOCUSED_INDEX)
         .unwrap_or(0)
         .clamp(0, max_index);
-    let focusable = |index: i64| !disabled.iter().any(|id| id == &filtered[index as usize]);
+    let focusable = |index: i64| !disabled.contains(&filtered[index as usize]);
     let window = CommandPaletteWindow::read(state, descriptor, filtered.len());
     let next = match action {
         UiComponentKeyboardAction::First if window.offset == 0 => {
@@ -368,10 +378,7 @@ fn ensure_command_enabled(
     command_id: &str,
 ) -> Result<(), UiComponentEventError> {
     let entries = command_entries(state, descriptor);
-    if disabled_command_ids(state, &entries)
-        .iter()
-        .any(|id| id == command_id)
-    {
+    if disabled_command_ids(state, &entries).contains(command_id) {
         state.validation = UiValidationState::error(format!(
             "disabled command `{command_id}` cannot be selected"
         ));
@@ -383,7 +390,11 @@ fn ensure_command_enabled(
     Ok(())
 }
 
-fn next_focus_index(state: &UiComponentState, filtered: &[String], disabled: &[String]) -> i64 {
+fn next_focus_index(
+    state: &UiComponentState,
+    filtered: &[String],
+    disabled: &HashSet<String>,
+) -> i64 {
     if filtered.is_empty() {
         return -1;
     }
@@ -396,7 +407,7 @@ fn next_focus_index(state: &UiComponentState, filtered: &[String], disabled: &[S
     {
         if let Some(index) = filtered
             .iter()
-            .position(|id| id == &selected && !disabled.iter().any(|disabled| disabled == id))
+            .position(|id| id == &selected && !disabled.contains(id))
         {
             return index as i64;
         }
@@ -406,7 +417,7 @@ fn next_focus_index(state: &UiComponentState, filtered: &[String], disabled: &[S
         let index = usize::try_from(index).ok()?;
         filtered
             .get(index)
-            .filter(|id| !disabled.iter().any(|disabled| disabled == *id))
+            .filter(|id| !disabled.contains(*id))
             .map(|_| index)
     }) {
         return index as i64;
@@ -414,7 +425,7 @@ fn next_focus_index(state: &UiComponentState, filtered: &[String], disabled: &[S
 
     filtered
         .iter()
-        .position(|id| !disabled.iter().any(|disabled| disabled == id))
+        .position(|id| !disabled.contains(id))
         .map(|index| index as i64)
         .unwrap_or(-1)
 }
@@ -488,7 +499,7 @@ impl CommandEntry {
         ]
         .into_iter()
         .chain(self.keywords.iter().map(String::as_str))
-        .any(|value| value.trim().to_lowercase().contains(query))
+        .any(|value| contains_lowercase_query(value, query))
     }
 }
 
@@ -600,15 +611,17 @@ fn filtered_command_ids(
         .collect()
 }
 
-fn disabled_command_ids(state: &UiComponentState, entries: &[CommandEntry]) -> Vec<String> {
+fn disabled_command_ids(state: &UiComponentState, entries: &[CommandEntry]) -> HashSet<String> {
     let mut disabled = state
         .values
         .get(DISABLED_COMMANDS)
         .map(command_id_values)
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .into_iter()
+        .collect::<HashSet<_>>();
     for entry in entries {
-        if entry.disabled && !disabled.iter().any(|id| id == &entry.id) {
-            disabled.push(entry.id.clone());
+        if entry.disabled {
+            disabled.insert(entry.id.clone());
         }
     }
     disabled

@@ -178,6 +178,62 @@ function Write-ZirconUiAssetCatalogScaleSources {
     }
 }
 
+function Write-ZirconUiAssetBrowserWorkspace {
+    param([string]$ProjectRoot)
+
+    $pageId = "page:editor.asset_browser#profile"
+    $instanceId = "editor.asset_browser#profile"
+    $relativePath = ".zircon/editor-workspace.json"
+    $path = Join-Path $ProjectRoot $relativePath
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $path) | Out-Null
+    $document = [ordered]@{
+        format_version = 1
+        editor_workspace = [ordered]@{
+            layout_version = 1
+            workbench = [ordered]@{
+                active_main_page = $pageId
+                main_pages = @(
+                    [ordered]@{
+                        ExclusiveActivityWindowPage = [ordered]@{
+                            id = $pageId
+                            title = "Asset Browser"
+                            window_instance = $instanceId
+                        }
+                    }
+                )
+                drawers = [ordered]@{}
+                activity_windows = [ordered]@{}
+                floating_windows = @()
+                region_overrides = [ordered]@{}
+                view_overrides = [ordered]@{}
+            }
+            open_view_instances = @(
+                [ordered]@{
+                    instance_id = $instanceId
+                    descriptor_id = "editor.asset_browser"
+                    title = "Asset Browser"
+                    serializable_payload = [ordered]@{
+                        source = "ui-profile-asset-catalog-scale"
+                    }
+                    dirty = $false
+                    host = [ordered]@{ ExclusivePage = $pageId }
+                }
+            )
+            focused_view = $instanceId
+            active_drawers = @()
+        }
+    }
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText(
+        $path,
+        ($document | ConvertTo-Json -Depth 12),
+        $encoding
+    )
+    return Get-ZirconUiProfileScaleFileFingerprint `
+        -Path $path `
+        -RelativePath $relativePath
+}
+
 function New-ZirconUiHierarchyScaleFixture {
     param(
         [string]$RepoRoot,
@@ -300,6 +356,7 @@ function New-ZirconUiAssetCatalogScaleFixture {
     $assetSources = Get-ZirconUiAssetCatalogScaleSetFingerprint `
         -ProjectRoot $project `
         -ExpectedCount $AssetItemCount
+    $workspace = Write-ZirconUiAssetBrowserWorkspace -ProjectRoot $project
 
     return [pscustomobject]@{
         schema_version = 1
@@ -314,6 +371,7 @@ function New-ZirconUiAssetCatalogScaleFixture {
         scene = Get-ZirconUiProfileScaleFileFingerprint `
             -Path $scenePath `
             -RelativePath $sceneRelativePath
+        workspace = $workspace
         asset_sources = $assetSources
     }
 }

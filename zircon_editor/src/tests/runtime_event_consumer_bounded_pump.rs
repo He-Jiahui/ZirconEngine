@@ -1,14 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, Weak};
 use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeApiV7, ZrRuntimeEventV1,
-    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
+    GatewaySessionIdentity, ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeApiV8,
+    ZrRuntimeEventV1, ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
     ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportPickRequestV1, ZrRuntimeViewportPickResultV1, ZrRuntimeViewportPickTicket,
     ZrRuntimeViewportSizeV1, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
@@ -134,17 +134,44 @@ unsafe extern "C" fn abi_drain_plugin_events(
     ZrStatus::ok()
 }
 
+unsafe extern "C" fn request_test_viewport_pick(
+    _session: ZrRuntimeSessionHandle,
+    _request: ZrRuntimeViewportPickRequestV1,
+    _out_ticket: *mut ZrRuntimeViewportPickTicket,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn poll_test_viewport_pick(
+    _session: ZrRuntimeSessionHandle,
+    _ticket: ZrRuntimeViewportPickTicket,
+    _out_result: *mut ZrRuntimeViewportPickResultV1,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn cancel_test_viewport_pick(
+    _session: ZrRuntimeSessionHandle,
+    _ticket: ZrRuntimeViewportPickTicket,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
 fn abi_gateway() -> SessionGateway {
-    let mut api = ZrRuntimeApiV7::empty();
+    let mut api = ZrRuntimeApiV8::empty();
     api.release_allocation = Some(release_abi_event_page);
     api.subscribe_plugin_event = Some(abi_subscribe_plugin_event);
     api.unsubscribe_plugin_event = Some(abi_unsubscribe_plugin_event);
     api.drain_plugin_events = Some(abi_drain_plugin_events);
+    api.request_viewport_pick = Some(request_test_viewport_pick);
+    api.poll_viewport_pick = Some(poll_test_viewport_pick);
+    api.cancel_viewport_pick = Some(cancel_test_viewport_pick);
     unsafe {
-        SessionGateway::new(
+        SessionGateway::new_with_identity(
             Arc::new(()),
             api,
             ZrRuntimeSessionHandle::new(7),
+            GatewaySessionIdentity::new(7, ZrRuntimeSessionHandle::new(7), 1, None),
             RuntimeCapabilities::editor_default(),
             Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )
@@ -166,44 +193,6 @@ struct RecordingState {
     session: Option<u64>,
     sequences: Vec<u64>,
     callback_delay: Duration,
-}
-
-struct PanicOnceState {
-    session: Option<u64>,
-    sequences: Vec<u64>,
-    panic_on_sequence: u64,
-    panicked: bool,
-}
-
-impl EditorRuntimeEventConsumerState for PanicOnceState {
-    type Payload = Payload;
-    type Error = ConsumerError;
-
-    fn begin_session(&mut self, play_session_id: u64) {
-        self.session = Some(play_session_id);
-    }
-
-    fn consume(
-        &mut self,
-        play_session_id: u64,
-        sequence: u64,
-        payload: Self::Payload,
-    ) -> Result<(), Self::Error> {
-        assert_eq!(self.session, Some(play_session_id));
-        assert_eq!(payload.value, sequence);
-        if sequence == self.panic_on_sequence && !self.panicked {
-            self.panicked = true;
-            panic!("injected consumer callback panic");
-        }
-        self.sequences.push(sequence);
-        Ok(())
-    }
-
-    fn end_session(&mut self, play_session_id: u64) {
-        if self.session == Some(play_session_id) {
-            self.session = None;
-        }
-    }
 }
 
 impl EditorRuntimeEventConsumerState for RecordingState {
@@ -327,8 +316,12 @@ struct FakeGateway {
     session: ZrRuntimeSessionHandle,
     next_subscription: Mutex<u64>,
     deliveries: Mutex<BTreeMap<u64, Vec<ZrRuntimePluginEventDeliveryV1>>>,
+    encoded_bytes: Mutex<BTreeMap<u64, usize>>,
+    runtime_backlogs: Mutex<BTreeMap<u64, (usize, u64)>>,
     drain_calls: Mutex<BTreeMap<u64, usize>>,
     failing_drains: Mutex<BTreeSet<u64>>,
+    failing_unsubscribes: Mutex<BTreeSet<u64>>,
+    unsubscribed: Mutex<Vec<u64>>,
 }
 
 impl FakeGateway {
@@ -337,8 +330,12 @@ impl FakeGateway {
             session: ZrRuntimeSessionHandle::new(session),
             next_subscription: Mutex::new(10),
             deliveries: Mutex::new(BTreeMap::new()),
+            encoded_bytes: Mutex::new(BTreeMap::new()),
+            runtime_backlogs: Mutex::new(BTreeMap::new()),
             drain_calls: Mutex::new(BTreeMap::new()),
             failing_drains: Mutex::new(BTreeSet::new()),
+            failing_unsubscribes: Mutex::new(BTreeSet::new()),
+            unsubscribed: Mutex::new(Vec::new()),
         }
     }
 
@@ -358,8 +355,41 @@ impl FakeGateway {
             ));
     }
 
+    fn set_runtime_backlog(
+        &self,
+        subscription: u64,
+        remaining_deliveries: usize,
+        oldest_pending_age_millis: u64,
+    ) {
+        self.runtime_backlogs.lock().unwrap().insert(
+            subscription,
+            (remaining_deliveries, oldest_pending_age_millis),
+        );
+    }
+
+    fn set_encoded_bytes(&self, subscription: u64, encoded_bytes: usize) {
+        self.encoded_bytes
+            .lock()
+            .unwrap()
+            .insert(subscription, encoded_bytes);
+    }
+
     fn fail_drain(&self, subscription: u64) {
         self.failing_drains.lock().unwrap().insert(subscription);
+    }
+
+    fn fail_unsubscribe(&self, subscription: u64) {
+        self.failing_unsubscribes
+            .lock()
+            .unwrap()
+            .insert(subscription);
+    }
+
+    fn allow_unsubscribe(&self, subscription: u64) {
+        self.failing_unsubscribes
+            .lock()
+            .unwrap()
+            .remove(&subscription);
     }
 
     fn drain_call_count(&self, subscription: u64) -> usize {
@@ -370,11 +400,19 @@ impl FakeGateway {
             .copied()
             .unwrap_or_default()
     }
+
+    fn unsubscribed(&self) -> Vec<u64> {
+        self.unsubscribed.lock().unwrap().clone()
+    }
 }
 
 impl EditorRuntimeGateway for FakeGateway {
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         self.session
+    }
+
+    fn session_identity(&self) -> zircon_runtime_interface::GatewaySessionIdentity {
+        zircon_runtime_interface::GatewaySessionIdentity::new(1, self.session, 1, None)
     }
 
     fn handle_event(&self, _event: ZrRuntimeEventV1) -> Result<(), GatewayError> {
@@ -401,8 +439,17 @@ impl EditorRuntimeGateway for FakeGateway {
 
     fn unsubscribe_plugin_event(
         &self,
-        _subscription: ZrRuntimePluginEventSubscriptionHandle,
+        subscription: ZrRuntimePluginEventSubscriptionHandle,
     ) -> Result<bool, GatewayError> {
+        self.unsubscribed.lock().unwrap().push(subscription.raw());
+        if self
+            .failing_unsubscribes
+            .lock()
+            .unwrap()
+            .contains(&subscription.raw())
+        {
+            return Err("injected unsubscribe failure".to_string());
+        }
         Ok(true)
     }
 
@@ -432,12 +479,27 @@ impl EditorRuntimeGateway for FakeGateway {
             .unwrap()
             .remove(&subscription.raw())
             .unwrap_or_default();
+        let (remaining_deliveries, oldest_pending_age_millis) = self
+            .runtime_backlogs
+            .lock()
+            .unwrap()
+            .get(&subscription.raw())
+            .copied()
+            .unwrap_or_default();
+        let encoded_bytes = self
+            .encoded_bytes
+            .lock()
+            .unwrap()
+            .get(&subscription.raw())
+            .copied()
+            .unwrap_or(subscription.raw() as usize * 10);
         Ok(EditorRuntimePluginEventPage::new(
             deliveries,
-            subscription.raw() as usize * 10,
+            encoded_bytes,
             Duration::ZERO,
             Duration::ZERO,
-        ))
+        )
+        .with_runtime_backlog(remaining_deliveries, oldest_pending_age_millis))
     }
 
     fn submit_operation(
@@ -494,240 +556,6 @@ fn register_state<S>(
         ))
         .unwrap();
     host.register(registry).unwrap();
-}
-
-#[test]
-fn bounded_pump_defers_backlog_without_losing_order() {
-    let gateway = Arc::new(FakeGateway::new(7));
-    let host =
-        EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(gateway.clone()));
-    let state = Arc::new(Mutex::new(RecordingState {
-        callback_delay: Duration::from_millis(1),
-        ..RecordingState::default()
-    }));
-    register_state(&host, "tests.consumer.a", "tests.events.a", state.clone());
-    host.begin_play_session(100, &[CAPABILITY.to_string()])
-        .unwrap();
-    for sequence in 1..=10 {
-        gateway.push(11, "tests.events.a", sequence);
-    }
-
-    let first = host.pump_with_budget(budget(3, 3)).unwrap();
-    assert_eq!(first.applied(), 3);
-    assert_eq!(first.drained(), 10);
-    assert_eq!(first.drained_encoded_bytes(), 110);
-    assert_eq!(first.deferred(), 7);
-    assert_eq!(first.queue_depth(), 7);
-    assert_eq!(first.pending_encoded_bytes_upper_bound(), 110);
-    assert!(!first.pending_oldest_age().is_zero());
-    assert_eq!(first.last_observed_runtime_remaining_deliveries(), Some(0));
-    assert_eq!(
-        first.last_observed_runtime_oldest_pending_age_millis(),
-        Some(0)
-    );
-    assert!(first
-        .last_observed_runtime_backlog_observation_age()
-        .is_some());
-    assert_eq!(gateway.drain_call_count(11), 1);
-    assert_eq!(state.lock().unwrap().sequences, [1, 2, 3]);
-
-    for sequence in 11..=12 {
-        gateway.push(11, "tests.events.a", sequence);
-    }
-    let second = host.pump_with_budget(budget(3, 3)).unwrap();
-    assert_eq!(second.applied(), 3);
-    assert_eq!(second.drained(), 0);
-    assert_eq!(second.last_observed_runtime_remaining_deliveries(), Some(0));
-    assert_eq!(
-        second.last_observed_runtime_oldest_pending_age_millis(),
-        Some(0)
-    );
-    assert!(second
-        .last_observed_runtime_backlog_observation_age()
-        .is_some());
-    assert_eq!(gateway.drain_call_count(11), 1);
-    assert_eq!(state.lock().unwrap().sequences, [1, 2, 3, 4, 5, 6]);
-
-    while host.last_pump_report().queue_depth() != 0 {
-        host.pump_with_budget(budget(3, 3)).unwrap();
-    }
-    assert_eq!(
-        state.lock().unwrap().sequences,
-        (1..=10).collect::<Vec<_>>()
-    );
-
-    let next_page = host.pump_with_budget(budget(3, 3)).unwrap();
-    assert_eq!(next_page.applied(), 2);
-    assert_eq!(next_page.drained(), 2);
-    assert_eq!(gateway.drain_call_count(11), 2);
-    assert_eq!(
-        state.lock().unwrap().sequences,
-        (1..=12).collect::<Vec<_>>()
-    );
-}
-
-#[test]
-fn callback_panic_restores_pending_tail_and_last_sequence() {
-    let gateway = Arc::new(FakeGateway::new(7));
-    let host =
-        EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(gateway.clone()));
-    let state = Arc::new(Mutex::new(PanicOnceState {
-        session: None,
-        sequences: Vec::new(),
-        panic_on_sequence: 3,
-        panicked: false,
-    }));
-    register_state(
-        &host,
-        "tests.consumer.panic",
-        "tests.events.panic",
-        state.clone(),
-    );
-    host.begin_play_session(101, &[CAPABILITY.to_string()])
-        .unwrap();
-    for sequence in [1, 2, 3, 2, 4] {
-        gateway.push(11, "tests.events.panic", sequence);
-    }
-
-    let panic = catch_unwind(AssertUnwindSafe(|| {
-        let _ = host.pump_with_budget(budget(5, 5));
-    }));
-    assert!(panic.is_err());
-    assert_eq!(gateway.drain_call_count(11), 1);
-
-    let error = host
-        .pump_with_budget(budget(5, 5))
-        .expect_err("the restored last sequence must reject the pending stale delivery");
-    assert!(matches!(
-        error,
-        EditorRuntimeEventConsumerError::StaleSequence { sequence: 2, .. }
-    ));
-    assert_eq!(gateway.drain_call_count(11), 1);
-    assert_eq!(
-        state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .sequences,
-        [1, 2]
-    );
-
-    let recovered = host.pump_with_budget(budget(5, 5)).unwrap();
-    assert_eq!(recovered.applied(), 1);
-    assert_eq!(gateway.drain_call_count(11), 1);
-    assert_eq!(
-        state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .sequences,
-        [1, 2, 4]
-    );
-}
-
-#[test]
-fn round_robin_budget_gives_each_consumer_a_turn() {
-    let gateway = Arc::new(FakeGateway::new(7));
-    let host =
-        EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(gateway.clone()));
-    let first = Arc::new(Mutex::new(RecordingState::default()));
-    let second = Arc::new(Mutex::new(RecordingState::default()));
-    register_state(&host, "tests.consumer.a", "tests.events.a", first.clone());
-    register_state(&host, "tests.consumer.b", "tests.events.b", second.clone());
-    host.begin_play_session(200, &[CAPABILITY.to_string()])
-        .unwrap();
-    for sequence in 1..=4 {
-        gateway.push(11, "tests.events.a", sequence);
-        gateway.push(12, "tests.events.b", sequence);
-    }
-
-    host.pump_with_budget(budget(1, 1)).unwrap();
-    host.pump_with_budget(budget(1, 1)).unwrap();
-
-    assert_eq!(first.lock().unwrap().sequences, [1]);
-    assert_eq!(second.lock().unwrap().sequences, [1]);
-}
-
-#[test]
-fn round_robin_start_rotates_under_non_divisible_budgets() {
-    let gateway = Arc::new(FakeGateway::new(7));
-    let host =
-        EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(gateway.clone()));
-    let first = Arc::new(Mutex::new(RecordingState::default()));
-    let second = Arc::new(Mutex::new(RecordingState::default()));
-    register_state(&host, "tests.consumer.a", "tests.events.a", first.clone());
-    register_state(&host, "tests.consumer.b", "tests.events.b", second.clone());
-    host.begin_play_session(225, &[CAPABILITY.to_string()])
-        .unwrap();
-    for sequence in 1..=6 {
-        gateway.push(11, "tests.events.a", sequence);
-        gateway.push(12, "tests.events.b", sequence);
-    }
-
-    host.pump_with_budget(budget(3, 2)).unwrap();
-    assert_eq!(first.lock().unwrap().sequences, [1, 2]);
-    assert_eq!(second.lock().unwrap().sequences, [1]);
-
-    host.pump_with_budget(budget(3, 2)).unwrap();
-    assert_eq!(first.lock().unwrap().sequences, [1, 2, 3]);
-    assert_eq!(second.lock().unwrap().sequences, [1, 2, 3]);
-}
-
-#[test]
-fn gateway_failure_does_not_starve_later_consumers() {
-    let gateway = Arc::new(FakeGateway::new(7));
-    let host =
-        EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(gateway.clone()));
-    let first = Arc::new(Mutex::new(RecordingState::default()));
-    let second = Arc::new(Mutex::new(RecordingState::default()));
-    register_state(&host, "tests.consumer.a", "tests.events.a", first.clone());
-    register_state(&host, "tests.consumer.b", "tests.events.b", second.clone());
-    host.begin_play_session(250, &[CAPABILITY.to_string()])
-        .unwrap();
-    gateway.fail_drain(11);
-    gateway.push(12, "tests.events.b", 1);
-
-    let error = host
-        .pump_with_budget(budget(1, 1))
-        .expect_err("the first gateway error remains observable");
-
-    assert!(matches!(
-        error,
-        EditorRuntimeEventConsumerError::Gateway { .. }
-    ));
-    assert!(first.lock().unwrap().sequences.is_empty());
-    assert_eq!(second.lock().unwrap().sequences, [1]);
-}
-
-#[test]
-fn consumer_callback_can_reenter_host_observation_without_deadlock() {
-    let gateway = Arc::new(FakeGateway::new(7));
-    let host = Arc::new(EditorRuntimeEventConsumerHost::new(
-        EditorRuntimeGatewayHandle::new(gateway.clone()),
-    ));
-    let state = Arc::new(Mutex::new(ReentrantObservationState {
-        host: Arc::downgrade(&host),
-        observed_active: 0,
-    }));
-    register_state(
-        &host,
-        "tests.consumer.reentrant",
-        "tests.events.reentrant",
-        state.clone(),
-    );
-    host.begin_play_session(300, &[CAPABILITY.to_string()])
-        .unwrap();
-    gateway.push(11, "tests.events.reentrant", 1);
-
-    let (sender, receiver) = std::sync::mpsc::channel();
-    let pump_host = host.clone();
-    std::thread::spawn(move || sender.send(pump_host.pump()).unwrap());
-    assert_eq!(
-        receiver
-            .recv_timeout(Duration::from_secs(2))
-            .expect("reentrant observation must not deadlock")
-            .unwrap(),
-        1
-    );
-    assert_eq!(state.lock().unwrap().observed_active, 1);
 }
 
 #[test]
@@ -907,13 +735,10 @@ fn run_abi_delivery_storm(delivery_count: u64) -> serde_json::Value {
             .max(report.pending_encoded_bytes_upper_bound());
         max_editor_pending_oldest_age_millis =
             max_editor_pending_oldest_age_millis.max(report.pending_oldest_age().as_millis());
-        if let Some(remaining) = report.last_observed_runtime_remaining_deliveries() {
-            last_observed_runtime_remaining_peak =
-                last_observed_runtime_remaining_peak.max(remaining);
-        }
-        if let Some(oldest_pending_age_millis) =
-            report.last_observed_runtime_oldest_pending_age_millis()
-        {
+        let runtime_backlog = report.runtime_backlog_observation();
+        last_observed_runtime_remaining_peak = last_observed_runtime_remaining_peak
+            .max(runtime_backlog.known_remaining_deliveries_lower_bound());
+        if let Some(oldest_pending_age_millis) = runtime_backlog.max_oldest_pending_age_millis() {
             max_last_observed_runtime_oldest_pending_age_millis =
                 max_last_observed_runtime_oldest_pending_age_millis.max(oldest_pending_age_millis);
         }
@@ -930,20 +755,18 @@ fn run_abi_delivery_storm(delivery_count: u64) -> serde_json::Value {
         assert_eq!(report.decode_p95(), report.decode_elapsed());
         assert_eq!(report.dropped(), 0);
         if report.drained() > 0 {
-            let remaining = report
-                .last_observed_runtime_remaining_deliveries()
-                .expect("a drain creates a complete runtime backlog observation");
+            assert_eq!(runtime_backlog.sampled_consumer_count(), 1);
+            assert_eq!(runtime_backlog.unknown_consumer_count(), 0);
+            let remaining = runtime_backlog.known_remaining_deliveries_lower_bound();
             assert_eq!(
                 remaining.saturating_add(report.queue_depth()),
                 delivery_count as usize - applied
             );
             assert_eq!(
-                report.last_observed_runtime_oldest_pending_age_millis(),
+                runtime_backlog.max_oldest_pending_age_millis(),
                 Some(if remaining == 0 { 0 } else { 17 })
             );
-            assert!(report
-                .last_observed_runtime_backlog_observation_age()
-                .is_some());
+            assert!(runtime_backlog.max_observation_age().is_some());
         }
     }
 
@@ -999,3 +822,9 @@ mod real_runtime_abi;
 
 #[path = "runtime_event_consumer_bounded_pump/round_robin.rs"]
 mod round_robin;
+
+#[path = "runtime_event_consumer_bounded_pump/faults.rs"]
+mod faults;
+
+#[path = "runtime_event_consumer_bounded_pump/pumping.rs"]
+mod pumping;

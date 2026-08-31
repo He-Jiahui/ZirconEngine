@@ -65,13 +65,15 @@ reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/CompositionLighting/PostProcessAmbientOcclusion.cpp
   - dev/UnrealEngine/Engine/Shaders/Private/PostProcessAmbientOcclusion.usf
   - dev/UnrealEngine/Engine/Shaders/Private/PostProcessAmbientOcclusionCommon.ush
+  - dev/LumenInUE5.5.4WithComputeShader/TemporalReprojection.cpp
+  - dev/LumenInUE5.5.4WithComputeShader/Res/Shader/ScreenProbeGather/TemporalReprojection.hlsl
 ---
 
 # 27 · Screen-Space Ambient Occlusion、GTAO、Denoise、Temporal、Depth/Normal Integration、Scalability 与 Product Integration 工程化差距
 
 ## 1. 结论
 
-Zircon 已有一条真实可执行的 SSAO compute 路径：plugin descriptor 能进入 Render Graph，资源声明覆盖 depth、normal、HZB、previous AO 与 current AO，generic compute executor 会按像素 dispatch，offscreen target 与 history 也有对应纹理，产品测试能够证明该 pass 确实执行。这些基础应保留。
+Zircon 已有一条真实可执行的 SSAO compute 路径：plugin descriptor 能进入 Render Graph，typed 资源声明覆盖 current depth、world normal、furthest HZB 与 current AO，generic compute executor 会按像素 dispatch，offscreen target 也有对应纹理。这些基础应保留。2026-08-30 continuation 已从 evaluate descriptor 删除未资格的 previous AO read，并移除 generic executor 仅凭 AO 输出名称推断 history write 的副作用；temporal 必须等待 motion-qualified 独立合同。
 
 但当前 shader 不是工程级 SSAO/GTAO。它没有重建 view-space position，也没有以投影、世界半径、厚度和衰减估算遮蔽，而是比较中心像素与 8 个相邻像素的 raw device depth，再按 world-space `normal.z` 固定压暗。它本质上是分辨率相关的 depth-edge/orientation darkener。更严重的是，默认 Forward+ 管线没有 normal buffer 写入者却让 SSAO 读取该纹理；最终 post process 又把 `AO^2` 乘到完整已照明 scene color，使直射光、镜面、发光与天空一起变暗。SSAO 还是默认启用 feature，现有产品测试只要求全图平均亮度下降，因此会把错误合成与无效 normal 输入当成成功。
 
@@ -95,11 +97,57 @@ Zircon 已有一条真实可执行的 SSAO compute 路径：plugin descriptor �
 
 本轮达到 E3 source-level review：Zircon production chain、失败/缺失分支、测试 oracle及五套参考实现均已交叉核对。没有运行 GPU 产品测试或修改 production；已知 workspace 动态验证阻断继续由既有报告拥有，本篇不重复制造测试结果。Ray-traced AO、distance-field AO、baked AO 与通用 contact shadow不在本篇 owner 内；它们只作为未来 typed AO source/fallback 的接口约束。
 
+### 2.4 2026-08-30 M0 产品隔离进度
+
+冻结审查之后已完成第一段 fail-closed 源码收敛，状态为 `ssao_m0_product_containment_source_implemented_static_checks_passed_dynamic_validation_pending`：
+
+1. `rendering.ssao` 在 umbrella manifest 与 runtime optional-feature catalog 中统一改为默认关闭；默认 Forward+、Deferred 产品图均不再挂载 `ssao-evaluate`。
+2. 显式请求 SSAO 时，pipeline compiler 现在要求 `SCENE_DEPTH`、`GBUFFER_NORMAL` 与 `HZB_FURTHEST` 在 `ssao-evaluate` 之前存在启用的写入 pass。Deferred 可通过当前 writer-order 门禁；没有 normal producer 的 Forward+ 会编译失败，而不是读取只因纹理对象存在就被 materialize 的 clear/stale normal。
+3. `post.uber` 已移除 `AMBIENT_OCCLUSION` graph read，终端 shader 已移除 `AO^2` 对完整 lit scene color 的乘法。旧的 `ssao_quality_profile_darkens_scene_when_enabled` oracle 被 `ssao_product_default_is_fail_closed_and_preserves_scene_output` 取代，不再把全帧变暗当成 AO 正确性的证据。
+4. 本切片只关闭默认暴露、writer availability/order 与错误终端合成。`SSAO-P0-001` 的 projection-aware GTAO/VBAO 算法仍开放；`SSAO-P0-002` 的 typed space/format/sample-count/valid-rect/generation 证明仍归 M1；`SSAO-P0-003` 的 indirect-diffuse 集成和独立 specular-occlusion 合同仍归 M3/P1，当前 SSR specular-occlusion consumer 未在本切片重构。
+
+精确 `rustfmt --check`、源码禁用项扫描、行数预算与 locked Cargo metadata 是本切片可计数的静态证据。受管 validator 仍在进入 Cargo 前被 `cargo_reuse_target_mismatch` 阻断，因此不声明 Rust 编译、WGPU 产品帧、PNG、RenderDoc、GPU frame profile、功耗或性能改善；这些证据必须在通道恢复后写入 `docs/tests/runtime/render`。
+
+### 2.5 2026-08-30 M1 profile、M2 spatial 与 M3 lighting source 续片
+
+M0 之后继续完成了不依赖动态通道的 M1/M2/M3 源码切片，状态更新为 `ssao_m1_profile_output_receipt_m2_gtao_spatial_half_bilateral_m3_indirect_diffuse_source_implemented_static_checks_passed_dynamic_validation_pending`。这不是 accepted milestone；temporal、specular occlusion、WGPU 与产品证据仍开放：
+
+1. `RenderFeatureQualitySettings::default()` 现在与 plugin manifest/runtime catalog 一致地默认关闭 SSAO；只有显式 quality profile 才能重新请求该 feature。
+2. 编译器不再只检查同名 writer。显式 SSAO 现在构造并校验 typed qualification receipt，逐项记录 depth、world-normal 与 HZB 的 producer version，并证明 `Depth32Float` standard 0..1 device depth、`Rgba8Unorm` signed-unorm world normal、`Rgba16Float` max-reduction HZB、2D topology、sample count、SceneLinear allocation、HZB mip geometry 与 valid render rect。缺失或歧义 writer、格式/extent/mip/usage 不一致均 fail closed。
+3. `GBUFFER_NORMAL` 的 graph physical format 已固定为和 geometry/offscreen owner 相同的 linear `Rgba8Unorm`，不再随 camera HDR 在 sRGB/float format 之间漂移；格式选择与 MSAA 策略分离，避免仅因显式格式就把 GBuffer attachment 私自改成单采样。
+4. 当前 AO WGSL 声明单采样 depth/normal 且没有 viewport-origin 参数，因此 MSAA 输入、非零 SceneLinear viewport origin、partial SceneLinear render rect、非 0..1 viewport depth range和 custom/oblique projection 都会在 compile 阶段明确拒绝。它们必须分别由 resolve、render-rect ABI 与 projection reconstruction contract 关闭，不能近似运行。
+5. evaluate descriptor 已删除 previous-AO binding/resource，generic compute executor 也不再仅凭 `AMBIENT_OCCLUSION` storage write 发布 history-written side effect。在 M3 接入 motion reprojection、depth/normal/disocclusion rejection 与独立 `AoHistoryKey` 前，temporal authoring 继续 fail closed，当前帧 evaluate 不读取任何旧 AO。
+6. 新增 canonical `AoSourceSettings`，以米为单位定义 radius/thickness/depth bias/falloff，并携 intensity、Low/Medium/High/Ultra、half/full resolution 与 temporal authoring request。该值已贯通 camera component、project scene asset/TOML、post-process volume schema/evaluation、frame extract 与 final pipeline compile；`AoSourceSettingsKey` 用 float bits 和 schema version 形成稳定 cache/profile identity。未启用 SSAO 时 AO authoring 不进入 graph cache key，避免无功能变化的 graph cache miss。
+7. typed qualification receipt 不再是 compiler 局部临时值。显式且输入合格的 SSAO 会生成持久 `CompiledAoProfile`，记录 artifact/compiler/shader-interface version、目标 `Gtao` method、source key、resolution divisor、projection/depth/render-rect/allocation、三类 typed producer descriptor，并在 `CompiledRenderPipeline::from_parts` 写入非零 validation generation；三个 input receipt 使用同一 generation，避免跨 compiled generation 复用。
+8. 新增受约束的 `AmbientOcclusionOutputs` 与 `AoHistoryKey` 合同。输出只能由 typed `ambient-occlusion` texture producer、非零 extent/generation 和 extent内 valid rect构造；compiled pipeline现在要求 graph 中恰好一个未裁剪 AO writer，从其真实 texture lifetime发布 producer pass、format、extent、valid rect，并与 profile 共用 pipeline validation generation。history identity包含 view/world-origin、pipeline/profile、projection/depth、render rect/allocation、depth/normal/motion producer、output format/extent/generation，并只接受 typed `scene-velocity` producer。该 receipt证明compiled product identity，不伪装成逐帧GPU已完成标记。当前 temporal authoring仍在 profile compile阶段 fail closed，因为尚未有 motion/depth/normal逐像素拒绝。
+9. 2026-08-30 continuation 已将 `CompiledAoProfile` 接成 shader params 的唯一 authority：64-byte ABI 分离 AO work extent 与 full input extent，并携 resolution divisor、quality-bounded `1x2/2x2/3x3/9x3` slice/sample plan、米制 radius/thickness/bias/falloff、intensity、HZB mip cap 与随工作分辨率缩放的 projected-radius cap；runtime extent/profile generation不匹配会 fail closed。旧 8-neighbor raw-device-depth shader 已替换为使用 unjittered inverse projection、perspective/orthographic view vector、world-position reconstruction、meters-per-work-pixel projected radius、footprint-driven HZB mip 与 horizon bitmask integration 的 GTAO/VBAO evaluate 源码。
+10. Full resolution 保留 evaluate -> spatial 两个 compute，spatial 以3x3 joint-bilateral直接写 persistent final AO。Half resolution由 compiled profile选择 divisor 2；共享 `RenderTextureExtentPolicy::Relative` 以 Render reference、`1/2`、`Ceil`分配 raw/spatial中间纹理，保留奇数尺寸末行/末列。Evaluate与spatial每次depth/normal/HZB访问都从work coord显式映射回full SceneLinear coord，随后独立`ssao-bilateral-upsample`读取准确spatial producer version与full depth/normal，以2x2 bilinear + plane-distance + normal rejection写full final AO。compiled `AmbientOcclusionOutputs` 从实际final writer发布，因此full producer为spatial、half producer为upsample。最终 AO 仍只在显式 profile启用时成为唯一 `deferred-lighting` external read，并只调制scene ambient和environment diffuse；direct lighting、environment specular、emissive与unlit不乘AO。motion-qualified temporal和独立specular-occlusion仍开放。
+11. `RenderAmbientOcclusionExecutionReport` 现按resolution divisor验证3-pass full或4-pass half chain：除evaluate/raw、spatial/raw与lighting/final边外，half还必须有spatial intermediate write、upsample intermediate read/final write及非零upsample dispatch。22个typed failure bits覆盖三条compute pipeline resolution与资源边，38个固定diagnostic paths记录三条candidate/resolved artifact fingerprint、dispatch/pass/access计数和device identity。通用compute workload仍默认`Reject`；evaluate、spatial、条件upsample分别以显式family和shader interface generation 3选择last-good，所有本帧AO compute必须处于同一Runtime09A device epoch。该receipt证明command recording、materialization前置验证与compiled generation闭合，不是GPU fence/timestamp completion；shader硬失败、OOM/device loss和GPU终态receipt仍开放。
+12. Runtime09A新增bounded scene submission terminal journal后，AO不再需要feature私有poller。成功scene ticket在frame receipt完成后进入由RHI `max_unresolved_submissions`限制的日志；唯一frame-begin poll以一次批量status观察推进`Completed/Failed/Cancelled/DeviceLost`，并把最近终态及pending/capacity/observed/terminal backlog计数以独立`RenderSceneSubmissionCompletionReport`发布到`RenderStats`与11个固定diagnostic paths。AO command report与scene terminal report通过frame generation和submission ticket关联，当前frame graph record不会被异步结果覆盖。该源码切片关闭“如何表达GPU终态”的基础设施缺口，但尚未用真实WGPU证明AO pass成功、未把terminal status折叠进AO专用DTO，也不关闭OOM/device loss/视觉验收项。
+
+本切片新增 source-key roundtrip/default、volume/asset roundtrip、camera/volume extract、cache participation、compiled profile/generation、invalid physical settings、unqualified temporal、history-generation、profile-to-ABI、runtime extent mismatch、partial rect、full/half descriptor topology、ceil-divided extent、evaluate-to-spatial-to-upsample version edge、final output producer、conditional lighting read、default no-AO graph、generic-executor no-implicit-history和AO command-record receipt回归源码。静态量化为full 2个、half 3个AO compute pass，各5个binding；spatial最多9个邻域样本，upsample最多4个depth/normal-aware样本，Ultra最多54个HZB directional samples/work-pixel，full deferred binding 29。AO failure/diagnostic静态计数为22/38；resource descriptor主owner拆为925行，relative schema allocation由146行子owner持有。精确`rustfmt --check`、旧参数/history/错误full-color与direct/specular AO乘法源码扫描、scoped diff check及locked metadata属于本轮静态门；受管 validator 的既知 `cargo_reuse_target_mismatch` 未重复触发。新增测试未执行，没有受管 Rust/Naga/WGPU shader creation、PNG、RDC、GPU profile、功耗或性能数据，不生成纯文本伪截图，也不把本状态计为 accepted milestone。evaluate中的精确`acos`以及half/full实际break-even必须等逐pass GPU profile、带宽计数与解析画质误差语料后决策；当前不声明性能改善。
+
+Half-resolution结构审查先于实现完成：Unity HDRP以`ceil(full * 0.5)`保留奇数边界，half evaluate显式把normal coord乘2，并由独立`GTAOBlurAndUpsample`以full depth执行bilateral upsample；Unreal的SSAO shader同样把downsampled AO与upsample filter作为独立阶段。Zircon据此拒绝“只把raw纹理减半”的方案，选择profile驱动三阶段图与通用relative extent契约。动态恢复后必须分别采集full/half evaluate、spatial、upsample GPU timestamp、transient bytes、dispatch groups、PSO warm/cold、p50/p95/p99和功耗，并以thin-occluder、depth discontinuity、odd extent、camera motion场景比较AO误差；只有总成本下降且漏边/halo容差通过，half模式才可计性能或产品accepted。
+
+### 2.6 2026-08-30 AO temporal 架构重审与旧 history owner hard cut
+
+继续 temporal 之前重新纵向检查了 `CompiledAoProfile`、AO graph、`SceneFrameHistoryTextures`、history binder/epilogue、Zircon motion-vector 语义及参考实现。结论是原共享 history 中无条件创建的 render-sized `Rgba8Unorm` AO 纹理不是可继续扩展的 temporal 基础：profile compiler 当前明确拒绝 temporal，evaluate/spatial/upsample graph 不读取 previous AO，generic compute 也已删除按输出名隐式发布 history write 的副作用。因此该纹理没有合格消费者，却仍随共享 history 分配、初始化、报告绑定资格并保留帧尾 copy 编码路径，混淆了 spatial AO 与 temporal history 的所有权。
+
+本切片执行 hard cut，状态为 `ssao_unqualified_history_owner_hard_cut_static_passed_dynamic_validation_pending`：
+
+1. `SceneFrameHistoryTextures` 删除 AO texture/view/descriptor 与 `zircon-history-ambient-occlusion` 初始化 attachment；当前帧 `OffscreenTarget::ambient_occlusion`、GTAO evaluate/spatial/half bilateral和deferred indirect-diffuse consumer保持不变。
+2. shared history binder 不再发布 `HISTORY_PREVIOUS_AMBIENT_OCCLUSION` physical lease；history epilogue不再把current AO复制到共享 history，也不再把spatial AO记录为`SceneHistoryDomain::AmbientOcclusion`写入。公共domain/resource identity暂保留为未来显式迁移合同，但生产路径没有物理owner。
+3. `ssao_enabled` 不再单独触发整包`SceneFrameHistoryTextures`创建；AO domain在共享transaction中固定为`FeatureDisabled`，直到独立temporal owner落地。删除的单纹理容量模型为4 bytes/pixel，即1920x1080约7.91 MiB、3840x2160约31.64 MiB；这是静态分配上限差额，不是实测显存、带宽、帧时或功耗改善。
+4. Unity HDRP `GTAOTemporalDenoise.compute`以motion执行`previous_uv = current_uv - velocity`，history打包depth/AO/motion magnitude并做3x3 AO bounds clamp、depth与velocity权重。Lumen复刻的`TemporalReprojection.hlsl`进一步明确ViewRect/history UV边界、previous depth gather、disocclusion threshold、自定义bilinear visibility weight、frame-count/confidence和fast-update state；但该复刻中object GBuffer velocity读取被注释为零值，不能直接照搬为动态物体正确性证据。Zircon现有velocity同样采用`current_uv - previous_uv`，未来AO reprojection必须减去velocity，并同时通过camera-cut/FOV/projection/world-origin与object-motion资格。
+5. 正确后继只能是独立`AoTemporalHistoryStore`。它仅在`CompiledAoProfile.temporal`、typed motion producer与完整`AoHistoryKey`同时合格时按view创建；previous/current ping-pong和valid rect显式提交，payload至少能证明AO、linear depth、normal与confidence/reject信息，格式由capability/quality compiler裁决，不复用已删除的裸`Rgba8Unorm`。disable/re-enable、cut、teleport、rebase、projection/profile/extent/generation变化均显式invalidate。
+
+Temporal实现前的性能报告门固定如下：在同一adapter/driver/BuildSet、关闭capture干扰并完成warm-up后，分别采集full/half的evaluate、spatial、upsample GPU timestamp和总AO critical-path p50/p95/p99，记录transient/persistent bytes、dispatch groups、PSO warm/cold、RenderDoc pass/resource依赖与整机功耗；运动语料必须覆盖camera/object motion、disocclusion、thin occluder、depth/normal edge、odd extent和history reset。候选temporal应保持每像素有界的`O(P)` reprojection/reject/clamp、热帧CPU allocation 0、无额外整图copy；只有ghosting/convergence容差通过且总成本与功耗相对无temporal基线可解释时，才实现/启用并声明优化。当前动态通道仍在Cargo前被`cargo_reuse_target_mismatch`阻断，所以本切片没有Rust/WGPU、PNG/RDC、GPU timestamp或功耗结论，也不计accepted milestone。
+
 ## 3. 当前可保留的工程基础
 
 1. SSAO descriptor 使用真实 per-pixel compute workload，不是固定 `[1,1,1]` no-op；Render Graph 明确声明 depth/normal/HZB/history/AO access。
 2. shared HZB 已能被 SSAO 读取，避免为每个 screen-space effect另建一套无所有权金字塔。
-3. offscreen target 与 scene history已有 AO current/history 资源和 copy 生命周期，可作为新 history owner 的迁移底座。
+3. offscreen target已有current AO物理输出；旧共享AO history已因无合格temporal消费者被hard cut。未来只保留`AoHistoryKey`/domain作为迁移合同，物理history必须由独立`AoTemporalHistoryStore`重新建立。
 4. profile、compiled feature flags与 degrade ladder能够禁用 SSAO；插件插入时会移除同名旧 feature，不会在正确注入路径同时执行两遍。
 5. 产品测试真实创建 GPU viewport、执行 HZB/SSAO/generic executor并检查 resource materialization；应改造其画质 oracle，而不是删除这条产品 lane。
 6. Deferred path 已有 world normal GBuffer，post process也已有 projection/depth参数与 viewport-origin工具；这些能力目前没有被 SSAO 正确消费。
@@ -142,6 +190,25 @@ Unreal 将 SSAO/GTAO method、Horizon Search/Integrate/Spatial/Temporal/Upsample
 | Plugins04 | rendering package/capability/default delivery truth | AO算法、输入、质量和产品oracle |
 
 Runtime09H1已拥有“全局 `history_available` 无法表示各history domain有效性”的通用 P0；本篇只登记 AO 的独立 generation、reprojection与reject要求，不重复计同一 P0。Plugins04继续拥有 stable/complete/default capability truth；Runtime27把“当前默认算法产生错误画面”列为产品正确性问题。
+
+### 5.1 2026-08-30 通用 Compute PSO / last-good 结构重审
+
+本轮不以AO专用fallback修补通用shader/PSO所有权。当前 `ComputePipelineCache` 以完整WGSL源文本、entry point和binding layout为候选cache key，仅有`Ready/Failed`条目；`GenericComputeExecutor` 在每个pass的command recording路径持有全局`Mutex`，同步执行Naga parse/validate、bind-group layout、shader module和compute pipeline创建。这些是源码事实，尚未有GPU/CPU profile证明它们是实际帧耗瓶颈。
+
+Unreal对照证据是`RHI/Private/PipelineStateCache.cpp` 4243行附近的`PipelineStateCache::GetAndOrCreateComputePipelineState`：先以完整`FComputePipelineStateInitializer`查找PSO，miss时根据`IsAsyncCompilationAllowed`创建completion event并调用`InternalCreateComputePipelineState`，非file-cache候选作为command-list dispatch prerequisite。`RenderCore/Private/ShaderPipelineCache.cpp`另外拥有compute PSO precompile、batch size/time budget及outstanding/waiting/active/compiled/skipped统计。Zircon应吸收“候选编译、发布、命中与调度回执分层”，不照搬UE的RHI异步任务实现。
+
+结构裁决：
+
+1. `pipeline_label`只是调试名，不能证明旧shader与新params/resource语义兼容；source hash也只能标识candidate artifact，不能充当interface version。
+2. 只有显式选择last-good的compute workload才可回退；默认policy仍为`Reject`。
+3. 可回退family identity至少包含logical family与caller-owned interface generation；运行时还必须再精确匹配entry point、workgroup size、全量binding layout、scene layout generation和device generation。任一不同都禁止使用旧PSO。
+4. candidate cache以artifact fingerprint隔离source revision；family publication独立持有当前last-good。只有Naga验证、WGPU validation error scope和发布条件全部成功才能替换last-good。失败candidate不得污染已发布generation。
+5. resolution必须返回typed `Ready/UsingLastGood/Failed`、candidate/resolved fingerprint、interface/device generation和failure reason，并写入`RenderGraphComputeDispatchRecord`。AO只消费该通用receipt，不自行猜测shader是否回退。
+6. device loss/OOM属于Runtime09A的device owner；新device generation必须丢弃所有旧WGPU handle，不得跨device使用last-good。本篇只在收到该typed terminal state后发布AO `Recovering/Failed`。
+
+2026-08-30 源码实施已完成上述边界：Render Graph workload/dispatch receipt具有显式fallback policy、family/interface identity和typed resolution schema；通用compute cache分为bounded candidate cache与bounded family publication cache，WGPU validation error scope阻止无效PSO发布；AO evaluate/spatial以及half profile条件启用的bilateral upsample以三个稳定family和interface generation 3显式选入；AO逐帧receipt只消费generic executor写入的`Ready/UsingLastGood`事实。device epoch变化或scene layout变化会清空已发布WGPU handle，接口、entry、workgroup或binding ABI变化均不回退。当前状态为`render_plan07_ssao_half_resolution_bilateral_source_implemented_dynamic_validation_pending`；尚未执行新增Rust/WGPU测试，因此不宣称编译、运行或恢复能力已验收。
+
+性能验证计划（当前只是待测假设，不是优化收益声明）：在validator/WGPU基础设施恢复后，用CPU span分开记录cache lock wait、Naga parse/validate、WGPU module/PSO creation、bind-group creation与command encoding，报告cold miss、warm hit、failed candidate和8/32个concurrent pass的p50/p95/p99；再以RenderDoc/GPU timestamp确认AO evaluate/spatial GPU时间与queue overlap。只在该基线证明cache miss/lock处于critical path后，才引入prewarm/async compilation并用同一corpus复测；需同时报告adapter/driver/backend、CPU帧时、GPU pass时间、pipeline create次数、fallback次数、峰值驻留和功耗采集来源。
 
 ## 6. P0：必须先关闭的产品正确性错误
 
@@ -364,6 +431,11 @@ history identity至少包含view family/view、pipeline、projection/depth conve
 | Currentness fingerprint | review_complete | 2026-08-16 | 89输入、26,329行、1,041,326 bytes；SHA-256 `16c546c2...c60108` |
 | Algorithm/input/composition深读 | review_complete | 2026-08-16 | raw depth 8-neighbor、world normal.z、Forward normal无writer、full-lit-color乘AO |
 | Finding与owner裁决 | review_complete | 2026-08-16 | 3 P0 / 48 P1 / 12 P2；通用history、RHI、plugin delivery与Editor framework不重复计数 |
-| Production重构与动态资格 | pending | - | 本篇只新增review；未修改production、tests、Cargo、manifest或workflow |
+| M0 product containment | source_implemented_dynamic_validation_pending | 2026-08-30 | 默认入口 fail closed；Forward+ 缺 normal producer 拒绝；terminal full-lit AO 乘法删除；旧“更暗即成功” oracle 删除 |
+| M1 typed profile/output/execution receipt | source_implemented_dynamic_validation_pending | 2026-08-30 | producer version + depth/normal/HZB format/sample/extent/mip/render-rect 静态资格；canonical settings/profile/output/history identity与逐帧command-record receipt已落源码；兼容shader candidate的同device-epoch last-good已落源码，GPU completion、未发布硬失败、OOM/device-loss终态与动态证据仍开放 |
+| Generic Compute PSO compatible last-good | source_implemented_dynamic_validation_pending | 2026-08-30 | 显式family/interface generation + 完整binding/workgroup ABI + device epoch约束；Naga/WGPU validation成功后才发布；Reject默认，AO evaluate/spatial/条件upsample显式启用；22-bit AO failure receipt与38条诊断路径已静态核对，动态WGPU证据仍开放 |
+| M2 GTAO evaluate + spatial + half bilateral source | source_implemented_dynamic_validation_pending | 2026-08-30 | world-unit horizon evaluate写raw AO；full为evaluate->spatial，half以ceil-divided relative extent执行evaluate->spatial->full bilateral upsample；full depth/normal坐标映射、typed version edge与最终输出writer已落源码，画质/性能证据仍开放 |
+| AO unqualified shared-history owner hard cut | source_implemented_static_checks_passed_dynamic_validation_pending | 2026-08-30 | 删除共享history中的AO texture/view/init/bind/copy/write-intent；SSAO不再触发共享history创建。静态容量模型减少4 bytes/render-pixel的无消费者持久纹理；未来独立`AoTemporalHistoryStore`、动态WGPU和性能/功耗证据仍开放 |
+| M3 indirect-diffuse composition source | source_in_progress_dynamic_validation_pending | 2026-08-30 | final AO条件接入唯一deferred-lighting consumer；只调制ambient/environment diffuse，direct/specular/emissive/unlit保持独立；temporal、独立specular-occlusion与动态证据仍开放 |
 
 完成标准不是“开启后画面更暗”或“SSAO pass已执行”，而是每个合格view都从有producer证明的depth/normal/motion输入生成几何正确、边缘稳定、时序可拒绝、可伸缩且只作用于许可光照分量的AO，并能用current artifact、GPU成本与反例scene证明结果。达到这些门之前，当前SSAO应视为不具默认产品资格。

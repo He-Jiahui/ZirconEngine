@@ -17,8 +17,7 @@ impl EditorStartupSessionDocument {
 
         WelcomePaneSnapshot {
             title: "Open or Create".to_string(),
-            subtitle: "Continue from a recent project or scaffold a renderable empty project."
-                .to_string(),
+            subtitle: "Recent projects".to_string(),
             status_message: self.status_message.clone(),
             browse_supported,
             recent_projects: self

@@ -3,20 +3,22 @@ use std::sync::{Arc, Mutex};
 
 use bytemuck::{Pod, Zeroable};
 
+use crate::graphics::backend::RenderBackend;
 use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassMeshCommandLists;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshIndirectArgsReadback, MeshIndirectDrawExecution, MeshPassIndirectDrawExecutions,
 };
+use crate::graphics::types::GraphicsError;
 use crate::graphics::visibility::{
     HzbOcclusionCullReadbackStats, HzbOcclusionCullReport, HzbOcclusionIndirectArgsReadbackSummary,
 };
-use zr_rhi_wgpu::{GpuReadbackQueue, ReadbackError};
 
-use super::bind_group_cache::HzbOcclusionBindGroupCache;
-use super::params_workspace::HzbOcclusionParamsWorkspace;
-use super::phase_dispatch::{HzbOcclusionPhaseDispatch, HzbOcclusionPhaseDispatchSummary};
 use super::HzbSampledResourceIdentity;
+use super::bind_group_cache::HzbOcclusionBindGroupCache;
+use super::params_workspace::{HzbOcclusionParamsCommit, HzbOcclusionParamsWorkspace};
+use super::phase_dispatch::{HzbOcclusionPhaseDispatch, HzbOcclusionPhaseDispatchSummary};
+use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 pub(crate) const HZB_OCCLUSION_CULL_PIPELINE_LABEL: &str = "zircon-hzb-occlusion-cull-pipeline";
 pub(crate) const HZB_OCCLUSION_CULL_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
@@ -94,6 +96,12 @@ pub(crate) struct HzbOcclusionCuller {
     stats_buffer: wgpu::Buffer,
     stats_readbacks: Arc<Mutex<HzbStatsReadbackQueue>>,
     pending_indirect_args: Mutex<VecDeque<PendingHzbIndirectArgs>>,
+}
+
+pub(in crate::graphics::scene::scene_renderer) struct PreparedHzbOcclusionCull {
+    pub(in crate::graphics::scene::scene_renderer) report: HzbOcclusionCullReport,
+    pub(in crate::graphics::scene::scene_renderer) uploads: WgpuBufferUploadBatch,
+    pub(in crate::graphics::scene::scene_renderer) params_commits: Vec<HzbOcclusionParamsCommit>,
 }
 
 struct HzbStatsReadbackSlot {
@@ -244,7 +252,6 @@ impl HzbOcclusionCuller {
     pub(crate) fn execute(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         scene_bind_group: &wgpu::BindGroup,
         gpu_scene_bind_group: &wgpu::BindGroup,
@@ -252,19 +259,31 @@ impl HzbOcclusionCuller {
         sampled_resource_identity: HzbSampledResourceIdentity,
         mesh_draw_lists: RenderPassMeshCommandLists<'_>,
         history_available: bool,
-    ) -> HzbOcclusionCullReport {
+    ) -> PreparedHzbOcclusionCull {
         let candidate_arg_count = mesh_draw_lists.occlusion_cull_candidate_arg_count();
         let candidate_instance_count = mesh_draw_lists.occlusion_cull_candidate_instance_count();
         if candidate_arg_count == 0 {
-            return HzbOcclusionCullReport::single_frame_reproject(0, 0, 0, 0, history_available);
+            return PreparedHzbOcclusionCull {
+                report: HzbOcclusionCullReport::single_frame_reproject(
+                    0,
+                    0,
+                    0,
+                    0,
+                    history_available,
+                ),
+                uploads: WgpuBufferUploadBatch::new(),
+                params_commits: Vec::new(),
+            };
         }
 
-        self.clear_stats(queue);
+        self.clear_stats(encoder);
 
         let mut dispatch_summary = HzbOcclusionPhaseDispatchSummary::default();
         let mut params_buffer_create_count = 0u32;
         let mut params_upload_byte_count = 0u64;
         let mut bind_group_create_count = 0u32;
+        let mut uploads = WgpuBufferUploadBatch::new();
+        let mut params_commits = Vec::new();
         for execution in mesh_draw_lists
             .hzb_occlusion_indirect_executions()
             .into_iter()
@@ -278,13 +297,14 @@ impl HzbOcclusionCuller {
                 .encode_clear_outputs(encoder);
             let prepare_stats = self.execute_indirect_args_buffer(
                 device,
-                queue,
                 encoder,
                 scene_bind_group,
                 gpu_scene_bind_group,
                 previous_hzb_view,
                 sampled_resource_identity,
                 &phase_dispatch,
+                &mut uploads,
+                &mut params_commits,
             );
             params_buffer_create_count =
                 params_buffer_create_count.saturating_add(prepare_stats.params_buffer_create_count);
@@ -295,38 +315,39 @@ impl HzbOcclusionCuller {
             execution.mark_compaction_ready_for_replay();
             dispatch_summary.record_phase(&phase_dispatch);
         }
-        HzbOcclusionCullReport::single_frame_reproject(
-            candidate_arg_count,
-            candidate_instance_count,
-            dispatch_summary.dispatch_group_count(),
-            dispatch_summary.dispatched_phase_count(),
-            history_available,
-        )
-        .with_workspace_stats(
-            params_buffer_create_count,
-            params_upload_byte_count,
-            bind_group_create_count,
-        )
+        PreparedHzbOcclusionCull {
+            report: HzbOcclusionCullReport::single_frame_reproject(
+                candidate_arg_count,
+                candidate_instance_count,
+                dispatch_summary.dispatch_group_count(),
+                dispatch_summary.dispatched_phase_count(),
+                history_available,
+            )
+            .with_workspace_stats(
+                params_buffer_create_count,
+                params_upload_byte_count,
+                bind_group_create_count,
+            ),
+            uploads,
+            params_commits,
+        }
     }
 
-    fn clear_stats(&self, queue: &wgpu::Queue) {
-        queue.write_buffer(
-            &self.stats_buffer,
-            0,
-            bytemuck::bytes_of(&HzbOcclusionCullGpuStats::zeroed()),
-        );
+    fn clear_stats(&self, encoder: &mut wgpu::CommandEncoder) {
+        encoder.clear_buffer(&self.stats_buffer, 0, None);
     }
 
     fn execute_indirect_args_buffer(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         scene_bind_group: &wgpu::BindGroup,
         gpu_scene_bind_group: &wgpu::BindGroup,
         previous_hzb_view: &wgpu::TextureView,
         sampled_resource_identity: HzbSampledResourceIdentity,
         phase_dispatch: &HzbOcclusionPhaseDispatch<'_>,
+        uploads: &mut WgpuBufferUploadBatch,
+        params_commits: &mut Vec<HzbOcclusionParamsCommit>,
     ) -> HzbOcclusionWorkspacePrepareStats {
         let execution = phase_dispatch.execution();
         let params = self
@@ -335,7 +356,6 @@ impl HzbOcclusionCuller {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .prepare(
                 device,
-                queue,
                 execution.resource_identity().workspace_id(),
                 phase_dispatch.args_count(),
             );
@@ -361,6 +381,12 @@ impl HzbOcclusionCuller {
         pass.set_bind_group(1, bind_group.bind_group, &[]);
         pass.set_bind_group(3, gpu_scene_bind_group, &[]);
         pass.dispatch_workgroups(phase_dispatch.dispatch_group_count(), 1, 1);
+        if let Some(upload) = params.upload {
+            uploads.push(upload);
+        }
+        if let Some(commit) = params.commit {
+            params_commits.push(commit);
+        }
         HzbOcclusionWorkspacePrepareStats {
             params_buffer_create_count: params.stats.created_buffer_count,
             params_upload_byte_count: params.stats.uploaded_byte_count,
@@ -368,12 +394,28 @@ impl HzbOcclusionCuller {
         }
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn commit_params_uploads(
+        &self,
+        commits: Vec<HzbOcclusionParamsCommit>,
+    ) -> u32 {
+        let mut workspace = self
+            .params_workspace
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        commits
+            .into_iter()
+            .filter(|commit| workspace.commit(*commit))
+            .count()
+            .try_into()
+            .unwrap_or(u32::MAX)
+    }
+
     pub(crate) fn request_frame_readbacks(
         &self,
-        queue: &mut GpuReadbackQueue,
+        backend: &RenderBackend,
         indirect_draws: &MeshPassIndirectDrawExecutions,
         source_frame_index: u64,
-    ) -> Result<(), ReadbackError> {
+    ) -> Result<(), GraphicsError> {
         let indirect_args_admitted = self
             .pending_indirect_args
             .lock()
@@ -395,10 +437,10 @@ impl HzbOcclusionCuller {
         {
             return Ok(());
         }
-        if let Err(error) = queue.request_readback_external(
-            "hzb-occlusion.stats",
+        let stats_admitted = match backend.enqueue_product_diagnostic_buffer(
             &self.stats_buffer,
-            0..HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
+            0,
+            HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
             Box::new(move |result| {
                 let mut readbacks = stats_readbacks
                     .lock()
@@ -414,14 +456,25 @@ impl HzbOcclusionCuller {
                 readbacks.complete(source_frame_index, stats);
             }),
         ) {
-            self.stats_readbacks
+            Ok(admitted) => admitted,
+            Err(error) => {
+                self.stats_readbacks
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .cancel(source_frame_index);
+                return Err(error);
+            }
+        };
+        if !stats_admitted {
+            let mut stats_readbacks = self
+                .stats_readbacks
                 .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .cancel(source_frame_index);
-            return Err(error);
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            stats_readbacks.cancel(source_frame_index);
+            stats_readbacks.record_drop();
+            return Ok(());
         }
-        let indirect_args = indirect_draws
-            .request_hzb_occlusion_args_readbacks(queue, "hzb-occlusion.indirect-args")?;
+        let indirect_args = indirect_draws.request_hzb_occlusion_args_readbacks(backend)?;
         self.pending_indirect_args
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())

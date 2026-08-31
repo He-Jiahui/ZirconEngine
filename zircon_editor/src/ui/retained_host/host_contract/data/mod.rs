@@ -1,3 +1,4 @@
+mod asset_deletion_blocker;
 mod assets;
 mod close_prompt;
 mod host_components;
@@ -12,6 +13,7 @@ mod viewport_image;
 mod welcome;
 mod world_space_submission;
 
+pub(crate) use asset_deletion_blocker::*;
 pub(crate) use assets::*;
 pub(crate) use close_prompt::*;
 pub(crate) use host_components::*;

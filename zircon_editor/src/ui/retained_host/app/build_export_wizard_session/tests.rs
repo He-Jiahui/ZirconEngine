@@ -7,7 +7,7 @@ use crate::ui::host::{
     ExportWizardJobStatus, ExportWizardPipelineStageCommand, DESKTOP_EXPORT_START_BUTTON,
 };
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
-use zircon_runtime_interface::export::ExportStage;
+use zircon_runtime_interface::{export::ExportStage, ui::dispatch::UiWindowId};
 
 #[derive(Clone, Copy, Debug, Default)]
 struct ImmediateSuccessRunner;
@@ -74,6 +74,7 @@ fn desktop_export_wizard_sessions_project_view_model_after_generate_plan() {
             "desktop_windows",
             ExportWizardPanelAction::GeneratePlan,
             Some(ready_options("desktop_windows")),
+            test_window_id(),
         )
         .expect("generate plan should create an inactive session");
 
@@ -90,6 +91,35 @@ fn desktop_export_wizard_sessions_project_view_model_after_generate_plan() {
 }
 
 #[test]
+fn desktop_export_wizard_session_rejects_cross_window_reuse() {
+    let mut sessions = DesktopExportWizardSessions::new(test_job_system());
+    sessions
+        .dispatch_profile_action(
+            "desktop_windows",
+            ExportWizardPanelAction::GeneratePlan,
+            Some(ready_options("desktop_windows")),
+            UiWindowId::new("window.main"),
+        )
+        .expect("the first window should own the export wizard session");
+
+    let error = sessions
+        .dispatch_profile_action(
+            "desktop_windows",
+            ExportWizardPanelAction::GeneratePlan,
+            Some(ready_options("desktop_windows")),
+            UiWindowId::new("window.secondary"),
+        )
+        .expect_err("another window must not reuse the first window's modal authority");
+
+    assert!(matches!(
+        error,
+        ExportWizardPanelSessionError::ToolWindowMismatch { expected, received }
+            if expected == UiWindowId::new("window.main")
+                && received == UiWindowId::new("window.secondary")
+    ));
+}
+
+#[test]
 fn desktop_export_wizard_sessions_start_refreshes_existing_plan_options() {
     let mut sessions = DesktopExportWizardSessions::new(test_job_system());
     let first_options = ready_options_with_out("desktop_windows", "D:\\zircon-export-old");
@@ -100,6 +130,7 @@ fn desktop_export_wizard_sessions_start_refreshes_existing_plan_options() {
             "desktop_windows",
             ExportWizardPanelAction::GeneratePlan,
             Some(first_options.clone()),
+            test_window_id(),
         )
         .expect("generate plan should create the first inactive session");
     assert_eq!(
@@ -117,6 +148,7 @@ fn desktop_export_wizard_sessions_start_refreshes_existing_plan_options() {
             "desktop_windows",
             ExportWizardPanelAction::Start,
             Some(second_options.clone()),
+            test_window_id(),
             ImmediateSuccessRunner,
         )
         .expect("start should refresh the existing plan before launching");
@@ -163,6 +195,7 @@ fn desktop_export_wizard_sessions_use_profile_strategies_for_stage_plan() {
                 ExportPackagingStrategy::SourceTemplate,
                 ExportPackagingStrategy::LibraryEmbed,
             ])),
+            test_window_id(),
         )
         .expect("generate plan should accept the browser profile strategies");
 
@@ -180,6 +213,10 @@ fn desktop_export_wizard_sessions_use_profile_strategies_for_stage_plan() {
         .plan()
         .command(ExportStage::PlatformBundle)
         .is_some());
+}
+
+fn test_window_id() -> UiWindowId {
+    UiWindowId::new("test.window")
 }
 
 #[test]

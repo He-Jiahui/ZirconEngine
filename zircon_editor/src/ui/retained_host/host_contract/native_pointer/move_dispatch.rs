@@ -1,4 +1,5 @@
 mod clear;
+mod dock_overflow;
 mod entry;
 mod menu;
 mod page_overflow;

@@ -6,6 +6,7 @@ use crate::ui::{
     tree::UiRuntimeTreeLayoutExt,
 };
 use zircon_runtime_interface::ui::{
+    binding::{UiBindingSourceKind, UiBindingUpdateStatus},
     component::UiValue,
     dispatch::{
         UiDispatchEffect, UiDispatchReply, UiInputEvent, UiKeyboardInputEvent,
@@ -22,6 +23,7 @@ use zircon_runtime_interface::ui::{
 };
 
 mod authored_frames;
+mod authored_geometry;
 mod incremental_layout;
 mod mutation_state;
 mod rebuild_domains;

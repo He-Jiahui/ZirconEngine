@@ -1,4 +1,7 @@
-use std::collections::BTreeMap;
+use std::{
+    cmp::Ordering,
+    collections::{btree_map::Entry, BTreeMap},
+};
 
 use thiserror::Error;
 
@@ -52,6 +55,14 @@ pub struct RetainedMovementInput {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MovementFrameDisposition {
     Applied {
+        actor: EntityRef,
+        acknowledgement: u32,
+    },
+    Duplicate {
+        actor: EntityRef,
+        acknowledgement: u32,
+    },
+    Stale {
         actor: EntityRef,
         acknowledgement: u32,
     },
@@ -139,30 +150,47 @@ impl MovementInputRelay {
         let mut dispositions = Vec::with_capacity(batch.frames.len());
         for frame in batch.frames() {
             let key = actor_key(frame.actor);
-            // The source applies every valid packet; its sequence is only the
-            // monotonic acknowledgement high-water mark echoed to the client.
-            let acknowledgement = self
-                .inputs
-                .get(&key)
-                .map(|previous| previous.acknowledgement.max(frame.sequence))
-                .unwrap_or(frame.sequence);
-            let facing = frame
-                .facing
-                .or_else(|| self.inputs.get(&key).and_then(|previous| previous.facing));
-            self.inputs.insert(
-                key,
-                RetainedMovementInput {
-                    actor: frame.actor,
-                    acknowledgement,
-                    flags: frame.flags,
-                    facing,
-                    accepted_tick: tick,
-                },
-            );
-            dispositions.push(MovementFrameDisposition::Applied {
-                actor: frame.actor,
-                acknowledgement,
-            });
+            let disposition = match self.inputs.entry(key) {
+                Entry::Vacant(vacant) => {
+                    vacant.insert(RetainedMovementInput {
+                        actor: frame.actor,
+                        acknowledgement: frame.sequence,
+                        flags: frame.flags,
+                        facing: frame.facing,
+                        accepted_tick: tick,
+                    });
+                    MovementFrameDisposition::Applied {
+                        actor: frame.actor,
+                        acknowledgement: frame.sequence,
+                    }
+                }
+                Entry::Occupied(mut occupied) => {
+                    let input = occupied.get_mut();
+                    match frame.sequence.cmp(&input.acknowledgement) {
+                        Ordering::Greater => {
+                            input.acknowledgement = frame.sequence;
+                            input.flags = frame.flags;
+                            if let Some(facing) = frame.facing {
+                                input.facing = Some(facing);
+                            }
+                            input.accepted_tick = tick;
+                            MovementFrameDisposition::Applied {
+                                actor: frame.actor,
+                                acknowledgement: frame.sequence,
+                            }
+                        }
+                        Ordering::Equal => MovementFrameDisposition::Duplicate {
+                            actor: frame.actor,
+                            acknowledgement: input.acknowledgement,
+                        },
+                        Ordering::Less => MovementFrameDisposition::Stale {
+                            actor: frame.actor,
+                            acknowledgement: input.acknowledgement,
+                        },
+                    }
+                }
+            };
+            dispositions.push(disposition);
         }
         Ok(dispositions)
     }

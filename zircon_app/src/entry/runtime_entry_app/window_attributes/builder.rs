@@ -11,7 +11,8 @@ pub(in crate::entry::runtime_entry_app) fn runtime_window_attributes(
     descriptor: &WindowDescriptor,
     event_loop: &dyn ActiveEventLoop,
 ) -> WindowAttributes {
-    let monitor_context = WindowMonitorContext::for_event_loop(event_loop);
+    let monitor_context =
+        WindowMonitorContext::for_event_loop(event_loop, descriptor.position, descriptor.mode);
     runtime_window_attributes_with_monitor_context(descriptor, &monitor_context)
 }
 

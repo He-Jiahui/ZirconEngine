@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 
 use crate::core::resource::AssetReference;
 
@@ -70,7 +70,7 @@ impl UiAssetDependencyIndex {
     }
 
     pub fn cascade_invalidation_targets(&self, changed: &str) -> Vec<String> {
-        let mut seen: BTreeSet<&str> = BTreeSet::new();
+        let mut seen: HashSet<&str> = HashSet::new();
         let mut queue: VecDeque<&str> = VecDeque::new();
         let mut targets = Vec::new();
 

@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::host_contract) use image::{
 pub(in crate::ui::retained_host::host_contract) use lines::draw_separator_line;
 pub(in crate::ui::retained_host::host_contract) use shapes::{
     draw_border, draw_border_clipped, draw_rect, draw_rect_clipped, draw_rounded_border_clipped,
-    draw_rounded_rect_clipped,
+    draw_rounded_box_clipped, draw_rounded_rect_clipped,
 };
 pub(in crate::ui::retained_host::host_contract) use text_markers::{
     draw_label_marker, draw_text_bars, draw_text_bars_clipped,

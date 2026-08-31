@@ -1,4 +1,5 @@
-use zircon_runtime_interface::serialization::{LoadError, WriteError};
+use zircon_runtime_interface::reflect::ReflectValueFloatKind;
+use zircon_runtime_interface::serialization::LoadError;
 
 use super::*;
 use crate::scene::tests::authoring_boundary::{
@@ -106,10 +107,11 @@ fn reflected_json_writer_rejects_non_finite_values_with_typed_source() {
     .expect_err("non-finite reflected values cannot be JSON");
     assert!(matches!(
         error,
-        ReflectedJsonError::Write(WriteError::PayloadEncode {
-            schema_id,
-            schema_version: 1,
-            ..
-        }) if schema_id == "zircon.scene.reflected-json"
+        ReflectedJsonError::Value(
+            zircon_runtime_interface::reflect::ReflectValueValidationError::NonFiniteFloat {
+                kind: ReflectValueFloatKind::Vec2,
+                component: 1,
+            }
+        )
     ));
 }

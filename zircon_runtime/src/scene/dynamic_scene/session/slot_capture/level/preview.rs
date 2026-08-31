@@ -1,7 +1,7 @@
 use crate::scene::LevelSystem;
 
 use super::super::super::{RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlot};
-use super::super::preview::{capture_preview, RuntimeSessionSlotCapturePreview};
+use super::super::preview::{RuntimeSessionSlotCapturePreview, capture_preview};
 
 pub(in crate::scene::dynamic_scene::session) fn preview_level_slot(
     archive: &RuntimeSessionArchive,

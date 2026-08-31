@@ -94,9 +94,13 @@ pub(super) fn seed_backed_cluster_ordering_from_cluster_work_items(
 fn finalize_seed_backed_cluster_ordering(
     clusters_by_entity: HashMap<u64, Vec<RenderVirtualGeometryCluster>>,
 ) -> HashMap<(u64, u32), SeedBackedClusterOrdering> {
-    let mut ordering = HashMap::new();
+    let ordering_capacity = clusters_by_entity
+        .values()
+        .map(Vec::len)
+        .fold(0_usize, usize::saturating_add);
+    let mut ordering = HashMap::with_capacity(ordering_capacity);
     for (entity, mut clusters) in clusters_by_entity {
-        clusters.sort_by_key(|cluster| cluster.cluster_id);
+        clusters.sort_unstable_by_key(|cluster| cluster.cluster_id);
         clusters.dedup_by_key(|cluster| cluster.cluster_id);
         let entity_cluster_total_count = clusters.len().max(1);
         for (cluster_ordinal, cluster) in clusters.into_iter().enumerate() {
@@ -112,3 +116,6 @@ fn finalize_seed_backed_cluster_ordering(
 
     ordering
 }
+
+#[cfg(test)]
+mod allocation_tests;

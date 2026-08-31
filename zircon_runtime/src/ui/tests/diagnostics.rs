@@ -400,7 +400,7 @@ fn diagnostic_canvas_slot_surface() -> UiSurface {
             }),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(30), UiNodeId::new(31), UiSlotKind::Canvas)
             .with_canvas_placement(
                 UiCanvasSlotPlacement::new(

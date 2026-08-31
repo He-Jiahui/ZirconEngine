@@ -4,7 +4,9 @@ use super::pending::PendingJob;
 use super::state::EditorJobSystemState;
 use super::{EditorJobSystemInner, ProgressObserverEvent};
 use crate::core::jobs::event_sink::JobEventSink;
-use crate::core::jobs::{JobCategory, JobContext, JobEventKind, JobId};
+use crate::core::jobs::{
+    CancellationToken, EditorJobSpec, JobCategory, JobContext, JobEventKind, JobId, MutexGroup,
+};
 
 const MAX_PROMOTION_DISPATCH_BATCH: usize = 64;
 
@@ -71,16 +73,20 @@ impl EditorJobSystemInner {
             };
             let (pending, dependencies) = dispatch;
             let id = pending.id;
-            let category = pending.spec.category;
-            let mutex_group = pending.spec.mutex_group.clone();
+            let PendingDispatchMetadata {
+                label,
+                category,
+                mutex_group,
+                cancel,
+            } = into_pending_dispatch_metadata(pending.spec);
             let events = JobEventSink::new(
                 id,
-                pending.spec.label.clone(),
+                label,
                 category,
                 self.event_queue.clone(),
                 self.progress.clone(),
             );
-            let context = JobContext::new(pending.spec.cancel.clone(), events.clone());
+            let context = JobContext::new(cancel, events.clone());
             drop(pending.cancel_task);
             let task = pending.task;
             let inner = Arc::clone(self);
@@ -119,6 +125,29 @@ impl EditorJobSystemInner {
     }
 }
 
+struct PendingDispatchMetadata {
+    label: Arc<str>,
+    category: JobCategory,
+    mutex_group: Option<MutexGroup>,
+    cancel: CancellationToken,
+}
+
+fn into_pending_dispatch_metadata(spec: EditorJobSpec) -> PendingDispatchMetadata {
+    let EditorJobSpec {
+        label,
+        category,
+        mutex_group,
+        cancel,
+        ..
+    } = spec;
+    PendingDispatchMetadata {
+        label,
+        category,
+        mutex_group,
+        cancel,
+    }
+}
+
 struct CompletionGuard {
     inner: Arc<EditorJobSystemInner>,
     id: JobId,
@@ -140,3 +169,7 @@ impl Drop for CompletionGuard {
         self.inner.finish(self.id, self.category);
     }
 }
+
+#[cfg(test)]
+#[path = "scheduling/owned_dispatch_metadata_tests.rs"]
+mod owned_dispatch_metadata_tests;

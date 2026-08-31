@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    ProbeBakeTiming, ProbeInfluenceShape, ReflectionProbeData, RenderFrameExtract,
+    ProbeInfluenceShape, ReflectionProbeData, RenderFrameExtract,
 };
 use crate::core::math::{Quat, Vec3};
 
@@ -54,7 +54,7 @@ pub fn offline_bake_frame(
         else {
             continue;
         };
-        reflection_probes.push(probe.with_bake_timing(ProbeBakeTiming::EditorManual));
+        reflection_probes.push(probe);
     }
 
     OfflineBakeOutput { reflection_probes }

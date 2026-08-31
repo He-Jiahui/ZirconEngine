@@ -3,7 +3,10 @@ use crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewDat
 use crate::ui::retained_host as host_contract;
 
 use super::actions::{build_export_action_button_nodes, build_export_row_actions};
-use super::metrics::{BUILD_EXPORT_ROW_GAP, BUILD_EXPORT_ROW_HEIGHT, BUILD_EXPORT_ROW_PADDING};
+use super::metrics::{
+    BUILD_EXPORT_NODES_PER_TARGET, BUILD_EXPORT_ROW_GAP, BUILD_EXPORT_ROW_HEIGHT,
+    BUILD_EXPORT_ROW_PADDING,
+};
 use super::node::build_export_node;
 
 pub(super) fn build_export_target_nodes(
@@ -16,7 +19,7 @@ pub(super) fn build_export_target_nodes(
     let node_id = format!("{row}_{target_id}");
     let row_y = list_frame.y + row as f32 * (BUILD_EXPORT_ROW_HEIGHT + BUILD_EXPORT_ROW_GAP);
     let actions = build_export_row_actions(target);
-    let mut nodes = Vec::new();
+    let mut nodes = Vec::with_capacity(BUILD_EXPORT_NODES_PER_TARGET);
 
     let mut row_node = build_export_node(
         format!("build_export_row_{node_id}"),

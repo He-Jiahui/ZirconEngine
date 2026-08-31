@@ -12,8 +12,8 @@ fn entry_config_storage_uses_fallible_writes_in_both_bootstrap_phases() {
     assert_eq!(store_body.matches(".store_config(").count(), 3);
     for fallible_write in [
         "runtime_handle.store_config(\n            PLATFORM_CONFIG_KEY,\n            &platform_config_for_entry_config(&self.config),\n        )?;",
-        "runtime_handle.store_config(RENDER_PROFILE_CONFIG_KEY, &self.config.render_profile)?;",
-        "runtime_handle.store_config(\n            PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,\n            &self.config.window_descriptor,\n        )?;",
+        "runtime_handle.store_config(RENDER_PROFILE_CONFIG_KEY, self.config.render_profile())?;",
+        "runtime_handle.store_config(\n            PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,\n            self.config.window_descriptor(),\n        )?;",
     ] {
         assert!(store_body.contains(fallible_write));
     }

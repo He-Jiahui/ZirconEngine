@@ -20,7 +20,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.template_surface.surface.focus.focused
     }
 
-    pub(crate) fn refresh_pointer_hover_feedback(
+    pub(crate) fn update_pointer_hover_feedback(
         &mut self,
         route: &UiPointerRoute,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
@@ -35,18 +35,15 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         for node_id in &route.entered {
             touched_hover_candidate |= self.set_pointer_hover_feedback(*node_id, true)?;
         }
-        touched_hover_candidate |= self.refresh_workbench_icon_tooltip(route)?;
-
-        self.refresh_dirty_pointer_feedback(touched_hover_candidate)
+        Ok(touched_hover_candidate)
     }
 
-    pub(crate) fn refresh_pointer_press_feedback(
+    pub(crate) fn update_pointer_press_feedback(
         &mut self,
         route: &UiPointerRoute,
         pressed_before_route: Option<UiNodeId>,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
-        let mut touched_press_candidate =
-            self.dismiss_workbench_icon_tooltip_on_primary_press(route)?;
+        let mut touched_press_candidate = false;
         match route.activation_phase {
             UiPointerActivationPhase::PrimaryPress => {
                 if let Some(previous) =
@@ -66,10 +63,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             _ => return Ok(false),
         }
 
-        self.refresh_dirty_pointer_feedback(touched_press_candidate)
+        Ok(touched_press_candidate)
     }
 
-    pub(crate) fn refresh_pointer_range_feedback(
+    pub(crate) fn update_pointer_range_feedback(
         &mut self,
         route: &UiPointerRoute,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
@@ -84,15 +81,15 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                         update.value_property,
                         UiValue::Float(update.value),
                     ))?;
-            return self.refresh_dirty_pointer_feedback(true);
+            return Ok(true);
         }
 
         let runtime_owns_range_drag = !is_initial_range_press
             && pointer_range_target(&self.template_surface.surface, route).is_some();
-        self.refresh_dirty_pointer_feedback(runtime_owns_range_drag)
+        Ok(runtime_owns_range_drag)
     }
 
-    pub(crate) fn refresh_text_input_pointer_feedback(
+    pub(crate) fn update_text_input_pointer_feedback(
         &mut self,
         route: &UiPointerRoute,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
@@ -100,10 +97,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             return Ok(false);
         }
 
-        self.refresh_dirty_pointer_feedback(true)
+        Ok(true)
     }
 
-    pub(crate) fn refresh_pointer_focus_feedback(
+    pub(crate) fn update_pointer_focus_feedback(
         &mut self,
         route: &UiPointerRoute,
         focused_before_route: Option<UiNodeId>,
@@ -118,19 +115,30 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             return Ok(false);
         }
 
-        self.refresh_dirty_pointer_feedback(true)
+        Ok(true)
     }
 
-    fn refresh_dirty_pointer_feedback(
+    pub(crate) fn refresh_pointer_feedback(
         &mut self,
         touched_candidate: bool,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
-        if !touched_candidate || !self.template_surface.surface.dirty_flags().any() {
+        if !touched_candidate
+            || self
+                .template_surface
+                .surface
+                .pending_invalidation_changed_node_count()
+                == 0
+        {
             return Ok(false);
         }
 
-        self.template_surface
-            .refresh_after_state_change(self.runtime.as_ref())?;
+        // The event callback only records the dirty surface state. The frame commit owns the
+        // single rebuild/projection refresh so several feedback domains can coalesce together.
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.workbench.pointer.feedback_deferred_count",
+            1
+        );
         Ok(true)
     }
 

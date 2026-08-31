@@ -4,6 +4,10 @@ use crate::core::framework::project::ProjectPluginManifest;
 
 mod owner_selection;
 
+#[cfg(test)]
+#[path = "feature_completion/capacity_tests.rs"]
+mod capacity_tests;
+
 use super::derived_projection::RuntimePluginCatalogProjection;
 use owner_selection::{complete_external_provider_selection, complete_owner_feature_selection};
 
@@ -19,7 +23,7 @@ pub(super) fn complete_project_feature_selections(
         .collect::<HashSet<_>>();
     for selection in &mut completed.selections {
         let owner_id = selection.id.clone();
-        let mut feature_indices = HashMap::new();
+        let mut feature_indices = HashMap::with_capacity(selection.features.len());
         for (index, feature) in selection.features.iter().enumerate() {
             feature_indices.entry(feature.id.clone()).or_insert(index);
         }

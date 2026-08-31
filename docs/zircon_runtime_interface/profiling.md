@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime_interface/src/profiling.rs
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
@@ -14,7 +14,7 @@ related_code:
   - zircon_app/src/entry/runtime_library/runtime_session.rs
 implementation_files:
   - zircon_runtime_interface/src/profiling.rs
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs

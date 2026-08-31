@@ -50,8 +50,15 @@ Editor command execution payload 和 cloneable/serializable journal metadata 尚
 
 ## 修复结果与回传
 
-Open state: `Runtime contract available / Editor inverse delta pending`; no Cargo pass is claimed.
+Open state: `Runtime contract available / Editor inverse delta source hard cut complete / managed validation blocked by coordinator CPU reservation`; no Cargo pass is claimed.
 
 - Runtime08 已提供 move-only `DetachedEntityBatch`、完整 preflight、failed restore ownership return、stable/dense/hierarchy/camera indexed boundary 和精确诊断计数。
 - Runtime source-bound validation-copy 请求在 client timeout 前未返回 durable receipt；本 handoff 不声称 Runtime Cargo green。
 - Editor03 应在其现有 primary/owner policy 下前向迁移，不由 Runtime08 Session 吸收 Editor source。
+
+## 产出记录与时间
+
+| 时间 | 完成项目 | 状态 | 证据与后续 |
+| --- | --- | --- | --- |
+| 2026-08-23 | Editor03 `DeleteNodeCommand` move-only inverse delta hard cut | `implementation_complete / static_validation_complete / managed_validation_blocked` | 命令以 `Option<DetachedEntityBatch>` 唯一持有正文；undo 预检失败取回原批次，journal 仅保留 descriptor，场景错误保持 `SceneError` 类型；补充 journal、恢复重试与最后相机子树回归。`rustfmt --check` 和 scoped `git diff --check` 已通过，尚未执行 Cargo。 |
+| 2026-08-23 | Editor03 定向库测试申请 | `managed_validation_blocked` | 首次受管作业 `c65000e40e814b6d93d2bd7d8a86a6b5` 被协调器标为 `orphaned`，无原始退出码；后台重试被 `cargo_cpu_lane_reserved` 拒绝，reservation owner 为 `plugins09-particles-neutral-identity-runtime-r3-20260823`。未重试、未声称 Cargo 结果。 |

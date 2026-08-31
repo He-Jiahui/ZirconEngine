@@ -5,6 +5,7 @@ use std::thread;
 
 use crate::core::editor_message::DocumentId;
 
+use super::super::save::DocumentSourceWriteReceipt;
 use super::FixtureToolkit;
 use crate::core::extension::{
     DocumentToolkitRegistry, SaveError, SaveReason, ToolkitRegistryError,
@@ -73,6 +74,60 @@ fn document_toolkit_failed_save_remains_registered_and_can_be_retried() {
         .save(DocumentId::new(7), &(), SaveReason::SaveAll)
         .unwrap();
     assert_eq!(report.written_bytes(), 20);
+}
+
+#[test]
+fn reference_validation_rejects_save_before_the_persistence_hook_runs() {
+    let save_called = Arc::new(AtomicBool::new(false));
+    let save_called_by_hook = Arc::clone(&save_called);
+    let registry = DocumentToolkitRegistry::<()>::default();
+    registry
+        .register(Arc::new(
+            FixtureToolkit::new(7, "view.asset.7", move |_| {
+                save_called_by_hook.store(true, Ordering::SeqCst);
+                Ok(())
+            })
+            .with_reference_validation(|| {
+                Err(Box::new(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "dangling reference",
+                )))
+            }),
+        ))
+        .unwrap();
+
+    assert!(matches!(
+        registry.save(DocumentId::new(7), &(), SaveReason::SaveAll),
+        Err(SaveError::ReferenceValidationFailed { document, .. })
+            if document == DocumentId::new(7)
+    ));
+    assert!(!save_called.load(Ordering::SeqCst));
+}
+
+#[test]
+fn document_save_report_exposes_the_project_source_write_guarantee() {
+    let registry = DocumentToolkitRegistry::<()>::default();
+    registry
+        .register(Arc::new(FixtureToolkit::new(
+            7,
+            "view.asset.7",
+            |context| {
+                context.record_serialized_project_source_write(
+                    12,
+                    DocumentSourceWriteReceipt::fixture_for_report_contract(),
+                )?;
+                Ok(())
+            },
+        )))
+        .unwrap();
+
+    let report = registry
+        .save(DocumentId::new(7), &(), SaveReason::Explicit)
+        .unwrap();
+
+    assert!(report.cooperating_source_writes_are_serialized());
+    assert!(report.external_conflict_detection_is_best_effort());
+    assert_eq!(report.written_bytes(), 12);
 }
 
 #[test]

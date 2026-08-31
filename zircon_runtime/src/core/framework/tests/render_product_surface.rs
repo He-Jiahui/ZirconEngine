@@ -83,15 +83,13 @@ fn render_product_post_process_stack_elides_history_until_history_is_available()
 }
 
 #[test]
-fn render_product_post_process_stack_can_drop_history_from_validated_graph() {
+fn render_product_post_process_stack_elides_unavailable_history_from_validated_graph() {
     let stack = PostProcessStackDescriptor::from_extract_settings(
         &Default::default(),
         &Default::default(),
         true,
-        true,
+        false,
     );
-
-    let stack = stack.without_history_resources();
     let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
 
     assert_eq!(graph.node_count(), 2);

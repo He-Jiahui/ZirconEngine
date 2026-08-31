@@ -2,7 +2,7 @@ use crate::core::resource::ResourceId;
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::types::ViewportRenderFrame;
 
-use super::build_sprite_vertices::build_sprite_vertices;
+use super::build_sprite_vertices::{append_sprite_image_vertices, visit_stage_sprites};
 use super::sprite_vertex::SpriteVertex;
 
 pub(in crate::graphics::scene::scene_renderer::sprite) struct PreparedSpriteDrawBatch {
@@ -45,18 +45,39 @@ const SPRITE_IMAGE_SLICE_VERTEX_COUNT: usize = 6;
 
 pub(in crate::graphics::scene::scene_renderer::sprite) fn prepare_sprite_draw_batches(
     frame: &ViewportRenderFrame,
-    sprite_vertices: Vec<(usize, Vec<SpriteVertex>)>,
+    stage: RenderPassStage,
 ) -> Vec<PreparedSpriteDrawBatch> {
-    batch_sprite_draw_items(
-        sprite_vertices
-            .into_iter()
-            .filter_map(|(sprite_index, vertices)| {
-                frame
-                    .sprites()
-                    .get(sprite_index)
-                    .map(|sprite| (sprite_index, sprite.image.id(), vertices))
-            }),
-    )
+    let mut batches = Vec::<PreparedSpriteDrawBatch>::new();
+    visit_stage_sprites(frame, stage, |_sprite_index, sprite, size| {
+        let texture_id = sprite.image.id();
+        let created_batch = batches
+            .last()
+            .is_none_or(|current| current.texture_id != texture_id);
+        if created_batch {
+            batches.push(PreparedSpriteDrawBatch {
+                texture_id,
+                vertices: Vec::new(),
+                sprite_count: 0,
+            });
+        }
+
+        let appended = {
+            let current = batches
+                .last_mut()
+                .expect("sprite batch exists before vertex projection");
+            let previous_vertex_count = current.vertices.len();
+            append_sprite_image_vertices(sprite, size, &mut current.vertices);
+            let appended = current.vertices.len() != previous_vertex_count;
+            if appended {
+                current.sprite_count += 1;
+            }
+            appended
+        };
+        if created_batch && !appended {
+            batches.pop();
+        }
+    });
+    batches
 }
 
 pub(crate) fn prepare_sprite_queue_stats(
@@ -65,14 +86,12 @@ pub(crate) fn prepare_sprite_queue_stats(
 ) -> PreparedSpriteQueueStats {
     let mut stats = PreparedSpriteQueueStats::default();
     for stage in stages {
-        stats.accumulate_stage(
-            stage,
-            &prepare_sprite_draw_batches(frame, build_sprite_vertices(frame, stage)),
-        );
+        stats.accumulate_stage(stage, &prepare_sprite_draw_batches(frame, stage));
     }
     stats
 }
 
+#[cfg(test)]
 fn batch_sprite_draw_items(
     items: impl IntoIterator<Item = (usize, ResourceId, Vec<SpriteVertex>)>,
 ) -> Vec<PreparedSpriteDrawBatch> {

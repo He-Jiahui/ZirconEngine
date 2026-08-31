@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::super::data::{FrameRect, HostPaneInteractionStateData};
 use super::pixels;
 use super::recording::HostPaintRecording;
@@ -8,7 +10,7 @@ pub(in crate::ui::retained_host::host_contract) struct HostRgbaFrame {
     pub(in crate::ui::retained_host::host_contract) bytes: Vec<u8>,
     pub(in crate::ui::retained_host::host_contract) paint_clip: Option<FrameRect>,
     pub(in crate::ui::retained_host::host_contract) pane_interaction_state:
-        Option<HostPaneInteractionStateData>,
+        Option<Arc<HostPaneInteractionStateData>>,
     pub(in crate::ui::retained_host::host_contract) recording: Option<HostPaintRecording>,
 }
 
@@ -68,15 +70,15 @@ impl HostRgbaFrame {
 
     pub(in crate::ui::retained_host::host_contract) fn set_pane_interaction_state(
         &mut self,
-        interaction: &HostPaneInteractionStateData,
+        interaction: Arc<HostPaneInteractionStateData>,
     ) {
-        self.pane_interaction_state = Some(interaction.clone());
+        self.pane_interaction_state = Some(interaction);
     }
 
     pub(in crate::ui::retained_host::host_contract) fn pane_interaction_state(
         &self,
     ) -> Option<&HostPaneInteractionStateData> {
-        self.pane_interaction_state.as_ref()
+        self.pane_interaction_state.as_deref()
     }
 
     pub(in crate::ui::retained_host::host_contract) fn width(&self) -> u32 {

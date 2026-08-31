@@ -1,10 +1,13 @@
-use std::collections::BTreeMap;
+use std::{cell::RefCell, collections::BTreeMap};
 
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
 use crate::ui::binding::EditorUiBindingPayload;
-use crate::ui::layouts::views::build_view_template_node_projection;
+use crate::ui::layouts::views::{
+    build_view_template_node_projection, view_template_resource_generation,
+    ViewTemplateResourceGeneration,
+};
 use crate::ui::retained_host::app::compute_window_menu_popup_height;
 use crate::ui::retained_host::callback_dispatch::BuiltinHostOuterShellFrames;
 use crate::ui::retained_host::menu_popup_contract::content_measured_menu_popup_width;
@@ -22,6 +25,18 @@ use super::HostMenuPointerLayout;
 const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.zui";
 const MENU_SLOT_PREFIX: &str = "MenuSlot";
 const MENU_BUTTON_COUNT: usize = 7;
+const MENU_STENCIL_REFERENCE_WIDTH: f32 = 1280.0;
+const MENU_STENCIL_REFERENCE_HEIGHT: f32 = 24.0;
+
+struct MenuPointerChromeStencilCache {
+    generation: ViewTemplateResourceGeneration,
+    frames: [UiFrame; MENU_BUTTON_COUNT],
+}
+
+thread_local! {
+    static MENU_POINTER_CHROME_STENCIL_CACHE: RefCell<Option<MenuPointerChromeStencilCache>> =
+        const { RefCell::new(None) };
+}
 
 pub(crate) fn build_host_menu_pointer_layout(
     menu_bar: &MenuBarModel,
@@ -237,15 +252,40 @@ fn menu_button_frames_from_chrome_asset(
     menu_labels: &[&str],
     menu_count: usize,
 ) -> Vec<UiFrame> {
-    let Ok(nodes) = build_view_template_node_projection(
+    let Some(stencil_frames) = menu_pointer_chrome_stencil() else {
+        return fallback_menu_button_frames(frame, menu_labels, menu_count);
+    };
+    let translated_frames = stencil_frames
+        .map(|slot| UiFrame::new(frame.x + slot.x, frame.y + slot.y, slot.width, slot.height));
+    menu_button_frames_from_stencil(&translated_frames, menu_labels, menu_count)
+}
+
+fn menu_pointer_chrome_stencil() -> Option<[UiFrame; MENU_BUTTON_COUNT]> {
+    let generation = view_template_resource_generation(MENU_CHROME_ASSET, &[])?;
+    let cached_frames = MENU_POINTER_CHROME_STENCIL_CACHE.with(|cache| {
+        cache
+            .borrow()
+            .as_ref()
+            .filter(|cached| cached.generation == generation)
+            .map(|cached| cached.frames)
+    });
+    if let Some(frames) = cached_frames {
+        return Some(frames);
+    }
+
+    zircon_runtime::profile_counter!(
+        "editor",
+        "ui.menu_pointer.stencil_projection_build_count",
+        1,
+    );
+    let nodes = build_view_template_node_projection(
         "host.menu.pointer.chrome",
         MENU_CHROME_ASSET,
         &[],
-        UiSize::new(frame.width.max(0.0), frame.height.max(0.0)),
+        UiSize::new(MENU_STENCIL_REFERENCE_WIDTH, MENU_STENCIL_REFERENCE_HEIGHT),
         &BTreeMap::new(),
-    ) else {
-        return fallback_menu_button_frames(frame, menu_labels, menu_count);
-    };
+    )
+    .ok()?;
 
     let mut stencil_frames = [UiFrame::default(); MENU_BUTTON_COUNT];
     for node in nodes.iter() {
@@ -259,35 +299,24 @@ fn menu_button_frames_from_chrome_asset(
         };
         if index < MENU_BUTTON_COUNT {
             stencil_frames[index] = UiFrame::new(
-                frame.x + node.frame.x,
-                frame.y + node.frame.y,
+                node.frame.x,
+                node.frame.y,
                 node.frame.width,
                 node.frame.height,
             );
         }
     }
-
-    let mut frames = if stencil_frames.iter().all(|slot| slot.width > 0.0) {
-        menu_button_frames_from_stencil(&stencil_frames, menu_labels, menu_count)
-    } else {
-        fallback_menu_button_frames(frame, menu_labels, MENU_BUTTON_COUNT)
-    };
-    let gap = menu_button_gap(&frames).unwrap_or(2.0);
-    while frames.len() < menu_count {
-        let previous = frames
-            .last()
-            .copied()
-            .unwrap_or_else(|| UiFrame::new(frame.x + 8.0, frame.y + 2.0, 40.0, 22.0));
-        let label = menu_labels.get(frames.len()).copied().unwrap_or_default();
-        frames.push(UiFrame::new(
-            previous.x + previous.width + gap,
-            previous.y,
-            menu_label_slot_width(label),
-            previous.height,
-        ));
+    if !stencil_frames.iter().all(|slot| slot.width > 0.0) {
+        return None;
     }
-    frames.truncate(menu_count);
-    frames
+
+    MENU_POINTER_CHROME_STENCIL_CACHE.with(|cache| {
+        *cache.borrow_mut() = Some(MenuPointerChromeStencilCache {
+            generation,
+            frames: stencil_frames,
+        });
+    });
+    Some(stencil_frames)
 }
 
 fn menu_button_frames_from_stencil(

@@ -2,7 +2,7 @@ use super::*;
 
 use std::sync::mpsc;
 
-use super::super::geometry::ImageVertex;
+use super::super::geometry::{draw_items, DrawItem, ImageVertex, SolidVertex};
 
 #[test]
 fn wgpu_ui_surface_render_pass_coalesces_contiguous_non_text_ops() {
@@ -74,34 +74,33 @@ fn wgpu_ui_surface_external_image_path_uses_the_shared_texture_without_cpu_uploa
 
 #[test]
 fn wgpu_ui_surface_copies_shared_products_to_generation_stable_textures() {
-    let source = include_str!("../../ui_surface.rs");
-    let copy = source
-        .split("fn copy_texture_for_external_image")
-        .nth(1)
-        .expect("shared WGPU context should expose a GPU-only product copy");
+    let copy = include_str!("../external_image_copy.rs");
 
     assert!(copy.contains("create_texture"));
     assert!(copy.contains("copy_texture_to_texture"));
-    assert!(copy.contains("self.queue.submit"));
-    assert!(copy.contains("byte_space_sample_view_format"));
-    assert!(copy.contains("view_formats"));
-    assert!(copy.contains("WgpuUiExternalImageAlphaMode::Opaque"));
+    assert!(copy.contains("begin_native_recording(RenderQueueClass::Graphics)"));
+    assert!(copy.contains("submit_native_recording_packet(packet)"));
+    assert!(!copy.contains("self.queue.submit"));
+    assert!(!copy.contains("device.poll"));
+    assert!(copy.contains("WgpuUiExternalImage::new_opaque"));
+    assert!(copy.contains("WgpuUiExternalImageCopyReceipt"));
+    assert!(copy.contains("WgpuUiExternalImageCopyTarget"));
+    assert!(copy.contains("prepare_texture_for_external_image"));
+    assert!(copy.contains("target.encode_copy(encoder, source)"));
+    assert!(copy.contains("target.complete(submission)"));
+    assert!(copy.contains("submission: SubmissionTicket"));
+    assert!(!copy.contains("byte_space_sample_view_format"));
 }
 
 #[test]
-fn wgpu_ui_surface_samples_srgb_products_as_byte_space_images() {
-    assert_eq!(
-        byte_space_sample_view_format(wgpu::TextureFormat::Rgba8UnormSrgb),
-        Some(wgpu::TextureFormat::Rgba8Unorm)
+fn wgpu_ui_external_images_sample_through_their_native_transfer_function() {
+    let source = include_str!("../../ui_surface.rs");
+
+    assert!(
+        !source.contains("byte_space_sample_view_format"),
+        "external sRGB products must retain hardware sRGB decode for linear-light composition"
     );
-    assert_eq!(
-        byte_space_sample_view_format(wgpu::TextureFormat::Bgra8UnormSrgb),
-        Some(wgpu::TextureFormat::Bgra8Unorm)
-    );
-    assert_eq!(
-        byte_space_sample_view_format(wgpu::TextureFormat::Rgba8Unorm),
-        None
-    );
+    assert!(!source.contains("sample_view_format"));
 }
 
 #[test]
@@ -113,7 +112,7 @@ fn wgpu_ui_surface_presents_only_after_submission_and_retained_commit() {
         .and_then(|source| source.split("fn retryable_surface_presentation(").next())
         .expect("native surface render owner");
     let submit = render
-        .find("self.queue.submit(Some(encoder.finish()));")
+        .find("self.submit_present_command_buffer(encoder.finish())?")
         .expect("native presentation must submit its encoder");
     let commit = render
         .find("RetainedCacheCommit::OrdinaryBaseline =>")
@@ -131,13 +130,13 @@ fn wgpu_ui_surface_presents_only_after_submission_and_retained_commit() {
 }
 
 #[test]
-fn wgpu_ui_surface_commits_retained_state_only_after_queue_submission() {
+fn wgpu_ui_surface_commits_retained_state_only_after_owner_submission() {
     let source = include_str!("../presentation.rs");
     let encode_readback = source
         .find(".encode_copies(&mut encoder, self.present_index)")
         .expect("readback copies must be encoded before submission");
     let submit = source
-        .find("self.queue.submit(Some(encoder.finish()));")
+        .find("self.submit_present_command_buffer(encoder.finish())?")
         .expect("native presentation must submit its encoder");
     let commit = source
         .find("RetainedCacheCommit::OrdinaryBaseline =>")
@@ -182,13 +181,13 @@ fn wgpu_ui_surface_acquires_before_advancing_or_preparing_the_frame() {
 fn wgpu_ui_surface_does_not_fail_a_submitted_frame_when_timing_map_fails() {
     let source = include_str!("../presentation.rs");
     let submitted = source
-        .split("self.queue.submit(Some(encoder.finish()));")
+        .split("self.submit_present_command_buffer(encoder.finish())?")
         .nth(1)
         .and_then(|source| source.split("Ok(WgpuUiSurfaceRenderStats").next())
         .expect("native presentation should finish submitted-frame bookkeeping");
 
     assert!(submitted.contains(".begin_map(self.present_index)"));
-    assert!(submitted.contains("gpu_readback_queue.abort_frame(self.present_index)"));
+    assert!(submitted.contains("readback_queue.abort_frame(self.present_index)"));
     assert!(!submitted.contains("return Err"));
 }
 
@@ -224,6 +223,498 @@ fn wgpu_ui_linear_sampling_preserves_premultiplied_transparent_edges() {
             "UNORM filtering may round by one byte: actual={actual:?}, expected={expected:?}"
         );
     }
+}
+
+#[test]
+fn wgpu_ui_rounded_solid_readback_contains_fractional_edge_coverage() {
+    let Some((device, queue)) = offscreen_test_device() else {
+        return;
+    };
+
+    let pixels = render_rounded_solid(&device, &queue)
+        .expect("offscreen rounded-solid pipeline should return its pixels");
+    let pixel = |x: usize, y: usize| pixels[y * 8 + x];
+
+    assert_eq!(pixel(0, 0), [0, 0, 0, 0], "outside must remain clear");
+    assert_eq!(pixel(4, 4), [255, 255, 255, 255], "center must stay opaque");
+
+    let fractional = pixels
+        .iter()
+        .filter(|pixel| pixel[3] > 0 && pixel[3] < 255)
+        .collect::<Vec<_>>();
+    assert!(
+        !fractional.is_empty(),
+        "analytic rounded coverage must produce fractional edge pixels: {pixels:?}"
+    );
+    assert!(
+        fractional.iter().all(|pixel| {
+            pixel[0].abs_diff(pixel[3]) <= 1
+                && pixel[1].abs_diff(pixel[3]) <= 1
+                && pixel[2].abs_diff(pixel[3]) <= 1
+        }),
+        "white premultiplied edge RGB must track coverage alpha: {fractional:?}"
+    );
+}
+
+#[test]
+fn wgpu_ui_rounded_box_readback_does_not_double_cover_the_outer_edge() {
+    let Some((device, queue)) = offscreen_test_device() else {
+        return;
+    };
+
+    let frame = UiSurfaceRect::new(1.0, 1.0, 6.0, 6.0);
+    let fill = UiSurfaceCommandKind::Quad {
+        color: [255, 255, 255, 255],
+        corner_radius: 3.0,
+    };
+    let fill_pixels = render_analytic_solid(&device, &queue, frame, fill.clone())
+        .expect("single rounded fill should render");
+    let box_pixels = render_analytic_solid_commands(
+        &device,
+        &queue,
+        frame,
+        vec![
+            fill,
+            UiSurfaceCommandKind::Border {
+                color: [255, 255, 255, 255],
+                width: 1.0,
+                corner_radius: 3.0,
+            },
+        ],
+    )
+    .expect("combined rounded box should render as one analytic item");
+
+    assert_eq!(
+        box_pixels, fill_pixels,
+        "same-color fill and border must preserve one outer coverage instead of blending it twice"
+    );
+}
+
+#[test]
+fn wgpu_ui_rounded_box_readback_partitions_fill_and_border_colors() {
+    let Some((device, queue)) = offscreen_test_device() else {
+        return;
+    };
+
+    let pixels = render_analytic_solid_commands(
+        &device,
+        &queue,
+        UiSurfaceRect::new(1.0, 1.0, 6.0, 6.0),
+        vec![
+            UiSurfaceCommandKind::Quad {
+                color: [255, 0, 0, 255],
+                corner_radius: 2.0,
+            },
+            UiSurfaceCommandKind::Border {
+                color: [0, 255, 0, 255],
+                width: 1.0,
+                corner_radius: 2.0,
+            },
+        ],
+    )
+    .expect("distinct rounded fill and border should render as one analytic item");
+    let pixel = |x: usize, y: usize| pixels[y * 8 + x];
+
+    assert_eq!(pixel(3, 3), [255, 0, 0, 255], "center uses fill color");
+    assert_eq!(pixel(3, 1), [0, 255, 0, 255], "ring uses border color");
+    let outer_corner = pixel(1, 1);
+    assert!(
+        outer_corner[3] > 0 && outer_corner[3] < 255,
+        "rounded outer corner must retain fractional coverage: {outer_corner:?}"
+    );
+    assert_eq!(outer_corner[0], 0, "outer coverage must not leak fill red");
+    assert_eq!(outer_corner[2], 0, "outer coverage must not leak fill blue");
+    assert!(
+        outer_corner[1].abs_diff(outer_corner[3]) <= 1,
+        "opaque green border must remain premultiplied at the outer edge: {outer_corner:?}"
+    );
+}
+
+#[test]
+fn wgpu_ui_fractional_square_border_readback_preserves_subpixel_width() {
+    let Some((device, queue)) = offscreen_test_device() else {
+        return;
+    };
+
+    let frame = UiSurfaceRect::new(1.25, 1.25, 5.5, 5.5);
+    let render = |width| {
+        render_analytic_solid(
+            &device,
+            &queue,
+            frame,
+            UiSurfaceCommandKind::Border {
+                color: [255, 255, 255, 255],
+                width,
+                corner_radius: 0.0,
+            },
+        )
+    };
+    let thin = render(0.625).expect("fractional square border should render");
+    let one_pixel = render(1.0).expect("one-pixel square border should render");
+    let alpha_sum =
+        |pixels: &[[u8; 4]]| pixels.iter().map(|pixel| u32::from(pixel[3])).sum::<u32>();
+
+    assert!(
+        thin.iter().any(|pixel| (1..=254).contains(&pixel[3])),
+        "a 0.625-pixel square border must retain fractional coverage: {thin:?}"
+    );
+    assert_eq!(
+        thin[4 * 8 + 4],
+        [0, 0, 0, 0],
+        "the analytic square outline must not fill its center"
+    );
+    assert!(
+        alpha_sum(&thin) < alpha_sum(&one_pixel),
+        "the fractional border must not be clamped to a one-pixel outline: thin={thin:?}, one_pixel={one_pixel:?}"
+    );
+}
+
+#[test]
+fn wgpu_ui_srgb_target_encodes_linear_light_alpha_coverage() {
+    let Some((device, queue)) = offscreen_test_device() else {
+        return;
+    };
+
+    let pixel = render_flat_solid_sample(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
+        [1.0, 1.0, 1.0, 0.5],
+    )
+    .expect("offscreen sRGB solid pipeline should return its pixel");
+
+    assert!(
+        (187..=189).contains(&pixel[0])
+            && (187..=189).contains(&pixel[1])
+            && (187..=189).contains(&pixel[2]),
+        "linear 50% white must encode near sRGB 188 instead of gamma-space 128: {pixel:?}"
+    );
+    assert!((127..=128).contains(&pixel[3]));
+}
+
+fn render_flat_solid_sample(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    target_format: wgpu::TextureFormat,
+    color: [f32; 4],
+) -> Result<[u8; 4], String> {
+    const PADDED_BYTES_PER_ROW: u32 = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+    let target = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("zircon-ui-linear-light-solid-target"),
+        size: wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: target_format,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+        view_formats: &[],
+    });
+    let target_view = target.create_view(&wgpu::TextureViewDescriptor::default());
+    let pipeline = create_solid_pipeline(device, target_format);
+    let vertex = |position| SolidVertex {
+        position,
+        color,
+        local_position: position,
+        // Keep the analytic shape well beyond the single-pixel target so this test isolates
+        // linear-light color encoding from the rounded-coverage derivative at a 1x1 edge.
+        half_extent: [4.0, 4.0],
+        corner_radius: 0.0,
+        border_width: 0.0,
+        fill_color: [0.0; 4],
+    };
+    let vertices = [
+        vertex([-1.0, 1.0]),
+        vertex([1.0, 1.0]),
+        vertex([-1.0, -1.0]),
+        vertex([-1.0, -1.0]),
+        vertex([1.0, 1.0]),
+        vertex([1.0, -1.0]),
+    ];
+    let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-ui-linear-light-solid-vertices"),
+        size: std::mem::size_of_val(&vertices) as u64,
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+    queue.write_buffer(&vertex_buffer, 0, bytemuck::cast_slice(&vertices));
+    let readback = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-ui-linear-light-solid-readback"),
+        size: u64::from(PADDED_BYTES_PER_ROW),
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-ui-linear-light-solid-encoder"),
+    });
+    {
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("zircon-ui-linear-light-solid-pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &target_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    store: wgpu::StoreOp::Store,
+                },
+                depth_slice: None,
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+        pass.set_pipeline(&pipeline);
+        pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+        pass.draw(0..6, 0..1);
+    }
+    encoder.copy_texture_to_buffer(
+        target.as_image_copy(),
+        wgpu::TexelCopyBufferInfo {
+            buffer: &readback,
+            layout: wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(PADDED_BYTES_PER_ROW),
+                rows_per_image: Some(1),
+            },
+        },
+        wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        },
+    );
+    queue.submit([encoder.finish()]);
+
+    let slice = readback.slice(..);
+    let (sender, receiver) = mpsc::channel();
+    slice.map_async(wgpu::MapMode::Read, move |result| {
+        let _ = sender.send(result);
+    });
+    device
+        .poll(wgpu::PollType::wait_indefinitely())
+        .map_err(|error| error.to_string())?;
+    receiver
+        .recv()
+        .map_err(|error| error.to_string())?
+        .map_err(|error| error.to_string())?;
+
+    let mapped = slice.get_mapped_range();
+    let pixel = mapped[..4]
+        .try_into()
+        .expect("linear-light readback pixel is exactly four bytes");
+    drop(mapped);
+    readback.unmap();
+    Ok(pixel)
+}
+
+#[test]
+fn wgpu_ui_rounded_solid_readback_preserves_subpixel_positioning() {
+    let Some((device, queue)) = offscreen_test_device() else {
+        return;
+    };
+
+    let aligned = render_rounded_solid_at(&device, &queue, [1.0, 1.0])
+        .expect("aligned rounded solid should render");
+    let shifted = render_rounded_solid_at(&device, &queue, [1.25, 1.25])
+        .expect("fractionally shifted rounded solid should render");
+    let late_phase = render_rounded_solid_at(&device, &queue, [1.75, 1.75])
+        .expect("late-phase rounded solid should render");
+
+    assert_ne!(
+        aligned, shifted,
+        "a quarter-pixel translation must reach the analytic shader without integer snapping"
+    );
+    for (label, pixels) in [
+        ("aligned", aligned),
+        ("shifted", shifted),
+        ("late_phase", late_phase.clone()),
+    ] {
+        assert!(
+            pixels.iter().any(|pixel| pixel[3] > 0 && pixel[3] < 255),
+            "{label} rounded edges must retain fractional coverage: {pixels:?}"
+        );
+    }
+    assert!(
+        late_phase[4 * 8 + 1][3] > 0,
+        "the analytic raster envelope must shade the first partially covered pixel outside the shape bounds: {late_phase:?}"
+    );
+}
+
+fn render_rounded_solid(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+) -> Result<Vec<[u8; 4]>, String> {
+    render_rounded_solid_at(device, queue, [1.0, 1.0])
+}
+
+fn render_rounded_solid_at(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    origin: [f32; 2],
+) -> Result<Vec<[u8; 4]>, String> {
+    render_analytic_solid(
+        device,
+        queue,
+        UiSurfaceRect::new(origin[0], origin[1], 6.0, 6.0),
+        UiSurfaceCommandKind::Quad {
+            color: [255, 255, 255, 255],
+            corner_radius: 3.0,
+        },
+    )
+}
+
+fn render_analytic_solid(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    frame: UiSurfaceRect,
+    kind: UiSurfaceCommandKind,
+) -> Result<Vec<[u8; 4]>, String> {
+    render_analytic_solid_commands(device, queue, frame, vec![kind])
+}
+
+fn render_analytic_solid_commands(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    frame: UiSurfaceRect,
+    kinds: Vec<UiSurfaceCommandKind>,
+) -> Result<Vec<[u8; 4]>, String> {
+    const EDGE: u32 = 8;
+    const PADDED_BYTES_PER_ROW: u32 = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+
+    let target = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("zircon-ui-analytic-solid-target"),
+        size: wgpu::Extent3d {
+            width: EDGE,
+            height: EDGE,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8Unorm,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+        view_formats: &[],
+    });
+    let target_view = target.create_view(&wgpu::TextureViewDescriptor::default());
+    let pipeline = create_solid_pipeline(device, wgpu::TextureFormat::Rgba8Unorm);
+    let commands = kinds
+        .into_iter()
+        .enumerate()
+        .map(|(index, kind)| UiSurfaceCommand {
+            z_index: index as i32,
+            frame,
+            clip: None,
+            kind,
+        })
+        .collect();
+    let draw_list = UiSurfaceDrawList::new((EDGE, EDGE), None, commands);
+    let mut solid_items = draw_items(&draw_list)
+        .into_iter()
+        .filter_map(|item| match item {
+            DrawItem::Solid(item) => Some(item),
+            DrawItem::Image(_) | DrawItem::Text(_) => None,
+        })
+        .collect::<Vec<_>>();
+    if solid_items.len() != 1 {
+        return Err(format!(
+            "analytic readback requires one fused solid item, got {}",
+            solid_items.len()
+        ));
+    }
+    let vertices = solid_items
+        .pop()
+        .expect("one solid item was checked above")
+        .vertices()
+        .to_vec();
+    let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-ui-analytic-solid-vertices"),
+        size: (vertices.len() * std::mem::size_of_val(&vertices[0])) as u64,
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+    queue.write_buffer(&vertex_buffer, 0, bytemuck::cast_slice(vertices.as_slice()));
+
+    let readback = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-ui-analytic-solid-readback"),
+        size: u64::from(PADDED_BYTES_PER_ROW) * u64::from(EDGE),
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-ui-analytic-solid-encoder"),
+    });
+    {
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("zircon-ui-analytic-solid-pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &target_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                    store: wgpu::StoreOp::Store,
+                },
+                depth_slice: None,
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
+        pass.set_pipeline(&pipeline);
+        pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+        pass.draw(0..vertices.len() as u32, 0..1);
+    }
+    encoder.copy_texture_to_buffer(
+        target.as_image_copy(),
+        wgpu::TexelCopyBufferInfo {
+            buffer: &readback,
+            layout: wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(PADDED_BYTES_PER_ROW),
+                rows_per_image: Some(EDGE),
+            },
+        },
+        wgpu::Extent3d {
+            width: EDGE,
+            height: EDGE,
+            depth_or_array_layers: 1,
+        },
+    );
+    queue.submit([encoder.finish()]);
+
+    let slice = readback.slice(..);
+    let (sender, receiver) = mpsc::channel();
+    slice.map_async(wgpu::MapMode::Read, move |result| {
+        let _ = sender.send(result);
+    });
+    device
+        .poll(wgpu::PollType::wait_indefinitely())
+        .map_err(|error| error.to_string())?;
+    receiver
+        .recv()
+        .map_err(|error| error.to_string())?
+        .map_err(|error| error.to_string())?;
+
+    let mapped = slice.get_mapped_range();
+    let mut pixels = Vec::with_capacity((EDGE * EDGE) as usize);
+    for y in 0..EDGE as usize {
+        let row_start = y * PADDED_BYTES_PER_ROW as usize;
+        for x in 0..EDGE as usize {
+            let offset = row_start + x * 4;
+            pixels.push(
+                mapped[offset..offset + 4]
+                    .try_into()
+                    .expect("analytic readback pixel is exactly four bytes"),
+            );
+        }
+    }
+    drop(mapped);
+    readback.unmap();
+    Ok(pixels)
 }
 
 fn render_linear_midpoint(

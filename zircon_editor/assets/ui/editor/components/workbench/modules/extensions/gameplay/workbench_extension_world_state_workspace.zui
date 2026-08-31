@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "world_state_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.world_state_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionWorldStateWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "world_state_rail_gap" }, { node = "world_state_left" }, { node = "world_state_center" }, { node = "world_state_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "world_state_workspace_main" },
+  { node = "world_state_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.world_state_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "world_state_rail_gap" }, { node = "world_state_left" }, { node = "world_state_center" }, { node = "world_state_right_reserve" }]
+
+[nodes.world_state_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.world_state_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionWorldStateRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.world_state_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionWorldStateLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "world_state_title" }, { node = "world_state_keys_tab" }, { node = "world_state_scenario_tab" }, { node = "world_state_timeline_tab" }, { node = "world_state_night_raid_row" }, { node = "world_state_global_layer_row" }, { node = "world_state_alarm_key_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "world_state_title" }, { node = "world_state_left_content" }]
+
+[nodes.world_state_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionWorldStateLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "world_state_night_raid_row" }, { node = "world_state_global_layer_row" }, { node = "world_state_alarm_key_row" }]
 
 [nodes.world_state_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionWorldStateTitle"
 props = { text = "World State" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.world_state_keys_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionWorldStateKeysTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Keys", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/WorldStateKeysTab", event = "Click", route = "workbench.extension.world_state.keys" }]
-
-[nodes.world_state_scenario_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionWorldStateScenarioTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Scenario", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/WorldStateScenarioTab", event = "Click", route = "workbench.extension.world_state.scenario" }]
-
-[nodes.world_state_timeline_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionWorldStateTimelineTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Timeline", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/WorldStateTimelineTab", event = "Click", route = "workbench.extension.world_state.timeline" }]
 
 [nodes.world_state_night_raid_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/WorldStateAlarmKeyRow", event = "Click", ro
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionWorldStateCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "world_state_center_header" }, { node = "world_state_key_table" }, { node = "world_state_output" }]
 
 [nodes.world_state_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionWorldStateCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "world_state_center_title" }, { node = "world_state_header_fill" }, { node = "world_state_simulate_button" }, { node = "world_state_validate_button" }]
 
 [nodes.world_state_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionWorldStateSimulateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Simulate", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Simulate", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 96.0, preferred = 96.0, max = 106.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/WorldStateSimulate", event = "Click", route = "workbench.extension.world_state.simulate" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/WorldStateSimulate", event = "Click", route
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionWorldStateValidateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Validate", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Validate", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 96.0, preferred = 96.0, max = 106.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/WorldStateValidate", event = "Click", route = "workbench.extension.world_state.validate" }]
 
 [nodes.world_state_key_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionWorldStateKeyTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "world_state_alarm_active_table_row" }, { node = "world_state_weather_mode_table_row" }, { node = "world_state_ai_alert_table_row" }, { node = "world_state_quest_flag_table_row" }]
 
 [nodes.world_state_alarm_active_table_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/WorldStateQuestFlagTableRow", event = "Clic
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionWorldStateOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "World State Log", value_text = "84 keys   6 layers   1 conflict" }
+props = { text = "World State Log", value_text = "84 keys   6 layers   1 conflict", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/WorldStateOutput", event = "Click", route = "workbench.extension.world_state.output" }]
 
 [nodes.world_state_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionWorldStateRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "world_state_details_title" }, { node = "world_state_scenario_dropdown" }, { node = "world_state_layer_dropdown" }, { node = "world_state_authority_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "world_state_details_title" }, { node = "world_state_right_content" }]
+
+[nodes.world_state_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionWorldStateRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "world_state_scenario_dropdown_property_row" }, { node = "world_state_layer_dropdown_property_row" }, { node = "world_state_authority_field_property_row" }]
 
 [nodes.world_state_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,27 +202,48 @@ control_id = "WorkbenchExtensionWorldStateDetailsTitle"
 props = { text = "State Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.world_state_scenario_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionWorldStateScenarioDropdownPropertyRow"
+props = { text = "Scenario" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "world_state_scenario_dropdown", slot = { name = "value" } }]
+
 [nodes.world_state_scenario_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionWorldStateScenarioDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Night Raid", value = "Night Raid", options = ["Night Raid", "Patrol", "Defense", "Debug Scenario"] }
+props = { value_text = "Night Raid", value = "Night Raid", options = ["Night Raid", "Patrol", "Defense", "Debug Scenario"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/WorldStateScenarioEdit", event = "Change", route = "workbench.extension.world_state.scenario.edit" },
   { id = "WorkbenchExtension/WorldStateScenarioCommit", event = "Submit", route = "workbench.extension.world_state.scenario.commit" },
 ]
 
+[nodes.world_state_layer_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionWorldStateLayerDropdownPropertyRow"
+props = { text = "Layer" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "world_state_layer_dropdown", slot = { name = "value" } }]
+
 [nodes.world_state_layer_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionWorldStateLayerDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Global", value = "Global", options = ["Global", "Region", "System", "Scenario"] }
+props = { value_text = "Global", value = "Global", options = ["Global", "Region", "System", "Scenario"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/WorldStateLayerEdit", event = "Change", route = "workbench.extension.world_state.layer.edit" },
   { id = "WorkbenchExtension/WorldStateLayerCommit", event = "Submit", route = "workbench.extension.world_state.layer.commit" },
 ]
+
+[nodes.world_state_authority_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionWorldStateAuthorityFieldPropertyRow"
+props = { text = "Authority" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "world_state_authority_field", slot = { name = "value" } }]
 
 [nodes.world_state_authority_field]
 component = "WorkbenchField"

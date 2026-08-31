@@ -11,7 +11,7 @@ pub(super) fn append_skeleton_variant_tokens(
         append_variant_token(variant, skeleton_shape_variant(attributes).as_str());
     }
     if let Some(animation) = skeleton_animation(attributes, variant) {
-        append_variant_token(variant, &animation);
+        append_variant_token(variant, animation);
     }
     if skeleton_has_children(attributes) {
         append_variant_token(variant, "withChildren");
@@ -33,14 +33,19 @@ fn skeleton_shape_variant(attributes: &BTreeMap<String, toml::Value>) -> String 
         .unwrap_or_else(|| "text".to_string())
 }
 
-fn skeleton_animation(attributes: &BTreeMap<String, toml::Value>, variant: &str) -> Option<String> {
+fn skeleton_animation<'a>(
+    attributes: &'a BTreeMap<String, toml::Value>,
+    variant: &str,
+) -> Option<&'a str> {
     if variant_has_any_token(variant, &["pulse", "wave"]) {
         return None;
     }
     match attributes.get("animation") {
         Some(toml::Value::Boolean(false)) => None,
-        Some(value) => value_as_string(value).filter(|value| !value.is_empty() && value != "false"),
-        None => Some("pulse".to_string()),
+        Some(value) => value
+            .as_str()
+            .filter(|value| !value.is_empty() && *value != "false"),
+        None => Some("pulse"),
     }
 }
 
@@ -59,3 +64,7 @@ fn variant_has_any_token(variant: &str, expected: &[&str]) -> bool {
         .iter()
         .any(|token| variant_contains(variant, token))
 }
+
+#[cfg(test)]
+#[path = "skeleton/borrowed_animation_tests.rs"]
+mod borrowed_animation_tests;

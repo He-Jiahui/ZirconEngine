@@ -17,7 +17,6 @@ mod world_sync;
 #[cfg(test)]
 mod tests;
 
-use zircon_runtime::core::CoreWeak;
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::{
     physics::{
@@ -26,6 +25,7 @@ use zircon_runtime::core::framework::{
     },
     scene::physics::PhysicsMaterialMetadata,
 };
+use zircon_runtime::core::CoreWeak;
 
 use crate::backend::builtin::PhysicsTriggerPairMap;
 

@@ -1,4 +1,4 @@
-use crate::graphics::scene::resources::GpuMeshVertex;
+use crate::graphics::scene::resources::{GpuMeshVertex, PipelineKey};
 
 use super::super::mesh_pass::MeshPassPipelineKind;
 
@@ -11,6 +11,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_shadow_mesh_pipel
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
     kind: MeshPassPipelineKind,
+    key: &PipelineKey,
     pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -22,7 +23,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_shadow_mesh_pipel
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             buffers: &[GpuMeshVertex::layout()],
         },
-        primitive: wgpu::PrimitiveState::default(),
+        primitive: shadow_primitive_state(key),
         depth_stencil: Some(wgpu::DepthStencilState {
             format: super::super::super::core::DEPTH_FORMAT,
             depth_write_enabled: Some(true),
@@ -39,6 +40,14 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_shadow_mesh_pipel
         multiview_mask: None,
         cache: pipeline_cache,
     })
+}
+
+fn shadow_primitive_state(key: &PipelineKey) -> wgpu::PrimitiveState {
+    wgpu::PrimitiveState {
+        front_face: super::mesh_front_face(key),
+        cull_mode: (!key.double_sided).then_some(wgpu::Face::Back),
+        ..wgpu::PrimitiveState::default()
+    }
 }
 
 fn shadow_fragment_state(
@@ -69,12 +78,12 @@ mod tests {
     use std::borrow::Cow;
     use std::sync::Arc;
 
-    use super::create_shadow_mesh_pipeline;
-    use crate::core::framework::render::ShaderPassType;
+    use super::{create_shadow_mesh_pipeline, shadow_primitive_state};
     use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
+    use crate::core::framework::render::ShaderPassType;
     use crate::graphics::scene::gpu_scene::GpuScene;
-    use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::resources::GPU_MATERIAL_UNIFORM_MIN_SIZE;
+    use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshPassPipelineKind;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::mesh_pipeline_shadow_template_source_for_geometry;
@@ -82,6 +91,19 @@ mod tests {
     const TEST_SKINNED_JOINT_MATRIX_COUNT: u64 = 256;
     const TEST_SKINNED_JOINT_MATRIX_BYTES: u64 = 64;
     const TEST_SKINNED_JOINT_PARAMS_BYTES: u64 = 16;
+
+    #[test]
+    fn shadow_raster_state_culls_back_faces_only_for_one_sided_keys() {
+        let one_sided = default_pipeline_key();
+        assert_eq!(
+            shadow_primitive_state(&one_sided).cull_mode,
+            Some(wgpu::Face::Back)
+        );
+
+        let mut two_sided = one_sided;
+        two_sided.double_sided = true;
+        assert_eq!(shadow_primitive_state(&two_sided).cull_mode, None);
+    }
 
     #[test]
     fn shadow_mesh_pipeline_declares_template_entries_static_layout_and_depth_bias() {
@@ -107,9 +129,11 @@ mod tests {
 
         assert!(source.wgsl_source.contains("fn vs_main("));
         assert!(!source.wgsl_source.contains("fn fs_main("));
-        assert!(!source
-            .wgsl_source
-            .contains("GpuMeshVertex::previous_position_layout()"));
+        assert!(
+            !source
+                .wgsl_source
+                .contains("GpuMeshVertex::previous_position_layout()")
+        );
     }
 
     #[test]
@@ -146,6 +170,7 @@ mod tests {
             &pipeline_layout,
             &opaque_shader,
             MeshPassPipelineKind::ShadowDepth,
+            &opaque_key,
             None,
         );
         let _alpha_pipeline = create_shadow_mesh_pipeline(
@@ -153,6 +178,7 @@ mod tests {
             &pipeline_layout,
             &alpha_shader,
             MeshPassPipelineKind::ShadowDepthAlphaMask,
+            &alpha_key,
             None,
         );
         let error = pollster::block_on(error_scope.pop());

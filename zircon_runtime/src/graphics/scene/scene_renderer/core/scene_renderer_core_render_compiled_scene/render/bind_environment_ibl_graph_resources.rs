@@ -77,9 +77,14 @@ mod tests {
         let graph = ibl_bake_graph();
         let mut resources = RenderGraphExecutionResources::new();
         let mut transient_pool = TransientResourcePool::default();
-        transient_pool.begin_frame();
+        transient_pool.begin_frame(backend.device_profile());
         resources
-            .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
+            .materialize_transient_resources_with_pool(
+                &backend.device,
+                backend.device_profile(),
+                &graph,
+                &mut transient_pool,
+            )
             .expect("IBL bake transient resources should materialize");
 
         bind_environment_ibl_graph_resources(&graph, None, &mut resources);

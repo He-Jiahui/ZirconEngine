@@ -12,9 +12,13 @@ related_code:
   - zircon_editor/src/ui/host/editor_asset_manager/api.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/mod.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/editor_asset_state.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/watcher/host.rs
+  - tools/tests/test_editor09_project_close_deactivation_contract.py
 tests:
+  - python tools/tests/test_editor09_project_close_deactivation_contract.py
   - cargo test -p zircon_editor --lib --locked editor_asset_manager
   - cargo test -p zircon_editor --lib --locked document
 ---
@@ -55,8 +59,12 @@ Editor09 缺少 generation-aware 的 editor asset projection deactivation：runt
 
 | 日期 | 状态 | 产出与证据 |
 | --- | --- | --- |
+| 2026-08-27 | source hard-cut complete / managed validation pending | 当前源码重审发现原实现仍有两条关闭竞态：`refresh_from_runtime_project` 复制裸 `ProjectManager` 后可在 Runtime close 之后迟到提交，且空投影 deactivation 不推进 source-sync epoch；catalog/publish/source-sync identity 还使用 saturating 或无检查递增。现已硬切为 `current_project_generation_snapshot -> ProjectAssetGenerationToken -> commit_if_project_generation`，O(n) catalog generation 构建与 preview rebase 位于 Runtime fence 和 Editor source gate 外，fence 内只执行代际比较、状态交换和瞬态集合迁移；任何关闭/重开后的旧快照只能计入 `runtime_project_generation_superseded_count`，不能回写目录。deactivation 改为不可失败的本地 retirement，空投影也推进 checked source-sync epoch，committed close 不再吞掉“目录未清空”错误后发布成功；catalog revision、publish epoch 与 source-sync epoch 均使用 checked progression，耗尽时 fail-stop，禁止复用身份。进一步反例审查确认 Runtime token 依赖全局 catalog-input sequence 区分同根重开，遂将该 allocator 从裸 `fetch_add` 硬切为 checked CAS，使耗尽 sequence 不能回绕成旧 token。生产 owner 从 822 行拆为 `sync_from_project.rs` 460 行与 `project_sync/tests/mod.rs` 361 行，未保留旧测试镜像。对照 `docs/plans/optimize/zircon_editor/04-*`、`docs/plans/optimize/zircon_runtime/24-*` 以及 UE `IAssetRegistry`/`UAutoReimportManager` 后确认边界：吸收单一 registry owner、短终端发布和明确退役，不臆造 UE 同进程 project-close API。新增 4 条 Python 源码契约由 RED 2/2 收敛为 GREEN 4/4，并新增 catalog/source-sync/runtime-sequence 近耗尽 Rust 回归；rustfmt 与 scoped `git diff --check` 通过。未启动 Cargo、并发压力或动态 profile，本行不宣称性能基准、fixed 或 accepted；failure 保持 open。 |
 | 2026-07-29 | open | 当前源码检查确认 runtime project 为 `None` 时 `DefaultEditorAssetManager::refresh_from_runtime_project` 直接返回成功而不清空投影；该最低层缺口已从 Editor01 document producer 移交 Editor09。 |
+| 2026-08-23 | implemented / validation-pending | 当前源码已硬切原 `Ok(())` 保留路径：无活动 runtime project 的 refresh 统一调用 `deactivate_runtime_project`，committed close 先撤销 editor asset projection 再停 UI asset watcher。deactivation 原子替换为空 catalog generation、清空 project/catalog/preview/source-sync 状态并广播一次 `CatalogChanged`；新增 poisoned state-lock 与 residual source-generation 回归，生产锁取得改为 owner-local recovery helper，残留 source-sync epoch 也不能被误判为 no-op。受管 focused Cargo 尚未执行，failure 保持 open，未标 fixed/accepted。 |
+| 2026-08-23 | implemented / validation-pending | state lock recovery 已收敛到 `editor_asset_state` 的唯一 read/write helper，`sync_from_project`、catalog snapshot 与 project deactivation 全部硬切使用它；新增 sync-from-project poisoned-lock 回归，避免工程打开/刷新在此前关闭错误后的 poisoned state 上再次崩溃。受管 focused Cargo 尚未执行，failure 保持 open，未标 fixed/accepted。 |
+| 2026-08-23 | implemented / validation-pending | recovery helper 同时覆盖 asset-details 查询与后台 preview-refresh worker；manager 域对 `EditorAssetState` 的生产 direct `read/write().expect("editor asset state lock poisoned")` 搜索为 0，避免预览完成/释放路径在同一 poisoned state 上绕过工程关闭与同步语义。受管 focused Cargo 尚未执行，failure 保持 open，未标 fixed/accepted。 |
 
 ## 修复结果与回传
 
-Open state: `待修复`。Editor01 不会在该投影仍可暴露旧工程资产时发布 project close 的结构性 document 事件；Editor09 完成 source-bound 验证后，将 canonical artifact 回传至 Editor01 子计划并改名为 `fixed-*`。
+Open state: `source_hardcut_complete / static_contract_green / managed_validation_and_fixed_return_pending`。Editor01 仍需等待 Editor09 focused Cargo、并发关闭/迟到同步回归和上行 document lifecycle 验证；完成 source-bound 验证前，本 canonical artifact 不改名为 `fixed-*`。

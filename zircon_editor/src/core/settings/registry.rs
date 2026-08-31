@@ -5,8 +5,8 @@ use thiserror::Error;
 use super::change_log::SettingsChangeLog;
 use super::snapshot::BuiltInSettingsSlots;
 use super::{
-    SettingChange, SettingDefinition, SettingValue, SettingsChangeCursor, SettingsChangeDelta,
-    SettingsChangeLogPolicy, SettingsKey, SettingsScope,
+    SettingChange, SettingDefinition, SettingValue, SettingValueSource, SettingsChangeCursor,
+    SettingsChangeDelta, SettingsChangeLogPolicy, SettingsKey, SettingsScope,
 };
 
 #[derive(Debug, Error, PartialEq)]
@@ -94,7 +94,18 @@ impl SettingsRegistry {
         self.definitions.get(key)
     }
 
+    pub(super) fn definitions(&self) -> impl ExactSizeIterator<Item = &SettingDefinition> {
+        self.definitions.values()
+    }
+
     pub fn resolve(&self, key: &SettingsKey) -> Result<&SettingValue, SettingsError> {
+        self.resolve_with_source(key).map(|(value, _)| value)
+    }
+
+    pub(super) fn resolve_with_source(
+        &self,
+        key: &SettingsKey,
+    ) -> Result<(&SettingValue, SettingValueSource), SettingsError> {
         let definition = self.definition_or_error(key)?;
         for scope in [
             SettingsScope::Session,
@@ -102,10 +113,10 @@ impl SettingsRegistry {
             SettingsScope::User,
         ] {
             if let Some(value) = self.layers.get(scope, key) {
-                return Ok(value);
+                return Ok((value, SettingValueSource::Scope(scope)));
             }
         }
-        Ok(&definition.default)
+        Ok((&definition.default, SettingValueSource::Default))
     }
 
     pub fn set(
@@ -228,7 +239,7 @@ impl SettingsRegistry {
                 })?;
         }
 
-        let previous = self.persistent_values(scope)?.clone();
+        let previous = self.persistent_values(scope)?;
         let changed_keys: BTreeSet<_> = previous
             .keys()
             .chain(values.keys())

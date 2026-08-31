@@ -22,8 +22,8 @@ pub(super) const EXPECTED_RUNTIME_04_SOURCE_FILES: &[&str] = &[
     "src/asset/artifact/chunk_residency.rs",
     "src/asset/artifact/store.rs",
     "src/asset/module.rs",
-    "src/core/resource/manager/registry_ops.rs",
-    "src/core/resource/manager/commit.rs",
+    "crates/zr_resource/src/manager/registry_ops.rs",
+    "crates/zr_resource/src/manager/commit.rs",
     "../zircon_runtime_interface/src/resource/resource_record.rs",
 ];
 
@@ -41,7 +41,7 @@ pub(super) const EXPECTED_RUNTIME_04_GUARD_FILES: &[&str] = &[
     "src/asset/tests/assets/artifact_store/lazy_residency.rs",
     "src/asset/tests/assets/artifact_store/scene_components.rs",
     "src/asset/tests/assets/artifact_store/scene_script.rs",
-    "src/core/resource/tests.rs",
+    "crates/zr_resource/src/tests.rs",
     "src/tests/runtime_absorption/asset_surface.rs",
     "src/tests/runtime_absorption/asset_surface/facade_query.rs",
     "src/tests/runtime_absorption/asset_worker_policy.rs",

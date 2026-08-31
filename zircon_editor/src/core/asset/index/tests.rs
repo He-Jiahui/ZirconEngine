@@ -113,6 +113,23 @@ fn rows_borrow_runtime_registry_authority_and_meta_v7_projection() {
 }
 
 #[test]
+fn runtime_snapshot_factory_projects_all_metadata_into_one_editor_index() {
+    let runtime_registry = compound_registry();
+    let index = EditorAssetIndex::from_runtime_snapshot(
+        Arc::clone(&runtime_registry),
+        [compound_meta(17, "res://models/ship.glb#mesh")],
+    )
+    .unwrap();
+
+    assert!(Arc::ptr_eq(index.runtime_registry(), &runtime_registry));
+    for uuid in [uuid("compound-root"), uuid("compound-child")] {
+        let row = index.row_by_uuid(uuid).unwrap();
+        assert_eq!(row.source_mtime_unix_ms(), Some(17));
+        assert_eq!(row.import_state(), EditorAssetImportState::Ready);
+    }
+}
+
+#[test]
 fn watch_events_mark_only_touched_runtime_entries_dirty() {
     let mut index = EditorAssetIndex::new(registry(vec![
         entry("sky", "res://textures/sky.png", "digest-a"),
@@ -159,6 +176,75 @@ fn runtime_snapshot_replacement_resolves_pending_added_paths() {
     let row = index.row_by_uuid(uuid("new")).unwrap();
     assert_eq!(row.path(), &added);
     assert_eq!(row.import_state(), EditorAssetImportState::Stale);
+}
+
+#[test]
+fn authoritative_projection_replacement_preserves_valid_transient_states() {
+    let sky = entry("sky", "res://textures/sky.png", "digest-a")
+        .with_tags(BTreeSet::from(["environment".to_owned()]));
+    let mut index = EditorAssetIndex::new(registry(vec![sky.clone()]));
+    index
+        .ingest_meta_document(ready_meta("sky", "res://textures/sky.png", "digest-a"))
+        .unwrap();
+    index.apply_watch_events(&[
+        AssetWatchEvent::Modified(uri("res://textures/sky.png")),
+        AssetWatchEvent::Added(uri("res://textures/new.png")),
+    ]);
+    index.begin_import(uuid("sky")).unwrap();
+
+    let mut replacement = EditorAssetIndex::new(registry(vec![
+        sky,
+        entry("new", "res://textures/new.png", "digest-new"),
+    ]));
+    replacement
+        .ingest_meta_document(ready_meta("sky", "res://textures/sky.png", "digest-a"))
+        .unwrap();
+
+    index.replace_authoritative_projection(replacement);
+
+    assert_eq!(
+        index.row_by_uuid(uuid("sky")).unwrap().import_state(),
+        EditorAssetImportState::Importing
+    );
+    assert_eq!(index.pending_dirty_path_count(), 0);
+    assert_eq!(
+        index.row_by_uuid(uuid("new")).unwrap().import_state(),
+        EditorAssetImportState::Stale
+    );
+
+    index.clear_import(uuid("sky"));
+    assert_eq!(
+        index.row_by_uuid(uuid("sky")).unwrap().import_state(),
+        EditorAssetImportState::Stale
+    );
+}
+
+#[test]
+fn candidate_projection_inherits_transient_states_before_catalog_build() {
+    let sky = entry("sky", "res://textures/sky.png", "digest-a")
+        .with_tags(BTreeSet::from(["environment".to_owned()]));
+    let mut current = EditorAssetIndex::new(registry(vec![sky.clone()]));
+    current
+        .ingest_meta_document(ready_meta("sky", "res://textures/sky.png", "digest-a"))
+        .unwrap();
+    current.apply_watch_events(&[AssetWatchEvent::Modified(uri("res://textures/sky.png"))]);
+    current.begin_import(uuid("sky")).unwrap();
+
+    let mut candidate = EditorAssetIndex::new(registry(vec![sky]));
+    candidate
+        .ingest_meta_document(ready_meta("sky", "res://textures/sky.png", "digest-a"))
+        .unwrap();
+    candidate.inherit_transient_state_from(&current);
+
+    assert_eq!(
+        candidate.row_by_uuid(uuid("sky")).unwrap().import_state(),
+        EditorAssetImportState::Importing
+    );
+    candidate.clear_import(uuid("sky"));
+    assert_eq!(
+        candidate.row_by_uuid(uuid("sky")).unwrap().import_state(),
+        EditorAssetImportState::Stale
+    );
 }
 
 #[test]

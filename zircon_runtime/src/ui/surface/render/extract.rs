@@ -2,34 +2,28 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
 use crate::ui::surface::{
-    arranged_node_indexed, arranged_node_indices, build_arranged_tree,
-    component_state::UiSurfaceComponentStateStore, is_arranged_render_visible_indexed,
-    UiSurfaceControlIndex,
+    UiArrangedVisibilityIndex, UiSurfaceControlIndex, arranged_node_indexed, arranged_node_indices,
+    component_state::UiSurfaceComponentStateStore,
 };
 use zircon_runtime_interface::ui::surface::UiArrangedTree;
 use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiRenderExtract, UiRenderList};
 use zircon_runtime_interface::ui::tree::UiTree;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
-    layout::UiFrame,
-    tree::UiTemplateNodeMetadata,
-    widget::{UiPopupAnchor, UiWidgetBehavior},
+    layout::{UiFrame, UiPoint},
 };
 
-use super::buttons::{
-    button_render_commands, button_suppresses_owner_image, button_suppresses_owner_text,
-};
+use super::buttons::{button_render_commands, button_suppresses_owner_image};
 use super::chrome::{
     chrome_render_commands, chrome_suppresses_owner_image, chrome_suppresses_owner_surface,
-    chrome_suppresses_owner_text,
 };
 use super::collection_rows::{
     collection_row_render_commands, collection_row_suppresses_owner_image,
-    collection_row_suppresses_owner_surface, collection_row_suppresses_owner_text,
+    collection_row_suppresses_owner_surface,
 };
 use super::command_palette::{
     command_palette_render_commands, command_palette_suppresses_owner_image,
-    command_palette_suppresses_owner_surface, command_palette_suppresses_owner_text,
+    command_palette_suppresses_owner_surface,
 };
 use super::dialog::{
     dialog_render_commands, dialog_suppresses_owner_image, dialog_suppresses_owner_surface,
@@ -37,87 +31,63 @@ use super::dialog::{
 };
 use super::divider::{
     divider_render_commands, divider_suppresses_owner_image, divider_suppresses_owner_surface,
-    divider_suppresses_owner_text,
 };
 use super::drag_overlay::{
     drag_overlay_render_commands, drag_overlay_suppresses_owner_image,
-    drag_overlay_suppresses_owner_surface, drag_overlay_suppresses_owner_text,
+    drag_overlay_suppresses_owner_surface,
 };
-use super::dropdowns::{dropdown_render_commands, dropdown_suppresses_owner_text};
+use super::dropdowns::dropdown_render_commands;
 use super::feedback::{
     feedback_render_commands, feedback_suppresses_owner_image, feedback_suppresses_owner_surface,
-    feedback_suppresses_owner_text,
 };
 use super::node_visual_data::UiNodeVisualData;
 use super::notification_center::{
     notification_center_render_commands, notification_center_suppresses_owner_image,
-    notification_center_suppresses_owner_surface, notification_center_suppresses_owner_text,
+    notification_center_suppresses_owner_surface,
 };
-use super::popup_menu::{popup_menu_may_emit_text, popup_menu_render_commands};
-use super::popup_options::{popup_option_may_emit_text, popup_option_render_commands};
+use super::popup_menu::popup_menu_render_commands;
+use super::popup_options::popup_option_render_commands;
 use super::progress::{
     progress_render_commands, progress_suppresses_owner_image, progress_suppresses_owner_surface,
-    progress_suppresses_owner_text,
 };
 use super::resolve::resolve_command_kind;
-use super::segmented_controls::{
-    segmented_control_render_commands, segmented_control_suppresses_owner_text,
-};
-use super::selection_controls::{
-    selection_control_render_commands, selection_control_suppresses_owner_text,
-};
+use super::segmented_controls::segmented_control_render_commands;
+use super::selection_controls::selection_control_render_commands;
 use super::skeleton::{
     skeleton_render_commands, skeleton_suppresses_owner_image, skeleton_suppresses_owner_surface,
-    skeleton_suppresses_owner_text,
 };
-use super::sliders::{slider_render_commands, slider_suppresses_owner_text};
+use super::sliders::slider_render_commands;
 use super::text_fields::{text_field_render_commands, text_field_suppresses_owner_text};
 use super::text_prewarm::{
+    PendingOwnerTextLayouts, UI_TEXT_OWNER_PREWARM_OVERLAP_MIN_REQUESTS,
     prewarm_owner_text_requests, prewarm_render_command_text_after_owner_overlap,
     resolve_missing_render_command_text_layouts, ui_text_shape_prewarm_pool,
-    PendingOwnerTextLayouts, UI_TEXT_OWNER_PREWARM_OVERLAP_MIN_REQUESTS,
 };
 #[cfg(feature = "profiling")]
 use super::text_prewarm::{
-    record_compiled_rich_text_cache_profile, record_text_extract_profile,
-    TextFontHandleFrameProfile,
+    TextFontHandleFrameProfile, record_compiled_rich_text_cache_profile,
+    record_text_extract_profile,
 };
 use crate::text::TextDocumentKey;
-use crate::ui::text::{
-    prepare_render_command_text_artifacts, resolve_text_layout, UiTextLayoutRequest,
-    UiTextLayoutResolution, UiTextMeasureCache, UiTextShapePrewarmRequest, UiTextViewport,
-};
+use crate::ui::text::{UiTextMeasureCache, UiTextViewport};
 
-pub fn extract_ui_render_tree(tree: &UiTree) -> UiRenderExtract {
-    let arranged_tree = build_arranged_tree(tree);
-    extract_ui_render_tree_from_arranged(tree, &arranged_tree)
-}
+mod one_shot;
+mod owner_text_prewarm;
+mod pixel_snapping;
+mod popup_anchor;
+mod text_layout_route;
 
-pub fn extract_ui_render_tree_from_arranged(
-    tree: &UiTree,
-    arranged_tree: &UiArrangedTree,
-) -> UiRenderExtract {
-    extract_ui_render_tree_from_arranged_with_component_states(tree, arranged_tree, None)
-}
-
-pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
-    tree: &UiTree,
-    arranged_tree: &UiArrangedTree,
-    component_states: Option<&UiSurfaceComponentStateStore>,
-) -> UiRenderExtract {
-    extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache(
-        tree,
-        arranged_tree,
-        component_states,
-        None,
-    )
-}
+pub use one_shot::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
+use owner_text_prewarm::{collect_owner_text_prewarm_requests, owner_text_is_suppressed};
+use pixel_snapping::apply_resolved_pixel_snapping_policies;
+use popup_anchor::{popup_runtime_anchor_is_open, resolve_popup_anchor_frame};
+pub(crate) use text_layout_route::resolve_text_layout_with_cache;
 
 pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache(
     tree: &UiTree,
     arranged_tree: &UiArrangedTree,
     component_states: Option<&UiSurfaceComponentStateStore>,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> UiRenderExtract {
     let node_indices = arranged_node_indices(arranged_tree);
     extract_ui_render_tree_from_arranged_indexed_with_component_states_and_text_measure_cache(
@@ -134,47 +104,61 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
     arranged_tree: &UiArrangedTree,
     node_indices: &BTreeMap<UiNodeId, usize>,
     component_states: Option<&UiSurfaceComponentStateStore>,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> UiRenderExtract {
     extract_ui_render_tree_from_arranged_indexed_with_component_states_and_text_measure_cache_and_control_index(
         tree,
         arranged_tree,
         node_indices,
+        None,
         component_states,
         text_measure_cache,
+        None,
         None,
     )
 }
 
-/// Surface-owned extraction passes the incremental control index so control-anchored
-/// popups resolve their live trigger frame without an additional whole-tree scan.
 pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states_and_text_measure_cache_and_control_index(
     tree: &UiTree,
     arranged_tree: &UiArrangedTree,
     node_indices: &BTreeMap<UiNodeId, usize>,
+    arranged_visibility: Option<&UiArrangedVisibilityIndex>,
     component_states: Option<&UiSurfaceComponentStateStore>,
-    mut text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
     control_index: Option<&UiSurfaceControlIndex>,
+    popup_anchor_points: Option<&BTreeMap<UiNodeId, UiPoint>>,
 ) -> UiRenderExtract {
+    let fallback_arranged_visibility;
+    let arranged_visibility = if let Some(index) = arranged_visibility {
+        index
+    } else {
+        crate::profile_counter!(
+            "runtime",
+            "ui.render_extract.visibility_index_fallback_build_count",
+            1
+        );
+        fallback_arranged_visibility =
+            UiArrangedVisibilityIndex::from_arranged(arranged_tree, node_indices);
+        &fallback_arranged_visibility
+    };
     #[cfg(feature = "profiling")]
     let font_handle_profile = TextFontHandleFrameProfile::begin();
-    // These caller-thread scans precede command building, so they need their own p95 attribution.
-    let owner_prewarm_candidates = {
+    let owner_prewarm_collection = {
         crate::profile_scope!(
             "runtime",
             "ui_text.extract",
             "owner_prewarm_request_collection"
         );
-        text_measure_cache.as_deref_mut().map(|cache| {
-            collect_owner_text_prewarm_requests(
-                tree,
-                arranged_tree,
-                node_indices,
-                component_states,
-                cache,
-                control_index,
-            )
-        })
+        collect_owner_text_prewarm_requests(
+            tree,
+            arranged_tree,
+            node_indices,
+            arranged_visibility,
+            component_states,
+            text_measure_cache,
+            control_index,
+            popup_anchor_points,
+        )
     };
     let owner_text_prewarm_requests = {
         crate::profile_scope!(
@@ -182,10 +166,9 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
             "ui_text.extract",
             "owner_prewarm_overlap_admission"
         );
-        owner_prewarm_candidates.filter(|requests| {
-            requests.len() >= UI_TEXT_OWNER_PREWARM_OVERLAP_MIN_REQUESTS
-                && render_command_build_can_overlap_owner_prewarm(tree, arranged_tree, node_indices)
-        })
+        (owner_prewarm_collection.requests.len() >= UI_TEXT_OWNER_PREWARM_OVERLAP_MIN_REQUESTS
+            && owner_prewarm_collection.can_overlap_render_commands)
+            .then_some(owner_prewarm_collection.requests)
     };
     #[cfg(feature = "profiling")]
     let profile_frame_context =
@@ -204,20 +187,21 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
             else {
                 continue;
             };
-            if !is_arranged_render_visible_indexed(arranged_tree, node_indices, node_id)
-                .unwrap_or(false)
-            {
+            if !arranged_visibility.is_render_visible(node_id) {
                 continue;
             }
             let popup_anchor_frame = resolve_popup_anchor_frame(
                 tree,
                 arranged_tree,
                 node_indices,
+                arranged_visibility,
+                node_id,
                 node.template_metadata.as_ref(),
                 arranged_node.frame,
                 control_index,
+                popup_anchor_points,
             );
-            if popup_control_anchor_is_open(node.template_metadata.as_ref())
+            if popup_runtime_anchor_is_open(node.template_metadata.as_ref())
                 && popup_anchor_frame.is_none()
             {
                 continue;
@@ -282,11 +266,11 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
                         )
                     })
                     .flatten();
-                (
-                    TextDocumentKey::new(node_id.0, node.layout_cache.text_layout_revision),
-                    viewport,
-                    visual.editable.clone(),
-                )
+                let document_key = node
+                    .layout_cache
+                    .retained_text_layout_revision()
+                    .map(|revision| TextDocumentKey::new(node_id.0, revision));
+                (document_key, viewport, visual.editable.clone())
             });
             let command = UiRenderCommand {
                 node_id,
@@ -360,20 +344,26 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
                 arranged_node.z_index,
                 visual.opacity,
             ));
-            commands.extend(text_field_render_commands(
-                node_id,
-                node.template_metadata.as_ref(),
-                &node.state_flags,
-                component_state,
-                arranged_node.frame,
-                Some(arranged_node.clip_frame),
-                arranged_node.z_index,
-                visual.opacity,
-                &visual.style,
-                visual.text.as_deref(),
-                visual.editable.as_ref(),
-                command_text_measure_cache.as_deref_mut(),
-            ));
+            if let Some(text_measure_cache) = command_text_measure_cache.as_deref_mut() {
+                commands.extend(text_field_render_commands(
+                    node_id,
+                    node.template_metadata.as_ref(),
+                    &node.state_flags,
+                    component_state,
+                    arranged_node.frame,
+                    Some(arranged_node.clip_frame),
+                    arranged_node.z_index,
+                    visual.opacity,
+                    &visual.style,
+                    visual.text.as_deref(),
+                    visual.editable.as_ref(),
+                    text_measure_cache,
+                ));
+            } else {
+                debug_assert!(!text_field_suppresses_owner_text(
+                    node.template_metadata.as_ref()
+                ));
+            }
             commands.extend(collection_row_render_commands(
                 node_id,
                 node.template_metadata.as_ref(),
@@ -390,6 +380,7 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
                 &node.state_flags,
                 component_state,
                 arranged_node.frame,
+                popup_anchor_frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
                 visual.opacity,
@@ -424,22 +415,31 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
                 arranged_node.z_index,
                 visual.opacity,
             ));
-            commands.extend(dialog_render_commands(
-                node_id,
-                node.template_metadata.as_ref(),
-                &node.state_flags,
-                component_state,
-                arranged_node.frame,
-                Some(arranged_node.clip_frame),
-                arranged_node.z_index,
-                visual.opacity,
-            ));
+            if let Some(text_measure_cache) = command_text_measure_cache.as_deref_mut() {
+                commands.extend(dialog_render_commands(
+                    node_id,
+                    node.template_metadata.as_ref(),
+                    &node.state_flags,
+                    component_state,
+                    arranged_node.frame,
+                    popup_anchor_frame,
+                    Some(arranged_node.clip_frame),
+                    arranged_node.z_index,
+                    visual.opacity,
+                    text_measure_cache,
+                ));
+            } else {
+                debug_assert!(!dialog_suppresses_owner_text(
+                    node.template_metadata.as_ref()
+                ));
+            }
             commands.extend(command_palette_render_commands(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,
                 component_state,
                 arranged_node.frame,
+                popup_anchor_frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
                 visual.opacity,
@@ -450,6 +450,7 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
                 &node.state_flags,
                 component_state,
                 arranged_node.frame,
+                popup_anchor_frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
                 visual.opacity,
@@ -501,32 +502,28 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
         owner_overlap_request_count,
         owner_overlap_join_wait_nanos,
     ) = match owner_text_prewarm_requests {
-        Some(requests) => match text_measure_cache.as_deref_mut() {
-            Some(cache) => {
-                let request_count = requests.len();
-                let pool = ui_text_shape_prewarm_pool();
-                let mut collected = (Vec::new(), PendingOwnerTextLayouts::default());
-                let mut command_build_finished_at = None;
-                pool.in_place_scope(|scope| {
-                    scope.spawn(move |_| {
-                        #[cfg(feature = "profiling")]
-                        let _profile_frame_context = profile_frame_context.attach();
-                        prewarm_owner_text_requests(&requests, cache);
-                    });
-                    collected = collect_render_commands(None);
-                    command_build_finished_at = Some(Instant::now());
+        Some(requests) => {
+            let request_count = requests.len();
+            let pool = ui_text_shape_prewarm_pool();
+            let mut collected = (Vec::new(), PendingOwnerTextLayouts::default());
+            let mut command_build_finished_at = None;
+            pool.in_place_scope(|scope| {
+                let prewarm_cache = &mut *text_measure_cache;
+                scope.spawn(move |_| {
+                    #[cfg(feature = "profiling")]
+                    let _profile_frame_context = profile_frame_context.attach();
+                    prewarm_owner_text_requests(&requests, prewarm_cache);
                 });
-                let join_wait_nanos = command_build_finished_at
-                    .map(|finished_at| {
-                        finished_at.elapsed().as_nanos().min(u64::MAX as u128) as u64
-                    })
-                    .unwrap_or_default();
-                (collected, true, request_count, join_wait_nanos)
-            }
-            None => (collect_render_commands(None), false, 0, 0),
-        },
+                collected = collect_render_commands(None);
+                command_build_finished_at = Some(Instant::now());
+            });
+            let join_wait_nanos = command_build_finished_at
+                .map(|finished_at| finished_at.elapsed().as_nanos().min(u64::MAX as u128) as u64)
+                .unwrap_or_default();
+            (collected, true, request_count, join_wait_nanos)
+        }
         None => (
-            collect_render_commands(text_measure_cache.as_deref_mut()),
+            collect_render_commands(Some(&mut *text_measure_cache)),
             false,
             0,
             0,
@@ -555,25 +552,24 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
     #[cfg(not(feature = "profiling"))]
     let _ = (owner_overlap_request_count, owner_overlap_join_wait_nanos);
 
-    if let Some(cache) = text_measure_cache.as_deref_mut() {
-        prewarm_render_command_text_after_owner_overlap(
-            &commands,
-            &pending_owner_text_layouts,
-            cache,
-            owner_text_already_prewarmed,
-        );
-    }
+    prewarm_render_command_text_after_owner_overlap(
+        &commands,
+        &pending_owner_text_layouts,
+        text_measure_cache,
+        owner_text_already_prewarmed,
+    );
     resolve_missing_render_command_text_layouts(
         &mut commands,
         &pending_owner_text_layouts,
-        text_measure_cache.as_deref_mut(),
+        &mut *text_measure_cache,
     );
-    prepare_render_command_text_artifacts(&mut commands);
+    text_measure_cache.prepare_render_command_text_artifacts(&mut commands);
+    apply_resolved_pixel_snapping_policies(tree, &mut commands);
     #[cfg(feature = "profiling")]
     {
-        if let Some(cache) = text_measure_cache.as_deref_mut() {
-            record_compiled_rich_text_cache_profile(cache.sample_compiled_rich_text_cache());
-        }
+        record_compiled_rich_text_cache_profile(
+            text_measure_cache.sample_compiled_rich_text_cache(),
+        );
         font_handle_profile.finish();
     }
 
@@ -584,209 +580,23 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
     }
 }
 
-fn resolve_popup_anchor_frame(
-    tree: &UiTree,
-    arranged_tree: &UiArrangedTree,
-    node_indices: &BTreeMap<UiNodeId, usize>,
-    metadata: Option<&UiTemplateNodeMetadata>,
-    owner_frame: UiFrame,
-    control_index: Option<&UiSurfaceControlIndex>,
-) -> Option<UiFrame> {
-    let Some(metadata) = metadata else {
-        return Some(owner_frame);
-    };
-    let UiPopupAnchor::Control { control_id } = &metadata.widget.popup_anchor else {
-        return Some(owner_frame);
-    };
-    let trigger_node_id = match control_index {
-        Some(control_index) => control_index.unique_node_id_for_surface(tree, control_id),
-        None => unique_control_node_id(tree, control_id),
-    }?;
-    if !is_arranged_render_visible_indexed(arranged_tree, node_indices, trigger_node_id)
-        .unwrap_or(false)
-    {
-        return None;
-    }
-    let trigger = tree.nodes.get(&trigger_node_id)?;
-    if !trigger.state_flags.enabled {
-        return None;
-    }
-    let trigger_frame = arranged_node_indexed(arranged_tree, node_indices, trigger_node_id)
-        .ok()?
-        .frame;
-    (trigger_frame.x.is_finite()
-        && trigger_frame.y.is_finite()
-        && trigger_frame.width.is_finite()
-        && trigger_frame.height.is_finite()
-        && trigger_frame.width > 0.0
-        && trigger_frame.height > 0.0)
-        .then_some(trigger_frame)
-}
-
-fn unique_control_node_id(tree: &UiTree, control_id: &str) -> Option<UiNodeId> {
-    let mut matches = tree.nodes.iter().filter_map(|(node_id, node)| {
-        (node
-            .template_metadata
-            .as_ref()
-            .and_then(|metadata| metadata.control_id.as_deref())
-            == Some(control_id))
-        .then_some(*node_id)
-    });
-    let node_id = matches.next()?;
-    matches.next().is_none().then_some(node_id)
-}
-
-fn popup_control_anchor_is_open(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
-    let Some(metadata) = metadata else {
-        return false;
-    };
-    matches!(&metadata.widget.popup_anchor, UiPopupAnchor::Control { .. })
-        && (metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::Popup
-            || matches!(
-                metadata.component.as_str(),
-                "Dialog" | "ConfirmDialog" | "Modal" | "Popover"
-            ))
-        && ["popup_open", "open"]
-            .iter()
-            .any(|key| metadata.attributes.get(*key).and_then(toml::Value::as_bool) == Some(true))
-}
-
-fn collect_owner_text_prewarm_requests(
-    tree: &UiTree,
-    arranged_tree: &UiArrangedTree,
-    node_indices: &BTreeMap<UiNodeId, usize>,
-    component_states: Option<&UiSurfaceComponentStateStore>,
-    text_measure_cache: &mut UiTextMeasureCache,
-    control_index: Option<&UiSurfaceControlIndex>,
-) -> Vec<UiTextShapePrewarmRequest> {
-    let mut requests = Vec::new();
-    for node_id in arranged_tree.draw_order.iter().copied() {
-        let Some(node) = tree.nodes.get(&node_id) else {
-            continue;
-        };
-        let Ok(arranged_node) = arranged_node_indexed(arranged_tree, node_indices, node_id) else {
-            continue;
-        };
-        if !is_arranged_render_visible_indexed(arranged_tree, node_indices, node_id)
-            .unwrap_or(false)
-            || owner_text_is_suppressed(node.template_metadata.as_ref())
-            || (popup_control_anchor_is_open(node.template_metadata.as_ref())
-                && resolve_popup_anchor_frame(
-                    tree,
-                    arranged_tree,
-                    node_indices,
-                    node.template_metadata.as_ref(),
-                    arranged_node.frame,
-                    control_index,
-                )
-                .is_none())
-        {
-            continue;
-        }
-        let component_state = component_states.and_then(|states| states.get(node_id));
-        let visual = UiNodeVisualData::resolve(
-            node.template_metadata.as_ref(),
-            &node.state_flags,
-            component_state,
-        );
-        let Some(text) = visual
-            .text
-            .as_deref()
-            .filter(|text| !text.trim().is_empty())
-        else {
-            continue;
-        };
-        if !arranged_node.frame.width.is_finite()
-            || !arranged_node.frame.height.is_finite()
-            || arranged_node.frame.width <= 0.0
-            || arranged_node.frame.height <= 0.0
-        {
-            continue;
-        }
-
-        let document_key = TextDocumentKey::new(node_id.0, node.layout_cache.text_layout_revision);
-        let viewport = visual.editable.is_none().then(|| {
-            UiTextViewport::from_document_and_clip(arranged_node.frame, arranged_node.clip_frame)
-        });
-        let mut layout_request = UiTextLayoutRequest::new(
-            text,
-            &visual.style,
-            arranged_node.frame,
-            Some(arranged_node.clip_frame),
-        )
-        .with_document_key(document_key);
-        if let Some(viewport) = viewport.flatten() {
-            layout_request = layout_request.with_viewport(viewport);
-        }
-        if text_measure_cache.viewport_selects_partial_plain_text(&layout_request) {
-            continue;
-        }
-        if let Some(request) =
-            UiTextShapePrewarmRequest::from_layout_source(text, visual.style.clone())
-        {
-            requests.push(request);
-        }
-    }
-    requests
-}
-
-fn render_command_build_can_overlap_owner_prewarm(
-    tree: &UiTree,
-    arranged_tree: &UiArrangedTree,
-    node_indices: &BTreeMap<UiNodeId, usize>,
-) -> bool {
-    arranged_tree.draw_order.iter().copied().all(|node_id| {
-        let Some(node) = tree.nodes.get(&node_id) else {
-            return true;
-        };
-        !is_arranged_render_visible_indexed(arranged_tree, node_indices, node_id).unwrap_or(false)
-            || !component_text_requires_shared_cache(node.template_metadata.as_ref())
-    })
-}
-
-fn component_text_requires_shared_cache(
-    metadata: Option<&zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata>,
-) -> bool {
-    owner_text_is_suppressed(metadata)
-        || popup_menu_may_emit_text(metadata)
-        || popup_option_may_emit_text(metadata)
-}
-
-fn owner_text_is_suppressed(
-    metadata: Option<&zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata>,
-) -> bool {
-    selection_control_suppresses_owner_text(metadata)
-        || slider_suppresses_owner_text(metadata)
-        || dropdown_suppresses_owner_text(metadata)
-        || text_field_suppresses_owner_text(metadata)
-        || button_suppresses_owner_text(metadata)
-        || segmented_control_suppresses_owner_text(metadata)
-        || progress_suppresses_owner_text(metadata)
-        || divider_suppresses_owner_text(metadata)
-        || skeleton_suppresses_owner_text(metadata)
-        || collection_row_suppresses_owner_text(metadata)
-        || feedback_suppresses_owner_text(metadata)
-        || dialog_suppresses_owner_text(metadata)
-        || command_palette_suppresses_owner_text(metadata)
-        || notification_center_suppresses_owner_text(metadata)
-        || drag_overlay_suppresses_owner_text(metadata)
-        || chrome_suppresses_owner_text(metadata)
-}
-
 pub(crate) fn extract_ui_render_commands_for_nodes_with_component_states_and_text_measure_cache(
     tree: &UiTree,
     arranged_tree: &UiArrangedTree,
-    arranged_node_indices: &BTreeMap<UiNodeId, usize>,
+    node_indices: &BTreeMap<UiNodeId, usize>,
+    arranged_visibility: &UiArrangedVisibilityIndex,
     changed_node_ids: &BTreeSet<UiNodeId>,
     component_states: Option<&UiSurfaceComponentStateStore>,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
+    control_index: Option<&UiSurfaceControlIndex>,
+    popup_anchor_points: Option<&BTreeMap<UiNodeId, UiPoint>>,
 ) -> Result<UiRenderExtract, ()> {
     let mut partial_nodes = Vec::new();
     let mut included = BTreeSet::new();
     for node_id in changed_node_ids {
         let mut current = Some(*node_id);
         while let Some(current_id) = current {
-            let Some(index) = arranged_node_indices.get(&current_id).copied() else {
+            let Some(index) = node_indices.get(&current_id).copied() else {
                 return Err(());
             };
             let Some(node) = arranged_tree.nodes.get(index) else {
@@ -803,27 +613,20 @@ pub(crate) fn extract_ui_render_commands_for_nodes_with_component_states_and_tex
     }
     let partial_tree = UiArrangedTree {
         tree_id: arranged_tree.tree_id.clone(),
-        roots: Vec::new(),
-        nodes: partial_nodes,
+        roots: Vec::new().into(),
+        nodes: partial_nodes.into(),
         draw_order: changed_node_ids.iter().copied().collect(),
-        canvas_layers: Vec::new(),
+        canvas_layers: Vec::new().into(),
     };
-    Ok(
-        extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache(
-            tree,
-            &partial_tree,
-            component_states,
-            text_measure_cache,
-        ),
-    )
-}
-
-pub(super) fn resolve_text_layout_with_cache(
-    request: &UiTextLayoutRequest<'_>,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
-) -> UiTextLayoutResolution {
-    match text_measure_cache {
-        Some(cache) => cache.resolve_or_shape(request),
-        None => resolve_text_layout(request),
-    }
+    let partial_indices = arranged_node_indices(&partial_tree);
+    Ok(extract_ui_render_tree_from_arranged_indexed_with_component_states_and_text_measure_cache_and_control_index(
+        tree,
+        &partial_tree,
+        &partial_indices,
+        Some(arranged_visibility),
+        component_states,
+        text_measure_cache,
+        control_index,
+        popup_anchor_points,
+    ))
 }

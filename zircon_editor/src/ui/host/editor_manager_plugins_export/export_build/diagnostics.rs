@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
@@ -69,16 +70,16 @@ pub(in super::super) fn cargo_invocation_diagnostics_with_label(
     label: &str,
 ) -> Vec<String> {
     if invocation.success {
-        return vec![format!(
-            "{label} succeeded: {}",
-            invocation.command.join(" ")
+        return vec![successful_cargo_invocation_diagnostic(
+            label,
+            &invocation.command,
         )];
     }
 
-    let mut diagnostics = vec![format!(
-        "{label} failed with status {:?}: {}",
+    let mut diagnostics = vec![failed_cargo_invocation_diagnostic(
+        label,
         invocation.status_code,
-        invocation.command.join(" ")
+        &invocation.command,
     )];
     if !invocation.stderr.trim().is_empty() {
         diagnostics.push(invocation.stderr.trim().to_string());
@@ -87,3 +88,55 @@ pub(in super::super) fn cargo_invocation_diagnostics_with_label(
     }
     diagnostics
 }
+
+fn successful_cargo_invocation_diagnostic(label: &str, command: &[String]) -> String {
+    const SUCCEEDED: &str = " succeeded: ";
+    let mut diagnostic =
+        String::with_capacity(label.len() + SUCCEEDED.len() + joined_command_len(command));
+    diagnostic.push_str(label);
+    diagnostic.push_str(SUCCEEDED);
+    push_command(&mut diagnostic, command);
+    diagnostic
+}
+
+fn failed_cargo_invocation_diagnostic(
+    label: &str,
+    status_code: Option<i32>,
+    command: &[String],
+) -> String {
+    const FAILED: &str = " failed with status ";
+    const STATUS_SUFFIX: &str = ": ";
+    const MAX_OPTION_I32_DEBUG_LEN: usize = 17;
+
+    let mut diagnostic = String::with_capacity(
+        label.len()
+            + FAILED.len()
+            + MAX_OPTION_I32_DEBUG_LEN
+            + STATUS_SUFFIX.len()
+            + joined_command_len(command),
+    );
+    diagnostic.push_str(label);
+    diagnostic.push_str(FAILED);
+    write!(&mut diagnostic, "{status_code:?}").expect("writing to a String cannot fail");
+    diagnostic.push_str(STATUS_SUFFIX);
+    push_command(&mut diagnostic, command);
+    diagnostic
+}
+
+fn joined_command_len(command: &[String]) -> usize {
+    command.iter().map(String::len).sum::<usize>() + command.len().saturating_sub(1)
+}
+
+fn push_command(diagnostic: &mut String, command: &[String]) {
+    if let Some((first, remaining)) = command.split_first() {
+        diagnostic.push_str(first);
+        for argument in remaining {
+            diagnostic.push(' ');
+            diagnostic.push_str(argument);
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "diagnostics/command_buffer_tests.rs"]
+mod command_buffer_tests;

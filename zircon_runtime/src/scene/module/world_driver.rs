@@ -1,9 +1,14 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::core::math::Real;
-use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
-use crate::scene::ecs::{SceneScheduleRunner, SystemStage};
-use crate::scene::{LevelSystem, World, WorldRuntimeExtensionPlan};
+use crate::core::{CoreError, CoreHandle, FrameTimeSnapshot};
+use crate::scene::ecs::{
+    SceneScheduleRunner, SceneStageRunError, SceneStageTickContexts, SystemStage, SystemTickContext,
+};
+use crate::scene::world_time::{WorldFixedStep, WorldTimeSnapshot};
+use crate::scene::{
+    FixedStepFailurePhase, FixedStepFailureReceipt, LevelSystem, LevelTickError, SimulationTickId,
+    World, WorldRuntimeExtensionPlan,
+};
 
 #[derive(Debug, Default)]
 pub struct WorldDriver {
@@ -34,16 +39,15 @@ impl WorldDriver {
         Arc::clone(&lock_poison_recovered(&self.runtime_extensions))
     }
 
-    pub fn tick_level(
+    pub(crate) fn tick_level(
         &self,
         core: &CoreHandle,
         level: &LevelSystem,
-        advance: RuntimeTimeAdvance,
-    ) -> Result<(), CoreError> {
-        let virtual_delta_seconds = duration_to_real_seconds(advance.virtual_delta());
-        let real_delta_seconds = duration_to_real_seconds(advance.real_delta());
-        let fixed_step_plan = advance.fixed_step_plan();
-        let fixed_delta_seconds = duration_to_real_seconds(fixed_step_plan.timestep);
+        snapshot: FrameTimeSnapshot,
+    ) -> Result<(), LevelTickError> {
+        let world_time = level.advance_world_time(snapshot)?;
+        let fixed_step_plan = world_time.fixed_step_plan();
+        let world_generation = level.world_generation();
         let schedule = level.with_world(|world| world.schedule().stage_plan());
         level.with_world_mut(|world| {
             world.reclaim_dropped_runtime_event_mirrors();
@@ -51,17 +55,78 @@ impl WorldDriver {
         });
         for stage in schedule.stages() {
             if *stage == SystemStage::FixedFirst {
-                for _ in 0..fixed_step_plan.step_count {
-                    for fixed_stage in SystemStage::FIXED_LOOP {
-                        run_stage(
-                            core,
+                for committed_steps in 0..fixed_step_plan.step_count {
+                    let mut active_step = ActiveFixedStep::begin(level, world_generation)?;
+                    let tick = active_step.step()?.id();
+                    let execution = (|| -> Result<(), FixedStageExecutionError> {
+                        for fixed_stage in SystemStage::FIXED_LOOP {
+                            ensure_fixed_step_world_generation(
+                                level,
+                                world_generation,
+                                fixed_stage,
+                            )
+                            .map_err(|source| {
+                                FixedStageExecutionError::unattributed(fixed_stage, source)
+                            })?;
+                            let active_fixed_step = active_step.step().map_err(|source| {
+                                FixedStageExecutionError::unattributed(fixed_stage, source)
+                            })?;
+                            let tick_contexts = stage_tick_contexts(
+                                fixed_stage,
+                                world_time,
+                                world_generation,
+                                Some(active_fixed_step),
+                                std::time::Duration::ZERO,
+                            )
+                            .map_err(|source| {
+                                FixedStageExecutionError::unattributed(fixed_stage, source)
+                            })?;
+                            run_stage(core, level, fixed_stage, tick_contexts, false, &schedule)
+                                .map_err(|error| {
+                                    FixedStageExecutionError::from_stage(fixed_stage, error)
+                                })?;
+                            ensure_fixed_step_world_generation(
+                                level,
+                                world_generation,
+                                fixed_stage,
+                            )
+                            .map_err(|source| {
+                                FixedStageExecutionError::unattributed(fixed_stage, source)
+                            })?;
+                        }
+                        Ok(())
+                    })();
+                    if let Err(error) = execution {
+                        if let Err(abort_error) = active_step.abort() {
+                            return Err(LevelTickError::from(CoreError::Initialization(
+                                "WorldDriver fixed-step execution rollback".to_string(),
+                                format!("{}; abort failed: {abort_error}", error.source),
+                            )));
+                        }
+                        return Err(fixed_step_failure(
                             level,
-                            fixed_stage,
-                            fixed_delta_seconds,
-                            fixed_delta_seconds,
-                            false,
-                            &schedule,
-                        )?;
+                            FixedStepFailurePhase::Stage(error.stage),
+                            tick,
+                            error.system_id,
+                            committed_steps,
+                            error.source,
+                        ));
+                    }
+                    match active_step.commit(world_generation) {
+                        Ok(()) => {}
+                        Err(FixedStepCommitError::Rejected(source)) => {
+                            return Err(fixed_step_failure(
+                                level,
+                                FixedStepFailurePhase::Commit,
+                                tick,
+                                None,
+                                committed_steps,
+                                source,
+                            ));
+                        }
+                        Err(FixedStepCommitError::Rollback(source)) => {
+                            return Err(LevelTickError::from(source));
+                        }
                     }
                 }
                 continue;
@@ -75,21 +140,172 @@ impl WorldDriver {
                 core,
                 level,
                 *stage,
-                virtual_delta_seconds,
-                real_delta_seconds,
-                advance.virtual_time_paused(),
+                stage_tick_contexts(
+                    *stage,
+                    world_time,
+                    world_generation,
+                    None,
+                    level.world_time().fixed_time().elapsed(),
+                )?,
+                world_time.virtual_time_paused(),
                 &schedule,
-            )?;
+            )
+            .map_err(|error| LevelTickError::from(error.into_parts().1))?;
         }
 
         level.with_world(|world| {
             world
                 .ecs_frame_performance_diagnostics()
-                .publish(core, core.real_time().frame_index());
+                .publish(core, world_time.outer_frame_index());
         });
 
         Ok(())
     }
+}
+
+struct ActiveFixedStep<'a> {
+    level: &'a LevelSystem,
+    step: Option<WorldFixedStep>,
+}
+
+impl<'a> ActiveFixedStep<'a> {
+    fn begin(level: &'a LevelSystem, world_generation: u64) -> Result<Self, CoreError> {
+        let step = level
+            .begin_fixed_step(world_generation)
+            .map_err(|error| fixed_step_error("begin", error))?;
+        Ok(Self {
+            level,
+            step: Some(step),
+        })
+    }
+
+    fn step(&self) -> Result<&WorldFixedStep, CoreError> {
+        self.step.as_ref().ok_or_else(|| {
+            fixed_step_invariant_error(
+                "active transaction was missing before fixed-stage execution",
+            )
+        })
+    }
+
+    fn commit(&mut self, expected_world_generation: u64) -> Result<(), FixedStepCommitError> {
+        let step = self.step.as_ref().ok_or_else(|| {
+            FixedStepCommitError::Rollback(fixed_step_invariant_error(
+                "active transaction was already settled before commit",
+            ))
+        })?;
+        if let Err(error) = self
+            .level
+            .commit_fixed_step(expected_world_generation, step)
+        {
+            let commit_error = fixed_step_error("commit", error);
+            return match self.abort() {
+                Ok(()) => Err(FixedStepCommitError::Rejected(commit_error)),
+                Err(abort_error) => Err(FixedStepCommitError::Rollback(CoreError::Initialization(
+                    "WorldDriver fixed-step commit rollback".to_string(),
+                    format!("{commit_error}; abort failed: {abort_error}"),
+                ))),
+            };
+        }
+        let _settled = self.step.take();
+        Ok(())
+    }
+
+    fn abort(&mut self) -> Result<(), CoreError> {
+        let step = self.step.take().ok_or_else(|| {
+            fixed_step_invariant_error("active transaction was already settled before abort")
+        })?;
+        self.level
+            .abort_fixed_step(step)
+            .map_err(|error| fixed_step_error("abort", error))
+    }
+}
+
+enum FixedStepCommitError {
+    Rejected(CoreError),
+    Rollback(CoreError),
+}
+
+struct FixedStageExecutionError {
+    stage: SystemStage,
+    system_id: Option<String>,
+    source: CoreError,
+}
+
+impl FixedStageExecutionError {
+    fn unattributed(stage: SystemStage, source: CoreError) -> Self {
+        Self {
+            stage,
+            system_id: None,
+            source,
+        }
+    }
+
+    fn from_stage(stage: SystemStage, error: SceneStageRunError) -> Self {
+        let (system_id, source) = error.into_parts();
+        Self {
+            stage,
+            system_id,
+            source,
+        }
+    }
+}
+
+impl Drop for ActiveFixedStep<'_> {
+    fn drop(&mut self) {
+        if let Some(step) = self.step.take() {
+            let _ = self.level.abort_fixed_step(step);
+        }
+    }
+}
+
+fn fixed_step_error(operation: &str, error: impl std::fmt::Display) -> CoreError {
+    CoreError::Initialization(
+        format!("WorldDriver fixed-step {operation}"),
+        error.to_string(),
+    )
+}
+
+fn fixed_step_invariant_error(reason: &str) -> CoreError {
+    CoreError::Initialization(
+        "WorldDriver fixed-step invariant".to_string(),
+        reason.to_string(),
+    )
+}
+
+fn fixed_step_failure(
+    level: &LevelSystem,
+    phase: FixedStepFailurePhase,
+    tick: SimulationTickId,
+    system_id: Option<String>,
+    committed_steps: u32,
+    source: CoreError,
+) -> LevelTickError {
+    LevelTickError::fixed_step(
+        FixedStepFailureReceipt::new(
+            phase,
+            tick,
+            system_id,
+            committed_steps,
+            level.world_time().fixed_time().overstep(),
+            level.world_generation(),
+        ),
+        source,
+    )
+}
+
+fn ensure_fixed_step_world_generation(
+    level: &LevelSystem,
+    expected: u64,
+    stage: SystemStage,
+) -> Result<(), CoreError> {
+    let actual = level.world_generation();
+    if actual == expected {
+        return Ok(());
+    }
+    Err(CoreError::Initialization(
+        "WorldDriver fixed-step world generation".to_string(),
+        format!("World generation changed during {stage:?}: expected {expected}, found {actual}"),
+    ))
 }
 
 fn lock_poison_recovered<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -100,17 +316,15 @@ fn run_stage(
     core: &CoreHandle,
     level: &LevelSystem,
     stage: SystemStage,
-    virtual_delta_seconds: Real,
-    real_delta_seconds: Real,
+    tick_contexts: SceneStageTickContexts,
     virtual_time_paused: bool,
     schedule: &crate::scene::ecs::SceneScheduleStagePlan,
-) -> Result<(), CoreError> {
+) -> Result<(), SceneStageRunError> {
     SceneScheduleRunner::run_stage(
         core,
         level,
         stage,
-        virtual_delta_seconds,
-        real_delta_seconds,
+        tick_contexts,
         virtual_time_paused,
         schedule.internal_systems_for_stage(stage),
         schedule.native_steps_for_stage(stage),
@@ -118,13 +332,62 @@ fn run_stage(
     )
 }
 
-fn duration_to_real_seconds(duration: std::time::Duration) -> Real {
-    let seconds = duration.as_secs_f64() as Real;
-    if seconds.is_finite() {
-        seconds.max(0.0)
-    } else {
-        0.0
-    }
+fn stage_tick_contexts(
+    stage: SystemStage,
+    snapshot: WorldTimeSnapshot,
+    world_generation: u64,
+    fixed_step: Option<&WorldFixedStep>,
+    fixed_elapsed: std::time::Duration,
+) -> Result<SceneStageTickContexts, CoreError> {
+    let (simulation_tick, fixed_delta, fixed_elapsed) = match fixed_step {
+        Some(step) => (Some(step.id()), step.timestep(), step.elapsed()),
+        None => (None, snapshot.fixed_step_plan().timestep, fixed_elapsed),
+    };
+    let virtual_clock_domain = snapshot
+        .clock_domain_stamp(crate::core::framework::time::ClockDomainId::WorldVirtual)
+        .ok_or_else(|| {
+            CoreError::Initialization(
+                "WorldDriver clock context".to_string(),
+                "WorldTimeSnapshot is missing its WorldVirtual clock stamp".to_string(),
+            )
+        })?;
+    let fixed_clock_domain = snapshot
+        .clock_domain_stamp(crate::core::framework::time::ClockDomainId::WorldFixed)
+        .ok_or_else(|| {
+            CoreError::Initialization(
+                "WorldDriver clock context".to_string(),
+                "WorldTimeSnapshot is missing its WorldFixed clock stamp".to_string(),
+            )
+        })?;
+    Ok(SceneStageTickContexts::new(
+        SystemTickContext::new(
+            stage,
+            virtual_clock_domain,
+            snapshot.outer_frame_index(),
+            None,
+            snapshot.virtual_delta(),
+            snapshot.virtual_elapsed(),
+            world_generation,
+        ),
+        SystemTickContext::new(
+            stage,
+            snapshot.real_clock_domain_stamp(),
+            snapshot.outer_frame_index(),
+            None,
+            snapshot.raw_real_delta(),
+            snapshot.real_elapsed(),
+            world_generation,
+        ),
+        SystemTickContext::new(
+            stage,
+            fixed_clock_domain,
+            snapshot.outer_frame_index(),
+            simulation_tick,
+            fixed_delta,
+            fixed_elapsed,
+            world_generation,
+        ),
+    ))
 }
 
 #[cfg(test)]

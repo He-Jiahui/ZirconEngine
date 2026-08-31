@@ -4,6 +4,9 @@ use crate::core::resource::ResourceLocatorError;
 
 use crate::asset::AssetUri;
 
+#[cfg(test)]
+mod tests;
+
 pub(super) fn asset_uri_for_path(
     assets_root: &Path,
     path: &Path,
@@ -16,10 +19,13 @@ pub(super) fn asset_uri_for_path(
             ));
         }
     };
-    let normalized = relative
-        .components()
-        .map(|component| component.as_os_str().to_string_lossy())
-        .collect::<Vec<_>>()
-        .join("/");
-    AssetUri::parse(&format!("res://{normalized}"))
+    let mut normalized = String::with_capacity("res://".len() + relative.as_os_str().len());
+    normalized.push_str("res://");
+    for (index, component) in relative.components().enumerate() {
+        if index != 0 {
+            normalized.push('/');
+        }
+        normalized.push_str(&component.as_os_str().to_string_lossy());
+    }
+    AssetUri::parse(&normalized)
 }

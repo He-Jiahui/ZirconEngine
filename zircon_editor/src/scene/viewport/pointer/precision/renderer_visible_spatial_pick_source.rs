@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::HashMap, mem, sync::Arc};
 
 use zircon_runtime::core::framework::render::RenderVisibleSpatialQuerySnapshot;
 use zircon_runtime_interface::{
@@ -21,9 +21,9 @@ use super::PrecisionCandidate;
 #[derive(Clone)]
 pub(in crate::scene::viewport::pointer) struct RendererVisibleSpatialPickSource {
     snapshot: RenderVisibleSpatialQuerySnapshot,
-    renderables_by_owner: Arc<BTreeMap<u64, ViewportRenderablePickCandidate>>,
-    camera: ViewportCameraSnapshot,
-    viewport: UVec2,
+    // The renderer returns owners in deterministic query order; this is only an O(1) lookup index.
+    renderables_by_owner: Arc<HashMap<u64, ViewportRenderablePickCandidate>>,
+    projection: ViewportProjectionContext,
 }
 
 impl RendererVisibleSpatialPickSource {
@@ -33,18 +33,25 @@ impl RendererVisibleSpatialPickSource {
         camera: ViewportCameraSnapshot,
         viewport: UVec2,
     ) -> Self {
-        let mut renderables_by_owner = BTreeMap::new();
+        let mut renderables_by_owner = HashMap::with_capacity(renderables.len());
         for renderable in renderables {
             renderables_by_owner
                 .entry(renderable.owner)
                 .or_insert_with(|| renderable.clone());
         }
-        Self {
+        let projection = ViewportProjectionContext::new(&camera, viewport);
+        let source = Self {
             snapshot,
             renderables_by_owner: Arc::new(renderables_by_owner),
-            camera,
-            viewport,
-        }
+            projection,
+        };
+        source.record_owner_map_metrics(
+            source
+                .renderables_by_owner
+                .len()
+                .saturating_mul(mem::size_of::<ViewportRenderablePickCandidate>()),
+        );
+        source
     }
 
     pub(in crate::scene::viewport::pointer) fn with_snapshot(
@@ -53,12 +60,26 @@ impl RendererVisibleSpatialPickSource {
         camera: ViewportCameraSnapshot,
         viewport: UVec2,
     ) -> Self {
-        Self {
+        let projection = ViewportProjectionContext::new(&camera, viewport);
+        let source = Self {
             snapshot,
             renderables_by_owner: Arc::clone(&self.renderables_by_owner),
-            camera,
-            viewport,
-        }
+            projection,
+        };
+        source.record_owner_map_metrics(0);
+        source
+    }
+
+    pub(in crate::scene::viewport::pointer) fn is_current_for(
+        &self,
+        snapshot: &RenderVisibleSpatialQuerySnapshot,
+        camera: &ViewportCameraSnapshot,
+        viewport: UVec2,
+    ) -> bool {
+        self.snapshot.identity() == snapshot.identity()
+            && self
+                .projection
+                .matches_camera_and_viewport(camera, viewport)
     }
 
     pub(in crate::scene::viewport::pointer) fn candidates_at(
@@ -66,10 +87,9 @@ impl RendererVisibleSpatialPickSource {
         point: UiPoint,
     ) -> Vec<PrecisionCandidate> {
         zircon_runtime::profile_scope!("editor", "viewport.pointer", "visible_spatial_query");
-        let projection = ViewportProjectionContext::new(&self.camera, self.viewport);
         let query = self
             .snapshot
-            .query_ray(projection.spatial_ray_at(Vec2::new(point.x, point.y)));
+            .query_ray(self.projection.spatial_ray_at(Vec2::new(point.x, point.y)));
         zircon_runtime::profile_counter!(
             "editor",
             "viewport.pointer.visible_spatial_query_visited_node_count",
@@ -89,7 +109,7 @@ impl RendererVisibleSpatialPickSource {
             .entities
             .into_iter()
             .filter_map(|owner| self.renderables_by_owner.get(&owner))
-            .filter_map(|renderable| renderable_candidate(renderable, &projection))
+            .filter_map(|renderable| renderable_candidate(renderable, &self.projection))
             .collect::<Vec<_>>();
         zircon_runtime::profile_counter!(
             "editor",
@@ -97,6 +117,21 @@ impl RendererVisibleSpatialPickSource {
             candidates.len(),
         );
         candidates
+    }
+
+    // Counts copied candidate values only. Hash-table buckets and allocator overhead belong to
+    // the native allocation profile instead of this deterministic payload measure.
+    fn record_owner_map_metrics(&self, candidate_copy_payload_bytes: usize) {
+        zircon_runtime::profile_counter!(
+            "editor",
+            "viewport.pointer.visible_spatial_owner_map_entry_count",
+            self.renderables_by_owner.len(),
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "viewport.pointer.visible_spatial_owner_map_candidate_copy_payload_bytes",
+            candidate_copy_payload_bytes,
+        );
     }
 }
 
@@ -115,6 +150,12 @@ mod tests {
         assert!(source.contains("renderables_by_owner.get(&owner)"));
         assert!(!source.contains("render_meshes()"));
         assert!(source.contains("Arc::clone(&self.renderables_by_owner)"));
+        assert!(source.contains("collections::HashMap"));
+        assert!(source.contains("Arc<HashMap<u64, ViewportRenderablePickCandidate>>"));
+        assert!(
+            !source.contains("BTreeMap"),
+            "renderer query output already defines deterministic owner order; the event-time index must not add logarithmic ordered-map work"
+        );
         assert!(source.contains(
             "profile_scope!(\"editor\", \"viewport.pointer\", \"visible_spatial_query\")"
         ));
@@ -122,5 +163,30 @@ mod tests {
         assert!(source.contains("visible_spatial_query_candidate_count"));
         assert!(source.contains("visible_spatial_query_hit_count"));
         assert!(source.contains("visible_spatial_query_projected_candidate_count"));
+        assert!(source.contains("visible_spatial_owner_map_entry_count"));
+        assert!(source.contains("visible_spatial_owner_map_candidate_copy_payload_bytes"));
+        assert!(
+            !source.contains("visible_spatial_projection_context_build_count"),
+            "the refresh owner records zero-or-one generation construction for every sample"
+        );
+    }
+
+    #[test]
+    fn renderer_visible_source_builds_projection_only_when_adopting_a_generation() {
+        let source = include_str!("renderer_visible_spatial_pick_source.rs")
+            .split_once("#[cfg(test)]")
+            .map_or(
+                include_str!("renderer_visible_spatial_pick_source.rs"),
+                |(production, _)| production,
+            );
+        let (_, event_time_query) = source
+            .split_once("fn candidates_at")
+            .expect("renderer-visible source must expose the event-time query");
+
+        assert!(source.contains("projection: ViewportProjectionContext"));
+        assert!(
+            !event_time_query.contains("ViewportProjectionContext::new"),
+            "pointer events must reuse the projection captured with their generation"
+        );
     }
 }

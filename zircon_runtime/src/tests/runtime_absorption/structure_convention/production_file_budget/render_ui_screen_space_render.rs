@@ -103,17 +103,22 @@ fn runtime_15_screen_space_ui_render_tests_are_child_owner_split() {
         &glyph_artifacts,
         &[
             "use std::sync::Arc;",
-            "super::super::text_advances::refresh_screen_space_text_batch_glyphs(batch);",
+            "register_resolved_text_glyph_artifact",
+            "screen_space_ui_plan_renders_source_isomorphic_plain_layout_without_glyph_artifact",
         ],
+    );
+    assert!(
+        !glyph_artifacts.contains(concat!("refresh_screen_space_", "text_batch_glyphs")),
+        "glyph artifact tests must not restore renderer-owned artifact reshaping"
     );
     assert!(
         !tests.contains("use std::sync::Arc;"),
         "screen-space UI parent test owner must not retain glyph-artifact-only imports"
     );
     for moved_test in [
-        "fn screen_space_ui_plan_requires_glyph_artifact_for_plain_resolved_layout(",
+        "fn screen_space_ui_plan_renders_source_isomorphic_plain_layout_without_glyph_artifact(",
         "fn screen_space_ui_plan_does_not_shape_visual_bidi_runs_without_an_artifact(",
-        "fn screen_space_ui_plan_preserves_plain_glyph_artifact_through_sdf_routing(",
+        "fn screen_space_ui_plan_preserves_plain_glyph_artifact_through_native_routing(",
     ] {
         assert!(
             !tests.contains(moved_test),

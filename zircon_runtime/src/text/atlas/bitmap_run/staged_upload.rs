@@ -1,12 +1,15 @@
+use std::collections::HashSet;
+
 use crate::core::math::UVec2;
 
 use super::super::{
     GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapPageShadowPatch, GlyphAtlasPageKey,
-    GlyphAtlasSet, GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
+    GlyphAtlasSet, GlyphAtlasUploadCommand, GlyphAtlasUploadMode, glyph_atlas_upload_command,
 };
 use super::staging::{
-    glyph_atlas_bitmap_upload_staging_plan, GlyphAtlasBitmapPageUploadStaging,
-    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasBitmapUploadStagingPlan,
+    GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapUploadSourceBytes,
+    GlyphAtlasBitmapUploadStagingPlan, glyph_atlas_bitmap_upload_staging_plan,
+    glyph_atlas_bitmap_upload_staging_plan_for_commands,
 };
 use super::types::GlyphAtlasBitmapRunPlan;
 
@@ -124,6 +127,51 @@ where
         staging,
         staged_uploads,
     }
+}
+
+pub(crate) fn glyph_atlas_bitmap_prepared_upload_plan_with_full_shadow_replay<'a, I>(
+    run: &GlyphAtlasBitmapRunPlan,
+    source_bytes: I,
+) -> GlyphAtlasBitmapPreparedUploadPlan
+where
+    I: IntoIterator<Item = GlyphAtlasBitmapUploadSourceBytes<'a>>,
+{
+    let upload_commands = full_shadow_replay_upload_commands(run);
+    let staging =
+        glyph_atlas_bitmap_upload_staging_plan_for_commands(run, &upload_commands, source_bytes);
+    let staged_uploads = if staging.has_failures() {
+        GlyphAtlasBitmapStagedUploadPlan::default()
+    } else {
+        glyph_atlas_bitmap_staged_upload_plan(&staging, &upload_commands)
+    };
+
+    GlyphAtlasBitmapPreparedUploadPlan {
+        staging,
+        staged_uploads,
+    }
+}
+
+fn full_shadow_replay_upload_commands(
+    run: &GlyphAtlasBitmapRunPlan,
+) -> Vec<GlyphAtlasUploadCommand> {
+    let replay_pages = run.atlas.bitmap_page_shadow_pages().collect::<Vec<_>>();
+    let replay_page_keys = replay_pages
+        .iter()
+        .map(|page| page.key)
+        .collect::<HashSet<_>>();
+    let mut upload_commands =
+        Vec::with_capacity(replay_pages.len().saturating_add(run.upload_commands.len()));
+
+    upload_commands.extend(replay_pages.into_iter().filter_map(|page| {
+        glyph_atlas_upload_command(page, GlyphAtlasUploadMode::FullPage, None, page.byte_len())
+    }));
+    upload_commands.extend(
+        run.upload_commands
+            .iter()
+            .copied()
+            .filter(|command| !replay_page_keys.contains(&command.page_key)),
+    );
+    upload_commands
 }
 
 pub(crate) fn glyph_atlas_bitmap_page_shadow_commit(

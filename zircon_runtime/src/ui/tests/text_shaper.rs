@@ -1,11 +1,11 @@
 use crate::ui::text::{
     layout_text, measure_text_size,
-    shaper::{UiSharedTextShaper, UiTextShapeRequest, UiTextShaper, UiTextShaperStack},
+    shaper::{UiSharedTextShaper, UiTextShapeRequest, UiTextShaper},
 };
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
     surface::{
-        resolve_ui_text_render_mode, UiResolvedStyle, UiTextOverflow, UiTextRenderMode, UiTextWrap,
+        UiResolvedStyle, UiTextOverflow, UiTextRenderMode, UiTextWrap, resolve_ui_text_render_mode,
     },
 };
 
@@ -15,7 +15,7 @@ fn shared_text_shaper_matches_public_layout_entrypoint() {
     let frame = UiFrame::new(0.0, 0.0, ellipsis_width_for_test(&style), 12.0);
     let request = UiTextShapeRequest::new("a\u{0301}bc", &style, frame, None);
 
-    let shaper_layout = UiTextShaperStack::default().shape_text(&request);
+    let shaper_layout = UiSharedTextShaper.shape_text(&request);
     let public_layout = layout_text("a\u{0301}bc", &style, frame, None);
 
     assert_eq!(shaper_layout, public_layout);
@@ -26,9 +26,9 @@ fn shared_text_shaper_matches_public_layout_entrypoint() {
 #[test]
 fn shared_text_shaper_matches_public_measurement_entrypoint() {
     let style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    let shaper_size = UiTextShaperStack::default().measure_text("a\u{0301}b", &style);
-    let narrow = UiTextShaperStack::default().measure_text("iii", &style);
-    let wide = UiTextShaperStack::default().measure_text("WWW", &style);
+    let shaper_size = UiSharedTextShaper.measure_text("a\u{0301}b", &style);
+    let narrow = UiSharedTextShaper.measure_text("iii", &style);
+    let wide = UiSharedTextShaper.measure_text("WWW", &style);
 
     assert_eq!(shaper_size, measure_text_size("a\u{0301}b", &style));
     assert!(wide.width > narrow.width);
@@ -52,26 +52,6 @@ fn text_render_mode_resolver_matches_runtime_font_asset_policy() {
     assert_eq!(
         resolve_ui_text_render_mode(UiTextRenderMode::Native, Some(UiTextRenderMode::Sdf)),
         UiTextRenderMode::Native
-    );
-}
-
-#[test]
-fn text_shaper_stack_uses_shared_text_service_for_font_backends() {
-    let style = UiResolvedStyle {
-        text_render_mode: UiTextRenderMode::Native,
-        ..test_style(UiTextWrap::Glyph, UiTextOverflow::Ellipsis)
-    };
-    let frame = UiFrame::new(0.0, 0.0, ellipsis_width_for_test(&style), 12.0);
-    let request = UiTextShapeRequest::new("a\u{0301}bc", &style, frame, None);
-    let stack = UiTextShaperStack::default();
-
-    assert_eq!(
-        stack.shape_text(&request),
-        UiSharedTextShaper.shape_text(&request)
-    );
-    assert_eq!(
-        stack.measure_text("a\u{0301}b", &style),
-        UiSharedTextShaper.measure_text("a\u{0301}b", &style)
     );
 }
 

@@ -22,16 +22,13 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
 
     for operation in [&open, &validate, &compile, &create, &tool, &timeline_open] {
         registry
-            .register_command(EditorCommandDescriptor::operation(
-                operation.clone(),
-                operation.as_str(),
-            ))
+            .register_command(EditorCommandDescriptor::operation(operation.clone()))
             .unwrap();
     }
     let schema_operation = EditorOperationPath::parse("authoring.material.schema_compile").unwrap();
     registry
         .register_command(
-            EditorCommandDescriptor::operation(schema_operation.clone(), "Compile With Schema")
+            EditorCommandDescriptor::operation(schema_operation.clone())
                 .with_payload_schema_id("material_editor.compile_graph.v1"),
         )
         .unwrap();
@@ -173,12 +170,55 @@ fn authoring_registry_rejects_duplicate_graph_node_ids() {
 }
 
 #[test]
+fn authoring_registry_preserves_graph_palette_owner_and_schema_version() {
+    let mut registry = EditorExtensionRegistry::default();
+    registry
+        .register_graph_node_palette(
+            GraphNodePaletteDescriptor::new(
+                "material_editor.palette",
+                AssetTypeId::parse("material.graph").unwrap(),
+            )
+            .with_schema_version(4)
+            .with_node(GraphNodeDescriptor::new("output", "Output", "Material")),
+        )
+        .unwrap();
+
+    let palette = registry.graph_node_palettes()[0];
+    assert_eq!(palette.owner_id(), "editor.extension.direct");
+    assert_eq!(palette.schema_version(), 4);
+}
+
+#[test]
+fn authoring_registry_rejects_a_zero_graph_palette_schema_version() {
+    let mut registry = EditorExtensionRegistry::default();
+    let error = registry
+        .register_graph_node_palette(
+            GraphNodePaletteDescriptor::new(
+                "material_editor.palette",
+                AssetTypeId::parse("material.graph").unwrap(),
+            )
+            .with_schema_version(0)
+            .with_node(GraphNodeDescriptor::new("output", "Output", "Material")),
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        EditorExtensionRegistryError::InvalidDescriptorSchemaVersion {
+            kind: "graph node palette",
+            version: 0,
+            ..
+        }
+    ));
+}
+
+#[test]
 fn authoring_registry_rejects_invalid_operation_payload_schema_ids() {
     let mut registry = EditorExtensionRegistry::default();
     let operation = EditorOperationPath::parse("authoring.material.compile").unwrap();
     let error = registry
         .register_command(
-            EditorCommandDescriptor::operation(operation, "Compile Material")
+            EditorCommandDescriptor::operation(operation)
                 .with_payload_schema_id("material_editor. compile.v1"),
         )
         .unwrap_err();

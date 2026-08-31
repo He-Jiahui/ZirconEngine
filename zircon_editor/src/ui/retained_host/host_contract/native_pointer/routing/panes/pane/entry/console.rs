@@ -5,7 +5,7 @@ pub(super) fn console_output_route_frame(pane: &PaneData, body: &FrameRect) -> O
     let metadata = pane
         .console
         .nodes
-        .metadata_rc::<ConsoleOutputPaintMetadata>()?;
+        .metadata::<ConsoleOutputPaintMetadata>()?;
     let viewport = metadata.viewport();
     (viewport.width > 0.0 && viewport.height > 0.0).then_some(FrameRect {
         x: body.x + viewport.x,

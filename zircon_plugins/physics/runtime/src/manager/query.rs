@@ -8,13 +8,12 @@ use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::Vec3;
 
 use crate::backend::builtin::{
-    PreparedPhysicsQueryFilter, collect_query_mode, ray_cast_collider, shape_cast_query,
-    shape_overlap_query,
+    collect_query_mode, ray_cast_collider, shape_cast_query, shape_overlap_query,
+    PreparedPhysicsQueryFilter,
 };
 
-use super::DefaultPhysicsManager;
-use super::poison_recovery::recover_lock;
 use super::validation::{array3_is_finite, normalized_ray_direction, transform_is_finite};
+use super::DefaultPhysicsManager;
 
 pub(super) fn ray_cast(
     manager: &DefaultPhysicsManager,
@@ -88,5 +87,5 @@ pub(super) fn synchronized_world(
     manager: &DefaultPhysicsManager,
     world: WorldHandle,
 ) -> Option<Arc<PhysicsWorldSyncState>> {
-    recover_lock(&manager.synced_worlds).get(&world).cloned()
+    manager.synchronized_world_snapshot(world)
 }

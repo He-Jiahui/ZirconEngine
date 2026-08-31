@@ -18,6 +18,11 @@ pub(super) fn assign_content_fields(
     node.layout_icon_size = text_layout.layout_icon_size;
     node.layout_content_offset_x = text_layout.layout_content_offset_x;
     node.layout_content_offset_y = text_layout.layout_content_offset_y;
+    node.layout_padding_left = text_layout.layout_padding_left;
+    node.layout_padding_right = text_layout.layout_padding_right;
+    node.layout_padding_top = text_layout.layout_padding_top;
+    node.layout_padding_bottom = text_layout.layout_padding_bottom;
+    node.layout_spacing = text_layout.layout_spacing;
     node.layout_first_cell_offset_x = text_layout.layout_first_cell_offset_x;
     node.layout_second_cell_offset_x = text_layout.layout_second_cell_offset_x;
     node.layout_third_cell_offset_x = text_layout.layout_third_cell_offset_x;

@@ -253,7 +253,7 @@ mod tests {
     };
     use zircon_runtime::core::math::{Transform, Vec3};
 
-    use super::{GraphWeightedPose, blend_graph_base_poses};
+    use super::{blend_graph_base_poses, GraphWeightedPose};
 
     #[test]
     fn masked_base_blend_normalizes_weights_per_bone() {

@@ -63,7 +63,7 @@ fn headless_session_capture_records_frame_extract_diagnostics() {
 
     assert_eq!(
         rebuild_clones, 1.0,
-        "headless capture should record one current full extract rebuild clone"
+        "headless capture should record one scene-generation rebuild"
     );
     assert_eq!(
         cache_hits, 0.0,
@@ -78,12 +78,12 @@ fn headless_session_capture_records_frame_extract_diagnostics() {
         "headless capture should record a non-empty extract output byte estimate"
     );
     assert_eq!(
-        full_clones, 1.0,
-        "building the extract cache should retain exactly one deep frame clone"
+        full_clones, 0.0,
+        "building the extract cache must retain shared scene handles without a deep frame clone"
     );
     assert_eq!(
-        full_clone_bytes, output_bytes,
-        "the initial deep clone should account for the full extract output bytes"
+        full_clone_bytes, 0.0,
+        "cache population must not copy the scene-generation payload"
     );
 }
 
@@ -141,8 +141,8 @@ fn frame_extract_rebuild_skips_unchanged_entities() {
             .iter()
             .map(|sample| sample.value)
             .collect::<Vec<_>>(),
-        vec![1.0, 1.0],
-        "both cache population and a cache hit must account for their deep frame clone"
+        vec![0.0, 0.0],
+        "cache population and stable reuse must clone only shared scene handles"
     );
     assert_eq!(full_clone_bytes.history.len(), 2);
     assert_eq!(
@@ -151,12 +151,8 @@ fn frame_extract_rebuild_skips_unchanged_entities() {
             .iter()
             .map(|sample| sample.value)
             .collect::<Vec<_>>(),
-        output_bytes
-            .history
-            .iter()
-            .map(|sample| sample.value)
-            .collect::<Vec<_>>(),
-        "each frame's full clone should report exactly the deep-copy byte estimate"
+        vec![0.0, 0.0],
+        "neither cache population nor stable reuse may copy scene payload bytes"
     );
     assert_eq!(cache_hits.history.len(), 2);
     assert_eq!(cache_misses.history.len(), 2);

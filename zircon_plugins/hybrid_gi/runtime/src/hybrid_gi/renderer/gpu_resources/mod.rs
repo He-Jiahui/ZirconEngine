@@ -24,7 +24,7 @@ pub(in crate::hybrid_gi::renderer::gpu_resources) use execute_prepare::{
     create_radiance_cache_update_pipeline,
 };
 pub(in crate::hybrid_gi::renderer) use execute_prepare::{
-    HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource,
+    HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource, HybridGiMaterialCaptureTextureKey,
 };
 pub(in crate::hybrid_gi::renderer) use global_sdf::{
     GlobalSdfGpuBuildStats, GlobalSdfGpuPendingBuild, GlobalSdfGpuReadbackFuture, GlobalSdfGpuState,

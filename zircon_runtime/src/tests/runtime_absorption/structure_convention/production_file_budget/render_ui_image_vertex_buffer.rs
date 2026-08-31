@@ -23,7 +23,8 @@ fn runtime_15_screen_space_ui_images_reuse_a_single_vertex_buffer() {
             "image_vertex_buffer_requires_reallocation(",
             "device.create_buffer(&wgpu::BufferDescriptor {",
             "wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST",
-            "queue.write_buffer(vertex_buffer, 0, vertex_bytes);",
+            "uploads.push(WgpuBufferUpload::from_bytes(",
+            "force_full_upload: bool",
             "image_vertices.payload_hash = Some(payload_hash);",
             "vertex_range: Range<u32>",
             "pass.set_vertex_buffer(0, vertex_buffer.slice(..));",
@@ -48,14 +49,15 @@ fn runtime_15_screen_space_ui_images_reuse_a_single_vertex_buffer() {
         "both empty-streamer and normal preparation paths must clear retained image vertices"
     );
     assert_contains_all(
-        "screen-space UI record supplies its queue to image preparation",
+        "screen-space UI record attaches image writes to its prepared batch",
         &record,
         &[
-            "let prepared_images = self.image_system.prepare(",
-            "queue,",
-            "&prepared.images,",
+            "self.image_system.prepare(",
+            "prepared_upload.uploads_mut(),",
+            "force_full_upload,",
         ],
     );
+    assert!(!image.contains("queue.write_buffer("));
     assert_contains_all(
         "screen-space UI image vertex buffer capacity tests",
         &image_tests,

@@ -53,7 +53,9 @@ fn runtime_session_archive_renames_slots_and_updates_metadata() {
 #[test]
 fn runtime_session_archive_copies_slots_with_metadata_override() {
     let mut source = World::empty();
-    let saved_entity = source.spawn_node(NodeKind::Mesh);
+    let saved_entity = source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     source
         .rename_node(saved_entity, "Saved Mesh")
         .expect("saved entity should be named");
@@ -124,12 +126,20 @@ fn runtime_session_archive_copies_slots_with_metadata_override() {
 #[test]
 fn runtime_session_archive_merges_archives_with_explicit_conflict_policy() {
     let mut current_world = World::empty();
-    current_world.spawn_node(NodeKind::Mesh);
+    current_world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let mut incoming_conflict_world = World::empty();
-    incoming_conflict_world.spawn_node(NodeKind::Camera);
-    incoming_conflict_world.spawn_node(NodeKind::PointLight);
+    incoming_conflict_world
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
+    incoming_conflict_world
+        .spawn_node(NodeKind::PointLight)
+        .expect("test scene spawn should succeed");
     let mut incoming_new_world = World::empty();
-    incoming_new_world.spawn_node(NodeKind::Camera);
+    incoming_new_world
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
 
     let current_slot = RuntimeSessionSlot::from_world_with_metadata(
         "slot-a",
@@ -427,7 +437,9 @@ fn runtime_session_archive_updates_tag_indexes_across_single_slot_commits() {
 #[test]
 fn runtime_session_archive_diffs_slots_against_worlds() {
     let mut source = World::empty();
-    let saved_entity = source.spawn_node(NodeKind::Mesh);
+    let saved_entity = source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     source
         .rename_node(saved_entity, "Saved Mesh")
         .expect("saved entity should be named");
@@ -443,7 +455,9 @@ fn runtime_session_archive_diffs_slots_against_worlds() {
     assert_eq!(same.target_entity_count, 1);
 
     let mut changed = source.clone();
-    let extra = changed.spawn_node(NodeKind::Camera);
+    let extra = changed
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     changed
         .rename_node(extra, "Extra Camera")
         .expect("extra entity should be named");

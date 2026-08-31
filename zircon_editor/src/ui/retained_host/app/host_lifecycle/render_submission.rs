@@ -53,11 +53,7 @@ impl RetainedEditorHost {
                     };
                     self.runtime
                         .sync_renderer_visible_spatial_snapshot(visible_spatial_snapshot);
-                    // RenderStats are presentation data only while a diagnostics surface is
-                    // visible. Normal viewport frames must not schedule a full workbench rebuild.
-                    if self.runtime_diagnostics_visible {
-                        self.mark_presentation_dirty();
-                    }
+                    self.schedule_runtime_diagnostics_refresh();
                 }
                 Ok(false) => {
                     keep_render_dirty = true;
@@ -80,6 +76,35 @@ impl RetainedEditorHost {
             self.ui.request_frame_update_region(frame);
         }
     }
+
+    fn schedule_runtime_diagnostics_refresh(&mut self) {
+        // Consume the publication-time target so repeated render submissions coalesce behind
+        // the pending presentation pass without rescanning the workbench or cloning pane ids.
+        match std::mem::take(&mut self.runtime_diagnostics_refresh_target) {
+            RuntimeDiagnosticsRefreshTarget::None => {}
+            RuntimeDiagnosticsRefreshTarget::Pending => {
+                self.runtime_diagnostics_refresh_target = RuntimeDiagnosticsRefreshTarget::Pending;
+            }
+            RuntimeDiagnosticsRefreshTarget::ShellContent(scope) => {
+                self.runtime_diagnostics_refresh_target = RuntimeDiagnosticsRefreshTarget::Pending;
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "ui.runtime_diagnostics.shell_content_refresh_count",
+                    1
+                );
+                self.invalidate_host_for_shell_content(scope, HostInvalidationMask::SHELL_CONTENT);
+            }
+            RuntimeDiagnosticsRefreshTarget::FullPresentation => {
+                self.runtime_diagnostics_refresh_target = RuntimeDiagnosticsRefreshTarget::Pending;
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "ui.runtime_diagnostics.full_presentation_fallback_count",
+                    1
+                );
+                self.mark_presentation_dirty();
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -93,11 +118,38 @@ mod tests {
             .map(|(arm, _)| arm)
             .expect("render submission success arm should remain explicit");
 
-        assert!(success_arm.contains("if self.runtime_diagnostics_visible"));
-        assert!(success_arm.contains("self.mark_presentation_dirty();"));
+        assert!(success_arm.contains("self.schedule_runtime_diagnostics_refresh();"));
         assert!(success_arm.contains("visible_spatial_snapshot"));
         assert!(success_arm.contains("sync_renderer_visible_spatial_snapshot"));
         assert!(!success_arm.contains("mark_render_and_presentation_dirty"));
+    }
+
+    #[test]
+    fn diagnostics_refresh_consumes_a_publication_time_target_without_a_hot_path_scan() {
+        let source = include_str!("render_submission.rs");
+        let function = source
+            .split("fn schedule_runtime_diagnostics_refresh")
+            .nth(1)
+            .and_then(|tail| tail.split("#[cfg(test)]").next())
+            .expect("runtime diagnostics refresh scheduler");
+
+        assert!(function.contains("std::mem::take"));
+        assert!(function.contains("RuntimeDiagnosticsRefreshTarget::Pending"));
+        assert!(function.contains("RuntimeDiagnosticsRefreshTarget::ShellContent(scope)"));
+        assert!(function.contains("HostInvalidationMask::SHELL_CONTENT"));
+        assert!(function.contains("RuntimeDiagnosticsRefreshTarget::FullPresentation"));
+        assert!(function.contains("self.mark_presentation_dirty();"));
+        assert!(
+            function
+                .find("RuntimeDiagnosticsRefreshTarget::Pending;")
+                .unwrap()
+                < function
+                    .find("self.invalidate_host_for_shell_content")
+                    .unwrap()
+        );
+        assert!(!function.contains("tool_windows.iter"));
+        assert!(!function.contains("document_tabs.iter"));
+        assert!(!function.contains("floating_windows.iter"));
     }
 
     #[test]

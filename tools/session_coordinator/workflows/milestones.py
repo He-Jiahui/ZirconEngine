@@ -2407,7 +2407,8 @@ class MilestoneWorkflowService:
         for path in paths:
             absolute = root / path
             if absolute.is_file():
-                digest = hashlib.sha256(absolute.read_bytes()).hexdigest()
+                with absolute.open("rb") as source:
+                    digest = hashlib.file_digest(source, "sha256").hexdigest()
                 manifest.append({"path": path, "kind": "file", "blob": digest})
             elif absolute.is_dir():
                 raise CoordinatorError(

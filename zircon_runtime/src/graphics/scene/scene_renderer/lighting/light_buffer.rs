@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::core::framework::render::{
     GpuLightData, GpuLightType, LightCookieData, LightShadowSettings, LightingExtract,
     RenderDirectionalLightSnapshot, RenderLayerSet, RenderPointLightSnapshot,
@@ -5,10 +7,33 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Vec2, Vec3};
 use crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::{
-    build_cookie_frame_plan, CookieGpuMetadata,
+    CookieGpuMetadata, build_cookie_frame_plan,
 };
 
 pub(crate) const GPU_LIGHT_FLAG_CASTS_SHADOW: u32 = 1 << 0;
+const VOLUMETRIC_LINEAR_SCAN_LIMIT: usize = 8;
+
+enum VolumetricLightIdIndex<'a> {
+    Linear(&'a [u64]),
+    Hashed(HashSet<u64>),
+}
+
+impl<'a> VolumetricLightIdIndex<'a> {
+    fn new(light_ids: &'a [u64]) -> Self {
+        if light_ids.len() <= VOLUMETRIC_LINEAR_SCAN_LIMIT {
+            Self::Linear(light_ids)
+        } else {
+            Self::Hashed(light_ids.iter().copied().collect())
+        }
+    }
+
+    fn contains(&self, light_id: u64) -> bool {
+        match self {
+            Self::Linear(light_ids) => light_ids.contains(&light_id),
+            Self::Hashed(light_ids) => light_ids.contains(&light_id),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct PackedGpuLightBuffer {
@@ -124,6 +149,7 @@ pub(crate) fn pack_light_slices_with_advanced_metadata(
         .lights
         .extend(rect_lights.iter().map(pack_rect_light));
     let cookie_plan = build_cookie_frame_plan(cookies);
+    let volumetric_light_ids = VolumetricLightIdIndex::new(volumetric_light_ids);
     let light_ids = directional_lights
         .iter()
         .map(|light| light.light_id)
@@ -131,7 +157,7 @@ pub(crate) fn pack_light_slices_with_advanced_metadata(
         .chain(spot_lights.iter().map(|light| light.light_id))
         .chain(rect_lights.iter().map(|light| light.light_id));
     for (light, light_id) in packed.lights.iter_mut().zip(light_ids) {
-        light.cookie_misc[2] = u32::from(volumetric_light_ids.contains(&light_id));
+        light.cookie_misc[2] = u32::from(volumetric_light_ids.contains(light_id));
         if let Some(metadata) = cookie_plan.metadata_for_light(light_id) {
             apply_cookie_metadata(light, metadata);
         }
@@ -263,11 +289,14 @@ fn shadow_params(shadow: Option<LightShadowSettings>) -> [f32; 4] {
 }
 
 #[cfg(test)]
+mod performance_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::core::framework::render::{
-        CookieProjection, CookieWrapMode, LightShadowSettings, ShadowPcfQuality,
-        ShadowResolutionTier, DEFAULT_RENDER_LAYER_MASK,
+        CookieProjection, CookieWrapMode, DEFAULT_RENDER_LAYER_MASK, LightShadowSettings,
+        ShadowPcfQuality, ShadowResolutionTier,
     };
     use crate::core::resource::ResourceId;
     use std::mem::{offset_of, size_of};

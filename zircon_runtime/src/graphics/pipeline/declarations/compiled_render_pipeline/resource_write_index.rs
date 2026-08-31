@@ -14,8 +14,9 @@ pub(super) struct CompiledRenderPipelineResourceWriteIndex {
 
 impl CompiledRenderPipelineResourceWriteIndex {
     pub(super) fn from_graph(graph: &CompiledRenderGraph) -> Self {
-        let mut resource_indices = HashMap::new();
-        let mut resource_write_flags = Vec::new();
+        let resource_capacity = graph.stats().resource_lifetime_count;
+        let mut resource_indices = HashMap::with_capacity(resource_capacity);
+        let mut write_bits = Vec::with_capacity(resource_capacity.div_ceil(64));
         let mut executable_pass_count = 0;
         let mut resource_access_count = 0;
         for pass in graph.passes().iter().filter(|pass| !pass.culled) {
@@ -27,19 +28,15 @@ impl CompiledRenderPipelineResourceWriteIndex {
                     None => {
                         let index = resource_indices.len();
                         resource_indices.insert(access.name.clone(), index);
-                        resource_write_flags.push(false);
+                        if index % 64 == 0 {
+                            write_bits.push(0);
+                        }
                         index
                     }
                 };
                 if access.access == RenderGraphResourceAccessKind::Write {
-                    resource_write_flags[index] = true;
+                    write_bits[index / 64] |= 1_u64 << (index % 64);
                 }
-            }
-        }
-        let mut write_bits = vec![0_u64; resource_indices.len().div_ceil(64)];
-        for (index, written) in resource_write_flags.into_iter().enumerate() {
-            if written {
-                write_bits[index / 64] |= 1_u64 << (index % 64);
             }
         }
         Self {
@@ -75,3 +72,7 @@ impl CompiledRenderPipelineResourceWriteIndex {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "resource_write_index/direct_write_bits_tests.rs"]
+mod direct_write_bits_tests;

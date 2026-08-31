@@ -1,24 +1,5 @@
 use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
-const DATA_TABLE_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionDataTableRowsTab",
-    "WorkbenchExtensionDataTableSchemaTab",
-    "WorkbenchExtensionDataTableValidationTab",
-];
-const DATA_TABLE_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.data_table.rows_tab.select",
-        "WorkbenchExtensionDataTableRowsTab",
-    ),
-    action(
-        "workbench.extension.data_table.schema_tab.select",
-        "WorkbenchExtensionDataTableSchemaTab",
-    ),
-    action(
-        "workbench.extension.data_table.validation_tab.select",
-        "WorkbenchExtensionDataTableValidationTab",
-    ),
-];
 const DATA_TABLE_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionDataTableItemsRow",
     "WorkbenchExtensionDataTableSchemaRow",
@@ -27,7 +8,6 @@ const DATA_TABLE_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionDataTableSwordRow",
     "WorkbenchExtensionDataTableArmorRow",
     "WorkbenchExtensionDataTableDebugRow",
-    "WorkbenchExtensionDataTableOutputRow",
 ];
 const DATA_TABLE_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -58,20 +38,16 @@ const DATA_TABLE_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.data_table.debug_row.select",
         "WorkbenchExtensionDataTableDebugRow",
     ),
-    action(
-        "workbench.extension.data_table.output.select",
-        "WorkbenchExtensionDataTableOutputRow",
-    ),
 ];
 const DATA_TABLE_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsDataTableButton",
+    "WorkbenchAssetsProductionToolsMenu",
     "WorkbenchExtensionDataTableValidateButton",
     "WorkbenchExtensionDataTableSaveButton",
 ];
 const DATA_TABLE_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.data_table.open",
-        "WorkbenchAssetsDataTableButton",
+        "WorkbenchAssetsProductionToolsMenu",
     ),
     action(
         "workbench.extension.data_table.validate.invoke",
@@ -94,33 +70,12 @@ const DATA_TABLE_FIELD_ACTIONS: &[&str] = &[
 pub(super) const DATA_TABLE_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.data_table.open",
     "WorkbenchExtensionDataTableWorkspace",
-    DATA_TABLE_TAB_CONTROLS,
-    DATA_TABLE_TAB_ACTIONS,
     DATA_TABLE_ROW_CONTROLS,
     DATA_TABLE_ROW_ACTIONS,
     DATA_TABLE_COMMAND_CONTROLS,
     DATA_TABLE_COMMAND_ACTIONS,
     DATA_TABLE_FIELD_ACTIONS,
 );
-const SOURCE_CONTROL_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionSourceControlDiffTab",
-    "WorkbenchExtensionSourceControlOwnersTab",
-    "WorkbenchExtensionSourceControlSubmitTab",
-];
-const SOURCE_CONTROL_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.source_control.diff_tab.select",
-        "WorkbenchExtensionSourceControlDiffTab",
-    ),
-    action(
-        "workbench.extension.source_control.owners_tab.select",
-        "WorkbenchExtensionSourceControlOwnersTab",
-    ),
-    action(
-        "workbench.extension.source_control.submit_tab.select",
-        "WorkbenchExtensionSourceControlSubmitTab",
-    ),
-];
 const SOURCE_CONTROL_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionSourceControlChangelistRow",
     "WorkbenchExtensionSourceControlRuntimeRow",
@@ -129,7 +84,6 @@ const SOURCE_CONTROL_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionSourceControlEditorFileRow",
     "WorkbenchExtensionSourceControlDocsFileRow",
     "WorkbenchExtensionSourceControlConflictFileRow",
-    "WorkbenchExtensionSourceControlOutputRow",
 ];
 const SOURCE_CONTROL_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -160,20 +114,16 @@ const SOURCE_CONTROL_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.source_control.conflict_file_row.select",
         "WorkbenchExtensionSourceControlConflictFileRow",
     ),
-    action(
-        "workbench.extension.source_control.output.select",
-        "WorkbenchExtensionSourceControlOutputRow",
-    ),
 ];
 const SOURCE_CONTROL_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsSourceControlButton",
+    "WorkbenchAssetsProductionToolsMenu",
     "WorkbenchExtensionSourceControlValidateButton",
     "WorkbenchExtensionSourceControlSubmitButton",
 ];
 const SOURCE_CONTROL_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.source_control.open",
-        "WorkbenchAssetsSourceControlButton",
+        "WorkbenchAssetsProductionToolsMenu",
     ),
     action(
         "workbench.extension.source_control.validate.invoke",
@@ -196,33 +146,12 @@ const SOURCE_CONTROL_FIELD_ACTIONS: &[&str] = &[
 pub(super) const SOURCE_CONTROL_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.source_control.open",
     "WorkbenchExtensionSourceControlWorkspace",
-    SOURCE_CONTROL_TAB_CONTROLS,
-    SOURCE_CONTROL_TAB_ACTIONS,
     SOURCE_CONTROL_ROW_CONTROLS,
     SOURCE_CONTROL_ROW_ACTIONS,
     SOURCE_CONTROL_COMMAND_CONTROLS,
     SOURCE_CONTROL_COMMAND_ACTIONS,
     SOURCE_CONTROL_FIELD_ACTIONS,
 );
-const BUILD_EXPORT_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionBuildExportProfilesTab",
-    "WorkbenchExtensionBuildExportQueueTab",
-    "WorkbenchExtensionBuildExportSigningTab",
-];
-const BUILD_EXPORT_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.build_export.profiles_tab.select",
-        "WorkbenchExtensionBuildExportProfilesTab",
-    ),
-    action(
-        "workbench.extension.build_export.queue_tab.select",
-        "WorkbenchExtensionBuildExportQueueTab",
-    ),
-    action(
-        "workbench.extension.build_export.signing_tab.select",
-        "WorkbenchExtensionBuildExportSigningTab",
-    ),
-];
 const BUILD_EXPORT_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionBuildExportShippingRow",
     "WorkbenchExtensionBuildExportDevelopmentRow",
@@ -231,7 +160,6 @@ const BUILD_EXPORT_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionBuildExportPakStepRow",
     "WorkbenchExtensionBuildExportSignStepRow",
     "WorkbenchExtensionBuildExportPublishStepRow",
-    "WorkbenchExtensionBuildExportOutputRow",
 ];
 const BUILD_EXPORT_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -262,20 +190,16 @@ const BUILD_EXPORT_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.build_export.publish_step_row.select",
         "WorkbenchExtensionBuildExportPublishStepRow",
     ),
-    action(
-        "workbench.extension.build_export.output.select",
-        "WorkbenchExtensionBuildExportOutputRow",
-    ),
 ];
 const BUILD_EXPORT_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsBuildExportButton",
+    "WorkbenchAssetsProductionToolsMenu",
     "WorkbenchExtensionBuildExportValidateButton",
     "WorkbenchExtensionBuildExportPackageButton",
 ];
 const BUILD_EXPORT_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.build_export.open",
-        "WorkbenchAssetsBuildExportButton",
+        "WorkbenchAssetsProductionToolsMenu",
     ),
     action(
         "workbench.extension.build_export.validate.invoke",
@@ -298,33 +222,12 @@ const BUILD_EXPORT_FIELD_ACTIONS: &[&str] = &[
 pub(super) const BUILD_EXPORT_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.build_export.open",
     "WorkbenchExtensionBuildExportWorkspace",
-    BUILD_EXPORT_TAB_CONTROLS,
-    BUILD_EXPORT_TAB_ACTIONS,
     BUILD_EXPORT_ROW_CONTROLS,
     BUILD_EXPORT_ROW_ACTIONS,
     BUILD_EXPORT_COMMAND_CONTROLS,
     BUILD_EXPORT_COMMAND_ACTIONS,
     BUILD_EXPORT_FIELD_ACTIONS,
 );
-const AUTOMATION_REPORT_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionAutomationReportFailuresTab",
-    "WorkbenchExtensionAutomationReportWorkersTab",
-    "WorkbenchExtensionAutomationReportArtifactsTab",
-];
-const AUTOMATION_REPORT_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.automation_report.failures_tab.select",
-        "WorkbenchExtensionAutomationReportFailuresTab",
-    ),
-    action(
-        "workbench.extension.automation_report.workers_tab.select",
-        "WorkbenchExtensionAutomationReportWorkersTab",
-    ),
-    action(
-        "workbench.extension.automation_report.artifacts_tab.select",
-        "WorkbenchExtensionAutomationReportArtifactsTab",
-    ),
-];
 const AUTOMATION_REPORT_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionAutomationReportSmokeRow",
     "WorkbenchExtensionAutomationReportRenderingRow",
@@ -333,7 +236,6 @@ const AUTOMATION_REPORT_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionAutomationReportGameplayTestRow",
     "WorkbenchExtensionAutomationReportAssetTestRow",
     "WorkbenchExtensionAutomationReportUiFailureRow",
-    "WorkbenchExtensionAutomationReportOutputRow",
 ];
 const AUTOMATION_REPORT_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -364,20 +266,16 @@ const AUTOMATION_REPORT_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.automation_report.ui_failure_row.select",
         "WorkbenchExtensionAutomationReportUiFailureRow",
     ),
-    action(
-        "workbench.extension.automation_report.output.select",
-        "WorkbenchExtensionAutomationReportOutputRow",
-    ),
 ];
 const AUTOMATION_REPORT_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsAutomationReportButton",
+    "WorkbenchAssetsProductionToolsMenu",
     "WorkbenchExtensionAutomationReportValidateButton",
     "WorkbenchExtensionAutomationReportPublishButton",
 ];
 const AUTOMATION_REPORT_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.automation_report.open",
-        "WorkbenchAssetsAutomationReportButton",
+        "WorkbenchAssetsProductionToolsMenu",
     ),
     action(
         "workbench.extension.automation_report.validate.invoke",
@@ -400,33 +298,12 @@ const AUTOMATION_REPORT_FIELD_ACTIONS: &[&str] = &[
 pub(super) const AUTOMATION_REPORT_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.automation_report.open",
     "WorkbenchExtensionAutomationReportWorkspace",
-    AUTOMATION_REPORT_TAB_CONTROLS,
-    AUTOMATION_REPORT_TAB_ACTIONS,
     AUTOMATION_REPORT_ROW_CONTROLS,
     AUTOMATION_REPORT_ROW_ACTIONS,
     AUTOMATION_REPORT_COMMAND_CONTROLS,
     AUTOMATION_REPORT_COMMAND_ACTIONS,
     AUTOMATION_REPORT_FIELD_ACTIONS,
 );
-const PROJECT_OVERVIEW_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionProjectOverviewSummaryTab",
-    "WorkbenchExtensionProjectOverviewTargetsTab",
-    "WorkbenchExtensionProjectOverviewReleasesTab",
-];
-const PROJECT_OVERVIEW_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.project_overview.summary_tab.select",
-        "WorkbenchExtensionProjectOverviewSummaryTab",
-    ),
-    action(
-        "workbench.extension.project_overview.targets_tab.select",
-        "WorkbenchExtensionProjectOverviewTargetsTab",
-    ),
-    action(
-        "workbench.extension.project_overview.releases_tab.select",
-        "WorkbenchExtensionProjectOverviewReleasesTab",
-    ),
-];
 const PROJECT_OVERVIEW_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionProjectOverviewProjectRow",
     "WorkbenchExtensionProjectOverviewMilestoneRow",
@@ -435,7 +312,6 @@ const PROJECT_OVERVIEW_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionProjectOverviewBuildRow",
     "WorkbenchExtensionProjectOverviewCoverageRow",
     "WorkbenchExtensionProjectOverviewDependencyRow",
-    "WorkbenchExtensionProjectOverviewOutputRow",
 ];
 const PROJECT_OVERVIEW_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -466,30 +342,12 @@ const PROJECT_OVERVIEW_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.project_overview.dependency_row.select",
         "WorkbenchExtensionProjectOverviewDependencyRow",
     ),
-    action(
-        "workbench.extension.project_overview.output.select",
-        "WorkbenchExtensionProjectOverviewOutputRow",
-    ),
 ];
-const PROJECT_OVERVIEW_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsProjectOverviewButton",
-    "WorkbenchExtensionProjectOverviewRefreshButton",
-    "WorkbenchExtensionProjectOverviewPublishButton",
-];
-const PROJECT_OVERVIEW_COMMAND_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.project_overview.open",
-        "WorkbenchAssetsProjectOverviewButton",
-    ),
-    action(
-        "workbench.extension.project_overview.refresh.invoke",
-        "WorkbenchExtensionProjectOverviewRefreshButton",
-    ),
-    action(
-        "workbench.extension.project_overview.publish.invoke",
-        "WorkbenchExtensionProjectOverviewPublishButton",
-    ),
-];
+const PROJECT_OVERVIEW_COMMAND_CONTROLS: &[&str] = &["WorkbenchAssetsProductionToolsMenu"];
+const PROJECT_OVERVIEW_COMMAND_ACTIONS: &[ActionControl] = &[action(
+    "workbench.extension.project_overview.open",
+    "WorkbenchAssetsProductionToolsMenu",
+)];
 const PROJECT_OVERVIEW_FIELD_ACTIONS: &[&str] = &[
     "workbench.extension.project_overview.owner.edit",
     "workbench.extension.project_overview.owner.commit",
@@ -502,8 +360,6 @@ const PROJECT_OVERVIEW_FIELD_ACTIONS: &[&str] = &[
 pub(super) const PROJECT_OVERVIEW_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.project_overview.open",
     "WorkbenchExtensionProjectOverviewWorkspace",
-    PROJECT_OVERVIEW_TAB_CONTROLS,
-    PROJECT_OVERVIEW_TAB_ACTIONS,
     PROJECT_OVERVIEW_ROW_CONTROLS,
     PROJECT_OVERVIEW_ROW_ACTIONS,
     PROJECT_OVERVIEW_COMMAND_CONTROLS,
@@ -511,25 +367,6 @@ pub(super) const PROJECT_OVERVIEW_NAVIGATION_SPEC: ExtensionNavigationSpec = spe
     PROJECT_OVERVIEW_FIELD_ACTIONS,
 );
 
-const PLUGIN_MANAGER_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionPluginManagerInstalledTab",
-    "WorkbenchExtensionPluginManagerDependenciesTab",
-    "WorkbenchExtensionPluginManagerUpdatesTab",
-];
-const PLUGIN_MANAGER_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.plugin_manager.installed_tab.select",
-        "WorkbenchExtensionPluginManagerInstalledTab",
-    ),
-    action(
-        "workbench.extension.plugin_manager.dependencies_tab.select",
-        "WorkbenchExtensionPluginManagerDependenciesTab",
-    ),
-    action(
-        "workbench.extension.plugin_manager.updates_tab.select",
-        "WorkbenchExtensionPluginManagerUpdatesTab",
-    ),
-];
 const PLUGIN_MANAGER_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPluginManagerAudioRow",
     "WorkbenchExtensionPluginManagerRenderdocRow",
@@ -538,7 +375,6 @@ const PLUGIN_MANAGER_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPluginManagerRenderdocBridgeTableRow",
     "WorkbenchExtensionPluginManagerGameplayPackTableRow",
     "WorkbenchExtensionPluginManagerVersionWarningTableRow",
-    "WorkbenchExtensionPluginManagerOutputRow",
 ];
 const PLUGIN_MANAGER_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -569,20 +405,16 @@ const PLUGIN_MANAGER_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.plugin_manager.version_warning_table_row.select",
         "WorkbenchExtensionPluginManagerVersionWarningTableRow",
     ),
-    action(
-        "workbench.extension.plugin_manager.output.select",
-        "WorkbenchExtensionPluginManagerOutputRow",
-    ),
 ];
 const PLUGIN_MANAGER_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsPluginManagerButton",
+    "WorkbenchAssetsProductionToolsMenu",
     "WorkbenchExtensionPluginManagerHotReloadButton",
     "WorkbenchExtensionPluginManagerValidateButton",
 ];
 const PLUGIN_MANAGER_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.plugin_manager.open",
-        "WorkbenchAssetsPluginManagerButton",
+        "WorkbenchAssetsProductionToolsMenu",
     ),
     action(
         "workbench.extension.plugin_manager.hot_reload.invoke",
@@ -605,8 +437,6 @@ const PLUGIN_MANAGER_FIELD_ACTIONS: &[&str] = &[
 pub(super) const PLUGIN_MANAGER_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.plugin_manager.open",
     "WorkbenchExtensionPluginManagerWorkspace",
-    PLUGIN_MANAGER_TAB_CONTROLS,
-    PLUGIN_MANAGER_TAB_ACTIONS,
     PLUGIN_MANAGER_ROW_CONTROLS,
     PLUGIN_MANAGER_ROW_ACTIONS,
     PLUGIN_MANAGER_COMMAND_CONTROLS,

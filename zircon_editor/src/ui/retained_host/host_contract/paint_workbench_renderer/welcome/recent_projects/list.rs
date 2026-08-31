@@ -1,20 +1,18 @@
-use super::super::super::super::data::{FrameRect, PaneData};
+use super::super::super::super::data::{FrameRect, WelcomePaneLayoutData};
 use super::super::super::super::paint_frame::HostRgbaFrame;
-use super::super::super::super::paint_primitives::{
-    draw_rounded_border_clipped, draw_rounded_rect_clipped,
-};
+use super::super::super::super::paint_primitives::draw_rounded_box_clipped;
 use super::super::super::super::paint_theme::current_host_metrics;
 use super::super::super::SEPARATOR;
-use super::super::layout::welcome_node_frame;
+use super::super::layout::translated_welcome_frame;
 use super::super::style::WELCOME_SURFACE_INSET;
 
 pub(super) fn recent_projects_list_frame(
-    pane: &PaneData,
+    layout: &WelcomePaneLayoutData,
     body: &FrameRect,
     recent_panel: &FrameRect,
     header: &FrameRect,
 ) -> FrameRect {
-    welcome_node_frame(pane, body, "WelcomeRecentListPanel").unwrap_or_else(|| {
+    translated_welcome_frame(layout.recent_list_panel.as_ref(), body).unwrap_or_else(|| {
         let metrics = current_host_metrics();
         let y = header.y + header.height + metrics.gap_m;
         FrameRect {
@@ -32,17 +30,11 @@ pub(super) fn draw_recent_projects_list_surface(
     clip: &FrameRect,
 ) {
     let metrics = current_host_metrics();
-    draw_rounded_rect_clipped(
+    draw_rounded_box_clipped(
         frame,
         list.clone(),
         Some(clip),
         WELCOME_SURFACE_INSET,
-        metrics.radius_control,
-    );
-    draw_rounded_border_clipped(
-        frame,
-        list.clone(),
-        Some(clip),
         SEPARATOR,
         metrics.border_width,
         metrics.radius_control,
@@ -56,7 +48,7 @@ mod tests {
 
     #[test]
     fn recent_list_fallback_uses_shared_horizontal_padding_and_header_gap() {
-        let pane = PaneData::default();
+        let layout = WelcomePaneLayoutData::default();
         let body = FrameRect {
             x: 0.0,
             y: 0.0,
@@ -76,7 +68,7 @@ mod tests {
             height: 46.0,
         };
 
-        let list = recent_projects_list_frame(&pane, &body, &recent_panel, &header);
+        let list = recent_projects_list_frame(&layout, &body, &recent_panel, &header);
 
         let metrics = current_host_metrics();
         assert_eq!(list.x, recent_panel.x + metrics.gap_l);

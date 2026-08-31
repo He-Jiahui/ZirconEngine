@@ -3,6 +3,7 @@ struct SceneUniform {
     view_proj_unjittered: mat4x4<f32>,
     inverse_view_proj: mat4x4<f32>,
     ambient_color: vec4<f32>,
+    lightmapped_ambient_color: vec4<f32>,
     previous_view_proj_unjittered: mat4x4<f32>,
     motion_params: vec4<f32>,
     jitter_params: vec4<f32>,
@@ -20,3 +21,11 @@ struct SceneUniform {
 };
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
+
+fn zr_scene_ambient_color(lightmapped: bool) -> vec3<f32> {
+    return select(
+        scene.ambient_color.rgb,
+        scene.lightmapped_ambient_color.rgb,
+        lightmapped,
+    );
+}

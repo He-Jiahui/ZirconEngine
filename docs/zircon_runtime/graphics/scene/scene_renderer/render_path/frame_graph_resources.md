@@ -9,7 +9,7 @@ related_code:
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/render_graph/graph.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
@@ -39,6 +39,8 @@ doc_type: module-detail
 The binder receives the compiled graph and imports only resources that have a live `CompiledRenderGraph::resource_lifetime_by_name(...)` row. This replaces the old unconditional frame-target import behavior with graph-lifetime-aware actual binding while preserving the renderer-owned backing model for fixed frame targets.
 
 Plan 09 Base/Overlay camera submits rely on this fixed backing model. Each selected-camera child re-enters graph execution with the same sized `OffscreenTarget`, and live `SCENE_COLOR` / `SCENE_DEPTH` rows bind to the fixed target views instead of graph-owned transient textures. `ViewportCameraStackAttachmentPolicy` stores the selected camera clear plan and converts graph-declared first scene attachment clears to loads; `SceneRegionClearResources` then applies the requested color/depth clear as a pre-graph draw clipped by the selected `ViewportRenderRegion`. That keeps Overlay and split-screen children from clearing the whole shared scene target while still executing as separate selected-camera graph submits. `ViewportRenderRegion` is the matching raster state policy: it does not allocate or bind resources, but it keeps graph-raster draws clipped to the selected camera's physical viewport/scissor region on that shared target.
+
+The region-clear color uniform follows the graph/frame transaction boundary. Recording returns one immutable 16-byte buffer upload only when color is present; depth-only, no-clear, and empty-region paths return an empty batch. `RenderGraphStageExecution` retains that upload until every graph stage succeeds, after which the outer frame owner merges it into the single `FrameBufferUpload` admission before submitting the recorded clear draw. The clear resource does not receive `wgpu::Queue`, and graph failure drops both the unsubmitted commands and the unaccepted parameter update.
 
 ## Bound Resources
 

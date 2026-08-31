@@ -4,7 +4,9 @@ use super::*;
 fn gameplay_host_damage_report_preserves_death_position() {
     let core = CoreRuntime::new();
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .update_transform(
             entity,
@@ -84,7 +86,9 @@ fn gameplay_host_damage_report_preserves_death_position() {
 fn script_held_entity_handle_reports_invalid_after_despawn() {
     let core = CoreRuntime::new();
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .update_transform(
             entity,
@@ -205,7 +209,9 @@ fn script_held_entity_handle_reports_invalid_after_despawn() {
 fn gameplay_host_damage_entity_reports_hit_before_death() {
     let core = CoreRuntime::new();
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,

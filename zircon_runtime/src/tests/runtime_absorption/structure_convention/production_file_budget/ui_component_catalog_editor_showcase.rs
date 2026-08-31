@@ -3,6 +3,7 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
     let parent = read_runtime_src("ui/component/catalog/editor_showcase.rs");
+    let descriptors = read_runtime_src("ui/component/catalog/editor_showcase/descriptors.rs");
     let descriptor_builders =
         read_runtime_src("ui/component/catalog/editor_showcase/descriptor_builders.rs");
     let runtime_15_plan =
@@ -14,15 +15,36 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
 
     assert_contains_all(
-        "editor showcase parent keeps catalog registry and descriptor list ownership",
+        "editor showcase parent owns only catalog registration and execution",
         &parent,
         &[
             "mod descriptor_builders;",
-            "use descriptor_builders::{",
+            "mod descriptors;",
+            "use self::descriptors::editor_showcase_descriptors;",
             "static EDITOR_SHOWCASE_REGISTRY",
             "fn build_editor_showcase_registry",
+        ],
+    );
+    for declaration in [
+        "fn build_editor_showcase_descriptor",
+        "fn editor_showcase_descriptors()",
+        "layout_primitive(\"Container\"",
+        "selection(\"Dropdown\"",
+        "editor_collection(\"TreeView\"",
+        "\"context-action-menu\"",
+    ] {
+        assert!(
+            !parent.contains(declaration),
+            "ui/component/catalog/editor_showcase.rs must delegate catalog declaration `{declaration}` to editor_showcase/descriptors.rs"
+        );
+    }
+    assert_contains_all(
+        "editor showcase descriptor child owns generated catalog declarations",
+        &descriptors,
+        &[
+            "use super::descriptor_builders::{",
             "fn build_editor_showcase_descriptor",
-            "fn editor_showcase_descriptors()",
+            "pub(super) fn editor_showcase_descriptors()",
             "layout_primitive(\"Container\"",
             "selection(\"Dropdown\"",
             "editor_collection(\"TreeView\"",
@@ -41,8 +63,8 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
         "UiPaletteMetadata",
     ] {
         assert!(
-            !parent.contains(moved_owner),
-            "ui/component/catalog/editor_showcase.rs should delegate descriptor builder owner `{moved_owner}` to editor_showcase/descriptor_builders.rs"
+            !parent.contains(moved_owner) && !descriptors.contains(moved_owner),
+            "editor showcase catalog owners should delegate descriptor builder `{moved_owner}` to editor_showcase/descriptor_builders.rs"
         );
     }
     assert_contains_all(
@@ -66,6 +88,10 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
 
     for (path, source) in [
         ("ui/component/catalog/editor_showcase.rs", parent.as_str()),
+        (
+            "ui/component/catalog/editor_showcase/descriptors.rs",
+            descriptors.as_str(),
+        ),
         (
             "ui/component/catalog/editor_showcase/descriptor_builders.rs",
             descriptor_builders.as_str(),
@@ -98,4 +124,9 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
             ],
         );
     }
+
+    assert!(
+        ui_doc.contains("ui/component/catalog/editor_showcase/descriptors.rs"),
+        "UI architecture doc should name the generated catalog declaration owner"
+    );
 }

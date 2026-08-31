@@ -7,6 +7,7 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import { Box, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
+import { buildCatalogSearchIndex, filterCatalogSearchIndex } from "../catalog/catalogSearchIndex";
 import { groupBy } from "../catalog/groupBy";
 import { EmptyStateBlock, HubList, HubPanel, HubTreeView, MetricCard, QuickActions, SourceEngineList, StatusBadge } from "../components/data";
 import { HubStatusBanner } from "../components/feedback";
@@ -55,7 +56,11 @@ export function CatalogPage({ state, onAction }: CatalogPageProps) {
   const quickActionProjectTarget = quickActionProjectTargetPayload(project);
 
   const rows = useMemo(() => catalogRows(state, mode, text), [mode, state, text]);
-  const visibleRows = useMemo(() => filterRows(rows, mode, tab, query), [mode, query, rows, tab]);
+  const rowSearchIndex = useMemo(() => buildCatalogSearchIndex(rows), [rows]);
+  const visibleRows = useMemo(
+    () => filterCatalogSearchIndex(rows, rowSearchIndex, mode, tab, query),
+    [mode, query, rowSearchIndex, rows, tab],
+  );
   const categoryCount = new Set(rows.map((row) => row.category)).size;
   const scopeCount = new Set(rows.map((row) => row.scope)).size;
   const selectedRow = useMemo(() => {
@@ -291,23 +296,6 @@ function catalogTabs(mode: "assets" | "plugins" | "learn", text: HubShellState["
     { value: "project", label: text.project },
     { value: "engine", label: text.engine },
   ];
-}
-
-function filterRows(rows: CatalogRow[], mode: "assets" | "plugins" | "learn", tab: string, query: string) {
-  const normalizedQuery = query.trim().toLowerCase();
-  return rows.filter((row) => {
-    const inTab =
-      tab === "all" ||
-      (mode === "learn"
-        ? row.categoryKey === tab
-        : tab === "project"
-          ? row.scopeKey === "project"
-          : row.scopeKey === "engine");
-    const inQuery =
-      normalizedQuery.length === 0 ||
-      [row.title, row.detail, row.meta, row.category, row.scope, row.path].some((value) => value.toLowerCase().includes(normalizedQuery));
-    return inTab && inQuery;
-  });
 }
 
 function iconForMode(mode: "assets" | "plugins" | "learn") {

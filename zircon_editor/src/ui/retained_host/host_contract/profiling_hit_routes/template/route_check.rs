@@ -4,10 +4,9 @@ use zircon_runtime_interface::ui::{layout::UiPoint, surface::UiSurfaceFrame};
 use super::super::super::data::FrameRect;
 
 pub(super) fn surface_frame_route_hit(
-    id: &str,
+    expected_control_id: &str,
     x: f32,
     y: f32,
-    surface: &str,
     surface_frame: &UiSurfaceFrame,
     body: &FrameRect,
 ) -> bool {
@@ -18,8 +17,5 @@ pub(super) fn surface_frame_route_hit(
     let Some(node) = surface_frame.arranged_tree.get(node_id) else {
         return false;
     };
-    let Some(control_id) = node.control_id.as_deref() else {
-        return false;
-    };
-    format!("template.{surface}.{control_id}") == id
+    node.control_id.as_deref() == Some(expected_control_id)
 }

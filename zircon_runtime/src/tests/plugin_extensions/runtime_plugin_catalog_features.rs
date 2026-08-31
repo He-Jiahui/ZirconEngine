@@ -1,16 +1,19 @@
-use std::sync::Arc;
+use std::sync::{Arc, Barrier};
 
 use crate::core::framework::project::{
     ExportPackagingStrategy, ProjectPluginFeatureSelection, ProjectPluginManifest,
     ProjectPluginSelection,
 };
 use crate::plugin::{
-    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest,
-    PluginPackageManifest, RuntimePluginCatalog, RuntimePluginDescriptor,
+    CompiledProjectPluginPlan, PluginCatalogGeneration, PluginFeatureBundleManifest,
+    PluginFeatureDependency, PluginModuleManifest, PluginPackageManifest, RuntimePluginCatalog,
+    RuntimePluginCatalogProjectPlanMetrics, RuntimePluginDescriptor,
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
+#[path = "runtime_plugin_catalog_features/compiled_selection.rs"]
+mod compiled_selection;
 #[path = "runtime_plugin_catalog_features/feature_dependency_reports.rs"]
 mod feature_dependency_reports;
 
@@ -236,7 +239,102 @@ fn runtime_plugin_catalog_reuses_one_frozen_project_plan_per_generation() {
         .is_published());
     let _ = catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
 
-    assert_eq!(catalog.project_plan_metrics().project_plan_builds, 2);
+    let metrics = catalog.project_plan_cache_metrics();
+    assert_eq!(metrics.project_plan_builds, 2);
+    assert_eq!(metrics.cache_hits, 2);
+    assert_eq!(metrics.cache_misses, 2);
+    assert_eq!(metrics.cache_evictions, 0);
+    assert_eq!(metrics.cached_plan_count, 1);
+}
+
+#[test]
+fn runtime_plugin_catalog_project_plan_summary_remains_exhaustively_constructible() {
+    let metrics = RuntimePluginCatalogProjectPlanMetrics {
+        catalog_generation: PluginCatalogGeneration::INITIAL,
+        project_plan_builds: 11,
+    };
+
+    assert_eq!(metrics.catalog_generation, PluginCatalogGeneration::INITIAL);
+    assert_eq!(metrics.catalog_generation.get(), 1);
+    assert_eq!(metrics.project_plan_builds, 11);
+}
+
+#[test]
+fn runtime_plugin_catalog_exposes_one_compiled_project_plan_artifact() {
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    );
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )],
+    };
+
+    let plan: Arc<CompiledProjectPluginPlan> =
+        catalog.compiled_project_plan(&manifest, RuntimeTargetMode::ClientRuntime);
+    let repeated = catalog.compiled_project_plan(&manifest, RuntimeTargetMode::ClientRuntime);
+    let completed = catalog.complete_project_manifest(&manifest, RuntimeTargetMode::ClientRuntime);
+    let features = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::ClientRuntime);
+    let extensions =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(Arc::ptr_eq(&plan, &repeated));
+    assert_eq!(
+        plan.catalog_generation(),
+        catalog.project_plan_metrics().catalog_generation
+    );
+    assert_eq!(plan.target_mode(), RuntimeTargetMode::ClientRuntime);
+    assert!(std::ptr::eq(plan.completed_manifest(), completed.as_ref()));
+    assert!(std::ptr::eq(
+        plan.feature_dependency_report(),
+        features.as_ref()
+    ));
+    assert!(std::ptr::eq(plan.runtime_extensions(), extensions.as_ref()));
+    assert_eq!(catalog.project_plan_metrics().project_plan_builds, 1);
+}
+
+#[test]
+fn compiled_project_plan_receipts_partition_target_and_catalog_generation() {
+    let mut catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    );
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )],
+    };
+
+    let client_plan = catalog.compiled_project_plan(&manifest, RuntimeTargetMode::ClientRuntime);
+    let editor_plan = catalog.compiled_project_plan(&manifest, RuntimeTargetMode::EditorHost);
+    let previous_generation = client_plan.catalog_generation();
+
+    assert!(!Arc::ptr_eq(&client_plan, &editor_plan));
+    assert_eq!(client_plan.target_mode(), RuntimeTargetMode::ClientRuntime);
+    assert_eq!(editor_plan.target_mode(), RuntimeTargetMode::EditorHost);
+    assert_eq!(editor_plan.catalog_generation(), previous_generation);
+
+    assert!(catalog
+        .register_reports_batch(
+            [animation_timeline_registration()],
+            std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+        )
+        .is_published());
+    let current_client_plan =
+        catalog.compiled_project_plan(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(!Arc::ptr_eq(&client_plan, &current_client_plan));
+    assert_eq!(client_plan.catalog_generation(), previous_generation);
+    assert!(current_client_plan.catalog_generation() > previous_generation);
+    assert_eq!(
+        current_client_plan.target_mode(),
+        RuntimeTargetMode::ClientRuntime
+    );
 }
 
 #[test]
@@ -259,6 +357,49 @@ fn runtime_plugin_catalog_reuses_the_same_frozen_extension_snapshot() {
 
     assert!(Arc::ptr_eq(&first, &second));
     assert_eq!(catalog.project_plan_metrics().project_plan_builds, 1);
+}
+
+#[test]
+fn runtime_plugin_catalog_initializes_one_plan_for_concurrent_same_key_misses() {
+    const READER_COUNT: usize = 8;
+
+    let catalog = Arc::new(RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    ));
+    let manifest = Arc::new(ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )],
+    });
+    let barrier = Arc::new(Barrier::new(READER_COUNT));
+
+    let snapshots = std::thread::scope(|scope| {
+        let readers = (0..READER_COUNT)
+            .map(|_| {
+                let catalog = Arc::clone(&catalog);
+                let manifest = Arc::clone(&manifest);
+                let barrier = Arc::clone(&barrier);
+                scope.spawn(move || {
+                    barrier.wait();
+                    catalog
+                        .runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime)
+                })
+            })
+            .collect::<Vec<_>>();
+        readers
+            .into_iter()
+            .map(|reader| reader.join().expect("project-plan reader should join"))
+            .collect::<Vec<_>>()
+    });
+
+    assert!(snapshots
+        .windows(2)
+        .all(|pair| Arc::ptr_eq(&pair[0], &pair[1])));
+    assert_eq!(catalog.project_plan_metrics().project_plan_builds, 1);
+    assert_eq!(catalog.cached_project_plan_count(), 1);
 }
 
 #[test]
@@ -302,7 +443,47 @@ fn runtime_plugin_catalog_reuses_completed_report_and_extension_snapshots() {
 }
 
 #[test]
-fn runtime_plugin_catalog_bounds_frozen_plans_to_one_manifest_per_target() {
+fn runtime_plugin_catalog_reuses_recent_manifests_for_the_same_target() {
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    );
+    let first_manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            false,
+        )],
+    };
+    let second_manifest = ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false),
+            feature_provider_selection("external", false),
+        ],
+    };
+
+    let first =
+        catalog.runtime_extensions_for_project(&first_manifest, RuntimeTargetMode::ClientRuntime);
+    let _ =
+        catalog.runtime_extensions_for_project(&second_manifest, RuntimeTargetMode::ClientRuntime);
+    let repeated =
+        catalog.runtime_extensions_for_project(&first_manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(Arc::ptr_eq(&first, &repeated));
+    let metrics = catalog.project_plan_cache_metrics();
+    assert_eq!(metrics.project_plan_builds, 2);
+    assert_eq!(metrics.cache_hits, 1);
+    assert_eq!(metrics.cache_misses, 2);
+    assert_eq!(metrics.cache_evictions, 0);
+    assert_eq!(metrics.cached_plan_count, 2);
+    assert!(metrics.total_build_elapsed_ns >= metrics.max_build_elapsed_ns);
+    assert_eq!(catalog.cached_project_plan_count(), 2);
+}
+
+#[test]
+fn runtime_plugin_catalog_bounds_frozen_plans_per_target() {
+    const EXPECTED_RECENT_CLIENT_PLANS: usize = 4;
+
     let catalog = RuntimePluginCatalog::from_registration_reports(
         [sound_registration()],
         std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
@@ -329,7 +510,7 @@ fn runtime_plugin_catalog_bounds_frozen_plans_to_one_manifest_per_target() {
         latest = Some(
             catalog.runtime_extensions_for_project(manifest, RuntimeTargetMode::ClientRuntime),
         );
-        assert!(catalog.cached_project_plan_count() <= 2);
+        assert!(catalog.cached_project_plan_count() <= 1 + EXPECTED_RECENT_CLIENT_PLANS);
     }
 
     let builds_before_hit = catalog.project_plan_metrics().project_plan_builds;
@@ -342,11 +523,63 @@ fn runtime_plugin_catalog_bounds_frozen_plans_to_one_manifest_per_target() {
         latest.as_ref().expect("latest client snapshot"),
         &repeated
     ));
-    assert_eq!(catalog.cached_project_plan_count(), 2);
+    assert_eq!(
+        catalog.cached_project_plan_count(),
+        1 + EXPECTED_RECENT_CLIENT_PLANS
+    );
     assert_eq!(
         catalog.project_plan_metrics().project_plan_builds,
         builds_before_hit
     );
+    let metrics = catalog.project_plan_cache_metrics();
+    assert_eq!(metrics.cache_hits, 1);
+    assert_eq!(metrics.cache_misses, 9);
+    assert_eq!(metrics.cache_evictions, 4);
+    assert_eq!(metrics.cached_plan_count, 5);
+}
+
+#[test]
+fn runtime_plugin_catalog_evicts_the_least_recent_completed_plan() {
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        [sound_registration()],
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+    );
+    let manifests = (0..5)
+        .map(|index| ProjectPluginManifest {
+            selections: vec![
+                ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false),
+                feature_provider_selection(&format!("external_{index}"), false),
+            ],
+        })
+        .collect::<Vec<_>>();
+
+    let first_snapshots = manifests[..4]
+        .iter()
+        .map(|manifest| {
+            catalog.runtime_extensions_for_project(manifest, RuntimeTargetMode::ClientRuntime)
+        })
+        .collect::<Vec<_>>();
+    let touched_first =
+        catalog.runtime_extensions_for_project(&manifests[0], RuntimeTargetMode::ClientRuntime);
+    let _ = catalog.runtime_extensions_for_project(
+        manifests.last().expect("fifth manifest"),
+        RuntimeTargetMode::ClientRuntime,
+    );
+    let repeated_first =
+        catalog.runtime_extensions_for_project(&manifests[0], RuntimeTargetMode::ClientRuntime);
+    let rebuilt_second =
+        catalog.runtime_extensions_for_project(&manifests[1], RuntimeTargetMode::ClientRuntime);
+
+    assert!(Arc::ptr_eq(&first_snapshots[0], &touched_first));
+    assert!(Arc::ptr_eq(&first_snapshots[0], &repeated_first));
+    assert!(!Arc::ptr_eq(&first_snapshots[1], &rebuilt_second));
+    let metrics = catalog.project_plan_cache_metrics();
+    assert_eq!(metrics.project_plan_builds, 6);
+    assert_eq!(metrics.cache_hits, 2);
+    assert_eq!(metrics.cache_misses, 6);
+    assert_eq!(metrics.cache_evictions, 2);
+    assert_eq!(metrics.cached_plan_count, 4);
+    assert_eq!(catalog.cached_project_plan_count(), 4);
 }
 
 #[test]

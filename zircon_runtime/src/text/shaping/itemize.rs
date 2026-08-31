@@ -8,10 +8,26 @@ use crate::text::{
     ShapedGlyphClusterFlags, ShapedGlyphScript, TextRange, VerticalMode,
 };
 
-use super::bidi::BidiParagraph;
+use super::bidi::{BidiInvariantError, BidiParagraph};
 use super::fallback_spans::FallbackTextSpan;
-use super::script_segment::{script_for_range, shaped_script_for_cluster, ScriptSegment};
-use super::vertical::{vertical_shape_orientation, VerticalShapeOrientation};
+use super::script_segment::ParagraphTextAnalysis;
+use super::vertical::{VerticalShapeOrientation, vertical_shape_orientation};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+pub(super) enum ItemizationError {
+    #[error("text itemization source range is invalid: {range:?}")]
+    InvalidSourceRange { range: TextRange },
+    #[error("text itemization has no fallback span for: {range:?}")]
+    MissingFallbackSpan { range: TextRange },
+    #[error("text itemization bidi invariant failed: {0:?}")]
+    BidiInvariant(BidiInvariantError),
+}
+
+impl From<BidiInvariantError> for ItemizationError {
+    fn from(error: BidiInvariantError) -> Self {
+        Self::BidiInvariant(error)
+    }
+}
 
 #[derive(Clone, Copy)]
 pub(super) struct LogicalSegment {
@@ -28,22 +44,31 @@ pub(super) fn logical_segments_for_line(
     text: &str,
     line_range: Range<usize>,
     fallback_spans: &[FallbackTextSpan],
-    scripts: &[ScriptSegment],
+    analysis: &ParagraphTextAnalysis,
     bidi: &BidiParagraph<'_>,
     vertical_mode: Option<VerticalMode>,
-) -> Option<Vec<LogicalSegment>> {
-    let line_text = text.get(line_range.clone())?;
+) -> Result<Vec<LogicalSegment>, ItemizationError> {
+    let line_source_range = TextRange {
+        start: line_range.start,
+        end: line_range.end,
+    };
+    let line_text = text
+        .get(line_range.clone())
+        .ok_or(ItemizationError::InvalidSourceRange {
+            range: line_source_range,
+        })?;
     let mut segments = Vec::<LogicalSegment>::new();
     for (relative_start, cluster_text) in line_text.grapheme_indices(true) {
         let range = TextRange {
             start: line_range.start + relative_start,
             end: line_range.start + relative_start + cluster_text.len(),
         };
-        let span = fallback_span_for_range(fallback_spans, range)?;
-        let face = span.face?;
-        let bidi_level = bidi.level_for_range(range);
+        let span = fallback_span_for_range(fallback_spans, range)
+            .ok_or(ItemizationError::MissingFallbackSpan { range })?;
+        let face = span.resolution.face();
+        let bidi_level = bidi.level_for_range(range)?;
         let direction = direction_for_bidi_level(bidi_level);
-        let script = shaped_script_for_cluster(cluster_text, script_for_range(scripts, range));
+        let script = analysis.shaped_script_for_range(range);
         let vertical_orientation = vertical_mode
             .map(|mode| vertical_shape_orientation(mode, cluster_text))
             .unwrap_or(VerticalShapeOrientation::Upright);
@@ -70,7 +95,7 @@ pub(super) fn logical_segments_for_line(
             vertical_orientation,
         });
     }
-    Some(segments)
+    Ok(segments)
 }
 
 fn fallback_span_for_range(
@@ -86,19 +111,22 @@ pub(super) fn virtual_hard_break_glyph(
     request: BackendShapeRequest<'_>,
     line: &HardLine,
     bidi: &BidiParagraph<'_>,
-    scripts: &[ScriptSegment],
-) -> Option<ShapedGlyph> {
+    analysis: &ParagraphTextAnalysis,
+) -> Result<Option<ShapedGlyph>, ItemizationError> {
     if line.separator.is_empty() {
-        return None;
+        return Ok(None);
     }
-    let cluster_text = request.text.get(line.separator.clone())?;
     let local_range = TextRange {
         start: line.separator.start,
         end: line.separator.end,
     };
-    let bidi_level = bidi.level_for_range(local_range);
+    let cluster_text = request
+        .text
+        .get(line.separator.clone())
+        .ok_or(ItemizationError::InvalidSourceRange { range: local_range })?;
+    let bidi_level = bidi.level_for_range(local_range)?;
     let direction = direction_for_bidi_level(bidi_level);
-    Some(ShapedGlyph {
+    Ok(Some(ShapedGlyph {
         glyph_id: 0,
         font_id: None,
         font_instance_id: None,
@@ -123,11 +151,12 @@ pub(super) fn virtual_hard_break_glyph(
             whitespace: cluster_text.chars().any(char::is_whitespace),
             mandatory_break: true,
             virtual_glyph: true,
+            line_break: crate::text::ShapedGlyphLineBreakReceipt::mandatory_control(),
             ..ShapedGlyphClusterFlags::default()
         },
         rotation: crate::text::ShapedGlyphRotation::None,
-        script: shaped_script_for_cluster(cluster_text, script_for_range(scripts, local_range)),
-    })
+        script: analysis.shaped_script_for_range(local_range),
+    }))
 }
 
 fn direction_for_bidi_level(level: u8) -> TextDirection {
@@ -170,8 +199,14 @@ pub(super) fn restore_backend_cluster_logical_order<T>(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::text::TextDirection;
+    use crate::text::shaping::bidi::BidiParagraph;
+    use crate::text::shaping::script_segment::ParagraphTextAnalysis;
+    use crate::text::{BackendShapeRequest, HardLine, TextRange, TextStyle};
 
-    use super::restore_backend_cluster_logical_order;
+    use super::{
+        ItemizationError, logical_segments_for_line, restore_backend_cluster_logical_order,
+        virtual_hard_break_glyph,
+    };
 
     #[derive(Clone, Copy)]
     struct BackendGlyph {
@@ -199,6 +234,52 @@ mod tests {
                 .map(|glyph| (glyph.source_offset, glyph.glyph_id))
                 .collect::<Vec<_>>(),
             vec![(0, 10), (2, 20), (2, 21), (4, 40)]
+        );
+    }
+
+    #[test]
+    fn itemization_reports_an_invalid_line_source_range() {
+        let text = "A";
+        let bidi = BidiParagraph::new(text, TextDirection::LeftToRight);
+        let analysis = ParagraphTextAnalysis::new(text, None);
+
+        let error = logical_segments_for_line(text, 0..2, &[], &analysis, &bidi, None)
+            .expect_err("out-of-bounds line range must remain a typed itemization failure");
+
+        assert_eq!(
+            error,
+            ItemizationError::InvalidSourceRange {
+                range: TextRange { start: 0, end: 2 }
+            }
+        );
+    }
+
+    #[test]
+    fn virtual_hard_break_reports_an_invalid_separator_range() {
+        let text = "A";
+        let style = TextStyle::default();
+        let request = BackendShapeRequest::horizontal_with_kerning(
+            text,
+            &style,
+            TextDirection::LeftToRight,
+            TextRange { start: 0, end: 1 },
+            true,
+        );
+        let bidi = BidiParagraph::new(text, TextDirection::LeftToRight);
+        let analysis = ParagraphTextAnalysis::new(text, None);
+        let line = HardLine {
+            content: 0..1,
+            separator: 1..2,
+        };
+
+        let error = virtual_hard_break_glyph(request, &line, &bidi, &analysis)
+            .expect_err("invalid separator range must not become an absent virtual glyph");
+
+        assert_eq!(
+            error,
+            ItemizationError::InvalidSourceRange {
+                range: TextRange { start: 1, end: 2 }
+            }
         );
     }
 

@@ -139,7 +139,12 @@ class OfflineCommandSpool:
             self._release_lock(self.enqueue_lock_path)
 
     def validated_pending(self) -> tuple[OfflineCommand, ...]:
+        items, _quarantined = self._validated_pending()
+        return items
+
+    def _validated_pending(self) -> tuple[tuple[OfflineCommand, ...], int]:
         items: list[OfflineCommand] = []
+        quarantined = 0
         for path in self._ordered(self.pending_root):
             try:
                 if path.stat().st_size > MAX_OFFLINE_COMMAND_BYTES:
@@ -148,7 +153,8 @@ class OfflineCommandSpool:
                 items.append(self._command_from_payload(path, payload))
             except (OSError, UnicodeError, TypeError, ValueError, json.JSONDecodeError):
                 self._move(path, self.quarantine_root)
-        return tuple(items)
+                quarantined += 1
+        return tuple(items), quarantined
 
     def snapshot(self) -> OfflineQueueSnapshot:
         return OfflineQueueSnapshot(
@@ -171,25 +177,25 @@ class OfflineCommandSpool:
         self, execute: Callable[[str, dict[str, Any]], object]
     ) -> OfflineReplayResult:
         acknowledged = retained = failed = 0
-        quarantined_before = len(self._ordered(self.quarantine_root))
-        for item in self.validated_pending():
+        pending, quarantined = self._validated_pending()
+        for index, item in enumerate(pending):
             try:
                 execute(item.command, item.arguments)
             except CoordinatorClientError as error:
                 if error.code == "offline":
                     return OfflineReplayResult(
                         acknowledged=acknowledged,
-                        retained=len(self.validated_pending()),
+                        retained=len(pending) - index,
                         failed=failed,
-                        quarantined=max(0, len(self._ordered(self.quarantine_root)) - quarantined_before),
+                        quarantined=quarantined,
                     )
                 self._move(item.path, self.failed_root)
                 failed += 1
                 return OfflineReplayResult(
                     acknowledged=acknowledged,
-                    retained=len(self.validated_pending()),
+                    retained=len(pending) - index - 1,
                     failed=failed,
-                    quarantined=max(0, len(self._ordered(self.quarantine_root)) - quarantined_before),
+                    quarantined=quarantined,
                 )
             else:
                 item.path.unlink(missing_ok=True)
@@ -198,7 +204,7 @@ class OfflineCommandSpool:
             acknowledged=acknowledged,
             retained=retained,
             failed=failed,
-            quarantined=max(0, len(self._ordered(self.quarantine_root)) - quarantined_before),
+            quarantined=quarantined,
         )
 
     def _command_from_payload(self, path: Path, payload: object) -> OfflineCommand:

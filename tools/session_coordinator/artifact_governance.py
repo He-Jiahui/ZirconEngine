@@ -10,6 +10,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .cargo_jobs import target_identity, targets_overlap
+from .cargo_storage import (
+    managed_cargo_cache_paths,
+    managed_cargo_scratch_path,
+    managed_cargo_server_temp_path,
+)
 from .artifact_product_staging import (
     ArtifactProductStagingLease,
     ArtifactProductStagingService,
@@ -258,11 +263,14 @@ class ArtifactGovernanceService:
 
     def scan(self) -> tuple[UnmanagedArtifact, ...]:
         managed = self._managed_paths()
+        managed_containers = self._managed_container_paths()
         candidates: list[UnmanagedArtifact] = []
         for root in self.roots:
             if _is_reparse_point(root) or not root.is_dir():
                 continue
-            candidates.extend(self._scan_children(root, root, managed))
+            candidates.extend(
+                self._scan_children(root, root, managed, managed_containers)
+            )
         return tuple(sorted(candidates, key=lambda item: item.path.casefold()))
 
     def require_clean(self) -> None:
@@ -526,13 +534,26 @@ class ArtifactGovernanceService:
         *,
         ignored_artifact_reservation_key: str | None = None,
     ) -> bool:
+        if any(
+            target_key == target_identity(path)
+            for path in self._managed_container_paths()
+        ):
+            return True
         managed_values: list[str] = []
+        managed_values.extend(str(path) for path in self._managed_cargo_cache_paths())
         managed_values.extend(
             str(row["target_dir"])
             for row in connection.execute(
                 """SELECT target_dir FROM cargo_jobs
                    WHERE cleanup_status <> 'deleted'
                       OR status IN ('leased', 'running')"""
+            )
+        )
+        managed_values.extend(
+            str(managed_cargo_scratch_path(row["target_dir"], row["job_id"]))
+            for row in connection.execute(
+                """SELECT job_id, target_dir FROM cargo_jobs
+                   WHERE status IN ('leased', 'running')"""
             )
         )
         for row in connection.execute(
@@ -649,7 +670,11 @@ class ArtifactGovernanceService:
         return self._root_for(path) is not None
 
     def _scan_children(
-        self, root: Path, directory: Path, managed: tuple[Path, ...]
+        self,
+        root: Path,
+        directory: Path,
+        managed: tuple[Path, ...],
+        managed_containers: tuple[Path, ...],
     ) -> list[UnmanagedArtifact]:
         candidates: list[UnmanagedArtifact] = []
         try:
@@ -664,25 +689,39 @@ class ArtifactGovernanceService:
                 continue
             if any(resolved == path for path in managed):
                 continue
-            if any(path.is_relative_to(resolved) for path in managed):
-                candidates.extend(self._scan_children(root, resolved, managed))
+            if any(
+                path.is_relative_to(resolved)
+                for path in (*managed, *managed_containers)
+            ):
+                candidates.extend(
+                    self._scan_children(
+                        root, resolved, managed, managed_containers
+                    )
+                )
                 continue
             candidates.append(UnmanagedArtifact(str(root), str(resolved)))
         return candidates
 
     def _managed_paths(self) -> tuple[Path, ...]:
         paths: set[Path] = set()
+        for path in self._managed_cargo_cache_paths():
+            self._add_managed_path(paths, str(path))
         with self.database.connect() as connection:
             # A successful cleanup is terminal evidence that the old target is
             # no longer service-managed.  Retaining every historical path here
             # makes the 30-second guardian resolve thousands of dead entries
             # and silently exempts a later manually recreated directory.
             for row in connection.execute(
-                """SELECT target_dir FROM cargo_jobs
+                """SELECT job_id, target_dir, status FROM cargo_jobs
                    WHERE cleanup_status <> 'deleted'
                       OR status IN ('leased', 'running')"""
             ):
                 self._add_managed_path(paths, row["target_dir"])
+                if row["status"] in {"leased", "running"}:
+                    self._add_managed_path(
+                        paths,
+                        str(managed_cargo_scratch_path(row["target_dir"], row["job_id"])),
+                    )
             # A cleanup reservation survives after the deleting worker has
             # released SQLite but before its filesystem operation completes.
             # It must remain a managed descendant during that interval: scan
@@ -709,6 +748,28 @@ class ArtifactGovernanceService:
             for path in self.product_staging.managed_paths():
                 self._add_managed_path(paths, str(path))
         return tuple(paths)
+
+    def _managed_cargo_cache_paths(self) -> tuple[Path, ...]:
+        paths: list[Path] = []
+        for root in self.roots:
+            if root.name.casefold() not in {"cargo-targets", "targets", "zirconbuilds"}:
+                continue
+            paths.extend(
+                managed_cargo_cache_paths(root / "zircon-engine" / "pool" / "identity")
+            )
+            paths.append(
+                managed_cargo_server_temp_path(
+                    root / "zircon-engine" / "pool" / "identity"
+                )
+            )
+        return tuple(paths)
+
+    def _managed_container_paths(self) -> tuple[Path, ...]:
+        return tuple(
+            root / "zircon-engine" / "scratch"
+            for root in self.roots
+            if root.name.casefold() in {"cargo-targets", "targets", "zirconbuilds"}
+        )
 
     @staticmethod
     def _fixture_lease(row) -> ArtifactFixtureLease:

@@ -3,11 +3,14 @@ use std::fs;
 use std::path::PathBuf;
 use thiserror::Error;
 
+use super::super::chrome_command_stream::{
+    build_chrome_command_stream, paint_chrome_command_stream_to_frame,
+};
 use super::super::data::HostWindowPresentationData;
-use super::super::presenter::{paint_host_presentation_snapshot, HostPresenterBackend};
+use super::super::presenter::HostPresenterBackend;
 use super::environment::{
-    is_forced_softbuffer_screenshot_run, profile_capture_enabled, profile_export_dir,
-    profile_screenshot_capture_enabled, ProfileOutputRootError,
+    profile_capture_enabled, profile_export_dir, profile_screenshot_capture_enabled,
+    ProfileOutputRootError,
 };
 use super::UiProfileGeometry;
 use crate::core::jobs::{
@@ -18,7 +21,7 @@ use crate::ui::retained_host::primitives::PhysicalSize;
 
 const GEOMETRY_FILE: &str = "ui_profile_geometry.json";
 const REFERENCE_SCREENSHOT_FILE: &str = "screenshot_reference.png";
-const PROFILE_ARTIFACT_GEOMETRY_PENDING_BYTES: usize = 4 * 1024;
+const PROFILE_ARTIFACT_GEOMETRY_PENDING_BYTES: usize = 256 * 1024;
 const RGBA_BYTES_PER_PIXEL: usize = 4;
 
 #[derive(Debug, Error)]
@@ -50,10 +53,6 @@ pub(in crate::ui::retained_host::host_contract) fn submit_present_artifacts(
     if !profile_capture_enabled() {
         return Ok(None);
     }
-    if is_forced_softbuffer_screenshot_run() {
-        return Ok(None);
-    }
-
     submit_present_artifacts_with_export_dir(
         jobs,
         size,
@@ -82,9 +81,16 @@ fn submit_present_artifacts_with_export_dir(
     );
     submit_present_artifact_after_admission(jobs, estimated_pending_bytes, || {
         let presentation = materialize_presentation();
-        let geometry = UiProfileGeometry::from_presentation(&presentation, size, backend);
+        let stream = build_chrome_command_stream(
+            &presentation,
+            (size.width, size.height),
+            None,
+            screenshot_enabled,
+        );
+        let geometry =
+            UiProfileGeometry::from_presentation_with_stream(&presentation, size, backend, &stream);
         let screenshot = screenshot_enabled.then(|| {
-            let frame = paint_host_presentation_snapshot(size.width, size.height, &presentation);
+            let frame = paint_chrome_command_stream_to_frame(size.width, size.height, &stream);
             ProfileScreenshot {
                 width: frame.width(),
                 height: frame.height(),

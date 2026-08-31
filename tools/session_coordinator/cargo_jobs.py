@@ -374,6 +374,7 @@ class CargoJobService:
         burst_target_root: str | Path = BURST_TARGET_ROOT,
         burst_samples: Callable[[], tuple[ResourceSample, ...]] | None = None,
         admission_guard: Callable[[Connection, str, str], None] | None = None,
+        cargo_start_guard: Callable[[Connection, str], None] | None = None,
         reservation_consume_guard: Callable[[Connection, str, str, str | None], None]
         | None = None,
     ):
@@ -398,6 +399,7 @@ class CargoJobService:
         self.burst_target_root = Path(burst_target_root)
         self.burst_samples = burst_samples or self._sample_burst_resources
         self._admission_guard = admission_guard
+        self._cargo_start_guard = cargo_start_guard
         self._reservation_consume_guard = reservation_consume_guard
         self._reported_health_timeouts: set[str] = set()
         self._start_reconcile_lock = threading.RLock()
@@ -459,6 +461,16 @@ class CargoJobService:
     def set_admission_guard(self, guard: Callable[[Connection, str, str], None]) -> None:
         """Attach the coordinator's durable at-commit admission fence."""
         self._admission_guard = guard
+
+    def set_cargo_start_guard(self, guard: Callable[[Connection, str], None]) -> None:
+        """Attach the daemon-handoff fence used only by new Cargo starts."""
+        self._cargo_start_guard = guard
+
+    def require_cargo_start_admission_in_connection(
+        self, connection: Connection, operation: str
+    ) -> None:
+        if self._cargo_start_guard is not None:
+            self._cargo_start_guard(connection, operation)
 
     def set_reservation_consume_guard(
         self, guard: Callable[[Connection, str, str, str | None], None]
@@ -672,11 +684,15 @@ class CargoJobService:
             )
             existing_arguments = (lane_scope, session_id) if lane_scope == "cpu" else (lane_scope,)
             existing = connection.execute(existing_query, existing_arguments).fetchone()
+            source_copy_job_id = (
+                source_copy["job_id"] if source_copy is not None else None
+            )
             if existing is not None:
                 if (
                     existing["session_id"] == session_id
                     and existing["compatibility_key"] == compatibility_key
                     and existing["target_dir"] == canonical_target
+                    and existing["source_copy_job_id"] == source_copy_job_id
                     and existing["dependency_lifecycle_key"] == dependency_lifecycle_key
                     and existing["dependency_fixed_sha256"] == dependency_fixed_sha256
                 ):
@@ -1895,9 +1911,10 @@ class CargoJobService:
         )
         now = utc_text()
         with self.database.transaction() as connection:
+            operation = admission_operation or f"cargo.acquire@{session_id}"
             self._require_admission_checkpoint(
                 connection,
-                admission_operation or f"cargo.acquire@{session_id}",
+                operation,
                 admission_checkpoint,
             )
             require_executable_cargo_session(connection, session_id)
@@ -1924,6 +1941,7 @@ class CargoJobService:
             expected_reservation_id = expected_cpu_reservation_id or expected_gpu_reservation_id
             expected_scope = "cpu" if expected_cpu_reservation_id else "gpu"
             if expected_reservation_id is not None:
+                self.require_cargo_start_admission_in_connection(connection, operation)
                 existing_job = self._bound_reservation_job(
                     connection,
                     reservation_id=expected_reservation_id,
@@ -2527,41 +2545,45 @@ class CargoJobService:
 
         command_tuple = tuple(command)
         now = utc_text()
-        try:
-            with self.database.transaction() as connection:
-                reservation = self._require_start_eligibility(
-                    connection,
-                    job_id=job_id,
-                    session_id=session_id,
-                    command=command_tuple,
-                    now=now,
-                )
-                persist_spawn_authorization(
-                    connection,
-                    job_id=job_id,
-                    session_id=session_id,
-                    command=command_tuple,
-                    authorized_at=now,
-                    reservation_id=(
-                        str(reservation["reservation_id"])
-                        if reservation is not None
-                        else None
-                    ),
-                )
-        except CoordinatorError as error:
-            with self.database.transaction() as connection:
-                self._record_event(
-                    connection,
-                    session_id,
-                    "cargo.start_rejected",
-                    {
-                        "jobId": job_id,
-                        "pid": None,
-                        "rootIsSupervisor": True,
-                        "code": error.code,
-                    },
-                )
-            raise
+        with self._start_reconcile_lock:
+            try:
+                with self.database.transaction() as connection:
+                    self.require_cargo_start_admission_in_connection(
+                        connection, f"cargo.run@{session_id}"
+                    )
+                    reservation = self._require_start_eligibility(
+                        connection,
+                        job_id=job_id,
+                        session_id=session_id,
+                        command=command_tuple,
+                        now=now,
+                    )
+                    persist_spawn_authorization(
+                        connection,
+                        job_id=job_id,
+                        session_id=session_id,
+                        command=command_tuple,
+                        authorized_at=now,
+                        reservation_id=(
+                            str(reservation["reservation_id"])
+                            if reservation is not None
+                            else None
+                        ),
+                    )
+            except CoordinatorError as error:
+                with self.database.transaction() as connection:
+                    self._record_event(
+                        connection,
+                        session_id,
+                        "cargo.start_rejected",
+                        {
+                            "jobId": job_id,
+                            "pid": None,
+                            "rootIsSupervisor": True,
+                            "code": error.code,
+                        },
+                    )
+                raise
         return self.get(job_id)
 
     def register_authorized_managed_run(
@@ -2730,6 +2752,24 @@ class CargoJobService:
     ) -> CargoJob:
         if pid <= 0:
             raise ValueError("Cargo process PID must be positive")
+        with self._start_reconcile_lock:
+            return self._start_registered_process(
+                job_id,
+                session_id=session_id,
+                pid=pid,
+                command=command,
+                root_is_supervisor=root_is_supervisor,
+            )
+
+    def _start_registered_process(
+        self,
+        job_id: str,
+        *,
+        session_id: str,
+        pid: int,
+        command: list[str] | tuple[str, ...],
+        root_is_supervisor: bool,
+    ) -> CargoJob:
         now = utc_text()
         root_process_creation_time, initial_live_pids = self._observe_started_process(
             pid, root_is_supervisor=root_is_supervisor
@@ -2741,6 +2781,9 @@ class CargoJobService:
         )
         try:
             with self.database.transaction() as connection:
+                self.require_cargo_start_admission_in_connection(
+                    connection, f"cargo.start@{session_id}"
+                )
                 reservation = self._require_start_eligibility(
                     connection,
                     job_id=job_id,
@@ -3029,6 +3072,11 @@ class CargoJobService:
     def _root_process_identity_changed(self, job: CargoJob) -> bool:
         if job.pid is None or job.root_process_creation_time is None:
             return False
+        try:
+            if not self.process_alive(job.pid):
+                return True
+        except (OSError, ValueError):
+            pass
         observed_creation_time = self._read_process_creation_time(job.pid)
         return (
             observed_creation_time is not None
@@ -3082,10 +3130,26 @@ class CargoJobService:
         )
 
     def _compatibility_fingerprint(self, compatibility_json: str) -> str:
+        compatibility = json.loads(compatibility_json)
+        compile_pool = {
+            name: compatibility[name]
+            for name in (
+                "platform",
+                "toolchain",
+                "target_architecture",
+                "workspace",
+                "build_config",
+            )
+        }
         digest = hashlib.sha256()
         digest.update(target_identity(self.repo_root).encode("utf-8"))
         digest.update(b"\0")
-        digest.update(compatibility_json.encode("utf-8"))
+        digest.update(b"compile-pool-v2\0")
+        digest.update(
+            json.dumps(compile_pool, sort_keys=True, separators=(",", ":")).encode(
+                "utf-8"
+            )
+        )
         return digest.hexdigest()
 
     @staticmethod
@@ -3311,6 +3375,10 @@ class CargoJobService:
                     row["status"] == CargoJobStatus.LEASED.value
                     and (current_time - parse_utc(row["last_heartbeat_at"])).total_seconds()
                     <= leased_timeout_seconds
+                    and (
+                        row["process_tree_exited_at"] is None
+                        or not root_identity_changed
+                    )
                 ):
                     continue
                 if (

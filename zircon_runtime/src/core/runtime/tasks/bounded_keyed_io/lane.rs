@@ -1,30 +1,42 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 use super::{
     BoundedKeyedIoAdmission, BoundedKeyedIoAdmissionError, BoundedKeyedIoCancelAuthority,
-    BoundedKeyedIoDiagnostics, BoundedKeyedIoFailure, BoundedKeyedIoFence, BoundedKeyedIoTerminal,
-    BoundedKeyedIoTicket, BoundedKeyedIoWork, BoundedKeyedIoWorkDeadline, GlobalAdmissionEpoch,
+    BoundedKeyedIoDiagnostics, BoundedKeyedIoFailure, BoundedKeyedIoFence, BoundedKeyedIoKey,
+    BoundedKeyedIoTerminal, BoundedKeyedIoTicket, BoundedKeyedIoWork, BoundedKeyedIoWorkDeadline,
+    GlobalAdmissionEpoch,
 };
-use crate::core::runtime::tasks::{JobHandle, JobScheduler, TaskTimer, TaskTimerSubscription};
+#[cfg(test)]
+use crate::core::runtime::tasks::TaskPool;
+use crate::core::runtime::tasks::{JobScheduler, TaskTimer};
 
 mod coalescing;
 mod fence_prerequisites;
+mod queue;
 mod shutdown;
+mod state;
 
 use coalescing::{coalesce_queued_generation, insert_ordered};
 use fence_prerequisites::{
     capture_fence_prerequisites, fence_prerequisite_failure, plan_fence_prerequisites,
     release_fence_pins,
 };
+#[cfg(test)]
+pub(super) use queue::merge_ordered;
+use queue::{
+    finish_pre_start_entry, front_is_runnable, mark_pump_needed, merge_ordered_queue,
+    notify_observer, notify_observers, release_reservation, remove_suspended_entry, reserve,
+    take_ticket_id,
+};
 use shutdown::diagnostics_for_state;
 pub use shutdown::BoundedKeyedIoShutdownGuard;
-
-type TerminalObserver = Arc<dyn Fn(BoundedKeyedIoTerminal) + Send + Sync + 'static>;
-#[cfg(test)]
-type BeforeExecuteHook = Arc<dyn Fn() + Send + Sync + 'static>;
+pub(super) use state::LaneInner;
+use state::{
+    ActiveEntry, FencePrerequisite, LaneState, TerminalNotification, TerminalObserver, WorkEntry,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct BoundedKeyedIoLimits {
@@ -46,74 +58,6 @@ pub struct BoundedKeyedIoLane {
     inner: Arc<LaneInner>,
 }
 
-pub(crate) struct LaneInner {
-    scheduler: JobScheduler,
-    limits: BoundedKeyedIoLimits,
-    state: Mutex<LaneState>,
-    changed: Condvar,
-    #[cfg(test)]
-    before_execute: Mutex<Option<BeforeExecuteHook>>,
-}
-
-struct LaneState {
-    accepting: bool,
-    pump_active: bool,
-    next_ticket_id: u64,
-    current_epoch: GlobalAdmissionEpoch,
-    reserved_entries: usize,
-    retained_bytes: usize,
-    in_flight: usize,
-    suspended: HashMap<u64, WorkEntry>,
-    active: Option<ActiveEntry>,
-    queue: VecDeque<WorkEntry>,
-    active_handles: Vec<JobHandle>,
-    submitted: u64,
-    completed: u64,
-    failed: u64,
-    cancelled: u64,
-    superseded: u64,
-    coalesced: u64,
-    worker_wall: Duration,
-}
-
-struct WorkEntry {
-    key: Option<Arc<str>>,
-    generation: u64,
-    epoch: GlobalAdmissionEpoch,
-    retained_bytes: usize,
-    enqueued_at: Instant,
-    deadline: BoundedKeyedIoWorkDeadline,
-    deadline_subscription: Option<TaskTimerSubscription>,
-    ticket: BoundedKeyedIoTicket,
-    terminal_observer: Option<TerminalObserver>,
-    prerequisites: Box<[FencePrerequisite]>,
-    work: Option<BoundedKeyedIoWork>,
-    fence: bool,
-}
-
-#[derive(Clone)]
-struct ActiveEntry {
-    key: Option<Arc<str>>,
-    generation: u64,
-    epoch: GlobalAdmissionEpoch,
-    enqueued_at: Instant,
-    ticket: BoundedKeyedIoTicket,
-    terminal_observer: Option<TerminalObserver>,
-    fence: bool,
-}
-
-#[derive(Clone)]
-struct FencePrerequisite {
-    key: Option<Arc<str>>,
-    generation: u64,
-    ticket: BoundedKeyedIoTicket,
-}
-
-struct TerminalNotification {
-    observer: Option<TerminalObserver>,
-    terminal: BoundedKeyedIoTerminal,
-}
-
 impl BoundedKeyedIoLane {
     pub fn new(limits: BoundedKeyedIoLimits, scheduler: JobScheduler) -> Self {
         Self {
@@ -129,6 +73,7 @@ impl BoundedKeyedIoLane {
                     retained_bytes: 0,
                     in_flight: 0,
                     suspended: HashMap::new(),
+                    suspended_order: BTreeSet::new(),
                     active: None,
                     queue: VecDeque::new(),
                     active_handles: Vec::new(),
@@ -158,7 +103,7 @@ impl BoundedKeyedIoLane {
 
     pub fn try_admit(
         &self,
-        key: impl Into<Arc<str>>,
+        key: impl Into<BoundedKeyedIoKey>,
         generation: u64,
         retained_bytes: usize,
         deadline: BoundedKeyedIoWorkDeadline,
@@ -170,7 +115,7 @@ impl BoundedKeyedIoLane {
             let id = take_ticket_id(&mut state);
             let ticket = BoundedKeyedIoTicket::pending(id, generation, false);
             let epoch = state.current_epoch;
-            state.suspended.insert(
+            let previous = state.suspended.insert(
                 id,
                 WorkEntry {
                     key: Some(key.into()),
@@ -187,6 +132,9 @@ impl BoundedKeyedIoLane {
                     fence: false,
                 },
             );
+            debug_assert!(previous.is_none(), "ticket id must be unique");
+            let inserted = state.suspended_order.insert((epoch, id));
+            debug_assert!(inserted, "suspended order key must be unique");
             (id, epoch, ticket)
         };
 
@@ -297,15 +245,27 @@ impl BoundedKeyedIoLane {
         diagnostics_for_state(&state)
     }
 
+    #[cfg(test)]
+    pub(crate) fn shares_execution_owner_with(&self, pool: &TaskPool) -> bool {
+        self.inner.scheduler.shares_execution_owner_with(pool)
+    }
+
     pub fn shutdown(&self) -> BoundedKeyedIoShutdownGuard {
         let (notifications, start_pump) = {
             let mut state = self.inner.lock();
             state.accepting = false;
             let mut notifications = Vec::new();
 
-            for (_, entry) in std::mem::take(&mut state.suspended) {
+            let mut suspended = std::mem::take(&mut state.suspended);
+            let suspended_order = std::mem::take(&mut state.suspended_order);
+            debug_assert_eq!(suspended_order.len(), suspended.len());
+            let mut retained_suspended = VecDeque::new();
+            for (_, ticket_id) in suspended_order {
+                let entry = suspended
+                    .remove(&ticket_id)
+                    .expect("suspended order index must mirror ticket storage");
                 if entry.fence || entry.ticket.fence_pinned() {
-                    insert_ordered(&mut state.queue, entry);
+                    retained_suspended.push_back(entry);
                 } else {
                     finish_pre_start_entry(
                         &mut state,
@@ -315,6 +275,11 @@ impl BoundedKeyedIoLane {
                     );
                 }
             }
+            assert!(
+                suspended.is_empty(),
+                "suspended order index must cover ticket storage"
+            );
+            merge_ordered_queue(&mut state.queue, retained_suspended);
 
             let mut retained = VecDeque::new();
             while let Some(entry) = state.queue.pop_front() {
@@ -383,7 +348,7 @@ impl LaneInner {
     pub(crate) fn activate(lane: &Arc<Self>, ticket_id: u64) {
         let (notifications, start_pump) = {
             let mut state = lane.lock();
-            let Some(entry) = state.suspended.remove(&ticket_id) else {
+            let Some(entry) = remove_suspended_entry(&mut state, ticket_id) else {
                 return;
             };
             let mut notifications = Vec::new();
@@ -412,7 +377,7 @@ impl LaneInner {
     pub(crate) fn release_unactivated(lane: &Arc<Self>, ticket_id: u64) {
         let (notifications, start_pump) = {
             let mut state = lane.lock();
-            let Some(entry) = state.suspended.remove(&ticket_id) else {
+            let Some(entry) = remove_suspended_entry(&mut state, ticket_id) else {
                 return;
             };
             let mut notifications = Vec::new();
@@ -438,7 +403,7 @@ impl LaneInner {
 
     fn rollback_admission(lane: &Arc<Self>, ticket_id: u64) {
         let mut state = lane.lock();
-        if let Some(entry) = state.suspended.remove(&ticket_id) {
+        if let Some(entry) = remove_suspended_entry(&mut state, ticket_id) {
             release_reservation(&mut state, entry.retained_bytes);
             state.submitted = state.submitted.saturating_sub(1);
         }
@@ -449,7 +414,7 @@ impl LaneInner {
     fn expire_before_start(lane: &Arc<Self>, ticket_id: u64) {
         let (notification, start_pump) = {
             let mut state = lane.lock();
-            let entry = state.suspended.remove(&ticket_id).or_else(|| {
+            let entry = remove_suspended_entry(&mut state, ticket_id).or_else(|| {
                 let index = state
                     .queue
                     .iter()
@@ -629,95 +594,41 @@ impl LaneInner {
         self.changed.notify_all();
         notify_observer(observer, terminal);
     }
+}
 
-    fn lock(&self) -> MutexGuard<'_, LaneState> {
-        self.state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
+#[cfg(test)]
+impl BoundedKeyedIoLane {
+    pub(super) fn front_is_runnable_for_tests(&self) -> bool {
+        front_is_runnable(&self.inner.lock())
     }
-}
 
-fn reserve(
-    lane: &LaneInner,
-    state: &mut LaneState,
-    retained_bytes: usize,
-) -> Result<(), BoundedKeyedIoAdmissionError> {
-    if !state.accepting {
-        return Err(BoundedKeyedIoAdmissionError::Closed);
+    pub(super) fn suspended_order_index_matches_for_tests(&self) -> bool {
+        let state = self.inner.lock();
+        state.suspended.len() == state.suspended_order.len()
+            && state.suspended.iter().all(|(ticket_id, entry)| {
+                state.suspended_order.contains(&(entry.epoch, *ticket_id))
+            })
     }
-    if state.reserved_entries >= lane.limits.max_entries {
-        return Err(BoundedKeyedIoAdmissionError::EntryCapacityExceeded);
-    }
-    let next_bytes = state
-        .retained_bytes
-        .checked_add(retained_bytes)
-        .ok_or(BoundedKeyedIoAdmissionError::RetainedBytesOverflow)?;
-    if next_bytes > lane.limits.max_retained_bytes {
-        return Err(BoundedKeyedIoAdmissionError::RetainedBytesCapacityExceeded);
-    }
-    state.reserved_entries += 1;
-    state.retained_bytes = next_bytes;
-    state.submitted = state.submitted.saturating_add(1);
-    Ok(())
-}
 
-pub(super) fn release_reservation(state: &mut LaneState, retained_bytes: usize) {
-    state.reserved_entries = state.reserved_entries.saturating_sub(1);
-    state.retained_bytes = state.retained_bytes.saturating_sub(retained_bytes);
-}
-
-fn take_ticket_id(state: &mut LaneState) -> u64 {
-    let id = state.next_ticket_id;
-    state.next_ticket_id = state.next_ticket_id.saturating_add(1);
-    id
-}
-
-fn mark_pump_needed(state: &mut LaneState) -> bool {
-    if state.pump_active || !front_is_runnable(state) {
-        false
-    } else {
-        state.pump_active = true;
-        true
-    }
-}
-
-fn front_is_runnable(state: &LaneState) -> bool {
-    let Some(front) = state.queue.front() else {
-        return false;
-    };
-    !state.suspended.iter().any(|(ticket_id, suspended)| {
-        suspended.epoch < front.epoch
-            || (suspended.epoch == front.epoch && (front.fence || *ticket_id < front.ticket.id()))
-    })
-}
-
-fn finish_pre_start_entry(
-    state: &mut LaneState,
-    entry: WorkEntry,
-    requested_terminal: BoundedKeyedIoTerminal,
-    notifications: &mut Vec<TerminalNotification>,
-) {
-    let terminal = if entry.ticket.mark_terminal_before_start(requested_terminal) {
-        requested_terminal
-    } else {
-        entry.ticket.terminal().unwrap_or(requested_terminal)
-    };
-    release_reservation(state, entry.retained_bytes);
-    state.cancelled = state.cancelled.saturating_add(1);
-    notifications.push(TerminalNotification {
-        observer: entry.terminal_observer,
-        terminal,
-    });
-}
-
-fn notify_observers(notifications: Vec<TerminalNotification>) {
-    for notification in notifications {
-        notify_observer(notification.observer, notification.terminal);
-    }
-}
-
-fn notify_observer(observer: Option<TerminalObserver>, terminal: BoundedKeyedIoTerminal) {
-    if let Some(observer) = observer {
-        let _ = catch_unwind(AssertUnwindSafe(|| observer(terminal)));
+    pub(super) fn front_readiness_snapshot_for_tests(
+        &self,
+    ) -> Option<(
+        GlobalAdmissionEpoch,
+        u64,
+        bool,
+        Vec<(GlobalAdmissionEpoch, u64)>,
+    )> {
+        let state = self.inner.lock();
+        let front = state.queue.front()?;
+        Some((
+            front.epoch,
+            front.ticket.id(),
+            front.fence,
+            state
+                .suspended
+                .iter()
+                .map(|(ticket_id, entry)| (entry.epoch, *ticket_id))
+                .collect(),
+        ))
     }
 }

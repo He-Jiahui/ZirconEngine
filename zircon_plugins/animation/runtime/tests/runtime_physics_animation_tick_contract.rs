@@ -10,8 +10,6 @@ mod blend_space_state;
 mod cache_invalidation;
 #[path = "runtime_physics_animation_tick_contract/evaluation_diagnostics.rs"]
 mod evaluation_diagnostics;
-#[path = "runtime_physics_animation_tick_contract/ik_postprocess.rs"]
-mod ik_postprocess;
 #[path = "runtime_physics_animation_tick_contract/runtime_helpers.rs"]
 mod runtime_helpers;
 #[path = "runtime_physics_animation_tick_contract/state_machine_boundaries.rs"]
@@ -404,7 +402,7 @@ fn graph_player_emits_clip_events_using_graph_clip_playback_speed() {
                 entity,
                 Some(AnimationGraphPlayerComponent {
                     graph: ResourceHandle::<AnimationGraphMarker>::new(graph_id),
-                    parameters: BTreeMap::new(),
+                    parameters: BTreeMap::new().into(),
                     playing: true,
                 }),
             )
@@ -482,7 +480,7 @@ fn state_machine_player_emits_active_graph_clip_events() {
                 entity,
                 Some(AnimationStateMachinePlayerComponent {
                     state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(machine_id),
-                    parameters: BTreeMap::new(),
+                    parameters: BTreeMap::new().into(),
                     active_state: Some("Idle".to_string()),
                     playing: true,
                 }),
@@ -591,7 +589,8 @@ fn state_machine_transition_emits_from_and_to_graph_clip_events() {
                     parameters: BTreeMap::from([(
                         "advance".to_string(),
                         AnimationParameterValue::Bool(true),
-                    )]),
+                    )])
+                    .into(),
                     active_state: Some("Idle".to_string()),
                     playing: true,
                 }),
@@ -724,7 +723,7 @@ fn level_tick_blends_animation_graph_clip_pose_weights() {
                 entity,
                 Some(AnimationGraphPlayerComponent {
                     graph: ResourceHandle::<AnimationGraphMarker>::new(graph_id),
-                    parameters: BTreeMap::new(),
+                    parameters: BTreeMap::new().into(),
                     playing: true,
                 }),
             )
@@ -851,7 +850,7 @@ fn level_tick_applies_additive_graph_layer_only_to_mask_targets() {
                 entity,
                 Some(AnimationGraphPlayerComponent {
                     graph: ResourceHandle::<AnimationGraphMarker>::new(graph_id),
-                    parameters: BTreeMap::new(),
+                    parameters: BTreeMap::new().into(),
                     playing: true,
                 }),
             )

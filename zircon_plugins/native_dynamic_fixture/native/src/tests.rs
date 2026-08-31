@@ -5,18 +5,18 @@ use std::time::Instant;
 use serde_json::json;
 
 use super::{
+    decode_import_request, encode_import_response, NativeAssetImportRequestMetadata,
     IMPORT_ENVELOPE_LENGTH_BYTES, IMPORT_REQUEST_MAGIC, IMPORT_RESPONSE_MAGIC,
     MAX_IMPORT_SOURCE_BYTES, NATIVE_DYNAMIC_FIXTURE_DECLARATION, NATIVE_EDITOR_ENTRY,
     NATIVE_EDITOR_REGISTRATION_MANIFEST, NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES,
-    NATIVE_RUNTIME_ENTRY, NATIVE_RUNTIME_REGISTRATION_MANIFEST, NativeAssetImportRequestMetadata,
-    PLUGIN_MANIFEST, decode_import_request, encode_import_response,
+    NATIVE_RUNTIME_ENTRY, NATIVE_RUNTIME_REGISTRATION_MANIFEST, PLUGIN_MANIFEST,
 };
 
 const BENCHMARK_SAMPLE_PAIRS: usize = 21;
 const BENCHMARK_ITERATIONS: usize = 8;
 const BENCHMARK_TIME_RATIO_THRESHOLD_BPS: u128 = 11_000;
 
-fn legacy_encode_import_response(
+fn baseline_encode_import_response(
     metadata: &NativeAssetImportRequestMetadata,
     source_bytes: &[u8],
 ) -> Result<Vec<u8>, String> {
@@ -46,6 +46,7 @@ fn legacy_encode_import_response(
                 ],
             }
         ],
+        "reference_repairs": [],
     });
     let metadata_bytes =
         serde_json::to_vec(&response_metadata).map_err(|error| error.to_string())?;
@@ -119,7 +120,7 @@ fn import_response_encoder_does_not_materialize_an_owned_response_tree() {
 }
 
 #[test]
-fn bounded_import_response_preserves_legacy_protocol_semantics() {
+fn bounded_import_response_matches_the_current_protocol_baseline() {
     let metadata = NativeAssetImportRequestMetadata {
         importer_id: "native_dynamic_fixture.data_json".to_string(),
         source_uri: "res://assets/weather.nativejson".to_string(),
@@ -127,10 +128,10 @@ fn bounded_import_response_preserves_legacy_protocol_semantics() {
     };
     let source = br#"{"temperature":21,"condition":"clear"}"#;
 
-    let legacy = legacy_encode_import_response(&metadata, source).unwrap();
+    let baseline = baseline_encode_import_response(&metadata, source).unwrap();
     let bounded = encode_import_response(&metadata, source, 1024 * 1024).unwrap();
 
-    assert_eq!(response_metadata(&bounded), response_metadata(&legacy));
+    assert_eq!(response_metadata(&bounded), response_metadata(&baseline));
 }
 
 #[test]
@@ -172,19 +173,19 @@ fn benchmark_bounded_native_import_response() {
         r#"{{"payload":"{}","enabled":true}}"#,
         "x".repeat(128 * 1024)
     );
-    let legacy_once = legacy_encode_import_response(&metadata, source.as_bytes()).unwrap();
+    let baseline_once = baseline_encode_import_response(&metadata, source.as_bytes()).unwrap();
     let bounded_once = encode_import_response(&metadata, source.as_bytes(), 1024 * 1024).unwrap();
     assert_eq!(
         response_metadata(&bounded_once),
-        response_metadata(&legacy_once)
+        response_metadata(&baseline_once)
     );
 
-    let mut legacy_samples = Vec::with_capacity(BENCHMARK_SAMPLE_PAIRS);
+    let mut baseline_samples = Vec::with_capacity(BENCHMARK_SAMPLE_PAIRS);
     let mut bounded_samples = Vec::with_capacity(BENCHMARK_SAMPLE_PAIRS);
     for sample_index in 0..BENCHMARK_SAMPLE_PAIRS {
         if sample_index % 2 == 0 {
-            legacy_samples.push(measure_response_encoder(BENCHMARK_ITERATIONS, || {
-                legacy_encode_import_response(&metadata, black_box(source.as_bytes())).unwrap()
+            baseline_samples.push(measure_response_encoder(BENCHMARK_ITERATIONS, || {
+                baseline_encode_import_response(&metadata, black_box(source.as_bytes())).unwrap()
             }));
             bounded_samples.push(measure_response_encoder(BENCHMARK_ITERATIONS, || {
                 encode_import_response(&metadata, black_box(source.as_bytes()), 1024 * 1024)
@@ -195,38 +196,38 @@ fn benchmark_bounded_native_import_response() {
                 encode_import_response(&metadata, black_box(source.as_bytes()), 1024 * 1024)
                     .unwrap()
             }));
-            legacy_samples.push(measure_response_encoder(BENCHMARK_ITERATIONS, || {
-                legacy_encode_import_response(&metadata, black_box(source.as_bytes())).unwrap()
+            baseline_samples.push(measure_response_encoder(BENCHMARK_ITERATIONS, || {
+                baseline_encode_import_response(&metadata, black_box(source.as_bytes())).unwrap()
             }));
         }
     }
 
-    let legacy_raw = legacy_samples.clone();
+    let baseline_raw = baseline_samples.clone();
     let bounded_raw = bounded_samples.clone();
-    let legacy_p95_ns = nearest_rank_p95(&mut legacy_samples);
+    let baseline_p95_ns = nearest_rank_p95(&mut baseline_samples);
     let bounded_p95_ns = nearest_rank_p95(&mut bounded_samples);
-    let ratio_bps = bounded_p95_ns.saturating_mul(10_000) / legacy_p95_ns.max(1);
-    let legacy_intermediate_metadata_bytes =
-        (legacy_once.len() - IMPORT_RESPONSE_MAGIC.len() - IMPORT_ENVELOPE_LENGTH_BYTES)
+    let ratio_bps = bounded_p95_ns.saturating_mul(10_000) / baseline_p95_ns.max(1);
+    let baseline_intermediate_metadata_bytes =
+        (baseline_once.len() - IMPORT_RESPONSE_MAGIC.len() - IMPORT_ENVELOPE_LENGTH_BYTES)
             * BENCHMARK_ITERATIONS;
-    let legacy_source_text_clone_bytes = source.len() * BENCHMARK_ITERATIONS;
+    let baseline_source_text_clone_bytes = source.len() * BENCHMARK_ITERATIONS;
 
     println!(
-        "PERF_RESULT plugins20_bounded_native_import_response source_bytes={} iterations_per_sample={} sample_pairs={} order=alternating_legacy_first_even percentile_method=nearest_rank legacy_full_response_buffers=2 bounded_full_response_buffers=1 legacy_source_text_clone_bytes={} bounded_source_text_clone_bytes=0 legacy_intermediate_metadata_bytes={} bounded_intermediate_metadata_bytes=0 legacy_p95_ns={} bounded_p95_ns={} ratio_bps={} threshold_bps={} legacy_samples_ns={} bounded_samples_ns={}",
+        "PERF_RESULT plugins20_bounded_native_import_response source_bytes={} iterations_per_sample={} sample_pairs={} order=alternating_baseline_first_even percentile_method=nearest_rank baseline_full_response_buffers=2 bounded_full_response_buffers=1 baseline_source_text_clone_bytes={} bounded_source_text_clone_bytes=0 baseline_intermediate_metadata_bytes={} bounded_intermediate_metadata_bytes=0 baseline_p95_ns={} bounded_p95_ns={} ratio_bps={} threshold_bps={} baseline_samples_ns={} bounded_samples_ns={}",
         source.len(),
         BENCHMARK_ITERATIONS,
         BENCHMARK_SAMPLE_PAIRS,
-        legacy_source_text_clone_bytes,
-        legacy_intermediate_metadata_bytes,
-        legacy_p95_ns,
+        baseline_source_text_clone_bytes,
+        baseline_intermediate_metadata_bytes,
+        baseline_p95_ns,
         bounded_p95_ns,
         ratio_bps,
         BENCHMARK_TIME_RATIO_THRESHOLD_BPS,
-        sample_csv(&legacy_raw),
+        sample_csv(&baseline_raw),
         sample_csv(&bounded_raw),
     );
 
-    assert_eq!(BENCHMARK_SAMPLE_PAIRS, legacy_raw.len());
+    assert_eq!(BENCHMARK_SAMPLE_PAIRS, baseline_raw.len());
     assert_eq!(BENCHMARK_SAMPLE_PAIRS, bounded_raw.len());
     assert!(
         ratio_bps <= BENCHMARK_TIME_RATIO_THRESHOLD_BPS,

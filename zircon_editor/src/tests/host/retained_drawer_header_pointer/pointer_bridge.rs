@@ -1,7 +1,7 @@
 use crate::ui::retained_host::drawer_header_pointer::{
     HostDrawerHeaderPointerBridge, HostDrawerHeaderPointerRoute,
 };
-use zircon_runtime_interface::ui::layout::UiPoint;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
 
 use super::support::sample_drawer_header_layout;
 
@@ -10,17 +10,19 @@ fn shared_drawer_header_pointer_bridge_routes_group_tabs_from_shared_hit_test() 
     let mut bridge = HostDrawerHeaderPointerBridge::new();
     assert!(bridge.sync(sample_drawer_header_layout()));
 
-    let route = bridge
-        .handle_click("left", 1, 112.0, 96.0, UiPoint::new(120.0, 12.0))
-        .unwrap();
+    let route = bridge.handle_click("left", 1).unwrap();
     assert_eq!(
         route.route,
         Some(HostDrawerHeaderPointerRoute::Tab {
-            surface_key: "left".to_string(),
+            surface_index: 0,
             item_index: 1,
-            slot: "left_bottom".to_string(),
-            instance_id: "editor.hierarchy#1".to_string(),
         })
+    );
+    assert_eq!(
+        bridge
+            .target_for_route(route.route.expect("drawer header route"))
+            .map(|(slot, instance_id)| (slot, instance_id.0.as_str())),
+        Some((ActivityDrawerSlot::LeftBottom, "editor.hierarchy#1"))
     );
 }
 
@@ -34,33 +36,10 @@ fn shared_drawer_header_pointer_bridge_skips_rebuild_for_unchanged_layout() {
 }
 
 #[test]
-fn shared_drawer_header_measured_frame_patch_preserves_surface_authority() {
+fn shared_drawer_header_native_receipt_rejects_unknown_surface_and_index() {
     let mut bridge = HostDrawerHeaderPointerBridge::new();
     assert!(bridge.sync(sample_drawer_header_layout()));
-    let authority_generation = bridge.debug_surface_authority_generation();
 
-    let route = bridge
-        .handle_click("left", 1, 112.0, 96.0, UiPoint::new(120.0, 12.0))
-        .expect("measured drawer header should remain routable");
-    assert_eq!(
-        route.route,
-        Some(HostDrawerHeaderPointerRoute::Tab {
-            surface_key: "left".to_string(),
-            item_index: 1,
-            slot: "left_bottom".to_string(),
-            instance_id: "editor.hierarchy#1".to_string(),
-        })
-    );
-    assert_eq!(
-        bridge.debug_surface_authority_generation(),
-        authority_generation
-    );
-
-    bridge
-        .handle_click("left", 1, 112.0, 96.0, UiPoint::new(120.0, 12.0))
-        .expect("unchanged measured frame should reuse the projected hit geometry");
-    assert_eq!(
-        bridge.debug_surface_authority_generation(),
-        authority_generation
-    );
+    assert!(bridge.handle_click("left", 99).is_err());
+    assert!(bridge.handle_click("missing", 0).is_err());
 }

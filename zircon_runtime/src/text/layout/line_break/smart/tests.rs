@@ -413,3 +413,77 @@ fn word_smart_leaves_leading_punctuation_without_previous_chunk() {
     assert_eq!(adjusted[0].text, ",");
     assert_eq!(adjusted[1].text, "go");
 }
+
+#[test]
+fn word_smart_uses_unicode_general_category_beyond_the_retired_tables() {
+    let text = "go\u{055d}next";
+    let chunks = vec![test_chunk(text, 0, text.len())];
+
+    let adjusted = apply_word_smart_rules(text, chunks);
+
+    assert_eq!(adjusted.len(), 2);
+    assert_eq!(adjusted[0].text, "go\u{055d}");
+    assert!(!adjusted[0].allow_glyph_fallback);
+    assert_eq!(adjusted[1].text, "next");
+}
+
+#[test]
+fn word_smart_does_not_treat_open_punctuation_or_symbols_as_trailing_policy() {
+    for text in ["go(next", "go🙂next", "go—next", "go next"] {
+        let chunks = vec![test_chunk(text, 0, text.len())];
+
+        let adjusted = apply_word_smart_rules(text, chunks);
+
+        assert_eq!(adjusted.len(), 1, "{text}");
+        assert_eq!(adjusted[0].text, text, "{text}");
+        assert!(adjusted[0].allow_glyph_fallback, "{text}");
+    }
+}
+
+#[test]
+fn word_smart_does_not_merge_discontinuous_source_ranges() {
+    let text = "go,next";
+    let word_end = "go".len();
+    let punctuation_end = "go,".len();
+    let chunks = vec![
+        test_chunk(text, 0, word_end),
+        LineBreakChunk {
+            text: &text[word_end..punctuation_end],
+            visual_range: TextRange {
+                start: word_end,
+                end: punctuation_end,
+            },
+            source_range: TextRange { start: 4, end: 5 },
+            allow_glyph_fallback: true,
+            mandatory_break: false,
+            break_suffix: None,
+        },
+    ];
+
+    let adjusted = apply_word_smart_rules(text, chunks);
+
+    assert_eq!(adjusted.len(), 2);
+    assert_eq!(adjusted[0].text, "go");
+    assert_eq!(adjusted[1].text, ",");
+}
+
+#[test]
+fn word_smart_refuses_to_split_non_isomorphic_source_mapping() {
+    let text = "go,next";
+    let chunk = LineBreakChunk {
+        text,
+        visual_range: TextRange {
+            start: 0,
+            end: text.len(),
+        },
+        source_range: TextRange {
+            start: 0,
+            end: text.len() - 1,
+        },
+        allow_glyph_fallback: true,
+        mandatory_break: false,
+        break_suffix: None,
+    };
+
+    assert!(split_word_smart_chunk(text, chunk, "go,".len()).is_none());
+}

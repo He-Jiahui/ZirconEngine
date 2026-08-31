@@ -9,14 +9,20 @@ use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize, Serializer};
 
 use super::super::binary::{MAX_BINARY_BODY_BYTES, MAX_BINARY_STRING_BYTES};
-use super::super::text::canonical_writer::write_canonical_text_with_limit_for_test;
+use super::super::text::canonical_writer::{
+    write_canonical_text_with_limit_for_test, MAX_CANONICAL_NESTING_DEPTH,
+    MAX_CANONICAL_OBJECT_ENTRIES,
+};
 use super::super::text::wire::MAX_TEXT_DOCUMENT_BYTES;
 use super::super::{
     load_versioned, write_canonical_text_to, write_versioned, write_versioned_text,
     write_versioned_text_to, CanonicalTextWriteError, Format, MigrationChain, SchemaId,
-    VersionedSchema, WriteError,
+    SerializationBudget, VersionedSchema, WriteError,
 };
 use super::FixtureDocument;
+
+const TEST_CANONICAL_ARCHIVE_BUDGET: SerializationBudget =
+    SerializationBudget::new(512 * 1024 * 1024);
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct FloatProbe {
@@ -297,6 +303,36 @@ struct KeyHeavyProbe<'counter> {
     total_keys: usize,
 }
 
+struct NestedArrayProbe {
+    remaining: usize,
+}
+
+impl VersionedSchema for NestedArrayProbe {
+    const SCHEMA: SchemaId = SchemaId::new("zircon.tests.nested-array-probe");
+    const VERSION: u32 = 0;
+
+    fn migrations() -> &'static MigrationChain<Self> {
+        static MIGRATIONS: MigrationChain<NestedArrayProbe> = MigrationChain::new(&[]);
+        &MIGRATIONS
+    }
+}
+
+impl Serialize for NestedArrayProbe {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if self.remaining == 0 {
+            return serializer.serialize_unit();
+        }
+        let mut sequence = serializer.serialize_seq(Some(1))?;
+        sequence.serialize_element(&Self {
+            remaining: self.remaining - 1,
+        })?;
+        sequence.end()
+    }
+}
+
 impl Serialize for KeyHeavyProbe<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -453,6 +489,69 @@ fn canonical_text_preaggregation_stops_key_generation_before_the_full_map_is_ret
         generated_keys.get() < TOTAL_KEYS,
         "the writer must reject before retaining every canonical map key"
     );
+}
+
+#[test]
+fn canonical_text_rejects_an_object_before_it_retains_unbounded_entries() {
+    let generated_keys = Cell::new(0);
+    let document = KeyHeavyProbe {
+        generated_keys: &generated_keys,
+        total_keys: MAX_CANONICAL_OBJECT_ENTRIES + 1,
+    };
+
+    let error = write_canonical_text_to(&document, &mut io::sink(), TEST_CANONICAL_ARCHIVE_BUDGET)
+        .expect_err("the canonical object entry budget must reject an unbounded map");
+
+    assert!(matches!(
+        error,
+        CanonicalTextWriteError::ResourceLimitExceeded {
+            resource: "canonical object entries",
+            max: MAX_CANONICAL_OBJECT_ENTRIES,
+            found,
+        } if found == MAX_CANONICAL_OBJECT_ENTRIES + 1
+    ));
+    assert_eq!(generated_keys.get(), MAX_CANONICAL_OBJECT_ENTRIES + 1);
+}
+
+#[test]
+fn canonical_text_rejects_nesting_beyond_the_runtime_stack_budget() {
+    let document = NestedArrayProbe {
+        remaining: MAX_CANONICAL_NESTING_DEPTH + 1,
+    };
+
+    let error = write_canonical_text_to(&document, &mut io::sink(), TEST_CANONICAL_ARCHIVE_BUDGET)
+        .expect_err("the canonical nesting budget must reject an unbounded serializer");
+
+    assert!(matches!(
+        error,
+        CanonicalTextWriteError::ResourceLimitExceeded {
+            resource: "canonical nesting depth",
+            max: MAX_CANONICAL_NESTING_DEPTH,
+            found,
+        } if found == MAX_CANONICAL_NESTING_DEPTH + 1
+    ));
+}
+
+#[test]
+fn versioned_text_preserves_the_typed_canonical_resource_failure() {
+    let document = NestedArrayProbe {
+        remaining: MAX_CANONICAL_NESTING_DEPTH + 1,
+    };
+
+    let error = write_versioned_text(&document)
+        .expect_err("the versioned writer must preserve structural resource failures");
+
+    assert!(matches!(
+        error,
+        WriteError::TextResourceLimitExceeded {
+            schema_id,
+            schema_version: 0,
+            resource: "canonical nesting depth",
+            max: MAX_CANONICAL_NESTING_DEPTH,
+            found,
+        } if schema_id == "zircon.tests.nested-array-probe"
+            && found == MAX_CANONICAL_NESTING_DEPTH + 1
+    ));
 }
 
 #[test]
@@ -642,16 +741,40 @@ fn text_writer_rejects_a_document_larger_than_the_reader_limit() {
 }
 
 #[test]
-fn raw_streaming_writer_is_not_limited_by_the_versioned_text_wire_budget() {
+fn raw_streaming_writer_uses_its_explicit_archive_budget() {
     let document = OversizedTextProbe {
         contents: "x".repeat(MAX_TEXT_DOCUMENT_BYTES),
     };
     let mut sink = io::sink();
 
-    let written = write_canonical_text_to(&document, &mut sink)
+    let written = write_canonical_text_to(&document, &mut sink, TEST_CANONICAL_ARCHIVE_BUDGET)
         .expect("raw archive streaming must not inherit the 64 MiB versioned text limit");
 
     assert!(written > MAX_TEXT_DOCUMENT_BYTES);
+}
+
+#[test]
+fn raw_streaming_writer_rejects_output_above_its_explicit_archive_budget() {
+    const MAX_OUTPUT_BYTES: usize = 32;
+    let document = RepeatedChunkProbe {
+        repetitions: 1,
+        chunk: "x".repeat(64),
+    };
+
+    let error = write_canonical_text_to(
+        &document,
+        &mut io::sink(),
+        SerializationBudget::new(MAX_OUTPUT_BYTES),
+    )
+    .expect_err("the raw canonical writer must enforce the caller-owned ceiling");
+
+    assert!(matches!(
+        error,
+        CanonicalTextWriteError::OutputTooLarge {
+            max: MAX_OUTPUT_BYTES,
+            found,
+        } if found > MAX_OUTPUT_BYTES
+    ));
 }
 
 #[test]
@@ -662,7 +785,7 @@ fn raw_streaming_writer_handles_a_one_mebibyte_direct_array_without_text_aggrega
     };
     let mut sink = io::sink();
 
-    let written = write_canonical_text_to(&document, &mut sink)
+    let written = write_canonical_text_to(&document, &mut sink, TEST_CANONICAL_ARCHIVE_BUDGET)
         .expect("direct arrays must stream without creating an owned text document");
 
     assert!(written > 1024 * 1024);
@@ -676,7 +799,7 @@ fn raw_streaming_writer_bounds_each_sink_request_to_the_staging_size() {
     };
     let mut sink = RequestTrackingSink::default();
 
-    write_canonical_text_to(&document, &mut sink)
+    write_canonical_text_to(&document, &mut sink, TEST_CANONICAL_ARCHIVE_BUDGET)
         .expect("direct arrays must write through fixed-size staging requests");
 
     assert!(
@@ -687,17 +810,23 @@ fn raw_streaming_writer_bounds_each_sink_request_to_the_staging_size() {
 
 #[test]
 #[ignore = "high-volume 512 MiB streaming contract"]
-fn raw_streaming_writer_handles_a_512_mebibyte_direct_array_with_fixed_staging() {
+fn raw_streaming_writer_rejects_output_above_its_explicit_512_mebibyte_budget() {
     let document = RepeatedChunkProbe {
         repetitions: 512,
         chunk: "x".repeat(1024 * 1024),
     };
     let mut sink = io::sink();
 
-    let written = write_canonical_text_to(&document, &mut sink)
-        .expect("512 MiB direct arrays must not inherit the versioned text wire limit");
+    let error = write_canonical_text_to(&document, &mut sink, TEST_CANONICAL_ARCHIVE_BUDGET)
+        .expect_err("the raw archive must reject output above its explicit budget");
 
-    assert!(written > 512 * 1024 * 1024);
+    assert!(matches!(
+        error,
+        CanonicalTextWriteError::OutputTooLarge {
+            max: 536_870_912,
+            found,
+        } if found > 536_870_912
+    ));
 }
 
 struct ChunkedSink {

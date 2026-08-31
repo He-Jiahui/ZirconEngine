@@ -87,12 +87,14 @@ pub(super) fn selected_style_rule_declaration_entries(
     selected_rule_index: Option<usize>,
 ) -> Vec<UiStyleRuleDeclarationEntry> {
     selected_rule_index
-        .and_then(|index| local_style_rule_entries(document).get(index).cloned())
-        .map(|entry| {
-            declaration_entries(
-                &document.stylesheets[entry.stylesheet_index].rules[entry.rule_index].set,
-            )
+        .and_then(|index| {
+            document
+                .stylesheets
+                .iter()
+                .flat_map(|stylesheet| stylesheet.rules.iter())
+                .nth(index)
         })
+        .map(|rule| declaration_entries(&rule.set))
         .unwrap_or_default()
 }
 
@@ -293,3 +295,7 @@ fn selector_for_node(node: &UiNodeDefinition) -> String {
 fn toml_value_to_json(value: &Value) -> JsonValue {
     serde_json::to_value(value).unwrap_or(JsonValue::Null)
 }
+
+#[cfg(test)]
+#[path = "style_inspection/selected_rule_tests.rs"]
+mod selected_rule_tests;

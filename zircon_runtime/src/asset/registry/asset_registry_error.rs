@@ -58,6 +58,14 @@ pub enum AssetRegistryError {
         first: AssetUuid,
         second: AssetUuid,
     },
+    #[error(
+        "asset source relocation from {source_uri} to {target} does not preserve the registered entry set: {reason}"
+    )]
+    SourceRelocationIdentityMismatch {
+        source_uri: AssetUri,
+        target: AssetUri,
+        reason: String,
+    },
 }
 
 impl PartialEq for AssetRegistryError {
@@ -193,6 +201,22 @@ impl PartialEq for AssetRegistryError {
                 },
             ) => {
                 left_path == right_path && left_first == right_first && left_second == right_second
+            }
+            (
+                Self::SourceRelocationIdentityMismatch {
+                    source_uri: left_source,
+                    target: left_target,
+                    reason: left_reason,
+                },
+                Self::SourceRelocationIdentityMismatch {
+                    source_uri: right_source,
+                    target: right_target,
+                    reason: right_reason,
+                },
+            ) => {
+                left_source == right_source
+                    && left_target == right_target
+                    && left_reason == right_reason
             }
             _ => false,
         }

@@ -294,20 +294,33 @@ where
         entity: EntityId,
         ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let (value, component_ticks, this_run) = world.component_mut_with_ticks::<T>(entity)?;
-        Some(Mut::new(value, component_ticks, this_run, ticks))
+        let (value, component_ticks, this_run, mutation_recorder) =
+            world.component_mut_with_ticks::<T>(entity)?;
+        Some(Mut::new_tracked(
+            value,
+            component_ticks,
+            this_run,
+            ticks,
+            mutation_recorder,
+        ))
     }
 
     fn fetch_mut_with_component_locations<'world>(
         world: &'world mut World,
-        _entity: EntityId,
+        entity: EntityId,
         component_locations: &[ComponentStorageLocation],
         ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
         let location = component_location::<T>(component_locations)?;
-        let (value, component_ticks, this_run) =
-            world.query_component_mut_with_ticks_at_location::<T>(*location)?;
-        Some(Mut::new(value, component_ticks, this_run, ticks))
+        let (value, component_ticks, this_run, mutation_recorder) =
+            world.query_component_mut_with_ticks_at_location::<T>(entity, *location)?;
+        Some(Mut::new_tracked(
+            value,
+            component_ticks,
+            this_run,
+            ticks,
+            mutation_recorder,
+        ))
     }
 }
 
@@ -323,12 +336,12 @@ where
 
     fn fetch_mut_with_component_locations<'world>(
         world: &'world mut World,
-        _entity: EntityId,
+        entity: EntityId,
         component_locations: &[ComponentStorageLocation],
         _ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
         let location = component_location::<T>(component_locations)?;
-        world.query_component_mut_at_location::<T>(*location)
+        world.query_component_mut_at_location::<T>(entity, *location)
     }
 }
 

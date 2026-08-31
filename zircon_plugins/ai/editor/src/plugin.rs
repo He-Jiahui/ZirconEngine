@@ -4,13 +4,12 @@ use zircon_editor::core::asset::{
     AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId, AssetTypePresentation,
     ThumbnailProviderDescriptor,
 };
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 use zircon_editor::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor,
 };
 use zircon_editor::core::editor_extension::{
     AssetImporterDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorMenuItemDescriptor,
 };
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_ai_runtime::behavior_tree::{standard_node_catalog, BehaviorNodeCategory};
@@ -109,7 +108,6 @@ fn register_ai_authoring_extensions(
                 AI_BEHAVIOR_TREE_VIEW_ID,
                 "Behavior Tree",
                 "AI",
-                "Plugins/AI/Behavior Tree",
             )],
         },
     )?;
@@ -128,29 +126,28 @@ fn ai_behavior_tree_authoring_batch(
 
     Ok(EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::operation(import.clone(), "Import Behavior Tree")
-                .with_menu_path("Plugins/AI/Import Behavior Tree")
+            EditorCommandDescriptor::operation(import.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(&import, "plugins", &["ai"]))
                 .with_payload_schema_id("ai.behavior_tree.import.v1")
                 .with_required_capabilities(capability),
-            EditorCommandDescriptor::operation(open.clone(), "Open Behavior Tree")
-                .with_menu_path("Plugins/AI/Open Behavior Tree")
+            EditorCommandDescriptor::operation(open.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(&open, "plugins", &["ai"]))
                 .with_payload_schema_id("ai.behavior_tree.open.v1")
                 .with_required_capabilities(capability),
-            EditorCommandDescriptor::operation(validate.clone(), "Validate Behavior Tree")
-                .with_menu_path("Plugins/AI/Validate Behavior Tree")
+            EditorCommandDescriptor::operation(validate.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &validate,
+                    "plugins",
+                    &["ai"],
+                ))
                 .with_payload_schema_id("ai.behavior_tree.validate.v1")
                 .with_required_capabilities(capability),
-            EditorCommandDescriptor::operation(compile.clone(), "Compile Behavior Tree")
-                .with_menu_path("Plugins/AI/Compile Behavior Tree")
+            EditorCommandDescriptor::operation(compile.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(&compile, "plugins", &["ai"]))
                 .with_payload_schema_id("ai.behavior_tree.compile.v1")
                 .with_required_capabilities(capability),
         ],
-        menu_items: vec![
-            menu_item("Plugins/AI/Import Behavior Tree", &import),
-            menu_item("Plugins/AI/Open Behavior Tree", &open),
-            menu_item("Plugins/AI/Validate Behavior Tree", &validate),
-            menu_item("Plugins/AI/Compile Behavior Tree", &compile),
-        ],
+        menu_items: Vec::new(),
         asset_importers: vec![AssetImporterDescriptor::new(
             "ai.behavior_tree.importer",
             "Behavior Tree",
@@ -218,9 +215,4 @@ fn category_name(category: BehaviorNodeCategory) -> &'static str {
 
 fn operation(path: &str) -> Result<EditorOperationPath, EditorExtensionRegistryError> {
     EditorOperationPath::parse(path).map_err(EditorExtensionRegistryError::OperationPath)
-}
-
-fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
-    EditorMenuItemDescriptor::new(path, operation.clone())
-        .with_required_capabilities([AI_AUTHORING_CAPABILITY])
 }

@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use thiserror::Error;
-use zircon_runtime::asset::project::AssetMetaDocument;
+use zircon_runtime::asset::project::{
+    AssetMetaDocument, ProjectCatalogInputGeneration, ProjectManager,
+};
 use zircon_runtime::asset::registry::{AssetRegistryEntry, AssetRegistryIndex};
 use zircon_runtime::asset::watch::AssetWatchEvent;
 use zircon_runtime::asset::{AssetKind, AssetUri, AssetUuid};
@@ -111,6 +113,7 @@ pub struct EditorAssetIndex {
     dirty_uuids: HashSet<AssetUuid>,
     importing_uuids: HashSet<AssetUuid>,
     pending_dirty_paths: HashSet<AssetUri>,
+    catalog_input_generation: Option<Arc<ProjectCatalogInputGeneration>>,
 }
 
 impl EditorAssetIndex {
@@ -123,7 +126,37 @@ impl EditorAssetIndex {
             dirty_uuids: HashSet::new(),
             importing_uuids: HashSet::new(),
             pending_dirty_paths: HashSet::new(),
+            catalog_input_generation: None,
         }
+    }
+
+    /// Builds the editor projection from the active Runtime project snapshot.
+    /// Runtime retains registry and metadata authority; this index owns only editor-local state.
+    pub fn from_runtime_project(project: &ProjectManager) -> Result<Self, EditorAssetIndexError> {
+        let catalog_input = project.catalog_input_generation();
+        let mut index = Self::from_runtime_snapshot(
+            project.asset_registry_shared(),
+            catalog_input
+                .records()
+                .map(|record| Arc::new(record.meta().clone())),
+        )?;
+        index.catalog_input_generation = Some(catalog_input);
+        Ok(index)
+    }
+
+    pub fn catalog_input_generation(&self) -> Option<&Arc<ProjectCatalogInputGeneration>> {
+        self.catalog_input_generation.as_ref()
+    }
+
+    fn from_runtime_snapshot(
+        runtime_registry: Arc<AssetRegistryIndex>,
+        metadata: impl IntoIterator<Item = Arc<AssetMetaDocument>>,
+    ) -> Result<Self, EditorAssetIndexError> {
+        let mut index = Self::new(runtime_registry);
+        for document in metadata {
+            index.ingest_meta_document(document)?;
+        }
+        Ok(index)
     }
 
     pub fn runtime_registry(&self) -> &Arc<AssetRegistryIndex> {
@@ -246,6 +279,38 @@ impl EditorAssetIndex {
             members.retain(|uuid| self.metadata_by_uuid.contains_key(uuid));
             !members.is_empty()
         });
+
+        self.retain_transient_state_for_current_registry();
+    }
+
+    /// Replaces Runtime-authoritative catalog data while retaining valid editor-local work.
+    ///
+    /// A full Runtime catalog projection is deliberately rebuilt rather than incrementally
+    /// mutated. Import jobs and watcher events can overlap that rebuild, so their transient
+    /// state must move to the replacement only when its UUIDs remain authoritative.
+    pub fn replace_authoritative_projection(&mut self, mut projection: Self) {
+        projection.runtime_registry_revision = self.runtime_registry_revision.wrapping_add(1);
+        projection.dirty_uuids = std::mem::take(&mut self.dirty_uuids);
+        projection.importing_uuids = std::mem::take(&mut self.importing_uuids);
+        projection.pending_dirty_paths = std::mem::take(&mut self.pending_dirty_paths);
+        projection.retain_transient_state_for_current_registry();
+        *self = projection;
+    }
+
+    /// Copies valid editor-local state into a speculative Runtime catalog projection.
+    ///
+    /// Call this before building catalog rows from the candidate. The final commit should still
+    /// use `replace_authoritative_projection` so the live transient collections move atomically.
+    pub fn inherit_transient_state_from(&mut self, current: &Self) {
+        self.runtime_registry_revision = current.runtime_registry_revision.wrapping_add(1);
+        self.dirty_uuids.clone_from(&current.dirty_uuids);
+        self.importing_uuids.clone_from(&current.importing_uuids);
+        self.pending_dirty_paths
+            .clone_from(&current.pending_dirty_paths);
+        self.retain_transient_state_for_current_registry();
+    }
+
+    fn retain_transient_state_for_current_registry(&mut self) {
         self.dirty_uuids
             .retain(|uuid| self.runtime_registry.entry_by_uuid(*uuid).is_some());
         self.importing_uuids
@@ -312,6 +377,10 @@ impl EditorAssetIndex {
 
     pub fn pending_dirty_path_count(&self) -> usize {
         self.pending_dirty_paths.len()
+    }
+
+    pub(crate) fn dirty_count(&self) -> usize {
+        self.dirty_uuids.len()
     }
 
     fn project_row<'a>(&'a self, runtime_entry: &'a AssetRegistryEntry) -> EditorAssetRow<'a> {

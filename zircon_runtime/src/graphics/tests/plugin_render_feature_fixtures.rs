@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
-    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
-    GeometrySourceId, GeometrySourceVertexAttribute, PostProcessGraphResourceNames,
-    RenderHybridGiResolvedSettings, RenderShaderDefinitionValue, SolariRuntimeStatus,
-    GEOMETRY_SOURCE_PLUGIN_ID_START,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
+    GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
+    PostProcessGraphResourceNames, RenderHybridGiResolvedSettings, RenderShaderDefinitionValue,
+    SolariRuntimeStatus,
 };
 use crate::graphics::runtime::WgpuRenderFramework;
 use crate::graphics::{
@@ -14,7 +14,7 @@ use crate::graphics::{
     HybridGiRuntimeState, HybridGiRuntimeStats, HybridGiRuntimeUpdate,
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
     RenderPassExecutionContext, RenderPassExecutorRegistration, RenderPassStage,
-    SolariRuntimeProvider, SolariRuntimeProviderRegistration,
+    RenderResourceSchema, SolariRuntimeProvider, SolariRuntimeProviderRegistration,
 };
 use crate::render_graph::{QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload};
 
@@ -24,6 +24,8 @@ use virtual_geometry_provider::test_virtual_geometry_runtime_provider;
 
 const HYBRID_GI_SCENE_PACKET_MINIMUM_SIZE_BYTES: u64 = 710 * 4;
 const HYBRID_GI_TRACE_PACKET_MINIMUM_SIZE_BYTES: u64 = 448 * 4;
+const TEST_VIRTUAL_GEOMETRY_PAGE_REQUEST_BUFFER_BYTES: u64 = 16;
+const TEST_VIRTUAL_GEOMETRY_VISIBLE_CLUSTER_BUFFER_BYTES: u64 = 16;
 
 pub(super) fn pluginized_wgpu_render_framework() -> WgpuRenderFramework {
     pluginized_wgpu_render_framework_with_asset_manager(Arc::new(ProjectAssetManager::default()))
@@ -93,6 +95,15 @@ pub(super) fn pluginized_wgpu_render_framework_with_solari_provider(
     .unwrap()
 }
 
+fn test_virtual_geometry_buffer_schema(size_bytes: u64) -> RenderResourceSchema {
+    RenderResourceSchema::buffer(crate::graphics::RenderBufferSchema::new(
+        size_bytes,
+        crate::rhi::BufferUsage::STORAGE
+            | crate::rhi::BufferUsage::COPY_SRC
+            | crate::rhi::BufferUsage::COPY_DST,
+    ))
+}
+
 fn virtual_geometry_geometry_source_descriptors() -> Vec<GeometrySourceDescriptor> {
     vec![GeometrySourceDescriptor {
         id: GeometrySourceId::new(GEOMETRY_SOURCE_PLUGIN_ID_START),
@@ -137,7 +148,12 @@ pub(super) fn virtual_geometry_render_feature_descriptor() -> RenderFeatureDescr
                 QueueLane::Graphics,
             )
             .with_executor_id("virtual-geometry.prepare")
-            .write_buffer("virtual-geometry-page-requests"),
+            .write_buffer_with_schema(
+                "virtual-geometry-page-requests",
+                test_virtual_geometry_buffer_schema(
+                    TEST_VIRTUAL_GEOMETRY_PAGE_REQUEST_BUFFER_BYTES,
+                ),
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::DepthPrepass,
                 "virtual-geometry-node-cluster-cull",
@@ -150,7 +166,12 @@ pub(super) fn virtual_geometry_render_feature_descriptor() -> RenderFeatureDescr
                 [1, 1, 1],
             ))
             .read_buffer("virtual-geometry-page-requests")
-            .write_buffer("virtual-geometry-visible-clusters"),
+            .write_buffer_with_schema(
+                "virtual-geometry-visible-clusters",
+                test_virtual_geometry_buffer_schema(
+                    TEST_VIRTUAL_GEOMETRY_VISIBLE_CLUSTER_BUFFER_BYTES,
+                ),
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::DepthPrepass,
                 "virtual-geometry-page-feedback",
@@ -229,15 +250,7 @@ pub(super) fn hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
             )
             .with_executor_id("hybrid-gi.resolve")
             .read_buffer(PostProcessGraphResourceNames::HYBRID_GI_TRACE)
-            .write_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "hybrid-gi-history",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("hybrid-gi.history")
-            .read_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
-            .write_external_texture("history-global-illumination"),
+            .write_persistent_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING),
         ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
@@ -245,7 +258,6 @@ pub(super) fn hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
 
 pub(super) fn default_rendering_feature_descriptors() -> Vec<RenderFeatureDescriptor> {
     vec![
-        rendering_ssao_descriptor(),
         rendering_reflection_probes_descriptor(),
         rendering_baked_lighting_descriptor(),
         rendering_post_process_descriptor(),
@@ -262,7 +274,6 @@ fn advanced_render_pass_executor_registrations() -> Vec<RenderPassExecutorRegist
         "hybrid-gi.scene-prepare",
         "hybrid-gi.trace-schedule",
         "hybrid-gi.resolve",
-        "hybrid-gi.history",
     ]
     .into_iter()
     .map(|executor_id| {
@@ -353,14 +364,16 @@ pub(super) fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
             "visibility".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Transparent3d,
-            "particle-render",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("particle.transparent")
-        .read_texture("scene-depth")
-        .write_texture("scene-color")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
+                "particle-render",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("particle.transparent")
+            .read_texture("scene-depth")
+            .write_texture("scene-color"),
+        ],
     )
 }
 
@@ -397,36 +410,6 @@ pub(super) fn particle_render_feature_descriptor_with_velocity() -> RenderFeatur
     )
 }
 
-fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
-    RenderFeatureDescriptor::new(
-        "screen_space_ambient_occlusion",
-        vec![
-            "view".to_string(),
-            "geometry".to_string(),
-            "visibility".to_string(),
-        ],
-        vec![FrameHistoryBinding::read_write(
-            FrameHistorySlot::AmbientOcclusion,
-        )],
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::AmbientOcclusion,
-            "ssao-evaluate",
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id("compute.generic")
-        .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
-            "zircon-ssao-pipeline",
-            [8, 8, 1],
-            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
-            [8, 8],
-        ))
-        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-        .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
-        .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
-    )
-}
-
 fn rendering_reflection_probes_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "reflection_probes",
@@ -436,14 +419,16 @@ fn rendering_reflection_probes_descriptor() -> RenderFeatureDescriptor {
             "post_process".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            "reflection-probe-composite",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("lighting.reflection-probes")
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "reflection-probe-composite",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("lighting.reflection-probes")
+            .read_texture("scene-color")
+            .write_texture("scene-color"),
+        ],
     )
 }
 
@@ -452,14 +437,16 @@ fn rendering_baked_lighting_descriptor() -> RenderFeatureDescriptor {
         "baked_lighting",
         vec!["lighting".to_string(), "post_process".to_string()],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            "baked-lighting-composite",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("lighting.baked-composite")
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "baked-lighting-composite",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("lighting.baked-composite")
+            .read_texture("scene-color")
+            .write_texture("scene-color"),
+        ],
     )
 }
 
@@ -570,7 +557,7 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             )
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
-            .write_texture_with_ops(
+            .write_persistent_texture_with_ops(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
                 RenderGraphAttachmentOps::clear_store(),
             ),
@@ -584,7 +571,6 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
-            .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
             .read_texture(PostProcessGraphResourceNames::BLOOM)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)

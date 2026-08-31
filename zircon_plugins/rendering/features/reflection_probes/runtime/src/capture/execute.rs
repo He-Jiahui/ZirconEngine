@@ -1,73 +1,71 @@
-use std::path::Path;
-
 use thiserror::Error;
-use zircon_runtime::asset::artifact::{
-    IblSourceCubemapStagedBundleReport, IblSourceCubemapStagingStore,
-};
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render::{
-    build_source_cubemap_from_captured_faces_with_quality, source_cubemap_capture_hash,
-    RenderGraphTransientPoolReport, RenderOverlayExtract, RenderSceneSnapshot,
+    RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureSourcePayload,
+    RenderEnvironmentCaptureStatus, RenderFramework, RenderFrameworkError, RenderSceneSnapshot,
 };
-use zircon_runtime::core::math::UVec2;
-use zircon_runtime::graphics::{GraphicsError, SceneRenderer};
+use zircon_runtime::core::resource::ResourceId;
 
 use super::{
+    CapturedReflectionProbeConsumeError, CapturedReflectionProbePlacement,
     ReflectionProbeCaptureRequest, ReflectionProbeCaptureRequestError,
-    REFLECTION_PROBE_CAPTURE_FACE_VIEWS,
 };
 
-#[derive(Debug)]
-pub struct ReflectionProbeCaptureReport {
-    pub captured_face_count: usize,
-    pub source_hash: [u32; 4],
-    pub transient_pool: RenderGraphTransientPoolReport,
-    pub staged_bundle: IblSourceCubemapStagedBundleReport,
+pub fn request_reflection_probe_capture(
+    framework: &dyn RenderFramework,
+    scene: &RenderSceneSnapshot,
+    request: &ReflectionProbeCaptureRequest,
+) -> Result<RenderEnvironmentCaptureHandle, ReflectionProbeCaptureError> {
+    let render_request = request.render_request()?;
+    framework
+        .request_environment_capture(scene.clone(), render_request)
+        .map_err(ReflectionProbeCaptureError::Framework)
 }
 
-pub fn capture_and_persist_reflection_probe(
-    renderer: &mut SceneRenderer,
+pub fn request_reflection_probe_capture_with_placement(
+    framework: &dyn RenderFramework,
     scene: &RenderSceneSnapshot,
-    cache_root: impl AsRef<Path>,
     request: &ReflectionProbeCaptureRequest,
-) -> Result<ReflectionProbeCaptureReport, ReflectionProbeCaptureError> {
+    placement: &CapturedReflectionProbePlacement,
+) -> Result<RenderEnvironmentCaptureHandle, ReflectionProbeCaptureError> {
     request.validate()?;
-    let face_size = request.face_size;
-    let mut captured_face_texels = Vec::with_capacity(
-        face_size as usize * face_size as usize * REFLECTION_PROBE_CAPTURE_FACE_VIEWS.len(),
-    );
+    placement.validate()?;
+    let pmrem_uri = AssetUri::parse(&placement.pmrem_uri)
+        .map_err(|error| ReflectionProbeCaptureError::TargetResourceUri(error.to_string()))?;
+    let cubemap = ResourceId::from_locator(&pmrem_uri);
+    let render_request = request
+        .render_request()?
+        .with_reflection_probe_target(placement.probe_id, cubemap);
+    framework
+        .request_environment_capture(scene.clone(), render_request)
+        .map_err(ReflectionProbeCaptureError::Framework)
+}
 
-    for face_view in REFLECTION_PROBE_CAPTURE_FACE_VIEWS {
-        let mut face_scene = scene.clone();
-        face_scene.scene.camera =
-            face_view.camera(request.position, request.near_plane, request.far_plane);
-        face_scene.overlays = RenderOverlayExtract::default();
-        face_scene.virtual_geometry_debug = None;
-        let mut face_texels =
-            renderer.render_scene_color_hdr(face_scene, UVec2::splat(face_size))?;
-        face_view.transform_to_cmft_layout(face_size, &mut face_texels);
-        captured_face_texels.extend(face_texels);
-    }
+pub fn poll_reflection_probe_capture(
+    framework: &dyn RenderFramework,
+    handle: RenderEnvironmentCaptureHandle,
+) -> Result<RenderEnvironmentCaptureStatus, ReflectionProbeCaptureError> {
+    framework
+        .poll_environment_capture(handle)
+        .map_err(ReflectionProbeCaptureError::Framework)
+}
 
-    let source_hash = source_cubemap_capture_hash(face_size, &captured_face_texels);
-    let cubemap = build_source_cubemap_from_captured_faces_with_quality(
-        face_size,
-        captured_face_texels,
-        request.quality.source_prefilter_quality(),
-    );
-    let bake_request = request.ibl_bake_request(source_hash);
-    let output_uri = AssetUri::parse(&request.output_uri)
-        .map_err(|error| ReflectionProbeCaptureError::OutputUri(error.to_string()))?;
-    let staged_bundle = IblSourceCubemapStagingStore::new(cache_root.as_ref())
-        .write_source_cubemap_staged_bundle(&bake_request, output_uri, &cubemap, None)
-        .map_err(|error| ReflectionProbeCaptureError::Persist(error.to_string()))?;
+pub fn cancel_reflection_probe_capture(
+    framework: &dyn RenderFramework,
+    handle: RenderEnvironmentCaptureHandle,
+) -> Result<(), ReflectionProbeCaptureError> {
+    framework
+        .cancel_environment_capture(handle)
+        .map_err(ReflectionProbeCaptureError::Framework)
+}
 
-    Ok(ReflectionProbeCaptureReport {
-        captured_face_count: REFLECTION_PROBE_CAPTURE_FACE_VIEWS.len(),
-        source_hash,
-        transient_pool: renderer.last_transient_resource_pool_report(),
-        staged_bundle,
-    })
+pub fn take_reflection_probe_capture_source(
+    framework: &dyn RenderFramework,
+    handle: RenderEnvironmentCaptureHandle,
+) -> Result<Option<RenderEnvironmentCaptureSourcePayload>, ReflectionProbeCaptureError> {
+    framework
+        .take_environment_capture_source_payload(handle)
+        .map_err(ReflectionProbeCaptureError::Framework)
 }
 
 #[derive(Debug, Error)]
@@ -75,111 +73,25 @@ pub enum ReflectionProbeCaptureError {
     #[error(transparent)]
     InvalidRequest(#[from] ReflectionProbeCaptureRequestError),
     #[error(transparent)]
-    Render(#[from] GraphicsError),
-    #[error("invalid reflection-probe output URI: {0}")]
-    OutputUri(String),
-    #[error("persist reflection-probe .zcube/.zribl bundle: {0}")]
-    Persist(String),
+    Framework(#[from] RenderFrameworkError),
+    #[error(transparent)]
+    Placement(#[from] CapturedReflectionProbeConsumeError),
+    #[error("invalid captured reflection-probe target resource URI: {0}")]
+    TargetResourceUri(String),
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-    use std::sync::Arc;
-
-    use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
-    use zircon_runtime::core::framework::render::{
-        EnvironmentExtract, PreviewEnvironmentExtract, RenderSceneGeometryExtract,
-        SceneViewportRenderPacket,
-    };
-    use zircon_runtime::core::math::Vec4;
-
-    use super::*;
-    use crate::capture::{
-        register_captured_reflection_probe, CapturedReflectionProbePlacement,
-        ReflectionProbeCaptureQuality,
-    };
-
     #[test]
-    #[ignore = "manual WGPU six-face reflection-probe capture product acceptance"]
-    fn reflection_probe_capture_product_captures_six_hdr_faces_and_persists_zcube_and_zribl() {
-        let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .ancestors()
-            .nth(5)
-            .expect("reflection-probe runtime manifest should live below the workspace root");
-        let output_root = workspace_root
-            .join("docs")
-            .join("tests")
-            .join("runtime")
-            .join("shader")
-            .join("reflection_probe_capture_product_20260711");
-        fs::create_dir_all(&output_root).expect("create reflection-probe product output root");
-
-        let environment = EnvironmentExtract::procedural_default();
-        let scene = SceneViewportRenderPacket {
-            scene: RenderSceneGeometryExtract {
-                camera: Default::default(),
-                meshes: Vec::new(),
-                directional_lights: Vec::new(),
-                point_lights: Vec::new(),
-                spot_lights: Vec::new(),
-                ambient_lights: Vec::new(),
-                rect_lights: Vec::new(),
-            },
-            overlays: Default::default(),
-            preview: PreviewEnvironmentExtract::from_environment(&environment, true, Vec4::ZERO),
-            environment,
-            virtual_geometry_debug: None,
-        };
-        let request = ReflectionProbeCaptureRequest::new(
-            "probe-product-acceptance",
-            "res://reflection-probes/product-acceptance.zcube",
-            [0.0; 3],
-            1,
-        )
-        .with_face_size(64)
-        .with_quality(ReflectionProbeCaptureQuality::Fast);
-        let asset_manager = Arc::new(ProjectAssetManager::default());
-        let mut renderer =
-            SceneRenderer::new(Arc::clone(&asset_manager)).expect("create WGPU scene renderer");
-
-        let report =
-            capture_and_persist_reflection_probe(&mut renderer, &scene, &output_root, &request)
-                .expect("capture and persist six-face reflection probe");
-
-        assert_eq!(report.captured_face_count, 6);
-        assert_ne!(report.source_hash, [0; 4]);
-        assert_eq!(report.transient_pool.texture_created_count, 0);
-        assert_eq!(report.transient_pool.texture_reused_count, 3);
-        assert_eq!(report.transient_pool.texture_pool_entry_count, 3);
-        assert!(report.staged_bundle.source_zcube().path().is_file());
-        assert!(report.staged_bundle.source_zcube().payload_len() > 0);
-        assert!(report.staged_bundle.asset_derived().path().is_file());
-        assert!(report.staged_bundle.asset_derived().payload_len() > 0);
-        let placement = CapturedReflectionProbePlacement::box_probe(
-            71,
-            "lib://reflection-probes/product-acceptance.pmrem",
-            [8.0, 8.0, 8.0],
-            2.0,
-        );
-        let captured = register_captured_reflection_probe(
-            asset_manager.as_ref(),
-            &request,
-            &report,
-            &placement,
-        )
-        .expect("register captured PMREM and build ReflectionProbeData");
-        assert_eq!(captured.probe.probe_id(), 71);
-        assert_eq!(captured.probe.baked_cubemap(), Some(captured.texture_id));
-        assert_eq!(captured.probe.position().to_array(), request.position);
-        println!(
-            "reflection-probe capture product: faces={}, source_hash={:08x?}, transient_created={}, transient_reused={}, zcube={}, zribl={}",
-            report.captured_face_count,
-            report.source_hash,
-            report.transient_pool.texture_created_count,
-            report.transient_pool.texture_reused_count,
-            report.staged_bundle.source_zcube().path().display(),
-            report.staged_bundle.asset_derived().path().display(),
-        );
+    fn capture_execution_is_a_nonblocking_framework_boundary() {
+        let source = include_str!("execute.rs");
+        assert!(source.contains("request_environment_capture"));
+        assert!(source.contains("poll_environment_capture"));
+        assert!(source.contains("cancel_environment_capture"));
+        assert!(source.contains("take_environment_capture_source_payload"));
+        assert!(!source.contains(&["Scene", "Renderer"].concat()));
+        assert!(!source.contains(&["render_scene", "_color_hdr"].concat()));
+        assert!(!source.contains(&["IblSourceCubemap", "StagingStore"].concat()));
+        assert!(!source.contains("Vec::with_capacity"));
     }
 }

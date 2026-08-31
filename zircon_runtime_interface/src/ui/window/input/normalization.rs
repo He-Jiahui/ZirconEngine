@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ui::dispatch::{
     UiAccessibilityInputEvent, UiAnalogInputEvent, UiDragDropInputEvent, UiImeInputEvent,
     UiInputEvent, UiKeyboardInputEvent, UiMouseMotionInputEvent, UiNavigationInputEvent,
@@ -79,7 +81,7 @@ impl UiWindowPlatformInputEvent {
                 kind,
                 session_id,
                 point,
-                payload: payload.map(Box::new),
+                payload: payload.map(Arc::new),
             }),
             UiWindowPlatformInputEventKind::Popup {
                 kind,

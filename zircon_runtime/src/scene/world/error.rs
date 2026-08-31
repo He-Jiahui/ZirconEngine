@@ -2,8 +2,8 @@ use thiserror::Error;
 use zircon_runtime_interface::reflect::ReflectError;
 
 use crate::scene::{
-    ecs::{EntityRegistryError, ObserverId, StorageError},
     EntityId,
+    ecs::{EntityRegistryError, ObserverId, StorageError},
 };
 
 pub type SceneResult<T> = std::result::Result<T, SceneError>;
@@ -27,6 +27,8 @@ pub enum SceneError {
     MissingObserver { observer: ObserverId },
     #[error("entity {entity} cannot advance the world identity allocator")]
     EntityIdExhausted { entity: EntityId },
+    #[error("deferred structural command sequence is exhausted")]
+    DeferredCommandSequenceExhausted,
     #[error("node name cannot be empty")]
     EmptyNodeName,
     #[error("joint on entity {entity} cannot connect to itself")]

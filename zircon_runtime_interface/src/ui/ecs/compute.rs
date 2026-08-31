@@ -79,22 +79,30 @@ pub(super) fn projection_dirty_domain_impacts_from_domains<I>(
 where
     I: IntoIterator<Item = (UiNodeId, UiEcsDirtyDomains)>,
 {
-    let entries = domains_by_node
-        .into_iter()
-        .filter(|(_, domains)| domains.any())
-        .collect::<Vec<_>>();
-    let mut impacts = Vec::new();
+    let mut node_ids_by_domain: [Vec<UiNodeId>; UiEcsDirtyDomainKind::ORDER.len()] =
+        std::array::from_fn(|_| Vec::new());
+    for (node_id, domains) in domains_by_node {
+        if !domains.any() {
+            continue;
+        }
+        for (domain_index, domain) in UiEcsDirtyDomainKind::ordered().iter().copied().enumerate() {
+            if domains.contains(domain) {
+                node_ids_by_domain[domain_index].push(node_id);
+            }
+        }
+    }
 
-    for domain in UiEcsDirtyDomainKind::ordered().iter().copied() {
-        let node_ids = entries
-            .iter()
-            .filter_map(|(node_id, domains)| domains.contains(domain).then_some(*node_id))
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect::<Vec<_>>();
+    let mut impacts = Vec::new();
+    for (domain, mut node_ids) in UiEcsDirtyDomainKind::ordered()
+        .iter()
+        .copied()
+        .zip(node_ids_by_domain)
+    {
         if node_ids.is_empty() {
             continue;
         }
+        node_ids.sort_unstable();
+        node_ids.dedup();
         impacts.push(UiEcsDirtyDomainImpact {
             domain,
             active: true,
@@ -112,39 +120,36 @@ pub(super) fn projection_schedule_impacts_from_domains<I>(
 where
     I: IntoIterator<Item = (UiNodeId, UiEcsDirtyDomains)>,
 {
-    let entries = domains_by_node
-        .into_iter()
-        .filter(|(_, domains)| domains.any())
-        .collect::<Vec<_>>();
-    let aggregate_domains = entries.iter().fold(
-        UiEcsDirtyDomains::default(),
-        |domains, (_, node_domains)| domains.union(*node_domains),
-    );
-    let aggregate_mask = UiEcsProjectionScheduleMask::from_dirty_domains(aggregate_domains);
-    let mut impacts = Vec::new();
-
-    for stage in UiPipelineStage::ordered().iter().copied() {
-        if !aggregate_mask.requires_stage(stage) {
+    let mut buckets: [ProjectionScheduleImpactBucket; UiPipelineStage::ORDER.len()] =
+        std::array::from_fn(|_| ProjectionScheduleImpactBucket::default());
+    for (node_id, domains) in domains_by_node {
+        if !domains.any() {
             continue;
         }
-
-        let mut node_ids = BTreeSet::new();
-        let mut dirty_reasons = BTreeSet::new();
-        for (node_id, domains) in &entries {
-            if !UiEcsProjectionScheduleMask::from_dirty_domains(*domains).requires_stage(stage) {
+        let node_mask = UiEcsProjectionScheduleMask::from_dirty_domains(domains);
+        for (stage_index, stage) in UiPipelineStage::ordered().iter().copied().enumerate() {
+            if !node_mask.requires_stage(stage) {
                 continue;
             }
-            node_ids.insert(*node_id);
-            dirty_reasons.extend(projection_stage_dirty_reasons(stage, *domains));
+            let bucket = &mut buckets[stage_index];
+            bucket.node_ids.push(node_id);
+            insert_projection_stage_dirty_reasons(&mut bucket.dirty_reasons, stage, domains);
         }
+    }
 
-        let node_ids = node_ids.into_iter().collect::<Vec<_>>();
+    let mut impacts = Vec::new();
+    for (stage, mut bucket) in UiPipelineStage::ordered().iter().copied().zip(buckets) {
+        if bucket.node_ids.is_empty() {
+            continue;
+        }
+        bucket.node_ids.sort_unstable();
+        bucket.node_ids.dedup();
         impacts.push(UiEcsProjectionScheduleImpact {
             stage,
             required: true,
-            node_count: node_ids.len() as u64,
-            dirty_reasons: dirty_reasons.into_iter().collect(),
-            node_ids,
+            node_count: bucket.node_ids.len() as u64,
+            dirty_reasons: bucket.dirty_reasons.into_iter().collect(),
+            node_ids: bucket.node_ids,
         });
     }
 
@@ -160,54 +165,69 @@ pub(super) fn projection_stage_dirty_reasons(
         return Vec::new();
     }
 
-    let mut reasons = Vec::new();
+    let mut reasons = BTreeSet::new();
+    insert_projection_stage_dirty_reasons(&mut reasons, stage, domains);
+    reasons.into_iter().collect()
+}
+
+#[derive(Default)]
+struct ProjectionScheduleImpactBucket {
+    node_ids: Vec<UiNodeId>,
+    dirty_reasons: BTreeSet<UiPipelineDirtyReason>,
+}
+
+fn insert_projection_stage_dirty_reasons(
+    reasons: &mut BTreeSet<UiPipelineDirtyReason>,
+    stage: UiPipelineStage,
+    domains: UiEcsDirtyDomains,
+) {
     match stage {
         UiPipelineStage::InputCollect => {
             if domains.input {
-                reasons.push(UiPipelineDirtyReason::Input);
+                reasons.insert(UiPipelineDirtyReason::Input);
             }
         }
         UiPipelineStage::Focus => {
             if domains.input {
-                reasons.push(UiPipelineDirtyReason::Input);
+                reasons.insert(UiPipelineDirtyReason::Input);
             }
-            push_layout_driver_reasons(&mut reasons, domains);
-            reasons.push(UiPipelineDirtyReason::Focus);
+            insert_layout_driver_reasons(reasons, domains);
+            reasons.insert(UiPipelineDirtyReason::Focus);
         }
         UiPipelineStage::WidgetBehavior => {
             if domains.input {
-                reasons.push(UiPipelineDirtyReason::Input);
+                reasons.insert(UiPipelineDirtyReason::Input);
             }
-            reasons.push(UiPipelineDirtyReason::WidgetBehavior);
+            reasons.insert(UiPipelineDirtyReason::WidgetBehavior);
         }
         UiPipelineStage::TextMeasure => {
             if domains.text {
-                reasons.push(UiPipelineDirtyReason::Text);
+                reasons.insert(UiPipelineDirtyReason::Text);
             }
         }
         UiPipelineStage::Layout | UiPipelineStage::PostLayout => {
-            push_layout_driver_reasons(&mut reasons, domains);
+            insert_layout_driver_reasons(reasons, domains);
         }
         UiPipelineStage::Picking => {
-            push_layout_driver_reasons(&mut reasons, domains);
+            insert_layout_driver_reasons(reasons, domains);
             if domains.picking {
-                reasons.push(UiPipelineDirtyReason::Picking);
+                reasons.insert(UiPipelineDirtyReason::Picking);
             }
         }
         UiPipelineStage::A11yExtract => {
             if domains.accessibility {
-                reasons.push(UiPipelineDirtyReason::A11y);
+                reasons.insert(UiPipelineDirtyReason::A11y);
             }
             if domains.input {
-                reasons.push(UiPipelineDirtyReason::Input);
+                reasons.insert(UiPipelineDirtyReason::Input);
             }
-            push_layout_driver_reasons(&mut reasons, domains);
+            insert_layout_driver_reasons(reasons, domains);
         }
         UiPipelineStage::RenderExtract | UiPipelineStage::BatchPrepare => {
             if domains.render {
-                reasons.push(UiPipelineDirtyReason::Render);
+                reasons.insert(UiPipelineDirtyReason::Render);
             }
-            push_layout_driver_reasons(&mut reasons, domains);
+            insert_layout_driver_reasons(reasons, domains);
         }
         UiPipelineStage::FocusInteraction
         | UiPipelineStage::ContentMeasure
@@ -216,27 +236,20 @@ pub(super) fn projection_stage_dirty_reasons(
         | UiPipelineStage::PaintSubmit
         | UiPipelineStage::Diagnostics => {}
     }
-
-    if reasons.is_empty() {
-        reasons.extend(node_mask.dirty_reasons());
-    }
-    reasons.sort();
-    reasons.dedup();
-    reasons
 }
 
-fn push_layout_driver_reasons(
-    reasons: &mut Vec<UiPipelineDirtyReason>,
+fn insert_layout_driver_reasons(
+    reasons: &mut BTreeSet<UiPipelineDirtyReason>,
     domains: UiEcsDirtyDomains,
 ) {
     if domains.text {
-        reasons.push(UiPipelineDirtyReason::Text);
+        reasons.insert(UiPipelineDirtyReason::Text);
     }
     if domains.style {
-        reasons.push(UiPipelineDirtyReason::Style);
+        reasons.insert(UiPipelineDirtyReason::Style);
     }
     if domains.layout || domains.text || domains.style || domains.visible_range {
-        reasons.push(UiPipelineDirtyReason::Layout);
+        reasons.insert(UiPipelineDirtyReason::Layout);
     }
 }
 
@@ -315,4 +328,84 @@ pub(super) fn projection_update_domains(
         };
     }
     domains
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn projection_impact_buckets_preserve_canonical_order_and_deduplicate_nodes() {
+        let domains_by_node = [
+            (
+                UiNodeId::new(9),
+                UiEcsDirtyDomains {
+                    render: true,
+                    ..UiEcsDirtyDomains::default()
+                },
+            ),
+            (
+                UiNodeId::new(3),
+                UiEcsDirtyDomains {
+                    text: true,
+                    ..UiEcsDirtyDomains::default()
+                },
+            ),
+            (
+                UiNodeId::new(9),
+                UiEcsDirtyDomains {
+                    input: true,
+                    ..UiEcsDirtyDomains::default()
+                },
+            ),
+            (
+                UiNodeId::new(3),
+                UiEcsDirtyDomains {
+                    text: true,
+                    ..UiEcsDirtyDomains::default()
+                },
+            ),
+        ];
+
+        let schedule_impacts = projection_schedule_impacts_from_domains(domains_by_node);
+        assert_eq!(
+            schedule_impacts
+                .iter()
+                .map(|impact| impact.stage)
+                .collect::<Vec<_>>(),
+            UiPipelineStage::ordered().to_vec()
+        );
+        let render_extract = schedule_impacts
+            .iter()
+            .find(|impact| impact.stage == UiPipelineStage::RenderExtract)
+            .expect("render extract impact");
+        assert_eq!(
+            render_extract.node_ids,
+            vec![UiNodeId::new(3), UiNodeId::new(9)]
+        );
+        assert_eq!(
+            render_extract.dirty_reasons,
+            vec![
+                UiPipelineDirtyReason::Text,
+                UiPipelineDirtyReason::Layout,
+                UiPipelineDirtyReason::Render,
+            ]
+        );
+
+        let domain_impacts = projection_dirty_domain_impacts_from_domains(domains_by_node);
+        assert_eq!(
+            domain_impacts
+                .iter()
+                .map(|impact| impact.domain)
+                .collect::<Vec<_>>(),
+            vec![
+                UiEcsDirtyDomainKind::Text,
+                UiEcsDirtyDomainKind::Input,
+                UiEcsDirtyDomainKind::Render,
+            ]
+        );
+        assert_eq!(domain_impacts[0].node_ids, vec![UiNodeId::new(3)]);
+        assert_eq!(domain_impacts[1].node_ids, vec![UiNodeId::new(9)]);
+        assert_eq!(domain_impacts[2].node_ids, vec![UiNodeId::new(9)]);
+    }
 }

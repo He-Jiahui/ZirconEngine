@@ -8,6 +8,7 @@ use super::super::super::pane_value_conversion::value_as_string;
 use super::super::showcase_actions::showcase_action_id_for_suffix;
 use super::empty::empty_collection_field;
 use super::roles::{collection_field_checked, collection_field_role};
+use super::type_tokens::CollectionTypeTraits;
 use super::validation::collection_value_validation;
 
 pub(super) fn array_collection_fields(
@@ -41,11 +42,13 @@ pub(super) fn array_collection_fields(
         )];
     }
     let value_count = values.len();
+    let element_traits = CollectionTypeTraits::from_declared_type(&element_type);
     values
         .into_iter()
         .enumerate()
         .map(|(index, value)| {
-            let validation = collection_value_validation(&element_type, &value, "array element");
+            let validation =
+                collection_value_validation(&element_type, element_traits, &value, "array element");
             host_contract::TemplatePaneCollectionFieldData {
                 row_id: format!("array-{index}").into(),
                 index_text: format!("#{index}").into(),
@@ -53,7 +56,7 @@ pub(super) fn array_collection_fields(
                 key_component_role: "".into(),
                 key_text: "".into(),
                 value_type: element_type.clone().into(),
-                value_component_role: collection_field_role(&element_type, Some(&value)).into(),
+                value_component_role: collection_field_role(element_traits, Some(&value)).into(),
                 value_text: value.display_text().into(),
                 value_checked: collection_field_checked(&value),
                 validation_level: validation.level.into(),

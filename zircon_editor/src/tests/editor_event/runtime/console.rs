@@ -54,3 +54,22 @@ fn console_filter_builtin_bindings_change_visible_history_and_restore_all_messag
         crate::core::editor_event::ConsoleMessageFilter::All
     );
 }
+
+#[test]
+fn repeated_console_filter_is_an_invalidation_noop() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_console_filter_noop");
+
+    let first = dispatch_builtin_template_binding(&runtime.runtime, "ConsolePaneBody/FilterError")
+        .expect("Console error-filter binding should exist")
+        .expect("Console error-filter binding should dispatch");
+    let repeated =
+        dispatch_builtin_template_binding(&runtime.runtime, "ConsolePaneBody/FilterError")
+            .expect("Console error-filter binding should exist")
+            .expect("Console error-filter binding should dispatch");
+
+    assert!(first
+        .dirty_domains()
+        .contains(HostInvalidationMask::PRESENTATION_DATA));
+    assert!(repeated.dirty_domains().is_empty());
+}

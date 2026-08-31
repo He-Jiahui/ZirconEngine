@@ -59,7 +59,8 @@ fn runtime_15_resource_streamer_construction_uses_owner_name() {
         &[
             "impl ResourceStreamer",
             "pub(crate) fn new(",
-            "fallback_texture: Arc::new",
+            "let (fallback_texture, fallback_normal_texture) = match fallback_source",
+            "ResourceStreamerFallbackSource::System(system_textures)",
             "OutputTargetWritebackConverter::new(device)",
         ],
     );

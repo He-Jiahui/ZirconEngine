@@ -152,3 +152,60 @@ fn profile_control_runtime_diagnostics_snapshot_returns_store_and_scene_reload_r
     release_output(session, output);
     destroy_test_session(api, session);
 }
+
+#[test]
+fn profile_control_returns_the_frozen_module_composition_receipt() {
+    use zircon_runtime_interface::runtime_build_set::{
+        ZrRuntimeModuleCompositionTargetV1, ZrRuntimeSessionProfileV1,
+        ZR_RUNTIME_MODULE_COMPOSITION_RECEIPT_SCHEMA_V1,
+    };
+
+    let api = runtime_api();
+    let profile_control = api.profile_control.expect("profile_control");
+    let session = create_test_session(api);
+    let request = zircon_runtime_interface::ProfileControlRequest {
+        command: zircon_runtime_interface::ProfileControlCommand::RuntimeModuleCompositionReceipt,
+        config: None,
+    };
+    let bytes = serde_json::to_vec(&request).unwrap();
+    let mut output = ZrOwnedResultV2::empty();
+
+    let status = unsafe {
+        profile_control(
+            session,
+            ZrByteSlice {
+                data: bytes.as_ptr(),
+                len: bytes.len(),
+            },
+            &mut output,
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::Ok);
+    let response: zircon_runtime_interface::ProfileControlResponse =
+        serde_json::from_slice(output_bytes(&output)).unwrap();
+    let receipt = response
+        .module_composition_receipt
+        .expect("module composition receipt");
+
+    assert_eq!(response.status, "ok");
+    assert_eq!(
+        response.message,
+        "runtime module composition receipt captured"
+    );
+    assert_eq!(
+        receipt.schema_version,
+        ZR_RUNTIME_MODULE_COMPOSITION_RECEIPT_SCHEMA_V1
+    );
+    assert!(receipt.catalog_generation > 0);
+    assert_eq!(
+        receipt.target_mode,
+        ZrRuntimeModuleCompositionTargetV1::ClientRuntime
+    );
+    assert_eq!(receipt.module_profile, None);
+    assert_eq!(receipt.session_profile, ZrRuntimeSessionProfileV1::Headless);
+    assert_eq!(receipt.composition_hash.as_str().len(), 64);
+
+    release_output(session, output);
+    destroy_test_session(api, session);
+}

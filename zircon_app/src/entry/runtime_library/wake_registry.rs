@@ -12,6 +12,7 @@ static WAKE_REGISTRY: OnceLock<Mutex<HashMap<u64, EventLoopProxy>>> = OnceLock::
 
 pub(in crate::entry) struct RuntimeWakeRegistration {
     token: u64,
+    proxy: EventLoopProxy,
 }
 
 impl RuntimeWakeRegistration {
@@ -23,8 +24,8 @@ impl RuntimeWakeRegistration {
             }
             let mut registry = lock_registry();
             if let Entry::Vacant(entry) = registry.entry(token) {
-                entry.insert(proxy);
-                return Self { token };
+                entry.insert(proxy.clone());
+                return Self { token, proxy };
             }
         }
     }
@@ -34,7 +35,9 @@ impl RuntimeWakeRegistration {
     }
 
     pub(super) fn wake(&self) {
-        wake_token(self.token);
+        if self.token != 0 {
+            self.proxy.wake_up();
+        }
     }
 
     pub(super) fn unregister(&mut self) {
@@ -113,12 +116,27 @@ mod tests {
         let sink = registration.sink();
         assert!(sink.is_valid());
 
+        registration.wake();
         unsafe { sink.wake.unwrap()(sink.token) };
-        assert_eq!(wakes.load(Ordering::SeqCst), 1);
+        assert_eq!(wakes.load(Ordering::SeqCst), 2);
 
         registration.unregister();
+        registration.wake();
         unsafe { sink.wake.unwrap()(sink.token) };
-        assert_eq!(wakes.load(Ordering::SeqCst), 1);
+        assert_eq!(wakes.load(Ordering::SeqCst), 2);
+    }
+
+    #[test]
+    fn host_wake_uses_the_registration_owned_proxy() {
+        let source = include_str!("wake_registry.rs");
+        let wake_body = source
+            .split("pub(super) fn wake(&self) {")
+            .nth(1)
+            .and_then(|tail| tail.split("\n    }").next())
+            .expect("wake method source");
+
+        assert!(wake_body.contains("self.proxy.wake_up()"));
+        assert!(!wake_body.contains("wake_token"));
     }
 
     #[test]

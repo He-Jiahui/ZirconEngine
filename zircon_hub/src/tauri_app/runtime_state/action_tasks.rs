@@ -15,6 +15,10 @@ use crate::tauri_app::action_id::HubActionId;
 use crate::tauri_app::HubActionRequest;
 use crate::tauri_app::HubViewModel;
 
+mod queue_admission;
+
+use queue_admission::enqueue_background_action;
+
 pub(in crate::tauri_app) trait BackgroundTask: Send + 'static {
     type Output: Send + 'static;
 
@@ -299,7 +303,7 @@ impl HubRuntimeSession {
         }
 
         if self.background_worker_active {
-            self.background_action_queue.push_back(request.clone());
+            enqueue_background_action(&mut self.background_action_queue, request)?;
             return Ok(false);
         }
 
@@ -606,6 +610,17 @@ mod tests {
         );
 
         fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn opening_an_editor_is_always_dispatched_to_the_background_worker() {
+        let request = HubActionRequest {
+            action_id: "open-editor".to_string(),
+            target_id: None,
+            payload: None,
+        };
+
+        assert!(HubRuntimeSession::should_run_action_in_background(&request));
     }
 
     #[test]

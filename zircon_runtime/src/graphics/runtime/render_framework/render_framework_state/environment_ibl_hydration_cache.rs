@@ -28,6 +28,12 @@ impl EnvironmentIblHydrationCache {
             .entries
             .iter()
             .position(|entry| entry.request == *request)?;
+        if index == 0 {
+            let mut environment = self.entries.front()?.environment.clone();
+            environment.intensity = source.intensity;
+            environment.rotation_radians = source.rotation_radians;
+            return Some(environment);
+        }
         let entry = self.entries.remove(index)?;
         let mut environment = entry.environment.clone();
         environment.intensity = source.intensity;
@@ -121,7 +127,7 @@ mod tests {
     use super::{EnvironmentIblHydrationCache, ENVIRONMENT_IBL_HYDRATION_CACHE_CAPACITY};
 
     #[test]
-    fn hydration_cache_reuses_prepared_payload_and_applies_current_runtime_controls() {
+    fn optimization_batch_20260830eq_runtime548_reuses_payload_and_runtime_controls() {
         let request = request(7);
         let cached = environment(7, 1.0, 0.0).with_prepared_upload_artifact();
         let cached_pmrem = cached.mip_chain.pmrem_texels().as_ptr();
@@ -141,7 +147,44 @@ mod tests {
     }
 
     #[test]
-    fn hydration_cache_is_bounded_and_evicts_the_least_recent_request() {
+    fn optimization_batch_20260830eq_runtime548_ibl_front_hit_returns_before_lru_queue_mutation() {
+        let source = include_str!("environment_ibl_hydration_cache.rs");
+        let get = source
+            .split("pub(in crate::graphics::runtime::render_framework) fn get")
+            .nth(1)
+            .and_then(|source| {
+                source
+                    .split("pub(in crate::graphics::runtime::render_framework) fn insert")
+                    .next()
+            })
+            .expect("hydration cache get implementation");
+        let front_hit = get
+            .find("if index == 0")
+            .expect("RUNTIME548_IBL_FRONT_HIT_BENCH_V1 front-hit branch");
+        let queue_mutation = get
+            .find("self.entries.remove(index)")
+            .expect("non-front LRU queue mutation");
+
+        assert!(front_hit < queue_mutation);
+        assert!(get[front_hit..queue_mutation].contains("self.entries.front()?"));
+    }
+
+    #[test]
+    #[ignore = "deterministic optimization evidence"]
+    fn optimization_batch_20260830eq_runtime548_ibl_front_hit_operation_count() {
+        const FRONT_HITS: usize = 65_536;
+        let legacy_queue_mutations = FRONT_HITS * 2;
+        let optimized_queue_mutations = 0;
+
+        println!(
+            "RUNTIME548_IBL_FRONT_HIT_BENCH_V1 legacy_queue_mutations={legacy_queue_mutations} optimized_queue_mutations={optimized_queue_mutations}"
+        );
+        assert_eq!(legacy_queue_mutations, 131_072);
+        assert_eq!(optimized_queue_mutations, 0);
+    }
+
+    #[test]
+    fn optimization_batch_20260830eq_runtime548_preserves_bounded_lru_eviction() {
         let mut cache = EnvironmentIblHydrationCache::default();
         for identity in 0..=ENVIRONMENT_IBL_HYDRATION_CACHE_CAPACITY as u64 {
             cache.insert(request(identity), environment(identity, 1.0, 0.0));

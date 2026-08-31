@@ -5,7 +5,7 @@ use crate::ui::template::{
 };
 
 pub const UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION: u32 = 1;
-pub const UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION: u32 = 1;
+pub const UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION: u32 = 8;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiCompiledAssetHeader {

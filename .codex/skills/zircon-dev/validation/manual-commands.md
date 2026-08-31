@@ -8,7 +8,7 @@ Do not run bare `cargo` commands from the repository. Use the validator so acqui
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1
 ```
 
-The validator derives the compatibility key, acquires the single compatible primary pool, starts, finishes and releases the Cargo job automatically. If `CARGO_TARGET_DIR` is inherited, it must resolve below one of the approved `cargo-targets`, `targets`, or `ZirconBuilds` roots on `D:`, `E:`, or `F:` and agree with that pool.
+The validator derives the compatibility key, acquires the single compatible primary pool, starts, finishes and releases the Cargo job automatically. Its shared sccache uses client-side mode and a dedicated endpoint per D/E/F storage root. The daemon initializer inherits the guardian-protected `zircon-engine\cache\sccache-temporary` path, while Cargo, rustc, build scripts, and sccache clients inherit `zircon-engine\scratch\<job-id>\temporary`; release deletes that scratch only after the complete process tree is terminal. If `CARGO_TARGET_DIR` is inherited, it must resolve below one of the approved `cargo-targets`, `targets`, or `ZirconBuilds` roots on `D:`, `E:`, or `F:` and agree with that pool.
 
 The repository `PreToolUse` Hook also rejects direct artifact-producing Cargo commands (`build`, `check`, `test`, `run`, `bench`, `clippy`, `doc`, and `clean`) and direct `git commit`. Do not bypass it with `cargo.exe`, nested PowerShell, aliases, a manually selected target directory, or a direct commit. The guard records only a sanitized local diagnostic for later debugging; it never stores command text, commit messages, or credentials.
 
@@ -27,7 +27,7 @@ Do not use WSL for routine validation and do not run a direct, unleased WSL Carg
 
 ## Low-Disk Rule
 
-The validator checks the granted target drive and runs a scoped clean when free space is `<= 50 GB`. Preview scheduled stale-lane cleanup separately:
+The validator preserves a `35 GiB` reserve on the granted target drive and rejects admission when that reserve is unavailable. It never erases a reusable hot pool immediately before rebuilding it. Preview scheduled stale-lane cleanup separately:
 
 ```powershell
 .\tools\cleanup-stale-targets.ps1
@@ -85,7 +85,7 @@ When the shared checkout already has active Cargo/Rust compiler lanes, run one l
 
 The platform selector is stage-scoped: `-ExportContractPlatform` without `-RunExportPlatformContract` is rejected so it cannot be silently ignored.
 
-To inspect the selected command without requiring Cargo discovery or target-directory cleanup checks, add `-DryRun`. Dry-run still receives a managed, non-created audit lane:
+To inspect the selected command without Cargo discovery, storage admission checks, or coordinator writes, add `-DryRun`. Dry-run projects the compatibility-keyed target locally and does not register a Session, acquire a Cargo lane, or create the target directory:
 
 ```powershell
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -DryRun -SkipBuild -SkipTest -RunExportPlatformContract -ExportContractPlatform headless
@@ -107,7 +107,7 @@ When the shared checkout already has active Cargo/Rust compiler lanes, run one l
 
 The profile selector is stage-scoped: `-ProfileFeatureContractLabel` without `-RunProfileFeatureContract` is rejected so it cannot be silently ignored.
 
-To inspect the selected command without requiring Cargo discovery or target-directory cleanup checks, add `-DryRun`. Dry-run still receives a managed, non-created audit lane:
+To inspect the selected command without Cargo discovery, storage admission checks, or coordinator writes, add `-DryRun`. Dry-run projects the compatibility-keyed target locally and does not register a Session, acquire a Cargo lane, or create the target directory:
 
 ```powershell
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -DryRun -SkipBuild -SkipTest -RunProfileFeatureContract -ProfileFeatureContractLabel "zircon_runtime target-server"

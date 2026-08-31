@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use super::pump::JobEventQueue;
+use super::event_journal::EditorJobEventJournal;
 use super::{EditorJobProgressSource, JobCategory, JobEvent, JobEventKind, JobId};
 
 #[derive(Clone, Debug)]
@@ -8,7 +8,7 @@ pub(super) struct JobEventSink {
     id: JobId,
     label: Arc<str>,
     category: JobCategory,
-    queue: JobEventQueue,
+    queue: EditorJobEventJournal,
     progress: EditorJobProgressSource,
     lifecycle: Arc<Mutex<JobEventLifecycle>>,
 }
@@ -26,7 +26,7 @@ impl JobEventSink {
         id: JobId,
         label: Arc<str>,
         category: JobCategory,
-        queue: JobEventQueue,
+        queue: EditorJobEventJournal,
         progress: EditorJobProgressSource,
     ) -> Self {
         Self {
@@ -82,7 +82,7 @@ mod tests {
             JobId::new(1),
             Arc::clone(&spec.label),
             JobCategory::Index,
-            JobEventQueue::default(),
+            EditorJobEventJournal::default(),
             EditorJobProgressSource::default(),
         );
 

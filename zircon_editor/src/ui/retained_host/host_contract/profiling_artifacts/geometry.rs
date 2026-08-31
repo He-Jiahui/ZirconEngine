@@ -7,7 +7,9 @@ mod layout;
 mod pane_frames;
 mod pane_profile_controls;
 mod resize_splitters;
+mod rounded_shapes;
 mod tabs;
+mod text_runs;
 
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) use pane_frames::collect_surface_frame_controls;
@@ -24,7 +26,9 @@ use hit_samples::collect_hit_samples;
 use layout::profile_layout;
 use pane_profile_controls::collect_pane_profile_controls;
 use resize_splitters::collect_resize_splitters;
+use rounded_shapes::collect_rounded_shapes;
 use tabs::{collect_document_tabs, collect_host_page_tabs};
+use text_runs::collect_text_runs;
 
 impl UiProfileGeometry {
     pub(in crate::ui::retained_host::host_contract) fn from_presentation(
@@ -51,7 +55,7 @@ impl UiProfileGeometry {
         let hit_samples = collect_hit_samples(&clickable_frames, presentation);
 
         Self {
-            schema_version: 2,
+            schema_version: 4,
             presenter_backend: backend.label(),
             window_client_size: UiProfileSize {
                 width: size.width,
@@ -67,8 +71,24 @@ impl UiProfileGeometry {
             viewport_toolbar_controls: pane_controls.viewport_toolbar_controls,
             template_controls: pane_controls.template_controls,
             welcome_recent_frame: pane_controls.welcome_recent_frame,
+            asset_browser_content_frame: pane_controls.asset_browser_content_frame,
             clickable_frames,
             hit_samples,
+            rounded_shapes: Vec::new(),
+            text_runs: Vec::new(),
+        }
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn from_presentation_with_stream(
+        presentation: &HostWindowPresentationData,
+        size: &PhysicalSize,
+        backend: HostPresenterBackend,
+        stream: &super::super::chrome_command_stream::ChromeCommandStream,
+    ) -> Self {
+        Self {
+            rounded_shapes: collect_rounded_shapes(stream),
+            text_runs: collect_text_runs(stream),
+            ..Self::from_presentation(presentation, size, backend)
         }
     }
 }

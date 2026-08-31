@@ -2,6 +2,9 @@ use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
+mod release_all_tests;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ButtonInputState<T>
 where
@@ -69,11 +72,14 @@ where
     }
 
     pub fn release_all(&mut self) -> Vec<T> {
-        let released = self.pressed.iter().cloned().collect::<Vec<_>>();
-        for input in &released {
-            self.release(input);
+        let released_inputs = self.pressed.iter().cloned().collect::<Vec<_>>();
+        let mut released = std::mem::take(&mut self.pressed);
+        if self.just_released.is_empty() {
+            self.just_released = released;
+        } else {
+            self.just_released.append(&mut released);
         }
-        released
+        released_inputs
     }
 
     pub fn clear_transitions(&mut self) {

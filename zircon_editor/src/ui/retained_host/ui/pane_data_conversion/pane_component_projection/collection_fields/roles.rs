@@ -1,28 +1,30 @@
 use zircon_runtime_interface::ui::component::{UiValue, UiValueKind};
 
-use super::type_tokens::collection_type_is_numeric;
+use super::type_tokens::CollectionTypeTraits;
 
-pub(super) fn collection_field_role(declared_type: &str, value: Option<&UiValue>) -> &'static str {
-    let declared_type = declared_type.to_ascii_lowercase();
-    if declared_type.contains("bool") {
+pub(super) fn collection_field_role(
+    traits: CollectionTypeTraits,
+    value: Option<&UiValue>,
+) -> &'static str {
+    if traits.is_boolean() {
         return "checkbox";
     }
-    if declared_type.contains("asset") {
+    if traits.is_asset() {
         return "asset-field";
     }
-    if declared_type.contains("instance") || declared_type.contains("object") {
+    if traits.is_object_like() {
         return "object-field";
     }
-    if declared_type.contains("color") {
+    if traits.is_color() {
         return "color-field";
     }
-    if declared_type.contains("vec") || declared_type.contains("vector") {
+    if traits.is_vector() {
         return "vector-field";
     }
-    if collection_type_is_numeric(&declared_type) {
+    if traits.is_numeric() {
         return "number-field";
     }
-    if declared_type.contains("ref") {
+    if traits.is_reference() {
         return "reference-field";
     }
 

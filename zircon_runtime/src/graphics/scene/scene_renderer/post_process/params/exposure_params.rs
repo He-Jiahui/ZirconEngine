@@ -1,8 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 
 use crate::core::framework::render::{
-    RenderExposureMode, RenderExposureSettings, DEFAULT_CAMERA_EXPOSURE_EV100,
-    EXPOSURE_HISTOGRAM_BIN_COUNT,
+    DEFAULT_CAMERA_EXPOSURE_EV100, EXPOSURE_HISTOGRAM_BIN_COUNT, RenderExposureMode,
+    RenderExposureSettings,
 };
 use crate::core::math::UVec2;
 
@@ -61,5 +61,21 @@ fn exposure_mode_id(mode: RenderExposureMode) -> u32 {
     match mode {
         RenderExposureMode::Manual => 0,
         RenderExposureMode::Histogram => 1,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exposure_params_preserve_the_authoritative_frame_delta() {
+        let params = ExposureParams::new(
+            UVec2::new(640, 360),
+            RenderExposureSettings::default(),
+            0.125,
+        );
+
+        assert_eq!(params.speeds_and_compensation[3], 0.125);
     }
 }

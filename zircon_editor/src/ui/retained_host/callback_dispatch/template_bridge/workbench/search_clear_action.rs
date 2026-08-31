@@ -40,8 +40,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         }
 
         self.mutate_control_property(&target.control_id, QUERY, UiValue::String(String::new()))?;
-        self.template_surface
-            .refresh_after_state_change(self.runtime.as_ref())?;
         Ok(Some(target.control_id))
     }
 

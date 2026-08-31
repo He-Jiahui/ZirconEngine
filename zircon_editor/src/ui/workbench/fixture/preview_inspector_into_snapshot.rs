@@ -10,6 +10,7 @@ impl PreviewInspector {
             parent: self.parent,
             translation: self.translation,
             scale: self.scale,
+            render_layer_mask: zircon_runtime::scene::default_render_layer_mask(),
             plugin_components: Vec::new(),
         }
     }

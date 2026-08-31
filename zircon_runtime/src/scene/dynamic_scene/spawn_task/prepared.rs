@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::super::{
-    scene::{CompiledSceneSpawn, PreflightedSceneMutation},
     DynamicScene, DynamicSceneError,
+    scene::{CompiledSceneSpawn, PreflightedSceneMutation},
 };
 
 /// A validated dynamic scene payload that is ready to apply on the main world.
@@ -255,13 +255,13 @@ struct ByteCounter {
 #[cfg(test)]
 mod tests {
     use std::sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     };
 
     use crate::scene::{
-        components::Name, ecs::LifecycleEventKind, DefaultLevelManager, DynamicScene,
-        DynamicSceneError, NodeKind, Resource, World,
+        DefaultLevelManager, DynamicScene, DynamicSceneError, NodeKind, Resource, World,
+        components::Name, ecs::LifecycleEventKind,
     };
 
     use super::PreparedDynamicSceneSpawn;
@@ -274,7 +274,9 @@ mod tests {
     #[test]
     fn dynamic_scene_asset_reload_staged_spawn_rejects_changed_target() {
         let mut source = World::empty();
-        source.spawn_node(NodeKind::Empty);
+        source
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         let scene = DynamicScene::from_world(&source).expect("source scene should capture");
         let prepared =
             PreparedDynamicSceneSpawn::new(scene.clone()).expect("captured scene should prepare");
@@ -284,7 +286,9 @@ mod tests {
             .stage_into(&mut target)
             .expect("scene should stage on target snapshot");
 
-        target.spawn_node(NodeKind::Cube);
+        target
+            .spawn_node(NodeKind::Cube)
+            .expect("test scene spawn should succeed");
         let changed_target = target.clone();
         let actual_generation = target.world_generation();
         let error = staged
@@ -304,7 +308,9 @@ mod tests {
     #[test]
     fn dynamic_scene_asset_reload_staged_spawn_preserves_live_runtime_resources() {
         let mut source = World::empty();
-        source.spawn_node(NodeKind::Empty);
+        source
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         let prepared = PreparedDynamicSceneSpawn::new(
             DynamicScene::from_world(&source).expect("source scene should capture"),
         )
@@ -325,7 +331,9 @@ mod tests {
     #[test]
     fn dynamic_scene_asset_reload_level_transaction_is_target_bound_and_replays_live_callbacks() {
         let mut source = World::empty();
-        source.spawn_node(NodeKind::Empty);
+        source
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         let scene = DynamicScene::from_world(&source).expect("source scene should capture");
         let prepared =
             PreparedDynamicSceneSpawn::new(scene.clone()).expect("captured scene should prepare");

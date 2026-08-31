@@ -3,7 +3,10 @@ use zircon_runtime::graphics::{
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutorRegistration,
     RenderPassStage,
 };
-use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeWorkload};
+use zircon_runtime::render_graph::{
+    QueueLane, RenderGraphComputeWorkload, RenderGraphResourceAccessIntent,
+    RenderGraphShaderStages, RenderGraphTextureSubresourceRange,
+};
 
 mod capability;
 mod plugin;
@@ -60,15 +63,17 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 FROXEL_WORKGROUP_SIZE,
             ))
             .read_texture(PostProcessGraphResourceNames::VOLUMETRIC_MEDIA)
-            .read_external_texture(
+            .read_persistent_external_texture_with_access(
                 PostProcessGraphResourceNames::HISTORY_PREVIOUS_VOLUMETRIC_SCATTERING,
+                RenderGraphTextureSubresourceRange::full(),
+                RenderGraphResourceAccessIntent::sampled_texture(RenderGraphShaderStages::COMPUTE),
             )
             .read_required_external_buffer(PostProcessGraphResourceNames::SCENE_LIGHT_DATA)
             .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
             .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
             .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
             .read_required_external_texture(PostProcessGraphResourceNames::SHADOW_ATLAS)
-            .write_storage_texture(PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING),
+            .write_persistent_storage_texture(PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Lighting,
                 INTEGRATE_PASS,

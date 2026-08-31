@@ -3,6 +3,7 @@ struct SceneUniform {
     view_proj_unjittered: mat4x4<f32>,
     inverse_view_proj: mat4x4<f32>,
     ambient_color: vec4<f32>,
+    lightmapped_ambient_color: vec4<f32>,
     previous_view_proj_unjittered: mat4x4<f32>,
     motion_params: vec4<f32>,
     jitter_params: vec4<f32>,
@@ -51,8 +52,6 @@ struct IndirectDrawCount {
 @group(1) @binding(6) var<storage, read_write> compacted_indirect_args: array<IndexedIndirectArgs>;
 @group(1) @binding(7) var<storage, read_write> occlusion_stats: HzbOcclusionCullStats;
 
-const GPU_PRIMITIVE_FLAG_VISIBLE: u32 = 1u;
-const GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM: u32 = 4u;
 const MIN_CLIP_W: f32 = 0.0001;
 
 fn transform_scale_radius(world_from_local: mat4x4<f32>, radius: f32) -> f32 {
@@ -63,7 +62,7 @@ fn transform_scale_radius(world_from_local: mat4x4<f32>, radius: f32) -> f32 {
 }
 
 fn instance_world_from_local(instance: ZrGpuInstanceData, primitive: ZrGpuPrimitiveData) -> mat4x4<f32> {
-    if ((primitive.flags & GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM) != 0u) {
+    if ((primitive.flags & ZR_GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM) != 0u) {
         return instance.prev_world_from_local;
     }
     return instance.world_from_local;
@@ -72,13 +71,18 @@ fn instance_world_from_local(instance: ZrGpuInstanceData, primitive: ZrGpuPrimit
 fn instance_is_conservatively_visible(instance_index: u32) -> bool {
     let instance = zr_gpu_scene_instance(instance_index);
     let primitive = zr_gpu_scene_primitive(instance);
-    if ((primitive.flags & GPU_PRIMITIVE_FLAG_VISIBLE) == 0u) {
+    if ((primitive.flags & ZR_GPU_PRIMITIVE_FLAG_VISIBLE) == 0u) {
         return false;
+    }
+    if ((primitive.flags & ZR_GPU_PRIMITIVE_FLAG_FORCE_HZB_VISIBLE) != 0u ||
+        (instance.flags & (ZR_GPU_INSTANCE_FLAG_DEGENERATE_NORMAL_TRANSFORM |
+            ZR_GPU_INSTANCE_FLAG_NON_ORTHOGONAL_TRANSFORM)) != 0u) {
+        return true;
     }
 
     let world_from_local = instance_world_from_local(instance, primitive);
-    let world_center = world_from_local * vec4<f32>(primitive.bounds_center, 1.0);
-    let world_radius = transform_scale_radius(world_from_local, primitive.bounds_radius) *
+    let world_center = world_from_local * vec4<f32>(primitive.local_bounds_center, 1.0);
+    let world_radius = transform_scale_radius(world_from_local, primitive.local_bounds_radius) *
         max(cull_params.values.y, 1.0);
     let clip_center = scene.previous_view_proj_unjittered * world_center;
     if (clip_center.w <= MIN_CLIP_W) {

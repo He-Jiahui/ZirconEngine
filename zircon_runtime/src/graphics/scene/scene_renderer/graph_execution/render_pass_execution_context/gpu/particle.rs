@@ -2,11 +2,13 @@ use crate::core::math::Vec3;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
-use super::RenderPassGpuExecutionContext;
+use super::{
+    RenderPassBufferUploadRecorder, RenderPassBufferUploadSink, RenderPassGpuExecutionContext,
+};
 
 pub struct ParticleGpuTransparentDrawContext<'a, 'b> {
     pub device: &'a wgpu::Device,
-    pub queue: &'a wgpu::Queue,
+    pub buffer_uploads: &'b mut dyn RenderPassBufferUploadSink,
     pub encoder: &'b mut wgpu::CommandEncoder,
     pub color_view: &'a wgpu::TextureView,
     pub depth_view: &'a wgpu::TextureView,
@@ -84,9 +86,10 @@ impl RenderPassGpuExecutionContext<'_> {
             (camera.transform.right(), camera.transform.up())
         };
         let render_region = self.render_region_for_write_resource(color_resource_name);
+        let mut buffer_uploads = RenderPassBufferUploadRecorder::new(&mut self.buffer_uploads);
         record_gpu_draw(ParticleGpuTransparentDrawContext {
             device: self.device,
-            queue: self.queue,
+            buffer_uploads: &mut buffer_uploads,
             encoder: self.encoder,
             color_view,
             depth_view,

@@ -37,13 +37,13 @@ fn shared_asset_pointer_bridges_skip_rebuild_for_unchanged_layout_and_state() {
     assert!(folder_bridge.sync(folder_layout.clone(), state.clone()));
     assert!(!folder_bridge.sync(folder_layout, state.clone()));
 
-    let content_layout = AssetContentListPointerLayout {
-        pane_size: UiSize::new(420.0, 220.0),
-        surface_profile: AssetContentSurfaceProfile::Browser,
-        view_mode: AssetViewMode::List,
-        folder_ids: vec!["res://materials".to_string()],
-        item_ids: vec!["11111111-1111-1111-1111-111111111111".to_string()],
-    };
+    let content_layout = AssetContentListPointerLayout::for_test(
+        UiSize::new(420.0, 220.0),
+        AssetContentSurfaceProfile::Browser,
+        AssetViewMode::List,
+        vec!["res://materials".to_string()],
+        vec!["11111111-1111-1111-1111-111111111111".to_string()],
+    );
     let mut content_bridge = AssetContentListPointerBridge::new();
     assert!(content_bridge.sync(content_layout.clone(), state.clone()));
     assert!(!content_bridge.sync(content_layout, state.clone()));
@@ -102,13 +102,13 @@ fn asset_pointer_surfaces_keep_constant_authority_for_large_virtual_lists() {
     let item_ids = (0..ITEM_COUNT)
         .map(|index| format!("asset-{index:05}"))
         .collect::<Vec<_>>();
-    let content_layout = AssetContentListPointerLayout {
-        pane_size: UiSize::new(420.0, 220.0),
-        surface_profile: AssetContentSurfaceProfile::Browser,
-        view_mode: AssetViewMode::List,
-        folder_ids: Vec::new(),
-        item_ids: item_ids.clone(),
-    };
+    let content_layout = AssetContentListPointerLayout::for_test(
+        UiSize::new(420.0, 220.0),
+        AssetContentSurfaceProfile::Browser,
+        AssetViewMode::List,
+        Vec::new(),
+        item_ids.clone(),
+    );
     let content_metrics = AssetContentLayoutMetrics::for_surface(
         AssetContentSurfaceProfile::Browser,
         AssetViewMode::List,
@@ -293,13 +293,13 @@ fn shared_asset_content_pointer_bridge_scrolls_and_dispatches_item_selection() {
     let asset_ids = repeated_ids(&base_asset_ids, 12);
     let mut pointer_bridge = AssetContentListPointerBridge::new();
     pointer_bridge.sync(
-        AssetContentListPointerLayout {
-            pane_size: UiSize::new(420.0, 220.0),
-            surface_profile: AssetContentSurfaceProfile::Browser,
-            view_mode: AssetViewMode::List,
-            folder_ids: Vec::new(),
-            item_ids: asset_ids.clone(),
-        },
+        AssetContentListPointerLayout::for_test(
+            UiSize::new(420.0, 220.0),
+            AssetContentSurfaceProfile::Browser,
+            AssetViewMode::List,
+            Vec::new(),
+            asset_ids.clone(),
+        ),
         AssetListPointerState::default(),
     );
 
@@ -309,13 +309,13 @@ fn shared_asset_content_pointer_bridge_scrolls_and_dispatches_item_selection() {
     assert!(scrolled.state.scroll_offset > 0.0);
 
     pointer_bridge.sync(
-        AssetContentListPointerLayout {
-            pane_size: UiSize::new(420.0, 220.0),
-            surface_profile: AssetContentSurfaceProfile::Browser,
-            view_mode: AssetViewMode::List,
-            folder_ids: Vec::new(),
-            item_ids: asset_ids.clone(),
-        },
+        AssetContentListPointerLayout::for_test(
+            UiSize::new(420.0, 220.0),
+            AssetContentSurfaceProfile::Browser,
+            AssetViewMode::List,
+            Vec::new(),
+            asset_ids.clone(),
+        ),
         scrolled.state.clone(),
     );
     let row_index = 3usize;
@@ -359,13 +359,13 @@ fn shared_asset_content_pointer_bridge_hits_thumbnail_grid_columns_and_scrolls_r
     let item_ids = (0..12)
         .map(|index| format!("asset-thumbnail-{index:02}"))
         .collect::<Vec<_>>();
-    let layout = AssetContentListPointerLayout {
-        pane_size: UiSize::new(420.0, 220.0),
-        surface_profile: AssetContentSurfaceProfile::Browser,
-        view_mode: AssetViewMode::Thumbnail,
-        folder_ids: Vec::new(),
-        item_ids: item_ids.clone(),
-    };
+    let layout = AssetContentListPointerLayout::for_test(
+        UiSize::new(420.0, 220.0),
+        AssetContentSurfaceProfile::Browser,
+        AssetViewMode::Thumbnail,
+        Vec::new(),
+        item_ids.clone(),
+    );
     let mut pointer_bridge = AssetContentListPointerBridge::new();
     pointer_bridge.sync(layout.clone(), AssetListPointerState::default());
 
@@ -392,13 +392,13 @@ fn shared_asset_content_pointer_bridge_hits_thumbnail_grid_columns_and_scrolls_r
 fn asset_content_hover_uses_stable_direct_row_routing() {
     let mut pointer_bridge = AssetContentListPointerBridge::new();
     pointer_bridge.sync(
-        AssetContentListPointerLayout {
-            pane_size: UiSize::new(420.0, 220.0),
-            surface_profile: AssetContentSurfaceProfile::Browser,
-            view_mode: AssetViewMode::List,
-            folder_ids: Vec::new(),
-            item_ids: vec!["asset-a".to_string(), "asset-b".to_string()],
-        },
+        AssetContentListPointerLayout::for_test(
+            UiSize::new(420.0, 220.0),
+            AssetContentSurfaceProfile::Browser,
+            AssetViewMode::List,
+            Vec::new(),
+            vec!["asset-a".to_string(), "asset-b".to_string()],
+        ),
         AssetListPointerState::default(),
     );
     let metrics = AssetContentLayoutMetrics::for_surface(
@@ -548,9 +548,9 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
 fn asset_surface_templates_expose_physics_and_animation_kind_filters() {
     let projection = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("src/ui/layouts/views/asset_surface_presentation.rs"),
+            .join("src/ui/layouts/views/asset_browser.rs"),
     )
-    .expect("asset surface presentation");
+    .expect("asset browser projection");
 
     for kind in [
         "PhysicsMaterial",

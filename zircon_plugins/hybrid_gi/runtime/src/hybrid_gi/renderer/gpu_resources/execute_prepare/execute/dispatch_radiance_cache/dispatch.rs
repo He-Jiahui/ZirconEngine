@@ -2,6 +2,7 @@ use bytemuck::{Pod, Zeroable};
 use zircon_runtime::core::framework::render::{
     RenderHybridGiRadianceCacheGpuStage, RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT,
 };
+use zircon_runtime::graphics::RenderPassBufferUploadSink;
 
 use crate::hybrid_gi::{
     HYBRID_GI_RADIANCE_CACHE_INTERPOLATION_CORNER_COUNT,
@@ -91,12 +92,12 @@ pub(in crate::hybrid_gi::renderer::gpu_resources::execute_prepare::execute) fn d
     device: &wgpu::Device,
     resources: &HybridGiGpuResources,
     state: &RadianceCacheGpuState,
-    queue: &wgpu::Queue,
+    buffer_uploads: &mut dyn RenderPassBufferUploadSink,
     encoder: &mut wgpu::CommandEncoder,
     buffers: &HybridGiPrepareExecutionBuffers,
     inputs: &HybridGiPrepareExecutionInputs,
 ) {
-    queue.write_buffer(
+    buffer_uploads.write_buffer(
         &state.mark_buffer,
         (RADIANCE_CACHE_DISPATCH_COUNTER_WORD_OFFSET * std::mem::size_of::<u32>()) as u64,
         bytemuck::cast_slice(&[0_u32; RADIANCE_CACHE_DISPATCH_COUNTER_WORD_COUNT]),
@@ -116,7 +117,7 @@ pub(in crate::hybrid_gi::renderer::gpu_resources::execute_prepare::execute) fn d
     let resident_probe_count = inputs.resident_probe_inputs.len().min(u32::MAX as usize) as u32;
     if update_count > 0 {
         for update_stage in RADIANCE_CACHE_UPDATE_STAGES {
-            queue.write_buffer(
+            buffer_uploads.write_buffer(
                 &state.params_buffers[update_stage.parameter_index],
                 0,
                 bytemuck::bytes_of(&RadianceCacheDispatchParams {
@@ -144,7 +145,7 @@ pub(in crate::hybrid_gi::renderer::gpu_resources::execute_prepare::execute) fn d
     }
 
     if consume_count > 0 {
-        queue.write_buffer(
+        buffer_uploads.write_buffer(
             &state.params_buffers[RADIANCE_CACHE_PARAM_CONSUME],
             0,
             bytemuck::bytes_of(&RadianceCacheDispatchParams {

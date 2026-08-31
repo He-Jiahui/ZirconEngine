@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_editor/src/core/editing/interactive_transform
   - zircon_editor/src/scene/selection
   - zircon_editor/src/scene/modes
   - zircon_editor/src/scene/viewport/settings.rs
@@ -12,6 +13,8 @@ plan_sources:
 tests:
   - zircon_editor/src/scene/selection/tests.rs
   - zircon_editor/src/scene/modes/tests.rs
+  - zircon_editor/src/scene/modes/tests/lifecycle.rs
+  - zircon_editor/src/tests/editing/interactive_transform.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/tests/editing/viewport.rs
 ---
@@ -24,16 +27,18 @@ interaction modes. Neither state is serialized into runtime scene assets.
 ## Selection authority
 
 `SelectionModel` is the only scene selection authority. It owns an ordered
-`IndexSet<EntityId>`, a primary entity, and a generation for each of the Edit and
-Play domains. A separate revision changes whenever either domain changes or the
-active domain switches.
+`IndexSet<EntityId>`, a primary entity, and a generation for Edit plus each
+`PlayInstanceId`. `core::play::WorldDomain` is the shared domain identity used
+by Play routing, selection, hierarchy, Inspector, and command evaluation. A
+separate revision changes whenever any domain changes or the active domain
+switches.
 
 The model guarantees:
 
 - duplicate entity ids are removed while insertion order is retained;
 - a non-empty selection always has a primary entity inside the set;
 - idempotent writes do not advance generation or revision;
-- Edit and Play selections never overwrite one another;
+- Edit and different Play-instance selections never overwrite one another;
 - switching domains changes only the active projection, not either stored set.
 
 `SceneViewportState` stores this model directly. The previous `selected:
@@ -109,10 +114,13 @@ Registry-created modes retain their extension owner and execute factory/id,
 enter/exit/update/input, and overlay callbacks through the editor plugin panic
 boundary. A callback panic rolls back the current context or overlay-builder
 increment, invalidates cached overlays, faults that mode instance, and cannot
-interrupt shutdown of the remaining stack. Failed `enter` calls return a typed
-stack error and leave the previous stack unchanged; already-entered faulted
-modes still receive best-effort `exit`. Inner mode destructors run inside the
-same boundary. Overlay-provider factories are prepared before host mutation;
+interrupt shutdown of the remaining stack. Replacing a mutually exclusive base
+mode always exits the old mode before entering the new one. A failed new
+`enter` cleans up that instance, re-enters the old mode, restores the pre-switch
+context, and leaves activation identity and stack revision unchanged; if the
+rollback enter also fails, the typed error retains both failures. Already-entered
+faulted modes still receive best-effort `exit`. Inner mode destructors run inside
+the same boundary. Overlay-provider factories are prepared before host mutation;
 the first provider extraction failure records its owner-scoped diagnostic and
 permanently quarantines that provider instance.
 
@@ -132,6 +140,35 @@ custom modes therefore produce no transform handles. UI binding, editor events,
 and the retained toolbar use `ActivateSceneMode`; the retired viewport-tool
 enum and command protocol have no compatibility parser or controller fallback.
 
+## Multi-selection transform pivot
+
+Interactive transform sessions reduce an ordered selection to transform roots:
+duplicates are removed, a selected descendant is excluded when one of its
+ancestors is also selected, and the primary entity resolves to its selected
+root. This prevents a parent and child from receiving the same world delta
+twice.
+
+`PivotMode::Primary` uses the primary root's world transform.
+`PivotMode::Centroid`, the viewport default, retains the primary root's world
+orientation and scale while replacing its origin with the arithmetic mean of
+the selected roots' world origins. The controller uses this same pivot for
+overlay extraction, picking, and handle-drag initialization, so the displayed
+gizmo and the edit transaction cannot disagree about the manipulation origin.
+The viewport toolbar projects the active mode and routes its pivot control
+through `ViewportCommand::SetPivotMode`; changing the mode during a drag first
+cancels and restores the active transaction.
+
+At drag start the session freezes the pivot inverse, every selected root's
+world matrix, and every parent-world inverse. A preview computes one shared
+world delta from the target pivot and applies it linearly to those frozen root
+matrices. Global scale is the explicit affine delta
+`T(pivot) * S(world_ratio) * T(-pivot)` rather than a pivot-orientation
+conjugation; local scale retains the frozen pivot orientation. All local targets
+are decomposed and validated before scene mutation;
+a partial scene-write failure restores the previously accepted preview. Finish
+emits one batch transform command, while cancellation restores the complete
+pre-drag state.
+
 ## Current integration boundary
 
 This implementation has the selection-authority hard cut, the independent
@@ -149,5 +186,5 @@ and drag rectangles query the shared renderable interaction extract rather than
 scanning the scene. Mode/provider gizmos are merged into that same immutable
 extract, so render and pointer routing consume one overlay snapshot. Fresh
 managed validation remains required before the Editor05 failure is returned as
-fixed. Multi-selection transform pivots, Escape cancellation, and Editor03's
-accepted transaction gate remain open work.
+fixed. Escape cancellation and Editor03's accepted transaction gate remain
+open work.

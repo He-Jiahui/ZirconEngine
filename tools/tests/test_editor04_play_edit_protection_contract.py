@@ -13,11 +13,21 @@ class PlayEditProtectionContractTests(unittest.TestCase):
     def test_policy_is_folder_backed_and_covers_the_three_playing_tiers(self) -> None:
         facade = self.source("edit_policy/mod.rs")
         policy = self.source("edit_policy/policy.rs")
-        target = self.source("edit_policy/target.rs")
         decision = self.source("edit_policy/decision.rs")
+        target = (
+            ROOT
+            / "zircon_editor"
+            / "src"
+            / "core"
+            / "editing"
+            / "operation"
+            / "edit_target.rs"
+        ).read_text(encoding="utf-8")
 
-        for owner in ("decision", "policy", "target"):
+        for owner in ("decision", "policy"):
             self.assertIn(f"mod {owner};", facade)
+        self.assertNotIn("mod target;", facade)
+        self.assertIn("EditOperationTarget", target)
         self.assertIn("PlayDomain", target)
         self.assertIn("EditDocument", target)
         self.assertIn("EditWorkspace", target)
@@ -56,6 +66,8 @@ class PlayEditProtectionContractTests(unittest.TestCase):
         self.assertIn("max_oldest_age", queue)
         self.assertIn("PendingEditPage", queue)
         self.assertIn("apply_with_budget", queue)
+        self.assertIn("in_flight_count", queue)
+        self.assertIn("catch_unwind", queue)
         self.assertIn("requeue_for_retry", queue)
         self.assertIn("pub fn discard", queue)
         self.assertNotIn("pub fn snapshot", queue)

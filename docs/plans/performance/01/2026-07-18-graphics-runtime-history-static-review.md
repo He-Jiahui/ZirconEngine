@@ -33,3 +33,7 @@ validation key首次构造仍逐camera clone lighting/post/particles，遍历全
 ## 验收状态
 
 静态、Arc ownership RED→GREEN、rustfmt、source contract与diff门禁完成。Windows Cargo validator仍在启动前`ConvertFrom-Json`失败，新增回归及现有graphics history集成测试没有current-source结果；RenderDoc CLI不可用且无capture。meshes/poses 0/1k/100k、cameras 1/8/64、stable/1% input change的key build/clone/compare、bindings/visibility/static clone bytes、state lock与history parity未完成，继续留在`pending.md`，不进入`review.md`。
+
+## 2026-08-29 当前源码取代说明
+
+本记录的Arc共享结论仍有效，但“wide validation key仍深比较”和“内容component revision变化即全局失效”已被后续正确性复核取代。当前key只比较world identity、camera结构合同和effective feature集合；正常scene/camera/light/post/particle变化不再清空所有history。camera cut连续性判定与velocity共享。P0-2分域generation、资源共享clone/lock成本和0/1k/100k规模实测仍未完成，最新量化计划与静态结果见`2026-08-29-temporal-history-compatibility-structural-review.md`。

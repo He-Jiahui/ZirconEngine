@@ -76,6 +76,7 @@ pub(super) struct PendingJobQueue {
     // pre-materialization claims. Only `jobs` participates in promotion.
     admission: PendingAdmissionLedger,
     ready: BTreeMap<(u8, JobCategory), BTreeSet<JobId>>,
+    ready_counts_by_priority: [usize; JobPriority::ALL.len()],
     waiting_counts: BTreeMap<JobId, usize>,
     dependents_by_dependency: BTreeMap<JobId, BTreeSet<JobId>>,
     referenced_dependencies: BTreeMap<JobId, usize>,
@@ -97,10 +98,7 @@ impl PendingJobQueue {
             *self.referenced_dependencies.entry(*dependency).or_default() += 1;
         }
         if unscheduled.is_empty() {
-            self.ready
-                .entry(queue_key(&pending.spec))
-                .or_default()
-                .insert(id);
+            self.insert_ready(id, queue_key(&pending.spec));
         } else {
             self.waiting_counts.insert(id, unscheduled.len());
             for dependency in unscheduled {
@@ -135,7 +133,12 @@ impl PendingJobQueue {
             }
         }
         let key = queue_key(&pending.spec);
-        remove_from_set_map(&mut self.ready, &key, id);
+        if remove_from_set_map(&mut self.ready, &key, id) {
+            let count = &mut self.ready_counts_by_priority[key.0 as usize];
+            *count = count
+                .checked_sub(1)
+                .expect("ready priority count must match the ready index");
+        }
         self.waiting_counts.remove(&id);
         for dependency in &pending.spec.after {
             remove_from_set_map(&mut self.dependents_by_dependency, dependency, id);
@@ -152,6 +155,9 @@ impl PendingJobQueue {
         for offset in 0..FAIR_ADMISSION_SLOTS.len() {
             let slot = (self.fairness_slot + offset) % FAIR_ADMISSION_SLOTS.len();
             let priority = FAIR_ADMISSION_SLOTS[slot];
+            if self.ready_counts_by_priority[priority.admission_rank() as usize] == 0 {
+                continue;
+            }
             let Some(id) = self.first_ready_admissible_id(priority, limits, running_by_category)
             else {
                 continue;
@@ -210,11 +216,8 @@ impl PendingJobQueue {
         }
         for id in ready {
             self.waiting_counts.remove(&id);
-            if let Some(pending) = self.jobs.get(&id) {
-                self.ready
-                    .entry(queue_key(&pending.spec))
-                    .or_default()
-                    .insert(id);
+            if let Some(key) = self.jobs.get(&id).map(|pending| queue_key(&pending.spec)) {
+                self.insert_ready(id, key);
             }
         }
     }
@@ -368,6 +371,17 @@ impl PendingJobQueue {
         self.admission.record_cancelled(category);
     }
 
+    fn insert_ready(&mut self, id: JobId, key: (u8, JobCategory)) {
+        let inserted = self.ready.entry(key).or_default().insert(id);
+        debug_assert!(inserted, "ready job ids must remain unique");
+        if inserted {
+            let count = &mut self.ready_counts_by_priority[key.0 as usize];
+            *count = count
+                .checked_add(1)
+                .expect("ready priority count must represent every pending job");
+        }
+    }
+
     #[cfg(test)]
     pub(super) fn admission_probe_count(&self) -> usize {
         self.admission_probes
@@ -378,14 +392,20 @@ fn queue_key(spec: &EditorJobSpec) -> (u8, JobCategory) {
     (spec.priority.admission_rank(), spec.category)
 }
 
-fn remove_from_set_map<K: Ord + Clone>(map: &mut BTreeMap<K, BTreeSet<JobId>>, key: &K, id: JobId) {
+fn remove_from_set_map<K: Ord + Clone>(
+    map: &mut BTreeMap<K, BTreeSet<JobId>>,
+    key: &K,
+    id: JobId,
+) -> bool {
+    let mut removed = false;
     let should_remove = map.get_mut(key).is_some_and(|ids| {
-        ids.remove(&id);
+        removed = ids.remove(&id);
         ids.is_empty()
     });
     if should_remove {
         map.remove(key);
     }
+    removed
 }
 
 fn decrement_count<K: Ord + Clone>(map: &mut BTreeMap<K, usize>, key: &K) {

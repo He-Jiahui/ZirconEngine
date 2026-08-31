@@ -1,9 +1,11 @@
 use std::borrow::Cow;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 use unicode_segmentation::UnicodeSegmentation;
+
+use super::RichTextParseError;
 
 const BUILTIN_EMOJI_SHORTCODES: &[(&str, &str)] = &[
     ("check", "✅"),
@@ -21,6 +23,8 @@ const BUILTIN_EMOJI_SHORTCODES: &[(&str, &str)] = &[
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Failure returned while extending a parser-local emoji shortcode map.
 pub enum EmojiShortcodeRegistrationError {
+    /// This parser can no longer publish a unique emoji generation.
+    GenerationExhausted,
     /// The normalized name is empty or contains unsupported characters.
     InvalidName(String),
     /// A replacement must be exactly one Unicode grapheme.
@@ -32,6 +36,9 @@ pub enum EmojiShortcodeRegistrationError {
 impl Display for EmojiShortcodeRegistrationError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::GenerationExhausted => {
+                write!(formatter, "rich-text emoji generation is exhausted")
+            }
             Self::InvalidName(name) => write!(formatter, "invalid emoji shortcode `{name}`"),
             Self::InvalidReplacement(value) => {
                 write!(
@@ -49,7 +56,7 @@ impl Display for EmojiShortcodeRegistrationError {
 impl Error for EmojiShortcodeRegistrationError {}
 
 pub(super) struct EmojiShortcodeRegistry {
-    replacements: BTreeMap<String, String>,
+    replacements: HashMap<String, String>,
 }
 
 impl EmojiShortcodeRegistry {
@@ -84,9 +91,14 @@ impl EmojiShortcodeRegistry {
         Ok(())
     }
 
-    pub(super) fn expand<'a>(&self, text: &'a str) -> Cow<'a, str> {
+    pub(super) fn expand<'a>(
+        &self,
+        text: &'a str,
+        existing_output_bytes: usize,
+        max_output_bytes: usize,
+    ) -> Result<Cow<'a, str>, RichTextParseError> {
         if !text.contains(':') {
-            return Cow::Borrowed(text);
+            return Ok(Cow::Borrowed(text));
         }
 
         let mut expanded = None;
@@ -108,17 +120,47 @@ impl EmojiShortcodeRegistry {
                 continue;
             };
             let output = expanded.get_or_insert_with(|| String::with_capacity(text.len()));
-            output.push_str(&text[copied..open]);
-            output.push_str(replacement);
+            push_expansion_chunk(
+                output,
+                &text[copied..open],
+                existing_output_bytes,
+                max_output_bytes,
+            )?;
+            push_expansion_chunk(output, replacement, existing_output_bytes, max_output_bytes)?;
             copied = close + 1;
             scan = copied;
         }
         let Some(mut expanded) = expanded else {
-            return Cow::Borrowed(text);
+            return Ok(Cow::Borrowed(text));
         };
-        expanded.push_str(&text[copied..]);
-        Cow::Owned(expanded)
+        push_expansion_chunk(
+            &mut expanded,
+            &text[copied..],
+            existing_output_bytes,
+            max_output_bytes,
+        )?;
+        Ok(Cow::Owned(expanded))
     }
+}
+
+fn push_expansion_chunk(
+    output: &mut String,
+    chunk: &str,
+    existing_output_bytes: usize,
+    max_output_bytes: usize,
+) -> Result<(), RichTextParseError> {
+    let attempted_bytes = existing_output_bytes
+        .checked_add(output.len())
+        .and_then(|bytes| bytes.checked_add(chunk.len()))
+        .unwrap_or(usize::MAX);
+    if attempted_bytes > max_output_bytes {
+        return Err(RichTextParseError::OutputByteBudgetExceeded {
+            attempted_bytes,
+            max_bytes: max_output_bytes,
+        });
+    }
+    output.push_str(chunk);
+    Ok(())
 }
 
 fn normalized_name(name: &str) -> Option<String> {
@@ -129,3 +171,7 @@ fn normalized_name(name: &str) -> Option<String> {
             .all(|character| character.is_ascii_alphanumeric() || character == '_'))
     .then_some(name)
 }
+
+#[cfg(test)]
+#[path = "emoji_shortcode/hash_index_tests.rs"]
+mod hash_index_tests;

@@ -8,10 +8,11 @@ pub struct SpriteAtlasBuildConfig {
 
 impl SpriteAtlasBuildConfig {
     pub(super) fn validate(&self) -> Result<(), String> {
-        if self.output_stem.trim().is_empty() {
+        let trimmed = self.output_stem.trim();
+        if trimmed.is_empty() {
             return Err("output_stem must not be empty".to_string());
         }
-        if self.output_stem.trim() != self.output_stem
+        if trimmed.len() != self.output_stem.len()
             || self.output_stem == "."
             || self.output_stem == ".."
             || !is_safe_output_stem(&self.output_stem)
@@ -41,37 +42,16 @@ fn is_safe_output_stem(value: &str) -> bool {
 }
 
 fn is_windows_reserved_stem(value: &str) -> bool {
-    let stem = value
-        .split_once('.')
-        .map(|(stem, _)| stem)
-        .unwrap_or(value)
-        .to_ascii_uppercase();
-    matches!(
-        stem.as_str(),
-        "CON"
-            | "PRN"
-            | "AUX"
-            | "NUL"
-            | "COM1"
-            | "COM2"
-            | "COM3"
-            | "COM4"
-            | "COM5"
-            | "COM6"
-            | "COM7"
-            | "COM8"
-            | "COM9"
-            | "LPT1"
-            | "LPT2"
-            | "LPT3"
-            | "LPT4"
-            | "LPT5"
-            | "LPT6"
-            | "LPT7"
-            | "LPT8"
-            | "LPT9"
-    )
+    let stem = value.split_once('.').map(|(stem, _)| stem).unwrap_or(value);
+    WINDOWS_RESERVED_STEMS
+        .iter()
+        .any(|reserved| stem.eq_ignore_ascii_case(reserved))
 }
+
+const WINDOWS_RESERVED_STEMS: [&str; 22] = [
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+    "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+];
 
 impl Default for SpriteAtlasBuildConfig {
     fn default() -> Self {
@@ -83,3 +63,7 @@ impl Default for SpriteAtlasBuildConfig {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "config/borrowed_reserved_stem_tests.rs"]
+mod borrowed_reserved_stem_tests;

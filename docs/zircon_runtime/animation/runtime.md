@@ -135,42 +135,21 @@ Runtime 15 M1 animation manager folder-backed cutover is recorded as `runtime_15
 
 Runtime 15 F5 animation typed errors is recorded as `runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred`. `core::framework::animation` owns `AnimationError` and `AnimationResult`; `AnimationManager::sample_clip_pose`, concrete clip sampling, channel helpers, and `animation::sequence::{compile_sequence_for_world, apply_compiled_sequence_to_world(...)}` return `AnimationResult` instead of public `Result<_, String>`. The Frameworks05 cut removed scene writeback from the neutral manager trait, so `animation.evaluate` retains compiled sequence writers and invokes the compiled upper sequence function directly. `review_f5_animation_manager_uses_animation_error` keeps typed errors synchronized without reintroducing `scene::World` into framework.
 
-## IK Model-Pose Workspace
+## IK Ownership
 
-The animation plugin's IK post-process retains one `ModelPoseScratch` for each
-drained command batch. Model-bone values and traversal states reuse their
-capacity across ordered commands and across the root/mid phases of a two-bone
-solve. Every phase still rebuilds model transforms from the latest local pose,
-so the workspace does not cache matrices across a pose mutation or change IK
-ordering. Traversal state is reset before each rebuild, including after an
-invalid hierarchy error.
+The former global IK command queue had no production producer. It duplicated a
+`Mutex<HashMap<WorldHandle, ...>>` in both fallback and plugin managers, then
+forced the animation tick to drain and partition that inbox on every frame.
+The 2026-08-24 hard cut removes the queue, its replacement-epoch state, its
+postprocess adapter, and the benchmark that measured only the retired adapter.
 
-The focused regression compares the reusable workspace with the former
-allocating evaluation, locks buffer address/capacity reuse for a stable
-topology, and proves both helper-level cycle recovery and production two-bone
-recovery on a later valid command. The two-bone regression also requires the
-post-root-write rebuild by checking the final model-space tip. The
-ignored release gate uses 21 alternating pairs and nearest-rank P50/P95 on a
-fixed repeated three-bone workload. This status is
-`runtime08c_p1_17_ik_model_pose_scratch_static_passed_cargo_deferred`; it does
-not claim prepared skeleton residency, one model-pose build per rig, or the
-remaining P1-17 command arbitration and solver work.
-
-## IK Deferred Admission Set
-
-Clip-event admission owns deferred animation entities as a `BTreeSet`. The
-production tick lends that set directly to
-`AnimationManager::drain_ik_commands_excluding`; it does not materialize a
-second entity vector. Both the core fallback and first-party plugin managers
-use the borrowed set while stably partitioning the bounded command queue, so
-admitted and retained commands keep their original relative order.
-
-The scale regression covers 1,024 commands with alternating deferred entities.
-The ignored release gate compares the former materialized-Vec linear membership
-with borrowed ordered-set membership across 21 alternating pairs and recomputes
-nearest-rank P95 from raw samples. This status is
-`runtime08c_p1_17_borrowed_deferred_ik_set_static_passed_cargo_deferred`; it
-does not claim the remaining prepared-rig, command arbitration, or solver work.
+TwoBone and LookAt mathematical solvers remain in the Animation plugin. Product
+IK is not accepted until a compiled animation graph/evaluation node owns its
+parameters, target slots, scratch storage, diagnostics, and per-instance state.
+This follows Unreal's skeletal-control node model: pose input and node-local
+state are evaluated together, rather than submitted through a process-wide
+manager inbox. No performance or power claim is made for the hard cut; future
+graph-local integration requires product traces and focused measurements.
 
 ## Playback Settings Lock Recovery
 

@@ -1,5 +1,9 @@
 ---
 related_code:
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
+  - zircon_runtime/src/graphics/runtime_prepare_collector.rs
+  - zircon_runtime/src/graphics/runtime_prepare_collector/gpu_readback.rs
+  - zircon_runtime/src/graphics/types/graphics_error.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
@@ -8,6 +12,14 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_device_epoch.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/binding.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lifecycle.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/native.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/compute_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/ambient_occlusion.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
@@ -15,9 +27,20 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/mod.rs
 implementation_files:
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
+  - zircon_runtime/src/graphics/runtime_prepare_collector.rs
+  - zircon_runtime/src/graphics/runtime_prepare_collector/gpu_readback.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_device_epoch.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/binding.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lifecycle.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/native.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/compute_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/ambient_occlusion.rs
   - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
   - zircon_runtime/src/graphics/backend/render_backend/renderdoc_capture_file_path.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
@@ -59,17 +82,59 @@ This keeps Plan 16's `GpuReadbackQueue` as the only ordinary-frame mapping owner
 
 `render_compiled_scene` already has the F16-required split into resource binding, graph-stage execution, and submission owners. Its remaining coordinator function creates frame-local preparation state, materializes live graph resources once, records the stage sequence, queues bounded readbacks, and passes finished buffers to one submit owner. It must not absorb per-pass behavior again.
 
+`SceneRendererCore` now records the `(DeviceId, DeviceGeneration)` used to construct its persistent WGPU resource package. Both direct and compiled entry points admit that epoch before borrowing the backend device or creating frame work; a mismatch fails closed. This is an admission guard for the future whole-core `ReleaseRHI -> InitRHI` recovery path, not a claim that the current renderer can replace a live device in place.
+
+Runtime-prepare GPU readback requests now carry the epoch of the scoped collector that captured their source buffer. Registration compares that receipt with the current `RenderBackend` profile before diagnostic-budget admission; a mismatch resolves the completion as an error and performs no copy, map, submission, or poll. This protects the existing readback owner from stale raw buffers while the broader plugin resource recovery path remains whole-owner `ReleaseRHI -> InitRHI` work.
+
+Graph execution resource packets now retain the opaque `RenderPassDeviceEpoch` directly. Materialization constructs it once from the current RHI profile, GPU pass contexts return that same value, and external plugin binding admission consumes the typed value without tuple unpacking. Serializable compute-pipeline reports still project raw scalar fields at their neutral report boundary; native graph ownership no longer stores a bare `(u64, u64)` epoch tuple.
+
+Transient graph texture and buffer allocations use that same epoch owner for free-list reuse and
+pending-retirement admission. Only the submission-ticket boundary projects the opaque epoch back to
+RHI scalar values, so pool reuse, executor caches, and graph packets share one generation identity.
+
+Graph-pass native recording follows an explicit capability boundary. `RenderPassGpuExecutionContext`
+keeps native handles, graph resources, and plugin output storage owner-scoped; a cross-crate feature
+borrows `RenderPassGpuNativeContext` only for the command-encoding operation and uses output mailbox
+methods for completion projection. This preserves the existing single encoder and submission
+transaction while preventing plugins from retaining the graph resource registry through public
+context fields. The capability keeps the raw `Device` private and admits pass-time buffer,
+bind-group, layout, shader-module, and pipeline creation through `RenderPassGpuResourceFactory`.
+Helpers that also encode commands consume the paired `RenderPassGpuRecordingContext`, so the
+factory and encoder come from the same short-lived pass capability without feature-local adapters.
+Every admitted create is attributed to the current pass; graph texture creation remains owned by
+materialization rather than being added to the pass capability.
+
 The most material current risks are structural rather than shader micro-optimizations:
 
 | Area | Static evidence | Consequence to measure |
 | --- | --- | --- |
 | Frame-state critical section | `submit_runtime_frame` retains the render-framework state guard through prepare, render, product publish, feedback, and stats. | Serializes viewport work and makes lock contention a first-class CPU metric. |
 | Pass recording parallelism | `execute_graph_stage` only enters `ParallelEncoderSet` when timers, pipeline statistics, mutable owners, and non-parallel-safe executors are absent. Product frames with mesh lists or profiling often stay serial. `RenderFrameProfile` projects each graph record's `cpu_elapsed_micros` plus eligible and executed stage/bucket counts. | A topology bucket count alone is not proof of concurrent recording. Compare `parallel_recording_eligible_*` with `parallel_recording_executed_*` and the same capture's per-pass CPU encode time. |
+| Pass-time native resource creation | Hybrid GI handoff passes, Contact Shadow, generic compute, Planar filtering, all three Froxel passes, and the shared SSS pipeline bundle now route factory-admitted creates to `RenderPassNativeResourceCreateMetrics`, which reaches each pass profile and the fixed `render.profile.native_resource_create.*` diagnostic series. At the Planar 1024-pixel cap, 11 mips produce a source upper bound of 22 creates on a stable pipeline-cache hit and 26 on a cold/device-epoch miss; the full Froxel chain produces 7/8 stable creates and 21/22 cold creates without/with local fog volumes; the complete SSS setup/scatter/recombine chain produces 3 stable creates and 15 on a cold/device-epoch or target-format miss. Per-mip texture views remain texture-owned and outside the seven factory categories. Other built-in raw-device helpers remain an explicit coverage gap. | Capture at least 300 representative frames and correlate create counts with CPU encode time and GPU hitch evidence before selecting prewarm or cache ownership. A source-level create count is not a performance result, and zero is not authoritative until built-in coverage converges. |
 | Transient realization | `transient_materialization` realizes compatible allocation slots per frame; `TransientResourcePool` reuses only exact descriptor keys across frames. | Separate allocation, reuse, retained bytes, and alias density before changing pool policy. |
 | Product/capture separation | Direct presentation publishes `latest_viewport_texture`; asynchronous capture uses the shared readback queue. `capture_frame` still intentionally waits when an explicit caller requests a synchronous inspection fallback. | Normal present must show zero full-frame CPU copies; capture latency and dropped generations are separate metrics. |
 | GPU timing mode | `GpuPassTimer` currently emits `CommandEncoder::write_timestamp` around generic graph executor work, so it correctly requires both `TIMESTAMP_QUERY` and `TIMESTAMP_QUERY_INSIDE_ENCODERS`. The current Plan 17 feature-set Failure owns that all-or-nothing contract. The original pass-boundary design would require wiring timestamp writes into each actual render or compute pass and formally superseding the Failure first. | Record the adapter's supported mode. Do not loosen the feature gate without changing the instrumentation boundary; otherwise GPU timings become invalid or unsupported. |
 
-The review finding F3 remains applicable as a measurement target: track full-frame bytes and extract copies across the runtime-to-editor boundary. Runtime extraction now reports `extract.full_clones` and `extract.full_clone_bytes` for both cache population and reuse; cache hits must not be assumed to avoid deep copies. F16 is structurally addressed by the existing folder owners, so further changes must preserve that split rather than re-centralize the renderer.
+The initial factory coverage inventory found 89 owner-scoped raw-device references across 26 files
+in the production-oriented advanced-lighting, environment, graph-execution, and temporal pass paths.
+That is an authority-review upper bound, not a resource-create count. Planar filtering, the three
+Froxel passes, and the shared SSS setup/scatter/recombine bundle are the first five complete built-in
+generation-qualified owners migrated from that inventory: their 40 direct native resource-create call sites now use the pass factory without
+changing pipeline-cache admission, dispatch order, or submission ownership. Migration proceeds by
+generation-qualified pipeline owner first, core mesh/post-process helper second, and transient
+buffer/bind-group path last; zero observed creates is not authoritative until those layers converge.
+
+The remaining advanced-lighting directories do not form independent migration units. OIT has 15
+direct create call sites across its fragment, resolve, and GPU-context helpers, but fragment recording
+also enters the core forward-binding builder and mesh PSO admission. The light-cookie blit pipeline is
+owned by `MeshPipelineCache` together with its atlas texture and sampler. IBL shares one shader/layout/
+pipeline cache between RDG bake passes and the standalone environment-capture recorder, whose creation
+counts already have a dedicated report. Core forward/mesh factory admission must therefore precede OIT;
+light-cookie must move with its mesh-owned atlas lifecycle; and IBL needs a dual recorder capability that
+preserves pass metrics for RDG while retaining the standalone capture report. Directory-local rewrites
+before those owner boundaries converge would produce incomplete zero counts.
+
+The review finding F3 remains applicable as a measurement target: track full-frame bytes and extract copies across the runtime-to-editor boundary. Runtime extraction reports `extract.full_clones` and `extract.full_clone_bytes` for both cache population and reuse; the shared scene-payload contract requires both values to remain zero because those paths clone only bounded timing/view state and Arc domain handles. Renderer-derived mutation is a separate Runtime07 M2 gate: effective post-process, particle history, environment hydration, and view-family state must leave the authored scene payload before the immutable submission architecture is complete. F16 is structurally addressed by the existing folder owners, so further changes must preserve that split rather than re-centralize the renderer.
 
 The deterministic product regression fixture has one serial and one profitable two-bucket case. It requires the serial report to remain empty and the parallel case to report one eligible/executed stage with two eligible/executed buckets, while preserving graph order and pixels. This confirms the counter's semantic route; it is not a WGPU timing or throughput result.
 

@@ -43,7 +43,9 @@ fn camera_descriptor_with_layers(mask: u32) -> CameraRenderDescriptor {
 }
 
 fn spawn_camera_on_layer(world: &mut World, layer_mask: u32) -> crate::scene::EntityId {
-    let camera = world.spawn_node(NodeKind::Camera);
+    let camera = world
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     world
         .insert(
             camera,
@@ -62,7 +64,9 @@ fn spawn_mesh_on_layer(
     layer_mask: u32,
     mobility: Mobility,
 ) -> crate::scene::EntityId {
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .insert(
             entity,
@@ -84,7 +88,9 @@ fn mesh_handle(label: &str) -> ResourceHandle<MeshMarker> {
 }
 
 fn spawn_sprite_on_layer(world: &mut World, layer_mask: u32) -> crate::scene::EntityId {
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let _ = world.remove::<MeshRenderer>(entity).unwrap();
     world
         .insert(
@@ -113,7 +119,9 @@ fn spawn_light_on_layer(
     kind: NodeKind,
     layer_mask: u32,
 ) -> crate::scene::EntityId {
-    let entity = world.spawn_node(kind);
+    let entity = world
+        .spawn_node(kind)
+        .expect("test scene spawn should succeed");
     world.set_render_layer_mask(entity, layer_mask).unwrap();
     entity
 }
@@ -123,7 +131,9 @@ fn spawn_post_process_volume_on_layer(
     layer_mask: u32,
     volume: PostProcessVolumeComponent,
 ) -> crate::scene::EntityId {
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let _ = world.remove::<MeshRenderer>(entity).unwrap();
     world.insert(entity, volume).unwrap();
     world.set_render_layer_mask(entity, layer_mask).unwrap();

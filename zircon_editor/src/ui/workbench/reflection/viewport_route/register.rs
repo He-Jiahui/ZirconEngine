@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::name_mapping::binding_view_id;
-use super::super::route_registration::register_stub_route;
+use super::super::route_registration::register_binding_route;
 use super::default_command::default_viewport_command;
 
 pub(crate) fn register_viewport_route(
@@ -24,5 +24,5 @@ pub(crate) fn register_viewport_route(
         path.event_kind,
         EditorUiBindingPayload::viewport_command(default_command.clone()),
     );
-    Some(register_stub_route(service, registration_binding))
+    Some(register_binding_route(service, registration_binding))
 }

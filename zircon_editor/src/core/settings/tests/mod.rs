@@ -11,6 +11,8 @@ use serde_json::json;
 use zircon_runtime_interface::serialization::write_versioned_text;
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
+use crate::core::commands::EditorKeyChord;
+
 use super::defaults::{
     EDITOR_COMMAND_PALETTE_MRU_KEY, EDITOR_DESIGN_TOKENS_KEY, EDITOR_KEYMAP_OVERRIDES_KEY,
     EDITOR_LOCALE_KEY, VIEWPORT_ROTATE_STEP_DEGREES_KEY, VIEWPORT_SCALE_STEP_KEY,
@@ -21,7 +23,10 @@ use super::{
     settings_registry_with_defaults, EditorCommandPaletteMru, SettingDefinition, SettingSchema,
     SettingValue, SettingsAuthority, SettingsChangeCursor, SettingsChangeLogPolicy,
     SettingsChangeSubscriber, SettingsDecodeError, SettingsError, SettingsKey, SettingsLoad,
-    SettingsPaths, SettingsPersistenceLimits, SettingsPersistenceService,
+    SettingsMutationCoordinator, SettingsMutationDisposition, SettingsMutationError, SettingsPaths,
+    SettingsPersistenceHealthSnapshot, SettingsPersistenceHealthStatus,
+    SettingsPersistenceHealthSubscriber, SettingsPersistenceLimits,
+    SettingsPersistenceRetryDisposition, SettingsPersistenceService,
     SettingsPersistenceShutdownError, SettingsPersistenceSubmitError, SettingsPresentation,
     SettingsProjectLayerLoad, SettingsRegistry, SettingsScope, SettingsStore, SettingsStoreError,
 };
@@ -62,6 +67,7 @@ fn project_grid_setting() -> SettingDefinition {
         SettingSchema::Int {
             minimum: 1,
             maximum: 100,
+            step: 1,
         },
         SettingValue::Int(10),
         false,
@@ -111,8 +117,11 @@ impl SettingsChangeSubscriber for ProjectLayerPrepareSubscriber {
     }
 }
 
+mod autosave;
+mod mutation;
 mod persistence;
 mod registry;
+mod value_batch;
 
 fn temporary_root(label: &str) -> PathBuf {
     std::env::temp_dir().join(format!(

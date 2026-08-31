@@ -717,7 +717,8 @@ transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient
   - 把 `EditorEventRecord.effects` 映射成宿主展示侧需要的 `UiHostEventEffects`
   - 宿主只消费 `presentation_dirty / layout_dirty / render_dirty / sync_asset_workspace` 之类的结果，不重新解释语义
 - `zircon_editor/src/ui/retained_host/drawer_resize.rs`
-  - 把 splitter group 级别的桌面手势换成 `LayoutCommand::SetDrawerExtent`
+  - 把 splitter group 级别的桌面手势换成单条 `LayoutCommand::SetDrawerRegionExtent`
+  - left/right 的两个 slot 由 layout owner 在同一事务中先验证、后提交，不再由宿主 fan-out 两条 event
   - `begin_drawer_resize(...)` 现在只上传 pointer 坐标；真正的 `left / right / bottom` target group 由统一 shell pointer bridge 在 shared `UiSurface + UiPointerDispatcher` 上解析
 - `zircon_editor/src/ui/retained_host/shell_pointer.rs`
   - `WorkbenchShellPointerBridge` 把 shell drag target 与 splitter target 收口到同一棵 `UiSurface`
@@ -961,7 +962,7 @@ rail click、drawer tab 激活、stack 展开/折叠都应继续走这条 typed 
 同理，当前 retained splitters 也先走宿主内部回调：
 
 - `set_drawer_extent(target_group, extent)` 只表达 shell 级别的 `left / right / bottom`
-- 宿主把 group fan-out 到对应 drawer slots，再落成 `LayoutCommand::SetDrawerExtent`
+- 宿主把 group 映射到代表 slot，再落成一条 `LayoutCommand::SetDrawerRegionExtent`；layout owner 原子更新同区域 slots
 - 稳定协议层继续把这类行为定义为 `DockCommand::SetDrawerExtent`，而不是公开桌面手势细节
 
 这样可以把高频 pointer resize 保留在本地宿主里，同时让 headless / reflection / binding roundtrip 仍然对齐同一个 typed docking 语义。

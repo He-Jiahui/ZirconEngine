@@ -62,17 +62,19 @@ impl HostWindowDiagnosticQueue {
     }
 
     pub(crate) fn drain(&mut self) -> Vec<HostWindowDiagnostic> {
-        let mut diagnostics = self.entries.drain(..).collect::<Vec<_>>();
+        let dropped_entries = std::mem::take(&mut self.dropped_entries);
+        let mut diagnostics = Vec::with_capacity(
+            self.entries
+                .len()
+                .saturating_add(usize::from(dropped_entries != 0)),
+        );
+        diagnostics.extend(self.entries.drain(..));
         self.retained_bytes = 0;
-        if self.dropped_entries != 0 {
+        if dropped_entries != 0 {
             diagnostics.push(HostWindowDiagnostic::new(
                 HostWindowDiagnosticSeverity::Warning,
-                format!(
-                    "editor_host_window diagnostics_dropped={}",
-                    self.dropped_entries
-                ),
+                format!("editor_host_window diagnostics_dropped={dropped_entries}"),
             ));
-            self.dropped_entries = 0;
         }
         diagnostics
     }
@@ -167,3 +169,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "host_window/drain_capacity_tests.rs"]
+mod drain_capacity_tests;

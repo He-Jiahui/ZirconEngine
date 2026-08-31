@@ -181,7 +181,7 @@ impl MigrationInventoryBuilder {
 
         self.stats.directory_visits += 1;
         let mut children = fs::read_dir(path)?.collect::<Result<Vec<_>, _>>()?;
-        children.sort_by_key(|entry| entry.file_name());
+        children.sort_unstable_by_key(|entry| entry.file_name());
         self.stats.directory_sorts += 1;
         for child in children {
             if child.file_name() != ".zircon" {
@@ -245,7 +245,7 @@ impl MigrationInventoryBuilder {
                     })
             })
             .collect::<Vec<_>>();
-        identities.sort_by(|left, right| {
+        identities.sort_unstable_by(|left, right| {
             left.root
                 .cmp(&right.root)
                 .then_with(|| left.relative.cmp(&right.relative))
@@ -306,7 +306,16 @@ fn prepare_roots(roots: &[(RelPath, PathBuf)]) -> Result<Vec<MigrationRoot>, std
                 std::io::ErrorKind::InvalidInput,
                 format!(
                     "migration asset root '{}' is a symbolic link or reparse point",
-                    walk_path.display()
+                    ProjectPaths::display_path(&walk_path).display()
+                ),
+            ));
+        }
+        if !metadata.is_dir() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!(
+                    "migration asset root '{}' is not a directory",
+                    ProjectPaths::display_path(&walk_path).display()
                 ),
             ));
         }
@@ -330,7 +339,7 @@ fn prepare_roots(roots: &[(RelPath, PathBuf)]) -> Result<Vec<MigrationRoot>, std
 }
 
 fn sort_dedup(paths: &mut Vec<PathBuf>) {
-    paths.sort();
+    paths.sort_unstable();
     paths.dedup();
 }
 
@@ -434,3 +443,7 @@ pub(crate) fn scan_migration_inventory_for_test(
         logical_root_identities,
     })
 }
+
+#[cfg(test)]
+#[path = "scan/optimization_tests.rs"]
+mod optimization_tests;

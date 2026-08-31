@@ -82,7 +82,7 @@ fn runtime_15_builtin_fallback_prewarm_uses_template_source() {
             "runtime_base_mesh_pipeline_uses_staged_prewarm_without_compile_miss",
             "prewarm_shader_variants_to_disk",
             "ShaderVariantCacheDisk::with_fallback_roots",
-            "ensure_pipeline_for_variant",
+            "ensure_pipeline_admission_for_variant",
             "push_error_scope(wgpu::ErrorFilter::Validation)",
             "disk_hit_count",
             "compile_miss_count",

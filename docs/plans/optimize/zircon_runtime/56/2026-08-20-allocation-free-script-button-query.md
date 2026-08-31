@@ -4,7 +4,7 @@
 - Session: `optimize-runtime56-direct-button-query-r1-01a00797-20260820`
 - Findings: `INP-P1-005`, `INP-P1-046` (snapshot-clone hot-path slice only)
 - Performance marker: `PERF-MVP-559`
-- Status: implementation complete; managed batch validation and release measurements pending
+- Status: implementation complete; managed validation queued
 
 ## Scope
 
@@ -47,3 +47,11 @@ remains pending until the managed validator records actual samples.
 Scoped formatting and diff checks are required before the candidate snapshot. Cargo tests and
 release performance measurements are intentionally deferred to a managed multi-task validation
 batch; no passing result or measured latency is claimed in this record yet.
+
+## Current-source recovery batch
+
+This slice is sealed with eight related Runtime56 optimizations under the exclusive
+`runtime56_recovery_batch_` test prefix. One managed ticket runs 19 ordinary regressions and nine
+ignored release gates in two Cargo invocations; queue admission is not performance evidence.
+Ticket `2a6e907071354f28b114db0c90a9074c` is queued against snapshot `2449` and source manifest
+`817fa52c4df260d66b52f7618515daf8211aac3c96f187ff0383c249b83407c8`.

@@ -34,6 +34,14 @@ impl EditorAssetChangeKey {
     }
 }
 
+fn move_change_key_to_tail(order: &mut VecDeque<EditorAssetChangeKey>, key: EditorAssetChangeKey) {
+    if order.back() == Some(&key) {
+        return;
+    }
+    order.retain(|pending_key| pending_key != &key);
+    order.push_back(key);
+}
+
 struct PendingEditorAssetChange {
     change: Arc<EditorAssetChangeRecord>,
     publish_sequence: u64,
@@ -67,8 +75,7 @@ impl EditorAssetChangeMailbox {
             current.change = change;
             current.publish_sequence = publish_sequence;
             current.queued_at = Instant::now();
-            self.order.retain(|pending_key| pending_key != &key);
-            self.order.push_back(key);
+            move_change_key_to_tail(&mut self.order, key);
             return true;
         }
 
@@ -263,13 +270,32 @@ impl EditorAssetChangeHub {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::VecDeque;
+    use std::hint::black_box;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
+    use std::time::Instant;
 
     use super::{
-        EditorAssetChangeHub, EditorAssetChangeKind, EditorAssetChangeRecord,
-        MAX_PENDING_EDITOR_ASSET_CHANGES,
+        move_change_key_to_tail, EditorAssetChangeHub, EditorAssetChangeKey, EditorAssetChangeKind,
+        EditorAssetChangeRecord, MAX_PENDING_EDITOR_ASSET_CHANGES,
     };
+
+    fn legacy_move_change_key_to_tail(
+        order: &mut VecDeque<EditorAssetChangeKey>,
+        key: EditorAssetChangeKey,
+    ) {
+        order.retain(|pending_key| pending_key != &key);
+        order.push_back(key);
+    }
+
+    fn benchmark_key(index: usize) -> EditorAssetChangeKey {
+        EditorAssetChangeKey::Asset {
+            kind: EditorAssetChangeKind::PreviewChanged,
+            uuid: Some(format!("asset-{index:04}")),
+            locator: Some(format!("res://asset-{index:04}.asset")),
+        }
+    }
 
     #[test]
     fn same_asset_preview_storm_coalesces_to_latest_revision() {
@@ -371,6 +397,128 @@ mod tests {
         assert_eq!(first.change.catalog_revision, 2);
         assert_eq!(second.change.uuid.as_deref(), Some("asset-a"));
         assert_eq!(second.change.catalog_revision, 3);
+    }
+
+    #[test]
+    fn optimization_batch_eq_tail_coalescing_preserves_existing_queue_order() {
+        let seed = (0..MAX_PENDING_EDITOR_ASSET_CHANGES)
+            .map(benchmark_key)
+            .collect::<VecDeque<_>>();
+        for target_index in [
+            0,
+            MAX_PENDING_EDITOR_ASSET_CHANGES / 2,
+            MAX_PENDING_EDITOR_ASSET_CHANGES - 1,
+        ] {
+            let key = benchmark_key(target_index);
+            let mut legacy = seed.clone();
+            let mut optimized = seed.clone();
+
+            legacy_move_change_key_to_tail(&mut legacy, key.clone());
+            move_change_key_to_tail(&mut optimized, key);
+
+            assert_eq!(optimized, legacy);
+        }
+
+        let source = include_str!("change_stream.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("asset change stream production implementation");
+        let movement = production
+            .split("fn move_change_key_to_tail(")
+            .nth(1)
+            .expect("coalesced key movement");
+        assert!(movement.contains("order.back() == Some(&key)"));
+    }
+
+    #[test]
+    #[ignore = "release-only tail coalescing fast-path benchmark"]
+    fn optimization_batch_eq_tail_coalescing_release_benchmark_evidence() {
+        const SAMPLE_PAIRS: usize = 17;
+        const MOVES_PER_SAMPLE: usize = 8_192;
+
+        fn measure_legacy(
+            seed: &VecDeque<EditorAssetChangeKey>,
+            key: &EditorAssetChangeKey,
+        ) -> u128 {
+            let mut order = seed.clone();
+            let started = Instant::now();
+            for _ in 0..MOVES_PER_SAMPLE {
+                legacy_move_change_key_to_tail(&mut order, black_box(key.clone()));
+            }
+            black_box(order.len());
+            started.elapsed().as_nanos().max(1)
+        }
+
+        fn measure_optimized(
+            seed: &VecDeque<EditorAssetChangeKey>,
+            key: &EditorAssetChangeKey,
+        ) -> u128 {
+            let mut order = seed.clone();
+            let started = Instant::now();
+            for _ in 0..MOVES_PER_SAMPLE {
+                move_change_key_to_tail(&mut order, black_box(key.clone()));
+            }
+            black_box(order.len());
+            started.elapsed().as_nanos().max(1)
+        }
+
+        fn percentile(samples: &[u128], percentile: usize) -> u128 {
+            let mut sorted = samples.to_vec();
+            sorted.sort_unstable();
+            let rank = (sorted.len() * percentile).div_ceil(100);
+            sorted[rank.saturating_sub(1)]
+        }
+
+        fn raw(samples: &[u128]) -> String {
+            samples
+                .iter()
+                .map(u128::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        }
+
+        let seed = (0..MAX_PENDING_EDITOR_ASSET_CHANGES)
+            .map(benchmark_key)
+            .collect::<VecDeque<_>>();
+        let key = seed.back().expect("full benchmark mailbox").clone();
+        for _ in 0..4 {
+            black_box(measure_legacy(&seed, &key));
+            black_box(measure_optimized(&seed, &key));
+        }
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample in 0..SAMPLE_PAIRS {
+            if sample % 2 == 0 {
+                legacy_samples.push(measure_legacy(&seed, &key));
+                optimized_samples.push(measure_optimized(&seed, &key));
+            } else {
+                optimized_samples.push(measure_optimized(&seed, &key));
+                legacy_samples.push(measure_legacy(&seed, &key));
+            }
+        }
+
+        let legacy_p50_ns = percentile(&legacy_samples, 50);
+        let optimized_p50_ns = percentile(&optimized_samples, 50);
+        let legacy_p95_ns = percentile(&legacy_samples, 95);
+        let optimized_p95_ns = percentile(&optimized_samples, 95);
+        println!(
+            "EDITOR379_TAIL_COALESCING_FAST_PATH_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
+             moves_per_sample={MOVES_PER_SAMPLE} mailbox_size={MAX_PENDING_EDITOR_ASSET_CHANGES} \
+             pair_order=alternating_legacy_even legacy_queue_scans_per_move=1 \
+             optimized_queue_scans_per_tail_move=0 legacy_p50_ns={legacy_p50_ns} \
+             optimized_p50_ns={optimized_p50_ns} legacy_p95_ns={legacy_p95_ns} \
+             optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            raw(&legacy_samples),
+            raw(&optimized_samples),
+        );
+
+        assert!(
+            optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(20),
+            "tail coalescing must reduce P95 by at least 80%: \
+             legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
+        );
     }
 
     #[test]

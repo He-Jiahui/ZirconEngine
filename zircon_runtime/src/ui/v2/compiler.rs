@@ -2,8 +2,11 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime_interface::ui::v2::{
     UiV2ArenaChild, UiV2ArenaNode, UiV2AssetDocument, UiV2AssetError, UiV2CompiledDocument,
-    UiV2ComponentGraph, UiV2ComponentGraphNode, UiV2NodeArena, UiV2NodeHandle,
+    UiV2ComponentGraph, UiV2ComponentGraphNode, UiV2NodeArena, UiV2NodeHandle, UiV2Root,
 };
+use zircon_runtime_interface::ui::widget::UI_WIDGET_COMPONENT_ROLE_ATTRIBUTE;
+
+use crate::ui::component::UiComponentDescriptorRegistry;
 
 use super::{cache::UiV2PrototypeStore, component_instancer::UiV2ComponentInstancer};
 
@@ -19,7 +22,30 @@ impl UiV2DocumentCompiler {
         document: &UiV2AssetDocument,
         store: &UiV2PrototypeStore,
     ) -> Result<UiV2CompiledDocument, UiV2AssetError> {
-        let document = UiV2ComponentInstancer::instantiate_document(document, store)?;
+        Self::compile_with_context(document, store, None)
+    }
+
+    pub fn compile_with_component_registry(
+        document: &UiV2AssetDocument,
+        registry: &UiComponentDescriptorRegistry,
+    ) -> Result<UiV2CompiledDocument, UiV2AssetError> {
+        Self::compile_with_context(document, &UiV2PrototypeStore::new(), Some(registry))
+    }
+
+    pub fn compile_with_prototype_store_and_component_registry(
+        document: &UiV2AssetDocument,
+        store: &UiV2PrototypeStore,
+        registry: &UiComponentDescriptorRegistry,
+    ) -> Result<UiV2CompiledDocument, UiV2AssetError> {
+        Self::compile_with_context(document, store, Some(registry))
+    }
+
+    fn compile_with_context(
+        document: &UiV2AssetDocument,
+        store: &UiV2PrototypeStore,
+        registry: Option<&UiComponentDescriptorRegistry>,
+    ) -> Result<UiV2CompiledDocument, UiV2AssetError> {
+        let document = instantiate_and_validate_typed_component_events(document, store, registry)?;
         let node_handles = node_handles(&document)?;
         if let Some(root) = document.root_node_id() {
             validate_reachable_root(&document, &node_handles, root)?;
@@ -28,7 +54,7 @@ impl UiV2DocumentCompiler {
             validate_reachable_root(&document, &node_handles, &component.root)
                 .map_err(|error| with_component_context(error, component_name.as_str()))?;
         }
-        let arena = arena_from_document(&document, &node_handles)?;
+        let arena = arena_from_document(&document, &node_handles, registry)?;
         let component_graph = component_graph_from_arena(&arena);
         Ok(UiV2CompiledDocument {
             asset_id: document.asset.id.clone(),
@@ -37,6 +63,76 @@ impl UiV2DocumentCompiler {
             component_graph,
         })
     }
+}
+
+fn instantiate_and_validate_typed_component_events(
+    document: &UiV2AssetDocument,
+    store: &UiV2PrototypeStore,
+    registry: Option<&UiComponentDescriptorRegistry>,
+) -> Result<UiV2AssetDocument, UiV2AssetError> {
+    if document.root_node_id().is_some() {
+        let document = UiV2ComponentInstancer::instantiate_document(document, store)?;
+        validate_typed_component_events(&document, registry)?;
+        return Ok(document);
+    }
+
+    for (component_name, component) in &document.components {
+        let mut rooted = document.clone();
+        rooted.root = Some(UiV2Root {
+            node: component.root.clone(),
+        });
+        let instantiated = UiV2ComponentInstancer::instantiate_document(&rooted, store)?;
+        validate_typed_component_events(&instantiated, registry)
+            .map_err(|error| with_component_context(error, component_name))?;
+    }
+    Ok(document.clone())
+}
+
+fn validate_typed_component_events(
+    document: &UiV2AssetDocument,
+    registry: Option<&UiComponentDescriptorRegistry>,
+) -> Result<(), UiV2AssetError> {
+    for (node_id, node) in &document.nodes {
+        for binding in &node.events {
+            let Some(event_kind) = binding.component_event else {
+                continue;
+            };
+            let supports_event = component_supports_event(registry, &node.component, event_kind)
+                .ok_or_else(|| UiV2AssetError::InvalidDocument {
+                asset_id: document.asset.id.clone(),
+                detail: format!(
+                    "node {node_id} binding {} declares typed event {event_kind:?} for unknown component {}",
+                    binding.id, node.component
+                ),
+            })?;
+            if !supports_event {
+                return Err(UiV2AssetError::InvalidDocument {
+                    asset_id: document.asset.id.clone(),
+                    detail: format!(
+                        "node {node_id} binding {} declares unsupported typed event {event_kind:?} for component {}",
+                        binding.id, node.component
+                    ),
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
+fn component_supports_event(
+    registry: Option<&UiComponentDescriptorRegistry>,
+    component: &str,
+    event_kind: zircon_runtime_interface::ui::component::UiComponentEventKind,
+) -> Option<bool> {
+    let descriptor = match registry {
+        Some(registry) => registry.descriptor(component),
+        None => UiComponentDescriptorRegistry::material_editor_foundation_shared()
+            .descriptor(component)
+            .or_else(|| {
+                UiComponentDescriptorRegistry::editor_showcase_shared().descriptor(component)
+            }),
+    }?;
+    Some(descriptor.supports_event(event_kind))
 }
 
 fn node_handles(
@@ -143,6 +239,7 @@ fn validate_reachable_root(
 fn arena_from_document(
     document: &UiV2AssetDocument,
     node_handles: &BTreeMap<String, UiV2NodeHandle>,
+    registry: Option<&UiComponentDescriptorRegistry>,
 ) -> Result<UiV2NodeArena, UiV2AssetError> {
     let mut nodes = vec![UiV2ArenaNode::default(); node_handles.len()];
     for (node_id, node) in &document.nodes {
@@ -163,12 +260,20 @@ fn arena_from_document(
                 })
             })
             .collect::<Result<_, UiV2AssetError>>()?;
+        let mut props = node.props.clone();
+        if let Some(role) = component_role(registry, &node.component) {
+            props.insert(
+                UI_WIDGET_COMPONENT_ROLE_ATTRIBUTE.to_string(),
+                toml::Value::String(role),
+            );
+        }
         nodes[handle.index()] = UiV2ArenaNode {
             source_id: node_id.clone(),
             component: node.component.clone(),
             control_id: node.control_id.clone(),
+            pixel_snapping: node.pixel_snapping.unwrap_or_default(),
             classes: node.classes.clone(),
-            props: node.props.clone(),
+            props,
             state: node.state.clone(),
             layout: node.layout.clone(),
             repeat: node.repeat.clone(),
@@ -185,6 +290,21 @@ fn arena_from_document(
             .and_then(|root| node_handles.get(root).copied()),
         nodes,
     })
+}
+
+fn component_role(
+    registry: Option<&UiComponentDescriptorRegistry>,
+    component: &str,
+) -> Option<String> {
+    let descriptor = match registry {
+        Some(registry) => registry.descriptor(component),
+        None => UiComponentDescriptorRegistry::material_editor_foundation_shared()
+            .descriptor(component)
+            .or_else(|| {
+                UiComponentDescriptorRegistry::editor_showcase_shared().descriptor(component)
+            }),
+    }?;
+    (!descriptor.role.is_empty()).then(|| descriptor.role.clone())
 }
 
 fn with_component_context(error: UiV2AssetError, component_name: &str) -> UiV2AssetError {

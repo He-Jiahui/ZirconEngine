@@ -22,6 +22,7 @@ pub(super) fn chrome_command_from_recorded(
         z_index: command.z_index,
         frame: command.frame,
         clip: command.clip_frame,
+        source: command.source,
         kind,
     })
 }

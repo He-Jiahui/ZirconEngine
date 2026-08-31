@@ -2,16 +2,19 @@ use std::str::FromStr;
 
 use crate::core::framework::text::TextDirection;
 use rustybuzz::{
-    script, ttf_parser::Tag, Direction, Feature, Language, Script, UnicodeBuffer, Variation,
+    Direction, Feature, Language, Script, UnicodeBuffer, Variation, script, ttf_parser::Tag,
 };
 
 use crate::text::font::FontDatabase;
-use crate::text::{FontFaceId, InstancedFaceId, OpenTypeFeature};
+use crate::text::{FontFaceId, InstancedFaceId, Iso15924Tag, OpenTypeFeature};
+
+use crate::text::shaping::backend_error::{BackendFontOperation, BackendShapeError};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::text::shaping) struct HorizontalBackendGlyph {
     pub(in crate::text::shaping) glyph_id: u32,
     pub(in crate::text::shaping) source_offset: usize,
+    pub(in crate::text::shaping) unsafe_to_break: bool,
     pub(in crate::text::shaping) advance: f32,
     pub(in crate::text::shaping) x_offset: f32,
     pub(in crate::text::shaping) y_offset: f32,
@@ -29,24 +32,39 @@ pub(in crate::text::shaping) fn shape_horizontal_run(
     instance_id: Option<InstancedFaceId>,
     text: &str,
     direction: TextDirection,
-    script_tag: &str,
+    script_tag: Iso15924Tag,
     language: Option<&str>,
     features: &[OpenTypeFeature],
     include_kerning: bool,
     font_weight: u16,
     font_size: f32,
-) -> Option<HorizontalBackendRun> {
+) -> Result<HorizontalBackendRun, BackendShapeError> {
     if text.is_empty() {
-        return Some(HorizontalBackendRun { glyphs: Vec::new() });
+        return Ok(HorizontalBackendRun { glyphs: Vec::new() });
     }
 
     let variations = database
         .effective_instance_variations_shared(face_id, instance_id, font_weight)
-        .ok()?;
+        .map_err(|source| {
+            BackendShapeError::font_database(
+                BackendFontOperation::ResolveVariations,
+                face_id,
+                source,
+            )
+        })?;
     let language = language.and_then(|value| Language::from_str(value).ok());
-    let bytes = database.face_bytes(face_id).ok()?;
-    let face_index = database.face_index(face_id).ok()?;
-    let mut face = rustybuzz::Face::from_slice(bytes.as_ref(), face_index)?;
+    let bytes = database.face_bytes(face_id).map_err(|source| {
+        BackendShapeError::font_database(BackendFontOperation::LoadFaceBytes, face_id, source)
+    })?;
+    let face_index = database.face_index(face_id).map_err(|source| {
+        BackendShapeError::font_database(BackendFontOperation::ResolveFaceIndex, face_id, source)
+    })?;
+    let mut face = rustybuzz::Face::from_slice(bytes.as_ref(), face_index).ok_or(
+        BackendShapeError::FaceParseFailed {
+            face: face_id,
+            face_index,
+        },
+    )?;
     let variations = variations
         .0
         .iter()
@@ -83,7 +101,7 @@ pub(in crate::text::shaping) fn shape_horizontal_run(
     }
 
     #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
-    super::super::cosmic::record_direct_backend_shape_call();
+    super::super::cosmic::direct_profile::record_backend_shape_call();
     let shaped = rustybuzz::shape(&face, &projected_features, buffer);
     let glyphs = shaped
         .glyph_infos()
@@ -92,15 +110,21 @@ pub(in crate::text::shaping) fn shape_horizontal_run(
         .map(|(info, position)| HorizontalBackendGlyph {
             glyph_id: info.glyph_id,
             source_offset: info.cluster as usize,
+            unsafe_to_break: info.unsafe_to_break(),
             advance: position.x_advance as f32 * scale,
             x_offset: position.x_offset as f32 * scale,
             y_offset: position.y_offset as f32 * scale,
         })
         .collect::<Vec<_>>();
-    (!glyphs.is_empty()).then_some(HorizontalBackendRun { glyphs })
+    if glyphs.is_empty() {
+        Err(BackendShapeError::EmptyGlyphOutput { face: face_id })
+    } else {
+        Ok(HorizontalBackendRun { glyphs })
+    }
 }
 
-fn explicit_script(script_tag: &str) -> Option<Script> {
-    let script = Script::from_str(script_tag).ok()?;
+fn explicit_script(script_tag: Iso15924Tag) -> Option<Script> {
+    let script = Script::from_iso15924_tag(Tag::from_bytes(script_tag.as_bytes()))
+        .unwrap_or(script::UNKNOWN);
     (!matches!(script, script::COMMON | script::INHERITED | script::UNKNOWN)).then_some(script)
 }

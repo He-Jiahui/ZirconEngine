@@ -1,22 +1,22 @@
-pub(super) struct UiAssetDetailSurfaceBinding {
-    pub(super) instance_id: String,
-    pub(super) detail_id: String,
-    pub(super) action_id: String,
+pub(super) struct UiAssetDetailSurfaceBinding<'a> {
+    pub(super) instance_id: &'a str,
+    pub(super) detail_id: &'a str,
+    pub(super) action_id: &'a str,
     pub(super) item_index: i32,
 }
 
-impl UiAssetDetailSurfaceBinding {
+impl<'a> UiAssetDetailSurfaceBinding<'a> {
     const PREFIX: &'static str = "ui_asset_detail";
 
-    pub(super) fn parse(binding_id: &str) -> Option<Self> {
+    pub(super) fn parse(binding_id: &'a str) -> Option<Self> {
         let mut parts = binding_id.split('|');
         let prefix = parts.next()?;
         if prefix != Self::PREFIX {
             return None;
         }
-        let instance_id = parts.next()?.to_string();
-        let detail_id = parts.next()?.to_string();
-        let action_id = parts.next()?.to_string();
+        let instance_id = parts.next()?;
+        let detail_id = parts.next()?;
+        let action_id = parts.next()?;
         let item_index = parts.next()?.parse().ok()?;
         if parts.next().is_some()
             || instance_id.is_empty()
@@ -33,3 +33,7 @@ impl UiAssetDetailSurfaceBinding {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "ui_asset_detail/borrowed_binding_tests.rs"]
+mod borrowed_binding_tests;

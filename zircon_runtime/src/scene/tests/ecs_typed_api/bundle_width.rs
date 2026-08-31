@@ -1,5 +1,5 @@
-use crate::scene::ecs::Component;
 use crate::scene::World;
+use crate::scene::ecs::Component;
 
 use super::{Health, Mana};
 

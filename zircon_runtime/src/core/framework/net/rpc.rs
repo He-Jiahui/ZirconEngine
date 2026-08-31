@@ -48,7 +48,7 @@ impl RpcPayloadSchema {
     }
 
     pub fn from_reflect_type_path(type_path: ReflectTypePath) -> Self {
-        Self::for_type_path(type_path.type_path)
+        Self::for_type_path(type_path.type_path().to_string())
     }
 
     pub fn schema_id(&self) -> &str {

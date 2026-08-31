@@ -124,7 +124,8 @@ fn scene_asset_toml_roundtrip_preserves_physics_and_animation_components() {
                 parameters: std::collections::BTreeMap::from([
                     ("grounded".to_string(), AnimationParameterValue::Bool(true)),
                     ("speed".to_string(), AnimationParameterValue::Scalar(1.5)),
-                ]),
+                ])
+                .into(),
                 playing: true,
             }),
             animation_state_machine_player: Some(SceneAnimationStateMachinePlayerAsset {
@@ -135,7 +136,8 @@ fn scene_asset_toml_roundtrip_preserves_physics_and_animation_components() {
                 parameters: std::collections::BTreeMap::from([
                     ("grounded".to_string(), AnimationParameterValue::Bool(true)),
                     ("speed".to_string(), AnimationParameterValue::Scalar(1.5)),
-                ]),
+                ])
+                .into(),
                 active_state: Some("Locomotion".to_string()),
                 playing: true,
             }),

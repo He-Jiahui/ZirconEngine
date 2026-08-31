@@ -1,4 +1,5 @@
-use std::collections::BTreeMap;
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 
 use crossbeam_channel::Receiver;
 use zircon_runtime::ui::event_ui::UiEventManager;
@@ -14,10 +15,14 @@ use zircon_runtime_interface::ui::{
 use super::error::EditorUiError;
 use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
 
+#[cfg(test)]
+#[path = "service/activity_registry_hash_tests.rs"]
+mod activity_registry_hash_tests;
+
 #[derive(Default)]
 pub struct EditorUiControlService {
-    activity_views: BTreeMap<String, ActivityViewDescriptor>,
-    activity_windows: BTreeMap<String, ActivityWindowDescriptor>,
+    activity_views: HashMap<String, ActivityViewDescriptor>,
+    activity_windows: HashMap<String, ActivityWindowDescriptor>,
     event_manager: UiEventManager,
 }
 
@@ -26,24 +31,26 @@ impl EditorUiControlService {
         &mut self,
         descriptor: ActivityViewDescriptor,
     ) -> Result<(), EditorUiError> {
-        if self.activity_views.contains_key(&descriptor.view_id) {
-            return Err(EditorUiError::DuplicateActivityView(descriptor.view_id));
+        match self.activity_views.entry(descriptor.view_id.clone()) {
+            Entry::Vacant(entry) => {
+                entry.insert(descriptor);
+                Ok(())
+            }
+            Entry::Occupied(_) => Err(EditorUiError::DuplicateActivityView(descriptor.view_id)),
         }
-        self.activity_views
-            .insert(descriptor.view_id.clone(), descriptor);
-        Ok(())
     }
 
     pub fn register_activity_window(
         &mut self,
         descriptor: ActivityWindowDescriptor,
     ) -> Result<(), EditorUiError> {
-        if self.activity_windows.contains_key(&descriptor.window_id) {
-            return Err(EditorUiError::DuplicateActivityWindow(descriptor.window_id));
+        match self.activity_windows.entry(descriptor.window_id.clone()) {
+            Entry::Vacant(entry) => {
+                entry.insert(descriptor);
+                Ok(())
+            }
+            Entry::Occupied(_) => Err(EditorUiError::DuplicateActivityWindow(descriptor.window_id)),
         }
-        self.activity_windows
-            .insert(descriptor.window_id.clone(), descriptor);
-        Ok(())
     }
 
     pub fn activity_view(&self, view_id: &str) -> Option<&ActivityViewDescriptor> {
@@ -55,11 +62,15 @@ impl EditorUiControlService {
     }
 
     pub fn activity_views(&self) -> Vec<ActivityViewDescriptor> {
-        self.activity_views.values().cloned().collect()
+        let mut views = self.activity_views.values().cloned().collect::<Vec<_>>();
+        views.sort_by(|left, right| left.view_id.cmp(&right.view_id));
+        views
     }
 
     pub fn activity_windows(&self) -> Vec<ActivityWindowDescriptor> {
-        self.activity_windows.values().cloned().collect()
+        let mut windows = self.activity_windows.values().cloned().collect::<Vec<_>>();
+        windows.sort_by(|left, right| left.window_id.cmp(&right.window_id));
+        windows
     }
 
     pub fn register_route<F>(&mut self, binding: UiEventBinding, handler: F) -> UiRouteId
@@ -72,8 +83,8 @@ impl EditorUiControlService {
         self.event_manager.register_route(binding, handler)
     }
 
-    pub fn register_route_stub(&mut self, binding: UiEventBinding) -> UiRouteId {
-        self.event_manager.register_route_stub(binding)
+    pub fn register_binding_route(&mut self, binding: UiEventBinding) -> UiRouteId {
+        self.event_manager.register_binding_route(binding)
     }
 
     pub fn publish_snapshot(&mut self, snapshot: UiReflectionSnapshot) -> UiReflectionDiff {

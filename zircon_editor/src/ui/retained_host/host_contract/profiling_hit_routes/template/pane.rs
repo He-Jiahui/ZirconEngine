@@ -1,5 +1,6 @@
 use super::super::super::data::{FrameRect, PaneData};
 use super::super::geometry::contains;
+use super::super::identity::profile_control_id;
 use super::route_check::surface_frame_route_hit;
 
 pub(super) fn pane_route_hits_template(
@@ -10,8 +11,10 @@ pub(super) fn pane_route_hits_template(
     pane: &PaneData,
     content: &FrameRect,
 ) -> bool {
-    let expected_prefix = format!("template.{surface}.");
-    if !id.starts_with(&expected_prefix) || !contains(content, x, y) {
+    let Some(expected_control_id) = profile_control_id(id, "template", surface) else {
+        return false;
+    };
+    if !contains(content, x, y) {
         return false;
     }
     let mut body = content.clone();
@@ -23,5 +26,5 @@ pub(super) fn pane_route_hits_template(
     let Some(surface_frame) = pane.body_surface_frame.as_ref() else {
         return false;
     };
-    surface_frame_route_hit(id, x, y, surface, surface_frame, &body)
+    surface_frame_route_hit(expected_control_id, x, y, surface_frame, &body)
 }

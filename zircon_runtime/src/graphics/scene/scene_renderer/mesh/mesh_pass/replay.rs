@@ -1,9 +1,9 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use super::{
-    IndirectDrawBatch, MeshBindHandle, MeshDrawCommand, MeshDrawCommandStream,
+    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES, IndirectDrawBatch,
+    MeshBindHandle, MeshDrawArgs, MeshDrawCommand, MeshDrawCommandStream,
     MeshIndirectDrawExecution, MeshPassPipelineKind, MeshPipelineVariantId,
-    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
 };
 
 pub(crate) const FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT: u32 = 1;
@@ -123,10 +123,16 @@ struct MeshPipelineStateKey {
     variant_id: MeshPipelineVariantId,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TrackedBindGroupIdentity {
+    Owned(u64),
+    Borrowed(u64),
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct MeshDrawCommandReplayer {
     last_pipeline: Option<MeshPipelineStateKey>,
-    last_bind_ids: [Option<u64>; TRACKED_BIND_GROUP_COUNT],
+    last_bind_ids: [Option<TrackedBindGroupIdentity>; TRACKED_BIND_GROUP_COUNT],
     last_geometry: Option<(u64, u64)>,
     stats: MeshDrawReplayStats,
 }
@@ -144,7 +150,7 @@ impl MeshDrawCommandReplayer {
         self.last_pipeline = Some(key);
         self.last_bind_ids = [None; TRACKED_BIND_GROUP_COUNT];
         self.last_geometry = None;
-        self.stats.state_change_count += 1;
+        self.stats.state_change_count = self.stats.state_change_count.saturating_add(1);
         true
     }
 
@@ -229,8 +235,19 @@ impl MeshDrawCommandReplayer {
         command: &'pass MeshDrawCommand,
     ) {
         command.record_indexed_draw(pass);
+        self.record_unbatched_draw_call(&command.draw_args);
+    }
+
+    fn record_unbatched_draw_call(&mut self, draw_args: &MeshDrawArgs) {
         self.stats.draw_call_count = self.stats.draw_call_count.saturating_add(1);
-        self.stats.direct_draw_call_count = self.stats.direct_draw_call_count.saturating_add(1);
+        if draw_args.is_indirect() {
+            self.stats.per_draw_indirect_draw_call_count = self
+                .stats
+                .per_draw_indirect_draw_call_count
+                .saturating_add(1);
+        } else {
+            self.stats.direct_draw_call_count = self.stats.direct_draw_call_count.saturating_add(1);
+        }
     }
 
     pub(crate) fn replay_command_stream<'pass>(
@@ -358,7 +375,11 @@ impl MeshDrawCommandReplayer {
         slot: u32,
         handle: &'pass MeshBindHandle,
     ) {
-        self.bind_raw_group_if_needed(pass, slot, handle.id(), handle.bind_group());
+        if !self.should_bind_mesh_group(slot, handle.id()) {
+            return;
+        }
+
+        pass.set_bind_group(slot, handle.bind_group(), &[]);
     }
 
     fn draw_indexed_indirect_range<'pass>(
@@ -407,20 +428,31 @@ impl MeshDrawCommandReplayer {
     }
 
     fn should_bind_raw_group(&mut self, slot: u32, id: u64) -> bool {
+        self.should_bind_group(slot, TrackedBindGroupIdentity::Borrowed(id))
+    }
+
+    fn should_bind_mesh_group(&mut self, slot: u32, id: u64) -> bool {
+        self.should_bind_group(slot, TrackedBindGroupIdentity::Owned(id))
+    }
+
+    fn should_bind_group(&mut self, slot: u32, identity: TrackedBindGroupIdentity) -> bool {
         let slot_index = slot as usize;
-        if slot_index < self.last_bind_ids.len() && self.last_bind_ids[slot_index] == Some(id) {
-            self.stats.bind_skip_count += 1;
+        if slot_index < self.last_bind_ids.len() && self.last_bind_ids[slot_index] == Some(identity)
+        {
+            self.stats.bind_skip_count = self.stats.bind_skip_count.saturating_add(1);
             if slot == MATERIAL_BIND_GROUP_SLOT {
-                self.stats.material_bind_group_skip_count += 1;
+                self.stats.material_bind_group_skip_count =
+                    self.stats.material_bind_group_skip_count.saturating_add(1);
             }
             return false;
         }
 
         if slot_index < self.last_bind_ids.len() {
-            self.last_bind_ids[slot_index] = Some(id);
+            self.last_bind_ids[slot_index] = Some(identity);
         }
         if slot == MATERIAL_BIND_GROUP_SLOT {
-            self.stats.material_bind_group_set_count += 1;
+            self.stats.material_bind_group_set_count =
+                self.stats.material_bind_group_set_count.saturating_add(1);
         }
         true
     }
@@ -437,12 +469,12 @@ impl MeshDrawCommandReplayer {
 #[cfg(test)]
 mod tests {
     use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
-        MeshPassPipelineKind, MeshPipelineVariantId,
+        MeshDrawArgs, MeshPassPipelineKind, MeshPipelineVariantId,
     };
 
     use super::{
-        MeshDrawCommandReplayer, MeshDrawReplayStats, MeshDrawReplayStatsAccumulator,
-        FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, MATERIAL_BIND_GROUP_SLOT,
+        FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, MATERIAL_BIND_GROUP_SLOT, MeshDrawCommandReplayer,
+        MeshDrawReplayStats, MeshDrawReplayStatsAccumulator,
     };
 
     #[test]
@@ -523,6 +555,22 @@ mod tests {
     }
 
     #[test]
+    fn mesh_draw_command_replayer_classifies_unbatched_direct_and_indirect_draws() {
+        let mut replayer = MeshDrawCommandReplayer::default();
+        let direct = MeshDrawArgs::direct_indexed(0, 3);
+        let indirect = MeshDrawArgs::test_indexed_indirect(7, 0);
+
+        replayer.record_unbatched_draw_call(&direct);
+        replayer.record_unbatched_draw_call(&indirect);
+
+        assert_eq!(replayer.stats().draw_call_count, 2);
+        assert_eq!(replayer.stats().direct_draw_call_count, 1);
+        assert_eq!(replayer.stats().per_draw_indirect_draw_call_count, 1);
+        assert_eq!(replayer.stats().fixed_multi_draw_call_count, 0);
+        assert_eq!(replayer.stats().indirect_count_draw_call_count, 0);
+    }
+
+    #[test]
     fn mesh_draw_command_replayer_skips_redundant_tracked_bind_groups() {
         let mut replayer = MeshDrawCommandReplayer::default();
 
@@ -531,6 +579,17 @@ mod tests {
         assert!(replayer.should_bind_raw_group(2, 11));
         assert!(replayer.should_bind_raw_group(6, 10));
         assert!(replayer.should_bind_raw_group(6, 10));
+
+        assert_eq!(replayer.stats().bind_skip_count, 1);
+    }
+
+    #[test]
+    fn mesh_draw_command_replayer_does_not_alias_owned_and_borrowed_bind_ids() {
+        let mut replayer = MeshDrawCommandReplayer::default();
+
+        assert!(replayer.should_bind_mesh_group(GPU_SCENE_BIND_GROUP_SLOT, 10));
+        assert!(replayer.should_bind_raw_group(GPU_SCENE_BIND_GROUP_SLOT, 10));
+        assert!(!replayer.should_bind_raw_group(GPU_SCENE_BIND_GROUP_SLOT, 10));
 
         assert_eq!(replayer.stats().bind_skip_count, 1);
     }

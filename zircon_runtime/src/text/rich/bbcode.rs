@@ -1,6 +1,8 @@
 use crate::core::math::Vec4;
 use crate::text::{FontFamilyName, StyleOverride};
 
+use super::admission::{RichTextParseError, RichTokenizerBudget};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum BbCodeToken {
     Open {
@@ -13,28 +15,38 @@ pub(super) enum BbCodeToken {
     },
 }
 
-pub(super) fn token_at(input: &str) -> Option<(usize, BbCodeToken)> {
+pub(super) fn token_at(
+    input: &str,
+    tokenizer_budget: RichTokenizerBudget,
+) -> Result<Option<(usize, BbCodeToken)>, RichTextParseError> {
     if !input.starts_with('[') {
-        return None;
+        return Ok(None);
     }
-    let close = input.find(']')?;
+    let Some(close) = input.find(']') else {
+        return Ok(None);
+    };
+    tokenizer_budget.admit_token_bytes(close.checked_add(1).unwrap_or(usize::MAX))?;
     let body = input[1..close].trim();
     if body.is_empty() {
-        return None;
+        return Ok(None);
     }
 
     let token = if let Some(name) = body.strip_prefix('/') {
-        let name = normalized_tag(name)?;
+        let Some(name) = normalized_tag(name) else {
+            return Ok(None);
+        };
         BbCodeToken::Close { name }
     } else {
-        let (name, value, attributes) = parse_open_body(body)?;
+        let Some((name, value, attributes)) = parse_open_body(body, tokenizer_budget)? else {
+            return Ok(None);
+        };
         BbCodeToken::Open {
             name,
             value,
             attributes,
         }
     };
-    Some((close + 1, token))
+    Ok(Some((close + 1, token)))
 }
 
 pub(super) fn apply_builtin_style(
@@ -134,12 +146,18 @@ pub(super) fn attribute_value<'a>(
 }
 
 pub(super) fn normalized_tag(tag: &str) -> Option<String> {
-    let tag = tag.trim().to_ascii_lowercase();
-    (!tag.is_empty()
+    let tag = tag.trim();
+    if !is_valid_tag_name(tag) {
+        return None;
+    }
+    Some(tag.to_ascii_lowercase())
+}
+
+fn is_valid_tag_name(tag: &str) -> bool {
+    !tag.is_empty()
         && tag
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || character == '_'))
-    .then_some(tag)
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
 }
 
 fn unquoted(value: &str) -> &str {
@@ -154,23 +172,38 @@ fn unquoted(value: &str) -> &str {
         .unwrap_or(value)
 }
 
-fn parse_open_body(body: &str) -> Option<(String, Option<String>, Vec<(String, String)>)> {
+fn parse_open_body(
+    body: &str,
+    tokenizer_budget: RichTokenizerBudget,
+) -> Result<Option<(String, Option<String>, Vec<(String, String)>)>, RichTextParseError> {
     let name_end = body
         .char_indices()
         .find_map(|(index, character)| {
             (character == '=' || character.is_whitespace()).then_some(index)
         })
         .unwrap_or(body.len());
-    let name = normalized_tag(&body[..name_end])?;
+    let Some(name) = normalized_tag(&body[..name_end]) else {
+        return Ok(None);
+    };
     let remainder = body[name_end..].trim_start();
     if let Some(value) = remainder.strip_prefix('=') {
-        return Some((name, Some(unquoted(value.trim()).to_string()), Vec::new()));
+        let value = unquoted(value.trim());
+        tokenizer_budget.admit_attribute(0, 0, 0, value.len())?;
+        return Ok(Some((name, Some(value.to_string()), Vec::new())));
     }
-    Some((name, None, parse_attributes(remainder)))
+    Ok(Some((
+        name,
+        None,
+        parse_attributes(remainder, tokenizer_budget)?,
+    )))
 }
 
-fn parse_attributes(mut input: &str) -> Vec<(String, String)> {
+fn parse_attributes(
+    mut input: &str,
+    tokenizer_budget: RichTokenizerBudget,
+) -> Result<Vec<(String, String)>, RichTextParseError> {
     let mut attributes = Vec::new();
+    let mut attribute_bytes = 0;
     while !input.trim_start().is_empty() {
         input = input.trim_start();
         let key_end = input
@@ -179,9 +212,10 @@ fn parse_attributes(mut input: &str) -> Vec<(String, String)> {
                 (character == '=' || character.is_whitespace()).then_some(index)
             })
             .unwrap_or(input.len());
-        let Some(key) = normalized_tag(&input[..key_end]) else {
+        let key = &input[..key_end];
+        if !is_valid_tag_name(key) {
             break;
-        };
+        }
         input = input[key_end..].trim_start();
         let Some(rest) = input.strip_prefix('=') else {
             break;
@@ -191,10 +225,16 @@ fn parse_attributes(mut input: &str) -> Vec<(String, String)> {
         if value.is_empty() {
             break;
         }
-        attributes.push((key, value.to_string()));
+        attribute_bytes = tokenizer_budget.admit_attribute(
+            attributes.len(),
+            attribute_bytes,
+            key.len(),
+            value.len(),
+        )?;
+        attributes.push((key.to_ascii_lowercase(), value.to_string()));
         input = rest;
     }
-    attributes
+    Ok(attributes)
 }
 
 fn attribute_token(input: &str) -> (&str, &str) {
@@ -249,5 +289,25 @@ fn hex_nibble(value: u8) -> Option<u8> {
         b'a'..=b'f' => Some(value - b'a' + 10),
         b'A'..=b'F' => Some(value - b'A' + 10),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod optimization_tests {
+    use super::normalized_tag;
+
+    #[test]
+    fn normalized_tag_trims_and_folds_valid_ascii() {
+        assert_eq!(
+            normalized_tag("  Color_Accent  ").as_deref(),
+            Some("color_accent")
+        );
+    }
+
+    #[test]
+    fn normalized_tag_rejects_invalid_or_non_ascii_names() {
+        for tag in ["", "bad-tag", "bad tag", "café"] {
+            assert_eq!(normalized_tag(tag), None);
+        }
     }
 }

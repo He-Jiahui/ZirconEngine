@@ -1,4 +1,5 @@
 use super::super::data::FrameRect;
+use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;
 use super::visual_assets::{load_existing_icon_asset_pixels_for_size, raster_size_from_frame};
 
@@ -18,9 +19,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
     else {
         return false;
     };
-    let Some(image) =
-        load_existing_icon_asset_pixels_for_size(icon_name, target_width, target_height, tint)
-    else {
+    let Some(damage_frame) = intersect(rect, clip) else {
+        return false;
+    };
+    let Some(image) = load_existing_icon_asset_pixels_for_size(
+        icon_name,
+        target_width,
+        target_height,
+        tint,
+        Some(damage_frame),
+    ) else {
         return false;
     };
 

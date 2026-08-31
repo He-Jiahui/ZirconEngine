@@ -4,7 +4,6 @@ use toml::Value;
 use zircon_runtime_interface::ui::{dispatch::UiTemplateActionInvocation, template::UiActionRef};
 
 use super::plugin_documents::EditorPluginV2DocumentOwner;
-use super::projection::resolve_template_action;
 use super::template_action_slot::TemplateActionSlot;
 
 #[derive(Default)]
@@ -258,22 +257,13 @@ impl TemplateActionRegistry {
                     slot.document_id(),
                     slot.plugin_owner(),
                 ))?;
+        let compiled_action = slot.compiled_action()?;
         if let Some(expected_owner) = slot.plugin_owner() {
             (plugin_owner_for_document(slot.document_id()).as_ref() == Some(expected_owner))
-                .then(|| {
-                    resolve_template_action(
-                        slot.action_source(),
-                        slot.source_attributes(),
-                        control_attributes,
-                    )
-                })
+                .then(|| compiled_action.resolve(slot.source_attributes(), control_attributes))
                 .flatten()
         } else {
-            resolve_template_action(
-                slot.action_source(),
-                slot.source_attributes(),
-                control_attributes,
-            )
+            compiled_action.resolve(slot.source_attributes(), control_attributes)
         }
     }
 }
@@ -388,6 +378,7 @@ mod tests {
             route: Some("plugin.operation".to_string()),
             action: None,
             payload: BTreeMap::new(),
+            payload_missing_policy: Default::default(),
         }
     }
 
@@ -399,6 +390,7 @@ mod tests {
                 "entity".to_string(),
                 Value::String("=control.RowList.prop.selected_row_identity".to_string()),
             )]),
+            payload_missing_policy: Default::default(),
         }
     }
 

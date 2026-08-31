@@ -1,4 +1,5 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 
 use crate::ui::retained_host::HostShellContentScope;
 use crate::ui::workbench::view::ViewInstanceId;
@@ -12,9 +13,26 @@ pub(in crate::ui::retained_host::app) enum HostInvalidationScope {
     ShellContent(HostShellContentScope),
 }
 
+impl Hash for HostInvalidationScope {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Self::All => 0_u8.hash(state),
+            Self::View(view) => {
+                1_u8.hash(state);
+                view.hash(state);
+            }
+            Self::ShellContent(scope) => {
+                2_u8.hash(state);
+                scope.slot.hash(state);
+                scope.instance_id.hash(state);
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(in crate::ui::retained_host::app) struct HostInvalidationTransaction {
-    reasons_by_scope: BTreeMap<HostInvalidationScope, HostInvalidationMask>,
+    reasons_by_scope: HashMap<HostInvalidationScope, HostInvalidationMask>,
 }
 
 impl HostInvalidationTransaction {
@@ -64,6 +82,7 @@ impl HostInvalidationTransaction {
             }
             views.push(view.clone());
         }
+        views.sort_unstable();
         (!views.is_empty()).then_some(views)
     }
 
@@ -73,7 +92,7 @@ impl HostInvalidationTransaction {
         if self.reasons_by_scope.len() != 1 {
             return None;
         }
-        let (scope, reasons) = self.reasons_by_scope.first_key_value()?;
+        let (scope, reasons) = self.reasons_by_scope.iter().next()?;
         let allowed =
             HostInvalidationMask::SHELL_CONTENT.union(HostInvalidationMask::PRESENTATION_DATA);
         if !reasons.contains(HostInvalidationMask::SHELL_CONTENT)
@@ -101,3 +120,7 @@ impl HostInvalidationTransaction {
         consumed
     }
 }
+
+#[cfg(test)]
+#[path = "transaction/hash_index_tests.rs"]
+mod hash_index_tests;

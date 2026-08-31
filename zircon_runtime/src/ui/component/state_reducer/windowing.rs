@@ -60,50 +60,26 @@ pub(super) fn apply_visible_range(
         "item_count",
         "itemCount",
     ] {
-        super::set_value(state, property.to_string(), UiValue::Int(total_count));
+        set_static_value(state, property, UiValue::Int(total_count));
     }
-    super::set_value(
+    set_static_value(state, "viewport_start", UiValue::Int(viewport_start));
+    set_static_value(state, "viewport_count", UiValue::Int(viewport_count));
+    set_static_value(state, "visible_end", UiValue::Int(visible_end));
+    set_static_value(state, "visibleEnd", UiValue::Int(visible_end));
+    set_static_value(state, "requested_start", UiValue::Int(requested_start));
+    set_static_value(state, "requestedStart", UiValue::Int(requested_start));
+    set_static_value(state, "requested_count", UiValue::Int(requested_count));
+    set_static_value(state, "requestedCount", UiValue::Int(requested_count));
+    set_static_value(state, "overscan", UiValue::Int(overscan));
+    set_static_value(state, "overscanCount", UiValue::Int(overscan));
+    set_static_value(
         state,
-        "viewport_start".to_string(),
-        UiValue::Int(viewport_start),
-    );
-    super::set_value(
-        state,
-        "viewport_count".to_string(),
-        UiValue::Int(viewport_count),
-    );
-    super::set_value(state, "visible_end".to_string(), UiValue::Int(visible_end));
-    super::set_value(state, "visibleEnd".to_string(), UiValue::Int(visible_end));
-    super::set_value(
-        state,
-        "requested_start".to_string(),
-        UiValue::Int(requested_start),
-    );
-    super::set_value(
-        state,
-        "requestedStart".to_string(),
-        UiValue::Int(requested_start),
-    );
-    super::set_value(
-        state,
-        "requested_count".to_string(),
-        UiValue::Int(requested_count),
-    );
-    super::set_value(
-        state,
-        "requestedCount".to_string(),
-        UiValue::Int(requested_count),
-    );
-    super::set_value(state, "overscan".to_string(), UiValue::Int(overscan));
-    super::set_value(state, "overscanCount".to_string(), UiValue::Int(overscan));
-    super::set_value(
-        state,
-        "scroll_offset".to_string(),
+        "scroll_offset",
         UiValue::Float(viewport_start as f64 * item_extent),
     );
-    super::set_value(
+    set_static_value(
         state,
-        "scrollTop".to_string(),
+        "scrollTop",
         UiValue::Float(viewport_start as f64 * item_extent),
     );
     Ok(())
@@ -130,13 +106,22 @@ pub(super) fn apply_page_window(
     let page_start = page_index.saturating_mul(page_size).min(total_count);
     let page_end = page_start.saturating_add(page_size).min(total_count);
 
-    super::set_value(state, "page_size".to_string(), UiValue::Int(page_size));
-    super::set_value(state, "page_count".to_string(), UiValue::Int(page_count));
-    super::set_value(state, "page_index".to_string(), UiValue::Int(page_index));
-    super::set_value(state, "page_start".to_string(), UiValue::Int(page_start));
-    super::set_value(state, "page_end".to_string(), UiValue::Int(page_end));
-    super::set_value(state, "empty".to_string(), UiValue::Bool(total_count == 0));
+    set_static_value(state, "page_size", UiValue::Int(page_size));
+    set_static_value(state, "page_count", UiValue::Int(page_count));
+    set_static_value(state, "page_index", UiValue::Int(page_index));
+    set_static_value(state, "page_start", UiValue::Int(page_start));
+    set_static_value(state, "page_end", UiValue::Int(page_end));
+    set_static_value(state, "empty", UiValue::Bool(total_count == 0));
     Ok(())
+}
+
+fn set_static_value(state: &mut UiComponentState, property: &'static str, value: UiValue) {
+    state.reference_sources.remove(property);
+    if let Some(existing) = state.values.get_mut(property) {
+        *existing = value;
+    } else {
+        state.values.insert(property.to_string(), value);
+    }
 }
 
 fn int_value(state: &UiComponentState, property: &str, default: i64) -> i64 {

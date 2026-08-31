@@ -13,14 +13,14 @@ use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use crate::graphics::backend::RenderBackendConfig;
 use crate::graphics::runtime::{
-    renderdoc_capture_next_from_value, FrameHistoryValidationKey, ViewportFrameHistory,
+    FrameHistoryValidationKey, ViewportFrameHistory, renderdoc_capture_next_from_value,
 };
 use crate::graphics::visibility::VisibilityStaticIndex;
 use crate::graphics::{
-    debug_markers, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot, RenderPassStage,
-    VisibilityHistorySnapshot, WgpuRenderFramework,
+    FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot, RenderPassStage,
+    VisibilityHistorySnapshot, WgpuRenderFramework, debug_markers,
 };
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 
 #[test]
 fn graphics_debugger_status_defaults_to_idle_for_wgpu() {
@@ -59,18 +59,26 @@ fn render_backend_config_honors_renderdoc_wgpu_env_selection() {
     assert_eq!(dx12.backends, wgpu::Backends::DX12);
     assert_eq!(vulkan.backends, wgpu::Backends::VULKAN);
     assert_eq!(gl.backends, wgpu::Backends::GL);
-    assert!(!flags_disabled
-        .instance_flags
-        .contains(wgpu::InstanceFlags::DEBUG));
-    assert!(!flags_disabled
-        .instance_flags
-        .contains(wgpu::InstanceFlags::VALIDATION));
-    assert!(flags_enabled
-        .instance_flags
-        .contains(wgpu::InstanceFlags::DEBUG));
-    assert!(flags_enabled
-        .instance_flags
-        .contains(wgpu::InstanceFlags::VALIDATION));
+    assert!(
+        !flags_disabled
+            .instance_flags
+            .contains(wgpu::InstanceFlags::DEBUG)
+    );
+    assert!(
+        !flags_disabled
+            .instance_flags
+            .contains(wgpu::InstanceFlags::VALIDATION)
+    );
+    assert!(
+        flags_enabled
+            .instance_flags
+            .contains(wgpu::InstanceFlags::DEBUG)
+    );
+    assert!(
+        flags_enabled
+            .instance_flags
+            .contains(wgpu::InstanceFlags::VALIDATION)
+    );
 }
 
 #[test]
@@ -135,10 +143,12 @@ fn renderdoc_pending_capture_clears_when_armed_viewport_is_destroyed() {
     let status = framework.query_graphics_debugger_status().unwrap();
     assert!(!status.capture_pending);
     assert!(!status.active_capture);
-    assert!(status
-        .last_error
-        .as_deref()
-        .is_some_and(|message| message.contains("destroyed")));
+    assert!(
+        status
+            .last_error
+            .as_deref()
+            .is_some_and(|message| message.contains("destroyed"))
+    );
 }
 
 #[test]
@@ -158,6 +168,7 @@ fn renderdoc_debug_marker_registry_covers_capture_timeline() {
             "zircon::TextureWritebackConversion",
             "zircon::Overlay",
             "zircon::UI",
+            "zircon::Present",
             "zircon::Readback",
         ]
     );
@@ -172,6 +183,10 @@ fn renderdoc_debug_marker_registry_covers_capture_timeline() {
     assert_eq!(
         debug_markers::marker_for_render_pass_stage(RenderPassStage::Ui),
         Some(debug_markers::RENDERDOC_MARKER_UI)
+    );
+    assert_eq!(
+        debug_markers::marker_for_render_pass_stage(RenderPassStage::Present),
+        Some(debug_markers::RENDERDOC_MARKER_PRESENT)
     );
     assert_eq!(
         debug_markers::marker_for_render_pass_stage(RenderPassStage::Overlay),
@@ -269,14 +284,16 @@ fn graphics_debugger_capture_request_is_consumed_when_matching_submit_fails_befo
     assert!(!status.capture_pending);
     assert!(!status.active_capture);
     assert_eq!(status.last_capture_frame, None);
-    assert!(status
-        .last_error
-        .as_deref()
-        .is_some_and(|message| message.contains("core pipeline mismatch")));
+    assert!(
+        status
+            .last_error
+            .as_deref()
+            .is_some_and(|message| message.contains("core pipeline mismatch"))
+    );
 }
 
 #[test]
-fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
+fn frame_history_validation_key_keeps_camera_and_mesh_motion_compatible() {
     let viewport_size = UVec2::new(320, 240);
     let pipeline = RenderPipelineHandle::new(1);
     let bindings = vec![FrameHistoryBinding::read_write(
@@ -315,7 +332,7 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
     };
     let moved_camera_extract =
         extract_with_camera_and_mesh(moved_camera, Transform::from_translation(Vec3::ZERO));
-    assert!(!history.is_compatible(
+    assert!(history.is_compatible(
         viewport_size,
         viewport_size,
         pipeline,
@@ -331,7 +348,7 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
         Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
     );
     assert!(
-        !history.is_compatible(
+        history.is_compatible(
             viewport_size,
             viewport_size,
             pipeline,
@@ -345,7 +362,7 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
 }
 
 #[test]
-fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
+fn frame_history_validation_key_keeps_lighting_and_post_process_changes_compatible() {
     let viewport_size = UVec2::new(320, 240);
     let pipeline = RenderPipelineHandle::new(1);
     let bindings = vec![FrameHistoryBinding::read_write(
@@ -383,7 +400,7 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
             mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         });
-    assert!(!history.is_compatible(
+    assert!(history.is_compatible(
         viewport_size,
         viewport_size,
         pipeline,
@@ -404,12 +421,92 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
         gamma: 1.0,
         tint: Vec3::new(1.0, 0.95, 0.9),
     };
-    assert!(!history.is_compatible(
+    assert!(history.is_compatible(
         viewport_size,
         viewport_size,
         pipeline,
         &bindings,
         &FrameHistoryValidationKey::from_extract(&graded_extract, Vec::new()),
+    ));
+}
+
+#[test]
+fn frame_history_validation_key_rejects_structural_contract_changes() {
+    let viewport_size = UVec2::new(320, 240);
+    let pipeline = RenderPipelineHandle::new(1);
+    let bindings = vec![FrameHistoryBinding::read_write(
+        FrameHistorySlot::TaaSceneColor,
+    )];
+    let base_extract = extract_with_camera_and_mesh(
+        ViewportCameraSnapshot::default(),
+        Transform::from_translation(Vec3::ZERO),
+    );
+    let history = ViewportFrameHistory::new(
+        FrameHistoryHandle::new(1),
+        viewport_size,
+        viewport_size,
+        pipeline,
+        1,
+        bindings.clone(),
+        VisibilityHistorySnapshot::default(),
+        VisibilityStaticIndex::default(),
+        VisibilityStaticIndex::default(),
+        Arc::new(FrameHistoryValidationKey::from_extract(
+            &base_extract,
+            vec!["temporal".to_string(), "velocity".to_string()],
+        )),
+    );
+
+    let mut next_world_generation = base_extract.clone();
+    next_world_generation.world = RenderWorldSnapshotHandle::new(7).with_generation(99);
+    assert!(history.is_compatible(
+        viewport_size,
+        viewport_size,
+        pipeline,
+        &bindings,
+        &FrameHistoryValidationKey::from_extract(
+            &next_world_generation,
+            vec!["velocity".to_string(), "temporal".to_string()],
+        ),
+    ));
+
+    let mut switched_world = base_extract.clone();
+    switched_world.world = RenderWorldSnapshotHandle::new(8);
+    assert!(!history.is_compatible(
+        viewport_size,
+        viewport_size,
+        pipeline,
+        &bindings,
+        &FrameHistoryValidationKey::from_extract(
+            &switched_world,
+            vec!["temporal".to_string(), "velocity".to_string()],
+        ),
+    ));
+
+    let projection_changed = extract_with_camera_and_mesh(
+        ViewportCameraSnapshot {
+            projection_mode: ProjectionMode::Orthographic,
+            ..ViewportCameraSnapshot::default()
+        },
+        Transform::from_translation(Vec3::ZERO),
+    );
+    assert!(!history.is_compatible(
+        viewport_size,
+        viewport_size,
+        pipeline,
+        &bindings,
+        &FrameHistoryValidationKey::from_extract(
+            &projection_changed,
+            vec!["temporal".to_string(), "velocity".to_string()],
+        ),
+    ));
+
+    assert!(!history.is_compatible(
+        viewport_size,
+        viewport_size,
+        pipeline,
+        &bindings,
+        &FrameHistoryValidationKey::from_extract(&base_extract, vec!["temporal".to_string()]),
     ));
 }
 
@@ -424,11 +521,13 @@ fn temporal_history_requires_explicit_compile_opt_in() {
     framework
         .submit_frame_extract(viewport, empty_extract())
         .unwrap();
-    assert!(!framework
-        .query_stats()
-        .unwrap()
-        .last_effective_features
-        .contains(&"temporal".to_string()));
+    assert!(
+        !framework
+            .query_stats()
+            .unwrap()
+            .last_effective_features
+            .contains(&"temporal".to_string())
+    );
 
     framework
         .set_quality_profile(
@@ -439,11 +538,13 @@ fn temporal_history_requires_explicit_compile_opt_in() {
     framework
         .submit_frame_extract(viewport, empty_extract())
         .unwrap();
-    assert!(framework
-        .query_stats()
-        .unwrap()
-        .last_effective_features
-        .contains(&"temporal".to_string()));
+    assert!(
+        framework
+            .query_stats()
+            .unwrap()
+            .last_effective_features
+            .contains(&"temporal".to_string())
+    );
 }
 
 fn empty_extract() -> RenderFrameExtract {

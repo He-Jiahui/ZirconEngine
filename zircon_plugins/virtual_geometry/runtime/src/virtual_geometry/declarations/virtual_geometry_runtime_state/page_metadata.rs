@@ -44,20 +44,18 @@ impl VirtualGeometryRuntimeState {
             .get(&page_id)
             .cloned()
             .unwrap_or_default();
-        let mut descendants = Vec::new();
+        let mut descendants = BTreeSet::new();
 
         while let Some(candidate_page_id) = stack.pop() {
-            if descendants.contains(&candidate_page_id) {
+            if !descendants.insert(candidate_page_id) {
                 continue;
             }
-            descendants.push(candidate_page_id);
             if let Some(child_page_ids) = self.page_child_pages().get(&candidate_page_id) {
                 stack.extend(child_page_ids.iter().copied());
             }
         }
 
-        descendants.sort_unstable();
-        descendants
+        descendants.into_iter().collect()
     }
 
     pub(in crate::virtual_geometry) fn replace_page_parent_pages(
@@ -112,6 +110,10 @@ fn page_child_pages_from_parent_pages(
     }
     page_child_pages
 }
+
+#[cfg(test)]
+#[path = "page_metadata/descendant_allocation_tests.rs"]
+mod descendant_allocation_tests;
 
 #[cfg(test)]
 mod tests {

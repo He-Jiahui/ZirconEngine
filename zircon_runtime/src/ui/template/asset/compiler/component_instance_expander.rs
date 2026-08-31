@@ -7,6 +7,11 @@ use zircon_runtime_interface::ui::template::{
     UiComponentDefinition, UiNodeDefinition, UiNodeDefinitionKind, UiTemplateNode,
 };
 
+use super::binding_param_resolver::{resolve_node_binding_params, typed_component_params};
+use super::control_scope::{
+    resolve_binding_control_scope, resolve_optional_control_id, retarget_expanded_root_control_id,
+    UiComponentControlScope,
+};
 use super::ui_document_compiler::{CompilationArtifacts, UiDocumentCompiler};
 use super::value_normalizer::{
     append_classes, merge_value_maps, merge_value_maps_resolved, normalize_layout, resolve_value,
@@ -23,6 +28,7 @@ impl UiDocumentCompiler {
         caller_document: &UiAssetDocument,
         caller_tokens: &BTreeMap<String, Value>,
         params: &BTreeMap<String, Value>,
+        caller_scope: Option<&UiComponentControlScope>,
         artifacts: &mut CompilationArtifacts,
     ) -> Result<Vec<UiTemplateNode>, UiAssetError> {
         let component = document.components.get(component_name).ok_or_else(|| {
@@ -40,6 +46,20 @@ impl UiDocumentCompiler {
         let component_tokens = super::value_normalizer::compose_tokens(tokens, &document.tokens);
         let component_params =
             resolve_component_params(component, &instance_node.params, &component_tokens, params);
+        let component_binding_params =
+            typed_component_params(&component.params, &component_params, &document.asset.id)?;
+        let mut component_root = component.root.clone();
+        let component_scope = UiComponentControlScope::child(
+            caller_scope,
+            &instance_node.node_id,
+            component.root.control_id.as_deref(),
+            instance_node.control_id.as_deref(),
+        );
+        resolve_node_binding_params(
+            &mut component_root,
+            &component_binding_params,
+            &document.asset.id,
+        )?;
         let slot_placeholder_attributes =
             component_slot_placeholder_attributes(component, &component_tokens, &component_params);
         let mut fills = BTreeMap::new();
@@ -51,6 +71,7 @@ impl UiDocumentCompiler {
                 caller_tokens,
                 params,
                 None,
+                caller_scope,
                 artifacts,
             )?;
             if let Some(placeholder_attributes) = slot_placeholder_attributes.get(&mount_name) {
@@ -64,10 +85,11 @@ impl UiDocumentCompiler {
 
         let mut roots = self.expand_node(
             document,
-            &component.root,
+            &component_root,
             &component_tokens,
             &component_params,
             Some(&fills),
+            Some(&component_scope),
             artifacts,
         )?;
         if roots.len() != 1 {
@@ -78,7 +100,14 @@ impl UiDocumentCompiler {
         }
 
         let mut root = roots.remove(0);
-        decorate_component_root(&mut root, instance_node, tokens, params);
+        decorate_component_root(
+            &mut root,
+            instance_node,
+            tokens,
+            params,
+            caller_scope,
+            &caller_document.asset.id,
+        )?;
         Ok(vec![root])
     }
 }
@@ -127,12 +156,22 @@ fn decorate_component_root(
     instance_node: &UiNodeDefinition,
     tokens: &BTreeMap<String, Value>,
     params: &BTreeMap<String, Value>,
-) {
-    if let Some(control_id) = &instance_node.control_id {
-        root.control_id = Some(control_id.clone());
+    control_scope: Option<&UiComponentControlScope>,
+    asset_id: &str,
+) -> Result<(), UiAssetError> {
+    if let Some(control_id) =
+        resolve_optional_control_id(control_scope, instance_node.control_id.as_deref())
+    {
+        retarget_expanded_root_control_id(root, control_id, asset_id)?;
     }
     append_classes(&mut root.classes, &instance_node.classes);
-    root.bindings.extend(instance_node.bindings.clone());
+    let instance_bindings =
+        resolve_binding_control_scope(instance_node.bindings.clone(), control_scope, asset_id)?;
+    root.binding_source_asset_ids.extend(std::iter::repeat_n(
+        asset_id.to_string(),
+        instance_bindings.len(),
+    ));
+    root.bindings.extend(instance_bindings);
     merge_instance_props_override(&mut root.attributes, instance_node, tokens, params);
     merge_instance_layout_override(&mut root.style_overrides, instance_node, tokens, params);
     let inline = resolve_value_map(&instance_node.style_overrides.self_values, tokens, params);
@@ -144,6 +183,7 @@ fn decorate_component_root(
         params,
     );
     apply_instance_contract_overrides(root, instance_node);
+    Ok(())
 }
 
 /// Captures the layout contract authored on each component slot placeholder.

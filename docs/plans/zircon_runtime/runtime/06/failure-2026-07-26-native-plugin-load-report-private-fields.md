@@ -71,6 +71,13 @@ cargo +1.94.1 test -p zircon_runtime --test runtime_text_multilingual_product_fr
 - authority 外的 live-host 诊断路径及 registration/behavior/bridge 测试夹具已全部迁移到受控 accessors 或 `push_loaded`；私有化前置的 scoped format、diff 与 delayed-patch apply 检查均为绿色，但这不是 Cargo 或 Text01 framebuffer 的终态证据。
 - 同次审查将一项只校验输出和计数器的测试由“线性”性能断言更名为正确性/确定性断言，避免它对复杂度给出未证明的结论。
 - 静态格式与 scoped diff 检查已完成；受管 focused native report 以及原始 Text01 WGPU framebuffer gate 尚未产生终态证据，failure 保持 `open`。
+- 2026-08-24 current-source owner hard cut 已完成：`NativePluginLoadReport` 的
+  `discovered`、`loaded`、`diagnostics` 与 `projection` 全部收回 report module 私有；
+  discovery authority 只通过 `from_discovery` 与 `push_diagnostic` 构造/变异 report，
+  discovery regression 只通过 `discovered()` 读取。新增 owner-boundary source contract
+  先对四个 visibility、authority literal 与 direct diagnostic mutation 共 6 项 RED，修复后
+  6 项清零；exact-four `rustfmt --check` 与 `git diff --check` 通过。受管 Rust 与 Text01
+  framebuffer 仍待 terminal evidence，因此本记录继续保持 `open`。
 
 ## 修复结果与回传
 

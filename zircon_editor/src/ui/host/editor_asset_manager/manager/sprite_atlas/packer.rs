@@ -267,7 +267,7 @@ impl From<SpriteAtlasBuildError> for AssetImportError {
 struct PackedSourceRects {
     width: u32,
     height: u32,
-    locations: BTreeMap<usize, PackedSourceLocation>,
+    locations: Vec<PackedSourceLocation>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -354,19 +354,22 @@ fn pack_source_rects(
             &contains_smallest_box,
         ) {
             Ok(placements) => {
-                let locations = placements
-                    .packed_locations()
-                    .iter()
-                    .map(|(index, (_, location))| {
-                        (
-                            *index,
-                            PackedSourceLocation {
-                                x: location.x(),
-                                y: location.y(),
-                                width: location.width(),
-                                height: location.height(),
-                            },
-                        )
+                let mut locations = vec![None; sources.len()];
+                for (index, (_, location)) in placements.packed_locations() {
+                    let slot = locations
+                        .get_mut(*index)
+                        .expect("rectangle-pack preserves the source index domain");
+                    *slot = Some(PackedSourceLocation {
+                        x: location.x(),
+                        y: location.y(),
+                        width: location.width(),
+                        height: location.height(),
+                    });
+                }
+                let locations = locations
+                    .into_iter()
+                    .map(|location| {
+                        location.expect("rectangle-pack returns a location for each source")
                     })
                     .collect();
                 return Ok(PackedSourceRects {
@@ -456,6 +459,120 @@ mod tests {
     use zircon_runtime::asset::AssetUri;
 
     use super::*;
+
+    #[test]
+    fn editor571_packed_locations_use_dense_source_index_storage() {
+        let production = include_str!("packer.rs");
+        let dense_storage = ["locations: ", "Vec<PackedSourceLocation>"].concat();
+        let tree_storage = ["locations: ", "BTreeMap<usize, PackedSourceLocation>"].concat();
+
+        assert!(production.contains(&dense_storage));
+        assert!(!production.contains(&tree_storage));
+    }
+
+    #[test]
+    #[ignore = "release-only dense sprite placement lookup benchmark"]
+    fn editor571_dense_sprite_placement_lookup_release_benchmark_evidence() {
+        use std::hint::black_box;
+        use std::time::Instant;
+
+        const ENTRY_COUNT: usize = 4_096;
+        const ROUNDS: usize = 128;
+        const SAMPLE_PAIRS: usize = 21;
+
+        fn map_lookup(locations: &BTreeMap<usize, PackedSourceLocation>) -> u64 {
+            let mut checksum = 0_u64;
+            for _ in 0..ROUNDS {
+                for index in 0..ENTRY_COUNT {
+                    let location = locations.get(&black_box(index)).unwrap();
+                    checksum = checksum.wrapping_add(u64::from(location.x));
+                }
+            }
+            checksum
+        }
+
+        fn dense_lookup(locations: &[PackedSourceLocation]) -> u64 {
+            let mut checksum = 0_u64;
+            for _ in 0..ROUNDS {
+                for index in 0..ENTRY_COUNT {
+                    let location = locations.get(black_box(index)).unwrap();
+                    checksum = checksum.wrapping_add(u64::from(location.x));
+                }
+            }
+            checksum
+        }
+
+        fn measure(operation: impl FnOnce() -> u64) -> (u128, u64) {
+            let started = Instant::now();
+            let checksum = operation();
+            (started.elapsed().as_nanos().max(1), checksum)
+        }
+
+        fn percentile(samples: &[u128], percentile: usize) -> u128 {
+            let mut sorted = samples.to_vec();
+            sorted.sort_unstable();
+            sorted[(sorted.len() * percentile).div_ceil(100).saturating_sub(1)]
+        }
+
+        fn raw(samples: &[u128]) -> String {
+            samples
+                .iter()
+                .map(u128::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        }
+
+        let dense_locations = (0..ENTRY_COUNT)
+            .map(|index| PackedSourceLocation {
+                x: index as u32,
+                y: 0,
+                width: 1,
+                height: 1,
+            })
+            .collect::<Vec<_>>();
+        let tree_locations = dense_locations
+            .iter()
+            .copied()
+            .enumerate()
+            .collect::<BTreeMap<_, _>>();
+
+        let (_, tree_checksum) = measure(|| map_lookup(&tree_locations));
+        let (_, dense_checksum) = measure(|| dense_lookup(&dense_locations));
+        assert_eq!(tree_checksum, dense_checksum);
+
+        for _ in 0..4 {
+            black_box(measure(|| map_lookup(&tree_locations)));
+            black_box(measure(|| dense_lookup(&dense_locations)));
+        }
+
+        let mut tree_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut dense_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                tree_samples.push(measure(|| map_lookup(&tree_locations)).0);
+                dense_samples.push(measure(|| dense_lookup(&dense_locations)).0);
+            } else {
+                dense_samples.push(measure(|| dense_lookup(&dense_locations)).0);
+                tree_samples.push(measure(|| map_lookup(&tree_locations)).0);
+            }
+        }
+
+        let tree_p95_ns = percentile(&tree_samples, 95);
+        let dense_p95_ns = percentile(&dense_samples, 95);
+        println!(
+            "EDITOR571_DENSE_PLACEMENT_LOOKUP_BENCH_V1 entry_count={ENTRY_COUNT} \
+             rounds={ROUNDS} sample_pairs={SAMPLE_PAIRS} pair_order=alternating_tree_even \
+             tree_p95_ns={tree_p95_ns} dense_p95_ns={dense_p95_ns} tree_raw_ns={} \
+             dense_raw_ns={}",
+            raw(&tree_samples),
+            raw(&dense_samples),
+        );
+        assert!(
+            dense_p95_ns.saturating_mul(4) <= tree_p95_ns,
+            "dense placement lookup must reduce P95 by at least 75%: \
+             tree={tree_p95_ns}ns dense={dense_p95_ns}ns"
+        );
+    }
 
     fn source(name: &str, width: u32, height: u32, color: [u8; 4]) -> SpriteAtlasSourceImage {
         let mut rgba = Vec::new();

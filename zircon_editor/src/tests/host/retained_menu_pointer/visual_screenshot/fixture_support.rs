@@ -204,7 +204,7 @@ pub(super) fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
                 ResourceKind::Prefab,
                 false,
             ),
-        ],
+        ].into(),
         selected_folder_id: Some("folder-ui".to_string()),
         selected_asset_uuid: Some("asset-ui-layout".to_string()),
         selection: AssetSelectionSnapshot {

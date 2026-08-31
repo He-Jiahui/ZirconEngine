@@ -54,7 +54,7 @@ impl NetContentDownloadRuntimeManager {
         };
         let core = core
             .upgrade()
-            .ok_or_else(|| CoreError::ServiceUnavailable(handle.service.to_string()))?;
+            .ok_or_else(|| CoreError::ServiceUnavailable(handle.service_name().to_string()))?;
         resolve_manager_service(&core, handle.clone()).map(Some)
     }
 }

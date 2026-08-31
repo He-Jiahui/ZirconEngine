@@ -242,7 +242,8 @@ fn neutral_overlay_packet_renders_scene_gizmo_without_runtime_world_context() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
     let viewport_size = UVec2::new(320, 240);
-    let framework = WgpuRenderFramework::new(asset_runtime.access()).unwrap();
+    let framework =
+        WgpuRenderFramework::new(asset_runtime.access(), asset_runtime.worker_pool()).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();

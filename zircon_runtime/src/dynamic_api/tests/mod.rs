@@ -13,3 +13,4 @@ mod session_profiles;
 mod structure;
 mod support;
 mod viewport;
+mod viewport_pick;

@@ -17,6 +17,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_oit_mesh_pipeline
             buffers: &[GpuMeshVertex::layout()],
         },
         primitive: wgpu::PrimitiveState {
+            front_face: super::mesh_front_face(key),
             cull_mode: (!key.double_sided).then_some(wgpu::Face::Back),
             ..Default::default()
         },

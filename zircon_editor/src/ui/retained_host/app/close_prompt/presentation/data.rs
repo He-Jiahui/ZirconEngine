@@ -12,9 +12,9 @@ pub(super) fn host_prompt_data(
         visible: true,
         target_window_id: target_window_id(&prompt.target).into(),
         title: prompt_title(&prompt.target).into(),
-        message: prompt_message(prompt.dirty_views.len()).into(),
-        details: dirty_details(&prompt.dirty_views).into(),
-        can_save: false,
+        message: prompt_message(prompt.dirty_participant_count()).into(),
+        details: dirty_details(&prompt.dirty_views, prompt.has_dirty_project_scene()).into(),
+        can_save: !prompt.save_in_flight(),
         overlay_frame: FrameRect {
             x: 0.0,
             y: 0.0,

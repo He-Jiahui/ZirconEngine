@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::core::framework::state::{OnEnter, OnExit, OnTransition};
+use crate::core::runtime::state_machine::{OnEnter, OnExit, OnTransition};
 use crate::core::CoreRuntime;
 
 use super::GameFlow;
@@ -118,8 +118,8 @@ fn state_hook_index_preserves_initial_and_identity_transition_semantics() {
 
 #[test]
 fn state_machine_uses_canonical_hash_bucket_hook_index() {
-    let machine_source = include_str!("../../core/framework/state/machine.rs");
-    let hook_index_source = include_str!("../../core/framework/state/hook_index.rs");
+    let machine_source = include_str!("../../core/runtime/state_machine/machine.rs");
+    let hook_index_source = include_str!("../../core/runtime/state_machine/hook_index.rs");
 
     assert!(machine_source.contains("hooks: StateHookIndex<T>"));
     assert!(!machine_source.contains("on_enter: Vec<"));

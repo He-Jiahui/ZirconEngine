@@ -44,24 +44,16 @@ pub(super) fn append_chip_variant_tokens(
         append_variant_token(variant, "deletable");
         append_variant_token(variant, "hasDeleteIcon");
     }
-    if attributes
-        .get("deleteIcon")
-        .or_else(|| attributes.get("delete_icon"))
-        .and_then(value_as_string)
+    if borrowed_chip_string_attribute(attributes, &["deleteIcon", "delete_icon"])
         .is_some_and(|value| !value.is_empty())
     {
         append_variant_token(variant, "hasDeleteIcon");
     }
-    if attributes
-        .get("icon")
-        .and_then(value_as_string)
-        .is_some_and(|value| !value.is_empty())
+    if borrowed_chip_string_attribute(attributes, &["icon"]).is_some_and(|value| !value.is_empty())
     {
         append_variant_token(variant, "hasIcon");
     }
-    if attributes
-        .get("avatar")
-        .and_then(value_as_string)
+    if borrowed_chip_string_attribute(attributes, &["avatar"])
         .is_some_and(|value| !value.is_empty())
     {
         append_variant_token(variant, "hasAvatar");
@@ -74,6 +66,16 @@ pub(super) fn append_chip_variant_tokens(
     {
         append_variant_token(variant, "focusVisible");
     }
+}
+
+fn borrowed_chip_string_attribute<'a>(
+    attributes: &'a BTreeMap<String, toml::Value>,
+    names: &[&str],
+) -> Option<&'a str> {
+    names
+        .iter()
+        .find_map(|name| attributes.get(*name))
+        .and_then(toml::Value::as_str)
 }
 
 fn chip_is_deletable(attributes: &BTreeMap<String, toml::Value>) -> bool {
@@ -98,3 +100,7 @@ fn chip_has_non_empty_attribute(
         })
     })
 }
+
+#[cfg(test)]
+#[path = "chip/borrowed_presence_tests.rs"]
+mod borrowed_presence_tests;

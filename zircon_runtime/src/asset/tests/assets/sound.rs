@@ -1,5 +1,5 @@
 use crate::asset::{AssetUri, SoundAsset, SoundAssetError};
-use crate::core::framework::audio::AudioChannelLayout;
+use crate::core::framework::audio::{AudioChannelLayout, AudioSpeakerChannel};
 
 const WAVE_FORMAT_EXTENSIBLE: u16 = 0xfffe;
 const PCM_SUBFORMAT_GUID: [u8; 16] = [
@@ -9,6 +9,8 @@ const SPEAKER_FRONT_LEFT: u32 = 0x0000_0001;
 const SPEAKER_FRONT_RIGHT: u32 = 0x0000_0002;
 const SPEAKER_FRONT_CENTER: u32 = 0x0000_0004;
 const SPEAKER_LOW_FREQUENCY: u32 = 0x0000_0008;
+const SPEAKER_BACK_LEFT: u32 = 0x0000_0010;
+const SPEAKER_BACK_RIGHT: u32 = 0x0000_0020;
 const SPEAKER_SIDE_LEFT: u32 = 0x0000_0200;
 const SPEAKER_SIDE_RIGHT: u32 = 0x0000_0400;
 const SPEAKER_TOP_CENTER: u32 = 0x0000_0800;
@@ -54,6 +56,99 @@ fn sound_asset_wav_extensible_preserves_side_bed_channel_layout() {
         AudioChannelLayout::surround_5_1_side()
     );
     assert_eq!(asset.frame_count(), 1);
+}
+
+#[test]
+fn sound_wav_channel_layout_preserves_named_masks_and_custom_fallback() {
+    let named_layouts = [
+        (SPEAKER_FRONT_CENTER, AudioChannelLayout::mono()),
+        (
+            SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT,
+            AudioChannelLayout::stereo(),
+        ),
+        (
+            SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT,
+            AudioChannelLayout::quad(),
+        ),
+        (
+            SPEAKER_FRONT_LEFT
+                | SPEAKER_FRONT_RIGHT
+                | SPEAKER_FRONT_CENTER
+                | SPEAKER_BACK_LEFT
+                | SPEAKER_BACK_RIGHT,
+            AudioChannelLayout::surround_5_0(),
+        ),
+        (
+            SPEAKER_FRONT_LEFT
+                | SPEAKER_FRONT_RIGHT
+                | SPEAKER_FRONT_CENTER
+                | SPEAKER_LOW_FREQUENCY
+                | SPEAKER_BACK_LEFT
+                | SPEAKER_BACK_RIGHT,
+            AudioChannelLayout::surround_5_1(),
+        ),
+        (
+            SPEAKER_FRONT_LEFT
+                | SPEAKER_FRONT_RIGHT
+                | SPEAKER_FRONT_CENTER
+                | SPEAKER_LOW_FREQUENCY
+                | SPEAKER_SIDE_LEFT
+                | SPEAKER_SIDE_RIGHT,
+            AudioChannelLayout::surround_5_1_side(),
+        ),
+        (
+            SPEAKER_FRONT_LEFT
+                | SPEAKER_FRONT_RIGHT
+                | SPEAKER_FRONT_CENTER
+                | SPEAKER_BACK_LEFT
+                | SPEAKER_BACK_RIGHT
+                | SPEAKER_SIDE_LEFT
+                | SPEAKER_SIDE_RIGHT,
+            AudioChannelLayout::surround_7_0(),
+        ),
+        (
+            SPEAKER_FRONT_LEFT
+                | SPEAKER_FRONT_RIGHT
+                | SPEAKER_FRONT_CENTER
+                | SPEAKER_LOW_FREQUENCY
+                | SPEAKER_BACK_LEFT
+                | SPEAKER_BACK_RIGHT
+                | SPEAKER_SIDE_LEFT
+                | SPEAKER_SIDE_RIGHT,
+            AudioChannelLayout::surround_7_1(),
+        ),
+    ];
+    for (channel_mask, expected) in named_layouts {
+        let channel_count = u16::try_from(channel_mask.count_ones()).unwrap();
+        let asset = SoundAsset::from_wav_bytes(
+            &AssetUri::parse("res://audio/named-layout.wav").unwrap(),
+            &extensible_pcm_wav_bytes(
+                channel_count,
+                channel_mask,
+                &vec![0; usize::from(channel_count) * 2],
+            ),
+        )
+        .unwrap();
+
+        assert_eq!(asset.channel_layout, expected);
+    }
+
+    let custom_mask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_CENTER;
+    let custom = SoundAsset::from_wav_bytes(
+        &AssetUri::parse("res://audio/custom-layout.wav").unwrap(),
+        &extensible_pcm_wav_bytes(2, custom_mask, &[0; 4]),
+    )
+    .unwrap();
+
+    assert_eq!(custom.channel_layout.name, "wav_extensible_00000005");
+    assert_eq!(custom.channel_layout.channel_count, 2);
+    assert_eq!(
+        custom.channel_layout.speakers,
+        vec![
+            AudioSpeakerChannel::FrontLeft,
+            AudioSpeakerChannel::FrontCenter,
+        ]
+    );
 }
 
 #[test]

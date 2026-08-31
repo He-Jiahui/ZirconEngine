@@ -1,6 +1,11 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections.rs
+  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/resources.rs
+  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/staging.rs
+  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/pending.rs
+  - zircon_runtime/src/graphics/backend/render_backend/render_backend_diagnostics.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/production/device/diagnostics.rs
   - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_region.rs
   - zircon_runtime/src/graphics/backend/render_backend/read_buffer_bytes.rs
   - zircon_runtime/src/graphics/backend/render_backend/mod.rs
@@ -8,6 +13,9 @@ related_code:
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_readback.rs
 implementation_files:
   - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections.rs
+  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/resources.rs
+  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/staging.rs
+  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/pending.rs
   - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/graphics/backend/mod.rs
 plan_sources:
@@ -26,23 +34,27 @@ doc_type: module-detail
 
 ## Purpose
 
-`read_ibl_bake_artifact_sections.rs` is the WGPU acquisition bridge between backend resources and the render-core artifact readback DTO. It accepts an `IblBakeArtifactDescriptor` plus the WGPU resources that contain PMREM, SH9, and optional IEM outputs, then returns `IblBakeArtifactReadbackSections`.
+`read_ibl_bake_artifact_sections.rs` is the WGPU acquisition bridge between backend resources and the render-core artifact readback DTO. The product path accepts an `IblBakeArtifactDescriptor` plus the WGPU resources that contain PMREM, SH9, and optional IEM outputs, registers bounded section requests with the central product diagnostic scope, and returns a CPU-only pending aggregator. The synchronous section reader remains test-only.
 
 ## Contract
 
 `IblBakeArtifactWgpuReadbackResources` names the three optional WGPU resource slots:
 
 - PMREM `Rgba16Float` cubemap texture,
-- SH9 compute-output buffer using `array<vec4<f32>, 9>`,
+- SH9 compute-output buffer using `array<vec4<f32>, 9>` plus the exact source `offset` and `size` window,
 - optional IEM `Rgba16Float` irradiance cubemap texture.
 
-`read_ibl_bake_artifact_wgpu_sections(...)` reads only the resources required by the descriptor contents. PMREM uses `read_texture_rgba16float_cube_mip_chain(...)` with the descriptor face size and mip count. SH9 uses `read_buffer_sh9_f32x4_bytes(...)`, which returns the 144-byte layout required by `IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES`. IEM uses the fixed `SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE` and a single mip.
+`request_ibl_bake_artifact_wgpu_readback(...)` first resolves every descriptor-required resource so a missing PMREM, SH9, or IEM input cannot leave a partially registered artifact. It then registers PMREM as six face-major/mip-major `Rgba16Float` regions, SH9 as one aligned buffer request using the supplied source window, and IEM as six single-mip `Rgba16Float` faces. The SH9 window is preserved into both staging `copy_buffer_to_buffer` and the product diagnostic buffer admission; it is never silently replaced with offset `0`. All requests join the active product diagnostic batch, its serial scene tail, and its scene submission ticket.
 
-The bridge does not validate section lengths itself. It returns `IblBakeArtifactReadbackSections`, leaving descriptor-sized section validation and payload assembly to `ibl_bake_artifact_readback.rs`, and cache writeback to `asset/artifact/ibl_bake_artifact_runtime_writeback.rs`.
+`IblBakeArtifactWgpuPendingReadback` holds no WGPU buffer, queue, map callback queue, or poll authority. Router callbacks validate every slot and expected byte length, preserve face-major/mip-major ordering, and record the first terminal error. Completion produces `IblBakeArtifactReadbackSections` only after every required slot terminates; any rejection, map failure, size mismatch, invalid slot, or duplicate delivery fails the entire artifact so partial cache bytes are never published. Cache writeback remains owned by `asset/artifact/ibl_bake_artifact_runtime_writeback.rs`.
+
+The SH9 resource owner validates the descriptor byte length, checked `offset + size`, and physical buffer bounds before either synchronous staging or product diagnostic admission. The native `Rgba16Float` diagnostic source validates a single-sample D2 texture, exact format, `COPY_SRC`, mip/layer bounds, non-zero extent, and eight bytes per texel before admission. It only appends copy commands to the caller-owned diagnostic tail. Submission and completion remain owned by `WgpuRenderDevice`.
 
 The 2026-07-08 seam guard writes a synthetic seam-stress PMREM payload into an actual `Rgba16Float` six-layer WGPU texture, writes the matching SH9 bytes into a WGPU buffer, then reads both resources through `read_ibl_bake_artifact_wgpu_sections(...)`. The assembled payload must match the original artifact bytes exactly before it is applied back to the source-cubemap model. This locks the backend texture readback byte order to the same face-major/mip-major artifact layout used by the CPU PMREM and runtime cache paths.
 
 ## Verification
+
+Current 2026-08-30 source evidence: scoped Rust formatting parses the product bridge, range-carrying resource packet, staging copy path, and pending aggregator; source contracts confirm the pending owner contains no `wgpu::Buffer`, `map_async`, `device.poll`, or `queue.submit`, native diagnostic preparation owns no submit/poll, and the aggregator preserves face-major/mip-major PMREM ordering while failing the whole artifact on a terminal error. Cargo, real WGPU, PNG, RenderDoc, profiler, and power validation for this cutover have not run.
 
 Focused command:
 
@@ -63,4 +75,4 @@ The Cargo wrapper built the final lib-test binary under the target above but exc
 
 ## Open Work
 
-This module still assumes the PMREM texture, SH9 buffer, and optional IEM texture already exist. Backend PMREM texture readback layout and seam preservation are now guarded, but live compute-produced PMREM readback, offline bake production, async scheduling, queueing readback after compute completion, runtime readback-to-cache dispatch integration, importer/staged artifact production, product second-launch dispatch=0 evidence, RenderDoc/product capture, and full CI remain open.
+This module still assumes the PMREM texture, SH9 buffer, and optional IEM texture already exist. Product async scheduling and runtime readback-to-cache dispatch are now wired through the scene diagnostic owner, but current-source Cargo/WGPU validation, product second-launch `dispatch=0` evidence, offline/importer bake production, RenderDoc/product capture, screenshot/seam acceptance, performance profiling, and full CI remain open.

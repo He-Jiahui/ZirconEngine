@@ -331,38 +331,29 @@ enum CompletionOutcome {
 }
 
 pub(super) fn expire_entries(state: &mut CompletionRegistryState, now: Instant) -> ExpiryReport {
-    let expired_in_flight = state
-        .in_flight
-        .iter()
-        .filter_map(|(request, entry)| entry.is_request_expired(now).then(|| request.clone()))
-        .collect::<Vec<_>>();
-    let expired_completed = state
-        .completed
-        .iter()
-        .filter_map(|(request, completed)| {
-            completed
-                .entry
-                .is_completion_expired(now)
-                .then(|| request.clone())
-        })
-        .collect::<Vec<_>>();
     let mut report = ExpiryReport::default();
-    for request in expired_in_flight {
-        if let Some(entry) = state.in_flight.remove(&request) {
+    state.in_flight.retain(|_, entry| {
+        if entry.is_request_expired(now) {
             report.in_flight_entries = report.in_flight_entries.saturating_add(1);
             let waiters = entry.waiter_count();
             report.in_flight_waiters = report.in_flight_waiters.saturating_add(waiters);
             entry.terminate(CompletionTerminal::Expired);
+            false
+        } else {
+            true
         }
-    }
-    for request in expired_completed {
-        if let Some(completed) = state.completed.remove(&request) {
-            state.completed_bytes = state.completed_bytes.saturating_sub(completed.bytes);
+    });
+    state.completed.retain(|_, completed| {
+        if completed.entry.is_completion_expired(now) {
             report.completed_entries = report.completed_entries.saturating_add(1);
             report.completed_bytes = report.completed_bytes.saturating_add(completed.bytes);
             completed.entry.terminate(CompletionTerminal::Expired);
+            false
+        } else {
+            true
         }
-    }
+    });
+    state.completed_bytes = state.completed_bytes.saturating_sub(report.completed_bytes);
     report
 }
 
@@ -775,3 +766,7 @@ fn expire_scheduled_entry(
     drop(state);
     record_expiry_for_diagnostics(diagnostics, expiry);
 }
+
+#[cfg(test)]
+#[path = "completion/optimization_tests.rs"]
+mod optimization_tests;

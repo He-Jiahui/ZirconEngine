@@ -1,6 +1,9 @@
-use super::super::editor_error::EditorError;
+use super::super::editor_error::{EditorError, UiAssetSaveStage};
 use super::super::editor_ui_host::EditorUiHost;
-use crate::core::extension::{DocumentAutosavePayload, SaveCtx, SaveReason, ToolkitSaveFailure};
+use crate::core::extension::{
+    DocumentAutosavePayload, DocumentSourceWritePublication, DocumentSourceWriteReceipt, SaveCtx,
+    SaveReason, ToolkitSaveFailure,
+};
 use crate::ui::workbench::view::ViewInstanceId;
 
 pub(super) fn save_animation_document(
@@ -8,9 +11,27 @@ pub(super) fn save_animation_document(
     instance_id: &ViewInstanceId,
     context: &mut SaveCtx,
 ) -> Result<(), ToolkitSaveFailure> {
-    let written_bytes = host.save_animation_editor_canonical(instance_id)?;
-    context.record_written_bytes(written_bytes)?;
+    let (written_bytes, receipt) = host.save_animation_editor_canonical(instance_id)?;
+    context.record_serialized_project_source_write(written_bytes, receipt)?;
     Ok(())
+}
+
+pub(super) fn validate_animation_document_references(
+    host: &EditorUiHost,
+    instance_id: &ViewInstanceId,
+) -> Result<(), ToolkitSaveFailure> {
+    let sessions = host.lock_animation_editor_sessions();
+    let entry = sessions.get(instance_id).ok_or_else(|| {
+        EditorError::UiAsset(format!(
+            "missing animation editor session {}",
+            instance_id.0
+        ))
+    })?;
+    entry
+        .session
+        .document_bytes()
+        .map(|_| ())
+        .map_err(|error| Box::new(error) as ToolkitSaveFailure)
 }
 
 pub(super) fn capture_animation_document_autosave(
@@ -33,7 +54,7 @@ pub(super) fn animation_document_autosave_source_path(
     host: &EditorUiHost,
     instance_id: &ViewInstanceId,
 ) -> Result<std::path::PathBuf, ToolkitSaveFailure> {
-    let asset_locator = {
+    let document_handle = {
         let sessions = host.lock_animation_editor_sessions();
         let entry = sessions.get(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!(
@@ -41,8 +62,9 @@ pub(super) fn animation_document_autosave_source_path(
                 instance_id.0
             ))
         })?;
-        entry.route.asset_locator().clone()
+        entry.session.document().clone()
     };
+    let asset_locator = document_handle.read().asset_locator().clone();
     host.resolve_asset_locator_path(&asset_locator)
         .map_err(|error| Box::new(error) as ToolkitSaveFailure)
 }
@@ -57,30 +79,75 @@ impl EditorUiHost {
     fn save_animation_editor_canonical(
         &self,
         instance_id: &ViewInstanceId,
-    ) -> Result<u64, EditorError> {
-        let asset_locator = {
-            let mut sessions = self.lock_animation_editor_sessions();
-            let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+    ) -> Result<(u64, DocumentSourceWriteReceipt), EditorError> {
+        let (document_handle, expected_source) = {
+            let sessions = self.lock_animation_editor_sessions();
+            let entry = sessions.get(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!(
                     "missing animation editor session {}",
                     instance_id.0
                 ))
             })?;
-            entry
-                .session
-                .save()
-                .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-            entry.route.asset_locator().clone()
+            (entry.session.document().clone(), entry.disk_source.clone())
         };
+        let document = document_handle.read();
+        let asset_locator = document.asset_locator().clone();
+        let bytes = document
+            .document_bytes()
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(document);
         let source_path = self.resolve_asset_locator_path(&asset_locator)?;
-        let written_bytes = fs::metadata(source_path)
-            .map_err(|error| EditorError::UiAsset(error.to_string()))?
-            .len();
-        let _ = self
-            .asset_manager()?
-            .import_asset(&asset_locator.to_string());
-        self.sync_animation_editor_instance(instance_id)?;
-        Ok(written_bytes)
+        let project = self.current_project_snapshot()?.ok_or_else(|| {
+            EditorError::UiAsset(
+                "cannot save a canonical animation asset without an active project".to_string(),
+            )
+        })?;
+        let publication =
+            self.document_toolkits
+                .with_source_write(project.paths().root(), &source_path, |source_write| {
+                    let outcome = source_write.commit_if_matches(&expected_source, &bytes);
+                    if outcome.source_changed() {
+                        return Err(EditorError::DocumentSourceChanged {
+                            source_path: source_path.clone(),
+                        });
+                    }
+                    let publication = outcome.into_publication().map_err(|source| {
+                        EditorError::UiAssetSaveIo {
+                            stage: UiAssetSaveStage::AtomicCommit,
+                            source_path: source_path.clone(),
+                            source,
+                        }
+                    })?;
+                    let mut sessions = self.lock_animation_editor_sessions();
+                    let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+                        EditorError::UiAsset(format!(
+                            "missing animation editor session {}",
+                            instance_id.0
+                        ))
+                    })?;
+                    entry.disk_source = bytes.clone();
+                    Ok(publication)
+                })
+                .map_err(|source| EditorError::UiAssetSaveIo {
+                    stage: UiAssetSaveStage::AtomicCommit,
+                    source_path: source_path.clone(),
+                    source,
+                })??;
+        let receipt = match publication {
+            DocumentSourceWritePublication::Durable(receipt) => receipt,
+            DocumentSourceWritePublication::PublishedNotDurable(source) => {
+                return Err(EditorError::UiAssetSaveIo {
+                    stage: UiAssetSaveStage::DurabilityBarrier,
+                    source_path,
+                    source,
+                });
+            }
+        };
+        self.asset_manager()?
+            .import_asset(&asset_locator.to_string())
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        let written_bytes =
+            u64::try_from(bytes.len()).map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        Ok((written_bytes, receipt))
     }
 }
-use std::fs;

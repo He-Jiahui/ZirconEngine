@@ -124,7 +124,8 @@ fn text_field_dynamic_outlines_ignore_normal_style_overrides() {
     assert_eq!(focused_style.surface, PALETTE.surface_inset);
     assert_eq!(focused_style.border, PALETTE.focus_ring);
     assert_eq!(pressed_style.surface, PALETTE.surface_inset);
-    assert_eq!(pressed_style.border, PALETTE.focus_ring);
+    assert_eq!(pressed_style.border, PALETTE.surface_hover);
+    assert_ne!(pressed_style.border, PALETTE.focus_ring);
     assert_eq!(selected_style.surface, PALETTE.surface_inset);
     assert_eq!(selected_style.border, PALETTE.separator_soft);
     assert_eq!(checked_style.surface, PALETTE.surface_inset);

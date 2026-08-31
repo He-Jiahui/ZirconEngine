@@ -11,6 +11,8 @@ pub struct CommandQueueMetrics {
     queued_fallback_bytes: usize,
     queue_storage_growths: usize,
     inline_block_storage_growths: usize,
+    inline_arena_trim_count: usize,
+    inline_arena_trimmed_storage_bytes: usize,
     fallback_payload_allocations: usize,
     fallback_payload_releases: usize,
     inline_payload_releases: usize,
@@ -62,6 +64,18 @@ impl CommandQueueMetrics {
     /// Counts packed block-vector allocations or growth, never individual commands.
     pub fn inline_block_storage_growths(&self) -> usize {
         self.inline_block_storage_growths
+    }
+
+    /// Number of explicit idle/pressure trims that returned packed block storage.
+    pub fn inline_arena_trim_count(&self) -> usize {
+        self.inline_arena_trim_count
+    }
+
+    /// Logical packed-block backing bytes released by explicit trims.
+    ///
+    /// This is allocator-facing capacity, not a process RSS measurement.
+    pub fn inline_arena_trimmed_storage_bytes(&self) -> usize {
+        self.inline_arena_trimmed_storage_bytes
     }
 
     /// Counts explicit heap-backed fallback allocations only.
@@ -147,6 +161,16 @@ impl CommandQueueMetrics {
         self.inline_block_storage_growths += 1;
     }
 
+    pub(super) fn inline_arena_storage_trimmed(&mut self, released_bytes: usize) {
+        if released_bytes == 0 {
+            return;
+        }
+        self.inline_arena_trim_count += 1;
+        self.inline_arena_trimmed_storage_bytes = self
+            .inline_arena_trimmed_storage_bytes
+            .saturating_add(released_bytes);
+    }
+
     pub(super) fn add_queued_inline_storage_padding(&mut self, bytes: usize) {
         self.queued_inline_storage_bytes += bytes;
     }
@@ -206,6 +230,10 @@ impl CommandQueueMetrics {
         self.queued_fallback_bytes += other.queued_fallback_bytes;
         self.queue_storage_growths += other.queue_storage_growths;
         self.inline_block_storage_growths += other.inline_block_storage_growths;
+        self.inline_arena_trim_count += other.inline_arena_trim_count;
+        self.inline_arena_trimmed_storage_bytes = self
+            .inline_arena_trimmed_storage_bytes
+            .saturating_add(other.inline_arena_trimmed_storage_bytes);
         self.fallback_payload_allocations += other.fallback_payload_allocations;
         self.fallback_payload_releases += other.fallback_payload_releases;
         self.inline_payload_releases += other.inline_payload_releases;

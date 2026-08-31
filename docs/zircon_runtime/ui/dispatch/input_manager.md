@@ -13,6 +13,7 @@ related_code:
   - zircon_runtime/src/ui/surface/input/mod.rs
   - zircon_runtime/src/ui/surface/input/dispatch.rs
   - zircon_runtime/src/ui/surface/input/route_authority.rs
+  - zircon_runtime/src/ui/surface/input/tooltip_timer.rs
   - zircon_runtime/src/ui/surface/input/toast_timer.rs
   - zircon_runtime/src/ui/surface/input/window_pump.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
@@ -35,6 +36,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/input/mod.rs
   - zircon_runtime/src/ui/surface/input/dispatch.rs
   - zircon_runtime/src/ui/surface/input/route_authority.rs
+  - zircon_runtime/src/ui/surface/input/tooltip_timer.rs
   - zircon_runtime/src/ui/surface/input/toast_timer.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
@@ -70,7 +72,7 @@ The first slice is a non-invasive manager shell. Existing `UiSurface::dispatch_i
 - `UiPointerDispatcher` for pointer handlers and pointer-route callbacks.
 - `UiNavigationDispatcher` for keyboard/gamepad/navigation handlers.
 - `UiActivePointerTable` for per-pointer source, last known position, pressed-button mask, capture target, and primary-pointer status.
-- `UiInputTimerState` for manager-owned dispatch ticks, including menu typeahead expiry, submenu hover readiness, and Snackbar/Toast auto-hide expiry.
+- `UiInputTimerState` for manager-owned dispatch ticks, including menu typeahead expiry, submenu hover readiness, Tooltip delayed-open, and Snackbar/Toast auto-hide expiry.
 
 `UiSurface` still owns arranged-tree state, popup/tooltip state, focus state, component states, window state, dirty flags, and the actual dispatch effect application. The manager passes its dispatchers into `ui::surface::input` so the existing routing implementation remains the single behavior authority until later slices move pointer capture, preview tunneling, and timer injection behind the manager.
 
@@ -108,6 +110,8 @@ The manager injects synthetic input events from retained deadlines rather than a
 
 The event is part of the public runtime-interface input contract through `UiToastTimerInputEvent`, so hosts and tests can observe the same route as internally injected manager ticks.
 
+Tooltip delayed-open uses the same ownership boundary. Component hover reports arm retained tooltip identity and a manager deadline; `tick(...)` dispatches `UiTooltipTimerInputEvent::Elapsed`, and the surface rejects it when the retained owner/id no longer matches. `DEFAULT_TOOLTIP_DELAY_MS` is exported from `ui::dispatch` so generic surface metadata and host-resolved candidates share one 150 ms default; authored `tooltip_delay_ms` may override it, including `0` for an intentional immediate hint. A successful delayed Show starts the manager-owned `DEFAULT_TOOLTIP_INTRO_DURATION_MS = 100` timeline. During that timeline `next_frame_visible_delay(...)` returns at most a 16 ms sample delay, `tooltip_intro_progress(...)` exposes the current normalized progress, and completion or dismissal clears the timeline. Tooltip `transition_progress` and `transition_status` mutations are render-only invalidations, so those samples do not rebuild layout, hit testing, text, or input state. A host that resolves richer presentation metadata can call `arm_tooltip_candidate(...)` and `dismiss_tooltip(...)`; these APIs do not give the host a second timer or visible-state authority. The host must wake and tick the same manager using the original input timestamp domain, then project its custom popup and intro progress only after the retained tooltip becomes visible.
+
 ## Runtime 15 M4 UI dispatch input manager test owner split
 
 Status: `runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred`.
@@ -118,6 +122,6 @@ Runtime 15 M4 keeps the production input manager behavior in `ui/dispatch/input_
 
 ## Current Limits
 
-`UiInputManager::tick` now injects the implemented component timer families but still does not own every planned timed behavior. Tooltip timers, repeat actions, IME updates, drag-hover updates, and command-clock events remain future slices, and surface input timer modules still contain the leaf route behavior.
+`UiInputManager::tick` now injects the implemented component timer families but still does not own every planned timed behavior. Repeat actions, IME updates, drag-hover updates, and command-clock events remain future slices, and surface input timer modules still contain the leaf route behavior.
 
 The manager also does not yet mutate `UiActivePointerTable` during dispatch. The table is exposed now so later pointer normalization can capture mouse, touch, pen, and multi-pointer state before events enter surface routing.

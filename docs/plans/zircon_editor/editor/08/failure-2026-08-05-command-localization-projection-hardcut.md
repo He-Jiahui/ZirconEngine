@@ -66,10 +66,11 @@ Editor08 currently mixes canonical executable command metadata with display stri
 
 ## 修复结果与回传
 
-Open state: `Editor17 has a localized catalog and notification consumer, but Editor08 command presentation remains English-literal and locale-insensitive. No localized command behavior, Cargo result, or return is claimed.`
+Open state: `source hard-cut and static contract work are complete; managed Cargo validation and independent review remain pending. The active EditorLayout07 owner still holds four legacy descriptor construction calls (two string menu descriptors and two two-argument command constructors) in shell_projection.rs, so this Failure cannot be returned until that current successor path migrates. Frameworks01 also owns toolkit/registry.rs, whose remaining split('/') is only redundant stable-path validation and must converge to typed segments in that owner.`
 
 ## 产出记录与时间
 
 | 日期 | 切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
 | 2026-08-05 | Editor17 M3.3 -> Editor08 command presentation handoff | `open / forward_repair_required` | Proven command descriptor/menu/palette localization boundary routed to Editor08. Existing M3 catalog and notification code remains integrated; no rollback, retained-host bypass, compatibility field, or unverified localized command claim was added. |
+| 2026-08-29 | Editor08 command presentation hard-cut and plugin ABI convergence | `source-complete / validation-pending` | Replaced descriptor display strings with validated `EditorCommandPresentation` keys and plugin bundle ownership; replaced slash menu paths with typed root/group/leaf identities; upgraded serialized SDK boundaries to `command/2` + `menu/2`; removed duplicate first-party static menu ownership; descriptor serde now rebuilds its stable cache and rejects retired fields. en/zh-CN each contain 532 unique keys with duplicate/key-set difference `0/0`; 111 first-party command IDs have 444/444 required locale entries and 26 authoring view commands have 104/104. Touched Rust `rustfmt` and scoped diff check pass. No Cargo or review result is claimed. Current `shell_projection.rs` remains EditorLayout07-owned with four legacy construction calls; Frameworks01-owned toolkit validation still performs one redundant slash split. |

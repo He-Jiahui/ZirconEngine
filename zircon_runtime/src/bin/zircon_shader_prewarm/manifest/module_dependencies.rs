@@ -34,8 +34,10 @@ pub(super) fn shader_sources_with_module_dependency_hashes_and_changed_paths(
     changed_paths: &BTreeSet<PathBuf>,
 ) -> ShaderPrewarmAssetScanResult<ShaderPrewarmSourceDependencyBatch> {
     let dag = IndexedIncludeDag::new(&sources, external_include_modules);
-    let affected_source_indices = dag.reverse_changed_source_closure(&sources, changed_paths);
-    let topology_hashes_by_source = dag.topology_hashes_by_source(&sources)?;
+    let analysis = dag.analyze();
+    let affected_source_indices =
+        dag.reverse_changed_source_closure(&sources, changed_paths, &analysis);
+    let topology_hashes_by_source = dag.topology_hashes_by_source(&sources, &analysis)?;
     for (source, topology_hash) in sources.iter_mut().zip(topology_hashes_by_source) {
         let Some(topology_hash) = topology_hash else {
             continue;
@@ -99,6 +101,16 @@ impl IndexedIncludeDag {
         }
     }
 
+    fn analyze(&self) -> IndexedIncludeAnalysis {
+        let (components, component_for_source) = self.strongly_connected_components();
+        let graph = self.component_graph(&component_for_source, components.len());
+        IndexedIncludeAnalysis {
+            components,
+            component_for_source,
+            graph,
+        }
+    }
+
     /// Produces one compact dependency identity per source in O(V + E) work.
     ///
     /// SCC compression gives every import cycle a stable component identity;
@@ -108,14 +120,13 @@ impl IndexedIncludeDag {
     fn topology_hashes_by_source(
         &self,
         sources: &[ShaderPrewarmSource],
+        analysis: &IndexedIncludeAnalysis,
     ) -> ShaderPrewarmAssetScanResult<Vec<Option<String>>> {
-        let (components, component_for_source) = self.strongly_connected_components();
-        let component_graph = self.component_graph(&component_for_source, components.len());
         let component_hashes = self.component_hashes(
             sources,
-            &components,
-            &component_for_source,
-            &component_graph.dependencies,
+            &analysis.components,
+            &analysis.component_for_source,
+            &analysis.graph.dependencies,
         )?;
         Ok(self
             .imports_by_source
@@ -123,7 +134,7 @@ impl IndexedIncludeDag {
             .enumerate()
             .map(|(source_index, imports)| {
                 (!imports.is_empty())
-                    .then(|| component_hashes[component_for_source[source_index]].clone())
+                    .then(|| component_hashes[analysis.component_for_source[source_index]].clone())
             })
             .collect())
     }
@@ -132,6 +143,7 @@ impl IndexedIncludeDag {
         &self,
         sources: &[ShaderPrewarmSource],
         changed_paths: &BTreeSet<PathBuf>,
+        analysis: &IndexedIncludeAnalysis,
     ) -> BTreeSet<usize> {
         let directly_changed_sources = sources
             .iter()
@@ -147,15 +159,14 @@ impl IndexedIncludeDag {
         if directly_changed_sources.is_empty() {
             return BTreeSet::new();
         }
-        let (components, component_for_source) = self.strongly_connected_components();
-        let graph = self.component_graph(&component_for_source, components.len());
-        let affected_components = graph.reverse_changed_closure(
+        let affected_components = analysis.graph.reverse_changed_closure(
             directly_changed_sources
                 .into_iter()
-                .map(|source_index| component_for_source[source_index]),
+                .map(|source_index| analysis.component_for_source[source_index]),
         );
         let affected_components = affected_components.into_iter().collect::<HashSet<_>>();
-        component_for_source
+        analysis
+            .component_for_source
             .iter()
             .enumerate()
             .filter_map(|(source_index, component)| {
@@ -386,6 +397,12 @@ enum IndexedIncludeModule {
 enum IndexedIncludeComponentDependency {
     Local(usize),
     External(usize),
+}
+
+struct IndexedIncludeAnalysis {
+    components: Vec<Vec<usize>>,
+    component_for_source: Vec<usize>,
+    graph: IndexedIncludeComponentGraph,
 }
 
 struct IndexedIncludeComponentGraph {
@@ -720,7 +737,7 @@ mod tests {
     }
 
     #[test]
-    fn indexed_include_dag_projects_inventory_file_changes_to_reverse_source_closure() {
+    fn runtime91_indexed_include_dag_projects_inventory_file_changes_to_reverse_source_closure() {
         let sources = vec![
             source(
                 "root",

@@ -13,8 +13,7 @@ impl RetainedEditorHost {
             )),
             DesktopExportCancellation::PendingCancelled(summary) => {
                 let message = summary.status_message();
-                self.desktop_export_reports
-                    .insert(summary.profile_name.clone(), summary);
+                super::insert_desktop_export_report(&mut self.desktop_export_reports, summary);
                 self.desktop_export_wizard_sessions
                     .invalidate_projection_overlay();
                 self.mark_layout_dirty();

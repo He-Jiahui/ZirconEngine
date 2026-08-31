@@ -77,9 +77,10 @@ def cook_assets_manifest_trim_evidence(
     )
     included_assets: list[str] = []
     trimmed_assets: list[dict[str, Any]] = []
+    ordered_duplicate_assets = sorted(set(duplicate_assets))
     diagnostics = [
         f"asset {path} is duplicated in trim input"
-        for path in sorted(set(duplicate_assets))
+        for path in ordered_duplicate_assets
     ]
     diagnostics.extend(
         f"root asset {dependency['dependency']} is missing"
@@ -114,7 +115,7 @@ def cook_assets_manifest_trim_evidence(
         )
     return {
         "diagnostics": sorted(diagnostics),
-        "duplicate_assets": sorted(set(duplicate_assets)),
+        "duplicate_assets": ordered_duplicate_assets,
         "included_assets": included_assets,
         "missing_dependencies": missing_dependencies,
         "trimmed_assets": trimmed_assets,

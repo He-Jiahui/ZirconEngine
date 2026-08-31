@@ -3,7 +3,9 @@
 pub use crate::asset::prelude::*;
 pub use crate::builtin::{
     default_manifest_for_target, manifest_for_runtime_profile, manifest_with_mode_baseline,
-    runtime_core_modules, runtime_modules_for_runtime_profile,
+    runtime_core_modules, runtime_modules_for_compiled_project_plugin_plan,
+    runtime_modules_for_runtime_profile,
+    runtime_modules_for_runtime_profile_compiled_project_plugin_plan,
     runtime_modules_for_runtime_profile_with_plugin_registration_reports,
     runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
     runtime_modules_for_target_with_plugin_and_feature_registration_reports,
@@ -16,10 +18,12 @@ pub use crate::core::diagnostics::{
     ProfileSpanSnapshot, RuntimeDiagnosticsSnapshot,
 };
 pub use crate::core::framework::project::RuntimeProfileId;
-pub use crate::core::framework::state::{
-    NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
+pub use crate::core::framework::time::{
+    ClockDomainDescriptor, ClockDomainId, ClockDomainMarker, ClockDomainRegistry, ClockDomainStamp,
+    ClockDomainUnit, Fixed, FixedStepPlan, MonotonicReal, ProductTimePolicy,
+    ProductTimePolicyError, ProductTimeProfile, Time, TimePolicy, TimePolicyError,
+    TimePolicyTransaction, Virtual,
 };
-pub use crate::core::framework::time::{Fixed, FixedStepPlan, Real, Time, Virtual};
 pub use crate::core::framework::window::{
     PrimaryWindowHandle, WindowDescriptor, WindowExitCondition, WindowLifecyclePolicy, WindowMode,
     WindowMonitorSelection, WindowPosition, WindowPresentMode, WindowResizeConstraints,
@@ -31,21 +35,30 @@ pub use crate::core::runtime::modules::{
     TimeModule, DIAGNOSTICS_CORE_MODULE_NAME, FRAME_COUNT_MODULE_NAME, LOG_DIAGNOSTICS_MODULE_NAME,
     LOG_MODULE_NAME, TASKS_MODULE_NAME, TIME_MODULE_NAME,
 };
+pub use crate::core::runtime::state_machine::{
+    NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
+};
 pub use crate::core::runtime::tasks::{
-    parallel_for, JobHandle, JobSchedulerReport, TaskPool, TaskPoolDescriptor, TaskPoolKind,
-    TaskPoolOptions, TaskPoolReport, TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy,
-    TaskPoolThreadCounts, TaskPools, TASKS_ACTIVE_DIAGNOSTIC, TASKS_CANCELLED_DIAGNOSTIC,
+    parallel_for, EngineTaskGraph, EngineTaskGraphInitError, EngineTaskGraphOptions, JobHandle,
+    JobSchedulerReport, TaskCancellationPolicy, TaskCancellationToken, TaskDescriptor,
+    TaskGraphAdmissionError, TaskGraphScope, TaskGraphScopeCensus, TaskGraphScopeDescriptor,
+    TaskGraphShutdownError, TaskGraphShutdownReport, TaskGraphWorkerInventory, TaskHandle, TaskId,
+    TaskPool, TaskPoolBuildError, TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions,
+    TaskPoolReport, TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts,
+    TaskPools, TaskState, TaskStatus, TASKS_ACTIVE_DIAGNOSTIC, TASKS_CANCELLED_DIAGNOSTIC,
     TASKS_COMPLETED_DIAGNOSTIC, TASKS_DEPENDENCY_WAITING_DIAGNOSTIC,
     TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, TASKS_EXPLICIT_WAIT_MS_DIAGNOSTIC,
     TASKS_PANICKED_DIAGNOSTIC, TASKS_QUEUED_DIAGNOSTIC, TASKS_QUEUE_WAIT_MS_DIAGNOSTIC,
     TASKS_QUEUE_WAIT_SAMPLES_DIAGNOSTIC, TASKS_SCHEDULED_DIAGNOSTIC,
 };
 pub use crate::core::{
-    CoreError, CoreHandle, CoreResult, CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor,
-    EngineEvent, EventBus, FrameClock, JobScheduler, LifecycleState, ManagerDescriptor,
-    ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor, PluginFactory, RegistryName,
-    RuntimeTimeAdvance, RuntimeTimeClocks, ServiceFactory, ServiceKind, StartupMode,
-    TIME_FIXED_STEPS_DIAGNOSTIC, TIME_FPS_DIAGNOSTIC, TIME_FRAME_COUNT_DIAGNOSTIC,
+    ClockDiscontinuity, ClockLifecycleTransition, ClockSource, CoreError, CoreHandle, CoreResult,
+    CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor, EngineEvent, EventBus, FrameClock,
+    FrameClockFirstTickPolicy, FrameClockRebaseCause, FrameClockRebaseReceipt,
+    FrameTimeDiscontinuity, FrameTimeSnapshot, JobScheduler, LifecycleState, ManagerDescriptor,
+    ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor, PluginFactory,
+    ProductTimePolicies, ProductTimePolicyDigest, RegistryName, ServiceFactory, ServiceKind,
+    StartupMode, TimePolicyReceipt, TIME_FPS_DIAGNOSTIC, TIME_FRAME_COUNT_DIAGNOSTIC,
     TIME_FRAME_TIME_DIAGNOSTIC,
 };
 #[cfg(feature = "diagnostic-log")]

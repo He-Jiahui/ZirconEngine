@@ -85,7 +85,7 @@ fn shared_input_dispatch_applies_drag_drop_popup_and_tooltip_events_through_effe
     assert_eq!(drag.source, UiNodeId::new(2));
     assert_eq!(drag.target, UiNodeId::new(2));
     assert_eq!(drag.point, Some(UiPoint::new(20.0, 20.0)));
-    assert_eq!(drag.payload, Some(payload.clone()));
+    assert_eq!(drag.payload.as_deref(), Some(&payload));
 
     let over = surface
         .dispatch_input_event(
@@ -103,7 +103,7 @@ fn shared_input_dispatch_applies_drag_drop_popup_and_tooltip_events_through_effe
     let drag = surface.input.drag_drop.as_ref().expect("updated drag");
     assert_eq!(drag.target, UiNodeId::new(3));
     assert_eq!(drag.point, Some(UiPoint::new(20.0, 60.0)));
-    assert_eq!(drag.payload, Some(payload));
+    assert_eq!(drag.payload.as_deref(), Some(&payload));
 
     let drop = surface
         .dispatch_input_event(

@@ -5,97 +5,96 @@
       "WorkbenchPage": {
         "id": "workbench",
         "title": "Workbench",
-        "document_workspace": {
-          "Tabs": {
-            "tabs": [
-              "editor.scene#1",
-              "editor.game#1"
-            ],
-            "active_tab": "editor.scene#1"
-          }
-        }
+        "activity_window": "window:workbench"
       }
     }
   ],
-  "drawers": {
-    "LeftTop": {
-      "slot": "LeftTop",
-      "tab_stack": {
-        "tabs": [
-          "editor.project#1",
-          "editor.assets#1",
-          "editor.hierarchy#1"
-        ],
-        "active_tab": "editor.project#1"
+  "activity_windows": {
+    "window:workbench": {
+      "window_id": "window:workbench",
+      "descriptor_id": "editor.workbench_window",
+      "host_mode": "EmbeddedMainFrame",
+      "activity_drawers": {
+        "LeftTop": {
+          "slot": "LeftTop",
+          "tab_stack": {
+            "tabs": [
+              "editor.project#1",
+              "editor.assets#1",
+              "editor.hierarchy#1"
+            ],
+            "active_tab": "editor.project#1"
+          },
+          "active_view": "editor.project#1",
+          "mode": "Pinned",
+          "extent": 312.0,
+          "visible": true
+        },
+        "LeftBottom": {
+          "slot": "LeftBottom",
+          "tab_stack": {
+            "tabs": [
+              "editor.module_plugins#1"
+            ],
+            "active_tab": "editor.module_plugins#1"
+          },
+          "active_view": "editor.module_plugins#1",
+          "mode": "Collapsed",
+          "extent": 288.0,
+          "visible": true
+        },
+        "RightTop": {
+          "slot": "RightTop",
+          "tab_stack": {
+            "tabs": [
+              "editor.inspector#1"
+            ],
+            "active_tab": "editor.inspector#1"
+          },
+          "active_view": "editor.inspector#1",
+          "mode": "Pinned",
+          "extent": 308.0,
+          "visible": true
+        },
+        "RightBottom": {
+          "slot": "RightBottom",
+          "tab_stack": {
+            "tabs": [],
+            "active_tab": null
+          },
+          "active_view": null,
+          "mode": "Collapsed",
+          "extent": 288.0,
+          "visible": true
+        },
+        "Bottom": {
+          "slot": "Bottom",
+          "tab_stack": {
+            "tabs": [
+              "editor.console#1",
+              "editor.runtime_diagnostics#1",
+              "editor.build_export_desktop#1"
+            ],
+            "active_tab": "editor.console#1"
+          },
+          "active_view": "editor.console#1",
+          "mode": "Pinned",
+          "extent": 164.0,
+          "visible": true
+        }
       },
-      "active_view": "editor.project#1",
-      "mode": "Pinned",
-      "extent": 312.0,
-      "visible": true
-    },
-    "LeftBottom": {
-      "slot": "LeftBottom",
-      "tab_stack": {
-        "tabs": [
-          "editor.module_plugins#1"
-        ],
-        "active_tab": "editor.module_plugins#1"
+      "content_workspace": {
+        "Tabs": {
+          "tabs": [
+            "editor.scene#1",
+            "editor.game#1"
+          ],
+          "active_tab": "editor.scene#1"
+        }
       },
-      "active_view": "editor.module_plugins#1",
-      "mode": "Collapsed",
-      "extent": 288.0,
-      "visible": true
-    },
-    "RightTop": {
-      "slot": "RightTop",
-      "tab_stack": {
-        "tabs": [
-          "editor.inspector#1"
-        ],
-        "active_tab": "editor.inspector#1"
-      },
-      "active_view": "editor.inspector#1",
-      "mode": "Pinned",
-      "extent": 308.0,
-      "visible": true
-    },
-    "RightBottom": {
-      "slot": "RightBottom",
-      "tab_stack": {
-        "tabs": [],
-        "active_tab": null
-      },
-      "active_view": null,
-      "mode": "Collapsed",
-      "extent": 288.0,
-      "visible": true
-    },
-    "BottomLeft": {
-      "slot": "BottomLeft",
-      "tab_stack": {
-        "tabs": [
-          "editor.console#1"
-        ],
-        "active_tab": "editor.console#1"
-      },
-      "active_view": "editor.console#1",
-      "mode": "Pinned",
-      "extent": 164.0,
-      "visible": true
-    },
-    "BottomRight": {
-      "slot": "BottomRight",
-      "tab_stack": {
-        "tabs": [
-          "editor.runtime_diagnostics#1",
-          "editor.build_export_desktop#1"
-        ],
-        "active_tab": "editor.runtime_diagnostics#1"
-      },
-      "active_view": "editor.runtime_diagnostics#1",
-      "mode": "Collapsed",
-      "extent": 224.0,
-      "visible": true
+      "menu_overflow_mode": "Auto",
+      "region_overrides": {},
+      "view_overrides": {}
     }
   },
   "floating_windows": []

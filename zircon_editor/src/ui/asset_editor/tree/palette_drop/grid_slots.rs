@@ -8,6 +8,10 @@ use super::resolution::{
     UiAssetPaletteTargetFrame,
 };
 
+#[cfg(test)]
+#[path = "grid_slots/capacity_tests.rs"]
+mod capacity_tests;
+
 pub(super) fn grid_slot_target_overlays(
     node: &UiNodeDefinition,
     frame: UiAssetPaletteTargetFrame,
@@ -60,7 +64,7 @@ pub(super) fn grid_slot_targets(
 ) -> Vec<UiAssetPaletteNativeSlotTarget> {
     let columns = estimated_grid_axis(node, "column", "column_span").max(2) as usize;
     let rows = estimated_grid_axis(node, "row", "row_span").max(2) as usize;
-    let mut targets = Vec::new();
+    let mut targets = Vec::with_capacity(grid_slot_target_capacity(rows, columns));
     for row in 0..rows {
         for column in 0..columns {
             targets.push(UiAssetPaletteNativeSlotTarget {
@@ -78,6 +82,10 @@ pub(super) fn grid_slot_targets(
         }
     }
     targets
+}
+
+fn grid_slot_target_capacity(rows: usize, columns: usize) -> usize {
+    rows.saturating_mul(columns)
 }
 
 pub(super) fn estimated_grid_axis(node: &UiNodeDefinition, key: &str, span_key: &str) -> i64 {

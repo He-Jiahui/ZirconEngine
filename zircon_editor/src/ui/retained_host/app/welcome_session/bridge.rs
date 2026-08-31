@@ -58,6 +58,27 @@ fn welcome_surface_binding_control_id(action_or_control_id: &str) -> Option<&'st
         "LocationEdited" | "welcome.project.location.edit" => Some("LocationEdited"),
         "CreateProject" | "welcome.project.create" => Some("CreateProject"),
         "OpenExistingProject" | "welcome.project.open_existing" => Some("OpenExistingProject"),
+        "OpenRecentProject" | "welcome.project.open_recent" => Some("OpenRecentProject"),
+        "SafeRecentProject" | "welcome.project.safe_recent" => Some("SafeRecentProject"),
+        "RecoverRecentProject" | "welcome.project.recover_recent" => Some("RecoverRecentProject"),
+        "RemoveRecentProject" | "welcome.project.remove_recent" => Some("RemoveRecentProject"),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::welcome_surface_binding_control_id;
+
+    #[test]
+    fn welcome_surface_bridge_maps_each_recent_project_action_to_its_typed_control() {
+        for (action, control_id) in [
+            ("welcome.project.open_recent", "OpenRecentProject"),
+            ("welcome.project.safe_recent", "SafeRecentProject"),
+            ("welcome.project.recover_recent", "RecoverRecentProject"),
+            ("welcome.project.remove_recent", "RemoveRecentProject"),
+        ] {
+            assert_eq!(welcome_surface_binding_control_id(action), Some(control_id));
+        }
     }
 }

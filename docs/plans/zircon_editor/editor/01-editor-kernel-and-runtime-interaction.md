@@ -9,7 +9,7 @@ related_code:
   - zircon_editor/src/core/editor_operation.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/exports.rs
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_editor/src/core/gateway/mod.rs
   - zircon_editor/src/core/gateway/session.rs
@@ -249,8 +249,10 @@ pub enum ModeMessage {                   // 04/05 生产
 }
 pub enum FocusMessage {                  // 05 生产
     SelectionChanged { domain: SelectionDomain, revision: u64 },
-    FocusObject { entity: u64 },
+    FocusObject { domain: WorldDomain, entity: u64 },
 }
+pub enum SelectionDomain { Scene(WorldDomain), Asset }
+pub enum WorldDomain { Edit, Play(PlayInstanceId) }
 ```
 
 定型规则：(a) 族内变体只携带 **ID + 世代号**，不内嵌重数据——订阅者收到后经 query 面拉取（02），保证消息可无脑 clone 进多收件箱；(b) `DocumentId/HistoryContextId/SceneModeId/...` 在本切片先以 newtype(u64/String) 落地于 `topics.rs` 旁的 `ids.rs`，03/04/05 落地时迁移所有权但不改形状；(c) `PartialEq` 保留、`Eq` 移除（serde_json::Value 不 Eq）；(d) `EditorMessage::text()` 删除，既有调用点逐个改为语义正确的族变体或 `Custom{schema_id:"zircon.editor.debug-text"}`（执行时 Grep `EditorMessage::text` 清点入状态节）。

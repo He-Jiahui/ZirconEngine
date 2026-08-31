@@ -46,13 +46,12 @@ fn runtime_15_shader_prewarm_asset_revision_export_is_wired() {
         &(tests.clone() + &raw_revision_tests),
         &[
             "shader_prewarm_asset_root_manifest_uses_zmeta_source_digest_revision",
-            "shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision",
+            "shader_prewarm_asset_root_manifest_does_not_promote_raw_wgsl_module",
             "source-hash-a",
             "source-hash-b",
             "simple_a",
             "simple_b",
-            "material_revision",
-            "assert_ne!",
+            "variants.is_empty()",
         ],
     );
 
@@ -95,10 +94,21 @@ fn runtime_15_shader_prewarm_asset_revision_export_is_wired() {
                 "render_plan08_asset_root_shader_edit_revision_export_passed_cargo_renderdoc_deferred",
                 "bin/zircon_shader_prewarm/manifest/revision.rs",
                 "shader_prewarm_asset_root_manifest_uses_zmeta_source_digest_revision",
-                "shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision",
                 "runtime_15_shader_prewarm_asset_revision_export_is_wired",
                 "live project registry exact revision overlay",
             ],
+        );
+    }
+
+    for (label, source) in [
+        ("shader doc", shader_doc.as_str()),
+        ("template doc", template_doc.as_str()),
+        ("render product submit doc", product_submit_doc.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &["shader_prewarm_asset_root_manifest_does_not_promote_raw_wgsl_module"],
         );
     }
 }

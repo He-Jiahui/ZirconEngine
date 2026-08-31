@@ -12,63 +12,51 @@ fn editor_command_registry_exposes_builtin_menu_operations_by_path() {
         .expect("reset layout command should be registered");
 
     assert_eq!(reset.id().as_str(), "window.layout.reset");
-    assert_eq!(reset.display_name(), "Reset Layout");
-    assert_eq!(reset.menu_path(), Some("Window/Reset Layout"));
+    assert_eq!(
+        reset.presentation().label_key(),
+        "command.window.layout.reset.label"
+    );
+    assert_eq!(
+        reset.menu_path().map(|path| path.root().id().as_str()),
+        Some("window")
+    );
     assert!(reset.callable_from_remote());
     assert!(matches!(reset.action(), EditorCommandAction::Operation));
     assert!(registry.operation_factory(&reset_path).is_none());
 
-    for (path, menu_path) in [
-        ("file.project.open", "File/Open Project"),
-        ("file.project.save", "File/Save Project"),
-        ("window.layout.save", "Window/Save Layout"),
-        ("runtime.play_mode.enter", "Play/Enter Play Mode"),
-        ("runtime.play_mode.exit", "Play/Exit Play Mode"),
-        ("window.debug_observatory.open", "Window/Debug Observatory"),
-        ("window.prefab_editor.open", "Window/Prefab Editor"),
-        ("window.material_editor.open", "Window/Material Editor"),
-        (
-            "window.ui_component_showcase.open",
-            "Window/UI Component Showcase",
-        ),
-        ("window.material_demo.open", "Window/Material Demo"),
-        (
-            "window.material_component_lab.open",
-            "Window/Material Component Lab",
-        ),
-        ("window.ui_asset_editor.open", "Window/UI Asset Editor"),
-        ("window.animation_editor.open", "Window/Animation Editor"),
-        ("window.asset_browser.open", "Window/Asset Browser"),
-        ("window.diagnostics.open", "Window/Diagnostics"),
-        ("scene.node.create_camera", "Selection/Create Camera"),
-        (
-            "scene.node.create_ambient_light",
-            "Selection/Create Ambient Light",
-        ),
-        (
-            "scene.node.create_directional_light",
-            "Selection/Create Directional Light",
-        ),
-        (
-            "scene.node.create_point_light",
-            "Selection/Create Point Light",
-        ),
-        (
-            "scene.node.create_rect_light",
-            "Selection/Create Rect Light",
-        ),
-        (
-            "scene.node.create_spot_light",
-            "Selection/Create Spot Light",
-        ),
-        ("view.plugin_manager.open", "View/Plugin Manager"),
-        ("view.build_export.open", "View/Desktop Export"),
-        ("inspector.field.apply_batch", "Inspector/Apply Changes"),
+    for (path, root_id) in [
+        ("file.project.open", "file"),
+        ("file.project.save", "file"),
+        ("window.layout.save", "window"),
+        ("runtime.play_mode.enter", "play"),
+        ("runtime.play_mode.exit", "play"),
+        ("window.debug_observatory.open", "window"),
+        ("window.prefab_editor.open", "window"),
+        ("window.material_editor.open", "window"),
+        ("window.ui_component_showcase.open", "window"),
+        ("window.material_demo.open", "window"),
+        ("window.material_component_lab.open", "window"),
+        ("window.ui_asset_editor.open", "window"),
+        ("window.animation_editor.open", "window"),
+        ("window.asset_browser.open", "window"),
+        ("window.diagnostics.open", "window"),
+        ("scene.node.create_camera", "selection"),
+        ("scene.node.create_ambient_light", "selection"),
+        ("scene.node.create_directional_light", "selection"),
+        ("scene.node.create_point_light", "selection"),
+        ("scene.node.create_rect_light", "selection"),
+        ("scene.node.create_spot_light", "selection"),
+        ("view.plugin_manager.open", "view"),
+        ("view.build_export.open", "view"),
+        ("inspector.field.apply_batch", "inspector"),
     ] {
         let descriptor = registry
             .command(&EditorOperationPath::parse(path).unwrap())
             .unwrap_or_else(|| panic!("{path} command should be registered"));
-        assert_eq!(descriptor.menu_path(), Some(menu_path));
+        assert_eq!(
+            descriptor.menu_path().map(|menu| menu.root().id().as_str()),
+            Some(root_id)
+        );
     }
 }
 
@@ -120,29 +108,17 @@ fn editor_operation_path_serde_enforces_canonical_parse() {
 }
 
 #[test]
-fn editor_command_registry_rejects_invalid_menu_paths() {
-    use crate::core::editor_operation::EditorOperationPath;
-
-    let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
-    for menu_path in [
+fn editor_command_registry_rejects_invalid_menu_segment_ids() {
+    for menu_id in [
         "",
         "Tools",
-        "Tools//Refresh",
-        "/Tools/Refresh",
-        "Tools/Refresh/",
-        "Tools/ Refresh",
+        "tools//refresh",
+        "tools/refresh",
+        "tools.refresh-",
     ] {
-        let mut registry = EditorCommandRegistry::default();
-        let error = registry
-            .register(
-                EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
-                    .with_menu_path(menu_path),
-            )
-            .unwrap_err();
-
-        assert_eq!(
-            error.to_string(),
-            format!("editor command menu path `{menu_path}` is invalid")
+        assert!(
+            crate::core::commands::EditorCommandMenuSegmentId::parse(menu_id).is_err(),
+            "menu segment id `{menu_id}` must be rejected"
         );
     }
 }
@@ -157,9 +133,7 @@ fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operation
     use crate::core::extension::InspectorCustomizationDescriptor;
 
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
-    let operation =
-        EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
-            .with_menu_path("Tools/Weather/Refresh Cloud Layers");
+    let operation = EditorCommandDescriptor::operation(operation_path.clone());
 
     let mut registry = EditorExtensionRegistry::default();
     registry
@@ -177,17 +151,13 @@ fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operation
         .unwrap();
     registry
         .register_menu_item(
-            EditorMenuItemDescriptor::new(
-                "Tools/Weather/Refresh Cloud Layers",
-                operation_path.clone(),
-            )
-            .with_priority(25)
-            .with_shortcut("Ctrl+Alt+R")
-            .with_enabled(false)
-            .with_required_capabilities([
-                "editor.extension.weather_authoring",
-                "editor.extension.weather_authoring",
-            ]),
+            EditorMenuItemDescriptor::for_operation(operation_path.clone())
+                .with_priority(25)
+                .with_enabled(false)
+                .with_required_capabilities([
+                    "editor.extension.weather_authoring",
+                    "editor.extension.weather_authoring",
+                ]),
         )
         .unwrap();
     registry
@@ -209,7 +179,6 @@ fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operation
     assert_eq!(registry.drawers().len(), 1);
     assert_eq!(registry.menu_items()[0].operation(), &operation_path);
     assert_eq!(registry.menu_items()[0].priority(), 25);
-    assert_eq!(registry.menu_items()[0].shortcut(), Some("Ctrl+Alt+R"));
     assert!(!registry.menu_items()[0].enabled());
     assert_eq!(
         registry.menu_items()[0].required_capabilities(),
@@ -300,6 +269,55 @@ fn editor_command_binding_invokes_the_shared_command_registry() {
         runtime.runtime.editor_snapshot().scene_entries.len(),
         before + 1
     );
+}
+
+#[test]
+fn binding_dispatch_retains_operation_path_and_command_errors_until_the_trait_boundary() {
+    use crate::core::commands::EditorCommandDispatchError;
+    use crate::core::editor_operation::EditorOperationPathError;
+    use crate::ui::host::EditorEventBindingDispatchError;
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_typed_binding_errors");
+    let invalid_operation = EditorUiBinding::new(
+        "CommandPalette",
+        "InvalidOperation",
+        EditorUiEventKind::Submit,
+        EditorUiBindingPayload::editor_operation("not a valid operation"),
+    );
+    let unknown_command = EditorUiBinding::new(
+        "CommandPalette",
+        "UnknownCommand",
+        EditorUiEventKind::Submit,
+        EditorUiBindingPayload::editor_command("scene.node.missing"),
+    );
+
+    let operation_error = runtime
+        .runtime
+        .dispatch_binding_typed(
+            invalid_operation.as_ui_binding(),
+            EditorEventSource::RetainedHost,
+        )
+        .expect_err("invalid operation path must remain typed inside the host");
+    assert!(matches!(
+        operation_error,
+        EditorEventBindingDispatchError::OperationPath(
+            EditorOperationPathError::InvalidOperationPath(ref path)
+        ) if path == "not a valid operation"
+    ));
+
+    let command_error = runtime
+        .runtime
+        .dispatch_binding_typed(
+            unknown_command.as_ui_binding(),
+            EditorEventSource::RetainedHost,
+        )
+        .expect_err("unknown command must remain typed inside the host");
+    assert!(matches!(
+        command_error,
+        EditorEventBindingDispatchError::Command(EditorCommandDispatchError::UnknownCommand(ref id))
+            if id == "scene.node.missing"
+    ));
 }
 
 #[test]
@@ -415,6 +433,40 @@ fn failed_operation_control_request_is_journaled_without_creating_history() {
 }
 
 #[test]
+fn failed_operation_invocation_preserves_typed_registry_error_and_journals_presentation_text() {
+    use crate::core::commands::EditorCommandRegistryError;
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+    use crate::ui::host::EditorOperationDispatchError;
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_typed_failure_journal");
+
+    let error = runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::Remote,
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("weather.missing.action").unwrap(),
+            ),
+        )
+        .expect_err("missing operation must remain typed for host callers");
+    assert!(matches!(
+        error,
+        EditorOperationDispatchError::Registry(EditorCommandRegistryError::MissingCommand(ref id))
+            if id.as_str() == "weather.missing.action"
+    ));
+
+    let journal = runtime.runtime.journal();
+    assert_eq!(journal.records().len(), 1);
+    assert_eq!(
+        journal.records()[0].result.error.as_deref(),
+        Some("editor command weather.missing.action is not registered")
+    );
+}
+
+#[test]
 fn failed_operation_control_request_preserves_operation_group_for_audit_delivery() {
     use crate::core::editor_event::EditorEventListenerControlRequest;
     use crate::core::editor_operation::{
@@ -477,14 +529,13 @@ fn remote_and_cli_operation_invocation_respects_callable_from_remote_gate() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Secret Weather")
+            EditorCommandDescriptor::operation(operation_path.clone())
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
                 .with_callable_from_remote(false),
         )
         .unwrap();
     extension
-        .register_menu_item(EditorMenuItemDescriptor::new(
-            "Tools/Weather/Secret Refresh",
+        .register_menu_item(EditorMenuItemDescriptor::for_operation(
             operation_path.clone(),
         ))
         .unwrap();
@@ -536,7 +587,10 @@ fn remote_and_cli_operation_invocation_respects_callable_from_remote_gate() {
         });
     assert!(matches!(
         invoked,
-        UiControlResponse::Invocation(result) if result.error.is_none()
+        UiControlResponse::Invocation(result)
+            if result.error.as_ref().is_some_and(|error| error.to_string().contains(
+                "weather.secret.refresh is not callable from remote control"
+            ))
     ));
     assert_eq!(
         runtime.runtime.journal().records()[2]
@@ -544,6 +598,16 @@ fn remote_and_cli_operation_invocation_respects_callable_from_remote_gate() {
             .as_deref(),
         Some("weather.secret.refresh")
     );
+    assert_eq!(
+        runtime.runtime.journal().records()[2].source,
+        EditorEventSource::Headless
+    );
+    assert!(matches!(
+        &runtime.runtime.journal().records()[2].event,
+        EditorEvent::Operation(
+            crate::core::editor_event::EditorOperationEvent::ControlFailure { .. }
+        )
+    ));
 }
 
 #[test]
@@ -701,10 +765,11 @@ fn operation_control_request_executes_registered_factory_through_transaction_eng
         .commands()
         .lock()
         .register_operation(
-            EditorCommandDescriptor::operation(operation_id.clone(), "Execute Factory"),
+            EditorCommandDescriptor::operation(operation_id.clone()),
             OperationCommandFactoryRegistration::new(
                 operation_id.clone(),
                 "Execute Factory",
+                crate::core::editing::operation::EditOperationTarget::EditWorkspace,
                 Arc::new(Factory),
             ),
         )
@@ -725,4 +790,137 @@ fn operation_control_request_executes_registered_factory_through_transaction_eng
     assert_eq!(history["len"], 1);
     assert_eq!(history["records"][0]["label"], "Execute Factory");
     assert_eq!(history["records"][0]["command_count"], 1);
+}
+
+#[test]
+fn workspace_operation_is_queued_before_factory_capture_during_play() {
+    use std::any::Any;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    use crate::core::commands::EditorCommandDescriptor;
+    use crate::core::editing::engine::{
+        CommandExecutionError, EditCommand, EditContext, HistoryContextId,
+    };
+    use crate::core::editing::operation::{
+        OperationCommand, OperationCommandFactory, OperationCommandFactoryError,
+        OperationCommandFactoryRegistration,
+    };
+    use crate::core::editor_event::{EditorEvent, EditorOperationEvent};
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+    use crate::core::play::{PendingEditApplyBudget, PlayKind, PlayStartRequest};
+
+    struct Factory {
+        captures: Arc<AtomicUsize>,
+    }
+
+    impl OperationCommandFactory for Factory {
+        fn create(
+            &self,
+            _invocation: &EditorOperationInvocation,
+        ) -> Result<OperationCommand, OperationCommandFactoryError> {
+            self.captures.fetch_add(1, Ordering::SeqCst);
+            Ok(OperationCommand::new(
+                Box::new(Command),
+                HistoryContextId::Global,
+            ))
+        }
+    }
+
+    struct Command;
+
+    impl EditCommand for Command {
+        fn label(&self) -> &str {
+            "Queued Workspace Operation"
+        }
+
+        fn apply(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
+            Ok(())
+        }
+
+        fn revert(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
+            Ok(())
+        }
+
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_play_queued_operation");
+    let operation_id = EditorOperationPath::parse("test.operation.play_queued").unwrap();
+    let captures = Arc::new(AtomicUsize::new(0));
+    runtime
+        .runtime
+        .commands()
+        .lock()
+        .register_operation(
+            EditorCommandDescriptor::operation(operation_id.clone()),
+            OperationCommandFactoryRegistration::new(
+                operation_id.clone(),
+                "Queued Workspace Operation",
+                crate::core::editing::operation::EditOperationTarget::EditWorkspace,
+                Arc::new(Factory {
+                    captures: Arc::clone(&captures),
+                }),
+            ),
+        )
+        .unwrap();
+    runtime
+        .runtime
+        .play_sessions()
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .unwrap();
+
+    let record = runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::UiBinding,
+            EditorOperationInvocation::new(operation_id.clone()),
+        )
+        .unwrap();
+    assert!(matches!(
+        record.event,
+        EditorEvent::Operation(EditorOperationEvent::EditQueued { .. })
+    ));
+    assert_eq!(captures.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        runtime
+            .runtime
+            .play_sessions()
+            .pending_edits_summary()
+            .pending_count,
+        1
+    );
+    assert_eq!(
+        runtime
+            .runtime
+            .context()
+            .transactions()
+            .history_status(HistoryContextId::Global)
+            .unwrap()
+            .len,
+        0
+    );
+
+    runtime.runtime.play_sessions().request_stop().unwrap();
+    let report = runtime
+        .runtime
+        .play_sessions()
+        .apply_pending_edits(PendingEditApplyBudget::unlimited(), |intent| {
+            runtime
+                .runtime
+                .invoke_operation(
+                    EditorOperationSource::UiBinding,
+                    intent.invocation.as_ref().clone(),
+                )
+                .map(|record| assert!(record.result.error.is_none()))
+        })
+        .unwrap();
+    assert_eq!(report.applied.len(), 1);
+    assert!(report.failures.is_empty());
+    assert_eq!(captures.load(Ordering::SeqCst), 1);
 }

@@ -16,7 +16,9 @@ use zircon_runtime::graphics::{
     VirtualGeometryRuntimeState, VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
     WgpuRenderFramework,
 };
-use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeWorkload};
+use zircon_runtime::render_graph::{
+    QueueLane, RenderBufferSchema, RenderGraphComputeWorkload, RenderResourceSchema,
+};
 
 mod project_asset_runtime;
 
@@ -26,6 +28,8 @@ const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_PIPELINE_LABEL: &str =
     "zircon-virtual-geometry-node-cluster-cull";
 const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
 const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_DISPATCH_GROUPS: [u32; 3] = [1, 1, 1];
+const TEST_VIRTUAL_GEOMETRY_PAGE_REQUEST_BUFFER_BYTES: u64 = 16;
+const TEST_VIRTUAL_GEOMETRY_VISIBLE_CLUSTER_BUFFER_BYTES: u64 = 16;
 
 pub fn virtual_geometry_wgpu_render_framework(
     asset_manager: Arc<ProjectAssetManager>,
@@ -36,6 +40,7 @@ pub fn virtual_geometry_wgpu_render_framework(
         [virtual_geometry_render_feature_descriptor()],
         virtual_geometry_render_pass_executor_registrations(),
         [virtual_geometry_runtime_provider_registration()],
+        asset_runtime.worker_pool(),
     )
     .expect("pluginized virtual geometry framework should initialize");
     TestWgpuRenderFramework::new(asset_runtime, framework)
@@ -57,7 +62,12 @@ pub(crate) fn virtual_geometry_render_feature_descriptor() -> RenderFeatureDescr
                 QueueLane::Graphics,
             )
             .with_executor_id("virtual-geometry.prepare")
-            .write_buffer("virtual-geometry-page-requests"),
+            .write_buffer_with_schema(
+                "virtual-geometry-page-requests",
+                test_virtual_geometry_buffer_schema(
+                    TEST_VIRTUAL_GEOMETRY_PAGE_REQUEST_BUFFER_BYTES,
+                ),
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::DepthPrepass,
                 "virtual-geometry-node-cluster-cull",
@@ -70,7 +80,12 @@ pub(crate) fn virtual_geometry_render_feature_descriptor() -> RenderFeatureDescr
                 VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_DISPATCH_GROUPS,
             ))
             .read_buffer("virtual-geometry-page-requests")
-            .write_buffer("virtual-geometry-visible-clusters"),
+            .write_buffer_with_schema(
+                "virtual-geometry-visible-clusters",
+                test_virtual_geometry_buffer_schema(
+                    TEST_VIRTUAL_GEOMETRY_VISIBLE_CLUSTER_BUFFER_BYTES,
+                ),
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::DepthPrepass,
                 "virtual-geometry-page-feedback",
@@ -99,6 +114,15 @@ pub(crate) fn virtual_geometry_render_feature_descriptor() -> RenderFeatureDescr
         ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
+}
+
+fn test_virtual_geometry_buffer_schema(size_bytes: u64) -> RenderResourceSchema {
+    RenderResourceSchema::buffer(RenderBufferSchema::new(
+        size_bytes,
+        zircon_runtime::rhi::BufferUsage::STORAGE
+            | zircon_runtime::rhi::BufferUsage::COPY_SRC
+            | zircon_runtime::rhi::BufferUsage::COPY_DST,
+    ))
 }
 
 fn virtual_geometry_render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {

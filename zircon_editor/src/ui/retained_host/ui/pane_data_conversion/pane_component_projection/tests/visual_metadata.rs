@@ -289,6 +289,24 @@ fn runtime_component_projection_maps_workbench_metric_aliases() {
     assert_eq!(toggle.layout_content_offset_y, 18.0);
     assert_eq!(toggle.layout_icon_size, 12.0);
 
+    let popup = host_template_node(projected_node(
+        "DropdownPopup",
+        [
+            ("layout_padding_left", Value::Float(8.0)),
+            ("layout_padding_right", Value::Float(8.0)),
+            ("layout_padding_top", Value::Float(4.0)),
+            ("layout_padding_bottom", Value::Float(4.0)),
+            ("layout_spacing", Value::Float(4.0)),
+        ],
+    ))
+    .expect("popup content metrics should project into the host contract");
+
+    assert_eq!(popup.layout_padding_left, 8.0);
+    assert_eq!(popup.layout_padding_right, 8.0);
+    assert_eq!(popup.layout_padding_top, 4.0);
+    assert_eq!(popup.layout_padding_bottom, 4.0);
+    assert_eq!(popup.layout_spacing, 4.0);
+
     let toast = host_template_node(projected_node(
         "Alert",
         [

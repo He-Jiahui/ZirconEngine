@@ -1,4 +1,5 @@
 mod build_session;
+mod compiled_template_action;
 mod pane_payload_projection;
 mod plugin_documents;
 mod projection;

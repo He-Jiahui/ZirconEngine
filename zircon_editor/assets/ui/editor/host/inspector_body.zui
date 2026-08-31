@@ -4,6 +4,10 @@ id = "res://ui/editor/host/inspector_body.zui"
 version = 2
 display_name = "inspector pane body"
 
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
 [root]
 node = "root"
 
@@ -11,21 +15,8 @@ node = "root"
 component = "VerticalGroup"
 control_id = "InspectorPaneBodyRoot"
 classes = ["editor-pane", "inspector-pane", "panel"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header" }, { node = "body" }]
-
-[nodes.header]
-component = "HorizontalGroup"
-control_id = "InspectorHeader"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
-children = [{ node = "apply_draft" }]
-
-[nodes.apply_draft]
-component = "Button"
-control_id = "ApplyDraft"
-props = { text = "Apply Draft", button_variant = "secondary" }
-layout = { width = { min = 106.0, preferred = 106.0, max = 106.0, stretch = "Fixed" }, height = { min = 27.2, preferred = 27.2, max = 27.2, stretch = "Fixed" } }
-events = [{ id = "InspectorPaneBody/ApplyDraft", event = "Click", route = "workbench.draft.set_inspector_field" }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "body" }]
 
 [nodes.body]
 component = "Container"

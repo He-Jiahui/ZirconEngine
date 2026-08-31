@@ -8,9 +8,11 @@ mod scene_viewport_controller_build_runtime_overlay_ui;
 mod scene_viewport_controller_camera;
 mod scene_viewport_controller_construction;
 mod scene_viewport_controller_debug;
+mod scene_viewport_controller_error;
 mod scene_viewport_controller_frame_selection;
 mod scene_viewport_controller_handle_input;
 mod scene_viewport_controller_handle_interaction;
+mod scene_viewport_controller_handle_screen_lines;
 mod scene_viewport_controller_highlight_set;
 mod scene_viewport_controller_interaction_cancel;
 mod scene_viewport_controller_navigation;
@@ -25,3 +27,5 @@ mod viewport_drag_session;
 mod viewport_hover_state;
 
 pub(crate) use scene_viewport_controller::SceneViewportController;
+pub(crate) use scene_viewport_controller_error::SceneViewportControllerError;
+pub(crate) use scene_viewport_controller_overlay_providers::ViewportOverlayProviderError;

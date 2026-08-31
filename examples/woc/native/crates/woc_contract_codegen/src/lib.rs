@@ -6,9 +6,10 @@ mod projection;
 pub use contract::{load_contract_manifest, ContractError, ContractManifest};
 pub use projection::{
     generate_projections, verify_projection, write_projection, GeneratedProjections,
-    ProjectionError,
+    ProjectionError, ProjectionWriteOutcome,
 };
 
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -214,13 +215,20 @@ pub fn validate_reference_root(
 ) -> Result<ReferenceInventorySummary, ReferenceInventoryError> {
     let root = reference_root.as_ref();
     let source: SourceManifest = read_json(root, "source_manifest.json")?;
-    validate_source_manifest(root, &source)?;
-    let commands: Catalog<CommandEntry> = read_catalog(root, "command_catalog.json")?;
-    let world: Catalog<WorldMemberEntry> = read_catalog(root, "world_api_catalog.json")?;
-    let tests: Catalog<TestEntry> = read_catalog(root, "test_catalog.json")?;
-    let parity: Catalog<NamedEntry> = read_catalog(root, "parity_scenarios.json")?;
-    let assets: Catalog<AssetEntry> = read_catalog(root, "asset_catalog.json")?;
-    let ui: Catalog<UiFlowEntry> = read_catalog(root, "ui_flow_catalog.json")?;
+    validate_source_manifest(&source)?;
+    validate_catalog_identities(&source.catalog_sha256)?;
+    let commands: Catalog<CommandEntry> =
+        read_catalog(root, "command_catalog.json", &source.catalog_sha256)?;
+    let world: Catalog<WorldMemberEntry> =
+        read_catalog(root, "world_api_catalog.json", &source.catalog_sha256)?;
+    let tests: Catalog<TestEntry> =
+        read_catalog(root, "test_catalog.json", &source.catalog_sha256)?;
+    let parity: Catalog<NamedEntry> =
+        read_catalog(root, "parity_scenarios.json", &source.catalog_sha256)?;
+    let assets: Catalog<AssetEntry> =
+        read_catalog(root, "asset_catalog.json", &source.catalog_sha256)?;
+    let ui: Catalog<UiFlowEntry> =
+        read_catalog(root, "ui_flow_catalog.json", &source.catalog_sha256)?;
 
     validate_unique(
         "command_catalog.json",
@@ -435,8 +443,33 @@ pub fn validate_reference_root(
 fn read_catalog<T: DeserializeOwned>(
     root: &Path,
     name: &str,
+    identities: &std::collections::BTreeMap<String, String>,
 ) -> Result<Catalog<T>, ReferenceInventoryError> {
-    let catalog: Catalog<T> = read_json(root, name)?;
+    let path = root.join(name);
+    let source = fs::read_to_string(&path).map_err(|source| ReferenceInventoryError::Read {
+        path: path.clone(),
+        source,
+    })?;
+    let expected =
+        identities
+            .get(name)
+            .ok_or_else(|| ReferenceInventoryError::InvalidIdentity {
+                field: "catalog_sha256",
+                value: format!("missing {name}"),
+            })?;
+    let digest = Sha256::digest(source.as_bytes());
+    let mut actual = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        write!(actual, "{byte:02x}").expect("writing to a String cannot fail");
+    }
+    if actual != *expected {
+        return Err(ReferenceInventoryError::InvalidIdentity {
+            field: "catalog_sha256",
+            value: format!("{name}: actual {actual}, expected {expected}"),
+        });
+    }
+    let catalog: Catalog<T> = serde_json::from_str(&source)
+        .map_err(|source| ReferenceInventoryError::Parse { path, source })?;
     if catalog.source_commit != REFERENCE_COMMIT {
         return Err(ReferenceInventoryError::Commit {
             catalog: name.to_string(),
@@ -462,10 +495,7 @@ fn read_json<T: DeserializeOwned>(root: &Path, name: &str) -> Result<T, Referenc
     serde_json::from_str(&source).map_err(|source| ReferenceInventoryError::Parse { path, source })
 }
 
-fn validate_source_manifest(
-    root: &Path,
-    source: &SourceManifest,
-) -> Result<(), ReferenceInventoryError> {
+fn validate_source_manifest(source: &SourceManifest) -> Result<(), ReferenceInventoryError> {
     if source.schema_version != 1 {
         return Err(ReferenceInventoryError::Schema {
             catalog: "source_manifest.json".to_string(),
@@ -485,7 +515,6 @@ fn validate_source_manifest(
     validate_file_identity("package_manifest", &source.identities.package_manifest)?;
     validate_tree_identity("parity_sources", &source.identities.parity_sources, 8)?;
     validate_tree_identity("golden_directory", &source.identities.golden_directory, 54)?;
-    validate_catalog_identities(root, &source.catalog_sha256)?;
     validate_count(
         "source_files",
         source.audited_totals.source_files,
@@ -535,7 +564,6 @@ fn validate_source_manifest(
 }
 
 fn validate_catalog_identities(
-    root: &Path,
     identities: &std::collections::BTreeMap<String, String>,
 ) -> Result<(), ReferenceInventoryError> {
     const CATALOGS: [&str; 6] = [
@@ -556,19 +584,6 @@ fn validate_catalog_identities(
                     value: format!("missing {name}"),
                 })?;
         validate_identity("catalog_sha256", expected, is_sha256)?;
-        let path = root.join(name);
-        let bytes =
-            fs::read(&path).map_err(|source| ReferenceInventoryError::Read { path, source })?;
-        let actual = Sha256::digest(bytes)
-            .iter()
-            .map(|byte| format!("{byte:02x}"))
-            .collect::<String>();
-        if actual != *expected {
-            return Err(ReferenceInventoryError::InvalidIdentity {
-                field: "catalog_sha256",
-                value: format!("{name}: actual {actual}, expected {expected}"),
-            });
-        }
     }
     Ok(())
 }

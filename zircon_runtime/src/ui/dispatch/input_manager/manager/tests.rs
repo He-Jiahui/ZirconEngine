@@ -364,6 +364,89 @@ fn tooltip_hover_timer_tick_dispatches_elapsed_default_action() {
 }
 
 #[test]
+fn externally_resolved_tooltip_candidate_uses_manager_timer_and_surface_state() {
+    let target = UiNodeId::new(2);
+    let mut surface = tooltip_surface("authored.tooltip", 40);
+    let mut manager = UiInputManager::default();
+    let started_at = UiInputTimestamp::from_micros(25);
+
+    manager.arm_tooltip_candidate(
+        &mut surface,
+        started_at,
+        target,
+        "editor.workbench.move",
+        500,
+    );
+
+    assert_eq!(
+        manager.timers().tooltip_expiration(target),
+        Some(UiInputTimestamp::from_micros(500_025))
+    );
+    assert_eq!(
+        manager.timers().tooltip_id(target),
+        Some("editor.workbench.move")
+    );
+    assert_eq!(
+        surface.input.tooltip.as_ref().map(|tooltip| (
+            tooltip.tooltip_id.as_str(),
+            tooltip.owner,
+            tooltip.visible
+        )),
+        Some(("editor.workbench.move", Some(target), false))
+    );
+
+    assert!(
+        manager
+            .tick(&mut surface, UiInputTimestamp::from_micros(500_024))
+            .unwrap()
+            .is_empty()
+    );
+    let expired = manager
+        .tick(&mut surface, UiInputTimestamp::from_micros(500_025))
+        .unwrap();
+    assert_eq!(expired.len(), 1);
+    assert!(
+        surface
+            .input
+            .tooltip
+            .as_ref()
+            .is_some_and(|tooltip| tooltip.visible)
+    );
+    assert_eq!(
+        manager.tooltip_intro_progress(UiInputTimestamp::from_micros(500_025)),
+        Some(0.0)
+    );
+    assert_eq!(
+        manager.next_frame_visible_delay(UiInputTimestamp::from_micros(500_025)),
+        Some(std::time::Duration::from_millis(16))
+    );
+    assert!(
+        manager
+            .tick(&mut surface, UiInputTimestamp::from_micros(550_025))
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        manager.tooltip_intro_progress(UiInputTimestamp::from_micros(550_025)),
+        Some(0.5)
+    );
+    assert!(
+        manager
+            .tick(&mut surface, UiInputTimestamp::from_micros(600_025))
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        manager.tooltip_intro_progress(UiInputTimestamp::from_micros(600_025)),
+        None
+    );
+
+    manager.dismiss_tooltip(&mut surface);
+    assert_eq!(manager.timers().tooltip_expiration(target), None);
+    assert_eq!(surface.input.tooltip, None);
+}
+
+#[test]
 fn tooltip_candidate_clears_on_following_input_activity() {
     let target = UiNodeId::new(2);
     let mut surface = tooltip_surface("status.hint", 40);
@@ -514,11 +597,13 @@ fn component_event_result(target: UiNodeId, event: UiComponentEvent) -> UiInputD
 
 fn binding(id: &str, event: &str) -> zircon_runtime_interface::ui::template::UiBindingRef {
     zircon_runtime_interface::ui::template::UiBindingRef {
+        component_event: None,
         id: id.to_string(),
         event: match event {
             "Change" => zircon_runtime_interface::ui::binding::UiEventKind::Change,
             other => panic!("unsupported binding event {other}"),
         },
+        mode: Default::default(),
         route: Some(id.replace('/', ".")),
         action: None,
         targets: Vec::new(),

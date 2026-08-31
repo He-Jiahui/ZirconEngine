@@ -51,6 +51,29 @@ fn render_env_lightmap_bindings_do_not_overlap_volumetric_apply() {
 }
 
 #[test]
+fn render_env_lightmap_atlas_binding_uses_prepared_and_physical_generation() {
+    let source = include_str!("../lightmap_binding.rs")
+        .split("#[cfg(test)]")
+        .next()
+        .expect("lightmap binding production source");
+    let prepare = source
+        .split("pub(in crate::graphics::scene::scene_renderer) fn prepare(")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("pub(in crate::graphics::scene::scene_renderer) fn prepare_probe_grid")
+                .next()
+        })
+        .expect("lightmap prepare implementation");
+
+    assert!(prepare.contains("texture_with_revision(contract.atlas)"));
+    assert!(prepare.contains("self.atlas_revision == Some(revision)"));
+    assert!(prepare.contains("Arc::ptr_eq(current, &resource)"));
+    assert!(prepare.contains("self.atlas_revision = None;"));
+    assert!(!prepare.contains("if self.atlas_asset == Some(contract.atlas) {"));
+}
+
+#[test]
 fn render_env_probe_grid_gpu_storage_preserves_header_and_sh9_order() {
     let mut first = ShL2Rgb::default();
     first.0[0] = Vec3::new(1.0, 2.0, 3.0);

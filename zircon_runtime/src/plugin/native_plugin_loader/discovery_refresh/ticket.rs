@@ -1,5 +1,5 @@
 use std::fmt;
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::Instant;
@@ -92,6 +92,16 @@ pub(super) struct NativePluginDiscoveryRefreshTerminalDelivery {
     ticket: NativePluginDiscoveryRefreshTicket,
     terminal: NativePluginDiscoveryRefreshTerminal,
     observers: Vec<TerminalObserver>,
+}
+
+fn reserve_remaining_observer_budget_if_full(
+    observers: &mut Vec<TerminalObserver>,
+    max_observers: usize,
+) {
+    if !observers.is_empty() && observers.len() == observers.capacity() {
+        let remaining_capacity = max_observers.saturating_sub(observers.len());
+        observers.reserve_exact(remaining_capacity);
+    }
 }
 
 impl NativePluginDiscoveryRefreshTicket {
@@ -189,6 +199,10 @@ impl NativePluginDiscoveryRefreshTicket {
             if let Some(terminal) = state.terminal.clone() {
                 terminal
             } else {
+                reserve_remaining_observer_budget_if_full(
+                    &mut state.observers,
+                    self.inner.max_observers,
+                );
                 state.observers.push(observer);
                 return true;
             }
@@ -269,5 +283,33 @@ impl fmt::Debug for NativePluginDiscoveryRefreshTicket {
             .field("generation", &self.generation())
             .field("is_complete", &self.is_complete())
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod capacity_tests {
+    use super::*;
+
+    const SATURATED_OBSERVER_BUDGET: usize = 32;
+
+    fn observer() -> TerminalObserver {
+        Box::new(|_| {})
+    }
+
+    #[test]
+    fn observer_queue_reservation_preserves_small_fan_out_and_jumps_to_budget() {
+        let mut observers = Vec::new();
+        reserve_remaining_observer_budget_if_full(&mut observers, SATURATED_OBSERVER_BUDGET);
+        assert_eq!(observers.capacity(), 0);
+
+        observers.push(observer());
+        while observers.len() < observers.capacity() {
+            reserve_remaining_observer_budget_if_full(&mut observers, SATURATED_OBSERVER_BUDGET);
+            observers.push(observer());
+        }
+        assert!(observers.capacity() < SATURATED_OBSERVER_BUDGET);
+
+        reserve_remaining_observer_budget_if_full(&mut observers, SATURATED_OBSERVER_BUDGET);
+        assert!(observers.capacity() >= SATURATED_OBSERVER_BUDGET);
     }
 }

@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "automation_report_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.automation_report_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionAutomationReportWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "automation_report_rail_gap" }, { node = "automation_report_left" }, { node = "automation_report_center" }, { node = "automation_report_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "automation_report_workspace_main" },
+  { node = "automation_report_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.automation_report_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "automation_report_rail_gap" }, { node = "automation_report_left" }, { node = "automation_report_center" }, { node = "automation_report_right_reserve" }]
+
+[nodes.automation_report_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.automation_report_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionAutomationReportRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.automation_report_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionAutomationReportLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "automation_report_title" }, { node = "automation_report_failures_tab" }, { node = "automation_report_workers_tab" }, { node = "automation_report_artifacts_tab" }, { node = "automation_report_smoke_row" }, { node = "automation_report_rendering_row" }, { node = "automation_report_gameplay_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "automation_report_title" }, { node = "automation_report_left_content" }]
+
+[nodes.automation_report_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionAutomationReportLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "automation_report_smoke_row" }, { node = "automation_report_rendering_row" }, { node = "automation_report_gameplay_row" }]
 
 [nodes.automation_report_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionAutomationReportTitle"
 props = { text = "Automation Report" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.automation_report_failures_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionAutomationReportFailuresTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Failures", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/AutomationReportFailuresTab", event = "Click", route = "workbench.extension.automation_report.failures" }]
-
-[nodes.automation_report_workers_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionAutomationReportWorkersTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Workers", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/AutomationReportWorkersTab", event = "Click", route = "workbench.extension.automation_report.workers" }]
-
-[nodes.automation_report_artifacts_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionAutomationReportArtifactsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Artifacts", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/AutomationReportArtifactsTab", event = "Click", route = "workbench.extension.automation_report.artifacts" }]
 
 [nodes.automation_report_smoke_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/AutomationReportGameplayRow", event = "Clic
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionAutomationReportCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "automation_report_center_header" }, { node = "automation_report_queue" }, { node = "automation_report_output" }]
 
 [nodes.automation_report_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionAutomationReportCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "automation_report_center_title" }, { node = "automation_report_header_fill" }, { node = "automation_report_validate_button" }, { node = "automation_report_publish_button" }]
 
 [nodes.automation_report_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionAutomationReportValidateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Validate", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Validate", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/AutomationReportValidate", event = "Click", route = "workbench.extension.automation_report.validate" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/AutomationReportValidate", event = "Click",
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionAutomationReportPublishButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Publish", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Publish", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/AutomationReportPublish", event = "Click", route = "workbench.extension.automation_report.publish" }]
 
 [nodes.automation_report_queue]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionAutomationReportQueue"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "automation_report_renderer_test_row" }, { node = "automation_report_gameplay_test_row" }, { node = "automation_report_asset_test_row" }, { node = "automation_report_ui_failure_row" }]
 
 [nodes.automation_report_renderer_test_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/AutomationReportUiFailureRow", event = "Cli
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionAutomationReportOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Report", value_text = "642 tests   7 failed   3 flakes" }
+props = { text = "Report", value_text = "642 tests   7 failed   3 flakes", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/AutomationReportOutput", event = "Click", route = "workbench.extension.automation_report.output" }]
 
 [nodes.automation_report_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionAutomationReportRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "automation_report_details_title" }, { node = "automation_report_suite_dropdown" }, { node = "automation_report_platform_dropdown" }, { node = "automation_report_retry_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "automation_report_details_title" }, { node = "automation_report_right_content" }]
+
+[nodes.automation_report_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionAutomationReportRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "automation_report_suite_dropdown_property_row" }, { node = "automation_report_platform_dropdown_property_row" }, { node = "automation_report_retry_field_property_row" }]
 
 [nodes.automation_report_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,27 +202,48 @@ control_id = "WorkbenchExtensionAutomationReportDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.automation_report_suite_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionAutomationReportSuiteDropdownPropertyRow"
+props = { text = "Suite" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "automation_report_suite_dropdown", slot = { name = "value" } }]
+
 [nodes.automation_report_suite_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionAutomationReportSuiteDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Rendering", value = "Rendering", options = ["Smoke", "Rendering", "Gameplay"] }
+props = { value_text = "Rendering", value = "Rendering", options = ["Smoke", "Rendering", "Gameplay"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/AutomationReportSuiteEdit", event = "Change", route = "workbench.extension.automation_report.suite.edit" },
   { id = "WorkbenchExtension/AutomationReportSuiteCommit", event = "Submit", route = "workbench.extension.automation_report.suite.commit" },
 ]
 
+[nodes.automation_report_platform_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionAutomationReportPlatformDropdownPropertyRow"
+props = { text = "Platform" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "automation_report_platform_dropdown", slot = { name = "value" } }]
+
 [nodes.automation_report_platform_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionAutomationReportPlatformDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Windows", value = "Windows", options = ["Windows", "Linux", "Headless"] }
+props = { value_text = "Windows", value = "Windows", options = ["Windows", "Linux", "Headless"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/AutomationReportPlatformEdit", event = "Change", route = "workbench.extension.automation_report.platform.edit" },
   { id = "WorkbenchExtension/AutomationReportPlatformCommit", event = "Submit", route = "workbench.extension.automation_report.platform.commit" },
 ]
+
+[nodes.automation_report_retry_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionAutomationReportRetryFieldPropertyRow"
+props = { text = "Retry" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "automation_report_retry_field", slot = { name = "value" } }]
 
 [nodes.automation_report_retry_field]
 component = "WorkbenchField"

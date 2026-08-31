@@ -218,7 +218,7 @@ impl NativePluginLiveHostLoadReport {
             self.diagnostics.push(report.diagnostic());
             self.bridge_lifecycle_reports.push(report);
         }
-        self.diagnostics.sort();
+        self.diagnostics.sort_unstable();
         self.diagnostics.dedup();
     }
 }
@@ -245,7 +245,7 @@ impl NativePluginRuntimeHotUpdateReport {
             outcome.attach_bridge_lifecycle_report(report);
             self.diagnostics.extend(outcome.diagnostics.clone());
         }
-        self.diagnostics.sort();
+        self.diagnostics.sort_unstable();
         self.diagnostics.dedup();
     }
 }
@@ -256,7 +256,7 @@ impl NativePluginLiveHostOutcome {
         report: NativePluginLiveHostBridgeLifecycleReport,
     ) {
         self.diagnostics.push(report.diagnostic());
-        self.diagnostics.sort();
+        self.diagnostics.sort_unstable();
         self.diagnostics.dedup();
         self.bridge_lifecycle_report = Some(report);
     }
@@ -277,3 +277,7 @@ fn runtime_bridge_lifecycle_report(
         outcome,
     }
 }
+
+#[cfg(test)]
+#[path = "bridge_lifecycle/optimization_tests.rs"]
+mod optimization_tests;

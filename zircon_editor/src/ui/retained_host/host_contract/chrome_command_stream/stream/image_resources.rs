@@ -84,8 +84,11 @@ impl ChromeImageResources {
     }
 
     pub(in crate::ui::retained_host::host_contract) fn extend(&mut self, resources: Self) {
-        for (resource_key, resource) in resources.into_entries() {
-            self.insert(resource_key, resource);
+        for (resource_key, mut generations) in resources.by_resource_key {
+            self.by_resource_key
+                .entry(resource_key)
+                .or_default()
+                .append(&mut generations);
         }
     }
 }
@@ -155,7 +158,10 @@ pub(super) fn compact_image_resources_with_residency(
 
 #[cfg(test)]
 mod tests {
-    use super::{compact_image_resources, compact_image_resources_with_residency};
+    use super::{
+        compact_image_resources, compact_image_resources_with_residency, ChromeImageResource,
+        ChromeImageResources,
+    };
     use crate::ui::retained_host::host_contract::chrome_command_stream::{
         ChromeCommand, ChromeCommandKind, ChromeCommandLayer, ChromeImagePayload,
     };
@@ -168,6 +174,7 @@ mod tests {
             z_index: generation as i32,
             frame: FrameRect::default(),
             clip: None,
+            source: None,
             kind: ChromeCommandKind::Image {
                 payload: ChromeImagePayload {
                     resource_key: "atlas://editor/icons".to_string(),
@@ -205,6 +212,7 @@ mod tests {
             z_index: generation as i32,
             frame: FrameRect::default(),
             clip: None,
+            source: None,
             kind: ChromeCommandKind::Image {
                 payload: ChromeImagePayload {
                     resource_key: "atlas://editor/icons".to_string(),
@@ -244,12 +252,58 @@ mod tests {
     }
 
     #[test]
+    fn resource_group_merge_moves_all_generations_and_preserves_newer_batch_authority() {
+        let resource = |generation, value| ChromeImageResource {
+            generation,
+            width: 1,
+            height: 1,
+            upload_bytes: 4,
+            rgba: vec![value; 4].into(),
+        };
+        let mut retained = ChromeImageResources::default();
+        retained.insert("image://shared".to_string(), resource(1, 1));
+        retained.insert("image://shared".to_string(), resource(2, 2));
+        let mut incoming = ChromeImageResources::default();
+        incoming.insert("image://shared".to_string(), resource(2, 22));
+        incoming.insert("image://shared".to_string(), resource(3, 3));
+
+        retained.extend(incoming);
+
+        assert_eq!(retained.len(), 3);
+        assert_eq!(
+            retained
+                .get("image://shared", 1)
+                .expect("retained generation")
+                .rgba
+                .as_ref(),
+            &[1; 4]
+        );
+        assert_eq!(
+            retained
+                .get("image://shared", 2)
+                .expect("incoming generation replaces the old generation")
+                .rgba
+                .as_ref(),
+            &[22; 4]
+        );
+        assert_eq!(
+            retained
+                .get("image://shared", 3)
+                .expect("new generation")
+                .rgba
+                .as_ref(),
+            &[3; 4]
+        );
+    }
+
+    #[test]
     fn resident_atlas_handle_skips_the_source_resolver() {
         let mut commands = vec![ChromeCommand {
             layer: ChromeCommandLayer::Static,
             z_index: 0,
             frame: FrameRect::default(),
             clip: None,
+            source: None,
             kind: ChromeCommandKind::Image {
                 payload: ChromeImagePayload {
                     resource_key: "atlas://editor/icons".to_string(),
@@ -277,6 +331,7 @@ mod tests {
             z_index: 0,
             frame: FrameRect::default(),
             clip: None,
+            source: None,
             kind: ChromeCommandKind::Image {
                 payload: ChromeImagePayload {
                     resource_key: "atlas://editor/icons".to_string(),

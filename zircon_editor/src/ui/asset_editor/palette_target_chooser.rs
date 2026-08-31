@@ -2,6 +2,9 @@ use crate::ui::asset_editor::tree::palette_drop::{
     UiAssetPaletteDragResolution, UiAssetPaletteDragTarget,
 };
 
+#[cfg(test)]
+mod single_candidate_scan_tests;
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct UiAssetPaletteTargetChooser {
     resolution: UiAssetPaletteDragResolution,
@@ -72,12 +75,16 @@ pub(super) fn reconcile_palette_target_chooser(
     previous: Option<UiAssetPaletteTargetChooser>,
     mut next_resolution: Option<UiAssetPaletteDragResolution>,
 ) -> (Option<UiAssetPaletteTargetChooser>, bool) {
+    let same_candidates = previous
+        .as_ref()
+        .zip(next_resolution.as_ref())
+        .is_some_and(|(previous, next)| same_candidate_set(previous.resolution(), next));
     if let Some(previous_ref) = previous.as_ref() {
         if previous_ref.sticky() {
-            let Some(next_resolution_ref) = next_resolution.as_mut() else {
+            if next_resolution.is_none() {
                 return (previous, false);
-            };
-            if !same_candidate_set(previous_ref.resolution(), next_resolution_ref) {
+            }
+            if !same_candidates {
                 return (previous, false);
             }
         }
@@ -87,18 +94,12 @@ pub(super) fn reconcile_palette_target_chooser(
     if let (Some(previous_ref), Some(next_resolution_ref)) =
         (previous.as_ref(), next_resolution.as_mut())
     {
-        if same_candidate_set(previous_ref.resolution(), next_resolution_ref)
+        if same_candidates
             && previous_ref.manual_selection()
+            && previous_ref.selected_target().is_some()
         {
-            if let Some(previous_target) = previous_ref.selected_target() {
-                if let Some(index) = next_resolution_ref.candidates.iter().position(|candidate| {
-                    candidate.key == previous_target.key
-                        && candidate.detail == previous_target.detail
-                }) {
-                    next_resolution_ref.selected_index = index;
-                    next_manual_selection = true;
-                }
-            }
+            next_resolution_ref.selected_index = previous_ref.resolution().selected_index;
+            next_manual_selection = true;
         }
     }
 

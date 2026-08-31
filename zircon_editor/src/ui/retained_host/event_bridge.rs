@@ -17,12 +17,20 @@ pub(crate) struct HostShellContentScope {
     pub(crate) instance_id: ViewInstanceId,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct AssetRelocationRequest {
+    pub(crate) asset_uuid: String,
+    pub(crate) target_locator: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct AssetDeletionRequest {
+    pub(crate) asset_uuid: String,
+}
+
 impl HostShellContentScope {
     pub(crate) fn new(slot: ActivityDrawerSlot, instance_id: ViewInstanceId) -> Self {
-        Self {
-            slot: slot.canonical(),
-            instance_id,
-        }
+        Self { slot, instance_id }
     }
 }
 
@@ -37,12 +45,16 @@ pub(crate) struct UiHostEventEffects {
     pub active_layout_preset_name: Option<String>,
     pub present_welcome_surface: bool,
     pub sync_asset_workspace: bool,
+    pub save_all_documents: bool,
     pub close_active_project: bool,
     pub refresh_asset_details: bool,
     pub refresh_visible_asset_previews: bool,
     pub import_model_requested: bool,
+    pub asset_deletion_requested: Option<AssetDeletionRequest>,
+    pub asset_relocation_requested: Option<AssetRelocationRequest>,
     pub reset_active_layout_preset: bool,
     pub open_command_palette_requested: bool,
+    pub open_settings_window_requested: bool,
     pub open_scene_picker_requested: bool,
     pub create_scene_picker_requested: bool,
     pub toast_notifications: Vec<ToastNotification>,
@@ -69,6 +81,10 @@ impl UiHostEventEffects {
 
     pub(crate) fn request_paint_only(&mut self) {
         self.merge_dirty_domains(HostInvalidationMask::PAINT_ONLY);
+    }
+
+    pub(crate) fn request_workbench_projection(&mut self) {
+        self.merge_dirty_domains(HostInvalidationMask::WORKBENCH_PROJECTION);
     }
 
     pub(crate) fn reuse_layout_for_shell_content(&mut self, scope: HostShellContentScope) {
@@ -124,12 +140,16 @@ impl UiHostEventEffects {
             && self.active_layout_preset_name.is_none()
             && !self.present_welcome_surface
             && !self.sync_asset_workspace
+            && !self.save_all_documents
             && !self.close_active_project
             && !self.refresh_asset_details
             && !self.refresh_visible_asset_previews
             && !self.import_model_requested
+            && self.asset_deletion_requested.is_none()
+            && self.asset_relocation_requested.is_none()
             && !self.reset_active_layout_preset
             && !self.open_command_palette_requested
+            && !self.open_settings_window_requested
             && !self.open_scene_picker_requested
             && !self.create_scene_picker_requested
             && self.toast_notifications.is_empty()
@@ -168,7 +188,6 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
     let notifications = toast_notifications_for_record(record);
     if !notifications.is_empty() {
         target.toast_notifications.extend(notifications);
-        target.request_presentation();
     }
 
     for effect in &record.effects {
@@ -196,6 +215,10 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
                 target.sync_asset_workspace = true;
                 target.request_presentation();
             }
+            EditorEventEffect::DocumentSaveAllRequested => {
+                target.save_all_documents = true;
+                target.request_presentation();
+            }
             EditorEventEffect::ProjectCloseRequested => {
                 target.close_active_project = true;
                 target.sync_asset_workspace = true;
@@ -212,8 +235,26 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
             EditorEventEffect::ImportModelRequested => {
                 target.import_model_requested = true;
             }
+            EditorEventEffect::AssetRelocationRequested {
+                asset_uuid,
+                target_locator,
+            } => {
+                target.asset_relocation_requested = Some(AssetRelocationRequest {
+                    asset_uuid: asset_uuid.clone(),
+                    target_locator: target_locator.clone(),
+                });
+            }
+            EditorEventEffect::AssetDeletionRequested { asset_uuid } => {
+                target.asset_deletion_requested = Some(AssetDeletionRequest {
+                    asset_uuid: asset_uuid.clone(),
+                });
+            }
             EditorEventEffect::CommandPaletteOpenRequested => {
                 target.open_command_palette_requested = true;
+                target.request_presentation();
+            }
+            EditorEventEffect::SettingsWindowOpenRequested => {
+                target.open_settings_window_requested = true;
                 target.request_presentation();
             }
             EditorEventEffect::OpenScenePickerRequested => {
@@ -233,7 +274,6 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
         EditorEvent::Viewport(event) if event.changes_chrome_projection()
     ) {
         target.sync_viewport_chrome = true;
-        target.request_paint_only();
     }
 
     match &record.event {
@@ -354,6 +394,23 @@ mod tests {
     }
 
     #[test]
+    fn workbench_projection_effect_preserves_coalesced_render_without_global_presentation() {
+        let mut effects = UiHostEventEffects::default();
+        effects.request_paint_only();
+        effects.request_render();
+        effects.request_workbench_projection();
+
+        let dirty = effects.dirty_domains();
+        assert!(dirty.contains(crate::ui::retained_host::HostInvalidationMask::PAINT_ONLY));
+        assert!(dirty.contains(crate::ui::retained_host::HostInvalidationMask::RENDER));
+        assert!(
+            dirty.contains(crate::ui::retained_host::HostInvalidationMask::WORKBENCH_PROJECTION)
+        );
+        assert!(dirty.requires_host_recompute());
+        assert!(!dirty.requires_presentation());
+    }
+
+    #[test]
     fn stable_shell_content_replaces_generic_layout_invalidation() {
         let mut effects = UiHostEventEffects::default();
         effects.request_layout();
@@ -411,5 +468,81 @@ mod tests {
         assert!(effects.presentation_dirty);
         assert!(!effects.layout_dirty);
         assert!(!effects.render_dirty);
+    }
+
+    #[test]
+    fn asset_relocation_effect_preserves_background_request_payload() {
+        let asset_uuid = "00112233-4455-6677-8899-aabbccddeeff".to_owned();
+        let target_locator = "res://environment/cube.zmodel".to_owned();
+        let record = EditorEventRecord {
+            event_id: EditorEventId::new(2),
+            sequence: EditorEventSequence::new(2),
+            source: EditorEventSource::RetainedHost,
+            event: EditorEvent::Asset(crate::core::editor_event::EditorAssetEvent::RelocateAsset {
+                asset_uuid: asset_uuid.clone(),
+                target_locator: target_locator.clone(),
+            }),
+            binding_path: Some("AssetTree/RelocateAsset".to_owned()),
+            operation_id: None,
+            operation_display_name: None,
+            operation_arguments: None,
+            operation_group: None,
+            transaction_id: None,
+            save_generation: None,
+            effects: vec![EditorEventEffect::AssetRelocationRequested {
+                asset_uuid: asset_uuid.clone(),
+                target_locator: target_locator.clone(),
+            }],
+            undo_policy: EditorEventUndoPolicy::NonUndoable,
+            before_revision: 0,
+            after_revision: 0,
+            result: EditorEventResult::success(serde_json::json!({ "changed": false })),
+        };
+        let mut effects = UiHostEventEffects::default();
+
+        apply_record_effects(&mut effects, &record);
+
+        assert_eq!(
+            effects.asset_relocation_requested,
+            Some(super::AssetRelocationRequest {
+                asset_uuid,
+                target_locator,
+            })
+        );
+    }
+
+    #[test]
+    fn asset_deletion_effect_preserves_background_request_payload() {
+        let asset_uuid = "00112233-4455-6677-8899-aabbccddeeff".to_owned();
+        let record = EditorEventRecord {
+            event_id: EditorEventId::new(3),
+            sequence: EditorEventSequence::new(3),
+            source: EditorEventSource::RetainedHost,
+            event: EditorEvent::Asset(crate::core::editor_event::EditorAssetEvent::DeleteAsset {
+                asset_uuid: asset_uuid.clone(),
+            }),
+            binding_path: Some("AssetContextMenu/DeleteAsset".to_owned()),
+            operation_id: None,
+            operation_display_name: None,
+            operation_arguments: None,
+            operation_group: None,
+            transaction_id: None,
+            save_generation: None,
+            effects: vec![EditorEventEffect::AssetDeletionRequested {
+                asset_uuid: asset_uuid.clone(),
+            }],
+            undo_policy: EditorEventUndoPolicy::NonUndoable,
+            before_revision: 0,
+            after_revision: 0,
+            result: EditorEventResult::success(serde_json::json!({ "changed": false })),
+        };
+        let mut effects = UiHostEventEffects::default();
+
+        apply_record_effects(&mut effects, &record);
+
+        assert_eq!(
+            effects.asset_deletion_requested,
+            Some(super::AssetDeletionRequest { asset_uuid })
+        );
     }
 }

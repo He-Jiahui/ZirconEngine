@@ -104,7 +104,7 @@ pub(super) fn assert_mirror_docs_split_layout(sources: &MirrorDocsSources) {
         sources.owner_budget_mirror_docs_source_inventory_guard,
         &[
             "assert_source_inventory_anchors",
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "owner_budget/child_routes/submit_context.rs",
             "owner_budget/line_budgets/owner_budget.rs",
             "owner_budget/line_budgets/root.rs",

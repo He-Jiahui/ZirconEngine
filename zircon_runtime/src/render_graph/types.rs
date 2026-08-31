@@ -2,6 +2,18 @@ use crate::core::framework::render::{ComputeDispatchPlan, ShaderDispatchExtent};
 use crate::rhi::{BufferDesc, TextureDesc};
 use zircon_runtime_interface::resource::AssetReference;
 
+use super::access::{
+    RenderGraphBufferRange, RenderGraphResourceAccessIntent, RenderGraphResourceAccessMetadata,
+    RenderGraphResourceAccessRange, RenderGraphShaderStages, RenderGraphTextureSubresourceRange,
+};
+
+mod compute_pipeline;
+
+pub use compute_pipeline::{
+    RenderGraphComputePipelineFallbackPolicy, RenderGraphComputePipelineFamily,
+    RenderGraphComputePipelineResolution, RenderGraphComputePipelineResolutionStatus,
+};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RenderPassId(pub(crate) usize, pub(crate) u64);
 
@@ -34,6 +46,22 @@ impl RgTextureHandle {
 
     pub(crate) const fn generation(self) -> u64 {
         self.1
+    }
+}
+
+/// A logical texture resource backed by an exact subresource view of another
+/// graph-owned transient texture. The alias retains a distinct handle so
+/// accesses, versions, and culling keep their logical identity while physical
+/// allocation remains owned by `parent`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct RenderGraphTextureViewAlias {
+    pub parent: RgTextureHandle,
+    pub range: RenderGraphTextureSubresourceRange,
+}
+
+impl RenderGraphTextureViewAlias {
+    pub const fn new(parent: RgTextureHandle, range: RenderGraphTextureSubresourceRange) -> Self {
+        Self { parent, range }
     }
 }
 
@@ -107,6 +135,51 @@ impl RenderGraphResourceVersion {
 
     pub const fn ordinal(self) -> u64 {
         self.ordinal
+    }
+}
+
+/// Builder-scoped reference to the exact write access that produced a logical value.
+///
+/// This is an authoring token rather than a compiled version ordinal. The compiler
+/// resolves it after scheduling and rejects a consumer if another write superseded
+/// the requested value.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct RenderGraphResourceVersionToken {
+    resource: RenderGraphResource,
+    producer_pass: RenderPassId,
+    producer_access_index: usize,
+    builder_generation: u64,
+}
+
+impl RenderGraphResourceVersionToken {
+    pub(crate) const fn new(
+        resource: RenderGraphResource,
+        producer_pass: RenderPassId,
+        producer_access_index: usize,
+        builder_generation: u64,
+    ) -> Self {
+        Self {
+            resource,
+            producer_pass,
+            producer_access_index,
+            builder_generation,
+        }
+    }
+
+    pub(crate) const fn resource(self) -> RenderGraphResource {
+        self.resource
+    }
+
+    pub(crate) const fn producer_pass(self) -> RenderPassId {
+        self.producer_pass
+    }
+
+    pub(crate) const fn producer_access_index(self) -> usize {
+        self.producer_access_index
+    }
+
+    pub(crate) const fn builder_generation(self) -> u64 {
+        self.builder_generation
     }
 }
 
@@ -241,6 +314,17 @@ pub struct RenderGraphResourceLifetime {
     pub kind: RenderGraphResourceKind,
     pub desc: RenderGraphResourceDesc,
     pub external_binding: RenderGraphExternalResourceBinding,
+    /// Resolved RHI contract for a schema-backed imported texture.
+    ///
+    /// Generic report-only imports intentionally remain descriptor-less, but a
+    /// feature that declares a texture schema must carry its resolved shape to
+    /// execution so the bound physical lease can be verified before encoding.
+    pub external_texture_desc: Option<TextureDesc>,
+    /// Resolved RHI contract for a schema-backed imported buffer.
+    pub external_buffer_desc: Option<BufferDesc>,
+    /// The declared parent texture view for this logical resource, when it
+    /// owns no physical allocation of its own.
+    pub texture_view_alias: Option<RenderGraphTextureViewAlias>,
     pub first_pass: usize,
     pub last_pass: usize,
     pub imported: bool,
@@ -254,9 +338,13 @@ impl RenderGraphResourceLifetime {
             RenderGraphResourceDesc::Texture(desc) if desc.is_sparse_reserved()
         )
     }
+
+    pub const fn is_texture_view_alias(&self) -> bool {
+        self.texture_view_alias.is_some()
+    }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum RenderGraphResourceAccessKind {
     Read,
     Write,
@@ -268,7 +356,7 @@ pub enum RenderGraphAttachmentLoadOp {
     Clear,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum RenderGraphAttachmentStoreOp {
     Store,
     Discard,
@@ -311,6 +399,12 @@ pub struct RenderGraphResourceDeclaration {
     pub kind: RenderGraphResourceKind,
     pub desc: RenderGraphResourceDesc,
     pub external_binding: RenderGraphExternalResourceBinding,
+    /// Resolved RHI contract for a schema-backed imported texture.
+    pub external_texture_desc: Option<TextureDesc>,
+    /// Resolved RHI contract for a schema-backed imported buffer.
+    pub external_buffer_desc: Option<BufferDesc>,
+    /// Optional graph-owned subresource view backing this logical texture.
+    pub texture_view_alias: Option<RenderGraphTextureViewAlias>,
     pub imported: bool,
     pub usage: RenderGraphResourceUsageFlags,
 }
@@ -332,6 +426,22 @@ pub enum ComputeBindingKind {
     StorageTextureWrite,
 }
 
+/// A static byte window for a graph buffer binding.
+///
+/// Dynamic offsets are command-recording state and deliberately do not belong
+/// to immutable render-graph metadata.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct RenderGraphBufferBindingRange {
+    pub offset: u64,
+    pub size: Option<u64>,
+}
+
+impl RenderGraphBufferBindingRange {
+    pub const fn new(offset: u64, size: Option<u64>) -> Self {
+        Self { offset, size }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BindingSchemaEntry {
     pub binding: u32,
@@ -342,8 +452,8 @@ pub struct BindingSchemaEntry {
     /// Requests an owned texture view spanning all mips when available; imported textures retain
     /// their default view because their backing mip topology is not owned by the render graph.
     pub texture_full_mip_chain: bool,
-    /// `None` binds the whole buffer; `Some` binds from a device-aligned byte offset.
-    pub buffer_offset: Option<u64>,
+    /// `None` binds the whole buffer; `Some` binds the exact static byte window.
+    pub buffer_range: Option<RenderGraphBufferBindingRange>,
 }
 
 impl BindingSchemaEntry {
@@ -354,7 +464,7 @@ impl BindingSchemaEntry {
             kind,
             texture_mip_level: None,
             texture_full_mip_chain: false,
-            buffer_offset: None,
+            buffer_range: None,
         }
     }
 
@@ -370,9 +480,59 @@ impl BindingSchemaEntry {
         self
     }
 
-    pub fn with_buffer_offset(mut self, offset: u64) -> Self {
-        self.buffer_offset = Some(offset);
+    pub fn with_buffer_range(mut self, offset: u64, size: Option<u64>) -> Self {
+        self.buffer_range = Some(RenderGraphBufferBindingRange::new(offset, size));
         self
+    }
+
+    /// Returns the graph scope and intent required for one logical access of this binding.
+    ///
+    /// `StorageBufferReadWrite` intentionally yields distinct read and write metadata so the
+    /// compiler can retain both provenance rows rather than assigning one mutable binding a
+    /// fictitious single access identity.
+    pub(crate) fn compute_access_metadata(
+        &self,
+        access: RenderGraphResourceAccessKind,
+    ) -> Option<RenderGraphResourceAccessMetadata> {
+        let stages = RenderGraphShaderStages::COMPUTE;
+        let buffer_range = self
+            .buffer_range
+            .map(|range| RenderGraphBufferRange::new(range.offset, range.size))
+            .unwrap_or_else(RenderGraphBufferRange::full);
+        let texture_range = self
+            .texture_mip_level
+            .map(RenderGraphTextureSubresourceRange::single_mip)
+            .unwrap_or_else(RenderGraphTextureSubresourceRange::full);
+        let intent = match (self.kind, access) {
+            (ComputeBindingKind::UniformBuffer, RenderGraphResourceAccessKind::Read) => {
+                RenderGraphResourceAccessIntent::UniformBuffer { stages }
+            }
+            (ComputeBindingKind::StorageBufferRead, RenderGraphResourceAccessKind::Read)
+            | (ComputeBindingKind::StorageBufferReadWrite, RenderGraphResourceAccessKind::Read) => {
+                RenderGraphResourceAccessIntent::storage_buffer_read(stages)
+            }
+            (ComputeBindingKind::StorageBufferReadWrite, RenderGraphResourceAccessKind::Write) => {
+                RenderGraphResourceAccessIntent::storage_buffer_read_write(stages)
+            }
+            (ComputeBindingKind::SampledTexture, RenderGraphResourceAccessKind::Read) => {
+                RenderGraphResourceAccessIntent::sampled_texture(stages)
+            }
+            (ComputeBindingKind::StorageTextureWrite, RenderGraphResourceAccessKind::Write) => {
+                RenderGraphResourceAccessIntent::storage_texture_write(stages)
+            }
+            _ => return None,
+        };
+        let range = match self.kind {
+            ComputeBindingKind::UniformBuffer
+            | ComputeBindingKind::StorageBufferRead
+            | ComputeBindingKind::StorageBufferReadWrite => {
+                RenderGraphResourceAccessRange::Buffer(buffer_range)
+            }
+            ComputeBindingKind::SampledTexture | ComputeBindingKind::StorageTextureWrite => {
+                RenderGraphResourceAccessRange::Texture(texture_range)
+            }
+        };
+        Some(RenderGraphResourceAccessMetadata::new(range, intent))
     }
 }
 
@@ -442,6 +602,7 @@ pub struct RenderGraphComputeWorkload {
     /// Neutral planned workload metadata. Concrete WGPU pipelines, bind groups, and
     /// dispatch recording stay owned by renderer executors.
     pub pipeline_label: String,
+    pub pipeline_fallback_policy: RenderGraphComputePipelineFallbackPolicy,
     pub workgroup_size: [u32; 3],
     pub dispatch_extent: RenderGraphComputeDispatchExtent,
 }
@@ -454,9 +615,18 @@ impl RenderGraphComputeWorkload {
     ) -> Self {
         Self {
             pipeline_label: pipeline_label.into(),
+            pipeline_fallback_policy: RenderGraphComputePipelineFallbackPolicy::Reject,
             workgroup_size,
             dispatch_extent,
         }
+    }
+
+    pub fn with_pipeline_fallback_policy(
+        mut self,
+        policy: RenderGraphComputePipelineFallbackPolicy,
+    ) -> Self {
+        self.pipeline_fallback_policy = policy;
+        self
     }
 
     pub fn cluster_grid(pipeline_label: impl Into<String>, workgroup_size: [u32; 3]) -> Self {

@@ -3,6 +3,7 @@ use crate::scene::viewport::ViewportFeedback;
 use crate::ui::binding::ViewportCommand;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
+use crate::ui::workbench::state::EditorViewportStateError;
 
 use super::execution_outcome::ExecutionOutcome;
 
@@ -10,7 +11,7 @@ pub(super) fn execute_viewport_event(
     _controller: &EditorHostEventController,
     shell: &mut WorkbenchShellStateData,
     event: &EditorViewportEvent,
-) -> Result<ExecutionOutcome, String> {
+) -> Result<ExecutionOutcome, EditorViewportStateError> {
     let command = match event {
         EditorViewportEvent::PointerMoved { x, y } => {
             ViewportCommand::PointerMoved { x: *x, y: *y }
@@ -45,6 +46,7 @@ pub(super) fn execute_viewport_event(
         EditorViewportEvent::SetTransformSpace { space } => {
             ViewportCommand::SetTransformSpace(*space)
         }
+        EditorViewportEvent::SetPivotMode { mode } => ViewportCommand::SetPivotMode(*mode),
         EditorViewportEvent::SetProjectionMode { mode } => {
             ViewportCommand::SetProjectionMode(*mode)
         }
@@ -73,12 +75,13 @@ pub(super) fn execute_viewport_event(
         EditorViewportEvent::FrameSelection => ViewportCommand::FrameSelection,
     };
     let feedback = shell.state.apply_viewport_command(&command)?;
-    let structural_viewport_change = structural_viewport_event(event);
+    let structural_viewport_change = structural_viewport_event(event, &feedback);
     let chrome_projection_change = event.changes_chrome_projection();
     let changed = structural_viewport_change
         || feedback.camera_updated
         || feedback.transformed_node.is_some()
-        || feedback.hovered_axis.is_some();
+        || feedback.hovered_axis.is_some()
+        || feedback.interaction_extract_stale;
     Ok(ExecutionOutcome {
         changed,
         effects: viewport_effects(
@@ -90,26 +93,17 @@ pub(super) fn execute_viewport_event(
     })
 }
 
-fn structural_viewport_event(event: &EditorViewportEvent) -> bool {
-    matches!(
-        event,
-        EditorViewportEvent::LeftReleased
-            | EditorViewportEvent::Resized { .. }
-            | EditorViewportEvent::ActivateSceneMode { .. }
-            | EditorViewportEvent::SetTransformSpace { .. }
-            | EditorViewportEvent::SetProjectionMode { .. }
-            | EditorViewportEvent::AlignView { .. }
-            | EditorViewportEvent::SetDisplayMode { .. }
-            | EditorViewportEvent::SetGridMode { .. }
-            | EditorViewportEvent::SetTranslateSnap { .. }
-            | EditorViewportEvent::SetRotateSnapDegrees { .. }
-            | EditorViewportEvent::SetScaleSnap { .. }
-            | EditorViewportEvent::SetPreviewLighting { .. }
-            | EditorViewportEvent::SetPreviewSkybox { .. }
-            | EditorViewportEvent::SetGizmosEnabled { .. }
-            | EditorViewportEvent::ToggleOverlayProvider { .. }
-            | EditorViewportEvent::FrameSelection
-    )
+fn structural_viewport_event(event: &EditorViewportEvent, feedback: &ViewportFeedback) -> bool {
+    feedback.settings_changed
+        || matches!(
+            event,
+            EditorViewportEvent::LeftReleased
+                | EditorViewportEvent::Resized { .. }
+                | EditorViewportEvent::ActivateSceneMode { .. }
+                | EditorViewportEvent::AlignView { .. }
+                | EditorViewportEvent::ToggleOverlayProvider { .. }
+                | EditorViewportEvent::FrameSelection
+        )
 }
 
 fn viewport_effects(
@@ -124,6 +118,7 @@ fn viewport_effects(
         || feedback.camera_updated
         || feedback.transformed_node.is_some()
         || feedback.hovered_axis.is_some()
+        || feedback.interaction_extract_stale
     {
         effects.push(EditorEventEffect::RenderChanged);
     }
@@ -177,7 +172,10 @@ mod tests {
     fn empty_cancel_interaction_has_no_effects() {
         let event = EditorViewportEvent::CancelInteraction;
 
-        assert!(!super::structural_viewport_event(&event));
+        assert!(!super::structural_viewport_event(
+            &event,
+            &ViewportFeedback::default()
+        ));
         assert!(viewport_effects(&event, &ViewportFeedback::default(), false, false).is_empty());
     }
 
@@ -194,5 +192,24 @@ mod tests {
         assert!(effects.contains(&EditorEventEffect::RenderChanged));
         assert!(effects.contains(&EditorEventEffect::PresentationChanged));
         assert!(effects.contains(&EditorEventEffect::ReflectionChanged));
+    }
+
+    #[test]
+    fn stale_pointer_product_requests_a_render_rebuild_without_presentation_churn() {
+        let feedback = ViewportFeedback {
+            interaction_extract_stale: true,
+            ..ViewportFeedback::default()
+        };
+
+        let effects = viewport_effects(
+            &EditorViewportEvent::PointerMoved { x: 12.0, y: 24.0 },
+            &feedback,
+            false,
+            false,
+        );
+
+        assert!(effects.contains(&EditorEventEffect::RenderChanged));
+        assert!(!effects.contains(&EditorEventEffect::PresentationChanged));
+        assert!(!effects.contains(&EditorEventEffect::ReflectionChanged));
     }
 }

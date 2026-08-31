@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_app/src/entry/mod.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
@@ -56,7 +56,7 @@ related_code:
   - zircon_editor/fixtures/workbench/view-instances.json
 implementation_files:
   - zircon_app/src/entry/mod.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_runtime/src/script/vm/host/host_registry.rs
@@ -196,7 +196,7 @@ Plugin Manager 的可视行渲染现在也进入 host contract。`ModulePluginsP
 
 ### EngineModule Track
 
-`zircon_app::EntryConfig` 使用 `ProjectPluginManifest` 描述启动时 runtime 插件选择。`builtin_modules_for_config(...)` 把选择交给 `zircon_runtime::builtin::runtime_modules_for_target(...)`，该函数先生成运行模式基线，再用项目清单覆盖匹配插件 ID。`BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(...)` 接收 LibraryEmbed/SourceTemplate 产物传入的 `RuntimePluginRegistrationReport`，把插件贡献的 `ModuleDescriptor` 作为启动模块注册。
+`zircon_app::EntryConfig` 只描述产品角色、runtime/export profile 和显式插件选择请求；`resolve()` 在插件目录访问前生成不可变 `ResolvedProductHostConfig`，统一合并 runtime profile manifest、显式选择、render overlay 与 target policy。Editor startup 复用同一 resolved config 完成一方 runtime/editor provider 投影和 `BuiltinEngineEntry` 构造；后者把 `RuntimePluginRegistrationReport` 交给 runtime-owned `RuntimeModuleCompositionCompiler`，不会在 App 中再次解释半解析配置。
 
 这条轨道只用于 core/runtime 级 EngineModule。它仍然走 module descriptor、driver/manager/plugin descriptor、依赖解析和 `CoreRuntime::activate_module(...)`，不会被 editor host 的 VM 插件入口绕过。
 

@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use crate::asset::{AssetReference, MaterialAsset, ShaderAsset, TextureUploadSupport};
+use crate::asset::{AssetReference, TextureUploadSupport};
 use crate::core::framework::render::{
-    RenderImageUsage, RenderMaterialAlphaMode, RenderMaterialFallbackPolicy,
+    RenderFrameSubmissionTransaction, RenderMaterialAlphaMode, RenderMaterialFallbackPolicy,
     RenderMaterialFallbackReason, RenderMaterialFallbackUsage, RenderMaterialLightingModel,
     RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValueState,
     RenderMaterialPropertyValueSummary, RenderMaterialTextureDimension,
@@ -13,101 +13,259 @@ use crate::core::framework::render::{
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, ResourceLocator};
 
+use crate::graphics::backend::RenderBackend;
 use crate::graphics::types::GraphicsError;
 
-use super::super::prepared::{PreparedMaterial, PreparedMaterialTextureDependency};
-use super::super::{
-    default_pipeline_key, texture_upload_support_from_device, GpuMaterialUniformResource,
-    MaterialDisabledPasses, MaterialRuntime, PipelineKey,
+use super::super::prepared::{
+    PreparedMaterial, PreparedMaterialBundle, PreparedMaterialCandidateIdentity,
+    PreparedMaterialDependency, PreparedMaterialShaderDependency,
+    PreparedMaterialTextureDependency,
 };
-use super::resource_streamer_validate_material_shader_layout::renderer_material_layout_diagnostics;
+use super::super::{
+    GpuMaterialUniformResource, MaterialDisabledPasses, MaterialRuntime, PipelineKey,
+    default_pipeline_key, texture_upload_support_from_device,
+};
 use super::ResourceStreamer;
+use super::resource_streamer_validate_material_shader_layout::renderer_material_layout_diagnostics;
 
+mod cache_identity;
+mod candidate_publication;
 mod material_readiness;
+mod shader_contract_snapshot;
 #[cfg(test)]
 mod tests;
+mod texture_binding;
 
+use self::cache_identity::PreparedMaterialCacheSlot;
 use self::material_readiness::{
-    fallback_material_uri, invalid_parent_diagnostic, is_standard_texture_slot,
-    material_prepare_result, material_uses_renderer_material_abi_fallback,
-    missing_material_fallback_usage, prepared_material_cache_identity_is_current,
+    fallback_material_uri, is_standard_texture_slot, material_prepare_result,
+    material_uses_renderer_material_abi_fallback, missing_material_fallback_usage,
 };
-
-const MAX_MATERIAL_PARENT_DEPTH: usize = 4;
 
 impl ResourceStreamer {
     pub(crate) fn ensure_material(
         &mut self,
+        backend: &RenderBackend,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        _queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         handle: ResourceHandle<MaterialMarker>,
     ) -> Result<(), GraphicsError> {
+        self.ensure_material_internal(backend, device, texture_layout, handle, None)
+    }
+
+    pub(crate) fn ensure_material_for_frame(
+        &mut self,
+        backend: &RenderBackend,
+        device: &wgpu::Device,
+        texture_layout: &wgpu::BindGroupLayout,
+        handle: ResourceHandle<MaterialMarker>,
+        submission_transaction: &mut RenderFrameSubmissionTransaction,
+    ) -> Result<(), GraphicsError> {
+        self.ensure_material_internal(
+            backend,
+            device,
+            texture_layout,
+            handle,
+            Some(submission_transaction),
+        )
+    }
+
+    fn ensure_material_internal(
+        &mut self,
+        backend: &RenderBackend,
+        device: &wgpu::Device,
+        texture_layout: &wgpu::BindGroupLayout,
+        handle: ResourceHandle<MaterialMarker>,
+        mut submission_transaction: Option<&mut RenderFrameSubmissionTransaction>,
+    ) -> Result<(), GraphicsError> {
+        crate::profile_scope!("render", "material", "prepare");
         let id = handle.id();
         let asset_manager = self.asset_manager()?;
         let requested_revision = self.resource_revision(id).ok();
         let texture_support = texture_upload_support_from_device(device);
-        if let Some(prepared) = self.materials.get(&id).filter(|prepared| {
-            self.prepared_material_cache_is_current(prepared, requested_revision, texture_support)
-        }) {
-            return material_prepare_result(id, &prepared.runtime.readiness_report);
+        let current_slot = self.materials.get(&id).and_then(|prepared| {
+            if prepared.published.as_ref().is_some_and(|published| {
+                self.prepared_material_bundle_cache_is_current(
+                    published,
+                    requested_revision,
+                    texture_support,
+                )
+            }) {
+                Some(PreparedMaterialCacheSlot::Published)
+            } else if prepared.staged_candidate.as_ref().is_some_and(|candidate| {
+                self.prepared_material_bundle_cache_is_current(
+                    candidate,
+                    requested_revision,
+                    texture_support,
+                )
+            }) {
+                Some(if prepared.staged_pipeline_failed {
+                    PreparedMaterialCacheSlot::RejectedStaged
+                } else {
+                    PreparedMaterialCacheSlot::Staged
+                })
+            } else if prepared
+                .rejected_candidate
+                .as_ref()
+                .and_then(|candidate| candidate.identity.as_ref())
+                .is_some_and(|identity| {
+                    self.prepared_material_candidate_cache_is_current(
+                        identity,
+                        requested_revision,
+                        texture_support,
+                    )
+                })
+            {
+                Some(PreparedMaterialCacheSlot::RejectedCandidate)
+            } else {
+                None
+            }
+        });
+        if let Some(current_slot) = current_slot {
+            crate::profile_counter!("render", "material_prepare_cache_hit", 1);
+            crate::profile_counter!("render", "material_prepare_rebuild", 0);
+            if matches!(
+                current_slot,
+                PreparedMaterialCacheSlot::Staged
+                    | PreparedMaterialCacheSlot::RejectedStaged
+                    | PreparedMaterialCacheSlot::RejectedCandidate
+            ) {
+                crate::profile_counter!("render", "material_candidate_cache_hit", 1);
+                crate::profile_counter!(
+                    "render",
+                    "material_candidate_terminal_cache_hit",
+                    if matches!(
+                        current_slot,
+                        PreparedMaterialCacheSlot::RejectedStaged
+                            | PreparedMaterialCacheSlot::RejectedCandidate
+                    ) {
+                        1
+                    } else {
+                        0
+                    }
+                );
+                let reactivated = current_slot == PreparedMaterialCacheSlot::Staged
+                    && self.active_staged_material_ids.insert(id);
+                crate::profile_counter!(
+                    "render",
+                    "material_candidate_reactivated",
+                    if reactivated { 1 } else { 0 }
+                );
+                return Ok(());
+            }
+            crate::profile_counter!("render", "material_candidate_cache_hit", 0);
+            crate::profile_counter!("render", "material_candidate_terminal_cache_hit", 0);
+            let prepared = self
+                .materials
+                .get_mut(&id)
+                .expect("a current prepared material must remain published");
+            prepared.rejected_candidate = None;
+            prepared.staged_candidate = None;
+            prepared.staged_pipeline_failed = false;
+            prepared.staged_pipeline_admission_cycle = Default::default();
+            let result = material_prepare_result(
+                id,
+                &prepared
+                    .published
+                    .as_ref()
+                    .expect("the current published cache slot must own a bundle")
+                    .runtime
+                    .readiness_report,
+            );
+            self.active_staged_material_ids.remove(&id);
+            return result;
         }
-        let (material, missing_material_fallback, prepared_revision, loaded_material_id) =
-            match asset_manager.load_material_asset(id) {
-                Ok(material) => (material, None, requested_revision, id),
-                Err(error) => {
-                    let fallback_uri = fallback_material_uri();
-                    let fallback_id = asset_manager.resolve_asset_id(&fallback_uri).ok_or_else(
+        crate::profile_counter!("render", "material_prepare_cache_hit", 0);
+        crate::profile_counter!("render", "material_prepare_rebuild", 1);
+        crate::profile_counter!("render", "material_candidate_terminal_cache_hit", 0);
+        let (
+            material,
+            missing_material_fallback,
+            prepared_revision,
+            loaded_material_id,
+            loaded_material_revision,
+        ) = match asset_manager.load_material_asset_snapshot(id) {
+            Ok(material) => {
+                let revision = material.revision();
+                ((*material).clone(), None, Some(revision), id, revision)
+            }
+            Err(error) => {
+                let fallback_uri = fallback_material_uri();
+                let fallback_id = asset_manager.resolve_asset_id(&fallback_uri).ok_or_else(
                         || {
                             GraphicsError::Asset(format!(
                                 "missing material {id} ({error}); fallback material {fallback_uri} is not registered"
                             ))
                         },
                     )?;
-                    let material = asset_manager.load_material_asset(fallback_id).map_err(
-                        |fallback_error| {
+                let material = asset_manager
+                        .load_material_asset_snapshot(fallback_id)
+                        .map_err(|fallback_error| {
                             GraphicsError::Asset(format!(
                                 "missing material {id} ({error}); fallback material {fallback_uri} failed to load: {fallback_error}"
                             ))
-                        },
-                    )?;
-                    (
-                        material,
-                        Some(missing_material_fallback_usage(id)),
-                        None,
-                        fallback_id,
-                    )
-                }
-            };
+                        })?;
+                let fallback_revision = material.revision();
+                (
+                    (*material).clone(),
+                    Some(missing_material_fallback_usage(id)),
+                    None,
+                    fallback_id,
+                    fallback_revision,
+                )
+            }
+        };
+        let material_dependency = self
+            .prepared_material_dependency_snapshot(loaded_material_id, loaded_material_revision)?;
         let (material, parent_validation_errors) =
-            self.material_with_parent_chain(asset_manager.as_ref(), loaded_material_id, material);
+            asset_manager.resolve_effective_material_asset(loaded_material_id, material);
         let shader_contract =
             Self::load_shader_contract(asset_manager.as_ref(), material.shader.clone());
         let descriptor = shader_contract
             .as_ref()
-            .map(|shader| material.standard_material_descriptor_for_shader(shader))
+            .map(|shader| material.standard_material_descriptor_for_shader(shader.asset()))
             .unwrap_or_else(|| material.standard_material_descriptor());
+        let shader_dependency = shader_contract
+            .as_ref()
+            .map(|shader| PreparedMaterialShaderDependency {
+                locator: descriptor.dependencies.shader.locator.clone(),
+                id: Some(shader.resource_id()),
+                revision: Some(shader.revision()),
+                dependency_revision: Some(
+                    asset_manager
+                        .resource_manager()
+                        .readiness_generation()
+                        .dependency_revision(shader.resource_id())
+                        .unwrap_or(0),
+                ),
+            })
+            .unwrap_or_else(|| {
+                self.material_shader_dependency_snapshot(&descriptor.dependencies.shader.locator)
+            });
         let texture_dependencies = self.material_texture_dependency_snapshots(
             descriptor.dependencies.textures.iter(),
             texture_support,
         );
         let material_option_bits = shader_contract
             .as_ref()
-            .map(|shader| material.material_option_bits_for_shader(shader))
+            .map(|shader| material.material_option_bits_for_shader(shader.asset()))
             .unwrap_or(0);
         let material_layout_hash = shader_contract
             .as_ref()
-            .map(|shader| shader.material_property_layout.layout_hash)
+            .map(|shader| shader.asset().material_property_layout.layout_hash)
             .unwrap_or(0);
         let disabled_passes = shader_contract
             .as_ref()
-            .map(|shader| MaterialDisabledPasses::from_shader_pass_names(&shader.disabled_passes))
+            .map(|shader| {
+                MaterialDisabledPasses::from_shader_pass_names(&shader.asset().disabled_passes)
+            })
             .unwrap_or_default();
         let shader_resolver = Arc::clone(&asset_manager);
         let texture_resolver = Arc::clone(&asset_manager);
         let mut readiness = if let Some(shader) = shader_contract.as_ref() {
             material.readiness_report_with_shader_contract(
-                shader,
+                shader.asset(),
                 move |reference| {
                     shader_resolver
                         .resolve_asset_id(&reference.locator)
@@ -140,7 +298,7 @@ impl ResourceStreamer {
             readiness.push_fallback_usage_once(fallback_usage);
         }
         if let Some(shader) = shader_contract.as_ref() {
-            if let Some(token) = shader.shading_model.as_deref() {
+            if let Some(token) = shader.asset().shading_model.as_deref() {
                 if token.parse::<RenderMaterialLightingModel>().is_err() {
                     readiness.push_validation_error_once(
                         RenderMaterialValidationError::UnregisteredShadingModel {
@@ -159,7 +317,7 @@ impl ResourceStreamer {
             readiness.push_validation_error_once(error);
         }
         let uses_renderer_material_abi_fallback = if let Some(shader) = shader_contract.as_ref() {
-            let abi_diagnostics = renderer_material_layout_diagnostics(shader);
+            let abi_diagnostics = renderer_material_layout_diagnostics(shader.asset());
             let uses_fallback = !abi_diagnostics.is_empty();
             for error in abi_diagnostics {
                 readiness.push_validation_error_once(error);
@@ -312,6 +470,7 @@ impl ResourceStreamer {
                     .as_ref()
                     .and_then(|shader| {
                         shader
+                            .asset()
                             .texture_slots
                             .iter()
                             .find(|shader_slot| shader_slot.name == slot)
@@ -329,7 +488,7 @@ impl ResourceStreamer {
             .collect::<Vec<_>>();
         let shader_property_values = shader_contract
             .as_ref()
-            .map(|shader| material.shader_property_values_for_shader(shader))
+            .map(|shader| material.shader_property_values_for_shader(shader.asset()))
             .unwrap_or_default();
         let shader_property_value_summary =
             RenderMaterialPropertyValueSummary::from_values(&shader_property_values);
@@ -339,7 +498,7 @@ impl ResourceStreamer {
             .as_ref()
             .map(|shader| {
                 RenderMaterialPropertyUniformPayload::from_layout_and_values(
-                    &shader.material_property_layout,
+                    &shader.asset().material_property_layout,
                     &shader_property_values,
                 )
             })
@@ -407,8 +566,24 @@ impl ResourceStreamer {
                     )
                 }),
             );
-        let (shader_id, shader_revision, shader_readiness) =
-            self.ensure_shader_source(&descriptor.dependencies.shader)?;
+        let (shader_id, shader_revision, shader_dependency_revision, shader_readiness) =
+            match self.ensure_shader_source(&descriptor.dependencies.shader) {
+                Ok(shader) => shader,
+                Err(error) => {
+                    if self
+                        .retain_last_good_material_after_candidate_failure(
+                            id,
+                            readiness,
+                            "dependencies.shader",
+                            &error,
+                        )
+                        .is_ok()
+                    {
+                        return Ok(());
+                    }
+                    return Err(error);
+                }
+            };
         if let Some(shader_readiness) = shader_readiness {
             for error in shader_readiness.validation_errors {
                 readiness.push_validation_error_once(error);
@@ -420,12 +595,16 @@ impl ResourceStreamer {
                 readiness.push_diagnostic_once(diagnostic);
             }
         }
-        let (pipeline_shader_id, pipeline_shader_revision) =
+        let (pipeline_shader_id, pipeline_shader_revision, pipeline_shader_dependency_revision) =
             if material_uses_renderer_material_abi_fallback(&readiness.validation_errors) {
                 let fallback_key = default_pipeline_key();
-                (fallback_key.shader_id, fallback_key.shader_revision)
+                (
+                    fallback_key.shader_id,
+                    fallback_key.shader_revision,
+                    fallback_key.shader_dependency_revision,
+                )
             } else {
-                (shader_id, shader_revision)
+                (shader_id, shader_revision, shader_dependency_revision)
             };
         let runtime = MaterialRuntime {
             base_color: Vec4::from_array(descriptor.base_color),
@@ -433,6 +612,7 @@ impl ResourceStreamer {
             metallic: descriptor.metallic,
             roughness: descriptor.roughness,
             occlusion_strength: descriptor.occlusion_strength,
+            normal_scale: descriptor.normal_scale,
             double_sided: descriptor.double_sided,
             alpha_blend,
             alpha_cutoff,
@@ -467,51 +647,81 @@ impl ResourceStreamer {
             emissive_texture_transform: descriptor.emissive_texture_transform,
             emissive_texture_uv_channel: descriptor.emissive_texture_uv_channel,
             clearcoat_normal_texture: clearcoat_normal_texture.id(),
+            clearcoat_normal_texture_transform: descriptor.clearcoat_normal_texture_transform,
+            clearcoat_normal_texture_uv_channel: descriptor.clearcoat_normal_texture_uv_channel,
             shader_property_values,
             shader_property_uniform_payload,
             non_standard_texture_slots,
             pipeline_key: PipelineKey {
                 shader_id: pipeline_shader_id,
                 shader_revision: pipeline_shader_revision,
+                shader_dependency_revision: pipeline_shader_dependency_revision,
                 material_layout_hash,
                 material_option_bits,
                 double_sided: descriptor.double_sided,
+                reverse_raster_winding: false,
                 alpha_blend,
                 alpha_mask,
                 alpha_cutoff_bits: alpha_cutoff.map(f32::to_bits),
                 receive_shadows: descriptor.receive_shadows,
                 shading_model_id,
                 unlit,
-                has_base_color_texture: descriptor.base_color_texture.is_some(),
                 has_normal_texture: descriptor.normal_texture.is_some(),
-                has_metallic_roughness_texture: descriptor.metallic_roughness_texture.is_some(),
-                has_occlusion_texture: descriptor.occlusion_texture.is_some(),
-                has_emissive_texture: descriptor.emissive_texture.is_some(),
                 pbr_clearcoat: descriptor.advanced_features.uses_clearcoat(),
                 pbr_anisotropy: descriptor.advanced_features.uses_anisotropy(),
+                pbr_ior_override: descriptor.advanced_features.uses_dielectric_f0_override(),
                 pbr_transmission: descriptor.advanced_features.uses_transmission(),
                 volumetric_fog: false,
             },
             readiness_report: readiness,
         };
-        let uniform = std::sync::Arc::new(GpuMaterialUniformResource::from_payload(
-            device,
-            &runtime.shader_property_uniform_payload,
-        ));
-        let standard_uniform = std::sync::Arc::new(
-            GpuMaterialUniformResource::from_standard_material(device, &runtime),
-        );
         let prepare_result = material_prepare_result(id, &runtime.readiness_report);
         if prepare_result.is_err() {
+            runtime.readiness_report = match self.retain_last_good_material_candidate(
+                id,
+                Some(PreparedMaterialCandidateIdentity::new(
+                    prepared_revision,
+                    material_dependency,
+                    &shader_dependency,
+                    &texture_dependencies,
+                    texture_support,
+                )),
+                runtime.readiness_report,
+            ) {
+                Ok(()) => return Ok(()),
+                Err(readiness_report) => readiness_report,
+            };
+            let uniform = std::sync::Arc::new(GpuMaterialUniformResource::from_payload(
+                device,
+                &runtime.shader_property_uniform_payload,
+            ));
+            let standard_uniform = std::sync::Arc::new(
+                GpuMaterialUniformResource::from_standard_material(device, &runtime),
+            );
+            let textures = self.prepared_material_texture_set(&runtime);
+            crate::profile_counter!("render", "material_uniform_buffer_creations", 2);
+            let draw_generation = self.allocate_material_draw_generation();
+            self.active_staged_material_ids.remove(&id);
             self.materials.insert(
                 id,
                 PreparedMaterial {
-                    revision: prepared_revision,
-                    texture_dependencies: texture_dependencies.clone(),
-                    texture_support,
-                    runtime,
-                    uniform,
-                    standard_uniform,
+                    published: Some(PreparedMaterialBundle {
+                        draw_generation,
+                        revision: prepared_revision,
+                        material_dependency,
+                        shader_dependency: shader_dependency.clone(),
+                        texture_dependencies: texture_dependencies.clone(),
+                        texture_support,
+                        runtime,
+                        textures,
+                        uniform,
+                        standard_uniform,
+                    }),
+                    previous_published: None,
+                    staged_candidate: None,
+                    staged_pipeline_failed: false,
+                    staged_pipeline_admission_cycle: Default::default(),
+                    rejected_candidate: None,
                 },
             );
             return prepare_result;
@@ -533,16 +743,50 @@ impl ResourceStreamer {
                 .filter_map(|(_slot, texture)| texture.id()),
         ) {
             if ensured_texture_ids.insert(texture_id) {
-                self.ensure_material_texture(device, queue, texture_layout, texture_id)?;
+                if let Err(error) = self.ensure_material_texture(
+                    backend,
+                    device,
+                    texture_layout,
+                    texture_id,
+                    submission_transaction.as_deref_mut(),
+                ) {
+                    let path = format!("dependencies.textures[{texture_id}]");
+                    if self
+                        .retain_last_good_material_after_candidate_failure(
+                            id,
+                            runtime.readiness_report,
+                            path,
+                            &error,
+                        )
+                        .is_ok()
+                    {
+                        return Ok(());
+                    }
+                    return Err(error);
+                }
             }
         }
-        self.materials.insert(
+        let uniform = std::sync::Arc::new(GpuMaterialUniformResource::from_payload(
+            device,
+            &runtime.shader_property_uniform_payload,
+        ));
+        let standard_uniform = std::sync::Arc::new(
+            GpuMaterialUniformResource::from_standard_material(device, &runtime),
+        );
+        let textures = self.prepared_material_texture_set(&runtime);
+        crate::profile_counter!("render", "material_uniform_buffer_creations", 2);
+        let draw_generation = self.allocate_material_draw_generation();
+        self.stage_material_candidate(
             id,
-            PreparedMaterial {
+            PreparedMaterialBundle {
+                draw_generation,
                 revision: prepared_revision,
+                material_dependency,
+                shader_dependency,
                 texture_dependencies,
                 texture_support,
                 runtime,
+                textures,
                 uniform,
                 standard_uniform,
             },
@@ -550,46 +794,72 @@ impl ResourceStreamer {
         Ok(())
     }
 
-    fn ensure_material_texture(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        texture_layout: &wgpu::BindGroupLayout,
-        texture_id: ResourceId,
-    ) -> Result<(), GraphicsError> {
-        if self.material_texture_uses_output_target_binding(texture_id) {
-            self.ensure_output_target_texture_resource(device, texture_id)
-        } else {
-            self.ensure_texture(device, queue, texture_layout, texture_id)
+    fn allocate_material_draw_generation(&mut self) -> u64 {
+        let generation = self.next_material_draw_generation;
+        self.next_material_draw_generation = generation.wrapping_add(1).max(1);
+        generation
+    }
+
+    fn prepared_material_dependency_snapshot(
+        &self,
+        id: ResourceId,
+        revision: u64,
+    ) -> Result<PreparedMaterialDependency, GraphicsError> {
+        let dependency_revision = self
+            .asset_manager()?
+            .resource_manager()
+            .readiness_generation()
+            .dependency_revision(id)
+            .unwrap_or(0);
+        Ok(PreparedMaterialDependency {
+            id,
+            revision,
+            dependency_revision,
+        })
+    }
+
+    fn material_dependency_identity_for_id(
+        &self,
+        id: ResourceId,
+    ) -> Option<(ResourceId, u64, u64)> {
+        let asset_manager = self.asset_manager().ok()?;
+        let resource_manager = asset_manager.resource_manager();
+        let revision = resource_manager.registry().get(id)?.revision;
+        let dependency_revision = resource_manager
+            .readiness_generation()
+            .dependency_revision(id)
+            .unwrap_or(0);
+        Some((id, revision, dependency_revision))
+    }
+
+    fn material_shader_dependency_snapshot(
+        &self,
+        locator: &ResourceLocator,
+    ) -> PreparedMaterialShaderDependency {
+        let identity = self.shader_dependency_identity_for_locator(locator);
+        PreparedMaterialShaderDependency {
+            locator: locator.clone(),
+            id: identity.map(|(id, _, _)| id),
+            revision: identity.map(|(_, revision, _)| revision),
+            dependency_revision: identity.map(|(_, _, dependency_revision)| dependency_revision),
         }
     }
 
-    fn material_texture_uses_output_target_binding(&self, texture_id: ResourceId) -> bool {
-        self.asset_manager()
-            .ok()
-            .and_then(|asset_manager| asset_manager.load_texture_asset(texture_id).ok())
-            .map(|texture| {
-                let descriptor = texture.render_image_descriptor();
-                descriptor.usage.contains(&RenderImageUsage::RenderTarget)
-                    && descriptor.usage.contains(&RenderImageUsage::Sampled)
-            })
-            .unwrap_or(false)
-    }
-
-    fn prepared_material_cache_is_current(
+    fn shader_dependency_identity_for_locator(
         &self,
-        prepared: &PreparedMaterial,
-        requested_revision: Option<u64>,
-        texture_support: TextureUploadSupport,
-    ) -> bool {
-        prepared_material_cache_identity_is_current(
-            prepared.revision,
-            requested_revision,
-            prepared.texture_support,
-            texture_support,
-            &prepared.texture_dependencies,
-            |locator| self.texture_dependency_revision_for_locator(locator),
-        )
+        locator: &ResourceLocator,
+    ) -> Option<(ResourceId, u64, u64)> {
+        let asset_manager = self.asset_manager().ok()?;
+        let resource_manager = asset_manager.resource_manager();
+        let record = resource_manager
+            .registry()
+            .get_by_locator(locator)
+            .cloned()?;
+        let dependency_revision = resource_manager
+            .readiness_generation()
+            .dependency_revision(record.id())
+            .unwrap_or(0);
+        Some((record.id(), record.revision, dependency_revision))
     }
 
     fn texture_dependency_revision_for_locator(
@@ -652,13 +922,17 @@ impl ResourceStreamer {
                 upload_unsupported_reason: None,
             };
         };
-        let upload_unsupported_reason = match asset_manager.load_texture_asset(texture_id) {
-            Ok(texture) => texture
-                .upload_readiness(texture_support)
-                .unsupported_reason()
-                .map(str::to_string),
-            Err(error) => Some(error.to_string()),
-        };
+        let (texture_revision, upload_unsupported_reason) =
+            match asset_manager.load_texture_asset_snapshot(texture_id) {
+                Ok(texture) => (
+                    texture.revision(),
+                    texture
+                        .upload_readiness(texture_support)
+                        .unsupported_reason()
+                        .map(str::to_string),
+                ),
+                Err(error) => (texture_revision, Some(error.to_string())),
+            };
 
         PreparedMaterialTextureDependency {
             locator: locator.clone(),
@@ -666,80 +940,5 @@ impl ResourceStreamer {
             revision: Some(texture_revision),
             upload_unsupported_reason,
         }
-    }
-
-    fn load_shader_contract(
-        asset_manager: &crate::asset::ProjectAssetManager,
-        reference: AssetReference,
-    ) -> Option<ShaderAsset> {
-        asset_manager
-            .resolve_asset_id(&reference.locator)
-            .and_then(|id| asset_manager.load_shader_asset(id).ok())
-    }
-
-    fn material_with_parent_chain(
-        &self,
-        asset_manager: &crate::asset::ProjectAssetManager,
-        root_id: ResourceId,
-        material: MaterialAsset,
-    ) -> (MaterialAsset, Vec<RenderMaterialValidationError>) {
-        let root_shader = material.shader.clone();
-        let mut diagnostics = Vec::new();
-        let mut visited = BTreeSet::from([root_id]);
-        let mut lineage = vec![(root_id, material)];
-
-        loop {
-            let Some(parent_reference) = lineage
-                .last()
-                .and_then(|(_, material)| material.parent.clone())
-            else {
-                break;
-            };
-            if lineage.len() > MAX_MATERIAL_PARENT_DEPTH {
-                diagnostics.push(invalid_parent_diagnostic(format!(
-                    "material parent chain exceeds depth limit {MAX_MATERIAL_PARENT_DEPTH}"
-                )));
-                break;
-            }
-            let Some(parent_id) = asset_manager.resolve_asset_id(&parent_reference.locator) else {
-                diagnostics.push(invalid_parent_diagnostic(format!(
-                    "material parent `{}` is not registered",
-                    parent_reference.locator
-                )));
-                break;
-            };
-            if !visited.insert(parent_id) {
-                diagnostics.push(invalid_parent_diagnostic(format!(
-                    "material parent chain contains cycle at {parent_id}"
-                )));
-                break;
-            }
-            let Ok(parent) = asset_manager.load_material_asset(parent_id) else {
-                diagnostics.push(invalid_parent_diagnostic(format!(
-                    "material parent `{}` failed to load",
-                    parent_reference.locator
-                )));
-                break;
-            };
-            if parent.shader != root_shader {
-                diagnostics.push(invalid_parent_diagnostic(format!(
-                    "material parent `{}` uses shader `{}` but child uses `{}`",
-                    parent_reference.locator, parent.shader.locator, root_shader.locator
-                )));
-                break;
-            }
-            lineage.push((parent_id, parent));
-        }
-
-        let mut effective = lineage
-            .pop()
-            .map(|(_, material)| material)
-            .expect("material lineage contains root");
-        while let Some((_, mut child)) = lineage.pop() {
-            child.inherit_parent_values_from(&effective);
-            effective = child;
-        }
-        effective.parent = None;
-        (effective, diagnostics)
     }
 }

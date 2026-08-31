@@ -1,27 +1,29 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
+use zircon_runtime_interface::runtime_api::validate_runtime_host_api_v1_pointer;
 use zircon_runtime_interface::world_sync::WatchToken;
 use zircon_runtime_interface::{
     ZrByteSlice, ZrHostApiV1, ZrOwnedResultV2, ZrRuntimeAccessibilityTreeRequestV1,
-    ZrRuntimeAllocationId, ZrRuntimeApiV7, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
+    ZrRuntimeAllocationId, ZrRuntimeApiV8, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
     ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHighlightSetV1,
     ZrRuntimeOperationHandle, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV3,
-    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V7,
+    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportPickRequestV1,
+    ZrRuntimeViewportPickResultV1, ZrRuntimeViewportPickTicket, ZrStatus, ZrStatusCode,
+    ZIRCON_RUNTIME_API_VERSION_V8,
 };
 
 use super::session::{
-    bind_viewport_surface, capture_accessibility_tree, capture_frame, create_session,
-    destroy_session, drain_host_requests, drain_plugin_events, drain_world_invalidations,
-    handle_event, harvest_operation, poll_operation, present_viewport, profile_control,
-    query_world, release_allocation, submit_highlight_set, submit_operation,
-    subscribe_plugin_event, tick_frame, unbind_viewport_surface, unsubscribe_plugin_event,
-    unwatch_world, watch_world,
+    bind_viewport_surface, cancel_viewport_pick, capture_accessibility_tree, capture_frame,
+    create_session, destroy_session, drain_host_requests, drain_plugin_events,
+    drain_world_invalidations, handle_event, harvest_operation, poll_operation, poll_viewport_pick,
+    present_viewport, profile_control, query_world, release_allocation, request_viewport_pick,
+    submit_highlight_set, submit_operation, subscribe_plugin_event, tick_frame,
+    unbind_viewport_surface, unsubscribe_plugin_event, unwatch_world, watch_world,
 };
 
-static RUNTIME_API_V7: ZrRuntimeApiV7 = ZrRuntimeApiV7 {
-    abi_version: ZIRCON_RUNTIME_API_VERSION_V7,
-    size_bytes: core::mem::size_of::<ZrRuntimeApiV7>(),
+static RUNTIME_API_V8: ZrRuntimeApiV8 = ZrRuntimeApiV8 {
+    abi_version: ZIRCON_RUNTIME_API_VERSION_V8,
+    size_bytes: core::mem::size_of::<ZrRuntimeApiV8>(),
     create_session: Some(create_session_ffi),
     destroy_session: Some(destroy_session_ffi),
     release_allocation: Some(release_allocation_ffi),
@@ -45,35 +47,35 @@ static RUNTIME_API_V7: ZrRuntimeApiV7 = ZrRuntimeApiV7 {
     watch_world: Some(watch_world_ffi),
     unwatch_world: Some(unwatch_world_ffi),
     drain_world_invalidations: Some(drain_world_invalidations_ffi),
+    request_viewport_pick: Some(request_viewport_pick_ffi),
+    poll_viewport_pick: Some(poll_viewport_pick_ffi),
+    cancel_viewport_pick: Some(cancel_viewport_pick_ffi),
 };
 
 #[no_mangle]
-pub unsafe extern "C" fn zircon_runtime_get_api_v7(
+pub unsafe extern "C" fn zircon_runtime_get_api_v8(
     host: *const ZrHostApiV1,
-) -> *const ZrRuntimeApiV7 {
+) -> *const ZrRuntimeApiV8 {
     match catch_unwind(AssertUnwindSafe(|| unsafe {
-        zircon_runtime_get_api_v7_inner(host)
+        zircon_runtime_get_api_v8_inner(host)
     })) {
         Ok(api) => api,
         Err(_) => core::ptr::null(),
     }
 }
 
-unsafe fn zircon_runtime_get_api_v7_inner(host: *const ZrHostApiV1) -> *const ZrRuntimeApiV7 {
+unsafe fn zircon_runtime_get_api_v8_inner(host: *const ZrHostApiV1) -> *const ZrRuntimeApiV8 {
     #[cfg(feature = "profiling-tracy")]
     let _ = crate::core::diagnostics::profiling::initialize_tracy_sink();
 
     if !host_abi_is_supported(host) {
         return core::ptr::null();
     }
-    &RUNTIME_API_V7
+    &RUNTIME_API_V8
 }
 
 fn host_abi_is_supported(host: *const ZrHostApiV1) -> bool {
-    if host.is_null() {
-        return true;
-    }
-    unsafe { (*host).abi_version == ZIRCON_RUNTIME_ABI_VERSION_V1 }
+    unsafe { validate_runtime_host_api_v1_pointer(host).is_ok() }
 }
 
 fn catch_ffi_panic(call: impl FnOnce() -> ZrStatus) -> ZrStatus {
@@ -153,6 +155,29 @@ unsafe extern "C" fn submit_highlight_set_ffi(
     request: ZrRuntimeHighlightSetV1,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { submit_highlight_set(handle, request) })
+}
+
+unsafe extern "C" fn request_viewport_pick_ffi(
+    handle: ZrRuntimeSessionHandle,
+    request: ZrRuntimeViewportPickRequestV1,
+    out_ticket: *mut ZrRuntimeViewportPickTicket,
+) -> ZrStatus {
+    catch_ffi_panic(|| unsafe { request_viewport_pick(handle, request, out_ticket) })
+}
+
+unsafe extern "C" fn poll_viewport_pick_ffi(
+    handle: ZrRuntimeSessionHandle,
+    ticket: ZrRuntimeViewportPickTicket,
+    out_result: *mut ZrRuntimeViewportPickResultV1,
+) -> ZrStatus {
+    catch_ffi_panic(|| unsafe { poll_viewport_pick(handle, ticket, out_result) })
+}
+
+unsafe extern "C" fn cancel_viewport_pick_ffi(
+    handle: ZrRuntimeSessionHandle,
+    ticket: ZrRuntimeViewportPickTicket,
+) -> ZrStatus {
+    catch_ffi_panic(|| unsafe { cancel_viewport_pick(handle, ticket) })
 }
 
 unsafe extern "C" fn profile_control_ffi(

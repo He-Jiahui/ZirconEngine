@@ -13,9 +13,7 @@ pub(super) fn dispatch_workbench_template_primary_button(
     cleared_text_input_frame: Option<&FrameRect>,
 ) -> NativePointerDispatchResult {
     let pane_host = ui.global::<PaneSurfaceHostContext>();
-    dispatch_template_node_primary_press(&pane_host, hit.clone());
-    NativePointerDispatchResult::region_with_frame_update(hit_damage(
-        cleared_text_input_frame,
-        &hit,
-    ))
+    let damage = hit_damage(cleared_text_input_frame, &hit);
+    dispatch_template_node_primary_press(&pane_host, hit);
+    NativePointerDispatchResult::region_with_frame_update(damage)
 }

@@ -1,4 +1,5 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
+use crate::graphics::scene::scene_renderer::history::SceneHistoryDomain;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
 use super::super::RenderPassGpuExecutionContext;
@@ -44,8 +45,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 "screen-space reflection resolve graph executor for pass `{pass_name}` requires post-process stack context"
             )
         })?;
-        let target = stack.target;
-        let history = stack.history_textures;
         let features = stack.runtime_features;
         let resources = &*self.resources;
         let resource_resolver = self.resource_resolver;
@@ -163,17 +162,24 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             screen_space_reflection_specular_occlusion_resource_name,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let cluster_buffer = Self::require_buffer_by_name(
+        let previous_screen_space_reflection_history_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let cluster_buffer = Self::require_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::LIGHT_LIST,
             RenderGraphResourceAccessKind::Read,
         )?;
-        stack.post_process.execute_screen_space_reflection_resolve(
+        let post_process_cluster_dimensions =
+            stack.post_process_cluster_dimensions(self.frame, pass_name)?;
+        let mut params_uploads = stack.post_process.execute_screen_space_reflection_resolve(
             self.device,
-            self.queue,
             self.encoder,
-            target.cluster_dimensions,
+            post_process_cluster_dimensions,
             super::post_process_texture_origin(self.frame, scene_color_resource_name),
             scene_color_view,
             scene_depth_view,
@@ -182,8 +188,8 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             scene_material_view,
             ambient_occlusion_view,
             None,
-            history.map(|history| &history.global_illumination_view),
-            history.map(|history| &history.screen_space_reflection_view),
+            None,
+            previous_screen_space_reflection_history_view,
             bloom_view,
             depth_of_field_coc_view,
             depth_of_field_bokeh_view,
@@ -196,9 +202,13 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             cluster_buffer,
             self.frame,
             features,
-            stack.history_available,
+            stack.history_available(
+                crate::graphics::scene::scene_renderer::history::SceneHistoryDomain::ScreenSpaceReflection,
+            ),
             attachment_ops,
         );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
+        self.record_history_write(SceneHistoryDomain::ScreenSpaceReflection);
         Ok(())
     }
 
@@ -214,8 +224,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 "screen-space reflection reflection-pyramid coarse graph executor for pass `{pass_name}` requires post-process stack context"
             )
         })?;
-        let target = stack.target;
-        let history = stack.history_textures;
         let features = stack.runtime_features;
         let resources = &*self.resources;
         let resource_resolver = self.resource_resolver;
@@ -300,7 +308,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 screen_space_reflection_reflection_pyramid_coarse_resource_name,
                 RenderGraphResourceAccessKind::Write,
             )?;
-        let cluster_buffer = Self::require_buffer_by_name(
+        let cluster_buffer = Self::require_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::LIGHT_LIST,
@@ -312,6 +320,22 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             screen_space_reflection_reflection_pyramid_resource_name,
             RenderGraphResourceAccessKind::Read,
         )?;
+        let post_process_cluster_dimensions =
+            stack.post_process_cluster_dimensions(self.frame, pass_name)?;
+        let mut params_uploads = stack
+            .post_process
+            .prepare_screen_space_reflection_reflection_pyramid_coarse_params(
+                post_process_cluster_dimensions,
+                super::post_process_texture_origin(
+                    self.frame,
+                    PostProcessGraphResourceNames::SCENE_COLOR,
+                ),
+                self.frame,
+                features,
+                stack.history_available(
+                    crate::graphics::scene::scene_renderer::history::SceneHistoryDomain::ScreenSpaceReflection,
+                ),
+            );
         if mip_level_count > 1 {
             for mip_pass in ssr_parent_pyramid_mip_passes(mip_level_count, attachment_ops) {
                 let source_view = Self::require_owned_texture_mip_view_by_name(
@@ -334,13 +358,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     .post_process
                     .execute_screen_space_reflection_reflection_pyramid_coarse(
                         self.device,
-                        self.queue,
                         self.encoder,
-                        target.cluster_dimensions,
-                        super::post_process_texture_origin(
-                            self.frame,
-                            PostProcessGraphResourceNames::SCENE_COLOR,
-                        ),
                         scene_color_view,
                         scene_depth_view,
                         motion_vector_neighbor_max_view,
@@ -348,33 +366,25 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                         scene_material_view,
                         ambient_occlusion_view,
                         None,
-                        history.map(|history| &history.global_illumination_view),
-                        history.map(|history| &history.screen_space_reflection_view),
+                        None,
+                        None,
                         bloom_view,
                         depth_of_field_coc_view,
                         depth_of_field_bokeh_view,
                         &source_view,
                         &target_view,
-                        cluster_buffer,
-                        self.frame,
-                        features,
-                        stack.history_available,
+                        cluster_buffer.clone(),
                         mip_pass.attachment_ops,
                     );
             }
+            self.append_pre_submit_buffer_uploads(&mut params_uploads);
             return Ok(());
         }
         stack
             .post_process
             .execute_screen_space_reflection_reflection_pyramid_coarse(
                 self.device,
-                self.queue,
                 self.encoder,
-                target.cluster_dimensions,
-                super::post_process_texture_origin(
-                    self.frame,
-                    PostProcessGraphResourceNames::SCENE_COLOR,
-                ),
                 scene_color_view,
                 scene_depth_view,
                 motion_vector_neighbor_max_view,
@@ -382,19 +392,17 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 scene_material_view,
                 ambient_occlusion_view,
                 None,
-                history.map(|history| &history.global_illumination_view),
-                history.map(|history| &history.screen_space_reflection_view),
+                None,
+                None,
                 bloom_view,
                 depth_of_field_coc_view,
                 depth_of_field_bokeh_view,
                 screen_space_reflection_reflection_pyramid_view,
                 screen_space_reflection_reflection_pyramid_coarse_view,
                 cluster_buffer,
-                self.frame,
-                features,
-                stack.history_available,
                 attachment_ops,
             );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 
@@ -410,8 +418,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 "screen-space reflection reflection-pyramid graph executor for pass `{pass_name}` requires post-process stack context"
             )
         })?;
-        let target = stack.target;
-        let history = stack.history_textures;
         let features = stack.runtime_features;
         let resources = &*self.resources;
         let resource_resolver = self.resource_resolver;
@@ -488,19 +494,20 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             screen_space_reflection_reflection_pyramid_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        let cluster_buffer = Self::require_buffer_by_name(
+        let cluster_buffer = Self::require_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::LIGHT_LIST,
             RenderGraphResourceAccessKind::Read,
         )?;
-        stack
+        let post_process_cluster_dimensions =
+            stack.post_process_cluster_dimensions(self.frame, pass_name)?;
+        let mut params_uploads = stack
             .post_process
             .execute_screen_space_reflection_reflection_pyramid(
                 self.device,
-                self.queue,
                 self.encoder,
-                target.cluster_dimensions,
+                post_process_cluster_dimensions,
                 super::post_process_texture_origin(self.frame, scene_color_resource_name),
                 scene_color_view,
                 scene_depth_view,
@@ -509,8 +516,8 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 scene_material_view,
                 ambient_occlusion_view,
                 None,
-                history.map(|history| &history.global_illumination_view),
-                history.map(|history| &history.screen_space_reflection_view),
+                None,
+                None,
                 bloom_view,
                 depth_of_field_coc_view,
                 depth_of_field_bokeh_view,
@@ -518,9 +525,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 cluster_buffer,
                 self.frame,
                 features,
-                stack.history_available,
+                stack.history_available(
+                    crate::graphics::scene::scene_renderer::history::SceneHistoryDomain::ScreenSpaceReflection,
+                ),
                 attachment_ops,
             );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 
@@ -536,8 +546,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 "screen-space reflection specular occlusion graph executor for pass `{pass_name}` requires post-process stack context"
             )
         })?;
-        let target = stack.target;
-        let history = stack.history_textures;
         let features = stack.runtime_features;
         let resources = &*self.resources;
         let resource_resolver = self.resource_resolver;
@@ -612,19 +620,20 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             screen_space_reflection_specular_occlusion_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        let cluster_buffer = Self::require_buffer_by_name(
+        let cluster_buffer = Self::require_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::LIGHT_LIST,
             RenderGraphResourceAccessKind::Read,
         )?;
-        stack
+        let post_process_cluster_dimensions =
+            stack.post_process_cluster_dimensions(self.frame, pass_name)?;
+        let mut params_uploads = stack
             .post_process
             .execute_screen_space_reflection_specular_occlusion(
                 self.device,
-                self.queue,
                 self.encoder,
-                target.cluster_dimensions,
+                post_process_cluster_dimensions,
                 super::post_process_texture_origin(
                     self.frame,
                     PostProcessGraphResourceNames::SCENE_COLOR,
@@ -636,8 +645,8 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 scene_material_view,
                 ambient_occlusion_view,
                 None,
-                history.map(|history| &history.global_illumination_view),
-                history.map(|history| &history.screen_space_reflection_view),
+                None,
+                None,
                 bloom_view,
                 depth_of_field_coc_view,
                 depth_of_field_bokeh_view,
@@ -645,9 +654,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 cluster_buffer,
                 self.frame,
                 features,
-                stack.history_available,
+                stack.history_available(
+                    crate::graphics::scene::scene_renderer::history::SceneHistoryDomain::ScreenSpaceReflection,
+                ),
                 attachment_ops,
             );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 }

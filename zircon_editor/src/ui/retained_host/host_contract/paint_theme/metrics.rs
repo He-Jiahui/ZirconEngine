@@ -8,7 +8,9 @@ use zircon_runtime_interface::ui::design_tokens::{
 pub(crate) struct HostControlMetrics {
     pub control_default_height: f32,
     pub control_large_height: f32,
+    pub radius_small: f32,
     pub radius_control: f32,
+    pub radius_panel: f32,
     pub border_width: f32,
     pub font_small: f32,
     pub font_body: f32,
@@ -54,7 +56,9 @@ impl HostControlMetrics {
         Self {
             control_default_height: scaled(self.control_default_height),
             control_large_height: scaled(self.control_large_height),
+            radius_small: scaled(self.radius_small),
             radius_control: scaled(self.radius_control),
+            radius_panel: scaled(self.radius_panel),
             border_width: scaled(self.border_width),
             font_small: scaled(self.font_small),
             font_body: scaled(self.font_body),
@@ -83,7 +87,9 @@ impl HostControlMetrics {
 pub(crate) const METRICS: HostControlMetrics = HostControlMetrics {
     control_default_height: 32.0,
     control_large_height: 48.0,
-    radius_control: 6.0,
+    radius_small: 6.0,
+    radius_control: 8.0,
+    radius_panel: 12.0,
     border_width: 1.0,
     font_small: EditorTypographyTokens::WORKBENCH_CAPTION_SIZE,
     font_body: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
@@ -125,7 +131,9 @@ pub(in crate::ui::retained_host::host_contract) fn project_host_metrics(
         finite_positive_or(controls.default_height, METRICS.control_default_height);
     let control_large_height =
         finite_positive_or(controls.large_height, METRICS.control_large_height);
-    let radius_control = finite_non_negative_or(controls.small_radius, METRICS.radius_control);
+    let radius_small = finite_non_negative_or(controls.small_radius, METRICS.radius_small);
+    let radius_control = finite_non_negative_or(controls.control_radius, METRICS.radius_control);
+    let radius_panel = finite_non_negative_or(controls.panel_radius, METRICS.radius_panel);
     let border_width = finite_non_negative_or(controls.border_width, METRICS.border_width);
     let font_small = finite_positive_or(typography.caption_size, METRICS.font_small);
     let font_body = finite_positive_or(typography.body_size, METRICS.font_body);
@@ -142,7 +150,9 @@ pub(in crate::ui::retained_host::host_contract) fn project_host_metrics(
     HostControlMetrics {
         control_default_height,
         control_large_height,
+        radius_small,
         radius_control,
+        radius_panel,
         border_width,
         font_small,
         font_body,
@@ -189,9 +199,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn host_control_metrics_match_unreal_slate_baseline() {
+    fn host_control_metrics_match_zircon_editor_baseline() {
         let slate_points_to_logical_pixels = 96.0 / 72.0;
-        assert_eq!(METRICS.radius_control, 6.0);
+        assert_eq!(METRICS.radius_small, 6.0);
+        assert_eq!(METRICS.radius_control, 8.0);
+        assert_eq!(METRICS.radius_panel, 12.0);
         assert_eq!(METRICS.border_width, 1.0);
         assert_eq!(METRICS.control_default_height, 32.0);
         assert_eq!(METRICS.control_large_height, 48.0);
@@ -216,6 +228,8 @@ mod tests {
     fn host_control_metrics_project_from_editor_design_tokens() {
         let mut tokens = EditorDesignTokens::workbench_dark();
         tokens.controls.small_radius = 3.0;
+        tokens.controls.control_radius = 7.0;
+        tokens.controls.panel_radius = 11.0;
         tokens.controls.default_height = 31.0;
         tokens.controls.large_height = 45.0;
         tokens.controls.border_width = 1.5;
@@ -225,7 +239,9 @@ mod tests {
 
         let metrics = project_host_metrics(&tokens);
 
-        assert_eq!(metrics.radius_control, 3.0);
+        assert_eq!(metrics.radius_small, 3.0);
+        assert_eq!(metrics.radius_control, 7.0);
+        assert_eq!(metrics.radius_panel, 11.0);
         assert_eq!(metrics.control_default_height, 31.0);
         assert_eq!(metrics.control_large_height, 45.0);
         assert_eq!(metrics.border_width, 1.5);
@@ -241,12 +257,31 @@ mod tests {
         let scaled = METRICS.at_scale(2.0);
 
         assert_eq!(scaled.control_default_height, 64.0);
-        assert_eq!(scaled.radius_control, 12.0);
+        assert_eq!(scaled.radius_small, METRICS.radius_small * 2.0);
+        assert_eq!(scaled.radius_control, METRICS.radius_control * 2.0);
+        assert_eq!(scaled.radius_panel, METRICS.radius_panel * 2.0);
         assert_eq!(scaled.border_width, 2.0);
         assert_eq!(scaled.font_body, METRICS.font_body * 2.0);
         assert_eq!(scaled.input_pad, [16.0, 16.0, 6.0, 8.0]);
         assert_eq!(scaled.row_height, METRICS.row_height * 2.0);
         assert_eq!(scaled.line_height_ratio, METRICS.line_height_ratio);
+    }
+
+    #[test]
+    fn host_control_metrics_preserve_fractional_device_scale() {
+        let at_125_percent = METRICS.at_scale(1.25);
+        let at_150_percent = METRICS.at_scale(1.5);
+
+        assert_eq!(at_125_percent.control_default_height, 40.0);
+        assert_eq!(at_125_percent.radius_small, 7.5);
+        assert_eq!(at_125_percent.radius_control, 10.0);
+        assert_eq!(at_125_percent.radius_panel, 15.0);
+        assert_eq!(at_125_percent.border_width, 1.25);
+        assert_eq!(at_150_percent.control_default_height, 48.0);
+        assert_eq!(at_150_percent.radius_small, 9.0);
+        assert_eq!(at_150_percent.radius_control, 12.0);
+        assert_eq!(at_150_percent.radius_panel, 18.0);
+        assert_eq!(at_150_percent.border_width, 1.5);
     }
 
     #[test]
@@ -256,6 +291,8 @@ mod tests {
         tokens.controls.large_height = -1.0;
         tokens.controls.dense_height = f32::INFINITY;
         tokens.controls.small_radius = f32::NEG_INFINITY;
+        tokens.controls.control_radius = f32::NEG_INFINITY;
+        tokens.controls.panel_radius = f32::NEG_INFINITY;
         tokens.controls.border_width = f32::NAN;
         tokens.typography.caption_size = 0.0;
         tokens.typography.body_size = f32::NEG_INFINITY;
@@ -275,7 +312,9 @@ mod tests {
     fn host_control_metrics_preserve_zero_border_and_spacing_tokens() {
         let mut tokens = EditorDesignTokens::workbench_dark();
         tokens.controls.border_width = 0.0;
-        tokens.controls.small_radius = 0.0;
+        tokens.controls.small_radius = 5.0;
+        tokens.controls.control_radius = 0.0;
+        tokens.controls.panel_radius = 0.0;
         tokens.density.gap_small = 0.0;
         tokens.density.gap_medium = 0.0;
         tokens.density.gap_large = 0.0;
@@ -283,7 +322,9 @@ mod tests {
         let metrics = project_host_metrics(&tokens);
 
         assert_eq!(metrics.border_width, 0.0);
+        assert_eq!(metrics.radius_small, 5.0);
         assert_eq!(metrics.radius_control, 0.0);
+        assert_eq!(metrics.radius_panel, 0.0);
         assert_eq!(metrics.gap_s, 0.0);
         assert_eq!(metrics.gap_m, 0.0);
         assert_eq!(metrics.gap_l, 0.0);

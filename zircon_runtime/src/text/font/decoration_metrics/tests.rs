@@ -2,13 +2,13 @@ use std::fs;
 use std::path::Path;
 
 use super::{
-    text_decoration_frame, TextDecorationKind, TextDecorationMetrics, TextDecorationMetricsCache,
-    MIN_VISIBLE_TEXT_DECORATION_PX,
+    MIN_VISIBLE_TEXT_DECORATION_PX, TextDecorationKind, TextDecorationMetrics,
+    TextDecorationMetricsCache, text_decoration_frame,
 };
 use crate::asset::{FontAssetFaceMetrics, FontAssetLineMetrics};
 use crate::core::framework::text::TextWritingMode;
-use crate::text::font::FontDatabase;
 use crate::text::TextFrame;
+use crate::text::font::FontDatabase;
 
 #[test]
 fn render_text_decoration_metrics_from_face_tables() {

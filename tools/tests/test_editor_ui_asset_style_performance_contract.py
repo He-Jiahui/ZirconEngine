@@ -9,6 +9,9 @@ STYLE_ROOT = ROOT / "zircon_editor/src/ui/asset_editor/style"
 class EditorUiAssetStylePerformanceContractTests(unittest.TestCase):
     def test_semantic_reads_walk_borrowed_path_segments_without_allocating(self) -> None:
         source = (STYLE_ROOT / "inspector_semantics.rs").read_text(encoding="utf-8")
+        segments_start = source.index("fn path_segments")
+        segments_end = source.index("fn value_map_literal", segments_start)
+        segments = source[segments_start:segments_end]
         value_start = source.index("fn value_map_value")
         value_end = source.index("fn set_path_value", value_start)
         value_lookup = source[value_start:value_end]
@@ -16,10 +19,11 @@ class EditorUiAssetStylePerformanceContractTests(unittest.TestCase):
         kind_end = source.index("fn set_value_in_map", kind_start)
         kind_lookup = source[kind_start:kind_end]
 
-        self.assertRegex(
-            value_lookup,
-            r"let mut segments\s*=\s*path\s*\.split\('\.'\)",
-        )
+        self.assertIn("impl Iterator<Item = &str>", segments)
+        self.assertIn("path.split('.')", segments)
+        self.assertNotIn("collect", segments)
+        self.assertNotIn("String", segments)
+        self.assertIn("let mut segments = path_segments(path)", value_lookup)
         self.assertNotIn("split_path(path)", value_lookup)
         self.assertNotIn("Vec<String>", value_lookup)
         self.assertIn("Option<&str>", kind_lookup)

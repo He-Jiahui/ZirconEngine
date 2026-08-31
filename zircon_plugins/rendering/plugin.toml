@@ -80,7 +80,7 @@ display_name = "SSAO"
 owner_plugin_id = "rendering"
 capabilities = ["runtime.feature.rendering.ssao"]
 default_packaging = ["source_template", "library_embed"]
-enabled_by_default = true
+enabled_by_default = false
 
 [[optional_features.dependencies]]
 plugin_id = "rendering"

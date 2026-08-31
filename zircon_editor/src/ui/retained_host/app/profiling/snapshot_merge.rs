@@ -22,8 +22,7 @@ pub(super) fn merge_profile_snapshot(
 
     editor_profile.active |= runtime_profile.active;
     editor_profile.feature_enabled |= runtime_profile.feature_enabled;
-    editor_profile.session_id =
-        merged_session_id(&editor_profile.session_id, &runtime_profile.session_id);
+    merge_session_id_in_place(&mut editor_profile.session_id, &runtime_profile.session_id);
     editor_profile.frames.extend(runtime_profile.frames);
     editor_profile.spans.extend(runtime_profile.spans);
     editor_profile.counters.extend(runtime_profile.counters);
@@ -46,11 +45,11 @@ fn remap_span_ids(spans: &mut [ProfileSpanSnapshot], offset: u64) {
     }
 }
 
-fn merged_session_id(editor_session_id: &str, runtime_session_id: &str) -> String {
-    if editor_session_id == runtime_session_id {
-        editor_session_id.to_string()
-    } else {
-        format!("{editor_session_id}+{runtime_session_id}")
+fn merge_session_id_in_place(editor_session_id: &mut String, runtime_session_id: &str) {
+    if editor_session_id != runtime_session_id {
+        editor_session_id.reserve(1 + runtime_session_id.len());
+        editor_session_id.push('+');
+        editor_session_id.push_str(runtime_session_id);
     }
 }
 
@@ -101,3 +100,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "snapshot_merge/owned_session_id_tests.rs"]
+mod owned_session_id_tests;

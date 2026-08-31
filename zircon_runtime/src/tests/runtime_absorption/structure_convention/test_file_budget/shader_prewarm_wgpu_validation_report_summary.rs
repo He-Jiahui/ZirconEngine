@@ -8,7 +8,8 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
     let variant_prewarm = read_runtime_src("core/framework/render/shader/variant_prewarm.rs");
     let shader_mod = read_runtime_src("core/framework/render/shader/mod.rs");
     let render_mod = read_runtime_src("core/framework/render/mod.rs");
-    let prewarm = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
+    let prewarm_worker = read_runtime_src("graphics/shader/variant_cache/prewarm/worker.rs");
+    let prewarm_tests = read_runtime_src("graphics/shader/variant_cache/prewarm/tests.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
@@ -51,14 +52,18 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
     );
     assert_contains_all(
         "prewarm write path records WGPU module validation outcomes",
-        &prewarm,
+        &prewarm_worker,
         &[
             "report.enable_wgpu_module_validation(manifest.variants.len())",
             "report.record_wgpu_module_validation_skipped()",
             "report.record_wgpu_module_validation_failed()",
             "report.record_wgpu_module_validation_passed()",
-            "render_shader_variant_prewarm_records_wgpu_module_validation_success",
         ],
+    );
+    assert_contains_all(
+        "prewarm tests cover WGPU module validation success reporting",
+        &prewarm_tests,
+        &["render_shader_variant_prewarm_records_wgpu_module_validation_success"],
     );
     assert_contains_all(
         "dynamic API re-exports WGPU validation",
@@ -105,8 +110,12 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
             variant_prewarm.as_str(),
         ),
         (
-            "zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs",
-            prewarm.as_str(),
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs",
+            prewarm_worker.as_str(),
+        ),
+        (
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs",
+            prewarm_tests.as_str(),
         ),
         (
             "zircon_runtime/src/dynamic_api/shader_prewarm/wgpu_validation.rs",

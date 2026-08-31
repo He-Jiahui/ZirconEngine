@@ -4,4 +4,9 @@ mod report;
 
 pub use contract::{PlayBackend, SharedPlayBackend};
 pub use noop::NoopPlayBackend;
-pub use report::{PlayBackendPoll, PlayBackendStartReport, PlayBackendStopReport};
+#[cfg(test)]
+pub(crate) use noop::TestAttachablePlayBackend;
+pub use report::{
+    PlayBackendPoll, PlayBackendRetireReport, PlayBackendStartFailure, PlayBackendStartReport,
+    PlayBackendStopReport,
+};

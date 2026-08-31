@@ -1,10 +1,65 @@
+use std::sync::Arc;
+
 use crate::ui::{
-    dispatch::UiDispatchPhase,
+    component::{UiDragPayload, UiDragPayloadKind},
+    dispatch::{
+        UiDispatchEffect, UiDispatchPhase, UiDragDropEffectKind, UiDragDropInputEvent,
+        UiDragDropInputEventKind, UiInputEvent, UiInputEventMetadata, UiPointerId,
+    },
     event_ui::{UiNodeId, UiNodePath},
     layout::UiPoint,
     surface::{UiHitPath, UiHitTestQuery},
     tree::{UiCursor, UiPointerEvents, UiTreeNode},
 };
+
+#[test]
+fn drag_drop_payload_clones_share_authority_and_preserve_wire_shape() {
+    let payload = Arc::new(UiDragPayload::new(
+        UiDragPayloadKind::Asset,
+        "res://materials/shared.mat",
+    ));
+    let event = UiInputEvent::DragDrop(UiDragDropInputEvent {
+        metadata: UiInputEventMetadata::default(),
+        kind: UiDragDropInputEventKind::Over,
+        session_id: None,
+        point: UiPoint::new(12.0, 18.0),
+        payload: Some(Arc::clone(&payload)),
+    });
+    let cloned_event = event.clone();
+    let effect = UiDispatchEffect::DragDrop {
+        kind: UiDragDropEffectKind::Update,
+        target: UiNodeId::new(3),
+        pointer_id: UiPointerId::default(),
+        session_id: None,
+        point: Some(UiPoint::new(12.0, 18.0)),
+        payload: Some(Arc::clone(&payload)),
+    };
+    let cloned_effect = effect.clone();
+
+    let UiInputEvent::DragDrop(cloned_event) = &cloned_event else {
+        panic!("drag-drop event family changed");
+    };
+    let UiDispatchEffect::DragDrop {
+        payload: Some(cloned_effect_payload),
+        ..
+    } = &cloned_effect
+    else {
+        panic!("drag-drop effect family changed");
+    };
+    assert!(Arc::ptr_eq(
+        cloned_event.payload.as_ref().expect("event payload"),
+        &payload,
+    ));
+    assert!(Arc::ptr_eq(cloned_effect_payload, &payload));
+
+    let wire = serde_json::to_value(&event).expect("drag-drop event serializes");
+    assert_eq!(
+        wire["DragDrop"]["payload"]["reference"],
+        "res://materials/shared.mat"
+    );
+    let decoded: UiInputEvent = serde_json::from_value(wire).expect("drag-drop event deserializes");
+    assert_eq!(decoded, event);
+}
 
 #[test]
 fn pointer_events_keep_self_child_and_passthrough_semantics_distinct() {
@@ -88,8 +143,29 @@ fn hit_path_derives_bubble_route_from_the_authoritative_root_to_leaf_path() {
 
     assert_eq!(path.target, Some(target));
     assert_eq!(path.root_to_leaf, vec![root, container, target]);
-    assert_eq!(path.bubble_route, vec![target, container, root]);
+    assert_eq!(
+        path.bubble_route().collect::<Vec<_>>(),
+        vec![target, container, root]
+    );
     assert!(path.has_consistent_route());
+}
+
+#[test]
+fn hit_path_serde_preserves_the_legacy_bidirectional_wire_shape() {
+    let root = UiNodeId::new(1);
+    let target = UiNodeId::new(3);
+    let path = UiHitPath::from_root_to_leaf(
+        &UiHitTestQuery::new(UiPoint::new(12.0, 6.0)),
+        vec![root, target],
+    );
+
+    let wire = serde_json::to_value(&path).expect("hit path serializes");
+    assert_eq!(wire["root_to_leaf"], serde_json::json!([root, target]));
+    assert_eq!(wire["bubble_route"], serde_json::json!([target, root]));
+    assert_eq!(
+        serde_json::from_value::<UiHitPath>(wire).expect("hit path deserializes"),
+        path
+    );
 }
 
 #[test]

@@ -1,6 +1,7 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::sync::Arc;
 
-use super::super::{GlyphAtlasPageKey, GlyphAtlasRect};
+use super::super::{GlyphAtlasPageKey, GlyphAtlasRect, GlyphAtlasUploadCommand};
 use super::types::{GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapUploadCopy};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -34,7 +35,7 @@ pub(crate) struct GlyphAtlasBitmapPageUploadStaging {
     pub(crate) page_generation: u64,
     pub(crate) target_rect: GlyphAtlasRect,
     pub(crate) bytes_per_row: u32,
-    pub(crate) bytes: Vec<u8>,
+    pub(crate) bytes: Arc<[u8]>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -72,30 +73,43 @@ pub(crate) fn glyph_atlas_bitmap_upload_staging_plan<'a, I>(
 where
     I: IntoIterator<Item = GlyphAtlasBitmapUploadSourceBytes<'a>>,
 {
+    glyph_atlas_bitmap_upload_staging_plan_for_commands(run, &run.upload_commands, source_bytes)
+}
+
+pub(super) fn glyph_atlas_bitmap_upload_staging_plan_for_commands<'a, I>(
+    run: &GlyphAtlasBitmapRunPlan,
+    upload_commands: &[GlyphAtlasUploadCommand],
+    source_bytes: I,
+) -> GlyphAtlasBitmapUploadStagingPlan
+where
+    I: IntoIterator<Item = GlyphAtlasBitmapUploadSourceBytes<'a>>,
+{
     let source_bytes_by_index = source_bytes
         .into_iter()
         .map(|source| (source.source_index, source.bytes))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<HashMap<_, _>>();
+    let mut copies_by_page = HashMap::new();
+    for copy in &run.upload_copies {
+        copies_by_page
+            .entry(copy.page_key)
+            .or_insert_with(Vec::new)
+            .push(copy);
+    }
     let mut pages = Vec::new();
     let mut failures = Vec::new();
 
-    for command in &run.upload_commands {
-        let copies = run
-            .upload_copies
-            .iter()
-            .filter(|copy| {
-                copy.page_key == command.page_key
-                    && target_rect_contains(command.rect, copy.atlas_rect)
-            })
-            .collect::<Vec<_>>();
-        if copies.is_empty() {
-            continue;
-        }
+    for command in upload_commands {
+        let mut copies = copies_by_page
+            .get(&command.page_key)
+            .into_iter()
+            .flat_map(|copies| copies.iter().copied())
+            .filter(|copy| target_rect_contains(command.rect, copy.atlas_rect));
+        let first_copy = copies.next();
         let Some(page) = run
             .atlas
             .page(command.page_key.format, command.page_key.page_index)
         else {
-            for copy in copies {
+            for copy in first_copy.into_iter().chain(copies) {
                 failures.push(staging_failure(
                     copy,
                     GlyphAtlasBitmapUploadStagingFailureReason::MissingPage,
@@ -103,6 +117,10 @@ where
             }
             continue;
         };
+        let shadow_bytes = run.atlas.bitmap_page_shadow_bytes(page);
+        if first_copy.is_none() && shadow_bytes.is_none() {
+            continue;
+        }
         let bytes_per_pixel = page.storage_format.bytes_per_pixel();
         let mut page_staging = GlyphAtlasBitmapPageUploadStaging {
             page_key: command.page_key,
@@ -114,12 +132,13 @@ where
                 (command.rect.width as usize)
                     .saturating_mul(command.rect.height as usize)
                     .saturating_mul(bytes_per_pixel as usize)
-            ],
+            ]
+            .into(),
         };
-        if let Some(shadow_bytes) = run.atlas.bitmap_page_shadow_bytes(page) {
+        if let Some(shadow_bytes) = shadow_bytes {
             seed_staging_from_page_shadow(&mut page_staging, page, shadow_bytes);
         }
-        for copy in copies {
+        for copy in first_copy.into_iter().chain(copies) {
             let Some(bytes) = source_bytes_by_index.get(&copy.source_index) else {
                 failures.push(staging_failure(
                     copy,
@@ -168,7 +187,7 @@ fn seed_staging_from_page_shadow(
         let source_end = source_start.saturating_add(target_row_byte_len);
         let destination_start = row.saturating_mul(target_row_byte_len);
         let destination_end = destination_start.saturating_add(target_row_byte_len);
-        page_staging.bytes[destination_start..destination_end]
+        Arc::make_mut(&mut page_staging.bytes)[destination_start..destination_end]
             .copy_from_slice(&shadow_bytes[source_start..source_end]);
     }
 }
@@ -235,7 +254,7 @@ fn copy_upload_source_bytes(
         let source_end = source_start + source_bytes_per_row;
         let destination_start = local_byte_offset + row * page_staging.bytes_per_row as usize;
         let destination_end = destination_start + source_bytes_per_row;
-        page_staging.bytes[destination_start..destination_end]
+        Arc::make_mut(&mut page_staging.bytes)[destination_start..destination_end]
             .copy_from_slice(&source_bytes[source_start..source_end]);
     }
 }

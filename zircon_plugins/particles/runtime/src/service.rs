@@ -8,10 +8,10 @@ use zircon_runtime::core::math::{Real, Vec3};
 use crate::component::{ParticleEmitterHandle, ParticleSystemComponent};
 use crate::interop::{ParticleAnimationEvent, ParticleAnimationEventKind};
 use crate::render::{
-    ParticleGpuFallbackDiagnostic, ParticleGpuFallbackReason, build_particle_extract,
+    build_particle_extract, ParticleGpuFallbackDiagnostic, ParticleGpuFallbackReason,
 };
 use crate::simulation::{ParticleSimulationError, ParticleSystemInstance};
-use crate::{PARTICLES_RUNTIME_CAPABILITY, ParticleSimulationBackend};
+use crate::{ParticleSimulationBackend, PARTICLES_RUNTIME_CAPABILITY};
 
 pub const PARTICLES_PHYSICS_CAPABILITY: &str = "runtime.feature.particles.physics";
 pub const PARTICLES_ANIMATION_CAPABILITY: &str = "runtime.feature.particles.animation_control";

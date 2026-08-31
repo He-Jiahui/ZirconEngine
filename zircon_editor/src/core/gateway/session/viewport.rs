@@ -1,5 +1,4 @@
-use std::sync::atomic::Ordering;
-
+use zircon_runtime_host::viewport_surface::ViewportSurfaceOperationInFlight;
 use zircon_runtime_interface::{
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
 };
@@ -18,12 +17,16 @@ impl SessionGateway {
             self.api.bind_viewport_surface,
             "runtime.viewport.surface.bind",
         )?;
-        ensure_status(
+        let operation = self
+            .viewport_surface_bindings
+            .begin_binding(request.viewport)
+            .map_err(viewport_surface_transition_in_flight)?;
+        let result = ensure_status(
             unsafe { bind(self.session, request) },
             "bind runtime viewport surface",
-        )?;
-        self.viewport_surface_bound.store(true, Ordering::Release);
-        Ok(())
+        );
+        operation.finish(result.is_ok());
+        result
     }
 
     pub(super) fn unbind_viewport_surface(
@@ -31,16 +34,23 @@ impl SessionGateway {
         viewport: ZrRuntimeViewportHandle,
     ) -> Result<(), GatewayError> {
         self.ensure_session_available("unbind runtime viewport surface")?;
+        let Some(operation) = self
+            .viewport_surface_bindings
+            .begin_release(viewport)
+            .map_err(viewport_surface_transition_in_flight)?
+        else {
+            return Ok(());
+        };
         let unbind = Self::required(
             self.api.unbind_viewport_surface,
             "runtime.viewport.surface.unbind",
         )?;
-        ensure_status(
+        let result = ensure_status(
             unsafe { unbind(self.session, viewport) },
             "unbind runtime viewport surface",
-        )?;
-        self.viewport_surface_bound.store(false, Ordering::Release);
-        Ok(())
+        );
+        operation.finish(result.is_ok());
+        result
     }
 
     pub(super) fn present_viewport(
@@ -53,5 +63,11 @@ impl SessionGateway {
             unsafe { present(self.session, request) },
             "present runtime viewport",
         )
+    }
+}
+
+fn viewport_surface_transition_in_flight(error: ViewportSurfaceOperationInFlight) -> GatewayError {
+    GatewayError::ViewportSurfaceTransitionInFlight {
+        viewport: error.viewport().raw(),
     }
 }

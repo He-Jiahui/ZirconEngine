@@ -15,6 +15,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantRegistry;
 
 use super::builder::{
+    build_environment_capture_command_buffers_from_batches,
     build_mesh_pass_command_buffers_from_batches,
     build_mesh_pass_command_buffers_from_batches_cached,
     build_mesh_pass_command_buffers_from_batches_cached_parallel,
@@ -35,6 +36,17 @@ fn mesh_pass_builder_does_not_sort_before_phase_partition_sorts() {
 }
 
 #[test]
+fn mesh_pass_builder_uses_the_neutral_ordered_execution_contract() {
+    let source = include_str!("builder.rs");
+
+    assert!(source.contains("ParallelSliceExecutor"));
+    assert!(source.contains(".parallel_map_ordered(plans, build_prepared_batch_chunk)"));
+    assert!(!source.contains("rayon::"));
+    assert!(!source.contains("into_par_iter"));
+    assert!(!source.contains("par_iter"));
+}
+
+#[test]
 fn mesh_pass_builder_writes_dynamic_commands_into_the_frame_arena() {
     let source = include_str!("builder.rs");
 
@@ -45,6 +57,37 @@ fn mesh_pass_builder_writes_dynamic_commands_into_the_frame_arena() {
         .and_then(|source| source.split("fn append_dynamic_commands").next())
         .expect("uncached postprocess helper source");
     assert!(!postprocess.contains("let mut rebuilt = MeshDrawCommandList::new();"));
+}
+
+#[test]
+fn environment_capture_builder_only_resolves_opaque_capture_phases() {
+    let mut advanced_key = default_pipeline_key();
+    advanced_key.pbr_clearcoat = true;
+    let mut transparent_key = default_pipeline_key();
+    transparent_key.alpha_blend = true;
+    let mut variants = MeshPipelineVariantRegistry::default();
+
+    let buffers = build_environment_capture_command_buffers_from_batches(
+        [
+            batch(MeshDrawQueuePhase::Opaque, 10),
+            batch(MeshDrawQueuePhase::AlphaMask, 20),
+            batch_with_pipeline_key(MeshDrawQueuePhase::Opaque, 30, advanced_key),
+            batch_with_pipeline_key(MeshDrawQueuePhase::Transparent, 40, transparent_key),
+        ],
+        &mut variants,
+        ShaderQualityTier::default(),
+    );
+
+    assert_eq!(buffers.opaque().commands().len(), 1);
+    assert_eq!(buffers.alpha_mask().commands().len(), 1);
+    assert_eq!(buffers.advanced_pbr_opaque().commands().len(), 1);
+    assert!(buffers.transparent().commands().is_empty());
+    assert!(buffers.transmission().commands().is_empty());
+    assert!(buffers.depth_prepass().commands().is_empty());
+    assert!(buffers.shadow().commands().is_empty());
+    assert!(buffers.velocity().commands().is_empty());
+    assert!(buffers.taa_reactive_mask().commands().is_empty());
+    assert_eq!(variants.len(), 3);
 }
 
 #[test]
@@ -86,7 +129,9 @@ fn mesh_pass_buffers_split_material_marked_transparency_without_losing_counts() 
     assert_eq!(buffers.transparent().commands().len(), 1);
     assert!(!buffers.transparent().commands()[0].uses_half_resolution_transparency());
     assert_eq!(buffers.half_resolution_transparent().commands().len(), 1);
-    assert!(buffers.half_resolution_transparent().commands()[0].uses_half_resolution_transparency());
+    assert!(
+        buffers.half_resolution_transparent().commands()[0].uses_half_resolution_transparency()
+    );
     assert_eq!(buffers.stats().transparent_command_count, 2);
 }
 
@@ -391,6 +436,14 @@ fn command(phase: RenderPhase, sort_key: u64, variant_id: u32) -> MeshDrawComman
 }
 
 fn batch(phase: MeshDrawQueuePhase, sort_key: u64) -> MeshBatchRef {
+    batch_with_pipeline_key(phase, sort_key, default_pipeline_key())
+}
+
+fn batch_with_pipeline_key(
+    phase: MeshDrawQueuePhase,
+    sort_key: u64,
+    pipeline_key: crate::graphics::scene::resources::PipelineKey,
+) -> MeshBatchRef {
     MeshBatchRef::new(
         MeshDrawQueueProfile::new(
             phase,
@@ -400,7 +453,7 @@ fn batch(phase: MeshDrawQueuePhase, sort_key: u64) -> MeshBatchRef {
             false,
             false,
         ),
-        default_pipeline_key(),
+        pipeline_key,
         RenderPhaseSortComponents::new(sort_key as f32, sort_key),
         MeshGeometryHandle::test(sort_key),
         MeshDrawArgs::direct_indexed(0, 3),

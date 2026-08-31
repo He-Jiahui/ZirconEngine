@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime_interface/src/plugin_diagnostics.rs
   - zircon_runtime_interface/src/plugin_events.rs
   - zircon_runtime_interface/src/script_diagnostics
-  - zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs
+  - zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling
   - zircon_runtime/src/runtime_diagnostics

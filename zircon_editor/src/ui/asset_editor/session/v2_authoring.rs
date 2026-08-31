@@ -42,6 +42,22 @@ fn is_v2_style_import_kind(kind: UiV2AssetKind) -> bool {
     matches!(kind, UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens)
 }
 
+fn extend_cloned_map<K, V>(target: &mut BTreeMap<K, V>, source: &BTreeMap<K, V>)
+where
+    K: Clone + Ord,
+    V: Clone,
+{
+    target.extend(
+        source
+            .iter()
+            .map(|(key, value)| (key.clone(), value.clone())),
+    );
+}
+
+fn extend_cloned_values<T: Clone>(target: &mut Vec<T>, source: &[T]) {
+    target.extend_from_slice(source);
+}
+
 fn v2_document_and_prototype_store(
     document: &UiV2AssetDocument,
     imports: &UiAssetV2CompilerImports,
@@ -72,8 +88,12 @@ fn v2_preview_document_with_imported_styles(
         });
     }
     for style in styles.values() {
-        document.tokens.extend(style.tokens.clone());
-        document.stylesheets.extend(style.stylesheets.clone());
+        extend_cloned_map(&mut document.tokens, &style.tokens);
+        extend_cloned_values(&mut document.stylesheets, &style.stylesheets);
     }
     document
 }
+
+#[cfg(test)]
+#[path = "v2_authoring/streaming_style_tests.rs"]
+mod streaming_style_tests;

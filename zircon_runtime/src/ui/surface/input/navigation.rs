@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
         UiDispatchAppliedEffect, UiDispatchEffect, UiDispatchPhase, UiDispatchReply,
-        UiInputDispatchResult, UiInputEvent, UiNavigationInputEvent,
+        UiInputDiagnosticsMode, UiInputDispatchResult, UiInputEvent, UiNavigationInputEvent,
     },
     focus::UiFocusedInputKind,
     tree::UiTreeError,
@@ -18,6 +18,7 @@ pub(super) fn dispatch_navigation_input(
     surface: &mut UiSurface,
     dispatcher: &UiNavigationDispatcher,
     navigation: UiNavigationInputEvent,
+    diagnostics_mode: UiInputDiagnosticsMode,
 ) -> Result<UiInputDispatchResult, UiTreeError> {
     let routed_reply = surface.dispatch_navigation_event(dispatcher, navigation.kind)?;
     let event = UiInputEvent::Navigation(navigation);
@@ -43,11 +44,21 @@ pub(super) fn dispatch_navigation_input(
             reply = reply.from_handler(handler);
         }
     }
-    let mut result = UiInputDispatchResult::new(event, reply.clone());
+    let mut applied_effects = Vec::with_capacity(reply.effects.len());
+    for (effect_index, effect) in reply.effects.iter().cloned().enumerate() {
+        applied_effects.push(UiDispatchAppliedEffect {
+            effect_index,
+            effect,
+        });
+    }
+    let mut result = UiInputDispatchResult::new(event, reply);
     result.diagnostics.routed =
         routed_reply.route.target.is_some() || routed_reply.route.fallback_to_root;
     result.diagnostics.route_target = routed_reply.route.target.or(routed_reply.focus_changed_to);
-    result.diagnostics.handled_phase = routed_reply.handled_by.map(|_| "navigation".to_string());
+    if diagnostics_mode.captures_full_trace() {
+        result.diagnostics.handled_phase =
+            routed_reply.handled_by.map(|_| "navigation".to_string());
+    }
     if let Some(focused) = routed_reply.focus_changed_to.or(routed_reply.route.target) {
         record_owner_focused_input(
             surface,
@@ -58,15 +69,11 @@ pub(super) fn dispatch_navigation_input(
                 != zircon_runtime_interface::ui::dispatch::UiDispatchDisposition::Unhandled,
         );
     }
-    for (effect_index, effect) in reply.effects.into_iter().enumerate() {
-        result.applied_effects.push(UiDispatchAppliedEffect {
-            effect_index,
-            effect,
-        });
-    }
+    result.applied_effects = applied_effects;
     result.binding_reports = routed_reply.binding_reports;
-    let event = result.event.clone();
-    annotate_navigation_route_trace(surface, &routed_reply.route, &event, &mut result);
-    annotate_result_route_steps(&mut result);
+    if diagnostics_mode.captures_full_trace() {
+        annotate_navigation_route_trace(surface, routed_reply.route, &mut result);
+        annotate_result_route_steps(&mut result);
+    }
     Ok(result)
 }

@@ -149,18 +149,21 @@ fn sdf_atlas_plan_reports_page_limit_allocation_failures() {
         GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT * 4
     );
     assert_eq!(plan.allocation_failures.len(), 2);
-    assert!(plan
-        .allocation_failures
-        .iter()
-        .all(|failure| failure.reason == SdfAtlasAllocationFailureReason::PageLimit));
-    assert!(plan
-        .allocation_failures
-        .iter()
-        .all(|failure| failure.requested_size == UVec2::splat(32)));
-    assert!(plan
-        .allocation_failures
-        .iter()
-        .all(|failure| failure.atlas_size == UVec2::splat(64)));
+    assert!(
+        plan.allocation_failures
+            .iter()
+            .all(|failure| failure.reason == SdfAtlasAllocationFailureReason::PageLimit)
+    );
+    assert!(
+        plan.allocation_failures
+            .iter()
+            .all(|failure| failure.requested_size == UVec2::splat(32))
+    );
+    assert!(
+        plan.allocation_failures
+            .iter()
+            .all(|failure| failure.atlas_size == UVec2::splat(64))
+    );
     assert_eq!(
         plan.slots.last().map(|slot| slot.page_key),
         Some(GlyphAtlasPageKey::new(

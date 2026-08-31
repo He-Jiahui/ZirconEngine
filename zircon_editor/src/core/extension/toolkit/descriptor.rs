@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::core::editing::engine::HistoryContextId;
+use crate::core::editor_extension::EditorMenuItemDescriptor;
 use crate::core::editor_message::DocumentId;
 use crate::core::extension::DefaultWorkbenchPreset;
 
@@ -13,6 +14,7 @@ pub struct DocumentToolkitDescriptor {
     title: String,
     layout: ToolkitLayout,
     default_presets: Arc<[DefaultWorkbenchPreset]>,
+    menu_items: Arc<[EditorMenuItemDescriptor]>,
 }
 
 impl DocumentToolkitDescriptor {
@@ -28,6 +30,7 @@ impl DocumentToolkitDescriptor {
             title: title.into(),
             layout,
             default_presets: Arc::from([DefaultWorkbenchPreset::Authoring]),
+            menu_items: Arc::from([]),
         }
     }
 
@@ -57,6 +60,18 @@ impl DocumentToolkitDescriptor {
 
     pub fn default_presets(&self) -> &[DefaultWorkbenchPreset] {
         &self.default_presets
+    }
+
+    pub fn with_menu_items(
+        mut self,
+        menu_items: impl IntoIterator<Item = EditorMenuItemDescriptor>,
+    ) -> Self {
+        self.menu_items = menu_items.into_iter().collect::<Vec<_>>().into();
+        self
+    }
+
+    pub fn menu_items(&self) -> &[EditorMenuItemDescriptor] {
+        &self.menu_items
     }
 
     pub const fn history_context(&self) -> HistoryContextId {

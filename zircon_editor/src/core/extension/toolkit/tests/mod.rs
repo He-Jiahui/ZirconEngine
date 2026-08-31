@@ -1,6 +1,7 @@
 mod lifecycle;
 mod saving;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::core::editing::engine::HistoryContextId;
@@ -13,7 +14,10 @@ use super::{
 
 struct FixtureToolkit {
     descriptor: DocumentToolkitDescriptor,
+    validate_references: Arc<dyn Fn() -> Result<(), ToolkitSaveFailure> + Send + Sync>,
     save: Arc<dyn Fn(&mut SaveCtx) -> Result<(), ToolkitSaveFailure> + Send + Sync>,
+    descriptor_calls: Option<Arc<AtomicUsize>>,
+    drop_callback: Option<Arc<dyn Fn() + Send + Sync>>,
 }
 
 impl FixtureToolkit {
@@ -34,14 +38,50 @@ impl FixtureToolkit {
                 )
                 .unwrap(),
             ),
+            validate_references: Arc::new(|| Ok(())),
             save: Arc::new(save),
+            descriptor_calls: None,
+            drop_callback: None,
+        }
+    }
+
+    fn with_descriptor_counter(mut self, descriptor_calls: Arc<AtomicUsize>) -> Self {
+        self.descriptor_calls = Some(descriptor_calls);
+        self
+    }
+
+    fn with_reference_validation(
+        mut self,
+        validate: impl Fn() -> Result<(), ToolkitSaveFailure> + Send + Sync + 'static,
+    ) -> Self {
+        self.validate_references = Arc::new(validate);
+        self
+    }
+
+    fn with_drop_callback(mut self, drop_callback: impl Fn() + Send + Sync + 'static) -> Self {
+        self.drop_callback = Some(Arc::new(drop_callback));
+        self
+    }
+}
+
+impl Drop for FixtureToolkit {
+    fn drop(&mut self) {
+        if let Some(callback) = &self.drop_callback {
+            callback();
         }
     }
 }
 
 impl DocumentToolkit<()> for FixtureToolkit {
     fn descriptor(&self) -> &DocumentToolkitDescriptor {
+        if let Some(descriptor_calls) = &self.descriptor_calls {
+            descriptor_calls.fetch_add(1, Ordering::Relaxed);
+        }
         &self.descriptor
+    }
+
+    fn validate_references(&self, _host: &()) -> Result<(), ToolkitSaveFailure> {
+        (self.validate_references)()
     }
 
     fn save(&self, _host: &(), context: &mut SaveCtx) -> Result<(), ToolkitSaveFailure> {

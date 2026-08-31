@@ -124,85 +124,9 @@ fn componentized_workbench_hierarchy_control_dispatches_its_synced_scene_node_id
 
     assert_eq!(
         harness.runtime.journal().records().last().unwrap().event,
-        EditorEvent::Selection(SelectionHostEvent::SelectSceneNode { node_id: 77 })
-    );
-}
-
-#[test]
-fn componentized_workbench_virtual_hierarchy_control_uses_the_projection_reverse_index() {
-    let _guard = env_lock().lock().unwrap();
-
-    let harness = EventRuntimeHarness::new("zircon_componentized_workbench_virtual_hierarchy");
-    let mut bridge =
-        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-    bridge
-        .sync_scene_and_inspector(
-            &SceneEntries::from_entries(
-                (1..=11)
-                    .map(|id| SceneEntry {
-                        id,
-                        name: format!("Entity {id}"),
-                        depth: 0,
-                    })
-                    .collect::<Vec<_>>(),
-                [],
-            ),
-            None,
-        )
-        .unwrap();
-
-    dispatch_componentized_workbench_control(
-        &harness.runtime,
-        &mut bridge,
-        "WorkbenchSceneVirtualItem11",
-        UiEventKind::Click,
-    )
-    .expect("synced virtual hierarchy row should dispatch")
-    .unwrap();
-
-    assert_eq!(
-        harness.runtime.journal().records().last().unwrap().event,
-        EditorEvent::Selection(SelectionHostEvent::SelectSceneNode { node_id: 11 })
-    );
-}
-
-#[test]
-fn componentized_workbench_virtual_hierarchy_control_preserves_high_entity_ids() {
-    let _guard = env_lock().lock().unwrap();
-
-    let high_entity_id = i64::MAX as u64 + 1;
-    let harness = EventRuntimeHarness::new("zircon_componentized_workbench_high_entity_id");
-    let mut bridge =
-        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-    let mut entries = (1..=10)
-        .map(|id| SceneEntry {
-            id,
-            name: format!("Entity {id}"),
-            depth: 0,
-        })
-        .collect::<Vec<_>>();
-    entries.push(SceneEntry {
-        id: high_entity_id,
-        name: "High entity".to_string(),
-        depth: 0,
-    });
-    bridge
-        .sync_scene_and_inspector(&SceneEntries::from_entries(entries, []), None)
-        .unwrap();
-
-    dispatch_componentized_workbench_control(
-        &harness.runtime,
-        &mut bridge,
-        "WorkbenchSceneVirtualItem11",
-        UiEventKind::Click,
-    )
-    .expect("synced virtual hierarchy row should dispatch")
-    .unwrap();
-
-    assert_eq!(
-        harness.runtime.journal().records().last().unwrap().event,
         EditorEvent::Selection(SelectionHostEvent::SelectSceneNode {
-            node_id: high_entity_id
+            world_domain: crate::core::play::WorldDomain::Edit,
+            node_id: 77,
         })
     );
 }
@@ -437,73 +361,6 @@ fn componentized_workbench_window_template_bridge_updates_scene_tree_selection_s
         render_background_for_control(&bridge, "WorkbenchScenePlayerItem").as_deref(),
         Some("#12383d")
     );
-}
-
-#[test]
-fn componentized_workbench_window_template_bridge_updates_panel_tab_state() {
-    let _guard = env_lock().lock().unwrap();
-
-    let mut bridge =
-        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-
-    assert!(control_bool(&bridge, "WorkbenchSceneTabScene", "selected"));
-    assert!(!control_bool(
-        &bridge,
-        "WorkbenchSceneTabLayers",
-        "selected"
-    ));
-    assert!(control_bool(
-        &bridge,
-        "WorkbenchInspectorTabInspector",
-        "selected"
-    ));
-    assert!(!control_bool(
-        &bridge,
-        "WorkbenchInspectorTabHistory",
-        "selected"
-    ));
-
-    let scene_binding = bridge
-        .dispatch_control_state("WorkbenchSceneTabLayers", UiEventKind::Click)
-        .unwrap()
-        .expect("scene layers tab should expose a preview binding");
-    assert!(matches!(
-        scene_binding.payload(),
-        EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "scene_tree.layers_tab.select"
-    ));
-    assert!(!control_bool(&bridge, "WorkbenchSceneTabScene", "selected"));
-    assert!(control_bool(&bridge, "WorkbenchSceneTabLayers", "selected"));
-    assert!(control_bool(&bridge, "WorkbenchSceneTabLayers", "checked"));
-    assert_eq!(
-        render_border_for_control(&bridge, "WorkbenchSceneTabLayers").as_deref(),
-        Some("#35c7d0")
-    );
-
-    let inspector_binding = bridge
-        .dispatch_control_state("WorkbenchInspectorTabHistory", UiEventKind::Click)
-        .unwrap()
-        .expect("inspector history tab should expose a preview binding");
-    assert!(matches!(
-        inspector_binding.payload(),
-        EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "inspector.history_tab.select"
-    ));
-    assert!(!control_bool(
-        &bridge,
-        "WorkbenchInspectorTabInspector",
-        "selected"
-    ));
-    assert!(control_bool(
-        &bridge,
-        "WorkbenchInspectorTabHistory",
-        "selected"
-    ));
-    assert!(control_bool(
-        &bridge,
-        "WorkbenchInspectorTabHistory",
-        "checked"
-    ));
 }
 
 #[test]

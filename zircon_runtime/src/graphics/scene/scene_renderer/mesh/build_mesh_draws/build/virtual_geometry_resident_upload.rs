@@ -6,24 +6,23 @@ use crate::core::framework::render::{
     RenderVirtualGeometryPagePayload, RenderVirtualGeometryPagePayloadVertex,
 };
 use crate::graphics::scene::gpu_scene::{
-    GpuScene, GpuSceneVirtualGeometryUploadReport, GpuVirtualGeometryClusterWord,
-    GpuVirtualGeometryPage, GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX,
-    GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT,
+    GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX, GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT,
+    GpuScene, GpuScenePreparedVirtualGeometryUpload, GpuVirtualGeometryClusterWord,
+    GpuVirtualGeometryPage,
 };
 
 pub(super) fn upload_virtual_geometry_resident_payloads(
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
     gpu_scene: &mut GpuScene,
     virtual_geometry_enabled: bool,
     snapshot: Option<&Arc<RenderVirtualGeometryDebugSnapshot>>,
-) -> GpuSceneVirtualGeometryUploadReport {
+) -> GpuScenePreparedVirtualGeometryUpload {
     let Some(snapshot) = snapshot.filter(|_| virtual_geometry_enabled) else {
-        return gpu_scene.upload_virtual_geometry_resident_buffers(device, queue, &[], &[]);
+        return gpu_scene.prepare_virtual_geometry_resident_buffers(device, Vec::new(), Vec::new());
     };
 
     let (page_rows, cluster_words) = virtual_geometry_payload_rows_from_snapshot(snapshot);
-    gpu_scene.upload_virtual_geometry_resident_buffers(device, queue, &page_rows, &cluster_words)
+    gpu_scene.prepare_virtual_geometry_resident_buffers(device, page_rows, cluster_words)
 }
 
 fn virtual_geometry_payload_rows_from_snapshot(

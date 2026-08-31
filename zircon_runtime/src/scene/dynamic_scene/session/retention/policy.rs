@@ -30,9 +30,23 @@ impl RuntimeSessionArchiveRetentionPolicy {
 
 fn normalize_protected_slot_ids(slot_ids: &mut Vec<String>) {
     for slot_id in slot_ids.iter_mut() {
-        *slot_id = slot_id.trim().to_string();
+        trim_slot_id_in_place(slot_id);
     }
     slot_ids.retain(|slot_id| !slot_id.is_empty());
     slot_ids.sort();
     slot_ids.dedup();
 }
+
+fn trim_slot_id_in_place(slot_id: &mut String) {
+    let trimmed_end = slot_id.trim_end().len();
+    slot_id.truncate(trimmed_end);
+
+    let trimmed_start = slot_id.len() - slot_id.trim_start().len();
+    if trimmed_start != 0 {
+        slot_id.drain(..trimmed_start);
+    }
+}
+
+#[cfg(test)]
+#[path = "policy/in_place_tests.rs"]
+mod in_place_tests;

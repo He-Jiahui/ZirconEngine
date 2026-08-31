@@ -18,16 +18,8 @@ fn default_deferred_keeps_screen_space_ui_as_graph_tail() {
 fn assert_screen_space_ui_is_terminal(pipeline: RenderPipelineAsset) {
     let compiled = pipeline.compile(&test_extract()).unwrap();
 
-    assert_stage_before(
-        &compiled.stages,
-        RenderPassStage::Overlay,
-        RenderPassStage::Ui,
-    );
-    assert_stage_before(
-        &compiled.stages,
-        RenderPassStage::Debug,
-        RenderPassStage::Ui,
-    );
+    assert_stage_before(&compiled, RenderPassStage::Overlay, RenderPassStage::Ui);
+    assert_stage_before(&compiled, RenderPassStage::Debug, RenderPassStage::Ui);
     assert_pass_before(&compiled, "overlay-gizmo", "runtime-ui");
     assert_eq!(
         compiled
@@ -41,22 +33,22 @@ fn assert_screen_space_ui_is_terminal(pipeline: RenderPipelineAsset) {
 }
 
 fn assert_stage_before(
-    stages: &[RenderPassStage],
+    compiled: &CompiledRenderPipeline,
     earlier: RenderPassStage,
     later: RenderPassStage,
 ) {
-    let earlier_index = stage_index(stages, earlier);
-    let later_index = stage_index(stages, later);
+    let earlier_index = stage_index(compiled, earlier);
+    let later_index = stage_index(compiled, later);
     assert!(
         earlier_index < later_index,
         "{earlier:?} should execute before {later:?}"
     );
 }
 
-fn stage_index(stages: &[RenderPassStage], stage: RenderPassStage) -> usize {
-    stages
-        .iter()
-        .position(|candidate| *candidate == stage)
+fn stage_index(compiled: &CompiledRenderPipeline, stage: RenderPassStage) -> usize {
+    compiled
+        .execution_passes_in_graph_order()
+        .position(|execution_pass| execution_pass.stage == stage)
         .unwrap_or_else(|| panic!("compiled pipeline should include {stage:?}"))
 }
 

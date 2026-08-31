@@ -35,17 +35,14 @@ impl VmBackendRegistry {
     }
 
     pub fn resolve(&self, selector: &str) -> Result<Arc<dyn VmBackend>, VmError> {
-        let families = self.lock_families().values().cloned().collect::<Vec<_>>();
-
         if let Some((family_name, _)) = selector.split_once(':') {
-            if let Some(family) = families
-                .iter()
-                .find(|family| family.family_name() == family_name)
-            {
+            let family = self.lock_families().get(family_name).cloned();
+            if let Some(family) = family {
                 return family.resolve(selector);
             }
         }
 
+        let families = self.lock_families().values().cloned().collect::<Vec<_>>();
         for family in families {
             if let Ok(backend) = family.resolve(selector) {
                 return Ok(backend);
@@ -60,11 +57,11 @@ impl VmBackendRegistry {
     }
 
     pub fn names(&self) -> Vec<String> {
-        let mut selectors = self
-            .lock_families()
-            .values()
-            .flat_map(|family| family.selectors())
-            .collect::<Vec<_>>();
+        let families = self.lock_families();
+        let mut selectors = Vec::new();
+        for family in families.values() {
+            family.visit_selectors(&mut |selector| selectors.push(selector.to_owned()));
+        }
         selectors.sort();
         selectors.dedup();
         selectors
@@ -112,8 +109,8 @@ mod tests {
             }
         }
 
-        fn selectors(&self) -> Vec<String> {
-            vec!["test:backend".to_string()]
+        fn visit_selectors(&self, visitor: &mut dyn FnMut(&str)) {
+            visitor("test:backend");
         }
     }
 
@@ -139,3 +136,7 @@ mod tests {
         assert!(registry.contains("test:backend"));
     }
 }
+
+#[cfg(test)]
+#[path = "backend_registry/qualified_lookup_tests.rs"]
+mod qualified_lookup_tests;

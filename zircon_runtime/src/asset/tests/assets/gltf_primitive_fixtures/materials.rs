@@ -79,8 +79,11 @@ pub(in super::super) fn write_texture_transform_triangle_gltf(root: &Path) -> Pa
       "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg=="
     }
   ],
+  "samplers": [
+    { "magFilter": 9728, "minFilter": 9986, "wrapS": 33648, "wrapT": 33071 }
+  ],
   "textures": [
-    { "source": 0 }
+    { "sampler": 0, "source": 0 }
   ],
   "materials": [
     {
@@ -93,6 +96,7 @@ pub(in super::super) fn write_texture_transform_triangle_gltf(root: &Path) -> Pa
             "KHR_texture_transform": {
               "offset": [0.1, 0.2],
               "scale": [0.3, 0.4],
+              "rotation": 0.1,
               "texCoord": 1
             }
           }
@@ -102,7 +106,8 @@ pub(in super::super) fn write_texture_transform_triangle_gltf(root: &Path) -> Pa
           "extensions": {
             "KHR_texture_transform": {
               "offset": [0.2, 0.3],
-              "scale": [0.4, 0.5]
+              "scale": [0.4, 0.5],
+              "rotation": 0.3
             }
           }
         }
@@ -110,10 +115,12 @@ pub(in super::super) fn write_texture_transform_triangle_gltf(root: &Path) -> Pa
       "normalTexture": {
         "index": 0,
         "texCoord": 1,
+        "scale": 0.35,
         "extensions": {
           "KHR_texture_transform": {
             "offset": [0.3, 0.4],
             "scale": [0.5, 0.6],
+            "rotation": 0.2,
             "texCoord": 0
           }
         }
@@ -126,6 +133,7 @@ pub(in super::super) fn write_texture_transform_triangle_gltf(root: &Path) -> Pa
           "KHR_texture_transform": {
             "offset": [0.4, 0.5],
             "scale": [0.6, 0.7],
+            "rotation": 0.4,
             "texCoord": 1
           }
         }
@@ -136,7 +144,8 @@ pub(in super::super) fn write_texture_transform_triangle_gltf(root: &Path) -> Pa
         "extensions": {
           "KHR_texture_transform": {
             "offset": [0.5, 0.6],
-            "scale": [0.7, 0.8]
+            "scale": [0.7, 0.8],
+            "rotation": 0.5
           }
         }
       }

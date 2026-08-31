@@ -1,26 +1,35 @@
 //! Editor-owned orchestration for runtime asset imports.
 
+mod diagnostics;
 mod error;
 mod flight;
 mod job;
+mod lock;
+mod model_submit;
+mod model_ticket;
 mod state;
 mod submit;
 
 use std::fmt;
 use std::mem;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use zircon_runtime::asset::{AssetManager, AssetStatusRecord, AssetUri};
 use zircon_runtime::core::CoreError;
 
 use crate::core::asset::EditorAssetIndex;
 use crate::core::jobs::{EditorJobSystem, JobError, JobId};
+use crate::core::logging::EditorLogService;
 
-pub use error::EditorAssetImportSubmitError;
+pub use error::{EditorAssetImportExecutionError, EditorAssetImportSubmitError};
+pub use model_ticket::EditorModelImportTicket;
 
+use self::diagnostics::EditorAssetImportDiagnostics;
 use self::flight::{ImportFlight, SharedImportReasons};
 use self::state::ImportFlowSharedState;
+
+const DEFAULT_INLINE_GENERATION_REVALIDATIONS: usize = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EditorAssetImportReason {
@@ -60,14 +69,14 @@ impl EditorAssetImportRequest {
 pub struct EditorAssetImportResult {
     uri: Arc<AssetUri>,
     reasons: Arc<SharedImportReasons>,
-    status: Option<AssetStatusRecord>,
+    status: AssetStatusRecord,
 }
 
 impl EditorAssetImportResult {
     fn new(
         uri: Arc<AssetUri>,
         reasons: Arc<SharedImportReasons>,
-        status: Option<AssetStatusRecord>,
+        status: AssetStatusRecord,
     ) -> Self {
         Self {
             uri,
@@ -84,27 +93,26 @@ impl EditorAssetImportResult {
         self.reasons.snapshot()
     }
 
-    pub fn status(&self) -> Option<&AssetStatusRecord> {
-        self.status.as_ref()
+    pub fn status(&self) -> &AssetStatusRecord {
+        &self.status
     }
 
     fn estimated_retained_bytes(&self) -> usize {
-        let status_bytes = self.status.as_ref().map_or(0, |status| {
-            status
-                .id
-                .len()
-                .saturating_add(status.uri.len())
-                .saturating_add(
-                    status
-                        .artifact_uri
-                        .as_deref()
-                        .map(str::len)
-                        .unwrap_or_default(),
-                )
-                .saturating_add(status.source_hash.len())
-                .saturating_add(status.importer_id.len())
-                .saturating_add(status.config_hash.len())
-        });
+        let status_bytes = self
+            .status
+            .id
+            .len()
+            .saturating_add(self.status.uri.len())
+            .saturating_add(
+                self.status
+                    .artifact_uri
+                    .as_deref()
+                    .map(str::len)
+                    .unwrap_or_default(),
+            )
+            .saturating_add(self.status.source_hash.len())
+            .saturating_add(self.status.importer_id.len())
+            .saturating_add(self.status.config_hash.len());
         mem::size_of::<Self>()
             .saturating_add(status_bytes)
             .saturating_add(
@@ -120,6 +128,7 @@ pub struct EditorAssetImportAdmissionLimits {
     pub(super) max_flights: usize,
     pub(super) max_estimated_bytes: usize,
     pub(super) max_oldest_age: Duration,
+    pub(super) max_inline_generation_revalidations: usize,
 }
 
 impl EditorAssetImportAdmissionLimits {
@@ -132,6 +141,7 @@ impl EditorAssetImportAdmissionLimits {
             max_flights,
             max_estimated_bytes,
             max_oldest_age,
+            max_inline_generation_revalidations: DEFAULT_INLINE_GENERATION_REVALIDATIONS,
         }
     }
 }
@@ -161,8 +171,11 @@ impl EditorAssetImportTicket {
         self.flight.try_result()
     }
 
-    pub fn wait(&self) -> Result<EditorAssetImportResult, JobError> {
-        self.flight.wait()
+    pub fn wait_until(
+        &self,
+        deadline: Instant,
+    ) -> Option<Result<EditorAssetImportResult, JobError>> {
+        self.flight.wait_until(deadline)
     }
 }
 
@@ -194,15 +207,15 @@ impl AssetImportBackend for RuntimeAssetImportBackend {
 pub struct EditorAssetImportFlow {
     jobs: EditorJobSystem,
     backend: Arc<dyn AssetImportBackend>,
+    model_manager: Option<Arc<dyn AssetManager>>,
     index: Arc<Mutex<EditorAssetIndex>>,
+    diagnostics: EditorAssetImportDiagnostics,
     state: Arc<ImportFlowSharedState>,
     limits: EditorAssetImportAdmissionLimits,
     #[cfg(test)]
     before_generation_validate: Option<Arc<dyn Fn() + Send + Sync>>,
     #[cfg(test)]
     before_job_submit: Option<Arc<dyn Fn() + Send + Sync>>,
-    #[cfg(test)]
-    before_wait_admission: Option<Arc<dyn Fn() + Send + Sync>>,
 }
 
 impl EditorAssetImportFlow {
@@ -210,12 +223,14 @@ impl EditorAssetImportFlow {
         jobs: EditorJobSystem,
         manager: Arc<dyn AssetManager>,
         index: Arc<Mutex<EditorAssetIndex>>,
+        logs: Arc<EditorLogService>,
     ) -> Self {
         Self::new_with_limits(
             jobs,
             manager,
             index,
             EditorAssetImportAdmissionLimits::default(),
+            logs,
         )
     }
 
@@ -224,12 +239,17 @@ impl EditorAssetImportFlow {
         manager: Arc<dyn AssetManager>,
         index: Arc<Mutex<EditorAssetIndex>>,
         limits: EditorAssetImportAdmissionLimits,
+        logs: Arc<EditorLogService>,
     ) -> Self {
         Self::from_backend(
             jobs,
-            Arc::new(RuntimeAssetImportBackend { manager }),
+            Arc::new(RuntimeAssetImportBackend {
+                manager: Arc::clone(&manager),
+            }),
+            Some(manager),
             index,
             limits,
+            logs,
         )
     }
 
@@ -245,8 +265,30 @@ impl EditorAssetImportFlow {
         Self::from_backend(
             jobs,
             backend,
+            None,
             index,
             EditorAssetImportAdmissionLimits::default(),
+            Arc::new(EditorLogService::default()),
+        )
+    }
+
+    #[cfg(test)]
+    fn with_backend_and_logs<B>(
+        jobs: EditorJobSystem,
+        backend: Arc<B>,
+        index: Arc<Mutex<EditorAssetIndex>>,
+        logs: Arc<EditorLogService>,
+    ) -> Self
+    where
+        B: AssetImportBackend + 'static,
+    {
+        Self::from_backend(
+            jobs,
+            backend,
+            None,
+            index,
+            EditorAssetImportAdmissionLimits::default(),
+            logs,
         )
     }
 
@@ -260,27 +302,36 @@ impl EditorAssetImportFlow {
     where
         B: AssetImportBackend + 'static,
     {
-        Self::from_backend(jobs, backend, index, limits)
+        Self::from_backend(
+            jobs,
+            backend,
+            None,
+            index,
+            limits,
+            Arc::new(EditorLogService::default()),
+        )
     }
 
     fn from_backend(
         jobs: EditorJobSystem,
         backend: Arc<dyn AssetImportBackend>,
+        model_manager: Option<Arc<dyn AssetManager>>,
         index: Arc<Mutex<EditorAssetIndex>>,
         limits: EditorAssetImportAdmissionLimits,
+        logs: Arc<EditorLogService>,
     ) -> Self {
         Self {
             jobs,
             backend,
+            model_manager,
             index,
+            diagnostics: EditorAssetImportDiagnostics::new(logs),
             state: Arc::new(ImportFlowSharedState::default()),
             limits,
             #[cfg(test)]
             before_generation_validate: None,
             #[cfg(test)]
             before_job_submit: None,
-            #[cfg(test)]
-            before_wait_admission: None,
         }
     }
 
@@ -293,12 +344,6 @@ impl EditorAssetImportFlow {
     #[cfg(test)]
     fn with_before_job_submit(mut self, hook: Arc<dyn Fn() + Send + Sync>) -> Self {
         self.before_job_submit = Some(hook);
-        self
-    }
-
-    #[cfg(test)]
-    fn with_before_wait_admission(mut self, hook: Arc<dyn Fn() + Send + Sync>) -> Self {
-        self.before_wait_admission = Some(hook);
         self
     }
 }

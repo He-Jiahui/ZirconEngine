@@ -6,6 +6,8 @@ related_code:
   - zircon_runtime/src/asset/facade/manager.rs
   - zircon_runtime/src/asset/facade/event.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
+  - zircon_runtime/src/asset/module.rs
+  - zircon_runtime/src/asset/tests/module_lifecycle.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
@@ -55,7 +57,7 @@ plan_sources:
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
   - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
 status: in_progress
-last_refined: 2026-08-01
+last_refined: 2026-08-27
 ---
 
 # 04 资产管线对齐
@@ -70,6 +72,8 @@ those child bodies. The declared Python audit consequently reported six missing
 behavior anchors and one failing test. That local audit lifecycle is now fixed at
 [`04/fixed-2026-07-31-asset-pipeline-audit-behavior-test-discovery.md`](04/fixed-2026-07-31-asset-pipeline-audit-behavior-test-discovery.md);
 Runtime 04 remains `in_progress` because its broader managed acceptance is independent.
+
+2026-08-27 Runtime11 owner cutover: the production `AssetModule` manager factory now consumes its activation `CoreRuntime` context and constructs `ProjectAssetManager` with that runtime's `Io` pool. It no longer calls `ProjectAssetManager::default()` or silently enters the process-default worker owner. `asset_module_manager_uses_the_activating_runtime_io_owner` locks the cross-module contract. This is source/static progress only; asset Cargo filters, the expiry timer owner, and remaining standalone default consumers stay open.
 
 ## 现状与证据（2026-06-12 重核）
 
@@ -246,7 +250,7 @@ anchors are present in Rust but absent from the audit's source sets, so its
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前状态：`in_progress`。Runtime 04 的 source/guard inventory 已扩展到 25/22，test/behavior-test anchors 为 28/24；当前仍有 behavior-test discovery 与 glTF importer 编译 failure，broader asset/worker managed gates 尚未形成可接受证据，因此不提升完成状态。
+当前状态：`in_progress`。生产 `AssetModule -> ProjectAssetManager -> AssetWorkerPool` 已硬切到激活它的 `CoreRuntime::Io` owner，源码/静态契约已补；Runtime 04 的 source/guard inventory 已扩展到 25/22，test/behavior-test anchors 为 28/24。当前仍有 behavior-test discovery、glTF importer 编译 failure、expiry timer owner 与 broader asset/worker managed gates，尚未形成可接受证据，因此不提升完成状态。
 
 - 迁入记录：[既有 2026-07-09 产出记录](04/2026-07-09-asset-pipeline-alignment-output-records.md)
 - 迁入产出记录：[2026-08-01 产出与性能交接归档](04/2026-08-01-plan-output-and-performance-handoffs.md)
@@ -279,4 +283,24 @@ anchors are present in Rust but absent from the audit's source sets, so its
 - coordinator-open failure：[project-catalog-input-generation](04/failure-2026-07-23-project-catalog-input-generation.md)
 - coordinator-open failure：[runtime04-gltf-importer-current-compile-errors](04/failure-2026-08-01-runtime04-gltf-importer-current-compile-errors.md)
 
-Current Runtime 04 source-owner synchronization (2026-08-14): `asset_pipeline_boundary` reports `expected_source_file_count = 26`; `core/resource/manager/commit.rs` is the current transaction-state owner for reload transition validation. This replaces the previous public-facade-only reload source inventory; broader Cargo gates remain pending.
+Current Runtime 04 source-owner synchronization (2026-08-30): `asset_pipeline_boundary` reports `expected_source_file_count = 26` and `expected_guard_file_count = 22`; `crates/zr_resource/src/manager/commit.rs` is the canonical transaction-state owner for reload transition validation and `crates/zr_resource/src/tests.rs` owns its behavior matrix. The Runtime projection no longer mirrors retired `src/core/resource/manager/*` or `src/core/resource/tests.rs` paths; broader Cargo gates remain pending.
+
+2026-08-28 artifact cache schema owner split: the former 637-line
+`asset/artifact/cache_payload/material_shader.rs` umbrella is now a 5-line wiring owner over
+`material_shader/material.rs` (161 lines) and `material_shader/shader.rs` (487 lines). The cache
+enum path, bincode variant order, field order, serde defaults and asset conversions are unchanged;
+normalized Material/Shader definition blocks are SHA-256 equivalent to `HEAD`. Status:
+`runtime_04_15_asset_artifact_material_shader_owner_split_static_passed_cargo_deferred`.
+This is static structure progress only; Runtime04 asset Cargo/product gates remain open.
+
+2026-08-28 asset-management read-model owner split: the former 572-line
+`zircon_runtime/src/asset/management.rs` umbrella is now a 164-line declaration root over
+`asset/management/family.rs` (176 lines) and `asset/management/record_sets.rs` (254 lines).
+All 11 public DTO declarations stay at their existing paths; family status/issue projection and
+record-set summary/overview aggregation retain their existing order and formulas. Twenty-one moved
+declaration/implementation blocks are normalized SHA-256 equivalent to `HEAD`; the focused static
+guard passed. Status:
+`runtime_04_15_asset_management_generation_static_implemented_cargo_deferred`.
+The `ProjectAssetManager` immutable asset-only generation projection is now present with
+refresh-before-broadcast publication and graphics-side renderer-material composition. Stable
+polling, Cargo, and performance acceptance remain deferred.

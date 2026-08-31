@@ -71,6 +71,17 @@ pub(crate) fn build_floating_window_projection_bundle_from_windows_with_shared_s
     metrics: &WorkbenchChromeMetrics,
     native_window_hosts: &[NativeWindowHostState],
 ) -> FloatingWindowProjectionBundle {
+    zircon_runtime::profile_counter!("editor", "ui.floating_projection.bundle_build_count", 1);
+    zircon_runtime::profile_counter!(
+        "editor",
+        "ui.floating_projection.native_host_row_count",
+        native_window_hosts.len()
+    );
+    zircon_runtime::profile_counter!(
+        "editor",
+        "ui.floating_projection.window_row_count",
+        floating_windows.len()
+    );
     let mut native_hosts_by_window_id = HashMap::with_capacity(native_window_hosts.len());
     for host in native_window_hosts {
         native_hosts_by_window_id
@@ -280,7 +291,7 @@ fn shell_frame_from_ui_frame(frame: UiFrame) -> ShellFrame {
 mod tests {
     use std::collections::BTreeMap;
 
-    use crate::core::commands::MenuBarModel;
+    use crate::core::commands::{EditorKeymap, MenuBarModel};
     use crate::ui::host::NativeWindowHostState;
     use crate::ui::workbench::autolayout::{ShellFrame, WorkbenchChromeMetrics};
     use crate::ui::workbench::layout::MainPageId;
@@ -620,6 +631,7 @@ mod tests {
         WorkbenchViewModel {
             is_playing: false,
             asset_creation_menu: Default::default(),
+            keymap: EditorKeymap::default_workbench(),
             menu_bar: MenuBarModel { menus: Vec::new() },
             host_strip: MainHostStripViewModel {
                 mode: MainHostStripModel::Workbench,

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -8,7 +8,12 @@ use super::{
     EditorAnimationEvent, EditorEvent, EditorEventRecord, EditorEventTransient, EditorViewportEvent,
 };
 
+#[cfg(test)]
+#[path = "retention/hash_delivery_queue_tests.rs"]
+mod hash_delivery_queue_tests;
+
 const MIB: usize = 1024 * 1024;
+const DELIVERY_ORDER_COMPACTION_SLACK: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EditorEventRetentionBudget {
@@ -292,7 +297,8 @@ struct RetainedEditorEvent {
 
 #[derive(Debug, Default)]
 struct RetentionQueue {
-    entries: BTreeMap<u64, RetainedEditorEvent>,
+    entries: HashMap<u64, RetainedEditorEvent>,
+    delivery_order: VecDeque<u64>,
     retained_by_age: BTreeSet<(Instant, u64)>,
     retained_by_event_sequence: BTreeSet<(u64, u64)>,
     latest_state_sequences: HashMap<EditorEventLatestStateKey, u64>,
@@ -344,12 +350,24 @@ impl RetentionQueue {
                 retained_at: now,
             },
         );
+        // Saturated cursors replace the existing order slot instead of breaking monotonicity.
+        if self
+            .delivery_order
+            .back()
+            .is_some_and(|last_cursor| *last_cursor >= delivery_cursor)
+        {
+            self.delivery_order
+                .retain(|cursor| *cursor != delivery_cursor);
+        }
+        self.delivery_order.push_back(delivery_cursor);
+        self.compact_delivery_order_if_needed();
         while self.entries.len() > budget.max_records || self.retained_bytes > budget.max_bytes {
             self.drop_front();
         }
     }
 
-    fn prune_expired(&mut self, budget: &EditorEventRetentionBudget, now: Instant) {
+    fn prune_expired(&mut self, budget: &EditorEventRetentionBudget, now: Instant) -> bool {
+        let retained_before = self.entries.len();
         while let Some((retained_at, delivery_cursor)) = self.retained_by_age.iter().next().copied()
         {
             if now.saturating_duration_since(retained_at) <= budget.max_age {
@@ -357,15 +375,16 @@ impl RetentionQueue {
             }
             self.remove_cursor(delivery_cursor, true);
         }
+        self.compact_delivery_order_if_needed();
+        self.entries.len() != retained_before
     }
 
     fn drop_front(&mut self) {
-        if let Some(delivery_cursor) = self
-            .entries
-            .first_key_value()
-            .map(|(delivery_cursor, _)| *delivery_cursor)
-        {
-            self.remove_cursor(delivery_cursor, true);
+        while let Some(delivery_cursor) = self.delivery_order.pop_front() {
+            if self.entries.contains_key(&delivery_cursor) {
+                self.remove_cursor(delivery_cursor, true);
+                break;
+            }
         }
     }
 
@@ -401,28 +420,25 @@ impl RetentionQueue {
 
     fn acknowledge_through_delivery_cursor(&mut self, delivery_cursor: u64) -> usize {
         let mut removed = 0usize;
-        while let Some(retained_cursor) = self
-            .entries
-            .first_key_value()
-            .map(|(retained_cursor, _)| *retained_cursor)
-        {
+        while let Some(retained_cursor) = self.delivery_order.front().copied() {
             if retained_cursor > delivery_cursor {
                 break;
             }
-            self.remove_cursor(retained_cursor, false);
-            removed = removed.saturating_add(1);
+            self.delivery_order.pop_front();
+            if self.entries.contains_key(&retained_cursor) {
+                self.remove_cursor(retained_cursor, false);
+                removed = removed.saturating_add(1);
+            }
         }
+        self.compact_delivery_order_if_needed();
         removed
     }
 
-    fn next_after(&self, sequence: u64) -> Option<(u64, &RetainedEditorEvent)> {
+    fn next_after(&self, delivery_cursor: u64) -> Option<(u64, &RetainedEditorEvent)> {
+        let next_cursor = self.next_delivery_cursor_after(delivery_cursor)?;
         self.entries
-            .range((
-                std::ops::Bound::Excluded(sequence),
-                std::ops::Bound::Unbounded,
-            ))
-            .next()
-            .map(|(sequence, entry)| (*sequence, entry))
+            .get(&next_cursor)
+            .map(|entry| (next_cursor, entry))
     }
 
     fn next_event_after(
@@ -462,6 +478,31 @@ impl RetentionQueue {
             }),
         }
     }
+
+    fn next_delivery_cursor_after(&self, delivery_cursor: u64) -> Option<u64> {
+        let (front, back) = self.delivery_order.as_slices();
+        [front, back].into_iter().find_map(|cursors| {
+            let start = cursors.partition_point(|cursor| *cursor <= delivery_cursor);
+            cursors[start..]
+                .iter()
+                .copied()
+                .find(|cursor| self.entries.contains_key(cursor))
+        })
+    }
+
+    fn compact_delivery_order_if_needed(&mut self) {
+        let compact_above = self
+            .entries
+            .len()
+            .saturating_mul(2)
+            .saturating_add(DELIVERY_ORDER_COMPACTION_SLACK);
+        if self.delivery_order.len() <= compact_above {
+            return;
+        }
+        let entries = &self.entries;
+        self.delivery_order
+            .retain(|cursor| entries.contains_key(cursor));
+    }
 }
 
 #[derive(Debug)]
@@ -479,6 +520,7 @@ pub(crate) struct EditorEventRetentionPageRecord {
 #[derive(Debug)]
 pub(crate) struct EditorEventRetentionStore {
     budgets: EditorEventRetentionBudgets,
+    generation: u64,
     next_delivery_cursor: u64,
     durable_replay: RetentionQueue,
     frame_local: RetentionQueue,
@@ -489,6 +531,7 @@ impl EditorEventRetentionStore {
     pub(crate) fn new(budgets: EditorEventRetentionBudgets) -> Self {
         Self {
             budgets,
+            generation: 0,
             next_delivery_cursor: 0,
             durable_replay: RetentionQueue::default(),
             frame_local: RetentionQueue::default(),
@@ -504,6 +547,16 @@ impl EditorEventRetentionStore {
         let delivery_cursor = self.next_delivery_cursor;
         self.queue_mut(class)
             .push(delivery_cursor, payload, &budget, now);
+        self.bump_generation();
+    }
+
+    pub(crate) fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub(crate) fn generation_after_prune(&mut self) -> u64 {
+        self.prune_expired(Instant::now());
+        self.generation
     }
 
     pub(crate) fn records(&mut self) -> Vec<Arc<SharedEditorEventRecord>> {
@@ -590,14 +643,19 @@ impl EditorEventRetentionStore {
     }
 
     pub(crate) fn acknowledge_through_delivery_cursor(&mut self, delivery_cursor: u64) -> usize {
-        self.durable_replay
+        let removed = self
+            .durable_replay
             .acknowledge_through_delivery_cursor(delivery_cursor)
             + self
                 .frame_local
                 .acknowledge_through_delivery_cursor(delivery_cursor)
             + self
                 .latest_state
-                .acknowledge_through_delivery_cursor(delivery_cursor)
+                .acknowledge_through_delivery_cursor(delivery_cursor);
+        if removed != 0 {
+            self.bump_generation();
+        }
+        removed
     }
 
     pub(crate) fn diagnostics(&mut self) -> EditorEventRetentionDiagnostics {
@@ -615,12 +673,22 @@ impl EditorEventRetentionStore {
     }
 
     fn prune_expired(&mut self, now: Instant) {
-        self.durable_replay
-            .prune_expired(&self.budgets.durable_replay, now);
-        self.frame_local
-            .prune_expired(&self.budgets.frame_local, now);
-        self.latest_state
-            .prune_expired(&self.budgets.latest_state, now);
+        let removed = self
+            .durable_replay
+            .prune_expired(&self.budgets.durable_replay, now)
+            | self
+                .frame_local
+                .prune_expired(&self.budgets.frame_local, now)
+            | self
+                .latest_state
+                .prune_expired(&self.budgets.latest_state, now);
+        if removed {
+            self.bump_generation();
+        }
+    }
+
+    fn bump_generation(&mut self) {
+        self.generation = self.generation.wrapping_add(1);
     }
 
     fn queue_mut(&mut self, class: EditorEventRetentionClass) -> &mut RetentionQueue {
@@ -694,7 +762,7 @@ fn latest_state_key(event: &EditorEvent) -> Option<EditorEventLatestStateKey> {
 
 #[cfg(test)]
 mod tests {
-    use super::{retention_class, EditorEvent, EditorEventRetentionClass, EditorViewportEvent};
+    use super::{EditorEvent, EditorEventRetentionClass, EditorViewportEvent, retention_class};
 
     #[test]
     fn cancel_interaction_is_frame_local() {
@@ -712,9 +780,10 @@ mod tests {
         let acknowledge_body = source
             .split("fn acknowledge_through")
             .nth(1)
-            .and_then(|body| body.split("fn diagnostics").next())
+            .and_then(|body| body.split("fn next_after").next())
             .expect("retention acknowledge body should remain available");
-        assert!(acknowledge_body.contains("first_key_value"));
+        assert!(acknowledge_body.contains("delivery_order.front"));
+        assert!(acknowledge_body.contains("delivery_order.pop_front"));
         assert!(acknowledge_body.contains("delivery_cursor"));
         assert!(!acknowledge_body.contains("retained_by_event_sequence"));
         assert!(!acknowledge_body.contains(".retain("));

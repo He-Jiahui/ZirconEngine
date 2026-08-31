@@ -26,10 +26,19 @@ fn validate_module_field(
     field_name: &str,
     value: &str,
 ) -> Result<(), RuntimeExtensionRegistryError> {
-    if value.trim().is_empty() || value.trim() != value {
+    if !module_field_is_valid(value) {
         return Err(RuntimeExtensionRegistryError::InvalidModule(format!(
             "{field_name} `{value}` must be non-empty and trimmed"
         )));
     }
     Ok(())
 }
+
+fn module_field_is_valid(value: &str) -> bool {
+    let trimmed = value.trim();
+    !trimmed.is_empty() && trimmed.len() == value.len()
+}
+
+#[cfg(test)]
+#[path = "runtime_core/single_trim_tests.rs"]
+mod single_trim_tests;

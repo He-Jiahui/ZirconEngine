@@ -4,6 +4,7 @@ mod runtime_scene_system;
 mod scene_system;
 mod scene_system_metadata;
 mod scheduled_scene_step;
+mod tick_policy;
 
 pub use function_scene_system::{FunctionSceneSystem, WorldlessFunctionSceneSystem};
 pub use into_scene_system::{IntoSceneSystem, IntoWorldlessSceneSystem};
@@ -12,8 +13,7 @@ pub use runtime_scene_system::{
     RuntimeSceneSystemContext,
 };
 pub use scene_system::{BoxedSceneSystem, SceneSystem};
-pub use scene_system_metadata::{
-    SceneSystemClockDomain, SceneSystemMetadata, SceneSystemThreadAffinity,
-};
+pub use scene_system_metadata::{SceneSystemMetadata, SceneSystemThreadAffinity};
+pub use tick_policy::{SceneSystemClockDomain, SceneSystemPauseBehavior, SceneSystemTickPolicy};
 
 pub(crate) use scheduled_scene_step::{ScheduledSceneStep, ScheduledSceneStepRef};

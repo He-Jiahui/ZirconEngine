@@ -26,6 +26,10 @@ const moduleWorkspaceUrl = new URL(
   "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui",
   import.meta.url
 );
+const workbenchWindowUrl = new URL(
+  "../../../../zircon_editor/assets/ui/editor/windows/workbench_window.zui",
+  import.meta.url
+);
 const effectWorkspaceUrl = new URL(
   "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui",
   import.meta.url
@@ -314,6 +318,22 @@ const extensionModuleBindingWorldBuildingUrl = new URL(
   "../../../../zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/world_building.rs",
   import.meta.url
 );
+const assetEditorMenuUrl = new URL(
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/asset_editor_menu.rs",
+  import.meta.url
+);
+const abilityEditorMenuUrl = new URL(
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/ability_editor_menu.rs",
+  import.meta.url
+);
+const renderEditorMenuUrl = new URL(
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/render_editor_menu.rs",
+  import.meta.url
+);
+const hudEditorMenuUrl = new URL(
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/hud_editor_menu.rs",
+  import.meta.url
+);
 const generatedBottomBindingsUrl = new URL(
   "../../../../zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs",
   import.meta.url
@@ -324,10 +344,6 @@ const generatedBottomViewDescriptorUrl = new URL(
 );
 const shellViewInstancesUrl = new URL(
   "../../../../zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs",
-  import.meta.url
-);
-const layoutDrawersUrl = new URL(
-  "../../../../zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs",
   import.meta.url
 );
 const paneDataConversionUrl = new URL(
@@ -398,6 +414,22 @@ const extensionNavigationWorldBuildingSpecsUrl = new URL(
   "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building.rs",
   import.meta.url
 );
+const extensionNavigationLevelToolsSpecsUrl = new URL(
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/level_tools.rs",
+  import.meta.url
+);
+const extensionNavigationPrefabAndScatterSpecsUrl = new URL(
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/prefab_and_scatter.rs",
+  import.meta.url
+);
+const extensionNavigationTerrainAndFoliageSpecsUrl = new URL(
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/terrain_and_foliage.rs",
+  import.meta.url
+);
+const extensionNavigationVolumeAndWeatherSpecsUrl = new URL(
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/volume_and_weather.rs",
+  import.meta.url
+);
 const extensionFeedbackUrl = new URL(
   "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs",
   import.meta.url
@@ -450,6 +482,10 @@ const extensionPreviewActionsUrl = new URL(
   "../../../../zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs",
   import.meta.url
 );
+const extensionQualityPreviewActionsUrl = new URL(
+  "../../../../zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions/quality_and_observability.rs",
+  import.meta.url
+);
 
 if (!existsSync(matrixUrl)) {
   console.error("fail web-native handoff matrix document is missing");
@@ -465,6 +501,7 @@ const componentLabDataSource = readFileSync(componentLabDataUrl, "utf8");
 const actionPathsSource = readFileSync(actionPathsUrl, "utf8");
 const actionNamingContractSource = readFileSync(actionNamingContractUrl, "utf8");
 const moduleWorkspaceSource = readFileSync(moduleWorkspaceUrl, "utf8");
+const workbenchWindowSource = readFileSync(workbenchWindowUrl, "utf8");
 const effectWorkspaceSource = readFileSync(effectWorkspaceUrl, "utf8");
 const materialWorkspaceSource = readFileSync(materialWorkspaceUrl, "utf8");
 const behaviorWorkspaceSource = readFileSync(behaviorWorkspaceUrl, "utf8");
@@ -583,12 +620,19 @@ const extensionModuleBindingsSource = [
   readFileSync(extensionModuleBindingRuntimeStateUrl, "utf8"),
   readFileSync(extensionModuleBindingUiDiagnosticsUrl, "utf8"),
   readFileSync(extensionModuleBindingUiDiagnosticsObservabilityUrl, "utf8"),
-  readFileSync(extensionModuleBindingWorldBuildingUrl, "utf8")
+  readFileSync(extensionModuleBindingWorldBuildingUrl, "utf8"),
+  readFileSync(assetEditorMenuUrl, "utf8"),
+  readFileSync(abilityEditorMenuUrl, "utf8"),
+  readFileSync(renderEditorMenuUrl, "utf8"),
+  readFileSync(hudEditorMenuUrl, "utf8")
 ].join("\n");
+const assetEditorMenuSource = readFileSync(assetEditorMenuUrl, "utf8");
+const abilityEditorMenuSource = readFileSync(abilityEditorMenuUrl, "utf8");
+const renderEditorMenuSource = readFileSync(renderEditorMenuUrl, "utf8");
+const hudEditorMenuSource = readFileSync(hudEditorMenuUrl, "utf8");
 const generatedBottomBindingsSource = readFileSync(generatedBottomBindingsUrl, "utf8");
 const generatedBottomViewDescriptorSource = readFileSync(generatedBottomViewDescriptorUrl, "utf8");
 const shellViewInstancesSource = readFileSync(shellViewInstancesUrl, "utf8");
-const layoutDrawersSource = readFileSync(layoutDrawersUrl, "utf8");
 const paneDataConversionSource = readFileSync(paneDataConversionUrl, "utf8");
 const applyPresentationSource = readFileSync(applyPresentationUrl, "utf8");
 const hostContractPanesSource = readFileSync(hostContractPanesUrl, "utf8");
@@ -606,7 +650,11 @@ const extensionNavigationSource = [
   readFileSync(extensionNavigationDataProductionSpecsUrl, "utf8"),
   readFileSync(extensionNavigationUiDiagnosticsSpecsUrl, "utf8"),
   readFileSync(extensionNavigationUiDiagnosticsObservabilitySpecsUrl, "utf8"),
-  readFileSync(extensionNavigationWorldBuildingSpecsUrl, "utf8")
+  readFileSync(extensionNavigationWorldBuildingSpecsUrl, "utf8"),
+  readFileSync(extensionNavigationLevelToolsSpecsUrl, "utf8"),
+  readFileSync(extensionNavigationPrefabAndScatterSpecsUrl, "utf8"),
+  readFileSync(extensionNavigationTerrainAndFoliageSpecsUrl, "utf8"),
+  readFileSync(extensionNavigationVolumeAndWeatherSpecsUrl, "utf8")
 ].join("\n");
 const extensionFeedbackSource = [
   readFileSync(extensionFeedbackUrl, "utf8"),
@@ -623,7 +671,8 @@ const generatedBottomFeedbackSource = readFileSync(generatedBottomFeedbackUrl, "
 const generatedBottomLifecycleSource = readFileSync(generatedBottomLifecycleUrl, "utf8");
 const previewActionsSource = [
   readFileSync(previewActionsUrl, "utf8"),
-  readFileSync(extensionPreviewActionsUrl, "utf8")
+  readFileSync(extensionPreviewActionsUrl, "utf8"),
+  readFileSync(extensionQualityPreviewActionsUrl, "utf8")
 ].join("\n");
 
 const componentFamilies = [
@@ -696,12 +745,12 @@ const failures = [];
 
 check(matrix.startsWith("---\nrelated_code:"), "matrix uses required docs header");
 check(matrix.includes("doc_type: workflow-detail"), "matrix is classified as a workflow detail");
-check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/modules.js"), "matrix header mentions modules.js");
+check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/modules.js"), "matrix header mentions modules.js");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/component-lab/module.js"), "matrix header mentions Component Lab module");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/extensions/extension-modules.js"), "matrix header mentions extension-modules.js");
-check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/extension-surfaces.js"), "matrix header mentions extension-surfaces.js");
+check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/extensions/extension-surfaces.js"), "matrix header mentions extension-surfaces.js");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/extensions/extension-handoff.js"), "matrix header mentions extension-handoff.js");
-check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/action-paths.js"), "matrix header mentions action-paths.js");
+check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/src/foundation/action-paths.js"), "matrix header mentions action-paths.js");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/verify-action-naming-contract.mjs"), "matrix header mentions action naming contract verifier");
 check(actionPathsSource.includes("export function actionPath") && actionPathsSource.includes("export function actionRouteKey"), "action path helper exports naming and route-key helpers");
 check(actionNamingContractSource.includes("dottedActionPattern") && actionNamingContractSource.includes("collectNativeActionIds"), "action naming contract scans dotted web/native action ids");
@@ -773,11 +822,10 @@ check(matrix.includes("zircon_editor/assets/ui/editor/components/workbench/modul
 check(matrix.includes("zircon_editor/assets/ui/editor/host/generated_bottom_body.zui"), "matrix header mentions generated bottom shell body zui");
 check(matrix.includes("zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs"), "matrix header mentions generated bottom activity view descriptor");
 check(matrix.includes("zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs"), "matrix header mentions generated bottom shell view instance");
-check(matrix.includes("zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs"), "matrix header mentions generated bottom drawer layout");
 check(matrix.includes("zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs"), "matrix header mentions retained generated bottom pane conversion");
 check(matrix.includes("zircon_editor/src/ui/retained_host/ui/apply_presentation.rs"), "matrix header mentions generated bottom presentation application");
 check(matrix.includes("zircon_editor/src/ui/retained_host/host_contract/data/panes.rs"), "matrix header mentions generated bottom host contract pane data");
-check(matrix.includes("zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs"), "matrix header mentions retained painter template nodes");
+check(matrix.includes("zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs"), "matrix header mentions retained painter template nodes");
 check(matrix.includes("zircon_runtime/src/ui/surface/render/extract.rs"), "matrix header mentions runtime render extract");
 check(matrix.includes("zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs"), "matrix header mentions native extension module bindings");
 check(matrix.includes("zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/types.rs"), "matrix header mentions native extension module binding types");
@@ -863,7 +911,7 @@ check(
   "native module workspace hosts generated bottom drawer evidence"
 );
 check(
-  generatedBottomBodySource.includes('id = "editor.host.pane.generated_bottom.body"') &&
+  generatedBottomBodySource.includes('id = "res://ui/editor/host/generated_bottom_body.zui"') &&
     generatedBottomBodySource.includes("workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel") &&
     generatedBottomBodySource.includes("GeneratedBottomPaneBodyRoot") &&
   generatedBottomBodySource.includes("GeneratedBottomPanePanelHost"),
@@ -877,17 +925,15 @@ check(
 );
 check(
   generatedBottomViewDescriptorSource.includes('ViewDescriptorId::new("editor.generated_bottom")') &&
-    generatedBottomViewDescriptorSource.includes("ActivityDrawerSlot::Bottom") &&
+    generatedBottomViewDescriptorSource.includes("WorkbenchSlot::BottomDrawer") &&
     generatedBottomViewDescriptorSource.includes("ViewContentKind::GeneratedBottom") &&
-    generatedBottomViewDescriptorSource.includes('"pane.generated_bottom.body"') &&
+    generatedBottomViewDescriptorSource.includes('"res://ui/editor/host/generated_bottom_body.zui"') &&
     generatedBottomViewDescriptorSource.includes("PanePayloadKind::GeneratedBottomV1"),
   "native generated bottom activity view targets bottom drawer pane body"
 );
 check(
   shellViewInstancesSource.includes('ViewInstanceId::new("editor.generated_bottom#1")') &&
-    shellViewInstancesSource.includes("ViewHost::Drawer(ActivityDrawerSlot::Bottom)") &&
-    layoutDrawersSource.includes('ViewInstanceId::new("editor.generated_bottom#1")') &&
-    layoutDrawersSource.includes("ActivityDrawerSlot::Bottom"),
+    shellViewInstancesSource.includes("ViewHost::Drawer(ActivityDrawerSlot::Bottom)"),
   "native shell bottom drawer includes generated bottom view instance"
 );
 check(
@@ -923,11 +969,16 @@ check(
   moduleWorkspaceSource.includes("workbench/modules/core/assets/workbench_assets_workspace.zui#WorkbenchAssetsWorkspace") &&
     moduleWorkspaceSource.includes("WorkbenchAssetsWorkspaceHost") &&
     assetsWorkspaceSource.includes("[components.WorkbenchAssetsWorkspace]") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/DataTableOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/SourceControlOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/BuildExportOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/AutomationReportOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/SaveDataOpen"),
+    assetsWorkspaceSource.includes('control_id = "WorkbenchAssetsWorldTools"') &&
+    assetsWorkspaceSource.includes('control_id = "WorkbenchAssetsGameplayTools"') &&
+  assetsWorkspaceSource.includes('control_id = "WorkbenchAssetsProductionTools"') &&
+    workbenchWindowSource.includes('control_id = "WorkbenchAssetsWorldToolsMenu"') &&
+    workbenchWindowSource.includes('control_id = "WorkbenchAssetsGameplayToolsMenu"') &&
+    workbenchWindowSource.includes('control_id = "WorkbenchAssetsProductionToolsMenu"') &&
+    assetEditorMenuSource.includes('extension_action_id: "workbench.extension.data_table.open"') &&
+    coreModuleBindingsSource.includes("AssetsWorldToolsOpen") &&
+    coreModuleBindingsSource.includes("AssetsGameplayToolsOpen") &&
+    coreModuleBindingsSource.includes("AssetsProductionToolsOpen"),
   "native module workspace hosts split Assets workspace evidence"
 );
 check(
@@ -941,9 +992,13 @@ check(
 );
 check(
   additionalModuleWorkspacesSource.includes("workbench/modules/core/gameplay/workbench_ability_workspace.zui#WorkbenchAbilityWorkspace") &&
-    additionalModuleWorkspacesSource.includes("WorkbenchAbilityWorkspaceHost") &&
+  additionalModuleWorkspacesSource.includes("WorkbenchAbilityWorkspaceHost") &&
     abilityWorkspaceSource.includes("[components.WorkbenchAbilityWorkspace]") &&
-    abilityWorkspaceSource.includes("WorkbenchModule/AbilityPlaytest"),
+    abilityWorkspaceSource.includes("WorkbenchModule/AbilityPlaytest") &&
+    abilityWorkspaceSource.includes('control_id = "WorkbenchAbilityAnimationTools"') &&
+    workbenchWindowSource.includes('control_id = "WorkbenchAbilityAnimationToolsMenu"') &&
+    abilityEditorMenuSource.includes('extension_action_id: "workbench.extension.sequencer.open"') &&
+    coreModuleBindingsSource.includes("AbilityAnimationToolsOpen"),
   "native additional module workspace hosts split Ability workspace evidence"
 );
 check(
@@ -961,22 +1016,12 @@ check(
   "native additional module workspace hosts split Perception workspace evidence"
 );
 check(
-  abilityWorkspaceSource.includes("WorkbenchAbilitySequencerButton") &&
-    abilityWorkspaceSource.includes("WorkbenchExtension/SequencerOpen") &&
-    abilityWorkspaceSource.includes("WorkbenchAbilityMontageEditorButton") &&
-    abilityWorkspaceSource.includes("WorkbenchExtension/MontageEditorOpen") &&
-    abilityWorkspaceSource.includes("WorkbenchAbilityBlendSpaceButton") &&
-    abilityWorkspaceSource.includes("WorkbenchExtension/BlendSpaceOpen") &&
-    abilityWorkspaceSource.includes("WorkbenchAbilityPoseLibraryButton") &&
-    abilityWorkspaceSource.includes("WorkbenchExtension/PoseLibraryOpen") &&
-    abilityWorkspaceSource.includes("WorkbenchAbilityRetargetButton") &&
-    abilityWorkspaceSource.includes("WorkbenchExtension/RetargetOpen") &&
-    abilityWorkspaceSource.includes("WorkbenchAbilityControlRigButton") &&
-    abilityWorkspaceSource.includes("WorkbenchExtension/ControlRigOpen") &&
-    abilityWorkspaceSource.includes("WorkbenchAbilityMotionMatchingButton") &&
-    abilityWorkspaceSource.includes("WorkbenchExtension/MotionMatchingOpen") &&
-    abilityWorkspaceSource.includes("WorkbenchAbilityAnimationCompressionButton") &&
-    abilityWorkspaceSource.includes("WorkbenchExtension/AnimationCompressionOpen"),
+  abilityWorkspaceSource.includes('control_id = "WorkbenchAbilityAnimationTools"') &&
+    abilityWorkspaceSource.includes("WorkbenchModule/AbilityAnimationToolsOpen") &&
+    workbenchWindowSource.includes('control_id = "WorkbenchAbilityAnimationToolsMenu"') &&
+    abilityEditorMenuSource.includes("ABILITY_EDITOR_MENU_COMMANDS") &&
+    abilityEditorMenuSource.includes('extension_action_id: "workbench.extension.sequencer.open"') &&
+    abilityEditorMenuSource.includes('extension_action_id: "workbench.extension.animation_compression.open"'),
   "gameplay ability workspace exposes animation extension openers"
 );
 check(
@@ -991,27 +1036,26 @@ check(
     additionalModuleWorkspacesSource.includes("WorkbenchHudWorkspaceHost") &&
     hudWorkspaceSource.includes("[components.WorkbenchHudWorkspace]") &&
     hudWorkspaceSource.includes("WorkbenchModule/HudPreview") &&
-    hudWorkspaceSource.includes("WorkbenchHudConsoleDiagnosticsButton") &&
-    hudWorkspaceSource.includes("WorkbenchExtension/ConsoleDiagnosticsOpen") &&
-    hudWorkspaceSource.includes("WorkbenchHudRuntimeDiagnosticsButton") &&
-    hudWorkspaceSource.includes("WorkbenchExtension/RuntimeDiagnosticsOpen") &&
-    hudWorkspaceSource.includes("WorkbenchHudTelemetryDashboardButton") &&
-    hudWorkspaceSource.includes("WorkbenchExtension/TelemetryDashboardOpen") &&
-    hudWorkspaceSource.includes("WorkbenchHudPerformanceButton") &&
-    hudWorkspaceSource.includes("WorkbenchExtension/PerformanceOpen") &&
-    hudWorkspaceSource.includes("WorkbenchHudFontAtlasButton") &&
-    hudWorkspaceSource.includes("WorkbenchExtension/FontAtlasOpen") &&
-    hudWorkspaceSource.includes("WorkbenchHudUiAssetEditorButton") &&
-    hudWorkspaceSource.includes("WorkbenchExtension/UiAssetEditorOpen") &&
-    hudWorkspaceSource.includes("WorkbenchHudUiBindingButton") &&
-    hudWorkspaceSource.includes("WorkbenchExtension/UiBindingOpen") &&
-    hudWorkspaceSource.includes("WorkbenchHudIconLibraryButton") &&
-    hudWorkspaceSource.includes("WorkbenchExtension/IconLibraryOpen") &&
-    hudWorkspaceSource.includes("WorkbenchHudMenuFlowButton") &&
-    hudWorkspaceSource.includes("WorkbenchExtension/MenuFlowOpen") &&
-    hudWorkspaceSource.includes("WorkbenchHudAccessibilityAuditButton") &&
-    hudWorkspaceSource.includes("WorkbenchExtension/AccessibilityAuditOpen"),
-  "native additional module workspace hosts split HUD workspace evidence"
+    hudWorkspaceSource.includes("WorkbenchHudTools") &&
+    hudWorkspaceSource.includes("WorkbenchModule/HudToolsOpen") &&
+    workbenchWindowSource.includes("WorkbenchHudToolsMenu") &&
+    workbenchWindowSource.includes('control_id = "WorkbenchHudTools"') &&
+    workbenchWindowSource.includes("menu.item.hud.console_diagnostics") &&
+    workbenchWindowSource.includes("menu.item.hud.runtime_diagnostics") &&
+    workbenchWindowSource.includes("menu.item.hud.telemetry_dashboard") &&
+    workbenchWindowSource.includes("menu.item.hud.performance") &&
+    workbenchWindowSource.includes("menu.item.hud.font_atlas") &&
+    workbenchWindowSource.includes("menu.item.hud.menu_flow") &&
+    workbenchWindowSource.includes("menu.item.hud.accessibility_audit") &&
+    workbenchWindowSource.includes("menu.item.hud.icon_library") &&
+    workbenchWindowSource.includes("menu.item.hud.ui_binding") &&
+    workbenchWindowSource.includes("menu.item.hud.ui_asset_editor") &&
+    hudEditorMenuSource.includes("HUD_EDITOR_MENU_COMMANDS") &&
+    hudEditorMenuSource.includes('extension_action_id: "workbench.extension.console_diagnostics.open"') &&
+    hudEditorMenuSource.includes('extension_action_id: "workbench.extension.ui_asset_editor.open"') &&
+    !hudWorkspaceSource.includes("WorkbenchHudConsoleDiagnosticsButton") &&
+    !hudWorkspaceSource.includes("WorkbenchHudUiAssetEditorButton"),
+  "native HUD workspace exposes diagnostics extensions through one anchored HUD Tools menu"
 );
 check(
   generatedBottomPanelSource.includes("WorkbenchGeneratedBottomPanel") &&
@@ -1023,7 +1067,8 @@ check(
 check(
   generatedBottomBindingsSource.includes("insert_workbench_generated_bottom_bindings") &&
     generatedBottomBindingsSource.includes("workbench.generated_bottom.gameplay_effect_compile_log.select") &&
-    generatedBottomBindingsSource.includes("workbench.generated_bottom.mode.commit"),
+    generatedBottomBindingsSource.includes("workbench.generated_bottom.mode_review.select") &&
+    !generatedBottomBindingsSource.includes("workbench.generated_bottom.mode.commit"),
   "native generated bottom template bindings exist"
 );
 check(
@@ -1051,7 +1096,8 @@ check(
 check(
   previewActionsSource.includes("workbench.generated_bottom.gameplay_effect_compile_log.select") &&
     previewActionsSource.includes("workbench.generated_bottom.hud_editor_compile_log.select") &&
-    previewActionsSource.includes("workbench.generated_bottom.mode.commit"),
+    previewActionsSource.includes("workbench.generated_bottom.mode_review.select") &&
+    !previewActionsSource.includes("workbench.generated_bottom.mode.commit"),
   "preview action registry includes generated bottom actions"
 );
 
@@ -1247,44 +1293,45 @@ check(
 check(
   additionalModuleWorkspacesSource.includes("workbench/modules/core/rendering/workbench_render_workspace.zui#WorkbenchRenderWorkspace") &&
     additionalModuleWorkspacesSource.includes("WorkbenchRenderWorkspaceHost") &&
-    renderWorkspaceSource.includes("WorkbenchRenderShaderEditorButton") &&
-    renderWorkspaceSource.includes("WorkbenchExtension/ShaderEditorOpen") &&
-    renderWorkspaceSource.includes("WorkbenchRenderLightingBakeButton") &&
-    renderWorkspaceSource.includes("WorkbenchExtension/LightingBakeOpen") &&
-    renderWorkspaceSource.includes("WorkbenchRenderPostProcessButton") &&
-    renderWorkspaceSource.includes("WorkbenchExtension/PostProcessOpen"),
-  "render pipeline workspace exposes rendering extension openers through the split Render workspace"
+    renderWorkspaceSource.includes("WorkbenchRenderTools") &&
+    renderWorkspaceSource.includes("WorkbenchModule/RenderToolsOpen") &&
+    workbenchWindowSource.includes("WorkbenchRenderToolsMenu") &&
+    workbenchWindowSource.includes('control_id = "WorkbenchRenderTools"') &&
+    workbenchWindowSource.includes("menu.item.render.shader_editor") &&
+    workbenchWindowSource.includes("menu.item.render.lighting_bake") &&
+    workbenchWindowSource.includes("menu.item.render.post_process") &&
+    renderEditorMenuSource.includes("RENDER_EDITOR_MENU_COMMANDS") &&
+    renderEditorMenuSource.includes('extension_action_id: "workbench.extension.shader_editor.open"') &&
+    renderEditorMenuSource.includes('extension_action_id: "workbench.extension.lighting_bake.open"') &&
+    renderEditorMenuSource.includes('extension_action_id: "workbench.extension.post_process.open"') &&
+    !renderWorkspaceSource.includes("WorkbenchRenderShaderEditorButton") &&
+    !renderWorkspaceSource.includes("WorkbenchRenderLightingBakeButton") &&
+    !renderWorkspaceSource.includes("WorkbenchRenderPostProcessButton"),
+  "render pipeline workspace exposes rendering extension openers through one anchored Render Tools menu"
 );
 check(
-  assetsWorkspaceSource.includes("WorkbenchAssetsDataTableButton") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsTerrainEditorButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/TerrainEditorOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsFoliageEditorButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/FoliageEditorOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsLevelStreamingButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/LevelStreamingOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsLevelVariantButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/LevelVariantOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/DataTableOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsSourceControlButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/SourceControlOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsBuildExportButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/BuildExportOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsAutomationReportButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/AutomationReportOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsProjectOverviewButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/ProjectOverviewOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsPhysicsCollisionButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/PhysicsCollisionOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsNavmeshAiButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/NavmeshAiOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsPluginManagerButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/PluginManagerOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsSaveDataButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/SaveDataOpen") &&
-    assetsWorkspaceSource.includes("WorkbenchAssetsWorldStateButton") &&
-    assetsWorkspaceSource.includes("WorkbenchExtension/WorldStateOpen"),
+  workbenchWindowSource.includes('menu.item.assets.terrain_editor') &&
+    workbenchWindowSource.includes('menu.item.assets.foliage_editor') &&
+    workbenchWindowSource.includes('menu.item.assets.level_streaming') &&
+    workbenchWindowSource.includes('menu.item.assets.level_variant') &&
+    workbenchWindowSource.includes('menu.item.assets.data_table') &&
+    workbenchWindowSource.includes('menu.item.assets.source_control') &&
+    workbenchWindowSource.includes('menu.item.assets.build_export') &&
+    workbenchWindowSource.includes('menu.item.assets.automation_report') &&
+    workbenchWindowSource.includes('menu.item.assets.project_overview') &&
+    workbenchWindowSource.includes('menu.item.assets.physics_collision') &&
+    workbenchWindowSource.includes('menu.item.assets.navmesh_ai') &&
+    workbenchWindowSource.includes('menu.item.assets.plugin_manager') &&
+    workbenchWindowSource.includes('menu.item.assets.save_data') &&
+    workbenchWindowSource.includes('menu.item.assets.world_state') &&
+    assetEditorMenuSource.includes('ASSET_EDITOR_MENU_COMMANDS'),
   "asset browser workspace exposes data extension openers"
+);
+check(
+  workbenchWindowSource.includes('menu.item.ability.sequencer') &&
+    workbenchWindowSource.includes('menu.item.ability.animation_compression') &&
+    abilityEditorMenuSource.includes('ABILITY_EDITOR_MENU_COMMANDS'),
+  "ability workspace exposes animation extension openers through one menu"
 );
 check(
     extensionWorkspaceSource.includes("WorkbenchExtensionModuleWorkspaces") &&

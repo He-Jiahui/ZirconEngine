@@ -1,22 +1,14 @@
-use zircon_runtime_interface::ui::{
-    dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
-};
-
 use super::host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
 use super::host_drawer_header_pointer_dispatch::HostDrawerHeaderPointerDispatch;
 
 impl HostDrawerHeaderPointerBridge {
     pub(crate) fn handle_click(
-        &mut self,
+        &self,
         surface_key: &str,
         item_index: usize,
-        tab_x: f32,
-        tab_width: f32,
-        point: UiPoint,
     ) -> Result<HostDrawerHeaderPointerDispatch, String> {
-        self.update_measured_frame(surface_key, item_index, tab_x, tab_width)?;
-        let point = self.global_point(surface_key, point)?;
-        let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
-        Ok(HostDrawerHeaderPointerDispatch { route })
+        zircon_runtime::profile_counter!("editor", "ui.drawer_header.native_receipt_count", 1);
+        let route = self.route_for_receipt(surface_key, item_index)?;
+        Ok(HostDrawerHeaderPointerDispatch { route: Some(route) })
     }
 }

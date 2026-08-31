@@ -31,9 +31,9 @@ impl HostMenuPointerBridge {
                 self.state.open_menu_index = Some(*menu_index);
                 self.state.hovered_menu_index = Some(*menu_index);
                 self.state.hovered_item_index = Some(*item_index);
-                self.state.hovered_item_path = item_path.clone();
+                reuse_menu_path(&mut self.state.hovered_item_path, item_path);
                 if self.state.open_submenu_path != *item_path {
-                    self.state.open_submenu_path = item_path.clone();
+                    reuse_menu_path(&mut self.state.open_submenu_path, item_path);
                     self.rebuild_surface();
                 }
                 None
@@ -71,3 +71,12 @@ impl HostMenuPointerBridge {
         })
     }
 }
+
+fn reuse_menu_path(target: &mut Vec<usize>, source: &[usize]) {
+    target.clear();
+    target.extend_from_slice(source);
+}
+
+#[cfg(test)]
+#[path = "host_menu_pointer_bridge_handle_click/reused_path_tests.rs"]
+mod reused_path_tests;

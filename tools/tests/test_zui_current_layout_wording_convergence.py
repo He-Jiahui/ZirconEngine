@@ -19,10 +19,10 @@ CURRENT_LAYOUT_WORDING_TARGETS = {
         "asset browser v2 asset",
         "v2 asset browser",
     ],
-    "zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs": [
+    "zircon_editor/src/tests/ui/boundary/workbench_projection_cutover": [
         "hard_cut_to_v2",
     ],
-    "zircon_editor/src/tests/host/retained_window/native_host_contract.rs": [
+    "zircon_editor/src/tests/host/retained_window/native_host_contract": [
         "v2 asset search fields",
         "v2 asset browser buttons",
         "v2 asset browser text fields",
@@ -93,7 +93,13 @@ class ZuiCurrentLayoutWordingConvergenceTests(unittest.TestCase):
     def test_current_layout_positive_wording_uses_zui_authority(self):
         failures: list[str] = []
         for relative_path, stale_phrases in CURRENT_LAYOUT_WORDING_TARGETS.items():
-            text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+            target = REPO_ROOT / relative_path
+            sources = sorted(target.rglob("*.rs")) if target.is_dir() else [target]
+            self.assertTrue(
+                sources and all(source.is_file() for source in sources),
+                f"expected current layout sources under {relative_path}",
+            )
+            text = "\n".join(source.read_text(encoding="utf-8") for source in sources)
             for phrase in stale_phrases:
                 if phrase in text:
                     failures.append(f"{relative_path}: {phrase}")

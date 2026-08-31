@@ -38,7 +38,7 @@ fn native_host_pointer_click_routes_viewport_toolbar_buttons_before_viewport_bod
     {
         let viewport_events = viewport_events.clone();
         ui.global::<PaneSurfaceHostContext>()
-            .on_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
+            .on_scene_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
                 viewport_events
                     .borrow_mut()
                     .push((kind, button, x, y, delta));
@@ -148,7 +148,7 @@ fn native_host_pointer_click_routes_late_viewport_toolbar_controls() {
     {
         let viewport_events = viewport_events.clone();
         ui.global::<PaneSurfaceHostContext>()
-            .on_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
+            .on_scene_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
                 viewport_events
                     .borrow_mut()
                     .push((kind, button, x, y, delta));
@@ -198,7 +198,7 @@ fn native_host_pointer_move_routes_viewport_without_native_repaint() {
     {
         let viewport_events = viewport_events.clone();
         ui.global::<PaneSurfaceHostContext>()
-            .on_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
+            .on_scene_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
                 viewport_events
                     .borrow_mut()
                     .push((kind, button, x, y, delta));
@@ -216,6 +216,47 @@ fn native_host_pointer_move_routes_viewport_without_native_repaint() {
         [(1, 0, 40.0, 12.0, 0.0)],
         "viewport move facts should still reach the shared pointer bridge"
     );
+}
+
+#[test]
+fn native_host_game_viewport_body_never_dispatches_the_scene_callback() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    let mut game = scene_pane();
+    game.kind = "Game".into();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        surface_key: "document".into(),
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: game,
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let scene_events = Rc::new(RefCell::new(Vec::new()));
+    let game_events = Rc::new(RefCell::new(Vec::new()));
+    {
+        let scene_events = scene_events.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_scene_viewport_pointer_event(move |kind, button, _, _, _, _, _| {
+                scene_events.borrow_mut().push((kind, button));
+            });
+        let game_events = game_events.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_game_viewport_pointer_event(move |kind, button, x, y, _, _, _| {
+                game_events.borrow_mut().push((kind, button, x, y));
+            });
+    }
+
+    let result = ui.dispatch_native_primary_press_for_test(60.0 + 40.0, 58.0 + 32.0 + 28.0 + 12.0);
+
+    assert!(!result.request_redraw());
+    assert!(scene_events.borrow().is_empty());
+    assert_eq!(game_events.borrow().as_slice(), [(0, 1, 40.0, 12.0)]);
 }
 
 #[test]
@@ -240,7 +281,7 @@ fn native_host_viewport_button_and_scroll_wait_for_viewport_image_repaint() {
     {
         let viewport_events = viewport_events.clone();
         ui.global::<PaneSurfaceHostContext>()
-            .on_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
+            .on_scene_viewport_pointer_event(move |kind, button, x, y, delta, _, _| {
                 viewport_events
                     .borrow_mut()
                     .push((kind, button, x, y, delta));

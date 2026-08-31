@@ -257,8 +257,10 @@ fn surface_property_mutation_updates_authored_metadata_and_reflector_snapshot() 
                     control_id: Some("TitleLabel".to_string()),
                     attributes: toml::from_str("text = 'Inspect'").unwrap(),
                     bindings: vec![UiBindingRef {
+                        component_event: None,
                         id: "Title/Activate".to_string(),
                         event: UiEventKind::Click,
+                        mode: Default::default(),
                         route: Some("MenuAction.OpenProject".to_string()),
                         action: None,
                         targets: Vec::new(),

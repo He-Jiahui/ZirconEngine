@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use super::gpu_scene::GpuScene;
 
@@ -39,16 +39,9 @@ impl GpuScene {
     pub(crate) fn roll_prev_morph_weights_after_success(
         &mut self,
     ) -> GpuScenePrevMorphWeightsRollReport {
-        let removed_previous_weight_state_count = self
-            .previous_morph_weights
-            .keys()
-            .filter(|key| !self.current_morph_weights.contains_key(*key))
-            .count();
-        self.previous_morph_weights.clear();
-        self.previous_morph_weights.extend(
-            self.current_morph_weights
-                .iter()
-                .map(|(key, weights)| (*key, Arc::clone(weights))),
+        let removed_previous_weight_state_count = roll_previous_morph_weight_snapshots(
+            &mut self.previous_morph_weights,
+            &self.current_morph_weights,
         );
 
         let previous_weight_state_count = self.previous_morph_weights.len();
@@ -60,9 +53,36 @@ impl GpuScene {
     }
 }
 
+fn roll_previous_morph_weight_snapshots(
+    previous: &mut HashMap<u64, Arc<[f32]>>,
+    current: &HashMap<u64, Arc<[f32]>>,
+) -> usize {
+    let mut removed = 0;
+    previous.retain(|key, previous_weights| {
+        let Some(current_weights) = current.get(key) else {
+            removed += 1;
+            return false;
+        };
+        if !Arc::ptr_eq(previous_weights, current_weights) {
+            *previous_weights = Arc::clone(current_weights);
+        }
+        true
+    });
+
+    if previous.len() < current.len() {
+        previous.reserve(current.len() - previous.len());
+        for (key, weights) in current {
+            if let std::collections::hash_map::Entry::Vacant(entry) = previous.entry(*key) {
+                entry.insert(Arc::clone(weights));
+            }
+        }
+    }
+    removed
+}
+
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use std::{collections::HashMap, sync::Arc};
 
     use crate::graphics::scene::gpu_scene::GpuScene;
 
@@ -187,6 +207,149 @@ mod tests {
             .get(&TEST_STABLE_INSTANCE_KEY)
             .expect("previous morph snapshot");
         assert!(Arc::ptr_eq(&stable_current, previous));
+    }
+
+    #[test]
+    fn optimization_batch_dg_morph_roll_reuses_updates_and_removes_exact_keys() {
+        let stable = Arc::<[f32]>::from([0.25, 0.5]);
+        let removed = Arc::<[f32]>::from([1.0]);
+        let replaced = Arc::<[f32]>::from([0.0]);
+        let replacement = Arc::<[f32]>::from([0.75]);
+        let added = Arc::<[f32]>::from([0.125]);
+        let mut previous = HashMap::from([(1, Arc::clone(&stable)), (2, removed), (4, replaced)]);
+        let current = HashMap::from([
+            (1, Arc::clone(&stable)),
+            (3, Arc::clone(&added)),
+            (4, Arc::clone(&replacement)),
+        ]);
+
+        let removed_count = roll_previous_morph_weight_snapshots(&mut previous, &current);
+
+        assert_eq!(removed_count, 1);
+        assert_eq!(previous.len(), current.len());
+        assert!(Arc::ptr_eq(previous.get(&1).unwrap(), &stable));
+        assert!(Arc::ptr_eq(previous.get(&3).unwrap(), &added));
+        assert!(Arc::ptr_eq(previous.get(&4).unwrap(), &replacement));
+        assert!(!previous.contains_key(&2));
+    }
+
+    #[test]
+    fn optimization_batch_dg_morph_roll_source_keeps_stable_snapshots_in_place() {
+        let source = include_str!("prev_morph_weights.rs");
+
+        assert!(source.contains("previous.retain(|key, previous_weights|"));
+        assert!(source.contains("Arc::ptr_eq(previous_weights, current_weights)"));
+        assert!(source.contains("if previous.len() < current.len()"));
+        assert!(!source.contains("self.previous_morph_weights.clear()"));
+    }
+
+    #[test]
+    #[ignore = "release-only alternating p95 performance gate"]
+    fn optimization_batch_dg_stable_morph_roll_in_place_p95() {
+        const SAMPLE_PAIRS: usize = 17;
+        const ROLLS_PER_SAMPLE: usize = 64;
+        const WEIGHT_STATE_COUNT: usize = 2_048;
+
+        let current = optimization_batch_dg_morph_fixture(WEIGHT_STATE_COUNT);
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample_index in 0..SAMPLE_PAIRS {
+            if sample_index % 2 == 0 {
+                legacy_samples.push(optimization_batch_dg_measure_morph_roll(
+                    &current,
+                    ROLLS_PER_SAMPLE,
+                    optimization_batch_dg_legacy_morph_roll,
+                ));
+                optimized_samples.push(optimization_batch_dg_measure_morph_roll(
+                    &current,
+                    ROLLS_PER_SAMPLE,
+                    roll_previous_morph_weight_snapshots,
+                ));
+            } else {
+                optimized_samples.push(optimization_batch_dg_measure_morph_roll(
+                    &current,
+                    ROLLS_PER_SAMPLE,
+                    roll_previous_morph_weight_snapshots,
+                ));
+                legacy_samples.push(optimization_batch_dg_measure_morph_roll(
+                    &current,
+                    ROLLS_PER_SAMPLE,
+                    optimization_batch_dg_legacy_morph_roll,
+                ));
+            }
+        }
+
+        let legacy_p95 = optimization_batch_dg_morph_p95(&mut legacy_samples);
+        let optimized_p95 = optimization_batch_dg_morph_p95(&mut optimized_samples);
+        println!(
+            "RUNTIME415_STABLE_MORPH_ROLL_IN_PLACE_BENCH_V1 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} ratio={:.4}",
+            optimized_p95 as f64 / legacy_p95.max(1) as f64
+        );
+        assert!(
+            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(70),
+            "in-place stable morph roll p95 {optimized_p95}ns exceeded 70% of legacy {legacy_p95}ns"
+        );
+    }
+
+    fn optimization_batch_dg_morph_fixture(count: usize) -> HashMap<u64, Arc<[f32]>> {
+        (0..count)
+            .map(|index| {
+                (
+                    index as u64,
+                    Arc::<[f32]>::from([
+                        index as f32,
+                        index as f32 * 0.5,
+                        index as f32 * 0.25,
+                        1.0,
+                    ]),
+                )
+            })
+            .collect()
+    }
+
+    fn optimization_batch_dg_legacy_morph_roll(
+        previous: &mut HashMap<u64, Arc<[f32]>>,
+        current: &HashMap<u64, Arc<[f32]>>,
+    ) -> usize {
+        let removed = previous
+            .keys()
+            .filter(|key| !current.contains_key(*key))
+            .count();
+        previous.clear();
+        previous.extend(
+            current
+                .iter()
+                .map(|(key, weights)| (*key, Arc::clone(weights))),
+        );
+        removed
+    }
+
+    fn optimization_batch_dg_measure_morph_roll(
+        current: &HashMap<u64, Arc<[f32]>>,
+        rolls: usize,
+        roll: fn(&mut HashMap<u64, Arc<[f32]>>, &HashMap<u64, Arc<[f32]>>) -> usize,
+    ) -> u128 {
+        let mut previous = current.clone();
+        let started_at = std::time::Instant::now();
+        let mut removed = 0;
+        for _ in 0..rolls {
+            removed += roll(
+                std::hint::black_box(&mut previous),
+                std::hint::black_box(current),
+            );
+        }
+        std::hint::black_box((removed, previous.len()));
+        started_at.elapsed().as_nanos()
+    }
+
+    fn optimization_batch_dg_morph_p95(samples: &mut [u128]) -> u128 {
+        samples.sort_unstable();
+        let index = samples
+            .len()
+            .saturating_mul(95)
+            .div_ceil(100)
+            .saturating_sub(1);
+        samples[index]
     }
 
     fn test_backend() -> Option<crate::graphics::backend::RenderBackend> {

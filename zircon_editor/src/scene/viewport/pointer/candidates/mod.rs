@@ -13,7 +13,7 @@ pub(in crate::scene::viewport::pointer) use candidate_z_index::candidate_z_index
 pub(in crate::scene::viewport::pointer) use gizmo_axis::gizmo_axis;
 pub(in crate::scene::viewport::pointer) use handle_candidate::handle_candidate;
 pub(in crate::scene::viewport::pointer) use precision_candidates_from_layout::precision_candidates_from_layout;
-pub(in crate::scene::viewport::pointer) use projected_ring_segments::projected_ring_segments;
+pub(in crate::scene::viewport) use projected_ring_segments::projected_ring_segments;
 pub(in crate::scene::viewport::pointer) use renderable_candidate::renderable_candidate;
 pub(in crate::scene::viewport::pointer) use renderable_candidates::renderable_candidates;
 pub(in crate::scene::viewport::pointer) use renderable_pick_radius::renderable_pick_radius;

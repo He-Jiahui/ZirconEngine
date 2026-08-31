@@ -1,18 +1,30 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::scene::EntityId;
 
-use super::{ParticleExtract, RenderParticleSpriteSnapshot};
+use super::super::RenderParticleSpriteSnapshot;
+use super::ParticleExtract;
+
+#[cfg(test)]
+#[path = "particle_extract_policy/hash_identity_tests.rs"]
+mod hash_identity_tests;
 
 impl ParticleExtract {
     pub fn previous_state_sprite_count(&self) -> usize {
-        if self.sprites.is_empty() || self.previous_sprites.is_empty() {
+        self.previous_state_sprite_count_with(&self.previous_sprites)
+    }
+
+    pub fn previous_state_sprite_count_with(
+        &self,
+        previous_sprites: &[super::super::RenderParticlePreviousSpriteSnapshot],
+    ) -> usize {
+        if self.sprites.is_empty() || previous_sprites.is_empty() {
             return 0;
         }
 
         let ambiguous_anonymous_entities = self.anonymous_stream_ambiguity_entities();
-        let mut remaining_previous_by_identity = BTreeMap::new();
-        for sprite in &self.previous_sprites {
+        let mut remaining_previous_by_identity = HashMap::with_capacity(previous_sprites.len());
+        for sprite in previous_sprites {
             if is_ambiguous_anonymous_identity(
                 sprite.entity,
                 sprite.stable_sprite_key,
@@ -57,7 +69,7 @@ impl ParticleExtract {
             .sum()
     }
 
-    pub(crate) fn anonymous_stream_ambiguity_entities(&self) -> BTreeSet<EntityId> {
+    pub(crate) fn anonymous_stream_ambiguity_entities(&self) -> HashSet<EntityId> {
         anonymous_sprite_count_by_entity(&self.sprites)
             .into_iter()
             .filter_map(|(entity, count)| (count > 1).then_some(entity))
@@ -68,15 +80,15 @@ impl ParticleExtract {
 pub(crate) fn is_ambiguous_anonymous_identity(
     entity: EntityId,
     stable_sprite_key: u64,
-    ambiguous_anonymous_entities: &BTreeSet<EntityId>,
+    ambiguous_anonymous_entities: &HashSet<EntityId>,
 ) -> bool {
     stable_sprite_key == 0 && ambiguous_anonymous_entities.contains(&entity)
 }
 
 fn anonymous_sprite_count_by_entity(
     sprites: &[RenderParticleSpriteSnapshot],
-) -> BTreeMap<EntityId, usize> {
-    let mut anonymous_sprite_count_by_entity = BTreeMap::new();
+) -> HashMap<EntityId, usize> {
+    let mut anonymous_sprite_count_by_entity = HashMap::with_capacity(sprites.len());
     for sprite in sprites {
         if sprite.stable_sprite_key == 0 {
             *anonymous_sprite_count_by_entity
@@ -186,7 +198,7 @@ mod tests {
         assert_eq!(extract.anonymous_stream_ambiguity_sprite_count(), 2);
         assert_eq!(
             extract.anonymous_stream_ambiguity_entities(),
-            BTreeSet::from([9])
+            HashSet::from([9])
         );
     }
 

@@ -4,11 +4,11 @@ use std::sync::{Arc, OnceLock};
 use crate::scene::components::SceneNode;
 use crate::scene::{EntityId, World};
 
+use super::super::WorldInspectionHierarchyRow;
 use super::super::snapshot::{
     build_hierarchy_rows_from_nodes, hierarchy_child_hash_contribution,
     hierarchy_subtree_hash_from_child_aggregate,
 };
-use super::super::WorldInspectionHierarchyRow;
 use super::metrics::HierarchyRowMaterializations;
 use super::overrides::{HierarchyChildHashOverrides, HierarchyRowOverrides};
 
@@ -170,7 +170,7 @@ impl WorldInspectionArtifact {
             None => Arc::default(),
         };
         let hierarchy_rows = Arc::new(HierarchyRows::complete(
-            build_hierarchy_rows_from_nodes(world, &nodes, None).into(),
+            build_hierarchy_rows_from_nodes(world, &nodes).into(),
             materializations,
         ));
         let row_indices = Arc::new(

@@ -2,31 +2,21 @@ use std::fmt;
 
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
+use zircon_runtime_interface::EditorCommandId;
 
 /// Stable identifier shared by editor commands and operation-control DTOs.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
-pub struct EditorOperationPath(String);
+pub struct EditorOperationPath(EditorCommandId);
 
 impl EditorOperationPath {
     pub fn parse(value: impl Into<String>) -> Result<Self, EditorOperationPathError> {
-        let value = value.into();
-        if !Self::is_valid(&value) {
-            return Err(EditorOperationPathError::InvalidOperationPath(value));
-        }
-        Ok(Self(value))
-    }
-
-    pub(crate) fn is_valid(value: &str) -> bool {
-        let mut segment_count = 0;
-        let valid = value.split('.').all(|segment| {
-            segment_count += 1;
-            !segment.is_empty() && segment.chars().all(operation_path_char)
-        });
-        valid && segment_count >= MIN_OPERATION_PATH_SEGMENTS
+        EditorCommandId::parse(value)
+            .map(Self)
+            .map_err(|error| EditorOperationPathError::InvalidOperationPath(error.into_value()))
     }
 
     pub fn as_str(&self) -> &str {
-        &self.0
+        self.0.as_str()
     }
 }
 
@@ -52,11 +42,9 @@ impl<'de> Deserialize<'de> for EditorOperationPath {
     }
 }
 
-const MIN_OPERATION_PATH_SEGMENTS: usize = 3;
-
-fn operation_path_char(value: char) -> bool {
-    value.is_ascii_lowercase() || value.is_ascii_digit() || value == '_'
-}
+#[cfg(test)]
+#[path = "editor_operation/single_scan_tests.rs"]
+mod single_scan_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EditorOperationPathError {

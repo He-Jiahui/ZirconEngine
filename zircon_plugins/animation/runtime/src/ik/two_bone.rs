@@ -47,6 +47,9 @@ impl TwoBoneIkJob {
         if upper <= Real::EPSILON || lower <= Real::EPSILON {
             return Err(AnimationIkError::DegenerateChain);
         }
+        if self.weight == 0.0 {
+            return Ok(TwoBoneIkSolution { root, mid, tip });
+        }
         let target_delta = self.target - root;
         let target_distance = target_delta.length();
         let direction = target_delta.try_normalize().unwrap_or(Vec3::X);
@@ -92,3 +95,7 @@ fn validate(job: TwoBoneIkJob, root: Vec3, mid: Vec3, tip: Vec3) -> Result<(), A
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "two_bone/performance_tests.rs"]
+mod optimization_batch_20260830ct_tests;

@@ -16,11 +16,20 @@ class SettingsPageContributionContractTests(unittest.TestCase):
         materializer = MATERIALIZER.read_text(encoding="utf-8")
 
         self.assertIn("pub struct SettingsPageDescriptor", page)
+        self.assertIn("localization_bundle_id: EditorLocalizationBundleId", page)
+        self.assertIn("label_key: EditorLocalizationKey", page)
+        self.assertIn("category_keys: Vec<EditorLocalizationKey>", page)
+        self.assertNotIn("display_name: String", page)
+        self.assertNotIn("category_path: String", page)
+        self.assertNotIn("is_valid_category_path", page)
         self.assertIn("pub use page::SettingsPageDescriptor;", settings_mod)
+        self.assertIn("localization_bundles: BTreeMap<String, EditorLocalizationBundle>", extensions)
         self.assertIn("settings_pages: BTreeMap<String, SettingsPageDescriptor>", extensions)
+        self.assertIn("pub fn register_localization_bundle", extensions)
         self.assertIn("pub fn register_settings_page", extensions)
         self.assertIn("pub fn settings_pages(&self) -> Vec<&SettingsPageDescriptor>", extensions)
         self.assertIn("SerializedEditorContribution::SettingsPage", materializer)
+        self.assertIn("SerializedEditorContribution::LocalizationBundle", materializer)
         self.assertNotIn("Unsupported {\n                kind: \"settings page\"", materializer)
 
 

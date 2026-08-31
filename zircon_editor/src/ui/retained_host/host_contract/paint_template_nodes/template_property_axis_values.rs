@@ -16,7 +16,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn propert
             push_current_axis_value(&mut values, &mut current_axis, &mut current_value);
             current_axis = Some(token.to_string());
         } else if current_axis.is_some() {
-            current_value.push(token.to_string());
+            current_value.push(token);
         }
     }
     push_current_axis_value(&mut values, &mut current_axis, &mut current_value);
@@ -26,7 +26,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn propert
 fn push_current_axis_value(
     values: &mut Vec<PropertyAxisValue>,
     current_axis: &mut Option<String>,
-    current_value: &mut Vec<String>,
+    current_value: &mut Vec<&str>,
 ) {
     let Some(axis) = current_axis.take() else {
         return;
@@ -41,3 +41,7 @@ fn push_current_axis_value(
 fn is_axis_token(token: &str) -> bool {
     matches!(token, "X" | "Y" | "Z" | "W")
 }
+
+#[cfg(test)]
+#[path = "template_property_axis_values/token_buffer_tests.rs"]
+mod token_buffer_tests;

@@ -17,36 +17,33 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
         host: ViewHost::Drawer(ActivityDrawerSlot::LeftTop),
     };
     let workspace = ProjectEditorWorkspace {
-        layout_version: 1,
         workbench: WorkbenchLayout {
             active_main_page: MainPageId::workbench(),
             main_pages: vec![MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
                 activity_window: ActivityWindowId::workbench(),
-                document_workspace: DocumentNode::default(),
             }],
-            drawers: BTreeMap::from([(
-                ActivityDrawerSlot::LeftTop,
-                ActivityDrawerLayout {
-                    slot: ActivityDrawerSlot::LeftTop,
-                    tab_stack: TabStackLayout {
-                        tabs: vec![restored_instance.instance_id.clone()],
-                        active_tab: Some(restored_instance.instance_id.clone()),
-                    },
-                    active_view: Some(restored_instance.instance_id.clone()),
-                    mode: ActivityDrawerMode::Pinned,
-                    extent: 260.0,
-                    visible: true,
-                },
-            )]),
             activity_windows: BTreeMap::from([(
                 ActivityWindowId::workbench(),
                 ActivityWindowLayout {
                     window_id: ActivityWindowId::workbench(),
                     descriptor_id: ViewDescriptorId::new("editor.workbench_window"),
                     host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
-                    activity_drawers: BTreeMap::new(),
+                    activity_drawers: BTreeMap::from([(
+                        ActivityDrawerSlot::LeftTop,
+                        ActivityDrawerLayout {
+                            slot: ActivityDrawerSlot::LeftTop,
+                            tab_stack: TabStackLayout {
+                                tabs: vec![restored_instance.instance_id.clone()],
+                                active_tab: Some(restored_instance.instance_id.clone()),
+                            },
+                            active_view: Some(restored_instance.instance_id.clone()),
+                            mode: ActivityDrawerMode::Pinned,
+                            extent: 260.0,
+                            visible: true,
+                        },
+                    )]),
                     content_workspace: DocumentNode::default(),
                     menu_overflow_mode: Default::default(),
                     region_overrides: BTreeMap::new(),
@@ -54,8 +51,6 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
                 },
             )]),
             floating_windows: Vec::new(),
-            region_overrides: BTreeMap::new(),
-            view_overrides: BTreeMap::new(),
         },
         open_view_instances: vec![restored_instance.clone()],
         focused_view: None,
@@ -65,7 +60,7 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
     manager.apply_project_workspace(Some(workspace)).unwrap();
     let layout = manager.current_layout();
     let left_top = layout
-        .drawers
+        .active_activity_window_drawers()
         .get(&ActivityDrawerSlot::LeftTop)
         .expect("left top drawer");
     assert!(left_top
@@ -76,16 +71,6 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
         .tab_stack
         .tabs
         .contains(&ViewInstanceId::new("editor.hierarchy#1")));
-    let activity_left_top = layout
-        .activity_windows
-        .get(&ActivityWindowId::workbench())
-        .and_then(|window| window.activity_drawers.get(&ActivityDrawerSlot::LeftTop))
-        .expect("workbench activity left top drawer");
-    assert!(activity_left_top
-        .tab_stack
-        .tabs
-        .contains(&restored_instance.instance_id));
-
     let reopened = manager
         .open_view(ViewDescriptorId::new("editor.hierarchy"), None)
         .unwrap();
@@ -106,58 +91,56 @@ fn applying_project_workspace_preserves_builtin_shell_drawers() {
         .unwrap();
 
     let workspace = ProjectEditorWorkspace {
-        layout_version: 1,
         workbench: WorkbenchLayout {
             active_main_page: MainPageId::workbench(),
             main_pages: vec![MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
                 activity_window: ActivityWindowId::workbench(),
-                document_workspace: DocumentNode::Tabs(TabStackLayout {
-                    tabs: vec![
-                        ViewInstanceId::new("editor.scene#1"),
-                        ViewInstanceId::new("editor.game#1"),
-                    ],
-                    active_tab: Some(ViewInstanceId::new("editor.scene#1")),
-                }),
             }],
-            drawers: BTreeMap::from([(
-                ActivityDrawerSlot::LeftTop,
-                ActivityDrawerLayout {
-                    slot: ActivityDrawerSlot::LeftTop,
-                    tab_stack: TabStackLayout::default(),
-                    active_view: None,
-                    mode: ActivityDrawerMode::Collapsed,
-                    extent: 0.0,
-                    visible: false,
-                },
-            )]),
             activity_windows: BTreeMap::from([(
                 ActivityWindowId::workbench(),
                 ActivityWindowLayout {
                     window_id: ActivityWindowId::workbench(),
                     descriptor_id: ViewDescriptorId::new("editor.workbench_window"),
                     host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
-                    activity_drawers: BTreeMap::from([(
-                        ActivityDrawerSlot::BottomLeft,
-                        ActivityDrawerLayout {
-                            slot: ActivityDrawerSlot::BottomLeft,
-                            tab_stack: TabStackLayout::default(),
-                            active_view: None,
-                            mode: ActivityDrawerMode::Collapsed,
-                            extent: 0.0,
-                            visible: false,
-                        },
-                    )]),
-                    content_workspace: DocumentNode::default(),
+                    activity_drawers: BTreeMap::from([
+                        (
+                            ActivityDrawerSlot::LeftTop,
+                            ActivityDrawerLayout {
+                                slot: ActivityDrawerSlot::LeftTop,
+                                tab_stack: TabStackLayout::default(),
+                                active_view: None,
+                                mode: ActivityDrawerMode::Collapsed,
+                                extent: 0.0,
+                                visible: false,
+                            },
+                        ),
+                        (
+                            ActivityDrawerSlot::Bottom,
+                            ActivityDrawerLayout {
+                                slot: ActivityDrawerSlot::Bottom,
+                                tab_stack: TabStackLayout::default(),
+                                active_view: None,
+                                mode: ActivityDrawerMode::Collapsed,
+                                extent: 0.0,
+                                visible: false,
+                            },
+                        ),
+                    ]),
+                    content_workspace: DocumentNode::Tabs(TabStackLayout {
+                        tabs: vec![
+                            ViewInstanceId::new("editor.scene#1"),
+                            ViewInstanceId::new("editor.game#1"),
+                        ],
+                        active_tab: Some(ViewInstanceId::new("editor.scene#1")),
+                    }),
                     menu_overflow_mode: Default::default(),
                     region_overrides: BTreeMap::new(),
                     view_overrides: BTreeMap::new(),
                 },
             )]),
             floating_windows: Vec::new(),
-            region_overrides: BTreeMap::new(),
-            view_overrides: BTreeMap::new(),
         },
         open_view_instances: vec![
             ViewInstance {
@@ -185,7 +168,7 @@ fn applying_project_workspace_preserves_builtin_shell_drawers() {
     let layout = manager.current_layout();
 
     let left_top = layout
-        .drawers
+        .active_activity_window_drawers()
         .get(&ActivityDrawerSlot::LeftTop)
         .expect("left top drawer");
     assert!(left_top
@@ -197,7 +180,7 @@ fn applying_project_workspace_preserves_builtin_shell_drawers() {
     assert!(left_top.extent > 0.0);
 
     let right_top = layout
-        .drawers
+        .active_activity_window_drawers()
         .get(&ActivityDrawerSlot::RightTop)
         .expect("right top drawer");
     assert_eq!(
@@ -206,7 +189,7 @@ fn applying_project_workspace_preserves_builtin_shell_drawers() {
     );
 
     let bottom = layout
-        .drawers
+        .active_activity_window_drawers()
         .get(&ActivityDrawerSlot::Bottom)
         .expect("bottom drawer");
     assert_eq!(

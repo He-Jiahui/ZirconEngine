@@ -27,7 +27,7 @@ fn glyph_wrap_preserves_combining_mark_grapheme_boundaries() {
 #[test]
 fn glyph_wrap_preserves_rich_run_boundary_grapheme_clusters() {
     let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::Markdown;
+    style.rich_text_format = UiRichTextFormat::MarkdownInlineV1;
 
     let layout = layout_text(
         "*a*\u{0301}b",

@@ -59,7 +59,28 @@ fn routed_path_steps(
     terminal_phase: Option<UiDispatchPhase>,
 ) -> Vec<UiDispatchReplyStepTrace> {
     let terminal = explicit_handler.or(route_target).or(trace.target);
-    let mut steps = Vec::new();
+    let path = if trace.bubble_path.is_empty() {
+        &trace.focus_path
+    } else {
+        &trace.bubble_path
+    };
+    let terminal_step_capacity = usize::from(
+        terminal.is_some()
+            && matches!(
+                disposition,
+                UiDispatchDisposition::Handled | UiDispatchDisposition::Blocked
+            ),
+    );
+    let step_capacity = trace
+        .preview_tunnel
+        .len()
+        .saturating_add(path.len())
+        .saturating_add(terminal_step_capacity);
+    let mut steps = if step_capacity == 0 {
+        Vec::new()
+    } else {
+        Vec::with_capacity(step_capacity)
+    };
 
     for node_id in &trace.preview_tunnel {
         steps.push(routed_step(
@@ -81,11 +102,6 @@ fn routed_path_steps(
         }
     }
 
-    let path = if trace.bubble_path.is_empty() {
-        &trace.focus_path
-    } else {
-        &trace.bubble_path
-    };
     let Some((&target, ancestors)) = path.split_first() else {
         append_out_of_route_terminal_step(&mut steps, terminal, disposition, effect_count);
         return steps;

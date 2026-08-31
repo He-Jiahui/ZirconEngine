@@ -10,6 +10,11 @@ const SELECTED_COMPONENT_SUBJECT: &str = "component://selected";
 const SELECTED_ENTITY_SUBJECT: &str = "entity://selected";
 const INSPECTOR_SELECTED_ENTITY_SUBJECT: &str = "entity://selected";
 const VALUE_PROPERTY: &str = "value";
+const TRANSLATION_INSPECTOR_PATHS: [&str; 3] = [
+    "transform.translation.x",
+    "transform.translation.y",
+    "transform.translation.z",
+];
 
 pub(crate) fn apply_reflection_component_envelope(
     state: &mut EditorState,
@@ -103,11 +108,14 @@ fn apply_translation_vector(
         });
     };
 
-    for (axis, value) in ["x", "y", "z"].into_iter().zip(translation.iter()) {
+    for (inspector_path, value) in TRANSLATION_INSPECTOR_PATHS
+        .into_iter()
+        .zip(translation.iter())
+    {
         apply_inspector_draft_field(
             state,
             INSPECTOR_SELECTED_ENTITY_SUBJECT,
-            &format!("transform.translation.{axis}"),
+            inspector_path,
             value.to_string(),
         )
         .map_err(|error| dispatch_error_to_adapter_error(error, envelope))?;
@@ -159,3 +167,7 @@ fn dispatch_error_to_adapter_error(
         },
     }
 }
+
+#[cfg(test)]
+#[path = "reflection/static_translation_paths_tests.rs"]
+mod static_translation_paths_tests;

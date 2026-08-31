@@ -3,6 +3,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::pointer_hits::sorted_hits_by_pointer;
 use super::{HitRecord, HitTarget, PointerHits, PointerId, RayMap};
 
+#[cfg(test)]
+mod single_pass_tests;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PickingPipelineReport {
     pub ray_count: usize,
@@ -99,12 +102,7 @@ impl PickingPointerPipelineReport {
         backend_output_count: usize,
         raw_hit_count: usize,
     ) -> Self {
-        let blocking_index = sorted_hits
-            .iter()
-            .position(|hit| hit.pickable.should_block_lower);
-        let resolved_hits = blocking_index
-            .map(|index| &sorted_hits[..=index])
-            .unwrap_or(sorted_hits);
+        let summary = summarize_pointer_hits(sorted_hits);
 
         Self {
             pointer,
@@ -112,18 +110,38 @@ impl PickingPointerPipelineReport {
             backend_output_count,
             raw_hit_count,
             sorted_hit_count: sorted_hits.len(),
-            hovered_hit_count: resolved_hits
-                .iter()
-                .filter(|hit| hit.pickable.is_hoverable)
-                .count(),
-            non_hoverable_hit_count: sorted_hits
-                .iter()
-                .filter(|hit| !hit.pickable.is_hoverable)
-                .count(),
+            hovered_hit_count: summary.hovered_hit_count,
+            non_hoverable_hit_count: summary.non_hoverable_hit_count,
             top_target: sorted_hits.first().map(|hit| hit.target),
-            blocking_target: blocking_index.map(|index| sorted_hits[index].target),
+            blocking_target: summary.blocking_target,
         }
     }
+}
+
+struct PointerHitSummary {
+    hovered_hit_count: usize,
+    non_hoverable_hit_count: usize,
+    blocking_target: Option<HitTarget>,
+}
+
+fn summarize_pointer_hits(sorted_hits: &[HitRecord]) -> PointerHitSummary {
+    let mut summary = PointerHitSummary {
+        hovered_hit_count: 0,
+        non_hoverable_hit_count: 0,
+        blocking_target: None,
+    };
+    for hit in sorted_hits {
+        if summary.blocking_target.is_none() && hit.pickable.is_hoverable {
+            summary.hovered_hit_count += 1;
+        }
+        if !hit.pickable.is_hoverable {
+            summary.non_hoverable_hit_count += 1;
+        }
+        if summary.blocking_target.is_none() && hit.pickable.should_block_lower {
+            summary.blocking_target = Some(hit.target);
+        }
+    }
+    summary
 }
 
 fn output_counts_by_pointer(outputs: &[PointerHits]) -> BTreeMap<PointerId, (usize, usize)> {

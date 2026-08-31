@@ -1,3 +1,6 @@
+use std::cmp::{Ordering, Reverse};
+use std::collections::BinaryHeap;
+
 use zircon_runtime::core::framework::navigation::NavQueryFilter;
 use zircon_runtime::core::framework::navigation::AREA_WALKABLE;
 use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavMeshLinkAsset};
@@ -30,6 +33,29 @@ pub(super) enum EdgeTraversal {
 pub(super) struct RouteStep {
     pub(super) polygon: usize,
     pub(super) traversal_from_previous: Option<EdgeTraversal>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct OrderedRouteCost(Real);
+
+impl OrderedRouteCost {
+    fn new(cost: Real) -> Self {
+        Self(cost)
+    }
+}
+
+impl Eq for OrderedRouteCost {}
+
+impl Ord for OrderedRouteCost {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.total_cmp(&other.0)
+    }
+}
+
+impl PartialOrd for OrderedRouteCost {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 pub(super) fn build_polygon_graph(
@@ -128,14 +154,14 @@ pub(super) fn shortest_polygon_route(
     let mut distances = vec![Real::INFINITY; graph.len()];
     let mut visited = vec![false; graph.len()];
     let mut parents: Vec<Option<(usize, EdgeTraversal)>> = vec![None; graph.len()];
+    let mut frontier = BinaryHeap::new();
     distances[start] = 0.0;
+    frontier.push(Reverse((OrderedRouteCost::new(0.0), start)));
 
-    loop {
-        let current = (0..graph.len())
-            .filter(|index| !visited[*index])
-            .min_by(|left, right| distances[*left].total_cmp(&distances[*right]))?;
-        if distances[current] == Real::INFINITY {
-            return None;
+    while let Some(Reverse((cost, current))) = frontier.pop() {
+        let cost = cost.0;
+        if cost > distances[current] || visited[current] {
+            continue;
         }
         if current == end {
             break;
@@ -146,8 +172,13 @@ pub(super) fn shortest_polygon_route(
             if candidate < distances[edge.to] {
                 distances[edge.to] = candidate;
                 parents[edge.to] = Some((current, edge.traversal.clone()));
+                frontier.push(Reverse((OrderedRouteCost::new(candidate), edge.to)));
             }
         }
+    }
+
+    if distances[end] == Real::INFINITY {
+        return None;
     }
 
     let mut reversed = Vec::new();

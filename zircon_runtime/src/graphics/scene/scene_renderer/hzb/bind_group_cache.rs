@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::HashMap;
 
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshIndirectDrawExecution, MeshIndirectResourceIdentity,
@@ -8,7 +8,7 @@ use super::HzbSampledResourceIdentity;
 
 const MAX_HZB_OCCLUSION_BIND_GROUPS: usize = 64;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct HzbOcclusionBindGroupKey {
     sampled_resource_id: u64,
     indirect_resources: MeshIndirectResourceIdentity,
@@ -27,13 +27,14 @@ impl HzbOcclusionBindGroupKey {
 }
 
 struct HzbOcclusionBindGroupEntry {
-    key: HzbOcclusionBindGroupKey,
     bind_group: wgpu::BindGroup,
+    last_used: u64,
 }
 
 #[derive(Default)]
 pub(super) struct HzbOcclusionBindGroupCache {
-    entries: VecDeque<HzbOcclusionBindGroupEntry>,
+    entries: HashMap<HzbOcclusionBindGroupKey, HzbOcclusionBindGroupEntry>,
+    access_generation: u64,
 }
 
 pub(super) struct PreparedHzbOcclusionBindGroup<'a> {
@@ -55,44 +56,64 @@ impl HzbOcclusionBindGroupCache {
     ) -> PreparedHzbOcclusionBindGroup<'a> {
         let key =
             HzbOcclusionBindGroupKey::new(sampled_resource_identity, execution.resource_identity());
-        if let Some(index) = self.entries.iter().position(|entry| entry.key == key) {
+        let access_generation = self.next_access_generation();
+        if self.entries.contains_key(&key) {
             let entry = self
                 .entries
-                .remove(index)
-                .expect("located HZB bind group must remain cached");
-            self.entries.push_back(entry);
+                .get_mut(&key)
+                .expect("present HZB bind-group cache entry");
+            entry.last_used = access_generation;
             return PreparedHzbOcclusionBindGroup {
-                bind_group: &self
-                    .entries
-                    .back()
-                    .expect("cached HZB bind group")
-                    .bind_group,
+                bind_group: &entry.bind_group,
                 created: false,
             };
         }
 
         if self.entries.len() >= MAX_HZB_OCCLUSION_BIND_GROUPS {
-            self.entries.pop_front();
+            if let Some(oldest_key) = self
+                .entries
+                .iter()
+                .min_by_key(|(_, entry)| entry.last_used)
+                .map(|(key, _)| *key)
+            {
+                self.entries.remove(&oldest_key);
+            }
         }
-        self.entries.push_back(HzbOcclusionBindGroupEntry {
+        self.entries.insert(
             key,
-            bind_group: create_bind_group(
-                device,
-                layout,
-                previous_hzb_view,
-                params_buffer,
-                stats_buffer,
-                execution,
-            ),
-        });
+            HzbOcclusionBindGroupEntry {
+                bind_group: create_bind_group(
+                    device,
+                    layout,
+                    previous_hzb_view,
+                    params_buffer,
+                    stats_buffer,
+                    execution,
+                ),
+                last_used: access_generation,
+            },
+        );
         PreparedHzbOcclusionBindGroup {
             bind_group: &self
                 .entries
-                .back()
+                .get(&key)
                 .expect("prepared HZB bind group")
                 .bind_group,
             created: true,
         }
+    }
+
+    fn next_access_generation(&mut self) -> u64 {
+        if self.access_generation == u64::MAX {
+            let mut entries = self.entries.values_mut().collect::<Vec<_>>();
+            entries.sort_unstable_by_key(|entry| entry.last_used);
+            for (index, entry) in entries.into_iter().enumerate() {
+                entry.last_used = index as u64 + 1;
+            }
+            self.access_generation = self.entries.len() as u64;
+        }
+        self.access_generation += 1;
+        self.access_generation
     }
 }
 
@@ -148,6 +169,9 @@ fn create_bind_group(
         ],
     })
 }
+
+#[cfg(test)]
+mod hash_lru_tests;
 
 #[cfg(test)]
 mod tests {

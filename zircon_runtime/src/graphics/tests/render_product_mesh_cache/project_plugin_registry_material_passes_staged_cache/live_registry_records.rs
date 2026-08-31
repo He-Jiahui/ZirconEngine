@@ -11,7 +11,7 @@ use super::assertions::{
     assert_registry_material_pass_velocity_frame_shader_cache_hit,
     assert_runtime_shader_cache_root_empty,
 };
-use super::case::{registry_shader_cases_from_live_records, RegistryShaderCase};
+use super::case::{RegistryShaderCase, registry_shader_cases_from_live_records};
 use super::fixture::submit_registry_material_passes_with_staged_cache;
 use super::manifest::{
     raw_wgsl_hash, registry_material_pass_live_source_label_prewarm_manifest,

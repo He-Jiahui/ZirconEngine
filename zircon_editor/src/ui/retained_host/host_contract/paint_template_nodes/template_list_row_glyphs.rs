@@ -5,9 +5,7 @@ use super::template_icon_assets::push_icon_asset_pixels;
 use super::template_row_metrics::workbench_row_palette;
 
 mod geometry;
-mod segments;
 mod selection;
-mod shapes;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use selection::{
     list_row_adornment_kind, ListRowAdornmentKind,
@@ -32,7 +30,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
     }
     match list_row_adornment_kind(node) {
         ListRowAdornmentKind::Check => {
-            if push_icon_asset_pixels(
+            push_icon_asset_pixels(
                 commands,
                 LIST_ROW_CHECK_ICON,
                 &adornment,
@@ -40,13 +38,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
                 order,
                 Some(color),
                 opacity,
-            ) {
-                return;
-            }
-            shapes::push_check_mark(commands, &adornment, clip, order, color, opacity);
+            );
         }
         ListRowAdornmentKind::Chevron => {
-            if push_icon_asset_pixels(
+            push_icon_asset_pixels(
                 commands,
                 LIST_ROW_CHEVRON_ICON,
                 &adornment,
@@ -54,30 +49,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
                 order,
                 Some(color),
                 opacity,
-            ) {
-                return;
-            }
-            shapes::push_right_chevron(commands, &adornment, clip, order, color, opacity);
+            );
         }
         ListRowAdornmentKind::DisabledDiamond => {
             let palette = workbench_row_palette();
-            if push_icon_asset_pixels(
+            push_icon_asset_pixels(
                 commands,
                 LIST_ROW_DISABLED_ICON,
                 &adornment,
                 clip,
                 order,
                 Some(palette.disabled_adornment_tint),
-                opacity,
-            ) {
-                return;
-            }
-            shapes::push_disabled_diamond(
-                commands,
-                &adornment,
-                clip,
-                order,
-                palette.disabled_adornment_tint,
                 opacity,
             );
         }

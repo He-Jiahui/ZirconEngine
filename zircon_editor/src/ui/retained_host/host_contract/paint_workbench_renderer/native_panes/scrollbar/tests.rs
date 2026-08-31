@@ -1,13 +1,8 @@
 use super::geometry::vertical_scrollbar_geometry;
 use super::style::{workbench_scrollbar_metrics_from_host, WorkbenchScrollbarMetrics};
 use super::{
-    asset::{
-        activity_asset_content_viewport_and_extent,
-        activity_asset_reference_viewport_and_row_count, asset_tree_viewport_frame,
-        browser_asset_reference_viewport_and_row_count,
-    },
-    draw_activity_asset_content_scrollbar, draw_activity_asset_reference_scrollbars,
-    draw_browser_asset_reference_scrollbars,
+    asset::{asset_scrollbar_content_extent, asset_scrollbar_viewport, asset_tree_viewport_frame},
+    draw_activity_asset_scrollbars, draw_browser_asset_scrollbars,
 };
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::hierarchy_pointer::{
@@ -20,8 +15,9 @@ use crate::ui::retained_host::host_contract::data::{
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 use crate::ui::workbench::asset_content_layout::{
-    asset_content_paint_metadata, ActivityAssetReferenceListKind, AssetContentPaintNodeInput,
-    AssetContentSurface, BrowserAssetReferenceListKind,
+    asset_content_paint_metadata, AssetContentPaintMetadata, AssetContentPaintNodeInput,
+    AssetContentScrollbarDescriptor, AssetContentScrollbarExtent, AssetContentScrollbarKind,
+    AssetContentScrollbarViewport, AssetContentSurface,
 };
 
 #[test]
@@ -89,9 +85,22 @@ fn asset_tree_viewport_tracks_pointer_tree_header_formula() {
 fn activity_asset_content_scrollbar_uses_projected_panel_viewport_and_extent() {
     let pane = activity_content_pane(240.0);
     let body = frame(20.0, 30.0, 140.0, 120.0);
-    let (viewport, extent) =
-        activity_asset_content_viewport_and_extent(&pane.assets_activity.nodes, &body)
-            .expect("activity content viewport");
+    let descriptor = asset_descriptor(
+        &pane.assets_activity.nodes,
+        AssetContentScrollbarKind::Content,
+    );
+    let metadata = pane
+        .assets_activity
+        .nodes
+        .metadata::<AssetContentPaintMetadata>()
+        .expect("activity paint metadata");
+    let viewport = asset_scrollbar_viewport(
+        metadata
+            .scrollbar_viewport(descriptor)
+            .expect("activity content viewport"),
+        &body,
+    );
+    let extent = asset_scrollbar_content_extent(metadata.scrollbar_extent(descriptor));
 
     assert_eq!(viewport, frame(30.0, 50.0, 100.0, 80.0));
     assert_eq!(extent, 240.0);
@@ -109,7 +118,7 @@ fn activity_asset_content_scrollbar_uses_projected_panel_viewport_and_extent() {
     );
 
     let mut pixels = HostRgbaFrame::filled(180, 180, [0, 0, 0, 255]);
-    assert!(draw_activity_asset_content_scrollbar(
+    assert!(draw_activity_asset_scrollbars(
         &mut pixels,
         &pane,
         &body,
@@ -129,7 +138,7 @@ fn activity_asset_content_scrollbar_is_absent_for_empty_and_fitting_content() {
     for extent in [0.0, 80.0] {
         let pane = activity_content_pane(extent);
         let mut pixels = HostRgbaFrame::filled(180, 180, [0, 0, 0, 255]);
-        assert!(!draw_activity_asset_content_scrollbar(
+        assert!(!draw_activity_asset_scrollbars(
             &mut pixels,
             &pane,
             &body,
@@ -144,23 +153,27 @@ fn browser_reference_scrollbars_paint_each_list_with_independent_extents_and_scr
     let pane = browser_reference_pane(3, 4);
     let body = frame(20.0, 30.0, 240.0, 240.0);
     let clip = frame(0.0, 0.0, 300.0, 300.0);
-    let references = browser_asset_reference_viewport_and_row_count(
+    let references = asset_descriptor(
         &pane.asset_browser.nodes,
-        &body,
-        BrowserAssetReferenceListKind::References,
-    )
-    .expect("references viewport");
-    let used_by = browser_asset_reference_viewport_and_row_count(
-        &pane.asset_browser.nodes,
-        &body,
-        BrowserAssetReferenceListKind::UsedBy,
-    )
-    .expect("Used By viewport");
-    assert_eq!(references.1, 3);
-    assert_eq!(used_by.1, 4);
+        AssetContentScrollbarKind::References,
+    );
+    let used_by = asset_descriptor(&pane.asset_browser.nodes, AssetContentScrollbarKind::UsedBy);
+    let metadata = pane
+        .asset_browser
+        .nodes
+        .metadata::<AssetContentPaintMetadata>()
+        .expect("browser paint metadata");
+    assert_eq!(
+        metadata.scrollbar_extent(references),
+        AssetContentScrollbarExtent::ReferenceRows(3)
+    );
+    assert_eq!(
+        metadata.scrollbar_extent(used_by),
+        AssetContentScrollbarExtent::ReferenceRows(4)
+    );
 
     let mut pixels = HostRgbaFrame::filled(300, 300, [0, 0, 0, 255]);
-    assert!(draw_browser_asset_reference_scrollbars(
+    assert!(draw_browser_asset_scrollbars(
         &mut pixels,
         &pane,
         &body,
@@ -184,23 +197,30 @@ fn activity_reference_scrollbars_paint_each_list_with_independent_extents_and_sc
     let pane = activity_reference_pane(3, 4);
     let body = frame(20.0, 30.0, 240.0, 240.0);
     let clip = frame(0.0, 0.0, 300.0, 300.0);
-    let references = activity_asset_reference_viewport_and_row_count(
+    let references = asset_descriptor(
         &pane.assets_activity.nodes,
-        &body,
-        ActivityAssetReferenceListKind::References,
-    )
-    .expect("activity References viewport");
-    let used_by = activity_asset_reference_viewport_and_row_count(
+        AssetContentScrollbarKind::References,
+    );
+    let used_by = asset_descriptor(
         &pane.assets_activity.nodes,
-        &body,
-        ActivityAssetReferenceListKind::UsedBy,
-    )
-    .expect("activity Used By viewport");
-    assert_eq!(references.1, 3);
-    assert_eq!(used_by.1, 4);
+        AssetContentScrollbarKind::UsedBy,
+    );
+    let metadata = pane
+        .assets_activity
+        .nodes
+        .metadata::<AssetContentPaintMetadata>()
+        .expect("activity paint metadata");
+    assert_eq!(
+        metadata.scrollbar_extent(references),
+        AssetContentScrollbarExtent::ReferenceRows(3)
+    );
+    assert_eq!(
+        metadata.scrollbar_extent(used_by),
+        AssetContentScrollbarExtent::ReferenceRows(4)
+    );
 
     let mut pixels = HostRgbaFrame::filled(300, 300, [0, 0, 0, 255]);
-    assert!(draw_activity_asset_reference_scrollbars(
+    assert!(draw_activity_asset_scrollbars(
         &mut pixels,
         &pane,
         &body,
@@ -219,6 +239,57 @@ fn activity_reference_scrollbars_paint_each_list_with_independent_extents_and_sc
     assert_ne!(pixel_at(&bytes, 300, 242, 176), [0, 0, 0, 255]);
 }
 
+#[test]
+fn activity_generation_publishes_typed_scrollbar_descriptors() {
+    let pane = activity_reference_pane(3, 4);
+    let metadata = pane
+        .assets_activity
+        .nodes
+        .metadata::<crate::ui::workbench::asset_content_layout::AssetContentPaintMetadata>()
+        .expect("activity paint metadata");
+    let descriptors = metadata.scrollbar_descriptors();
+
+    assert_eq!(descriptors[0].kind(), AssetContentScrollbarKind::Tree);
+    assert_eq!(
+        metadata.scrollbar_viewport(descriptors[0]),
+        Some(AssetContentScrollbarViewport::ActivityTree)
+    );
+    assert_eq!(
+        metadata.scrollbar_extent(descriptors[0]),
+        AssetContentScrollbarExtent::TreeRows(0)
+    );
+    assert_eq!(descriptors[1].kind(), AssetContentScrollbarKind::References);
+    assert_eq!(
+        metadata.scrollbar_extent(descriptors[1]),
+        AssetContentScrollbarExtent::ReferenceRows(3)
+    );
+    assert_eq!(descriptors[2].kind(), AssetContentScrollbarKind::UsedBy);
+    assert_eq!(
+        metadata.scrollbar_extent(descriptors[2]),
+        AssetContentScrollbarExtent::ReferenceRows(4)
+    );
+}
+
+#[test]
+fn asset_scrollbar_damage_only_paints_the_intersecting_descriptor() {
+    let pane = browser_reference_pane(3, 4);
+    let body = frame(20.0, 30.0, 240.0, 240.0);
+    let damage = frame(118.0, 45.0, 12.0, 60.0);
+    let mut pixels = HostRgbaFrame::filled(300, 300, [0, 0, 0, 255]);
+
+    assert!(draw_browser_asset_scrollbars(
+        &mut pixels,
+        &pane,
+        &body,
+        &damage,
+        &HostPaneInteractionStateData::default(),
+    ));
+
+    let bytes = pixels.into_bytes();
+    assert_ne!(pixel_at(&bytes, 300, 122, 76), [0, 0, 0, 255]);
+    assert_eq!(pixel_at(&bytes, 300, 242, 176), [0, 0, 0, 255]);
+}
+
 fn test_metrics() -> WorkbenchScrollbarMetrics {
     WorkbenchScrollbarMetrics {
         thickness: 8.0,
@@ -226,6 +297,19 @@ fn test_metrics() -> WorkbenchScrollbarMetrics {
         track_inset: 1.0,
         min_thumb_length: 24.0,
     }
+}
+
+fn asset_descriptor(
+    nodes: &crate::ui::retained_host::primitives::ModelRc<TemplatePaneNodeData>,
+    kind: AssetContentScrollbarKind,
+) -> AssetContentScrollbarDescriptor {
+    *nodes
+        .metadata::<AssetContentPaintMetadata>()
+        .expect("asset content paint metadata")
+        .scrollbar_descriptors()
+        .iter()
+        .find(|descriptor| descriptor.kind() == kind)
+        .expect("typed scrollbar descriptor")
 }
 
 fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
@@ -277,7 +361,10 @@ fn activity_content_pane(content_extent: f32) -> PaneData {
 
     PaneData {
         kind: "Assets".into(),
-        assets_activity: AssetsActivityPaneData { nodes },
+        assets_activity: AssetsActivityPaneData {
+            nodes,
+            ..AssetsActivityPaneData::default()
+        },
         ..PaneData::default()
     }
 }
@@ -345,7 +432,10 @@ fn browser_reference_pane(reference_count: usize, used_by_count: usize) -> PaneD
 
     PaneData {
         kind: "AssetBrowser".into(),
-        asset_browser: AssetBrowserPaneData { nodes },
+        asset_browser: AssetBrowserPaneData {
+            nodes,
+            ..AssetBrowserPaneData::default()
+        },
         ..PaneData::default()
     }
 }
@@ -413,7 +503,10 @@ fn activity_reference_pane(reference_count: usize, used_by_count: usize) -> Pane
 
     PaneData {
         kind: "Assets".into(),
-        assets_activity: AssetsActivityPaneData { nodes },
+        assets_activity: AssetsActivityPaneData {
+            nodes,
+            ..AssetsActivityPaneData::default()
+        },
         ..PaneData::default()
     }
 }

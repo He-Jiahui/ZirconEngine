@@ -114,14 +114,15 @@ fn collect_shader_module_sources(
     let mut seen = std::collections::HashSet::new();
     registries
         .iter()
-        .flat_map(|registry| registry.shader_module_sources().iter().cloned())
+        .flat_map(|registry| registry.shader_module_sources().iter())
         .filter(|source| {
             seen.insert((
-                source.owner_id.clone(),
-                source.import_path.clone(),
-                source.content_hash.clone(),
+                source.owner_id.as_str(),
+                source.import_path.as_str(),
+                source.content_hash.as_str(),
             ))
         })
+        .cloned()
         .collect()
 }
 

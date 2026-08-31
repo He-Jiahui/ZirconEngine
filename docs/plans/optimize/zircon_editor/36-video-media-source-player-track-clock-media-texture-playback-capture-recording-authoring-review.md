@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue
-  - zircon_runtime_interface/src/runtime_api/requests.rs
+  - zircon_runtime_interface/src/runtime_api/session/requests.rs
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
   - zircon_editor/src/core/gateway
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts

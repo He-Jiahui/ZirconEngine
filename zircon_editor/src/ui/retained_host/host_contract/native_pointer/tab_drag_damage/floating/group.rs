@@ -7,10 +7,7 @@ pub(in super::super) fn floating_group_frame(
     group: &str,
 ) -> Option<FrameRect> {
     let scene = &presentation.host_scene_data;
-    for row in 0..scene.floating_layer.floating_windows.row_count() {
-        let Some(window) = scene.floating_layer.floating_windows.row_data(row) else {
-            continue;
-        };
+    for window in scene.floating_layer.floating_windows.iter() {
         if group == window.target_group.as_str()
             || group == window.left_edge_target_group.as_str()
             || group == window.right_edge_target_group.as_str()

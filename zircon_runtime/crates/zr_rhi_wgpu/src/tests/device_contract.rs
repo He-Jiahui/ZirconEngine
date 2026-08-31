@@ -2,10 +2,12 @@ use crate::DeterministicRhiContractDevice;
 use zr_rhi::{
     BindGroupDesc, BindGroupEntryDesc, BindGroupEntryResource, BindGroupHandle,
     BindGroupLayoutDesc, BindGroupLayoutEntryDesc, BindGroupLayoutHandle, BindingResourceType,
-    BufferDesc, BufferHandle, BufferUsage, CommandList, CompareFunction, FenceValue, PipelineDesc,
+    BufferDesc, BufferHandle, BufferUsage, CommandList, CompareFunction, PipelineDesc,
     PipelineHandle, PipelineKind, PipelineLayoutDesc, PipelineLayoutHandle, RenderDevice,
-    RenderQueueClass, SamplerDesc, SamplerHandle, ShaderModuleDesc, ShaderModuleHandle,
-    ShaderStage, TextureDesc, TextureDimension, TextureFormat, TextureHandle, TextureUsage,
+    RenderQueueClass, RhiError, SamplerBindingType, SamplerDesc, SamplerHandle, ShaderModuleDesc,
+    ShaderModuleHandle, ShaderStage, SubmissionStatus, TextureCopyRegion, TextureDesc,
+    TextureDimension, TextureFormat, TextureHandle, TextureSampleType, TextureUsage,
+    TextureViewAspect, TextureViewDesc, TextureViewDimension, TextureViewHandle,
 };
 
 fn test_bind_group_layout_desc(label: &str) -> BindGroupLayoutDesc {
@@ -40,4 +42,5 @@ mod bind_groups;
 mod framework_boundary;
 mod invalid_descriptors;
 mod texture_sampler_descriptors;
-mod transfer_and_fences;
+mod texture_views;
+mod transfer_and_submissions;

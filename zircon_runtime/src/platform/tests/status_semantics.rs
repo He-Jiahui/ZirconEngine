@@ -96,3 +96,38 @@ fn synthetic_input_backend_counts_as_supported_when_input_gate_is_enabled() {
     assert!(!report.gamepad_input.is_supported());
     assert!(!report.file_drag_drop.is_supported());
 }
+
+#[test]
+fn disabled_platform_config_masks_candidate_capabilities_and_injected_preferences() {
+    let config = PlatformConfig {
+        enabled: false,
+        target: PlatformTarget::Windows,
+        target_mode: crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+        features: PlatformFeatureSelection::bevy_default_platform(),
+    };
+
+    let report = config.planning_capability_report_with_preference_storage_backend(
+        crate::core::framework::platform::PreferenceStorageBackendKind::AtomicFile,
+    );
+
+    assert_eq!(
+        report.window_backend,
+        CapabilityStatus::FeatureDisabled {
+            feature: "platform"
+        }
+    );
+    assert_eq!(
+        report.persistent_preferences,
+        CapabilityStatus::FeatureDisabled {
+            feature: "platform"
+        }
+    );
+    assert_eq!(report.event_loop_policy, EventLoopPolicy::Headless);
+    assert!(
+        report
+            .diagnostic_lines()
+            .iter()
+            .all(|line| !line.contains("=supported:")),
+        "disabled platform config must not publish a supported runtime capability"
+    );
+}

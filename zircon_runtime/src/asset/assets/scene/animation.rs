@@ -1,7 +1,5 @@
-use std::collections::BTreeMap;
-
 use crate::asset::AssetReference;
-use crate::core::framework::animation::AnimationParameterValue;
+use crate::core::framework::animation::AnimationParameterSet;
 use crate::core::math::Real;
 use serde::{Deserialize, Serialize};
 
@@ -44,7 +42,7 @@ pub struct SceneAnimationSequencePlayerAsset {
 pub struct SceneAnimationGraphPlayerAsset {
     pub graph: AssetReference,
     #[serde(default)]
-    pub parameters: BTreeMap<String, AnimationParameterValue>,
+    pub parameters: AnimationParameterSet,
     #[serde(default = "default_true")]
     pub playing: bool,
 }
@@ -53,7 +51,7 @@ pub struct SceneAnimationGraphPlayerAsset {
 pub struct SceneAnimationStateMachinePlayerAsset {
     pub state_machine: AssetReference,
     #[serde(default)]
-    pub parameters: BTreeMap<String, AnimationParameterValue>,
+    pub parameters: AnimationParameterSet,
     #[serde(default)]
     pub active_state: Option<String>,
     #[serde(default = "default_true")]

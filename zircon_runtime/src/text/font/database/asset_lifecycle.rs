@@ -4,14 +4,14 @@ use std::sync::Arc;
 
 use glyphon::fontdb;
 
-use crate::asset::FontAsset;
-use crate::text::{FontFaceDescriptor, FontFaceId, FontFamilyName};
+use crate::asset::{FontAsset, FontBlobArtifact};
+use crate::text::{CompositeFontDescriptor, FontFaceDescriptor, FontFaceId, FontFamilyName};
 
 use super::{
-    read_decoded_font_source, FontAssetOwnerState, FontAssetUpdateReport, FontDatabase,
-    FontDatabaseError,
+    FontAssetOwnerState, FontAssetUpdateReport, FontDatabase, FontDatabaseError,
+    read_decoded_font_source,
 };
-use crate::text::font::asset_registration::{font_asset_faces, FontAssetSourceKey};
+use crate::text::font::asset_registration::{FontAssetSourceKey, font_asset_faces};
 use crate::text::font::descriptors::descriptor_from_font_metadata;
 use crate::text::font::face_metadata::FontFaceMetadata;
 use crate::text::font::matching::font_family_identity;
@@ -54,11 +54,24 @@ impl FontDatabase {
     }
 
     pub(crate) fn font_asset_primary_face(&self, owner: &str) -> Option<FontFaceId> {
+        self.asset_owners.get(owner)?.faces.first().copied()
+    }
+
+    pub(in crate::text::font) fn font_asset_fallback_families(
+        &self,
+        owner: &str,
+    ) -> Option<&[FontFamilyName]> {
         self.asset_owners
-            .get(owner)?
-            .sources
-            .iter()
-            .find_map(|source| self.asset_source_index.get(source).copied())
+            .get(owner)
+            .map(|state| state.fallback_families.as_slice())
+    }
+
+    pub(in crate::text::font) fn font_asset_base_fallback_families(&self) -> &[FontFamilyName] {
+        &self.fallback_base_families
+    }
+
+    pub(in crate::text::font) fn has_font_asset_owner(&self, owner: &str) -> bool {
+        self.asset_owners.contains_key(owner)
     }
 
     pub(crate) fn replace_font_asset(
@@ -70,6 +83,29 @@ impl FontDatabase {
         let source_path = source_path.as_ref();
         let bytes = read_decoded_font_source(source_path)?;
         let bytes: Arc<[u8]> = Arc::from(bytes.into_boxed_slice());
+        self.replace_font_asset_bytes(owner, asset, source_path, bytes)
+    }
+
+    pub(crate) fn replace_font_asset_blob(
+        &mut self,
+        owner: &str,
+        asset: &FontAsset,
+        source_path: impl AsRef<Path>,
+        blob: &FontBlobArtifact,
+    ) -> Result<FontAssetUpdateReport, FontDatabaseError> {
+        if !blob.is_valid_for_runtime() {
+            return Err(FontDatabaseError::InvalidCookedArtifact);
+        }
+        self.replace_font_asset_bytes(owner, asset, source_path.as_ref(), blob.shared_bytes())
+    }
+
+    fn replace_font_asset_bytes(
+        &mut self,
+        owner: &str,
+        asset: &FontAsset,
+        source_path: &Path,
+        bytes: Arc<[u8]>,
+    ) -> Result<FontAssetUpdateReport, FontDatabaseError> {
         let registrations = font_asset_faces(asset, bytes.as_ref(), source_path)
             .into_iter()
             .map(|registration| (registration.descriptor, registration.metadata))
@@ -81,6 +117,7 @@ impl FontDatabase {
             bytes,
             registrations,
             fallback_families,
+            asset.composite_font.clone(),
         )
     }
 
@@ -102,6 +139,7 @@ impl FontDatabase {
             bytes,
             vec![(descriptor, metadata)],
             Vec::new(),
+            None,
         )
     }
 
@@ -115,12 +153,10 @@ impl FontDatabase {
             };
         }
 
-        let fallback_families = self.fallback_families.clone();
         let retired_faces = self.remove_asset_owner(owner);
         FontAssetUpdateReport {
             faces: Vec::new(),
-            database_changed: !retired_faces.is_empty()
-                || fallback_families != self.fallback_families,
+            database_changed: true,
             retired_faces,
             asset_mapping_changed: true,
         }
@@ -133,8 +169,22 @@ impl FontDatabase {
         bytes: Arc<[u8]>,
         registrations: Vec<(FontFaceDescriptor, FontFaceMetadata)>,
         fallback_families: Vec<FontFamilyName>,
+        composite_font: Option<CompositeFontDescriptor>,
     ) -> Result<FontAssetUpdateReport, FontDatabaseError> {
-        let mut next = self.clone();
+        let mut next = {
+            crate::profile_scope!(
+                "runtime",
+                "text.font_database",
+                "owner_registration_staging_clone"
+            );
+            let next = self.clone();
+            crate::profile_counter!(
+                "runtime",
+                "text.font_database.owner_registration_staging_clone_face_count",
+                self.face_count()
+            );
+            next
+        };
         let previous = next.asset_owners.get(owner).cloned().unwrap_or_default();
         let mut source_keys = Vec::new();
         let mut faces = Vec::new();
@@ -169,13 +219,18 @@ impl FontDatabase {
             owner.to_string(),
             FontAssetOwnerState {
                 sources: source_keys,
+                faces: Arc::from(faces.clone().into_boxed_slice()),
                 fallback_families,
+                composite_font,
             },
         );
         next.rebuild_asset_fallback_families();
 
-        let database_changed = !self.has_same_render_inputs(&next);
         let asset_mapping_changed = self.asset_owners.get(owner) != next.asset_owners.get(owner);
+        if asset_mapping_changed {
+            next.detach_matching_and_fallback_caches();
+        }
+        let database_changed = !self.has_same_render_inputs(&next);
         *self = next;
         Ok(FontAssetUpdateReport {
             faces,
@@ -194,6 +249,7 @@ impl FontDatabase {
             self.detach_asset_source_owner(owner, &source_key, &mut retired_faces);
         }
         self.rebuild_asset_fallback_families();
+        self.detach_matching_and_fallback_caches();
         retired_faces
     }
 
@@ -282,7 +338,6 @@ impl FontDatabase {
         }
         if self.fallback_families != fallback_families {
             self.fallback_families = fallback_families;
-            self.detach_matching_and_fallback_caches();
         }
     }
 }

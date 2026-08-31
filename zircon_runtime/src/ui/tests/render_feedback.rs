@@ -23,6 +23,51 @@ fn feedback_tone_classification_does_not_join_or_lowercase_metadata() {
 }
 
 #[test]
+fn anchored_tooltip_uses_runtime_flip_and_clamp_geometry() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.feedback.tooltip.anchor"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 200.0, 120.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "Tooltip",
+        UiFrame::new(20.0, 16.0, 96.0, 42.0),
+        r##"
+text = "Anchored tooltip"
+placement = "top"
+popup_anchor_x = 100.0
+popup_anchor_y = 4.0
+popup_anchor_width = 20.0
+popup_anchor_height = 10.0
+arrow_size = 8.0
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let tooltip = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2)
+                && command.kind == UiRenderCommandKind::Quad
+                && command.style.painter_family == UiPainterFamily::Tooltip
+        })
+        .expect("tooltip surface command");
+    assert_eq!(tooltip.frame, UiFrame::new(62.0, 22.0, 96.0, 42.0));
+    assert_eq!(
+        tooltip.clip_frame,
+        Some(UiFrame::new(0.0, 0.0, 200.0, 120.0))
+    );
+}
+
+#[test]
 fn render_extract_expands_feedback_primitives() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.feedback"));
     surface.tree.insert_root(

@@ -13,32 +13,30 @@ pub(crate) fn parse_value_path(path: &str) -> Option<Vec<UiAssetTomlPathSegment>
     }
 
     let mut segments = Vec::new();
-    let chars = trimmed.chars().collect::<Vec<_>>();
+    let bytes = trimmed.as_bytes();
     let mut index = 0usize;
-    while index < chars.len() {
-        match chars[index] {
-            '.' => index += 1,
-            '[' => {
+    while index < bytes.len() {
+        match bytes[index] {
+            b'.' => index += 1,
+            b'[' => {
                 index += 1;
                 let start = index;
-                while index < chars.len() && chars[index] != ']' {
+                while index < bytes.len() && bytes[index] != b']' {
                     index += 1;
                 }
-                if index == start || index >= chars.len() {
+                if index == start || index >= bytes.len() {
                     return None;
                 }
-                let value = chars[start..index].iter().collect::<String>();
-                let parsed = value.trim().parse::<usize>().ok()?;
+                let parsed = trimmed[start..index].trim().parse::<usize>().ok()?;
                 segments.push(UiAssetTomlPathSegment::Index(parsed));
                 index += 1;
             }
             _ => {
                 let start = index;
-                while index < chars.len() && chars[index] != '.' && chars[index] != '[' {
+                while index < bytes.len() && bytes[index] != b'.' && bytes[index] != b'[' {
                     index += 1;
                 }
-                let value = chars[start..index].iter().collect::<String>();
-                let value = value.trim();
+                let value = trimmed[start..index].trim();
                 if value.is_empty() {
                     return None;
                 }
@@ -173,3 +171,7 @@ fn default_container_for(segment: Option<&UiAssetTomlPathSegment>) -> Option<Val
         None => None,
     }
 }
+
+#[cfg(test)]
+#[path = "value_path/byte_slice_tests.rs"]
+mod byte_slice_tests;

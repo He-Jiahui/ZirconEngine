@@ -4,7 +4,7 @@ use std::path::Path;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ProjectPluginManifest;
 use zircon_runtime::plugin::native::{
-    NativePluginLoadReport, load_discovered_native_editor_plugins,
+    discovery::load_discovered_native_editor_plugins, NativePluginLoadReport,
 };
 
 use crate::core::plugin::EditorPluginRegistrationReport;
@@ -84,7 +84,7 @@ fn native_editor_registration_reports_from_load_report(
             let plugin_id = package.id.clone();
             let native_entry_is_usable = native_projection.is_loaded(&plugin_id)
                 && contribution_materialization.is_registration_usable(&plugin_id);
-            let (mut extensions, contribution_diagnostics) =
+            let (mut extensions, native_command_bindings, contribution_diagnostics) =
                 contribution_materialization.take_registration(&plugin_id);
             if let Some(root) = native_package_roots.get(&plugin_id) {
                 extensions.bind_ui_template_root(root);
@@ -98,7 +98,12 @@ fn native_editor_registration_reports_from_load_report(
                     "native editor entry is unavailable for selected plugin `{plugin_id}`"
                 ));
             }
-            native_editor_registration_from_package(package, extensions, diagnostics)
+            native_editor_registration_from_package(
+                package,
+                extensions,
+                native_command_bindings,
+                diagnostics,
+            )
         })
         .collect()
 }
@@ -121,7 +126,7 @@ mod tests {
     use zircon_runtime::core::framework::project::{
         ExportPackagingStrategy, ProjectPluginManifest, ProjectPluginSelection,
     };
-    use zircon_runtime::plugin::native::load_discovered_native_editor_plugins;
+    use zircon_runtime::plugin::native::discovery::load_discovered_native_editor_plugins;
 
     use super::{
         native_editor_plugin_is_selected, native_editor_registration_reports_from_load_report,
@@ -178,11 +183,12 @@ mod tests {
         assert_eq!(registrations.len(), 1);
         assert_eq!(registrations[0].package_manifest.id, package_id);
         assert!(!registrations[0].is_success());
-        assert!(registrations[0].diagnostics.iter().any(
-            |diagnostic| diagnostic.contains(package_id)
+        assert!(registrations[0]
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains(package_id)
                 && diagnostic.contains("library-open")
-                && diagnostic.contains("artifact missing")
-        ));
+                && diagnostic.contains("artifact missing")));
     }
 
     struct TempNativePluginRoot {

@@ -9,7 +9,9 @@ use super::UiHostWindowEventLoop;
 use crate::ui::retained_host::host_contract::redraw::{
     HostRedrawRequest, NativePointerDispatchResult,
 };
-use crate::ui::retained_host::ui_perf::enter_ui_perf_scenario;
+use crate::ui::retained_host::ui_perf::{
+    enter_ui_perf_scenario, record_ui_perf_counter, UiPerfCounter, UiPerfScenario,
+};
 use present::present_redraw;
 
 impl UiHostWindowEventLoop {
@@ -17,7 +19,7 @@ impl UiHostWindowEventLoop {
         &mut self,
         result: NativePointerDispatchResult,
     ) {
-        let redraw = result.redraw();
+        let redraw = result.redraw().into_interactive_frame_update();
         self.finish_input_outcome(&redraw);
         if self.queue_redraw(redraw) {
             if let Some(window) = self.window.as_ref() {
@@ -56,18 +58,22 @@ impl UiHostWindowEventLoop {
         if !redraw.request_redraw() {
             return;
         }
-        let native_resize_present = self.host.native_resize_reflow_pending();
-        if native_resize_present && !self.apply_pending_presenter_resize(event_loop) {
+        let presenter_resize_pending = self.pending_presenter_resize.is_some();
+        if presenter_resize_pending && !self.apply_pending_presenter_resize(event_loop) {
             return;
         }
-        let redraw_scenario = if native_resize_present {
+        let redraw_scenario = if presenter_resize_pending {
             crate::ui::retained_host::ui_perf::UiPerfScenario::WindowResize
         } else {
             redraw.scenario()
         };
         let redraw_scenario_guard = enter_ui_perf_scenario(redraw_scenario);
-        if !native_resize_present && redraw.requires_frame_update() {
-            self.host.request_frame_update();
+        if redraw.requires_frame_update() {
+            if redraw.prefers_interactive_frame_update() {
+                self.host.request_interactive_frame_update();
+            } else {
+                self.host.request_frame_update();
+            }
         }
         let present_scenario = self
             .host
@@ -77,12 +83,8 @@ impl UiHostWindowEventLoop {
         if !redraw.requires_present() {
             return;
         }
-        present_redraw(
-            self,
-            event_loop,
-            redraw.damage_region().cloned(),
-            present_scenario,
-        );
+        record_damage_region_metrics(&redraw, present_scenario);
+        present_redraw(self, event_loop, redraw, present_scenario);
     }
 
     fn take_pending_redraw(&mut self) -> HostRedrawRequest {
@@ -133,6 +135,42 @@ impl UiHostWindowEventLoop {
     }
 }
 
+fn record_damage_region_metrics(redraw: &HostRedrawRequest, scenario: UiPerfScenario) {
+    let Some(metrics) = redraw.damage_region_metrics() else {
+        return;
+    };
+    record_ui_perf_counter(
+        scenario,
+        UiPerfCounter::RedrawDamageRectCount,
+        metrics.rect_count as f64,
+    );
+    record_ui_perf_counter(
+        scenario,
+        UiPerfCounter::RedrawDamageSourceRectCount,
+        metrics.source_rect_count as f64,
+    );
+    record_ui_perf_counter(
+        scenario,
+        UiPerfCounter::RedrawDamageSimplificationCount,
+        metrics.simplification_count as f64,
+    );
+    record_ui_perf_counter(
+        scenario,
+        UiPerfCounter::RedrawDamageRepresentedArea,
+        metrics.represented_area,
+    );
+    record_ui_perf_counter(
+        scenario,
+        UiPerfCounter::RedrawDamageBoundingArea,
+        metrics.bounding_area,
+    );
+    record_ui_perf_counter(
+        scenario,
+        UiPerfCounter::RedrawDamageBoundingOverdrawArea,
+        metrics.bounding_overdraw_area,
+    );
+}
+
 fn surface_present_retry_delay(attempt: u8) -> Duration {
     let multiplier = 1_u32 << u32::from(attempt.min(5));
     super::SURFACE_PRESENT_RETRY_BASE_DELAY
@@ -177,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn native_resize_configures_the_latest_surface_and_presents_without_reflow() {
+    fn native_resize_configures_the_latest_surface_before_the_frame_update() {
         let source = include_str!("redraw.rs");
         let function = source
             .split("fn redraw_requested_impl")
@@ -187,16 +225,17 @@ mod tests {
         let resize = function
             .find("self.apply_pending_presenter_resize(event_loop)")
             .expect("pending swapchain resize should configure the latest size");
-        let suppress_reflow = function
-            .find("!native_resize_present && redraw.requires_frame_update()")
-            .expect("interactive resize must not run retained reflow");
+        let frame_update = function
+            .find("redraw.requires_frame_update()")
+            .expect("interactive resize must publish retained geometry");
         let present = function
             .find("present_redraw(")
             .expect("interactive resize should still present the retained snapshot");
 
-        assert!(resize < suppress_reflow);
-        assert!(suppress_reflow < present);
-        assert!(!function.contains("pending_presenter_resize.is_some()"));
+        assert!(resize < frame_update);
+        assert!(frame_update < present);
+        assert!(function.contains("pending_presenter_resize.is_some()"));
+        assert!(!function.contains("native_resize_present"));
     }
 
     #[test]

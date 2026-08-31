@@ -1,14 +1,16 @@
 #[cfg(test)]
 use crate::asset::ProjectAssetManager;
 use crate::asset::ProjectAssetManagerAccess;
-#[cfg(test)]
 use std::sync::Arc;
 
 use super::image::ScreenSpaceUiImageSystem;
 use super::render::ScreenSpaceUiVertex;
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
-use super::text::{ScreenSpaceUiTextPrepareReport, ScreenSpaceUiTextSystem};
+use super::text::ScreenSpaceUiTextSystem;
 use crate::graphics::GraphicsError;
+use crate::text::font::FontCollectionService;
+#[cfg(test)]
+use crate::text::font::shared_font_collection_service;
 
 const SCREEN_SPACE_UI_SHADER: &str = include_str!("shaders/screen_space_ui.wgsl");
 
@@ -29,11 +31,26 @@ impl ScreenSpaceUiRenderer {
         .expect("test screen-space UI renderer should initialize")
     }
 
+    #[cfg(test)]
     pub(crate) fn new(
         asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        _queue: &wgpu::Queue,
         target_format: wgpu::TextureFormat,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_font_collection(
+            asset_manager,
+            device,
+            target_format,
+            shared_font_collection_service(),
+        )
+    }
+
+    pub(crate) fn new_with_font_collection(
+        asset_manager: ProjectAssetManagerAccess,
+        device: &wgpu::Device,
+        target_format: wgpu::TextureFormat,
+        font_collection: Arc<FontCollectionService>,
     ) -> Result<Self, GraphicsError> {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-screen-space-ui-layout"),
@@ -77,19 +94,25 @@ impl ScreenSpaceUiRenderer {
             multiview_mask: None,
             cache: None,
         });
-        let text_system = ScreenSpaceUiTextSystem::new(asset_manager, device, queue, target_format)
-            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+        let text_system = ScreenSpaceUiTextSystem::new_with_font_collection(
+            asset_manager,
+            device,
+            target_format,
+            font_collection,
+        )
+        .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         let image_system = ScreenSpaceUiImageSystem::new(device, target_format);
 
         Ok(Self {
             pipeline,
-            vertex_buffer: None,
-            vertex_buffer_capacity_bytes: 0,
-            vertex_buffer_payload_hash: None,
+            vertex_segments: Vec::new(),
+            vertex_buffer_plan: None,
             image_system,
+            plan_cache: Default::default(),
             text_system,
-            last_text_prepare_report: ScreenSpaceUiTextPrepareReport::default(),
+            text_prepare_report_valid: false,
             last_attachment_ops: crate::render_graph::RenderGraphAttachmentOps::load_store(),
+            upload_transaction: Default::default(),
         })
     }
 }

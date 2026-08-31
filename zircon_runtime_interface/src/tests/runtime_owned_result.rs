@@ -1,8 +1,8 @@
 use core::mem::{align_of, size_of};
 
 use crate::{
-    ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeApiV7, ZrRuntimeFrameV2,
-    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_API_VERSION_V7,
+    ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeApiV8, ZrRuntimeFrameV2,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_API_VERSION_V8,
 };
 
 #[test]
@@ -27,11 +27,32 @@ fn runtime_frame_v2_owns_the_new_result_carrier() {
 }
 
 #[test]
-fn runtime_api_v7_requires_one_allocation_release_entry_point() {
-    let api = ZrRuntimeApiV7::empty();
+fn runtime_frame_v2_empty_state_requires_the_canonical_zero_sized_carrier() {
+    let zero_width = ZrRuntimeFrameV2 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
+        width: 0,
+        height: 1,
+        generation: 0,
+        rgba: ZrOwnedResultV2::empty(),
+    };
+    let missing_rgba = ZrRuntimeFrameV2 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
+        width: 1,
+        height: 1,
+        generation: 0,
+        rgba: ZrOwnedResultV2::empty(),
+    };
 
-    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V7);
-    assert_eq!(api.size_bytes, size_of::<ZrRuntimeApiV7>());
+    assert!(!zero_width.is_empty());
+    assert!(!missing_rgba.is_empty());
+}
+
+#[test]
+fn runtime_api_v8_requires_one_allocation_release_entry_point() {
+    let api = ZrRuntimeApiV8::empty();
+
+    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V8);
+    assert_eq!(api.size_bytes, size_of::<ZrRuntimeApiV8>());
     assert!(api.release_allocation.is_none());
 }
 
@@ -63,13 +84,14 @@ fn runtime_owned_result_source_forbids_allocator_metadata_and_copy_semantics() {
 
 #[test]
 fn runtime_api_v6_cannot_survive_the_owned_result_hard_cut() {
-    let api_source = include_str!("../runtime_api/api_table.rs");
+    let api_source = include_str!("../runtime_api/abi/api_table.rs");
+    let interface_catalog_generator_source = include_str!("../../build.rs");
     let version_source = include_str!("../version.rs");
 
-    assert!(api_source.contains("ZrRuntimeApiV7"));
-    assert!(api_source.contains("zircon_runtime_get_api_v7"));
+    assert!(api_source.contains("ZrRuntimeApiV8"));
+    assert!(interface_catalog_generator_source.contains("zircon_runtime_get_api_v8"));
     assert!(!api_source.contains("ZrRuntimeApiV6"));
     assert!(!api_source.contains("zircon_runtime_get_api_v6"));
-    assert!(version_source.contains("ZIRCON_RUNTIME_API_VERSION_V7"));
+    assert!(version_source.contains("ZIRCON_RUNTIME_API_VERSION_V8"));
     assert!(!version_source.contains("ZIRCON_RUNTIME_API_VERSION_V6"));
 }

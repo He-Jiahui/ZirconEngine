@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { nativeModules } from "./src/modules/modules.js";
 
 const previewActionIdPattern = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
-const expectedGeneratedBottomControlEvents = 48;
+const expectedGeneratedBottomControlEvents = 46;
 const generatedBottomComponentUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui";
 const generatedBottomDrawerUrl = "../../../../zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui";
 const generatedBottomBodyUrl = "../../../../zircon_editor/assets/ui/editor/host/generated_bottom_body.zui";
@@ -13,6 +13,7 @@ const windowTemplateBindingsUrl =
   "../../../../zircon_editor/src/ui/template_runtime/builtin/workbench_window_template_bindings.rs";
 const templateDocumentsUrl = "../../../../zircon_editor/src/ui/template_runtime/builtin/template_documents.rs";
 const componentDescriptorsUrl = "../../../../zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs";
+const componentCatalogUrl = "../../../../zircon_editor/assets/ui/editor/components/catalog.toml";
 const builtinModUrl = "../../../../zircon_editor/src/ui/template_runtime/builtin/mod.rs";
 const generatedBottomViewDescriptorUrl =
   "../../../../zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs";
@@ -20,7 +21,6 @@ const activityViewDescriptorsUrl =
   "../../../../zircon_editor/src/ui/host/builtin_views/activity_views/activity_view_descriptors.rs";
 const shellViewInstancesUrl =
   "../../../../zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs";
-const layoutDrawersUrl = "../../../../zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs";
 const viewContentKindUrl = "../../../../zircon_editor/src/ui/workbench/snapshot/workbench/view_content_kind.rs";
 const descriptorContentKindUrl =
   "../../../../zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs";
@@ -33,7 +33,7 @@ const hostContractPanesUrl =
   "../../../../zircon_editor/src/ui/retained_host/host_contract/data/panes/pane.rs";
 const paneDataConversionUrl = "../../../../zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs";
 const hostContractWindowUrl =
-  "../../../../zircon_editor/src/ui/retained_host/host_contract/window/template_hover/panes.rs";
+  "../../../../zircon_editor/src/ui/retained_host/ui/shell_content_presentation.rs";
 const profilingArtifactsUrl = "../../../../zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs";
 const profilingPaneNodesUrl =
   "../../../../zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/pane_frames/template_nodes/source.rs";
@@ -55,6 +55,8 @@ const workbenchModUrl =
   "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/mod.rs";
 const componentizedWindowUrl =
   "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs";
+const referenceMenuActionsUrl =
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/reference_menu_actions.rs";
 const moduleFieldEditUrl =
   "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs";
 const previewActionsUrls = [
@@ -73,11 +75,11 @@ const sources = {
   windowTemplateBindings: readRepo(windowTemplateBindingsUrl),
   templateDocuments: readRepo(templateDocumentsUrl),
   componentDescriptors: readRepo(componentDescriptorsUrl),
+  componentCatalog: readRepo(componentCatalogUrl),
   builtinMod: readRepo(builtinModUrl),
   generatedBottomViewDescriptor: readRepo(generatedBottomViewDescriptorUrl),
   activityViewDescriptors: readRepo(activityViewDescriptorsUrl),
   shellViewInstances: readRepo(shellViewInstancesUrl),
-  layoutDrawers: readRepo(layoutDrawersUrl),
   viewContentKind: readRepo(viewContentKindUrl),
   descriptorContentKind: readRepo(descriptorContentKindUrl),
   panePayloadKind: readRepo(panePayloadKindUrl),
@@ -98,6 +100,7 @@ const sources = {
   generatedBottomLifecycle: readRepo(generatedBottomLifecycleUrl),
   workbenchMod: readRepo(workbenchModUrl),
   componentizedWindow: readRepo(componentizedWindowUrl),
+  referenceMenuActions: readRepo(referenceMenuActionsUrl),
   moduleFieldEdit: readRepo(moduleFieldEditUrl),
   previewActions: previewActionsUrls.map(readRepo).join("\n"),
 };
@@ -157,7 +160,6 @@ check(sources.matrix.includes("workbench/modules/generated/workbench_generated_b
 check(sources.matrix.includes("generated_bottom_body.zui"), "matrix mentions generated bottom shell pane body");
 check(sources.matrix.includes("generated_bottom_view_descriptor.rs"), "matrix mentions generated bottom activity view descriptor");
 check(sources.matrix.includes("builtin_shell_view_instances.rs"), "matrix mentions generated bottom shell view instance");
-check(sources.matrix.includes("layout_drawers.rs"), "matrix mentions generated bottom bottom-drawer tab");
 check(sources.matrix.includes("pane_data_conversion/mod.rs"), "matrix mentions generated bottom pane conversion");
 check(sources.matrix.includes("workbench_generated_bottom_template_bindings.rs"), "matrix mentions generated bottom bindings");
 check(sources.matrix.includes("generated_bottom_panel_navigation.rs"), "matrix mentions generated bottom navigation");
@@ -183,27 +185,30 @@ check(
   "generated bottom drawer hosts generated bottom panel content",
 );
 check(
-  sources.generatedBottomBody.includes('id = "editor.host.pane.generated_bottom.body"') &&
+  sources.generatedBottomBody.includes('id = "res://ui/editor/host/generated_bottom_body.zui"') &&
     sources.generatedBottomBody.includes("workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel") &&
     sources.generatedBottomBody.includes('control_id = "GeneratedBottomPaneBodyRoot"') &&
     sources.generatedBottomBody.includes('control_id = "GeneratedBottomPanePanelHost"'),
   "shell generated bottom pane body mounts the shared generated bottom panel",
 );
 check(
-  sources.templateDocuments.includes('PANE_GENERATED_BOTTOM_BODY_DOCUMENT_ID: &str = "pane.generated_bottom.body"') &&
+  sources.templateDocuments.includes("PANE_GENERATED_BOTTOM_BODY_DOCUMENT_ID") &&
+    sources.templateDocuments.includes('"res://ui/editor/host/generated_bottom_body.zui"') &&
     sources.templateDocuments.includes("generated_bottom_body.zui"),
   "builtin template documents register generated bottom shell body",
 );
 check(
   sources.componentDescriptors.includes("GeneratedBottomPaneBody") &&
-    sources.componentDescriptors.includes("PANE_GENERATED_BOTTOM_BODY_DOCUMENT_ID"),
+    sources.componentDescriptors.includes("builtin_component_descriptors") &&
+    sources.componentCatalog.includes('component_id = "GeneratedBottomPaneBody"') &&
+    sources.componentCatalog.includes('document_id = "res://ui/editor/host/generated_bottom_body.zui"'),
   "builtin component descriptors register generated bottom shell body",
 );
 check(
   sources.generatedBottomViewDescriptor.includes('ViewDescriptorId::new("editor.generated_bottom")') &&
-    sources.generatedBottomViewDescriptor.includes("ActivityDrawerSlot::Bottom") &&
+    sources.generatedBottomViewDescriptor.includes("WorkbenchSlot::BottomDrawer") &&
     sources.generatedBottomViewDescriptor.includes("ViewContentKind::GeneratedBottom") &&
-    sources.generatedBottomViewDescriptor.includes('"pane.generated_bottom.body"') &&
+    sources.generatedBottomViewDescriptor.includes('"res://ui/editor/host/generated_bottom_body.zui"') &&
     sources.generatedBottomViewDescriptor.includes("PanePayloadKind::GeneratedBottomV1") &&
     sources.generatedBottomViewDescriptor.includes("PaneRouteNamespace::Dock") &&
     sources.generatedBottomViewDescriptor.includes("PaneInteractionMode::TemplateOnly"),
@@ -221,21 +226,15 @@ check(
   "generated bottom shell view instance is hosted in the bottom drawer",
 );
 check(
-  sources.layoutDrawers.includes('ViewInstanceId::new("editor.generated_bottom#1")') &&
-    sources.layoutDrawers.includes("tabs.push") &&
-    sources.layoutDrawers.includes("ActivityDrawerSlot::Bottom"),
-  "bottom drawer layout includes generated bottom tab",
-);
-check(
   sources.generatedBottomComponent.includes("[components.WorkbenchGeneratedBottomPanel]") &&
     sources.generatedBottomComponent.includes('control_id = "WorkbenchGeneratedBottomPanel"') &&
     sources.generatedBottomComponent.includes('props = { visibility = "visible" }') &&
     !sources.generatedBottomComponent.includes('props = { visibility = "collapsed" }') &&
     sources.generatedBottomComponent.includes("workbench-generated-bottom-route-row") &&
-    sources.generatedBottomComponent.includes("WorkbenchGeneratedBottomModeDropdown"),
+    !sources.generatedBottomComponent.includes("WorkbenchGeneratedBottomModeDropdown"),
   "generated bottom component exposes visible shared retained content controls",
 );
-for (const component of ["WorkbenchButton", "WorkbenchDropdown", "WorkbenchField", "WorkbenchSectionTitle", "WorkbenchTab", "WorkbenchTableRow"]) {
+for (const component of ["WorkbenchButton", "WorkbenchField", "WorkbenchSectionTitle", "WorkbenchTab", "WorkbenchTableRow"]) {
   check(sources.generatedBottomComponent.includes(component), `generated bottom component imports/uses ${component}`);
 }
 
@@ -289,12 +288,12 @@ check(
   "retained workbench module declares generated bottom helpers",
 );
 check(
-  sources.componentizedWindow.includes("is_workbench_generated_bottom_action") &&
-    sources.componentizedWindow.includes("apply_workbench_generated_bottom_action(source_control_id, action_id)") &&
+  sources.referenceMenuActions.includes("is_workbench_generated_bottom_action") &&
+    sources.referenceMenuActions.includes("apply_workbench_generated_bottom_action(source_control_id, action_id)") &&
     sources.componentizedWindow.includes("close_workbench_generated_bottom_drawer()") &&
     !sources.componentizedWindow.includes("WorkbenchGeneratedBottomDrawerHost") &&
     !sources.componentizedWindow.includes("workbench_generated_bottom_route_control_id"),
-  "componentized window delegates generated bottom action routing and drawer lifecycle",
+  "reference dispatcher delegates generated bottom actions while componentized window owns drawer close lifecycle",
 );
 check(
   sources.generatedBottomActions.includes("apply_workbench_generated_bottom_action") &&

@@ -22,3 +22,9 @@ and payload schema ids.
 Supported projections are `orthogonal`, `isometric_diamond`,
 `isometric_staggered`, and `hexagonal_staggered`. Default import extensions are
 `tmx`, `tsx`, and `json`.
+
+Editor paint requests resolve a validated unique layer identity instead of a
+layer array index. A stroke is limited to 4,096 unique cells, preflights every
+address before mutation, and commits atomically. Stroke statistics scan the
+tilemap once and then update occupied/empty counts from cell-state deltas rather
+than rescanning every layer after every painted cell.

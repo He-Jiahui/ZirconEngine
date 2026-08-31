@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderFrameProfile;
 
-use super::RenderMemoryBudget;
+use super::{is_memory_over_budget, GpuMemoryBudget};
 
 const DEFAULT_HYSTERESIS_FRAMES: u32 = 120;
 const DEFAULT_RENDER_SCALE: f32 = 1.0;
@@ -75,9 +75,9 @@ impl BudgetDegradeLadder {
     pub(in crate::graphics::runtime::render_framework) fn evaluate(
         &mut self,
         profile: &RenderFrameProfile,
-        budget: &RenderMemoryBudget,
+        budget: &GpuMemoryBudget,
     ) -> Option<&DegradeStep> {
-        if budget.is_over_budget(profile) {
+        if is_memory_over_budget(profile, *budget) {
             self.frames_under_budget = 0;
             self.active = self.active.saturating_add(1).min(FIXED_DEGRADE_STEPS.len());
         } else if self.active > 0 {
@@ -129,11 +129,11 @@ mod tests {
     use crate::core::framework::render::RenderFrameProfile;
 
     use super::{BudgetDegradeLadder, DegradeStep};
-    use crate::graphics::runtime::render_framework::budget::RenderMemoryBudget;
+    use crate::graphics::runtime::render_framework::budget::GpuMemoryBudget;
 
     #[test]
     fn render_perf_degrade_ladder_fixed_order() {
-        let budget = RenderMemoryBudget::new(10, 10, 10);
+        let budget = GpuMemoryBudget::new(10, 10, 10);
         let over_budget = RenderFrameProfile {
             transient_texture_peak_bytes: 11,
             ..RenderFrameProfile::default()
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn render_perf_degrade_ladder_waits_for_hysteresis_before_recovery() {
-        let budget = RenderMemoryBudget::new(10, 10, 10);
+        let budget = GpuMemoryBudget::new(10, 10, 10);
         let over_budget = RenderFrameProfile {
             transient_texture_peak_bytes: 11,
             ..RenderFrameProfile::default()

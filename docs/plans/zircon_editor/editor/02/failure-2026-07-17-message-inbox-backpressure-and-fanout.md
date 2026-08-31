@@ -74,3 +74,12 @@ Open state: `2026-08-05 forward repair source static green / independent second 
 | 2026-08-05 CST | `source_forward_repair_static_green / independent_second_review_green / managed_validation_queued` | 当前 source manifest 已封存 `bus/inbox/retention/shared/delivery` 与 fanout benchmark fixture，1/5/100 paused-subscriber performance gate 由 coordinator 执行。 | Ticket `57ec83d505164a79a43fca34603a2fc8` 已收到 queued receipt；不轮询、不以排队状态推断性能数字或通过结论，failure 保持 open。 |
 
 2026-07-22逐文件复核确认O(1) lane-depth、`latest_by_key` 与 sequence map 止损成立，但failure仍open：global bus mutex仍包全部inbox和fanout，bounded-lane order 的中段 removal 仍有线性移位，request仍先 clone Custom JSON；PERF-MVP-019 的锁粒度与 request ownership 后续优化尚未完成。
+
+2026-08-28 current-source static return first reproduced the supporting Python suite at `6/7`: the sole
+error was a stale read of deleted `tests/editor_message/bus/backpressure.rs`. The Rust regressions remain mounted
+under the current folder-backed owner: `backpressure/mod.rs` mounts `behavior`, `fixture`, and `performance`;
+atomic admission/eviction/identity cases live in `behavior.rs`, while the ignored 1/5/100 fanout metrics live in
+`performance.rs`. The guard now follows those owner leaves and preserves every prior semantic assertion; the full
+Python contract is GREEN without modifying the foreign-owned message-bus source. This closes only the stale
+read-path defect. The failure remains `open / managed_validation_pending`; no performance number or Cargo result
+is inferred from static source.

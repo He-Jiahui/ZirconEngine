@@ -4,13 +4,21 @@ use super::support::{
 };
 
 const RUNTIME_09_STATUS: &str = concat!(
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md")
+    include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
+    ),
+    include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"
+    )
 );
 const RUNTIME_INDEX_STATUS: &str = concat!(
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+    include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"
+    ),
+    include_str!(
+        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    )
 );
 
 #[test]
@@ -369,7 +377,7 @@ fn runtime_09_virtualization_scroll_boundary_records_invalidation_authority() {
         "tree scroll mutation should OR the planner's visible-range invalidation instead of overwriting existing dirty state"
     );
     for test_anchor in [
-        "virtualized_list_only_materializes_visible_window",
+        "retained_virtual_list_only_arranges_visible_window",
         "scroll_offset_invalidates_virtualization_window",
         "non_virtualized_scroll_offset_keeps_full_window_dirty_domain",
     ] {
@@ -389,7 +397,7 @@ fn runtime_09_virtualization_scroll_boundary_records_invalidation_authority() {
             status_anchor,
             "UiScrollVirtualizationPlan",
             "plan_scrollable_virtual_window",
-            "virtualized_list_only_materializes_visible_window",
+            "retained_virtual_list_only_arranges_visible_window",
             "scroll_offset_invalidates_virtualization_window",
             "non_virtualized_scroll_offset_keeps_full_window_dirty_domain",
         ] {
@@ -402,109 +410,70 @@ fn runtime_09_virtualization_scroll_boundary_records_invalidation_authority() {
 }
 
 #[test]
-fn runtime_09_template_pipeline_boundary_records_compile_instance_validate_authority() {
+fn runtime_74_template_boundary_has_one_compiler_authority() {
     let template_mod = read_repo_file("zircon_runtime/src/ui/template/mod.rs");
-    let pipeline = read_repo_file("zircon_runtime/src/ui/template/pipeline.rs");
-    let loader = read_repo_file("zircon_runtime/src/ui/template/loader.rs");
-    let validate = read_repo_file("zircon_runtime/src/ui/template/validate.rs");
-    let instance = read_repo_file("zircon_runtime/src/ui/template/instance.rs");
-    let surface_builder = read_repo_file("zircon_runtime/src/ui/template/build/surface_builder.rs");
-    let artifact =
-        read_repo_file("zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs");
+    let interface_mod = read_repo_file("zircon_runtime_interface/src/ui/template/mod.rs");
     let template_pipeline_test = read_repo_file("zircon_runtime/src/ui/tests/template_pipeline.rs");
-    let architecture_doc = include_str!("../../../../../docs/zircon_runtime/ui/architecture.md");
     let template_pipeline_doc =
         include_str!("../../../../../docs/zircon_runtime/ui/template/pipeline.md");
-    let shared_template_doc =
-        include_str!("../../../../../docs/ui-and-layout/shared-ui-template-runtime.md");
-    let runtime_09_plan = RUNTIME_09_STATUS;
-    let runtime_index = RUNTIME_INDEX_STATUS;
-    let generated_boundary_doc =
-        include_str!("../../../../../docs/engine-architecture/generated-code-boundary.md");
-    let status_anchor =
-        "runtime_09_m3_1_template_compile_instance_validate_boundary_static_passed_cargo_pending";
-    let artifact_policy = "runtime_09_m3_1_binary_leaf_dto_artifact_not_generated_source";
-    let generated_marker = "// @generated <generator> - do not edit by hand";
-
-    assert!(
-        template_mod.contains("mod pipeline;")
-            && template_mod.contains("UiTemplateRuntimePipeline")
-            && template_mod.contains("UI_TEMPLATE_RUNTIME_PIPELINE_STAGES"),
-        "template root should expose the Runtime 09 M3.1 pipeline boundary"
+    let optimize_record = include_str!(
+        "../../../../../docs/plans/optimize/zircon_runtime/74/2026-08-22-single-template-compiler-authority.md"
     );
-    for pipeline_anchor in [
-        "UI_TEMPLATE_RUNTIME_PIPELINE_STAGES",
-        r#"["load", "validate", "instance", "build"]"#,
-        "UiTemplateRuntimePipelineError::Load",
-        "UiTemplateRuntimePipelineError::Validate",
-        "UiTemplateRuntimePipelineError::Instance",
-        "UiTemplateRuntimePipelineError::Build",
-        "load_document_from_toml_str",
-        "instantiate_document",
-        "build_surface_from_document",
-        "build_surface_from_toml_str",
+
+    for required in [
+        "UiAssetLoader",
+        "UiDocumentCompiler",
+        "UiCompiledDocument",
+        "UiTemplateSurfaceBuilder",
     ] {
         assert!(
-            pipeline.contains(pipeline_anchor),
-            "template pipeline should retain `{pipeline_anchor}`"
+            template_mod.contains(required),
+            "template namespace should expose canonical compiler-path owner `{required}`"
         );
     }
-    assert!(
-        loader.contains("UiTemplateLoader")
-            && validate.contains("UiTemplateValidator")
-            && instance.contains("from_validated_document")
-            && surface_builder.contains("UiTemplateSurfaceBuilder"),
-        "load/validate/instance/build modules should keep their explicit Runtime 09 M3.1 roles"
-    );
-    for artifact_anchor in [
-        "UI_COMPILED_ASSET_ARTIFACT_GENERATED_POLICY",
-        "UI_COMPILED_ASSET_ARTIFACT_GENERATED_SOURCE_MARKER_REQUIRED",
-        artifact_policy,
-        "generated_policy",
-        "requires_generated_source_marker",
+    for forbidden in [
+        "mod loader;",
+        "mod pipeline;",
+        "mod validate;",
+        "UiTemplateLoader",
+        "UiTemplateValidator",
+        "UiTemplateRuntimePipeline",
+        "UiTemplateDocument",
+        "UiTemplateError",
     ] {
         assert!(
-            artifact.contains(artifact_anchor),
-            "compiled template artifact should retain generated policy anchor `{artifact_anchor}`"
+            !template_mod.contains(forbidden) && !interface_mod.contains(forbidden),
+            "legacy compiler authority `{forbidden}` should be removed after the hard cut"
         );
     }
     for test_anchor in [
-        "template_validate_rejects_unknown_component_contract",
-        "template_instance_failure_surfaces_loader_error",
-        "compiled_template_artifact_stays_binary_leaf_dto_not_generated_source",
+        "asset_compiler_is_the_single_template_compile_authority",
+        "legacy_recursive_template_document_is_not_a_runtime_compile_input",
+        "template_compiler_authority_has_bounded_p95_latency",
+        "PERF-RUNTIME74-COMPILER-AUTHORITY",
+        "sample_count={SAMPLE_COUNT}",
+        "runtime_compiler_authorities=1",
+        "legacy_runtime_pipeline_exports=0",
     ] {
         assert!(
             template_pipeline_test.contains(test_anchor),
-            "template pipeline tests should retain `{test_anchor}`"
+            "single-authority tests should retain `{test_anchor}`"
         );
     }
-
-    for (doc_name, doc_source) in [
-        ("UI architecture doc", architecture_doc),
+    for (label, source) in [
         ("template pipeline doc", template_pipeline_doc),
-        ("shared template runtime doc", shared_template_doc),
-        ("Runtime 09 plan", runtime_09_plan),
-        ("runtime index", runtime_index),
+        ("Runtime74 optimization record", optimize_record),
     ] {
-        for required_anchor in [
-            status_anchor,
-            "UI_TEMPLATE_RUNTIME_PIPELINE_STAGES",
-            "UiTemplateRuntimePipeline",
-            "UiTemplateRuntimePipelineError",
-            "template_validate_rejects_unknown_component_contract",
-            "template_instance_failure_surfaces_loader_error",
-            artifact_policy,
-            "compiled_template_artifact_stays_binary_leaf_dto_not_generated_source",
-            generated_marker,
+        for required in [
+            "RTB-P1-001",
+            "UiDocumentCompiler",
+            "PERF-RUNTIME74-COMPILER-AUTHORITY",
+            "nearest-rank P95",
         ] {
             assert!(
-                doc_source.contains(required_anchor),
-                "{doc_name} should record Runtime 09 M3.1 template boundary anchor `{required_anchor}`"
+                source.contains(required),
+                "{label} should record single-authority anchor `{required}`"
             );
         }
     }
-    assert!(
-        generated_boundary_doc.contains(generated_marker),
-        "generated-code boundary doc should retain the first-line generated source marker"
-    );
 }

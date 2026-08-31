@@ -60,7 +60,7 @@ fn console_pane() -> PaneData {
         kind: "Console".into(),
         console: ConsolePaneData {
             nodes: ModelRc::with_metadata(nodes, metadata),
-            status_text: "line".into(),
+            output: "line".into(),
         },
         ..PaneData::default()
     }

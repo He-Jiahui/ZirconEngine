@@ -3,10 +3,7 @@ use std::collections::BTreeMap;
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
-use super::{
-    append_class, bool_attribute, bool_attribute_any, int_attribute_any, pascal_case,
-    string_attribute_any, string_from_attributes_any,
-};
+use super::{append_class, bool_attribute, bool_attribute_any, int_attribute_any, pascal_case};
 
 const BREAKPOINTS: &[&str] = &["xs", "sm", "md", "lg", "xl"];
 
@@ -234,14 +231,14 @@ fn append_masonry_classes(node: &mut UiTemplateNode, prefix: &str) {
 }
 
 fn append_collapse_classes(node: &mut UiTemplateNode, prefix: &str) {
-    let orientation = string_attribute_any(node, &["orientation"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "vertical".to_string());
+    let orientation =
+        borrowed_collapse_attribute_from_attributes(&node.attributes, &["orientation"])
+            .unwrap_or("vertical");
     append_class(&mut node.classes, format!("{prefix}-{orientation}"));
 
-    let status = string_attribute_any(node, &["transition_status"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "entered".to_string());
+    let status =
+        borrowed_collapse_attribute_from_attributes(&node.attributes, &["transition_status"])
+            .unwrap_or("entered");
     if status == "entered" {
         append_class(&mut node.classes, format!("{prefix}-entered"));
     }
@@ -282,15 +279,26 @@ fn scalar_attribute_present(node: &UiTemplateNode, names: &[&str]) -> bool {
 }
 
 fn collapse_size_is_zero(attributes: &BTreeMap<String, Value>) -> bool {
-    string_from_attributes_any(attributes, &["collapsedSize", "collapsed_size"])
-        .map(|value| matches!(value.as_str(), "0" | "0px" | "0.0" | "0.0px"))
+    borrowed_collapse_attribute_from_attributes(attributes, &["collapsedSize", "collapsed_size"])
+        .map(|value| matches!(value, "0" | "0px" | "0.0" | "0.0px"))
         .unwrap_or(true)
 }
 
-fn collapse_orientation(attributes: &BTreeMap<String, Value>) -> String {
-    string_from_attributes_any(attributes, &["orientation"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "vertical".to_string())
+fn collapse_orientation(attributes: &BTreeMap<String, Value>) -> &str {
+    borrowed_collapse_attribute_from_attributes(attributes, &["orientation"]).unwrap_or("vertical")
+}
+
+fn borrowed_collapse_attribute_from_attributes<'a>(
+    attributes: &'a BTreeMap<String, Value>,
+    names: &[&str],
+) -> Option<&'a str> {
+    names.iter().find_map(|name| {
+        attributes
+            .get(*name)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+    })
 }
 
 #[derive(Clone, Copy, Default)]
@@ -314,6 +322,10 @@ impl ResponsiveClassOptions {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "mui_layout_classes/borrowed_collapse_tests.rs"]
+mod borrowed_collapse_tests;
 
 fn append_responsive_value_classes(
     node: &mut UiTemplateNode,

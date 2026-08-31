@@ -338,7 +338,7 @@ fn free_slot_surface() -> UiSurface {
             canvas_pointer_node(canvas_child_id(), "root/canvas_child"),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(root_id(), canvas_child_id(), UiSlotKind::Free)
             .with_canvas_placement(initial_canvas_placement()),
     );
@@ -364,7 +364,7 @@ fn canvas_slot_surface() -> UiSurface {
             canvas_pointer_node(canvas_child_id(), "root/canvas_child"),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(root_id(), canvas_child_id(), UiSlotKind::Canvas)
             .with_canvas_placement(initial_canvas_placement()),
     );

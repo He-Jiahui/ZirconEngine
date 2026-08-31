@@ -11,6 +11,8 @@ use crate::asset::project::ProjectManager;
 use crate::asset::watch::{AssetChange, AssetWatchBatchDiagnostics, AssetWatchError, AssetWatcher};
 use crate::asset::{AssetImporterRegistry, AssetUri};
 
+use super::management_generation::ProjectAssetManagementGeneration;
+use super::source_write_watch_echo::TransactionWatchEchoes;
 use super::watch_diagnostics::ProjectAssetWatchDiagnostics;
 
 pub(in crate::asset::pipeline::manager) type ProjectSourcePathIndex =
@@ -97,6 +99,8 @@ pub struct ProjectAssetManager {
     pub(in crate::asset::pipeline::manager) project_generation_gate: Arc<RwLock<()>>,
     pub(in crate::asset::pipeline::manager) project_preparation_epoch: Arc<AtomicU64>,
     pub(in crate::asset::pipeline::manager) project: Arc<RwLock<Option<ProjectManager>>>,
+    pub(in crate::asset::pipeline::manager) asset_management_generation:
+        Arc<RwLock<Arc<ProjectAssetManagementGeneration>>>,
     pub(in crate::asset::pipeline::manager) project_source_paths:
         Arc<RwLock<ProjectSourcePathIndex>>,
     pub(in crate::asset::pipeline::manager) asset_importers: Arc<RwLock<AssetImporterRegistry>>,
@@ -114,19 +118,21 @@ pub struct ProjectAssetManager {
     pub(in crate::asset::pipeline::manager) watch_refresh_gate: Arc<Mutex<()>>,
     pub(in crate::asset::pipeline::manager) watch_diagnostics:
         Arc<Mutex<ProjectAssetWatchDiagnostics>>,
+    pub(in crate::asset::pipeline::manager) transaction_watch_echoes:
+        Arc<Mutex<TransactionWatchEchoes>>,
     pub(in crate::asset::pipeline::manager) watchers: Arc<Mutex<Vec<AssetWatcher>>>,
 }
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
 
     use crossbeam_channel::unbounded;
 
     use super::{ProjectAssetChangeSubscriber, ProjectAssetManager};
-    use crate::asset::AssetUri;
     use crate::asset::watch::{AssetChange, AssetChangeKind};
+    use crate::asset::AssetUri;
 
     #[test]
     fn delivered_asset_change_invokes_the_subscription_wake() {

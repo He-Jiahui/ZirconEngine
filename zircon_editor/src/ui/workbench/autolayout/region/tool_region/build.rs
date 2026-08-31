@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use crate::ui::workbench::layout::{ActivityDrawerSlot, WorkbenchLayout};
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -11,7 +11,9 @@ use super::super::super::constraints::{
     merge_constraints, set_primary_preferred,
 };
 use super::super::super::region_state::RegionState;
-use super::super::super::{PaneConstraints, ShellRegionId, WorkbenchChromeMetrics};
+use super::super::super::{
+    LogicalRegionPreferredExtents, PaneConstraints, ShellRegionId, WorkbenchChromeMetrics,
+};
 use super::collapsed_constraints::collapsed_region_constraints;
 use super::presence::{tool_region_extent, tool_region_has_tabs, tool_region_is_expanded};
 
@@ -21,8 +23,8 @@ pub(crate) fn build_tool_region_state(
     descriptors: &HashMap<&str, &ViewDescriptor>,
     region: ShellRegionId,
     slots: &[ActivityDrawerSlot],
-    transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
-    token_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
+    transient_region_preferred: LogicalRegionPreferredExtents<'_>,
+    token_region_preferred: LogicalRegionPreferredExtents<'_>,
     metrics: &WorkbenchChromeMetrics,
     force_collapsed: bool,
 ) -> RegionState {
@@ -66,8 +68,13 @@ pub(crate) fn build_tool_region_state(
             }
         })
         .unwrap_or_else(|| default_region_constraints(region));
-    let layout_override = layout.region_overrides.get(&region).copied();
-    let view_override = tab.and_then(|tab| layout.view_overrides.get(&tab.instance_id).copied());
+    let active_window = layout.active_activity_window();
+    let layout_override = active_window
+        .and_then(|window| window.region_overrides.get(&region))
+        .copied();
+    let view_override = tab.and_then(|tab| {
+        active_window.and_then(|window| window.view_overrides.get(&tab.instance_id).copied())
+    });
     let constraints = set_primary_preferred(
         region,
         merge_constraints(

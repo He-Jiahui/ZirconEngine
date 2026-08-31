@@ -55,6 +55,20 @@ fn graph_execution_coverage_borrows_pass_names() {
 }
 
 #[test]
+fn base_stats_publish_the_renderer_submission_receipt_with_the_frame_generation() {
+    let source = include_str!("../base_stats.rs");
+    let generation = source
+        .find("state.stats.last_generation = Some(frame_generation);")
+        .expect("base stats must publish the CPU frame generation");
+    let receipt = source
+        .find("state.stats.last_frame_submission_receipt =")
+        .expect("base stats must publish the device-qualified frame receipt");
+
+    assert!(generation < receipt);
+    assert!(source.contains("state.renderer.last_frame_submission_receipt()"));
+}
+
+#[test]
 fn executor_pass_counts_classifies_all_diagnostic_families_in_one_report() {
     let executed = vec![
         super::FXAA_EXECUTOR_ID.to_string(),

@@ -1,4 +1,6 @@
-use crate::ui::workbench::layout::{LayoutCommand, MainPageId};
+use crate::ui::workbench::layout::{
+    DocumentNode, LayoutCommand, MainHostPageLayout, MainPageId, WorkbenchLayout,
+};
 use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId};
 
 use super::builtin_layout::ensure_builtin_shell_instances;
@@ -16,6 +18,7 @@ impl EditorUiHost {
     }
 
     fn apply_layout_command_inner(&self, cmd: LayoutCommand) -> Result<bool, EditorError> {
+        let geometry_only = cmd.is_geometry_only();
         match cmd {
             LayoutCommand::SavePreset { name } => {
                 self.save_preset(&name)?;
@@ -40,9 +43,6 @@ impl EditorUiHost {
                         },
                     )
                     .map_err(|error| EditorError::Layout(error.to_string()))?;
-                session
-                    .layout
-                    .sync_legacy_drawers_from_active_activity_window();
                 self.recompute_session_metadata(&mut session);
                 drop(session);
                 self.restore_page_layout(DEFAULT_LAYOUT_PERSISTENCE_USER_ID, &page_id)?;
@@ -71,6 +71,10 @@ impl EditorUiHost {
             _ => None,
         };
         let mut session = self.lock_session();
+        let focus_identity_changed = focused_view.as_ref().is_some_and(|instance_id| {
+            session.open_view_instances.contains_key(instance_id)
+                && session.focused_view.as_ref() != Some(instance_id)
+        });
         let detached_window_title = match &cmd {
             LayoutCommand::DetachViewToWindow {
                 instance_id,
@@ -85,9 +89,6 @@ impl EditorUiHost {
             .layout_manager
             .apply(&mut session.layout, cmd)
             .map_err(|error| EditorError::Layout(error.to_string()))?;
-        session
-            .layout
-            .sync_legacy_drawers_from_active_activity_window();
         if let Some((window_id, title)) = detached_window_title {
             if let Some(window) = session
                 .layout
@@ -98,13 +99,15 @@ impl EditorUiHost {
                 window.title = title;
             }
         }
-        self.recompute_session_metadata(&mut session);
-        if diff.changed {
-            if let Some(focused_view) = focused_view {
+        if diff.changed && !geometry_only {
+            self.recompute_session_metadata(&mut session);
+        }
+        if let Some(focused_view) = focused_view {
+            if session.open_view_instances.contains_key(&focused_view) {
                 session.focused_view = Some(focused_view);
             }
         }
-        Ok(diff.changed)
+        Ok(diff.changed || focus_identity_changed)
     }
 
     pub(super) fn open_view(
@@ -126,12 +129,25 @@ impl EditorUiHost {
         if self.non_closeable_instance(instance_id) {
             return Ok(false);
         }
+        let previous_host = self
+            .lock_session()
+            .open_view_instances
+            .get(instance_id)
+            .map(|instance| instance.host.clone());
         let document_close = self.begin_document_close(instance_id)?;
         let changed = self.apply_layout_command_inner(LayoutCommand::CloseView {
             instance_id: instance_id.clone(),
         })?;
         if changed {
-            self.lock_session().open_view_instances.remove(instance_id);
+            let mut session = self.lock_session();
+            session.open_view_instances.remove(instance_id);
+            if session.focused_view.as_ref() == Some(instance_id) {
+                session.focused_view = previous_host
+                    .as_ref()
+                    .and_then(|host| active_view_for_host(&session.layout, host))
+                    .or_else(|| active_main_page_view_for_layout(&session.layout));
+            }
+            drop(session);
             self.lock_animation_editor_sessions().remove(instance_id);
             self.lock_ui_asset_sessions().remove(instance_id);
             self.lock_ui_asset_dependency_generation()
@@ -261,20 +277,68 @@ fn active_main_page_view_for_layout(
     layout: &crate::ui::workbench::layout::WorkbenchLayout,
 ) -> Option<ViewInstanceId> {
     use crate::ui::host::layout_hosts::active_tab_from_document::active_tab_from_document;
-    use crate::ui::workbench::layout::MainHostPageLayout;
 
     layout
         .main_pages
         .iter()
         .find(|page| page.id() == &layout.active_main_page)
         .and_then(|page| match page {
-            MainHostPageLayout::WorkbenchPage {
-                document_workspace, ..
-            } => active_tab_from_document(document_workspace),
+            MainHostPageLayout::WorkbenchPage { id, .. } => layout
+                .content_workspace_for_page(id)
+                .and_then(active_tab_from_document),
             MainHostPageLayout::ExclusiveActivityWindowPage {
                 window_instance, ..
             } => Some(window_instance.clone()),
         })
+}
+
+fn active_view_for_host(layout: &WorkbenchLayout, host: &ViewHost) -> Option<ViewInstanceId> {
+    match host {
+        ViewHost::Drawer(slot) => {
+            let activity_window = layout.active_activity_window_id()?;
+            let windows = layout.activity_windows();
+            let drawer = windows.get(&activity_window)?.activity_drawers.get(slot)?;
+            drawer
+                .active_view
+                .clone()
+                .or_else(|| drawer.tab_stack.active_tab.clone())
+        }
+        ViewHost::Document(page_id, path) => layout
+            .content_workspace_for_page(page_id)
+            .and_then(|workspace| active_tab_at_path(workspace, path)),
+        ViewHost::FloatingWindow(window_id, path) => layout
+            .floating_windows
+            .iter()
+            .find(|window| &window.window_id == window_id)
+            .and_then(|window| active_tab_at_path(&window.workspace, path)),
+        ViewHost::ExclusivePage(page_id) => layout
+            .main_pages
+            .iter()
+            .find(|page| page.id() == page_id)
+            .and_then(|page| match page {
+                MainHostPageLayout::ExclusiveActivityWindowPage {
+                    window_instance, ..
+                } => Some(window_instance.clone()),
+                MainHostPageLayout::WorkbenchPage { .. } => None,
+            }),
+    }
+}
+
+fn active_tab_at_path(node: &DocumentNode, path: &[usize]) -> Option<ViewInstanceId> {
+    if path.is_empty() {
+        return match node {
+            DocumentNode::Tabs(stack) => stack.active_tab.clone(),
+            DocumentNode::SplitNode { .. } => None,
+        };
+    }
+    match node {
+        DocumentNode::SplitNode { first, second, .. } => match path[0] {
+            0 => active_tab_at_path(first, &path[1..]),
+            1 => active_tab_at_path(second, &path[1..]),
+            _ => None,
+        },
+        DocumentNode::Tabs(_) => None,
+    }
 }
 
 fn default_open_target_for_instance(instance: &ViewInstance) -> ViewHost {

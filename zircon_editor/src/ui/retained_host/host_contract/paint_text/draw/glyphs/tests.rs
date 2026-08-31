@@ -6,7 +6,6 @@ use crate::ui::retained_host::host_contract::paint_theme::HostTextSmoothing;
 
 #[test]
 fn retained_glyph_placement_uses_eight_phase_bins_for_editor_labels() {
-    assert_eq!(TEXT_RASTER_SUPERSAMPLE, 8.0);
     assert_eq!(RETAINED_TEXT_SUBPIXEL_BINS, 8);
 }
 

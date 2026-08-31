@@ -1,12 +1,11 @@
 mod animation_editor;
 mod asset_browser;
+mod asset_kind_filter;
 mod asset_reference_rows;
-mod asset_surface_presentation;
 mod assets_activity;
 mod console;
 mod hierarchy;
 mod inspector;
-mod preview_images;
 mod project_overview;
 mod view_data;
 mod view_projection;
@@ -15,17 +14,20 @@ mod welcome;
 mod welcome_presentation;
 
 pub(crate) use animation_editor::animation_editor_pane_nodes;
-pub(crate) use asset_browser::asset_browser_pane_nodes;
-pub(crate) use asset_surface_presentation::{asset_surface_presentation, AssetSurfacePresentation};
+pub(crate) use asset_browser::{asset_browser_pane_data, asset_browser_pane_nodes};
+pub(crate) use asset_kind_filter::{
+    asset_kind_filter_identity, asset_kind_filter_is_supported, asset_kind_filter_options,
+    ASSETS_ACTIVITY_KIND_FILTER_CONTROL_ID, ASSET_BROWSER_KIND_FILTER_CONTROL_ID,
+    ASSET_KIND_FILTER_OPTIONS,
+};
 pub(crate) use assets_activity::assets_activity_pane_data;
 pub(crate) use console::console_pane_nodes;
 pub(crate) use hierarchy::hierarchy_pane_nodes;
 pub(crate) use inspector::inspector_pane_nodes;
-pub(crate) use preview_images::{load_preview_image, load_preview_image_for_generation};
 pub(crate) use project_overview::{project_overview_data, project_overview_pane_data};
 pub(crate) use view_data::{
-    AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, NewProjectFormData,
-    RecentProjectData, SceneViewportChromeData, WelcomePaneData, WelcomePresentation,
+    NewProjectFormData, RecentProjectData, SceneViewportChromeData, WelcomePaneData,
+    WelcomePresentation,
 };
 pub(crate) use view_data::{ViewTemplateFrameData, ViewTemplateNodeData};
 #[cfg(test)]

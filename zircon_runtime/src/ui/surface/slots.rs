@@ -52,15 +52,14 @@ impl UiSurface {
     ) -> Result<bool, UiTreeError> {
         self.ensure_slot_endpoints(parent_id, child_id)?;
         let slot_index = self.slot_index(parent_id, child_id, slot_kind)?;
-        if self.tree.slots[slot_index].canvas_placement == Some(placement) {
+        if self.tree.layout_slots()[slot_index].canvas_placement == Some(placement) {
             return Ok(false);
         }
 
-        {
-            let slot = &mut self.tree.slots[slot_index];
+        let _ = self.tree.mutate_layout_slot(slot_index, |slot| {
             slot.canvas_placement = Some(placement);
             slot.dirty_revision = slot.dirty_revision.saturating_add(1);
-        }
+        });
         self.invalidate_node(child_id, UiInvalidationReason::Layout)?;
         Ok(true)
     }
@@ -74,15 +73,14 @@ impl UiSurface {
     ) -> Result<bool, UiTreeError> {
         self.ensure_slot_endpoints(parent_id, child_id)?;
         let slot_index = self.slot_index(parent_id, child_id, slot_kind)?;
-        if self.tree.slots[slot_index].z_order == z_order {
+        if self.tree.layout_slots()[slot_index].z_order == z_order {
             return Ok(false);
         }
 
-        {
-            let slot = &mut self.tree.slots[slot_index];
+        let _ = self.tree.mutate_layout_slot(slot_index, |slot| {
             slot.z_order = z_order;
             slot.dirty_revision = slot.dirty_revision.saturating_add(1);
-        }
+        });
         let dirty = layering_slot_z_order_dirty_flags();
         self.mark_node_dirty(child_id, dirty)?;
         self.invalidation.record_dirty_with_reason(

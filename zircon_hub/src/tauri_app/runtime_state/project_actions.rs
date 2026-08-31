@@ -580,7 +580,7 @@ impl HubRuntimeSession {
         );
         self.task_status = TaskStatus::error("Create Project failed", detail, recovery)
             .with_operation(TaskOperationKind::Project, target);
-        let _ = self.persist_unchecked(None);
+        let _ = self.persist_unchecked();
         Ok(())
     }
 

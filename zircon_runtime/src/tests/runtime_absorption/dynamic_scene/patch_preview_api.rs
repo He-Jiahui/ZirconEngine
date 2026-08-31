@@ -39,13 +39,13 @@ fn runtime_05_dynamic_scene_patch_preview_api_stays_read_only() {
         "ScenePatch must keep its preview API as a read-only DynamicScene facade call"
     );
     assert!(
-        SCENE_MOD_SOURCE.contains("pub fn preview_spawn_into(")
-            && SCENE_MOD_SOURCE.contains("spawn::preview_scene_spawn_into(self, world)"),
+        SCENE_API_SOURCE.contains("pub fn preview_spawn_into(")
+            && SCENE_API_SOURCE.contains("spawn::preview_scene_spawn_into(self, world)"),
         "DynamicScene must keep preview_spawn_into routed to the read-only spawn preview helper"
     );
 
     let preview_body = SPAWN_SOURCE
-        .split("pub(super) fn preview_scene_spawn_into")
+        .split("pub(in crate::scene::dynamic_scene::scene) fn preview_scene_spawn_into")
         .nth(1)
         .expect("preview_scene_spawn_into should stay in the spawn transaction module")
         .split("fn install_component_type_descriptors")
@@ -83,8 +83,8 @@ fn runtime_05_dynamic_scene_patch_preview_api_stays_read_only() {
         "ReflectError::NoComponentAdapter",
         "ReflectError::NoResourceAdapter",
         "ReflectError::MissingResource",
-        "reflected_fields_to_json_object(&component.fields, remap)?",
-        "remap_reflected_value(&field.value, remap)?",
+        "reflected_fields_to_json_object(",
+        "compile_reflected_writes(",
         "component_type_count.saturating_sub(existing_component_type_count)",
         "component_type_descriptor(&descriptor.type_id)",
         "plugin_id: descriptor.plugin_id.clone()",

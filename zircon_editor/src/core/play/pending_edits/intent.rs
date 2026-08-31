@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::core::editing::operation::{DeferredOperationInvocation, PendingEditRetention};
+use crate::core::editing::operation::{
+    DeferredOperationInvocation, EditOperationTarget, PendingEditRetention,
+};
 use crate::core::editor_operation::EditorOperationInvocation;
-
-use super::super::PlayEditTarget;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PendingEditId(u64);
@@ -22,7 +22,7 @@ impl PendingEditId {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PendingEditIntent {
     pub id: PendingEditId,
-    pub target: PlayEditTarget,
+    pub target: EditOperationTarget,
     pub invocation: Arc<EditorOperationInvocation>,
     pub retention: PendingEditRetention,
     payload_bytes: usize,
@@ -33,15 +33,15 @@ pub struct PendingEditIntent {
 impl PendingEditIntent {
     pub(super) fn new(
         id: PendingEditId,
-        target: PlayEditTarget,
+        target: EditOperationTarget,
         deferred: DeferredOperationInvocation,
         payload_bytes: usize,
         enqueued_at: Instant,
     ) -> Self {
-        let (invocation, retention) = deferred.into_parts();
+        let (invocation, registered_target, retention) = deferred.into_parts();
         Self {
             id,
-            target,
+            target: registered_target,
             invocation: Arc::new(invocation),
             retention,
             payload_bytes,
@@ -52,13 +52,14 @@ impl PendingEditIntent {
 
     pub(super) fn replace(
         &mut self,
-        target: PlayEditTarget,
+        target: EditOperationTarget,
         deferred: DeferredOperationInvocation,
         payload_bytes: usize,
         enqueued_at: Instant,
     ) {
-        let (invocation, retention) = deferred.into_parts();
-        self.target = target;
+        let (invocation, registered_target, retention) = deferred.into_parts();
+        debug_assert_eq!(target, registered_target);
+        self.target = registered_target;
         self.invocation = Arc::new(invocation);
         self.retention = retention;
         self.payload_bytes = payload_bytes;
@@ -84,7 +85,7 @@ impl PendingEditIntent {
 
     pub(super) fn belongs_to_cohort(
         &self,
-        target: PlayEditTarget,
+        target: EditOperationTarget,
         invocation: &EditorOperationInvocation,
         retention: &PendingEditRetention,
     ) -> bool {

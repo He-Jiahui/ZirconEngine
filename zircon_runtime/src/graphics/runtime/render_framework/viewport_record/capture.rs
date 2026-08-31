@@ -83,7 +83,9 @@ impl ViewportRecord {
             .entry(profile.frame_generation)
             .or_default()
             .push(profile.clone());
-        while self.pending_capture_profiles.len() > zr_rhi_wgpu::GpuReadbackQueue::FRAME_SLOTS {
+        while self.pending_capture_profiles.len()
+            > super::capture_mailbox::viewport_capture_pending_limit()
+        {
             let Some(generation) = self.pending_capture_profiles.keys().next().copied() else {
                 break;
             };

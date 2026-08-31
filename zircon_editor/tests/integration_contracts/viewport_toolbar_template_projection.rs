@@ -48,6 +48,19 @@ fn viewport_toolbar_template_projects_surface_backed_group_frames() {
         )
     );
 
+    let set_pivot_mode = host_model
+        .node_by_control_id("SetPivotMode")
+        .expect("pivot mode control should exist");
+    assert_eq!(
+        set_pivot_mode.frame,
+        UiFrame::new(
+            set_transform_space.frame.x + set_transform_space.frame.width + 4.0,
+            0.0,
+            28.0,
+            28.0
+        )
+    );
+
     let set_projection_mode = host_model
         .node_by_control_id("SetProjectionMode")
         .expect("projection mode group should exist");

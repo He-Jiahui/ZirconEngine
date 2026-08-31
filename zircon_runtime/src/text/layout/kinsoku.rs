@@ -1,22 +1,6 @@
 use super::line_break::LineBreakChunk;
 use crate::text::TextRange;
 
-const FORBIDDEN_LINE_START_CLOSING_PUNCTUATION: &[char] = &[
-    '、', '。', '，', '．', '・', '：', '；', '！', '？', '）', '］', '｝', '｠', '】', '〕', '〉',
-    '》', '」', '』', '〗', '〙', '〛', '’', '”', '〟', '〞',
-];
-const FORBIDDEN_LINE_START_SMALL_KANA: &[char] = &[
-    'ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'っ', 'ゃ', 'ゅ', 'ょ', 'ゎ', 'ゕ', 'ゖ', 'ァ', 'ィ', 'ゥ', 'ェ',
-    'ォ', 'ッ', 'ャ', 'ュ', 'ョ', 'ヮ', 'ヵ', 'ヶ', 'ㇰ', 'ㇱ', 'ㇲ', 'ㇳ', 'ㇴ', 'ㇵ', 'ㇶ', 'ㇷ',
-    'ㇸ', 'ㇹ', 'ㇺ', 'ㇻ', 'ㇼ', 'ㇽ', 'ㇾ', 'ㇿ',
-];
-const FORBIDDEN_LINE_START_HALFWIDTH: &[char] = &[
-    '｡', '｣', '､', '･', 'ｧ', 'ｨ', 'ｩ', 'ｪ', 'ｫ', 'ｯ', 'ｬ', 'ｭ', 'ｮ', 'ｰ', 'ﾞ', 'ﾟ',
-];
-const FORBIDDEN_LINE_START_JAPANESE_NON_STARTERS: &[char] =
-    &['ー', '々', '〻', 'ゝ', 'ゞ', 'ヽ', 'ヾ'];
-const FORBIDDEN_LINE_START_SPACING_VOICING_MARKS: &[char] = &['゛', '゜'];
-const FORBIDDEN_LINE_START_JLREQ_HYPHENS: &[char] = &['‐', '〜', '゠', '–'];
 const JLREQ_INSEPARABLE_PAIRS: &[(char, char)] = &[
     ('—', '—'),
     ('…', '…'),
@@ -234,12 +218,24 @@ fn has_protected_forbidden_suffix(text: &str) -> bool {
 }
 
 fn is_forbidden_line_start(ch: char) -> bool {
-    FORBIDDEN_LINE_START_CLOSING_PUNCTUATION.contains(&ch)
-        || FORBIDDEN_LINE_START_SMALL_KANA.contains(&ch)
-        || FORBIDDEN_LINE_START_HALFWIDTH.contains(&ch)
-        || FORBIDDEN_LINE_START_JAPANESE_NON_STARTERS.contains(&ch)
-        || FORBIDDEN_LINE_START_SPACING_VOICING_MARKS.contains(&ch)
-        || FORBIDDEN_LINE_START_JLREQ_HYPHENS.contains(&ch)
+    matches!(
+        ch,
+        // Closing punctuation.
+        '、' | '。' | '，' | '．' | '・' | '：' | '；' | '！' | '？' | '）' | '］'
+            | '｝' | '｠' | '】' | '〕' | '〉' | '》' | '」' | '』' | '〗' | '〙' | '〛'
+            | '’' | '”' | '〟' | '〞'
+            // Small kana.
+            | 'ぁ' | 'ぃ' | 'ぅ' | 'ぇ' | 'ぉ' | 'っ' | 'ゃ' | 'ゅ' | 'ょ' | 'ゎ' | 'ゕ'
+            | 'ゖ' | 'ァ' | 'ィ' | 'ゥ' | 'ェ' | 'ォ' | 'ッ' | 'ャ' | 'ュ' | 'ョ' | 'ヮ'
+            | 'ヵ' | 'ヶ' | 'ㇰ' | 'ㇱ' | 'ㇲ' | 'ㇳ' | 'ㇴ' | 'ㇵ' | 'ㇶ' | 'ㇷ' | 'ㇸ'
+            | 'ㇹ' | 'ㇺ' | 'ㇻ' | 'ㇼ' | 'ㇽ' | 'ㇾ' | 'ㇿ'
+            // Half-width punctuation and kana.
+            | '｡' | '｣' | '､' | '･' | 'ｧ' | 'ｨ' | 'ｩ' | 'ｪ' | 'ｫ' | 'ｯ' | 'ｬ'
+            | 'ｭ' | 'ｮ' | 'ｰ' | 'ﾞ' | 'ﾟ'
+            // Japanese non-starters, spacing marks, and JLREQ hyphens.
+            | 'ー' | '々' | '〻' | 'ゝ' | 'ゞ' | 'ヽ' | 'ヾ' | '゛' | '゜' | '‐' | '〜'
+            | '゠' | '–'
+    )
 }
 
 fn is_forbidden_line_end(ch: char) -> bool {
@@ -248,3 +244,6 @@ fn is_forbidden_line_end(ch: char) -> bool {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod match_dispatch_tests;

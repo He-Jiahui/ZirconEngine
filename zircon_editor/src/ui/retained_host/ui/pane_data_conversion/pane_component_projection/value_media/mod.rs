@@ -2,7 +2,6 @@ use std::collections::BTreeMap;
 
 use super::super::pane_value_conversion::value_as_f64;
 use super::drag_overlay::ProjectedDragOverlayData;
-use super::preview_images::load_preview_image;
 use super::progress_value::projected_value_percent;
 use super::value_color::projected_value_color;
 
@@ -34,8 +33,7 @@ pub(super) fn projected_value_media(
     );
     let media_source = media::projected_media_source(component_role, attributes);
     let icon_name = icon::projected_icon_name(component_role, attributes);
-    let preview_image = load_preview_image(&media_source, &icon_name);
-    let preview_size = preview_image.size();
+    let has_preview_image = !media_source.trim().is_empty() || !icon_name.trim().is_empty();
 
     ProjectedValueMedia {
         value_text,
@@ -54,8 +52,8 @@ pub(super) fn projected_value_media(
         value_color: projected_value_color(component_role, attributes),
         media_source,
         icon_name,
-        has_preview_image: preview_size.width > 0 && preview_size.height > 0,
-        preview_image,
+        has_preview_image,
+        preview_image: Default::default(),
         vector_components: vector::projected_vector_components(attributes),
     }
 }

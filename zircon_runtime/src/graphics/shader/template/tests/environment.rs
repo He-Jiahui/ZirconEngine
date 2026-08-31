@@ -1,9 +1,8 @@
 use crate::core::framework::render::{ShaderFeatureBits, ShaderPassType};
 
 use super::{
-    assemble_material_shader_template, material_template_request,
+    MaterialShaderTemplateRequest, assemble_material_shader_template, material_template_request,
     standard_material_surface_source_for_features, static_mesh_descriptor,
-    MaterialShaderTemplateRequest,
 };
 
 fn environment_pbr_composition_source(source: &str) -> String {

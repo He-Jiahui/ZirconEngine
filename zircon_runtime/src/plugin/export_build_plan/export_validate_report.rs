@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use zircon_runtime_interface::export::ExportStage;
 
 use super::{
@@ -237,11 +237,22 @@ impl<'a> ExportValidateContentsArtifactFile<'a> {
 }
 
 fn dedupe(values: Vec<String>) -> Vec<String> {
-    let mut deduped = Vec::new();
-    for value in values {
-        if !deduped.iter().any(|existing| existing == &value) {
+    let mut seen = HashSet::<&str>::with_capacity(values.len());
+    let mut accepted = Vec::with_capacity(values.len());
+    for value in &values {
+        accepted.push(seen.insert(value.as_str()));
+    }
+    let accepted_count = seen.len();
+    drop(seen);
+
+    let mut deduped = Vec::with_capacity(accepted_count);
+    for (value, accepted) in values.into_iter().zip(accepted) {
+        if accepted {
             deduped.push(value);
         }
     }
     deduped
 }
+
+#[cfg(test)]
+mod diagnostic_dedup_tests;

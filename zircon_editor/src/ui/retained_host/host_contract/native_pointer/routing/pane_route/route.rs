@@ -2,8 +2,8 @@ use crate::ui::retained_host::host_contract::data::FrameRect;
 
 use super::target::PanePointerTarget;
 
-pub(in crate::ui::retained_host::host_contract) struct PanePointerRoute {
-    pub(in crate::ui::retained_host::host_contract) target: PanePointerTarget,
+pub(in crate::ui::retained_host::host_contract) struct PanePointerRoute<'a> {
+    pub(in crate::ui::retained_host::host_contract) target: PanePointerTarget<'a>,
     pub(in crate::ui::retained_host::host_contract) frame: FrameRect,
     pub(in crate::ui::retained_host::host_contract) local_x: f32,
     pub(in crate::ui::retained_host::host_contract) local_y: f32,
@@ -11,9 +11,9 @@ pub(in crate::ui::retained_host::host_contract) struct PanePointerRoute {
     pub(in crate::ui::retained_host::host_contract) height: f32,
 }
 
-impl PanePointerRoute {
+impl<'a> PanePointerRoute<'a> {
     pub(in crate::ui::retained_host::host_contract) fn new(
-        target: PanePointerTarget,
+        target: PanePointerTarget<'a>,
         frame: &FrameRect,
         x: f32,
         y: f32,

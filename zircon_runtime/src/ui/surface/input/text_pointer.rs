@@ -1,8 +1,9 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
         UiDispatchAppliedEffect, UiDispatchEffect, UiDispatchHostRequest,
-        UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchReply, UiInputDispatchResult,
-        UiInputEvent, UiPointerCaptureReason, UiPointerInputEvent, UiPopupEffectKind,
+        UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchReply, UiInputDiagnosticsMode,
+        UiInputDispatchResult, UiInputEvent, UiPointerCaptureReason, UiPointerInputEvent,
+        UiPopupEffectKind,
     },
     event_ui::UiNodeId,
     focus::UiFocusedInputKind,
@@ -10,8 +11,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::text::{
-    apply_text_edit_action, hit_test_text_layout, line_end_boundary, line_start_boundary,
-    word_range_at, UiTextHitTest,
+    apply_text_edit_action, hit_test_text_layout, hit_test_text_layout_with_font_collection,
+    line_end_boundary, line_start_boundary, word_range_at, UiTextHitTest,
 };
 use crate::ui::tree::UiRuntimeTreeRoutingExt;
 
@@ -26,13 +27,14 @@ pub(super) fn dispatch_pointer_text_edit(
     surface: &mut UiSurface,
     pointer: &UiPointerInputEvent,
     route: &UiPointerRoute,
+    diagnostics_mode: UiInputDiagnosticsMode,
 ) -> Option<UiInputDispatchResult> {
     let target = text_pointer_target(surface, pointer, route)?;
     if !is_valid_input_owner(surface, target) {
         return None;
     }
     if matches!(route.kind, UiPointerEventKind::Up) {
-        return dispatch_pointer_text_release(surface, pointer, route, target);
+        return dispatch_pointer_text_release(surface, pointer, route, target, diagnostics_mode);
     }
     let hit = text_pointer_hit(surface, target, route)?;
     let source_offset = hit.source_offset;
@@ -89,36 +91,42 @@ pub(super) fn dispatch_pointer_text_edit(
 
     let mut result = apply_editable_text_state(
         surface,
+        None,
         UiInputEvent::Pointer(pointer.clone()),
         target,
         next,
+        None,
         phase,
         TextComponentEventKind::Change,
     );
-    result
-        .diagnostics
-        .notes
-        .push(format!("text_pointer_offset={source_offset}"));
-    if is_triple_click {
+    if diagnostics_mode.captures_full_trace() {
         result
             .diagnostics
             .notes
-            .push("text_pointer_line_selection".to_string());
-    } else if is_double_click {
-        result
-            .diagnostics
-            .notes
-            .push("text_pointer_word_selection".to_string());
-    }
-    if let Some(selection_note) = selection_note {
-        result.diagnostics.notes.push(selection_note.to_string());
+            .push(format!("text_pointer_offset={source_offset}"));
+        if is_triple_click {
+            result
+                .diagnostics
+                .notes
+                .push("text_pointer_line_selection".to_string());
+        } else if is_double_click {
+            result
+                .diagnostics
+                .notes
+                .push("text_pointer_word_selection".to_string());
+        }
+        if let Some(selection_note) = selection_note {
+            result.diagnostics.notes.push(selection_note.to_string());
+        }
     }
     if let Some(drag) = drag {
         result.drag = Some(drag);
-        result.diagnostics.notes.push(format!(
-            "text_pointer_drag={:?}:{:.3}",
-            drag.phase, drag.distance
-        ));
+        if diagnostics_mode.captures_full_trace() {
+            result.diagnostics.notes.push(format!(
+                "text_pointer_drag={:?}:{:.3}",
+                drag.phase, drag.distance
+            ));
+        }
     }
     if matches!(route.kind, UiPointerEventKind::Down) {
         push_text_pointer_capture_effect(&mut result, target, pointer);
@@ -131,10 +139,15 @@ fn dispatch_pointer_text_release(
     pointer: &UiPointerInputEvent,
     route: &UiPointerRoute,
     target: UiNodeId,
+    diagnostics_mode: UiInputDiagnosticsMode,
 ) -> Option<UiInputDispatchResult> {
     if route.activation_phase == UiPointerActivationPhase::SecondaryRelease {
         return Some(dispatch_pointer_text_secondary_release(
-            surface, pointer, route, target,
+            surface,
+            pointer,
+            route,
+            target,
+            diagnostics_mode,
         ));
     }
     if !surface.input.pointer_drags.contains_key(&target) {
@@ -149,12 +162,16 @@ fn dispatch_pointer_text_release(
     );
     result.diagnostics.routed = true;
     result.diagnostics.route_target = Some(target);
-    result.diagnostics.handled_phase = Some("pointer.text_release".to_string());
+    if diagnostics_mode.captures_full_trace() {
+        result.diagnostics.handled_phase = Some("pointer.text_release".to_string());
+    }
     result.drag = Some(drag);
-    result.diagnostics.notes.push(format!(
-        "text_pointer_drag={:?}:{:.3}",
-        drag.phase, drag.distance
-    ));
+    if diagnostics_mode.captures_full_trace() {
+        result.diagnostics.notes.push(format!(
+            "text_pointer_drag={:?}:{:.3}",
+            drag.phase, drag.distance
+        ));
+    }
     let focused_route = surface.tree.bubble_route(target).unwrap_or_default();
     surface.record_focused_input(
         UiFocusedInputKind::Pointer,
@@ -171,6 +188,7 @@ fn dispatch_pointer_text_secondary_release(
     pointer: &UiPointerInputEvent,
     route: &UiPointerRoute,
     target: UiNodeId,
+    diagnostics_mode: UiInputDiagnosticsMode,
 ) -> UiInputDispatchResult {
     let mut result = UiInputDispatchResult::new(
         UiInputEvent::Pointer(pointer.clone()),
@@ -180,7 +198,9 @@ fn dispatch_pointer_text_secondary_release(
     );
     result.diagnostics.routed = true;
     result.diagnostics.route_target = Some(target);
-    result.diagnostics.handled_phase = Some("pointer.text_secondary_release".to_string());
+    if diagnostics_mode.captures_full_trace() {
+        result.diagnostics.handled_phase = Some("pointer.text_secondary_release".to_string());
+    }
 
     let focused_route = surface.tree.bubble_route(target).unwrap_or_default();
     surface.record_focused_input(
@@ -193,11 +213,13 @@ fn dispatch_pointer_text_secondary_release(
 
     if route.stacked.contains(&target) {
         push_text_pointer_context_popup_effect(&mut result, surface, target, route);
-        result
-            .diagnostics
-            .notes
-            .push("text_pointer_secondary_context_menu".to_string());
-    } else {
+        if diagnostics_mode.captures_full_trace() {
+            result
+                .diagnostics
+                .notes
+                .push("text_pointer_secondary_context_menu".to_string());
+        }
+    } else if diagnostics_mode.captures_full_trace() {
         result
             .diagnostics
             .notes
@@ -246,17 +268,28 @@ fn text_pointer_hit(
     target: UiNodeId,
     route: &UiPointerRoute,
 ) -> Option<UiTextHitTest> {
-    let layout = surface
-        .render_extract
-        .list
-        .commands
+    let candidate_commands = surface
+        .render_cache
+        .commands_for_node(&surface.render_extract, target)
+        .map(|(_, commands)| commands)
+        .unwrap_or_else(|| surface.render_extract.list.commands.as_slice());
+    let command = candidate_commands
         .iter()
-        .find_map(|command| {
-            (command.node_id == target)
-                .then(|| command.text_layout.as_ref())
-                .flatten()
-        })?;
-    Some(hit_test_text_layout(layout, route.point))
+        .find(|command| command.node_id == target && command.text_layout.is_some())?;
+    let layout = command.text_layout.as_ref()?;
+    let font_collection = surface.text_measure_cache.font_collection_snapshot();
+    let source_metrics_current =
+        surface.observed_text_font_generation == font_collection.generation();
+    Some(match (command.text.as_deref(), source_metrics_current) {
+        (Some(text), true) => hit_test_text_layout_with_font_collection(
+            layout,
+            route.point,
+            text,
+            &command.style,
+            &font_collection,
+        ),
+        _ => hit_test_text_layout(layout, route.point),
+    })
 }
 
 fn move_pointer_caret(

@@ -1,4 +1,4 @@
-use zircon_runtime_interface::reflect::{ReflectError, ReflectFieldValue, ReflectedValue};
+use zircon_runtime_interface::reflect::{ReflectError, ReflectedValue};
 
 use crate::scene::components::Hierarchy;
 use crate::scene::{
@@ -12,16 +12,9 @@ const TYPE_PATH: &str = "zircon_runtime::scene::components::Hierarchy";
 
 pub(super) fn registration() -> Result<RuntimeTypeRegistration, ReflectError> {
     derived_component_registration_with_adapter::<Hierarchy>(
-        ReflectComponent::new(
-            TYPE_PATH,
-            contains,
-            read_field,
-            read_fields,
-            write_field,
-            remove,
-        )
-        .with_dense_field_slots(read_field_by_slot, write_field_by_slot)
-        .with_dense_field_batch_write(write_fields_by_slot),
+        ReflectComponent::new(TYPE_PATH, contains, read_field, write_field, remove)
+            .with_dense_field_slots(read_field_by_slot, write_field_by_slot)
+            .with_dense_field_batch_write(write_fields_by_slot),
     )
 }
 
@@ -39,17 +32,6 @@ fn read_field(
         "parent" => read_parent(world, entity),
         _ => Err(component_support::unknown(TYPE_PATH, field_name)),
     }
-}
-
-fn read_fields(
-    world: &World,
-    entity: EntityId,
-    _type_path: &str,
-) -> Result<Vec<ReflectFieldValue>, ReflectError> {
-    Ok(vec![ReflectFieldValue::new(
-        "parent",
-        read_parent(world, entity)?,
-    )])
 }
 
 fn write_field(

@@ -17,6 +17,7 @@ mod selection;
 mod slider;
 mod table;
 mod text_input;
+mod text_search;
 mod toast;
 mod tree_view;
 mod windowing;
@@ -106,6 +107,11 @@ pub fn apply_component_event(
                     keyboard::sync_menu_search_filter(state, descriptor, &changed_property)
                 }
             }
+        }
+        // Secure value events are publication receipts. The owning surface has already applied the
+        // mutation and only a surface-validated capability may resolve the value.
+        UiComponentEvent::SecureValueChanged { .. } | UiComponentEvent::SecureCommit { .. } => {
+            Ok(())
         }
         UiComponentEvent::KeyboardAction { action } => {
             keyboard::apply_keyboard_action(state, descriptor, action)

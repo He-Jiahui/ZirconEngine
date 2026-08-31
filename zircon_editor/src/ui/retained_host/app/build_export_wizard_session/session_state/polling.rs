@@ -29,6 +29,7 @@ impl DesktopExportWizardSessions {
         if !updates.is_empty() {
             self.invalidate_projection_overlay();
         }
+        updates.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
         updates
     }
 }

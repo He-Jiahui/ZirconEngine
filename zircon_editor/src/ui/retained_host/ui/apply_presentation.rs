@@ -8,7 +8,11 @@ use crate::ui::layouts::windows::workbench_host_window::{
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::retained_host::primitives::ModelRc;
-use crate::ui::retained_host::{self as host_contract, HostWindowPresentationData, UiHostWindow};
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use crate::ui::retained_host::{
+    self as host_contract, HostWindowGeometryPresentationData, HostWindowPresentationData,
+    UiHostWindow,
+};
 use crate::ui::template_runtime::{EditorUiHostRuntime, RetainedUiHostProjection};
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -19,13 +23,19 @@ use super::floating_pane_geometry::floating_pane_content_size;
 use super::root_template_overlay::to_host_contract_root_template_overlay_nodes_at_scale;
 use super::shell_content_presentation::patch_shell_content_presentation;
 use super::template_node_conversion::to_host_contract_template_nodes;
-use super::workbench_window_projection::to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale;
+use super::workbench_window_projection::{
+    build_host_contract_workbench_window_geometry_patch_at_mount_and_scale,
+    to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale,
+};
 
+#[path = "apply_presentation/geometry.rs"]
+mod geometry;
 #[path = "apply_presentation/pane_conversion.rs"]
 mod pane_conversion;
 #[path = "apply_presentation/scene_conversion.rs"]
 mod scene_conversion;
 
+pub(crate) use geometry::apply_window_metrics_geometry_presentation;
 use pane_conversion::to_host_contract_pane;
 #[cfg(test)]
 pub(in crate::ui::retained_host::ui) use scene_conversion::to_host_contract_host_scene_data;
@@ -64,7 +74,10 @@ pub(crate) fn apply_presentation(
 ) {
     let template_v2_data = std::collections::BTreeMap::new();
     let mut chrome_projection_cache = HostChromeProjectionCache::default();
-    apply_presentation_with_template_v2_data(
+    let mut console_projection_cache = pane_data_conversion::ConsolePaneProjectionCache::default();
+    let mut module_plugins_projection_cache =
+        pane_data_conversion::ModulePluginsPaneProjectionCache::default();
+    let _ = apply_presentation_with_template_v2_data(
         ui,
         model,
         chrome,
@@ -85,6 +98,8 @@ pub(crate) fn apply_presentation(
         1.0,
         "",
         &mut chrome_projection_cache,
+        &mut console_projection_cache,
+        &mut module_plugins_projection_cache,
         false,
     );
 }
@@ -119,15 +134,18 @@ pub(crate) fn apply_presentation_with_template_v2_data(
     template_scale_factor: f32,
     hierarchy_filter_query: &str,
     chrome_projection_cache: &mut HostChromeProjectionCache,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
     shell_content_only: bool,
-) {
-    let presentation = {
+) -> Option<std::sync::Arc<ShellPresentation>> {
+    let mut presentation = {
         zircon_runtime::profile_scope!(
             "editor",
             "retained_host",
             "apply_shell_presentation_from_state"
         );
-        ShellPresentation::from_state_with_template_v2_data_and_cache(
+        record_current_ui_perf_counter(UiPerfCounter::ShellPresentationBuildCount, 1.0);
+        std::sync::Arc::new(ShellPresentation::from_state(
             model,
             chrome,
             geometry,
@@ -141,7 +159,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             template_v2_data,
             floating_window_projection_bundle,
             chrome_projection_cache,
-        )
+        ))
     };
     let pane_surface_host = ui.global::<host_contract::PaneSurfaceHostContext>();
 
@@ -157,12 +175,15 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             chrome,
             component_showcase_runtime,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         )
     {
-        return;
+        return None;
     }
     let host_scene_data = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_host_scene_data");
+        record_current_ui_perf_counter(UiPerfCounter::HostSceneBuildCount, 1.0);
         build_host_scene_data_with_cache(
             &model.menu_bar,
             &presentation.host_surface_data,
@@ -175,6 +196,9 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             chrome_projection_cache,
         )
     };
+    std::sync::Arc::get_mut(&mut presentation)
+        .expect("shell presentation must be unique before publication")
+        .retained_scene_data = Some(std::sync::Arc::new(host_scene_data.clone()));
     let host_welcome_pane = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_welcome_pane");
         let welcome_pane = project_welcome_pane(&presentation.welcome.pane, &host_scene_data);
@@ -186,22 +210,20 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             "retained_host",
             "apply_build_native_floating_surface_data"
         );
-        build_native_floating_surface_data(
-            &presentation.host_surface_data,
-            &presentation.host_shell,
-            &chrome.project_overview,
-            chrome,
-        )
+        build_native_floating_surface_data(&host_scene_data, &presentation.host_shell)
     };
     let current_generation = ui.get_host_presentation_generation();
     let current_structure = current_generation.structure();
     let host_scene_data = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_scene_data");
+        record_current_ui_perf_counter(UiPerfCounter::PaneProjectionBuildCount, 1.0);
         to_host_contract_host_scene_data_with_runtime(
             &host_scene_data,
             component_showcase_runtime,
             Some(&presentation.welcome),
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         )
     };
     let native_floating_surface_data = {
@@ -215,6 +237,8 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             component_showcase_runtime,
             Some(&presentation.welcome),
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         )
     };
     let host_shell = {
@@ -232,11 +256,15 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             componentized_workbench_layout_frames.mount_frame,
             template_scale_factor,
         );
+    let window_size = ui.window().size();
     let host_presentation = HostWindowPresentationData {
         host_scene_data,
         native_floating_surface_data,
         host_shell,
         host_layout,
+        asset_deletion_blocker: current_structure
+            .asset_deletion_blocker
+            .relayout(window_size.width as f32, window_size.height as f32),
         close_prompt: current_structure.close_prompt.clone(),
         root_template_nodes: to_host_contract_root_template_overlay_nodes_at_scale(
             root_template_projection,
@@ -254,6 +282,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_tail_globals");
         pane_surface_host.set_welcome_pane(host_welcome_pane);
     }
+    Some(presentation)
 }
 
 pub(super) fn host_window_layout(
@@ -362,6 +391,8 @@ fn to_host_contract_floating_window_data(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> host_contract::FloatingWindowData {
     let content_size = floating_pane_content_size(
         window.frame.width,
@@ -376,6 +407,7 @@ fn to_host_contract_floating_window_data(
         frame: to_host_contract_frame_rect(&window.frame),
         header_nodes: to_host_contract_template_nodes(&window.header_nodes),
         header_frame: to_host_contract_frame_rect(&window.header_frame),
+        overflow_frame: to_host_contract_frame_rect(&window.overflow_frame),
         tab_frames: map_model_rc(&window.tab_frames, to_host_contract_chrome_tab),
         target_group: window.target_group,
         left_edge_target_group: window.left_edge_target_group,
@@ -390,6 +422,8 @@ fn to_host_contract_floating_window_data(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         ),
     }
 }
@@ -400,6 +434,8 @@ fn to_host_contract_floating_windows(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> ModelRc<host_contract::FloatingWindowData> {
     map_model_rc(windows, |window| {
         to_host_contract_floating_window_data(
@@ -408,6 +444,8 @@ fn to_host_contract_floating_windows(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         )
     })
 }
@@ -431,12 +469,13 @@ fn to_host_contract_welcome_pane(
     pane: &view_data::WelcomePaneData,
     recent_projects: &ModelRc<view_data::RecentProjectData>,
 ) -> host_contract::WelcomePaneData {
-    let nodes = welcome_nodes_with_native_dispatch(
+    let (nodes, layout) = welcome_nodes_with_native_dispatch(
         to_host_contract_template_nodes(&pane.nodes),
         &pane.form,
     );
     host_contract::WelcomePaneData {
         nodes,
+        layout,
         title: pane.title.clone(),
         subtitle: pane.subtitle.clone(),
         status_message: pane.status_message.clone(),
@@ -448,48 +487,60 @@ fn to_host_contract_welcome_pane(
 fn welcome_nodes_with_native_dispatch(
     nodes: ModelRc<host_contract::TemplatePaneNodeData>,
     form: &view_data::NewProjectFormData,
-) -> ModelRc<host_contract::TemplatePaneNodeData> {
-    model_rc(
-        (0..nodes.row_count())
-            .filter_map(|row| nodes.row_data(row))
-            .map(|mut node| {
-                match node.control_id.as_str() {
-                    "WelcomeProjectNameField" => {
-                        node.component_role = "input-field".into();
-                        node.dispatch_kind = "welcome_text".into();
-                        node.action_id = "welcome.project.name.edit".into();
-                        node.edit_action_id = "welcome.project.name.edit".into();
-                        node.value_text = form.project_name.clone();
-                        if node.text.is_empty() {
-                            node.text = form.project_name.clone();
-                        }
-                    }
-                    "WelcomeLocationField" => {
-                        node.component_role = "input-field".into();
-                        node.dispatch_kind = "welcome_text".into();
-                        node.action_id = "welcome.project.location.edit".into();
-                        node.edit_action_id = "welcome.project.location.edit".into();
-                        node.value_text = form.location.clone();
-                        if node.text.is_empty() {
-                            node.text = form.location.clone();
-                        }
-                    }
-                    "WelcomeCreateProjectButton" => {
-                        node.dispatch_kind = "welcome".into();
-                        node.action_id = "welcome.project.create".into();
-                        node.disabled = !form.can_create;
-                    }
-                    "WelcomeOpenExistingButton" => {
-                        node.dispatch_kind = "welcome".into();
-                        node.action_id = "welcome.project.open_existing".into();
-                        node.disabled = !form.can_open_existing;
-                    }
-                    _ => {}
+) -> (
+    ModelRc<host_contract::TemplatePaneNodeData>,
+    host_contract::WelcomePaneLayoutData,
+) {
+    let mut row_patches = std::collections::BTreeMap::new();
+    let mut layout = host_contract::WelcomePaneLayoutData::default();
+    for (row, node) in nodes.iter().enumerate() {
+        layout.capture(node);
+        if !matches!(
+            node.control_id.as_str(),
+            "WelcomeProjectNameField"
+                | "WelcomeLocationField"
+                | "WelcomeCreateProjectButton"
+                | "WelcomeOpenExistingButton"
+        ) {
+            continue;
+        }
+        let mut node = node.clone();
+        match node.control_id.as_str() {
+            "WelcomeProjectNameField" => {
+                node.component_role = "input-field".into();
+                node.dispatch_kind = "welcome_text".into();
+                node.action_id = "welcome.project.name.edit".into();
+                node.edit_action_id = "welcome.project.name.edit".into();
+                node.value_text = form.project_name.clone();
+                if node.text.is_empty() {
+                    node.text = form.project_name.clone();
                 }
-                node
-            })
-            .collect(),
-    )
+            }
+            "WelcomeLocationField" => {
+                node.component_role = "input-field".into();
+                node.dispatch_kind = "welcome_text".into();
+                node.action_id = "welcome.project.location.edit".into();
+                node.edit_action_id = "welcome.project.location.edit".into();
+                node.value_text = form.location.clone();
+                if node.text.is_empty() {
+                    node.text = form.location.clone();
+                }
+            }
+            "WelcomeCreateProjectButton" => {
+                node.dispatch_kind = "welcome".into();
+                node.action_id = "welcome.project.create".into();
+                node.disabled = !form.can_create;
+            }
+            "WelcomeOpenExistingButton" => {
+                node.dispatch_kind = "welcome".into();
+                node.action_id = "welcome.project.open_existing".into();
+                node.disabled = !form.can_open_existing;
+            }
+            _ => unreachable!("welcome dispatch controls were filtered above"),
+        }
+        row_patches.insert(row, node);
+    }
+    (nodes.with_row_patches(row_patches), layout)
 }
 
 fn project_welcome_pane(
@@ -596,6 +647,7 @@ pub(crate) fn to_host_contract_scene_viewport_chrome(
     host_contract::SceneViewportChromeData {
         mode: data.mode.clone(),
         transform_space: data.transform_space.clone(),
+        pivot_mode: data.pivot_mode.clone(),
         projection_mode: data.projection_mode.clone(),
         view_orientation: data.view_orientation.clone(),
         display_mode: data.display_mode.clone(),
@@ -695,13 +747,6 @@ fn to_host_contract_project_overview_pane(
     pane_data_conversion::to_host_contract_project_overview_pane(data)
 }
 
-fn to_host_contract_module_plugins_pane(
-    data: &host_window::PaneData,
-    pane_size: host_window::PaneContentSize,
-) -> host_contract::ModulePluginsPaneData {
-    pane_data_conversion::to_host_contract_module_plugins_pane_from_host_pane(data, pane_size)
-}
-
 fn to_host_contract_build_export_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
@@ -767,5 +812,24 @@ mod performance_tests {
         assert!(!function.contains("set_browser_asset_"));
         assert!(!function.contains("set_recent_projects"));
         assert!(!function.contains("set_project_overview"));
+    }
+
+    #[test]
+    fn window_metrics_geometry_path_keeps_pane_projection_out_of_the_hot_path() {
+        let source = include_str!("apply_presentation.rs");
+        let function = source
+            .split("pub(crate) fn apply_window_metrics_geometry_presentation")
+            .nth(1)
+            .and_then(|body| body.split("pub(super) fn host_window_layout").next())
+            .expect("window metrics geometry implementation");
+
+        assert!(function.contains("build_host_scene_geometry"));
+        assert!(function.contains("to_host_contract_host_scene_geometry_with_retained_panes"));
+        assert!(function.contains("cached.host_surface_data"));
+        assert!(function.contains("cached.retained_scene_data"));
+        assert!(function.contains("floating_window_projection_bundle"));
+        assert!(!function.contains("build_host_scene_data_with_cache"));
+        assert!(!function.contains("to_host_contract_host_scene_data_with_runtime"));
+        assert!(!function.contains("PaneProjectionBuildCount"));
     }
 }

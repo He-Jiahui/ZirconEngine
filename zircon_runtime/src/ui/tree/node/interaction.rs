@@ -40,7 +40,16 @@ impl UiRuntimeTreeInteractionExt for UiTree {
         &self,
         candidates: &[UiNodeId],
     ) -> Result<Option<UiNodeId>, UiTreeError> {
-        Ok(self.scrollable_candidates(candidates)?.into_iter().next())
+        for node_id in candidates {
+            let node = self
+                .nodes
+                .get(node_id)
+                .ok_or(UiTreeError::MissingNode(*node_id))?;
+            if node_is_scrollable_candidate(node) {
+                return Ok(Some(*node_id));
+            }
+        }
+        Ok(None)
     }
 
     fn scrollable_candidates(&self, candidates: &[UiNodeId]) -> Result<Vec<UiNodeId>, UiTreeError> {
@@ -50,10 +59,7 @@ impl UiRuntimeTreeInteractionExt for UiTree {
                 .nodes
                 .get(node_id)
                 .ok_or(UiTreeError::MissingNode(*node_id))?;
-            if node.container.is_scrollable()
-                && node.state_flags.enabled
-                && node.is_render_visible()
-            {
+            if node_is_scrollable_candidate(node) {
                 scrollables.push(*node_id);
             }
         }
@@ -78,3 +84,11 @@ impl UiRuntimeTreeInteractionExt for UiTree {
         Ok(true)
     }
 }
+
+fn node_is_scrollable_candidate(node: &zircon_runtime_interface::ui::tree::UiTreeNode) -> bool {
+    node.container.is_scrollable() && node.state_flags.enabled && node.is_render_visible()
+}
+
+#[cfg(test)]
+#[path = "interaction/first_scrollable_short_circuit_tests.rs"]
+mod first_scrollable_short_circuit_tests;

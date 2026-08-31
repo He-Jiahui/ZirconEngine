@@ -22,5 +22,5 @@ pub(in crate::hybrid_gi::renderer::gpu_resources) use dispatch_radiance_cache::{
     create_radiance_cache_update_pipeline,
 };
 pub(in crate::hybrid_gi::renderer) use material_capture_source::{
-    HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource,
+    HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource, HybridGiMaterialCaptureTextureKey,
 };

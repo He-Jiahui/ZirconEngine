@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventError, UiComponentState, UiDragPayload,
-    UiDragPayloadKind, UiValidationState, UiValue,
+    UiDragPayloadKind, UiDragSourceMetadata, UiValidationState, UiValue,
 };
 
 pub(super) fn drop_reference(
@@ -21,11 +21,11 @@ pub(super) fn drop_reference(
         });
     }
 
-    let source = payload.source.clone();
-    let value = match payload.kind {
-        UiDragPayloadKind::Asset => UiValue::AssetRef(payload.reference),
+    let (kind, reference, source) = into_reference_parts(payload);
+    let value = match kind {
+        UiDragPayloadKind::Asset => UiValue::AssetRef(reference),
         UiDragPayloadKind::SceneInstance | UiDragPayloadKind::Object => {
-            UiValue::InstanceRef(payload.reference)
+            UiValue::InstanceRef(reference)
         }
     };
     if let Some(source) = source {
@@ -35,6 +35,12 @@ pub(super) fn drop_reference(
     }
     state.values.insert(property, value);
     Ok(())
+}
+
+fn into_reference_parts(
+    payload: UiDragPayload,
+) -> (UiDragPayloadKind, String, Option<UiDragSourceMetadata>) {
+    (payload.kind, payload.reference, payload.source)
 }
 
 pub(super) fn clear_reference(state: &mut UiComponentState, property: String) {
@@ -59,3 +65,7 @@ pub(super) fn ensure_reference_value(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "reference/owned_drag_payload_tests.rs"]
+mod owned_drag_payload_tests;

@@ -31,8 +31,8 @@ fn binding_api_moves_under_binding_namespace() {
     }
 
     assert!(
-        binding_mod_source.contains("UiEventRouter"),
-        "zircon_ui::binding should expose runtime behavior service `UiEventRouter`"
+        !binding_mod_source.contains("mod router") && !binding_mod_source.contains("UiEventRouter"),
+        "the test-only event router must not survive as a runtime binding authority"
     );
 
     for forbidden in [

@@ -223,6 +223,19 @@ Describe "ui profile scale fixture" {
             $fixture.asset_sources.file_name_prefix | Should Be "profile_catalog_asset_"
             $fixture.asset_sources.sha256 | Should Match "^[0-9a-f]{64}$"
             $fixture.asset_sources.total_byte_length | Should BeGreaterThan 0
+            $fixture.workspace.relative_path | Should Be ".zircon/editor-workspace.json"
+            $fixture.workspace.sha256 | Should Match "^[0-9a-f]{64}$"
+
+            $workspace = Get-Content -LiteralPath $fixture.workspace.path -Raw | ConvertFrom-Json
+            $workspace.format_version | Should Be 1
+            $workspace.editor_workspace.layout_version | Should Be 1
+            $workspace.editor_workspace.workbench.active_main_page |
+                Should Be "page:editor.asset_browser#profile"
+            $workspace.editor_workspace.open_view_instances.Count | Should Be 1
+            $workspace.editor_workspace.open_view_instances[0].descriptor_id |
+                Should Be "editor.asset_browser"
+            $workspace.editor_workspace.open_view_instances[0].host.ExclusivePage |
+                Should Be "page:editor.asset_browser#profile"
 
             $sources = @(Get-ChildItem -LiteralPath (Join-Path $projectRoot "assets") `
                     -Filter "profile_catalog_asset_*.json" -File |
@@ -257,6 +270,7 @@ Describe "ui profile scale fixture" {
 
             $validated.asset_item_count | Should Be 4
             $validated.asset_sources.sha256 | Should Be $fixture.asset_sources.sha256
+            $validated.workspace.sha256 | Should Be $fixture.workspace.sha256
 
             $firstSource = Join-Path $projectRoot "assets\profile_catalog_asset_000001.json"
             Set-Content -LiteralPath $firstSource -Value '{"profile_asset_index":999}' -Encoding ASCII

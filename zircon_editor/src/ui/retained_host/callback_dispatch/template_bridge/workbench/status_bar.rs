@@ -16,6 +16,7 @@ const STATUS_WARNINGS: &str = "WorkbenchStatusWarnings";
 const STATUS_MESSAGES: &str = "WorkbenchStatusMessages";
 const STATUS_GRID: &str = "WorkbenchStatusGrid";
 const STATUS_SNAP: &str = "WorkbenchStatusSnap";
+const STATUS_SNAP_ICON: &str = "WorkbenchStatusSnapToggle";
 const STATUS_ZOOM: &str = "WorkbenchStatusZoom";
 const STATUS_TASK_PROGRESS: &str = "WorkbenchStatusTaskProgress";
 const STATUS_TASK_LABEL: &str = "WorkbenchStatusTaskLabel";
@@ -53,6 +54,11 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.mutate_control_property(STATUS_MESSAGES, "text", UiValue::String(model.message_text))?;
         self.mutate_control_property(STATUS_GRID, "text", UiValue::String(model.grid_text))?;
         self.mutate_control_property(STATUS_SNAP, "text", UiValue::String(model.snap_text))?;
+        self.mutate_control_property(
+            STATUS_SNAP_ICON,
+            "checked",
+            UiValue::Bool(model.snap_enabled),
+        )?;
         self.mutate_control_property(STATUS_ZOOM, "text", UiValue::String(model.zoom_text))?;
         self.sync_status_task_progress(model.task_progress.as_ref())?;
         Ok(())

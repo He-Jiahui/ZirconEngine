@@ -1,4 +1,6 @@
-use crate::core::framework::render::{FrameHistoryHandle, RenderViewportHandle};
+use crate::core::framework::render::{
+    FrameHistoryHandle, RenderFrameworkError, RenderViewportHandle,
+};
 
 use super::super::super::viewport_record::ViewportRecord;
 use super::super::frame_submission_context::FrameSubmissionContext;
@@ -16,7 +18,9 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
     allocated_history: Option<FrameHistoryHandle>,
     generation: u64,
     runtime_feedback: RuntimeFeedbackBatch,
-) -> SubmissionRecordUpdate {
+) -> Result<SubmissionRecordUpdate, RenderFrameworkError> {
+    let (previous_handle, history_handle, history_status) =
+        record_history(record, context, generation, allocated_history)?;
     record.store_visible_spatial_query(
         viewport,
         context.source_world(),
@@ -25,8 +29,6 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
     );
     let (hybrid_gi_feedback, particle_feedback, virtual_geometry_feedback) =
         runtime_feedback.into_parts();
-    let (previous_handle, history_handle, history_status) =
-        record_history(record, context, generation, allocated_history);
     record.store_presented_pipeline(context.compiled_pipeline_shared());
     let hybrid_gi_stats =
         update_hybrid_gi_runtime(record, context.camera_history_key(), hybrid_gi_feedback);
@@ -37,7 +39,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
         virtual_geometry_feedback,
     );
 
-    SubmissionRecordUpdate::new(
+    Ok(SubmissionRecordUpdate::new(
         history_handle,
         previous_handle,
         history_status,
@@ -47,5 +49,5 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
         hybrid_gi_stats,
         particle_stats,
         virtual_geometry_stats,
-    )
+    ))
 }

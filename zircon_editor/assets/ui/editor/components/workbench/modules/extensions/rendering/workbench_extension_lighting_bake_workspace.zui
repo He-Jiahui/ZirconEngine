@@ -12,8 +12,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 [components.WorkbenchExtensionLightingBakeWorkspace]
@@ -21,54 +21,53 @@ root = "lighting_bake_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.lighting_bake_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionLightingBakeWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "lighting_bake_rail_gap" }, { node = "lighting_bake_left" }, { node = "lighting_bake_center" }, { node = "lighting_bake_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "lighting_bake_workspace_main" },
+  { node = "lighting_bake_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.lighting_bake_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "lighting_bake_rail_gap" }, { node = "lighting_bake_left" }, { node = "lighting_bake_center" }, { node = "lighting_bake_right_reserve" }]
+
+[nodes.lighting_bake_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.lighting_bake_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionLightingBakeRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.lighting_bake_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLightingBakeLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "lighting_bake_title" }, { node = "lighting_bake_levels_tab" }, { node = "lighting_bake_probes_tab" }, { node = "lighting_bake_warnings_tab" }, { node = "lighting_bake_scene_row" }, { node = "lighting_bake_interior_row" }, { node = "lighting_bake_reflection_probe_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "lighting_bake_title" }, { node = "lighting_bake_left_content" }]
+
+[nodes.lighting_bake_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionLightingBakeLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "lighting_bake_scene_row" }, { node = "lighting_bake_interior_row" }, { node = "lighting_bake_reflection_probe_row" }]
 
 [nodes.lighting_bake_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionLightingBakeTitle"
 props = { text = "Lighting Bake" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.lighting_bake_levels_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionLightingBakeLevelsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Levels", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LightingBakeLevelsTab", event = "Click", route = "workbench.extension.lighting_bake.levels" }]
-
-[nodes.lighting_bake_probes_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionLightingBakeProbesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Probes", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LightingBakeProbesTab", event = "Click", route = "workbench.extension.lighting_bake.probes" }]
-
-[nodes.lighting_bake_warnings_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionLightingBakeWarningsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Warnings", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LightingBakeWarningsTab", event = "Click", route = "workbench.extension.lighting_bake.warnings" }]
 
 [nodes.lighting_bake_scene_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/LightingBakeReflectionProbeRow", event = "C
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLightingBakeCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "lighting_bake_center_header" }, { node = "lighting_bake_queue_table" }, { node = "lighting_bake_output" }]
 
 [nodes.lighting_bake_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionLightingBakeCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "lighting_bake_center_title" }, { node = "lighting_bake_header_fill" }, { node = "lighting_bake_preview_button" }, { node = "lighting_bake_bake_button" }]
 
 [nodes.lighting_bake_center_title]
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/LightingBakePreview", event = "Click", rout
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionLightingBakeBakeButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Bake", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Bake", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 72.0, preferred = 72.0, max = 82.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LightingBakeBake", event = "Click", route = "workbench.extension.lighting_bake.bake" }]
 
 [nodes.lighting_bake_queue_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionLightingBakeQueueTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "lighting_bake_shadow_map_row" }, { node = "lighting_bake_lightmap_uv_row" }, { node = "lighting_bake_probe_grid_row" }, { node = "lighting_bake_bleed_warning_row" }]
 
 [nodes.lighting_bake_shadow_map_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/LightingBakeBleedWarningTableRow", event = 
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionLightingBakeOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Lighting", value_text = "Preview ready   4 warnings   estimate 02:30" }
+props = { text = "Lighting", value_text = "Preview ready   4 warnings   estimate 02:30", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LightingBakeOutput", event = "Click", route = "workbench.extension.lighting_bake.output" }]
 
 [nodes.lighting_bake_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLightingBakeRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "lighting_bake_details_title" }, { node = "lighting_bake_quality_dropdown" }, { node = "lighting_bake_target_field" }, { node = "lighting_bake_denoise_dropdown" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "lighting_bake_details_title" }, { node = "lighting_bake_right_content" }]
+
+[nodes.lighting_bake_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionLightingBakeRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "lighting_bake_quality_dropdown_property_row" }, { node = "lighting_bake_target_field_property_row" }, { node = "lighting_bake_denoise_dropdown_property_row" }]
 
 [nodes.lighting_bake_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,16 +202,30 @@ control_id = "WorkbenchExtensionLightingBakeDetailsTitle"
 props = { text = "Bake Settings" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.lighting_bake_quality_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionLightingBakeQualityDropdownPropertyRow"
+props = { text = "Quality" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "lighting_bake_quality_dropdown", slot = { name = "value" } }]
+
 [nodes.lighting_bake_quality_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionLightingBakeQualityDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Quality: Production", value = "production", options = ["preview", "medium", "production"] }
+props = { value_text = "Production", value = "production", options = ["preview|label=Preview", "medium|label=Medium", "production|label=Production"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/LightingBakeQualityEdit", event = "Change", route = "workbench.extension.lighting_bake.quality.edit" },
   { id = "WorkbenchExtension/LightingBakeQualityCommit", event = "Submit", route = "workbench.extension.lighting_bake.quality.commit" },
 ]
+
+[nodes.lighting_bake_target_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionLightingBakeTargetFieldPropertyRow"
+props = { text = "Target" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "lighting_bake_target_field", slot = { name = "value" } }]
 
 [nodes.lighting_bake_target_field]
 component = "WorkbenchField"
@@ -218,11 +238,18 @@ events = [
   { id = "WorkbenchExtension/LightingBakeTargetCommit", event = "Submit", route = "workbench.extension.lighting_bake.target.commit" },
 ]
 
+[nodes.lighting_bake_denoise_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionLightingBakeDenoiseDropdownPropertyRow"
+props = { text = "Denoise" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "lighting_bake_denoise_dropdown", slot = { name = "value" } }]
+
 [nodes.lighting_bake_denoise_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionLightingBakeDenoiseDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Denoise: High", value = "high", options = ["off", "medium", "high"] }
+props = { value_text = "High", value = "high", options = ["off|label=Off", "medium|label=Medium", "high|label=High"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/LightingBakeDenoiseEdit", event = "Change", route = "workbench.extension.lighting_bake.denoise.edit" },

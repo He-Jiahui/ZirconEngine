@@ -102,10 +102,12 @@ fn render_text_atlas_gpu_draw_commands_follow_batch_instance_ranges() {
     assert_eq!(gpu_plan.draw_commands[2].instance_start, 2);
     assert_eq!(gpu_plan.draw_commands[2].instance_count, 1);
     assert_eq!(gpu_plan.draw_commands[2].atlas_layer, 0);
-    assert!(gpu_plan
-        .draw_commands
-        .iter()
-        .all(|command| command.is_quad_aligned()));
+    assert!(
+        gpu_plan
+            .draw_commands
+            .iter()
+            .all(|command| command.is_quad_aligned())
+    );
 }
 
 #[test]

@@ -5,9 +5,7 @@ use super::super::super::super::data::{
 };
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_geometry::is_visible_frame;
-use super::super::super::super::paint_primitives::{
-    draw_rounded_border_clipped, draw_rounded_rect_clipped,
-};
+use super::super::super::super::paint_primitives::draw_rounded_box_clipped;
 use super::super::super::super::paint_theme::{current_host_metrics, current_host_palette};
 use super::super::geometry::{
     constrained_submenu_popup_frame, menu_popup_height, menu_popup_row_frame,
@@ -25,7 +23,7 @@ pub(super) fn draw_open_submenu_popups(
     let metrics = current_host_metrics();
     let palette = menu_popup_palette(current_host_palette());
     for (level, selected_index) in menu_state.open_submenu_path.iter().copied().enumerate() {
-        let Some(branch) = items.row_data(selected_index) else {
+        let Some(branch) = items.get(selected_index) else {
             break;
         };
         if branch.children.row_count() == 0 {
@@ -47,20 +45,14 @@ pub(super) fn draw_open_submenu_popups(
         if !is_visible_frame(&popup) {
             break;
         }
-        draw_rounded_rect_clipped(
+        draw_rounded_box_clipped(
             frame,
             popup.clone(),
             Some(&popup),
             palette.surface,
-            metrics.radius_control,
-        );
-        draw_rounded_border_clipped(
-            frame,
-            popup.clone(),
-            Some(&popup),
             palette.border,
             metrics.border_width,
-            metrics.radius_control,
+            metrics.radius_panel,
         );
         draw_menu_popup_rows(
             frame,

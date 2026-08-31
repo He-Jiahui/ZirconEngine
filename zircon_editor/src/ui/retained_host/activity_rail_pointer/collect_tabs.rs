@@ -1,14 +1,13 @@
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
-use super::drawer_slot_key::drawer_slot_key;
 use super::host_activity_rail_pointer_item::HostActivityRailPointerItem;
 
 pub(super) fn collect_tabs(
     model: &WorkbenchViewModel,
     slots: &[ActivityDrawerSlot],
 ) -> Vec<HostActivityRailPointerItem> {
-    slots
+    let tabs = slots
         .iter()
         .filter_map(|slot| model.tool_windows.get(slot))
         .flat_map(|stack| {
@@ -16,9 +15,16 @@ pub(super) fn collect_tabs(
                 .tabs
                 .iter()
                 .map(move |tab| HostActivityRailPointerItem {
-                    slot: drawer_slot_key(stack.slot).to_string(),
-                    instance_id: tab.instance_id.0.clone(),
+                    slot: stack.slot,
+                    instance_id: tab.instance_id.clone(),
                 })
         })
-        .collect()
+        .collect::<Vec<_>>();
+    zircon_runtime::profile_counter!("editor", "ui.activity_rail.projection_batch_count", 1);
+    zircon_runtime::profile_counter!(
+        "editor",
+        "ui.activity_rail.projection_visit_count",
+        tabs.len()
+    );
+    tabs
 }

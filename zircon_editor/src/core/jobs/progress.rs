@@ -3,7 +3,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::{
-    CancellationToken, EditorJobSpec, JobCategory, JobEventKind, JobId, UnfinishedEditorJob,
+    CancellationToken, EditorJobSpec, JobCategory, JobEventKind, JobId, JobPriority,
+    UnfinishedEditorJob,
 };
 
 /// Observes the authoritative job lifecycle without retaining ticket receivers.
@@ -20,7 +21,7 @@ pub trait EditorJobProgressObserver: Send + Sync {
 pub struct EditorJobProgress {
     completed: u32,
     total: u32,
-    message: String,
+    message: Arc<str>,
 }
 
 impl EditorJobProgress {
@@ -28,7 +29,15 @@ impl EditorJobProgress {
         Self {
             completed,
             total,
-            message: message.into(),
+            message: Arc::from(message.into()),
+        }
+    }
+
+    fn from_borrowed(completed: u32, total: u32, message: &str) -> Self {
+        Self {
+            completed,
+            total,
+            message: Arc::from(message),
         }
     }
 
@@ -48,7 +57,7 @@ impl EditorJobProgress {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EditorJobProgressSnapshot {
     id: JobId,
-    label: String,
+    label: Arc<str>,
     category: JobCategory,
     progress: Option<EditorJobProgress>,
     cancellable: bool,
@@ -64,7 +73,23 @@ impl EditorJobProgressSnapshot {
     ) -> Self {
         Self {
             id,
-            label: label.into(),
+            label: Arc::from(label.into()),
+            category,
+            progress,
+            cancellable,
+        }
+    }
+
+    fn with_shared_label(
+        id: JobId,
+        label: Arc<str>,
+        category: JobCategory,
+        progress: Option<EditorJobProgress>,
+        cancellable: bool,
+    ) -> Self {
+        Self {
+            id,
+            label,
             category,
             progress,
             cancellable,
@@ -140,6 +165,7 @@ impl Default for EditorJobProgressSource {
 #[derive(Debug, Default)]
 struct ProgressState {
     active: BTreeMap<JobId, ActiveJobEntry>,
+    visible_by_priority: BTreeSet<(u8, JobId)>,
     primary_generation: u64,
 }
 
@@ -147,6 +173,7 @@ struct ProgressState {
 struct ActiveJobEntry {
     snapshot: EditorJobProgressSnapshot,
     cancel: CancellationToken,
+    priority: JobPriority,
     terminal: bool,
 }
 
@@ -231,27 +258,43 @@ impl EditorJobProgressSource {
         let mut state = self.lock_state();
         let previous_primary = state.primary_id();
         let next_entry = ActiveJobEntry {
-            snapshot: EditorJobProgressSnapshot::new(
+            snapshot: EditorJobProgressSnapshot::with_shared_label(
                 id,
-                spec.label.to_string(),
+                Arc::clone(&spec.label),
                 spec.category,
                 None,
                 true,
             ),
             cancel: spec.cancel.clone(),
+            priority: spec.priority,
             terminal: false,
         };
         let primary_projection_changes = match previous_primary {
             None => true,
-            Some(primary) if id < primary => true,
             Some(primary) if id == primary => state.active.get(&id).is_some_and(|previous| {
-                previous.terminal != next_entry.terminal || previous.snapshot != next_entry.snapshot
+                previous.terminal != next_entry.terminal
+                    || previous.snapshot != next_entry.snapshot
+                    || previous.priority != next_entry.priority
             }),
-            Some(_) => false,
+            Some(primary) => state
+                .active
+                .get(&primary)
+                .is_some_and(|current| next_entry.primary_key() < current.primary_key()),
         };
         let next_generation = primary_projection_changes.then(|| state.next_primary_generation());
 
-        state.active.insert(id, next_entry);
+        if let Some(previous) = state.active.insert(id, next_entry) {
+            if !previous.terminal {
+                state.visible_by_priority.remove(&previous.primary_key());
+            }
+        }
+        state.visible_by_priority.insert(
+            state
+                .active
+                .get(&id)
+                .expect("registered progress entry must remain active")
+                .primary_key(),
+        );
         if let Some(next_generation) = next_generation {
             self.publish_primary_generation(&mut state, next_generation);
         }
@@ -288,7 +331,7 @@ impl EditorJobProgressSource {
             .map(|entry| {
                 UnfinishedEditorJob::new(
                     entry.snapshot.id,
-                    entry.snapshot.label.clone(),
+                    entry.snapshot.label.to_string(),
                     entry.snapshot.category,
                 )
             })
@@ -304,7 +347,7 @@ impl EditorJobProgressSource {
                 total,
                 message,
             } => {
-                let next = EditorJobProgress::new(*completed, *total, message.clone());
+                let next = EditorJobProgress::from_borrowed(*completed, *total, message.as_str());
                 let Some(entry) = state.active.get(&id) else {
                     return;
                 };
@@ -328,12 +371,14 @@ impl EditorJobProgressSource {
                 if entry.terminal {
                     return;
                 }
+                let primary_key = entry.primary_key();
                 let next_generation =
                     (previous_primary == Some(id)).then(|| state.next_primary_generation());
 
                 if let Some(entry) = state.active.get_mut(&id) {
                     entry.terminal = true;
                 }
+                state.visible_by_priority.remove(&primary_key);
                 if let Some(next_generation) = next_generation {
                     self.publish_primary_generation(&mut state, next_generation);
                 }
@@ -348,7 +393,11 @@ impl EditorJobProgressSource {
         let next_generation =
             (previous_primary == Some(id)).then(|| state.next_primary_generation());
 
-        state.active.remove(&id);
+        if let Some(entry) = state.active.remove(&id) {
+            if !entry.terminal {
+                state.visible_by_priority.remove(&entry.primary_key());
+            }
+        }
         if let Some(next_generation) = next_generation {
             self.publish_primary_generation(&mut state, next_generation);
         }
@@ -369,7 +418,8 @@ impl EditorJobProgressSource {
 
 impl ProgressState {
     fn primary_entry(&self) -> Option<&ActiveJobEntry> {
-        self.active.values().find(|entry| !entry.terminal)
+        let (_, id) = self.visible_by_priority.first()?;
+        self.active.get(id)
     }
 
     fn primary_id(&self) -> Option<JobId> {
@@ -387,13 +437,22 @@ impl ProgressState {
     }
 }
 
+impl ActiveJobEntry {
+    fn primary_key(&self) -> (u8, JobId) {
+        (self.priority.admission_rank(), self.snapshot.id())
+    }
+}
+
 #[cfg(test)]
 #[path = "progress/primary_generation_tests.rs"]
 mod primary_generation_tests;
 
 #[cfg(test)]
 mod tests {
-    use super::super::{EditorJobSpec, JobCategory, JobEventKind, JobId};
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+
+    use super::super::{EditorJobSpec, JobCategory, JobEventKind, JobId, JobPriority};
     use super::{EditorJobProgressSnapshot, EditorJobProgressSource};
 
     #[test]
@@ -505,6 +564,172 @@ mod tests {
                 .map(EditorJobProgressSnapshot::id)
                 .collect::<Vec<_>>(),
             vec![JobId::new(1), JobId::new(4)]
+        );
+    }
+
+    #[test]
+    fn repeated_snapshots_share_label_and_progress_message_allocations() {
+        let progress = EditorJobProgressSource::default();
+        let id = JobId::new(11);
+        progress.register(id, &EditorJobSpec::new("shared-label", JobCategory::Import));
+        progress.apply_event(
+            id,
+            &JobEventKind::Progress {
+                completed: 1,
+                total: 2,
+                message: "shared-progress-message".to_string(),
+            },
+        );
+
+        let first = progress.snapshot().pop().unwrap();
+        let second = progress.snapshot().pop().unwrap();
+
+        assert!(Arc::ptr_eq(&first.label, &second.label));
+        assert!(Arc::ptr_eq(
+            &first.progress.as_ref().unwrap().message,
+            &second.progress.as_ref().unwrap().message,
+        ));
+    }
+
+    #[test]
+    fn interactive_progress_preempts_an_older_background_job() {
+        let progress = EditorJobProgressSource::default();
+        let background = JobId::new(1);
+        let interactive = JobId::new(99);
+        progress.register(
+            background,
+            &EditorJobSpec::new("background", JobCategory::Index)
+                .with_priority(JobPriority::Background),
+        );
+        let observed = progress
+            .primary_snapshot_if_changed(None)
+            .unwrap()
+            .generation();
+        progress.register(
+            interactive,
+            &EditorJobSpec::new("interactive", JobCategory::InteractiveSave)
+                .with_priority(JobPriority::Interactive),
+        );
+
+        let preempted = progress
+            .primary_snapshot_if_changed(Some(observed))
+            .expect("interactive registration must advance the retained primary");
+        assert_eq!(preempted.primary().unwrap().id(), interactive);
+
+        progress.apply_event(interactive, &JobEventKind::Completed);
+
+        let resumed = progress
+            .primary_snapshot_if_changed(Some(preempted.generation()))
+            .expect("terminal interactive work must restore the background primary");
+        assert_eq!(resumed.primary().unwrap().id(), background);
+    }
+
+    #[test]
+    fn primary_lookup_uses_the_maintained_visibility_index() {
+        let source = include_str!("progress.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("progress implementation");
+        let primary_entry = implementation
+            .split("fn primary_entry(&self)")
+            .nth(1)
+            .and_then(|source| source.split("fn primary_id(&self)").next())
+            .expect("primary entry implementation");
+
+        assert!(implementation.contains("visible_by_priority: BTreeSet<(u8, JobId)>"));
+        assert!(primary_entry.contains("visible_by_priority.first()"));
+        assert!(!primary_entry.contains("active.values()"));
+        assert!(!primary_entry.contains("min_by_key"));
+    }
+
+    #[test]
+    #[ignore = "managed Editor09 performance evidence"]
+    fn editor09_progress_snapshot_shared_string_evidence() {
+        const ACTIVE_JOBS: usize = 10_000;
+        const REPEATS: usize = 8;
+        const MAX_NON_PRIMARY_UPDATE_LATENCY: Duration = Duration::from_secs(2);
+
+        let progress = EditorJobProgressSource::default();
+        for index in 1..=ACTIVE_JOBS {
+            let id = JobId::new(index as u64);
+            progress.register(
+                id,
+                &EditorJobSpec::new(
+                    format!("background-progress-job-{index:05}"),
+                    JobCategory::Import,
+                ),
+            );
+            progress.apply_event(
+                id,
+                &JobEventKind::Progress {
+                    completed: 1,
+                    total: 100,
+                    message: format!("processing background artifact {index:05}"),
+                },
+            );
+        }
+
+        let update_started = Instant::now();
+        for index in 2..=ACTIVE_JOBS {
+            progress.apply_event(
+                JobId::new(index as u64),
+                &JobEventKind::Progress {
+                    completed: 2,
+                    total: 100,
+                    message: format!("updated background artifact {index:05}"),
+                },
+            );
+        }
+        let update_elapsed = update_started.elapsed();
+        assert!(update_elapsed <= MAX_NON_PRIMARY_UPDATE_LATENCY);
+        let primary_candidates_scanned_before = (ACTIVE_JOBS - 1).saturating_mul(ACTIVE_JOBS);
+        let primary_index_reads_after = ACTIVE_JOBS - 1;
+        let primary_lookup_reduction_percent = (1.0
+            - primary_index_reads_after as f64 / primary_candidates_scanned_before as f64)
+            * 100.0;
+        let baseline = progress.snapshot();
+        let copied_string_bytes_before_per_snapshot = baseline
+            .iter()
+            .map(|snapshot| {
+                snapshot.label().len()
+                    + snapshot
+                        .progress()
+                        .map(|progress| progress.message().len())
+                        .unwrap_or_default()
+            })
+            .sum::<usize>();
+        let mut samples = Vec::with_capacity(REPEATS);
+        for _ in 0..REPEATS {
+            let started = Instant::now();
+            let snapshot = progress.snapshot();
+            samples.push(started.elapsed().as_nanos());
+            assert_eq!(snapshot.len(), ACTIVE_JOBS);
+            assert!(snapshot
+                .iter()
+                .zip(&baseline)
+                .all(|(next, previous)| Arc::ptr_eq(&next.label, &previous.label)
+                    && Arc::ptr_eq(
+                        &next.progress.as_ref().unwrap().message,
+                        &previous.progress.as_ref().unwrap().message,
+                    )));
+        }
+        samples.sort_unstable();
+
+        println!(
+            "EDITOR_JOB_BENCH_V1 kind=progress_snapshot_shared_strings active_jobs={} repeats={} copied_string_bytes_before={} copied_string_bytes_after=0 copied_string_reduction_percent=100.0000 non_primary_updates={} primary_candidates_scanned_before={} primary_index_reads_after={} primary_lookup_reduction_percent={:.4} update_elapsed_ns={} update_target_ns={} p50_ns={} p95_ns={} max_ns={}",
+            ACTIVE_JOBS,
+            REPEATS,
+            copied_string_bytes_before_per_snapshot.saturating_mul(REPEATS),
+            ACTIVE_JOBS - 1,
+            primary_candidates_scanned_before,
+            primary_index_reads_after,
+            primary_lookup_reduction_percent,
+            update_elapsed.as_nanos(),
+            MAX_NON_PRIMARY_UPDATE_LATENCY.as_nanos(),
+            samples[REPEATS / 2],
+            samples[REPEATS - 1],
+            samples[REPEATS - 1],
         );
     }
 }

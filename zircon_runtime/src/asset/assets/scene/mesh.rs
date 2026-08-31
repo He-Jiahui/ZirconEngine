@@ -63,7 +63,12 @@ impl Serialize for SceneMeshLodLevelAsset {
 
 impl SceneMeshLodLevelAsset {
     pub fn direct_references(&self) -> Vec<AssetReference> {
-        let mut references = Vec::with_capacity(3 + (self.primitives.len() * 2));
+        let mut references = Vec::with_capacity(self.direct_reference_count());
+        self.append_direct_references(&mut references);
+        references
+    }
+
+    fn append_direct_references(&self, references: &mut Vec<AssetReference>) {
         references.push(self.model.clone());
         references.extend(self.mesh.iter().cloned());
         references.push(self.material.clone());
@@ -71,7 +76,6 @@ impl SceneMeshLodLevelAsset {
             references.push(primitive.mesh.clone());
             references.push(primitive.material.clone());
         }
-        references
     }
 
     pub fn direct_mesh_reference_count(&self) -> usize {
@@ -188,14 +192,7 @@ impl Serialize for SceneMeshInstanceAsset {
 
 impl SceneMeshInstanceAsset {
     pub fn direct_references(&self) -> Vec<AssetReference> {
-        let mut references = Vec::with_capacity(
-            3 + (self.primitives.len() * 2)
-                + self
-                    .lods
-                    .iter()
-                    .map(|lod| 3 + (lod.primitives.len() * 2))
-                    .sum::<usize>(),
-        );
+        let mut references = Vec::with_capacity(self.direct_reference_count());
         references.push(self.model.clone());
         references.extend(self.mesh.iter().cloned());
         references.push(self.material.clone());
@@ -204,7 +201,7 @@ impl SceneMeshInstanceAsset {
             references.push(primitive.material.clone());
         }
         for lod in &self.lods {
-            references.extend(lod.direct_references());
+            lod.append_direct_references(&mut references);
         }
         references
     }
@@ -246,3 +243,7 @@ impl SceneMeshInstanceAsset {
         self.lods.len()
     }
 }
+
+#[cfg(test)]
+#[path = "mesh/lod_append_tests.rs"]
+mod lod_append_tests;

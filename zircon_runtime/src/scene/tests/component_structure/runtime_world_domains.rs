@@ -216,7 +216,17 @@ fn world_property_access_moves_into_folder_backed_subtree() {
         "property_access/entries.rs",
         "property_access/read.rs",
         "property_access/write.rs",
+        "property_access/write/animation.rs",
+        "property_access/write/camera.rs",
+        "property_access/write/lighting.rs",
+        "property_access/write/mesh.rs",
+        "property_access/write/physics.rs",
         "property_access/value_conversion.rs",
+        "property_access/value_conversion/compiled.rs",
+        "property_access/value_conversion/domain.rs",
+        "property_access/value_conversion/errors.rs",
+        "property_access/value_conversion/identifiers.rs",
+        "property_access/value_conversion/values.rs",
     ] {
         assert!(
             root.join(relative).exists(),

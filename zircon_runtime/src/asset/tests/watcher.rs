@@ -127,7 +127,7 @@ fn watcher_failure_on_removed_directory_surfaces_observable_error() {
         ..AssetWatcherOptions::default()
     };
     let (event_tx, event_rx) = watch_ingress(options);
-    let (change_tx, change_rx) = unbounded::<Vec<AssetChange>>();
+    let (batch_tx, batch_rx) = unbounded::<AssetWatchBatch>();
     let (error_tx, error_rx) = unbounded::<AssetWatchError>();
 
     let loop_root = assets_root.clone();
@@ -138,7 +138,7 @@ fn watcher_failure_on_removed_directory_surfaces_observable_error() {
             stop_rx,
             event_rx,
             Arc::new(move |batch| {
-                let _ = change_tx.send(batch.changes);
+                let _ = batch_tx.send(batch);
             }),
             Arc::new(move |error| {
                 let _ = error_tx.send(error);
@@ -156,7 +156,9 @@ fn watcher_failure_on_removed_directory_surfaces_observable_error() {
         error.message.contains("path") || error.message.contains("not found"),
         "unexpected watcher error: {error:?}"
     );
-    assert!(change_rx.try_recv().is_err());
+    let batch = batch_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+    assert!(batch.changes.is_empty());
+    assert!(batch.requires_reconciliation);
 
     stop_tx.send(()).unwrap();
     join.join().unwrap();

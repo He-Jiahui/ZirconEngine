@@ -44,20 +44,16 @@ impl TemporalHistoryStore {
         self.key == key
     }
 
-    pub(crate) fn is_valid(&self) -> bool {
-        self.state.valid
-    }
-
-    pub(crate) fn invalidate(&mut self) {
-        self.state.invalidate();
-    }
-
     pub(crate) fn flip_after_success(&mut self) {
         self.state.flip_after_success();
     }
 
     pub(crate) fn previous_view(&self) -> &wgpu::TextureView {
         &self.textures[self.state.read_index].view
+    }
+
+    pub(crate) fn previous_texture(&self) -> &wgpu::Texture {
+        &self.textures[self.state.read_index].texture
     }
 
     pub(crate) fn previous_identity(&self) -> SampledTextureIdentity {
@@ -68,13 +64,17 @@ impl TemporalHistoryStore {
         &self.textures[self.state.write_index()].view
     }
 
+    pub(crate) fn current_texture(&self) -> &wgpu::Texture {
+        &self.textures[self.state.write_index()].texture
+    }
+
     pub(crate) fn current_identity(&self) -> SampledTextureIdentity {
         self.textures[self.state.write_index()].identity
     }
 }
 
 struct TemporalHistoryTexture {
-    _texture: wgpu::Texture,
+    texture: wgpu::Texture,
     view: wgpu::TextureView,
     identity: SampledTextureIdentity,
 }
@@ -82,7 +82,7 @@ struct TemporalHistoryTexture {
 impl TemporalHistoryTexture {
     fn new(texture: wgpu::Texture, view: wgpu::TextureView) -> Self {
         Self {
-            _texture: texture,
+            texture,
             view,
             identity: SampledTextureIdentity::new(),
         }
@@ -92,7 +92,6 @@ impl TemporalHistoryTexture {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct TemporalHistoryState {
     read_index: usize,
-    valid: bool,
 }
 
 impl TemporalHistoryState {
@@ -100,13 +99,8 @@ impl TemporalHistoryState {
         1 - self.read_index
     }
 
-    fn invalidate(&mut self) {
-        self.valid = false;
-    }
-
     fn flip_after_success(&mut self) {
         self.read_index = self.write_index();
-        self.valid = true;
     }
 }
 
@@ -120,24 +114,9 @@ mod tests {
 
         assert_eq!(state.read_index, 0);
         assert_eq!(state.write_index(), 1);
-        assert!(!state.valid);
-
         state.flip_after_success();
 
         assert_eq!(state.read_index, 1);
         assert_eq!(state.write_index(), 0);
-        assert!(state.valid);
-    }
-
-    #[test]
-    fn temporal_history_state_invalidation_keeps_slots_but_drops_validity() {
-        let mut state = TemporalHistoryState::default();
-        state.flip_after_success();
-        let read_index = state.read_index;
-
-        state.invalidate();
-
-        assert_eq!(state.read_index, read_index);
-        assert!(!state.valid);
     }
 }

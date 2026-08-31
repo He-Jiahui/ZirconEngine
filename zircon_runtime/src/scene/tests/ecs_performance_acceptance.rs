@@ -243,7 +243,7 @@ fn spawn_query_hot_path_reuses_cache_until_structural_change() {
     assert_eq!(system.state().cached_entity_count(), ENTITY_COUNT);
 
     let start = Instant::now();
-    let baseline_sum = system.run(&mut world, |query| {
+    let baseline_sum = system.run(&mut world, |mut query| {
         let iter = query.iter();
         assert!(iter.uses_compiled_archetype_plans());
         iter.map(|(_, health)| u64::from(health.0)).sum::<u64>()
@@ -251,7 +251,7 @@ fn spawn_query_hot_path_reuses_cache_until_structural_change() {
     assert_eq!(baseline_sum, expected_health_sum(ENTITY_COUNT, 0));
 
     for _ in 0..REPEATED_QUERY_RUNS {
-        let (count, sum) = system.run(&mut world, |query| {
+        let (count, sum) = system.run(&mut world, |mut query| {
             query.iter().fold((0, 0_u64), |(count, sum), (_, health)| {
                 (count + 1, sum + u64::from(health.0))
             })
@@ -264,7 +264,7 @@ fn spawn_query_hot_path_reuses_cache_until_structural_change() {
     for (index, entity) in entities.iter().copied().enumerate() {
         world.insert(entity, Health(1_000 + index as u32)).unwrap();
     }
-    let replaced_sum = system.run(&mut world, |query| {
+    let replaced_sum = system.run(&mut world, |mut query| {
         query
             .iter()
             .map(|(_, health)| u64::from(health.0))
@@ -276,7 +276,7 @@ fn spawn_query_hot_path_reuses_cache_until_structural_change() {
     let extra = world
         .spawn((Name("Perf structural insert".to_string()), Health(9_999)))
         .unwrap();
-    let after_spawn = system.run(&mut world, |query| {
+    let after_spawn = system.run(&mut world, |mut query| {
         query
             .iter()
             .map(|(entity, health)| (entity, health.0))
@@ -312,7 +312,7 @@ fn query_state_cache_stats_record_reuse_and_rebuild_counts() {
     assert_eq!(initial.cached_entity_count, ENTITY_COUNT);
 
     for _ in 0..REPEATED_QUERY_RUNS {
-        let count = system.run(&mut world, |query| query.count());
+        let count = system.run(&mut world, |mut query| query.count());
         assert_eq!(count, ENTITY_COUNT);
     }
     let reused = system.state().cache_stats();
@@ -324,7 +324,7 @@ fn query_state_cache_stats_record_reuse_and_rebuild_counts() {
     world
         .spawn((Name("Perf stats structural insert".to_string()), Health(7)))
         .unwrap();
-    let after_spawn_count = system.run(&mut world, |query| query.count());
+    let after_spawn_count = system.run(&mut world, |mut query| query.count());
     assert_eq!(after_spawn_count, ENTITY_COUNT + 1);
     let rebuilt = system.state().cache_stats();
     assert_eq!(rebuilt.cache_hits, REPEATED_QUERY_RUNS as u64);
@@ -370,7 +370,7 @@ fn query_state_reuses_archetype_matches_across_unchanged_frames() {
     assert_eq!(initial.cache_rebuilds, 1);
 
     for _ in 0..REPEATED_QUERY_RUNS {
-        let count = system.run(&mut world, |query| query.count());
+        let count = system.run(&mut world, |mut query| query.count());
         assert_eq!(count, ENTITY_COUNT);
     }
 
@@ -399,11 +399,11 @@ fn system_state_records_query_cache_stats_into_world_frame_diagnostics() {
     );
 
     assert_eq!(
-        first_system.run(&mut world, |query| query.count()),
+        first_system.run(&mut world, |mut query| query.count()),
         ENTITY_COUNT
     );
     assert_eq!(
-        second_system.run(&mut world, |query| query.count()),
+        second_system.run(&mut world, |mut query| query.count()),
         ENTITY_COUNT
     );
     let first_frame = world.ecs_frame_performance_diagnostics();
@@ -415,7 +415,7 @@ fn system_state_records_query_cache_stats_into_world_frame_diagnostics() {
 
     world.reset_ecs_frame_performance_diagnostics();
     assert_eq!(
-        first_system.run(&mut world, |query| query.count()),
+        first_system.run(&mut world, |mut query| query.count()),
         ENTITY_COUNT
     );
     let second_frame = world.ecs_frame_performance_diagnostics();
@@ -446,7 +446,7 @@ fn system_state_publishes_actual_plan_and_archetype_counters_after_structural_ch
         ))
         .unwrap();
 
-    assert_eq!(system.run(&mut world, |query| query.iter().count()), 2);
+    assert_eq!(system.run(&mut world, |mut query| query.iter().count()), 2);
 
     let frame = world.ecs_frame_performance_diagnostics();
     assert_eq!(frame.query.archetype_plan_compilations, 1);
@@ -486,7 +486,7 @@ fn system_state_records_change_detection_stats_into_world_frame_diagnostics() {
     let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
 
     world.reset_ecs_frame_performance_diagnostics();
-    let initial = system.run(&mut world, |query| query.iter().count());
+    let initial = system.run(&mut world, |mut query| query.iter().count());
     assert_eq!(initial, ENTITY_COUNT);
     let first_frame = world.ecs_frame_performance_diagnostics();
     assert_eq!(
@@ -500,7 +500,7 @@ fn system_state_records_change_detection_stats_into_world_frame_diagnostics() {
     assert_eq!(first_frame.change_detection.added_matches, 0);
 
     world.reset_ecs_frame_performance_diagnostics();
-    let unchanged = system.run(&mut world, |query| query.count());
+    let unchanged = system.run(&mut world, |mut query| query.count());
     assert_eq!(unchanged, 0);
     let second_frame = world.ecs_frame_performance_diagnostics();
     assert_eq!(
@@ -514,7 +514,7 @@ fn system_state_records_change_detection_stats_into_world_frame_diagnostics() {
         world.get_mut::<Health>(entity).unwrap().0 += 1;
     }
     world.reset_ecs_frame_performance_diagnostics();
-    let changed = system.run(&mut world, |query| query.iter().count());
+    let changed = system.run(&mut world, |mut query| query.iter().count());
     assert_eq!(changed, CHANGED_ENTITY_COUNT);
     let third_frame = world.ecs_frame_performance_diagnostics();
     assert_eq!(
@@ -538,13 +538,13 @@ fn changed_filter_hot_path_matches_only_mutated_entities_without_cache_rebuild()
     assert_eq!(system.state().cache_rebuilds(), 1);
 
     let start = Instant::now();
-    let initial = system.run(&mut world, |query| {
+    let initial = system.run(&mut world, |mut query| {
         query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
     });
     assert_eq!(initial, entities);
     assert_eq!(system.state().cache_rebuilds(), 1);
 
-    let unchanged = system.run(&mut world, |query| query.iter().count());
+    let unchanged = system.run(&mut world, |mut query| query.iter().count());
     assert_eq!(unchanged, 0);
     assert_eq!(system.state().cache_rebuilds(), 1);
 
@@ -552,13 +552,13 @@ fn changed_filter_hot_path_matches_only_mutated_entities_without_cache_rebuild()
         world.get_mut::<Health>(entity).unwrap().0 += 10_000;
     }
 
-    let changed = system.run(&mut world, |query| {
+    let changed = system.run(&mut world, |mut query| {
         query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
     });
     assert_eq!(changed, entities[..CHANGED_ENTITY_COUNT]);
     assert_eq!(system.state().cache_rebuilds(), 1);
 
-    let unchanged_after_read = system.run(&mut world, |query| query.iter().count());
+    let unchanged_after_read = system.run(&mut world, |mut query| query.iter().count());
     assert_eq!(unchanged_after_read, 0);
     assert_eq!(system.state().cache_rebuilds(), 1);
 
@@ -599,8 +599,12 @@ fn stable_table_query_hot_path_has_zero_hash_probes_and_any_downcasts() {
 #[test]
 fn transform_hot_path_projects_stable_world_transform_and_flushes_once() {
     let mut world = World::new();
-    let parent = world.spawn_node(NodeKind::Cube);
-    let child = world.spawn_node(NodeKind::Mesh);
+    let parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .update_transform(
             parent,

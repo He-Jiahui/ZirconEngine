@@ -1,28 +1,78 @@
 [CmdletBinding()]
 param(
     [string]$ProjectRoot,
-    [ValidateRange(1, 100)][int]$ChangePercent = 1
+    [ValidateRange(1, 100)][int]$ChangePercent = 1,
+    [string]$ProductInputManifestPath
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-Import-Module (Join-Path $PSScriptRoot 'MvpProductInputManifest.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpProductSourceIdentity.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'ResourceManagementScaleInventory.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+
+$script:ResourceManagementScaleChangeMaximumMetadataBytes = 4MB
+$script:ResourceManagementScaleChangeMaximumSourceBytes = 64KB
+$script:ResourceManagementScaleChangeJsonReadBufferBytes = 81920
+
+function Read-ResourceManagementScaleChangeJson {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Label,
+        [ValidateRange(1, [Int32]::MaxValue)][int]$MaximumBytes = $script:ResourceManagementScaleChangeMaximumMetadataBytes
+    )
+
+    try {
+        $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+        try {
+            if ($stream.Length -eq 0) {
+                throw "$Label is empty: $Path"
+            }
+            if ($stream.Length -gt $MaximumBytes) {
+                throw "$Label exceeds its byte budget of $MaximumBytes bytes: $Path"
+            }
+            [byte[]]$bytes = [byte[]]::new([int]$stream.Length)
+            $offset = 0
+            while ($offset -lt $bytes.Length) {
+                $read = $stream.Read(
+                    $bytes,
+                    $offset,
+                    [Math]::Min($script:ResourceManagementScaleChangeJsonReadBufferBytes, $bytes.Length - $offset))
+                if ($read -eq 0) {
+                    throw "$Label changed while it was being read: $Path"
+                }
+                $offset += $read
+            }
+            if ($stream.ReadByte() -ne -1) {
+                throw "$Label exceeds its byte budget of $MaximumBytes bytes: $Path"
+            }
+        }
+        finally {
+            $stream.Dispose()
+        }
+        $text = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+        return $text | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        throw "$Label is not valid JSON: ${Path}: $($_.Exception.Message)"
+    }
+}
 
 function Assert-ResourceManagementScaleMutationProjectDirectory {
     param([Parameter(Mandatory)][string]$Path)
 
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    if ($resolution.DisplayPath -notmatch '^E:\\ZirconBuilds\\mvp-resource-management-projects\\(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
-        throw "-ProjectRoot resource-management change set must resolve under E:\ZirconBuilds\mvp-resource-management-projects\<session>: $($resolution.DisplayPath)"
+    $storage = Resolve-MvpArtifactStoragePath -Path $Path -NamespaceId 'resource-management-projects'
+    if (-not [IO.Directory]::Exists($storage.operation_path)) {
+        throw "-ProjectRoot resource-management scale project does not exist: $($storage.display_path)"
     }
-    if (-not [IO.Directory]::Exists($resolution.OperationalPath)) {
-        throw "-ProjectRoot resource-management scale project does not exist: $($resolution.DisplayPath)"
+    return [pscustomobject]@{
+        OperationalPath = $storage.operation_path
+        DisplayPath = $storage.display_path
+        StoragePolicy = $storage
     }
-    return $resolution
 }
 
 function New-ResourceManagementScaleChangeSetLease {
@@ -50,11 +100,15 @@ function New-ResourceManagementScaleChangeSetLease {
 function Get-ResourceManagementScaleProjectMetadata {
     param(
         [Parameter(Mandatory)]$ProjectResolution,
-        [Parameter(Mandatory)][string]$ExpectedSourceFingerprint
+        [Parameter(Mandatory)][string]$ExpectedSourceFingerprint,
+        [Parameter(Mandatory)][string]$ExpectedProductInputManifestSha256
     )
 
     if ($ExpectedSourceFingerprint -notmatch '^[0-9A-F]{64}$') {
         throw 'Resource-management change-set expected source fingerprint must be an uppercase SHA-256 value.'
+    }
+    if ($ExpectedProductInputManifestSha256 -notmatch '^[0-9A-F]{64}$') {
+        throw 'Resource-management change-set expected ProductInputManifest identity must be an uppercase SHA-256 value.'
     }
     $metadataPath = Join-ZirconWindowsPath `
         -Path $ProjectResolution.OperationalPath `
@@ -63,19 +117,28 @@ function Get-ResourceManagementScaleProjectMetadata {
         throw "Resource-management scale project metadata does not exist: $($ProjectResolution.DisplayPath)"
     }
     try {
-        $metadata = [IO.File]::ReadAllText($metadataPath) | ConvertFrom-Json -ErrorAction Stop
+        $metadata = Read-ResourceManagementScaleChangeJson `
+            -Path $metadataPath `
+            -Label 'Resource-management scale project metadata'
     }
     catch {
         throw "Resource-management scale project metadata is not valid JSON: ${metadataPath}: $($_.Exception.Message)"
     }
-    if ($null -eq $metadata -or [int]$metadata.schema_version -ne 1) {
+    if ($null -eq $metadata -or [int]$metadata.schema_version -ne 2) {
         throw "Resource-management scale project metadata has an unsupported schema_version: $metadataPath"
     }
-    if ([string]$metadata.source_fingerprint -notmatch '^[0-9A-F]{64}$') {
-        throw "Resource-management scale project metadata has an invalid source fingerprint: $metadataPath"
+    if ([string]$metadata.source_fingerprint -notmatch '^[0-9A-F]{64}$' -or
+        -not ([string]$metadata.source_fingerprint).Equals([string]$metadata.build_set_id, [StringComparison]::Ordinal) -or
+        [string]$metadata.product_input_manifest_sha256 -notmatch '^[0-9A-F]{64}$') {
+        throw "Resource-management scale project metadata has an invalid ProductInput BuildSet identity: $metadataPath"
     }
     if (-not ([string]$metadata.source_fingerprint).Equals($ExpectedSourceFingerprint, [StringComparison]::Ordinal)) {
         throw 'Resource-management scale project belongs to a different source snapshot. Regenerate it before applying a change set.'
+    }
+    if (-not ([string]$metadata.product_input_manifest_sha256).Equals(
+            $ExpectedProductInputManifestSha256,
+            [StringComparison]::Ordinal)) {
+        throw 'Resource-management scale project belongs to a different ProductInputManifest. Regenerate it before applying a change set.'
     }
     if ([int]$metadata.data_asset_count -lt 1 -or [int]$metadata.data_asset_count -gt 100000) {
         throw "Resource-management scale project metadata has an invalid data_asset_count: $metadataPath"
@@ -200,7 +263,10 @@ function Get-ResourceManagementScaleChangeEntries {
             throw "Resource-management scale source escaped assets/data: $($sourceResolution.DisplayPath)"
         }
         try {
-            $source = [IO.File]::ReadAllText($sourceResolution.OperationalPath) | ConvertFrom-Json -ErrorAction Stop
+            $source = Read-ResourceManagementScaleChangeJson `
+                -Path $sourceResolution.OperationalPath `
+                -Label 'Resource-management scale source' `
+                -MaximumBytes $script:ResourceManagementScaleChangeMaximumSourceBytes
         }
         catch {
             throw "Resource-management scale source is not valid JSON: $($sourceResolution.DisplayPath): $($_.Exception.Message)"
@@ -230,6 +296,7 @@ function Write-ResourceManagementScaleChangeManifest {
     param(
         [Parameter(Mandatory)][string]$Path,
         [Parameter(Mandatory)][string]$SourceFingerprint,
+        [Parameter(Mandatory)][string]$ProductInputManifestSha256,
         [Parameter(Mandatory)][int]$DataAssetCount,
         [Parameter(Mandatory)][int]$ChangePercent,
         [Parameter(Mandatory)][string]$BaselineDataInventorySha256,
@@ -238,8 +305,10 @@ function Write-ResourceManagementScaleChangeManifest {
     )
 
     $manifest = [ordered]@{
-        schema_version       = 1
+        schema_version       = 2
         source_fingerprint   = $SourceFingerprint
+        build_set_id         = $SourceFingerprint
+        product_input_manifest_sha256 = $ProductInputManifestSha256
         data_asset_count     = $DataAssetCount
         baseline_data_inventory_sha256 = $BaselineDataInventorySha256
         changed_data_inventory_sha256 = $ChangedDataInventorySha256
@@ -259,7 +328,8 @@ function Set-ResourceManagementScaleProjectChangeSet {
     param(
         [Parameter(Mandatory)][string]$ProjectRoot,
         [Parameter(Mandatory)][ValidateRange(1, 100)][int]$ChangePercent,
-        [Parameter(Mandatory)][string]$ExpectedSourceFingerprint
+        [Parameter(Mandatory)][string]$ExpectedSourceFingerprint,
+        [Parameter(Mandatory)][string]$ExpectedProductInputManifestSha256
     )
 
     $projectResolution = Assert-ResourceManagementScaleMutationProjectDirectory -Path $ProjectRoot
@@ -267,7 +337,14 @@ function Set-ResourceManagementScaleProjectChangeSet {
     try {
     $metadata = Get-ResourceManagementScaleProjectMetadata `
         -ProjectResolution $projectResolution `
-        -ExpectedSourceFingerprint $ExpectedSourceFingerprint
+        -ExpectedSourceFingerprint $ExpectedSourceFingerprint `
+        -ExpectedProductInputManifestSha256 $ExpectedProductInputManifestSha256
+    $changeManifestPath = Join-ZirconWindowsPath `
+        -Path $projectResolution.OperationalPath `
+        -ChildPath 'resource-management-scale-change-set.json'
+    if ([IO.File]::Exists($changeManifestPath)) {
+        throw "Resource-management scale project already has a change set: $($projectResolution.DisplayPath)"
+    }
     $dataRoot = Assert-ResourceManagementScaleDataInventory `
         -ProjectResolution $projectResolution `
         -DataAssetCount ([int]$metadata.data_asset_count)
@@ -277,13 +354,6 @@ function Set-ResourceManagementScaleProjectChangeSet {
     if (-not $baselineDataInventorySha256.Equals([string]$metadata.data_inventory_sha256, [StringComparison]::Ordinal)) {
         throw 'Resource-management scale project data inventory does not match its immutable metadata fingerprint.'
     }
-    $changeManifestPath = Join-ZirconWindowsPath `
-        -Path $projectResolution.OperationalPath `
-        -ChildPath 'resource-management-scale-change-set.json'
-    if ([IO.File]::Exists($changeManifestPath)) {
-        throw "Resource-management scale project already has a change set: $($projectResolution.DisplayPath)"
-    }
-
     $stagingRoot = Join-ZirconWindowsPath `
         -Path $projectResolution.OperationalPath `
         -ChildPath ('.zircon\resource-management-change-set-' + [guid]::NewGuid().ToString('N'))
@@ -307,6 +377,7 @@ function Set-ResourceManagementScaleProjectChangeSet {
         $manifest = Write-ResourceManagementScaleChangeManifest `
             -Path $changeManifestPath `
             -SourceFingerprint ([string]$metadata.source_fingerprint) `
+            -ProductInputManifestSha256 ([string]$metadata.product_input_manifest_sha256) `
             -DataAssetCount ([int]$metadata.data_asset_count) `
             -ChangePercent $ChangePercent `
             -BaselineDataInventorySha256 $baselineDataInventorySha256 `
@@ -361,9 +432,13 @@ if ($env:RESOURCE_MANAGEMENT_SCALE_PROJECT_CHANGESET_TEST_MODE -ne '1') {
     if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
         throw '-ProjectRoot is required when applying a resource-management scale change set.'
     }
-    $sourceFingerprint = Get-MvpSourceFingerprint -RepositoryRoot $repoRoot
+    if ([string]::IsNullOrWhiteSpace($ProductInputManifestPath)) {
+        throw '-ProductInputManifestPath is required to bind the change set to its BuildSet.'
+    }
+    $sourceIdentity = Resolve-MvpProductSourceIdentity -ManifestPath $ProductInputManifestPath
     Set-ResourceManagementScaleProjectChangeSet `
         -ProjectRoot $ProjectRoot `
         -ChangePercent $ChangePercent `
-        -ExpectedSourceFingerprint $sourceFingerprint
+        -ExpectedSourceFingerprint $sourceIdentity.build_set_id `
+        -ExpectedProductInputManifestSha256 $sourceIdentity.manifest_sha256
 }

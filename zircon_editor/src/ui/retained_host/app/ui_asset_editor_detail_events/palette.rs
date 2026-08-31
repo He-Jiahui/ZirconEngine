@@ -35,7 +35,7 @@ impl RetainedEditorHost {
                     .editor_manager
                     .update_ui_asset_editor_palette_drag_target(&instance_id, surface_x, surface_y)
                 {
-                    Ok(true) => self.mark_presentation_dirty(),
+                    Ok(true) => self.mark_presentation_dirty_for_view(&instance_id),
                     Ok(false) => {}
                     Err(error) => self.set_status_line(error.to_string()),
                 }
@@ -54,7 +54,9 @@ mod performance_tests {
         let source = include_str!("palette.rs");
         let production = source.split("#[cfg(test)]").next().unwrap_or(source);
 
-        assert!(production.contains("Ok(true) => self.mark_presentation_dirty()"));
+        assert!(
+            production.contains("Ok(true) => self.mark_presentation_dirty_for_view(&instance_id)")
+        );
         assert!(production.contains("Ok(false) => {}"));
     }
 }

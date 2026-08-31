@@ -24,7 +24,10 @@ pub(in crate::ui::retained_host::host_contract) fn pointer_move_redraw(
         activity_reference_hover_damage(before, after),
     );
     let damage = merge_hover_damage(template_damage, reference_damage);
-    if matches!(&pointer.target, PanePointerTarget::Viewport(_)) {
+    if matches!(
+        &pointer.target,
+        PanePointerTarget::SceneViewport(_) | PanePointerTarget::GameViewport(_)
+    ) {
         return damage
             .map(NativePointerDispatchResult::region)
             .unwrap_or_else(NativePointerDispatchResult::idle);

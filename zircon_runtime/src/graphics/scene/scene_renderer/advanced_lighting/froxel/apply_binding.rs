@@ -3,8 +3,6 @@ use wgpu::util::DeviceExt;
 
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 
-use super::resolved_volumetric_fog_settings;
-
 pub(crate) const VOLUMETRIC_APPLY_PARAMS_BINDING: u32 = 25;
 pub(crate) const VOLUMETRIC_INTEGRATED_BINDING: u32 = 26;
 pub(crate) const VOLUMETRIC_SAMPLER_BINDING: u32 = 27;
@@ -22,13 +20,10 @@ impl GpuVolumetricApplyParams {
         render_region: ViewportRenderRegion,
         integrated_volume_available: bool,
     ) -> Self {
-        let settings = resolved_volumetric_fog_settings(&frame.extract).ok();
+        let settings = frame.volumetric_fog();
         let camera = frame.extract.view.selected_effective_camera();
-        let enabled = integrated_volume_available && settings.is_some();
-        let depth_distribution_exp = settings
-            .map(|settings| settings.depth_distribution_exp)
-            .unwrap_or(1.0)
-            .max(0.01);
+        let enabled = integrated_volume_available;
+        let depth_distribution_exp = settings.depth_distribution_exp.max(0.01);
         let origin = render_region.physical_position();
         let size = render_region
             .physical_size()

@@ -10,7 +10,10 @@ mod prepared_texture;
 
 pub(in crate::graphics::scene::resources) use prepared_geometry_deformation::PreparedGeometryDeformation;
 pub(in crate::graphics::scene::resources) use prepared_material::{
-    PreparedMaterial, PreparedMaterialTextureDependency,
+    PreparedMaterial, PreparedMaterialBundle, PreparedMaterialCandidateIdentity,
+    PreparedMaterialDependency, PreparedMaterialShaderDependency, PreparedMaterialTextureBinding,
+    PreparedMaterialTextureDependency, PreparedMaterialTextureResource, PreparedMaterialTextureSet,
+    RejectedPreparedMaterialCandidate,
 };
 pub(in crate::graphics::scene::resources) use prepared_mesh::PreparedMesh;
 pub(in crate::graphics::scene::resources) use prepared_mesh_sdf::mesh_sdf_seed_from_primitives;

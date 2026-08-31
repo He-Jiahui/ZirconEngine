@@ -3,6 +3,8 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Deserializer, Serialize};
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
+use crate::core::commands::EditorKeyChord;
+
 use super::{EditorCommandPaletteMru, EditorKeymapOverrides, SettingsScope};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
@@ -53,7 +55,7 @@ pub enum SettingValue {
     String(String),
     Enum(String),
     Color([u8; 4]),
-    Chord(String),
+    Chord(EditorKeyChord),
     DesignTokens(EditorDesignTokens),
     KeymapOverrides(EditorKeymapOverrides),
     CommandPaletteMru(EditorCommandPaletteMru),
@@ -62,39 +64,89 @@ pub enum SettingValue {
 #[derive(Clone, Debug, PartialEq)]
 pub enum SettingSchema {
     Bool,
-    Int { minimum: i64, maximum: i64 },
-    Float { minimum: f64, maximum: f64 },
-    String { maximum_bytes: usize },
-    Enum { variants: BTreeSet<String> },
-    Color,
+    Int {
+        minimum: i64,
+        maximum: i64,
+        step: i64,
+    },
+    Float {
+        minimum: f64,
+        maximum: f64,
+        step: f64,
+    },
+    String {
+        maximum_bytes: usize,
+    },
+    Enum {
+        variants: BTreeSet<String>,
+    },
+    Color {
+        channel_step: u8,
+    },
     Chord,
     DesignTokens,
     KeymapOverrides,
     CommandPaletteMru,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum SettingNumericStepDirection {
+    Decrement,
+    Increment,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum SettingColorChannel {
+    Red,
+    Green,
+    Blue,
+    Alpha,
+}
+
+impl SettingColorChannel {
+    const fn index(self) -> usize {
+        match self {
+            Self::Red => 0,
+            Self::Green => 1,
+            Self::Blue => 2,
+            Self::Alpha => 3,
+        }
+    }
+}
+
 impl SettingSchema {
     pub(crate) fn validate(&self, value: &SettingValue) -> Result<(), String> {
         match (self, value) {
             (Self::Bool, SettingValue::Bool(_))
-            | (Self::Color, SettingValue::Color(_))
             | (Self::DesignTokens, SettingValue::DesignTokens(_))
             | (Self::KeymapOverrides, SettingValue::KeymapOverrides(_))
             | (Self::CommandPaletteMru, SettingValue::CommandPaletteMru(_)) => Ok(()),
-            (Self::Int { minimum, maximum }, SettingValue::Int(value))
-                if minimum <= maximum && (*minimum..=*maximum).contains(value) =>
+            (
+                Self::Int {
+                    minimum,
+                    maximum,
+                    step,
+                },
+                SettingValue::Int(value),
+            ) if minimum <= maximum && *step > 0 && (*minimum..=*maximum).contains(value) => Ok(()),
+            (
+                Self::Float {
+                    minimum,
+                    maximum,
+                    step,
+                },
+                SettingValue::Float(value),
+            ) if minimum.is_finite()
+                && maximum.is_finite()
+                && step.is_finite()
+                && *step > 0.0
+                && minimum <= maximum
+                && value.is_finite()
+                && (*minimum..=*maximum).contains(value) =>
             {
                 Ok(())
             }
-            (Self::Float { minimum, maximum }, SettingValue::Float(value))
-                if minimum.is_finite()
-                    && maximum.is_finite()
-                    && minimum <= maximum
-                    && value.is_finite()
-                    && (*minimum..=*maximum).contains(value) =>
-            {
-                Ok(())
-            }
+            (Self::Color { channel_step }, SettingValue::Color(_)) if *channel_step > 0 => Ok(()),
             (Self::String { maximum_bytes }, SettingValue::String(value))
                 if value.len() <= *maximum_bytes =>
             {
@@ -103,9 +155,79 @@ impl SettingSchema {
             (Self::Enum { variants }, SettingValue::Enum(value)) if variants.contains(value) => {
                 Ok(())
             }
-            (Self::Chord, SettingValue::Chord(value)) if !value.trim().is_empty() => Ok(()),
+            (Self::Chord, SettingValue::Chord(value)) if value.is_valid() => Ok(()),
             _ => Err(format!("setting value does not satisfy schema {self:?}")),
         }
+    }
+
+    pub(crate) fn stepped_numeric_value(
+        &self,
+        current: &SettingValue,
+        direction: SettingNumericStepDirection,
+    ) -> Option<SettingValue> {
+        match (self, current) {
+            (
+                Self::Int {
+                    minimum,
+                    maximum,
+                    step,
+                },
+                SettingValue::Int(current),
+            ) => {
+                let candidate = match direction {
+                    SettingNumericStepDirection::Decrement => current.checked_sub(*step),
+                    SettingNumericStepDirection::Increment => current.checked_add(*step),
+                }
+                .unwrap_or(match direction {
+                    SettingNumericStepDirection::Decrement => i64::MIN,
+                    SettingNumericStepDirection::Increment => i64::MAX,
+                });
+                Some(SettingValue::Int(candidate.clamp(*minimum, *maximum)))
+            }
+            (
+                Self::Float {
+                    minimum,
+                    maximum,
+                    step,
+                },
+                SettingValue::Float(current),
+            ) => {
+                let candidate = match direction {
+                    SettingNumericStepDirection::Decrement => current - step,
+                    SettingNumericStepDirection::Increment => current + step,
+                };
+                let scaled = candidate / step;
+                let quantized = if scaled.is_finite() {
+                    scaled.round() * step
+                } else {
+                    candidate
+                };
+                let next = quantized.clamp(*minimum, *maximum);
+                Some(SettingValue::Float(if next == 0.0 { 0.0 } else { next }))
+            }
+            _ => None,
+        }
+    }
+
+    pub(crate) fn stepped_color_value(
+        &self,
+        current: &SettingValue,
+        channel: SettingColorChannel,
+        direction: SettingNumericStepDirection,
+    ) -> Option<SettingValue> {
+        let (Self::Color { channel_step }, SettingValue::Color(current)) = (self, current) else {
+            return None;
+        };
+        if *channel_step == 0 {
+            return None;
+        }
+        let mut next = *current;
+        let value = &mut next[channel.index()];
+        *value = match direction {
+            SettingNumericStepDirection::Decrement => value.saturating_sub(*channel_step),
+            SettingNumericStepDirection::Increment => value.saturating_add(*channel_step),
+        };
+        Some(SettingValue::Color(next))
     }
 }
 
@@ -234,16 +356,25 @@ impl SettingDefinition {
 
 fn validate_schema_definition(schema: &SettingSchema) -> Result<(), String> {
     match schema {
-        SettingSchema::Int { minimum, maximum } if minimum > maximum => {
-            Err("integer setting minimum must not exceed maximum".into())
+        SettingSchema::Int {
+            minimum, maximum, ..
+        } if minimum > maximum => Err("integer setting minimum must not exceed maximum".into()),
+        SettingSchema::Int { step, .. } if *step <= 0 => {
+            Err("integer setting step must be positive".into())
         }
-        SettingSchema::Float { minimum, maximum }
-            if !minimum.is_finite() || !maximum.is_finite() || minimum > maximum =>
-        {
+        SettingSchema::Float {
+            minimum, maximum, ..
+        } if !minimum.is_finite() || !maximum.is_finite() || minimum > maximum => {
             Err("float setting bounds must be finite and ordered".into())
+        }
+        SettingSchema::Float { step, .. } if !step.is_finite() || *step <= 0.0 => {
+            Err("float setting step must be finite and positive".into())
         }
         SettingSchema::Enum { variants } if variants.is_empty() => {
             Err("enum settings must define at least one variant".into())
+        }
+        SettingSchema::Color { channel_step: 0 } => {
+            Err("color setting channel step must be positive".into())
         }
         _ => Ok(()),
     }

@@ -1,15 +1,14 @@
 use thiserror::Error;
 
 use crate::core::framework::render::{
-    resolve_ibl_bake_artifact_payload, IblBakeArtifactBlob, IblBakeArtifactBlobCandidate,
-    IblBakeArtifactPayload, IblBakeArtifactReadbackSections, IblBakeArtifactRequest,
-    IblBakeArtifactResolvedPayload, IblBakeArtifactSource,
+    IblBakeArtifactBlob, IblBakeArtifactPayload, IblBakeArtifactReadbackSections,
+    IblBakeArtifactRequest, IblBakeArtifactResolvedPayload, IblBakeArtifactSource,
 };
 
 use super::{
-    write_ibl_bake_artifact_runtime_readback, IblBakeArtifactCacheError, IblBakeArtifactCacheRead,
-    IblBakeArtifactCacheStore, IblBakeArtifactRuntimeWritebackError,
-    IblBakeArtifactRuntimeWritebackReport, IblBakeArtifactRuntimeWritebackStatus,
+    IblBakeArtifactCacheError, IblBakeArtifactCacheRead, IblBakeArtifactCacheStore,
+    IblBakeArtifactRuntimeWritebackError, IblBakeArtifactRuntimeWritebackReport,
+    IblBakeArtifactRuntimeWritebackStatus, write_ibl_bake_artifact_runtime_readback,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -56,17 +55,15 @@ pub fn resolve_ibl_bake_artifact_runtime_dispatch(
     let cache_read = store
         .read_runtime_cache(request)
         .map_err(IblBakeArtifactRuntimeDispatchError::Cache)?;
-    let mut candidates = asset_derived_blobs
-        .iter()
-        .cloned()
-        .map(IblBakeArtifactBlobCandidate::asset_derived)
-        .collect::<Vec<_>>();
-
-    if let IblBakeArtifactCacheRead::Hit(blob) = &cache_read {
-        candidates.push(IblBakeArtifactBlobCandidate::runtime_cache(blob.clone()));
-    }
-
-    let resolved = resolve_ibl_bake_artifact_payload(request, &candidates);
+    let runtime_cache_blob = match &cache_read {
+        IblBakeArtifactCacheRead::Hit(blob) => Some(blob),
+        IblBakeArtifactCacheRead::Missing | IblBakeArtifactCacheRead::Rejected(_) => None,
+    };
+    let resolved = IblBakeArtifactResolvedPayload::resolve_borrowed_blob_sources(
+        request,
+        asset_derived_blobs,
+        runtime_cache_blob,
+    );
     Ok(IblBakeArtifactRuntimeDispatchReport {
         cache_read,
         resolved,

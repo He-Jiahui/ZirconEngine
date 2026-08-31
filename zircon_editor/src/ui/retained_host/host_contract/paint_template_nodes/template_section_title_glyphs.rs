@@ -1,6 +1,5 @@
 mod identity;
 mod metrics;
-mod segments;
 mod shapes;
 mod style;
 

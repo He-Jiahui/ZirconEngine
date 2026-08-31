@@ -2,19 +2,16 @@ Set-StrictMode -Version Latest
 
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
 
-function Get-MvpPersistenceComparisonValue {
-    param(
-        [Parameter(Mandatory)]$Value,
-        [Parameter(Mandatory)][string]$Name,
-        [Parameter(Mandatory)][string]$Label
-    )
-
-    $property = $Value.PSObject.Properties[$Name]
-    if ($null -eq $property -or $null -eq $property.Value) {
-        throw "$Label is missing '$Name'."
-    }
-    return $property.Value
-}
+$mvpPersistenceComparisonUtf8NoBom = [Text.UTF8Encoding]::new($false)
+$mvpPersistenceComparisonStatePropertyNames = [string[]]@(
+    'project_identity',
+    'manifest_identity',
+    'scene_uri',
+    'selected_model_resource_id',
+    'selected_material_resource_id',
+    'opened_project_inspection_generation',
+    'snapshot'
+)
 
 function Select-MvpPersistenceState {
     param(
@@ -23,17 +20,19 @@ function Select-MvpPersistenceState {
     )
 
     $label = "$Phase automation"
-    return [ordered]@{
+    $properties = $Automation.PSObject.Properties
+    $state = [ordered]@{
         schema_version = 1
         phase = $Phase
-        project_identity = Get-MvpPersistenceComparisonValue -Value $Automation -Name 'project_identity' -Label $label
-        manifest_identity = Get-MvpPersistenceComparisonValue -Value $Automation -Name 'manifest_identity' -Label $label
-        scene_uri = Get-MvpPersistenceComparisonValue -Value $Automation -Name 'scene_uri' -Label $label
-        selected_model_resource_id = Get-MvpPersistenceComparisonValue -Value $Automation -Name 'selected_model_resource_id' -Label $label
-        selected_material_resource_id = Get-MvpPersistenceComparisonValue -Value $Automation -Name 'selected_material_resource_id' -Label $label
-        opened_project_inspection_generation = Get-MvpPersistenceComparisonValue -Value $Automation -Name 'opened_project_inspection_generation' -Label $label
-        snapshot = Get-MvpPersistenceComparisonValue -Value $Automation -Name 'snapshot' -Label $label
     }
+    foreach ($name in $mvpPersistenceComparisonStatePropertyNames) {
+        $property = $properties[$name]
+        if ($null -eq $property -or $null -eq $property.Value) {
+            throw "$label is missing '$name'."
+        }
+        $state[$name] = $property.Value
+    }
+    return $state
 }
 
 function Write-MvpPersistenceComparisonJson {
@@ -43,7 +42,7 @@ function Write-MvpPersistenceComparisonJson {
         [string]$CompatibleWriteLeaseRoot
     )
 
-    $contentBytes = [Text.UTF8Encoding]::new($false).GetBytes(
+    $contentBytes = $mvpPersistenceComparisonUtf8NoBom.GetBytes(
         (ConvertTo-Json -InputObject $Value -Depth 64))
     Write-MvpAcceptanceNewFileNoFollow `
         -Path $Path `
@@ -74,10 +73,11 @@ function Write-MvpPersistenceComparisonEvidence {
     $after = Select-MvpPersistenceState `
         -Automation $AuthoringAutomation `
         -Phase 'after-authoring'
-    $after['project_save_lifecycle'] = Get-MvpPersistenceComparisonValue `
-        -Value $AuthoringAutomation `
-        -Name 'project_save_lifecycle' `
-        -Label 'After-authoring automation'
+    $projectSaveLifecycleProperty = $AuthoringAutomation.PSObject.Properties['project_save_lifecycle']
+    if ($null -eq $projectSaveLifecycleProperty -or $null -eq $projectSaveLifecycleProperty.Value) {
+        throw "After-authoring automation is missing 'project_save_lifecycle'."
+    }
+    $after['project_save_lifecycle'] = $projectSaveLifecycleProperty.Value
     $reopened = [ordered]@{
         schema_version = 1
         phase = 'reopened'
@@ -91,30 +91,30 @@ function Write-MvpPersistenceComparisonEvidence {
         )
     }
 
-    $comparisonRoot = Join-Path $EvidenceRoot 'comparison'
-    Ensure-MvpAcceptanceDirectoryPathNoFollow `
+    $comparisonRoot = [IO.Path]::Combine($EvidenceRoot, 'comparison')
+    $null = Ensure-MvpAcceptanceDirectoryPathNoFollow `
         -RootPath $EvidenceRoot `
         -RelativePath 'comparison' `
-        -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot | Out-Null
+        -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
     return @(
         [pscustomobject]@{
             relative_path = 'comparison/persisted-state-before.json'
             content_bytes = Write-MvpPersistenceComparisonJson `
-                -Path (Join-Path $comparisonRoot 'persisted-state-before.json') `
+                -Path ([IO.Path]::Combine($comparisonRoot, 'persisted-state-before.json')) `
                 -Value $before `
                 -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
         }
         [pscustomobject]@{
             relative_path = 'comparison/persisted-state-after.json'
             content_bytes = Write-MvpPersistenceComparisonJson `
-                -Path (Join-Path $comparisonRoot 'persisted-state-after.json') `
+                -Path ([IO.Path]::Combine($comparisonRoot, 'persisted-state-after.json')) `
                 -Value $after `
                 -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
         }
         [pscustomobject]@{
             relative_path = 'comparison/reopened-state.json'
             content_bytes = Write-MvpPersistenceComparisonJson `
-                -Path (Join-Path $comparisonRoot 'reopened-state.json') `
+                -Path ([IO.Path]::Combine($comparisonRoot, 'reopened-state.json')) `
                 -Value $reopened `
                 -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
         }

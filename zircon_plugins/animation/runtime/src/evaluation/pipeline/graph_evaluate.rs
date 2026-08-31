@@ -9,8 +9,8 @@ use zircon_runtime::scene::EntityId;
 
 use super::clip_sample::sample_pose_request;
 use super::pose_blend::{
-    GraphWeightedPose, apply_graph_additive_poses, blend_graph_base_poses,
-    convert_pose_to_reference_delta,
+    apply_graph_additive_poses, blend_graph_base_poses, convert_pose_to_reference_delta,
+    GraphWeightedPose,
 };
 use super::requests::{PendingClipEventSample, PendingGraphPoseSample, PendingPoseSample};
 use crate::{AnimationClipEvaluator, CompiledAnimationGraphEvaluation, CompiledGraphClipInstance};

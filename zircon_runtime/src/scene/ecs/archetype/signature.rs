@@ -1,4 +1,8 @@
+use std::collections::HashSet;
+
 use crate::scene::ecs::{ComponentId, StorageType};
+
+const HASH_DEDUP_COMPONENT_THRESHOLD: usize = 128;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ArchetypeSignature {
@@ -115,10 +119,18 @@ impl ArchetypeSignature {
 }
 
 fn normalize_components(mut components: Vec<ComponentId>) -> Vec<ComponentId> {
-    if components.len() > 1 {
+    if components.len() < HASH_DEDUP_COMPONENT_THRESHOLD {
         components.sort_unstable();
         components.dedup();
+        return components;
     }
+
+    let mut unique = HashSet::with_capacity(components.len());
+    for component in components {
+        unique.insert(component);
+    }
+    let mut components = unique.into_iter().collect::<Vec<_>>();
+    components.sort_unstable();
     components
 }
 
@@ -184,3 +196,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "signature/hash_dedup_tests.rs"]
+mod hash_dedup_tests;

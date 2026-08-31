@@ -89,35 +89,40 @@ fn parse_canvas_placement(
     layout: &toml::map::Map<String, Value>,
     path: &str,
 ) -> Result<Option<UiCanvasSlotPlacement>, UiV2AssetError> {
-    let has_placement = layout.contains_key("anchor")
-        || layout.contains_key("anchor_max")
-        || layout.contains_key("pivot")
-        || layout.contains_key("position")
-        || layout.contains_key("offset")
-        || layout.contains_key("auto_size");
-    if !has_placement {
+    let anchor_value = layout.get("anchor");
+    let anchor_max_value = layout.get("anchor_max");
+    let pivot_value = layout.get("pivot");
+    let position_value = layout.get("position");
+    let offset_value = layout.get("offset");
+    let auto_size_value = layout.get("auto_size");
+    if [
+        anchor_value,
+        anchor_max_value,
+        pivot_value,
+        position_value,
+        offset_value,
+        auto_size_value,
+    ]
+    .iter()
+    .all(Option::is_none)
+    {
         return Ok(None);
     }
 
-    let anchor = parse_point(asset_id, layout.get("anchor"), path, "slot.anchor")?
+    let anchor = parse_point(asset_id, anchor_value, path, "slot.anchor")?
         .map(|(x, y)| Anchor::new(x, y))
         .unwrap_or_default();
-    let anchor_max = parse_point(asset_id, layout.get("anchor_max"), path, "slot.anchor_max")?
+    let anchor_max = parse_point(asset_id, anchor_max_value, path, "slot.anchor_max")?
         .map(|(x, y)| Anchor::new(x, y));
-    let pivot = parse_point(asset_id, layout.get("pivot"), path, "slot.pivot")?
+    let pivot = parse_point(asset_id, pivot_value, path, "slot.pivot")?
         .map(|(x, y)| Pivot::new(x, y))
         .unwrap_or_default();
-    let position = parse_point(asset_id, layout.get("position"), path, "slot.position")?
+    let position = parse_point(asset_id, position_value, path, "slot.position")?
         .map(|(x, y)| Position::new(x, y))
         .unwrap_or_default();
     let mut placement = UiCanvasSlotPlacement::new(anchor, pivot, position)
-        .with_offset(parse_margin(
-            asset_id,
-            layout.get("offset"),
-            path,
-            "slot.offset",
-        )?)
-        .with_auto_size(parse_bool(layout.get("auto_size")).unwrap_or(false));
+        .with_offset(parse_margin(asset_id, offset_value, path, "slot.offset")?)
+        .with_auto_size(parse_bool(auto_size_value).unwrap_or(false));
     if let Some(anchor_max) = anchor_max {
         placement = placement.with_anchor_max(anchor_max);
     }

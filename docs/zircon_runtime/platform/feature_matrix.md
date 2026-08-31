@@ -31,11 +31,11 @@ related_code:
   - zircon_runtime/src/core/framework/input/window_status.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
-  - zircon_runtime_interface/src/runtime_api.rs
-  - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
+  - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/platform_preferences.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
@@ -86,10 +86,10 @@ implementation_files:
   - zircon_runtime/src/input/runtime/input_state.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
-  - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/platform_preferences.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs

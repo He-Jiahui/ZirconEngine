@@ -7,6 +7,7 @@ pub enum PlayModePredicate {
     Edit,
     Building,
     Playing,
+    CleanupFailed,
 }
 
 impl PlayModePredicate {
@@ -16,6 +17,7 @@ impl PlayModePredicate {
             (Self::Edit, PlayStateKind::Edit)
                 | (Self::Building, PlayStateKind::Building)
                 | (Self::Playing, PlayStateKind::Playing)
+                | (Self::CleanupFailed, PlayStateKind::CleanupFailed)
         )
     }
 }

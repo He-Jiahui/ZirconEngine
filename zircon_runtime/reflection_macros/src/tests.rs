@@ -122,13 +122,19 @@ fn script_type_expansion_preserves_metadata_and_skips_fields() {
     let input: syn::DeriveInput = syn::parse_quote! {
         #[zircon_script(
             name = "MetaVec3",
+            identity = "math.meta-vec3",
             value_kind = ScriptHostValueKind::Float,
             prototype = ScriptHostPrototypeKind::Struct,
             allow_value_construction = true,
             documentation = "vector docs"
         )]
         struct Vec3 {
-            #[zircon_script(type_name = "float", documentation = "x docs")]
+            #[zircon_script(
+                identity = "x-component",
+                alias = "horizontal",
+                type_name = "float",
+                documentation = "x docs"
+            )]
             x: f64,
             #[zircon_script(skip)]
             cached_length: f64,
@@ -145,11 +151,37 @@ fn script_type_expansion_preserves_metadata_and_skips_fields() {
     assert!(tokens.contains("allow_value_construction (true)"));
     assert!(tokens.contains("fn reflect_type_registration"));
     assert!(tokens.contains("ReflectTypeRegistration"));
+    assert!(tokens.contains("ReflectFieldId :: from_stable_keys"));
+    assert!(tokens.contains("\"math.meta-vec3\" , \"x-component\""));
+    assert!(tokens.contains("with_aliases (vec ! [\"horizontal\" . to_string ()])"));
     assert!(tokens.contains("ReflectScriptVisibility :: Public"));
     assert!(tokens.contains("fn script_host_type_projection"));
     assert!(tokens.contains("with_documentation (\"vector docs\")"));
     assert!(tokens.contains("with_documentation (\"x docs\")"));
     assert!(!tokens.contains("cached_length"));
+}
+
+#[test]
+fn script_type_rejects_non_canonical_stable_identity_keys() {
+    let type_input: syn::DeriveInput = syn::parse_quote! {
+        #[zircon_script(identity = " math.meta-vec3")]
+        struct Vec3 {
+            x: f64,
+        }
+    };
+    let error = crate::derive_type::derive_zircon_script_type_impl(type_input)
+        .expect_err("script type identity keys must not hide leading whitespace");
+    assert!(error.to_string().contains("non-empty and already trimmed"));
+
+    let field_input: syn::DeriveInput = syn::parse_quote! {
+        struct Vec3 {
+            #[zircon_script(identity = "x-component ")]
+            x: f64,
+        }
+    };
+    let error = crate::derive_type::derive_zircon_script_type_impl(field_input)
+        .expect_err("script field identity keys must not hide trailing whitespace");
+    assert!(error.to_string().contains("non-empty and already trimmed"));
 }
 
 #[test]

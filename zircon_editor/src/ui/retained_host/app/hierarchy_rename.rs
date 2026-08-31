@@ -66,7 +66,12 @@ impl RetainedEditorHost {
             now,
         ) {
             self.last_hierarchy_rename_click = None;
-            self.begin_hierarchy_rename(entry.entity, &entry.display_name);
+            let authoritative_scene_entries = self.runtime.editor_snapshot().scene_entries;
+            if let Some(name) =
+                hierarchy_name_for_entity(&authoritative_scene_entries, entry.entity)
+            {
+                self.begin_hierarchy_rename(entry.entity, name);
+            }
         } else {
             self.last_hierarchy_rename_click = Some(HierarchyRenameClick {
                 node_id: entry.entity,
@@ -143,6 +148,13 @@ fn single_selected_hierarchy_rename_target(entries: &SceneEntries) -> Option<(No
         .then(|| (entry.entity, entry.display_name.clone()))
 }
 
+fn hierarchy_name_for_entity(entries: &SceneEntries, node_id: NodeId) -> Option<&str> {
+    entries
+        .iter()
+        .find(|entry| entry.entity == node_id)
+        .map(|entry| entry.display_name.as_str())
+}
+
 pub(in crate::ui::retained_host) fn hierarchy_inline_rename_target_id(
     dispatch_kind: &str,
 ) -> Option<&str> {
@@ -214,6 +226,14 @@ mod tests {
             ])),
             None
         );
+    }
+
+    #[test]
+    fn double_click_name_lookup_uses_the_current_entity_projection() {
+        let entries = scene_entries(&[(4, "Old", false), (7, "Current", true)]);
+
+        assert_eq!(hierarchy_name_for_entity(&entries, 7), Some("Current"));
+        assert_eq!(hierarchy_name_for_entity(&entries, 9), None);
     }
 
     #[test]

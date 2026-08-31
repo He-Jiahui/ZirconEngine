@@ -37,7 +37,7 @@ fn write_manifest(root: &Path, asset_roots: &[&str]) {
     std::fs::write(
         root.join("zircon-project.toml"),
         format!(
-            "name = \"Migration Fixture\"\nformat_version = 2\ndefault_scene = \"res://scenes/main.scene.toml\"\nasset_roots = [{roots}]\nlibrary_version = 1\n"
+            "name = \"Migration Fixture\"\nformat_version = 3\nproject_guid = \"cb3f4863-28f3-4ef7-bd0d-c38c9189a8a1\"\ndefault_scene = \"res://scenes/main.scene.toml\"\nasset_roots = [{roots}]\nlibrary_version = 1\n"
         ),
     )
     .unwrap();

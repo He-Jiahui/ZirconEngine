@@ -14,6 +14,7 @@ from .pipeline_report_pack_manifest_schema_helpers import (
     PACK_FORMAT_VERSION,
     pack_chunk_entry_is_schema_clean,
 )
+from .zrpack_hash import zrpack_content_hash as _zrpack_content_hash
 
 
 PACK_REPORT_REQUIRED_NON_FATAL_FILE_FIELDS = (
@@ -27,12 +28,6 @@ PACK_REPORT_OPTIONAL_NON_FATAL_FILE_FIELDS = (
 PACK_BINARY_HEADER_SIZE = 24
 PACK_BINARY_MAGIC = b"ZRPK"
 PACK_DELTA_BINARY_MAGIC = b"ZRPD"
-ZRPACK_HASH_SEEDS = (
-    0xCBF2_9CE4_8422_2325,
-    0x9AE1_6A3B_2F90_404F,
-    0x6EED_0E9D_A4D9_4A4F,
-    0xACE5_929A_D4D9_8F13,
-)
 
 
 def pack_report_binary_manifest_evidence_diagnostics(
@@ -142,6 +137,7 @@ def pack_report_chunk_payload_hash_diagnostics(
         return []
     diagnostics: list[str] = []
     path = Path(value)
+    pack_view = memoryview(bytes_value)
     manifest_offset = int.from_bytes(bytes_value[8:16], "little")
     payload_end = manifest_chunk_payload_end(chunks)
     if payload_end is not None and manifest_offset != payload_end:
@@ -179,7 +175,7 @@ def pack_report_chunk_payload_hash_diagnostics(
                 f"{label} {path} {chunk_path}[{index}] payload range is out of bounds"
             )
             continue
-        if zrpack_content_hash(bytes_value[offset:end]) != chunk_hash:
+        if zrpack_content_hash(pack_view[offset:end]) != chunk_hash:
             diagnostics.append(
                 f"{label} {path} {chunk_path}[{index}] payload does not match "
                 "manifest hash"
@@ -227,19 +223,8 @@ def manifest_chunk_rows(manifest: dict[str, Any], chunk_path: str) -> Any:
     return None
 
 
-def zrpack_content_hash(bytes_value: bytes) -> list[int]:
-    hash_bytes = bytearray()
-    for seed in ZRPACK_HASH_SEEDS:
-        hash_bytes.extend(fnv1a64(bytes_value, seed).to_bytes(8, "little"))
-    return list(hash_bytes)
-
-
-def fnv1a64(bytes_value: bytes, seed: int) -> int:
-    value = seed
-    for byte in bytes_value:
-        value ^= byte
-        value = (value * 0x100_0000_01B3) & 0xFFFF_FFFF_FFFF_FFFF
-    return value
+def zrpack_content_hash(bytes_value: bytes | memoryview) -> list[int]:
+    return _zrpack_content_hash(bytes_value)
 
 
 def pack_report_embedded_manifest(

@@ -40,7 +40,6 @@ impl zircon_editor::EditorPlugin for HybridGiEditorPlugin {
                     HYBRID_GI_AUTHORING_VIEW_ID,
                     "Hybrid GI",
                     "Rendering",
-                    "Plugins/Hybrid GI",
                 )],
             },
         )

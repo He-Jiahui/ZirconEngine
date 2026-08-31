@@ -125,7 +125,11 @@ fn percentile_ms(samples: &VecDeque<u64>, percentile: usize) -> f64 {
     if samples.is_empty() {
         return 0.0;
     }
-    let mut ordered = samples.iter().copied().collect::<Vec<_>>();
+    let mut ordered = [0_u64; MAX_FLUSH_LATENCY_SAMPLES];
+    let (front, back) = samples.as_slices();
+    ordered[..front.len()].copy_from_slice(front);
+    ordered[front.len()..samples.len()].copy_from_slice(back);
+    let ordered = &mut ordered[..samples.len()];
     ordered.sort_unstable();
     let rank = (ordered.len() * percentile).div_ceil(100).saturating_sub(1);
     duration_ms(ordered[rank])
@@ -154,3 +158,7 @@ mod tests {
         assert_eq!(state.dirty_generation, 1);
     }
 }
+
+#[cfg(test)]
+#[path = "state/percentile_stack_tests.rs"]
+mod percentile_stack_tests;

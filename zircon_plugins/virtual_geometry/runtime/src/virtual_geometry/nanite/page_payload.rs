@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, mem::size_of};
 
 use zircon_runtime::asset::{MeshVertex, VirtualGeometryAsset};
 use zircon_runtime::core::framework::render::{
@@ -11,6 +11,10 @@ const PAYLOAD_VERSION: u32 = 1;
 const PAYLOAD_HEADER_WORD_COUNT: usize = 7;
 const PAYLOAD_ITEM_WORD_COUNT: usize = 4;
 const TRIANGLE_INDEX_COUNT: usize = 3;
+
+#[cfg(test)]
+#[path = "page_payload/allocation_tests.rs"]
+mod allocation_tests;
 
 pub(super) fn render_page_payloads_for_asset(
     asset: &VirtualGeometryAsset,
@@ -36,21 +40,20 @@ fn render_page_vertices(
     vertices: &[MeshVertex],
     indices: &[u32],
 ) -> Vec<RenderVirtualGeometryPagePayloadVertex> {
-    let words = payload_u32_words(payload);
-    if !payload_header_is_supported(&words) {
+    let Some(item_count) = payload_item_count(payload) else {
         return Vec::new();
-    }
+    };
 
-    let item_count = words[6] as usize;
-    let mut page_vertices = Vec::new();
+    let mut page_vertices =
+        Vec::with_capacity(page_vertex_capacity(payload, item_count, vertices, indices));
     for item_index in 0..item_count {
-        let item_base = PAYLOAD_HEADER_WORD_COUNT + item_index * PAYLOAD_ITEM_WORD_COUNT;
-        let Some(item) = words.get(item_base..item_base + PAYLOAD_ITEM_WORD_COUNT) else {
+        let Some((triangle_start, triangle_count)) = payload_triangle_range(payload, item_index)
+        else {
             continue;
         };
         append_triangle_range_vertices(
-            item[2] as usize,
-            item[3] as usize,
+            triangle_start,
+            triangle_count,
             vertices,
             indices,
             &mut page_vertices,
@@ -59,10 +62,51 @@ fn render_page_vertices(
     page_vertices
 }
 
-fn payload_header_is_supported(words: &[u32]) -> bool {
-    words.len() >= PAYLOAD_HEADER_WORD_COUNT
-        && words[0] == CLUSTER_PAYLOAD_MAGIC
-        && words[1] == PAYLOAD_VERSION
+fn payload_item_count(payload: &[u8]) -> Option<usize> {
+    if payload_word(payload, 0)? != CLUSTER_PAYLOAD_MAGIC
+        || payload_word(payload, 1)? != PAYLOAD_VERSION
+    {
+        return None;
+    }
+
+    let declared_item_count = payload_word(payload, 6)? as usize;
+    let available_item_count = (payload.len() / size_of::<u32>())
+        .saturating_sub(PAYLOAD_HEADER_WORD_COUNT)
+        / PAYLOAD_ITEM_WORD_COUNT;
+    Some(declared_item_count.min(available_item_count))
+}
+
+fn payload_triangle_range(payload: &[u8], item_index: usize) -> Option<(usize, usize)> {
+    let item_base =
+        PAYLOAD_HEADER_WORD_COUNT.checked_add(item_index.checked_mul(PAYLOAD_ITEM_WORD_COUNT)?)?;
+    Some((
+        payload_word(payload, item_base.checked_add(2)?)? as usize,
+        payload_word(payload, item_base.checked_add(3)?)? as usize,
+    ))
+}
+
+fn payload_word(payload: &[u8], word_index: usize) -> Option<u32> {
+    let byte_start = word_index.checked_mul(size_of::<u32>())?;
+    let bytes = payload.get(byte_start..byte_start.checked_add(size_of::<u32>())?)?;
+    Some(u32::from_le_bytes(bytes.try_into().ok()?))
+}
+
+fn page_vertex_capacity(
+    payload: &[u8],
+    item_count: usize,
+    vertices: &[MeshVertex],
+    indices: &[u32],
+) -> usize {
+    (0..item_count)
+        .filter_map(|item_index| payload_triangle_range(payload, item_index))
+        .filter_map(|(triangle_start, triangle_count)| {
+            let index_start = triangle_start.checked_mul(TRIANGLE_INDEX_COUNT)?;
+            let index_count = triangle_count.checked_mul(TRIANGLE_INDEX_COUNT)?;
+            indices.get(index_start..index_start.checked_add(index_count)?)
+        })
+        .flatten()
+        .filter(|source_index| vertices.get(**source_index as usize).is_some())
+        .count()
 }
 
 fn append_triangle_range_vertices(
@@ -89,13 +133,6 @@ fn append_triangle_range_vertices(
             tangent: Vec4::from_array(vertex.tangent),
         });
     }
-}
-
-fn payload_u32_words(payload: &[u8]) -> Vec<u32> {
-    payload
-        .chunks_exact(4)
-        .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
-        .collect()
 }
 
 #[cfg(test)]

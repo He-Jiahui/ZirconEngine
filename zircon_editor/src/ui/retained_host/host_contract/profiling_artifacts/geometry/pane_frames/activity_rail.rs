@@ -29,7 +29,7 @@ pub(in crate::ui::retained_host::host_contract) fn collect_activity_rail_buttons
         let frame = translated(&button.frame, rail.x, rail.y);
         push_named_frame(
             out,
-            format!("activity_rail.{surface}.{}", button.control_id).as_str(),
+            format!("activity_rail.{surface}.{}", button.control_id),
             "activity_rail_button",
             surface,
             frame,

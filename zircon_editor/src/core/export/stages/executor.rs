@@ -301,10 +301,14 @@ fn hash_os_string(hasher: &mut blake3::Hasher, value: &std::ffi::OsStr) {
 }
 
 fn command_diagnostics(stdout: Vec<u8>, stderr: Vec<u8>) -> Vec<String> {
+    // EDITOR79_EXPORT_LOG_UTF8_BUFFER_ADOPTION_BENCH_V1
     [stdout, stderr]
         .into_iter()
         .filter(|bytes| !bytes.is_empty())
-        .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+        .map(|bytes| match String::from_utf8(bytes) {
+            Ok(text) => text,
+            Err(error) => String::from_utf8_lossy(error.as_bytes()).into_owned(),
+        })
         .collect()
 }
 
@@ -413,3 +417,7 @@ pub fn zircon_build_stage_plan() -> ExportPipelinePlan {
     ])
     .expect("the fixed CompileHost to PlatformBundle graph is acyclic")
 }
+
+#[cfg(test)]
+#[path = "executor/utf8_diagnostics_tests.rs"]
+mod utf8_diagnostics_tests;

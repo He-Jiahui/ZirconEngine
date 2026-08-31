@@ -3,7 +3,8 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use zircon_plugin_animation_runtime::{
-    AnimationGraphCompileError, CompiledAnimationGraph, SkeletonTargetTable,
+    compile_animation_graph_runtime, AnimationGraphCompileError, CompiledAnimationGraph,
+    SkeletonTargetTable,
 };
 use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::animation::{
@@ -40,7 +41,7 @@ fn compiled_graph_keeps_dense_nodes_parameters_and_mask_rows_after_source_mutati
             },
         ],
     };
-    let compiled = CompiledAnimationGraph::compile(&graph, targets).unwrap();
+    let compiled = compile_animation_graph_runtime(&graph, targets).unwrap();
 
     graph.parameters[0].name = "renamed".into();
     if let AnimationGraphNodeAsset::Blend { inputs, .. } = &mut graph.nodes[2] {
@@ -81,10 +82,10 @@ fn compiled_graph_rejects_missing_edges_cycles_and_ambiguous_mask_leaves() {
             source: "missing".into(),
         }],
     };
-    assert!(matches!(
-        CompiledAnimationGraph::compile(&missing, Arc::clone(&targets)),
-        Err(AnimationGraphCompileError::MissingNode { .. })
-    ));
+    assert_source_diagnostic(
+        compile_animation_graph_runtime(&missing, Arc::clone(&targets)),
+        "ZR-ANIM-COMP-GRAPH-006",
+    );
 
     let cycle = AnimationGraphAsset {
         name: None,
@@ -103,10 +104,10 @@ fn compiled_graph_rejects_missing_edges_cycles_and_ambiguous_mask_leaves() {
             AnimationGraphNodeAsset::Output { source: "a".into() },
         ],
     };
-    assert!(matches!(
-        CompiledAnimationGraph::compile(&cycle, Arc::clone(&targets)),
-        Err(AnimationGraphCompileError::Cycle { .. })
-    ));
+    assert_source_diagnostic(
+        compile_animation_graph_runtime(&cycle, Arc::clone(&targets)),
+        "ZR-ANIM-COMP-GRAPH-009",
+    );
 
     let ambiguous = AnimationGraphAsset {
         name: None,
@@ -124,7 +125,7 @@ fn compiled_graph_rejects_missing_edges_cycles_and_ambiguous_mask_leaves() {
         ],
     };
     assert!(matches!(
-        CompiledAnimationGraph::compile(&ambiguous, targets),
+        compile_animation_graph_runtime(&ambiguous, targets),
         Err(AnimationGraphCompileError::AmbiguousMaskTarget { .. })
     ));
 }
@@ -133,7 +134,7 @@ fn compiled_graph_rejects_missing_edges_cycles_and_ambiguous_mask_leaves() {
 fn compiled_graph_falls_back_to_default_for_non_finite_parameter_override() {
     let targets = Arc::new(SkeletonTargetTable::compile(&skeleton(&[("Root", None)])).unwrap());
     let graph = weighted_graph(0.25, 1);
-    let compiled = CompiledAnimationGraph::compile(&graph, targets).unwrap();
+    let compiled = compile_animation_graph_runtime(&graph, targets).unwrap();
     let evaluation = compiled.evaluate(&AnimationParameterMap::from([(
         "weight".into(),
         AnimationParameterValue::Scalar(f32::NAN),
@@ -142,6 +143,145 @@ fn compiled_graph_falls_back_to_default_for_non_finite_parameter_override() {
     assert_eq!(evaluation.clips().len(), 2);
     assert!((evaluation.clips()[0].weight() - 0.75).abs() < 0.0001);
     assert!((evaluation.clips()[1].weight() - 0.25).abs() < 0.0001);
+}
+
+#[test]
+fn compiled_graph_diamond_aggregates_shared_clip_node_once() {
+    let targets = Arc::new(SkeletonTargetTable::compile(&skeleton(&[("Root", None)])).unwrap());
+    let graph = diamond_graph(12);
+    let compiled = compile_animation_graph_runtime(&graph, targets).unwrap();
+
+    let evaluation = compiled.evaluate(&AnimationParameterMap::new());
+
+    assert_eq!(compiled.node_count(), 37);
+    assert_eq!(evaluation.clips().len(), 1);
+    assert!((evaluation.clips()[0].weight() - 1.0).abs() < 0.0001);
+}
+
+#[test]
+fn compiled_graph_preserves_inner_mask_and_additive_context() {
+    let targets = Arc::new(
+        SkeletonTargetTable::compile(&skeleton(&[
+            ("Root", None),
+            ("Spine", Some(0)),
+            ("Hand", Some(1)),
+        ]))
+        .unwrap(),
+    );
+    let graph = AnimationGraphAsset {
+        name: Some("nested-mask-additive".into()),
+        parameters: vec![AnimationGraphParameterAsset {
+            name: "additive_weight".into(),
+            default_value: AnimationParameterValue::Scalar(0.25),
+        }],
+        nodes: vec![
+            clip_node("base", "res://animations/base.zanim"),
+            clip_node("overlay", "res://animations/overlay.zanim"),
+            AnimationGraphNodeAsset::Additive {
+                id: "additive".into(),
+                base: "base".into(),
+                additive: "overlay".into(),
+                weight_parameter: Some("additive_weight".into()),
+            },
+            AnimationGraphNodeAsset::Mask {
+                id: "inner-mask".into(),
+                input: "additive".into(),
+                target_ids: vec!["Root/Spine/Hand".into()],
+            },
+            AnimationGraphNodeAsset::Mask {
+                id: "outer-mask".into(),
+                input: "inner-mask".into(),
+                target_ids: vec!["Root/Spine".into()],
+            },
+            AnimationGraphNodeAsset::Output {
+                source: "outer-mask".into(),
+            },
+        ],
+    };
+    let compiled = compile_animation_graph_runtime(&graph, targets).unwrap();
+
+    let evaluation = compiled.evaluate(&AnimationParameterMap::new());
+
+    assert_eq!(evaluation.clips().len(), 2);
+    assert_eq!(
+        evaluation.clips()[0].blend_mode(),
+        zircon_runtime::core::framework::animation::AnimationGraphBlendMode::Base
+    );
+    assert_eq!(evaluation.clips()[0].target_mask(), &[false, false, true]);
+    assert_eq!(
+        evaluation.clips()[1].blend_mode(),
+        zircon_runtime::core::framework::animation::AnimationGraphBlendMode::Additive
+    );
+    assert_eq!(evaluation.clips()[1].target_mask(), &[false, false, true]);
+    assert!((evaluation.clips()[1].weight() - 0.25).abs() < 0.0001);
+}
+
+#[test]
+fn compiled_graph_emits_clip_nodes_in_stable_source_slot_order() {
+    let targets = Arc::new(SkeletonTargetTable::compile(&skeleton(&[("Root", None)])).unwrap());
+    let graph = AnimationGraphAsset {
+        name: Some("stable-output-order".into()),
+        parameters: vec![AnimationGraphParameterAsset {
+            name: "weight".into(),
+            default_value: AnimationParameterValue::Scalar(0.25),
+        }],
+        nodes: vec![
+            clip_node("a", "res://animations/a.zanim"),
+            clip_node("b", "res://animations/b.zanim"),
+            AnimationGraphNodeAsset::Blend {
+                id: "reverse-input-order".into(),
+                inputs: vec!["b".into(), "a".into()],
+                weight_parameter: Some("weight".into()),
+            },
+            AnimationGraphNodeAsset::Output {
+                source: "reverse-input-order".into(),
+            },
+        ],
+    };
+    let compiled = compile_animation_graph_runtime(&graph, targets).unwrap();
+
+    let evaluation = compiled.evaluate(&AnimationParameterMap::new());
+
+    assert_eq!(evaluation.clips().len(), 2);
+    assert_eq!(
+        evaluation.clips()[0].clip(),
+        &AssetReference::from_locator(AssetUri::parse("res://animations/a.zanim").unwrap())
+    );
+    assert!((evaluation.clips()[0].weight() - 0.25).abs() < 0.0001);
+    assert_eq!(
+        evaluation.clips()[1].clip(),
+        &AssetReference::from_locator(AssetUri::parse("res://animations/b.zanim").unwrap())
+    );
+    assert!((evaluation.clips()[1].weight() - 0.75).abs() < 0.0001);
+}
+
+#[test]
+fn compiled_graph_evaluation_is_non_recursive_for_deep_chain() {
+    const DEPTH: usize = 4_096;
+    let targets = Arc::new(SkeletonTargetTable::compile(&skeleton(&[("Root", None)])).unwrap());
+    let mut nodes = vec![clip_node("clip", "res://animations/deep.zanim")];
+    let mut previous = "clip".to_string();
+    for index in 0..DEPTH {
+        let id = format!("node-{index}");
+        nodes.push(AnimationGraphNodeAsset::Blend {
+            id: id.clone(),
+            inputs: vec![previous],
+            weight_parameter: None,
+        });
+        previous = id;
+    }
+    nodes.push(AnimationGraphNodeAsset::Output { source: previous });
+    let graph = AnimationGraphAsset {
+        name: Some("deep-runtime-evaluation".into()),
+        parameters: Vec::new(),
+        nodes,
+    };
+    let compiled = compile_animation_graph_runtime(&graph, targets).unwrap();
+
+    let evaluation = compiled.evaluate(&AnimationParameterMap::new());
+
+    assert_eq!(evaluation.clips().len(), 1);
+    assert_eq!(evaluation.clips()[0].weight(), 1.0);
 }
 
 #[test]
@@ -163,7 +303,7 @@ fn compiled_graph_borrowed_parameter_slot_release_benchmark_evidence() {
 
     let targets = Arc::new(SkeletonTargetTable::compile(&skeleton(&[("Root", None)])).unwrap());
     let graph = weighted_graph(0.25, PARAMETER_COUNT);
-    let compiled = CompiledAnimationGraph::compile(&graph, targets).unwrap();
+    let compiled = compile_animation_graph_runtime(&graph, targets).unwrap();
     let overrides =
         AnimationParameterMap::from([("weight".into(), AnimationParameterValue::Scalar(0.75))]);
     let mut legacy_ns = Vec::with_capacity(SAMPLE_PAIRS);
@@ -254,6 +394,41 @@ fn weighted_graph(default_weight: f32, parameter_count: usize) -> AnimationGraph
     }
 }
 
+fn diamond_graph(layers: usize) -> AnimationGraphAsset {
+    let mut nodes = vec![clip_node("shared", "res://animations/shared.zanim")];
+    let mut previous = "shared".to_string();
+    for layer in 0..layers {
+        let left = format!("left-{layer}");
+        let right = format!("right-{layer}");
+        let merged = format!("merged-{layer}");
+        nodes.push(AnimationGraphNodeAsset::Blend {
+            id: left.clone(),
+            inputs: vec![previous.clone()],
+            weight_parameter: None,
+        });
+        nodes.push(AnimationGraphNodeAsset::Blend {
+            id: right.clone(),
+            inputs: vec![previous],
+            weight_parameter: None,
+        });
+        nodes.push(AnimationGraphNodeAsset::Blend {
+            id: merged.clone(),
+            inputs: vec![left, right],
+            weight_parameter: Some("weight".into()),
+        });
+        previous = merged;
+    }
+    nodes.push(AnimationGraphNodeAsset::Output { source: previous });
+    AnimationGraphAsset {
+        name: Some("diamond".into()),
+        parameters: vec![AnimationGraphParameterAsset {
+            name: "weight".into(),
+            default_value: AnimationParameterValue::Scalar(0.5),
+        }],
+        nodes,
+    }
+}
+
 fn measure_legacy_parameter_snapshot(
     parameters: &[AnimationGraphParameterAsset],
     overrides: &AnimationParameterMap,
@@ -333,4 +508,16 @@ fn skeleton(bones: &[(&str, Option<u32>)]) -> AnimationSkeletonAsset {
             })
             .collect(),
     }
+}
+
+fn assert_source_diagnostic(
+    result: Result<CompiledAnimationGraph, AnimationGraphCompileError>,
+    code: &str,
+) {
+    let Err(AnimationGraphCompileError::SourceDiagnostics(diagnostics)) = result else {
+        panic!("expected framework source diagnostics");
+    };
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.code() == code));
 }

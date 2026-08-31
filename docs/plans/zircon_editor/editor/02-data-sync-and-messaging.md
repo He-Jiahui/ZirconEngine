@@ -90,13 +90,16 @@ impl World { pub fn inspect_world(&self, focused: Option<EntityId>) -> WorldInsp
 ### 协议 DTO（`zircon_runtime_interface/src/world_sync/`，新建四文件）
 
 ```rust
-// query.rs —— 对齐 BRP world.query / get_components
-pub struct WorldQuery {
-    pub filter: QueryFilter,               // with/without 组件类型名（全限定字符串）
-    pub select: Vec<ComponentSelector>,
-    pub generation_hint: Option<u64>,      // 相同则服务端可回 NotModified
+// query.rs —— typed projection；不允许 hierarchy 携带 component selector
+pub enum WorldQuery {
+    Components(ComponentWorldQuery),
+    Hierarchy(WorldHierarchyQuery),
 }
-pub enum WorldQueryResult { Rows(Vec<EntityRow>), NotModified { generation: u64 } }
+pub enum WorldQueryResult {
+    ComponentRows { generation: u64, rows: Vec<EntityRow> },
+    HierarchyRows { generation: u64, rows: Vec<WorldHierarchyRow> },
+    NotModified { generation: u64 },
+}
 
 // watch.rs
 pub enum WatchKey {
@@ -234,6 +237,8 @@ M1.1、M1.2 已完成实现；M1.3 的深层 hierarchy/cycle-edge/compile-sync �
 2026-07-18：Performance01 回传的 editor-event journal/listener 无界保留失败已完成源码硬切：统一 retention store、durable/frame-local/latest-state 独立预算、共享 Arc payload、per-listener inbox 和 sequence/journal/listener 分锁均已落地；1k/10k、字节预算、逆序 fanout 与 lag/coalesce 测试已加入。当前仅有静态 gate，受 Coordinator01 immutable full-input snapshot barrier 阻塞，尚未执行 source-bound Cargo、独立 review、failure return 或 managed commit，因此 Failure 保持 open，且不据此勾选 M2。
 
 2026-08-05：`world-sync-subscription-invalidation-scaling` 继续前向修复。M2.2 的 session-scoped `WorldSyncPump` 已接入 editor host tick（每帧一次 drain、facts→bus、token→ViewDirtySet）；M3.2 已将动态 Runtime API 硬切到 24-field `ZrRuntimeApiV5`，并在 interface/runtime/app/editor 四层实现 query/watch/unwatch/drain。M2 hierarchy 增量投影与 M3.1 dirty binding 仍未实现，故 M2/M3 checkbox 保持未勾选。子审计、Python compile、rustfmt check 与 scoped diff 为静态 green；全量结构审计 64 秒超时且不计作通过，Cargo、二次审查、failure return 与 managed commit 均 pending。
+
+2026-08-26：Editor04 M3 将 world query 硬切为 typed `Components/Hierarchy/InspectionFields` projection，物化结果统一携带 generation，焦点实体消失返回显式 `EntityMissing`；`WorldHierarchyRow` 与 `WorldInspectionFieldRow` 均由 interface 单一拥有，runtime inspection 直接复用，hierarchy/fields producer 在 owned clone 前执行 bytes/items/deadline 校验。旧 untagged query、裸 `Rows(Vec<EntityRow>)` 和 runtime 私有 inspection field DTO 已删除。Editor04 已以独立 Edit/Play pump、identity-qualified projection cache、运行时后端先收敛的 tick 顺序接通 retained Play hierarchy，并以 100ms generation-hinted cadence 接通只读 Play Inspector；短暂查询失败保留 pending 重试，退出先退订 Play watch 再 detach/retire。Interface02 P0 的 snapshot/page/cursor/cancel、实体级精确字段失效和 Editor04 M4 live edit 仍 pending，因此 M2/M3 checkbox 不晋升，managed Cargo/产品性能/功耗也未声明。
 
 - 迁入记录：[`02/2026-07-14-world-sync-m1-output-records.md`](02/2026-07-14-world-sync-m1-output-records.md)
 - 当前源状态收束：[`02/2026-07-17-m1-current-source-status-reconciliation.md`](02/2026-07-17-m1-current-source-status-reconciliation.md)

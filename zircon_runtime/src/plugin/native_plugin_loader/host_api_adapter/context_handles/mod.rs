@@ -33,9 +33,6 @@ pub(super) fn context_for(
         return None;
     }
     match contexts().get(handle.raw()).as_deref()? {
-        NativeHostApiV3Context::Registration(context) => {
-            NativeHostApiV3RegistrationContextPin::new(context.clone())
-        }
         NativeHostApiV3Context::RegistrationV4(context) => {
             NativeHostApiV3RegistrationContextPin::new(context.v3_context())
         }
@@ -53,7 +50,7 @@ pub(super) fn context_for_v4(
         NativeHostApiV3Context::RegistrationV4(context) => {
             NativeHostApiV4RegistrationContextPin::new(context.clone())
         }
-        NativeHostApiV3Context::Registration(_) | NativeHostApiV3Context::BridgeCall(_) => None,
+        NativeHostApiV3Context::BridgeCall(_) => None,
     }
 }
 

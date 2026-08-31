@@ -1,9 +1,13 @@
+use std::mem::size_of;
+use std::sync::Arc;
+
 use bytemuck::{bytes_of, cast_slice};
 use wgpu::util::DeviceExt;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use crate::graphics::scene::scene_renderer::core::DEPTH_FORMAT;
 use crate::graphics::scene::scene_renderer::shadow::slot::{
-    GpuShadowGlobals, GpuShadowSlot, GPU_SHADOW_SLOT_STRIDE,
+    GPU_SHADOW_SLOT_STRIDE, GpuShadowGlobals, GpuShadowSlot,
 };
 
 use super::ShadowAtlasConfig;
@@ -88,6 +92,26 @@ pub(crate) struct ShadowAtlasUploadReport {
     pub(crate) slot_capacity: u32,
 }
 
+pub(crate) struct ShadowAtlasPreparedUpload {
+    batch: WgpuBufferUploadBatch,
+    report: ShadowAtlasUploadReport,
+}
+
+impl ShadowAtlasPreparedUpload {
+    pub(crate) fn append_to(&mut self, frame_batch: &mut WgpuBufferUploadBatch) {
+        frame_batch.append(&mut self.batch);
+    }
+
+    pub(crate) fn commit(self, resources: &mut ShadowAtlasResources) -> ShadowAtlasUploadReport {
+        assert!(
+            self.batch.is_empty(),
+            "shadow atlas uploads must leave prepared ownership before state is committed"
+        );
+        resources.last_uploaded_slot_count = self.report.uploaded_slot_count;
+        self.report
+    }
+}
+
 pub(crate) struct ShadowAtlasResources {
     config: ShadowAtlasResourceConfig,
     atlas_texture: wgpu::Texture,
@@ -142,12 +166,11 @@ impl ShadowAtlasResources {
         &self.globals_buffer
     }
 
-    pub(crate) fn upload_frame(
-        &mut self,
-        queue: &wgpu::Queue,
+    pub(crate) fn prepare_frame_upload(
+        &self,
         slots: &[GpuShadowSlot],
         globals: GpuShadowGlobals,
-    ) -> Result<ShadowAtlasUploadReport, String> {
+    ) -> Result<ShadowAtlasPreparedUpload, String> {
         if slots.len() > self.config.slot_capacity as usize {
             return Err(format!(
                 "shadow atlas slot upload requested {} slots but capacity is {}",
@@ -156,39 +179,54 @@ impl ShadowAtlasResources {
             ));
         }
 
-        if !slots.is_empty() {
-            queue.write_buffer(&self.slot_buffer, 0, cast_slice(slots));
-        }
-        queue.write_buffer(&self.globals_buffer, 0, bytes_of(&globals));
-
-        let uploaded_slot_count = slots.len() as u32;
+        let uploaded_slot_count =
+            u32::try_from(slots.len()).expect("validated shadow atlas slot count must fit in u32");
         let stale_slot_count = self
             .last_uploaded_slot_count
             .saturating_sub(uploaded_slot_count);
-        if stale_slot_count > 0 {
-            let disabled_slots = vec![GpuShadowSlot::disabled(); stale_slot_count as usize];
-            queue.write_buffer(
-                &self.slot_buffer,
-                uploaded_slot_count as u64 * GPU_SHADOW_SLOT_STRIDE as u64,
-                cast_slice(&disabled_slots),
+
+        let slot_payload_byte_len = slots
+            .len()
+            .saturating_add(stale_slot_count as usize)
+            .saturating_mul(size_of::<GpuShadowSlot>());
+        let mut payload =
+            Vec::with_capacity(slot_payload_byte_len.saturating_add(size_of::<GpuShadowGlobals>()));
+        payload.extend_from_slice(cast_slice(slots));
+        let disabled_slot = GpuShadowSlot::disabled();
+        for _ in 0..stale_slot_count {
+            payload.extend_from_slice(bytes_of(&disabled_slot));
+        }
+        let slot_payload_range = 0..payload.len();
+        let globals_start = payload.len();
+        payload.extend_from_slice(bytes_of(&globals));
+        let globals_range = globals_start..payload.len();
+
+        let payload: Arc<[u8]> = Arc::from(payload);
+        let mut batch = WgpuBufferUploadBatch::new();
+        if !slot_payload_range.is_empty() {
+            batch.push(
+                WgpuBufferUpload::new(
+                    self.slot_buffer.clone(),
+                    0,
+                    Arc::clone(&payload),
+                    slot_payload_range,
+                )
+                .expect("shadow atlas slot upload range must reference its packed payload"),
             );
         }
-        self.last_uploaded_slot_count = uploaded_slot_count;
+        batch.push(
+            WgpuBufferUpload::new(self.globals_buffer.clone(), 0, payload, globals_range)
+                .expect("shadow atlas globals upload range must reference its packed payload"),
+        );
 
-        Ok(ShadowAtlasUploadReport {
-            uploaded_slot_count,
-            cleared_stale_slot_count: stale_slot_count,
-            slot_capacity: self.config.slot_capacity,
+        Ok(ShadowAtlasPreparedUpload {
+            batch,
+            report: ShadowAtlasUploadReport {
+                uploaded_slot_count,
+                cleared_stale_slot_count: stale_slot_count,
+                slot_capacity: self.config.slot_capacity,
+            },
         })
-    }
-
-    pub(crate) fn upload_disabled(&mut self, queue: &wgpu::Queue) -> ShadowAtlasUploadReport {
-        self.upload_frame(
-            queue,
-            &[],
-            GpuShadowGlobals::disabled(self.config.width, self.config.height),
-        )
-        .expect("empty shadow atlas upload must fit the configured slot capacity")
     }
 }
 
@@ -295,5 +333,17 @@ mod tests {
         assert_eq!(report.uploaded_slot_count, 2);
         assert_eq!(report.cleared_stale_slot_count, 3);
         assert_eq!(report.slot_capacity, 8);
+    }
+
+    #[test]
+    fn shadow_frame_uploads_are_prepared_without_native_queue_writes() {
+        let production = include_str!("resources.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("shadow resource test boundary");
+
+        assert!(production.contains("ShadowAtlasPreparedUpload"));
+        assert!(production.contains("frame_batch.append(&mut self.batch)"));
+        assert!(!production.contains("queue.write_buffer"));
     }
 }

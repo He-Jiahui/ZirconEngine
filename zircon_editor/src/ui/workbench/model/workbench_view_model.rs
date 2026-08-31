@@ -11,12 +11,13 @@ use super::floating_window_model::FloatingWindowModel;
 use super::main_host_strip_view_model::MainHostStripViewModel;
 use super::status_bar_model::StatusBarModel;
 use super::tool_window_stack_model::ToolWindowStackModel;
-use crate::core::commands::MenuBarModel;
+use crate::core::commands::{EditorKeymap, MenuBarModel};
 
 #[derive(Clone, Debug)]
 pub struct WorkbenchViewModel {
     pub is_playing: bool,
     pub asset_creation_menu: Arc<AssetCreationMenuGeneration>,
+    pub keymap: EditorKeymap,
     pub menu_bar: MenuBarModel,
     pub host_strip: MainHostStripViewModel,
     pub drawer_ring: DrawerRingModel,

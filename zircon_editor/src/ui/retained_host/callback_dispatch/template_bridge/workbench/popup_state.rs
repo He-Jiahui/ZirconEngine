@@ -1,13 +1,15 @@
-use zircon_runtime::ui::surface::UiSurface;
-use zircon_runtime_interface::ui::{component::UiValue, event_ui::UiNodeId};
+use zircon_runtime_interface::ui::component::UiValue;
+
+use crate::ui::retained_host::option_spec::parse_retained_option;
 
 use super::super::popup_primitives::{
     menu_item_with_checked_state, menu_item_without_transient_flags, string_array_value,
-    template_popup_menu_item_state, toml_value_string_list,
+    template_popup_menu_item_state,
 };
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::context_menu::WORKBENCH_CONTEXT_MENU_CONTROL_ID;
 use super::error::BuiltinHostWindowTemplateBridgeError;
+use super::settings_window::WORKBENCH_SETTINGS_WINDOW_CONTROL_ID;
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(crate) fn select_dropdown_option(
@@ -15,37 +17,41 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         control_id: &str,
         option_id: &str,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
-        let options = control_string_array(&self.template_surface.surface, control_id, "options")
-            .unwrap_or_default();
-        if !options.iter().any(|option| option == option_id) {
+        let options = self.control_string_array(control_id, "options");
+        let Some(selected_option) = options
+            .iter()
+            .map(|option| parse_retained_option(option))
+            .find(|option| option.matches_id(option_id))
+        else {
             return Ok(false);
-        }
-        let disabled = control_string_array(
-            &self.template_surface.surface,
-            control_id,
-            "disabled_options",
-        )
-        .unwrap_or_default();
-        if disabled.iter().any(|option| option == option_id) {
+        };
+        let disabled = self.control_string_array(control_id, "disabled_options");
+        if disabled
+            .iter()
+            .any(|option| selected_option.matches_id(option))
+        {
             return Ok(false);
         }
 
-        self.mutate_control_property(control_id, "value", UiValue::String(option_id.to_string()))?;
+        self.mutate_control_property(
+            control_id,
+            "value",
+            UiValue::String(selected_option.id.clone()),
+        )?;
         self.mutate_control_property(
             control_id,
             "value_text",
-            UiValue::String(option_id.to_string()),
+            UiValue::String(selected_option.label),
         )?;
         self.mutate_control_property(
             control_id,
             "special_options",
-            string_array_value([option_id]),
+            string_array_value([selected_option.id.as_str()]),
         )?;
         for property in ["focused_options", "hovered_options", "pressed_options"] {
             self.mutate_control_property(control_id, property, UiValue::Array(Vec::new()))?;
         }
-        for node_id in control_node_ids_with_descendants(&self.template_surface.surface, control_id)
-        {
+        for node_id in self.control_node_ids_with_descendants(control_id) {
             self.mutate_node_bool(node_id, "popup_open", false)?;
             self.mutate_node_bool(node_id, "focused", false)?;
             self.mutate_node_bool(node_id, "selected", false)?;
@@ -60,9 +66,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         control_id: &str,
         action_id: &str,
     ) -> Result<Option<bool>, BuiltinHostWindowTemplateBridgeError> {
-        let menu_items =
-            control_string_array(&self.template_surface.surface, control_id, "menu_items")
-                .unwrap_or_default();
+        let menu_items = self.control_string_array(control_id, "menu_items");
         if menu_items.is_empty() {
             return Ok(None);
         }
@@ -77,9 +81,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             return Ok(Some(false));
         }
 
-        let is_choice_menu =
-            control_string(&self.template_surface.surface, control_id, "selection_mode")
-                .is_some_and(|mode| mode.eq_ignore_ascii_case("single"));
+        let is_choice_menu = self
+            .control_string(control_id, "selection_mode")
+            .is_some_and(|mode| mode.eq_ignore_ascii_case("single"));
         let normalized_items = UiValue::Array(
             menu_items
                 .iter()
@@ -107,8 +111,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             UiValue::String(selected_item.label),
         )?;
         self.mutate_control_property(control_id, "menu_items", normalized_items)?;
-        for node_id in control_node_ids_with_descendants(&self.template_surface.surface, control_id)
-        {
+        for node_id in self.control_node_ids_with_descendants(control_id) {
             self.mutate_node_bool(node_id, "popup_open", false)?;
             self.mutate_node_bool(node_id, "focused", false)?;
             self.mutate_node_bool(node_id, "selected", false)?;
@@ -123,12 +126,11 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         control_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let node_ids =
-            control_node_ids_with_descendants(&self.template_surface.surface, control_id);
+        let node_ids = self.control_node_ids_with_descendants(control_id);
         if node_ids.is_empty() {
             return Ok(());
         }
-        let open = !control_has_open_popup(&self.template_surface.surface, control_id);
+        let open = !self.control_bool(control_id, "popup_open");
         for node_id in node_ids {
             self.mutate_node_bool(node_id, "popup_open", open)?;
             self.mutate_node_bool(node_id, "focused", open)?;
@@ -141,16 +143,18 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         control_id: &str,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
-        if !control_has_open_popup(&self.template_surface.surface, control_id) {
+        if control_id == WORKBENCH_SETTINGS_WINDOW_CONTROL_ID {
+            return self.close_settings_window();
+        }
+        if !self.control_bool(control_id, "popup_open") {
             return Ok(false);
         }
 
         for property in ["focused_options", "hovered_options", "pressed_options"] {
             self.mutate_control_property(control_id, property, UiValue::Array(Vec::new()))?;
         }
-        if let Some(menu_items) =
-            control_string_array(&self.template_surface.surface, control_id, "menu_items")
-        {
+        let menu_items = self.control_string_array(control_id, "menu_items");
+        if !menu_items.is_empty() {
             self.mutate_control_property(
                 control_id,
                 "menu_items",
@@ -163,8 +167,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             )?;
         }
 
-        for node_id in control_node_ids_with_descendants(&self.template_surface.surface, control_id)
-        {
+        for node_id in self.control_node_ids_with_descendants(control_id) {
             self.mutate_node_bool(node_id, "popup_open", false)?;
             self.mutate_node_bool(node_id, "focused", false)?;
             self.mutate_node_bool(node_id, "selected", false)?;
@@ -179,66 +182,38 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 }
 
-fn control_has_open_popup(surface: &UiSurface, control_id: &str) -> bool {
-    surface.tree.nodes.values().any(|node| {
-        node.template_metadata
-            .as_ref()
-            .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
-            .and_then(|metadata| metadata.attributes.get("popup_open"))
-            .and_then(toml::Value::as_bool)
-            .unwrap_or(false)
-    })
-}
+#[cfg(test)]
+mod tests {
+    use zircon_runtime_interface::ui::{component::UiValue, layout::UiSize};
 
-pub(super) fn control_string_array(
-    surface: &UiSurface,
-    control_id: &str,
-    property: &str,
-) -> Option<Vec<String>> {
-    surface.tree.nodes.values().find_map(|node| {
-        node.template_metadata
-            .as_ref()
-            .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
-            .and_then(|metadata| metadata.attributes.get(property))
-            .map(toml_value_string_list)
-    })
-}
+    use super::*;
 
-fn control_string(surface: &UiSurface, control_id: &str, property: &str) -> Option<String> {
-    surface.tree.nodes.values().find_map(|node| {
-        node.template_metadata
-            .as_ref()
-            .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
-            .and_then(|metadata| metadata.attributes.get(property))
-            .and_then(toml::Value::as_str)
-            .map(str::to_string)
-    })
-}
+    #[test]
+    fn structured_dropdown_selection_keeps_machine_value_and_display_label() {
+        let mut bridge =
+            BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
+                .expect("workbench bridge should build");
+        bridge
+            .mutate_control_property(
+                "WorkbenchMaterialDomainDropdown",
+                "options",
+                UiValue::Array(vec![
+                    UiValue::String("surface|label=Surface".to_string()),
+                    UiValue::String("post_process|label=Post Process".to_string()),
+                ]),
+            )
+            .expect("structured options should project");
 
-fn control_node_id(surface: &UiSurface, control_id: &str) -> Option<UiNodeId> {
-    surface.tree.nodes.values().find_map(|node| {
-        node.template_metadata
-            .as_ref()
-            .and_then(|metadata| metadata.control_id.as_deref())
-            .filter(|candidate| *candidate == control_id)
-            .map(|_| node.node_id)
-    })
-}
-
-fn control_node_ids_with_descendants(surface: &UiSurface, control_id: &str) -> Vec<UiNodeId> {
-    let Some(root_id) = control_node_id(surface, control_id) else {
-        return Vec::new();
-    };
-
-    let mut node_ids = Vec::new();
-    let mut stack = vec![root_id];
-    while let Some(node_id) = stack.pop() {
-        node_ids.push(node_id);
-        if let Some(node) = surface.tree.nodes.get(&node_id) {
-            for child_id in node.children.iter().rev() {
-                stack.push(*child_id);
-            }
-        }
+        assert!(bridge
+            .select_dropdown_option("WorkbenchMaterialDomainDropdown", "post_process")
+            .expect("structured option selection should apply"));
+        assert_eq!(
+            bridge.control_string("WorkbenchMaterialDomainDropdown", "value"),
+            Some("post_process".to_string())
+        );
+        assert_eq!(
+            bridge.control_string("WorkbenchMaterialDomainDropdown", "value_text"),
+            Some("Post Process".to_string())
+        );
     }
-    node_ids
 }

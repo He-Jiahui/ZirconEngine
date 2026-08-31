@@ -2,14 +2,11 @@ use super::*;
 use std::sync::Arc;
 
 use crate::core::math::Vec2;
-use crate::text::font::FontDatabase;
 use crate::text::parallel::raster_pool::{
     TextRasterCompletionDrain, TextRasterCompletionDrainBudget, TextRasterWorkId,
     TextRasterWorkItem, TextRasterWorkResult, TextRasterWorkerPool, TextRasterWorkerPoolOptions,
 };
 use crate::text::raster::{GlyphBitmap, SwashRasterError, SwashRasterRequest};
-use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin, Weight};
-use glyphon::FontSystem;
 
 const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -17,6 +14,8 @@ const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(
 ));
 const TEST_DEFAULT_SOURCE_CACHE_MAX_BYTES: usize = 8 * 1024 * 1024;
 
+#[path = "source_cache/readiness_generation.rs"]
+mod readiness_generation_tests;
 #[path = "source_cache/residency.rs"]
 mod residency_tests;
 #[path = "source_cache/worker_requests.rs"]
@@ -32,7 +31,7 @@ fn native_bitmap_atlas_source_cache_uses_indexed_lru_eviction() {
         "source cache LRU ownership must stay in its leaf module"
     );
     assert!(
-        lru_source.contains("head: Option<CacheKey>"),
+        lru_source.contains("head: Option<GlyphRasterKey>"),
         "source cache eviction must keep a direct link to its oldest live image"
     );
     assert!(
@@ -349,20 +348,21 @@ fn native_bitmap_atlas_source_cache_cancels_pending_worker_work_on_face_invalida
     cache.begin_frame();
     assert_eq!(cache.frame_report().worker_request_cancelled_count, 1);
     assert!(worker_pool.process_next_request_for_test());
-    assert!(worker_pool
-        .drain_completed_for_face_epoch(
-            cache.face_epoch(),
-            TextRasterCompletionDrainBudget::new(1, usize::MAX),
-        )
-        .accepted
-        .is_empty());
+    assert!(
+        worker_pool
+            .drain_completed_for_face_epoch(
+                cache.face_epoch(),
+                TextRasterCompletionDrainBudget::new(1, usize::MAX),
+            )
+            .accepted
+            .is_empty()
+    );
     assert_eq!(worker_pool.diagnostics().cancelled, 1);
 }
 
 #[test]
 fn native_bitmap_atlas_source_cache_inserts_registered_worker_completion() {
     let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
-    let font_database = FontDatabase::default();
     let key = test_cache_key(31);
     let work_id = TextRasterWorkId::new(31);
     let bitmap =
@@ -372,16 +372,13 @@ fn native_bitmap_atlas_source_cache_inserts_registered_worker_completion() {
     cache.begin_frame();
     cache.register_worker_request(work_id, key);
 
-    let report = cache.apply_worker_completion_drain(
-        &font_database,
-        TextRasterCompletionDrain {
-            accepted: vec![worker_result(work_id, Ok(bitmap))],
-            drained_bytes: 8,
-            byte_budget_deferred_count: 1,
-            oversized_accepted_count: 1,
-            ..TextRasterCompletionDrain::default()
-        },
-    );
+    let report = cache.apply_worker_completion_drain(TextRasterCompletionDrain {
+        accepted: vec![worker_result(work_id, Ok(bitmap))],
+        drained_bytes: 8,
+        byte_budget_deferred_count: 1,
+        oversized_accepted_count: 1,
+        ..TextRasterCompletionDrain::default()
+    });
 
     assert_eq!(report.worker_completion_insert_count, 1);
     assert_eq!(report.worker_completion_applied_byte_count, 8);
@@ -405,7 +402,6 @@ fn native_bitmap_atlas_source_cache_inserts_registered_worker_completion() {
 #[test]
 fn native_bitmap_atlas_source_cache_does_not_count_rejected_completion_bytes_as_applied() {
     let mut cache = NativeBitmapAtlasSourceCache::with_limits(4, 4);
-    let font_database = FontDatabase::default();
     let key = test_cache_key(32);
     let work_id = TextRasterWorkId::new(32);
     let bitmap =
@@ -415,14 +411,11 @@ fn native_bitmap_atlas_source_cache_does_not_count_rejected_completion_bytes_as_
     cache.begin_frame();
     cache.register_worker_request(work_id, key);
 
-    let report = cache.apply_worker_completion_drain(
-        &font_database,
-        TextRasterCompletionDrain {
-            accepted: vec![worker_result(work_id, Ok(bitmap))],
-            drained_bytes: 8,
-            ..TextRasterCompletionDrain::default()
-        },
-    );
+    let report = cache.apply_worker_completion_drain(TextRasterCompletionDrain {
+        accepted: vec![worker_result(work_id, Ok(bitmap))],
+        drained_bytes: 8,
+        ..TextRasterCompletionDrain::default()
+    });
 
     assert_eq!(report.worker_completion_insert_count, 0);
     assert_eq!(report.worker_completion_applied_byte_count, 0);
@@ -433,30 +426,26 @@ fn native_bitmap_atlas_source_cache_does_not_count_rejected_completion_bytes_as_
 }
 
 #[test]
-fn native_bitmap_atlas_source_cache_normalizes_horizontal_subpixel_bucket_for_lookup() {
+fn native_bitmap_atlas_source_cache_keeps_horizontal_subpixel_bucket_exact() {
     let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
     let requested_key = test_cache_key(35);
     let mut same_pixel_key = requested_key;
-    same_pixel_key.x_bin = SubpixelBin::Three;
+    same_pixel_key.subpixel_bin = 2;
 
     cache.begin_frame();
     cache.insert_test_image(same_pixel_key, test_cached_image(35));
 
-    let image = cache
-        .cached_image(requested_key)
-        .expect("horizontal subpixel buckets should share the same stable editor glyph image");
-
-    assert_eq!(image.bytes.as_ref(), &[35; 4]);
+    assert!(cache.cached_image(requested_key).is_none());
     assert_eq!(
         cache.frame_report(),
         NativeBitmapAtlasSourceCacheFrameReport {
             capacity: 4,
             max_byte_count: TEST_DEFAULT_SOURCE_CACHE_MAX_BYTES,
             resident_byte_count: 4,
-            hit_count: 1,
+            hit_count: 0,
             approximate_hit_count: 0,
-            lru_touch_count: 1,
-            miss_count: 0,
+            lru_touch_count: 0,
+            miss_count: 1,
             insert_count: 1,
             entry_count: 1,
             ..NativeBitmapAtlasSourceCacheFrameReport::default()
@@ -469,7 +458,7 @@ fn native_bitmap_atlas_source_cache_reuses_neighboring_vertical_bucket_as_approx
     let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
     let requested_key = test_cache_key(36);
     let mut neighboring_key = requested_key;
-    neighboring_key.y_bin = SubpixelBin::One;
+    neighboring_key.vertical_subpixel_bin = 1;
 
     cache.begin_frame();
     cache.insert_test_image(neighboring_key, test_cached_image(36));
@@ -508,22 +497,17 @@ fn native_bitmap_atlas_source_cache_bounds_approximate_probes_at_full_capacity()
         cache.insert_test_image(test_cache_key(glyph_id), test_cached_image(1));
     }
 
-    assert!(cache
-        .approximate_cached_image(test_cache_key(RESIDENT_ENTRY_COUNT + 1))
-        .is_none());
+    assert!(
+        cache
+            .approximate_cached_image(test_cache_key(RESIDENT_ENTRY_COUNT + 1))
+            .is_none()
+    );
     assert_eq!(cache.frame_report().approximate_probe_count, 3);
 }
 
 #[test]
 fn native_bitmap_atlas_source_cache_bounds_new_raster_requests_per_frame() {
-    let mut font_system =
-        FontSystem::new_with_fonts([fontdb::Source::Binary(Arc::new(TEST_FONT_BYTES.to_vec()))]);
-    let face = font_system
-        .db()
-        .faces()
-        .find(|face| matches!(face.source, fontdb::Source::Binary(_)))
-        .expect("test font should register a binary face");
-    let font_id = face.id;
+    let (font_database, instance) = test_font_database_with_fira();
     let worker_pool = TextRasterWorkerPool::new_without_workers_for_test(
         TextRasterWorkerPoolOptions::new(1)
             .with_queue_depth(
@@ -532,16 +516,11 @@ fn native_bitmap_atlas_source_cache_bounds_new_raster_requests_per_frame() {
             .with_request_byte_budget(usize::MAX),
     );
     let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
-    let font_database = FontDatabase::default();
     let face_epoch = cache.face_epoch();
-    let cache_key = |glyph_id| CacheKey {
-        font_id,
+    let cache_key = |glyph_id| GlyphRasterKey {
+        face: instance,
         glyph_id,
-        font_size_bits: 16.0f32.to_bits(),
-        x_bin: SubpixelBin::Zero,
-        y_bin: SubpixelBin::Zero,
-        font_weight: Weight(400),
-        flags: CacheKeyFlags::empty(),
+        ..test_cache_key(glyph_id as u16)
     };
 
     cache.begin_frame();
@@ -550,26 +529,19 @@ fn native_bitmap_atlas_source_cache_bounds_new_raster_requests_per_frame() {
     {
         assert!(matches!(
             cache.request_worker_image(
-                &mut font_system,
                 &font_database,
                 Some(&worker_pool),
                 face_epoch,
-                cache_key(glyph_id as u16),
+                cache_key(glyph_id as u32),
             ),
             NativeBitmapAtlasWorkerRequestStatus::Submitted(_)
         ));
     }
     let deferred_key = cache_key(
-        super::super::source_cache::NATIVE_BITMAP_ATLAS_MAX_RASTER_REQUESTS_PER_FRAME as u16 + 1,
+        super::super::source_cache::NATIVE_BITMAP_ATLAS_MAX_RASTER_REQUESTS_PER_FRAME as u32 + 1,
     );
     assert_eq!(
-        cache.request_worker_image(
-            &mut font_system,
-            &font_database,
-            Some(&worker_pool),
-            face_epoch,
-            deferred_key,
-        ),
+        cache.request_worker_image(&font_database, Some(&worker_pool), face_epoch, deferred_key,),
         NativeBitmapAtlasWorkerRequestStatus::DeferredByFrameBudget
     );
     assert_eq!(
@@ -580,13 +552,7 @@ fn native_bitmap_atlas_source_cache_bounds_new_raster_requests_per_frame() {
 
     cache.begin_frame();
     assert!(matches!(
-        cache.request_worker_image(
-            &mut font_system,
-            &font_database,
-            Some(&worker_pool),
-            face_epoch,
-            deferred_key,
-        ),
+        cache.request_worker_image(&font_database, Some(&worker_pool), face_epoch, deferred_key,),
         NativeBitmapAtlasWorkerRequestStatus::Submitted(_)
     ));
     assert_eq!(cache.frame_report().worker_request_submitted_count, 1);
@@ -596,7 +562,6 @@ fn native_bitmap_atlas_source_cache_bounds_new_raster_requests_per_frame() {
 #[test]
 fn native_bitmap_atlas_source_cache_rejects_worker_completion_edges_without_cache_pollution() {
     let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
-    let font_database = FontDatabase::default();
     let failed_key = test_cache_key(41);
     let invalidated_key = test_cache_key(42);
     let failed_id = TextRasterWorkId::new(41);
@@ -610,18 +575,15 @@ fn native_bitmap_atlas_source_cache_rejects_worker_completion_edges_without_cach
     cache.register_worker_request(failed_id, failed_key);
     cache.register_worker_request(invalidated_id, invalidated_key);
 
-    let report = cache.apply_worker_completion_drain(
-        &font_database,
-        TextRasterCompletionDrain {
-            accepted: vec![
-                worker_result(failed_id, Err(SwashRasterError::InvalidPxSize)),
-                worker_result(unknown_id, Ok(unknown_bitmap)),
-            ],
-            face_invalidated_ids: vec![invalidated_id],
-            face_invalidated_count: 1,
-            ..TextRasterCompletionDrain::default()
-        },
-    );
+    let report = cache.apply_worker_completion_drain(TextRasterCompletionDrain {
+        accepted: vec![
+            worker_result(failed_id, Err(SwashRasterError::InvalidPxSize)),
+            worker_result(unknown_id, Ok(unknown_bitmap)),
+        ],
+        face_invalidated_ids: vec![invalidated_id],
+        face_invalidated_count: 1,
+        ..TextRasterCompletionDrain::default()
+    });
 
     assert_eq!(report.worker_completion_failed_count, 1);
     assert_eq!(report.worker_completion_unknown_count, 1);

@@ -1,15 +1,16 @@
+use crate::core::framework::render::RenderPipelinePhase;
 use crate::core::math::UVec2;
 
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderFrame;
+use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 use super::super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use super::super::super::super::super::scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
 use super::super::build_post_process_params::build_post_process_params_with_hybrid_gi_policy;
 use super::super::create_bind_group::create_bind_group;
-use super::super::create_post_process_params_buffer;
-use super::super::write_hybrid_gi_buffers::write_hybrid_gi_buffers;
-use super::super::write_reflection_probes::write_reflection_probes;
+use super::super::post_process_params_upload;
+use super::super::prepare_scene_data_uploads;
 use super::record_pass::record_pass;
 
 impl ScenePostProcessResources {
@@ -17,7 +18,6 @@ impl ScenePostProcessResources {
     pub(crate) fn execute_post_process(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         viewport_size: UVec2,
         cluster_dimensions: UVec2,
@@ -41,36 +41,37 @@ impl ScenePostProcessResources {
         screen_space_reflection_history_view: &wgpu::TextureView,
         screen_space_reflection_specular_occlusion_view: &wgpu::TextureView,
         baked_color_lut_view: Option<&wgpu::TextureView>,
-        cluster_buffer: &wgpu::Buffer,
-        exposure_buffer: &wgpu::Buffer,
+        cluster_buffer: wgpu::BufferBinding<'_>,
+        exposure_buffer: wgpu::BufferBinding<'_>,
         frame: &ViewportRenderFrame,
         streamer: &ResourceStreamer,
         features: SceneRuntimeFeatureFlags,
-        history_available: bool,
+        temporal_history_available: bool,
+        hybrid_gi_history_available: bool,
         skip_depth_of_field: bool,
         skip_motion_blur: bool,
         skip_blur: bool,
         skip_scene_composite: bool,
-    ) {
+    ) -> WgpuBufferUploadBatch {
         let extract = &frame.extract;
-        let reflection_probe_count = write_reflection_probes(
+        let (
+            reflection_probe_count,
+            hybrid_gi_probe_count,
+            scheduled_trace_region_count,
+            mut uploads,
+        ) = prepare_scene_data_uploads(
             self,
-            queue,
-            extract,
-            viewport_size,
-            features.reflection_probes_enabled,
-        );
-        let (hybrid_gi_probe_count, scheduled_trace_region_count) = write_hybrid_gi_buffers(
-            self,
-            queue,
             frame,
             viewport_size,
+            features.reflection_probes_enabled,
             features.hybrid_global_illumination_enabled,
         );
         let effect_lut =
             select_effect_lut_texture_views(self, streamer, frame, baked_color_lut_view);
-        let render_region = frame.render_region();
-        let local_viewport_size = frame.extract.view.effective_render_size();
+        let render_region = frame
+            .render_region_for_phase(RenderPipelinePhase::DisplayMapping)
+            .expect("uber post process requires the display-mapping phase");
+        let local_viewport_size = render_region.local_size();
         let hybrid_gi_composite_policy = frame
             .prepared_runtime_sidebands()
             .hybrid_gi_prepared_frame()
@@ -82,8 +83,10 @@ impl ScenePostProcessResources {
             render_region,
             scene_color_origin,
             extract,
+            frame.post_process(),
             features,
-            history_available,
+            temporal_history_available,
+            hybrid_gi_history_available,
             reflection_probe_count,
             hybrid_gi_probe_count,
             scheduled_trace_region_count,
@@ -108,12 +111,9 @@ impl ScenePostProcessResources {
             params.effect_dither_ssr[2] = 0.0;
         }
         params.effect_flags[1] = effect_lut.binding_mode.shader_id();
-        let params_buffer = create_post_process_params_buffer(
-            device,
-            queue,
-            "zircon-post-process-pass-params",
-            &params,
-        );
+        let params_buffer = &self.post_process_pass_parameter_buffers.post_process;
+        let mut params_uploads = post_process_params_upload(params_buffer, &params);
+        uploads.append(&mut params_uploads);
         let resolved_screen_space_reflection_history_view = if skip_scene_composite {
             &self.black_texture_view
         } else {
@@ -123,7 +123,7 @@ impl ScenePostProcessResources {
         let bind_group = create_bind_group(
             self,
             device,
-            &params_buffer,
+            params_buffer,
             scene_color_view,
             scene_depth_view,
             motion_vector_neighbor_max_view,
@@ -154,7 +154,9 @@ impl ScenePostProcessResources {
             final_color_view,
             global_illumination_view,
             &bind_group,
+            render_region,
         );
+        uploads
     }
 }
 
@@ -191,7 +193,7 @@ fn select_effect_lut_texture_views<'a>(
     frame: &ViewportRenderFrame,
     baked_color_lut_view: Option<&'a wgpu::TextureView>,
 ) -> EffectLutTextureViews<'a> {
-    let settings = frame.extract.post_process.effect_stack.color_lookup;
+    let settings = frame.post_process().effect_stack.color_lookup;
     let fallback = EffectLutTextureViews {
         texture_2d_view: &resources.effect_lut_texture_view,
         texture_3d_view: &resources.effect_lut_texture_3d_view,
@@ -241,4 +243,27 @@ fn select_effect_lut_texture_views<'a>(
     }
 
     fallback
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn post_process_scene_data_and_params_share_the_pass_upload_transaction() {
+        let source = include_str!("execute.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("post-process execute source");
+
+        assert!(!production.contains("queue.write_buffer"));
+        assert!(!production.contains("queue: &wgpu::Queue"));
+        let scene_data = production
+            .find("prepare_scene_data_uploads(")
+            .expect("scene-data preparation");
+        let params = production
+            .find("post_process_params_upload(")
+            .expect("parameter preparation");
+        let append = production.find("uploads.append(").expect("batch append");
+        assert!(scene_data < params && params < append);
+    }
 }

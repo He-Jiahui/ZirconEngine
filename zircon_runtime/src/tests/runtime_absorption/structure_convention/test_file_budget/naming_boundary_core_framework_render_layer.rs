@@ -41,7 +41,7 @@ fn runtime_15_core_framework_render_layer_schema_v1_guard_is_child_owner() {
             "use super::*;",
             "fn runtime_15_render_layer_schema_v1_mask_api_uses_current_names",
             "fn rust_files_except_naming_boundary(",
-            "core/framework/render/camera.rs",
+            "core/framework/render/camera/layer_set.rs",
             "from_scene_schema_v1_mask",
             "intersects_scene_schema_v1_mask",
         ],

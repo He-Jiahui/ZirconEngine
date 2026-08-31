@@ -4,7 +4,7 @@ use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCo
 
 use super::{
     binding_inspector::{reconcile_selected_binding_index, reconcile_selected_binding_payload_key},
-    hierarchy_projection::{hierarchy_node_ids, selection_for_node},
+    hierarchy_projection::{hierarchy_node_id_at, selection_for_node},
     inspector_semantics::{
         build_layout_semantic_group, build_slot_semantic_group, reconcile_selected_semantic_path,
     },
@@ -84,9 +84,8 @@ impl UiAssetEditorSession {
         &mut self,
         index: usize,
     ) -> Result<(), UiAssetEditorSessionError> {
-        let node_id = hierarchy_node_ids(&self.last_valid_document)
-            .into_iter()
-            .nth(index)
+        let node_id = hierarchy_node_id_at(&self.last_valid_document, index)
+            .map(str::to_string)
             .ok_or(UiAssetEditorSessionError::InvalidSelectionIndex { index })?;
         self.select_node_id(&node_id);
         self.set_source_cursor_to_selected_node_start();

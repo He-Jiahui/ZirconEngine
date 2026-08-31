@@ -35,6 +35,9 @@ fn entry_subsystem_is_split_into_builtin_modules_run_modes_and_runtime_app_tree(
         "runtime_entry_app/gamepad/polling.rs",
         "runtime_entry_app/gamepad/rumble.rs",
         "runtime_entry_app/host_requests/mod.rs",
+        "runtime_entry_app/host_requests/clipboard/mod.rs",
+        "runtime_entry_app/host_requests/clipboard/platform.rs",
+        "runtime_entry_app/host_requests/clipboard/platform/windows.rs",
         "runtime_entry_app/host_requests/cursor/mod.rs",
         "runtime_entry_app/host_requests/cursor/request.rs",
         "runtime_entry_app/host_requests/drain.rs",
@@ -227,9 +230,10 @@ fn entry_uses_runtime_owned_builtin_module_list_without_manual_graphics_insertio
         "entry bootstrap should import runtime module assembly through the builtin namespace owner"
     );
     assert!(
-        builtin_modules_source.contains("runtime_modules_for_target"),
-        "entry bootstrap should source runtime modules through the target-aware builtin runtime loader"
+        builtin_modules_source.contains("RuntimeModuleCompositionCompiler"),
+        "entry bootstrap should compile one runtime-owned final module graph"
     );
+    assert!(!builtin_modules_source.contains("runtime_modules_for_target"));
     for forbidden in [
         "use zircon_runtime::graphics::GraphicsModule;",
         "modules.insert(4, Arc::new(GraphicsModule));",

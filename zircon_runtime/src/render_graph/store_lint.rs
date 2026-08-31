@@ -229,7 +229,7 @@ mod tests {
             TextureFormat::Rgba16Float,
             TextureUsage::RENDER_ATTACHMENT,
         ));
-        let output = builder.import_external_resource("output");
+        let output = builder.import_present_external_resource("output");
         let draw = builder.add_pass("draw", QueueLane::Graphics);
         let present = builder.add_pass("present", QueueLane::Graphics);
         builder

@@ -6,15 +6,25 @@ use zircon_runtime_interface::ui::component::{
 const ACTIVITY_ASSET_CONTENT_CONTROL_ID: &str = "AssetsActivityContentPanel";
 const BROWSER_ASSET_CONTENT_CONTROL_ID: &str = "AssetBrowserContentPanel";
 
+pub(super) fn is_asset_content_drag_payload(payload: &UiDragPayload) -> bool {
+    payload.kind == UiDragPayloadKind::Asset
+        && payload.source.as_ref().is_some_and(|source| {
+            matches!(
+                source.source_control_id.as_str(),
+                ACTIVITY_ASSET_CONTENT_CONTROL_ID | BROWSER_ASSET_CONTENT_CONTROL_ID
+            )
+        })
+}
+
 pub(in crate::ui::retained_host::app) fn asset_drag_payload_from_snapshot(
     surface_mode: &str,
     asset_uuid: &str,
     snapshot: &AssetWorkspaceSnapshot,
 ) -> Option<UiDragPayload> {
+    let index = snapshot.visible_assets.selected_index(asset_uuid)?;
     snapshot
         .visible_assets
-        .iter()
-        .find(|asset| asset.uuid == asset_uuid)
+        .get(index)
         .map(|asset| asset_drag_payload_from_item(surface_mode, asset))
 }
 

@@ -3,11 +3,14 @@ use std::path::Path;
 use crate::core::jobs::CancellationToken;
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::plugin::ExportBuildPlan;
 use zircon_runtime::plugin::native::{
-    NativePluginLoadReport, discover_native_plugins, load_native_editor_from_load_manifest,
-    load_native_runtime_from_load_manifest,
+    discovery::{
+        discover_native_plugins, load_native_editor_from_load_manifest,
+        load_native_runtime_from_load_manifest,
+    },
+    NativePluginLoadReport,
 };
+use zircon_runtime::plugin::ExportBuildPlan;
 
 use super::super::super::editor_manager::EditorManager;
 use super::super::super::native_dynamic_export_preparation::prepare_native_dynamic_packages_with_cancellation;

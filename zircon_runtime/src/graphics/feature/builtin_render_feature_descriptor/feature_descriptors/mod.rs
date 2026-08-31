@@ -17,3 +17,20 @@ pub(super) mod shadows;
 pub(super) mod sprite;
 pub(super) mod temporal;
 pub(super) mod ui;
+
+pub(crate) use screen_space_ambient_occlusion::SsaoParams;
+pub(super) use screen_space_ambient_occlusion::configure_for_profile as configure_screen_space_ambient_occlusion_for_profile;
+pub(super) use screen_space_ambient_occlusion::descriptor as screen_space_ambient_occlusion_descriptor;
+
+use crate::render_graph::{RenderResourceSchema, RenderTextureExtentPolicy, RenderTextureSchema};
+use crate::rhi::{TextureFormat, TextureUsage};
+
+pub(super) const fn final_output_resource_schema() -> RenderResourceSchema {
+    RenderResourceSchema::texture(
+        RenderTextureSchema::new(
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
+        )
+        .with_extent(RenderTextureExtentPolicy::View),
+    )
+}

@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime_interface::math::UVec2;
 
 use crate::core::commands::DocumentKind;
@@ -33,11 +31,8 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
             title: "Asset Browser".to_string(),
             window_instance: asset_browser.instance_id.clone(),
         }],
-        drawers: BTreeMap::new(),
         activity_windows: Default::default(),
         floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
     };
     let descriptors = vec![ViewDescriptor::new(
         ViewDescriptorId::new("editor.asset_browser"),
@@ -111,11 +106,8 @@ fn chrome_builder_resolves_material_component_lab_as_showcase_content() {
             title: "Material Component Lab".to_string(),
             window_instance: material_lab.instance_id.clone(),
         }],
-        drawers: BTreeMap::new(),
         activity_windows: Default::default(),
         floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
     };
     let descriptors = vec![ViewDescriptor::new(
         ViewDescriptorId::new("editor.material_component_lab"),

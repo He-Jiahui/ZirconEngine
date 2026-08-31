@@ -1,8 +1,8 @@
+use crate::scene::World;
 use crate::scene::ecs::{
     DeferredSystemKey, SceneSystem, SceneSystemMetadata, SystemParam, SystemParamAccess,
     SystemParamError, SystemState, WorkerCommandBuffer, WorldlessSystemParam,
 };
-use crate::scene::World;
 use std::marker::PhantomData;
 
 pub struct FunctionSceneSystem<P, F>
@@ -51,6 +51,10 @@ where
 
     fn run(&mut self, world: &mut World) {
         self.state.run(world, |params| (self.system)(params));
+    }
+
+    fn retire(&mut self, world: &mut World) {
+        self.state.retire(world);
     }
 
     fn bind_deferred_system_key(&mut self, key: DeferredSystemKey) {
@@ -107,6 +111,10 @@ where
 
     fn run(&mut self, world: &mut World) {
         self.state.run(world, |params| (self.system)(params));
+    }
+
+    fn retire(&mut self, world: &mut World) {
+        self.state.retire(world);
     }
 
     fn run_without_world(&mut self) {

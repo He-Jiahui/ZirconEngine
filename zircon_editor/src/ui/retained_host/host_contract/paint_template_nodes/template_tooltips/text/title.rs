@@ -34,7 +34,7 @@ pub(super) fn push_tooltip_title(
         frame,
         Some(clip.clone()),
         order,
-        title,
+        title.to_string(),
         title_color,
         metrics.title_font_size,
         metrics.title_line_height,

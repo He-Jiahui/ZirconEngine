@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::load_preview_image;
 use crate::ui::retained_host as host_contract;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::template_runtime::{
@@ -48,8 +47,7 @@ fn to_host_contract_root_template_overlay_node(
         })
         .unwrap_or_default();
     let icon_name = first_string_property(&node.properties, &["icon"]).unwrap_or_default();
-    let preview_image = load_preview_image(&media_source, &icon_name);
-    let preview_size = preview_image.size();
+    let has_preview_image = !media_source.trim().is_empty() || !icon_name.trim().is_empty();
 
     host_contract::TemplatePaneNodeData {
         node_id: node.node_id.clone(),
@@ -61,8 +59,8 @@ fn to_host_contract_root_template_overlay_node(
             .unwrap_or_else(|| resolve_root_overlay_component_role(node.component.as_str()).into()),
         media_source,
         icon_name,
-        has_preview_image: preview_size.width > 0 && preview_size.height > 0,
-        preview_image,
+        has_preview_image,
+        preview_image: Default::default(),
         // Root overlays are clipped by the final host frame. Carrying the
         // source template clip here would split equivalent authored overlays
         // across separate painter paths.
@@ -185,6 +183,8 @@ mod tests {
             document_id: "test.root_overlay".to_owned(),
             nodes: vec![RetainedUiHostNodeModel {
                 node_id: "overlay_select".to_owned(),
+                surface_node_id: None,
+                has_workbench_icon_tooltip: false,
                 parent_id: None,
                 kind: RetainedUiHostComponentKind::Unknown,
                 component: "Image".to_owned(),
@@ -239,6 +239,8 @@ mod tests {
             "zircon_editor_shell/toolbar/select.svg"
         );
         assert!(node.has_preview_image);
+        assert_eq!(node.preview_image.size().width, 0);
+        assert_eq!(node.preview_image.size().height, 0);
         assert_eq!(node.frame.x, 8.0);
         assert_eq!(node.frame.y, 12.0);
         assert_eq!(node.frame.width, 24.0);
@@ -256,6 +258,8 @@ mod tests {
             document_id: "test.scaled_root_overlay".to_owned(),
             nodes: vec![RetainedUiHostNodeModel {
                 node_id: "scaled_overlay".to_owned(),
+                surface_node_id: None,
+                has_workbench_icon_tooltip: false,
                 parent_id: None,
                 kind: RetainedUiHostComponentKind::Unknown,
                 component: "Image".to_owned(),

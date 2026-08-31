@@ -8,14 +8,14 @@ use ttf_parser::Face;
 
 use crate::asset::assets::{decode_font_source, standalone_sfnt_face};
 use crate::core::math::UVec2;
-use crate::core::runtime::tasks::TaskPools;
-use crate::text::sdf::{
-    sdf_offline_artifact_path, SdfBakeParams, SdfGenerationSourceContext,
-    SdfGenerationSourceHandle, SdfMode, SdfOfflineArtifact, SdfOfflineArtifactIdentity,
-};
+use crate::core::runtime::tasks::TaskPool;
 use crate::text::VariationCoords;
+use crate::text::sdf::{
+    SdfBakeParams, SdfGenerationSourceContext, SdfGenerationSourceHandle, SdfMode,
+    SdfOfflineArtifact, SdfOfflineArtifactIdentity, sdf_offline_artifact_path,
+};
 
-use super::pack::{pack_generated_glyphs, GeneratedGlyph};
+use super::pack::{GeneratedGlyph, pack_generated_glyphs};
 use super::{FontSdfBakeError, FontSdfBakeMode, FontSdfBakeRequest, FontSdfGlyphSelection};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -61,6 +61,7 @@ impl FontSdfBakeArtifact {
 }
 
 pub fn bake_font_sdf_artifact(
+    generation_pool: &TaskPool,
     font_bytes: &[u8],
     request: &FontSdfBakeRequest,
 ) -> Result<FontSdfBakeArtifact, FontSdfBakeError> {
@@ -96,8 +97,6 @@ pub fn bake_font_sdf_artifact(
         return Err(FontSdfBakeError::NoMappedGlyphs);
     }
 
-    let task_pools = TaskPools::process_default();
-    let generation_pool = task_pools.compute();
     let generation = source.generate_batch_with_pool(
         generation_pool,
         params,
@@ -124,7 +123,7 @@ pub fn bake_font_sdf_artifact(
     let identity = SdfOfflineArtifactIdentity {
         asset_guid: request.asset_guid.clone(),
         face_index: request.face_index,
-        variation_hash: request.variation_hash,
+        variation_hash: request.variation_hash.into(),
         source_hash: source.source_hash(),
         params,
     };

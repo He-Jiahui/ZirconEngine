@@ -7,7 +7,7 @@ Describe 'Render-extract baseline evidence' {
         [IO.File]::WriteAllBytes($path, $originalBytes)
         $hasher = [Security.Cryptography.SHA256]::Create()
         try {
-            $expectedHash = -join ($hasher.ComputeHash($originalBytes) | ForEach-Object { $_.ToString('X2') })
+            $expectedHash = ([BitConverter]::ToString($hasher.ComputeHash($originalBytes))).Replace('-', '')
         }
         finally {
             $hasher.Dispose()
@@ -18,6 +18,31 @@ Describe 'Render-extract baseline evidence' {
 
         $snapshot.sha256 | Should Be $expectedHash
         $snapshot.json.session_id | Should Be 'original'
+    }
+
+    It 'hashes file evidence through one fixed-size uppercase buffer' {
+        $path = Join-Path $TestDrive 'artifact-evidence.bin'
+        [byte[]]$bytes = @(0, 15, 16, 127, 128, 240, 255)
+        [IO.File]::WriteAllBytes($path, $bytes)
+        $hasher = [Security.Cryptography.SHA256]::Create()
+        try {
+            $expectedHash = ([BitConverter]::ToString($hasher.ComputeHash($bytes))).Replace('-', '')
+        }
+        finally {
+            $hasher.Dispose()
+        }
+
+        $evidence = Get-RenderExtractFileEvidence `
+            -Path $path `
+            -Kind 'artifact' `
+            -LogicalId 'fixed-buffer-fixture' `
+            -Attempt 1
+        $evidenceSource = Get-Content -Raw $evidenceModule
+
+        $evidence.sha256 | Should Be $expectedHash
+        $evidenceSource | Should Match '\[char\[\]\]::new\(\$HashBytes.Length \* 2\)'
+        $evidenceSource | Should Not Match 'Get-FileHash'
+        $evidenceSource | Should Not Match "ToString\('X2'\)"
     }
 
     It 'uses the JSON snapshot reader for both summary and timeline evidence' {
@@ -39,6 +64,12 @@ Describe 'Render-extract baseline evidence' {
             { Get-RenderExtractProcessElapsedMilliseconds -Run ([pscustomobject]@{ process_elapsed_ms = $coercedZero }) } |
                 Should Throw 'JSON number'
         }
+    }
+
+    It 'accepts a canonical .NET integer product process identity' {
+        $processId = Get-RenderExtractProcessId -Run ([pscustomobject]@{ process_id = [Int32]1001 })
+
+        $processId | Should Be 1001
     }
 
     It 'rejects a baseline run without its product process identity' {
@@ -82,7 +113,7 @@ Describe 'Render-extract baseline evidence' {
             }
 
             { Write-RenderExtractBaselineReport -BaselineSummaryPath $summaryPath | Out-Null } |
-                Should Throw 'schema_version must be 4'
+                Should Throw 'schema_version must be 5'
         }
         finally {
             if ([IO.Directory]::Exists($directory)) {
@@ -108,7 +139,7 @@ Describe 'Render-extract baseline evidence' {
             }
 
             { Write-RenderExtractBaselineReport -BaselineSummaryPath $summaryPath | Out-Null } |
-                Should Throw 'warmup_presented_frame_count must be a finite nonnegative integer'
+                Should Throw "scenario run 'warmup_presented_frame_count' must be an integer in 0..1000000"
         }
         finally {
             if ([IO.Directory]::Exists($directory)) {
@@ -171,7 +202,7 @@ Describe 'Render-extract baseline evidence' {
             }
 
             $failure | Should Not BeNullOrEmpty
-            $failure.Exception.Message | Should Match 'E:\\ZirconBuilds\\mvp-perf'
+            $failure.Exception.Message | Should Match 'approved.*storage roots'
         }
         finally {
             if ([IO.Directory]::Exists($directory)) {

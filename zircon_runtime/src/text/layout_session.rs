@@ -1,89 +1,99 @@
+#[cfg(test)]
+use std::cell::Cell;
 use std::ops::{Deref, DerefMut, Range};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::Arc;
 
 use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::core::runtime::tasks::TaskPool;
 
 use super::cache::{
-    HardLineIndexCache, HardLineIndexCacheReport, ShapedRunCache, ShapedRunCacheLookupKey,
-    ShapedRunCacheReport, TextDocumentKey, DEFAULT_SHAPED_RUN_CACHE_CAPACITY,
-    DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES,
+    CompiledRichTextCacheReport, DEFAULT_SHAPED_RUN_CACHE_CAPACITY,
+    DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES, HardLineIndexCache, HardLineIndexCacheReport,
+    ShapedRunCache, ShapedRunCacheLookupKey, ShapedRunCacheReport, TextDocumentKey,
 };
-use super::font::shared_font_database_generation;
+use super::font::{
+    FontCollectionRevision, FontCollectionService, FontCollectionSnapshot,
+    shared_font_collection_service,
+};
+use super::model::TextShapingRequestDiagnostics;
 use super::parallel::shape_pool::{
-    shape_paragraphs_with_cache, TextParallelShapeBatchReport, TextShapeParagraph,
+    TextParallelShapeBatchReport, TextShapeParagraph,
+    shape_paragraphs_with_cache_in_font_collection,
 };
-use super::service::shape_backend_request_at_stable_generation;
-use super::shaping::TextShapeRunProvider;
+use super::service::{
+    shape_backend_request_at_stable_generation,
+    shape_backend_request_at_stable_generation_in_font_collection,
+};
+use super::shaping::{
+    TextShapeRunProvider, TextShapingOutcome, TextShapingWorkBudget, TextShapingWorkReport,
+};
 use super::{
-    hard_line_count_and_window, BackendShapeRequest, HardLine, ShapedGlyphRun, TextRange,
-    TextStyle, VerticalMode,
+    BackendShapeRequest, CompiledRichText, HardLine, RichTextFormat, RichTextParseError,
+    RichTextParser, ShapedGlyphRun, TextRange, TextStyle, VerticalMode, hard_line_count_and_window,
 };
+use super::{TextLayoutGeometryBudget, TextLayoutGeometryOwner, TextLayoutGeometryViolation};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct TextLayoutFallbackReport {
-    pub fallback_count: u64,
-    pub generation_deferred_count: u64,
-    pub invalid_font_size_count: u64,
-    pub invalid_language_count: u64,
-    pub other_error_count: u64,
-}
+mod diagnostics;
+mod table_work;
 
-impl TextLayoutFallbackReport {
-    pub(crate) fn record(&mut self, error: &TextLayoutError) {
-        if matches!(error, TextLayoutError::FontGenerationChanged) {
-            self.record_generation_deferred();
-            return;
-        }
-        self.fallback_count = self.fallback_count.saturating_add(1);
-        match error {
-            TextLayoutError::InvalidFontSize => {
-                self.invalid_font_size_count = self.invalid_font_size_count.saturating_add(1);
-            }
-            TextLayoutError::InvalidLanguage => {
-                self.invalid_language_count = self.invalid_language_count.saturating_add(1);
-            }
-            _ => {
-                self.other_error_count = self.other_error_count.saturating_add(1);
-            }
-        }
-    }
-
-    pub(crate) fn record_generation_deferred(&mut self) {
-        self.generation_deferred_count = self.generation_deferred_count.saturating_add(1);
-    }
-}
-
-fn shared_fallback_report() -> &'static Mutex<TextLayoutFallbackReport> {
-    static REPORT: OnceLock<Mutex<TextLayoutFallbackReport>> = OnceLock::new();
-    REPORT.get_or_init(|| Mutex::new(TextLayoutFallbackReport::default()))
-}
-
-pub fn shared_text_layout_fallback_report() -> TextLayoutFallbackReport {
-    *shared_fallback_report()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-}
-
-fn record_text_layout_fallback(error: &TextLayoutError) {
-    shared_fallback_report()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .record(error);
-}
-
-fn record_text_layout_generation_deferred() {
-    shared_fallback_report()
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .record_generation_deferred();
-}
+pub use diagnostics::TextLayoutFallbackReport;
+pub(crate) use diagnostics::{
+    TextLayoutGeometryRejectionReceipt, TextLayoutGeometryReport, TextLayoutSessionDiagnostics,
+};
+pub(crate) use table_work::TextTableLayoutWorkReport;
 
 #[derive(Clone, Debug, PartialEq)]
+pub(super) struct GenerationTaggedShapedRun {
+    pub(super) run: Arc<ShapedGlyphRun>,
+    pub(super) font_generation: u64,
+    pub(super) request_diagnostics: TextShapingRequestDiagnostics,
+}
+
+#[cfg(test)]
+thread_local! {
+    static CURRENT_THREAD_SESSION_CONSTRUCTION_COUNT: Cell<u64> = const { Cell::new(0) };
+}
+
+#[cfg(test)]
+pub(crate) fn current_thread_text_layout_session_construction_count() -> u64 {
+    CURRENT_THREAD_SESSION_CONSTRUCTION_COUNT.get()
+}
+
+#[cfg(test)]
+fn record_text_layout_session_construction() {
+    CURRENT_THREAD_SESSION_CONSTRUCTION_COUNT.set(
+        CURRENT_THREAD_SESSION_CONSTRUCTION_COUNT
+            .get()
+            .saturating_add(1),
+    );
+}
+
+#[derive(Clone, Debug)]
 pub(crate) struct SharedTextLayoutSession {
+    font_collection: Arc<FontCollectionService>,
+    rich_text_parser: Arc<RichTextParser>,
     shaped_runs: ShapedRunCache,
     hard_line_index: HardLineIndexCache,
+    geometry_budget: TextLayoutGeometryBudget,
+    shaping_work_budget: TextShapingWorkBudget,
+    shaping_work_report: TextShapingWorkReport,
+    diagnostics: TextLayoutSessionDiagnostics,
+    table_layout_work_report: TextTableLayoutWorkReport,
     vertical_mode: Option<VerticalMode>,
+}
+
+impl PartialEq for SharedTextLayoutSession {
+    fn eq(&self, other: &Self) -> bool {
+        self.font_collection == other.font_collection
+            && self.shaped_runs == other.shaped_runs
+            && self.hard_line_index == other.hard_line_index
+            && self.geometry_budget == other.geometry_budget
+            && self.shaping_work_budget == other.shaping_work_budget
+            && self.shaping_work_report == other.shaping_work_report
+            && self.diagnostics == other.diagnostics
+            && self.table_layout_work_report == other.table_layout_work_report
+            && self.vertical_mode == other.vertical_mode
+    }
 }
 
 impl Default for SharedTextLayoutSession {
@@ -93,28 +103,95 @@ impl Default for SharedTextLayoutSession {
 }
 
 impl SharedTextLayoutSession {
+    /// Process-owner entrypoint for Editor-host and standalone text operations.
+    /// Core-owned Runtime paths must use `new_with_font_collection` so every retained cache and
+    /// renderer in that session observes the same font collection revision.
     pub(crate) fn new() -> Self {
+        Self::new_with_font_collection(shared_font_collection_service())
+    }
+
+    pub(crate) fn new_with_font_collection(font_collection: Arc<FontCollectionService>) -> Self {
+        Self::new_with_font_collection_and_geometry_budget(
+            font_collection,
+            TextLayoutGeometryBudget::default(),
+        )
+    }
+
+    pub(crate) fn new_with_font_collection_and_geometry_budget(
+        font_collection: Arc<FontCollectionService>,
+        geometry_budget: TextLayoutGeometryBudget,
+    ) -> Self {
+        #[cfg(test)]
+        record_text_layout_session_construction();
         Self {
+            font_collection,
+            rich_text_parser: Arc::new(RichTextParser::default()),
             shaped_runs: ShapedRunCache::with_limits(
                 DEFAULT_SHAPED_RUN_CACHE_CAPACITY,
                 DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES,
             ),
             hard_line_index: HardLineIndexCache::default(),
+            geometry_budget,
+            shaping_work_budget: TextShapingWorkBudget::default(),
+            shaping_work_report: TextShapingWorkReport::default(),
+            diagnostics: TextLayoutSessionDiagnostics::default(),
+            table_layout_work_report: TextTableLayoutWorkReport::default(),
             vertical_mode: None,
         }
     }
 
     pub(crate) fn begin_frame(&mut self, frame_index: u64) {
         self.shaped_runs.begin_frame(frame_index);
+        self.shaping_work_report = TextShapingWorkReport::default();
+        self.diagnostics = TextLayoutSessionDiagnostics::default();
+        self.table_layout_work_report = TextTableLayoutWorkReport::default();
     }
 
     pub(crate) fn finish_frame(&mut self) {
+        self.table_layout_work_report.publish_profile_counters();
         self.shaped_runs.finish_frame();
     }
 
     pub(crate) fn clear(&mut self) {
+        self.rich_text_parser.clear_compiled_cache();
         self.shaped_runs.clear();
         self.hard_line_index.clear();
+    }
+
+    pub(crate) fn compile_rich_text(
+        &self,
+        markup: &str,
+        format: RichTextFormat,
+    ) -> Result<Arc<CompiledRichText>, RichTextParseError> {
+        self.rich_text_parser.compile(markup, format)
+    }
+
+    pub(crate) fn lookup_compiled_rich_text(
+        &self,
+        markup: &str,
+        format: RichTextFormat,
+    ) -> Option<Arc<CompiledRichText>> {
+        self.rich_text_parser.lookup_compiled(markup, format)
+    }
+
+    pub(crate) fn compiled_rich_text_cache_report(&self) -> CompiledRichTextCacheReport {
+        self.rich_text_parser.compiled_cache_report()
+    }
+
+    pub(crate) fn take_compiled_rich_text_cache_report(&self) -> CompiledRichTextCacheReport {
+        self.rich_text_parser.take_compiled_cache_report()
+    }
+
+    pub(crate) fn font_database_generation(&self) -> u64 {
+        self.font_collection.generation()
+    }
+
+    pub(crate) fn font_collection_revision(&self) -> FontCollectionRevision {
+        self.font_collection.revision()
+    }
+
+    pub(crate) fn font_collection_snapshot(&self) -> FontCollectionSnapshot {
+        self.font_collection.collection_snapshot()
     }
 
     pub(crate) fn cache_report(&self) -> ShapedRunCacheReport {
@@ -125,18 +202,84 @@ impl SharedTextLayoutSession {
         self.hard_line_index.report()
     }
 
-    pub(crate) fn hard_line_count_and_window(
+    pub(crate) const fn shaping_work_report(&self) -> TextShapingWorkReport {
+        self.shaping_work_report
+    }
+
+    pub(crate) const fn diagnostics_report(&self) -> TextLayoutSessionDiagnostics {
+        self.diagnostics
+    }
+
+    pub(crate) const fn geometry_budget(&self) -> TextLayoutGeometryBudget {
+        self.geometry_budget
+    }
+
+    pub(crate) const fn geometry_report(&self) -> TextLayoutGeometryReport {
+        self.diagnostics.geometry
+    }
+
+    pub(crate) const fn table_layout_work_report(&self) -> TextTableLayoutWorkReport {
+        self.table_layout_work_report
+    }
+
+    pub(crate) fn record_table_layout_attempt(&mut self, source_bytes: usize, cell_count: usize) {
+        self.table_layout_work_report
+            .record_layout_attempt(source_bytes, cell_count);
+    }
+
+    pub(crate) fn record_table_layout_tracks(&mut self, column_count: usize, row_count: usize) {
+        self.table_layout_work_report
+            .record_tracks(column_count, row_count);
+    }
+
+    pub(crate) fn record_table_preferred_cell_layout(&mut self, source_bytes: usize) {
+        self.table_layout_work_report
+            .record_preferred_cell_layout(source_bytes);
+    }
+
+    pub(crate) fn record_table_final_cell_layout(&mut self, source_bytes: usize) {
+        self.table_layout_work_report
+            .record_final_cell_layout(source_bytes);
+    }
+
+    pub(crate) fn record_table_layout_output(&mut self, line_count: usize, box_count: usize) {
+        self.table_layout_work_report
+            .record_output(line_count, box_count);
+    }
+
+    pub(crate) fn reject_geometry(
         &mut self,
-        text: &str,
-        document_key: Option<TextDocumentKey>,
+        owner: TextLayoutGeometryOwner,
+        violation: TextLayoutGeometryViolation,
+        source_range: Option<(u32, u32)>,
+        work_units: usize,
+    ) -> TextLayoutError {
+        self.diagnostics
+            .record_geometry_rejection(owner, violation, source_range, work_units);
+        TextLayoutError::GeometryTooLarge
+    }
+
+    pub(crate) fn record_layout_error(&mut self, error: &TextLayoutError) {
+        self.diagnostics.record_layout_error(error);
+    }
+
+    pub(crate) fn retained_hard_line_count_and_window(
+        &mut self,
+        source: Arc<str>,
+        document_key: TextDocumentKey,
         range: Range<usize>,
     ) -> (usize, Vec<HardLine>) {
-        let Some(document_key) = document_key else {
-            self.hard_line_index.record_unkeyed_bypass();
-            return hard_line_count_and_window(text, range);
-        };
         self.hard_line_index
-            .count_and_window(document_key, text, range)
+            .count_and_window(document_key, source, range)
+    }
+
+    pub(crate) fn unretained_hard_line_count_and_window(
+        &mut self,
+        text: &str,
+        range: Range<usize>,
+    ) -> (usize, Vec<HardLine>) {
+        self.hard_line_index.record_unkeyed_bypass();
+        hard_line_count_and_window(text, range)
     }
 
     pub(crate) fn prewarm_horizontal_paragraphs(
@@ -145,17 +288,27 @@ impl SharedTextLayoutSession {
         paragraphs: &[TextShapeParagraph],
         chunk_size: usize,
     ) -> TextParallelShapeBatchReport {
-        shape_paragraphs_with_cache(pool, &mut self.shaped_runs, paragraphs, chunk_size).report
+        let report = shape_paragraphs_with_cache_in_font_collection(
+            pool,
+            &mut self.shaped_runs,
+            paragraphs,
+            chunk_size,
+            self.shaping_work_budget,
+            &self.font_collection,
+        );
+        self.shaping_work_report.merge(report.shaping_work);
+        self.diagnostics.merge_shaping(report.shaping_diagnostics);
+        report
     }
 
-    pub(crate) fn shape_horizontal_line(
+    pub(crate) fn shape_horizontal_range(
         &mut self,
         text: &str,
         style: &TextStyle,
         direction: TextDirection,
         source_range: TextRange,
-    ) -> Arc<ShapedGlyphRun> {
-        self.resolve_or_shape(BackendShapeRequest::horizontal(
+    ) -> TextShapingOutcome {
+        self.resolve_or_shape_outcome(BackendShapeRequest::horizontal(
             text,
             style,
             direction,
@@ -163,15 +316,15 @@ impl SharedTextLayoutSession {
         ))
     }
 
-    pub(crate) fn shape_vertical_line(
+    pub(crate) fn shape_vertical_range(
         &mut self,
         text: &str,
         style: &TextStyle,
         direction: TextDirection,
         source_range: TextRange,
         vertical_mode: VerticalMode,
-    ) -> Arc<ShapedGlyphRun> {
-        self.resolve_or_shape(BackendShapeRequest::vertical_with_kerning(
+    ) -> TextShapingOutcome {
+        self.resolve_or_shape_outcome(BackendShapeRequest::vertical_with_kerning(
             text,
             style,
             direction,
@@ -192,79 +345,141 @@ impl SharedTextLayoutSession {
         }
     }
 
-    fn resolve_or_shape(&mut self, request: BackendShapeRequest<'_>) -> Arc<ShapedGlyphRun> {
-        let canonical_request = request.canonicalized();
+    fn resolve_or_shape_outcome(&mut self, request: BackendShapeRequest<'_>) -> TextShapingOutcome {
+        let canonical_request = match request.canonicalized() {
+            Ok(request) => request,
+            Err(error) => return TextShapingOutcome::failed(error),
+        };
         let request = canonical_request.request();
         if !request.style.font_size.is_finite() || request.style.font_size <= 0.0 {
-            return Arc::new(shape_fallback_for_error(
-                request,
-                &TextLayoutError::InvalidFontSize,
-            ));
+            return TextShapingOutcome::failed(TextLayoutError::InvalidFontSize);
         }
-        let lookup = ShapedRunCacheLookupKey::from_request(&request);
+        let lookup = ShapedRunCacheLookupKey::from_request_in_font_collection(
+            &request,
+            self.font_collection.collection_id(),
+            self.font_collection.generation(),
+        );
         let lookup_generation = lookup.font_database_generation();
         if let Some(run) = self.shaped_runs.get_with_lookup(&lookup, request.text) {
-            return run;
-        }
-        let key = self.shaped_runs.own_lookup_key(&lookup);
-        match try_shape_request_through_canonical_service(request) {
-            Ok(shaped) if lookup_generation == shared_font_database_generation() => {
-                self.shaped_runs.insert(key, shaped)
+            if lookup_generation == self.font_collection.generation() {
+                return TextShapingOutcome::Ready(run);
             }
-            Ok(shaped) => Arc::new(shaped),
-            Err(error @ TextLayoutError::FontGenerationChanged) => {
-                Arc::new(shape_fallback_for_error(request, &error))
+            let failure = crate::text::shaping::TextShapingFailure::font_generation_changed();
+            self.diagnostics.record_deferred_failure(&failure);
+            return TextShapingOutcome::Deferred(failure);
+        }
+        self.shaping_work_report
+            .record_synchronous_request(self.shaping_work_budget, request.text.len());
+        let outcome = shape_request_with_generation_outcome_in_font_collection(
+            request,
+            &self.font_collection,
+        );
+        self.consume_shaping_outcome(&lookup, lookup_generation, outcome)
+    }
+
+    fn consume_shaping_outcome(
+        &mut self,
+        lookup: &ShapedRunCacheLookupKey<'_>,
+        lookup_generation: u64,
+        outcome: TextShapingOutcome<GenerationTaggedShapedRun>,
+    ) -> TextShapingOutcome {
+        match outcome {
+            TextShapingOutcome::Ready(tagged) => {
+                self.diagnostics
+                    .record_ready_run(&tagged.run, tagged.request_diagnostics);
+                if tagged.font_generation == lookup_generation
+                    && lookup_generation == self.font_collection.generation()
+                {
+                    let key = self.shaped_runs.own_lookup_key(lookup);
+                    TextShapingOutcome::Ready(self.shaped_runs.insert_ready(key, tagged.run))
+                } else {
+                    let failure =
+                        crate::text::shaping::TextShapingFailure::font_generation_changed();
+                    self.diagnostics.record_deferred_failure(&failure);
+                    TextShapingOutcome::Deferred(failure)
+                }
             }
-            Err(error) if lookup_generation == shared_font_database_generation() => self
-                .shaped_runs
-                .insert(key, shape_fallback_for_error(request, &error)),
-            Err(error) => Arc::new(shape_fallback_for_error(request, &error)),
+            TextShapingOutcome::Deferred(error) => {
+                self.diagnostics.record_deferred_failure(&error);
+                TextShapingOutcome::Deferred(error)
+            }
+            TextShapingOutcome::Failed(error) => {
+                self.diagnostics.record_terminal_failure(&error);
+                TextShapingOutcome::Failed(error)
+            }
         }
     }
 }
 
-pub(super) fn shape_request_through_canonical_service(
+fn try_shape_request_through_canonical_service_with_generation(
     request: BackendShapeRequest<'_>,
-) -> ShapedGlyphRun {
-    match try_shape_request_through_canonical_service(request) {
-        Ok(shaped) => shaped,
-        Err(error) => shape_fallback_for_error(request, &error),
-    }
+) -> Result<GenerationTaggedShapedRun, crate::text::shaping::TextShapingFailure> {
+    shape_backend_request_at_stable_generation(
+        request,
+        |run, _, font_generation, request_diagnostics| GenerationTaggedShapedRun {
+            run: Arc::new(run),
+            font_generation,
+            request_diagnostics,
+        },
+    )
 }
 
-pub(super) fn try_shape_request_through_canonical_service(
+fn try_shape_request_through_canonical_service_with_generation_in_font_collection(
     request: BackendShapeRequest<'_>,
-) -> Result<ShapedGlyphRun, TextLayoutError> {
-    shape_canonical(request)
+    font_collection: &Arc<FontCollectionService>,
+) -> Result<GenerationTaggedShapedRun, crate::text::shaping::TextShapingFailure> {
+    shape_backend_request_at_stable_generation_in_font_collection(
+        request,
+        font_collection,
+        |run, _, font_generation, request_diagnostics| GenerationTaggedShapedRun {
+            run: Arc::new(run),
+            font_generation,
+            request_diagnostics,
+        },
+    )
 }
 
-pub(super) fn shape_fallback_for_error(
+pub(super) fn shape_request_with_generation_outcome(
     request: BackendShapeRequest<'_>,
-    error: &TextLayoutError,
-) -> ShapedGlyphRun {
-    match error {
-        TextLayoutError::FontGenerationChanged => record_text_layout_generation_deferred(),
-        _ => record_text_layout_fallback(error),
-    }
-    explicit_empty_fallback(request)
+) -> TextShapingOutcome<GenerationTaggedShapedRun> {
+    TextShapingOutcome::from_shape_result(
+        try_shape_request_through_canonical_service_with_generation(request),
+    )
 }
 
-fn shape_canonical(request: BackendShapeRequest<'_>) -> Result<ShapedGlyphRun, TextLayoutError> {
-    shape_backend_request_at_stable_generation(request, |shaped, _| shaped)
+pub(super) fn shape_request_with_generation_outcome_in_font_collection(
+    request: BackendShapeRequest<'_>,
+    font_collection: &Arc<FontCollectionService>,
+) -> TextShapingOutcome<GenerationTaggedShapedRun> {
+    TextShapingOutcome::from_shape_result(
+        try_shape_request_through_canonical_service_with_generation_in_font_collection(
+            request,
+            font_collection,
+        ),
+    )
+}
+
+#[cfg(test)]
+pub(super) fn shape_request_outcome(request: BackendShapeRequest<'_>) -> TextShapingOutcome {
+    shape_request_with_generation_outcome(request).map(|tagged| tagged.run)
 }
 
 impl TextShapeRunProvider for SharedTextLayoutSession {
-    fn shape_horizontal_line_with_kerning(
+    fn font_collection_revision(&self) -> FontCollectionRevision {
+        SharedTextLayoutSession::font_collection_revision(self)
+    }
+
+    fn shape_horizontal_range_with_kerning(
         &mut self,
         text: &str,
         style: &TextStyle,
         direction: TextDirection,
         source_range: TextRange,
         include_kerning: bool,
-    ) -> Arc<ShapedGlyphRun> {
+    ) -> TextShapingOutcome {
         match self.vertical_mode {
             Some(vertical_mode) => {
-                self.resolve_or_shape(BackendShapeRequest::vertical_with_kerning(
+                self.resolve_or_shape_outcome(BackendShapeRequest::vertical_with_kerning(
                     text,
                     style,
                     direction,
@@ -273,7 +488,7 @@ impl TextShapeRunProvider for SharedTextLayoutSession {
                     include_kerning,
                 ))
             }
-            None => self.resolve_or_shape(BackendShapeRequest::horizontal_with_kerning(
+            None => self.resolve_or_shape_outcome(BackendShapeRequest::horizontal_with_kerning(
                 text,
                 style,
                 direction,
@@ -283,7 +498,7 @@ impl TextShapeRunProvider for SharedTextLayoutSession {
         }
     }
 
-    fn shape_vertical_line_with_kerning(
+    fn shape_vertical_range_with_kerning(
         &mut self,
         text: &str,
         style: &TextStyle,
@@ -291,8 +506,8 @@ impl TextShapeRunProvider for SharedTextLayoutSession {
         source_range: TextRange,
         vertical_mode: VerticalMode,
         include_kerning: bool,
-    ) -> Arc<ShapedGlyphRun> {
-        self.resolve_or_shape(BackendShapeRequest::vertical_with_kerning(
+    ) -> TextShapingOutcome {
+        self.resolve_or_shape_outcome(BackendShapeRequest::vertical_with_kerning(
             text,
             style,
             direction,
@@ -328,188 +543,10 @@ impl Drop for VerticalTextLayoutScope<'_> {
     }
 }
 
-fn explicit_empty_fallback(request: BackendShapeRequest<'_>) -> ShapedGlyphRun {
-    ShapedGlyphRun {
-        source_text: request.shared_source_text(),
-        source_range: request.source_range,
-        direction: request.base_direction,
-        orientation: request.orientation,
-        vertical_mode: request.vertical_mode,
-        include_kerning: request.include_kerning,
-        measured_width: 0.0,
-        measured_height: request.style.line_height.max(0.0),
-        lines: Vec::new(),
-    }
-}
+#[cfg(test)]
+#[path = "layout_session/work_budget.rs"]
+mod work_budget_tests;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::text::font::{font_handle_registry_report, shared_font_database_test_serial_guard};
-
-    #[test]
-    fn unkeyed_hard_line_windows_do_not_retain_a_full_line_index() {
-        let mut session = SharedTextLayoutSession::new();
-
-        let (line_count, window) = session.hard_line_count_and_window("zero\none\ntwo", None, 1..2);
-
-        assert_eq!(line_count, 3);
-        assert_eq!(window[0].content, 5..8);
-        assert_eq!(session.hard_line_index_report().entry_count, 0);
-        assert_eq!(session.hard_line_index_report().unkeyed_bypass_count, 1);
-    }
-
-    #[test]
-    fn session_routes_detailed_runs_through_canonical_service() {
-        let mut session = SharedTextLayoutSession::new();
-        let style = TextStyle::default();
-        let run = session.shape_horizontal_line_with_kerning(
-            "Canonical",
-            &style,
-            TextDirection::LeftToRight,
-            TextRange { start: 11, end: 20 },
-            true,
-        );
-
-        assert_eq!(run.source_range.start, 11);
-        assert!(run.measured_width > 0.0);
-        assert!(run.lines.iter().any(|line| !line.glyphs.is_empty()));
-        assert!(run
-            .lines
-            .iter()
-            .flat_map(|line| &line.glyphs)
-            .all(|glyph| { glyph.source_range.start >= 11 && glyph.source_range.end <= 20 }));
-    }
-
-    #[test]
-    fn font_handle_batch_session_keeps_canonical_run_without_framework_roundtrip() {
-        let _shared_font_database = shared_font_database_test_serial_guard();
-        let before = font_handle_registry_report();
-        let mut session = SharedTextLayoutSession::new();
-        let style = TextStyle::default();
-
-        let run = session.shape_horizontal_line_with_kerning(
-            "Batch resolution",
-            &style,
-            TextDirection::LeftToRight,
-            TextRange { start: 0, end: 16 },
-            true,
-        );
-        let after = font_handle_registry_report();
-        let glyph_count = run
-            .lines
-            .iter()
-            .map(|line| line.glyphs.len())
-            .sum::<usize>();
-
-        assert!(glyph_count > 1);
-        assert_eq!(
-            after.registration_batch_count, before.registration_batch_count,
-            "the internal session must not project backend identities into framework handles"
-        );
-        assert_eq!(
-            after.resolution_batch_count, before.resolution_batch_count,
-            "the internal session must not resolve framework handles back into backend identities"
-        );
-    }
-
-    #[test]
-    fn session_records_typed_fallback_instead_of_silently_swallowing_service_error() {
-        let before = shared_text_layout_fallback_report();
-        let mut session = SharedTextLayoutSession::new();
-        let style = TextStyle {
-            font_size: 0.0,
-            ..TextStyle::default()
-        };
-
-        let run = session.shape_horizontal_line(
-            "invalid",
-            &style,
-            TextDirection::LeftToRight,
-            TextRange { start: 0, end: 7 },
-        );
-        let after = shared_text_layout_fallback_report();
-
-        assert!(run.lines.is_empty());
-        assert!(after.fallback_count > before.fallback_count);
-        assert!(after.invalid_font_size_count > before.invalid_font_size_count);
-    }
-
-    #[test]
-    fn invalid_font_size_fallback_cannot_alias_a_valid_one_pixel_shape() {
-        let mut session = SharedTextLayoutSession::new();
-        let invalid_style = TextStyle {
-            font_size: 0.0,
-            ..TextStyle::default()
-        };
-        let valid_style = TextStyle {
-            font_size: 1.0,
-            ..TextStyle::default()
-        };
-        let range = TextRange { start: 0, end: 5 };
-
-        let invalid = session.shape_horizontal_line(
-            "alias",
-            &invalid_style,
-            TextDirection::LeftToRight,
-            range,
-        );
-        let valid =
-            session.shape_horizontal_line("alias", &valid_style, TextDirection::LeftToRight, range);
-
-        assert!(invalid.lines.is_empty());
-        assert!(valid.lines.iter().any(|line| !line.glyphs.is_empty()));
-    }
-
-    #[test]
-    fn prewarm_routes_through_canonical_validation_and_records_typed_fallback() {
-        let before = shared_text_layout_fallback_report();
-        let mut session = SharedTextLayoutSession::new();
-        let pool = TaskPool::new(crate::core::runtime::tasks::TaskPoolDescriptor::compute());
-        let paragraph = TextShapeParagraph::horizontal(
-            "invalid prewarm",
-            TextStyle {
-                font_size: 0.0,
-                ..TextStyle::default()
-            },
-            TextDirection::LeftToRight,
-            TextRange { start: 0, end: 15 },
-        );
-
-        let report = session.prewarm_horizontal_paragraphs(&pool, &[paragraph], 1);
-        let cached = session.shape_horizontal_line(
-            "invalid prewarm",
-            &TextStyle {
-                font_size: 0.0,
-                ..TextStyle::default()
-            },
-            TextDirection::LeftToRight,
-            TextRange { start: 0, end: 15 },
-        );
-        let after = shared_text_layout_fallback_report();
-
-        assert_eq!(report.shaped_count, 1);
-        assert!(cached.lines.is_empty());
-        assert!(after.invalid_font_size_count > before.invalid_font_size_count);
-    }
-
-    #[test]
-    fn session_source_uses_canonical_runs_without_framework_roundtrip() {
-        let source = include_str!("layout_session.rs");
-
-        assert!(!source.contains(concat!("TextShape", "Result")));
-        assert!(!source.contains(concat!("resolve_font_handle", "_batch")));
-        assert!(!source.contains(concat!("project_shape", "_result")));
-        assert!(source.contains("shape_backend_request_at_stable_generation"));
-    }
-
-    #[test]
-    fn fallback_report_tracks_generation_defer_without_counting_a_fallback() {
-        let mut report = TextLayoutFallbackReport::default();
-
-        report.record(&TextLayoutError::FontGenerationChanged);
-
-        assert_eq!(report.generation_deferred_count, 1);
-        assert_eq!(report.fallback_count, 0);
-    }
-}
+#[path = "layout_session/tests.rs"]
+mod tests;

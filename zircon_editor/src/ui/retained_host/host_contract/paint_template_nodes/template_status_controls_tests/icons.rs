@@ -64,7 +64,7 @@ fn status_icon_button_uses_shared_icon_button_state_priority() {
         checked.state,
         zircon_runtime_interface::ui::style::UiPainterResolvedState::Checked
     );
-    assert_eq!(checked.glyph, PALETTE.focus_ring);
+    assert_eq!(checked.glyph, PALETTE.accent);
 
     node.hovered = true;
     let hovered = select_workbench_status_icon_button_style(&node);
@@ -141,5 +141,5 @@ fn focused_checked_status_icon_button_keeps_selected_surface_and_active_glyph() 
     );
     assert_eq!(focused.background, PALETTE.surface_selected);
     assert_eq!(focused.border, PALETTE.focus_ring);
-    assert_eq!(focused.glyph, PALETTE.focus_ring);
+    assert_eq!(focused.glyph, PALETTE.accent);
 }

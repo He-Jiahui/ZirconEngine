@@ -12,8 +12,23 @@ pub enum ScheduleError {
     InvalidSystemSetName(String),
     #[error("system {0} already registered")]
     DuplicateSystem(String),
+    #[error("system {0} is still in flight and cannot be retired")]
+    SystemInFlight(String),
     #[error("system {0} registration builder was already consumed")]
     SystemBuilderConsumed(String),
+    #[error("system {system_id} has invalid tick policy {tick_policy:?} for stage {stage:?}")]
+    InvalidTickPolicy {
+        system_id: String,
+        stage: super::SystemStage,
+        tick_policy: super::SceneSystemTickPolicy,
+    },
+    #[error(
+        "system {system_id} may run while virtual time is paused but declares deferred commands"
+    )]
+    PausedSystemDeferredCommands {
+        system_id: String,
+        tick_policy: super::SceneSystemTickPolicy,
+    },
     #[error(
         "cross-stage ordering constraint in {system_id}: target {target_id} is in {target_stage:?}, not {stage:?}"
     )]

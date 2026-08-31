@@ -1,4 +1,98 @@
 use super::*;
+use zircon_runtime_interface::ui::dispatch::UiInputDiagnosticsMode;
+
+#[test]
+fn input_manager_summary_mode_keeps_pointer_behavior_receipt_without_full_trace() {
+    let mut summary_surface = route_matrix_surface();
+    let mut full_surface = route_matrix_surface();
+    let mut summary_manager = UiInputManager::summary();
+    let mut full_manager = UiInputManager::default();
+    let event = touch_pointer_event_at(
+        UiPointerId::new(21),
+        UiPointerEventKind::Move,
+        UiPoint::new(20.0, 20.0),
+        10,
+    );
+
+    let summary = summary_manager
+        .dispatch_input_event(&mut summary_surface, event.clone())
+        .unwrap();
+    let full = full_manager
+        .dispatch_input_event(&mut full_surface, event)
+        .unwrap();
+
+    assert_eq!(
+        summary_manager.diagnostics_mode(),
+        UiInputDiagnosticsMode::Summary
+    );
+    assert_eq!(summary.pointer_routing, full.pointer_routing);
+    assert!(summary.pointer_routing.is_some());
+    assert!(summary.diagnostics.route_trace.preview_tunnel.is_empty());
+    assert!(summary.diagnostics.route_trace.bubble_path.is_empty());
+    assert!(summary.diagnostics.route_steps.is_empty());
+    assert_eq!(
+        summary.diagnostics.route_policy,
+        full.diagnostics.route_policy
+    );
+    assert_eq!(summary.reply, full.reply);
+    assert!(!full.diagnostics.route_trace.bubble_path.is_empty());
+}
+
+#[test]
+fn captured_pointer_keeps_physical_hover_path_separate_from_dispatch_path() {
+    let mut surface = route_matrix_surface();
+    let mut manager = UiInputManager::summary();
+    let pointer_id = UiPointerId::new(22);
+    manager
+        .pointer_dispatcher_mut()
+        .register(UiNodeId::new(2), UiPointerEventKind::Down, |_| {
+            UiPointerDispatchEffect::capture()
+        });
+    manager
+        .pointer_dispatcher_mut()
+        .register(UiNodeId::new(2), UiPointerEventKind::Move, |_| {
+            UiPointerDispatchEffect::handled()
+        });
+
+    manager
+        .dispatch_input_event(
+            &mut surface,
+            touch_pointer_event_at(
+                pointer_id,
+                UiPointerEventKind::Down,
+                UiPoint::new(20.0, 20.0),
+                10,
+            ),
+        )
+        .unwrap();
+    let moved = manager
+        .dispatch_input_event(
+            &mut surface,
+            touch_pointer_event_at(
+                pointer_id,
+                UiPointerEventKind::Move,
+                UiPoint::new(120.0, 20.0),
+                20,
+            ),
+        )
+        .unwrap();
+
+    let routing = moved.pointer_routing.as_ref().unwrap();
+    assert_eq!(routing.route_target, Some(UiNodeId::new(2)));
+    assert_eq!(routing.capture_target, Some(UiNodeId::new(2)));
+    assert_eq!(
+        routing.physical_root_to_leaf(),
+        &[UiNodeId::new(1), UiNodeId::new(3)]
+    );
+    assert_eq!(
+        routing.dispatch_root_to_leaf(),
+        &[UiNodeId::new(1), UiNodeId::new(2)]
+    );
+
+    let pointer = manager.active_pointers().entry(pointer_id).unwrap();
+    assert_eq!(pointer.hovered, vec![UiNodeId::new(3), UiNodeId::new(1)]);
+    assert_eq!(pointer.capture_target, Some(UiNodeId::new(2)));
+}
 
 #[test]
 fn input_manager_double_click_count_is_owned_by_timer_state() {

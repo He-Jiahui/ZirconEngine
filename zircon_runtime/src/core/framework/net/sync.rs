@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use super::{NetObjectId, NetSessionId};
 
@@ -269,7 +269,9 @@ impl SyncDelta {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SyncInterestDescriptor {
     pub session: NetSessionId,
-    pub groups: Vec<String>,
+    /// Sorted and duplicate-free so per-snapshot membership checks stay logarithmic.
+    #[serde(default, deserialize_with = "deserialize_sync_interest_groups")]
+    groups: Vec<String>,
 }
 
 impl SyncInterestDescriptor {
@@ -281,14 +283,37 @@ impl SyncInterestDescriptor {
     }
 
     pub fn with_group(mut self, group: impl Into<String>) -> Self {
-        self.groups.push(group.into());
+        let group = group.into();
+        if let Err(index) = self
+            .groups
+            .binary_search_by(|allowed| allowed.as_str().cmp(group.as_str()))
+        {
+            self.groups.insert(index, group);
+        }
         self
+    }
+
+    pub fn groups(&self) -> &[String] {
+        &self.groups
     }
 
     pub fn allows_group(&self, group: Option<&str>) -> bool {
         match group {
-            Some(group) => self.groups.iter().any(|allowed| allowed == group),
+            Some(group) => self
+                .groups
+                .binary_search_by(|allowed| allowed.as_str().cmp(group))
+                .is_ok(),
             None => true,
         }
     }
+}
+
+fn deserialize_sync_interest_groups<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut groups = Vec::<String>::deserialize(deserializer)?;
+    groups.sort_unstable();
+    groups.dedup();
+    Ok(groups)
 }

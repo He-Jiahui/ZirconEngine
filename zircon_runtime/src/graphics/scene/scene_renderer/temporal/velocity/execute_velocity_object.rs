@@ -1,3 +1,4 @@
+use crate::graphics::pipeline::PipelineAdmission;
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
@@ -7,6 +8,8 @@ use crate::render_graph::{
     RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
     RenderGraphResourceAccessKind,
 };
+
+const VELOCITY_OBJECT_PIPELINE_CONSUMER: &str = "velocity_object";
 
 impl RenderPassGpuExecutionContext<'_> {
     pub(in crate::graphics::scene::scene_renderer) fn record_velocity_object_to_resource(
@@ -90,14 +93,33 @@ impl RenderPassGpuExecutionContext<'_> {
         let mut replayer = MeshDrawCommandReplayer::default();
         replayer.replay_command_stream(&mut pass, stream, |replayer, pass, command| {
             if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id) {
-                let pipeline = mesh_pipelines
-                    .ensure_velocity_pipeline_for_variant(
-                        self.device,
-                        streamer,
-                        command.pipeline_variant_id,
-                    )
-                    .expect("velocity mesh command must resolve a cache-backed pipeline variant");
-                pass.set_pipeline(pipeline);
+                match mesh_pipelines.ensure_velocity_pipeline_admission_for_variant(
+                    self.device,
+                    streamer,
+                    command.pipeline_variant_id,
+                ) {
+                    PipelineAdmission::Ready(()) => {
+                        mesh_pipelines.record_bound_mesh_pass_pipeline(
+                            command.pipeline_kind,
+                            command.pipeline_variant_id,
+                        );
+                        pass.set_pipeline(
+                            mesh_pipelines
+                                .velocity_pipeline_for_ready_variant(command.pipeline_variant_id),
+                        );
+                    }
+                    PipelineAdmission::Deferred(unavailable)
+                    | PipelineAdmission::Failed(unavailable) => {
+                        mesh_pipelines.record_pipeline_fallback_for_command_variant(
+                            command,
+                            command.pipeline_variant_id,
+                            VELOCITY_OBJECT_PIPELINE_CONSUMER,
+                            unavailable,
+                        );
+                        replayer.invalidate_state_after_external_pipeline();
+                        return false;
+                    }
+                }
             }
             replayer.bind_gpu_scene_if_needed(pass, command, mesh_draw_lists.gpu_scene_bind_group);
             replayer.bind_standard_material_if_needed(pass, command);
@@ -129,7 +151,9 @@ mod tests {
         assert!(source.contains(
             "create_forward_shadow_receiver_bind_group(\n                self.device,\n                self.shadow_atlas_resources,\n                None,\n                None,\n                None,\n            )"
         ));
-        assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
+        assert!(
+            source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])")
+        );
     }
 
     #[test]

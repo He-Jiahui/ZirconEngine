@@ -7,21 +7,27 @@ use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, ShadingModelDescriptor,
 };
+use crate::graphics::GraphicsError;
+use crate::graphics::backend::SystemTextureGenerationLease;
 use crate::graphics::material::{
-    builtin_shading_model_registry, shading_model_registry_with_plugin_descriptors,
-    ShadingModelRegistry,
+    ShadingModelRegistry, builtin_shading_model_registry,
+    shading_model_registry_with_plugin_descriptors,
 };
 use crate::graphics::scene::scene_renderer::mip_gen::RuntimeMipGenPass;
-use crate::graphics::GraphicsError;
 use crate::plugin::ShaderModuleSourceBinding;
 
+#[cfg(test)]
 use super::super::fallback::{create_fallback_normal_texture, create_fallback_texture};
+use super::super::fallback::{
+    create_fallback_normal_texture_from_system, create_fallback_texture_from_system,
+};
 use super::super::{
     GpuMaterialUniformResource, OutputTargetWritebackConverter, TextureSamplerCache,
 };
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
+    #[cfg(test)]
     pub(crate) fn new(
         asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
@@ -31,13 +37,14 @@ impl ResourceStreamer {
         Self::new_with_shading_model_registry(
             asset_manager,
             device,
-            queue,
             texture_layout,
             builtin_shading_model_registry(),
             BTreeMap::new(),
+            ResourceStreamerFallbackSource::TestQueue(queue),
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn new_with_plugin_shading_models(
         asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
@@ -52,17 +59,17 @@ impl ResourceStreamer {
         Ok(Self::new_with_shading_model_registry(
             asset_manager,
             device,
-            queue,
             texture_layout,
             shading_model_registry,
             BTreeMap::new(),
+            ResourceStreamerFallbackSource::TestQueue(queue),
         ))
     }
 
     pub(crate) fn new_with_plugin_shading_models_and_shader_modules(
         asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        system_textures: &SystemTextureGenerationLease,
         texture_layout: &wgpu::BindGroupLayout,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
         plugin_shader_module_sources: impl IntoIterator<Item = ShaderModuleSourceBinding>,
@@ -75,34 +82,61 @@ impl ResourceStreamer {
         Ok(Self::new_with_shading_model_registry(
             asset_manager,
             device,
-            queue,
             texture_layout,
             shading_model_registry,
             shader_module_sources,
+            ResourceStreamerFallbackSource::System(system_textures),
         ))
     }
 
     fn new_with_shading_model_registry(
         asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         shading_model_registry: ShadingModelRegistry,
         shader_module_sources: BTreeMap<String, ShaderModuleSourceBinding>,
+        fallback_source: ResourceStreamerFallbackSource<'_>,
     ) -> Self {
-        let texture_sampler_cache = Arc::new(TextureSamplerCache::new());
-        let fallback_texture = Arc::new(create_fallback_texture(
-            device,
-            queue,
-            texture_layout,
-            Arc::clone(&texture_sampler_cache),
-        ));
-        let fallback_normal_texture = Arc::new(create_fallback_normal_texture(
-            device,
-            queue,
-            texture_layout,
-            Arc::clone(&texture_sampler_cache),
-        ));
+        let texture_sampler_cache = match fallback_source {
+            ResourceStreamerFallbackSource::System(system_textures) => {
+                Arc::new(TextureSamplerCache::new_with_linear_clamp_sampler(
+                    Arc::new(system_textures.linear_clamp_sampler().clone()),
+                ))
+            }
+            #[cfg(test)]
+            ResourceStreamerFallbackSource::TestQueue(_) => Arc::new(TextureSamplerCache::new()),
+        };
+        let (fallback_texture, fallback_normal_texture) = match fallback_source {
+            ResourceStreamerFallbackSource::System(system_textures) => (
+                Arc::new(create_fallback_texture_from_system(
+                    device,
+                    texture_layout,
+                    Arc::clone(&texture_sampler_cache),
+                    system_textures,
+                )),
+                Arc::new(create_fallback_normal_texture_from_system(
+                    device,
+                    texture_layout,
+                    Arc::clone(&texture_sampler_cache),
+                    system_textures,
+                )),
+            ),
+            #[cfg(test)]
+            ResourceStreamerFallbackSource::TestQueue(queue) => (
+                Arc::new(create_fallback_texture(
+                    device,
+                    queue,
+                    texture_layout,
+                    Arc::clone(&texture_sampler_cache),
+                )),
+                Arc::new(create_fallback_normal_texture(
+                    device,
+                    queue,
+                    texture_layout,
+                    Arc::clone(&texture_sampler_cache),
+                )),
+            ),
+        };
         Self {
             asset_manager_access: asset_manager,
             shading_model_registry,
@@ -110,6 +144,8 @@ impl ResourceStreamer {
             models: HashMap::new(),
             meshes: HashMap::new(),
             materials: HashMap::new(),
+            active_staged_material_ids: HashSet::new(),
+            next_material_draw_generation: 1,
             textures: HashMap::new(),
             mip_streaming_states: HashMap::new(),
             mip_streaming_visible_instance_keys: HashSet::new(),
@@ -144,6 +180,9 @@ impl ResourceStreamer {
             last_post_process_lut_2d_strip_ready_count: 0,
             last_post_process_lut_3d_request_count: 0,
             last_post_process_lut_unsupported_shape_count: 0,
+            next_ui_texture_prepare_epoch: 1,
+            last_ui_texture_prepare_receipt: None,
+            last_output_target_frame_plan: Default::default(),
             last_output_target_graph_import_report: Default::default(),
             last_output_target_writeback_report: Default::default(),
         }
@@ -189,15 +228,23 @@ impl ResourceStreamer {
         texture_layout: &wgpu::BindGroupLayout,
         plugin_shader_module_sources: impl IntoIterator<Item = ShaderModuleSourceBinding>,
     ) -> Result<Self, GraphicsError> {
-        Self::new_with_plugin_shading_models_and_shader_modules(
+        let shader_module_sources = shader_module_source_map(plugin_shader_module_sources)?;
+        Ok(Self::new_with_shading_model_registry(
             ProjectAssetManagerAccess::for_test(asset_manager),
             device,
-            queue,
             texture_layout,
-            Vec::new(),
-            plugin_shader_module_sources,
-        )
+            builtin_shading_model_registry(),
+            shader_module_sources,
+            ResourceStreamerFallbackSource::TestQueue(queue),
+        ))
     }
+}
+
+#[derive(Clone, Copy)]
+enum ResourceStreamerFallbackSource<'a> {
+    System(&'a SystemTextureGenerationLease),
+    #[cfg(test)]
+    TestQueue(&'a wgpu::Queue),
 }
 
 fn shader_module_source_map(

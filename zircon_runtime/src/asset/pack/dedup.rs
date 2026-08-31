@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{btree_map::Entry, BTreeMap};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ZrPackDedupTable {
@@ -8,12 +8,14 @@ pub struct ZrPackDedupTable {
 impl ZrPackDedupTable {
     pub fn insert_or_get(&mut self, bytes: &[u8]) -> ([u8; 32], Option<usize>) {
         let hash = zrpack_content_hash(bytes);
-        let existing = self.chunks.get(&hash).copied();
-        if existing.is_none() {
-            let index = self.chunks.len();
-            self.chunks.insert(hash, index);
+        let index = self.chunks.len();
+        match self.chunks.entry(hash) {
+            Entry::Occupied(entry) => (hash, Some(*entry.get())),
+            Entry::Vacant(entry) => {
+                entry.insert(index);
+                (hash, None)
+            }
         }
-        (hash, existing)
     }
 
     pub fn len(&self) -> usize {
@@ -45,3 +47,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "dedup/optimization_tests.rs"]
+mod optimization_tests;

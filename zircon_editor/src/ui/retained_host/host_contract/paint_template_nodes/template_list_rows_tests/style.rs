@@ -53,8 +53,8 @@ fn list_row_style_uses_shared_state_priority() {
     let pressed = list_row_style(&node);
     assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
     assert_eq!(pressed.background, Some(PALETTE.surface_pressed));
-    assert_eq!(pressed.border, Some(PALETTE.focus_ring));
-    assert_eq!(pressed.border_width, 1.0);
+    assert_eq!(pressed.border, None);
+    assert_eq!(pressed.border_width, 0.0);
 
     node.pressed = false;
     node.hovered = false;
@@ -84,5 +84,5 @@ fn list_row_style_uses_shared_state_priority() {
     assert_ne!(selected.border, Some(PALETTE.border));
     assert_eq!(selected.border_width, 1.0);
     assert_eq!(selected.text, PALETTE.text);
-    assert_eq!(selected.adornment, PALETTE.focus_ring);
+    assert_eq!(selected.adornment, PALETTE.accent);
 }

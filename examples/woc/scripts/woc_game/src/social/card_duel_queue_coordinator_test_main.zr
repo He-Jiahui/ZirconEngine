@@ -26,6 +26,36 @@ contractTest(): int {
         return -6;
     }
     if (queue.leave(<uint>10) || queue.pairNext().ready) return -7;
+
+    var requeued = new coordinator.CardDuelQueueCoordinator();
+    requeued.upsert(<uint>1, true);
+    requeued.upsert(<uint>2, true);
+    requeued.upsert(<uint>3, true);
+    if (requeued.join(<uint>1, true, false) != 1 ||
+        requeued.join(<uint>2, true, false) != 1 ||
+        requeued.join(<uint>3, true, false) != 1) {
+        return -8;
+    }
+    requeued.upsert(<uint>2, false);
+    var beforePurge = requeued.snapshotEntries();
+    if (beforePurge.length != 3 || <uint>beforePurge[1] != <uint>2) return -9;
+    var requeuedPair = requeued.pairNext();
+    if (!requeuedPair.ready || requeuedPair.a != <uint>1 ||
+        requeuedPair.b != <uint>3 || requeued.size() != 0 ||
+        requeued.queued(<uint>2)) {
+        return -10;
+    }
+    requeued.upsert(<uint>2, true);
+    requeued.upsert(<uint>4, true);
+    if (requeued.join(<uint>2, true, false) != 1 ||
+        requeued.join(<uint>4, true, false) != 1) {
+        return -11;
+    }
+    requeuedPair = requeued.pairNext();
+    if (!requeuedPair.ready || requeuedPair.a != <uint>2 ||
+        requeuedPair.b != <uint>4 || requeued.size() != 0) {
+        return -12;
+    }
     return 1;
 }
 

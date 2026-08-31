@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::ProjectPluginManifest;
 
@@ -36,7 +38,7 @@ pub(in crate::plugin::export_build_plan) fn project_target_mode_diagnostics(
     {
         let first_diagnostic = diagnostics.len();
         validate_project_target_modes(
-            &format!("project plugin {} target_modes", selection.id),
+            format_args!("project plugin {} target_modes", selection.id),
             &selection.target_modes,
             &mut diagnostics,
         );
@@ -50,7 +52,7 @@ pub(in crate::plugin::export_build_plan) fn project_target_mode_diagnostics(
         {
             let first_diagnostic = diagnostics.len();
             validate_project_target_modes(
-                &format!("project plugin feature {} target_modes", feature.id),
+                format_args!("project plugin feature {} target_modes", feature.id),
                 &feature.target_modes,
                 &mut diagnostics,
             );
@@ -63,30 +65,37 @@ pub(in crate::plugin::export_build_plan) fn project_target_mode_diagnostics(
 }
 
 fn validate_project_target_modes(
-    context: &str,
+    context: fmt::Arguments<'_>,
     target_modes: &[RuntimeTargetMode],
     diagnostics: &mut Vec<String>,
 ) {
-    let mut seen = Vec::new();
-    for target_mode in target_modes.iter().copied() {
-        if seen.contains(&target_mode) {
+    for (index, target_mode) in target_modes.iter().copied().enumerate() {
+        if target_modes[..index].contains(&target_mode) {
             diagnostics.push(format!(
                 "{context} must not repeat target mode {target_mode:?}"
             ));
-        } else {
-            seen.push(target_mode);
         }
     }
 }
 
 fn deduplicate_target_modes(target_modes: &mut Vec<RuntimeTargetMode>) {
-    let mut seen = Vec::new();
+    let mut seen_target_modes = 0_u8;
     target_modes.retain(|target_mode| {
-        if seen.contains(target_mode) {
-            false
-        } else {
-            seen.push(*target_mode);
-            true
-        }
+        let target_mode_bit = project_target_mode_bit(*target_mode);
+        let retain = seen_target_modes & target_mode_bit == 0;
+        seen_target_modes |= target_mode_bit;
+        retain
     });
 }
+
+const fn project_target_mode_bit(target_mode: RuntimeTargetMode) -> u8 {
+    match target_mode {
+        RuntimeTargetMode::ClientRuntime => 1 << 0,
+        RuntimeTargetMode::ServerRuntime => 1 << 1,
+        RuntimeTargetMode::EditorHost => 1 << 2,
+    }
+}
+
+#[cfg(test)]
+#[path = "target_modes/allocation_tests.rs"]
+mod allocation_tests;

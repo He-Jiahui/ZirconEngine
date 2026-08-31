@@ -165,8 +165,7 @@ fn root_viewport_toolbar_surface_size_prefers_shared_projection_width_when_docum
 }
 
 #[test]
-fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry(
-) {
+fn root_document_tab_native_receipt_ignores_stale_mirror_geometry() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_root_document_tab_projection_width");
@@ -211,9 +210,7 @@ fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_
                 ShellRegionId::Document,
                 ShellFrame::new(document.x, document.y, 800.0, document.height),
             );
-            let floating_window_projection_bundle =
-                crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle::default();
-            host.sync_document_tab_pointer_layout(&model, &floating_window_projection_bundle);
+            host.sync_document_tab_pointer_layout(&model);
         }
 
         let tab_width = 140.0;
@@ -254,7 +251,7 @@ fn root_host_page_pointer_click_uses_shared_projection_tab_slot() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_root_host_page_projection_width");
-    let (tab_x, point_x, point_y, tab_width) = {
+    {
         let mut host = harness.host.borrow_mut();
         let chrome = host.runtime.chrome_snapshot();
         let model = WorkbenchViewModel::build(
@@ -270,15 +267,10 @@ fn root_host_page_pointer_click_uses_shared_projection_tab_slot() {
             "shared shell projection width should outrank host-page metric estimates"
         );
         host.sync_host_page_pointer_layout(&model);
-
-        let tab_x = 8.0;
-        let tab_width = 132.0;
-        (tab_x, 12.0, 12.0, tab_width)
-    };
+    }
     let baseline = harness.journal_len();
 
-    host_context(&harness.root_ui)
-        .invoke_host_page_pointer_clicked(0, tab_x, tab_width, point_x, point_y);
+    host_context(&harness.root_ui).invoke_host_page_pointer_clicked(0, false);
 
     assert_eq!(
         harness.delta_events_since(baseline),

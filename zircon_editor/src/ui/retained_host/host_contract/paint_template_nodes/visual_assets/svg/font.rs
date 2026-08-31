@@ -25,5 +25,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn svg_may
     let Ok(svg) = std::str::from_utf8(svg) else {
         return false;
     };
-    svg.contains("<text") || svg.contains("<tspan") || svg.contains("font-family")
+    let svg = svg.as_bytes();
+    let mut index = 0;
+    while index < svg.len() {
+        let remaining = &svg[index..];
+        match svg[index] {
+            b'<' if remaining.starts_with(b"<text") || remaining.starts_with(b"<tspan") => {
+                return true;
+            }
+            b'f' if remaining.starts_with(b"font-family") => return true,
+            _ => index += 1,
+        }
+    }
+    false
 }
+
+#[cfg(test)]
+#[path = "font/single_scan_tests.rs"]
+mod single_scan_tests;

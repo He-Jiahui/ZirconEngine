@@ -123,21 +123,27 @@ impl ProjectManager {
         uri: &AssetUri,
     ) -> Result<PathBuf, AssetImportError> {
         validate_relative_package_path(uri.path())?;
-        let existing = self
+        let mut existing = self
             .package_assets
             .project_roots()
             .iter()
             .map(|root| root.join(uri.path()))
-            .filter(|candidate| candidate.exists())
-            .collect::<Vec<_>>();
-        match existing.as_slice() {
-            [path] => Ok(path.clone()),
-            [] => Err(AssetImportError::MissingProjectAssetUri { uri: uri.clone() }),
-            _ => Err(AssetImportError::ambiguous_project_asset_uri(
-                uri.clone(),
-                existing,
-            )),
-        }
+            .filter(|candidate| candidate.exists());
+        let Some(first) = existing.next() else {
+            return Err(AssetImportError::MissingProjectAssetUri { uri: uri.clone() });
+        };
+        let Some(second) = existing.next() else {
+            return Ok(first);
+        };
+
+        let mut ambiguous = Vec::with_capacity(2 + existing.size_hint().0);
+        ambiguous.push(first);
+        ambiguous.push(second);
+        ambiguous.extend(existing);
+        Err(AssetImportError::ambiguous_project_asset_uri(
+            uri.clone(),
+            ambiguous,
+        ))
     }
 }
 

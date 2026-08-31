@@ -10,14 +10,14 @@ pub fn map_localization_diagnostic(
     diagnostic: UiLocalizationDiagnostic,
 ) -> UiAssetEditorDiagnostic {
     let code = editor_localization_code(&diagnostic).to_string();
-    let source_path = diagnostic.path;
+    let target_node_id = node_id_from_localization_path(&diagnostic.path);
     let mut editor = UiAssetEditorDiagnostic::new(
         code,
         map_localization_severity(diagnostic.severity),
         diagnostic.message,
-        source_path.clone(),
+        diagnostic.path,
     );
-    editor.target_node_id = node_id_from_localization_path(&source_path);
+    editor.target_node_id = target_node_id;
     editor
 }
 
@@ -44,3 +44,7 @@ fn node_id_from_localization_path(path: &str) -> Option<String> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+#[path = "localization/move_path_tests.rs"]
+mod move_path_tests;

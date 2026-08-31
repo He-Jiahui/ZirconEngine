@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::render::{RenderLayerSet, RenderParticleSpriteSnapshot};
 use zircon_runtime::core::framework::scene::EntityId;
-use zircon_runtime::core::math::{Real, Transform, Vec2, Vec3, is_finite_vec3, is_finite_vec4};
+use zircon_runtime::core::math::{is_finite_vec3, is_finite_vec4, Real, Transform, Vec2, Vec3};
 
 use crate::asset::{evaluate_color_curve, evaluate_scalar_curve};
 use crate::component::{ParticleEmitterHandle, ParticleSystemComponent};

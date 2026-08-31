@@ -586,7 +586,16 @@ fn new_importer_plugin_generates_a_registered_importer_skeleton() {
 
     let package = repo.join("zircon_plugins/demo_importer");
     let manifest = fs::read_to_string(package.join("plugin.toml")).unwrap();
-    assert!(manifest.contains("supported_targets = [\"client_runtime\", \"editor_host\"]"));
+    let parsed_manifest: toml::Value = toml::from_str(&manifest).unwrap();
+    assert_eq!(
+        parsed_manifest["supported_targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(toml::Value::as_str)
+            .collect::<Vec<_>>(),
+        ["client_runtime", "editor_host"]
+    );
     assert!(manifest.contains("[[asset_importers]]"));
     assert!(manifest.contains("id = \"demo_importer.demo_importer\""));
     assert!(manifest.contains("source_extensions = [\"demo_importer\"]"));
@@ -624,10 +633,8 @@ fn check_accepts_scaffolded_package_and_detects_workspace_member_drift() {
     assert!(clean.diagnostics.is_empty(), "{:?}", clean.diagnostics);
 
     let workspace_path = repo.join("zircon_plugins/Cargo.toml");
-    let mut workspace: toml::Value = fs::read_to_string(&workspace_path)
-        .unwrap()
-        .parse()
-        .unwrap();
+    let mut workspace: toml::Value =
+        toml::from_str(&fs::read_to_string(&workspace_path).unwrap()).unwrap();
     workspace["workspace"]["members"]
         .as_array_mut()
         .unwrap()
@@ -660,7 +667,7 @@ fn check_detects_catalog_registration_and_app_feature_drift() {
     );
     fs::write(&registry_path, registry).unwrap();
     let app_path = repo.join("zircon_app/Cargo.toml");
-    let mut app: toml::Value = fs::read_to_string(&app_path).unwrap().parse().unwrap();
+    let mut app: toml::Value = toml::from_str(&fs::read_to_string(&app_path).unwrap()).unwrap();
     app["features"]
         .as_table_mut()
         .unwrap()
@@ -788,6 +795,7 @@ edition.workspace = true
 license.workspace = true
 
 [features]
+# keep-app-comment
 default = []
 
 [dependencies]

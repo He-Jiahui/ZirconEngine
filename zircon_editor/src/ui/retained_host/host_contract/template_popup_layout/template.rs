@@ -1,6 +1,7 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::dropdown::dropdown_option_popup_frame_within;
-use super::metrics::{dropdown_option_row_height, menu_item_row_height};
+use super::dropdown::dropdown_option_popup_frame_with_height_within;
+use super::metrics::{dropdown_option_row_height, popup_row_height, popup_rows_height};
+use super::rows::popup_row_frame;
 
 pub(crate) fn template_option_popup_frame_within(
     node: &TemplatePaneNodeData,
@@ -11,7 +12,9 @@ pub(crate) fn template_option_popup_frame_within(
     if template_option_rows_use_projected_frame(node) {
         return (row_count > 0).then_some(control_frame.clone());
     }
-    dropdown_option_popup_frame_within(control_frame, row_count, bounds)
+    let row_height = dropdown_option_row_height(control_frame);
+    let popup_height = popup_rows_height(node, row_count, row_height)?;
+    dropdown_option_popup_frame_with_height_within(control_frame, popup_height, bounds)
 }
 
 pub(crate) fn template_option_row_frame_within(
@@ -26,16 +29,11 @@ pub(crate) fn template_option_row_frame_within(
     }
     let popup = template_option_popup_frame_within(node, control_frame, row_count, bounds)?;
     let row_height = if template_option_rows_use_projected_frame(node) {
-        menu_item_row_height(&popup, row_count)?
+        popup_row_height(node, &popup, row_count)?
     } else {
         dropdown_option_row_height(control_frame)
     };
-    Some(FrameRect {
-        x: popup.x,
-        y: popup.y + row as f32 * row_height,
-        width: popup.width,
-        height: row_height,
-    })
+    popup_row_frame(node, &popup, row_count, row, row_height)
 }
 
 pub(crate) fn template_option_rows_use_projected_frame(node: &TemplatePaneNodeData) -> bool {

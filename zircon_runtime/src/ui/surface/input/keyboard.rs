@@ -9,7 +9,10 @@ use zircon_runtime_interface::ui::{
     tree::UiTreeError,
 };
 
-use crate::{ui::dispatch::UiNavigationDispatcher, ui::tree::UiRuntimeTreeRoutingExt};
+use crate::{
+    ui::dispatch::{UiNavigationDispatcher, UiTextDocumentSession},
+    ui::tree::UiRuntimeTreeRoutingExt,
+};
 
 use super::{
     super::surface::UiSurface,
@@ -29,6 +32,7 @@ pub(super) fn dispatch_keyboard_input(
     surface: &mut UiSurface,
     navigation_dispatcher: &UiNavigationDispatcher,
     keyboard: UiKeyboardInputEvent,
+    text_documents: Option<&mut UiTextDocumentSession>,
     dispatch_navigation_input: impl FnOnce(
         &mut UiSurface,
         &UiNavigationDispatcher,
@@ -58,7 +62,7 @@ pub(super) fn dispatch_keyboard_input(
             .notes
             .push(format!("focused_route_len={}", route.len()));
         if let Some(mut text_result) =
-            dispatch_keyboard_text_edit(surface, keyboard.clone(), target)
+            dispatch_keyboard_text_edit(surface, keyboard.clone(), target, text_documents)
         {
             text_result
                 .diagnostics

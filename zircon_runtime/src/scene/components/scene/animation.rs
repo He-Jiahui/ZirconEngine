@@ -1,6 +1,4 @@
-use std::collections::BTreeMap;
-
-use crate::core::framework::animation::AnimationParameterValue;
+use crate::core::framework::animation::AnimationParameterSet;
 use crate::core::math::Real;
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
@@ -35,14 +33,14 @@ pub struct AnimationSequencePlayerComponent {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationGraphPlayerComponent {
     pub graph: ResourceHandle<AnimationGraphMarker>,
-    pub parameters: BTreeMap<String, AnimationParameterValue>,
+    pub parameters: AnimationParameterSet,
     pub playing: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationStateMachinePlayerComponent {
     pub state_machine: ResourceHandle<AnimationStateMachineMarker>,
-    pub parameters: BTreeMap<String, AnimationParameterValue>,
+    pub parameters: AnimationParameterSet,
     pub active_state: Option<String>,
     pub playing: bool,
 }

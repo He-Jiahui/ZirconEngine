@@ -23,7 +23,7 @@ fn rtl_visual_order_reverses_grapheme_clusters() {
 #[test]
 fn rtl_visual_order_preserves_rich_run_boundary_grapheme_clusters() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::Markdown;
+    style.rich_text_format = UiRichTextFormat::MarkdownInlineV1;
 
     let layout = layout_text(
         "abc *ש*\u{05b8}ל def",
@@ -68,10 +68,12 @@ fn bidi_isolate_keeps_outer_ltr_order_and_reorders_inner_rtl() {
 
     assert_eq!(layout.direction, UiTextDirection::LeftToRight);
     assert_eq!(visible_text, "A בא Z");
-    assert!(layout.lines[0]
-        .runs
-        .iter()
-        .any(|run| run.text == "ב" && run.direction == UiTextDirection::RightToLeft));
+    assert!(
+        layout.lines[0]
+            .runs
+            .iter()
+            .any(|run| run.text == "ב" && run.direction == UiTextDirection::RightToLeft)
+    );
 }
 
 #[test]
@@ -89,14 +91,16 @@ fn text_bidi_mirrors_paren_in_rtl() {
 
     assert_eq!(layout.direction, UiTextDirection::RightToLeft);
     assert_eq!(line.text, "(בא) םולש");
-    assert!(line
-        .runs
-        .iter()
-        .any(|run| run.text == "(" && run.source_range == UiTextRange { start: 14, end: 15 }));
-    assert!(line
-        .runs
-        .iter()
-        .any(|run| run.text == ")" && run.source_range == UiTextRange { start: 9, end: 10 }));
+    assert!(
+        line.runs
+            .iter()
+            .any(|run| run.text == "(" && run.source_range == UiTextRange { start: 14, end: 15 })
+    );
+    assert!(
+        line.runs
+            .iter()
+            .any(|run| run.text == ")" && run.source_range == UiTextRange { start: 9, end: 10 })
+    );
 }
 
 #[test]
@@ -109,10 +113,11 @@ fn text_bidi_mirrors_arrow_in_rtl() {
 
     assert_eq!(layout.direction, UiTextDirection::RightToLeft);
     assert_eq!(line.text, "← בא");
-    assert!(line
-        .runs
-        .iter()
-        .any(|run| run.text == "←" && run.source_range == UiTextRange { start: 5, end: 8 }));
+    assert!(
+        line.runs
+            .iter()
+            .any(|run| run.text == "←" && run.source_range == UiTextRange { start: 5, end: 8 })
+    );
 }
 
 #[test]
@@ -132,7 +137,7 @@ fn text_bidi_mirrors_unicode_math_bracket_in_rtl() {
 
 #[test]
 fn bidi_visual_order_keeps_grapheme_advances_in_visual_sequence() {
-    use super::super::candidate_line::{append_segment, CandidateLine};
+    use super::super::candidate_line::{CandidateLine, append_segment};
     use super::super::visual_order::apply_visual_order_with_advances;
     use zircon_runtime_interface::ui::surface::UiTextRunKind;
 
@@ -155,15 +160,45 @@ fn bidi_visual_order_keeps_grapheme_advances_in_visual_sequence() {
         text,
         UiTextDirection::LeftToRight,
         &mut visual_advances,
-    );
+    )
+    .expect("valid visual-order input must reorder atomically");
 
     assert_eq!(line.text, "A בא");
     assert_eq!(visual_advances, vec![1.0, 2.0, 4.0, 3.0]);
 }
 
 #[test]
+fn bidi_visual_order_accepts_source_owned_precomputed_order() {
+    use super::super::candidate_line::{CandidateLine, append_segment};
+    use super::super::visual_order::apply_visual_order_from_bidi_order_with_advances;
+    use crate::text::shaping::BidiLineOrder;
+    use zircon_runtime_interface::ui::surface::UiTextRunKind;
+
+    let mut line = CandidateLine::empty();
+    append_segment(
+        &mut line,
+        UiTextRunKind::Plain,
+        "abcd",
+        UiTextRange { start: 0, end: 4 },
+    );
+    let mut advances = vec![1.0, 2.0, 3.0, 4.0];
+    let source_order = BidiLineOrder {
+        resolved_base_direction: UiTextDirection::RightToLeft.into(),
+        logical_levels: vec![1, 1, 1, 1],
+        visual_indices: vec![3, 2, 1, 0],
+        unicode_data_snapshot: crate::text::compiled_unicode_data_snapshot_id(),
+    };
+
+    apply_visual_order_from_bidi_order_with_advances(&mut line, &source_order, &mut advances)
+        .expect("precomputed source-owned order must project atomically");
+
+    assert_eq!(line.text, "dcba");
+    assert_eq!(advances, vec![4.0, 3.0, 2.0, 1.0]);
+}
+
+#[test]
 fn bidi_visual_order_keeps_virtual_tatweel_in_rtl_visual_sequence() {
-    use super::super::candidate_line::{append_segment, insert_virtual_text, CandidateLine};
+    use super::super::candidate_line::{CandidateLine, append_segment, insert_virtual_text};
     use super::super::visual_order::apply_visual_order_with_advances;
     use zircon_runtime_interface::ui::surface::UiTextRunKind;
 
@@ -187,7 +222,8 @@ fn bidi_visual_order_keeps_virtual_tatweel_in_rtl_visual_sequence() {
         source,
         UiTextDirection::RightToLeft,
         &mut visual_advances,
-    );
+    )
+    .expect("valid visual-order input must reorder atomically");
 
     assert_eq!(
         line.text,
@@ -206,7 +242,7 @@ fn bidi_visual_order_keeps_virtual_tatweel_in_rtl_visual_sequence() {
 
 #[test]
 fn bidi_visual_order_keeps_a_grapheme_split_across_style_runs_atomic() {
-    use super::super::candidate_line::{append_segment, CandidateLine};
+    use super::super::candidate_line::{CandidateLine, append_segment};
     use super::super::visual_order::apply_visual_order_with_advances;
     use zircon_runtime_interface::ui::surface::UiTextRunKind;
 
@@ -234,7 +270,8 @@ fn bidi_visual_order_keeps_a_grapheme_split_across_style_runs_atomic() {
         text,
         UiTextDirection::LeftToRight,
         &mut visual_advances,
-    );
+    )
+    .expect("valid visual-order input must reorder atomically");
 
     assert_eq!(line.text, "a\u{301} בא");
     assert_eq!(visual_advances, vec![2.0, 1.0, 4.0, 3.0]);
@@ -245,4 +282,38 @@ fn bidi_visual_order_keeps_a_grapheme_split_across_style_runs_atomic() {
             .collect::<String>(),
         line.text
     );
+}
+
+#[test]
+fn bidi_visual_order_rejects_invalid_source_ranges_without_mutating_the_line() {
+    use super::super::candidate_line::{CandidateLine, append_segment};
+    use super::super::visual_order::apply_visual_order_with_advances;
+    use crate::text::shaping::BidiInvariantError;
+    use zircon_runtime_interface::ui::surface::UiTextRunKind;
+
+    let text = "abc";
+    let mut line = CandidateLine::empty();
+    append_segment(
+        &mut line,
+        UiTextRunKind::Plain,
+        text,
+        UiTextRange { start: 0, end: 4 },
+    );
+    let original_line = line.clone();
+    let mut advances = vec![1.0, 2.0, 3.0];
+    let original_advances = advances.clone();
+
+    assert_eq!(
+        apply_visual_order_with_advances(
+            &mut line,
+            text,
+            UiTextDirection::LeftToRight,
+            &mut advances,
+        ),
+        Err(BidiInvariantError::InvalidLineRange { start: 0, end: 4 })
+    );
+    assert_eq!(line.text, original_line.text);
+    assert_eq!(line.source_range, original_line.source_range);
+    assert_eq!(line.runs, original_line.runs);
+    assert_eq!(advances, original_advances);
 }

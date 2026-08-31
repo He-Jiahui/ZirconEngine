@@ -19,5 +19,6 @@ pub(in crate::graphics::pipeline) fn stage_name(stage: RenderPassStage) -> &'sta
         RenderPassStage::Ui => "ui",
         RenderPassStage::Overlay => "overlay",
         RenderPassStage::Debug => "debug",
+        RenderPassStage::Present => "present",
     }
 }

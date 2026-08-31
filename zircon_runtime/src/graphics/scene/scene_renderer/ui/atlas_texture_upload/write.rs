@@ -1,19 +1,23 @@
+use core::ops::Range;
+
+use zr_rhi::TextureCopyRegion;
+
 use crate::text::atlas::GlyphAtlasUploadCommand;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct GlyphAtlasTextureUploadWrite {
-    pub(super) origin_x: u32,
-    pub(super) origin_y: u32,
-    pub(super) origin_layer: u32,
-    pub(super) source_offset: u64,
-    pub(super) bytes_per_row: u32,
-    pub(super) rows_per_image: u32,
-    pub(super) extent_width: u32,
-    pub(super) extent_height: u32,
-    pub(super) extent_layers: u32,
+pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasTextureUploadWrite {
+    pub(in crate::graphics::scene::scene_renderer::ui) origin_x: u32,
+    pub(in crate::graphics::scene::scene_renderer::ui) origin_y: u32,
+    pub(in crate::graphics::scene::scene_renderer::ui) origin_layer: u32,
+    pub(in crate::graphics::scene::scene_renderer::ui) source_offset: u64,
+    pub(in crate::graphics::scene::scene_renderer::ui) bytes_per_row: u32,
+    pub(in crate::graphics::scene::scene_renderer::ui) rows_per_image: u32,
+    pub(in crate::graphics::scene::scene_renderer::ui) extent_width: u32,
+    pub(in crate::graphics::scene::scene_renderer::ui) extent_height: u32,
+    pub(in crate::graphics::scene::scene_renderer::ui) extent_layers: u32,
 }
 
-pub(super) fn glyph_atlas_texture_upload_write(
+pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_texture_upload_write(
     command: GlyphAtlasUploadCommand,
 ) -> GlyphAtlasTextureUploadWrite {
     GlyphAtlasTextureUploadWrite {
@@ -29,43 +33,38 @@ pub(super) fn glyph_atlas_texture_upload_write(
     }
 }
 
-pub(in crate::graphics::scene::scene_renderer::ui) fn write_glyph_atlas_texture_upload_command(
-    queue: &wgpu::Queue,
-    texture: &wgpu::Texture,
-    bytes: &[u8],
-    command: GlyphAtlasUploadCommand,
-) {
-    let write = glyph_atlas_texture_upload_write(command);
-    write_glyph_atlas_texture_upload_bytes(queue, texture, bytes, write);
+pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_texture_upload_region(
+    write: GlyphAtlasTextureUploadWrite,
+) -> TextureCopyRegion {
+    TextureCopyRegion::new(write.extent_width, write.extent_height).with_origin(
+        write.origin_x,
+        write.origin_y,
+        write.origin_layer,
+    )
 }
 
-pub(super) fn write_glyph_atlas_texture_upload_bytes(
-    queue: &wgpu::Queue,
-    texture: &wgpu::Texture,
-    bytes: &[u8],
+pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_texture_upload_source_range(
     write: GlyphAtlasTextureUploadWrite,
-) {
-    queue.write_texture(
-        wgpu::TexelCopyTextureInfo {
-            texture,
-            mip_level: 0,
-            origin: wgpu::Origin3d {
-                x: write.origin_x,
-                y: write.origin_y,
-                z: write.origin_layer,
-            },
-            aspect: wgpu::TextureAspect::All,
-        },
-        bytes,
-        wgpu::TexelCopyBufferLayout {
-            offset: write.source_offset,
-            bytes_per_row: Some(write.bytes_per_row),
-            rows_per_image: Some(write.rows_per_image),
-        },
-        wgpu::Extent3d {
-            width: write.extent_width,
-            height: write.extent_height,
-            depth_or_array_layers: write.extent_layers,
-        },
-    );
+    upload_byte_len: usize,
+) -> Option<Range<usize>> {
+    let row_count = usize::try_from(write.extent_height).ok()?;
+    if write.extent_width == 0
+        || write.extent_layers == 0
+        || row_count == 0
+        || write.rows_per_image < write.extent_height
+        || upload_byte_len % row_count != 0
+    {
+        return None;
+    }
+    let row_payload_byte_len = upload_byte_len.checked_div(row_count)?;
+    if row_payload_byte_len == 0 || row_payload_byte_len > write.bytes_per_row as usize {
+        return None;
+    }
+    let source_start = usize::try_from(write.source_offset).ok()?;
+    let last_row_offset = row_count
+        .checked_sub(1)?
+        .checked_mul(write.bytes_per_row as usize)?
+        .checked_add(source_start)?;
+    let source_end = last_row_offset.checked_add(row_payload_byte_len)?;
+    Some(source_start..source_end)
 }

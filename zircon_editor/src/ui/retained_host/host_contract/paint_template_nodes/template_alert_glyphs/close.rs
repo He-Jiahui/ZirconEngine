@@ -1,6 +1,8 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
-use super::segments::{alert_segment as seg, push_segments};
+use super::super::template_icon_assets::push_icon_asset_pixels;
+
+const CLOSE_MARK_ASSET: &str = "ionicons/close-outline.svg";
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_close_mark(
     commands: &mut Vec<HostPaintCommand>,
@@ -10,22 +12,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_cl
     color: [u8; 4],
     opacity: f32,
 ) {
-    push_segments(
+    push_icon_asset_pixels(
         commands,
+        CLOSE_MARK_ASSET,
         rect,
         clip,
         order,
-        color,
+        Some(color),
         opacity,
-        &[
-            seg(4, 4, 2, 2),
-            seg(6, 6, 2, 2),
-            seg(8, 8, 2, 2),
-            seg(10, 10, 2, 2),
-            seg(10, 4, 2, 2),
-            seg(8, 6, 2, 2),
-            seg(6, 8, 2, 2),
-            seg(4, 10, 2, 2),
-        ],
     );
 }

@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::{
 
 use super::super::super::surface::UiSurface;
 use super::super::{
-    require_valid_input_owner, UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
+    UiSurfaceInputEffectError, UiSurfaceInputEffectResult, require_valid_input_owner,
 };
 
 pub(super) fn apply_focus_pointer_effect(

@@ -50,10 +50,10 @@ impl UiAssetEditorSession {
         }
         self.select_preview_index(index)?;
         self.designer_tool_mode = UiDesignerToolMode::PreviewInteract;
-        let Some(node_id) = self.selection.primary_node_id.clone() else {
+        let Some(node_id) = selected_preview_node_id(&self.selection.primary_node_id) else {
             return Err(UiAssetEditorSessionError::InvalidPreviewIndex { index });
         };
-        let Some(node) = self.last_valid_document.node(&node_id) else {
+        let Some(node) = self.last_valid_document.node(node_id) else {
             return Err(UiAssetEditorSessionError::InvalidPreviewIndex { index });
         };
         let Some(binding) = node.bindings.iter().find(|binding| binding.event == event) else {
@@ -61,7 +61,7 @@ impl UiAssetEditorSession {
             return Ok(None);
         };
         let dispatch =
-            build_preview_interact_dispatch(&node_id, node.control_id.as_deref(), binding);
+            build_preview_interact_dispatch(node_id, node.control_id.as_deref(), binding);
         self.last_preview_interact_dispatch = Some(dispatch.clone());
         Ok(Some(dispatch))
     }
@@ -104,6 +104,10 @@ impl UiAssetEditorSession {
         self.apply_document_edit_with_label(document, "Resize Slot")?;
         Ok(true)
     }
+}
+
+fn selected_preview_node_id(primary_node_id: &Option<String>) -> Option<&str> {
+    primary_node_id.as_deref()
 }
 
 fn designer_dimension_literal(
@@ -185,3 +189,7 @@ fn build_preview_interact_dispatch(
         target_items,
     }
 }
+
+#[cfg(test)]
+#[path = "designer_state/borrowed_preview_node_tests.rs"]
+mod borrowed_preview_node_tests;

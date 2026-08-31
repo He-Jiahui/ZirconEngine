@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use crate::core::diagnostics::DiagnosticStore;
 use crate::core::CoreHandle;
+use crate::core::diagnostics::DiagnosticStore;
 
 pub const NATIVE_SYSTEM_CONFLICT_COUNT_DIAGNOSTIC: &str = "scene.ecs.native_system.conflict_count";
 pub const NATIVE_SYSTEM_READY_DELAY_MS_DIAGNOSTIC: &str = "scene.ecs.native_system.ready_delay_ms";

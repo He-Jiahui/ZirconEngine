@@ -3,20 +3,18 @@ use crate::scene::viewport::{
     HandleOverlayExtract, SceneViewportSettings, SceneViewportSnapSteps, TransformHandleKind,
     ViewportCameraSnapshot,
 };
-use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::{Transform, UVec2, Vec2};
 
 use super::{
-    handle_drag_context::HandleDragContext, handle_drag_session::HandleDragSession,
-    handle_pick_context::HandlePickContext, handle_tool::HandleTool,
-    handle_tool_registry::HandleToolRegistry,
+    handle_build_context::HandleSelection, handle_drag_context::HandleDragContext,
+    handle_drag_session::HandleDragSession, handle_pick_context::HandlePickContext,
+    handle_tool::HandleTool, handle_tool_registry::HandleToolRegistry,
 };
 
 impl HandleToolRegistry {
     pub(crate) fn build_overlays(
         &self,
-        scene: &Scene,
-        selected: Option<u64>,
+        selected: Option<HandleSelection>,
         settings: &SceneViewportSettings,
         handle_kind: Option<TransformHandleKind>,
         camera: &ViewportCameraSnapshot,
@@ -25,7 +23,6 @@ impl HandleToolRegistry {
             return Vec::new();
         };
         tool.build_overlay(&super::handle_build_context::HandleBuildContext {
-            scene,
             selected,
             settings,
             camera,
@@ -36,8 +33,7 @@ impl HandleToolRegistry {
 
     pub(crate) fn begin_drag(
         &self,
-        scene: &Scene,
-        selected: Option<u64>,
+        selected: Option<HandleSelection>,
         settings: &SceneViewportSettings,
         handle_kind: Option<TransformHandleKind>,
         snap_steps: SceneViewportSnapSteps,
@@ -48,7 +44,6 @@ impl HandleToolRegistry {
         let tool = self.tool(handle_kind?)?;
         tool.begin_drag(
             &HandlePickContext {
-                scene,
                 selected,
                 settings,
                 snap_steps,

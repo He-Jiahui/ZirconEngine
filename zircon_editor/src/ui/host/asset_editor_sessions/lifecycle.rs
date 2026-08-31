@@ -176,6 +176,7 @@ impl EditorUiHost {
             instance_id,
             UI_ASSET_TOOLKIT_LAYOUT_ID,
             UI_ASSET_TOOLKIT_TAB_ID,
+            super::save::validate_ui_asset_document_references,
             save_ui_asset_document,
             ui_asset_document_autosave_source_path,
             capture_ui_asset_document_autosave,

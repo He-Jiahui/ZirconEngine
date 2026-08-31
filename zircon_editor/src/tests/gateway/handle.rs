@@ -11,8 +11,8 @@ use zircon_runtime_interface::{
 
 use crate::core::gateway::{
     DetachedEditorRuntimeGateway, EditorRuntimeFrameDemand, EditorRuntimeGateway,
-    EditorRuntimeGatewayHandle, EditorRuntimeHighlightSet, GatewayError, RuntimeCapabilities,
-    SessionProfileKind,
+    EditorRuntimeGatewayHandle, EditorRuntimeHighlightSet, GatewayError, GatewaySessionIdentity,
+    RuntimeCapabilities, SessionProfileKind,
 };
 
 struct SessionOnlyGateway {
@@ -29,6 +29,10 @@ struct HighlightRecordingGateway {
 impl EditorRuntimeGateway for HighlightRecordingGateway {
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         ZrRuntimeSessionHandle::invalid()
+    }
+
+    fn session_identity(&self) -> GatewaySessionIdentity {
+        GatewaySessionIdentity::detached()
     }
 
     fn submit_highlight_set(&self, _set: EditorRuntimeHighlightSet) -> Result<(), GatewayError> {
@@ -74,6 +78,10 @@ struct ViewportSurfaceRecordingGateway {
 impl EditorRuntimeGateway for ViewportSurfaceRecordingGateway {
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         ZrRuntimeSessionHandle::invalid()
+    }
+
+    fn session_identity(&self) -> GatewaySessionIdentity {
+        GatewaySessionIdentity::detached()
     }
 
     fn bind_viewport_surface(
@@ -158,6 +166,10 @@ impl EditorRuntimeGateway for SessionOnlyGateway {
         ZrRuntimeSessionHandle::new(self.session)
     }
 
+    fn session_identity(&self) -> GatewaySessionIdentity {
+        GatewaySessionIdentity::new(1, self.session_handle(), 1, None)
+    }
+
     fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
         self.tick_calls.fetch_add(1, Ordering::SeqCst);
         Ok(EditorRuntimeFrameDemand::Continuous)
@@ -205,6 +217,10 @@ impl EditorRuntimeGateway for BlockingGateway {
 
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         ZrRuntimeSessionHandle::new(7)
+    }
+
+    fn session_identity(&self) -> GatewaySessionIdentity {
+        GatewaySessionIdentity::new(7, self.session_handle(), 1, None)
     }
 
     fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
@@ -256,6 +272,10 @@ impl EditorRuntimeGateway for PanickingCapabilitiesGateway {
 
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         ZrRuntimeSessionHandle::new(99)
+    }
+
+    fn session_identity(&self) -> GatewaySessionIdentity {
+        GatewaySessionIdentity::new(99, self.session_handle(), 1, None)
     }
 
     fn submit_operation(
@@ -333,6 +353,30 @@ fn gateway_handle_reuses_generation_bound_capability_snapshot() {
     let replacement = handle.capabilities();
     assert!(!Arc::ptr_eq(&first, &replacement));
     assert_eq!(handle.generation(), 1);
+}
+
+#[test]
+fn gateway_lease_keeps_an_origin_endpoint_after_replacement_without_blocking_the_writer() {
+    let first_calls = Arc::new(AtomicUsize::new(0));
+    let handle =
+        EditorRuntimeGatewayHandle::new(Arc::new(SessionOnlyGateway::new(41, first_calls.clone())));
+    let origin = handle.current_lease();
+
+    handle
+        .replace(Arc::new(SessionOnlyGateway::new(
+            42,
+            Arc::new(AtomicUsize::new(0)),
+        )))
+        .expect("replacement must not wait for an unblocked origin lease");
+
+    assert_eq!(origin.session_handle(), ZrRuntimeSessionHandle::new(41));
+    assert_eq!(origin.generation(), 0);
+    assert_eq!(
+        origin.tick_frame().unwrap(),
+        EditorRuntimeFrameDemand::Continuous
+    );
+    assert_eq!(first_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(handle.session_handle(), ZrRuntimeSessionHandle::new(42));
 }
 
 #[test]

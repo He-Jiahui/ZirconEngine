@@ -3,8 +3,10 @@ use zircon_runtime_interface::ui::{
     event_ui::UiValueType,
 };
 
-pub(super) fn asset_actions() -> Vec<UiActionDescriptor> {
-    vec![
+pub(super) const ASSET_ACTION_COUNT: usize = 2;
+
+pub(super) fn asset_actions() -> [UiActionDescriptor; ASSET_ACTION_COUNT] {
+    [
         UiActionDescriptor::new(
             "workbench.asset.mesh_import.path.set",
             UiEventKind::Change,

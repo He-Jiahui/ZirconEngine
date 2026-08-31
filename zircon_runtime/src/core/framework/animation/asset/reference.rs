@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 
 use super::error::AnimationAssetError;
@@ -38,14 +40,30 @@ impl TryFrom<AnimationAssetReferenceBinary> for AssetReference {
     }
 }
 
-pub(super) fn push_unique_reference(
-    references: &mut Vec<AssetReference>,
-    reference: AssetReference,
-) {
-    if !references
-        .iter()
-        .any(|existing| existing.uuid == reference.uuid && existing.locator == reference.locator)
-    {
-        references.push(reference);
+pub(super) struct DirectReferenceCollector<'a> {
+    seen: HashSet<&'a AssetReference>,
+    references: Vec<AssetReference>,
+}
+
+impl<'a> DirectReferenceCollector<'a> {
+    pub(super) fn with_capacity(capacity: usize) -> Self {
+        Self {
+            seen: HashSet::with_capacity(capacity),
+            references: Vec::with_capacity(capacity),
+        }
+    }
+
+    pub(super) fn push(&mut self, reference: &'a AssetReference) {
+        if self.seen.insert(reference) {
+            self.references.push(reference.clone());
+        }
+    }
+
+    pub(super) fn into_references(self) -> Vec<AssetReference> {
+        self.references
     }
 }
+
+#[cfg(test)]
+#[path = "reference/borrowed_dedup_tests.rs"]
+mod borrowed_dedup_tests;

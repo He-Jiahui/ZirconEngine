@@ -73,7 +73,7 @@ fn runtime_15_render_shader_definition_uses_bare_flag_names() {
 fn runtime_15_frame_extract_snapshot_adapter_uses_current_names() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let frame_extract_source = read_text(
-        &manifest_root.join("src/core/framework/render/frame_extract.rs"),
+        &manifest_root.join("src/core/framework/render/frame_extract/frame.rs"),
         "render frame extract source should be readable",
     );
     let runtime_15_plan = read_repo_text(

@@ -75,6 +75,53 @@ NATIVE_DYNAMIC_BUILD_PLAN_REQUIRED_NON_FATAL_OBJECT_ARRAY_FIELDS = (
 
 SchemaDiagnostic = Callable[[str, Any], list[str]]
 
+
+def native_dynamic_build_plan_string_array_projection(
+    label: str,
+    field: str,
+    value: Any,
+) -> tuple[list[str], list[str], list[str], list[str], bool]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"], [], [], [], False
+
+    type_diagnostics: list[str] = []
+    trimmed: list[str] = []
+    seen: set[str] = set()
+    has_blank = False
+    duplicate_found = False
+    all_strings = True
+    has_non_empty = False
+    for index, entry in enumerate(value):
+        if not isinstance(entry, str):
+            all_strings = False
+            type_diagnostics.append(f"{label}[{index}] must be a string")
+            continue
+        stripped = entry.strip()
+        if stripped:
+            has_non_empty = True
+        else:
+            has_blank = True
+            continue
+        if stripped != entry:
+            trimmed.append(
+                f"{label}[{index}] must be a non-empty trimmed string"
+            )
+            continue
+        if field == "build_features":
+            if entry in seen:
+                duplicate_found = True
+            seen.add(entry)
+
+    if not all_strings:
+        return type_diagnostics, [], [], [], has_non_empty
+    blank = [f"{label} must not contain blank entries"] if has_blank else []
+    unique = (
+        [f"{label} must not contain duplicate entries"]
+        if field == "build_features" and duplicate_found
+        else []
+    )
+    return type_diagnostics, blank, trimmed, unique, has_non_empty
+
 def native_dynamic_build_plan_execution_state_diagnostics(
     build_plan: Any,
     build_execution: Any,
@@ -108,6 +155,13 @@ def native_dynamic_build_plan_schema_diagnostics(
     target_platform: object = None,
 ) -> list[str]:
     diagnostics: list[str] = []
+    string_array_projections = {
+        field: native_dynamic_build_plan_string_array_projection(
+            f"{label}.{field}", field, build_plan.get(field)
+        )
+        for field in NATIVE_DYNAMIC_BUILD_PLAN_STRING_ARRAY_FIELDS
+        if field in build_plan and build_plan.get(field) is not None
+    }
     diagnostics.extend(
         f"{label} unknown field {field}"
         for field in sorted(build_plan)
@@ -198,68 +252,28 @@ def native_dynamic_build_plan_schema_diagnostics(
     )
     for field in NATIVE_DYNAMIC_BUILD_PLAN_STRING_ARRAY_FIELDS:
         if field in build_plan and build_plan.get(field) is not None:
-            field_label = f"{label}.{field}"
+            type_diagnostics, blank, trimmed, unique, _ = string_array_projections[field]
+            diagnostics.extend(type_diagnostics)
             if field == "build_features":
-                diagnostics.extend(
-                    native_dynamic_build_plan_feature_array_schema_diagnostics(
-                        field_label,
-                        build_plan.get(field),
-                    )
-                )
-            elif field == "diagnostics":
-                diagnostics.extend(
-                    native_dynamic_build_plan_diagnostics_array_schema_diagnostics(
-                        field_label,
-                        build_plan.get(field),
-                    )
-                )
-            else:
-                diagnostics.extend(
-                    validate_string_array_schema_diagnostics(
-                        field_label,
-                        build_plan.get(field),
-                    )
-                )
-            if field == "build_features":
-                diagnostics.extend(
-                    string_array_no_blank_entries_schema_diagnostics(
-                        field_label,
-                        build_plan.get(field),
-                    )
-                )
-                diagnostics.extend(
-                    string_array_trimmed_non_empty_entries_schema_diagnostics(
-                        field_label,
-                        build_plan.get(field),
-                    )
-                )
-                diagnostics.extend(
-                    string_array_unique_entries_schema_diagnostics(
-                        field_label,
-                        build_plan.get(field),
-                    )
-                )
+                diagnostics.extend(blank)
+                diagnostics.extend(trimmed)
+                diagnostics.extend(unique)
             if field == "diagnostics":
-                diagnostics.extend(
-                    string_array_no_blank_entries_schema_diagnostics(
-                        field_label,
-                        build_plan.get(field),
-                    )
-                )
-                diagnostics.extend(
-                    string_array_trimmed_non_empty_entries_schema_diagnostics(
-                        field_label,
-                        build_plan.get(field),
-                    )
-                )
+                diagnostics.extend(blank)
+                diagnostics.extend(trimmed)
     diagnostics.extend(
         native_dynamic_build_plan_profile_release_diagnostics(
             label,
             build_plan,
         )
     )
-    diagnostics.extend(native_dynamic_non_fatal_report_diagnostics(label, build_plan))
-    diagnostics.extend(native_dynamic_fatal_report_diagnostics(label, build_plan))
+    diagnostics_has_non_empty = string_array_projections.get(
+        "diagnostics", ([], [], [], [], False)
+    )[4]
+    if build_plan.get("fatal") is False and diagnostics_has_non_empty:
+        diagnostics.append(f"{label}.diagnostics must be empty when fatal is False")
+    if build_plan.get("fatal") is True and not diagnostics_has_non_empty:
+        diagnostics.append(f"{label} fatal report must include diagnostics")
     packages = build_plan.get("packages")
     if "packages" in build_plan and packages is not None:
         diagnostics.extend(

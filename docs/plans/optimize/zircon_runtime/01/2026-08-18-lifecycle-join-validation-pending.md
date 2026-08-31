@@ -35,6 +35,7 @@ therefore observed a false invalid-transition error instead of sharing the activ
 
 ## Acceptance
 
+- Physical test owner: `zircon_runtime/src/core/runtime/tests/activation/behavior/activation/contention.rs`.
 - `concurrent_activation_joiners_share_one_build_within_contention_budget`
 - `concurrent_activation_joiners_release_benchmark_evidence`
 - Runtime01 validator requires `sample_count=21`, `joiners=7`, `builds=1`, P50/P95 fields, and a
@@ -44,6 +45,9 @@ therefore observed a false invalid-transition error instead of sharing the activ
   `2D7FB2C9FD91318524A139B008F7D851D40871E7651DA8798D966C5D72ADAAC7`.
 - The earlier ticket `376315553d784c17a6d3a08294313cfc` is queue history only. Its stale shared
   baseline is not completion evidence; Runtime01 will be rematerialized from the post-Main HEAD.
+- The 2026-08-27 folder-backed owner split passed static structure/source-equivalence checks under
+  `runtime_02_15_activation_contention_test_owner_split_static_passed_cargo_profile_deferred`.
+  It did not rerun the managed 21-sample release gate, so this record remains pending.
 
 ## Remaining Scope
 

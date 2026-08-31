@@ -122,8 +122,8 @@ fn runtime_text_lines(
     let fallback_lines: Vec<RuntimeTextLine> = layout
         .lines
         .iter()
-        .map(|line| {
-            let shaped = shape_text_line(line.text.as_str(), &style);
+        .filter_map(|line| {
+            let shaped = shape_text_line(line.text.as_str(), &style).ok()?;
             let glyph_advances = runtime_shaped_glyph_advances_from_run(
                 line.text.as_str(),
                 &shaped,
@@ -137,14 +137,14 @@ fn runtime_text_lines(
             shaped_glyph_copy_count = shaped_glyph_copy_count.saturating_add(shaped_glyphs.len());
             shaped_glyph_copy_line_count = shaped_glyph_copy_line_count
                 .saturating_add(if shaped_glyphs.is_empty() { 0 } else { 1 });
-            RuntimeTextLine {
+            Some(RuntimeTextLine {
                 text: line.text.clone(),
                 frame_x: line.frame.x,
                 frame_y: line.frame.y,
                 glyph_advances,
                 shaped_glyphs,
                 artifact_line: None,
-            }
+            })
         })
         .collect();
     zircon_runtime::profile_counter!("editor", "retained_text_artifact_candidate_line_count", 0);

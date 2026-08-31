@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
     surface::UiPointerEventKind,
 };
 
-use super::route_for_control::route_for_control;
+use super::route_for_control::validate_control_id;
 use super::viewport_toolbar_pointer_bridge::ViewportToolbarPointerBridge;
 use super::viewport_toolbar_pointer_control::ViewportToolbarPointerControl;
 use super::viewport_toolbar_pointer_dispatch::ViewportToolbarPointerDispatch;
@@ -24,7 +24,7 @@ impl ViewportToolbarPointerBridge {
             .surface_layout(surface_key)
             .map(|surface| surface.frame)
             .ok_or_else(|| format!("Unknown viewport toolbar surface {surface_key}"))?;
-        route_for_control(surface_key, control_id)?;
+        validate_control_id(surface_key, control_id)?;
         let control = ViewportToolbarPointerControl {
             action_key: control_id.to_string(),
             frame: UiFrame::new(

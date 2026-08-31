@@ -1,4 +1,5 @@
-use crate::graphics::backend::ViewportSurface;
+use crate::core::math::UVec2;
+use crate::graphics::{backend::ViewportSurface, runtime::ViewportFrameHistory};
 
 use super::viewport_record::ViewportRecord;
 
@@ -6,11 +7,35 @@ pub(in crate::graphics::runtime::render_framework) type ViewportSurfaceLease<'a>
     SlotLease<'a, ViewportSurface>;
 
 impl ViewportRecord {
-    pub(in crate::graphics::runtime::render_framework) fn bind_surface(
+    /// Publishes a prepared surface and its extent while the render-framework
+    /// state lock is held. The caller must fence submissions before invoking
+    /// this so the previous surface and resolution-dependent histories are no
+    /// longer in use.
+    pub(in crate::graphics::runtime::render_framework) fn replace_surface_and_extent(
         &mut self,
         surface: ViewportSurface,
-    ) {
-        self.surface = Some(surface);
+        size: UVec2,
+    ) -> Vec<ViewportFrameHistory> {
+        self.descriptor.size = size;
+        let previous_surface = self.surface.replace(surface);
+        let histories = std::mem::take(&mut self.camera_histories)
+            .into_values()
+            .collect();
+        self.temporal_frame_index = 0;
+        self.last_capture_pipeline = None;
+        self.pending_capture_profiles.clear();
+        self.last_promoted_capture_generation = None;
+        self.hybrid_gi_runtimes.clear();
+        self.virtual_geometry_runtimes.clear();
+        self.light_grid_reports.clear();
+        self.virtual_geometry_debug_snapshots.clear();
+        self.last_capture = None;
+        self.last_visible_spatial_query = None;
+        self.motion_vector_cameras.clear();
+        self.particle_previous_sprites.clear();
+        self.capture_mailbox = Default::default();
+        drop(previous_surface);
+        histories
     }
 
     pub(in crate::graphics::runtime::render_framework) fn unbind_surface(&mut self) {

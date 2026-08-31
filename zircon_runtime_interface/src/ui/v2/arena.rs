@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use toml::Value;
 
+use crate::ui::layout::UiPixelSnappingPolicy;
 use crate::ui::template::UiBindingRef;
 
 use super::{UiV2Repeat, UiV2StyleDeclarationBlock};
@@ -48,6 +49,8 @@ pub struct UiV2ArenaNode {
     pub component: String,
     #[serde(default)]
     pub control_id: Option<String>,
+    #[serde(default)]
+    pub pixel_snapping: UiPixelSnappingPolicy,
     #[serde(default)]
     pub classes: Vec<String>,
     #[serde(default)]

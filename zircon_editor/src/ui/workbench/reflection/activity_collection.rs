@@ -12,20 +12,41 @@ use crate::ui::workbench::view::ViewKind;
 use super::activity_actions::activity_actions_for_tab;
 use super::name_mapping::content_kind_name;
 
+#[cfg(test)]
+#[path = "activity_collection/single_pass_tests.rs"]
+mod single_pass_tests;
+
 pub(super) fn collect_workspace_activities(
     workspace: &DocumentWorkspaceSnapshot,
     host: EditorActivityHost,
 ) -> Vec<EditorActivityReflection> {
+    let mut activities = Vec::with_capacity(workspace_activity_count(workspace));
+    collect_workspace_activities_into(workspace, &host, &mut activities);
+    activities
+}
+
+fn workspace_activity_count(workspace: &DocumentWorkspaceSnapshot) -> usize {
     match workspace {
         DocumentWorkspaceSnapshot::Split { first, second, .. } => {
-            let mut activities = collect_workspace_activities(first, host.clone());
-            activities.extend(collect_workspace_activities(second, host));
-            activities
+            workspace_activity_count(first).saturating_add(workspace_activity_count(second))
         }
-        DocumentWorkspaceSnapshot::Tabs { tabs, .. } => tabs
-            .iter()
-            .map(|tab| activity_from_tab(tab, host.clone()))
-            .collect(),
+        DocumentWorkspaceSnapshot::Tabs { tabs, .. } => tabs.len(),
+    }
+}
+
+fn collect_workspace_activities_into(
+    workspace: &DocumentWorkspaceSnapshot,
+    host: &EditorActivityHost,
+    activities: &mut Vec<EditorActivityReflection>,
+) {
+    match workspace {
+        DocumentWorkspaceSnapshot::Split { first, second, .. } => {
+            collect_workspace_activities_into(first, host, activities);
+            collect_workspace_activities_into(second, host, activities);
+        }
+        DocumentWorkspaceSnapshot::Tabs { tabs, .. } => {
+            activities.extend(tabs.iter().map(|tab| activity_from_tab(tab, host.clone())));
+        }
     }
 }
 

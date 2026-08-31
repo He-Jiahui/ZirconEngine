@@ -70,6 +70,7 @@ impl RecentProject {
                 engine_version_req: None,
                 default_scene: "res://scenes/main.scene.toml".to_string(),
                 format_version: PROJECT_MANIFEST_FORMAT_VERSION,
+                project_guid: None,
             },
             path: path.into(),
             last_opened_unix_ms,

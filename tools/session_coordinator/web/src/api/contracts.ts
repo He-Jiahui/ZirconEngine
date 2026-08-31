@@ -162,6 +162,31 @@ export interface FailureProjection {
   diagnostics: Array<{ diagnosticId: number; code: string; message: string; paths: string[]; createdAt: string }>;
 }
 
+export interface FailureHistoryEvent {
+  kind: "added" | "fixed";
+  createdAt: string;
+  artifactPath: string;
+}
+
+export interface FailureHistoryChain {
+  lifecycleKey: string;
+  summarySlug: string;
+  status: "open" | "fixed";
+  priority: number;
+  originPlan: string;
+  fixingPlan: string;
+  artifactPath: string;
+  createdAt: string;
+  resolvedAt: string | null;
+  events: FailureHistoryEvent[];
+}
+
+export interface FailureHistoryProjection {
+  chains: FailureHistoryChain[];
+  statusCounts: { open: number; fixed: number };
+  truncated: boolean;
+}
+
 export interface CollaborationProjection {
   baseline: BaselineEpoch | null;
   leases: LeaseProjection[];
@@ -176,6 +201,41 @@ export interface ValidationProjection {
   artifactLifecycle: ArtifactLifecycleProjection;
   validationCopies: ValidationCopyProjection[];
   runHealth?: CargoRunHealthProjection[];
+}
+
+export type ValidationTicketStatus = "queued" | "materializing" | "running" | "passed" | "failed" | "snapshot_stale";
+
+export interface ValidationHistoryEvent {
+  eventId: number;
+  type: string;
+  createdAt: string;
+  fromStatus: ValidationTicketStatus | null;
+  toStatus: ValidationTicketStatus | null;
+  phase: string | null;
+  errorCode: string | null;
+  jobId: string | null;
+  runId: string | null;
+  exitCode: number | null;
+}
+
+export interface ValidationHistoryTicket {
+  ticketId: string;
+  sessionId: string;
+  planPath: string;
+  status: ValidationTicketStatus;
+  sourceManifestHash: string;
+  command: string[];
+  commandTruncated: boolean;
+  createdAt: string;
+  updatedAt: string;
+  events: ValidationHistoryEvent[];
+  eventsTruncated: boolean;
+}
+
+export interface ValidationHistoryProjection {
+  tickets: ValidationHistoryTicket[];
+  statusCounts: Record<ValidationTicketStatus, number>;
+  truncated: boolean;
 }
 
 export interface CargoRunHealthProjection {
@@ -213,6 +273,10 @@ export interface ArtifactLifecycleProjection {
 }
 
 export interface GitProjection { finalizeRequests: FinalizeRequestProjection[] }
+
+export interface ContinuationProjection {
+  continuations: ExperienceProjection["continuations"];
+}
 
 export interface ExperienceProjection {
   sync: {

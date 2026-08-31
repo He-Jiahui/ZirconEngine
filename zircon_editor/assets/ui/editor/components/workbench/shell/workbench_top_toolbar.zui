@@ -21,8 +21,8 @@ default_classes = ["workbench-topbar"]
 component = "VerticalGroup"
 control_id = "WorkbenchWindowTopToolbar"
 classes = ["workbench-topbar"]
-props = { background_color = "$editor.surface.2", hover_background_color = "$editor.surface.hover", pressed_background_color = "$editor.surface.3", selected_background_color = "$editor.surface.selected", disabled_background_color = "$editor.surface.disabled", border_color = "$editor.border", focus_border_color = "$editor.accent", separator_edge = "bottom", separator_color = "$editor.separator.soft", separator_thickness = "$editor.control.border_width", foreground_color = "$editor.text.secondary", active_foreground_color = "$editor.text.primary", disabled_foreground_color = "$editor.text.disabled", icon_color = "$editor.text.secondary", active_icon_color = "$editor.accent", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_vertical = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" } }
+props = { background_color = "$editor.surface.2", hover_background_color = "$editor.surface.hover", pressed_background_color = "$editor.surface.3", selected_background_color = "$editor.surface.selected", disabled_background_color = "$editor.surface.disabled", border_color = "$editor.border", focus_border_color = "$editor.focus.ring", separator_edge = "bottom", separator_color = "$editor.separator.soft", separator_thickness = "$editor.control.border_width", foreground_color = "$editor.text.secondary", active_foreground_color = "$editor.text.primary", disabled_foreground_color = "$editor.text.disabled", icon_color = "$editor.text.secondary", active_icon_color = "$editor.accent", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_vertical = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.workbench_toolbar.height", preferred = "$editor.chrome.workbench_toolbar.height", max = "$editor.chrome.workbench_toolbar.height", stretch = "Fixed" } }
 children = [
   { node = "toolbar_command_row" },
   { node = "toolbar_module_tabs" },
@@ -32,7 +32,7 @@ children = [
 component = "HorizontalGroup"
 control_id = "WorkbenchToolbarCommandRow"
 classes = ["workbench-toolbar-command-row"]
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.workbench_toolbar.command_row.height", preferred = "$editor.chrome.workbench_toolbar.command_row.height", max = "$editor.chrome.workbench_toolbar.command_row.height", stretch = "Fixed" } }
 children = [
   { node = "toolbar_file_group", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0, shrink_value = 1.0 } } } },
   { node = "toolbar_file_group_divider", slot = { layout = { alignment = { vertical = "Center" } } } },
@@ -62,7 +62,7 @@ children = [
 [nodes.toolbar_menu]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchToolbarMenu"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/menu.svg", label = "Menu" }
 layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "MenuAction/OpenMainMenu", event = "Click", route = "workbench.menu.main.open" }]
@@ -70,26 +70,26 @@ events = [{ id = "MenuAction/OpenMainMenu", event = "Click", route = "workbench.
 [nodes.toolbar_assets]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchToolbarAssets"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/package.svg", label = "Assets" }
 layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
-events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", route = "workbench.asset.open_asset_browser" }]
+events = [{ id = "Workbench/OpenAssetBrowserFromToolbar", event = "Click", action = { action = "view.asset_browser.open" } }]
 
 [nodes.toolbar_open]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchToolbarOpen"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/folder-open.svg", label = "Open" }
 layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
-events = [{ id = "MenuAction/OpenProject", event = "Click", route = "workbench.project.open" }]
+events = [{ id = "MenuAction/OpenProject", event = "Click", action = { action = "file.project.open" } }]
 
 [nodes.toolbar_save]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchToolbarSave"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/save.svg", label = "Save" }
 layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
-events = [{ id = "MenuAction/SaveProject", event = "Click", route = "workbench.project.save" }]
+events = [{ id = "MenuAction/SaveProject", event = "Click", action = { action = "file.project.save" } }]
 
 [nodes.toolbar_spacer_left]
 component = "Space"
@@ -107,101 +107,112 @@ layout = { width = { min = "$editor.control.border_width", preferred = "$editor.
 component = "HorizontalGroup"
 control_id = "WorkbenchModuleTabs"
 classes = ["workbench-toolbar-group", "workbench-module-tabs"]
-layout = { container = { kind = "HorizontalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
-children = [{ node = "module_scene" }, { node = "module_effect" }, { node = "module_ability" }, { node = "module_tags" }, { node = "module_perception" }, { node = "module_material" }, { node = "module_behavior" }, { node = "module_render" }, { node = "module_assets" }, { node = "module_vfx" }, { node = "module_hud" }, { node = "module_more" }]
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [
+  { node = "module_tab_scroll", slot = { layout = { linear_size = { rule = "Stretch", value = 1.0, shrink_value = 1.0 } } } },
+  { node = "module_more", slot = { layout = { alignment = { vertical = "Center" } } } },
+]
+
+[nodes.module_tab_scroll]
+component = "ScrollableBox"
+control_id = "WorkbenchModuleTabScroll"
+classes = ["workbench-module-tab-scroll"]
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Horizontal", gap = "$editor.density.gap.xsmall", scrollbar_visibility = "Never" }, input_policy = "Receive", width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "module_scene" }, { node = "module_effect" }, { node = "module_ability" }, { node = "module_tags" }, { node = "module_perception" }, { node = "module_material" }, { node = "module_behavior" }, { node = "module_render" }, { node = "module_assets" }, { node = "module_vfx" }, { node = "module_hud" }]
 
 [nodes.module_scene]
 component = "WorkbenchTab"
 control_id = "WorkbenchModuleScene"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "Scene", checked = false, selected = false, value = false }
-layout = { width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "Scene" }
+layout = { width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Scene", event = "Click", route = "workbench.module.scene" }]
 
 [nodes.module_effect]
 component = "WorkbenchTab"
 control_id = "WorkbenchModuleEffect"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "Effect", checked = true, selected = true, value = true }
-layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "Effect" }
+layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Effect", event = "Click", route = "workbench.module.effect" }]
 
 [nodes.module_ability]
 component = "WorkbenchTab"
 control_id = "WorkbenchModuleAbility"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "Ability", checked = false, selected = false, value = false }
-layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "Ability" }
+layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Ability", event = "Click", route = "workbench.module.ability" }]
 
 [nodes.module_tags]
 component = "WorkbenchTab"
 control_id = "WorkbenchModuleTags"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "Tags", checked = false, selected = false, value = false }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "Tags" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Tags", event = "Click", route = "workbench.module.tags" }]
 
 [nodes.module_perception]
 component = "WorkbenchTab"
 control_id = "WorkbenchModulePerception"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "Perception", checked = false, selected = false, value = false }
-layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "Perception" }
+layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Perception", event = "Click", route = "workbench.module.perception" }]
 
 [nodes.module_material]
 component = "WorkbenchTab"
 control_id = "WorkbenchModuleMaterial"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "Material", checked = false, selected = false, value = false }
-layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "Material" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Material", event = "Click", route = "workbench.module.material" }]
 
 [nodes.module_behavior]
 component = "WorkbenchTab"
 control_id = "WorkbenchModuleBehavior"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "Behavior", checked = false, selected = false, value = false }
-layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "Behavior" }
+layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Behavior", event = "Click", route = "workbench.module.behavior" }]
 
 [nodes.module_render]
 component = "WorkbenchTab"
 control_id = "WorkbenchModuleRender"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "Render", checked = false, selected = false, value = false }
-layout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "Render" }
+layout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Render", event = "Click", route = "workbench.module.render" }]
 
 [nodes.module_assets]
 component = "WorkbenchTab"
 control_id = "WorkbenchModuleAssets"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "Assets", checked = false, selected = false, value = false }
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "Assets" }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Assets", event = "Click", route = "workbench.module.assets" }]
 
 [nodes.module_vfx]
 component = "WorkbenchTab"
 control_id = "WorkbenchModuleVfx"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "VFX", checked = false, selected = false, value = false }
-layout = { width = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "VFX" }
+layout = { width = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Vfx", event = "Click", route = "workbench.module.vfx" }]
 
 [nodes.module_hud]
 component = "WorkbenchTab"
 control_id = "WorkbenchModuleHud"
-classes = ["workbench-tab", "workbench-module-tab"]
-props = { text = "HUD", checked = false, selected = false, value = false }
-layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["workbench-tab", "workbench-module-tab", "workbench-toolbar-tab"]
+props = { text = "HUD" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Hud", event = "Click", route = "workbench.module.hud" }]
 
 [nodes.module_more]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchModuleMore"
-classes = ["workbench-icon-button", "workbench-module-overflow"]
+classes = ["workbench-icon-button", "workbench-module-overflow", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/more-vertical.svg", label = "More Modules" }
 layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/More", event = "Click", route = "workbench.module.more" }]
@@ -210,7 +221,7 @@ events = [{ id = "WorkbenchModule/More", event = "Click", route = "workbench.mod
 component = "HorizontalGroup"
 control_id = "WorkbenchModuleCommands"
 classes = ["workbench-toolbar-group", "workbench-module-commands"]
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 72.0, preferred = 388.0, max = 388.0, priority = 60, weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 72.0, preferred = 300.0, max = 300.0, priority = 60, weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "module_save", slot = { layout = { alignment = { vertical = "Center" } } } },
   { node = "module_browse", slot = { layout = { alignment = { vertical = "Center" } } } },
@@ -220,33 +231,33 @@ children = [
 ]
 
 [nodes.module_save]
-component = "WorkbenchButton"
+component = "WorkbenchIconButton"
 control_id = "WorkbenchModuleSave"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Save", icon = "zircon_editor_shell/toolbar/save.svg", button_variant = "tertiary", button_color = "secondary", button_size = "small", background_color = "transparent", border_color = "transparent", layout_spacing = "$editor.density.gap.small" }
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
+classes = ["workbench-icon-button", "workbench-module-command", "workbench-toolbar-action", "workbench-quiet-action"]
+props = { icon = "zircon_editor_shell/toolbar/save.svg", label = "Save Current Module", tooltip = "Save Current Module" }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Save", event = "Click", route = "workbench.module.save" }]
 
 [nodes.module_browse]
-component = "WorkbenchButton"
+component = "WorkbenchIconButton"
 control_id = "WorkbenchModuleBrowse"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Browse", icon = "zircon_editor_shell/toolbar/folder-open.svg", button_variant = "tertiary", button_color = "secondary", button_size = "small", background_color = "transparent", border_color = "transparent", layout_spacing = "$editor.density.gap.small" }
-layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
+classes = ["workbench-icon-button", "workbench-module-command", "workbench-toolbar-action", "workbench-quiet-action"]
+props = { icon = "zircon_editor_shell/toolbar/folder-open.svg", label = "Browse Current Module", tooltip = "Browse Current Module" }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Browse", event = "Click", route = "workbench.module.browse" }]
 
 [nodes.module_compile]
 component = "WorkbenchButton"
 control_id = "WorkbenchModuleCompile"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Compile", icon = "zircon_editor_shell/toolbar/compile.svg", button_variant = "filled", button_color = "accent", button_size = "small", selected = true, checked = true, layout_spacing = "$editor.density.gap.small" }
+classes = ["workbench-control-button", "workbench-module-command", "workbench-toolbar-action"]
+props = { text = "Compile", icon = "zircon_editor_shell/toolbar/compile.svg", tooltip = "Compile Current Module", button_variant = "filled", button_color = "accent", button_size = "small", layout_spacing = "$editor.density.gap.small" }
 layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Compile", event = "Click", route = "workbench.module.compile" }]
 
 [nodes.module_diff]
 component = "WorkbenchButton"
 control_id = "WorkbenchModuleDiff"
-classes = ["workbench-control-button", "workbench-module-command"]
+classes = ["workbench-control-button", "workbench-module-command", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { text = "Diff", button_variant = "tertiary", button_color = "secondary", button_size = "small", background_color = "transparent", border_color = "transparent" }
 layout = { width = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Diff", event = "Click", route = "workbench.module.diff" }]
@@ -254,7 +265,7 @@ events = [{ id = "WorkbenchModule/Diff", event = "Click", route = "workbench.mod
 [nodes.module_simulate]
 component = "WorkbenchButton"
 control_id = "WorkbenchModuleSimulate"
-classes = ["workbench-control-button", "workbench-module-command"]
+classes = ["workbench-control-button", "workbench-module-command", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { text = "Sim", button_variant = "tertiary", button_color = "secondary", button_size = "small", background_color = "transparent", border_color = "transparent" }
 layout = { width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Simulate", event = "Click", route = "workbench.module.simulate" }]
@@ -275,15 +286,15 @@ children = [
 [nodes.tool_select]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchToolSelect"
-classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/toolbar/select.svg", label = "Select", selected = true, checked = true }
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
+props = { icon = "zircon_editor_shell/toolbar/select.svg", label = "Select" }
 layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "Tool/Select", event = "Click", route = "workbench.tool.select" }]
 
 [nodes.tool_move]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchToolMove"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/move.svg", label = "Move" }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "Tool/Move", event = "Click", route = "workbench.tool.move" }]
@@ -291,7 +302,7 @@ events = [{ id = "Tool/Move", event = "Click", route = "workbench.tool.move" }]
 [nodes.tool_rotate]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchToolRotate"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/rotate.svg", label = "Rotate" }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "Tool/Rotate", event = "Click", route = "workbench.tool.rotate" }]
@@ -299,7 +310,7 @@ events = [{ id = "Tool/Rotate", event = "Click", route = "workbench.tool.rotate"
 [nodes.tool_scale]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchToolScale"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/scale.svg", label = "Scale" }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "Tool/Scale", event = "Click", route = "workbench.tool.scale" }]
@@ -307,7 +318,7 @@ events = [{ id = "Tool/Scale", event = "Click", route = "workbench.tool.scale" }
 [nodes.tool_snap]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchToolSnap"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/snap.svg", label = "Snap" }
 layout = { width = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "Tool/ToggleSnap", event = "Click", route = "workbench.tool.toggle_snap" }]
@@ -357,28 +368,29 @@ layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.smal
 children = [
   { node = "layout_grid", slot = { layout = { alignment = { vertical = "Center" } } } },
   { node = "theme_toggle", slot = { layout = { alignment = { vertical = "Center" } } } },
+  { node = "module_details_drawer_toggle", slot = { layout = { alignment = { vertical = "Center" } } } },
 ]
 
 [nodes.run_play]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchRunPlay"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/play.svg", label = "Play", button_color = "success" }
 layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
-events = [{ id = "Run/Play", event = "Click", route = "workbench.run.play" }]
+events = [{ id = "Run/Play", event = "Click", action = { action = "runtime.play_mode.enter" } }]
 
 [nodes.run_stop]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchRunStop"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "editor_pages/scene_viewport/play/stop.svg", label = "Stop", button_color = "error", visibility = "collapsed" }
 layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
-events = [{ id = "ViewportToolbar/ExitPlayMode", event = "Click", route = "workbench.play_mode.exit" }]
+events = [{ id = "Run/Stop", event = "Click", action = { action = "runtime.play_mode.exit" } }]
 
 [nodes.run_mode]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchRunMode"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/dropdown.svg", label = "Run Mode" }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "Run/OpenModeMenu", event = "Click", route = "workbench.run.open_mode_menu" }]
@@ -386,7 +398,7 @@ events = [{ id = "Run/OpenModeMenu", event = "Click", route = "workbench.run.ope
 [nodes.layout_grid]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchLayoutGrid"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/layout-grid.svg", label = "Layouts" }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "DockCommand/OpenLayoutMenu", event = "Click", route = "workbench.dock.open_layout_menu" }]
@@ -394,7 +406,15 @@ events = [{ id = "DockCommand/OpenLayoutMenu", event = "Click", route = "workben
 [nodes.theme_toggle]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchThemeToggle"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/toolbar/sun.svg", label = "Theme" }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "Workbench/ToggleTheme", event = "Click", route = "workbench.theme.toggle" }]
+
+[nodes.module_details_drawer_toggle]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchModuleDetailsDrawerToggle"
+classes = ["workbench-icon-button", "workbench-toolbar-action", "workbench-quiet-action"]
+props = { icon = "editor_pages/workbench/dock/dock-right.svg", label = "Module Details", tooltip = "Module Details", responsive_min_tier = "narrow", responsive_max_tier = "regular" }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
+events = [{ id = "Workbench/ToggleModuleDetailsDrawer", event = "Click", route = "workbench.module.details_drawer.toggle" }]

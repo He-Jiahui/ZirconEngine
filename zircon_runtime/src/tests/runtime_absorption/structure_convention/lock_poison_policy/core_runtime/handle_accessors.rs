@@ -28,7 +28,7 @@ fn runtime_15_core_handle_diagnostics_lock_poison_recovery_guard_covers_diagnost
 }
 
 #[test]
-fn runtime_15_core_handle_time_lock_poison_recovery_guard_covers_runtime_clocks() {
+fn runtime_15_core_handle_time_lock_poison_recovery_guard_covers_outer_time_authority() {
     let time_handle = read_runtime_src("core/runtime/handle/time.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -39,23 +39,71 @@ fn runtime_15_core_handle_time_lock_poison_recovery_guard_covers_runtime_clocks(
     let diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
 
     assert_contains_all(
-        "CoreHandle time poison recovery",
+        "CoreHandle outer-time poison recovery",
         &time_handle,
         &[
             "use std::sync::MutexGuard;",
-            "fn lock_time(&self) -> MutexGuard<'_, RuntimeTimeClocks>",
+            "fn lock_time(&self) -> MutexGuard<'_, RuntimeTimeAuthority>",
             "fn lock_frame_clock(&self) -> MutexGuard<'_, FrameClock>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
-            "*self.lock_time()",
             "let mut time = self.lock_time();",
             "self.lock_frame_clock().tick()",
-            "self.lock_time().pause_virtual_time()",
-            "record_time_diagnostics(self, clocks, advance)",
-            "handle.record_diagnostic(",
-            "core_handle_time_accessors_recover_poisoned_runtime_clocks",
+            "record_time_diagnostics(self, snapshot)",
+            "core_handle_time_accessors_recover_poisoned_outer_time_locks",
         ],
     );
     assert_no_direct_lock_unwrap_in_production("core handle time", &time_handle);
+}
+
+#[test]
+fn runtime_22_core_time_hard_cut_keeps_simulation_clocks_world_owned() {
+    let time_owner = read_runtime_src("core/runtime/time.rs");
+    let time_handle = read_runtime_src("core/runtime/handle/time.rs");
+    let level_system = read_runtime_src("scene/level_system.rs");
+    let world_time = read_runtime_src("scene/world_time/controller.rs");
+    let world_driver = read_runtime_src("scene/module/world_driver.rs");
+
+    assert_contains_all(
+        "Runtime22 core outer-frame owner",
+        &time_owner,
+        &[
+            "pub(crate) struct RuntimeTimeAuthority",
+            "real: Time<MonotonicReal>",
+            "fixed_step_budget: u32",
+        ],
+    );
+    assert!(
+        !time_owner.contains("RuntimeTimeClocks")
+            && !time_owner.contains("Time<Virtual>")
+            && !time_owner.contains("Time<Fixed>"),
+        "core time owner must not recreate a global virtual/fixed simulation clock"
+    );
+    assert!(
+        !time_handle.contains("pub fn virtual_time")
+            && !time_handle.contains("pub fn fixed_time")
+            && !time_handle.contains("pub fn pause_virtual_time")
+            && !time_handle.contains("pub fn unpause_virtual_time"),
+        "CoreHandle must not expose World simulation clocks or pause state"
+    );
+    assert_contains_all(
+        "Runtime22 World simulation-time owner",
+        &world_time,
+        &[
+            "virtual_time: Time<Virtual>",
+            "fixed_time: Time<Fixed>",
+            "outer.fixed_step_budget()",
+        ],
+    );
+    assert_contains_all(
+        "Runtime22 Level fixed-step budget handoff",
+        &level_system,
+        &["advance_world_time(&self, outer: FrameTimeSnapshot)"],
+    );
+    assert!(
+        !world_time.contains("max_fixed_steps")
+            && !world_driver.contains("advance_world_time(snapshot,"),
+        "the outer FrameTimeSnapshot must remain the only fixed-step budget source"
+    );
 }
 
 #[test]
@@ -82,7 +130,7 @@ fn runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registr
             "self.lock_states().next_state::<T>()",
             "self.lock_states().set_next_state(state)",
             "self.lock_states().apply_state_transition::<T>()?",
-            "self.lock_states().transition_events::<T>()",
+            "self.lock_states().latest_transition::<T>()",
             "core_handle_state_accessors_recover_poisoned_state_registry_lock",
         ],
     );

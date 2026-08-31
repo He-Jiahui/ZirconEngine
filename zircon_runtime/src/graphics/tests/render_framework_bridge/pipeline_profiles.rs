@@ -137,15 +137,21 @@ fn quality_profile_can_disable_ssao_clustered_and_history_features() {
     let stats = server.query_stats().unwrap();
 
     assert_ne!(before, stats.last_frame_history);
-    assert!(!stats
-        .last_effective_features
-        .contains(&"screen_space_ambient_occlusion".to_string()));
-    assert!(!stats
-        .last_effective_features
-        .contains(&"clustered_lighting".to_string()));
-    assert!(!stats
-        .last_effective_features
-        .contains(&"temporal".to_string()));
+    assert!(
+        !stats
+            .last_effective_features
+            .contains(&"screen_space_ambient_occlusion".to_string())
+    );
+    assert!(
+        !stats
+            .last_effective_features
+            .contains(&"clustered_lighting".to_string())
+    );
+    assert!(
+        !stats
+            .last_effective_features
+            .contains(&"temporal".to_string())
+    );
 }
 
 #[test]
@@ -339,13 +345,15 @@ fn render_framework_rejects_pipeline_asset_with_unknown_executor_id() {
             "bad-executor-feature",
             Vec::new(),
             Vec::new(),
-            vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "bad-executor-pass",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("custom.missing-executor")
-            .with_side_effects()],
+            vec![
+                RenderFeaturePassDescriptor::new(
+                    RenderPassStage::PostProcess,
+                    "bad-executor-pass",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("custom.missing-executor")
+                .with_side_effects(),
+            ],
         ));
 
     let error = server.register_pipeline_asset(custom_pipeline).unwrap_err();
@@ -380,13 +388,24 @@ fn render_framework_accepts_pipeline_asset_with_culled_unknown_executor_id() {
             "bad-culled-executor-feature",
             Vec::new(),
             Vec::new(),
-            vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::Debug,
-                "bad-culled-executor-pass",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("custom.culled-missing")
-            .write_texture("unused-custom-target")],
+            vec![
+                RenderFeaturePassDescriptor::new(
+                    RenderPassStage::Debug,
+                    "bad-culled-executor-pass",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("custom.culled-missing")
+                .write_texture_with_schema(
+                    "unused-custom-target",
+                    crate::render_graph::RenderResourceSchema::texture(
+                        crate::render_graph::RenderTextureSchema::new(
+                            crate::rhi::TextureFormat::Rgba8Unorm,
+                            crate::rhi::TextureUsage::RENDER_ATTACHMENT
+                                | crate::rhi::TextureUsage::SAMPLED,
+                        ),
+                    ),
+                ),
+            ],
         ));
 
     let handle = server.register_pipeline_asset(custom_pipeline).unwrap();
@@ -414,12 +433,14 @@ fn render_framework_rejects_quality_gated_bad_descriptor_during_registration() {
             "bad-gated-descriptor",
             Vec::new(),
             Vec::new(),
-            vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::Deferred,
-                "bad-gated-registration-pass",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.uber")],
+            vec![
+                RenderFeaturePassDescriptor::new(
+                    RenderPassStage::Deferred,
+                    "bad-gated-registration-pass",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("post.uber"),
+            ],
         ));
 
     let error = server.register_pipeline_asset(custom_pipeline).unwrap_err();
@@ -455,13 +476,15 @@ fn render_framework_rejects_quality_gated_unknown_executor_during_registration()
             "bad-gated-executor",
             Vec::new(),
             Vec::new(),
-            vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "bad-gated-executor-pass",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("custom.gated-missing")
-            .with_side_effects()],
+            vec![
+                RenderFeaturePassDescriptor::new(
+                    RenderPassStage::PostProcess,
+                    "bad-gated-executor-pass",
+                    QueueLane::Graphics,
+                )
+                .with_executor_id("custom.gated-missing")
+                .with_side_effects(),
+            ],
         ));
 
     let error = server.register_pipeline_asset(custom_pipeline).unwrap_err();

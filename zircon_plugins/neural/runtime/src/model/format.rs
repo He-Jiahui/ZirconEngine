@@ -3,8 +3,8 @@ use std::mem::size_of;
 
 use crate::ops::{NnOp, NnOpAttrs, NnOpAttrsError, NnOpCode};
 use crate::{
-    NN_WEIGHT_ALIGNMENT, NnDataType, NnModelAsset, NnModelValidationError, NnTensorDesc,
-    NnTensorKind,
+    NnDataType, NnModelAsset, NnModelValidationError, NnTensorDesc, NnTensorKind,
+    NN_WEIGHT_ALIGNMENT,
 };
 
 const ZNN_MAGIC: [u8; 4] = *b"ZRNN";

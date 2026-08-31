@@ -76,8 +76,8 @@ catalog owner.
 
 ## 修复结果与回传
 
-Open state: `待 Plan08 canonical descriptor route repair`; no commandlet behavior, Cargo result,
-fixed return, or commit is claimed.
+Open state: `canonical descriptor route、plugin-list typed action、capability gate 与 Plugin12 shared
+catalog projection 已在 current source 闭合；managed Cargo、独立复核、fixed return 与受管提交尚未完成。`
 
 ## 产出记录与时间
 
@@ -85,3 +85,12 @@ fixed return, or commit is claimed.
   `asset.migration.migrate_assets` is registered for remote headless execution. The missing
   `plugin-list` descriptor and typed route are handed to Plan08; Plan16 must not add a second
   registry while this record remains open.
+- 2026-08-29：状态 `source-complete / static-contract-reviewed / managed-validation-pending`。
+  current source 已在唯一 `EditorCommandRegistry::default_workbench` 中注册 `plugin.catalog.list`，
+  descriptor 同时持有 `HeadlessPluginList` typed action、`commandlet.route.plugin_list` route、
+  `plugin-list` CLI name、`editor.commandlet.plugin-list` schema、remote-callable 与
+  `plugin.catalog.read` capability。parser 只经 canonical name lookup 生成 immutable request token，
+  runner 不含 commandlet-local string dispatch table，并直接复用 `EditorPluginManager::builtin_shared`
+  的共享 `Arc<EditorPluginCatalogProjection>`。现有聚焦回归覆盖唯一注册、unknown=2、missing
+  capability=3、稳定 JSON、package-id 排序和共享投影指针复用；本轮未运行 Cargo，因此 handoff
+  保持 open，不生成 `fixed-*` 或回传。

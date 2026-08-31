@@ -1,7 +1,6 @@
 //! Runtime world inspection snapshots built from ECS hierarchy and reflection state.
 
 mod artifact;
-mod field;
 mod hierarchy;
 mod snapshot;
 mod subscription;
@@ -15,7 +14,6 @@ pub use artifact::{
     WorldInspectionFieldDelta, WorldInspectionFieldPath, WorldInspectionFieldsArtifact,
     WorldInspectionSummary,
 };
-pub use field::WorldInspectionField;
 pub use hierarchy::WorldInspectionHierarchyRow;
-pub use snapshot::WorldInspection;
 pub use subscription::{SubscriptionTable, SubscriptionTableDiagnostics, SubscriptionTableLimits};
+pub use zircon_runtime_interface::world_sync::WorldInspectionFieldRow as WorldInspectionField;

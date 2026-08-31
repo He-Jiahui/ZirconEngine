@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::scene::ecs::{storage::StoredComponent, ComponentId, ComponentTicks};
 use crate::scene::EntityId;
+use crate::scene::ecs::{ComponentId, ComponentTicks, storage::StoredComponent};
 
 pub(crate) struct ArchetypeTakenRow {
     entity: EntityId,

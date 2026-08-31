@@ -67,9 +67,7 @@ impl VirtualGeometryRuntimeState {
                     break;
                 }
 
-                if !self
-                    .evict_one(self.ordered_evictable_pages_for_target(page_id, evictable_pages))
-                {
+                if !self.evict_preferred_page_for_target(page_id, evictable_pages) {
                     self.retain_resident_evictable_pages();
                     return;
                 }

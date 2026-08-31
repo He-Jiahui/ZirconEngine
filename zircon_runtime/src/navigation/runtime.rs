@@ -201,12 +201,7 @@ impl BuiltinNavigationManager {
             state.stats.active_obstacles = projection.obstacles.len();
             projection
         };
-        let Some(agent) = projection
-            .agents
-            .iter()
-            .find(|candidate| candidate.entity == entity)
-            .map(|candidate| candidate.descriptor.clone())
-        else {
+        let Some(agent) = projection.agent_descriptor(entity).cloned() else {
             self.lock_state().store_navigation_projection(projection);
             return Ok(NavAgentTickReport::default());
         };

@@ -8,8 +8,8 @@ use std::{
 
 use crate::core::jobs::{EditorJobSystem, JobFailure};
 use crate::ui::host::export_process_support::{
-    ExportProcessChildGuard, ExportProcessError, configure_process_tree_cancellation,
-    create_output_capture, join_output_with_poll, terminate_process_tree,
+    configure_process_tree_cancellation, create_output_capture, join_output_with_poll,
+    terminate_process_tree, ExportProcessChildGuard, ExportProcessError,
 };
 use zircon_runtime_interface::export::ExportStage;
 
@@ -464,6 +464,8 @@ pub fn execute_export_wizard_pipeline(
         };
     }
 
+    stages.reserve(plan.stages.len());
+
     for command in plan.ordered_commands() {
         let stage_execution = execute_export_wizard_stage(command, runner, &mut progress);
         diagnostics.extend(stage_execution.diagnostics.iter().cloned());
@@ -601,3 +603,7 @@ fn poll_export_process(
     }
     try_wait_export_process(child, stage)
 }
+
+#[cfg(test)]
+#[path = "execution/capacity_tests.rs"]
+mod capacity_tests;

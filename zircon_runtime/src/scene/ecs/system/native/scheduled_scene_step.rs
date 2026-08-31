@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::scene::ecs::{SceneSystemClockDomain, SceneSystemDescriptor, SystemStage};
+use crate::scene::ecs::{SceneSystemDescriptor, SceneSystemTickPolicy, SystemStage};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScheduledSceneStep {
@@ -8,7 +8,7 @@ pub(crate) enum ScheduledSceneStep {
         id: String,
         stage: SystemStage,
         order: i32,
-        clock_domain: SceneSystemClockDomain,
+        tick_policy: SceneSystemTickPolicy,
         worker_safe: bool,
         conservative_world_writer: bool,
     },
@@ -16,13 +16,13 @@ pub(crate) enum ScheduledSceneStep {
         id: String,
         stage: SystemStage,
         order: i32,
-        clock_domain: SceneSystemClockDomain,
+        tick_policy: SceneSystemTickPolicy,
     },
     ApplyDeferred {
         after_system_id: String,
         stage: SystemStage,
         order: i32,
-        clock_domain: SceneSystemClockDomain,
+        tick_policy: SceneSystemTickPolicy,
     },
 }
 
@@ -31,7 +31,7 @@ impl ScheduledSceneStep {
         id: impl Into<String>,
         stage: SystemStage,
         order: i32,
-        clock_domain: SceneSystemClockDomain,
+        tick_policy: SceneSystemTickPolicy,
         worker_safe: bool,
         conservative_world_writer: bool,
     ) -> Self {
@@ -39,7 +39,7 @@ impl ScheduledSceneStep {
             id: id.into(),
             stage,
             order,
-            clock_domain,
+            tick_policy,
             worker_safe,
             conservative_world_writer,
         }
@@ -49,13 +49,13 @@ impl ScheduledSceneStep {
         id: impl Into<String>,
         stage: SystemStage,
         order: i32,
-        clock_domain: SceneSystemClockDomain,
+        tick_policy: SceneSystemTickPolicy,
     ) -> Self {
         Self::Runtime {
             id: id.into(),
             stage,
             order,
-            clock_domain,
+            tick_policy,
         }
     }
 
@@ -63,13 +63,13 @@ impl ScheduledSceneStep {
         after_system_id: impl Into<String>,
         stage: SystemStage,
         order: i32,
-        clock_domain: SceneSystemClockDomain,
+        tick_policy: SceneSystemTickPolicy,
     ) -> Self {
         Self::ApplyDeferred {
             after_system_id: after_system_id.into(),
             stage,
             order,
-            clock_domain,
+            tick_policy,
         }
     }
 
@@ -151,7 +151,7 @@ impl<'a> Iterator for SortedScheduledSceneSteps<'a> {
                 id,
                 stage,
                 order,
-                clock_domain,
+                tick_policy,
                 worker_safe,
                 conservative_world_writer,
             }) => {
@@ -160,7 +160,7 @@ impl<'a> Iterator for SortedScheduledSceneSteps<'a> {
                     id,
                     stage,
                     order,
-                    clock_domain,
+                    tick_policy,
                     worker_safe,
                     conservative_world_writer,
                 })
@@ -169,28 +169,28 @@ impl<'a> Iterator for SortedScheduledSceneSteps<'a> {
                 id,
                 stage,
                 order,
-                clock_domain,
+                tick_policy,
             }) => {
                 self.native_index += 1;
                 Some(ScheduledSceneStepRef::Runtime {
                     id,
                     stage,
                     order,
-                    clock_domain,
+                    tick_policy,
                 })
             }
             Some(ScheduledSceneStepRef::ApplyDeferred {
                 after_system_id,
                 stage,
                 order,
-                clock_domain,
+                tick_policy,
             }) => {
                 self.native_index += 1;
                 Some(ScheduledSceneStepRef::ApplyDeferred {
                     after_system_id,
                     stage,
                     order,
-                    clock_domain,
+                    tick_policy,
                 })
             }
             None => None,
@@ -214,7 +214,7 @@ pub(crate) enum ScheduledSceneStepRef<'a> {
         id: &'a str,
         stage: SystemStage,
         order: i32,
-        clock_domain: SceneSystemClockDomain,
+        tick_policy: SceneSystemTickPolicy,
         worker_safe: bool,
         conservative_world_writer: bool,
     },
@@ -222,13 +222,13 @@ pub(crate) enum ScheduledSceneStepRef<'a> {
         id: &'a str,
         stage: SystemStage,
         order: i32,
-        clock_domain: SceneSystemClockDomain,
+        tick_policy: SceneSystemTickPolicy,
     },
     ApplyDeferred {
         after_system_id: &'a str,
         stage: SystemStage,
         order: i32,
-        clock_domain: SceneSystemClockDomain,
+        tick_policy: SceneSystemTickPolicy,
     },
 }
 
@@ -239,14 +239,14 @@ impl<'a> ScheduledSceneStepRef<'a> {
                 id,
                 stage,
                 order,
-                clock_domain,
+                tick_policy,
                 worker_safe,
                 conservative_world_writer,
             } => Self::Native {
                 id: id.as_str(),
                 stage: *stage,
                 order: *order,
-                clock_domain: *clock_domain,
+                tick_policy: *tick_policy,
                 worker_safe: *worker_safe,
                 conservative_world_writer: *conservative_world_writer,
             },
@@ -254,23 +254,23 @@ impl<'a> ScheduledSceneStepRef<'a> {
                 id,
                 stage,
                 order,
-                clock_domain,
+                tick_policy,
             } => Self::Runtime {
                 id: id.as_str(),
                 stage: *stage,
                 order: *order,
-                clock_domain: *clock_domain,
+                tick_policy: *tick_policy,
             },
             ScheduledSceneStep::ApplyDeferred {
                 after_system_id,
                 stage,
                 order,
-                clock_domain,
+                tick_policy,
             } => Self::ApplyDeferred {
                 after_system_id: after_system_id.as_str(),
                 stage: *stage,
                 order: *order,
-                clock_domain: *clock_domain,
+                tick_policy: *tick_policy,
             },
         }
     }

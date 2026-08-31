@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use zircon_runtime::core::framework::ai::{AiAgentRuntimeSnapshot, AiRuntimeSnapshot};
 use zircon_runtime::core::framework::scene::{EntityId, WorldHandle};
 
-use super::DefaultAiManager;
 use super::state::AiRuntimeState;
+use super::DefaultAiManager;
 
 pub(super) fn runtime_snapshot(manager: &DefaultAiManager) -> AiRuntimeSnapshot {
     let state = manager.lock_state();

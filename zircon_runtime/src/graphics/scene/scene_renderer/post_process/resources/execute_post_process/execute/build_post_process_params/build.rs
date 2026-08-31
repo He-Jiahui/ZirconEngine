@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    AntiAliasMode, ProjectionMode, RenderFrameExtract, RenderHybridGiCompositePolicy,
-    RenderPostProcessEffectStackSettings,
+    AntiAliasMode, PostProcessExtract, ProjectionMode, RenderFrameExtract,
+    RenderHybridGiCompositePolicy, RenderPostProcessEffectStackSettings,
 };
 use crate::core::math::{UVec2, Vec3};
 use crate::graphics::types::ViewportRenderRegion;
@@ -16,6 +16,7 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
     render_region: ViewportRenderRegion,
     scene_color_origin: [u32; 2],
     extract: &RenderFrameExtract,
+    post_process: &PostProcessExtract,
     features: SceneRuntimeFeatureFlags,
     history_available: bool,
     reflection_probe_count: u32,
@@ -29,7 +30,9 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
         render_region,
         scene_color_origin,
         extract,
+        post_process,
         features,
+        history_available,
         history_available,
         reflection_probe_count,
         hybrid_gi_probe_count,
@@ -46,17 +49,19 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
     render_region: ViewportRenderRegion,
     scene_color_origin: [u32; 2],
     extract: &RenderFrameExtract,
+    post_process: &PostProcessExtract,
     features: SceneRuntimeFeatureFlags,
-    history_available: bool,
+    temporal_history_available: bool,
+    hybrid_gi_history_available: bool,
     reflection_probe_count: u32,
     hybrid_gi_probe_count: u32,
     scheduled_trace_region_count: u32,
     current_hybrid_gi_lighting_available: bool,
     hybrid_gi_composite_policy: RenderHybridGiCompositePolicy,
 ) -> PostProcessParams {
-    let color_grading = color_grading(extract, features);
+    let color_grading = color_grading(post_process, features);
     let baked_lighting = baked_lighting(extract, features);
-    let effect_stack = extract.post_process.effect_stack;
+    let effect_stack = post_process.effect_stack;
     let effect_view = effect_view_basis_rows(extract);
 
     PostProcessParams {
@@ -75,14 +80,14 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
         feature_flags: [
             u32::from(features.ssao_enabled),
             u32::from(features.clustered_lighting_enabled),
-            u32::from(features.temporal_history_enabled && history_available),
+            u32::from(features.temporal_history_enabled && temporal_history_available),
             reflection_probe_count,
         ],
         lighting_flags: [u32::from(features.contact_shadow_enabled), 0, 0, 0],
         hybrid_gi_counts: [
             hybrid_gi_probe_count,
             scheduled_trace_region_count,
-            u32::from(features.hybrid_global_illumination_enabled && history_available),
+            u32::from(features.hybrid_global_illumination_enabled && hybrid_gi_history_available),
             u32::from(
                 features.hybrid_global_illumination_enabled && current_hybrid_gi_lighting_available,
             ),
@@ -106,7 +111,7 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
             0.0,
             0.0,
             if features.bloom_enabled {
-                extract.post_process.bloom.intensity.max(0.0)
+                post_process.bloom.intensity.max(0.0)
             } else {
                 0.0
             },
@@ -331,6 +336,7 @@ mod tests {
                 RenderWorldSnapshotHandle::new(1),
                 World::new().to_render_snapshot(),
             ),
+            &PostProcessExtract::default(),
             SceneRuntimeFeatureFlags {
                 clustered_lighting_enabled: true,
                 ..SceneRuntimeFeatureFlags::default()
@@ -363,6 +369,7 @@ mod tests {
                 RenderWorldSnapshotHandle::new(1),
                 World::new().to_render_snapshot(),
             ),
+            &PostProcessExtract::default(),
             SceneRuntimeFeatureFlags {
                 contact_shadow_enabled: true,
                 ..SceneRuntimeFeatureFlags::default()
@@ -392,6 +399,7 @@ mod tests {
                 RenderWorldSnapshotHandle::new(1),
                 World::new().to_render_snapshot(),
             ),
+            &PostProcessExtract::default(),
             SceneRuntimeFeatureFlags {
                 hybrid_global_illumination_enabled: true,
                 ..SceneRuntimeFeatureFlags::default()
@@ -428,6 +436,7 @@ mod tests {
                 RenderWorldSnapshotHandle::new(1),
                 World::new().to_render_snapshot(),
             ),
+            &PostProcessExtract::default(),
             SceneRuntimeFeatureFlags::default(),
             false,
             0,
@@ -508,6 +517,7 @@ mod tests {
             ViewportRenderRegion::full_target(UVec2::new(128, 96)),
             [0, 0],
             &extract,
+            &extract.post_process,
             SceneRuntimeFeatureFlags::default(),
             false,
             0,
@@ -568,6 +578,7 @@ mod tests {
             ViewportRenderRegion::full_target(UVec2::new(128, 96)),
             [0, 0],
             &extract,
+            &extract.post_process,
             SceneRuntimeFeatureFlags::default(),
             false,
             0,
@@ -605,6 +616,7 @@ mod tests {
             ViewportRenderRegion::full_target(UVec2::new(128, 96)),
             [0, 0],
             &extract,
+            &extract.post_process,
             SceneRuntimeFeatureFlags::default(),
             false,
             0,
@@ -623,6 +635,7 @@ mod tests {
             ViewportRenderRegion::full_target(UVec2::new(128, 96)),
             [0, 0],
             &extract,
+            &extract.post_process,
             SceneRuntimeFeatureFlags::default(),
             false,
             0,
@@ -655,6 +668,7 @@ mod tests {
             ViewportRenderRegion::full_target(UVec2::new(64, 64)),
             [0, 0],
             &extract,
+            &extract.post_process,
             SceneRuntimeFeatureFlags::default(),
             false,
             0,

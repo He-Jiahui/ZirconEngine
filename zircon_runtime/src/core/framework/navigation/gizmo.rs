@@ -9,6 +9,10 @@ use crate::core::math::{Real, Vec3, Vec4};
 
 use super::constants::{NavAreaId, AREA_JUMP, AREA_NOT_WALKABLE, AREA_WALKABLE};
 
+#[cfg(test)]
+#[path = "gizmo/capacity_tests.rs"]
+mod capacity_tests;
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct NavigationGizmoSnapshot {
     pub triangles: Vec<NavigationGizmoTriangle>,
@@ -17,7 +21,10 @@ pub struct NavigationGizmoSnapshot {
 
 impl NavigationGizmoSnapshot {
     pub fn to_scene_gizmo_overlay(&self, owner: EntityId, selected: bool) -> SceneGizmoOverlay {
-        let mut lines = Vec::new();
+        let mut lines = Vec::with_capacity(navigation_gizmo_line_capacity(
+            self.triangles.len(),
+            self.off_mesh_links.len(),
+        ));
         for triangle in &self.triangles {
             let color = navigation_area_color(triangle.area);
             let vertices = triangle.vertices.map(Vec3::from_array);
@@ -37,7 +44,7 @@ impl NavigationGizmoSnapshot {
                 color,
             });
         }
-        let mut pick_shapes = Vec::new();
+        let mut pick_shapes = Vec::with_capacity(self.off_mesh_links.len());
         for link in &self.off_mesh_links {
             let color = navigation_area_color(link.area);
             let start = Vec3::from_array(link.start);
@@ -59,6 +66,10 @@ impl NavigationGizmoSnapshot {
             pick_shapes,
         )
     }
+}
+
+fn navigation_gizmo_line_capacity(triangle_count: usize, link_count: usize) -> usize {
+    triangle_count.saturating_mul(3).saturating_add(link_count)
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

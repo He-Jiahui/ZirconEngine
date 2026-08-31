@@ -1,5 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::rc::Rc;
+use std::sync::Arc;
+
+use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
 use crate::ui::retained_host::primitives::ModelRc;
 
@@ -10,9 +13,14 @@ use super::projection_cache;
 pub(crate) struct ViewTemplateNodeProjection {
     pub(super) base_rows: Rc<Vec<Rc<ViewTemplateNodeData>>>,
     pub(super) row_patches: Rc<BTreeMap<usize, Rc<ViewTemplateNodeData>>>,
+    pub(super) source_frame: Option<Arc<UiSurfaceFrame>>,
 }
 
 impl ViewTemplateNodeProjection {
+    pub(crate) fn source_frame(&self) -> Option<Arc<UiSurfaceFrame>> {
+        self.source_frame.as_ref().map(Arc::clone)
+    }
+
     pub(crate) fn iter(&self) -> impl Iterator<Item = &ViewTemplateNodeData> {
         (0..self.base_rows.len()).map(|row| {
             self.row_patches

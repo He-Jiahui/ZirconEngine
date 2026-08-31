@@ -1,5 +1,21 @@
 use super::*;
 
+use std::sync::Arc;
+
+#[test]
+fn world_render_extract_stamps_the_exact_source_world_generation() {
+    let mut world = World::empty();
+    world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+
+    let extract = world.to_render_frame_extract();
+
+    assert_eq!(extract.world.raw(), 0);
+    assert_eq!(extract.world.generation(), world.world_generation());
+    assert_ne!(extract.world.generation(), 0);
+}
+
 #[test]
 #[cfg(feature = "animation")]
 fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses() {
@@ -27,13 +43,16 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
     let missing_entity = 99_999;
     let pose = test_pose("hip");
     let replacement_epoch = level.capture_world_replacement_epoch();
-    assert!(level.record_animation_poses(
+    assert!(level.record_animation_pose_snapshot(
         replacement_epoch,
-        BTreeMap::from([
-            (mesh_with_skeleton, pose.clone()),
-            (mesh_without_skeleton, test_pose("filtered-no-skeleton")),
-            (missing_entity, test_pose("filtered-missing")),
-        ])
+        Arc::new(BTreeMap::from([
+            (mesh_with_skeleton, Arc::new(pose.clone())),
+            (
+                mesh_without_skeleton,
+                Arc::new(test_pose("filtered-no-skeleton")),
+            ),
+            (missing_entity, Arc::new(test_pose("filtered-missing"))),
+        ]))
     ));
 
     let extract = RenderExtractProducer::build_render_frame_extract(
@@ -45,15 +64,17 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
     );
 
     assert_eq!(extract.world.raw(), 705);
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == mesh_with_skeleton));
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == mesh_with_skeleton)
+    );
     assert_eq!(extract.animation_poses.len(), 1);
     assert_eq!(extract.animation_poses[0].entity, mesh_with_skeleton);
     assert_eq!(extract.animation_poses[0].skeleton, skeleton_handle.id());
-    assert_eq!(extract.animation_poses[0].pose, pose);
+    assert_eq!(extract.animation_poses[0].pose.as_ref(), &pose);
     assert!(level.with_world(|world| !world.has_pending_scene_systems()));
 }
 
@@ -61,28 +82,37 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
 #[cfg(feature = "animation")]
 fn level_frame_snapshot_publishes_a_new_animation_generation_without_retiring_the_old_handle() {
     let level = DefaultLevelManager::default().create_default_level();
-    let entity = level.with_world_mut(|world| world.spawn_node(NodeKind::Mesh));
+    let entity = level.with_world_mut(|world| {
+        world
+            .spawn_node(NodeKind::Mesh)
+            .expect("test scene spawn should succeed")
+    });
     let pose = test_pose("frame-snapshot");
     let initial = level.frame_state_snapshot();
     let replacement_epoch = level.capture_world_replacement_epoch();
 
-    assert!(
-        level.record_animation_poses(replacement_epoch, BTreeMap::from([(entity, pose.clone())]),)
-    );
+    assert!(level.record_animation_pose_snapshot(
+        replacement_epoch,
+        Arc::new(BTreeMap::from([(entity, Arc::new(pose.clone()))])),
+    ));
     let published = level.frame_state_snapshot();
 
     assert_eq!(initial.animation_generation(), 0);
     assert!(initial.animation_poses().is_empty());
     assert_eq!(published.animation_generation(), 1);
-    assert_eq!(published.animation_poses().get(&entity), Some(&pose));
+    assert_eq!(
+        published.animation_poses().get(&entity).map(Arc::as_ref),
+        Some(&pose)
+    );
     assert!(
         !std::sync::Arc::ptr_eq(initial.animation_poses(), published.animation_poses()),
         "a new animation publication must not mutate an earlier frame handle"
     );
 
-    assert!(
-        level.record_animation_poses(replacement_epoch, BTreeMap::from([(entity, pose.clone())]),)
-    );
+    assert!(level.record_animation_pose_snapshot(
+        replacement_epoch,
+        Arc::new(BTreeMap::from([(entity, Arc::new(pose.clone()))])),
+    ));
     let unchanged = level.frame_state_snapshot();
     assert_eq!(
         unchanged.animation_generation(),
@@ -93,18 +123,24 @@ fn level_frame_snapshot_publishes_a_new_animation_generation_without_retiring_th
         "an unchanged pose payload must retain its sealed frame handle"
     );
 
-    assert!(level.record_animation_poses(replacement_epoch, BTreeMap::new()));
+    assert!(level.record_animation_pose_snapshot(replacement_epoch, Arc::default()));
     let cleared = level.frame_state_snapshot();
     assert_eq!(cleared.animation_generation(), 2);
     assert!(cleared.animation_poses().is_empty());
-    assert_eq!(published.animation_poses().get(&entity), Some(&pose));
+    assert_eq!(
+        published.animation_poses().get(&entity).map(Arc::as_ref),
+        Some(&pose)
+    );
 
     let published_world_generation = published.world_generation();
     level.replace_world_and_reset_runtime_state(World::empty());
     let replaced = level.frame_state_snapshot();
     assert_ne!(replaced.world_generation(), published_world_generation);
     assert!(replaced.animation_poses().is_empty());
-    assert_eq!(published.animation_poses().get(&entity), Some(&pose));
+    assert_eq!(
+        published.animation_poses().get(&entity).map(Arc::as_ref),
+        Some(&pose)
+    );
 }
 
 #[test]

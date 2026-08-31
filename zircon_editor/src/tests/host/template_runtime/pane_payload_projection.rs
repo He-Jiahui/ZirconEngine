@@ -123,6 +123,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
             parent: "Scene".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
             scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
+            render_layer_mask: 1,
             plugin_components: Vec::new(),
         }),
         status_line: "Console ready".to_string(),
@@ -366,13 +367,10 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
             .get("pane_route_namespace"),
         Some(&Value::String("Dock".to_string()))
     );
-    assert_eq!(
-        console_projection
-            .root
-            .attributes
-            .get("payload_status_text"),
-        Some(&Value::String("Console ready".to_string()))
-    );
+    assert!(!console_projection
+        .root
+        .attributes
+        .contains_key("payload_status_text"));
     assert_eq!(
         console_projection
             .root

@@ -1,5 +1,5 @@
-mod button;
-mod colors;
+pub(in crate::ui::retained_host::host_contract) mod button;
+pub(in crate::ui::retained_host::host_contract) mod colors;
 mod draw;
 mod layout;
 

@@ -1,11 +1,12 @@
-use std::collections::HashMap;
-
-use zircon_runtime_interface::reflect::{ReflectError, ReflectedValue};
+use zircon_runtime_interface::reflect::{
+    ReflectError, ReflectFieldInfo, ReflectFieldValue, ReflectedValue,
+};
 
 use crate::scene::dynamic_scene::value::remap_reflected_value;
 use crate::scene::dynamic_scene::{
     DynamicResource, DynamicScene, DynamicSceneError, EntityRemap, ScenePatchPreviewResource,
 };
+use crate::scene::reflect::validate_reflected_field_values;
 use crate::scene::World;
 
 /// The compiled resource half of a scene spawn. Field slots are resolved while
@@ -36,10 +37,11 @@ fn compile_resource_write(
     resource: &DynamicResource,
     remap: &EntityRemap,
 ) -> Result<(CompiledResourceWrite, ScenePatchPreviewResource), DynamicSceneError> {
+    validate_reflected_field_values(&resource.type_path, &resource.fields)?;
     let runtime = world
         .type_registry()
         .runtime_registration(&resource.type_path)?;
-    if !runtime.registration.is_resource {
+    if !runtime.registration.is_resource() {
         return Err(ReflectError::AddressKindMismatch {
             expected: format!("resource `{}`", resource.type_path),
             actual: format!("non-resource `{}`", resource.type_path),
@@ -60,34 +62,13 @@ fn compile_resource_write(
         .into());
     }
 
-    let fields = &runtime.registration.type_info.fields;
-    let mut writable_fields = HashMap::with_capacity(fields.len());
-    for (field_slot, field) in fields.iter().enumerate() {
-        let field_slot =
-            u32::try_from(field_slot).map_err(|_| ReflectError::InvalidRegistration {
-                type_path: resource.type_path.clone(),
-                reason: "resource reflection has more than u32::MAX fields".to_string(),
-            })?;
-        writable_fields.insert(
-            field.name.as_str(),
-            (field_slot, field.serializable && field.editable),
-        );
-    }
-
-    let mut writes = Vec::with_capacity(resource.fields.len());
-    for field in &resource.fields {
-        let Some((field_slot, writable)) = writable_fields.get(field.field_name.as_str()).copied()
-        else {
-            return Err(ReflectError::UnknownField {
-                type_path: resource.type_path.clone(),
-                field_name: field.field_name.clone(),
-            }
-            .into());
-        };
-        if writable {
-            writes.push((field_slot, remap_reflected_value(&field.value, remap)?));
-        }
-    }
+    let writes = compile_reflected_writes(
+        world,
+        &resource.type_path,
+        &runtime.registration.type_info.fields,
+        &resource.fields,
+        remap,
+    )?;
 
     Ok((
         CompiledResourceWrite {
@@ -102,6 +83,53 @@ fn compile_resource_write(
             field_count: resource.fields.len(),
         },
     ))
+}
+
+pub(super) fn compile_reflected_writes(
+    world: &World,
+    type_path: &str,
+    schema_fields: &[ReflectFieldInfo],
+    fields: &[ReflectFieldValue],
+    remap: &EntityRemap,
+) -> Result<Vec<(u32, ReflectedValue)>, DynamicSceneError> {
+    let mut writes = Vec::with_capacity(fields.len());
+    let mut seen_slots = vec![false; schema_fields.len()];
+    let mut next_schema_slot = 0usize;
+    for field in fields {
+        let field_slot = if schema_fields
+            .get(next_schema_slot)
+            .is_some_and(|schema| schema.id == field.field_id)
+        {
+            u32::try_from(next_schema_slot).map_err(|_| ReflectError::InvalidRegistration {
+                type_path: type_path.to_string(),
+                reason: "reflection schema has more than u32::MAX fields".to_string(),
+            })?
+        } else {
+            world
+                .type_registry()
+                .resolve_field_slot_by_id(type_path, field.field_id)?
+        };
+        let schema = schema_fields
+            .get(field_slot as usize)
+            .filter(|schema| schema.id == field.field_id)
+            .ok_or_else(|| ReflectError::UnknownField {
+                type_path: type_path.to_string(),
+                field_name: field.field_id.to_string(),
+            })?;
+        if std::mem::replace(&mut seen_slots[field_slot as usize], true) {
+            return Err(ReflectError::InvalidValue {
+                type_path: type_path.to_string(),
+                field_name: field.field_id.to_string(),
+                reason: "duplicate stable field identity in dynamic scene payload".to_string(),
+            }
+            .into());
+        }
+        next_schema_slot = (field_slot as usize).saturating_add(1);
+        if schema.serializable && schema.editable {
+            writes.push((field_slot, remap_reflected_value(&field.value, remap)?));
+        }
+    }
+    Ok(writes)
 }
 
 pub(super) fn apply_resource_writes_to_preflight(

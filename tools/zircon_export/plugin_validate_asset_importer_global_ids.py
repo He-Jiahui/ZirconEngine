@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from .native_build_workspace import read_toml
 
@@ -14,15 +14,24 @@ Diagnostics = list[str]
 def validate_plugin_asset_importer_global_ids(
     plugin_root: Path,
     diagnostics: Diagnostics,
+    manifests: Iterable[tuple[Path, Manifest]] | None = None,
 ) -> None:
     seen: dict[str, str] = {}
-    for manifest_path in sorted(plugin_root.rglob("plugin.toml")):
-        manifest = read_toml(manifest_path, diagnostics)
-        if manifest is None:
-            continue
+    if manifests is None:
+        manifests = plugin_validate_asset_importer_manifests(plugin_root, diagnostics)
+    for manifest_path, manifest in manifests:
         validate_plugin_asset_importer_manifest_global_ids(
             manifest, manifest_path, seen, diagnostics
         )
+
+
+def plugin_validate_asset_importer_manifests(
+    plugin_root: Path, diagnostics: Diagnostics
+) -> Iterable[tuple[Path, Manifest]]:
+    for manifest_path in sorted(plugin_root.rglob("plugin.toml")):
+        manifest = read_toml(manifest_path, diagnostics)
+        if manifest is not None:
+            yield manifest_path, manifest
 
 
 def validate_plugin_asset_importer_manifest_global_ids(

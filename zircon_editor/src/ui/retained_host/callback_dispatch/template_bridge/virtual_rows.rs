@@ -1,16 +1,15 @@
-use std::collections::HashSet;
-
 use thiserror::Error;
-use zircon_runtime::ui::surface::UiSurface;
-use zircon_runtime_interface::ui::{
-    event_ui::{UiNodeId, UiNodePath},
-    layout::{UiSlot, UiSlotKind},
-    tree::{UiDirtyFlags, UiTemplateNodeMetadata, UiTreeError, UiTreeNode},
-    v2::{
-        UI_V2_REPEAT_ATTRIBUTE, UI_V2_REPEAT_FIELD_AUTHORED_COUNT, UI_V2_REPEAT_FIELD_KIND,
-        UI_V2_REPEAT_FIELD_NODE_PATH_NAMESPACE, UI_V2_REPEAT_FIELD_PROTOTYPE,
-        UI_V2_REPEAT_FIELD_VIRTUAL_CONTROL_PREFIX, UI_V2_REPEAT_KIND_VIRTUAL_ROWS,
-    },
+use zircon_runtime::ui::surface::{
+    UiSurface, UiVirtualListItemKey, UiVirtualListMaterializationChange,
+    UiVirtualListMaterializationError, UiVirtualListPrototypeNodeContext,
+    UiVirtualListPrototypePoolError,
+};
+use zircon_runtime_interface::ui::{event_ui::UiNodeId, tree::UiTemplateNodeMetadata};
+
+use zircon_runtime_interface::ui::v2::{
+    UI_V2_REPEAT_ATTRIBUTE, UI_V2_REPEAT_FIELD_AUTHORED_COUNT, UI_V2_REPEAT_FIELD_KIND,
+    UI_V2_REPEAT_FIELD_NODE_PATH_NAMESPACE, UI_V2_REPEAT_FIELD_PROTOTYPE,
+    UI_V2_REPEAT_FIELD_VIRTUAL_CONTROL_PREFIX, UI_V2_REPEAT_KIND_VIRTUAL_ROWS,
 };
 
 #[derive(Debug, Error)]
@@ -26,41 +25,39 @@ pub(crate) enum TemplateBridgeVirtualRowsError {
     )]
     UnsupportedRepeatKind { control_id: String, kind: String },
     #[error(transparent)]
-    Tree(#[from] UiTreeError),
+    Materialization(#[from] UiVirtualListMaterializationError),
+    #[error(transparent)]
+    PrototypePool(#[from] UiVirtualListPrototypePoolError),
 }
 
-/// Describes a retained template row sequence whose overflow rows are cloned from an authored row.
+/// Runtime-backed virtual row sequence with one authored prototype and a bounded physical pool.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct TemplateBridgeVirtualRowSequence {
     parent_control_id: String,
+    parent_id: UiNodeId,
     prototype_control_id: String,
+    prototype_id: UiNodeId,
     virtual_control_prefix: String,
-    authored_row_count: usize,
     node_path_namespace: String,
 }
 
 pub(crate) struct TemplateBridgeVirtualRowContext {
-    pub(crate) row_number: usize,
+    pub(crate) slot_number: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct TemplateBridgeVirtualRowBinding {
+    pub(crate) logical_index: usize,
     pub(crate) control_id: String,
 }
 
-impl TemplateBridgeVirtualRowSequence {
-    pub(crate) fn new(
-        parent_control_id: impl Into<String>,
-        prototype_control_id: impl Into<String>,
-        virtual_control_prefix: impl Into<String>,
-        authored_row_count: usize,
-        node_path_namespace: impl Into<String>,
-    ) -> Self {
-        Self {
-            parent_control_id: parent_control_id.into(),
-            prototype_control_id: prototype_control_id.into(),
-            virtual_control_prefix: virtual_control_prefix.into(),
-            authored_row_count,
-            node_path_namespace: node_path_namespace.into(),
-        }
-    }
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct TemplateBridgeVirtualRowReconcile {
+    pub(crate) topology_changed: bool,
+    pub(crate) changes: Vec<UiVirtualListMaterializationChange>,
+}
 
+impl TemplateBridgeVirtualRowSequence {
     pub(crate) fn from_surface_repeat(
         surface: &UiSurface,
         parent_control_id: &str,
@@ -68,8 +65,7 @@ impl TemplateBridgeVirtualRowSequence {
         let parent_id = required_control_node_id(surface, parent_control_id)?;
         let metadata = surface
             .tree
-            .nodes
-            .get(&parent_id)
+            .node(parent_id)
             .and_then(|node| node.template_metadata.as_ref())
             .ok_or_else(|| TemplateBridgeVirtualRowsError::MissingControl {
                 control_id: parent_control_id.to_string(),
@@ -88,7 +84,6 @@ impl TemplateBridgeVirtualRowSequence {
                 detail: "repeat must be a table".to_string(),
             }
         })?;
-
         let kind = required_string_field(parent_control_id, table, UI_V2_REPEAT_FIELD_KIND)?;
         if kind != UI_V2_REPEAT_KIND_VIRTUAL_ROWS {
             return Err(TemplateBridgeVirtualRowsError::UnsupportedRepeatKind {
@@ -96,242 +91,176 @@ impl TemplateBridgeVirtualRowSequence {
                 kind,
             });
         }
-
-        Ok(Self::new(
-            parent_control_id,
-            required_string_field(parent_control_id, table, UI_V2_REPEAT_FIELD_PROTOTYPE)?,
-            required_string_field(
+        let authored_count =
+            required_usize_field(parent_control_id, table, UI_V2_REPEAT_FIELD_AUTHORED_COUNT)?;
+        if authored_count != 1 {
+            return Err(TemplateBridgeVirtualRowsError::InvalidRepeatDeclaration {
+                control_id: parent_control_id.to_string(),
+                detail: format!(
+                    "authored_count must be 1 for bounded prototype materialization, got {authored_count}"
+                ),
+            });
+        }
+        let prototype_control_id =
+            required_string_field(parent_control_id, table, UI_V2_REPEAT_FIELD_PROTOTYPE)?;
+        let prototype_id = surface
+            .unique_control_node_id(&prototype_control_id)
+            .or_else(|| surface.virtual_list_prototype_root_id(parent_id))
+            .ok_or_else(|| TemplateBridgeVirtualRowsError::MissingControl {
+                control_id: prototype_control_id.clone(),
+            })?;
+        Ok(Self {
+            parent_control_id: parent_control_id.to_string(),
+            parent_id,
+            prototype_control_id,
+            prototype_id,
+            virtual_control_prefix: required_string_field(
                 parent_control_id,
                 table,
                 UI_V2_REPEAT_FIELD_VIRTUAL_CONTROL_PREFIX,
             )?,
-            required_usize_field(parent_control_id, table, UI_V2_REPEAT_FIELD_AUTHORED_COUNT)?,
-            optional_string_field(table, UI_V2_REPEAT_FIELD_NODE_PATH_NAMESPACE)
-                .unwrap_or_default(),
-        ))
+            node_path_namespace: optional_string_field(
+                table,
+                UI_V2_REPEAT_FIELD_NODE_PATH_NAMESPACE,
+            )
+            .unwrap_or_default(),
+        })
     }
 
-    pub(crate) fn reconcile<F>(
+    pub(crate) fn reconcile_with_keys<K, F>(
         &self,
         surface: &mut UiSurface,
         total_row_count: usize,
-        configure_metadata: F,
-    ) -> Result<bool, TemplateBridgeVirtualRowsError>
-    where
-        F: FnMut(
-            UiTemplateNodeMetadata,
-            &TemplateBridgeVirtualRowContext,
-        ) -> UiTemplateNodeMetadata,
-    {
-        let required_virtual_count = total_row_count.saturating_sub(self.authored_row_count);
-        let pruned = self.prune(surface, required_virtual_count)?;
-        let ensured = self.ensure(surface, required_virtual_count, configure_metadata)?;
-        Ok(pruned || ensured)
-    }
-
-    pub(crate) fn virtual_control_ids(&self, surface: &UiSurface) -> Vec<String> {
-        let mut controls = surface
-            .tree
-            .nodes
-            .values()
-            .filter_map(|node| {
-                let control_id = node
-                    .template_metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.control_id.as_deref())?;
-                self.virtual_row_number(control_id)
-                    .map(|row_number| (row_number, control_id.to_string()))
-            })
-            .collect::<Vec<_>>();
-        controls.sort_by_key(|(row_number, _)| *row_number);
-        controls
-            .into_iter()
-            .map(|(_, control_id)| control_id)
-            .collect()
-    }
-
-    fn ensure<F>(
-        &self,
-        surface: &mut UiSurface,
-        required_virtual_count: usize,
+        mut item_key_for_logical_index: K,
         mut configure_metadata: F,
-    ) -> Result<bool, TemplateBridgeVirtualRowsError>
+    ) -> Result<TemplateBridgeVirtualRowReconcile, TemplateBridgeVirtualRowsError>
     where
+        K: FnMut(usize) -> UiVirtualListItemKey,
         F: FnMut(
             UiTemplateNodeMetadata,
             &TemplateBridgeVirtualRowContext,
         ) -> UiTemplateNodeMetadata,
     {
-        if required_virtual_count == 0 {
-            return Ok(false);
-        }
+        let mut changes: Vec<UiVirtualListMaterializationChange> = Vec::new();
+        surface.reconcile_virtual_list_materialization_with_keys(
+            self.parent_id,
+            total_row_count,
+            &mut changes,
+            &mut item_key_for_logical_index,
+        )?;
+        let report = surface.ensure_virtual_list_prototype_slots(
+            self.parent_id,
+            self.prototype_id,
+            |node, context: UiVirtualListPrototypeNodeContext| {
+                if !context.is_slot_root {
+                    return;
+                }
+                let slot_number = context.slot_index + 1;
+                let control_id = self.virtual_control_id(slot_number);
+                let row_context = TemplateBridgeVirtualRowContext { slot_number };
+                let mut metadata = configure_metadata(
+                    node.template_metadata.take().unwrap_or_default(),
+                    &row_context,
+                );
+                metadata.control_id = Some(control_id.clone());
+                node.template_metadata = Some(metadata);
+                node.node_path = self.virtual_node_path(&control_id);
+            },
+        )?;
+        Ok(TemplateBridgeVirtualRowReconcile {
+            topology_changed: report.created_slot_count > 0 || report.removed_slot_count > 0,
+            changes,
+        })
+    }
 
-        let parent_id = required_control_node_id(surface, &self.parent_control_id)?;
-        let prototype_id = required_control_node_id(surface, &self.prototype_control_id)?;
-        let prototype_node = surface
+    pub(crate) fn bindings(
+        &self,
+        surface: &UiSurface,
+    ) -> Result<Vec<TemplateBridgeVirtualRowBinding>, TemplateBridgeVirtualRowsError> {
+        let roots = surface
+            .virtual_list_prototype_slot_roots(self.parent_id)
+            .unwrap_or_default();
+        let mut bindings = Vec::with_capacity(roots.len());
+        for root_id in roots {
+            bindings.push(self.binding_for_root(surface, *root_id)?);
+        }
+        Ok(bindings)
+    }
+
+    pub(crate) fn bindings_for_changes(
+        &self,
+        surface: &UiSurface,
+        changes: &[UiVirtualListMaterializationChange],
+    ) -> Result<Vec<TemplateBridgeVirtualRowBinding>, TemplateBridgeVirtualRowsError> {
+        let roots = surface
+            .virtual_list_prototype_slot_roots(self.parent_id)
+            .unwrap_or_default();
+        let mut bindings = Vec::with_capacity(changes.len().min(roots.len()));
+        for change in changes {
+            if change.logical_index.is_none() {
+                continue;
+            }
+            let root_id = *roots.get(change.slot_index).ok_or_else(|| {
+                TemplateBridgeVirtualRowsError::MissingControl {
+                    control_id: self.parent_control_id.clone(),
+                }
+            })?;
+            bindings.push(self.binding_for_root(surface, root_id)?);
+        }
+        Ok(bindings)
+    }
+
+    fn binding_for_root(
+        &self,
+        surface: &UiSurface,
+        root_id: UiNodeId,
+    ) -> Result<TemplateBridgeVirtualRowBinding, TemplateBridgeVirtualRowsError> {
+        let binding = surface
+            .virtual_list_binding_for_node(self.parent_id, root_id)
+            .ok_or_else(|| TemplateBridgeVirtualRowsError::MissingControl {
+                control_id: self.parent_control_id.clone(),
+            })?;
+        let control_id = surface
             .tree
-            .nodes
-            .get(&prototype_id)
-            .cloned()
+            .node(root_id)
+            .and_then(|node| node.template_metadata.as_ref())
+            .and_then(|metadata| metadata.control_id.clone())
             .ok_or_else(|| TemplateBridgeVirtualRowsError::MissingControl {
                 control_id: self.prototype_control_id.clone(),
             })?;
-        let prototype_slot = prototype_slot(surface, parent_id, prototype_id);
-        let existing_virtual_rows = surface
-            .tree
-            .nodes
-            .values()
-            .filter_map(|node| {
-                node.template_metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.control_id.as_deref())
-                    .and_then(|control_id| self.virtual_row_number(control_id))
-            })
-            .collect::<HashSet<_>>();
-        let mut next_node_id = next_node_id(surface).0;
-        let mut inserted = false;
-
-        for virtual_index in 0..required_virtual_count {
-            let row_number = self.authored_row_count + virtual_index + 1;
-            let control_id = self.virtual_control_id(row_number);
-            if existing_virtual_rows.contains(&row_number) {
-                continue;
-            }
-            let context = TemplateBridgeVirtualRowContext {
-                row_number,
-                control_id,
-            };
-            let node_id = UiNodeId::new(next_node_id);
-            next_node_id = next_node_id.saturating_add(1);
-            let row = self.virtual_row_from_prototype(
-                prototype_node.clone(),
-                node_id,
-                &context,
-                &mut configure_metadata,
-            );
-            surface.insert_or_reuse_pooled_child(parent_id, row)?;
-            surface.tree.slots.push(slot_for_virtual_row(
-                prototype_slot.clone(),
-                parent_id,
-                node_id,
-            ));
-            inserted = true;
-        }
-
-        Ok(inserted)
+        Ok(TemplateBridgeVirtualRowBinding {
+            logical_index: binding.logical_index,
+            control_id,
+        })
     }
 
-    fn prune(
+    fn virtual_control_id(&self, slot_number: usize) -> String {
+        format!("{}{slot_number:02}", self.virtual_control_prefix)
+    }
+
+    fn virtual_node_path(
         &self,
-        surface: &mut UiSurface,
-        required_virtual_count: usize,
-    ) -> Result<bool, TemplateBridgeVirtualRowsError> {
-        let retained_max_row_number = self.authored_row_count + required_virtual_count;
-        let mut stale_rows = surface
-            .tree
-            .nodes
-            .values()
-            .filter_map(|node| {
-                let control_id = node
-                    .template_metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.control_id.as_deref())?;
-                let row_number = self.virtual_row_number(control_id)?;
-                (row_number > retained_max_row_number).then_some((row_number, node.node_id))
-            })
-            .collect::<Vec<_>>();
-        stale_rows.sort_by(|left, right| right.0.cmp(&left.0));
-        let pruned = !stale_rows.is_empty();
-
-        for (_, node_id) in stale_rows {
-            let _ = surface.detach_subtree_to_pool(node_id)?;
-        }
-        Ok(pruned)
-    }
-
-    fn virtual_row_from_prototype<F>(
-        &self,
-        mut node: UiTreeNode,
-        node_id: UiNodeId,
-        context: &TemplateBridgeVirtualRowContext,
-        configure_metadata: &mut F,
-    ) -> UiTreeNode
-    where
-        F: FnMut(
-            UiTemplateNodeMetadata,
-            &TemplateBridgeVirtualRowContext,
-        ) -> UiTemplateNodeMetadata,
-    {
-        node.node_id = node_id;
-        node.node_path = self.virtual_node_path(&context.control_id);
-        node.parent = None;
-        node.children.clear();
-        node.dirty = structure_dirty_flags();
-        node.layout_cache = Default::default();
-
-        let mut metadata = node.template_metadata.unwrap_or_default();
-        metadata.control_id = Some(context.control_id.clone());
-        let mut metadata = configure_metadata(metadata, context);
-        metadata.control_id = Some(context.control_id.clone());
-        node.template_metadata = Some(metadata);
-        node
-    }
-
-    fn virtual_control_id(&self, row_number: usize) -> String {
-        format!("{}{row_number:02}", self.virtual_control_prefix)
-    }
-
-    fn virtual_row_number(&self, control_id: &str) -> Option<usize> {
-        control_id
-            .strip_prefix(&self.virtual_control_prefix)?
-            .parse::<usize>()
-            .ok()
-    }
-
-    fn virtual_node_path(&self, control_id: &str) -> UiNodePath {
+        control_id: &str,
+    ) -> zircon_runtime_interface::ui::event_ui::UiNodePath {
         let namespace = self.node_path_namespace.trim_end_matches('/');
         if namespace.is_empty() {
-            UiNodePath::new(control_id.to_string())
+            zircon_runtime_interface::ui::event_ui::UiNodePath::new(control_id.to_string())
         } else {
-            UiNodePath::new(format!("{namespace}/{control_id}"))
+            zircon_runtime_interface::ui::event_ui::UiNodePath::new(format!(
+                "{namespace}/{control_id}"
+            ))
         }
     }
-}
-
-fn prototype_slot(surface: &UiSurface, parent_id: UiNodeId, prototype_id: UiNodeId) -> UiSlot {
-    surface
-        .tree
-        .slots
-        .iter()
-        .find(|slot| slot.parent_id == parent_id && slot.child_id == prototype_id)
-        .cloned()
-        .unwrap_or_else(|| UiSlot::new(parent_id, prototype_id, UiSlotKind::Linear))
-}
-
-fn slot_for_virtual_row(mut slot: UiSlot, parent_id: UiNodeId, child_id: UiNodeId) -> UiSlot {
-    slot.parent_id = parent_id;
-    slot.child_id = child_id;
-    slot
 }
 
 fn required_control_node_id(
     surface: &UiSurface,
     control_id: &str,
 ) -> Result<UiNodeId, TemplateBridgeVirtualRowsError> {
-    control_node_id(surface, control_id).ok_or_else(|| {
+    surface.unique_control_node_id(control_id).ok_or_else(|| {
         TemplateBridgeVirtualRowsError::MissingControl {
             control_id: control_id.to_string(),
         }
-    })
-}
-
-fn control_node_id(surface: &UiSurface, control_id: &str) -> Option<UiNodeId> {
-    surface.tree.nodes.values().find_map(|node| {
-        node.template_metadata
-            .as_ref()
-            .and_then(|metadata| metadata.control_id.as_deref())
-            .filter(|candidate| *candidate == control_id)
-            .map(|_| node.node_id)
     })
 }
 
@@ -387,44 +316,18 @@ fn required_usize_field(
     )
 }
 
-fn next_node_id(surface: &UiSurface) -> UiNodeId {
-    let next = surface
-        .tree
-        .nodes
-        .keys()
-        .map(|node_id| node_id.0)
-        .max()
-        .unwrap_or_default()
-        .saturating_add(1);
-    UiNodeId::new(next)
-}
-
-fn structure_dirty_flags() -> UiDirtyFlags {
-    UiDirtyFlags {
-        layout: true,
-        hit_test: true,
-        render: true,
-        input: true,
-        text: true,
-        ..UiDirtyFlags::default()
-    }
-}
-
 #[cfg(test)]
 mod performance_tests {
     #[test]
-    fn virtual_row_growth_indexes_existing_rows_and_node_ids_once() {
+    fn virtual_row_reconcile_uses_runtime_materialization_authority() {
         let source = include_str!("virtual_rows.rs");
         let implementation = source.split("#[cfg(test)]").next().expect("implementation");
-        let ensure = implementation
-            .split("    fn ensure<F>(")
-            .nth(1)
-            .and_then(|body| body.split("    fn prune(").next())
-            .expect("ensure implementation");
 
-        assert!(ensure.contains("existing_virtual_rows"));
-        assert!(ensure.contains("let mut next_node_id = next_node_id(surface).0"));
-        assert!(!ensure.contains("control_node_id(surface, &control_id)"));
-        assert_eq!(ensure.matches("next_node_id(surface)").count(), 1);
+        assert!(implementation.contains("reconcile_virtual_list_materialization_with_keys"));
+        assert!(implementation.contains("ensure_virtual_list_prototype_slots"));
+        assert!(!implementation.contains("surface.tree.nodes.iter()"));
+        assert!(!implementation.contains("surface.tree.nodes.values()"));
+        assert!(!implementation.contains("fn inventory("));
+        assert!(!implementation.contains("fn next_node_id("));
     }
 }

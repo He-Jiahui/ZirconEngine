@@ -5,55 +5,89 @@ use zircon_runtime::core::framework::project::{
     ExportPackagingStrategy, ExportProfile, ExportTargetPlatform, RuntimeProfileId,
 };
 
-pub(in crate::ui::retained_host::app) fn desktop_export_profiles() -> Vec<ExportProfile> {
-    let desktop = [
-        ("desktop_windows", ExportTargetPlatform::Windows),
-        ("desktop_linux", ExportTargetPlatform::Linux),
-        ("desktop_macos", ExportTargetPlatform::Macos),
-    ]
-    .into_iter()
-    .map(|(name, platform)| {
-        ExportProfile::new(
-            name,
-            RuntimeTargetMode::ClientRuntime,
-            platform,
-            RuntimeProfileId::Client2d,
-        )
-        .with_strategies([
-            ExportPackagingStrategy::SourceTemplate,
-            ExportPackagingStrategy::LibraryEmbed,
-            ExportPackagingStrategy::NativeDynamic,
-        ])
-    });
-    let platform_scaffolds = [
-        ("mobile_android", ExportTargetPlatform::Android),
-        ("mobile_ios", ExportTargetPlatform::Ios),
-        ("browser_webgpu", ExportTargetPlatform::WebGpu),
-        ("browser_wasm", ExportTargetPlatform::Wasm),
-        ("headless_server", ExportTargetPlatform::Headless),
-    ]
-    .into_iter()
-    .map(|(name, platform)| {
-        let (target_mode, runtime_profile_id) = if platform == ExportTargetPlatform::Headless {
-            (RuntimeTargetMode::ServerRuntime, RuntimeProfileId::Server)
-        } else {
-            (RuntimeTargetMode::ClientRuntime, RuntimeProfileId::Client2d)
-        };
-        ExportProfile::new(name, target_mode, platform, runtime_profile_id).with_strategies([
-            ExportPackagingStrategy::SourceTemplate,
-            ExportPackagingStrategy::LibraryEmbed,
-        ])
-    });
+const DESKTOP_EXPORT_PROFILE_NAMES: [&str; 8] = [
+    "desktop_windows",
+    "desktop_linux",
+    "desktop_macos",
+    "mobile_android",
+    "mobile_ios",
+    "browser_webgpu",
+    "browser_wasm",
+    "headless_server",
+];
 
-    desktop.chain(platform_scaffolds).collect()
+pub(in crate::ui::retained_host::app) fn desktop_export_profiles() -> Vec<ExportProfile> {
+    DESKTOP_EXPORT_PROFILE_NAMES
+        .into_iter()
+        .map(|profile_name| {
+            desktop_export_profile(profile_name).expect("built-in export profile must be defined")
+        })
+        .collect()
 }
 
 pub(in crate::ui::retained_host::app) fn desktop_export_profile(
     profile_name: &str,
 ) -> Option<ExportProfile> {
-    desktop_export_profiles()
-        .into_iter()
-        .find(|profile| profile.name == profile_name)
+    let profile = match profile_name {
+        "desktop_windows" => {
+            desktop_client_export_profile(profile_name, ExportTargetPlatform::Windows)
+        }
+        "desktop_linux" => desktop_client_export_profile(profile_name, ExportTargetPlatform::Linux),
+        "desktop_macos" => desktop_client_export_profile(profile_name, ExportTargetPlatform::Macos),
+        "mobile_android" => {
+            client_scaffold_export_profile(profile_name, ExportTargetPlatform::Android)
+        }
+        "mobile_ios" => client_scaffold_export_profile(profile_name, ExportTargetPlatform::Ios),
+        "browser_webgpu" => {
+            client_scaffold_export_profile(profile_name, ExportTargetPlatform::WebGpu)
+        }
+        "browser_wasm" => client_scaffold_export_profile(profile_name, ExportTargetPlatform::Wasm),
+        "headless_server" => ExportProfile::new(
+            profile_name,
+            RuntimeTargetMode::ServerRuntime,
+            ExportTargetPlatform::Headless,
+            RuntimeProfileId::Server,
+        )
+        .with_strategies([
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::LibraryEmbed,
+        ]),
+        _ => return None,
+    };
+    Some(profile)
+}
+
+fn desktop_client_export_profile(
+    profile_name: &str,
+    platform: ExportTargetPlatform,
+) -> ExportProfile {
+    ExportProfile::new(
+        profile_name,
+        RuntimeTargetMode::ClientRuntime,
+        platform,
+        RuntimeProfileId::Client2d,
+    )
+    .with_strategies([
+        ExportPackagingStrategy::SourceTemplate,
+        ExportPackagingStrategy::LibraryEmbed,
+        ExportPackagingStrategy::NativeDynamic,
+    ])
+}
+
+fn client_scaffold_export_profile(
+    profile_name: &str,
+    platform: ExportTargetPlatform,
+) -> ExportProfile {
+    ExportProfile::new(
+        profile_name,
+        RuntimeTargetMode::ClientRuntime,
+        platform,
+        RuntimeProfileId::Client2d,
+    )
+    .with_strategies([
+        ExportPackagingStrategy::SourceTemplate,
+        ExportPackagingStrategy::LibraryEmbed,
+    ])
 }
 
 pub(in crate::ui::retained_host::app) fn export_platform_label(
@@ -80,3 +114,7 @@ pub(in crate::ui::retained_host::app) fn default_desktop_export_output_root(
         .join("zircon")
         .join(profile_name)
 }
+
+#[cfg(test)]
+#[path = "profiles/direct_lookup_tests.rs"]
+mod direct_lookup_tests;

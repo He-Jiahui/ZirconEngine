@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::OnceLock;
 
 use zircon_runtime::core::framework::ai::{
     AiBehaviorNodeParameter, AiBehaviorNodeParameterValue, AiDecisionStatus,
@@ -18,6 +19,26 @@ use crate::manager::parameters::{
     parse_task_result, ANIMATION_PARAMETER_PARAMETER_KEY, ANIMATION_TRIGGER_PARAMETER_KEY,
     ANIMATION_VALUE_PARAMETER_KEY, MOVE_TARGET_PARAMETER_KEY, SCRIPT_CALLBACK_PARAMETER_KEY,
 };
+
+#[cfg(test)]
+#[path = "integration/property_path_cache_tests.rs"]
+mod property_path_cache_tests;
+
+static NAV_DESTINATION_PROPERTY_PATH: OnceLock<Result<ComponentPropertyPath, String>> =
+    OnceLock::new();
+
+fn nav_destination_property_path() -> Result<&'static ComponentPropertyPath, String> {
+    NAV_DESTINATION_PROPERTY_PATH
+        .get_or_init(|| {
+            ComponentPropertyPath::new(
+                NAV_MESH_AGENT_COMPONENT_TYPE,
+                vec!["destination".to_string()],
+            )
+            .map_err(|error| error.to_string())
+        })
+        .as_ref()
+        .map_err(|error| error.clone())
+}
 
 pub(crate) struct BehaviorIntegrationTaskContext<'a> {
     pub(crate) node_id: &'a str,
@@ -159,13 +180,9 @@ impl<'world> RuntimeBehaviorIntegrationHost<'world> {
                 .map(|transform| transform.translation.to_array())
                 .unwrap_or_default()
         });
-        let path = ComponentPropertyPath::new(
-            NAV_MESH_AGENT_COMPONENT_TYPE,
-            vec!["destination".to_string()],
-        )
-        .map_err(|error| error.to_string())?;
+        let path = nav_destination_property_path()?;
         self.world
-            .set_property(entity, &path, ScenePropertyValue::Vec3(target))
+            .set_property(entity, path, ScenePropertyValue::Vec3(target))
             .map(|_| ())
             .map_err(|error| error.to_string())
     }

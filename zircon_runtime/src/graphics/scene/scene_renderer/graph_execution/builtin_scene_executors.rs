@@ -288,6 +288,96 @@ pub(super) fn screen_space_ui_executor(
     )
 }
 
+pub(super) fn surface_present_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let source_resource_name = if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::VIEWPORT_OUTPUT,
+        crate::render_graph::RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::VIEWPORT_OUTPUT
+    } else if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::FINAL_COLOR,
+        crate::render_graph::RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::FINAL_COLOR
+    } else {
+        return Err(
+            "surface-present graph pass is missing its final output read dependency".to_string(),
+        );
+    };
+    context
+        .require_gpu()?
+        .record_surface_present(source_resource_name)
+}
+
+pub(super) fn output_target_writeback_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let source_resource_name = if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::VIEWPORT_OUTPUT,
+        crate::render_graph::RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::VIEWPORT_OUTPUT
+    } else if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::FINAL_COLOR,
+        crate::render_graph::RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::FINAL_COLOR
+    } else {
+        return Err(
+            "output-target-writeback graph pass is missing its final output read dependency"
+                .to_string(),
+        );
+    };
+    if !context.declares_resource_name_access(
+        crate::graphics::pipeline::OUTPUT_TARGET_TEXTURE_RESOURCE_NAME,
+        crate::render_graph::RenderGraphResourceAccessKind::Write,
+    ) {
+        return Err(
+            "output-target-writeback graph pass is missing its output target write dependency"
+                .to_string(),
+        );
+    }
+    context.require_gpu()?.record_output_target_writeback(
+        source_resource_name,
+        crate::graphics::pipeline::OUTPUT_TARGET_TEXTURE_RESOURCE_NAME,
+    )
+}
+
+pub(super) fn output_target_direct_import_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let source_resource_name = if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::VIEWPORT_OUTPUT,
+        crate::render_graph::RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::VIEWPORT_OUTPUT
+    } else if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::FINAL_COLOR,
+        crate::render_graph::RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::FINAL_COLOR
+    } else {
+        return Err(
+            "output-target-direct-import graph pass is missing its final output read dependency"
+                .to_string(),
+        );
+    };
+    if context.declares_resource_name_access(
+        crate::graphics::pipeline::OUTPUT_TARGET_TEXTURE_RESOURCE_NAME,
+        crate::render_graph::RenderGraphResourceAccessKind::Write,
+    ) {
+        return Err(
+            "output-target-direct-import graph pass must not declare a writeback destination"
+                .to_string(),
+        );
+    }
+    context
+        .require_gpu()?
+        .record_output_target_direct_import(source_resource_name)
+}
+
 pub(super) fn overlay_gizmo_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {

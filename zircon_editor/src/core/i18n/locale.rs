@@ -1,7 +1,10 @@
+use std::borrow::Borrow;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 
 use super::EditorI18nError;
+
+const ENGLISH_TAG: &str = "en";
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EditorLocale(Arc<str>);
@@ -37,11 +40,21 @@ impl EditorLocale {
     }
 
     pub fn english() -> Self {
-        Self(Arc::from("en"))
+        Self(Arc::from(ENGLISH_TAG))
+    }
+
+    pub(super) const fn english_tag() -> &'static str {
+        ENGLISH_TAG
     }
 
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl Borrow<str> for EditorLocale {
+    fn borrow(&self) -> &str {
+        self.as_str()
     }
 }
 

@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, VecDeque},
+    collections::HashMap,
     sync::{Arc, Mutex, OnceLock},
 };
 
@@ -197,26 +197,31 @@ impl WeightHeatmapGeneration {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct StaticFieldCacheKey {
     static_generation: u64,
     columns: usize,
     rows: usize,
 }
 
+struct StaticFieldCacheEntry {
+    field: Arc<WeightHeatmapStaticField>,
+    last_used: u64,
+}
+
 #[derive(Default)]
 struct StaticFieldCache {
-    entries: BTreeMap<StaticFieldCacheKey, Arc<WeightHeatmapStaticField>>,
-    recency: VecDeque<StaticFieldCacheKey>,
+    entries: HashMap<StaticFieldCacheKey, StaticFieldCacheEntry>,
+    access_generation: u64,
 }
 
 impl StaticFieldCache {
     fn get(&mut self, key: StaticFieldCacheKey) -> Option<Arc<WeightHeatmapStaticField>> {
-        let field = self.entries.get(&key).cloned();
-        if field.is_some() {
-            self.touch(key);
-        }
-        field
+        self.rebase_access_generations_if_needed();
+        let entry = self.entries.get_mut(&key)?;
+        self.access_generation += 1;
+        entry.last_used = self.access_generation;
+        Some(Arc::clone(&entry.field))
     }
 
     fn insert_or_get(
@@ -227,20 +232,44 @@ impl StaticFieldCache {
         if let Some(field) = self.get(key) {
             return field;
         }
-        self.entries.insert(key, candidate.clone());
-        self.touch(key);
-        while self.entries.len() > STATIC_FIELD_CACHE_CAPACITY {
-            let Some(oldest) = self.recency.pop_front() else {
+        while self.entries.len() >= STATIC_FIELD_CACHE_CAPACITY {
+            let Some(oldest) = self
+                .entries
+                .iter()
+                .min_by_key(|(_, entry)| entry.last_used)
+                .map(|(key, _)| *key)
+            else {
                 break;
             };
             self.entries.remove(&oldest);
         }
+        let last_used = self.next_access_generation();
+        self.entries.insert(
+            key,
+            StaticFieldCacheEntry {
+                field: Arc::clone(&candidate),
+                last_used,
+            },
+        );
         candidate
     }
 
-    fn touch(&mut self, key: StaticFieldCacheKey) {
-        self.recency.retain(|entry| *entry != key);
-        self.recency.push_back(key);
+    fn next_access_generation(&mut self) -> u64 {
+        self.rebase_access_generations_if_needed();
+        self.access_generation += 1;
+        self.access_generation
+    }
+
+    fn rebase_access_generations_if_needed(&mut self) {
+        if self.access_generation != u64::MAX {
+            return;
+        }
+        let mut entries = self.entries.values_mut().collect::<Vec<_>>();
+        entries.sort_unstable_by_key(|entry| entry.last_used);
+        for (index, entry) in entries.into_iter().enumerate() {
+            entry.last_used = index as u64 + 1;
+        }
+        self.access_generation = self.entries.len() as u64;
     }
 }
 
@@ -428,3 +457,6 @@ impl GenerationHash {
         self.0
     }
 }
+
+#[cfg(test)]
+mod hash_generation_tests;

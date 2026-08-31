@@ -32,20 +32,17 @@ pub(super) fn dispatch_host_page_overflow_menu_primary_press(
         ui.global::<UiHostContext>()
             .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData::default());
         ui.global::<UiHostContext>()
-            .invoke_host_page_pointer_clicked(
-                hit.page_index as i32,
-                hit.frame.x,
-                hit.frame.width,
-                x - hit.frame.x,
-                y - hit.frame.y,
-            );
+            .invoke_host_page_pointer_clicked(hit.page_index as i32, false);
         return Some(NativePointerDispatchResult::region_with_frame_update(
             union_extra_damage(popup, cleared_text_input_frame),
         ));
     }
 
     if host_page_overflow_popup_frame_contains(&popup, x, y) {
-        return Some(NativePointerDispatchResult::region(popup));
+        return Some(match cleared_text_input_frame {
+            Some(frame) => NativePointerDispatchResult::region(frame),
+            None => NativePointerDispatchResult::idle(),
+        });
     }
     if contains(
         &presentation.host_scene_data.page_chrome.overflow_frame,

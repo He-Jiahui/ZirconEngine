@@ -3,12 +3,11 @@ use super::support::*;
 #[test]
 fn resolve_host_tab_drop_route_accepts_floating_window_group_fallback_key() {
     let floating_window_id = MainPageId::new("window:prefab");
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: default_drawers(),
-        activity_windows: Default::default(),
-        floating_windows: vec![FloatingWindowLayout {
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        default_drawers(),
+        vec![FloatingWindowLayout {
             window_id: floating_window_id.clone(),
             title: "Prefab Popout".to_string(),
             workspace: DocumentNode::SplitNode {
@@ -26,9 +25,7 @@ fn resolve_host_tab_drop_route_accepts_floating_window_group_fallback_key() {
             focused_view: Some(ViewInstanceId::new("editor.prefab#float")),
             frame: ShellFrame::default(),
         }],
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+    );
     let model = workbench_model(
         default_drawers_model(),
         vec![document_tab(
@@ -88,12 +85,11 @@ fn resolve_host_tab_drop_route_accepts_floating_window_group_fallback_key() {
 fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_for_floating_window()
 {
     let floating_window_id = MainPageId::new("window:prefab");
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: default_drawers(),
-        activity_windows: Default::default(),
-        floating_windows: vec![FloatingWindowLayout {
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        default_drawers(),
+        vec![FloatingWindowLayout {
             window_id: floating_window_id.clone(),
             title: "Prefab Popout".to_string(),
             workspace: DocumentNode::SplitNode {
@@ -111,9 +107,7 @@ fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_fo
             focused_view: Some(ViewInstanceId::new("editor.prefab#float")),
             frame: ShellFrame::default(),
         }],
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+    );
     let model = workbench_model(
         default_drawers_model(),
         vec![document_tab(
@@ -198,12 +192,11 @@ fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_fo
 #[test]
 fn resolve_host_tab_drop_route_accepts_floating_window_edge_fallback_key() {
     let floating_window_id = MainPageId::new("window:prefab");
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: default_drawers(),
-        activity_windows: Default::default(),
-        floating_windows: vec![FloatingWindowLayout {
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        default_drawers(),
+        vec![FloatingWindowLayout {
             window_id: floating_window_id.clone(),
             title: "Prefab Popout".to_string(),
             workspace: DocumentNode::SplitNode {
@@ -221,9 +214,7 @@ fn resolve_host_tab_drop_route_accepts_floating_window_edge_fallback_key() {
             focused_view: Some(ViewInstanceId::new("editor.prefab#float")),
             frame: ShellFrame::default(),
         }],
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+    );
     let model = workbench_model(
         default_drawers_model(),
         vec![document_tab(

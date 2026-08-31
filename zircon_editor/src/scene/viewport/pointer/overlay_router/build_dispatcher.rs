@@ -6,7 +6,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::scene::viewport::pointer::{
-    constants::VIEWPORT_NODE_ID, precision::SharedResolutionState,
+    constants::VIEWPORT_NODE_ID,
+    precision::{lock_shared_resolution_state, SharedResolutionState},
     runtime_picking_adapter::resolve_runtime_route_and_debug_feed_with_renderer_candidates,
 };
 
@@ -22,9 +23,7 @@ pub(in crate::scene::viewport::pointer) fn build_dispatcher(
     ] {
         let shared_state = Arc::clone(&shared);
         dispatcher.register(VIEWPORT_NODE_ID, kind, move |context| {
-            let Ok(mut shared) = shared_state.lock() else {
-                return UiPointerDispatchEffect::Unhandled;
-            };
+            let mut shared = lock_shared_resolution_state(shared_state.as_ref());
             let renderer_candidates = shared
                 .renderer_visible_spatial_pick_source
                 .as_ref()

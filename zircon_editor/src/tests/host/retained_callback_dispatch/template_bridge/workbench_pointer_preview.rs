@@ -4,6 +4,7 @@ use super::support::{
     control_visibility, render_background_for_control,
 };
 use crate::ui::retained_host::HostInvalidationMask;
+use zircon_runtime_interface::ui::dispatch::UiInputTimestamp;
 use zircon_runtime_interface::ui::tree::UiVisibility;
 
 #[test]
@@ -63,7 +64,7 @@ fn componentized_workbench_pointer_hover_updates_icon_button_preview_without_aut
 }
 
 #[test]
-fn componentized_workbench_pointer_hover_shows_labeled_icon_tooltip_and_hides_it_on_leave() {
+fn componentized_workbench_pointer_hover_delays_labeled_icon_tooltip_and_hides_it_on_leave() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_componentized_workbench_icon_tooltip");
@@ -90,14 +91,65 @@ fn componentized_workbench_pointer_hover_shows_labeled_icon_tooltip_and_hides_it
             ),
         ),
     )
-    .expect("hovering a labeled icon button should show its tooltip")
+    .expect("hovering a labeled icon button should arm its tooltip")
     .unwrap();
+
+    assert_eq!(
+        control_visibility(&bridge, "WorkbenchIconTooltip"),
+        Some(UiVisibility::Collapsed)
+    );
+    assert!(!control_bool(&bridge, "WorkbenchIconTooltip", "popup_open"));
+    assert!(!bridge
+        .tick_workbench_icon_tooltip(UiInputTimestamp::from_micros(149_999))
+        .expect("tooltip should remain pending before the Runtime deadline"));
+    assert_eq!(
+        control_visibility(&bridge, "WorkbenchIconTooltip"),
+        Some(UiVisibility::Collapsed)
+    );
+    assert!(bridge
+        .tick_workbench_icon_tooltip(UiInputTimestamp::from_micros(150_000))
+        .expect("Runtime tooltip deadline should publish the tooltip"));
 
     assert_eq!(
         control_visibility(&bridge, "WorkbenchIconTooltip"),
         Some(UiVisibility::Visible)
     );
     assert!(control_bool(&bridge, "WorkbenchIconTooltip", "popup_open"));
+    assert_eq!(
+        bridge
+            .control_frame("WorkbenchIconTooltip")
+            .expect("short icon tooltip should have a projected frame")
+            .width,
+        96.0,
+        "short icon hints should keep the authored compact floor"
+    );
+    assert_eq!(
+        control_float(&bridge, "WorkbenchIconTooltip", "transition_progress"),
+        Some(0.0),
+        "the Runtime show boundary should begin the intro at zero opacity"
+    );
+    assert!(bridge
+        .tick_workbench_icon_tooltip(UiInputTimestamp::from_micros(200_000))
+        .expect("mid-intro Runtime tick should publish paint progress"));
+    assert_eq!(
+        control_float(&bridge, "WorkbenchIconTooltip", "transition_progress"),
+        Some(0.5)
+    );
+    assert_eq!(
+        control_string(&bridge, "WorkbenchIconTooltip", "transition_status").as_deref(),
+        Some("entering")
+    );
+    assert!(bridge
+        .tick_workbench_icon_tooltip(UiInputTimestamp::from_micros(250_000))
+        .expect("intro deadline should publish the fully entered state"));
+    assert_eq!(
+        control_float(&bridge, "WorkbenchIconTooltip", "transition_progress"),
+        Some(1.0)
+    );
+    assert_eq!(
+        control_string(&bridge, "WorkbenchIconTooltip", "transition_status").as_deref(),
+        Some("entered")
+    );
     assert_eq!(
         control_string(&bridge, "WorkbenchIconTooltip", "text").as_deref(),
         Some("Move")
@@ -106,14 +158,13 @@ fn componentized_workbench_pointer_hover_shows_labeled_icon_tooltip_and_hides_it
         control_string(&bridge, "WorkbenchIconTooltip", "label_text").as_deref(),
         Some("")
     );
-    assert_eq!(
-        control_float(&bridge, "WorkbenchIconTooltip", "popup_anchor_x"),
-        Some(f64::from(tool_frame.x))
-    );
-    assert_eq!(
-        control_float(&bridge, "WorkbenchIconTooltip", "popup_anchor_y"),
-        Some(f64::from(tool_frame.y))
-    );
+    let tooltip_anchor = bridge.surface().tree.nodes.values().find_map(|node| {
+        node.template_metadata
+            .as_ref()
+            .filter(|metadata| metadata.control_id.as_deref() == Some("WorkbenchIconTooltip"))
+            .and_then(|metadata| metadata.widget.popup_anchor.control_id())
+    });
+    assert_eq!(tooltip_anchor, Some("WorkbenchToolMove"));
     assert_eq!(
         control_string(&bridge, "WorkbenchIconTooltip", "placement").as_deref(),
         Some("bottom")
@@ -147,6 +198,77 @@ fn componentized_workbench_pointer_hover_shows_labeled_icon_tooltip_and_hides_it
 }
 
 #[test]
+fn ultra_toolbar_density_collapsed_command_keeps_explicit_action_tooltip() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_ultra_toolbar_command_tooltip");
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(420.0, 360.0)).unwrap();
+    let compile_frame = bridge
+        .control_frame("WorkbenchModuleCompile")
+        .expect("ultra toolbar compile command should remain reachable");
+    assert_eq!(compile_frame.width, 34.0);
+
+    dispatch_componentized_workbench_pointer_event(
+        &harness.runtime,
+        &mut bridge,
+        UiPointerEvent::new(
+            UiPointerEventKind::Move,
+            UiPoint::new(
+                compile_frame.x + compile_frame.width * 0.5,
+                compile_frame.y + compile_frame.height * 0.5,
+            ),
+        ),
+    )
+    .expect("hovering an icon-only module command should arm its explicit tooltip")
+    .unwrap();
+    assert!(bridge
+        .tick_workbench_icon_tooltip(UiInputTimestamp::from_micros(150_000))
+        .expect("Runtime tooltip deadline should publish the explicit tooltip"));
+
+    assert_eq!(
+        control_visibility(&bridge, "WorkbenchIconTooltip"),
+        Some(UiVisibility::Visible)
+    );
+    assert!(control_bool(&bridge, "WorkbenchIconTooltip", "popup_open"));
+    let tooltip_width = bridge
+        .control_frame("WorkbenchIconTooltip")
+        .expect("explicit action tooltip should have a projected frame")
+        .width;
+    assert!(
+        tooltip_width > 96.0,
+        "longer explicit hints should expand beyond the compact floor"
+    );
+    assert!(
+        tooltip_width <= 420.0,
+        "tooltip measurement must stay within the logical shell width"
+    );
+    assert_eq!(
+        control_string(&bridge, "WorkbenchIconTooltip", "text").as_deref(),
+        Some("Compile Current Module")
+    );
+
+    bridge
+        .recompute_layout(UiSize::new(120.0, 360.0))
+        .expect("a visible tooltip should survive narrow-shell reflow");
+    bridge
+        .tick_workbench_icon_tooltip(UiInputTimestamp::from_micros(151_000))
+        .expect("the current candidate should remeasure after shell reflow");
+    let resized_tooltip_width = bridge
+        .control_frame("WorkbenchIconTooltip")
+        .expect("the remeasured tooltip should keep a projected frame")
+        .width;
+    assert!(
+        resized_tooltip_width < tooltip_width,
+        "the current tooltip must not retain its wider pre-resize extent"
+    );
+    assert!(
+        (96.0..=104.0).contains(&resized_tooltip_width),
+        "the narrow-shell tooltip should preserve its compact floor and 8px edge insets"
+    );
+}
+
+#[test]
 fn componentized_workbench_pointer_press_hides_an_open_icon_tooltip() {
     let _guard = env_lock().lock().unwrap();
 
@@ -160,8 +282,11 @@ fn componentized_workbench_pointer_press_hides_an_open_icon_tooltip() {
         &mut bridge,
         UiPointerEvent::new(UiPointerEventKind::Move, tool_move_center),
     )
-    .expect("hovering a labeled icon button should show its tooltip")
+    .expect("hovering a labeled icon button should arm its tooltip")
     .unwrap();
+    assert!(bridge
+        .tick_workbench_icon_tooltip(UiInputTimestamp::from_micros(150_000))
+        .expect("Runtime tooltip deadline should publish the tooltip"));
     assert!(control_bool(&bridge, "WorkbenchIconTooltip", "popup_open"));
 
     let press_effects = dispatch_componentized_workbench_pointer_event(
@@ -184,6 +309,21 @@ fn componentized_workbench_pointer_press_hides_an_open_icon_tooltip() {
     assert!(!press_effects.render_dirty);
     assert!(!press_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
+
+    let generation_before_release = bridge.surface().invalidation_generations().generation;
+    dispatch_componentized_workbench_pointer_event(
+        &harness.runtime,
+        &mut bridge,
+        UiPointerEvent::new(UiPointerEventKind::Up, tool_move_center)
+            .with_button(UiPointerButton::Primary),
+    )
+    .expect("releasing an icon button should dispatch its activation")
+    .unwrap();
+    assert_eq!(
+        bridge.surface().invalidation_generations().generation - generation_before_release,
+        1,
+        "one pointer event must publish release and activation state in one invalidation commit"
+    );
 }
 
 #[test]
@@ -336,6 +476,7 @@ fn componentized_workbench_pointer_drag_updates_slider_value_without_authored_bi
     );
     assert!(!control_component_pressed(&bridge, "WorkbenchInputSlider"));
 
+    let generation_before_press = bridge.surface().invalidation_generations().generation;
     let press_effects = dispatch_componentized_workbench_pointer_event(
         &harness.runtime,
         &mut bridge,
@@ -349,6 +490,11 @@ fn componentized_workbench_pointer_drag_updates_slider_value_without_authored_bi
     assert_float_eq(
         control_float(&bridge, "WorkbenchInputSlider", "value").unwrap(),
         25.0,
+    );
+    assert_eq!(
+        bridge.surface().invalidation_generations().generation - generation_before_press,
+        1,
+        "one pointer event must publish press and range feedback in one invalidation commit"
     );
     assert!(press_effects
         .dirty_domains()

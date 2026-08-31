@@ -1,15 +1,13 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::core::asset::{AssetContextCommandAccess, AssetTypeRegistry};
+use crate::core::asset::AssetTypeRegistry;
 use crate::core::commands::{
-    AssetWriteTargetDescriptor, EditorCommandDescriptor, EditorCommandMenuProjection,
-    EditorCommandRegistryError,
+    project_command_registry_from_contributions, NativePluginEditorCommandBinding,
 };
-use crate::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use crate::core::editor_extension::{
-    EditorExtensionRegistryError, EditorUiTemplateDescriptor, EditorUiTemplatePaneDataSource,
-    ViewDescriptor,
+    EditorContributionHandle, EditorExtensionRegistryError, EditorUiTemplateDescriptor,
+    EditorUiTemplatePaneDataSource,
 };
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::extension::{
@@ -17,48 +15,98 @@ use crate::core::extension::{
 };
 use crate::core::plugin::run_editor_plugin_boundary;
 use crate::core::plugin::EditorPluginRegistrationReport;
+use crate::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry;
+use crate::core::tools::{ToolDefinitionId, ToolInstanceId, ToolOwnerGeneration};
 use crate::ui::host::EditorHostEventController;
-use crate::ui::workbench::shell_state::WorkbenchShellStateData;
+use crate::ui::workbench::shell_state::{OwnedContribution, WorkbenchShellStateData};
 
 impl EditorHostEventController {
     pub fn register_editor_extension(
         &self,
         extension: ContributionBatch,
     ) -> Result<(), EditorExtensionRegistryError> {
+        let _registration_guard = self
+            .plugin_registration_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         self.register_editor_extension_owned(
             "editor.extension.direct",
             ContributionSource::Builtin,
             extension,
             Vec::<String>::new(),
+            None,
+            BTreeMap::new(),
         )
+        .map(|_| ())
     }
 
     pub fn register_editor_plugin_registration(
         &self,
         registration: EditorPluginRegistrationReport,
-    ) -> Result<(), EditorExtensionRegistryError> {
+    ) -> Result<EditorContributionHandle, EditorExtensionRegistryError> {
         let _registration_guard = self
             .plugin_registration_gate
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let prepared_consumers = self
-            .runtime_event_consumers
-            .prepare_registration(registration.runtime_event_consumers)
-            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
         let owner_id = registration.package_manifest.id;
         let source = ContributionSource::Plugin(
             PluginContributionId::parse(owner_id.clone()).map_err(map_contribution_error)?,
         );
         let extension = registration.extensions.into_contribution_batch()?;
+        let native_command_bindings = registration.native_command_bindings;
         self.register_editor_extension_owned(
             owner_id,
             source,
             extension,
             registration.capabilities,
-        )?;
-        self.runtime_event_consumers
-            .install_prepared_registration(prepared_consumers);
-        Ok(())
+            Some(registration.runtime_event_consumers),
+            native_command_bindings,
+        )
+    }
+
+    /// Serializes a native live-host action with contribution publication and rejects the action
+    /// while the package still owns an exact editor contribution generation. The native backend
+    /// cannot replace that generation atomically yet, so bypassing this gate would split loader
+    /// and Store/router authority across different dynamic-library generations.
+    pub(crate) fn execute_native_live_action_without_active_contribution<T>(
+        &self,
+        owner_id: &str,
+        execute: impl FnOnce() -> Result<T, String>,
+    ) -> Result<T, String> {
+        let _registration_guard = self
+            .plugin_registration_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let shell = self.shell().lock();
+        ensure_native_live_action_has_no_active_contribution(&shell.contribution_owners, owner_id)?;
+        drop(shell);
+        execute()
+    }
+
+    /// Allocates a tool instance for one exact live contribution generation.
+    pub fn allocate_editor_tool_instance(
+        &self,
+        handle: &EditorContributionHandle,
+        definition_id: &ToolDefinitionId,
+    ) -> Result<ToolInstanceId, EditorExtensionRegistryError> {
+        let _registration_guard = self
+            .plugin_registration_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let owner_generation = self
+            .shell()
+            .lock()
+            .contribution_owners
+            .iter()
+            .find(|contribution| contribution.handle() == handle)
+            .map(|contribution| contribution.owner_generation())
+            .ok_or_else(|| EditorExtensionRegistryError::StaleContributionHandle {
+                owner_id: handle.owner_id().to_owned(),
+            })?;
+        self.context()
+            .tools()
+            .allocate_instance_id(definition_id, owner_generation)
+            .map_err(|error| EditorExtensionRegistryError::ToolScheduler(error.to_string()))
     }
 
     /// Atomically replaces one registered plugin's template and pane-data contributions.
@@ -68,6 +116,10 @@ impl EditorHostEventController {
         templates: impl IntoIterator<Item = EditorUiTemplateDescriptor>,
         pane_data_sources: BTreeMap<String, Arc<dyn EditorUiTemplatePaneDataSource>>,
     ) -> Result<(), EditorExtensionRegistryError> {
+        let _registration_guard = self
+            .plugin_registration_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let mut shell = self.shell().lock();
         let mut matching = shell
             .contribution_owners
@@ -99,17 +151,138 @@ impl EditorHostEventController {
         Ok(())
     }
 
+    /// Revokes one plugin's Store ticket and rebuilds executable command routing from the
+    /// remaining active contribution generations.
+    pub fn revoke_editor_plugin_contribution(
+        &self,
+        handle: &EditorContributionHandle,
+    ) -> Result<bool, EditorExtensionRegistryError> {
+        let _registration_guard = self
+            .plugin_registration_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut shell = self.shell().lock();
+        let matching = shell
+            .contribution_owners
+            .iter()
+            .enumerate()
+            .filter(|(_, contribution)| contribution.handle() == handle)
+            .map(|(index, contribution)| {
+                (
+                    index,
+                    contribution.ticket(),
+                    contribution.owner_generation(),
+                )
+            })
+            .collect::<Vec<_>>();
+        let (owner_index, ticket, owner_generation) = match matching.as_slice() {
+            [] => return Ok(false),
+            [owned] => *owned,
+            _ => {
+                return Err(EditorExtensionRegistryError::DuplicateContribution {
+                    kind: "editor extension owner",
+                    id: handle.owner_id().to_string(),
+                });
+            }
+        };
+
+        let view_descriptor_ids = shell
+            .contributions
+            .snapshot()
+            .views_for_ticket(ticket)
+            .map(|view| crate::ui::workbench::view::ViewDescriptorId::new(view.id()))
+            .collect::<Vec<_>>();
+        let manager = Arc::clone(&shell.manager);
+
+        let mut contribution_store = shell.contributions.clone();
+        contribution_store.revoke(ticket);
+        let previous_command_generation = self.commands().lock().generation();
+        let command_registry = project_command_registry_from_contributions(
+            &contribution_store,
+            previous_command_generation,
+        )?;
+        let prepared_scene_mode_retirement = shell
+            .state
+            .viewport_controller
+            .prepare_scene_mode_contribution_retirement(ticket);
+        drop(shell);
+        manager
+            .retire_extension_views(&view_descriptor_ids)
+            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
+        let runtime_consumer_retirement = self
+            .runtime_event_consumers
+            .retire_contribution(ticket)
+            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
+        if owner_generation != ToolOwnerGeneration::BUILTIN {
+            self.context()
+                .tools()
+                .revoke_owner_generation(owner_generation)
+                .map_err(|error| {
+                    EditorExtensionRegistryError::ToolScheduler(format!(
+                        "tool owner generation {owner_generation} retirement failed: {error}"
+                    ))
+                })?;
+        }
+
+        let mut shell = self.shell().lock();
+        let (retired_scene_modes, scene_mode_cleanup_error) = shell
+            .state
+            .viewport_controller
+            .install_prepared_scene_mode_contribution_retirement(prepared_scene_mode_retirement);
+        let (prepared_viewport_overlay_providers, viewport_overlay_provider_retirement) = shell
+            .state
+            .viewport_controller
+            .prepare_viewport_overlay_provider_retirement(ticket);
+        shell
+            .state
+            .viewport_controller
+            .install_prepared_viewport_overlay_providers(prepared_viewport_overlay_providers);
+        shell.contributions = contribution_store;
+        shell.contribution_owners.remove(owner_index);
+        shell.contributions_changed();
+        *self.commands().lock() = command_registry;
+        drop(shell);
+        drop(retired_scene_modes);
+        let viewport_overlay_provider_cleanup = viewport_overlay_provider_retirement.cleanup();
+        self.refresh_workbench(
+            crate::core::editor_message::EditorViewInvalidationMask::PRESENTATION_DATA,
+        );
+        if let Some(error) = runtime_consumer_retirement.cleanup_error {
+            return Err(EditorExtensionRegistryError::View(format!(
+                "runtime event consumer retirement failed: {error}"
+            )));
+        }
+        if let Some(error) = scene_mode_cleanup_error {
+            return Err(EditorExtensionRegistryError::SceneMode(format!(
+                "scene mode retirement failed: {error}"
+            )));
+        }
+        viewport_overlay_provider_cleanup.map_err(|error| {
+            EditorExtensionRegistryError::ViewportOverlayProvider(format!(
+                "viewport overlay provider retirement failed: {error}"
+            ))
+        })?;
+        Ok(true)
+    }
+
     pub fn register_editor_extension_with_required_capabilities(
         &self,
         extension: ContributionBatch,
         required_capabilities: Vec<String>,
     ) -> Result<(), EditorExtensionRegistryError> {
+        let _registration_guard = self
+            .plugin_registration_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         self.register_editor_extension_owned(
             "editor.extension.direct",
             ContributionSource::Builtin,
             extension,
             required_capabilities,
+            None,
+            BTreeMap::new(),
         )
+        .map(|_| ())
     }
 
     fn register_editor_extension_owned(
@@ -118,11 +291,36 @@ impl EditorHostEventController {
         source: ContributionSource,
         mut extension: ContributionBatch,
         required_capabilities: Vec<String>,
-    ) -> Result<(), EditorExtensionRegistryError> {
+        runtime_event_consumers: Option<EditorRuntimeEventConsumerRegistry>,
+        native_command_bindings: BTreeMap<EditorOperationPath, NativePluginEditorCommandBinding>,
+    ) -> Result<EditorContributionHandle, EditorExtensionRegistryError> {
         let owner_id = owner_id.into();
-        extension = extension.with_required_capabilities(required_capabilities.clone());
+        if let Some((command_id, binding)) = native_command_bindings
+            .iter()
+            .find(|(_, binding)| binding.plugin_id() != owner_id.as_str())
+        {
+            return Err(validate_native_binding_owner(
+                command_id,
+                &owner_id,
+                binding.plugin_id(),
+            ));
+        }
+        extension = extension
+            .with_required_capabilities(required_capabilities.clone())
+            .with_native_command_bindings(native_command_bindings);
         extension.bind_matching_ui_templates_to_views();
         let mut shell = self.shell().lock();
+        if matches!(&source, ContributionSource::Plugin(_))
+            && shell
+                .contribution_owners
+                .iter()
+                .any(|contribution| contribution.owner_id() == owner_id)
+        {
+            return Err(EditorExtensionRegistryError::DuplicateContribution {
+                kind: "editor extension owner",
+                id: owner_id,
+            });
+        }
         let views = extension.views().into_iter().cloned().collect::<Vec<_>>();
         shell
             .manager
@@ -135,150 +333,79 @@ impl EditorHostEventController {
             .map_err(map_contribution_error)?;
         validate_viewport_overlay_provider_bindings(&extension)?;
         let contributed_extension = extension.clone();
+        let mut contribution_store = shell.contributions.clone();
+        let ticket = contribution_store
+            .contribute(source.clone(), contributed_extension)
+            .map_err(map_contribution_error)?;
         let scene_modes = extension
             .take_scene_modes()
             .into_iter()
-            .map(|registration| registration.with_owner_id(owner_id.clone()))
-            .collect::<Vec<_>>();
+            .map(|registration| {
+                registration.bind_contribution_owner(ticket, source.clone(), owner_id.clone())
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| EditorExtensionRegistryError::SceneMode(error.to_string()))?;
         let prepared_scene_modes = shell
             .state
             .viewport_controller
             .prepare_scene_modes(scene_modes)
-            .map_err(EditorExtensionRegistryError::SceneMode)?;
+            .map_err(|error| EditorExtensionRegistryError::SceneMode(error.to_string()))?;
         let viewport_overlay_providers = extension.take_viewport_overlay_providers();
         let prepared_viewport_overlay_providers =
             run_editor_plugin_boundary(&owner_id, "viewport overlay provider preparation", || {
                 shell
                     .state
                     .viewport_controller
-                    .prepare_viewport_overlay_providers(&owner_id, viewport_overlay_providers)
+                    .prepare_viewport_overlay_providers(
+                        ticket,
+                        source.clone(),
+                        &owner_id,
+                        viewport_overlay_providers,
+                    )
+                    .map_err(|error| error.to_string())
             })
             .map_err(|error| {
                 EditorExtensionRegistryError::ViewportOverlayProvider(error.to_string())
             })?;
-        let mut command_registry = self.commands().lock().clone();
-        let menu_capabilities = extension
-            .menu_items()
-            .into_iter()
-            .filter(|item| !item.required_capabilities().is_empty())
-            .fold(
-                std::collections::BTreeMap::<EditorOperationPath, Vec<String>>::new(),
-                |mut capabilities, item| {
-                    capabilities
-                        .entry(item.operation().clone())
-                        .or_default()
-                        .extend(item.required_capabilities().iter().cloned());
-                    capabilities
-                },
-            );
-        let pending_command_ids = extension
-            .pending_commands()
-            .map(|command| command.id().clone())
-            .collect::<std::collections::BTreeSet<_>>();
-        let asset_write_targets = asset_write_targets(&extension)?;
-        let view_operation_ids = views
-            .iter()
-            .map(ViewDescriptor::open_operation_path)
-            .collect::<Result<std::collections::BTreeSet<_>, _>>()
-            .map_err(EditorExtensionRegistryError::OperationPath)?;
-        if let Some(command_id) = menu_capabilities.keys().find(|command_id| {
-            !pending_command_ids.contains(*command_id) && !view_operation_ids.contains(*command_id)
-        }) {
-            return Err(
-                EditorExtensionRegistryError::MenuCapabilitiesRequireContributedCommand {
-                    command_id: command_id.clone(),
-                },
-            );
-        }
-        let commands = extension.take_command_contributions();
-        let mut operation_factories = extension
-            .take_operation_factories()
-            .into_iter()
-            .map(|factory| (factory.operation().clone(), factory))
-            .collect::<std::collections::BTreeMap<_, _>>();
-        let explicit_view_commands = commands
-            .iter()
-            .map(|command| (command.id().clone(), command.event().cloned()))
-            .collect::<std::collections::BTreeMap<_, _>>();
-        for command in commands {
-            let command_capabilities = menu_capabilities
-                .get(command.id())
-                .into_iter()
-                .flatten()
-                .cloned();
-            let command = command
-                .with_required_capabilities(required_capabilities.iter().cloned())
-                .with_required_capabilities(command_capabilities);
-            if let Some(factory) = operation_factories.remove(command.id()) {
-                command_registry
-                    .register_operation(command, factory)
-                    .map_err(EditorExtensionRegistryError::Command)?;
-            } else {
-                command_registry
-                    .register(command)
-                    .map_err(EditorExtensionRegistryError::Command)?;
-            }
-        }
-        if let Some(operation) = operation_factories.keys().next().cloned() {
-            return Err(EditorExtensionRegistryError::Command(
-                EditorCommandRegistryError::OperationFactory(
-                    crate::core::editing::operation::OperationCommandFactoryError::OrphanFactory {
-                        operation,
-                    },
-                ),
-            ));
-        }
-        for view in &views {
-            let operation_path = view
-                .open_operation_path()
-                .map_err(EditorExtensionRegistryError::OperationPath)?;
-            let expected_event = extension_view_open_event(view);
-            if let Some(explicit_event) = explicit_view_commands.get(&operation_path) {
-                if explicit_event.as_ref() != Some(&expected_event) {
-                    return Err(EditorExtensionRegistryError::CommandViewTargetConflict {
-                        command_id: operation_path,
-                        view_id: view.id().to_string(),
-                    });
-                }
-            } else if command_registry.command(operation_path.as_str()).is_some() {
-                return Err(EditorExtensionRegistryError::Command(
-                    EditorCommandRegistryError::DuplicateCommand(operation_path),
-                ));
-            } else {
-                let mut view_capabilities = required_capabilities.clone();
-                view_capabilities.extend(
-                    menu_capabilities
-                        .get(&operation_path)
-                        .into_iter()
-                        .flatten()
-                        .cloned(),
-                );
-                command_registry
-                    .register(extension_view_open_operation(
-                        view,
-                        operation_path.clone(),
-                        &view_capabilities,
+        let prepared_runtime_event_consumers = runtime_event_consumers
+            .map(|registry| {
+                self.runtime_event_consumers
+                    .prepare_contribution_registration(ticket, source.clone(), registry)
+            })
+            .transpose()
+            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
+        let previous_command_generation = self.commands().lock().generation();
+        let command_registry = project_command_registry_from_contributions(
+            &contribution_store,
+            previous_command_generation,
+        )?;
+        let tool_resource_kinds = extension.tool_resource_kinds().cloned().collect::<Vec<_>>();
+        let owner_generation = match &source {
+            ContributionSource::Builtin => ToolOwnerGeneration::BUILTIN,
+            ContributionSource::Plugin(_) => *self
+                .context()
+                .tools()
+                .register_owner_generation(tool_resource_kinds)
+                .map_err(|error| {
+                    EditorExtensionRegistryError::ToolScheduler(format!(
+                        "tool owner generation registration failed: {error}"
                     ))
-                    .map_err(EditorExtensionRegistryError::Command)?;
-            }
-        }
-        for (operation, target) in asset_write_targets {
-            command_registry
-                .attach_asset_write_target(&operation, target)
-                .map_err(EditorExtensionRegistryError::Command)?;
-        }
-        let available_operations = command_registry
-            .commands()
-            .map(|descriptor| descriptor.id().clone())
-            .collect::<std::collections::BTreeSet<_>>();
-        validate_menu_item_operation_bindings(&extension, &available_operations)?;
-        validate_inspector_customization_operation_bindings(&extension, &available_operations)?;
-        validate_asset_importer_operation_bindings(&extension, &available_operations)?;
-        validate_asset_type_operation_bindings(&extension, &available_operations)?;
-        shell
+                })?
+                .outcome(),
+        };
+        if let Err(error) = shell
             .manager
             .register_extension_views_with_required_capabilities(&views, &required_capabilities)
-            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
+        {
+            drop(shell);
+            if owner_generation != ToolOwnerGeneration::BUILTIN {
+                let _ = self
+                    .context()
+                    .tools()
+                    .revoke_owner_generation(owner_generation);
+            }
+            return Err(EditorExtensionRegistryError::View(error.to_string()));
+        }
         shell
             .state
             .viewport_controller
@@ -296,20 +423,47 @@ impl EditorHostEventController {
             .state
             .viewport_controller
             .set_viewport_overlay_capabilities(&enabled_capabilities);
-        let ticket = shell
-            .contributions
-            .contribute(source, contributed_extension)
-            .map_err(map_contribution_error)?;
+        shell.contributions = contribution_store;
+        let contribution_handle = EditorContributionHandle::new(owner_id, ticket, owner_generation);
         shell
             .contribution_owners
             .push(crate::ui::workbench::shell_state::OwnedContribution::new(
-                owner_id, ticket,
+                contribution_handle.clone(),
             ));
         shell.contributions_changed();
         *self.commands().lock() = command_registry;
+        if let Some(registry) = prepared_runtime_event_consumers {
+            self.runtime_event_consumers
+                .install_prepared_registration(registry);
+        }
         drop(shell);
-        Ok(())
+        Ok(contribution_handle)
     }
+}
+
+fn validate_native_binding_owner(
+    command_id: &EditorOperationPath,
+    expected_plugin_id: &str,
+    binding_plugin_id: &str,
+) -> EditorExtensionRegistryError {
+    EditorExtensionRegistryError::View(format!(
+        "native editor command `{command_id}` binds plugin `{binding_plugin_id}`, expected contribution owner `{expected_plugin_id}`"
+    ))
+}
+
+fn ensure_native_live_action_has_no_active_contribution(
+    owners: &[OwnedContribution],
+    owner_id: &str,
+) -> Result<(), String> {
+    if owners
+        .iter()
+        .any(|contribution| contribution.owner_id() == owner_id)
+    {
+        return Err(format!(
+            "native editor plugin `{owner_id}` has an active exact contribution generation; unload and hot reload require a generation-aware contribution transaction"
+        ));
+    }
+    Ok(())
 }
 
 fn validate_viewport_overlay_provider_bindings(
@@ -325,148 +479,6 @@ fn validate_viewport_overlay_provider_bindings(
                     provider_id: provider_id.to_string(),
                 },
             );
-        }
-    }
-    Ok(())
-}
-
-fn asset_write_targets(
-    extension: &ContributionBatch,
-) -> Result<
-    std::collections::BTreeMap<EditorOperationPath, AssetWriteTargetDescriptor>,
-    EditorExtensionRegistryError,
-> {
-    let mut targets = std::collections::BTreeMap::new();
-    for contribution in extension.asset_type_contributions() {
-        for template in contribution.creation_templates() {
-            insert_asset_write_target(
-                &mut targets,
-                template.operation().clone(),
-                AssetWriteTargetDescriptor::new("asset_type", "target_folder"),
-            )?;
-        }
-        for command in contribution
-            .context_commands()
-            .iter()
-            .filter(|command| command.access() == AssetContextCommandAccess::Mutation)
-        {
-            insert_asset_write_target(
-                &mut targets,
-                command.operation().clone(),
-                AssetWriteTargetDescriptor::new("asset_type", "asset_locator"),
-            )?;
-        }
-    }
-    Ok(targets)
-}
-
-fn insert_asset_write_target(
-    targets: &mut std::collections::BTreeMap<EditorOperationPath, AssetWriteTargetDescriptor>,
-    operation: EditorOperationPath,
-    target: AssetWriteTargetDescriptor,
-) -> Result<(), EditorExtensionRegistryError> {
-    if targets
-        .get(&operation)
-        .is_some_and(|existing| existing != &target)
-    {
-        return Err(EditorExtensionRegistryError::Command(
-            EditorCommandRegistryError::ConflictingAssetWriteTarget(operation),
-        ));
-    }
-    targets.insert(operation, target);
-    Ok(())
-}
-
-fn extension_view_open_operation(
-    view: &ViewDescriptor,
-    operation_path: EditorOperationPath,
-    required_capabilities: &[String],
-) -> EditorCommandDescriptor {
-    EditorCommandDescriptor::operation(operation_path, format!("Open {}", view.display_name()))
-        .with_menu_path(format!("View/{}/{}", view.category(), view.display_name()))
-        .with_menu_projection(EditorCommandMenuProjection::ExtensionRegistry)
-        .with_required_capabilities(required_capabilities.iter().cloned())
-        .with_event(extension_view_open_event(view))
-}
-
-fn extension_view_open_event(view: &ViewDescriptor) -> EditorEvent {
-    EditorEvent::WorkbenchMenu(MenuAction::OpenView(ViewDescriptorId::new(view.id())))
-}
-
-fn validate_menu_item_operation_bindings(
-    extension: &ContributionBatch,
-    available_operations: &std::collections::BTreeSet<EditorOperationPath>,
-) -> Result<(), EditorExtensionRegistryError> {
-    for menu_item in extension.menu_items() {
-        if !available_operations.contains(menu_item.operation()) {
-            return Err(EditorExtensionRegistryError::Command(
-                EditorCommandRegistryError::MissingCommand(menu_item.operation().clone()),
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn validate_inspector_customization_operation_bindings(
-    extension: &ContributionBatch,
-    available_operations: &std::collections::BTreeSet<EditorOperationPath>,
-) -> Result<(), EditorExtensionRegistryError> {
-    for customization in extension.inspector_customizations() {
-        let Some(surface) = customization.surface() else {
-            continue;
-        };
-        for binding in surface.bindings() {
-            let path = EditorOperationPath::parse(binding.clone())
-                .map_err(EditorExtensionRegistryError::OperationPath)?;
-            if !available_operations.contains(&path) {
-                return Err(EditorExtensionRegistryError::Command(
-                    EditorCommandRegistryError::MissingCommand(path),
-                ));
-            }
-        }
-    }
-    Ok(())
-}
-
-fn validate_asset_importer_operation_bindings(
-    extension: &ContributionBatch,
-    available_operations: &std::collections::BTreeSet<EditorOperationPath>,
-) -> Result<(), EditorExtensionRegistryError> {
-    for importer in extension.asset_importers() {
-        if !available_operations.contains(importer.operation()) {
-            return Err(EditorExtensionRegistryError::Command(
-                EditorCommandRegistryError::MissingCommand(importer.operation().clone()),
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn validate_asset_type_operation_bindings(
-    extension: &ContributionBatch,
-    available_operations: &std::collections::BTreeSet<EditorOperationPath>,
-) -> Result<(), EditorExtensionRegistryError> {
-    for contribution in extension.asset_type_contributions() {
-        if let Some(toolkit) = contribution.toolkit() {
-            if !available_operations.contains(toolkit.open_operation()) {
-                return Err(EditorExtensionRegistryError::Command(
-                    EditorCommandRegistryError::MissingCommand(toolkit.open_operation().clone()),
-                ));
-            }
-        }
-        for template in contribution.creation_templates() {
-            if !available_operations.contains(template.operation()) {
-                return Err(EditorExtensionRegistryError::Command(
-                    EditorCommandRegistryError::MissingCommand(template.operation().clone()),
-                ));
-            }
-        }
-        for command in contribution.context_commands() {
-            if !available_operations.contains(command.operation()) {
-                return Err(EditorExtensionRegistryError::Command(
-                    EditorCommandRegistryError::MissingCommand(command.operation().clone()),
-                ));
-            }
         }
     }
     Ok(())
@@ -541,6 +553,104 @@ fn map_contribution_error(error: ContributionError) -> EditorExtensionRegistryEr
         ContributionError::DuplicateContribution { kind, id } => {
             EditorExtensionRegistryError::DuplicateContribution { kind, id }
         }
+        ContributionError::PluginNamespace {
+            plugin_id,
+            kind: "tool resource kind",
+            id,
+        } => EditorExtensionRegistryError::ToolResourceKindOwnerMismatch {
+            expected_prefix: format!("plugin.{}.", plugin_id.as_str()),
+            owner_id: plugin_id.as_str().to_owned(),
+            kind: id,
+        },
+        ContributionError::ToolResourceKindRequiresPluginSource { kind } => {
+            EditorExtensionRegistryError::ToolResourceKindRequiresPluginSource { kind }
+        }
         error => EditorExtensionRegistryError::View(error.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime_interface::{
+        EditorCommandExecutionContract, EditorCommandResourceBudget, EditorCommandResultCodecId,
+    };
+
+    use super::{
+        ensure_native_live_action_has_no_active_contribution,
+        project_command_registry_from_contributions,
+    };
+    use crate::core::commands::{
+        EditorCommandDescriptor, EditorCommandExecutorRegistryError, EditorCommandRegistryError,
+    };
+    use crate::core::editor_operation::EditorOperationPath;
+    use crate::core::extension::{ContributionBatch, ContributionSource, ContributionStore};
+    use crate::core::tools::ToolOwnerGeneration;
+    use crate::ui::workbench::shell_state::OwnedContribution;
+
+    #[test]
+    fn native_live_action_requires_a_generation_aware_contribution_transaction() {
+        let mut contributions = ContributionStore::default();
+        let ticket = contributions
+            .contribute(ContributionSource::Builtin, ContributionBatch::default())
+            .unwrap();
+        let handle = crate::core::editor_extension::EditorContributionHandle::new(
+            "fixture.native-editor",
+            ticket,
+            ToolOwnerGeneration::BUILTIN,
+        );
+        let owners = [OwnedContribution::new(handle)];
+
+        let error =
+            ensure_native_live_action_has_no_active_contribution(&owners, "fixture.native-editor")
+                .expect_err("live action must not bypass an active exact contribution generation");
+
+        assert!(error.contains("fixture.native-editor"));
+        assert!(error.contains("generation-aware contribution transaction"));
+        assert!(ensure_native_live_action_has_no_active_contribution(
+            &owners,
+            "fixture.runtime-only"
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn native_endpoint_without_same_batch_binding_is_rejected_before_projection() {
+        let command_id = EditorOperationPath::parse("fixture.editor.native").unwrap();
+        let descriptor = EditorCommandDescriptor::native(command_id).with_execution_contract(
+            EditorCommandExecutionContract::new(
+                EditorCommandResultCodecId::parse("zircon.editor.result.v1").unwrap(),
+                EditorCommandResourceBudget::new(1024, 1024, 1000).unwrap(),
+            ),
+        );
+        let mut batch = ContributionBatch::default();
+        batch.register_command(descriptor).unwrap();
+        let mut contributions = ContributionStore::default();
+        contributions
+            .contribute(ContributionSource::Builtin, batch)
+            .unwrap();
+
+        let error = project_command_registry_from_contributions(&contributions, 0)
+            .expect_err("native endpoint without an admitted binding must not publish");
+        assert!(matches!(
+            error,
+            crate::core::editor_extension::EditorExtensionRegistryError::Command(
+                EditorCommandRegistryError::Executor(
+                    EditorCommandExecutorRegistryError::MissingExecutor { .. }
+                )
+            )
+        ));
+    }
+
+    #[test]
+    fn native_binding_owner_must_match_contribution_owner() {
+        let command_id = EditorOperationPath::parse("fixture.editor.native").unwrap();
+        let error =
+            super::validate_native_binding_owner(&command_id, "fixture.editor", "other.editor");
+        assert!(matches!(
+            error,
+            crate::core::editor_extension::EditorExtensionRegistryError::View(message)
+                if message.contains("other.editor")
+                    && message.contains("fixture.editor")
+        ));
     }
 }

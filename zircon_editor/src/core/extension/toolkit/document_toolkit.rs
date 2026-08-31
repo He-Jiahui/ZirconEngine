@@ -34,6 +34,9 @@ impl DocumentAutosavePayload {
 pub trait DocumentToolkit<Host>: Send + Sync {
     fn descriptor(&self) -> &DocumentToolkitDescriptor;
 
+    /// Validates the live authoring model immediately before persistence admission.
+    fn validate_references(&self, host: &Host) -> Result<(), ToolkitSaveFailure>;
+
     fn save(&self, host: &Host, context: &mut SaveCtx) -> Result<(), ToolkitSaveFailure>;
 
     /// Returns the physical canonical source without serializing document bytes.

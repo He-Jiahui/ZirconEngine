@@ -23,9 +23,11 @@ fn particle_plugin_render_feature_adds_transparent_pass_to_default_pipeline() {
         .collect::<Vec<_>>();
 
     assert!(pass_names.contains(&"particle-render"));
-    assert!(compiled
-        .required_extract_sections
-        .contains(&"particles".to_string()));
+    assert!(
+        compiled
+            .required_extract_sections
+            .contains(&"particles".to_string())
+    );
     let particle_feature = compiled
         .enabled_features()
         .iter()
@@ -51,9 +53,11 @@ fn core_scene_particle_extract_adds_billboard_pass_without_plugin_feature_identi
         .collect::<Vec<_>>();
 
     assert!(pass_names.contains(&"particle-render"));
-    assert!(compiled
-        .required_extract_sections
-        .contains(&"particles".to_string()));
+    assert!(
+        compiled
+            .required_extract_sections
+            .contains(&"particles".to_string())
+    );
     assert!(
         !compiled
             .enabled_features()
@@ -88,9 +92,11 @@ fn compile_options_can_disable_core_scene_particle_billboard_pass() {
         .collect::<Vec<_>>();
 
     assert!(!pass_names.contains(&"particle-render"));
-    assert!(!compiled
-        .required_extract_sections
-        .contains(&"particles".to_string()));
+    assert!(
+        !compiled
+            .required_extract_sections
+            .contains(&"particles".to_string())
+    );
 }
 
 #[test]
@@ -111,9 +117,11 @@ fn compile_options_can_disable_particle_plugin_feature_by_name() {
         .collect::<Vec<_>>();
 
     assert!(!pass_names.contains(&"particle-render"));
-    assert!(!compiled
-        .required_extract_sections
-        .contains(&"particles".to_string()));
+    assert!(
+        !compiled
+            .required_extract_sections
+            .contains(&"particles".to_string())
+    );
 }
 
 fn test_extract_with_particle_sprite() -> RenderFrameExtract {

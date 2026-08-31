@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use arc_swap::{ArcSwap, Guard};
+use arc_swap::ArcSwap;
 
 use zircon_runtime::scene::World;
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeModuleCompositionReceiptV1;
 use zircon_runtime_interface::world_sync::{
     InvalidationBatch, WatchRegistration, WatchToken, WorldQuery, WorldQueryResult,
 };
@@ -17,7 +18,7 @@ use zircon_runtime_interface::{
 use super::{
     DetachedEditorRuntimeGateway, EditorRuntimeFrame, EditorRuntimeFrameDemand,
     EditorRuntimeGateway, EditorRuntimeHighlightSet, EditorRuntimePluginEventPage, GatewayError,
-    RuntimeCapabilities, SharedEditorRuntimeGateway,
+    GatewaySessionIdentity, RuntimeCapabilities, SharedEditorRuntimeGateway,
 };
 
 /// Stable editor service identity whose transport can be attached after module startup.
@@ -33,17 +34,87 @@ struct GatewayOwner {
 
 struct GatewayGeneration {
     id: u64,
+    identity: GatewaySessionIdentity,
     gateway: SharedEditorRuntimeGateway,
     capabilities: Arc<RuntimeCapabilities>,
+    module_composition_receipt: Option<Arc<ZrRuntimeModuleCompositionReceiptV1>>,
+}
+
+/// Immutable origin endpoint retained by a resource allocated against one transport generation.
+///
+/// This owns no replacement lock. Long-lived editor resources keep an origin solely to route their
+/// opaque cleanup operations back to the endpoint that created them.
+#[derive(Clone)]
+pub(crate) struct GatewayOrigin {
+    generation: Arc<GatewayGeneration>,
+}
+
+impl GatewayOrigin {
+    pub(crate) fn generation(&self) -> u64 {
+        self.generation.id
+    }
+
+    pub(crate) fn session_handle(&self) -> ZrRuntimeSessionHandle {
+        self.generation.identity.runtime_session()
+    }
+
+    pub(crate) fn identity(&self) -> &GatewaySessionIdentity {
+        &self.generation.identity
+    }
+
+    pub(crate) fn gateway(&self) -> &SharedEditorRuntimeGateway {
+        &self.generation.gateway
+    }
+}
+
+/// A short-lived immutable view of one runtime transport generation.
+///
+/// A lease clones its origin's `Arc` and never holds the replacement mutex. It is intentionally
+/// used for one bounded operation chain; long-lived state must retain [`GatewayOrigin`] instead.
+#[derive(Clone)]
+pub(crate) struct GatewayLease {
+    origin: GatewayOrigin,
+}
+
+impl GatewayLease {
+    pub(crate) fn origin(&self) -> GatewayOrigin {
+        self.origin.clone()
+    }
+
+    pub(crate) fn generation(&self) -> u64 {
+        self.origin.generation()
+    }
+
+    pub(crate) fn session_handle(&self) -> ZrRuntimeSessionHandle {
+        self.origin.session_handle()
+    }
+
+    pub(crate) fn identity(&self) -> &GatewaySessionIdentity {
+        self.origin.identity()
+    }
+
+    pub(crate) fn gateway(&self) -> &SharedEditorRuntimeGateway {
+        self.origin.gateway()
+    }
+
+    pub(crate) fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
+        self.gateway().tick_frame()
+    }
 }
 
 impl GatewayGeneration {
-    fn new(id: u64, gateway: SharedEditorRuntimeGateway) -> Self {
+    fn new(id: u64, gateway: SharedEditorRuntimeGateway, play_instance: Option<u64>) -> Self {
         let capabilities = gateway.capabilities();
+        let module_composition_receipt = gateway.module_composition_receipt();
         Self {
             id,
+            identity: gateway
+                .session_identity()
+                .with_gateway_generation(id)
+                .with_play_instance(play_instance),
             gateway,
             capabilities,
+            module_composition_receipt,
         }
     }
 }
@@ -52,7 +123,7 @@ impl EditorRuntimeGatewayHandle {
     pub fn new(gateway: SharedEditorRuntimeGateway) -> Self {
         Self {
             inner: Arc::new(GatewayOwner {
-                current: ArcSwap::from_pointee(GatewayGeneration::new(0, gateway)),
+                current: ArcSwap::from_pointee(GatewayGeneration::new(0, gateway, None)),
                 replacement: Mutex::new(()),
             }),
         }
@@ -63,20 +134,69 @@ impl EditorRuntimeGatewayHandle {
     }
 
     pub fn replace(&self, gateway: SharedEditorRuntimeGateway) -> Result<(), GatewayError> {
+        self.replace_for_play(gateway, None)
+    }
+
+    pub(crate) fn replace_for_play(
+        &self,
+        gateway: SharedEditorRuntimeGateway,
+        play_instance: Option<u64>,
+    ) -> Result<(), GatewayError> {
         let _replacement = self.replacement_lock();
-        let next_generation = next_generation(self.generation_snapshot().id)?;
-        self.inner
-            .current
-            .store(Arc::new(GatewayGeneration::new(next_generation, gateway)));
+        let next_generation = next_generation(self.current_lease().generation())?;
+        self.inner.current.store(Arc::new(GatewayGeneration::new(
+            next_generation,
+            gateway,
+            play_instance,
+        )));
+        Ok(())
+    }
+
+    /// Detaches only the generation observed by a lifecycle owner. The identity check and
+    /// detached-generation publication share the replacement lock, so a cloned handle cannot
+    /// replace the gateway between those two operations.
+    pub(crate) fn detach_at_identity(
+        &self,
+        expected_identity: &GatewaySessionIdentity,
+    ) -> Result<(), GatewayError> {
+        let _replacement = self.replacement_lock();
+        let current = self.current_lease();
+        if current.identity() != expected_identity {
+            return Err(GatewayError::StaleGeneration {
+                expected_generation: expected_identity.gateway_generation(),
+                current_generation: current.generation(),
+            });
+        }
+        let next_generation = next_generation(current.generation())?;
+        self.inner.current.store(Arc::new(GatewayGeneration::new(
+            next_generation,
+            Arc::new(DetachedEditorRuntimeGateway),
+            None,
+        )));
         Ok(())
     }
 
     pub fn generation(&self) -> u64 {
-        self.generation_snapshot().id
+        self.current_lease().generation()
     }
 
-    fn generation_snapshot(&self) -> Guard<Arc<GatewayGeneration>> {
-        self.inner.current.load()
+    pub fn identity(&self) -> GatewaySessionIdentity {
+        self.current_lease().identity().clone()
+    }
+
+    pub fn module_composition_receipt(&self) -> Option<Arc<ZrRuntimeModuleCompositionReceiptV1>> {
+        self.current_lease()
+            .generation
+            .module_composition_receipt
+            .clone()
+    }
+
+    pub(crate) fn current_lease(&self) -> GatewayLease {
+        GatewayLease {
+            origin: GatewayOrigin {
+                generation: self.inner.current.load_full(),
+            },
+        }
     }
 
     fn replacement_lock(&self) -> MutexGuard<'_, ()> {
@@ -84,20 +204,6 @@ impl EditorRuntimeGatewayHandle {
             .replacement
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-
-    /// Runs one session-owned operation while gateway replacement is excluded.
-    ///
-    /// Watch tokens are only meaningful to the runtime generation that issued them. Callers that
-    /// bind a returned token into editor-owned state must therefore perform allocation and binding
-    /// while this guard holds the generation stable.
-    pub(crate) fn with_current_gateway_generation<T>(
-        &self,
-        operation: impl FnOnce(u64, &SharedEditorRuntimeGateway) -> T,
-    ) -> T {
-        let _replacement = self.replacement_lock();
-        let generation = self.generation_snapshot();
-        operation(generation.id, &generation.gateway)
     }
 }
 
@@ -109,45 +215,120 @@ fn next_generation(current: u64) -> Result<u64, GatewayError> {
 
 impl EditorRuntimeGatewayHandle {
     pub fn capabilities(&self) -> Arc<RuntimeCapabilities> {
-        self.generation_snapshot().capabilities.clone()
+        self.current_lease().generation.capabilities.clone()
     }
 
     pub fn session_handle(&self) -> ZrRuntimeSessionHandle {
-        self.generation_snapshot().gateway.session_handle()
+        self.current_lease().session_handle()
     }
 
     pub fn with_world(&self, read: &mut dyn FnMut(&World)) -> Result<(), GatewayError> {
-        self.generation_snapshot().gateway.with_world(read)
+        self.current_lease().gateway().with_world(read)
+    }
+
+    /// Runs a borrowed-world read only when the caller's document still owns this gateway
+    /// identity. The operation uses one immutable lease, so replacement cannot redirect the
+    /// document's callback to a new session.
+    pub(crate) fn with_world_at_identity(
+        &self,
+        expected_identity: &GatewaySessionIdentity,
+        read: &mut dyn FnMut(&World),
+    ) -> Result<(), GatewayError> {
+        let lease = self.current_lease();
+        if lease.identity() != expected_identity {
+            return Err(GatewayError::StaleGeneration {
+                expected_generation: expected_identity.gateway_generation(),
+                current_generation: lease.generation(),
+            });
+        }
+        lease.gateway().with_world(read)
     }
 
     pub fn with_world_mut(&self, write: &mut dyn FnMut(&mut World)) -> Result<(), GatewayError> {
-        self.generation_snapshot().gateway.with_world_mut(write)
+        self.current_lease().gateway().with_world_mut(write)
+    }
+
+    /// Mutable counterpart to `with_world_at_identity`.
+    pub(crate) fn with_world_mut_at_identity(
+        &self,
+        expected_identity: &GatewaySessionIdentity,
+        write: &mut dyn FnMut(&mut World),
+    ) -> Result<(), GatewayError> {
+        let lease = self.current_lease();
+        if lease.identity() != expected_identity {
+            return Err(GatewayError::StaleGeneration {
+                expected_generation: expected_identity.gateway_generation(),
+                current_generation: lease.generation(),
+            });
+        }
+        lease.gateway().with_world_mut(write)
     }
 
     pub fn query_world(&self, query: WorldQuery) -> Result<WorldQueryResult, GatewayError> {
-        self.generation_snapshot().gateway.query_world(query)
+        self.current_lease().gateway().query_world(query)
     }
 
-    pub fn watch_world(&self, registration: WatchRegistration) -> Result<WatchToken, GatewayError> {
-        self.generation_snapshot().gateway.watch_world(registration)
+    /// Executes a serialized query only against the runtime identity captured by the caller.
+    pub(crate) fn query_world_at_identity(
+        &self,
+        expected_identity: &GatewaySessionIdentity,
+        query: WorldQuery,
+    ) -> Result<WorldQueryResult, GatewayError> {
+        let lease = self.current_lease();
+        if lease.identity() != expected_identity {
+            return Err(GatewayError::StaleGeneration {
+                expected_generation: expected_identity.gateway_generation(),
+                current_generation: lease.generation(),
+            });
+        }
+        let result = lease.gateway().query_world(query)?;
+        let current = self.current_lease();
+        if current.identity() != expected_identity {
+            return Err(GatewayError::StaleGeneration {
+                expected_generation: expected_identity.gateway_generation(),
+                current_generation: current.generation(),
+            });
+        }
+        Ok(result)
     }
 
-    pub fn unwatch_world(&self, token: WatchToken) -> Result<bool, GatewayError> {
-        self.generation_snapshot().gateway.unwatch_world(token)
+    pub(crate) fn watch_world(
+        &self,
+        registration: WatchRegistration,
+    ) -> Result<WatchToken, GatewayError> {
+        self.current_lease().gateway().watch_world(registration)
     }
 
-    pub fn drain_world_invalidations(&self) -> Result<Vec<InvalidationBatch>, GatewayError> {
-        self.generation_snapshot()
-            .gateway
-            .drain_world_invalidations()
+    pub(crate) fn unwatch_world(&self, token: WatchToken) -> Result<bool, GatewayError> {
+        self.current_lease().gateway().unwatch_world(token)
+    }
+
+    pub(crate) fn drain_world_invalidations(&self) -> Result<Vec<InvalidationBatch>, GatewayError> {
+        self.current_lease().gateway().drain_world_invalidations()
     }
 
     pub fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
-        self.generation_snapshot().gateway.tick_frame()
+        self.current_lease().gateway().tick_frame()
     }
 
     pub fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), GatewayError> {
-        self.generation_snapshot().gateway.handle_event(event)
+        self.current_lease().gateway().handle_event(event)
+    }
+
+    /// Dispatches one synchronous event only to the runtime generation selected by the caller.
+    pub(crate) fn handle_event_at_identity(
+        &self,
+        expected_identity: &GatewaySessionIdentity,
+        event: ZrRuntimeEventV1,
+    ) -> Result<(), GatewayError> {
+        let lease = self.current_lease();
+        if lease.identity() != expected_identity {
+            return Err(GatewayError::StaleGeneration {
+                expected_generation: expected_identity.gateway_generation(),
+                current_generation: lease.generation(),
+            });
+        }
+        lease.gateway().handle_event(event)
     }
 
     pub fn capture_frame(
@@ -155,17 +336,36 @@ impl EditorRuntimeGatewayHandle {
         viewport: ZrRuntimeViewportHandle,
         size: ZrRuntimeViewportSizeV1,
     ) -> Result<EditorRuntimeFrame, GatewayError> {
-        self.generation_snapshot()
-            .gateway
-            .capture_frame(viewport, size)
+        self.current_lease().gateway().capture_frame(viewport, size)
+    }
+
+    /// Captures a viewport product only from the runtime origin selected by the caller.
+    ///
+    /// The immutable lease keeps replacement from redirecting the capture between the identity
+    /// check and the runtime call. The returned frame therefore has a provenance that can be
+    /// retained alongside asynchronous operations against that displayed product.
+    pub(crate) fn capture_frame_at_identity(
+        &self,
+        expected_identity: &GatewaySessionIdentity,
+        viewport: ZrRuntimeViewportHandle,
+        size: ZrRuntimeViewportSizeV1,
+    ) -> Result<EditorRuntimeFrame, GatewayError> {
+        let lease = self.current_lease();
+        if lease.identity() != expected_identity {
+            return Err(GatewayError::StaleGeneration {
+                expected_generation: expected_identity.gateway_generation(),
+                current_generation: lease.generation(),
+            });
+        }
+        lease.gateway().capture_frame(viewport, size)
     }
 
     pub fn bind_viewport_surface(
         &self,
         request: ZrRuntimeBindViewportSurfaceRequestV1,
     ) -> Result<(), GatewayError> {
-        self.generation_snapshot()
-            .gateway
+        self.current_lease()
+            .gateway()
             .bind_viewport_surface(request)
     }
 
@@ -173,51 +373,51 @@ impl EditorRuntimeGatewayHandle {
         &self,
         viewport: ZrRuntimeViewportHandle,
     ) -> Result<(), GatewayError> {
-        self.generation_snapshot()
-            .gateway
+        self.current_lease()
+            .gateway()
             .unbind_viewport_surface(viewport)
     }
 
     pub fn present_viewport(&self, request: ZrRuntimeFrameRequestV1) -> Result<(), GatewayError> {
-        self.generation_snapshot().gateway.present_viewport(request)
+        self.current_lease().gateway().present_viewport(request)
     }
 
     pub fn submit_highlight_set(&self, set: EditorRuntimeHighlightSet) -> Result<(), GatewayError> {
-        self.generation_snapshot().gateway.submit_highlight_set(set)
+        self.current_lease().gateway().submit_highlight_set(set)
     }
 
     pub fn profile_control(
         &self,
         request: &ProfileControlRequest,
     ) -> Result<Option<ProfileControlResponse>, GatewayError> {
-        self.generation_snapshot().gateway.profile_control(request)
+        self.current_lease().gateway().profile_control(request)
     }
 
-    pub fn subscribe_plugin_event(
+    pub(crate) fn subscribe_plugin_event(
         &self,
         event_id: &str,
         payload_schema: &str,
     ) -> Result<Option<ZrRuntimePluginEventSubscriptionHandle>, GatewayError> {
-        self.generation_snapshot()
-            .gateway
+        self.current_lease()
+            .gateway()
             .subscribe_plugin_event(event_id, payload_schema)
     }
 
-    pub fn unsubscribe_plugin_event(
+    pub(crate) fn unsubscribe_plugin_event(
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
     ) -> Result<bool, GatewayError> {
-        self.generation_snapshot()
-            .gateway
+        self.current_lease()
+            .gateway()
             .unsubscribe_plugin_event(subscription)
     }
 
-    pub fn drain_plugin_events(
+    pub(crate) fn drain_plugin_events(
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
     ) -> Result<EditorRuntimePluginEventPage, GatewayError> {
-        self.generation_snapshot()
-            .gateway
+        self.current_lease()
+            .gateway()
             .drain_plugin_events(subscription)
     }
 
@@ -225,21 +425,21 @@ impl EditorRuntimeGatewayHandle {
         &self,
         request: ZrRuntimeOperationSubmitRequestV1,
     ) -> Result<ZrRuntimeOperationHandle, GatewayError> {
-        self.generation_snapshot().gateway.submit_operation(request)
+        self.current_lease().gateway().submit_operation(request)
     }
 
     pub fn poll_operation(
         &self,
         handle: ZrRuntimeOperationHandle,
     ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
-        self.generation_snapshot().gateway.poll_operation(handle)
+        self.current_lease().gateway().poll_operation(handle)
     }
 
     pub fn harvest_operation(
         &self,
         handle: ZrRuntimeOperationHandle,
     ) -> Result<ZrRuntimeOperationResultV1, GatewayError> {
-        self.generation_snapshot().gateway.harvest_operation(handle)
+        self.current_lease().gateway().harvest_operation(handle)
     }
 }
 
@@ -248,8 +448,16 @@ impl EditorRuntimeGateway for EditorRuntimeGatewayHandle {
         EditorRuntimeGatewayHandle::capabilities(self)
     }
 
+    fn module_composition_receipt(&self) -> Option<Arc<ZrRuntimeModuleCompositionReceiptV1>> {
+        EditorRuntimeGatewayHandle::module_composition_receipt(self)
+    }
+
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         EditorRuntimeGatewayHandle::session_handle(self)
+    }
+
+    fn session_identity(&self) -> GatewaySessionIdentity {
+        EditorRuntimeGatewayHandle::identity(self)
     }
 
     fn with_world(&self, read: &mut dyn FnMut(&World)) -> Result<(), GatewayError> {

@@ -2,13 +2,32 @@ use super::*;
 
 #[test]
 fn transient_allocation_indexes_buckets_slots_and_reservations() {
-    let source = include_str!("../../graph.rs");
+    let graph_source = include_str!("../../graph.rs");
+    let allocation_source = include_str!("../../graph/transient_allocation.rs");
 
-    assert!(source.contains("HashMap::<TransientAllocationBucketKey"));
-    assert!(source.contains("BTreeSet::<(usize, usize)>::new()"));
-    assert!(source.contains("HashMap::<(RenderGraphResourceKind, usize, u64), u64>::new()"));
-    assert!(!source.contains("slot_last_passes\n            .iter()\n            .position"));
-    assert!(!source.contains("lifetimes_by_bucket\n            .iter_mut()\n            .find"));
+    assert!(graph_source.contains("mod transient_allocation;"));
+    assert!(graph_source.contains("build_transient_allocation_plan"));
+    assert!(allocation_source.contains("HashMap::<TransientAllocationBucketKey"));
+    assert!(allocation_source.contains("BTreeSet::<(usize, usize)>::new()"));
+    assert!(allocation_source.contains("CompiledRenderGraphTransientAllocationId,"));
+    assert!(
+        !allocation_source.contains("slot_last_passes\n            .iter()\n            .position")
+    );
+    assert!(!allocation_source
+        .contains("lifetimes_by_bucket\n            .iter_mut()\n            .find"));
+}
+
+#[test]
+fn transient_materialization_uses_compiler_allocation_ids_not_bucket_hashes() {
+    let source = include_str!(
+        "../../../graphics/scene/scene_renderer/graph_execution/transient_materialization.rs"
+    );
+
+    assert!(source.contains("allocation_id: CompiledRenderGraphTransientAllocationId"));
+    assert!(source.contains("TransientMaterializationSlotKey::from_allocation"));
+    assert!(source.contains("validate_transient_allocation_intervals"));
+    assert!(!source.contains("if let Some(desc) = compatible_texture_slot_desc"));
+    assert!(!source.contains("bucket_key_hash"));
 }
 
 #[test]
@@ -35,7 +54,7 @@ fn graph_builds_transient_aliasing_plan_for_non_overlapping_lifetimes() {
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
 
     let write_history = builder.add_pass("write-history", QueueLane::Graphics);
     let light = builder.add_pass("lighting", QueueLane::Graphics);
@@ -63,6 +82,23 @@ fn graph_builds_transient_aliasing_plan_for_non_overlapping_lifetimes() {
     assert_eq!(plan.slot_for("lighting"), Some(1));
     assert_eq!(plan.slot_for("resolved"), Some(0));
     assert_eq!(plan.slot_for("viewport-output"), None);
+    let history_allocation = plan
+        .allocations
+        .iter()
+        .find(|allocation| allocation.resource_name == "history")
+        .expect("history allocation");
+    let resolved_allocation = plan
+        .allocations
+        .iter()
+        .find(|allocation| allocation.resource_name == "resolved")
+        .expect("resolved allocation");
+    assert_eq!(
+        history_allocation.allocation_id,
+        resolved_allocation.allocation_id
+    );
+    assert!(history_allocation.last_pass < resolved_allocation.first_pass);
+    plan.validate_transient_allocation_intervals()
+        .expect("compiler plan proves shared allocation intervals are disjoint");
     for allocation in &plan.allocations {
         assert_eq!(
             graph
@@ -70,6 +106,11 @@ fn graph_builds_transient_aliasing_plan_for_non_overlapping_lifetimes() {
                 .map(|lifetime| lifetime.name.as_str()),
             Some(allocation.resource_name.as_str())
         );
+        let lifetime = graph
+            .resource_lifetime(allocation.resource)
+            .expect("allocation lifetime");
+        assert_eq!(allocation.first_pass, lifetime.first_pass);
+        assert_eq!(allocation.last_pass, lifetime.last_pass);
     }
 }
 
@@ -99,6 +140,269 @@ fn graph_transient_allocation_plan_bypasses_persistent_textures() {
             .unwrap()
             .usage
             .persistent
+    );
+}
+
+#[test]
+fn graph_declared_texture_view_alias_keeps_its_logical_lifetime_without_a_physical_slot() {
+    let mut builder = RenderGraphBuilder::new("texture-view-alias");
+    let pyramid = builder.create_texture(
+        TextureDesc::new(
+            "reflection-pyramid",
+            64,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        )
+        .with_mip_levels(3),
+    );
+    let coarse = builder
+        .create_texture_view_alias(
+            "reflection-pyramid-coarse-view",
+            pyramid,
+            crate::render_graph::RenderGraphTextureSubresourceRange::single_mip(1),
+        )
+        .expect("alias declaration should be valid for the parent mip range");
+    let output = builder.import_present_external_resource("viewport-output");
+    let build_coarse = builder.add_pass("build-coarse", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+
+    builder.write_texture(build_coarse, coarse).unwrap();
+    builder.read_texture(present, coarse).unwrap();
+    builder.write_external(present, output).unwrap();
+
+    let graph = builder
+        .compile()
+        .expect("compile declared texture view alias");
+    let alias = graph
+        .resource_lifetime_by_name("reflection-pyramid-coarse-view")
+        .expect("live alias lifetime");
+    let view = alias
+        .texture_view_alias
+        .expect("alias lifetime retains its graph declaration");
+
+    assert_eq!(view.parent, pyramid);
+    assert_eq!(
+        view.range,
+        crate::render_graph::RenderGraphTextureSubresourceRange::single_mip(1)
+    );
+    assert_eq!(
+        graph
+            .transient_allocation_plan()
+            .slot_for("reflection-pyramid"),
+        Some(0)
+    );
+    assert_eq!(
+        graph
+            .transient_allocation_plan()
+            .slot_for("reflection-pyramid-coarse-view"),
+        None
+    );
+}
+
+#[test]
+fn graph_physical_allocation_identity_projects_texture_view_aliases_to_parent_backing() {
+    let mut builder = RenderGraphBuilder::new("physical-allocation-identity");
+    let pyramid = builder.create_texture(
+        TextureDesc::new(
+            "reflection-pyramid",
+            64,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        )
+        .with_mip_levels(3),
+    );
+    let coarse = builder
+        .create_texture_view_alias(
+            "reflection-pyramid-coarse-view",
+            pyramid,
+            crate::render_graph::RenderGraphTextureSubresourceRange::single_mip(1),
+        )
+        .expect("alias declaration should be valid for the parent mip range");
+    let output = builder.import_present_external_resource("viewport-output");
+    let build_coarse = builder.add_pass("build-coarse", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+
+    builder.write_texture(build_coarse, coarse).unwrap();
+    builder.read_texture(present, coarse).unwrap();
+    builder.write_external(present, output).unwrap();
+
+    let graph = builder.compile().expect("compile texture view alias graph");
+    let parent_resource = RenderGraphResource::TransientTexture(pyramid);
+    let alias_resource = RenderGraphResource::TransientTexture(coarse);
+    let alias_access = graph
+        .access_id_for(
+            build_coarse,
+            alias_resource,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .expect("alias write access id");
+    let present_access = graph
+        .access_id_for(
+            present,
+            RenderGraphResource::External(output),
+            RenderGraphResourceAccessKind::Write,
+        )
+        .expect("present access id");
+
+    let parent_identity = graph
+        .physical_allocation_id_for_resource(parent_resource)
+        .expect("parent transient physical identity");
+    assert_eq!(
+        graph.physical_allocation_id_for_resource(alias_resource),
+        Some(parent_identity)
+    );
+    assert_eq!(
+        graph.physical_allocation_id_for_access(alias_access),
+        Some(parent_identity)
+    );
+    assert_eq!(
+        graph.physical_allocation_id_for_access(present_access),
+        None
+    );
+    assert_eq!(
+        Some(parent_identity.allocation_id()),
+        graph
+            .transient_allocation_plan()
+            .allocation_id_for("reflection-pyramid")
+    );
+}
+
+#[test]
+fn compiled_access_allocation_table_is_dense_and_keeps_external_leases_unresolved() {
+    let mut builder = RenderGraphBuilder::new("compiled-access-allocation-table");
+    let pyramid = builder.create_texture(
+        TextureDesc::new(
+            "reflection-pyramid",
+            64,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        )
+        .with_mip_levels(3),
+    );
+    let coarse = builder
+        .create_texture_view_alias(
+            "reflection-pyramid-coarse-view",
+            pyramid,
+            crate::render_graph::RenderGraphTextureSubresourceRange::single_mip(1),
+        )
+        .expect("alias declaration should be valid for the parent mip range");
+    let output = builder.import_present_external_resource("viewport-output");
+    let build_coarse = builder.add_pass("build-coarse", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+
+    builder.write_texture(build_coarse, coarse).unwrap();
+    builder.read_texture(present, coarse).unwrap();
+    builder.write_external(present, output).unwrap();
+
+    let graph = builder
+        .compile()
+        .expect("compile access allocation table graph");
+    let alias_write = graph
+        .access_id_for(
+            build_coarse,
+            RenderGraphResource::TransientTexture(coarse),
+            RenderGraphResourceAccessKind::Write,
+        )
+        .expect("alias write access id");
+    let present_write = graph
+        .access_id_for(
+            present,
+            RenderGraphResource::External(output),
+            RenderGraphResourceAccessKind::Write,
+        )
+        .expect("present access id");
+
+    let bindings = graph.access_allocation_bindings();
+    assert_eq!(bindings.len(), 3);
+    let alias_binding = graph
+        .access_allocation_binding(alias_write)
+        .expect("alias access allocation binding");
+    assert_eq!(
+        alias_binding.key,
+        graph.versioned_access_key(alias_write).unwrap()
+    );
+    assert_eq!(
+        alias_binding.key.range,
+        crate::render_graph::RenderGraphResourceAccessRange::Texture(
+            crate::render_graph::RenderGraphTextureSubresourceRange {
+                base_mip_level: 1,
+                mip_level_count: Some(1),
+                base_array_layer: 0,
+                array_layer_count: Some(1),
+                aspect: crate::render_graph::RenderGraphTextureAspect::All,
+            }
+        )
+    );
+    assert_eq!(
+        alias_binding.physical_allocation,
+        graph.physical_allocation_id_for_access(alias_write)
+    );
+    assert!(alias_binding.physical_allocation.is_some());
+    let present_binding = graph
+        .access_allocation_binding(present_write)
+        .expect("present access allocation binding");
+    assert_eq!(
+        present_binding.key,
+        graph.versioned_access_key(present_write).unwrap()
+    );
+    assert_eq!(present_binding.physical_allocation, None);
+}
+
+#[test]
+fn persistent_texture_view_alias_has_no_transient_physical_allocation_identity() {
+    let mut builder = RenderGraphBuilder::new("persistent-alias-allocation-identity");
+    let history = builder.create_texture(
+        TextureDesc::new(
+            "history",
+            64,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        )
+        .with_mip_levels(2),
+    );
+    builder.mark_persistent(history).unwrap();
+    let history_mip = builder
+        .create_texture_view_alias(
+            "history-mip",
+            history,
+            crate::render_graph::RenderGraphTextureSubresourceRange::single_mip(1),
+        )
+        .expect("persistent texture alias declaration should be valid");
+    let output = builder.import_present_external_resource("viewport-output");
+    let produce = builder.add_pass("produce", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+
+    builder.write_texture(produce, history_mip).unwrap();
+    builder.read_texture(present, history_mip).unwrap();
+    builder.write_external(present, output).unwrap();
+
+    let graph = builder.compile().expect("compile persistent alias graph");
+    let persistent_alias_access = graph
+        .access_id_for(
+            produce,
+            RenderGraphResource::TransientTexture(history_mip),
+            RenderGraphResourceAccessKind::Write,
+        )
+        .expect("persistent alias write access id");
+    assert_eq!(
+        graph.physical_allocation_id_for_resource(RenderGraphResource::TransientTexture(history)),
+        None
+    );
+    assert_eq!(
+        graph.physical_allocation_id_for_resource(RenderGraphResource::TransientTexture(
+            history_mip
+        )),
+        None
+    );
+    assert_eq!(
+        graph
+            .access_allocation_binding(persistent_alias_access)
+            .map(|binding| binding.physical_allocation),
+        Some(None)
     );
 }
 
@@ -177,7 +481,7 @@ fn graph_transient_allocation_plan_reports_slot_reserved_bytes() {
         )
         .with_sparse_residency(),
     );
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
 
     let write_large = builder.add_pass("write-large", QueueLane::Graphics);
     let present_large = builder.add_pass("present-large", QueueLane::Graphics);
@@ -248,48 +552,36 @@ fn graph_transient_allocation_plan_reports_slot_reserved_bytes() {
         small_color_allocation.bucket_key_hash
     );
     assert_ne!(
+        large_color_allocation.allocation_id,
+        small_color_allocation.allocation_id
+    );
+    assert_ne!(
         small_buffer_allocation.bucket_key_hash,
         large_buffer_allocation.bucket_key_hash
     );
+    assert_ne!(
+        small_buffer_allocation.allocation_id,
+        large_buffer_allocation.allocation_id
+    );
+    assert_ne!(
+        large_color_allocation.allocation_id,
+        small_buffer_allocation.allocation_id
+    );
     assert_eq!(
-        plan.slot_bytes_for_bucket(
-            RenderGraphResourceKind::TransientTexture,
-            0,
-            large_color_allocation.bucket_key_hash,
-        ),
+        plan.slot_bytes_for_allocation(large_color_allocation.allocation_id),
         Some(1024)
     );
     assert_eq!(
-        plan.slot_bytes_for_bucket(
-            RenderGraphResourceKind::TransientTexture,
-            0,
-            small_color_allocation.bucket_key_hash,
-        ),
+        plan.slot_bytes_for_allocation(small_color_allocation.allocation_id),
         Some(256)
     );
     assert_eq!(
-        plan.slot_bytes_for_bucket(
-            RenderGraphResourceKind::TransientBuffer,
-            0,
-            small_buffer_allocation.bucket_key_hash,
-        ),
+        plan.slot_bytes_for_allocation(small_buffer_allocation.allocation_id),
         Some(64)
     );
     assert_eq!(
-        plan.slot_bytes_for_bucket(
-            RenderGraphResourceKind::TransientBuffer,
-            0,
-            large_buffer_allocation.bucket_key_hash,
-        ),
+        plan.slot_bytes_for_allocation(large_buffer_allocation.allocation_id),
         Some(128)
-    );
-    assert_eq!(
-        plan.slot_bytes(RenderGraphResourceKind::TransientTexture, 0),
-        Some(1280)
-    );
-    assert_eq!(
-        plan.slot_bytes(RenderGraphResourceKind::TransientBuffer, 0),
-        Some(192)
     );
     assert_eq!(plan.dense_texture_bytes_reserved, 1280);
     assert_eq!(plan.dense_buffer_bytes_reserved, 192);

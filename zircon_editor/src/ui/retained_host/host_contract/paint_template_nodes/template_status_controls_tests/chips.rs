@@ -216,7 +216,8 @@ fn status_chip_uses_shared_painter_state_priority() {
         pressed.state,
         zircon_runtime_interface::ui::style::UiPainterResolvedState::Pressed
     );
-    assert_eq!(pressed.border, PALETTE.focus_ring);
+    assert_eq!(pressed.border, PALETTE.border);
+    assert_ne!(pressed.border, PALETTE.focus_ring);
 
     node.disabled = true;
     let disabled = select_workbench_status_chip_style(&node);

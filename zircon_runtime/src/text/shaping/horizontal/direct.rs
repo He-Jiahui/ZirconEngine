@@ -1,29 +1,53 @@
-use crate::text::font::FontDatabase;
+use crate::text::font::{FontDatabase, SelectedFaceLineEnvelope, SelectedFaceLineExtents};
 use crate::text::{
-    BackendShapeRequest, FontFaceId, ShapedGlyph, ShapedGlyphRun, ShapedTextLine, TextRange,
+    BackendShapeRequest, HorizontalGlyphMetricSpan, ShapedGlyph, ShapedGlyphRun, ShapedHardLine,
+    TextRange,
 };
 
 use super::backend::{HorizontalBackendRun, shape_horizontal_run};
+use super::composition::{HorizontalDirectHole, HorizontalDirectShapeAttempt};
 use crate::text::shaping::bidi::BidiParagraph;
 use crate::text::shaping::cosmic::{cluster_flags, resolved_line_height};
-use crate::text::shaping::fallback_spans::FallbackTextSpan;
+use crate::text::shaping::direct_error::{
+    BackendGlyphInvariantKind, DirectShapeError, validate_backend_glyphs,
+};
+use crate::text::shaping::fallback_spans::{FallbackTextSpan, fallback_primary_face};
 use crate::text::shaping::itemize::{
     LogicalSegment, logical_segments_for_line, restore_backend_cluster_logical_order,
     virtual_hard_break_glyph,
 };
 use crate::text::shaping::line_break::LineBreakOpportunityMap;
-use crate::text::shaping::script_segment::{script_segments, shaped_script_for_cluster};
+use crate::text::shaping::script_segment::ParagraphTextAnalysis;
 
 pub(in crate::text::shaping) fn shape_horizontal_request(
     request: BackendShapeRequest<'_>,
     bidi: &BidiParagraph<'_>,
     fallback_spans: &[FallbackTextSpan],
+    analysis: &ParagraphTextAnalysis,
     database: &FontDatabase,
-) -> Option<ShapedGlyphRun> {
-    let line_breaks = LineBreakOpportunityMap::new(request.text);
-    let scripts = script_segments(request.text);
+) -> Result<HorizontalDirectShapeAttempt, DirectShapeError> {
+    debug_assert_eq!(
+        bidi.unicode_data_snapshot(),
+        request.unicode_data_snapshot(),
+        "Bidi analysis must use the request-bound Unicode snapshot"
+    );
+    debug_assert_eq!(
+        analysis.unicode_data_snapshot(),
+        request.unicode_data_snapshot(),
+        "script analysis must use the request-bound Unicode snapshot"
+    );
+    let line_breaks =
+        LineBreakOpportunityMap::for_snapshot(request.text, request.unicode_data_snapshot());
+    debug_assert_eq!(
+        line_breaks.unicode_data_snapshot(),
+        request.unicode_data_snapshot(),
+        "line-break analysis must use the request-bound Unicode snapshot"
+    );
     let line_height = resolved_line_height(request);
     let mut lines = Vec::new();
+    let mut horizontal_line_raw_metrics = Vec::new();
+    let mut horizontal_glyph_metric_spans = Vec::new();
+    let mut holes = Vec::new();
 
     for (line_index, hard_line) in crate::text::hard_lines(request.text)
         .into_iter()
@@ -31,27 +55,51 @@ pub(in crate::text::shaping) fn shape_horizontal_request(
     {
         let line_range = hard_line.content.clone();
         let mut glyphs = Vec::new();
-        let mut line_metrics = HorizontalLineMetrics::default();
+        let mut selected_face_extents = SelectedFaceLineExtents::default();
+        if let Some(primary_face) = fallback_primary_face(fallback_spans) {
+            selected_face_extents.include_primary_face(
+                database,
+                primary_face,
+                request.style.font_size,
+            );
+        }
         let segments = logical_segments_for_line(
             request.text,
             line_range.clone(),
             fallback_spans,
-            &scripts,
+            analysis,
             bidi,
             None,
         )?;
         for segment in segments {
             let face = segment.face;
-            glyphs.extend(shape_segment(
-                request,
-                line_range.start,
-                segment,
-                &line_breaks,
-                database,
-            )?);
-            line_metrics.include_face(database, face, request.style.font_size);
+            let span_metrics =
+                selected_face_extents.include_face(database, face, request.style.font_size);
+            let segment_glyphs =
+                match shape_segment(request, line_range.start, segment, &line_breaks, database) {
+                    Ok(glyphs) => glyphs,
+                    Err(error) => {
+                        holes.push(HorizontalDirectHole {
+                            range: segment.range,
+                            error,
+                        });
+                        continue;
+                    }
+                };
+            let glyph_start = glyphs.len();
+            glyphs.extend(segment_glyphs);
+            if glyph_start < glyphs.len() {
+                if let Some(metrics) = span_metrics {
+                    horizontal_glyph_metric_spans.push(HorizontalGlyphMetricSpan {
+                        line_index,
+                        glyph_start,
+                        glyph_end: glyphs.len(),
+                        metrics,
+                    });
+                }
+            }
         }
-        if let Some(separator) = virtual_hard_break_glyph(request, &hard_line, bidi, &scripts) {
+        if let Some(separator) = virtual_hard_break_glyph(request, &hard_line, bidi, analysis)? {
             glyphs.push(separator);
         }
 
@@ -60,10 +108,15 @@ pub(in crate::text::shaping) fn shape_horizontal_request(
             glyph.x = cursor;
             cursor += glyph.advance.max(0.0);
         }
-        let (baseline, actual_line_height) =
-            line_metrics.resolve(line_height, request.style.font_size.max(1.0));
+        let selected_face_envelope = selected_face_extents
+            .resolve_content_envelope(line_height)
+            .unwrap_or(SelectedFaceLineEnvelope {
+                baseline_from_top: request.style.font_size.max(1.0) * 0.8,
+                line_height,
+            });
+        horizontal_line_raw_metrics.push(selected_face_extents.raw_horizontal_metrics());
         let full_range = hard_line.source_range();
-        lines.push(ShapedTextLine {
+        lines.push(ShapedHardLine {
             line_index,
             source_range: TextRange {
                 start: request.source_range.start + full_range.start,
@@ -74,8 +127,8 @@ pub(in crate::text::shaping) fn shape_horizontal_request(
                 end: full_range.end.saturating_sub(full_range.start),
             },
             measured_width: cursor,
-            baseline,
-            line_height: actual_line_height,
+            baseline: selected_face_envelope.baseline_from_top,
+            line_height: selected_face_envelope.line_height,
             glyphs,
         });
     }
@@ -84,67 +137,23 @@ pub(in crate::text::shaping) fn shape_horizontal_request(
         .iter()
         .map(|line| line.measured_width)
         .fold(0.0_f32, f32::max);
-    Some(ShapedGlyphRun {
-        source_text: request.shared_source_text(),
+    let direct = ShapedGlyphRun {
+        source_text: crate::text::shaping::source_profile::materialize_source_text(request),
         source_range: request.source_range,
+        unicode_data_snapshot: request.unicode_data_snapshot(),
+        primary_face_id: fallback_primary_face(fallback_spans),
         direction: bidi.resolved_base_direction(),
         orientation: request.orientation,
         vertical_mode: request.vertical_mode,
         include_kerning: request.include_kerning,
         measured_width,
         measured_height: lines.iter().map(|line| line.line_height).sum::<f32>(),
+        horizontal_composition_receipt: None,
+        horizontal_line_raw_metrics,
+        horizontal_glyph_metric_spans,
         lines,
-    })
-}
-
-#[derive(Default)]
-struct HorizontalLineMetrics {
-    ascent: f32,
-    descent: f32,
-    line_gap: f32,
-    has_face_metrics: bool,
-}
-
-impl HorizontalLineMetrics {
-    fn include_face(&mut self, database: &FontDatabase, face: FontFaceId, font_size: f32) {
-        let Some(metrics) = database.face_metrics(face).ok().flatten() else {
-            return;
-        };
-        if metrics.units_per_em == 0 {
-            return;
-        }
-        let scale = font_size.max(1.0) / f32::from(metrics.units_per_em);
-        let use_windows_metrics = !metrics.uses_typographic_metrics
-            && metrics.windows_ascender > 0
-            && metrics.windows_descender > 0;
-        let (ascent, descent) = if use_windows_metrics {
-            (
-                f32::from(metrics.windows_ascender) * scale,
-                f32::from(metrics.windows_descender) * scale,
-            )
-        } else {
-            (
-                f32::from(metrics.ascender.max(0)) * scale,
-                f32::from(metrics.descender.saturating_neg().max(0)) * scale,
-            )
-        };
-        self.ascent = self.ascent.max(ascent);
-        self.descent = self.descent.max(descent);
-        self.line_gap = self
-            .line_gap
-            .max(f32::from(metrics.line_gap.max(0)) * scale);
-        self.has_face_metrics = true;
-    }
-
-    fn resolve(&self, requested_line_height: f32, font_size: f32) -> (f32, f32) {
-        if !self.has_face_metrics {
-            return (font_size.max(1.0) * 0.8, requested_line_height);
-        }
-        let content_height = self.ascent + self.descent;
-        let line_height = requested_line_height.max(content_height + self.line_gap);
-        let leading = (line_height - content_height).max(0.0) * 0.5;
-        (leading + self.ascent, line_height)
-    }
+    };
+    Ok(HorizontalDirectShapeAttempt::from_parts(direct, holes))
 }
 
 fn shape_segment(
@@ -153,24 +162,39 @@ fn shape_segment(
     segment: LogicalSegment,
     line_breaks: &LineBreakOpportunityMap,
     database: &FontDatabase,
-) -> Option<Vec<ShapedGlyph>> {
-    let text = request.text.get(segment.range.start..segment.range.end)?;
+) -> Result<Vec<ShapedGlyph>, DirectShapeError> {
+    let text = request
+        .text
+        .get(segment.range.start..segment.range.end)
+        .ok_or(DirectShapeError::InvalidSourceRange {
+            range: segment.range,
+        })?;
     let mut backend = shape_horizontal_run(
         database,
         segment.face,
         segment.instance,
         text,
         segment.direction,
-        segment.script.iso15924.as_str(),
+        segment.script.iso15924,
         request.language,
         request.features(),
         request.include_kerning,
         crate::text::TextStyle::normalized_font_weight(request.style.font_weight),
         request.style.font_size,
-    )?;
-    valid_backend_run(&backend, text)?;
+    )
+    .map_err(|source| DirectShapeError::backend(segment.range, source))?;
+    valid_backend_run(&backend, text).map_err(|kind| {
+        DirectShapeError::backend_glyph_invariant(segment.face, segment.range, kind)
+    })?;
     restore_backend_cluster_logical_order(&mut backend.glyphs, segment.direction, |glyph| {
         glyph.source_offset
+    })
+    .ok_or_else(|| {
+        DirectShapeError::backend_glyph_invariant(
+            segment.face,
+            segment.range,
+            BackendGlyphInvariantKind::NonMonotonicClusterOrder,
+        )
     })?;
     let mut glyphs = Vec::with_capacity(backend.glyphs.len());
     let mut backend_start = 0;
@@ -188,13 +212,30 @@ fn shape_segment(
             start: segment.range.start + source_offset,
             end: segment.range.start + cluster_end,
         };
-        let cluster_text = request.text.get(local_range.start..local_range.end)?;
+        let cluster_text = request
+            .text
+            .get(local_range.start..local_range.end)
+            .ok_or(DirectShapeError::InvalidSourceRange { range: local_range })?;
+        let unsafe_to_break = backend.glyphs[backend_start..backend_end]
+            .iter()
+            .any(|glyph| glyph.unsafe_to_break);
         for (cluster_glyph_index, backend_glyph) in backend.glyphs[backend_start..backend_end]
             .iter()
             .copied()
             .enumerate()
         {
             let cluster_start = cluster_glyph_index == 0;
+            let flags = cluster_flags(
+                cluster_text,
+                segment.direction,
+                cluster_start,
+                if cluster_start {
+                    line_breaks.flags_for_cluster(local_range.start, local_range.end)
+                } else {
+                    Default::default()
+                },
+            )
+            .with_direct_break_safety(unsafe_to_break);
             glyphs.push(ShapedGlyph {
                 glyph_id: backend_glyph.glyph_id,
                 font_id: Some(segment.face),
@@ -214,46 +255,62 @@ fn shape_segment(
                 offset_y: -backend_glyph.y_offset,
                 direction: segment.direction,
                 bidi_level: segment.bidi_level,
-                cluster_flags: cluster_flags(
-                    cluster_text,
-                    segment.direction,
-                    cluster_start,
-                    if cluster_start {
-                        line_breaks.flags_for_cluster(local_range.start, local_range.end)
-                    } else {
-                        Default::default()
-                    },
-                ),
+                cluster_flags: flags,
                 rotation: crate::text::ShapedGlyphRotation::None,
-                script: shaped_script_for_cluster(cluster_text, segment.script),
+                script: segment.script,
             });
         }
         backend_start = backend_end;
     }
-    Some(glyphs)
+    Ok(glyphs)
 }
 
-fn valid_backend_run(run: &HorizontalBackendRun, text: &str) -> Option<()> {
-    (!run.glyphs.is_empty()
-        && run.glyphs.iter().all(|glyph| {
-            glyph.source_offset < text.len()
-                && text.is_char_boundary(glyph.source_offset)
-                && glyph.advance.is_finite()
-                && glyph.x_offset.is_finite()
-                && glyph.y_offset.is_finite()
-        }))
-    .then_some(())
+fn valid_backend_run(
+    run: &HorizontalBackendRun,
+    text: &str,
+) -> Result<(), BackendGlyphInvariantKind> {
+    validate_backend_glyphs(
+        &run.glyphs,
+        text,
+        |glyph| glyph.source_offset,
+        |glyph| {
+            glyph.advance.is_finite() && glyph.x_offset.is_finite() && glyph.y_offset.is_finite()
+        },
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
-    use super::HorizontalLineMetrics;
-    use crate::text::font::FontDatabase;
+    use crate::text::font::{FontDatabase, SelectedFaceLineExtents};
+    use crate::text::shaping::direct_error::BackendGlyphInvariantKind;
+
+    use crate::text::shaping::horizontal::backend::{HorizontalBackendGlyph, HorizontalBackendRun};
+
+    use super::valid_backend_run;
 
     #[test]
-    fn direct_line_metrics_use_scaled_actual_face_ascent() {
+    fn direct_backend_validation_reports_a_non_boundary_cluster_offset() {
+        let run = HorizontalBackendRun {
+            glyphs: vec![HorizontalBackendGlyph {
+                glyph_id: 1,
+                source_offset: 1,
+                unsafe_to_break: false,
+                advance: 1.0,
+                x_offset: 0.0,
+                y_offset: 0.0,
+            }],
+        };
+
+        assert_eq!(
+            valid_backend_run(&run, "é"),
+            Err(BackendGlyphInvariantKind::InvalidClusterOffset)
+        );
+    }
+
+    #[test]
+    fn direct_line_uses_scaled_selected_face_content_envelope() {
         let mut database = FontDatabase::default();
         let source =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
@@ -264,14 +321,16 @@ mod tests {
             .face_metrics(face)
             .expect("face metrics query")
             .expect("tracked face metrics");
-        let mut metrics = HorizontalLineMetrics::default();
-        metrics.include_face(&database, face, 20.0);
-        let (baseline, line_height) = metrics.resolve(24.0, 20.0);
+        let mut extents = SelectedFaceLineExtents::default();
+        let _ = extents.include_face(&database, face, 20.0);
+        let envelope = extents
+            .resolve_content_envelope(24.0)
+            .expect("face metrics");
         let expected_ascent = f32::from(source_metrics.ascender.max(0)) * 20.0
             / f32::from(source_metrics.units_per_em);
 
-        assert!(baseline >= expected_ascent);
-        assert!(line_height >= 24.0);
-        assert!((baseline - 16.0).abs() > 0.01);
+        assert!(envelope.baseline_from_top >= expected_ascent);
+        assert!(envelope.line_height >= 24.0);
+        assert!((envelope.baseline_from_top - 16.0).abs() > 0.01);
     }
 }

@@ -202,19 +202,29 @@ impl Default for ExportWizardProgressState {
 pub fn export_pipeline_stages_for_strategies(
     strategies: &[ExportPackagingStrategy],
 ) -> Vec<ExportStage> {
-    let mut stages = Vec::new();
+    let has_source_template = strategies.contains(&ExportPackagingStrategy::SourceTemplate);
+    let has_native_dynamic = strategies.contains(&ExportPackagingStrategy::NativeDynamic);
+    let has_library_embed = strategies.contains(&ExportPackagingStrategy::LibraryEmbed);
+    let stage_capacity = 2
+        + usize::from(has_source_template)
+        + if has_native_dynamic {
+            5
+        } else {
+            usize::from(has_library_embed) * 4
+        };
+    let mut stages = Vec::with_capacity(stage_capacity);
     stages.push(ExportStage::Validate);
-    if strategies.contains(&ExportPackagingStrategy::SourceTemplate) {
+    if has_source_template {
         push_stage_once(&mut stages, ExportStage::SourceTemplate);
     }
-    if strategies.contains(&ExportPackagingStrategy::NativeDynamic) {
+    if has_native_dynamic {
         push_stage_once(&mut stages, ExportStage::NativeDynamic);
         push_stage_once(&mut stages, ExportStage::CompileHost);
         push_stage_once(&mut stages, ExportStage::CookAssets);
         push_stage_once(&mut stages, ExportStage::Pack);
         push_stage_once(&mut stages, ExportStage::PlatformBundle);
     }
-    if strategies.contains(&ExportPackagingStrategy::LibraryEmbed) {
+    if has_library_embed {
         push_stage_once(&mut stages, ExportStage::CompileHost);
         push_stage_once(&mut stages, ExportStage::CookAssets);
         push_stage_once(&mut stages, ExportStage::Pack);
@@ -457,5 +467,114 @@ mod tests {
                 ExportStage::Report,
             ]
         );
+    }
+
+    #[test]
+    fn optimization_batch_fr_editor404_reserves_exact_export_stage_capacity() {
+        let stages = export_pipeline_stages_for_strategies(&[
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::NativeDynamic,
+            ExportPackagingStrategy::LibraryEmbed,
+        ]);
+
+        assert_eq!(stages, ExportStage::ALL);
+        assert_eq!(stages.capacity(), stages.len());
+    }
+
+    #[test]
+    #[ignore = "release performance gate"]
+    fn optimization_batch_fr_editor404_exact_export_stage_capacity_benchmark() {
+        const SAMPLE_PAIRS: usize = 17;
+        const BUILDS_PER_SAMPLE: usize = 131_072;
+        let strategies = [
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::NativeDynamic,
+            ExportPackagingStrategy::LibraryEmbed,
+        ];
+
+        for _ in 0..4 {
+            black_box(measure_stage_builds(&strategies, false, BUILDS_PER_SAMPLE));
+            black_box(measure_stage_builds(&strategies, true, BUILDS_PER_SAMPLE));
+        }
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy_samples.push(measure_stage_builds(&strategies, false, BUILDS_PER_SAMPLE));
+                optimized_samples.push(measure_stage_builds(&strategies, true, BUILDS_PER_SAMPLE));
+            } else {
+                optimized_samples.push(measure_stage_builds(&strategies, true, BUILDS_PER_SAMPLE));
+                legacy_samples.push(measure_stage_builds(&strategies, false, BUILDS_PER_SAMPLE));
+            }
+        }
+
+        let legacy_p95 = percentile(&legacy_samples, 95);
+        let optimized_p95 = percentile(&optimized_samples, 95);
+        let improvement_percent =
+            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
+        println!(
+            "EDITOR404_EXACT_EXPORT_STAGE_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} builds_per_sample={BUILDS_PER_SAMPLE} stages_per_build={} legacy_growth_allocations_per_build=1 optimized_growth_allocations_per_build=0 legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=25",
+            ExportStage::ALL.len(),
+            csv(&legacy_samples),
+            csv(&optimized_samples),
+        );
+        assert!(optimized_p95 <= legacy_p95 * 75 / 100);
+    }
+
+    fn measure_stage_builds(
+        strategies: &[ExportPackagingStrategy],
+        optimized: bool,
+        builds: usize,
+    ) -> u128 {
+        let started = std::time::Instant::now();
+        for _ in 0..builds {
+            let stages = if optimized {
+                export_pipeline_stages_for_strategies(black_box(strategies))
+            } else {
+                legacy_export_pipeline_stages_for_strategies(black_box(strategies))
+            };
+            black_box(stages);
+        }
+        started.elapsed().as_nanos().max(1)
+    }
+
+    fn legacy_export_pipeline_stages_for_strategies(
+        strategies: &[ExportPackagingStrategy],
+    ) -> Vec<ExportStage> {
+        let mut stages = Vec::new();
+        stages.push(ExportStage::Validate);
+        if strategies.contains(&ExportPackagingStrategy::SourceTemplate) {
+            push_stage_once(&mut stages, ExportStage::SourceTemplate);
+        }
+        if strategies.contains(&ExportPackagingStrategy::NativeDynamic) {
+            push_stage_once(&mut stages, ExportStage::NativeDynamic);
+            push_stage_once(&mut stages, ExportStage::CompileHost);
+            push_stage_once(&mut stages, ExportStage::CookAssets);
+            push_stage_once(&mut stages, ExportStage::Pack);
+            push_stage_once(&mut stages, ExportStage::PlatformBundle);
+        }
+        if strategies.contains(&ExportPackagingStrategy::LibraryEmbed) {
+            push_stage_once(&mut stages, ExportStage::CompileHost);
+            push_stage_once(&mut stages, ExportStage::CookAssets);
+            push_stage_once(&mut stages, ExportStage::Pack);
+            push_stage_once(&mut stages, ExportStage::PlatformBundle);
+        }
+        stages.push(ExportStage::Report);
+        stages
+    }
+
+    fn percentile(samples: &[u128], percentile: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = (sorted.len() * percentile).div_ceil(100);
+        sorted[rank.saturating_sub(1)]
+    }
+
+    fn csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 }

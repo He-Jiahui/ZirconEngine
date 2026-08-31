@@ -119,3 +119,66 @@ Resolving state：guard 硬切、下层静态验证与 exact25 独立复审已�
   source hash 重建 F6 immutable copy；旧 RED copy 和共享工作树 job 均不得复用为 closeout
   ticket。随后仍需 exact Rust GREEN、fresh 静态 GREEN、真实独立复审、canonical Failure
   return 与 coordinator milestone commit。
+
+## r7 current-HEAD owner guard confirmation（2026-08-22）
+
+- successor `frameworks01-open-failure-convergence-r7-bee4c707-20260822` 在 current HEAD
+  `bee4c707b714738346b49bba15c59468b8bd9b39` 重新核对 typed-error owner。guard 继续读取
+  `core/runtime/error.rs`，旧 `core/framework/error.rs` 物理不存在；tracked Runtime Rust source
+  对旧 literal path 的命中为 0，未恢复 alias、re-export、shim 或第二 error owner。
+- fresh 静态命令
+  `python -m unittest tools.tests.test_frameworks_01_runtime_error_owner_boundary tools.tests.test_frameworks_02_core_error_single_source`
+  为 2/2 GREEN，测试本体耗时 23.743 秒，端到端命令耗时 25.41 秒。该结果只确认当前源码的
+  single-source/hard-cut contract，不替代 Rust lib-test 编译门。
+- r7 首次成功入池前的两次申请均在 Cargo 进程创建前由共享 reuse pool 拒绝；这两次申请没有
+  产生可作为 GREEN/RED 的 r7 Cargo job。其后的首次 terminal run 由下节记录并取代“尚未启动”
+  状态；current-source review、canonical fixed return 与 coordinator commit 仍未完成，Failure
+  保持 `open` / `resolving_failure`。
+
+## r7 managed current-source compile result（2026-08-22）
+
+- managed job `e9edd5eca8cf4341838d6b0e836a8c1e` 于 17:34:13--17:44:12 在 D 盘
+  retained reuse pool 自然运行，17:44:17 release，live process tree 已清零。exact
+  `zircon_runtime --lib project_asset_manager` gate 在 lib-test 编译阶段以 Cargo `101` / wrapper
+  `1` 结束，0 个筛选测试执行，因此不是 GREEN。
+- retained rustc fingerprint 包含 19 条实际 compiler error 与 1 条 abort summary、1,457 条
+  warning；error code 分布为 E0599=14、E0282=2、E0061=1、E0063=1、E0425=1。旧
+  `core/framework/error.rs` include、F6 E0432 和 resource/runtime error-owner 回连均为 0，
+  因而本次 RED 没有复现 F6 stale-path 根因，但也不能替代整条 Rust GREEN。
+- E0425 来自编译期间的 foreign `scene/tests/inspection.rs` 快照；该文件在 job 结束后于
+  17:46:28 前向更新，current hash `65d689bf9f3d0d8628fd38a06e6b0be2c15867f7addb0e0f3ca3efe876d9c42b`
+  已不存在报错表达式。仍可在 current source 复核的阻塞分别路由到 Runtime07 的
+  `failure-2026-08-22-world-deserialize-node-cache-initializer.md`（World 新缓存字段初始化）和
+  Runtime74 的 `failure-2026-08-22-ui-asset-binding-canonical-loader-api-tests.md`
+  （canonical loader 测试）；新增 binding-transaction 调用仍由同一 Runtime74 active owner
+  持有。建议其性能采样按一次 applied target 调用
+  `commit(1, 0, Vec::new(), true)`；coordinator 因 delayed patch 会把 r7 从
+  `resolving_failure` 降为 `waiting_lease` 而拒绝入队，Frameworks01 不绕过状态门，也不吸收或
+  改写这些 foreign blobs。
+- 待上述 owner 收敛并释放同一 reuse pool 后，必须以最终 exact4 attribution 创建稳定
+  validation copy，重跑该 gate 并取得 current immutable review。Failure 继续保持 `open` /
+  `resolving_failure`，不生成 fixed return，也不提交里程碑。
+- formal `materialize-cargo` request `4f881849b5e54961ba4b9715147c5c41` 创建 job
+  `93bd9c11c31b4e989151e6e5aceaec1e`，并成功固定 external source
+  `E:\Git\zr_vm@ceadabbfa1436fcd0f2cc6ffd788b45120bb2acc`（source hash
+  `f6eaf3aedead7538bd0da34fe4c6ecbc43c3cff0c8e2406a107c7c64db54e1d2`，仅包含两个
+  Rust binding package，未吸收 external dirty blobs）。copy 在 Cargo 启动前于
+  `materialization_prepare` 以 `validation_copy_baseline_drift` 终止：closure 中
+  `ui/surface/binding_targets.rs`、`ui/template/asset/compiler/{binding_param_resolver,control_scope}.rs`
+  与两份 `ui/tests/*/control_scope.rs` 已偏离 baseline，但尚无可供副本消费的 attribution。
+  五条路径均属于 active Runtime74 r3 immutable scope；Frameworks01 不扩大 exact4 或转移 owner
+  绕过该门。该 job 没有生成 input manifest、没有启动 Cargo，失败副本已从 F 盘清理。
+
+## r9 current-source owner guard confirmation（2026-08-24）
+
+- On current HEAD `f811b3bf474d70347199772a175422333dfb36f6`, the former
+  `core/framework/error.rs` owner remains physically absent and the typed-error guard continues to
+  read the single kernel owner at `core/runtime/error.rs`; no compatibility file or projection was
+  introduced.
+- Fresh command
+  `python -B -m unittest tools.tests.test_frameworks_01_runtime_error_owner_boundary tools.tests.test_frameworks_02_core_error_single_source -v`
+  is GREEN 2/2 in 42.618 seconds. This is exact current-source static evidence only.
+- The four foreign `zr_rhi_wgpu` compile-blocker blobs are unchanged from managed Runtime job
+  `246fdaf5d6c443f9b71149d744b5675e`, so r9 did not consume another shared Cargo window to reproduce
+  the same pre-test failure. Exact Rust GREEN, current immutable review, canonical Failure return,
+  and coordinator milestone commit remain pending; this Failure stays `open`.

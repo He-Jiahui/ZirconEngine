@@ -143,8 +143,8 @@ impl RuntimeExtensionRegistry {
         owner: crate::plugin::PluginModuleId,
         mut descriptor: GeometrySourceDescriptor,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        let key = validate_geometry_source_descriptor(&descriptor)?;
-        descriptor.token = key.clone();
+        validate_geometry_source_descriptor(&mut descriptor)?;
+        let key = descriptor.token.clone();
         if self.geometry_sources.contains_key(&key) {
             return Err(RuntimeExtensionRegistryError::DuplicateGeometrySource(key));
         }
@@ -170,8 +170,8 @@ impl RuntimeExtensionRegistry {
         owner: crate::plugin::PluginModuleId,
         mut descriptor: ShadingModelDescriptor,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        let key = validate_shading_model_descriptor(&descriptor)?;
-        descriptor.token = key.clone();
+        validate_shading_model_descriptor(&mut descriptor)?;
+        let key = descriptor.token.clone();
         if self.shading_models.contains_key(&key) {
             return Err(RuntimeExtensionRegistryError::DuplicateShadingModel(key));
         }
@@ -184,10 +184,9 @@ impl RuntimeExtensionRegistry {
 
 #[cfg(feature = "graphics")]
 fn validate_geometry_source_descriptor(
-    descriptor: &GeometrySourceDescriptor,
-) -> Result<String, RuntimeExtensionRegistryError> {
-    let token = descriptor.token.trim().to_ascii_lowercase();
-    if !token.starts_with("custom:") || token.len() == "custom:".len() {
+    descriptor: &mut GeometrySourceDescriptor,
+) -> Result<(), RuntimeExtensionRegistryError> {
+    if !normalize_custom_extension_token(&mut descriptor.token) {
         return Err(RuntimeExtensionRegistryError::InvalidGeometrySource(
             format!(
                 "geometry source token `{}` must use custom:<name>",
@@ -195,6 +194,7 @@ fn validate_geometry_source_descriptor(
             ),
         ));
     }
+    let token = descriptor.token.as_str();
     if !descriptor.id.is_plugin_range() {
         return Err(RuntimeExtensionRegistryError::InvalidGeometrySource(
             format!(
@@ -234,20 +234,20 @@ fn validate_geometry_source_descriptor(
             ));
         }
     }
-    Ok(token)
+    Ok(())
 }
 
 #[cfg(feature = "graphics")]
 fn validate_shading_model_descriptor(
-    descriptor: &ShadingModelDescriptor,
-) -> Result<String, RuntimeExtensionRegistryError> {
-    let token = descriptor.token.trim().to_ascii_lowercase();
-    if !token.starts_with("custom:") || token.len() == "custom:".len() {
+    descriptor: &mut ShadingModelDescriptor,
+) -> Result<(), RuntimeExtensionRegistryError> {
+    if !normalize_custom_extension_token(&mut descriptor.token) {
         return Err(RuntimeExtensionRegistryError::InvalidShadingModel(format!(
             "shading model token `{}` must use custom:<name>",
             descriptor.token
         )));
     }
+    let token = descriptor.token.as_str();
     if !descriptor.id.is_plugin_range() {
         return Err(RuntimeExtensionRegistryError::InvalidShadingModel(format!(
             "shading model `{token}` id {} must be >= {SHADING_MODEL_PLUGIN_ID_START}",
@@ -273,5 +273,29 @@ fn validate_shading_model_descriptor(
             "shading model `{token}` must declare required G-buffer channels"
         )));
     }
-    Ok(token)
+    Ok(())
 }
+
+#[cfg(feature = "graphics")]
+fn normalize_custom_extension_token(token: &mut String) -> bool {
+    let trimmed = token.trim();
+    let valid_prefix = trimmed
+        .get(.."custom:".len())
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("custom:"));
+    if !valid_prefix || trimmed.len() == "custom:".len() {
+        return false;
+    }
+
+    let trimmed_end = token.trim_end().len();
+    token.truncate(trimmed_end);
+    let trimmed_start = token.len() - token.trim_start().len();
+    if trimmed_start != 0 {
+        token.drain(..trimmed_start);
+    }
+    token.make_ascii_lowercase();
+    true
+}
+
+#[cfg(all(test, feature = "graphics"))]
+#[path = "metadata/in_place_token_tests.rs"]
+mod in_place_token_tests;

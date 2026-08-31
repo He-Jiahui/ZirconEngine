@@ -4,10 +4,14 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::plugin::native::{
-    discover_native_plugins_from_load_manifest, load_discovered_native_plugins,
-    load_discovered_native_runtime_plugins, NativePluginBehaviorHealth, NativePluginHostHandle,
-    ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-    ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
+    discovery::{
+        discover_native_plugins_from_load_manifest, load_discovered_native_plugins,
+        load_discovered_native_runtime_plugins,
+    },
+    host::NativePluginHostHandle,
+    NativePluginBehaviorHealth, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
 use zircon_runtime::plugin::PluginModuleKind;
 

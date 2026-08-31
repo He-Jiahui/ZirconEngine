@@ -1,9 +1,12 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiDispatchDisposition, UiDispatchEffect, UiDispatchPhase, UiInputDispatchResult,
-        UiPointerInputEvent,
+        UiDispatchDisposition, UiDispatchEffect, UiDispatchPhase, UiInputDiagnosticsMode,
+        UiInputDispatchResult,
     },
-    surface::{UiPointerActivationPhase, UiPointerButton, UiPointerEventKind, UiPointerRoute},
+    surface::{
+        UiPointerActivationPhase, UiPointerButton, UiPointerEventKind, UiPointerRoute,
+        UiPointerRoutingPath,
+    },
 };
 
 use crate::ui::text::link_at_layout_point;
@@ -13,8 +16,9 @@ use super::effect::append_dispatch_effect_to_result;
 
 pub(super) fn dispatch_pointer_rich_link_activation(
     surface: &mut UiSurface,
-    pointer: &UiPointerInputEvent,
+    click_count: u8,
     route: &UiPointerRoute,
+    diagnostics_mode: UiInputDiagnosticsMode,
     result: &mut UiInputDispatchResult,
 ) {
     if !matches!(route.kind, UiPointerEventKind::Up)
@@ -31,10 +35,12 @@ pub(super) fn dispatch_pointer_rich_link_activation(
     let Some(target) = route.click_target else {
         return;
     };
-    let Some(hit) = surface
-        .render_extract
-        .list
-        .commands
+    let candidate_commands = surface
+        .render_cache
+        .commands_for_node(&surface.render_extract, target)
+        .map(|(_, commands)| commands)
+        .unwrap_or_else(|| surface.render_extract.list.commands.as_slice());
+    let Some(hit) = candidate_commands
         .iter()
         .rev()
         .filter(|command| {
@@ -49,6 +55,8 @@ pub(super) fn dispatch_pointer_rich_link_activation(
     else {
         return;
     };
+    let source_range = hit.source_range;
+    let affinity = hit.affinity;
 
     let applied_before = result.applied_effects.len();
     append_dispatch_effect_to_result(
@@ -56,7 +64,7 @@ pub(super) fn dispatch_pointer_rich_link_activation(
         result,
         UiDispatchEffect::RequestLinkActivation {
             target,
-            href: hit.href.clone(),
+            link_target: hit.target,
         },
     );
     if result.applied_effects.len() == applied_before {
@@ -67,19 +75,22 @@ pub(super) fn dispatch_pointer_rich_link_activation(
     result.reply.phase = Some(UiDispatchPhase::DefaultAction);
     result.diagnostics.routed = true;
     result.diagnostics.route_target = Some(target);
-    result.diagnostics.handled_phase = Some("pointer.rich_link_activation".to_string());
-    result.diagnostics.notes.push(format!(
-        "rich_link_range={}..{}:{:?}:click_count={}",
-        hit.source_range.start, hit.source_range.end, hit.affinity, pointer.event.click_count
-    ));
+    if diagnostics_mode.captures_full_trace() {
+        result.diagnostics.handled_phase = Some("pointer.rich_link_activation".to_string());
+        result.diagnostics.notes.push(format!(
+            "rich_link_range={}..{}:{:?}:click_count={}",
+            source_range.start, source_range.end, affinity, click_count
+        ));
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use zircon_runtime_interface::ui::{
         dispatch::{
-            UiDispatchEffect, UiDispatchHostRequestKind, UiDispatchReply, UiInputDispatchResult,
-            UiInputEvent, UiInputEventMetadata, UiPointerEvent, UiPointerInputEvent,
+            UiDispatchEffect, UiDispatchHostRequestKind, UiDispatchReply, UiInputDiagnosticsMode,
+            UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiPointerEvent,
+            UiPointerInputEvent,
         },
         event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
         layout::{UiFrame, UiPoint},
@@ -104,7 +115,7 @@ mod tests {
                 .with_frame(UiFrame::new(0.0, 0.0, 320.0, 40.0)),
         );
         let mut style = UiResolvedStyle::default();
-        style.rich_text_format = UiRichTextFormat::Html;
+        style.rich_text_format = UiRichTextFormat::HtmlSubsetV1;
         style.wrap = UiTextWrap::None;
         style.text_overflow = UiTextOverflow::Clip;
         let markup = "before <a href=\"res://docs/help.md\">help</a> after";
@@ -113,7 +124,8 @@ mod tests {
             layout.lines[0].frame.x + layout.lines[0].glyph_advances[..7].iter().sum::<f32>() + 1.0,
             layout.lines[0].frame.y + 4.0,
         );
-        surface.render_extract.list.commands.push(UiRenderCommand {
+        let mut extract = std::mem::take(&mut surface.render_extract);
+        extract.list.commands.push(UiRenderCommand {
             node_id: target,
             kind: UiRenderCommandKind::Text,
             frame: UiFrame::new(0.0, 0.0, 320.0, 40.0),
@@ -125,6 +137,10 @@ mod tests {
             image: None,
             opacity: 1.0,
         });
+        surface.render_extract = surface
+            .render_cache
+            .update(&surface.render_extract, extract, false)
+            .extract;
         let pointer = UiPointerInputEvent {
             metadata: UiInputEventMetadata::default(),
             event: UiPointerEvent::new(UiPointerEventKind::Up, point)
@@ -140,7 +156,7 @@ mod tests {
             scroll_delta: 0.0,
             target: Some(target),
             hit_path: Default::default(),
-            bubbled: vec![target],
+            routing_path: UiPointerRoutingPath::from_bubble_route(vec![target]),
             stacked: vec![target],
             entered: Vec::new(),
             left: Vec::new(),
@@ -157,20 +173,34 @@ mod tests {
             UiDispatchReply::unhandled(),
         );
 
-        dispatch_pointer_rich_link_activation(&mut surface, &pointer, &route, &mut result);
+        dispatch_pointer_rich_link_activation(
+            &mut surface,
+            pointer.event.click_count,
+            &route,
+            UiInputDiagnosticsMode::Full,
+            &mut result,
+        );
 
         assert!(matches!(
             result.reply.effects.as_slice(),
-            [UiDispatchEffect::RequestLinkActivation { target: effect_target, href }]
-                if *effect_target == target && href == "res://docs/help.md"
+            [UiDispatchEffect::RequestLinkActivation {
+                target: effect_target,
+                link_target,
+            }]
+                if *effect_target == target
+                    && link_target.matches_display("res://docs/help.md")
         ));
         assert!(matches!(
             result.host_requests.as_slice(),
             [request]
                 if matches!(
                     &request.request,
-                    UiDispatchHostRequestKind::ActivateLink { target: request_target, href }
-                        if *request_target == target && href == "res://docs/help.md"
+                    UiDispatchHostRequestKind::ActivateLink {
+                        target: request_target,
+                        link_target,
+                    }
+                        if *request_target == target
+                            && link_target.matches_display("res://docs/help.md")
                 )
         ));
     }
@@ -184,7 +214,7 @@ mod tests {
             UiTreeNode::new(target, UiNodePath::new("root/table-link")).with_frame(frame),
         );
         let mut style = UiResolvedStyle::default();
-        style.rich_text_format = UiRichTextFormat::BbCode;
+        style.rich_text_format = UiRichTextFormat::BbCodeV1;
         style.wrap = UiTextWrap::None;
         style.text_overflow = UiTextOverflow::Clip;
         let markup = "[table=2][cell]first[/cell][cell padding=18,12,16,10][url=res://docs/table-link.md]second link[/url][/cell][/table]";
@@ -222,7 +252,7 @@ mod tests {
             scroll_delta: 0.0,
             target: Some(target),
             hit_path: Default::default(),
-            bubbled: vec![target],
+            routing_path: UiPointerRoutingPath::from_bubble_route(vec![target]),
             stacked: vec![target],
             entered: Vec::new(),
             left: Vec::new(),
@@ -239,15 +269,25 @@ mod tests {
             UiDispatchReply::unhandled(),
         );
 
-        dispatch_pointer_rich_link_activation(&mut surface, &pointer, &route, &mut result);
+        dispatch_pointer_rich_link_activation(
+            &mut surface,
+            pointer.event.click_count,
+            &route,
+            UiInputDiagnosticsMode::Full,
+            &mut result,
+        );
 
         assert!(matches!(
             result.host_requests.as_slice(),
             [request]
                 if matches!(
                     &request.request,
-                    UiDispatchHostRequestKind::ActivateLink { target: request_target, href }
-                        if *request_target == target && href == "res://docs/table-link.md"
+                    UiDispatchHostRequestKind::ActivateLink {
+                        target: request_target,
+                        link_target,
+                    }
+                        if *request_target == target
+                            && link_target.matches_display("res://docs/table-link.md")
                 )
         ));
     }
@@ -273,7 +313,7 @@ mod tests {
         );
         surface.rebuild();
         let mut style = UiResolvedStyle::default();
-        style.rich_text_format = UiRichTextFormat::Html;
+        style.rich_text_format = UiRichTextFormat::HtmlSubsetV1;
         style.wrap = UiTextWrap::None;
         style.text_overflow = UiTextOverflow::Clip;
         let markup = "before <a href=\"res://docs/help.md\">help</a> after";
@@ -333,8 +373,12 @@ mod tests {
             [request]
                 if matches!(
                     &request.request,
-                    UiDispatchHostRequestKind::ActivateLink { target: request_target, href }
-                        if *request_target == target && href == "res://docs/help.md"
+                    UiDispatchHostRequestKind::ActivateLink {
+                        target: request_target,
+                        link_target,
+                    }
+                        if *request_target == target
+                            && link_target.matches_display("res://docs/help.md")
                 )
         ));
     }

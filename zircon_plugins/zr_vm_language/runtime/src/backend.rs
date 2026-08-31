@@ -1,8 +1,10 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use zircon_runtime::script::{
     VmBackend, VmBackendFamily, VmError, VmPluginHostContext, VmPluginInstance, VmPluginPackage,
 };
+
+static ZR_VM_BACKEND: LazyLock<Arc<dyn VmBackend>> = LazyLock::new(|| Arc::new(ZrVmBackend));
 
 #[derive(Debug, Default)]
 pub struct ZrVmBackendFamily;
@@ -14,13 +16,14 @@ impl VmBackendFamily for ZrVmBackendFamily {
 
     fn resolve(&self, selector: &str) -> Result<Arc<dyn VmBackend>, VmError> {
         match selector {
-            "zr_vm:project" | "project" => Ok(Arc::new(ZrVmBackend)),
+            "zr_vm:project" | "project" => Ok(Arc::clone(&ZR_VM_BACKEND)),
             other => Err(VmError::UnknownBackend(other.to_string())),
         }
     }
 
-    fn selectors(&self) -> Vec<String> {
-        vec!["zr_vm:project".to_string(), "project".to_string()]
+    fn visit_selectors(&self, visitor: &mut dyn FnMut(&str)) {
+        visitor("zr_vm:project");
+        visitor("project");
     }
 }
 
@@ -68,4 +71,20 @@ fn load_project_package(
     Err(VmError::BackendUnavailable(
         "zr_vm runtime binding is disabled; build zircon_plugin_zr_vm_language_runtime with feature backend-zr-vm and set ZR_VM_RUST_BINDING_LIB_DIR".to_string(),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::{VmBackendFamily, ZrVmBackendFamily};
+
+    #[test]
+    fn zr_vm_backend_resolutions_share_arc_storage() {
+        let family = ZrVmBackendFamily;
+        let canonical = family.resolve("zr_vm:project").unwrap();
+        let alias = family.resolve("project").unwrap();
+
+        assert!(Arc::ptr_eq(&canonical, &alias));
+    }
 }

@@ -1,6 +1,6 @@
 use super::super::super::super::data::{
     FloatingWindowData, FrameRect, HostPaneInteractionStateData, HostTextInputFocusData,
-    HostViewportImageData,
+    HostViewportImageSet,
 };
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_geometry::{is_visible_frame, translated};
@@ -34,7 +34,7 @@ pub(super) fn draw_floating_window(
     frame: &mut HostRgbaFrame,
     window: &FloatingWindowData,
     interaction: &HostPaneInteractionStateData,
-    viewport_image: Option<&HostViewportImageData>,
+    viewport_images: &HostViewportImageSet,
     text_input_focus: Option<&HostTextInputFocusData>,
 ) {
     if !is_visible_frame(&window.frame) {
@@ -70,7 +70,7 @@ pub(super) fn draw_floating_window(
         &window.active_pane,
         &body,
         interaction,
-        viewport_image,
+        viewport_images,
         text_input_focus,
     );
     draw_rounded_border_clipped(

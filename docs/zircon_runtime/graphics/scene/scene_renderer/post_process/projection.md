@@ -6,6 +6,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_reflection_probes/encode.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/ssao.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
 implementation_files:
@@ -13,6 +14,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_reflection_probes/encode.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/ssao.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
 plan_sources:
   - docs/plans/zircon_runtime/render/06-temporal-pipeline.md
@@ -43,6 +45,6 @@ The TP-M2-S2 source scan covered `view_proj`, `inverse_view_proj`, `previous_vie
 - Raster only: deferred geometry, fallback mesh main passes, normal prepass, particle, sprite, overlay, and shadow-map writers keep `scene.view_proj`.
 - Velocity/reprojection: velocity object, velocity camera params, HZB occlusion culling, and deferred lighting use unjittered matrices.
 - Post-process SSR: uses `effect_projection` and view basis rows that ignore `temporal_jitter`.
-- SSAO: currently reads depth, normal, previous AO, and HZB only; it has no projection-matrix consumer in the current implementation.
+- SSAO evaluate: reads the unjittered `SceneUniform::inverse_view_proj`, camera position/orthographic direction, qualified current depth/world normal, and the furthest-depth HZB. It reconstructs world positions, derives meters per pixel from adjacent reconstructed positions, bounds the projected world-unit radius, selects HZB mip from sample footprint, and performs a quality-bounded horizon bitmask search into transient raw AO. A following 3x3 spatial pass reconstructs neighbor positions through the same projection contract and combines plane-distance, normal, and spatial weights before publishing final AO. Neither pass reads previous AO. Non-zero-origin or partial SceneLinear rects remain compile-time rejected until render-rect coordinates enter the kernel ABI.
 
-Validation for this slice passed formatting and scoped core-min type checking. The hard TP-M2 product acceptance line still remains: TAA Off must receive a product-level pixel/hash parity baseline before TP-M2 can be closed.
+The 2026-08-30 SSAO continuation passed exact Rust formatting, scoped source-contract scans, and locked Cargo metadata only. The Naga validation test is source-only and has not executed. Managed Rust/WGPU shader creation, analytic projection images, PNG/RenderDoc capture, GPU timing, and power evidence remain pending. The hard TP-M2 product acceptance line also remains: TAA Off must receive a product-level pixel/hash parity baseline before TP-M2 can be closed.

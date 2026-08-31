@@ -1,6 +1,6 @@
 use super::super::super::HostWindowSceneData;
 use super::super::model::WorldSpaceUiSurfaceSubmission;
-use super::node::build_world_space_ui_surface_submissions;
+use super::node::extend_world_space_ui_surface_submissions;
 use super::pane::extend_world_space_pane_submissions;
 
 pub(crate) fn build_world_space_ui_surface_submissions_from_host_scene(
@@ -20,10 +20,11 @@ pub(crate) fn build_world_space_ui_surface_submissions_from_host_scene(
     for window in scene.floating_layer.floating_windows.iter() {
         let surface_id = format!("floating-window:{}", window.window_id);
         let header_surface_id = format!("{surface_id}:header");
-        submissions.extend(build_world_space_ui_surface_submissions(
+        extend_world_space_ui_surface_submissions(
             &header_surface_id,
             &window.header_nodes,
-        ));
+            &mut submissions,
+        );
         extend_world_space_pane_submissions(&surface_id, &window.active_pane, &mut submissions);
     }
 

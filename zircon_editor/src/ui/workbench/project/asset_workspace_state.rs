@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -13,7 +13,7 @@ use zircon_runtime_interface::resource::{ResourceKind, ResourceState};
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
     AssetSubassetSnapshot, AssetSurfaceMode, AssetTypeProjectionSnapshot, AssetUtilityTab,
-    AssetViewMode, AssetWorkspaceSnapshot, ProjectOverviewSnapshot,
+    AssetViewMode, AssetWorkspaceItemGeneration, AssetWorkspaceSnapshot, ProjectOverviewSnapshot,
 };
 use zircon_runtime::asset::project::AssetSourceUnit;
 use zircon_runtime::asset::AssetUri;
@@ -25,6 +25,20 @@ struct AssetWorkspaceProjectionInput {
     resource_sequence: u64,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct AssetWorkspaceItemProjectionInput {
+    projection_generation: u64,
+    selected_folder_id: String,
+    search_query: String,
+    kind_filter: Option<ResourceKind>,
+}
+
+#[derive(Clone, Debug)]
+struct AssetWorkspaceItemProjectionCacheEntry {
+    input: AssetWorkspaceItemProjectionInput,
+    items: AssetWorkspaceItemGeneration,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct AssetWorkspaceState {
     catalog: Option<Arc<EditorAssetCatalogGeneration>>,
@@ -34,6 +48,7 @@ pub(crate) struct AssetWorkspaceState {
     resources: Arc<ResourceManagementGeneration>,
     projection_input: Cell<Option<AssetWorkspaceProjectionInput>>,
     projection_generation: Cell<u64>,
+    item_generation_cache: RefCell<Option<AssetWorkspaceItemProjectionCacheEntry>>,
     search_query: String,
     kind_filter: Option<ResourceKind>,
     activity_view_mode: AssetViewMode,
@@ -52,6 +67,7 @@ impl Default for AssetWorkspaceState {
             resources: Arc::new(ResourceManagementGeneration::default()),
             projection_input: Cell::new(None),
             projection_generation: Cell::new(0),
+            item_generation_cache: RefCell::new(None),
             search_query: String::new(),
             kind_filter: None,
             activity_view_mode: AssetViewMode::List,
@@ -66,6 +82,28 @@ impl AssetWorkspaceState {
     pub fn sync_catalog(&mut self, catalog: Arc<EditorAssetCatalogGeneration>) {
         self.catalog = Some(catalog);
 
+        self.reconcile_catalog_selection();
+    }
+
+    pub fn sync_catalog_changes(
+        &mut self,
+        catalog: Arc<EditorAssetCatalogGeneration>,
+        changed_asset_uuids: &[String],
+    ) {
+        self.catalog = Some(catalog);
+        self.reconcile_catalog_selection();
+        let projection_generation = self
+            .catalog
+            .as_ref()
+            .map(|catalog| self.asset_workspace_projection_generation(catalog));
+        let cached = self.item_generation_cache.borrow_mut().take();
+        let patched = cached.and_then(|cached| {
+            self.patch_catalog_item_generation(cached, changed_asset_uuids, projection_generation?)
+        });
+        *self.item_generation_cache.borrow_mut() = patched;
+    }
+
+    fn reconcile_catalog_selection(&mut self) {
         if !self.folder_exists(&self.selected_folder_id) {
             self.selected_folder_id = "res://".to_string();
         }
@@ -91,35 +129,76 @@ impl AssetWorkspaceState {
         true
     }
 
-    pub fn select_folder(&mut self, folder_id: impl Into<String>) {
-        let folder_id = folder_id.into();
-        if self.folder_exists(&folder_id) {
-            self.selected_folder_id = folder_id;
-            if self
-                .selected_asset_uuid
-                .as_ref()
-                .is_some_and(|uuid| !self.asset_belongs_to_folder(uuid, &self.selected_folder_id))
-            {
-                self.selected_asset_uuid = None;
-                self.selected_details = None;
-            }
+    pub fn sync_resource_changes(
+        &mut self,
+        resources: Arc<ResourceManagementGeneration>,
+        changed_locators: &[String],
+    ) -> bool {
+        if Arc::ptr_eq(&self.resources, &resources) {
+            return false;
         }
+        self.resources = resources;
+        let projection_generation = self
+            .catalog
+            .as_ref()
+            .map(|catalog| self.asset_workspace_projection_generation(catalog));
+        let cached = self.item_generation_cache.borrow_mut().take();
+        let patched = cached.and_then(|cached| {
+            self.patch_resource_item_generation(cached, changed_locators, projection_generation?)
+        });
+        *self.item_generation_cache.borrow_mut() = patched;
+        true
     }
 
-    pub fn select_asset(&mut self, asset_uuid: Option<String>) {
-        self.selected_asset_uuid = asset_uuid.filter(|uuid| self.asset_record(uuid).is_some());
+    pub fn select_folder(&mut self, folder_id: impl Into<String>) -> bool {
+        let folder_id = folder_id.into();
+        if !self.folder_exists(&folder_id) {
+            return false;
+        }
+        let clears_selection = self
+            .selected_asset_uuid
+            .as_ref()
+            .is_some_and(|uuid| !self.asset_belongs_to_folder(uuid, &folder_id));
+        if self.selected_folder_id == folder_id && !clears_selection {
+            return false;
+        }
+        self.selected_folder_id = folder_id;
+        if clears_selection {
+            self.selected_asset_uuid = None;
+            self.selected_details = None;
+        }
+        true
+    }
+
+    pub fn select_asset(&mut self, asset_uuid: Option<String>) -> bool {
+        let selected_asset_uuid = asset_uuid.filter(|uuid| self.asset_record(uuid).is_some());
+        if self.selected_asset_uuid == selected_asset_uuid {
+            return false;
+        }
+        self.selected_asset_uuid = selected_asset_uuid;
         if self.selected_details.as_ref().is_some_and(|details| {
             Some(details.asset.uuid.as_str()) != self.selected_asset_uuid.as_deref()
         }) {
             self.selected_details = None;
         }
+        true
     }
 
-    pub fn navigate_to_asset(&mut self, asset_uuid: &str) {
-        if let Some(record) = self.asset_record(asset_uuid) {
-            self.selected_folder_id = parent_folder_id_for_locator(&record.locator);
-            self.selected_asset_uuid = Some(asset_uuid.to_string());
+    pub fn navigate_to_asset(&mut self, asset_uuid: &str) -> bool {
+        let Some(selected_folder_id) = self
+            .asset_record(asset_uuid)
+            .map(|record| parent_folder_id_for_locator(&record.locator))
+        else {
+            return false;
+        };
+        if self.selected_folder_id == selected_folder_id
+            && self.selected_asset_uuid.as_deref() == Some(asset_uuid)
+        {
+            return false;
         }
+        self.selected_folder_id = selected_folder_id;
+        self.selected_asset_uuid = Some(asset_uuid.to_string());
+        true
     }
 
     pub(crate) fn asset_type_id_for_locator(&self, locator: &AssetUri) -> Option<AssetTypeId> {
@@ -130,28 +209,53 @@ impl AssetWorkspaceState {
             .map(|asset| AssetTypeId::from_resource_kind(asset.kind))
     }
 
-    pub fn set_search_query(&mut self, query: impl Into<String>) {
-        self.search_query = query.into();
+    pub fn set_search_query(&mut self, query: impl Into<String>) -> bool {
+        let query = query.into();
+        if self.search_query == query {
+            return false;
+        }
+        self.search_query = query;
+        true
     }
 
-    pub fn set_kind_filter(&mut self, kind_filter: Option<ResourceKind>) {
+    pub fn set_kind_filter(&mut self, kind_filter: Option<ResourceKind>) -> bool {
+        if self.kind_filter == kind_filter {
+            return false;
+        }
         self.kind_filter = kind_filter;
+        true
     }
 
-    pub fn set_activity_view_mode(&mut self, view_mode: AssetViewMode) {
+    pub fn set_activity_view_mode(&mut self, view_mode: AssetViewMode) -> bool {
+        if self.activity_view_mode == view_mode {
+            return false;
+        }
         self.activity_view_mode = view_mode;
+        true
     }
 
-    pub fn set_browser_view_mode(&mut self, view_mode: AssetViewMode) {
+    pub fn set_browser_view_mode(&mut self, view_mode: AssetViewMode) -> bool {
+        if self.browser_view_mode == view_mode {
+            return false;
+        }
         self.browser_view_mode = view_mode;
+        true
     }
 
-    pub fn set_activity_utility_tab(&mut self, utility_tab: AssetUtilityTab) {
+    pub fn set_activity_utility_tab(&mut self, utility_tab: AssetUtilityTab) -> bool {
+        if self.activity_utility_tab == utility_tab {
+            return false;
+        }
         self.activity_utility_tab = utility_tab;
+        true
     }
 
-    pub fn set_browser_utility_tab(&mut self, utility_tab: AssetUtilityTab) {
+    pub fn set_browser_utility_tab(&mut self, utility_tab: AssetUtilityTab) -> bool {
+        if self.browser_utility_tab == utility_tab {
+            return false;
+        }
         self.browser_utility_tab = utility_tab;
+        true
     }
 
     #[cfg(test)]
@@ -196,15 +300,9 @@ impl AssetWorkspaceState {
                 selected: folder.folder_id == self.selected_folder_id,
             })
             .collect::<Vec<_>>();
-        let visible_assets = catalog
-            .assets
-            .iter()
-            .filter(|asset| asset_belongs_to_folder(asset, &self.selected_folder_id))
-            .filter(|asset| {
-                asset_matches_filters(asset, &normalized_search_query, self.kind_filter)
-            })
-            .map(|asset| self.asset_item_snapshot(asset))
-            .collect::<Vec<_>>();
+        let catalog_revision = self.asset_workspace_projection_generation(catalog);
+        let visible_assets =
+            self.visible_asset_generation(catalog, catalog_revision, &normalized_search_query);
 
         AssetWorkspaceSnapshot {
             project_name: catalog.project_name.to_string(),
@@ -214,11 +312,12 @@ impl AssetWorkspaceState {
             default_scene_uri: catalog.default_scene_uri.to_string(),
             // Asset surfaces need every published catalog/preview/resource generation,
             // while ProjectOverview below continues to expose the source catalog revision.
-            catalog_revision: self.asset_workspace_projection_generation(catalog),
+            catalog_revision,
             surface_mode,
             view_mode: self.view_mode(surface_mode),
             utility_tab: self.utility_tab(surface_mode),
             search_query: self.search_query.clone(),
+            mesh_import_path: String::new(),
             kind_filter: self.kind_filter,
             folder_tree,
             visible_folders,
@@ -269,10 +368,97 @@ impl AssetWorkspaceState {
         }
 
         // The output is an adjacent-frame invalidation stamp, not a hash of external generations.
-        let next = self.projection_generation.get().wrapping_add(1);
+        let next = self
+            .projection_generation
+            .get()
+            .checked_add(1)
+            .expect("asset workspace projection generation exhausted");
         self.projection_input.set(Some(input));
         self.projection_generation.set(next);
         next
+    }
+
+    fn visible_asset_generation(
+        &self,
+        catalog: &EditorAssetCatalogGeneration,
+        projection_generation: u64,
+        normalized_search_query: &str,
+    ) -> AssetWorkspaceItemGeneration {
+        let input = AssetWorkspaceItemProjectionInput {
+            projection_generation,
+            selected_folder_id: self.selected_folder_id.clone(),
+            search_query: self.search_query.clone(),
+            kind_filter: self.kind_filter,
+        };
+        if let Some(items) = self
+            .item_generation_cache
+            .borrow()
+            .as_ref()
+            .and_then(|cached| (cached.input == input).then(|| cached.items.clone()))
+        {
+            return items;
+        }
+
+        let items = catalog
+            .assets
+            .iter()
+            .filter(|asset| asset_belongs_to_folder(asset, &self.selected_folder_id))
+            .filter(|asset| asset_matches_filters(asset, normalized_search_query, self.kind_filter))
+            .map(|asset| self.asset_item_snapshot(asset))
+            .collect::<AssetWorkspaceItemGeneration>();
+        *self.item_generation_cache.borrow_mut() = Some(AssetWorkspaceItemProjectionCacheEntry {
+            input,
+            items: items.clone(),
+        });
+        items
+    }
+
+    fn patch_catalog_item_generation(
+        &self,
+        mut cached: AssetWorkspaceItemProjectionCacheEntry,
+        changed_asset_uuids: &[String],
+        projection_generation: u64,
+    ) -> Option<AssetWorkspaceItemProjectionCacheEntry> {
+        let catalog = self.catalog.as_ref()?;
+        let normalized_search_query = self.search_query.to_ascii_lowercase();
+        let mut replacements = Vec::new();
+        for uuid in changed_asset_uuids {
+            let current_index = cached.items.selected_index(uuid);
+            let updated = catalog.asset(uuid);
+            let remains_visible = updated.is_some_and(|asset| {
+                asset_belongs_to_folder(asset, &self.selected_folder_id)
+                    && asset_matches_filters(asset, &normalized_search_query, self.kind_filter)
+            });
+            match (current_index, updated, remains_visible) {
+                (Some(_), Some(asset), true) => replacements.push(self.asset_item_snapshot(asset)),
+                (None, _, false) => {}
+                _ => return None,
+            }
+        }
+        cached.items = cached.items.replace_existing_items(replacements)?;
+        cached.input.projection_generation = projection_generation;
+        Some(cached)
+    }
+
+    fn patch_resource_item_generation(
+        &self,
+        mut cached: AssetWorkspaceItemProjectionCacheEntry,
+        changed_locators: &[String],
+        projection_generation: u64,
+    ) -> Option<AssetWorkspaceItemProjectionCacheEntry> {
+        let catalog = self.catalog.as_ref()?;
+        let mut replacements = Vec::new();
+        for locator in changed_locators {
+            let Some(index) = cached.items.locator_index(locator) else {
+                continue;
+            };
+            let asset = catalog.asset_by_locator(locator)?;
+            debug_assert_eq!(cached.items[index].uuid, asset.uuid);
+            replacements.push(self.asset_item_snapshot(asset));
+        }
+        cached.items = cached.items.replace_existing_items(replacements)?;
+        cached.input.projection_generation = projection_generation;
+        Some(cached)
     }
 
     fn view_mode(&self, surface_mode: AssetSurfaceMode) -> AssetViewMode {
@@ -390,7 +576,7 @@ impl AssetWorkspaceState {
             preview_artifact_path: asset.preview_artifact_path.clone(),
             dirty: asset.dirty,
             diagnostics: asset.diagnostics.clone(),
-            selected: self.selected_asset_uuid.as_deref() == Some(asset.uuid.as_str()),
+            selected: false,
             resource_state: resource_state(resource.as_deref()),
             resource_revision: resource.as_ref().map(|resource| resource.revision),
         }
@@ -536,94 +722,4 @@ fn reference_snapshot(
 }
 
 #[cfg(test)]
-mod performance_tests {
-    use std::sync::Arc;
-
-    use crate::ui::host::editor_asset_manager::{
-        EditorAssetCatalogGeneration, EditorAssetCatalogSnapshotRecord,
-    };
-    use crate::ui::workbench::snapshot::AssetSurfaceMode;
-    use zircon_runtime::core::resource::ResourceManagementGeneration;
-
-    use super::{parent_folder_id_for_locator, AssetWorkspaceState};
-
-    #[test]
-    fn stable_resource_generation_skips_asset_projection_invalidation() {
-        let mut workspace = AssetWorkspaceState::default();
-        let generation = Arc::new(ResourceManagementGeneration::default());
-
-        assert!(workspace.sync_resources(generation.clone()));
-        assert!(!workspace.sync_resources(generation));
-    }
-
-    #[test]
-    fn workspace_projection_generation_advances_once_for_each_exact_input_change() {
-        let mut workspace = AssetWorkspaceState::default();
-        workspace.sync_catalog(Arc::new(
-            EditorAssetCatalogGeneration::from_snapshot_record(
-                EditorAssetCatalogSnapshotRecord::default(),
-                4,
-            ),
-        ));
-
-        let initial = workspace
-            .build_snapshot(AssetSurfaceMode::Activity)
-            .catalog_revision;
-        let stable = workspace
-            .build_snapshot(AssetSurfaceMode::Activity)
-            .catalog_revision;
-
-        workspace.sync_catalog(Arc::new(
-            EditorAssetCatalogGeneration::from_snapshot_record(
-                EditorAssetCatalogSnapshotRecord::default(),
-                5,
-            ),
-        ));
-        let advanced = workspace
-            .build_snapshot(AssetSurfaceMode::Activity)
-            .catalog_revision;
-
-        assert_eq!(stable, initial);
-        assert_eq!(advanced, initial.wrapping_add(1));
-        assert_ne!(advanced, initial);
-        let legacy_hasher = ["Default", "Hasher"].concat();
-        assert!(!include_str!("asset_workspace_state.rs").contains(&legacy_hasher));
-    }
-
-    #[test]
-    fn asset_snapshot_normalizes_search_once_and_streams_parent_paths() {
-        let source = include_str!("asset_workspace_state.rs");
-        let test_module = source
-            .rfind("#[cfg(test)]")
-            .expect("performance test module");
-        let implementation = &source[..test_module];
-        assert_eq!(
-            implementation
-                .matches("self.search_query.to_ascii_lowercase()")
-                .count(),
-            1
-        );
-        assert!(!implementation.contains("split('/').collect"));
-
-        assert_eq!(parent_folder_id_for_locator("res://mesh.glb"), "res://");
-        assert_eq!(
-            parent_folder_id_for_locator("res://models/props/mesh.glb"),
-            "res://models/props"
-        );
-        assert_eq!(
-            parent_folder_id_for_locator("package://tools/mesh.glb"),
-            "package://tools"
-        );
-        assert_eq!(
-            parent_folder_id_for_locator("package://tools/models/mesh.glb"),
-            "package://tools/models"
-        );
-    }
-
-    #[test]
-    fn dual_asset_surfaces_share_one_projection_build() {
-        let source = include_str!("../snapshot/data/editor_state_snapshot_build.rs");
-        assert!(source.contains("build_surface_snapshots()"));
-        assert!(!source.contains(".build_snapshot(AssetSurfaceMode::"));
-    }
-}
+mod performance_tests;

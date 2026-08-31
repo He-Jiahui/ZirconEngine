@@ -4,7 +4,7 @@ use super::scroll_surface_pointer_state::ScrollSurfacePointerState;
 
 impl ScrollSurfacePointerBridge {
     pub(crate) fn state(&self) -> ScrollSurfacePointerState {
-        self.state.clone()
+        self.state
     }
 
     pub(crate) fn sync(
@@ -19,7 +19,6 @@ impl ScrollSurfacePointerBridge {
         self.layout = layout;
         self.state = state;
         self.clamp_scroll_offset();
-        self.rebuild_surface();
         true
     }
 }

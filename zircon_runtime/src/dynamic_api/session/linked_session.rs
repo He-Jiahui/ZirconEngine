@@ -6,7 +6,7 @@ use crate::plugin::RuntimePluginRegistrationReport;
 
 use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
-use super::registry::{SessionRegistryInsertError, try_insert_session};
+use super::registry::{try_insert_session, SessionRegistryInsertError};
 use super::{RuntimeDynamicSession, RuntimeDynamicSessionError};
 
 pub fn create_linked_runtime_session(

@@ -30,6 +30,14 @@ impl AssetCommand {
                     .with_argument(UiBindingValue::string(surface))
                     .with_argument(UiBindingValue::string(tab))
             }
+            Self::RelocateAsset {
+                asset_uuid,
+                target_locator,
+            } => UiBindingCall::new("AssetCommand.RelocateAsset")
+                .with_argument(UiBindingValue::string(asset_uuid))
+                .with_argument(UiBindingValue::string(target_locator)),
+            Self::DeleteAsset { asset_uuid } => UiBindingCall::new("AssetCommand.DeleteAsset")
+                .with_argument(UiBindingValue::string(asset_uuid)),
             Self::OpenAssetBrowser => UiBindingCall::new("AssetCommand.OpenAssetBrowser"),
             Self::LocateSelectedAsset => UiBindingCall::new("AssetCommand.LocateSelectedAsset"),
             Self::ImportModel => UiBindingCall::new("AssetCommand.ImportModel"),
@@ -63,6 +71,13 @@ impl AssetCommand {
             "AssetCommand.SetUtilityTab" => Self::SetUtilityTab {
                 surface: required_string_argument(&call, 0, "AssetCommand.SetUtilityTab")?,
                 tab: required_string_argument(&call, 1, "AssetCommand.SetUtilityTab")?,
+            },
+            "AssetCommand.RelocateAsset" => Self::RelocateAsset {
+                asset_uuid: required_string_argument(&call, 0, "AssetCommand.RelocateAsset")?,
+                target_locator: required_string_argument(&call, 1, "AssetCommand.RelocateAsset")?,
+            },
+            "AssetCommand.DeleteAsset" => Self::DeleteAsset {
+                asset_uuid: required_string_argument(&call, 0, "AssetCommand.DeleteAsset")?,
             },
             "AssetCommand.OpenAssetBrowser" => Self::OpenAssetBrowser,
             "AssetCommand.LocateSelectedAsset" => Self::LocateSelectedAsset,

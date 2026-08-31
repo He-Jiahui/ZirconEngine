@@ -1,14 +1,24 @@
+mod locale_projection;
+#[cfg(test)]
+mod localization_tests;
+#[cfg(test)]
+mod performance_tests;
+
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
-use std::sync::Arc;
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde::{de, Deserialize, Deserializer, Serialize};
 use zircon_runtime_interface::ui::component::UiValue;
 
 use super::{CommandEvalCtx, EditorCommandDescriptor, WhenClause};
 use crate::core::editor_operation::EditorOperationPath;
+use crate::core::i18n::{EditorI18nService, EditorLocale};
+
+use locale_projection::EditorCommandPaletteLocaleProjection;
 
 pub const EDITOR_COMMAND_PALETTE_MRU_CAPACITY: usize = 32;
+const EDITOR_COMMAND_PALETTE_LOCALE_CACHE_CAPACITY: usize = 4;
 
 /// Bounded, most-recent-first command history stored only in the Session settings layer.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
@@ -37,6 +47,7 @@ impl EditorCommandPaletteMru {
         true
     }
 
+    #[cfg(test)]
     fn contains_id(&self, command_id: &str) -> bool {
         self.0.iter().any(|entry| entry.as_str() == command_id)
     }
@@ -62,6 +73,31 @@ impl EditorCommandPaletteMru {
     }
 }
 
+struct EditorCommandPaletteMruIndices {
+    sorted: [usize; EDITOR_COMMAND_PALETTE_MRU_CAPACITY],
+    len: usize,
+}
+
+impl EditorCommandPaletteMruIndices {
+    fn new(mru: &EditorCommandPaletteMru, entry_indices: &BTreeMap<String, usize>) -> Self {
+        let mut sorted = [usize::MAX; EDITOR_COMMAND_PALETTE_MRU_CAPACITY];
+        let mut len = 0;
+        for command_id in mru.entries().iter().take(sorted.len()) {
+            let Some(index) = entry_indices.get(command_id.as_str()).copied() else {
+                continue;
+            };
+            sorted[len] = index;
+            len += 1;
+        }
+        sorted[..len].sort_unstable();
+        Self { sorted, len }
+    }
+
+    fn contains(&self, index: usize) -> bool {
+        self.sorted[..self.len].binary_search(&index).is_ok()
+    }
+}
+
 impl<'de> Deserialize<'de> for EditorCommandPaletteMru {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -83,20 +119,6 @@ pub struct EditorCommandPaletteEntry {
 }
 
 impl EditorCommandPaletteEntry {
-    pub fn from_descriptor(descriptor: &EditorCommandDescriptor) -> Self {
-        Self {
-            id: descriptor.id().to_string(),
-            label: descriptor.display_name().to_string(),
-            source: descriptor.category().source_tag().to_string(),
-            shortcut: descriptor
-                .default_chord()
-                .map(ToString::to_string)
-                .unwrap_or_default(),
-            category: descriptor.category().as_str().to_string(),
-            keywords: descriptor.keywords().to_vec(),
-        }
-    }
-
     pub fn to_ui_value(&self) -> UiValue {
         let mut values = BTreeMap::new();
         values.insert("id".to_string(), UiValue::String(self.id.clone()));
@@ -118,15 +140,62 @@ impl EditorCommandPaletteEntry {
     }
 }
 
+#[derive(Clone, Debug)]
+struct EditorCommandPaletteSeed {
+    id: String,
+    presentation: super::EditorCommandPresentation,
+    source: String,
+    shortcut: String,
+    category_key: &'static str,
+    keywords: Vec<String>,
+}
+
+impl EditorCommandPaletteSeed {
+    fn from_descriptor(descriptor: &EditorCommandDescriptor) -> Self {
+        Self {
+            id: descriptor.id().to_string(),
+            presentation: descriptor.presentation().clone(),
+            source: descriptor.category().source_tag().to_string(),
+            shortcut: descriptor
+                .default_chord()
+                .map(ToString::to_string)
+                .unwrap_or_default(),
+            category_key: descriptor.category().localization_key(),
+            keywords: descriptor.keywords().to_vec(),
+        }
+    }
+
+    fn project(
+        &self,
+        i18n: &EditorI18nService,
+        locale: &EditorLocale,
+    ) -> EditorCommandPaletteEntry {
+        EditorCommandPaletteEntry {
+            id: self.id.clone(),
+            label: self
+                .presentation
+                .resolve_label(i18n, locale)
+                .as_ref()
+                .to_owned(),
+            source: self.source.clone(),
+            shortcut: self.shortcut.clone(),
+            category: i18n
+                .translate_for_locale(locale, self.category_key)
+                .as_ref()
+                .to_owned(),
+            keywords: self.keywords.clone(),
+        }
+    }
+}
+
 /// Immutable command discovery data shared by every palette open in one registry generation.
 #[derive(Debug)]
 pub struct EditorCommandPaletteCatalog {
     generation: u64,
-    entries: Arc<[EditorCommandPaletteEntry]>,
+    seeds: Arc<[EditorCommandPaletteSeed]>,
     entry_indices: BTreeMap<String, usize>,
-    search_documents: Arc<[Box<str>]>,
-    search_postings: Box<[Box<[usize]>; 256]>,
     enablement: Arc<[EditorCommandPaletteEnablement]>,
+    locale_projections: Mutex<VecDeque<Arc<EditorCommandPaletteLocaleProjection>>>,
 }
 
 impl EditorCommandPaletteCatalog {
@@ -135,61 +204,86 @@ impl EditorCommandPaletteCatalog {
     }
 
     pub fn len(&self) -> usize {
-        self.entries.len()
+        self.seeds.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
-    }
-
-    pub fn entries(&self) -> &[EditorCommandPaletteEntry] {
-        &self.entries
+        self.seeds.is_empty()
     }
 
     pub(super) fn from_descriptors<'a>(
         generation: u64,
         descriptors: impl Iterator<Item = &'a EditorCommandDescriptor>,
     ) -> Self {
-        let mut entries = Vec::new();
+        let mut seeds = Vec::new();
         let mut entry_indices = BTreeMap::new();
-        let mut search_documents = Vec::new();
-        let mut search_postings: [Vec<usize>; 256] = std::array::from_fn(|_| Vec::new());
         let mut enablement = Vec::new();
         for descriptor in descriptors {
-            let entry = EditorCommandPaletteEntry::from_descriptor(descriptor);
-            entry_indices.insert(entry.id.clone(), entries.len());
-            let document = search_document(&entry);
-            let mut indexed_bytes = [false; 256];
-            for byte in document.bytes() {
-                indexed_bytes[usize::from(byte)] = true;
-            }
-            for (byte, present) in indexed_bytes.into_iter().enumerate() {
-                if present {
-                    search_postings[byte].push(entries.len());
-                }
-            }
-            search_documents.push(document);
+            let seed = EditorCommandPaletteSeed::from_descriptor(descriptor);
+            entry_indices.insert(seed.id.clone(), seeds.len());
             enablement.push(EditorCommandPaletteEnablement::from_descriptor(descriptor));
-            entries.push(entry);
+            seeds.push(seed);
         }
         Self {
             generation,
-            entries: entries.into(),
+            seeds: seeds.into(),
             entry_indices,
-            search_documents: search_documents.into(),
-            search_postings: Box::new(search_postings.map(Vec::into_boxed_slice)),
             enablement: enablement.into(),
+            locale_projections: Mutex::new(VecDeque::new()),
         }
+    }
+
+    fn locale_projection(
+        &self,
+        i18n: &EditorI18nService,
+        locale: &EditorLocale,
+    ) -> Arc<EditorCommandPaletteLocaleProjection> {
+        {
+            let cache = self.lock_locale_projections();
+            if let Some(projection) = cache.iter().find(|projection| projection.matches(locale)) {
+                return Arc::clone(projection);
+            }
+        }
+
+        let built = Arc::new(EditorCommandPaletteLocaleProjection::build(
+            i18n,
+            locale,
+            &self.seeds,
+        ));
+        let mut cache = self.lock_locale_projections();
+        if let Some(projection) = cache.iter().find(|projection| projection.matches(locale)) {
+            return Arc::clone(projection);
+        }
+        cache.push_front(Arc::clone(&built));
+        cache.truncate(EDITOR_COMMAND_PALETTE_LOCALE_CACHE_CAPACITY);
+        built
+    }
+
+    fn lock_locale_projections(
+        &self,
+    ) -> MutexGuard<'_, VecDeque<Arc<EditorCommandPaletteLocaleProjection>>> {
+        self.locale_projections
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    #[cfg(test)]
+    fn cached_locale_projection_count(&self) -> usize {
+        self.lock_locale_projections().len()
     }
 
     pub(crate) fn query_window(
         self: &Arc<Self>,
+        i18n: &EditorI18nService,
+        locale: &EditorLocale,
         context: &CommandEvalCtx,
         query: &str,
         offset: usize,
         limit: usize,
     ) -> EditorCommandPaletteQueryWindow {
         self.query_window_with_mru(
+            i18n,
+            locale,
             context,
             query,
             offset,
@@ -200,15 +294,18 @@ impl EditorCommandPaletteCatalog {
 
     pub(crate) fn query_window_with_mru(
         self: &Arc<Self>,
+        i18n: &EditorI18nService,
+        locale: &EditorLocale,
         context: &CommandEvalCtx,
         query: &str,
         offset: usize,
         limit: usize,
         mru: &EditorCommandPaletteMru,
     ) -> EditorCommandPaletteQueryWindow {
+        let projection = self.locale_projection(i18n, locale);
         let query = EditorCommandPaletteCompiledQuery::new(query);
         if query.is_empty() {
-            return self.unfiltered_window(context, offset, limit, mru);
+            return self.unfiltered_window(projection, context, offset, limit, mru);
         }
 
         let mut metrics = EditorCommandPaletteQueryMetrics {
@@ -216,17 +313,17 @@ impl EditorCommandPaletteCatalog {
             ..EditorCommandPaletteQueryMetrics::default()
         };
         let candidate_limit = (limit > 0)
-            .then(|| offset.saturating_add(limit).min(self.entries.len()))
+            .then(|| offset.saturating_add(limit).min(projection.entries.len()))
             .unwrap_or_default();
         let mut candidates = BinaryHeap::with_capacity(candidate_limit);
-        let candidate_indices = query.rarest_posting(&self.search_postings);
+        let candidate_indices = query.rarest_posting(&projection.search_postings);
         for &index in candidate_indices {
             metrics.visited_entries += 1;
             metrics.enablement_evaluations += 1;
             if !self.enablement[index].is_enabled(context) {
                 continue;
             }
-            let document = &self.search_documents[index];
+            let document = &projection.search_documents[index];
             if let Some(score) = fuzzy_score(document, &query, &mut metrics) {
                 metrics.total_matches += 1;
                 retain_top_candidate(
@@ -235,7 +332,7 @@ impl EditorCommandPaletteCatalog {
                     EditorCommandPaletteCandidate {
                         index,
                         score,
-                        mru_rank: mru.rank_of(self.entries[index].id.as_str()),
+                        mru_rank: mru.rank_of(projection.entries[index].id.as_str()),
                     },
                 );
             }
@@ -255,7 +352,8 @@ impl EditorCommandPaletteCatalog {
         metrics.retained_handles = handles.len();
 
         EditorCommandPaletteQueryWindow {
-            catalog: Arc::clone(self),
+            catalog_generation: self.generation,
+            projection,
             handles: handles.into_boxed_slice(),
             offset,
             metrics,
@@ -264,6 +362,7 @@ impl EditorCommandPaletteCatalog {
 
     fn unfiltered_window(
         self: &Arc<Self>,
+        projection: Arc<EditorCommandPaletteLocaleProjection>,
         context: &CommandEvalCtx,
         offset: usize,
         limit: usize,
@@ -272,6 +371,7 @@ impl EditorCommandPaletteCatalog {
         let mut handles = Vec::with_capacity(limit);
         let mut total_matches = 0;
         let window_end = offset.saturating_add(limit);
+        let mru_indices = EditorCommandPaletteMruIndices::new(mru, &self.entry_indices);
         for command_id in mru.entries() {
             let Some(index) = self.entry_indices.get(command_id.as_str()).copied() else {
                 continue;
@@ -284,8 +384,8 @@ impl EditorCommandPaletteCatalog {
             }
             total_matches += 1;
         }
-        for index in 0..self.entries.len() {
-            if mru.contains_id(self.entries[index].id.as_str()) {
+        for index in 0..projection.entries.len() {
+            if mru_indices.contains(index) {
                 continue;
             }
             if !self.enablement[index].is_enabled(context) {
@@ -297,11 +397,12 @@ impl EditorCommandPaletteCatalog {
             total_matches += 1;
         }
         EditorCommandPaletteQueryWindow {
-            catalog: Arc::clone(self),
+            catalog_generation: self.generation,
+            projection,
             offset,
             metrics: EditorCommandPaletteQueryMetrics {
-                visited_entries: self.entries.len(),
-                enablement_evaluations: self.entries.len(),
+                visited_entries: self.seeds.len(),
+                enablement_evaluations: self.seeds.len(),
                 total_matches,
                 retained_handles: handles.len(),
                 owned_buffers: 1,
@@ -330,7 +431,8 @@ pub struct EditorCommandPaletteQueryMetrics {
 /// A ranked page of lightweight handles into one immutable catalog generation.
 #[derive(Debug)]
 pub struct EditorCommandPaletteQueryWindow {
-    catalog: Arc<EditorCommandPaletteCatalog>,
+    catalog_generation: u64,
+    projection: Arc<EditorCommandPaletteLocaleProjection>,
     handles: Box<[(usize, usize)]>,
     offset: usize,
     metrics: EditorCommandPaletteQueryMetrics,
@@ -338,7 +440,7 @@ pub struct EditorCommandPaletteQueryWindow {
 
 impl EditorCommandPaletteQueryWindow {
     pub fn catalog_generation(&self) -> u64 {
-        self.catalog.generation()
+        self.catalog_generation
     }
 
     pub fn total_match_count(&self) -> usize {
@@ -366,7 +468,7 @@ impl EditorCommandPaletteQueryWindow {
     ) -> impl DoubleEndedIterator<Item = &EditorCommandPaletteEntry> + ExactSizeIterator {
         self.handles
             .iter()
-            .map(|(_, catalog_index)| &self.catalog.entries[*catalog_index])
+            .map(|(_, catalog_index)| &self.projection.entries[*catalog_index])
     }
 
     pub fn to_ui_value(&self) -> UiValue {

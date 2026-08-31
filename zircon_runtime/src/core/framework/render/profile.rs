@@ -7,6 +7,10 @@ use super::{
 
 pub const RENDER_PROFILE_CONFIG_KEY: &str = "zircon.render.profile_bundle";
 
+#[cfg(test)]
+#[path = "profile/capacity_tests.rs"]
+mod capacity_tests;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RenderProductProfile {
     Headless,
@@ -190,7 +194,8 @@ impl RenderProfileBundle {
     }
 
     fn required_profiles(&self) -> Vec<RenderProductProfile> {
-        let mut profiles = Vec::new();
+        let profile_capacity = self.includes.len().saturating_add(1);
+        let mut profiles = Vec::with_capacity(profile_capacity);
         push_unique(&mut profiles, self.profile);
         for include in &self.includes {
             push_unique(&mut profiles, *include);

@@ -14,12 +14,7 @@ impl NotificationId {
         if value.len() > MAX_NOTIFICATION_ID_BYTES {
             return Err(NotificationIdentityError::InvalidNotificationId(value));
         }
-        let mut segment_count = 0;
-        let invalid_segment = value.split('.').any(|segment| {
-            segment_count += 1;
-            !valid_segment(segment)
-        });
-        if segment_count < 3 || invalid_segment {
+        if !valid_notification_id_syntax(&value) {
             return Err(NotificationIdentityError::InvalidNotificationId(value));
         }
         Ok(Self(Arc::from(value)))
@@ -36,9 +31,23 @@ impl Display for NotificationId {
     }
 }
 
-fn valid_segment(value: &str) -> bool {
-    !value.is_empty()
-        && value.chars().all(|character| {
-            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '_'
-        })
+fn valid_notification_id_syntax(value: &str) -> bool {
+    let mut segment_count = 1usize;
+    let mut segment_has_value = false;
+    for byte in value.bytes() {
+        match byte {
+            b'.' if segment_has_value => {
+                segment_count = segment_count.saturating_add(1);
+                segment_has_value = false;
+            }
+            b'.' => return false,
+            b'a'..=b'z' | b'0'..=b'9' | b'_' => segment_has_value = true,
+            _ => return false,
+        }
+    }
+    segment_has_value && segment_count >= 3
 }
+
+#[cfg(test)]
+#[path = "id/single_pass_validation_tests.rs"]
+mod single_pass_validation_tests;

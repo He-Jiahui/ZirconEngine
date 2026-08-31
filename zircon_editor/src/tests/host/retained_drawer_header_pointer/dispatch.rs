@@ -2,17 +2,13 @@ use crate::core::editor_event::{
     ActivityDrawerMode, ActivityDrawerSlot, EditorEvent, LayoutCommand, ViewInstanceId,
 };
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
-use crate::ui::retained_host::callback_dispatch::{
-    dispatch_shared_drawer_header_pointer_click, BuiltinHostWindowTemplateBridge,
-    BuiltinWorkbenchWindowTemplateSurfaceBridge,
-};
+use crate::ui::retained_host::callback_dispatch::dispatch_shared_drawer_header_pointer_click;
 use crate::ui::retained_host::drawer_header_pointer::{
-    build_host_drawer_header_pointer_layout_with_workbench_layout_frames,
-    HostDrawerHeaderPointerBridge, HostDrawerHeaderPointerRoute,
+    build_host_drawer_header_pointer_layout, HostDrawerHeaderPointerBridge,
+    HostDrawerHeaderPointerRoute,
 };
-use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::layout::ActivityDrawerSlot as UiActivityDrawerSlot;
 use crate::ui::workbench::model::WorkbenchViewModel;
-use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
 #[test]
 fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_dispatcher() {
@@ -24,25 +20,9 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
     );
-    let metrics = WorkbenchChromeMetrics::default();
     let left_top_key = "left";
-    let mut template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
-        .expect("builtin workbench template bridge should build");
-    template_bridge
-        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
-        .expect("builtin workbench template bridge should project drawer headers");
-    let mut workbench_window_bridge =
-        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
-            .expect("componentized workbench bridge should build");
-    workbench_window_bridge
-        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
-        .expect("componentized workbench bridge should project drawer headers");
     let mut pointer_bridge = HostDrawerHeaderPointerBridge::new();
-    let pointer_layout = build_host_drawer_header_pointer_layout_with_workbench_layout_frames(
-        &model,
-        &metrics,
-        workbench_window_bridge.layout_frames(),
-    );
+    let pointer_layout = build_host_drawer_header_pointer_layout(&model);
     let left_top = pointer_layout
         .surfaces
         .iter()
@@ -52,7 +32,7 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
                 .items
                 .iter()
                 .enumerate()
-                .find(|(_, item)| item.slot == "left_top")
+                .find(|(_, item)| item.slot == UiActivityDrawerSlot::LeftTop)
         })
         .map(|(index, item)| (index, item.instance_id.clone()))
         .expect("left top drawer header item should be projected");
@@ -60,24 +40,24 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
 
     let dispatched = dispatch_shared_drawer_header_pointer_click(
         &harness.runtime,
-        &template_bridge,
-        &mut pointer_bridge,
+        &pointer_bridge,
         left_top_key,
         left_top.0,
-        6.0,
-        96.0,
-        UiPoint::new(24.0 + left_top.0 as f32 * 112.0, 12.0),
     )
     .expect("shared drawer header route should dispatch drawer toggle");
 
     assert_eq!(
         dispatched.pointer.route,
         Some(HostDrawerHeaderPointerRoute::Tab {
-            surface_key: left_top_key.to_string(),
+            surface_index: 0,
             item_index: left_top.0,
-            slot: "left_top".to_string(),
-            instance_id: left_top.1,
         })
+    );
+    assert_eq!(
+        pointer_bridge
+            .target_for_route(dispatched.pointer.route.expect("drawer route"))
+            .map(|(slot, instance_id)| (slot, instance_id.0.as_str())),
+        Some((UiActivityDrawerSlot::LeftTop, left_top.1 .0.as_str()))
     );
     let effects = dispatched
         .effects
@@ -104,25 +84,9 @@ fn shared_bottom_drawer_header_pointer_click_activates_runtime_diagnostics_tab()
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
     );
-    let metrics = WorkbenchChromeMetrics::default();
     let bottom_key = "bottom";
-    let mut template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
-        .expect("builtin workbench template bridge should build");
-    template_bridge
-        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
-        .expect("builtin workbench template bridge should project drawer headers");
-    let mut workbench_window_bridge =
-        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
-            .expect("componentized workbench bridge should build");
-    workbench_window_bridge
-        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
-        .expect("componentized workbench bridge should project drawer headers");
     let mut pointer_bridge = HostDrawerHeaderPointerBridge::new();
-    let pointer_layout = build_host_drawer_header_pointer_layout_with_workbench_layout_frames(
-        &model,
-        &metrics,
-        workbench_window_bridge.layout_frames(),
-    );
+    let pointer_layout = build_host_drawer_header_pointer_layout(&model);
     let runtime_diagnostics = pointer_layout
         .surfaces
         .iter()
@@ -136,28 +100,26 @@ fn shared_bottom_drawer_header_pointer_click_activates_runtime_diagnostics_tab()
         })
         .map(|(index, item)| (index, item.instance_id.clone()))
         .expect("runtime diagnostics bottom drawer header item should be projected");
+    let bottom_surface_index = pointer_layout
+        .surfaces
+        .iter()
+        .position(|surface| surface.key == bottom_key)
+        .expect("bottom receipt surface index");
     pointer_bridge.sync(pointer_layout);
 
-    let tab_x = 112.0 * runtime_diagnostics.0 as f32;
     let dispatched = dispatch_shared_drawer_header_pointer_click(
         &harness.runtime,
-        &template_bridge,
-        &mut pointer_bridge,
+        &pointer_bridge,
         bottom_key,
         runtime_diagnostics.0,
-        tab_x,
-        160.0,
-        UiPoint::new(tab_x + 12.0, 12.0),
     )
     .expect("shared bottom drawer header route should dispatch drawer toggle");
 
     assert_eq!(
         dispatched.pointer.route,
         Some(HostDrawerHeaderPointerRoute::Tab {
-            surface_key: bottom_key.to_string(),
+            surface_index: bottom_surface_index,
             item_index: runtime_diagnostics.0,
-            slot: "bottom".to_string(),
-            instance_id: runtime_diagnostics.1.clone(),
         })
     );
     let effects = dispatched

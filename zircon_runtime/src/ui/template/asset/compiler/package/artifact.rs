@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 use crate::ui::template::{UiCompiledDocument, UiTemplateInstance};
 use zircon_runtime_interface::ui::template::{
     UiAssetError, UiCompiledAssetPackageValidationReport,
-    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
 };
 
-const UI_COMPILED_ASSET_BINARY_MAGIC: [u8; 8] = *b"ZRUIA016";
-const ENVELOPE_HEADER_LEN: usize = UI_COMPILED_ASSET_BINARY_MAGIC.len() + 4 + 8;
+const UI_COMPILED_ASSET_TOML_ENVELOPE_MAGIC: [u8; 8] = *b"ZRUIA018";
+const ENVELOPE_HEADER_LEN: usize = UI_COMPILED_ASSET_TOML_ENVELOPE_MAGIC.len() + 4 + 8;
 pub const UI_COMPILED_ASSET_ARTIFACT_GENERATED_POLICY: &str =
-    "runtime_09_m3_1_binary_leaf_dto_artifact_not_generated_source";
+    "runtime_09_m3_1_toml_envelope_leaf_dto_not_generated_source";
 pub const UI_COMPILED_ASSET_ARTIFACT_GENERATED_SOURCE_MARKER_REQUIRED: bool = false;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -40,8 +40,8 @@ impl UiRuntimeCompiledAssetArtifact {
     pub fn to_bytes(&self) -> Result<Vec<u8>, UiAssetError> {
         let payload = toml::to_string(self).map_err(package_error)?.into_bytes();
         let mut bytes = Vec::with_capacity(ENVELOPE_HEADER_LEN + payload.len());
-        bytes.extend_from_slice(&UI_COMPILED_ASSET_BINARY_MAGIC);
-        bytes.extend_from_slice(&UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION.to_le_bytes());
+        bytes.extend_from_slice(&UI_COMPILED_ASSET_TOML_ENVELOPE_MAGIC);
+        bytes.extend_from_slice(&UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION.to_le_bytes());
         bytes.extend_from_slice(&(payload.len() as u64).to_le_bytes());
         bytes.extend_from_slice(&payload);
         Ok(bytes)
@@ -51,18 +51,20 @@ impl UiRuntimeCompiledAssetArtifact {
         if bytes.len() < ENVELOPE_HEADER_LEN {
             return Err(invalid_artifact("compiled artifact envelope is truncated"));
         }
-        if bytes[..UI_COMPILED_ASSET_BINARY_MAGIC.len()] != UI_COMPILED_ASSET_BINARY_MAGIC {
+        if bytes[..UI_COMPILED_ASSET_TOML_ENVELOPE_MAGIC.len()]
+            != UI_COMPILED_ASSET_TOML_ENVELOPE_MAGIC
+        {
             return Err(invalid_artifact("compiled artifact magic does not match"));
         }
 
-        let version_start = UI_COMPILED_ASSET_BINARY_MAGIC.len();
+        let version_start = UI_COMPILED_ASSET_TOML_ENVELOPE_MAGIC.len();
         let version_end = version_start + 4;
         let schema_version = u32::from_le_bytes(
             bytes[version_start..version_end]
                 .try_into()
                 .expect("slice length checked"),
         );
-        if schema_version != UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION {
+        if schema_version != UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION {
             return Err(invalid_artifact(&format!(
                 "compiled artifact schema version {schema_version} is unsupported"
             )));
@@ -83,8 +85,28 @@ impl UiRuntimeCompiledAssetArtifact {
         }
 
         let payload = std::str::from_utf8(payload).map_err(package_error)?;
-        toml::from_str(payload).map_err(package_error)
+        let artifact: Self = toml::from_str(payload).map_err(package_error)?;
+        let binding_program = artifact.compiled.binding_program();
+        if binding_program.generation().is_invalid()
+            || binding_program.node_count() != template_node_count(&artifact.compiled.root)
+            || !binding_program.is_well_formed()
+        {
+            return Err(invalid_artifact(
+                "compiled artifact binding program is malformed",
+            ));
+        }
+        Ok(artifact)
     }
+}
+
+fn template_node_count(root: &zircon_runtime_interface::ui::template::UiTemplateNode) -> usize {
+    let mut pending = vec![root];
+    let mut count = 0usize;
+    while let Some(node) = pending.pop() {
+        count = count.saturating_add(1);
+        pending.extend(node.children.iter().rev());
+    }
+    count
 }
 
 fn package_error(error: impl std::fmt::Display) -> UiAssetError {

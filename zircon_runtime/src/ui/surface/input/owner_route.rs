@@ -1,5 +1,8 @@
 use zircon_runtime_interface::ui::{
-    dispatch::{UiDispatchDisposition, UiDispatchReply, UiInputDispatchResult, UiInputEvent},
+    dispatch::{
+        UiDispatchDisposition, UiDispatchReply, UiInputDiagnosticsMode, UiInputDispatchResult,
+        UiInputEvent,
+    },
     event_ui::UiNodeId,
     focus::UiFocusedInputKind,
 };
@@ -15,6 +18,22 @@ pub(super) fn owner_routed_result(
     target: Option<UiNodeId>,
     phase: &str,
 ) -> UiInputDispatchResult {
+    owner_routed_result_with_diagnostics_mode(
+        surface,
+        event,
+        target,
+        phase,
+        UiInputDiagnosticsMode::Full,
+    )
+}
+
+pub(super) fn owner_routed_result_with_diagnostics_mode(
+    surface: &mut UiSurface,
+    event: UiInputEvent,
+    target: Option<UiNodeId>,
+    phase: &str,
+    diagnostics_mode: UiInputDiagnosticsMode,
+) -> UiInputDispatchResult {
     let kind = focused_input_kind_for_event(&event);
     let valid_target = target.filter(|node_id| is_valid_input_owner(surface, *node_id));
     let reply = if valid_target.is_some() {
@@ -25,8 +44,10 @@ pub(super) fn owner_routed_result(
     let mut result = UiInputDispatchResult::new(event, reply);
     result.diagnostics.routed = valid_target.is_some();
     result.diagnostics.route_target = valid_target;
-    result.diagnostics.handled_phase = valid_target.map(|_| phase.to_string());
-    if target.is_some() && valid_target.is_none() {
+    if diagnostics_mode.captures_full_trace() {
+        result.diagnostics.handled_phase = valid_target.map(|_| phase.to_string());
+    }
+    if diagnostics_mode.captures_full_trace() && target.is_some() && valid_target.is_none() {
         result
             .diagnostics
             .notes
@@ -52,6 +73,7 @@ pub(super) fn focused_input_kind_for_event(event: &UiInputEvent) -> Option<UiFoc
         UiInputEvent::Navigation(_) => Some(UiFocusedInputKind::Navigation),
         UiInputEvent::Pointer(_) => Some(UiFocusedInputKind::Pointer),
         UiInputEvent::Analog(_)
+        | UiInputEvent::Clipboard(_)
         | UiInputEvent::MouseMotion(_)
         | UiInputEvent::DragDrop(_)
         | UiInputEvent::Popup(_)

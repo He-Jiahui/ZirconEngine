@@ -5,6 +5,22 @@ related_code:
   - tools/tests/test_runtime_init_level_naming.py
   - docs/plans/zircon_runtime/runtime/15/2026-07-11-naming-boundary-current-debt-clear.md
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
+  - zircon_runtime/src/operation/service.rs
+  - zircon_runtime/src/operation/service/admission.rs
+  - zircon_runtime/src/operation/service/json_budget.rs
+  - zircon_runtime/src/operation/service/limits.rs
+  - zircon_runtime/src/operation/service/prepare_completion.rs
+  - zircon_runtime/src/operation/service/task_state.rs
+  - zircon_runtime/src/operation/tests/phase_indexes.rs
+  - zircon_runtime/src/operation/tests/source_guards.rs
+  - tools/tests/test_runtime_operation_service_structure.py
+  - zircon_runtime/src/dynamic_api/session/project.rs
+  - zircon_runtime/src/dynamic_api/session/project/tests.rs
+  - zircon_runtime/src/dynamic_api/session/project/runtime61_characterization.rs
+  - tools/tests/test_runtime_dynamic_project_test_structure.py
+  - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
+  - zircon_runtime/src/plugin/extension_registry/register/system_registration/tests.rs
+  - tools/tests/test_runtime_plugin_system_registration_test_structure.py
   - zircon_runtime/src/ui/text/geometry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
   - docs/plans/zircon_runtime/runtime/15/2026-07-11-stable-evidence-owner-hard-cutover.md
@@ -2139,11 +2155,11 @@ E6/S10/F12 的当前新增落地部分是渲染后端固定帧 texture owner 清
 
 ## Runtime 15 F12 render backend state owner cleanup
 
-状态：`runtime_15_render_backend_state_owner_cleanup_coremin_check_passed`。
+状态：`runtime_15_render_backend_state_owner_cleanup_coremin_check_passed_pfo_4d0_source_updated_dynamic_validation_pending`。
 
-E6/S10/F12 的当前新增落地部分是渲染后端 WGPU state owner 清理。`graphics/backend/render_backend/render_backend.rs` 里的 `instance`、`adapter` 与 `config` 字段原本作为 backend lifetime owner 保留，但除 capability projection 间接使用外没有显式读取，因此用 `#[allow(dead_code)]` 避开未读告警。本轮移除这些 suppression，并新增 `RenderBackend::RETAINED_STATE_OWNER_COUNT` 与 `retained_state_owner_count()`，显式读取 instance、adapter 与 config 3 个 backend state owner。
+E6/S10/F12 的原切片移除了渲染后端 state owner 的 dead-code suppression。PFO-4d0 重审后不再用人工 owner count 保留重复对象：`graphics/backend/render_backend/render_backend.rs` 删除无 consumer 的 raw `wgpu::Instance` clone，offscreen bootstrap把 instance直接 move进 one-shot `WgpuRenderDeviceContext`，由唯一 `WgpuRenderDevice` generation owner负责其生命周期。
 
-`RenderBackend::caps()` 在生产 capability projection 路径通过 debug assertion 消费该 owner 计数，说明这些字段负责保活 WGPU backend state 与 backend config，而不是未接线脚手架。守卫：`runtime_15_render_backend_state_owner_cleanup` 验证 `RenderBackend` 不再包含 `#[allow(dead_code)]`、owner 计数契约读取三项 state、`caps()` 消费保活契约，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、本文档与 render-product 文档的状态锚同步。该切片只关闭 RenderBackend state owner 子面；更宽 graphics resources 与全量 F12 sweep 仍 pending。
+`RenderBackend::caps()` 只委托 `WgpuRenderDevice` 在native context校验时生成的neutral caps，避免外层第二套mapper与neutral ABI能力分歧。守卫：`runtime_15_render_backend_state_owner_cleanup` 验证 `RenderBackend` 不再包含 `#[allow(dead_code)]`或raw instance字段，并锁定唯一owner、profile、caps与shared UI context。raw `Adapter/Device/Queue`仍有真实产品consumer，将按PFO-4d1至4d4迁移；Cargo与动态GPU验证仍pending。
 
 
 ## Runtime 15 F12 gpu texture resource owner cleanup
@@ -4383,7 +4399,7 @@ Hub 调用方同步只消费 raw-text policy：`zircon_hub/src/tauri_app/runtime
 
 状态：`runtime_15_screen_space_ui_text_font_id_report_owner_split_static_passed_cargo_deferred`。
 
-本切片只整理 screen-space UI text production owner，不改变 native/SDF text rendering behavior。`graphics/scene/scene_renderer/ui/text.rs` 保留 `ScreenSpaceUiTextSystem`、native glyphon prepare/render、SDF prepare/render、font asset resolution 和 `ScreenSpaceUiTextPrepareReport` 汇总；新增 `graphics/scene/scene_renderer/ui/text/font_id_report.rs` 承接 `ScreenSpaceUiTextFontIdReport`、resolved style projection、`shape_horizontal_line(...)` 调用和 `annotate_fallback_font_ids(...)` fallback glyph aggregation。
+本切片只整理 screen-space UI text production owner，不改变 native/SDF text rendering behavior。`graphics/scene/scene_renderer/ui/text.rs` 保留 `ScreenSpaceUiTextSystem`、native glyphon prepare/render、SDF prepare/render、font asset resolution 和 `ScreenSpaceUiTextPrepareReport` 汇总；新增 `graphics/scene/scene_renderer/ui/text/font_id_report.rs` 承接 `ScreenSpaceUiTextFontIdReport`、resolved style projection、`shape_horizontal_range(...)` 调用和 `annotate_fallback_font_ids(...)` fallback glyph aggregation。
 
 
 2026-07-03 visibility sync：`runtime_15_screen_space_ui_text_font_id_report_visibility_sync_static_passed_cargo_deferred` 将 `ScreenSpaceUiTextFontIdReport` 与 `text_batch_count`、`glyph_count`、`fallback_glyph_count` 从 `pub(in crate::graphics::scene::scene_renderer::ui)` 收窄为 `pub(super)`。该 DTO 现在只对 `text.rs` parent 和其 private tests 可见，不能被 UI render sibling modules 当作共享 render contract 使用。
@@ -5208,7 +5224,7 @@ Explicit child path anchors: `tests/runtime_absorption/performance_hotspots/owne
 
 ## 2026-07-08 Runtime 15 M3 UI Text Pipeline Test Owner Split
 
-Runtime 15 module-convention 状态镜像：`Runtime 15 M3 UI text pipeline test owner split` / `runtime_15_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred`。This pass deletes the old flat `zircon_runtime/src/ui/tests/text_pipeline` owner and replaces it with the folder-backed `zircon_runtime/src/ui/tests/text_pipeline/` test tree. The route `mod.rs` only mounts children; `fixtures.rs` owns shared metadata/layout fixtures; `font_registry.rs`, `layout_request.rs`, `measure_cache.rs`, `surface_cache.rs`, and `render_extract_prewarm.rs` own focused assertions.
+Runtime 15 module-convention 状态镜像：`Runtime 15 M3 UI text pipeline test owner split` / `runtime_15_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred`。This pass deletes the old flat `zircon_runtime/src/ui/tests/text_pipeline` owner and replaces it with the folder-backed `zircon_runtime/src/ui/tests/text_pipeline/` test tree. The route `mod.rs` only mounts children; `fixtures.rs` owns shared metadata/layout fixtures; `layout_request.rs`, `measure_cache.rs`, `surface_cache.rs`, and `render_extract_prewarm.rs` own focused assertions.
 
 Validation mirror: scoped rustfmt passed; focused `text_pipeline` cargo test passed 15/15; direct `runtime_15_no_oversized_test_files` passed 1/1; broad structure convention filter reports 1226/1303 passed with 77 remaining failures because remaining failures are status/root owner groups. Package/workspace Cargo remains deferred.
 
@@ -5295,3 +5311,21 @@ typed editor-operation contribution descriptor、capability、registration 与�
 8 处 `legacy-runtime-graphics-debt`，其中 2 处同时触发 graphics hard-cut wording，必须在
 渲染范围内硬切。权威状态与验证记录见
 `docs/plans/zircon_runtime/runtime/15/2026-07-16-runtime-editor-naming-owner-classification.md`。
+
+## 2026-08-27 Runtime Operation Service Responsibility Owner Split
+
+`operation/service.rs` 不再同时拥有容量策略、task-state、JSON byte-budget、prepare completion 协议声明和服务编排。容量默认值与 `RuntimeOperationLimits` 由 `operation/service/limits.rs` 持有；任务表、phase indexes、maintenance state、handle 分配与 index compact 由 `operation/service/task_state.rs` 持有；JSON 精确字节计数与 UTF-8 截断由 `operation/service/json_budget.rs` 持有；prepare completion channel DTO 由 `operation/service/prepare_completion.rs` 持有；raw-admission reservation 与释放不变量由 `operation/service/admission.rs` 持有。父 service 通过 crate-private re-export 保持 operation 内部调用路径稳定，不提供兼容公共 API。
+
+service/admission/completion/json-budget/limits/prepare-completion/task-state 行数为 716/248/332/39/28/29/59，静态结构回归 exact 1/1，并锁定父文件 800 行上限及五类声明不得回流。phase-index、maintenance 和 raw-admission source guards 已指向实际 owner。该拆分不改变 admission、queue、deadline、completion、JSON byte-budget、UTF-8 truncation、retained-byte 或 ABI 行为。完整结构聚合在 124 秒窗口内无结果，Cargo 未运行，因此当前状态仅为 `runtime_15_operation_service_responsibility_owner_split_static_passed_cargo_deferred`，不是 Runtime 15 整体完成回执。
+
+## 2026-08-27 Dynamic Runtime Project Test Owner Split
+
+`dynamic_api/session/project.rs` 的 14 个既有 unit tests 已原样迁入 folder-backed `dynamic_api/session/project/tests.rs`。父 production owner 从 917 行降到 562 行，测试 child 为 353 行；独立的 `project/runtime61_characterization.rs` 保持 120 行及原显式 route，不属于本切片的行为修改。父文件不再包含内联 `mod tests {`，只保留 production project prepare/load 职责与两个 test route。
+
+聚焦结构守卫 exact 1/1，HEAD 旧测试体与新 child 的 whitespace-normalized 内容等价、测试属性 14/14，定向 rustfmt、diff check 与空白扫描通过。该拆分不改变 project ABI path、prepared snapshot、scene/UI/navigation/script 加载或 manifest filter 行为；Cargo 未运行，状态为 `runtime_10_15_dynamic_project_test_owner_split_static_passed_cargo_deferred`，不是 Runtime10、Runtime15 或 Runtime61 acceptance。
+
+## 2026-08-27 Plugin System Registration Test Owner Split
+
+`plugin/extension_registry/register/system_registration.rs` 的 3 个 per-World private-state/concurrency tests 已原样迁入 folder-backed `system_registration/tests.rs`。父 production owner 从 825 行降到 676 行，测试 child 为 149 行；当前 `CallbackSceneSystem::retire` 生命周期补丁保留在 production owner，签名与 state retire 调用均为 1/1。
+
+聚焦结构守卫 exact 1/1，HEAD 旧测试体与新 child whitespace-normalized 等价、测试属性 3/3，定向 rustfmt、diff check 与空白扫描通过。该拆分不改变 system registration 或 execution behavior；PERF-MVP-532/533 的 generation-owned per-World factory/state、同代 compiled plan 与 reload/unload quiescence 仍开放。Cargo 未运行，状态为 `runtime_06_15_plugin_system_registration_test_owner_split_static_passed_cargo_deferred`，不是 Runtime06/15 或性能 acceptance。

@@ -11,7 +11,6 @@ pub(crate) const MAX_UI_LAYOUT_DISCRETE_VALUE: usize = 4_096;
 pub use constraints::solve_axis_constraints;
 pub(crate) use pass::{
     compute_incremental_layout_tree_with_text_measure_cache,
-    compute_layout_tree_with_text_measure_cache,
     compute_layout_tree_with_text_measure_cache_and_slot_index, UiLayoutSlotIndex,
 };
 pub use pass::{
@@ -24,4 +23,11 @@ pub use style_mapping::{
     ui_layout_style_from_container,
 };
 pub use taffy_bridge::{taffy_display_for_family, taffy_style_for_container};
-pub use virtualization::compute_virtual_list_window;
+pub use virtualization::{
+    compute_virtual_list_window, fixed_extent_slot_capacity, UiVirtualListSlotChange,
+    UiVirtualListSlotMap,
+};
+pub(crate) use virtualization::{
+    fixed_extent_virtual_list_content_extent, fixed_extent_virtual_list_item_offset,
+    fixed_extent_virtual_list_step_extent,
+};

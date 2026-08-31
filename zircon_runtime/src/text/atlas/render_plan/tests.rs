@@ -80,9 +80,11 @@ fn render_text_atlas_draw_plan_keeps_color_rgba_distinct_from_subpixel() {
         color_instance.render_contract.blend_mode,
         GlyphAtlasBlendMode::SourceRgba
     );
-    assert!(!color_instance
-        .render_contract
-        .requires_background_composite());
+    assert!(
+        !color_instance
+            .render_contract
+            .requires_background_composite()
+    );
 }
 
 #[test]
@@ -111,6 +113,24 @@ fn render_text_atlas_draw_plan_normalizes_subpixel_background_composite_input() 
 }
 
 #[test]
+fn render_text_atlas_draw_plan_normalizes_all_gpu_color_channels() {
+    let mut glyph = glyph(
+        GlyphAtlasFormat::AlphaMask,
+        0,
+        GlyphAtlasScreenRect::new(6.0, 10.0, 20.0, 12.0),
+    );
+    glyph.foreground_color = [f32::NAN, 1.25, -0.25, f32::INFINITY];
+    glyph.background_color = [f32::NEG_INFINITY, 0.5, 2.0, f32::NAN];
+
+    let instance =
+        glyph_atlas_draw_instance(glyph, GlyphAtlasScreenRect::new(0.0, 0.0, 64.0, 64.0))
+            .expect("finite glyph geometry should produce a draw instance");
+
+    assert_eq!(instance.foreground_color, [0.0, 1.0, 0.0, 0.0]);
+    assert_eq!(instance.background_color, [0.0, 0.5, 1.0, 0.0]);
+}
+
+#[test]
 fn render_text_atlas_draw_plan_rejects_empty_or_offscreen_instances() {
     let empty = glyph_atlas_draw_instance(
         glyph(
@@ -131,6 +151,84 @@ fn render_text_atlas_draw_plan_rejects_empty_or_offscreen_instances() {
 
     assert!(empty.is_none());
     assert!(offscreen.is_none());
+}
+
+#[test]
+fn render_text_atlas_draw_plan_rejects_overflowed_screen_extents() {
+    let overflowed_glyph = glyph(
+        GlyphAtlasFormat::AlphaMask,
+        0,
+        GlyphAtlasScreenRect::new(f32::MAX, 0.0, f32::MAX, 12.0),
+    );
+    assert!(
+        glyph_atlas_draw_instance(
+            overflowed_glyph,
+            GlyphAtlasScreenRect::new(0.0, 0.0, 64.0, 64.0),
+        )
+        .is_none()
+    );
+
+    let valid_glyph = glyph(
+        GlyphAtlasFormat::AlphaMask,
+        0,
+        GlyphAtlasScreenRect::new(5.0, 5.0, 12.0, 12.0),
+    );
+    assert!(
+        glyph_atlas_draw_instance(
+            valid_glyph,
+            GlyphAtlasScreenRect::new(f32::MAX, 0.0, f32::MAX, 64.0),
+        )
+        .is_none()
+    );
+}
+
+#[test]
+fn render_text_atlas_draw_plan_rejects_content_larger_than_slot() {
+    let mut glyph = glyph(
+        GlyphAtlasFormat::AlphaMask,
+        0,
+        GlyphAtlasScreenRect::new(5.0, 5.0, 12.0, 12.0),
+    );
+    glyph.atlas_rect.width = 8;
+    glyph.content_size.x = 12;
+
+    assert!(
+        glyph_atlas_draw_instance(glyph, GlyphAtlasScreenRect::new(0.0, 0.0, 64.0, 64.0)).is_none()
+    );
+}
+
+#[test]
+fn render_text_atlas_draw_plan_rejects_content_outside_page() {
+    let mut glyph = glyph(
+        GlyphAtlasFormat::AlphaMask,
+        0,
+        GlyphAtlasScreenRect::new(5.0, 5.0, 12.0, 12.0),
+    );
+    glyph.atlas_size = UVec2::new(32, 32);
+    glyph.atlas_rect.x = 24;
+    glyph.atlas_rect.y = 22;
+    glyph.content_size = UVec2::new(12, 12);
+
+    assert!(
+        glyph_atlas_draw_instance(glyph, GlyphAtlasScreenRect::new(0.0, 0.0, 64.0, 64.0)).is_none()
+    );
+}
+
+#[test]
+fn render_text_atlas_draw_plan_rejects_slot_outside_page() {
+    let mut glyph = glyph(
+        GlyphAtlasFormat::AlphaMask,
+        0,
+        GlyphAtlasScreenRect::new(5.0, 5.0, 12.0, 12.0),
+    );
+    glyph.atlas_size = UVec2::new(32, 32);
+    glyph.atlas_rect.x = 16;
+    glyph.atlas_rect.width = 24;
+    glyph.content_size = UVec2::new(12, 12);
+
+    assert!(
+        glyph_atlas_draw_instance(glyph, GlyphAtlasScreenRect::new(0.0, 0.0, 64.0, 64.0)).is_none()
+    );
 }
 
 fn glyph(

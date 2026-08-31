@@ -9,6 +9,7 @@ related_code:
   - zircon_runtime/src/scene/ecs/storage/component_storage/entry.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/location.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage/sparse/locator.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/component_results.rs
   - zircon_runtime/src/scene/ecs/storage_type.rs
@@ -57,6 +58,12 @@ related_code:
   - zircon_runtime/src/scene/ecs/query/query_state/cache.rs
   - zircon_runtime/src/scene/ecs/query/query_state/stats.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
+  - zircon_runtime/src/scene/world/property_access/entries.rs
+  - zircon_runtime/src/scene/world/property_access/entries/camera.rs
+  - zircon_runtime/src/scene/world/property_access/entries/mesh.rs
+  - zircon_runtime/src/scene/world/property_access/entries/lighting.rs
+  - zircon_runtime/src/scene/world/property_access/entries/animation.rs
+  - tools/tests/test_runtime_scene_property_entry_owner_structure.py
   - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
@@ -83,7 +90,7 @@ last_refined: 2026-08-01
 
 # 08 ECS 内核数据面对齐
 
-Runtime 08 current hard-cut sync (2026-08-10): `ecs_kernel_data_boundary` now owns `expected_source_file_count = 75`; the inventory removes `ArchetypeMove` and `TableComponentStorage`, adds the six-file archetype-table owner plus `typed_api/{component_row,projection_rebuild}.rs`, and keeps `expected_test_file_count = 10`. This supersedes earlier current-count paragraphs while preserving their dated historical evidence.
+Runtime 08 current hard-cut sync (2026-08-28): `ecs_kernel_data_boundary` now owns `expected_source_file_count = 77`; the inventory includes `component/registry/transferred.rs` and `component_storage/sparse/locator.rs` as explicit child owners, retains the six-file archetype-table owner plus `typed_api/{component_row,projection_rebuild}.rs`, and keeps `expected_test_file_count = 10`. This supersedes earlier current-count paragraphs while preserving their dated historical evidence.
 
 2026-08-01 Runtime 08 当前 child-owner 同步：`ecs_kernel_data_boundary` 报告 `expected_source_file_count = 69`、`expected_test_file_count = 10`、`archetype_anchors = 15/15`、`storage_anchors = 9/9`、`component_storage_private_reexport_anchors = 9/9`、`component_identity_anchors = 18/18`、`entity_lifecycle_anchors = 10/10`、`observer_anchors = 8/8`、`deferred_command_anchors = 11/11`、`event_message_anchors = 12/12`、`resource_identity_anchors = 12/12`、`change_tick_anchors = 6/6`、`runtime_08_guard_anchors = 21/21`、`behavior_test_anchor_count = 16`、`missing_behavior_test_anchors = []`、`doc_anchors = 13/13`、`pending_cargo_gate_anchors = 6/6`、`mirror_docs_guard_present = true` 与 `risks = []`。archetype owner 已以已知 row 的 `remove_entity_at(...)` 取代退役的线性 `entity_row(...)` 扫描锚点；两条已删除的 plugin `sequence/{apply,target}.rs` 路径也已从 frontmatter 移除。该静态口径不关闭 pending `entity/observer/command/messages/change_tick/ecs` 受管 Cargo gates。
 
@@ -257,3 +264,86 @@ Runtime 08 current hard-cut sync (2026-08-10): `ecs_kernel_data_boundary` now ow
 - 2026-07-23 versioned serialization消费补充：统一壳 current text/binary仍经JSON Value与多次全树遍历，DynamicScene 5k/100k实体save/load会放大CPU/RSS。Runtime08按PERF-MVP-570/571迁移到Editor11提供的header-first current direct typed/flat-node路径，只有旧schema才物化migration Value；scene generation artifact只持一个typed或sealed wire owner，不为ECS建立第二serializer/cache。现有migration、future/error、canonical bytes和binary v1 golden不变。
 - open / 待修复（2026-07-27 dynamic component property generation）：reflection/direct dynamic property write 当前绕过唯一 generation/inspection 发布，需由 Runtime08 收敛 mutation boundary，并回传 Navigation typed projection gate；见 [failure](08/failure-2026-07-27-dynamic-component-property-world-generation.md)。
 - 当前 pending Cargo 收口门已在 M1-M3 测试阶段显式覆盖 `entity/observer/command/messages/change_tick/ecs` 六个受管过滤词；静态 `6/6` 只证明命令锚存在，不代表这些 open failure 或性能交接已验收。
+
+## 2026-08-28 Scene Property Entry Component Owner Split
+
+状态：`runtime_08_15_scene_property_entry_component_owner_split_static_passed_cargo_profile_deferred`。
+
+`scene/world/property_access/entries.rs` 从 567 行收束为 210 行，只保留基础实体属性、固定组件
+域调用顺序、dynamic metadata 投影与总容量编排。camera、mesh、lighting、animation 的枚举和
+容量预算分别迁入 49/122/153/175 行 child；既有 513 行 physics owner 保持不变。所有 child
+仍是同一 `World` 的 `pub(super)` inherent implementation，没有第二 reflection registry、Editor
+cache、property DTO 或写入路径。
+
+结构 RED 先以旧根 567 行超过 280 行失败；迁移后 source/status guard 2/2 通过，四个投影块、
+四个容量块及两个专属 helper 的 whitespace-normalized SHA-256 10/10 与 `HEAD` 基线一致。
+边界参考 Unreal `FProperty`/`TFieldIterator` 与 component-owned `UPROPERTY`，并以 Fyrox scene
+component domains、Bevy `TypeRegistry` 交叉检查。property 顺序、path、value、animatable 标记、
+容量算法、targeted read 和 write transaction 均未改变；Cargo、Editor Inspector 产品链与
+CPU/allocation/RSS/power profile 延后，不声明 Runtime08/15 acceptance 或性能收益。
+
+## 2026-08-28 Component Registry Transfer Transaction Owner Split
+
+状态：`runtime_08_15_component_registry_transfer_owner_split_static_passed_cargo_deferred`。
+
+`zircon_runtime/src/scene/ecs/component/registry.rs` 从 559 行收束为 154 行，只保留 component
+identity、descriptor/layout storage 与普通 Rust/dynamic registration。transferred descriptor 的
+preflight/import log、冲突匹配和一次 publish 迁入 259 行
+`zircon_runtime/src/scene/ecs/component/registry/transferred.rs`；六个原行为测试迁入 174 行
+`zircon_runtime/src/scene/ecs/component/registry/tests.rs`。父级 re-export 保留现有内部调用路径，
+没有新增 registry、ID authority、兼容 facade 或发布阶段。
+
+结构守卫与 Runtime08 inventory 已覆盖该阶段的新生产 owner，当时 `expected_source_file_count = 76`、
+`expected_test_file_count = 10`。两个事务类型、六个事务入口/辅助方法、匹配谓词及六个测试
+相对 `HEAD` 的规范化 SHA-256 为 16/16 等价。Unreal `CoreUObject` 的稳定类型/布局身份与
+package reload 阶段事务分层作为主工程参考，Bevy `Components` 与 queued registrator/apply
+分层作为 ECS 交叉检查。预检的 map probe/append 与 publication 的 pending 顺序、reserve、
+冲突语义和复杂度均未改变；Cargo 与 product validation 延后，不声明性能收益或 Runtime08
+acceptance。
+
+## 2026-08-28 Archetype Topology Equality Receipt
+
+状态：`runtime_08_15_archetype_topology_equality_receipt_static_passed_cargo_deferred`。
+
+Runtime60 的 `RECS-P1-10` 源码缺陷已收敛：`ArchetypeIndex::PartialEq` 不再恒定返回 `true`，
+而是委托给零分配 borrowed `ArchetypeTopologySnapshot`。receipt 同时核对 signature index、
+component inverted index、record 顺序及每个 record 的 archetype ID、signature、entity rows；
+性能计数器和 `membership_generation` 历史不属于当前结构身份，避免 diagnostics/read history
+改变 `World` 相等语义。
+
+`archetype/index/tests.rs` 已写入三项回归，分别覆盖签名差异、实体行差异以及 diagnostics/
+membership history 排除规则；`tools/tests/test_runtime_archetype_topology_equality_contract.py`
+固定实现与五份计划镜像。Unreal Mass 的 data-identity handle 与 versioned handle 分层为主参考，
+Bevy 的 world-local `ArchetypeId`/`ArchetypeGeneration`/`Archetypes` 分离为 Rust 交叉检查。显式
+相等比较从错误的 O(1) 恒真改为 O(signature/component index + archetype records + entity rows)，
+不进入 query/frame 热路径；Cargo/product/profile 尚未执行，不声明 Runtime08/15 acceptance、
+性能收益、milestone commit 或企微同步。
+
+基础设施同步将 `tools/tests/test_runtime_ecs_kernel_data_audit.py` 的陈旧 source count 从 75
+更新为当时 inventory 的 76；本次 locator child-owner 同步后当前计数为 77。该 aggregate audit 因共享脏 owner 仍报告四项独立风险：dual
+storage getter、component-storage sibling import、generational entity anchors、observer bucket
+anchor；相关 production 与 audit owner 正由其它改动占用，本切片未覆盖或宣称关闭。上述状态
+中的 `static_passed` 仅指 topology focused guard 2/2 与 registry/inventory focused guard 2/2。
+
+## 2026-08-28 Sparse Component Locator Pages
+
+状态：`runtime_08_60_sparse_component_locator_algorithm_source_passed_diagnostics_cargo_product_profile_deferred`。
+
+Runtime60 `RECS-P1-11` 的分页算法项已收敛，但整项保持 partial。`SparseComponentStorage` 不再把
+locator 连续 `Vec<Option<_>>` 扩到最高 entity index；独立 locator owner 使用 256-slot packed
+page、零起始 flat prefix 与一个 page-aligned 高位热点 window；两个 flat span 均以每个 live
+locator 最多 1,024 slots 的全局密度界提升。其它不相邻页进入私有 `u32` identity-hash 目录，
+`BTreeSet` 只承担有序页 ownership/range absorption。空页立即退休；低密度前缀先重基址、window
+先裁剪空边缘，仍低于 1/2,048 才降级，locator 全空释放所有容量，swap-remove 与 stale-generation
+语义不变。
+
+独立 Rust 1.94.1 release 模型在 4,000,000 高水位下测得 `96,000,024 B -> 2,048 B`
+(-99.9979%)，262,144 连续 rows 为 `6,291,456 B -> 2,097,152 B` (-66.667%)。最终三轮
+31-pair dense P50 为改善 10.3439% 到回退 4.2631%，所有 partial 最差回退 28.0677%；高位聚簇
+mixed 改善 6.4199%-15.0733%，hit-only 改善 7.2077%-13.7094%，双 span 回退
+4.3081%-16.1994%，均通过 30% 上限。原 sparse
+HashMap 高位聚簇路径回退 203.3120%-446.0091%，radix/open-row 候选也未过线，故改为有界
+offset window；真正第三离散簇仍是待产品 profile 证明为冷路径的 memory-first overflow。
+focused contract 3/3、真实 owner Rust harness 16/16（含跨表示删除后统一 compaction）、非测试编译壳与 checksum 通过。生产 locator-byte diagnostics 尚未
+聚合到共享 `ComponentStorage` owner；Cargo、百万 counters/RSS slope、真实 scene P95、WPR/
+CPU/power 与 G06 仍 pending，因此不关闭 `RECS-P1-11`、Runtime08 failure 或 managed milestone。

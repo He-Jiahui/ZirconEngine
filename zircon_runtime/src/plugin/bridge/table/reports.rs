@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, Write};
 
 use crate::plugin::extension_registry::PluginModuleId;
 
@@ -140,23 +140,36 @@ pub struct BridgeOwnerTransitionReport {
 
 impl BridgeOwnerTransitionReport {
     pub fn diagnostic(&self) -> String {
-        format!(
-            "bridge.owner_transition: owner module slot {} {:?} affected {} interface(s): [{}]",
+        let mut diagnostic =
+            String::with_capacity(self.snapshots.len().saturating_mul(64).saturating_add(96));
+        write!(
+            diagnostic,
+            "bridge.owner_transition: owner module slot {} {:?} affected {} interface(s): [",
             self.owner.raw(),
             self.mode,
             self.affected_slots.len(),
-            self.snapshots
-                .iter()
-                .map(|snapshot| format!(
-                    "`{}`@slot{} generation={} provider_installed={} status={:?}",
-                    snapshot.interface_id,
-                    snapshot.slot.raw(),
-                    snapshot.generation,
-                    snapshot.provider_installed,
-                    snapshot.status
-                ))
-                .collect::<Vec<_>>()
-                .join(", ")
         )
+        .expect("writing a String cannot fail");
+        for (index, snapshot) in self.snapshots.iter().enumerate() {
+            if index != 0 {
+                diagnostic.push_str(", ");
+            }
+            write!(
+                diagnostic,
+                "`{}`@slot{} generation={} provider_installed={} status={:?}",
+                snapshot.interface_id,
+                snapshot.slot.raw(),
+                snapshot.generation,
+                snapshot.provider_installed,
+                snapshot.status,
+            )
+            .expect("writing a String cannot fail");
+        }
+        diagnostic.push(']');
+        diagnostic
     }
 }
+
+#[cfg(test)]
+#[path = "reports/optimization_tests.rs"]
+mod optimization_tests;

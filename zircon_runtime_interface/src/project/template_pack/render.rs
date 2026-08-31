@@ -1,4 +1,4 @@
-use crate::project::{ProjectManifestSummary, RelPath};
+use crate::project::{validate_project_name, ProjectGuid, ProjectManifestSummary, RelPath};
 
 use super::embedded::{EmbeddedProjectTemplateEntry, RENDERABLE_EMPTY_ENTRIES};
 use super::{
@@ -13,10 +13,8 @@ pub fn render_project_template(
     id: ProjectTemplateId,
     project_name: &str,
 ) -> Result<RenderedProjectTemplate, ProjectTemplatePackError> {
-    let project_name = project_name.trim();
-    if project_name.is_empty() {
-        return Err(ProjectTemplatePackError::EmptyProjectName);
-    }
+    validate_project_name(project_name)
+        .map_err(|source| ProjectTemplatePackError::InvalidProjectName { source })?;
     let source = match id {
         ProjectTemplateId::RenderableEmpty => RENDERABLE_EMPTY_ENTRIES,
     };
@@ -28,7 +26,7 @@ pub fn render_project_template(
         .iter_mut()
         .find(|entry| entry.path.as_str() == PROJECT_MANIFEST_PATH)
         .ok_or(ProjectTemplatePackError::MissingManifest)?;
-    rewrite_manifest_name(&mut manifest.bytes, project_name)?;
+    rewrite_manifest_identity(&mut manifest.bytes, project_name, ProjectGuid::new())?;
     let summary = ProjectManifestSummary::parse_toml_bytes(&manifest.bytes)?.value;
     Ok(RenderedProjectTemplate {
         id,
@@ -46,9 +44,10 @@ fn render_entry(
     })
 }
 
-fn rewrite_manifest_name(
+fn rewrite_manifest_identity(
     bytes: &mut Vec<u8>,
     project_name: &str,
+    project_guid: ProjectGuid,
 ) -> Result<(), ProjectTemplatePackError> {
     let source = std::str::from_utf8(bytes)
         .map_err(|source| ProjectTemplatePackError::ManifestUtf8 { source })?;
@@ -57,6 +56,10 @@ fn rewrite_manifest_name(
     manifest.insert(
         "name".to_string(),
         toml::Value::String(project_name.to_string()),
+    );
+    manifest.insert(
+        "project_guid".to_string(),
+        toml::Value::String(project_guid.to_string()),
     );
     *bytes = toml::to_string_pretty(&manifest)
         .map_err(|source| ProjectTemplatePackError::ManifestEncode { source })?

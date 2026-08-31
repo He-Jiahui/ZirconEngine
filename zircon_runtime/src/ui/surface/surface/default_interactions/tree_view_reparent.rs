@@ -32,14 +32,12 @@ pub(super) fn reparent_tree_node_values(
     if source_id == parent_id || tree_node_contains_descendant(&values, source_id, parent_id) {
         return None;
     }
-    let before_ids = flattened_tree_node_ids(&values);
-    let from = before_ids.iter().position(|id| id == source_id)?;
-    let source = remove_tree_node(&mut values, source_id)?;
-    if !insert_tree_node_child(&mut values, parent_id, source) {
+    let from = flattened_tree_node_position(&values, source_id)?;
+    let mut source = Some(remove_tree_node(&mut values, source_id)?);
+    if !insert_tree_node_child(&mut values, parent_id, &mut source) {
         return None;
     }
-    let after_ids = flattened_tree_node_ids(&values);
-    let to = after_ids.iter().position(|id| id == source_id)?;
+    let to = flattened_tree_node_position(&values, source_id)?;
     Some(UiTreeReparentedNodes {
         values,
         from,
@@ -51,7 +49,7 @@ pub(super) fn reparent_tree_node_values(
 fn remove_tree_node(values: &mut Vec<UiValue>, source_id: &str) -> Option<UiValue> {
     let mut index = 0;
     while index < values.len() {
-        if tree_node_id(&values[index]).as_deref() == Some(source_id) {
+        if tree_node_id(&values[index]) == Some(source_id) {
             return Some(values.remove(index));
         }
         if let UiValue::Map(node) = &mut values[index] {
@@ -68,10 +66,14 @@ fn remove_tree_node(values: &mut Vec<UiValue>, source_id: &str) -> Option<UiValu
     None
 }
 
-fn insert_tree_node_child(values: &mut [UiValue], parent_id: &str, source: UiValue) -> bool {
+fn insert_tree_node_child(
+    values: &mut [UiValue],
+    parent_id: &str,
+    source: &mut Option<UiValue>,
+) -> bool {
     for value in values {
         if let UiValue::Map(node) = value {
-            if tree_node_map_id(node).as_deref() == Some(parent_id) {
+            if tree_node_map_id(node) == Some(parent_id) {
                 let child_property = TREE_CHILD_PROPERTIES
                     .iter()
                     .copied()
@@ -81,6 +83,9 @@ fn insert_tree_node_child(values: &mut [UiValue], parent_id: &str, source: UiVal
                     .entry(child_property.to_string())
                     .or_insert_with(|| UiValue::Array(Vec::new()));
                 if let UiValue::Array(children) = children {
+                    let Some(source) = source.take() else {
+                        return false;
+                    };
                     children.push(source);
                     return true;
                 }
@@ -88,7 +93,7 @@ fn insert_tree_node_child(values: &mut [UiValue], parent_id: &str, source: UiVal
             }
             for property in TREE_CHILD_PROPERTIES {
                 if let Some(UiValue::Array(children)) = node.get_mut(property) {
-                    if insert_tree_node_child(children, parent_id, source.clone()) {
+                    if insert_tree_node_child(children, parent_id, source) {
                         return true;
                     }
                 }
@@ -100,10 +105,8 @@ fn insert_tree_node_child(values: &mut [UiValue], parent_id: &str, source: UiVal
 
 fn tree_node_contains_descendant(values: &[UiValue], source_id: &str, descendant_id: &str) -> bool {
     for value in values {
-        if tree_node_id(value).as_deref() == Some(source_id) {
-            return flattened_tree_node_ids_from_value(value)
-                .iter()
-                .any(|id| id == descendant_id);
+        if tree_node_id(value) == Some(source_id) {
+            return tree_node_value_contains_id(value, descendant_id);
         }
         if let UiValue::Map(node) = value {
             for property in TREE_CHILD_PROPERTIES {
@@ -118,53 +121,82 @@ fn tree_node_contains_descendant(values: &[UiValue], source_id: &str, descendant
     false
 }
 
-fn flattened_tree_node_ids(values: &[UiValue]) -> Vec<String> {
-    let mut ids = Vec::new();
-    for value in values {
-        collect_tree_node_ids(value, &mut ids);
+fn tree_node_value_contains_id(value: &UiValue, target_id: &str) -> bool {
+    if tree_node_id(value) == Some(target_id) {
+        return true;
     }
-    ids
+    if let UiValue::Map(node) = value {
+        for property in TREE_CHILD_PROPERTIES {
+            if let Some(UiValue::Array(children)) = node.get(property) {
+                if children
+                    .iter()
+                    .any(|child| tree_node_value_contains_id(child, target_id))
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
 
-fn flattened_tree_node_ids_from_value(value: &UiValue) -> Vec<String> {
-    let mut ids = Vec::new();
-    collect_tree_node_ids(value, &mut ids);
-    ids
+fn flattened_tree_node_position(values: &[UiValue], target_id: &str) -> Option<usize> {
+    let mut visited = 0;
+    for value in values {
+        if let Some(position) = tree_node_value_position(value, target_id, &mut visited) {
+            return Some(position);
+        }
+    }
+    None
 }
 
-fn collect_tree_node_ids(value: &UiValue, out: &mut Vec<String>) {
+fn tree_node_value_position(
+    value: &UiValue,
+    target_id: &str,
+    visited: &mut usize,
+) -> Option<usize> {
     if let Some(id) = tree_node_id(value) {
-        out.push(id);
+        if id == target_id {
+            return Some(*visited);
+        }
+        *visited = visited.saturating_add(1);
     }
     if let UiValue::Map(node) = value {
         for property in TREE_CHILD_PROPERTIES {
             if let Some(UiValue::Array(children)) = node.get(property) {
                 for child in children {
-                    collect_tree_node_ids(child, out);
+                    if let Some(position) = tree_node_value_position(child, target_id, visited) {
+                        return Some(position);
+                    }
                 }
             }
         }
     }
+    None
 }
 
-fn tree_node_id(value: &UiValue) -> Option<String> {
+fn tree_node_id(value: &UiValue) -> Option<&str> {
     match value {
-        UiValue::String(value) | UiValue::Enum(value) if !value.is_empty() => Some(value.clone()),
+        UiValue::String(value) | UiValue::Enum(value) if !value.is_empty() => Some(value),
         UiValue::Map(node) => tree_node_map_id(node),
         _ => None,
     }
 }
 
-fn tree_node_map_id(values: &std::collections::BTreeMap<String, UiValue>) -> Option<String> {
+fn tree_node_map_id(values: &std::collections::BTreeMap<String, UiValue>) -> Option<&str> {
     TREE_NODE_IDENTITY_PROPERTIES
         .iter()
         .filter_map(|property| values.get(*property).and_then(string_value))
         .find(|value| !value.is_empty())
 }
 
-fn string_value(value: &UiValue) -> Option<String> {
+fn string_value(value: &UiValue) -> Option<&str> {
     match value {
-        UiValue::String(value) | UiValue::Enum(value) if !value.is_empty() => Some(value.clone()),
+        UiValue::String(value) | UiValue::Enum(value) if !value.is_empty() => Some(value),
         _ => None,
     }
 }
+
+#[cfg(test)]
+#[path = "tree_view_reparent/borrowed_traversal_tests.rs"]
+mod borrowed_traversal_tests;

@@ -50,9 +50,9 @@ pub use plugin::{
     VmPluginGarbageCollectionMode, VmPluginGarbageCollectionPolicy, VmPluginHotReloadPolicy,
     VmPluginInstance, VmPluginManagementPolicy, VmPluginManagementPolicyError,
     VmPluginManagementPolicyResult, VmPluginManifest, VmPluginMemoryPolicy, VmPluginPackage,
-    VmPluginPackageSource, VmStateBlob, VmStateFieldRename, VmStateMigrationError, VmStateObject,
+    VmPluginPackageSource, VmStateBlob, VmStateFieldValue, VmStateMigrationError, VmStateObject,
     VmStateSchema, VmStateTypeIdentity, VmStateTypeSchema, ZrVmExecutionMode,
-    ZrVmPluginProjectSource, VM_STATE_SCHEMA_VERSION_V2,
+    ZrVmPluginProjectSource, VM_STATE_SCHEMA_VERSION_V3,
 };
 pub use reflection::{
     VmReflectionCatalog, VmReflectionError, VmReflectionRegistrySnapshot, VmReflectionSchema,

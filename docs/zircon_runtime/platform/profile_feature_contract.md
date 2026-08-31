@@ -101,20 +101,20 @@ The dry-run form is safe during active shared compile queues:
 - the single-profile selector is rejected unless `-RunProfileFeatureContract` is also set, so a focused profile request cannot be silently ignored;
 - the CLI dry-run entry point also rejects the single-profile selector when the profile feature stage switch is omitted;
 - the CLI dry-run entry point emits only the selected single-profile command when `-ProfileFeatureContractLabel` is used;
-- the CLI dry-run entry point can render selected profile-feature commands without requiring Cargo discovery or target-directory cleanup checks;
-- the CLI dry-run entry point defaults to `target/manual-check` without claiming a shared target slot when `-TargetDir` is omitted;
+- the CLI dry-run entry point can render selected profile-feature commands without requiring Cargo discovery, storage admission checks, or coordinator writes;
+- the CLI dry-run entry point locally projects the same compatibility-keyed `cargo-targets` pool without claiming a shared target slot when `-TargetDir` is omitted;
 - the CLI dry-run entry point does not inherit `CARGO_TARGET_DIR` when `-TargetDir` is omitted;
 - the CLI dry-run entry point still honors an explicit `-TargetDir` as a manual display override;
 - the CLI dry-run entry point rejects unknown profile labels with the complete expected-label list;
 - the validator documentation index states that selector-stage switch requirements are rejected rather than silently ignored;
-- the validator documentation index states that dry-run command rendering does not require Cargo discovery, target-directory cleanup checks, or shared target slot claims;
+- the validator documentation index states that dry-run command rendering does not require Cargo discovery, storage admission checks, coordinator writes, or shared target slot claims;
 - the profile contract workflow keeps the same trigger, fail-fast, checkout, Rust toolchain, and cache scaffolding as the main CI shape;
 - the profile contract workflow remains centered on one matrix-driven job, with every run using `${{ matrix.label }}`, `${{ matrix.package }}`, and `${{ matrix.features }}` rather than a broad workspace build or test command;
 - the profile contract workflow installs the same Linux runtime dependency package set as the main CI workflow;
 - the app/runtime default profile topology keeps client/editor-host on `default-platform` while server stays on `platform-headless` and excludes window, desktop backend, input, and gilrs feature families;
 - the `platform-headless` feature definitions stay narrow: app forwards only to runtime headless support, and runtime headless itself enables no additional feature family;
 - the built-in server export profile keeps `RuntimeTargetMode::ServerRuntime`, `ExportTargetPlatform::Headless`, and `RuntimeProfileId::Server`;
-- the generated headless server package keeps the `target-server` Cargo feature, a binary `src/main.rs` headless entry point, and `EntryProfile::Headless` rather than mobile/browser shell files or a generated runtime library export;
+- the generated headless server package keeps the `target-server` Cargo feature and a binary `src/main.rs` headless entry point rather than mobile/browser shell files or a generated runtime library export; `zircon_app` derives `ProductRoleRequest::Server` from the generated `ExportProfile` instead of accepting a second generated `EntryProfile` authority;
 - the platform capability matrix source files remain free of `panic!`, `todo!`, and `unimplemented!` placeholder control flow;
 - the server/headless capability matrix paths keep explicit window, synthetic input, physical gamepad unavailable, and headless event-loop declarations;
 - the `zircon_app` build script declaration remains backed by a local `build.rs`, so clean CI profile checks cannot reference a missing script.

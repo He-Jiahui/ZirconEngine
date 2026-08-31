@@ -5,6 +5,8 @@ param(
     [string]$HdriPath,
     [Parameter(Mandatory = $true)]
     [string]$BuildProvenance,
+    [Parameter(Mandatory = $true)]
+    [string]$CaptureToolchainManifest,
     [ValidateSet("cold", "warm")]
     [string[]]$CacheModes = @("cold", "warm"),
     [ValidateRange(1, 20)]
@@ -13,6 +15,8 @@ param(
     [Nullable[int]]$FaceSize,
     [AllowNull()]
     [Nullable[int]]$PmremFaceSize,
+    [ValidateSet("metal-mirror", "dielectric-ior")]
+    [string]$MaterialFixture = "metal-mirror",
     [ValidateRange(1, 900)]
     [int]$ViewerTimeoutSeconds = 180,
     [ValidateRange(1, 600)]
@@ -20,18 +24,23 @@ param(
     [ValidateRange(1, 60)]
     [int]$EnergySampleIntervalSeconds = 1,
     [string]$EvidenceRoot = "",
+    [string]$DisplayVisualOracle = "",
     [string]$PythonExecutable = "python",
     [switch]$SkipWpr,
     [switch]$SkipEnergyMeter,
-    [switch]$CaptureRenderDoc,
-    [string]$RenderDocDll = "D:\Tools\renderdoc\renderdoc.dll"
+    [switch]$CaptureRenderDoc
 )
 
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 . (Join-Path $PSScriptRoot "profile-capture-manifest.ps1")
+. (Join-Path $PSScriptRoot "shader-pbr-profile-runtime-evidence.ps1")
 . (Join-Path $PSScriptRoot "shader-pbr-profile-contract.ps1")
+. (Join-Path $PSScriptRoot "shader-pbr-profile-publication.ps1")
+. (Join-Path $PSScriptRoot "shader-pbr-profile-toolchain.ps1")
+. (Join-Path $PSScriptRoot "shader-pbr-profile-evidence-identity.ps1")
+. (Join-Path $PSScriptRoot "performance-machine-manifest.ps1")
 
 function Assert-ZirconShaderPbrOptionalFaceSize {
     param(
@@ -64,6 +73,26 @@ function Test-ZirconShaderPbrPathWithin {
         $normalizedCandidate.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)
 }
 
+function Get-ZirconShaderPbrRelativePath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Root,
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $normalizedRoot = [System.IO.Path]::GetFullPath($Root).TrimEnd("\\")
+    $normalizedPath = [System.IO.Path]::GetFullPath($Path)
+    if ($normalizedPath.Equals($normalizedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return "."
+    }
+    $rootPrefix = $normalizedRoot + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $normalizedPath.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Shader PBR profile path escapes its root: $normalizedPath"
+    }
+    return $normalizedPath.Substring($rootPrefix.Length)
+}
+
 function Resolve-ZirconShaderPbrProfileEvidenceRoot {
     param(
         [Parameter(Mandatory = $true)]
@@ -86,7 +115,7 @@ function Resolve-ZirconShaderPbrProfileEvidenceRoot {
     # GetFullPath does not resolve Windows junctions. Reject every existing
     # component before a profile writer can traverse out of the E: evidence tree.
     $componentPath = $evidenceRoot
-    $relativePath = [System.IO.Path]::GetRelativePath($evidenceRoot, $candidate)
+    $relativePath = Get-ZirconShaderPbrRelativePath -Root $evidenceRoot -Path $candidate
     $pathComponents = if ($relativePath -eq ".") { @() } else {
         @($relativePath.Split(@([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar), [System.StringSplitOptions]::RemoveEmptyEntries))
     }
@@ -227,16 +256,33 @@ function Export-ZirconShaderPbrProfileManifest {
         [Nullable[int]]$FaceSize,
         [AllowNull()]
         [Nullable[int]]$PmremFaceSize,
+        [ValidateSet("metal-mirror", "dielectric-ior")]
+        [string]$MaterialFixture = "metal-mirror",
+        [AllowNull()]
+        [object]$DisplayVisualOracleFingerprint = $null,
         [Parameter(Mandatory = $true)]
-        [string[]]$CacheModes
+        [string[]]$CacheModes,
+        [Parameter(Mandatory = $true)]$CaptureToolchain,
+        [Parameter(Mandatory = $true)]$MachineManifest
     )
 
     $gitMetadata = Get-ZirconProfileGitMetadata -RepoRoot $RepoRoot
-    $sourceFiles = Get-ZirconShaderPbrProfileCriticalSourcePaths | ForEach-Object {
+    $sourceFiles = Get-ZirconShaderPbrProfileCriticalSourcePaths -RepoRoot $RepoRoot | ForEach-Object {
         $relativePath = $_
         $fingerprint = Get-ZirconShaderPbrProfileFileFingerprint `
             -Path (Join-Path $RepoRoot $relativePath) `
             -Description "critical Shader06 source file '$relativePath'"
+        [pscustomobject]@{
+            relative_path = $relativePath
+            sha256 = $fingerprint.sha256
+            byte_length = $fingerprint.byte_length
+        }
+    }
+    $profileToolFiles = Get-ZirconShaderPbrProfileToolPaths | ForEach-Object {
+        $relativePath = $_
+        $fingerprint = Get-ZirconShaderPbrProfileFileFingerprint `
+            -Path (Join-Path $RepoRoot $relativePath) `
+            -Description "Shader PBR profile tool '$relativePath'"
         [pscustomobject]@{
             relative_path = $relativePath
             sha256 = $fingerprint.sha256
@@ -262,6 +308,7 @@ function Export-ZirconShaderPbrProfileManifest {
             root = $RepoRoot
             git = $gitMetadata
             critical_source_files = @($sourceFiles)
+            profile_tool_files = @($profileToolFiles)
         }
         binary = $viewerFingerprint
         build_provenance = $buildProvenanceFingerprint
@@ -269,13 +316,45 @@ function Export-ZirconShaderPbrProfileManifest {
             hdri = $hdriFingerprint
             requested_source_face_size = $FaceSize
             requested_pmrem_face_size = $PmremFaceSize
+            material_fixture = $MaterialFixture
         }
         capture = [pscustomobject]@{
             evidence_root = $EvidenceRoot
+            display_visual_oracle = $DisplayVisualOracleFingerprint
             repetitions_per_mode = $Repetitions
             cache_modes = @($CacheModes)
             cold_semantics = "new process and new caller-owned IBL cache directory per measured run; driver caches are not cleared"
             warm_semantics = "one unmeasured cache seed, then new processes reusing its caller-owned IBL cache directory"
+            cache_layers = [ordered]@{
+                engine_cache = [ordered]@{
+                    control_state = "controlled"
+                    cold = "new process and new caller-owned IBL cache directory per measured run"
+                    warm = "new process reusing the caller-owned IBL cache seeded before measurement"
+                }
+                shader_cache = [ordered]@{
+                    control_state = "uncontrolled"
+                    cold = "not cleared or measured by this capture"
+                    warm = "not cleared or measured by this capture"
+                }
+                os_file_cache = [ordered]@{
+                    control_state = "uncontrolled"
+                    cold = "not cleared or measured by this capture"
+                    warm = "not cleared or measured by this capture"
+                }
+                driver_cache = [ordered]@{
+                    control_state = "uncontrolled"
+                    cold = "not cleared or measured by this capture"
+                    warm = "not cleared or measured by this capture"
+                }
+            }
+            strict_cold_eligible = $false
+            comparison_scope = "process_and_caller_owned_engine_cache"
+            machine_manifest = $MachineManifest
+            toolchain = [pscustomobject]@{
+                manifest = $CaptureToolchain.manifest
+                graphics = $CaptureToolchain.graphics
+                renderdoc = $CaptureToolchain.renderdoc
+            }
             wpr_cpu_sampling = -not $SkipWpr
             energy_meter = "sampled Energy Meter Power in watts plus raw Energy/Time counters only when named host meters are available"
         }
@@ -528,11 +607,17 @@ function Invoke-ZirconShaderPbrEvidenceValidator {
 function Invoke-ZirconShaderPbrProfileRun {
     param(
         [Parameter(Mandatory = $true)][string]$RunDirectory,
+        [Parameter(Mandatory = $true)][string]$ProfileId,
         [Parameter(Mandatory = $true)][ValidateSet("cold", "warm")][string]$CacheMode,
         [Parameter(Mandatory = $true)][ValidateSet("cache_seed", "measured", "renderdoc")][string]$Role,
         [Parameter(Mandatory = $true)][int]$Ordinal,
         [Parameter(Mandatory = $true)][string]$CacheDirectory,
         [Parameter(Mandatory = $true)][ValidateSet("Written", "Reused")][string]$ExpectedStagingStatus,
+        [Parameter(Mandatory = $true)]$CaptureToolchain,
+        [Parameter(Mandatory = $true)][string]$BuildProvenance,
+        [ValidateSet("metal-mirror", "dielectric-ior")]
+        [string]$MaterialFixture = "metal-mirror",
+        [AllowEmptyString()][string]$DisplayVisualOracle = "",
         [switch]$Measure,
         [switch]$CaptureRenderDoc
     )
@@ -543,10 +628,22 @@ function Invoke-ZirconShaderPbrProfileRun {
     $workDirectory = Join-Path $RunDirectory "work"
     $stdoutPath = Join-Path $RunDirectory "viewer.stdout.log"
     $stderrPath = Join-Path $RunDirectory "viewer.stderr.log"
+    $runtimeProfileRoot = Join-Path $RunDirectory "runtime-profile"
+    $runtimeProfileSession = "$ProfileId-$CacheMode-$Role-$Ordinal"
     New-Item -ItemType Directory -Force -Path $CacheDirectory | Out-Null
+    $evidenceIdentity = New-ZirconShaderPbrReadyFrameEvidenceIdentity `
+        -RunDirectory $RunDirectory `
+        -ProfileId $ProfileId `
+        -CacheMode $CacheMode `
+        -Role $Role `
+        -Ordinal $Ordinal `
+        -ViewerExe $ViewerExe `
+        -HdriPath $HdriPath `
+        -BuildProvenance $BuildProvenance
 
     $arguments = @(
-        "--hdri", $HdriPath
+        "--hdri", $HdriPath,
+        "--material-fixture", $MaterialFixture
     )
     if ($null -ne $FaceSize) {
         $arguments += @("--face-size", "$FaceSize")
@@ -557,18 +654,21 @@ function Invoke-ZirconShaderPbrProfileRun {
     $arguments += @(
         "--work-dir", $workDirectory,
         "--ibl-cache-dir", $CacheDirectory,
-        "--screenshot", $screenshotPath
+        "--host-mode", "offscreen-diagnostic",
+        "--screenshot", $screenshotPath,
+        "--evidence-identity", $evidenceIdentity.path
     )
     if ($Measure) {
         $arguments += @("--gpu-timing-report", $gpuTimingPath)
     }
     if ($CaptureRenderDoc) {
-        if (-not (Test-Path -LiteralPath $RenderDocDll -PathType Leaf)) {
-            throw "Shader PBR RenderDoc capture requires renderdoc.dll: $RenderDocDll"
+        if ($null -eq $CaptureToolchain.renderdoc) {
+            throw "Shader PBR RenderDoc capture requires a pinned RenderDoc DLL in the capture toolchain manifest."
         }
+        $renderDocDll = [string]$CaptureToolchain.renderdoc.dll.path
         $arguments += @(
             "--renderdoc-capture-once",
-            "--renderdoc-dll", $RenderDocDll,
+            "--renderdoc-dll", $renderDocDll,
             "--renderdoc-capture-path", (Join-Path $RunDirectory "renderdoc"),
             "--exit-after-capture"
         )
@@ -582,6 +682,13 @@ function Invoke-ZirconShaderPbrProfileRun {
     $primaryFailure = $null
     $cleanupFailure = $null
     $previousBackend = $env:WGPU_BACKEND
+    $previousProfileCapture = $env:ZIRCON_PROFILE_CAPTURE
+    $previousProfileSession = $env:ZIRCON_PROFILE_SESSION
+    $previousProfileOutputRoot = $env:ZIRCON_PROFILE_OUTPUT_ROOT
+    $previousProfileMaxFrames = $env:ZIRCON_PROFILE_MAX_FRAMES
+    $previousProfileMaxSpans = $env:ZIRCON_PROFILE_MAX_SPANS
+    $previousProfileMaxCounters = $env:ZIRCON_PROFILE_MAX_COUNTERS
+    $previousProfileIncludePerfetto = $env:ZIRCON_PROFILE_INCLUDE_PERFETTO
     $startedAt = (Get-Date).ToUniversalTime()
     try {
         if ($Measure -and -not $SkipWpr) {
@@ -592,7 +699,17 @@ function Invoke-ZirconShaderPbrProfileRun {
                 -RunDirectory $RunDirectory `
                 -SampleIntervalSeconds $EnergySampleIntervalSeconds
         }
-        $env:WGPU_BACKEND = "dx12"
+        $env:WGPU_BACKEND = [string]$CaptureToolchain.graphics.wgpu_backend
+        if ($Measure) {
+            New-Item -ItemType Directory -Force -Path $runtimeProfileRoot | Out-Null
+            $env:ZIRCON_PROFILE_CAPTURE = "1"
+            $env:ZIRCON_PROFILE_SESSION = $runtimeProfileSession
+            $env:ZIRCON_PROFILE_OUTPUT_ROOT = $runtimeProfileRoot
+            $env:ZIRCON_PROFILE_MAX_FRAMES = "4096"
+            $env:ZIRCON_PROFILE_MAX_SPANS = "262144"
+            $env:ZIRCON_PROFILE_MAX_COUNTERS = "262144"
+            $env:ZIRCON_PROFILE_INCLUDE_PERFETTO = "0"
+        }
         $process = Start-Process `
             -FilePath $ViewerExe `
             -ArgumentList (ConvertTo-ZirconShaderPbrCommandLine -Arguments $arguments) `
@@ -614,6 +731,13 @@ function Invoke-ZirconShaderPbrProfileRun {
     }
     finally {
         $env:WGPU_BACKEND = $previousBackend
+        $env:ZIRCON_PROFILE_CAPTURE = $previousProfileCapture
+        $env:ZIRCON_PROFILE_SESSION = $previousProfileSession
+        $env:ZIRCON_PROFILE_OUTPUT_ROOT = $previousProfileOutputRoot
+        $env:ZIRCON_PROFILE_MAX_FRAMES = $previousProfileMaxFrames
+        $env:ZIRCON_PROFILE_MAX_SPANS = $previousProfileMaxSpans
+        $env:ZIRCON_PROFILE_MAX_COUNTERS = $previousProfileMaxCounters
+        $env:ZIRCON_PROFILE_INCLUDE_PERFETTO = $previousProfileIncludePerfetto
         if ($null -ne $energyCapture) {
             try {
                 $energyReport = Stop-ZirconShaderPbrEnergyMeterCapture -Capture $energyCapture
@@ -641,12 +765,27 @@ function Invoke-ZirconShaderPbrProfileRun {
     if ($null -ne $cleanupFailure) {
         throw $cleanupFailure
     }
+    $runtimeProfile = if ($Measure) {
+        Get-ZirconShaderPbrRuntimeProfileEvidence `
+            -ProfileRoot $runtimeProfileRoot `
+            -SessionId $runtimeProfileSession
+    } else {
+        $null
+    }
 
     $readyValidator = Join-Path $RepoRoot "tools\zircon_validate_shader_pbr_viewer_evidence.py"
     $readyValidationPath = Join-Path $RunDirectory "ready_validation.json"
+    $readyValidatorArguments = @(
+        $screenshotPath,
+        "--expected-backend", $CaptureToolchain.graphics.evidence_backend,
+        "--expected-host-mode", "offscreen-diagnostic"
+    )
+    if (-not [string]::IsNullOrWhiteSpace($DisplayVisualOracle)) {
+        $readyValidatorArguments += @("--display-visual-oracle", $DisplayVisualOracle)
+    }
     Invoke-ZirconShaderPbrEvidenceValidator `
         -Script $readyValidator `
-        -Arguments @($screenshotPath, "--expected-backend", "Dx12") `
+        -Arguments $readyValidatorArguments `
         -OutputPath $readyValidationPath
     if ($Measure) {
         $gpuValidator = Join-Path $RepoRoot "tools\zircon_validate_shader_pbr_gpu_timing_evidence.py"
@@ -660,18 +799,45 @@ function Invoke-ZirconShaderPbrProfileRun {
     if ($sidecar["ibl_staging_status"] -ne $ExpectedStagingStatus) {
         throw "Shader PBR $CacheMode $Role run expected ibl_staging_status=$ExpectedStagingStatus, actual=$($sidecar['ibl_staging_status'])"
     }
+    if ($sidecar["material_fixture"] -ne $MaterialFixture) {
+        throw "Shader PBR $CacheMode $Role run expected material_fixture=$MaterialFixture, actual=$($sidecar['material_fixture'])"
+    }
     $renderdocCapture = $null
+    $renderdocReplay = $null
     if ($CaptureRenderDoc) {
         $captures = @(Get-ChildItem -LiteralPath $RunDirectory -File -Filter "*.rdc")
         if ($captures.Count -ne 1) {
             throw "Shader PBR RenderDoc run expected exactly one .rdc capture beneath $RunDirectory, found $($captures.Count)."
         }
         $renderdocValidator = Join-Path $RepoRoot "tools\zircon_validate_shader_pbr_renderdoc_replay.py"
+        $renderdocReplayPath = Join-Path $RunDirectory "renderdoc_replay.json"
         Invoke-ZirconShaderPbrEvidenceValidator `
             -Script $renderdocValidator `
-            -Arguments @($captures[0].FullName) `
-            -OutputPath (Join-Path $RunDirectory "renderdoc_replay.json")
+            -Arguments @(
+                $captures[0].FullName,
+                "--renderdoccmd", [string]$CaptureToolchain.renderdoc.command.path
+            ) `
+            -OutputPath $renderdocReplayPath
+        try {
+            $renderdocReplayEvidence = Get-Content -LiteralPath $renderdocReplayPath -Raw | ConvertFrom-Json
+        }
+        catch {
+            throw "Shader PBR RenderDoc replay evidence is malformed: $renderdocReplayPath"
+        }
+        $expectedRenderDocCommand = [System.IO.Path]::GetFullPath(
+            [string]$CaptureToolchain.renderdoc.command.path
+        )
+        $recordedRenderDocCommand = [System.IO.Path]::GetFullPath(
+            [string]$renderdocReplayEvidence.renderdoccmd
+        )
+        if (-not $recordedRenderDocCommand.Equals(
+                $expectedRenderDocCommand,
+                [System.StringComparison]::OrdinalIgnoreCase
+            )) {
+            throw "Shader PBR RenderDoc replay did not use the pinned command: expected=$expectedRenderDocCommand actual=$recordedRenderDocCommand"
+        }
         $renderdocCapture = Get-ZirconProfileFileFingerprint -Path $captures[0].FullName
+        $renderdocReplay = Get-ZirconProfileFileFingerprint -Path $renderdocReplayPath
     }
 
     $report = [pscustomobject]@{
@@ -682,13 +848,46 @@ function Invoke-ZirconShaderPbrProfileRun {
         ordinal = $Ordinal
         started_utc = $startedAt.ToString("o")
         completed_utc = (Get-Date).ToUniversalTime().ToString("o")
-        backend = "Dx12"
+        backend = [string]$sidecar["backend"]
+        capture_toolchain = [pscustomobject]@{
+            manifest = $CaptureToolchain.manifest
+            graphics = $CaptureToolchain.graphics
+            renderdoc = $CaptureToolchain.renderdoc
+        }
         viewer_command = @($arguments)
         viewer_exit_code = $process.ExitCode
         cache_directory = $CacheDirectory
         expected_ibl_staging_status = $ExpectedStagingStatus
+        display_visual_oracle = if ([string]::IsNullOrWhiteSpace($DisplayVisualOracle)) {
+            $null
+        } else {
+            Get-ZirconShaderPbrProfileFileFingerprint `
+                -Path $DisplayVisualOracle `
+                -Description "shader PBR display visual oracle"
+        }
         ready_sidecar = [pscustomobject]@{
             schema = $sidecar["schema"]
+            material_fixture = $sidecar["material_fixture"]
+            required_material_base_pipeline_kind = $sidecar["required_material_base_pipeline_kind"]
+            required_material_base_pipeline_ready_at_capture = $sidecar["required_material_base_pipeline_ready_at_capture"]
+            environment_only_base_prewarm_requested = $sidecar["environment_only_base_prewarm_requested"]
+            screenshot_sha256 = $sidecar["screenshot_sha256"]
+            screenshot_byte_length = $sidecar["screenshot_byte_length"]
+            evidence_identity_schema = $sidecar["evidence_identity_schema"]
+            evidence_run_id = $sidecar["evidence_run_id"]
+            evidence_validation_policy = $sidecar["evidence_validation_policy"]
+            evidence_identity_path = $sidecar["evidence_identity_path"]
+            evidence_identity_sha256 = $sidecar["evidence_identity_sha256"]
+            evidence_identity_byte_length = $sidecar["evidence_identity_byte_length"]
+            viewer_binary_path = $sidecar["viewer_binary_path"]
+            viewer_binary_sha256 = $sidecar["viewer_binary_sha256"]
+            viewer_binary_byte_length = $sidecar["viewer_binary_byte_length"]
+            hdri_sha256 = $sidecar["hdri_sha256"]
+            hdri_byte_length = $sidecar["hdri_byte_length"]
+            build_provenance_path = $sidecar["build_provenance_path"]
+            build_provenance_sha256 = $sidecar["build_provenance_sha256"]
+            build_provenance_byte_length = $sidecar["build_provenance_byte_length"]
+            source_manifest_sha256 = $sidecar["source_manifest_sha256"]
             ibl_staging_status = $sidecar["ibl_staging_status"]
             requested_source_face_size = $sidecar["requested_source_face_size"]
             requested_pmrem_face_size = $sidecar["requested_pmrem_face_size"]
@@ -724,8 +923,10 @@ function Invoke-ZirconShaderPbrProfileRun {
         artifacts = [pscustomobject]@{
             ready_png = Get-ZirconProfileFileFingerprint -Path $screenshotPath
             ready_sidecar = Get-ZirconProfileFileFingerprint -Path $sidecarPath
+            evidence_identity = $evidenceIdentity
             ready_validation = Get-ZirconProfileFileFingerprint -Path $readyValidationPath
             gpu_timing = if ($Measure) { Get-ZirconProfileFileFingerprint -Path $gpuTimingPath } else { $null }
+            runtime_profile = $runtimeProfile
         cpu_sampling = if ($Measure -and -not $SkipWpr) {
                 [pscustomobject]@{
                     status = if ($null -ne $wprFingerprint) { "captured" } else { "unavailable" }
@@ -739,6 +940,7 @@ function Invoke-ZirconShaderPbrProfileRun {
             }
             energy_meter = if ($Measure) { $energyReport } else { [pscustomobject]@{ status = "not_requested" } }
             renderdoc_capture = $renderdocCapture
+            renderdoc_replay = $renderdocReplay
         }
     }
     $reportPath = Join-Path $RunDirectory "run_report.json"
@@ -749,7 +951,13 @@ function Invoke-ZirconShaderPbrProfileRun {
 function Invoke-ZirconShaderPbrProfileMode {
     param(
         [Parameter(Mandatory = $true)][ValidateSet("cold", "warm")][string]$Mode,
-        [Parameter(Mandatory = $true)][string]$ProfileRoot
+        [Parameter(Mandatory = $true)][string]$ProfileRoot,
+        [Parameter(Mandatory = $true)][string]$ProfileId,
+        [Parameter(Mandatory = $true)]$CaptureToolchain,
+        [Parameter(Mandatory = $true)][string]$BuildProvenance,
+        [ValidateSet("metal-mirror", "dielectric-ior")]
+        [string]$MaterialFixture = "metal-mirror",
+        [AllowEmptyString()][string]$DisplayVisualOracle = ""
     )
 
     $modeRoot = Join-Path $ProfileRoot $Mode
@@ -760,22 +968,32 @@ function Invoke-ZirconShaderPbrProfileMode {
         $seedDirectory = New-ZirconShaderPbrProfileRunDirectory -ModeRoot $modeRoot -Role "cache_seed" -Ordinal 0
         Invoke-ZirconShaderPbrProfileRun `
             -RunDirectory $seedDirectory `
+            -ProfileId $ProfileId `
             -CacheMode $Mode `
             -Role "cache_seed" `
             -Ordinal 0 `
-            -CacheDirectory $warmCache `
-            -ExpectedStagingStatus "Written" `
-            -Measure:$false | Out-Null
+               -CacheDirectory $warmCache `
+               -ExpectedStagingStatus "Written" `
+               -CaptureToolchain $CaptureToolchain `
+               -BuildProvenance $BuildProvenance `
+               -MaterialFixture $MaterialFixture `
+               -DisplayVisualOracle $DisplayVisualOracle `
+               -Measure:$false | Out-Null
         for ($ordinal = 1; $ordinal -le $Repetitions; $ordinal++) {
             $runDirectory = New-ZirconShaderPbrProfileRunDirectory -ModeRoot $modeRoot -Role "measured" -Ordinal $ordinal
             $reports += Invoke-ZirconShaderPbrProfileRun `
                 -RunDirectory $runDirectory `
+                -ProfileId $ProfileId `
                 -CacheMode $Mode `
                 -Role "measured" `
                 -Ordinal $ordinal `
-                -CacheDirectory $warmCache `
-                -ExpectedStagingStatus "Reused" `
-                -Measure
+                   -CacheDirectory $warmCache `
+                   -ExpectedStagingStatus "Reused" `
+                   -CaptureToolchain $CaptureToolchain `
+                   -BuildProvenance $BuildProvenance `
+                   -MaterialFixture $MaterialFixture `
+                   -DisplayVisualOracle $DisplayVisualOracle `
+                   -Measure
         }
     }
     else {
@@ -783,12 +1001,17 @@ function Invoke-ZirconShaderPbrProfileMode {
             $runDirectory = New-ZirconShaderPbrProfileRunDirectory -ModeRoot $modeRoot -Role "measured" -Ordinal $ordinal
             $reports += Invoke-ZirconShaderPbrProfileRun `
                 -RunDirectory $runDirectory `
+                -ProfileId $ProfileId `
                 -CacheMode $Mode `
                 -Role "measured" `
                 -Ordinal $ordinal `
-                -CacheDirectory (Join-Path $runDirectory "fresh-ibl-cache") `
-                -ExpectedStagingStatus "Written" `
-                -Measure
+                   -CacheDirectory (Join-Path $runDirectory "fresh-ibl-cache") `
+                   -ExpectedStagingStatus "Written" `
+                   -CaptureToolchain $CaptureToolchain `
+                   -BuildProvenance $BuildProvenance `
+                   -MaterialFixture $MaterialFixture `
+                   -DisplayVisualOracle $DisplayVisualOracle `
+                   -Measure
         }
     }
     return @($reports)
@@ -797,7 +1020,23 @@ function Invoke-ZirconShaderPbrProfileMode {
 function Invoke-ZirconShaderPbrProfileCapture {
     Assert-ZirconShaderPbrOptionalFaceSize -Value $FaceSize -Name "-FaceSize"
     Assert-ZirconShaderPbrOptionalFaceSize -Value $PmremFaceSize -Name "-PmremFaceSize"
+    $captureToolchain = Resolve-ZirconShaderPbrCaptureToolchain -ManifestPath $CaptureToolchainManifest
     $resolvedEvidenceRoot = Resolve-ZirconShaderPbrProfileEvidenceRoot -RepoRoot $RepoRoot -Path $EvidenceRoot
+    $displayVisualOracleFingerprint = $null
+    if (-not [string]::IsNullOrWhiteSpace($DisplayVisualOracle)) {
+        $DisplayVisualOracle = Resolve-ZirconShaderPbrProfileEvidenceRoot `
+            -RepoRoot $RepoRoot `
+            -Path $DisplayVisualOracle
+        if (-not (Test-Path -LiteralPath $DisplayVisualOracle -PathType Leaf)) {
+            throw "Shader PBR display visual oracle is unavailable: $DisplayVisualOracle"
+        }
+        if ([System.IO.Path]::GetExtension($DisplayVisualOracle) -ne ".json") {
+            throw "Shader PBR display visual oracle must be a JSON manifest: $DisplayVisualOracle"
+        }
+        $displayVisualOracleFingerprint = Get-ZirconShaderPbrProfileFileFingerprint `
+            -Path $DisplayVisualOracle `
+            -Description "shader PBR display visual oracle"
+    }
     $uniqueCacheModes = @($CacheModes | Select-Object -Unique)
     if ($uniqueCacheModes.Count -ne 2 -or -not ($uniqueCacheModes -contains "cold") -or -not ($uniqueCacheModes -contains "warm")) {
         throw "Shader PBR profile requires exactly the cold and warm cache modes."
@@ -810,6 +1049,9 @@ function Invoke-ZirconShaderPbrProfileCapture {
     if ($CaptureRenderDoc -and -not ($CacheModes -contains "warm")) {
         throw "Shader PBR RenderDoc capture requires the warm cache mode so it can preserve the measured cold/warm matrix."
     }
+    if ($CaptureRenderDoc -and $null -eq $captureToolchain.renderdoc) {
+        throw "Shader PBR RenderDoc capture requires a pinned RenderDoc DLL in the capture toolchain manifest."
+    }
     if ($SkipWpr) {
         Write-Warning "Shader PBR profile is diagnostic only because -SkipWpr omits required CPU attribution."
     }
@@ -821,61 +1063,137 @@ function Invoke-ZirconShaderPbrProfileCapture {
     $profileCapturesRoot = Resolve-ZirconShaderPbrProfileEvidenceRoot `
         -RepoRoot $RepoRoot `
         -Path $profileCapturesRoot
-    $profileRoot = Join-Path $profileCapturesRoot $profileId
-    New-Item -ItemType Directory -Force -Path $profileRoot | Out-Null
-    $manifestPath = Export-ZirconShaderPbrProfileManifest `
-        -ProfileRoot $profileRoot `
-        -ViewerExe $viewerFingerprint.path `
-        -HdriPath $hdriFingerprint.path `
-        -BuildProvenance $BuildProvenance `
-        -EvidenceRoot $resolvedEvidenceRoot `
-        -Repetitions $Repetitions `
-        -FaceSize $FaceSize `
-        -PmremFaceSize $PmremFaceSize `
-        -CacheModes $CacheModes
+    Invoke-ZirconShaderPbrProfileStaleRunScavenger `
+        -ProfileCapturesRoot $profileCapturesRoot | Out-Null
+    $profileRoot = New-ZirconShaderPbrProfileStagingRoot `
+        -ProfileCapturesRoot $profileCapturesRoot `
+        -ProfileId $profileId
+    $runLease = $null
+    $completionReceiptPath = $null
+    try {
+        $runLease = New-ZirconShaderPbrProfileRunLease `
+            -ProfileCapturesRoot $profileCapturesRoot `
+            -ProfileRoot $profileRoot `
+            -ProfileId $profileId
+        Update-ZirconShaderPbrProfileRunLeaseHeartbeat -Lease $runLease | Out-Null
+           $machineManifest = New-ZirconPerformanceMachineManifest
+           $manifestPath = Export-ZirconShaderPbrProfileManifest `
+            -ProfileRoot $profileRoot `
+            -ViewerExe $viewerFingerprint.path `
+            -HdriPath $hdriFingerprint.path `
+            -BuildProvenance $BuildProvenance `
+            -EvidenceRoot $resolvedEvidenceRoot `
+            -Repetitions $Repetitions `
+            -FaceSize $FaceSize `
+            -PmremFaceSize $PmremFaceSize `
+            -MaterialFixture $MaterialFixture `
+            -DisplayVisualOracleFingerprint $displayVisualOracleFingerprint `
+            -CacheModes $CacheModes `
+            -CaptureToolchain $captureToolchain `
+            -MachineManifest $machineManifest
 
-    $modeReports = @{}
-    foreach ($mode in ($CacheModes | Select-Object -Unique)) {
-        $modeReports[$mode] = @(Invoke-ZirconShaderPbrProfileMode -Mode $mode -ProfileRoot $profileRoot)
+        $modeReports = @{}
+        foreach ($mode in ($CacheModes | Select-Object -Unique)) {
+            Update-ZirconShaderPbrProfileRunLeaseHeartbeat -Lease $runLease | Out-Null
+            $modeReports[$mode] = @(Invoke-ZirconShaderPbrProfileMode `
+                -Mode $mode `
+                -ProfileRoot $profileRoot `
+                -ProfileId $profileId `
+                -CaptureToolchain $captureToolchain `
+                -BuildProvenance $BuildProvenance `
+                -MaterialFixture $MaterialFixture `
+                -DisplayVisualOracle $DisplayVisualOracle)
+            Update-ZirconShaderPbrProfileRunLeaseHeartbeat -Lease $runLease | Out-Null
+        }
+        $renderdocReport = $null
+        if ($CaptureRenderDoc) {
+            $captureDirectory = New-ZirconShaderPbrProfileRunDirectory `
+                -ModeRoot (Join-Path $profileRoot "warm") `
+                -Role "renderdoc" `
+                -Ordinal 1
+            $renderdocReport = Invoke-ZirconShaderPbrProfileRun `
+                -RunDirectory $captureDirectory `
+                -ProfileId $profileId `
+                -CacheMode "warm" `
+                -Role "renderdoc" `
+                -Ordinal 1 `
+                -CacheDirectory (Join-Path $profileRoot "warm\shared-ibl-cache") `
+                -ExpectedStagingStatus "Reused" `
+                -CaptureToolchain $captureToolchain `
+                -BuildProvenance $BuildProvenance `
+                -MaterialFixture $MaterialFixture `
+                -DisplayVisualOracle $DisplayVisualOracle `
+                -Measure:$false `
+                -CaptureRenderDoc
+            Update-ZirconShaderPbrProfileRunLeaseHeartbeat -Lease $runLease | Out-Null
+        }
+        $summary = [pscustomobject]@{
+            schema_version = 1
+            profile_kind = "zircon_shader_pbr_viewer_startup_matrix"
+            profile_id = $profileId
+            profile_manifest = Get-ZirconProfileFileFingerprint -Path $manifestPath
+            profile_root = $profileRoot
+            repetitions_per_mode = $Repetitions
+            source_binary = $viewerFingerprint
+            source_hdri = $hdriFingerprint
+            display_visual_oracle = $displayVisualOracleFingerprint
+            modes = $modeReports
+            renderdoc = $renderdocReport
+            driver_cache_note = "The profile controls process and caller-owned IBL caches only. It does not clear DX12 or driver caches."
+        }
+        $summaryPath = Join-Path $profileRoot "profile_summary.json"
+        $summary | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $summaryPath -Encoding UTF8
+        $analysisPath = Join-Path $profileRoot "profile_analysis.json"
+        $summarizer = Join-Path $RepoRoot "tools\zircon_summarize_shader_pbr_profile.py"
+        Invoke-ZirconShaderPbrEvidenceValidator `
+            -Script $summarizer `
+            -Arguments @($summaryPath, "--output", $analysisPath) `
+            -OutputPath (Join-Path $profileRoot "profile_analysis_validation.log")
+        Update-ZirconShaderPbrProfileRunLeaseHeartbeat -Lease $runLease | Out-Null
+        $completionReceiptPath = Publish-ZirconShaderPbrProfileCompletion `
+            -ProfileCapturesRoot $profileCapturesRoot `
+            -ProfileRoot $profileRoot `
+            -ProfileId $profileId
+        Complete-ZirconShaderPbrProfileRunLease `
+            -Lease $runLease `
+            -ReceiptPath $completionReceiptPath | Out-Null
     }
-    $renderdocReport = $null
-    if ($CaptureRenderDoc) {
-        $captureDirectory = New-ZirconShaderPbrProfileRunDirectory `
-            -ModeRoot (Join-Path $profileRoot "warm") `
-            -Role "renderdoc" `
-            -Ordinal 1
-        $renderdocReport = Invoke-ZirconShaderPbrProfileRun `
-            -RunDirectory $captureDirectory `
-            -CacheMode "warm" `
-            -Role "renderdoc" `
-            -Ordinal 1 `
-            -CacheDirectory (Join-Path $profileRoot "warm\shared-ibl-cache") `
-            -ExpectedStagingStatus "Reused" `
-            -Measure:$false `
-            -CaptureRenderDoc
+    catch {
+        $captureFailure = $_
+        if ($null -eq $completionReceiptPath) {
+            try {
+                Write-ZirconShaderPbrProfileIncompleteReceipt `
+                    -ProfileRoot $profileRoot `
+                    -ProfileId $profileId `
+                    -FailureMessage $captureFailure.Exception.Message | Out-Null
+            }
+            catch {
+                Write-Warning "Shader PBR profile could not write incomplete receipt: $($_.Exception.Message)"
+            }
+            if ($null -ne $runLease) {
+                try {
+                    Fail-ZirconShaderPbrProfileRunLease `
+                        -Lease $runLease `
+                        -FailureMessage $captureFailure.Exception.Message | Out-Null
+                }
+                catch {
+                    Write-Warning "Shader PBR profile could not persist failed lease state: $($_.Exception.Message)"
+                }
+            }
+        }
+        else {
+            Write-Warning "Shader PBR profile completion receipt was already created; preserving its immutable artifact closure."
+        }
+        throw $captureFailure
     }
-    $summary = [pscustomobject]@{
-        schema_version = 1
-        profile_kind = "zircon_shader_pbr_viewer_startup_matrix"
-        profile_manifest = Get-ZirconProfileFileFingerprint -Path $manifestPath
-        profile_root = $profileRoot
-        repetitions_per_mode = $Repetitions
-        source_binary = $viewerFingerprint
-        source_hdri = $hdriFingerprint
-        modes = $modeReports
-        renderdoc = $renderdocReport
-        driver_cache_note = "The profile controls process and caller-owned IBL caches only. It does not clear DX12 or driver caches."
+    finally {
+        if ($null -ne $runLease) {
+            Close-ZirconShaderPbrProfileRunLease -Lease $runLease
+        }
     }
-    $summaryPath = Join-Path $profileRoot "profile_summary.json"
-    $summary | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $summaryPath -Encoding UTF8
-    $analysisPath = Join-Path $profileRoot "profile_analysis.json"
-    $summarizer = Join-Path $RepoRoot "tools\zircon_summarize_shader_pbr_profile.py"
-    Invoke-ZirconShaderPbrEvidenceValidator `
-        -Script $summarizer `
-        -Arguments @($summaryPath, "--output", $analysisPath) `
-        -OutputPath (Join-Path $profileRoot "profile_analysis_validation.log")
     Write-Host "Shader PBR profile summary: $summaryPath"
     Write-Host "Shader PBR profile analysis: $analysisPath"
+    Write-Host "Shader PBR profile completion receipt: $completionReceiptPath"
 }
 
 if ($MyInvocation.InvocationName -ne ".") {

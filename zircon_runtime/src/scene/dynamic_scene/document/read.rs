@@ -1,12 +1,12 @@
 use crate::scene::dynamic_scene::{DynamicScene, DynamicSceneError};
 use serde_json::value::RawValue;
 use zircon_runtime_interface::serialization::{
-    load_versioned, Format, LoadError, PayloadHeader, VersionedSchema,
+    load_versioned_legacy_schema_zero, Format, LoadError, PayloadHeader, VersionedSchema,
 };
 
 impl DynamicScene {
     pub fn from_versioned_json(json: &str) -> Result<Self, DynamicSceneError> {
-        let loaded = load_versioned::<Self>(json.as_bytes(), Format::Text)?;
+        let loaded = load_versioned_legacy_schema_zero::<Self>(json.as_bytes(), Format::Text)?;
         let scene = loaded.value;
         scene.ensure_supported()?;
         Ok(scene)

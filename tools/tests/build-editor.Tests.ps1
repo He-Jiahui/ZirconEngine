@@ -21,7 +21,14 @@ function Invoke-EditorBuildFixture {
         [Parameter(Mandatory = $true)]
         [string]$ScriptPath,
 
-        [string]$OutputDirectory
+        [string]$OutputDirectory,
+
+        [string]$TargetDir,
+
+        [ValidateSet('reuse', 'compact', 'diagnostic')]
+        [string]$StorageMode = 'reuse',
+
+        [switch]$Ephemeral
     )
 
     $arguments = @(
@@ -33,6 +40,13 @@ function Invoke-EditorBuildFixture {
     )
     if (-not [string]::IsNullOrWhiteSpace($OutputDirectory)) {
         $arguments += @('-OutputDirectory', $OutputDirectory)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($TargetDir)) {
+        $arguments += @('-TargetDir', $TargetDir)
+    }
+    $arguments += @('-StorageMode', $StorageMode)
+    if ($Ephemeral) {
+        $arguments += '-Ephemeral'
     }
     $arguments += '-SkipSmokeTest'
     $output = @(& powershell.exe @arguments 2>&1)
@@ -49,6 +63,7 @@ Describe 'Editor build bundle script' {
         $fixtureTools = Join-Path $fixtureRoot 'tools'
         $fixtureValidatorDirectory = Join-Path $fixtureRoot '.codex\skills\zircon-dev\scripts'
         $fixtureAssets = Join-Path $fixtureRoot 'zircon_runtime\assets\fonts'
+        $fixtureEditorAssets = Join-Path $fixtureRoot 'zircon_editor\assets\icons'
         $fixtureScript = Join-Path $fixtureTools 'build-editor.ps1'
         $fixturePathResolver = Join-Path $fixtureTools 'WindowsPathResolver.psm1'
         $fixtureCoordinator = Join-Path $fixtureTools 'zircon-session.ps1'
@@ -60,9 +75,11 @@ Describe 'Editor build bundle script' {
         [System.IO.Directory]::CreateDirectory($fixtureTools) | Out-Null
         [System.IO.Directory]::CreateDirectory($fixtureValidatorDirectory) | Out-Null
         [System.IO.Directory]::CreateDirectory($fixtureAssets) | Out-Null
+        [System.IO.Directory]::CreateDirectory($fixtureEditorAssets) | Out-Null
         Copy-Item -LiteralPath $sourceScript -Destination $fixtureScript
         Copy-Item -LiteralPath $sourcePathResolver -Destination $fixturePathResolver
         Set-Content -LiteralPath (Join-Path $fixtureAssets 'fixture.txt') -Value 'asset fixture'
+        Set-Content -LiteralPath (Join-Path $fixtureEditorAssets 'fixture.svg') -Value '<svg />'
 
         @'
 [CmdletBinding()]
@@ -137,11 +154,15 @@ param(
     [switch]$SkipTest,
     [switch]$MvpProductInputArtifactOutput,
     [string]$ArtifactOutputDirectory,
-    [string[]]$PublishArtifact
+    [string[]]$PublishArtifact,
+    [string]$TargetDir,
+    [ValidateSet('reuse', 'compact', 'diagnostic')]
+    [string]$StorageMode = 'reuse',
+    [switch]$Ephemeral
 )
 
-$record = '{0}|{1}|{2}|{3}|{4}|{5}|{6}' -f `
-    $Package, $Bin, $NoDefaultFeatures.IsPresent, $Features, $SkipTest.IsPresent, ($PublishArtifact -join ','), $MvpProductInputArtifactOutput.IsPresent
+$record = '{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}|{8}|{9}' -f `
+    $Package, $Bin, $NoDefaultFeatures.IsPresent, $Features, $SkipTest.IsPresent, ($PublishArtifact -join ','), $MvpProductInputArtifactOutput.IsPresent, $TargetDir, $Ephemeral.IsPresent, $StorageMode
 [System.IO.File]::AppendAllText($env:BUILD_EDITOR_TEST_LOG, $record + [Environment]::NewLine)
 [System.IO.File]::AppendAllText($env:BUILD_EDITOR_TEST_ARTIFACT_LOG, $ArtifactOutputDirectory + [Environment]::NewLine)
 
@@ -184,7 +205,7 @@ exit 0
         Remove-EditorBuildFixtureRoot -FixtureRoot $fixtureRoot
     }
 
-    It 'publishes the editor, runtime DLL, and assets only after both builds succeed' {
+    It 'publishes the editor, runtime DLL, runtime assets, and editor assets only after both builds succeed' {
         $bundle = Join-Path $fixtureRoot 'editor-bundle'
         $env:BUILD_EDITOR_TEST_FINAL_PATH = $bundle
         $env:BUILD_EDITOR_TEST_REQUIRE_COORDINATOR = '1'
@@ -195,11 +216,12 @@ exit 0
         Test-Path -LiteralPath (Join-Path $bundle 'zircon_editor.exe') | Should Be $true
         Test-Path -LiteralPath (Join-Path $bundle 'zircon_runtime.dll') | Should Be $true
         Test-Path -LiteralPath (Join-Path $bundle 'assets\fonts\fixture.txt') | Should Be $true
+        Test-Path -LiteralPath (Join-Path $bundle 'assets\icons\fixture.svg') | Should Be $true
 
         $calls = @(Get-Content -LiteralPath $callLog)
         $calls.Count | Should Be 2
-        $calls[0] | Should Be 'zircon_app|zircon_editor|True|target-editor-host|True|zircon_editor.exe|True'
-        $calls[1] | Should Be 'zircon_runtime||True|target-editor-host|True|zircon_runtime.dll|True'
+        $calls[0] | Should Be 'zircon_app|zircon_editor|True|target-editor-host|True|zircon_editor.exe|True||False|reuse'
+        $calls[1] | Should Be 'zircon_runtime||True|target-editor-host|True|zircon_runtime.dll|True||False|reuse'
         $artifactDirectories = @(Get-Content -LiteralPath $artifactLog)
         $artifactDirectories.Count | Should Be 2
         foreach ($artifactDirectory in $artifactDirectories) {
@@ -210,6 +232,55 @@ exit 0
         $coordinatorCalls[0] | Should Match 'staging-acquire'
         $coordinatorCalls[1] | Should Match 'staging-begin-publish'
         $coordinatorCalls[2] | Should Match 'staging-complete-publish'
+    }
+
+    It 'forwards one explicit managed target directory to both package builds' {
+        $bundle = Join-Path $fixtureRoot 'editor-bundle'
+        $targetDir = Join-Path $fixtureRoot 'cargo-target'
+        $env:BUILD_EDITOR_TEST_FINAL_PATH = $bundle
+
+        $result = Invoke-EditorBuildFixture `
+            -ScriptPath $fixtureScript `
+            -OutputDirectory $bundle `
+            -TargetDir $targetDir
+
+        $result.ExitCode | Should Be 0
+        $calls = @(Get-Content -LiteralPath $callLog)
+        $calls.Count | Should Be 2
+        $calls[0] | Should Be "zircon_app|zircon_editor|True|target-editor-host|True|zircon_editor.exe|True|$targetDir|False|reuse"
+        $calls[1] | Should Be "zircon_runtime||True|target-editor-host|True|zircon_runtime.dll|True|$targetDir|False|reuse"
+    }
+
+    It 'forwards ephemeral lane selection to both package builds' {
+        $bundle = Join-Path $fixtureRoot 'editor-bundle'
+        $env:BUILD_EDITOR_TEST_FINAL_PATH = $bundle
+
+        $result = Invoke-EditorBuildFixture `
+            -ScriptPath $fixtureScript `
+            -OutputDirectory $bundle `
+            -Ephemeral
+
+        $result.ExitCode | Should Be 0
+        $calls = @(Get-Content -LiteralPath $callLog)
+        $calls.Count | Should Be 2
+        $calls[0] | Should Be 'zircon_app|zircon_editor|True|target-editor-host|True|zircon_editor.exe|True||True|reuse'
+        $calls[1] | Should Be 'zircon_runtime||True|target-editor-host|True|zircon_runtime.dll|True||True|reuse'
+    }
+
+    It 'forwards diagnostic storage mode to both package builds' {
+        $bundle = Join-Path $fixtureRoot 'editor-bundle'
+        $env:BUILD_EDITOR_TEST_FINAL_PATH = $bundle
+
+        $result = Invoke-EditorBuildFixture `
+            -ScriptPath $fixtureScript `
+            -OutputDirectory $bundle `
+            -StorageMode 'diagnostic'
+
+        $result.ExitCode | Should Be 0
+        $calls = @(Get-Content -LiteralPath $callLog)
+        $calls.Count | Should Be 2
+        $calls[0] | Should Be 'zircon_app|zircon_editor|True|target-editor-host|True|zircon_editor.exe|True||False|diagnostic'
+        $calls[1] | Should Be 'zircon_runtime||True|target-editor-host|True|zircon_runtime.dll|True||False|diagnostic'
     }
 
     It 'removes its staged artifact directory when the runtime build fails' {
@@ -283,6 +354,9 @@ exit 0
 
         $result = Invoke-EditorBuildFixture -ScriptPath $fixtureScript -OutputDirectory $relativeBundle
 
+        if ($result.ExitCode -ne 0) {
+            throw "Relative bundle fixture failed: $($result.Output -join [Environment]::NewLine)"
+        }
         $result.ExitCode | Should Be 0
         Test-Path -LiteralPath (Join-Path $bundle 'zircon_editor.exe') | Should Be $true
         Test-Path -LiteralPath (Join-Path $bundle 'zircon_runtime.dll') | Should Be $true

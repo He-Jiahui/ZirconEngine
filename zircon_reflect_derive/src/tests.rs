@@ -5,11 +5,12 @@ fn derive_round_trips_reflect_type_info() {
     let input: DeriveInput = syn::parse_quote! {
         #[zr_reflect(
             component,
+            identity = "gameplay.health",
             script_visibility = "public",
             display_name = "Health"
         )]
         struct Health {
-            #[zr_reflect(editor_hint = "Scalar")]
+            #[zr_reflect(identity = "current-value", alias = "health", editor_hint = "Scalar")]
             current: f32,
             #[zr_reflect(editor_hint = "Scalar", readonly)]
             maximum: f32,
@@ -26,10 +27,14 @@ fn derive_round_trips_reflect_type_info() {
     assert!(expansion.contains("ReflectTypeKind :: Struct"));
     assert!(expansion.contains("ReflectSerializationStrategy :: Value"));
     assert!(expansion.contains(". as_component ()"));
+    assert!(!expansion.contains("with_plugin_owned"));
     assert!(expansion.contains("ReflectScriptVisibility :: Public"));
     assert!(expansion.contains(". with_remote_visible (false)"));
-    assert!(expansion.contains("ReflectFieldInfo :: new (\"current\" , \"Scalar\""));
-    assert!(expansion.contains("ReflectFieldInfo :: new (\"maximum\" , \"Scalar\""));
+    assert!(expansion.contains("ReflectFieldId :: from_stable_keys"));
+    assert!(expansion.contains("\"gameplay.health\" , \"current-value\""));
+    assert!(expansion.contains("\"current\" , \"Scalar\""));
+    assert!(expansion.contains("with_aliases (vec ! [\"health\" . to_string ()])"));
+    assert!(expansion.contains("\"maximum\" , \"Scalar\""));
     assert!(expansion.contains(". with_editable (false)"));
     assert!(expansion.contains("read_reflected_field"));
     assert!(expansion.contains("write_reflected_field"));
@@ -37,6 +42,46 @@ fn derive_round_trips_reflect_type_info() {
     assert!(expansion.contains("write_reflected_field_by_slot"));
     assert!(expansion.contains("0u32 =>"));
     assert!(expansion.contains("1u32 =>"));
+}
+
+#[test]
+fn derive_rejects_non_canonical_stable_identity_keys() {
+    let type_input: DeriveInput = syn::parse_quote! {
+        #[zr_reflect(identity = " gameplay.health")]
+        struct Health {
+            current: f32,
+        }
+    };
+    let error = crate::derive::derive_zr_reflect_impl(type_input)
+        .expect_err("type identity keys must not hide leading whitespace");
+    assert!(error.to_string().contains("non-empty and already trimmed"));
+
+    let field_input: DeriveInput = syn::parse_quote! {
+        struct Health {
+            #[zr_reflect(identity = "current-value ")]
+            current: f32,
+        }
+    };
+    let error = crate::derive::derive_zr_reflect_impl(field_input)
+        .expect_err("field identity keys must not hide trailing whitespace");
+    assert!(error.to_string().contains("non-empty and already trimmed"));
+}
+
+#[test]
+fn derive_rejects_retired_plugin_owned_projection() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[zr_reflect(component, plugin_owned)]
+        struct Invalid {
+            value: bool,
+        }
+    };
+
+    let error = crate::derive::derive_zr_reflect_impl(input)
+        .expect_err("plugin ownership must come from the canonical type path");
+
+    assert!(error
+        .to_string()
+        .contains("unknown zr_reflect type attribute"));
 }
 
 #[test]
@@ -85,6 +130,39 @@ fn derive_rejects_unknown_field_type_without_explicit_value_path() {
 
     let error = crate::derive::derive_zr_reflect_impl(input)
         .expect_err("unknown field types must declare their reflected value path");
+
+    assert!(error
+        .to_string()
+        .contains("requires value_type_path = \"...\""));
+}
+
+#[test]
+fn derive_infers_typed_list_value_paths() {
+    let input: DeriveInput = syn::parse_quote! {
+        struct TypedLists {
+            names: Vec<String>,
+            weights: Vec<Vec<f32>>,
+        }
+    };
+
+    let expansion = crate::derive::derive_zr_reflect_impl(input)
+        .expect("supported list element types should infer a typed reflection path")
+        .to_string();
+
+    assert!(expansion.contains("\"names\" , \"List<String>\""));
+    assert!(expansion.contains("\"weights\" , \"List<List<Scalar>>\""));
+}
+
+#[test]
+fn derive_requires_an_explicit_path_for_unknown_list_elements() {
+    let input: DeriveInput = syn::parse_quote! {
+        struct UnknownListElement {
+            values: Vec<DomainSpecificValue>,
+        }
+    };
+
+    let error = crate::derive::derive_zr_reflect_impl(input)
+        .expect_err("unknown list elements must not degrade to an untyped List declaration");
 
     assert!(error
         .to_string()

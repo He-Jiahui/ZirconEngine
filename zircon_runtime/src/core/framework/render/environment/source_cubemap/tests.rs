@@ -1,3 +1,6 @@
+use super::sampling::{
+    normalize_or_positive_z, sample_cubemap_linear_at_mip, sample_source_cubemap_trilinear,
+};
 use super::*;
 
 mod projection;
@@ -256,17 +259,17 @@ fn source_cubemap_pmrem_texel_clamps_mip_before_resolving_truncated_mip_size() {
 }
 
 #[test]
-fn source_cubemap_roughness_mip_mapping_matches_shader_contract() {
+fn source_cubemap_roughness_mip_mapping_matches_unreal_and_shader_contract() {
     let mip_count = SOURCE_CUBEMAP_PMREM_MIP_COUNT;
     assert_close(source_cubemap_pmrem_mip_from_roughness(0.0, mip_count), 0.0);
     assert_close(
         source_cubemap_pmrem_mip_from_roughness(1.0, mip_count),
-        (mip_count - 2) as Real,
+        (mip_count - 3) as Real,
     );
     assert_close(source_cubemap_roughness_from_pmrem_mip(0, mip_count), 0.0);
-    assert!(source_cubemap_roughness_from_pmrem_mip(mip_count - 3, mip_count) < 1.0);
+    assert!(source_cubemap_roughness_from_pmrem_mip(mip_count - 4, mip_count) < 1.0);
     assert_close(
-        source_cubemap_roughness_from_pmrem_mip(mip_count - 2, mip_count),
+        source_cubemap_roughness_from_pmrem_mip(mip_count - 3, mip_count),
         1.0,
     );
     assert_close(
@@ -275,7 +278,7 @@ fn source_cubemap_roughness_mip_mapping_matches_shader_contract() {
     );
 
     let mut previous = 0.0;
-    for mip in 1..(mip_count - 1) {
+    for mip in 1..(mip_count - 2) {
         let roughness = source_cubemap_roughness_from_pmrem_mip(mip, mip_count);
         assert!(
             roughness >= previous,
@@ -292,6 +295,8 @@ fn source_cubemap_roughness_mip_mapping_matches_shader_contract() {
 #[test]
 fn source_cubemap_pmrem_wgsl_lookup_matches_public_roughness_contract() {
     const ENVIRONMENT_WGSL: &str = concat!(
+        include_str!("../../../../../graphics/shader/wgsl/zr_procedural_sky.wgsl"),
+        "\n",
         include_str!("../../../../../graphics/shader/wgsl/zr_environment_core.wgsl"),
         "\n",
         include_str!("../../../../../graphics/shader/wgsl/zr_environment_generic_api.wgsl"),
@@ -316,7 +321,7 @@ fn source_cubemap_pmrem_wgsl_lookup_matches_public_roughness_contract() {
     }
     assert!(
         ENVIRONMENT_WGSL.contains(
-            "max_mip - ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP\n            + ZR_ENVIRONMENT_PMREM_ROUGHNESS_MIP_SCALE * log2(clamped_roughness),"
+            "max_mip - 1.0 - ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP\n            + ZR_ENVIRONMENT_PMREM_ROUGHNESS_MIP_SCALE * log2(clamped_roughness),"
         ),
         "environment WGSL must apply its PMREM roughness constants to the lookup"
     );

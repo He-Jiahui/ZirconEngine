@@ -1,6 +1,6 @@
 use glyphon::{
-    Attrs, Buffer, Cache, Color, Family, FontSystem, Metrics, Resolution, Shaping, Style,
-    SwashCache, TextArea, TextAtlas, TextRenderer, Viewport, Weight, Wrap,
+    Attrs, Buffer, Cache, Color, ColorMode, Family, FontSystem, Metrics, Resolution, Shaping,
+    Style, SwashCache, TextArea, TextAtlas, TextRenderer, Viewport, Weight, Wrap,
 };
 use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
@@ -9,6 +9,7 @@ use zr_rhi::{
 };
 
 use super::batching::DrawOp;
+use super::color_space::{target_color_mode, UiTargetColorMode};
 use super::geometry::{
     command_effective_rect, full_projection_effective_rect, text_bounds_from_rect,
 };
@@ -34,6 +35,7 @@ pub(super) struct WgpuUiTextRenderer {
     font_system: FontSystem,
     swash_cache: SwashCache,
     batch_cache_key: Option<TextBatchCacheKey>,
+    prepared_renderer_count: u64,
     batches: Vec<WgpuUiTextBatch>,
 }
 
@@ -49,7 +51,13 @@ impl WgpuUiTextRenderer {
     ) -> Self {
         let cache = Cache::new(device);
         let viewport = Viewport::new(device, &cache);
-        let atlas = TextAtlas::new(device, queue, &cache, target_format);
+        let atlas = TextAtlas::with_color_mode(
+            device,
+            queue,
+            &cache,
+            target_format,
+            text_color_mode(target_format),
+        );
         Self {
             _cache: cache,
             viewport,
@@ -57,6 +65,7 @@ impl WgpuUiTextRenderer {
             font_system: FontSystem::new(),
             swash_cache: SwashCache::new(),
             batch_cache_key: None,
+            prepared_renderer_count: 0,
             batches: Vec::new(),
         }
     }
@@ -73,11 +82,7 @@ impl WgpuUiTextRenderer {
         if let Some(cache_key) = cache_key {
             if self.batch_cache_key == Some(cache_key) {
                 return WgpuUiTextPrepareStats {
-                    text_renderer_cache_hit_count: self
-                        .batches
-                        .iter()
-                        .filter(|batch| batch.renderer.is_some())
-                        .count() as u64,
+                    text_renderer_cache_hit_count: self.prepared_renderer_count,
                     ..WgpuUiTextPrepareStats::default()
                 };
             }
@@ -92,6 +97,7 @@ impl WgpuUiTextRenderer {
         );
         self.batches.clear();
         self.batch_cache_key = None;
+        self.prepared_renderer_count = 0;
         let mut stats = WgpuUiTextPrepareStats::default();
         for op in draw_ops {
             let DrawOp::Text(text_draw) = op else {
@@ -127,10 +133,8 @@ impl WgpuUiTextRenderer {
                 let Some(clip) = clip else {
                     continue;
                 };
-                let mut buffer = Buffer::new(
-                    &mut self.font_system,
-                    Metrics::new(font_size.max(1.0), line_height.max(1.0)),
-                );
+                let mut buffer =
+                    Buffer::new(&mut self.font_system, text_metrics(font_size, line_height));
                 prepare_buffer(
                     &mut self.font_system,
                     &mut buffer,
@@ -200,6 +204,7 @@ impl WgpuUiTextRenderer {
         }
         self.batch_cache_key =
             committed_text_batch_cache_key(cache_key, stats.text_prepare_failure_count);
+        self.prepared_renderer_count = stats.text_renderer_build_count;
         stats
     }
 
@@ -220,6 +225,17 @@ impl WgpuUiTextRenderer {
 
 fn text_has_visible_content(text: &str) -> bool {
     text.chars().any(|character| !character.is_whitespace())
+}
+
+fn text_metrics(font_size: f32, line_height: f32) -> Metrics {
+    Metrics::new(font_size.max(1.0), line_height.max(1.0))
+}
+
+fn text_color_mode(target_format: wgpu::TextureFormat) -> ColorMode {
+    match target_color_mode(target_format) {
+        UiTargetColorMode::LinearSrgb => ColorMode::Accurate,
+        UiTargetColorMode::ByteEncodedFallback => ColorMode::Web,
+    }
 }
 
 fn text_batch_cache_key(
@@ -361,6 +377,26 @@ mod tests {
         assert!(!text_has_visible_content(""));
         assert!(!text_has_visible_content(" \t\r\n"));
         assert!(text_has_visible_content("Zircon"));
+    }
+
+    #[test]
+    fn text_metrics_preserve_fractional_physical_sizes() {
+        let metrics = text_metrics(13.333_333, 16.666_666);
+
+        assert_eq!(metrics.font_size.to_bits(), 13.333_333_f32.to_bits());
+        assert_eq!(metrics.line_height.to_bits(), 16.666_666_f32.to_bits());
+    }
+
+    #[test]
+    fn text_color_mode_matches_the_surface_transfer_function() {
+        assert_eq!(
+            text_color_mode(wgpu::TextureFormat::Bgra8UnormSrgb),
+            glyphon::ColorMode::Accurate
+        );
+        assert_eq!(
+            text_color_mode(wgpu::TextureFormat::Bgra8Unorm),
+            glyphon::ColorMode::Web
+        );
     }
 
     #[test]

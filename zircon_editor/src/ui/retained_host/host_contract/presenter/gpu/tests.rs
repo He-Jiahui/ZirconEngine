@@ -2,7 +2,7 @@ use super::*;
 use crate::ui::retained_host::host_contract::chrome_command_stream::{
     ChromeCommandLayer, ChromeCommandStream, ChromeImagePayload,
 };
-use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::data::{FrameRect, HostPresentationGenerationCursor};
 use crate::ui::retained_host::host_contract::presenter::error::HostPresenterError;
 use zircon_runtime::rhi::{
     RhiError, UiSurfaceDrawList, UiSurfacePresentOutcome, UiSurfacePresentStats,
@@ -82,6 +82,7 @@ fn gpu_presenter_retries_an_unsubmitted_frame_without_publishing_a_damage_baseli
     let error = presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             Some(damage.clone()),
             HostInvalidationDiagnostics::default(),
         )
@@ -94,6 +95,7 @@ fn gpu_presenter_retries_an_unsubmitted_frame_without_publishing_a_damage_baseli
     let diagnostics = presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             Some(damage),
             HostInvalidationDiagnostics::default(),
         )
@@ -178,6 +180,7 @@ fn gpu_presenter_damage_present_uses_patch_after_surface_cache_is_ready() {
     let diagnostics = presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             Some(damage.clone()),
             HostInvalidationDiagnostics::default(),
         )
@@ -195,13 +198,14 @@ fn gpu_presenter_damage_present_uses_patch_after_surface_cache_is_ready() {
             && command.frame.width >= 64.0
             && command.frame.height >= 64.0
     }));
-    assert_eq!(diagnostics.full_paint_count, 0);
-    assert_eq!(diagnostics.region_paint_count, 1);
-    assert_eq!(diagnostics.painted_pixel_count, 40);
+    assert_eq!(diagnostics.full_paint_count, 1);
+    assert_eq!(diagnostics.region_paint_count, 0);
+    assert_eq!(diagnostics.painted_pixel_count, 64 * 64);
 
     let diagnostics = presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             Some(damage.clone()),
             HostInvalidationDiagnostics::default(),
         )
@@ -221,9 +225,9 @@ fn gpu_presenter_damage_present_uses_patch_after_surface_cache_is_ready() {
             damage.height
         ))
     );
-    assert_eq!(diagnostics.full_paint_count, 0);
-    assert_eq!(diagnostics.region_paint_count, 2);
-    assert_eq!(diagnostics.painted_pixel_count, 80);
+    assert_eq!(diagnostics.full_paint_count, 1);
+    assert_eq!(diagnostics.region_paint_count, 1);
+    assert_eq!(diagnostics.painted_pixel_count, 64 * 64 + 40);
 }
 
 #[test]
@@ -233,6 +237,7 @@ fn gpu_presenter_keeps_live_full_and_damage_streams_unversioned() {
     presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             None,
             HostInvalidationDiagnostics {
                 slow_path_rebuild_count: 17,
@@ -254,6 +259,7 @@ fn gpu_presenter_keeps_live_full_and_damage_streams_unversioned() {
     presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             Some(FrameRect {
                 x: 1.0,
                 y: 2.0,
@@ -288,6 +294,7 @@ fn gpu_presenter_resize_invalidates_damage_cache() {
     presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             None,
             HostInvalidationDiagnostics::default(),
         )
@@ -296,6 +303,7 @@ fn gpu_presenter_resize_invalidates_damage_cache() {
     presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             Some(damage),
             HostInvalidationDiagnostics::default(),
         )
@@ -316,6 +324,7 @@ fn gpu_presenter_same_size_resize_preserves_the_damage_cache() {
     presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             None,
             HostInvalidationDiagnostics::default(),
         )
@@ -342,6 +351,7 @@ fn gpu_presenter_builds_one_command_snapshot_per_native_resize_transaction() {
     presenter
         .present_during_native_resize(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             HostInvalidationDiagnostics::default(),
         )
         .unwrap();
@@ -355,6 +365,7 @@ fn gpu_presenter_builds_one_command_snapshot_per_native_resize_transaction() {
     presenter
         .present_during_native_resize(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             HostInvalidationDiagnostics::default(),
         )
         .unwrap();
@@ -392,6 +403,7 @@ fn gpu_presenter_builds_one_command_snapshot_per_native_resize_transaction() {
     presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             Some(damage),
             HostInvalidationDiagnostics::default(),
         )
@@ -412,6 +424,7 @@ fn gpu_presenter_builds_one_command_snapshot_per_native_resize_transaction() {
     presenter
         .present_during_native_resize(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             HostInvalidationDiagnostics::default(),
         )
         .unwrap();

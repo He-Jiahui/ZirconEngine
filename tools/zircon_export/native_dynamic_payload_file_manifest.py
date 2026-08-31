@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import dataclass
 from pathlib import Path
 
 from .native_dynamic_contract import NATIVE_DYNAMIC_PACKAGE_REPORT_FILE
+
+
+@dataclass(frozen=True)
+class NativeDynamicPayloadFileRead:
+    byte_count: int
+    sha256: str
 
 
 def normalized_file_manifest(value: object) -> list[dict[str, object]] | None:
@@ -104,14 +111,14 @@ def native_dynamic_plugins_file_manifest(
         relative_path = file_path.relative_to(manifest_root).as_posix()
         if root_prefix is not None:
             relative_path = f"{root_prefix}/{file_path.relative_to(plugins_dir).as_posix()}"
-        payload = read_native_dynamic_payload_file(file_path, diagnostics)
-        if payload is None:
+        payload_read = read_native_dynamic_payload_file(file_path, diagnostics)
+        if payload_read is None:
             continue
         file_manifest.append(
             {
                 "path": relative_path,
-                "bytes": len(payload),
-                "sha256": hashlib.sha256(payload).hexdigest(),
+                "bytes": payload_read.byte_count,
+                "sha256": payload_read.sha256,
             }
         )
     return sorted(file_manifest, key=lambda entry: str(entry["path"]))
@@ -136,14 +143,14 @@ def native_dynamic_package_payload_file_manifest(
         if not file_path.is_file() or file_path.name == NATIVE_DYNAMIC_PACKAGE_REPORT_FILE:
             continue
         relative_path = file_path.relative_to(package_dir).as_posix()
-        payload = read_native_dynamic_payload_file(file_path, diagnostics)
-        if payload is None:
+        payload_read = read_native_dynamic_payload_file(file_path, diagnostics)
+        if payload_read is None:
             continue
         file_manifest.append(
             {
                 "path": relative_path,
-                "bytes": len(payload),
-                "sha256": hashlib.sha256(payload).hexdigest(),
+                "bytes": payload_read.byte_count,
+                "sha256": payload_read.sha256,
             }
         )
     return sorted(file_manifest, key=lambda entry: str(entry["path"]))
@@ -152,9 +159,17 @@ def native_dynamic_package_payload_file_manifest(
 def read_native_dynamic_payload_file(
     file_path: Path,
     diagnostics: list[str] | None,
-) -> bytes | None:
+) -> NativeDynamicPayloadFileRead | None:
     try:
-        return file_path.read_bytes()
+        with file_path.open("rb") as payload_file:
+            payload_file.seek(0, 2)
+            byte_count = payload_file.tell()
+            payload_file.seek(0)
+            sha256 = hashlib.file_digest(payload_file, "sha256").hexdigest()
+        return NativeDynamicPayloadFileRead(
+            byte_count=byte_count,
+            sha256=sha256,
+        )
     except OSError as error:
         if diagnostics is not None:
             diagnostics.append(f"NativeDynamic payload file {file_path} could not be read: {error}")

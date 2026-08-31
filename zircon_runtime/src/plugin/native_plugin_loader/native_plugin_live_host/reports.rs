@@ -252,7 +252,9 @@ impl NativePluginRuntimeCommandDispatchReport {
     }
 
     pub fn combined_diagnostics(&self) -> Vec<String> {
-        let mut diagnostics = self.diagnostics.clone();
+        let mut diagnostics =
+            Vec::with_capacity(self.diagnostics.len() + report_diagnostic_capacity(&self.calls));
+        diagnostics.extend(self.diagnostics.iter().cloned());
         for call in &self.calls {
             diagnostics.extend(report_diagnostics(
                 &call.plugin_id,
@@ -309,7 +311,9 @@ impl NativePluginRuntimeStateRestoreReport {
     }
 
     pub fn combined_diagnostics(&self) -> Vec<String> {
-        let mut diagnostics = self.diagnostics.clone();
+        let mut diagnostics =
+            Vec::with_capacity(self.diagnostics.len() + report_diagnostic_capacity(&self.calls));
+        diagnostics.extend(self.diagnostics.iter().cloned());
         for call in &self.calls {
             diagnostics.extend(report_diagnostics(
                 &call.plugin_id,
@@ -320,6 +324,23 @@ impl NativePluginRuntimeStateRestoreReport {
         sorted_unique_diagnostics(diagnostics)
     }
 }
+
+fn report_diagnostic_capacity(calls: &[NativePluginRuntimeBehaviorCall]) -> usize {
+    calls
+        .iter()
+        .map(|call| {
+            if call.report.diagnostics.is_empty() {
+                usize::from(call.report.status_code != ZIRCON_NATIVE_PLUGIN_STATUS_OK)
+            } else {
+                call.report.diagnostics.len()
+            }
+        })
+        .sum()
+}
+
+#[cfg(test)]
+#[path = "reports/optimization_tests.rs"]
+mod optimization_tests;
 
 /// Native runtime plugin state captured when editor play mode begins.
 #[derive(Clone, Debug, PartialEq, Eq)]

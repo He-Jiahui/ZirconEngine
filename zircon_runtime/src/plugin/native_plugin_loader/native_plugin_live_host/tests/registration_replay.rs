@@ -4,96 +4,22 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use super::super::super::behavior_calls::NativePluginBehavior;
-use super::super::super::benchmark_harness::{BenchmarkMeasurement, BenchmarkRunMetadata};
-use super::super::super::registration_manifest::{
-    NativeSystemAccessAuthorityError, NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY,
-};
+use super::super::super::registration_manifest::NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY;
 use super::*;
 use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::plugin::PluginModuleManifest;
-use crate::plugin::RuntimeExtensionRegistryError;
 use crate::scene::{SystemStage, World};
+
+#[path = "registration_replay/benchmarks.rs"]
+mod benchmarks;
+#[path = "registration_replay/structure.rs"]
+mod structure;
 
 static DIST_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
 static OLD_GENERATION_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
 static RELOADED_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
 static INTERLEAVED_OLD_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
 static INTERLEAVED_RELOADED_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
-
-#[test]
-fn native_live_host_uses_typed_borrowed_plugin_keys() {
-    let source = include_str!("../keys.rs");
-
-    assert!(source.contains("NativePluginLiveKey"));
-    assert!(source.contains("NativePluginLiveRegistry"));
-    assert!(!source.contains("format!(\"{}"));
-}
-
-#[test]
-fn native_registration_replay_generation_uses_one_validated_bridge_binding_authority() {
-    let source = include_str!("../bridge_methods.rs");
-    let start = source
-        .find("pub(super) fn build_runtime_bridge_generation_result")
-        .expect("replay generation context builder must remain defined");
-    let end = source[start..]
-        .find("pub fn reload_runtime_bridge_provider_and_scope_from_installed_bindings")
-        .map(|offset| start + offset)
-        .expect("replay generation context builder must end before the reload helper");
-    let context_builder = &source[start..end];
-
-    assert!(source.contains("ValidatedRuntimeBridgeMethodBindings"));
-    assert!(context_builder.contains("validated_bindings.descriptors.iter()"));
-    assert!(context_builder.contains("validated_bindings.method_slots.clone()"));
-    assert!(!context_builder.contains("bindings.iter().cloned()"));
-    assert!(!context_builder.contains("loaded_runtime_package_manifest_and_callback_owner_result"));
-    assert!(!source.contains("runtime_bridge_call_scope_from_loaded_manifest"));
-}
-
-#[test]
-fn native_registration_replay_reads_manifest_and_callbacks_under_one_loaded_guard() {
-    let source = include_str!("../registration_replay.rs");
-    let start = source
-        .find("fn build_runtime_registration_replay_generation")
-        .expect("registration replay generation builder must remain defined");
-    let end = source[start..]
-        .find("fn replay_runtime_registration_system")
-        .map(|offset| start + offset)
-        .expect("registration replay generation builder must end before system replay");
-    let builder = &source[start..end];
-
-    let loaded_lock = builder
-        .find("lock_loaded_native_plugins(&self.loaded)")
-        .expect("generation build must acquire the loaded-generation guard");
-    let manifest_source = builder
-        .find("runtime_registration_manifest_source(plugin_id, plugin)")
-        .expect("manifest source must be read from the guarded loaded plugin");
-    let bridge_generation = builder
-        .find("runtime_bridge_generation_result(plugin_id, lifecycle)")
-        .expect("bridge generation must be read while the loaded generation is guarded");
-    let loaded_drop = builder
-        .find("drop(loaded)")
-        .expect("generation build must explicitly retain the loaded guard through preparation");
-
-    assert!(loaded_lock < manifest_source);
-    assert!(manifest_source < bridge_generation);
-    assert!(bridge_generation < loaded_drop);
-}
-
-#[test]
-fn native_live_host_typed_registry_keeps_module_kinds_distinct() {
-    let mut registry = super::super::keys::NativePluginLiveRegistry::default();
-    registry.insert(live_key(PluginModuleKind::Runtime, "physics"), 1_u8);
-    registry.insert(live_key(PluginModuleKind::Editor, "physics"), 2_u8);
-
-    assert_eq!(
-        registry.get(&live_key(PluginModuleKind::Runtime, "physics")),
-        Some(&1)
-    );
-    assert_eq!(
-        registry.get(&live_key(PluginModuleKind::Editor, "physics")),
-        Some(&2)
-    );
-}
 
 #[test]
 fn dist_system_plugin_loads_and_ticks_via_bridge() {
@@ -199,140 +125,6 @@ fn native_registration_replay_preserves_sets_order_and_before_after_constraints(
         ],
         "before/after constraints must dominate conflicting numeric order values"
     );
-}
-
-#[test]
-fn native_registration_replay_reports_typed_schema_error() {
-    let host = NativePluginLiveHost::default();
-    {
-        let mut loaded = lock_loaded_native_plugins(&host.loaded)
-            .expect("test should lock the native live host");
-        loaded.insert(
-            live_key(PluginModuleKind::Runtime, "physics"),
-            native_live_host_registration_replay_plugin_with_schema(
-                "physics",
-                "zircon.native.registration-manifest/2",
-            ),
-        );
-    }
-
-    let error = host
-        .replay_runtime_plugin_registration_manifest_via_bridge_result(
-            &mut RuntimeExtensionRegistry::default(),
-            &native_live_host_bridge_lifecycle_state(false),
-            "physics",
-        )
-        .expect_err("unsupported registration manifest schema should be typed");
-
-    assert!(matches!(
-        error,
-        NativePluginRegistrationReplayError::UnsupportedManifestSchema {
-            plugin_id,
-            actual,
-            expected: "zircon.native.registration-manifest/3"
-        } if plugin_id == "physics" && actual == "zircon.native.registration-manifest/2"
-    ));
-}
-
-#[test]
-fn native_registration_replay_reports_typed_duplicate_system_error() {
-    let host = NativePluginLiveHost::default();
-    let mut load_report = NativePluginLoadReport::default();
-    load_report.push_loaded(native_live_host_dist_system_plugin());
-    host.load_reported_plugins(load_report, PluginModuleKind::Runtime)
-        .expect("test should load the native runtime plugin");
-    let lifecycle = native_live_host_bridge_lifecycle_state(false);
-    let mut registry = RuntimeExtensionRegistry::default();
-    host.replay_runtime_plugin_registration_manifest_via_bridge_result(
-        &mut registry,
-        &lifecycle,
-        "physics",
-    )
-    .expect("first replay should register the native system");
-
-    let error = host
-        .replay_runtime_plugin_registration_manifest_via_bridge_result(
-            &mut registry,
-            &lifecycle,
-            "physics",
-        )
-        .expect_err("second replay should return typed duplicate system error");
-
-    assert!(matches!(
-        error,
-        NativePluginRegistrationReplayError::RegisterNativeSystem {
-            plugin_id,
-            system_id,
-            source: RuntimeExtensionRegistryError::DuplicatePluginSystem(source_system_id)
-        } if plugin_id == "physics"
-            && system_id == "physics.runtime_tick"
-            && source_system_id == "physics.runtime_tick"
-    ));
-}
-
-#[test]
-fn native_registration_replay_compiles_authorized_worker_access() {
-    let host = NativePluginLiveHost::default();
-    let load_report = NativePluginLoadReport::from_loaded(vec![native_worker_access_plugin(true)]);
-    host.load_reported_plugins(load_report, PluginModuleKind::Runtime)
-        .unwrap();
-    let mut registry = RuntimeExtensionRegistry::default();
-    registry
-        .register_component(ComponentTypeDescriptor::new(
-            "physics.Body",
-            "physics",
-            "Physics Body",
-        ))
-        .unwrap();
-
-    host.replay_runtime_plugin_registration_manifest_via_bridge_result(
-        &mut registry,
-        &native_live_host_bridge_lifecycle_state(false),
-        "physics",
-    )
-    .unwrap();
-    let mut world = World::empty();
-    registry.apply_to_world(&mut world).unwrap();
-    let system = world
-        .schedule()
-        .native_systems_for_stage(SystemStage::Update)
-        .next()
-        .unwrap();
-
-    assert_eq!(
-        system.thread_affinity(),
-        crate::scene::ecs::SceneSystemThreadAffinity::WorkerSafe
-    );
-    assert!(system.supports_worldless_execution());
-    assert!(!system.access().has_conservative_world_access());
-    assert!(world
-        .registered_external_resource_id("physics.solver")
-        .is_some());
-}
-
-#[test]
-fn native_registration_replay_rejects_worker_access_without_host_grant() {
-    let host = NativePluginLiveHost::default();
-    let load_report = NativePluginLoadReport::from_loaded(vec![native_worker_access_plugin(false)]);
-    host.load_reported_plugins(load_report, PluginModuleKind::Runtime)
-        .unwrap();
-
-    let error = host
-        .replay_runtime_plugin_registration_manifest_via_bridge_result(
-            &mut RuntimeExtensionRegistry::default(),
-            &native_live_host_bridge_lifecycle_state(false),
-            "physics",
-        )
-        .expect_err("worker-safe manifest must not trust a capability the host did not grant");
-
-    assert!(matches!(
-        error,
-        NativePluginRegistrationReplayError::InvalidSystemAccessAuthority {
-            plugin_id,
-            system_id,
-            source: NativeSystemAccessAuthorityError::WorkerSafeCapabilityNotGranted,
-        } if plugin_id == "physics" && system_id == "physics.runtime_tick"
-    ));
 }
 
 #[test]
@@ -674,124 +466,6 @@ fn replay_and_run_interleaved_registration(
     system_id
 }
 
-#[test]
-#[ignore = "manual native registration replay benchmark: 1 system, 1 method"]
-fn native_registration_replay_1_systems_1_methods_benchmark() {
-    run_native_registration_replay_benchmark(1, 1);
-}
-
-#[test]
-#[ignore = "manual native registration replay benchmark: 1 system, 100 methods"]
-fn native_registration_replay_1_systems_100_methods_benchmark() {
-    run_native_registration_replay_benchmark(1, 100);
-}
-
-#[test]
-#[ignore = "manual native registration replay benchmark: 100 systems, 1 method"]
-fn native_registration_replay_100_systems_1_methods_benchmark() {
-    run_native_registration_replay_benchmark(100, 1);
-}
-
-#[test]
-#[ignore = "manual native registration replay benchmark: 100 systems, 100 methods"]
-fn native_registration_replay_100_systems_100_methods_benchmark() {
-    run_native_registration_replay_benchmark(100, 100);
-}
-
-#[test]
-#[ignore = "manual native registration replay benchmark: 1000 systems, 1 method"]
-fn native_registration_replay_1000_systems_1_methods_benchmark() {
-    run_native_registration_replay_benchmark(1_000, 1);
-}
-
-#[test]
-#[ignore = "manual native registration replay benchmark: 1000 systems, 100 methods"]
-fn native_registration_replay_1000_systems_100_methods_benchmark() {
-    run_native_registration_replay_benchmark(1_000, 100);
-}
-
-fn run_native_registration_replay_benchmark(system_count: usize, method_count: usize) {
-    let metadata = BenchmarkRunMetadata::from_environment(
-        "native_registration_replay",
-        format!("systems={system_count},methods={method_count}"),
-    )
-    .expect("benchmark metadata must be bound to a managed optimized-profile run");
-
-    replay_native_registration_scale_fixture(system_count, method_count);
-    let host = native_registration_replay_scale_host(system_count, method_count);
-    let lifecycle = native_live_host_bridge_lifecycle_state(false);
-    let mut registry = RuntimeExtensionRegistry::default();
-    let started = Instant::now();
-    let replay = host
-        .replay_runtime_plugin_registration_manifest_via_bridge_result(
-            &mut registry,
-            &lifecycle,
-            "physics",
-        )
-        .expect("scale fixture should replay");
-    let elapsed = started.elapsed();
-    let counts = host.registration_replay_context_build_counts();
-
-    assert_eq!(replay.registered_systems.len(), system_count);
-    assert_eq!(counts.registration_manifest_parses, 1);
-    assert_eq!(counts.registration_system_preparations, system_count);
-    assert_eq!(counts.package_manifest_snapshots, 0);
-    assert_eq!(counts.binding_snapshots, 0);
-    assert_eq!(counts.method_lookup_builds, 1);
-    assert_eq!(counts.bridge_call_scope_builds, 1);
-    metadata.emit(BenchmarkMeasurement {
-        warmup_operations: 1,
-        measured_operations: 1,
-        elapsed,
-        counters: &[
-            (
-                "registration_manifest_parses",
-                counts.registration_manifest_parses as u64,
-            ),
-            (
-                "registration_system_preparations",
-                counts.registration_system_preparations as u64,
-            ),
-            (
-                "package_manifest_snapshots",
-                counts.package_manifest_snapshots as u64,
-            ),
-            ("binding_snapshots", counts.binding_snapshots as u64),
-            ("method_lookup_builds", counts.method_lookup_builds as u64),
-            (
-                "bridge_call_scope_builds",
-                counts.bridge_call_scope_builds as u64,
-            ),
-        ],
-        latency_sample: None,
-    });
-}
-
-fn replay_native_registration_scale_fixture(system_count: usize, method_count: usize) {
-    let host = native_registration_replay_scale_host(system_count, method_count);
-    host.replay_runtime_plugin_registration_manifest_via_bridge_result(
-        &mut RuntimeExtensionRegistry::default(),
-        &native_live_host_bridge_lifecycle_state(false),
-        "physics",
-    )
-    .expect("registration replay warm-up should succeed");
-}
-
-fn native_registration_replay_scale_host(
-    system_count: usize,
-    method_count: usize,
-) -> NativePluginLiveHost {
-    let host = NativePluginLiveHost::default();
-    let mut load_report = NativePluginLoadReport::default();
-    load_report.push_loaded(native_registration_replay_scale_plugin(
-        system_count,
-        method_count,
-    ));
-    host.load_reported_plugins(load_report, PluginModuleKind::Runtime)
-        .expect("scale fixture should load");
-    host
-}
-
 fn native_live_host_dist_system_plugin() -> LoadedNativePlugin {
     let mut plugin = native_live_host_test_plugin_with_bridge_manifest("physics");
     if let Some(report) = plugin.runtime_entry_report.as_mut() {
@@ -954,65 +628,6 @@ bridge_method = "sample_count"
 "#
             .to_string(),
         );
-    }
-    plugin
-}
-
-fn native_registration_replay_scale_plugin(
-    system_count: usize,
-    method_count: usize,
-) -> LoadedNativePlugin {
-    let mut plugin = native_live_host_dist_system_plugin();
-    let mut interface =
-        PluginInterfaceManifest::new(<dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID);
-    let mut bindings = Vec::with_capacity(method_count);
-    for method_index in 0..method_count {
-        let method_name = format!("method_{method_index}");
-        interface = interface.with_method(PluginInterfaceMethodManifest::new(
-            method_name.clone(),
-            method_index as u32 + 1,
-        ));
-        bindings.push(NativeBridgeMethodBinding::new(
-            <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
-            method_name,
-            NativeBridgeMethodFn::from_rust(native_live_host_dist_system_bridge_method),
-        ));
-    }
-    let manifest = PluginPackageManifest::new("physics", "Physics")
-        .with_runtime_crate("physics_runtime")
-        .with_provided_interface(interface);
-    let mut registration_manifest = String::from(
-        "schema = \"zircon.native.registration-manifest/3\"\n\
-         capabilities = [\"runtime.plugin.physics\"]\n\n\
-         [[modules]]\n\
-         name = \"runtime\"\n\
-         kind = \"runtime\"\n",
-    );
-    for system_index in 0..system_count {
-        let method_index = system_index % method_count;
-        registration_manifest.push_str(&format!(
-            "\n[[systems]]\n\
-             id = \"physics.runtime_tick_{system_index}\"\n\
-             module = \"runtime\"\n\
-             stage = \"Update\"\n\
-             order = {system_index}\n\
-             sets = [\"physics.tick\"]\n\
-             access = [\"write:world\"]\n\
-             bridge_interface = \"native.live_host.bridge.v1\"\n\
-             bridge_method = \"method_{method_index}\"\n"
-        ));
-    }
-    if let Some(descriptor) = plugin.descriptor.as_mut() {
-        descriptor.package_manifest = Some(manifest.clone());
-    }
-    if let Some(report) = plugin.runtime_entry_report.as_mut() {
-        report.package_manifest = Some(manifest);
-        report.bridge_method_bindings = bindings;
-        report
-            .behavior
-            .as_mut()
-            .expect("registration replay fixture behavior")
-            .registration_manifest = Some(registration_manifest);
     }
     plugin
 }

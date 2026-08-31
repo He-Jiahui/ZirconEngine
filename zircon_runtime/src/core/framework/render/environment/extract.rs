@@ -33,7 +33,7 @@ impl EnvironmentExtract {
 
     pub fn source_cubemap(source_cubemap: SourceCubemapEnvironment) -> Self {
         Self {
-            skybox: SkyboxSettings::source_cubemap(source_cubemap.with_prepared_upload_artifact()),
+            skybox: SkyboxSettings::source_cubemap(source_cubemap),
             probes: Vec::new(),
             baked_lighting: None,
             probe_grid: None,

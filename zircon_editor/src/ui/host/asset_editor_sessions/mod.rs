@@ -29,8 +29,8 @@ pub(crate) use watcher::UiAssetWorkspaceWatcher;
 pub use watcher::{UiAssetWorkspaceWatchDiagnostics, UiAssetWorkspaceWatchPollReport};
 pub(crate) use workspace_state::UiAssetDiffSnapshot;
 pub(crate) use workspace_state::{
-    ui_asset_source_hash, UiAssetExternalConflict, UiAssetStaleImportDiagnostic,
-    UiAssetWorkspaceEntry,
+    ui_asset_source_digest, UiAssetExternalConflict, UiAssetSourceDigest,
+    UiAssetStaleImportDiagnostic, UiAssetWorkspaceEntry,
 };
 
 fn parse_ui_asset_document_source(source: &str) -> Result<UiAssetDocument, UiAssetError> {

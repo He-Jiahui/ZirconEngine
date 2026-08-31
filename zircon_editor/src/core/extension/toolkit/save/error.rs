@@ -12,6 +12,12 @@ pub enum SaveError {
     SaveAlreadyInProgress { document: DocumentId },
     #[error("document {document:?} has a close operation in progress")]
     DocumentClosing { document: DocumentId },
+    #[error("document {document:?} reference validation failed: {source}")]
+    ReferenceValidationFailed {
+        document: DocumentId,
+        #[source]
+        source: ToolkitSaveFailure,
+    },
     #[error("document {document:?} save hook failed: {source}")]
     HookFailed {
         document: DocumentId,
@@ -32,6 +38,7 @@ impl SaveError {
             Self::DocumentNotRegistered { document }
             | Self::SaveAlreadyInProgress { document }
             | Self::DocumentClosing { document }
+            | Self::ReferenceValidationFailed { document, .. }
             | Self::HookFailed { document, .. }
             | Self::AutosaveHookFailed { document, .. } => *document,
         }

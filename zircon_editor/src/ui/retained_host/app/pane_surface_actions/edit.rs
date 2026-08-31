@@ -10,7 +10,10 @@ impl RetainedEditorHost {
         value: &str,
     ) {
         self.focus_callback_source_window();
-        if control_id == "HierarchySearchQuery" {
+        if matches!(
+            binding_id,
+            "Workbench/SceneSearchEdit" | "Workbench/SceneSearchCommit"
+        ) {
             self.set_hierarchy_filter_query(value);
             return;
         }

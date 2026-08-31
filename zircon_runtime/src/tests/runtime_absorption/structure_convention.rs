@@ -6,6 +6,8 @@ mod diagnostics_surface;
 mod evidence_ownership;
 #[path = "structure_convention/facade_surface.rs"]
 mod facade_surface;
+#[path = "structure_convention/ffi_panic_boundary.rs"]
+mod ffi_panic_boundary;
 #[path = "structure_convention/graphics_dead_code/mod.rs"]
 mod graphics_dead_code;
 #[path = "structure_convention/lock_poison_policy.rs"]
@@ -44,6 +46,8 @@ mod runtime_dead_code;
 mod rust_source_view;
 #[path = "structure_convention/script_vm_lock_poison.rs"]
 mod script_vm_lock_poison;
+#[path = "structure_convention/shader_prewarm_asset_inventory.rs"]
+mod shader_prewarm_asset_inventory;
 #[path = "structure_convention/support.rs"]
 mod support;
 #[path = "structure_convention/test_file_budget/mod.rs"]

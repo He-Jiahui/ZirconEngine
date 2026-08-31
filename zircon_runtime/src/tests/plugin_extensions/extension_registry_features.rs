@@ -270,11 +270,10 @@ fn runtime_module_load_reports_blocked_optional_features_as_warnings() {
             Some(&manifest),
             [&sound_registration],
             [&feature_registration],
-        );
+        )
+        .expect("optional blocked feature should retain a ready composition");
 
-    let fatal_messages = report.fatal_messages();
     let warning_messages = report.warning_messages();
-    assert!(fatal_messages.is_empty(), "{fatal_messages:?}");
     assert!(warning_messages.iter().any(|warning| {
         warning.contains("optional feature sound.timeline_animation_track is blocked")
     }));
@@ -316,11 +315,10 @@ fn runtime_module_load_reports_blocked_required_features_as_errors() {
             Some(&manifest),
             [&sound_registration],
             [&feature_registration],
-        );
+        )
+        .expect_err("required blocked feature must reject composition");
 
-    let warning_messages = report.warning_messages();
     let fatal_messages = report.fatal_messages();
-    assert!(warning_messages.is_empty(), "{warning_messages:?}");
     assert!(fatal_messages.iter().any(|error| {
         error.contains("required feature sound.timeline_animation_track is blocked")
     }));

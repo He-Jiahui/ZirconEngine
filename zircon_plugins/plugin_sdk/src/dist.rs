@@ -708,8 +708,8 @@ mod tests {
     use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus, ZrStatusCode};
 
     use crate::native::{
-        self, NativePluginBridgeMethodCallV3, NativePluginByteSliceV2,
-        NativePluginCallbackStatusV2, NativePluginHostFunctionTableV3, NativePluginOutputSinkV4,
+        self, NativePluginBridgeMethodCallV3, NativePluginByteSliceV3,
+        NativePluginCallbackStatusV3, NativePluginHostFunctionTableV3, NativePluginOutputSinkV4,
         ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
     };
 
@@ -837,9 +837,9 @@ mod tests {
 
     unsafe extern "C" fn dist_helper_invoke_command(
         _command_slot: u32,
-        _payload: NativePluginByteSliceV2,
+        _payload: NativePluginByteSliceV3,
         _output: NativePluginOutputSinkV4,
-    ) -> NativePluginCallbackStatusV2 {
+    ) -> NativePluginCallbackStatusV3 {
         native::callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, MISSING)
     }
 

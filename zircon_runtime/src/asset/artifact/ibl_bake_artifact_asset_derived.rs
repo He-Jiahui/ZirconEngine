@@ -23,14 +23,14 @@ pub const IBL_BAKE_ASSET_DERIVED_DIRECTORY: &str = "render/ibl-derived";
 pub const IBL_BAKE_ASSET_DERIVED_EXTENSION: &str = "zribl";
 const IBL_BAKE_ASSET_DERIVED_BUNDLE_URI: &str = "res://generated/ibl/asset-derived.zcube";
 
-pub(super) struct PreparedIblBakeArtifactAssetDerivedWrite {
+pub(crate) struct PreparedIblBakeArtifactAssetDerivedWrite {
     path: PathBuf,
     bytes: Vec<u8>,
     report: IblBakeArtifactAssetDerivedWriteReport,
 }
 
 impl PreparedIblBakeArtifactAssetDerivedWrite {
-    pub(super) fn into_parts(self) -> (PathBuf, Vec<u8>, IblBakeArtifactAssetDerivedWriteReport) {
+    pub(crate) fn into_parts(self) -> (PathBuf, Vec<u8>, IblBakeArtifactAssetDerivedWriteReport) {
         (self.path, self.bytes, self.report)
     }
 }
@@ -84,7 +84,7 @@ impl IblBakeArtifactAssetDerivedStore {
         Ok(prepared.report)
     }
 
-    pub(super) fn prepare_source_cubemap_asset_derived_artifact(
+    pub(crate) fn prepare_source_cubemap_asset_derived_artifact(
         &self,
         request: &IblBakeArtifactRequest,
         cubemap: &SourceCubemapMipChain,
@@ -140,15 +140,8 @@ impl IblBakeArtifactAssetDerivedStore {
         &self,
         request: &IblBakeArtifactRequest,
     ) -> Result<IblBakeArtifactAssetDerivedRead, IblBakeArtifactAssetDerivedError> {
-        let path = self.asset_derived_path(request);
-        let bytes = match fs::read(&path) {
-            Ok(bytes) => bytes,
-            Err(source) if source.kind() == std::io::ErrorKind::NotFound => {
-                return Ok(IblBakeArtifactAssetDerivedRead::Missing);
-            }
-            Err(source) => {
-                return Err(IblBakeArtifactAssetDerivedError::Read { path, source });
-            }
+        let Some((_path, bytes)) = self.read_asset_derived_bytes(request)? else {
+            return Ok(IblBakeArtifactAssetDerivedRead::Missing);
         };
         Ok(
             match IblBakeArtifactBlob::decode_current_for_request(request, &bytes) {
@@ -156,6 +149,18 @@ impl IblBakeArtifactAssetDerivedStore {
                 Err(error) => IblBakeArtifactAssetDerivedRead::Rejected(error),
             },
         )
+    }
+
+    pub(crate) fn read_asset_derived_bytes(
+        &self,
+        request: &IblBakeArtifactRequest,
+    ) -> Result<Option<(PathBuf, Vec<u8>)>, IblBakeArtifactAssetDerivedError> {
+        let path = self.asset_derived_path(request);
+        match fs::read(&path) {
+            Ok(bytes) => Ok(Some((path, bytes))),
+            Err(source) if source.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(source) => Err(IblBakeArtifactAssetDerivedError::Read { path, source }),
+        }
     }
 
     fn reject_blob_write_for_paired_source(

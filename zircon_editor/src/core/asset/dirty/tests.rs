@@ -6,29 +6,31 @@ use std::time::Duration;
 
 use crate::core::editing::engine::{
     CommandExecutionError, EditCommand, EditCommandError, EditContext, EditorTransactionEngine,
-    HistoryContextId, HistoryDirtyBatch, HistoryDirtyCursor, SelectionSnapshot,
+    EditWorldRoute, HistoryContextId, HistoryDirtyBatch, HistoryDirtyCursor, SelectionSnapshot,
 };
 use crate::core::editor_message::DocumentId;
-use crate::core::gateway::EditorRuntimeGatewayHandle;
+use crate::core::play::WorldDomain;
 
 use super::registry::DirtyTransactionStateSource;
 use super::{DirtyExternalEffectId, DirtyRegistry, DirtyRegistryError};
 
-struct FixtureContext {
-    gateway: EditorRuntimeGatewayHandle,
-}
-
-impl Default for FixtureContext {
-    fn default() -> Self {
-        Self {
-            gateway: EditorRuntimeGatewayHandle::detached(),
-        }
-    }
-}
+#[derive(Default)]
+struct FixtureContext;
 
 impl EditContext for FixtureContext {
-    fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle {
-        &self.gateway
+    fn capture_world_route(
+        &self,
+        world_domain: WorldDomain,
+    ) -> Result<EditWorldRoute, EditCommandError> {
+        Ok(EditWorldRoute::logical(world_domain))
+    }
+
+    fn activate_world_route(&mut self, _route: &EditWorldRoute) -> Result<(), EditCommandError> {
+        Ok(())
+    }
+
+    fn retire_world_route(&mut self, _world_domain: WorldDomain) -> Result<(), EditCommandError> {
+        Ok(())
     }
 
     fn selection_snapshot(&self) -> SelectionSnapshot {
@@ -153,17 +155,21 @@ fn external_effects_are_typed_sorted_and_independently_clearable() {
     );
     assert!(snapshot.is_dirty());
 
-    assert!(registry
-        .clear_external_effect(
-            document,
-            &effect("asset.import_settings"),
-            settings_revision,
-        )
-        .unwrap());
+    assert!(
+        registry
+            .clear_external_effect(
+                document,
+                &effect("asset.import_settings"),
+                settings_revision,
+            )
+            .unwrap()
+    );
     assert!(registry.snapshot(document).unwrap().is_dirty());
-    assert!(registry
-        .clear_external_effect(document, &effect("ui.source_buffer"), source_revision)
-        .unwrap());
+    assert!(
+        registry
+            .clear_external_effect(document, &effect("ui.source_buffer"), source_revision)
+            .unwrap()
+    );
     assert!(!registry.snapshot(document).unwrap().is_dirty());
 }
 
@@ -189,9 +195,11 @@ fn remarking_an_effect_advances_its_revision() {
             .external_revision(&effect),
         Some(second)
     );
-    assert!(!registry
-        .clear_external_effect(document, &effect, first)
-        .unwrap());
+    assert!(
+        !registry
+            .clear_external_effect(document, &effect, first)
+            .unwrap()
+    );
     assert_eq!(
         registry
             .snapshot(document)
@@ -199,9 +207,11 @@ fn remarking_an_effect_advances_its_revision() {
             .external_revision(&effect),
         Some(second)
     );
-    assert!(registry
-        .clear_external_effect(document, &effect, second)
-        .unwrap());
+    assert!(
+        registry
+            .clear_external_effect(document, &effect, second)
+            .unwrap()
+    );
 }
 
 #[test]

@@ -23,6 +23,11 @@ PackDocumentFingerprint = tuple[
     PackPlanFingerprint,
     tuple[PackAssetFingerprint, ...],
 ]
+DeltaAssetProjection = tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    set[tuple[int, ...]],
+]
 
 
 def pack_report_delta_asset_set_diagnostics(
@@ -30,9 +35,14 @@ def pack_report_delta_asset_set_diagnostics(
     delta_manifest: dict[str, Any],
 ) -> list[str]:
     diagnostics: list[str] = []
-    expected_removed_assets = delta_removed_asset_paths(delta_manifest)
-    if expected_removed_assets is None:
+    projection = delta_manifest_asset_projection(delta_manifest)
+    if projection is None:
         return diagnostics
+    base_assets, target_assets, base_hashes = projection
+    expected_removed_assets = delta_removed_asset_paths_from_assets(
+        base_assets,
+        target_assets,
+    )
     removed_assets = delta_manifest.get("removed_assets")
     if (
         isinstance(removed_assets, list)
@@ -54,34 +64,38 @@ def pack_report_delta_asset_set_diagnostics(
             "delta_manifest.removed_assets"
         )
 
-    expected_delta_asset_sets = delta_changed_and_reused_asset_paths(delta_manifest)
-    if expected_delta_asset_sets is None:
-        return diagnostics
     expected_changed_assets, expected_reused_assets, expected_changed_entries = (
-        expected_delta_asset_sets
+        delta_changed_and_reused_asset_paths_from_projection(
+            target_assets,
+            base_hashes,
+        )
     )
     changed_assets = delta_manifest.get("changed_assets")
-    if isinstance(changed_assets, list) and delta_changed_assets_are_schema_clean(
-        changed_assets
-    ):
-        changed_asset_paths = manifest_asset_paths(changed_assets)
-        if (
-            changed_asset_paths is not None
-            and changed_asset_paths != expected_changed_assets
-        ):
+    parsed_changed_entries = (
+        delta_changed_asset_entries(changed_assets)
+        if isinstance(changed_assets, list)
+        else None
+    )
+    if parsed_changed_entries is not None:
+        sorted_changed_entries = sorted(
+            parsed_changed_entries,
+            key=lambda entry: entry["path"],
+        )
+        changed_asset_paths = [entry["path"] for entry in sorted_changed_entries]
+        if changed_asset_paths != expected_changed_assets:
             diagnostics.append(
                 "pack report delta_manifest.changed_assets does not match "
                 "target assets missing from base chunks"
             )
-        elif not delta_changed_asset_entries_match(
-            changed_assets,
-            expected_changed_entries,
-        ):
+        elif sorted_changed_entries != expected_changed_entries:
             diagnostics.append(
                 "pack report delta_manifest.changed_assets does not match "
                 "target manifest asset entries"
             )
-        if not delta_changed_asset_chunk_hashes_match(delta_manifest, changed_assets):
+        if not delta_changed_asset_chunk_hashes_match_entries(
+            delta_manifest,
+            parsed_changed_entries,
+        ):
             diagnostics.append(
                 "pack report delta_manifest.chunks does not match "
                 "changed asset chunk hashes"
@@ -179,10 +193,17 @@ def delta_chunks_are_schema_clean(chunks: list[Any]) -> bool:
 
 
 def delta_removed_asset_paths(delta_manifest: dict[str, Any]) -> list[str] | None:
-    base_assets = delta_manifest_assets(delta_manifest, "base")
-    target_assets = delta_manifest_assets(delta_manifest, "target")
-    if base_assets is None or target_assets is None:
+    projection = delta_manifest_asset_projection(delta_manifest)
+    if projection is None:
         return None
+    base_assets, target_assets, _ = projection
+    return delta_removed_asset_paths_from_assets(base_assets, target_assets)
+
+
+def delta_removed_asset_paths_from_assets(
+    base_assets: list[dict[str, Any]],
+    target_assets: list[dict[str, Any]],
+) -> list[str]:
     target_paths = {asset["path"] for asset in target_assets}
     return sorted(
         asset["path"] for asset in base_assets if asset["path"] not in target_paths
@@ -192,10 +213,20 @@ def delta_removed_asset_paths(delta_manifest: dict[str, Any]) -> list[str] | Non
 def delta_changed_and_reused_asset_paths(
     delta_manifest: dict[str, Any],
 ) -> tuple[list[str], list[str], list[dict[str, Any]]] | None:
-    base_hashes = delta_manifest_base_chunk_hashes(delta_manifest)
-    target_assets = delta_manifest_assets(delta_manifest, "target")
-    if base_hashes is None or target_assets is None:
+    projection = delta_manifest_asset_projection(delta_manifest)
+    if projection is None:
         return None
+    _, target_assets, base_hashes = projection
+    return delta_changed_and_reused_asset_paths_from_projection(
+        target_assets,
+        base_hashes,
+    )
+
+
+def delta_changed_and_reused_asset_paths_from_projection(
+    target_assets: list[dict[str, Any]],
+    base_hashes: set[tuple[int, ...]],
+) -> tuple[list[str], list[str], list[dict[str, Any]]]:
     changed_assets: list[str] = []
     changed_entries: list[dict[str, Any]] = []
     reused_assets: list[str] = []
@@ -239,6 +270,16 @@ def delta_changed_asset_chunk_hashes_match(
     parsed_changed_entries = delta_changed_asset_entries(changed_assets)
     if parsed_changed_entries is None:
         return True
+    return delta_changed_asset_chunk_hashes_match_entries(
+        delta_manifest,
+        parsed_changed_entries,
+    )
+
+
+def delta_changed_asset_chunk_hashes_match_entries(
+    delta_manifest: dict[str, Any],
+    parsed_changed_entries: list[dict[str, Any]],
+) -> bool:
     chunks = delta_manifest.get("chunks")
     if not isinstance(chunks, list):
         return True
@@ -273,6 +314,36 @@ def delta_manifest_base_chunk_hashes(
             return None
         hashes.add(tuple(chunk["hash"]))
     return hashes
+
+
+def delta_manifest_asset_projection(
+    delta_manifest: dict[str, Any],
+) -> DeltaAssetProjection | None:
+    base = delta_manifest.get("base")
+    target = delta_manifest.get("target")
+    if not isinstance(base, dict) or not isinstance(target, dict):
+        return None
+    if not pack_document_manifest_is_schema_clean(base):
+        return None
+    if not pack_document_manifest_is_schema_clean(target):
+        return None
+    base_assets = base.get("assets")
+    target_assets = target.get("assets")
+    base_pack = base.get("pack")
+    if (
+        not isinstance(base_assets, list)
+        or not isinstance(target_assets, list)
+        or not isinstance(base_pack, dict)
+    ):
+        return None
+    base_chunks = base_pack.get("chunks")
+    if not isinstance(base_chunks, list):
+        return None
+    return (
+        base_assets,
+        target_assets,
+        {tuple(chunk["hash"]) for chunk in base_chunks},
+    )
 
 
 def delta_manifest_assets(

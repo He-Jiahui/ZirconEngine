@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .native_build_workspace import read_toml
-from .plugin_validate_common import plugin_validate_trimmed_string
+from .plugin_validate_common import plugin_other_manifest_paths, plugin_validate_trimmed_string
 
 Diagnostics = list[str]
 Manifest = dict[str, Any]
@@ -258,10 +258,7 @@ def plugin_validate_event_catalog_namespace_index(
     owners: NamespaceOwners = {}
     if plugin_root is None or not plugin_root.exists():
         return owners
-    current = current_manifest_path.resolve()
-    for manifest_path in sorted(plugin_root.rglob("plugin.toml")):
-        if manifest_path.resolve() == current:
-            continue
+    for manifest_path in plugin_other_manifest_paths(plugin_root, current_manifest_path):
         manifest = read_toml(manifest_path, diagnostics)
         if manifest is None:
             continue

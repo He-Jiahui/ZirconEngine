@@ -1,13 +1,15 @@
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, RenderMaterialTextureTransform,
-    StandardPbrMaterialFeatures, SHADING_MODEL_GBUFFER_ALPHA_SCALE,
-    STANDARD_MATERIAL_MIN_ROUGHNESS, STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
-    STANDARD_PBR_DEFAULT_IOR, STANDARD_PBR_NO_ATTENUATION_DISTANCE,
+    SHADING_MODEL_GBUFFER_ALPHA_SCALE, STANDARD_MATERIAL_MIN_ROUGHNESS,
+    STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS, STANDARD_PBR_DEFAULT_IOR,
+    STANDARD_PBR_NO_ATTENUATION_DISTANCE, StandardPbrMaterialFeatures,
 };
 use crate::graphics::scene::resources::MaterialRuntime;
 use wgpu::util::DeviceExt;
 
-pub(crate) const GPU_MATERIAL_UNIFORM_MIN_SIZE: usize = 192;
+/// Shared group-2 material binding floor for Standard-PBR's `data0..data15` ABI.
+/// Custom property payloads are zero-padded to this size because they use the same layout.
+pub(crate) const GPU_MATERIAL_UNIFORM_MIN_SIZE: usize = 256;
 
 pub(crate) struct GpuMaterialUniformResource {
     pub(in crate::graphics::scene::resources) buffer: wgpu::Buffer,
@@ -105,7 +107,7 @@ fn padded_uniform_contents(payload: &RenderMaterialPropertyUniformPayload) -> Ve
 pub(crate) fn standard_material_uniform_contents(
     material: &MaterialRuntime,
 ) -> [u8; GPU_MATERIAL_UNIFORM_MIN_SIZE] {
-    standard_material_uniform_contents_from_values(
+    standard_material_uniform_contents_from_values_with_normal_details(
         material.metallic,
         material.roughness,
         material.occlusion_strength,
@@ -118,6 +120,10 @@ pub(crate) fn standard_material_uniform_contents(
         standard_material_texture_transforms(material),
         standard_material_texture_uv_channels(material),
         &material.advanced_features,
+        material.normal_scale,
+        material.clearcoat_normal_texture_transform,
+        material.clearcoat_normal_texture_uv_channel,
+        material.advanced_features.clearcoat_normal_scale,
     )
 }
 
@@ -152,7 +158,78 @@ fn standard_material_uniform_contents_from_values(
     texture_uv_channels: [u32; STANDARD_TEXTURE_TRANSFORM_COUNT],
     advanced_features: &StandardPbrMaterialFeatures,
 ) -> [u8; GPU_MATERIAL_UNIFORM_MIN_SIZE] {
-    let mut values = [0.0_f32; 48];
+    standard_material_uniform_contents_from_values_with_normal_scale(
+        metallic,
+        roughness,
+        occlusion_strength,
+        emissive,
+        unlit,
+        shading_model_id,
+        taa_reactive_mask_strength,
+        subsurface_profile_index,
+        alpha_cutoff,
+        texture_transforms,
+        texture_uv_channels,
+        advanced_features,
+        1.0,
+    )
+}
+
+fn standard_material_uniform_contents_from_values_with_normal_scale(
+    metallic: f32,
+    roughness: f32,
+    occlusion_strength: f32,
+    emissive: [f32; 3],
+    unlit: bool,
+    shading_model_id: u8,
+    taa_reactive_mask_strength: f32,
+    subsurface_profile_index: u32,
+    alpha_cutoff: Option<f32>,
+    texture_transforms: [RenderMaterialTextureTransform; STANDARD_TEXTURE_TRANSFORM_COUNT],
+    texture_uv_channels: [u32; STANDARD_TEXTURE_TRANSFORM_COUNT],
+    advanced_features: &StandardPbrMaterialFeatures,
+    normal_scale: f32,
+) -> [u8; GPU_MATERIAL_UNIFORM_MIN_SIZE] {
+    standard_material_uniform_contents_from_values_with_normal_details(
+        metallic,
+        roughness,
+        occlusion_strength,
+        emissive,
+        unlit,
+        shading_model_id,
+        taa_reactive_mask_strength,
+        subsurface_profile_index,
+        alpha_cutoff,
+        texture_transforms,
+        texture_uv_channels,
+        advanced_features,
+        normal_scale,
+        RenderMaterialTextureTransform::default(),
+        0,
+        1.0,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn standard_material_uniform_contents_from_values_with_normal_details(
+    metallic: f32,
+    roughness: f32,
+    occlusion_strength: f32,
+    emissive: [f32; 3],
+    unlit: bool,
+    shading_model_id: u8,
+    taa_reactive_mask_strength: f32,
+    subsurface_profile_index: u32,
+    alpha_cutoff: Option<f32>,
+    texture_transforms: [RenderMaterialTextureTransform; STANDARD_TEXTURE_TRANSFORM_COUNT],
+    texture_uv_channels: [u32; STANDARD_TEXTURE_TRANSFORM_COUNT],
+    advanced_features: &StandardPbrMaterialFeatures,
+    normal_scale: f32,
+    clearcoat_normal_transform: RenderMaterialTextureTransform,
+    clearcoat_normal_uv_channel: u32,
+    clearcoat_normal_scale: f32,
+) -> [u8; GPU_MATERIAL_UNIFORM_MIN_SIZE] {
+    let mut values = [0.0_f32; 64];
     values[0] = finite_or(metallic, 0.0).clamp(0.0, 1.0);
     values[1] = finite_or(roughness, 1.0).clamp(STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
     values[2] = finite_or(occlusion_strength, 1.0).clamp(0.0, 1.0);
@@ -163,12 +240,15 @@ fn standard_material_uniform_contents_from_values(
     for (slot, transform) in texture_transforms.into_iter().enumerate() {
         let offset = (2 + slot) * 4;
         values[offset..offset + 4].copy_from_slice(&transform.as_uniform_vec4());
+        let rotation_offset = 52 + slot * 2;
+        values[rotation_offset..rotation_offset + 2]
+            .copy_from_slice(&transform.as_uniform_rotation_sin_cos());
     }
-    values[7] = material_uv_channel_scalar(texture_uv_channels[4]);
-    values[28] = material_uv_channel_scalar(texture_uv_channels[0]);
-    values[29] = material_uv_channel_scalar(texture_uv_channels[1]);
-    values[30] = material_uv_channel_scalar(texture_uv_channels[2]);
-    values[31] = material_uv_channel_scalar(texture_uv_channels[3]);
+    values[7] = finite_or(clearcoat_normal_transform.offset[1], 0.0);
+    values[28] = material_uv_channel_mask(texture_uv_channels, clearcoat_normal_uv_channel);
+    values[29] = finite_or(clearcoat_normal_transform.scale[0], 1.0);
+    values[30] = finite_or(clearcoat_normal_transform.scale[1], 1.0);
+    values[31] = finite_or(clearcoat_normal_transform.offset[0], 0.0);
     values[32] = finite_or(taa_reactive_mask_strength, 0.0).clamp(0.0, 1.0);
     values[33] = f32::from(shading_model_id) / SHADING_MODEL_GBUFFER_ALPHA_SCALE;
     values[34] = material_alpha_cutoff_scalar(alpha_cutoff);
@@ -192,6 +272,14 @@ fn standard_material_uniform_contents_from_values(
         advanced_features.attenuation_distance,
         STANDARD_PBR_NO_ATTENUATION_DISTANCE,
     );
+    values[48] = finite_or(normal_scale, 1.0);
+    let dielectric_f0 = advanced_features.dielectric_f0();
+    values[49] = dielectric_f0;
+    values[50] = finite_or(clearcoat_normal_scale, 1.0);
+    let [clearcoat_rotation_cos, clearcoat_rotation_sin] =
+        clearcoat_normal_transform.as_uniform_rotation_sin_cos();
+    values[51] = clearcoat_rotation_cos;
+    values[62] = clearcoat_rotation_sin;
 
     let mut bytes = [0_u8; GPU_MATERIAL_UNIFORM_MIN_SIZE];
     bytes.copy_from_slice(bytemuck::cast_slice(&values));
@@ -224,8 +312,20 @@ fn standard_material_texture_uv_channels(
     ]
 }
 
-fn material_uv_channel_scalar(channel: u32) -> f32 {
-    channel.min(1) as f32
+fn material_uv_channel_mask(
+    channels: [u32; STANDARD_TEXTURE_TRANSFORM_COUNT],
+    clearcoat_normal_channel: u32,
+) -> f32 {
+    let mut mask = 0_u32;
+    for (slot, channel) in channels.into_iter().enumerate() {
+        if channel == 1 {
+            mask |= 1_u32 << slot;
+        }
+    }
+    if clearcoat_normal_channel == 1 {
+        mask |= 1_u32 << STANDARD_TEXTURE_TRANSFORM_COUNT;
+    }
+    mask as f32
 }
 
 fn material_alpha_cutoff_scalar(alpha_cutoff: Option<f32>) -> f32 {
@@ -235,11 +335,7 @@ fn material_alpha_cutoff_scalar(alpha_cutoff: Option<f32>) -> f32 {
 }
 
 fn finite_or(value: f32, fallback: f32) -> f32 {
-    if value.is_finite() {
-        value
-    } else {
-        fallback
-    }
+    if value.is_finite() { value } else { fallback }
 }
 
 fn finite_positive_or(value: f32, fallback: f32) -> f32 {
@@ -253,13 +349,15 @@ fn finite_positive_or(value: f32, fallback: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderMaterialTextureTransform, StandardPbrMaterialFeatures,
-        STANDARD_MATERIAL_MIN_ROUGHNESS,
+        RenderMaterialTextureTransform, STANDARD_MATERIAL_MIN_ROUGHNESS,
+        StandardPbrMaterialFeatures,
     };
 
     use super::{
-        standard_material_uniform_contents_from_values, GPU_MATERIAL_UNIFORM_MIN_SIZE,
-        STANDARD_TEXTURE_TRANSFORM_COUNT,
+        GPU_MATERIAL_UNIFORM_MIN_SIZE, STANDARD_TEXTURE_TRANSFORM_COUNT,
+        standard_material_uniform_contents_from_values,
+        standard_material_uniform_contents_from_values_with_normal_details,
+        standard_material_uniform_contents_from_values_with_normal_scale,
     };
 
     #[test]
@@ -318,6 +416,71 @@ mod tests {
     }
 
     #[test]
+    fn standard_material_uniform_packs_finite_normal_scale_at_data12_x() {
+        let bytes = standard_material_uniform_contents_from_values_with_normal_scale(
+            0.5,
+            0.5,
+            1.0,
+            [0.0; 3],
+            false,
+            2,
+            0.0,
+            0,
+            None,
+            [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
+            [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+            &StandardPbrMaterialFeatures::default(),
+            0.35,
+        );
+
+        assert_eq!(bytes.len(), GPU_MATERIAL_UNIFORM_MIN_SIZE);
+        assert_eq!(f32_at(&bytes, 192), 0.35);
+
+        let non_finite = standard_material_uniform_contents_from_values_with_normal_scale(
+            0.5,
+            0.5,
+            1.0,
+            [0.0; 3],
+            false,
+            2,
+            0.0,
+            0,
+            None,
+            [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
+            [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+            &StandardPbrMaterialFeatures::default(),
+            f32::NAN,
+        );
+        assert_eq!(f32_at(&non_finite, 192), 1.0);
+    }
+
+    #[test]
+    fn standard_material_uniform_packs_cpu_derived_dielectric_f0_at_data12_y() {
+        let bytes = standard_material_uniform_contents_from_values_with_normal_scale(
+            0.5,
+            0.5,
+            1.0,
+            [0.0; 3],
+            false,
+            2,
+            0.0,
+            0,
+            None,
+            [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
+            [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+            &StandardPbrMaterialFeatures {
+                ior: 2.5,
+                ..Default::default()
+            },
+            1.0,
+        );
+
+        assert!((f32_at(&bytes, 196) - 0.18367347).abs() < 0.000001);
+        assert_eq!(f32_at(&bytes, 200), 1.0);
+        assert_eq!(f32_at(&bytes, 204), 0.0);
+    }
+
+    #[test]
     fn standard_material_uniform_packs_per_slot_texture_transforms() {
         let bytes = standard_material_uniform_contents_from_values(
             0.5,
@@ -331,10 +494,10 @@ mod tests {
             Some(0.625),
             [
                 transform([2.0, 3.0], [0.25, 0.5]),
-                transform([4.0, 5.0], [0.125, 0.25]),
+                transform_with_rotation([4.0, 5.0], [0.125, 0.25], std::f32::consts::FRAC_PI_2),
                 transform([6.0, 7.0], [0.75, 0.875]),
                 transform([8.0, 9.0], [1.25, 1.5]),
-                transform([f32::NAN, 11.0], [f32::INFINITY, -0.25]),
+                transform_with_rotation([f32::NAN, 11.0], [f32::INFINITY, -0.25], f32::NAN),
             ],
             [1, 0, 2, u32::MAX, 1],
             &StandardPbrMaterialFeatures::default(),
@@ -345,9 +508,45 @@ mod tests {
         assert_eq!(vec4_at(&bytes, 64), [6.0, 7.0, 0.75, 0.875]);
         assert_eq!(vec4_at(&bytes, 80), [8.0, 9.0, 1.25, 1.5]);
         assert_eq!(vec4_at(&bytes, 96), [1.0, 11.0, 0.0, -0.25]);
-        assert_eq!(f32_at(&bytes, 28), 1.0);
-        assert_eq!(vec4_at(&bytes, 112), [1.0, 0.0, 1.0, 1.0]);
+        assert_eq!(f32_at(&bytes, 28), 0.0);
+        assert_eq!(vec4_at(&bytes, 112), [17.0, 1.0, 1.0, 0.0]);
         assert_eq!(vec4_at(&bytes, 128), [0.25, 2.0 / 255.0, 0.625, 0.0]);
+        assert_eq!(f32_at(&bytes, 208), 1.0);
+        assert_eq!(f32_at(&bytes, 212), 0.0);
+        assert_eq!(vec4_at(&bytes, 224), [1.0, 0.0, 1.0, 0.0]);
+        assert_eq!(vec4_at(&bytes, 240), [1.0, 0.0, 1.0, 0.0]);
+        assert_f32_near(f32_at(&bytes, 216), 0.0);
+        assert_f32_near(f32_at(&bytes, 220), 1.0);
+    }
+
+    #[test]
+    fn standard_material_uniform_packs_clearcoat_normal_without_growing_the_256_byte_abi() {
+        let bytes = standard_material_uniform_contents_from_values_with_normal_details(
+            0.5,
+            0.5,
+            1.0,
+            [0.0; 3],
+            false,
+            2,
+            0.0,
+            0,
+            None,
+            [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
+            [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+            &StandardPbrMaterialFeatures::default(),
+            0.8,
+            transform_with_rotation([0.5, 0.75], [0.1, 0.2], 0.4),
+            1,
+            0.35,
+        );
+
+        assert_eq!(bytes.len(), GPU_MATERIAL_UNIFORM_MIN_SIZE);
+        assert_eq!(f32_at(&bytes, 28), 0.2);
+        assert_eq!(vec4_at(&bytes, 112), [32.0, 0.5, 0.75, 0.1]);
+        assert_eq!(f32_at(&bytes, 192), 0.8);
+        assert_eq!(f32_at(&bytes, 200), 0.35);
+        assert_f32_near(f32_at(&bytes, 204), 0.4_f32.sin());
+        assert_f32_near(f32_at(&bytes, 248), 0.4_f32.cos());
     }
 
     #[test]
@@ -455,7 +654,19 @@ mod tests {
     }
 
     fn transform(scale: [f32; 2], offset: [f32; 2]) -> RenderMaterialTextureTransform {
-        RenderMaterialTextureTransform { scale, offset }
+        transform_with_rotation(scale, offset, 0.0)
+    }
+
+    fn transform_with_rotation(
+        scale: [f32; 2],
+        offset: [f32; 2],
+        rotation: f32,
+    ) -> RenderMaterialTextureTransform {
+        RenderMaterialTextureTransform {
+            scale,
+            offset,
+            rotation,
+        }
     }
 
     fn vec4_at(bytes: &[u8], offset: usize) -> [f32; 4] {
@@ -469,5 +680,12 @@ mod tests {
 
     fn f32_at(bytes: &[u8], offset: usize) -> f32 {
         f32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap())
+    }
+
+    fn assert_f32_near(actual: f32, expected: f32) {
+        assert!(
+            (actual - expected).abs() <= 0.000_001,
+            "expected {expected:?}, got {actual:?}"
+        );
     }
 }

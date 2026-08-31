@@ -1,12 +1,16 @@
-use crate::builtin::builtin_runtime_modules;
+use crate::builtin::runtime_modules_for_target;
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::scene::SCENE_MODULE_NAME;
 #[cfg(feature = "ui")]
 use crate::core::framework::ui::UI_MODULE_NAME;
 
 #[test]
-fn builtin_runtime_modules_include_target_client_core_and_required_plugins() {
-    let descriptors = builtin_runtime_modules()
-        .into_iter()
+fn client_runtime_composition_includes_core_and_required_plugins() {
+    let composition = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, None)
+        .expect("client runtime composition should compile");
+    let descriptors = composition
+        .modules()
+        .iter()
         .map(|module| module.descriptor().name)
         .collect::<Vec<_>>();
 
@@ -34,9 +38,12 @@ fn builtin_runtime_modules_include_target_client_core_and_required_plugins() {
 }
 
 #[test]
-fn builtin_runtime_modules_keep_client_plugins_after_core_spine() {
-    let descriptors = builtin_runtime_modules()
-        .into_iter()
+fn client_runtime_composition_keeps_plugins_after_core_spine() {
+    let composition = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, None)
+        .expect("client runtime composition should compile");
+    let descriptors = composition
+        .modules()
+        .iter()
         .map(|module| module.descriptor().name)
         .collect::<Vec<_>>();
 

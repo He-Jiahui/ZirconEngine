@@ -1,23 +1,26 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use zircon_runtime::core::math::Real;
+use zircon_runtime::core::framework::animation::compiler::AnimationCompileDiagnostic;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum StateMachineLayerCompileError {
-    InvalidWeight { layer: String, weight: Real },
-    InvalidMask { layer: String },
+    SourceDiagnostics(Vec<AnimationCompileDiagnostic>),
 }
 
 impl Display for StateMachineLayerCompileError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidWeight { layer, weight } => {
-                write!(formatter, "layer `{layer}` has invalid weight {weight}")
-            }
-            Self::InvalidMask { layer } => {
-                write!(formatter, "layer `{layer}` has invalid dense mask weights")
-            }
+            Self::SourceDiagnostics(diagnostics) => match diagnostics.first() {
+                Some(diagnostic) => write!(
+                    formatter,
+                    "animation state-machine source rejected by {}: {}",
+                    diagnostic.code(),
+                    diagnostic.message()
+                ),
+                None => formatter
+                    .write_str("animation state-machine source rejected without diagnostics"),
+            },
         }
     }
 }

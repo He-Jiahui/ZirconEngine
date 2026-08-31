@@ -4,7 +4,7 @@ use zr_rhi::{
     RenderClearColor, RenderDevice, RenderPassColorAttachmentDesc, RenderPassColorLoadOp,
     RenderPassStoreOp, RenderPassTextureViewDesc, RenderQueueClass, RhiError, ShaderModuleDesc,
     ShaderModuleHandle, ShaderStage, TextureDesc, TextureDimension, TextureFormat, TextureHandle,
-    TextureUsage,
+    TextureUsage, TextureViewDesc, TextureViewDimension,
 };
 
 fn create_shader(
@@ -106,9 +106,164 @@ fn command_list_records_render_pass_texture_views() {
             zr_rhi::CommandListCommand::EndRenderPass,
         ]
     );
-    assert!(device
-        .is_fence_complete(device.submit(command_list).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(command_list).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
+}
+
+#[test]
+fn command_list_render_pass_submit_accepts_matching_registered_attachment_view() {
+    let device = DeterministicRhiContractDevice::new_headless();
+    let color = create_render_texture(
+        &device,
+        TextureDesc::new(
+            "registered-view-color",
+            32,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT,
+        ),
+    );
+    let view = device
+        .create_texture_view(&TextureViewDesc::new(
+            "registered-view-color-default",
+            color,
+            TextureViewDimension::D2,
+        ))
+        .unwrap();
+    let attachment = color_attachment(color)
+        .with_view(RenderPassTextureViewDesc::new(color).with_registered_view(view));
+
+    let mut command_list = device
+        .create_command_list(RenderQueueClass::Graphics, "registered-attachment-view")
+        .unwrap();
+    command_list.begin_render_pass("registered-attachment-view", vec![attachment], None);
+    command_list.end_render_pass();
+
+    assert_eq!(
+        device
+            .submission_status(device.submit(command_list).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
+}
+
+#[test]
+fn command_list_render_pass_submit_rejects_registered_attachment_view_from_other_texture() {
+    let device = DeterministicRhiContractDevice::new_headless();
+    let color = create_render_texture(
+        &device,
+        TextureDesc::new(
+            "registered-view-color",
+            32,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT,
+        ),
+    );
+    let other = create_render_texture(
+        &device,
+        TextureDesc::new(
+            "registered-view-other",
+            32,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT,
+        ),
+    );
+    let foreign_view = device
+        .create_texture_view(&TextureViewDesc::new(
+            "registered-view-other-default",
+            other,
+            TextureViewDimension::D2,
+        ))
+        .unwrap();
+    let attachment = color_attachment(color)
+        .with_view(RenderPassTextureViewDesc::new(color).with_registered_view(foreign_view));
+
+    let mut command_list = device
+        .create_command_list(RenderQueueClass::Graphics, "foreign-attachment-view")
+        .unwrap();
+    command_list.begin_render_pass("foreign-attachment-view", vec![attachment], None);
+
+    assert!(matches!(
+        device.submit(command_list),
+        Err(RhiError::InvalidRenderPass { reason }) if reason.contains("registered view")
+    ));
+}
+
+#[test]
+fn command_list_render_pass_submit_rejects_non_matching_registered_attachment_subresources() {
+    let device = DeterministicRhiContractDevice::new_headless();
+    let color = create_render_texture(
+        &device,
+        TextureDesc::new(
+            "registered-view-array-color",
+            32,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT,
+        )
+        .with_dimension(TextureDimension::D2Array)
+        .with_array_layers(2)
+        .with_mip_levels(2),
+    );
+    let cases = [
+        (
+            TextureViewDesc::new(
+                "registered-view-array-dimension",
+                color,
+                TextureViewDimension::D2Array,
+            )
+            .with_mip_range(0, 1)
+            .with_array_layer_range(0, 1),
+            "must have D2 dimension",
+        ),
+        (
+            TextureViewDesc::new(
+                "registered-view-array-full-mip-range",
+                color,
+                TextureViewDimension::D2,
+            )
+            .with_array_layer_range(0, 1),
+            "must select exactly one mip level and array layer",
+        ),
+        (
+            TextureViewDesc::new(
+                "registered-view-array-other-subresource",
+                color,
+                TextureViewDimension::D2,
+            )
+            .with_mip_range(1, 1)
+            .with_array_layer_range(0, 1),
+            "subresource does not match",
+        ),
+    ];
+
+    for (index, (view_desc, expected_reason)) in cases.into_iter().enumerate() {
+        let registered_view = device.create_texture_view(&view_desc).unwrap();
+        let attachment = color_attachment(color)
+            .with_view(RenderPassTextureViewDesc::new(color).with_registered_view(registered_view));
+        let mut command_list = device
+            .create_command_list(
+                RenderQueueClass::Graphics,
+                &format!("registered-attachment-shape-{index}"),
+            )
+            .unwrap();
+        command_list.begin_render_pass(
+            &format!("registered-attachment-shape-{index}"),
+            vec![attachment],
+            None,
+        );
+
+        assert!(matches!(
+            device.submit(command_list),
+            Err(RhiError::InvalidRenderPass { reason }) if reason.contains(expected_reason)
+        ));
+    }
 }
 
 #[test]
@@ -162,9 +317,12 @@ fn command_list_render_pass_submit_uses_mip_extent_for_view_compatibility() {
         None,
     );
     matching.end_render_pass();
-    assert!(device
-        .is_fence_complete(device.submit(matching).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(matching).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 
     let mut mismatched = device
         .create_command_list(RenderQueueClass::Graphics, "mismatched-mip-views")
@@ -334,4 +492,41 @@ fn command_list_render_pass_submit_validates_resolve_target_view_shape() {
                 .to_string(),
         }
     );
+}
+
+#[test]
+fn command_list_render_pass_submit_rejects_non_2d_attachment_dimensions() {
+    let device = DeterministicRhiContractDevice::new_headless();
+
+    for (label, dimension) in [
+        ("one-dimensional", TextureDimension::D1),
+        ("three-dimensional", TextureDimension::D3),
+    ] {
+        let height = match dimension {
+            TextureDimension::D1 => 1,
+            _ => 32,
+        };
+        let texture = create_render_texture(
+            &device,
+            TextureDesc::new(
+                format!("{label}-color"),
+                32,
+                height,
+                TextureFormat::Rgba8UnormSrgb,
+                TextureUsage::RENDER_ATTACHMENT,
+            )
+            .with_dimension(dimension),
+        );
+        let mut command_list = device
+            .create_command_list(RenderQueueClass::Graphics, label)
+            .unwrap();
+        command_list.begin_render_pass(label, vec![color_attachment(texture)], None);
+
+        assert_eq!(
+            device.submit(command_list).unwrap_err(),
+            RhiError::InvalidRenderPass {
+                reason: "color attachment 0 must use a 2D, 2D array, or cube texture".to_string(),
+            }
+        );
+    }
 }

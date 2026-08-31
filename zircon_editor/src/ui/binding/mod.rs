@@ -9,7 +9,10 @@ mod welcome;
 
 pub use animation::AnimationCommand;
 pub use asset::AssetCommand;
-pub use core::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, EditorUiRouter};
+pub use core::{
+    EditorUiBinding, EditorUiBindingError, EditorUiBindingPayload, EditorUiEventKind,
+    EditorUiRouter,
+};
 pub use dock::DockCommand;
 pub use draft::{inspector_field_control_id, DraftCommand};
 pub use selection::SelectionCommand;

@@ -25,9 +25,10 @@ pub(super) fn route_chrome_press_damage_frame(
         ChromePointerRoute::DrawerHeaderTab { surface_key, .. } => {
             route_drawer_header_damage_frame(presentation, surface_key.as_str())
         }
-        ChromePointerRoute::HostPageTab { .. } | ChromePointerRoute::HostPageOverflow { .. } => {
+        ChromePointerRoute::HostPageTab { .. } | ChromePointerRoute::HostPageOverflow => {
             route_host_page_tab_damage_frame(presentation)
         }
+        ChromePointerRoute::DockOverflow { .. } => None,
         ChromePointerRoute::Resize => None,
         ChromePointerRoute::FloatingWindowHeader { window_id } => {
             route_floating_window_header_damage_frame(presentation, window_id.as_str())

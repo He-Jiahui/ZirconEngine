@@ -1,6 +1,9 @@
 ---
 related_code:
   - zircon_runtime/src/scene/runtime_extension/mod.rs
+  - zircon_runtime/src/scene/runtime_extension/error.rs
+  - zircon_runtime/src/scene/runtime_extension/plan.rs
+  - zircon_runtime/src/scene/runtime_extension/registration.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
@@ -8,6 +11,9 @@ related_code:
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/mod.rs
 implementation_files:
   - zircon_runtime/src/scene/runtime_extension/mod.rs
+  - zircon_runtime/src/scene/runtime_extension/error.rs
+  - zircon_runtime/src/scene/runtime_extension/plan.rs
+  - zircon_runtime/src/scene/runtime_extension/registration.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs

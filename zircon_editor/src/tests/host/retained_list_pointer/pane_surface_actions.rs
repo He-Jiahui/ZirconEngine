@@ -12,6 +12,13 @@ fn pane_surface_actions_use_generic_rust_control_callbacks() {
     assert!(globals.contains("on_surface_control_clicked"));
     assert!(wiring.contains("pane_surface_host.on_surface_control_clicked("));
     assert!(actions.contains("dispatch_pane_surface_control_clicked"));
+    assert!(!actions.contains("TriggerAction"));
+    let fallback = actions
+        .split("dispatch_builtin_pane_surface_control")
+        .nth(1)
+        .expect("pane surface fallback dispatch");
+    assert!(fallback.contains("callback_dispatch::dispatch_menu_action"));
+    assert!(fallback.contains("action_id"));
     for legacy in ["on_menu_action", "handle_menu_action"] {
         assert!(!wiring.contains(legacy) && !actions.contains(legacy));
     }

@@ -257,36 +257,44 @@ impl MigrationResolverIndex {
 
     fn finish(&mut self) {
         for identities in self.by_locator.values_mut() {
-            identities.sort_by(|left, right| {
-                left.project_hint
-                    .cmp(&right.project_hint)
-                    .then_with(|| left.physical_root.cmp(&right.physical_root))
-                    .then_with(|| left.physical_path.cmp(&right.physical_path))
-                    .then_with(|| left.logical_root.cmp(&right.logical_root))
-                    .then_with(|| left.root_relative.cmp(&right.root_relative))
-            });
-            identities.dedup_by(|left, right| {
-                left.project_hint == right.project_hint
-                    && left.physical_root == right.physical_root
-                    && left.physical_path == right.physical_path
-                    && left.logical_root == right.logical_root
-                    && left.root_relative == right.root_relative
-            });
+            sort_locator_identities(identities);
         }
         for identities in self.by_project_hint.values_mut() {
-            identities.sort_by(|left, right| {
-                left.locator
-                    .cmp(&right.locator)
-                    .then_with(|| left.physical_root.cmp(&right.physical_root))
-                    .then_with(|| left.physical_path.cmp(&right.physical_path))
-            });
-            identities.dedup_by(|left, right| {
-                left.locator == right.locator
-                    && left.physical_root == right.physical_root
-                    && left.physical_path == right.physical_path
-            });
+            sort_hint_identities(identities);
         }
     }
+}
+
+fn sort_locator_identities(identities: &mut Vec<PersistedSourceIdentity>) {
+    identities.sort_unstable_by(|left, right| {
+        left.project_hint
+            .cmp(&right.project_hint)
+            .then_with(|| left.physical_root.cmp(&right.physical_root))
+            .then_with(|| left.physical_path.cmp(&right.physical_path))
+            .then_with(|| left.logical_root.cmp(&right.logical_root))
+            .then_with(|| left.root_relative.cmp(&right.root_relative))
+    });
+    identities.dedup_by(|left, right| {
+        left.project_hint == right.project_hint
+            && left.physical_root == right.physical_root
+            && left.physical_path == right.physical_path
+            && left.logical_root == right.logical_root
+            && left.root_relative == right.root_relative
+    });
+}
+
+fn sort_hint_identities(identities: &mut Vec<PersistedHintIdentity>) {
+    identities.sort_unstable_by(|left, right| {
+        left.locator
+            .cmp(&right.locator)
+            .then_with(|| left.physical_root.cmp(&right.physical_root))
+            .then_with(|| left.physical_path.cmp(&right.physical_path))
+    });
+    identities.dedup_by(|left, right| {
+        left.locator == right.locator
+            && left.physical_root == right.physical_root
+            && left.physical_path == right.physical_path
+    });
 }
 
 impl ProjectSourceLookup for MigrationResolverIndex {
@@ -361,3 +369,7 @@ mod tests {
         assert_eq!(into_base_project_locator(locator).unwrap(), expected);
     }
 }
+
+#[cfg(test)]
+#[path = "resolver_index/optimization_tests.rs"]
+mod optimization_tests;

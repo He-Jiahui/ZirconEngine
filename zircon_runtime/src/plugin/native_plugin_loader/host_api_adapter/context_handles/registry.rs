@@ -16,7 +16,6 @@ pub(in super::super) const HOST_CONTEXT_PAGE_SLOTS: usize = 256;
 /// The shared raw-handle namespace prevents a registration handle from being treated as a bridge
 /// handle after a slot is reused.
 pub(in super::super) enum NativeHostApiV3Context {
-    Registration(NativeHostApiV3RegistrationContext),
     RegistrationV4(NativeHostApiV4RegistrationContext),
     BridgeCall(NativeHostBridgeCallContext),
 }

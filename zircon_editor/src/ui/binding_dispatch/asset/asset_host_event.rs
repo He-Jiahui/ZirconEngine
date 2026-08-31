@@ -28,6 +28,13 @@ pub enum AssetHostEvent {
         surface: crate::core::editor_event::EditorAssetSurface,
         tab: crate::core::editor_event::EditorAssetUtilityTab,
     },
+    RelocateAsset {
+        asset_uuid: String,
+        target_locator: String,
+    },
+    DeleteAsset {
+        asset_uuid: String,
+    },
     OpenAssetBrowser,
     LocateSelectedAsset,
     ImportModel,

@@ -148,7 +148,7 @@ mod ordered_snapshot_tests {
     use zircon_runtime::core::framework::scene::EntityId;
     use zircon_runtime::core::math::Vec3;
 
-    use super::{PerceivedStimuli, StimulusKey, sense_rank};
+    use super::{sense_rank, PerceivedStimuli, StimulusKey};
 
     const BENCHMARK_STIMULUS_COUNT: usize = 8_192;
     const BENCHMARK_SAMPLE_COUNT: usize = 21;

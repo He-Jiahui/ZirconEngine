@@ -1,12 +1,17 @@
-use std::collections::BTreeMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 
 use super::super::autosave::write_new_atomically;
-use super::{AutosaveRecoveryMetadata, AutosaveSourcePath, RECOVERY_METADATA_FILE_NAME};
-use crate::core::recovery::{AutosaveDocumentId, AutosaveError, RestoreCandidate};
+use super::{
+    AutosaveRecoveryCatalogDiagnostic, AutosaveRecoveryCatalogReport, AutosaveRecoveryMetadata,
+    AutosaveSnapshotMetadata, AutosaveSourcePath, RECOVERY_METADATA_FILE_NAME,
+    snapshot_metadata_path, snapshot_metadata_sequence,
+};
+use crate::core::recovery::{
+    AutosaveContentDigest, AutosaveDocumentId, AutosaveError, AutosaveSourceDigest,
+    RestoreCandidate, RestoreFreshness,
+};
 
 pub(crate) struct AutosaveRecoveryCatalog {
     project_root: PathBuf,
@@ -29,7 +34,7 @@ impl AutosaveRecoveryCatalog {
     ) -> Result<(), AutosaveError> {
         let metadata_path = directory.join(RECOVERY_METADATA_FILE_NAME);
         match read_metadata(&metadata_path) {
-            Ok(metadata) => verify_source(document, source_path, metadata),
+            Ok(metadata) => verify_source(document, source_path, &metadata),
             Err(AutosaveError::RecoveryMetadataMissing { .. }) => {
                 let metadata = AutosaveRecoveryMetadata::from_source_path(source_path.clone());
                 let bytes = metadata.encode(&metadata_path)?;
@@ -40,17 +45,19 @@ impl AutosaveRecoveryCatalog {
                 )? {
                     Ok(())
                 } else {
-                    verify_source(document, source_path, read_metadata(&metadata_path)?)
+                    verify_source(document, source_path, &read_metadata(&metadata_path)?)
                 }
             }
             Err(error) => Err(error),
         }
     }
 
-    pub(crate) fn recovery_candidates(&self) -> Result<Vec<RestoreCandidate>, AutosaveError> {
+    pub(crate) fn recovery_catalog(&self) -> Result<AutosaveRecoveryCatalogReport, AutosaveError> {
         let entries = match fs::read_dir(&self.autosave_root) {
             Ok(entries) => entries,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                return Ok(AutosaveRecoveryCatalogReport::default());
+            }
             Err(source) => {
                 return Err(AutosaveError::Io {
                     operation: "read autosave recovery catalog",
@@ -60,63 +67,135 @@ impl AutosaveRecoveryCatalog {
             }
         };
 
-        let mut candidates = BTreeMap::new();
+        let mut candidates = Vec::new();
+        let mut diagnostics = Vec::new();
         for entry in entries {
-            let entry = entry.map_err(|source| AutosaveError::Io {
-                operation: "enumerate autosave recovery catalog",
-                path: self.autosave_root.clone(),
-                source,
-            })?;
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(source) => {
+                    diagnostics.push(AutosaveRecoveryCatalogDiagnostic::from_entry_error(
+                        &self.autosave_root,
+                        AutosaveError::Io {
+                            operation: "enumerate autosave recovery catalog",
+                            path: self.autosave_root.clone(),
+                            source,
+                        },
+                    ));
+                    continue;
+                }
+            };
             let directory = entry.path();
-            let file_type = entry.file_type().map_err(|source| AutosaveError::Io {
-                operation: "inspect autosave recovery catalog entry",
-                path: directory.clone(),
-                source,
-            })?;
+            let file_type = match entry.file_type() {
+                Ok(file_type) => file_type,
+                Err(source) => {
+                    diagnostics.push(AutosaveRecoveryCatalogDiagnostic::from_entry_error(
+                        &directory,
+                        AutosaveError::Io {
+                            operation: "inspect autosave recovery catalog entry",
+                            path: directory.clone(),
+                            source,
+                        },
+                    ));
+                    continue;
+                }
+            };
             if !file_type.is_dir() {
                 continue;
             }
-            let document = directory
-                .file_name()
-                .and_then(|name| name.to_str())
-                .ok_or_else(|| AutosaveError::InvalidRecoveryDocumentDirectory {
-                    path: directory.clone(),
-                })?;
-            let document = AutosaveDocumentId::parse(document).map_err(|_| {
-                AutosaveError::InvalidRecoveryDocumentDirectory {
-                    path: directory.clone(),
-                }
-            })?;
-            let Some(autosave_path) = latest_snapshot_path(&directory)? else {
-                continue;
-            };
-            let metadata_path = directory.join(RECOVERY_METADATA_FILE_NAME);
-            let metadata = read_metadata(&metadata_path)?;
-            let source_path = self.project_root.join(metadata.source_path().as_path());
-            let source_modified_at =
-                modified_at_or_missing(&source_path, "inspect recovery source")?;
-            let autosave_modified_at = modified_at(&autosave_path, "inspect autosave snapshot")?;
-            candidates.insert(
-                document.clone(),
-                RestoreCandidate::new(
-                    document,
-                    source_path,
-                    autosave_path,
-                    source_modified_at,
-                    autosave_modified_at,
+            match self.recovery_candidate(&directory) {
+                Ok(Some(candidate)) => candidates.push(candidate),
+                Ok(None) => {}
+                Err(error) => diagnostics.push(
+                    AutosaveRecoveryCatalogDiagnostic::from_entry_error(&directory, error),
                 ),
-            );
+            }
         }
-        Ok(candidates.into_values().collect())
+        candidates.sort_by(|left, right| left.document().cmp(right.document()));
+        Ok(AutosaveRecoveryCatalogReport::new(candidates, diagnostics))
+    }
+
+    fn recovery_candidate(
+        &self,
+        directory: &Path,
+    ) -> Result<Option<RestoreCandidate>, AutosaveError> {
+        let document = directory
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| AutosaveError::InvalidRecoveryDocumentDirectory {
+                path: directory.to_path_buf(),
+            })?;
+        let document = AutosaveDocumentId::parse(document).map_err(|_| {
+            AutosaveError::InvalidRecoveryDocumentDirectory {
+                path: directory.to_path_buf(),
+            }
+        })?;
+        let metadata_path = directory.join(RECOVERY_METADATA_FILE_NAME);
+        let source_metadata = read_metadata(&metadata_path)?;
+        let Some((sequence, snapshot_metadata)) = latest_snapshot_metadata(directory)? else {
+            return Ok(None);
+        };
+        verify_snapshot_source(&document, &source_metadata, &snapshot_metadata)?;
+        let autosave_path = self.snapshot_path(directory, sequence, snapshot_metadata.extension());
+        let bytes = fs::read(&autosave_path).map_err(|source| AutosaveError::Io {
+            operation: "read committed autosave snapshot",
+            path: autosave_path.clone(),
+            source,
+        })?;
+        if &AutosaveContentDigest::from_bytes(&bytes) != snapshot_metadata.committed_checksum() {
+            return Err(AutosaveError::SnapshotChecksumMismatch {
+                snapshot: autosave_path,
+            });
+        }
+        let source_path = self
+            .project_root
+            .join(source_metadata.source_path().as_path());
+        let current_source =
+            AutosaveSourceDigest::observe(&source_path).map_err(|source| AutosaveError::Io {
+                operation: "digest recovery source",
+                path: source_path.clone(),
+                source,
+            })?;
+        let freshness = RestoreFreshness::from_snapshot(
+            snapshot_metadata.provenance().source_digest(),
+            snapshot_metadata.committed_checksum(),
+            &current_source,
+        );
+        if freshness == RestoreFreshness::SnapshotAlreadyCommitted {
+            return Ok(None);
+        }
+        Ok(Some(RestoreCandidate::new(
+            document,
+            source_path,
+            self.snapshot_path(directory, sequence, snapshot_metadata.extension()),
+            freshness,
+        )))
+    }
+
+    fn snapshot_path(
+        &self,
+        directory: &Path,
+        sequence: u64,
+        extension: &crate::core::recovery::AutosaveExtension,
+    ) -> PathBuf {
+        directory.join(format!("{sequence}.{}", extension.as_str()))
     }
 }
 
 fn verify_source(
     document: &AutosaveDocumentId,
     source_path: &AutosaveSourcePath,
-    metadata: AutosaveRecoveryMetadata,
+    metadata: &AutosaveRecoveryMetadata,
 ) -> Result<(), AutosaveError> {
-    if metadata.source_path() != source_path {
+    if metadata.source_path() != source_path
+        || metadata.source_identity()
+            != &AutosaveContentDigest::from_bytes(
+                source_path
+                    .as_path()
+                    .to_str()
+                    .expect("autosave source paths are validated as UTF-8")
+                    .as_bytes(),
+            )
+    {
         return Err(AutosaveError::RecoverySourceConflict {
             document: document.as_str().to_string(),
             recorded: metadata.source_path().as_path().to_path_buf(),
@@ -124,6 +203,24 @@ fn verify_source(
         });
     }
     Ok(())
+}
+
+fn verify_snapshot_source(
+    document: &AutosaveDocumentId,
+    source_metadata: &AutosaveRecoveryMetadata,
+    snapshot_metadata: &AutosaveSnapshotMetadata,
+) -> Result<(), AutosaveError> {
+    if snapshot_metadata.document() == document
+        && snapshot_metadata.source_path() == source_metadata.source_path()
+        && snapshot_metadata.source_identity() == source_metadata.source_identity()
+    {
+        return Ok(());
+    }
+    Err(AutosaveError::RecoverySourceConflict {
+        document: document.as_str().to_string(),
+        recorded: source_metadata.source_path().as_path().to_path_buf(),
+        requested: snapshot_metadata.source_path().as_path().to_path_buf(),
+    })
 }
 
 fn read_metadata(path: &Path) -> Result<AutosaveRecoveryMetadata, AutosaveError> {
@@ -145,13 +242,15 @@ fn read_metadata(path: &Path) -> Result<AutosaveRecoveryMetadata, AutosaveError>
     AutosaveRecoveryMetadata::decode(path, &bytes)
 }
 
-fn latest_snapshot_path(directory: &Path) -> Result<Option<PathBuf>, AutosaveError> {
+fn latest_snapshot_metadata(
+    directory: &Path,
+) -> Result<Option<(u64, AutosaveSnapshotMetadata)>, AutosaveError> {
     let entries = fs::read_dir(directory).map_err(|source| AutosaveError::Io {
         operation: "read autosave recovery document directory",
         path: directory.to_path_buf(),
         source,
     })?;
-    let mut snapshots = BTreeMap::new();
+    let mut latest = None;
     for entry in entries {
         let entry = entry.map_err(|source| AutosaveError::Io {
             operation: "enumerate autosave recovery snapshots",
@@ -169,46 +268,45 @@ fn latest_snapshot_path(directory: &Path) -> Result<Option<PathBuf>, AutosaveErr
         let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
             continue;
         };
-        let Some((sequence, _)) = name.split_once('.') else {
+        let Some(sequence) = snapshot_metadata_sequence(&name) else {
             continue;
         };
-        let Ok(sequence) = sequence.parse::<u64>() else {
-            continue;
-        };
-        if sequence == 0 {
-            continue;
+        if latest
+            .as_ref()
+            .is_none_or(|(current, _)| sequence > *current)
+        {
+            latest = Some((sequence, entry.path()));
         }
-        if snapshots.insert(sequence, entry.path()).is_some() {
-            return Err(AutosaveError::DuplicateRecoverySequence {
-                directory: directory.to_path_buf(),
-                sequence,
+    }
+    let Some((sequence, metadata_path)) = latest else {
+        return Ok(None);
+    };
+    let metadata = read_snapshot_metadata(&metadata_path)?;
+    let expected_path = snapshot_metadata_path(directory, sequence);
+    if metadata_path != expected_path {
+        return Err(AutosaveError::InvalidRecoveryMetadata {
+            path: metadata_path,
+            message: "snapshot metadata path does not match its sequence".to_string(),
+        });
+    }
+    Ok(Some((sequence, metadata)))
+}
+
+fn read_snapshot_metadata(path: &Path) -> Result<AutosaveSnapshotMetadata, AutosaveError> {
+    let bytes = match fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(source) if source.kind() == io::ErrorKind::NotFound => {
+            return Err(AutosaveError::RecoveryMetadataMissing {
+                path: path.to_path_buf(),
             });
         }
-    }
-    Ok(snapshots.into_iter().next_back().map(|(_, path)| path))
-}
-
-fn modified_at(path: &Path, operation: &'static str) -> Result<SystemTime, AutosaveError> {
-    fs::metadata(path)
-        .and_then(|metadata| metadata.modified())
-        .map_err(|source| AutosaveError::Io {
-            operation,
-            path: path.to_path_buf(),
-            source,
-        })
-}
-
-fn modified_at_or_missing(
-    path: &Path,
-    operation: &'static str,
-) -> Result<Option<SystemTime>, AutosaveError> {
-    match fs::metadata(path).and_then(|metadata| metadata.modified()) {
-        Ok(modified_at) => Ok(Some(modified_at)),
-        Err(source) if source.kind() == io::ErrorKind::NotFound => Ok(None),
-        Err(source) => Err(AutosaveError::Io {
-            operation,
-            path: path.to_path_buf(),
-            source,
-        }),
-    }
+        Err(source) => {
+            return Err(AutosaveError::Io {
+                operation: "read autosave snapshot metadata",
+                path: path.to_path_buf(),
+                source,
+            });
+        }
+    };
+    AutosaveSnapshotMetadata::decode(path, &bytes)
 }

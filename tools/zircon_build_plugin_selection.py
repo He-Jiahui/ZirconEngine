@@ -21,23 +21,36 @@ def filter_plugins_by_carrier(
 def select_plugins(candidates: Sequence[PluginPackage], raw: str) -> list[PluginPackage]:
     if not candidates:
         return []
-    by_id = {package.plugin_id.lower(): package for package in candidates}
+    by_id: dict[str, PluginPackage] | None = None
+    native_candidates: list[PluginPackage] | None = None
+    static_candidates: list[PluginPackage] | None = None
     selected: list[PluginPackage] = []
     for token in _parse_csv(raw):
         if token == "all":
             selected.extend(candidates)
         elif token in ("native", "native_dynamic"):
-            selected.extend(package for package in candidates if package.native_dynamic_crates)
+            if native_candidates is None:
+                native_candidates = [
+                    package for package in candidates if package.native_dynamic_crates
+                ]
+            selected.extend(native_candidates)
         elif token in ("rlib", "rlib_static", "static"):
-            selected.extend(package for package in candidates if package.rlib_static_crates)
+            if static_candidates is None:
+                static_candidates = [
+                    package for package in candidates if package.rlib_static_crates
+                ]
+            selected.extend(static_candidates)
         elif "-" in token and token.replace("-", "").isdigit():
             selected.extend(select_range(candidates, token))
         elif token.isdigit():
             selected.append(select_index(candidates, int(token)))
-        elif token in by_id:
-            selected.append(by_id[token])
         else:
-            raise SystemExit(f"Unknown plugin selector: {token}")
+            if by_id is None:
+                by_id = {package.plugin_id.lower(): package for package in candidates}
+            package = by_id.get(token)
+            if package is None:
+                raise SystemExit(f"Unknown plugin selector: {token}")
+            selected.append(package)
     return unique_plugins(selected)
 
 
@@ -60,9 +73,10 @@ def unique_plugins(packages: Iterable[PluginPackage]) -> list[PluginPackage]:
     seen: set[str] = set()
     result: list[PluginPackage] = []
     for package in packages:
-        if package.plugin_id in seen:
+        plugin_id = package.plugin_id
+        if plugin_id in seen:
             continue
-        seen.add(package.plugin_id)
+        seen.add(plugin_id)
         result.append(package)
     return result
 

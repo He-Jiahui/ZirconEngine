@@ -12,8 +12,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 [components.WorkbenchExtensionSourceControlWorkspace]
@@ -21,54 +21,53 @@ root = "source_control_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.source_control_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionSourceControlWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "source_control_rail_gap" }, { node = "source_control_left" }, { node = "source_control_center" }, { node = "source_control_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "source_control_workspace_main" },
+  { node = "source_control_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.source_control_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "source_control_rail_gap" }, { node = "source_control_left" }, { node = "source_control_center" }, { node = "source_control_right_reserve" }]
+
+[nodes.source_control_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.source_control_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionSourceControlRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.source_control_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionSourceControlLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "source_control_title" }, { node = "source_control_diff_tab" }, { node = "source_control_owners_tab" }, { node = "source_control_submit_tab" }, { node = "source_control_changelist_row" }, { node = "source_control_runtime_row" }, { node = "source_control_editor_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "source_control_title" }, { node = "source_control_left_content" }]
+
+[nodes.source_control_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionSourceControlLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "source_control_changelist_row" }, { node = "source_control_runtime_row" }, { node = "source_control_editor_row" }]
 
 [nodes.source_control_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionSourceControlTitle"
 props = { text = "Source Control" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.source_control_diff_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionSourceControlDiffTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Diff", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/SourceControlDiffTab", event = "Click", route = "workbench.extension.source_control.diff" }]
-
-[nodes.source_control_owners_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionSourceControlOwnersTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Owners", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/SourceControlOwnersTab", event = "Click", route = "workbench.extension.source_control.owners" }]
-
-[nodes.source_control_submit_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionSourceControlSubmitTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Submit", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/SourceControlSubmitTab", event = "Click", route = "workbench.extension.source_control.submit" }]
 
 [nodes.source_control_changelist_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/SourceControlEditorRow", event = "Click", r
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionSourceControlCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "source_control_center_header" }, { node = "source_control_files" }, { node = "source_control_output" }]
 
 [nodes.source_control_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionSourceControlCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "source_control_center_title" }, { node = "source_control_header_fill" }, { node = "source_control_validate_button" }, { node = "source_control_submit_button" }]
 
 [nodes.source_control_center_title]
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/SourceControlValidate", event = "Click", ro
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionSourceControlSubmitButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Submit", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Submit", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 82.0, preferred = 82.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/SourceControlSubmit", event = "Click", route = "workbench.extension.source_control.submit_change" }]
 
 [nodes.source_control_files]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionSourceControlFiles"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "source_control_runtime_file_row" }, { node = "source_control_editor_file_row" }, { node = "source_control_docs_file_row" }, { node = "source_control_conflict_file_row" }]
 
 [nodes.source_control_runtime_file_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/SourceControlConflictFileRow", event = "Cli
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionSourceControlOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Checks", value_text = "18 files   2 conflicts   6 checks" }
+props = { text = "Checks", value_text = "18 files   2 conflicts   6 checks", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/SourceControlOutput", event = "Click", route = "workbench.extension.source_control.output" }]
 
 [nodes.source_control_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionSourceControlRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "source_control_details_title" }, { node = "source_control_changelist_dropdown" }, { node = "source_control_owner_field" }, { node = "source_control_gate_dropdown" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "source_control_details_title" }, { node = "source_control_right_content" }]
+
+[nodes.source_control_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionSourceControlRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "source_control_changelist_dropdown_property_row" }, { node = "source_control_owner_field_property_row" }, { node = "source_control_gate_dropdown_property_row" }]
 
 [nodes.source_control_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,16 +202,30 @@ control_id = "WorkbenchExtensionSourceControlDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.source_control_changelist_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionSourceControlChangelistDropdownPropertyRow"
+props = { text = "Changelist" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "source_control_changelist_dropdown", slot = { name = "value" } }]
+
 [nodes.source_control_changelist_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionSourceControlChangelistDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "CL_2048", value = "CL_2048", options = ["CL_2048", "CL_2049", "Shelved_Alice"] }
+props = { value_text = "CL_2048", value = "CL_2048", options = ["CL_2048", "CL_2049", "Shelved_Alice"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/SourceControlChangelistEdit", event = "Change", route = "workbench.extension.source_control.changelist.edit" },
   { id = "WorkbenchExtension/SourceControlChangelistCommit", event = "Submit", route = "workbench.extension.source_control.changelist.commit" },
 ]
+
+[nodes.source_control_owner_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionSourceControlOwnerFieldPropertyRow"
+props = { text = "Owner" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "source_control_owner_field", slot = { name = "value" } }]
 
 [nodes.source_control_owner_field]
 component = "WorkbenchField"
@@ -218,11 +238,18 @@ events = [
   { id = "WorkbenchExtension/SourceControlOwnerCommit", event = "Submit", route = "workbench.extension.source_control.owner.commit" },
 ]
 
+[nodes.source_control_gate_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionSourceControlGateDropdownPropertyRow"
+props = { text = "Gate" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "source_control_gate_dropdown", slot = { name = "value" } }]
+
 [nodes.source_control_gate_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionSourceControlGateDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Full", value = "Full", options = ["Fast", "Full", "Submit Only"] }
+props = { value_text = "Full", value = "Full", options = ["Fast", "Full", "Submit Only"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/SourceControlGateEdit", event = "Change", route = "workbench.extension.source_control.gate.edit" },

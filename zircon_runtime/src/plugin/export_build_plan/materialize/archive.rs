@@ -39,11 +39,11 @@ pub(super) fn materialize_zip_archive(
 
     let file = File::create(archive_path)?;
     let mut writer = ZipWriter::new(file);
-    let mut written_entries = HashSet::new();
+    let mut written_entries = HashSet::with_capacity(archive_entry_capacity(plan));
     let mut report = ExportMaterializeReport {
         archive_file: Some(archive_path.to_path_buf()),
-        generated_files: Vec::new(),
-        copied_packages: Vec::new(),
+        generated_files: Vec::with_capacity(plan.generated_files.len()),
+        copied_packages: Vec::with_capacity(plan.native_dynamic_packages.len()),
         diagnostics: plan.diagnostics.clone(),
         fatal_diagnostics,
     };
@@ -71,8 +71,8 @@ pub(super) fn preview_zip_archive(
 ) -> Result<ExportMaterializeReport, std::io::Error> {
     let mut report = ExportMaterializeReport {
         archive_file: Some(archive_path.to_path_buf()),
-        generated_files: Vec::new(),
-        copied_packages: Vec::new(),
+        generated_files: Vec::with_capacity(plan.generated_files.len()),
+        copied_packages: Vec::with_capacity(plan.native_dynamic_packages.len()),
         diagnostics: plan.diagnostics.clone(),
         fatal_diagnostics: plan.effective_fatal_diagnostics(),
     };
@@ -123,7 +123,7 @@ fn write_native_package_entries<W: Write + std::io::Seek>(
     written_entries: &mut HashSet<String>,
     report: &mut ExportMaterializeReport,
 ) -> Result<(), std::io::Error> {
-    let mut copied_package_directories = HashSet::new();
+    let mut copied_package_directories = HashSet::with_capacity(plan.native_dynamic_packages.len());
     let package_exports = native_dynamic_package_export_index(plan);
 
     for package_id in &plan.native_dynamic_packages {
@@ -189,7 +189,7 @@ fn preview_native_package_entries(
     inventory: &NativePackageInventory,
     report: &mut ExportMaterializeReport,
 ) -> Result<(), std::io::Error> {
-    let mut copied_package_directories = HashSet::new();
+    let mut copied_package_directories = HashSet::with_capacity(plan.native_dynamic_packages.len());
 
     for package_id in &plan.native_dynamic_packages {
         let Some(file_inventory) = inventory.file_inventory(package_id) else {
@@ -245,6 +245,12 @@ fn zip_file_options() -> SimpleFileOptions {
         .compression_method(CompressionMethod::Deflated)
         .last_modified_time(DateTime::default())
         .unix_permissions(0o644)
+}
+
+fn archive_entry_capacity(plan: &ExportBuildPlan) -> usize {
+    plan.generated_files
+        .len()
+        .saturating_add(plan.native_dynamic_packages.len())
 }
 
 fn native_dynamic_package_export_index<'a>(
@@ -304,8 +310,33 @@ mod tests {
             .expect("write-native-package body should remain available");
 
         assert!(!write_body.contains("preview_native_dynamic_package_copy"));
-        assert!(write_body.contains("native_dynamic_package_file_inventory"));
+        assert!(write_body.contains("inventory.file_inventory(package_id)"));
         assert!(!source.contains(&linear_lookup));
         assert!(!write_body.contains(&cloned_lookup));
+    }
+
+    #[test]
+    fn archive_projection_preallocates_known_plan_bounds() {
+        let source = include_str!("archive.rs");
+
+        assert!(source.contains("HashSet::with_capacity(archive_entry_capacity(plan))"));
+        assert_eq!(
+            source
+                .matches("Vec::with_capacity(plan.generated_files.len())")
+                .count(),
+            2
+        );
+        assert_eq!(
+            source
+                .matches("Vec::with_capacity(plan.native_dynamic_packages.len())")
+                .count(),
+            2
+        );
+        assert_eq!(
+            source
+                .matches("HashSet::with_capacity(plan.native_dynamic_packages.len())")
+                .count(),
+            2
+        );
     }
 }

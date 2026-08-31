@@ -37,7 +37,8 @@ use crate::{
     ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
-    ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_SURFACE_RECREATED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
 };
 
 use crate::ui::{
@@ -55,7 +56,7 @@ use crate::ui::{
 use super::{
     UiWindowEvent, UiWindowEventKind, UiWindowEventMetadata, UiWindowInputContext,
     UiWindowInputPumpBatch, UiWindowInputPumpEvent, UiWindowMetrics, UiWindowPixelPosition,
-    UiWindowPixelSize, UiWindowPlatformInputEvent, UiWindowTouchPhase,
+    UiWindowPixelSize, UiWindowPlatformInputEvent, UiWindowRedrawReason, UiWindowTouchPhase,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -497,6 +498,10 @@ fn window_status_event(
         ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1 => {
             Ok(UiWindowEvent::new(metadata, UiWindowEventKind::Destroyed))
         }
+        ZR_RUNTIME_WINDOW_STATUS_SURFACE_RECREATED_V1 => Ok(UiWindowEvent::request_redraw(
+            metadata,
+            UiWindowRedrawReason::Host,
+        )),
         ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1 => Ok(UiWindowEvent::new(
             metadata,
             UiWindowEventKind::ScaleFactorChanged {

@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, RenderVirtualGeometryCluster,
@@ -17,15 +17,25 @@ pub(super) fn rebuild_selected_clusters_from_execution_segments(
         return snapshot.selected_clusters.clone();
     };
 
-    let mut selected_clusters = Vec::new();
-    let mut emitted_clusters = HashSet::<(u64, u32)>::new();
+    let rebuild_index =
+        SnapshotRebuildIndex::new(snapshot, virtual_geometry_extract, execution_segments);
+    let indexed_cluster_count = rebuild_index
+        .clusters_by_stable_instance_key
+        .values()
+        .fold(0_usize, |count, clusters| {
+            count.saturating_add(clusters.len())
+        });
+    let mut selected_clusters = Vec::with_capacity(indexed_cluster_count);
+    let mut emitted_clusters = HashSet::<(u64, u32)>::with_capacity(indexed_cluster_count);
 
     for segment in execution_segments {
         let stable_instance_key = segment.stable_instance_key_or_legacy();
-        let instance_clusters = clusters_for_stable_instance_key_in_execution_order(
-            virtual_geometry_extract,
-            stable_instance_key,
-        );
+        let Some(instance_clusters) = rebuild_index
+            .clusters_by_stable_instance_key
+            .get(&stable_instance_key)
+        else {
+            continue;
+        };
         if instance_clusters.is_empty() {
             continue;
         }
@@ -48,12 +58,10 @@ pub(super) fn rebuild_selected_clusters_from_execution_segments(
 
             selected_clusters.push(RenderVirtualGeometrySelectedCluster {
                 instance_index: segment.instance_index.or_else(|| {
-                    instance_index_for_cluster(
-                        snapshot,
-                        virtual_geometry_extract,
-                        stable_instance_key,
-                        cluster.cluster_id,
-                    )
+                    rebuild_index
+                        .instance_index_by_cluster
+                        .get(&(stable_instance_key, cluster.cluster_id))
+                        .copied()
                 }),
                 entity: cluster.entity,
                 cluster_id: cluster.cluster_id,
@@ -175,71 +183,82 @@ pub(super) fn resolve_visbuffer64_buffer_source(
     }
 }
 
-fn clusters_for_stable_instance_key_in_execution_order(
-    extract: &RenderVirtualGeometryExtract,
-    stable_instance_key: u64,
-) -> Vec<RenderVirtualGeometryCluster> {
-    let mut clusters = if extract.instances.is_empty() {
-        extract
-            .clusters
-            .iter()
-            .copied()
-            .filter(|cluster| {
-                render_mesh_stable_instance_key(cluster.entity, 0) == stable_instance_key
-            })
-            .collect::<Vec<_>>()
-    } else {
-        extract
-            .instances
-            .iter()
-            .filter(|instance| instance.stable_instance_key_or_legacy() == stable_instance_key)
-            .flat_map(|instance| {
+struct SnapshotRebuildIndex {
+    clusters_by_stable_instance_key: HashMap<u64, Vec<RenderVirtualGeometryCluster>>,
+    instance_index_by_cluster: HashMap<(u64, u32), u32>,
+}
+
+impl SnapshotRebuildIndex {
+    fn new(
+        snapshot: &RenderVirtualGeometryDebugSnapshot,
+        extract: &RenderVirtualGeometryExtract,
+        execution_segments: &[RenderVirtualGeometryExecutionSegment],
+    ) -> Self {
+        let mut requested_stable_instance_keys = HashSet::with_capacity(execution_segments.len());
+        for segment in execution_segments {
+            requested_stable_instance_keys.insert(segment.stable_instance_key_or_legacy());
+        }
+        let mut clusters_by_stable_instance_key =
+            HashMap::<u64, Vec<RenderVirtualGeometryCluster>>::with_capacity(
+                requested_stable_instance_keys.len(),
+            );
+        let mut instance_index_by_cluster = HashMap::with_capacity(extract.clusters.len());
+
+        if extract.instances.is_empty() {
+            for &cluster in &extract.clusters {
+                let stable_instance_key = render_mesh_stable_instance_key(cluster.entity, 0);
+                if !requested_stable_instance_keys.contains(&stable_instance_key) {
+                    continue;
+                }
+                clusters_by_stable_instance_key
+                    .entry(stable_instance_key)
+                    .or_default()
+                    .push(cluster);
+            }
+        } else {
+            for (instance_index, instance) in extract.instances.iter().enumerate() {
+                let stable_instance_key = instance.stable_instance_key_or_legacy();
+                if !requested_stable_instance_keys.contains(&stable_instance_key) {
+                    continue;
+                }
                 let start = instance.cluster_offset as usize;
                 let end = start.saturating_add(instance.cluster_count as usize);
-                extract
-                    .clusters
-                    .get(start..end)
-                    .into_iter()
-                    .flatten()
-                    .copied()
-            })
-            .collect::<Vec<_>>()
-    };
-    clusters.sort_by_key(|cluster| cluster.cluster_id);
-    clusters.dedup_by_key(|cluster| cluster.cluster_id);
-    clusters
-}
+                let Some(clusters) = extract.clusters.get(start..end) else {
+                    continue;
+                };
+                clusters_by_stable_instance_key
+                    .entry(stable_instance_key)
+                    .or_default()
+                    .extend_from_slice(clusters);
 
-fn instance_index_for_cluster(
-    snapshot: &RenderVirtualGeometryDebugSnapshot,
-    extract: &RenderVirtualGeometryExtract,
-    stable_instance_key: u64,
-    cluster_id: u32,
-) -> Option<u32> {
-    if snapshot.instances.is_empty() {
-        return None;
-    }
-
-    extract
-        .instances
-        .iter()
-        .enumerate()
-        .find(|(_, instance)| {
-            if instance.stable_instance_key_or_legacy() != stable_instance_key {
-                return false;
+                if snapshot.instances.is_empty() {
+                    continue;
+                }
+                let Ok(instance_index) = u32::try_from(instance_index) else {
+                    continue;
+                };
+                for cluster in clusters {
+                    instance_index_by_cluster
+                        .entry((stable_instance_key, cluster.cluster_id))
+                        .or_insert(instance_index);
+                }
             }
+        }
 
-            let start = instance.cluster_offset as usize;
-            let end = start.saturating_add(instance.cluster_count as usize);
-            extract
-                .clusters
-                .get(start..end)
-                .into_iter()
-                .flatten()
-                .any(|cluster| cluster.cluster_id == cluster_id)
-        })
-        .and_then(|(instance_index, _)| u32::try_from(instance_index).ok())
+        for clusters in clusters_by_stable_instance_key.values_mut() {
+            clusters.sort_by_key(|cluster| cluster.cluster_id);
+            clusters.dedup_by_key(|cluster| cluster.cluster_id);
+        }
+
+        Self {
+            clusters_by_stable_instance_key,
+            instance_index_by_cluster,
+        }
+    }
 }
+
+#[cfg(test)]
+mod performance_tests;
 
 fn visbuffer_mark_color(cluster_id: u32, page_id: u32, lod_level: u8) -> [u8; 4] {
     let lod_level = u32::from(lod_level);
@@ -584,10 +603,12 @@ mod tests {
                 &[],
                 RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections,
             ),
-            vec![RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
-                0,
-                &selected_clusters[0],
-            )],
+            vec![
+                RenderVirtualGeometryVisBuffer64Entry::from_selected_cluster(
+                    0,
+                    &selected_clusters[0],
+                )
+            ],
             "expected store_last_runtime_outputs to fall back to execution-backed selected-cluster rebuild when the render path claims execution ownership but the pass-owned VisBuffer64 entry stream is still empty"
         );
     }

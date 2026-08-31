@@ -138,8 +138,10 @@ fn runtime_frame_release_failure_is_recorded_for_terminal_teardown() {
         _session: PhantomData,
     });
 
+    let failure_report = teardown_failure_state.failure_ledger().snapshot();
+    assert_eq!(failure_report.records().len(), 1);
     assert_eq!(
-        teardown_failure_state.take().unwrap().to_string(),
+        failure_report.primary().unwrap().message(),
         "failed to free runtime frame buffer: error: frame allocation still in use"
     );
     assert!(foreign_output.is_protocol_failed());
@@ -450,7 +452,7 @@ fn runtime_frame_validation_releases_truncated_pixels() {
 
     assert_eq!(
         error.to_string(),
-        "runtime frame returned 1 RGBA bytes for 1x1 pixels; expected 4"
+        "runtime frame 1x1 returned 1 RGBA bytes; expected 4"
     );
     assert!(FRAME_PIXELS_RELEASED.load(Ordering::Acquire));
 }

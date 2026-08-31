@@ -1,3 +1,4 @@
+mod attachment_initialization;
 mod builtin;
 mod compile;
 #[cfg(test)]
@@ -12,8 +13,10 @@ mod half_resolution_transparency;
 mod pass_authoring;
 mod plugin_render_features;
 mod resource_descriptors;
+mod resource_schema_catalog;
 #[cfg(test)]
 mod shadow_atlas_required_external_tests;
+mod ssao_input_qualification;
 #[cfg(test)]
 mod typed_optional_external_tests;
 

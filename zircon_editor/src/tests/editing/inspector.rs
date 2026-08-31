@@ -1,6 +1,8 @@
 use zircon_runtime_interface::math::{Transform, Vec3};
 
+use crate::core::editing::engine::EditCommandError;
 use crate::core::editing::intent::EditorIntent;
+use crate::ui::workbench::state::EditorStateOperationError;
 
 use super::support::{cube_and_camera, cube_id, test_state};
 
@@ -21,7 +23,7 @@ fn inspector_batch_commit_groups_name_parent_and_transform() {
     assert!(state
         .apply_intent(EditorIntent::ApplyInspectorChanges)
         .unwrap());
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         let node = scene.find_node(cube).unwrap();
         assert_eq!(node.name, "Batch Cube");
         assert_eq!(node.parent, Some(camera));
@@ -30,7 +32,7 @@ fn inspector_batch_commit_groups_name_parent_and_transform() {
     });
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         let node = scene.find_node(cube).unwrap();
         assert_ne!(node.name, "Batch Cube");
         assert_eq!(node.parent, None);
@@ -45,7 +47,7 @@ fn inspector_batch_commit_is_atomic_on_invalid_parent() {
     let cube = cube_id(&state);
     let original = state
         .world
-        .with_world(|scene| scene.find_node(cube).unwrap());
+        .expect_with_world(|scene| scene.find_node(cube).unwrap());
 
     state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
     state.update_name_field("Should Not Apply".to_string());
@@ -59,10 +61,14 @@ fn inspector_batch_commit_is_atomic_on_invalid_parent() {
         .unwrap_err();
 
     assert!(
-        error.contains("missing parent 999999"),
+        matches!(
+            &error,
+            EditorStateOperationError::EditCommand(EditCommandError::ExternalEffect { source })
+                if source.to_string().contains("missing parent 999999")
+        ),
         "unexpected invalid-parent error: {error}"
     );
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         let node = scene.find_node(cube).unwrap();
         assert_eq!(node.name, original.name);
         assert_eq!(node.parent, original.parent);
@@ -74,7 +80,7 @@ fn inspector_batch_commit_is_atomic_on_invalid_parent() {
 fn selected_inspector_snapshot_projects_runtime_artifact_fields() {
     let mut state = test_state();
     let (cube, camera) = cube_and_camera(&state);
-    state.world.with_world_mut(|scene| {
+    state.world.expect_with_world_mut(|scene| {
         scene.rename_node(cube, "Artifact Cube").unwrap();
         scene.set_parent_checked(cube, Some(camera)).unwrap();
         scene

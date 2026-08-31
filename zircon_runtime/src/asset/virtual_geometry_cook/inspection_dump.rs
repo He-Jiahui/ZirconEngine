@@ -9,6 +9,7 @@ use crate::asset::{
 const DUMP_VERSION: u32 = 1;
 const PAYLOAD_HEADER_WORD_COUNT: usize = 7;
 const PAYLOAD_ITEM_WORD_COUNT: usize = 4;
+const MAX_U32_DECIMAL_DIGITS: usize = 10;
 
 pub fn format_virtual_geometry_cook_inspection_dump(asset: &VirtualGeometryAsset) -> String {
     let mut dump = String::new();
@@ -341,7 +342,8 @@ fn format_optional_u32(value: Option<u32>) -> String {
 }
 
 fn format_u32_list(values: &[u32]) -> String {
-    let mut formatted = String::from("[");
+    let mut formatted = String::with_capacity(u32_list_capacity(values.len()));
+    formatted.push('[');
     for (index, value) in values.iter().enumerate() {
         if index > 0 {
             formatted.push(',');
@@ -352,6 +354,12 @@ fn format_u32_list(values: &[u32]) -> String {
     formatted
 }
 
+fn u32_list_capacity(value_count: usize) -> usize {
+    2usize
+        .saturating_add(value_count.saturating_mul(MAX_U32_DECIMAL_DIGITS))
+        .saturating_add(value_count.saturating_sub(1))
+}
+
 fn format_vec3(value: [f32; 3]) -> String {
     format!("[{:.6},{:.6},{:.6}]", value[0], value[1], value[2])
 }
@@ -359,3 +367,7 @@ fn format_vec3(value: [f32; 3]) -> String {
 fn write_line(dump: &mut String, args: std::fmt::Arguments<'_>) {
     writeln!(dump, "{args}").expect("writing to String cannot fail");
 }
+
+#[cfg(test)]
+#[path = "inspection_dump/capacity_tests.rs"]
+mod capacity_tests;

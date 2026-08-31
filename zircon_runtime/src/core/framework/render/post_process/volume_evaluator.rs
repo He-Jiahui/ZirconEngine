@@ -1,8 +1,8 @@
 use thiserror::Error;
 
 use crate::core::framework::render::{
-    RenderBloomSettings, RenderColorGradingSettings, RenderExposureSettings, RenderLayerSet,
-    RenderPostProcessEffectStackSettings,
+    AoSourceSettings, RenderBloomSettings, RenderColorGradingSettings, RenderExposureSettings,
+    RenderLayerSet, RenderPostProcessEffectStackSettings,
 };
 use crate::core::math::{Real, Vec3};
 
@@ -18,6 +18,7 @@ pub type ResolvedPostProcessStack = RenderResolvedPostProcessSettings;
 pub struct VolumeEvaluationRequest<'a> {
     pub camera_position: Vec3,
     pub camera_volume_mask: &'a RenderLayerSet,
+    pub base_ambient_occlusion: AoSourceSettings,
     pub base_bloom: RenderBloomSettings,
     pub base_exposure: RenderExposureSettings,
     pub base_color_grading: RenderColorGradingSettings,
@@ -33,6 +34,7 @@ impl<'a> VolumeEvaluationRequest<'a> {
             self.base_color_grading,
             self.base_effect_stack,
         )
+        .with_ambient_occlusion(self.base_ambient_occlusion)
     }
 }
 
@@ -65,25 +67,34 @@ impl VolumeEvaluator {
         request: VolumeEvaluationRequest<'_>,
     ) -> Result<ResolvedPostProcessStack, VolumeEvaluationError> {
         let mut settings = request.base_settings();
+        if volumes_are_priority_sorted(request.volumes) {
+            for volume in request.volumes {
+                let Some(influence) = applicable_volume_influence(
+                    volume,
+                    request.camera_position,
+                    request.camera_volume_mask,
+                ) else {
+                    continue;
+                };
+                self.apply_volume(&mut settings, volume, influence)?;
+            }
+            return Ok(settings);
+        }
+
         let mut applicable = request
             .volumes
             .iter()
             .enumerate()
-            .filter(|(_, volume)| volume.active)
-            .filter(|(_, volume)| volume.volume_mask.intersects(request.camera_volume_mask))
             .filter_map(|(index, volume)| {
-                let influence = volume_influence(volume, request.camera_position);
-                (influence > 0.0).then_some((index, volume, influence))
+                applicable_volume_influence(
+                    volume,
+                    request.camera_position,
+                    request.camera_volume_mask,
+                )
+                .map(|influence| (index, volume, influence))
             })
             .collect::<Vec<_>>();
-        // Scene extraction publishes priority order once. Keep the sort fallback for callers that
-        // construct extracts directly, but do not repeat it for every camera and froxel consumer.
-        if applicable
-            .windows(2)
-            .any(|pair| compare_volume_priority(&pair[0], &pair[1]).is_gt())
-        {
-            applicable.sort_by(compare_volume_priority);
-        }
+        applicable.sort_by(compare_volume_priority);
 
         for (_, volume, influence) in applicable {
             self.apply_volume(&mut settings, volume, influence)?;
@@ -120,6 +131,33 @@ impl VolumeEvaluator {
                 component_id: override_entry.component_id.clone(),
             })
     }
+}
+
+fn volumes_are_priority_sorted(volumes: &[PostProcessVolumeExtract]) -> bool {
+    volumes
+        .windows(2)
+        .all(|pair| !compare_volume_extract_priority(&pair[0], &pair[1]).is_gt())
+}
+
+fn applicable_volume_influence(
+    volume: &PostProcessVolumeExtract,
+    camera_position: Vec3,
+    camera_volume_mask: &RenderLayerSet,
+) -> Option<Real> {
+    if !volume.active || !volume.volume_mask.intersects(camera_volume_mask) {
+        return None;
+    }
+    let influence = volume_influence(volume, camera_position);
+    (influence > 0.0).then_some(influence)
+}
+
+fn compare_volume_extract_priority(
+    left: &PostProcessVolumeExtract,
+    right: &PostProcessVolumeExtract,
+) -> std::cmp::Ordering {
+    left.priority
+        .partial_cmp(&right.priority)
+        .unwrap_or(std::cmp::Ordering::Equal)
 }
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
@@ -175,11 +213,7 @@ fn compare_volume_priority(
     left: &(usize, &PostProcessVolumeExtract, Real),
     right: &(usize, &PostProcessVolumeExtract, Real),
 ) -> std::cmp::Ordering {
-    left.1
-        .priority
-        .partial_cmp(&right.1.priority)
-        .unwrap_or(std::cmp::Ordering::Equal)
-        .then_with(|| left.0.cmp(&right.0))
+    compare_volume_extract_priority(left.1, right.1).then_with(|| left.0.cmp(&right.0))
 }
 
 fn volume_influence(volume: &PostProcessVolumeExtract, camera_position: Vec3) -> Real {
@@ -290,12 +324,17 @@ mod tests {
                 ),
             ),
         ];
+        let sorted_volumes = [volumes[1].clone(), volumes[0].clone()];
 
         let camera_mask = RenderLayerSet::default();
         let resolved = evaluator
             .evaluate(request(Vec3::ZERO, &camera_mask, &volumes))
             .unwrap();
+        let sorted_resolved = evaluator
+            .evaluate(request(Vec3::ZERO, &camera_mask, &sorted_volumes))
+            .unwrap();
 
+        assert_eq!(resolved, sorted_resolved);
         assert_near(resolved.bloom.intensity, 0.75);
         assert_near(resolved.bloom.radius, 0.3);
         assert_near(resolved.color_grading.exposure, 1.2);
@@ -483,6 +522,7 @@ mod tests {
         VolumeEvaluationRequest {
             camera_position,
             camera_volume_mask,
+            base_ambient_occlusion: AoSourceSettings::default(),
             base_bloom: RenderBloomSettings::default(),
             base_exposure: RenderExposureSettings::default(),
             base_color_grading: RenderColorGradingSettings::default(),

@@ -1,14 +1,16 @@
-use std::collections::BTreeMap;
-
 use zircon_runtime_interface::ui::event_ui::{
     UiActionDescriptor, UiNodeDescriptor, UiNodeId, UiNodePath, UiPropertyDescriptor,
     UiReflectionSnapshot, UiStateFlags, UiTreeId,
 };
 
+#[cfg(test)]
+#[path = "builder/dense_node_tests.rs"]
+mod dense_node_tests;
+
 pub(super) struct SnapshotBuilder {
     tree_id: UiTreeId,
     next_id: u64,
-    nodes: BTreeMap<UiNodeId, UiNodeDescriptor>,
+    nodes: Vec<UiNodeDescriptor>,
 }
 
 impl SnapshotBuilder {
@@ -16,7 +18,7 @@ impl SnapshotBuilder {
         Self {
             tree_id,
             next_id: 0,
-            nodes: BTreeMap::new(),
+            nodes: Vec::new(),
         }
     }
 
@@ -40,12 +42,12 @@ impl SnapshotBuilder {
         for action in actions {
             node = node.with_action(action);
         }
-        self.nodes.insert(node_id, node);
+        self.nodes.push(node);
         node_id
     }
 
     pub(super) fn add_child(&mut self, parent: UiNodeId, child: UiNodeId) {
-        if let Some(node) = self.nodes.get_mut(&parent) {
+        if let Some(node) = node_index(parent).and_then(|index| self.nodes.get_mut(index)) {
             node.children.push(child);
         }
     }
@@ -54,7 +56,15 @@ impl SnapshotBuilder {
         UiReflectionSnapshot {
             tree_id: self.tree_id,
             roots: vec![root],
-            nodes: self.nodes,
+            nodes: self
+                .nodes
+                .into_iter()
+                .map(|node| (node.node_id, node))
+                .collect(),
         }
     }
+}
+
+fn node_index(node_id: UiNodeId) -> Option<usize> {
+    usize::try_from(node_id.0).ok()?.checked_sub(1)
 }

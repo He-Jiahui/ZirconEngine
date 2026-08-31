@@ -567,7 +567,7 @@ class ServerTests(unittest.TestCase):
             maintenance = application._maintenance_tick_unlocked({})
 
             self.assertTrue(Path(applied["archivePath"]).is_file())
-            self.assertTrue(Path(applied["backupPath"]).is_file())
+            self.assertFalse(Path(applied["backupPath"]).is_file())
             self.assertEqual("compact_pending", queued["status"])
             self.assertIn(applied["batchId"], maintenance["compacted_manifest_batches"])
             with application.database.connect() as connection:
@@ -577,6 +577,66 @@ class ServerTests(unittest.TestCase):
                 ).fetchone()
             self.assertEqual("{}", row["manifest_json"])
             self.assertIsNotNone(row["manifest_archive_path"])
+
+    def test_maintenance_tick_retires_one_bounded_manifest_batch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            with application.database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO baseline_epochs(
+                        head_commit, index_tree, health, manifest_json, created_at
+                    ) VALUES ('old', 'old', 'healthy', '{"old.rs":"a"}',
+                              '2026-07-01T00:00:00+00:00')
+                    """
+                )
+                old_epoch = int(connection.execute("SELECT last_insert_rowid()").fetchone()[0])
+                connection.execute(
+                    """
+                    INSERT INTO baseline_epochs(
+                        head_commit, index_tree, health, manifest_json, created_at
+                    ) VALUES ('new', 'new', 'healthy', '{"new.rs":"b"}', datetime('now'))
+                    """
+                )
+                latest_epoch = int(
+                    connection.execute("SELECT last_insert_rowid()").fetchone()[0]
+                )
+
+            maintenance = application._maintenance_tick_unlocked({})
+
+            retired = maintenance["retired_manifest_batch"]
+            self.assertIsNotNone(retired)
+            self.assertEqual(1, retired["retired_count"])
+            self.assertGreater(retired["retired_bytes"], 0)
+            self.assertTrue(Path(retired["archive_path"]).is_file())
+            with application.database.connect() as connection:
+                rows = {
+                    int(row["epoch_id"]): tuple(row)
+                    for row in connection.execute(
+                        """
+                        SELECT epoch_id, manifest_json, manifest_archive_path
+                        FROM baseline_epochs WHERE epoch_id IN (?, ?)
+                        """,
+                        (old_epoch, latest_epoch),
+                    )
+                }
+                batch = connection.execute(
+                    """
+                    SELECT status, backup_path FROM manifest_retention_batches
+                    WHERE batch_id=?
+                    """,
+                    (retired["batch_id"],),
+                ).fetchone()
+            self.assertEqual("{}", rows[old_epoch][1])
+            self.assertIsNotNone(rows[old_epoch][2])
+            self.assertEqual('{"new.rs":"b"}', rows[latest_epoch][1])
+            self.assertIsNone(rows[latest_epoch][2])
+            self.assertEqual(("retired", None), tuple(batch))
 
     def test_ownership_matrix_routes_only_currently_attributed_live_leased_paths(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -706,15 +766,30 @@ class ServerTests(unittest.TestCase):
                 plan_path=plan.path.relative_to(repo).as_posix(),
             )
             application.sessions.set_status("validation-owner", SessionStatus.ACTIVE)
+            self.assertTrue(
+                application.leases.acquire(
+                    "validation-owner", ["README.md"]
+                ).acquired
+            )
+            application.baselines.attribute(
+                "validation-owner", ["README.md"]
+            )
             receipt = application.command(
                 "validation.submit",
                 {
                     "session_id": "validation-owner",
                     "request_id": "focused-test-request",
-                    "source_manifest": {"tools/session_coordinator/server.py": "a" * 64},
+                    "source_manifest": {
+                        "README.md": hashlib.sha256(
+                            (repo / "README.md").read_bytes()
+                        ).hexdigest()
+                    },
                     "command": ["python", "-m", "unittest", "focused_case"],
                     "toolchain": {"python": "3.14"},
-                    "coverage": {"kind": "focused"},
+                    "coverage": {
+                        "kind": "focused",
+                        "dependencyRoots": ["tools/session_coordinator"],
+                    },
                 },
             )
 
@@ -745,6 +820,52 @@ class ServerTests(unittest.TestCase):
                 "active", application.sessions.get("validation-owner").status.value
             )
 
+    def test_validation_submit_runs_overlay_preflight_before_persisting(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            fixture = FailureGraphFixture(repo)
+            plan = fixture.add_plan("docs/plans/tooling/01-tooling.md")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            application.sessions.register(
+                session_id="validation-owner",
+                plan_path=plan.path.relative_to(repo).as_posix(),
+            )
+            with self.assertRaises(CoordinatorError) as rejected:
+                application.command(
+                    "validation.submit",
+                    {
+                        "session_id": "validation-owner",
+                        "request_id": "unowned-submit-request",
+                        "source_manifest": {"tools/unowned.py": "a" * 64},
+                        "command": ["cargo", "check", "-p", "zircon_runtime"],
+                        "toolchain": {"rust": "1.94.1"},
+                        "coverage": {"kind": "compile"},
+                    },
+                )
+
+            self.assertEqual(
+                "validation_copy_overlay_not_owned", rejected.exception.code
+            )
+            self.assertEqual(
+                {"paths": ["tools/unowned.py"]}, rejected.exception.details
+            )
+            with application.database.connect() as connection:
+                self.assertEqual(
+                    (0, 0),
+                    (
+                        connection.execute(
+                            "SELECT COUNT(*) FROM validation_tickets"
+                        ).fetchone()[0],
+                        connection.execute(
+                            "SELECT COUNT(*) FROM validation_ticket_requests"
+                        ).fetchone()[0],
+                    ),
+                )
+
     def test_failed_validation_without_handoff_context_keeps_the_ticket_queueable(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -759,15 +880,30 @@ class ServerTests(unittest.TestCase):
                 session_id="validation-owner",
                 plan_path=plan.path.relative_to(repo).as_posix(),
             )
+            self.assertTrue(
+                application.leases.acquire(
+                    "validation-owner", ["README.md"]
+                ).acquired
+            )
+            application.baselines.attribute(
+                "validation-owner", ["README.md"]
+            )
             receipt = application.command(
                 "validation.submit",
                 {
                     "session_id": "validation-owner",
                     "request_id": "missing-handoff-request",
-                    "source_manifest": {"tools/session_coordinator/server.py": "a" * 64},
+                    "source_manifest": {
+                        "README.md": hashlib.sha256(
+                            (repo / "README.md").read_bytes()
+                        ).hexdigest()
+                    },
                     "command": ["python", "-m", "unittest", "focused_case"],
                     "toolchain": {"python": "3.14"},
-                    "coverage": {"kind": "focused"},
+                    "coverage": {
+                        "kind": "focused",
+                        "dependencyRoots": ["tools/session_coordinator"],
+                    },
                 },
             )
             ticket_id = receipt["receipt"]["ticket"]["ticket_id"]
@@ -795,15 +931,30 @@ class ServerTests(unittest.TestCase):
                 session_id="validation-owner",
                 plan_path=plan.path.relative_to(repo).as_posix(),
             )
+            self.assertTrue(
+                application.leases.acquire(
+                    "validation-owner", ["README.md"]
+                ).acquired
+            )
+            application.baselines.attribute(
+                "validation-owner", ["README.md"]
+            )
             receipt = application.command(
                 "validation.submit",
                 {
                     "session_id": "validation-owner",
                     "request_id": "caller-written-pass",
-                    "source_manifest": {"tools/session_coordinator/server.py": "a" * 64},
+                    "source_manifest": {
+                        "README.md": hashlib.sha256(
+                            (repo / "README.md").read_bytes()
+                        ).hexdigest()
+                    },
                     "command": ["python", "-m", "unittest", "focused_case"],
                     "toolchain": {"python": "3.14"},
-                    "coverage": {"kind": "focused"},
+                    "coverage": {
+                        "kind": "focused",
+                        "dependencyRoots": ["tools/session_coordinator"],
+                    },
                 },
             )
             ticket_id = receipt["receipt"]["ticket"]["ticket_id"]
@@ -842,6 +993,7 @@ class ServerTests(unittest.TestCase):
             self.assertTrue(
                 application.leases.acquire("candidate-owner", ["tools/candidate.py"]).acquired
             )
+            application.baselines.attribute("candidate-owner", ["tools/candidate.py"])
             ticket = application.command(
                 "validation.submit",
                 {
@@ -852,7 +1004,10 @@ class ServerTests(unittest.TestCase):
                     },
                     "command": ["python", "-m", "py_compile", "tools/candidate.py"],
                     "toolchain": {"python": "3.14"},
-                    "coverage": {"kind": "compile"},
+                    "coverage": {
+                        "kind": "compile",
+                        "dependencyRoots": ["tools"],
+                    },
                 },
             )
             application.validation_tickets.record_result(
@@ -2876,6 +3031,195 @@ class ServerTests(unittest.TestCase):
         finally:
             stop.set()
             worker.join(timeout=1)
+
+    def test_maintenance_fast_validation_ticks_precede_slow_cleanup(self) -> None:
+        application = mock.Mock()
+        application.read_only = False
+        application.validation_ticket_worker = mock.sentinel.validation_worker
+        application.cargo_jobs.reconcile_pending_reservations.return_value = {}
+        application.cargo_runner.reconcile_terminal_runs.return_value = ()
+        application.workspace_copy = None
+        order: list[str] = []
+        cleanup_entered = threading.Event()
+        release_cleanup = threading.Event()
+        stop = threading.Event()
+
+        application.advance_validation_queue.side_effect = lambda **_kwargs: order.append(
+            "validation"
+        )
+        application.cargo_jobs.reconcile_orphans.side_effect = lambda: (
+            order.append("cargo") or ()
+        )
+
+        def slow_cleanup():
+            order.append("cleanup")
+            cleanup_entered.set()
+            release_cleanup.wait(timeout=5)
+            return mock.Mock(deleted=())
+
+        application.artifact_governance.cleanup.side_effect = slow_cleanup
+        worker = threading.Thread(
+            target=RunningCoordinator._maintenance_loop,
+            args=(application, 0.01, 60, stop),
+            daemon=True,
+        )
+        worker.start()
+        try:
+            self.assertTrue(cleanup_entered.wait(timeout=1))
+            self.assertEqual(["validation", "cargo", "validation", "cleanup"], order)
+        finally:
+            release_cleanup.set()
+            stop.set()
+            worker.join(timeout=2)
+        self.assertFalse(worker.is_alive())
+
+    def test_maintenance_fast_tick_failure_does_not_skip_post_reconcile_tick(
+        self,
+    ) -> None:
+        application = mock.Mock()
+        application.read_only = False
+        application.validation_ticket_worker = mock.sentinel.validation_worker
+        application.cargo_jobs.reconcile_orphans.return_value = ()
+        application.cargo_jobs.reconcile_pending_reservations.return_value = {}
+        application.cargo_runner.reconcile_terminal_runs.return_value = ()
+        application.artifact_governance = None
+        application.workspace_copy = None
+        application.advance_validation_queue.side_effect = (
+            RuntimeError("fast validation tick failed"),
+            {"progress": {}},
+        )
+        stop = mock.Mock()
+        stop.wait.side_effect = (False, True)
+        stop.is_set.return_value = False
+
+        with mock.patch.object(
+            RunningCoordinator, "_record_maintenance_failure", return_value=True
+        ) as recorded:
+            RunningCoordinator._maintenance_loop(application, 0.05, 60, stop)
+
+        self.assertEqual(2, application.advance_validation_queue.call_count)
+        recorded.assert_any_call(
+            application,
+            "validation.ticket_worker_failed",
+            mock.ANY,
+        )
+
+    def test_maintenance_validation_keeps_ticking_while_workspace_scan_prepares(
+        self,
+    ) -> None:
+        application = mock.Mock()
+        application.read_only = False
+        application.validation_ticket_worker = mock.sentinel.validation_worker
+        application.cargo_jobs = None
+        application.artifact_governance = None
+        application.workspace_copy = None
+        scan_entered = threading.Event()
+        release_scan = threading.Event()
+        fourth_tick = threading.Event()
+        stop = threading.Event()
+        tick_count = 0
+
+        def tick(**_kwargs):
+            nonlocal tick_count
+            tick_count += 1
+            if tick_count >= 4:
+                fourth_tick.set()
+
+        def blocking_prepare():
+            scan_entered.set()
+            release_scan.wait(timeout=5)
+            return mock.sentinel.observation
+
+        application.advance_validation_queue.side_effect = tick
+        application.watcher.prepare_scan.side_effect = blocking_prepare
+        worker = threading.Thread(
+            target=RunningCoordinator._maintenance_loop,
+            args=(application, 0.01, 60, stop),
+            daemon=True,
+        )
+        worker.start()
+        try:
+            self.assertTrue(scan_entered.wait(timeout=1))
+            self.assertTrue(
+                fourth_tick.wait(timeout=1),
+                "validation queue stopped advancing behind prepare_scan",
+            )
+            self.assertEqual(1, application.watcher.prepare_scan.call_count)
+            application.watcher.apply_scan.assert_not_called()
+        finally:
+            stop.set()
+            release_scan.set()
+            worker.join(timeout=2)
+        self.assertFalse(worker.is_alive())
+
+    def test_maintenance_stop_does_not_wait_for_blocked_workspace_scan(self) -> None:
+        application = mock.Mock()
+        application.read_only = False
+        application.validation_ticket_worker = mock.sentinel.validation_worker
+        application.cargo_jobs = None
+        application.artifact_governance = None
+        application.workspace_copy = None
+        scan_entered = threading.Event()
+        release_scan = threading.Event()
+        stop = threading.Event()
+
+        def blocking_prepare():
+            scan_entered.set()
+            release_scan.wait(timeout=5)
+            return mock.sentinel.observation
+
+        application.watcher.prepare_scan.side_effect = blocking_prepare
+        worker = threading.Thread(
+            target=RunningCoordinator._maintenance_loop,
+            args=(application, 0.01, 60, stop),
+            daemon=True,
+        )
+        worker.start()
+        try:
+            self.assertTrue(scan_entered.wait(timeout=1))
+            stop.set()
+            worker.join(timeout=1)
+            self.assertFalse(
+                worker.is_alive(),
+                "maintenance shutdown waited for a blocked workspace observation",
+            )
+        finally:
+            release_scan.set()
+            worker.join(timeout=2)
+
+    def test_maintenance_workspace_scan_apply_remains_serial(self) -> None:
+        application = mock.Mock()
+        application.read_only = False
+        application.validation_ticket_worker = mock.sentinel.validation_worker
+        application.cargo_jobs = None
+        application.artifact_governance = None
+        application.workspace_copy = None
+        apply_entered = threading.Event()
+        release_apply = threading.Event()
+        stop = threading.Event()
+        application.watcher.prepare_scan.return_value = mock.sentinel.observation
+
+        def blocking_apply(_observation):
+            apply_entered.set()
+            release_apply.wait(timeout=5)
+
+        application.watcher.apply_scan.side_effect = blocking_apply
+        worker = threading.Thread(
+            target=RunningCoordinator._maintenance_loop,
+            args=(application, 0.01, 60, stop),
+            daemon=True,
+        )
+        worker.start()
+        try:
+            self.assertTrue(apply_entered.wait(timeout=1))
+            time.sleep(0.1)
+            self.assertEqual(1, application.watcher.prepare_scan.call_count)
+            self.assertEqual(1, application.watcher.apply_scan.call_count)
+        finally:
+            release_apply.set()
+            stop.set()
+            worker.join(timeout=2)
+        self.assertFalse(worker.is_alive())
 
     def test_foreground_mutation_is_not_blocked_by_slow_workspace_observation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

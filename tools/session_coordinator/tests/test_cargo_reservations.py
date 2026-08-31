@@ -1313,6 +1313,75 @@ class CargoReservationTests(unittest.TestCase):
             )
         self.assertEqual("cargo_cpu_reservation_not_fifo_head", out_of_order.exception.code)
 
+    def test_distinct_source_copy_cannot_overwrite_pending_reservation_command(
+        self,
+    ) -> None:
+        relative = "src/exact.rs"
+        copies: list[tuple[str, str, str]] = []
+        for copy_id, content in (("copy-a", "first\n"), ("copy-b", "second\n")):
+            copy_root = self.target_root / "verify" / copy_id
+            source_root = copy_root / "source"
+            target_root = copy_root / "target"
+            copied = source_root / relative
+            copied.parent.mkdir(parents=True)
+            copied.write_text(content, encoding="utf-8")
+            target_root.mkdir(parents=True)
+            digest = hashlib.sha256(copied.read_bytes()).hexdigest().upper()
+            manifest_hash = hashlib.sha256(f"manifest-{copy_id}".encode()).hexdigest()
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """INSERT INTO validation_copies(
+                           job_id, session_id, job_root, source_root, target_root,
+                           head_commit, manifest_json, status, created_at,
+                           external_sources_json, input_manifest_hash
+                       ) VALUES (?, 'session-a', ?, ?, ?, 'head', ?,
+                                 'materialized', 'now', '[]', ?)""",
+                    (
+                        copy_id,
+                        str(copy_root),
+                        str(source_root),
+                        str(target_root),
+                        json.dumps([relative]),
+                        manifest_hash,
+                    ),
+                )
+            copies.append((copy_id, digest, manifest_hash))
+
+        first_command = ("cargo", "test", "-p", "zircon_runtime")
+        first = self.service.reserve_cpu(
+            "session-a",
+            compatibility=self.compatibility(
+                source_manifest={relative: copies[0][1]},
+                source_copy_job_id=copies[0][0],
+                source_copy_manifest_hash=copies[0][2],
+            ),
+            command=first_command,
+        )
+
+        with self.assertRaises(CoordinatorError) as blocked:
+            self.service.reserve_cpu(
+                "session-a",
+                compatibility=self.compatibility(
+                    source_manifest={relative: copies[1][1]},
+                    source_copy_job_id=copies[1][0],
+                    source_copy_manifest_hash=copies[1][2],
+                ),
+                command=("cargo", "test", "-p", "zircon_plugin_zr_vm_language_runtime"),
+            )
+
+        self.assertEqual("cargo_cpu_session_reservation_pending", blocked.exception.code)
+        with self.database.connect() as connection:
+            durable = connection.execute(
+                """SELECT source_copy_job_id, command_fingerprint
+                   FROM cargo_lane_reservations WHERE reservation_id=?""",
+                (first["reservationId"],),
+            ).fetchone()
+        self.assertEqual("copy-a", durable["source_copy_job_id"])
+        self.assertEqual(
+            self.service._command_fingerprint(first_command),
+            durable["command_fingerprint"],
+        )
+
     def test_cpu_reservations_queue_multiple_exact_successors_in_fifo_order(self) -> None:
         first = self.service.reserve_cpu(
             "session-a",

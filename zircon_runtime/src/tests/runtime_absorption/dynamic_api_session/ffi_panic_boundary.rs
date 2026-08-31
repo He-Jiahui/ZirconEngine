@@ -17,7 +17,7 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
         "catch_unwind(AssertUnwindSafe",
         "ZrStatusCode::Panic",
         "runtime dynamic API panic caught at FFI boundary",
-        "zircon_runtime_get_api_v7_inner",
+        "zircon_runtime_get_api_v8_inner",
         "Err(_) => core::ptr::null()",
     ] {
         assert!(
@@ -56,7 +56,7 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
     ] {
         assert!(
             exports_source.contains(&format!("Some({wrapper})")),
-            "`ZrRuntimeApiV7` should advertise `{wrapper}` instead of the session owner `{inner}`"
+            "`ZrRuntimeApiV8` should advertise `{wrapper}` instead of the session owner `{inner}`"
         );
         assert!(
             exports_source.contains(&format!("fn {wrapper}(")),
@@ -68,7 +68,7 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
         );
         assert!(
             !exports_source.contains(&format!("Some({inner}),")),
-            "`ZrRuntimeApiV7` must not bypass the panic wrapper by advertising `{inner}` directly"
+            "`ZrRuntimeApiV8` must not bypass the panic wrapper by advertising `{inner}` directly"
         );
         let owner_source = if inner.ends_with("_operation") {
             operation_source

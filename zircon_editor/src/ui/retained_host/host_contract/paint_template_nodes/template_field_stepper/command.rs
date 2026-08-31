@@ -2,8 +2,10 @@ use super::super::super::data::FrameRect;
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchTextFieldStyle;
+use super::super::template_icon_assets::push_icon_asset_pixels;
 use super::metrics::workbench_field_stepper_metrics;
-use super::segments::push_stepper_glyph_segments;
+
+const FIELD_STEPPER_ICON: &str = "zircon_editor_shell/controls/field-stepper.svg";
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_stepper(
     commands: &mut Vec<HostPaintCommand>,
@@ -42,5 +44,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     if intersect(&glyph, clip).is_none() {
         return;
     }
-    push_stepper_glyph_segments(commands, &glyph, clip, order + 1, style.stepper, opacity);
+    push_icon_asset_pixels(
+        commands,
+        FIELD_STEPPER_ICON,
+        &glyph,
+        clip,
+        order + 1,
+        Some(style.stepper),
+        opacity,
+    );
 }

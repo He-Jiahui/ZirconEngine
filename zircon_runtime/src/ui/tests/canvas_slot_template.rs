@@ -1,4 +1,5 @@
-use crate::ui::template::{UiTemplateInstance, UiTemplateLoader, UiTemplateTreeBuilder};
+use super::template::compiled_instance_from_toml;
+use crate::ui::template::UiTemplateTreeBuilder;
 use crate::ui::v2::{UiV2AssetLoader, UiV2DocumentCompiler, UiV2SurfaceBuilder};
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
@@ -7,7 +8,7 @@ use zircon_runtime_interface::ui::{
 
 #[test]
 fn template_tree_builder_preserves_canvas_slot_stretch_anchor_contract() {
-    let document = UiTemplateLoader::load_toml_str(
+    let instance = compiled_instance_from_toml(
         r#"
 version = 1
 
@@ -18,14 +19,12 @@ children = [
     { component = "Panel", control_id = "StretchChild", slot_attributes = { layout = { anchor = { x = 0.25, y = 0.0 }, anchor_max = { x = 0.75, y = 1.0 }, offset = { left = 8.0, top = 4.0, right = 12.0, bottom = 6.0 }, order = 7 } } }
 ]
 "#,
-    )
-    .unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    );
 
     let tree =
         UiTemplateTreeBuilder::build_tree(UiTreeId::new("canvas.slot.stretch.template"), &instance)
             .unwrap();
-    let slot = tree.slots.first().expect("canvas child slot");
+    let slot = tree.layout_slots().first().expect("canvas child slot");
     let placement = slot.canvas_placement.expect("canvas placement");
 
     assert_eq!(slot.kind, UiSlotKind::Canvas);
@@ -66,7 +65,11 @@ control_id = "StretchChild"
     )
     .unwrap();
     let root = surface.tree.node(surface.tree.roots[0]).unwrap();
-    let slot = surface.tree.slots.first().expect("v2 canvas child slot");
+    let slot = surface
+        .tree
+        .layout_slots()
+        .first()
+        .expect("v2 canvas child slot");
     let placement = slot.canvas_placement.expect("v2 canvas placement");
 
     assert_eq!(root.container, UiContainerKind::Canvas);

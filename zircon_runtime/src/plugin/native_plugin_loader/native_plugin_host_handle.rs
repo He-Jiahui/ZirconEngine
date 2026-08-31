@@ -1,7 +1,5 @@
-use std::{
-    path::Path,
-    sync::{Arc, Weak},
-};
+use std::path::Path;
+use std::sync::{Arc, Weak};
 
 use crate::plugin::{
     PluginModuleKind, RuntimeExtensionRegistry, RuntimePluginBridgeLifecycleState,
@@ -11,12 +9,11 @@ use super::{
     NativeBridgeMethodBinding, NativeHostBridgeCallScope, NativePluginBehaviorCallReport,
     NativePluginCallbackDiagnostics, NativePluginLiveHost, NativePluginLiveHostBridgeReloadReport,
     NativePluginLiveHostDiagnostics, NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome,
-    NativePluginLoadReport, NativePluginLoader, NativePluginRuntimeBehaviorDescriptor,
-    NativePluginRuntimeCommandDispatchReport, NativePluginRuntimeDeltaHotUpdateReport,
-    NativePluginRuntimeDeltaHotUpdateRequest, NativePluginRuntimeHotUpdateReport,
-    NativePluginRuntimePlayModeExitReport, NativePluginRuntimePlayModeSnapshot,
-    NativePluginRuntimeRegistrationReplayReport, NativePluginRuntimeStateRestoreReport,
-    NativePluginRuntimeStateSnapshot,
+    NativePluginRuntimeBehaviorDescriptor, NativePluginRuntimeCommandDispatchReport,
+    NativePluginRuntimeDeltaHotUpdateReport, NativePluginRuntimeDeltaHotUpdateRequest,
+    NativePluginRuntimeHotUpdateReport, NativePluginRuntimePlayModeExitReport,
+    NativePluginRuntimePlayModeSnapshot, NativePluginRuntimeRegistrationReplayReport,
+    NativePluginRuntimeStateRestoreReport, NativePluginRuntimeStateSnapshot,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -315,64 +312,6 @@ impl NativePluginHostWeakHandle {
             .upgrade()
             .map(|backend| NativePluginHostHandle { backend })
     }
-}
-
-pub fn discover_native_plugins(root: impl AsRef<Path>) -> NativePluginLoadReport {
-    NativePluginLoader.discover(root)
-}
-
-pub fn refresh_native_plugin_discovery_manifest(
-    root: impl AsRef<Path>,
-    manifest_path: impl AsRef<Path>,
-) -> NativePluginLoadReport {
-    NativePluginLoader.refresh_discovery_manifest(root, manifest_path)
-}
-
-pub fn remove_discovered_native_plugin_path(
-    root: impl AsRef<Path>,
-    removed_path: impl AsRef<Path>,
-) -> NativePluginLoadReport {
-    NativePluginLoader.remove_discovered_path(root, removed_path)
-}
-
-pub fn native_plugin_discovery_generation(root: impl AsRef<Path>) -> Option<u64> {
-    NativePluginLoader.discovery_generation(root)
-}
-
-pub fn discover_native_plugins_from_load_manifest(
-    export_root: impl AsRef<Path>,
-) -> NativePluginLoadReport {
-    NativePluginLoader.discover_from_load_manifest(export_root)
-}
-
-pub fn load_discovered_native_plugins(root: impl AsRef<Path>) -> NativePluginLoadReport {
-    NativePluginLoader.load_discovered_all(root)
-}
-
-pub fn load_discovered_native_runtime_plugins(root: impl AsRef<Path>) -> NativePluginLoadReport {
-    NativePluginLoader.load_discovered_runtime(root)
-}
-
-pub fn load_discovered_native_editor_plugins(root: impl AsRef<Path>) -> NativePluginLoadReport {
-    NativePluginLoader.load_discovered_editor(root)
-}
-
-pub fn load_native_plugins_from_load_manifest(
-    export_root: impl AsRef<Path>,
-) -> NativePluginLoadReport {
-    NativePluginLoader.load_all_from_load_manifest(export_root)
-}
-
-pub fn load_native_runtime_from_load_manifest(
-    export_root: impl AsRef<Path>,
-) -> NativePluginLoadReport {
-    NativePluginLoader.load_runtime_from_load_manifest(export_root)
-}
-
-pub fn load_native_editor_from_load_manifest(
-    export_root: impl AsRef<Path>,
-) -> NativePluginLoadReport {
-    NativePluginLoader.load_editor_from_load_manifest(export_root)
 }
 
 #[cfg(test)]

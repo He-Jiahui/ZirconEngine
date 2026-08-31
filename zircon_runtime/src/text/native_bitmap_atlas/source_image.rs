@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use glyphon::{Color, SwashContent, TextBounds};
+use glyphon::SwashContent;
 
 use crate::core::math::UVec2;
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
@@ -10,15 +10,13 @@ use crate::text::atlas::{
 
 #[derive(Clone, Copy)]
 pub(super) struct NativeBitmapGlyphImage {
-    pub(super) x: i32,
-    pub(super) y: i32,
-    pub(super) line_y: f32,
+    pub(super) screen_x: f32,
+    pub(super) baseline_y: f32,
     pub(super) top: i16,
     pub(super) left: i16,
     pub(super) width: u16,
     pub(super) height: u16,
     pub(super) format: GlyphAtlasFormat,
-    pub(super) scale_factor: f32,
     pub(super) source_byte_len: usize,
     pub(super) foreground_color: [f32; 4],
     pub(super) background_color: [f32; 4],
@@ -45,14 +43,12 @@ pub(super) fn native_bitmap_atlas_source_from_image(
     }
 
     let screen_rect = native_bitmap_atlas_screen_rect(
-        image.x,
-        image.y,
-        image.line_y,
+        image.screen_x,
+        image.baseline_y,
         image.top,
         image.left,
         image.width,
         image.height,
-        image.scale_factor,
     );
     let crop = native_bitmap_atlas_crop_from_clip(screen_rect, clipped_rect, content_size)?;
     let bytes = crop_native_bitmap_source_bytes(source_bytes, content_size, image.format, crop)?;
@@ -134,33 +130,19 @@ struct NativeBitmapAtlasCrop {
 }
 
 pub(super) fn native_bitmap_atlas_screen_rect(
-    x: i32,
-    y: i32,
-    line_y: f32,
+    screen_x: f32,
+    baseline_y: f32,
     top: i16,
     left: i16,
     width: u16,
     height: u16,
-    scale_factor: f32,
 ) -> GlyphAtlasScreenRect {
     GlyphAtlasScreenRect::new(
-        (x + i32::from(left)) as f32,
-        ((line_y * scale_factor).round() as i32 + y - i32::from(top)) as f32,
+        screen_x + f32::from(left),
+        baseline_y - f32::from(top),
         f32::from(width),
         f32::from(height),
     )
-}
-
-pub(super) fn text_bounds_clipped_screen_rect(
-    bounds: TextBounds,
-    rect: GlyphAtlasScreenRect,
-) -> Option<GlyphAtlasScreenRect> {
-    rect.clipped_to(GlyphAtlasScreenRect::new(
-        bounds.left as f32,
-        bounds.top as f32,
-        (bounds.right - bounds.left).max(0) as f32,
-        (bounds.bottom - bounds.top).max(0) as f32,
-    ))
 }
 
 fn native_bitmap_atlas_crop_from_clip(
@@ -223,14 +205,4 @@ fn crop_native_bitmap_source_bytes(
         cropped.extend_from_slice(source_bytes.get(source_start..source_end)?);
     }
     Some(Arc::from(cropped))
-}
-
-pub(super) fn unpack_color(color: Color) -> [f32; 4] {
-    let [r, g, b, a] = color.as_rgba();
-    [
-        f32::from(r) / 255.0,
-        f32::from(g) / 255.0,
-        f32::from(b) / 255.0,
-        f32::from(a) / 255.0,
-    ]
 }

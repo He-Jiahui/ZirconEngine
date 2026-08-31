@@ -121,6 +121,45 @@ pub(super) fn assert_graph_execution(snapshot: &RuntimeDiagnosticsSnapshot) {
         0.0,
         &["graph", "execution", "stage", "order"],
     );
+    for (metric, value, tags) in [
+        (
+            "render.graph.execution.batch.planned_batch_count",
+            5.0,
+            &["graph", "execution", "batch"][..],
+        ),
+        (
+            "render.graph.execution.batch.planned_live_pass_count",
+            14.0,
+            &["graph", "execution", "batch", "pass"][..],
+        ),
+        (
+            "render.graph.execution.batch.graphics_count",
+            3.0,
+            &["graph", "execution", "batch", "graphics"][..],
+        ),
+        (
+            "render.graph.execution.batch.async_compute_count",
+            1.0,
+            &["graph", "execution", "batch", "async_compute"][..],
+        ),
+        (
+            "render.graph.execution.batch.async_copy_count",
+            1.0,
+            &["graph", "execution", "batch", "async_copy"][..],
+        ),
+        (
+            "render.graph.execution.batch.max_passes_per_batch",
+            6.0,
+            &["graph", "execution", "batch", "pass"][..],
+        ),
+        (
+            "render.graph.execution.batch.queue_transition_count",
+            4.0,
+            &["graph", "execution", "batch", "queue"][..],
+        ),
+    ] {
+        assert_render_count_series(&snapshot.store, metric, value, tags);
+    }
     assert_render_count_series(
         &snapshot.store,
         "render.graph.execution.profile.pass_count",

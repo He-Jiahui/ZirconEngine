@@ -3,13 +3,15 @@ use super::*;
 #[test]
 fn render_layer_mask_reflection_roundtrips_unsigned_mask() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let address = fixed_component_address(entity, "RenderLayerMask");
 
     let response = world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "mask",
+            reflected_field_id("zircon_runtime::scene::components::RenderLayerMask", "mask"),
             ReflectedValue::Unsigned(0x0000_00ff),
         ))
         .expect("render layer mask should be writable");
@@ -21,15 +23,22 @@ fn render_layer_mask_reflection_roundtrips_unsigned_mask() {
     );
     assert_eq!(
         world
-            .reflect_read(ReflectReadRequest::new(address.clone(), "mask"))
+            .reflect_read(ReflectReadRequest::new(
+                address.clone(),
+                reflected_field_id("zircon_runtime::scene::components::RenderLayerMask", "mask",),
+            ))
             .expect("mask should read back")
             .field,
-        ReflectFieldValue::new("mask", ReflectedValue::Unsigned(0xff))
+        ReflectFieldValue::new(
+            reflected_field_id("zircon_runtime::scene::components::RenderLayerMask", "mask"),
+            "mask",
+            ReflectedValue::Unsigned(0xff),
+        )
     );
     assert!(matches!(
         world.reflect_write(ReflectWriteRequest::new(
             address,
-            "mask",
+            reflected_field_id("zircon_runtime::scene::components::RenderLayerMask", "mask",),
             ReflectedValue::Unsigned(u32::MAX as u64 + 1),
         )),
         Err(ReflectError::TypeMismatch { .. })
@@ -39,7 +48,9 @@ fn render_layer_mask_reflection_roundtrips_unsigned_mask() {
 #[test]
 fn rigid_body_reflection_exposes_selected_safe_fields() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .insert(
             entity,
@@ -61,14 +72,26 @@ fn rigid_body_reflection_exposes_selected_safe_fields() {
         .fields;
 
     assert!(fields.contains(&ReflectFieldValue::new(
+        reflected_field_id(
+            "zircon_runtime::scene::components::RigidBodyComponent",
+            "body_type",
+        ),
         "body_type",
         ReflectedValue::Enum("Kinematic".to_string())
     )));
     assert!(fields.contains(&ReflectFieldValue::new(
+        reflected_field_id(
+            "zircon_runtime::scene::components::RigidBodyComponent",
+            "linear_velocity",
+        ),
         "linear_velocity",
         ReflectedValue::Vec3([1.0, 2.0, 3.0])
     )));
     assert!(fields.contains(&ReflectFieldValue::new(
+        reflected_field_id(
+            "zircon_runtime::scene::components::RigidBodyComponent",
+            "lock_rotation",
+        ),
         "lock_rotation",
         ReflectedValue::List(vec![
             ReflectedValue::Bool(true),
@@ -101,49 +124,70 @@ fn rigid_body_reflection_exposes_selected_safe_fields() {
     world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "mass",
+            reflected_field_id(
+                "zircon_runtime::scene::components::RigidBodyComponent",
+                "mass",
+            ),
             ReflectedValue::Scalar(9.5),
         ))
         .expect("mass should be writable");
     world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "linear_damping",
+            reflected_field_id(
+                "zircon_runtime::scene::components::RigidBodyComponent",
+                "linear_damping",
+            ),
             ReflectedValue::Scalar(0.25),
         ))
         .expect("linear damping should be writable");
     world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "angular_damping",
+            reflected_field_id(
+                "zircon_runtime::scene::components::RigidBodyComponent",
+                "angular_damping",
+            ),
             ReflectedValue::Scalar(0.5),
         ))
         .expect("angular damping should be writable");
     world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "gravity_scale",
+            reflected_field_id(
+                "zircon_runtime::scene::components::RigidBodyComponent",
+                "gravity_scale",
+            ),
             ReflectedValue::Scalar(0.75),
         ))
         .expect("gravity scale should be writable");
     world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "sleep_policy",
+            reflected_field_id(
+                "zircon_runtime::scene::components::RigidBodyComponent",
+                "sleep_policy",
+            ),
             ReflectedValue::Enum("Never".to_string()),
         ))
         .expect("sleep_policy should be writable");
     world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "mass_density",
+            reflected_field_id(
+                "zircon_runtime::scene::components::RigidBodyComponent",
+                "mass_density",
+            ),
             ReflectedValue::Scalar(4.0),
         ))
         .expect("mass density should select auto-from-shape mode");
     world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "ccd_mode",
+            reflected_field_id(
+                "zircon_runtime::scene::components::RigidBodyComponent",
+                "ccd_mode",
+            ),
             ReflectedValue::Enum("LinearCast".to_string()),
         ))
         .expect("ccd_mode should be writable");
@@ -170,7 +214,10 @@ fn rigid_body_reflection_exposes_selected_safe_fields() {
     let unchanged_mass = world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "mass",
+            reflected_field_id(
+                "zircon_runtime::scene::components::RigidBodyComponent",
+                "mass",
+            ),
             ReflectedValue::Scalar(9.5),
         ))
         .expect("same rigid body mass should be accepted as unchanged");
@@ -178,7 +225,7 @@ fn rigid_body_reflection_exposes_selected_safe_fields() {
     assert!(matches!(
         world.reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "mass",
+            reflected_field_id("zircon_runtime::scene::components::RigidBodyComponent", "mass"),
             ReflectedValue::Scalar(f32::INFINITY),
         )),
         Err(ReflectError::TypeMismatch { expected, .. }) if expected == "finite Scalar"
@@ -187,7 +234,10 @@ fn rigid_body_reflection_exposes_selected_safe_fields() {
         world
             .reflect_write(ReflectWriteRequest::new(
                 address,
-                "linear_velocity",
+                reflected_field_id(
+                    "zircon_runtime::scene::components::RigidBodyComponent",
+                    "linear_velocity",
+                ),
                 ReflectedValue::Vec3([0.0, 0.0, 0.0]),
             ))
             .expect_err("linear velocity is read-only"),
@@ -201,18 +251,21 @@ fn rigid_body_reflection_exposes_selected_safe_fields() {
 #[test]
 fn unknown_fixed_field_returns_structured_error() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
 
+    let missing_field_id = reflected_field_id("zircon_runtime::scene::components::Name", "missing");
     assert_eq!(
         world
             .reflect_read(ReflectReadRequest::new(
                 fixed_component_address(entity, "Name"),
-                "missing",
+                missing_field_id,
             ))
             .expect_err("unknown fields should be structured"),
         ReflectError::UnknownField {
             type_path: "zircon_runtime::scene::components::Name".to_string(),
-            field_name: "missing".to_string(),
+            field_name: missing_field_id.to_string(),
         }
     );
 }
@@ -220,14 +273,19 @@ fn unknown_fixed_field_returns_structured_error() {
 #[test]
 fn missing_fixed_component_returns_structured_error() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.remove::<RigidBodyComponent>(entity).unwrap();
 
     assert_eq!(
         world
             .reflect_read(ReflectReadRequest::new(
                 fixed_component_address(entity, "RigidBodyComponent"),
-                "mass",
+                reflected_field_id(
+                    "zircon_runtime::scene::components::RigidBodyComponent",
+                    "mass",
+                ),
             ))
             .expect_err("missing fixed components should be structured"),
         ReflectError::MissingComponent {
@@ -255,7 +313,7 @@ fn missing_fixed_component_returns_structured_error() {
         world
             .reflect_read(ReflectReadRequest::new(
                 fixed_component_address(999_999, "Name"),
-                "value",
+                reflected_field_id("zircon_runtime::scene::components::Name", "value"),
             ))
             .expect_err("missing entities should be structured"),
         ReflectError::MissingEntity { entity: 999_999 }

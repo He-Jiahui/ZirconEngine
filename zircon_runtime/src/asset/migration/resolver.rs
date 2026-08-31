@@ -128,7 +128,8 @@ fn resolution_failure(error: ReferenceResolutionError) -> ResolutionFailure {
     let kind = match &error {
         ReferenceResolutionError::Dangling { .. }
         | ReferenceResolutionError::DanglingSubasset { .. }
-        | ReferenceResolutionError::MissingGuid { .. } => {
+        | ReferenceResolutionError::MissingGuid { .. }
+        | ReferenceResolutionError::PathOccupiedCandidate { .. } => {
             AssetMigrationIssueKind::DanglingReference
         }
         ReferenceResolutionError::MissingPath { .. } => AssetMigrationIssueKind::MissingPath,

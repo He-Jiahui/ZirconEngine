@@ -10,9 +10,12 @@ fixing_child_dir: docs/plans/zircon_editor/editor/10
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe.rs
+  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe/state.rs
+  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe/job.rs
+  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe/host.rs
+  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe/projection.rs
 tests:
-  - welcome draft input storm 1/1000/1000000
-  - linked/missing/invalid/current-generation behavior
+  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe/tests.rs
 ---
 
 # Editor10：Welcome project probe准入风暴

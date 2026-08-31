@@ -215,6 +215,13 @@ fn push_shader_readiness_diagnostics(
             diagnostic,
         });
     }
+    if let Some(diagnostic) = readiness.kind_diagnostic {
+        diagnostics.push(RendererFeatureContractDiagnostic::ShaderValidation {
+            feature: feature_name.to_string(),
+            shader: shader_reference.clone(),
+            diagnostic,
+        });
+    }
     for entry in readiness.entry_points {
         if let Some(diagnostic) = entry.diagnostic {
             diagnostics.push(RendererFeatureContractDiagnostic::ShaderValidation {

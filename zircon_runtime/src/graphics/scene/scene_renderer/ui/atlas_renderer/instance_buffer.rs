@@ -1,4 +1,5 @@
 use crate::text::atlas::render_gpu_plan::GlyphAtlasGpuInstance;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use super::state::GlyphAtlasBitmapRendererDrawPass;
 
@@ -6,9 +7,10 @@ const GLYPH_ATLAS_MIN_INSTANCE_BUFFER_CAPACITY_BYTES: u64 = 4 * 1024;
 
 pub(super) fn glyph_atlas_bitmap_renderer_write_instance_buffer(
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
     draw_pass: &mut GlyphAtlasBitmapRendererDrawPass,
     instances: &[GlyphAtlasGpuInstance],
+    uploads: &mut WgpuBufferUploadBatch,
+    force_full_upload: bool,
 ) -> (usize, usize) {
     if instances.is_empty() {
         // Keep capacity across empty active passes; explicit idle releases all retained buffers.
@@ -40,14 +42,18 @@ pub(super) fn glyph_atlas_bitmap_renderer_write_instance_buffer(
     let instance_bytes = bytemuck::cast_slice(instances);
     let payload_hash = *blake3::hash(instance_bytes).as_bytes();
     let write_required = glyph_atlas_bitmap_renderer_instance_buffer_write_required(
-        requires_reallocation,
+        requires_reallocation || force_full_upload,
         draw_pass.instance_buffer_payload_hash,
         payload_hash,
     );
     if write_required {
         if let Some(instance_buffer) = draw_pass.instance_buffer.as_ref() {
             // Draw commands bound later cap the instance range, so stale tail bytes stay unreachable.
-            queue.write_buffer(instance_buffer, 0, instance_bytes);
+            uploads.push(WgpuBufferUpload::from_bytes(
+                instance_buffer.clone(),
+                0,
+                instance_bytes,
+            ));
             draw_pass.instance_buffer_payload_hash = Some(payload_hash);
         }
     }

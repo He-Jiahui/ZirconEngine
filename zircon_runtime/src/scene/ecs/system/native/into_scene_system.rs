@@ -1,8 +1,8 @@
+use crate::scene::World;
 use crate::scene::ecs::{
     BoxedSceneSystem, FunctionSceneSystem, SceneSystemMetadata, SystemParam, SystemParamError,
     WorldlessFunctionSceneSystem, WorldlessSystemParam,
 };
-use crate::scene::World;
 
 pub trait IntoSceneSystem<P>
 where

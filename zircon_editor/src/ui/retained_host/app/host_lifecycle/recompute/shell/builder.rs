@@ -9,7 +9,6 @@ use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry_with_region_defaults_and_scale_mode, ResolutionContext,
     ShellRegionId, WorkbenchSkeleton,
 };
-use crate::ui::workbench::model::WorkbenchViewModel;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::host_lifecycle::recompute) fn build_window_metrics_shell_snapshot(
@@ -45,6 +44,8 @@ impl RetainedEditorHost {
             componentized_workbench_layout_frames,
             reuse_shell_layout: false,
             descriptors: committed.descriptors,
+            retained_pane_payloads: committed.pane_payloads,
+            retained_shell_presentation: committed.retained_shell_presentation,
         })
     }
 
@@ -72,8 +73,7 @@ impl RetainedEditorHost {
                 "recompute_build_workbench_model"
             );
             let context = self.runtime.project_command_eval_snapshot(&chrome);
-            let commands = self.runtime.commands().lock();
-            WorkbenchViewModel::build_with_context(&commands, &chrome, &context)
+            self.runtime.build_workbench_view_model(&chrome, &context)
         };
         {
             zircon_runtime::profile_scope!(
@@ -139,6 +139,8 @@ impl RetainedEditorHost {
             componentized_workbench_layout_frames,
             reuse_shell_layout,
             descriptors,
+            retained_pane_payloads: None,
+            retained_shell_presentation: None,
         }
     }
 

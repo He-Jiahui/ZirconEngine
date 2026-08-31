@@ -1,4 +1,4 @@
-use std::mem::{align_of, size_of, MaybeUninit};
+use std::mem::{MaybeUninit, align_of, size_of};
 
 use crate::scene::World;
 
@@ -197,6 +197,21 @@ impl InlineCommandArena {
     pub(super) fn reset(&mut self) {
         self.blocks.clear();
         self.next_offset = 0;
+    }
+
+    /// Releases backing storage only after every inline payload has been
+    /// consumed or discarded. Normal queue resets deliberately retain it.
+    pub(super) fn trim_idle_storage(&mut self) -> usize {
+        if !self.blocks.is_empty() {
+            return 0;
+        }
+        let released_bytes = self
+            .blocks
+            .capacity()
+            .saturating_mul(size_of::<InlineCommandBlock>());
+        self.blocks = Vec::new();
+        self.next_offset = 0;
+        released_bytes
     }
 
     pub(super) unsafe fn payload_ptr(&mut self, block_index: usize, offset: usize) -> *mut u8 {

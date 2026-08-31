@@ -6,7 +6,7 @@ use zircon_runtime_interface::resource::{
 };
 
 #[test]
-fn default_scene_resource_change_requests_reload_and_runtime_sync() {
+fn active_scene_resource_change_requests_reload_and_runtime_sync() {
     let plan = plan_asset_backend_refresh(
         None,
         Some("res://scenes/main.scene.toml"),
@@ -32,7 +32,7 @@ fn default_scene_resource_change_requests_reload_and_runtime_sync() {
         plan,
         AssetBackendRefreshPlan {
             sync_resources: true,
-            reload_default_scene: true,
+            reload_active_scene: true,
             mark_render_dirty: true,
             mark_presentation_dirty: true,
             ..AssetBackendRefreshPlan::default()

@@ -19,10 +19,7 @@ pub(in crate::builtin::runtime_modules) struct SelectedBuiltinRuntimeModules {
 
 impl BuiltinModuleCandidateRegistry {
     fn from_modules(modules: Vec<Arc<dyn EngineModule>>) -> CoreResult<Self> {
-        let mut registry = Self {
-            candidates: Vec::new(),
-            index_by_id: HashMap::new(),
-        };
+        let mut registry = Self::with_capacity(modules.len());
         for module in modules {
             let id = BuiltinRuntimeModuleId::for_module_name(module.module_name())
                 .ok_or_else(|| CoreError::MissingModule(module.module_name().to_owned()))?;
@@ -33,6 +30,13 @@ impl BuiltinModuleCandidateRegistry {
             registry.candidates.push((id, module));
         }
         Ok(registry)
+    }
+
+    fn with_capacity(candidate_count: usize) -> Self {
+        Self {
+            candidates: Vec::with_capacity(candidate_count),
+            index_by_id: HashMap::with_capacity(candidate_count),
+        }
     }
 
     fn select(
@@ -102,3 +106,7 @@ pub(in crate::builtin::runtime_modules) fn select_runtime_profile_builtin_module
 ) -> CoreResult<SelectedBuiltinRuntimeModules> {
     BuiltinModuleCandidateRegistry::from_modules(candidates)?.select(profile)
 }
+
+#[cfg(test)]
+#[path = "profile_selection/capacity_tests.rs"]
+mod capacity_tests;

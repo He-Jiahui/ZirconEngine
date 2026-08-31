@@ -1,4 +1,6 @@
-use crate::core::framework::render::{RenderMeshStaticState, RenderPhase};
+use crate::core::framework::render::{
+    RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
+};
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::resources::MaterialDisabledPasses;
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
@@ -17,6 +19,8 @@ pub(super) struct PendingMeshCommandCacheExtractItem {
     pub(super) stable_instance_key: u64,
     pub(super) draw_ordinal: u32,
     pub(super) source_draw_index: usize,
+    pub(super) sort_components: RenderPhaseSortComponents,
+    pub(super) gpu_scene_instance_span: Option<(u32, u32)>,
     pub(super) queue_profile: MeshDrawQueueProfile,
     pub(super) static_state: RenderMeshStaticState,
     pub(super) casts_shadow: bool,
@@ -34,15 +38,17 @@ pub(super) fn pending_mesh_command_cache_extract_item(
         stable_instance_key: pending_draw.stable_instance_key,
         draw_ordinal: pending_draw.source_draw_ordinal,
         source_draw_index,
+        sort_components: pending_draw.command_sort_input.components(),
+        gpu_scene_instance_span: None,
         queue_profile: pending_mesh_draw_queue_profile(pending_draw),
-        static_state: if pending_draw.material_uniform_override_payload.is_some() {
+        static_state: if pending_draw.material.uniform_override_payload.is_some() {
             RenderMeshStaticState::from_transform_static(false)
         } else {
             pending_draw.static_state
         },
-        casts_shadow: pending_draw.common.cast_shadows.casts_shadows(),
-        disabled_passes: pending_draw.disabled_passes,
-        taa_reactive_mask_strength: pending_draw.taa_reactive_mask_strength,
+        casts_shadow: pending_draw.material.common.cast_shadows.casts_shadows(),
+        disabled_passes: pending_draw.material.disabled_passes,
+        taa_reactive_mask_strength: pending_draw.material.taa_reactive_mask_strength,
         skinned: pending_draw.skinned,
     }
 }
@@ -59,37 +65,27 @@ pub(super) fn can_skip_pending_mesh_draw_for_cached_commands(
 pub(super) fn cacheable_phases_for_extract_item(
     item: PendingMeshCommandCacheExtractItem,
     visibility: Option<PendingMeshCommandCacheVisibility>,
-) -> Vec<RenderPhase> {
-    let mut phases = Vec::with_capacity(3);
-    if !item.disabled_passes.disables_depth_prepass()
-        && item.queue_profile.early_z_eligible()
-        && relevant_to_main_phase(visibility, RenderPhase::Prepass)
-    {
-        phases.push(RenderPhase::Prepass);
-    }
-    if !item.disabled_passes.disables_shadow()
-        && item.casts_shadow
-        && relevant_to_shadow_view(visibility, item.casts_shadow)
-    {
-        phases.push(RenderPhase::Shadow);
-    }
-    if item.disabled_passes.disables_base() {
-        return phases;
-    }
-    match item.queue_profile.phase() {
-        MeshDrawQueuePhase::Opaque if relevant_to_main_phase(visibility, RenderPhase::Opaque3d) => {
-            phases.push(RenderPhase::Opaque3d);
-        }
-        MeshDrawQueuePhase::AlphaMask
-            if relevant_to_main_phase(visibility, RenderPhase::AlphaMask3d) =>
-        {
-            phases.push(RenderPhase::AlphaMask3d);
-        }
-        MeshDrawQueuePhase::Transparent
-        | MeshDrawQueuePhase::Opaque
-        | MeshDrawQueuePhase::AlphaMask => {}
-    }
-    phases
+) -> [Option<RenderPhase>; 3] {
+    cacheable_phase_slots_for_extract_item(item)
+        .map(|phase| phase.filter(|phase| phase_is_visible(visibility, *phase, item.casts_shadow)))
+}
+
+pub(super) fn cacheable_phase_slots_for_extract_item(
+    item: PendingMeshCommandCacheExtractItem,
+) -> [Option<RenderPhase>; 3] {
+    let depth_prepass = (!item.disabled_passes.disables_depth_prepass()
+        && item.queue_profile.early_z_eligible())
+    .then_some(RenderPhase::Prepass);
+    let shadow = (!item.disabled_passes.disables_shadow() && item.casts_shadow)
+        .then_some(RenderPhase::Shadow);
+    let base = (!item.disabled_passes.disables_base())
+        .then(|| match item.queue_profile.phase() {
+            MeshDrawQueuePhase::Opaque => Some(RenderPhase::Opaque3d),
+            MeshDrawQueuePhase::AlphaMask => Some(RenderPhase::AlphaMask3d),
+            MeshDrawQueuePhase::Transparent => None,
+        })
+        .flatten();
+    [depth_prepass, shadow, base]
 }
 
 fn pending_mesh_draw_queue_profile(pending_draw: &PendingMeshDraw) -> MeshDrawQueueProfile {
@@ -117,4 +113,19 @@ fn relevant_to_shadow_view(
     visibility
         .map(|visibility| visibility.shadow_view_visible && visibility.relevance.shadow_caster())
         .unwrap_or(casts_shadow)
+}
+
+fn phase_is_visible(
+    visibility: Option<PendingMeshCommandCacheVisibility>,
+    phase: RenderPhase,
+    casts_shadow: bool,
+) -> bool {
+    match phase {
+        RenderPhase::Shadow => relevant_to_shadow_view(visibility, casts_shadow),
+        RenderPhase::Prepass | RenderPhase::Opaque3d | RenderPhase::AlphaMask3d => {
+            relevant_to_main_phase(visibility, phase)
+        }
+        RenderPhase::Transparent3d | RenderPhase::PostProcess => false,
+        _ => false,
+    }
 }

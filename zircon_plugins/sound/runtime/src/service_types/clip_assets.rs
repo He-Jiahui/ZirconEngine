@@ -40,6 +40,13 @@ impl DefaultSoundManager {
         let uri = AssetUri::parse(locator).map_err(|_| SoundError::InvalidLocator {
             locator: locator.to_string(),
         })?;
+        if let Some(existing) = crate::poison_recovery::lock_recover(&self.state)
+            .clip_ids_by_locator
+            .get(locator)
+            .copied()
+        {
+            return Ok(existing);
+        }
         let asset_manager = self.project_asset_manager()?;
         let asset_id =
             asset_manager
@@ -80,5 +87,30 @@ impl DefaultSoundManager {
             frame_count: clip.asset.frame_count(),
             duration_seconds: clip.asset.duration_seconds(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime::core::framework::audio::AudioChannelLayout;
+
+    use super::*;
+
+    #[test]
+    fn cached_clip_load_returns_before_project_asset_resolution() {
+        let manager = DefaultSoundManager::default();
+        let locator = "res://audio/cached.wav";
+        let clip = manager.insert_clip_for_test(SoundAsset {
+            uri: AssetUri::parse(locator).unwrap(),
+            sample_rate_hz: 48_000,
+            channel_count: 1,
+            channel_layout: AudioChannelLayout::mono(),
+            samples: vec![0.0],
+        });
+        crate::poison_recovery::lock_recover(&manager.state)
+            .clip_ids_by_locator
+            .insert(locator.to_string(), clip);
+
+        assert_eq!(manager.load_clip_impl(locator).unwrap(), clip);
     }
 }

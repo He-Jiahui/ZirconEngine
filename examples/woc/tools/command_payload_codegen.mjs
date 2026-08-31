@@ -1881,7 +1881,7 @@ function renderRust(entries, sha256) {
     `#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n` +
     `pub enum CommandPayloadKind {\n` +
       `    Empty,\n    TargetEntity,\n    SlotIndex,\n    Utf8Id,\n    CorpseHarvest,\n    MailSend,\n    MarketSearch,\n    TradeOffer,\n    ChallengeResponse,\n` +
-      `    U32Index,\n    Utf8IdOptionalU32,\n    Utf8IdOptionalTargetEntity,\n    TargetEntityRaidGroup,\n    LockpickEngage,\n    LockpickAction,\n    OptionalUtf8Id,\n    Utf8IdF64Pair,\n    Utf8IdOptionalUtf8Id,\n    Utf8IdPair,\n    TalentRowSelection,\n    TalentSpec,\n    TalentAllocation,\n    SaveLoadout,\n    CosmeticSkin,\n    Boolean,\n    I32Value,\n    I32Pair,\n    EmoteId,\n    ChatText,\n    GuildEventCreate,\n    PartyLootMaster,\n    MasterLootAssignment,\n    PartyMarker,\n    PartyMarkerClear,\n    DuelRequest,\n    ArenaQueueFormat,\n    ArenaAugment,\n    TradeRequest,\n    ValeCupQueue,\n    ValeCupRole,\n    ValeCupBet,\n    ValeCupBracket,\n    MailId,\n    BankSlotOptionalCount,\n    DungeonFinderRoles,\n    DungeonFinderActivities,\n    DungeonFinderListing,\n    DungeonFinderListingId,\n    DungeonFinderApplicationResponse,\n    WorldObjectId,\n    MarketListingId,\n    DelveRiteIntensity,\n    DungeonDifficulty,\n    LootRoll,\n    EventSkin,\n    LinkedQuestAcceptance,\n    EquipmentItemOptionalSlot,\n    EquipmentSlot,\n    TelemetryNumericFields,\n    TownFocusAllocation,\n}\n\n` +
+      `    U32Index,\n    Utf8IdOptionalU32,\n    Utf8IdOptionalTargetEntity,\n    TargetEntityRaidGroup,\n    LockpickEngage,\n    LockpickAction,\n    OptionalUtf8Id,\n    Utf8IdF64Pair,\n    Utf8IdOptionalUtf8Id,\n    Utf8IdPair,\n    TalentRowSelection,\n    TalentSpec,\n    TalentAllocation,\n    SaveLoadout,\n    CosmeticSkin,\n    WeaponSkinChange,\n    Boolean,\n    I32Value,\n    I32Pair,\n    EmoteId,\n    ChatText,\n    GuildEventCreate,\n    PartyLootMaster,\n    MasterLootAssignment,\n    PartyMarker,\n    PartyMarkerClear,\n    DuelRequest,\n    ArenaQueueFormat,\n    ArenaAugment,\n    TradeRequest,\n    ValeCupQueue,\n    ValeCupRole,\n    ValeCupBet,\n    ValeCupBracket,\n    MailId,\n    BankSlotOptionalCount,\n    DungeonFinderRoles,\n    DungeonFinderActivities,\n    DungeonFinderListing,\n    DungeonFinderListingId,\n    DungeonFinderApplicationResponse,\n    WorldObjectId,\n    MarketListingId,\n    DelveRiteIntensity,\n    DungeonDifficulty,\n    LootRoll,\n    EventSkin,\n    LinkedQuestAcceptance,\n    EquipmentItemOptionalSlot,\n    EquipmentSlot,\n    TelemetryNumericFields,\n    TownFocusAllocation,\n}\n\n` +
     `#[derive(Clone, Copy, Debug, PartialEq, Eq)]\n` +
     `pub struct CommandPayloadDescriptor {\n` +
     `    pub id: u16,\n    pub name: &'static str,\n    pub kind: CommandPayloadKind,\n` +
@@ -1895,7 +1895,94 @@ function renderRust(entries, sha256) {
     `        } else {\n            None\n        }\n    }\n}\n\n` +
     `pub const COMMAND_PAYLOAD_CATALOG: &[CommandPayloadDescriptor] = &[\n${rows.join('\n')}\n];\n\n` +
     `pub fn command_payload_descriptor(id: u16) -> Option<&'static CommandPayloadDescriptor> {\n` +
-    `    COMMAND_PAYLOAD_CATALOG.iter().find(|entry| entry.id == id)\n}\n`;
+    `    COMMAND_PAYLOAD_CATALOG\n` +
+    `        .binary_search_by_key(&id, |entry| entry.id)\n` +
+    `        .ok()\n` +
+    `        .map(|index| &COMMAND_PAYLOAD_CATALOG[index])\n}\n\n` +
+    `#[cfg(test)]\n` +
+    `mod performance_tests {\n` +
+    `    use std::{hint::black_box, time::Instant};\n\n` +
+    `    use super::*;\n\n` +
+    `    const QUERY_COUNT: usize = 100_000;\n` +
+    `    const SAMPLE_PAIRS: usize = 21;\n\n` +
+    `    fn linear_descriptor(id: u16) -> Option<&'static CommandPayloadDescriptor> {\n` +
+    `        COMMAND_PAYLOAD_CATALOG.iter().find(|entry| entry.id == id)\n` +
+    `    }\n\n` +
+    `    fn query_id(query: usize) -> u16 {\n` +
+    `        if query % 11 == 0 {\n` +
+    `            512 + (query % 97) as u16\n` +
+    `        } else {\n` +
+    `            ((query.wrapping_mul(73) + 41) % 165) as u16\n` +
+    `        }\n` +
+    `    }\n\n` +
+    `    fn measure_linear() -> u64 {\n` +
+    `        let started = Instant::now();\n` +
+    `        let mut checksum = 0usize;\n` +
+    `        for query in 0..QUERY_COUNT {\n` +
+    `            checksum ^= linear_descriptor(black_box(query_id(query)))\n` +
+    `                .map(|entry| entry.max_byte_length)\n` +
+    `                .unwrap_or(127);\n` +
+    `        }\n` +
+    `        black_box(checksum);\n` +
+    `        started.elapsed().as_nanos() as u64\n` +
+    `    }\n\n` +
+    `    fn measure_binary() -> u64 {\n` +
+    `        let started = Instant::now();\n` +
+    `        let mut checksum = 0usize;\n` +
+    `        for query in 0..QUERY_COUNT {\n` +
+    `            checksum ^= command_payload_descriptor(black_box(query_id(query)))\n` +
+    `                .map(|entry| entry.max_byte_length)\n` +
+    `                .unwrap_or(127);\n` +
+    `        }\n` +
+    `        black_box(checksum);\n` +
+    `        started.elapsed().as_nanos() as u64\n` +
+    `    }\n\n` +
+    `    fn sample_csv(samples: &[u64]) -> String {\n` +
+    `        samples\n` +
+    `            .iter()\n` +
+    `            .map(u64::to_string)\n` +
+    `            .collect::<Vec<_>>()\n` +
+    `            .join(\",\")\n` +
+    `    }\n\n` +
+    `    #[test]\n` +
+    `    fn generated_payload_lookup_matches_linear_oracle_for_every_u16_id() {\n` +
+    `        assert_eq!(COMMAND_PAYLOAD_CATALOG.len(), 157);\n` +
+    `        assert!(\n` +
+    `            COMMAND_PAYLOAD_CATALOG\n` +
+    `                .windows(2)\n` +
+    `                .all(|pair| pair[0].id < pair[1].id)\n` +
+    `        );\n` +
+    `        for id in u16::MIN..=u16::MAX {\n` +
+    `            assert_eq!(\n` +
+    `                command_payload_descriptor(id),\n` +
+    `                linear_descriptor(id),\n` +
+    `                \"{id}\"\n` +
+    `            );\n` +
+    `        }\n` +
+    `    }\n\n` +
+    `    #[test]\n` +
+    `    #[ignore = \"release performance evidence; run through the coordinator\"]\n` +
+    `    fn runtime19_command_payload_binary_lookup_release_benchmark_evidence() {\n` +
+    `        let mut linear_ns = Vec::with_capacity(SAMPLE_PAIRS);\n` +
+    `        let mut binary_ns = Vec::with_capacity(SAMPLE_PAIRS);\n` +
+    `        for pair in 0..SAMPLE_PAIRS {\n` +
+    `            if pair % 2 == 0 {\n` +
+    `                linear_ns.push(measure_linear());\n` +
+    `                binary_ns.push(measure_binary());\n` +
+    `            } else {\n` +
+    `                binary_ns.push(measure_binary());\n` +
+    `                linear_ns.push(measure_linear());\n` +
+    `            }\n` +
+    `        }\n\n` +
+    `        println!(\n` +
+    `            \"RUNTIME19_COMMAND_PAYLOAD_LOOKUP_PERF descriptors=157 queries_per_sample=100000 \\\n` +
+    `             sample_pairs=21 sample_order=alternating_linear_first_even \\\n` +
+    `             percentile_method=nearest_rank threshold_percent=65 linear_ns={} binary_ns={}\",\n` +
+    `            sample_csv(&linear_ns),\n` +
+    `            sample_csv(&binary_ns)\n` +
+    `        );\n` +
+    `    }\n` +
+    `}\n`;
 }
 
 function kindCode(kind) {

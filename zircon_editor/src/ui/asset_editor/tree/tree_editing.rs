@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use crate::ui::asset_editor::palette::node_accepts_palette_children;
 use crate::ui::asset_editor::UiDesignerSelectionModel;
@@ -280,22 +280,24 @@ fn unique_node_id(document: &UiAssetDocument, base: &str) -> String {
 }
 
 fn unique_control_id(document: &UiAssetDocument, label: &str) -> String {
+    let existing_control_ids = document
+        .iter_nodes()
+        .filter_map(|node| node.control_id.as_deref())
+        .collect::<HashSet<_>>();
+    unique_control_id_from_existing(&existing_control_ids, label)
+}
+
+fn unique_control_id_from_existing(existing_control_ids: &HashSet<&str>, label: &str) -> String {
     let base = label
         .chars()
         .filter(|ch| ch.is_ascii_alphanumeric())
         .collect::<String>();
-    if !document
-        .iter_nodes()
-        .any(|node| node.control_id.as_deref() == Some(base.as_str()))
-    {
+    if !existing_control_ids.contains(base.as_str()) {
         return base;
     }
     for index in 2.. {
         let candidate = format!("{base}{index}");
-        if !document
-            .iter_nodes()
-            .any(|node| node.control_id.as_deref() == Some(candidate.as_str()))
-        {
+        if !existing_control_ids.contains(candidate.as_str()) {
             return candidate;
         }
     }
@@ -345,3 +347,7 @@ fn new_child_mount(node: UiNodeDefinition) -> UiChildMount {
         node,
     }
 }
+
+#[cfg(test)]
+#[path = "tree_editing/control_id_index_tests.rs"]
+mod control_id_index_tests;

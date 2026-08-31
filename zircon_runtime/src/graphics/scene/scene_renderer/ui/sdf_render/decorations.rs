@@ -1,18 +1,19 @@
 use crate::core::math::UVec2;
-use crate::text::font::{text_decoration_frame, TextDecorationKind, TextDecorationMetrics};
+use crate::text::font::{TextDecorationKind, TextDecorationMetrics, text_decoration_frame};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 
 use super::super::render::ScreenSpaceUiTextBatch;
-use super::vertices::{push_clipped_solid_quad, transform_sdf_vertices, ScreenSpaceUiSdfVertex};
+use super::vertices::{ScreenSpaceUiSdfVertex, push_clipped_solid_quad, transform_sdf_vertices};
 
-pub(super) fn build_text_decoration_vertices<I>(
+pub(super) fn build_text_decoration_vertices_iter<'a, Texts, Metrics>(
     vertices: &mut Vec<ScreenSpaceUiSdfVertex>,
-    texts: &[ScreenSpaceUiTextBatch],
-    metrics: I,
+    texts: Texts,
+    metrics: Metrics,
     viewport_size: UVec2,
 ) where
-    I: IntoIterator<Item = TextDecorationMetrics>,
+    Texts: IntoIterator<Item = &'a ScreenSpaceUiTextBatch>,
+    Metrics: IntoIterator<Item = TextDecorationMetrics>,
 {
     let viewport = UiFrame::new(
         0.0,
@@ -21,7 +22,7 @@ pub(super) fn build_text_decoration_vertices<I>(
         viewport_size.y.max(1) as f32,
     );
     for (text, metrics) in texts
-        .iter()
+        .into_iter()
         .zip(metrics)
         .filter(|(text, _)| text.text_decorations.underline || text.text_decorations.strikethrough)
     {

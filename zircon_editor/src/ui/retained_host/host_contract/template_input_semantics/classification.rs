@@ -16,6 +16,8 @@ pub(in crate::ui::retained_host::host_contract) fn hit_is_text_input(
 pub(in crate::ui::retained_host::host_contract) fn hit_uses_component_text_input_semantics(
     hit: &TemplateNodePointerHit,
 ) -> bool {
-    hit.component_family == Some(TemplateComponentFamily::TextInput)
-        || matches!(hit.component_role.as_str(), "input-field" | "number-field")
+    matches!(
+        hit.component_family,
+        Some(TemplateComponentFamily::TextInput | TemplateComponentFamily::KeySelector)
+    ) || matches!(hit.component_role.as_str(), "input-field" | "number-field")
 }

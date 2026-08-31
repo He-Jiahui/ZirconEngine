@@ -97,6 +97,7 @@ fn font_artifact_cache_roundtrips_fields_omitted_by_authoring_formats() {
                     }],
                 },
             }],
+            cooked_blob: None,
         }),
     };
     let record = ResourceRecord::new(

@@ -90,7 +90,7 @@ impl EditorMessageBus {
     ) -> EditorMessageDispatchReport {
         match self.prepare_publish(topic, message) {
             Ok(plan) => self.finish_dispatch(plan),
-            Err(report) => report,
+            Err((report, _message)) => report,
         }
     }
 
@@ -101,7 +101,7 @@ impl EditorMessageBus {
     ) -> EditorMessageDispatchReport {
         match self.prepare_broadcast(topic, message) {
             Ok(plan) => self.finish_dispatch(plan),
-            Err(report) => report,
+            Err((report, _message)) => report,
         }
     }
 
@@ -126,8 +126,14 @@ impl EditorMessageBus {
         &mut self,
         topic: EditorTopic,
         message: EditorMessage,
-    ) -> Result<EditorMessageDispatchPlan, EditorMessageDispatchReport> {
-        let targets = self.targets_for_topic(&topic);
+    ) -> Result<EditorMessageDispatchPlan, (EditorMessageDispatchReport, EditorMessage)> {
+        let Some(subscribers) = self.subscriptions.get(&topic) else {
+            return Err((
+                EditorMessageDispatchReport::new(EditorMessageProtocol::Publish, topic, Vec::new()),
+                message,
+            ));
+        };
+        let targets = subscribers.iter().copied().collect::<Vec<_>>();
         self.prepare_dispatch(EditorMessageProtocol::Publish, topic, message, targets)
     }
 
@@ -135,7 +141,7 @@ impl EditorMessageBus {
         &mut self,
         topic: EditorTopic,
         message: EditorMessage,
-    ) -> Result<EditorMessageDispatchPlan, EditorMessageDispatchReport> {
+    ) -> Result<EditorMessageDispatchPlan, (EditorMessageDispatchReport, EditorMessage)> {
         let targets = self.subscribers.keys().copied().collect::<Vec<_>>();
         self.prepare_dispatch(EditorMessageProtocol::Broadcast, topic, message, targets)
     }
@@ -289,14 +295,17 @@ impl EditorMessageBus {
         topic: EditorTopic,
         message: EditorMessage,
         targets: Vec<EditorSubscriberId>,
-    ) -> Result<EditorMessageDispatchPlan, EditorMessageDispatchReport> {
-        let sequence = self.allocate_delivery_sequence().ok_or_else(|| {
-            EditorMessageDispatchReport::failed(
-                protocol,
-                topic.clone(),
-                EditorMessageDispatchError::DeliverySequenceExhausted,
-            )
-        })?;
+    ) -> Result<EditorMessageDispatchPlan, (EditorMessageDispatchReport, EditorMessage)> {
+        let Some(sequence) = self.allocate_delivery_sequence() else {
+            return Err((
+                EditorMessageDispatchReport::failed(
+                    protocol,
+                    topic,
+                    EditorMessageDispatchError::DeliverySequenceExhausted,
+                ),
+                message,
+            ));
+        };
         let delivery = EditorMessageDelivery::with_sequence(protocol, topic, message, sequence);
         Ok(self.dispatch_plan(delivery, targets))
     }
@@ -322,13 +331,6 @@ impl EditorMessageBus {
             self.mark_message_dirty(plan.delivery.message());
         }
         plan.into_report(enqueue)
-    }
-
-    fn targets_for_topic(&self, topic: &EditorTopic) -> Vec<EditorSubscriberId> {
-        self.subscriptions
-            .get(topic)
-            .map(|subscribers| subscribers.iter().copied().collect())
-            .unwrap_or_default()
     }
 
     fn allocate_delivery_sequence(&mut self) -> Option<u64> {

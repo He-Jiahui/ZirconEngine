@@ -37,6 +37,11 @@ const TRANSFORM_TOOLS: &[&str] = &[
 ];
 const PRIMARY_RUN_CONTROLS: &[&str] = &["WorkbenchRunPlay", "WorkbenchRunMode"];
 const LAYOUT_CONTROLS: &[&str] = &["WorkbenchLayoutGrid", "WorkbenchThemeToggle"];
+const LAYOUT_CONTROLS_WITH_DETAILS: &[&str] = &[
+    "WorkbenchLayoutGrid",
+    "WorkbenchThemeToggle",
+    "WorkbenchModuleDetailsDrawerToggle",
+];
 const FULL_MODULE_TABS: &[&str] = &[
     "WorkbenchModuleScene",
     "WorkbenchModuleEffect",
@@ -98,7 +103,13 @@ pub(super) fn resolve_toolbar_priority(
     else {
         return compact;
     };
-    let Some(layout_width) = control_sequence_width(surface, &controls, LAYOUT_CONTROLS) else {
+    let layout_controls =
+        if control_occupies_layout(surface, &controls, "WorkbenchModuleDetailsDrawerToggle") {
+            LAYOUT_CONTROLS_WITH_DETAILS
+        } else {
+            LAYOUT_CONTROLS
+        };
+    let Some(layout_width) = control_sequence_width(surface, &controls, layout_controls) else {
         return compact;
     };
     let Some(full_module_tabs_width) = control_sequence_width(surface, &controls, FULL_MODULE_TABS)
@@ -137,6 +148,17 @@ pub(super) fn resolve_toolbar_priority(
             COMMAND_CONTENT_MAX_FILL,
         ),
     }
+}
+
+fn control_occupies_layout(
+    surface: &UiSurface,
+    controls: &ToolbarControlSlots<'_>,
+    control_id: &str,
+) -> bool {
+    controls
+        .node_id(control_id)
+        .and_then(|node_id| surface.tree.node(node_id))
+        .is_some_and(|node| node.visibility.occupies_layout())
 }
 
 fn control_sequence_width(

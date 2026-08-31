@@ -1,16 +1,16 @@
 use std::array;
 
+use crate::scene::EntityId;
+use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, ComponentStorageLocation, QueryCombinationMutIter, QueryEntityError,
     QueryEntityItem, QueryFilter, QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData,
     QuerySingleError, UniqueEntityArray,
 };
-use crate::scene::EntityId;
-use crate::scene::World;
 
 use super::super::unique_entities::first_duplicate_entity;
 use super::many_item_array::collect_many_query_items;
-use super::{project_entity_from_plans, CachedArchetypePlan, QueryState};
+use super::{CachedArchetypePlan, QueryState, project_entity_from_plans};
 
 impl<D, F> QueryState<D, F>
 where
@@ -122,16 +122,13 @@ where
         ticks: ChangeTickWindow,
     ) -> Result<D::Item<'world>, QuerySingleError> {
         self.update_cache(world);
-        let candidates = world
-            .stable_query_location_iter(
-                self.cached_archetype_plans
-                    .iter()
-                    .map(CachedArchetypePlan::archetype_id),
-            )
-            .collect::<Vec<_>>();
         let mut component_locations = Vec::with_capacity(self.access.reads().len());
         let mut matched = None;
-        for stable_location in candidates {
+        for stable_location in world.stable_query_location_iter(
+            self.cached_archetype_plans
+                .iter()
+                .map(CachedArchetypePlan::archetype_id),
+        ) {
             let entity = stable_location.stable_id;
             if self
                 .validate_entity_with_locations(world, entity, ticks, &mut component_locations)

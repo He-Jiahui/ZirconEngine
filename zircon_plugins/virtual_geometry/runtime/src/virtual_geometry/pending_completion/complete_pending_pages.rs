@@ -26,9 +26,7 @@ impl VirtualGeometryRuntimeState {
         for page_id in requested_pages {
             let inherits_hot_frontier = self.page_or_lineage_is_hot(page_id);
             while self.resident_page_count() >= page_budget {
-                if !self
-                    .evict_one(self.ordered_evictable_pages_for_target(page_id, evictable_pages))
-                {
+                if !self.evict_preferred_page_for_target(page_id, evictable_pages) {
                     self.retain_resident_evictable_pages();
                     return;
                 }

@@ -21,8 +21,12 @@ param(
     [string]$ExportContractPlatform,
     [switch]$RunProfileFeatureContract,
     [string]$ProfileFeatureContractLabel,
+    [switch]$RunConventionStructure,
+    [switch]$RunConventionClippy,
     [ValidateSet("development", "release", "profiling")]
     [string]$CargoProfile = "development",
+    [ValidateSet("reuse", "compact", "diagnostic")]
+    [string]$StorageMode = "reuse",
     [switch]$NoLocked,
     [switch]$VerboseOutput,
     [switch]$DryRun
@@ -32,8 +36,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $windowsPathResolverRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..\..")).Path
 Import-Module (Join-Path $windowsPathResolverRepoRoot "tools\WindowsPathResolver.psm1") -Force -ErrorAction Stop
+. (Join-Path $PSScriptRoot "managed-cargo-storage.ps1")
 
-$script:LowDiskCleanupThresholdBytes = 50GB
 $script:ExportContractPlatforms = @(
     "windows",
     "linux",
@@ -129,6 +133,26 @@ function Resolve-ValidationSessionId {
     return "validate-matrix:{0}" -f (Resolve-OwnerId -RepoRoot $RepoRoot)
 }
 
+function Register-ValidationSession {
+    param(
+        [string]$RepoRoot,
+        [string]$SessionId
+    )
+
+    $registered = Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
+        "session", "register", "--session-id", $SessionId,
+        "--display-name", "validate-matrix", "--write-scope", "Cargo validation"
+    )
+    $registeredSessionId = [string](Require-CoordinatorResponseField `
+        -Response $registered `
+        -Command "session register" `
+        -FieldPath "session.session_id")
+    if ($registeredSessionId -ne $SessionId) {
+        throw "Session coordinator command 'session register' returned unexpected session id '$registeredSessionId'; expected '$SessionId'."
+    }
+    return $registered.session
+}
+
 function Resolve-AbsoluteTargetDir {
     param(
         [string]$RepoRoot,
@@ -144,6 +168,9 @@ function Resolve-ManagedCargoTargetPath {
     $targetResolution = Resolve-ZirconWindowsPath -Path $TargetDirectory
     if ($targetResolution.DisplayPath -notmatch '^[D-F]:\\') {
         throw "Managed Cargo target must physically resolve under D:, E:, or F:, not '$($targetResolution.DisplayPath)'."
+    }
+    if ($targetResolution.DisplayPath -notmatch '^[D-F]:\\(?:cargo-targets|targets|ZirconBuilds)(?:\\|$)') {
+        throw "Managed Cargo target must resolve under an approved root such as D:\cargo-targets, D:\targets, or D:\ZirconBuilds, not '$($targetResolution.DisplayPath)'."
     }
     return $targetResolution
 }
@@ -228,10 +255,24 @@ function New-CargoCompatibilityJson {
         [string]$WorkspaceManifest = "Cargo.toml",
         [ValidateSet("development", "release", "profiling")]
         [string]$CargoProfile = "development",
+        [ValidateSet("reuse", "compact", "diagnostic")]
+        [string]$StorageMode = "reuse",
         [switch]$DryRunMode
     )
 
     $rust = Get-RustCompatibilityIdentity -DryRunMode:$DryRunMode
+    $compactOutputs = $StorageMode -in @("reuse", "compact")
+    $buildDirectoryIdentity = switch ($StorageMode) {
+        "reuse" { "persistent-target-v1" }
+        "compact" { "ephemeral-v1" }
+        default {
+            if ([string]::IsNullOrWhiteSpace($env:CARGO_BUILD_BUILD_DIR)) {
+                "cargo-default"
+            } else {
+                [string]$env:CARGO_BUILD_BUILD_DIR
+            }
+        }
+    }
     $configuration = [ordered]@{
         profile_feature_contract = if ($RunProfileFeatureContract) {
             if ([string]::IsNullOrWhiteSpace($ProfileFeatureContractLabel)) { "all" } else { $ProfileFeatureContractLabel }
@@ -240,9 +281,13 @@ function New-CargoCompatibilityJson {
             if ([string]::IsNullOrWhiteSpace($ExportContractPlatform)) { "all" } else { $ExportContractPlatform }
         } else { "off" }
         rustflags = [string]$env:RUSTFLAGS
-        cargo_incremental = [string]$env:CARGO_INCREMENTAL
+        storage_mode = $StorageMode
+        cargo_incremental = if ($compactOutputs) { "0" } else { [string]$env:CARGO_INCREMENTAL }
         cargo_profile = $CargoProfile
-        dev_debug = [string]$env:CARGO_PROFILE_DEV_DEBUG
+        build_dir = $buildDirectoryIdentity
+        compiler_cache = if ($compactOutputs) { "sccache" } else { "optional-sccache" }
+        dev_debug = if ($compactOutputs) { "0" } else { [string]$env:CARGO_PROFILE_DEV_DEBUG }
+        test_debug = if ($compactOutputs) { "0" } else { [string]$env:CARGO_PROFILE_TEST_DEBUG }
         release_debug = [string]$env:CARGO_PROFILE_RELEASE_DEBUG
         profiling_debug = [string]$env:CARGO_PROFILE_PROFILING_DEBUG
     }
@@ -254,6 +299,39 @@ function New-CargoCompatibilityJson {
         build_config = ($configuration | ConvertTo-Json -Compress)
     }
     return ($compatibility | ConvertTo-Json -Compress)
+}
+
+function Get-ManagedTextSha256 {
+    param([Parameter(Mandatory)][string]$Text)
+
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Text)
+        return [System.BitConverter]::ToString($algorithm.ComputeHash($bytes)).Replace("-", "").ToLowerInvariant()
+    }
+    finally {
+        $algorithm.Dispose()
+    }
+}
+
+function Resolve-DryRunCargoTargetPath {
+    param(
+        [Parameter(Mandatory)][string]$RepoRoot,
+        [Parameter(Mandatory)][string]$CompatibilityJson
+    )
+
+    $repo = Resolve-ZirconWindowsPath -Path $RepoRoot
+    $driveRoot = [System.IO.Path]::GetPathRoot($repo.DisplayPath)
+    if ($driveRoot -notmatch '^[D-F]:\\$') {
+        $driveRoot = "D:\"
+    }
+    $identity = "{0}`0compile-pool-v2`0{1}" -f $repo.DisplayPath.ToLowerInvariant(), $CompatibilityJson
+    $fingerprint = Get-ManagedTextSha256 -Text $identity
+    $target = Join-Path $driveRoot ("cargo-targets\zircon-engine\pool\{0}" -f $fingerprint)
+    return [pscustomobject]@{
+        Fingerprint = $fingerprint
+        TargetDir   = (Resolve-ManagedCargoTargetPath -TargetDirectory $target).DisplayPath
+    }
 }
 
 function Get-CoordinatorResponseSummary {
@@ -347,28 +425,25 @@ function Resolve-CoordinatorCargoTarget {
         [string]$WorkspaceManifest,
         [ValidateSet("development", "release", "profiling")]
         [string]$CargoProfile = "development",
+        [ValidateSet("reuse", "compact", "diagnostic")]
+        [string]$StorageMode = "reuse",
+        [AllowEmptyString()]
+        [string]$PrecomputedCompatibilityJson,
         [switch]$EphemeralLane,
         [switch]$DryRunMode
     )
 
     $ownerId = Resolve-ValidationSessionId -RepoRoot $RepoRoot
-    $compatibilityJson = New-CargoCompatibilityJson `
-        -ResolvedRepoRoot $RepoRoot `
-        -WorkspaceManifest $WorkspaceManifest `
-        -CargoProfile $CargoProfile `
-        -DryRunMode:$DryRunMode
-    $registered = Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
-        "session", "register", "--session-id", $ownerId,
-        "--display-name", "validate-matrix", "--write-scope", "Cargo validation"
-    )
-    $registeredSessionId = [string](Require-CoordinatorResponseField `
-        -Response $registered `
-        -Command "session register" `
-        -FieldPath "session.session_id")
-    if ($registeredSessionId -ne $ownerId) {
-        throw "Session coordinator command 'session register' returned unexpected session id '$registeredSessionId'; expected '$ownerId'."
+    $compatibilityJson = if ([string]::IsNullOrWhiteSpace($PrecomputedCompatibilityJson)) {
+        New-CargoCompatibilityJson `
+            -ResolvedRepoRoot $RepoRoot `
+            -WorkspaceManifest $WorkspaceManifest `
+            -CargoProfile $CargoProfile `
+            -StorageMode $StorageMode `
+            -DryRunMode:$DryRunMode
+    } else {
+        $PrecomputedCompatibilityJson
     }
-
     $requestedTarget = $ManualTargetDir
     $selectionMode = "managed"
     if ([string]::IsNullOrWhiteSpace($requestedTarget) -and -not [string]::IsNullOrWhiteSpace($env:CARGO_TARGET_DIR)) {
@@ -381,6 +456,50 @@ function Resolve-CoordinatorCargoTarget {
         throw "-Ephemeral cannot be combined with -TargetDir or CARGO_TARGET_DIR."
     }
 
+    $resolvedRequestedTarget = $null
+    if (-not [string]::IsNullOrWhiteSpace($requestedTarget)) {
+        $resolvedRequestedTarget = Resolve-AbsoluteTargetDir `
+            -RepoRoot $RepoRoot `
+            -CliTargetDir $requestedTarget
+        $resolvedRequestedTarget = (Resolve-ManagedCargoTargetPath `
+            -TargetDirectory $resolvedRequestedTarget).DisplayPath
+    }
+    $reason = if ($EphemeralLane) {
+        "coordinator managed ephemeral $LaneKind lane"
+    } elseif ($selectionMode -eq "managed") {
+        "coordinator managed $LaneKind lane"
+    } else {
+        "coordinator validated $selectionMode target"
+    }
+    if ($DryRunMode) {
+        $projection = Resolve-DryRunCargoTargetPath `
+            -RepoRoot $RepoRoot `
+            -CompatibilityJson $compatibilityJson
+        $targetDir = if ($null -ne $resolvedRequestedTarget) {
+            $resolvedRequestedTarget
+        } else {
+            $projection.TargetDir
+        }
+        return [pscustomobject]@{
+            SelectionMode     = $selectionMode
+            SlotName          = $null
+            JobId             = "dry-run-$($projection.Fingerprint)"
+            TargetDir         = $targetDir
+            AbsoluteTargetDir = $targetDir
+            Reason            = $reason
+            OwnerId           = $ownerId
+            DryRun            = $true
+        }
+    }
+
+    $registeredSession = Register-ValidationSession -RepoRoot $RepoRoot -SessionId $ownerId
+    $nonExecutableStatuses = @("stale", "completed", "archived", "cancelled")
+    if ([string]$registeredSession.status -in $nonExecutableStatuses) {
+        # Terminal primary work remains immutable; a new operational child owns this Cargo run.
+        $ownerId = "{0}:successor:{1}" -f $ownerId, [guid]::NewGuid().ToString("N")
+        $registeredSession = Register-ValidationSession -RepoRoot $RepoRoot -SessionId $ownerId
+    }
+
     $arguments = @(
         "cargo", "acquire", $LaneKind,
         "--session-id", $ownerId
@@ -391,14 +510,8 @@ function Resolve-CoordinatorCargoTarget {
     if (-not $DryRunMode) {
         $arguments += @("--pid", [string]$PID)
     }
-    if (-not [string]::IsNullOrWhiteSpace($requestedTarget)) {
-        $absoluteRequestedTarget = Resolve-AbsoluteTargetDir -RepoRoot $RepoRoot -CliTargetDir $requestedTarget
-        $absoluteRequestedTarget = (Resolve-ManagedCargoTargetPath `
-            -TargetDirectory $absoluteRequestedTarget).DisplayPath
-        $arguments += @("--target-dir", $absoluteRequestedTarget)
-    }
-    if ($DryRunMode) {
-        $arguments += "--dry-run"
+    if ($null -ne $resolvedRequestedTarget) {
+        $arguments += @("--target-dir", $resolvedRequestedTarget)
     }
     if ($EphemeralLane) {
         $arguments += "--ephemeral"
@@ -433,13 +546,6 @@ function Resolve-CoordinatorCargoTarget {
                 -WarningAction Continue
         }
         throw $resolutionFailure
-    }
-    $reason = if ($EphemeralLane) {
-        "coordinator managed ephemeral $LaneKind lane"
-    } elseif ($selectionMode -eq "managed") {
-        "coordinator managed $LaneKind lane"
-    } else {
-        "coordinator validated $selectionMode target"
     }
     return [pscustomobject]@{
         SelectionMode     = $selectionMode
@@ -476,6 +582,9 @@ function Complete-CoordinatorCargoTarget {
         [switch]$StartAttempted
     )
 
+    if ($ResolvedTarget.DryRun) {
+        return
+    }
     if (-not $StartAttempted) {
         Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
             "cargo", "release", $ResolvedTarget.JobId,
@@ -545,51 +654,6 @@ function Format-ByteCount {
     return "{0:N2} GB" -f ($Bytes / 1GB)
 }
 
-function Get-TargetDriveInfo {
-    param([string]$AbsoluteTargetDir)
-
-    $driveRoot = [System.IO.Path]::GetPathRoot($AbsoluteTargetDir)
-    if ([string]::IsNullOrWhiteSpace($driveRoot)) {
-        throw "Could not determine drive root for target directory $AbsoluteTargetDir"
-    }
-
-    $drive = [System.IO.DriveInfo]::new($driveRoot)
-    return [pscustomobject]@{
-        DriveRoot = $driveRoot
-        FreeBytes = [int64]$drive.AvailableFreeSpace
-    }
-}
-
-function Get-PrebuildCleanupDecision {
-    param(
-        [int64]$FreeBytes,
-        [int64]$ThresholdBytes = $script:LowDiskCleanupThresholdBytes
-    )
-
-    return [pscustomobject]@{
-        FreeBytes       = $FreeBytes
-        ThresholdBytes  = $ThresholdBytes
-        RequiresCleanup = ($FreeBytes -le $ThresholdBytes)
-    }
-}
-
-function Get-PrebuildCleanupStatus {
-    param(
-        [string]$AbsoluteTargetDir,
-        [int64]$ThresholdBytes = $script:LowDiskCleanupThresholdBytes
-    )
-
-    $driveInfo = Get-TargetDriveInfo -AbsoluteTargetDir $AbsoluteTargetDir
-    $decision = Get-PrebuildCleanupDecision -FreeBytes $driveInfo.FreeBytes -ThresholdBytes $ThresholdBytes
-
-    return [pscustomobject]@{
-        DriveRoot       = $driveInfo.DriveRoot
-        FreeBytes       = $decision.FreeBytes
-        ThresholdBytes  = $decision.ThresholdBytes
-        RequiresCleanup = $decision.RequiresCleanup
-    }
-}
-
 function Invoke-Step {
     param(
         [string]$Name,
@@ -622,23 +686,6 @@ function Invoke-Step {
     } else {
         Write-Host "[FAIL] $Name (exit $code)" -ForegroundColor Red
     }
-}
-
-function Get-CargoCleanArgs {
-    param(
-        [string]$ResolvedTargetDir,
-        [string]$WorkspaceManifest
-    )
-
-    $args = [System.Collections.Generic.List[string]]::new()
-    $args.Add("clean") | Out-Null
-    if ($WorkspaceManifest -ne "Cargo.toml") {
-        $args.Add("--manifest-path") | Out-Null
-        $args.Add($WorkspaceManifest) | Out-Null
-    }
-    $args.Add("--target-dir") | Out-Null
-    $args.Add($ResolvedTargetDir) | Out-Null
-    return $args.ToArray()
 }
 
 function Add-CargoProfileArguments {
@@ -729,6 +776,37 @@ function Get-CargoArgs {
     }
 
     return $args.ToArray()
+}
+
+function Get-ConventionStructureArgs {
+    param([string]$ResolvedTargetDir)
+
+    return @(
+        "test",
+        "-p", "zircon_runtime",
+        "--lib",
+        "structure_convention",
+        "--locked",
+        "--jobs", "1",
+        "--target-dir", $ResolvedTargetDir
+    )
+}
+
+function Get-ConventionClippyArgs {
+    param([string]$ResolvedTargetDir)
+
+    return @(
+        "clippy",
+        "-p", "zircon_runtime_interface",
+        "-p", "zircon_app",
+        "--all-targets",
+        "--no-deps",
+        "--locked",
+        "--jobs", "1",
+        "--target-dir", $ResolvedTargetDir,
+        "--",
+        "-D", "warnings"
+    )
 }
 
 function Assert-ArtifactOutputDirectory {
@@ -987,92 +1065,6 @@ function Invoke-CargoWithEnvironment {
     }
 }
 
-function Push-ManagedCargoEnvironment {
-    param(
-        [Parameter(Mandatory)]
-        [string]$TargetDirectory
-    )
-
-    $targetResolution = Resolve-ManagedCargoTargetPath -TargetDirectory $TargetDirectory
-    $targetPath = $targetResolution.OperationalPath.TrimEnd([char[]]@(
-        [System.IO.Path]::DirectorySeparatorChar,
-        [System.IO.Path]::AltDirectorySeparatorChar
-    ))
-    $targetPrefix = $targetPath + [System.IO.Path]::DirectorySeparatorChar
-    $managedDirectories = [ordered]@{}
-    foreach ($entry in @(
-        @{ Name = "temporary"; Label = "temporary directory" },
-        @{ Name = "cargo-home"; Label = "Cargo home" },
-        @{ Name = "sccache"; Label = "sccache directory" }
-    )) {
-        $resolution = Resolve-ZirconWindowsPath -Path (
-            Join-ZirconWindowsPath -Path $targetResolution.OperationalPath -ChildPath $entry.Name
-        )
-        if (-not $resolution.OperationalPath.StartsWith(
-                $targetPrefix,
-                [System.StringComparison]::OrdinalIgnoreCase
-            )) {
-            throw "Managed $($entry.Label) escapes the coordinator target: $($resolution.DisplayPath)"
-        }
-        [System.IO.Directory]::CreateDirectory($resolution.OperationalPath) | Out-Null
-        $managedDirectories[$entry.Name] = $resolution
-    }
-
-    $previousValues = @{}
-    $environmentPaths = [ordered]@{
-        CARGO_TARGET_DIR = $targetResolution.OperationalPath
-        TEMP = $managedDirectories["temporary"].OperationalPath
-        TMP = $managedDirectories["temporary"].OperationalPath
-        TMPDIR = $managedDirectories["temporary"].OperationalPath
-        CARGO_HOME = $managedDirectories["cargo-home"].OperationalPath
-        SCCACHE_DIR = $managedDirectories["sccache"].OperationalPath
-    }
-    try {
-        foreach ($name in $environmentPaths.Keys) {
-            $previousValues[$name] = [Environment]::GetEnvironmentVariable($name, "Process")
-            [Environment]::SetEnvironmentVariable(
-                $name,
-                $environmentPaths[$name],
-                "Process"
-            )
-        }
-    } catch {
-        foreach ($name in $previousValues.Keys) {
-            [Environment]::SetEnvironmentVariable(
-                $name,
-                $previousValues[$name],
-                "Process"
-            )
-        }
-        throw
-    }
-
-    return [pscustomobject]@{
-        TemporaryOperationalPath = $managedDirectories["temporary"].OperationalPath
-        TemporaryDisplayPath     = $managedDirectories["temporary"].DisplayPath
-        CargoHomeOperationalPath = $managedDirectories["cargo-home"].OperationalPath
-        CargoHomeDisplayPath     = $managedDirectories["cargo-home"].DisplayPath
-        SccacheOperationalPath   = $managedDirectories["sccache"].OperationalPath
-        SccacheDisplayPath       = $managedDirectories["sccache"].DisplayPath
-        PreviousValues           = $previousValues
-    }
-}
-
-function Pop-ManagedCargoEnvironment {
-    param(
-        [Parameter(Mandatory)]
-        [psobject]$Lease
-    )
-
-    foreach ($name in $Lease.PreviousValues.Keys) {
-        [Environment]::SetEnvironmentVariable(
-            $name,
-            $Lease.PreviousValues[$name],
-            "Process"
-        )
-    }
-}
-
 function Invoke-ValidateMatrixMain {
     $script:Results = [System.Collections.Generic.List[object]]::new()
 
@@ -1082,6 +1074,31 @@ function Invoke-ValidateMatrixMain {
 
     if (-not $RunProfileFeatureContract -and -not [string]::IsNullOrWhiteSpace($ProfileFeatureContractLabel)) {
         throw "-ProfileFeatureContractLabel requires -RunProfileFeatureContract."
+    }
+    if ($RunConventionStructure -and $RunConventionClippy) {
+        throw "Run only one convention Cargo gate per managed validation."
+    }
+    if (($RunConventionStructure -or $RunConventionClippy) -and (-not $SkipBuild -or -not $SkipTest)) {
+        throw "Convention Cargo gates require -SkipBuild and -SkipTest."
+    }
+    if (($RunConventionStructure -or $RunConventionClippy) -and
+        (-not [string]::IsNullOrWhiteSpace($Package) -or
+         -not [string]::IsNullOrWhiteSpace($Features) -or
+         $NoDefaultFeatures -or
+         $LibTests -or
+         -not [string]::IsNullOrWhiteSpace($TestTarget) -or
+         -not [string]::IsNullOrWhiteSpace($Bin) -or
+         -not [string]::IsNullOrWhiteSpace($TestFilter) -or
+         $IgnoredTests -or
+         $RunExportPlatformContract -or
+         $RunProfileFeatureContract)) {
+        throw "Convention Cargo gates cannot be combined with package, feature, test, binary, or contract selectors."
+    }
+    if (($RunConventionStructure -or $RunConventionClippy) -and
+        ($NoLocked -or
+         $Ephemeral -or
+         $CargoProfile -ne "development")) {
+        throw "Convention Cargo gates require the locked development reuse profile and cannot be ephemeral."
     }
     if ($LibTests -and [string]::IsNullOrWhiteSpace($Package)) {
         throw "-LibTests requires -Package."
@@ -1145,22 +1162,41 @@ function Invoke-ValidateMatrixMain {
     $resolvedWorkspace = Resolve-WorkspaceManifest `
         -RepoRoot $resolvedRepoRoot `
         -RequestedManifestPath $ManifestPath
+    if (($RunConventionStructure -or $RunConventionClippy) -and
+        $resolvedWorkspace.RelativePath -ne "Cargo.toml") {
+        throw "Convention Cargo gates require the repository root Cargo.toml."
+    }
     if ($resolvedWorkspace.RelativePath -ne "Cargo.toml" -and
         ($RunExportPlatformContract -or $RunProfileFeatureContract)) {
         throw "-ManifestPath cannot be combined with export or profile feature contracts."
     }
 
-    $laneKind = if (-not [string]::IsNullOrWhiteSpace($Package)) {
+    $laneKind = if ($RunConventionStructure) {
+        "test"
+    } elseif ($RunConventionClippy) {
+        "check"
+    } elseif (-not [string]::IsNullOrWhiteSpace($Package)) {
         if ($SkipTest) { "check" } else { "test" }
     } else {
         "workspace"
     }
+    $compatibilityJson = New-CargoCompatibilityJson `
+        -ResolvedRepoRoot $resolvedRepoRoot `
+        -WorkspaceManifest $resolvedWorkspace.RelativePath `
+        -CargoProfile $CargoProfile `
+        -StorageMode $StorageMode `
+        -DryRunMode:$DryRun
+    $compilerCacheExecutable = Resolve-ManagedCompilerCacheExecutable `
+        -StorageMode $StorageMode `
+        -DryRunMode:$DryRun
     $resolvedTarget = Resolve-CoordinatorCargoTarget `
         -RepoRoot $resolvedRepoRoot `
         -ManualTargetDir $TargetDir `
         -LaneKind $laneKind `
         -WorkspaceManifest $resolvedWorkspace.RelativePath `
         -CargoProfile $CargoProfile `
+        -StorageMode $StorageMode `
+        -PrecomputedCompatibilityJson $compatibilityJson `
         -EphemeralLane:$Ephemeral `
         -DryRunMode:$DryRun
 
@@ -1172,9 +1208,24 @@ function Invoke-ValidateMatrixMain {
     try {
     if (-not $resolvedTarget.DryRun) {
         $cargoEnvironmentLease = Push-ManagedCargoEnvironment `
-            -TargetDirectory $resolvedTarget.TargetDir
-        Write-Host ("Temporary dir: {0}" -f $cargoEnvironmentLease.TemporaryDisplayPath)
+            -TargetDirectory $resolvedTarget.TargetDir `
+            -JobId $resolvedTarget.JobId `
+            -StorageMode $StorageMode `
+            -CompilerCacheExecutable $compilerCacheExecutable
+        Write-Host ("Job scratch temp: {0}" -f $cargoEnvironmentLease.TemporaryDisplayPath)
+        if ($StorageMode -eq "compact") {
+            Write-Host ("Build scratch: {0}" -f $cargoEnvironmentLease.BuildDisplayPath)
+        } else {
+            Write-Host "Cargo build dir: target default (persistent)"
+        }
         Write-Host ("Cargo home: {0}" -f $cargoEnvironmentLease.CargoHomeDisplayPath)
+        Write-Host ("sccache cache: {0}" -f $cargoEnvironmentLease.SccacheDisplayPath)
+        Write-Host ("sccache server temp: {0}" -f $cargoEnvironmentLease.SccacheTemporaryDisplayPath)
+        Write-Host (
+            "sccache endpoint: 127.0.0.1:{0} (PID {1})" -f `
+                $cargoEnvironmentLease.SccacheServerPort,
+                $cargoEnvironmentLease.SccacheServerProcessId
+        )
     }
     Write-Host "Repo root: $resolvedRepoRoot"
     Write-Host "Workspace manifest: $($resolvedWorkspace.RelativePath)"
@@ -1182,37 +1233,28 @@ function Invoke-ValidateMatrixMain {
     Write-Host ("Scope: {0}" -f $(if ([string]::IsNullOrWhiteSpace($Package)) { "workspace" } else { "package $Package" }))
     Write-Host ("Locked mode: {0}" -f $(if ($NoLocked) { "off" } else { "on" }))
     Write-Host "Cargo profile: $CargoProfile"
+    Write-Host "Storage mode: $StorageMode"
     Write-Host ("Dry run: {0}" -f $(if ($DryRun) { "on" } else { "off" }))
     Write-Host ("Target dir: {0} ({1})" -f $resolvedTarget.TargetDir, $resolvedTarget.Reason)
 
-    $cleanupStatus = $null
-    if ($SkipBuild -and $SkipTest -and -not $RunExportPlatformContract -and -not $RunProfileFeatureContract) {
+    $storageAdmission = $null
+    if ($SkipBuild -and $SkipTest -and -not $RunExportPlatformContract -and -not $RunProfileFeatureContract -and -not $RunConventionStructure -and -not $RunConventionClippy) {
         Write-Host "No stages selected. Use this mode to sanity-check script parsing or argument handling." -ForegroundColor Yellow
     } elseif ($DryRun) {
-        Write-Host "Dry run selected; skipping cargo discovery and target directory cleanup checks." -ForegroundColor Yellow
+        Write-Host "Dry run selected; skipping cargo discovery and storage admission checks." -ForegroundColor Yellow
     } else {
         Get-Command cargo -ErrorAction Stop | Out-Null
-        $cleanupStatus = Get-PrebuildCleanupStatus -AbsoluteTargetDir $resolvedTarget.AbsoluteTargetDir
-        Write-Host ("Free space on {0}: {1} (threshold {2})" -f $cleanupStatus.DriveRoot, (Format-ByteCount -Bytes $cleanupStatus.FreeBytes), (Format-ByteCount -Bytes $cleanupStatus.ThresholdBytes))
+        $storageAdmission = Get-PrebuildStorageAdmissionStatus -AbsoluteTargetDir $resolvedTarget.AbsoluteTargetDir
+        Write-Host ("Free space on {0}: {1} (required reserve {2})" -f $storageAdmission.DriveRoot, (Format-ByteCount -Bytes $storageAdmission.FreeBytes), (Format-ByteCount -Bytes $storageAdmission.MinimumFreeBytes))
+        if (-not $storageAdmission.IsAdmitted) {
+            throw ("Cargo validation refused to preserve the disk reserve. Run .\tools\cleanup-stale-targets.ps1, review the plan, then apply it with -Apply. Free={0}; required reserve={1}." -f (Format-ByteCount -Bytes $storageAdmission.FreeBytes), (Format-ByteCount -Bytes $storageAdmission.MinimumFreeBytes))
+        }
     }
 
     $coordinatorJobStartAttempted = -not $resolvedTarget.DryRun
     Start-CoordinatorCargoTarget -RepoRoot $resolvedRepoRoot -ResolvedTarget $resolvedTarget
     Push-Location $resolvedWorkspace.Directory
     $locationPushed = $true
-        if ($null -ne $cleanupStatus -and $cleanupStatus.RequiresCleanup) {
-            Write-Host ("Free space is at or below the cleanup threshold. Running cargo clean before build/test.") -ForegroundColor Yellow
-            Invoke-Step "Cargo clean" {
-                Invoke-Cargo -Arguments (Get-CargoCleanArgs `
-                    -ResolvedTargetDir $resolvedTarget.TargetDir `
-                    -WorkspaceManifest $resolvedWorkspace.InvocationManifestPath)
-            }
-
-            if (($Results | Select-Object -Last 1).ExitCode -ne 0) {
-                return 1
-            }
-        }
-
         if (-not $SkipBuild) {
             Invoke-Step "Cargo build" {
                 Invoke-Cargo -Arguments (Get-CargoArgs `
@@ -1243,6 +1285,20 @@ function Invoke-ValidateMatrixMain {
                     -ResolvedTargetDir $resolvedTarget.TargetDir `
                     -WorkspaceManifest $resolvedWorkspace.InvocationManifestPath `
                     -CargoProfile $CargoProfile)
+            }
+        }
+
+        if ($RunConventionStructure) {
+            Invoke-Step "Convention structure" {
+                Invoke-Cargo -Arguments (Get-ConventionStructureArgs `
+                    -ResolvedTargetDir $resolvedTarget.TargetDir)
+            }
+        }
+
+        if ($RunConventionClippy) {
+            Invoke-Step "Convention clippy" {
+                Invoke-Cargo -Arguments (Get-ConventionClippyArgs `
+                    -ResolvedTargetDir $resolvedTarget.TargetDir)
             }
         }
 

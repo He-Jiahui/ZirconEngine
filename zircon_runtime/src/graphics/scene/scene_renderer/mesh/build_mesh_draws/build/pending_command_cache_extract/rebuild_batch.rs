@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::core::framework::render::RenderPhase;
+use crate::core::framework::render::{CastShadowsMode, RenderPhase};
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshBatchRef, MeshDrawArgs, MeshGeometryHandle,
 };
@@ -15,21 +15,17 @@ pub(super) fn pending_mesh_command_cache_rebuild_batch_for_phase(
     item: PendingMeshCommandCacheExtractItem,
     visibility: Option<PendingMeshCommandCacheVisibility>,
     phase: RenderPhase,
-    gpu_scene_instance_span_for_instance: &impl Fn(u64) -> Option<(u32, u32)>,
 ) -> Option<MeshBatchRef> {
     if !non_material_rebuild::can_rebuild_non_material_command_phase(phase) {
         return None;
     }
-    gpu_scene_instance_span_for_instance(item.stable_instance_key).and_then(
-        |(first_instance_index, instance_count)| {
-            pending_mesh_command_cache_rebuild_batch(
-                pending_draw,
-                item,
-                visibility,
-                first_instance_index,
-                instance_count,
-            )
-        },
+    let (first_instance_index, instance_count) = item.gpu_scene_instance_span?;
+    pending_mesh_command_cache_rebuild_batch(
+        pending_draw,
+        item,
+        visibility,
+        first_instance_index,
+        instance_count,
     )
 }
 
@@ -56,7 +52,7 @@ fn pending_mesh_command_cache_rebuild_batch(
     Some(
         MeshBatchRef::new(
             item.queue_profile,
-            pending_draw.pipeline_key.clone(),
+            pending_draw.material.pipeline_key.clone(),
             pending_draw.command_sort_input.components(),
             MeshGeometryHandle::new(arc_id(mesh), mesh.clone()),
             MeshDrawArgs::direct_indexed(pending_draw.first_index, pending_draw.draw_index_count),
@@ -65,6 +61,9 @@ fn pending_mesh_command_cache_rebuild_batch(
         .with_cache_identity(item.entity, item.stable_instance_key, item.draw_ordinal)
         .with_static_state(item.static_state)
         .with_casts_shadow(item.casts_shadow)
+        .with_shadow_two_sided(
+            pending_draw.material.common.cast_shadows == CastShadowsMode::TwoSided,
+        )
         .with_taa_reactive_mask_strength(item.taa_reactive_mask_strength)
         .with_visibility(primitive_relevance, main_view_visible, shadow_view_visible)
         .with_gpu_scene_instance_span(first_instance_index, instance_count),

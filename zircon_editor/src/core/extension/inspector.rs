@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -392,7 +392,7 @@ impl InspectorLayout {
 #[derive(Default)]
 pub struct InspectorCustomizationChain {
     customizations: Vec<Arc<dyn InspectorCustomization>>,
-    ids: BTreeSet<String>,
+    ids: HashSet<String>,
 }
 
 impl InspectorCustomizationChain {
@@ -488,6 +488,9 @@ fn is_valid_zui_document(value: &str) -> bool {
 fn is_trimmed_non_empty(value: &str) -> bool {
     !value.trim().is_empty() && value.trim() == value
 }
+
+#[cfg(test)]
+mod hash_customization_tests;
 
 #[cfg(test)]
 mod tests {

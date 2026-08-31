@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::ui::accessibility::UiAccessibilityActionRequest;
@@ -13,7 +15,7 @@ pub use crate::ui::surface::{
     UiTextPreeditClauseKind as UiImePreeditClauseKind,
 };
 
-use super::{UiDragSessionId, UiInputEventMetadata};
+use super::{UiClipboardInputEvent, UiDragSessionId, UiInputEventMetadata};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum UiInputEvent {
@@ -21,6 +23,7 @@ pub enum UiInputEvent {
     Keyboard(UiKeyboardInputEvent),
     Text(UiTextInputEvent),
     Ime(UiImeInputEvent),
+    Clipboard(UiClipboardInputEvent),
     Navigation(UiNavigationInputEvent),
     Analog(UiAnalogInputEvent),
     MouseMotion(UiMouseMotionInputEvent),
@@ -199,7 +202,8 @@ pub struct UiDragDropInputEvent {
     pub session_id: Option<UiDragSessionId>,
     pub point: UiPoint,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub payload: Option<Box<UiDragPayload>>,
+    /// Immutable operation payload shared by the input result, effect, and retained state.
+    pub payload: Option<Arc<UiDragPayload>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

@@ -1,71 +1,128 @@
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
-use zircon_runtime::asset::importer::AssetImportError;
-use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::pipeline::manager::{
+    ProjectAssetGenerationToken, ProjectAssetManager, ProjectGenerationCommitOutcome,
+};
+use zircon_runtime::asset::project::{
+    ProjectCatalogInputDelta, ProjectCatalogInputGeneration, ProjectCatalogInputRecord,
+    ProjectManager,
+};
 use zircon_runtime::core::framework::render::ShaderIdePreviewVariant;
-use zircon_runtime::core::resource::{ResourceKind, ResourceRecord, ResourceState};
+use zircon_runtime::core::resource::{ResourceKind, ResourceState};
 use zircon_runtime::graphics::write_shader_ide_env_for_project;
 
 use crate::ui::host::editor_asset_manager::{
-    AssetCatalogRecord, PreviewCache, PreviewScheduler, ReferenceGraph,
+    AssetCatalogRecord, EditorAssetSyncError, PreviewCache, PreviewScheduler,
 };
 
 use super::super::super::{EditorAssetChangeKind, EditorAssetChangeRecord};
 use super::super::catalog_generation::build_catalog_generation;
-use super::super::default_editor_asset_manager::DefaultEditorAssetManager;
-use super::{
-    record_projection::project_catalog_record,
-    source_generation::{EditorAssetProjectSourceDelta, EditorAssetProjectSourceGeneration},
+use super::super::default_editor_asset_manager::{
+    lock_editor_asset_gate_recovering_poison, DefaultEditorAssetManager,
 };
+use super::record_projection::project_catalog_record;
+use crate::core::asset::EditorAssetIndex;
 
 impl DefaultEditorAssetManager {
-    pub fn sync_from_project(&self, project: ProjectManager) -> Result<(), AssetImportError> {
+    pub(super) fn sync_from_project(
+        &self,
+        project: ProjectManager,
+    ) -> Result<(), EditorAssetSyncError> {
+        self.sync_from_project_with_runtime_generation(project, None)
+    }
+
+    pub(super) fn sync_from_runtime_project_generation(
+        &self,
+        project_asset_manager: &ProjectAssetManager,
+        project: ProjectManager,
+        generation: &ProjectAssetGenerationToken,
+    ) -> Result<(), EditorAssetSyncError> {
+        self.sync_from_project_with_runtime_generation(
+            project,
+            Some((project_asset_manager, generation)),
+        )
+    }
+
+    fn sync_from_project_with_runtime_generation(
+        &self,
+        project: ProjectManager,
+        runtime_generation: Option<(&ProjectAssetManager, &ProjectAssetGenerationToken)>,
+    ) -> Result<(), EditorAssetSyncError> {
+        zircon_runtime::profile_scope!("editor", "asset_catalog", "sync_from_project");
         // Registration and winner commit use the same source gate. A newer request
         // either cancels this epoch before shader I/O or starts after this commit.
         let source_sync_epoch = {
-            let _registration_guard = self
-                .source_sync_gate
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            self.source_sync_epoch.fetch_add(1, Ordering::AcqRel) + 1
+            let _registration_guard =
+                lock_editor_asset_gate_recovering_poison(self.source_sync_gate.as_ref());
+            self.advance_source_sync_epoch()
         };
-        let pending_source_generation =
-            std::sync::Arc::new(EditorAssetProjectSourceGeneration::capture(&project));
-        let (mut expected_generation, expected_source_generation) = {
-            let state = self.state.read().expect("editor asset state lock poisoned");
+        let pending_source_generation = project.catalog_input_generation();
+        zircon_runtime::profile_counter!(
+            "editor",
+            "asset_catalog.runtime_catalog_input_generation_sequence",
+            pending_source_generation.sequence()
+        );
+        let (mut expected_generation, expected_source_generation, current_asset_index) = {
+            let state = self.read_state_recovering_poison();
             (
-                std::sync::Arc::clone(&state.catalog_generation),
-                std::sync::Arc::clone(&state.source_generation),
+                Arc::clone(&state.catalog_generation),
+                state.asset_index.as_ref().and_then(|index| {
+                    index
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .catalog_input_generation()
+                        .cloned()
+                }),
+                state.asset_index.clone(),
             )
         };
-        let resource_delta = pending_source_generation.delta_since(&expected_source_generation);
+        let runtime_delta = expected_source_generation
+            .as_deref()
+            .map(|previous| pending_source_generation.delta_since(previous));
         zircon_runtime::profile_counter!(
             "editor",
             "asset_catalog.resource_delta_unchanged",
-            resource_delta.is_unchanged() as u8
+            runtime_delta
+                .as_ref()
+                .is_some_and(ProjectCatalogInputDelta::is_unchanged) as u8
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "asset_catalog.runtime_catalog_input_initial_sync_count",
+            runtime_delta.is_none() as u8
         );
         zircon_runtime::profile_counter!(
             "editor",
             "asset_catalog.resource_delta_added_count",
-            resource_delta.added.len()
+            runtime_delta.as_ref().map_or(0, |delta| delta.added.len())
         );
         zircon_runtime::profile_counter!(
             "editor",
             "asset_catalog.resource_delta_modified_count",
-            resource_delta.modified.len()
+            runtime_delta
+                .as_ref()
+                .map_or(0, |delta| delta.modified.len())
         );
         zircon_runtime::profile_counter!(
             "editor",
             "asset_catalog.resource_delta_removed_count",
-            resource_delta.removed.len()
+            runtime_delta
+                .as_ref()
+                .map_or(0, |delta| delta.removed.len())
         );
         zircon_runtime::profile_counter!(
             "editor",
             "asset_catalog.resource_delta_renamed_count",
-            resource_delta.renamed.len()
+            runtime_delta
+                .as_ref()
+                .map_or(0, |delta| delta.renamed.len())
         );
-        if resource_delta.is_unchanged() {
+        if runtime_delta
+            .as_ref()
+            .is_some_and(|delta| delta.is_unchanged())
+        {
             zircon_runtime::profile_counter!(
                 "editor",
                 "asset_catalog.projection_unchanged_count",
@@ -75,233 +132,287 @@ impl DefaultEditorAssetManager {
         }
 
         let preview_cache = PreviewCache::new(project.paths().cache_root())?;
-        let (mut catalog_by_uuid, mut uuid_by_locator, projection_kind) = {
-            let state = self.state.read().expect("editor asset state lock poisoned");
-            if resource_delta.project_metadata_changed || state.project.is_none() {
-                (HashMap::new(), HashMap::new(), ProjectionKind::Full)
-            } else {
-                (
-                    state.catalog_by_uuid.clone(),
-                    state.uuid_by_locator.clone(),
-                    ProjectionKind::Incremental,
-                )
-            }
-        };
-        match projection_kind {
-            ProjectionKind::Full => {
-                project_full_catalog(
-                    &project,
-                    &preview_cache,
-                    &mut catalog_by_uuid,
-                    &mut uuid_by_locator,
-                )?;
-                zircon_runtime::profile_counter!(
-                    "editor",
-                    "asset_catalog.projection_full_count",
-                    1_u8
-                );
-            }
-            ProjectionKind::Incremental => {
-                patch_catalog(
-                    &project,
-                    &preview_cache,
-                    &resource_delta,
-                    &mut catalog_by_uuid,
-                    &mut uuid_by_locator,
-                )?;
-                zircon_runtime::profile_counter!(
-                    "editor",
-                    "asset_catalog.projection_incremental_count",
-                    1_u8
-                );
-                zircon_runtime::profile_counter!(
-                    "editor",
-                    "asset_catalog.projection_incremental_touched_count",
-                    resource_delta.touched_record_count()
-                );
-            }
+        let mut candidate_index = EditorAssetIndex::from_runtime_project(&project)?;
+        if let Some(current_asset_index) = current_asset_index {
+            let current_asset_index = current_asset_index
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            candidate_index.inherit_transient_state_from(&current_asset_index);
         }
+        debug_assert!(candidate_index
+            .catalog_input_generation()
+            .is_some_and(|candidate| Arc::ptr_eq(candidate, &pending_source_generation)));
+        let mut catalog_by_uuid = HashMap::new();
+        let mut uuid_by_locator = HashMap::new();
+        project_full_catalog(
+            &candidate_index,
+            &preview_cache,
+            &mut catalog_by_uuid,
+            &mut uuid_by_locator,
+        );
+        zircon_runtime::profile_counter!("editor", "asset_catalog.projection_full_count", 1_u8);
+        zircon_runtime::profile_counter!(
+            "editor",
+            "asset_catalog.projection_catalog_record_count",
+            catalog_by_uuid.len()
+        );
         let mut preview_scheduler = preview_scheduler_for(&catalog_by_uuid);
 
         {
-            let state = self.state.read().expect("editor asset state lock poisoned");
+            let state = self.read_state_recovering_poison();
             if std::sync::Arc::ptr_eq(&state.catalog_generation, &expected_generation) {
-                merge_current_preview_results(&mut catalog_by_uuid, &state.catalog_by_uuid);
+                merge_current_preview_results(&mut catalog_by_uuid, &state.catalog_generation);
                 preview_scheduler = preview_scheduler_for(&catalog_by_uuid);
             }
         }
 
-        let reference_graph = ReferenceGraph::rebuild(catalog_by_uuid.values());
-        let _source_commit_guard = self
-            .source_sync_gate
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if self.source_sync_epoch.load(Ordering::Acquire) != source_sync_epoch {
-            return Ok(());
-        }
-        if projection_kind == ProjectionKind::Full || resource_delta.affects_shader() {
+        zircon_runtime::profile_counter!(
+            "editor",
+            "asset_catalog.runtime_referencer_index_entry_count",
+            project.asset_registry().len()
+        );
+        let refresh_shader_ide = runtime_delta
+            .as_ref()
+            .is_none_or(catalog_delta_affects_shader);
+        zircon_runtime::profile_counter!(
+            "editor",
+            "asset_catalog.shader_ide_refresh_request_count",
+            refresh_shader_ide as u8
+        );
+        if refresh_shader_ide {
             refresh_shader_ide_env_after_import(&project)?;
         }
         let primary_asset_root = project.primary_project_asset_root()?.to_path_buf();
-        let change = loop {
-            let catalog_revision = expected_generation.catalog_revision.saturating_add(1);
-            let publish_epoch = expected_generation.publish_epoch.saturating_add(1);
+        let mut pending_project = Some(project);
+        let mut pending_candidate_index = Some(candidate_index);
+        let mut pending_preview_cache = Some(preview_cache);
+        let mut pending_primary_asset_root = Some(primary_asset_root);
+
+        enum CatalogCommitAttempt {
+            Published(EditorAssetChangeRecord),
+            Rebase(Arc<crate::ui::host::editor_asset_manager::EditorAssetCatalogGeneration>),
+            Superseded,
+        }
+
+        loop {
+            let (catalog_revision, publish_epoch) = expected_generation.next_catalog_identity();
+            let project = pending_project
+                .as_ref()
+                .expect("an unpublished project sync retains its project candidate");
+            let candidate_index = pending_candidate_index
+                .as_ref()
+                .expect("an unpublished project sync retains its index candidate");
+            let primary_asset_root = pending_primary_asset_root
+                .as_ref()
+                .expect("an unpublished project sync retains its asset root");
+            let project_root = project.paths().root().to_path_buf();
+            let cache_root = project.paths().cache_root().to_path_buf();
+            let project_name = project.manifest().name.clone();
+            let default_scene_uri = project.manifest().default_scene.clone();
             let catalog_generation = build_catalog_generation(
-                &project,
-                &primary_asset_root,
+                project,
+                candidate_index.runtime_registry(),
+                primary_asset_root,
                 catalog_revision,
                 publish_epoch,
                 &catalog_by_uuid,
                 &uuid_by_locator,
-                &reference_graph,
             );
-            let _publish_guard = self
-                .publish_gate
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            let mut state = self
-                .state
-                .write()
-                .expect("editor asset state lock poisoned");
-            if !std::sync::Arc::ptr_eq(&state.source_generation, &expected_source_generation) {
+            let source_commit_guard =
+                lock_editor_asset_gate_recovering_poison(self.source_sync_gate.as_ref());
+            if self.source_sync_epoch.load(Ordering::Acquire) != source_sync_epoch {
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "asset_catalog.source_sync_superseded_count",
+                    1_u8
+                );
                 return Ok(());
             }
-            if !std::sync::Arc::ptr_eq(&state.catalog_generation, &expected_generation) {
-                if state.catalog_generation.catalog_revision != expected_generation.catalog_revision
-                {
+            let commit = || {
+                let _publish_guard =
+                    lock_editor_asset_gate_recovering_poison(self.publish_gate.as_ref());
+                let mut state = self.write_state_recovering_poison();
+                if !same_catalog_input_generation(
+                    state.asset_index.as_ref(),
+                    &expected_source_generation,
+                ) {
+                    zircon_runtime::profile_counter!(
+                        "editor",
+                        "asset_catalog.source_generation_superseded_count",
+                        1_u8
+                    );
+                    return CatalogCommitAttempt::Superseded;
+                }
+                if !std::sync::Arc::ptr_eq(&state.catalog_generation, &expected_generation) {
+                    if state.catalog_generation.catalog_revision
+                        != expected_generation.catalog_revision
+                    {
+                        zircon_runtime::profile_counter!(
+                            "editor",
+                            "asset_catalog.catalog_generation_superseded_count",
+                            1_u8
+                        );
+                        return CatalogCommitAttempt::Superseded;
+                    }
+                    return CatalogCommitAttempt::Rebase(Arc::clone(&state.catalog_generation));
+                }
+                state.project_root = Some(project_root);
+                state.assets_root = pending_primary_asset_root.take();
+                state.cache_root = Some(cache_root);
+                state.project_name = project_name;
+                state.default_scene_uri = Some(default_scene_uri);
+                state.catalog_generation = catalog_generation;
+                state.project = pending_project.take();
+                let candidate_index = pending_candidate_index
+                    .take()
+                    .expect("a winning project sync owns its index candidate");
+                let asset_index = match state.asset_index.as_ref() {
+                    Some(existing) => {
+                        existing
+                            .lock()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner())
+                            .replace_authoritative_projection(candidate_index);
+                        Arc::clone(existing)
+                    }
+                    None => Arc::new(std::sync::Mutex::new(candidate_index)),
+                };
+                state.asset_index = Some(asset_index);
+                state.preview_cache = pending_preview_cache.take();
+                state.preview_scheduler = std::mem::take(&mut preview_scheduler);
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "asset_catalog.catalog_generation_publish_count",
+                    1_u8
+                );
+
+                CatalogCommitAttempt::Published(EditorAssetChangeRecord {
+                    kind: EditorAssetChangeKind::CatalogChanged,
+                    catalog_revision,
+                    uuid: None,
+                    locator: None,
+                })
+            };
+            let attempt = match runtime_generation {
+                Some((project_asset_manager, generation)) => {
+                    match project_asset_manager.commit_if_project_generation(generation, commit) {
+                        ProjectGenerationCommitOutcome::Committed(attempt) => attempt,
+                        ProjectGenerationCommitOutcome::Superseded { .. } => {
+                            zircon_runtime::profile_counter!(
+                                "editor",
+                                "asset_catalog.runtime_project_generation_superseded_count",
+                                1_u8
+                            );
+                            return Ok(());
+                        }
+                    }
+                }
+                None => commit(),
+            };
+            drop(source_commit_guard);
+            match attempt {
+                CatalogCommitAttempt::Published(change) => {
+                    self.broadcast(change);
                     return Ok(());
                 }
-                merge_current_preview_results(&mut catalog_by_uuid, &state.catalog_by_uuid);
-                preview_scheduler = preview_scheduler_for(&catalog_by_uuid);
-                expected_generation = std::sync::Arc::clone(&state.catalog_generation);
-                continue;
+                CatalogCommitAttempt::Rebase(current_generation) => {
+                    zircon_runtime::profile_counter!(
+                        "editor",
+                        "asset_catalog.catalog_generation_rebased_count",
+                        1_u8
+                    );
+                    merge_current_preview_results(&mut catalog_by_uuid, &current_generation);
+                    preview_scheduler = preview_scheduler_for(&catalog_by_uuid);
+                    expected_generation = current_generation;
+                }
+                CatalogCommitAttempt::Superseded => return Ok(()),
             }
-            state.project_root = Some(project.paths().root().to_path_buf());
-            state.assets_root = Some(primary_asset_root);
-            state.cache_root = Some(project.paths().cache_root().to_path_buf());
-            state.project_name = project.manifest().name.clone();
-            state.default_scene_uri = Some(project.manifest().default_scene.clone());
-            state.catalog_generation = catalog_generation;
-            state.project = Some(project);
-            state.catalog_by_uuid = catalog_by_uuid;
-            state.uuid_by_locator = uuid_by_locator;
-            state.reference_graph = reference_graph;
-            state.preview_cache = Some(preview_cache);
-            state.preview_scheduler = preview_scheduler;
-            state.source_generation = pending_source_generation;
-
-            break EditorAssetChangeRecord {
-                kind: EditorAssetChangeKind::CatalogChanged,
-                catalog_revision,
-                uuid: None,
-                locator: None,
-            };
-        };
-        self.broadcast(change);
-        Ok(())
+        }
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum ProjectionKind {
-    Full,
-    Incremental,
+fn same_catalog_input_generation(
+    current: Option<&Arc<std::sync::Mutex<EditorAssetIndex>>>,
+    expected: &Option<Arc<ProjectCatalogInputGeneration>>,
+) -> bool {
+    match (
+        current.and_then(|index| {
+            index
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .catalog_input_generation()
+                .cloned()
+        }),
+        expected,
+    ) {
+        (Some(current), Some(expected)) => Arc::ptr_eq(&current, expected),
+        (None, None) => true,
+        _ => false,
+    }
 }
 
 fn project_full_catalog(
-    project: &ProjectManager,
+    asset_index: &EditorAssetIndex,
     preview_cache: &PreviewCache,
-    catalog_by_uuid: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
-    uuid_by_locator: &mut HashMap<
-        zircon_runtime::asset::AssetUri,
-        zircon_runtime::asset::AssetUuid,
-    >,
-) -> Result<(), AssetImportError> {
-    for metadata in project.registry().values() {
-        insert_projected_record(
-            project,
-            preview_cache,
-            metadata,
-            catalog_by_uuid,
-            uuid_by_locator,
-        )?;
-    }
-    Ok(())
-}
-
-fn patch_catalog(
-    project: &ProjectManager,
-    preview_cache: &PreviewCache,
-    delta: &EditorAssetProjectSourceDelta,
-    catalog_by_uuid: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
-    uuid_by_locator: &mut HashMap<
-        zircon_runtime::asset::AssetUri,
-        zircon_runtime::asset::AssetUuid,
-    >,
-) -> Result<(), AssetImportError> {
-    for metadata in &delta.removed {
-        remove_projected_record(metadata, catalog_by_uuid, uuid_by_locator);
-    }
-    for rename in &delta.renamed {
-        remove_projected_record(&rename.previous, catalog_by_uuid, uuid_by_locator);
-        insert_projected_record(
-            project,
-            preview_cache,
-            &rename.current,
-            catalog_by_uuid,
-            uuid_by_locator,
-        )?;
-    }
-    for metadata in delta.modified.iter().chain(&delta.added) {
-        remove_projected_record(metadata, catalog_by_uuid, uuid_by_locator);
-        insert_projected_record(
-            project,
-            preview_cache,
-            metadata,
-            catalog_by_uuid,
-            uuid_by_locator,
-        )?;
-    }
-    Ok(())
-}
-
-fn remove_projected_record(
-    metadata: &ResourceRecord,
     catalog_by_uuid: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
     uuid_by_locator: &mut HashMap<
         zircon_runtime::asset::AssetUri,
         zircon_runtime::asset::AssetUuid,
     >,
 ) {
-    if let Some(asset_uuid) = uuid_by_locator.remove(metadata.primary_locator()) {
-        catalog_by_uuid.remove(&asset_uuid);
+    let catalog_input_generation = asset_index
+        .catalog_input_generation()
+        .expect("runtime project index always owns its catalog input generation");
+    for catalog_input in catalog_input_generation.records() {
+        insert_projected_record(
+            preview_cache,
+            catalog_input,
+            asset_index
+                .row_by_uuid(catalog_input.meta().uuid)
+                .is_some_and(|row| row.dirty()),
+            catalog_by_uuid,
+            uuid_by_locator,
+        );
     }
 }
 
 fn insert_projected_record(
-    project: &ProjectManager,
     preview_cache: &PreviewCache,
-    metadata: &ResourceRecord,
+    catalog_input: &ProjectCatalogInputRecord,
+    dirty: bool,
     catalog_by_uuid: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
     uuid_by_locator: &mut HashMap<
         zircon_runtime::asset::AssetUri,
         zircon_runtime::asset::AssetUuid,
     >,
-) -> Result<(), AssetImportError> {
-    let Some(record) = project_catalog_record(project, preview_cache, metadata)? else {
-        return Ok(());
+) {
+    let Some(mut record) = project_catalog_record(preview_cache, catalog_input) else {
+        return;
     };
+    record.dirty |= dirty;
     uuid_by_locator.insert(record.locator.clone(), record.asset_uuid);
     catalog_by_uuid.insert(record.asset_uuid, record);
-    Ok(())
+}
+
+fn catalog_delta_affects_shader(delta: &ProjectCatalogInputDelta) -> bool {
+    delta.project_metadata_changed
+        || delta
+            .added
+            .iter()
+            .chain(&delta.modified)
+            .chain(&delta.removed)
+            .any(|record| record.resource().kind == ResourceKind::Shader)
+        || delta.renamed.iter().any(|rename| {
+            rename.previous.resource().kind == ResourceKind::Shader
+                || rename.current.resource().kind == ResourceKind::Shader
+        })
 }
 
 fn merge_current_preview_results(
     pending: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
-    current: &HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
+    current: &crate::ui::host::editor_asset_manager::EditorAssetCatalogGeneration,
 ) {
     for (uuid, pending_record) in pending {
-        let Some(current_record) = current.get(uuid) else {
+        let Some(current_record) = current.catalog_record(&uuid.to_string()) else {
             continue;
         };
         if current_record.source_hash != pending_record.source_hash
@@ -326,7 +437,9 @@ fn preview_scheduler_for(
     scheduler
 }
 
-fn refresh_shader_ide_env_after_import(project: &ProjectManager) -> Result<(), AssetImportError> {
+fn refresh_shader_ide_env_after_import(
+    project: &ProjectManager,
+) -> Result<(), EditorAssetSyncError> {
     let has_ready_shader = project
         .registry()
         .values()
@@ -339,337 +452,9 @@ fn refresh_shader_ide_env_after_import(project: &ProjectManager) -> Result<(), A
     write_shader_ide_env_for_project(project, None, &preview_variants)
         .map(|_| ())
         .map_err(|error| {
-            AssetImportError::ShaderValidation(format!("refresh shader IDE environment: {error}"))
+            zircon_runtime::asset::importer::AssetImportError::ShaderValidation(format!(
+                "refresh shader IDE environment: {error}"
+            ))
         })
-}
-
-#[cfg(test)]
-mod tests {
-    use std::fs;
-    use std::path::PathBuf;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    use zircon_runtime::asset::project::{
-        AssetMetaDocument, AssetSourceUnit, ProjectManifest, ProjectPaths,
-    };
-    use zircon_runtime::asset::{AssetKind, AssetUri, AssetUuid};
-    use zircon_runtime::plugin::PluginPackageManifest;
-
-    use super::*;
-
-    #[test]
-    fn sync_from_project_does_not_republish_an_unchanged_generation() {
-        let root = unique_temp_project_root("sync_unchanged_generation");
-        let paths = ProjectPaths::from_root(&root).unwrap();
-        paths
-            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
-            .unwrap();
-        ProjectManifest::new(
-            "UnchangedProject",
-            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
-            1,
-        )
-        .save(paths.manifest_path())
-        .unwrap();
-        let material_path = paths
-            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
-            .join("materials")
-            .join("unchanged.material.toml");
-        fs::create_dir_all(material_path.parent().unwrap()).unwrap();
-        fs::write(&material_path, "not valid toml = [").unwrap();
-
-        let mut project = ProjectManager::open(&root).unwrap();
-        project.scan_and_import().unwrap();
-        let manager = DefaultEditorAssetManager::new();
-        manager.sync_from_project(project.clone()).unwrap();
-        let first = manager.catalog_snapshot_record();
-
-        manager.sync_from_project(project).unwrap();
-        let second = manager.catalog_snapshot_record();
-
-        assert!(std::sync::Arc::ptr_eq(&first, &second));
-        assert_eq!(first.catalog_revision, second.catalog_revision);
-
-        let _ = fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn sync_from_project_keeps_error_assets_without_artifacts_in_catalog() {
-        let root = unique_temp_project_root("sync_error_asset_without_artifact");
-        let paths = ProjectPaths::from_root(&root).unwrap();
-        paths
-            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
-            .unwrap();
-        ProjectManifest::new(
-            "BrokenAssetProject",
-            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
-            1,
-        )
-        .save(paths.manifest_path())
-        .unwrap();
-        let material_path = paths
-            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
-            .join("materials")
-            .join("broken.material.toml");
-        fs::create_dir_all(material_path.parent().unwrap()).unwrap();
-        fs::write(&material_path, "not valid toml = [").unwrap();
-
-        let mut project = ProjectManager::open(&root).unwrap();
-        let records = project.scan_and_import().unwrap();
-        assert!(records.iter().any(
-            |record| record.state == ResourceState::Error && record.artifact_locator.is_none()
-        ));
-
-        let manager = DefaultEditorAssetManager::new();
-        manager.sync_from_project(project).unwrap();
-        let catalog = manager.catalog_snapshot_record();
-        let broken = catalog
-            .assets
-            .iter()
-            .find(|asset| asset.locator == "res://materials/broken.material.toml")
-            .expect("broken material remains visible in editor catalog");
-        assert!(!broken.diagnostics.is_empty());
-        assert!(broken.direct_reference_uuids.is_empty());
-
-        let _ = fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn sync_from_project_exposes_zmeta_package_and_compound_shader_details() {
-        let root = unique_temp_project_root("sync_zmeta_compound_shader");
-        let package_root = unique_temp_project_root("sync_zmeta_package");
-        let paths = ProjectPaths::from_root(&root).unwrap();
-        paths
-            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
-            .unwrap();
-        ProjectManifest::new(
-            "ZMetaEditorProject",
-            AssetUri::parse("res://shaders/unlit_shader").unwrap(),
-            1,
-        )
-        .save(paths.manifest_path())
-        .unwrap();
-
-        let shader_uri = AssetUri::parse("res://shaders/unlit_shader").unwrap();
-        let shader_meta_path = paths
-            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
-            .join("shaders")
-            .join("unlit_shader.zmeta");
-        let mut shader_meta =
-            AssetMetaDocument::new(AssetUuid::new(), shader_uri.clone(), AssetKind::Shader);
-        shader_meta.unit = AssetSourceUnit::Compound;
-        shader_meta.save(&shader_meta_path).unwrap();
-
-        let shader_dir = paths
-            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
-            .join("shaders")
-            .join("unlit_shader");
-        fs::create_dir_all(&shader_dir).unwrap();
-        fs::write(
-            shader_dir.join("unlit.zshader"),
-            r#"
-kind = "surface"
-version = 2
-shading_model = "unlit"
-wgsl_files = ["unlit.wgsl"]
-"#,
-        )
-        .unwrap();
-        fs::write(
-            shader_dir.join("unlit.wgsl"),
-            r#"
-fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
-    var surface = zr_surface_default(input);
-    surface.base_color = vec4f(1.0, 1.0, 1.0, 1.0);
-    return surface;
-}
-"#,
-        )
-        .unwrap();
-
-        let package_asset_path = package_root.join("assets").join("nav").join("agent.json");
-        fs::create_dir_all(package_asset_path.parent().unwrap()).unwrap();
-        fs::write(&package_asset_path, r#"{ "agent": true }"#).unwrap();
-        let package_manifest = PluginPackageManifest::new("navigation", "Navigation")
-            .with_package_identity("com", "zircon", "navigation");
-
-        let mut project = ProjectManager::open(&root).unwrap();
-        project
-            .register_package_asset_roots(
-                package_manifest.package_id(),
-                package_manifest.asset_roots_or_default(),
-                &package_root,
-            )
-            .unwrap();
-        project.scan_and_import().unwrap();
-
-        let manager = DefaultEditorAssetManager::new();
-        manager.sync_from_project(project).unwrap();
-
-        let catalog = manager.catalog_snapshot_record();
-        assert!(catalog
-            .folders
-            .iter()
-            .any(|folder| folder.folder_id == "package://com.zircon.navigation"));
-        let shader = catalog
-            .assets
-            .iter()
-            .find(|asset| asset.locator == "res://shaders/unlit_shader")
-            .expect("compound shader is visible in editor catalog");
-        assert!(
-            shader.diagnostics.is_empty(),
-            "compound shader fixture must import before editor detail projection: {:?}",
-            shader.diagnostics
-        );
-        let details = manager
-            .asset_details_generation(&shader.uuid)
-            .expect("shader details");
-        assert_eq!(details.unit, AssetSourceUnit::Compound);
-        assert!(details.package_id.is_none());
-        assert!(details
-            .included_files
-            .contains(&"res://shaders/unlit_shader/unlit.zshader".to_string()));
-        assert!(details
-            .included_files
-            .contains(&"res://shaders/unlit_shader/unlit.wgsl".to_string()));
-        assert!(
-            details
-                .subassets
-                .iter()
-                .any(|subasset| subasset.locator.ends_with("#zshader:unlit.zshader")),
-            "zshader subasset should be projected from .zmeta entries: {:?}",
-            details.subassets
-        );
-        assert!(details
-            .subassets
-            .iter()
-            .any(|subasset| subasset.locator.ends_with("#wgsl:unlit.wgsl")));
-
-        let package_asset = catalog
-            .assets
-            .iter()
-            .find(|asset| asset.locator == "package://com.zircon.navigation/nav/agent.json")
-            .expect("package asset is visible in editor catalog");
-        let package_details = manager
-            .asset_details_generation(&package_asset.uuid)
-            .expect("package details");
-        assert_eq!(
-            package_details.package_id.as_deref(),
-            Some("com.zircon.navigation")
-        );
-        assert_eq!(package_details.unit, AssetSourceUnit::Single);
-
-        let _ = fs::remove_dir_all(root);
-        let _ = fs::remove_dir_all(package_root);
-    }
-
-    #[test]
-    fn sync_from_project_refreshes_shader_ide_environment_after_import() {
-        let root = unique_temp_project_root("sync_shader_ide_env");
-        let paths = ProjectPaths::from_root(&root).unwrap();
-        paths
-            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
-            .unwrap();
-        ProjectManifest::new(
-            "Shader Ide Sandbox",
-            AssetUri::parse("res://shaders/hero").unwrap(),
-            1,
-        )
-        .save(paths.manifest_path())
-        .unwrap();
-        write_shader_ide_surface_package(&paths);
-
-        let mut project = ProjectManager::open(&root).unwrap();
-        project.scan_and_import().unwrap();
-
-        let manager = DefaultEditorAssetManager::new();
-        manager.sync_from_project(project).unwrap();
-
-        let shader_uri = AssetUri::parse("res://shaders/hero").unwrap();
-        let ide_root = ProjectPaths::from_root(&root)
-            .unwrap()
-            .cache_root()
-            .join(zircon_runtime::core::framework::render::SHADER_IDE_ENV_CACHE_DIR);
-        let module_map_path =
-            ide_root.join(zircon_runtime::core::framework::render::SHADER_IDE_MODULE_MAP_FILE);
-        let preview_path = ide_root.join(
-            zircon_runtime::core::framework::render::shader_ide_preview_relative_path(
-                &shader_uri,
-                zircon_runtime::core::framework::render::SHADER_IDE_PREVIEW_DEFAULT_VARIANT,
-            ),
-        );
-        let segment_path = ide_root.join(
-            zircon_runtime::core::framework::render::shader_ide_preview_segments_relative_path(
-                &shader_uri,
-                zircon_runtime::core::framework::render::SHADER_IDE_PREVIEW_DEFAULT_VARIANT,
-            ),
-        );
-
-        let module_map = fs::read_to_string(module_map_path).unwrap();
-        assert!(module_map.contains("shader_ide_sandbox::hero"));
-        assert!(module_map.contains("generated/res_shaders_hero.material.wgsl"));
-        assert!(fs::read_to_string(preview_path)
-            .unwrap()
-            .contains("fn zr_material_surface"));
-        assert!(fs::read_to_string(segment_path)
-            .unwrap()
-            .contains("generated_material"));
-
-        let _ = fs::remove_dir_all(root);
-    }
-
-    fn write_shader_ide_surface_package(paths: &ProjectPaths) {
-        let shader_uri = AssetUri::parse("res://shaders/hero").unwrap();
-        let shader_meta_path = paths
-            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
-            .join("shaders")
-            .join("hero.zmeta");
-        let mut shader_meta =
-            AssetMetaDocument::new(AssetUuid::new(), shader_uri, AssetKind::Shader);
-        shader_meta.unit = AssetSourceUnit::Compound;
-        fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
-        shader_meta.save(&shader_meta_path).unwrap();
-
-        let shader_dir = paths
-            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
-            .join("shaders")
-            .join("hero");
-        fs::create_dir_all(&shader_dir).unwrap();
-        fs::write(
-            shader_dir.join("hero.zshader"),
-            r#"
-kind = "surface"
-version = 2
-shading_model = "standard_pbr"
-wgsl_files = ["hero.wgsl"]
-
-[[properties]]
-name = "base_color"
-kind = "vec4"
-default = [0.8, 0.4, 0.2, 1.0]
-"#,
-        )
-        .unwrap();
-        fs::write(
-            shader_dir.join("hero.wgsl"),
-            r#"
-#include <self::material>
-
-fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
-    var surface = zr_surface_default(input);
-    surface.base_color = zr_mat_base_color();
-    return surface;
-}
-"#,
-        )
-        .unwrap();
-    }
-
-    fn unique_temp_project_root(label: &str) -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time after unix epoch")
-            .as_nanos();
-        std::env::temp_dir().join(format!("zircon_editor_{label}_{nanos}"))
-    }
+        .map_err(EditorAssetSyncError::from)
 }

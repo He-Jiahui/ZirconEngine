@@ -1,5 +1,5 @@
 use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
+    collections::HashMap,
     hash::{Hash, Hasher},
     mem::size_of,
     sync::Arc,
@@ -7,10 +7,11 @@ use std::{
 
 use super::index::{IndexedTextCache, IndexedTextCacheEntry, TextCacheSlot};
 
-use crate::core::framework::text::TextDirection;
-use crate::text::font::shared_font_database_generation;
+use crate::core::framework::text::{TextDirection, TextFontCollectionHandle};
+use crate::text::font::{shared_font_collection_handle, shared_font_database_generation};
 use crate::text::{
-    BackendShapeRequest, OpenTypeFeature, ShapedGlyphRun, TextOrientation, VerticalMode,
+    BackendShapeRequest, EphemeralCacheHash, EphemeralCacheHasher, OpenTypeFeature, ShapedGlyphRun,
+    TextOrientation, UnicodeDataSnapshotId, VerticalMode,
 };
 use crate::text::{TextRange, TextStyle};
 
@@ -23,10 +24,12 @@ pub(crate) const DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES: usize = 8 * 1024 * 1024;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ShapedRunCacheKey {
-    pub(crate) text_hash: u64,
+    pub(crate) text_hash: EphemeralCacheHash,
     pub(crate) source_range: TextRange,
+    pub(crate) font_asset: Option<String>,
     pub(crate) font_family: Option<String>,
     pub(crate) font_weight: u16,
+    pub(crate) font_italic: bool,
     pub(crate) font_size_bits: u32,
     pub(crate) line_height_bits: u32,
     pub(crate) tab_size_bits: u32,
@@ -34,18 +37,22 @@ pub(crate) struct ShapedRunCacheKey {
     pub(crate) orientation: TextOrientation,
     pub(crate) vertical_mode: VerticalMode,
     include_kerning: bool,
-    pub(crate) features_hash: u64,
+    pub(crate) features_hash: EphemeralCacheHash,
     features: Arc<[OpenTypeFeature]>,
     pub(crate) language: Option<String>,
+    pub(crate) font_collection: TextFontCollectionHandle,
     pub(crate) font_database_generation: u64,
+    pub(crate) unicode_data_snapshot: UnicodeDataSnapshotId,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct ShapedRunCacheLookupKey<'a> {
-    text_hash: u64,
+    text_hash: EphemeralCacheHash,
     source_range: TextRange,
+    font_asset: Option<&'a str>,
     font_family: Option<&'a str>,
     font_weight: u16,
+    font_italic: bool,
     font_size_bits: u32,
     line_height_bits: u32,
     tab_size_bits: u32,
@@ -53,10 +60,12 @@ pub(crate) struct ShapedRunCacheLookupKey<'a> {
     orientation: TextOrientation,
     vertical_mode: VerticalMode,
     include_kerning: bool,
-    features_hash: u64,
+    features_hash: EphemeralCacheHash,
     features: &'a [OpenTypeFeature],
     language: Option<&'a str>,
+    font_collection: TextFontCollectionHandle,
     font_database_generation: u64,
+    unicode_data_snapshot: UnicodeDataSnapshotId,
 }
 
 impl ShapedRunCacheKey {
@@ -68,8 +77,10 @@ impl ShapedRunCacheKey {
         Self {
             text_hash: lookup.text_hash,
             source_range: lookup.source_range,
+            font_asset: lookup.font_asset.map(ToOwned::to_owned),
             font_family: lookup.font_family.map(ToOwned::to_owned),
             font_weight: lookup.font_weight,
+            font_italic: lookup.font_italic,
             font_size_bits: lookup.font_size_bits,
             line_height_bits: lookup.line_height_bits,
             tab_size_bits: lookup.tab_size_bits,
@@ -79,8 +90,10 @@ impl ShapedRunCacheKey {
             include_kerning: lookup.include_kerning,
             features_hash: lookup.features_hash,
             features: Arc::from(lookup.features),
-            language: owned_normalized_language_tag(lookup.language),
+            language: lookup.language.map(ToOwned::to_owned),
+            font_collection: lookup.font_collection,
             font_database_generation: lookup.font_database_generation,
+            unicode_data_snapshot: lookup.unicode_data_snapshot,
         }
     }
 
@@ -88,8 +101,10 @@ impl ShapedRunCacheKey {
         ShapedRunCacheLookupKey {
             text_hash: self.text_hash,
             source_range: self.source_range,
+            font_asset: self.font_asset.as_deref(),
             font_family: self.font_family.as_deref(),
             font_weight: self.font_weight,
+            font_italic: self.font_italic,
             font_size_bits: self.font_size_bits,
             line_height_bits: self.line_height_bits,
             tab_size_bits: self.tab_size_bits,
@@ -100,15 +115,19 @@ impl ShapedRunCacheKey {
             features_hash: self.features_hash,
             features: self.features.as_ref(),
             language: self.language.as_deref(),
+            font_collection: self.font_collection,
             font_database_generation: self.font_database_generation,
+            unicode_data_snapshot: self.unicode_data_snapshot,
         }
     }
 
     pub(crate) fn matches_lookup(&self, lookup: &ShapedRunCacheLookupKey<'_>) -> bool {
         self.text_hash == lookup.text_hash
             && self.source_range == lookup.source_range
+            && self.font_asset.as_deref() == lookup.font_asset
             && self.font_family.as_deref() == lookup.font_family
             && self.font_weight == lookup.font_weight
+            && self.font_italic == lookup.font_italic
             && self.font_size_bits == lookup.font_size_bits
             && self.line_height_bits == lookup.line_height_bits
             && self.tab_size_bits == lookup.tab_size_bits
@@ -118,8 +137,10 @@ impl ShapedRunCacheKey {
             && self.include_kerning == lookup.include_kerning
             && self.features_hash == lookup.features_hash
             && self.features.as_ref() == lookup.features
-            && normalized_language_matches(self.language.as_deref(), lookup.language)
+            && self.language.as_deref() == lookup.language
+            && self.font_collection == lookup.font_collection
             && self.font_database_generation == lookup.font_database_generation
+            && self.unicode_data_snapshot == lookup.unicode_data_snapshot
     }
 
     pub(crate) const fn font_database_generation(&self) -> u64 {
@@ -129,15 +150,30 @@ impl ShapedRunCacheKey {
 
 impl<'a> ShapedRunCacheLookupKey<'a> {
     pub(crate) fn from_request(request: &'a BackendShapeRequest<'a>) -> Self {
+        Self::from_request_in_font_collection(
+            request,
+            shared_font_collection_handle(),
+            shared_font_database_generation(),
+        )
+    }
+
+    pub(crate) fn from_request_in_font_collection(
+        request: &'a BackendShapeRequest<'a>,
+        font_collection: TextFontCollectionHandle,
+        font_database_generation: u64,
+    ) -> Self {
         debug_assert!(request.features_are_normalized());
+        debug_assert!(request.language_is_canonical());
         let font_size = request.style.font_size.max(1.0);
         let line_height = request.style.line_height.max(font_size);
 
         Self {
             text_hash: hash_text(request.text),
             source_range: request.source_range,
-            font_family: cache_font_family_ref(request.style),
+            font_asset: cache_font_asset_ref(request.style.font.as_deref()),
+            font_family: cache_text_identity_ref(request.style.font_family.as_deref()),
             font_weight: TextStyle::normalized_font_weight(request.style.font_weight),
+            font_italic: request.style.italic,
             font_size_bits: normalized_f32_bits(font_size),
             line_height_bits: normalized_f32_bits(line_height),
             tab_size_bits: normalized_f32_bits(request.style.tab_size),
@@ -147,12 +183,14 @@ impl<'a> ShapedRunCacheLookupKey<'a> {
             include_kerning: request.include_kerning,
             features_hash: shaping_features_hash(request),
             features: request.features(),
-            language: cache_language_tag(request.language),
-            font_database_generation: shared_font_database_generation(),
+            language: request.language,
+            font_collection,
+            font_database_generation,
+            unicode_data_snapshot: request.unicode_data_snapshot(),
         }
     }
 
-    pub(crate) fn exact_fingerprint(&self) -> u64 {
+    pub(crate) fn exact_fingerprint(&self) -> EphemeralCacheHash {
         self.full_fingerprint()
     }
 
@@ -160,49 +198,58 @@ impl<'a> ShapedRunCacheLookupKey<'a> {
         self.font_database_generation
     }
 
-    fn full_fingerprint(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        self.text_hash.hash(&mut hasher);
-        self.source_range.start.hash(&mut hasher);
-        self.source_range.end.hash(&mut hasher);
-        self.font_family.map(hash_text).hash(&mut hasher);
-        self.font_weight.hash(&mut hasher);
-        self.font_size_bits.hash(&mut hasher);
-        self.line_height_bits.hash(&mut hasher);
-        self.tab_size_bits.hash(&mut hasher);
-        std::mem::discriminant(&self.base_direction).hash(&mut hasher);
-        std::mem::discriminant(&self.orientation).hash(&mut hasher);
-        std::mem::discriminant(&self.vertical_mode).hash(&mut hasher);
-        self.include_kerning.hash(&mut hasher);
-        self.features_hash.hash(&mut hasher);
-        normalized_language_hash(self.language).hash(&mut hasher);
-        self.font_database_generation.hash(&mut hasher);
+    fn full_fingerprint(&self) -> EphemeralCacheHash {
+        let mut hasher = EphemeralCacheHasher::new();
+        hasher.write(&self.text_hash);
+        hasher.write(&self.source_range.start);
+        hasher.write(&self.source_range.end);
+        hasher.write(&self.font_asset.map(hash_text));
+        hasher.write(&self.font_family.map(hash_text));
+        hasher.write(&self.font_weight);
+        hasher.write(&self.font_italic);
+        hasher.write(&self.font_size_bits);
+        hasher.write(&self.line_height_bits);
+        hasher.write(&self.tab_size_bits);
+        hasher.write(&std::mem::discriminant(&self.base_direction));
+        hasher.write(&std::mem::discriminant(&self.orientation));
+        hasher.write(&std::mem::discriminant(&self.vertical_mode));
+        hasher.write(&self.include_kerning);
+        hasher.write(&self.features_hash);
+        hasher.write(&self.language);
+        hasher.write(&self.font_collection);
+        hasher.write(&self.font_database_generation);
+        hasher.write(&self.unicode_data_snapshot);
         hasher.finish()
     }
 
-    fn direction_alias_fingerprint(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        self.text_hash.hash(&mut hasher);
-        self.source_range.start.hash(&mut hasher);
-        self.source_range.end.hash(&mut hasher);
-        self.font_family.map(hash_text).hash(&mut hasher);
-        self.font_weight.hash(&mut hasher);
-        self.font_size_bits.hash(&mut hasher);
-        self.line_height_bits.hash(&mut hasher);
-        self.tab_size_bits.hash(&mut hasher);
-        std::mem::discriminant(&self.orientation).hash(&mut hasher);
-        std::mem::discriminant(&self.vertical_mode).hash(&mut hasher);
-        self.include_kerning.hash(&mut hasher);
-        self.features_hash.hash(&mut hasher);
-        normalized_language_hash(self.language).hash(&mut hasher);
-        self.font_database_generation.hash(&mut hasher);
+    fn direction_alias_fingerprint(&self) -> EphemeralCacheHash {
+        let mut hasher = EphemeralCacheHasher::new();
+        hasher.write(&self.text_hash);
+        hasher.write(&self.source_range.start);
+        hasher.write(&self.source_range.end);
+        hasher.write(&self.font_asset.map(hash_text));
+        hasher.write(&self.font_family.map(hash_text));
+        hasher.write(&self.font_weight);
+        hasher.write(&self.font_italic);
+        hasher.write(&self.font_size_bits);
+        hasher.write(&self.line_height_bits);
+        hasher.write(&self.tab_size_bits);
+        hasher.write(&std::mem::discriminant(&self.orientation));
+        hasher.write(&std::mem::discriminant(&self.vertical_mode));
+        hasher.write(&self.include_kerning);
+        hasher.write(&self.features_hash);
+        hasher.write(&self.language);
+        hasher.write(&self.font_collection);
+        hasher.write(&self.font_database_generation);
+        hasher.write(&self.unicode_data_snapshot);
         hasher.finish()
     }
 
     fn owned_key_byte_len(&self) -> usize {
-        self.font_family
+        self.font_asset
             .map_or(0, str::len)
-            .saturating_add(normalized_language_len(self.language))
+            .saturating_add(self.font_family.map_or(0, str::len))
+            .saturating_add(self.language.map_or(0, str::len))
             .saturating_add(
                 self.features
                     .len()
@@ -216,8 +263,10 @@ impl Hash for ShapedRunCacheKey {
         self.text_hash.hash(state);
         self.source_range.start.hash(state);
         self.source_range.end.hash(state);
+        self.font_asset.hash(state);
         self.font_family.hash(state);
         self.font_weight.hash(state);
+        self.font_italic.hash(state);
         self.font_size_bits.hash(state);
         self.line_height_bits.hash(state);
         self.tab_size_bits.hash(state);
@@ -228,7 +277,9 @@ impl Hash for ShapedRunCacheKey {
         self.features_hash.hash(state);
         self.features.hash(state);
         self.language.hash(state);
+        self.font_collection.hash(state);
         self.font_database_generation.hash(state);
+        self.unicode_data_snapshot.hash(state);
     }
 }
 
@@ -269,9 +320,9 @@ impl IndexedTextCacheEntry<ShapedRunCacheKey> for ShapedRunCacheEntry {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ShapedRunCache {
     index: IndexedTextCache<ShapedRunCacheKey, ShapedRunCacheEntry>,
-    lookup_buckets: HashMap<u64, Vec<TextCacheSlot>>,
+    lookup_buckets: HashMap<EphemeralCacheHash, Vec<TextCacheSlot>>,
     lookup_bucket_positions: HashMap<TextCacheSlot, usize>,
-    direction_alias_buckets: HashMap<u64, Vec<TextCacheSlot>>,
+    direction_alias_buckets: HashMap<EphemeralCacheHash, Vec<TextCacheSlot>>,
     direction_alias_bucket_positions: HashMap<TextCacheSlot, usize>,
     capacity: usize,
     max_bytes: usize,
@@ -452,7 +503,19 @@ impl ShapedRunCache {
         key: ShapedRunCacheKey,
         run: ShapedGlyphRun,
     ) -> Arc<ShapedGlyphRun> {
-        let run = Arc::new(run);
+        self.insert_ready(key, Arc::new(run))
+    }
+
+    /// Inserts a successful shaping artifact without copying its glyph storage.
+    pub(crate) fn insert_ready(
+        &mut self,
+        key: ShapedRunCacheKey,
+        run: Arc<ShapedGlyphRun>,
+    ) -> Arc<ShapedGlyphRun> {
+        debug_assert_eq!(
+            key.unicode_data_snapshot, run.unicode_data_snapshot,
+            "shaped-cache key and artifact must share one Unicode snapshot"
+        );
         let estimated_bytes = estimated_entry_bytes(&key, run.as_ref());
 
         let lookup = self
@@ -557,7 +620,7 @@ impl ShapedRunCache {
             .saturating_add(candidate_count as u64);
     }
 
-    fn remove_lookup_slot(&mut self, fingerprint: u64, slot: TextCacheSlot) {
+    fn remove_lookup_slot(&mut self, fingerprint: EphemeralCacheHash, slot: TextCacheSlot) {
         let remove_bucket = if let Some(candidates) = self.lookup_buckets.get_mut(&fingerprint) {
             Self::remove_bucket_slot(candidates, &mut self.lookup_bucket_positions, slot);
             candidates.is_empty()
@@ -569,7 +632,11 @@ impl ShapedRunCache {
         }
     }
 
-    fn remove_direction_alias_slot(&mut self, fingerprint: u64, slot: TextCacheSlot) {
+    fn remove_direction_alias_slot(
+        &mut self,
+        fingerprint: EphemeralCacheHash,
+        slot: TextCacheSlot,
+    ) {
         let remove_bucket = if let Some(candidates) =
             self.direction_alias_buckets.get_mut(&fingerprint)
         {
@@ -584,9 +651,9 @@ impl ShapedRunCache {
     }
 
     fn insert_bucket_slot(
-        buckets: &mut HashMap<u64, Vec<TextCacheSlot>>,
+        buckets: &mut HashMap<EphemeralCacheHash, Vec<TextCacheSlot>>,
         positions: &mut HashMap<TextCacheSlot, usize>,
-        fingerprint: u64,
+        fingerprint: EphemeralCacheHash,
         slot: TextCacheSlot,
     ) {
         let candidates = buckets.entry(fingerprint).or_default();
@@ -635,8 +702,10 @@ impl ShapedRunCacheKey {
     fn matches_lookup_except_base_direction(&self, lookup: &ShapedRunCacheLookupKey<'_>) -> bool {
         self.text_hash == lookup.text_hash
             && self.source_range == lookup.source_range
+            && self.font_asset.as_deref() == lookup.font_asset
             && self.font_family.as_deref() == lookup.font_family
             && self.font_weight == lookup.font_weight
+            && self.font_italic == lookup.font_italic
             && self.font_size_bits == lookup.font_size_bits
             && self.line_height_bits == lookup.line_height_bits
             && self.tab_size_bits == lookup.tab_size_bits
@@ -645,7 +714,7 @@ impl ShapedRunCacheKey {
             && self.include_kerning == lookup.include_kerning
             && self.features_hash == lookup.features_hash
             && self.features.as_ref() == lookup.features
-            && normalized_language_matches(self.language.as_deref(), lookup.language)
+            && self.language.as_deref() == lookup.language
             && self.font_database_generation == lookup.font_database_generation
     }
 }
@@ -665,83 +734,24 @@ fn is_single_text_paragraph(text: &str) -> bool {
     })
 }
 
-fn hash_text(text: &str) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    text.hash(&mut hasher);
+fn hash_text(text: &str) -> EphemeralCacheHash {
+    EphemeralCacheHash::from_hashable(text)
+}
+
+fn shaping_features_hash(request: &BackendShapeRequest<'_>) -> EphemeralCacheHash {
+    let mut hasher = EphemeralCacheHasher::new();
+    hasher.write(b"shaped-run-features-v2");
+    hasher.write(&request.include_kerning);
+    hasher.write(request.features());
     hasher.finish()
 }
 
-fn shaping_features_hash(request: &BackendShapeRequest<'_>) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    b"shaped-run-features-v2".hash(&mut hasher);
-    request.include_kerning.hash(&mut hasher);
-    request.features().hash(&mut hasher);
-    hasher.finish()
+fn cache_text_identity_ref(value: Option<&str>) -> Option<&str> {
+    value.map(str::trim).filter(|value| !value.is_empty())
 }
 
-fn cache_font_family_ref(style: &TextStyle) -> Option<&str> {
-    style
-        .font_family
-        .as_deref()
-        .or(style.font.as_deref())
-        .map(str::trim)
-        .filter(|family| !family.is_empty())
-}
-
-fn cache_language_tag(language: Option<&str>) -> Option<&str> {
-    language
-        .map(str::trim)
-        .filter(|language| !language.is_empty())
-}
-
-fn normalized_language_hash(language: Option<&str>) -> Option<u64> {
-    let language = cache_language_tag(language)?;
-    let mut hasher = DefaultHasher::new();
-    for byte in language.bytes() {
-        let normalized = if byte == b'_' {
-            b'-'
-        } else {
-            byte.to_ascii_lowercase()
-        };
-        normalized.hash(&mut hasher);
-    }
-    Some(hasher.finish())
-}
-
-fn owned_normalized_language_tag(language: Option<&str>) -> Option<String> {
-    let language = cache_language_tag(language)?;
-    let mut normalized = String::with_capacity(language.len());
-    for character in language.chars() {
-        normalized.push(if character == '_' {
-            '-'
-        } else {
-            character.to_ascii_lowercase()
-        });
-    }
-    Some(normalized)
-}
-
-fn normalized_language_len(language: Option<&str>) -> usize {
-    cache_language_tag(language).map_or(0, str::len)
-}
-
-fn normalized_language_matches(normalized: Option<&str>, requested: Option<&str>) -> bool {
-    let requested = cache_language_tag(requested);
-    match (normalized, requested) {
-        (None, None) => true,
-        (Some(normalized), Some(requested)) if normalized.len() == requested.len() => normalized
-            .bytes()
-            .zip(requested.bytes())
-            .all(|(stored, requested)| {
-                stored
-                    == if requested == b'_' {
-                        b'-'
-                    } else {
-                        requested.to_ascii_lowercase()
-                    }
-            }),
-        _ => false,
-    }
+fn cache_font_asset_ref(value: Option<&str>) -> Option<&str> {
+    value.filter(|value| !value.is_empty())
 }
 
 fn normalized_f32_bits(value: f32) -> u32 {

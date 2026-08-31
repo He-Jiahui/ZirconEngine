@@ -1,10 +1,8 @@
-use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::asset_content_layout::{
-    ActivityAssetReferenceListKind, AssetContentPaintMetadata, AssetContentRect,
-    AssetContentSurface, BrowserAssetReferenceListKind,
+    AssetContentRect, AssetContentScrollbarExtent, AssetContentScrollbarViewport,
 };
 
-use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::data::FrameRect;
 
 pub(super) fn asset_tree_viewport_frame(body: &FrameRect) -> FrameRect {
     let viewport_y = crate::ui::retained_host::asset_pointer::asset_tree_viewport_y();
@@ -16,82 +14,28 @@ pub(super) fn asset_tree_viewport_frame(body: &FrameRect) -> FrameRect {
     }
 }
 
-pub(super) fn asset_tree_row_count(
-    nodes: &ModelRc<TemplatePaneNodeData>,
-    row_control_id: &str,
-) -> usize {
-    nodes
-        .iter()
-        .filter(|node| matches_asset_tree_row(node.control_id.as_str(), row_control_id))
-        .count()
-}
-
-pub(super) fn activity_asset_content_viewport_and_extent(
-    nodes: &ModelRc<TemplatePaneNodeData>,
+pub(super) fn asset_scrollbar_viewport(
+    viewport: AssetContentScrollbarViewport,
     body: &FrameRect,
-) -> Option<(FrameRect, f32)> {
-    asset_content_viewport_and_extent(nodes, body, AssetContentSurface::Activity)
-}
-
-pub(super) fn browser_asset_content_viewport_and_extent(
-    nodes: &ModelRc<TemplatePaneNodeData>,
-    body: &FrameRect,
-) -> Option<(FrameRect, f32)> {
-    asset_content_viewport_and_extent(nodes, body, AssetContentSurface::Browser)
-}
-
-pub(super) fn browser_asset_tree_viewport_frame(
-    nodes: &ModelRc<TemplatePaneNodeData>,
-    body: &FrameRect,
-) -> Option<FrameRect> {
-    let metadata = nodes.metadata::<AssetContentPaintMetadata>()?;
-    if metadata.surface() != AssetContentSurface::Browser {
-        return None;
+) -> FrameRect {
+    match viewport {
+        AssetContentScrollbarViewport::ActivityTree => asset_tree_viewport_frame(body),
+        AssetContentScrollbarViewport::Local(viewport) => {
+            translated_asset_content_rect(viewport, body)
+        }
     }
-    metadata
-        .browser_source_tree_viewport()
-        .map(|viewport| translated_asset_content_rect(viewport, body))
 }
 
-pub(super) fn browser_asset_reference_viewport_and_row_count(
-    nodes: &ModelRc<TemplatePaneNodeData>,
-    body: &FrameRect,
-    list_kind: BrowserAssetReferenceListKind,
-) -> Option<(FrameRect, usize)> {
-    let metadata = nodes.metadata::<AssetContentPaintMetadata>()?;
-    if metadata.surface() != AssetContentSurface::Browser {
-        return None;
+pub(super) fn asset_scrollbar_content_extent(extent: AssetContentScrollbarExtent) -> f32 {
+    match extent {
+        AssetContentScrollbarExtent::Pixels(extent) => extent,
+        AssetContentScrollbarExtent::TreeRows(row_count) => {
+            crate::ui::retained_host::asset_pointer::asset_tree_content_height(row_count)
+        }
+        AssetContentScrollbarExtent::ReferenceRows(row_count) => {
+            crate::ui::retained_host::asset_pointer::asset_reference_content_height(row_count)
+        }
     }
-    let viewport =
-        translated_asset_content_rect(metadata.browser_reference_viewport(list_kind)?, body);
-    Some((viewport, metadata.browser_reference_row_count(list_kind)))
-}
-
-pub(super) fn activity_asset_reference_viewport_and_row_count(
-    nodes: &ModelRc<TemplatePaneNodeData>,
-    body: &FrameRect,
-    list_kind: ActivityAssetReferenceListKind,
-) -> Option<(FrameRect, usize)> {
-    let metadata = nodes.metadata::<AssetContentPaintMetadata>()?;
-    if metadata.surface() != AssetContentSurface::Activity {
-        return None;
-    }
-    let viewport =
-        translated_asset_content_rect(metadata.activity_reference_viewport(list_kind)?, body);
-    Some((viewport, metadata.activity_reference_row_count(list_kind)))
-}
-
-fn asset_content_viewport_and_extent(
-    nodes: &ModelRc<TemplatePaneNodeData>,
-    body: &FrameRect,
-    surface: AssetContentSurface,
-) -> Option<(FrameRect, f32)> {
-    let metadata = nodes.metadata::<AssetContentPaintMetadata>()?;
-    if metadata.surface() != surface {
-        return None;
-    }
-    let viewport = translated_asset_content_rect(metadata.viewport()?, body);
-    Some((viewport, metadata.content_extent()))
 }
 
 fn translated_asset_content_rect(rect: AssetContentRect, body: &FrameRect) -> FrameRect {
@@ -103,22 +47,19 @@ fn translated_asset_content_rect(rect: AssetContentRect, body: &FrameRect) -> Fr
     }
 }
 
-fn matches_asset_tree_row(control_id: &str, row_control_id: &str) -> bool {
-    control_id
-        .rsplit('/')
-        .next()
-        .is_some_and(|leaf| leaf == row_control_id)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
-    use crate::ui::retained_host::host_contract::data::TemplateNodeFrameData;
+    use crate::ui::retained_host::host_contract::data::{
+        TemplateNodeFrameData, TemplatePaneNodeData,
+    };
+    use crate::ui::retained_host::primitives::ModelRc;
     use crate::ui::workbench::asset_content_layout::{
-        asset_content_paint_metadata, ActivityAssetReferenceListKind, AssetContentPaintNodeInput,
-        BrowserAssetReferenceListKind, BROWSER_CONTENT_PREVIEW_CONTROL_ID,
-        BROWSER_CONTENT_TABLE_CONTROL_ID, BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
+        asset_content_paint_metadata, AssetContentPaintMetadata, AssetContentPaintNodeInput,
+        AssetContentScrollbarDescriptor, AssetContentScrollbarKind, AssetContentSurface,
+        BROWSER_CONTENT_PREVIEW_CONTROL_ID, BROWSER_CONTENT_TABLE_CONTROL_ID,
+        BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
     };
 
     fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
@@ -140,7 +81,8 @@ mod tests {
 
         assert!(!production.contains("row_data("));
         assert!(!production.contains("for row in 0..nodes.row_count()"));
-        assert!(production.contains("metadata::<AssetContentPaintMetadata>"));
+        assert!(production.contains("AssetContentScrollbarViewport"));
+        assert!(production.contains("AssetContentScrollbarExtent"));
     }
 
     #[test]
@@ -159,16 +101,20 @@ mod tests {
             node(BROWSER_CONTENT_PREVIEW_CONTROL_ID, 10.0, 90.0, 120.0, 40.0),
         ]);
 
-        let (viewport, extent) = browser_asset_content_viewport_and_extent(
+        let viewport = descriptor_viewport(
             &nodes,
+            AssetContentScrollbarKind::Content,
             &FrameRect {
                 x: 5.0,
                 y: 7.0,
                 width: 150.0,
                 height: 180.0,
             },
-        )
-        .expect("browser viewport");
+        );
+        let extent = asset_scrollbar_content_extent(descriptor_extent(
+            &nodes,
+            AssetContentScrollbarKind::Content,
+        ));
 
         assert_eq!(
             viewport,
@@ -188,16 +134,20 @@ mod tests {
         grid.value_number = 620.0;
         let nodes = browser_nodes(vec![grid]);
 
-        let (viewport, extent) = browser_asset_content_viewport_and_extent(
+        let viewport = descriptor_viewport(
             &nodes,
+            AssetContentScrollbarKind::Content,
             &FrameRect {
                 x: 5.0,
                 y: 7.0,
                 width: 350.0,
                 height: 220.0,
             },
-        )
-        .expect("browser thumbnail viewport");
+        );
+        let extent = asset_scrollbar_content_extent(descriptor_extent(
+            &nodes,
+            AssetContentScrollbarKind::Content,
+        ));
 
         assert_eq!(
             viewport,
@@ -221,16 +171,16 @@ mod tests {
             430.0,
         )]);
 
-        let viewport = browser_asset_tree_viewport_frame(
+        let viewport = descriptor_viewport(
             &nodes,
+            AssetContentScrollbarKind::Tree,
             &FrameRect {
                 x: 5.0,
                 y: 7.0,
                 width: 900.0,
                 height: 620.0,
             },
-        )
-        .expect("browser sources viewport");
+        );
 
         assert_eq!(
             viewport,
@@ -253,20 +203,22 @@ mod tests {
             118.0,
         )]);
 
-        let viewport = browser_asset_reference_viewport_and_row_count(
+        let viewport = descriptor_viewport(
             &nodes,
+            AssetContentScrollbarKind::UsedBy,
             &FrameRect {
                 x: 5.0,
                 y: 7.0,
                 width: 900.0,
                 height: 620.0,
             },
-            BrowserAssetReferenceListKind::UsedBy,
-        )
-        .expect("browser used-by viewport");
+        );
 
-        assert_eq!(viewport.0, frame(199.0, 79.0, 168.0, 118.0));
-        assert_eq!(viewport.1, 0);
+        assert_eq!(viewport, frame(199.0, 79.0, 168.0, 118.0));
+        assert_eq!(
+            descriptor_extent(&nodes, AssetContentScrollbarKind::UsedBy),
+            AssetContentScrollbarExtent::ReferenceRows(0)
+        );
     }
 
     #[test]
@@ -295,20 +247,22 @@ mod tests {
             ),
         ]);
 
-        let viewport = activity_asset_reference_viewport_and_row_count(
+        let viewport = descriptor_viewport(
             &nodes,
+            AssetContentScrollbarKind::References,
             &FrameRect {
                 x: 5.0,
                 y: 7.0,
                 width: 900.0,
                 height: 620.0,
             },
-            ActivityAssetReferenceListKind::References,
-        )
-        .expect("activity references viewport");
+        );
 
-        assert_eq!(viewport.0, frame(19.0, 59.0, 152.0, 118.0));
-        assert_eq!(viewport.1, 2);
+        assert_eq!(viewport, frame(19.0, 59.0, 152.0, 118.0));
+        assert_eq!(
+            descriptor_extent(&nodes, AssetContentScrollbarKind::References),
+            AssetContentScrollbarExtent::ReferenceRows(2)
+        );
     }
 
     #[test]
@@ -319,12 +273,11 @@ mod tests {
             .next()
             .expect("production source before tests");
 
-        assert!(production.contains("let references = draw_browser_asset_reference_scrollbar"));
-        assert!(production.contains("let used_by = draw_browser_asset_reference_scrollbar"));
-        assert!(production.contains("references || used_by"));
+        assert!(production.contains("for descriptor in metadata.scrollbar_descriptors()"));
+        assert!(production.contains("painted = current || painted"));
         assert!(
-            !production.contains(") || draw_browser_asset_reference_scrollbar"),
-            "short-circuiting would skip the Used By scrollbar whenever References overflows"
+            !production.contains("painted = painted || current"),
+            "short-circuiting would skip later descriptors after the first painted scrollbar"
         );
     }
 
@@ -334,6 +287,45 @@ mod tests {
 
     fn activity_nodes(nodes: Vec<ViewTemplateNodeData>) -> ModelRc<TemplatePaneNodeData> {
         asset_nodes(nodes, AssetContentSurface::Activity)
+    }
+
+    fn descriptor(
+        nodes: &ModelRc<TemplatePaneNodeData>,
+        kind: AssetContentScrollbarKind,
+    ) -> AssetContentScrollbarDescriptor {
+        *nodes
+            .metadata::<AssetContentPaintMetadata>()
+            .expect("asset content paint metadata")
+            .scrollbar_descriptors()
+            .iter()
+            .find(|descriptor| descriptor.kind() == kind)
+            .expect("typed scrollbar descriptor")
+    }
+
+    fn descriptor_viewport(
+        nodes: &ModelRc<TemplatePaneNodeData>,
+        kind: AssetContentScrollbarKind,
+        body: &FrameRect,
+    ) -> FrameRect {
+        let metadata = nodes
+            .metadata::<AssetContentPaintMetadata>()
+            .expect("asset content paint metadata");
+        asset_scrollbar_viewport(
+            metadata
+                .scrollbar_viewport(descriptor(nodes, kind))
+                .expect("descriptor viewport"),
+            body,
+        )
+    }
+
+    fn descriptor_extent(
+        nodes: &ModelRc<TemplatePaneNodeData>,
+        kind: AssetContentScrollbarKind,
+    ) -> AssetContentScrollbarExtent {
+        let metadata = nodes
+            .metadata::<AssetContentPaintMetadata>()
+            .expect("asset content paint metadata");
+        metadata.scrollbar_extent(descriptor(nodes, kind))
     }
 
     fn asset_nodes(

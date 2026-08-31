@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use zircon_runtime_interface::ui::template::UiSelectorToken;
 
@@ -7,10 +7,10 @@ use super::{ResolvedRule, SelectorPathNode};
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(super) struct ResolvedRuleTerminalIndex {
     universal: Vec<usize>,
-    by_type: BTreeMap<String, Vec<usize>>,
-    by_id: BTreeMap<String, Vec<usize>>,
-    by_class: BTreeMap<String, Vec<usize>>,
-    by_state: BTreeMap<String, Vec<usize>>,
+    by_type: HashMap<String, Vec<usize>>,
+    by_id: HashMap<String, Vec<usize>>,
+    by_class: HashMap<String, Vec<usize>>,
+    by_state: HashMap<String, Vec<usize>>,
     host: Vec<usize>,
 }
 
@@ -110,7 +110,7 @@ impl ResolvedRuleTerminalIndex {
 }
 
 fn insert_first_token<'a>(
-    buckets: &mut BTreeMap<String, Vec<usize>>,
+    buckets: &mut HashMap<String, Vec<usize>>,
     rule_index: usize,
     tokens: &'a [UiSelectorToken],
     value: impl Fn(&'a UiSelectorToken) -> Option<&'a String>,
@@ -122,7 +122,7 @@ fn insert_first_token<'a>(
     true
 }
 
-fn extend_bucket(candidates: &mut Vec<usize>, buckets: &BTreeMap<String, Vec<usize>>, key: &str) {
+fn extend_bucket(candidates: &mut Vec<usize>, buckets: &HashMap<String, Vec<usize>>, key: &str) {
     if let Some(bucket) = buckets.get(key) {
         candidates.extend_from_slice(bucket);
     }
@@ -320,3 +320,7 @@ mod tests {
             .join(",")
     }
 }
+
+#[cfg(test)]
+#[path = "rule_index/hash_bucket_tests.rs"]
+mod hash_bucket_tests;

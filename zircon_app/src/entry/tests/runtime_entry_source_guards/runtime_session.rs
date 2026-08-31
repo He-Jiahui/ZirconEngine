@@ -85,8 +85,7 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
     assert!(
         runtime_runner_source.contains("fn runtime_library_startup_error(")
             && runtime_runner_source.contains("fn resolve_runtime_project_root(")
-            && runtime_runner_source
-                .contains("ProjectPaths::resolve_existing(requested_root)")
+            && runtime_runner_source.contains("ProjectPaths::resolve_existing(requested_root)")
             && runtime_runner_source.contains("\"runtime_library\"")
             && runtime_runner_source
                 .contains("runtime_session_startup_request(profile, project_root)"),
@@ -118,15 +117,12 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
         runtime_runner_source,
         &[
             "let session_teardown_failure = session.teardown_failure_state();",
+            "let product_failure_ledger = session_teardown_failure.failure_ledger();",
             "let result = event_loop.run_app(app);",
-            "let event_loop_failure = result.err().map",
-            "let runtime_app_failure = failure_state",
-            ".take()",
-            "let runtime_session_failure = session_teardown_failure.take().map",
+            "product_failure_ledger.record(",
+            "let failure_report = product_failure_ledger.snapshot();",
             "finish_runtime_process(",
-            "event_loop_failure,",
-            "runtime_app_failure,",
-            "runtime_session_failure,",
+            "failure_report,",
             "PlayStartupReportPhase::Terminal",
             "terminal_result?;",
             "runtime_process_teardown_complete_diagnostic()",

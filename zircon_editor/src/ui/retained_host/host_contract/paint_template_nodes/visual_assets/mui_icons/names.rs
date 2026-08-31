@@ -50,7 +50,7 @@ fn pascal_case_ligature_name(name: &str) -> Option<String> {
     if name.contains('-') {
         return None;
     }
-    let mut out = String::new();
+    let mut out = String::with_capacity(name.len());
     for part in name.split(|ch: char| !ch.is_ascii_alphanumeric()) {
         if part.is_empty() {
             continue;
@@ -62,3 +62,7 @@ fn pascal_case_ligature_name(name: &str) -> Option<String> {
     }
     is_pascal_mui_module_name(&out).then_some(out)
 }
+
+#[cfg(test)]
+#[path = "names/capacity_tests.rs"]
+mod capacity_tests;

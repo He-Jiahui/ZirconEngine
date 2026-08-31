@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     CorePipelineKind, PrimitiveRelevance, RenderLayerSet, RenderMaterialAlphaMode,
-    RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
+    RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents, packed_sort_key_u64,
 };
 use crate::core::framework::scene::Mobility;
 use crate::graphics::scene::resources::default_pipeline_key;
@@ -14,7 +14,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 
 use super::super::pending_command_cache_plan::PendingMeshCommandCacheVisibility;
 use super::{
-    cached_commands_for_extract_item, commands_for_extract_item, PendingMeshCommandCacheExtractItem,
+    PendingMeshCommandCacheExtractItem, cached_commands_for_extract_item, commands_for_extract_item,
 };
 
 #[test]
@@ -32,9 +32,10 @@ fn pending_command_cache_extracts_full_hit_without_rebuild_input() {
                 draw_ordinal: item.draw_ordinal,
                 phase,
                 disabled_passes: item.disabled_passes,
+                shader_quality: Default::default(),
             },
             &item.static_state,
-            command(phase, sort_key),
+            command(phase, sort_key).static_payload(),
             1,
         );
     }
@@ -44,11 +45,46 @@ fn pending_command_cache_extracts_full_hit_without_rebuild_input() {
 
     assert_eq!(commands.len(), 3);
     assert!(commands.iter().all(|command| command.source_entity == 7));
-    assert!(commands
-        .iter()
-        .all(|command| command.source_draw_index == 9));
+    assert!(
+        commands
+            .iter()
+            .all(|command| command.source_draw_index == 9)
+    );
+    for command in &commands {
+        assert_eq!(
+            command.sort_key,
+            packed_sort_key_u64(
+                command.phase,
+                item.sort_components,
+                command.pipeline_variant_id.value(),
+                0,
+            )
+        );
+        assert_instance_span(command, 53, 7);
+    }
     cache.retain_generation(2);
     assert_eq!(cache.len(), 3);
+}
+
+#[test]
+fn pending_command_cache_extract_rejects_cache_hit_without_current_gpu_scene_span() {
+    let mut cache = CachedMeshDrawCommands::default();
+    let mut item = item(MeshDrawQueuePhase::Opaque, true, 9);
+    cache.store(
+        CachedMeshDrawKey {
+            stable_instance_key: item.stable_instance_key,
+            draw_ordinal: item.draw_ordinal,
+            phase: RenderPhase::Prepass,
+            disabled_passes: item.disabled_passes,
+            shader_quality: Default::default(),
+        },
+        &item.static_state,
+        command(RenderPhase::Prepass, 10).static_payload(),
+        1,
+    );
+    item.gpu_scene_instance_span = None;
+
+    assert!(cached_commands_for_extract_item(item, None, &mut cache, 2).is_none());
 }
 
 #[test]
@@ -61,9 +97,10 @@ fn pending_command_cache_extract_waits_for_residual_path_on_partial_miss() {
             draw_ordinal: item.draw_ordinal,
             phase: RenderPhase::Prepass,
             disabled_passes: Default::default(),
+            shader_quality: Default::default(),
         },
         &item.static_state,
-        command(RenderPhase::Prepass, 10),
+        command(RenderPhase::Prepass, 10).static_payload(),
         1,
     );
 
@@ -124,9 +161,10 @@ fn pending_command_cache_extract_rebuilds_non_material_miss_when_material_phase_
                 draw_ordinal: item.draw_ordinal,
                 phase,
                 disabled_passes: item.disabled_passes,
+                shader_quality: Default::default(),
             },
             &item.static_state,
-            command(phase, sort_key),
+            command(phase, sort_key).static_payload(),
             1,
         );
     }
@@ -153,6 +191,8 @@ fn item(
         stable_instance_key: (7 << 16) | 1,
         draw_ordinal: 1,
         source_draw_index,
+        sort_components: RenderPhaseSortComponents::new(0.75, 61),
+        gpu_scene_instance_span: Some((53, 7)),
         queue_profile: MeshDrawQueueProfile::new(
             phase,
             MeshDrawGeometrySource::Prepared,
@@ -166,6 +206,29 @@ fn item(
         disabled_passes: Default::default(),
         taa_reactive_mask_strength: 0.0,
         skinned: false,
+    }
+}
+
+fn assert_instance_span(command: &MeshDrawCommand, expected_first: u32, expected_count: u32) {
+    match &command.instance_source {
+        DrawInstanceSource::GpuSceneInstance {
+            first_instance_index,
+            instance_count,
+        } => {
+            assert_eq!(*first_instance_index, expected_first);
+            assert_eq!(*instance_count, expected_count);
+        }
+    }
+    match &command.draw_args {
+        MeshDrawArgs::DirectIndexed {
+            first_instance,
+            instance_count,
+            ..
+        } => {
+            assert_eq!(*first_instance, expected_first);
+            assert_eq!(*instance_count, expected_count);
+        }
+        MeshDrawArgs::IndexedIndirect { .. } => panic!("test command must be direct"),
     }
 }
 

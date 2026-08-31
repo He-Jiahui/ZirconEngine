@@ -106,7 +106,14 @@ function Get-RepositoryKey {
 
 function Get-CoordinatorLogRoot {
     $repositoryKey = Get-RepositoryKey
-    return Join-Path $env:LOCALAPPDATA "Zircon Session Coordinator\daemon-log\$repositoryKey"
+    $configuredRoot = $env:ZIRCON_COORDINATOR_DAEMON_LOG_ROOT
+    $daemonLogRoot = if ([string]::IsNullOrWhiteSpace($configuredRoot)) {
+        Join-Path $env:LOCALAPPDATA "Zircon Session Coordinator\daemon-log"
+    }
+    else {
+        [IO.Path]::GetFullPath($configuredRoot)
+    }
+    return Join-Path $daemonLogRoot $repositoryKey
 }
 
 function Test-CoordinatorHealthy {
@@ -116,8 +123,12 @@ function Test-CoordinatorHealthy {
             $runtime = Get-Content -LiteralPath $runtimePath -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
             $listenerHost = [string]$runtime.host
             $runtimePort = [int]$runtime.port
-            if (-not [string]::IsNullOrWhiteSpace($listenerHost) -and $runtimePort -gt 0) {
-                $health = Invoke-RestMethod -Uri "http://${listenerHost}:$runtimePort/health" -TimeoutSec 2
+            $listenerToken = [string]$runtime.token
+            if (-not [string]::IsNullOrWhiteSpace($listenerHost) -and
+                $runtimePort -gt 0 -and
+                -not [string]::IsNullOrWhiteSpace($listenerToken)) {
+                $health = Invoke-RestMethod -Uri "http://${listenerHost}:$runtimePort/health" `
+                    -Headers @{ Authorization = "Bearer $listenerToken" } -TimeoutSec 2
                 if ($health.status -eq 'ok' -and $health.repo_root -eq $resolvedRepoRoot) {
                     return $true
                 }

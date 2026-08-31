@@ -65,8 +65,6 @@ pub(super) fn is_workbench_generated_bottom_action(action_id: &str) -> bool {
                 | "workbench.generated_bottom.pin_panel.invoke"
                 | "workbench.generated_bottom.filter.edit"
                 | "workbench.generated_bottom.filter.commit"
-                | "workbench.generated_bottom.mode.edit"
-                | "workbench.generated_bottom.mode.commit"
         )
 }
 

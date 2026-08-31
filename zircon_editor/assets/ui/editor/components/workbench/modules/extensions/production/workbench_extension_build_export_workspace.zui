@@ -12,8 +12,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -22,54 +22,53 @@ root = "build_export_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.build_export_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionBuildExportWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "build_export_rail_gap" }, { node = "build_export_left" }, { node = "build_export_center" }, { node = "build_export_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "build_export_workspace_main" },
+  { node = "build_export_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.build_export_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "build_export_rail_gap" }, { node = "build_export_left" }, { node = "build_export_center" }, { node = "build_export_right_reserve" }]
+
+[nodes.build_export_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.build_export_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionBuildExportRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.build_export_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionBuildExportLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "build_export_title" }, { node = "build_export_profiles_tab" }, { node = "build_export_queue_tab" }, { node = "build_export_signing_tab" }, { node = "build_export_shipping_row" }, { node = "build_export_development_row" }, { node = "build_export_patch_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "build_export_title" }, { node = "build_export_left_content" }]
+
+[nodes.build_export_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionBuildExportLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "build_export_shipping_row" }, { node = "build_export_development_row" }, { node = "build_export_patch_row" }]
 
 [nodes.build_export_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionBuildExportTitle"
 props = { text = "Build Export" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.build_export_profiles_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionBuildExportProfilesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Profiles", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BuildExportProfilesTab", event = "Click", route = "workbench.extension.build_export.profiles" }]
-
-[nodes.build_export_queue_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionBuildExportQueueTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Queue", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BuildExportQueueTab", event = "Click", route = "workbench.extension.build_export.queue" }]
-
-[nodes.build_export_signing_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionBuildExportSigningTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Signing", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BuildExportSigningTab", event = "Click", route = "workbench.extension.build_export.signing" }]
 
 [nodes.build_export_shipping_row]
 component = "WorkbenchListRow"
@@ -99,14 +98,14 @@ events = [{ id = "WorkbenchExtension/BuildExportPatchRow", event = "Click", rout
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionBuildExportCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "build_export_center_header" }, { node = "build_export_queue" }, { node = "build_export_output" }]
 
 [nodes.build_export_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionBuildExportCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "build_export_center_title" }, { node = "build_export_header_fill" }, { node = "build_export_validate_button" }, { node = "build_export_package_button" }]
 
 [nodes.build_export_center_title]
@@ -132,16 +131,16 @@ events = [{ id = "WorkbenchExtension/BuildExportValidate", event = "Click", rout
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionBuildExportPackageButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Package", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Package", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 88.0, preferred = 88.0, max = 98.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/BuildExportPackage", event = "Click", route = "workbench.extension.build_export.package" }]
 
 [nodes.build_export_queue]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionBuildExportQueue"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "build_export_cook_step_row" }, { node = "build_export_pak_step_row" }, { node = "build_export_sign_step_row" }, { node = "build_export_publish_step_row" }]
 
 [nodes.build_export_cook_step_row]
@@ -180,16 +179,23 @@ events = [{ id = "WorkbenchExtension/BuildExportPublishStepRow", event = "Click"
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionBuildExportOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Export", value_text = "Win64 Shipping   62%   4 steps" }
+props = { text = "Export", value_text = "Win64 Shipping   62%   4 steps", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BuildExportOutput", event = "Click", route = "workbench.extension.build_export.output" }]
 
 [nodes.build_export_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionBuildExportRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "build_export_details_title" }, { node = "build_export_platform_dropdown" }, { node = "build_export_channel_field" }, { node = "build_export_compression_dropdown" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "build_export_details_title" }, { node = "build_export_right_content" }]
+
+[nodes.build_export_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionBuildExportRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "build_export_platform_dropdown_property_row" }, { node = "build_export_channel_field_property_row" }, { node = "build_export_compression_dropdown_property_row" }]
 
 [nodes.build_export_details_title]
 component = "WorkbenchSectionTitle"
@@ -197,16 +203,30 @@ control_id = "WorkbenchExtensionBuildExportDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.build_export_platform_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionBuildExportPlatformDropdownPropertyRow"
+props = { text = "Platform" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "build_export_platform_dropdown", slot = { name = "value" } }]
+
 [nodes.build_export_platform_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionBuildExportPlatformDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Win64", value = "Win64", options = ["Win64", "Linux", "Android"] }
+props = { value_text = "Win64", value = "Win64", options = ["Win64", "Linux", "Android"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/BuildExportPlatformEdit", event = "Change", route = "workbench.extension.build_export.platform.edit" },
   { id = "WorkbenchExtension/BuildExportPlatformCommit", event = "Submit", route = "workbench.extension.build_export.platform.commit" },
 ]
+
+[nodes.build_export_channel_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionBuildExportChannelFieldPropertyRow"
+props = { text = "Channel" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "build_export_channel_field", slot = { name = "value" } }]
 
 [nodes.build_export_channel_field]
 component = "WorkbenchField"
@@ -219,11 +239,18 @@ events = [
   { id = "WorkbenchExtension/BuildExportChannelCommit", event = "Submit", route = "workbench.extension.build_export.channel.commit" },
 ]
 
+[nodes.build_export_compression_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionBuildExportCompressionDropdownPropertyRow"
+props = { text = "Compression" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "build_export_compression_dropdown", slot = { name = "value" } }]
+
 [nodes.build_export_compression_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionBuildExportCompressionDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Oodle", value = "Oodle", options = ["Oodle", "Zstd", "None"] }
+props = { value_text = "Oodle", value = "Oodle", options = ["Oodle", "Zstd", "None"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/BuildExportCompressionEdit", event = "Change", route = "workbench.extension.build_export.compression.edit" },

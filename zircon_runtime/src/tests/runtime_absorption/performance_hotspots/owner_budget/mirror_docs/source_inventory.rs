@@ -6,7 +6,7 @@ pub(super) fn assert_source_inventory_anchors(sources: &MirrorDocsSources) {
         sources.audit_source_inventory,
         &[
             "EXPECTED_SOURCE_FILE_COUNT = 46",
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/artifact_render_diagnostics_splits/artifact_cache_payload.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/artifact_render_diagnostics_splits/render_product_diagnostics.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/artifact_render_diagnostics_splits/split_layout.rs",

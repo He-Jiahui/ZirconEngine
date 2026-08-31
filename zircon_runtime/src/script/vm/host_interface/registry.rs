@@ -578,14 +578,21 @@ fn validate_identifier(label: &'static str, value: String) -> Result<String, VmH
 
 fn validate_editor_operation(value: String) -> Result<String, VmHostInterfaceError> {
     let value = validate_identifier("editor operation", value)?;
-    let segments = value.split('.').collect::<Vec<_>>();
-    if segments.len() != 3 || segments.iter().any(|segment| segment.is_empty()) {
+    if !has_exact_editor_operation_segments(&value) {
         return Err(VmHostInterfaceError::InvalidIdentifier {
             label: "editor operation (expected XXX.YYY.ZZZ)",
             value,
         });
     }
     Ok(value)
+}
+
+fn has_exact_editor_operation_segments(value: &str) -> bool {
+    let mut segments = value.split('.');
+    segments.next().is_some_and(|segment| !segment.is_empty())
+        && segments.next().is_some_and(|segment| !segment.is_empty())
+        && segments.next().is_some_and(|segment| !segment.is_empty())
+        && segments.next().is_none()
 }
 
 fn slot_active_generations(slots: &[VmPluginSlotRecord]) -> BTreeMap<PluginSlotId, u32> {
@@ -601,7 +608,7 @@ fn latest_active<T: Clone>(
     active: &BTreeMap<PluginSlotId, u32>,
     include: impl Fn(&T) -> bool,
 ) -> Vec<T> {
-    let mut selected: HashMap<(PluginSlotId, String), (u32, T)> = HashMap::new();
+    let mut selected: HashMap<(PluginSlotId, &str), (u32, T)> = HashMap::new();
     for (key, registration) in registrations {
         let Some(active_generation) = active.get(&key.slot).copied() else {
             continue;
@@ -609,7 +616,7 @@ fn latest_active<T: Clone>(
         if key.generation > active_generation || !include(registration) {
             continue;
         }
-        let identity = (key.slot, key.id.clone());
+        let identity = (key.slot, key.id.as_str());
         match selected.get(&identity) {
             Some((generation, _)) if *generation >= key.generation => {}
             _ => {
@@ -624,3 +631,7 @@ fn latest_active<T: Clone>(
         .map(|(_, (_, registration))| registration)
         .collect()
 }
+
+#[cfg(test)]
+#[path = "registry/editor_operation_segments_tests.rs"]
+mod editor_operation_segments_tests;

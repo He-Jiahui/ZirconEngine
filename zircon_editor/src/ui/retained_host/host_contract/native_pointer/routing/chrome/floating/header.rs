@@ -4,7 +4,7 @@ use super::super::super::{
     geometry::{contains, translated},
     ChromePointerRoute,
 };
-use super::super::tabs::route_document_tabs;
+use super::super::tabs::{route_dock_overflow, route_document_tabs};
 
 pub(super) fn route_floating_window_header_hit(
     window: &FloatingWindowData,
@@ -14,6 +14,16 @@ pub(super) fn route_floating_window_header_hit(
     let header_frame = translated(&window.header_frame, window.frame.x, window.frame.y);
     if !contains(&header_frame, x, y) {
         return None;
+    }
+
+    if let Some(route) = route_dock_overflow(
+        window.window_id.as_str(),
+        &window.frame,
+        &window.overflow_frame,
+        x,
+        y,
+    ) {
+        return Some(route);
     }
 
     if let Some(route) = route_document_tabs(

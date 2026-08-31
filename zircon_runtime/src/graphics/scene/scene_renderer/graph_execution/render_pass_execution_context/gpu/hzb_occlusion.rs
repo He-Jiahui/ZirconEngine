@@ -2,6 +2,7 @@ use crate::graphics::scene::scene_renderer::hzb::{
     HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE, HZB_OCCLUSION_CULL_PIPELINE_LABEL,
     HZB_OCCLUSION_CULL_WORKGROUP_SIZE, HZB_OCCLUSION_DRAW_COUNT_RESOURCE,
     HZB_OCCLUSION_STATS_RESOURCE, HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE,
+    HzbOcclusionParamsCommit, PreparedHzbOcclusionCull,
 };
 
 use super::RenderPassGpuExecutionContext;
@@ -60,9 +61,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             Some(view) => view,
             None => post_process_stack.white_texture_view(),
         };
-        let report = culler.execute(
+        let PreparedHzbOcclusionCull {
+            report,
+            mut uploads,
+            params_commits,
+        } = culler.execute(
             self.device,
-            self.queue,
             self.encoder,
             self.scene_bind_group,
             gpu_scene_bind_group,
@@ -71,6 +75,8 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             mesh_draw_lists,
             history_available,
         );
+        self.append_pre_submit_buffer_uploads(&mut uploads);
+        self.hzb_occlusion_params_commits.extend(params_commits);
         self.hzb_occlusion_cull_report = Some(report);
         self.compute_dispatches
             .push(RenderGraphComputeDispatchRecord::new(
@@ -92,6 +98,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             ));
         Ok(())
     }
+
+    pub(in crate::graphics::scene::scene_renderer) fn take_hzb_occlusion_params_commits(
+        &mut self,
+    ) -> Vec<HzbOcclusionParamsCommit> {
+        std::mem::take(&mut self.hzb_occlusion_params_commits)
+    }
 }
 
 #[cfg(test)]
@@ -104,5 +116,18 @@ mod tests {
         assert!(source.contains("HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE.to_string()"));
         assert!(source.contains("HZB_OCCLUSION_DRAW_COUNT_RESOURCE.to_string()"));
         assert!(source.contains("HZB_OCCLUSION_STATS_RESOURCE.to_string()"));
+    }
+
+    #[test]
+    fn hzb_occlusion_returns_uploads_and_commit_tokens_to_the_graph_owner() {
+        let source = include_str!("hzb_occlusion.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("HZB graph context source");
+
+        assert!(!production.contains("self.queue"));
+        assert!(production.contains("self.append_pre_submit_buffer_uploads("));
+        assert!(production.contains("self.hzb_occlusion_params_commits.extend("));
     }
 }

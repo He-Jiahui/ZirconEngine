@@ -18,8 +18,10 @@ Describe 'Render-extract baseline metrics' {
             $reportPath = Join-Path $directory 'render-extract-baseline-report.json'
             $persisted = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
 
-            $report.schema_version | Should Be 4
+            $report.schema_version | Should Be 5
             $persisted.source_fingerprint | Should Be ('A' * 64)
+            $persisted.build_set_id | Should Be ('3' * 64)
+            $persisted.build_set_manifest_sha256 | Should Be ('4' * 64)
             $persisted.aggregation.percentile_method | Should Be 'upper-nearest-index: ceil((n-1) * percentile / 100), zero-based'
             $persisted.scenarios.Count | Should Be 4
             $scenario = @($persisted.scenarios | Where-Object { $_.logical_id -eq 'pipelined-steady' })[0]
@@ -30,6 +32,9 @@ Describe 'Render-extract baseline metrics' {
             $scenario.attempt_processes[2].attempt | Should Be 3
             $scenario.attempt_processes[2].process_id | Should Be 1103
             $scenario.product | Should Be 'runtime'
+            $scenario.scenario_id | Should Be 'render-extract.runtime.pipelined-steady'
+            $scenario.scenario_version | Should Be 1
+            $scenario.scenario_binding_id | Should Match '^[0-9A-F]{64}$'
             $scenario.measurement_window | Should Be 'steady-presented-frames-after-warmup'
             $scenario.warmup_presented_frame_count | Should Be 60
             $scenario.measured_presented_frame_count | Should Be 300
@@ -39,6 +44,8 @@ Describe 'Render-extract baseline metrics' {
             $editorScenario.product | Should Be 'editor'
             $editorScenario.measurement_window | Should Be 'cold-first-presented-frame'
             $persisted.profiling_inputs.runtime.executable_sha256 | Should Be ('C' * 64)
+            $persisted.profiling_inputs.runtime.build_set_id | Should Be ('3' * 64)
+            $persisted.profiling_inputs.runtime.build_set_manifest_sha256 | Should Be ('4' * 64)
             $persisted.profiling_inputs.editor.executable_sha256 | Should Be ('E' * 64)
             $persisted.profiling_inputs.runtime.asset_manifest_sha256 | Should Be ('1' * 64)
             $persisted.profiling_inputs.editor.asset_manifest_sha256 | Should Be ('2' * 64)
@@ -54,6 +61,14 @@ Describe 'Render-extract baseline metrics' {
             $scenario.frame_duration_us.p95 | Should Be 3000
             $scenario.frame_duration_us.p99 | Should Be 3000
             $scenario.frame_duration_us.sample_count | Should Be 900
+            $scenario.budget_evaluation.status | Should Be 'within_budget'
+            $scenario.budget_evaluation.observed | Should Be 3000
+            $scenario.budget_evaluation.threshold | Should Be 16670
+            $persisted.qualification.status | Should Be 'unqualified'
+            (@($persisted.qualification.blocking_reasons) -contains 'product_receipt_not_bound') | Should Be $true
+            (@($persisted.qualification.blocking_reasons) -contains 'device_profile_not_bound') | Should Be $true
+            $persisted.machine_manifest.all_required_observed | Should Be $true
+            $persisted.raw_evidence.machine_manifest.sha256 | Should Match '^[0-9A-F]{64}$'
             $scenario.lock_wait.status | Should Be 'measured'
             $scenario.queue_backpressure.status | Should Be 'measured'
             $scenario.queue_backpressure.spans.Count | Should Be 0
@@ -131,6 +146,36 @@ Describe 'Render-extract baseline metrics' {
         @($samples.frames | Where-Object { $_.stream -ne 'app' }).Count | Should Be 0
         @($samples.spans | ForEach-Object { $_.name }) | Should Be @('steady')
         @($samples.counters | ForEach-Object { $_.name }) | Should Be @('steady')
+    }
+
+    It 'accepts canonical .NET integers for scheduler worker occupancy samples' {
+        $counters = @(
+            [pscustomobject]@{
+                stream = 'runtime'
+                name = 'render_framework.scheduler.worker_utilization'
+                timestamp_us = [Int64]100
+                value = [Int32]0
+            },
+            [pscustomobject]@{
+                stream = 'runtime'
+                name = 'render_framework.scheduler.worker_utilization'
+                timestamp_us = [Int64]110
+                value = [Int32]1
+            },
+            [pscustomobject]@{
+                stream = 'runtime'
+                name = 'render_framework.scheduler.worker_utilization'
+                timestamp_us = [Int64]150
+                value = [Int32]0
+            }
+        )
+
+        $occupancy = Get-RenderExtractSchedulerWorkerOccupancyAttempt `
+            -Counters $counters `
+            -Label 'portable integer fixture'
+
+        $occupancy.status | Should Be 'measured'
+        $occupancy.occupancy_ratio | Should Be 0.8
     }
 
     It 'reports time-weighted scheduler worker occupancy only from complete idle-busy-idle samples' {

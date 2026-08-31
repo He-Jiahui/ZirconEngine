@@ -1,7 +1,7 @@
 use crate::plugin::PluginModuleKind;
 
 use super::super::abi_declarations::{
-    NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginOutputSinkV4,
+    NativePluginByteSliceV3, NativePluginCallbackStatusV3, NativePluginOutputSinkV4,
     ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 use super::super::behavior_calls::{NativePluginBehavior, NativePluginCommandTable};
@@ -235,30 +235,30 @@ fn runtime_behavior() -> NativePluginBehavior {
 
 unsafe extern "C" fn noop_invoke_command(
     _command_slot: u32,
-    _payload: NativePluginByteSliceV2,
+    _payload: NativePluginByteSliceV3,
     _output: NativePluginOutputSinkV4,
-) -> NativePluginCallbackStatusV2 {
+) -> NativePluginCallbackStatusV3 {
     status_ok()
 }
 
 unsafe extern "C" fn noop_save_state(
-    _output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV2,
-) -> NativePluginCallbackStatusV2 {
+    _output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV3,
+) -> NativePluginCallbackStatusV3 {
     status_ok()
 }
 
 unsafe extern "C" fn noop_restore_state(
-    _state: super::super::abi_declarations::NativePluginByteSliceV2,
-) -> NativePluginCallbackStatusV2 {
+    _state: super::super::abi_declarations::NativePluginByteSliceV3,
+) -> NativePluginCallbackStatusV3 {
     status_ok()
 }
 
-unsafe extern "C" fn noop_unload() -> NativePluginCallbackStatusV2 {
+unsafe extern "C" fn noop_unload() -> NativePluginCallbackStatusV3 {
     status_ok()
 }
 
-fn status_ok() -> NativePluginCallbackStatusV2 {
-    NativePluginCallbackStatusV2 {
+fn status_ok() -> NativePluginCallbackStatusV3 {
+    NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
     }

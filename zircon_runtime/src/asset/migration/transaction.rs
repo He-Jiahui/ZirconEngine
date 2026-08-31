@@ -4,8 +4,8 @@ use std::path::Path;
 use super::document::PendingDocument;
 use super::{AssetMigrationError, AssetMigrationTransactionPhase};
 use crate::core::resource::io::transaction::{
-    commit_prepared_files, DurableCommitDisposition, DurableCommitReport, DurableTransactionError,
-    PreparedFileWrite, TransactionFault, TransactionPhase,
+    DurableCommitDisposition, DurableCommitReport, DurableTransactionError, PreparedFileWrite,
+    TransactionFault, TransactionPhase, commit_prepared_files,
 };
 
 mod journal_owner;
@@ -63,16 +63,14 @@ pub(super) fn apply_transaction(
         return Ok(());
     }
     let journal_directory = journal_owner::ensure_journal_directory(project_root)?;
-    let writes = pending
-        .into_iter()
-        .map(|document| {
-            let write = PreparedFileWrite::new(document.path, document.bytes);
-            match document.retired_path {
-                Some(path) => write.retiring(path),
-                None => write,
-            }
-        })
-        .collect();
+    let mut writes = Vec::with_capacity(pending.len());
+    writes.extend(pending.into_iter().map(|document| {
+        let write = PreparedFileWrite::new(document.path, document.bytes);
+        match document.retired_path {
+            Some(path) => write.retiring(path),
+            None => write,
+        }
+    }));
     let mut report = DurableCommitReport::default();
     let result = commit_prepared_files(
         &journal_directory,
@@ -184,18 +182,29 @@ fn recovery_io(path: &Path, source: io::Error) -> AssetMigrationError {
 }
 
 #[cfg(test)]
+#[path = "transaction/optimization_tests.rs"]
+mod optimization_tests;
+
+#[cfg(test)]
 mod tests {
     use std::fs;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
 
     use super::*;
 
+    static NEXT_TEST_OUTPUT_ID: AtomicU64 = AtomicU64::new(1);
+
     #[test]
     fn migration_reports_an_unsynced_commit_point_as_pending_recovery() {
-        let root = std::env::temp_dir().join(format!(
+        let output_root = std::env::var_os("ZIRCON_TEST_OUTPUT_ROOT")
+            .or_else(|| std::env::var_os("CARGO_TARGET_DIR"))
+            .map(PathBuf::from)
+            .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"));
+        let root = output_root.join("zircon-test-output").join(format!(
             "zircon-migration-commit-point-sync-{}-{}",
             std::process::id(),
-            crate::core::resource::io::NEXT_ATOMIC_FILE_ID
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+            NEXT_TEST_OUTPUT_ID.fetch_add(1, Ordering::Relaxed)
         ));
         let target = root.join("asset.zmeta");
         fs::create_dir_all(&root).unwrap();

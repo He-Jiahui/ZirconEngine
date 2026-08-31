@@ -3,6 +3,7 @@ related_code:
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/invalidation/decision.rs
+  - zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
   - zircon_editor/src/ui/retained_host/viewport/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
@@ -10,6 +11,7 @@ implementation_files:
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/invalidation/decision.rs
+  - zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
@@ -17,6 +19,8 @@ plan_sources:
   - user: 2026-07-13 continue HybridGI product validation
 tests:
   - recompute_preserves_pending_render_work_until_render_submission_consumes_it
+  - unique_active_diagnostic_drawer_uses_shell_content_refresh
+  - diagnostics_refresh_consumes_a_publication_time_target_without_a_hot_path_scan
   - failed_render_submission_records_the_typed_error_in_process_diagnostics
   - editor_product_entry_bootstraps_linked_first_party_runtime_plugins
   - tools.tests.test_hybrid_gi_editor_profile
@@ -53,6 +57,12 @@ Recompute therefore must not assign `render_dirty = false` merely because the cu
 Every typed viewport submission error is written through process diagnostics with scope `editor_viewport_submission` before the short status-line message is updated. The persistent record is required because the status line can be replaced by later presentation updates and because errors such as render-graph resource contract mismatches are too detailed for the compact shell surface.
 
 Runtime Diagnostics reads the latest runtime-owned `RenderStats`. HybridGI mode, profile, quality, budgets and fallback reason are projected from provider-resolved settings; the Editor does not recompute those values from the request. Missing or removed HGI state becomes `unavailable` in the same frame instead of retaining stale settings.
+
+## Diagnostics Refresh Target
+
+The workbench publication phase computes one typed refresh target for Runtime Diagnostics and Performance Timeline. A unique visible active drawer becomes `ShellContent` for its exact slot and view instance. An active diagnostic document, floating window, multiple visible diagnostic panes, or inconsistent drawer activity becomes an explicit full-presentation fallback. No visible diagnostic pane becomes `None`.
+
+Successful viewport submission consumes this cached target without scanning document tabs, tool windows, floating windows, template nodes, or render commands. Consuming the target also coalesces repeated submissions behind the pending presentation pass. The next full or shell-content presentation publishes the next target. The local path records `ui.runtime_diagnostics.shell_content_refresh_count`; the conservative fallback records `ui.runtime_diagnostics.full_presentation_fallback_count`.
 
 ## Validation Expectations
 

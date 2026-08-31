@@ -5,11 +5,11 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AssetReference, AssetUri, ShaderAsset, ShaderSourceLanguage};
 use crate::core::framework::render::{
-    CorePipelineKind, DisplayMode, PostProcessGraphResourceNames, RenderFramework, RenderPhase,
-    RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
-    ShaderAssetKind, ShaderFeatureBits, ShaderPassType, ShaderQualityTier,
-    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
-    GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
+    CorePipelineKind, DisplayMode, GEOMETRY_SOURCE_ID_STATIC_MESH, PostProcessGraphResourceNames,
+    RenderFramework, RenderPhase, RenderPipelineHandle, RenderQualityProfile, RenderStats,
+    RenderViewportDescriptor, SHADING_MODEL_ID_STANDARD_PBR, ShaderAssetKind, ShaderFeatureBits,
+    ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
+    ShaderVariantPrewarmRequest,
 };
 use crate::core::math::UVec2;
 use crate::core::resource::{ResourceId, ResourceKind, ResourceRecord, ResourceState};

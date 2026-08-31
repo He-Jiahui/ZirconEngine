@@ -5,8 +5,8 @@ use crate::core::math::Vec3;
 use super::gpu_mesh_vertex::GpuMeshVertex;
 
 pub(super) fn build_wire_segments(vertices: &[GpuMeshVertex], indices: &[u32]) -> Vec<[Vec3; 2]> {
-    let mut unique_edges = HashSet::new();
-    let mut segments = Vec::new();
+    let mut unique_edges = HashSet::with_capacity(indices.len());
+    let mut segments = Vec::with_capacity(indices.len());
 
     for triangle in indices.chunks_exact(3) {
         for (a, b) in [
@@ -32,3 +32,7 @@ pub(super) fn build_wire_segments(vertices: &[GpuMeshVertex], indices: &[u32]) -
 
     segments
 }
+
+#[cfg(test)]
+#[path = "wire_segments/capacity_tests.rs"]
+mod capacity_tests;

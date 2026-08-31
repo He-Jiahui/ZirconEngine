@@ -34,7 +34,6 @@ impl SceneEntries {
                 display_name: entry.name,
                 kind: "Entity".to_string(),
                 subtree_hash: 0,
-                focused: false,
                 active_in_hierarchy: true,
                 has_children: false,
             })

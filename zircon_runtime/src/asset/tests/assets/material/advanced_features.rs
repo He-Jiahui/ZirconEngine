@@ -17,6 +17,7 @@ url = "res://shaders/pbr.zshader"
 [overrides]
 clearcoat = 0.8
 clearcoat_perceptual_roughness = 0.2
+clearcoat_normal_scale = 0.35
 anisotropy_strength = 0.6
 anisotropy_rotation = 1.25
 specular_transmission = 0.7
@@ -29,6 +30,12 @@ attenuation_distance = 12.0
 [textures.clearcoat_normal]
 uuid = "00000000-0000-0000-0000-000000000002"
 url = "res://textures/clearcoat-normal.png"
+uv_channel = 1
+
+[textures.clearcoat_normal.transform]
+scale = [0.5, 0.75]
+offset = [0.1, 0.2]
+rotation = 0.4
 "#,
     )
     .expect("advanced material document");
@@ -42,6 +49,7 @@ url = "res://textures/clearcoat-normal.png"
 
     assert_eq!(features.clearcoat, 0.8);
     assert_eq!(features.clearcoat_perceptual_roughness, 0.2);
+    assert_eq!(features.clearcoat_normal_scale, 0.35);
     assert_eq!(features.anisotropy_strength, 0.6);
     assert_eq!(features.anisotropy_rotation, 1.25);
     assert_eq!(features.specular_transmission, 0.7);
@@ -57,12 +65,22 @@ url = "res://textures/clearcoat-normal.png"
             .map(|reference| &reference.locator),
         Some(&AssetUri::parse("res://textures/clearcoat-normal.png").unwrap())
     );
+    assert_eq!(descriptor.clearcoat_normal_texture_uv_channel, 1);
+    assert_eq!(
+        descriptor.clearcoat_normal_texture_transform,
+        RenderMaterialTextureTransform {
+            scale: [0.5, 0.75],
+            offset: [0.1, 0.2],
+            rotation: 0.4,
+        }
+    );
     assert!(features.requires_forward_path());
     assert!(features.requires_scene_color_copy());
 
     for property in [
         "clearcoat",
         "clearcoat_perceptual_roughness",
+        "clearcoat_normal_scale",
         "anisotropy_strength",
         "anisotropy_rotation",
         "specular_transmission",

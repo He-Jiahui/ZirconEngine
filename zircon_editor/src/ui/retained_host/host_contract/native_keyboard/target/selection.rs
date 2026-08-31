@@ -1,4 +1,5 @@
 use super::model::{PopupKeyboardRow, PopupKeyboardTarget};
+use crate::ui::retained_host::asset_control_ids::asset_dispatch_source;
 use crate::ui::retained_host::host_contract::data::{
     FrameRect, HostPaneInteractionStateData, TemplatePaneNodeData,
 };
@@ -55,21 +56,29 @@ fn active_row_index(
     let interaction_identity = match dispatch_kind {
         "workbench_option" => interaction.hovered_template_value_text.as_str(),
         "workbench_menu_item" => interaction.hovered_template_action_id.as_str(),
+        kind if asset_dispatch_source(kind).is_some() => {
+            interaction.hovered_template_value_text.as_str()
+        }
         _ => "",
     };
-    if !interaction_identity.is_empty() {
-        if let Some(index) = rows
-            .iter()
-            .position(|row| row.identity.as_str() == interaction_identity)
-        {
+    preferred_row_index(rows, interaction_identity)
+}
+
+fn preferred_row_index(rows: &[PopupKeyboardRow], interaction_identity: &str) -> usize {
+    let mut focused_index = None;
+    let mut selected_index = None;
+    for (index, row) in rows.iter().enumerate() {
+        if !interaction_identity.is_empty() && row.identity.as_str() == interaction_identity {
             return index;
         }
+        if focused_index.is_none() && row.focused {
+            focused_index = Some(index);
+        }
+        if selected_index.is_none() && row.selected {
+            selected_index = Some(index);
+        }
     }
-
-    rows.iter()
-        .position(|row| row.focused)
-        .or_else(|| rows.iter().position(|row| row.selected))
-        .unwrap_or(0)
+    focused_index.or(selected_index).unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -111,3 +120,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod active_row_index_tests;

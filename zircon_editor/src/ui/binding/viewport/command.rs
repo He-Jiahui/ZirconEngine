@@ -1,7 +1,7 @@
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformSpace, ViewOrientation,
 };
 use serde::{Deserialize, Serialize};
 
@@ -37,6 +37,7 @@ pub enum ViewportCommand {
     },
     ActivateSceneMode(SceneModeActivation),
     SetTransformSpace(TransformSpace),
+    SetPivotMode(PivotMode),
     SetProjectionMode(ProjectionMode),
     AlignView(ViewOrientation),
     SetDisplayMode(DisplayMode),

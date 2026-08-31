@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::tree::UiRuntimeTreeFocusExt;
 
-use super::{bool_attribute_any, is_valid_input_owner, UiSurface};
+use super::{UiSurface, bool_attribute_any, is_valid_input_owner};
 
 impl UiSurface {
     pub(crate) fn apply_mui_modal_focus_transition(

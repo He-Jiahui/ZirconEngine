@@ -39,10 +39,9 @@ pub(crate) fn build_theme_summary(
     selected_key: Option<&str>,
 ) -> UiAssetThemeSummary {
     let entries = theme_source_entries(document, imported_styles);
-    let selected_index =
-        reconcile_selected_theme_source_key(document, imported_styles, selected_key)
-            .and_then(|key| entries.iter().position(|entry| entry.key == key))
-            .or_else(|| (!entries.is_empty()).then_some(0));
+    let selected_index = selected_key
+        .and_then(|key| entries.iter().position(|entry| entry.key == key))
+        .or_else(|| (!entries.is_empty()).then_some(0));
     let Some(selected_index) = selected_index else {
         return UiAssetThemeSummary {
             can_promote_local: can_promote_local_theme_to_external_style_asset(document),
@@ -74,24 +73,40 @@ pub(crate) fn build_theme_source_details(
 
 pub(crate) fn select_theme_source_key(
     document: &UiAssetDocument,
-    imported_styles: &BTreeMap<String, UiAssetDocument>,
+    _imported_styles: &BTreeMap<String, UiAssetDocument>,
     index: usize,
 ) -> Option<String> {
-    theme_source_entries(document, imported_styles)
-        .get(index)
-        .map(|entry| entry.key.clone())
+    let imported_style_refs = &document.imports.styles;
+    if can_promote_local_theme_to_external_style_asset(document) {
+        if index == 0 {
+            return Some("local".to_string());
+        }
+        return imported_style_refs.get(index - 1).cloned();
+    }
+    imported_style_refs.get(index).cloned()
 }
 
 pub(crate) fn reconcile_selected_theme_source_key(
     document: &UiAssetDocument,
-    imported_styles: &BTreeMap<String, UiAssetDocument>,
+    _imported_styles: &BTreeMap<String, UiAssetDocument>,
     current: Option<&str>,
 ) -> Option<String> {
-    let entries = theme_source_entries(document, imported_styles);
-    current
-        .and_then(|key| entries.iter().find(|entry| entry.key == key))
-        .map(|entry| entry.key.clone())
-        .or_else(|| entries.first().map(|entry| entry.key.clone()))
+    let has_local_theme = can_promote_local_theme_to_external_style_asset(document);
+    let imported_style_refs = &document.imports.styles;
+    if let Some(current) = current {
+        if (current == "local" && has_local_theme)
+            || imported_style_refs
+                .iter()
+                .any(|reference| reference == current)
+        {
+            return Some(current.to_string());
+        }
+    }
+    if has_local_theme {
+        Some("local".to_string())
+    } else {
+        imported_style_refs.first().cloned()
+    }
 }
 
 fn theme_source_entries(
@@ -186,3 +201,7 @@ fn total_rule_count(document: &UiAssetDocument) -> usize {
         .map(|stylesheet| stylesheet.rules.len())
         .sum()
 }
+
+#[cfg(test)]
+#[path = "theme_summary/lightweight_selection_tests.rs"]
+mod lightweight_selection_tests;

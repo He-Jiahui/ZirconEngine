@@ -1,5 +1,9 @@
 use super::{DesktopExportJobPhase, DesktopExportJobQueue, DesktopExportJobSnapshot};
 
+fn export_job_snapshot_capacity(pending_count: usize, has_active: bool) -> usize {
+    pending_count.saturating_add(usize::from(has_active))
+}
+
 impl DesktopExportJobQueue {
     pub(in crate::ui::retained_host::app) fn is_profile_busy(&self, profile_name: &str) -> bool {
         self.active
@@ -12,7 +16,10 @@ impl DesktopExportJobQueue {
     }
 
     pub(in crate::ui::retained_host::app) fn snapshots(&self) -> Vec<DesktopExportJobSnapshot> {
-        let mut snapshots = Vec::new();
+        let mut snapshots = Vec::with_capacity(export_job_snapshot_capacity(
+            self.pending.len(),
+            self.active.is_some(),
+        ));
         if let Some(active) = &self.active {
             snapshots.push(DesktopExportJobSnapshot {
                 id: active.id,
@@ -36,3 +43,7 @@ impl DesktopExportJobQueue {
         snapshots
     }
 }
+
+#[cfg(test)]
+#[path = "queries/capacity_tests.rs"]
+mod capacity_tests;

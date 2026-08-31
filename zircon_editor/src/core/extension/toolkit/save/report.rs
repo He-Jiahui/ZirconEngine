@@ -9,20 +9,38 @@ pub struct DocumentSaveReport {
     instance: ToolkitInstanceId,
     reason: SaveReason,
     written_bytes: u64,
+    source_write_guarantee: DocumentSaveGuarantee,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(in crate::core::extension::toolkit) struct DocumentSaveGuarantee {
+    cooperating_source_writes_are_serialized: bool,
+    external_conflict_detection_is_best_effort: bool,
+}
+
+impl DocumentSaveGuarantee {
+    pub(super) const fn serialized_project_source() -> Self {
+        Self {
+            cooperating_source_writes_are_serialized: true,
+            external_conflict_detection_is_best_effort: true,
+        }
+    }
 }
 
 impl DocumentSaveReport {
-    pub(crate) const fn new(
+    pub(in crate::core::extension::toolkit) const fn new(
         document: DocumentId,
         instance: ToolkitInstanceId,
         reason: SaveReason,
         written_bytes: u64,
+        source_write_guarantee: DocumentSaveGuarantee,
     ) -> Self {
         Self {
             document,
             instance,
             reason,
             written_bytes,
+            source_write_guarantee,
         }
     }
 
@@ -40,5 +58,15 @@ impl DocumentSaveReport {
 
     pub const fn written_bytes(&self) -> u64 {
         self.written_bytes
+    }
+
+    pub const fn cooperating_source_writes_are_serialized(&self) -> bool {
+        self.source_write_guarantee
+            .cooperating_source_writes_are_serialized
+    }
+
+    pub const fn external_conflict_detection_is_best_effort(&self) -> bool {
+        self.source_write_guarantee
+            .external_conflict_detection_is_best_effort
     }
 }

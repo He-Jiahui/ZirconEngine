@@ -6,10 +6,10 @@ use crate::core::framework::render::{
     EnvironmentExtract, GeometryExtract, GeometryPhaseInput, LightingExtract,
     MaterialPropertyOverrideBlock, ParticleExtract, PostProcessExtract, PostProcessVolumeExtract,
     PreviewEnvironmentExtract, ProjectionMode, RenderCameraOrderInput, RenderCameraOrderReport,
-    RenderExposureSettings, RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet,
-    RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteSnapshot, RenderViewExtract,
-    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, RendererCommon,
+    RenderExposureSettings, RenderFrameExtract, RenderFrameScenePayload, RenderHybridGiExtract,
+    RenderLayerSet, RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState,
+    RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteSnapshot,
+    RenderViewExtract, RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, RendererCommon,
     SceneViewportExtractRequest, SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
@@ -140,13 +140,16 @@ impl World {
     ) -> RenderFrameExtract {
         crate::profile_scope!("runtime", "scene", "render_frame_extract");
         self.run_internal_scene_systems_for_stage(crate::scene::SystemStage::RenderExtract);
+        let world = world.with_generation(self.world_generation());
         let (camera_descriptor, scene_camera_entity) = self.build_render_camera(request);
         let core_pipeline = camera_descriptor.camera.core_pipeline_kind();
         let camera_layers = camera_descriptor.culling_mask.clone();
         let view = self.build_render_view_extract(camera_descriptor, scene_camera_entity);
         let extract_layers = self.render_extract_layers_for_view(&view);
         if !view.camera.is_active {
-            return inactive_camera_frame_extract(world, view, request);
+            let mut extract = inactive_camera_frame_extract(world, view, request);
+            extract.geometry.scene_changes = self.render_component_change_artifact();
+            return extract;
         }
         let (meshes, phase_inputs, material_property_overrides) = self
             .collect_render_meshes_and_phase_inputs(
@@ -156,11 +159,7 @@ impl World {
         let sprites = self.collect_render_sprites(&extract_layers);
         let particles =
             self.collect_render_particles(&camera_layers, view.camera.transform.translation);
-        let ambient_lights = self.collect_ambient_lights(&camera_layers);
-        let directional_lights = self.collect_directional_lights(&camera_layers);
-        let point_lights = self.collect_point_lights(&camera_layers);
-        let rect_lights = self.collect_rect_lights(&camera_layers);
-        let spot_lights = self.collect_spot_lights(&camera_layers);
+        let collected_lights = self.collect_render_lights(&camera_layers, true);
         let visibility = build_visibility_input(&meshes, &sprites, &particles);
 
         let post_process_settings = scene_camera_entity
@@ -168,58 +167,57 @@ impl World {
             .cloned()
             .unwrap_or_default();
         let post_process_volumes = self.collect_post_process_volumes_for_view(&view);
-        let volumetric_light_ids = self.collect_volumetric_light_ids(&camera_layers);
         let camera_exposure_ev100 = view.camera.exposure_ev100;
         let advanced_lighting = AdvancedLightingExtract {
             fog_volumes: post_process_volumes.fog_volumes,
-            volumetric_light_ids,
+            volumetric_light_ids: collected_lights.volumetric_light_ids,
             ..AdvancedLightingExtract::default()
         };
 
-        RenderFrameExtract {
+        let mut geometry = GeometryExtract::from_meshes_phase_inputs_and_overrides(
+            core_pipeline,
+            meshes,
+            phase_inputs,
+            material_property_overrides,
+        );
+        geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+            debug: request.virtual_geometry_debug.unwrap_or_default(),
+            ..RenderVirtualGeometryExtract::default()
+        });
+        geometry.virtual_geometry_debug = request.virtual_geometry_debug;
+        geometry.scene_changes = self.render_component_change_artifact();
+
+        let scene = RenderFrameScenePayload::new(
             world,
-            view,
-            geometry: {
-                let mut geometry = GeometryExtract::from_meshes_phase_inputs_and_overrides(
-                    core_pipeline,
-                    meshes,
-                    phase_inputs,
-                    material_property_overrides,
-                );
-                geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
-                    debug: request.virtual_geometry_debug.unwrap_or_default(),
-                    ..RenderVirtualGeometryExtract::default()
-                });
-                geometry.virtual_geometry_debug = request.virtual_geometry_debug;
-                geometry
-            },
-            animation_poses: Vec::new(),
-            lighting: LightingExtract {
-                directional_lights,
-                point_lights,
-                spot_lights,
-                ambient_lights,
-                rect_lights,
+            geometry,
+            Vec::new(),
+            LightingExtract {
+                directional_lights: collected_lights.directional_lights,
+                point_lights: collected_lights.point_lights,
+                spot_lights: collected_lights.spot_lights,
+                ambient_lights: collected_lights.ambient_lights,
+                rect_lights: collected_lights.rect_lights,
                 hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
                 advanced_lighting,
             },
-            environment: build_environment_extract(request),
-            post_process: build_post_process_extract(
+            build_environment_extract(request),
+            build_post_process_extract(
                 request,
                 camera_exposure_ev100,
                 post_process_settings,
                 post_process_volumes.extracts,
             ),
-            debug: DebugOverlayExtract {
+            DebugOverlayExtract {
                 overlays: RenderOverlayExtract {
                     display_mode: request.settings.display_mode,
                     ..RenderOverlayExtract::default()
                 },
             },
-            sprites: SpriteExtract::from_sprites(core_pipeline, sprites),
+            SpriteExtract::from_sprites(core_pipeline, sprites),
             particles,
             visibility,
-        }
+        );
+        RenderFrameExtract::new(scene, view, Default::default())
     }
 
     fn collect_render_meshes_and_phase_inputs(
@@ -752,12 +750,11 @@ fn inactive_camera_frame_extract(
     });
     geometry.virtual_geometry_debug = request.virtual_geometry_debug;
 
-    RenderFrameExtract {
+    let scene = RenderFrameScenePayload::new(
         world,
-        view,
         geometry,
-        animation_poses: Vec::new(),
-        lighting: LightingExtract {
+        Vec::new(),
+        LightingExtract {
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
@@ -766,23 +763,24 @@ fn inactive_camera_frame_extract(
             hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
             advanced_lighting: Default::default(),
         },
-        environment: build_environment_extract(request),
-        post_process: build_post_process_extract(
+        build_environment_extract(request),
+        build_post_process_extract(
             request,
             camera_exposure_ev100,
             PostProcessSettingsComponent::default(),
             Vec::new(),
         ),
-        debug: DebugOverlayExtract {
+        DebugOverlayExtract {
             overlays: RenderOverlayExtract {
                 display_mode: request.settings.display_mode,
                 ..RenderOverlayExtract::default()
             },
         },
-        sprites: SpriteExtract::default(),
-        particles: ParticleExtract::default(),
-        visibility: empty_visibility_input(),
-    }
+        SpriteExtract::default(),
+        ParticleExtract::default(),
+        empty_visibility_input(),
+    );
+    RenderFrameExtract::new(scene, view, Default::default())
 }
 
 fn build_post_process_extract(
@@ -800,6 +798,7 @@ fn build_post_process_extract(
         false,
         false,
     );
+    post_process.ambient_occlusion = settings.ambient_occlusion;
     post_process.exposure = RenderExposureSettings::manual_ev100(camera_exposure_ev100);
     post_process.volumes = volumes;
     post_process

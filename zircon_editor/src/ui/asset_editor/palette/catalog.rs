@@ -40,12 +40,8 @@ impl UiAssetPaletteCatalog {
             });
         }
         for reference in reference_imports.keys() {
-            let label = reference
-                .split_once('#')
-                .map(|(_, component)| component.to_string())
-                .unwrap_or_else(|| reference.clone());
             entries.push(UiAssetPaletteEntry {
-                label: format!("Reference / {label}"),
+                label: reference_palette_label(reference),
                 kind: UiAssetPaletteEntryKind::Reference {
                     component_ref: reference.clone(),
                 },
@@ -87,6 +83,17 @@ fn canonical_reference_imports(
     }
     references
 }
+
+fn reference_palette_label(reference: &str) -> String {
+    let label = reference
+        .split_once('#')
+        .map_or(reference, |(_, component)| component);
+    format!("Reference / {label}")
+}
+
+#[cfg(test)]
+#[path = "catalog/reference_label_tests.rs"]
+mod reference_label_tests;
 
 fn reference_component_name(reference: &str) -> Option<&str> {
     reference

@@ -33,6 +33,8 @@ mod asset_resource_resolver;
 mod asset_schema_migration;
 mod asset_surface_index;
 mod binding;
+mod binding_conversion_registry;
+mod binding_transaction;
 mod block_box_layout;
 mod boundary;
 mod canvas_slot_layout;
@@ -48,6 +50,8 @@ mod icon_atlas;
 mod layout_slots;
 mod material_button_style;
 mod material_layout;
+mod model_context_registry;
+mod model_schema_registry;
 mod mui_responsive_layout;
 mod pipeline_report;
 mod pointer_click_semantics;
@@ -120,3 +124,14 @@ mod widget_text_input_keyboard_hard_line;
 mod widget_text_input_keyboard_text;
 mod widget_text_input_mui;
 mod widget_text_input_pointer;
+
+fn typed_component_event_kind_for_test(
+    binding_id: &str,
+) -> Option<zircon_runtime_interface::ui::component::UiComponentEventKind> {
+    use zircon_runtime_interface::ui::component::UiComponentEventKind;
+
+    let token = binding_id
+        .rsplit(|character| character == '/' || character == '.')
+        .next()?;
+    UiComponentEventKind::from_schema_name(token)
+}

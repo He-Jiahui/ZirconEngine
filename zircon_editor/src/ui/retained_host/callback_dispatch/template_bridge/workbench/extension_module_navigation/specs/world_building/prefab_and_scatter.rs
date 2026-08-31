@@ -1,24 +1,5 @@
 use super::{action, spec, ActionControl, ExtensionNavigationSpec};
 
-const PREFAB_EDITOR_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionPrefabEditorHierarchyTab",
-    "WorkbenchExtensionPrefabEditorOverridesTab",
-    "WorkbenchExtensionPrefabEditorValidationTab",
-];
-const PREFAB_EDITOR_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.prefab_editor.hierarchy_tab.select",
-        "WorkbenchExtensionPrefabEditorHierarchyTab",
-    ),
-    action(
-        "workbench.extension.prefab_editor.overrides_tab.select",
-        "WorkbenchExtensionPrefabEditorOverridesTab",
-    ),
-    action(
-        "workbench.extension.prefab_editor.validation_tab.select",
-        "WorkbenchExtensionPrefabEditorValidationTab",
-    ),
-];
 const PREFAB_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPrefabEditorPrefabRootRow",
     "WorkbenchExtensionPrefabEditorMeshComponentRow",
@@ -27,7 +8,6 @@ const PREFAB_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPrefabEditorLootSocketTableRow",
     "WorkbenchExtensionPrefabEditorLightTableRow",
     "WorkbenchExtensionPrefabEditorOverrideTableRow",
-    "WorkbenchExtensionPrefabEditorOutputRow",
 ];
 const PREFAB_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -58,20 +38,16 @@ const PREFAB_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.prefab_editor.override_table_row.select",
         "WorkbenchExtensionPrefabEditorOverrideTableRow",
     ),
-    action(
-        "workbench.extension.prefab_editor.output.select",
-        "WorkbenchExtensionPrefabEditorOutputRow",
-    ),
 ];
 const PREFAB_EDITOR_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsPrefabEditorButton",
+    "WorkbenchAssetsWorldToolsMenu",
     "WorkbenchExtensionPrefabEditorApplyButton",
     "WorkbenchExtensionPrefabEditorValidateButton",
 ];
 const PREFAB_EDITOR_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.prefab_editor.open",
-        "WorkbenchAssetsPrefabEditorButton",
+        "WorkbenchAssetsWorldToolsMenu",
     ),
     action(
         "workbench.extension.prefab_editor.apply.invoke",
@@ -94,8 +70,6 @@ const PREFAB_EDITOR_FIELD_ACTIONS: &[&str] = &[
 pub(in super::super) const PREFAB_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.prefab_editor.open",
     "WorkbenchExtensionPrefabEditorWorkspace",
-    PREFAB_EDITOR_TAB_CONTROLS,
-    PREFAB_EDITOR_TAB_ACTIONS,
     PREFAB_EDITOR_ROW_CONTROLS,
     PREFAB_EDITOR_ROW_ACTIONS,
     PREFAB_EDITOR_COMMAND_CONTROLS,
@@ -103,25 +77,6 @@ pub(in super::super) const PREFAB_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpe
     PREFAB_EDITOR_FIELD_ACTIONS,
 );
 
-const SCATTER_EDITOR_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionScatterEditorRulesTab",
-    "WorkbenchExtensionScatterEditorConstraintsTab",
-    "WorkbenchExtensionScatterEditorOutputTab",
-];
-const SCATTER_EDITOR_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.scatter_editor.rules_tab.select",
-        "WorkbenchExtensionScatterEditorRulesTab",
-    ),
-    action(
-        "workbench.extension.scatter_editor.constraints_tab.select",
-        "WorkbenchExtensionScatterEditorConstraintsTab",
-    ),
-    action(
-        "workbench.extension.scatter_editor.output_tab.select",
-        "WorkbenchExtensionScatterEditorOutputTab",
-    ),
-];
 const SCATTER_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionScatterEditorSetRow",
     "WorkbenchExtensionScatterEditorRocksRuleRow",
@@ -130,7 +85,6 @@ const SCATTER_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionScatterEditorSlopeFilterTableRow",
     "WorkbenchExtensionScatterEditorSpawnRuleTableRow",
     "WorkbenchExtensionScatterEditorCollisionTestTableRow",
-    "WorkbenchExtensionScatterEditorOutputRow",
 ];
 const SCATTER_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -161,20 +115,16 @@ const SCATTER_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.scatter_editor.collision_test_table_row.select",
         "WorkbenchExtensionScatterEditorCollisionTestTableRow",
     ),
-    action(
-        "workbench.extension.scatter_editor.output.select",
-        "WorkbenchExtensionScatterEditorOutputRow",
-    ),
 ];
 const SCATTER_EDITOR_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsScatterEditorButton",
+    "WorkbenchAssetsWorldToolsMenu",
     "WorkbenchExtensionScatterEditorGenerateButton",
     "WorkbenchExtensionScatterEditorValidateButton",
 ];
 const SCATTER_EDITOR_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.scatter_editor.open",
-        "WorkbenchAssetsScatterEditorButton",
+        "WorkbenchAssetsWorldToolsMenu",
     ),
     action(
         "workbench.extension.scatter_editor.generate.invoke",
@@ -197,8 +147,6 @@ const SCATTER_EDITOR_FIELD_ACTIONS: &[&str] = &[
 pub(in super::super) const SCATTER_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.scatter_editor.open",
     "WorkbenchExtensionScatterEditorWorkspace",
-    SCATTER_EDITOR_TAB_CONTROLS,
-    SCATTER_EDITOR_TAB_ACTIONS,
     SCATTER_EDITOR_ROW_CONTROLS,
     SCATTER_EDITOR_ROW_ACTIONS,
     SCATTER_EDITOR_COMMAND_CONTROLS,

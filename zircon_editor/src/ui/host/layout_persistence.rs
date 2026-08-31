@@ -1,6 +1,11 @@
 use std::collections::BTreeMap;
 
 use crate::ui::workbench::layout::{MainPageId, WorkbenchLayout};
+use crate::ui::workbench::layout_persistence_document::{
+    decode_default_layout_value, decode_named_layout_presets_value,
+    decode_page_layout_presets_value, encode_default_layout_value,
+    encode_named_layout_presets_value, encode_page_layout_presets_value,
+};
 use crate::ui::workbench::project::{
     list_layout_preset_assets, load_layout_preset_asset, save_layout_preset_asset,
 };
@@ -20,11 +25,7 @@ impl EditorUiHost {
         let layout = self.current_layout();
         let config = self.config_manager()?;
         config
-            .set_value(
-                DEFAULT_LAYOUT_KEY,
-                serde_json::to_value(layout)
-                    .map_err(|error| EditorError::Project(error.to_string()))?,
-            )
+            .set_value(DEFAULT_LAYOUT_KEY, encode_default_layout_value(layout)?)
             .map_err(|error| EditorError::Project(error.to_string()))
     }
 
@@ -34,7 +35,7 @@ impl EditorUiHost {
             self.asset_manager()?.current_project_asset_uris(),
         ));
         names.extend(self.load_presets()?.into_keys());
-        names.sort();
+        names.sort_unstable();
         names.dedup();
         Ok(names)
     }
@@ -42,7 +43,16 @@ impl EditorUiHost {
     pub(super) fn load_global_default_layout(&self) -> Option<WorkbenchLayout> {
         let config = self.config_manager().ok()?;
         let value = config.get_value(DEFAULT_LAYOUT_KEY)?;
-        serde_json::from_value(value).ok()
+        match decode_default_layout_value(value) {
+            Ok(layout) => Some(layout),
+            Err(error) => {
+                tracing::warn!(
+                    error = %error,
+                    "discarding an invalid global workbench layout and restoring the builtin layout"
+                );
+                None
+            }
+        }
     }
 
     pub(super) fn save_page_layout(
@@ -85,8 +95,7 @@ impl EditorUiHost {
         self.config_manager()?
             .set_value(
                 PRESET_LAYOUTS_KEY,
-                serde_json::to_value(presets)
-                    .map_err(|error| EditorError::Project(error.to_string()))?,
+                encode_named_layout_presets_value(presets)?,
             )
             .map_err(|error| EditorError::Project(error.to_string()))
     }
@@ -115,14 +124,32 @@ impl EditorUiHost {
         let Some(value) = self.config_manager()?.get_value(PRESET_LAYOUTS_KEY) else {
             return Ok(BTreeMap::new());
         };
-        serde_json::from_value(value).map_err(|error| EditorError::Project(error.to_string()))
+        match decode_named_layout_presets_value(value) {
+            Ok(presets) => Ok(presets),
+            Err(error) => {
+                tracing::warn!(
+                    error = %error,
+                    "discarding invalid named workbench presets"
+                );
+                Ok(BTreeMap::new())
+            }
+        }
     }
 
     fn load_page_layout_store(&self) -> Result<LayoutPresetPersistenceStore, EditorError> {
         let Some(value) = self.config_manager()?.get_value(PAGE_USER_LAYOUTS_KEY) else {
             return Ok(LayoutPresetPersistenceStore::default());
         };
-        serde_json::from_value(value).map_err(|error| EditorError::Project(error.to_string()))
+        match decode_page_layout_presets_value(value) {
+            Ok(store) => Ok(store),
+            Err(error) => {
+                tracing::warn!(
+                    error = %error,
+                    "discarding invalid user/page workbench presets"
+                );
+                Ok(LayoutPresetPersistenceStore::default())
+            }
+        }
     }
 
     fn save_page_layout_store(
@@ -132,8 +159,7 @@ impl EditorUiHost {
         self.config_manager()?
             .set_value(
                 PAGE_USER_LAYOUTS_KEY,
-                serde_json::to_value(store)
-                    .map_err(|error| EditorError::Project(error.to_string()))?,
+                encode_page_layout_presets_value(store)?,
             )
             .map_err(|error| EditorError::Project(error.to_string()))
     }

@@ -1,7 +1,7 @@
 use std::any::Any;
 use std::cell::RefCell;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
@@ -13,6 +13,9 @@ use zircon_runtime_interface::resource::ResourceKind;
 
 use super::super::ViewTemplateNodeData;
 use super::ViewTemplateNodeProjection;
+
+#[cfg(test)]
+mod hash_index_tests;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct AssetWorkspaceProjectionGeneration {
@@ -180,12 +183,19 @@ fn source_output_rows(
     source_projection: &ViewTemplateNodeProjection,
     composed_nodes: &[ViewTemplateNodeData],
 ) -> Vec<Option<usize>> {
+    let mut first_output_by_identity = HashMap::with_capacity(composed_nodes.len());
+    for (row, node) in composed_nodes.iter().enumerate() {
+        first_output_by_identity
+            .entry((node.node_id.as_str(), node.control_id.as_str()))
+            .or_insert(row);
+    }
+
     source_projection
         .iter()
         .map(|source| {
-            composed_nodes.iter().position(|node| {
-                node.node_id == source.node_id && node.control_id == source.control_id
-            })
+            first_output_by_identity
+                .get(&(source.node_id.as_str(), source.control_id.as_str()))
+                .copied()
         })
         .collect()
 }
@@ -311,6 +321,7 @@ mod tests {
             ViewTemplateNodeProjection {
                 base_rows: Rc::clone(&first_rows),
                 row_patches: Rc::new(BTreeMap::new()),
+                source_frame: None,
             },
             &7_u64,
             |nodes| {
@@ -328,6 +339,7 @@ mod tests {
             ViewTemplateNodeProjection {
                 base_rows: Rc::clone(&first_rows),
                 row_patches: Rc::new(BTreeMap::from([(1, changed)])),
+                source_frame: None,
             },
             &7_u64,
             |_| panic!("same-generation text patch must not rerun full composition"),
@@ -358,6 +370,7 @@ mod tests {
             ViewTemplateNodeProjection {
                 base_rows: Rc::new(vec![Rc::clone(&stable)]),
                 row_patches: Rc::new(BTreeMap::new()),
+                source_frame: None,
             },
             &11_u64,
             |_| compose_calls.set(compose_calls.get() + 1),
@@ -373,6 +386,7 @@ mod tests {
             ViewTemplateNodeProjection {
                 base_rows: Rc::new(vec![stable, appended]),
                 row_patches: Rc::new(BTreeMap::new()),
+                source_frame: None,
             },
             &11_u64,
             |_| compose_calls.set(compose_calls.get() + 1),

@@ -1,19 +1,18 @@
 use super::labels::asset_state_label;
-use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
 use super::name_lines::{split_display_name_lines, RuntimeNameLineSplit};
 use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorTypographyTokens};
 
 use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::{
-    load_preview_image_for_generation, ViewTemplateFrameData, ViewTemplateNodeData,
+use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
+use crate::ui::retained_host::{measure_runtime_text_width, primitives::SharedString};
+use crate::ui::workbench::asset_content_layout::{
+    compact_thumbnail_file_name_to_width as compact_thumbnail_name_to_width, AssetBrowserPaintItem,
+    AssetBrowserThumbnailPaintItem, AssetThumbnailGridMetrics,
+    BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
 };
-use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
 
 const THUMBNAIL_NAME_MAX_WIDTH: f32 = 96.0;
-const THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS: usize = 4;
-const THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS: usize = 3;
-const THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS: usize = 4;
 const THUMBNAIL_NAME_PRIMARY_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE;
 const THUMBNAIL_NAME_CONTINUATION_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
 const THUMBNAIL_NAME_PRIMARY_FONT_WEIGHT: i32 = 500;
@@ -24,33 +23,45 @@ const THUMBNAIL_CARD_SURFACE: &str = "asset-thumbnail-card";
 const THUMBNAIL_NAME_AREA_SURFACE: &str = "asset-thumbnail-name-area";
 const THUMBNAIL_NAME_AREA_TEXT_ROLE: &str = "asset-thumbnail-name-area-text";
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum ThumbnailNodeKind {
+    Card,
+    Visual,
+    InfoBand,
+    SelectionMarker,
+    Name,
+    NameContinuation,
+    TypeBadge,
+    Type,
+    Meta,
+}
+
 fn thumbnail_corner_radius() -> f32 {
     EditorControlTokens::workbench_dense().small_radius
 }
 
-pub(super) fn append_asset_browser_thumbnail_nodes(
+pub(super) fn append_asset_browser_thumbnail_slots(
     nodes: &mut Vec<ViewTemplateNodeData>,
     snapshot: &AssetWorkspaceSnapshot,
+    materialized_item_count: usize,
 ) {
     if snapshot.view_mode != AssetViewMode::Thumbnail {
         return;
     }
 
     nodes.push(thumbnail_grid_panel());
-    for (index, asset) in snapshot.visible_assets.iter().enumerate() {
+    for (index, asset) in snapshot
+        .visible_assets
+        .iter()
+        .take(materialized_item_count)
+        .enumerate()
+    {
         let selected =
             asset.selected || snapshot.selected_asset_uuid.as_deref() == Some(asset.uuid.as_str());
         nodes.push(thumbnail_card_node(index, selected));
-        nodes.push(thumbnail_visual_node(
-            index,
-            selected,
-            asset,
-            snapshot.catalog_revision,
-        ));
+        nodes.push(thumbnail_visual_node(index, selected, asset));
         nodes.push(thumbnail_info_band_node(index, selected));
-        if selected {
-            nodes.push(thumbnail_selection_marker_node(index));
-        }
+        nodes.push(thumbnail_selection_marker_node(index));
         let file_like_name =
             is_file_like_thumbnail_name(asset.display_name.as_str(), asset.extension.as_str());
         let (name, name_continuation) = thumbnail_display_name_lines(asset);
@@ -69,6 +80,61 @@ pub(super) fn append_asset_browser_thumbnail_nodes(
         nodes.push(thumbnail_type_node(index, asset, selected));
         nodes.push(thumbnail_meta_node(index, asset, selected));
     }
+}
+
+pub(super) fn asset_browser_thumbnail_paint_item(
+    asset: &AssetItemSnapshot,
+) -> AssetBrowserPaintItem {
+    let file_like_name =
+        is_file_like_thumbnail_name(asset.display_name.as_str(), asset.extension.as_str());
+    let (name, name_continuation) = thumbnail_display_name_lines(asset);
+    AssetBrowserPaintItem::Thumbnail(AssetBrowserThumbnailPaintItem {
+        name,
+        source_file_name: file_like_name
+            .then(|| asset.display_name.clone())
+            .unwrap_or_default(),
+        file_extension: file_like_name
+            .then(|| asset.extension.clone())
+            .unwrap_or_default(),
+        name_continuation,
+        type_label: asset.asset_type.badge.clone(),
+        type_label_width: measure_runtime_text_width(
+            asset.asset_type.badge.as_str(),
+            THUMBNAIL_TYPE_FONT_SIZE,
+        ),
+        state_label: asset_state_label(asset).to_string(),
+        visual_variant: asset.asset_type.icon_name.clone(),
+        preview_artifact_path: asset.preview_artifact_path.clone(),
+    })
+}
+
+pub(super) fn trim_asset_browser_thumbnail_slots(
+    nodes: &mut Vec<ViewTemplateNodeData>,
+    logical_item_count: usize,
+    overscan_rows: usize,
+) {
+    let Some(grid) = nodes
+        .iter()
+        .find(|node| node.control_id == BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID)
+    else {
+        return;
+    };
+    let materialized_item_count =
+        AssetThumbnailGridMetrics::new(grid.frame.width, logical_item_count)
+            .materialized_item_budget(grid.frame.height, overscan_rows);
+    nodes.retain(|node| {
+        thumbnail_node_identity(node.control_id.as_str())
+            .map(|(_, index)| index < materialized_item_count)
+            .unwrap_or(true)
+    });
+}
+
+#[cfg(test)]
+fn append_asset_browser_thumbnail_nodes(
+    nodes: &mut Vec<ViewTemplateNodeData>,
+    snapshot: &AssetWorkspaceSnapshot,
+) {
+    append_asset_browser_thumbnail_slots(nodes, snapshot, snapshot.visible_assets.len());
 }
 
 fn thumbnail_grid_panel() -> ViewTemplateNodeData {
@@ -136,15 +202,7 @@ fn thumbnail_visual_node(
     index: usize,
     selected: bool,
     asset: &AssetItemSnapshot,
-    workspace_generation: u64,
 ) -> ViewTemplateNodeData {
-    let resource_generation = workspace_generation ^ asset.resource_revision.unwrap_or_default();
-    let preview_image = load_preview_image_for_generation(
-        asset.preview_artifact_path.as_str(),
-        "",
-        resource_generation,
-    );
-    let preview_size = preview_image.size();
     ViewTemplateNodeData {
         node_id: thumbnail_node_id("Visual", index).into(),
         control_id: thumbnail_control_id("Visual", index).into(),
@@ -157,8 +215,8 @@ fn thumbnail_visual_node(
             "asset-placeholder-visual".into()
         },
         media_source: asset.preview_artifact_path.clone().into(),
-        has_preview_image: preview_size.width > 0 && preview_size.height > 0,
-        preview_image,
+        has_preview_image: !asset.preview_artifact_path.trim().is_empty(),
+        preview_image: Default::default(),
         corner_radius: thumbnail_corner_radius(),
         frame: ViewTemplateFrameData::default(),
         ..ViewTemplateNodeData::default()
@@ -282,16 +340,11 @@ pub(super) fn compact_thumbnail_file_name_to_width(display_name: &str, max_width
     let Some((_, extension)) = display_name.rsplit_once('.') else {
         return display_name.to_string();
     };
-    compact_file_like_display_name(
+    compact_thumbnail_name_to_width(
         display_name,
         extension,
-        RuntimeFileNameCompaction {
-            max_width,
-            font_size: THUMBNAIL_NAME_PRIMARY_FONT_SIZE,
-            min_prefix_chars: THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS,
-            min_tail_stem_chars: THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS,
-            preferred_tail_stem_chars: THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS,
-        },
+        max_width,
+        THUMBNAIL_NAME_PRIMARY_FONT_SIZE,
     )
 }
 
@@ -316,6 +369,31 @@ fn thumbnail_node_id(kind: &str, index: usize) -> String {
 
 pub(super) fn thumbnail_control_id(kind: &str, index: usize) -> String {
     format!("AssetBrowserThumb{kind}{:02}", index + 1)
+}
+
+pub(super) fn thumbnail_node_identity(control_id: &str) -> Option<(ThumbnailNodeKind, usize)> {
+    let suffix = control_id.strip_prefix("AssetBrowserThumb")?;
+    for (kind_name, kind) in [
+        ("NameContinuation", ThumbnailNodeKind::NameContinuation),
+        ("SelectionMarker", ThumbnailNodeKind::SelectionMarker),
+        ("InfoBand", ThumbnailNodeKind::InfoBand),
+        ("TypeBadge", ThumbnailNodeKind::TypeBadge),
+        ("Visual", ThumbnailNodeKind::Visual),
+        ("Card", ThumbnailNodeKind::Card),
+        ("Name", ThumbnailNodeKind::Name),
+        ("Type", ThumbnailNodeKind::Type),
+        ("Meta", ThumbnailNodeKind::Meta),
+    ] {
+        let Some(number) = suffix.strip_prefix(kind_name) else {
+            continue;
+        };
+        return number
+            .parse::<usize>()
+            .ok()?
+            .checked_sub(1)
+            .map(|index| (kind, index));
+    }
+    None
 }
 
 #[cfg(test)]
@@ -379,7 +457,8 @@ mod tests {
                 selected: false,
                 resource_state: None,
                 resource_revision: Some(1),
-            }],
+            }]
+            .into(),
             ..AssetWorkspaceSnapshot::default()
         };
         let mut nodes = Vec::new();
@@ -479,7 +558,8 @@ mod tests {
                 selected: true,
                 resource_state: None,
                 resource_revision: Some(42),
-            }],
+            }]
+            .into(),
             ..AssetWorkspaceSnapshot::default()
         };
         let mut nodes = Vec::new();
@@ -528,7 +608,8 @@ mod tests {
                 selected: true,
                 resource_state: None,
                 resource_revision: Some(42),
-            }],
+            }]
+            .into(),
             ..AssetWorkspaceSnapshot::default()
         };
         let mut nodes = Vec::new();
@@ -590,7 +671,8 @@ mod tests {
                 selected: true,
                 resource_state: None,
                 resource_revision: Some(42),
-            }],
+            }]
+            .into(),
             ..AssetWorkspaceSnapshot::default()
         };
         let mut nodes = Vec::new();
@@ -621,7 +703,8 @@ mod tests {
                 asset("asset-shader", ResourceKind::Shader),
                 asset("asset-mesh", ResourceKind::Mesh),
                 asset("asset-ui-layout", ResourceKind::UiLayout),
-            ],
+            ]
+            .into(),
             ..AssetWorkspaceSnapshot::default()
         };
         let mut nodes = Vec::new();
@@ -675,7 +758,7 @@ mod tests {
     }
 
     #[test]
-    fn thumbnail_nodes_project_preview_artifact_into_visual_node() {
+    fn thumbnail_nodes_defer_preview_artifact_pixels_to_visible_paint() {
         let preview_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("assets/ui/editor/showcase_checker.svg")
             .to_string_lossy()
@@ -699,7 +782,8 @@ mod tests {
                 selected: false,
                 resource_state: None,
                 resource_revision: Some(1),
-            }],
+            }]
+            .into(),
             ..AssetWorkspaceSnapshot::default()
         };
         let mut nodes = Vec::new();
@@ -712,7 +796,29 @@ mod tests {
         let preview_size = visual.preview_image.size();
         assert_eq!(visual.media_source.as_str(), preview_path.as_str());
         assert!(visual.has_preview_image);
-        assert!(preview_size.width > 0 && preview_size.height > 0);
+        assert_eq!((preview_size.width, preview_size.height), (0, 0));
+    }
+
+    #[test]
+    fn thumbnail_node_identity_decodes_each_layout_part_without_allocating_an_index() {
+        for (kind_name, expected_kind) in [
+            ("Card", ThumbnailNodeKind::Card),
+            ("Visual", ThumbnailNodeKind::Visual),
+            ("InfoBand", ThumbnailNodeKind::InfoBand),
+            ("SelectionMarker", ThumbnailNodeKind::SelectionMarker),
+            ("Name", ThumbnailNodeKind::Name),
+            ("NameContinuation", ThumbnailNodeKind::NameContinuation),
+            ("TypeBadge", ThumbnailNodeKind::TypeBadge),
+            ("Type", ThumbnailNodeKind::Type),
+            ("Meta", ThumbnailNodeKind::Meta),
+        ] {
+            assert_eq!(
+                thumbnail_node_identity(&thumbnail_control_id(kind_name, 41)),
+                Some((expected_kind, 41))
+            );
+        }
+        assert_eq!(thumbnail_node_identity("AssetBrowserThumbCard00"), None);
+        assert_eq!(thumbnail_node_identity("AssetBrowserThumbUnknown42"), None);
     }
 
     fn asset(uuid: &str, kind: ResourceKind) -> AssetItemSnapshot {

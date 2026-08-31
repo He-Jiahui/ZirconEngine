@@ -8,7 +8,11 @@ const FORWARD: &str = concat!(
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_volumetric.wgsl"),
     "\n",
+    include_str!("../src/graphics/shader/includes/zr_pbr_common.wgsl"),
+    "\n",
     include_str!("../src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"),
+    "\n",
+    include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_environment_core.wgsl"),
     "\n",
@@ -25,6 +29,8 @@ const DEFERRED: &str = concat!(
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_volumetric.wgsl"),
     "\n",
+    include_str!("../src/graphics/shader/includes/zr_pbr_common.wgsl"),
+    "\n",
     include_str!("../src/graphics/shader/wgsl/zr_shade_deferred_standard_pbr.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_shade_deferred_blinn_phong.wgsl"),
@@ -32,6 +38,8 @@ const DEFERRED: &str = concat!(
     include_str!("../src/graphics/shader/wgsl/zr_shade_deferred_unlit.wgsl"),
     "\n",
     include_str!("../src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+    "\n",
+    include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_environment_core.wgsl"),
     "\n",
@@ -41,6 +49,8 @@ const DEFERRED: &str = concat!(
 );
 const SKY: &str = concat!(
     include_str!("../src/graphics/shader/wgsl/zr_volumetric.wgsl"),
+    "\n",
+    include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl"),
     "\n",
     include_str!("../src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl"),
 );

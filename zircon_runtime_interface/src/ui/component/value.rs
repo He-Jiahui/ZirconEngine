@@ -76,6 +76,27 @@ impl UiValue {
         }
     }
 
+    /// Returns whether every floating-point value is finite and deterministic.
+    pub fn is_finite(&self) -> bool {
+        match self {
+            Self::Float(value) => value.is_finite(),
+            Self::Vec2(values) => values.iter().all(|value| value.is_finite()),
+            Self::Vec3(values) => values.iter().all(|value| value.is_finite()),
+            Self::Vec4(values) => values.iter().all(|value| value.is_finite()),
+            Self::Array(values) => values.iter().all(Self::is_finite),
+            Self::Map(values) => values.values().all(Self::is_finite),
+            Self::Bool(_)
+            | Self::Int(_)
+            | Self::String(_)
+            | Self::Color(_)
+            | Self::AssetRef(_)
+            | Self::InstanceRef(_)
+            | Self::Enum(_)
+            | Self::Flags(_)
+            | Self::Null => true,
+        }
+    }
+
     /// Formats a compact user-facing value summary for generic host projection.
     pub fn display_text(&self) -> String {
         match self {

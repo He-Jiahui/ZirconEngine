@@ -212,7 +212,7 @@ Graphics bridge tests now keep two separate fixture concerns: descriptor-linked 
 
 ## App Provider Collection And Manifests
 
-`zircon_app` exposes `first-party-advanced-render-runtime-plugins` for linking the VG/HGI provider crates. `first_party_runtime_plugin_registrations_for_config(...)` reads `EntryConfig::render_profile` and appends transient target-scoped runtime plugin selections for `RuntimePluginId::VirtualGeometry` and `RuntimePluginId::HybridGi` when the bundle contains the matching advanced product features. `DefaultRender` therefore collects no advanced providers, while `AdvancedRender` collects both providers without requiring every project manifest to list them manually.
+`zircon_app` exposes `first-party-advanced-render-runtime-plugins` for linking the VG/HGI provider crates. `first_party_runtime_plugin_registrations_for_config(...)` accepts only `ResolvedProductHostConfig` and appends transient target-scoped selections when its resolved render bundle contains the matching advanced features. `DefaultRender` therefore collects no advanced providers, while `AdvancedRender` collects both without requiring every project manifest to list them manually.
 
 The VG/HGI runtime plugin descriptors and `plugin.toml` manifests now declare profile-facing capabilities:
 

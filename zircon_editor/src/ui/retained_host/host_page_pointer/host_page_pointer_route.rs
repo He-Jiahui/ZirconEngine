@@ -1,14 +1,5 @@
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum HostPagePointerRoute {
-    Tab {
-        item_index: usize,
-        page_id: String,
-    },
-    Close {
-        item_index: usize,
-        instance_id: String,
-    },
-    Overflow {
-        hidden_page_indices: Vec<usize>,
-    },
+    Activate { item_index: usize },
+    Close { item_index: usize },
 }

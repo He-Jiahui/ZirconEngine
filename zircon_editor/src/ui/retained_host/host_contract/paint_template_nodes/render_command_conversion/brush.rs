@@ -30,10 +30,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn brush_b
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn image_brush_resource(
     brush: &UiBrushPayload,
-) -> Option<&UiRenderResourceKey> {
+) -> Option<(&UiRenderResourceKey, Option<(f32, f32)>)> {
     match brush {
-        UiBrushPayload::Image(payload) | UiBrushPayload::Box(payload) => Some(&payload.resource),
-        UiBrushPayload::Vector(payload) => Some(&payload.resource),
+        UiBrushPayload::Image(payload) | UiBrushPayload::Box(payload) => {
+            Some((&payload.resource, payload.resource_state.pixel_size))
+        }
+        UiBrushPayload::Vector(payload) => {
+            Some((&payload.resource, payload.resource_state.pixel_size))
+        }
         _ => None,
     }
 }

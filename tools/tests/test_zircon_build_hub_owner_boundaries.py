@@ -17,7 +17,8 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
     def test_hub_tauri_build_lives_in_hub_owner(self):
         self.assertTrue(
             ZIRCON_BUILD_HUB.exists(),
-            "Hub/Tauri build and installer staging belong in zircon_build_hub.py",
+            "Hub/Tauri execution belongs in zircon_build_hub.py and output staging "
+            "belongs in zircon_build_hub_outputs.py",
         )
         build_text = ZIRCON_BUILD.read_text(encoding="utf-8")
         hub_text = ZIRCON_BUILD_HUB.read_text(encoding="utf-8")
@@ -76,8 +77,16 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
         from tools.zircon_build_hub import build_hub, hub_cargo_environment
         from tools.zircon_build_hub_outputs import stage_hub_tauri_outputs
 
-        managed_temp_root = r"D:\ZirconBuilds" if os.name == "nt" else None
-        with tempfile.TemporaryDirectory(dir=managed_temp_root) as tmp:
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch(
+                "tools.zircon_build_cargo_environment."
+                "assert_managed_windows_build_root"
+            ),
+            mock.patch(
+                "tools.zircon_build_hub_outputs.assert_managed_windows_build_root"
+            ),
+        ):
             root = Path(tmp)
             repo_root = root / "repo"
             target_dir = root / "targets" / "hub"

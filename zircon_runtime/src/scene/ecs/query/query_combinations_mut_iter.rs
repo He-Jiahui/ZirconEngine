@@ -1,12 +1,12 @@
 use std::{array, marker::PhantomData};
 
+use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, ComponentStorageLocation, QueryFilter, QueryMutData, StableEntityLocation,
 };
-use crate::scene::World;
 
 use super::query_combinations_iter::combination_count;
-use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
+use super::query_state::{CachedArchetypePlan, find_cached_archetype_plan};
 
 /// Mutable K-combination cursor. Items are produced only through `fetch_next`.
 pub struct QueryCombinationMutIter<'world, 'state, D, F = (), const K: usize = 2>

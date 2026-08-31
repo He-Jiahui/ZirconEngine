@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityWindowHostMode, ActivityWindowId, ActivityWindowLayout,
@@ -10,6 +10,9 @@ use super::{
     DrawerBinding, DrawerDockPosition, DrawerViewInstance, DrawerWindowInstance, WindowInstance,
     WindowKind,
 };
+
+#[cfg(test)]
+mod optimization_tests;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct EditorWindowRegistry {
@@ -60,23 +63,52 @@ impl EditorWindowRegistry {
     }
 
     pub fn bind_drawer(&mut self, binding: DrawerBinding) -> Result<(), String> {
-        let drawer = self
+        let DrawerBinding {
+            window_id,
+            drawer_view,
+            dock_position,
+        } = binding;
+        let old_owner = self
             .drawer_views
-            .get_mut(&binding.drawer_view)
-            .ok_or_else(|| format!("missing drawer view {}", binding.drawer_view.0))?;
-        let old_owner = drawer.owner_window.clone();
+            .get(&drawer_view)
+            .ok_or_else(|| format!("missing drawer view {}", drawer_view.0))?
+            .owner_window
+            .clone();
+        let target_window = self
+            .windows
+            .get(&window_id)
+            .ok_or_else(|| format!("missing drawer owner window {}", window_id.0))?;
+        if !target_window.drawer_capable() {
+            return Err(format!("window {} is not drawer-capable", window_id.0));
+        }
+
         if let Some(old_window) = self.windows.get_mut(&old_owner) {
             for views in old_window.drawer_views.values_mut() {
-                views.retain(|view| view != &binding.drawer_view);
+                views.retain(|view| view != &drawer_view);
             }
-            if old_window.selected_drawer.as_ref() == Some(&binding.drawer_view) {
+            if old_window.selected_drawer.as_ref() == Some(&drawer_view) {
                 old_window.selected_drawer = None;
             }
         }
-        drawer.owner_window = binding.window_id.clone();
-        drawer.dock_position = binding.dock_position;
-        let rebound = drawer.clone();
-        self.register_drawer_view(rebound)
+
+        let target_window = self
+            .windows
+            .get_mut(&window_id)
+            .expect("drawer target window was validated before mutation");
+        let target_views = target_window.drawer_views.entry(dock_position).or_default();
+        target_views.retain(|view| view != &drawer_view);
+        target_views.push(drawer_view.clone());
+        if target_window.selected_drawer.is_none() {
+            target_window.selected_drawer = Some(drawer_view.clone());
+        }
+
+        let drawer = self
+            .drawer_views
+            .get_mut(&drawer_view)
+            .expect("drawer target was validated before mutation");
+        drawer.owner_window = window_id;
+        drawer.dock_position = dock_position;
+        Ok(())
     }
 
     pub fn get_window(&self, window_id: &ActivityWindowId) -> Option<&WindowInstance> {
@@ -149,7 +181,7 @@ impl EditorWindowRegistry {
 fn sync_detached_drawer_window(
     registry: &mut EditorWindowRegistry,
     window: &FloatingWindowLayout,
-    instances: &BTreeMap<ViewInstanceId, &ViewInstance>,
+    instances: &HashMap<&str, &ViewInstance>,
 ) {
     if !window.window_id.0.starts_with("drawer-window:") {
         return;
@@ -158,7 +190,7 @@ fn sync_detached_drawer_window(
         return;
     };
     let descriptor_id = instances
-        .get(&focused)
+        .get(focused.0.as_str())
         .map(|instance| instance.descriptor_id.clone())
         .unwrap_or_else(|| {
             ViewDescriptorId::new(
@@ -169,7 +201,7 @@ fn sync_detached_drawer_window(
             )
         });
     let title = instances
-        .get(&focused)
+        .get(focused.0.as_str())
         .map(|instance| instance.title.clone())
         .unwrap_or_else(|| window.title.clone());
     let owner_window = ActivityWindowId::new(window.window_id.0.clone());
@@ -218,12 +250,12 @@ fn sync_drawer_layout(
     registry: &mut EditorWindowRegistry,
     window_id: &ActivityWindowId,
     drawer: &ActivityDrawerLayout,
-    instances: &BTreeMap<ViewInstanceId, &ViewInstance>,
+    instances: &HashMap<&str, &ViewInstance>,
 ) {
     let position = DrawerDockPosition::from_slot(drawer.slot);
     for instance_id in &drawer.tab_stack.tabs {
         let descriptor_id = instances
-            .get(instance_id)
+            .get(instance_id.0.as_str())
             .map(|instance| instance.descriptor_id.clone())
             .unwrap_or_else(|| {
                 ViewDescriptorId::new(
@@ -234,7 +266,7 @@ fn sync_drawer_layout(
                 )
             });
         let title = instances
-            .get(instance_id)
+            .get(instance_id.0.as_str())
             .map(|instance| instance.title.clone())
             .unwrap_or_else(|| instance_id.0.clone());
         let drawer = DrawerViewInstance::new(
@@ -248,10 +280,10 @@ fn sync_drawer_layout(
     }
 }
 
-fn instances_by_id(instances: &[ViewInstance]) -> BTreeMap<ViewInstanceId, &ViewInstance> {
+fn instances_by_id(instances: &[ViewInstance]) -> HashMap<&str, &ViewInstance> {
     instances
         .iter()
-        .map(|instance| (instance.instance_id.clone(), instance))
+        .map(|instance| (instance.instance_id.0.as_str(), instance))
         .collect()
 }
 

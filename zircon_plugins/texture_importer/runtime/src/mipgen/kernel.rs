@@ -30,6 +30,12 @@ pub(super) fn downsample_rgba8(
 ) -> Option<Vec<u8>> {
     let target_width = (source_width / 2).max(1);
     let target_height = (source_height / 2).max(1);
+    let srgb_decode_lut =
+        if usage_hint != TextureUsageHint::Normal && color_space == RenderImageColorSpace::Srgb {
+            Some(build_srgb_decode_lut())
+        } else {
+            None
+        };
     let kaiser_axis_weights =
         if usage_hint != TextureUsageHint::Normal && mip_filter == TextureMipFilter::Kaiser {
             // Normalize and cache separable Kaiser weights once per generated level.
@@ -55,6 +61,7 @@ pub(super) fn downsample_rgba8(
                         target_x,
                         target_y,
                         color_space,
+                        srgb_decode_lut.as_ref(),
                     ),
                     TextureMipFilter::Kaiser => {
                         let (x_weights, y_weights) = kaiser_axis_weights
@@ -69,6 +76,7 @@ pub(super) fn downsample_rgba8(
                             color_space,
                             &x_weights[target_x as usize],
                             &y_weights[target_y as usize],
+                            srgb_decode_lut.as_ref(),
                         )
                     }
                 }
@@ -78,6 +86,18 @@ pub(super) fn downsample_rgba8(
         }
     }
     Some(target)
+}
+
+fn build_srgb_decode_lut() -> [f32; 256] {
+    std::array::from_fn(|value| srgb_to_linear(value as f32 / 255.0))
+}
+
+fn decode_color_byte(value: u8, srgb_decode_lut: Option<&[f32; 256]>) -> f32 {
+    if let Some(lut) = srgb_decode_lut {
+        lut[value as usize]
+    } else {
+        f32::from(value) / 255.0
+    }
 }
 
 fn build_kaiser_axis_weights(
@@ -135,19 +155,35 @@ fn downsample_box_color_pixel(
     target_x: u32,
     target_y: u32,
     color_space: RenderImageColorSpace,
+    srgb_decode_lut: Option<&[f32; 256]>,
 ) -> [u8; RGBA8_TEXEL_SIZE] {
     let mut sums = [0.0; RGBA8_TEXEL_SIZE];
+    let source_x = target_x * 2;
+    let source_y = target_y * 2;
+    if source_x + 1 < source_width && source_y + 1 < source_height {
+        let row_stride = source_width as usize * RGBA8_TEXEL_SIZE;
+        let top_left =
+            (source_y as usize * source_width as usize + source_x as usize) * RGBA8_TEXEL_SIZE;
+        for offset in [
+            top_left,
+            top_left + RGBA8_TEXEL_SIZE,
+            top_left + row_stride,
+            top_left + row_stride + RGBA8_TEXEL_SIZE,
+        ] {
+            for channel in 0..3 {
+                sums[channel] += decode_color_byte(source[offset + channel], srgb_decode_lut);
+            }
+            sums[3] += f32::from(source[offset + 3]) / 255.0;
+        }
+        return encode_weighted_pixel(sums, 4.0, color_space);
+    }
+
     let mut sample_count = 0.0;
-    for source_y in target_y * 2..((target_y * 2 + 2).min(source_height)) {
-        for source_x in target_x * 2..((target_x * 2 + 2).min(source_width)) {
+    for source_y in source_y..((source_y + 2).min(source_height)) {
+        for source_x in source_x..((source_x + 2).min(source_width)) {
             let offset = ((source_y * source_width + source_x) as usize) * RGBA8_TEXEL_SIZE;
             for channel in 0..3 {
-                let value = f32::from(source[offset + channel]) / 255.0;
-                sums[channel] += if color_space == RenderImageColorSpace::Srgb {
-                    srgb_to_linear(value)
-                } else {
-                    value
-                };
+                sums[channel] += decode_color_byte(source[offset + channel], srgb_decode_lut);
             }
             sums[3] += f32::from(source[offset + 3]) / 255.0;
             sample_count += 1.0;
@@ -177,6 +213,7 @@ fn downsample_kaiser_color_pixel(
     color_space: RenderImageColorSpace,
     x_weights: &KaiserAxisWeights,
     y_weights: &KaiserAxisWeights,
+    srgb_decode_lut: Option<&[f32; 256]>,
 ) -> [u8; RGBA8_TEXEL_SIZE] {
     let mut sums = [0.0; RGBA8_TEXEL_SIZE];
     let mut weight_sum = 0.0;
@@ -186,13 +223,8 @@ fn downsample_kaiser_color_pixel(
             let weight = weight_y * weight_x;
             let offset = ((source_y * source_width + source_x) as usize) * RGBA8_TEXEL_SIZE;
             for channel in 0..3 {
-                let value = f32::from(source[offset + channel]) / 255.0;
-                sums[channel] += weight
-                    * if color_space == RenderImageColorSpace::Srgb {
-                        srgb_to_linear(value)
-                    } else {
-                        value
-                    };
+                sums[channel] +=
+                    weight * decode_color_byte(source[offset + channel], srgb_decode_lut);
             }
             sums[3] += weight * f32::from(source[offset + 3]) / 255.0;
             weight_sum += weight;
@@ -206,6 +238,7 @@ fn downsample_kaiser_color_pixel(
             target_x,
             target_y,
             color_space,
+            srgb_decode_lut,
         );
     }
     encode_weighted_pixel(sums, weight_sum, color_space)
@@ -361,6 +394,390 @@ mod tests {
         );
     }
 
+    #[test]
+    fn mip_decode_hotpath_color_filters_match_inline_decode() {
+        for (width, height) in [(1, 1), (1, 7), (7, 1), (2, 2), (7, 5), (8, 6), (9, 11)] {
+            let source = patterned_rgba8(width, height);
+            for color_space in [RenderImageColorSpace::Linear, RenderImageColorSpace::Srgb] {
+                for mip_filter in [TextureMipFilter::Box, TextureMipFilter::Kaiser] {
+                    let legacy =
+                        legacy_downsample_color(&source, width, height, color_space, mip_filter);
+                    let optimized = downsample_rgba8(
+                        &source,
+                        width,
+                        height,
+                        color_space,
+                        TextureUsageHint::Albedo,
+                        mip_filter,
+                    )
+                    .expect("optimized mip should fit in memory");
+
+                    assert_eq!(
+                        optimized, legacy,
+                        "{width}x{height} {color_space:?} {mip_filter:?} output changed"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn mip_decode_hotpath_full_box_footprint_matches_clamped_reference() {
+        for (width, height) in [(4, 4), (7, 8), (8, 7), (16, 12)] {
+            let source = patterned_rgba8(width, height);
+            let legacy = legacy_downsample_color(
+                &source,
+                width,
+                height,
+                RenderImageColorSpace::Linear,
+                TextureMipFilter::Box,
+            );
+            let optimized = downsample_rgba8(
+                &source,
+                width,
+                height,
+                RenderImageColorSpace::Linear,
+                TextureUsageHint::Albedo,
+                TextureMipFilter::Box,
+            )
+            .expect("optimized box mip should fit in memory");
+
+            assert_eq!(optimized, legacy, "{width}x{height} box output changed");
+        }
+    }
+
+    #[test]
+    #[ignore = "release performance gate"]
+    fn mip_decode_hotpath_srgb_lut_release_benchmark() {
+        const SOURCE_EXTENT: u32 = 256;
+        const REQUIRED_IMPROVEMENT_PERCENT: u128 = 40;
+
+        let source = patterned_rgba8(SOURCE_EXTENT, SOURCE_EXTENT);
+        let legacy = legacy_downsample_color(
+            &source,
+            SOURCE_EXTENT,
+            SOURCE_EXTENT,
+            RenderImageColorSpace::Srgb,
+            TextureMipFilter::Kaiser,
+        );
+        let optimized = downsample_rgba8(
+            &source,
+            SOURCE_EXTENT,
+            SOURCE_EXTENT,
+            RenderImageColorSpace::Srgb,
+            TextureUsageHint::Albedo,
+            TextureMipFilter::Kaiser,
+        )
+        .expect("optimized sRGB Kaiser mip should fit in memory");
+        assert_eq!(optimized, legacy);
+
+        let mut legacy_samples = Vec::with_capacity(KAISER_BENCH_SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(KAISER_BENCH_SAMPLE_PAIRS);
+        for pair in 0..KAISER_BENCH_SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy_samples.push(measure_legacy_color_downsample(
+                    &source,
+                    SOURCE_EXTENT,
+                    RenderImageColorSpace::Srgb,
+                    TextureMipFilter::Kaiser,
+                ));
+                optimized_samples.push(measure_optimized_color_downsample(
+                    &source,
+                    SOURCE_EXTENT,
+                    RenderImageColorSpace::Srgb,
+                    TextureMipFilter::Kaiser,
+                ));
+            } else {
+                optimized_samples.push(measure_optimized_color_downsample(
+                    &source,
+                    SOURCE_EXTENT,
+                    RenderImageColorSpace::Srgb,
+                    TextureMipFilter::Kaiser,
+                ));
+                legacy_samples.push(measure_legacy_color_downsample(
+                    &source,
+                    SOURCE_EXTENT,
+                    RenderImageColorSpace::Srgb,
+                    TextureMipFilter::Kaiser,
+                ));
+            }
+        }
+
+        let legacy_p95 = nearest_rank(&legacy_samples, 95);
+        let optimized_p95 = nearest_rank(&optimized_samples, 95);
+        let improvement = improvement_percent(legacy_p95, optimized_p95);
+        let sampled_texels = kaiser_texel_sample_count(SOURCE_EXTENT, SOURCE_EXTENT);
+        println!(
+            "PERF_RESULT plugins07_mip_srgb_decode_lut sample_pairs={} order=alternating_legacy_first_even source_width={} source_height={} target_pixels={} sampled_texels={} rgb_channels=3 legacy_srgb_decode_evaluations={} optimized_srgb_decode_evaluations=256 legacy_ns={} optimized_ns={} legacy_p95_ns={} optimized_p95_ns={} threshold_percent={} improvement_percent={}",
+            KAISER_BENCH_SAMPLE_PAIRS,
+            SOURCE_EXTENT,
+            SOURCE_EXTENT,
+            (SOURCE_EXTENT / 2) as usize * (SOURCE_EXTENT / 2) as usize,
+            sampled_texels,
+            sampled_texels * 3,
+            join_samples(&legacy_samples),
+            join_samples(&optimized_samples),
+            legacy_p95,
+            optimized_p95,
+            REQUIRED_IMPROVEMENT_PERCENT,
+            improvement
+        );
+        assert!(
+            improvement >= REQUIRED_IMPROVEMENT_PERCENT,
+            "sRGB decode LUT improved {improvement}%, below {REQUIRED_IMPROVEMENT_PERCENT}%"
+        );
+    }
+
+    #[test]
+    #[ignore = "release performance gate"]
+    fn mip_decode_hotpath_box_interior_release_benchmark() {
+        const SOURCE_EXTENT: u32 = 1_024;
+        const REQUIRED_IMPROVEMENT_PERCENT: u128 = 15;
+
+        let source = patterned_rgba8(SOURCE_EXTENT, SOURCE_EXTENT);
+        let legacy = legacy_downsample_color(
+            &source,
+            SOURCE_EXTENT,
+            SOURCE_EXTENT,
+            RenderImageColorSpace::Linear,
+            TextureMipFilter::Box,
+        );
+        let optimized = downsample_rgba8(
+            &source,
+            SOURCE_EXTENT,
+            SOURCE_EXTENT,
+            RenderImageColorSpace::Linear,
+            TextureUsageHint::Albedo,
+            TextureMipFilter::Box,
+        )
+        .expect("optimized linear box mip should fit in memory");
+        assert_eq!(optimized, legacy);
+
+        let mut legacy_samples = Vec::with_capacity(KAISER_BENCH_SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(KAISER_BENCH_SAMPLE_PAIRS);
+        for pair in 0..KAISER_BENCH_SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy_samples.push(measure_legacy_color_downsample(
+                    &source,
+                    SOURCE_EXTENT,
+                    RenderImageColorSpace::Linear,
+                    TextureMipFilter::Box,
+                ));
+                optimized_samples.push(measure_optimized_color_downsample(
+                    &source,
+                    SOURCE_EXTENT,
+                    RenderImageColorSpace::Linear,
+                    TextureMipFilter::Box,
+                ));
+            } else {
+                optimized_samples.push(measure_optimized_color_downsample(
+                    &source,
+                    SOURCE_EXTENT,
+                    RenderImageColorSpace::Linear,
+                    TextureMipFilter::Box,
+                ));
+                legacy_samples.push(measure_legacy_color_downsample(
+                    &source,
+                    SOURCE_EXTENT,
+                    RenderImageColorSpace::Linear,
+                    TextureMipFilter::Box,
+                ));
+            }
+        }
+
+        let legacy_p95 = nearest_rank(&legacy_samples, 95);
+        let optimized_p95 = nearest_rank(&optimized_samples, 95);
+        let improvement = improvement_percent(legacy_p95, optimized_p95);
+        println!(
+            "PERF_RESULT plugins07_mip_box_interior sample_pairs={} order=alternating_legacy_first_even source_width={} source_height={} target_pixels={} samples_per_target=4 legacy_edge_clamps_per_target=2 optimized_full_footprint_branches_per_target=1 legacy_ns={} optimized_ns={} legacy_p95_ns={} optimized_p95_ns={} threshold_percent={} improvement_percent={}",
+            KAISER_BENCH_SAMPLE_PAIRS,
+            SOURCE_EXTENT,
+            SOURCE_EXTENT,
+            (SOURCE_EXTENT / 2) as usize * (SOURCE_EXTENT / 2) as usize,
+            join_samples(&legacy_samples),
+            join_samples(&optimized_samples),
+            legacy_p95,
+            optimized_p95,
+            REQUIRED_IMPROVEMENT_PERCENT,
+            improvement
+        );
+        assert!(
+            improvement >= REQUIRED_IMPROVEMENT_PERCENT,
+            "box interior path improved {improvement}%, below {REQUIRED_IMPROVEMENT_PERCENT}%"
+        );
+    }
+
+    fn legacy_downsample_color(
+        source: &[u8],
+        source_width: u32,
+        source_height: u32,
+        color_space: RenderImageColorSpace,
+        mip_filter: TextureMipFilter,
+    ) -> Vec<u8> {
+        let target_width = (source_width / 2).max(1);
+        let target_height = (source_height / 2).max(1);
+        let kaiser_axis_weights = if mip_filter == TextureMipFilter::Kaiser {
+            let normalizer = bessel_i0(KAISER_BETA);
+            Some((
+                build_kaiser_axis_weights(target_width, source_width, normalizer),
+                build_kaiser_axis_weights(target_height, source_height, normalizer),
+            ))
+        } else {
+            None
+        };
+        let mut target = vec![0; rgba8_level_len(target_width, target_height).unwrap()];
+        for target_y in 0..target_height {
+            for target_x in 0..target_width {
+                let pixel = match mip_filter {
+                    TextureMipFilter::Box => legacy_box_color_pixel(
+                        source,
+                        source_width,
+                        source_height,
+                        target_x,
+                        target_y,
+                        color_space,
+                    ),
+                    TextureMipFilter::Kaiser => {
+                        let (x_weights, y_weights) = kaiser_axis_weights.as_ref().unwrap();
+                        legacy_cached_kaiser_color_pixel(
+                            source,
+                            source_width,
+                            source_height,
+                            target_x,
+                            target_y,
+                            color_space,
+                            &x_weights[target_x as usize],
+                            &y_weights[target_y as usize],
+                        )
+                    }
+                };
+                let offset = ((target_y * target_width + target_x) as usize) * RGBA8_TEXEL_SIZE;
+                target[offset..offset + RGBA8_TEXEL_SIZE].copy_from_slice(&pixel);
+            }
+        }
+        target
+    }
+
+    fn legacy_box_color_pixel(
+        source: &[u8],
+        source_width: u32,
+        source_height: u32,
+        target_x: u32,
+        target_y: u32,
+        color_space: RenderImageColorSpace,
+    ) -> [u8; RGBA8_TEXEL_SIZE] {
+        let mut sums = [0.0; RGBA8_TEXEL_SIZE];
+        let mut sample_count = 0.0;
+        for source_y in target_y * 2..((target_y * 2 + 2).min(source_height)) {
+            for source_x in target_x * 2..((target_x * 2 + 2).min(source_width)) {
+                let offset = ((source_y * source_width + source_x) as usize) * RGBA8_TEXEL_SIZE;
+                for channel in 0..3 {
+                    let value = f32::from(source[offset + channel]) / 255.0;
+                    sums[channel] += if color_space == RenderImageColorSpace::Srgb {
+                        srgb_to_linear(value)
+                    } else {
+                        value
+                    };
+                }
+                sums[3] += f32::from(source[offset + 3]) / 255.0;
+                sample_count += 1.0;
+            }
+        }
+        encode_weighted_pixel(sums, sample_count, color_space)
+    }
+
+    fn legacy_cached_kaiser_color_pixel(
+        source: &[u8],
+        source_width: u32,
+        source_height: u32,
+        target_x: u32,
+        target_y: u32,
+        color_space: RenderImageColorSpace,
+        x_weights: &KaiserAxisWeights,
+        y_weights: &KaiserAxisWeights,
+    ) -> [u8; RGBA8_TEXEL_SIZE] {
+        let mut sums = [0.0; RGBA8_TEXEL_SIZE];
+        let mut weight_sum = 0.0;
+        for (source_y, weight_y) in y_weights.iter() {
+            for (source_x, weight_x) in x_weights.iter() {
+                let weight = weight_y * weight_x;
+                let offset = ((source_y * source_width + source_x) as usize) * RGBA8_TEXEL_SIZE;
+                for channel in 0..3 {
+                    let value = f32::from(source[offset + channel]) / 255.0;
+                    sums[channel] += weight
+                        * if color_space == RenderImageColorSpace::Srgb {
+                            srgb_to_linear(value)
+                        } else {
+                            value
+                        };
+                }
+                sums[3] += weight * f32::from(source[offset + 3]) / 255.0;
+                weight_sum += weight;
+            }
+        }
+        if weight_sum <= f32::EPSILON {
+            return legacy_box_color_pixel(
+                source,
+                source_width,
+                source_height,
+                target_x,
+                target_y,
+                color_space,
+            );
+        }
+        encode_weighted_pixel(sums, weight_sum, color_space)
+    }
+
+    fn measure_legacy_color_downsample(
+        source: &[u8],
+        source_extent: u32,
+        color_space: RenderImageColorSpace,
+        mip_filter: TextureMipFilter,
+    ) -> u128 {
+        let started = Instant::now();
+        black_box(legacy_downsample_color(
+            black_box(source),
+            source_extent,
+            source_extent,
+            color_space,
+            mip_filter,
+        ));
+        started.elapsed().as_nanos()
+    }
+
+    fn measure_optimized_color_downsample(
+        source: &[u8],
+        source_extent: u32,
+        color_space: RenderImageColorSpace,
+        mip_filter: TextureMipFilter,
+    ) -> u128 {
+        let started = Instant::now();
+        black_box(
+            downsample_rgba8(
+                black_box(source),
+                source_extent,
+                source_extent,
+                color_space,
+                TextureUsageHint::Albedo,
+                mip_filter,
+            )
+            .expect("optimized benchmark mip should fit in memory"),
+        );
+        started.elapsed().as_nanos()
+    }
+
+    fn kaiser_texel_sample_count(source_width: u32, source_height: u32) -> usize {
+        let target_width = (source_width / 2).max(1);
+        let target_height = (source_height / 2).max(1);
+        let x_samples = (0..target_width)
+            .map(|target| axis_sample_count(target, source_width))
+            .sum::<usize>();
+        let y_samples = (0..target_height)
+            .map(|target| axis_sample_count(target, source_height))
+            .sum::<usize>();
+        x_samples * y_samples
+    }
+
     fn measure_inline_kaiser(source: &[u8]) -> u128 {
         let started = Instant::now();
         black_box(inline_kaiser_downsample(
@@ -463,6 +880,7 @@ mod tests {
                 target_x,
                 target_y,
                 color_space,
+                None,
             );
         }
         encode_weighted_pixel(sums, weight_sum, color_space)
@@ -508,6 +926,11 @@ mod tests {
         ordered.sort_unstable();
         let rank = ordered.len().saturating_mul(percentile).div_ceil(100);
         ordered[rank.saturating_sub(1)]
+    }
+
+    fn improvement_percent(legacy: u128, optimized: u128) -> u128 {
+        assert!(legacy > 0);
+        legacy.saturating_sub(optimized) * 100 / legacy
     }
 
     fn join_samples(samples: &[u128]) -> String {

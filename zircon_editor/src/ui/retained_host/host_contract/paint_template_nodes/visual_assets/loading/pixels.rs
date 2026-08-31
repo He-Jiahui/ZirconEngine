@@ -6,31 +6,77 @@ use super::super::svg::render_svg_file_pixels;
 use super::super::{
     mui_icons, retained_image_pixels, HostPaintImagePixels, RasterTargetSize, MUI_ICON_DEFAULT_EDGE,
 };
+use super::async_loader::{schedule_visual_asset_load, VisualAssetLoadSchedule};
 use super::cache::{cached_visual_asset_pixels, store_visual_asset_pixels};
-use super::image::load_image_from_path;
+use super::image::{load_image_from_path, load_image_from_path_for_target};
 use super::key::image_pixels_cache_key;
+use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+
+pub(super) enum CandidatePixelsLoad {
+    Ready(HostPaintImagePixels),
+    Missing,
+    Deferred,
+}
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_pixels_from_candidates(
     candidates: impl FnOnce() -> Vec<PathBuf>,
     base_key: &str,
     target: Option<RasterTargetSize>,
     tint: Option<[u8; 4]>,
+    damage_frame: Option<FrameRect>,
 ) -> Option<HostPaintImagePixels> {
+    match load_pixels_from_candidates_with_status(candidates, base_key, target, tint, damage_frame)
+    {
+        CandidatePixelsLoad::Ready(pixels) => Some(pixels),
+        CandidatePixelsLoad::Missing => None,
+        CandidatePixelsLoad::Deferred => return None,
+    }
+}
+
+pub(super) fn load_pixels_from_candidates_with_status(
+    candidates: impl FnOnce() -> Vec<PathBuf>,
+    base_key: &str,
+    target: Option<RasterTargetSize>,
+    tint: Option<[u8; 4]>,
+    damage_frame: Option<FrameRect>,
+) -> CandidatePixelsLoad {
     // Asset refresh invalidates this bounded cache, so stable paints need neither candidate
     // construction nor filesystem probing.
     let key = image_pixels_cache_key(base_key, target, tint);
     if let Some(cached) = cached_visual_asset_pixels(&key) {
         zircon_runtime::profile_counter!("editor", "ui.visual_asset_cache.hit_count", 1);
         record_current_ui_perf_counter(UiPerfCounter::VisualAssetCacheHitCount, 1.0);
-        return cached;
+        return match cached {
+            Some(pixels) => CandidatePixelsLoad::Ready(pixels),
+            None => CandidatePixelsLoad::Missing,
+        };
     }
     zircon_runtime::profile_counter!("editor", "ui.visual_asset_cache.miss_count", 1);
-    zircon_runtime::profile_counter!("editor", "ui.visual_asset_cache.candidate_build_count", 1);
     record_current_ui_perf_counter(UiPerfCounter::VisualAssetCacheMissCount, 1.0);
+    let candidates =
+        match schedule_visual_asset_load(&key, base_key, candidates, target, tint, damage_frame) {
+            VisualAssetLoadSchedule::Synchronous(candidates) => candidates,
+            VisualAssetLoadSchedule::Deferred => return CandidatePixelsLoad::Deferred,
+        };
+    zircon_runtime::profile_counter!("editor", "ui.visual_asset_cache.candidate_build_count", 1);
     record_current_ui_perf_counter(UiPerfCounter::VisualAssetCacheCandidateBuildCount, 1.0);
-    let candidates = candidates();
     let source_paths = candidates.clone();
+    let loaded = load_visual_asset_pixels_uncached(candidates, base_key, target, tint);
+
+    store_visual_asset_pixels(key, base_key, source_paths, loaded.clone());
+    match loaded {
+        Some(pixels) => CandidatePixelsLoad::Ready(pixels),
+        None => CandidatePixelsLoad::Missing,
+    }
+}
+
+pub(super) fn load_visual_asset_pixels_uncached(
+    candidates: Vec<PathBuf>,
+    base_key: &str,
+    target: Option<RasterTargetSize>,
+    tint: Option<[u8; 4]>,
+) -> Option<HostPaintImagePixels> {
     let path = {
         zircon_runtime::profile_scope!(
             "editor",
@@ -40,7 +86,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_pi
         first_existing_path(candidates)
     };
     let Some(path) = path else {
-        store_visual_asset_pixels(key, base_key, source_paths, None);
         return None;
     };
 
@@ -60,7 +105,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_pi
                         .and_then(|image| retained_image_pixels(&image, tint))
                 })
         } else {
-            load_image_from_path(&path).and_then(|image| retained_image_pixels(&image, tint))
+            load_image_from_path_for_target(&path, target)
+                .and_then(|image| retained_image_pixels(&image, tint))
         }
     }
     .map(|pixels| {
@@ -77,7 +123,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_pi
         },
     );
 
-    store_visual_asset_pixels(key, base_key, source_paths, loaded.clone());
     loaded
 }
 
@@ -90,7 +135,10 @@ fn icon_raster_resource_key(base_key: &str, content_key: &str) -> Option<String>
 mod tests {
     use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
-    use super::{icon_raster_resource_key, load_pixels_from_candidates};
+    use super::{
+        icon_raster_resource_key, load_pixels_from_candidates,
+        load_pixels_from_candidates_with_status, CandidatePixelsLoad,
+    };
 
     #[test]
     fn icon_raster_identity_can_preserve_the_content_addressed_pixel_key() {
@@ -118,6 +166,7 @@ mod tests {
             &base_key,
             None,
             None,
+            None,
         )
         .is_none());
         assert!(load_pixels_from_candidates(
@@ -128,9 +177,34 @@ mod tests {
             &base_key,
             None,
             None,
+            None,
         )
         .is_none());
 
         assert_eq!(candidate_builds.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn cached_missing_candidate_is_distinct_from_a_deferred_load() {
+        static NEXT_KEY: AtomicU64 = AtomicU64::new(1);
+        let base_key = format!(
+            "test:missing-candidate-status:{}",
+            NEXT_KEY.fetch_add(1, Ordering::Relaxed)
+        );
+
+        assert!(matches!(
+            load_pixels_from_candidates_with_status(Vec::new, &base_key, None, None, None),
+            CandidatePixelsLoad::Missing
+        ));
+        assert!(matches!(
+            load_pixels_from_candidates_with_status(
+                || panic!("cached missing entry must skip candidate construction"),
+                &base_key,
+                None,
+                None,
+                None,
+            ),
+            CandidatePixelsLoad::Missing
+        ));
     }
 }

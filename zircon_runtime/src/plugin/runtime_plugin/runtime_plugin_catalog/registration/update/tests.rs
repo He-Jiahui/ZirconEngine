@@ -7,6 +7,8 @@ use crate::plugin::{
     RuntimePluginRegistrationReport,
 };
 
+use super::super::super::PluginCatalogGeneration;
+
 #[test]
 fn candidate_update_appends_replaces_and_removes_in_one_published_generation() {
     let mut catalog = RuntimePluginCatalog::from_registration_reports(
@@ -58,7 +60,10 @@ fn candidate_update_appends_replaces_and_removes_in_one_published_generation() {
     );
     assert_eq!(
         catalog.projection_metrics().catalog_generation,
-        previous_metrics.catalog_generation + 1
+        previous_metrics
+            .catalog_generation
+            .checked_next()
+            .expect("candidate update generation should advance")
     );
     assert_eq!(
         catalog.projection_metrics().projection_builds,
@@ -172,6 +177,37 @@ fn candidate_update_indexes_each_source_row_once_at_scale() {
         assert_eq!(metrics.candidate_diagnostic_builds, 1);
         assert_eq!(metrics.published_generations, 1);
     }
+}
+
+#[test]
+fn terminal_catalog_generation_rejects_without_partial_publication() {
+    let mut catalog = RuntimePluginCatalog::from_registration_reports(
+        [package_report("a", "a.runtime")],
+        [feature_report("a")],
+    );
+    let manifest = crate::core::framework::project::ProjectPluginManifest::default();
+    let _ = catalog.compiled_project_plan(&manifest, RuntimeTargetMode::ClientRuntime);
+    catalog.catalog_generation = PluginCatalogGeneration::from_raw_for_test(u64::MAX);
+    let previous_projection = Arc::clone(&catalog.projection);
+    let previous_cache_count = catalog.cached_project_plan_count();
+    let previous_registration_count = catalog.registrations.len();
+
+    let mut update = catalog.update();
+    update.append_registration(package_report("b", "b.runtime"));
+    let outcome = update.publish();
+
+    assert!(outcome.is_rejected());
+    assert!(outcome
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.contains("generation space is exhausted")));
+    assert_eq!(
+        catalog.catalog_generation,
+        PluginCatalogGeneration::from_raw_for_test(u64::MAX)
+    );
+    assert_eq!(catalog.registrations.len(), previous_registration_count);
+    assert!(Arc::ptr_eq(&catalog.projection, &previous_projection));
+    assert_eq!(catalog.cached_project_plan_count(), previous_cache_count);
 }
 
 fn package_report(package_id: &str, module_name: &str) -> RuntimePluginRegistrationReport {

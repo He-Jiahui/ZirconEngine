@@ -12,6 +12,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes/plugin_inputs.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
@@ -66,7 +67,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`render_pipeline_asset/pass_authoring.rs` owns the compile-time lowering from filtered `RenderFeaturePassDescriptor` rows into a concrete `RenderGraphBuilder`. It creates graph handles, adds passes, writes pass metadata, maps declared resource accesses to builder calls, and returns the compiled graph plus `CompiledRenderPipelinePassStage` rows to `compile.rs`.
+`render_pipeline_asset/pass_authoring.rs` owns the compile-time lowering from filtered `RenderFeaturePassDescriptor` rows into a concrete `RenderGraphBuilder`. It creates graph handles, adds passes, records compiler-only `RenderGraphExecutionPassMetadata { RenderPassId, stage }`, maps declared resource accesses to builder calls, and returns the compiled graph plus that metadata to `compile.rs`. `CompiledRenderPipeline::from_parts(...)` then consumes both exactly once to create the immutable `RenderGraphExecutionPacket` used by frame execution.
 
 This keeps `compile.rs` as the orchestration boundary for validation, feature enablement, extract-section collection, capability collection, history binding collection, and frame-extract-dependent core particle descriptor insertion.
 
@@ -82,20 +83,20 @@ This keeps `compile.rs` as the orchestration boundary for validation, feature en
 
 Authoring happens in two phases.
 
-First, `author_graph_resources(...)` scans the resource plan from `pipeline_graph_resources(...)` and allocates the matching logical graph handle for each resource name. Texture resources call `RenderGraphBuilder::create_texture(...)`, buffer resources call `create_buffer(...)`, and external resources call `import_external_resource_with_binding(...)` so required/report-only texture or buffer metadata reaches compiled lifetimes.
+First, `author_graph_resources(...)` scans the resource plan from `pipeline_graph_resources(...)` and allocates the matching logical graph handle for each resource name. Texture resources call `RenderGraphBuilder::create_texture(...)`, buffer resources call `create_buffer(...)`, schema-backed external textures call `import_external_texture_with_binding(...)` with their resolved `TextureDesc`, and generic report-only externals call `import_external_resource_with_binding(...)`. The compiled graph therefore retains a physical descriptor contract wherever the product declared one.
 
 Second, `author_graph_passes(...)` walks renderer stages in asset order and asks the validation layer for pass descriptors belonging to each stage. Each pass receives:
 
 - a graph pass name and executor id;
-- the builder-scoped `RenderPassId` returned while authoring that exact pass, retained by `CompiledRenderPipelinePassStage` for direct execution lookup;
+- the builder-scoped `RenderPassId` returned while authoring that exact pass, retained only as compiler input for the packet's exact graph-ID-to-dense-index bijection;
 - the resolved queue lane from `RenderPipelineCompileOptions::resolve_queue(...)`, while preserving the descriptor's declared queue for diagnostics;
 - pass flags and optional compute workload metadata;
 - explicit resource read/write declarations mapped to the correct texture, buffer, or external graph handle;
-- a dependency on the previous authored pass to preserve the existing serial SRP stage order.
+- no synthetic previous-pass dependency; the graph compiler derives ordering from declared resource hazards and explicit dependencies.
 
 Post-process pass rows pass through `ordered_stage_pass_descriptors(...)` before graph authoring. That helper keeps the validation-layer descriptor filtering as the source of truth, then normalizes `post.bloom-extract` after the latest scene-color split producer and before exposure, scene composite, blur, LUT, uber, upscale, and output-transfer consumers. The authored graph therefore does not depend on asset declaration order for the Bloom dependency chain.
 
-Environment IBL expansion consumes the pass identities returned by `append_ibl_bake_artifact_graph_plan(...)` in artifact order. Final graph compilation rejects any generated-name collision, and stage execution resolves each row through its ID index before checking the retained name. This prevents a plugin pass from shadowing a generated IBL pass and removes the prior per-stage linear name scan over the compiled graph.
+Environment IBL expansion consumes the pass identities returned by `append_ibl_bake_artifact_graph_plan(...)` in artifact order. Final graph compilation rejects any generated-name collision. Packet construction resolves every final pass ID to one dense compiled-graph index, rejects duplicate or missing stage metadata, and stage execution reads that immutable index directly. This prevents a plugin pass from shadowing a generated IBL pass and removes steady-frame name and ID lookups from the stage pass path.
 
 ## Resource Access Rules
 
@@ -113,7 +114,7 @@ The module returns only `AuthoredRenderGraph` instead of exposing the builder or
 
 ## Test Coverage
 
-Existing compile source-contract tests exercise this module through public pipeline compilation. Stage preservation verifies `CompiledRenderPipelinePassStage` output, compute workload preservation verifies pass metadata survives authoring, and terminal post-process routing tests verify authored resource declarations match the filtered descriptors.
+Existing compile source-contract tests exercise this module through public pipeline compilation. Packet tests cover complete, duplicate, and missing final metadata; compile tests verify each packet index resolves to the graph pass carrying the same stage; compute workload preservation verifies pass metadata survives authoring; terminal post-process routing tests verify authored resource declarations match the filtered descriptors.
 
 Runtime89 adds behavioral coverage for final generated-name collision rejection and exact stage-ID-to-graph-pass mapping. Its release-only performance gate warms both paths once, then compares the former name scan with direct identity lookup across 2,048 passes using 21 alternating sample pairs and requires direct-lookup P95 to be no more than 25% of the legacy P95. These additions remain validation-pending until the grouped coordinator run produces a receipt.
 

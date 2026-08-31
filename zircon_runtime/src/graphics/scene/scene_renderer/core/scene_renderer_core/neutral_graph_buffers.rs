@@ -8,7 +8,7 @@ use crate::graphics::scene::scene_renderer::hzb::{
     HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE,
 };
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
-    LightGridParams, LIGHT_GRID_EMPTY_ZBIN_HEADER,
+    LIGHT_GRID_EMPTY_ZBIN_HEADER, LightGridParams,
 };
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_COMPACTION_METADATA_STRIDE_BYTES,
@@ -308,8 +308,10 @@ mod tests {
             .expect("neutral backing must have one mapped initialization helper");
         let zeroed_buffer = &source[zeroed_buffer_start..];
 
-        assert!(zeroed_buffer
-            .contains("let mut mapped_bytes = buffer.slice(..).get_mapped_range_mut();"));
+        assert!(
+            zeroed_buffer
+                .contains("let mut mapped_bytes = buffer.slice(..).get_mapped_range_mut();")
+        );
         assert!(zeroed_buffer.contains("let zeroes = vec![0; mapped_bytes.len()];"));
         assert!(zeroed_buffer.contains("mapped_bytes.copy_from_slice(&zeroes);"));
         assert!(zeroed_buffer.contains("drop(mapped_bytes);"));

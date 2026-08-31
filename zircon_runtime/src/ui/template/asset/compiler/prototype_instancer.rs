@@ -4,12 +4,19 @@ use std::sync::Arc;
 use toml::{map::Map, Value};
 
 use crate::ui::template::{UiPrototypeStore, UiTemplateInstance};
+use zircon_runtime_interface::ui::component::UiValue;
 use zircon_runtime_interface::ui::template::{
     parse_component_reference, UiAssetError, UiAssetKind, UiComponentPrototype,
     UiNodeDefinitionKind, UiNodePrototype, UiPrototypeChildMount, UiPrototypeNodeHandle,
     UiRawAssetPrototype, UiTemplateNode,
 };
 
+use super::binding_param_resolver::{resolve_binding_params, typed_component_params};
+use super::binding_program::compile_binding_program;
+use super::control_scope::{
+    resolve_binding_control_scope, resolve_optional_control_id, retarget_expanded_root_control_id,
+    validate_unique_control_ids, UiComponentControlScope,
+};
 use super::style_apply::{
     append_mui_style_classes, apply_mui_child_slot_props, apply_mui_root_slot_props_to_node,
     apply_mui_sx_to_node, apply_styles_to_tree, build_style_plan,
@@ -53,6 +60,8 @@ impl UiDocumentCompiler {
             root,
             tokens,
             BTreeMap::new(),
+            BTreeMap::new(),
+            None,
             None,
         )?;
         let mut root = roots
@@ -63,11 +72,14 @@ impl UiDocumentCompiler {
                 detail: "prototype expansion produced no root nodes".to_string(),
             })?;
 
+        validate_unique_control_ids(&root, &prototype.asset.id)?;
+
         apply_prototype_styles(&prototype, self, store, &mut root, &artifacts)?;
 
+        let binding_program = compile_binding_program(&root, &prototype.asset.id)?;
         Ok(UiCompiledDocument {
             asset: prototype.asset.clone(),
-            instance: UiTemplateInstance { root },
+            instance: UiTemplateInstance::with_binding_program(root, binding_program),
             resource_dependencies: Vec::new(),
             resource_diagnostics: Vec::new(),
         })
@@ -90,14 +102,18 @@ impl<'a> PrototypeInstancer<'a> {
         node: UiPrototypeNodeHandle,
         tokens: BTreeMap<String, Value>,
         params: BTreeMap<String, Value>,
+        binding_params: BTreeMap<String, UiValue>,
         slot_fills: Option<Arc<BTreeMap<String, Vec<UiTemplateNode>>>>,
+        control_scope: Option<UiComponentControlScope>,
     ) -> Result<Vec<UiTemplateNode>, UiAssetError> {
         let mut frames = vec![PrototypeFrame::Expand(PrototypeExpandTask {
             asset,
             node,
             tokens,
             params,
+            binding_params,
             slot_fills,
+            control_scope,
         })];
         let mut results = Vec::<Vec<UiTemplateNode>>::new();
 
@@ -193,7 +209,9 @@ impl<'a> PrototypeInstancer<'a> {
                 node: child.child,
                 tokens: task.tokens.clone(),
                 params: task.params.clone(),
+                binding_params: task.binding_params.clone(),
                 slot_fills: task.slot_fills.clone(),
+                control_scope: task.control_scope.clone(),
             }));
         }
         Ok(())
@@ -284,15 +302,33 @@ impl<'a> PrototypeInstancer<'a> {
         let call_tokens = call_tokens.unwrap_or_else(|| task.tokens.clone());
         let caller_tokens = task.tokens.clone();
         let params = task.params.clone();
+        let binding_params = task.binding_params.clone();
+        let component_root =
+            component_asset
+                .node(component.root)
+                .ok_or_else(|| UiAssetError::MissingNode {
+                    asset_id: component_asset.asset.id.clone(),
+                    node_id: format!("#{}", component.root.0),
+                })?;
+        let component_scope = UiComponentControlScope::child(
+            task.control_scope.as_ref(),
+            &node.node_id,
+            component_root.control_id.as_deref(),
+            node.control_id.as_deref(),
+        );
         frames.push(PrototypeFrame::FinalizeComponentFills(
             PrototypeComponentFillsFrame {
+                caller_asset_id: task.asset.asset.id.clone(),
                 component_asset,
                 component_name: component_name.to_string(),
                 component,
                 instance_node: node.clone(),
                 call_tokens,
                 params: params.clone(),
+                binding_params: binding_params.clone(),
                 child_mounts: child_mounts.clone(),
+                caller_scope: task.control_scope.clone(),
+                component_scope,
             },
         ));
         for child in child_mounts.iter().rev() {
@@ -301,7 +337,9 @@ impl<'a> PrototypeInstancer<'a> {
                 node: child.child,
                 tokens: caller_tokens.clone(),
                 params: params.clone(),
+                binding_params: binding_params.clone(),
                 slot_fills: None,
+                control_scope: task.control_scope.clone(),
             }));
         }
         Ok(())
@@ -325,14 +363,29 @@ impl<'a> PrototypeInstancer<'a> {
 
         let attributes =
             build_prototype_attribute_map(&frame.node, &frame.task.tokens, &frame.task.params);
+        let bindings = resolve_binding_control_scope(
+            resolve_binding_params(
+                frame.node.bindings,
+                &frame.task.binding_params,
+                &frame.task.asset.asset.id,
+            )?,
+            frame.task.control_scope.as_ref(),
+            &frame.task.asset.asset.id,
+        )?;
+        let binding_source_asset_ids = vec![frame.task.asset.asset.id.clone(); bindings.len()];
 
         results.push(vec![UiTemplateNode {
+            source_asset_id: Some(frame.task.asset.asset.id.clone()),
             component: Some(frame.component),
             template: None,
             slot: None,
-            control_id: frame.node.control_id,
+            control_id: resolve_optional_control_id(
+                frame.task.control_scope.as_ref(),
+                frame.node.control_id.as_deref(),
+            ),
             classes: frame.node.classes,
-            bindings: frame.node.bindings,
+            bindings,
+            binding_source_asset_ids,
             children: mounted,
             slots: BTreeMap::new(),
             attributes,
@@ -384,14 +437,22 @@ impl<'a> PrototypeInstancer<'a> {
             &frame.call_tokens,
             &frame.params,
         );
+        let component_binding_params = typed_component_params(
+            &frame.component.params,
+            &component_params,
+            &frame.component_asset.asset.id,
+        )?;
         let component_tokens = compose_tokens(&frame.call_tokens, &frame.component_asset.tokens);
         frames.push(PrototypeFrame::FinalizeComponentRoot(
             PrototypeComponentRootFrame {
                 asset_id: frame.component_asset.asset.id.clone(),
+                caller_asset_id: frame.caller_asset_id,
                 component_name: frame.component_name,
                 instance_node: frame.instance_node,
                 tokens: frame.call_tokens,
                 params: frame.params,
+                binding_params: frame.binding_params,
+                caller_scope: frame.caller_scope,
             },
         ));
         frames.push(PrototypeFrame::Expand(PrototypeExpandTask {
@@ -399,7 +460,9 @@ impl<'a> PrototypeInstancer<'a> {
             node: frame.component.root,
             tokens: component_tokens,
             params: component_params,
+            binding_params: component_binding_params,
             slot_fills: Some(Arc::new(fills)),
+            control_scope: Some(frame.component_scope),
         }));
         Ok(())
     }
@@ -428,7 +491,10 @@ impl<'a> PrototypeInstancer<'a> {
             &frame.instance_node,
             &frame.tokens,
             &frame.params,
-        );
+            &frame.binding_params,
+            &frame.caller_asset_id,
+            frame.caller_scope.as_ref(),
+        )?;
         results.push(vec![root]);
         Ok(())
     }
@@ -440,7 +506,9 @@ struct PrototypeExpandTask {
     node: UiPrototypeNodeHandle,
     tokens: BTreeMap<String, Value>,
     params: BTreeMap<String, Value>,
+    binding_params: BTreeMap<String, UiValue>,
     slot_fills: Option<Arc<BTreeMap<String, Vec<UiTemplateNode>>>>,
+    control_scope: Option<UiComponentControlScope>,
 }
 
 impl PrototypeExpandTask {
@@ -450,7 +518,9 @@ impl PrototypeExpandTask {
             node: self.node,
             tokens: self.tokens.clone(),
             params: self.params.clone(),
+            binding_params: self.binding_params.clone(),
             slot_fills: None,
+            control_scope: self.control_scope.clone(),
         }
     }
 }
@@ -470,21 +540,28 @@ struct PrototypeNativeFrame {
 }
 
 struct PrototypeComponentFillsFrame {
+    caller_asset_id: String,
     component_asset: Arc<UiRawAssetPrototype>,
     component_name: String,
     component: UiComponentPrototype,
     instance_node: UiNodePrototype,
     call_tokens: BTreeMap<String, Value>,
     params: BTreeMap<String, Value>,
+    binding_params: BTreeMap<String, UiValue>,
     child_mounts: Vec<UiPrototypeChildMount>,
+    caller_scope: Option<UiComponentControlScope>,
+    component_scope: UiComponentControlScope,
 }
 
 struct PrototypeComponentRootFrame {
     asset_id: String,
+    caller_asset_id: String,
     component_name: String,
     instance_node: UiNodePrototype,
     tokens: BTreeMap<String, Value>,
     params: BTreeMap<String, Value>,
+    binding_params: BTreeMap<String, UiValue>,
+    caller_scope: Option<UiComponentControlScope>,
 }
 
 #[derive(Default)]
@@ -574,12 +651,26 @@ fn decorate_prototype_component_root(
     instance_node: &UiNodePrototype,
     tokens: &BTreeMap<String, Value>,
     params: &BTreeMap<String, Value>,
-) {
-    if let Some(control_id) = &instance_node.control_id {
-        root.control_id = Some(control_id.clone());
+    binding_params: &BTreeMap<String, UiValue>,
+    asset_id: &str,
+    control_scope: Option<&UiComponentControlScope>,
+) -> Result<(), UiAssetError> {
+    if let Some(control_id) =
+        resolve_optional_control_id(control_scope, instance_node.control_id.as_deref())
+    {
+        retarget_expanded_root_control_id(root, control_id, asset_id)?;
     }
     append_classes(&mut root.classes, &instance_node.classes);
-    root.bindings.extend(instance_node.bindings.clone());
+    let instance_bindings = resolve_binding_control_scope(
+        resolve_binding_params(instance_node.bindings.clone(), binding_params, asset_id)?,
+        control_scope,
+        asset_id,
+    )?;
+    root.binding_source_asset_ids.extend(std::iter::repeat_n(
+        asset_id.to_string(),
+        instance_bindings.len(),
+    ));
+    root.bindings.extend(instance_bindings);
     merge_prototype_instance_props_override(&mut root.attributes, instance_node, tokens, params);
     merge_prototype_instance_layout_override(
         &mut root.style_overrides,
@@ -610,6 +701,7 @@ fn decorate_prototype_component_root(
     if let Some(widget) = &instance_node.widget {
         root.widget = widget.clone();
     }
+    Ok(())
 }
 
 fn merge_prototype_instance_props_override(

@@ -21,6 +21,7 @@ mod resource_store;
 mod scene_system_descriptor;
 mod scene_system_registry;
 mod schedule;
+mod schedule_build_receipt;
 mod schedule_conflict_graph;
 mod schedule_error;
 mod schedule_parallel_executor;
@@ -30,6 +31,7 @@ mod storage;
 mod storage_type;
 mod system;
 mod system_set;
+mod tick_context;
 
 pub use crate::core::framework::scene::SystemStage;
 pub use archetype::{
@@ -50,6 +52,9 @@ pub use change_detection::{
     ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
     ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, Mut, Ref,
 };
+pub(crate) use change_detection::{
+    ComponentMutationRecord, ComponentMutationRecorder, ComponentMutationSink,
+};
 pub use commands::{
     Command, CommandQueue, CommandQueueMetrics, Commands, CommandsParam, DeferredCommandError,
     DeferredCommandOperation, DeferredCommandReport, DeferredCommandTarget, DeferredEntity,
@@ -65,15 +70,13 @@ pub use component::{
 pub(crate) use component::{
     PreflightedTransferredDescriptorImports, TransferredComponentDescriptor,
 };
-pub use entity::{
-    DespawnedEntity, EntityLocation, EntityRegistry, EntityRegistryError, InternalEntity,
-    StableEntityLocation,
-};
+pub use entity::{EntityLocation, EntityRegistryError, StableEntityLocation};
+pub(crate) use entity::{EntityRegistry, InternalEntity};
 pub(crate) use events::EventObserverHandle;
 pub use events::{
     EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES, Event,
     EventCapacityMetrics, EventCursor, EventPayloadProfile, EventPayloadStorage, EventReadIter,
-    EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
+    EventReaderLease, EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
 };
 pub(crate) use frame_performance_diagnostics::DetachedEntityBatchOperationStats;
 pub use frame_performance_diagnostics::{
@@ -123,7 +126,11 @@ pub use query::{
     QueryMutIter, QuerySingleError, QueryState, QueryStateCacheStats, UniqueEntityArray, With,
     Without,
 };
-pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
+pub use removal::{
+    RemovedComponentEvent, RemovedComponentEventIter, RemovedComponentEvents,
+    RemovedComponentReadIter, RemovedComponentReader, RemovedComponentRetention,
+    RemovedComponentRetentionMetrics, RemovedComponentWriteReceipt,
+};
 pub use resource::{
     Resource, ResourceDescriptor, ResourceDescriptorSource, ResourceId, ResourceRegistry,
 };
@@ -132,6 +139,7 @@ pub(crate) use resource_store::TransferredResourceRow;
 pub use scene_system_descriptor::{SceneSystemDescriptor, SystemOrderingConstraint, SystemRef};
 pub use scene_system_registry::SceneSystemRegistry;
 pub use schedule::Schedule;
+pub use schedule_build_receipt::{ScheduleBuildDigest, ScheduleBuildReceipt};
 pub use schedule_conflict_graph::{
     ScheduleConflictEdge, ScheduleConflictGraph, ScheduleConflictNode, ScheduleConflictNodeKind,
     ScheduleParallelBatch,
@@ -142,13 +150,12 @@ pub use schedule_parallel_executor::{
     ScheduleParallelExecutionReport, ScheduleParallelExecutor, ScheduleParallelExecutorError,
     ScheduleParallelTaskRegistry,
 };
+pub(crate) use storage::ComponentStorage;
 pub(crate) use storage::PreflightedComponentInsert;
 pub(crate) use storage::PreflightedTransferredComponentRow;
 pub(crate) use storage::StoredComponent;
 pub(crate) use storage::TransferredComponentRow;
-pub use storage::{
-    ComponentRemoveResult, ComponentStorage, ComponentStorageLocation, StorageError,
-};
+pub use storage::{ComponentRemoveResult, ComponentStorageLocation, StorageError};
 pub use storage_type::StorageType;
 pub use system::{
     BoxedRuntimeSceneSystem, BoxedSceneSystem, EventReader, EventReaderParam, EventReaderState,
@@ -157,13 +164,16 @@ pub use system::{
     MessageReader, MessageReaderParam, MessageWriter, MessageWriterParam, ParamSet, ParamSetItem,
     ParamSetParam, Query, RemovedComponents, RemovedComponentsParam, Res, ResMut, ResMutParam,
     ResParam, RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem, SceneSystemClockDomain,
-    SceneSystemMetadata, SceneSystemThreadAffinity, SystemParam, SystemParamAccess,
-    SystemParamConflictKind, SystemParamError, SystemState, WorldlessFunctionSceneSystem,
-    WorldlessSystemParam,
+    SceneSystemMetadata, SceneSystemPauseBehavior, SceneSystemThreadAffinity,
+    SceneSystemTickPolicy, SystemParam, SystemParamAccess, SystemParamConflictKind,
+    SystemParamError, SystemState, WorldlessFunctionSceneSystem, WorldlessSystemParam,
 };
 pub use system_set::{SystemSetId, SystemSetRegistry};
+pub use tick_context::SystemTickContext;
 
 pub(crate) use query::single_from_iter;
-pub(crate) use schedule_runner::SceneScheduleRunner;
+pub(crate) use schedule_build_receipt::ResolvedScheduleEdge;
+pub(crate) use schedule_runner::{SceneScheduleRunner, SceneStageRunError};
 pub(crate) use schedule_stage_plan::SceneScheduleStagePlan;
 pub(crate) use system::{ScheduledSceneStep, ScheduledSceneStepRef, worldless_private};
+pub(crate) use tick_context::SceneStageTickContexts;

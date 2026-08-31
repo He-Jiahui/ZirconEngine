@@ -28,6 +28,61 @@ fn text_font_database_query_best_match_weight_distance() {
 }
 
 #[test]
+fn text_font_database_default_match_precedence_and_cache_invalidation() {
+    let mut database = FontDatabase::default();
+    let runtime = database
+        .register_stored_face(
+            FontFaceDescriptor::regular("Runtime Default"),
+            Arc::from([1_u8].as_slice()),
+            None,
+        )
+        .expect("register runtime default face");
+    let project = database
+        .register_stored_face(
+            FontFaceDescriptor::regular("Project Default"),
+            Arc::from([2_u8].as_slice()),
+            None,
+        )
+        .expect("register project default face");
+    assert!(database.set_runtime_default_primary_face(runtime));
+    assert!(database.set_runtime_default_ui_family("Runtime Default"));
+    let unspecified = FontQuery::single_family("");
+
+    assert_eq!(
+        database
+            .match_face(&unspecified)
+            .map(|matched| matched.face),
+        Some(runtime),
+        "an unspecified family must use the engine-owned runtime default"
+    );
+
+    assert!(database.set_default_ui_family("Project Default"));
+    assert_eq!(
+        database
+            .match_face(&unspecified)
+            .map(|matched| matched.face),
+        Some(project),
+        "a project default must replace a cached runtime-default match"
+    );
+
+    assert!(database.clear_default_ui_family());
+    assert_eq!(
+        database
+            .match_face(&unspecified)
+            .map(|matched| matched.face),
+        Some(runtime),
+        "clearing the project default must restore the runtime face"
+    );
+    assert_eq!(
+        database
+            .match_face(&FontQuery::single_family("Project Default"))
+            .map(|matched| matched.face),
+        Some(project),
+        "an explicit family must keep precedence over the runtime default"
+    );
+}
+
+#[test]
 fn text_font_database_private_alias_selects_packaged_face_without_shadowing_system_family() {
     let mut database = FontDatabase::default();
     let bytes: Arc<[u8]> = Arc::from(

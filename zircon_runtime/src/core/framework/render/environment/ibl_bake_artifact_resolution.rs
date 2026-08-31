@@ -63,6 +63,52 @@ pub struct IblBakeArtifactResolvedPayload {
 }
 
 impl IblBakeArtifactResolvedPayload {
+    pub(crate) fn resolve_borrowed_blob_sources(
+        request: &IblBakeArtifactRequest,
+        asset_derived_blobs: &[IblBakeArtifactBlob],
+        runtime_cache_blob: Option<&IblBakeArtifactBlob>,
+    ) -> Self {
+        let mut descriptor_candidates = Vec::with_capacity(
+            asset_derived_blobs.len() + usize::from(runtime_cache_blob.is_some()),
+        );
+        descriptor_candidates.extend(
+            asset_derived_blobs
+                .iter()
+                .map(|blob| IblBakeArtifactCandidate::asset_derived(blob.descriptor())),
+        );
+        if let Some(blob) = runtime_cache_blob {
+            descriptor_candidates.push(IblBakeArtifactCandidate::runtime_cache(blob.descriptor()));
+        }
+
+        let selection = select_ibl_bake_artifact(request, &descriptor_candidates);
+        let blob = selection.descriptor().and_then(|descriptor| {
+            let selected = match selection.source() {
+                IblBakeArtifactSource::AssetDerivedArtifact => {
+                    asset_derived_blobs.iter().find(|blob| {
+                        blob.descriptor() == descriptor
+                            && descriptor_is_current_for_source(
+                                request,
+                                IblBakeArtifactSource::AssetDerivedArtifact,
+                                descriptor,
+                            )
+                    })
+                }
+                IblBakeArtifactSource::RuntimeCache => runtime_cache_blob.filter(|blob| {
+                    blob.descriptor() == descriptor
+                        && descriptor_is_current_for_source(
+                            request,
+                            IblBakeArtifactSource::RuntimeCache,
+                            descriptor,
+                        )
+                }),
+                IblBakeArtifactSource::RuntimeCompute => None,
+            };
+            selected.cloned()
+        });
+
+        Self { selection, blob }
+    }
+
     pub const fn selection(&self) -> IblBakeArtifactSelection {
         self.selection
     }
@@ -130,3 +176,7 @@ fn descriptor_is_current_for_source(
         IblBakeArtifactSource::RuntimeCompute => false,
     }
 }
+
+#[cfg(test)]
+#[path = "ibl_bake_artifact_resolution/tests.rs"]
+mod tests;

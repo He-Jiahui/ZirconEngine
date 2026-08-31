@@ -39,7 +39,7 @@ impl EditorPluginCatalogEntry {
     fn from_registration(registration: &EditorPluginRegistrationReport) -> Self {
         let package = &registration.package_manifest;
         let mut capabilities = registration.capabilities.clone();
-        capabilities.sort();
+        capabilities.sort_unstable();
         capabilities.dedup();
         let crate_name = package
             .modules

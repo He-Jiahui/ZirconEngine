@@ -1,4 +1,5 @@
-use std::sync::{Arc, mpsc};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
 use super::super::worker::SinkRuntime;
@@ -50,6 +51,34 @@ fn full_queue_records_capacity_as_the_high_water_mark() {
     let snapshot = runtime.snapshot();
     assert_eq!(snapshot.queue_depth, 2);
     assert_eq!(snapshot.max_queue_depth, 2);
+
+    writer.release();
+    assert!(runtime.shutdown(Duration::from_secs(2)));
+}
+
+#[test]
+fn full_queue_does_not_evaluate_best_effort_lazy_message() {
+    let writer = BlockingOutput::default();
+    let runtime = SinkRuntime::start(
+        Some(Box::new(writer.clone())),
+        false,
+        one_record_blocking_settings(),
+    )
+    .expect("sink worker");
+
+    assert!(runtime.enqueue(DiagnosticLogLevel::Log, "runtime", "in-flight"));
+    writer.wait_until_blocked();
+    assert!(runtime.enqueue(DiagnosticLogLevel::Log, "runtime", "queued"));
+
+    let evaluated = AtomicBool::new(false);
+    assert!(
+        !runtime.enqueue_lazy(DiagnosticLogLevel::Debug, "runtime", || {
+            evaluated.store(true, Ordering::Relaxed);
+            "dropped"
+        })
+    );
+    assert!(!evaluated.load(Ordering::Relaxed));
+    assert_eq!(runtime.snapshot().dropped_debug, 1);
 
     writer.release();
     assert!(runtime.shutdown(Duration::from_secs(2)));
@@ -116,11 +145,9 @@ fn full_queue_bounds_critical_producer_wait_and_records_drops() {
         result.expect("critical producer must return after its bounded enqueue timeout")
     });
     assert!(completed.iter().all(|(_, accepted, _)| !accepted));
-    assert!(
-        completed
-            .iter()
-            .all(|(_, _, elapsed)| *elapsed < Duration::from_millis(250))
-    );
+    assert!(completed
+        .iter()
+        .all(|(_, _, elapsed)| *elapsed < Duration::from_millis(250)));
     let snapshot = runtime.snapshot();
     assert_eq!(snapshot.dropped_warn, 1);
     assert_eq!(snapshot.dropped_error, 1);

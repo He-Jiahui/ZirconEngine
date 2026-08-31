@@ -1,10 +1,10 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fmt;
 
-use crate::scene::ecs::{
-    component::TableColumnLayout, storage::StoredComponent, ChangeTick, ComponentId, ComponentTicks,
-};
 use crate::scene::EntityId;
+use crate::scene::ecs::{
+    ChangeTick, ComponentId, ComponentTicks, component::TableColumnLayout, storage::StoredComponent,
+};
 
 use super::column::ArchetypeColumn;
 use super::error::ArchetypeTableError;
@@ -98,42 +98,47 @@ impl ArchetypeTable {
         source_component_ids: impl IntoIterator<Item = ComponentId>,
         updates: &BTreeMap<ComponentId, Option<(StoredComponent, ComponentTicks)>>,
     ) -> Result<(), ArchetypeTableError> {
-        let mut final_component_ids = source_component_ids.into_iter().collect::<BTreeSet<_>>();
-        for (component_id, update) in updates {
-            match update {
-                Some((value, _)) => {
-                    let Some(column) = self.column(*component_id) else {
-                        return Err(ArchetypeTableError::UnexpectedComponentColumn {
-                            component_id: *component_id,
-                        });
-                    };
-                    if !column.accepts(value) {
-                        return Err(ArchetypeTableError::ComponentTypeMismatch {
-                            component_id: *component_id,
-                            expected_type: column.type_name(),
-                        });
-                    }
-                    final_component_ids.insert(*component_id);
-                }
-                None => {
-                    final_component_ids.remove(component_id);
-                }
-            }
-        }
+        let mut final_component_ids = source_component_ids.into_iter().collect::<Vec<_>>();
+        final_component_ids.sort_unstable();
+        final_component_ids.dedup();
 
-        for component_id in &final_component_ids {
-            if self.column_slot(*component_id).is_none() {
+        let mut inserted_component_count = 0_usize;
+        for (component_id, update) in updates {
+            let Some((value, _)) = update else {
+                continue;
+            };
+            let Some(column) = self.column(*component_id) else {
                 return Err(ArchetypeTableError::UnexpectedComponentColumn {
                     component_id: *component_id,
                 });
-            }
-        }
-        for (component_id, _) in &self.columns {
-            if !final_component_ids.contains(component_id) {
-                return Err(ArchetypeTableError::MissingComponentColumn {
+            };
+            if !column.accepts(value) {
+                return Err(ArchetypeTableError::ComponentTypeMismatch {
                     component_id: *component_id,
+                    expected_type: column.type_name(),
                 });
             }
+            if final_component_ids.binary_search(component_id).is_err() {
+                inserted_component_count = inserted_component_count.saturating_add(1);
+            }
+        }
+        final_component_ids.reserve(inserted_component_count);
+        apply_component_membership_updates(
+            &mut final_component_ids,
+            updates
+                .iter()
+                .map(|(component_id, update)| (*component_id, update.is_some())),
+        );
+
+        if let Some(component_id) =
+            first_unexpected_component(&final_component_ids, self.component_ids())
+        {
+            return Err(ArchetypeTableError::UnexpectedComponentColumn { component_id });
+        }
+        if let Some(component_id) =
+            first_missing_component(&final_component_ids, self.component_ids())
+        {
+            return Err(ArchetypeTableError::MissingComponentColumn { component_id });
         }
         Ok(())
     }
@@ -360,11 +365,208 @@ impl ArchetypeTable {
     }
 }
 
+fn apply_component_membership_updates(
+    component_ids: &mut Vec<ComponentId>,
+    updates: impl IntoIterator<Item = (ComponentId, bool)>,
+) {
+    for (component_id, present) in updates {
+        match (component_ids.binary_search(&component_id), present) {
+            (Err(slot), true) => component_ids.insert(slot, component_id),
+            (Ok(slot), false) => {
+                component_ids.remove(slot);
+            }
+            _ => {}
+        }
+    }
+}
+
+fn first_unexpected_component(
+    component_ids: &[ComponentId],
+    target_component_ids: impl IntoIterator<Item = ComponentId>,
+) -> Option<ComponentId> {
+    let mut targets = target_component_ids.into_iter().peekable();
+    for component_id in component_ids.iter().copied() {
+        while targets.peek().is_some_and(|target| *target < component_id) {
+            targets.next();
+        }
+        if targets.peek().copied() != Some(component_id) {
+            return Some(component_id);
+        }
+        targets.next();
+    }
+    None
+}
+
+fn first_missing_component(
+    component_ids: &[ComponentId],
+    target_component_ids: impl IntoIterator<Item = ComponentId>,
+) -> Option<ComponentId> {
+    let mut components = component_ids.iter().copied().peekable();
+    for target_component_id in target_component_ids {
+        while components
+            .peek()
+            .is_some_and(|component| *component < target_component_id)
+        {
+            components.next();
+        }
+        if components.peek().copied() != Some(target_component_id) {
+            return Some(target_component_id);
+        }
+        components.next();
+    }
+    None
+}
+
 impl fmt::Debug for ArchetypeTable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ArchetypeTable")
             .field("entities", &self.entities)
             .field("component_ids", &self.component_ids().collect::<Vec<_>>())
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    use super::*;
+
+    #[test]
+    fn runtime99i_contiguous_transition_validation_normalizes_and_applies_sorted_delta() {
+        let mut component_ids = vec![
+            ComponentId::new(4),
+            ComponentId::new(1),
+            ComponentId::new(4),
+            ComponentId::new(2),
+        ];
+        component_ids.sort_unstable();
+        component_ids.dedup();
+        apply_component_membership_updates(
+            &mut component_ids,
+            [
+                (ComponentId::new(2), false),
+                (ComponentId::new(3), true),
+                (ComponentId::new(9), false),
+            ],
+        );
+
+        assert_eq!(
+            component_ids,
+            vec![
+                ComponentId::new(1),
+                ComponentId::new(3),
+                ComponentId::new(4)
+            ]
+        );
+    }
+
+    #[test]
+    fn runtime99i_contiguous_transition_validation_preserves_error_precedence() {
+        let final_component_ids = [ComponentId::new(2)];
+        let target_component_ids = [ComponentId::new(1)];
+
+        assert_eq!(
+            first_unexpected_component(&final_component_ids, target_component_ids.iter().copied()),
+            Some(ComponentId::new(2))
+        );
+        assert_eq!(
+            first_missing_component(&final_component_ids, target_component_ids.iter().copied()),
+            Some(ComponentId::new(1))
+        );
+    }
+
+    #[test]
+    #[ignore = "release performance evidence; run through the validation coordinator"]
+    fn optimization_batch_20260827_runtime99i_contiguous_transition_validation_evidence() {
+        fn legacy_component_ids(
+            source: &[ComponentId],
+            updates: &BTreeMap<ComponentId, bool>,
+        ) -> Vec<ComponentId> {
+            let mut component_ids = source.iter().copied().collect::<BTreeSet<_>>();
+            for (component_id, present) in updates {
+                if *present {
+                    component_ids.insert(*component_id);
+                } else {
+                    component_ids.remove(component_id);
+                }
+            }
+            component_ids.into_iter().collect()
+        }
+
+        fn contiguous_component_ids(
+            source: &[ComponentId],
+            updates: &BTreeMap<ComponentId, bool>,
+        ) -> Vec<ComponentId> {
+            let mut component_ids = source.to_vec();
+            component_ids.sort_unstable();
+            component_ids.dedup();
+            let inserted_component_count = updates
+                .iter()
+                .filter(|(component_id, present)| {
+                    **present && component_ids.binary_search(component_id).is_err()
+                })
+                .count();
+            component_ids.reserve(inserted_component_count);
+            apply_component_membership_updates(
+                &mut component_ids,
+                updates
+                    .iter()
+                    .map(|(component_id, present)| (*component_id, *present)),
+            );
+            component_ids
+        }
+
+        const COMPONENT_COUNT: usize = 8_192;
+        const CHANGE_COUNT: usize = 64;
+        const SAMPLE_COUNT: usize = 21;
+        let source = (0..COMPONENT_COUNT)
+            .map(ComponentId::new)
+            .collect::<Vec<_>>();
+        let mut updates = BTreeMap::new();
+        for index in 0..CHANGE_COUNT {
+            updates.insert(ComponentId::new(index * 17), false);
+            updates.insert(ComponentId::new(COMPONENT_COUNT + index), true);
+        }
+        assert_eq!(
+            legacy_component_ids(&source, &updates),
+            contiguous_component_ids(&source, &updates)
+        );
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_COUNT);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_COUNT);
+        for _ in 0..SAMPLE_COUNT {
+            let started = Instant::now();
+            black_box(legacy_component_ids(
+                black_box(&source),
+                black_box(&updates),
+            ));
+            legacy_samples.push(started.elapsed().as_nanos());
+
+            let started = Instant::now();
+            black_box(contiguous_component_ids(
+                black_box(&source),
+                black_box(&updates),
+            ));
+            optimized_samples.push(started.elapsed().as_nanos());
+        }
+        legacy_samples.sort_unstable();
+        optimized_samples.sort_unstable();
+        let legacy_p95 = legacy_samples[(SAMPLE_COUNT - 1) * 95 / 100];
+        let optimized_p95 = optimized_samples[(SAMPLE_COUNT - 1) * 95 / 100];
+        println!(
+            "RUNTIME99I_CONTIGUOUS_TRANSITION_VALIDATION_BENCH_V1 components={} changes={} legacy_p95_ns={} optimized_p95_ns={} legacy_tree_admissions={} optimized_contiguous_buffers=1 target_ratio_bp=6000",
+            source.len(),
+            updates.len(),
+            legacy_p95,
+            optimized_p95,
+            source.len(),
+        );
+        assert!(
+            optimized_p95 * 100 <= legacy_p95 * 60,
+            "contiguous transition validation P95 {optimized_p95} ns exceeded 60% of legacy {legacy_p95} ns"
+        );
     }
 }

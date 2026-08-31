@@ -9,6 +9,8 @@ use zircon_runtime_interface::ui::{
     layout::UiFrame,
 };
 
+const MAX_HOST_REQUESTS_PER_INPUT_METHOD_REQUEST: usize = 3;
+
 pub(super) fn append_ime_host_requests_for_result(
     result: &UiInputDispatchResult,
     output: &mut Vec<ImeHostRequest>,
@@ -25,9 +27,15 @@ pub(super) fn append_ime_host_requests_for_input_method_requests(
     requests: impl IntoIterator<Item = UiInputMethodRequest>,
     output: &mut Vec<ImeHostRequest>,
 ) {
+    let requests = requests.into_iter();
+    reserve_ime_host_request_capacity(output, requests.size_hint().0);
     for request in requests {
         append_ime_host_requests_for_input_method_request(&request, output);
     }
+}
+
+fn reserve_ime_host_request_capacity(output: &mut Vec<ImeHostRequest>, request_count: usize) {
+    output.reserve(request_count.saturating_mul(MAX_HOST_REQUESTS_PER_INPUT_METHOD_REQUEST));
 }
 
 fn append_ime_host_requests_for_input_method_request(
@@ -74,3 +82,7 @@ fn ime_surrounding_text(text: &UiInputMethodSurroundingText) -> Option<ImeSurrou
         ),
     )
 }
+
+#[cfg(test)]
+#[path = "ime_host_requests/reserve_capacity_tests.rs"]
+mod reserve_capacity_tests;

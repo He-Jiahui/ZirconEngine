@@ -2,12 +2,12 @@ use std::any::TypeId;
 use std::cell::Cell;
 
 use super::{SceneError, SceneResult, World};
+use crate::scene::EntityId;
 use crate::scene::components::{Hierarchy, Mobility, NodeRecord};
 use crate::scene::ecs::{
     ArchetypeSignature, BundleStaging, Component, ComponentId, ComponentTicks, InternalEntity,
     LifecycleEventKind, PreflightedComponentInsert, StorageType,
 };
-use crate::scene::EntityId;
 
 mod deferred_bundle_commit;
 mod deferred_bundle_removals;
@@ -346,9 +346,7 @@ impl<'world> BundleInsertionTransaction<'world> {
 
     pub(super) fn new_spawn(world: &'world mut World, record: NodeRecord) -> SceneResult<Self> {
         let entity = record.id;
-        let spawn_next_id = entity
-            .checked_add(1)
-            .ok_or(SceneError::EntityIdExhausted { entity })?;
+        let spawn_next_id = world.entity_id_allocator.next_after(entity)?;
         let mut transaction = Self {
             world,
             entity,
@@ -555,7 +553,10 @@ impl<'world> BundleInsertionTransaction<'world> {
                 let internal = self
                     .world
                     .register_prevalidated_node_identity_without_components(&record);
-                self.world.next_id = self.world.next_id.max(next_id);
+                self.world
+                    .entity_id_allocator
+                    .replace_next(next_id)
+                    .expect("preflighted bundle spawn must retain a valid entity allocator state");
                 (internal, true)
             }
         };
@@ -578,9 +579,7 @@ impl<'world> BundleInsertionTransaction<'world> {
             return Ok(transaction);
         }
         let entity = record.id;
-        let spawn_next_id = entity
-            .checked_add(1)
-            .ok_or(SceneError::EntityIdExhausted { entity })?;
+        let spawn_next_id = world.entity_id_allocator.next_after(entity)?;
         Ok(Self {
             world,
             entity,

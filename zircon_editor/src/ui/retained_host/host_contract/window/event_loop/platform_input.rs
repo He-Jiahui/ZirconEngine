@@ -1,13 +1,13 @@
-use winit::event::WindowEvent;
+use winit::dpi::PhysicalPosition;
+use winit::event::{DeviceId, PointerSource, WindowEvent};
 use zircon_runtime::ui::platform_input::{translate_winit_modifiers, translate_winit_window_event};
 use zircon_runtime_interface::ui::{
-    dispatch::{UiInputEvent, UiInputSequence, UiKeyboardInputEvent, UiPointerInputEvent},
-    layout::{UiPoint, UiSize},
-    surface::UiPointerEventKind,
-    window::{
-        UiWindowEventKind, UiWindowInputContext, UiWindowInputPumpEvent, UiWindowMetrics,
-        UiWindowPixelSize,
+    dispatch::{
+        UiInputEvent, UiInputEventMetadata, UiInputSequence, UiKeyboardInputEvent,
+        UiPointerInputEvent,
     },
+    layout::{UiPoint, UiSize},
+    window::{UiWindowInputContext, UiWindowInputPumpEvent, UiWindowMetrics, UiWindowPixelSize},
 };
 
 use super::UiHostWindowEventLoop;
@@ -23,6 +23,30 @@ impl UiHostWindowEventLoop {
         event: &WindowEvent,
     ) -> PlatformInputTranslation {
         let metadata = self.next_input_metadata();
+        self.translate_platform_input_event_with_metadata(metadata, event)
+    }
+
+    pub(super) fn translate_reserved_pointer_move_event(
+        &self,
+        mut metadata: UiInputEventMetadata,
+        device_id: Option<DeviceId>,
+        position: PhysicalPosition<f64>,
+    ) -> PlatformInputTranslation {
+        super::super::metadata::attach_native_window_id(&mut metadata);
+        let event = WindowEvent::PointerMoved {
+            device_id,
+            position,
+            primary: true,
+            source: PointerSource::Mouse,
+        };
+        self.translate_platform_input_event_with_metadata(metadata, &event)
+    }
+
+    fn translate_platform_input_event_with_metadata(
+        &self,
+        metadata: UiInputEventMetadata,
+        event: &WindowEvent,
+    ) -> PlatformInputTranslation {
         let sequence = metadata.sequence;
         let context = UiWindowInputContext {
             metadata,
@@ -120,24 +144,23 @@ pub(super) fn platform_pointer_input(
 ) -> Option<UiPointerInputEvent> {
     match event? {
         UiWindowInputPumpEvent::Input(UiInputEvent::Pointer(pointer)) => Some(pointer),
+        UiWindowInputPumpEvent::Window(window) => match window.normalized_cursor_move_input()? {
+            UiInputEvent::Pointer(pointer) => Some(pointer),
+            _ => None,
+        },
         _ => None,
     }
 }
 
-pub(super) fn platform_pointer_move_point(
+pub(super) fn platform_pointer_cancel_input(
     event: Option<UiWindowInputPumpEvent>,
-) -> Option<UiPoint> {
-    match event? {
-        UiWindowInputPumpEvent::Window(window) => match window.kind {
-            UiWindowEventKind::CursorMoved { position, .. } => Some(position),
-            _ => None,
-        },
-        UiWindowInputPumpEvent::Input(UiInputEvent::Pointer(pointer))
-            if !pointer.metadata.pointer_source.is_touch_like()
-                && matches!(pointer.event.kind, UiPointerEventKind::Move) =>
-        {
-            Some(pointer.event.point)
-        }
+    point: UiPoint,
+) -> Option<UiPointerInputEvent> {
+    let UiWindowInputPumpEvent::Window(window) = event? else {
+        return None;
+    };
+    match window.normalized_pointer_cancel_input(point)? {
+        UiInputEvent::Pointer(pointer) => Some(pointer),
         _ => None,
     }
 }

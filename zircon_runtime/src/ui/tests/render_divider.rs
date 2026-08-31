@@ -1,7 +1,7 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
-    layout::UiFrame,
+    layout::{UiFrame, UiPixelSnappingPolicy},
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
@@ -72,6 +72,45 @@ fn render_extract_expands_middle_horizontal_divider_with_relative_insets() {
             .count(),
         1,
         "the custom divider must suppress its generic owner surface"
+    );
+}
+
+#[test]
+fn divider_preserves_fractional_logical_geometry_until_device_pixel_snapping() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.divider.fractional"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/divider"))
+                .with_frame(UiFrame::new(8.25, 10.5, 200.5, 20.25))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Divider".to_string(),
+                    pixel_snapping: UiPixelSnappingPolicy::SnapToPixel,
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let line = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2))
+        .expect("fractional divider should emit one line command");
+    assert!(frame_approx(line.frame, 8.25, 20.125, 200.5, 1.0));
+    assert_eq!(
+        line.style.pixel_snapping,
+        UiPixelSnappingPolicy::SnapToPixel
     );
 }
 
@@ -216,4 +255,11 @@ fn disabled_state() -> UiStateFlags {
         enabled: false,
         ..UiStateFlags::default()
     }
+}
+
+fn frame_approx(actual: UiFrame, x: f32, y: f32, width: f32, height: f32) -> bool {
+    (actual.x - x).abs() < 0.000_1
+        && (actual.y - y).abs() < 0.000_1
+        && (actual.width - width).abs() < 0.000_1
+        && (actual.height - height).abs() < 0.000_1
 }

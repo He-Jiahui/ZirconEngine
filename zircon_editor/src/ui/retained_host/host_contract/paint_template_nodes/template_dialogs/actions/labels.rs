@@ -4,7 +4,7 @@ use crate::ui::retained_host::host_contract::paint_text::measure_runtime_text_wi
 
 pub(super) fn action_label(node: &TemplatePaneNodeData, index: usize) -> Option<String> {
     node.actions
-        .row_data(index)
+        .get(index)
         .and_then(|action| non_empty(action.label.as_str()).map(str::to_string))
 }
 

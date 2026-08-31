@@ -2,17 +2,17 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
+use crate::text::FontFaceId;
 use crate::text::font::FontDatabase;
 use crate::text::sdf::{
     SdfBakeParams, SdfGenerationCompletionDrainBudget, SdfGenerationInactiveWorkOutcome,
     SdfGenerationScheduler, SdfGenerationSourceContext, SdfGenerationSourceHandle,
     SdfGenerationWorkId, SdfGlyphGenerationError,
 };
-use crate::text::FontFaceId;
 
 use super::distance_field::{glyph_id_for_key, raw_baked_glyph};
 use super::dynamic_batch::missing_outline;
-use super::{fallback_metrics, RawBakedGlyph, SdfAtlasGlyphKey, SdfAtlasSlot, SdfFontBakeCache};
+use super::{RawBakedGlyph, SdfAtlasGlyphKey, SdfAtlasSlot, SdfFontBakeCache, fallback_metrics};
 
 const COMPLETION_DRAIN_BATCH_BUDGET: usize = 64;
 const COMPLETION_DRAIN_BYTE_BUDGET: usize = 16 * 1024 * 1024;
@@ -91,6 +91,14 @@ impl SdfAsyncGenerationState {
     }
 }
 
+fn take_async_batch(
+    entries: &mut impl Iterator<Item = AsyncBatchEntry>,
+    max_entries: usize,
+) -> Vec<AsyncBatchEntry> {
+    assert!(max_entries > 0, "async SDF batch size must be nonzero");
+    entries.by_ref().take(max_entries).collect::<Vec<_>>()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,6 +142,30 @@ mod tests {
             Some(&SdfGlyphGenerationError::WorkerPanic)
         );
     }
+
+    #[test]
+    fn moved_async_batches_preserve_boundaries_and_entry_order() {
+        fn glyph_ids(entries: Vec<AsyncBatchEntry>) -> Vec<u16> {
+            entries.into_iter().map(|entry| entry.glyph_id).collect()
+        }
+
+        let mut entries = (1..=5)
+            .map(|glyph_id| AsyncBatchEntry {
+                key: test_key(),
+                face: FontFaceId(9),
+                glyph_id,
+            })
+            .collect::<Vec<_>>()
+            .into_iter();
+
+        let first = take_async_batch(&mut entries, 2);
+        let second = take_async_batch(&mut entries, 2);
+        let third = take_async_batch(&mut entries, 2);
+        assert_eq!(glyph_ids(first), vec![1, 2]);
+        assert_eq!(glyph_ids(second), vec![3, 4]);
+        assert_eq!(glyph_ids(third), vec![5]);
+        assert!(take_async_batch(&mut entries, 2).is_empty());
+    }
 }
 
 impl SdfFontBakeCache {
@@ -161,7 +193,7 @@ impl SdfFontBakeCache {
                 continue;
             }
 
-            let faces = self.resolve_faces_for_key_cached(&slot.key, font_database, asset_manager);
+            let faces = self.resolve_faces_for_key_cached(&slot.key, font_database);
             let shaped_resolution = self
                 .shaped_face_resolutions
                 .get(&slot.key)
@@ -257,9 +289,14 @@ impl SdfFontBakeCache {
             }
         }
 
+        let batch_size = scheduler.max_glyphs_per_batch();
         for group in groups {
-            for entries in group.entries.chunks(scheduler.max_glyphs_per_batch()) {
-                let entries = entries.to_vec();
+            let mut group_entries = group.entries.into_iter();
+            loop {
+                let entries = take_async_batch(&mut group_entries, batch_size);
+                if entries.is_empty() {
+                    break;
+                }
                 let glyph_ids = entries
                     .iter()
                     .map(|entry| entry.glyph_id)

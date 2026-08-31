@@ -12,6 +12,11 @@ impl RuntimeOperationService {
         loop {
             let (completion, lost_batches) = self.take_prepare_completion();
             let has_lost_batches = !lost_batches.is_empty();
+            crate::profile_counter!(
+                "runtime",
+                "operation.completion_lost_rows",
+                lost_batches.iter().map(Vec::len).sum::<usize>()
+            );
             for handles in lost_batches {
                 terminal_transition |= self.fail_worker_completion_channel(&handles);
             }
@@ -21,6 +26,7 @@ impl RuntimeOperationService {
                 }
                 continue;
             };
+            crate::profile_counter!("runtime", "operation.completion_rows", 1);
             terminal_transition |= self.apply_prepare_completion(completion);
         }
         if terminal_transition {
@@ -35,9 +41,15 @@ impl RuntimeOperationService {
         Vec<Vec<ZrRuntimeOperationHandle>>,
     ) {
         let mut receivers = self.lock_completion_receivers();
+        crate::profile_counter!(
+            "runtime",
+            "operation.completion_receiver_rows",
+            receivers.len()
+        );
         let mut lost_batches = Vec::new();
         let mut index = 0;
         while index < receivers.len() {
+            crate::profile_counter!("runtime", "operation.completion_receiver_probe", 1);
             match receivers[index].receiver.try_recv() {
                 Ok(completion) => return (Some(completion), lost_batches),
                 Err(TryRecvError::Empty) => index += 1,

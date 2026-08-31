@@ -35,16 +35,26 @@ fn alert_tone(node: &TemplatePaneNodeData) -> Option<AlertTone> {
 }
 
 fn tone_from_key(key: &str) -> Option<AlertTone> {
-    let key = key.to_ascii_lowercase();
-    if key.contains("warning") {
+    if contains_ignore_ascii_case(key, "warning") {
         Some(AlertTone::Warning)
-    } else if key.contains("error") || key.contains("danger") || key.contains("failed") {
+    } else if contains_ignore_ascii_case(key, "error")
+        || contains_ignore_ascii_case(key, "danger")
+        || contains_ignore_ascii_case(key, "failed")
+    {
         Some(AlertTone::Error)
-    } else if key.contains("success") || key.contains("check") {
+    } else if contains_ignore_ascii_case(key, "success") || contains_ignore_ascii_case(key, "check")
+    {
         Some(AlertTone::Success)
-    } else if key.contains("info") {
+    } else if contains_ignore_ascii_case(key, "info") {
         Some(AlertTone::Info)
     } else {
         None
     }
+}
+
+fn contains_ignore_ascii_case(value: &str, needle: &str) -> bool {
+    value
+        .as_bytes()
+        .windows(needle.len())
+        .any(|window| window.eq_ignore_ascii_case(needle.as_bytes()))
 }

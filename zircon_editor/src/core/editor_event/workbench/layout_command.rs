@@ -50,6 +50,10 @@ pub enum LayoutCommand {
         slot: ActivityDrawerSlot,
         extent: f32,
     },
+    SetDrawerRegionExtent {
+        slot: ActivityDrawerSlot,
+        extent: f32,
+    },
     ActivateDrawerTab {
         slot: ActivityDrawerSlot,
         instance_id: ViewInstanceId,

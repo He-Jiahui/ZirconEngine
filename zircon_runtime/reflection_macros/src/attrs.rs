@@ -11,6 +11,8 @@ pub(crate) fn parse_script_type_attrs(attrs: &[Attribute]) -> syn::Result<Script
         attr.parse_nested_meta(|meta| {
             if meta.path.is_ident("name") {
                 args.name = Some(parse_lit_str(meta)?);
+            } else if meta.path.is_ident("identity") {
+                args.identity = Some(parse_lit_str(meta)?);
             } else if meta.path.is_ident("value_kind") {
                 args.value_kind = Some(meta.value()?.parse()?);
             } else if meta.path.is_ident("prototype") {
@@ -37,6 +39,10 @@ pub(crate) fn parse_field_attrs(attrs: &[Attribute]) -> syn::Result<FieldArgs> {
         attr.parse_nested_meta(|meta| {
             if meta.path.is_ident("name") {
                 args.name = Some(parse_lit_str(meta)?);
+            } else if meta.path.is_ident("identity") {
+                args.identity = Some(parse_lit_str(meta)?);
+            } else if meta.path.is_ident("alias") {
+                args.aliases.push(parse_lit_str(meta)?);
             } else if meta.path.is_ident("type_name") {
                 args.type_name = Some(parse_lit_str(meta)?);
             } else if meta.path.is_ident("value_kind") {

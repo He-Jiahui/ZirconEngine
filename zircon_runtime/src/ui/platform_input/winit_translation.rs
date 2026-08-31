@@ -1,68 +1,68 @@
-use winit::dpi::{PhysicalPosition, PhysicalSize};
-use winit::event::{
-    ButtonSource, ElementState, FingerId, Ime, KeyEvent, MouseButton, MouseScrollDelta,
-    PointerKind, PointerSource,
-};
-use winit::keyboard::ModifiersState;
+mod ime;
+mod keyboard;
+mod pointer;
+mod window;
+
+use winit::event::WindowEvent;
 use zircon_runtime_interface::ui::{
-    dispatch::{UiInputModifiers, UiPointerId, UiWindowId},
-    layout::{UiPoint, UiSize},
-    surface::{UiPointerButton, UiPointerEventKind},
+    layout::UiPoint,
     window::{
-        UiWindowEvent, UiWindowEventKind, UiWindowEventMetadata, UiWindowInputContext,
-        UiWindowInputPumpEvent, UiWindowMetrics, UiWindowPixelPosition, UiWindowPixelSize,
-        UiWindowPlatformInputEvent, UiWindowRedrawReason,
+        UiWindowEventKind, UiWindowInputContext, UiWindowInputPumpEvent, UiWindowPixelPosition,
+        UiWindowRedrawReason,
     },
 };
 
-use super::keyboard_map::{
-    dom_key_code, keyboard_state, logical_key_name, native_scan_code, physical_key_name,
+use ime::translate_ime_event;
+use keyboard::translate_keyboard_event;
+pub use keyboard::translate_winit_modifiers;
+use pointer::{
+    translate_mouse_wheel_event, translate_pointer_button, translate_pointer_entered,
+    translate_pointer_left, translate_pointer_moved,
 };
-
-const PIXEL_SCROLL_LINE_DELTA_SCALE: f32 = 0.1;
+use window::{input_event, window_event, window_metrics_from_physical_size};
 
 pub fn translate_winit_window_event(
     context: UiWindowInputContext,
-    event: &winit::event::WindowEvent,
+    event: &WindowEvent,
 ) -> Option<UiWindowInputPumpEvent> {
     match event {
-        winit::event::WindowEvent::CloseRequested => {
+        WindowEvent::CloseRequested => {
             Some(window_event(&context, UiWindowEventKind::CloseRequested))
         }
-        winit::event::WindowEvent::SurfaceResized(size) => Some(window_event(
+        WindowEvent::SurfaceResized(size) => Some(window_event(
             &context,
             UiWindowEventKind::Resized {
                 metrics: window_metrics_from_physical_size(*size, context.window_metrics),
             },
         )),
-        winit::event::WindowEvent::ScaleFactorChanged { scale_factor, .. } => Some(window_event(
+        WindowEvent::ScaleFactorChanged { scale_factor, .. } => Some(window_event(
             &context,
             UiWindowEventKind::ScaleFactorChanged {
                 scale_factor: *scale_factor,
             },
         )),
-        winit::event::WindowEvent::Moved(position) => Some(window_event(
+        WindowEvent::Moved(position) => Some(window_event(
             &context,
             UiWindowEventKind::Moved {
                 position: UiWindowPixelPosition::new(position.x, position.y),
             },
         )),
-        winit::event::WindowEvent::PointerMoved {
+        WindowEvent::PointerMoved {
             position, source, ..
         } => translate_pointer_moved(context, *position, source),
-        winit::event::WindowEvent::PointerEntered { position, kind, .. } => {
+        WindowEvent::PointerEntered { position, kind, .. } => {
             translate_pointer_entered(&context, *position, kind)
         }
-        winit::event::WindowEvent::PointerLeft { position, kind, .. } => {
+        WindowEvent::PointerLeft { position, kind, .. } => {
             translate_pointer_left(context, *position, kind)
         }
-        winit::event::WindowEvent::PointerButton {
+        WindowEvent::PointerButton {
             state,
             button,
             position,
             ..
         } => translate_pointer_button(context, *state, button.clone(), *position),
-        winit::event::WindowEvent::KeyboardInput {
+        WindowEvent::KeyboardInput {
             event,
             is_synthetic,
             ..
@@ -71,21 +71,23 @@ pub fn translate_winit_window_event(
             event,
             *is_synthetic,
         ))),
-        winit::event::WindowEvent::Ime(event) => translate_ime_event(context, event),
-        winit::event::WindowEvent::MouseWheel { delta, .. } => Some(input_event(
-            translate_mouse_wheel_event(context, UiPoint::default(), *delta),
-        )),
-        winit::event::WindowEvent::RedrawRequested => Some(window_event(
+        WindowEvent::Ime(event) => translate_ime_event(context, event),
+        WindowEvent::MouseWheel { delta, .. } => Some(input_event(translate_mouse_wheel_event(
+            context,
+            UiPoint::default(),
+            *delta,
+        ))),
+        WindowEvent::RedrawRequested => Some(window_event(
             &context,
             UiWindowEventKind::RequestRedraw {
                 reason: UiWindowRedrawReason::Host,
             },
         )),
-        winit::event::WindowEvent::Focused(focused) => Some(window_event(
+        WindowEvent::Focused(focused) => Some(window_event(
             &context,
             UiWindowEventKind::Focused { focused: *focused },
         )),
-        winit::event::WindowEvent::Occluded(occluded) => Some(window_event(
+        WindowEvent::Occluded(occluded) => Some(window_event(
             &context,
             UiWindowEventKind::Occluded {
                 occluded: *occluded,
@@ -93,263 +95,6 @@ pub fn translate_winit_window_event(
         )),
         _ => None,
     }
-}
-
-pub fn translate_winit_modifiers(state: ModifiersState) -> UiInputModifiers {
-    UiInputModifiers {
-        shift: state.shift_key(),
-        control: state.control_key(),
-        alt: state.alt_key(),
-        super_key: state.meta_key(),
-        caps_lock: false,
-        num_lock: false,
-    }
-}
-
-fn translate_keyboard_event(
-    context: UiWindowInputContext,
-    event: &KeyEvent,
-    synthetic: bool,
-) -> UiWindowPlatformInputEvent {
-    let mut context = context;
-    context.metadata.synthetic = synthetic;
-
-    UiWindowPlatformInputEvent::keyboard(
-        context,
-        keyboard_state(event.state, event.repeat),
-        dom_key_code(&event.logical_key),
-        native_scan_code(event.physical_key),
-        physical_key_name(event.physical_key),
-        logical_key_name(&event.logical_key),
-        event.text.as_ref().map(ToString::to_string),
-    )
-}
-
-fn translate_pointer_moved(
-    context: UiWindowInputContext,
-    position: PhysicalPosition<f64>,
-    source: &PointerSource,
-) -> Option<UiWindowInputPumpEvent> {
-    let point = point_from_physical_position(position);
-    match source {
-        PointerSource::Touch { finger_id, .. } => Some(input_event(
-            UiWindowPlatformInputEvent::touch_moved(context, pointer_id(*finger_id), point),
-        )),
-        PointerSource::Mouse | PointerSource::Unknown | PointerSource::TabletTool { .. } => {
-            Some(window_event(
-                &context,
-                UiWindowEventKind::CursorMoved {
-                    position: point,
-                    delta: None,
-                },
-            ))
-        }
-    }
-}
-
-fn translate_pointer_entered(
-    context: &UiWindowInputContext,
-    _position: PhysicalPosition<f64>,
-    kind: &PointerKind,
-) -> Option<UiWindowInputPumpEvent> {
-    match kind {
-        PointerKind::Mouse | PointerKind::Unknown | PointerKind::TabletTool(_) => {
-            Some(window_event(context, UiWindowEventKind::CursorEntered))
-        }
-        PointerKind::Touch(_) => None,
-    }
-}
-
-fn translate_pointer_left(
-    context: UiWindowInputContext,
-    position: Option<PhysicalPosition<f64>>,
-    kind: &PointerKind,
-) -> Option<UiWindowInputPumpEvent> {
-    let point = position
-        .map(point_from_physical_position)
-        .unwrap_or_default();
-    match kind {
-        PointerKind::Touch(finger_id) => Some(input_event(
-            UiWindowPlatformInputEvent::touch_canceled(context, pointer_id(*finger_id), point),
-        )),
-        PointerKind::Mouse | PointerKind::Unknown | PointerKind::TabletTool(_) => {
-            Some(window_event(&context, UiWindowEventKind::CursorLeft))
-        }
-    }
-}
-
-fn translate_ime_event(
-    context: UiWindowInputContext,
-    event: &Ime,
-) -> Option<UiWindowInputPumpEvent> {
-    match event {
-        Ime::Preedit(text, cursor_range) => Some(input_event(
-            UiWindowPlatformInputEvent::ime_with_cursor_range(
-                context,
-                zircon_runtime_interface::ui::dispatch::UiImeInputEventKind::Preedit,
-                text.clone(),
-                cursor_range.map(|(start, end)| {
-                    zircon_runtime_interface::ui::dispatch::UiTextByteRange::new(
-                        clamp_byte_index(start),
-                        clamp_byte_index(end),
-                    )
-                }),
-            ),
-        )),
-        Ime::Commit(text) => Some(input_event(UiWindowPlatformInputEvent::ime(
-            context,
-            zircon_runtime_interface::ui::dispatch::UiImeInputEventKind::Commit,
-            text.clone(),
-        ))),
-        Ime::Disabled => Some(input_event(UiWindowPlatformInputEvent::ime(
-            context,
-            zircon_runtime_interface::ui::dispatch::UiImeInputEventKind::Cancel,
-            "",
-        ))),
-        Ime::DeleteSurrounding {
-            before_bytes,
-            after_bytes,
-        } => Some(input_event(
-            UiWindowPlatformInputEvent::ime_delete_surrounding(
-                context,
-                clamp_byte_index(*before_bytes),
-                clamp_byte_index(*after_bytes),
-            ),
-        )),
-        Ime::Enabled => None,
-    }
-}
-
-fn translate_mouse_wheel_event(
-    context: UiWindowInputContext,
-    point: UiPoint,
-    delta: MouseScrollDelta,
-) -> UiWindowPlatformInputEvent {
-    let (scroll_delta, precise_scroll) = match delta {
-        MouseScrollDelta::LineDelta(x, y) => (
-            y,
-            zircon_runtime_interface::ui::dispatch::UiPreciseScrollDelta::lines(x, y),
-        ),
-        MouseScrollDelta::PixelDelta(PhysicalPosition { x, y }) => {
-            let x = x as f32;
-            let y = y as f32;
-            (
-                y * PIXEL_SCROLL_LINE_DELTA_SCALE,
-                zircon_runtime_interface::ui::dispatch::UiPreciseScrollDelta::pixels(x, y),
-            )
-        }
-    };
-    UiWindowPlatformInputEvent::pointer(
-        context,
-        zircon_runtime_interface::ui::dispatch::UiPointerEvent::new(
-            UiPointerEventKind::Scroll,
-            point,
-        )
-        .with_scroll_delta(scroll_delta),
-        Some(precise_scroll),
-    )
-}
-
-fn translate_pointer_button(
-    context: UiWindowInputContext,
-    state: ElementState,
-    button: ButtonSource,
-    position: PhysicalPosition<f64>,
-) -> Option<UiWindowInputPumpEvent> {
-    if let Some(finger_id) = touch_button_finger_id(&button) {
-        let point = point_from_physical_position(position);
-        let input = match state {
-            ElementState::Pressed => {
-                UiWindowPlatformInputEvent::touch_started(context, finger_id, point)
-            }
-            ElementState::Released => {
-                UiWindowPlatformInputEvent::touch_ended(context, finger_id, point)
-            }
-        };
-        return Some(input_event(input));
-    }
-
-    let button = pointer_button(button)?;
-    let point = point_from_physical_position(position);
-    let input = match state {
-        ElementState::Pressed => {
-            UiWindowPlatformInputEvent::mouse_button_down(context, button, point)
-        }
-        ElementState::Released => {
-            UiWindowPlatformInputEvent::mouse_button_up(context, button, point)
-        }
-    };
-    Some(input_event(input))
-}
-
-fn touch_button_finger_id(button: &ButtonSource) -> Option<UiPointerId> {
-    match button {
-        ButtonSource::Touch { finger_id, .. } => Some(pointer_id(*finger_id)),
-        ButtonSource::Mouse(_) | ButtonSource::TabletTool { .. } | ButtonSource::Unknown(_) => None,
-    }
-}
-
-fn pointer_button(button: ButtonSource) -> Option<UiPointerButton> {
-    match button.mouse_button() {
-        Some(MouseButton::Left) => Some(UiPointerButton::Primary),
-        Some(MouseButton::Right) => Some(UiPointerButton::Secondary),
-        Some(MouseButton::Middle) => Some(UiPointerButton::Middle),
-        _ => None,
-    }
-}
-
-fn pointer_id(finger_id: FingerId) -> UiPointerId {
-    UiPointerId::new(finger_id.into_raw() as u64)
-}
-
-fn input_event(event: UiWindowPlatformInputEvent) -> UiWindowInputPumpEvent {
-    UiWindowInputPumpEvent::Input(event.normalize())
-}
-
-fn window_event(context: &UiWindowInputContext, kind: UiWindowEventKind) -> UiWindowInputPumpEvent {
-    UiWindowInputPumpEvent::Window(UiWindowEvent::new(window_metadata(context), kind))
-}
-
-fn window_metadata(context: &UiWindowInputContext) -> UiWindowEventMetadata {
-    UiWindowEventMetadata::for_window(
-        context
-            .metadata
-            .window_id
-            .clone()
-            .unwrap_or_else(UiWindowId::default),
-        context.metadata.timestamp,
-        context.metadata.sequence,
-    )
-    .synthetic(context.metadata.synthetic)
-}
-
-fn window_metrics_from_physical_size(
-    size: PhysicalSize<u32>,
-    prior_metrics: Option<UiWindowMetrics>,
-) -> UiWindowMetrics {
-    let scale_factor = prior_metrics
-        .map(|metrics| metrics.scale_factor)
-        .filter(|scale_factor| scale_factor.is_finite() && *scale_factor > 0.0)
-        .unwrap_or(1.0);
-    UiWindowMetrics::new(
-        UiSize::new(
-            size.width as f32 / scale_factor as f32,
-            size.height as f32 / scale_factor as f32,
-        ),
-        UiWindowPixelSize::new(size.width, size.height),
-        scale_factor,
-    )
-}
-
-fn point_from_physical_position<T>(position: PhysicalPosition<T>) -> UiPoint
-where
-    T: Into<f64>,
-{
-    UiPoint::new(position.x.into() as f32, position.y.into() as f32)
-}
-
-fn clamp_byte_index(value: usize) -> u32 {
-    value.min(u32::MAX as usize) as u32
 }
 
 #[cfg(test)]

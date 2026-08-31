@@ -65,9 +65,7 @@ impl ModelPrimitiveAsset {
     }
 
     pub fn render_mesh_descriptor(&self) -> RenderMeshDescriptor {
-        let bounds =
-            RenderMeshBounds::from_positions(self.vertices.iter().map(|vertex| vertex.position));
-        let is_planar = self.vertices.iter().all(|vertex| vertex.position[2] == 0.0);
+        let (bounds, is_planar) = mesh_bounds_and_planarity(&self.vertices);
         RenderMeshDescriptor {
             topology: RenderMeshTopology::TriangleList,
             bounds,
@@ -85,3 +83,25 @@ impl ModelPrimitiveAsset {
         }
     }
 }
+
+fn mesh_bounds_and_planarity(vertices: &[MeshVertex]) -> (RenderMeshBounds, bool) {
+    let Some(first) = vertices.first() else {
+        return (RenderMeshBounds::default(), true);
+    };
+
+    let mut min = first.position;
+    let mut max = first.position;
+    let mut is_planar = first.position[2] == 0.0;
+    for vertex in &vertices[1..] {
+        for axis in 0..3 {
+            min[axis] = min[axis].min(vertex.position[axis]);
+            max[axis] = max[axis].max(vertex.position[axis]);
+        }
+        is_planar &= vertex.position[2] == 0.0;
+    }
+    (RenderMeshBounds::from_min_max(min, max), is_planar)
+}
+
+#[cfg(test)]
+#[path = "primitive/single_pass_descriptor_tests.rs"]
+mod single_pass_descriptor_tests;

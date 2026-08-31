@@ -1,6 +1,16 @@
-use crate::core::framework::camera_controller::{OrbitCameraController, OrbitCameraInput};
-use crate::core::math::{clamp_viewport_size, UVec2, Vec2, Vec3};
+use crate::core::framework::camera_controller::OrbitCameraInput;
+use crate::core::framework::render::{ProjectionMode, RenderFrameExtract, ViewportCameraSnapshot};
+use crate::core::math::{clamp_viewport_size, is_finite_quat, is_finite_vec3, UVec2, Vec2, Vec3};
+use crate::input::camera_controller::OrbitCameraController;
 use crate::scene::Scene;
+use zircon_runtime_interface::{
+    ZrRuntimeViewportCameraV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_ORTHOGRAPHIC_V1,
+    ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_PERSPECTIVE_V1,
+};
+
+const MIN_EDITOR_CAMERA_SCALE: f32 = 1.0e-6;
+const MAX_EDITOR_CAMERA_ROTATION_NORMALIZATION_ERROR: f32 = 1.0e-3;
 
 #[derive(Clone, Copy, Debug)]
 enum DragState {
@@ -13,6 +23,7 @@ pub(super) struct RuntimeCameraController {
     viewport_size: UVec2,
     orbit: OrbitCameraController,
     drag: Option<DragState>,
+    editor_camera: Option<ZrRuntimeViewportCameraV1>,
 }
 
 impl RuntimeCameraController {
@@ -21,6 +32,7 @@ impl RuntimeCameraController {
             viewport_size: clamp_viewport_size(viewport_size),
             orbit: OrbitCameraController::with_target(Vec3::ZERO),
             drag: None,
+            editor_camera: None,
         }
     }
 
@@ -34,6 +46,28 @@ impl RuntimeCameraController {
 
     pub(super) fn set_orbit_target(&mut self, target: Vec3) {
         self.orbit.set_target(target);
+    }
+
+    pub(super) fn apply_editor_camera(
+        &mut self,
+        camera: ZrRuntimeViewportCameraV1,
+    ) -> Result<bool, &'static str> {
+        validate_editor_camera(camera)?;
+        if self.editor_camera == Some(camera) {
+            return Ok(false);
+        }
+        self.editor_camera = Some(camera);
+        Ok(true)
+    }
+
+    pub(super) fn apply_editor_camera_to_extract(&self, extract: &mut RenderFrameExtract) {
+        let Some(camera) = self.editor_camera else {
+            return;
+        };
+        apply_editor_camera_to_snapshot(&mut extract.view.camera, camera);
+        if let Some(descriptor) = extract.view.selected_camera_descriptor_mut() {
+            apply_editor_camera_to_snapshot(&mut descriptor.camera, camera);
+        }
     }
 
     pub(super) fn pointer_moved(&mut self, scene: &mut Scene, position: Vec2) {
@@ -111,6 +145,57 @@ impl RuntimeCameraController {
     }
 }
 
+fn validate_editor_camera(camera: ZrRuntimeViewportCameraV1) -> Result<(), &'static str> {
+    if camera.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+        return Err("unsupported runtime viewport camera version");
+    }
+    let rotation_length_squared = camera.transform.rotation.length_squared();
+    if !is_finite_vec3(camera.transform.translation)
+        || !is_finite_quat(camera.transform.rotation)
+        || !is_finite_vec3(camera.transform.scale)
+        || camera.transform.scale.abs().min_element() <= MIN_EDITOR_CAMERA_SCALE
+        || (rotation_length_squared - 1.0).abs() > MAX_EDITOR_CAMERA_ROTATION_NORMALIZATION_ERROR
+    {
+        return Err("invalid runtime viewport camera transform");
+    }
+    if !camera.fov_y_radians.is_finite()
+        || !camera.ortho_size.is_finite()
+        || !camera.z_near.is_finite()
+        || !camera.z_far.is_finite()
+        || camera.z_near <= 0.0
+        || camera.z_far <= camera.z_near
+    {
+        return Err("invalid runtime viewport camera projection");
+    }
+    match camera.projection_kind {
+        ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_PERSPECTIVE_V1
+            if camera.fov_y_radians > 0.0 && camera.fov_y_radians < std::f32::consts::PI => {}
+        ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_ORTHOGRAPHIC_V1 if camera.ortho_size > 0.0 => {}
+        ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_PERSPECTIVE_V1
+        | ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_ORTHOGRAPHIC_V1 => {
+            return Err("invalid runtime viewport camera projection geometry");
+        }
+        _ => return Err("unknown runtime viewport camera projection kind"),
+    }
+    Ok(())
+}
+
+fn apply_editor_camera_to_snapshot(
+    snapshot: &mut ViewportCameraSnapshot,
+    camera: ZrRuntimeViewportCameraV1,
+) {
+    snapshot.transform = camera.transform;
+    snapshot.projection_mode = match camera.projection_kind {
+        ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_ORTHOGRAPHIC_V1 => ProjectionMode::Orthographic,
+        _ => ProjectionMode::Perspective,
+    };
+    snapshot.fov_y_radians = camera.fov_y_radians;
+    snapshot.ortho_size = camera.ortho_size;
+    snapshot.z_near = camera.z_near;
+    snapshot.z_far = camera.z_far;
+    snapshot.projection_override = None;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -139,5 +224,40 @@ mod tests {
         );
         let local_transform_read = ["scene.", "local_transform(camera)"].concat();
         assert_eq!(source.matches(&local_transform_read).count(), 3);
+    }
+
+    #[test]
+    fn editor_camera_override_changes_only_the_render_extract_view() {
+        let scene = Scene::new();
+        let active_camera = scene.active_camera();
+        let world_transform_before = scene.world_transform(active_camera).unwrap();
+        let mut extract = scene.to_render_frame_extract();
+        let original_pipeline = extract.view.camera.core_pipeline;
+        let original_exposure = extract.view.camera.exposure_ev100;
+        let mut controller = RuntimeCameraController::new(UVec2::new(800, 600));
+        let camera = ZrRuntimeViewportCameraV1::new(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            crate::core::math::Transform::from_translation(Vec3::new(4.0, 5.0, 6.0)),
+            ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_ORTHOGRAPHIC_V1,
+            60.0_f32.to_radians(),
+            12.0,
+            0.25,
+            500.0,
+        );
+
+        assert!(controller.apply_editor_camera(camera).unwrap());
+        controller.apply_editor_camera_to_extract(&mut extract);
+
+        assert_eq!(extract.view.camera.transform, camera.transform);
+        assert_eq!(
+            extract.view.camera.projection_mode,
+            ProjectionMode::Orthographic
+        );
+        assert_eq!(extract.view.camera.core_pipeline, original_pipeline);
+        assert_eq!(extract.view.camera.exposure_ev100, original_exposure);
+        assert_eq!(
+            scene.world_transform(active_camera),
+            Some(world_transform_before)
+        );
     }
 }

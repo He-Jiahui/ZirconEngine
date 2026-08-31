@@ -1,16 +1,16 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::scene::scene_renderer::core::scene_renderer_core::{
-    HzbNeutralBuffers, LightGridNeutralBuffers, SceneRendererNeutralGraphBuffers,
-    HZB_INDIRECT_ARGS_NEUTRAL_BACKING,
+    HZB_INDIRECT_ARGS_NEUTRAL_BACKING, HzbNeutralBuffers, LightGridNeutralBuffers,
+    SceneRendererNeutralGraphBuffers,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderPassMeshCommandLists,
 };
 use crate::graphics::scene::scene_renderer::hzb::{
-    HzbOcclusionCuller, HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE,
-    HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE, HZB_OCCLUSION_DRAW_COUNT_RESOURCE,
-    HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE, HZB_OCCLUSION_STATS_RESOURCE,
-    HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE,
+    HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE, HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE,
+    HZB_OCCLUSION_DRAW_COUNT_RESOURCE, HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE,
+    HZB_OCCLUSION_STATS_RESOURCE, HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE,
+    HzbOcclusionCuller,
 };
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshIndirectDrawExecution;
 use crate::render_graph::CompiledRenderGraph;
@@ -346,7 +346,7 @@ mod tests {
         builder: &mut RenderGraphBuilder,
         name: &'static str,
     ) -> crate::render_graph::ExternalResource {
-        builder.import_external_resource_with_binding(
+        builder.import_present_external_resource_with_binding(
             name,
             RenderGraphExternalResourceBinding::required_buffer(),
         )

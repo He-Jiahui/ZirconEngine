@@ -13,7 +13,7 @@ pub(super) fn record_capture(
     }
     let compiled_pipeline = context.compiled_pipeline_shared();
     record.register_async_capture(
-        frame.generation,
+        frame.generation(),
         frame.capture_size,
         frame.capture_report,
         compiled_pipeline,

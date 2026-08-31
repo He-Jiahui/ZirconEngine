@@ -2,14 +2,20 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
-    ZrRuntimeOperationPhase, ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
+    ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
+use super::json_budget::json_value_byte_len;
 use super::{
-    RuntimeOperationAdmissionReservation, RuntimeOperationService, RuntimeOperationServiceError,
-    RuntimeOperationTask, RuntimeOperationTaskState, consume_raw_admission, json_value_byte_len,
+    RuntimeOperationService, RuntimeOperationServiceError, RuntimeOperationTask,
+    RuntimeOperationTaskState,
 };
+
+#[derive(Clone, Copy)]
+struct RuntimeOperationAdmissionReservation {
+    bytes: usize,
+}
 
 impl RuntimeOperationService {
     pub fn submit(
@@ -24,19 +30,44 @@ impl RuntimeOperationService {
         &self,
         request_json: &[u8],
     ) -> Result<ZrRuntimeOperationHandle, RuntimeOperationServiceError> {
-        let reservation = self.reserve_raw_admission(request_json.len())?;
-        let request = match serde_json::from_slice(request_json) {
+        match self
+            .submit_with_raw_admission(request_json.len(), || serde_json::from_slice(request_json))
+        {
+            Ok(result) => result,
+            Err(_) => Err(RuntimeOperationServiceError::InvalidRequest),
+        }
+    }
+
+    /// Reserves raw request capacity before running a caller-owned decoder.
+    ///
+    /// The outer result is the decoder result. The inner result is the normal
+    /// operation admission result. Keeping these channels separate lets the
+    /// dynamic ABI preserve its bounded-JSON error mapping without moving raw
+    /// byte accounting out of the Runtime11 service owner.
+    pub(crate) fn submit_with_raw_admission<F, E>(
+        &self,
+        request_bytes: usize,
+        decode: F,
+    ) -> Result<Result<ZrRuntimeOperationHandle, RuntimeOperationServiceError>, E>
+    where
+        F: FnOnce() -> Result<ZrRuntimeOperationSubmitRequestV1, E>,
+    {
+        let reservation = match self.reserve_raw_admission(request_bytes) {
+            Ok(reservation) => reservation,
+            Err(error) => return Ok(Err(error)),
+        };
+        let request = match decode() {
             Ok(request) => request,
-            Err(_) => {
+            Err(error) => {
                 self.release_raw_admission(reservation);
-                return Err(RuntimeOperationServiceError::InvalidRequest);
+                return Err(error);
             }
         };
         let result = self.submit_with_reservation(request, None, Some(reservation));
         if result.is_err() {
             self.release_raw_admission(reservation);
         }
-        result
+        Ok(result)
     }
 
     /// Admits one operation with an owner-tick-enforced deadline.
@@ -209,12 +240,13 @@ impl RuntimeOperationService {
                 .tasks
                 .iter()
                 .filter(|(_, task)| {
-                    matches!(
-                        task.phase,
-                        ZrRuntimeOperationPhase::Cancelled
-                            | ZrRuntimeOperationPhase::Expired
-                            | ZrRuntimeOperationPhase::Harvested
-                    )
+                    !task.prepare_in_flight
+                        && matches!(
+                            task.phase,
+                            ZrRuntimeOperationPhase::Cancelled
+                                | ZrRuntimeOperationPhase::Expired
+                                | ZrRuntimeOperationPhase::Harvested
+                        )
                 })
                 .min_by_key(|(handle, task)| (task.terminal_at, handle.raw()))
                 .map(|(handle, _)| *handle)
@@ -224,4 +256,18 @@ impl RuntimeOperationService {
             state.tasks.remove(&handle);
         }
     }
+}
+
+fn consume_raw_admission(
+    state: &mut RuntimeOperationTaskState,
+    reservation: RuntimeOperationAdmissionReservation,
+) {
+    state.pending_admissions = state
+        .pending_admissions
+        .checked_sub(1)
+        .expect("raw operation admission count must be released exactly once");
+    state.pending_admission_bytes = state
+        .pending_admission_bytes
+        .checked_sub(reservation.bytes)
+        .expect("raw operation admission bytes must be released exactly once");
 }

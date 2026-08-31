@@ -13,7 +13,9 @@ use zircon_runtime_interface::resource::{
 };
 
 use crate::ui::workbench::project::AssetWorkspaceState;
-use crate::ui::workbench::snapshot::{AssetSurfaceMode, AssetUtilityTab, AssetViewMode};
+use crate::ui::workbench::snapshot::{
+    AssetSurfaceMode, AssetUtilityTab, AssetViewMode, AssetWorkspaceItemGeneration,
+};
 
 #[test]
 fn asset_workspace_builds_folder_tree_and_visible_content_from_catalog() {
@@ -67,14 +69,198 @@ fn asset_workspace_shares_selection_but_keeps_surface_preferences_separate() {
     workspace.set_activity_utility_tab(AssetUtilityTab::References);
     workspace.set_browser_utility_tab(AssetUtilityTab::Metadata);
 
-    let activity = workspace.build_snapshot(AssetSurfaceMode::Activity);
-    let browser = workspace.build_snapshot(AssetSurfaceMode::Explorer);
+    let (activity, browser) = workspace.build_surface_snapshots();
 
     assert_eq!(activity.selected_asset_uuid, browser.selected_asset_uuid);
+    assert!(activity
+        .visible_assets
+        .shares_items_with(&browser.visible_assets));
     assert_eq!(activity.view_mode, AssetViewMode::List);
     assert_eq!(browser.view_mode, AssetViewMode::Thumbnail);
     assert_eq!(activity.utility_tab, AssetUtilityTab::References);
     assert_eq!(browser.utility_tab, AssetUtilityTab::Metadata);
+}
+
+#[test]
+fn asset_workspace_selection_reuses_visible_item_generation() {
+    let mut workspace = AssetWorkspaceState::default();
+    workspace.sync_catalog(sample_catalog_generation());
+    workspace.select_folder("res://materials");
+
+    let before = workspace.build_snapshot(AssetSurfaceMode::Activity);
+    workspace.select_asset(Some("11111111-1111-1111-1111-111111111111".to_string()));
+    let after = workspace.build_snapshot(AssetSurfaceMode::Activity);
+
+    assert!(before
+        .visible_assets
+        .shares_items_with(&after.visible_assets));
+    assert_eq!(before.selected_asset_uuid, None);
+    assert_eq!(
+        after
+            .selected_asset_uuid
+            .as_deref()
+            .and_then(|uuid| after.visible_assets.selected_index(uuid)),
+        Some(0)
+    );
+    assert!(!after.visible_assets[0].selected);
+}
+
+#[test]
+fn asset_workspace_filter_change_replaces_visible_item_generation() {
+    let mut workspace = AssetWorkspaceState::default();
+    workspace.sync_catalog(sample_catalog_generation());
+    workspace.select_folder("res://materials");
+
+    let before = workspace.build_snapshot(AssetSurfaceMode::Activity);
+    workspace.set_kind_filter(Some(ResourceKind::Material));
+    let after = workspace.build_snapshot(AssetSurfaceMode::Activity);
+
+    assert!(!before
+        .visible_assets
+        .shares_items_with(&after.visible_assets));
+    assert_eq!(after.visible_assets.len(), 1);
+}
+
+#[test]
+fn asset_workspace_item_patch_reuses_unchanged_chunks() {
+    let mut workspace = AssetWorkspaceState::default();
+    workspace.sync_catalog(sample_catalog_generation());
+    workspace.select_folder("res://materials");
+    let template = workspace
+        .build_snapshot(AssetSurfaceMode::Activity)
+        .visible_assets[0]
+        .clone();
+    let items = (0..130)
+        .map(|index| {
+            let mut item = template.clone();
+            item.uuid = format!("asset-{index:03}");
+            item.locator = format!("res://materials/asset-{index:03}.zmaterial");
+            item
+        })
+        .collect::<AssetWorkspaceItemGeneration>();
+    let mut changed = items[65].clone();
+    changed.preview_artifact_path = "E:/cache/changed.png".to_string();
+
+    let patched = items
+        .replace_existing_items([changed])
+        .expect("same-identity row patch");
+
+    assert!(items.shares_item_chunk_with(0, &patched));
+    assert!(!items.shares_item_chunk_with(65, &patched));
+    assert!(items.shares_item_chunk_with(129, &patched));
+    assert_eq!(patched[65].preview_artifact_path, "E:/cache/changed.png");
+}
+
+#[test]
+fn asset_workspace_projection_reuses_unchanged_source_chunks() {
+    let mut workspace = AssetWorkspaceState::default();
+    workspace.sync_catalog(sample_catalog_generation());
+    workspace.select_folder("res://materials");
+    let template = workspace
+        .build_snapshot(AssetSurfaceMode::Activity)
+        .visible_assets[0]
+        .clone();
+    let source = (0..130)
+        .map(|index| {
+            let mut item = template.clone();
+            item.uuid = format!("projection-asset-{index:03}");
+            item.locator = format!("res://materials/projection-asset-{index:03}.zmaterial");
+            item
+        })
+        .collect::<AssetWorkspaceItemGeneration>();
+    let projected = source.project_items(|item| item.display_name.push_str(" projected"));
+    let mut changed = source[65].clone();
+    changed.preview_artifact_path = "E:/cache/projected-changed.png".to_string();
+    let next_source = source
+        .replace_existing_items([changed])
+        .expect("same-identity row patch");
+
+    let next_projected = next_source.project_items_reusing(&source, &projected, |item| {
+        item.display_name.push_str(" projected")
+    });
+
+    assert!(projected.shares_item_chunk_with(0, &next_projected));
+    assert!(!projected.shares_item_chunk_with(65, &next_projected));
+    assert!(projected.shares_item_chunk_with(129, &next_projected));
+}
+
+#[test]
+fn non_visible_catalog_delta_reuses_visible_item_generation() {
+    let catalog = sample_catalog_generation();
+    let mut workspace = AssetWorkspaceState::default();
+    workspace.sync_catalog(Arc::clone(&catalog));
+    workspace.select_folder("res://materials");
+    let before = workspace.build_snapshot(AssetSurfaceMode::Activity);
+    let changed_uuid = "22222222-2222-2222-2222-222222222222";
+    let mut changed = catalog.asset(changed_uuid).expect("scene asset").clone();
+    changed.preview_artifact_path = "E:/cache/scene-updated.png".to_string();
+    let updated = catalog
+        .updated_asset(Arc::new(changed), catalog.publish_epoch + 1)
+        .expect("updated catalog generation");
+
+    workspace.sync_catalog_changes(Arc::new(updated), &[changed_uuid.to_string()]);
+    let after = workspace.build_snapshot(AssetSurfaceMode::Activity);
+
+    assert!(before
+        .visible_assets
+        .shares_items_with(&after.visible_assets));
+    assert_ne!(before.catalog_revision, after.catalog_revision);
+}
+
+#[test]
+fn visible_catalog_delta_replaces_only_the_affected_item_chunk() {
+    let catalog = sample_catalog_generation();
+    let mut workspace = AssetWorkspaceState::default();
+    workspace.sync_catalog(Arc::clone(&catalog));
+    workspace.select_folder("res://materials");
+    let before = workspace.build_snapshot(AssetSurfaceMode::Activity);
+    let changed_uuid = "11111111-1111-1111-1111-111111111111";
+    let mut changed = catalog.asset(changed_uuid).expect("material asset").clone();
+    changed.preview_artifact_path = "E:/cache/material-updated.png".to_string();
+    let updated = catalog
+        .updated_asset(Arc::new(changed), catalog.publish_epoch + 1)
+        .expect("updated catalog generation");
+
+    workspace.sync_catalog_changes(Arc::new(updated), &[changed_uuid.to_string()]);
+    let after = workspace.build_snapshot(AssetSurfaceMode::Activity);
+
+    assert!(!before
+        .visible_assets
+        .shares_items_with(&after.visible_assets));
+    assert_eq!(
+        after.visible_assets[0].preview_artifact_path,
+        "E:/cache/material-updated.png"
+    );
+}
+
+#[test]
+fn visible_resource_delta_replaces_the_affected_item_without_full_projection() {
+    let locator = "res://materials/grid.zmaterial";
+    let mut workspace = AssetWorkspaceState::default();
+    workspace.sync_catalog(sample_catalog_generation());
+    workspace.select_folder("res://materials");
+    let resources = ResourceManager::new();
+    let record = sample_resource_status(locator, ResourceKind::Material, 4, ResourceState::Ready);
+    let resource_id = record.id;
+    resources.register_record(record).unwrap();
+    workspace.sync_resources(resources.management_generation());
+    let before = workspace.build_snapshot(AssetSurfaceMode::Activity);
+    resources.start_reload(resource_id, Vec::new()).unwrap();
+
+    workspace.sync_resource_changes(resources.management_generation(), &[locator.to_string()]);
+    let after = workspace.build_snapshot(AssetSurfaceMode::Activity);
+
+    assert_eq!(
+        before.visible_assets[0].resource_state,
+        Some(ResourceState::Ready)
+    );
+    assert_eq!(
+        after.visible_assets[0].resource_state,
+        Some(ResourceState::Reloading)
+    );
+    assert!(!before
+        .visible_assets
+        .shares_items_with(&after.visible_assets));
 }
 
 #[test]

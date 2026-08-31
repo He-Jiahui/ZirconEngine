@@ -96,6 +96,30 @@ fn asset_dispatch_uses_control_id_when_action_is_empty() {
 }
 
 #[test]
+fn asset_dropdown_root_press_is_reserved_for_native_popup_toggle() {
+    let mut hit = hit_with_kind("asset:browser");
+    hit.control_id = "AssetBrowserKindFilterDropdown".into();
+    hit.component_family = Some(TemplateComponentFamily::Dropdown);
+
+    assert!(asset_primary_activation(&hit).is_none());
+}
+
+#[test]
+fn asset_dropdown_option_routes_as_the_canonical_change() {
+    let mut hit = hit_with_kind("asset:browser");
+    hit.control_id = "AssetBrowserKindFilterDropdown".into();
+    hit.action_id = "AssetSurface/SetKindFilter".into();
+    hit.component_family = Some(TemplateComponentFamily::Dropdown);
+    hit.value_text = "Texture".into();
+
+    let activation = asset_primary_activation(&hit).expect("asset option should route");
+
+    assert_eq!(activation.source.as_str(), "browser");
+    assert_eq!(activation.control_id.as_str(), "SetKindFilter");
+    assert_eq!(activation.kind, AssetPrimaryActivationKind::Change);
+}
+
+#[test]
 fn table_row_primary_press_emits_the_current_typed_selection() {
     let state = Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
         640, 420,

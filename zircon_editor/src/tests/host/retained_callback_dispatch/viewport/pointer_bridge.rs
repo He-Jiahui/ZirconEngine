@@ -139,7 +139,7 @@ fn shared_viewport_pointer_bridge_keeps_move_and_up_routed_to_captured_viewport(
 }
 
 #[test]
-fn shared_viewport_pointer_bridge_routes_cancel_to_capture_without_viewport_command() {
+fn shared_viewport_pointer_bridge_routes_cancel_to_the_viewport_terminal_command() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_shared_pointer_cancel");
@@ -153,23 +153,20 @@ fn shared_viewport_pointer_bridge_routes_cancel_to_capture_without_viewport_comm
         Default::default(),
     )
     .unwrap();
-    let record_count_after_down = harness.runtime.journal().records().len();
 
-    let cancel_effects = dispatch_viewport_pointer_event(
+    dispatch_viewport_pointer_event(
         &harness.runtime,
         &mut bridge,
         UiPointerEvent::new(UiPointerEventKind::Cancel, UiPoint::new(180.0, 180.0)),
         Default::default(),
     )
     .unwrap();
+
     assert_eq!(
-        cancel_effects,
-        crate::ui::retained_host::event_bridge::UiHostEventEffects::default()
+        harness.runtime.journal().records().last().unwrap().event,
+        EditorEvent::Viewport(EditorViewportEvent::CancelInteraction)
     );
-    assert_eq!(
-        harness.runtime.journal().records().len(),
-        record_count_after_down
-    );
+    let record_count_after_cancel = harness.runtime.journal().records().len();
 
     dispatch_viewport_pointer_event(
         &harness.runtime,
@@ -180,7 +177,7 @@ fn shared_viewport_pointer_bridge_routes_cancel_to_capture_without_viewport_comm
     .unwrap();
     assert_eq!(
         harness.runtime.journal().records().len(),
-        record_count_after_down
+        record_count_after_cancel
     );
 }
 

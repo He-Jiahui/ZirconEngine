@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+use crate::asset::project::ProjectPaths;
 use crate::core::runtime::{
     BoundedKeyedIoTerminal, BoundedKeyedIoWaitResult, BoundedKeyedIoWorkDeadline, JobScheduler,
     TaskPool, TaskPoolDescriptor,
@@ -14,7 +15,9 @@ use super::unique_temp_root;
 #[test]
 fn runtime_session_archive_seals_one_shared_artifact_per_generation() {
     let mut source = World::empty();
-    source.spawn_node(NodeKind::Mesh);
+    source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let archive = RuntimeSessionArchive::from_world("manual", &source)
         .expect("world capture should produce an archive generation");
 
@@ -217,6 +220,70 @@ fn stale_runtime_session_archive_artifact_cannot_overwrite_newer_path_generation
 }
 
 #[test]
+fn stale_runtime_session_archive_artifact_cannot_publish_to_another_path() {
+    let root = unique_temp_root("stale_archive_artifact_cross_path");
+    let published_path = root.join("published.zrsession");
+    let stale_path = root.join("stale.zrsession");
+    let mut archive = RuntimeSessionArchive::from_world("old", &World::empty()).unwrap();
+    let old = archive.sealed_artifact().unwrap();
+    archive.rename_slot("old", "new").unwrap();
+    let new = archive.sealed_artifact().unwrap();
+
+    new.save_to_path_atomically(&published_path)
+        .expect("newer lineage revision should publish");
+    let error = old
+        .save_to_path_atomically(&stale_path)
+        .expect_err("lineage publication must remain monotonic across target paths");
+
+    assert!(matches!(
+        error,
+        RuntimeSessionArchiveError::StaleArtifactRevision {
+            artifact_revision,
+            committed_revision,
+        } if artifact_revision == old.revision()
+            && committed_revision == new.revision()
+    ));
+    assert!(!stale_path.exists());
+
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn cloned_archive_forks_receive_unique_lineage_revisions() {
+    let root = unique_temp_root("clone_fork_lineage_revision");
+    let newer_path = root.join("newer.zrsession");
+    let stale_path = root.join("stale.zrsession");
+    let base = RuntimeSessionArchive::from_world("base", &World::empty()).unwrap();
+    let mut first_fork = base.clone();
+    let mut second_fork = base;
+    first_fork.rename_slot("base", "first").unwrap();
+    second_fork.rename_slot("base", "second").unwrap();
+    let first = first_fork.sealed_artifact().unwrap();
+    let second = second_fork.sealed_artifact().unwrap();
+
+    assert!(second.revision() > first.revision());
+    assert_ne!(first.serialized_bytes(), second.serialized_bytes());
+    second
+        .save_to_path_atomically(&newer_path)
+        .expect("later clone fork revision should publish");
+    let error = first
+        .save_to_path_atomically(&stale_path)
+        .expect_err("an older clone fork must not publish after a newer lineage revision");
+
+    assert!(matches!(
+        error,
+        RuntimeSessionArchiveError::StaleArtifactRevision {
+            artifact_revision,
+            committed_revision,
+        } if artifact_revision == first.revision()
+            && committed_revision == second.revision()
+    ));
+    assert!(!stale_path.exists());
+
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn runtime_session_archive_path_aliases_share_one_causal_commit_identity() {
     let root = unique_temp_root("archive_path_alias");
     let nested = root.join("nested");
@@ -288,9 +355,10 @@ fn runtime_session_archive_writer_uses_the_shared_bounded_io_lane() {
         },
         scheduler,
     );
+    let target = ProjectPaths::resolve_path(&path).unwrap();
 
     let submission = writer
-        .try_submit(artifact, &path, BoundedKeyedIoWorkDeadline::none())
+        .try_submit(artifact, target, BoundedKeyedIoWorkDeadline::none())
         .expect("bounded writer should admit the small sealed artifact");
     assert_eq!(
         submission
@@ -302,9 +370,11 @@ fn runtime_session_archive_writer_uses_the_shared_bounded_io_lane() {
         .take_outcome()
         .expect("terminal work must publish an outcome")
         .expect("archive write should succeed");
-    assert!(RuntimeSessionArchive::load_from_path(&path)
-        .unwrap()
-        .contains_slot("lane"));
+    assert!(
+        RuntimeSessionArchive::load_from_path(&path)
+            .unwrap()
+            .contains_slot("lane")
+    );
 
     drop(writer.shutdown());
     std::fs::remove_dir_all(root).unwrap();
@@ -336,12 +406,16 @@ fn runtime_session_archive_writer_orders_distinct_lineages_by_path_submission() 
         .unwrap()
         .sealed_artifact()
         .unwrap();
+    let target = ProjectPaths::resolve_path(&path).unwrap();
+    let alias_target =
+        ProjectPaths::resolve_path(root.join("uncreated").join("..").join("session.zrsession"))
+            .unwrap();
 
     let first_submission = writer
-        .try_submit(first, &path, BoundedKeyedIoWorkDeadline::none())
+        .try_submit(first, target, BoundedKeyedIoWorkDeadline::none())
         .unwrap();
     let second_submission = writer
-        .try_submit(second, &path, BoundedKeyedIoWorkDeadline::none())
+        .try_submit(second, alias_target, BoundedKeyedIoWorkDeadline::none())
         .unwrap();
 
     assert!(matches!(
@@ -356,9 +430,11 @@ fn runtime_session_archive_writer_orders_distinct_lineages_by_path_submission() 
         BoundedKeyedIoWaitResult::Terminal(BoundedKeyedIoTerminal::Succeeded)
     );
     assert!(matches!(second_submission.take_outcome(), Some(Ok(()))));
-    assert!(RuntimeSessionArchive::load_from_path(&path)
-        .unwrap()
-        .contains_slot("second"));
+    assert!(
+        RuntimeSessionArchive::load_from_path(&path)
+            .unwrap()
+            .contains_slot("second")
+    );
 
     drop(writer.shutdown());
     std::fs::remove_dir_all(root).unwrap();
@@ -400,12 +476,13 @@ fn runtime_session_archive_path_intent_orders_multiple_writers_and_direct_saves(
         .unwrap()
         .sealed_artifact()
         .unwrap();
+    let target = ProjectPaths::resolve_path(&path).unwrap();
 
     let first_submission = first_writer
-        .try_submit(first, &path, BoundedKeyedIoWorkDeadline::none())
+        .try_submit(first, target.clone(), BoundedKeyedIoWorkDeadline::none())
         .unwrap();
     let second_submission = second_writer
-        .try_submit(second, &path, BoundedKeyedIoWorkDeadline::none())
+        .try_submit(second, target, BoundedKeyedIoWorkDeadline::none())
         .unwrap();
     assert_eq!(
         second_submission

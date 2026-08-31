@@ -6,6 +6,7 @@ use super::super::super::style_selector::{
     select_workbench_tooltip_style, WORKBENCH_TOOLTIP_BORDER, WORKBENCH_TOOLTIP_SURFACE,
 };
 use super::super::metrics::tooltip_metrics_from_host;
+use super::super::surface::tooltip_surface_radius;
 use super::support::tooltip_node;
 
 #[test]
@@ -46,9 +47,9 @@ fn workbench_tooltip_metrics_project_from_host_control_metrics() {
     let metrics = tooltip_metrics_from_host(host);
 
     assert_eq!(metrics.bubble_min_width, 90.0);
-    assert_eq!(metrics.bubble_max_width, 300.0);
+    assert_eq!(metrics.bubble_max_width, 937.5);
     assert_eq!(metrics.bubble_height, 56.0);
-    assert_eq!(metrics.radius, 6.0);
+    assert_eq!(metrics.radius, 11.0);
     assert_eq!(metrics.border_width, 2.0);
     assert_eq!(metrics.shadow_offset_y, 10.0);
     assert_eq!(metrics.text_left, 10.0);
@@ -64,4 +65,12 @@ fn workbench_tooltip_metrics_project_from_host_control_metrics() {
     assert_eq!(metrics.icon_size, 21.0);
     assert_eq!(metrics.icon_min, 11.0);
     assert_eq!(metrics.icon_max, 30.0);
+}
+
+#[test]
+fn workbench_tooltip_prefers_the_projected_panel_radius() {
+    let mut node = tooltip_node();
+    node.corner_radius = 14.0;
+
+    assert_eq!(tooltip_surface_radius(&node), 14.0);
 }

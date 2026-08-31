@@ -25,8 +25,8 @@ pub(super) fn record_asset_refresh_plan_counters(plan: &AssetBackendRefreshPlan)
     );
     zircon_runtime::profile_counter!(
         "editor",
-        "ui.asset_refresh.plan_reload_default_scene",
-        plan.reload_default_scene as u8
+        "ui.asset_refresh.plan_reload_active_scene",
+        plan.reload_active_scene as u8
     );
     zircon_runtime::profile_counter!(
         "editor",

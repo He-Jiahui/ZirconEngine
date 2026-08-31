@@ -6,6 +6,7 @@ import filecmp
 import os
 import shutil
 from pathlib import Path
+from typing import Iterator
 
 try:
     from .zircon_build_zui_assets import validate_staged_engine_asset_suffix
@@ -43,18 +44,30 @@ def stage_engine_assets(config: object) -> None:
     stage_ui_compiled_artifacts(config, destination_root)
 
 
+def _iter_tree_entries(source_root: Path) -> Iterator[tuple[Path, bool]]:
+    with os.scandir(source_root) as iterator:
+        entries = sorted(iterator, key=lambda entry: Path(entry.path))
+    for entry in entries:
+        source = Path(entry.path)
+        if entry.is_dir():
+            yield source, True
+            if not entry.is_symlink():
+                yield from _iter_tree_entries(source)
+            continue
+        if entry.is_file():
+            yield source, False
+
+
 def copy_tree_contents(source_root: Path, destination_root: Path, config: object) -> int:
     skipped = 0
-    for source in sorted(source_root.rglob("*")):
+    for source, is_directory in _iter_tree_entries(source_root):
         relative = source.relative_to(source_root)
         destination = destination_root / relative
-        if source.is_dir():
+        if is_directory:
             if config.dry_run:
                 print(f"DRY-RUN mkdir {destination}")
             else:
                 destination.mkdir(parents=True, exist_ok=True)
-            continue
-        if not source.is_file():
             continue
         validate_staged_engine_asset_suffix(relative, source)
         copy_asset_file(source, destination, config)
@@ -73,8 +86,8 @@ def stage_ui_compiled_artifacts(config: object, destination_root: Path) -> None:
     print(f"Staging UI compiled artifacts {source_root} -> {destination}")
     copied = 0
     skipped = 0
-    for source in sorted(source_root.rglob("*")):
-        if not source.is_file():
+    for source, is_directory in _iter_tree_entries(source_root):
+        if is_directory:
             continue
         if source.suffix not in UI_COMPILED_ARTIFACT_SUFFIXES:
             skipped += 1

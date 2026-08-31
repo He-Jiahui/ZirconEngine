@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::editing::operation::EditOperationTarget;
 use crate::core::editing::operation::{
     DeferredOperationInvocation, OperationCommand, OperationCommandFactory,
     OperationCommandFactoryError, OperationCommandFactoryRegistration, PendingEditRetention,
@@ -7,7 +8,7 @@ use crate::core::editor_event::{
     EditorEventTransient, EditorOperationEvent, EditorViewportEvent, SelectionHostEvent,
 };
 use crate::core::editor_operation::EditorOperationInvocation;
-use crate::core::play::{PlayEditTarget, PlayKind, PlayStartRequest};
+use crate::core::play::{PlayKind, PlayStartRequest};
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::TransformHandleKind;
 use crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
@@ -67,6 +68,202 @@ fn root_componentized_workbench_surface_tool_click_updates_bridge_and_runtime() 
                 mode: SceneModeActivation::Transform(TransformHandleKind::Scale),
             }
         )]
+    );
+}
+
+#[test]
+fn context_menu_open_commits_projection_without_full_shell_recompute() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_context_menu_projection");
+    harness.activate_workbench_page();
+    let slow_path_rebuilds = harness
+        .host
+        .borrow()
+        .invalidation
+        .diagnostics_snapshot()
+        .slow_path_rebuild_count;
+
+    {
+        let mut host = harness.host.borrow_mut();
+        host.dispatch_workbench_context_menu_requested(WorkbenchContextMenuRequestData {
+            target_control_id: "WorkbenchScenePropsItem".into(),
+            target_action_id: "workbench.hierarchy.select_props".into(),
+            target_dispatch_kind: "workbench".into(),
+            target_role: "tree-row".into(),
+            target_value_text: "Props".into(),
+            target_path: "workbench://scene/props".into(),
+            popup_anchor_x: 128.0,
+            popup_anchor_y: 256.0,
+            menu_items: vec!["Open|icon=folder".into(), "Delete|danger,icon=trash".into()],
+        });
+
+        assert!(workbench_control_bool(
+            &host,
+            "WorkbenchContextMenu",
+            "popup_open"
+        ));
+        assert!(host
+            .workbench_window_bridge
+            .has_pending_host_projection_commit());
+        host.recompute_if_dirty();
+        assert!(!host
+            .workbench_window_bridge
+            .has_pending_host_projection_commit());
+        assert_eq!(
+            host.invalidation
+                .diagnostics_snapshot()
+                .slow_path_rebuild_count,
+            slow_path_rebuilds,
+            "context-menu changed rows must patch without rebuilding the root shell"
+        );
+    }
+}
+
+#[test]
+fn componentized_viewport_chrome_patch_queues_center_status_damage() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_componentized_chrome_damage");
+    harness.activate_workbench_page();
+    let presentation = harness.root_ui.get_host_presentation();
+    let center = presentation.host_layout.center_band_frame;
+    let status = presentation.host_layout.status_bar_frame;
+    let _ = harness.root_ui.take_external_redraw_for_test();
+    let slow_path_rebuilds = harness
+        .host
+        .borrow()
+        .invalidation
+        .diagnostics_snapshot()
+        .slow_path_rebuild_count;
+
+    pane_surface_host(&harness.root_ui)
+        .invoke_surface_control_clicked("WorkbenchToolScale".into(), "Tool/Scale".into());
+    harness.host.borrow_mut().recompute_if_dirty();
+
+    let redraw = harness.root_ui.take_external_redraw_for_test();
+    let damage = redraw
+        .damage_region()
+        .expect("chrome projection should queue bounded center/status damage");
+    for expected in [&center, &status] {
+        assert!(damage.x <= expected.x);
+        assert!(damage.y <= expected.y);
+        assert!(damage.right() >= expected.right());
+        assert!(damage.bottom() >= expected.bottom());
+    }
+    assert!(redraw.requires_frame_update());
+    assert_eq!(
+        harness
+            .host
+            .borrow()
+            .invalidation
+            .diagnostics_snapshot()
+            .slow_path_rebuild_count,
+        slow_path_rebuilds,
+        "chrome and changed-row damage should merge without a full shell rebuild"
+    );
+}
+
+#[test]
+fn componentized_viewport_chrome_patch_updates_native_presenter_damage() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_componentized_native_chrome_damage");
+    harness.activate_workbench_page();
+    let scene = harness.detach_view_to_child_window("editor.scene#1", "window:scene");
+    let hierarchy = harness.detach_view_to_child_window("editor.hierarchy#1", "window:hierarchy");
+    let native_scene_mode = |ui: &UiHostWindow, window_id: &str| {
+        ui.get_host_presentation()
+            .native_floating_surface_data
+            .floating_windows
+            .iter()
+            .find(|window| window.window_id.as_str() == window_id)
+            .filter(|window| window.active_pane.kind.as_str() == "Scene")
+            .map(|window| window.active_pane.viewport.mode.to_string())
+            .expect("native scene presenter should contain its detached scene pane")
+    };
+    assert_ne!(native_scene_mode(&scene, "window:scene"), "Transform.Scale");
+    let scene_presentation = scene.get_host_presentation();
+    let scene_bounds = scene_presentation
+        .native_floating_surface_data
+        .native_window_bounds;
+    let scene_header_height = scene_presentation
+        .native_floating_surface_data
+        .header_height_px
+        .clamp(0.0, scene_bounds.height);
+    let _ = scene.take_external_redraw_for_test();
+    let _ = hierarchy.take_external_redraw_for_test();
+    let slow_path_rebuilds = harness
+        .host
+        .borrow()
+        .invalidation
+        .diagnostics_snapshot()
+        .slow_path_rebuild_count;
+
+    pane_surface_host(&harness.root_ui)
+        .invoke_surface_control_clicked("WorkbenchToolScale".into(), "Tool/Scale".into());
+    harness.host.borrow_mut().recompute_if_dirty();
+
+    assert_eq!(native_scene_mode(&scene, "window:scene"), "Transform.Scale");
+    let redraw = scene.take_external_redraw_for_test();
+    let damage = redraw
+        .damage_region()
+        .expect("native presenter chrome patch should queue its own damage");
+    assert_eq!(damage.x, 0.0);
+    assert_eq!(damage.y, scene_header_height);
+    assert_eq!(damage.width, scene_bounds.width);
+    assert_eq!(damage.height, scene_bounds.height - scene_header_height);
+    assert!(redraw.requires_frame_update());
+    let hierarchy_redraw = hierarchy.take_external_redraw_for_test();
+    assert!(!hierarchy_redraw.request_redraw());
+    assert_eq!(hierarchy_redraw.damage_region(), None);
+    assert_eq!(
+        harness
+            .host
+            .borrow()
+            .invalidation
+            .diagnostics_snapshot()
+            .slow_path_rebuild_count,
+        slow_path_rebuilds,
+        "native chrome patching must not rebuild the root shell"
+    );
+}
+
+#[test]
+fn repeated_dispatch_error_commits_pending_workbench_projection() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_repeated_dispatch_error_projection");
+    harness.activate_workbench_page();
+    let mut host = harness.host.borrow_mut();
+    let error = "repeated componentized dispatch failure".to_string();
+
+    host.apply_dispatch_result(Err(error.clone()));
+    host.recompute_if_dirty();
+    assert!(!host
+        .workbench_window_bridge
+        .has_pending_host_projection_commit());
+    let slow_path_rebuilds = host
+        .invalidation
+        .diagnostics_snapshot()
+        .slow_path_rebuild_count;
+
+    host.workbench_window_bridge
+        .dispatch_control_state("WorkbenchToolScale", UiEventKind::Click)
+        .expect("componentized bridge state should refresh")
+        .expect("tool control should have a click binding");
+    assert!(host
+        .workbench_window_bridge
+        .has_pending_host_projection_commit());
+
+    host.apply_dispatch_result(Err(error));
+    host.recompute_if_dirty();
+
+    assert!(!host
+        .workbench_window_bridge
+        .has_pending_host_projection_commit());
+    assert_eq!(
+        host.invalidation
+            .diagnostics_snapshot()
+            .slow_path_rebuild_count,
+        slow_path_rebuilds,
+        "repeated error should commit pending rows without rebuilding the shell"
     );
 }
 
@@ -223,7 +420,10 @@ fn root_componentized_workbench_surface_binding_keeps_clicked_control_source() {
     assert_eq!(
         harness.delta_events_since(baseline),
         vec![EditorEvent::Selection(
-            SelectionHostEvent::SelectSceneNode { node_id: 0 }
+            SelectionHostEvent::SelectSceneNode {
+                world_domain: crate::core::play::WorldDomain::Edit,
+                node_id: 0,
+            }
         )]
     );
 }
@@ -265,53 +465,67 @@ fn closing_project_dismisses_the_workbench_command_palette() {
     host.open_workbench_command_palette();
     assert!(host.workbench_window_bridge.command_palette_open());
 
-    host.close_project_from_workbench()
+    host.request_project_close()
         .expect("project close should restore the welcome workspace");
 
     assert!(!host.workbench_window_bridge.command_palette_open());
 }
 
 #[test]
-fn resolved_pending_play_decision_clears_the_retained_notification_modal() {
+fn resolved_pending_decision_clears_the_retained_notification_modal() {
     let _guard = lock_env();
     let harness = ChildWindowHostHarness::new("zircon_retained_pending_play_decision_clear");
     harness.activate_workbench_page();
 
     let mut host = harness.host.borrow_mut();
-    let stopped = {
+    {
         let controller = host.runtime.play_sessions();
         controller
             .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
             .expect("play should start before a deferred edit is queued");
         controller
             .route_edit(
-                PlayEditTarget::EditWorkspace,
+                EditOperationTarget::EditWorkspace,
                 deferred_pending_edit("discard"),
             )
             .expect("edit should queue while play is active");
         controller
             .request_stop()
-            .expect("stop should surface the real pending-edit prompt")
-    };
+            .expect("stop should surface the real pending-edit prompt");
+    }
     host.runtime
-        .publish_pending_edit_decision(stopped.pending_edit_prompt.as_ref())
+        .reconcile_pending_play_decision_from_controller()
         .expect("pending decision should publish from the controller queue");
-    host.sync_pending_play_decisions();
+    host.sync_pending_activity_decisions();
     assert!(workbench_control_bool(
         &host,
         "WorkbenchNotificationCenter",
         "open"
     ));
 
-    let selection_id = host
-        .runtime
-        .pending_play_decision_options()
-        .expect("pending decision options should project")
-        .into_iter()
-        .last()
-        .expect("discard option should be available")
-        .selection_id()
-        .to_string();
+    let selection_id = {
+        let center = host
+            .runtime
+            .context()
+            .notifications()
+            .decisions()
+            .expect("test notification service should expose its Decision center");
+        let snapshot = center
+            .pending_snapshot()
+            .into_iter()
+            .next()
+            .expect("pending Decision should be available");
+        let option = snapshot
+            .notification()
+            .options()
+            .last()
+            .expect("discard option should be available");
+        format!("{}:{}", snapshot.notification().id(), option.id())
+    };
+    let slow_path_rebuilds = host
+        .invalidation
+        .diagnostics_snapshot()
+        .slow_path_rebuild_count;
     let effects = host
         .dispatch_componentized_workbench_option_selected(
             "WorkbenchNotificationCenter",
@@ -320,8 +534,20 @@ fn resolved_pending_play_decision_clears_the_retained_notification_modal() {
         )
         .expect("notification-center control should dispatch the selected decision")
         .expect("discard callback should resolve the queued edit");
-    assert_eq!(effects.toast_notifications.len(), 1);
+    assert!(effects.toast_notifications.is_empty());
     host.apply_dispatch_effects(effects);
+    host.recompute_if_dirty();
+    assert_eq!(
+        host.invalidation
+            .diagnostics_snapshot()
+            .slow_path_rebuild_count,
+        slow_path_rebuilds,
+        "decision buttons must close through changed notification rows"
+    );
+    host.runtime
+        .pump_pending_play_decision_receipts()
+        .expect("the Play receipt should consume through its owning adapter");
+    host.sync_pending_activity_decisions();
 
     assert!(!workbench_control_bool(
         &host,
@@ -341,6 +567,7 @@ fn deferred_pending_edit(name: &str) -> DeferredOperationInvocation {
     OperationCommandFactoryRegistration::new(
         invocation.operation_id.clone(),
         "retained decision fixture",
+        EditOperationTarget::EditWorkspace,
         Arc::new(DiscardOnlyPendingEditFactory),
     )
     .with_pending_edit_retention(PendingEditRetention::Lossless)

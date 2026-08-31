@@ -166,6 +166,14 @@ pub struct UiSurfaceRebuildDebugStats {
     #[serde(default)]
     pub layout_skipped_node_count: usize,
     #[serde(default)]
+    pub layout_measure_probe_node_count: usize,
+    #[serde(default)]
+    pub layout_arrange_probe_node_count: usize,
+    #[serde(default)]
+    pub layout_taffy_tree_build_count: u64,
+    #[serde(default)]
+    pub layout_taffy_tree_node_build_count: u64,
+    #[serde(default)]
     pub render_command_reused_count: usize,
     #[serde(default)]
     pub render_command_rebuilt_count: usize,

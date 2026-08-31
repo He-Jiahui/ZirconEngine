@@ -18,8 +18,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/construction.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
-  - zircon_runtime/src/script/vm/scene_hook.rs
-  - zircon_app/src/entry/entry_runner/diagnostic_log_args.rs
+  - zircon_runtime/src/script/vm/scene_system.rs
+  - zircon_app/src/entry/cli/diagnostic_log_args.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/bin/editor.rs
@@ -47,8 +47,8 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session/construction.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
-  - zircon_runtime/src/script/vm/scene_hook.rs
-  - zircon_app/src/entry/entry_runner/diagnostic_log_args.rs
+  - zircon_runtime/src/script/vm/scene_system.rs
+  - zircon_app/src/entry/cli/diagnostic_log_args.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/bin/editor.rs
@@ -69,14 +69,12 @@ tests:
   - zircon_runtime/src/diagnostic_log/diagnostics/tests/ownership.rs::diagnostic_log_snapshot_bridge_stays_single_owner
   - zircon_runtime/src/diagnostic_log/sink/tests
   - zircon_app/tests/diagnostic_log_process_lifecycle.rs
-  - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_runtime/src/dynamic_api/tests/mod.rs
   - zircon_runtime/src/tests/prelude.rs
   - cargo test -p zircon_runtime --lib diagnostic_log --locked --jobs 1 --target-dir E:\zircon-build\targets\diagnostic-log-level-runtime-test --message-format short --color never
   - cargo test -p zircon_app diagnostic_log_startup_args --no-default-features --features target-editor-host --locked --jobs 1 --target-dir E:\zircon-build\targets\diagnostic-log-level-app-test --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\diagnostic-log-runtime-check --message-format short --color never
   - cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --target-dir E:\zircon-build\targets\diagnostic-log-editor-app-check --locked --jobs 1 --message-format short --color never
-  - E:\zircon-build\ZirconEngine\zircon_editor.exe smoke run with E:\zircon-build\ZirconEngine\logs\2026-05-04-15-35-18\editor.log
-  - E:\zircon-build\ZirconEngine\zircon_runtime.exe smoke run with C:\Users\HeJiahui\AppData\LocalLow\ZirconEngine\ZirconEngine\logs\2026-05-04-15-57-47\runtime.log
 doc_type: module-detail
 ---
 

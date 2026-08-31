@@ -1,9 +1,46 @@
 use thiserror::Error;
 
+/// Lifecycle boundary at which a plugin-owned event consumer panicked.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EditorRuntimeEventConsumerCallbackPhase {
+    BeginSession,
+    Consume,
+    EndSession,
+}
+
+/// Terminal or deferred outcome assigned to a delivery after a consumer callback runs.
+///
+/// `Poison` is the mandatory disposition for a panic. Retry policy and its bounded state are
+/// introduced by the pending-delivery owner rather than being inferred from a callback error.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EditorRuntimeEventConsumerDeliveryDisposition {
+    Applied,
+    Retryable,
+    Poison,
+    DropWithReason,
+}
+
+impl std::fmt::Display for EditorRuntimeEventConsumerCallbackPhase {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let phase = match self {
+            Self::BeginSession => "begin_session",
+            Self::Consume => "consume",
+            Self::EndSession => "end_session",
+        };
+        formatter.write_str(phase)
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum EditorRuntimeEventConsumerError {
     #[error("runtime event consumer `{consumer_id}` is already registered")]
     DuplicateConsumer { consumer_id: String },
+    #[error("runtime event consumer `{consumer_id}` already has a contribution owner")]
+    ContributionAlreadyOwned { consumer_id: String },
+    #[error("runtime event consumer `{consumer_id}` is not quarantined")]
+    ConsumerNotQuarantined { consumer_id: String },
+    #[error("runtime event consumer generation space is exhausted")]
+    ConsumerGenerationExhausted,
     #[error("runtime event consumer host already owns play session {play_session_id}")]
     SessionAlreadyActive { play_session_id: u64 },
     #[error("runtime event consumer host has no active play session")]
@@ -49,6 +86,12 @@ pub enum EditorRuntimeEventConsumerError {
     },
     #[error("runtime event consumer `{consumer_id}` rejected stale sequence {sequence}")]
     StaleSequence { consumer_id: String, sequence: u64 },
+    #[error("runtime event consumer `{consumer_id}` panicked during {phase}")]
+    CallbackPanicked {
+        consumer_id: String,
+        phase: EditorRuntimeEventConsumerCallbackPhase,
+        delivery_sequence: Option<u64>,
+    },
     #[error("runtime event consumer `{consumer_id}` rejected its payload: {source}")]
     Payload {
         consumer_id: String,
@@ -62,6 +105,20 @@ pub enum EditorRuntimeEventConsumerError {
         primary: Box<EditorRuntimeEventConsumerError>,
         cleanup: Box<EditorRuntimeEventConsumerError>,
     },
+}
+
+impl EditorRuntimeEventConsumerError {
+    pub(super) fn callback_panicked(
+        consumer_id: impl Into<String>,
+        phase: EditorRuntimeEventConsumerCallbackPhase,
+        delivery_sequence: Option<u64>,
+    ) -> Self {
+        Self::CallbackPanicked {
+            consumer_id: consumer_id.into(),
+            phase,
+            delivery_sequence,
+        }
+    }
 }
 
 impl EditorRuntimeEventConsumerError {

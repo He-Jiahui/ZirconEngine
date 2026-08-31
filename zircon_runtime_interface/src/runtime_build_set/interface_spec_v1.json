@@ -1,0 +1,42 @@
+{
+  "family": "zircon.runtime.internal",
+  "spec_version": 1,
+  "runtime_api_version": 8,
+  "entry_symbol": "zircon_runtime_get_api_v8",
+  "runtime_api_required_slots": [
+    "abi_version",
+    "size_bytes",
+    "create_session",
+    "destroy_session",
+    "release_allocation",
+    "handle_event",
+    "capture_frame",
+    "submit_highlight_set",
+    "tick_frame",
+    "subscribe_plugin_event",
+    "unsubscribe_plugin_event",
+    "drain_plugin_events",
+    "submit_operation",
+    "poll_operation",
+    "harvest_operation",
+    "query_world",
+    "watch_world",
+    "unwatch_world",
+    "drain_world_invalidations",
+    "request_viewport_pick",
+    "poll_viewport_pick",
+    "cancel_viewport_pick"
+  ],
+  "runtime_api_optional_slots": [
+    "capture_accessibility_tree",
+    "bind_viewport_surface",
+    "unbind_viewport_surface",
+    "present_viewport",
+    "profile_control",
+    "drain_host_requests"
+  ],
+  "host_api_optional_slots": [
+    "diagnostics_sink",
+    "fetch_resource"
+  ]
+}

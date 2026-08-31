@@ -23,6 +23,9 @@ use super::parameters::{
 mod integration;
 mod runtime_inputs;
 
+#[cfg(test)]
+mod topology_index_tests;
+
 pub(super) use runtime_inputs::{
     validate_blackboard_entries, validate_blackboard_schema_descriptor,
     validate_perception_snapshot,
@@ -55,15 +58,25 @@ fn validate_behavior_tree_descriptor_inner(
     ensure_non_empty(&descriptor.id, "behavior_tree.id")?;
     ensure_non_empty(&descriptor.root_node, "behavior_tree.root_node")?;
 
-    let mut node_ids = HashSet::new();
-    for node in &descriptor.nodes {
+    let registered_tree_index = (require_registered_subtree_target
+        && descriptor
+            .nodes
+            .iter()
+            .any(|node| node.kind == AiBehaviorNodeKind::Subtree))
+    .then(|| {
+        let mut index = HashSet::with_capacity(registered_tree_ids.len());
+        index.extend(registered_tree_ids.iter().copied());
+        index
+    });
+    let mut node_indices = HashMap::with_capacity(descriptor.nodes.len());
+    for (node_index, node) in descriptor.nodes.iter().enumerate() {
         ensure_non_empty(&node.id, "behavior_node.id")?;
-        if !node_ids.insert(node.id.as_str()) {
+        if node_indices.insert(node.id.as_str(), node_index).is_some() {
             return Err(AiManagerError::DuplicateId {
                 id: node.id.clone(),
             });
         }
-        let mut parameter_keys = HashSet::new();
+        let mut parameter_keys = HashSet::with_capacity(node.parameters.len());
         for parameter in &node.parameters {
             ensure_non_empty(&parameter.key, "behavior_node.parameter")?;
             if !parameter.value.is_finite() {
@@ -85,12 +98,11 @@ fn validate_behavior_tree_descriptor_inner(
         validate_builtin_behavior_node_parameters(
             &descriptor.id,
             node,
-            registered_tree_ids,
-            require_registered_subtree_target,
+            registered_tree_index.as_ref(),
         )?;
     }
 
-    if !node_ids.contains(descriptor.root_node.as_str()) {
+    if !node_indices.contains_key(descriptor.root_node.as_str()) {
         return Err(AiManagerError::MissingRootNode {
             tree_id: descriptor.id.clone(),
             root_node: descriptor.root_node.clone(),
@@ -100,7 +112,7 @@ fn validate_behavior_tree_descriptor_inner(
     for node in &descriptor.nodes {
         for child in &node.children {
             ensure_non_empty(child, "behavior_node.child")?;
-            if !node_ids.contains(child.as_str()) {
+            if !node_indices.contains_key(child.as_str()) {
                 return Err(AiManagerError::MissingChildNode {
                     tree_id: descriptor.id.clone(),
                     node_id: node.id.clone(),
@@ -110,7 +122,7 @@ fn validate_behavior_tree_descriptor_inner(
         }
     }
 
-    validate_behavior_tree_topology(descriptor)?;
+    validate_behavior_tree_topology(descriptor, &node_indices)?;
 
     Ok(())
 }
@@ -148,92 +160,85 @@ fn expect_child_count(
     })
 }
 
+const VISIT_UNSEEN: u8 = 0;
+const VISIT_ACTIVE: u8 = 1;
+const VISIT_COMPLETE: u8 = 2;
+
 fn validate_behavior_tree_topology(
     descriptor: &AiBehaviorTreeDescriptor,
+    node_indices: &HashMap<&str, usize>,
 ) -> Result<(), AiManagerError> {
-    let nodes = descriptor
-        .nodes
-        .iter()
-        .map(|node| (node.id.as_str(), node))
-        .collect::<HashMap<_, _>>();
-    let mut visiting = HashSet::new();
-    let mut visited = HashSet::new();
-
-    visit_behavior_node(
-        &descriptor.id,
-        descriptor.root_node.as_str(),
-        &nodes,
-        &mut visiting,
-        &mut visited,
-    )?;
-    validate_behavior_node_incoming_edges(descriptor, &visited)
+    let Some(&root_index) = node_indices.get(descriptor.root_node.as_str()) else {
+        return Err(AiManagerError::MissingRootNode {
+            tree_id: descriptor.id.clone(),
+            root_node: descriptor.root_node.clone(),
+        });
+    };
+    let mut visit_states = vec![VISIT_UNSEEN; descriptor.nodes.len()];
+    visit_behavior_node(descriptor, root_index, node_indices, &mut visit_states)?;
+    validate_behavior_node_incoming_edges(descriptor, node_indices, &visit_states)
 }
 
-fn visit_behavior_node<'a>(
-    tree_id: &str,
-    node_id: &'a str,
-    nodes: &HashMap<&'a str, &'a AiBehaviorNodeDescriptor>,
-    visiting: &mut HashSet<&'a str>,
-    visited: &mut HashSet<&'a str>,
+fn visit_behavior_node(
+    descriptor: &AiBehaviorTreeDescriptor,
+    node_index: usize,
+    node_indices: &HashMap<&str, usize>,
+    visit_states: &mut [u8],
 ) -> Result<(), AiManagerError> {
-    if visited.contains(node_id) {
-        return Ok(());
-    }
-    if !visiting.insert(node_id) {
-        return invalid_behavior_tree_topology(tree_id, node_id, "node participates in a cycle");
-    }
-
-    if let Some(node) = nodes.get(node_id).copied() {
-        for child in &node.children {
-            let Some((child_id, _)) = nodes.get_key_value(child.as_str()) else {
-                return Err(AiManagerError::MissingChildNode {
-                    tree_id: tree_id.to_string(),
-                    node_id: node.id.clone(),
-                    child_id: child.clone(),
-                });
-            };
-            visit_behavior_node(tree_id, child_id, nodes, visiting, visited)?;
+    let node = &descriptor.nodes[node_index];
+    match visit_states[node_index] {
+        VISIT_COMPLETE => return Ok(()),
+        VISIT_ACTIVE => {
+            return invalid_behavior_tree_topology(
+                &descriptor.id,
+                &node.id,
+                "node participates in a cycle",
+            )
         }
+        _ => {}
     }
 
-    visiting.remove(node_id);
-    visited.insert(node_id);
+    visit_states[node_index] = VISIT_ACTIVE;
+    for child in &node.children {
+        let Some(&child_index) = node_indices.get(child.as_str()) else {
+            return Err(AiManagerError::MissingChildNode {
+                tree_id: descriptor.id.clone(),
+                node_id: node.id.clone(),
+                child_id: child.clone(),
+            });
+        };
+        visit_behavior_node(descriptor, child_index, node_indices, visit_states)?;
+    }
+    visit_states[node_index] = VISIT_COMPLETE;
     Ok(())
 }
 
 fn validate_behavior_node_incoming_edges(
     descriptor: &AiBehaviorTreeDescriptor,
-    visited: &HashSet<&str>,
+    node_indices: &HashMap<&str, usize>,
+    visit_states: &[u8],
 ) -> Result<(), AiManagerError> {
-    let mut incoming_edges = descriptor
-        .nodes
-        .iter()
-        .map(|node| (node.id.as_str(), 0_usize))
-        .collect::<HashMap<_, _>>();
+    let mut incoming_edges = vec![0_usize; descriptor.nodes.len()];
 
     for node in &descriptor.nodes {
         for child in &node.children {
-            if let Some(count) = incoming_edges.get_mut(child.as_str()) {
-                *count += 1;
+            if let Some(&child_index) = node_indices.get(child.as_str()) {
+                incoming_edges[child_index] += 1;
             }
         }
     }
 
-    for node in &descriptor.nodes {
-        let incoming_count = incoming_edges.get(node.id.as_str()).copied().unwrap_or(0);
-        if node.id == descriptor.root_node {
-            if incoming_count != 0 {
-                return invalid_behavior_tree_topology(
-                    &descriptor.id,
-                    &node.id,
-                    "root node must not have an incoming edge",
-                );
-            }
-        }
+    let root_index = node_indices[descriptor.root_node.as_str()];
+    if incoming_edges[root_index] != 0 {
+        return invalid_behavior_tree_topology(
+            &descriptor.id,
+            &descriptor.root_node,
+            "root node must not have an incoming edge",
+        );
     }
 
-    for node in &descriptor.nodes {
-        if !visited.contains(node.id.as_str()) {
+    for (node_index, node) in descriptor.nodes.iter().enumerate() {
+        if visit_states[node_index] != VISIT_COMPLETE {
             return invalid_behavior_tree_topology(
                 &descriptor.id,
                 &node.id,
@@ -242,9 +247,8 @@ fn validate_behavior_node_incoming_edges(
         }
     }
 
-    for node in &descriptor.nodes {
-        let incoming_count = incoming_edges.get(node.id.as_str()).copied().unwrap_or(0);
-        if node.id != descriptor.root_node && incoming_count != 1 {
+    for (node_index, node) in descriptor.nodes.iter().enumerate() {
+        if node.id != descriptor.root_node && incoming_edges[node_index] != 1 {
             return invalid_behavior_tree_topology(
                 &descriptor.id,
                 &node.id,
@@ -271,16 +275,10 @@ fn invalid_behavior_tree_topology<T>(
 fn validate_builtin_behavior_node_parameters(
     tree_id: &str,
     node: &AiBehaviorNodeDescriptor,
-    registered_tree_ids: &[&str],
-    require_registered_subtree_target: bool,
+    registered_tree_index: Option<&HashSet<&str>>,
 ) -> Result<(), AiManagerError> {
     validate_builtin_behavior_node_parameter_owners(tree_id, node)?;
-    validate_subtree_target_parameter(
-        tree_id,
-        node,
-        registered_tree_ids,
-        require_registered_subtree_target,
-    )?;
+    validate_subtree_target_parameter(tree_id, node, registered_tree_index)?;
 
     if let Some(value) = behavior_node_parameter(node, TASK_RESULT_PARAMETER_KEY) {
         let result = expect_string_parameter(tree_id, node, TASK_RESULT_PARAMETER_KEY, value)?;
@@ -474,8 +472,7 @@ fn expected_builtin_parameter_owner(
 fn validate_subtree_target_parameter(
     tree_id: &str,
     node: &AiBehaviorNodeDescriptor,
-    registered_tree_ids: &[&str],
-    require_registered_target: bool,
+    registered_tree_index: Option<&HashSet<&str>>,
 ) -> Result<(), AiManagerError> {
     if node.kind != AiBehaviorNodeKind::Subtree {
         return Ok(());
@@ -503,7 +500,7 @@ fn validate_subtree_target_parameter(
     if target_tree == tree_id {
         return invalid_subtree_target(tree_id, node, target_tree, "subtree cannot target itself");
     }
-    if require_registered_target && !registered_tree_ids.contains(&target_tree) {
+    if registered_tree_index.is_some_and(|index| !index.contains(target_tree)) {
         return invalid_subtree_target(
             tree_id,
             node,

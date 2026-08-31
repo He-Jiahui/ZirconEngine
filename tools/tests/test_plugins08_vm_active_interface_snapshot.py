@@ -18,6 +18,9 @@ DISCOVERY_IO = (
     REPO_ROOT / "zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery/io.rs"
 )
 COORDINATOR = REPO_ROOT / "zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs"
+GC_OWNER = (
+    REPO_ROOT / "zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/gc.rs"
+)
 GC_SCHEDULE = (
     REPO_ROOT
     / "zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/gc_schedule.rs"
@@ -71,27 +74,39 @@ class Plugins08VmActiveInterfaceSnapshotTests(unittest.TestCase):
 
     def test_gc_step_consumes_a_lifecycle_maintained_next_due_index(self) -> None:
         coordinator = COORDINATOR.read_text(encoding="utf-8")
+        gc_owner = GC_OWNER.read_text(encoding="utf-8")
         schedule = GC_SCHEDULE.read_text(encoding="utf-8")
-        gc_step = self._method_body(coordinator, "gc_step")
+        gc_step = self._method_body(gc_owner, "gc_step")
 
+        self.assertIn("mod gc;", coordinator)
         self.assertIn("GcNextDueSchedule", coordinator)
         self.assertIn("struct GcNextDueSchedule", schedule)
         self.assertIn("due_by_frame: BTreeMap", schedule)
-        self.assertIn("fn refresh_gc_schedule", coordinator)
+        self.assertIn("fn refresh_gc_schedule", gc_owner)
         self.assertIn("take_due(frame_index)", gc_step)
         self.assertNotIn("gc_policy_is_due(entry, frame_index)", gc_step)
         self.assertNotIn("due_slots.sort", gc_step)
 
     def test_gc_budget_is_enforced_by_host_wall_clock(self) -> None:
-        coordinator = COORDINATOR.read_text(encoding="utf-8")
+        gc_owner = GC_OWNER.read_text(encoding="utf-8")
         deadline = GC_DEADLINE.read_text(encoding="utf-8")
-        gc_step = self._method_body(coordinator, "gc_step")
+        gc_step = self._method_body(gc_owner, "gc_step")
 
         self.assertIn("struct GcFrameDeadline", deadline)
         self.assertIn("GcFrameDeadline::start", gc_step)
         self.assertIn("remaining_micros()", gc_step)
         self.assertNotIn("saturating_sub(pause_micros)", gc_step)
         self.assertIn("host_elapsed_micros", gc_step)
+
+    def test_export_panic_restores_instance_before_resuming_unwind(self) -> None:
+        coordinator = COORDINATOR.read_text(encoding="utf-8")
+        call_export = self._method_body(coordinator, "call_slot_export")
+
+        catch_index = call_export.index("catch_unwind")
+        restore_index = call_export.index("self.restore_slot_instance")
+        resume_index = call_export.index("Err(payload) => resume_unwind(payload)")
+        self.assertLess(catch_index, restore_index)
+        self.assertLess(restore_index, resume_index)
 
     def test_prepared_reflection_registry_is_published_and_reused(self) -> None:
         catalog = REFLECTION_CATALOG.read_text(encoding="utf-8")

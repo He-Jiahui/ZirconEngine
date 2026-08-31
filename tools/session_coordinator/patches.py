@@ -242,21 +242,10 @@ class PatchService:
             )
             now = utc_text()
             with self.database.transaction() as connection:
+                attribution_rows = []
                 for target in patch.targets:
                     normalized = self.leases.path_policy.normalize(target)
-                    connection.execute(
-                        """
-                        INSERT INTO attributions(
-                            path_key, display_path, session_id, baseline_epoch,
-                            content_hash, attributed_at
-                        ) VALUES (?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(path_key) DO UPDATE SET
-                            display_path = excluded.display_path,
-                            session_id = excluded.session_id,
-                            baseline_epoch = excluded.baseline_epoch,
-                            content_hash = excluded.content_hash,
-                            attributed_at = excluded.attributed_at
-                        """,
+                    attribution_rows.append(
                         (
                             normalized.key,
                             normalized.display,
@@ -264,8 +253,23 @@ class PatchService:
                             epoch,
                             hash_file(normalized.absolute),
                             now,
-                        ),
+                        )
                     )
+                connection.executemany(
+                    """
+                    INSERT INTO attributions(
+                        path_key, display_path, session_id, baseline_epoch,
+                        content_hash, attributed_at
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(path_key) DO UPDATE SET
+                        display_path = excluded.display_path,
+                        session_id = excluded.session_id,
+                        baseline_epoch = excluded.baseline_epoch,
+                        content_hash = excluded.content_hash,
+                        attributed_at = excluded.attributed_at
+                    """,
+                    attribution_rows,
+                )
             self._update(patch.patch_id, PatchStatus.APPLIED, applied=True)
             self.sessions.set_status(
                 patch.session_id,

@@ -3,6 +3,10 @@ use std::collections::BTreeMap;
 use crate::asset::{MaterialAsset, ShaderAsset, ShaderMaterialPropertyAsset};
 use crate::core::framework::render::{MaterialPropertyKind, RenderMaterialPropertyValue};
 
+#[cfg(test)]
+#[path = "property_values/schema_index_tests.rs"]
+mod schema_index_tests;
+
 pub fn shader_property_values_for_shader(
     material: &MaterialAsset,
     shader: &ShaderAsset,
@@ -20,12 +24,7 @@ pub fn shader_property_values_for_shader(
         }
     }
     for (name, value) in material.shader_property_overrides() {
-        if values.contains_key(name)
-            || shader
-                .property_schema
-                .iter()
-                .any(|property| property.name == *name)
-        {
+        if values.contains_key(name) {
             continue;
         }
         if let Some(value) = string_property_value(value) {

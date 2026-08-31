@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::slice;
 
 use crate::scene::EntityId;
@@ -74,9 +75,20 @@ pub(crate) fn first_duplicate_entity<const N: usize>(entities: &[EntityId; N]) -
         return None;
     }
 
-    first_duplicate_entity_sorted(entities, || {})
+    first_duplicate_entity_hashed(entities)
 }
 
+fn first_duplicate_entity_hashed<const N: usize>(entities: &[EntityId; N]) -> Option<EntityId> {
+    let mut seen = HashSet::with_capacity(N);
+    for &entity in entities {
+        if !seen.insert(entity) {
+            return Some(entity);
+        }
+    }
+    None
+}
+
+#[cfg(test)]
 fn first_duplicate_entity_sorted<const N: usize>(
     entities: &[EntityId; N],
     mut record_comparison: impl FnMut(),
@@ -219,3 +231,7 @@ mod tests {
             .join(",")
     }
 }
+
+#[cfg(test)]
+#[path = "unique_entities/hash_scan_tests.rs"]
+mod hash_scan_tests;

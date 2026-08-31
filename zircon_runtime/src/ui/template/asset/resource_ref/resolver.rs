@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::core::resource::{
     ResourceKind, ResourceLocator, ResourceLocatorError, ResourceManager, ResourceRecord,
@@ -141,21 +141,18 @@ impl UiResourceResolver {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut requested_uris = Vec::new();
+        let requested_uris = unique_trimmed_uris(uris);
         let scheme_map = self.scheme_map.clone();
-        for uri in uris {
-            let uri = uri.as_ref().trim();
-            if uri.is_empty() || requested_uris.iter().any(|existing| existing == uri) {
-                continue;
-            }
-            requested_uris.push(uri.to_string());
-        }
         let references_removed = if requested_uris.is_empty() {
             0
         } else {
+            let requested_uri_set = requested_uris
+                .iter()
+                .map(String::as_str)
+                .collect::<HashSet<&str>>();
             let before = self.cache.len();
             self.cache.retain(|reference, _| {
-                !resource_reference_contains_any_uri(reference, &requested_uris, &scheme_map)
+                !resource_reference_contains_any_uri(reference, &requested_uri_set, &scheme_map)
             });
             before.saturating_sub(self.cache.len())
         };
@@ -300,34 +297,47 @@ impl UiResourceResolver {
     }
 }
 
-fn resource_reference_contains_uri(
-    reference: &UiResourceRef,
-    uri: &str,
-    scheme_map: &UiResourceResolverSchemeMap,
-) -> bool {
-    resource_uri_matches_invalidation_uri(&reference.uri, uri, scheme_map)
-        || reference.fallback.uri.as_deref().is_some_and(|fallback| {
-            resource_uri_matches_invalidation_uri(fallback, uri, scheme_map)
-        })
+fn unique_trimmed_uris<I, S>(uris: I) -> Vec<String>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let mut uri_order = HashMap::<String, usize>::new();
+    for uri in uris {
+        let uri = uri.as_ref().trim();
+        if uri.is_empty() || uri_order.contains_key(uri) {
+            continue;
+        }
+        let index = uri_order.len();
+        uri_order.insert(uri.to_string(), index);
+    }
+
+    let mut ordered = vec![None; uri_order.len()];
+    for (uri, index) in uri_order {
+        ordered[index] = Some(uri);
+    }
+    ordered.into_iter().flatten().collect()
 }
 
 fn resource_reference_contains_any_uri(
     reference: &UiResourceRef,
-    uris: &[String],
+    requested_uri_set: &HashSet<&str>,
     scheme_map: &UiResourceResolverSchemeMap,
 ) -> bool {
-    uris.iter()
-        .any(|uri| resource_reference_contains_uri(reference, uri, scheme_map))
+    resource_uri_matches_any_invalidation(&reference.uri, requested_uri_set, scheme_map)
+        || reference.fallback.uri.as_deref().is_some_and(|fallback| {
+            resource_uri_matches_any_invalidation(fallback, requested_uri_set, scheme_map)
+        })
 }
 
-fn resource_uri_matches_invalidation_uri(
+fn resource_uri_matches_any_invalidation(
     reference_uri: &str,
-    invalidation_uri: &str,
+    requested_uri_set: &HashSet<&str>,
     scheme_map: &UiResourceResolverSchemeMap,
 ) -> bool {
-    reference_uri == invalidation_uri
-        || mapped_runtime_locator_string(reference_uri, scheme_map).as_deref()
-            == Some(invalidation_uri)
+    requested_uri_set.contains(reference_uri)
+        || mapped_runtime_locator_string(reference_uri, scheme_map)
+            .is_some_and(|mapped| requested_uri_set.contains(mapped.as_str()))
 }
 
 fn mapped_runtime_locator_string(
@@ -423,3 +433,7 @@ impl Default for UiResourceResolver {
         Self::new(ResourceManager::new())
     }
 }
+
+#[cfg(test)]
+#[path = "resolver/hash_invalidation_tests.rs"]
+mod hash_invalidation_tests;

@@ -17,6 +17,7 @@ impl UiTemplateSurfaceBuilder {
         let tree = UiTemplateTreeBuilder::build_tree(tree_id.clone(), instance)?;
         let mut surface = UiSurface::new(tree_id);
         surface.tree = tree;
+        surface.install_compiled_binding_program(instance.binding_program().clone());
         Ok(surface)
     }
 

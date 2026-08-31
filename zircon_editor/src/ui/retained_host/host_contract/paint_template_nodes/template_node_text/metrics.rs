@@ -53,13 +53,11 @@ fn node_font_size_from_host(
     } else {
         metrics.font_body
     };
-    let available_height = if available_height.is_finite() {
-        available_height.max(0.0)
-    } else {
-        0.0
-    };
+    if !available_height.is_finite() || available_height <= 0.0 {
+        return 0.0;
+    }
     if requested.is_finite() && requested > 0.0 {
-        requested.min(available_height)
+        requested
     } else {
         0.0
     }
@@ -103,12 +101,14 @@ mod tests {
         secondary.text_tone = "secondary".into();
 
         assert_eq!(node_font_size_from_host(&body, 20.0, metrics), 15.0);
-        assert_eq!(node_font_size_from_host(&body, 10.0, metrics), 10.0);
+        assert_eq!(node_font_size_from_host(&body, 10.0, metrics), 15.0);
         assert_eq!(node_font_size_from_host(&body, 0.0, metrics), 0.0);
         assert_eq!(node_font_size_from_host(&caption, 20.0, metrics), 11.0);
+        assert_eq!(node_font_size_from_host(&caption, 6.0, metrics), 11.0);
         assert_eq!(node_font_size_from_host(&subtle, 20.0, metrics), 11.0);
         assert_eq!(node_font_size_from_host(&secondary, 20.0, metrics), 11.0);
         assert_eq!(node_font_size_from_host(&authored, 20.0, metrics), 12.0);
+        assert_eq!(node_font_size_from_host(&authored, 6.0, metrics), 12.0);
     }
 
     #[test]

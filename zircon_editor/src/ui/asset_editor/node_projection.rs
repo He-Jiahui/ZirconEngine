@@ -2,9 +2,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 
-use super::{
-    UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH,
-};
+use super::{UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH};
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::v2_design_tokens::prepare_editor_v2_document;
@@ -13,7 +11,7 @@ use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::ui::{
     style::resolve_button_style_from_values,
-    surface::{extract_ui_render_tree, UiSurface},
+    surface::UiSurface,
     v2::{UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder},
 };
 use zircon_runtime_interface::ui::{
@@ -58,9 +56,9 @@ enum UiAssetEditorNodeProjectionError {
 }
 
 #[derive(Clone, Debug, Default)]
-struct TemplateRenderInfo {
+struct TemplateRenderInfo<'a> {
     is_quad: bool,
-    text: Option<String>,
+    text: Option<&'a str>,
     font_size: f32,
     border_width: f32,
     corner_radius: f32,
@@ -188,7 +186,8 @@ fn node_projection_v2_store_file_cache() -> &'static Mutex<UiV2PrototypeStoreFil
 }
 
 fn mark_surface_roots_layout_dirty(surface: &mut UiSurface) {
-    for root_id in surface.tree.roots.clone() {
+    for root_index in 0..surface.tree.roots.len() {
+        let root_id = surface.tree.roots[root_index];
         if let Some(root) = surface.tree.node_mut(root_id) {
             root.dirty.layout = true;
             root.dirty.hit_test = true;
@@ -201,7 +200,7 @@ fn project_ui_asset_editor_nodes(
     surface: &UiSurface,
 ) -> Result<UiAssetEditorNodeProjection, UiAssetEditorNodeProjectionError> {
     let mut render_info_by_node = BTreeMap::new();
-    for command in extract_ui_render_tree(&surface.tree).list.commands {
+    for command in &surface.render_extract.list.commands {
         let entry = render_info_by_node
             .entry(command.node_id)
             .or_insert(TemplateRenderInfo {
@@ -216,7 +215,7 @@ fn project_ui_asset_editor_nodes(
             .max(command.style.corner_radius.max(0.0));
         entry.text_align = command.style.text_align;
         if command.kind == UiRenderCommandKind::Text {
-            if let Some(text) = command.text {
+            if let Some(text) = command.text.as_deref() {
                 entry.text = Some(text);
             }
         }
@@ -230,15 +229,13 @@ fn project_ui_asset_editor_nodes(
             let metadata = node.template_metadata.as_ref()?;
             let control_id = metadata.control_id.clone()?;
             let render_info = render_info_by_node.get(&node.node_id);
-            let text = render_info
-                .and_then(|info| info.text.clone())
-                .unwrap_or_default();
+            let text = render_info.and_then(|info| info.text).unwrap_or_default();
             let component_role = resolve_component_role(&metadata.component);
             let binding_id = preferred_binding_id(metadata, None).unwrap_or_default();
             let edit_action_id = resolve_edit_action_id(metadata, component_role, &binding_id);
             let commit_action_id = resolve_commit_action_id(metadata);
             let component_variant = resolve_component_variant(metadata);
-            let value_text = resolve_node_value_text(metadata, &text, component_role);
+            let value_text = resolve_node_value_text(metadata, text, component_role);
             let value_number = resolve_node_value_number(metadata);
             let value_percent = resolve_node_value_percent(metadata, component_role, value_number);
             let options = string_array_attribute(metadata, "options");
@@ -261,6 +258,10 @@ fn project_ui_asset_editor_nodes(
 
             Some(ViewTemplateNodeData {
                 node_id: SharedString::from(node.node_path.0.clone()),
+                surface_node_id: Some(node.node_id),
+                // This row merges all render commands owned by the node, so it cannot claim one
+                // exact command within the published node range.
+                surface_render_command_ref: None,
                 control_id: SharedString::from(control_id),
                 role: SharedString::from(resolve_role(&metadata.component, render_info, metadata)),
                 text: SharedString::from(text),
@@ -400,7 +401,7 @@ fn find_node(nodes: &[ViewTemplateNodeData], control_id: &str) -> ViewTemplateNo
 
 fn resolve_role(
     component: &str,
-    render_info: Option<&TemplateRenderInfo>,
+    render_info: Option<&TemplateRenderInfo<'_>>,
     metadata: &UiTemplateNodeMetadata,
 ) -> &'static str {
     match component {

@@ -1,10 +1,10 @@
 use super::super::BuiltinCatalogDescriptorBuilder;
 
 pub(super) fn attach_extra_capabilities(
+    package_id: &str,
     descriptor: BuiltinCatalogDescriptorBuilder,
 ) -> BuiltinCatalogDescriptorBuilder {
-    let package_id = descriptor.package_id().to_string();
-    match package_id.as_str() {
+    match package_id {
         "ai" => descriptor
             .with_capability("runtime.feature.ai.behavior_tree")
             .with_capability("runtime.feature.ai.blackboard")

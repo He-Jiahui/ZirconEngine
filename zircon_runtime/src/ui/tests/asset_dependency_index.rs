@@ -333,16 +333,140 @@ fn uri(value: &str) -> AssetUri {
 }
 
 #[test]
-fn dependency_index_cascade_borrows_graph_identity_and_allocates_only_results() {
+fn optimization_batch_20260826x_runtime74_dependency_cascade_preserves_sorted_bfs_order() {
+    let mut index = UiAssetDependencyIndex::new();
+    index.record_compiled(
+        "res://ui/components/b.zui",
+        &[asset_ref("res://ui/theme/base.theme.toml")],
+    );
+    index.record_compiled(
+        "res://ui/components/a.zui",
+        &[asset_ref("res://ui/theme/base.theme.toml")],
+    );
+    index.record_compiled(
+        "res://ui/views/main.zui",
+        &[
+            asset_ref("res://ui/components/a.zui"),
+            asset_ref("res://ui/components/b.zui"),
+        ],
+    );
+
+    assert_eq!(
+        index.cascade_invalidation_targets("res://ui/theme/base.theme.toml"),
+        vec![
+            "res://ui/components/a.zui".to_string(),
+            "res://ui/components/b.zui".to_string(),
+            "res://ui/views/main.zui".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn optimization_batch_20260826x_runtime74_dependency_cascade_uses_borrowed_hash_visited() {
     let source = include_str!("../template/asset/dependency_index.rs");
     let cascade = source
         .split_once("pub fn cascade_invalidation_targets")
         .expect("dependency cascade must remain available")
         .1;
 
-    assert!(cascade.contains("let mut seen: BTreeSet<&str>"));
+    assert!(cascade.contains("let mut seen: HashSet<&str>"));
     assert!(cascade.contains("let mut queue: VecDeque<&str>"));
     assert!(cascade.contains("dependents_by_asset.get(asset_id)"));
     assert!(!cascade.contains("queue.push_back(dependent.clone())"));
     assert!(cascade.contains("targets.push(dependent.to_string())"));
+    assert!(!cascade.contains("let mut seen: BTreeSet<&str>"));
+}
+
+use std::collections::{BTreeSet, HashSet};
+use std::hint::black_box;
+use std::time::{Duration, Instant};
+
+const CASCADE_VISIT_COUNT: usize = 65_536;
+const UNIQUE_CASCADE_NODE_COUNT: usize = 8_192;
+const CASCADE_SAMPLE_COUNT: usize = 17;
+
+fn cascade_percentile_95(samples: &mut [Duration]) -> Duration {
+    samples.sort_unstable();
+    samples[(samples.len() - 1) * 95 / 100]
+}
+
+fn cascade_node_visits() -> Vec<String> {
+    (0..CASCADE_VISIT_COUNT)
+        .map(|index| {
+            format!(
+                "res://ui/components/generated/very_long_component_identity_{:05}.zui",
+                (index * 4_099) % UNIQUE_CASCADE_NODE_COUNT
+            )
+        })
+        .collect()
+}
+
+fn ordered_cascade_visit_count(node_visits: &[String]) -> usize {
+    let mut seen: BTreeSet<&str> = BTreeSet::new();
+    let mut admitted = 0;
+    for node_id in node_visits {
+        if seen.insert(node_id.as_str()) {
+            admitted += 1;
+        }
+    }
+    admitted
+}
+
+fn hash_cascade_visit_count(node_visits: &[String]) -> usize {
+    let mut seen: HashSet<&str> = HashSet::new();
+    let mut admitted = 0;
+    for node_id in node_visits {
+        if seen.insert(node_id.as_str()) {
+            admitted += 1;
+        }
+    }
+    admitted
+}
+
+#[test]
+#[ignore = "release performance evidence"]
+fn optimization_batch_20260826x_runtime74_dependency_cascade_hash_visited_performance_evidence() {
+    let node_visits = cascade_node_visits();
+    assert_eq!(
+        ordered_cascade_visit_count(&node_visits),
+        hash_cascade_visit_count(&node_visits)
+    );
+
+    let mut ordered_samples = Vec::with_capacity(CASCADE_SAMPLE_COUNT);
+    let mut hash_samples = Vec::with_capacity(CASCADE_SAMPLE_COUNT);
+    for sample in 0..CASCADE_SAMPLE_COUNT {
+        if sample % 2 == 0 {
+            let started = Instant::now();
+            black_box(ordered_cascade_visit_count(black_box(&node_visits)));
+            ordered_samples.push(started.elapsed());
+
+            let started = Instant::now();
+            black_box(hash_cascade_visit_count(black_box(&node_visits)));
+            hash_samples.push(started.elapsed());
+        } else {
+            let started = Instant::now();
+            black_box(hash_cascade_visit_count(black_box(&node_visits)));
+            hash_samples.push(started.elapsed());
+
+            let started = Instant::now();
+            black_box(ordered_cascade_visit_count(black_box(&node_visits)));
+            ordered_samples.push(started.elapsed());
+        }
+    }
+
+    let ordered_p95 = cascade_percentile_95(&mut ordered_samples);
+    let hash_p95 = cascade_percentile_95(&mut hash_samples);
+    println!(
+        "RUNTIME74_DEPENDENCY_CASCADE_HASH_VISITED_BENCH_V1 visits={CASCADE_VISIT_COUNT} \
+         unique_nodes={UNIQUE_CASCADE_NODE_COUNT} ordered_lookup_class=log_n \
+         hash_lookup_class=average_constant ordered_p95_ns={} hash_p95_ns={}",
+        ordered_p95.as_nanos(),
+        hash_p95.as_nanos(),
+    );
+    assert!(
+        hash_p95.as_nanos() * 100 <= ordered_p95.as_nanos() * 60,
+        "hash-visited P95 {:?} exceeded 60% of ordered-visited P95 {:?}",
+        hash_p95,
+        ordered_p95,
+    );
 }

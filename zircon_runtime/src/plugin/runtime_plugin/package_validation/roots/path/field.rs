@@ -3,7 +3,8 @@ pub(super) fn validate_runtime_plugin_package_root_field(
     root: &str,
     diagnostics: &mut Vec<String>,
 ) -> bool {
-    if root.trim().is_empty() || root.trim() != root {
+    let trimmed = root.trim();
+    if trimmed.is_empty() || trimmed.len() != root.len() {
         diagnostics.push(format!(
             "runtime plugin package manifest {field_name} root `{root}` must be non-empty and trimmed"
         ));
@@ -11,3 +12,7 @@ pub(super) fn validate_runtime_plugin_package_root_field(
     }
     true
 }
+
+#[cfg(test)]
+#[path = "field/single_trim_tests.rs"]
+mod single_trim_tests;

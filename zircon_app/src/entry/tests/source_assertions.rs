@@ -99,10 +99,14 @@ fn editor_product_entry_bootstraps_linked_first_party_runtime_plugins() {
 
     assert_eq!(
         source
-            .matches("Self::bootstrap_with_first_party_runtime_plugin_registrations(")
+            .matches("first_party_runtime_plugin_registrations_for_config(")
             .count(),
-        2,
-        "GUI and headless editor operations must both install linked first-party runtime providers"
+        1,
+        "shared editor startup preparation must collect linked first-party runtime providers once"
+    );
+    assert!(
+        source.contains("Self::compose_resolved_with_runtime_plugin_registrations("),
+        "GUI editor startup must retain the complete product composition"
     );
     assert!(
         !source.contains("Self::bootstrap(EntryConfig::new(EntryProfile::Editor))"),

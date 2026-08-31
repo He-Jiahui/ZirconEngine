@@ -365,6 +365,12 @@ pub(super) fn assert_hzb_light_camera_capture(snapshot: &RuntimeDiagnosticsSnaps
     );
     assert_render_bool_series(
         &snapshot.store,
+        "render.history.invalidated.camera_cut",
+        false,
+        &["history", "invalidation", "camera_cut"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
         "render.history.invalidated.render_size_changed",
         true,
         &["history", "invalidation", "render_size_changed"],

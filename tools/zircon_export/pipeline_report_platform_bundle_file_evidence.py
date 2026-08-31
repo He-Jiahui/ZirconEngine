@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import mmap
 from pathlib import Path
 from typing import Any
 
@@ -401,7 +402,12 @@ def platform_bundle_file_sha256(
     label: str,
 ) -> str | None:
     try:
-        return hashlib.sha256(path.read_bytes()).hexdigest()
+        with path.open("rb") as stream:
+            stream.seek(0, 2)
+            if stream.tell() == 0:
+                return hashlib.sha256().hexdigest()
+            with mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as mapped_bytes:
+                return hashlib.sha256(mapped_bytes).hexdigest()
     except OSError as error:
         diagnostics.append(f"{label} could not be read: {error}")
         return None

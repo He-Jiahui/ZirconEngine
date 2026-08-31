@@ -1,11 +1,44 @@
 use crate::core::editor_event::ViewInstanceId;
 use crate::core::editor_message::EditorViewInvalidationMask;
+use crate::core::play::WorldDomain;
+use crate::ui::host::editor_asset_manager::EditorAssetCatalogGeneration;
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
+use std::sync::Arc;
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime_interface::ui::layout::UiSize;
 use zircon_runtime_interface::world_sync::{WatchKey, WatchRegistration};
+
+#[test]
+fn data_only_catalog_sync_does_not_publish_workbench_invalidation() {
+    let _lock = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("editor_message_data_only_catalog_sync");
+
+    harness
+        .runtime
+        .sync_asset_catalog_data(Arc::new(EditorAssetCatalogGeneration::default()));
+
+    let refresh = harness.runtime.drain_pending_view_refreshes();
+    assert!(refresh.dirty().is_empty());
+    assert!(refresh.deltas().is_empty());
+    assert!(!refresh.used_full_snapshot_fallback());
+}
+
+#[test]
+fn data_only_resource_sync_does_not_publish_workbench_invalidation() {
+    let _lock = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("editor_message_data_only_resource_sync");
+
+    assert!(harness.runtime.sync_asset_resources_data(Arc::new(
+        zircon_runtime::core::resource::ResourceManagementGeneration::default(),
+    )));
+
+    let refresh = harness.runtime.drain_pending_view_refreshes();
+    assert!(refresh.dirty().is_empty());
+    assert!(refresh.deltas().is_empty());
+    assert!(!refresh.used_full_snapshot_fallback());
+}
 
 #[test]
 fn refresh_view_marks_view_dirty_and_materializes_current_snapshot_backend() {
@@ -55,9 +88,10 @@ fn hierarchy_world_watch_delivers_structure_changes_without_reflection_fallback(
     let _lock = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("editor_message_hierarchy_world_watch");
     let hierarchy = ViewInstanceId::new("scene.hierarchy");
-    let (token, _) = harness
+    let token = harness
         .runtime
-        .watch_edit_world_for_view(
+        .watch_world_for_view(
+            WorldDomain::Edit,
             WatchRegistration::new(WatchKey::WorldStructure),
             hierarchy.clone(),
             EditorViewInvalidationMask::TREE_STRUCTURE,
@@ -66,14 +100,15 @@ fn hierarchy_world_watch_delivers_structure_changes_without_reflection_fallback(
 
     let spawned_entity = {
         let shell = harness.runtime.shell().lock();
-        shell
-            .state
-            .world
-            .with_world_mut(|scene| scene.spawn_node(NodeKind::Empty))
+        shell.state.world.expect_with_world_mut(|scene| {
+            scene
+                .spawn_node(NodeKind::Empty)
+                .expect("test scene spawn should succeed")
+        })
     };
     let sync = harness
         .runtime
-        .pump_edit_world_invalidations()
+        .pump_world_invalidations(WorldDomain::Edit)
         .expect("world invalidation pump should consume the hierarchy mutation");
     assert_eq!(sync.dirty_views(), 1);
     let refresh = harness.runtime.drain_pending_view_refreshes();
@@ -94,10 +129,7 @@ fn hierarchy_world_watch_delivers_structure_changes_without_reflection_fallback(
         .added_anchors()
         .iter()
         .any(|anchor| anchor.entity() == spawned_entity));
-    assert!(harness
-        .runtime
-        .unwatch_edit_world_for_view(token)
-        .expect("hierarchy watch should unregister before the fixture is released"));
+    drop(token);
 }
 
 #[test]
@@ -114,10 +146,11 @@ fn hierarchy_dirty_refresh_publishes_and_consumes_a_fragment_without_snapshot_fa
 
     let spawned_entity = {
         let shell = harness.runtime.shell().lock();
-        shell
-            .state
-            .world
-            .with_world_mut(|scene| scene.spawn_node(NodeKind::Empty))
+        shell.state.world.expect_with_world_mut(|scene| {
+            scene
+                .spawn_node(NodeKind::Empty)
+                .expect("test scene spawn should succeed")
+        })
     };
     let report = harness
         .runtime
@@ -164,10 +197,14 @@ fn ten_thousand_node_name_refresh_applies_a_patch_without_materializing_sparse_r
     let hierarchy = ViewInstanceId::new("scene.hierarchy");
     let renamed_entity = {
         let shell = harness.runtime.shell().lock();
-        shell.state.world.with_world_mut(|scene| {
-            let renamed = scene.spawn_node(NodeKind::Empty);
+        shell.state.world.expect_with_world_mut(|scene| {
+            let renamed = scene
+                .spawn_node(NodeKind::Empty)
+                .expect("test scene spawn should succeed");
             for _ in 1..NODE_COUNT {
-                scene.spawn_node(NodeKind::Empty);
+                scene
+                    .spawn_node(NodeKind::Empty)
+                    .expect("test scene spawn should succeed");
             }
             renamed
         })
@@ -199,7 +236,7 @@ fn ten_thousand_node_name_refresh_applies_a_patch_without_materializing_sparse_r
         shell
             .state
             .world
-            .with_world(|scene| scene.inspection_artifact_diagnostics())
+            .expect_with_world(|scene| scene.inspection_artifact_diagnostics())
     };
 
     {
@@ -207,7 +244,9 @@ fn ten_thousand_node_name_refresh_applies_a_patch_without_materializing_sparse_r
         shell
             .state
             .world
-            .with_world_mut(|scene| scene.rename_node(renamed_entity, "Renamed large scene item"))
+            .expect_with_world_mut(|scene| {
+                scene.rename_node(renamed_entity, "Renamed large scene item")
+            })
             .expect("the test entity should remain available for rename");
     }
     let report = harness
@@ -243,7 +282,7 @@ fn ten_thousand_node_name_refresh_applies_a_patch_without_materializing_sparse_r
         shell
             .state
             .world
-            .with_world(|scene| scene.inspection_artifact_diagnostics())
+            .expect_with_world(|scene| scene.inspection_artifact_diagnostics())
     };
     assert_eq!(
         after.hierarchy_full_materializations(),

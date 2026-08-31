@@ -68,6 +68,25 @@ fn unified_shell_pointer_bridge_keeps_resize_route_captured_until_pointer_up() {
 }
 
 #[test]
+fn rejected_resize_setup_can_cancel_capture_without_a_synthetic_pointer_event() {
+    let mut bridge = HostShellPointerBridge::new();
+    bridge.update_layout_with_workbench_layout_frames(
+        ShellSizePx::new(1440.0, 900.0),
+        true,
+        &[],
+        workbench_layout_frames(),
+        None,
+    );
+
+    assert_eq!(
+        bridge.begin_resize(UiPoint::new(312.0, 420.0)),
+        Some(HostShellPointerRoute::Resize(HostResizeTargetGroup::Left))
+    );
+    bridge.cancel_resize();
+    assert_eq!(bridge.update_resize(UiPoint::new(900.0, 420.0)), None);
+}
+
+#[test]
 fn stable_resize_geometry_patches_drag_surface_without_replacing_authority() {
     let mut bridge = HostShellPointerBridge::new();
     let authority_generation = bridge.drag_surface_authority_generation_for_test();

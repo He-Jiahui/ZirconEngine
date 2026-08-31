@@ -6,7 +6,6 @@ use crate::ui::workbench::view::ViewInstanceId;
 use crate::ui::workbench::{
     CenterSplitLayout, LayoutPreset, LayoutPresetName, LayoutPresetPersistenceStore,
     LayoutPresetRestoreFallback, LayoutPresetRestoreResult, LayoutPresetScope,
-    PersistedLayoutPreset, LAYOUT_PRESET_PERSISTENCE_VERSION,
 };
 
 #[test]
@@ -16,12 +15,9 @@ fn page_user_layout_persistence_roundtrips_drawers_widths_and_split_without_view
     let material = ViewInstanceId::new("editor.material#persisted-layout");
     let mut layout = WorkbenchLayout::default();
 
-    let MainHostPageLayout::WorkbenchPage {
-        document_workspace, ..
-    } = &mut layout.main_pages[0]
-    else {
-        panic!("default layout should expose a workbench page");
-    };
+    let document_workspace = layout
+        .content_workspace_for_page_mut(&page_id)
+        .expect("default page should resolve its activity-window content workspace");
     *document_workspace = DocumentNode::SplitNode {
         axis: SplitAxis::Vertical,
         ratio: 0.65,
@@ -54,8 +50,6 @@ fn page_user_layout_persistence_roundtrips_drawers_widths_and_split_without_view
         .get_mut(&ActivityDrawerSlot::Bottom)
         .expect("bottom drawer")
         .extent = 300.0;
-    layout.sync_legacy_drawers_from_active_activity_window();
-
     let scope = LayoutPresetScope::new("artist", page_id.clone());
     let mut store = LayoutPresetPersistenceStore::default();
     let captured = store.persist_layout_snapshot(scope.clone(), LayoutPresetName::Debug, &layout);
@@ -91,25 +85,20 @@ fn page_user_layout_persistence_roundtrips_drawers_widths_and_split_without_view
     let restored = decoded.restore_into_layout(&scope, &mut restored_layout);
 
     assert!(matches!(restored, LayoutPresetRestoreResult::Restored(_)));
+    let restored_drawers = restored_layout.active_activity_window_drawers();
     assert_eq!(
-        restored_layout.drawers[&ActivityDrawerSlot::LeftTop].mode,
+        restored_drawers[&ActivityDrawerSlot::LeftTop].mode,
         ActivityDrawerMode::Collapsed
     );
     assert_eq!(
-        restored_layout.drawers[&ActivityDrawerSlot::RightTop].extent,
+        restored_drawers[&ActivityDrawerSlot::RightTop].extent,
         444.0
     );
-    assert_eq!(
-        restored_layout.drawers[&ActivityDrawerSlot::Bottom].extent,
-        300.0
-    );
+    assert_eq!(restored_drawers[&ActivityDrawerSlot::Bottom].extent, 300.0);
 
-    let MainHostPageLayout::WorkbenchPage {
-        document_workspace, ..
-    } = &restored_layout.main_pages[0]
-    else {
-        panic!("default layout should expose a workbench page");
-    };
+    let document_workspace = restored_layout
+        .content_workspace_for_page(&page_id)
+        .expect("restored page should resolve its activity-window content workspace");
     let DocumentNode::SplitNode {
         axis,
         first,
@@ -125,7 +114,7 @@ fn page_user_layout_persistence_roundtrips_drawers_widths_and_split_without_view
 }
 
 #[test]
-fn page_user_layout_restore_is_scoped_and_falls_back_on_version_mismatch() {
+fn page_user_layout_restore_is_scoped_and_falls_back_when_missing() {
     let page_id = MainPageId::workbench();
     let artist_scope = LayoutPresetScope::new("artist", page_id.clone());
     let reviewer_scope = LayoutPresetScope::new("reviewer", page_id.clone());
@@ -151,23 +140,4 @@ fn page_user_layout_restore_is_scoped_and_falls_back_on_version_mismatch() {
             .fallback_reason(),
         Some(&LayoutPresetRestoreFallback::Missing)
     );
-
-    let stale_scope = LayoutPresetScope::new("artist", MainPageId::new("scene:stale"));
-    store.insert_persisted(
-        stale_scope.clone(),
-        PersistedLayoutPreset {
-            format_version: LAYOUT_PRESET_PERSISTENCE_VERSION - 1,
-            preset: LayoutPreset::debug(),
-        },
-    );
-
-    let restored = store.restore_layout(&stale_scope);
-    assert_eq!(
-        restored.fallback_reason(),
-        Some(&LayoutPresetRestoreFallback::VersionMismatch {
-            stored_version: LAYOUT_PRESET_PERSISTENCE_VERSION - 1,
-            expected_version: LAYOUT_PRESET_PERSISTENCE_VERSION
-        })
-    );
-    assert_eq!(restored.preset().name, LayoutPresetName::Authoring);
 }

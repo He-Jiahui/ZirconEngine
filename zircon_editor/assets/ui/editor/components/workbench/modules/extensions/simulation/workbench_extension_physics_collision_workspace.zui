@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "physics_collision_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.physics_collision_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionPhysicsCollisionWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "physics_collision_rail_gap" }, { node = "physics_collision_left" }, { node = "physics_collision_center" }, { node = "physics_collision_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "physics_collision_workspace_main" },
+  { node = "physics_collision_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.physics_collision_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "physics_collision_rail_gap" }, { node = "physics_collision_left" }, { node = "physics_collision_center" }, { node = "physics_collision_right_reserve" }]
+
+[nodes.physics_collision_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.physics_collision_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionPhysicsCollisionRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.physics_collision_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPhysicsCollisionLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "physics_collision_title" }, { node = "physics_collision_bodies_tab" }, { node = "physics_collision_materials_tab" }, { node = "physics_collision_contacts_tab" }, { node = "physics_collision_player_capsule_row" }, { node = "physics_collision_material_ice_row" }, { node = "physics_collision_contact_wall_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "physics_collision_title" }, { node = "physics_collision_left_content" }]
+
+[nodes.physics_collision_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPhysicsCollisionLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "physics_collision_player_capsule_row" }, { node = "physics_collision_material_ice_row" }, { node = "physics_collision_contact_wall_row" }]
 
 [nodes.physics_collision_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionPhysicsCollisionTitle"
 props = { text = "Physics Collision" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.physics_collision_bodies_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPhysicsCollisionBodiesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Bodies", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PhysicsCollisionBodiesTab", event = "Click", route = "workbench.extension.physics_collision.bodies" }]
-
-[nodes.physics_collision_materials_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPhysicsCollisionMaterialsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Materials", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PhysicsCollisionMaterialsTab", event = "Click", route = "workbench.extension.physics_collision.materials" }]
-
-[nodes.physics_collision_contacts_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPhysicsCollisionContactsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Contacts", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PhysicsCollisionContactsTab", event = "Click", route = "workbench.extension.physics_collision.contacts" }]
 
 [nodes.physics_collision_player_capsule_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/PhysicsCollisionContactWallRow", event = "C
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPhysicsCollisionCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "physics_collision_center_header" }, { node = "physics_collision_matrix_table" }, { node = "physics_collision_output" }]
 
 [nodes.physics_collision_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionPhysicsCollisionCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "physics_collision_center_title" }, { node = "physics_collision_header_fill" }, { node = "physics_collision_simulate_button" }, { node = "physics_collision_validate_button" }]
 
 [nodes.physics_collision_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionPhysicsCollisionSimulateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Simulate Physics", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Simulate Physics", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 132.0, preferred = 132.0, max = 144.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PhysicsCollisionSimulate", event = "Click", route = "workbench.extension.physics_collision.simulate" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/PhysicsCollisionSimulate", event = "Click",
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionPhysicsCollisionValidateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Validate Contacts", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Validate Contacts", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 136.0, preferred = 136.0, max = 148.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PhysicsCollisionValidate", event = "Click", route = "workbench.extension.physics_collision.validate" }]
 
 [nodes.physics_collision_matrix_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionPhysicsCollisionMatrixTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "physics_collision_player_capsule_table_row" }, { node = "physics_collision_ice_material_table_row" }, { node = "physics_collision_wall_contact_table_row" }, { node = "physics_collision_ccd_warning_table_row" }]
 
 [nodes.physics_collision_player_capsule_table_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/PhysicsCollisionCcdWarningTableRow", event 
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionPhysicsCollisionOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Physics Output", value_text = "124 bodies   32 contacts   1 warning" }
+props = { text = "Physics Output", value_text = "124 bodies   32 contacts   1 warning", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PhysicsCollisionOutput", event = "Click", route = "workbench.extension.physics_collision.output" }]
 
 [nodes.physics_collision_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPhysicsCollisionRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "physics_collision_details_title" }, { node = "physics_collision_profile_dropdown" }, { node = "physics_collision_solver_dropdown" }, { node = "physics_collision_mass_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "physics_collision_details_title" }, { node = "physics_collision_right_content" }]
+
+[nodes.physics_collision_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPhysicsCollisionRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "physics_collision_profile_dropdown_property_row" }, { node = "physics_collision_solver_dropdown_property_row" }, { node = "physics_collision_mass_field_property_row" }]
 
 [nodes.physics_collision_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,27 +202,48 @@ control_id = "WorkbenchExtensionPhysicsCollisionDetailsTitle"
 props = { text = "Collision Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.physics_collision_profile_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPhysicsCollisionProfileDropdownPropertyRow"
+props = { text = "Profile" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "physics_collision_profile_dropdown", slot = { name = "value" } }]
+
 [nodes.physics_collision_profile_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionPhysicsCollisionProfileDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Character", value = "Character", options = ["Default", "Vehicle", "Character", "Ragdoll"] }
+props = { value_text = "Character", value = "Character", options = ["Default", "Vehicle", "Character", "Ragdoll"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PhysicsCollisionProfileEdit", event = "Change", route = "workbench.extension.physics_collision.profile.edit" },
   { id = "WorkbenchExtension/PhysicsCollisionProfileCommit", event = "Submit", route = "workbench.extension.physics_collision.profile.commit" },
 ]
 
+[nodes.physics_collision_solver_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPhysicsCollisionSolverDropdownPropertyRow"
+props = { text = "Solver" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "physics_collision_solver_dropdown", slot = { name = "value" } }]
+
 [nodes.physics_collision_solver_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionPhysicsCollisionSolverDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "TGS", value = "TGS", options = ["PGS", "TGS", "XPBD", "Debug"] }
+props = { value_text = "TGS", value = "TGS", options = ["PGS", "TGS", "XPBD", "Debug"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PhysicsCollisionSolverEdit", event = "Change", route = "workbench.extension.physics_collision.solver.edit" },
   { id = "WorkbenchExtension/PhysicsCollisionSolverCommit", event = "Submit", route = "workbench.extension.physics_collision.solver.commit" },
 ]
+
+[nodes.physics_collision_mass_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPhysicsCollisionMassFieldPropertyRow"
+props = { text = "Mass" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "physics_collision_mass_field", slot = { name = "value" } }]
 
 [nodes.physics_collision_mass_field]
 component = "WorkbenchField"

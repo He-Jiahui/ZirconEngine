@@ -11,6 +11,10 @@ use validation::{
 
 mod validation;
 
+#[cfg(test)]
+#[path = "document/rename_single_pass_tests.rs"]
+mod rename_single_pass_tests;
+
 pub trait UiAssetDocumentRuntimeExt {
     fn validate_tree_authority(&self) -> Result<(), UiAssetError>;
     fn root_node_id(&self) -> Option<&str>;
@@ -160,39 +164,11 @@ impl UiAssetDocumentRuntimeExt for UiAssetDocument {
             });
         }
 
-        let Some((stylesheet_index, rule_index)) =
-            self.stylesheets
-                .iter()
-                .enumerate()
-                .find_map(|(stylesheet_index, stylesheet)| {
-                    stylesheet
-                        .rules
-                        .iter()
-                        .position(|rule| rule.id.as_deref() == Some(current_id))
-                        .map(|rule_index| (stylesheet_index, rule_index))
-                })
-        else {
+        let rename = scan_style_rule_rename(&self.stylesheets, current_id, new_id);
+        let Some((stylesheet_index, rule_index)) = rename.current else {
             return Ok(false);
         };
-
-        let duplicate = self
-            .stylesheets
-            .iter()
-            .enumerate()
-            .flat_map(|(candidate_stylesheet_index, stylesheet)| {
-                stylesheet
-                    .rules
-                    .iter()
-                    .enumerate()
-                    .map(move |(candidate_rule_index, rule)| {
-                        (candidate_stylesheet_index, candidate_rule_index, rule)
-                    })
-            })
-            .any(|(candidate_stylesheet_index, candidate_rule_index, rule)| {
-                (candidate_stylesheet_index, candidate_rule_index) != (stylesheet_index, rule_index)
-                    && rule.id.as_deref() == Some(new_id)
-            });
-        if duplicate {
+        if rename.duplicate {
             return Err(UiAssetError::InvalidDocument {
                 asset_id: self.asset.id.clone(),
                 detail: format!("duplicate style rule id {new_id}"),
@@ -341,22 +317,11 @@ impl UiAssetDocumentRuntimeExt for UiAssetDocument {
             });
         }
 
-        let Some(stylesheet_index) = self
-            .stylesheets
-            .iter()
-            .position(|stylesheet| stylesheet.id == current_id)
-        else {
+        let rename = scan_style_sheet_rename(&self.stylesheets, current_id, new_id);
+        let Some(stylesheet_index) = rename.current else {
             return Ok(false);
         };
-
-        if self
-            .stylesheets
-            .iter()
-            .enumerate()
-            .any(|(candidate_index, stylesheet)| {
-                candidate_index != stylesheet_index && stylesheet.id == new_id
-            })
-        {
+        if rename.duplicate {
             return Err(UiAssetError::InvalidDocument {
                 asset_id: self.asset.id.clone(),
                 detail: format!("duplicate stylesheet id {new_id}"),
@@ -576,6 +541,63 @@ impl UiAssetDocumentRuntimeExt for UiAssetDocument {
         parent.children.swap(left, right);
         true
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct RenameScan<T> {
+    current: Option<T>,
+    duplicate: bool,
+}
+
+fn scan_style_rule_rename(
+    stylesheets: &[UiStyleSheet],
+    current_id: &str,
+    new_id: &str,
+) -> RenameScan<(usize, usize)> {
+    let mut scan = RenameScan {
+        current: None,
+        duplicate: false,
+    };
+    for (stylesheet_index, stylesheet) in stylesheets.iter().enumerate() {
+        for (rule_index, rule) in stylesheet.rules.iter().enumerate() {
+            let Some(rule_id) = rule.id.as_deref() else {
+                continue;
+            };
+            if rule_id == current_id {
+                if scan.current.is_none() {
+                    scan.current = Some((stylesheet_index, rule_index));
+                } else if current_id == new_id {
+                    scan.duplicate = true;
+                }
+                continue;
+            }
+            scan.duplicate |= rule_id == new_id;
+        }
+    }
+    scan
+}
+
+fn scan_style_sheet_rename(
+    stylesheets: &[UiStyleSheet],
+    current_id: &str,
+    new_id: &str,
+) -> RenameScan<usize> {
+    let mut scan = RenameScan {
+        current: None,
+        duplicate: false,
+    };
+    for (index, stylesheet) in stylesheets.iter().enumerate() {
+        if stylesheet.id == current_id {
+            if scan.current.is_none() {
+                scan.current = Some(index);
+            } else if current_id == new_id {
+                scan.duplicate = true;
+            }
+            continue;
+        }
+        scan.duplicate |= stylesheet.id == new_id;
+    }
+    scan
 }
 
 pub struct UiAssetNodeIter<'a> {

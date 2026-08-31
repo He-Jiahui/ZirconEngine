@@ -2,23 +2,23 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::core::framework::render::{
     GpuLightData, LightShadowSettings, LightingExtract, RenderDirectionalLightSnapshot,
-    ViewportCameraSnapshot, SHADOW_SLOT_NONE,
+    SHADOW_SLOT_NONE, ViewportCameraSnapshot,
 };
 use crate::core::math::Mat4;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
 
 use super::atlas::{
-    ShadowAtlasAllocator, ShadowAtlasRect, ShadowAtlasResourceConfig, ShadowSlotAllocation,
-    ShadowSlotKey, ShadowSlotRequest, SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
+    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT, ShadowAtlasAllocator, ShadowAtlasRect,
+    ShadowAtlasResourceConfig, ShadowSlotAllocation, ShadowSlotKey, ShadowSlotRequest,
 };
-use super::cascade::{compute_cascade_ranges, CascadeSplitConfig};
+use super::cascade::{CascadeSplitConfig, compute_cascade_ranges};
 use super::shadow_cache::{
-    shadow_light_params_hash, static_shadow_caster_revision_from_meshes, ShadowCacheInput,
+    ShadowCacheInput, shadow_light_params_hash, static_shadow_caster_revision_from_meshes,
 };
 use super::slot::{
-    GpuShadowGlobals, GpuShadowSlot, GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE,
-    GPU_SHADOW_SLOT_FLAG_POINT_FACE, GPU_SHADOW_SLOT_FLAG_SPOT,
+    GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE, GPU_SHADOW_SLOT_FLAG_POINT_FACE,
+    GPU_SHADOW_SLOT_FLAG_SPOT, GpuShadowGlobals, GpuShadowSlot,
 };
 use super::view_projection::{
     directional_cascade_view_projection, point_light_face_view_projection,
@@ -28,6 +28,8 @@ use super::view_projection::{
 const POINT_LIGHT_SHADOW_FACE_COUNT: u32 = 6;
 const SPOT_LIGHT_SHADOW_SLOT_COUNT: u32 = 1;
 const SHADOW_PLAN_NEAR_PLANE: f32 = 0.1;
+const SHADOW_REQUEST_PREALLOCATION_SAMPLE_LIGHTS_PER_KIND: usize = 64;
+const SHADOW_REQUEST_PREALLOCATION_MINIMUM_SAMPLED_REQUESTS: usize = 32;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct ShadowLightSlotAssignment {
@@ -298,10 +300,52 @@ fn first_shadow_casting_directional(
         .find(|light| shadow_enabled(light.shadow).is_some())
 }
 
+fn shadow_slot_request_capacity_if_dense(lighting: &LightingExtract) -> Option<usize> {
+    let sampled_point_requests = lighting
+        .point_lights
+        .iter()
+        .take(SHADOW_REQUEST_PREALLOCATION_SAMPLE_LIGHTS_PER_KIND)
+        .filter(|light| shadow_enabled(light.shadow).is_some())
+        .count()
+        .saturating_mul(POINT_LIGHT_SHADOW_FACE_COUNT as usize);
+    let sampled_spot_requests = lighting
+        .spot_lights
+        .iter()
+        .take(SHADOW_REQUEST_PREALLOCATION_SAMPLE_LIGHTS_PER_KIND)
+        .filter(|light| shadow_enabled(light.shadow).is_some())
+        .count()
+        .saturating_mul(SPOT_LIGHT_SHADOW_SLOT_COUNT as usize);
+    if sampled_point_requests.saturating_add(sampled_spot_requests)
+        < SHADOW_REQUEST_PREALLOCATION_MINIMUM_SAMPLED_REQUESTS
+    {
+        return None;
+    }
+
+    let point_requests = lighting
+        .point_lights
+        .iter()
+        .filter(|light| shadow_enabled(light.shadow).is_some())
+        .count()
+        .saturating_mul(POINT_LIGHT_SHADOW_FACE_COUNT as usize);
+    let spot_requests = lighting
+        .spot_lights
+        .iter()
+        .filter(|light| shadow_enabled(light.shadow).is_some())
+        .count()
+        .saturating_mul(SPOT_LIGHT_SHADOW_SLOT_COUNT as usize);
+    Some(point_requests.saturating_add(spot_requests))
+}
+
 fn shadow_slot_requests_for_additional_lights(
     lighting: &LightingExtract,
 ) -> Vec<ShadowSlotRequest> {
-    let mut requests = Vec::new();
+    let mut requests =
+        shadow_slot_request_capacity_if_dense(lighting).map_or_else(Vec::new, Vec::with_capacity);
+    append_shadow_slot_requests(&mut requests, lighting);
+    requests
+}
+
+fn append_shadow_slot_requests(requests: &mut Vec<ShadowSlotRequest>, lighting: &LightingExtract) {
     for light in &lighting.point_lights {
         let Some(shadow) = shadow_enabled(light.shadow) else {
             continue;
@@ -330,7 +374,6 @@ fn shadow_slot_requests_for_additional_lights(
             .with_minimum_tier(shadow.resolution_preference.minimum_with_global_floor()),
         );
     }
-    requests
 }
 
 fn append_directional_cascades(

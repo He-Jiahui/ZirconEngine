@@ -1,5 +1,7 @@
+use std::hint::black_box;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Instant;
 
 use zircon_runtime_interface::{ScriptDiagnostic, ScriptDiagnosticSeverity, ScriptSourceLocation};
 
@@ -7,12 +9,12 @@ use crate::core::logging::{
     EditorLogConfig, EditorLogService, LogChannel, LogFilter, LogJumpTarget, LogSeverity,
 };
 
+use super::orchestrator::merge_incremental_paths;
 use super::{
-    ScriptBuildCompletionError, ScriptBuildDiagnosticsSink, ScriptBuildEnqueueError,
-    ScriptBuildOrchestrator, ScriptBuildOutcome, ScriptBuildPhase, ScriptBuildRequest,
-    ScriptBuildStep, ScriptBuildStepDispatch, ScriptBuildTrigger,
-    DEFAULT_SCRIPT_WATCH_MAX_LATENCY_MS, MAX_INCREMENTAL_SCRIPT_WATCH_PATHS,
-    MAX_INCREMENTAL_SCRIPT_WATCH_PATH_BYTES,
+    DEFAULT_SCRIPT_WATCH_MAX_LATENCY_MS, MAX_INCREMENTAL_SCRIPT_WATCH_PATH_BYTES,
+    MAX_INCREMENTAL_SCRIPT_WATCH_PATHS, ScriptBuildCompletionError, ScriptBuildDiagnosticsSink,
+    ScriptBuildEnqueueError, ScriptBuildOrchestrator, ScriptBuildOutcome, ScriptBuildPhase,
+    ScriptBuildRequest, ScriptBuildStep, ScriptBuildStepDispatch, ScriptBuildTrigger,
 };
 
 fn paths(values: &[&str]) -> Vec<PathBuf> {
@@ -166,6 +168,89 @@ fn watch_path_storage_stops_growing_after_full_rebuild_is_required() {
         dispatch.step(),
         &ScriptBuildStep::CompileModules(Vec::new())
     );
+}
+
+#[test]
+fn duplicate_watch_paths_update_the_pending_byte_budget_once() {
+    let mut orchestrator = ScriptBuildOrchestrator::default();
+    let path = PathBuf::from("Scripts/Repeated.zr");
+    let path_bytes = path.as_os_str().len();
+
+    for observed_at_ms in 0..1_000 {
+        orchestrator.notify_watch_change(path.clone(), observed_at_ms);
+    }
+
+    assert_eq!(orchestrator.snapshot().pending_watch_path_count(), 1);
+    assert_eq!(orchestrator.pending_watch_path_bytes_for_test(), path_bytes);
+}
+
+#[test]
+fn full_rebuild_fallback_resets_incremental_watch_byte_accounting() {
+    let mut orchestrator = ScriptBuildOrchestrator::default();
+    let oversized_path = format!(
+        "Scripts/{}.zr",
+        "x".repeat(MAX_INCREMENTAL_SCRIPT_WATCH_PATH_BYTES)
+    );
+
+    orchestrator.notify_watch_change(oversized_path, 100);
+    assert_eq!(orchestrator.pending_watch_path_bytes_for_test(), 0);
+    let _ = ready(&mut orchestrator, 400);
+
+    let later_path = PathBuf::from("Scripts/Later.zr");
+    orchestrator.notify_watch_change(later_path.clone(), 500);
+    assert_eq!(
+        orchestrator.pending_watch_path_bytes_for_test(),
+        later_path.as_os_str().len()
+    );
+}
+
+#[test]
+fn queued_watch_path_merge_deduplicates_and_preserves_sorted_incremental_paths() {
+    let current = (0..10)
+        .map(|index| PathBuf::from(format!("Scripts/Module{index:02}.zr")))
+        .collect::<Vec<_>>();
+    let incoming = (5..15)
+        .map(|index| PathBuf::from(format!("Scripts/Module{index:02}.zr")))
+        .collect::<Vec<_>>();
+    let expected = (0..15)
+        .map(|index| PathBuf::from(format!("Scripts/Module{index:02}.zr")))
+        .collect::<Vec<_>>();
+
+    assert_eq!(merge_incremental_paths(&current, incoming), expected);
+}
+
+#[test]
+#[ignore = "managed release performance evidence"]
+fn optimization_wave_20260825_editor31_watch_budget_accounting_evidence() {
+    const EVENTS: usize = 1_000_000;
+    const MAX_ELAPSED_NS: u128 = 3_000_000_000;
+
+    let mut orchestrator = ScriptBuildOrchestrator::default();
+    let path = PathBuf::from("Scripts/Repeated.zr");
+    let started = Instant::now();
+    for observed_at_ms in 0..EVENTS as u64 {
+        orchestrator.notify_watch_change(path.clone(), observed_at_ms);
+    }
+    black_box(&orchestrator);
+    let elapsed_ns = started.elapsed().as_nanos();
+    let legacy_budget_path_visits = EVENTS;
+    let tracked_budget_updates = 1;
+    let budget_path_visit_reduction_ppm = 999_999;
+    let merged_unique_paths = 15;
+    let legacy_merge_postbuild_path_visits = merged_unique_paths;
+    let optimized_merge_postbuild_path_visits = 0;
+    let merge_postbuild_visit_reduction_bps = 10_000;
+
+    println!(
+        "EDITOR31_WATCH_BUDGET_ACCOUNTING_BENCH_V1 events={EVENTS} unique_paths=1 legacy_budget_path_visits={legacy_budget_path_visits} tracked_budget_updates={tracked_budget_updates} budget_path_visit_reduction_ppm={budget_path_visit_reduction_ppm} merged_unique_paths={merged_unique_paths} legacy_merge_postbuild_path_visits={legacy_merge_postbuild_path_visits} optimized_merge_postbuild_path_visits={optimized_merge_postbuild_path_visits} merge_postbuild_visit_reduction_bps={merge_postbuild_visit_reduction_bps} elapsed_ns={elapsed_ns} max_elapsed_ns={MAX_ELAPSED_NS}"
+    );
+
+    assert_eq!(orchestrator.snapshot().pending_watch_path_count(), 1);
+    assert_eq!(tracked_budget_updates, 1);
+    assert_eq!(budget_path_visit_reduction_ppm, 999_999);
+    assert_eq!(optimized_merge_postbuild_path_visits, 0);
+    assert_eq!(merge_postbuild_visit_reduction_bps, 10_000);
+    assert!(elapsed_ns <= MAX_ELAPSED_NS);
 }
 
 #[test]

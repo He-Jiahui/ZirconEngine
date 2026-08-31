@@ -14,11 +14,14 @@ pub(super) fn tab_route_hit(
         let Some(tab) = tabs.row_data(row) else {
             continue;
         };
-        let frame = match origin {
-            Some(origin) => translated(&tab.frame, origin.x, origin.y),
-            None => tab.frame.clone(),
+        if tab.control_id.as_str() != id {
+            continue;
+        }
+        let hit = match origin {
+            Some(origin) => contains(&translated(&tab.frame, origin.x, origin.y), x, y),
+            None => contains(&tab.frame, x, y),
         };
-        if tab.control_id.as_str() == id && contains(&frame, x, y) {
+        if hit {
             return true;
         }
     }

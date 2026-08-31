@@ -1,16 +1,16 @@
 use thiserror::Error;
 
 use super::AssetImporterRegistryError;
+use crate::asset::ReferenceResolutionError;
 use crate::asset::assets::ProjectDocumentError;
 use crate::asset::assets::{
     FontAssetError, UiAssetDocumentError, UiIconAssetDocumentError, UiThemeAssetDocumentError,
     UiV2AssetDocumentError,
 };
 #[cfg(feature = "text")]
-use crate::asset::assets::{FontMetadataParseError, FontSourceDecodeError};
+use crate::asset::assets::{FontMetadataParseError, FontSourceBudgetError, FontSourceDecodeError};
 use crate::asset::project::{ProjectManifestError, ProjectPaths};
 use crate::asset::registry::AssetRegistryError;
-use crate::asset::ReferenceResolutionError;
 use crate::core::framework::animation::AnimationAssetError;
 use crate::core::resource::{ResourceLocator, ResourceLocatorError};
 
@@ -109,6 +109,8 @@ pub enum AssetImportError {
         paths: Vec<std::path::PathBuf>,
         display_paths: Vec<std::path::PathBuf>,
     },
+    #[error("project import batch must contain at least one source")]
+    EmptyProjectImportBatch,
     #[error("targeted import for {uri} requires a full generation scan: {reason}")]
     TargetedImportRequiresFullScan {
         uri: ResourceLocator,
@@ -143,6 +145,16 @@ pub enum AssetImportError {
         path: std::path::PathBuf,
         #[source]
         source: std::io::Error,
+    },
+    #[cfg(feature = "text")]
+    #[error(
+        "font source {} exceeds an import budget: {source}",
+        ProjectPaths::display_path(.path).display()
+    )]
+    FontSourceBudget {
+        path: std::path::PathBuf,
+        #[source]
+        source: FontSourceBudgetError,
     },
     #[cfg(feature = "text")]
     #[error(

@@ -6,12 +6,12 @@ use crate::ui::event_ui::UiNodeId;
 use crate::ui::layout::{UiFrame, UiGeometry, UiLayoutMetrics, UiPixelSnapping};
 
 use super::text_geometry::editable_text_decorations;
-use super::text_shape::text_paint_runs_from_shaped;
+use super::text_shape::text_paint_runs_from_resolved_layout;
 use super::{
     UiBrushPayload, UiBrushSet, UiClipMode, UiClipState, UiPaintEffects, UiPaintElement,
     UiPaintPayload, UiRenderCommandKind, UiRenderResourceKey, UiRenderResourceKind,
     UiResolvedStyle, UiResolvedTextBox, UiResolvedTextLayout, UiTextPaint, UiTextPaintDecoration,
-    UiVisualAssetRef,
+    UiTextShapeArtifact, UiVisualAssetRef,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -28,6 +28,12 @@ pub struct UiRenderCommand {
     pub opacity: f32,
 }
 
+#[derive(Clone, Copy)]
+enum PaintElementMetadata {
+    Cached { generation: u64 },
+    Transient,
+}
+
 impl UiRenderCommand {
     pub fn to_paint_element(&self, paint_order: u64) -> UiPaintElement {
         self.to_paint_element_with_metrics(paint_order, UiLayoutMetrics::default())
@@ -38,12 +44,14 @@ impl UiRenderCommand {
         paint_order: u64,
         metrics: UiLayoutMetrics,
     ) -> UiPaintElement {
-        let cache_generation = self.cache_generation();
+        let metrics = self.resolved_paint_metrics(metrics);
         self.base_paint_element(
             paint_order,
             self.paint_payload(metrics),
             metrics,
-            cache_generation,
+            PaintElementMetadata::Cached {
+                generation: self.cache_generation(),
+            },
         )
     }
 
@@ -56,9 +64,89 @@ impl UiRenderCommand {
         first_paint_order: u64,
         metrics: UiLayoutMetrics,
     ) -> Vec<UiPaintElement> {
-        let cache_generation = self.cache_generation();
-        let mut elements = Vec::new();
+        self.build_paint_elements_with_metrics(
+            first_paint_order,
+            metrics,
+            PaintElementMetadata::Cached {
+                generation: self.cache_generation(),
+            },
+        )
+    }
 
+    /// Builds immediate-consumption elements without cache or debug metadata.
+    pub fn to_transient_paint_elements(&self, first_paint_order: u64) -> Vec<UiPaintElement> {
+        self.to_transient_paint_elements_with_metrics(first_paint_order, UiLayoutMetrics::default())
+    }
+
+    /// Builds immediate-consumption elements without serializing a cache generation.
+    pub fn to_transient_paint_elements_with_metrics(
+        &self,
+        first_paint_order: u64,
+        metrics: UiLayoutMetrics,
+    ) -> Vec<UiPaintElement> {
+        self.build_paint_elements_with_metrics(
+            first_paint_order,
+            metrics,
+            PaintElementMetadata::Transient,
+        )
+    }
+
+    /// Fills caller-owned scratch for immediate-consumption paint planning.
+    ///
+    /// Render planners visit many commands per frame; reusing this buffer avoids a
+    /// temporary vector allocation for every command while preserving the returned
+    /// vector APIs used by retained/debug consumers.
+    pub fn fill_transient_paint_elements(
+        &self,
+        first_paint_order: u64,
+        metrics: UiLayoutMetrics,
+        elements: &mut Vec<UiPaintElement>,
+    ) {
+        self.fill_paint_elements_with_metrics(
+            first_paint_order,
+            metrics,
+            PaintElementMetadata::Transient,
+            elements,
+        );
+    }
+
+    /// Fills caller-owned scratch while preserving retained paint metadata.
+    pub fn fill_paint_elements(
+        &self,
+        first_paint_order: u64,
+        metrics: UiLayoutMetrics,
+        elements: &mut Vec<UiPaintElement>,
+    ) {
+        self.fill_paint_elements_with_metrics(
+            first_paint_order,
+            metrics,
+            PaintElementMetadata::Cached {
+                generation: self.cache_generation(),
+            },
+            elements,
+        );
+    }
+
+    fn build_paint_elements_with_metrics(
+        &self,
+        first_paint_order: u64,
+        metrics: UiLayoutMetrics,
+        metadata: PaintElementMetadata,
+    ) -> Vec<UiPaintElement> {
+        let mut elements = Vec::new();
+        self.fill_paint_elements_with_metrics(first_paint_order, metrics, metadata, &mut elements);
+        elements
+    }
+
+    fn fill_paint_elements_with_metrics(
+        &self,
+        first_paint_order: u64,
+        metrics: UiLayoutMetrics,
+        metadata: PaintElementMetadata,
+        elements: &mut Vec<UiPaintElement>,
+    ) {
+        let metrics = self.resolved_paint_metrics(metrics);
+        elements.clear();
         if self.uses_image_brush() {
             // Image-bearing controls can still own background and border styling.
             // Emit separate paint elements so icon/vector content does not replace
@@ -76,7 +164,7 @@ impl UiRenderCommand {
                     first_paint_order + elements.len() as u64,
                     payload,
                     metrics,
-                    cache_generation,
+                    metadata,
                 ));
             }
         } else {
@@ -85,7 +173,7 @@ impl UiRenderCommand {
                     first_paint_order,
                     payload,
                     metrics,
-                    cache_generation,
+                    metadata,
                 ));
             }
             if let Some(payload) = self.text_payload() {
@@ -93,7 +181,7 @@ impl UiRenderCommand {
                     first_paint_order + elements.len() as u64,
                     payload,
                     metrics,
-                    cache_generation,
+                    metadata,
                 ));
             }
         }
@@ -103,10 +191,9 @@ impl UiRenderCommand {
                 first_paint_order,
                 UiPaintPayload::Empty,
                 metrics,
-                cache_generation,
+                metadata,
             ));
         }
-        elements
     }
 
     fn base_paint_element(
@@ -114,8 +201,14 @@ impl UiRenderCommand {
         paint_order: u64,
         payload: UiPaintPayload,
         metrics: UiLayoutMetrics,
-        cache_generation: u64,
+        metadata: PaintElementMetadata,
     ) -> UiPaintElement {
+        let (cache_generation, debug_label) = match metadata {
+            PaintElementMetadata::Cached { generation } => {
+                (Some(generation), Some(format!("{:?}", self.kind)))
+            }
+            PaintElementMetadata::Transient => (None, None),
+        };
         UiPaintElement {
             node_id: self.node_id,
             geometry: UiGeometry {
@@ -133,9 +226,14 @@ impl UiRenderCommand {
                 opacity: self.opacity.clamp(0.0, 1.0),
                 effects: Vec::new(),
             },
-            cache_generation: Some(cache_generation),
-            debug_label: Some(format!("{:?}", self.kind)),
+            cache_generation,
+            debug_label,
         }
+    }
+
+    fn resolved_paint_metrics(&self, mut metrics: UiLayoutMetrics) -> UiLayoutMetrics {
+        metrics.pixel_snapping = self.style.pixel_snapping.resolve(metrics.pixel_snapping);
+        metrics
     }
 
     pub fn cache_generation(&self) -> u64 {
@@ -258,39 +356,18 @@ impl UiRenderCommand {
 
     fn text_paint(&self) -> UiTextPaint {
         let source_text = self.text.clone().unwrap_or_default();
-        let shaped = self.text_layout.as_ref().map(|layout| {
-            let mut shaped = super::UiShapedText::from_resolved_layout(
-                source_text.clone(),
-                layout,
-                self.style.text_render_mode,
-            );
-            let font_key = text_font_resource_key(&self.style);
-            let atlas_resource = text_atlas_resource_key(&self.style, &font_key);
-            shaped.font_key = Some(font_key.clone());
-            shaped.atlas_resource = Some(atlas_resource.clone());
-            for line in &mut shaped.lines {
-                for glyph in &mut line.glyphs {
-                    if glyph.font_id.is_none() {
-                        glyph.font_id = Some(font_key.clone());
-                    }
-                    if glyph.atlas_resource.is_none() {
-                        glyph.atlas_resource = Some(atlas_resource.clone());
-                    }
-                }
-            }
-            shaped
-        });
 
         let editable = self
             .text_layout
             .as_ref()
             .and_then(|layout| layout.editable.as_ref());
 
-        let runs = shaped
+        let runs = self
+            .text_layout
             .as_ref()
-            .map(|shaped| {
-                text_paint_runs_from_shaped(
-                    shaped,
+            .map(|layout| {
+                text_paint_runs_from_resolved_layout(
+                    layout,
                     &self.style.foreground_color,
                     &self.style.font,
                     &self.style.font_family,
@@ -326,7 +403,9 @@ impl UiRenderCommand {
             text_effects: self.style.text_effects.normalized(),
             text_decorations: self.style.text_decorations.clone(),
             overflow: self.style.text_overflow,
-            shaped,
+            // A resolved layout carries geometry only. Glyph/face authority remains in the
+            // runtime-owned artifact and must never be inferred from presentation style.
+            shaped: UiTextShapeArtifact::Unavailable,
             selection: editable.and_then(|editable| editable.selection.clone()),
             caret: editable.map(|editable| editable.caret.clone()),
             composition: editable.and_then(|editable| editable.composition.clone()),
@@ -440,41 +519,32 @@ mod cache_generation_tests {
     fn ui_render_command_cache_generation_discards_partial_hash_on_serialize_error() {
         assert_eq!(stable_json_generation(&PartialThenFail), FNV_OFFSET);
     }
-}
 
-fn text_font_resource_key(style: &UiResolvedStyle) -> UiRenderResourceKey {
-    UiRenderResourceKey::new(UiRenderResourceKind::Font, text_font_resource_id(style))
-}
+    #[test]
+    fn transient_elements_omit_cache_and_debug_metadata() {
+        let command = super::UiRenderCommand {
+            node_id: super::UiNodeId::new(1),
+            kind: super::UiRenderCommandKind::Group,
+            frame: super::UiFrame::new(0.0, 0.0, 32.0, 16.0),
+            clip_frame: None,
+            z_index: 0,
+            style: super::UiResolvedStyle::default(),
+            text_layout: None,
+            text: None,
+            image: None,
+            opacity: 1.0,
+        };
 
-fn text_font_resource_id(style: &UiResolvedStyle) -> String {
-    let font_id = style
-        .font
-        .as_deref()
-        .or(style.font_family.as_deref())
-        .map(str::trim)
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or("default")
-        .to_string();
-    format!(
-        "{}:w{}",
-        font_id,
-        UiResolvedStyle::normalized_font_weight(style.font_weight)
-    )
-}
+        let transient = command.to_transient_paint_elements(0);
+        assert!(transient
+            .iter()
+            .all(|element| element.cache_generation.is_none() && element.debug_label.is_none()));
 
-fn text_atlas_resource_key(
-    style: &UiResolvedStyle,
-    font_key: &UiRenderResourceKey,
-) -> UiRenderResourceKey {
-    UiRenderResourceKey::new(
-        UiRenderResourceKind::Texture,
-        format!(
-            "font-atlas:{}:{:.1}:{:?}",
-            font_key.id,
-            style.font_size.max(1.0),
-            style.text_render_mode
-        ),
-    )
+        let cached = command.to_paint_elements(0);
+        assert!(cached
+            .iter()
+            .all(|element| element.cache_generation.is_some() && element.debug_label.is_some()));
+    }
 }
 
 fn render_clip_frame(frame: UiFrame, metrics: UiLayoutMetrics) -> UiFrame {

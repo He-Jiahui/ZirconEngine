@@ -9,8 +9,8 @@ use crate::core::editor_event::{
 use crate::core::editor_operation::EditorOperationPath;
 
 use super::{
-    EditorCommandAction, EditorCommandCategory, EditorCommandDescriptor, EditorKeyChord,
-    PlayModePredicate, WhenClause,
+    EditorCommandAction, EditorCommandCategory, EditorCommandDescriptor, EditorCommandMenuPath,
+    EditorKeyChord, PlayModePredicate, WhenClause,
 };
 
 pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
@@ -25,27 +25,26 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands.push(plugin_list_commandlet());
     commands.push(authoring_automation_commandlet());
     commands.push(
-        EditorCommandDescriptor::operation(
-            path("view.editor.ui_asset.open"),
-            "Open UI Asset Editor",
-        )
-        .with_category(EditorCommandCategory::View)
-        .with_callable_from_remote(false),
+        EditorCommandDescriptor::operation(path("view.editor.ui_asset.open"))
+            .with_category(EditorCommandCategory::View)
+            .with_callable_from_remote(false),
     );
+    commands.extend(animation_asset_toolkit_open_operations());
     commands.push(
-        EditorCommandDescriptor::operation(
-            path("inspector.field.apply_batch"),
-            "Apply Inspector Changes",
-        )
-        .with_category(EditorCommandCategory::Edit)
-        .with_menu_path("Inspector/Apply Changes")
-        .with_callable_from_remote(false),
+        EditorCommandDescriptor::operation(path("inspector.field.apply_batch"))
+            .with_category(EditorCommandCategory::Edit)
+            .with_menu_path(builtin_menu(
+                "inspector.field.apply_batch",
+                "inspector",
+                &[],
+            ))
+            .with_callable_from_remote(false),
     );
     commands.push(command(
         "help.workbench.guide",
-        "Workbench Guide",
         EditorCommandCategory::Help,
-        "Help/Workbench Guide",
+        "help",
+        &[],
         EditorEvent::WorkbenchMenu(MenuAction::OpenView(ViewDescriptorId::new(
             "editor.asset_browser",
         ))),
@@ -56,14 +55,25 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands
 }
 
+fn animation_asset_toolkit_open_operations() -> [EditorCommandDescriptor; 3] {
+    [
+        "timeline_sequence.authoring.open",
+        "animation_graph.authoring.open_graph",
+        "animation_graph.authoring.open_state_machine",
+    ]
+    .map(|operation| {
+        EditorCommandDescriptor::operation(path(operation))
+            .with_category(EditorCommandCategory::View)
+            .with_callable_from_remote(false)
+    })
+}
+
 fn migrate_assets_commandlet() -> EditorCommandDescriptor {
     EditorCommandDescriptor::new(
         path("asset.migration.migrate_assets"),
-        "Migrate Project Assets",
         EditorCommandCategory::Command,
         EditorCommandAction::HeadlessAssetMigration,
     )
-    .with_description("Migrate authoring assets through the headless migrate-assets commandlet")
     .with_keywords(["asset", "migration", "migrate-assets", "headless"])
     .with_payload_schema_id("editor.commandlet.migrate-assets")
     .with_headless_commandlet_route(path("commandlet.route.migrate_assets"))
@@ -75,12 +85,8 @@ fn migrate_assets_commandlet() -> EditorCommandDescriptor {
 fn plugin_list_commandlet() -> EditorCommandDescriptor {
     EditorCommandDescriptor::new(
         path("plugin.catalog.list"),
-        "List Editor Plugins",
         EditorCommandCategory::Command,
         EditorCommandAction::HeadlessPluginList,
-    )
-    .with_description(
-        "List the canonical editor plugin catalog through the headless plugin-list commandlet",
     )
     .with_keywords(["plugin", "plugins", "catalog", "plugin-list", "headless"])
     .with_payload_schema_id("editor.commandlet.plugin-list")
@@ -93,11 +99,9 @@ fn plugin_list_commandlet() -> EditorCommandDescriptor {
 fn authoring_automation_commandlet() -> EditorCommandDescriptor {
     EditorCommandDescriptor::new(
         path("authoring.automation.run"),
-        "Run Authoring Automation",
         EditorCommandCategory::Command,
         EditorCommandAction::HeadlessAuthoringAutomation,
     )
-    .with_description("Run retained-host authoring bindings through the headless commandlet")
     .with_keywords(["authoring", "automation", "headless", "retained-host"])
     .with_payload_schema_id("editor.commandlet.authoring-automation")
     .with_headless_commandlet_route(path("commandlet.route.authoring_automation"))
@@ -108,15 +112,14 @@ fn authoring_automation_commandlet() -> EditorCommandDescriptor {
 fn command_palette_command() -> EditorCommandDescriptor {
     command(
         "editor.command.palette",
-        "Command Palette",
         EditorCommandCategory::Command,
-        "Help/Command Palette",
+        "help",
+        &[],
         EditorEvent::Transient(EditorEventTransient::OpenCommandPalette),
         Some("Ctrl+Shift+P"),
         WhenClause::Always,
         ["quick open", "search", "commands"],
     )
-    .with_description("Open global command search")
     .with_callable_from_remote(false)
 }
 
@@ -124,9 +127,9 @@ fn file_commands() -> Vec<EditorCommandDescriptor> {
     vec![
         command(
             "file.project.open",
-            "Open Project",
             EditorCommandCategory::File,
-            "File/Open Project",
+            "file",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::OpenProject),
             Some("Ctrl+O"),
             WhenClause::Always,
@@ -134,19 +137,29 @@ fn file_commands() -> Vec<EditorCommandDescriptor> {
         ),
         command(
             "file.project.save",
-            "Save Project",
             EditorCommandCategory::File,
-            "File/Save Project",
+            "file",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::SaveProject),
             Some("Ctrl+S"),
             WhenClause::ProjectOpen,
             ["project", "save"],
         ),
         command(
-            "file.project.close",
-            "Close Project",
+            "file.documents.save_all",
             EditorCommandCategory::File,
-            "File/Close Project",
+            "file",
+            &[],
+            EditorEvent::WorkbenchMenu(MenuAction::SaveAllDocuments),
+            Some("Ctrl+Shift+S"),
+            WhenClause::ProjectOpen,
+            ["save", "all", "documents"],
+        ),
+        command(
+            "file.project.close",
+            EditorCommandCategory::File,
+            "file",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::CloseProject),
             None,
             WhenClause::ProjectOpen,
@@ -166,12 +179,42 @@ mod tests {
             .find(|command| command.id().as_str() == "file.project.close")
             .expect("the default workbench command registry should expose Close Project");
 
-        assert_eq!(close_project.display_name(), "Close Project");
-        assert_eq!(close_project.menu_path(), Some("File/Close Project"));
+        assert_eq!(
+            close_project.presentation().label_key(),
+            "command.file.project.close.label"
+        );
+        assert_eq!(
+            close_project
+                .menu_path()
+                .map(|path| path.root().id().as_str()),
+            Some("file")
+        );
         assert!(matches!(close_project.when(), WhenClause::ProjectOpen));
         assert!(matches!(
             close_project.event(),
             Some(EditorEvent::WorkbenchMenu(MenuAction::CloseProject))
+        ));
+    }
+
+    #[test]
+    fn save_all_documents_is_a_project_scoped_file_menu_command() {
+        let save_all = default_workbench_commands()
+            .into_iter()
+            .find(|command| command.id().as_str() == "file.documents.save_all")
+            .expect("the default command registry should expose Save All Documents");
+
+        assert_eq!(
+            save_all.presentation().label_key(),
+            "command.file.documents.save_all.label"
+        );
+        assert_eq!(
+            save_all.menu_path().map(|path| path.leaf().id().as_str()),
+            Some("file.documents.save_all")
+        );
+        assert!(matches!(save_all.when(), WhenClause::ProjectOpen));
+        assert!(matches!(
+            save_all.event(),
+            Some(EditorEvent::WorkbenchMenu(MenuAction::SaveAllDocuments))
         ));
     }
 
@@ -182,8 +225,33 @@ mod tests {
             .find(|command| command.id().as_str() == "view.editor.ui_asset.open")
             .expect("the default command registry should expose the UI asset toolkit operation");
 
-        assert_eq!(operation.display_name(), "Open UI Asset Editor");
+        assert_eq!(
+            operation.presentation().label_key(),
+            "command.view.editor.ui_asset.open.label"
+        );
         assert!(operation.event().is_none());
+    }
+
+    #[test]
+    fn animation_asset_toolkit_open_operations_are_registered() {
+        let commands = default_workbench_commands();
+        for operation in [
+            "timeline_sequence.authoring.open",
+            "animation_graph.authoring.open_graph",
+            "animation_graph.authoring.open_state_machine",
+        ] {
+            let command = commands
+                .iter()
+                .find(|command| command.id().as_str() == operation)
+                .expect("animation toolkit operation should be registered");
+
+            assert_eq!(
+                command.presentation().label_key(),
+                format!("command.{operation}.label")
+            );
+            assert!(matches!(command.category(), EditorCommandCategory::View));
+            assert!(command.event().is_none());
+        }
     }
 }
 
@@ -191,9 +259,9 @@ fn edit_commands() -> Vec<EditorCommandDescriptor> {
     vec![
         command(
             "edit.history.undo",
-            "Undo",
             EditorCommandCategory::Edit,
-            "Edit/Undo",
+            "edit",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::Undo),
             Some("Ctrl+Z"),
             WhenClause::UndoAvailable,
@@ -201,58 +269,47 @@ fn edit_commands() -> Vec<EditorCommandDescriptor> {
         ),
         command(
             "edit.history.redo",
-            "Redo",
             EditorCommandCategory::Edit,
-            "Edit/Redo",
+            "edit",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::Redo),
             Some("Ctrl+Shift+Z"),
             WhenClause::RedoAvailable,
             ["history"],
+        ),
+        command(
+            "editor.settings.open",
+            EditorCommandCategory::Edit,
+            "edit",
+            &[],
+            EditorEvent::Transient(EditorEventTransient::OpenSettingsWindow),
+            None,
+            WhenClause::Always,
+            ["settings", "preferences", "configuration"],
         ),
     ]
 }
 
 fn selection_commands() -> Vec<EditorCommandDescriptor> {
     let mut commands = [
-        ("scene.node.create_cube", "Create Cube", NodeKind::Cube),
-        (
-            "scene.node.create_camera",
-            "Create Camera",
-            NodeKind::Camera,
-        ),
-        (
-            "scene.node.create_ambient_light",
-            "Create Ambient Light",
-            NodeKind::AmbientLight,
-        ),
+        ("scene.node.create_cube", NodeKind::Cube),
+        ("scene.node.create_camera", NodeKind::Camera),
+        ("scene.node.create_ambient_light", NodeKind::AmbientLight),
         (
             "scene.node.create_directional_light",
-            "Create Directional Light",
             NodeKind::DirectionalLight,
         ),
-        (
-            "scene.node.create_point_light",
-            "Create Point Light",
-            NodeKind::PointLight,
-        ),
-        (
-            "scene.node.create_rect_light",
-            "Create Rect Light",
-            NodeKind::RectLight,
-        ),
-        (
-            "scene.node.create_spot_light",
-            "Create Spot Light",
-            NodeKind::SpotLight,
-        ),
+        ("scene.node.create_point_light", NodeKind::PointLight),
+        ("scene.node.create_rect_light", NodeKind::RectLight),
+        ("scene.node.create_spot_light", NodeKind::SpotLight),
     ]
     .into_iter()
-    .map(|(id, display_name, kind)| {
+    .map(|(id, kind)| {
         command(
             id,
-            display_name,
             EditorCommandCategory::Selection,
-            format!("Selection/{display_name}"),
+            "selection",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::CreateNode(kind)),
             None,
             WhenClause::Always,
@@ -262,9 +319,9 @@ fn selection_commands() -> Vec<EditorCommandDescriptor> {
     .collect::<Vec<_>>();
     commands.push(command(
         "scene.node.delete_selected",
-        "Delete Selection",
         EditorCommandCategory::Selection,
-        "Selection/Delete Selection",
+        "selection",
+        &[],
         EditorEvent::WorkbenchMenu(MenuAction::DeleteSelected),
         Some("Delete"),
         WhenClause::SelectionNonEmpty,
@@ -277,9 +334,9 @@ fn runtime_commands() -> Vec<EditorCommandDescriptor> {
     vec![
         command(
             "runtime.play_mode.enter",
-            "Enter Play Mode",
             EditorCommandCategory::Runtime,
-            "Play/Enter Play Mode",
+            "play",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode),
             Some("F5"),
             WhenClause::All(vec![
@@ -289,13 +346,31 @@ fn runtime_commands() -> Vec<EditorCommandDescriptor> {
             ["play", "run"],
         ),
         command(
-            "runtime.play_mode.exit",
-            "Exit Play Mode",
+            "runtime.play_mode.keep_changes",
             EditorCommandCategory::Runtime,
-            "Play/Exit Play Mode",
+            "play",
+            &[],
+            EditorEvent::WorkbenchMenu(MenuAction::KeepPlayChanges),
+            None,
+            WhenClause::All(vec![
+                WhenClause::ProjectOpen,
+                WhenClause::PlayMode(PlayModePredicate::Playing),
+                WhenClause::SelectionNonEmpty,
+                WhenClause::AssetWritable,
+            ]),
+            ["play", "keep", "properties", "authoring"],
+        ),
+        command(
+            "runtime.play_mode.exit",
+            EditorCommandCategory::Runtime,
+            "play",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode),
             Some("Shift+F5"),
-            WhenClause::PlayMode(PlayModePredicate::Playing),
+            WhenClause::Any(vec![
+                WhenClause::PlayMode(PlayModePredicate::Playing),
+                WhenClause::PlayMode(PlayModePredicate::CleanupFailed),
+            ]),
             ["play", "stop"],
         ),
     ]
@@ -303,47 +378,33 @@ fn runtime_commands() -> Vec<EditorCommandDescriptor> {
 
 fn view_commands() -> Vec<EditorCommandDescriptor> {
     let mut commands = [
-        ("view.project.open", "Project", "editor.project"),
-        ("view.hierarchy.open", "Hierarchy", "editor.hierarchy"),
-        ("view.inspector.open", "Inspector", "editor.inspector"),
-        ("view.scene.open", "Scene", "editor.scene"),
-        ("view.game.open", "Game", "editor.game"),
-        ("view.assets.open", "Assets", "editor.assets"),
-        ("view.console.open", "Console", "editor.console"),
+        ("view.project.open", "editor.project"),
+        ("view.hierarchy.open", "editor.hierarchy"),
+        ("view.inspector.open", "editor.inspector"),
+        ("view.scene.open", "editor.scene"),
+        ("view.game.open", "editor.game"),
+        ("view.assets.open", "editor.assets"),
+        ("view.console.open", "editor.console"),
         (
             "view.runtime_diagnostics.open",
-            "Runtime Diagnostics",
             "editor.runtime_diagnostics",
         ),
         (
             "view.performance_timeline.open",
-            "Performance Timeline",
             "editor.performance_timeline",
         ),
-        (
-            "view.plugin_manager.open",
-            "Plugin Manager",
-            "editor.module_plugins",
-        ),
-        (
-            "view.build_export.open",
-            "Desktop Export",
-            "editor.build_export_desktop",
-        ),
-        ("view.prefab.open", "Prefab Editor", "editor.prefab"),
-        (
-            "view.asset_browser.open",
-            "Asset Browser",
-            "editor.asset_browser",
-        ),
+        ("view.plugin_manager.open", "editor.module_plugins"),
+        ("view.build_export.open", "editor.build_export_desktop"),
+        ("view.prefab.open", "editor.prefab"),
+        ("view.asset_browser.open", "editor.asset_browser"),
     ]
     .into_iter()
-    .map(|(id, label, view_id)| {
+    .map(|(id, view_id)| {
         command(
             id,
-            format!("Open {label}"),
             EditorCommandCategory::View,
-            format!("View/{label}"),
+            "view",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::OpenView(ViewDescriptorId::new(view_id))),
             None,
             WhenClause::Always,
@@ -353,89 +414,48 @@ fn view_commands() -> Vec<EditorCommandDescriptor> {
     .collect::<Vec<_>>();
     commands.push(command(
         "view.console.clear",
-        "Clear Console",
         EditorCommandCategory::View,
-        "View/Clear Console",
+        "view",
+        &[],
         EditorEvent::WorkbenchMenu(MenuAction::ClearConsole),
         None,
         WhenClause::Always,
         ["console", "clear", "output", "log"],
     ));
-    for (id, label, filter) in [
-        (
-            "view.console.filter.all",
-            "Show All Console Messages",
-            ConsoleMessageFilter::All,
-        ),
-        (
-            "view.console.filter.info",
-            "Show Console Info",
-            ConsoleMessageFilter::Info,
-        ),
-        (
-            "view.console.filter.warning",
-            "Show Console Warnings",
-            ConsoleMessageFilter::Warning,
-        ),
-        (
-            "view.console.filter.error",
-            "Show Console Errors",
-            ConsoleMessageFilter::Error,
-        ),
+    for (id, filter) in [
+        ("view.console.filter.all", ConsoleMessageFilter::All),
+        ("view.console.filter.info", ConsoleMessageFilter::Info),
+        ("view.console.filter.warning", ConsoleMessageFilter::Warning),
+        ("view.console.filter.error", ConsoleMessageFilter::Error),
     ] {
         commands.push(command(
             id,
-            label,
             EditorCommandCategory::View,
-            format!("View/Console/{label}"),
+            "view",
+            &["console"],
             EditorEvent::WorkbenchMenu(MenuAction::SetConsoleMessageFilter(filter)),
             None,
             WhenClause::Always,
             ["console", "filter", filter.as_str()],
         ));
     }
-    for (id, label, filter) in [
-        (
-            "view.console.source.all",
-            "Show All Log Sources",
-            ConsoleSourceFilter::All,
-        ),
-        (
-            "view.console.source.editor",
-            "Show Editor Logs",
-            ConsoleSourceFilter::Editor,
-        ),
-        (
-            "view.console.source.runtime",
-            "Show Runtime Logs",
-            ConsoleSourceFilter::Runtime,
-        ),
-        (
-            "view.console.source.play",
-            "Show Play Logs",
-            ConsoleSourceFilter::Play,
-        ),
-        (
-            "view.console.source.plugin",
-            "Show Plugin Logs",
-            ConsoleSourceFilter::Plugin,
-        ),
-        (
-            "view.console.source.import",
-            "Show Import Logs",
-            ConsoleSourceFilter::Import,
-        ),
+    for (id, filter) in [
+        ("view.console.source.all", ConsoleSourceFilter::All),
+        ("view.console.source.editor", ConsoleSourceFilter::Editor),
+        ("view.console.source.runtime", ConsoleSourceFilter::Runtime),
+        ("view.console.source.play", ConsoleSourceFilter::Play),
+        ("view.console.source.plugin", ConsoleSourceFilter::Plugin),
+        ("view.console.source.import", ConsoleSourceFilter::Import),
         (
             "view.console.source.script_build",
-            "Show Script Build Logs",
             ConsoleSourceFilter::ScriptBuild,
         ),
     ] {
         commands.push(command(
             id,
-            label,
             EditorCommandCategory::View,
-            format!("View/Activity Log/{label}"),
+            "view",
+            &["activity_log"],
             EditorEvent::WorkbenchMenu(MenuAction::SetConsoleSourceFilter(filter)),
             None,
             WhenClause::Always,
@@ -447,64 +467,39 @@ fn view_commands() -> Vec<EditorCommandDescriptor> {
 
 fn window_commands() -> Vec<EditorCommandDescriptor> {
     let mut commands = [
-        (
-            "window.prefab_editor.open",
-            "Prefab Editor",
-            "editor.prefab_editor_window",
-        ),
+        ("window.prefab_editor.open", "editor.prefab_editor_window"),
         (
             "window.material_editor.open",
-            "Material Editor",
             "editor.material_editor_window",
         ),
         (
             "window.ui_component_showcase.open",
-            "UI Component Showcase",
             "editor.ui_component_showcase",
         ),
-        (
-            "window.material_demo.open",
-            "Material Demo",
-            "editor.material_demo_window",
-        ),
+        ("window.material_demo.open", "editor.material_demo_window"),
         (
             "window.material_component_lab.open",
-            "Material Component Lab",
             "editor.material_component_lab",
         ),
         (
             "window.ui_asset_editor.open",
-            "UI Asset Editor",
             "editor.ui_asset_editor_window",
         ),
         (
             "window.animation_editor.open",
-            "Animation Editor",
             "editor.animation_editor_window",
         ),
-        (
-            "window.asset_browser.open",
-            "Asset Browser",
-            "editor.asset_browser_window",
-        ),
-        (
-            "window.diagnostics.open",
-            "Diagnostics",
-            "editor.diagnostics_window",
-        ),
-        (
-            "window.debug_observatory.open",
-            "Debug Observatory",
-            "editor.debug_observatory",
-        ),
+        ("window.asset_browser.open", "editor.asset_browser_window"),
+        ("window.diagnostics.open", "editor.diagnostics_window"),
+        ("window.debug_observatory.open", "editor.debug_observatory"),
     ]
     .into_iter()
-    .map(|(id, label, view_id)| {
+    .map(|(id, view_id)| {
         command(
             id,
-            format!("Open {label}"),
             EditorCommandCategory::Window,
-            format!("Window/{label}"),
+            "window",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::OpenView(ViewDescriptorId::new(view_id))),
             None,
             WhenClause::Always,
@@ -515,9 +510,9 @@ fn window_commands() -> Vec<EditorCommandDescriptor> {
     commands.extend([
         command(
             "window.layout.save",
-            "Save Layout",
             EditorCommandCategory::Window,
-            "Window/Save Layout",
+            "window",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::SaveLayout),
             None,
             WhenClause::Always,
@@ -525,9 +520,9 @@ fn window_commands() -> Vec<EditorCommandDescriptor> {
         ),
         command(
             "window.layout.reset",
-            "Reset Layout",
             EditorCommandCategory::Window,
-            "Window/Reset Layout",
+            "window",
+            &[],
             EditorEvent::WorkbenchMenu(MenuAction::ResetLayout),
             Some("Ctrl+Alt+0"),
             WhenClause::Always,
@@ -535,9 +530,9 @@ fn window_commands() -> Vec<EditorCommandDescriptor> {
         ),
         command(
             "window.layout.default",
-            "Load Default Layout",
             EditorCommandCategory::Window,
-            "Window/Layout/Default",
+            "window",
+            &["layout"],
             EditorEvent::Layout(LayoutCommand::ResetToDefault),
             None,
             WhenClause::Always,
@@ -549,9 +544,9 @@ fn window_commands() -> Vec<EditorCommandDescriptor> {
 
 fn command<I, S>(
     id: &str,
-    display_name: impl Into<String>,
     category: EditorCommandCategory,
-    menu_path: impl Into<String>,
+    menu_root: &str,
+    menu_groups: &[&str],
     event: EditorEvent,
     default_chord: Option<&str>,
     when: WhenClause,
@@ -561,21 +556,21 @@ where
     I: IntoIterator<Item = S>,
     S: Into<String>,
 {
-    let mut descriptor = EditorCommandDescriptor::new(
-        path(id),
-        display_name,
-        category,
-        EditorCommandAction::Emit(event),
-    )
-    .with_menu_path(menu_path)
-    .with_when(when)
-    .with_keywords(keywords);
+    let mut descriptor =
+        EditorCommandDescriptor::new(path(id), category, EditorCommandAction::Emit(event))
+            .with_menu_path(builtin_menu(id, menu_root, menu_groups))
+            .with_when(when)
+            .with_keywords(keywords);
     if let Some(chord_value) = default_chord {
         descriptor = descriptor.with_default_chord(
             EditorKeyChord::from_str(chord_value).expect("built-in command chord is valid"),
         );
     }
     descriptor
+}
+
+fn builtin_menu(id: &str, root: &str, groups: &[&str]) -> EditorCommandMenuPath {
+    EditorCommandMenuPath::builtin(&path(id), root, groups)
 }
 
 fn path(value: &str) -> EditorOperationPath {

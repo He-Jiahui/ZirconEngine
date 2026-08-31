@@ -41,8 +41,12 @@ pub struct UiTextLineSourceMap<'a> {
 impl<'a> UiTextLineSourceMap<'a> {
     pub fn new(line: &'a UiResolvedTextLine) -> Self {
         let clusters = visual_source_clusters(line);
-        let exact_advance_cache =
-            (line.glyph_advances.len() == clusters.len()).then(UiTextExactAdvanceCache::new);
+        let exact_advance_cache = (line.glyph_advances.len() == clusters.len()
+            && line
+                .glyph_advances
+                .iter()
+                .all(|advance| advance.is_finite() && *advance >= 0.0))
+        .then(UiTextExactAdvanceCache::new);
         Self {
             line,
             clusters,
@@ -181,14 +185,11 @@ impl<'a> UiTextLineSourceMap<'a> {
             }
         }
 
-        let visual_index = self
-            .clusters
-            .iter()
-            .take_while(|cluster| cluster.visual_range.end <= visual_offset)
-            .count();
-
-        let cluster_count = self.clusters.len().max(1) as f32;
-        sanitized_advance(self.line.measured_width) * visual_index as f32 / cluster_count
+        if visual_offset >= self.line.visual_range.end {
+            sanitized_advance(self.line.measured_width)
+        } else {
+            0.0
+        }
     }
 
     fn exact_advance_to_visual_index(&self, visual_index: usize) -> f32 {

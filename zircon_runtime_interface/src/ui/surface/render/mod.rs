@@ -6,6 +6,7 @@ mod command_kind;
 mod debug;
 mod editable_text;
 mod extract;
+mod frame_extract;
 mod limits;
 mod list;
 mod paint;
@@ -13,7 +14,6 @@ mod parity;
 mod resolved_style;
 mod text_effects;
 mod text_geometry;
-mod text_language;
 mod text_layout;
 mod text_shape;
 mod typography;
@@ -43,6 +43,10 @@ pub use editable_text::{
     UiTextSelection,
 };
 pub use extract::{UiRenderExtract, UiRenderExtractKind, UiRenderStats};
+pub use frame_extract::{
+    UiRenderFrameCommandRef, UiRenderFrameCommands, UiRenderFrameExtract, UiRenderFrameList,
+    UiRenderFramePatchStats, UI_RENDER_FRAME_COMMAND_SEGMENT_SIZE,
+};
 pub use limits::{
     bounded_ui_slider_tick_count, ui_slider_tick_count_for_track, MAX_UI_SLIDER_TICK_COUNT,
 };
@@ -54,13 +58,13 @@ pub use parity::{
     UiRendererParityBatchRow, UiRendererParityPaintRow, UiRendererParityPayloadKind,
     UiRendererParitySnapshot, UiRendererParityStats,
 };
+pub(crate) use parity::batch_indices_by_source_index;
 pub use resolved_style::UiResolvedStyle;
 pub use text_effects::{
     UiTextDecorations, UiTextDistanceFieldEffects, UiTextGlowEffect, UiTextOutlineEffect,
     UiTextShadowEffect, MAX_TEXT_EFFECT_EXTENT_PX,
 };
 pub use text_geometry::{UiTextLineSourceMap, UiTextVisualBoundaryBias, UiTextVisualSpan};
-pub use text_language::normalize_ui_text_language_tag;
 pub use text_layout::{
     UiResolvedTextBox, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun,
     UiRichTextArtifactHandle, UiTextRange,
@@ -68,7 +72,7 @@ pub use text_layout::{
 pub use text_shape::{
     UiShapedGlyph, UiShapedGlyphClusterFlags, UiShapedGlyphRotation, UiShapedText,
     UiShapedTextCluster, UiShapedTextLine, UiTextPaint, UiTextPaintDecoration,
-    UiTextPaintDecorationKind, UiTextPaintRun, UiTextRunPaintStyle,
+    UiTextPaintDecorationKind, UiTextPaintRun, UiTextRunPaintStyle, UiTextShapeArtifact,
 };
 pub use typography::{
     resolve_ui_text_render_mode, UiRichTextFormat, UiTextAlign, UiTextDirection, UiTextOverflow,

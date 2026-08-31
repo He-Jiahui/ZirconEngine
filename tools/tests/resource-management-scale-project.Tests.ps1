@@ -3,11 +3,13 @@ $generator = Join-Path $repoRoot 'tools\mvp\New-ResourceManagementScaleProject.p
 $changeSet = Join-Path $repoRoot 'tools\mvp\Set-ResourceManagementScaleProjectChangeSet.ps1'
 $resolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
 $manifestModule = Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1'
+$artifactStorageModule = Join-Path $repoRoot 'tools\mvp\MvpArtifactStoragePolicy.psm1'
 $originalTestMode = $env:RESOURCE_MANAGEMENT_SCALE_PROJECT_TEST_MODE
 $originalChangeSetTestMode = $env:RESOURCE_MANAGEMENT_SCALE_PROJECT_CHANGESET_TEST_MODE
 
 Import-Module $resolverModule -Force -Global -ErrorAction Stop
 Import-Module $manifestModule -Force -Global -ErrorAction Stop
+Import-Module $artifactStorageModule -Force -Global -ErrorAction Stop
 
 try {
     $env:RESOURCE_MANAGEMENT_SCALE_PROJECT_TEST_MODE = '1'
@@ -20,20 +22,71 @@ finally {
     $env:RESOURCE_MANAGEMENT_SCALE_PROJECT_CHANGESET_TEST_MODE = $originalChangeSetTestMode
 }
 
+function New-TestResourceManagementScaleSourceIdentity {
+    param([string]$BuildSetId = ('A' * 64))
+
+    $templateRoot = Join-Path $repoRoot 'templates\projects\renderable-empty'
+    $templatePrefix = $repoRoot.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    $files = @([IO.Directory]::EnumerateFiles($templateRoot, '*', [IO.SearchOption]::AllDirectories) |
+        ForEach-Object {
+            [pscustomobject]@{
+                relative_path = $_.Substring($templatePrefix.Length).Replace('\', '/')
+            }
+        } |
+        Sort-Object { $_.relative_path })
+    return [pscustomobject]@{
+        manifest_path = 'E:\ZirconBuilds\mvp-product-inputs\fixture\mvp-product-inputs.json'
+        manifest_sha256 = ('C' * 64)
+        source_fingerprint = $BuildSetId
+        build_set_id = $BuildSetId
+        build_set = [pscustomobject]@{
+            build_set_id = $BuildSetId
+            snapshot_root = $repoRoot
+            files = $files
+        }
+    }
+}
+
+function New-TestResourceManagementProjectPath {
+    param([Parameter(Mandatory)][string]$Prefix)
+
+    return New-MvpArtifactStoragePath `
+        -NamespaceId 'resource-management-projects' `
+        -InstanceId ($Prefix + '-' + [guid]::NewGuid().ToString('N'))
+}
+
+$resourceScaleSourceIdentity = New-TestResourceManagementScaleSourceIdentity
+
 Describe 'Resource-management scale project generator' {
     BeforeEach {
         Import-Module $manifestModule -Force -Global -ErrorAction Stop
         Import-Module $resolverModule -Force -Global -ErrorAction Stop
     }
 
-    It 'rejects output roots outside the approved E drive fixture root' {
-        { Assert-ResourceManagementScaleProjectDirectory -Path 'C:\ZirconBuilds\mvp-resource-management-projects\scale' } |
-            Should Throw 'mvp-resource-management-projects'
+    It 'rejects output roots outside the registered artifact storage roots' {
+        { Assert-ResourceManagementScaleProjectDirectory -Path 'C:\ZirconBuilds\mvp-resource-management-project-scale' } |
+            Should Throw 'outside the approved'
     }
 
-    It 'keeps change-set mutations inside the approved E drive fixture root' {
-        { Assert-ResourceManagementScaleMutationProjectDirectory -Path 'C:\ZirconBuilds\mvp-resource-management-projects\scale' } |
-            Should Throw 'mvp-resource-management-projects'
+    It 'keeps change-set mutations inside the registered artifact storage roots' {
+        { Assert-ResourceManagementScaleMutationProjectDirectory -Path 'C:\ZirconBuilds\mvp-resource-management-project-scale' } |
+            Should Throw 'outside the approved'
+    }
+
+    It 'rejects change-set JSON input above its caller-owned byte budget' {
+        $path = Join-Path $TestDrive 'oversized-change-set-input.json'
+        [IO.File]::WriteAllText(
+            $path,
+            ('{"payload":"' + ('x' * 64) + '"}'),
+            [Text.UTF8Encoding]::new($false))
+
+        {
+            Read-ResourceManagementScaleChangeJson `
+                -Path $path `
+                -Label 'Oversized change-set input' `
+                -MaximumBytes 32
+        } | Should Throw 'byte budget of 32 bytes'
+        (Get-Content -Raw $changeSet) | Should Not Match '\[IO\.File\]::ReadAllText'
     }
 
     It 'rounds one-percent changes for every required registry scale' {
@@ -42,15 +95,76 @@ Describe 'Resource-management scale project generator' {
         Get-ResourceManagementScaleChangeCount -DataAssetCount 100000 -ChangePercent 1 | Should Be 1000
     }
 
+    It 'resolves ProductInput source identity from the verified BuildSet receipt' {
+        Mock Resolve-MvpProductInputManifest {
+            [ordered]@{
+                operation_path = 'E:\ZirconBuilds\fixture\mvp-product-inputs.json'
+                sha256 = ('C' * 64)
+                source_fingerprint = ('A' * 64)
+                build_set = [ordered]@{
+                    build_set_id = ('A' * 64)
+                    git_revision = ('b' * 40)
+                    dirty_overlay_sha256 = ('D' * 64)
+                    manifest_relative_path = 'build-set/build-set.json'
+                }
+            }
+        } -ModuleName MvpProductSourceIdentity
+        Mock Assert-MvpProductBuildSet {
+            [pscustomobject]@{
+                build_set_id = ('A' * 64)
+                git_revision = ('b' * 40)
+                dirty_overlay_sha256 = ('D' * 64)
+                snapshot_root = 'E:\ZirconBuilds\fixture\build-set\source'
+                files = @()
+            }
+        } -ModuleName MvpProductSourceIdentity
+
+        $identity = Resolve-MvpProductSourceIdentity -ManifestPath 'E:\ZirconBuilds\fixture\mvp-product-inputs.json'
+
+        $identity.source_fingerprint | Should Be ('A' * 64)
+        $identity.build_set_id | Should Be ('A' * 64)
+        $identity.manifest_sha256 | Should Be ('C' * 64)
+        $identity.build_set.snapshot_root | Should Be 'E:\ZirconBuilds\fixture\build-set\source'
+        Assert-MockCalled Resolve-MvpProductInputManifest -ModuleName MvpProductSourceIdentity -Times 1
+        Assert-MockCalled Assert-MvpProductBuildSet -ModuleName MvpProductSourceIdentity -Times 1
+    }
+
+    It 'rejects a ProductInput receipt detached from the verified BuildSet' {
+        Mock Resolve-MvpProductInputManifest {
+            [ordered]@{
+                operation_path = 'E:\ZirconBuilds\fixture\mvp-product-inputs.json'
+                sha256 = ('C' * 64)
+                source_fingerprint = ('A' * 64)
+                build_set = [ordered]@{
+                    build_set_id = ('A' * 64)
+                    git_revision = ('b' * 40)
+                    dirty_overlay_sha256 = ('D' * 64)
+                    manifest_relative_path = 'build-set/build-set.json'
+                }
+            }
+        } -ModuleName MvpProductSourceIdentity
+        Mock Assert-MvpProductBuildSet {
+            [pscustomobject]@{
+                build_set_id = ('B' * 64)
+                git_revision = ('b' * 40)
+                dirty_overlay_sha256 = ('D' * 64)
+                snapshot_root = 'E:\ZirconBuilds\fixture\build-set\source'
+                files = @()
+            }
+        } -ModuleName MvpProductSourceIdentity
+
+        { Resolve-MvpProductSourceIdentity -ManifestPath 'E:\ZirconBuilds\fixture\mvp-product-inputs.json' } |
+            Should Throw 'does not match its verified manifest'
+    }
+
     It 'creates one independent data source for each requested catalog resource' {
-        $projectRoot = Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' (
-            'resource-management-scale-test-' + [guid]::NewGuid().ToString('N')
-        )
+        $inventoryModule = Join-Path $repoRoot 'tools\mvp\ResourceManagementScaleInventory.psm1'
+        $projectRoot = New-TestResourceManagementProjectPath -Prefix 'resource-management-scale-test'
         try {
             $created = New-ResourceManagementScaleProject `
                 -ProjectRoot $projectRoot `
                 -DataAssetCount 4 `
-                -SourceFingerprint ('A' * 64)
+                -SourceIdentity $resourceScaleSourceIdentity
             $dataRoot = Join-Path $projectRoot 'assets\data'
             $sourceFiles = @([IO.Directory]::EnumerateFiles($dataRoot, '*.json', [IO.SearchOption]::TopDirectoryOnly)) |
                 Sort-Object
@@ -62,6 +176,10 @@ Describe 'Resource-management scale project generator' {
             $created.asset_kind | Should Be 'Data'
             $created.importer_id | Should Be 'zircon.builtin.data.json'
             $created.data_virtual_prefix | Should Be 'res://data/'
+            $manifest.schema_version | Should Be 2
+            $manifest.source_fingerprint | Should Be $resourceScaleSourceIdentity.build_set_id
+            $manifest.build_set_id | Should Be $resourceScaleSourceIdentity.build_set_id
+            $manifest.product_input_manifest_sha256 | Should Be $resourceScaleSourceIdentity.manifest_sha256
             $manifest.data_asset_count | Should Be 4
             $manifest.asset_kind | Should Be 'Data'
             $manifest.importer_id | Should Be 'zircon.builtin.data.json'
@@ -69,6 +187,10 @@ Describe 'Resource-management scale project generator' {
             $manifest.data_source_pattern | Should Be 'res://data/catalog_*.json'
             $manifest.data_inventory_sha256 | Should Match '^[0-9A-F]{64}$'
             $created.data_inventory_sha256 | Should Be $manifest.data_inventory_sha256
+            (Get-Content -Raw $inventoryModule) | Should Match '\[IO\.Path\]::Combine\(\$DataRoot, \$fileName\)'
+            (Get-Content -Raw $inventoryModule) | Should Not Match 'Join-Path \$DataRoot \$fileName'
+            (Get-Content -Raw $inventoryModule) | Should Match '\[char\[\]\]::new\(\$HashBytes.Length \* 2\)'
+            (Get-Content -Raw $inventoryModule) | Should Not Match '\[Convert\]::ToHexString'
             ($manifest | ConvertTo-Json -Depth 3) | Should Not Match '[A-Za-z]:\\'
             [IO.File]::Exists((Join-Path $projectRoot 'zircon-project.toml')) | Should Be $true
             $sourceFiles.Count | Should Be 4
@@ -88,39 +210,59 @@ Describe 'Resource-management scale project generator' {
         }
     }
 
-    It 'rejects malformed source fingerprints before it creates the project root' {
-        $projectRoot = Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' (
-            'resource-management-scale-invalid-fingerprint-' + [guid]::NewGuid().ToString('N')
-        )
+    It 'binds generator and change-set entry points to one verified ProductInput BuildSet' {
+        $generatorSource = Get-Content -LiteralPath $generator -Raw
+        $changeSetSource = Get-Content -LiteralPath $changeSet -Raw
 
-        { New-ResourceManagementScaleProject -ProjectRoot $projectRoot -DataAssetCount 1 -SourceFingerprint 'invalid' } |
-            Should Throw 'source fingerprint'
+        $generatorSource | Should Match 'MvpProductSourceIdentity\.psm1'
+        $changeSetSource | Should Match 'MvpProductSourceIdentity\.psm1'
+        $generatorSource | Should Match 'Resolve-MvpProductSourceIdentity'
+        $changeSetSource | Should Match 'Resolve-MvpProductSourceIdentity'
+        $generatorSource | Should Match 'Copy-ResourceManagementScaleTemplate\s+`?\s*-BuildSet'
+        $generatorSource | Should Not Match 'Get-MvpSourceFingerprint -RepositoryRoot \$repoRoot'
+        $changeSetSource | Should Not Match 'Get-MvpSourceFingerprint -RepositoryRoot \$repoRoot'
+    }
+
+    It 'rejects a source identity detached from a verified BuildSet before it creates the project root' {
+        $projectRoot = New-TestResourceManagementProjectPath -Prefix 'resource-management-scale-invalid-fingerprint'
+
+        $invalidIdentity = New-TestResourceManagementScaleSourceIdentity -BuildSetId 'invalid'
+
+        { New-ResourceManagementScaleProject -ProjectRoot $projectRoot -DataAssetCount 1 -SourceIdentity $invalidIdentity } |
+            Should Throw 'BuildSet'
         [IO.Directory]::Exists($projectRoot) | Should Be $false
     }
 
     It 'rejects an invalid resource count before it creates the project root' {
-        $projectRoot = Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' (
-            'resource-management-scale-invalid-count-' + [guid]::NewGuid().ToString('N')
-        )
+        $projectRoot = New-TestResourceManagementProjectPath -Prefix 'resource-management-scale-invalid-count'
 
-        { New-ResourceManagementScaleProject -ProjectRoot $projectRoot -DataAssetCount 0 -SourceFingerprint ('A' * 64) } |
-            Should Throw
+        $failure = $null
+        try {
+            New-ResourceManagementScaleProject `
+                -ProjectRoot $projectRoot `
+                -DataAssetCount 0 `
+                -SourceIdentity $resourceScaleSourceIdentity | Out-Null
+        }
+        catch {
+            $failure = $_
+        }
+        $failure | Should Not BeNullOrEmpty
+        $failure.Exception.Message | Should Match 'DataAssetCount|minimum allowed range'
         [IO.Directory]::Exists($projectRoot) | Should Be $false
     }
 
     It 'applies a deterministic source change set without creating sidecars' {
-        $projectRoot = Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' (
-            'resource-management-scale-change-set-' + [guid]::NewGuid().ToString('N')
-        )
+        $projectRoot = New-TestResourceManagementProjectPath -Prefix 'resource-management-scale-change-set'
         try {
             New-ResourceManagementScaleProject `
                 -ProjectRoot $projectRoot `
                 -DataAssetCount 4 `
-                -SourceFingerprint ('A' * 64) | Out-Null
+                -SourceIdentity $resourceScaleSourceIdentity | Out-Null
             $change = Set-ResourceManagementScaleProjectChangeSet `
                 -ProjectRoot $projectRoot `
                 -ChangePercent 25 `
-                -ExpectedSourceFingerprint ('A' * 64)
+                -ExpectedSourceFingerprint ('A' * 64) `
+                -ExpectedProductInputManifestSha256 ('C' * 64)
             $dataRoot = Join-Path $projectRoot 'assets\data'
             $changedSource = [IO.File]::ReadAllText((Join-Path $dataRoot 'catalog_000001.json')) | ConvertFrom-Json
             $unchangedSource = [IO.File]::ReadAllText((Join-Path $dataRoot 'catalog_000002.json')) | ConvertFrom-Json
@@ -140,8 +282,11 @@ Describe 'Resource-management scale project generator' {
             $changedSource.payload | Should Be 'resource-management-scale'
             $changedSource.workload_revision | Should Be 1
             $unchangedSource.index | Should Be 2
-            $unchangedSource.workload_revision | Should BeNullOrEmpty
+            $unchangedSource.PSObject.Properties['workload_revision'] | Should BeNullOrEmpty
             $changeManifest.source_fingerprint | Should Be ('A' * 64)
+            $changeManifest.schema_version | Should Be 2
+            $changeManifest.build_set_id | Should Be ('A' * 64)
+            $changeManifest.product_input_manifest_sha256 | Should Be ('C' * 64)
             $changeManifest.changed_asset_count | Should Be 1
             $changeManifest.baseline_data_inventory_sha256 | Should Match '^[0-9A-F]{64}$'
             $changeManifest.changed_data_inventory_sha256 | Should Be $change.data_inventory_sha256
@@ -155,7 +300,8 @@ Describe 'Resource-management scale project generator' {
             { Set-ResourceManagementScaleProjectChangeSet `
                     -ProjectRoot $projectRoot `
                     -ChangePercent 25 `
-                    -ExpectedSourceFingerprint ('A' * 64) } |
+                    -ExpectedSourceFingerprint ('A' * 64) `
+                    -ExpectedProductInputManifestSha256 ('C' * 64) } |
                 Should Throw 'already has a change set'
             [IO.File]::ReadAllText((Join-Path $dataRoot 'catalog_000001.json')) | ConvertFrom-Json |
                 Select-Object -ExpandProperty workload_revision | Should Be 1
@@ -168,21 +314,20 @@ Describe 'Resource-management scale project generator' {
     }
 
     It 'rejects a change set for a different source snapshot before it modifies data' {
-        $projectRoot = Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' (
-            'resource-management-scale-change-fingerprint-' + [guid]::NewGuid().ToString('N')
-        )
+        $projectRoot = New-TestResourceManagementProjectPath -Prefix 'resource-management-scale-change-fingerprint'
         try {
             New-ResourceManagementScaleProject `
                 -ProjectRoot $projectRoot `
                 -DataAssetCount 1 `
-                -SourceFingerprint ('A' * 64) | Out-Null
+                -SourceIdentity $resourceScaleSourceIdentity | Out-Null
             $sourcePath = Join-Path $projectRoot 'assets\data\catalog_000001.json'
             $before = [IO.File]::ReadAllText($sourcePath)
 
             { Set-ResourceManagementScaleProjectChangeSet `
                     -ProjectRoot $projectRoot `
                     -ChangePercent 1 `
-                    -ExpectedSourceFingerprint ('B' * 64) } |
+                    -ExpectedSourceFingerprint ('B' * 64) `
+                    -ExpectedProductInputManifestSha256 ('C' * 64) } |
                 Should Throw 'different source snapshot'
             [IO.File]::ReadAllText($sourcePath) | Should Be $before
             [IO.File]::Exists((Join-Path $projectRoot 'resource-management-scale-change-set.json')) | Should Be $false
@@ -194,15 +339,39 @@ Describe 'Resource-management scale project generator' {
         }
     }
 
+    It 'rejects a change set from a different ProductInputManifest before it modifies data' {
+        $projectRoot = New-TestResourceManagementProjectPath -Prefix 'resource-management-scale-change-product-input'
+        try {
+            New-ResourceManagementScaleProject `
+                -ProjectRoot $projectRoot `
+                -DataAssetCount 1 `
+                -SourceIdentity $resourceScaleSourceIdentity | Out-Null
+            $sourcePath = Join-Path $projectRoot 'assets\data\catalog_000001.json'
+            $before = [IO.File]::ReadAllText($sourcePath)
+
+            { Set-ResourceManagementScaleProjectChangeSet `
+                    -ProjectRoot $projectRoot `
+                    -ChangePercent 1 `
+                    -ExpectedSourceFingerprint ('A' * 64) `
+                    -ExpectedProductInputManifestSha256 ('D' * 64) } |
+                Should Throw 'different ProductInputManifest'
+            [IO.File]::ReadAllText($sourcePath) | Should Be $before
+            [IO.File]::Exists((Join-Path $projectRoot 'resource-management-scale-change-set.json')) | Should Be $false
+        }
+        finally {
+            if ([IO.Directory]::Exists($projectRoot)) {
+                [IO.Directory]::Delete($projectRoot, $true)
+            }
+        }
+    }
+
     It 'rejects an incomplete data inventory before it mutates a scale project' {
-        $projectRoot = Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' (
-            'resource-management-scale-incomplete-inventory-' + [guid]::NewGuid().ToString('N')
-        )
+        $projectRoot = New-TestResourceManagementProjectPath -Prefix 'resource-management-scale-incomplete-inventory'
         try {
             New-ResourceManagementScaleProject `
                 -ProjectRoot $projectRoot `
                 -DataAssetCount 4 `
-                -SourceFingerprint ('A' * 64) | Out-Null
+                -SourceIdentity $resourceScaleSourceIdentity | Out-Null
             $firstSourcePath = Join-Path $projectRoot 'assets\data\catalog_000001.json'
             $before = [IO.File]::ReadAllText($firstSourcePath)
             [IO.File]::Delete((Join-Path $projectRoot 'assets\data\catalog_000004.json'))
@@ -210,7 +379,8 @@ Describe 'Resource-management scale project generator' {
             { Set-ResourceManagementScaleProjectChangeSet `
                     -ProjectRoot $projectRoot `
                     -ChangePercent 25 `
-                    -ExpectedSourceFingerprint ('A' * 64) } |
+                    -ExpectedSourceFingerprint ('A' * 64) `
+                    -ExpectedProductInputManifestSha256 ('C' * 64) } |
                 Should Throw 'data source inventory'
             [IO.File]::ReadAllText($firstSourcePath) | Should Be $before
             [IO.File]::Exists((Join-Path $projectRoot 'resource-management-scale-change-set.json')) | Should Be $false
@@ -223,14 +393,12 @@ Describe 'Resource-management scale project generator' {
     }
 
     It 'rejects an undeclared data mutation before it creates a one-percent change set' {
-        $projectRoot = Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' (
-            'resource-management-scale-undeclared-mutation-' + [guid]::NewGuid().ToString('N')
-        )
+        $projectRoot = New-TestResourceManagementProjectPath -Prefix 'resource-management-scale-undeclared-mutation'
         try {
             New-ResourceManagementScaleProject `
                 -ProjectRoot $projectRoot `
                 -DataAssetCount 4 `
-                -SourceFingerprint ('A' * 64) | Out-Null
+                -SourceIdentity $resourceScaleSourceIdentity | Out-Null
             $firstSourcePath = Join-Path $projectRoot 'assets\data\catalog_000001.json'
             $before = [IO.File]::ReadAllText($firstSourcePath)
             [IO.File]::WriteAllText(
@@ -242,7 +410,8 @@ Describe 'Resource-management scale project generator' {
             { Set-ResourceManagementScaleProjectChangeSet `
                     -ProjectRoot $projectRoot `
                     -ChangePercent 1 `
-                    -ExpectedSourceFingerprint ('A' * 64) } |
+                    -ExpectedSourceFingerprint ('A' * 64) `
+                    -ExpectedProductInputManifestSha256 ('C' * 64) } |
                 Should Throw 'does not match its immutable metadata fingerprint'
             [IO.File]::ReadAllText($firstSourcePath) | Should Be $before
             [IO.File]::Exists((Join-Path $projectRoot 'resource-management-scale-change-set.json')) | Should Be $false
@@ -255,15 +424,13 @@ Describe 'Resource-management scale project generator' {
     }
 
     It 'rejects a concurrent change-set lease before it modifies data' {
-        $projectRoot = Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' (
-            'resource-management-scale-change-lease-' + [guid]::NewGuid().ToString('N')
-        )
+        $projectRoot = New-TestResourceManagementProjectPath -Prefix 'resource-management-scale-change-lease'
         $lease = $null
         try {
             New-ResourceManagementScaleProject `
                 -ProjectRoot $projectRoot `
                 -DataAssetCount 1 `
-                -SourceFingerprint ('A' * 64) | Out-Null
+                -SourceIdentity $resourceScaleSourceIdentity | Out-Null
             $sourcePath = Join-Path $projectRoot 'assets\data\catalog_000001.json'
             $before = [IO.File]::ReadAllText($sourcePath)
             $leasePath = Join-Path $projectRoot '.zircon\resource-management-scale-change-set.active'
@@ -279,7 +446,8 @@ Describe 'Resource-management scale project generator' {
             { Set-ResourceManagementScaleProjectChangeSet `
                     -ProjectRoot $projectRoot `
                     -ChangePercent 1 `
-                    -ExpectedSourceFingerprint ('A' * 64) } |
+                    -ExpectedSourceFingerprint ('A' * 64) `
+                    -ExpectedProductInputManifestSha256 ('C' * 64) } |
                 Should Throw 'already active'
             [IO.File]::ReadAllText($sourcePath) | Should Be $before
             [IO.File]::Exists((Join-Path $projectRoot 'resource-management-scale-change-set.json')) | Should Be $false

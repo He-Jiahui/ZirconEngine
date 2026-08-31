@@ -27,8 +27,7 @@ pub use super::surface::{
 };
 pub use super::template::{
     UiAssetCompileCache, UiAssetLoader, UiCompiledDocument, UiDocumentCompiler, UiTemplateInstance,
-    UiTemplateLoader, UiTemplateRuntimePipeline, UiTemplateRuntimePipelineError,
-    UiTemplateSurfaceBuilder, UiTemplateTreeBuilder, UI_TEMPLATE_RUNTIME_PIPELINE_STAGES,
+    UiTemplateSurfaceBuilder, UiTemplateTreeBuilder,
 };
 pub use super::v2::{
     UiV2AssetLoader, UiV2CompiledDocument, UiV2DocumentCompiler, UiV2PrototypeStore,

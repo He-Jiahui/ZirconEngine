@@ -45,11 +45,10 @@ pub fn default_manifest_for_target(target: RuntimeTargetMode) -> ProjectPluginMa
 fn default_ui_plugin_selection() -> Vec<ProjectPluginSelection> {
     #[cfg(feature = "ui")]
     {
-        vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Ui,
-            true,
-            true,
-        )]
+        vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Ui, true, true),
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::UiDocumentImporter, true, true),
+        ]
     }
     #[cfg(not(feature = "ui"))]
     {

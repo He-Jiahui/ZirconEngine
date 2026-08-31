@@ -6,8 +6,7 @@ use super::frontier_ranking::{seed_backed_frontier_rank_for_cluster, SeedBackedF
 use super::ordering::SeedBackedClusterOrdering;
 use super::record::SeedBackedExecutionSelectionRecord;
 use super::state::{
-    cluster_lineage_depth, resolve_seed_backed_execution_cluster, seed_backed_cluster_state,
-    seed_backed_execution_state,
+    resolve_seed_backed_execution_cluster_state_and_lineage, seed_backed_execution_state,
 };
 use crate::virtual_geometry::types::{
     VirtualGeometryClusterSelection, VirtualGeometryNodeAndClusterCullClusterWorkItem,
@@ -185,8 +184,13 @@ pub(super) fn build_seed_backed_execution_selection_record(
     frontier_ranking: &mut SeedBackedFrontierRanking,
     forced_mip: Option<u8>,
 ) -> SeedBackedExecutionSelectionRecord {
-    let resolved_cluster =
-        resolve_seed_backed_execution_cluster(cluster, clusters_by_id, page_residency, forced_mip);
+    let (resolved_cluster, lineage_depth, submission_state, selected_state) =
+        resolve_seed_backed_execution_cluster_state_and_lineage(
+            cluster,
+            clusters_by_id,
+            page_residency,
+            forced_mip,
+        );
     let submission_ordering = cluster_ordering
         .get(&(cluster.entity, cluster.cluster_id))
         .copied()
@@ -200,8 +204,6 @@ pub(super) fn build_seed_backed_execution_selection_record(
         .get(&(resolved_cluster.entity, resolved_cluster.cluster_id))
         .map(|ordering| ordering.cluster_ordinal())
         .unwrap_or_else(|| submission_ordering.cluster_ordinal());
-    let submission_state = seed_backed_cluster_state(cluster.page_id, page_residency);
-    let selected_state = seed_backed_cluster_state(resolved_cluster.page_id, page_residency);
     let frontier_rank =
         seed_backed_frontier_rank_for_cluster(cluster.page_id, submission_state, frontier_ranking);
 
@@ -219,7 +221,7 @@ pub(super) fn build_seed_backed_execution_selection_record(
             entity_cluster_start_ordinal: submission_ordering.cluster_ordinal() as usize,
             entity_cluster_span_count: 1,
             entity_cluster_total_count: submission_ordering.entity_cluster_total_count(),
-            lineage_depth: cluster_lineage_depth(cluster, clusters_by_id),
+            lineage_depth,
             frontier_rank,
             resident_slot: None,
             submission_slot: None,

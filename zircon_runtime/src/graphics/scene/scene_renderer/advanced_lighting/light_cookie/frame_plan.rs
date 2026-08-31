@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::core::framework::render::{CookieProjection, CookieWrapMode, LightCookieData};
 use crate::core::math::Vec2;
 use crate::core::resource::ResourceId;
@@ -46,32 +44,35 @@ impl CookieFramePlan {
 }
 
 pub(crate) fn build_cookie_frame_plan(cookies: &[LightCookieData]) -> CookieFramePlan {
-    let unique = cookies
-        .iter()
-        .map(|cookie| (cookie.light_id, cookie))
-        .collect::<BTreeMap<_, _>>();
+    let mut indexed = Vec::with_capacity(cookies.len());
+    indexed.extend(cookies.iter().enumerate());
+    indexed.sort_unstable_by_key(|(input_index, cookie)| (cookie.light_id, *input_index));
     let cell = 1.0 / COOKIE_ATLAS_GRID_SIZE as f32;
-    let entries = unique
-        .into_iter()
-        .take(COOKIE_ATLAS_MAX_ENTRIES)
-        .enumerate()
-        .map(|(slot, (light_id, cookie))| {
-            let slot = slot as u32;
-            let x = slot % COOKIE_ATLAS_GRID_SIZE;
-            let y = slot / COOKIE_ATLAS_GRID_SIZE;
-            let (projection, wrap, offset, scale) = projection_metadata(cookie.projection);
-            CookieAtlasEntry {
-                slot,
-                light_id,
-                texture: cookie.texture,
-                metadata: CookieGpuMetadata {
-                    uv_rect: [x as f32 * cell, y as f32 * cell, cell, cell],
-                    misc: [projection, wrap, 0, 0],
-                    directional_offset_scale: [offset.x, offset.y, scale.x, scale.y],
-                },
-            }
-        })
-        .collect();
+    let mut entries = Vec::with_capacity(indexed.len().min(COOKIE_ATLAS_MAX_ENTRIES));
+    let mut cursor = 0;
+    while cursor < indexed.len() && entries.len() < COOKIE_ATLAS_MAX_ENTRIES {
+        let light_id = indexed[cursor].1.light_id;
+        let mut group_end = cursor + 1;
+        while group_end < indexed.len() && indexed[group_end].1.light_id == light_id {
+            group_end += 1;
+        }
+        let cookie = indexed[group_end - 1].1;
+        let slot = entries.len() as u32;
+        let x = slot % COOKIE_ATLAS_GRID_SIZE;
+        let y = slot / COOKIE_ATLAS_GRID_SIZE;
+        let (projection, wrap, offset, scale) = projection_metadata(cookie.projection);
+        entries.push(CookieAtlasEntry {
+            slot,
+            light_id,
+            texture: cookie.texture,
+            metadata: CookieGpuMetadata {
+                uv_rect: [x as f32 * cell, y as f32 * cell, cell, cell],
+                misc: [projection, wrap, 0, 0],
+                directional_offset_scale: [offset.x, offset.y, scale.x, scale.y],
+            },
+        });
+        cursor = group_end;
+    }
     CookieFramePlan { entries }
 }
 
@@ -108,6 +109,9 @@ const fn wrap_mode(mode: CookieWrapMode) -> u32 {
         CookieWrapMode::Repeat => 1,
     }
 }
+
+#[cfg(test)]
+mod performance_tests;
 
 #[cfg(test)]
 mod tests {

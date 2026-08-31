@@ -1,4 +1,6 @@
-use crate::core::editor_message::{DocumentId, EditorMessage, EditorMessageBus, SelectionDomain};
+use crate::core::editor_message::{
+    DocumentId, EditorMessage, EditorMessageBus, EditorMessageSchemaId, SelectionDomain,
+};
 
 use super::super::fixture::topic;
 use super::fixture::{
@@ -20,6 +22,50 @@ fn managed_fanout_allocation_rss_queue_age_and_publish_p95_report() {
     );
 }
 
+#[test]
+#[ignore = "managed performance evidence; run alone with --test-threads=1"]
+fn optimization_wave_20260824_editor48_zero_route_publish_allocation_evidence() {
+    const PUBLISHES: u64 = 100_000;
+    const MAX_ELAPSED_NS: u128 = 500_000_000;
+
+    let mut bus = EditorMessageBus::default();
+    let publish_topic = topic("editor.unrouted-benchmark");
+    let message = selection_changed(SelectionDomain::edit_scene(), 0);
+    let (reports, elapsed, allocations) = measure_allocations(|| {
+        let mut reports = 0_u64;
+        for _ in 0..PUBLISHES {
+            let report = bus.publish(publish_topic.clone(), message.clone());
+            reports = reports.saturating_add(u64::from(
+                report.delivered().is_empty() && report.error().is_none(),
+            ));
+        }
+        reports
+    });
+
+    assert_eq!(reports, PUBLISHES);
+    assert!(
+        allocations.operations <= PUBLISHES.saturating_add(16),
+        "zero-route publish should allocate only the owned topic clone: {allocations:?}"
+    );
+    assert!(
+        elapsed.as_nanos() <= MAX_ELAPSED_NS,
+        "zero-route publish elapsed {}ns exceeds {MAX_ELAPSED_NS}ns",
+        elapsed.as_nanos()
+    );
+
+    let legacy_minimum_allocations = PUBLISHES.saturating_mul(2);
+    let allocation_reduction_bps = legacy_minimum_allocations
+        .saturating_sub(allocations.operations)
+        .saturating_mul(10_000)
+        / legacy_minimum_allocations;
+    println!(
+        "EDITOR_MESSAGE_NO_ROUTE_BENCH_V1 publishes={PUBLISHES} legacy_min_alloc_ops={legacy_minimum_allocations} optimized_alloc_ops={} optimized_alloc_bytes={} allocation_reduction_bps={allocation_reduction_bps} elapsed_ns={} max_elapsed_ns={MAX_ELAPSED_NS}",
+        allocations.operations,
+        allocations.bytes,
+        elapsed.as_nanos()
+    );
+}
+
 fn run_fanout_benchmark(subscriber_count: usize) -> serde_json::Value {
     const LARGE_PAYLOAD_BYTES: usize = 1024 * 1024;
     const STORM_PUBLISHES: u64 = 10_000;
@@ -35,11 +81,11 @@ fn run_fanout_benchmark(subscriber_count: usize) -> serde_json::Value {
         .collect::<Vec<_>>();
     payload_bus.publish(
         benchmark_topic.clone(),
-        selection_changed(SelectionDomain::Scene, 0),
+        selection_changed(SelectionDomain::edit_scene(), 0),
     );
 
     let large_message = EditorMessage::custom(
-        "editor.benchmark.large-json.v1",
+        EditorMessageSchemaId::editor("benchmark.large-json.v1").unwrap(),
         serde_json::json!({ "blob": "x".repeat(LARGE_PAYLOAD_BYTES) }),
     );
     let (large_report, large_elapsed, large_allocations) =
@@ -80,14 +126,14 @@ fn run_fanout_benchmark(subscriber_count: usize) -> serde_json::Value {
     }
     storm_bus.publish(
         benchmark_topic.clone(),
-        selection_changed(SelectionDomain::Scene, 0),
+        selection_changed(SelectionDomain::edit_scene(), 0),
     );
 
     let mut publish_durations = Vec::with_capacity(STORM_PUBLISHES as usize);
     let mut steady_allocations = AllocationSample::default();
     let rss_before = working_set_bytes();
     for revision in 1..=STORM_PUBLISHES {
-        let message = selection_changed(SelectionDomain::Scene, revision);
+        let message = selection_changed(SelectionDomain::edit_scene(), revision);
         let publish_topic = benchmark_topic.clone();
         let (report, elapsed, allocations) =
             measure_allocations(|| storm_bus.publish(publish_topic, message));

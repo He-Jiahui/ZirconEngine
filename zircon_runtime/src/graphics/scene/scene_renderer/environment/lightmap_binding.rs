@@ -8,6 +8,7 @@ use crate::core::framework::render::{
     SH_L2_RGB_COEFFICIENT_COUNT,
 };
 use crate::core::resource::ResourceId;
+use crate::graphics::backend::SystemTextureGenerationLease;
 use crate::graphics::scene::resources::{GpuTextureResource, ResourceStreamer};
 use crate::graphics::types::GraphicsError;
 
@@ -66,65 +67,19 @@ pub(in crate::graphics::scene::scene_renderer) struct SceneLightmapResources {
     fallback_sampler: Arc<wgpu::Sampler>,
     atlas_resource: Option<Arc<GpuTextureResource>>,
     atlas_asset: Option<ResourceId>,
+    atlas_revision: Option<u64>,
     light_set_generation: u64,
 }
 
 impl SceneLightmapResources {
     pub(in crate::graphics::scene::scene_renderer) fn new(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        system_textures: &SystemTextureGenerationLease,
     ) -> Self {
         let probe_grid_buffer = create_probe_grid_buffer(device, &disabled_probe_grid_words());
-        let atlas_texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-lightmap-atlas-fallback"),
-            size: wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba16Float,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-        queue.write_texture(
-            atlas_texture.as_image_copy(),
-            &[0; 8],
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(8),
-                rows_per_image: Some(1),
-            },
-            wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-        );
-        let fallback_atlas_view =
-            Arc::new(atlas_texture.create_view(&wgpu::TextureViewDescriptor {
-                label: Some("zircon-lightmap-atlas-fallback-view"),
-                format: Some(wgpu::TextureFormat::Rgba16Float),
-                dimension: Some(wgpu::TextureViewDimension::D2Array),
-                usage: Some(wgpu::TextureUsages::TEXTURE_BINDING),
-                aspect: wgpu::TextureAspect::All,
-                base_mip_level: 0,
-                mip_level_count: Some(1),
-                base_array_layer: 0,
-                array_layer_count: Some(1),
-            }));
-        let fallback_sampler = Arc::new(device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("zircon-lightmap-atlas-sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::MipmapFilterMode::Linear,
-            ..wgpu::SamplerDescriptor::default()
-        }));
+        let atlas_texture = system_textures.black_rgba16float_texture().clone();
+        let fallback_atlas_view = Arc::new(system_textures.black_rgba16float_array_view().clone());
+        let fallback_sampler = Arc::new(system_textures.linear_clamp_sampler().clone());
         Self {
             probe_grid_buffer,
             atlas_texture,
@@ -132,6 +87,7 @@ impl SceneLightmapResources {
             fallback_sampler,
             atlas_resource: None,
             atlas_asset: None,
+            atlas_revision: None,
             light_set_generation: 0,
         }
     }
@@ -147,15 +103,21 @@ impl SceneLightmapResources {
         let Some(contract) = environment.baked_lighting() else {
             self.atlas_resource = None;
             self.atlas_asset = None;
+            self.atlas_revision = None;
             return Ok(());
         };
         contract
             .validate()
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-        if self.atlas_asset == Some(contract.atlas) {
-            return Ok(());
-        }
-        let resource = streamer.texture(Some(contract.atlas));
+        let (revision, resource) =
+            streamer
+                .texture_with_revision(contract.atlas)
+                .ok_or_else(|| {
+                    GraphicsError::Asset(format!(
+                        "lightmap atlas {} was not prepared by the resource streamer",
+                        contract.atlas
+                    ))
+                })?;
         if resource.id != Some(contract.atlas) {
             return Err(GraphicsError::Asset(format!(
                 "lightmap atlas {} was not prepared by the resource streamer",
@@ -171,8 +133,18 @@ impl SceneLightmapResources {
                 contract.atlas
             )));
         }
+        if self.atlas_asset == Some(contract.atlas)
+            && self.atlas_revision == Some(revision)
+            && self
+                .atlas_resource
+                .as_ref()
+                .is_some_and(|current| Arc::ptr_eq(current, &resource))
+        {
+            return Ok(());
+        }
         self.atlas_resource = Some(resource);
         self.atlas_asset = Some(contract.atlas);
+        self.atlas_revision = Some(revision);
         Ok(())
     }
 

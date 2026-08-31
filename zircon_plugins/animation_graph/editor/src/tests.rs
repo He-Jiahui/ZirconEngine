@@ -24,16 +24,17 @@ fn animation_graph_authoring_registration_exposes_menu_items_and_payload_schemas
         .expect("compile operation registered");
 
     assert_eq!(
-        descriptor.menu_path(),
-        Some("Plugins/Animation Graph/Compile")
+        descriptor
+            .menu_path()
+            .expect("compile command menu path")
+            .stable_path(),
+        "plugins/animation_graph/animation_graph.authoring.compile"
     );
     assert_eq!(
         descriptor.payload_schema_id(),
         Some("animation_graph.compile.v1")
     );
-    assert!(registry.menu_items().iter().any(|item| {
-        item.path() == "Plugins/Animation Graph/Compile" && item.operation() == &operation
-    }));
+    assert!(registry.menu_items().is_empty());
 }
 
 #[test]
@@ -180,6 +181,69 @@ fn animation_graph_validation_reports_missing_output_source() {
     assert!(validate_animation_graph_asset(&graph)
         .iter()
         .any(|message| message.contains("missing source `missing`")));
+}
+
+#[test]
+fn animation_graph_validation_rejects_cyclic_node_dependencies() {
+    let graph = AnimationGraphAsset {
+        name: Some("Cyclic".to_string()),
+        parameters: Vec::new(),
+        nodes: vec![
+            AnimationGraphNodeAsset::Blend {
+                id: "a".to_string(),
+                inputs: vec!["b".to_string()],
+                weight_parameter: None,
+            },
+            AnimationGraphNodeAsset::Blend {
+                id: "b".to_string(),
+                inputs: vec!["a".to_string()],
+                weight_parameter: None,
+            },
+            AnimationGraphNodeAsset::Output {
+                source: "a".to_string(),
+            },
+        ],
+    };
+
+    let diagnostics = validate_animation_graph_asset(&graph);
+
+    assert!(diagnostics
+        .iter()
+        .any(|message| message.contains("cyclic node dependency")));
+    assert!(compile_animation_graph(&graph).is_err());
+}
+
+#[test]
+fn animation_graph_indexed_validation_accepts_an_acyclic_dependency_chain() {
+    let graph = AnimationGraphAsset {
+        name: Some("Acyclic".to_string()),
+        parameters: Vec::new(),
+        nodes: vec![
+            AnimationGraphNodeAsset::Clip {
+                id: "clip".to_string(),
+                clip: asset_ref("res://animation/idle.anim_clip"),
+                playback_speed: 1.0,
+                looping: true,
+            },
+            AnimationGraphNodeAsset::Mask {
+                id: "masked".to_string(),
+                input: "clip".to_string(),
+                target_ids: vec!["spine".to_string()],
+            },
+            AnimationGraphNodeAsset::Additive {
+                id: "final".to_string(),
+                base: "masked".to_string(),
+                additive: "clip".to_string(),
+                weight_parameter: None,
+            },
+            AnimationGraphNodeAsset::Output {
+                source: "final".to_string(),
+            },
+        ],
+    };
+
+    assert!(validate_animation_graph_asset(&graph).is_empty());
+    assert_eq!(compile_animation_graph(&graph), Ok("final".to_string()));
 }
 
 #[test]

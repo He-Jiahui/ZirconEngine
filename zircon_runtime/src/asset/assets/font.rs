@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -47,11 +49,94 @@ pub enum FontScript {
     Arabic,
     Hebrew,
     Devanagari,
-    Other(u32),
+    Unknown,
+    /// Packed big-endian ISO 15924 tag for scripts without a dedicated variant.
+    Other(FontScriptTag),
 }
 
-/// Normalized BCP-47 culture selector used to disambiguate script-equivalent
-/// composite sub-fonts (for example, Han faces for zh-Hans, ja, and ko).
+/// Validated packed representation of a canonical four-letter ISO 15924 tag.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct FontScriptTag(u32);
+
+impl FontScriptTag {
+    pub const EMOJI: Self = Self(u32::from_be_bytes(*b"Zsye"));
+
+    pub const fn from_bytes(bytes: [u8; 4]) -> Option<Self> {
+        let canonical = bytes[0] >= b'A'
+            && bytes[0] <= b'Z'
+            && bytes[1] >= b'a'
+            && bytes[1] <= b'z'
+            && bytes[2] >= b'a'
+            && bytes[2] <= b'z'
+            && bytes[3] >= b'a'
+            && bytes[3] <= b'z';
+        if canonical {
+            Some(Self(u32::from_be_bytes(bytes)))
+        } else {
+            None
+        }
+    }
+
+    pub const fn from_packed(packed: u32) -> Option<Self> {
+        Self::from_bytes(packed.to_be_bytes())
+    }
+
+    pub fn parse(tag: &str) -> Option<Self> {
+        let bytes = tag.as_bytes().try_into().ok()?;
+        Self::from_bytes(bytes)
+    }
+
+    pub const fn packed(self) -> u32 {
+        self.0
+    }
+}
+
+impl Serialize for FontScriptTag {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for FontScriptTag {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let packed = u32::deserialize(deserializer)?;
+        Self::from_packed(packed).ok_or_else(|| {
+            serde::de::Error::custom(
+                "font script tag must be a packed canonical four-letter ISO 15924 code",
+            )
+        })
+    }
+}
+
+impl FontScript {
+    pub(crate) fn from_iso15924_tag(tag: &str) -> Self {
+        match tag {
+            "Latn" => Self::Latin,
+            "Cyrl" => Self::Cyrillic,
+            "Grek" => Self::Greek,
+            "Hani" => Self::Han,
+            "Hira" => Self::Hiragana,
+            "Kana" => Self::Katakana,
+            "Hang" => Self::Hangul,
+            "Arab" => Self::Arabic,
+            "Hebr" => Self::Hebrew,
+            "Deva" => Self::Devanagari,
+            "Zzzz" => Self::Unknown,
+            other => FontScriptTag::parse(other)
+                .map(Self::Other)
+                .unwrap_or(Self::Unknown),
+        }
+    }
+}
+
+/// Authored BCP-47 culture selector for script-equivalent composite sub-fonts.
+/// Runtime Text compiles and matches this opaque asset value.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct FontCultureTag(String);
@@ -63,21 +148,6 @@ impl FontCultureTag {
 
     pub fn as_str(&self) -> &str {
         &self.0
-    }
-
-    pub fn matches(&self, language: &str) -> bool {
-        let configured = self.as_str();
-        let language = language.trim();
-        if configured.is_empty() || language.is_empty() {
-            return false;
-        }
-        if configured.eq_ignore_ascii_case(language) {
-            return true;
-        }
-        language
-            .get(..configured.len())
-            .is_some_and(|prefix| prefix.eq_ignore_ascii_case(configured))
-            && language.as_bytes().get(configured.len()) == Some(&b'-')
     }
 }
 
@@ -236,6 +306,11 @@ pub struct FontAssetMetadata {
     pub face_count: u32,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub faces: Vec<FontAssetParsedFace>,
+    /// Decoded font bytes retained by the cooked artifact cache. This is not
+    /// authoring data: the cache payload mirrors it explicitly so packaged
+    /// runtime code can resolve faces without reopening the source file.
+    #[serde(skip)]
+    pub cooked_blob: Option<FontBlobArtifact>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -245,6 +320,60 @@ pub enum FontAssetSourceFormat {
     Sfnt,
     TrueTypeCollection,
     Woff2,
+}
+
+const FONT_BLOB_ARTIFACT_SCHEMA_VERSION: u32 = 1;
+
+/// Immutable decoded font payload produced during import.
+///
+/// `source_format` records the authored container while `bytes` always hold
+/// the decoded SFNT or TTC payload consumed by the runtime font collection.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FontBlobArtifact {
+    schema_version: u32,
+    source_format: FontAssetSourceFormat,
+    content_hash: [u8; 32],
+    bytes: Arc<[u8]>,
+}
+
+impl FontBlobArtifact {
+    pub(crate) fn from_decoded_bytes(source_format: FontAssetSourceFormat, bytes: Vec<u8>) -> Self {
+        let content_hash = *blake3::hash(&bytes).as_bytes();
+        Self {
+            schema_version: FONT_BLOB_ARTIFACT_SCHEMA_VERSION,
+            source_format,
+            content_hash,
+            bytes: Arc::from(bytes.into_boxed_slice()),
+        }
+    }
+
+    pub fn schema_version(&self) -> u32 {
+        self.schema_version
+    }
+
+    pub fn source_format(&self) -> FontAssetSourceFormat {
+        self.source_format
+    }
+
+    pub fn content_hash(&self) -> [u8; 32] {
+        self.content_hash
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    pub(crate) fn shared_bytes(&self) -> Arc<[u8]> {
+        Arc::clone(&self.bytes)
+    }
+
+    pub(crate) fn is_valid_for_runtime(&self) -> bool {
+        self.schema_version == FONT_BLOB_ARTIFACT_SCHEMA_VERSION && self.has_valid_content_hash()
+    }
+
+    pub fn has_valid_content_hash(&self) -> bool {
+        self.content_hash == *blake3::hash(&self.bytes).as_bytes()
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -380,6 +509,7 @@ mod contract_owner_tests {
             "FontCultureTag",
             "FontFamilyName",
             "FontScript",
+            "FontScriptTag",
             "SubFontRange",
         ] {
             assert!(text_font.contains(contract));

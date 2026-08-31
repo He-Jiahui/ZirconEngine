@@ -42,7 +42,6 @@ fn fs_oit(input: SpriteVertexOutput) {
 "#;
 
 pub(in crate::graphics::scene::scene_renderer) struct OitFragmentStorePipeline {
-    depth_format: wgpu::TextureFormat,
     sprite_texture_layout: wgpu::BindGroupLayout,
     sprite_pipeline: wgpu::RenderPipeline,
 }
@@ -124,16 +123,9 @@ impl OitFragmentStorePipeline {
             cache: None,
         });
         Self {
-            depth_format,
             sprite_texture_layout,
             sprite_pipeline,
         }
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) const fn depth_format(
-        &self,
-    ) -> wgpu::TextureFormat {
-        self.depth_format
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn sprite_pipeline(

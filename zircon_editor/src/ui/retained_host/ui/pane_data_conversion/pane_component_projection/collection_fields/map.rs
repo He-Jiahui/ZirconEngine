@@ -8,6 +8,7 @@ use super::super::super::pane_value_conversion::value_as_string;
 use super::super::showcase_actions::showcase_action_id_for_suffix;
 use super::empty::empty_collection_field;
 use super::roles::{collection_field_checked, collection_field_role};
+use super::type_tokens::CollectionTypeTraits;
 use super::validation::collection_map_entry_validation;
 
 pub(super) fn map_collection_fields(
@@ -43,18 +44,27 @@ pub(super) fn map_collection_fields(
             format!("Empty {key_type} -> {value_type} map"),
         )];
     }
+    let key_traits = CollectionTypeTraits::from_declared_type(&key_type);
+    let value_traits = CollectionTypeTraits::from_declared_type(&value_type);
     values
         .into_iter()
         .map(|(key, value)| {
-            let validation = collection_map_entry_validation(&key_type, &key, &value_type, &value);
+            let validation = collection_map_entry_validation(
+                &key_type,
+                key_traits,
+                &key,
+                &value_type,
+                value_traits,
+                &value,
+            );
             host_contract::TemplatePaneCollectionFieldData {
                 row_id: format!("map-{key}").into(),
                 index_text: "".into(),
                 key_type: key_type.clone().into(),
-                key_component_role: collection_field_role(&key_type, None).into(),
+                key_component_role: collection_field_role(key_traits, None).into(),
                 key_text: key.into(),
                 value_type: value_type.clone().into(),
-                value_component_role: collection_field_role(&value_type, Some(&value)).into(),
+                value_component_role: collection_field_role(value_traits, Some(&value)).into(),
                 value_text: value.display_text().into(),
                 value_checked: collection_field_checked(&value),
                 validation_level: validation.level.into(),

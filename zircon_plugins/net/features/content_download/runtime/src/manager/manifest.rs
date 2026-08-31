@@ -8,7 +8,14 @@ use super::NetContentDownloadRuntimeManager;
 
 impl NetContentDownloadRuntimeManager {
     pub fn queue_manifest(&self, manifest: NetDownloadManifest) -> NetDownloadProgress {
-        let total_bytes = manifest.chunks.iter().map(|chunk| chunk.byte_len).sum();
+        let Some(total_bytes) = manifest
+            .chunks
+            .iter()
+            .try_fold(0u64, |total, chunk| total.checked_add(chunk.byte_len))
+        else {
+            return NetDownloadProgress::new(manifest.download, NetDownloadStatus::Failed, 0)
+                .with_diagnostic("download manifest total byte size overflow");
+        };
         if let Some(diagnostic) = validate_manifest(&manifest) {
             return NetDownloadProgress::new(
                 manifest.download,
@@ -45,9 +52,11 @@ fn validate_manifest(manifest: &NetDownloadManifest) -> Option<String> {
         if chunk.byte_len == 0 {
             return Some(format!("download chunk has zero byte length: {}", chunk.id));
         }
+        let Some(chunk_end) = chunk.byte_offset.checked_add(chunk.byte_len) else {
+            return Some(format!("download chunk byte range overflow: {}", chunk.id));
+        };
         if chunk.resume_from_byte.is_some_and(|resume_from_byte| {
-            resume_from_byte < chunk.byte_offset
-                || resume_from_byte > chunk.byte_offset + chunk.byte_len
+            resume_from_byte < chunk.byte_offset || resume_from_byte > chunk_end
         }) {
             return Some(format!(
                 "download chunk resume offset outside range: {}",

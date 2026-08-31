@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/ui/design_tokens/chrome.rs
   - zircon_editor/assets/ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui
   - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui
   - zircon_editor/assets/ui/editor/components/workbench/composites/feedback/workbench_validation_log.zui
@@ -7,6 +8,8 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_composites.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/composite_contracts.rs
 implementation_files:
+  - zircon_runtime_interface/src/ui/design_tokens/chrome.rs
+  - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_editor/assets/ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
@@ -14,6 +17,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
+  - tools/tests/test_editor_zui_workbench_panel_header_layout_contract.py
   - workbench_panel_header_exposes_compact_title_and_action_slots
   - blend_space_bottom_panels_compose_shared_panel_headers
   - cargo test -p zircon_editor --lib --locked zui_asset_governance -- --test-threads=1
@@ -29,7 +33,7 @@ doc_type: module-detail
 
 The composite exposes one `title` slot and a multiple-child `actions` slot. Callers mount an existing Runtime Text component such as `WorkbenchCaption` or `WorkbenchSectionTitle` into the title slot and existing buttons, status values, or compact selectors into the action slot. The header does not own user-visible text, icon files, event routes, or local callback state.
 
-Its root is a relative `HorizontalBox`: the title slot stretches, action children retain their authored bounded widths, and the row stays within the shared 28–30 logical-pixel header band. The `workbench-panel-toolbar` class routes its surface through the existing token/painter path. The asset contains no raw RGB values, concrete font family, local typography override, or absolute position.
+Its root is a relative `HorizontalBox`: the title slot stretches, action children retain their authored bounded widths, and the row uses the independent 30 logical-pixel panel-header token. That height contains both the 28px dense title tier and the 30px compact action tier without clipping; pages do not publish a second header metric. The `workbench-panel-toolbar` class routes its surface through the existing token/painter path. The asset contains no raw RGB values, concrete font family, local typography override, or absolute position.
 
 ## Reference Basis
 

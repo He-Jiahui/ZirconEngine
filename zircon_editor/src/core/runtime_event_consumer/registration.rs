@@ -7,6 +7,8 @@ use serde::de::DeserializeOwned;
 use serde_json::value::RawValue;
 use zircon_runtime::plugin::PluginEventConsumerManifest;
 
+use crate::core::extension::{ContributionSource, ContributionTicket};
+
 use super::{EditorRuntimeEventConsumerApplyError, EditorRuntimeEventConsumerError};
 
 pub trait EditorRuntimeEventConsumerState: Send + 'static {
@@ -26,14 +28,20 @@ pub trait EditorRuntimeEventConsumerState: Send + 'static {
 }
 
 type BeginConsumer = dyn Fn(u64) + Send + Sync;
-type ApplyConsumer = dyn Fn(u64, u64, Box<RawValue>) -> Result<(), EditorRuntimeEventConsumerApplyError>
-    + Send
-    + Sync;
+type ApplyConsumer =
+    dyn Fn(u64, u64, &RawValue) -> Result<(), EditorRuntimeEventConsumerApplyError> + Send + Sync;
 type EndConsumer = dyn Fn(u64) + Send + Sync;
+
+#[derive(Clone, Debug)]
+struct EditorRuntimeEventConsumerContributionOwner {
+    ticket: ContributionTicket,
+    source: ContributionSource,
+}
 
 #[derive(Clone)]
 pub struct EditorRuntimeEventConsumerRegistration {
     manifest: PluginEventConsumerManifest,
+    contribution_owner: Option<EditorRuntimeEventConsumerContributionOwner>,
     state: Arc<dyn Any + Send + Sync>,
     begin: Arc<BeginConsumer>,
     apply: Arc<ApplyConsumer>,
@@ -51,6 +59,7 @@ impl EditorRuntimeEventConsumerRegistration {
         let end_state = state;
         Self {
             manifest,
+            contribution_owner: None,
             state: erased_state,
             begin: Arc::new(move |play_session_id| {
                 begin_state
@@ -80,6 +89,14 @@ impl EditorRuntimeEventConsumerRegistration {
         &self.manifest
     }
 
+    pub(crate) fn contribution_ticket(&self) -> Option<ContributionTicket> {
+        self.contribution_owner.as_ref().map(|owner| owner.ticket)
+    }
+
+    pub(crate) fn contribution_source(&self) -> Option<&ContributionSource> {
+        self.contribution_owner.as_ref().map(|owner| &owner.source)
+    }
+
     pub fn state<S>(&self) -> Option<Arc<Mutex<S>>>
     where
         S: Send + Sync + 'static,
@@ -95,13 +112,30 @@ impl EditorRuntimeEventConsumerRegistration {
         &self,
         play_session_id: u64,
         sequence: u64,
-        payload: Box<RawValue>,
+        payload: &RawValue,
     ) -> Result<(), EditorRuntimeEventConsumerApplyError> {
         (self.apply)(play_session_id, sequence, payload)
     }
 
     pub(super) fn end_session(&self, play_session_id: u64) {
         (self.end)(play_session_id);
+    }
+
+    fn bind_contribution_owner(
+        &mut self,
+        ticket: ContributionTicket,
+        source: &ContributionSource,
+    ) -> Result<(), EditorRuntimeEventConsumerError> {
+        if self.contribution_owner.is_some() {
+            return Err(EditorRuntimeEventConsumerError::ContributionAlreadyOwned {
+                consumer_id: self.manifest.consumer_id.clone(),
+            });
+        }
+        self.contribution_owner = Some(EditorRuntimeEventConsumerContributionOwner {
+            ticket,
+            source: source.clone(),
+        });
+        Ok(())
     }
 }
 
@@ -110,6 +144,7 @@ impl fmt::Debug for EditorRuntimeEventConsumerRegistration {
         formatter
             .debug_struct("EditorRuntimeEventConsumerRegistration")
             .field("manifest", &self.manifest)
+            .field("contribution_owner", &self.contribution_owner)
             .finish_non_exhaustive()
     }
 }
@@ -144,6 +179,32 @@ impl EditorRuntimeEventConsumerRegistry {
         Ok(())
     }
 
+    pub(crate) fn extend_contribution(
+        &mut self,
+        ticket: ContributionTicket,
+        source: ContributionSource,
+        mut registry: EditorRuntimeEventConsumerRegistry,
+    ) -> Result<(), EditorRuntimeEventConsumerError> {
+        for registration in registry.registrations.values_mut() {
+            registration.bind_contribution_owner(ticket, &source)?;
+        }
+        self.extend(registry)
+    }
+
+    pub(crate) fn without_contribution(&self, ticket: ContributionTicket) -> (Self, Vec<String>) {
+        let removed = self
+            .registrations
+            .iter()
+            .filter(|(_, registration)| registration.contribution_ticket() == Some(ticket))
+            .map(|(consumer_id, _)| consumer_id.clone())
+            .collect::<Vec<_>>();
+        let mut candidate = self.clone();
+        for consumer_id in &removed {
+            candidate.registrations.remove(consumer_id);
+        }
+        (candidate, removed)
+    }
+
     pub fn registrations(&self) -> impl Iterator<Item = &EditorRuntimeEventConsumerRegistration> {
         self.registrations.values()
     }
@@ -169,6 +230,11 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use zircon_runtime::plugin::PluginEventConsumerManifest;
+
+    use crate::core::extension::{
+        ContributionBatch, ContributionSource, ContributionStore, ContributionTicket,
+        PluginContributionId,
+    };
 
     use super::{
         EditorRuntimeEventConsumerError, EditorRuntimeEventConsumerRegistration,
@@ -206,8 +272,92 @@ mod tests {
         )
     }
 
+    fn plugin_ticket(
+        store: &mut ContributionStore,
+        plugin_id: &str,
+    ) -> (ContributionTicket, ContributionSource) {
+        let source = ContributionSource::Plugin(
+            PluginContributionId::parse(plugin_id).expect("plugin id should be valid"),
+        );
+        let ticket = store
+            .contribute(source.clone(), ContributionBatch::default())
+            .expect("empty ownership batch should allocate a ticket");
+        (ticket, source)
+    }
+
+    #[test]
+    fn ticket_owned_revoke_candidate_preserves_other_generations_and_live_registry() {
+        let mut store = ContributionStore::default();
+        let (weather_ticket, weather_source) = plugin_ticket(&mut store, "weather");
+        let (lighting_ticket, lighting_source) = plugin_ticket(&mut store, "lighting");
+        let mut active = EditorRuntimeEventConsumerRegistry::default();
+        active.register(registration("builtin.console")).unwrap();
+
+        let mut weather = EditorRuntimeEventConsumerRegistry::default();
+        weather.register(registration("weather.clouds")).unwrap();
+        weather.register(registration("weather.rain")).unwrap();
+        active
+            .extend_contribution(weather_ticket, weather_source.clone(), weather)
+            .unwrap();
+        let mut lighting = EditorRuntimeEventConsumerRegistry::default();
+        lighting
+            .register(registration("lighting.exposure"))
+            .unwrap();
+        active
+            .extend_contribution(lighting_ticket, lighting_source.clone(), lighting)
+            .unwrap();
+
+        assert_eq!(
+            active
+                .registration("weather.clouds")
+                .and_then(|registration| registration.contribution_ticket()),
+            Some(weather_ticket)
+        );
+        assert_eq!(
+            active
+                .registration("lighting.exposure")
+                .and_then(|registration| registration.contribution_source()),
+            Some(&lighting_source)
+        );
+        let (candidate, removed) = active.without_contribution(weather_ticket);
+
+        assert_eq!(removed, vec!["weather.clouds", "weather.rain"]);
+        assert!(active.registration("weather.clouds").is_some());
+        assert!(candidate.registration("weather.clouds").is_none());
+        assert!(candidate.registration("weather.rain").is_none());
+        assert!(candidate.registration("builtin.console").is_some());
+        assert!(candidate.registration("lighting.exposure").is_some());
+    }
+
+    #[test]
+    fn contribution_batch_cannot_be_rebound_to_another_ticket() {
+        let mut store = ContributionStore::default();
+        let (weather_ticket, weather_source) = plugin_ticket(&mut store, "weather");
+        let (lighting_ticket, lighting_source) = plugin_ticket(&mut store, "lighting");
+        let mut weather = EditorRuntimeEventConsumerRegistry::default();
+        let mut unbound = EditorRuntimeEventConsumerRegistry::default();
+        unbound.register(registration("weather.clouds")).unwrap();
+        weather
+            .extend_contribution(weather_ticket, weather_source, unbound)
+            .unwrap();
+        let mut target = EditorRuntimeEventConsumerRegistry::default();
+
+        let error = target
+            .extend_contribution(lighting_ticket, lighting_source, weather)
+            .expect_err("an owned batch must not change contribution identity");
+
+        assert!(matches!(
+            error,
+            EditorRuntimeEventConsumerError::ContributionAlreadyOwned { consumer_id }
+                if consumer_id == "weather.clouds"
+        ));
+        assert!(target.registration("weather.clouds").is_none());
+    }
+
     #[test]
     fn duplicate_late_in_batch_leaves_active_registry_unchanged() {
+        let mut store = ContributionStore::default();
+        let (ticket, source) = plugin_ticket(&mut store, "weather");
         let mut active = EditorRuntimeEventConsumerRegistry::default();
         active.register(registration("z-duplicate")).unwrap();
 
@@ -216,7 +366,7 @@ mod tests {
         batch.register(registration("z-duplicate")).unwrap();
 
         let error = active
-            .extend(batch)
+            .extend_contribution(ticket, source, batch)
             .expect_err("a duplicate later in the batch must reject the whole batch");
         assert!(matches!(
             error,

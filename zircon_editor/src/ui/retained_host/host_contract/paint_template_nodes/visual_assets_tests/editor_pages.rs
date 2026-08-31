@@ -5,8 +5,9 @@ use super::support::{icon_readability_footprint, EDITOR_PAGES_WIRED_TEMPLATE_ICO
 fn editor_pages_template_icons_have_readable_16px_raster_footprints() {
     let preview = crate::ui::retained_host::primitives::Image::default();
     for icon in EDITOR_PAGES_WIRED_TEMPLATE_ICONS {
-        let pixels = template_image_pixels(&preview, "", icon, 16, 16, Some(ICON_TINT), false)
-            .unwrap_or_else(|| panic!("{icon} should render through the template icon path"));
+        let pixels =
+            template_image_pixels(&preview, "", icon, 16, 16, Some(ICON_TINT), false, None)
+                .unwrap_or_else(|| panic!("{icon} should render through the template icon path"));
         let footprint = icon_readability_footprint(&pixels)
             .unwrap_or_else(|| panic!("{icon} should produce visible 16px pixels"));
 

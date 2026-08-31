@@ -1,5 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::paint_theme::HostMaterialPalette;
+use super::super::style_selector::focus_visible_for_node;
 use super::colors::{
     axis_field_disabled_border, axis_field_hover_border, axis_field_normal_border,
     axis_field_palette,
@@ -21,7 +22,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_fi
         palette.error
     } else if matches!(node.validation_level.as_str(), "warning") {
         palette.warning
-    } else if node.focused || node.pressed {
+    } else if focus_visible_for_node(node) || node.pressed {
         palette.focus_ring
     } else if node.hovered || node.selected {
         axis_field_hover_border(palette)
@@ -33,7 +34,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_fi
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_border_width(
     node: &TemplatePaneNodeData,
 ) -> f32 {
-    if node.focused
+    if focus_visible_for_node(node)
         || node.pressed
         || matches!(
             node.validation_level.as_str(),

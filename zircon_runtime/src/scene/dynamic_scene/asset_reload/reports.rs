@@ -3,7 +3,7 @@ use std::time::Duration;
 #[cfg(test)]
 use std::time::Instant;
 
-use crate::core::framework::tasks::AsyncTaskState;
+use crate::core::TaskState;
 
 #[cfg(test)]
 use crate::scene::{LevelSystem, World};
@@ -28,6 +28,7 @@ pub struct DynamicSceneAssetReloadDrainReport {
     pub skipped: Vec<DynamicSceneAssetReloadSkippedEvent>,
     pub superseded_pending: Vec<DynamicSceneAssetReloadSupersededTask>,
     pub receiver_disconnected: bool,
+    pub event_sequence_exhausted: bool,
     pub generation_gap: Option<crate::core::resource::ResourceEventGap>,
     pub pending_count: usize,
     pub pending_metadata_bytes: usize,
@@ -63,7 +64,7 @@ impl DynamicSceneAssetReloadPendingReport {
         self.pending.len()
     }
 
-    pub fn count_for_state(&self, state: AsyncTaskState) -> usize {
+    pub fn count_for_state(&self, state: TaskState) -> usize {
         self.pending
             .iter()
             .filter(|task| task.state() == state)

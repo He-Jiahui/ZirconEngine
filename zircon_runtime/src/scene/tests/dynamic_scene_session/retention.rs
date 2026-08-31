@@ -141,7 +141,9 @@ fn runtime_session_archive_prune_plan_rejects_stale_commit_without_removing_rows
 fn runtime_session_archive_preview_capture_retention_projects_without_mutating_archive() {
     let empty = World::empty();
     let mut captured_world = World::empty();
-    captured_world.spawn_node(NodeKind::Mesh);
+    captured_world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let archive = RuntimeSessionArchive::from_slots(vec![
         tagged_slot(&empty, "autosave-old", "autosave", 50),
         tagged_slot(&empty, "manual-new", "manual", 40),
@@ -211,7 +213,9 @@ fn runtime_session_archive_capture_empty_tag_retention_does_not_prune() {
 fn runtime_session_archive_capture_retention_protects_captured_slot_before_pruning() {
     let empty = World::empty();
     let mut captured_world = World::empty();
-    captured_world.spawn_node(NodeKind::Camera);
+    captured_world
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     let mut archive = RuntimeSessionArchive::from_slots(vec![
         tagged_slot(&empty, "slot-new", "manual", 50),
         tagged_slot(&empty, "slot-old", "manual", 10),

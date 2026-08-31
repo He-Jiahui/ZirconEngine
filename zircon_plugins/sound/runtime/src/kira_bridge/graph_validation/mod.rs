@@ -7,3 +7,4 @@ mod values;
 
 pub(crate) use effect::validate_effect;
 pub(crate) use graph::validate_graph;
+pub(crate) use track::validate_track_controls;

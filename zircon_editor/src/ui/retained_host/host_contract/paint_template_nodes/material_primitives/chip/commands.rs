@@ -9,6 +9,8 @@ use super::leading::{push_chip_avatar, push_chip_icon};
 use super::surface::push_chip_surface;
 use super::text::push_chip_label;
 
+const MAX_CHIP_COMMANDS: usize = 14;
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chip_primitive_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -29,6 +31,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
         return true;
     }
 
+    reserve_chip_command_capacity(commands);
     push_chip_surface(commands, node, &chip_rect, clip, order, opacity);
     if chip_has_avatar(node) {
         push_chip_avatar(commands, node, &chip_rect, clip, order + 1, opacity);
@@ -42,3 +45,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
 
     true
 }
+
+fn reserve_chip_command_capacity(commands: &mut Vec<HostPaintCommand>) {
+    commands.reserve(MAX_CHIP_COMMANDS);
+}
+
+#[cfg(test)]
+#[path = "commands/reserve_capacity_tests.rs"]
+mod reserve_capacity_tests;

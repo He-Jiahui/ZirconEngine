@@ -65,3 +65,26 @@ fn typed_viewport_command_dispatch_updates_render_packet_without_pointer_bridge(
     assert!(effects.presentation_dirty);
     assert!(effects.render_dirty);
 }
+
+#[test]
+fn repeated_viewport_setting_is_an_invalidation_noop() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_retained_viewport_setting_noop");
+
+    let first = dispatch_viewport_command(
+        &harness.runtime,
+        ViewportCommand::SetGridMode(GridMode::Hidden),
+    )
+    .unwrap();
+    let repeated = dispatch_viewport_command(
+        &harness.runtime,
+        ViewportCommand::SetGridMode(GridMode::Hidden),
+    )
+    .unwrap();
+
+    assert!(first.render_dirty);
+    assert!(!repeated.presentation_dirty);
+    assert!(!repeated.layout_dirty);
+    assert!(!repeated.render_dirty);
+}

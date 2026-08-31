@@ -83,9 +83,9 @@ fn hybrid_gi_authored_probe_trace_surface_is_hard_cut() {
         "authored RenderHybridGiProbe / RenderHybridGiTraceRegion production surfaces must be removed: {violations:?}"
     );
 
-    let scene_extract_source = include_str!(concat!(
+    let hybrid_gi_extract_source = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/core/framework/render/scene_extract.rs"
+        "/src/core/framework/render/scene_extract/hybrid_gi/extract.rs"
     ));
     for forbidden_field in [
         "pub probe_budget:",
@@ -94,7 +94,7 @@ fn hybrid_gi_authored_probe_trace_surface_is_hard_cut() {
         "pub trace_regions:",
     ] {
         assert!(
-            !scene_extract_source.contains(forbidden_field),
+            !hybrid_gi_extract_source.contains(forbidden_field),
             "RenderHybridGiExtract must remain a settings/budget/debug payload without `{forbidden_field}`"
         );
     }

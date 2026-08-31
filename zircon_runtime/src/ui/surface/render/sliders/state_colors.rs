@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::{style::UiRgbaColor, tree::UiTemplateNodeMetadata};
 
-use super::{string_attribute, SliderRenderState, SliderVisual};
+use super::{SliderRenderState, SliderVisual, string_attribute};
 
 pub(super) fn track_color(state: &SliderRenderState, visual: &SliderVisual) -> UiRgbaColor {
     if state.unavailable() {

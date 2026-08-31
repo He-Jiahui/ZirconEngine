@@ -54,8 +54,8 @@ impl ProjectAssetManager {
             ResourceScheme::Builtin => builtin_resources()
                 .into_iter()
                 .find_map(|(locator_text, asset)| {
-                    let locator = AssetUri::parse(locator_text).ok()?;
-                    (locator == metadata.primary_locator).then_some(asset)
+                    canonical_builtin_locator_matches(&metadata.primary_locator, locator_text)
+                        .then_some(asset)
                 })
                 .ok_or_else(|| {
                     asset_error_message(format!(
@@ -102,3 +102,18 @@ impl ProjectAssetManager {
         Ok(())
     }
 }
+
+fn canonical_builtin_locator_matches(locator: &AssetUri, candidate: &str) -> bool {
+    let Some(remainder) = candidate.strip_prefix("builtin://") else {
+        return false;
+    };
+    let (path, label) = match remainder.split_once('#') {
+        Some((path, label)) => (path, Some(label)),
+        None => (remainder, None),
+    };
+    locator.path() == path && locator.label() == label
+}
+
+#[cfg(test)]
+#[path = "ensure_resident/canonical_builtin_locator_tests.rs"]
+mod canonical_builtin_locator_tests;

@@ -94,7 +94,42 @@ fn window_input_pump_scale_factor_updates_retained_metrics_without_losing_size()
         .any(|note| note == "window_scale_factor_updated"));
 
     surface.rebuild_dirty(metrics.logical_size).unwrap();
+    assert_eq!(surface.render_extract.raster_scale, 2.0);
+
+    let settled_metrics =
+        UiWindowMetrics::new(metrics.logical_size, UiWindowPixelSize::new(720, 405), 1.5);
+    dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::size_changed(
+            window_metadata(21, false),
+            settled_metrics,
+        )),
+    )
+    .unwrap();
+    surface.rebuild_dirty(settled_metrics.logical_size).unwrap();
     assert_eq!(surface.render_extract.raster_scale, 1.5);
+}
+
+#[test]
+fn window_input_pump_raster_scale_never_undersamples_the_physical_extent() {
+    let mut surface = route_surface();
+    let metrics = UiWindowMetrics::new(
+        UiSize::new(320.0, 180.0),
+        UiWindowPixelSize::new(640, 360),
+        1.25,
+    );
+
+    dispatch_window_input_pump_event(
+        &mut surface,
+        UiWindowInputPumpEvent::Window(UiWindowEvent::size_changed(
+            window_metadata(22, false),
+            metrics,
+        )),
+    )
+    .unwrap();
+    surface.rebuild_dirty(metrics.logical_size).unwrap();
+
+    assert_eq!(surface.render_extract.raster_scale, 2.0);
 }
 
 #[test]

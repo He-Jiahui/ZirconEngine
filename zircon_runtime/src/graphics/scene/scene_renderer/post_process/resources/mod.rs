@@ -22,6 +22,7 @@ mod execute_screen_space_reflection_resolve;
 mod execute_screen_space_reflection_specular_occlusion;
 mod execute_smaa;
 mod execute_upscale;
+pub(in crate::graphics::scene::scene_renderer::post_process) mod post_process_pass_parameter_buffers;
 mod render_region;
 pub(in crate::graphics::scene::scene_renderer::post_process) mod shader_sources;
 pub(in crate::graphics::scene::scene_renderer::post_process) mod terminal_resource_cache;

@@ -278,6 +278,54 @@ fn sparse_workbench_projection_patch_reuses_unchanged_host_rows() {
 }
 
 #[test]
+fn geometry_only_workbench_projection_patch_preserves_semantics_and_unmodified_rows() {
+    let mut first = test_host_node("WorkbenchTreeRow", "tree-row", Some("World"), []);
+    first.node_id = "scene-world".to_string();
+    first.control_id = Some("WorkbenchSceneRootItem".to_string());
+    let mut second = test_host_node("WorkbenchTreeRow", "tree-row", Some("Camera"), []);
+    second.node_id = "scene-camera".to_string();
+    second.control_id = Some("WorkbenchSceneEnvironmentItem".to_string());
+    second.frame = UiFrame::new(20.0, 30.0, 120.0, 24.0);
+    second.clip_frame = Some(UiFrame::new(20.0, 30.0, 100.0, 24.0));
+    let mut projection = RetainedUiHostProjection {
+        document_id: "geometry-only-scene-patch".to_string(),
+        nodes: vec![first, second],
+    };
+    let mount = Some(UiFrame::new(10.0, 40.0, 640.0, 360.0));
+    let initial = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+        Some(&projection),
+        None,
+        mount,
+        2.0,
+    );
+
+    projection.nodes[1].frame = UiFrame::new(50.0, 60.0, 160.0, 32.0);
+    projection.nodes[1].clip_frame = Some(UiFrame::new(55.0, 65.0, 140.0, 28.0));
+    projection.nodes[1].z_index = 17;
+    projection.nodes[1].text = Some("must not replace retained semantics".to_string());
+    let patch = build_host_contract_workbench_window_geometry_patch_at_mount_and_scale(
+        &projection,
+        &[1],
+        &initial,
+        mount,
+        2.0,
+    )
+    .expect("stable workbench rows should accept a geometry-only patch");
+
+    assert_eq!(patch.changed_rows, vec![1]);
+    assert!(initial.shares_row_with(&patch.nodes, 0));
+    assert!(!initial.shares_row_with(&patch.nodes, 1));
+    let patched = patch.nodes.get(1).expect("patched geometry row");
+    assert_eq!(patched.text.as_str(), "Camera");
+    assert_eq!(patched.frame.x, 110.0);
+    assert_eq!(patched.frame.y, 160.0);
+    assert_eq!(patched.frame.width, 320.0);
+    assert_eq!(patched.clip_frame.x, 120.0);
+    assert_eq!(patched.clip_frame.y, 170.0);
+    assert_eq!(patched.z_index, 17);
+}
+
+#[test]
 fn mounted_context_menu_round_trips_the_global_pointer_anchor() {
     let mount_frame = UiFrame::new(11.0, 57.0, 640.0, 400.0);
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(
@@ -540,6 +588,8 @@ fn test_host_node<const N: usize>(
 ) -> RetainedUiHostNodeModel {
     RetainedUiHostNodeModel {
         node_id: "test-node".to_string(),
+        surface_node_id: None,
+        has_workbench_icon_tooltip: false,
         parent_id: None,
         kind: RetainedUiHostComponentKind::from_component(component),
         component: component.to_string(),

@@ -1,7 +1,7 @@
 use std::any::TypeId;
 
-use crate::scene::ecs::{Bundle, BundleStaging, Component, InternalEntity};
 use crate::scene::EntityId;
+use crate::scene::ecs::{Bundle, BundleStaging, Component, InternalEntity};
 
 use super::super::{SceneError, SceneResult};
 use super::{BundleInsertionTransaction, MAX_BUNDLE_COMPONENTS};

@@ -1,11 +1,10 @@
-use rayon::prelude::*;
-
 use crate::asset::assets::{mesh_sdf_source_hash, MESH_SDF_FIXED_METADATA_BYTES};
 use crate::asset::{
     MeshSdfAsset, MeshSdfCookError, MeshSdfCookSettings, MeshSdfEncoding, MeshVertex,
     MESH_SDF_SCHEMA_VERSION,
 };
 use crate::core::framework::render::RenderMeshBounds;
+use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Vec3;
 
 use super::acceleration::{Aabb, TriangleBvh};
@@ -35,6 +34,66 @@ pub fn cook_mesh_sdf_from_mesh_with_budget(
     indices: &[u32],
     settings: MeshSdfCookSettings,
     budget: &mut MeshSdfCookBudget,
+) -> Result<MeshSdfAsset, MeshSdfCookError> {
+    cook_mesh_sdf_from_mesh_with_budget_and_voxel_builder(
+        vertices,
+        indices,
+        settings,
+        budget,
+        |bvh, layout, distance_limit, voxel_count| {
+            (0..voxel_count)
+                .map(|linear_index| cook_voxel(bvh, layout, settings, distance_limit, linear_index))
+                .collect()
+        },
+    )
+}
+
+/// Cooks a Mesh SDF through a caller-owned executor.
+///
+/// Importers use this only when their transaction owns an explicit execution
+/// capability. The default cook entry points remain serial rather than
+/// falling back to Rayon's process-global pool.
+pub fn cook_mesh_sdf_from_mesh_with_executor(
+    executor: &impl ParallelSliceExecutor,
+    vertices: &[MeshVertex],
+    indices: &[u32],
+    settings: MeshSdfCookSettings,
+) -> Result<MeshSdfAsset, MeshSdfCookError> {
+    cook_mesh_sdf_from_mesh_with_budget_and_executor(
+        executor,
+        vertices,
+        indices,
+        settings,
+        &mut MeshSdfCookBudget::default(),
+    )
+}
+
+pub fn cook_mesh_sdf_from_mesh_with_budget_and_executor(
+    executor: &impl ParallelSliceExecutor,
+    vertices: &[MeshVertex],
+    indices: &[u32],
+    settings: MeshSdfCookSettings,
+    budget: &mut MeshSdfCookBudget,
+) -> Result<MeshSdfAsset, MeshSdfCookError> {
+    cook_mesh_sdf_from_mesh_with_budget_and_voxel_builder(
+        vertices,
+        indices,
+        settings,
+        budget,
+        |bvh, layout, distance_limit, voxel_count| {
+            executor.parallel_map_indices(voxel_count, |linear_index| {
+                cook_voxel(bvh, layout, settings, distance_limit, linear_index)
+            })
+        },
+    )
+}
+
+fn cook_mesh_sdf_from_mesh_with_budget_and_voxel_builder(
+    vertices: &[MeshVertex],
+    indices: &[u32],
+    settings: MeshSdfCookSettings,
+    budget: &mut MeshSdfCookBudget,
+    build_voxels: impl FnOnce(&TriangleBvh, VolumeLayout, f32, usize) -> Vec<i16>,
 ) -> Result<MeshSdfAsset, MeshSdfCookError> {
     validate_settings(settings)?;
     if indices.len() % 3 != 0 {
@@ -67,26 +126,7 @@ pub fn cook_mesh_sdf_from_mesh_with_budget(
         .saturating_mul(std::mem::size_of::<i16>() as u64)
         .saturating_add(MESH_SDF_FIXED_METADATA_BYTES);
     budget.reserve(voxel_count_u64, payload_bytes, work_units)?;
-    let voxels = (0..voxel_count)
-        .into_par_iter()
-        .map(|linear_index| {
-            let point = layout.voxel_center(linear_index);
-            let unsigned_distance = bvh.nearest_distance_squared(point).sqrt();
-            let signed_distance = if settings.two_sided
-                || bvh.positive_x_intersection_count(jittered_sign_origin(
-                    point,
-                    linear_index,
-                    layout.voxel_size,
-                )) % 2
-                    == 0
-            {
-                unsigned_distance
-            } else {
-                -unsigned_distance
-            };
-            encode_snorm16_distance(signed_distance, distance_limit)
-        })
-        .collect::<Vec<_>>();
+    let voxels = build_voxels(&bvh, layout, distance_limit, voxel_count);
 
     let asset = MeshSdfAsset {
         schema_version: MESH_SDF_SCHEMA_VERSION,
@@ -104,6 +144,30 @@ pub fn cook_mesh_sdf_from_mesh_with_budget(
     };
     asset.validate_for_source(vertices, indices)?;
     Ok(asset)
+}
+
+fn cook_voxel(
+    bvh: &TriangleBvh,
+    layout: VolumeLayout,
+    settings: MeshSdfCookSettings,
+    distance_limit: f32,
+    linear_index: usize,
+) -> i16 {
+    let point = layout.voxel_center(linear_index);
+    let unsigned_distance = bvh.nearest_distance_squared(point).sqrt();
+    let signed_distance = if settings.two_sided
+        || bvh.positive_x_intersection_count(jittered_sign_origin(
+            point,
+            linear_index,
+            layout.voxel_size,
+        )) % 2
+            == 0
+    {
+        unsigned_distance
+    } else {
+        -unsigned_distance
+    };
+    encode_snorm16_distance(signed_distance, distance_limit)
 }
 
 pub fn cook_mesh_sdf_or_fallback(

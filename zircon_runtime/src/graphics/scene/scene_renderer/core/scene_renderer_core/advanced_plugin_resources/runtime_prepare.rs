@@ -3,33 +3,40 @@ use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::graphics::backend::GpuPassTimer;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::core::scene_renderer_core::{
-    merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks,
+    SceneRendererAdvancedPluginReadbacks, merge_plugin_renderer_outputs,
 };
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::{
-    RuntimePrepareExternalBufferBinding, RuntimePrepareGpuPassProfile,
-    RuntimePrepareGpuReadbackRequest,
+    RuntimePrepareDeviceEpoch, RuntimePrepareExternalBufferBinding, RuntimePrepareFramePacket,
+    RuntimePrepareGpuPassProfile, RuntimePrepareGpuReadbackRequest,
 };
+use crate::rhi::RenderDeviceProfile;
 
 impl SceneRendererAdvancedPluginResources {
     pub(in crate::graphics::scene::scene_renderer::core) fn execute_runtime_prepare_passes(
         &mut self,
+        device_profile: &RenderDeviceProfile,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
     ) -> Result<SceneRendererAdvancedPluginReadbacks, GraphicsError> {
         self.execute_runtime_prepare_passes_with_gpu_work_admission(
-            device, queue, encoder, streamer, frame, true, None,
+            device_profile,
+            device,
+            encoder,
+            streamer,
+            frame,
+            true,
+            None,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     pub(in crate::graphics::scene::scene_renderer::core) fn execute_runtime_prepare_passes_with_gpu_work_admission(
         &mut self,
+        device_profile: &RenderDeviceProfile,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
@@ -45,12 +52,14 @@ impl SceneRendererAdvancedPluginResources {
         let mut external_buffer_bindings = Vec::<RuntimePrepareExternalBufferBinding>::new();
         let mut gpu_readbacks = Vec::<RuntimePrepareGpuReadbackRequest>::new();
         let mut gpu_pass_profiles = Vec::<RuntimePrepareGpuPassProfile>::new();
+        let mut runtime_prepare_frame_packet = RuntimePrepareFramePacket::default();
+        let device_epoch = RuntimePrepareDeviceEpoch::from_device_profile(device_profile);
         for collector in collectors {
             merge_plugin_renderer_outputs(
                 &mut outputs,
                 collector(
                     device,
-                    queue,
+                    device_epoch,
                     encoder,
                     streamer,
                     frame,
@@ -59,17 +68,20 @@ impl SceneRendererAdvancedPluginResources {
                     gpu_work_admitted,
                     gpu_pass_timer.as_deref_mut(),
                     &mut gpu_pass_profiles,
+                    &mut runtime_prepare_frame_packet,
                 )?,
             );
         }
 
         Ok(
             SceneRendererAdvancedPluginReadbacks::from_outputs_external_and_gpu_readbacks(
+                device_profile,
                 outputs,
                 external_buffer_bindings,
                 gpu_readbacks,
             )
-            .with_gpu_pass_profiles(gpu_pass_profiles),
+            .with_gpu_pass_profiles(gpu_pass_profiles)
+            .with_runtime_prepare_frame_packet(runtime_prepare_frame_packet),
         )
     }
 }
@@ -91,17 +103,23 @@ mod tests {
         RuntimePrepareCollectorRegistration,
     };
     use std::sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     };
 
     #[test]
     fn runtime_prepare_collectors_are_no_op_when_empty() {
-        let (mut resources, device, queue, mut encoder, streamer, frame) =
+        let (mut resources, device_profile, device, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
 
         let readbacks = resources
-            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .execute_runtime_prepare_passes(
+                &device_profile,
+                &device,
+                &mut encoder,
+                &streamer,
+                &frame,
+            )
             .unwrap();
 
         assert!(readbacks.is_empty());
@@ -110,24 +128,32 @@ mod tests {
 
     #[test]
     fn runtime_prepare_collectors_return_neutral_plugin_renderer_outputs() {
-        let (mut resources, device, queue, mut encoder, streamer, frame) =
+        let (mut resources, device_profile, device, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _, _, _, _, _| {
-            Ok(RenderPluginRendererOutputs {
-                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
-                    page_table_entries: vec![42, 43],
-                    ..RenderVirtualGeometryReadbackOutputs::default()
-                },
-                hybrid_gi: RenderHybridGiReadbackOutputs {
-                    completed_probe_ids: vec![7],
-                    ..RenderHybridGiReadbackOutputs::default()
-                },
-                ..RenderPluginRendererOutputs::default()
-            })
-        }));
+        resources.register_runtime_prepare_collector(Box::new(
+            |_, _, _, _, _, _, _, _, _, _, _| {
+                Ok(RenderPluginRendererOutputs {
+                    virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                        page_table_entries: vec![42, 43],
+                        ..RenderVirtualGeometryReadbackOutputs::default()
+                    },
+                    hybrid_gi: RenderHybridGiReadbackOutputs {
+                        completed_probe_ids: vec![7],
+                        ..RenderHybridGiReadbackOutputs::default()
+                    },
+                    ..RenderPluginRendererOutputs::default()
+                })
+            },
+        ));
 
         let readbacks = resources
-            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .execute_runtime_prepare_passes(
+                &device_profile,
+                &device,
+                &mut encoder,
+                &streamer,
+                &frame,
+            )
             .unwrap();
 
         assert!(!readbacks.is_empty());
@@ -146,43 +172,53 @@ mod tests {
 
     #[test]
     fn runtime_prepare_collectors_merge_overlapping_feature_packets() {
-        let (mut resources, device, queue, mut encoder, streamer, frame) =
+        let (mut resources, device_profile, device, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _, _, _, _, _| {
-            Ok(RenderPluginRendererOutputs {
-                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
-                    page_table_entries: vec![1],
-                    ..RenderVirtualGeometryReadbackOutputs::default()
-                },
-                hybrid_gi: RenderHybridGiReadbackOutputs {
-                    completed_probe_ids: vec![10],
-                    ..RenderHybridGiReadbackOutputs::default()
-                },
-                particles: RenderParticleGpuReadbackOutputs {
-                    alive_count: 3,
-                    ..RenderParticleGpuReadbackOutputs::default()
-                },
-            })
-        }));
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _, _, _, _, _| {
-            Ok(RenderPluginRendererOutputs {
-                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
-                    page_table_entries: vec![2, 3],
-                    ..RenderVirtualGeometryReadbackOutputs::default()
-                },
-                hybrid_gi: RenderHybridGiReadbackOutputs {
-                    completed_probe_ids: vec![20],
-                    ..RenderHybridGiReadbackOutputs::default()
-                },
-                particles: RenderParticleGpuReadbackOutputs {
-                    alive_count: 7,
-                    ..RenderParticleGpuReadbackOutputs::default()
-                },
-            })
-        }));
+        resources.register_runtime_prepare_collector(Box::new(
+            |_, _, _, _, _, _, _, _, _, _, _| {
+                Ok(RenderPluginRendererOutputs {
+                    virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                        page_table_entries: vec![1],
+                        ..RenderVirtualGeometryReadbackOutputs::default()
+                    },
+                    hybrid_gi: RenderHybridGiReadbackOutputs {
+                        completed_probe_ids: vec![10],
+                        ..RenderHybridGiReadbackOutputs::default()
+                    },
+                    particles: RenderParticleGpuReadbackOutputs {
+                        alive_count: 3,
+                        ..RenderParticleGpuReadbackOutputs::default()
+                    },
+                })
+            },
+        ));
+        resources.register_runtime_prepare_collector(Box::new(
+            |_, _, _, _, _, _, _, _, _, _, _| {
+                Ok(RenderPluginRendererOutputs {
+                    virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                        page_table_entries: vec![2, 3],
+                        ..RenderVirtualGeometryReadbackOutputs::default()
+                    },
+                    hybrid_gi: RenderHybridGiReadbackOutputs {
+                        completed_probe_ids: vec![20],
+                        ..RenderHybridGiReadbackOutputs::default()
+                    },
+                    particles: RenderParticleGpuReadbackOutputs {
+                        alive_count: 7,
+                        ..RenderParticleGpuReadbackOutputs::default()
+                    },
+                })
+            },
+        ));
 
         let readbacks = resources
-            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .execute_runtime_prepare_passes(
+                &device_profile,
+                &device,
+                &mut encoder,
+                &streamer,
+                &frame,
+            )
             .unwrap();
 
         let outputs = readbacks.outputs_for_test();
@@ -193,23 +229,31 @@ mod tests {
 
     #[test]
     fn runtime_prepare_collectors_preserve_non_empty_packet_after_empty_packet() {
-        let (mut resources, device, queue, mut encoder, streamer, frame) =
+        let (mut resources, device_profile, device, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _, _, _, _, _| {
-            Ok(RenderPluginRendererOutputs {
-                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
-                    page_table_entries: vec![5, 8],
-                    ..RenderVirtualGeometryReadbackOutputs::default()
-                },
-                ..RenderPluginRendererOutputs::default()
-            })
-        }));
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _, _, _, _, _| {
-            Ok(RenderPluginRendererOutputs::default())
-        }));
+        resources.register_runtime_prepare_collector(Box::new(
+            |_, _, _, _, _, _, _, _, _, _, _| {
+                Ok(RenderPluginRendererOutputs {
+                    virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                        page_table_entries: vec![5, 8],
+                        ..RenderVirtualGeometryReadbackOutputs::default()
+                    },
+                    ..RenderPluginRendererOutputs::default()
+                })
+            },
+        ));
+        resources.register_runtime_prepare_collector(Box::new(
+            |_, _, _, _, _, _, _, _, _, _, _| Ok(RenderPluginRendererOutputs::default()),
+        ));
 
         let readbacks = resources
-            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .execute_runtime_prepare_passes(
+                &device_profile,
+                &device,
+                &mut encoder,
+                &streamer,
+                &frame,
+            )
             .unwrap();
 
         assert_eq!(
@@ -223,11 +267,11 @@ mod tests {
 
     #[test]
     fn runtime_prepare_collectors_can_mutate_per_frame_state() {
-        let (mut resources, device, queue, mut encoder, streamer, frame) =
+        let (mut resources, device_profile, device, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
         let mut call_count = 0;
         resources.register_runtime_prepare_collector(Box::new(
-            move |_, _, _, _, _, _, _, _, _, _| {
+            move |_, _, _, _, _, _, _, _, _, _, _| {
                 call_count += 1;
                 Ok(RenderPluginRendererOutputs {
                     hybrid_gi: RenderHybridGiReadbackOutputs {
@@ -240,10 +284,22 @@ mod tests {
         ));
 
         let first_readbacks = resources
-            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .execute_runtime_prepare_passes(
+                &device_profile,
+                &device,
+                &mut encoder,
+                &streamer,
+                &frame,
+            )
             .unwrap();
         let second_readbacks = resources
-            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .execute_runtime_prepare_passes(
+                &device_profile,
+                &device,
+                &mut encoder,
+                &streamer,
+                &frame,
+            )
             .unwrap();
 
         assert_eq!(
@@ -264,7 +320,8 @@ mod tests {
 
     #[test]
     fn registered_runtime_prepare_collector_can_read_frame_context_and_prepared_sidebands() {
-        let (_resources, device, queue, mut encoder, streamer, frame) = runtime_prepare_fixture();
+        let (_resources, device_profile, device, mut encoder, streamer, frame) =
+            runtime_prepare_fixture();
         let frame = frame.with_prepared_runtime_sidebands(RenderPreparedRuntimeSidebands::new(
             RenderPluginRendererOutputs {
                 virtual_geometry: RenderVirtualGeometryReadbackOutputs {
@@ -285,26 +342,84 @@ mod tests {
         ));
         let called = Arc::new(AtomicBool::new(false));
         let mut resources = SceneRendererAdvancedPluginResources::new(
-            &device,
             &[],
             [RuntimePrepareCollectorRegistration::new_collector(
                 "test.context-sidebands",
                 Arc::new(AssertingContextCollector {
                     called: Arc::clone(&called),
+                    expected_device_epoch: RuntimePrepareDeviceEpoch::from_device_profile(
+                        &device_profile,
+                    ),
                 }),
             )],
         );
 
         resources
-            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .execute_runtime_prepare_passes(
+                &device_profile,
+                &device,
+                &mut encoder,
+                &streamer,
+                &frame,
+            )
             .unwrap();
 
         assert!(called.load(Ordering::SeqCst));
     }
 
     #[test]
+    fn runtime_prepare_buffer_uploads_leave_collectors_as_one_frame_transaction() {
+        let (_resources, device_profile, device, mut encoder, streamer, frame) =
+            runtime_prepare_fixture();
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-runtime-prepare-upload-transaction-test"),
+            size: 16,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+            mapped_at_creation: false,
+        });
+        let mut resources = SceneRendererAdvancedPluginResources::new(
+            &[],
+            [RuntimePrepareCollectorRegistration::new_collector(
+                "test.buffer-upload-transaction",
+                Arc::new(RecordingBufferUploadCollector { buffer }),
+            )],
+        );
+
+        let mut readbacks = resources
+            .execute_runtime_prepare_passes(
+                &device_profile,
+                &device,
+                &mut encoder,
+                &streamer,
+                &frame,
+            )
+            .unwrap();
+
+        assert!(!readbacks.take_runtime_prepare_buffer_uploads().is_empty());
+        assert!(readbacks.take_runtime_prepare_buffer_uploads().is_empty());
+    }
+
+    #[test]
+    fn runtime_prepare_plumbing_does_not_expose_raw_queue_authority() {
+        let sources = [
+            include_str!("../../../../../runtime_prepare_collector.rs"),
+            include_str!("scene_renderer_advanced_plugin_resources.rs"),
+            include_str!("runtime_prepare.rs"),
+            include_str!(
+                "../../scene_renderer_core_render_compiled_scene/runtime_prepare/execute_runtime_prepare_passes.rs"
+            ),
+        ];
+
+        for source in sources {
+            let production = source.split("\n#[cfg(test)]").next().unwrap_or_default();
+            assert!(!production.contains("wgpu::Queue"));
+            assert!(!production.contains("pub queue"));
+        }
+    }
+
+    #[test]
     fn runtime_prepare_collectors_can_project_prepared_sidebands_into_renderer_outputs() {
-        let (mut resources, device, queue, mut encoder, streamer, frame) =
+        let (mut resources, device_profile, device, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
         let frame = frame.with_prepared_runtime_sidebands(RenderPreparedRuntimeSidebands::new(
             RenderPluginRendererOutputs {
@@ -325,7 +440,7 @@ mod tests {
             Vec::new(),
         ));
         resources.register_runtime_prepare_collector(Box::new(
-            |_, _, _, _, frame, _, _, _, _, _| {
+            |_, _, _, _, frame, _, _, _, _, _, _| {
                 Ok(frame
                     .prepared_runtime_sidebands()
                     .plugin_renderer_outputs
@@ -334,7 +449,13 @@ mod tests {
         ));
 
         let readbacks = resources
-            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .execute_runtime_prepare_passes(
+                &device_profile,
+                &device,
+                &mut encoder,
+                &streamer,
+                &frame,
+            )
             .unwrap();
 
         let outputs = readbacks.outputs_for_test();
@@ -347,7 +468,7 @@ mod tests {
 
     #[test]
     fn runtime_prepare_collectors_can_register_external_buffer_bindings() {
-        let (mut resources, device, queue, mut encoder, streamer, frame) =
+        let (mut resources, device_profile, device, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-runtime-prepare-collector-plugin-buffer"),
@@ -356,10 +477,20 @@ mod tests {
             mapped_at_creation: false,
         });
         resources.register_runtime_prepare_collector(Box::new(
-            move |device, queue, encoder, streamer, frame, external_buffer_bindings, _, _, _, _| {
+            move |device,
+                  device_epoch,
+                  encoder,
+                  streamer,
+                  frame,
+                  external_buffer_bindings,
+                  _,
+                  _,
+                  _,
+                  _,
+                  _| {
                 let mut context = RuntimePrepareCollectorContext::new(
                     device,
-                    queue,
+                    device_epoch,
                     encoder,
                     streamer,
                     frame,
@@ -375,16 +506,23 @@ mod tests {
         ));
 
         let readbacks = resources
-            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .execute_runtime_prepare_passes(
+                &device_profile,
+                &device,
+                &mut encoder,
+                &streamer,
+                &frame,
+            )
             .unwrap();
 
-        assert_eq!(readbacks.external_buffer_bindings().len(), 1);
+        let bindings = readbacks
+            .external_buffer_binding_packet()
+            .expect("registered bindings must retain their device-qualified packet")
+            .bindings();
+        assert_eq!(bindings.len(), 1);
+        assert_eq!(bindings[0].logical_name(), "particles.gpu.counters");
         assert_eq!(
-            readbacks.external_buffer_bindings()[0].logical_name(),
-            "particles.gpu.counters"
-        );
-        assert_eq!(
-            readbacks.external_buffer_bindings()[0].backing_name(),
+            bindings[0].backing_name(),
             "particles.gpu.counters:test-runtime-prepare"
         );
         assert!(readbacks.outputs_for_test().is_empty());
@@ -392,6 +530,23 @@ mod tests {
 
     struct AssertingContextCollector {
         called: Arc<AtomicBool>,
+        expected_device_epoch: RuntimePrepareDeviceEpoch,
+    }
+
+    struct RecordingBufferUploadCollector {
+        buffer: wgpu::Buffer,
+    }
+
+    impl RuntimePrepareCollector for RecordingBufferUploadCollector {
+        fn collect(
+            &self,
+            context: &mut RuntimePrepareCollectorContext<'_>,
+        ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
+            context
+                .buffer_upload_recorder()
+                .write_buffer(&self.buffer, 0, &[1, 2, 3, 4]);
+            Ok(RenderPluginRendererOutputs::default())
+        }
     }
 
     impl RuntimePrepareCollector for AssertingContextCollector {
@@ -399,6 +554,7 @@ mod tests {
             &self,
             context: &mut RuntimePrepareCollectorContext<'_>,
         ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
+            assert_eq!(context.device_epoch(), self.expected_device_epoch);
             assert_eq!(context.viewport_size(), UVec2::new(1, 1));
             assert_eq!(context.prepared_hybrid_gi_evictable_probe_ids(), &[11]);
             assert_eq!(
@@ -420,13 +576,14 @@ mod tests {
 
     fn runtime_prepare_fixture() -> (
         SceneRendererAdvancedPluginResources,
+        RenderDeviceProfile,
         wgpu::Device,
-        wgpu::Queue,
         wgpu::CommandEncoder,
         ResourceStreamer,
         ViewportRenderFrame,
     ) {
         let backend = RenderBackend::new_offscreen().unwrap();
+        let device_profile = backend.device_profile().clone();
         let RenderBackend { device, queue, .. } = backend;
         let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("zircon-runtime-prepare-test-texture-layout"),
@@ -461,9 +618,9 @@ mod tests {
         let frame = ViewportRenderFrame::from_snapshot(empty_scene_snapshot(), UVec2::new(1, 1));
 
         (
-            SceneRendererAdvancedPluginResources::new(&device, &[], Vec::new()),
+            SceneRendererAdvancedPluginResources::new(&[], Vec::new()),
+            device_profile,
             device,
-            queue,
             encoder,
             streamer,
             frame,

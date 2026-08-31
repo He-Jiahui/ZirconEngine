@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use zircon_runtime::core::CoreWeak;
 use zircon_runtime::core::framework::{
     physics::{PhysicsSettings, PhysicsSettingsStoreError},
     scene::physics::PhysicsMaterialMetadata,
 };
+use zircon_runtime::core::CoreWeak;
 
 use crate::backend::{default_backend_name, default_simulation_mode};
 use crate::manager::DefaultPhysicsManager;

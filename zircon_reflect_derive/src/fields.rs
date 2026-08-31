@@ -1,12 +1,14 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::spanned::Spanned;
-use syn::{Field, Index, LitInt, Member, Type};
+use syn::{Field, GenericArgument, Index, LitInt, Member, PathArguments, Type};
 
 use crate::attributes::{parse_field_attributes, FieldAttributes};
 
 pub(crate) struct ReflectedField {
     pub(crate) name: String,
+    pub(crate) identity: String,
+    pub(crate) aliases: Vec<String>,
     pub(crate) member: Option<Member>,
     pub(crate) ty: Option<Type>,
     pub(crate) value_type_path: String,
@@ -59,8 +61,13 @@ pub(crate) fn collect_fields(fields: &syn::Fields) -> syn::Result<Vec<ReflectedF
     Ok(reflected)
 }
 
-pub(crate) fn field_info_tokens(field: &ReflectedField) -> TokenStream {
+pub(crate) fn field_info_tokens(
+    field: &ReflectedField,
+    owner_identity: &TokenStream,
+) -> TokenStream {
     let name = &field.name;
+    let identity = &field.identity;
+    let aliases = field.aliases.iter().map(|alias| quote!(#alias.to_string()));
     let value_type_path = &field.value_type_path;
     let editor_hint = &field.editor_hint;
     let editable = !field.readonly;
@@ -68,10 +75,15 @@ pub(crate) fn field_info_tokens(field: &ReflectedField) -> TokenStream {
     let editor_visible = field.editor_visible;
     quote! {
         ::zircon_runtime_interface::reflect::ReflectFieldInfo::new(
+            ::zircon_runtime_interface::reflect::ReflectFieldId::from_stable_keys(
+                #owner_identity,
+                #identity,
+            ),
             #name,
             #value_type_path,
             ::zircon_runtime_interface::reflect::ReflectEditorHint::#editor_hint,
         )
+        .with_aliases(vec![#(#aliases),*])
         .with_editable(#editable)
         .with_serializable(#serializable)
         .with_editor_visible(#editor_visible)
@@ -242,6 +254,7 @@ fn build_reflected_field(
     attributes: FieldAttributes,
     span: proc_macro2::Span,
 ) -> syn::Result<ReflectedField> {
+    let identity = attributes.identity.clone().unwrap_or_else(|| name.clone());
     let editor_hint_name = attributes
         .editor_hint
         .clone()
@@ -249,6 +262,8 @@ fn build_reflected_field(
     let editor_hint = parse_editor_hint(&editor_hint_name, span)?;
     Ok(ReflectedField {
         name,
+        identity,
+        aliases: attributes.aliases,
         member,
         ty,
         value_type_path,
@@ -265,23 +280,35 @@ fn infer_value_type_path(ty: &Type) -> Option<String> {
     match ty {
         Type::Path(path) => {
             let segment = path.path.segments.last()?;
-            let value = match segment.ident.to_string().as_str() {
-                "bool" => "Bool",
-                "i8" | "i16" | "i32" | "i64" => "Integer",
-                "u8" | "u16" | "u32" | "u64" => "Unsigned",
-                "f32" | "Real" => "Scalar",
-                "String" | "str" => "String",
-                "Vec2" => "Vec2",
-                "Vec3" => "Vec3",
-                "Vec4" => "Vec4",
-                "EntityId" => "Entity",
-                "Vec" => "List",
-                _ => return None,
-            };
-            Some(value.to_string())
+            match segment.ident.to_string().as_str() {
+                "bool" => Some("Bool".to_string()),
+                "i8" | "i16" | "i32" | "i64" => Some("Integer".to_string()),
+                "u8" | "u16" | "u32" | "u64" => Some("Unsigned".to_string()),
+                "f32" | "Real" => Some("Scalar".to_string()),
+                "String" | "str" => Some("String".to_string()),
+                "Vec2" => Some("Vec2".to_string()),
+                "Vec3" => Some("Vec3".to_string()),
+                "Vec4" => Some("Vec4".to_string()),
+                "EntityId" => Some("Entity".to_string()),
+                "Vec" => infer_list_value_type_path(&segment.arguments),
+                _ => None,
+            }
         }
         _ => None,
     }
+}
+
+fn infer_list_value_type_path(arguments: &PathArguments) -> Option<String> {
+    let PathArguments::AngleBracketed(arguments) = arguments else {
+        return None;
+    };
+    if arguments.args.len() != 1 {
+        return None;
+    }
+    let GenericArgument::Type(element_type) = arguments.args.first()? else {
+        return None;
+    };
+    infer_value_type_path(element_type).map(|element| format!("List<{element}>"))
 }
 
 fn inferred_editor_hint(value_type_path: &str) -> &'static str {

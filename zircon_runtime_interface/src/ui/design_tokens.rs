@@ -486,24 +486,24 @@ impl Default for EditorPaletteTokens {
 
 impl EditorPaletteTokens {
     pub const WORKBENCH_SURFACE: [[u8; 4]; 4] = [
-        [9, 15, 18, 255],
-        [15, 23, 27, 255],
-        [16, 24, 28, 255],
-        [20, 29, 34, 255],
+        [21, 21, 21, 255],
+        [36, 36, 36, 255],
+        [47, 47, 47, 255],
+        [56, 56, 56, 255],
     ];
-    pub const WORKBENCH_SURFACE_RECESSED: [u8; 4] = [8, 16, 20, 255];
-    pub const WORKBENCH_SURFACE_HOVER: [u8; 4] = [26, 37, 43, 255];
-    pub const WORKBENCH_SURFACE_SELECTED: [u8; 4] = [22, 67, 73, 255];
-    pub const WORKBENCH_SURFACE_DISABLED: [u8; 4] = [34, 39, 43, 255];
-    pub const WORKBENCH_ACCENT: [u8; 4] = [53, 199, 208, 255];
-    pub const WORKBENCH_ACCENT_SOFT: [u8; 4] = [23, 67, 77, 255];
-    pub const WORKBENCH_BORDER: [u8; 4] = [34, 48, 55, 255];
-    pub const WORKBENCH_BORDER_DISABLED: [u8; 4] = [44, 50, 55, 255];
-    pub const WORKBENCH_SEPARATOR_STRONG: [u8; 4] = [34, 48, 55, 255];
-    pub const WORKBENCH_SEPARATOR_SOFT: [u8; 4] = [27, 36, 40, 255];
-    pub const WORKBENCH_TEXT_PRIMARY: [u8; 4] = [217, 229, 232, 255];
-    pub const WORKBENCH_TEXT_SECONDARY: [u8; 4] = [156, 169, 173, 255];
-    pub const WORKBENCH_TEXT_DISABLED: [u8; 4] = [105, 120, 126, 255];
+    pub const WORKBENCH_SURFACE_RECESSED: [u8; 4] = [15, 15, 15, 255];
+    pub const WORKBENCH_SURFACE_HOVER: [u8; 4] = [69, 69, 69, 255];
+    pub const WORKBENCH_SURFACE_SELECTED: [u8; 4] = [36, 63, 90, 255];
+    pub const WORKBENCH_SURFACE_DISABLED: [u8; 4] = [43, 43, 43, 255];
+    pub const WORKBENCH_ACCENT: [u8; 4] = [96, 174, 255, 255];
+    pub const WORKBENCH_ACCENT_SOFT: [u8; 4] = [37, 63, 89, 255];
+    pub const WORKBENCH_BORDER: [u8; 4] = [72, 72, 72, 255];
+    pub const WORKBENCH_BORDER_DISABLED: [u8; 4] = [54, 54, 54, 255];
+    pub const WORKBENCH_SEPARATOR_STRONG: [u8; 4] = [86, 86, 86, 255];
+    pub const WORKBENCH_SEPARATOR_SOFT: [u8; 4] = [51, 51, 51, 255];
+    pub const WORKBENCH_TEXT_PRIMARY: [u8; 4] = [232, 232, 232, 255];
+    pub const WORKBENCH_TEXT_SECONDARY: [u8; 4] = [179, 179, 179, 255];
+    pub const WORKBENCH_TEXT_DISABLED: [u8; 4] = [115, 115, 115, 255];
     pub const WORKBENCH_SUCCESS: [u8; 4] = [85, 190, 120, 255];
     pub const WORKBENCH_SUCCESS_CONTAINER: [u8; 4] = [29, 71, 47, 255];
     pub const WORKBENCH_INFO: [u8; 4] = [95, 170, 230, 255];
@@ -512,10 +512,10 @@ impl EditorPaletteTokens {
     pub const WORKBENCH_WARNING_CONTAINER: [u8; 4] = [70, 49, 18, 255];
     pub const WORKBENCH_ERROR: [u8; 4] = [235, 96, 92, 255];
     pub const WORKBENCH_ERROR_CONTAINER: [u8; 4] = [76, 36, 39, 255];
-    pub const WORKBENCH_POPUP: [u8; 4] = [20, 29, 34, 255];
-    pub const WORKBENCH_TRACK: [u8; 4] = [26, 37, 43, 255];
-    pub const WORKBENCH_FOCUS_RING: [u8; 4] = [53, 199, 208, 255];
-    pub const WORKBENCH_SHADOW: [u8; 4] = [0, 0, 0, 92];
+    pub const WORKBENCH_POPUP: [u8; 4] = [36, 36, 36, 255];
+    pub const WORKBENCH_TRACK: [u8; 4] = [59, 59, 59, 255];
+    pub const WORKBENCH_FOCUS_RING: [u8; 4] = [102, 178, 255, 255];
+    pub const WORKBENCH_SHADOW: [u8; 4] = [0, 0, 0, 115];
 
     pub fn workbench_dark() -> Self {
         Self {

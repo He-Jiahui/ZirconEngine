@@ -1,20 +1,14 @@
-use crate::core::framework::render::{
-    FullscreenPassPlan, ShaderParameterValue, FULLSCREEN_PARAMS_BINDING,
-};
-
-type FullscreenParameterLayout = Vec<(String, std::mem::Discriminant<ShaderParameterValue>)>;
+use crate::graphics::shader::invocation::{FULLSCREEN_PARAMS_BINDING, FullscreenPassPlan};
+use wgpu::util::DeviceExt;
 
 pub(crate) struct FullscreenPassParameterBindings {
     bind_group: wgpu::BindGroup,
-    buffer: wgpu::Buffer,
-    parameter_layout: FullscreenParameterLayout,
-    upload_bytes: Vec<u8>,
+    _buffer: wgpu::Buffer,
 }
 
 impl FullscreenPassParameterBindings {
     pub(crate) fn new(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         plan: &FullscreenPassPlan,
         layout: &wgpu::BindGroupLayout,
     ) -> Option<Self> {
@@ -22,12 +16,14 @@ impl FullscreenPassParameterBindings {
             return None;
         }
 
+        let mut upload_bytes = Vec::with_capacity(usize::try_from(plan.parameter_byte_len()).ok()?);
+        plan.write_parameter_bytes(&mut upload_bytes);
+        debug_assert_eq!(upload_bytes.len() as u64, plan.parameter_byte_len());
         let buffer_label = format!("{}-params-buffer", plan.pipeline_label);
-        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(&buffer_label),
-            size: plan.parameter_byte_len(),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
+            contents: &upload_bytes,
+            usage: wgpu::BufferUsages::UNIFORM,
         });
         let bind_group_label = format!("{}-params-bind-group", plan.pipeline_label);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -39,48 +35,15 @@ impl FullscreenPassParameterBindings {
             }],
         });
 
-        let mut bindings = Self {
+        Some(Self {
             bind_group,
-            buffer,
-            parameter_layout: fullscreen_parameter_layout(plan),
-            upload_bytes: Vec::with_capacity(usize::try_from(plan.parameter_byte_len()).ok()?),
-        };
-        let initial_upload_applied = bindings.write(queue, plan);
-        debug_assert!(initial_upload_applied);
-        Some(bindings)
+            _buffer: buffer,
+        })
     }
 
     pub(crate) fn bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
     }
-
-    pub(crate) fn write(&mut self, queue: &wgpu::Queue, plan: &FullscreenPassPlan) -> bool {
-        if !fullscreen_parameter_layout_matches(plan, &self.parameter_layout) {
-            return false;
-        }
-        plan.write_parameter_bytes(&mut self.upload_bytes);
-        queue.write_buffer(&self.buffer, 0, &self.upload_bytes);
-        true
-    }
-}
-
-fn fullscreen_parameter_layout(plan: &FullscreenPassPlan) -> FullscreenParameterLayout {
-    plan.parameters
-        .iter()
-        .map(|(name, value)| (name.clone(), std::mem::discriminant(value)))
-        .collect()
-}
-
-fn fullscreen_parameter_layout_matches(
-    plan: &FullscreenPassPlan,
-    expected_layout: &FullscreenParameterLayout,
-) -> bool {
-    plan.parameters.len() == expected_layout.len()
-        && plan.parameters.iter().zip(expected_layout).all(
-            |((name, value), (expected_name, expected_kind))| {
-                name == expected_name && std::mem::discriminant(value) == *expected_kind
-            },
-        )
 }
 
 pub(crate) fn fullscreen_pass_parameter_layout_entry(
@@ -118,9 +81,9 @@ mod tests {
     use zircon_runtime_interface::resource::{AssetReference, ResourceLocator};
 
     use super::*;
-    use crate::core::framework::render::{
-        FullscreenPassBuilder, FullscreenShaderRef, RenderShaderEntryPointDescriptor,
-        RenderShaderStage, ShaderAssetKind, FULLSCREEN_PARAMS_BINDING,
+    use crate::graphics::shader::invocation::{
+        FULLSCREEN_PARAMS_BINDING, FullscreenPassBuilder, FullscreenShaderRef,
+        RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind,
     };
 
     #[test]
@@ -175,51 +138,17 @@ mod tests {
     }
 
     #[test]
-    fn fullscreen_parameter_layout_distinguishes_value_kinds_with_the_same_name() {
-        let shader = AssetReference::from_locator(
-            ResourceLocator::parse("builtin://shaders/fullscreen/typed-parameters").unwrap(),
-        );
-        let entries = [RenderShaderEntryPointDescriptor {
-            name: "fs_main".to_string(),
-            stage: RenderShaderStage::Fragment,
-        }];
-        let float_plan =
-            FullscreenPassBuilder::new(FullscreenShaderRef::new(shader.clone(), "fs_main"))
-                .set_f32("threshold", 0.5)
-                .build(ShaderAssetKind::Fullscreen, &entries, &[])
-                .expect("float fullscreen plan should build");
-        let integer_plan = FullscreenPassBuilder::new(FullscreenShaderRef::new(shader, "fs_main"))
-            .set_u32("threshold", 1)
-            .build(ShaderAssetKind::Fullscreen, &entries, &[])
-            .expect("integer fullscreen plan should build");
+    fn fullscreen_parameter_bindings_have_no_dynamic_queue_write_authority() {
+        let source = include_str!("fullscreen_pass_parameters.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("fullscreen parameter production source");
 
-        assert_ne!(
-            fullscreen_parameter_layout(&float_plan),
-            fullscreen_parameter_layout(&integer_plan),
-        );
-    }
-
-    #[test]
-    fn fullscreen_parameter_layout_match_uses_the_cached_layout_contract() {
-        let shader = AssetReference::from_locator(
-            ResourceLocator::parse("builtin://shaders/fullscreen/typed-parameters").unwrap(),
-        );
-        let entries = [RenderShaderEntryPointDescriptor {
-            name: "fs_main".to_string(),
-            stage: RenderShaderStage::Fragment,
-        }];
-        let float_plan =
-            FullscreenPassBuilder::new(FullscreenShaderRef::new(shader.clone(), "fs_main"))
-                .set_f32("threshold", 0.5)
-                .build(ShaderAssetKind::Fullscreen, &entries, &[])
-                .expect("float fullscreen plan should build");
-        let integer_plan = FullscreenPassBuilder::new(FullscreenShaderRef::new(shader, "fs_main"))
-            .set_u32("threshold", 1)
-            .build(ShaderAssetKind::Fullscreen, &entries, &[])
-            .expect("integer fullscreen plan should build");
-        let layout = fullscreen_parameter_layout(&float_plan);
-
-        assert!(fullscreen_parameter_layout_matches(&float_plan, &layout));
-        assert!(!fullscreen_parameter_layout_matches(&integer_plan, &layout));
+        assert_eq!(production.matches("create_buffer_init(").count(), 1);
+        assert!(!production.contains("wgpu::Queue"));
+        assert!(!production.contains("write_buffer("));
+        assert!(!production.contains("COPY_DST"));
+        assert!(!production.contains("pub(crate) fn write("));
     }
 }

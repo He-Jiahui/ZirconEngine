@@ -14,6 +14,7 @@ pub(super) fn variant_surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
         return PALETTE.accent;
     }
     match node.surface_variant.as_str() {
+        "transparent" => [0, 0, 0, 0],
         "inset"
         | "scroll-body"
         | "asset-tree-row"

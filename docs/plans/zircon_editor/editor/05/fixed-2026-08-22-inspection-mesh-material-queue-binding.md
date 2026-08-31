@@ -11,7 +11,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/05
 fixing_child_dir: docs/plans/zircon_editor/editor/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/scene/tests/inspection.rs:96
+  - zircon_runtime/src/scene/tests/inspection.rs
 ---
 
 # Editor05: inspection-mesh-material-queue-binding 验证失败回写
@@ -52,3 +52,9 @@ The inspection test fixture changed its queue assertion without preserving or re
 | 时间 | 状态 | 完成项目 | 验证与未完成项 |
 |---|---|---|---|
 | 2026-08-22 +08:00 | `fixed / returned` | `mesh_material_queue` 断言改为消费 canonical field artifact，保留字段契约并移除对已删除 snapshot 绑定的依赖。 | rustfmt、source guard 通过，受管 runtime 编译已越过原 E0425；仅关闭此 fixture compile blocker，不代表 Editor05 整体验收。 |
+
+## 2026-08-27 structured-path normalization
+
+The structured `related_code` entry now names the tracked Rust file without the
+diagnostic line suffix. The original `inspection.rs:96` location remains dated
+evidence in the body; no foreign inspection test bytes or fixed result changed.

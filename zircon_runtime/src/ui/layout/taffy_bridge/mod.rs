@@ -9,7 +9,7 @@ pub(crate) use compute::{
     compute_taffy_child_frames, taffy_main_axis, taffy_supports_axis_constraint_priority,
     taffy_supports_child_layout_values, taffy_supports_parent_layout_values,
     taffy_supports_slot_alignment, taffy_supports_slot_layout_values, taffy_supports_slot_padding,
-    TaffyChildLayoutInput,
+    TaffyChildLayoutInput, TaffyLayoutBridgeScratch,
 };
 
 use super::style_mapping::{

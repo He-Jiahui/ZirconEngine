@@ -167,7 +167,7 @@ fn poll_count_budget_retains_remaining_paths_for_the_next_tick() {
 }
 
 #[test]
-fn reconcile_enumeration_shares_the_item_budget_across_sessions_and_imports() {
+fn optimization_batch_20260830en_reconcile_shares_budget_across_sessions_and_imports() {
     let sessions = reconcile_sessions(32, 8);
     let budget = UiAssetWatchBudget::try_new(1, 3, Duration::from_secs(1)).unwrap();
     let mut cursor = UiAssetWatchReconcileCursor::default();
@@ -192,7 +192,7 @@ fn reconcile_enumeration_shares_the_item_budget_across_sessions_and_imports() {
 }
 
 #[test]
-fn expired_reconcile_deadline_retains_the_cursor_without_cloning_imports() {
+fn optimization_batch_20260830en_expired_reconcile_retains_cursor_without_clone() {
     let sessions = reconcile_sessions(4, 16);
     let budget = UiAssetWatchBudget::try_new(1, 64, Duration::from_secs(1)).unwrap();
     let mut cursor = UiAssetWatchReconcileCursor::default();

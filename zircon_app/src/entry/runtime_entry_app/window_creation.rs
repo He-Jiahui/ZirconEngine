@@ -66,9 +66,9 @@ impl RuntimeEntryApp {
             Ok(false) => {
                 write_log(
                     "runtime_surface_present",
-                    "runtime_bind_window_surface_unavailable",
+                    "runtime_bind_window_surface_degraded_reference_cpu",
                 );
-                self.fallback_surface_present();
+                self.enable_reference_cpu_presenter();
             }
             Err(error) => {
                 self.report_fatal_failure(
@@ -87,7 +87,7 @@ impl RuntimeEntryApp {
         if self.surface_present_enabled {
             true
         } else {
-            self.ensure_fallback_presenter(event_loop)
+            self.ensure_reference_cpu_presenter(event_loop)
         }
     }
 }

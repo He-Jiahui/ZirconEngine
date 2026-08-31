@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use super::{CompiledState, CompiledTransition, StateSlot};
 
@@ -6,7 +7,7 @@ use super::{CompiledState, CompiledTransition, StateSlot};
 pub struct CompiledAnimationStateMachine {
     pub(super) states: Box<[CompiledState]>,
     pub(super) state_slots: BTreeMap<String, StateSlot>,
-    pub(super) parameter_names: Box<[String]>,
+    pub(super) parameter_names: Arc<[String]>,
     pub(super) entry: StateSlot,
     pub(super) transitions: Box<[Box<[CompiledTransition]>]>,
 }

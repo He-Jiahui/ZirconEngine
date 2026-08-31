@@ -3,9 +3,11 @@ mod text_layout;
 use crate::ui::retained_host::primitives::ModelRc;
 
 use super::super::super::data::{FrameRect, HostMenuChromeItemData, HostWindowPresentationData};
-use super::super::super::menu_popup_metrics::MENU_POPUP_TEXT_INSET_X;
+use super::super::super::menu_popup_metrics::{
+    menu_popup_visible_row_range, MENU_POPUP_EDGE_INSET, MENU_POPUP_TEXT_INSET_X,
+};
 use super::super::super::paint_frame::HostRgbaFrame;
-use super::super::super::paint_primitives::draw_rect_clipped;
+use super::super::super::paint_primitives::draw_rounded_rect_clipped;
 use super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::paint_theme::{current_host_metrics, current_host_palette};
 use super::geometry::menu_popup_row_frame;
@@ -26,8 +28,13 @@ pub(in crate::ui::retained_host::host_contract) fn draw_menu_popup_rows(
         .line_height(metrics.font_body)
         .round()
         .max(metrics.font_body.ceil());
-    for row in 0..items.row_count() {
-        let Some(item) = items.row_data(row) else {
+    for row in menu_popup_visible_row_range(
+        items.row_count(),
+        popup.height,
+        scroll_px,
+        MENU_POPUP_EDGE_INSET,
+    ) {
+        let Some(item) = items.get(row) else {
             continue;
         };
         let row_frame = menu_popup_row_frame(popup, row, scroll_px);
@@ -37,7 +44,13 @@ pub(in crate::ui::retained_host::host_contract) fn draw_menu_popup_rows(
             .get(level)
             .is_some_and(|hovered_row| *hovered_row == row);
         if hovered {
-            draw_rect_clipped(frame, row_frame.clone(), Some(popup), palette.surface_hover);
+            draw_rounded_rect_clipped(
+                frame,
+                row_frame.clone(),
+                Some(popup),
+                palette.surface_hover,
+                metrics.radius_small,
+            );
         }
         let text_color = if item.enabled {
             palette.text
@@ -153,6 +166,43 @@ mod tests {
         assert!(text.ends_with('\u{2026}'));
         assert!(command.frame.x >= popup.x + MENU_POPUP_TEXT_INSET_X);
         assert!(command.frame.x + command.frame.width <= popup.x + popup.width);
+    }
+
+    #[test]
+    fn hovered_menu_row_uses_the_small_radius_tier() {
+        let items = model_rc(vec![HostMenuChromeItemData {
+            label: "Open".into(),
+            enabled: true,
+            ..HostMenuChromeItemData::default()
+        }]);
+        let popup = FrameRect {
+            x: 20.0,
+            y: 24.0,
+            width: 180.0,
+            height: 48.0,
+        };
+        let mut presentation = HostWindowPresentationData::default();
+        presentation.menu_state.hovered_menu_item_path = vec![0];
+        let mut frame = HostRgbaFrame::recording_only(240, 96);
+
+        draw_menu_popup_rows(&mut frame, &items, &popup, 0, 0.0, &presentation);
+
+        let hover_color = current_host_palette().surface_hover;
+        let hover = frame
+            .into_recorded_commands()
+            .into_iter()
+            .find(|command| {
+                matches!(
+                    &command.kind,
+                    HostRecordedPaintKind::Quad { color, .. } if *color == hover_color
+                )
+            })
+            .expect("hovered menu row should paint a surface quad");
+        let HostRecordedPaintKind::Quad { corner_radius, .. } = hover.kind else {
+            unreachable!("filtered command should be a quad");
+        };
+
+        assert_eq!(corner_radius, current_host_metrics().radius_small);
     }
 
     fn model_rc<T: Clone + 'static>(rows: Vec<T>) -> ModelRc<T> {

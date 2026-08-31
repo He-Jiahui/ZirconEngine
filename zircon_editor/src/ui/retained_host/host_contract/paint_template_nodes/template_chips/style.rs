@@ -1,5 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::style_selector::focus_visible_for_node;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchChipPalette {
@@ -15,6 +16,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub text_disabled: [u8; 4],
     pub border_disabled: [u8; 4],
     pub focus_ring: [u8; 4],
+    pub accent: [u8; 4],
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_chip_palette(
@@ -38,6 +40,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         text_disabled: palette.text_disabled,
         border_disabled: palette.border_disabled,
         focus_ring: palette.focus_ring,
+        accent: palette.accent,
     }
 }
 
@@ -64,8 +67,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_bo
     let palette = workbench_chip_palette();
     if node.disabled {
         palette.border_disabled
-    } else if node.focused || node.pressed || node.popup_open {
+    } else if focus_visible_for_node(node) {
         palette.focus_ring
+    } else if node.pressed || node.popup_open {
+        palette.border
     } else if node.selected || node.checked {
         palette.selected_border
     } else if node.hovered {
@@ -99,7 +104,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_gl
     if node.disabled {
         palette.text_disabled
     } else if node.pressed || node.popup_open {
-        palette.focus_ring
+        palette.accent
     } else {
         palette.text_muted
     }
@@ -156,14 +161,16 @@ mod tests {
     }
 
     #[test]
-    fn pressed_chip_still_uses_pressed_surface_and_focus_glyph() {
+    fn pressed_chip_uses_pressed_surface_and_accent_glyph_without_focus_border() {
         let mut node = TemplatePaneNodeData::default();
         node.pressed = true;
 
         let palette = workbench_chip_palette();
 
         assert_eq!(chip_surface(&node), palette.pressed_surface);
-        assert_eq!(chip_glyph_color(&node), palette.focus_ring);
+        assert_eq!(chip_border(&node), palette.border);
+        assert_eq!(chip_glyph_color(&node), palette.accent);
+        assert_ne!(chip_border(&node), palette.focus_ring);
     }
 
     #[test]

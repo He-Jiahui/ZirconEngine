@@ -160,8 +160,17 @@ fn add_scaled(target: &mut [f32; 3], vector: [f32; 3], scale: f32) {
 fn normalize(vector: [f32; 3]) -> [f32; 3] {
     let length = (vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]).sqrt();
     if length > 0.0 {
-        [vector[0] / length, vector[1] / length, vector[2] / length]
+        let inverse_length = length.recip();
+        [
+            vector[0] * inverse_length,
+            vector[1] * inverse_length,
+            vector[2] * inverse_length,
+        ]
     } else {
         [0.0, 0.0, 0.0]
     }
 }
+
+#[cfg(test)]
+#[path = "normals/reciprocal_normalize_tests.rs"]
+mod reciprocal_normalize_tests;

@@ -1,115 +1,64 @@
 use crate::core::framework::render::{
-    CameraRenderDescriptor, LightingExtract, ParticleExtract, PostProcessExtract,
-    RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot,
+    CorePipelineKind, ProjectionMode, RenderFrameExtract, ViewportCameraSnapshot,
 };
-use crate::core::framework::scene::{EntityId, Mobility};
-use crate::core::math::{Transform, Vec4};
-use crate::core::resource::ResourceId;
+use crate::core::math::Mat4;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct FrameHistoryValidationKey {
-    // Reuse temporal history only when the frame inputs that can affect scene color match.
-    world: RenderWorldSnapshotHandle,
-    camera: CameraRenderDescriptor,
-    meshes: Vec<FrameHistoryMeshValidationKey>,
-    lighting: LightingExtract,
-    animation_poses: Vec<FrameHistoryAnimationPoseValidationKey>,
-    post_process: PostProcessExtract,
-    particles: ParticleExtract,
+    // Global history compatibility is structural. Per-pixel and per-domain content changes are
+    // rejected by velocity, depth, reactive masks, and each history consumer's own metadata.
+    world_identity: u64,
+    camera: FrameHistoryCameraCompatibilityKey,
     effective_features: Vec<String>,
 }
 
 impl Default for FrameHistoryValidationKey {
     fn default() -> Self {
         Self {
-            world: RenderWorldSnapshotHandle::new(0),
-            camera: CameraRenderDescriptor::from_camera_payload(
-                None,
-                ViewportCameraSnapshot::default(),
-            ),
-            meshes: Vec::new(),
-            lighting: LightingExtract::default(),
-            animation_poses: Vec::new(),
-            post_process: PostProcessExtract::default(),
-            particles: ParticleExtract::default(),
+            world_identity: 0,
+            camera: FrameHistoryCameraCompatibilityKey::from(&ViewportCameraSnapshot::default()),
             effective_features: Vec::new(),
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-struct FrameHistoryMeshValidationKey {
-    entity: EntityId,
-    transform: Transform,
-    model: ResourceId,
-    material: ResourceId,
-    tint: Vec4,
-    mobility: Mobility,
-    render_layer_mask: RenderLayerSet,
+struct FrameHistoryCameraCompatibilityKey {
+    core_pipeline: CorePipelineKind,
+    projection_mode: ProjectionMode,
+    projection_override: Option<Mat4>,
+    hdr: bool,
+    msaa_samples: u32,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-struct FrameHistoryAnimationPoseValidationKey {
-    entity: EntityId,
-    skeleton: ResourceId,
-    pose: crate::core::framework::animation::AnimationPoseOutput,
+impl From<&ViewportCameraSnapshot> for FrameHistoryCameraCompatibilityKey {
+    fn from(camera: &ViewportCameraSnapshot) -> Self {
+        Self {
+            core_pipeline: camera.core_pipeline,
+            projection_mode: camera.projection_mode,
+            projection_override: camera.projection_override.clone(),
+            hdr: camera.hdr,
+            msaa_samples: camera.msaa_samples,
+        }
+    }
 }
 
 impl FrameHistoryValidationKey {
     pub(crate) fn from_extract(
         extract: &RenderFrameExtract,
-        effective_features: Vec<String>,
+        mut effective_features: Vec<String>,
     ) -> Self {
-        Self::from_extract_with_hybrid_gi(
-            extract,
-            effective_features,
-            extract.lighting.hybrid_global_illumination.as_ref(),
-        )
-    }
+        effective_features.sort_unstable();
+        effective_features.dedup();
+        let camera = extract
+            .view
+            .selected_camera_descriptor()
+            .map(|descriptor| &descriptor.camera)
+            .unwrap_or(&extract.view.camera);
 
-    pub(crate) fn from_extract_with_hybrid_gi(
-        extract: &RenderFrameExtract,
-        effective_features: Vec<String>,
-        hybrid_global_illumination: Option<&RenderHybridGiExtract>,
-    ) -> Self {
-        let mut lighting = extract.lighting.clone();
-        lighting.hybrid_global_illumination = hybrid_global_illumination.cloned();
         Self {
-            world: extract.world,
-            camera: extract
-                .view
-                .selected_camera_descriptor()
-                .cloned()
-                .unwrap_or_else(|| {
-                    CameraRenderDescriptor::from_camera_payload(None, extract.view.camera.clone())
-                }),
-            meshes: extract
-                .geometry
-                .meshes
-                .iter()
-                .map(|mesh| FrameHistoryMeshValidationKey {
-                    entity: mesh.node_id,
-                    transform: mesh.transform,
-                    model: mesh.model.id(),
-                    material: mesh.material.id(),
-                    tint: mesh.tint,
-                    mobility: mesh.mobility,
-                    render_layer_mask: mesh.common.layer_mask.clone(),
-                })
-                .collect(),
-            lighting,
-            animation_poses: extract
-                .animation_poses
-                .iter()
-                .map(|pose| FrameHistoryAnimationPoseValidationKey {
-                    entity: pose.entity,
-                    skeleton: pose.skeleton,
-                    pose: pose.pose.clone(),
-                })
-                .collect(),
-            post_process: extract.post_process.clone(),
-            particles: extract.particles.clone(),
+            world_identity: extract.world.raw(),
+            camera: FrameHistoryCameraCompatibilityKey::from(camera),
             effective_features,
         }
     }

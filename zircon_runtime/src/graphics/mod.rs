@@ -14,6 +14,7 @@ pub(crate) mod pipeline;
 pub(crate) mod resource_limits;
 pub(crate) mod runtime;
 mod runtime_prepare_collector;
+mod runtime_prepare_device_epoch;
 mod runtime_prepare_mesh_geometry_seed;
 pub(crate) mod runtime_provider;
 pub(crate) mod scene;
@@ -30,13 +31,17 @@ pub mod runtime_builtin_graphics;
 
 // Public facade exports. These are intentionally grouped by owner module so the
 // facade remains reviewable while implementation modules stay crate-private.
+pub use backend::{NeutralMvpCaptureError, NeutralMvpRenderer};
 pub(crate) use environment_ibl_bake_reservation::EnvironmentIblBakeReservation;
 pub use extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot};
 pub use feature::{
-    BuiltinRenderFeature, ComputePassDescriptor, ComputeShaderSource, RenderFeature,
-    RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceKind,
-    RenderFeatureResourceWriteMode, COMPUTE_GENERIC_EXECUTOR_ID,
+    BuiltinRenderFeature, COMPUTE_GENERIC_EXECUTOR_ID, ComputePassDescriptor, ComputeShaderSource,
+    RenderBufferSchema, RenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
+    RenderFeaturePassDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceDescriptor,
+    RenderFeatureResourceKind, RenderFeatureResourceWriteMode, RenderResourceFallback,
+    RenderResourceSchema, RenderTextureExtentPolicy, RenderTextureExtentReference,
+    RenderTextureExtentRounding, RenderTextureSchema,
+    screen_space_ambient_occlusion_render_feature_descriptor,
 };
 pub use hybrid_gi_runtime_provider::{
     HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,
@@ -46,31 +51,38 @@ pub use hybrid_gi_runtime_provider::{
 pub use material::MaterialDomain;
 pub use particle_runtime_provider::{ParticleGpuFeedback, ParticleRuntimeFeedback};
 pub use pipeline::{
-    CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
-    RenderPipelineAssetContext, RenderPipelineCompileOptions, RenderPipelineCompileReport,
-    RendererAsset, RendererDataDocument, RendererDataDocumentError, RendererFeatureAsset,
-    RendererFeatureAssetReferences, RendererFeatureContractDiagnostic,
+    AO_PROFILE_COMPILER_VERSION, AO_SHADER_INTERFACE_VERSION, AmbientOcclusionDepthConvention,
+    AmbientOcclusionInputQualification, AmbientOcclusionInputSemantic, AmbientOcclusionMethod,
+    AmbientOcclusionOutputs, AmbientOcclusionProjectionClass, AmbientOcclusionRenderRectKey,
+    AoHistoryKey, COMPILED_AO_PROFILE_VERSION, CompiledAoProfile, CompiledAoWorkPlan,
+    CompiledRenderPipeline, QualifiedAmbientOcclusionInput, RENDERER_DATA_DOCUMENT_VERSION,
+    RenderPassStage, RenderPipelineAsset, RenderPipelineAssetContext, RenderPipelineCompileOptions,
+    RenderPipelineCompileReport, RendererAsset, RendererDataDocument, RendererDataDocumentError,
+    RendererFeatureAsset, RendererFeatureAssetReferences, RendererFeatureContractDiagnostic,
     RendererFeatureContractDiagnosticSeverity, RendererFeatureDocument,
-    RendererFeatureReferenceListKind, RendererFeatureSource, RENDERER_DATA_DOCUMENT_VERSION,
+    RendererFeatureReferenceListKind, RendererFeatureSource,
 };
 pub use runtime::{
-    offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings, WgpuRenderFramework,
+    OfflineBakeOutput, OfflineBakeSettings, WgpuRenderFramework, offline_bake_frame,
 };
 pub use runtime_builtin_graphics::{
-    module_descriptor as graphics_module_descriptor, GraphicsModule, RENDERING_MANAGER_NAME,
-    RENDER_FRAMEWORK_NAME,
+    GraphicsModule, RENDER_FRAMEWORK_NAME, RENDERING_MANAGER_NAME,
+    module_descriptor as graphics_module_descriptor,
 };
 // Crate-visible bridge used by runtime preparation paths without widening the
 // public graphics API.
 pub use runtime_prepare_collector::RuntimePrepareMaterialCaptureSeed;
 pub use runtime_prepare_collector::{
-    RuntimeGpuReadback, RuntimePrepareCollector, RuntimePrepareCollectorContext,
-    RuntimePrepareCollectorFn, RuntimePrepareCollectorRegistration, RuntimePrepareGpuPassScope,
+    RuntimeGpuReadback, RuntimePrepareBufferUploadRecorder, RuntimePrepareCollector,
+    RuntimePrepareCollectorContext, RuntimePrepareCollectorFn, RuntimePrepareCollectorRegistration,
+    RuntimePrepareFrameTransaction, RuntimePrepareFrameTransactionRecorder,
+    RuntimePrepareGpuPassScope, RuntimePrepareGpuRecordingContext,
 };
 pub(crate) use runtime_prepare_collector::{
-    RuntimePrepareExternalBufferBinding, RuntimePrepareGpuPassProfile,
-    RuntimePrepareGpuReadbackRequest,
+    RuntimePrepareExternalBufferBinding, RuntimePrepareExternalBufferBindingPacket,
+    RuntimePrepareFramePacket, RuntimePrepareGpuPassProfile, RuntimePrepareGpuReadbackRequest,
 };
+pub use runtime_prepare_device_epoch::RuntimePrepareDeviceEpoch;
 pub use runtime_prepare_mesh_geometry_seed::{
     RuntimePrepareMeshGeometrySeed, RuntimePrepareMeshSdfDeformationReason,
     RuntimePrepareMeshSdfSeed,
@@ -80,32 +92,37 @@ pub use runtime_prepare_mesh_geometry_seed::{
 #[cfg(test)]
 pub(crate) use scene::ViewportOverlayRenderer;
 pub use scene::{
+    IRRADIANCE_VOLUME_BIND_EXECUTOR_ID, IRRADIANCE_VOLUME_RESOURCE,
+    LIGHT_COOKIE_ATLAS_BUILD_EXECUTOR_ID, LIGHT_COOKIE_ATLAS_RESOURCE, OIT_DRAW_SHADER_SOURCE,
+    OIT_FRAGMENT_STORE_EXECUTOR_ID, OIT_RESOLVE_EXECUTOR_ID, OIT_RESOLVE_SHADER_SOURCE,
+    PLANAR_FILTER_EXECUTOR_ID, PLANAR_REFLECTION_TEXTURE_RESOURCE,
+    ParticleGpuTransparentDrawContext, RealtimeIblCpuTimingReport, RealtimeIblFailureKind,
+    RealtimeIblFailureOperation, RealtimeIblFailureReport, RealtimeIblGpuTimingReport,
+    RealtimeIblReadiness, RealtimeIblStatusReport, RenderGraphExecutionResources,
+    RenderPassBufferUploadRecorder, RenderPassBufferUploadSink, RenderPassDeviceEpoch,
+    RenderPassExecutionContext, RenderPassExecutor, RenderPassExecutorFn, RenderPassExecutorId,
+    RenderPassExecutorRegistration, RenderPassGpuExecutionContext, RenderPassGpuNativeContext,
+    RenderPassGpuResourceFactory, RenderPassRecordingPolicy, RuntimeShaderPipelinePrewarmFailure,
+    RuntimeShaderPipelinePrewarmReport, SSS_RECOMBINE_EXECUTOR_ID, SSS_SCATTER_EXECUTOR_ID,
+    SSS_SETUP_EXECUTOR_ID, SceneRenderer, SceneRendererCoreStartupReport,
+    SceneRendererDeferredLightingProfile, SceneRendererFrameTimingReport,
+    SceneRendererGpuPassTiming, SceneRendererGpuTimingReport, SceneRendererStartupOptions,
+    SceneRendererStartupReport, VOLUMETRIC_INTEGRATE_EXECUTOR_ID,
+    VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID, VOLUMETRIC_MEDIA_INJECT_EXECUTOR_ID,
     irradiance_volume_render_pass_executor_registrations,
     light_cookie_render_pass_executor_registrations, oit_render_pass_executor_registrations,
     planar_reflection_filter_compute_workload,
     planar_reflection_render_pass_executor_registrations, subsurface_render_feature_descriptor,
     subsurface_render_pass_executor_registrations, subsurface_scatter_compute_workload,
     subsurface_setup_compute_workload, volumetric_fog_render_pass_executor_registrations,
-    ParticleGpuTransparentDrawContext, RealtimeIblGpuTimingReport, RenderGraphExecutionResources,
-    RenderPassExecutionContext, RenderPassExecutor, RenderPassExecutorFn, RenderPassExecutorId,
-    RenderPassExecutorRegistration, RenderPassGpuExecutionContext, RenderPassRecordingPolicy,
-    RuntimeShaderPipelinePrewarmFailure, RuntimeShaderPipelinePrewarmReport, SceneRenderer,
-    SceneRendererCoreStartupReport, SceneRendererDeferredLightingProfile,
-    SceneRendererFrameTimingReport, SceneRendererGpuPassTiming, SceneRendererGpuTimingReport,
-    SceneRendererStartupOptions, SceneRendererStartupReport, IRRADIANCE_VOLUME_BIND_EXECUTOR_ID,
-    IRRADIANCE_VOLUME_RESOURCE, LIGHT_COOKIE_ATLAS_BUILD_EXECUTOR_ID, LIGHT_COOKIE_ATLAS_RESOURCE,
-    OIT_DRAW_SHADER_SOURCE, OIT_FRAGMENT_STORE_EXECUTOR_ID, OIT_RESOLVE_EXECUTOR_ID,
-    OIT_RESOLVE_SHADER_SOURCE, PLANAR_FILTER_EXECUTOR_ID, PLANAR_REFLECTION_TEXTURE_RESOURCE,
-    SSS_RECOMBINE_EXECUTOR_ID, SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
-    VOLUMETRIC_INTEGRATE_EXECUTOR_ID, VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID,
-    VOLUMETRIC_MEDIA_INJECT_EXECUTOR_ID,
 };
 pub use shader::{
+    MaterialGraphAsset, ShaderGraphAsset, ShaderIdeEnvReport, ShaderIdePreviewError,
+    ShaderIdePreviewVariant, ShaderIdeSurfacePreview, ShaderIdeWgslCheckError,
+    ShaderIdeWgslModuleValidation, ShaderProgramAsset, ShaderVariantKey,
     assemble_shader_ide_surface_preview, builtin_shader_ide_module_sources,
     parse_shader_ide_wgsl_module, validate_shader_ide_wgsl_module,
-    write_shader_ide_env_for_project, MaterialGraphAsset, ShaderGraphAsset, ShaderIdeEnvReport,
-    ShaderIdePreviewError, ShaderIdePreviewVariant, ShaderIdeSurfacePreview,
-    ShaderIdeWgslCheckError, ShaderIdeWgslModuleValidation, ShaderProgramAsset, ShaderVariantKey,
+    write_shader_ide_env_for_project,
 };
 pub use solari_runtime_provider::{SolariRuntimeProvider, SolariRuntimeProviderRegistration};
 pub use types::{
@@ -113,7 +130,8 @@ pub use types::{
     ViewportRenderRegion,
 };
 pub(crate) use types::{
-    ViewportCameraStackOutputPolicy, ViewportRenderFrame, ViewportRenderOutputTarget,
+    RendererPostProcessSnapshot, ViewportCameraStackOutputPolicy, ViewportRenderFrame,
+    ViewportRenderOutputTarget,
 };
 pub use virtual_geometry_runtime_provider::{
     VirtualGeometryGpuCompletion, VirtualGeometryRuntimeExtractOutput,

@@ -23,6 +23,18 @@ pub(super) fn project_node_into_physical_mount(
     node
 }
 
+pub(super) fn project_frame_into_physical_mount(
+    mut frame: host_contract::TemplateNodeFrameData,
+    mount_frame: Option<UiFrame>,
+    scale_factor: f32,
+) -> host_contract::TemplateNodeFrameData {
+    scale_frame(&mut frame, normalized_scale_factor(scale_factor));
+    let mount_frame = mount_frame.unwrap_or_default();
+    frame.x += mount_frame.x;
+    frame.y += mount_frame.y;
+    frame
+}
+
 fn scale_node_metrics(node: &mut host_contract::TemplatePaneNodeData, scale_factor: f32) {
     scale_frame(&mut node.frame, scale_factor);
     if node.has_clip_frame {
@@ -39,6 +51,11 @@ fn scale_node_metrics(node: &mut host_contract::TemplatePaneNodeData, scale_fact
         &mut node.layout_icon_size,
         &mut node.layout_content_offset_x,
         &mut node.layout_content_offset_y,
+        &mut node.layout_padding_left,
+        &mut node.layout_padding_right,
+        &mut node.layout_padding_top,
+        &mut node.layout_padding_bottom,
+        &mut node.layout_spacing,
         &mut node.layout_first_cell_offset_x,
         &mut node.layout_fourth_cell_offset_x,
         &mut node.icon_stroke_width,
@@ -128,6 +145,11 @@ mod tests {
         node.value_percent = 0.75;
         node.layout_second_cell_offset_x = 28.0;
         node.layout_third_cell_offset_x = 5.0;
+        node.layout_padding_left = 8.0;
+        node.layout_padding_right = 8.0;
+        node.layout_padding_top = 4.0;
+        node.layout_padding_bottom = 4.0;
+        node.layout_spacing = 4.0;
         node.transition_duration_ms = 120;
         node.button_style.width = StyleDimension::Fixed(24.0);
         node.button_style.element.corner_radius = 2.0;
@@ -148,6 +170,11 @@ mod tests {
         assert_eq!(projected.value_percent, 0.75);
         assert_eq!(projected.layout_second_cell_offset_x, 28.0);
         assert_eq!(projected.layout_third_cell_offset_x, 5.0);
+        assert_eq!(projected.layout_padding_left, 16.0);
+        assert_eq!(projected.layout_padding_right, 16.0);
+        assert_eq!(projected.layout_padding_top, 8.0);
+        assert_eq!(projected.layout_padding_bottom, 8.0);
+        assert_eq!(projected.layout_spacing, 8.0);
         assert_eq!(projected.transition_duration_ms, 120);
         assert_eq!(projected.button_style.width, StyleDimension::Fixed(48.0));
         assert_eq!(projected.button_style.element.corner_radius, 4.0);

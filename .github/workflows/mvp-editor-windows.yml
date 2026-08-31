@@ -350,6 +350,12 @@ jobs:
             '.\tools\tests\mvp-acceptance-snapshot-admission.Tests.ps1',
             '.\tools\tests\mvp-staging-tree-manifest-device-path.Tests.ps1',
             '.\tools\tests\mvp-build-set.Tests.ps1',
+            '.\tools\tests\tooling15-integrated-bootstrap.Tests.ps1',
+            '.\tools\tests\mvp-project-open-evidence.Tests.ps1',
+            '.\tools\tests\mvp-project-save-evidence.Tests.ps1',
+            '.\tools\tests\mvp-process-timing-evidence.Tests.ps1',
+            '.\tools\tests\mvp-scene-persistence-evidence.Tests.ps1',
+            '.\tools\tests\mvp-persistence-comparison.Tests.ps1',
             '.\tools\tests\mvp-build-summary-evidence.Tests.ps1',
             '.\tools\tests\mvp-artifact-storage-policy.Tests.ps1',
             '.\tools\tests\mvp-project-copy-policy.Tests.ps1',
@@ -380,7 +386,7 @@ jobs:
           )
           $controlPlaneResultPath = Join-Path $env:MVP_EVIDENCE_ROOT 'control-plane-nunit.xml'
           $controlPlaneResult = Invoke-Pester -Script $controlPlaneSuites -PassThru -OutputFormat NUnitXml -OutputFile $controlPlaneResultPath
-          if ($controlPlaneResult.FailedCount -ne 0 -or $controlPlaneResult.TotalCount -ne 361) {
+          if ($controlPlaneResult.FailedCount -ne 0 -or $controlPlaneResult.TotalCount -ne 415) {
             throw "Focused MVP control-plane contracts failed: total=$($controlPlaneResult.TotalCount), passed=$($controlPlaneResult.PassedCount), failed=$($controlPlaneResult.FailedCount)."
           }
           $scriptContractResultPath = Join-Path $env:MVP_EVIDENCE_ROOT 'mvp-required-script-contracts-nunit.xml'

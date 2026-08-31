@@ -1,10 +1,12 @@
 use crate::graphics::scene::resources::{GpuMeshVertex, PipelineKey};
 
+pub(crate) const MESH_TAA_REACTIVE_MASK_TARGET_FORMAT: wgpu::TextureFormat =
+    wgpu::TextureFormat::R8Unorm;
+
 pub(in crate::graphics::scene::scene_renderer::mesh) fn create_taa_reactive_mask_mesh_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
-    target_format: wgpu::TextureFormat,
     key: &PipelineKey,
     pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
@@ -12,7 +14,6 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_taa_reactive_mask
         device,
         layout,
         shader,
-        target_format,
         key,
         pipeline_cache,
         "zircon-taa-reactive-mask-mesh-pipeline",
@@ -24,7 +25,6 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_taa_reactive_mate
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
-    target_format: wgpu::TextureFormat,
     key: &PipelineKey,
     pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
@@ -32,7 +32,6 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_taa_reactive_mate
         device,
         layout,
         shader,
-        target_format,
         key,
         pipeline_cache,
         "zircon-taa-reactive-material-mask-mesh-pipeline",
@@ -44,7 +43,6 @@ fn create_taa_reactive_mask_pipeline_with_fragment_entry(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
-    target_format: wgpu::TextureFormat,
     key: &PipelineKey,
     pipeline_cache: Option<&wgpu::PipelineCache>,
     label: &'static str,
@@ -60,6 +58,7 @@ fn create_taa_reactive_mask_pipeline_with_fragment_entry(
             buffers: &[GpuMeshVertex::layout()],
         },
         primitive: wgpu::PrimitiveState {
+            front_face: super::mesh_front_face(key),
             cull_mode: (!key.double_sided).then_some(wgpu::Face::Back),
             ..Default::default()
         },
@@ -76,7 +75,7 @@ fn create_taa_reactive_mask_pipeline_with_fragment_entry(
             entry_point: Some(fragment_entry_point),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             targets: &[Some(wgpu::ColorTargetState {
-                format: target_format,
+                format: MESH_TAA_REACTIVE_MASK_TARGET_FORMAT,
                 blend: Some(wgpu::BlendState::REPLACE),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
@@ -124,9 +123,11 @@ mod tests {
 
         assert!(source.wgsl_source.contains("fn vs_main("));
         assert!(source.wgsl_source.contains("fn fs_taa_reactive_mask("));
-        assert!(source
-            .wgsl_source
-            .contains("fn fs_taa_reactive_material_mask("));
+        assert!(
+            source
+                .wgsl_source
+                .contains("fn fs_taa_reactive_material_mask(")
+        );
         assert!(source.wgsl_source.contains("surface.custom0.x"));
     }
 
@@ -149,19 +150,12 @@ mod tests {
         let pipeline_layout = create_standard_mesh_pipeline_layout(device, "taa-reactive-mask");
 
         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
-        let _reactive_pipeline = create_taa_reactive_mask_mesh_pipeline(
-            device,
-            &pipeline_layout,
-            &shader,
-            wgpu::TextureFormat::R8Unorm,
-            &key,
-            None,
-        );
+        let _reactive_pipeline =
+            create_taa_reactive_mask_mesh_pipeline(device, &pipeline_layout, &shader, &key, None);
         let _material_pipeline = create_taa_reactive_material_mask_mesh_pipeline(
             device,
             &pipeline_layout,
             &shader,
-            wgpu::TextureFormat::R8Unorm,
             &key,
             None,
         );

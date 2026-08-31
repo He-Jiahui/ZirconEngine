@@ -1,13 +1,18 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError};
 
 use super::component_reference::{parse_v2_widget_import_reference, UiV2WidgetImportReference};
 
+#[cfg(test)]
+#[path = "cache/hash_lookup_tests.rs"]
+mod hash_lookup_tests;
+
 #[derive(Clone, Debug, Default)]
 pub struct UiV2PrototypeStore {
     assets: BTreeMap<String, Arc<UiV2AssetDocument>>,
+    asset_lookup: HashMap<String, Arc<UiV2AssetDocument>>,
 }
 
 impl UiV2PrototypeStore {
@@ -18,16 +23,19 @@ impl UiV2PrototypeStore {
     pub fn insert(&mut self, document: UiV2AssetDocument) -> Arc<UiV2AssetDocument> {
         let asset_id = document.asset.id.clone();
         let document = Arc::new(document);
-        let _ = self.assets.insert(asset_id, Arc::clone(&document));
+        let _ = self.assets.insert(asset_id.clone(), Arc::clone(&document));
+        let _ = self.asset_lookup.insert(asset_id, Arc::clone(&document));
         document
     }
 
     pub fn insert_alias(&mut self, asset_id: impl Into<String>, document: Arc<UiV2AssetDocument>) {
-        let _ = self.assets.insert(asset_id.into(), document);
+        let asset_id = asset_id.into();
+        let _ = self.assets.insert(asset_id.clone(), Arc::clone(&document));
+        let _ = self.asset_lookup.insert(asset_id, document);
     }
 
     pub fn get(&self, asset_id: &str) -> Option<Arc<UiV2AssetDocument>> {
-        self.assets.get(asset_id).map(Arc::clone)
+        self.asset_lookup.get(asset_id).map(Arc::clone)
     }
 
     pub fn len(&self) -> usize {

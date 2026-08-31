@@ -43,6 +43,6 @@ pub(super) fn workbench_dropdown_palette_from_host(
         placeholder: palette.text_disabled,
         disabled_text: palette.text_disabled,
         chevron: palette.text_muted,
-        active_chevron: palette.focus_ring,
+        active_chevron: palette.accent,
     }
 }

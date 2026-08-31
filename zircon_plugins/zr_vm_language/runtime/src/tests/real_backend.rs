@@ -85,7 +85,7 @@ fn real_backend_session_preserves_lifecycle_state() {
             .expect("query reflected state schema")
             .expect("fixture publishes reflected state schema")
             .schema_version,
-        zircon_runtime::script::VM_STATE_SCHEMA_VERSION_V2,
+        zircon_runtime::script::VM_STATE_SCHEMA_VERSION_V3,
     );
 
     instance

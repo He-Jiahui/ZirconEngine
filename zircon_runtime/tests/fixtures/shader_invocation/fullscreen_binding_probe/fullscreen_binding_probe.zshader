@@ -1,0 +1,39 @@
+kind = "fullscreen"
+version = 2
+name = "Fullscreen Invocation Binding Probe"
+wgsl_files = ["fullscreen_binding_probe.wgsl"]
+
+[[entry_points]]
+name = "fs_main"
+stage = "fragment"
+file = "fullscreen_binding_probe.wgsl"
+
+[[properties]]
+name = "tint"
+kind = "vec4"
+required = true
+default = [1.0, 1.0, 1.0, 1.0]
+
+[[properties]]
+name = "exposure"
+kind = "float"
+required = true
+default = 1.0
+
+[[resources]]
+name = "source_texture"
+kind = "texture"
+access = "read"
+
+[[resources]]
+name = "source_sampler"
+kind = "sampler"
+access = "read"
+
+[[resources]]
+name = "params"
+kind = "uniform_buffer"
+access = "read"
+
+[editor]
+category = "Validation/Shader Invocation"

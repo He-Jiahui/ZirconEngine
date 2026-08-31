@@ -8,10 +8,14 @@ pub enum HubError {
     TomlEncode(#[from] toml::ser::Error),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("background action queue is full (capacity {capacity})")]
+    BackgroundActionQueueFull { capacity: usize },
     #[error("project manifest summary error: {0}")]
     ProjectManifestSummary(#[from] zircon_runtime_interface::project::ProjectManifestSummaryError),
     #[error("project template pack error: {0}")]
     ProjectTemplatePack(#[from] zircon_runtime_interface::project::ProjectTemplatePackError),
+    #[error("project launch intent error: {0}")]
+    ProjectLaunchIntent(#[from] zircon_runtime_interface::project::ProjectLaunchIntentError),
     #[error("Tauri error: {0}")]
     Tauri(#[from] tauri::Error),
     #[error("{}", detail.render(crate::settings::HubLanguage::English))]

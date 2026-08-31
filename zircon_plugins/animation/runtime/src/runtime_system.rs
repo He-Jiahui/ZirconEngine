@@ -13,8 +13,6 @@ pub const ANIMATION_EVALUATION_DIAGNOSTIC_EVENT: &str = "animation.events.evalua
 pub const ANIMATION_EVALUATION_DIAGNOSTIC_SCHEMA: &str = "animation.evaluation_diagnostic.v1";
 pub const ANIMATION_CLIP_EVENT: &str = "animation.events.clip";
 pub const ANIMATION_CLIP_EVENT_SCHEMA: &str = "animation.clip_event.v1";
-pub const ANIMATION_IK_DIAGNOSTIC_EVENT: &str = "animation.events.ik_diagnostic";
-pub const ANIMATION_IK_DIAGNOSTIC_SCHEMA: &str = "animation.ik_diagnostic.v1";
 pub const ANIMATION_LAYER_DIAGNOSTIC_EVENT: &str = "animation.events.layer_diagnostic";
 pub const ANIMATION_LAYER_DIAGNOSTIC_SCHEMA: &str = "animation.layer_diagnostic.v1";
 
@@ -30,11 +28,6 @@ pub fn register_runtime_system(
         id: ANIMATION_EVALUATION_DIAGNOSTIC_EVENT.to_string(),
         display_name: "Animation Evaluation Diagnostic".to_string(),
         payload_schema: ANIMATION_EVALUATION_DIAGNOSTIC_SCHEMA.to_string(),
-    })?;
-    module.event::<crate::AnimationIkDiagnostic>(PluginEventManifest {
-        id: ANIMATION_IK_DIAGNOSTIC_EVENT.to_string(),
-        display_name: "Animation IK Diagnostic".to_string(),
-        payload_schema: ANIMATION_IK_DIAGNOSTIC_SCHEMA.to_string(),
     })?;
     module.event::<crate::AnimationStateMachineLayerDiagnostic>(PluginEventManifest {
         id: ANIMATION_LAYER_DIAGNOSTIC_EVENT.to_string(),
@@ -54,6 +47,10 @@ pub fn register_runtime_system(
 }
 
 fn run_animation_runtime_system(context: RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> {
-    crate::evaluation::tick_animation_world(context.core, context.level, context.delta_seconds);
+    crate::evaluation::tick_animation_world(
+        context.core,
+        context.level,
+        context.tick().delta_seconds(),
+    );
     Ok(())
 }

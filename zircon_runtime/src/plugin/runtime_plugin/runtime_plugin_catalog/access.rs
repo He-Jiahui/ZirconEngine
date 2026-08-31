@@ -4,10 +4,15 @@ use crate::plugin::{PluginFeatureBundleManifest, PluginPackageManifest};
 
 use super::bridge_dependencies::{RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker};
 use super::{
-    RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+    PluginCatalogGeneration, RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport,
+    RuntimePluginRegistrationReport,
 };
 
 impl RuntimePluginCatalog {
+    pub fn generation(&self) -> PluginCatalogGeneration {
+        self.catalog_generation
+    }
+
     pub fn registrations(&self) -> &[RuntimePluginRegistrationReport] {
         &self.registrations
     }

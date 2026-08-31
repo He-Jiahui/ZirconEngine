@@ -17,15 +17,15 @@ use super::super::super::{geometry::contains, PanePointerRoute, PanePointerTarge
 use super::super::mode::PaneRouteMode;
 use super::super::target::pane_pointer_target_for_kind;
 
-pub(in super::super) fn pane_route_from_pane(
-    pane: &PaneData,
+pub(in super::super) fn pane_route_from_pane<'a>(
+    pane: &'a PaneData,
     content: &FrameRect,
     x: f32,
     y: f32,
-    surface_key: Option<&str>,
+    surface_key: Option<&'a str>,
     mode: PaneRouteMode,
     console_scroll_px: f32,
-) -> Option<PanePointerRoute> {
+) -> Option<PanePointerRoute<'a>> {
     if !contains(content, x, y) {
         return None;
     }

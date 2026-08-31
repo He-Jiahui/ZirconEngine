@@ -1,8 +1,7 @@
-use std::collections::BTreeMap;
-
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::ui::event_ui::UiNodeId;
+use crate::ui::surface::{UiPersistentSequence, UiPersistentSequenceCowStats};
 
 use super::UiContainerKind;
 
@@ -257,9 +256,9 @@ impl UiLayoutEngineSelection {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct UiLayoutEngineSelectionReport {
-    pub selections: Vec<UiLayoutEngineSelection>,
+    pub selections: UiPersistentSequence<UiLayoutEngineSelection>,
     pub request_count: u64,
     pub taffy_selected_count: u64,
     pub zircon_selected_count: u64,
@@ -269,6 +268,8 @@ pub struct UiLayoutEngineSelectionReport {
     pub taffy_tree_build_count: u64,
     pub taffy_tree_node_count: u64,
 }
+
+impl Eq for UiLayoutEngineSelectionReport {}
 
 impl<'de> Deserialize<'de> for UiLayoutEngineSelectionReport {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -291,7 +292,7 @@ impl<'de> Deserialize<'de> for UiLayoutEngineSelectionReport {
 
         let wire = WireReport::deserialize(deserializer)?;
         let mut report = Self {
-            selections: wire.selections,
+            selections: wire.selections.into(),
             request_count: wire.request_count,
             taffy_selected_count: wire.taffy_selected_count,
             zircon_selected_count: wire.zircon_selected_count,
@@ -309,7 +310,7 @@ impl<'de> Deserialize<'de> for UiLayoutEngineSelectionReport {
 impl UiLayoutEngineSelectionReport {
     pub fn from_selections(selections: Vec<UiLayoutEngineSelection>) -> Self {
         let mut report = Self {
-            selections,
+            selections: selections.into(),
             ..Self::default()
         };
         report.recompute_counts();
@@ -325,8 +326,6 @@ impl UiLayoutEngineSelectionReport {
         self.taffy_tree_build_count = 0;
         self.taffy_tree_node_count = 0;
         self.fallback_reason_counts.clear();
-        let mut fallback_reason_counts =
-            BTreeMap::<Option<UiLayoutEngineFallbackReason>, u64>::new();
 
         for selection in &self.selections {
             match selection.selected_backend {
@@ -339,9 +338,10 @@ impl UiLayoutEngineSelectionReport {
                 UiLayoutEngineSupport::Unsupported => self.unsupported_count += 1,
             }
             if selection.support != UiLayoutEngineSupport::Native {
-                *fallback_reason_counts
-                    .entry(selection.fallback_reason)
-                    .or_default() += 1;
+                Self::increment_fallback_reason_count(
+                    &mut self.fallback_reason_counts,
+                    selection.fallback_reason,
+                );
             }
             if let Some(stats) = selection.taffy_tree_build {
                 self.taffy_tree_build_count = self
@@ -351,11 +351,19 @@ impl UiLayoutEngineSelectionReport {
                     self.taffy_tree_node_count.saturating_add(stats.node_count);
             }
         }
+    }
 
-        self.fallback_reason_counts = fallback_reason_counts
-            .into_iter()
-            .map(|(reason, count)| UiLayoutEngineFallbackReasonCount { reason, count })
-            .collect();
+    fn increment_fallback_reason_count(
+        fallback_reason_counts: &mut Vec<UiLayoutEngineFallbackReasonCount>,
+        reason: Option<UiLayoutEngineFallbackReason>,
+    ) {
+        match fallback_reason_counts.binary_search_by_key(&reason, |entry| entry.reason) {
+            Ok(index) => fallback_reason_counts[index].count += 1,
+            Err(index) => fallback_reason_counts.insert(
+                index,
+                UiLayoutEngineFallbackReasonCount { reason, count: 1 },
+            ),
+        }
     }
 
     /// Replaces one stable node route while maintaining aggregate diagnostics in place.
@@ -367,55 +375,72 @@ impl UiLayoutEngineSelectionReport {
         index: usize,
         replacement: UiLayoutEngineSelection,
     ) -> bool {
-        let Some(previous) = self.selections.get(index).cloned() else {
-            return false;
-        };
-        if previous == replacement {
-            return true;
-        }
+        self.replace_selection_at_with_cow_stats(index, replacement)
+            .is_some()
+    }
 
-        let selected_count = match previous.selected_backend {
+    /// Replaces one stable node route and reports the persistent storage copied on write.
+    ///
+    /// Returns `None` under the same conditions that make [`Self::replace_selection_at`]
+    /// return `false`. An unchanged replacement succeeds with zero copy-on-write work.
+    pub fn replace_selection_at_with_cow_stats(
+        &mut self,
+        index: usize,
+        replacement: UiLayoutEngineSelection,
+    ) -> Option<UiPersistentSequenceCowStats> {
+        let Some(previous) = self.selections.get(index) else {
+            return None;
+        };
+        if previous == &replacement {
+            return Some(UiPersistentSequenceCowStats::default());
+        }
+        let previous_selected_backend = previous.selected_backend;
+        let previous_support = previous.support;
+        let previous_fallback_reason = previous.fallback_reason;
+        let previous_taffy_tree_build = previous.taffy_tree_build;
+
+        let selected_count = match previous_selected_backend {
             UiLayoutEngineBackend::Zircon => self.zircon_selected_count,
             UiLayoutEngineBackend::Taffy => self.taffy_selected_count,
         };
         if selected_count == 0 {
-            return false;
+            return None;
         }
-        let support_count = match previous.support {
+        let support_count = match previous_support {
             UiLayoutEngineSupport::Native => None,
             UiLayoutEngineSupport::Fallback => Some(self.fallback_count),
             UiLayoutEngineSupport::Unsupported => Some(self.unsupported_count),
         };
         if support_count.is_some_and(|count| count == 0) {
-            return false;
+            return None;
         }
-        let previous_reason_index = if previous.support == UiLayoutEngineSupport::Native {
+        let previous_reason_index = if previous_support == UiLayoutEngineSupport::Native {
             None
         } else {
             let Some(index) = self
                 .fallback_reason_counts
                 .iter()
-                .position(|entry| entry.reason == previous.fallback_reason && entry.count > 0)
+                .position(|entry| entry.reason == previous_fallback_reason && entry.count > 0)
             else {
-                return false;
+                return None;
             };
             Some(index)
         };
-        if let Some(stats) = previous.taffy_tree_build {
+        if let Some(stats) = previous_taffy_tree_build {
             if self.taffy_tree_build_count < stats.build_count
                 || self.taffy_tree_node_count < stats.node_count
                 || (stats.build_count > 0 && self.taffy_tree_build_count == u64::MAX)
                 || (stats.node_count > 0 && self.taffy_tree_node_count == u64::MAX)
             {
-                return false;
+                return None;
             }
         }
 
-        match previous.selected_backend {
+        match previous_selected_backend {
             UiLayoutEngineBackend::Zircon => self.zircon_selected_count -= 1,
             UiLayoutEngineBackend::Taffy => self.taffy_selected_count -= 1,
         }
-        match previous.support {
+        match previous_support {
             UiLayoutEngineSupport::Native => {}
             UiLayoutEngineSupport::Fallback => self.fallback_count -= 1,
             UiLayoutEngineSupport::Unsupported => self.unsupported_count -= 1,
@@ -426,7 +451,7 @@ impl UiLayoutEngineSelectionReport {
                 self.fallback_reason_counts.remove(index);
             }
         }
-        if let Some(stats) = previous.taffy_tree_build {
+        if let Some(stats) = previous_taffy_tree_build {
             self.taffy_tree_build_count -= stats.build_count;
             self.taffy_tree_node_count -= stats.node_count;
         }
@@ -441,19 +466,10 @@ impl UiLayoutEngineSelectionReport {
             UiLayoutEngineSupport::Unsupported => self.unsupported_count += 1,
         }
         if replacement.support != UiLayoutEngineSupport::Native {
-            match self
-                .fallback_reason_counts
-                .binary_search_by_key(&replacement.fallback_reason, |entry| entry.reason)
-            {
-                Ok(index) => self.fallback_reason_counts[index].count += 1,
-                Err(index) => self.fallback_reason_counts.insert(
-                    index,
-                    UiLayoutEngineFallbackReasonCount {
-                        reason: replacement.fallback_reason,
-                        count: 1,
-                    },
-                ),
-            }
+            Self::increment_fallback_reason_count(
+                &mut self.fallback_reason_counts,
+                replacement.fallback_reason,
+            );
         }
         if let Some(stats) = replacement.taffy_tree_build {
             self.taffy_tree_build_count = self
@@ -462,8 +478,12 @@ impl UiLayoutEngineSelectionReport {
             self.taffy_tree_node_count =
                 self.taffy_tree_node_count.saturating_add(stats.node_count);
         }
-        self.selections[index] = replacement;
-        true
+        let (selection, cow_stats) = self
+            .selections
+            .get_mut_with_stats(index)
+            .expect("validated layout selection index must remain present");
+        *selection = replacement;
+        Some(cow_stats)
     }
 }
 

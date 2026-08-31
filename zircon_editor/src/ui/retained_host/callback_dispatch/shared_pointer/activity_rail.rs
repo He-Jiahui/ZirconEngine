@@ -9,7 +9,7 @@ use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects,
 };
 
-use super::super::{dispatch_builtin_host_drawer_toggle, BuiltinHostWindowTemplateBridge};
+use super::super::dispatch_builtin_host_drawer_toggle;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedActivityRailPointerClickDispatch {
@@ -19,16 +19,19 @@ pub(crate) struct SharedActivityRailPointerClickDispatch {
 
 pub(crate) fn dispatch_shared_activity_rail_pointer_click(
     runtime: &EditorHostEventController,
-    template_bridge: &BuiltinHostWindowTemplateBridge,
     pointer_bridge: &mut HostActivityRailPointerBridge,
     side: HostActivityRailPointerSide,
     point: UiPoint,
 ) -> Result<SharedActivityRailPointerClickDispatch, String> {
     let pointer = pointer_bridge.handle_click(side, point)?;
-    let effects = match pointer.route.as_ref() {
+    let effects = match pointer.route {
         Some(HostActivityRailPointerRoute::Button {
-            slot, instance_id, ..
-        }) => dispatch_builtin_host_drawer_toggle(runtime, template_bridge, slot, instance_id)
+            side, item_index, ..
+        }) => pointer_bridge
+            .target_for_button(side, item_index)
+            .map(|(slot, instance_id)| {
+                dispatch_builtin_host_drawer_toggle(runtime, slot, instance_id)
+            })
             .transpose()?,
         _ => None,
     };

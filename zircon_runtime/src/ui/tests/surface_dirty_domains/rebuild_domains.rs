@@ -162,12 +162,14 @@ fn interaction_dirty_patches_only_the_changed_button() {
     assert_eq!(report.arranged_outer_node_visit_count, 1);
     assert_eq!(report.hit_grid_outer_node_visit_count, 1);
     assert_eq!(report.render_outer_node_visit_count, 1);
-    assert!(surface
-        .hit_test
-        .grid
-        .entries
-        .iter()
-        .any(|entry| entry.node_id == primary_id()));
+    assert!(
+        surface
+            .hit_test
+            .grid
+            .entries
+            .iter()
+            .any(|entry| entry.node_id == primary_id())
+    );
 }
 
 #[test]
@@ -196,16 +198,20 @@ fn pointer_event_eligibility_change_falls_back_and_removes_the_hit_entry() {
         report.hit_grid_outer_node_visit_count,
         surface.arranged_tree.draw_order.len()
     );
-    assert!(surface
-        .hit_test
-        .grid
-        .entries
-        .iter()
-        .all(|entry| entry.node_id != primary_id()));
-    assert!(surface
-        .hit_test
-        .grid
-        .entries
-        .iter()
-        .any(|entry| entry.node_id == sibling_id()));
+    assert!(
+        surface
+            .hit_test
+            .grid
+            .entries
+            .iter()
+            .all(|entry| entry.node_id != primary_id())
+    );
+    assert!(
+        surface
+            .hit_test
+            .grid
+            .entries
+            .iter()
+            .any(|entry| entry.node_id == sibling_id())
+    );
 }

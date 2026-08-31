@@ -1,24 +1,40 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use zircon_runtime_interface::ui::surface::{normalize_ui_text_language_tag, UiResolvedStyle};
+use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
 use crate::core::framework::text::TextFontFaceHandle;
 use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
 };
-use crate::text::sdf::{sdf_scalar_requires_atlas_slot, SdfBakeParams};
+use crate::text::{
+    sdf::{SdfBakeParams, sdf_scalar_requires_atlas_slot},
+    text_language_cache_identity,
+};
 
 use super::SdfAtlasGlyphKey;
 
+#[cfg(test)]
 pub(super) fn collect_sdf_atlas_text_keys(
     texts: &[ScreenSpaceUiTextBatch],
 ) -> (
     BTreeSet<SdfAtlasGlyphKey>,
     Vec<Vec<Option<SdfAtlasGlyphKey>>>,
 ) {
+    collect_sdf_atlas_text_keys_iter(texts.iter())
+}
+
+pub(super) fn collect_sdf_atlas_text_keys_iter<'a, Texts>(
+    texts: Texts,
+) -> (
+    BTreeSet<SdfAtlasGlyphKey>,
+    Vec<Vec<Option<SdfAtlasGlyphKey>>>,
+)
+where
+    Texts: IntoIterator<Item = &'a ScreenSpaceUiTextBatch>,
+{
     let mut unique_keys = BTreeSet::<SdfAtlasGlyphKey>::new();
-    let mut run_keys = Vec::with_capacity(texts.len());
+    let mut run_keys = Vec::new();
 
     for text in texts {
         let identity = SdfAtlasTextIdentity::new(text);
@@ -47,8 +63,7 @@ impl SdfAtlasTextIdentity {
         Self {
             font: text.font.as_deref().map(Arc::<str>::from),
             font_family: text.font_family.as_deref().map(Arc::<str>::from),
-            language: normalize_ui_text_language_tag(text.language.as_deref())
-                .map(Arc::<str>::from),
+            language: text_language_cache_identity(text.language.as_deref()).map(Arc::<str>::from),
         }
     }
 }
@@ -91,9 +106,9 @@ mod tests {
         UiTextWritingMode,
     };
 
-    use super::collect_sdf_atlas_text_keys;
+    use super::{collect_sdf_atlas_text_keys, collect_sdf_atlas_text_keys_iter};
     use crate::core::framework::text::{
-        TextFontFaceHandle, TextGlyph, TextGlyphFlags, TextGlyphRotation,
+        TextFontCollectionHandle, TextFontFaceHandle, TextGlyph, TextGlyphFlags, TextGlyphRotation,
     };
     use crate::graphics::scene::scene_renderer::ui::render::{
         ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiTextBatch, ScreenSpaceUiTextRouteIdentity,
@@ -101,12 +116,15 @@ mod tests {
     use crate::text::sdf::SdfMode;
     use crate::text::{ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine};
 
+    const TEST_FONT_COLLECTION: TextFontCollectionHandle = TextFontCollectionHandle::new(1);
+
     #[test]
     fn glyph_artifact_ligature_keys_match_the_text_owned_glyph_line() {
         let artifact = Arc::new(ResolvedTextGlyphArtifact {
             source_text: Arc::from("fi"),
             source_text_origin: 0,
             font_generation: 7,
+            font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
             style: UiResolvedStyle::default(),
             writing_mode: UiTextWritingMode::HorizontalTb,
             lines: vec![Some(ResolvedTextGlyphArtifactLine {
@@ -117,8 +135,8 @@ mod tests {
                     advance: 12.0,
                     position: [0.0, 0.0],
                     offset: [0.0, 0.0],
-                    font_face: Some(TextFontFaceHandle::new(3, 5)),
-                    font_instance: Some(TextFontFaceHandle::new(4, 6)),
+                    font_face: Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 3, 5)),
+                    font_instance: Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 4, 6)),
                     rotation: TextGlyphRotation::None,
                     bidi_level: 0,
                     flags: TextGlyphFlags::default(),
@@ -126,6 +144,7 @@ mod tests {
                 }],
                 layout_line: UiResolvedTextLine {
                     text: "fi".to_string(),
+                    placement_frame: UiFrame::default(),
                     frame: UiFrame::new(0.0, 0.0, 12.0, 20.0),
                     source_range: UiTextRange { start: 0, end: 2 },
                     visual_range: UiTextRange { start: 0, end: 1 },
@@ -137,6 +156,7 @@ mod tests {
                     ellipsized: false,
                 },
             })],
+            logical_virtual_line_sequences: None,
         });
         let text = ScreenSpaceUiTextBatch {
             route_identity: ScreenSpaceUiTextRouteIdentity::new(
@@ -157,8 +177,8 @@ mod tests {
             glyph_artifact_line: Some(ScreenSpaceUiGlyphArtifactLine {
                 artifact,
                 line_index: 0,
-                refreshed_line: None,
                 font_generation: 7,
+                glyph_range: 0..1,
             }),
             layout_error: None,
             color: [1.0, 1.0, 1.0, 1.0],
@@ -181,16 +201,28 @@ mod tests {
             clip_transform: None,
         };
 
-        let (unique_keys, runs) = collect_sdf_atlas_text_keys(&[text]);
+        let (unique_keys, runs) = collect_sdf_atlas_text_keys(std::slice::from_ref(&text));
+        let empty: &[ScreenSpaceUiTextBatch] = &[];
+        let segments = [empty, std::slice::from_ref(&text), empty];
+        let (segmented_unique_keys, segmented_runs) =
+            collect_sdf_atlas_text_keys_iter(segments.into_iter().flatten());
 
         assert_eq!(runs.len(), 1);
         assert_eq!(runs[0].len(), 1);
         let key = runs[0][0].as_ref().expect("ligature needs an atlas key");
         assert_eq!(key.glyph, 'f');
         assert_eq!(key.glyph_id, Some(0xfb01));
-        assert_eq!(key.font_id, Some(TextFontFaceHandle::new(3, 5)));
-        assert_eq!(key.font_instance_id, Some(TextFontFaceHandle::new(4, 6)));
+        assert_eq!(
+            key.font_id,
+            Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 3, 5))
+        );
+        assert_eq!(
+            key.font_instance_id,
+            Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 4, 6))
+        );
         assert_eq!(unique_keys.len(), 1);
+        assert_eq!(segmented_unique_keys, unique_keys);
+        assert_eq!(segmented_runs, runs);
     }
 }
 

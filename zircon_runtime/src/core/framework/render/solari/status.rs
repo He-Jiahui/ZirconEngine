@@ -1,6 +1,8 @@
 use super::super::{RenderCapabilityMismatchDetail, RenderCapabilitySummary};
 use super::{SolariCapabilityRequirement, SolariSettings};
 
+const SOLARI_MAX_DEGRADATION_COUNT: usize = SolariCapabilityRequirement::ALL.len() + 3;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SolariRuntimeStatus {
     NotRequested,
@@ -153,7 +155,7 @@ impl SolariRuntimeReport {
             };
         }
 
-        let mut degradations = Vec::new();
+        let mut degradations = Vec::with_capacity(SOLARI_MAX_DEGRADATION_COUNT);
         for requirement in SolariCapabilityRequirement::ALL {
             let capability = requirement.capability_kind();
             if !capability.is_satisfied_by(capabilities) {
@@ -316,3 +318,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "status/preallocated_degradations_tests.rs"]
+mod preallocated_degradations_tests;

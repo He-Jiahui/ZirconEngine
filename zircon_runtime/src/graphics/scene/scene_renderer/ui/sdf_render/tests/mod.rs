@@ -1,11 +1,10 @@
 use super::super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadPageReport};
 use super::super::text_pixel_snap::text_frame_device_origin;
 use super::vertices::{
-    aligned_text_start_x, build_sdf_vertices, horizontal_sdf_glyph_frame,
-    horizontal_shaped_sdf_glyph_frame, pixel_to_ndc_x, pixel_to_ndc_y, resolve_sdf_glyph_advances,
-    resolve_vertical_sdf_glyph_advances, sdf_screen_px_range, sdf_uv_at_destination,
-    vertical_sdf_glyph_frame, vertical_shaped_sdf_glyph_frame, RunGlyph, SdfUvRect,
-    SDF_TEXT_PRIMITIVE_GLYPH,
+    RunGlyph, SDF_TEXT_PRIMITIVE_GLYPH, SdfUvRect, aligned_text_start_x, build_sdf_vertices,
+    horizontal_sdf_glyph_frame, horizontal_shaped_sdf_glyph_frame, pixel_to_ndc_x, pixel_to_ndc_y,
+    resolve_sdf_glyph_advances, resolve_vertical_sdf_glyph_advances, sdf_screen_px_range,
+    sdf_uv_at_destination, vertical_sdf_glyph_frame, vertical_shaped_sdf_glyph_frame,
 };
 use super::*;
 use crate::asset::ProjectAssetManager;
@@ -13,22 +12,22 @@ use crate::core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation}
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiGlyphArtifactLine;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
-    plan_sdf_atlas, SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasPlan,
-    SdfAtlasRun,
+    SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasPlan, SdfAtlasRun,
+    plan_sdf_atlas,
 };
+use crate::text::TextRenderState;
 use crate::text::atlas::{
     GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet, GlyphRasterPlacement,
     GlyphSmoothingMode,
 };
 use crate::text::font::{FontDatabase, SystemFontPolicy};
 use crate::text::sdf::{
-    scale_sdf_metrics_for_display, SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph,
-    SdfFontBakeCache, SdfGlyphMetrics,
+    SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics,
+    scale_sdf_metrics_for_display,
 };
 use crate::text::sdf::{SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot};
 use crate::text::sdf::{SdfBakeParams, SdfMode};
 use crate::text::shaping::vertical_glyph_rotation;
-use crate::text::TextRenderState;
 use crate::text::{ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, VerticalMode};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
@@ -135,6 +134,8 @@ fn synthetic_layered_bake(plan: &SdfAtlasPlan) -> SdfAtlasBake {
             resident_font_count: 0,
             loaded_font_count: 0,
             generation_failure_count: 0,
+            resident_font_asset_error_count: 0,
+            resident_font_asset_no_registered_faces_count: 0,
             r8_byte_len: plan.atlas_size.x as usize * plan.atlas_size.y as usize * 2,
             rgba_byte_len: 0,
             offline_glyph_count: 0,
@@ -291,16 +292,17 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
 }
 
 #[test]
-fn refreshed_artifact_line_emits_rotated_sdf_vertices() {
+fn text_owned_artifact_line_emits_rotated_sdf_vertices() {
     let artifact = std::sync::Arc::new(ResolvedTextGlyphArtifact {
         source_text: std::sync::Arc::from("fi"),
         source_text_origin: 0,
         font_generation: 7,
+        font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
         style: UiResolvedStyle::default(),
         writing_mode: UiTextWritingMode::VerticalRl,
         lines: vec![Some(ResolvedTextGlyphArtifactLine {
             glyphs: vec![TextGlyph {
-                glyph_id: 0xfb01,
+                glyph_id: 0xfb02,
                 source_range: 0..2,
                 visual_range: 0..1,
                 advance: 24.0,
@@ -308,13 +310,14 @@ fn refreshed_artifact_line_emits_rotated_sdf_vertices() {
                 offset: [0.0, 0.0],
                 font_face: None,
                 font_instance: None,
-                rotation: TextGlyphRotation::None,
+                rotation: TextGlyphRotation::Clockwise90,
                 bidi_level: 0,
                 flags: TextGlyphFlags::default(),
                 requires_rasterization: true,
             }],
             layout_line: UiResolvedTextLine {
                 text: "fi".to_string(),
+                placement_frame: UiFrame::default(),
                 frame: UiFrame::new(16.0, 16.0, 40.0, 40.0),
                 source_range: UiTextRange { start: 0, end: 2 },
                 visual_range: UiTextRange { start: 0, end: 1 },
@@ -326,38 +329,16 @@ fn refreshed_artifact_line_emits_rotated_sdf_vertices() {
                 ellipsized: false,
             },
         })],
+        logical_virtual_line_sequences: None,
     });
-    let refreshed_line = ResolvedTextGlyphArtifactLine {
-        glyphs: vec![TextGlyph {
-            glyph_id: 0xfb02,
-            source_range: 0..2,
-            visual_range: 0..1,
-            advance: 24.0,
-            position: [0.0, 0.0],
-            offset: [0.0, 0.0],
-            font_face: None,
-            font_instance: None,
-            rotation: TextGlyphRotation::Clockwise90,
-            bidi_level: 0,
-            flags: TextGlyphFlags::default(),
-            requires_rasterization: true,
-        }],
-        layout_line: artifact
-            .lines
-            .first()
-            .and_then(Option::as_ref)
-            .expect("original artifact line")
-            .layout_line
-            .clone(),
-    };
     let mut text = text_batch("fi", UiFrame::new(16.0, 16.0, 40.0, 40.0));
     text.writing_mode = UiTextWritingMode::VerticalRl;
     text.glyph_advances = vec![24.0];
     text.glyph_artifact_line = Some(ScreenSpaceUiGlyphArtifactLine {
         artifact,
         line_index: 0,
-        refreshed_line: Some(std::sync::Arc::new(refreshed_line)),
-        font_generation: 8,
+        font_generation: 7,
+        glyph_range: 0..1,
     });
 
     let plan = synthetic_layered_plan(0);

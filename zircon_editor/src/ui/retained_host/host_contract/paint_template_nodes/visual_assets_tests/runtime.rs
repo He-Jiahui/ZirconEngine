@@ -6,9 +6,9 @@ use zircon_runtime_interface::ui::surface::UiVisualAssetRef;
 fn runtime_svg_icon_pixels_follow_requested_target_size() {
     let icon = UiVisualAssetRef::Icon("folder-open-outline".to_string());
 
-    let small = load_visual_asset_pixels_for_size(&icon, 16, 16)
+    let small = load_visual_asset_pixels_for_size(&icon, 16, 16, None)
         .expect("runtime SVG icon should render at a requested small size");
-    let large = load_visual_asset_pixels_for_size(&icon, 48, 48)
+    let large = load_visual_asset_pixels_for_size(&icon, 48, 48, None)
         .expect("runtime SVG icon should render at a requested large size");
 
     assert_eq!((small.width, small.height), (16, 16));
@@ -51,11 +51,14 @@ fn toolbar_shell_svg_icons_load_as_real_pixels() {
         "zircon_editor_shell/viewport/crosshair.svg",
         "zircon_editor_shell/status/disabled.svg",
     ] {
-        let pixels =
-            load_existing_icon_asset_pixels_for_size(icon_name, 20, 20, Some([203, 210, 220, 255]))
-                .unwrap_or_else(|| {
-                    panic!("{icon_name} should load as an existing toolbar SVG icon")
-                });
+        let pixels = load_existing_icon_asset_pixels_for_size(
+            icon_name,
+            20,
+            20,
+            Some([203, 210, 220, 255]),
+            None,
+        )
+        .unwrap_or_else(|| panic!("{icon_name} should load as an existing toolbar SVG icon"));
 
         assert_eq!((pixels.width, pixels.height), (20, 20));
         assert!(
@@ -130,11 +133,14 @@ fn semantic_shell_icon_aliases_load_as_real_pixels() {
         "asset-ui-widget",
         "asset-ui-style",
     ] {
-        let pixels =
-            load_existing_icon_asset_pixels_for_size(icon_name, 18, 18, Some([203, 210, 220, 255]))
-                .unwrap_or_else(|| {
-                    panic!("{icon_name} semantic alias should resolve to a shell SVG icon")
-                });
+        let pixels = load_existing_icon_asset_pixels_for_size(
+            icon_name,
+            18,
+            18,
+            Some([203, 210, 220, 255]),
+            None,
+        )
+        .unwrap_or_else(|| panic!("{icon_name} semantic alias should resolve to a shell SVG icon"));
 
         assert_eq!((pixels.width, pixels.height), (18, 18));
         assert!(

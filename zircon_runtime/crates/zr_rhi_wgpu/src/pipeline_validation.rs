@@ -6,7 +6,7 @@ use zr_rhi::{
     VertexBufferLayoutDesc, VertexInputLayoutDesc,
 };
 
-pub(super) trait PipelineResourceLookup {
+pub(crate) trait PipelineResourceLookup {
     fn bind_group_layout_exists(&self, handle: BindGroupLayoutHandle) -> bool;
     fn pipeline_layout_desc(
         &self,
@@ -16,7 +16,7 @@ pub(super) trait PipelineResourceLookup {
         -> Result<&ShaderModuleDesc, RhiError>;
 }
 
-pub(super) fn validate_shader_module_desc(desc: &ShaderModuleDesc) -> Result<(), RhiError> {
+pub(crate) fn validate_shader_module_desc(desc: &ShaderModuleDesc) -> Result<(), RhiError> {
     if desc.source.trim().is_empty() {
         return Err(RhiError::InvalidShaderModuleDescriptor {
             label: desc.label.clone(),
@@ -32,19 +32,19 @@ pub(super) fn validate_shader_module_desc(desc: &ShaderModuleDesc) -> Result<(),
     Ok(())
 }
 
-pub(super) fn validate_pipeline_layout_desc(
+pub(crate) fn validate_pipeline_layout_desc(
     lookup: &impl PipelineResourceLookup,
     desc: &PipelineLayoutDesc,
 ) -> Result<(), RhiError> {
     let mut seen = BTreeSet::new();
     for layout in &desc.bind_group_layouts {
         if !lookup.bind_group_layout_exists(*layout) {
-            return Err(RhiError::UnknownBindGroupLayout(layout.raw()));
+            return Err(RhiError::UnknownBindGroupLayout(layout.diagnostic_id()));
         }
-        if !seen.insert(layout.raw()) {
+        if !seen.insert(layout.diagnostic_id()) {
             return Err(RhiError::InvalidPipelineLayoutDescriptor {
                 label: desc.label.clone(),
-                reason: format!("duplicate bind group layout `{}`", layout.raw()),
+                reason: format!("duplicate bind group layout `{}`", layout.diagnostic_id()),
             });
         }
     }
@@ -52,7 +52,7 @@ pub(super) fn validate_pipeline_layout_desc(
     Ok(())
 }
 
-pub(super) fn validate_pipeline_desc(
+pub(crate) fn validate_pipeline_desc(
     lookup: &impl PipelineResourceLookup,
     desc: &PipelineDesc,
 ) -> Result<(), RhiError> {
@@ -278,7 +278,7 @@ fn require_shader_stage(
             label: pipeline.label.clone(),
             reason: format!(
                 "shader `{}` stage {:?} does not match required stage {:?}",
-                shader.raw(),
+                shader.diagnostic_id(),
                 shader_desc.stage,
                 expected_stage
             ),

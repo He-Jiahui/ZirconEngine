@@ -7,7 +7,7 @@ related_code:
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_app/src/plugins/mod.rs
   - zircon_runtime/src/prelude.rs
-  - zircon_runtime/src/core/framework/state/mod.rs
+  - zircon_runtime/src/core/runtime/state_machine/mod.rs
 implementation_files:
   - zircon_app/src/prelude.rs
   - zircon_app/src/lib.rs
@@ -33,7 +33,7 @@ doc_type: module-detail
 
 ## Ownership Boundary
 
-- `zircon_app` owns process entry selection, `EntryConfig`, `EntryProfile`, `BuiltinEngineEntry`, `EntryRunner`, and plugin group composition.
+- `zircon_app` owns process entry selection, `EntryConfig`, `EntryProfile`, `ProductCompositionRequest`, `ProductComposition`, `EntryRunner`, and plugin group composition. The lower `BuiltinEngineEntry` compiler is crate-private so callers cannot detach a cloneable Core handle from its plugin owners.
 - `zircon_runtime` owns lifecycle, module descriptors, runtime profiles, state contracts, diagnostics, time contracts, and concrete runtime modules.
 - `zircon_app::prelude` re-exports `zircon_runtime::prelude::*` but does not move runtime ownership into the app crate.
 
@@ -43,7 +43,7 @@ This mirrors the Bevy convention of an application-level prelude while preservin
 
 The app prelude exports:
 
-- entry types: `BuiltinEngineEntry`, `EngineEntry`, `EntryConfig`, `EntryProfile`, `EntryRunMode`, `EntryRunner`, `EntryModuleSelection`, `EntryModuleSelectionReport`, base and provider-aware runner-level module selection diagnostics, and `NativePluginRuntimeBootstrap`,
+- entry types: `EntryConfig`, `ResolvedProductHostConfig`, `EntryProfile`, `EntryRunMode`, `EntryRunner`, `EntryModuleSelection`, `EntryModuleSelectionReport`, `ProductCompositionRequest`, `ProductComposition`, `ProductExitClass`, `ProductProcessExitCode`, and product config/provenance types,
 - plugin group types: `PluginGroup`, `PluginGroupBuilder`, `PluginGroupError`, `ResolvedPluginGroup`, `MinimalPlugins`, `DefaultPlugins`, `DevPlugins`, and `HeadlessPlugins`,
 - all stable runtime prelude exports through `zircon_runtime::prelude::*`, including M3 state contracts owned by `zircon_runtime::core::framework::state`.
 
@@ -53,7 +53,7 @@ The app prelude does not re-export editor internals, runtime presenter details, 
 
 ## Validation
 
-`zircon_app/src/tests/prelude.rs` imports only `crate::prelude::*` and verifies that entry construction, module selection diagnostics, platform monitor-inventory/window-event/window-lifecycle/window-metrics/IME/keyboard-events/cursor-boundary/cursor-options/mouse-buttons/mouse-wheel/touch-events/pointer-position/raw-mouse-motion/gamepad-events/gamepad-rumble diagnostic lines, base and first-party provider-aware runner-level module selection diagnostics, built-in plugin groups, custom plugin group construction, runtime state contracts, and runtime prelude foundations are available through the app surface.
+`zircon_app/src/tests/prelude.rs` imports only `crate::prelude::*` and verifies that entry construction, the unified product composition request, module selection diagnostics, product config provenance, platform diagnostics, built-in plugin groups, custom plugin group construction, runtime state contracts, and runtime prelude foundations are available through the app surface.
 
 Fresh M2 validation evidence from 2026-05-08:
 
@@ -64,3 +64,5 @@ Fresh M3 state update evidence from 2026-05-08:
 
 - App prelude source and test imports were updated to include runtime-owned state contracts through `zircon_runtime::prelude::*`.
 - `cargo check -p zircon_app --lib --locked --message-format short` is currently blocked by active `zircon_runtime::asset::importer` migration errors before app prelude validation can execute.
+
+The 2026-08-27 composition hard cut replaced the detachable native bootstrap result and provider-specific runner permutations with `ProductCompositionRequest` and `ProductComposition`. `EngineEntry`, `BuiltinEngineEntry`, and the composition's Core borrow are crate-private; the prelude cannot be used to clone Core away from the owners retained by the product composition. The same slice exposes a typed process-exit policy: semantic host failures converge to portable code `1`, success is `0`, and an explicit command result preserves any nonzero `u8` code. Rust 1.94 formatting and scoped static checks passed; managed Cargo validation for the new public surface remains pending.

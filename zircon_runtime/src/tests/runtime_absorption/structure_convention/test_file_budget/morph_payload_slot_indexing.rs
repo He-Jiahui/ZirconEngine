@@ -53,7 +53,7 @@ fn runtime_15_morph_payload_slot_indexing_is_wired() {
             "[wgpu::BindGroupLayoutEntry; 12]",
             "morph_payloads_buffer",
             "morph_payloads_shadow",
-            "upload_morph_buffers",
+            "prepare_morph_buffers",
             "payload_count",
         ],
     );

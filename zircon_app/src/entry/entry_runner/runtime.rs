@@ -26,6 +26,9 @@ use super::runtime_session_args::{
 };
 use super::EntryRunner;
 use crate::entry::cli::parse_diagnostic_log_startup_args;
+use crate::entry::product_shutdown::{
+    ProductFailureLedger, ProductFailureReport, ProductFailureSeverity, ProductHostPhase,
+};
 
 const RUNTIME_EXIT_AFTER_FIRST_FRAME_ENV: &str = "ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME";
 const RUNTIME_EXIT_AFTER_PRESENTED_FRAMES_ENV: &str = "ZIRCON_RUNTIME_EXIT_AFTER_PRESENTED_FRAMES";
@@ -309,42 +312,32 @@ fn runtime_process_teardown_complete_diagnostic() -> &'static str {
 
 fn finish_runtime_process(
     requested: impl Into<String>,
-    event_loop_failure: Option<Box<dyn Error>>,
-    runtime_app_failure: Option<Box<dyn Error>>,
-    runtime_session_failure: Option<Box<dyn Error>>,
+    failure_report: ProductFailureReport,
 ) -> Result<(), Box<dyn Error>> {
-    let mut failures = Vec::with_capacity(3);
-    if let Some(failure) = event_loop_failure {
-        failures.push(("event_loop", failure));
-    }
-    if let Some(failure) = runtime_app_failure {
-        failures.push(("runtime_app", failure));
-    }
-    if let Some(failure) = runtime_session_failure {
-        failures.push(("runtime_session", failure));
-    }
-
-    if failures.is_empty() {
+    if failure_report.is_empty() {
         return Ok(());
     }
-    if failures.len() == 1 {
-        if let Some((_, failure)) = failures.pop() {
-            return Err(failure);
-        }
-    }
-
-    let causes = failures
-        .iter()
-        .map(|(component, failure)| format!("{component}: {failure}"))
-        .collect::<Vec<_>>()
-        .join(" | ");
     Err(runtime_startup_execution_error(
         "runtime_process",
         requested,
-        format!("multiple terminal failures: {causes}"),
+        format!("terminal failure ledger: {failure_report}"),
         "inspect every reported terminal failure, repair the lowest runtime owner, and restart zircon_runtime",
     )
     .into())
+}
+
+fn record_runtime_terminal_report_failure(
+    failures: &ProductFailureLedger,
+    result: Result<(), Box<dyn Error>>,
+) {
+    if let Err(error) = result {
+        failures.record(
+            ProductHostPhase::FlushingDiagnostics,
+            ProductFailureSeverity::Terminal,
+            "runtime_play_report",
+            error,
+        );
+    }
 }
 
 impl EntryRunner {
@@ -510,6 +503,7 @@ impl EntryRunner {
             }
         };
         let session_teardown_failure = session.teardown_failure_state();
+        let product_failure_ledger = session_teardown_failure.failure_ledger();
         zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_session_create_done");
         report_play_startup(
             play_reporter.as_ref(),
@@ -522,9 +516,11 @@ impl EntryRunner {
                 presented_frame_exit_limit,
             )
             .with_persisted_scene_diagnostics(project_root.is_some())
+            .with_reference_cpu_presenter(runtime_session_args.reference_cpu_presenter)
             .with_first_frame_capture_path(first_frame_capture_path);
-        let failure_state = RuntimeEntryAppFailureState::default();
-        let app = RuntimeEntryApp::new(session, host_config, failure_state.clone());
+        let failure_state =
+            RuntimeEntryAppFailureState::with_failure_ledger(product_failure_ledger.clone());
+        let app = RuntimeEntryApp::new(session, host_config, failure_state);
         let result = event_loop.run_app(app);
         #[cfg(feature = "profiling")]
         if profile_capture.is_some() {
@@ -534,46 +530,35 @@ impl EntryRunner {
                 None => {}
             }
         }
-        let event_loop_failure = result.err().map(|error| {
-            Box::new(runtime_startup_execution_error(
+        if let Err(error) = result {
+            product_failure_ledger.record(
+                ProductHostPhase::Running,
+                ProductFailureSeverity::Terminal,
                 "runtime_event_loop",
-                "runtime_event_loop",
-                format!("event loop execution failed: {error}"),
-                "restart zircon_runtime and inspect the preceding runtime diagnostics",
-            )) as Box<dyn Error>
-        });
-        let runtime_app_failure = failure_state
-            .take()
-            .map(|failure| Box::new(failure) as Box<dyn Error>);
-        let runtime_session_failure = session_teardown_failure.take().map(|error| {
-            Box::new(runtime_startup_execution_error(
-                "runtime_session",
-                runtime_session_startup_request(
-                    runtime_session_args.profile,
-                    project_root.as_ref(),
+                runtime_startup_execution_error(
+                    "runtime_event_loop",
+                    "runtime_event_loop",
+                    format!("event loop execution failed: {error}"),
+                    "restart zircon_runtime and inspect the preceding runtime diagnostics",
                 ),
-                format!(
-                    "runtime session teardown failed: {}",
-                    runtime_project_diagnostic_cause(project_root.as_ref(), error)
-                ),
-                "verify the runtime surface and session lifecycle, then restart zircon_runtime",
-            )) as Box<dyn Error>
-        });
-        let terminal_result = finish_runtime_process(
-            runtime_session_startup_request(runtime_session_args.profile, project_root.as_ref()),
-            event_loop_failure,
-            runtime_app_failure,
-            runtime_session_failure,
-        );
-        report_play_startup(
+            );
+        }
+        let terminal_status = if product_failure_ledger.is_empty() {
+            "status=ok"
+        } else {
+            "status=failed"
+        };
+        let terminal_report_result = report_play_startup(
             play_reporter.as_ref(),
             PlayStartupReportPhase::Terminal,
-            if terminal_result.is_ok() {
-                "status=ok"
-            } else {
-                "status=failed"
-            },
-        )?;
+            terminal_status,
+        );
+        record_runtime_terminal_report_failure(&product_failure_ledger, terminal_report_result);
+        let failure_report = product_failure_ledger.snapshot();
+        let terminal_result = finish_runtime_process(
+            runtime_session_startup_request(runtime_session_args.profile, project_root.as_ref()),
+            failure_report,
+        );
         terminal_result?;
         zircon_runtime::diagnostic_log::write_log(
             "runtime_app",
@@ -937,33 +922,93 @@ mod tests {
             "event loop execution failed: host closed unexpectedly",
             "restart zircon_runtime and inspect the preceding runtime diagnostics",
         );
-        let error = finish_runtime_process(
-            "profile=runtime project=<none>",
-            Some(Box::new(failure)),
-            None,
-            None,
-        )
-        .unwrap_err();
-
-        assert_eq!(
-            error.to_string(),
-            "runtime startup diagnostic: component=runtime_event_loop requested=runtime_event_loop cause=event loop execution failed: host closed unexpectedly recovery=restart zircon_runtime and inspect the preceding runtime diagnostics"
+        let failures = crate::entry::product_shutdown::ProductFailureLedger::default();
+        failures.record(
+            ProductHostPhase::Running,
+            ProductFailureSeverity::Terminal,
+            "runtime_event_loop",
+            failure,
         );
+        let error = finish_runtime_process("profile=runtime project=<none>", failures.snapshot())
+            .unwrap_err();
+
+        let diagnostic = error.to_string();
+        assert!(diagnostic.contains("component=runtime_process"));
+        assert!(diagnostic.contains("recorded=1 suppressed=0"));
+        assert!(diagnostic.contains("owner=runtime_event_loop"));
+        assert!(diagnostic.contains("event loop execution failed: host closed unexpectedly"));
     }
 
     #[test]
     fn runtime_process_finish_preserves_all_terminal_failures() {
+        let failures = crate::entry::product_shutdown::ProductFailureLedger::default();
+        for (phase, owner, message) in [
+            (ProductHostPhase::Running, "event_loop", "event loop failed"),
+            (
+                ProductHostPhase::Running,
+                "runtime_app",
+                "frame callback failed",
+            ),
+            (
+                ProductHostPhase::DestroyingRuntime,
+                "runtime_session",
+                "session destroy failed",
+            ),
+        ] {
+            failures.record(phase, ProductFailureSeverity::Terminal, owner, message);
+        }
         let error = finish_runtime_process(
             "profile=runtime project=C:/projects/basic",
-            Some(Box::new(std::io::Error::other("event loop failed"))),
-            Some(Box::new(std::io::Error::other("frame callback failed"))),
-            Some(Box::new(std::io::Error::other("session destroy failed"))),
+            failures.snapshot(),
         )
         .unwrap_err();
 
+        let diagnostic = error.to_string();
+        assert!(diagnostic.contains("recorded=3 suppressed=0"));
+        assert!(diagnostic.contains("sequence=0 phase=running"));
+        assert!(diagnostic.contains("owner=event_loop message=event loop failed"));
+        assert!(diagnostic.contains("owner=runtime_app message=frame callback failed"));
+        assert!(diagnostic.contains(
+            "phase=destroying_runtime severity=terminal owner=runtime_session message=session destroy failed"
+        ));
+    }
+
+    #[test]
+    fn terminal_report_failure_is_secondary_to_an_existing_runtime_failure() {
+        let failures = crate::entry::product_shutdown::ProductFailureLedger::default();
+        failures.record(
+            ProductHostPhase::Running,
+            ProductFailureSeverity::Terminal,
+            "runtime_event_loop",
+            "event loop failed",
+        );
+
+        record_runtime_terminal_report_failure(
+            &failures,
+            Err(std::io::Error::other("terminal report write failed").into()),
+        );
+
+        let report = failures.snapshot();
+        assert_eq!(report.primary().unwrap().owner(), "runtime_event_loop");
+        assert_eq!(report.secondary()[0].owner(), "runtime_play_report");
         assert_eq!(
-            error.to_string(),
-            "runtime startup diagnostic: component=runtime_process requested=profile=runtime project=C:/projects/basic cause=multiple terminal failures: event_loop: event loop failed | runtime_app: frame callback failed | runtime_session: session destroy failed recovery=inspect every reported terminal failure, repair the lowest runtime owner, and restart zircon_runtime"
+            report.secondary()[0].phase(),
+            ProductHostPhase::FlushingDiagnostics
+        );
+    }
+
+    #[test]
+    fn terminal_report_failure_becomes_primary_when_runtime_teardown_succeeded() {
+        let failures = crate::entry::product_shutdown::ProductFailureLedger::default();
+
+        record_runtime_terminal_report_failure(
+            &failures,
+            Err(std::io::Error::other("terminal report write failed").into()),
+        );
+
+        assert_eq!(
+            failures.snapshot().primary().unwrap().owner(),
+            "runtime_play_report"
         );
     }
 

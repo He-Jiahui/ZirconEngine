@@ -8,6 +8,10 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::super::ProjectCatalogInputGeneration;
+use super::super::{
+    ProjectReferenceDiagnostic, ProjectReferenceDiagnosticPhase, ProjectReferenceDiagnosticsEvent,
+    ProjectReferenceDiagnosticsSnapshot,
+};
 
 impl ProjectManager {
     pub fn manifest(&self) -> &ProjectManifest {
@@ -24,6 +28,11 @@ impl ProjectManager {
 
     pub fn asset_registry(&self) -> &AssetRegistryIndex {
         &self.asset_registry
+    }
+
+    /// Returns the immutable registry generation used by Runtime and Editor projections.
+    pub fn asset_registry_shared(&self) -> Arc<AssetRegistryIndex> {
+        Arc::clone(&self.asset_registry)
     }
 
     pub(crate) fn source_resource_records(
@@ -43,6 +52,24 @@ impl ProjectManager {
 
     pub fn catalog_input_generation(&self) -> Arc<ProjectCatalogInputGeneration> {
         Arc::clone(&self.catalog_input_generation)
+    }
+
+    pub(crate) fn replace_reference_diagnostics(
+        &self,
+        document: crate::asset::AssetUri,
+        phase: ProjectReferenceDiagnosticPhase,
+        diagnostics: Vec<ProjectReferenceDiagnostic>,
+    ) -> ProjectReferenceDiagnosticsEvent {
+        self.reference_diagnostics
+            .replace_document(document, phase, diagnostics)
+    }
+
+    pub fn reference_diagnostics(&self) -> ProjectReferenceDiagnosticsSnapshot {
+        self.reference_diagnostics.snapshot()
+    }
+
+    pub fn latest_reference_diagnostics_event(&self) -> Option<ProjectReferenceDiagnosticsEvent> {
+        self.reference_diagnostics.latest_event()
     }
 
     pub fn project_asset_roots(&self) -> &[std::path::PathBuf] {

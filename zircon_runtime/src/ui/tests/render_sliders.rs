@@ -2,7 +2,7 @@ use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
-    layout::UiFrame,
+    layout::{UiFrame, UiPixelSnappingPolicy},
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, MAX_UI_SLIDER_TICK_COUNT},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
@@ -124,6 +124,52 @@ tick_count = 5
             .count(),
         1
     );
+}
+
+#[test]
+fn render_extract_preserves_fractional_slider_geometry_when_snapping_is_disabled() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.sliders.fractional-geometry",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/slider"))
+                .with_frame(UiFrame::new(8.25, 12.5, 240.5, 30.25))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "RangeField".to_string(),
+                    pixel_snapping: UiPixelSnappingPolicy::Disabled,
+                    attributes: toml::from_str("value_percent = 0.375").unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let thumb = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2)
+                && command.kind == UiRenderCommandKind::Quad
+                && command.frame.width == 8.0
+                && command.frame.height == 8.0
+                && command.style.background_color.as_deref() == Some("#e8ecee")
+        })
+        .expect("fractional slider should emit its primary thumb");
+
+    assert!(frame_approx(thumb.frame, 76.1875, 23.625, 8.0, 8.0));
+    assert_eq!(thumb.style.pixel_snapping, UiPixelSnappingPolicy::Disabled);
 }
 
 #[test]

@@ -8,19 +8,54 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
+const CHROME_ROOT_SOURCE: &str = include_str!("../surface/render/chrome.rs");
+const CHROME_OWNER_SOURCE: &str = concat!(
+    include_str!("../surface/render/chrome.rs"),
+    include_str!("../surface/render/chrome/commands.rs"),
+    include_str!("../surface/render/chrome/content.rs"),
+    include_str!("../surface/render/chrome/metadata.rs"),
+    include_str!("../surface/render/chrome/metrics.rs"),
+    include_str!("../surface/render/chrome/state.rs"),
+    include_str!("../surface/render/chrome/style.rs"),
+);
+
 #[test]
 fn chrome_separator_parsing_does_not_allocate_lowercase_text() {
-    let source = include_str!("../surface/render/chrome.rs");
-
-    assert!(!source.contains("to_ascii_lowercase"));
-    assert!(source.contains("EditorDesignTokens"));
-    assert!(!source.contains("const SURFACE_RAISED"));
-    assert!(!source.contains("const FONT_SIZE"));
+    assert!(!CHROME_OWNER_SOURCE.contains("to_ascii_lowercase"));
+    assert!(CHROME_OWNER_SOURCE.contains("EditorDesignTokens"));
+    assert!(!CHROME_OWNER_SOURCE.contains("const SURFACE_RAISED"));
+    assert!(!CHROME_OWNER_SOURCE.contains("const FONT_SIZE"));
+    for child in [
+        "mod commands;",
+        "mod content;",
+        "mod metadata;",
+        "mod metrics;",
+        "mod state;",
+        "mod style;",
+    ] {
+        assert!(
+            CHROME_ROOT_SOURCE.contains(child),
+            "missing chrome owner {child}"
+        );
+    }
+    assert!(
+        CHROME_ROOT_SOURCE.lines().count() <= 80,
+        "chrome routing owner should stay compact"
+    );
+    let classification_position = CHROME_ROOT_SOURCE
+        .find("let Some(kind) = chrome_kind(metadata)")
+        .expect("chrome classification route");
+    let state_position = CHROME_ROOT_SOURCE
+        .find("let state = ChromeRenderState::resolve")
+        .expect("chrome state route");
+    assert!(
+        classification_position < state_position,
+        "chrome component classification should precede dynamic state resolution"
+    );
 }
 
 #[test]
 fn chrome_projects_shared_density_control_and_typography_metrics() {
-    let source = include_str!("../surface/render/chrome.rs");
     for local_metric in [
         "const TEXT_INSET_X",
         "const TEXT_INSET_Y",
@@ -28,7 +63,7 @@ fn chrome_projects_shared_density_control_and_typography_metrics() {
         "const ICON_GAP",
     ] {
         assert!(
-            !source.contains(local_metric),
+            !CHROME_OWNER_SOURCE.contains(local_metric),
             "Chrome geometry must derive from EditorDesignTokens, not {local_metric}"
         );
     }

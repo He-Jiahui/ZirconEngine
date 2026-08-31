@@ -23,19 +23,13 @@ fn shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay() 
         std::process::id()
     ));
     let _ = fs::remove_dir_all(&root);
-    fs::create_dir_all(root.join("shaders")).unwrap();
-    fs::write(root.join("shaders/example.wgsl"), "fn example() {}\n").unwrap();
-    fs::write(
-        root.join("shaders/example.wgsl.zmeta"),
-        r#"format_version = 7
-uuid = "00000000-0000-0000-0000-000000000045"
-url = "res://shaders/example"
-asset_kind = "Shader"
-unit = "single"
-source_digest = "source-hash-registry-fallback"
-"#,
-    )
-    .unwrap();
+    write_named_shader_with_meta(
+        &root,
+        "example",
+        "00000000-0000-0000-0000-000000000045",
+        "res://shaders/example",
+        "source-hash-registry-fallback",
+    );
 
     let mut record = ResourceRecord::new(
         ResourceId::from_stable_label("registry-shader"),
@@ -66,7 +60,7 @@ source_digest = "source-hash-registry-fallback"
 }
 
 #[test]
-fn shader_prewarm_asset_root_exports_shader_resource_records() {
+fn shader_prewarm_asset_root_exports_raw_module_records_without_material_variants() {
     let root = std::env::temp_dir().join(format!(
         "zircon_shader_prewarm_registry_export_{}",
         std::process::id()
@@ -110,11 +104,8 @@ source_digest = "source-hash-registry-export"
     )
     .unwrap();
 
-    assert_eq!(manifest.variants.len(), 6);
-    assert!(manifest
-        .variants
-        .iter()
-        .all(|request| request.key.material_revision == record.revision));
+    assert!(manifest.sources.is_empty());
+    assert!(manifest.variants.is_empty());
     let _ = fs::remove_dir_all(root);
 }
 
@@ -215,19 +206,13 @@ fn shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_re
         std::process::id()
     ));
     let _ = fs::remove_dir_all(&root);
-    fs::create_dir_all(root.join("shaders")).unwrap();
-    fs::write(root.join("shaders/live.wgsl"), "fn live() {}\n").unwrap();
-    fs::write(
-        root.join("shaders/live.wgsl.zmeta"),
-        r#"format_version = 7
-uuid = "00000000-0000-0000-0000-000000000047"
-url = "res://shaders/live"
-asset_kind = "Shader"
-unit = "single"
-source_digest = "source-hash-live-manager-fallback"
-"#,
-    )
-    .unwrap();
+    write_named_shader_with_meta(
+        &root,
+        "live",
+        "00000000-0000-0000-0000-000000000047",
+        "res://shaders/live",
+        "source-hash-live-manager-fallback",
+    );
 
     let manager = ResourceManager::new();
     let live_locator = ResourceLocator::parse("res://shaders/live").unwrap();
@@ -303,22 +288,32 @@ fn write_named_shader_with_meta(
     locator: &str,
     source_hash: &str,
 ) {
-    fs::create_dir_all(asset_root.join("shaders")).unwrap();
+    let package_dir = asset_root.join("shaders").join(name);
+    fs::create_dir_all(&package_dir).unwrap();
     fs::write(
-        asset_root.join("shaders").join(format!("{name}.wgsl")),
+        package_dir.join(format!("{name}.zshader")),
+        format!(
+            r#"version = 2
+kind = "surface"
+wgsl_files = ["{name}.wgsl"]
+shading_model = "standard_pbr"
+"#
+        ),
+    )
+    .unwrap();
+    fs::write(
+        package_dir.join(format!("{name}.wgsl")),
         format!("fn {name}() {{}}\n"),
     )
     .unwrap();
     fs::write(
-        asset_root
-            .join("shaders")
-            .join(format!("{name}.wgsl.zmeta")),
+        asset_root.join("shaders").join(format!("{name}.zmeta")),
         format!(
             r#"format_version = 7
 uuid = "{id}"
 url = "{locator}"
 asset_kind = "Shader"
-unit = "single"
+unit = "compound"
 source_digest = "{source_hash}"
 "#
         ),

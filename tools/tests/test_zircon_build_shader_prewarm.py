@@ -175,13 +175,19 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
             shader_prewarm_dimension_summary_lines(report),
         )
 
-    def test_prewarm_shaders_prints_summary_before_raising_nonzero_exit(self):
+    @patch.object(zircon_build, "managed_cargo_environment")
+    def test_prewarm_shaders_prints_summary_before_raising_nonzero_exit(
+        self, managed_cargo_environment
+    ):
         config = _FakePrewarmConfig()
         events: list[str] = []
+        managed_environment = {"ZR_TEST_MANAGED_ENV": "1"}
+        managed_cargo_environment.return_value = managed_environment
 
-        def fake_run(command, cwd, check):
+        def fake_run(command, cwd, check, env):
             self.assertFalse(check)
             self.assertEqual(config.repo_root, cwd)
+            self.assertIs(managed_environment, env)
             events.append("run")
             return subprocess.CompletedProcess(command, 2)
 
@@ -202,12 +208,19 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
                     with self.assertRaises(subprocess.CalledProcessError):
                         zircon_build.prewarm_shaders(config)
 
+        managed_cargo_environment.assert_called_once_with(
+            config.targets_root / "shader_prewarm", config.targets_root
+        )
+
         self.assertEqual(
             ["run", f"summary:{config.shader_prewarm_report_path}"],
             events,
         )
 
-    def test_prewarm_shaders_validates_staged_acceptance_after_success(self):
+    @patch.object(zircon_build, "managed_cargo_environment")
+    def test_prewarm_shaders_validates_staged_acceptance_after_success(
+        self, managed_cargo_environment
+    ):
         config = _FakePrewarmConfig()
         config.validate_wgpu_shaders = True
         config.shader_quality_tiers = ("medium", "high")
@@ -215,10 +228,13 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
         config.shader_geometry_source_ids = ("custom:gpu-driven=4",)
         config.shader_shading_model_ids = ("toon=16",)
         events: list[str] = []
+        managed_environment = {"ZR_TEST_MANAGED_ENV": "1"}
+        managed_cargo_environment.return_value = managed_environment
 
-        def fake_run(command, cwd, check):
+        def fake_run(command, cwd, check, env):
             self.assertFalse(check)
             self.assertEqual(config.repo_root, cwd)
+            self.assertIs(managed_environment, env)
             events.append("run")
             return subprocess.CompletedProcess(command, 0)
 
@@ -240,6 +256,10 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
                 ):
                     zircon_build.prewarm_shaders(config)
 
+        managed_cargo_environment.assert_called_once_with(
+            config.targets_root / "shader_prewarm", config.targets_root
+        )
+
         self.assertEqual(
             [
                 "run",
@@ -249,14 +269,20 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
             events,
         )
 
-    def test_prewarm_shaders_uses_same_acceptance_entry_for_explicit_registry(self):
+    @patch.object(zircon_build, "managed_cargo_environment")
+    def test_prewarm_shaders_uses_same_acceptance_entry_for_explicit_registry(
+        self, managed_cargo_environment
+    ):
         config = _FakePrewarmConfig()
         config.shader_resource_registry = Path("Project") / "shader_resource_records.json"
         events: list[str] = []
+        managed_environment = {"ZR_TEST_MANAGED_ENV": "1"}
+        managed_cargo_environment.return_value = managed_environment
 
-        def fake_run(command, cwd, check):
+        def fake_run(command, cwd, check, env):
             self.assertFalse(check)
             self.assertEqual(config.repo_root, cwd)
+            self.assertIs(managed_environment, env)
             events.append("run")
             return subprocess.CompletedProcess(command, 0)
 
@@ -277,6 +303,10 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
                     ),
                 ):
                     zircon_build.prewarm_shaders(config)
+
+        managed_cargo_environment.assert_called_once_with(
+            config.targets_root / "shader_prewarm", config.targets_root
+        )
 
         self.assertEqual(
             [

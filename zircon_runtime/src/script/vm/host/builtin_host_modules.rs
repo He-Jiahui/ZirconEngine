@@ -18,12 +18,13 @@ const MATH_MODULE: &str = "zr.zircon.math";
 const HOST_MODULE_VERSION: &str = "0.1.0";
 const MATH_MODULE_VERSION: &str = "0.2.0";
 const MATH_SCALAR_CAPABILITY: &str = "math.scalar";
+const BUILTIN_HOST_MODULE_HANDLE_CAPACITY: usize = 6;
 
 pub fn register_builtin_host_modules(
     exports: &HostExportRegistry,
     registry: &HostRegistry,
 ) -> Result<Vec<HostHandle>, VmError> {
-    let mut handles = Vec::new();
+    let mut handles = Vec::with_capacity(BUILTIN_HOST_MODULE_HANDLE_CAPACITY);
     if exports.module(FOUNDATION_MODULE).is_none() {
         handles.push(register_foundation_module(exports)?);
     }
@@ -553,4 +554,25 @@ pub fn builtin_host_capabilities() -> CapabilitySet {
         .with("gameplay.entity")
         .with("gameplay.navigation")
         .with("gameplay.scene_transition")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        ASSET_MODULE, BUILTIN_HOST_MODULE_HANDLE_CAPACITY, FOUNDATION_MODULE, MATH_MODULE,
+        RENDER_MODULE, SCENE_MODULE,
+    };
+
+    #[test]
+    fn builtin_host_module_handle_capacity_covers_complete_install() {
+        let fixed_modules = [
+            FOUNDATION_MODULE,
+            ASSET_MODULE,
+            SCENE_MODULE,
+            RENDER_MODULE,
+            MATH_MODULE,
+        ];
+
+        assert_eq!(BUILTIN_HOST_MODULE_HANDLE_CAPACITY, fixed_modules.len() + 1);
+    }
 }

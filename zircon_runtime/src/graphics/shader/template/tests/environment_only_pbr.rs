@@ -2,9 +2,9 @@ use crate::core::framework::render::{ShaderFeatureBits, ShaderPassType};
 
 use super::environment::{wgsl_function_source, wgsl_without_comments};
 use super::{
-    assemble_material_shader_template, material_template_request,
+    MaterialShaderTemplateRequest, assemble_material_shader_template, material_template_request,
     standard_material_surface_source_for_features, static_mesh_descriptor,
-    validate_material_shader_template_wgsl, MaterialShaderTemplateRequest,
+    validate_material_shader_template_wgsl,
 };
 
 #[test]
@@ -17,21 +17,11 @@ fn environment_only_pbr_reuses_caller_normalized_surface_inputs() {
         include_str!("../../wgsl/zr_shading_environment_only_pbr.wgsl"),
         "fn shade_forward(",
     );
-    let forward_view_direction = wgsl_function_source(
-        include_str!("../../wgsl/zr_shading_environment_only_pbr.wgsl"),
-        "fn zr_scene_view_dir_ws(",
-    );
     let deferred_shading = wgsl_function_source(
         include_str!(
             "../../../scene/scene_renderer/deferred/shaders/deferred_environment_only_pbr.wgsl"
         ),
         "fn shade_deferred_environment_only_pbr(",
-    );
-    let deferred_view_direction = wgsl_function_source(
-        include_str!(
-            "../../../scene/scene_renderer/deferred/shaders/deferred_environment_only_pbr.wgsl"
-        ),
-        "fn scene_view_dir_ws(",
     );
 
     assert!(
@@ -66,36 +56,23 @@ fn environment_only_pbr_reuses_caller_normalized_surface_inputs() {
         components.contains("all(normal == vec3<f32>(0.0))"),
         "environment-only PBR components must retain the zero-normal rejection"
     );
-    for (label, view_direction, normalize) in [
-        (
-            "environment-only Forward",
-            forward_view_direction,
-            "zr_normalize_or_zero",
-        ),
-        (
-            "environment-only deferred",
-            deferred_view_direction,
-            "normalize_or_zero",
-        ),
-    ] {
-        assert!(
-            view_direction.contains(
-                "let camera_direction_weight = clamp(scene.camera_view_direction.w, 0.0, 1.0);"
-            ),
-            "{label} must sanitize the camera-direction blend before choosing a view path"
-        );
-        assert!(
-            view_direction.contains(&format!(
-                "return {normalize}(mix(\n        perspective_view_dir,\n        scene.camera_view_direction.xyz,\n        camera_direction_weight,"
-            )),
-            "{label} must preserve the normalized mixed-camera view path"
-        );
-    }
+    assert!(
+        components.contains("dielectric_f0: vec3<f32>"),
+        "environment-only PBR components must preserve the material dielectric F0"
+    );
+    assert!(
+        components.contains("base_color,\n        dielectric_f0,\n        has_global_environment,"),
+        "environment-only PBR components must forward dielectric F0 to the shared split-sum BRDF"
+    );
+    assert!(
+        forward_shading.contains("let view_dir_ws = zr_pbr_view_direction_ws(ctx.position_ws);")
+    );
+    assert!(deferred_shading.contains("let view_dir = zr_pbr_view_direction_ws(world_position);"));
     let forward_ibl_call = forward_shading
         .find("let environment_lights = zr_environment_pbr_indirect(")
         .expect("environment-only Forward must retain its IBL call");
     let deferred_ibl_call = deferred_shading
-        .find("let environment_lights = zr_environment_pbr_indirect(")
+        .find("let environment_lights = zr_environment_pbr_indirect_with_dielectric_f0_normalized(")
         .expect("environment-only deferred must retain its IBL call");
     let forward_ibl_call_end = forward_shading[forward_ibl_call..]
         .find("\n    );")
@@ -105,42 +82,101 @@ fn environment_only_pbr_reuses_caller_normalized_surface_inputs() {
         .find("\n    );")
         .map(|offset| deferred_ibl_call + offset)
         .expect("environment-only deferred IBL call must close");
+    let forward_normal = forward_shading
+        .find("let world_normal = zr_normalize_or_zero(surface.normal_ws);")
+        .expect("environment-only Forward must normalize its interpolated surface normal once");
+    assert!(
+        forward_normal < forward_ibl_call,
+        "environment-only Forward must prepare its normal before issuing the IBL query"
+    );
     assert!(
         forward_shading[forward_ibl_call..forward_ibl_call_end].contains(
-            "ctx.position_ws,\n        surface.normal_ws,\n        view_dir_ws,\n        surface.roughness,",
+            "ctx.position_ws,\n        world_normal,\n        view_dir_ws,\n        surface.roughness,",
         ),
-        "environment-only Forward must pass normalized surface normal and view direction to IBL"
+        "environment-only Forward must pass its normalized surface normal and view direction to IBL"
+    );
+    assert!(
+        forward_shading[forward_ibl_call..forward_ibl_call_end]
+            .contains("diffuse_color,\n        surface.dielectric_f0,\n        surface.occlusion,"),
+        "environment-only Forward must preserve the authored dielectric F0"
     );
     assert!(
         deferred_shading[deferred_ibl_call..deferred_ibl_call_end]
             .contains("world_position,\n        normal,\n        view_dir,\n        roughness,",),
         "environment-only deferred must pass normalized GBuffer normal and view direction to IBL"
     );
+    assert!(
+        deferred_shading[deferred_ibl_call..deferred_ibl_call_end]
+            .contains("diffuse_color,\n        vec3<f32>(0.04),\n        occlusion,"),
+        "environment-only deferred must make its GBuffer-limited dielectric F0 fallback explicit"
+    );
+
+    assert!(forward_shading.contains("let diffuse_energy = vec3<f32>("));
+    assert!(
+        forward_shading.contains("zr_surface_metallic_diffuse_energy_scale(surface.metallic),")
+    );
+    assert!(deferred_shading.contains("let diffuse_energy = vec3<f32>("));
+    assert!(
+        deferred_shading.contains("zr_surface_metallic_diffuse_energy_scale(metallic)"),
+        "environment-only Deferred must apply the shared metallic diffuse-energy owner"
+    );
+    assert!(!forward_shading.contains("zr_pbr_diffuse_energy_scale("));
+    assert!(!deferred_shading.contains("zr_pbr_diffuse_energy_scale("));
+    assert!(
+        forward_shading.contains("let diffuse_color = zr_pbr_base_color(surface.base_color.rgb);"),
+        "environment-only Forward must consume physical Standard-PBR diffuse reflectance"
+    );
+    assert!(
+        deferred_shading.contains("let diffuse_color = zr_pbr_base_color(albedo.rgb);"),
+        "environment-only deferred must consume physical Standard-PBR diffuse reflectance"
+    );
 }
 
 #[test]
-fn pbr_view_direction_skips_redundant_endpoint_normalization() {
-    let view_direction_sources = [
+fn pbr_view_direction_has_one_owner_and_skips_redundant_endpoint_work() {
+    let common = include_str!("../../includes/zr_pbr_common.wgsl");
+    let view_direction = wgsl_function_source(common, "fn zr_pbr_view_direction_ws(");
+    let weight = view_direction
+        .find("let camera_direction_weight = clamp(scene.camera_view_direction.w, 0.0, 1.0);")
+        .expect("the common owner must clamp its camera-direction blend once");
+    let perspective_endpoint = view_direction
+        .find("if (camera_direction_weight <= 0.0) {")
+        .expect("the common owner must return early for perspective cameras");
+    let orthographic_endpoint = view_direction
+        .find("if (camera_direction_weight >= 1.0) {")
+        .expect("the common owner must return early for orthographic cameras");
+    let perspective = view_direction
+        .find("let perspective_view_dir = zr_pbr_common_normalize_or_zero(")
+        .expect("the common owner must retain the mixed-camera perspective path");
+    let mixed = view_direction
+        .find("return zr_pbr_common_normalize_or_zero(mix(")
+        .expect("the common owner must normalize the mixed-camera path");
+    assert!(
+        weight < perspective_endpoint
+            && perspective_endpoint < orthographic_endpoint
+            && orthographic_endpoint < perspective
+            && perspective < mixed,
+        "the common owner must avoid mixed-camera work at both endpoints"
+    );
+
+    let view_direction_consumers = [
         (
             "environment-only Forward",
             include_str!("../../wgsl/zr_shading_environment_only_pbr.wgsl"),
             "fn zr_scene_view_dir_ws(",
-            "position_ws",
-            "zr_normalize_or_zero",
+            "let view_dir_ws = zr_pbr_view_direction_ws(ctx.position_ws);",
         ),
         (
             "advanced Standard-PBR Forward",
             include_str!("../../wgsl/zr_shading_standard_pbr.wgsl"),
             "fn zr_scene_view_dir_ws(",
-            "position_ws",
-            "zr_normalize_or_zero",
+            "let view_dir_ws = zr_pbr_view_direction_ws(ctx.position_ws);",
         ),
         (
             "basic Standard-PBR Forward",
             include_str!("../../wgsl/zr_shading_standard_pbr_basic.wgsl"),
             "fn zr_scene_view_dir_ws(",
-            "position_ws",
-            "zr_normalize_or_zero",
+            "let view_dir_ws = zr_pbr_view_direction_ws(ctx.position_ws);",
         ),
         (
             "environment-only deferred",
@@ -148,59 +184,133 @@ fn pbr_view_direction_skips_redundant_endpoint_normalization() {
                 "../../../scene/scene_renderer/deferred/shaders/deferred_environment_only_pbr.wgsl"
             ),
             "fn scene_view_dir_ws(",
-            "world_position",
-            "normalize_or_zero",
+            "let view_dir = zr_pbr_view_direction_ws(world_position);",
         ),
         (
             "generic deferred",
             include_str!("../../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
             "fn scene_view_dir_ws(",
-            "world_position",
-            "normalize_or_zero",
+            "let view_dir = zr_pbr_view_direction_ws(world_position);",
         ),
         (
             "fallback mesh",
             include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"),
             "fn scene_view_dir_ws(",
-            "world_position",
-            "normalize_or_zero",
+            "let view_dir = zr_pbr_view_direction_ws(input.world_position);",
         ),
     ];
 
-    for (label, source, signature, position, normalize) in view_direction_sources {
-        let view_direction = wgsl_function_source(source, signature);
-        let weight = view_direction
-            .find("let camera_direction_weight = clamp(scene.camera_view_direction.w, 0.0, 1.0);")
-            .unwrap_or_else(|| panic!("{label} must clamp its camera-direction blend once"));
-        let perspective_endpoint = view_direction
-            .find(&format!(
-                "if (camera_direction_weight <= 0.0) {{\n        return {normalize}(scene.camera_world_position.xyz - {position});"
-            ))
-            .unwrap_or_else(|| {
-                panic!("{label} must return the already-normalized perspective direction at blend zero")
-            });
-        let orthographic_endpoint = view_direction
-            .find(&format!(
-                "if (camera_direction_weight >= 1.0) {{\n        return {normalize}(scene.camera_view_direction.xyz);"
-            ))
-            .unwrap_or_else(|| {
-                panic!("{label} must avoid perspective-direction work at the orthographic endpoint")
-            });
-        let perspective = view_direction
-            .find(&format!(
-                "let perspective_view_dir = {normalize}(scene.camera_world_position.xyz - {position});"
-            ))
-            .unwrap_or_else(|| panic!("{label} must retain the mixed-camera perspective path"));
-        let mixed = view_direction
-            .find(&format!("return {normalize}(mix("))
-            .unwrap_or_else(|| panic!("{label} must retain the normalized mixed-camera path"));
-
+    for (label, source, legacy_owner, expected_call) in view_direction_consumers {
         assert!(
-            weight < perspective_endpoint
-                && perspective_endpoint < orthographic_endpoint
-                && orthographic_endpoint < perspective
-                && perspective < mixed,
-            "{label} must return before redundant normalization for both camera endpoints"
+            !source.contains(legacy_owner),
+            "{label} must not retain a second view-direction owner"
+        );
+        assert!(
+            source.contains(expected_call),
+            "{label} must reuse the common view-direction owner"
+        );
+    }
+}
+
+#[test]
+fn normalizer_contract_has_one_finite_length_owner() {
+    let common_module = include_str!("../../includes/zr_pbr_common.wgsl");
+    let common = wgsl_function_source(common_module, "fn zr_pbr_common_normalize_or_zero(");
+    assert!(
+        common_module.contains("const ZR_PBR_COMMON_MAX_NORMALIZABLE_LENGTH: f32 = 3.4e38;"),
+        "the shared normalizer must bound non-finite lengths without backend-specific builtins"
+    );
+    assert!(
+        common.contains("let is_finite_length = value_length > 0.000001")
+            && common.contains("&& value_length < ZR_PBR_COMMON_MAX_NORMALIZABLE_LENGTH;"),
+        "the shared normalizer must reject zero, NaN, and infinite lengths"
+    );
+    assert!(
+        common.contains("is_finite_length),"),
+        "the shared normalizer must select the zero fallback for invalid lengths"
+    );
+
+    for (label, source, signature) in [
+        (
+            "environment",
+            include_str!("../../wgsl/zr_environment_core.wgsl"),
+            "fn zr_environment_normalize_or_zero(",
+        ),
+        (
+            "PBR extras",
+            include_str!("../../includes/zr_pbr_extras_core.wgsl"),
+            "fn zr_pbr_normalize_or_zero(",
+        ),
+        (
+            "surface",
+            include_str!("../../wgsl/zr_surface_types.wgsl"),
+            "fn zr_normalize_or_zero(",
+        ),
+        (
+            "environment-only Deferred",
+            include_str!(
+                "../../../scene/scene_renderer/deferred/shaders/deferred_environment_only_pbr.wgsl"
+            ),
+            "fn normalize_or_zero(",
+        ),
+        (
+            "generic Deferred",
+            include_str!("../../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+            "fn normalize_or_zero(",
+        ),
+        (
+            "fallback mesh",
+            include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"),
+            "fn normalize_or_zero(",
+        ),
+    ] {
+        let normalizer = wgsl_function_source(source, signature);
+        assert!(
+            normalizer.contains("return zr_pbr_common_normalize_or_zero(value);"),
+            "{label} normalizer must delegate finite-length handling to the shared owner"
+        );
+        assert!(
+            !normalizer.contains("let value_length = length(value);"),
+            "{label} normalizer must not duplicate length validation"
+        );
+    }
+
+    for (label, source) in [
+        ("Forward", include_str!("../assemble.rs")),
+        ("GBuffer", include_str!("../deferred_gbuffer.rs")),
+        ("TAA reactive mask", include_str!("../taa_reactive_mask.rs")),
+    ] {
+        let common = source
+            .find("pbr_common_include())")
+            .unwrap_or_else(|| panic!("{label} assembly must include the shared normalizer owner"));
+        let surface = source
+            .find("surface_types_include())")
+            .unwrap_or_else(|| panic!("{label} assembly must include the surface contract"));
+        assert!(
+            common < surface,
+            "{label} assembly must emit the shared normalizer before surface consumers"
+        );
+    }
+}
+
+#[test]
+fn fallback_mesh_deformed_frame_uses_the_finite_normalizer_owner() {
+    let fallback = include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl");
+    let skinned_normal = wgsl_function_source(fallback, "fn skin_vertex_normal(");
+    let skinned_tangent = wgsl_function_source(fallback, "fn skin_vertex_tangent(");
+    let sampled_normal = wgsl_function_source(fallback, "fn sampled_world_normal(");
+
+    assert!(skinned_normal.contains("return zr_pbr_common_normalize_or_zero(skinned);"));
+    assert!(skinned_tangent.contains("return zr_pbr_common_normalize_or_zero(skinned);"));
+    assert!(sampled_normal.contains("return normalize_or_zero(world_normal);"));
+    for legacy in [
+        "return skinned / normal_length;",
+        "return skinned / tangent_length;",
+        "return normalize(world_normal);",
+    ] {
+        assert!(
+            !fallback.contains(legacy),
+            "fallback mesh must not retain non-finite normalization path `{legacy}`"
         );
     }
 }
@@ -453,6 +563,9 @@ fn environment_only_forward_specialization_excludes_unreachable_environment_api(
         "zr_environment_sky_reflection_color(",
         "zr_environment_diffuse_color_normalized(",
         "zr_environment_env_brdf_lut(",
+        "zr_environment_perfect_specular_direction_normalized(",
+        "zr_environment_dominant_specular_direction_normalized(",
+        "if (zr_environment_is_source_cubemap() || zr_environment_is_realtime_ibl()) {",
     ] {
         assert!(
             specialized_source.contains(required),

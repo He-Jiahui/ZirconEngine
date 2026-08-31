@@ -124,6 +124,36 @@ pub enum UiPixelSnapping {
     Enabled,
 }
 
+/// Declarative, inheritable paint policy for device-pixel alignment.
+///
+/// Layout and hit-test geometry remain logical. The resolved policy is applied
+/// only while converting render commands into paint geometry.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiPixelSnappingPolicy {
+    #[default]
+    Inherit,
+    Disabled,
+    SnapToPixel,
+}
+
+impl UiPixelSnappingPolicy {
+    pub const fn inherit_from(self, parent: Self) -> Self {
+        match self {
+            Self::Inherit => parent,
+            explicit => explicit,
+        }
+    }
+
+    pub const fn resolve(self, fallback: UiPixelSnapping) -> UiPixelSnapping {
+        match self {
+            Self::Inherit => fallback,
+            Self::Disabled => UiPixelSnapping::Disabled,
+            Self::SnapToPixel => UiPixelSnapping::Enabled,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiLayoutTransform {
     #[serde(default)]

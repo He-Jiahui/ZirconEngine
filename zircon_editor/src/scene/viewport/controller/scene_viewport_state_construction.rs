@@ -1,10 +1,11 @@
+use crate::core::editing::interactive_transform::PivotMode;
 use crate::scene::modes::{
     builtin_scene_mode_registry, SceneModeActivation, SceneModeCtx, SceneModeStack,
 };
 use crate::scene::selection::SelectionModel;
 use crate::scene::viewport::SceneViewportSettings;
 use crate::scene::viewport::ViewportState;
-use zircon_runtime::core::framework::camera_controller::OrbitCameraController;
+use zircon_runtime::input::camera_controller::OrbitCameraController;
 use zircon_runtime_interface::math::{UVec2, Vec3};
 
 use super::{scene_viewport_state::SceneViewportState, viewport_hover_state::ViewportHoverState};
@@ -17,6 +18,7 @@ impl SceneViewportState {
         let scene_modes = {
             let mut mode_ctx = SceneModeCtx::new(&mut selection, &settings);
             SceneModeStack::new(
+                SceneModeActivation::Select,
                 scene_mode_registry
                     .create(&SceneModeActivation::Select.mode_id())
                     .expect("the default scene mode must resolve through the registry"),
@@ -30,6 +32,7 @@ impl SceneViewportState {
             selection,
             scene_mode_registry,
             scene_modes,
+            pivot_mode: PivotMode::default(),
             viewport: ViewportState::new(viewport_size),
             camera: None,
             orbit_target: Vec3::ZERO,

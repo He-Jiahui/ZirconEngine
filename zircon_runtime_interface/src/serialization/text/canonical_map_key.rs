@@ -13,10 +13,7 @@ pub(super) struct CanonicalMapKey {
 }
 
 impl CanonicalMapKey {
-    pub(super) fn from_str(
-        value: &str,
-        max_bytes: Option<usize>,
-    ) -> Result<Self, CanonicalTextWriteError> {
+    pub(super) fn from_str(value: &str, max_bytes: usize) -> Result<Self, CanonicalTextWriteError> {
         let encoded_bytes = json_string_encoded_len(value, max_bytes)?;
         Ok(Self {
             value: value.to_string(),
@@ -26,7 +23,7 @@ impl CanonicalMapKey {
 
     pub(super) fn from_string(
         value: String,
-        max_bytes: Option<usize>,
+        max_bytes: usize,
     ) -> Result<Self, CanonicalTextWriteError> {
         let encoded_bytes = json_string_encoded_len(&value, max_bytes)?;
         Ok(Self {
@@ -50,11 +47,11 @@ impl CanonicalMapKey {
 
 /// Converts serde map keys into the scalar JSON spelling used by canonical output.
 pub(super) struct CanonicalMapKeySerializer {
-    max_bytes: Option<usize>,
+    max_bytes: usize,
 }
 
 impl CanonicalMapKeySerializer {
-    pub(super) fn new(max_bytes: Option<usize>) -> Self {
+    pub(super) fn new(max_bytes: usize) -> Self {
         Self { max_bytes }
     }
 }
@@ -244,12 +241,12 @@ impl Serializer for CanonicalMapKeySerializer {
 struct CanonicalMapKeyDisplayWriter {
     value: String,
     encoded_bytes: usize,
-    max_bytes: Option<usize>,
+    max_bytes: usize,
     error: Option<CanonicalTextWriteError>,
 }
 
 impl CanonicalMapKeyDisplayWriter {
-    fn new(max_bytes: Option<usize>) -> Result<Self, CanonicalTextWriteError> {
+    fn new(max_bytes: usize) -> Result<Self, CanonicalTextWriteError> {
         ensure_within_limit(2, max_bytes)?;
         Ok(Self {
             value: String::new(),
@@ -293,10 +290,7 @@ impl fmt::Write for CanonicalMapKeyDisplayWriter {
     }
 }
 
-fn finite_key(
-    value: f64,
-    max_bytes: Option<usize>,
-) -> Result<CanonicalMapKey, CanonicalTextWriteError> {
+fn finite_key(value: f64, max_bytes: usize) -> Result<CanonicalMapKey, CanonicalTextWriteError> {
     if !value.is_finite() {
         return Err(CanonicalTextWriteError::NonFinite { value });
     }
@@ -319,7 +313,7 @@ fn reject_raw_value(name: &str) -> Result<(), CanonicalTextWriteError> {
 
 fn json_string_encoded_len(
     value: &str,
-    max_bytes: Option<usize>,
+    max_bytes: usize,
 ) -> Result<usize, CanonicalTextWriteError> {
     let content_bytes = json_string_content_len(value, max_bytes)?;
     let found = content_bytes
@@ -331,7 +325,7 @@ fn json_string_encoded_len(
 
 fn json_string_content_len(
     value: &str,
-    max_bytes: Option<usize>,
+    max_bytes: usize,
 ) -> Result<usize, CanonicalTextWriteError> {
     let mut bytes = 0_usize;
     for character in value.chars() {
@@ -347,19 +341,19 @@ fn json_string_content_len(
     Ok(bytes)
 }
 
-fn ensure_within_limit(
-    found: usize,
-    max_bytes: Option<usize>,
-) -> Result<(), CanonicalTextWriteError> {
-    if let Some(max) = max_bytes.filter(|max| found > *max) {
-        return Err(CanonicalTextWriteError::OutputTooLarge { max, found });
+fn ensure_within_limit(found: usize, max_bytes: usize) -> Result<(), CanonicalTextWriteError> {
+    if found > max_bytes {
+        return Err(CanonicalTextWriteError::OutputTooLarge {
+            max: max_bytes,
+            found,
+        });
     }
     Ok(())
 }
 
-fn output_too_large(max_bytes: Option<usize>, found: usize) -> CanonicalTextWriteError {
+fn output_too_large(max_bytes: usize, found: usize) -> CanonicalTextWriteError {
     CanonicalTextWriteError::OutputTooLarge {
-        max: max_bytes.unwrap_or(usize::MAX),
+        max: max_bytes,
         found,
     }
 }

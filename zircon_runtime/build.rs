@@ -8,7 +8,7 @@ const PROFILE_PRESET_FILE: &str = "runtime-feature-presets.toml";
 const GENERATED_PROFILE_FEATURE_PRESET_FILE: &str = "runtime_profile_feature_presets_generated.rs";
 const GENERATED_PROFILE_ASSEMBLY_PRESET_FILE: &str =
     "runtime_profile_assembly_presets_generated.rs";
-const EXPECTED_BUILTIN_MODULES: [(&str, &str, Option<&str>); 12] = [
+const EXPECTED_BUILTIN_MODULES: [(&str, &str, Option<&str>); 13] = [
     ("foundation", "Foundation", None),
     ("log", "Log", None),
     ("tasks", "Tasks", None),
@@ -19,6 +19,7 @@ const EXPECTED_BUILTIN_MODULES: [(&str, &str, Option<&str>); 12] = [
     ("input", "Input", None),
     ("asset", "Asset", None),
     ("scene", "Scene", None),
+    ("text", "Text", Some("text")),
     ("graphics", "Graphics", Some("graphics")),
     ("script", "Script", Some("script")),
 ];

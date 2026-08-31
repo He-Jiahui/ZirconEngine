@@ -29,24 +29,43 @@ fn runtime_entry_application_handler_stays_folder_backed_hook_surface() {
             "impl ApplicationHandler for RuntimeEntryApp",
             "fn resumed",
             "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"resumed\");",
-            "if self.create_primary_window_surface(event_loop) {",
-            "self.submit_mvp_input_probe_if_requested(event_loop);",
-            "self.request_runtime_frame();",
+            "self.handle_application_resumed(event_loop);",
             "fn can_create_surfaces",
             "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"can_create_surfaces\");",
-            "if self.create_primary_window_surface(event_loop) {",
-            "self.submit_mvp_input_probe_if_requested(event_loop);",
-            "self.request_runtime_frame();",
+            "self.handle_surface_availability(event_loop);",
+            "fn suspended",
+            "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"suspended\");",
+            "self.handle_application_suspended(event_loop);",
+            "fn destroy_surfaces",
+            "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"destroy_surfaces\");",
+            "self.handle_surface_destruction(event_loop);",
+            "fn exiting",
+            "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"exiting\");",
+            "self.handle_application_exit(event_loop);",
             "fn proxy_wake_up",
             "self.request_runtime_frame();",
             "fn window_event",
             "self.handle_window_event(event_loop, event);",
             "fn about_to_wait",
+            "self.application_lifecycle.allows_frame_pump()",
             "self.pump_frame_loop(event_loop);",
             "fn device_event",
             "self.handle_device_event(event_loop, event);",
         ],
         "runtime ApplicationHandler hooks should remain a narrow profile-and-delegate surface",
+    );
+    assert!(
+        runtime_app_source.contains("mod application_lifecycle;"),
+        "runtime entry app should keep lifecycle state outside the ApplicationHandler hook module"
+    );
+    let resumed_hook = runtime_handler_source
+        .split("fn resumed")
+        .nth(1)
+        .and_then(|source| source.split("fn can_create_surfaces").next())
+        .expect("ApplicationHandler should retain resumed before can_create_surfaces");
+    assert!(
+        !resumed_hook.contains("create_primary_window_surface"),
+        "winit requires render surfaces to be created from can_create_surfaces, not resumed"
     );
     assert_eq!(
         runtime_handler_source

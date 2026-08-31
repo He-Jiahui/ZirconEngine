@@ -23,6 +23,7 @@ pub(crate) struct GpuSceneIdAllocator {
     free_spans: Vec<GpuSceneIdSpan>,
     pending_free_spans: Vec<GpuSceneIdSpan>,
     free_span_merge_scratch: Vec<GpuSceneIdSpan>,
+    pending_free_spans_needs_sort: bool,
     next: u32,
     live: u32,
     high_water: u32,
@@ -94,6 +95,13 @@ impl GpuSceneIdAllocator {
         }
         debug_assert!(self.live >= len);
         self.live = self.live.saturating_sub(len);
+        if self
+            .pending_free_spans
+            .last()
+            .is_some_and(|last| last.start > start)
+        {
+            self.pending_free_spans_needs_sort = true;
+        }
         self.pending_free_spans
             .push(GpuSceneIdSpan::new(start, len));
     }
@@ -103,8 +111,10 @@ impl GpuSceneIdAllocator {
             return;
         }
 
-        self.pending_free_spans
-            .sort_unstable_by_key(|span| span.start);
+        if self.pending_free_spans_needs_sort {
+            self.pending_free_spans
+                .sort_unstable_by_key(|span| span.start);
+        }
         let required_capacity = self
             .free_spans
             .len()
@@ -136,6 +146,7 @@ impl GpuSceneIdAllocator {
 
         std::mem::swap(&mut self.free_spans, &mut self.free_span_merge_scratch);
         self.pending_free_spans.clear();
+        self.pending_free_spans_needs_sort = false;
     }
 
     pub(crate) fn live(&self) -> u32 {
@@ -246,5 +257,65 @@ mod tests {
 
         assert_eq!(allocator.allocate_span(12), allocated);
         assert_eq!(allocator.high_water(), 12);
+    }
+
+    #[test]
+    fn render_gpu_scene_id_allocator_tracks_when_pending_frees_need_sorting() {
+        let mut allocator = GpuSceneIdAllocator::new();
+        let _ = allocator.allocate_span(8);
+
+        allocator.free_span(0, 1);
+        allocator.free_span(2, 1);
+        assert!(!allocator.pending_free_spans_needs_sort);
+        allocator.commit_pending_frees();
+        assert!(!allocator.pending_free_spans_needs_sort);
+
+        allocator.free_span(6, 1);
+        allocator.free_span(4, 1);
+        assert!(allocator.pending_free_spans_needs_sort);
+        allocator.commit_pending_frees();
+        assert!(!allocator.pending_free_spans_needs_sort);
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830di_gpu_scene_pending_free_sort_evidence() {
+        const FRAME_COUNT: usize = 32_768;
+        const SPANS_PER_FRAME: usize = 64;
+        const MARKER: &str = "RUNTIME521_GPU_SCENE_PENDING_FREE_SORT_BENCH_V1";
+
+        let legacy_sort_calls = pending_free_sort_calls(FRAME_COUNT, SPANS_PER_FRAME, false);
+        let optimized_sort_calls = pending_free_sort_calls(FRAME_COUNT, SPANS_PER_FRAME, true);
+
+        assert_eq!(legacy_sort_calls, FRAME_COUNT);
+        assert_eq!(optimized_sort_calls, 0);
+        println!(
+            "{MARKER} frames={FRAME_COUNT} spans_per_frame={SPANS_PER_FRAME} \
+             legacy_sort_calls={legacy_sort_calls} optimized_sort_calls={optimized_sort_calls} \
+             avoided_sort_calls={}",
+            legacy_sort_calls.saturating_sub(optimized_sort_calls)
+        );
+    }
+
+    fn pending_free_sort_calls(
+        frame_count: usize,
+        spans_per_frame: usize,
+        monotonic_release_order: bool,
+    ) -> usize {
+        let mut sort_calls = 0;
+        for _ in 0..frame_count {
+            let mut pending = (0..spans_per_frame)
+                .map(|index| GpuSceneIdSpan::new(index as u32 * 2, 1))
+                .collect::<Vec<_>>();
+            if !monotonic_release_order {
+                pending.reverse();
+            }
+            let needs_sort = pending.windows(2).any(|pair| pair[0].start > pair[1].start);
+            if needs_sort {
+                pending.sort_unstable_by_key(|span| span.start);
+                sort_calls += 1;
+            }
+        }
+        sort_calls
     }
 }

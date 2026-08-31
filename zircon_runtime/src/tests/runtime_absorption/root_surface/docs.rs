@@ -31,7 +31,7 @@ fn core_spine_and_root_surface_docs_stay_in_sync() {
 
     for required_doc_anchor in [
         "Current Public Root Surface",
-        "19 public module declarations",
+        "21 public module declarations",
         "two public `pub use` sites",
         "M3 Alias Cutover",
         "crate-visible graphics alias debt 0/0",
@@ -49,12 +49,12 @@ fn core_spine_and_root_surface_docs_stay_in_sync() {
 #[test]
 fn root_surface_m1_gate_matches_runtime_14_module_family_seats() {
     for required_m1_anchor in [
-        "public_module_count = 19",
-        "module_decision_count = 19",
+        "public_module_count = 21",
+        "module_decision_count = 21",
         "unclassified_public_module_count = 0",
         "root_surface_migration_debt_count = 0",
         "crate_visible_graphics_reexport_count = 0",
-        "`runtime-module-entry`: `animation`, `asset`, `diagnostic_log`, `foundation`, `input`, `navigation`, `platform`, `scene`, `script`, `ui`",
+        "`runtime-module-entry`: `animation`, `asset`, `diagnostic_log`, `foundation`, `input`, `navigation`, `operation`, `platform`, `scene`, `script`, `text`, `ui`",
         "`namespace-entry`: `builtin`, `plugin`",
         "M1 gate status `classified-and-clear`",
         "`rhi_wgpu` backend root public exposure is removed",
@@ -98,13 +98,13 @@ fn root_surface_m1_gate_matches_runtime_14_module_family_seats() {
 fn root_surface_interface_convergence_mirror_uses_current_audit_counts() {
     for required_convergence_anchor in [
         "The runtime crate root should remain a narrow module entry surface.",
-        "19 public modules",
+        "21 public modules",
         "2 public `pub use` locations",
         "0 crate-visible graphics re-export symbols",
         "`rhi_wgpu` is crate-private backend owner",
         "builtin facade cutover",
         "M1 gate status `classified-and-clear`",
-        "runtime root public modules 19/19",
+        "runtime root public modules 21/21",
         "crate-visible graphics alias debt 0/0",
         "root_surface guard tests 6/6",
     ] {

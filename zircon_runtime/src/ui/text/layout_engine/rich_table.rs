@@ -1,5 +1,6 @@
 mod axes;
 mod cell_layout;
+mod geometry;
 mod grid;
 mod layout;
 mod sizing;

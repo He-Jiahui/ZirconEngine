@@ -1,12 +1,20 @@
 use std::fmt;
 use std::path::Path;
 
+use crate::core::context::{ToolSchedulerService, ToolSchedulerServiceError};
+#[cfg(test)]
+use crate::core::editor_message::SharedEditorMessageBus;
 use crate::core::jobs::{EditorJobSystem, JobError, JobSubmitError};
+use crate::core::tools::{
+    AcquireDenial, AcquireOutcome, ToolDefinitionId, ToolDefinitionIdError, ToolInstanceId,
+    ToolLeaseHandle, ToolOwnerGeneration, ToolResourceKey, ToolResourceSet,
+};
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, EditorUiHostRuntimeError, RetainedUiProjection,
 };
 use zircon_runtime_interface::ui::binding::{UiBindingCall, UiBindingValue};
+use zircon_runtime_interface::ui::dispatch::UiWindowId;
 
 use super::controller::ExportWizardJobPoll;
 use super::{
@@ -229,6 +237,18 @@ pub enum ExportWizardPanelSessionError {
     },
     JobSubmit(JobSubmitError),
     Job(JobError),
+    ToolDefinition(ToolDefinitionIdError),
+    ToolScheduler(ToolSchedulerServiceError),
+    ToolQueued {
+        position: usize,
+    },
+    ToolDenied {
+        reason: AcquireDenial,
+    },
+    ToolWindowMismatch {
+        expected: UiWindowId,
+        received: UiWindowId,
+    },
 }
 
 impl fmt::Display for ExportWizardPanelSessionError {
@@ -245,11 +265,46 @@ impl fmt::Display for ExportWizardPanelSessionError {
             }
             Self::JobSubmit(error) => write!(f, "export wizard job submission failed: {error}"),
             Self::Job(error) => write!(f, "export wizard job failed: {error}"),
+            Self::ToolDefinition(error) => {
+                write!(f, "export wizard tool definition is invalid: {error}")
+            }
+            Self::ToolScheduler(error) => {
+                write!(f, "export wizard tool scheduler failed: {error}")
+            }
+            Self::ToolQueued { position } => {
+                write!(
+                    f,
+                    "export wizard modal tool is queued at position {position}"
+                )
+            }
+            Self::ToolDenied { reason } => {
+                write!(f, "export wizard modal tool admission denied: {reason:?}")
+            }
+            Self::ToolWindowMismatch { expected, received } => write!(
+                f,
+                "export wizard modal tool belongs to window {}, not {}",
+                expected.0, received.0
+            ),
         }
     }
 }
 
-impl std::error::Error for ExportWizardPanelSessionError {}
+impl std::error::Error for ExportWizardPanelSessionError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::JobSubmit(error) => Some(error),
+            Self::Job(error) => Some(error),
+            Self::ToolDefinition(error) => Some(error),
+            Self::ToolScheduler(error) => Some(error),
+            Self::ActionDisabled { .. }
+            | Self::JobAlreadyActive { .. }
+            | Self::NoActiveJob { .. }
+            | Self::ToolQueued { .. }
+            | Self::ToolDenied { .. }
+            | Self::ToolWindowMismatch { .. } => None,
+        }
+    }
+}
 
 pub struct ExportWizardPanelSession {
     jobs: EditorJobSystem,
@@ -257,15 +312,44 @@ pub struct ExportWizardPanelSession {
     plan: ExportWizardPipelinePlan,
     view_model: ExportWizardPanelViewModel,
     controller: Option<ExportWizardJobController>,
+    tools: ToolSchedulerService,
+    tool_id: Result<ToolInstanceId, ExportWizardPanelSessionError>,
+    tool_window_id: UiWindowId,
+    tool_resources: ToolResourceSet,
+    tool_lease: Option<ToolLeaseHandle>,
 }
 
 impl ExportWizardPanelSession {
+    #[cfg(test)]
     pub fn new(
         jobs: EditorJobSystem,
         job_id: impl Into<String>,
         plan: ExportWizardPipelinePlan,
     ) -> Self {
+        Self::new_with_tools(
+            jobs,
+            job_id,
+            plan,
+            ToolSchedulerService::new(SharedEditorMessageBus::default()),
+            UiWindowId::new("test.window"),
+        )
+    }
+
+    pub fn new_with_tools(
+        jobs: EditorJobSystem,
+        job_id: impl Into<String>,
+        plan: ExportWizardPipelinePlan,
+        tools: ToolSchedulerService,
+        window_id: UiWindowId,
+    ) -> Self {
         let job_id = job_id.into();
+        let tool_id = ToolDefinitionId::parse("editor.export.wizard")
+            .map_err(ExportWizardPanelSessionError::ToolDefinition)
+            .and_then(|definition| {
+                tools
+                    .allocate_instance_id(&definition, ToolOwnerGeneration::BUILTIN)
+                    .map_err(ExportWizardPanelSessionError::ToolScheduler)
+            });
         let view_model = ExportWizardPanelViewModel::from_plan(job_id.clone(), &plan);
         Self {
             jobs,
@@ -273,15 +357,39 @@ impl ExportWizardPanelSession {
             plan,
             view_model,
             controller: None,
+            tools,
+            tool_id,
+            tool_resources: ToolResourceSet::single(ToolResourceKey::modal_surface(
+                window_id.clone(),
+            )),
+            tool_window_id: window_id,
+            tool_lease: None,
         }
     }
 
+    #[cfg(test)]
     pub fn from_options(
         jobs: EditorJobSystem,
         job_id: impl Into<String>,
         options: ExportWizardPipelineOptions,
     ) -> Self {
         Self::new(jobs, job_id, export_wizard_pipeline_plan(options))
+    }
+
+    pub fn from_options_with_tools(
+        jobs: EditorJobSystem,
+        job_id: impl Into<String>,
+        options: ExportWizardPipelineOptions,
+        tools: ToolSchedulerService,
+        window_id: UiWindowId,
+    ) -> Self {
+        Self::new_with_tools(
+            jobs,
+            job_id,
+            export_wizard_pipeline_plan(options),
+            tools,
+            window_id,
+        )
     }
 
     pub fn regenerate_plan(
@@ -292,13 +400,27 @@ impl ExportWizardPanelSession {
         self.replace_plan(job_id, export_wizard_pipeline_plan(options))
     }
 
+    pub(crate) fn ensure_tool_window(
+        &self,
+        window_id: &UiWindowId,
+    ) -> Result<(), ExportWizardPanelSessionError> {
+        if &self.tool_window_id == window_id {
+            return Ok(());
+        }
+        Err(ExportWizardPanelSessionError::ToolWindowMismatch {
+            expected: self.tool_window_id.clone(),
+            received: window_id.clone(),
+        })
+    }
+
     pub fn replace_plan(
         &mut self,
         job_id: impl Into<String>,
         plan: ExportWizardPipelinePlan,
     ) -> Result<(), ExportWizardPanelSessionError> {
         self.reject_when_active(ExportWizardPanelAction::GeneratePlan)?;
-        self.job_id = job_id.into();
+        let job_id = job_id.into();
+        self.job_id = job_id;
         self.view_model = ExportWizardPanelViewModel::from_plan(self.job_id.clone(), &plan);
         self.plan = plan;
         Ok(())
@@ -367,15 +489,23 @@ impl ExportWizardPanelSession {
                 reason: "plan is not ready",
             });
         }
-        self.controller = Some(
-            ExportWizardJobController::submit(
-                &self.jobs,
-                self.job_id.clone(),
-                self.plan.clone(),
-                runner,
-            )
-            .map_err(ExportWizardPanelSessionError::JobSubmit)?,
-        );
+        let acquired_now = self.tool_lease.is_none();
+        self.acquire_tool_lease()?;
+        let controller = match ExportWizardJobController::submit(
+            &self.jobs,
+            self.job_id.clone(),
+            self.plan.clone(),
+            runner,
+        ) {
+            Ok(controller) => controller,
+            Err(error) => {
+                if acquired_now {
+                    self.release_tool_lease();
+                }
+                return Err(ExportWizardPanelSessionError::JobSubmit(error));
+            }
+        };
+        self.controller = Some(controller);
         self.view_model.mark_job_started();
         Ok(())
     }
@@ -413,6 +543,7 @@ impl ExportWizardPanelSession {
                 }
                 self.controller.take();
                 self.view_model.mark_job_finished(&snapshot);
+                self.release_tool_lease();
             }
             ExportWizardJobPoll::Failed { events, error } => {
                 for event in events {
@@ -420,6 +551,7 @@ impl ExportWizardPanelSession {
                 }
                 self.view_model.mark_job_error(&error);
                 self.controller.take();
+                self.release_tool_lease();
                 return Err(ExportWizardPanelSessionError::Job(error));
             }
         }
@@ -439,10 +571,12 @@ impl ExportWizardPanelSession {
         match completion.result {
             Ok(snapshot) => {
                 self.view_model.mark_job_finished(&snapshot);
+                self.release_tool_lease();
                 Ok(Some(snapshot))
             }
             Err(error) => {
                 self.view_model.mark_job_error(&error);
+                self.release_tool_lease();
                 Err(ExportWizardPanelSessionError::Job(error))
             }
         }
@@ -460,6 +594,13 @@ impl ExportWizardPanelSession {
 
     pub fn plan(&self) -> &ExportWizardPipelinePlan {
         &self.plan
+    }
+
+    #[cfg(test)]
+    pub(super) fn tool_id_for_test(
+        &self,
+    ) -> Result<&ToolInstanceId, &ExportWizardPanelSessionError> {
+        self.tool_id.as_ref()
     }
 
     fn update_for_action(
@@ -489,5 +630,47 @@ impl ExportWizardPanelSession {
             return Ok(());
         }
         Ok(())
+    }
+
+    fn acquire_tool_lease(&mut self) -> Result<(), ExportWizardPanelSessionError> {
+        if self.tool_lease.is_some() {
+            return Ok(());
+        }
+        let tool = self.tool_id.as_ref().map_err(Clone::clone)?.clone();
+        let resources = self.tool_resources.clone();
+        let report = self
+            .tools
+            .acquire(tool, resources)
+            .map_err(ExportWizardPanelSessionError::ToolScheduler)?;
+        match report.outcome() {
+            AcquireOutcome::Acquired { lease } | AcquireOutcome::AlreadyHeld { lease } => {
+                self.tool_lease = Some(lease.clone());
+                Ok(())
+            }
+            AcquireOutcome::Queued { request, position }
+            | AcquireOutcome::AlreadyQueued { request, position } => {
+                let _ = self.tools.withdraw(request.id());
+                Err(ExportWizardPanelSessionError::ToolQueued {
+                    position: *position,
+                })
+            }
+            AcquireOutcome::Denied { reason, .. } => {
+                Err(ExportWizardPanelSessionError::ToolDenied {
+                    reason: reason.clone(),
+                })
+            }
+        }
+    }
+
+    fn release_tool_lease(&mut self) {
+        if let Some(lease) = self.tool_lease.take() {
+            let _ = self.tools.release(lease.id());
+        }
+    }
+}
+
+impl Drop for ExportWizardPanelSession {
+    fn drop(&mut self) {
+        self.release_tool_lease();
     }
 }

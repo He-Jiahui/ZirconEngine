@@ -248,7 +248,10 @@ def read_toml(path: Path, diagnostics: list[str]) -> dict[str, Any] | None:
 
 def dedupe(values: list[str]) -> list[str]:
     result: list[str] = []
+    seen: set[str] = set()
     for value in values:
-        if value not in result:
-            result.append(value)
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
     return result

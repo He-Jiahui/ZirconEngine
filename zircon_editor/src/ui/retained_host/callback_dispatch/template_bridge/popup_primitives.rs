@@ -67,7 +67,7 @@ pub(crate) fn menu_item_action_id(label: &str) -> String {
 }
 
 fn label_to_action_segment(label: &str) -> String {
-    let mut output = String::new();
+    let mut output = String::with_capacity(label.len());
     let mut previous_was_separator = true;
     for ch in label.chars() {
         if ch.is_ascii_alphanumeric() {
@@ -76,12 +76,15 @@ fn label_to_action_segment(label: &str) -> String {
             }
             output.push(ch.to_ascii_lowercase());
             previous_was_separator = false;
-        } else if !output.ends_with('_') {
+        } else if !output.is_empty() && !output.ends_with('_') {
             output.push('_');
             previous_was_separator = true;
         }
     }
-    output.trim_matches('_').to_string()
+    if output.ends_with('_') {
+        output.pop();
+    }
+    output
 }
 
 pub(crate) fn menu_item_without_transient_flags(raw: &str) -> String {
@@ -158,6 +161,10 @@ fn menu_item_has_flag(flags: &str, expected: &str) -> bool {
         .split(',')
         .any(|flag| flag.trim().eq_ignore_ascii_case(expected))
 }
+
+#[cfg(test)]
+#[path = "popup_primitives/action_segment_tests.rs"]
+mod action_segment_tests;
 
 #[cfg(test)]
 mod tests {

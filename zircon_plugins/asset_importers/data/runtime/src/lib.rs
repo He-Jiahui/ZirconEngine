@@ -107,28 +107,19 @@ fn xml_element_to_json(node: roxmltree::Node<'_, '_>) -> Value {
         object.insert("attributes".to_string(), Value::Object(attributes));
     }
 
-    let text_nodes = node
-        .children()
-        .filter_map(|child| child.text())
-        .map(str::trim)
-        .filter(|text| !text.is_empty())
-        .map(|text| Value::String(text.to_string()))
-        .collect::<Vec<_>>();
-    match text_nodes.as_slice() {
-        [] => {}
-        [text] => {
-            object.insert("text".to_string(), text.clone());
+    let mut text = None;
+    let mut children = Vec::new();
+    for child in node.children() {
+        if let Some(child_text) = child.text().map(str::trim).filter(|text| !text.is_empty()) {
+            append_xml_text(&mut text, child_text);
         }
-        _ => {
-            object.insert("text".to_string(), Value::Array(text_nodes));
+        if child.is_element() {
+            children.push(xml_element_to_json(child));
         }
     }
-
-    let children = node
-        .children()
-        .filter(|child| child.is_element())
-        .map(xml_element_to_json)
-        .collect::<Vec<_>>();
+    if let Some(text) = text {
+        object.insert("text".to_string(), text);
+    }
     if !children.is_empty() {
         object.insert("children".to_string(), Value::Array(children));
     }
@@ -136,10 +127,26 @@ fn xml_element_to_json(node: roxmltree::Node<'_, '_>) -> Value {
     Value::Object(object)
 }
 
+fn append_xml_text(slot: &mut Option<Value>, text: &str) {
+    let next = Value::String(text.to_string());
+    let current = slot.take();
+    *slot = Some(match current {
+        None => next,
+        Some(Value::Array(mut values)) => {
+            values.push(next);
+            Value::Array(values)
+        }
+        Some(first) => Value::Array(vec![first, next]),
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+    use std::fmt::Write;
+    use std::hint::black_box;
+    use std::time::Instant;
 
     #[test]
     fn package_declares_data_importer_capabilities() {
@@ -303,6 +310,167 @@ mod tests {
         let error = importer.import(&context).unwrap_err();
 
         assert!(error.to_string().contains("parse yaml data"));
+    }
+
+    #[test]
+    fn plugins07_importer_hotpath_xml_single_pass_matches_legacy_neutral_tree() {
+        let document = roxmltree::Document::parse(
+            r#"<root role="panel">lead<a id="1">one</a>middle<b>two</b>tail</root>"#,
+        )
+        .unwrap();
+
+        let optimized = xml_element_to_json(document.root_element());
+        let legacy = legacy_xml_element_to_json(document.root_element());
+
+        assert_eq!(optimized, legacy);
+        assert_eq!(optimized["children"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    #[ignore = "release performance gate; run through the Plugins07 coordinator validator"]
+    fn plugins07_importer_hotpath_release_xml_single_pass_p95_gate() {
+        const SAMPLE_PAIRS: usize = 21;
+        const ELEMENTS: usize = 2_048;
+        const TEXT_BYTES: usize = 96;
+        const ITERATIONS: usize = 4;
+        const THRESHOLD_PERCENT: u128 = 20;
+        let text = "x".repeat(TEXT_BYTES);
+        let mut source = String::with_capacity(ELEMENTS * (TEXT_BYTES + 32));
+        source.push_str("<root>");
+        for index in 0..ELEMENTS {
+            write!(&mut source, "<item id=\"{index}\">{text}</item>").unwrap();
+        }
+        source.push_str("</root>");
+        let document = roxmltree::Document::parse(&source).unwrap();
+        let root = document.root_element();
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            let legacy = || measure_legacy_xml_conversion(root, ITERATIONS);
+            let optimized = || measure_single_pass_xml_conversion(root, ITERATIONS);
+            if pair % 2 == 0 {
+                legacy_samples.push(legacy());
+                optimized_samples.push(optimized());
+            } else {
+                optimized_samples.push(optimized());
+                legacy_samples.push(legacy());
+            }
+        }
+
+        emit_xml_performance_gate(
+            &legacy_samples,
+            &optimized_samples,
+            THRESHOLD_PERCENT,
+            &format!(
+                "elements={ELEMENTS} text_bytes={TEXT_BYTES} iterations_per_sample={ITERATIONS} legacy_child_scans_per_element=2 optimized_child_scans_per_element=1 legacy_single_text_clones_per_sample={} optimized_single_text_clones_per_sample=0",
+                ELEMENTS * ITERATIONS
+            ),
+        );
+    }
+
+    fn legacy_xml_element_to_json(node: roxmltree::Node<'_, '_>) -> Value {
+        let mut object = Map::new();
+        object.insert(
+            "name".to_string(),
+            Value::String(node.tag_name().name().to_string()),
+        );
+        if let Some(namespace) = node.tag_name().namespace() {
+            object.insert(
+                "namespace".to_string(),
+                Value::String(namespace.to_string()),
+            );
+        }
+        let attributes = node
+            .attributes()
+            .map(|attribute| {
+                (
+                    attribute.name().to_string(),
+                    Value::String(attribute.value().to_string()),
+                )
+            })
+            .collect::<Map<_, _>>();
+        if !attributes.is_empty() {
+            object.insert("attributes".to_string(), Value::Object(attributes));
+        }
+        let text_nodes = node
+            .children()
+            .filter_map(|child| child.text())
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+            .map(|text| Value::String(text.to_string()))
+            .collect::<Vec<_>>();
+        match text_nodes.as_slice() {
+            [] => {}
+            [text] => {
+                object.insert("text".to_string(), text.clone());
+            }
+            _ => {
+                object.insert("text".to_string(), Value::Array(text_nodes));
+            }
+        }
+        let children = node
+            .children()
+            .filter(|child| child.is_element())
+            .map(legacy_xml_element_to_json)
+            .collect::<Vec<_>>();
+        if !children.is_empty() {
+            object.insert("children".to_string(), Value::Array(children));
+        }
+        Value::Object(object)
+    }
+
+    fn measure_legacy_xml_conversion(node: roxmltree::Node<'_, '_>, iterations: usize) -> u128 {
+        let started = Instant::now();
+        for _ in 0..iterations {
+            black_box(legacy_xml_element_to_json(black_box(node)));
+        }
+        started.elapsed().as_nanos()
+    }
+
+    fn measure_single_pass_xml_conversion(
+        node: roxmltree::Node<'_, '_>,
+        iterations: usize,
+    ) -> u128 {
+        let started = Instant::now();
+        for _ in 0..iterations {
+            black_box(xml_element_to_json(black_box(node)));
+        }
+        started.elapsed().as_nanos()
+    }
+
+    fn emit_xml_performance_gate(
+        legacy_samples: &[u128],
+        optimized_samples: &[u128],
+        threshold_percent: u128,
+        workload: &str,
+    ) {
+        let legacy_p95 = nearest_rank_xml_p95(legacy_samples);
+        let optimized_p95 = nearest_rank_xml_p95(optimized_samples);
+        let improvement_percent =
+            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
+        println!(
+            "PERF_RESULT plugins07_xml_single_pass_tree sample_pairs=21 order=alternating_legacy_first_even {workload} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={threshold_percent}",
+            xml_samples_csv(legacy_samples),
+            xml_samples_csv(optimized_samples),
+        );
+        assert!(
+            improvement_percent >= threshold_percent,
+            "XML single-pass conversion must improve P95 by at least {threshold_percent}% (legacy={legacy_p95}ns optimized={optimized_p95}ns improvement={improvement_percent}%)"
+        );
+    }
+
+    fn nearest_rank_xml_p95(samples: &[u128]) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        sorted[(sorted.len() * 95).div_ceil(100).saturating_sub(1)]
+    }
+
+    fn xml_samples_csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 
     fn import_fixture(path: &str, source: &str) -> ImportedAsset {

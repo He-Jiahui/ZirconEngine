@@ -4,11 +4,11 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use crate::core::framework::render::{
-    CapturedFrame, FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract,
-    RenderFrameExtract, RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderPipelineHandle,
-    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
-    RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle, ShadowPcfQuality,
-    ShadowResolutionTier, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    CapturedFrame, DEFAULT_RENDER_LAYER_MASK, FallbackSkyboxKind, LightShadowSettings,
+    PreviewEnvironmentExtract, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor,
+    RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -552,11 +552,7 @@ fn average_luma_in_region(frame: &CapturedFrame, origin: UVec2, size: UVec2) -> 
             count += 1.0;
         }
     }
-    if count <= 0.0 {
-        0.0
-    } else {
-        total / count
-    }
+    if count <= 0.0 { 0.0 } else { total / count }
 }
 
 fn frame_darkened_pixel_count_and_luma_delta(

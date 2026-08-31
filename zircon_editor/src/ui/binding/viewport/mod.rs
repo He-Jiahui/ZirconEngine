@@ -2,6 +2,7 @@ mod codec;
 mod command;
 mod display_mode;
 mod grid_mode;
+mod pivot_mode;
 mod projection_mode;
 mod scene_mode_activation;
 mod transform_space;

@@ -2,6 +2,13 @@
 
 > 来源：[`06-environment-ibl-and-pbr-correctness.md`](../06-environment-ibl-and-pbr-correctness.md) 的 `## 9. 状态与产出记录`。
 
+## 产出记录与时间
+
+| 时间 | 状态 | 完成项目与证据 |
+| --- | --- | --- |
+| 2026-08-30 CST | `c4_runtime_cache_writeback_implemented_managed_validation_pending` | C4 运行期缓存写回子阶段已接入：显式 `IblBakeArtifactRequest` 从过滤后的捕获目标借用 PMREM/SH9，readback 通过 product-diagnostic tail 与捕获 command buffer 共用一个 submission ticket，提交成功后才进入既有四项有界 completion queue，并在唯一 backend poll 后写入 runtime cache。捕获来源的读回组装或 runtime-cache 写入失败只丢弃可选写回，不使已提交的可见捕获失败；graph-owned artifact writeback 仍严格报错。reflection-probe request 现在允许 asset/editor owner 显式提供 source hash，只有该身份存在时才启用 canonical runtime-cache artifact request；不把 GPU runtime artifact 冒充 `AssetImporterCpu` staged asset。`output_uri` 继续作为稳定目标身份，编辑器 asset-derived staging/file publication 未冒充完成。`rustfmt --check`、`git diff --check` 与 18 项 Python/static contract tests 通过；本轮 E/D 盘 managed Cargo check 均在外部 target 目录创建 fingerprint 前因路径/文件系统错误停止，未进入 Rust 编译，不计 Cargo 通过；未生成新 PNG/RDC/timing/power 证据。M5-M8 仍为 `in_progress`。 |
+| 2026-08-24 CST | `implementation_complete_static_verified_cargo_pending` | 为收敛 `engine-code-structure-convention.md` 的 owner-file budget，`source_cubemap.rs` 按职责硬切出 `sampling.rs`（边界采样、trilinear 与向量归一化）和 `irradiance_sh9.rs`（Y-up SH9 projection/evaluation）。PMREM 与 source-mipmap consumers 直接依赖 sibling owner；根文件仅保留 mip-chain data model、layout access、build orchestration 与公开 facade，生产行数从 1,008 降至 775，新增 owners 为 136/118 行。现有 source-cubemap regression 直接引入 sampling owner；无算法、常量、采样策略、兼容路径或产品性能结论变更。`rustfmt --edition 2024 --config skip_children=true --check` 与 scoped `git diff --check` 通过；未运行 Cargo、WPR 或产品捕获，故不宣称 IBL 行为、性能或里程碑验收。 |
+
 ## 9. 状态与产出记录
 
 > 迁入产出记录：shader index 迁入记录 已拆入 [`06/2026-07-09-index-output-records.md`](2026-07-09-index-output-records.md)；本子计划状态表保留当前执行行，长记录在子目录文件中维护。

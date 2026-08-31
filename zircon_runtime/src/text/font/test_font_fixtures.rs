@@ -108,7 +108,7 @@ fn pad_to_four(bytes: &mut Vec<u8>) {
 
 #[cfg(test)]
 mod tests {
-    use super::{unique_font_fixture_path, TEXT_FONT_FIXTURE_WORK_DIRECTORY};
+    use super::{TEXT_FONT_FIXTURE_WORK_DIRECTORY, unique_font_fixture_path};
 
     #[test]
     fn font_fixture_paths_stay_under_workspace_text_artifacts() {
@@ -117,13 +117,15 @@ mod tests {
             .parent()
             .expect("zircon_runtime manifest must have a workspace parent");
 
-        assert!(path.starts_with(
-            workspace_root
-                .join("docs")
-                .join("tests")
-                .join("runtime")
-                .join("text")
-                .join(TEXT_FONT_FIXTURE_WORK_DIRECTORY)
-        ));
+        assert!(
+            path.starts_with(
+                workspace_root
+                    .join("docs")
+                    .join("tests")
+                    .join("runtime")
+                    .join("text")
+                    .join(TEXT_FONT_FIXTURE_WORK_DIRECTORY)
+            )
+        );
     }
 }

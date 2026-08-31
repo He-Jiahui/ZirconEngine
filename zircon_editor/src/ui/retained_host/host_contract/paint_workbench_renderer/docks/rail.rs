@@ -14,7 +14,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_active_rail_marker(
     }
     let palette = current_dock_chrome_palette();
     for row in 0..dock.rail_button_frames.row_count() {
-        let Some(control) = dock.rail_button_frames.row_data(row) else {
+        let Some(control) = dock.rail_button_frames.get(row) else {
             continue;
         };
         if control.control_id.as_str() == dock.rail_active_control_id.as_str()

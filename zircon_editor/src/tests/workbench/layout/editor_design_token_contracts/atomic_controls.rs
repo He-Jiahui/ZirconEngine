@@ -27,7 +27,7 @@ fn atomic_controls_share_editor_visual_and_density_tokens() {
                 "$editor.text.primary",
                 "$editor.text.disabled",
                 "$editor.control.border_width",
-                "$editor.control.radius.small",
+                "$editor.control.radius.control",
                 "$editor.density.gap.large",
                 "$editor.density.gap.medium",
                 "$editor.control.height.dense",
@@ -181,7 +181,7 @@ fn atomic_controls_share_editor_visual_and_density_tokens() {
                 "$editor.text.secondary",
                 "$editor.text.disabled",
                 "$editor.control.border_width",
-                "$editor.control.radius.small",
+                "$editor.control.radius.control",
                 "$editor.density.gap.medium",
                 "$editor.density.gap.small",
                 "$editor.density.gap.large",
@@ -318,12 +318,12 @@ fn workbench_tab_uses_tokenized_states_and_stretch_width() {
 }
 
 #[test]
-fn workbench_rail_button_uses_shared_large_control_geometry() {
+fn workbench_rail_button_uses_shared_compact_control_geometry() {
     let asset = workbench_asset!("primitives/chrome/workbench_rail_button.zui");
 
     assert!(
-        asset.matches("$editor.control.height.large").count() >= 3,
-        "the activity-rail button must use the shared large control size for both hit axes"
+        asset.matches("$editor.control.height.compact").count() >= 4,
+        "the activity-rail button must use the shared compact control size for both hit axes"
     );
     assert!(
         [

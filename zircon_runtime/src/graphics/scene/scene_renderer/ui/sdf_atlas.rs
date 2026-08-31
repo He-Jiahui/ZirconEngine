@@ -2,11 +2,12 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 
 use super::render::ScreenSpaceUiTextBatch;
+use super::text::ScreenSpaceUiTextFrameProductGeneration;
 use crate::core::math::UVec2;
 use crate::text::atlas::{
-    GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasFormat, GlyphAtlasPageKey,
-    GlyphAtlasPageReservation, GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet,
-    GlyphAtlasShelfAllocator, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
+    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasAllocation, GlyphAtlasDirtyPage,
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageReservation,
+    GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet, GlyphAtlasShelfAllocator,
 };
 use crate::text::sdf::{
     SdfAtlasGlyphGenerationFailure, SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakeParams,
@@ -21,7 +22,7 @@ mod prepared_texts;
 mod text_keys;
 
 use prepared_texts::PreparedSdfAtlasTexts;
-use text_keys::collect_sdf_atlas_text_keys;
+use text_keys::collect_sdf_atlas_text_keys_iter;
 
 const SDF_ATLAS_SLOT_SIZE_PX: u32 = 64;
 const SDF_ATLAS_MIN_GRID_SIDE: u32 = 8;
@@ -92,6 +93,7 @@ pub(super) struct ScreenSpaceUiSdfAtlas {
     generation: u64,
     quality: SdfAtlasQuality,
     prepared_texts: PreparedSdfAtlasTexts,
+    retained_frame_generation: Option<ScreenSpaceUiTextFrameProductGeneration>,
     recorded_generation_failures: Option<Arc<[SdfAtlasGlyphGenerationFailure]>>,
     generation_failures_by_slot: Vec<Option<SdfGlyphGenerationError>>,
     full_page_dirty_until_upload: bool,
@@ -143,6 +145,7 @@ impl ScreenSpaceUiSdfAtlas {
             generation: 0,
             quality: SdfAtlasQuality::default(),
             prepared_texts: PreparedSdfAtlasTexts::default(),
+            retained_frame_generation: None,
             recorded_generation_failures: None,
             generation_failures_by_slot: Vec::new(),
             full_page_dirty_until_upload: false,
@@ -151,13 +154,58 @@ impl ScreenSpaceUiSdfAtlas {
     }
 
     pub(super) fn prepare(&mut self, texts: &[ScreenSpaceUiTextBatch]) {
+        self.prepare_with_retained_generation(texts, None);
+    }
+
+    pub(super) fn prepare_retained(
+        &mut self,
+        texts: &[ScreenSpaceUiTextBatch],
+        generation: ScreenSpaceUiTextFrameProductGeneration,
+    ) {
+        self.prepare_with_retained_generation(texts, Some(generation));
+    }
+
+    pub(super) fn prepare_retained_segments<'a, Segments>(
+        &mut self,
+        text_segments: Segments,
+        generation: ScreenSpaceUiTextFrameProductGeneration,
+    ) where
+        Segments: Clone + Iterator<Item = &'a [ScreenSpaceUiTextBatch]>,
+    {
+        self.prepare_with_retained_text_iter(
+            text_segments.flat_map(|segment| segment.iter()),
+            Some(generation),
+        );
+    }
+
+    fn prepare_with_retained_generation(
+        &mut self,
+        texts: &[ScreenSpaceUiTextBatch],
+        retained_generation: Option<ScreenSpaceUiTextFrameProductGeneration>,
+    ) {
+        self.prepare_with_retained_text_iter(texts.iter(), retained_generation);
+    }
+
+    fn prepare_with_retained_text_iter<'a, Texts>(
+        &mut self,
+        texts: Texts,
+        retained_generation: Option<ScreenSpaceUiTextFrameProductGeneration>,
+    ) where
+        Texts: Clone + Iterator<Item = &'a ScreenSpaceUiTextBatch>,
+    {
         crate::profile_scope!("runtime", "ui_text.sdf_prepare", "sdf_atlas_plan");
-        if self.prepared_texts.matches(texts) {
+        if retained_generation.is_some() && self.retained_frame_generation == retained_generation {
             self.last_report = stable_cache_report(&self.plan);
             return;
         }
-        self.prepared_texts.replace(texts);
-        let (current_keys, run_keys) = collect_sdf_atlas_text_keys(texts);
+        if self.prepared_texts.matches_iter(texts.clone()) {
+            self.retained_frame_generation = retained_generation;
+            self.last_report = stable_cache_report(&self.plan);
+            return;
+        }
+        self.prepared_texts.replace_iter(texts.clone());
+        self.retained_frame_generation = retained_generation;
+        let (current_keys, run_keys) = collect_sdf_atlas_text_keys_iter(texts);
         let mut next_plan = if current_keys.is_empty() {
             self.cached_slots.clear();
             plan_sdf_atlas_from_slot_keys(Vec::new(), run_keys, self.quality)
@@ -193,6 +241,7 @@ impl ScreenSpaceUiSdfAtlas {
         self.plan = SdfAtlasPlan::default();
         self.cached_slots.clear();
         self.prepared_texts.clear();
+        self.retained_frame_generation = None;
         self.recorded_generation_failures = None;
         self.generation_failures_by_slot.clear();
         self.full_page_dirty_until_upload = true;
@@ -214,7 +263,7 @@ impl ScreenSpaceUiSdfAtlas {
     }
 
     pub(super) fn discard_cached_slots_not_in_texts(&mut self, texts: &[ScreenSpaceUiTextBatch]) {
-        let (current_keys, _) = collect_sdf_atlas_text_keys(texts);
+        let (current_keys, _) = collect_sdf_atlas_text_keys_iter(texts.iter());
         self.cached_slots
             .retain(|slot| current_keys.contains(&slot.key));
     }
@@ -262,17 +311,21 @@ fn insert_new_slots(
     current_keys: &BTreeSet<SdfAtlasGlyphKey>,
     generation: u64,
 ) {
-    let cached_keys = cached_slots
-        .iter()
-        .map(|slot| slot.key.clone())
-        .collect::<BTreeSet<_>>();
-    for key in current_keys {
-        if !cached_keys.contains(key) {
-            cached_slots.push(SdfAtlasCachedSlot {
-                key: key.clone(),
-                last_seen_generation: generation,
-            });
-        }
+    let new_keys = {
+        let cached_keys = cached_slots
+            .iter()
+            .map(|slot| &slot.key)
+            .collect::<BTreeSet<&SdfAtlasGlyphKey>>();
+        current_keys
+            .iter()
+            .filter(|key| !cached_keys.contains(key))
+            .collect::<Vec<_>>()
+    };
+    for key in new_keys {
+        cached_slots.push(SdfAtlasCachedSlot {
+            key: key.clone(),
+            last_seen_generation: generation,
+        });
     }
 }
 
@@ -291,15 +344,22 @@ fn evict_inactive_slots(
         .iter()
         .enumerate()
         .filter(|(_, slot)| !current_keys.contains(&slot.key))
-        .map(|(index, slot)| (slot.last_seen_generation, slot.key.clone(), index))
+        .map(|(index, _)| index)
         .collect::<Vec<_>>();
-    inactive_indices.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+    inactive_indices.sort_by(|left_index, right_index| {
+        let left = &cached_slots[*left_index];
+        let right = &cached_slots[*right_index];
+        left.last_seen_generation
+            .cmp(&right.last_seen_generation)
+            .then_with(|| left.key.cmp(&right.key))
+            .then_with(|| left_index.cmp(right_index))
+    });
 
     let evict_count = cached_slots.len() - target_slot_count;
     let evicted_indices = inactive_indices
         .iter()
         .take(evict_count)
-        .map(|(_, _, index)| *index)
+        .copied()
         .collect::<BTreeSet<_>>();
     let mut index = 0;
     cached_slots.retain(|_| {
@@ -316,23 +376,23 @@ fn cache_report_for_plan_transition(
     let previous_keys = previous
         .slots
         .iter()
-        .map(|slot| slot.key.clone())
-        .collect::<BTreeSet<_>>();
+        .map(|slot| &slot.key)
+        .collect::<BTreeSet<&SdfAtlasGlyphKey>>();
     let current_keys = current
         .slots
         .iter()
-        .map(|slot| slot.key.clone())
-        .collect::<BTreeSet<_>>();
+        .map(|slot| &slot.key)
+        .collect::<BTreeSet<&SdfAtlasGlyphKey>>();
     let previous_slots = previous
         .slots
         .iter()
-        .map(|slot| (slot.key.clone(), (slot.page_key, slot.rect)))
-        .collect::<BTreeMap<_, _>>();
+        .map(|slot| (&slot.key, (slot.page_key, slot.rect)))
+        .collect::<BTreeMap<&SdfAtlasGlyphKey, _>>();
     let current_slots = current
         .slots
         .iter()
-        .map(|slot| (slot.key.clone(), (slot.page_key, slot.rect)))
-        .collect::<BTreeMap<_, _>>();
+        .map(|slot| (&slot.key, (slot.page_key, slot.rect)))
+        .collect::<BTreeMap<&SdfAtlasGlyphKey, _>>();
     let retained_slot_count = current_keys.intersection(&previous_keys).count();
     let stable_slot_count = current_keys
         .intersection(&previous_keys)
@@ -371,7 +431,7 @@ fn cache_report_for_plan_transition(
 
 fn dirty_pages_for_plan_transition(
     current: &SdfAtlasPlan,
-    previous_slots: &BTreeMap<SdfAtlasGlyphKey, (GlyphAtlasPageKey, SdfAtlasRect)>,
+    previous_slots: &BTreeMap<&SdfAtlasGlyphKey, (GlyphAtlasPageKey, SdfAtlasRect)>,
     atlas_resized: bool,
     rebuilt_pages: &BTreeSet<GlyphAtlasPageKey>,
 ) -> Vec<SdfAtlasDirtyPageReport> {
@@ -431,7 +491,7 @@ fn plan_sdf_atlas_with_quality(
     texts: &[ScreenSpaceUiTextBatch],
     quality: SdfAtlasQuality,
 ) -> SdfAtlasPlan {
-    let (unique_keys, run_keys) = collect_sdf_atlas_text_keys(texts);
+    let (unique_keys, run_keys) = collect_sdf_atlas_text_keys_iter(texts.iter());
     plan_sdf_atlas_from_slot_keys(unique_keys.into_iter().collect(), run_keys, quality)
 }
 

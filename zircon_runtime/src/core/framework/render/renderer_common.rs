@@ -70,11 +70,16 @@ impl MaterialOverrideSet {
     pub fn from_slots(
         slots: impl IntoIterator<Item = (u32, ResourceHandle<MaterialMarker>)>,
     ) -> Self {
-        let mut overrides = Self::default();
-        for (slot, material) in slots {
-            overrides.insert(slot, material);
-        }
-        overrides
+        let mut slots = slots.into_iter().collect::<Vec<_>>();
+        slots.sort_by_key(|(slot, _)| *slot);
+        slots.dedup_by(|current, previous| {
+            if current.0 != previous.0 {
+                return false;
+            }
+            previous.1 = current.1;
+            true
+        });
+        Self { slots }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -154,6 +159,9 @@ impl Default for RendererCommon {
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId};
 
     use super::{
@@ -222,6 +230,60 @@ mod tests {
     }
 
     #[test]
+    fn optimization_batch_20260831fe_runtime570_bulk_slots_preserve_incremental_semantics() {
+        let entries = [
+            (7, material_handle("res://materials/seven-a.zmaterial")),
+            (2, material_handle("res://materials/two-a.zmaterial")),
+            (7, material_handle("res://materials/seven-b.zmaterial")),
+            (5, material_handle("res://materials/five.zmaterial")),
+            (2, material_handle("res://materials/two-b.zmaterial")),
+        ];
+
+        assert_eq!(
+            MaterialOverrideSet::from_slots(entries).slots(),
+            legacy_from_slots(&entries).slots()
+        );
+    }
+
+    #[test]
+    #[ignore = "managed Windows release performance evidence"]
+    fn optimization_batch_20260831fe_runtime570_bulk_slots_reverse_order_p95() {
+        const SAMPLE_PAIRS: usize = 13;
+        const SLOT_COUNT: usize = 4_096;
+        const ITERATIONS: usize = 4;
+        let entries = (0..SLOT_COUNT)
+            .rev()
+            .map(|slot| {
+                (
+                    slot as u32,
+                    material_handle(&format!("res://materials/{slot}.zmaterial")),
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy.push(measure_bulk_slots(false, &entries, ITERATIONS));
+                optimized.push(measure_bulk_slots(true, &entries, ITERATIONS));
+            } else {
+                optimized.push(measure_bulk_slots(true, &entries, ITERATIONS));
+                legacy.push(measure_bulk_slots(false, &entries, ITERATIONS));
+            }
+        }
+        let legacy_p95_ns = percentile(&legacy, 95);
+        let optimized_p95_ns = percentile(&optimized, 95);
+        println!(
+            "RUNTIME570_MATERIAL_OVERRIDE_BULK_SORT_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
+slots={SLOT_COUNT} iterations={ITERATIONS} legacy_p95_ns={legacy_p95_ns} \
+optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            csv(&legacy),
+            csv(&optimized)
+        );
+        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(35));
+    }
+
+    #[test]
     fn render_renderer_common_modes_resolve_shadow_and_velocity_contracts() {
         assert!(!CastShadowsMode::Off.casts_shadows());
         assert!(CastShadowsMode::On.casts_shadows());
@@ -243,5 +305,47 @@ mod tests {
 
     fn material_handle(label: &str) -> ResourceHandle<MaterialMarker> {
         ResourceHandle::new(ResourceId::from_stable_label(label))
+    }
+
+    fn legacy_from_slots(entries: &[(u32, ResourceHandle<MaterialMarker>)]) -> MaterialOverrideSet {
+        let mut overrides = MaterialOverrideSet::default();
+        for (slot, material) in entries.iter().copied() {
+            overrides.insert(slot, material);
+        }
+        overrides
+    }
+
+    fn measure_bulk_slots(
+        optimized: bool,
+        entries: &[(u32, ResourceHandle<MaterialMarker>)],
+        iterations: usize,
+    ) -> u128 {
+        let started = Instant::now();
+        let mut checksum = 0_usize;
+        for _ in 0..iterations {
+            let overrides = if optimized {
+                MaterialOverrideSet::from_slots(entries.iter().copied())
+            } else {
+                legacy_from_slots(entries)
+            };
+            checksum ^= overrides.slots().len();
+            black_box(overrides);
+        }
+        black_box(checksum);
+        started.elapsed().as_nanos().max(1)
+    }
+
+    fn percentile(samples: &[u128], percentile: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        sorted[(sorted.len() * percentile).div_ceil(100).saturating_sub(1)]
+    }
+
+    fn csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 }

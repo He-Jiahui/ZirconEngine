@@ -1,12 +1,16 @@
 use std::sync::Arc;
 
-use crate::text::{text_style, ShapedGlyphRun, SharedTextLayoutSession, TextRange};
+use crate::core::framework::text::TextLayoutError;
+use crate::text::{ShapedGlyphRun, SharedTextLayoutSession, TextRange, text_style};
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRange};
 
-pub fn shape_text_line(text: &str, style: &UiResolvedStyle) -> ShapedGlyphRun {
+pub fn shape_text_line(
+    text: &str,
+    style: &UiResolvedStyle,
+) -> Result<ShapedGlyphRun, TextLayoutError> {
     crate::profile_scope!("runtime", "text.surface", "shape_text_line");
     let mut session = SharedTextLayoutSession::new();
-    Arc::unwrap_or_clone(session.shape_horizontal_line(
+    match session.shape_horizontal_range(
         text,
         &text_style(style),
         style.text_direction.into(),
@@ -14,7 +18,14 @@ pub fn shape_text_line(text: &str, style: &UiResolvedStyle) -> ShapedGlyphRun {
             start: 0,
             end: text.len(),
         },
-    ))
+    ) {
+        crate::text::shaping::TextShapingOutcome::Ready(run) => Ok(Arc::unwrap_or_clone(run)),
+        crate::text::shaping::TextShapingOutcome::Deferred(error)
+        | crate::text::shaping::TextShapingOutcome::Failed(error) => {
+            session.record_layout_error(&error);
+            Err(error.into_error())
+        }
+    }
 }
 
 #[cfg(test)]
@@ -33,7 +44,7 @@ mod tests {
         config.max_spans = 2;
         assert!(crate::core::diagnostics::profiling::start_capture(config).active);
 
-        let _ = shape_text_line("Profile", &UiResolvedStyle::default());
+        let _ = shape_text_line("Profile", &UiResolvedStyle::default()).expect("shape text");
 
         let snapshot = crate::core::diagnostics::profiling::snapshot();
         assert!(
@@ -58,7 +69,7 @@ mod tests {
             ..UiResolvedStyle::default()
         };
 
-        let run = shape_text_line("Preview", &style);
+        let run = shape_text_line("Preview", &style).expect("shape text");
         let line = run.lines.first().expect("shaped line");
 
         assert_eq!(run.source_range.start, 0);
@@ -78,7 +89,7 @@ mod tests {
         let text = "xxWi";
         let prefix_end = "xx".len();
         let w_end = prefix_end + "W".len();
-        let run = shape_text_line(text, &style);
+        let run = shape_text_line(text, &style).expect("shape text");
         let line_width = run.lines.first().expect("shaped line").measured_width;
 
         let full = measure_text_source_range_width(

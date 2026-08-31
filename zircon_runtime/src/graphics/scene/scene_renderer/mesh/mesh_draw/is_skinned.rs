@@ -6,11 +6,11 @@ impl MeshDraw {
     }
 
     pub(crate) fn has_skinned_joint_palette_upload(&self) -> bool {
-        self.skinned_joint_palette_buffer.is_some()
+        self.has_skinned_joint_palette_upload
     }
 
     pub(crate) fn has_previous_skinned_joint_palette_upload(&self) -> bool {
-        self.previous_skinned_joint_palette_buffer.is_some()
+        self.has_previous_skinned_joint_palette_upload
     }
 
     pub(crate) fn has_skinned_gpu_source_candidate(&self) -> bool {

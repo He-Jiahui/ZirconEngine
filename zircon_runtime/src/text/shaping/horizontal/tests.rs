@@ -1,15 +1,47 @@
 use std::path::Path;
 
 use crate::core::framework::text::TextDirection;
-use crate::text::{TextRange, TextStyle};
+use crate::text::{FontFaceId, Iso15924Tag, TextRange, TextStyle};
 
-use crate::text::font::FontDatabase;
-#[cfg(target_os = "windows")]
-use crate::text::shaping::shape_horizontal_line;
 #[cfg(target_os = "windows")]
 use crate::text::VariationCoords;
+use crate::text::font::{FontDatabase, FontDatabaseError};
+use crate::text::shaping::backend_error::{BackendFontOperation, BackendShapeError};
+#[cfg(target_os = "windows")]
+use crate::text::shaping::shape_horizontal_range;
 
 use super::backend::shape_horizontal_run;
+
+#[test]
+fn text_horizontal_backend_retains_font_access_failure_cause() {
+    let database = FontDatabase::default();
+    let unknown_face = FontFaceId(u64::MAX);
+
+    let error = shape_horizontal_run(
+        &database,
+        unknown_face,
+        None,
+        "A",
+        TextDirection::LeftToRight,
+        script_tag("Latn"),
+        Some("en"),
+        &[],
+        true,
+        400,
+        18.0,
+    )
+    .expect_err("unknown face must retain a typed backend failure");
+
+    assert!(matches!(
+        error,
+        BackendShapeError::FontDatabase {
+            operation: BackendFontOperation::ResolveVariations,
+            face,
+            source: FontDatabaseError::UnknownFace(source_face),
+        } if face == unknown_face && source_face == unknown_face
+    ));
+}
+
 #[test]
 fn text_horizontal_backend_shapes_static_face_without_language_override() {
     let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
@@ -24,7 +56,7 @@ fn text_horizontal_backend_shapes_static_face_without_language_override() {
         None,
         "static text",
         TextDirection::LeftToRight,
-        "Latn",
+        script_tag("Latn"),
         Some(""),
         &[],
         true,
@@ -34,6 +66,35 @@ fn text_horizontal_backend_shapes_static_face_without_language_override() {
     .expect("static face shapes through the canonical backend");
 
     assert!(!shaped.glyphs.is_empty());
+}
+
+#[test]
+fn text_horizontal_backend_retains_rustybuzz_unsafe_break_receipt() {
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
+    let mut database = FontDatabase::default();
+    let face = database
+        .register_font_file(&source, Some("Fira Sans Break Safety Test"), 0)
+        .expect("register tracked static font");
+
+    let shaped = shape_horizontal_run(
+        &database,
+        face,
+        None,
+        "AV",
+        TextDirection::LeftToRight,
+        script_tag("Latn"),
+        Some("en"),
+        &[],
+        true,
+        400,
+        18.0,
+    )
+    .expect("kerning pair shapes through RustyBuzz");
+
+    assert!(
+        shaped.glyphs.iter().any(|glyph| glyph.unsafe_to_break),
+        "the checked-in kerning pair must expose RustyBuzz break-safety provenance"
+    );
 }
 
 #[cfg(target_os = "windows")]
@@ -67,7 +128,7 @@ fn text_horizontal_rustybuzz_backend_applies_real_variable_width_axis() {
         Some(narrow),
         "VARIABLE WIDTH",
         TextDirection::LeftToRight,
-        "Latn",
+        script_tag("Latn"),
         Some("en"),
         &[],
         true,
@@ -81,7 +142,7 @@ fn text_horizontal_rustybuzz_backend_applies_real_variable_width_axis() {
         Some(wide),
         "VARIABLE WIDTH",
         TextDirection::LeftToRight,
-        "Latn",
+        script_tag("Latn"),
         Some("en"),
         &[],
         true,
@@ -122,7 +183,7 @@ fn text_horizontal_rustybuzz_backend_applies_real_per_run_locl_language() {
         None,
         "б",
         TextDirection::LeftToRight,
-        "Cyrl",
+        script_tag("Cyrl"),
         Some("ru"),
         &[],
         true,
@@ -136,7 +197,7 @@ fn text_horizontal_rustybuzz_backend_applies_real_per_run_locl_language() {
         None,
         "б",
         TextDirection::LeftToRight,
-        "Cyrl",
+        script_tag("Cyrl"),
         Some("sr"),
         &[],
         true,
@@ -150,7 +211,7 @@ fn text_horizontal_rustybuzz_backend_applies_real_per_run_locl_language() {
         None,
         "б",
         TextDirection::LeftToRight,
-        "Zyyy",
+        script_tag("Zyyy"),
         Some("sr"),
         &[],
         true,
@@ -197,7 +258,7 @@ fn text_horizontal_rustybuzz_backend_preserves_serbian_locl_in_mixed_script_text
         ..TextStyle::default()
     };
     let mixed_text = "aб";
-    let mixed = shape_horizontal_line(
+    let mixed = shape_horizontal_range(
         mixed_text,
         &style,
         TextDirection::LeftToRight,
@@ -207,7 +268,7 @@ fn text_horizontal_rustybuzz_backend_preserves_serbian_locl_in_mixed_script_text
         },
     );
     let isolated_text = "б";
-    let isolated = shape_horizontal_line(
+    let isolated = shape_horizontal_range(
         isolated_text,
         &style,
         TextDirection::LeftToRight,
@@ -239,4 +300,8 @@ fn text_horizontal_rustybuzz_backend_preserves_serbian_locl_in_mixed_script_text
         mixed_cyrillic.glyph_id, isolated_cyrillic.glyph_id,
         "a Latin neighbor must not cause the Serbian Cyrillic cluster to be reshaped as Latin"
     );
+}
+
+fn script_tag(value: &str) -> Iso15924Tag {
+    Iso15924Tag::parse(value).expect("test script tag must be canonical")
 }

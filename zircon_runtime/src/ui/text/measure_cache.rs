@@ -1,72 +1,57 @@
 use crate::core::framework::text::TextDirection;
 use crate::core::runtime::tasks::TaskPool;
-use crate::text::{
-    cache::{
-        ShapedRunCacheReport, TextFrameDedup, TextFrameDedupReport, TextLayoutCache,
-        TextLayoutCacheReport, TextLayoutWidthValidity, TextMeasureCache, TextMeasureCacheReport,
-        DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY, DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
-    },
-    font::shared_font_database_generation,
-    has_multiple_hard_lines,
-    layout::{measure_line_width, resolved_text_spans},
-    parallel::shape_pool::{TextParallelShapeBatchReport, TextShapeParagraph},
-    text_style, SharedTextLayoutSession, TextDocumentKey, TextRange, TextStyle, VerticalMode,
-};
 #[cfg(feature = "profiling")]
-use crate::text::{CompiledRichTextCacheFrameSampler, CompiledRichTextCacheReport};
+use crate::text::CompiledRichTextCacheReport;
+use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
+use crate::text::{
+    EphemeralCacheHash, RichSemanticProjection, RichTextFormat, SharedTextLayoutSession,
+    TextDocumentKey, TextRange, TextStyle, VerticalMode,
+    cache::{
+        DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY, DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
+        HardLineIndexCacheReport, ShapedRunCacheReport, TextFrameDedup, TextFrameDedupReport,
+        TextLayoutCache, TextLayoutCacheReport, TextLayoutWidthValidity, TextMeasureCache,
+        TextMeasureCacheReport,
+    },
+    font::{FontCollectionService, shared_font_collection_service},
+    from_compiled_rich_semantic_projection, has_multiple_hard_lines,
+    layout::resolved_text_spans,
+    parallel::shape_pool::{TextParallelShapeBatchReport, TextShapeParagraph},
+    text_style,
+};
 use std::{
     hash::{Hash, Hasher},
-    mem::size_of,
     sync::Arc,
 };
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use zircon_runtime_interface::ui::surface::{
-    UiResolvedStyle, UiRichTextFormat, UiTextDirection, UiTextOverflow, UiTextRange, UiTextWrap,
-    UiTextWritingMode,
+    UiRenderCommand, UiResolvedStyle, UiRichTextFormat, UiTextDirection, UiTextOverflow,
+    UiTextRange, UiTextWrap, UiTextWritingMode,
 };
 
 use super::layout_engine::viewport_selects_partial_plain_text as layout_viewport_selects_partial_plain_text;
+use super::layout_engine::{
+    measure_text_size_with_provider_outcome, resolve_text_direction, text_layout_error_layout,
+};
 use super::resolved_layout::{
-    resolve_text_layout_with_provider, resolve_text_layout_with_provider_and_parsed,
-    UiTextLayoutRequest, UiTextLayoutResolution, UiTextStyleKey,
+    UiTextLayoutRequest, UiTextLayoutResolution, UiTextStyleKey, resolution_from_layout,
+    resolve_text_layout_with_provider_and_parsed_outcome,
+    resolve_text_layout_with_provider_outcome,
 };
-use super::rich_text::{parse_source_text, UiParsedText};
-use super::shaper::{
-    measure_text_size_with_provider as measure_backend_text_size_with_provider,
-    measure_unwrapped_text_height_with_provider,
-};
+use super::rich_text::{UiParsedText, parse_source_text_with_provider};
+use super::shaper::measure_unwrapped_text_height_with_provider;
 
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
-pub(crate) struct UiWidthBucket(u32);
+mod retained_document;
 
-impl UiWidthBucket {
-    pub(crate) fn from_request(request: &UiTextLayoutRequest<'_>) -> Self {
-        if request.style.wrap == UiTextWrap::None {
-            return Self(0);
-        }
-
-        let advance = measure_line_width("n", &text_style(request.style))
-            .max(request.style.font_size.max(1.0) * 0.25)
-            .max(1.0);
-        Self(
-            (request.frame.width.max(advance) / advance)
-                .floor()
-                .max(1.0) as u32,
-        )
-    }
-
-    pub(crate) const fn value(self) -> u32 {
-        self.0
-    }
-}
+#[cfg(test)]
+use retained_document::RETAINED_PLAIN_DOCUMENT_MAX_BYTES;
+use retained_document::RetainedPlainTextDocumentCache;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiTextMeasureKey {
-    pub content_hash: u64,
+    pub content_hash: EphemeralCacheHash,
     pub frame: UiFrameKey,
     pub clip_frame: Option<UiFrameKey>,
     pub viewport: Option<(u32, u32, usize)>,
-    pub width_bucket: UiWidthBucket,
     pub style: UiTextStyleKey,
     pub font_database_generation: u64,
 }
@@ -77,17 +62,12 @@ impl Hash for UiTextMeasureKey {
         self.frame.hash(state);
         self.clip_frame.hash(state);
         self.viewport.hash(state);
-        self.width_bucket.hash(state);
         self.style.hash(state);
         self.font_database_generation.hash(state);
     }
 }
 
 impl UiTextMeasureKey {
-    pub(crate) fn from_request(request: &UiTextLayoutRequest<'_>) -> Self {
-        Self::from_request_at_generation(request, shared_font_database_generation())
-    }
-
     fn from_request_at_generation(
         request: &UiTextLayoutRequest<'_>,
         font_database_generation: u64,
@@ -99,16 +79,19 @@ impl UiTextMeasureKey {
             viewport: request
                 .layout_viewport()
                 .map(|viewport| viewport.cache_key()),
-            width_bucket: UiWidthBucket::from_request(request),
             style: request.style_key(),
             font_database_generation,
         }
+    }
+
+    fn estimated_heap_bytes(&self) -> usize {
+        self.style.estimated_heap_bytes()
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiTextMeasureSizeKey {
-    pub content_hash: u64,
+    pub content_hash: EphemeralCacheHash,
     pub style: UiTextStyleKey,
     pub font_database_generation: u64,
 }
@@ -122,13 +105,6 @@ impl Hash for UiTextMeasureSizeKey {
 }
 
 impl UiTextMeasureSizeKey {
-    pub(crate) fn from_text_style(
-        text: &str,
-        style: &zircon_runtime_interface::ui::surface::UiResolvedStyle,
-    ) -> Self {
-        Self::from_text_style_at_generation(text, style, shared_font_database_generation())
-    }
-
     fn from_text_style_at_generation(
         text: &str,
         style: &zircon_runtime_interface::ui::surface::UiResolvedStyle,
@@ -140,100 +116,14 @@ impl UiTextMeasureSizeKey {
             font_database_generation,
         }
     }
+
+    fn estimated_heap_bytes(&self) -> usize {
+        self.style.estimated_heap_bytes()
+    }
 }
 
 #[cfg(test)]
-mod generation_key_tests {
-    use std::sync::Arc;
-
-    use super::{
-        UiTextMeasureCache, UiTextMeasureKey, UiTextMeasureSizeKey,
-        RETAINED_PLAIN_DOCUMENT_MAX_BYTES,
-    };
-    use crate::text::TextDocumentKey;
-    use crate::ui::text::{UiTextLayoutRequest, UiTextViewport};
-    use zircon_runtime_interface::ui::{
-        layout::UiFrame,
-        surface::{UiResolvedStyle, UiTextOverflow, UiTextWrap},
-    };
-
-    #[test]
-    fn ui_text_cache_keys_change_with_font_database_generation() {
-        let style = UiResolvedStyle::default();
-        let request = UiTextLayoutRequest::new(
-            "generation",
-            &style,
-            UiFrame::new(0.0, 0.0, 100.0, 20.0),
-            None,
-        );
-
-        assert_ne!(
-            UiTextMeasureSizeKey::from_text_style_at_generation("generation", &style, 1),
-            UiTextMeasureSizeKey::from_text_style_at_generation("generation", &style, 2)
-        );
-        assert_ne!(
-            UiTextMeasureKey::from_request_at_generation(&request, 1),
-            UiTextMeasureKey::from_request_at_generation(&request, 2)
-        );
-    }
-
-    #[test]
-    fn retained_plain_document_cache_reuses_a_document_revision() {
-        let style = UiResolvedStyle::default();
-        let frame = UiFrame::new(0.0, 0.0, 120.0, 40.0);
-        let viewport = UiTextViewport::new(0.0, 40.0, 0).expect("finite viewport");
-        let mut cache = UiTextMeasureCache::default();
-        let first_request = UiTextLayoutRequest::new("first\nsecond", &style, frame, None)
-            .with_viewport(viewport)
-            .with_document_key(TextDocumentKey::new(7, 1));
-        let repeat_request = UiTextLayoutRequest::new("first\nsecond", &style, frame, None)
-            .with_viewport(viewport)
-            .with_document_key(TextDocumentKey::new(7, 1));
-        let revised_request = UiTextLayoutRequest::new("first\nsecond\nthird", &style, frame, None)
-            .with_viewport(viewport)
-            .with_document_key(TextDocumentKey::new(7, 2));
-
-        let first = cache.retained_plain_document(&first_request);
-        let repeated = cache.retained_plain_document(&repeat_request);
-        let revised = cache.retained_plain_document(&revised_request);
-
-        assert!(Arc::ptr_eq(&first.rich, &repeated.rich));
-        assert!(!Arc::ptr_eq(&first.rich, &revised.rich));
-        assert_eq!(cache.retained_plain_documents.len(), 2);
-        assert!(cache.retained_plain_document_bytes <= RETAINED_PLAIN_DOCUMENT_MAX_BYTES);
-    }
-
-    #[test]
-    fn complete_viewport_layout_cache_hit_skips_the_hard_line_index_probe() {
-        let style = UiResolvedStyle {
-            wrap: UiTextWrap::None,
-            text_overflow: UiTextOverflow::Clip,
-            ..UiResolvedStyle::default()
-        };
-        let request = UiTextLayoutRequest::new(
-            "first\nsecond",
-            &style,
-            UiFrame::new(0.0, 0.0, 120.0, 48.0),
-            Some(UiFrame::new(0.0, 0.0, 120.0, 48.0)),
-        )
-        .with_document_key(TextDocumentKey::new(9, 1))
-        .with_viewport(UiTextViewport::new(0.0, 48.0, 2).expect("finite viewport"));
-        let mut cache = UiTextMeasureCache::default();
-
-        cache.begin_frame();
-        cache.resolve_or_shape(&request);
-        cache.finish_frame();
-        let first = cache.text_layout_session.hard_line_index_report();
-
-        cache.begin_frame();
-        cache.resolve_or_shape(&request);
-        let second = cache.text_layout_session.hard_line_index_report();
-
-        assert_eq!(first.build_count, 1);
-        assert_eq!(second.hit_count, first.hit_count);
-        assert_eq!(cache.frame_layout_report().hit_count, 1);
-    }
-}
+mod generation_key_tests;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub(crate) struct UiFrameKey {
@@ -262,28 +152,13 @@ fn normalized_bits(value: f32) -> u32 {
     }
 }
 
-fn text_hash(text: &str) -> u64 {
-    use std::hash::{Hash, Hasher};
-
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    text.hash(&mut hasher);
-    hasher.finish()
+fn text_hash(text: &str) -> EphemeralCacheHash {
+    EphemeralCacheHash::from_hashable(text)
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiTextShapePrewarmRequest {
     paragraphs: Vec<TextShapeParagraph>,
-}
-
-const RETAINED_PLAIN_DOCUMENT_CAPACITY: usize = 16;
-const RETAINED_PLAIN_DOCUMENT_MAX_BYTES: usize = 32 * 1024 * 1024;
-
-#[derive(Clone, Debug, PartialEq)]
-struct RetainedPlainTextDocument {
-    key: TextDocumentKey,
-    parsed: UiParsedText,
-    estimated_bytes: usize,
-    last_access: u64,
 }
 
 impl UiTextShapePrewarmRequest {
@@ -302,7 +177,11 @@ impl UiTextShapePrewarmRequest {
         }
     }
 
-    pub(crate) fn from_layout_source(text: &str, style: UiResolvedStyle) -> Option<Self> {
+    fn from_layout_source(
+        text: &str,
+        style: UiResolvedStyle,
+        provider: &SharedTextLayoutSession,
+    ) -> Option<Self> {
         if text.is_empty() {
             return None;
         }
@@ -315,12 +194,14 @@ impl UiTextShapePrewarmRequest {
         let vertical_mode = matches!(style.text_writing_mode, UiTextWritingMode::VerticalRl)
             .then_some(VerticalMode::Mixed);
         let base_style = text_style(&style);
-        let parsed = parse_source_text(text, style.rich_text_format.into());
+        let parsed =
+            parse_source_text_with_provider(text, style.rich_text_format.into(), provider).ok()?;
         let paragraphs: Vec<TextShapeParagraph> =
             if parsed.runs.iter().any(|run| run.inline().is_some()) {
                 // Inline rich layout routes through RichAdvanceIndex. Reuse its exact resolved-span
                 // projection so adjacent runs with the same effective style share the cache key.
                 resolved_text_spans(&parsed, &base_style)
+                    .ok()?
                     .into_iter()
                     .flat_map(|span| {
                         parsed
@@ -383,38 +264,66 @@ pub(crate) struct UiTextMeasureCache {
     text_layout_session: SharedTextLayoutSession,
     layout_frame_dedup: TextFrameDedup<UiTextMeasureKey, UiTextLayoutResolution>,
     layout_cache: TextLayoutCache<UiTextMeasureKey, UiTextLayoutResolution>,
-    retained_plain_documents: Vec<RetainedPlainTextDocument>,
-    retained_plain_document_bytes: usize,
-    retained_plain_document_access: u64,
+    retained_plain_documents: RetainedPlainTextDocumentCache,
     uncached_document_resolve_count: usize,
     shape_prewarm_report: TextParallelShapeBatchReport,
-    #[cfg(feature = "profiling")]
-    compiled_rich_text_cache_sampler: CompiledRichTextCacheFrameSampler,
     frame_index: u64,
 }
 
 impl Default for UiTextMeasureCache {
+    /// Creates a standalone cache backed by the process-owner font collection.
+    /// Retained surfaces construct this cache with their selected owner collection: the Editor
+    /// process collection or a Runtime Core-owned collection.
     fn default() -> Self {
-        Self {
-            measure_frame_dedup: TextFrameDedup::default(),
-            measure_cache: TextMeasureCache::with_capacity(DEFAULT_TEXT_MEASURE_CACHE_CAPACITY),
-            text_layout_session: SharedTextLayoutSession::new(),
-            layout_frame_dedup: TextFrameDedup::default(),
-            layout_cache: TextLayoutCache::with_capacity(DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY),
-            retained_plain_documents: Vec::new(),
-            retained_plain_document_bytes: 0,
-            retained_plain_document_access: 0,
-            uncached_document_resolve_count: 0,
-            shape_prewarm_report: TextParallelShapeBatchReport::default(),
-            #[cfg(feature = "profiling")]
-            compiled_rich_text_cache_sampler: CompiledRichTextCacheFrameSampler::from_shared_cache(
-            ),
-            frame_index: 0,
-        }
+        Self::new_with_font_collection(shared_font_collection_service())
     }
 }
 
 impl UiTextMeasureCache {
+    pub(crate) fn new_with_font_collection(font_collection: Arc<FontCollectionService>) -> Self {
+        let text_layout_session =
+            SharedTextLayoutSession::new_with_font_collection(font_collection);
+        Self {
+            measure_frame_dedup: TextFrameDedup::default(),
+            measure_cache: TextMeasureCache::with_capacity(DEFAULT_TEXT_MEASURE_CACHE_CAPACITY),
+            text_layout_session,
+            layout_frame_dedup: TextFrameDedup::default(),
+            layout_cache: TextLayoutCache::with_capacity(DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY),
+            retained_plain_documents: RetainedPlainTextDocumentCache::default(),
+            uncached_document_resolve_count: 0,
+            shape_prewarm_report: TextParallelShapeBatchReport::default(),
+            frame_index: 0,
+        }
+    }
+
+    pub(crate) fn font_database_generation(&self) -> u64 {
+        self.text_layout_session.font_database_generation()
+    }
+
+    pub(crate) fn shape_prewarm_request(
+        &self,
+        text: &str,
+        style: UiResolvedStyle,
+    ) -> Option<UiTextShapePrewarmRequest> {
+        UiTextShapePrewarmRequest::from_layout_source(text, style, &self.text_layout_session)
+    }
+
+    pub(crate) fn compile_rich_semantic_projection(
+        &self,
+        source_markup: &str,
+        format: RichTextFormat,
+    ) -> Option<RichSemanticProjection> {
+        let compiled = self
+            .text_layout_session
+            .compile_rich_text(source_markup, format)
+            .ok()?;
+        from_compiled_rich_semantic_projection(compiled, source_markup, format)
+    }
+
+    pub(crate) fn font_collection_snapshot(&self) -> crate::text::font::FontCollectionSnapshot {
+        self.text_layout_session.font_collection_snapshot()
+    }
+
     pub(crate) fn clear(&mut self) {
         self.measure_frame_dedup.clear();
         self.measure_cache.clear();
@@ -422,7 +331,6 @@ impl UiTextMeasureCache {
         self.layout_frame_dedup.clear();
         self.layout_cache.clear();
         self.retained_plain_documents.clear();
-        self.retained_plain_document_bytes = 0;
     }
 
     pub(crate) fn begin_frame(&mut self) {
@@ -442,6 +350,16 @@ impl UiTextMeasureCache {
         self.layout_cache.finish_frame();
     }
 
+    pub(crate) fn prepare_render_command_text_artifacts(
+        &mut self,
+        commands: &mut [UiRenderCommand],
+    ) {
+        super::rich_text::prepare_render_command_text_artifacts_with_provider(
+            commands,
+            &mut self.text_layout_session,
+        );
+    }
+
     pub(crate) fn frame_shape_count(&self) -> u64 {
         self.layout_cache.report().miss_count
     }
@@ -458,13 +376,28 @@ impl UiTextMeasureCache {
         self.text_layout_session.cache_report()
     }
 
+    pub(crate) fn hard_line_index_report(&self) -> HardLineIndexCacheReport {
+        self.text_layout_session.hard_line_index_report()
+    }
+
+    pub(crate) const fn frame_shaping_work_report(&self) -> crate::text::TextShapingWorkReport {
+        self.text_layout_session.shaping_work_report()
+    }
+
+    pub(crate) const fn frame_layout_session_diagnostics(
+        &self,
+    ) -> crate::text::TextLayoutSessionDiagnostics {
+        self.text_layout_session.diagnostics_report()
+    }
+
     pub(crate) fn frame_shape_prewarm_report(&self) -> TextParallelShapeBatchReport {
         self.shape_prewarm_report
     }
 
     #[cfg(feature = "profiling")]
     pub(crate) fn sample_compiled_rich_text_cache(&mut self) -> CompiledRichTextCacheReport {
-        self.compiled_rich_text_cache_sampler.sample()
+        self.text_layout_session
+            .take_compiled_rich_text_cache_report()
     }
 
     pub(crate) fn frame_layout_report(&self) -> TextLayoutCacheReport {
@@ -525,10 +458,18 @@ impl UiTextMeasureCache {
             .shape_prewarm_report
             .inserted_count
             .saturating_add(report.inserted_count);
+        self.shape_prewarm_report.invalid_request_count = self
+            .shape_prewarm_report
+            .invalid_request_count
+            .saturating_add(report.invalid_request_count);
         self.shape_prewarm_report.generation_deferred_count = self
             .shape_prewarm_report
             .generation_deferred_count
             .saturating_add(report.generation_deferred_count);
+        self.shape_prewarm_report.failed_count = self
+            .shape_prewarm_report
+            .failed_count
+            .saturating_add(report.failed_count);
         self.shape_prewarm_report.inline_batch_count = self
             .shape_prewarm_report
             .inline_batch_count
@@ -547,6 +488,9 @@ impl UiTextMeasureCache {
             .shape_prewarm_report
             .worker_parallelism
             .max(report.worker_parallelism);
+        self.shape_prewarm_report
+            .shaping_work
+            .merge(report.shaping_work);
     }
 
     pub(crate) fn measure_text_size(
@@ -558,7 +502,11 @@ impl UiTextMeasureCache {
             return UiSize::default();
         }
 
-        let key = UiTextMeasureSizeKey::from_text_style(text, style);
+        let key = UiTextMeasureSizeKey::from_text_style_at_generation(
+            text,
+            style,
+            self.font_database_generation(),
+        );
         if let Some(size) = self.measure_frame_dedup.get(&key, text).copied() {
             return size;
         }
@@ -568,12 +516,25 @@ impl UiTextMeasureCache {
         {
             (Arc::clone(stored_text), *size)
         } else {
-            let measured =
-                measure_backend_text_size_with_provider(text, style, &mut self.text_layout_session);
+            let measured = match measure_text_size_with_provider_outcome(
+                text,
+                style,
+                &mut self.text_layout_session,
+            ) {
+                TextShapingOutcome::Ready(size) => size,
+                TextShapingOutcome::Deferred(error) | TextShapingOutcome::Failed(error) => {
+                    self.text_layout_session.record_layout_error(&error);
+                    return UiSize::default();
+                }
+            };
             let stored_text: Arc<str> = Arc::from(text);
-            let size = *self
-                .measure_cache
-                .insert(key.clone(), Arc::clone(&stored_text), measured);
+            let key_heap_bytes = key.estimated_heap_bytes();
+            let size = *self.measure_cache.insert_with_additional_heap_bytes(
+                key.clone(),
+                Arc::clone(&stored_text),
+                measured,
+                key_heap_bytes,
+            );
             (stored_text, size)
         };
         self.measure_frame_dedup.insert(key, stored_text, size);
@@ -603,14 +564,28 @@ impl UiTextMeasureCache {
         &mut self,
         request: &UiTextLayoutRequest<'_>,
     ) -> UiTextLayoutResolution {
-        let key = UiTextMeasureKey::from_request(request);
+        match self.resolve_or_shape_outcome(request) {
+            TextShapingOutcome::Ready(resolution) => resolution,
+            TextShapingOutcome::Deferred(error) | TextShapingOutcome::Failed(error) => {
+                self.safe_layout_resolution(request, &error)
+            }
+        }
+    }
+
+    /// A non-ready layout never enters frame or persistent caches.
+    pub(crate) fn resolve_or_shape_outcome(
+        &mut self,
+        request: &UiTextLayoutRequest<'_>,
+    ) -> TextLayoutOutcome<UiTextLayoutResolution> {
+        let key =
+            UiTextMeasureKey::from_request_at_generation(request, self.font_database_generation());
         let resolved_text = request.resolved_text();
         if let Some(resolution) = self
             .layout_frame_dedup
             .get(&key, resolved_text.as_ref())
             .cloned()
         {
-            return resolution;
+            return TextShapingOutcome::Ready(resolution);
         }
 
         let width_validity = TextLayoutWidthValidity::exact(request.frame.width);
@@ -622,7 +597,7 @@ impl UiTextMeasureCache {
             let resolution = resolution.clone();
             self.layout_frame_dedup
                 .insert(key, Arc::clone(stored_text), resolution.clone());
-            return resolution;
+            return TextShapingOutcome::Ready(resolution);
         }
 
         let complete_viewport_document = match self.retained_plain_document_for_viewport(request) {
@@ -632,40 +607,77 @@ impl UiTextMeasureCache {
                 // enter the persistent cache.
                 self.uncached_document_resolve_count =
                     self.uncached_document_resolve_count.saturating_add(1);
-                let resolution = resolve_text_layout_with_provider_and_parsed(
+                let resolution = match resolve_text_layout_with_provider_and_parsed_outcome(
                     request,
                     &parsed,
                     &mut self.text_layout_session,
-                );
+                ) {
+                    TextShapingOutcome::Ready(resolution) => resolution,
+                    TextShapingOutcome::Deferred(error) => {
+                        return TextShapingOutcome::Deferred(error);
+                    }
+                    TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+                };
                 self.layout_frame_dedup
                     .insert(key, parsed.rich.shared_text(), resolution.clone());
-                return resolution;
+                return TextShapingOutcome::Ready(resolution);
             }
             Some((parsed, false)) => Some(parsed),
             None => None,
         };
 
-        let resolution = match complete_viewport_document {
-            Some(parsed) => resolve_text_layout_with_provider_and_parsed(
+        let resolution = match match complete_viewport_document {
+            Some(parsed) => resolve_text_layout_with_provider_and_parsed_outcome(
                 request,
                 &parsed,
                 &mut self.text_layout_session,
             ),
-            None => resolve_text_layout_with_provider(request, &mut self.text_layout_session),
+            None => {
+                resolve_text_layout_with_provider_outcome(request, &mut self.text_layout_session)
+            }
+        } {
+            TextShapingOutcome::Ready(resolution) => resolution,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
         };
         let resolved_text: Arc<str> = Arc::from(resolved_text.as_ref());
+        let additional_heap_bytes = key
+            .estimated_heap_bytes()
+            .saturating_add(resolution.estimated_cache_heap_bytes());
         let resolution = self
             .layout_cache
-            .insert(
+            .insert_with_additional_heap_bytes(
                 key.clone(),
                 Arc::clone(&resolved_text),
                 width_validity,
                 resolution,
+                additional_heap_bytes,
             )
             .clone();
         self.layout_frame_dedup
             .insert(key, resolved_text, resolution.clone());
-        resolution
+        TextShapingOutcome::Ready(resolution)
+    }
+
+    fn safe_layout_resolution(
+        &mut self,
+        request: &UiTextLayoutRequest<'_>,
+        error: &crate::core::framework::text::TextLayoutError,
+    ) -> UiTextLayoutResolution {
+        let layout = text_layout_error_layout(
+            request.style,
+            resolve_text_direction(request.text, request.style.text_direction),
+            request.style.font_size.max(1.0),
+            request
+                .style
+                .line_height
+                .max(request.style.font_size)
+                .max(1.0),
+            request.text.len(),
+            error,
+            &mut self.text_layout_session,
+        );
+        resolution_from_layout(request, layout)
     }
 
     fn retained_plain_document_for_viewport(
@@ -680,7 +692,7 @@ impl UiTextMeasureCache {
             return None;
         }
 
-        let parsed = self.retained_plain_document(request);
+        let parsed = self.retained_plain_document(request).ok()?;
         let is_partial = layout_viewport_selects_partial_plain_text(
             &parsed,
             request.style,
@@ -691,59 +703,18 @@ impl UiTextMeasureCache {
         Some((parsed, is_partial))
     }
 
-    fn retained_plain_document(&mut self, request: &UiTextLayoutRequest<'_>) -> UiParsedText {
+    fn retained_plain_document(
+        &mut self,
+        request: &UiTextLayoutRequest<'_>,
+    ) -> Result<UiParsedText, crate::core::framework::text::TextLayoutError> {
         let Some(key) = request.document_key else {
-            return parse_source_text(request.text, crate::text::RichTextFormat::Plain);
+            return parse_source_text_with_provider(
+                request.text,
+                crate::text::RichTextFormat::Plain,
+                &self.text_layout_session,
+            );
         };
-        self.retained_plain_document_access = self.retained_plain_document_access.saturating_add(1);
-        let access = self.retained_plain_document_access;
-        if let Some(index) = self
-            .retained_plain_documents
-            .iter()
-            .position(|document| document.key == key)
-        {
-            let document = &mut self.retained_plain_documents[index];
-            document.last_access = access;
-            return document.parsed.clone();
-        }
-
-        let parsed = parse_source_text(request.text, crate::text::RichTextFormat::Plain);
-        let estimated_bytes = parsed
-            .estimated_bytes()
-            .saturating_add(size_of::<RetainedPlainTextDocument>());
-        if estimated_bytes > RETAINED_PLAIN_DOCUMENT_MAX_BYTES {
-            return parsed;
-        }
-        while self.retained_plain_documents.len() >= RETAINED_PLAIN_DOCUMENT_CAPACITY
-            || self
-                .retained_plain_document_bytes
-                .saturating_add(estimated_bytes)
-                > RETAINED_PLAIN_DOCUMENT_MAX_BYTES
-        {
-            if let Some((oldest_index, _)) = self
-                .retained_plain_documents
-                .iter()
-                .enumerate()
-                .min_by_key(|(_, document)| document.last_access)
-            {
-                let removed = self.retained_plain_documents.swap_remove(oldest_index);
-                self.retained_plain_document_bytes = self
-                    .retained_plain_document_bytes
-                    .saturating_sub(removed.estimated_bytes);
-            } else {
-                break;
-            }
-        }
-        self.retained_plain_document_bytes = self
-            .retained_plain_document_bytes
-            .saturating_add(estimated_bytes);
         self.retained_plain_documents
-            .push(RetainedPlainTextDocument {
-                key,
-                parsed: parsed.clone(),
-                estimated_bytes,
-                last_access: access,
-            });
-        parsed
+            .resolve(key, request.text, &self.text_layout_session)
     }
 }

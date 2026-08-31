@@ -112,18 +112,19 @@ pub fn resolve_oit_fragments(
     fragments: &[OitFragment],
     sorted_fragment_max_count: u32,
 ) -> OitResolveResult {
-    let mut ordered = fragments.to_vec();
-    ordered.sort_by(|left, right| left.depth.total_cmp(&right.depth));
+    let ordered = ordered_oit_fragment_indices(fragments);
 
     let exact_count = ordered
         .len()
         .min(sorted_fragment_max_count.try_into().unwrap_or(usize::MAX));
     let mut premultiplied = [0.0; 4];
-    for fragment in &ordered[..exact_count] {
+    for &(_, fragment_index) in &ordered[..exact_count] {
+        let fragment = &fragments[fragment_index];
         blend_front_to_back(&mut premultiplied, fragment.color);
     }
     let mut merged_tail = [0.0; 4];
-    for fragment in &ordered[exact_count..] {
+    for &(_, fragment_index) in &ordered[exact_count..] {
+        let fragment = &fragments[fragment_index];
         blend_front_to_back(&mut merged_tail, fragment.color);
     }
     blend_front_to_back(&mut premultiplied, merged_tail);
@@ -132,9 +133,28 @@ pub fn resolve_oit_fragments(
         color: premultiplied,
         sorted_depths: ordered[..exact_count]
             .iter()
-            .map(|fragment| fragment.depth)
+            .map(|(_, fragment_index)| fragments[*fragment_index].depth)
             .collect(),
         merged_fragment_count: ordered.len().saturating_sub(exact_count),
+    }
+}
+
+fn ordered_oit_fragment_indices(fragments: &[OitFragment]) -> Vec<(u32, usize)> {
+    let mut ordered = fragments
+        .iter()
+        .enumerate()
+        .map(|(fragment_index, fragment)| (total_f32_sort_key(fragment.depth), fragment_index))
+        .collect::<Vec<_>>();
+    ordered.sort_unstable();
+    ordered
+}
+
+fn total_f32_sort_key(value: f32) -> u32 {
+    let bits = value.to_bits();
+    if bits & (1 << 31) == 0 {
+        bits ^ (1 << 31)
+    } else {
+        !bits
     }
 }
 
@@ -149,6 +169,9 @@ fn blend_front_to_back(accumulated: &mut [Real; 4], color: [Real; 4]) {
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use super::*;
 
     #[test]
@@ -237,5 +260,153 @@ mod tests {
             result.color[0] > result.color[1],
             "closest red/blue layers must contribute before the merged yellow/green tail"
         );
+    }
+
+    #[test]
+    fn optimization_batch_db_oit_index_order_matches_legacy_stable_sort() {
+        let fragments = [
+            OitFragment::new([1.0, 0.0, 0.0, 0.2], 0.5),
+            OitFragment::new([0.0, 1.0, 0.0, 0.3], -0.0),
+            OitFragment::new([0.0, 0.0, 1.0, 0.4], 0.5),
+            OitFragment::new([1.0, 1.0, 0.0, 0.5], 0.0),
+        ];
+
+        assert_eq!(
+            resolve_oit_fragments(&fragments, 3),
+            legacy_resolve_oit_fragments(&fragments, 3)
+        );
+    }
+
+    #[test]
+    fn optimization_batch_db_oit_sort_key_matches_total_cmp() {
+        let values = [
+            f32::from_bits(0xffc0_0001),
+            f32::NEG_INFINITY,
+            -1.0,
+            -0.0,
+            0.0,
+            1.0,
+            f32::INFINITY,
+            f32::from_bits(0x7fc0_0001),
+        ];
+        let mut expected = values;
+        expected.sort_by(f32::total_cmp);
+        let mut actual = values;
+        actual.sort_unstable_by_key(|value| total_f32_sort_key(*value));
+
+        assert_eq!(
+            actual.map(f32::to_bits),
+            expected.map(f32::to_bits),
+            "integer sort key must reproduce the complete f32 total order"
+        );
+    }
+
+    #[test]
+    fn optimization_batch_db_oit_resolve_sorts_compact_keys_without_fragment_clone() {
+        let source = include_str!("oit.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap();
+
+        assert!(production.contains("ordered_oit_fragment_indices(fragments)"));
+        assert!(production.contains("ordered.sort_unstable()"));
+        assert!(!production.contains("fragments.to_vec()"));
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_db_oit_index_sort_p95() {
+        const FRAGMENT_COUNT: usize = 65_536;
+        const SAMPLE_COUNT: usize = 17;
+        const EXACT_COUNT: u32 = 4_096;
+        let fragments = (0..FRAGMENT_COUNT)
+            .map(|index| {
+                let mixed = (index as u32).wrapping_mul(0x9e37_79b9);
+                let depth = (mixed & 0x00ff_ffff) as f32 / 0x0100_0000 as f32;
+                let channel = (index & 255) as f32 / 255.0;
+                OitFragment::new([channel, 1.0 - channel, 0.5, 0.01], depth)
+            })
+            .collect::<Vec<_>>();
+
+        let (legacy_samples, optimized_samples) = paired_samples::<SAMPLE_COUNT>(
+            || legacy_resolve_oit_fragments(&fragments, EXACT_COUNT),
+            || resolve_oit_fragments(&fragments, EXACT_COUNT),
+        );
+        assert_eq!(
+            legacy_resolve_oit_fragments(&fragments, EXACT_COUNT),
+            resolve_oit_fragments(&fragments, EXACT_COUNT)
+        );
+
+        let legacy_p95 = percentile(&legacy_samples, 95);
+        let optimized_p95 = percentile(&optimized_samples, 95);
+        println!(
+            "PERF_RESULT RUNTIME406_OIT_INDEX_SORT_BENCH_V1 fragments={FRAGMENT_COUNT} exact_fragments={EXACT_COUNT} samples={SAMPLE_COUNT} sample_order=alternating legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95}"
+        );
+        assert!(
+            optimized_p95 * 10 <= legacy_p95 * 7,
+            "optimized P95 {optimized_p95}ns must be no more than 70% of legacy P95 {legacy_p95}ns"
+        );
+    }
+
+    fn legacy_resolve_oit_fragments(
+        fragments: &[OitFragment],
+        sorted_fragment_max_count: u32,
+    ) -> OitResolveResult {
+        let mut ordered = fragments.to_vec();
+        ordered.sort_by(|left, right| left.depth.total_cmp(&right.depth));
+        let exact_count = ordered
+            .len()
+            .min(sorted_fragment_max_count.try_into().unwrap_or(usize::MAX));
+        let mut premultiplied = [0.0; 4];
+        for fragment in &ordered[..exact_count] {
+            blend_front_to_back(&mut premultiplied, fragment.color);
+        }
+        let mut merged_tail = [0.0; 4];
+        for fragment in &ordered[exact_count..] {
+            blend_front_to_back(&mut merged_tail, fragment.color);
+        }
+        blend_front_to_back(&mut premultiplied, merged_tail);
+        OitResolveResult {
+            color: premultiplied,
+            sorted_depths: ordered[..exact_count]
+                .iter()
+                .map(|fragment| fragment.depth)
+                .collect(),
+            merged_fragment_count: ordered.len().saturating_sub(exact_count),
+        }
+    }
+
+    fn paired_samples<const SAMPLE_COUNT: usize, T>(
+        mut legacy: impl FnMut() -> T,
+        mut optimized: impl FnMut() -> T,
+    ) -> (Vec<u128>, Vec<u128>) {
+        black_box(legacy());
+        black_box(optimized());
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_COUNT);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_COUNT);
+        for sample_index in 0..SAMPLE_COUNT {
+            if sample_index % 2 == 0 {
+                legacy_samples.push(sample(&mut legacy));
+                optimized_samples.push(sample(&mut optimized));
+            } else {
+                optimized_samples.push(sample(&mut optimized));
+                legacy_samples.push(sample(&mut legacy));
+            }
+        }
+        (legacy_samples, optimized_samples)
+    }
+
+    fn sample<T>(operation: &mut impl FnMut() -> T) -> u128 {
+        let started = Instant::now();
+        let result = black_box(operation());
+        let elapsed = started.elapsed().as_nanos();
+        black_box(result);
+        elapsed
+    }
+
+    fn percentile(samples: &[u128], percentile: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        assert!(!sorted.is_empty());
+        assert!((1..=100).contains(&percentile));
+        sorted[(sorted.len() * percentile).div_ceil(100) - 1]
     }
 }

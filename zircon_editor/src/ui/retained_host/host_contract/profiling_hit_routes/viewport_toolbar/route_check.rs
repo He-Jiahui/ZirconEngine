@@ -4,10 +4,9 @@ use zircon_runtime_interface::ui::layout::UiPoint;
 use super::super::super::data::{FrameRect, PaneData};
 
 pub(super) fn viewport_toolbar_route_hit(
-    id: &str,
+    expected_control_id: &str,
     x: f32,
     y: f32,
-    surface_key: &str,
     pane: &PaneData,
     toolbar: &FrameRect,
 ) -> bool {
@@ -21,8 +20,5 @@ pub(super) fn viewport_toolbar_route_hit(
     let Some(node) = surface_frame.arranged_tree.get(node_id) else {
         return false;
     };
-    let Some(control_id) = node.control_id.as_deref() else {
-        return false;
-    };
-    format!("viewport_toolbar_control.{surface_key}.{control_id}") == id
+    node.control_id.as_deref() == Some(expected_control_id)
 }

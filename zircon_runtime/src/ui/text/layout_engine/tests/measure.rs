@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     surface::{UiRichTextFormat, UiTextOverflow, UiTextWrap, UiTextWritingMode},
 };
 
-use super::super::measure_unwrapped_text_height;
+use super::super::{intrinsic_measurement_frame, measure_unwrapped_text_height};
 use super::{layout_text, measure_text_size, test_style};
 
 #[test]
@@ -49,9 +49,23 @@ fn unwrapped_height_matches_complete_measurement_across_hard_line_boundaries() {
 }
 
 #[test]
+fn unwrapped_fallback_height_is_certified_or_declined_without_a_latin_sample() {
+    let style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
+    let shortcut = measure_unwrapped_text_height("世界", &style);
+    let complete = measure_text_size("世界", &style).height;
+
+    if let Some(shortcut) = shortcut {
+        assert!(
+            (shortcut - complete).abs() < 0.01,
+            "a certified fallback chain must agree with complete measurement"
+        );
+    }
+}
+
+#[test]
 fn text_measurement_uses_rich_run_metrics_instead_of_flat_base_style() {
     let mut rich_style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    rich_style.rich_text_format = UiRichTextFormat::BbCode;
+    rich_style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let plain_style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
 
     let rich = measure_text_size("[size=40]Wide[/size]", &rich_style);
@@ -59,6 +73,23 @@ fn text_measurement_uses_rich_run_metrics_instead_of_flat_base_style() {
 
     assert!(rich.width > plain.width);
     assert!(rich.height > plain.height);
+}
+
+#[test]
+fn intrinsic_measurement_frame_uses_unbounded_main_axis_without_byte_extent() {
+    let mut rich_style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
+    rich_style.rich_text_format = UiRichTextFormat::BbCodeV1;
+    let rich_frame = intrinsic_measurement_frame("[b]text[/b]", &rich_style);
+
+    assert_eq!(rich_frame.width, f32::INFINITY);
+    assert_eq!(rich_frame.height, f32::INFINITY);
+
+    let mut vertical_style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
+    vertical_style.text_writing_mode = UiTextWritingMode::VerticalRl;
+    let vertical_frame = intrinsic_measurement_frame("one\ntwo", &vertical_style);
+
+    assert_eq!(vertical_frame.height, f32::INFINITY);
+    assert_eq!(vertical_frame.width, vertical_style.line_height * 2.0);
 }
 
 #[test]

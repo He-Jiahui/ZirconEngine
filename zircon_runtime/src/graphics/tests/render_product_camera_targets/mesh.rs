@@ -5,7 +5,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 
 const TEST_VIEWPORT_ASPECT_RATIO: f32 = 160.0 / 120.0;
 const TEST_CAMERA_DISTANCE_TO_QUAD: f32 = 4.0;

@@ -61,6 +61,149 @@ fn scene_assets_keep_script_only_entities_as_empty_nodes() {
 }
 
 #[test]
+fn scene_assets_preserve_prefab_instance_metadata_through_world_roundtrip() {
+    let root = unique_temp_project_root("scene_prefab_instance_roundtrip");
+    let project = create_test_project(&root);
+    let scene = SceneAsset {
+        entities: vec![SceneEntityAsset {
+            entity: 42,
+            name: "HeroInstance".to_owned(),
+            parent: None,
+            transform: TransformAsset::default(),
+            active: true,
+            render_layer_mask: 0x0000_0001,
+            mobility: SceneMobilityAsset::Dynamic,
+            camera: None,
+            mesh: None,
+            ambient_light: None,
+            directional_light: None,
+            point_light: None,
+            rect_light: None,
+            spot_light: None,
+            post_process_volume: None,
+            rigid_body: None,
+            collider: None,
+            joint: None,
+            animation_skeleton: None,
+            animation_player: None,
+            animation_sequence_player: None,
+            animation_graph_player: None,
+            animation_state_machine_player: None,
+            terrain: None,
+            tilemap: None,
+            prefab_instance: Some(PrefabInstanceAsset {
+                prefab: asset_reference("res://prefabs/hero.prefab.toml"),
+                local_transform: TransformAsset {
+                    translation: [3.0, 2.0, 1.0],
+                    ..Default::default()
+                },
+                overrides: vec![PrefabPropertyOverrideAsset {
+                    entity_path: "Root/Weapon".to_owned(),
+                    property_path: "material.tint".to_owned(),
+                    value: serde_json::json!({
+                        "enabled": true,
+                        "color": [1.0, 0.5, 0.25, 1.0],
+                    }),
+                }],
+            }),
+            script_bindings: Vec::new(),
+        }],
+    };
+
+    let world = World::from_scene_asset(&project, &scene).unwrap();
+    assert!(
+        world
+            .dynamic_component(42, "zircon.prefab.instance")
+            .is_some()
+    );
+
+    let saved = world.to_scene_asset(&project).unwrap();
+    assert_eq!(
+        saved.entities[0].prefab_instance,
+        scene.entities[0].prefab_instance
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn scene_assets_keep_prefab_instance_metadata_after_runtime_extension_installation() {
+    use crate::core::framework::scene::ComponentTypeDescriptor;
+    use crate::scene::{WorldRuntimeExtensionPlan, WorldRuntimeExtensionRegistration};
+
+    let root = unique_temp_project_root("scene_prefab_instance_runtime_extension");
+    let project = create_test_project(&root);
+    let scene = SceneAsset {
+        entities: vec![SceneEntityAsset {
+            entity: 43,
+            name: "HeroInstance".to_owned(),
+            parent: None,
+            transform: TransformAsset::default(),
+            active: true,
+            render_layer_mask: 0x0000_0001,
+            mobility: SceneMobilityAsset::Dynamic,
+            camera: None,
+            mesh: None,
+            ambient_light: None,
+            directional_light: None,
+            point_light: None,
+            rect_light: None,
+            spot_light: None,
+            post_process_volume: None,
+            rigid_body: None,
+            collider: None,
+            joint: None,
+            animation_skeleton: None,
+            animation_player: None,
+            animation_sequence_player: None,
+            animation_graph_player: None,
+            animation_state_machine_player: None,
+            terrain: None,
+            tilemap: None,
+            prefab_instance: Some(PrefabInstanceAsset {
+                prefab: asset_reference("res://prefabs/hero.prefab.toml"),
+                local_transform: TransformAsset {
+                    translation: [8.0, 5.0, 3.0],
+                    ..Default::default()
+                },
+                overrides: vec![PrefabPropertyOverrideAsset {
+                    entity_path: "Root/Weapon".to_owned(),
+                    property_path: "material.tint".to_owned(),
+                    value: serde_json::json!({ "color": [0.25, 0.5, 1.0, 1.0] }),
+                }],
+            }),
+            script_bindings: Vec::new(),
+        }],
+    };
+    let mut world = World::from_scene_asset(&project, &scene).unwrap();
+    let extensions =
+        WorldRuntimeExtensionPlan::from_registrations([WorldRuntimeExtensionRegistration::new(
+            "component:authoring.Tag",
+            |world| {
+                world
+                    .register_component_type(ComponentTypeDescriptor::new(
+                        "authoring.Tag",
+                        "authoring",
+                        "Tag",
+                    ))
+                    .map_err(|error| {
+                        crate::scene::WorldRuntimeExtensionError::registration_failed(
+                            "component:authoring.Tag",
+                            error,
+                        )
+                    })
+            },
+        )])
+        .unwrap();
+
+    extensions.apply_to_world(&mut world).unwrap();
+    assert!(world.component_type_descriptor("authoring.Tag").is_some());
+    assert_eq!(world.to_scene_asset(&project).unwrap(), scene);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn scene_asset_load_uses_asset_preserving_normalizer_source_guard() {
     let source = project_io_source();
     let from_scene_asset =
@@ -88,13 +231,13 @@ fn scene_asset_load_uses_asset_preserving_normalizer_source_guard() {
         "self.flush_scene_systems_now();",
     );
     assert!(normalize_loaded_state.contains("if ensure_default_nodes && self.camera_count() == 0"));
-    assert!(normalize_loaded_state.contains("self.spawn_node(NodeKind::Camera);"));
+    assert!(normalize_loaded_state.contains("self.spawn_node(NodeKind::Camera)?;"));
     assert!(normalize_loaded_state.contains("if ensure_default_nodes"));
     assert!(
         normalize_loaded_state.contains("registered_component_id::<DirectionalLight>()")
             && normalize_loaded_state.contains("component_count_for_id(component_id) == 0")
     );
-    assert!(normalize_loaded_state.contains("self.spawn_node(NodeKind::DirectionalLight);"));
+    assert!(normalize_loaded_state.contains("self.spawn_node(NodeKind::DirectionalLight)?;"));
     assert!(!normalize_loaded_state.contains("if self.camera_count() == 0"));
     assert!(!normalize_loaded_state.contains("self.directional_lights.is_empty()"));
 }
@@ -229,14 +372,18 @@ fn scene_assets_keep_transform_only_hierarchy_nodes() {
     assert!(matches!(root_node.kind, NodeKind::Empty));
     assert_eq!(world.parent_of(11), Some(10));
     let saved = world.to_scene_asset(&project).unwrap();
-    assert!(saved
-        .entities
-        .iter()
-        .any(|entity| entity.entity == 10 && entity.mesh.is_none()));
-    assert!(saved
-        .entities
-        .iter()
-        .any(|entity| entity.entity == 11 && entity.parent == Some(10)));
+    assert!(
+        saved
+            .entities
+            .iter()
+            .any(|entity| entity.entity == 10 && entity.mesh.is_none())
+    );
+    assert!(
+        saved
+            .entities
+            .iter()
+            .any(|entity| entity.entity == 11 && entity.parent == Some(10))
+    );
 
     let _ = fs::remove_dir_all(root);
 }

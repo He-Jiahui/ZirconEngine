@@ -50,13 +50,13 @@ status: in_progress
 | 字体资产 | `zircon_runtime/src/asset/` | `assets/font.rs`（FontAsset）、`importer/ingest/import_font_asset.rs`、`artifact/cache_payload.rs` |
 | 依赖现状 | `zircon_runtime/Cargo.toml`、`zircon_runtime/src/text/` | cosmic-text shaping、glyphon bitmap atlas 与 fontsdf SDF 路径均已有实现落点；editor 侧仍需按 text/index 的依赖隔离规则收束 retained-host 直依。 |
 
-`font_registry.rs`、`resolved_layout.rs`、`measure_cache.rs`、`raster/` 与 `text/{font, shaping, layout, atlas}` 服务层均已存在；下文标注的后续工作只表示剩余接入、性能与产品验收，不表示这些基础类型尚未实现。
+`resolved_layout.rs`、`measure_cache.rs`、`raster/` 与 `text/{font, shaping, layout, atlas}` 服务层均已存在；字体注册已硬切到 `text/font::FontDatabase`，不保留 UI-local registry。下文标注的后续工作只表示剩余接入、性能与产品验收，不表示这些基础类型尚未实现。
 
 ### 2.2 真实缺口
 
 1. **真实整形已接入但产品覆盖未闭环**：cosmic-text shaping 权威与 `UiTextShaperStack` 服务链已存在；剩余缺口是 CJK fallback、混排 baseline、BiDi 的系统化产品用例，以及 retained-host 重复布局/栅格争用的 open failure 收束。
 2. **栅格双路径已存在但边界仍需验收**：swash 小字号位图 atlas 与 fontsdf SDF 路径已有落点；仍需完成代表字号/CJK 样张对拍、atlas 占用与 GPU 提交证据。
-3. **字体注册表已存在但 editor 默认字体包未闭环**：`FontDatabase` 已承载 family/weight/style 与 fallback 注册；`zircon_editor/assets/fonts/` 默认 CJK 字体包、启动注册和缺字降级的产品验收仍未完成。
+3. **单一字体数据库已存在但 editor 默认字体包未闭环**：`FontDatabase` 已承载 family/weight/style 与 fallback 注册；`zircon_editor/assets/fonts/` 默认 CJK 字体包、启动注册和缺字降级的产品验收仍未完成。
 4. **IME 组合链不闭环**：ime_context/出站请求类型齐备；retained-state preedit/commit/cancel、ABI disabled -> Cancel、`wrap`/`multiline` opt-in 的 soft-wrap cursor/composition rect 基线、以及 TextField render extract 的 `UiResolvedTextLayout` preedit span 注入已落，但平台候选窗实机定位与中文输入验收仍未完成。
 5. **缓存契约已接入但稳定代所有权仍未收束**：`UiTextMeasureCache` 已被布局与渲染消费；当前 open failure 仍要求证明稳定帧 cache hit、caret/layout 单一所有权，并清除 prewarm、editable copy 与 retained-host 重复 shaping/raster 工作。
 
@@ -70,7 +70,7 @@ status: in_progress
 ### 3.2 文本管线
 
 - 字体注册表归资产管线：FontAsset 加载 → family/weight/style 注册进 text/01 `FontDatabase`（`FontFaceId`/`InstancedFaceId` 契约；2026-07-02 评审收口，原「UiFontRegistry 包装 cosmic-text FontSystem」表述作废）→ fallback 链配置（默认链含 CJK 字体）；editor 默认字体包进 `zircon_editor/assets/fonts/`。
-- measure 与 layout 解耦：Taffy measure 回调（02 M1 接口）→ `UiTextMeasureCache`（key：内容 hash + 宽度约束桶 + style key）→ shaping 结果复用到 arrange 与 render extract，保证一帧内同一文本只 shape 一次（帧报告记录 shape 计数）。
+- measure 与 layout 解耦：Taffy measure 回调（02 M1 接口）→ `UiTextMeasureCache`（真实请求 frame/clip/viewport/style 与 font generation；wrap 不用宽度桶）→ shaping 结果复用到 arrange 与 render extract，保证一帧内同一文本只 shape 一次（帧报告记录 shape 计数）。
 - 富文本：（2026-07-02 评审收口）span/装饰器 schema 权威 = text/07（BBCode+HTML 子集）；rich_text 模型对齐其契约，本计划 M5 收窄为 Console 日志高亮与 Inspector 字段标签的编辑器侧接入。
 
 ### 3.3 编辑与 IME
@@ -107,7 +107,7 @@ pub struct UiTextLayoutRequest {
     pub preedit: Option<UiPreeditSpan>,         // IME 临时 span（不属于文档）
 }
 pub fn resolve_text_layout(
-    registry: &mut UiFontRegistry,
+    font_database: &mut FontDatabase,
     request: &UiTextLayoutRequest,
 ) -> UiResolvedTextLayout;
 
@@ -115,11 +115,12 @@ pub fn resolve_text_layout(
 pub struct UiTextMeasureCache { /* HashMap<UiTextMeasureKey, UiResolvedTextLayout> + 帧统计 */ }
 pub struct UiTextMeasureKey {
     pub content_hash: u64,
-    pub width_bucket: UiWidthBucket,            // 以换行等价类划分的宽度桶
+    pub frame: UiFrame,                         // wrap geometry 必须精确
+    pub clip_frame: Option<UiFrame>,
     pub style: UiTextStyleKey,
 }
 impl UiTextMeasureCache {
-    pub fn resolve_or_shape(&mut self, registry: &mut UiFontRegistry, request: &UiTextLayoutRequest) -> &UiResolvedTextLayout;
+    pub fn resolve_or_shape(&mut self, font_database: &mut FontDatabase, request: &UiTextLayoutRequest) -> &UiResolvedTextLayout;
     pub fn frame_shape_count(&self) -> u64;      // 帧报告：零重复 shaping 断言数据源
 }
 
@@ -128,11 +129,11 @@ pub enum UiGlyphRasterPath { Sdf, Bitmap }       // 字号阈值 + 缩放场景�
 pub fn raster_path_for(size_px: f32, scalable: bool) -> UiGlyphRasterPath;
 ```
 
-（2026-07-02 评审收口）`UiTextMeasureKey`/`UiTextMeasureCache` 与 text/09 的两级缓存统一：**ShapedRunCache**（无 wrap，键=内容+style，存 run 级 shaping 结果）+ **LayoutCache**（含宽度约束，键=ShapedRun+宽度桶，存换行布局结果）。本计划的 measure cache 即 LayoutCache 的编辑器侧消费面，不另建第三级缓存。另按 editor_layout/13 §3.2b 要求，measure 回调需支持 **min-content / max-content / preferred 三值语义**：min-content=最长不可断片段宽度、max-content=不换行整段宽度、preferred=给定宽度约束下的换行布局结果；三值共享 ShapedRunCache 的 shaping 结果，仅 preferred 需键入 LayoutCache 宽度桶。
+（2026-08-24 评审收口）`UiTextMeasureKey`/`UiTextMeasureCache` 与 text/09 的两级缓存统一：**ShapedRunCache**（无 wrap，键=内容+style，存 run 级 shaping 结果）+ **LayoutCache**（含真实 frame/clip/viewport 几何与宽度有效性，存换行布局结果）。本计划的 measure cache 即 LayoutCache 的编辑器侧消费面，不另建第三级缓存；wrap 不使用近似宽度桶。另按 editor_layout/13 §3.2b 要求，measure 回调需支持 **min-content / max-content / preferred 三值语义**：min-content=最长不可断片段宽度、max-content=不换行整段宽度、preferred=给定宽度约束下的换行布局结果；三值共享 ShapedRunCache 的 shaping 结果，仅 preferred 进入精确 LayoutCache。
 
 ## 5. 模块与文件落点
 
-**已存在，待接真实度量/待切服务适配器**（2026-07-02 勘误：原标注「新增」，现已全部在码）：`zircon_runtime/src/ui/text/{font_registry.rs, resolved_layout.rs, measure_cache.rs}`、`zircon_runtime/src/ui/text/raster/{mod.rs, sdf.rs, bitmap.rs}`。仍为新增：`zircon_editor/assets/fonts/`（默认字体包，含 CJK）、验证性对拍 harness（text 模块内 `#[cfg(test)]` + 截图样张）。
+**已存在，待接真实度量/待切服务适配器**：`zircon_runtime/src/ui/text/{resolved_layout.rs, measure_cache.rs}`、`zircon_runtime/src/text/font/{database.rs,asset_registration.rs}` 与 `zircon_runtime/src/ui/text/raster/{mod.rs, sdf.rs, bitmap.rs}`。UI-local registry 已硬删除。仍为新增：`zircon_editor/assets/fonts/`（默认字体包，含 CJK）、验证性对拍 harness（text 模块内 `#[cfg(test)]` + 截图样张）。
 
 **修改**：
 
@@ -164,10 +165,10 @@ GPU command stream：glyph atlas（SDF / 位图按 raster_path_for）→ 提交
 |---|------|---------|---------|--------|
 | M1.S1 | （2026-07-02 评审收口：选型切片作废，降级为**验证性对拍**——栅格定稿 swash，见 U3/text/index §5）样张（拉丁/CJK 混排/数字）× 字号档 11/12/14/16/24/32，对拍 swash 输出质量/栅格耗时/atlas 占用；结论写 `docs/zircon_runtime/ui/text.md` | 对拍 harness | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter text_raster_bench` + 对拍记录 | 无删除 |
 | M1.S2 | （2026-07-02 评审收口：「−glyphon」义务**作废**，glyphon 保留为 bitmap atlas 绘制后端）依赖收口按 text/02（shaping/cosmic-text 定位）与 text/04（atlas/glyphon 定位）执行；workspace 全量 check 义务已随 U2 裁决一并作废，包级 focused check 留给对应 text/ 里程碑的最小批次（policy §4 波次收口执行全量） | Cargo.toml | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipTest` | 无删除 |
-| M2.S1 | （实现主体让渡 text/01 `FontDatabase`）编辑器侧接入 FontAsset→FontDatabase 注册链（复用 assets/font.rs 加载链；前置=text/01 里程碑） | font_registry.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter font_registry` | 无删除 |
+| M2.S1 | （实现主体让渡 text/01 `FontDatabase`）编辑器侧接入 FontAsset→FontDatabase 注册链（复用 assets/font.rs 加载链；前置=text/01 里程碑） | `text/font/{asset_registration.rs,database/asset_lifecycle.rs}` | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter font_asset` | UI-local registry 已硬删除 |
 | M2.S2 | 默认字体包（含 CJK）注册进 FontDatabase + fallback 链配置；editor 启动注册 | zircon_editor/assets/fonts/ | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` | 无删除 |
 | M2.S3 | resolve_text_layout 落地，shaper.layout_text 切换；CJK/混排 shaping 测试（前置=text/02/03 里程碑） | resolved_layout.rs、shaper.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter text` | 删 shaper 旧路径 |
-| M3.S1 | （实现主体让渡 text/09 两级缓存）UiTextMeasureCache + key 定稿（宽度桶=换行等价类；前置=text/09 里程碑） | measure_cache.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter measure_cache` | 无删除 |
+| M3.S1 | （实现主体让渡 text/09 两级缓存）UiTextMeasureCache + key 定稿（wrap geometry 精确；前置=text/09 里程碑） | measure_cache.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter measure_cache` | `UiWidthBucket` 已硬删除 |
 | M3.S2 | pass/measure.rs 接缓存；帧报告记录 shape 计数 | pass/measure.rs | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter measure` | 无删除 |
 | M3.S3 | 同帧零重复 shaping 断言（典型 workbench 模板帧） | 测试 | 同上 | 无删除 |
 | M4.S1 | edit_state 动作矩阵定稿：grapheme 光标/词跳/选区/双击选词/三击选行（基于 mutation.rs、edit_actions.rs 现有） | edit_state.rs、editable_text/ | `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter edit_state` | 无删除 |

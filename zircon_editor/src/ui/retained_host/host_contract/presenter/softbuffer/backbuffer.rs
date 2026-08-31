@@ -2,8 +2,16 @@ use super::super::super::chrome_command_stream::{
     paint_chrome_command_stream_to_frame, repaint_chrome_command_stream_region, ChromeCommandStream,
 };
 use super::super::super::data::FrameRect;
+use super::super::super::paint_frame::HostRgbaFrame;
 use super::surface_io::damage_pixel_count;
 use super::SoftbufferHostPresenter;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::ui::retained_host::host_contract) enum NativeResizeSnapshotAcquisition {
+    Reused,
+    CapturedBackbuffer,
+    BuiltFallback,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract) struct RepaintOutcome {
@@ -19,6 +27,37 @@ pub(in crate::ui::retained_host::host_contract) fn can_region_repaint(
     presenter.backbuffer.as_ref().is_some_and(|frame| {
         frame.width() == presenter.size.0 && frame.height() == presenter.size.1
     })
+}
+
+pub(in crate::ui::retained_host::host_contract) fn capture_native_resize_snapshot(
+    snapshot: &mut Option<HostRgbaFrame>,
+    backbuffer: &mut Option<HostRgbaFrame>,
+) -> bool {
+    // Freeze the first presented image; scaled transaction frames must never replace its source.
+    let captured = if snapshot.is_none() {
+        *snapshot = backbuffer.take();
+        snapshot.is_some()
+    } else {
+        false
+    };
+    *backbuffer = None;
+    captured
+}
+
+pub(in crate::ui::retained_host::host_contract) fn acquire_native_resize_snapshot(
+    snapshot: &mut Option<HostRgbaFrame>,
+    backbuffer: &mut Option<HostRgbaFrame>,
+    build_fallback: impl FnOnce() -> HostRgbaFrame,
+) -> NativeResizeSnapshotAcquisition {
+    if snapshot.is_some() {
+        *backbuffer = None;
+        return NativeResizeSnapshotAcquisition::Reused;
+    }
+    if capture_native_resize_snapshot(snapshot, backbuffer) {
+        return NativeResizeSnapshotAcquisition::CapturedBackbuffer;
+    }
+    *snapshot = Some(build_fallback());
+    NativeResizeSnapshotAcquisition::BuiltFallback
 }
 
 pub(in crate::ui::retained_host::host_contract) fn repaint_backbuffer(

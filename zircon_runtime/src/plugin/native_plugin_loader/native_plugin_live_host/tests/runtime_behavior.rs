@@ -6,8 +6,8 @@ use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use super::super::super::abi_declarations::{
-    NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginOutputSinkV4,
-    NativePluginOwnedByteBufferV2,
+    NativePluginByteSliceV3, NativePluginCallbackStatusV3, NativePluginOutputSinkV4,
+    NativePluginOwnedByteBufferV3,
 };
 use super::super::super::behavior_calls::NativePluginCommandTable;
 use super::super::super::benchmark_harness::{BenchmarkMeasurement, BenchmarkRunMetadata};
@@ -84,9 +84,9 @@ pub(super) fn replacement_unload_count() -> &'static AtomicUsize {
 
 unsafe extern "C" fn reentrant_descriptor_command(
     _command_slot: u32,
-    _payload: NativePluginByteSliceV2,
+    _payload: NativePluginByteSliceV3,
     _output: NativePluginOutputSinkV4,
-) -> NativePluginCallbackStatusV2 {
+) -> NativePluginCallbackStatusV3 {
     let host = reentrant_host_slot()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -101,7 +101,7 @@ unsafe extern "C" fn reentrant_descriptor_command(
     let completed = completed_rx
         .recv_timeout(Duration::from_millis(250))
         .is_ok();
-    NativePluginCallbackStatusV2 {
+    NativePluginCallbackStatusV3 {
         code: if completed {
             ZIRCON_NATIVE_PLUGIN_STATUS_OK
         } else {
@@ -113,9 +113,9 @@ unsafe extern "C" fn reentrant_descriptor_command(
 
 unsafe extern "C" fn slow_runtime_command(
     _command_slot: u32,
-    _payload: NativePluginByteSliceV2,
+    _payload: NativePluginByteSliceV3,
     _output: NativePluginOutputSinkV4,
-) -> NativePluginCallbackStatusV2 {
+) -> NativePluginCallbackStatusV3 {
     let probe = slow_callback_slot()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -123,20 +123,20 @@ unsafe extern "C" fn slow_runtime_command(
         .expect("slow callback fixture should be installed")
         .clone();
     probe.wait_for_release();
-    NativePluginCallbackStatusV2 {
+    NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
     }
 }
 
-unsafe extern "C" fn successful_unload() -> NativePluginCallbackStatusV2 {
-    NativePluginCallbackStatusV2 {
+unsafe extern "C" fn successful_unload() -> NativePluginCallbackStatusV3 {
+    NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
     }
 }
 
-pub(super) unsafe extern "C" fn slow_unload() -> NativePluginCallbackStatusV2 {
+pub(super) unsafe extern "C" fn slow_unload() -> NativePluginCallbackStatusV3 {
     let probe = slow_callback_slot()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -147,23 +147,23 @@ pub(super) unsafe extern "C" fn slow_unload() -> NativePluginCallbackStatusV2 {
     successful_unload()
 }
 
-pub(super) unsafe extern "C" fn counted_replacement_unload() -> NativePluginCallbackStatusV2 {
+pub(super) unsafe extern "C" fn counted_replacement_unload() -> NativePluginCallbackStatusV3 {
     replacement_unload_count().fetch_add(1, Ordering::SeqCst);
     successful_unload()
 }
 
 unsafe extern "C" fn stateful_save_state(
-    output: *mut NativePluginOwnedByteBufferV2,
-) -> NativePluginCallbackStatusV2 {
+    output: *mut NativePluginOwnedByteBufferV3,
+) -> NativePluginCallbackStatusV3 {
     if output.is_null() {
-        return NativePluginCallbackStatusV2 {
+        return NativePluginCallbackStatusV3 {
             code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
             diagnostics: std::ptr::null(),
         };
     }
     static STATE: &[u8] = b"state";
     unsafe {
-        *output = NativePluginOwnedByteBufferV2 {
+        *output = NativePluginOwnedByteBufferV3 {
             data: STATE.as_ptr().cast_mut(),
             len: STATE.len(),
             capacity: STATE.len(),
@@ -171,21 +171,21 @@ unsafe extern "C" fn stateful_save_state(
             free: None,
         };
     }
-    NativePluginCallbackStatusV2 {
+    NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
     }
 }
 
 unsafe extern "C" fn stateful_restore_state(
-    state: NativePluginByteSliceV2,
-) -> NativePluginCallbackStatusV2 {
+    state: NativePluginByteSliceV3,
+) -> NativePluginCallbackStatusV3 {
     let restored = !state.data.is_null()
         && unsafe { std::slice::from_raw_parts(state.data, state.len) } == b"state";
     if restored {
         state_restore_count().fetch_add(1, Ordering::SeqCst);
     }
-    NativePluginCallbackStatusV2 {
+    NativePluginCallbackStatusV3 {
         code: if restored {
             ZIRCON_NATIVE_PLUGIN_STATUS_OK
         } else {
@@ -197,10 +197,10 @@ unsafe extern "C" fn stateful_restore_state(
 
 pub(super) unsafe extern "C" fn successful_runtime_command(
     _command_slot: u32,
-    _payload: NativePluginByteSliceV2,
+    _payload: NativePluginByteSliceV3,
     _output: NativePluginOutputSinkV4,
-) -> NativePluginCallbackStatusV2 {
-    NativePluginCallbackStatusV2 {
+) -> NativePluginCallbackStatusV3 {
+    NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
     }

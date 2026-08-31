@@ -1,5 +1,7 @@
 struct TaaResolveParams {
-    viewport_and_flags: vec4<u32>,
+    input_viewport: vec4<u32>,
+    output_viewport: vec4<u32>,
+    flags_and_quality: vec4<u32>,
     blend_and_clamp: vec4<f32>,
     responsive_and_reactive: vec4<f32>,
 };
@@ -32,13 +34,26 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
     return output;
 }
 
-fn viewport_size() -> vec2<u32> {
-    return max(params.viewport_and_flags.xy, vec2<u32>(1u, 1u));
+fn input_viewport_origin() -> vec2<u32> {
+    return params.input_viewport.xy;
 }
 
-fn clamp_coord(coord: vec2<i32>, size: vec2<u32>) -> vec2<i32> {
-    let max_coord = vec2<i32>(i32(size.x) - 1, i32(size.y) - 1);
-    return clamp(coord, vec2<i32>(0, 0), max_coord);
+fn input_viewport_size() -> vec2<u32> {
+    return max(params.input_viewport.zw, vec2<u32>(1u, 1u));
+}
+
+fn output_viewport_origin() -> vec2<u32> {
+    return params.output_viewport.xy;
+}
+
+fn output_viewport_size() -> vec2<u32> {
+    return max(params.output_viewport.zw, vec2<u32>(1u, 1u));
+}
+
+fn clamp_viewport_coord(coord: vec2<i32>, origin: vec2<u32>, size: vec2<u32>) -> vec2<i32> {
+    let min_coord = vec2<i32>(origin);
+    let max_coord = min_coord + vec2<i32>(size) - vec2<i32>(1, 1);
+    return clamp(coord, min_coord, max_coord);
 }
 
 fn max3(value: vec3<f32>) -> f32 {
@@ -75,27 +90,53 @@ fn clip_towards_aabb_center(history_color: vec3<f32>, aabb_min: vec3<f32>, aabb_
     return history_color;
 }
 
-fn load_scene_depth_coord(coord: vec2<i32>, size: vec2<u32>) -> f32 {
-    let clamped = vec2<u32>(clamp_coord(coord, size));
+fn load_scene_depth_coord(coord: vec2<i32>) -> f32 {
+    let clamped = vec2<u32>(clamp_viewport_coord(
+        coord,
+        input_viewport_origin(),
+        input_viewport_size()
+    ));
     return clamp(textureLoad(scene_depth_tex, clamped, 0), 0.0, 1.0);
 }
 
-fn load_scene_depth(coord: vec2<u32>) -> f32 {
-    let size = viewport_size();
-    return load_scene_depth_coord(vec2<i32>(coord), size);
+fn load_scene_depth(coord: vec2<i32>) -> f32 {
+    return load_scene_depth_coord(coord);
 }
 
-fn load_scene_color(coord: vec2<i32>, size: vec2<u32>) -> vec4<f32> {
-    return textureLoad(scene_color_tex, clamp_coord(coord, size), 0);
+fn load_scene_color(coord: vec2<i32>) -> vec4<f32> {
+    return textureLoad(
+        scene_color_tex,
+        clamp_viewport_coord(coord, input_viewport_origin(), input_viewport_size()),
+        0
+    );
 }
 
-fn closest_depth_coord(coord: vec2<i32>, size: vec2<u32>) -> vec2<i32> {
-    var closest_coord = clamp_coord(coord, size);
-    var closest_depth = load_scene_depth_coord(closest_coord, size);
+fn sample_scene_color_bilinear(local_pixel: vec2<f32>) -> vec4<f32> {
+    let base_local = vec2<i32>(floor(local_pixel));
+    let weight = fract(local_pixel);
+    let origin = vec2<i32>(input_viewport_origin());
+    let color_00 = load_scene_color(origin + base_local);
+    let color_10 = load_scene_color(origin + base_local + vec2<i32>(1, 0));
+    let color_01 = load_scene_color(origin + base_local + vec2<i32>(0, 1));
+    let color_11 = load_scene_color(origin + base_local + vec2<i32>(1, 1));
+    return mix(mix(color_00, color_10, weight.x), mix(color_01, color_11, weight.x), weight.y);
+}
+
+fn closest_depth_coord(coord: vec2<i32>) -> vec2<i32> {
+    var closest_coord = clamp_viewport_coord(
+        coord,
+        input_viewport_origin(),
+        input_viewport_size()
+    );
+    var closest_depth = load_scene_depth_coord(closest_coord);
     for (var y = -1; y <= 1; y = y + 1) {
         for (var x = -1; x <= 1; x = x + 1) {
-            let sample_coord = clamp_coord(coord + vec2<i32>(x, y), size);
-            let sample_depth = load_scene_depth_coord(sample_coord, size);
+            let sample_coord = clamp_viewport_coord(
+                coord + vec2<i32>(x, y),
+                input_viewport_origin(),
+                input_viewport_size()
+            );
+            let sample_depth = load_scene_depth_coord(sample_coord);
             if (sample_depth > 0.0 && (closest_depth <= 0.0 || sample_depth < closest_depth)) {
                 closest_depth = sample_depth;
                 closest_coord = sample_coord;
@@ -105,12 +146,12 @@ fn closest_depth_coord(coord: vec2<i32>, size: vec2<u32>) -> vec2<i32> {
     return closest_coord;
 }
 
-fn scene_color_neighborhood_ycocg_bounds(coord: vec2<i32>, size: vec2<u32>) -> array<vec3<f32>, 2> {
+fn scene_color_neighborhood_ycocg_bounds(coord: vec2<i32>) -> array<vec3<f32>, 2> {
     var moment_1 = vec3<f32>(0.0, 0.0, 0.0);
     var moment_2 = vec3<f32>(0.0, 0.0, 0.0);
     for (var y = -1; y <= 1; y = y + 1) {
         for (var x = -1; x <= 1; x = x + 1) {
-            let sample_color = rgb_to_ycocg(load_scene_color(coord + vec2<i32>(x, y), size).rgb);
+            let sample_color = rgb_to_ycocg(load_scene_color(coord + vec2<i32>(x, y)).rgb);
             moment_1 += sample_color;
             moment_2 += sample_color * sample_color;
         }
@@ -125,9 +166,28 @@ fn reproject_history_coord(coord: vec2<u32>, velocity: vec2<f32>, size: vec2<u32
     return (vec2<f32>(coord) + vec2<f32>(0.5, 0.5)) - velocity * vec2<f32>(size);
 }
 
-fn sample_reprojected_history(history_pixel: vec2<f32>, size: vec2<u32>) -> vec4<f32> {
-    let rounded = vec2<i32>(round(history_pixel - vec2<f32>(0.5, 0.5)));
-    return textureLoad(taa_history_previous_tex, clamp_coord(rounded, size), 0);
+fn load_history(local_coord: vec2<i32>) -> vec4<f32> {
+    let coord = local_coord + vec2<i32>(output_viewport_origin());
+    return textureLoad(
+        taa_history_previous_tex,
+        clamp_viewport_coord(coord, output_viewport_origin(), output_viewport_size()),
+        0
+    );
+}
+
+fn sample_reprojected_history(history_pixel: vec2<f32>) -> vec4<f32> {
+    let local_pixel = history_pixel - vec2<f32>(0.5, 0.5);
+    let base = vec2<i32>(floor(local_pixel));
+    let weight = fract(local_pixel);
+    let history_00 = load_history(base);
+    let history_10 = load_history(base + vec2<i32>(1, 0));
+    let history_01 = load_history(base + vec2<i32>(0, 1));
+    let history_11 = load_history(base + vec2<i32>(1, 1));
+    return mix(
+        mix(history_00, history_10, weight.x),
+        mix(history_01, history_11, weight.x),
+        weight.y
+    );
 }
 
 fn load_authored_reactive_mask(coord: vec2<i32>) -> f32 {
@@ -145,7 +205,7 @@ fn responsive_rejection(current_color: vec3<f32>, history_color: vec3<f32>, velo
 }
 
 fn history_weight(history_pixel: vec2<f32>, velocity: vec2<f32>, depth: f32, depth_delta: f32, history_confidence: f32, responsive: f32, size: vec2<u32>) -> f32 {
-    if (params.viewport_and_flags.z == 0u) {
+    if (params.flags_and_quality.x == 0u) {
         return 0.0;
     }
     let inside =
@@ -187,27 +247,37 @@ fn next_history_confidence(previous_confidence: f32, weight: f32, responsive: f3
 
 @fragment
 fn fs_taa_resolve(@builtin(position) position: vec4<f32>) -> TaaResolveOutput {
-    let size = viewport_size();
-    let coord = min(vec2<u32>(u32(position.x), u32(position.y)), size - vec2<u32>(1u, 1u));
-    let coord_i32 = vec2<i32>(coord);
-    let current = textureLoad(scene_color_tex, coord_i32, 0);
-    let depth = load_scene_depth(coord);
-    let velocity_coord = closest_depth_coord(coord_i32, size);
+    let input_size = input_viewport_size();
+    let output_size = output_viewport_size();
+    let output_origin = output_viewport_origin();
+    let output_coord = min(
+        vec2<u32>(position.xy) - output_origin,
+        output_size - vec2<u32>(1u, 1u)
+    );
+    let input_sample_position =
+        (vec2<f32>(output_coord) + vec2<f32>(0.5, 0.5)) *
+        (vec2<f32>(input_size) / vec2<f32>(output_size)) -
+        vec2<f32>(0.5, 0.5);
+    let input_coord_local = vec2<i32>(round(input_sample_position));
+    let input_coord = input_coord_local + vec2<i32>(input_viewport_origin());
+    let current = sample_scene_color_bilinear(input_sample_position);
+    let depth = load_scene_depth(input_coord);
+    let velocity_coord = closest_depth_coord(input_coord);
     let velocity = textureLoad(scene_velocity_tex, velocity_coord, 0).xy;
-    let foreground_depth = load_scene_depth_coord(velocity_coord, size);
+    let foreground_depth = load_scene_depth_coord(velocity_coord);
     let depth_delta = abs(depth - foreground_depth);
-    let history_pixel = reproject_history_coord(coord, velocity, size);
-    let history = sample_reprojected_history(history_pixel, size);
-    let neighborhood = scene_color_neighborhood_ycocg_bounds(coord_i32, size);
+    let history_pixel = reproject_history_coord(output_coord, velocity, output_size);
+    let history = sample_reprojected_history(history_pixel);
+    let neighborhood = scene_color_neighborhood_ycocg_bounds(input_coord);
     let clamped_history_ycocg = clip_towards_aabb_center(
         rgb_to_ycocg(history.rgb),
         neighborhood[0],
         neighborhood[1]
     );
     let clamped_history = ycocg_to_rgb(clamped_history_ycocg);
-    let authored_reactive = load_authored_reactive_mask(coord_i32);
+    let authored_reactive = load_authored_reactive_mask(input_coord);
     let responsive = max(responsive_rejection(current.rgb, clamped_history, velocity), authored_reactive);
-    let weight = history_weight(history_pixel, velocity, depth, depth_delta, history.a, responsive, size);
+    let weight = history_weight(history_pixel, velocity, depth, depth_delta, history.a, responsive, output_size);
     let resolved = vec4<f32>(mix(current.rgb, clamped_history, weight), current.a);
 
     var output: TaaResolveOutput;

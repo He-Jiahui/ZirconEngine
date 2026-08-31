@@ -3,6 +3,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/composition_receipt.rs
   - zircon_runtime/src/dynamic_api/session/construction.rs
   - zircon_runtime/src/dynamic_api/session/ffi.rs
   - zircon_runtime/src/dynamic_api/session/hooks.rs
@@ -13,8 +14,12 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/error.rs
   - zircon_runtime/src/dynamic_api/session/diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
+  - zircon_runtime/src/dynamic_api/session/events/keyboard_ime.rs
+  - zircon_runtime/src/dynamic_api/session/events/gamepad.rs
   - zircon_runtime/src/dynamic_api/session/event_mirror.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
+  - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
+  - zircon_runtime/src/core/framework/render/ui_submission.rs
   - zircon_runtime/src/dynamic_api/session/extract_cache.rs
   - zircon_runtime/src/dynamic_api/session/extract_stats.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
@@ -65,6 +70,11 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/dynamic_api.rs
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
+  - zircon_runtime_interface/src/runtime_build_set/composition_receipt.rs
+  - zircon_app/src/entry/runtime_library/runtime_session/module_composition_receipt.rs
+  - zircon_editor/src/core/gateway/contract.rs
+  - zircon_editor/src/core/gateway/handle.rs
+  - zircon_editor/src/core/gateway/session/gateway.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
   - zircon_runtime/src/asset/project/manifest.rs
@@ -110,6 +120,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/composition_receipt.rs
   - zircon_runtime/src/dynamic_api/session/error.rs
   - zircon_runtime/src/dynamic_api/session/diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
@@ -160,6 +171,11 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/dynamic_api.rs
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
+  - zircon_runtime_interface/src/runtime_build_set/composition_receipt.rs
+  - zircon_app/src/entry/runtime_library/runtime_session/module_composition_receipt.rs
+  - zircon_editor/src/core/gateway/contract.rs
+  - zircon_editor/src/core/gateway/handle.rs
+  - zircon_editor/src/core/gateway/session/gateway.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
   - zircon_runtime/src/asset/project/manifest.rs
@@ -325,7 +341,7 @@ doc_type: module-detail
 
 # Dynamic Runtime Session
 
-`zircon_runtime::dynamic_api::session` owns the runtime session state behind the exported `zircon_runtime_interface` C ABI. The public function table remains in `dynamic_api::exports`; session code owns handle validation, session registry access, event dispatch into runtime managers, frame capture/presentation, profile control, and host request draining.
+`zircon_runtime::dynamic_api::session` owns the runtime session state behind the exported `zircon_runtime_interface` C ABI. The public function table remains in `dynamic_api::exports`; session code owns handle validation, session registry access, event dispatch into runtime managers, frame capture/presentation, profile control, the immutable module-composition receipt projection, and host request draining.
 
 The session module is intentionally private to `zircon_runtime`. Its job is to adapt versioned ABI payloads into existing runtime facilities without turning the dynamic library boundary into a second runtime architecture.
 
@@ -342,9 +358,10 @@ The available default-feature `dynamic_api` filter executed 85 behavior tests su
 
 Runtime 15 M2 input mouse-wheel line-delta naming hard cutover records `runtime_15_input_mouse_wheel_line_delta_naming_hard_cutover_static_passed_cargo_deferred`: dynamic preview scroll now uses `zircon_runtime/src/core/framework/input/mouse_wheel.rs` through `MouseWheelEvent::vertical_line_delta()` when it needs the scalar camera orbit delta. `naming_boundary/runtime_15_m2/input.rs::runtime_15_input_mouse_wheel_line_delta_uses_current_names` keeps `session/events.rs`, the input framework owner, and this document aligned without retaining old helper aliases.
 - `session/diagnostics.rs` owns the `ProfileControlCommand::RuntimeDiagnosticsSnapshot` projection. It reuses the existing `profile_control` JSON ABI entry, collects `DiagnosticStore` series through `collect_runtime_diagnostics(...)`, and adds the last dynamic scene-asset reload frame report as neutral `RuntimeSceneAssetReloadDiagnostics` counts.
+- `session/composition_receipt.rs` owns the `ProfileControlCommand::RuntimeModuleCompositionReceipt` projection. Session construction retains the exact `RuntimeModuleCompositionIdentity` produced by `RuntimeModuleCompositionCompiler`; the projection carries its catalog generation, source-manifest fingerprint, target, optional module profile, independent dynamic-session profile, and composition digest through the existing optional profile-control slot. It never compiles or sorts a second module graph. `zircon_app` requires the current typed receipt immediately after session creation and independently matches its session profile and target against the requested ABI profile; a missing capability, error response, omitted receipt, unsupported schema, or identity mismatch aborts construction through the normal session cleanup path. The validated receipt is handed to `SessionGateway`, and `EditorRuntimeGatewayHandle` captures it with the gateway generation so Editor replacement cannot observe a receipt from another runtime session.
 - `session/project.rs` adapts the optional ABI project-manifest byte slice into a runtime project root, loads `zircon-project.toml`, discovers startup ZrVM packages, and loads the manifest default scene through the existing scene/project asset path.
 - `session/extract.rs` owns the dynamic-session frame extract facade: viewport resize, scene `RenderFrameExtract` cache lookup/construction, UI side-path extract selection, and the runtime-side extract diagnostic hook.
-- `session/extract_cache.rs` owns `RuntimeFrameExtractCache`, the runtime-owned frame extract reuse key, and explicit cache invalidation for viewport changes. The cache key combines world `change_tick`, `query_cache_revision`, active camera, and viewport size so unchanged captures can reuse the previous `RenderFrameExtract` while scene edits rebuild.
+- `session/extract_cache.rs` owns `RuntimeFrameExtractCache`, the runtime-owned frame extract reuse key, and explicit cache invalidation for viewport changes. The cache key combines world `change_tick`, `lifecycle_visibility_revision`, active camera, and viewport size so unchanged captures can reuse the previous shared scene generation while scene edits rebuild.
 - `session/extract_stats.rs` estimates the per-extract output collection footprint and records `extract.rebuild_clones`, `extract.output_bytes`, `extract.cache_hits`, and `extract.cache_misses` into the existing `DiagnosticStore`.
 - `session/scene_asset_reload_diagnostics.rs` projects dynamic scene-asset reload frame reports into count/bool `DiagnosticStore` rows under `scene.asset_reload.*`.
 - `session/status.rs` owns ABI `ZrStatus` construction for unsupported version, invalid argument, not found, and generic dynamic API errors.
@@ -397,9 +414,9 @@ On 2026-07-04, the lifecycle source guard was synchronized with the current ABI 
 
 ## Extract Diagnostics
 
-`RuntimeDynamicSession::current_extract()` records runtime-owned extract diagnostics after resolving the `RenderFrameExtract` and before handing it to the render bridge. Runtime 07 M2 now routes this through `RuntimeFrameExtractCache`: the first call for a `(change_tick, query_cache_revision, active_camera, viewport_size)` key calls `World::to_render_frame_extract()` and records `extract.rebuild_clones = 1`, `extract.cache_misses = 1`, and `extract.cache_hits = 0`; an unchanged follow-up capture clones the cached extract and records `extract.rebuild_clones = 0`, `extract.cache_hits = 1`, and `extract.cache_misses = 0`; a world mutation, structural query-cache revision change, active-camera change, or viewport resize builds a fresh extract again.
+`RuntimeDynamicSession::current_extract()` records runtime-owned extract diagnostics after resolving the `RenderFrameExtract` and before handing it to the render bridge. Runtime 07 routes this through `RuntimeFrameExtractCache`: the first call for a `(change_tick, lifecycle_visibility_revision, active_camera, viewport_size)` key builds one `RenderFrameScenePayload` and records `extract.rebuild_clones = 1`, `extract.cache_misses = 1`, and `extract.cache_hits = 0`; an unchanged follow-up capture clones only the compact timing/view overlay and shared scene-domain handles and records `extract.rebuild_clones = 0`, `extract.cache_hits = 1`, and `extract.cache_misses = 0`. World mutation, lifecycle/visibility revision change, active-camera change, or viewport resize builds a fresh scene generation. Both cache population and reuse report `extract.full_clones = 0` and `extract.full_clone_bytes = 0` because they do not duplicate the wide scene payload.
 
-`extract.output_bytes` is a stable estimate of the main output collections carried by the extract: geometry vectors and phase queues, static-batch side vectors, virtual-geometry side vectors, animation poses, light lists, post-process stack/graph vectors and string payloads, overlay vectors, sprite/particle vectors, and visibility vectors. It is intentionally not a precise heap profiler and does not serialize the extract. Its purpose is before/after comparison for Runtime 07 M1/M2 hot-path work without adding frame-path allocation overhead.
+`extract.output_bytes` is a stable estimate of the main output collections carried by the shared scene generation: geometry vectors and phase queues, static-batch side vectors, virtual-geometry side vectors, animation poses, light lists, post-process stack/graph vectors and string payloads, overlay vectors, sprite/particle vectors, and visibility vectors. It is computed once when the cache generation is built and reused on stable hits. It is intentionally not a precise heap profiler and does not serialize the extract.
 
 `headless_session_capture_records_frame_extract_diagnostics` covers the diagnostic path without requiring WGPU. A first headless capture builds the session extract, records `extract.rebuild_clones = 1`, `extract.cache_hits = 0`, `extract.cache_misses = 1`, and writes a non-zero `extract.output_bytes` sample into the runtime diagnostic store once the current render-owned Cargo blocker is cleared and the focused test can run.
 
@@ -577,7 +594,7 @@ Standalone keyboard events originate in `zircon_app::entry::runtime_entry_app::c
 
 `vampire_project_session_capture_frame_draws_world_hud_bars` captures the runtime frame after project ticks and asserts that world-space health bars, shadow work, and particle data are present while screen-space combat HUD command count stays zero. It accepts `ZR_VAMPIRE_CAPTURE_WIDTH`, `ZR_VAMPIRE_CAPTURE_HEIGHT`, `ZR_VAMPIRE_CAPTURE_TICKS`, and `ZR_VAMPIRE_CAPTURE_PNG` so manual validation can export a deterministic gameplay PNG at the requested viewport and after a longer gameplay run without adding another test-only code path. The 2026-06-16 Release ZR VM validation passed after the runtime pipeline inserted the core `particle-render` scene pass before post-process terminal work and split world-HUD bars onto the no-depth-test particle overlay path.
 
-When `current_ui_extract` sees a valid `gameplay.menu_state`, the menu overlay has priority over the gameplay HUD extract. This is intentional: Start and Game Over are modal runtime states, while the world HUD bars remain scene data. Left mouse release over the overlay button writes only the command string (`"start_game"` or `"retry_game"`) and leaves lifecycle ownership in the project script.
+When `current_ui_submission` uses its component-cache fallback and sees a valid `gameplay.menu_state`, the menu overlay has priority over the gameplay HUD extract; that flat extract is wrapped as one submission segment. Runtime project UI instead publishes its retained surfaces as ordered segments without flattening them. Start and Game Over remain modal runtime states, while the world HUD bars remain scene data. Left mouse release over the overlay button writes only the command string (`"start_game"` or `"retry_game"`) and leaves lifecycle ownership in the project script.
 
 Dynamic API error statuses carry the concrete session creation failure string across the ABI diagnostics slice instead of collapsing every startup error to `runtime dynamic API error`. The borrowed `ZrByteSlice` points into a bounded thread-local UTF-8 diagnostic buffer and remains valid until the next status write on that thread; it no longer leaks one allocation per failure. Larger runtime outputs use `ZrOwnedResultV2` and the V7 table-level allocation release contract. `RuntimeDynamicSession::new` also initializes the `runtime-dynamic` diagnostic log before project startup so frame/FPS diagnostics and startup failure context share the same runtime-owned diagnostic channel.
 
@@ -672,3 +689,10 @@ Current owner-budget child-routes refresh 2026-07-06: `Runtime 15 M3 Runtime 07 
 Current owner-budget line-budgets refresh 2026-07-06: `Runtime 15 M3 Runtime 07 owner-budget line-budgets guard folder-backed split` / `runtime_15_runtime_07_owner_budget_line_budgets_guard_folder_backed_static_passed_cargo_deferred` adds `performance_hotspots/owner_budget/line_budgets/{root,artifact_render_diagnostics,hotspot_inventory,owner_budget,scene_project,submit_context}.rs` to Runtime 07 audit input while keeping `performance_hotspots/owner_budget/line_budgets.rs` as the route owner. The current static mirror reports `expected_source_file_count = 46`, `expected_test_file_count = 88`, `frame_span_anchor_count = 9`, `query_counter_anchor_count = 32`, `change_counter_anchor_count = 13`, `extract_counter_anchor_count = 21`, `asset_worker_anchor_count = 13`, `animation_scene_anchor_count = 19`, `profile_counter_hotspot_anchor_count = 8`, `hotspot_guard_anchor_count = 32`, `test_anchor_count = 29`, `doc_anchor_count = 35`, `cargo_gate_anchor_count = 5`, `stale_hotspot_placeholder_present = false`, `large_file_m1_gate_status = classified-and-clear`, `large_file_hotspot_count = 0`, `large_file_migration_debt_count = 0`, `large_file_owner_class_count = 0`, `large_file_unclassified_hotspot_count = 0`, `missing_large_file_owner_classes = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, `risks = []`, and keeps `runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts` visible. The new guard is `runtime_15_runtime_07_owner_budget_line_budgets_guard_folder_backed_split`. This only updates static mirror/test-owner inventory; extract/ecs_query/profiling/FPS Cargo gates remain pending.
 
 Current owner-budget split-layout route refresh 2026-07-06: `Runtime 15 M3 Runtime 07 owner-budget split-layout route guard folder-backed split` / `runtime_15_runtime_07_owner_budget_split_layout_route_guard_folder_backed_static_passed_cargo_deferred` adds `performance_hotspots/owner_budget/split_layout/route/{parent_route,split_route,support_routes}.rs` to Runtime 07 audit input while keeping `performance_hotspots/owner_budget/split_layout/route.rs` as the route owner. The current static mirror reports `expected_source_file_count = 46`, `expected_test_file_count = 91`, `frame_span_anchor_count = 9`, `query_counter_anchor_count = 32`, `change_counter_anchor_count = 13`, `extract_counter_anchor_count = 21`, `asset_worker_anchor_count = 13`, `animation_scene_anchor_count = 19`, `profile_counter_hotspot_anchor_count = 8`, `hotspot_guard_anchor_count = 32`, `test_anchor_count = 29`, `doc_anchor_count = 35`, `cargo_gate_anchor_count = 5`, `stale_hotspot_placeholder_present = false`, `large_file_m1_gate_status = classified-and-clear`, `large_file_hotspot_count = 0`, `large_file_migration_debt_count = 0`, `large_file_owner_class_count = 0`, `large_file_unclassified_hotspot_count = 0`, `missing_large_file_owner_classes = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, `risks = []`, and keeps `runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts` visible. The new guard is `runtime_15_runtime_07_owner_budget_split_layout_route_guard_folder_backed_split`. This only updates static mirror/test-owner inventory; extract/ecs_query/profiling/FPS Cargo gates remain pending.
+
+The 2026-08-27 dynamic event owner split keeps `events.rs` as the ABI-kind router and shared
+pointer/window/lifecycle coordinator. Keyboard/IME payload decoding and projection live in
+`events/keyboard_ime.rs`; gamepad connection/button/axis and UI navigation mapping live in
+`events/gamepad.rs`. All three owners still mutate the same `RuntimeDynamicSession` and use its one
+input/UI dispatch path. Status:
+`runtime_10_12_15_dynamic_event_keyboard_ime_gamepad_owner_split_static_passed_cargo_deferred`.

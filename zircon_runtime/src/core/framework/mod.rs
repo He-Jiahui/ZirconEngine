@@ -20,12 +20,12 @@ pub mod physics;
 pub mod picking;
 pub mod platform;
 pub mod project;
+pub mod random;
 pub mod render;
 pub mod scene;
 pub mod script;
 #[cfg(feature = "sound-contracts")]
 pub mod sound;
-pub mod state;
 pub mod tasks;
 pub mod text;
 pub mod time;

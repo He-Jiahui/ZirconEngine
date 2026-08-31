@@ -78,10 +78,9 @@ impl ProjectTemplate {
     }
 
     pub fn from_enabled_id(id: &str) -> Option<Self> {
-        match id.trim().to_ascii_lowercase().as_str() {
-            "renderable-empty" => Some(Self::RenderableEmpty),
-            _ => None,
-        }
+        id.trim()
+            .eq_ignore_ascii_case("renderable-empty")
+            .then_some(Self::RenderableEmpty)
     }
 }
 
@@ -145,6 +144,22 @@ mod tests {
                 .map(|template| template.id)
                 .collect::<Vec<_>>(),
             vec!["renderable-empty"]
+        );
+    }
+
+    #[test]
+    fn enabled_template_id_match_trims_and_folds_ascii_case() {
+        assert_eq!(
+            ProjectTemplate::from_enabled_id("  RENDERABLE-EMPTY  "),
+            Some(ProjectTemplate::RenderableEmpty)
+        );
+    }
+
+    #[test]
+    fn enabled_template_id_match_keeps_non_ascii_case_strict() {
+        assert_eq!(
+            ProjectTemplate::from_enabled_id("renderablE-empt\u{00dd}"),
+            None
         );
     }
 

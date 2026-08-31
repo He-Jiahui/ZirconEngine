@@ -74,6 +74,20 @@ pub(super) fn build_editor_extensions<'a>(
                 (*contribution).clone(),
             ));
         }
+        for bundle in registration.extensions.localization_bundles() {
+            push_editor_extension_result(
+                registry.register_localization_bundle((*bundle).clone()),
+                &mut diagnostics,
+                &mut diagnostic_sequence,
+            );
+        }
+        for page in registration.extensions.settings_pages() {
+            push_editor_extension_result(
+                registry.register_settings_page((*page).clone()),
+                &mut diagnostics,
+                &mut diagnostic_sequence,
+            );
+        }
         for scene_mode in registration.extensions.scene_mode_registrations() {
             push_editor_extension_result(
                 registry.register_scene_mode((*scene_mode).clone()),
@@ -90,7 +104,11 @@ pub(super) fn build_editor_extensions<'a>(
         }
         for palette in registration.extensions.graph_node_palettes() {
             push_editor_extension_result(
-                registry.register_graph_node_palette((*palette).clone()),
+                registry.register_graph_node_palette(
+                    (*palette)
+                        .clone()
+                        .with_owner_id(registration.package_manifest.id.clone()),
+                ),
                 &mut diagnostics,
                 &mut diagnostic_sequence,
             );

@@ -3,36 +3,52 @@ from __future__ import annotations
 
 HOST_REQUEST_PAYLOAD_ANCHORS = (
     (
-        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
         "pub struct ZrRuntimeHostRequestBatchV1",
     ),
     (
-        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
         "pub enum ZrRuntimeHostRequestV1",
     ),
     (
-        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
         "Ime(ZrRuntimeImeHostRequestV1)",
     ),
     (
-        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
         "GamepadRumble(ZrRuntimeGamepadRumbleRequestV1)",
     ),
     (
-        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
         "Cursor(ZrRuntimeCursorHostRequestV1)",
     ),
     (
-        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "Clipboard(ZrRuntimeClipboardHostRequestV1)",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "UiAction(ZrRuntimeUiActionHostRequestV1)",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
         "pub struct ZrRuntimeImeHostRequestV1",
     ),
     (
-        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
         "pub struct ZrRuntimeGamepadRumbleRequestV1",
     ),
     (
-        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
         "pub struct ZrRuntimeCursorHostRequestV1",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host/clipboard.rs",
+        "pub struct ZrRuntimeClipboardHostRequestV1",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host/ui_action.rs",
+        "pub struct ZrRuntimeUiActionHostRequestV1",
     ),
     (
         "zircon_runtime_interface/src/tests/contracts.rs",
@@ -59,6 +75,14 @@ HOST_REQUEST_PAYLOAD_ANCHORS = (
         "pub(in crate::dynamic_api) fn runtime_cursor_host_request",
     ),
     (
+        "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+        "pub(in crate::dynamic_api) fn runtime_clipboard_host_request",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/runtime_ui/action_requests.rs",
+        "pub(super) struct RuntimeUiActionRequestQueue",
+    ),
+    (
         "zircon_runtime/src/dynamic_api/session/state.rs",
         ".drain_ime_host_requests()",
     ),
@@ -72,6 +96,14 @@ HOST_REQUEST_PAYLOAD_ANCHORS = (
     ),
     (
         "zircon_runtime/src/dynamic_api/session/state.rs",
+        ".drain_clipboard_host_requests_into(&mut clipboard_requests)",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/state.rs",
+        ".drain_action_host_requests_into(&mut action_requests)",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         ".map(ZrRuntimeHostRequestV1::ime)",
     ),
     (
@@ -81,6 +113,14 @@ HOST_REQUEST_PAYLOAD_ANCHORS = (
     (
         "zircon_runtime/src/dynamic_api/session/state.rs",
         ".map(ZrRuntimeHostRequestV1::cursor)",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/state.rs",
+        "ZrRuntimeHostRequestV1::clipboard(runtime_clipboard_host_request(",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/state.rs",
+        ".map(ZrRuntimeHostRequestV1::ui_action)",
     ),
     (
         "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
@@ -112,6 +152,14 @@ HOST_REQUEST_PAYLOAD_ANCHORS = (
     ),
     (
         "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "ZrRuntimeHostRequestV1::Clipboard(request)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "ZrRuntimeHostRequestV1::UiAction(request)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
         "apply_runtime_ime_host_request(window.as_ref(), request)",
     ),
     (
@@ -121,6 +169,14 @@ HOST_REQUEST_PAYLOAD_ANCHORS = (
     (
         "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
         "apply_runtime_cursor_host_request(window.as_ref(), request)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "apply_runtime_clipboard_host_request(app, event_loop, request)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "report_unhandled_runtime_ui_action(app, request)",
     ),
     (
         "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",

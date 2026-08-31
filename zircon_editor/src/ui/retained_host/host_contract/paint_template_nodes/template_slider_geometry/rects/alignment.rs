@@ -14,32 +14,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn centere
     }
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
-    rect: &FrameRect,
-) -> FrameRect {
-    FrameRect {
-        x: rect.x.round(),
-        y: rect.y.round(),
-        width: bounded_extent(rect.width.round()),
-        height: bounded_extent(rect.height.round()),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn collapsed_or_invalid_slider_alignment_has_no_drawable_extent() {
-        let collapsed = pixel_aligned_rect(&FrameRect {
-            x: 8.4,
-            y: 6.6,
-            width: 0.0,
-            height: 0.0,
-        });
+    fn invalid_centered_slider_geometry_has_no_drawable_extent() {
         let invalid = centered_rect(8.0, 6.0, f32::NAN);
 
-        assert_eq!((collapsed.width, collapsed.height), (0.0, 0.0));
         assert_eq!((invalid.width, invalid.height), (0.0, 0.0));
         assert_eq!((invalid.x, invalid.y), (8.0, 6.0));
     }

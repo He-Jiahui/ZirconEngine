@@ -4,12 +4,14 @@ $changeSet = Join-Path $repoRoot 'tools\mvp\Set-ResourceManagementScaleProjectCh
 $baselinePlan = Join-Path $repoRoot 'tools\mvp\New-ResourceManagementBaselinePlan.ps1'
 $resolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
 $manifestModule = Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1'
+$artifactStorageModule = Join-Path $repoRoot 'tools\mvp\MvpArtifactStoragePolicy.psm1'
 $originalProjectTestMode = $env:RESOURCE_MANAGEMENT_SCALE_PROJECT_TEST_MODE
 $originalChangeSetTestMode = $env:RESOURCE_MANAGEMENT_SCALE_PROJECT_CHANGESET_TEST_MODE
 $originalBaselinePlanTestMode = $env:RESOURCE_MANAGEMENT_BASELINE_PLAN_TEST_MODE
 
 Import-Module $resolverModule -Force -Global -ErrorAction Stop
 Import-Module $manifestModule -Force -Global -ErrorAction Stop
+Import-Module $artifactStorageModule -Force -Global -ErrorAction Stop
 
 try {
     $env:RESOURCE_MANAGEMENT_SCALE_PROJECT_TEST_MODE = '1'
@@ -24,6 +26,30 @@ finally {
     $env:RESOURCE_MANAGEMENT_SCALE_PROJECT_CHANGESET_TEST_MODE = $originalChangeSetTestMode
     $env:RESOURCE_MANAGEMENT_BASELINE_PLAN_TEST_MODE = $originalBaselinePlanTestMode
 }
+
+function New-TestResourceManagementBaselineSourceIdentity {
+    $templateRoot = Join-Path $repoRoot 'templates\projects\renderable-empty'
+    $templatePrefix = $repoRoot.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    $files = @([IO.Directory]::EnumerateFiles($templateRoot, '*', [IO.SearchOption]::AllDirectories) |
+        ForEach-Object {
+            [pscustomobject]@{
+                relative_path = $_.Substring($templatePrefix.Length).Replace('\', '/')
+            }
+        } |
+        Sort-Object { $_.relative_path })
+    return [pscustomobject]@{
+        manifest_sha256 = ('C' * 64)
+        source_fingerprint = ('A' * 64)
+        build_set_id = ('A' * 64)
+        build_set = [pscustomobject]@{
+            build_set_id = ('A' * 64)
+            snapshot_root = $repoRoot
+            files = $files
+        }
+    }
+}
+
+$resourceBaselineSourceIdentity = New-TestResourceManagementBaselineSourceIdentity
 
 Describe 'Resource-management baseline plan' {
     BeforeEach {
@@ -40,26 +66,43 @@ Describe 'Resource-management baseline plan' {
             Should Throw 'duplicate'
     }
 
+    It 'rejects baseline JSON input above its caller-owned byte budget' {
+        $path = Join-Path $TestDrive 'oversized-baseline-input.json'
+        [IO.File]::WriteAllText(
+            $path,
+            ('{"payload":"' + ('x' * 64) + '"}'),
+            [Text.UTF8Encoding]::new($false))
+
+        {
+            Read-ResourceManagementBaselineJson `
+                -Path $path `
+                -Label 'Oversized baseline input' `
+                -MaximumBytes 32
+        } | Should Throw 'byte budget of 32 bytes'
+        (Get-Content -Raw $baselinePlan) | Should Not Match '\[IO\.File\]::ReadAllText'
+    }
+
     It 'describes cold, stable, and one-percent-change data workloads without physical resource paths' {
-        $baselineRoot = Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' (
-            'resource-management-baseline-plan-baseline-' + [guid]::NewGuid().ToString('N')
-        )
-        $changedRoot = Join-Path 'E:\ZirconBuilds\mvp-resource-management-projects' (
-            'resource-management-baseline-plan-changed-' + [guid]::NewGuid().ToString('N')
-        )
+        $baselineRoot = New-MvpArtifactStoragePath `
+            -NamespaceId 'resource-management-projects' `
+            -InstanceId ('resource-management-baseline-plan-baseline-' + [guid]::NewGuid().ToString('N'))
+        $changedRoot = New-MvpArtifactStoragePath `
+            -NamespaceId 'resource-management-projects' `
+            -InstanceId ('resource-management-baseline-plan-changed-' + [guid]::NewGuid().ToString('N'))
         try {
             New-ResourceManagementScaleProject `
                 -ProjectRoot $baselineRoot `
                 -DataAssetCount 4 `
-                -SourceFingerprint ('A' * 64) | Out-Null
+                -SourceIdentity $resourceBaselineSourceIdentity | Out-Null
             New-ResourceManagementScaleProject `
                 -ProjectRoot $changedRoot `
                 -DataAssetCount 4 `
-                -SourceFingerprint ('A' * 64) | Out-Null
+                -SourceIdentity $resourceBaselineSourceIdentity | Out-Null
             Set-ResourceManagementScaleProjectChangeSet `
                 -ProjectRoot $changedRoot `
                 -ChangePercent 1 `
-                -ExpectedSourceFingerprint ('A' * 64) | Out-Null
+                -ExpectedSourceFingerprint ('A' * 64) `
+                -ExpectedProductInputManifestSha256 ('C' * 64) | Out-Null
 
             $baseline = Read-ResourceManagementBaselineProject `
                 -ProjectRoot $baselineRoot `
@@ -67,18 +110,39 @@ Describe 'Resource-management baseline plan' {
             $changed = Read-ResourceManagementBaselineProject `
                 -ProjectRoot $changedRoot `
                 -Role 'changed'
+            $baselineMetadataPath = Join-Path $baselineRoot 'resource-management-scale-project.json'
+            $hasher = [Security.Cryptography.SHA256]::Create()
+            try {
+                $expectedBaselineManifestSha256 = ([BitConverter]::ToString(
+                        $hasher.ComputeHash([IO.File]::ReadAllBytes($baselineMetadataPath))
+                    )).Replace('-', '')
+            }
+            finally {
+                $hasher.Dispose()
+            }
             $document = New-ResourceManagementBaselinePlanDocument `
                 -BaselineProjects @($baseline) `
                 -ChangedProjects @($changed) `
-                -RepeatCount 3
+                -RepeatCount 20 `
+                -WarmupCount 3
             $serialized = $document | ConvertTo-Json -Depth 16
             $stable = @($document.scenarios | Where-Object { $_.mode -eq 'stable-generation' })[0]
             $changedScenario = @($document.scenarios | Where-Object { $_.mode -eq 'one-percent-change' })[0]
 
-            $document.schema_version | Should Be 1
+            $document.schema_version | Should Be 3
             $document.workload_family | Should Be 'resource-management-query'
+            $document.workload_profile_id | Should Be 'json-data-flat-v1'
+            $document.workload_registry_receipt.registry_kind | Should Be 'zircon.resource-management-workload-registry'
+            $document.workload_registry_receipt.sha256 | Should Match '^[0-9A-F]{64}$'
             $document.resource_kind | Should Be 'Data'
+            $document.statistical_policy.warmup_repetitions | Should Be 3
+            $document.statistical_policy.measurement_repetitions | Should Be 20
+            $document.statistical_policy.minimum_sample_count | Should Be 20
+            $document.statistical_policy.confidence_level | Should Be 0.95
+            $document.statistical_policy.maximum_coefficient_of_variation | Should Be 0.10
+            $document.statistical_policy.maximum_relative_margin_of_error | Should Be 0.10
             $document.scenarios.Count | Should Be 3
+            $stable.required_repetitions | Should Be 23
             $stable.process_lifecycle | Should Be 'same-process'
             $stable.required_generation_relation | Should Be 'same-published-generation'
             $changedScenario.project_role | Should Be 'changed'
@@ -87,6 +151,9 @@ Describe 'Resource-management baseline plan' {
             (@($changedScenario.changed_virtual_paths) -join ',') | Should Be 'res://data/catalog_000001.json'
             $baseline.data_inventory_sha256 | Should Match '^[0-9A-F]{64}$'
             $changed.data_inventory_sha256 | Should Match '^[0-9A-F]{64}$'
+            $baseline.project_manifest_sha256 | Should Be $expectedBaselineManifestSha256
+            (Get-Content -Raw $baselinePlan) | Should Match 'Get-ResourceManagementFileSha256 -Path \$Path'
+            (Get-Content -Raw $baselinePlan) | Should Not Match 'Get-FileHash'
             $changed.change_set.baseline_data_inventory_sha256 | Should Be $baseline.data_inventory_sha256
             $changed.change_set.changed_data_inventory_sha256 | Should Be $changed.data_inventory_sha256
             $changedScenario.data_inventory_sha256 | Should Be $changed.data_inventory_sha256
@@ -141,7 +208,8 @@ Describe 'Resource-management baseline plan' {
             New-ResourceManagementBaselineScenarioMatrix `
                 -BaselineProject $project `
                 -ChangedProject $changed `
-                -RepeatCount 3
+                -RepeatCount 20 `
+                -WarmupCount 3
         } | Should Throw 'exactly one percent'
     }
 }

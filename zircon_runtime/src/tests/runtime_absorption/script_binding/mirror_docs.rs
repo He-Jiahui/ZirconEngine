@@ -8,7 +8,7 @@ use super::support::{assert_file_line_budget, assert_files_exist, count_occurren
 
 #[test]
 fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
-    assert_eq!(EXPECTED_RUNTIME_13_SOURCE_FILES.len(), 24);
+    assert_eq!(EXPECTED_RUNTIME_13_SOURCE_FILES.len(), 28);
     assert_eq!(EXPECTED_RUNTIME_13_TEST_FILES.len(), 3);
 
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -53,7 +53,7 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
     let gameplay_host = include_str!("../../../script/vm/gameplay_host.rs");
     assert_eq!(
         count_occurrences(builtin_host, "HostExportFunction::new("),
-        11,
+        20,
         "Runtime 13 builtin callback count should match script_binding_boundary"
     );
     assert_eq!(

@@ -2,15 +2,15 @@ use crate::core::math::UVec2;
 
 use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::{
-    glyph_atlas_bitmap_retry_frame_input_with_backpressure_and_new_source_budget_predicate,
-    glyph_atlas_bitmap_retry_frame_outcome, GlyphAtlasBitmapQueuedGlyph,
+    GLYPH_BITMAP_ATLAS_PADDING_PX, GlyphAtlasBitmapQueuedGlyph,
     GlyphAtlasBitmapRetryBackpressurePolicy, GlyphAtlasBitmapRetryFrameInput,
     GlyphAtlasBitmapRetryFrameOutcome, GlyphAtlasBitmapSource, GlyphAtlasSet,
-    GLYPH_BITMAP_ATLAS_PADDING_PX,
+    glyph_atlas_bitmap_retry_frame_input_with_backpressure_and_new_source_budget_predicate,
+    glyph_atlas_bitmap_retry_frame_outcome,
 };
 use super::plan::{
-    glyph_atlas_bitmap_render_submission_plan_with_atlas_and_padding,
     GlyphAtlasBitmapRenderSubmissionPlan,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas_and_padding,
 };
 use super::report::GlyphAtlasBitmapRenderSubmissionReport;
 

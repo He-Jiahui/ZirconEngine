@@ -12,7 +12,9 @@ fn text_hit_test_uses_grapheme_midpoints() {
     let text = "a\u{0301}b";
     let layout = layout_text(text, &style, UiFrame::new(10.0, 0.0, 80.0, 20.0), None);
     let line = &layout.lines[0];
-    let widths = measured_grapheme_widths(&line.text, &text_style(&style));
+    let widths = measured_grapheme_widths(&line.text, &text_style(&style))
+        .into_result()
+        .expect("measure grapheme widths");
 
     let before = hit_test_text_layout(&layout, UiPoint::new(line.frame.x + widths[0] * 0.25, 4.0));
     let after_cluster =
@@ -26,6 +28,26 @@ fn text_hit_test_uses_grapheme_midpoints() {
     assert_eq!(before.source_offset, 0);
     assert_eq!(after_cluster.source_offset, "a\u{0301}".len());
     assert_eq!(after_text.source_offset, text.len());
+}
+
+#[test]
+fn text_hit_test_invalid_advances_expose_only_nearest_line_endpoint() {
+    let style = fixed_text_style();
+    let text = "abc";
+    let mut layout = layout_text(text, &style, UiFrame::new(10.0, 0.0, 80.0, 20.0), None);
+    layout.rich_text_artifact = None;
+    let line = layout.lines.first_mut().expect("resolved line");
+    line.glyph_advances = vec![line.measured_width];
+    let leading_x = line.frame.x + line.measured_width * 0.25;
+    let trailing_x = line.frame.x + line.measured_width * 0.75;
+
+    let leading = hit_test_text_layout(&layout, UiPoint::new(leading_x, 4.0));
+    let trailing = hit_test_text_layout(&layout, UiPoint::new(trailing_x, 4.0));
+
+    assert_eq!(leading.source_offset, 0);
+    assert_eq!(leading.visual_grapheme_index, 0);
+    assert_eq!(trailing.source_offset, text.len());
+    assert_eq!(trailing.visual_grapheme_index, 3);
 }
 
 #[test]
@@ -106,12 +128,14 @@ fn text_hit_test_prefers_backend_ligature_cluster_edges() {
             source_text: Arc::from("fi"),
             source_text_origin: 0,
             font_generation: crate::text::font::shared_font_database_generation(),
+            font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
             style: UiResolvedStyle::default(),
             writing_mode: UiTextWritingMode::HorizontalTb,
             lines: vec![Some(ResolvedTextGlyphArtifactLine {
                 glyphs: vec![leading_cluster_glyph, trailing_cluster_glyph],
                 layout_line: artifact_line,
             })],
+            logical_virtual_line_sequences: None,
         },
     )));
 
@@ -262,6 +286,13 @@ fn text_hit_test_respects_aligned_line_frame() {
     let line = &layout.lines[0];
 
     assert!((line.frame.right() - 100.0).abs() <= 0.01);
+    assert_eq!(line.placement_frame, UiFrame::new(0.0, 0.0, 100.0, 12.0));
+    let aligned_gap =
+        hit_test_text_layout(&layout, UiPoint::new(line.placement_frame.x + 1.0, 4.0));
+    assert_eq!(aligned_gap.line_index, Some(0));
+    assert_eq!(aligned_gap.source_offset, 0);
+    assert!(!aligned_gap.inside_line);
+    assert!(hit_test_text_layout(&layout, line.frame.center()).inside_line);
     assert_eq!(
         hit_test_text_layout(&layout, UiPoint::new(line.frame.x - 1.0, 4.0)).source_offset,
         0

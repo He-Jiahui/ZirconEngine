@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiComponentEventReport, UiDispatchPhase, UiDispatchReply, UiInputDispatchResult,
-        UiInputEvent, UiPopupInputEvent, UiPopupInputEventKind,
+        UiComponentEventReport, UiDispatchPhase, UiDispatchReply, UiInputDiagnosticsMode,
+        UiInputDispatchResult, UiInputEvent, UiPopupInputEvent, UiPopupInputEventKind,
     },
     surface::UiSurfaceWindowState,
     tree::UiDirtyFlags,
@@ -10,7 +10,9 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::surface::UiSurface;
-use super::{apply_dispatch_reply, dispatch_input_event};
+use super::{
+    apply_dispatch_reply, diagnostics_budget::enforce_diagnostics_budget, dispatch_input_event,
+};
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
 
 pub(crate) fn dispatch_window_event(
@@ -18,24 +20,39 @@ pub(crate) fn dispatch_window_event(
     pointer_dispatcher: &UiPointerDispatcher,
     navigation_dispatcher: &UiNavigationDispatcher,
     event: UiWindowEvent,
+    diagnostics_mode: UiInputDiagnosticsMode,
 ) -> Result<UiInputDispatchResult, UiTreeError> {
     let retained_note = apply_window_lifecycle_effect(surface, &event);
 
     if let Some(input) = event.normalized_cursor_move_input() {
-        let mut result =
-            dispatch_input_event(surface, pointer_dispatcher, navigation_dispatcher, input)?;
-        mark_optional_window_event_result(&mut result, retained_note);
-        mark_window_event_result(&mut result, "window_normalized_input");
+        let mut result = dispatch_input_event(
+            surface,
+            pointer_dispatcher,
+            navigation_dispatcher,
+            input,
+            None,
+            None,
+            diagnostics_mode,
+        )?;
+        mark_optional_window_event_result(&mut result, retained_note, diagnostics_mode);
+        mark_window_event_result(&mut result, "window_normalized_input", diagnostics_mode);
         return Ok(result);
     }
 
     if let Some(point) = surface.input.last_cursor_point() {
         if let Some(input) = event.normalized_pointer_cancel_input(point) {
-            let mut result =
-                dispatch_input_event(surface, pointer_dispatcher, navigation_dispatcher, input)?;
-            append_window_hover_clear_result(surface, &event, &mut result)?;
-            mark_optional_window_event_result(&mut result, retained_note);
-            mark_window_event_result(&mut result, "window_pointer_cancel");
+            let mut result = dispatch_input_event(
+                surface,
+                pointer_dispatcher,
+                navigation_dispatcher,
+                input,
+                None,
+                None,
+                diagnostics_mode,
+            )?;
+            append_window_hover_clear_result(surface, &event, &mut result, diagnostics_mode)?;
+            mark_optional_window_event_result(&mut result, retained_note, diagnostics_mode);
+            mark_window_event_result(&mut result, "window_pointer_cancel", diagnostics_mode);
             return Ok(result);
         }
     }
@@ -43,9 +60,13 @@ pub(crate) fn dispatch_window_event(
     if event.impact().clears_hover {
         let synthetic_input = window_event_transient_input(&event);
         let mut result = UiInputDispatchResult::new(synthetic_input, UiDispatchReply::unhandled());
-        append_fallback_pointer_interaction_clear(surface, &mut result)?;
-        mark_optional_window_event_result(&mut result, retained_note);
-        mark_window_event_result(&mut result, "window_pointer_cancel_missing_point");
+        append_fallback_pointer_interaction_clear(surface, &mut result, diagnostics_mode)?;
+        mark_optional_window_event_result(&mut result, retained_note, diagnostics_mode);
+        mark_window_event_result(
+            &mut result,
+            "window_pointer_cancel_missing_point",
+            diagnostics_mode,
+        );
         return Ok(result);
     }
 
@@ -58,31 +79,38 @@ pub(crate) fn dispatch_window_event(
                 .in_phase(UiDispatchPhase::DefaultAction)
                 .with_effect(effect),
         );
-        mark_optional_window_event_result(&mut result, retained_note);
-        mark_window_event_result(&mut result, "window_transient_dismissal");
+        mark_optional_window_event_result(&mut result, retained_note, diagnostics_mode);
+        mark_window_event_result(&mut result, "window_transient_dismissal", diagnostics_mode);
         return Ok(result);
     }
 
     if let Some(note) = apply_window_surface_effect(surface, &event)? {
-        let mut result = handled_window_event_result(synthetic_input);
-        mark_optional_window_event_result(&mut result, retained_note);
-        mark_window_event_result(&mut result, note);
+        let mut result = handled_window_event_result(synthetic_input, diagnostics_mode);
+        mark_optional_window_event_result(&mut result, retained_note, diagnostics_mode);
+        mark_window_event_result(&mut result, note, diagnostics_mode);
         return Ok(result);
     }
 
     if let Some(note) = retained_note {
-        let mut result = handled_window_event_result(synthetic_input);
-        mark_window_event_result(&mut result, note);
+        let mut result = handled_window_event_result(synthetic_input, diagnostics_mode);
+        mark_window_event_result(&mut result, note, diagnostics_mode);
         return Ok(result);
     }
 
     let mut result = UiInputDispatchResult::new(synthetic_input, UiDispatchReply::unhandled());
-    mark_optional_window_event_result(&mut result, retained_note);
-    mark_window_event_result(&mut result, "window_event_no_input_effect");
+    mark_optional_window_event_result(&mut result, retained_note, diagnostics_mode);
+    mark_window_event_result(
+        &mut result,
+        "window_event_no_input_effect",
+        diagnostics_mode,
+    );
     Ok(result)
 }
 
-fn handled_window_event_result(event: UiInputEvent) -> UiInputDispatchResult {
+fn handled_window_event_result(
+    event: UiInputEvent,
+    diagnostics_mode: UiInputDiagnosticsMode,
+) -> UiInputDispatchResult {
     let mut result = UiInputDispatchResult::new(
         event,
         UiDispatchReply::handled().in_phase(UiDispatchPhase::DefaultAction),
@@ -90,7 +118,10 @@ fn handled_window_event_result(event: UiInputEvent) -> UiInputDispatchResult {
     result.diagnostics.routed = true;
     result.diagnostics.route_policy =
         zircon_runtime_interface::ui::dispatch::UiInputRoutePolicy::DefaultAction;
-    result.diagnostics.handled_phase = Some(UiDispatchPhase::DefaultAction.as_str().to_string());
+    if diagnostics_mode.captures_full_trace() {
+        result.diagnostics.handled_phase =
+            Some(UiDispatchPhase::DefaultAction.as_str().to_string());
+    }
     result
 }
 
@@ -181,7 +212,9 @@ fn record_redraw_request(window_state: &mut UiSurfaceWindowState, reason: UiWind
 }
 
 fn mark_roots_dirty(surface: &mut UiSurface, dirty: UiDirtyFlags) -> Result<(), UiTreeError> {
-    for root_id in surface.tree.roots.clone() {
+    let root_count = surface.tree.roots.len();
+    for index in 0..root_count {
+        let root_id = surface.tree.roots[index];
         surface.mark_node_dirty(root_id, dirty)?;
     }
     Ok(())
@@ -203,16 +236,31 @@ fn render_dirty() -> UiDirtyFlags {
     }
 }
 
-fn mark_window_event_result(result: &mut UiInputDispatchResult, note: &str) {
+fn mark_window_event_result(
+    result: &mut UiInputDispatchResult,
+    note: &str,
+    diagnostics_mode: UiInputDiagnosticsMode,
+) {
+    if !diagnostics_mode.captures_full_trace() {
+        return;
+    }
     result.diagnostics.notes.push("window_event".to_string());
     result
         .diagnostics
         .notes
         .push("window_input_pump".to_string());
     result.diagnostics.notes.push(note.to_string());
+    enforce_diagnostics_budget(result);
 }
 
-fn mark_optional_window_event_result(result: &mut UiInputDispatchResult, note: Option<&str>) {
+fn mark_optional_window_event_result(
+    result: &mut UiInputDispatchResult,
+    note: Option<&str>,
+    diagnostics_mode: UiInputDiagnosticsMode,
+) {
+    if !diagnostics_mode.captures_full_trace() {
+        return;
+    }
     if let Some(note) = note {
         result.diagnostics.notes.push(note.to_string());
     }
@@ -222,6 +270,7 @@ fn append_window_hover_clear_result(
     surface: &mut UiSurface,
     event: &UiWindowEvent,
     result: &mut UiInputDispatchResult,
+    diagnostics_mode: UiInputDiagnosticsMode,
 ) -> Result<(), UiTreeError> {
     if !event.impact().clears_hover {
         return Ok(());
@@ -231,6 +280,7 @@ fn append_window_hover_clear_result(
         result,
         surface.clear_hovered_input_path()?,
         "window_hover_cleared",
+        diagnostics_mode,
     );
     Ok(())
 }
@@ -238,11 +288,13 @@ fn append_window_hover_clear_result(
 fn append_fallback_pointer_interaction_clear(
     surface: &mut UiSurface,
     result: &mut UiInputDispatchResult,
+    diagnostics_mode: UiInputDiagnosticsMode,
 ) -> Result<(), UiTreeError> {
     append_component_events(
         result,
         surface.clear_pointer_interaction_without_route()?,
         "window_hover_cleared",
+        diagnostics_mode,
     );
     Ok(())
 }
@@ -251,14 +303,21 @@ fn append_component_events(
     result: &mut UiInputDispatchResult,
     component_events: Vec<UiComponentEventReport>,
     note: &str,
+    diagnostics_mode: UiInputDiagnosticsMode,
 ) {
     if component_events.is_empty() {
         return;
     }
 
     result.component_events.extend(component_events);
-    result.diagnostics.notes.push(note.to_string());
+    if diagnostics_mode.captures_full_trace() {
+        result.diagnostics.notes.push(note.to_string());
+    }
 }
+
+#[cfg(test)]
+#[path = "window_pump/root_iteration_tests.rs"]
+mod root_iteration_tests;
 
 fn window_event_transient_input(event: &UiWindowEvent) -> UiInputEvent {
     UiInputEvent::Popup(UiPopupInputEvent {

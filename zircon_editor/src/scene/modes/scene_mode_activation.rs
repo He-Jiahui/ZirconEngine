@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::core::editor_message::SceneModeId;
 use crate::scene::viewport::TransformHandleKind;
 
+use super::SceneModeActivationError;
+
 pub(crate) const SELECT_SCENE_MODE_ID: &str = "scene.select";
 pub(crate) const TRANSFORM_SCENE_MODE_ID: &str = "scene.transform";
 
@@ -26,15 +28,14 @@ impl SceneModeActivation {
         }
     }
 
-    pub(crate) fn validate(&self) -> Result<(), String> {
+    pub(crate) fn validate(&self) -> Result<(), SceneModeActivationError> {
         let Self::Custom(mode_id) = self else {
             return Ok(());
         };
         if mode_id.as_str() == SELECT_SCENE_MODE_ID || mode_id.as_str() == TRANSFORM_SCENE_MODE_ID {
-            return Err(format!(
-                "custom scene mode activation cannot use reserved built-in id \"{}\"",
-                mode_id.as_str()
-            ));
+            return Err(SceneModeActivationError::ReservedBuiltInId {
+                mode_id: mode_id.clone(),
+            });
         }
         Ok(())
     }

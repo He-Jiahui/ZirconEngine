@@ -23,6 +23,26 @@ function Assert-True {
     }
 }
 
+function Remove-TestTreeWithRetry {
+    param([string]$Path)
+
+    for ($attempt = 0; $attempt -lt 50; $attempt++) {
+        if (-not (Test-Path -LiteralPath $Path)) {
+            return
+        }
+        try {
+            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
+            return
+        }
+        catch {
+            if ($attempt -eq 49) {
+                throw
+            }
+            Start-Sleep -Milliseconds 100
+        }
+    }
+}
+
 function Invoke-PythonCoordinator {
     param([string]$RepoRoot, [string[]]$CommandArguments)
     $oldPythonPath = $env:PYTHONPATH
@@ -109,8 +129,11 @@ function Test-JsonClientOutput {
     $launcher = Join-Path $sourceRoot "tools\zircon-session.ps1"
     $started = $false
     $daemonPid = $null
+    $oldDaemonLogRoot = $env:ZIRCON_COORDINATOR_DAEMON_LOG_ROOT
+    $testDaemonLogRoot = Join-Path $testRoot "daemon-log"
     try {
         New-Item -ItemType Directory -Path $repo -Force | Out-Null
+        $env:ZIRCON_COORDINATOR_DAEMON_LOG_ROOT = $testDaemonLogRoot
         & git -C $repo init -q
         & git -C $repo config user.email "coordinator-smoke@example.invalid"
         & git -C $repo config user.name "Coordinator Smoke"
@@ -125,8 +148,19 @@ function Test-JsonClientOutput {
         $coldRegisterOutput = & $launcher -Command session -RepoRoot $repo -Port 0 -Json register --session-id "json-client-cold"
         Assert-True ($LASTEXITCODE -eq 0) "Cold JSON launcher session registration failed: $($coldRegisterOutput -join [Environment]::NewLine)"
         $coldRegistered = ($coldRegisterOutput -join [Environment]::NewLine) | ConvertFrom-Json
-        Assert-True ($coldRegistered.session.session_id -eq "json-client-cold") "Cold JSON launcher session payload was incomplete."
         $started = $true
+        $coldStatus = $coldRegistered.PSObject.Properties["status"]
+        $coldQueued = $null -ne $coldStatus -and [string]$coldStatus.Value -eq "queued"
+        if ($coldQueued) {
+            Assert-True ($coldRegistered.command -eq "session.register") `
+                "Cold JSON launcher queued the wrong command."
+            Assert-True (-not [string]::IsNullOrWhiteSpace([string]$coldRegistered.queueId)) `
+                "Cold JSON launcher queue receipt omitted its durable id."
+        }
+        else {
+            Assert-True ($coldRegistered.session.session_id -eq "json-client-cold") `
+                "Cold JSON launcher session payload was incomplete."
+        }
 
         $coordinatorReady = $false
         for ($attempt = 0; $attempt -lt 50; $attempt++) {
@@ -134,7 +168,8 @@ function Test-JsonClientOutput {
             $statusOutput = & $launcher -Command status -RepoRoot $repo -Port 0 -Json
             if ($LASTEXITCODE -eq 0) {
                 $status = ($statusOutput -join [Environment]::NewLine) | ConvertFrom-Json
-                if ($status.status -eq "ok") {
+                if ($status.status -eq "ok" -and
+                    (-not $coldQueued -or [int]$status.offlineReplay.acknowledged -ge 1)) {
                     $coordinatorReady = $true
                     break
                 }
@@ -146,6 +181,17 @@ function Test-JsonClientOutput {
         $runtime = Get-Content -Raw -LiteralPath $runtimePath | ConvertFrom-Json
         $daemonPid = [int]$runtime.pid
         Assert-True ($daemonPid -gt 0) "JSON launcher runtime descriptor did not identify its daemon process."
+        $logMetadata = @(Get-ChildItem -LiteralPath $testDaemonLogRoot -Filter "latest.json" -File -Recurse)
+        Assert-True ($logMetadata.Count -eq 1) "JSON launcher did not isolate daemon logs below the configured root."
+
+        if ($coldQueued) {
+            $showOutput = & $launcher -Command session -RepoRoot $repo -Port 0 -Json show --session-id "json-client-cold"
+            Assert-True ($LASTEXITCODE -eq 0) `
+                "Cold JSON launcher queued registration lookup failed: $($showOutput -join [Environment]::NewLine)"
+            $shown = ($showOutput -join [Environment]::NewLine) | ConvertFrom-Json
+            Assert-True ($shown.session.session_id -eq "json-client-cold") `
+                "Cold JSON launcher queued registration was not replayed."
+        }
 
         $statusOutput = & $launcher -Command status -RepoRoot $repo -Port 0 -Json
         Assert-True ($LASTEXITCODE -eq 0) "JSON launcher status failed: $($statusOutput -join [Environment]::NewLine)"
@@ -180,11 +226,12 @@ function Test-JsonClientOutput {
         Write-Host "PASS: coordinator JSON client output"
     }
     finally {
+        $env:ZIRCON_COORDINATOR_DAEMON_LOG_ROOT = $oldDaemonLogRoot
         if ($started -and $null -ne $daemonPid) {
             Stop-Process -Id $daemonPid -Force -ErrorAction SilentlyContinue
         }
         if (Test-Path -LiteralPath $testRoot) {
-            Remove-Item -LiteralPath $testRoot -Recurse -Force
+            Remove-TestTreeWithRetry -Path $testRoot
         }
     }
 }

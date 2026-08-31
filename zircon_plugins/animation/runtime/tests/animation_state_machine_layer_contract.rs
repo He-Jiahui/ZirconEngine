@@ -1,5 +1,6 @@
 use zircon_plugin_animation_runtime::{
-    CompiledStateMachineLayers, PoseLayerBlendMode, StateMachineLayerCompileError,
+    compile_animation_state_machine_layers_runtime, PoseLayerBlendMode,
+    StateMachineLayerCompileError,
 };
 use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::animation::{
@@ -52,9 +53,8 @@ fn layered() -> AnimationStateMachineAsset {
 fn layered_machine_compiles_dense_mask_and_blend_modes() {
     let source = layered();
 
-    let compiled = CompiledStateMachineLayers::compile(&source).unwrap();
+    let compiled = compile_animation_state_machine_layers_runtime(&source).unwrap();
 
-    assert!(compiled.base().layers.is_empty());
     assert_eq!(compiled.layers().len(), 2);
     assert_eq!(compiled.layers()[0].name(), "upper");
     assert_eq!(
@@ -75,7 +75,7 @@ fn layered_machine_compiles_dense_mask_and_blend_modes() {
 }
 
 #[test]
-fn layered_machine_rejects_invalid_weight_and_mask() {
+fn layered_machine_reports_framework_diagnostics_for_invalid_weight_and_mask() {
     let invalid_weight = AnimationStateMachineAsset {
         layers: vec![AnimationStateMachineLayerAsset {
             name: "bad".into(),
@@ -86,10 +86,10 @@ fn layered_machine_rejects_invalid_weight_and_mask() {
         }],
         ..base()
     };
-    assert!(matches!(
-        CompiledStateMachineLayers::compile(&invalid_weight),
-        Err(StateMachineLayerCompileError::InvalidWeight { .. })
-    ));
+    assert_source_diagnostic(
+        compile_animation_state_machine_layers_runtime(&invalid_weight),
+        "ZR-ANIM-COMP-STATE-012",
+    );
 
     let invalid_mask = AnimationStateMachineAsset {
         layers: vec![AnimationStateMachineLayerAsset {
@@ -101,10 +101,10 @@ fn layered_machine_rejects_invalid_weight_and_mask() {
         }],
         ..base()
     };
-    assert!(matches!(
-        CompiledStateMachineLayers::compile(&invalid_mask),
-        Err(StateMachineLayerCompileError::InvalidMask { .. })
-    ));
+    assert_source_diagnostic(
+        compile_animation_state_machine_layers_runtime(&invalid_mask),
+        "ZR-ANIM-COMP-STATE-012",
+    );
 }
 
 #[test]
@@ -140,4 +140,19 @@ fn layered_machine_binary_roundtrip_preserves_layers() {
     let decoded = AnimationStateMachineAsset::from_bytes(&source.to_bytes().unwrap()).unwrap();
 
     assert_eq!(decoded, source);
+}
+
+fn assert_source_diagnostic(
+    result: Result<
+        zircon_plugin_animation_runtime::CompiledStateMachineLayers,
+        StateMachineLayerCompileError,
+    >,
+    code: &str,
+) {
+    let Err(StateMachineLayerCompileError::SourceDiagnostics(diagnostics)) = result else {
+        panic!("expected framework source diagnostics");
+    };
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.code() == code));
 }

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use serde::Deserialize;
 use toml::Value;
@@ -15,6 +15,9 @@ use zircon_runtime_interface::ui::template::{
     UiStylePrototype, UiStyleScope, UiStyleSheet,
 };
 use zircon_runtime_interface::ui::widget::UiWidgetContract;
+
+#[cfg(test)]
+mod performance_tests;
 
 pub(super) fn migrate_flat_value(value: Value) -> Result<UiAssetDocument, UiAssetError> {
     let flat: FlatUiAssetDocument = value
@@ -95,12 +98,7 @@ impl FlatUiAssetDocument {
             })?;
         }
 
-        let mut nodes = vec![UiNodePrototype::default(); node_handles.len()];
-        for (node_id, flat_node) in &self.nodes {
-            let handle = node_handles[node_id];
-            nodes[handle.index()] =
-                flat_node.to_node_prototype(&self.asset.id, node_id, &node_handles)?;
-        }
+        let nodes = materialize_prototype_nodes(&self.asset.id, self.nodes, &node_handles)?;
 
         let root = self.root.as_ref().map(|root| node_handles[&root.node]);
         let components = self
@@ -135,6 +133,19 @@ impl FlatUiAssetDocument {
     }
 }
 
+fn materialize_prototype_nodes(
+    asset_id: &str,
+    flat_nodes: BTreeMap<String, FlatUiNodeDefinition>,
+    node_handles: &BTreeMap<String, UiPrototypeNodeHandle>,
+) -> Result<Vec<UiNodePrototype>, UiAssetError> {
+    let mut nodes = vec![UiNodePrototype::default(); node_handles.len()];
+    for (node_id, flat_node) in flat_nodes {
+        let handle = node_handles[&node_id];
+        nodes[handle.index()] = flat_node.into_node_prototype(asset_id, node_id, node_handles)?;
+    }
+    Ok(nodes)
+}
+
 fn prototype_node_handles(
     asset_id: &str,
     nodes: &BTreeMap<String, FlatUiNodeDefinition>,
@@ -153,11 +164,11 @@ fn prototype_node_handles(
         .collect())
 }
 
-fn validate_reachable_prototype_root(
+fn validate_reachable_prototype_root<'a>(
     asset_id: &str,
-    nodes: &BTreeMap<String, FlatUiNodeDefinition>,
+    nodes: &'a BTreeMap<String, FlatUiNodeDefinition>,
     node_handles: &BTreeMap<String, UiPrototypeNodeHandle>,
-    root: Option<&str>,
+    root: Option<&'a str>,
 ) -> Result<(), UiAssetError> {
     let Some(root) = root else {
         return Ok(());
@@ -169,50 +180,64 @@ fn validate_reachable_prototype_root(
         });
     }
 
-    let mut visiting = BTreeSet::new();
-    let mut visited = BTreeSet::new();
-    let mut stack = vec![PrototypeVisitFrame::Enter(root.to_string())];
+    let mut visit_states = vec![PrototypeVisitState::Unseen; node_handles.len()];
+    let mut stack = vec![PrototypeVisitFrame::Enter(root)];
     while let Some(frame) = stack.pop() {
         match frame {
             PrototypeVisitFrame::Enter(node_id) => {
-                if visited.contains(&node_id) {
-                    continue;
-                }
-                if !visiting.insert(node_id.clone()) {
-                    return Err(UiAssetError::InvalidDocument {
+                let handle = node_handles.get(node_id).copied().ok_or_else(|| {
+                    UiAssetError::MissingNode {
                         asset_id: asset_id.to_string(),
-                        detail: format!("ui asset prototype contains a cycle at {node_id}"),
-                    });
+                        node_id: node_id.to_string(),
+                    }
+                })?;
+                match visit_states[handle.index()] {
+                    PrototypeVisitState::Visited => continue,
+                    PrototypeVisitState::Visiting => {
+                        return Err(UiAssetError::InvalidDocument {
+                            asset_id: asset_id.to_string(),
+                            detail: format!("ui asset prototype contains a cycle at {node_id}"),
+                        });
+                    }
+                    PrototypeVisitState::Unseen => {
+                        visit_states[handle.index()] = PrototypeVisitState::Visiting;
+                    }
                 }
                 let node = nodes
-                    .get(&node_id)
+                    .get(node_id)
                     .ok_or_else(|| UiAssetError::MissingNode {
                         asset_id: asset_id.to_string(),
-                        node_id: node_id.clone(),
+                        node_id: node_id.to_string(),
                     })?;
-                stack.push(PrototypeVisitFrame::Exit(node_id));
+                stack.push(PrototypeVisitFrame::Exit(handle));
                 for child in node.children.iter().rev() {
                     if !node_handles.contains_key(&child.child) {
                         return Err(UiAssetError::MissingNode {
                             asset_id: asset_id.to_string(),
-                            node_id: child.child.clone(),
+                            node_id: child.child.to_string(),
                         });
                     }
-                    stack.push(PrototypeVisitFrame::Enter(child.child.clone()));
+                    stack.push(PrototypeVisitFrame::Enter(child.child.as_str()));
                 }
             }
-            PrototypeVisitFrame::Exit(node_id) => {
-                let _ = visiting.remove(&node_id);
-                let _ = visited.insert(node_id);
+            PrototypeVisitFrame::Exit(handle) => {
+                visit_states[handle.index()] = PrototypeVisitState::Visited;
             }
         }
     }
     Ok(())
 }
 
-enum PrototypeVisitFrame {
-    Enter(String),
-    Exit(String),
+enum PrototypeVisitFrame<'a> {
+    Enter(&'a str),
+    Exit(UiPrototypeNodeHandle),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum PrototypeVisitState {
+    Unseen,
+    Visiting,
+    Visited,
 }
 
 fn build_tree_node(
@@ -273,49 +298,52 @@ fn build_tree_node(
 }
 
 impl FlatUiNodeDefinition {
-    fn to_node_prototype(
-        &self,
+    fn into_node_prototype(
+        self,
         asset_id: &str,
-        node_id: &str,
+        node_id: String,
         node_handles: &BTreeMap<String, UiPrototypeNodeHandle>,
     ) -> Result<UiNodePrototype, UiAssetError> {
         let children = self
             .children
-            .iter()
+            .into_iter()
             .map(|child| {
-                let child_handle = node_handles.get(&child.child).copied().ok_or_else(|| {
-                    UiAssetError::MissingNode {
-                        asset_id: asset_id.to_string(),
-                        node_id: child.child.clone(),
+                let child_handle = match node_handles.get(&child.child).copied() {
+                    Some(handle) => handle,
+                    None => {
+                        return Err(UiAssetError::MissingNode {
+                            asset_id: asset_id.to_string(),
+                            node_id: child.child,
+                        });
                     }
-                })?;
+                };
                 Ok(UiPrototypeChildMount {
-                    mount: child.mount.clone(),
-                    slot: child.slot.clone(),
+                    mount: child.mount,
+                    slot: child.slot,
                     child: child_handle,
                 })
             })
             .collect::<Result<_, UiAssetError>>()?;
 
         Ok(UiNodePrototype {
-            node_id: node_id.to_string(),
+            node_id,
             kind: self.kind,
-            widget_type: self.widget_type.clone(),
-            component: self.component.clone(),
-            component_ref: self.component_ref.clone(),
-            slot_name: self.slot_name.clone(),
-            control_id: self.control_id.clone(),
-            classes: self.classes.clone(),
-            params: self.params.clone(),
-            props: self.props.clone(),
-            layout: self.layout.clone(),
-            bindings: self.bindings.clone(),
-            style_overrides: self.style_overrides.clone(),
-            focus: self.focus.clone(),
-            navigation: self.navigation.clone(),
+            widget_type: self.widget_type,
+            component: self.component,
+            component_ref: self.component_ref,
+            slot_name: self.slot_name,
+            control_id: self.control_id,
+            classes: self.classes,
+            params: self.params,
+            props: self.props,
+            layout: self.layout,
+            bindings: self.bindings,
+            style_overrides: self.style_overrides,
+            focus: self.focus,
+            navigation: self.navigation,
             picking: self.picking,
-            a11y: self.a11y.clone(),
-            widget: self.widget.clone(),
+            a11y: self.a11y,
+            widget: self.widget,
             children,
         })
     }

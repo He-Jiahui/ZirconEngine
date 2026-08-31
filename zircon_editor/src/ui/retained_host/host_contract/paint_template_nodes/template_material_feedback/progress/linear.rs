@@ -10,6 +10,7 @@ use crate::ui::retained_host::host_contract::paint_geometry::{
 };
 
 const PROGRESS_SEGMENT_RATIO_UNITS: f32 = 100.0;
+const LINEAR_PROGRESS_COMMAND_CAPACITY: usize = 3;
 
 #[derive(Clone, Copy)]
 struct IndeterminateProgressSegmentSpec {
@@ -45,6 +46,7 @@ pub(super) fn push_linear_progress_commands(
     {
         return;
     }
+    commands.reserve(LINEAR_PROGRESS_COMMAND_CAPACITY);
     let track_radius = corner_radius_for_frame(
         rect,
         linear_progress_radius(
@@ -212,5 +214,71 @@ mod tests {
         );
 
         assert!(commands.is_empty());
+    }
+
+    #[test]
+    fn indeterminate_track_emits_the_bounded_three_command_sequence() {
+        let rect = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 200.0,
+            height: 6.0,
+        };
+        let node = TemplatePaneNodeData {
+            component_variant: "indeterminate".to_owned(),
+            ..TemplatePaneNodeData::default()
+        };
+        let mut commands = Vec::new();
+
+        push_linear_progress_commands(&mut commands, &node, &rect, &rect, 0, 1.0);
+
+        assert_eq!(commands.len(), 3);
+    }
+
+    #[test]
+    fn optimization_batch_20260830cs_editor506_linear_progress_reserves_command_bound() {
+        let source = include_str!("linear.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("linear progress production source");
+
+        assert!(production.contains("commands.reserve(LINEAR_PROGRESS_COMMAND_CAPACITY);"));
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830cs_editor506_linear_progress_capacity_evidence() {
+        const BATCH_COUNT: usize = 32_768;
+        const COMMANDS_PER_BATCH: usize = 3;
+        const MARKER: &str = "EDITOR506_LINEAR_PROGRESS_COMMAND_CAPACITY_BENCH_V1";
+        let legacy_growth_events = command_growth_events(BATCH_COUNT, COMMANDS_PER_BATCH, false);
+        let optimized_growth_events = command_growth_events(BATCH_COUNT, COMMANDS_PER_BATCH, true);
+
+        assert!(legacy_growth_events > 0);
+        assert_eq!(optimized_growth_events, 0);
+        println!(
+            "{MARKER} batches={BATCH_COUNT} commands_per_batch={COMMANDS_PER_BATCH} legacy_growth_events={legacy_growth_events} optimized_growth_events={optimized_growth_events} reduction_pct=100"
+        );
+    }
+
+    fn command_growth_events(
+        batch_count: usize,
+        commands_per_batch: usize,
+        reserve: bool,
+    ) -> usize {
+        let mut commands = Vec::new();
+        let mut growth_events = 0;
+        for _ in 0..batch_count {
+            if reserve {
+                commands.reserve(commands_per_batch);
+            }
+            for command in 0..commands_per_batch {
+                let previous_capacity = commands.capacity();
+                commands.push(command);
+                growth_events += usize::from(commands.capacity() != previous_capacity);
+            }
+        }
+        growth_events
     }
 }

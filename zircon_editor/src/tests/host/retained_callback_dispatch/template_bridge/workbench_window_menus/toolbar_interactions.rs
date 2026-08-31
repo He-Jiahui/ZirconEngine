@@ -90,10 +90,10 @@ fn workbench_toolbar_window_menu_item_selection_closes_trigger_and_menu() {
     assert_eq!(
         control_string_array(&bridge, "WorkbenchRunModeMenu", "menu_items"),
         vec![
-            "Play In Editor|icon=play",
-            "Simulate|icon=play,checked",
-            "Standalone|disabled,icon=grid",
-            "Network Preview|disabled,submenu",
+            "Play In Editor|action=menu.item.play_in_editor,icon=play",
+            "Simulate|action=menu.item.simulate,icon=play,checked",
+            "Standalone|action=menu.item.standalone,disabled,icon=grid",
+            "Network Preview|action=menu.item.network_preview,disabled,icon=route",
         ]
     );
     assert_eq!(
@@ -116,9 +116,20 @@ fn workbench_toolbar_window_menu_item_selection_closes_trigger_and_menu() {
 }
 
 #[test]
-fn mixed_command_menu_preserves_its_authored_checked_indicator() {
+fn mixed_command_menu_preserves_its_projected_default_indicator() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("componentized workbench template should project");
+
+    let expected_items = vec![
+        "Default Layout|checked,disabled,icon=grid",
+        "Gameplay Layout|disabled,icon=grid",
+        "Rendering Layout|disabled,icon=grid",
+        "Reset Layout|danger,icon=trash",
+    ];
+    assert_eq!(
+        control_string_array(&bridge, "WorkbenchLayoutMenu", "menu_items"),
+        expected_items
+    );
 
     assert_eq!(
         bridge
@@ -128,12 +139,7 @@ fn mixed_command_menu_preserves_its_authored_checked_indicator() {
     );
     assert_eq!(
         control_string_array(&bridge, "WorkbenchLayoutMenu", "menu_items"),
-        vec![
-            "Default Layout|checked,disabled,icon=grid",
-            "Gameplay Layout|disabled,icon=grid",
-            "Rendering Layout|disabled,icon=grid",
-            "Reset Layout|danger,icon=trash",
-        ]
+        expected_items
     );
 }
 
@@ -181,10 +187,10 @@ fn workbench_run_mode_selection_drives_the_next_play_session() {
     assert_eq!(
         control_string_array(&rebuilt_bridge, "WorkbenchRunModeMenu", "menu_items"),
         vec![
-            "Play In Editor|icon=play",
-            "Simulate|icon=play,checked",
-            "Standalone|disabled,icon=grid",
-            "Network Preview|disabled,submenu",
+            "Play In Editor|action=menu.item.play_in_editor,icon=play",
+            "Simulate|action=menu.item.simulate,icon=play,checked",
+            "Standalone|action=menu.item.standalone,disabled,icon=grid",
+            "Network Preview|action=menu.item.network_preview,disabled,icon=route",
         ]
     );
 

@@ -7,6 +7,10 @@ use zircon_runtime_interface::ui::{
     tree::{UiDirtyFlags, UiTreeError},
 };
 
+#[cfg(test)]
+#[path = "invalidation/domain_bitset_tests.rs"]
+mod domain_bitset_tests;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum UiInvalidationReason {
     Structure,
@@ -19,6 +23,28 @@ pub enum UiInvalidationReason {
 }
 
 impl UiInvalidationReason {
+    const ALL: [Self; 7] = [
+        Self::Structure,
+        Self::Layout,
+        Self::Text,
+        Self::HitTest,
+        Self::Render,
+        Self::Interaction,
+        Self::Resource,
+    ];
+
+    const fn domain_bit(self) -> u8 {
+        1 << match self {
+            Self::Structure => 0,
+            Self::Layout => 1,
+            Self::Text => 2,
+            Self::HitTest => 3,
+            Self::Render => 4,
+            Self::Interaction => 5,
+            Self::Resource => 6,
+        }
+    }
+
     pub fn dirty_flags(self) -> UiDirtyFlags {
         match self {
             Self::Structure => UiDirtyFlags {
@@ -117,6 +143,10 @@ impl UiInvalidationTransaction {
 
     pub fn changes(&self) -> impl ExactSizeIterator<Item = &UiInvalidationChange> {
         self.changes.values()
+    }
+
+    pub(crate) fn into_changes(self) -> impl ExactSizeIterator<Item = UiInvalidationChange> {
+        self.changes.into_values()
     }
 
     pub fn record_reason(&mut self, node_id: UiNodeId, reason: UiInvalidationReason) {
@@ -239,19 +269,23 @@ impl UiSurfaceInvalidationState {
 
         let base_generation = transaction.base_generation;
         let mut dirty = UiDirtyFlags::default();
-        let mut touched_domains = BTreeSet::new();
+        let mut touched_domains = 0u8;
         let changed_nodes = transaction
             .changes
             .into_values()
             .inspect(|change| {
                 merge_dirty(&mut dirty, change.dirty);
-                touched_domains.extend(change.reasons.iter().copied());
+                for reason in &change.reasons {
+                    touched_domains |= reason.domain_bit();
+                }
             })
             .collect::<Vec<_>>();
 
         self.generations.generation = self.generations.generation.saturating_add(1);
-        for reason in touched_domains {
-            advance_domain(&mut self.generations, reason);
+        for reason in UiInvalidationReason::ALL {
+            if touched_domains & reason.domain_bit() != 0 {
+                advance_domain(&mut self.generations, reason);
+            }
         }
 
         let commit = UiInvalidationCommit {

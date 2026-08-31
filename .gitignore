@@ -72,6 +72,9 @@ dkms.conf
 !/.codex/config.toml
 /.codex_tmp
 
+# Obsolete source-tree database placeholder; runtime state lives under .codex/state.
+/tools/session_coordinator/session_coordinator.db
+
 /.worktrees
 .vscode-test-web
 .vscode-test-smoke
@@ -114,6 +117,7 @@ __pycache__/
 **/.zircon/play/**
 **/.zircon/thumbnails/**
 .zircon-cache/
+.work/
 !templates/projects/**/.zircon/cache/.gitignore
 !templates/projects/**/.zircon/registry/.gitignore
 !templates/projects/**/.zircon/autosave/.gitignore

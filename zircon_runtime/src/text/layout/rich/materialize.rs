@@ -1,25 +1,38 @@
 use std::ops::Range;
 
 use crate::core::math::Vec2;
-use crate::text::shaping::TextShapeRunProvider;
+use crate::text::shaping::{TextLayoutOutcome, TextShapeRunProvider, TextShapingOutcome};
 use crate::text::{LaidOutLine, LaidOutText, LayoutItem, TextRange, TextStyle};
 
 use super::super::line_metrics_with_provider;
 use super::metrics::{inline_box_metrics, inline_origin_y};
-use super::{resolve_rich_run_style, RichAdvanceIndex, RichTextLayoutSource};
+use super::{RichAdvanceIndex, RichTextLayoutSource, resolve_rich_run_style};
 
 pub(crate) fn layout_rich_line_with_provider<S, P>(
     source: &S,
     style: &TextStyle,
     provider: &mut P,
-) -> LaidOutText
+) -> TextLayoutOutcome<LaidOutText>
 where
     S: RichTextLayoutSource + ?Sized,
     P: TextShapeRunProvider + ?Sized,
 {
-    let index = HorizontalRichLayoutIndex::new(source, style, provider);
-    let end = u32::try_from(source.text().len()).unwrap_or(u32::MAX);
-    layout_rich_source_range(source, (0, end), 0..source.run_count(), &index)
+    HorizontalRichLayoutIndex::new(source, style, provider).and_then(|index| {
+        let end = match u32::try_from(source.text().len()) {
+            Ok(end) => end,
+            Err(_) => {
+                return TextShapingOutcome::failed(
+                    crate::core::framework::text::TextLayoutError::LayoutFailed,
+                );
+            }
+        };
+        TextShapingOutcome::Ready(layout_rich_source_range(
+            source,
+            (0, end),
+            0..source.run_count(),
+            &index,
+        ))
+    })
 }
 
 pub(super) fn layout_rich_ranges_with_index<S>(
@@ -200,18 +213,30 @@ pub(super) struct HorizontalRichLayoutIndex {
 }
 
 impl HorizontalRichLayoutIndex {
-    pub(super) fn new<S, P>(source: &S, style: &TextStyle, provider: &mut P) -> Self
+    pub(super) fn new<S, P>(
+        source: &S,
+        style: &TextStyle,
+        provider: &mut P,
+    ) -> TextLayoutOutcome<Self>
     where
         S: RichTextLayoutSource + ?Sized,
         P: TextShapeRunProvider + ?Sized,
     {
-        let base_line_metrics = line_metrics_with_provider(style, provider);
+        let base_line_metrics = match line_metrics_with_provider(style, provider) {
+            TextShapingOutcome::Ready(metrics) => metrics,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
         let base_ascent = base_line_metrics.baseline.max(0.0);
         let base_descent = (base_line_metrics.line_height - base_ascent).max(0.0);
-        let advances = RichAdvanceIndex::new(source, style, provider, |inline, _| {
+        let advances = match RichAdvanceIndex::new(source, style, provider, |inline, _| {
             let metrics = inline_box_metrics(inline, base_ascent, base_descent);
             (metrics.advance, metrics.size.y)
-        });
+        }) {
+            TextShapingOutcome::Ready(index) => index,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
         let base_metrics = TextRunMetrics {
             style: style.clone(),
             ascent: base_ascent,
@@ -245,7 +270,13 @@ impl HorizontalRichLayoutIndex {
             {
                 previous_metrics.clone()
             } else {
-                let line_metrics = line_metrics_with_provider(&run_style, provider);
+                let line_metrics = match line_metrics_with_provider(&run_style, provider) {
+                    TextShapingOutcome::Ready(metrics) => metrics,
+                    TextShapingOutcome::Deferred(error) => {
+                        return TextShapingOutcome::Deferred(error);
+                    }
+                    TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+                };
                 let ascent = line_metrics.baseline.max(0.0);
                 TextRunMetrics {
                     style: run_style,
@@ -257,12 +288,12 @@ impl HorizontalRichLayoutIndex {
             run_metrics.push(Some(metrics));
         }
 
-        Self {
+        TextShapingOutcome::Ready(Self {
             advances,
             base_ascent,
             base_descent,
             run_metrics,
-        }
+        })
     }
 }
 

@@ -1,6 +1,7 @@
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
 use crate::core::commands::EditorCommandPaletteMru;
+use crate::core::recovery::AutosavePolicy;
 
 use super::{
     EditorKeymapOverrides, SettingDefinition, SettingSchema, SettingValue, SettingsKey,
@@ -11,12 +12,19 @@ pub const EDITOR_DESIGN_TOKENS_KEY: &str = "editor.appearance.design_tokens";
 pub const EDITOR_KEYMAP_OVERRIDES_KEY: &str = "editor.commands.keymap_overrides";
 pub const EDITOR_COMMAND_PALETTE_MRU_KEY: &str = "editor.commands.palette_mru";
 pub const EDITOR_LOCALE_KEY: &str = "editor.language.locale";
+pub const EDITOR_AUTOSAVE_INTERVAL_SECS_KEY: &str = "editor.autosave.interval_secs";
 pub const VIEWPORT_TRANSLATE_STEP_KEY: &str = "editor.viewport.translate_step";
 pub const VIEWPORT_ROTATE_STEP_DEGREES_KEY: &str = "editor.viewport.rotate_step_degrees";
 pub const VIEWPORT_SCALE_STEP_KEY: &str = "editor.viewport.scale_step";
 
 const MINIMUM_VIEWPORT_SNAP_STEP: f64 = 0.0001;
 const MAXIMUM_VIEWPORT_SNAP_STEP: f64 = 1_000_000.0;
+const MINIMUM_AUTOSAVE_INTERVAL_SECS: i64 = 15;
+const MAXIMUM_AUTOSAVE_INTERVAL_SECS: i64 = 3_600;
+const AUTOSAVE_INTERVAL_STEP_SECS: i64 = 15;
+const VIEWPORT_TRANSLATE_STEP_INCREMENT: f64 = 0.1;
+const VIEWPORT_ROTATE_STEP_INCREMENT: f64 = 1.0;
+const VIEWPORT_SCALE_STEP_INCREMENT: f64 = 0.01;
 
 /// Registers the settings owned by Editor17 itself. Other feature plans add their
 /// definitions through this registry rather than creating another persistence path.
@@ -104,10 +112,36 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
             .expect("the built-in locale definition is valid"),
         )
         .expect("the built-in locale definition is unique");
+    registry
+        .register(
+            SettingDefinition::new(
+                SettingsKey::parse(EDITOR_AUTOSAVE_INTERVAL_SECS_KEY)
+                    .expect("the built-in autosave-interval key is valid"),
+                SettingsScope::User,
+                SettingSchema::Int {
+                    minimum: MINIMUM_AUTOSAVE_INTERVAL_SECS,
+                    maximum: MAXIMUM_AUTOSAVE_INTERVAL_SECS,
+                    step: AUTOSAVE_INTERVAL_STEP_SECS,
+                },
+                SettingValue::Int(
+                    i64::try_from(AutosavePolicy::DEFAULT_INTERVAL.as_secs())
+                        .expect("the default autosave interval fits the settings integer schema"),
+                ),
+                false,
+                presentation(
+                    "settings.editor.autosave.interval_secs.label",
+                    "settings.editor.autosave.interval_secs.description",
+                    &["settings.category.editor", "settings.category.autosave"],
+                ),
+            )
+            .expect("the built-in autosave-interval definition is valid"),
+        )
+        .expect("the built-in autosave-interval definition is unique");
     register_viewport_snap_step(
         &mut registry,
         VIEWPORT_TRANSLATE_STEP_KEY,
         SettingValue::Float(1.0),
+        VIEWPORT_TRANSLATE_STEP_INCREMENT,
         presentation(
             "settings.editor.viewport.translate_step.label",
             "settings.editor.viewport.translate_step.description",
@@ -118,6 +152,7 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
         &mut registry,
         VIEWPORT_ROTATE_STEP_DEGREES_KEY,
         SettingValue::Float(15.0),
+        VIEWPORT_ROTATE_STEP_INCREMENT,
         presentation(
             "settings.editor.viewport.rotate_step_degrees.label",
             "settings.editor.viewport.rotate_step_degrees.description",
@@ -128,6 +163,7 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
         &mut registry,
         VIEWPORT_SCALE_STEP_KEY,
         SettingValue::Float(0.1),
+        VIEWPORT_SCALE_STEP_INCREMENT,
         presentation(
             "settings.editor.viewport.scale_step.label",
             "settings.editor.viewport.scale_step.description",
@@ -141,6 +177,7 @@ fn register_viewport_snap_step(
     registry: &mut SettingsRegistry,
     key: &str,
     default: SettingValue,
+    step: f64,
     presentation: SettingsPresentation,
 ) {
     registry
@@ -151,6 +188,7 @@ fn register_viewport_snap_step(
                 SettingSchema::Float {
                     minimum: MINIMUM_VIEWPORT_SNAP_STEP,
                     maximum: MAXIMUM_VIEWPORT_SNAP_STEP,
+                    step,
                 },
                 default,
                 false,

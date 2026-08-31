@@ -1,11 +1,12 @@
 use crate::core::framework::render::{
-    build_mesh_phase_queue, GeometryPhaseInput, MeshPhaseInput, RenderMeshSnapshot,
-    RenderPhaseMeshSource, RenderPhaseQueue, RenderQueueValue,
+    GeometryPhaseInput, MeshPhaseInput, RenderMeshSnapshot, RenderPhaseMeshSource,
+    RenderPhaseQueue, RenderQueueValue, build_mesh_phase_queue,
 };
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::mesh_draw::MeshCommandSortInput;
+use super::material_draw_selection::MaterialDrawSelection;
 
 #[derive(Clone, Copy)]
 pub(super) struct PhaseOrderedMeshSnapshot<'a> {
@@ -16,8 +17,11 @@ pub(super) struct PhaseOrderedMeshSnapshot<'a> {
 pub(super) fn phase_ordered_meshes<'a>(
     frame: &'a ViewportRenderFrame,
     streamer: &ResourceStreamer,
+    material_selection: &MaterialDrawSelection,
 ) -> Vec<PhaseOrderedMeshSnapshot<'a>> {
-    phase_ordered_meshes_with_material_offsets(frame, |mesh| material_sort_offsets(streamer, mesh))
+    phase_ordered_meshes_with_material_offsets(frame, |mesh| {
+        material_sort_offsets(streamer, material_selection, mesh)
+    })
 }
 
 fn phase_ordered_meshes_with_material_offsets<'a>(
@@ -134,10 +138,12 @@ struct MaterialPhaseSortOffsets {
 
 fn material_sort_offsets(
     streamer: &ResourceStreamer,
+    material_selection: &MaterialDrawSelection,
     mesh: &RenderMeshSnapshot,
 ) -> MaterialPhaseSortOffsets {
-    streamer
-        .material(&mesh.material.id())
+    material_selection
+        .proxy(streamer, &mesh.material.id())
+        .runtime()
         .map(|material| MaterialPhaseSortOffsets {
             queue: material.render_queue_value,
             fixed_queue: material.advanced_features.uses_transmission(),
@@ -227,7 +233,7 @@ mod tests {
     use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
     use crate::graphics::ViewportRenderFrame;
 
-    use super::{phase_ordered_meshes_with_material_offsets, MaterialPhaseSortOffsets};
+    use super::{MaterialPhaseSortOffsets, phase_ordered_meshes_with_material_offsets};
 
     #[test]
     fn phase_ordering_indexes_extract_inputs_before_queue_projection() {
@@ -252,7 +258,8 @@ mod tests {
                 GeometryPhaseInput::new(10, 1, RenderMaterialAlphaMode::Opaque, 1.0),
                 GeometryPhaseInput::new(20, 2, RenderMaterialAlphaMode::Mask { cutoff: 0.5 }, 2.0),
             ],
-        );
+        )
+        .into();
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(320, 240));
 
         assert_eq!(
@@ -277,7 +284,8 @@ mod tests {
                 GeometryPhaseInput::new(20, 1, RenderMaterialAlphaMode::Opaque, 2.0),
                 GeometryPhaseInput::new(30, 2, RenderMaterialAlphaMode::Opaque, 3.0),
             ],
-        );
+        )
+        .into();
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(320, 240));
 
         assert_eq!(
@@ -330,7 +338,8 @@ mod tests {
                 GeometryPhaseInput::new(10, 0, RenderMaterialAlphaMode::Opaque, 1.0),
                 GeometryPhaseInput::new(20, 1, RenderMaterialAlphaMode::Opaque, 2.0),
             ],
-        );
+        )
+        .into();
         let phase_frame = ViewportRenderFrame::from_extract(fallback_extract, UVec2::new(320, 240));
 
         assert_eq!(

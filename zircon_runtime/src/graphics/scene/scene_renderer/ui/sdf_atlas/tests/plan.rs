@@ -119,7 +119,7 @@ fn sdf_atlas_plan_separates_locale_sensitive_glyph_slots() {
 
     assert_eq!(plan.slots.len(), 2);
     assert_eq!(plan.slots[0].key.language.as_deref(), Some("ja"));
-    assert_eq!(plan.slots[1].key.language.as_deref(), Some("zh-hans"));
+    assert_eq!(plan.slots[1].key.language.as_deref(), Some("zh-Hans"));
 }
 
 #[test]
@@ -128,8 +128,8 @@ fn sdf_atlas_plan_preserves_shaped_glyph_and_face_identity() {
     vertical.writing_mode = UiTextWritingMode::VerticalRl;
     vertical.shaped_glyphs = vec![ScreenSpaceUiShapedGlyph {
         glyph_id: 321,
-        font_id: Some(TextFontFaceHandle::new(17, 5)),
-        font_instance_id: Some(TextFontFaceHandle::new(29, 5)),
+        font_id: Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 17, 5)),
+        font_instance_id: Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 29, 5)),
         source_scalar: '。',
         source_range: UiTextRange {
             start: 0,
@@ -149,11 +149,11 @@ fn sdf_atlas_plan_preserves_shaped_glyph_and_face_identity() {
     assert_eq!(plan.slots[0].key.glyph_id, Some(321));
     assert_eq!(
         plan.slots[0].key.font_id,
-        Some(TextFontFaceHandle::new(17, 5))
+        Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 17, 5))
     );
     assert_eq!(
         plan.slots[0].key.font_instance_id,
-        Some(TextFontFaceHandle::new(29, 5))
+        Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 29, 5))
     );
     assert_eq!(plan.runs[0].glyph_slot_indices, vec![Some(0)]);
 }
@@ -163,8 +163,8 @@ fn sdf_atlas_plan_separates_variable_font_instances_on_same_face() {
     let mut regular = text_batch("A", UiFrame::new(0.0, 0.0, 32.0, 48.0));
     regular.shaped_glyphs = vec![ScreenSpaceUiShapedGlyph {
         glyph_id: 41,
-        font_id: Some(TextFontFaceHandle::new(17, 5)),
-        font_instance_id: Some(TextFontFaceHandle::new(29, 5)),
+        font_id: Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 17, 5)),
+        font_instance_id: Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 29, 5)),
         source_scalar: 'A',
         source_range: UiTextRange { start: 0, end: 1 },
         advance: 20.0,
@@ -174,7 +174,8 @@ fn sdf_atlas_plan_separates_variable_font_instances_on_same_face() {
         requires_atlas_slot: true,
     }];
     let mut expanded = regular.clone();
-    expanded.shaped_glyphs[0].font_instance_id = Some(TextFontFaceHandle::new(30, 5));
+    expanded.shaped_glyphs[0].font_instance_id =
+        Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 30, 5));
 
     let plan = plan_sdf_atlas(&[regular, expanded]);
 

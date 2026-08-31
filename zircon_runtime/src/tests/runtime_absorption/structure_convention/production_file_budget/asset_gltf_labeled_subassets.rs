@@ -4,6 +4,7 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 fn runtime_15_gltf_labeled_material_subassets_are_child_owner() {
     let parent = read_runtime_src("asset/importer/ingest/gltf_labeled_subassets.rs");
     let material = read_runtime_src("asset/importer/ingest/gltf_labeled_subassets/material.rs");
+    let default_pbr = read_runtime_src("asset/assets/material/default_pbr.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -36,7 +37,6 @@ fn runtime_15_gltf_labeled_material_subassets_are_child_owner() {
         "fn default_material_asset(",
         "fn insert_texture_slot(",
         "fn gltf_alpha_mode(",
-        "fn default_pbr_shader_reference(",
     ] {
         assert!(
             !parent.contains(moved_owner),
@@ -55,8 +55,17 @@ fn runtime_15_gltf_labeled_material_subassets_are_child_owner() {
             "MaterialTextureSlotValue::new",
             "fn default_material_asset(",
             "fn gltf_alpha_mode(",
-            "fn default_pbr_shader_reference(",
+            "assets::default_pbr_shader_reference",
             "with_root_dependency_and_entry",
+        ],
+    );
+    assert_contains_all(
+        "material asset layer owns the canonical compound default PBR shader reference",
+        &default_pbr,
+        &[
+            "pub const DEFAULT_PBR_SHADER_URI: &str = \"res://shaders/default_pbr\";",
+            "pub fn default_pbr_shader_reference() -> AssetReference",
+            "OnceLock<AssetReference>",
         ],
     );
 

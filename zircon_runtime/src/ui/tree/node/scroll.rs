@@ -48,9 +48,7 @@ impl UiRuntimeTreeScrollExt for UiTree {
         node.dirty.layout = true;
         node.dirty.hit_test = true;
         node.dirty.render = true;
-        node.dirty.input = true;
         node.dirty.visible_range |= plan.visible_range_changed;
-        node.state_flags.dirty = true;
         Ok(true)
     }
 

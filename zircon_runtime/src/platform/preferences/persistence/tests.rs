@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::{self, Cursor, Read};
+use std::ops::Deref;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -19,6 +20,19 @@ use super::adapter::{
 use super::work::read_bounded;
 
 mod quota_and_failure;
+
+struct TestPreferencePersistenceAdapter {
+    adapter: PreferencePersistenceAdapter,
+    _io_pool: TaskPool,
+}
+
+impl Deref for TestPreferencePersistenceAdapter {
+    type Target = PreferencePersistenceAdapter;
+
+    fn deref(&self) -> &Self::Target {
+        &self.adapter
+    }
+}
 
 struct CountingRead {
     remaining: usize,
@@ -155,12 +169,14 @@ fn platform_preference_storage_projects_oversized_read_and_error_detail() {
 
 #[test]
 fn platform_preference_storage_rejects_value_limit_above_hard_maximum() {
-    let error = PreferencePersistenceAdapter::new(
+    let io_pool = test_preference_io_pool();
+    let error = PreferencePersistenceAdapter::with_pool(
         Arc::new(MemoryBackend::default()),
         PreferencePersistenceLimits {
             max_value_bytes: MAX_PREFERENCE_VALUE_BYTES + 1,
             ..PreferencePersistenceLimits::default()
         },
+        io_pool.clone(),
     )
     .unwrap_err();
 
@@ -348,8 +364,7 @@ fn platform_preference_storage_rejects_pending_and_durable_eviction() {
 fn platform_preference_storage_default_limits_allow_maximum_value_failure_retry() {
     let backend = Arc::new(MemoryBackend::default());
     backend.fail_writes.store(1, Ordering::Relaxed);
-    let adapter =
-        PreferencePersistenceAdapter::new(backend, PreferencePersistenceLimits::default()).unwrap();
+    let adapter = test_adapter(backend, PreferencePersistenceLimits::default());
     let key = PreferenceKey::new("woc.input", "maximum-value-retry").unwrap();
     let value = Arc::<[u8]>::from(vec![b'x'; MAX_PREFERENCE_VALUE_BYTES]);
     let failed = adapter
@@ -593,7 +608,10 @@ fn wait_snapshot_terminal(
     }
 }
 
-fn adapter(backend: Arc<MemoryBackend>, max_value_bytes: usize) -> PreferencePersistenceAdapter {
+fn adapter(
+    backend: Arc<MemoryBackend>,
+    max_value_bytes: usize,
+) -> TestPreferencePersistenceAdapter {
     adapter_with_limits(backend, max_value_bytes, 16)
 }
 
@@ -601,9 +619,29 @@ fn adapter_with_limits(
     backend: Arc<MemoryBackend>,
     max_value_bytes: usize,
     max_overlay_entries: usize,
-) -> PreferencePersistenceAdapter {
-    PreferencePersistenceAdapter::new(backend, test_limits(max_value_bytes, max_overlay_entries))
-        .unwrap()
+) -> TestPreferencePersistenceAdapter {
+    test_adapter(backend, test_limits(max_value_bytes, max_overlay_entries))
+}
+
+fn test_adapter(
+    backend: Arc<MemoryBackend>,
+    limits: PreferencePersistenceLimits,
+) -> TestPreferencePersistenceAdapter {
+    let io_pool = test_preference_io_pool();
+    let adapter = PreferencePersistenceAdapter::with_pool(backend, limits, io_pool.clone())
+        .expect("test preference persistence limits are valid");
+    TestPreferencePersistenceAdapter {
+        adapter,
+        _io_pool: io_pool,
+    }
+}
+
+fn test_preference_io_pool() -> TaskPool {
+    TaskPool::new(
+        TaskPoolDescriptor::io()
+            .with_worker_threads(1)
+            .with_thread_name("preference-test-io"),
+    )
 }
 
 fn test_limits(max_value_bytes: usize, max_overlay_entries: usize) -> PreferencePersistenceLimits {

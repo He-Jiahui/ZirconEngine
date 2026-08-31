@@ -71,6 +71,10 @@ pub fn first_party_registration_for_runtime_plugin(
     if _id == RuntimePluginId::GltfImporter {
         return Some(zircon_plugin_gltf_importer_runtime::plugin_registration());
     }
+    #[cfg(feature = "ui-document-importer")]
+    if _id == RuntimePluginId::UiDocumentImporter {
+        return Some(zircon_plugin_ui_document_importer_runtime::plugin_registration());
+    }
     #[cfg(feature = "advanced-render-runtime-plugins")]
     if _id.key() == "neural" {
         return Some(zircon_plugin_neural_runtime::plugin_registration());

@@ -7,9 +7,10 @@ use zircon_runtime::{
 #[test]
 fn server_runtime_selection_excludes_script_from_a_client_compiled_binary() {
     let report =
-        runtime_modules_for_target(RuntimeTargetMode::ServerRuntime, Some(&Default::default()));
+        runtime_modules_for_target(RuntimeTargetMode::ServerRuntime, Some(&Default::default()))
+            .expect("server module composition should compile");
     let module_names = report
-        .modules
+        .modules()
         .iter()
         .map(|module| module.module_name())
         .collect::<Vec<_>>();

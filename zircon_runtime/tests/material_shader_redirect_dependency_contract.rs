@@ -101,12 +101,13 @@ fn project_material_readiness_reports_imported_shader_redirect_dependency() {
 }
 
 fn shader_with_redirect_dependency(redirected_module: AssetReference) -> ShaderAsset {
+    let surface_source = "fn zr_material_surface(_input: ZrVertexOutput) -> ZrSurfaceOutput { return zr_surface_from_base_color(vec4<f32>(1.0)); }";
     ShaderAsset {
         uri: AssetUri::parse("res://shaders/redirect_surface.zshader").unwrap(),
         kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
-        source: "fn zr_material_surface() {}".to_string(),
-        wgsl_source: "fn zr_material_surface() {}".to_string(),
+        source: surface_source.to_string(),
+        wgsl_source: surface_source.to_string(),
         import_path: Some("shader_redirect_sandbox::surface".to_string()),
         entry_points: Vec::new(),
         dependencies: vec![ShaderDependencyAsset {
@@ -125,7 +126,7 @@ fn shader_with_redirect_dependency(redirected_module: AssetReference) -> ShaderA
         }],
         options: Vec::new(),
         texture_slots: Vec::new(),
-        shading_model: None,
+        shading_model: Some("standard_pbr".to_string()),
         render_state: Default::default(),
         queue: None,
         disabled_passes: Vec::new(),

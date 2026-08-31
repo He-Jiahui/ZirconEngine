@@ -20,7 +20,7 @@ use zircon_runtime::core::framework::{
 };
 use zircon_runtime::core::manager::ManagerResolver;
 use zircon_runtime::core::math::{Quat, Transform, Vec3};
-use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::core::{CoreRuntime, TimePolicyTransaction};
 use zircon_runtime::foundation::FOUNDATION_MODULE_NAME;
 use zircon_runtime::plugin::RuntimeExtensionRegistry;
 use zircon_runtime::scene::components::{
@@ -34,6 +34,14 @@ use zircon_runtime::scene::{
 const TEST_MAX_FIXED_STEPS: u32 = 4;
 const TEST_FIXED_TIMESTEP_NANOS: u64 = 1_000_000_000 / 60;
 
+fn configure_fixed_timestep(runtime: &CoreRuntime, timestep: Duration) {
+    runtime
+        .apply_time_policy(TimePolicyTransaction::new(
+            runtime.time_policy().with_fixed_timestep(timestep),
+        ))
+        .expect("test physics fixed timestep should commit");
+}
+
 fn physics_manager(runtime: &CoreRuntime) -> Arc<dyn PhysicsManager> {
     let resolver = ManagerResolver::new(runtime.handle());
     resolver
@@ -43,7 +51,7 @@ fn physics_manager(runtime: &CoreRuntime) -> Arc<dyn PhysicsManager> {
 
 fn create_runtime_with_scene_and_physics() -> CoreRuntime {
     let runtime = CoreRuntime::new();
-    runtime.set_fixed_timestep(test_fixed_timestep());
+    configure_fixed_timestep(&runtime, test_fixed_timestep());
     runtime
         .register_module(zircon_runtime::foundation::module_descriptor())
         .unwrap();

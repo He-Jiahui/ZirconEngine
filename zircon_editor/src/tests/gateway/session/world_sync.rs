@@ -19,10 +19,7 @@ fn session_gateway_transports_world_sync_over_owned_abi_buffers() {
     WORLD_QUERY_REQUESTS.lock().unwrap().clear();
     WORLD_WATCH_REQUESTS.lock().unwrap().clear();
     let gateway = gateway(api_table());
-    let query = WorldQuery {
-        generation_hint: Some(72),
-        ..WorldQuery::default()
-    };
+    let query = WorldQuery::default().with_generation_hint(Some(72));
     let registration = WatchRegistration::new(WatchKey::WorldStructure);
 
     assert_eq!(

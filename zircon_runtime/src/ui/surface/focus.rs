@@ -11,10 +11,12 @@ use zircon_runtime_interface::ui::{
 mod modal_scope;
 
 use super::input::{
-    commit_editable_text_composition_for_focus_loss, editable_text_input_is_secure,
-    is_editable_text_input, is_valid_input_owner,
+    cancel_editable_text_composition_for_input_method_loss, editable_text_input_is_secure,
+    finish_editable_text_for_focus_loss, is_editable_text_input, is_valid_input_owner,
 };
 use super::surface::UiSurface;
+
+const UI_FOCUS_DIAGNOSTIC_HISTORY_CAPACITY: usize = 64;
 
 impl UiSurface {
     pub fn focus_node(&mut self, node_id: UiNodeId) -> Result<(), UiTreeError> {
@@ -70,6 +72,9 @@ impl UiSurface {
             return Ok(None);
         }
 
+        if let Some(previous) = previous {
+            self.invalidate_clipboard_transfers_for(previous);
+        }
         self.transition_focus_input_method(previous, Some(node_id));
         let event = UiFocusChangeEvent {
             previous,
@@ -77,7 +82,7 @@ impl UiSurface {
             reason,
             visible,
         };
-        self.focus.changes.push(event);
+        push_focus_diagnostic(&mut self.focus.changes, event);
         Ok(Some(event))
     }
 
@@ -101,6 +106,7 @@ impl UiSurface {
         if focused_changed || focus_visible_changed {
             mark_component_focus_render_dirty(self, previous);
         }
+        self.invalidate_clipboard_transfers_for(previous);
         self.transition_focus_input_method(Some(previous), None);
         let event = UiFocusChangeEvent {
             previous: Some(previous),
@@ -108,7 +114,7 @@ impl UiSurface {
             reason,
             visible,
         };
-        self.focus.changes.push(event);
+        push_focus_diagnostic(&mut self.focus.changes, event);
         Some(event)
     }
 
@@ -154,6 +160,10 @@ impl UiSurface {
         node_ids: &[UiNodeId],
         reason: UiFocusChangeReason,
     ) -> Option<UiFocusChangeEvent> {
+        for node_id in node_ids {
+            self.drop_clipboard_transfers_for(*node_id);
+            self.input.drop_text_document_epoch(*node_id);
+        }
         let focus_change = if self
             .focus
             .focused
@@ -229,7 +239,7 @@ impl UiSurface {
             handled_by,
             accepted,
         };
-        self.focus.focused_inputs.push(event.clone());
+        push_focus_diagnostic(&mut self.focus.focused_inputs, event.clone());
         event
     }
 
@@ -264,6 +274,11 @@ impl UiSurface {
             return;
         }
 
+        if let Some(owner) = previous_focus.filter(|owner| is_editable_text_input(self, *owner)) {
+            self.input.record_focus_loss(owner);
+            let component_event = finish_editable_text_for_focus_loss(self, owner);
+            self.input.queue_focus_component_event(component_event);
+        }
         let disabled_previous_owner = self.disable_input_method_for_focus_loss();
 
         let Some(target) = next_focus else {
@@ -295,9 +310,9 @@ impl UiSurface {
         let Some(owner) = previous_input_method_owner else {
             return false;
         };
-        let component_event = commit_editable_text_composition_for_focus_loss(self, owner);
+        cancel_editable_text_composition_for_input_method_loss(self, owner);
         self.input.queue_focus_input_lifecycle(
-            component_event,
+            None,
             input_method_request(UiInputMethodRequestKind::Disable, owner),
         );
         true
@@ -376,6 +391,15 @@ impl UiSurface {
         self.input.clear_pointer_drag_for(source);
         self.input.drag_drop = None;
     }
+}
+
+fn push_focus_diagnostic<T>(history: &mut Vec<T>, event: T) {
+    let retained_before_append = UI_FOCUS_DIAGNOSTIC_HISTORY_CAPACITY.saturating_sub(1);
+    if history.len() > retained_before_append {
+        let expired_count = history.len() - retained_before_append;
+        history.drain(..expired_count);
+    }
+    history.push(event);
 }
 
 fn input_method_request(kind: UiInputMethodRequestKind, owner: UiNodeId) -> UiInputMethodRequest {

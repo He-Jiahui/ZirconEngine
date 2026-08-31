@@ -4,7 +4,7 @@ use std::sync::Arc;
 #[cfg(feature = "animation")]
 use std::collections::VecDeque;
 
-use crate::core::framework::animation::AnimationPoseOutput;
+use crate::core::framework::animation::AnimationPoseSnapshot;
 #[cfg(feature = "animation")]
 use crate::core::framework::animation::{
     AnimationClipEventBatchAdmission, AnimationClipEventSamplingCursor,
@@ -281,7 +281,7 @@ impl ScriptRuntimeState {
 pub(crate) struct LevelFrameStateSnapshot {
     world_generation: u64,
     animation_generation: u64,
-    animation_poses: Arc<BTreeMap<EntityId, AnimationPoseOutput>>,
+    animation_poses: AnimationPoseSnapshot,
 }
 
 impl LevelFrameStateSnapshot {
@@ -301,14 +301,14 @@ impl LevelFrameStateSnapshot {
         self.animation_generation
     }
 
-    pub(crate) fn animation_poses(&self) -> &Arc<BTreeMap<EntityId, AnimationPoseOutput>> {
+    pub(crate) fn animation_poses(&self) -> &AnimationPoseSnapshot {
         &self.animation_poses
     }
 
     pub(super) fn with_animation_poses(
         &self,
         world_generation: u64,
-        animation_poses: Arc<BTreeMap<EntityId, AnimationPoseOutput>>,
+        animation_poses: AnimationPoseSnapshot,
     ) -> Self {
         Self {
             world_generation,

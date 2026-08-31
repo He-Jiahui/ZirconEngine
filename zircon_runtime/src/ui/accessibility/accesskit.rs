@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use accesskit::{
     Action, ActionData, ActionRequest, Node, NodeId, Point, Rect, Role, TextPosition,
     TextSelection, Toggled, Tree, TreeUpdate,
@@ -17,6 +15,9 @@ use zircon_runtime_interface::ui::{
 
 const SYNTHETIC_ROOT_NODE_ID: NodeId = NodeId(u64::MAX);
 
+#[cfg(test)]
+mod performance_tests;
+
 pub(crate) fn snapshot_to_accesskit_tree_update(
     snapshot: &UiAccessibilityTreeSnapshot,
 ) -> Option<TreeUpdate> {
@@ -31,15 +32,7 @@ pub(crate) fn snapshot_to_accesskit_tree_update(
         nodes.push((SYNTHETIC_ROOT_NODE_ID, synthetic_root_node(snapshot)));
     }
 
-    let node_ids = nodes
-        .iter()
-        .map(|(node_id, _)| *node_id)
-        .collect::<BTreeSet<_>>();
-    let focus = snapshot
-        .focused
-        .map(accesskit_node_id)
-        .filter(|focused| node_ids.contains(focused))
-        .unwrap_or(root);
+    let focus = accesskit_focus_node_id(&nodes, snapshot.focused, root);
 
     Some(TreeUpdate {
         nodes,
@@ -50,6 +43,17 @@ pub(crate) fn snapshot_to_accesskit_tree_update(
         }),
         focus,
     })
+}
+
+fn accesskit_focus_node_id(
+    nodes: &[(NodeId, Node)],
+    focused: Option<UiNodeId>,
+    root: NodeId,
+) -> NodeId {
+    focused
+        .map(accesskit_node_id)
+        .filter(|focused| nodes.iter().any(|(node_id, _)| node_id == focused))
+        .unwrap_or(root)
 }
 
 pub(crate) fn neutral_action_request_from_accesskit(

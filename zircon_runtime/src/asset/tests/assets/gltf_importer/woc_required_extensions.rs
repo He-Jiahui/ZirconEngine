@@ -167,6 +167,65 @@ fn woc_unsupported_specular_extension_has_explicit_diagnostic() {
 }
 
 #[test]
+fn optional_unsupported_material_extensions_have_explicit_diagnostics() {
+    let root = unique_temp_project_root("gltf_optional_unsupported_material_extensions");
+    fs::create_dir_all(&root).unwrap();
+    let source_path = root.join("optional_unsupported_material_extensions.gltf");
+    fs::write(
+        &source_path,
+        r#"{
+            "asset": { "version": "2.0" },
+            "extensionsUsed": [
+                "KHR_materials_diffuse_transmission",
+                "KHR_materials_dispersion",
+                "KHR_materials_iridescence",
+                "KHR_materials_pbrSpecularGlossiness",
+                "KHR_materials_sheen",
+                "KHR_materials_subsurface"
+            ],
+            "materials": [{ "extensions": {
+                "KHR_materials_diffuse_transmission": {},
+                "KHR_materials_dispersion": {},
+                "KHR_materials_iridescence": {},
+                "KHR_materials_pbrSpecularGlossiness": {},
+                "KHR_materials_sheen": {},
+                "KHR_materials_subsurface": {}
+            } }]
+        }"#,
+    )
+    .unwrap();
+    let uri =
+        AssetUri::parse("res://models/optional_unsupported_material_extensions.gltf").unwrap();
+
+    let outcome = AssetImporter::default()
+        .import_with_settings(&source_path, &uri, Default::default())
+        .expect("optional unsupported material extensions retain core PBR fallback");
+
+    match &entry_for_label(&outcome, &uri, "Material0").asset {
+        ImportedAsset::Material(material) => {
+            for extension in [
+                "KHR_materials_diffuse_transmission",
+                "KHR_materials_dispersion",
+                "KHR_materials_iridescence",
+                "KHR_materials_pbrSpecularGlossiness",
+                "KHR_materials_sheen",
+                "KHR_materials_subsurface",
+            ] {
+                assert!(
+                    material
+                        .validation_diagnostics
+                        .iter()
+                        .any(|diagnostic| diagnostic.contains(extension)),
+                    "missing optional fallback diagnostic for {extension}"
+                );
+            }
+        }
+        other => panic!("unexpected optional fallback material: {other:?}"),
+    }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn gltf_unknown_required_extension_is_not_silently_accepted() {
     let root = unique_temp_project_root("gltf_unknown_required_extension");
     fs::create_dir_all(&root).unwrap();
@@ -223,6 +282,173 @@ fn supported_material_extension_may_be_required() {
 }
 
 #[test]
+fn required_anisotropy_factors_project_owned_semantics() {
+    let root = unique_temp_project_root("gltf_required_anisotropy_factors");
+    fs::create_dir_all(&root).unwrap();
+    let source_path = root.join("required_anisotropy_factors.gltf");
+    fs::write(
+        &source_path,
+        r#"{
+            "asset": { "version": "2.0" },
+            "extensionsUsed": ["KHR_materials_anisotropy"],
+            "extensionsRequired": ["KHR_materials_anisotropy"],
+            "materials": [{ "extensions": {
+                "KHR_materials_anisotropy": {
+                    "anisotropyStrength": 0.6,
+                    "anisotropyRotation": 1.25
+                }
+            } }]
+        }"#,
+    )
+    .unwrap();
+    let uri = AssetUri::parse("res://models/required_anisotropy_factors.gltf").unwrap();
+
+    let outcome = AssetImporter::default()
+        .import_with_settings(&source_path, &uri, Default::default())
+        .expect("factor-only required anisotropy is owned by Standard PBR");
+
+    match &entry_for_label(&outcome, &uri, "Material0").asset {
+        ImportedAsset::Material(material) => {
+            let features = material.advanced_pbr_features();
+            assert_eq!(features.anisotropy_strength, 0.6);
+            assert_eq!(features.anisotropy_rotation, 1.25);
+        }
+        other => panic!("unexpected required anisotropy material: {other:?}"),
+    }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn required_clearcoat_factors_project_owned_semantics() {
+    let root = unique_temp_project_root("gltf_required_clearcoat_factors");
+    fs::create_dir_all(&root).unwrap();
+    let source_path = root.join("required_clearcoat_factors.gltf");
+    fs::write(
+        &source_path,
+        r#"{
+            "asset": { "version": "2.0" },
+            "extensionsUsed": ["KHR_materials_clearcoat"],
+            "extensionsRequired": ["KHR_materials_clearcoat"],
+            "materials": [{ "extensions": {
+                "KHR_materials_clearcoat": {
+                    "clearcoatFactor": 0.8,
+                    "clearcoatRoughnessFactor": 0.2
+                }
+            } }]
+        }"#,
+    )
+    .unwrap();
+    let uri = AssetUri::parse("res://models/required_clearcoat_factors.gltf").unwrap();
+
+    let outcome = AssetImporter::default()
+        .import_with_settings(&source_path, &uri, Default::default())
+        .expect("factor-only required clearcoat is owned by Standard PBR");
+
+    match &entry_for_label(&outcome, &uri, "Material0").asset {
+        ImportedAsset::Material(material) => {
+            let features = material.advanced_pbr_features();
+            assert_eq!(features.clearcoat, 0.8);
+            assert_eq!(features.clearcoat_perceptual_roughness, 0.2);
+        }
+        other => panic!("unexpected required clearcoat material: {other:?}"),
+    }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn required_material_extensions_reject_semantics_without_shader_owners() {
+    for (case_name, required_extensions, material_extensions, expected_field) in [
+        (
+            "clearcoat_texture",
+            r#"["KHR_materials_clearcoat"]"#,
+            r#"{
+                "KHR_materials_clearcoat": {
+                    "clearcoatFactor": 0.8,
+                    "clearcoatTexture": { "index": 0 }
+                }
+            }"#,
+            "KHR_materials_clearcoat.clearcoatTexture",
+        ),
+        (
+            "clearcoat_roughness_texture",
+            r#"["KHR_materials_clearcoat"]"#,
+            r#"{
+                "KHR_materials_clearcoat": {
+                    "clearcoatRoughnessFactor": 0.2,
+                    "clearcoatRoughnessTexture": { "index": 0 }
+                }
+            }"#,
+            "KHR_materials_clearcoat.clearcoatRoughnessTexture",
+        ),
+        (
+            "anisotropy_texture",
+            r#"["KHR_materials_anisotropy"]"#,
+            r#"{
+                "KHR_materials_anisotropy": {
+                    "anisotropyStrength": 0.6,
+                    "anisotropyTexture": { "index": 0 }
+                }
+            }"#,
+            "KHR_materials_anisotropy.anisotropyTexture",
+        ),
+        (
+            "transmission_texture",
+            r#"["KHR_materials_transmission"]"#,
+            r#"{
+                "KHR_materials_transmission": {
+                    "transmissionFactor": 0.75,
+                    "transmissionTexture": { "index": 0 }
+                }
+            }"#,
+            "KHR_materials_transmission.transmissionTexture",
+        ),
+        (
+            "thickness_texture",
+            r#"["KHR_materials_transmission", "KHR_materials_volume"]"#,
+            r#"{
+                "KHR_materials_transmission": { "transmissionFactor": 0.75 },
+                "KHR_materials_volume": {
+                    "thicknessFactor": 0.25,
+                    "thicknessTexture": { "index": 0 }
+                }
+            }"#,
+            "KHR_materials_volume.thicknessTexture",
+        ),
+        (
+            "zero_ior",
+            r#"["KHR_materials_ior"]"#,
+            r#"{ "KHR_materials_ior": { "ior": 0.0 } }"#,
+            "KHR_materials_ior.ior=0",
+        ),
+    ] {
+        let root = unique_temp_project_root(&format!("gltf_required_{case_name}"));
+        fs::create_dir_all(&root).unwrap();
+        let source_path = root.join(format!("{case_name}.gltf"));
+        let source = format!(
+            r#"{{
+                "asset": {{ "version": "2.0" }},
+                "extensionsUsed": {required_extensions},
+                "extensionsRequired": {required_extensions},
+                "images": [{{ "uri": "missing.png" }}],
+                "textures": [{{ "source": 0 }}],
+                "materials": [{{ "extensions": {material_extensions} }}]
+            }}"#
+        );
+        fs::write(&source_path, source).unwrap();
+        let uri = AssetUri::parse(&format!("res://models/{case_name}.gltf")).unwrap();
+
+        let error = AssetImporter::default()
+            .import_with_settings(&source_path, &uri, Default::default())
+            .expect_err("required material semantics without shader owners must fail closed");
+        assert!(
+            error.to_string().contains(expected_field),
+            "expected `{expected_field}` in {error}"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[test]
 fn external_webp_extension_source_uses_texture_asset_pipeline() {
     let root = unique_temp_project_root("gltf_external_webp_extension");
     fs::create_dir_all(&root).unwrap();
@@ -263,6 +489,35 @@ fn external_webp_extension_source_uses_texture_asset_pipeline() {
         }
         other => panic!("unexpected external WebP texture asset: {other:?}"),
     }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn optional_basisu_texture_reports_transcoder_requirement_before_image_decode() {
+    let root = unique_temp_project_root("gltf_optional_basisu_texture");
+    fs::create_dir_all(&root).unwrap();
+    let source_path = root.join("basisu_texture.gltf");
+    fs::write(
+        &source_path,
+        r#"{
+            "asset": { "version": "2.0" },
+            "extensionsUsed": ["KHR_texture_basisu"],
+            "images": [{ "uri": "basis.ktx2", "mimeType": "image/ktx2" }],
+            "textures": [{
+                "extensions": { "KHR_texture_basisu": { "source": 0 } }
+            }]
+        }"#,
+    )
+    .unwrap();
+    let uri = AssetUri::parse("res://models/basisu_texture.gltf").unwrap();
+
+    let error = AssetImporter::default()
+        .import_with_settings(&source_path, &uri, Default::default())
+        .unwrap_err();
+
+    let message = error.to_string();
+    assert!(message.contains("KHR_texture_basisu"));
+    assert!(message.contains("KTX2/BasisU transcoder"));
     let _ = fs::remove_dir_all(root);
 }
 

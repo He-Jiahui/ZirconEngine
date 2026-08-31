@@ -16,7 +16,7 @@ use crate::ui::retained_host::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerLayout,
     WelcomeRecentPointerRoute, WelcomeRecentPointerState,
 };
-use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
+use zircon_runtime_interface::ui::layout::{UiFrame, UiPoint, UiSize};
 
 #[test]
 fn shared_welcome_recent_pointer_bridge_scrolls_and_dispatches_remove_action() {
@@ -25,14 +25,13 @@ fn shared_welcome_recent_pointer_bridge_scrolls_and_dispatches_remove_action() {
     let bridge =
         BuiltinWelcomeSurfaceTemplateBridge::new().expect("builtin welcome bridge should build");
     let mut pointer_bridge = WelcomeRecentPointerBridge::new();
-    pointer_bridge.sync(welcome_layout(12), WelcomeRecentPointerState::default());
+    pointer_bridge.sync(welcome_layout(12));
 
-    let scrolled = pointer_bridge
-        .handle_scroll(UiPoint::new(120.0, 190.0), 140.0)
-        .expect("welcome recent list should accept shared scroll input");
+    let scrolled = pointer_bridge.handle_scroll(UiPoint::new(120.0, 190.0), 140.0);
     assert!(scrolled.state.scroll_offset > 0.0);
+    assert!(scrolled.changed);
 
-    pointer_bridge.sync(welcome_layout(12), scrolled.state.clone());
+    pointer_bridge.sync(welcome_layout(12));
     let item_index = 3usize;
     let remove = welcome_recent_row_geometry(
         welcome_recent_viewport(UiSize::new(720.0, 620.0)),
@@ -54,7 +53,6 @@ fn shared_welcome_recent_pointer_bridge_scrolls_and_dispatches_remove_action() {
         Some(WelcomeRecentPointerRoute::Action {
             item_index,
             action: WelcomeRecentPointerAction::Remove,
-            path: "E:/Projects/demo-03".to_string(),
         })
     );
     assert_eq!(
@@ -66,71 +64,147 @@ fn shared_welcome_recent_pointer_bridge_scrolls_and_dispatches_remove_action() {
 }
 
 #[test]
-fn shared_welcome_recent_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state() {
+fn welcome_recent_pointer_routes_only_inside_the_published_list_viewport() {
+    let _guard = env_lock().lock().unwrap();
     let mut pointer_bridge = WelcomeRecentPointerBridge::new();
-    let layout = welcome_layout(8);
-    let state = WelcomeRecentPointerState::default();
+    let published_viewport = UiFrame::new(420.0, 120.0, 240.0, 300.0);
+    let mut layout = welcome_layout(1);
+    layout.viewport = published_viewport;
+    pointer_bridge.sync(layout);
 
-    assert!(pointer_bridge.sync(layout.clone(), state.clone()));
-    assert!(!pointer_bridge.sync(layout, state));
+    let published_remove = welcome_recent_row_geometry(published_viewport, 0, 0.0)
+        .remove
+        .center();
+    assert_eq!(
+        pointer_bridge.handle_click(published_remove).route,
+        Some(WelcomeRecentPointerRoute::Action {
+            item_index: 0,
+            action: WelcomeRecentPointerAction::Remove,
+        })
+    );
+
+    let stale_remove =
+        welcome_recent_row_geometry(welcome_recent_viewport(UiSize::new(720.0, 620.0)), 0, 0.0)
+            .remove
+            .center();
+    assert_eq!(pointer_bridge.handle_click(stale_remove).route, None);
 }
 
 #[test]
-fn welcome_recent_pointer_routes_large_lists_without_materializing_rows_or_replacing_authority() {
+fn shared_welcome_recent_pointer_bridge_dispatches_recovery_action() {
+    let _guard = env_lock().lock().unwrap();
+
+    let bridge =
+        BuiltinWelcomeSurfaceTemplateBridge::new().expect("builtin welcome bridge should build");
+    let mut pointer_bridge = WelcomeRecentPointerBridge::new();
+    pointer_bridge.sync(welcome_layout(2));
+    let item_index = 1usize;
+    let recover = welcome_recent_row_geometry(
+        welcome_recent_viewport(UiSize::new(720.0, 620.0)),
+        item_index,
+        0.0,
+    )
+    .recover;
+    let dispatched = dispatch_shared_welcome_recent_pointer_click(
+        &bridge,
+        &mut pointer_bridge,
+        UiPoint::new(
+            recover.x + recover.width * 0.5,
+            recover.y + recover.height * 0.5,
+        ),
+    )
+    .expect("shared welcome pointer route should dispatch recovery recent project");
+    assert_eq!(
+        dispatched.pointer.route,
+        Some(WelcomeRecentPointerRoute::Action {
+            item_index,
+            action: WelcomeRecentPointerAction::Recover,
+        })
+    );
+    assert_eq!(
+        dispatched.event,
+        Some(WelcomeHostEvent::RecoverRecentProject {
+            path: "E:/Projects/demo-01".to_string(),
+        })
+    );
+}
+
+#[test]
+fn shared_welcome_recent_pointer_bridge_dispatches_safe_action() {
+    let _guard = env_lock().lock().unwrap();
+
+    let bridge =
+        BuiltinWelcomeSurfaceTemplateBridge::new().expect("builtin welcome bridge should build");
+    let mut pointer_bridge = WelcomeRecentPointerBridge::new();
+    pointer_bridge.sync(welcome_layout(2));
+    let item_index = 1usize;
+    let safe = welcome_recent_row_geometry(
+        welcome_recent_viewport(UiSize::new(720.0, 620.0)),
+        item_index,
+        0.0,
+    )
+    .safe;
+    let dispatched = dispatch_shared_welcome_recent_pointer_click(
+        &bridge,
+        &mut pointer_bridge,
+        UiPoint::new(safe.x + safe.width * 0.5, safe.y + safe.height * 0.5),
+    )
+    .expect("shared welcome pointer route should dispatch safe recent project");
+    assert_eq!(
+        dispatched.pointer.route,
+        Some(WelcomeRecentPointerRoute::Action {
+            item_index,
+            action: WelcomeRecentPointerAction::Safe,
+        })
+    );
+    assert_eq!(
+        dispatched.event,
+        Some(WelcomeHostEvent::SafeRecentProject {
+            path: "E:/Projects/demo-01".to_string(),
+        })
+    );
+}
+
+#[test]
+fn shared_welcome_recent_pointer_bridge_preserves_state_for_unchanged_layout() {
+    let mut pointer_bridge = WelcomeRecentPointerBridge::new();
+    let layout = welcome_layout(8);
+
+    assert!(!pointer_bridge.sync(layout.clone()));
+    assert!(!pointer_bridge.sync(layout));
+    assert_eq!(pointer_bridge.state(), WelcomeRecentPointerState::default());
+}
+
+#[test]
+fn welcome_recent_pointer_routes_large_lists_without_materializing_rows() {
     let layout = welcome_layout(10_000);
     let mut pointer_bridge = WelcomeRecentPointerBridge::new();
-    let initial_authority_generation = pointer_bridge.surface_authority_generation_for_test();
-    assert!(pointer_bridge.sync(layout.clone(), WelcomeRecentPointerState::default()));
+    pointer_bridge.sync(layout.clone());
 
-    assert_eq!(
-        pointer_bridge.surface_authority_generation_for_test(),
-        initial_authority_generation,
-        "pane geometry should patch the two-node surface without replacing authority"
-    );
-    assert_eq!(
-        pointer_bridge.surface_node_count_for_test(),
-        2,
-        "logical recent rows and their actions must not become retained hit-test nodes"
-    );
-
-    let authority_generation = pointer_bridge.surface_authority_generation_for_test();
     let list_point = UiPoint::new(120.0, 190.0);
-    let scrolled = pointer_bridge
-        .handle_scroll(list_point, 310_000.0)
-        .expect("large recent list should accept a bounded scroll");
+    let scrolled = pointer_bridge.handle_scroll(list_point, 310_000.0);
     let item_index = scrolled
         .state
         .hovered_item_index
         .expect("post-scroll pointer position should resolve an arithmetic row");
     assert!(item_index > 1_000);
     assert_eq!(scrolled.route, Some(WelcomeRecentPointerRoute::ListSurface));
-    assert_eq!(
-        pointer_bridge.surface_authority_generation_for_test(),
-        authority_generation,
-        "scrolling must preserve the surface, dispatcher, and route authority"
-    );
-    assert_eq!(pointer_bridge.surface_node_count_for_test(), 2);
 
-    let viewport = welcome_recent_viewport(layout.pane_size);
+    let viewport = layout.viewport;
     let geometry = welcome_recent_row_geometry(viewport, item_index, scrolled.state.scroll_offset);
     let remove_point = UiPoint::new(
         geometry.remove.x + geometry.remove.width * 0.5,
         geometry.remove.y + geometry.remove.height * 0.5,
     );
-    let moved = pointer_bridge
-        .handle_move(remove_point)
-        .expect("remove hover should use the same arithmetic row projection");
+    let moved = pointer_bridge.handle_move(remove_point);
     assert_eq!(
         moved.route,
         Some(WelcomeRecentPointerRoute::Action {
             item_index,
             action: WelcomeRecentPointerAction::Remove,
-            path: layout.recent_project_paths[item_index].clone(),
         })
     );
-    let clicked = pointer_bridge
-        .handle_click(remove_point)
-        .expect("remove click should use the same arithmetic row projection");
+    let clicked = pointer_bridge.handle_click(remove_point);
     assert_eq!(clicked.route, moved.route);
 
     let open_point = UiPoint::new(
@@ -138,14 +212,34 @@ fn welcome_recent_pointer_routes_large_lists_without_materializing_rows_or_repla
         geometry.open.y + geometry.open.height * 0.5,
     );
     assert_eq!(
-        pointer_bridge
-            .handle_click(open_point)
-            .expect("open click should project from the same row geometry")
-            .route,
+        pointer_bridge.handle_click(open_point).route,
         Some(WelcomeRecentPointerRoute::Action {
             item_index,
             action: WelcomeRecentPointerAction::Open,
-            path: layout.recent_project_paths[item_index].clone(),
+        })
+    );
+
+    let recover_point = UiPoint::new(
+        geometry.recover.x + geometry.recover.width * 0.5,
+        geometry.recover.y + geometry.recover.height * 0.5,
+    );
+    assert_eq!(
+        pointer_bridge.handle_click(recover_point).route,
+        Some(WelcomeRecentPointerRoute::Action {
+            item_index,
+            action: WelcomeRecentPointerAction::Recover,
+        })
+    );
+
+    let safe_point = UiPoint::new(
+        geometry.safe.x + geometry.safe.width * 0.5,
+        geometry.safe.y + geometry.safe.height * 0.5,
+    );
+    assert_eq!(
+        pointer_bridge.handle_click(safe_point).route,
+        Some(WelcomeRecentPointerRoute::Action {
+            item_index,
+            action: WelcomeRecentPointerAction::Safe,
         })
     );
 
@@ -155,19 +249,13 @@ fn welcome_recent_pointer_routes_large_lists_without_materializing_rows_or_repla
         geometry.row.x + geometry.row.width * 0.5,
         (geometry.row.bottom() + next_geometry.row.y) * 0.5,
     );
-    let gap_move = pointer_bridge
-        .handle_move(row_gap_point)
-        .expect("row gaps should remain part of the list surface");
+    let gap_move = pointer_bridge.handle_move(row_gap_point);
     assert_eq!(gap_move.route, Some(WelcomeRecentPointerRoute::ListSurface));
     assert_eq!(gap_move.state.hovered_item_index, None);
     assert_eq!(gap_move.state.hovered_action, None);
 
-    pointer_bridge
-        .handle_move(remove_point)
-        .expect("remove hover should restore the row state before scrolling the gap");
-    let gap_scroll = pointer_bridge
-        .handle_scroll(row_gap_point, 0.0)
-        .expect("scrolling over a row gap should clear stale row hover");
+    pointer_bridge.handle_move(remove_point);
+    let gap_scroll = pointer_bridge.handle_scroll(row_gap_point, 0.0);
     assert_eq!(
         gap_scroll.route,
         Some(WelcomeRecentPointerRoute::ListSurface)
@@ -181,15 +269,9 @@ fn shared_hierarchy_pointer_bridge_scrolls_and_dispatches_selection() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_hierarchy_pointer");
-    let nodes = harness
-        .runtime
-        .editor_snapshot()
-        .scene_entries
-        .iter()
-        .map(|entry| entry.entity.to_string())
-        .collect::<Vec<_>>();
+    let scene_entries = harness.runtime.editor_snapshot().scene_entries;
     assert!(
-        nodes.len() >= 2,
+        scene_entries.len() >= 2,
         "default fixture should expose hierarchy rows"
     );
 
@@ -198,37 +280,34 @@ fn shared_hierarchy_pointer_bridge_scrolls_and_dispatches_selection() {
         HierarchyPointerLayout {
             pane_width: 260.0,
             pane_height: 40.0,
-            node_ids: nodes.clone(),
+            item_count: scene_entries.len(),
         },
         HierarchyPointerState::default(),
     );
 
-    let scrolled = pointer_bridge
-        .handle_scroll(UiPoint::new(120.0, 20.0), 24.0)
-        .expect("hierarchy list should accept shared scroll input");
+    let scrolled = pointer_bridge.handle_scroll(UiPoint::new(120.0, 20.0), 24.0);
     assert!(scrolled.state.scroll_offset > 0.0);
 
     pointer_bridge.sync(
         HierarchyPointerLayout {
             pane_width: 260.0,
             pane_height: 40.0,
-            node_ids: nodes.clone(),
+            item_count: scene_entries.len(),
         },
-        scrolled.state.clone(),
+        scrolled.state,
     );
     let dispatched = dispatch_shared_hierarchy_pointer_click(
         &harness.runtime,
         &mut pointer_bridge,
+        &scene_entries,
         UiPoint::new(80.0, 28.0),
     )
     .expect("shared hierarchy pointer route should dispatch scene-node selection");
     assert_eq!(
         dispatched.pointer.route,
-        Some(HierarchyPointerRoute::Node {
-            item_index: 1,
-            node_id: nodes[1].clone(),
-        })
+        Some(HierarchyPointerRoute::Node { item_index: 1 })
     );
+    assert_eq!(dispatched.selected_entity, Some(scene_entries[1].entity));
     let effects = dispatched
         .effects
         .expect("hierarchy node click should dispatch into runtime");
@@ -236,7 +315,8 @@ fn shared_hierarchy_pointer_bridge_scrolls_and_dispatches_selection() {
     assert_eq!(
         harness.runtime.journal().records().last().unwrap().event,
         EditorEvent::Selection(SelectionHostEvent::SelectSceneNode {
-            node_id: nodes[1].parse().unwrap(),
+            world_domain: crate::core::play::WorldDomain::Edit,
+            node_id: scene_entries[1].entity,
         })
     );
 }
@@ -247,7 +327,7 @@ fn shared_hierarchy_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state(
     let layout = HierarchyPointerLayout {
         pane_width: 260.0,
         pane_height: 40.0,
-        node_ids: vec!["1".to_string(), "2".to_string()],
+        item_count: 2,
     };
     let state = HierarchyPointerState::default();
 
@@ -256,74 +336,39 @@ fn shared_hierarchy_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state(
 }
 
 #[test]
-fn hierarchy_pointer_routes_large_lists_without_materializing_rows_or_replacing_authority() {
-    let nodes = (0..10_000)
-        .map(|index| format!("node-{index}"))
-        .collect::<Vec<_>>();
+fn hierarchy_pointer_routes_large_lists_without_materializing_rows() {
     let mut pointer_bridge = HierarchyPointerBridge::new();
-    let initial_authority_generation = pointer_bridge.surface_authority_generation_for_test();
     pointer_bridge.sync(
         HierarchyPointerLayout {
             pane_width: 260.0,
             pane_height: 120.0,
-            node_ids: nodes.clone(),
+            item_count: 10_000,
         },
         HierarchyPointerState::default(),
     );
 
-    assert_eq!(
-        pointer_bridge.surface_authority_generation_for_test(),
-        initial_authority_generation,
-        "pane geometry should patch the two-node surface without replacing authority"
-    );
-    assert_eq!(
-        pointer_bridge.surface_node_count_for_test(),
-        2,
-        "logical hierarchy rows must not become retained hit-test nodes"
-    );
-    let authority_generation = pointer_bridge.surface_authority_generation_for_test();
     let point = UiPoint::new(80.0, 20.0);
-    let scrolled = pointer_bridge
-        .handle_scroll(point, 135_000.0)
-        .expect("large hierarchy should accept a bounded scroll");
-    let Some(HierarchyPointerRoute::Node {
-        item_index,
-        node_id,
-    }) = scrolled.route
-    else {
+    let scrolled = pointer_bridge.handle_scroll(point, 135_000.0);
+    let Some(HierarchyPointerRoute::Node { item_index }) = scrolled.route else {
         panic!("the post-scroll pointer position should resolve an arithmetic row route");
     };
     assert!(item_index > 1_000);
-    assert_eq!(node_id, nodes[item_index]);
-    assert_eq!(
-        pointer_bridge.surface_authority_generation_for_test(),
-        authority_generation,
-        "scrolling must preserve the constant-size surface, dispatcher, and route authority"
-    );
-    assert_eq!(pointer_bridge.surface_node_count_for_test(), 2);
 
-    let clicked = pointer_bridge
-        .handle_click(point)
-        .expect("post-scroll click should use the same arithmetic row projection");
+    let clicked = pointer_bridge.handle_click(point);
     assert_eq!(
         clicked.route,
-        Some(HierarchyPointerRoute::Node {
-            item_index,
-            node_id: nodes[item_index].clone(),
-        })
+        Some(HierarchyPointerRoute::Node { item_index })
     );
     assert_eq!(
-        pointer_bridge
-            .handle_move(UiPoint::new(2.0, point.y))
-            .expect("row inset should remain part of the list surface")
-            .route,
+        pointer_bridge.handle_move(UiPoint::new(2.0, point.y)).route,
         Some(HierarchyPointerRoute::ListSurface)
     );
 }
 
 fn welcome_layout(count: usize) -> WelcomeRecentPointerLayout {
+    let pane_size = UiSize::new(720.0, 620.0);
     WelcomeRecentPointerLayout {
-        pane_size: UiSize::new(720.0, 620.0),
+        viewport: welcome_recent_viewport(pane_size),
         recent_project_paths: (0..count)
             .map(|index| format!("E:/Projects/demo-{index:02}"))
             .collect(),

@@ -21,8 +21,14 @@ impl RuntimeEntryApp {
                 return false;
             }
         };
+        #[cfg(feature = "gamepad-gilrs")]
+        if !requests.is_empty() {
+            super::super::gamepad::clear_finished_rumble_effects(
+                self.gamepad_rumble_effects.as_mut(),
+            );
+        }
         for request in requests {
-            apply_runtime_host_request(self, request);
+            apply_runtime_host_request(self, event_loop, request);
         }
         true
     }

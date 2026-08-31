@@ -21,7 +21,16 @@ fn dynamic_scene_root_owner_tree_stays_folder_backed_after_runtime_05_cutover() 
                 "dynamic_resource.rs",
             ],
         ),
-        ("scene", &["capture.rs", "spawn.rs", "validation.rs"]),
+        (
+            "scene",
+            &[
+                "capture.rs",
+                "snapshot.rs",
+                "spawn/mod.rs",
+                "validation.rs",
+                "world_operations.rs",
+            ],
+        ),
         (
             "scene_asset",
             &["dynamic_scene.rs", "error.rs", "prepared_spawn.rs"],
@@ -61,7 +70,14 @@ fn dynamic_scene_root_owner_tree_stays_folder_backed_after_runtime_05_cutover() 
         }
     }
 
-    for owner in ["document", "entity", "scene_asset", "spawn_task", "value"] {
+    for owner in [
+        "document",
+        "entity",
+        "scene",
+        "scene_asset",
+        "spawn_task",
+        "value",
+    ] {
         let mod_source =
             std::fs::read_to_string(dynamic_scene_root.join(owner).join("mod.rs")).unwrap();
         for forbidden in ["fn ", "impl ", "struct ", "enum ", "trait ", "macro_rules!"] {
@@ -72,18 +88,35 @@ fn dynamic_scene_root_owner_tree_stays_folder_backed_after_runtime_05_cutover() 
         }
     }
 
-    let scene_mod_source =
-        std::fs::read_to_string(dynamic_scene_root.join("scene").join("mod.rs")).unwrap();
+    let scene_root = dynamic_scene_root.join("scene");
+    let scene_mod_source = std::fs::read_to_string(scene_root.join("mod.rs")).unwrap();
     for required in [
-        "pub struct DynamicScene",
-        "pub fn empty()",
+        "mod snapshot;",
+        "mod world_operations;",
+        "pub use snapshot::DynamicScene;",
+    ] {
+        assert!(
+            scene_mod_source.contains(required),
+            "dynamic_scene/scene/mod.rs should keep structural facade anchor `{required}`"
+        );
+    }
+    let scene_snapshot_source = std::fs::read_to_string(scene_root.join("snapshot.rs")).unwrap();
+    for required in ["pub struct DynamicScene", "pub fn empty()"] {
+        assert!(
+            scene_snapshot_source.contains(required),
+            "dynamic_scene/scene/snapshot.rs should own DynamicScene data anchor `{required}`"
+        );
+    }
+    let scene_operations_source =
+        std::fs::read_to_string(scene_root.join("world_operations.rs")).unwrap();
+    for required in [
         "pub fn from_world(",
         "pub fn spawn_into(",
         "pub fn ensure_supported(",
     ] {
         assert!(
-            scene_mod_source.contains(required),
-            "dynamic_scene/scene/mod.rs should keep DynamicScene facade anchor `{required}`"
+            scene_operations_source.contains(required),
+            "dynamic_scene/scene/world_operations.rs should own DynamicScene operation anchor `{required}`"
         );
     }
     for retired in ["DYNAMIC_SCENE_FORMAT_VERSION", "pub format_version"] {

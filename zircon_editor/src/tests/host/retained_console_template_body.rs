@@ -108,7 +108,7 @@ fn console_pane_with_output(
             inspector: Default::default(),
             console: ConsolePaneViewData {
                 nodes: crate::ui::retained_host::primitives::ModelRc::default(),
-                status_text: "legacy status".into(),
+                output: "legacy status".into(),
             },
             assets_activity: Default::default(),
             asset_browser: Default::default(),
@@ -131,10 +131,7 @@ fn console_template_body_projection_replaces_legacy_console_nodes_for_retained_c
         PaneContentSize::new(320.0, 180.0),
     );
 
-    assert_eq!(
-        projected.status_text.as_ref(),
-        "compile started\ncache ready"
-    );
+    assert_eq!(projected.output.as_ref(), "compile started\ncache ready");
     let nodes = (0..projected.nodes.row_count())
         .filter_map(|row| projected.nodes.row_data(row))
         .collect::<Vec<_>>();
@@ -221,7 +218,7 @@ fn console_template_body_projects_a_runtime_text_empty_state() {
         .find(|node| node.control_id == "ConsoleOutputLine0000")
         .expect("console empty-state output line");
 
-    assert_eq!(projected.status_text.as_ref(), "");
+    assert_eq!(projected.output.as_ref(), "");
     assert_eq!(empty_state.text, "No output yet");
     assert_eq!(empty_state.text_tone, "muted");
 }
@@ -263,7 +260,7 @@ fn console_native_fallback_builds_legacy_nodes_only_after_template_projection_is
     let projected =
         to_host_contract_console_pane_from_host_pane(&pane, PaneContentSize::new(320.0, 180.0));
 
-    assert_eq!(projected.status_text.as_ref(), "legacy status");
+    assert_eq!(projected.output.as_ref(), "legacy status");
     assert!(projected.nodes.row_count() > 0);
 }
 
@@ -448,12 +445,18 @@ fn console_template_body_keeps_controls_and_message_text_inside_narrow_panes() {
 }
 
 #[test]
-fn console_template_body_never_materializes_more_than_the_snapshot_line_window() {
+fn console_template_body_keeps_the_snapshot_logical_window_but_materializes_only_slots() {
     let status_text = (0..8_000)
         .map(|index| format!("line {index}"))
         .collect::<Vec<_>>()
         .join("\n");
     let output = ConsoleOutputSnapshot::from(status_text.clone());
+    assert_eq!(output.levels().len(), CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
+    assert_eq!(
+        output.as_ref().lines().count(),
+        CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY
+    );
+    assert!(output.as_ref().ends_with("line 7999"));
     let projected = to_host_contract_console_pane_from_host_pane(
         &console_pane_with_output(&status_text, output),
         PaneContentSize::new(320.0, 180.0),
@@ -469,16 +472,12 @@ fn console_template_body_never_materializes_more_than_the_snapshot_line_window()
         .iter()
         .filter(|node| node.control_id.starts_with("ConsoleOutputSeverity"))
         .collect::<Vec<_>>();
-
-    assert_eq!(message_nodes.len(), CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
-    assert_eq!(severity_nodes.len(), CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
+    assert_eq!(message_nodes.len(), severity_nodes.len());
+    assert!(!message_nodes.is_empty());
+    assert!(message_nodes.len() < CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
     assert_eq!(
         message_nodes.first().map(|node| node.text.as_ref()),
         Some("line 7744")
-    );
-    assert_eq!(
-        message_nodes.last().map(|node| node.text.as_ref()),
-        Some("line 7999")
     );
 }
 
@@ -605,18 +604,19 @@ fn console_template_body_projects_source_filter_and_typed_jump_action_tokens() {
 }
 
 #[test]
-fn console_payload_builder_shares_precomputed_output_text() {
+fn console_payload_builder_preserves_the_generation_owned_output_snapshot() {
     let source = include_str!(
         "../../ui/layouts/windows/workbench_host_window/pane_payload_builders/console.rs"
     );
 
-    assert!(source.contains("console_output.text_arc()"));
+    assert!(source.contains("output: context.chrome.console_output.clone()"));
+    assert!(!source.contains("console_output.text_arc()"));
     assert!(!source.contains("console_output.to_string()"));
 
     let pane_projection =
         include_str!("../../ui/layouts/windows/workbench_host_window/pane_projection.rs");
-    assert!(pane_projection.contains("status_text: chrome.console_output.text_arc()"));
-    assert!(!pane_projection.contains("status_text: chrome.console_output.as_ref().into()"));
+    assert!(pane_projection.contains("output: chrome.console_output.clone()"));
+    assert!(!pane_projection.contains("chrome.console_output.text_arc()"));
 
     let scene_projection =
         include_str!("../../ui/layouts/windows/workbench_host_window/scene_projection.rs");
@@ -625,7 +625,8 @@ fn console_payload_builder_shares_precomputed_output_text() {
     let retained_projection =
         include_str!("../../ui/retained_host/ui/pane_data_conversion/console_projection.rs");
     assert!(retained_projection.contains("unwrap_or_else"));
-    assert!(retained_projection.contains("Arc::clone(&console_payload.status_text)"));
+    assert!(retained_projection.contains("new_virtualized_snapshot"));
+    assert!(!retained_projection.contains("console_payload.output.as_ref()"));
 
     let builtin_bindings = include_str!("../../ui/template_runtime/builtin/template_bindings.rs");
     assert!(!builtin_bindings.contains("ConsolePaneBody/FocusConsole"));

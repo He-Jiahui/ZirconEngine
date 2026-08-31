@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::engines::SourceEngineInstall;
 use crate::projects::{metadata_for_path, now_unix_ms, project_paths_match, RecentProject};
 use crate::settings::HubLanguage;
-use crate::state::{HubSnapshot, TaskSeverity};
+use crate::state::{HubSnapshot, ProjectAvailabilitySnapshot, TaskSeverity};
 use crate::team::{TeamMemberEntry, TeamOverview};
 
 mod action_history;
@@ -243,7 +243,18 @@ pub(crate) struct HubTeamMember {
 
 impl HubViewModel {
     pub(crate) fn from_snapshot(snapshot: &HubSnapshot) -> Self {
-        let filtered_projects = snapshot.filtered_recent_projects();
+        let availability = ProjectAvailabilitySnapshot::capture_with_selected(
+            &snapshot.recent_projects,
+            snapshot.selected_project_path.as_deref(),
+        );
+        Self::from_snapshot_with_availability(snapshot, &availability)
+    }
+
+    pub(crate) fn from_snapshot_with_availability(
+        snapshot: &HubSnapshot,
+        availability: &ProjectAvailabilitySnapshot,
+    ) -> Self {
+        let filtered_projects = snapshot.filtered_recent_projects_with_availability(availability);
         let active_engine = active_source_engine(snapshot);
         let active_source_engine_id = active_engine.map(|engine| engine.id.clone());
         let selected_project_id = snapshot
@@ -285,7 +296,7 @@ impl HubViewModel {
                 .take(RECENT_ROW_LIMIT)
                 .map(|project| recent_project_row(snapshot, project))
                 .collect(),
-            selected_project: selected_project_detail(snapshot),
+            selected_project: selected_project_detail(snapshot, availability),
             quick_actions: quick_actions(snapshot),
             source_engines: source_engine_rows(snapshot),
             assets: asset_rows(snapshot),
@@ -411,23 +422,31 @@ fn recent_project_row(snapshot: &HubSnapshot, project: &RecentProject) -> HubRec
     }
 }
 
-fn selected_project_detail(snapshot: &HubSnapshot) -> Option<HubProjectDetail> {
+fn selected_project_detail(
+    snapshot: &HubSnapshot,
+    availability: &ProjectAvailabilitySnapshot,
+) -> Option<HubProjectDetail> {
     let selected_path = snapshot.selected_project_path.as_ref()?;
     if let Some(project) = snapshot
         .recent_projects
         .iter()
         .find(|project| project_paths_match(&project.path, selected_path))
     {
-        return Some(project_detail_from_recent(snapshot, project));
+        return Some(project_detail_from_recent(snapshot, project, availability));
     }
 
-    Some(stale_project_detail(snapshot, selected_path))
+    Some(stale_project_detail(snapshot, selected_path, availability))
 }
 
-fn project_detail_from_recent(snapshot: &HubSnapshot, project: &RecentProject) -> HubProjectDetail {
+fn project_detail_from_recent(
+    snapshot: &HubSnapshot,
+    project: &RecentProject,
+    availability: &ProjectAvailabilitySnapshot,
+) -> HubProjectDetail {
     let summary = project_summary(snapshot, project, false, snapshot.settings.language);
     project_detail_from_parts(
         snapshot,
+        availability,
         &project.path,
         summary.id,
         summary.name,
@@ -438,7 +457,11 @@ fn project_detail_from_recent(snapshot: &HubSnapshot, project: &RecentProject) -
     )
 }
 
-fn stale_project_detail(snapshot: &HubSnapshot, path: &Path) -> HubProjectDetail {
+fn stale_project_detail(
+    snapshot: &HubSnapshot,
+    path: &Path,
+    availability: &ProjectAvailabilitySnapshot,
+) -> HubProjectDetail {
     let text = HubTextBundle::new(snapshot.settings.language);
     let name = path
         .file_name()
@@ -448,6 +471,7 @@ fn stale_project_detail(snapshot: &HubSnapshot, path: &Path) -> HubProjectDetail
         .to_string();
     project_detail_from_parts(
         snapshot,
+        availability,
         path,
         path_text(path, snapshot.settings.language),
         name.clone(),
@@ -460,6 +484,7 @@ fn stale_project_detail(snapshot: &HubSnapshot, path: &Path) -> HubProjectDetail
 
 fn project_detail_from_parts(
     snapshot: &HubSnapshot,
+    availability: &ProjectAvailabilitySnapshot,
     path: &Path,
     id: String,
     name: String,
@@ -470,7 +495,7 @@ fn project_detail_from_parts(
 ) -> HubProjectDetail {
     let text = HubTextBundle::new(snapshot.settings.language);
     let metadata = metadata_for_path(&snapshot.project_metadata, path);
-    let exists = path.exists();
+    let exists = availability.path_exists(path);
     let pending_delete = snapshot
         .pending_delete_project_path
         .as_ref()

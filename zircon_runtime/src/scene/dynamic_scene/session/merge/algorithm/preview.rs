@@ -7,7 +7,5 @@ pub(in crate::scene::dynamic_scene::session) fn preview_merge_archive(
     incoming: &RuntimeSessionArchive,
     policy: RuntimeSessionArchiveMergePolicy,
 ) -> Result<RuntimeSessionArchiveMergeReport, RuntimeSessionArchiveError> {
-    Ok(prepare_merge_archive(target, incoming, policy)?
-        .report()
-        .clone())
+    Ok(prepare_merge_archive(target, incoming, policy)?.into_report())
 }

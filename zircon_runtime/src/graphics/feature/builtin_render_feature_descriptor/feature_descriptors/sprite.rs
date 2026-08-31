@@ -5,8 +5,8 @@ use crate::render_graph::QueueLane;
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
-) -> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
+-> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "sprite",
         vec![
@@ -22,7 +22,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::Graphics,
             )
             .with_executor_id("sprite.opaque")
-            .with_side_effects()
             .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH),
             RenderFeaturePassDescriptor::new(
@@ -31,7 +30,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::Graphics,
             )
             .with_executor_id("sprite.alpha-mask")
-            .with_side_effects()
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)
@@ -42,11 +40,25 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::Graphics,
             )
             .with_executor_id("sprite.transparent")
-            .with_side_effects()
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH),
         ],
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sprite_passes_rely_on_scene_resource_consumers_instead_of_culling_roots() {
+        assert!(
+            descriptor()
+                .stage_passes
+                .iter()
+                .all(|pass| !pass.flags.has_side_effects)
+        );
+    }
 }

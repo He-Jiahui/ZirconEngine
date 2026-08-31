@@ -19,6 +19,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
 ) {
     let style = select_workbench_toast_style(node);
     let metrics = toast_metrics();
+    let surface_radius = toast_surface_radius(node, metrics);
     push_toast_surface(
         commands,
         rect,
@@ -27,7 +28,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         style.surface,
         style.border,
         metrics.border_width,
-        metrics.radius,
+        surface_radius,
         opacity,
     );
 
@@ -77,5 +78,29 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
             metrics,
             opacity,
         );
+    }
+}
+
+fn toast_surface_radius(
+    node: &TemplatePaneNodeData,
+    metrics: super::super::layout::WorkbenchToastMetrics,
+) -> f32 {
+    if node.corner_radius.is_finite() && node.corner_radius > 0.0 {
+        node.corner_radius
+    } else {
+        metrics.radius
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn toast_prefers_the_projected_panel_radius() {
+        let mut node = TemplatePaneNodeData::default();
+        node.corner_radius = 14.0;
+
+        assert_eq!(toast_surface_radius(&node, toast_metrics()), 14.0);
     }
 }

@@ -13,8 +13,11 @@ mod scroll_dispatch;
 mod state;
 mod tab_drag_damage;
 mod template_hover_damage;
+mod tooltip_target;
 mod viewport_toolbar_damage;
 
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract) use button_dispatch::asset_deletion_blocker_action_at;
 pub(in crate::ui::retained_host::host_contract) use button_dispatch::dispatch_native_pointer_button;
 pub(in crate::ui::retained_host::host_contract) use constants::{
     HOST_POINTER_DOWN, HOST_POINTER_MOVE, HOST_POINTER_UP, VIEWPORT_POINTER_BUTTON_MIDDLE,
@@ -25,3 +28,8 @@ pub(in crate::ui::retained_host::host_contract) use constants::{
 pub(in crate::ui::retained_host::host_contract) use move_dispatch::dispatch_native_pointer_move;
 pub(in crate::ui::retained_host::host_contract) use scroll_dispatch::dispatch_native_pointer_scroll;
 pub(in crate::ui::retained_host::host_contract) use state::NativePointerButtonState;
+pub(in crate::ui::retained_host::host_contract) use tooltip_target::tooltip_target_for_chrome_route;
+pub(crate) use tooltip_target::{HostChromeTooltipTarget, WorkbenchTooltipPointerTarget};
+pub(super) use viewport_toolbar_damage::{
+    native_viewport_chrome_damage_frame, viewport_chrome_damage_frame,
+};

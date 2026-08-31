@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::{binding::UiBindingCall, binding::UiBindingValue};
 
 use super::WelcomeCommand;
-use crate::ui::binding::core::{required_string_argument, EditorUiBindingError};
+use crate::ui::binding::core::{EditorUiBindingError, required_string_argument};
 
 impl WelcomeCommand {
     pub(crate) fn to_call(&self) -> UiBindingCall {
@@ -14,6 +14,14 @@ impl WelcomeCommand {
             Self::OpenExistingProject => UiBindingCall::new("WelcomeCommand.OpenExistingProject"),
             Self::OpenRecentProject { path } => {
                 UiBindingCall::new("WelcomeCommand.OpenRecentProject")
+                    .with_argument(UiBindingValue::string(path))
+            }
+            Self::SafeRecentProject { path } => {
+                UiBindingCall::new("WelcomeCommand.SafeRecentProject")
+                    .with_argument(UiBindingValue::string(path))
+            }
+            Self::RecoverRecentProject { path } => {
+                UiBindingCall::new("WelcomeCommand.RecoverRecentProject")
                     .with_argument(UiBindingValue::string(path))
             }
             Self::RemoveRecentProject { path } => {
@@ -43,6 +51,12 @@ impl WelcomeCommand {
             "WelcomeCommand.OpenExistingProject" => Self::OpenExistingProject,
             "WelcomeCommand.OpenRecentProject" => Self::OpenRecentProject {
                 path: required_string_argument(&call, 0, "WelcomeCommand.OpenRecentProject")?,
+            },
+            "WelcomeCommand.SafeRecentProject" => Self::SafeRecentProject {
+                path: required_string_argument(&call, 0, "WelcomeCommand.SafeRecentProject")?,
+            },
+            "WelcomeCommand.RecoverRecentProject" => Self::RecoverRecentProject {
+                path: required_string_argument(&call, 0, "WelcomeCommand.RecoverRecentProject")?,
             },
             "WelcomeCommand.RemoveRecentProject" => Self::RemoveRecentProject {
                 path: required_string_argument(&call, 0, "WelcomeCommand.RemoveRecentProject")?,

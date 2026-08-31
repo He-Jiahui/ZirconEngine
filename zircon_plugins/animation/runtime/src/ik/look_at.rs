@@ -32,6 +32,9 @@ impl LookAtJob {
 
     pub fn solve_rotation(self, current: Quat) -> Result<Quat, AnimationIkError> {
         validate(self, current)?;
+        if self.weight == 0.0 {
+            return Ok(current.normalize());
+        }
         let current_axis = current * self.local_axis.normalize();
         let target = self.target_direction.normalize();
         let full_delta = Quat::from_rotation_arc(current_axis, target);
@@ -68,3 +71,7 @@ fn validate(job: LookAtJob, current: Quat) -> Result<(), AnimationIkError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "look_at/performance_tests.rs"]
+mod optimization_batch_20260830ct_tests;

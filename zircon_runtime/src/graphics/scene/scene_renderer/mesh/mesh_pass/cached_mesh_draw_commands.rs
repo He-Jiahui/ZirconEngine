@@ -1,12 +1,14 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::core::framework::render::{
-    RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
+    RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
 };
 use crate::graphics::scene::resources::MaterialDisabledPasses;
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::MeshDrawQueuePhase;
 
-use super::{MeshBatchRef, MeshDrawCommand};
+use super::pipeline_variant_pin_counts::PipelineVariantPinCounts;
+use super::{MeshBatchRef, MeshDrawCommandPayload, MeshPipelineVariantId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct CachedMeshDrawKey {
@@ -14,6 +16,7 @@ pub(crate) struct CachedMeshDrawKey {
     pub(crate) draw_ordinal: u32,
     pub(crate) phase: RenderPhase,
     pub(crate) disabled_passes: MaterialDisabledPasses,
+    pub(crate) shader_quality: ShaderQualityTier,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -30,22 +33,28 @@ pub(crate) struct MeshDrawCommandCacheStats {
 #[derive(Default)]
 pub(crate) struct CachedMeshDrawCommands {
     entries: HashMap<CachedMeshDrawKey, CachedMeshDrawEntry>,
+    pipeline_variant_pins: PipelineVariantPinCounts,
 }
 
 struct CachedMeshDrawEntry {
     state: RenderMeshStaticState,
-    command: MeshDrawCommand,
+    payload: Arc<MeshDrawCommandPayload>,
     last_touched_generation: u64,
 }
 
 impl CachedMeshDrawKey {
-    pub(crate) fn from_batch_phase(batch: &MeshBatchRef, phase: RenderPhase) -> Option<Self> {
+    pub(crate) fn from_batch_phase(
+        batch: &MeshBatchRef,
+        phase: RenderPhase,
+        shader_quality: ShaderQualityTier,
+    ) -> Option<Self> {
         let identity = batch.cache_identity?;
         Some(Self {
             stable_instance_key: identity.stable_instance_key,
             draw_ordinal: identity.draw_ordinal,
             phase,
             disabled_passes: batch.disabled_passes,
+            shader_quality,
         })
     }
 }
@@ -67,41 +76,90 @@ impl CachedMeshDrawCommands {
             ));
         }
         entry.last_touched_generation = generation;
-        CachedMeshDrawLookup::Hit(entry.command.clone())
+        CachedMeshDrawLookup::Hit(entry.payload.clone())
     }
 
+    #[cfg(test)]
     pub(crate) fn lookup(
         &mut self,
         key: &CachedMeshDrawKey,
         state: &RenderMeshStaticState,
         generation: u64,
-    ) -> Option<MeshDrawCommand> {
+    ) -> Option<Arc<MeshDrawCommandPayload>> {
         match self.lookup_status(key, state, generation) {
-            CachedMeshDrawLookup::Hit(command) => Some(command),
+            CachedMeshDrawLookup::Hit(payload) => Some(payload),
             CachedMeshDrawLookup::Miss | CachedMeshDrawLookup::Invalidated(_) => None,
         }
+    }
+
+    pub(crate) fn touch_if_state_matches(
+        &mut self,
+        key: &CachedMeshDrawKey,
+        state: &RenderMeshStaticState,
+        generation: u64,
+    ) -> bool {
+        let Some(entry) = self.entries.get_mut(key) else {
+            return false;
+        };
+        if entry.state != *state {
+            return false;
+        }
+        entry.last_touched_generation = generation;
+        true
     }
 
     pub(crate) fn store(
         &mut self,
         key: CachedMeshDrawKey,
         state: &RenderMeshStaticState,
-        command: MeshDrawCommand,
+        payload: Arc<MeshDrawCommandPayload>,
         generation: u64,
     ) {
-        self.entries.insert(
+        assert!(
+            payload.is_direct_indexed(),
+            "cached mesh draw payloads must use direct indexed topology"
+        );
+        let variant_id = payload.pipeline_variant_id;
+        let previous = self.entries.insert(
             key,
             CachedMeshDrawEntry {
                 state: *state,
-                command,
+                payload,
                 last_touched_generation: generation,
             },
         );
+        match previous {
+            Some(previous) => self
+                .pipeline_variant_pins
+                .replace(previous.payload.pipeline_variant_id, variant_id),
+            None => self.pipeline_variant_pins.pin(variant_id),
+        }
     }
 
     pub(crate) fn retain_generation(&mut self, generation: u64) {
-        self.entries
-            .retain(|_, entry| entry.last_touched_generation == generation);
+        let pipeline_variant_pins = &mut self.pipeline_variant_pins;
+        self.entries.retain(|_, entry| {
+            let retain = entry.last_touched_generation == generation;
+            if !retain {
+                pipeline_variant_pins.unpin(entry.payload.pipeline_variant_id);
+            }
+            retain
+        });
+        crate::profile_counter!(
+            "render",
+            "mesh_pipeline_cpu_pinned_variant_count",
+            self.pipeline_variant_pins.pinned_variant_count()
+        );
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.entries.clear();
+        self.pipeline_variant_pins.clear();
+        crate::profile_counter!("render", "mesh_pipeline_cpu_pinned_variant_count", 0);
+    }
+
+    pub(crate) fn pins_pipeline_variant(&self, variant_id: MeshPipelineVariantId) -> bool {
+        self.pipeline_variant_pins.is_pinned(variant_id)
     }
 
     pub(crate) fn is_cacheable_batch_phase(batch: &MeshBatchRef, phase: RenderPhase) -> bool {
@@ -118,7 +176,7 @@ impl CachedMeshDrawCommands {
 }
 
 pub(crate) enum CachedMeshDrawLookup {
-    Hit(MeshDrawCommand),
+    Hit(Arc<MeshDrawCommandPayload>),
     Miss,
     Invalidated(CachedMeshDrawInvalidation),
 }
@@ -200,11 +258,13 @@ mod tests {
             draw_ordinal: 2,
             phase: RenderPhase::Opaque3d,
             disabled_passes: Default::default(),
+            shader_quality: Default::default(),
         };
         let state = RenderMeshStaticState::new(true, 11, 17);
         let command = test_command(RenderPhase::Opaque3d, 1);
 
-        cache.store(key, &state, command.clone(), 3);
+        cache.store(key, &state, command.static_payload(), 3);
+        assert!(cache.pins_pipeline_variant(command.pipeline_variant_id));
 
         let hit = cache
             .lookup(&key, &state, 4)
@@ -213,6 +273,29 @@ mod tests {
         assert_eq!(hit.phase, command.phase);
         cache.retain_generation(4);
         assert_eq!(cache.len(), 1);
+        assert!(cache.pins_pipeline_variant(command.pipeline_variant_id));
+    }
+
+    #[test]
+    fn cached_mesh_draw_commands_clear_all_static_payloads() {
+        let mut cache = CachedMeshDrawCommands::default();
+        let key = CachedMeshDrawKey {
+            stable_instance_key: (7 << 16) | 2,
+            draw_ordinal: 2,
+            phase: RenderPhase::Opaque3d,
+            disabled_passes: Default::default(),
+            shader_quality: Default::default(),
+        };
+        let state = RenderMeshStaticState::new(true, 11, 17);
+        let command = test_command(RenderPhase::Opaque3d, 1);
+        cache.store(key, &state, command.static_payload(), 3);
+        assert!(cache.pins_pipeline_variant(command.pipeline_variant_id));
+
+        cache.clear();
+
+        assert_eq!(cache.len(), 0);
+        assert!(!cache.pins_pipeline_variant(command.pipeline_variant_id));
+        assert!(cache.lookup(&key, &state, 4).is_none());
     }
 
     #[test]
@@ -223,15 +306,22 @@ mod tests {
             draw_ordinal: 2,
             phase: RenderPhase::Opaque3d,
             disabled_passes: Default::default(),
+            shader_quality: Default::default(),
         };
         let state = RenderMeshStaticState::new(true, 11, 17);
         let changed_material = RenderMeshStaticState::new(true, 11, 23);
 
-        cache.store(key, &state, test_command(RenderPhase::Opaque3d, 1), 1);
+        cache.store(
+            key,
+            &state,
+            test_command(RenderPhase::Opaque3d, 1).static_payload(),
+            1,
+        );
 
         assert!(cache.lookup(&key, &changed_material, 2).is_none());
         cache.retain_generation(2);
         assert_eq!(cache.len(), 0);
+        assert!(!cache.pins_pipeline_variant(MeshPipelineVariantId::new(1)));
     }
 
     #[test]
@@ -269,6 +359,35 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "cached mesh draw payloads must use direct indexed topology")]
+    fn cached_mesh_draw_commands_reject_indirect_payload_storage() {
+        let mut cache = CachedMeshDrawCommands::default();
+        let key = CachedMeshDrawKey {
+            stable_instance_key: 7 << 16,
+            draw_ordinal: 0,
+            phase: RenderPhase::Opaque3d,
+            disabled_passes: Default::default(),
+            shader_quality: Default::default(),
+        };
+        let state = RenderMeshStaticState::new(true, 11, 17);
+        let command = MeshDrawCommand::new(
+            RenderPhase::Opaque3d,
+            MeshPassPipelineKind::Base,
+            default_pipeline_key(),
+            MeshPipelineVariantId::new(1),
+            1,
+            DrawInstanceSource::GpuSceneInstance {
+                first_instance_index: 1,
+                instance_count: 1,
+            },
+            MeshGeometryHandle::test(1),
+            MeshDrawArgs::test_indexed_indirect(91, 0),
+        );
+
+        cache.store(key, &state, command.static_payload(), 1);
+    }
+
+    #[test]
     fn cached_mesh_draw_commands_keep_sibling_primitives_separate() {
         let mut cache = CachedMeshDrawCommands::default();
         let state = RenderMeshStaticState::new(true, 11, 17);
@@ -277,14 +396,25 @@ mod tests {
             draw_ordinal: 0,
             phase: RenderPhase::Opaque3d,
             disabled_passes: Default::default(),
+            shader_quality: Default::default(),
         };
         let second = CachedMeshDrawKey {
             stable_instance_key: (7 << 16) | 1,
             ..first
         };
 
-        cache.store(first, &state, test_command(RenderPhase::Opaque3d, 1), 1);
-        cache.store(second, &state, test_command(RenderPhase::Opaque3d, 2), 1);
+        cache.store(
+            first,
+            &state,
+            test_command(RenderPhase::Opaque3d, 1).static_payload(),
+            1,
+        );
+        cache.store(
+            second,
+            &state,
+            test_command(RenderPhase::Opaque3d, 2).static_payload(),
+            1,
+        );
 
         assert_eq!(cache.len(), 2);
         assert!(cache.lookup(&first, &state, 2).is_some());

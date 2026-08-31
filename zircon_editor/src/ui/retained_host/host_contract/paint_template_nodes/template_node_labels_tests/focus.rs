@@ -1,5 +1,5 @@
 use super::super::super::super::data::{HostTextInputFocusData, TemplatePaneNodeData};
-use super::super::template_node_label;
+use super::super::{template_node_has_label, template_node_label};
 
 #[test]
 fn button_label_ignores_matching_text_input_focus_value() {
@@ -53,4 +53,24 @@ fn input_label_uses_matching_text_input_focus_value() {
     };
 
     assert_eq!(template_node_label(&node, Some(&focus)), "material");
+}
+
+#[test]
+fn input_label_presence_matches_focused_text_without_materializing_it() {
+    let node = TemplatePaneNodeData {
+        control_id: "SearchEdited".into(),
+        role: "InputField".into(),
+        component_role: "input-field".into(),
+        text: "Search".into(),
+        ..TemplatePaneNodeData::default()
+    };
+    let mut focus = HostTextInputFocusData {
+        control_id: "SearchEdited".into(),
+        value_text: "".into(),
+        ..HostTextInputFocusData::default()
+    };
+
+    assert!(!template_node_has_label(&node, Some(&focus)));
+    focus.value_text = " ".into();
+    assert!(template_node_has_label(&node, Some(&focus)));
 }

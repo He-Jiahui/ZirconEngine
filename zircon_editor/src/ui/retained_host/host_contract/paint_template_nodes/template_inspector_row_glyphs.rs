@@ -1,7 +1,6 @@
 mod checks;
 mod chevrons;
 mod cubes;
-mod segments;
 mod swatches;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use checks::push_inspector_check_tick;

@@ -140,7 +140,12 @@ Project status, template display, missing-path copy, pending-delete state, and a
 
 Builds, Cloud, and Editor reuse the selected-project payload. Package and install are owned by `src/tauri_app/runtime_state/project_delivery_actions.rs`; package writes `zircon-package.toml`, and install ensures a package before copying to the configured local device install directory. Editor launch is owned by `src/tauri_app/runtime_state/editor_launch_actions.rs` and can launch the selected project or an empty editor.
 
-Editor launch command construction stays in `src/process/editor_launch.rs`. Open-project requests produce `--project <path>`. Empty editor launch omits a project argument. The Hub no longer creates a project by launching the Editor create mode; project creation is local file generation in `src/projects/create_project.rs`.
+Editor launch command construction stays in `src/process/editor_launch.rs`. Every project launch
+serializes one Hub-originated versioned `ProjectLaunchIntent` as `--project-launch-intent <json>`;
+its operation identity is allocated once by Hub and remains unchanged in the Editor process. The
+Hub handshake accepts no legacy `--project` fallback. Empty editor launch omits a project intent.
+The Hub no longer creates a project by launching the Editor create mode; project creation is local
+file generation in `src/projects/create_project.rs`.
 
 Every lifecycle and workflow handoff records action-history data through the Hub runtime state. `HubActionRecord` carries stable kind ids, localized detail/log/recovery fields at projection time, command lines, output directories, and child process ids when available. Builds and Cloud render the DTO `detailRows` or `outputDir` instead of page-local diagnostics.
 

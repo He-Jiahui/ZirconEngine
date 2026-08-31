@@ -63,6 +63,11 @@ fn componentized_workbench_status_bar_syncs_chrome_and_task_progress() {
         control_string(&bridge, "WorkbenchStatusSnap", "text").as_deref(),
         Some("Snap: On")
     );
+    assert!(control_bool(
+        &bridge,
+        "WorkbenchStatusSnapToggle",
+        "checked"
+    ));
     assert_eq!(
         control_string(&bridge, "WorkbenchStatusZoom", "text").as_deref(),
         Some("100%")

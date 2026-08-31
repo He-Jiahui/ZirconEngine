@@ -127,7 +127,7 @@ fn synchronization_rewrites_owned_fields_and_preserves_extensions() {
         synchronize_manifest(STALE_MANIFEST, &declaration, "0.1.0", "0.2.0").unwrap();
 
     assert!(synchronized.starts_with(GENERATED_MANIFEST_HEADER));
-    let manifest: toml::Value = synchronized.parse().unwrap();
+    let manifest: toml::Value = toml::from_str(&synchronized).unwrap();
     let root = manifest.as_table().unwrap();
     assert_eq!(root["id"].as_str(), Some("demo_probe"));
     assert_eq!(root["version"].as_str(), Some("0.1.0"));
@@ -174,9 +174,11 @@ fn synchronization_rewrites_owned_fields_and_preserves_extensions() {
 #[test]
 fn synchronization_converges_native_distribution_modules_from_the_declaration() {
     let declaration = PluginDeclarationProjection::parse(DECLARATION_SOURCE).unwrap();
-    let mut missing_dist: toml::Value = STALE_MANIFEST.parse().unwrap();
-    missing_dist["distribution"]["dist_crate"] =
-        toml::Value::String("zircon_plugin_obsolete_dist".to_string());
+    let mut missing_dist: toml::Value = toml::from_str(STALE_MANIFEST).unwrap();
+    missing_dist["distribution"].as_table_mut().unwrap().insert(
+        "dist_crate".to_string(),
+        toml::Value::String("zircon_plugin_obsolete_dist".to_string()),
+    );
     missing_dist["modules"]
         .as_array_mut()
         .unwrap()
@@ -189,7 +191,7 @@ fn synchronization_converges_native_distribution_modules_from_the_declaration() 
         "0.2.0",
     )
     .unwrap();
-    let manifest: toml::Value = synchronized.parse().unwrap();
+    let manifest: toml::Value = toml::from_str(&synchronized).unwrap();
     assert_eq!(
         manifest["distribution"]["dist_crate"].as_str(),
         Some("zircon_plugin_demo_probe_dist")
@@ -207,7 +209,7 @@ fn synchronization_converges_native_distribution_modules_from_the_declaration() 
         Some("zircon_plugin_demo_probe_dist")
     );
 
-    let mut duplicate_dist: toml::Value = STALE_MANIFEST.parse().unwrap();
+    let mut duplicate_dist: toml::Value = toml::from_str(STALE_MANIFEST).unwrap();
     let duplicate = duplicate_dist["modules"].as_array().unwrap()[1].clone();
     duplicate_dist["modules"]
         .as_array_mut()
@@ -220,7 +222,7 @@ fn synchronization_converges_native_distribution_modules_from_the_declaration() 
         "0.2.0",
     )
     .unwrap();
-    let manifest: toml::Value = synchronized.parse().unwrap();
+    let manifest: toml::Value = toml::from_str(&synchronized).unwrap();
     assert_eq!(
         manifest["modules"]
             .as_array()
@@ -238,7 +240,7 @@ fn synchronization_converges_native_distribution_modules_from_the_declaration() 
     .unwrap();
     let synchronized =
         synchronize_manifest(STALE_MANIFEST, &library_only, "0.1.0", "0.2.0").unwrap();
-    let manifest: toml::Value = synchronized.parse().unwrap();
+    let manifest: toml::Value = toml::from_str(&synchronized).unwrap();
     assert!(manifest.get("distribution").is_none());
     assert!(manifest["modules"]
         .as_array()
@@ -253,7 +255,7 @@ fn synchronization_converges_native_distribution_modules_from_the_declaration() 
     .unwrap();
     let synchronized =
         synchronize_manifest(STALE_MANIFEST, &inline_native, "0.1.0", "0.2.0").unwrap();
-    let manifest: toml::Value = synchronized.parse().unwrap();
+    let manifest: toml::Value = toml::from_str(&synchronized).unwrap();
     assert_eq!(
         manifest["distribution"]["dist_crate"].as_str(),
         Some("zircon_plugin_demo_probe_native")

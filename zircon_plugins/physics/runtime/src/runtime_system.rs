@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::physics::{
-    PhysicsContactEvent, PhysicsManager, PhysicsTriggerEvent, PhysicsWorldStepPlan,
-    SimulatedPoseFeed, SkeletalPoseTargets,
+    PhysicsContactEvent, PhysicsTriggerEvent, PhysicsWorldStepPlan, SimulatedPoseFeed,
+    SkeletalPoseTargets,
 };
 use zircon_runtime::core::CoreError;
 use zircon_runtime::plugin::{PluginEventManifest, RuntimeExtensionRegistryError};
@@ -83,13 +83,17 @@ fn run_physics_runtime_system(context: RuntimeSceneSystemContext<'_>) -> Result<
                     drive_ragdoll_bodies_from_animation(
                         world,
                         &mut ragdolls,
-                        context.delta_seconds,
+                        context.tick().delta_seconds(),
                     );
                     if let Some(runtime) = world.get_resource_mut::<RagdollRuntime>() {
                         *runtime = ragdolls;
                     }
                 }
-                physics.tick_scene_world(context.level.world_handle(), world, context.delta_seconds)
+                physics.tick_scene_world(
+                    context.level.world_handle(),
+                    world,
+                    context.tick().delta_seconds(),
+                )
             })
     else {
         record_physics_step_diagnostic(context.core, frame_index, started_at.elapsed());
@@ -129,7 +133,7 @@ fn run_physics_sync_to_scene_system(
     else {
         return Ok(());
     };
-    let Some(sync) = physics.synchronized_world(context.level.world_handle()) else {
+    let Some(sync) = physics.synchronized_world_snapshot(context.level.world_handle()) else {
         return Ok(());
     };
     context

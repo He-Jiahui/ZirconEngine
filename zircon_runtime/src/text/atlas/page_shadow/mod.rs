@@ -6,4 +6,4 @@ mod store;
 pub(crate) use commit::GlyphAtlasBitmapPageShadowCommit;
 pub(crate) use patch::GlyphAtlasBitmapPageShadowPatch;
 pub(super) use shadow::GlyphAtlasBitmapPageShadow;
-pub(crate) use store::GlyphAtlasBitmapPageShadowStore;
+pub(crate) use store::{GlyphAtlasBitmapPageShadowReport, GlyphAtlasBitmapPageShadowStore};

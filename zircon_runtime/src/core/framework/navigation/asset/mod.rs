@@ -10,6 +10,10 @@ use crate::core::math::Real;
 
 mod v1;
 
+#[cfg(test)]
+#[path = "triangle_capacity_tests.rs"]
+mod triangle_capacity_tests;
+
 pub type NavigationAssetResult<T> = std::result::Result<T, NavigationAssetError>;
 
 #[derive(Debug, Error)]
@@ -101,8 +105,8 @@ impl NavMeshAsset {
         triangle_areas: Vec<NavAreaId>,
         default_area: NavAreaId,
     ) -> Self {
-        let mut valid_indices = Vec::new();
-        let mut polygons = Vec::new();
+        let mut valid_indices = Vec::with_capacity(indices.len());
+        let mut polygons = Vec::with_capacity(navigation_triangle_capacity(indices.len()));
         for (triangle_index, triangle) in indices.chunks(3).enumerate() {
             if triangle.len() != 3
                 || !triangle
@@ -198,6 +202,10 @@ impl NavMeshAsset {
             version => Err(NavigationAssetError::UnsupportedVersion { version }),
         }
     }
+}
+
+fn navigation_triangle_capacity(index_count: usize) -> usize {
+    index_count / 3
 }
 
 fn default_navigation_area_costs() -> Vec<NavMeshAreaCostAsset> {

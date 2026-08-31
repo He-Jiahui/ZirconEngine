@@ -1,8 +1,10 @@
 use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
-use wgpu::util::DeviceExt;
 
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassExecutorRegistration;
+use crate::graphics::scene::scene_renderer::graph_execution::{
+    RenderPassGpuRecordingContext, RenderPassGpuResourceFactory,
+};
 use crate::render_graph::RenderGraphComputeWorkload;
 
 mod executor;
@@ -46,43 +48,44 @@ pub(crate) struct PlanarReflectionFilterPipeline {
 }
 
 impl PlanarReflectionFilterPipeline {
-    pub(crate) fn new(device: &wgpu::Device) -> Self {
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("zircon-planar-reflection-filter-bind-group-layout"),
-            entries: &[
-                sampled_texture_layout_entry(0),
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::StorageTexture {
-                        access: wgpu::StorageTextureAccess::WriteOnly,
-                        format: wgpu::TextureFormat::Rgba16Float,
-                        view_dimension: wgpu::TextureViewDimension::D2,
+    pub(crate) fn new<F: RenderPassGpuResourceFactory + ?Sized>(factory: &F) -> Self {
+        let bind_group_layout =
+            factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("zircon-planar-reflection-filter-bind-group-layout"),
+                entries: &[
+                    sampled_texture_layout_entry(0),
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::StorageTexture {
+                            access: wgpu::StorageTextureAccess::WriteOnly,
+                            format: wgpu::TextureFormat::Rgba16Float,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-            ],
-        });
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                ],
+            });
+        let shader = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("zircon-planar-reflection-filter-shader"),
             source: wgpu::ShaderSource::Wgsl(PLANAR_FILTER_SHADER.into()),
         });
-        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        let layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-planar-reflection-filter-pipeline-layout"),
             bind_group_layouts: &[Some(&bind_group_layout)],
             immediate_size: 0,
         });
-        let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        let pipeline = factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some(PLANAR_FILTER_PIPELINE_LABEL),
             layout: Some(&layout),
             module: &shader,
@@ -96,10 +99,9 @@ impl PlanarReflectionFilterPipeline {
         }
     }
 
-    pub(crate) fn encode(
+    pub(crate) fn encode<C: RenderPassGpuRecordingContext>(
         &self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
+        context: &mut C,
         source_view: &wgpu::TextureView,
         output_texture: &wgpu::Texture,
         base_extent: wgpu::Extent3d,
@@ -127,11 +129,14 @@ impl PlanarReflectionFilterPipeline {
                 output_dimensions: [output_width, output_height],
                 kernel: [mip_level.min(2), mip_level, 0, 0],
             };
-            let params_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("zircon-planar-reflection-filter-params"),
-                contents: bytemuck::bytes_of(&params),
-                usage: wgpu::BufferUsages::UNIFORM,
-            });
+            let params_buffer =
+                context
+                    .resource_factory()
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some("zircon-planar-reflection-filter-params"),
+                        contents: bytemuck::bytes_of(&params),
+                        usage: wgpu::BufferUsages::UNIFORM,
+                    });
             let output_view = output_texture.create_view(&wgpu::TextureViewDescriptor {
                 label: Some("zircon-planar-reflection-filter-output-mip"),
                 format: Some(wgpu::TextureFormat::Rgba16Float),
@@ -146,32 +151,38 @@ impl PlanarReflectionFilterPipeline {
                 array_layer_count: Some(1),
             });
             let input_view = previous_output_view.as_ref().unwrap_or(source_view);
-            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("zircon-planar-reflection-filter-bind-group"),
-                layout: &self.bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(input_view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::TextureView(&output_view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: params_buffer.as_entire_binding(),
-                    },
-                ],
-            });
+            let bind_group =
+                context
+                    .resource_factory()
+                    .create_bind_group(&wgpu::BindGroupDescriptor {
+                        label: Some("zircon-planar-reflection-filter-bind-group"),
+                        layout: &self.bind_group_layout,
+                        entries: &[
+                            wgpu::BindGroupEntry {
+                                binding: 0,
+                                resource: wgpu::BindingResource::TextureView(input_view),
+                            },
+                            wgpu::BindGroupEntry {
+                                binding: 1,
+                                resource: wgpu::BindingResource::TextureView(&output_view),
+                            },
+                            wgpu::BindGroupEntry {
+                                binding: 2,
+                                resource: params_buffer.as_entire_binding(),
+                            },
+                        ],
+                    });
             let dispatch = [
                 output_width.div_ceil(PLANAR_FILTER_WORKGROUP_SIZE[0]),
                 output_height.div_ceil(PLANAR_FILTER_WORKGROUP_SIZE[1]),
             ];
-            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: Some("PlanarReflectionFilterPass"),
-                timestamp_writes: None,
-            });
+            let mut pass =
+                context
+                    .command_encoder()
+                    .begin_compute_pass(&wgpu::ComputePassDescriptor {
+                        label: Some("PlanarReflectionFilterPass"),
+                        timestamp_writes: None,
+                    });
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &bind_group, &[]);
             pass.dispatch_workgroups(dispatch[0], dispatch[1], 1);

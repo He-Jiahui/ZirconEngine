@@ -18,9 +18,11 @@ fn shared_activity_rail_pointer_bridge_routes_left_and_right_button_hits() {
         Some(HostActivityRailPointerRoute::Button {
             side: HostActivityRailPointerSide::Left,
             item_index: 0,
-            slot: "left_top".to_string(),
-            instance_id: "editor.project#1".to_string(),
         })
+    );
+    assert_eq!(
+        bridge.target_for_button(HostActivityRailPointerSide::Left, 0),
+        Some(("left_top", "editor.project#1"))
     );
 
     let right = bridge
@@ -31,9 +33,11 @@ fn shared_activity_rail_pointer_bridge_routes_left_and_right_button_hits() {
         Some(HostActivityRailPointerRoute::Button {
             side: HostActivityRailPointerSide::Right,
             item_index: 1,
-            slot: "right_bottom".to_string(),
-            instance_id: "editor.console#1".to_string(),
         })
+    );
+    assert_eq!(
+        bridge.target_for_button(HostActivityRailPointerSide::Right, 1),
+        Some(("right_bottom", "editor.console#1"))
     );
 }
 
@@ -44,21 +48,16 @@ fn shared_activity_rail_pointer_bridge_accepts_projected_global_points() {
     assert!(bridge.sync(layout.clone()));
 
     let left = bridge
-        .handle_click(
-            HostActivityRailPointerSide::Left,
-            UiPoint::new(
-                layout.left_strip_frame.x + 15.0,
-                layout.left_strip_frame.y + 20.0,
-            ),
-        )
+        .handle_click_at_global_point(UiPoint::new(
+            layout.left_strip_frame.x + 15.0,
+            layout.left_strip_frame.y + 20.0,
+        ))
         .unwrap();
     assert_eq!(
         left.route,
         Some(HostActivityRailPointerRoute::Button {
             side: HostActivityRailPointerSide::Left,
             item_index: 0,
-            slot: "left_top".to_string(),
-            instance_id: "editor.project#1".to_string(),
         })
     );
 }

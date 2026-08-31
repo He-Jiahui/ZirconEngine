@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use crate::core::framework::bridge::{BridgeOwnerTransitionMode, InterfaceSlot};
 use crate::plugin::{BridgeOwnerTransitionReport, FrozenBridgeTable, RuntimeExtensionRegistry};
 
@@ -13,10 +15,11 @@ pub struct RuntimePluginBridgeLifecycleReport {
 
 impl RuntimePluginBridgeLifecycleReport {
     pub fn affected_slots(&self) -> Vec<InterfaceSlot> {
-        self.owner_reports
-            .iter()
-            .flat_map(|report| report.affected_slots.iter().copied())
-            .collect()
+        let mut affected_slots = Vec::with_capacity(self.affected_slot_count());
+        for report in &self.owner_reports {
+            affected_slots.extend_from_slice(&report.affected_slots);
+        }
+        affected_slots
     }
 
     pub fn affected_slot_count(&self) -> usize {
@@ -46,18 +49,70 @@ pub struct RuntimePluginBridgeLifecycleBlock {
 
 impl RuntimePluginBridgeLifecycleBlock {
     pub fn diagnostic(&self) -> String {
-        format!(
-            "bridge.provider_lifecycle_blocked: provider plugin `{}` {:?} blocked by {} strong dependent(s): {}",
+        let mut diagnostic = String::with_capacity(self.diagnostic_capacity());
+        write!(
+            diagnostic,
+            "bridge.provider_lifecycle_blocked: provider plugin `{}` {:?} blocked by {} strong dependent(s): ",
             self.provider_package_id,
             self.mode,
             self.blockers.len(),
-            self.blockers
-                .iter()
-                .map(RuntimePluginBridgeDisableBlocker::diagnostic)
-                .collect::<Vec<_>>()
-                .join("; ")
         )
+        .expect("writing bridge lifecycle diagnostic to String cannot fail");
+        for (index, blocker) in self.blockers.iter().enumerate() {
+            if index != 0 {
+                diagnostic.push_str("; ");
+            }
+            blocker.write_diagnostic(&mut diagnostic);
+        }
+        diagnostic
     }
+
+    fn diagnostic_capacity(&self) -> usize {
+        const PREFIX: &str = "bridge.provider_lifecycle_blocked: provider plugin `";
+        const MODE_PREFIX: &str = "` ";
+        const COUNT_PREFIX: &str = " blocked by ";
+        const BLOCKER_PREFIX: &str = " strong dependent(s): ";
+        const BLOCKER_SEPARATOR: &str = "; ";
+
+        PREFIX
+            .len()
+            .saturating_add(self.provider_package_id.len())
+            .saturating_add(MODE_PREFIX.len())
+            .saturating_add(bridge_transition_mode_debug_len(self.mode))
+            .saturating_add(COUNT_PREFIX.len())
+            .saturating_add(decimal_len(self.blockers.len()))
+            .saturating_add(BLOCKER_PREFIX.len())
+            .saturating_add(
+                self.blockers
+                    .iter()
+                    .map(RuntimePluginBridgeDisableBlocker::diagnostic_len)
+                    .sum::<usize>(),
+            )
+            .saturating_add(
+                self.blockers
+                    .len()
+                    .saturating_sub(1)
+                    .saturating_mul(BLOCKER_SEPARATOR.len()),
+            )
+    }
+}
+
+fn bridge_transition_mode_debug_len(mode: BridgeOwnerTransitionMode) -> usize {
+    match mode {
+        BridgeOwnerTransitionMode::Activate => "Activate".len(),
+        BridgeOwnerTransitionMode::Disable => "Disable".len(),
+        BridgeOwnerTransitionMode::Deactivate => "Deactivate".len(),
+        BridgeOwnerTransitionMode::Reload => "Reload".len(),
+    }
+}
+
+fn decimal_len(mut value: usize) -> usize {
+    let mut digits = 1;
+    while value >= 10 {
+        value /= 10;
+        digits += 1;
+    }
+    digits
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -224,5 +279,35 @@ impl RuntimePluginCatalog {
         self.projection
             .provider_for_runtime_module(runtime_module_name)
             .map(ToOwned::to_owned)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn streaming_bridge_lifecycle_block_diagnostic_preserves_contract() {
+        let block = RuntimePluginBridgeLifecycleBlock {
+            provider_package_id: "rendering".to_string(),
+            mode: BridgeOwnerTransitionMode::Disable,
+            blockers: vec![
+                RuntimePluginBridgeDisableBlocker {
+                    provider_package_id: "rendering".to_string(),
+                    dependent_package_id: "editor_a".to_string(),
+                    interface_ids: vec!["render.api".to_string()],
+                },
+                RuntimePluginBridgeDisableBlocker {
+                    provider_package_id: "rendering".to_string(),
+                    dependent_package_id: "editor_b".to_string(),
+                    interface_ids: vec!["render.debug".to_string()],
+                },
+            ],
+        };
+
+        assert_eq!(
+            block.diagnostic(),
+            "bridge.provider_lifecycle_blocked: provider plugin `rendering` Disable blocked by 2 strong dependent(s): bridge.strong_target_disable_blocked: provider plugin `rendering` cannot be disabled while dependent plugin `editor_a` requires interfaces [`render.api`]; bridge.strong_target_disable_blocked: provider plugin `rendering` cannot be disabled while dependent plugin `editor_b` requires interfaces [`render.debug`]"
+        );
     }
 }

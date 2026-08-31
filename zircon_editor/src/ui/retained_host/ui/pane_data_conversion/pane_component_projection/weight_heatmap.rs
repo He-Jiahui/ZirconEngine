@@ -47,24 +47,35 @@ fn has_variant(attributes: &BTreeMap<String, toml::Value>, expected: &str) -> bo
 }
 
 fn heat_sources(attributes: &BTreeMap<String, toml::Value>) -> Vec<WeightHeatmapSource> {
-    attributes
+    let Some(values) = attributes
         .get("heat_sources")
         .and_then(toml::Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(toml::Value::as_table)
-        .filter_map(|source| {
-            Some(WeightHeatmapSource::new(
-                normalized_number(source.get("x")?)?,
-                normalized_number(source.get("y")?)?,
-                normalized_number(source.get("weight")?)?,
-                source
-                    .get("selected")
-                    .and_then(toml::Value::as_bool)
-                    .unwrap_or(false),
-            ))
-        })
-        .collect()
+    else {
+        return Vec::new();
+    };
+    let mut sources = Vec::with_capacity(values.len());
+    for value in values {
+        let Some(source) = value.as_table() else {
+            continue;
+        };
+        let (Some(x), Some(y), Some(weight)) = (
+            source.get("x").and_then(normalized_number),
+            source.get("y").and_then(normalized_number),
+            source.get("weight").and_then(normalized_number),
+        ) else {
+            continue;
+        };
+        sources.push(WeightHeatmapSource::new(
+            x,
+            y,
+            weight,
+            source
+                .get("selected")
+                .and_then(toml::Value::as_bool)
+                .unwrap_or(false),
+        ));
+    }
+    sources
 }
 
 fn normalized_number(value: &toml::Value) -> Option<f32> {
@@ -91,4 +102,21 @@ fn string_attribute(attributes: &BTreeMap<String, toml::Value>, name: &str) -> O
         .get(name)
         .and_then(toml::Value::as_str)
         .map(str::to_owned)
+}
+
+#[cfg(test)]
+mod optimization_batch_20260830cd_editor_heatmap_tests {
+    #[test]
+    fn heatmap_source_projection_reserves_array_capacity_and_keeps_filtering() {
+        let source = include_str!("weight_heatmap.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("weight heatmap implementation");
+
+        assert!(implementation.contains("let mut sources = Vec::with_capacity(values.len())"));
+        assert!(implementation.contains("let Some(source) = value.as_table() else"));
+        assert!(implementation.contains("let (Some(x), Some(y), Some(weight))"));
+        assert!(implementation.contains("sources.push(WeightHeatmapSource::new("));
+    }
 }

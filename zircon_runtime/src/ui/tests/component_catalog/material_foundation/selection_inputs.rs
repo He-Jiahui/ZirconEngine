@@ -74,8 +74,15 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
     let dropdown = registry
         .descriptor("Dropdown")
         .expect("Dropdown descriptor");
-    assert_has_event(dropdown, UiComponentEventKind::KeyboardAction);
-    assert_has_event(dropdown, UiComponentEventKind::ValueChanged);
+    for event in [
+        UiComponentEventKind::KeyboardAction,
+        UiComponentEventKind::OpenPopup,
+        UiComponentEventKind::SelectOption,
+        UiComponentEventKind::ClosePopup,
+        UiComponentEventKind::ValueChanged,
+    ] {
+        assert_has_event(dropdown, event);
+    }
 
     let dropdown_popup = registry
         .descriptor("DropdownPopup")

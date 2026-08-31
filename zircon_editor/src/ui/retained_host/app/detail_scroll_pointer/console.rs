@@ -19,16 +19,13 @@ impl RetainedEditorHost {
         );
         if self.console_scroll_surface.set_size(size) {
             let console_output = self.runtime.console_output();
-            self.sync_console_pointer_layout(console_output.as_ref());
+            self.sync_console_pointer_layout(&console_output);
         }
-        match self
+        if self
             .console_scroll_surface
             .handle_scroll(UiPoint::new(x, y), delta)
         {
-            Ok(()) => {
-                self.apply_console_pointer_state_to_ui();
-            }
-            Err(error) => self.set_status_line(error),
+            self.apply_console_pointer_state_to_ui();
         }
     }
 }

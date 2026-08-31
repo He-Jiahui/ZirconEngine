@@ -188,6 +188,7 @@ fn operation_service_phase_selection_uses_indexed_queues() {
     let service = include_str!("../service.rs");
     let admission = include_str!("../service/admission.rs");
     let completion = include_str!("../service/completion.rs");
+    let task_state = include_str!("../service/task_state.rs");
     let queued_start = service
         .find("    fn take_queued_snapshot_task(")
         .expect("queued selection owner");
@@ -208,15 +209,15 @@ fn operation_service_phase_selection_uses_indexed_queues() {
         &service[ready_start..ready_end]
     );
 
-    assert!(service.contains("queued_snapshot_tasks: VecDeque<ZrRuntimeOperationHandle>"));
-    assert!(service.contains("ready_apply_tasks: VecDeque<ZrRuntimeOperationHandle>"));
+    assert!(task_state.contains("queued_snapshot_tasks: VecDeque<ZrRuntimeOperationHandle>"));
+    assert!(task_state.contains("ready_apply_tasks: VecDeque<ZrRuntimeOperationHandle>"));
     assert!(admission.contains("queued_snapshot_tasks.push_back(handle)"));
     assert!(completion.contains("ready_apply_tasks.push_back(handle)"));
     assert!(phase_selection.contains("pop_front()"));
     assert!(!phase_selection.contains("state.tasks.iter().find_map"));
-    assert!(service.contains("fn compact_phase_indexes("));
-    assert!(service.contains("queued_snapshot_tasks.retain"));
-    assert!(service.contains("ready_apply_tasks.retain"));
+    assert!(task_state.contains("fn compact_phase_indexes("));
+    assert!(task_state.contains("queued_snapshot_tasks.retain"));
+    assert!(task_state.contains("ready_apply_tasks.retain"));
 }
 
 #[test]

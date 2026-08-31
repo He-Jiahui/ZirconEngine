@@ -9,12 +9,17 @@ use super::super::popup_primitives::{
 };
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
-use super::popup_state::control_string_array;
 
 const RUN_MODE_MENU_CONTROL_ID: &str = "WorkbenchRunModeMenu";
 const RUN_MODE_TRIGGER_CONTROL_ID: &str = "WorkbenchRunMode";
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    pub(super) fn initialize_run_mode_menu_indicator(
+        &mut self,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.sync_run_mode_menu_for_trigger(RUN_MODE_TRIGGER_CONTROL_ID, PlayKind::Play)
+    }
+
     pub(crate) fn owns_run_mode_menu_trigger(&self, control_id: &str) -> bool {
         control_id == RUN_MODE_TRIGGER_CONTROL_ID
     }
@@ -44,12 +49,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             return Ok(());
         }
         let (selected_action_id, label) = run_mode_choice(kind);
-        let menu_items = control_string_array(
-            &self.template_surface.surface,
-            RUN_MODE_MENU_CONTROL_ID,
-            "menu_items",
-        )
-        .unwrap_or_default();
+        let menu_items = self.control_string_array(RUN_MODE_MENU_CONTROL_ID, "menu_items");
         let menu_items = UiValue::Array(
             menu_items
                 .iter()

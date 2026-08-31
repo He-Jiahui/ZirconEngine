@@ -12,6 +12,12 @@ use std::sync::OnceLock;
 const BUILTIN_OWNER: &str = "zircon.editor.builtin_asset_types";
 const UI_ASSET_EDITOR_VIEW_ID: &str = "editor.ui_asset";
 const UI_ASSET_EDITOR_OPEN_OPERATION: &str = "view.editor.ui_asset.open";
+const ANIMATION_SEQUENCE_EDITOR_VIEW_ID: &str = "editor.animation_sequence";
+const ANIMATION_GRAPH_EDITOR_VIEW_ID: &str = "editor.animation_graph";
+const ANIMATION_SEQUENCE_EDITOR_OPEN_OPERATION: &str = "timeline_sequence.authoring.open";
+const ANIMATION_GRAPH_EDITOR_OPEN_OPERATION: &str = "animation_graph.authoring.open_graph";
+const ANIMATION_STATE_MACHINE_EDITOR_OPEN_OPERATION: &str =
+    "animation_graph.authoring.open_state_machine";
 
 const BUILTIN_RESOURCE_KINDS: [ResourceKind; 26] = [
     ResourceKind::Data,
@@ -45,14 +51,22 @@ const BUILTIN_RESOURCE_KINDS: [ResourceKind; 26] = [
 pub fn builtin_asset_type_definition(
     kind: ResourceKind,
 ) -> Option<&'static super::AssetTypeDefinition> {
-    static REGISTRY: OnceLock<Option<AssetTypeRegistry>> = OnceLock::new();
-    REGISTRY
-        .get_or_init(|| builtin_registry().ok())
-        .as_ref()?
+    builtin_registry_base()
+        .as_ref()
+        .ok()?
         .get_by_id(canonical_resource_kind_id(kind))
 }
 
 pub(super) fn builtin_registry() -> Result<AssetTypeRegistry, AssetTypeRegistryError> {
+    builtin_registry_base().clone()
+}
+
+fn builtin_registry_base() -> &'static Result<AssetTypeRegistry, AssetTypeRegistryError> {
+    static REGISTRY: OnceLock<Result<AssetTypeRegistry, AssetTypeRegistryError>> = OnceLock::new();
+    REGISTRY.get_or_init(build_builtin_registry)
+}
+
+fn build_builtin_registry() -> Result<AssetTypeRegistry, AssetTypeRegistryError> {
     let mut registry = AssetTypeRegistry::default();
     for kind in BUILTIN_RESOURCE_KINDS {
         let id = AssetTypeId::from_resource_kind(kind);
@@ -77,17 +91,29 @@ pub(super) fn builtin_registry() -> Result<AssetTypeRegistry, AssetTypeRegistryE
 }
 
 fn builtin_toolkit(kind: ResourceKind) -> Option<AssetToolkitDescriptor> {
-    matches!(
-        kind,
-        ResourceKind::UiLayout | ResourceKind::UiWidget | ResourceKind::UiStyle
-    )
-    .then(|| {
-        AssetToolkitDescriptor::new(
-            UI_ASSET_EDITOR_VIEW_ID,
-            EditorOperationPath::parse(UI_ASSET_EDITOR_OPEN_OPERATION)
-                .expect("built-in UI asset editor operation path is valid"),
-        )
-    })
+    let (view_id, operation) = match kind {
+        ResourceKind::UiLayout | ResourceKind::UiWidget | ResourceKind::UiStyle => {
+            (UI_ASSET_EDITOR_VIEW_ID, UI_ASSET_EDITOR_OPEN_OPERATION)
+        }
+        ResourceKind::AnimationSequence => (
+            ANIMATION_SEQUENCE_EDITOR_VIEW_ID,
+            ANIMATION_SEQUENCE_EDITOR_OPEN_OPERATION,
+        ),
+        ResourceKind::AnimationGraph => (
+            ANIMATION_GRAPH_EDITOR_VIEW_ID,
+            ANIMATION_GRAPH_EDITOR_OPEN_OPERATION,
+        ),
+        ResourceKind::AnimationStateMachine => (
+            ANIMATION_GRAPH_EDITOR_VIEW_ID,
+            ANIMATION_STATE_MACHINE_EDITOR_OPEN_OPERATION,
+        ),
+        _ => return None,
+    };
+    Some(AssetToolkitDescriptor::new(
+        view_id,
+        EditorOperationPath::parse(operation)
+            .expect("built-in asset toolkit operation path is valid"),
+    ))
 }
 
 fn builtin_thumbnail_provider(
@@ -217,6 +243,35 @@ mod tests {
                 toolkit.open_operation().as_str(),
                 "view.editor.ui_asset.open"
             );
+        }
+    }
+
+    #[test]
+    fn builtin_animation_assets_have_their_document_toolkit_routes() {
+        for (kind, view_id, operation) in [
+            (
+                ResourceKind::AnimationSequence,
+                "editor.animation_sequence",
+                "timeline_sequence.authoring.open",
+            ),
+            (
+                ResourceKind::AnimationGraph,
+                "editor.animation_graph",
+                "animation_graph.authoring.open_graph",
+            ),
+            (
+                ResourceKind::AnimationStateMachine,
+                "editor.animation_graph",
+                "animation_graph.authoring.open_state_machine",
+            ),
+        ] {
+            let toolkit = builtin_asset_type_definition(kind)
+                .expect("built-in animation asset type should be registered")
+                .toolkit()
+                .expect("built-in animation asset type should declare a document toolkit");
+
+            assert_eq!(toolkit.view_id(), view_id);
+            assert_eq!(toolkit.open_operation().as_str(), operation);
         }
     }
 

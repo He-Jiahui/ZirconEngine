@@ -157,3 +157,45 @@ fn importer_preserves_gltf_texcoord_1_on_mesh_subasset() {
 
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn importer_preserves_unsupported_gltf_texcoord_for_readiness_rejection() {
+    let root = unique_temp_project_root("unsupported_uv_channel_model_import");
+    fs::create_dir_all(&root).unwrap();
+    let gltf_path = write_uv_channel_triangle_gltf(&root);
+    let source = fs::read_to_string(&gltf_path).unwrap();
+    let source = source.replacen("\"texCoord\": 1", "\"texCoord\": 2", 1);
+    fs::write(&gltf_path, source).unwrap();
+    let importer = importer_with_first_wave_plugin_fixtures();
+    let root_uri = AssetUri::parse("res://models/unsupported_uv_channel_triangle.gltf").unwrap();
+
+    let outcome = importer
+        .import_with_settings(&gltf_path, &root_uri, Default::default())
+        .unwrap();
+
+    match &entry_for_label(&outcome, &root_uri, "Material0").asset {
+        ImportedAsset::Material(material) => {
+            assert_eq!(
+                material
+                    .texture_slots
+                    .get("base_color")
+                    .expect("base_color texture slot should be imported")
+                    .texture_uv_channel(),
+                2
+            );
+            let readiness = material.readiness_report_with_resolution(|_| true, |_| true);
+            assert!(!readiness.is_ready());
+            assert!(readiness.validation_errors.iter().any(|error| matches!(
+                error,
+                crate::core::framework::render::RenderMaterialValidationError::UnsupportedTextureUvChannel {
+                    slot,
+                    channel: 2,
+                    supported_channel_count: 2,
+                } if slot == "base_color"
+            )));
+        }
+        other => panic!("unexpected Material0 asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}

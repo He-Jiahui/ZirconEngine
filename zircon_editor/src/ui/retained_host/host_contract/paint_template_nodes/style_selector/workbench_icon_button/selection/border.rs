@@ -29,12 +29,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bo
     }
     match state {
         UiPainterResolvedState::Pressed
-        | UiPainterResolvedState::Focused
         | UiPainterResolvedState::Selected
         | UiPainterResolvedState::Checked
         | UiPainterResolvedState::Open
-        | UiPainterResolvedState::Dragging
-        | UiPainterResolvedState::DropHovered => Some(palette.focus_ring),
+        | UiPainterResolvedState::Dragging => Some(palette.panel_border),
+        UiPainterResolvedState::Focused | UiPainterResolvedState::DropHovered => {
+            Some(palette.focus_ring)
+        }
         UiPainterResolvedState::Hovered => Some(palette.border),
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
             (context == WorkbenchIconButtonContext::Panel).then_some(palette.border_disabled)

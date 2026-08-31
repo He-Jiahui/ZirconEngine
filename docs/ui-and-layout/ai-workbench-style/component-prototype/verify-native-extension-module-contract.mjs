@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { extensionModules } from "./src/modules/modules.js";
 
 const expectedExtensionEventsPerWorkspace = 20;
-const expectedSharedCompositeEventCount = 6;
+const expectedSharedCompositeEventCount = 8;
 const previewActionIdPattern = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
 const allowedEventKinds = new Set(["Click", "Change", "Submit"]);
 const extensionEventInteractiveComponents = new Set([
@@ -15,15 +15,15 @@ const extensionEventInteractiveComponents = new Set([
   "WorkbenchTab",
   "WorkbenchTableRow",
   "WorkbenchTimelineStrip",
+  "WorkbenchSearchInput",
 ]);
 const extensionEventKindComponents = new Map([
   ["Click", new Set(["WorkbenchButton", "WorkbenchIconButton", "WorkbenchListRow", "WorkbenchPropertyRow", "WorkbenchTab", "WorkbenchTableRow", "WorkbenchTimelineStrip"])],
-  ["Change", new Set(["WorkbenchDropdown", "WorkbenchField"])],
-  ["Submit", new Set(["WorkbenchDropdown", "WorkbenchField"])],
+  ["Change", new Set(["WorkbenchDropdown", "WorkbenchField", "WorkbenchSearchInput"])],
+  ["Submit", new Set(["WorkbenchDropdown", "WorkbenchField", "WorkbenchSearchInput"])],
 ]);
 
 const requiredWorkspaceComponents = [
-  "WorkbenchButton",
   "WorkbenchDropdown",
   "WorkbenchField",
   "WorkbenchListRow",
@@ -303,7 +303,8 @@ const extensionWorkspaceContracts = [
     feedbackOutputControlId: "WorkbenchExtensionBlendSpaceOutputRow",
     childPrefix: "blend_space",
     openerSourceName: "abilityWorkspace",
-    compositeSourceName: "blendSpaceDetails",
+    compositeSourceNames: ["blendSpaceDetails"],
+    componentSourceNames: ["animationTransportControls"],
   },
   {
     moduleId: "pose-library",
@@ -601,6 +602,7 @@ const extensionWorkspaceContracts = [
 
 const sources = {
   matrix: readLocal("./web-native-handoff-matrix.md"),
+  workbenchWindow: readRepo("../../../../zircon_editor/assets/ui/editor/windows/workbench_window.zui"),
   moduleWorkspace: readRepo("../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui"),
   assetsWorkspace: readRepo("../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui"),
   abilityWorkspace: readRepo("../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"),
@@ -808,8 +810,14 @@ const sources = {
   previewActions: [
     readRepo("../../../../zircon_editor/src/ui/retained_host/workbench_preview_actions.rs"),
     readRepo("../../../../zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs"),
+    readRepo("../../../../zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions/quality_and_observability.rs"),
   ].join("\n"),
+  assetEditorMenu: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/asset_editor_menu.rs"),
+  abilityEditorMenu: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/ability_editor_menu.rs"),
+  renderEditorMenu: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/render_editor_menu.rs"),
+  hudEditorMenu: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/hud_editor_menu.rs"),
   componentizedWindow: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs"),
+  referenceMenuActions: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/reference_menu_actions.rs"),
   moduleFieldEdit: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs"),
   extensionNavigation: [
     readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs"),
@@ -825,6 +833,10 @@ const sources = {
     readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics.rs"),
     readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics/observability.rs"),
     readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building.rs"),
+    readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/level_tools.rs"),
+    readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/prefab_and_scatter.rs"),
+    readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/terrain_and_foliage.rs"),
+    readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/volume_and_weather.rs"),
     readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/blend_space_transport.rs"),
   ].join("\n"),
   extensionFeedback: [
@@ -868,9 +880,31 @@ const previewActions = previewActionsFromRust(sources.previewActions);
 const extensionPreviewActions = new Set([...previewActions].filter(isWorkbenchExtensionPreviewAction));
 const extensionBindingIds = new Set(extensionEvents.map((event) => event.bindingId));
 const bindingActionIds = new Set([...extensionBindings.values()].map((binding) => binding.actionId));
+const assetEditorMenuActionIds = new Set(
+  [...sources.assetEditorMenu.matchAll(/extension_action_id:\s*"([^"]+)"/g)].map((match) => match[1]),
+);
+const abilityEditorMenuActionIds = new Set(
+  [...sources.abilityEditorMenu.matchAll(/extension_action_id:\s*"([^"]+)"/g)].map((match) => match[1]),
+);
+const renderEditorMenuActionIds = new Set(
+  [...sources.renderEditorMenu.matchAll(/extension_action_id:\s*"([^"]+)"/g)].map((match) => match[1]),
+);
+const hudEditorMenuActionIds = new Set(
+  [...sources.hudEditorMenu.matchAll(/extension_action_id:\s*"([^"]+)"/g)].map((match) => match[1]),
+);
+const editorMenuActionIds = new Set([
+  ...assetEditorMenuActionIds,
+  ...abilityEditorMenuActionIds,
+  ...renderEditorMenuActionIds,
+  ...hudEditorMenuActionIds,
+]);
 const extensionWorkspaceNodes = parseZuiNodes(extensionWorkspaceSource);
 const seenBindingIds = new Set();
 const expectedExtensionEventCount =
+  extensionWorkspaceContracts.length * expectedExtensionEventsPerWorkspace
+  + expectedSharedCompositeEventCount
+  - editorMenuActionIds.size;
+const expectedExtensionPreviewActionCount =
   extensionWorkspaceContracts.length * expectedExtensionEventsPerWorkspace
   + expectedSharedCompositeEventCount;
 
@@ -889,12 +923,79 @@ for (const contract of extensionWorkspaceContracts) {
   assertIncludes(sources.moduleWorkspace, "WorkbenchExtensionModuleWorkspacesHost", "module workspace extension host");
   assertIncludes(sources.extensionWorkspaceHost, `${contract.workspaceFile}#${contract.workspaceControlId}`, `${contract.moduleId} split workspace import`);
   assertIncludes(sources.extensionWorkspaceHost, `${contract.workspaceControlId}Host`, `${contract.moduleId} split workspace host`);
-  const openerSource =
-    sources[contract.openerSourceName ?? (contract.openerBindingId === "WorkbenchExtension/ShaderEditorOpen"
-      ? "renderWorkspace"
-      : "assetsWorkspace")];
-  assertIncludes(openerSource, contract.openerControlId, `${contract.moduleId} opener control`);
-  assertIncludes(openerSource, contract.openerBindingId, `${contract.moduleId} opener binding`);
+  const extensionOpenAction = `${workbenchExtensionRoutePrefix(contract.nativeId)}open`;
+  if (assetEditorMenuActionIds.has(extensionOpenAction)) {
+    assertIncludes(
+      sources.workbenchWindow,
+      `menu.item.assets.${routeSegment(contract.nativeId)}`,
+      `${contract.moduleId} asset editor menu item`,
+    );
+    assertIncludes(
+      sources.assetEditorMenu,
+      `extension_action_id: "${extensionOpenAction}"`,
+      `${contract.moduleId} asset editor menu dispatch`,
+    );
+  } else if (abilityEditorMenuActionIds.has(extensionOpenAction)) {
+    assertIncludes(
+      sources.workbenchWindow,
+      `menu.item.ability.${routeSegment(contract.nativeId)}`,
+      `${contract.moduleId} ability editor menu item`,
+    );
+    assertIncludes(
+      sources.abilityEditorMenu,
+      `extension_action_id: "${extensionOpenAction}"`,
+      `${contract.moduleId} ability editor menu dispatch`,
+    );
+  } else if (renderEditorMenuActionIds.has(extensionOpenAction)) {
+    assertIncludes(
+      sources.renderWorkspace,
+      "WorkbenchModule/RenderToolsOpen",
+      `${contract.moduleId} Render Tools trigger`,
+    );
+    assertIncludes(
+      sources.workbenchWindow,
+      "WorkbenchRenderToolsMenu",
+      `${contract.moduleId} Render Tools menu`,
+    );
+    assertIncludes(
+      sources.workbenchWindow,
+      `menu.item.render.${routeSegment(contract.nativeId)}`,
+      `${contract.moduleId} Render Tools menu item`,
+    );
+    assertIncludes(
+      sources.renderEditorMenu,
+      `extension_action_id: "${extensionOpenAction}"`,
+      `${contract.moduleId} Render Tools menu dispatch`,
+    );
+  } else if (hudEditorMenuActionIds.has(extensionOpenAction)) {
+    assertIncludes(
+      sources.hudWorkspace,
+      "WorkbenchModule/HudToolsOpen",
+      `${contract.moduleId} HUD Tools trigger`,
+    );
+    assertIncludes(
+      sources.workbenchWindow,
+      "WorkbenchHudToolsMenu",
+      `${contract.moduleId} HUD Tools menu`,
+    );
+    assertIncludes(
+      sources.workbenchWindow,
+      `menu.item.hud.${routeSegment(contract.nativeId)}`,
+      `${contract.moduleId} HUD Tools menu item`,
+    );
+    assertIncludes(
+      sources.hudEditorMenu,
+      `extension_action_id: "${extensionOpenAction}"`,
+      `${contract.moduleId} HUD Tools menu dispatch`,
+    );
+  } else {
+    const openerSource =
+      sources[contract.openerSourceName ?? (contract.openerBindingId === "WorkbenchExtension/ShaderEditorOpen"
+        ? "renderWorkspace"
+        : "assetsWorkspace")];
+    assertIncludes(openerSource, contract.openerControlId, `${contract.moduleId} opener control`);
+    assertIncludes(openerSource, contract.openerBindingId, `${contract.moduleId} opener binding`);
+  }
 
   const workspaceNode = extensionWorkspaceNodes.get(contract.workspaceRoot);
   if (!workspaceNode) {
@@ -923,10 +1024,20 @@ for (const contract of extensionWorkspaceContracts) {
   }
 
   const workspaceDescendants = collectDescendantNodes(extensionWorkspaceNodes, contract.workspaceRoot);
-  if (contract.compositeSourceName) {
-    workspaceDescendants.push(...parseZuiNodes(sources[contract.compositeSourceName]).values());
+  for (const sourceName of contract.compositeSourceNames ?? []) {
+    workspaceDescendants.push(...parseZuiNodes(sources[sourceName]).values());
   }
   const workspaceComponents = new Set(workspaceDescendants.map((node) => node.component).filter(Boolean));
+  for (const sourceName of contract.componentSourceNames ?? []) {
+    for (const node of parseZuiNodes(sources[sourceName]).values()) {
+      if (node.component) {
+        workspaceComponents.add(node.component);
+      }
+    }
+  }
+  if (!workspaceComponents.has("WorkbenchButton") && !workspaceComponents.has("WorkbenchIconButton")) {
+    failures.push(`${contract.moduleId} workspace is missing a button command control`);
+  }
   for (const component of requiredWorkspaceComponents) {
     if (!workspaceComponents.has(component)) {
       failures.push(`${contract.moduleId} workspace is missing ${component}`);
@@ -951,7 +1062,7 @@ for (const contract of extensionWorkspaceContracts) {
   assertIncludes(sources.extensionNavigation, contract.workspaceControlId, `${contract.moduleId} navigation workspace`);
   assertIncludes(sources.extensionFeedback, contract.feedbackOutputControlId, `${contract.moduleId} feedback output`);
   assertIncludes(sources.componentizedWindow, "apply_workbench_extension_workspace", `${contract.moduleId} workspace route`);
-  assertIncludes(sources.componentizedWindow, "apply_workbench_extension_module_command_feedback", `${contract.moduleId} feedback route`);
+  assertIncludes(sources.referenceMenuActions, "apply_workbench_extension_module_command_feedback", `${contract.moduleId} feedback route`);
 }
 
 if (extensionEvents.length !== expectedExtensionEventCount) {
@@ -960,9 +1071,9 @@ if (extensionEvents.length !== expectedExtensionEventCount) {
 if (extensionBindings.size !== expectedExtensionEventCount) {
   failures.push(`expected ${expectedExtensionEventCount} WorkbenchExtension bindings, found ${extensionBindings.size}`);
 }
-if (extensionPreviewActions.size !== expectedExtensionEventCount) {
+if (extensionPreviewActions.size !== expectedExtensionPreviewActionCount) {
   failures.push(
-    `expected ${expectedExtensionEventCount} WorkbenchExtension preview actions, found ${extensionPreviewActions.size}`,
+    `expected ${expectedExtensionPreviewActionCount} WorkbenchExtension preview actions, found ${extensionPreviewActions.size}`,
   );
 }
 
@@ -1016,7 +1127,13 @@ for (const [bindingId, binding] of extensionBindings) {
 }
 
 for (const actionId of extensionPreviewActions) {
-  if (!bindingActionIds.has(actionId)) {
+  if (
+    !bindingActionIds.has(actionId)
+    && !assetEditorMenuActionIds.has(actionId)
+    && !abilityEditorMenuActionIds.has(actionId)
+    && !renderEditorMenuActionIds.has(actionId)
+    && !hudEditorMenuActionIds.has(actionId)
+  ) {
     failures.push(`${actionId} is registered as a Workbench extension preview action but has no native binding`);
   }
 }
@@ -1388,7 +1505,7 @@ assertIncludes(
 );
 
 console.log(
-  `native extension module contract: modules=${extensionWorkspaceContracts.length} events=${extensionEvents.length} routed=${extensionEvents.filter((event) => event.route).length} unique=${seenBindingIds.size} bindings=${extensionBindings.size} extensionPreviewActions=${extensionPreviewActions.size}`,
+  `native extension module contract: modules=${extensionWorkspaceContracts.length} events=${extensionEvents.length} routed=${extensionEvents.filter((event) => event.route).length} unique=${seenBindingIds.size} bindings=${extensionBindings.size} menuMapped=${editorMenuActionIds.size} nativeEvidence=${extensionBindings.size + editorMenuActionIds.size} extensionPreviewActions=${extensionPreviewActions.size}`,
 );
 
 if (failures.length > 0) {

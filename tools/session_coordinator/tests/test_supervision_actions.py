@@ -1014,6 +1014,153 @@ class SupervisionActionTests(unittest.TestCase):
         self.assertEqual("succeeded", successor_record.status.value)
         self.assertEqual("daemon-b", successor_record.result["successorInstanceId"])
 
+    def test_rollover_waits_for_a_durable_pending_cargo_start(self) -> None:
+        self._insert_cargo_job("pending-start-job", status="leased", live_pids=[])
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cargo_start_requests(
+                    request_id, reservation_id, job_id, session_id, command_json,
+                    status, acknowledged_at, deadline_at
+                ) VALUES (
+                    'pending-start-request', 'pending-start-reservation',
+                    'pending-start-job', 'executor-session', '["cargo","check"]',
+                    'start_pending', '2026-08-31T00:00:00+00:00',
+                    '2099-08-31T00:00:00+00:00'
+                )
+                """
+            )
+
+        rolling = self._confirm(ActionKind.SERVICE_ROLLOVER)
+
+        self.assertTrue(rolling.result["waitingForCargo"])
+        self.assertEqual(
+            ["pending-start-request"],
+            [item["requestId"] for item in rolling.result["pendingCargoStarts"]],
+        )
+        self.assertFalse(self.shutdown.wait(0.1))
+
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE cargo_start_requests
+                SET status='launch_failed', completed_at='2026-08-31T00:00:01+00:00'
+                WHERE request_id='pending-start-request'
+                """
+            )
+        self.assertTrue(self.shutdown.wait(2))
+
+    def test_rollover_arm_serializes_with_managed_start_registration(self) -> None:
+        cargo = CargoJobService(
+            self.database,
+            TargetPathPolicy([self.target_root]),
+            repo_root=self.repo,
+            free_space=lambda _path: 200 * 1024**3,
+        )
+        self.supervision.set_cargo_start_transition(cargo.managed_start_registration)
+        arm_attempted = threading.Event()
+        original_arm = self.supervision.arm_rollover
+        result: list[object] = []
+        errors: list[BaseException] = []
+
+        def observed_arm(*args, **kwargs):
+            arm_attempted.set()
+            return original_arm(*args, **kwargs)
+
+        def confirm_rollover() -> None:
+            try:
+                result.append(self._confirm(ActionKind.SERVICE_ROLLOVER))
+            except BaseException as error:
+                errors.append(error)
+
+        with patch.object(self.supervision, "arm_rollover", side_effect=observed_arm):
+            with cargo.managed_start_registration():
+                worker = threading.Thread(target=confirm_rollover)
+                worker.start()
+                self.assertTrue(arm_attempted.wait(1))
+                self.assertFalse(self.shutdown.wait(0.1))
+            worker.join(2)
+
+        self.assertFalse(worker.is_alive())
+        self.assertEqual([], errors)
+        self.assertEqual(1, len(result))
+        self.assertTrue(self.shutdown.wait(2))
+
+    def test_armed_rollover_fences_only_new_cargo_start_admission(self) -> None:
+        cargo = CargoJobService(
+            self.database,
+            TargetPathPolicy([self.target_root]),
+            repo_root=self.repo,
+            free_space=lambda _path: 200 * 1024**3,
+            process_alive=lambda _pid: True,
+            process_tree_pids=lambda pid: (pid,),
+            process_creation_time=lambda _pid: "created-cargo",
+        )
+        cargo.set_cargo_start_guard(
+            self.supervision.require_cargo_start_allowed_in_connection
+        )
+        self.supervision.set_cargo_start_transition(cargo.managed_start_registration)
+        job = cargo.acquire("executor-session", CargoLaneKind.TEST)
+        reservation = cargo.reserve_cpu(
+            "executor-session",
+            compatibility=self._source_bound_compatibility(),
+            command=("cargo", "check"),
+            burst_eligible=False,
+        )
+
+        rolling = self._confirm(ActionKind.SERVICE_ROLLOVER)
+
+        self.assertTrue(self.shutdown.wait(2))
+        self.supervision.require_mutation_allowed("session.heartbeat@reviewer-session")
+        with self.assertRaises(CoordinatorError) as consume_rejected:
+            cargo.consume_cpu_reservation(
+                reservation["reservationId"],
+                session_id="executor-session",
+                lane_kind=CargoLaneKind.TEST,
+            )
+        self.assertEqual(
+            "cargo_start_rollover_pending", consume_rejected.exception.code
+        )
+        with self.assertRaises(CoordinatorError) as rejected:
+            cargo.authorize_managed_start(
+                job.job_id,
+                session_id="executor-session",
+                command=("cargo", "check"),
+            )
+        self.assertEqual("cargo_start_rollover_pending", rejected.exception.code)
+        self.assertEqual(rolling.action_id, rejected.exception.details["actionId"])
+        with self.assertRaises(CoordinatorError) as legacy_rejected:
+            cargo.start(
+                job.job_id,
+                session_id="executor-session",
+                pid=4242,
+                command=("cargo", "check"),
+            )
+        self.assertEqual(
+            "cargo_start_rollover_pending", legacy_rejected.exception.code
+        )
+        successor = SupervisionService(
+            self.database,
+            repository_key="repo",
+            daemon_instance_id="daemon-b",
+            process_creation_time="created-b",
+        )
+        with self.database.transaction() as connection:
+            successor.require_cargo_start_allowed_in_connection(
+                connection, "cargo.run@executor-session"
+            )
+        with self.database.connect() as connection:
+            persisted = connection.execute(
+                "SELECT status, pid, started_at FROM cargo_jobs WHERE job_id=?",
+                (job.job_id,),
+            ).fetchone()
+            persisted_reservation = connection.execute(
+                "SELECT status, job_id FROM cargo_lane_reservations WHERE reservation_id=?",
+                (reservation["reservationId"],),
+            ).fetchone()
+        self.assertEqual(("leased", None, None), tuple(persisted))
+        self.assertEqual(("pending", None), tuple(persisted_reservation))
+
     def test_successor_coalesces_a_recent_rollover_without_a_second_shutdown(self) -> None:
         first = self._confirm(ActionKind.SERVICE_ROLLOVER)
         self.assertTrue(self.shutdown.wait(2))

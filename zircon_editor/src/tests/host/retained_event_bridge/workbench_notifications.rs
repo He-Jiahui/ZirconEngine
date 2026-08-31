@@ -42,7 +42,7 @@ fn save_and_import_records_queue_typed_toasts_for_retained_host() {
     );
 
     assert!(effects.import_model_requested);
-    assert!(effects.presentation_dirty);
+    assert!(!effects.presentation_dirty);
     assert_eq!(effects.toast_notifications.len(), 1);
     let import_notification = &effects.toast_notifications[0];
     assert_eq!(

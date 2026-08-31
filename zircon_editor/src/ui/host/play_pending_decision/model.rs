@@ -1,58 +1,11 @@
+use std::sync::Arc;
+
 use crate::core::notifications::{DecisionOptionId, DecisionTicket};
 use crate::core::play::PendingEditIntent;
+use crate::ui::host::EditorOperationDispatchError;
 
 pub(crate) const PLAY_PENDING_EDITS_APPLY_OPTION: &str = "apply";
 pub(crate) const PLAY_PENDING_EDITS_DISCARD_OPTION: &str = "discard";
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct PlayPendingDecisionOption {
-    selection_id: String,
-    ticket: DecisionTicket,
-    option_id: DecisionOptionId,
-    title: String,
-    message: String,
-}
-
-impl PlayPendingDecisionOption {
-    pub(crate) fn new(
-        selection_id: String,
-        ticket: DecisionTicket,
-        option_id: DecisionOptionId,
-        title: String,
-        message: String,
-    ) -> Self {
-        Self {
-            selection_id,
-            ticket,
-            option_id,
-            title,
-            message,
-        }
-    }
-
-    pub(crate) fn selection_id(&self) -> &str {
-        &self.selection_id
-    }
-
-    pub(crate) fn option_id(&self) -> &DecisionOptionId {
-        &self.option_id
-    }
-
-    pub(crate) fn title(&self) -> &str {
-        &self.title
-    }
-
-    pub(crate) fn message(&self) -> &str {
-        &self.message
-    }
-
-    pub(super) fn selection(&self) -> PlayPendingDecisionSelection {
-        PlayPendingDecisionSelection {
-            ticket: self.ticket.clone(),
-            option_id: self.option_id.clone(),
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct PlayPendingDecisionSelection {
@@ -74,23 +27,32 @@ impl PlayPendingDecisionSelection {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) struct PlayPendingEditApplyFailure {
     intent: PendingEditIntent,
-    error: String,
+    error: Arc<EditorOperationDispatchError>,
+}
+
+impl PartialEq for PlayPendingEditApplyFailure {
+    fn eq(&self, other: &Self) -> bool {
+        self.intent == other.intent && self.error.to_string() == other.error.to_string()
+    }
 }
 
 impl PlayPendingEditApplyFailure {
-    pub(super) fn new(intent: PendingEditIntent, error: String) -> Self {
-        Self { intent, error }
+    pub(super) fn new(intent: PendingEditIntent, error: EditorOperationDispatchError) -> Self {
+        Self {
+            intent,
+            error: Arc::new(error),
+        }
     }
 
     pub(crate) fn intent(&self) -> &PendingEditIntent {
         &self.intent
     }
 
-    pub(crate) fn error(&self) -> &str {
-        &self.error
+    pub(crate) fn error(&self) -> &EditorOperationDispatchError {
+        self.error.as_ref()
     }
 }
 

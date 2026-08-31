@@ -1,0 +1,39 @@
+kind = "compute"
+version = 2
+name = "Compute Invocation Binding Probe"
+wgsl_files = ["compute_binding_probe.wgsl"]
+
+[[entry_points]]
+name = "cs_main"
+stage = "compute"
+file = "compute_binding_probe.wgsl"
+
+[[properties]]
+name = "element_count"
+kind = "uint"
+required = true
+default = 0
+
+[[properties]]
+name = "scale"
+kind = "float"
+required = true
+default = 1.0
+
+[[resources]]
+name = "params"
+kind = "uniform_buffer"
+access = "read"
+
+[[resources]]
+name = "input_values"
+kind = "storage_buffer"
+access = "read"
+
+[[resources]]
+name = "output_values"
+kind = "storage_buffer"
+access = "read_write"
+
+[editor]
+category = "Validation/Shader Invocation"

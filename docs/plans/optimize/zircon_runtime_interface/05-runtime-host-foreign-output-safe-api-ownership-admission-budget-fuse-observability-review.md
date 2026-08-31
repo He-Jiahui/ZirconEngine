@@ -16,9 +16,9 @@ related_code:
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/handles.rs
   - zircon_runtime_interface/src/status.rs
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
-  - zircon_runtime_interface/src/runtime_api/requests.rs
-  - zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/session/requests.rs
+  - zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime_interface/src/world_sync
   - zircon_runtime_interface/src/ui/accessibility.rs

@@ -5,6 +5,7 @@ use syn::{Expr, Ident, LitBool, LitStr, Path, Token};
 #[derive(Default)]
 pub(crate) struct ScriptTypeArgs {
     pub(crate) name: Option<String>,
+    pub(crate) identity: Option<String>,
     pub(crate) value_kind: Option<Path>,
     pub(crate) prototype: Option<Path>,
     pub(crate) allow_value_construction: Option<bool>,
@@ -14,6 +15,8 @@ pub(crate) struct ScriptTypeArgs {
 #[derive(Default)]
 pub(crate) struct FieldArgs {
     pub(crate) name: Option<String>,
+    pub(crate) identity: Option<String>,
+    pub(crate) aliases: Vec<String>,
     pub(crate) type_name: Option<String>,
     pub(crate) value_kind: Option<Path>,
     pub(crate) documentation: Option<String>,

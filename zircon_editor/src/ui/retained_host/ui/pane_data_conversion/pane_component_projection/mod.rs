@@ -13,10 +13,10 @@ mod host_template_node;
 mod notification_center;
 mod popup_actions;
 mod popup_frame;
-pub(crate) mod preview_images;
 mod progress_value;
 mod sample_grid;
 mod selection_options;
+mod settings_window;
 mod showcase_actions;
 mod string_lists;
 mod surface_defaults;
@@ -33,9 +33,7 @@ mod visual_style;
 mod weight_heatmap;
 mod world_space;
 
-pub(in crate::ui::retained_host::ui) use self::command_palette::{
-    projected_command_palette_options, projected_command_palette_structured_options,
-};
+pub(in crate::ui::retained_host::ui) use self::command_palette::projected_command_palette_option_rows;
 pub(super) use self::host_template_node::host_template_node;
 pub(in crate::ui::retained_host::ui) use self::notification_center::{
     projected_notification_center_metadata, projected_notification_center_metadata_from_host,
@@ -44,6 +42,7 @@ pub(in crate::ui::retained_host::ui) use self::notification_center::{
     NotificationCenterMetadata,
 };
 pub(in crate::ui::retained_host::ui) use self::sample_grid::projected_sample_grid_data;
+pub(in crate::ui::retained_host::ui) use self::settings_window::projected_settings_window_data;
 pub(in crate::ui::retained_host::ui) use self::timeline_strip::projected_timeline_strip_data;
 pub(in crate::ui::retained_host::ui) use self::weight_heatmap::projected_weight_heatmap_data;
 

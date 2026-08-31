@@ -4,10 +4,16 @@ use super::*;
 fn runtime_session_archive_statistics_summarizes_slots_without_restoring_worlds() {
     let empty = World::empty();
     let mut populated = World::empty();
-    populated.spawn_node(NodeKind::Mesh);
-    populated.spawn_node(NodeKind::Camera);
+    populated
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    populated
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     let mut single = World::empty();
-    single.spawn_node(NodeKind::PointLight);
+    single
+        .spawn_node(NodeKind::PointLight)
+        .expect("test scene spawn should succeed");
 
     let archive = RuntimeSessionArchive::from_slots(vec![
         RuntimeSessionSlot::from_world_with_metadata(
@@ -141,8 +147,12 @@ fn runtime_session_archive_selects_latest_and_oldest_updated_slots_without_resto
 fn runtime_session_archive_manifest_summarizes_sorted_slots() {
     let empty = World::empty();
     let mut populated = World::empty();
-    populated.spawn_node(NodeKind::Mesh);
-    populated.spawn_node(NodeKind::Camera);
+    populated
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    populated
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
 
     let archive = RuntimeSessionArchive::from_slots(vec![
         RuntimeSessionSlot::from_world_with_metadata(
@@ -336,7 +346,9 @@ fn runtime_session_archive_selects_latest_and_oldest_updated_slots_by_tag() {
 fn runtime_session_archive_upsert_replaces_slot_summary() {
     let empty = World::empty();
     let mut populated = World::empty();
-    populated.spawn_node(NodeKind::Mesh);
+    populated
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
 
     let mut archive = RuntimeSessionArchive::from_world("autosave", &empty)
         .expect("archive should capture initial autosave");

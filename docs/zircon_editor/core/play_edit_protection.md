@@ -27,13 +27,13 @@ In Edit mode, edit-domain operations dispatch immediately. A play-domain operati
 
 ## Lifecycle
 
-Entering Play activates plugins, raises edit protection, then starts the selected backend. Backend start failure lowers protection before plugin rollback. A successful stop or terminal backend poll lowers protection and adds `PendingEditDecisionPrompt` to `PlayTransitionReport` when the queue is non-empty. Cleanup failures retain Playing and keep protection raised for retry.
+Entering Play activates plugins, raises edit protection, then starts the selected backend. Backend start failure lowers protection before plugin rollback. A successful stop or terminal backend poll lowers protection and adds `PendingEditDecisionPrompt` to `PlayTransitionReport` when the queue is non-empty. Backend retirement and snapshot cleanup are separate terminal-owner steps: a cleanup failure enters `CleanupFailed`, retains the exact backend/session owner, and must be retried before a new Play start is admitted.
 
 The next Play start is rejected with `PendingEditDecisionRequired` until the caller applies or discards the queue. While a decision callback is running, an explicit resolution barrier rejects both new Play starts and additional resolution attempts. The prompt is data-only; presentation belongs to the notification/dialog owner.
 
 ## Pending intents
 
-The queue stores typed `EditorOperationInvocation` values with a monotonic `PendingEditId` and the original `PlayEditTarget`. It does not store command closures or duplicate the transaction engine. Resolution is exposed by `PlaySessionController`; the controller does not expose its raw protection or queue owner. `apply_all` drains a stable batch, invokes the supplied operation dispatcher without holding the queue or controller transition lock, continues after individual failures, and returns each failed intent with its error. `discard_all` returns all discarded intents for audit or notification.
+The queue stores typed `EditorOperationInvocation` values with a monotonic `PendingEditId`, the registration-owned `EditOperationTarget`, and its declared retention policy. It does not store command closures or duplicate the transaction engine. Resolution is exposed by `PlaySessionController`; the controller does not expose its raw protection or queue owner. `apply_pending` drains a frozen batch, invokes the supplied operation dispatcher without holding the queue or controller transition lock, continues after individual failures, and returns each failed intent with its error. Callback panics requeue the in-flight intent before unwinding. `discard_pending` reports discarded queue state for audit or notification.
 
 Entries enqueued concurrently after a batch is drained are not absorbed into that decision; reports expose `remaining_count`. Identifier exhaustion is a typed error and does not enqueue a partial entry.
 

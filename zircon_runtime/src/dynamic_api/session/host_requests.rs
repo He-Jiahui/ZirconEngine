@@ -1,7 +1,8 @@
+use zircon_runtime_interface::ui::dispatch::UiClipboardRequest;
 use zircon_runtime_interface::{
-    ZrRuntimeCursorGrabModeV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1,
-    ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestV1,
-    ZrRuntimeImeSurroundingTextV1, ZrRuntimeViewportHandle,
+    ZrRuntimeClipboardHostRequestV1, ZrRuntimeCursorGrabModeV1, ZrRuntimeCursorHostRequestV1,
+    ZrRuntimeCursorPositionV1, ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeImeCursorAreaV1,
+    ZrRuntimeImeHostRequestV1, ZrRuntimeImeSurroundingTextV1, ZrRuntimeViewportHandle,
 };
 
 use crate::core::framework::input::{
@@ -11,6 +12,14 @@ use crate::core::framework::input::{
 // JSON control characters can expand to six bytes. Keeping the source window at 32 KiB leaves
 // ample room for the request envelope under the 256 KiB host-output ceiling.
 const RUNTIME_IME_SURROUNDING_TEXT_MAX_BYTES: usize = 32 * 1024;
+
+pub(in crate::dynamic_api) fn runtime_clipboard_host_request(
+    request: UiClipboardRequest,
+    target_surface: u32,
+    target_viewport: ZrRuntimeViewportHandle,
+) -> ZrRuntimeClipboardHostRequestV1 {
+    ZrRuntimeClipboardHostRequestV1::new(target_viewport, target_surface, request)
+}
 
 pub(in crate::dynamic_api) fn runtime_ime_host_request(
     request: ImeHostRequest,
@@ -143,14 +152,14 @@ fn runtime_cursor_grab_mode(grab_mode: CursorGrabMode) -> ZrRuntimeCursorGrabMod
 #[cfg(test)]
 mod tests {
     use zircon_runtime_interface::{
+        ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1,
         ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeImeHostRequestKindV1,
-        ZrRuntimeViewportHandle, ZIRCON_RUNTIME_ABI_VERSION_V1,
-        ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1,
+        ZrRuntimeViewportHandle,
     };
 
-    use super::{runtime_ime_host_request, RUNTIME_IME_SURROUNDING_TEXT_MAX_BYTES};
+    use super::{RUNTIME_IME_SURROUNDING_TEXT_MAX_BYTES, runtime_ime_host_request};
     use crate::core::framework::input::{ImeCursorRange, ImeHostRequest, ImeSurroundingText};
-    use crate::dynamic_api::frame::encode_host_request_batch;
+    use crate::dynamic_api::frame::{encode_host_request_batch, encode_host_request_page};
 
     #[test]
     fn runtime_ime_host_request_preserves_its_viewport_target() {
@@ -182,9 +191,10 @@ mod tests {
         assert!(text.value.is_char_boundary(text.cursor));
         assert!(text.cursor <= text.value.len());
         assert!(text.anchor <= text.value.len());
-        assert!(text
-            .composition_range
-            .is_some_and(|range| range.start <= range.end && range.end <= text.value.len()));
+        assert!(
+            text.composition_range
+                .is_some_and(|range| range.start <= range.end && range.end <= text.value.len())
+        );
 
         let bytes = encode_host_request_batch(&ZrRuntimeHostRequestBatchV1::new(
             ZIRCON_RUNTIME_ABI_VERSION_V1,
@@ -192,5 +202,22 @@ mod tests {
         ))
         .expect("producer-bounded IME request must fit one host-output page");
         assert!(bytes.len() <= ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1.max_encoded_bytes);
+    }
+
+    #[test]
+    fn borrowed_host_request_page_matches_the_owned_v1_batch_encoding() {
+        let requests = vec![ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(
+            ImeHostRequest::Enable,
+            ZrRuntimeViewportHandle::new(7),
+        ))];
+        let owned = encode_host_request_batch(&ZrRuntimeHostRequestBatchV1::new(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            requests.clone(),
+        ))
+        .expect("owned host request batch");
+        let borrowed = encode_host_request_page(ZIRCON_RUNTIME_ABI_VERSION_V1, &requests)
+            .expect("borrowed host request page");
+
+        assert_eq!(borrowed, owned);
     }
 }

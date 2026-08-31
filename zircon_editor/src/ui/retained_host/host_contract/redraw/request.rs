@@ -4,21 +4,24 @@ mod query;
 
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 
-use super::super::data::FrameRect;
+use super::HostDamageRegion;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum HostRedrawRequest {
     None,
     FrameUpdate {
         scenario: UiPerfScenario,
+        interactive_frame_update: bool,
     },
     Full {
         frame_update: bool,
+        interactive_frame_update: bool,
         scenario: UiPerfScenario,
     },
     Region {
-        frame: FrameRect,
+        damage: HostDamageRegion,
         frame_update: bool,
+        interactive_frame_update: bool,
         scenario: UiPerfScenario,
     },
 }

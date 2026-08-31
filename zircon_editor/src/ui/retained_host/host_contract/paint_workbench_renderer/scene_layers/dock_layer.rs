@@ -1,5 +1,5 @@
 use super::super::super::data::{
-    paint_pane_interaction_state, paint_text_input_focus, paint_viewport_image,
+    paint_pane_interaction_state, paint_text_input_focus, paint_viewport_images,
     HostWindowPresentationData,
 };
 use super::super::super::paint_frame::HostRgbaFrame;
@@ -28,7 +28,7 @@ pub(super) fn draw_dock_layers(
     if visited == 0 {
         return;
     }
-    let viewport_image = paint_viewport_image(presentation);
+    let viewport_images = paint_viewport_images(presentation);
     let interaction = paint_pane_interaction_state(presentation);
     let text_input_focus = paint_text_input_focus(presentation);
     if route.left {
@@ -37,7 +37,7 @@ pub(super) fn draw_dock_layers(
             frame,
             &scene.left_dock,
             &interaction,
-            viewport_image.as_deref(),
+            &viewport_images,
             Some(&text_input_focus),
         );
     }
@@ -47,7 +47,7 @@ pub(super) fn draw_dock_layers(
             frame,
             &scene.document_dock,
             &interaction,
-            viewport_image.as_deref(),
+            &viewport_images,
             Some(&text_input_focus),
         );
     }
@@ -57,7 +57,7 @@ pub(super) fn draw_dock_layers(
             frame,
             &scene.right_dock,
             &interaction,
-            viewport_image.as_deref(),
+            &viewport_images,
             Some(&text_input_focus),
         );
     }
@@ -67,7 +67,7 @@ pub(super) fn draw_dock_layers(
             frame,
             &scene.bottom_dock,
             &interaction,
-            viewport_image.as_deref(),
+            &viewport_images,
             Some(&text_input_focus),
         );
     }
@@ -94,16 +94,7 @@ pub(super) fn draw_floating_layer(
     presentation: &HostWindowPresentationData,
 ) {
     zircon_runtime::profile_scope!("editor", "host_painter", "painter_floating_layer");
-    let interaction = paint_pane_interaction_state(presentation);
-    let viewport_image = paint_viewport_image(presentation);
-    let text_input_focus = paint_text_input_focus(presentation);
-    docks::draw_floating_layer(
-        frame,
-        presentation,
-        &interaction,
-        viewport_image.as_deref(),
-        Some(&text_input_focus),
-    );
+    docks::draw_floating_layer(frame, presentation);
 }
 
 #[cfg(test)]

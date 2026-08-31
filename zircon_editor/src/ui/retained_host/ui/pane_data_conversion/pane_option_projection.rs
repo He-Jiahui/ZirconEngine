@@ -1,6 +1,7 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 
 use crate::ui::retained_host as host_contract;
+use crate::ui::retained_host::option_spec::{parse_retained_option, RetainedOptionSpec};
 use zircon_runtime_interface::ui::component::UiValue;
 
 use super::pane_value_conversion::value_as_options;
@@ -63,65 +64,10 @@ pub(in crate::ui::retained_host::ui) fn structured_options_for_node(
         .collect()
 }
 
-#[derive(Clone, Debug)]
-struct ProjectedOption {
-    raw: String,
-    id: String,
-    label: String,
-    flags: Vec<String>,
-}
-
-impl ProjectedOption {
-    fn has_flag(&self, expected: &str) -> bool {
-        self.flags
-            .iter()
-            .any(|flag| flag.eq_ignore_ascii_case(expected))
-    }
-
-    fn flag_value(&self, expected_key: &str) -> Option<&str> {
-        self.flags.iter().find_map(|flag| {
-            let (key, value) = flag.split_once('=')?;
-            key.trim()
-                .eq_ignore_ascii_case(expected_key)
-                .then(|| value.trim())
-                .filter(|value| !value.is_empty())
-        })
-    }
-
-    fn matches_id(&self, expected: &str) -> bool {
-        let expected = expected.trim();
-        !expected.is_empty()
-            && [self.id.as_str(), self.label.as_str(), self.raw.as_str()]
-                .into_iter()
-                .any(|value| value == expected)
-    }
-}
+type ProjectedOption = RetainedOptionSpec;
 
 fn structured_option(raw: &str) -> ProjectedOption {
-    let mut parts = raw.splitn(2, '|');
-    let id = parts.next().unwrap_or_default().trim();
-    let flags = parts
-        .next()
-        .unwrap_or_default()
-        .split(',')
-        .map(str::trim)
-        .filter(|flag| !flag.is_empty())
-        .map(str::to_string)
-        .collect::<Vec<_>>();
-    let mut option = ProjectedOption {
-        raw: raw.to_string(),
-        id: id.to_string(),
-        label: id.to_string(),
-        flags,
-    };
-    let label = option
-        .flag_value("label")
-        .or_else(|| option.flag_value("text"))
-        .map(str::to_string);
-    if let Some(label) = label {
-        option.label = label;
-    }
-    option
+    parse_retained_option(raw)
 }
 
 fn option_matches_query(option: &ProjectedOption, query: Option<&str>) -> bool {
@@ -133,7 +79,7 @@ fn option_matches_query(option: &ProjectedOption, query: Option<&str>) -> bool {
         || contains_ascii_case_insensitive(&option.raw, query)
 }
 
-fn option_matches_set(option: &ProjectedOption, values: &BTreeSet<String>) -> bool {
+fn option_matches_set(option: &ProjectedOption, values: &HashSet<String>) -> bool {
     values.contains(option.id.as_str())
         || values.contains(option.label.as_str())
         || values.contains(option.raw.as_str())
@@ -147,7 +93,7 @@ fn contains_ascii_case_insensitive(haystack: &str, needle: &str) -> bool {
             .any(|candidate| candidate.eq_ignore_ascii_case(needle.as_bytes()))
 }
 
-fn option_id_set(value: Option<&toml::Value>) -> BTreeSet<String> {
+fn option_id_set(value: Option<&toml::Value>) -> HashSet<String> {
     value
         .and_then(value_as_options)
         .unwrap_or_default()
@@ -156,7 +102,7 @@ fn option_id_set(value: Option<&toml::Value>) -> BTreeSet<String> {
         .collect()
 }
 
-fn selected_option_ids(attributes: &BTreeMap<String, toml::Value>) -> BTreeSet<String> {
+fn selected_option_ids(attributes: &BTreeMap<String, toml::Value>) -> HashSet<String> {
     ["value", "selected_options", "selectedOptions"]
         .into_iter()
         .filter_map(|key| attributes.get(key))
@@ -170,9 +116,9 @@ fn normalized_option_id(value: String) -> Option<String> {
     (!value.is_empty()).then(|| value.to_owned())
 }
 
-fn selected_option_ids_from_value(value: &toml::Value) -> BTreeSet<String> {
+fn selected_option_ids_from_value(value: &toml::Value) -> HashSet<String> {
     match UiValue::from_toml(value) {
-        UiValue::String(value) | UiValue::Enum(value) => BTreeSet::from([value]),
+        UiValue::String(value) | UiValue::Enum(value) => HashSet::from([value]),
         UiValue::Flags(values) => values.into_iter().collect(),
         UiValue::Array(values) => values
             .into_iter()
@@ -182,9 +128,9 @@ fn selected_option_ids_from_value(value: &toml::Value) -> BTreeSet<String> {
         value => {
             let text = value.display_text();
             if text.is_empty() {
-                BTreeSet::new()
+                HashSet::new()
             } else {
-                BTreeSet::from([text])
+                HashSet::from([text])
             }
         }
     }
@@ -206,7 +152,54 @@ fn option_id(value: Option<&toml::Value>) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+    use std::hint::black_box;
+    use std::time::{Duration, Instant};
+
     use super::*;
+
+    const OPTION_ID_COUNT: usize = 8_192;
+    const MEMBERSHIP_LOOKUP_COUNT: usize = 65_536;
+    const SAMPLE_COUNT: usize = 17;
+
+    fn percentile_95(samples: &mut [Duration]) -> Duration {
+        samples.sort_unstable();
+        samples[(samples.len() - 1) * 95 / 100]
+    }
+
+    fn option_ids() -> Vec<String> {
+        (0..OPTION_ID_COUNT)
+            .map(|index| format!("editor.pane.option.generated.{index:05}"))
+            .collect()
+    }
+
+    fn membership_lookups(option_ids: &[String]) -> Vec<String> {
+        (0..MEMBERSHIP_LOOKUP_COUNT)
+            .map(|index| option_ids[(index * 4_099) % option_ids.len()].clone())
+            .collect()
+    }
+
+    fn ordered_match_count(option_ids: &[String], lookups: &[String]) -> usize {
+        let values = option_ids
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        lookups
+            .iter()
+            .filter(|option_id| values.contains(option_id.as_str()))
+            .count()
+    }
+
+    fn hash_match_count(option_ids: &[String], lookups: &[String]) -> usize {
+        let values = option_ids
+            .iter()
+            .map(String::as_str)
+            .collect::<HashSet<_>>();
+        lookups
+            .iter()
+            .filter(|option_id| values.contains(option_id.as_str()))
+            .count()
+    }
 
     #[test]
     fn option_query_matching_is_ascii_case_insensitive_without_normalized_row_strings() {
@@ -220,11 +213,115 @@ mod tests {
 
         assert!(option_matches_set(
             &option,
-            &BTreeSet::from(["Open Project".to_string()])
+            &HashSet::from(["Open Project".to_string()])
         ));
         assert!(!option_matches_set(
             &option,
-            &BTreeSet::from(["file.save".to_string()])
+            &HashSet::from(["file.save".to_string()])
         ));
+    }
+
+    #[test]
+    fn optimization_batch_20260826z_editor01_pane_option_hash_sets_preserve_state_and_input_order()
+    {
+        let attributes = BTreeMap::from([
+            (
+                "selected_options".to_string(),
+                toml::Value::Array(vec![toml::Value::String("option.a".to_string())]),
+            ),
+            (
+                "disabled_options".to_string(),
+                toml::Value::Array(vec![toml::Value::String("option.b".to_string())]),
+            ),
+        ]);
+        let options = vec![
+            "option.b|label=Beta".to_string(),
+            "option.a|label=Alpha".to_string(),
+        ];
+
+        let projected = structured_options_for_node(&options, &attributes);
+        assert_eq!(
+            projected
+                .iter()
+                .map(|option| option.id.as_ref())
+                .collect::<Vec<&str>>(),
+            vec!["option.b", "option.a"]
+        );
+        assert!(projected[0].disabled);
+        assert!(!projected[0].selected);
+        assert!(projected[1].selected);
+        assert!(!projected[1].disabled);
+    }
+
+    #[test]
+    fn optimization_batch_20260826z_editor01_pane_option_projection_uses_hash_membership() {
+        let source = include_str!("pane_option_projection.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap();
+
+        assert!(production.contains("use std::collections::{BTreeMap, HashSet};"));
+        assert!(production.contains("values: &HashSet<String>"));
+        assert!(production.contains("-> HashSet<String>"));
+        assert!(!production.contains("BTreeSet"));
+    }
+
+    #[test]
+    #[ignore = "release performance evidence"]
+    fn optimization_batch_20260826z_editor01_pane_option_hash_membership_performance_evidence() {
+        let option_ids = option_ids();
+        let lookups = membership_lookups(&option_ids);
+        assert_eq!(
+            ordered_match_count(&option_ids, &lookups),
+            hash_match_count(&option_ids, &lookups)
+        );
+
+        let mut ordered_samples = Vec::with_capacity(SAMPLE_COUNT);
+        let mut hash_samples = Vec::with_capacity(SAMPLE_COUNT);
+        for sample in 0..SAMPLE_COUNT {
+            if sample % 2 == 0 {
+                let started = Instant::now();
+                black_box(ordered_match_count(
+                    black_box(&option_ids),
+                    black_box(&lookups),
+                ));
+                ordered_samples.push(started.elapsed());
+
+                let started = Instant::now();
+                black_box(hash_match_count(
+                    black_box(&option_ids),
+                    black_box(&lookups),
+                ));
+                hash_samples.push(started.elapsed());
+            } else {
+                let started = Instant::now();
+                black_box(hash_match_count(
+                    black_box(&option_ids),
+                    black_box(&lookups),
+                ));
+                hash_samples.push(started.elapsed());
+
+                let started = Instant::now();
+                black_box(ordered_match_count(
+                    black_box(&option_ids),
+                    black_box(&lookups),
+                ));
+                ordered_samples.push(started.elapsed());
+            }
+        }
+
+        let ordered_p95 = percentile_95(&mut ordered_samples);
+        let hash_p95 = percentile_95(&mut hash_samples);
+        println!(
+            "EDITOR01_PANE_OPTION_HASH_MEMBERSHIP_BENCH_V1 option_ids={OPTION_ID_COUNT} \
+             lookups={MEMBERSHIP_LOOKUP_COUNT} ordered_lookup_class=log_n \
+             hash_lookup_class=average_constant ordered_p95_ns={} hash_p95_ns={}",
+            ordered_p95.as_nanos(),
+            hash_p95.as_nanos(),
+        );
+        assert!(
+            hash_p95.as_nanos() * 100 <= ordered_p95.as_nanos() * 60,
+            "hash-membership P95 {:?} exceeded 60% of ordered-membership P95 {:?}",
+            hash_p95,
+            ordered_p95,
+        );
     }
 }

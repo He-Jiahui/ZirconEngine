@@ -7,9 +7,16 @@ const BINARY_DUMP_MAGIC: &[u8; 4] = b"ZVGB";
 const BINARY_DUMP_VERSION: u32 = 2;
 const NONE_U32: u32 = u32::MAX;
 const MISSING_PAYLOAD_LEN: u64 = u64::MAX;
+const BINARY_HEADER_U32_FIELD_COUNT: usize = 8;
+const HIERARCHY_NODE_FIXED_U32_FIELD_COUNT: usize = 12;
+const CLUSTER_HEADER_U32_FIELD_COUNT: usize = 10;
+const PAGE_HEADER_U32_FIELD_COUNT: usize = 2;
+const ROOT_RANGE_U32_FIELD_COUNT: usize = 3;
+const PAGE_DEPENDENCY_U32_FIELD_COUNT: usize = 3;
+const PAGE_PAYLOAD_U32_FIELD_COUNT: usize = 1;
 
 pub fn encode_virtual_geometry_cook_binary_dump(asset: &VirtualGeometryAsset) -> Vec<u8> {
-    let mut dump = Vec::new();
+    let mut dump = Vec::with_capacity(binary_dump_capacity(asset));
     dump.extend(BINARY_DUMP_MAGIC);
     append_u32(&mut dump, BINARY_DUMP_VERSION);
     append_u32(&mut dump, asset.hierarchy_buffer.len());
@@ -62,6 +69,65 @@ pub fn encode_virtual_geometry_cook_binary_dump(asset: &VirtualGeometryAsset) ->
     }
 
     dump
+}
+
+fn binary_dump_capacity(asset: &VirtualGeometryAsset) -> usize {
+    let u32_bytes = std::mem::size_of::<u32>();
+    let u64_bytes = std::mem::size_of::<u64>();
+    let mut capacity = BINARY_DUMP_MAGIC
+        .len()
+        .saturating_add(u32_bytes.saturating_mul(BINARY_HEADER_U32_FIELD_COUNT))
+        .saturating_add(u64_bytes);
+
+    for value in [
+        asset.debug.mesh_name.as_deref(),
+        asset.debug.source_hint.as_deref(),
+    ] {
+        capacity = capacity
+            .saturating_add(u32_bytes)
+            .saturating_add(value.map_or(0, str::len));
+    }
+    capacity = capacity.saturating_add(u32_bytes);
+    for note in &asset.debug.notes {
+        capacity = capacity
+            .saturating_add(u32_bytes)
+            .saturating_add(note.len());
+    }
+    for node in &asset.hierarchy_buffer {
+        capacity = capacity
+            .saturating_add(u32_bytes.saturating_mul(HIERARCHY_NODE_FIXED_U32_FIELD_COUNT))
+            .saturating_add(u32_bytes.saturating_mul(node.child_node_ids.len()));
+    }
+    capacity = capacity.saturating_add(
+        u32_bytes
+            .saturating_mul(CLUSTER_HEADER_U32_FIELD_COUNT)
+            .saturating_mul(asset.cluster_headers.len()),
+    );
+    capacity = capacity.saturating_add(
+        u32_bytes
+            .saturating_mul(PAGE_HEADER_U32_FIELD_COUNT)
+            .saturating_add(u64_bytes)
+            .saturating_mul(asset.cluster_page_headers.len()),
+    );
+    capacity = capacity
+        .saturating_add(u32_bytes.saturating_mul(asset.root_page_table.len()))
+        .saturating_add(
+            u32_bytes
+                .saturating_mul(ROOT_RANGE_U32_FIELD_COUNT)
+                .saturating_mul(asset.root_cluster_ranges.len()),
+        );
+    for dependency in &asset.page_dependencies {
+        capacity = capacity
+            .saturating_add(u32_bytes.saturating_mul(PAGE_DEPENDENCY_U32_FIELD_COUNT))
+            .saturating_add(u32_bytes.saturating_mul(dependency.child_page_ids.len()));
+    }
+    for (index, _) in asset.cluster_page_headers.iter().enumerate() {
+        capacity = capacity
+            .saturating_add(u32_bytes.saturating_mul(PAGE_PAYLOAD_U32_FIELD_COUNT))
+            .saturating_add(u64_bytes)
+            .saturating_add(asset.cluster_page_data.get(index).map_or(0, Vec::len));
+    }
+    capacity
 }
 
 fn append_page_dependency(dump: &mut Vec<u8>, dependency: &VirtualGeometryPageDependencyAsset) {
@@ -198,3 +264,7 @@ fn append_f32_array(dump: &mut Vec<u8>, value: [f32; 3]) {
 fn append_f32(dump: &mut Vec<u8>, value: f32) {
     dump.extend(value.to_le_bytes());
 }
+
+#[cfg(test)]
+#[path = "binary_dump/capacity_tests.rs"]
+mod capacity_tests;

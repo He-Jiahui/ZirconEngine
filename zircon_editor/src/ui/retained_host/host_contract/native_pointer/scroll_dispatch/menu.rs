@@ -22,8 +22,12 @@ pub(super) fn dispatch_menu_pointer_scroll(
     if !handles_menu_bar && !handles_popup {
         return None;
     }
+    let before = generation.interaction_generation();
     ui.global::<UiHostContext>()
         .invoke_menu_pointer_scrolled(x, y, delta);
+    if before == ui.get_host_interaction_generation() {
+        return Some(NativePointerDispatchResult::idle());
+    }
     Some(NativePointerDispatchResult::region(
         menu_damage_frame_with_state(structure, menu_state),
     ))

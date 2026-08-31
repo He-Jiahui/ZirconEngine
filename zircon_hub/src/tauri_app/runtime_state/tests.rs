@@ -1,6 +1,9 @@
 use std::fs;
 
-use crate::projects::{project_metadata_key, reconcile_shared_recent_projects, RecentProject};
+use crate::projects::{
+    load_shared_recent_projects, normalize_project_root, project_metadata_key,
+    reconcile_shared_recent_projects, RecentProject,
+};
 use crate::settings::{BuildProfile, HubConfig, HubLanguage};
 
 use super::*;
@@ -153,11 +156,28 @@ fn focus_refresh_reconciles_pending_hub_recents_with_editor_registry() {
         .refresh_shared_recent_projects_on_focus()
         .expect("focus refresh should reconcile the pending Hub update"));
     for project in [&hub_project, &editor_project] {
-        assert!(session.config.recent_projects.contains(project));
+        let expected_key = project_metadata_key(normalize_project_root(&project.path));
+        let actual_keys = session
+            .config
+            .recent_projects
+            .iter()
+            .map(|candidate| project_metadata_key(&candidate.path))
+            .collect::<Vec<_>>();
+        assert!(
+            session
+                .config
+                .recent_projects
+                .iter()
+                .any(|candidate| project_metadata_key(&candidate.path) == expected_key),
+            "missing {expected_key:?} from Hub recents {actual_keys:?}"
+        );
     }
     let shared_projects = load_shared_recent_projects(&shared_recent_projects_path).unwrap();
     for project in [&hub_project, &editor_project] {
-        assert!(shared_projects.contains(project));
+        let expected_key = project_metadata_key(normalize_project_root(&project.path));
+        assert!(shared_projects
+            .iter()
+            .any(|candidate| project_metadata_key(&candidate.path) == expected_key));
     }
 
     fs::remove_dir_all(temp).unwrap();

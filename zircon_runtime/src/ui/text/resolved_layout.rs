@@ -6,19 +6,26 @@ use std::{
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
     surface::{
-        normalize_ui_text_language_tag, UiResolvedStyle, UiResolvedTextLayout, UiRichTextFormat,
-        UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRange, UiTextWrap, UiTextWritingMode,
+        UiResolvedStyle, UiResolvedTextLayout, UiRichTextFormat, UiTextAlign, UiTextDirection,
+        UiTextOverflow, UiTextRange, UiTextWrap, UiTextWritingMode,
     },
 };
 
-use crate::text::{SharedTextLayoutSession, TextDocumentKey};
+use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
+use crate::text::{
+    EphemeralCacheHash, SharedTextLayoutSession, TextDocumentKey, text_language_cache_identity,
+};
 
 use super::shaper::{
     layout_text, layout_text_with_provider, layout_text_with_provider_and_viewport,
     layout_text_with_viewport,
 };
 use super::{
-    layout_engine::layout_parsed_text_with_provider_and_viewport, rich_text::UiParsedText,
+    layout_engine::{
+        layout_parsed_text_with_provider_and_viewport,
+        layout_parsed_text_with_provider_and_viewport_outcome,
+    },
+    rich_text::{UiParsedText, parse_source_text_with_provider},
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -26,7 +33,17 @@ pub(crate) struct UiTextLayoutResolution {
     pub layout: UiResolvedTextLayout,
     pub size: UiSize,
     pub first_baseline: f32,
-    pub source_hash: u64,
+    pub source_hash: EphemeralCacheHash,
+}
+
+impl UiTextLayoutResolution {
+    /// Heap bytes owned directly by the serializable layout DTO.
+    ///
+    /// The process-local artifact handle may share compiled/glyph allocations with other caches and
+    /// is deliberately excluded until those owners publish a non-duplicating residency receipt.
+    pub(crate) fn estimated_cache_heap_bytes(&self) -> usize {
+        estimated_layout_heap_bytes(&self.layout)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -94,7 +111,7 @@ impl UiTextStyleKey {
     pub(crate) fn from_style(style: &UiResolvedStyle) -> Self {
         Self {
             font_family: style.font_family.clone().or_else(|| style.font.clone()),
-            language: normalize_ui_text_language_tag(style.language.as_deref()),
+            language: text_language_cache_identity(style.language.as_deref()),
             font_weight: style.font_weight,
             font_size_bits: style.font_size.to_bits(),
             line_height_bits: style.line_height.to_bits(),
@@ -107,6 +124,55 @@ impl UiTextStyleKey {
             rich_text_format: style.rich_text_format,
         }
     }
+
+    pub(crate) fn estimated_heap_bytes(&self) -> usize {
+        self.font_family
+            .as_ref()
+            .map_or(0, String::len)
+            .saturating_add(self.language.as_ref().map_or(0, String::len))
+    }
+}
+
+fn estimated_layout_heap_bytes(layout: &UiResolvedTextLayout) -> usize {
+    let mut bytes = layout
+        .lines
+        .len()
+        .saturating_mul(std::mem::size_of::<
+            zircon_runtime_interface::ui::surface::UiResolvedTextLine,
+        >())
+        .saturating_add(layout.boxes.len().saturating_mul(std::mem::size_of::<
+            zircon_runtime_interface::ui::surface::UiResolvedTextBox,
+        >()));
+    for line in &layout.lines {
+        bytes = bytes
+            .saturating_add(line.text.len())
+            .saturating_add(
+                line.glyph_advances
+                    .len()
+                    .saturating_mul(std::mem::size_of::<f32>()),
+            )
+            .saturating_add(line.runs.len().saturating_mul(std::mem::size_of::<
+                zircon_runtime_interface::ui::surface::UiResolvedTextRun,
+            >()));
+        for run in &line.runs {
+            bytes = bytes.saturating_add(run.text.len());
+        }
+    }
+    if let Some(editable) = layout.editable.as_ref() {
+        bytes = bytes.saturating_add(editable.text.len());
+        if let Some(composition) = editable.composition.as_ref() {
+            bytes =
+                bytes
+                    .saturating_add(composition.text.len())
+                    .saturating_add(composition.restore_text.as_ref().map_or(0, String::len))
+                    .saturating_add(composition.preedit_clauses.len().saturating_mul(
+                        std::mem::size_of::<
+                            zircon_runtime_interface::ui::surface::UiTextPreeditClause,
+                        >(),
+                    ));
+        }
+    }
+    bytes
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -213,18 +279,18 @@ impl<'a> UiTextLayoutRequest<'a> {
         UiTextStyleKey::from_style(self.style)
     }
 
-    pub(crate) fn source_hash(&self) -> u64 {
+    pub(crate) fn source_hash(&self) -> EphemeralCacheHash {
         if self.preedit.is_none() {
             if let Some(document_key) = self.document_key {
-                return document_key.fingerprint();
+                return document_key.ephemeral_hash();
             }
         }
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        self.text.hash(&mut hasher);
+        let mut hasher = crate::text::EphemeralCacheHasher::new();
+        hasher.write(self.text);
         if let Some(preedit) = self.preedit {
-            preedit.range.start.hash(&mut hasher);
-            preedit.range.end.hash(&mut hasher);
-            preedit.text.hash(&mut hasher);
+            hasher.write(&preedit.range.start);
+            hasher.write(&preedit.range.end);
+            hasher.write(&preedit.text);
         }
         hasher.finish()
     }
@@ -299,6 +365,23 @@ pub(crate) fn resolve_text_layout_with_provider(
     })
 }
 
+/// Produces a cache-admissible UI layout only after every shaping and layout stage is Ready.
+pub(crate) fn resolve_text_layout_with_provider_outcome(
+    request: &UiTextLayoutRequest<'_>,
+    provider: &mut SharedTextLayoutSession,
+) -> TextLayoutOutcome<UiTextLayoutResolution> {
+    let resolved_text = request.resolved_text();
+    let parsed = match parse_source_text_with_provider(
+        resolved_text.as_ref(),
+        request.style.rich_text_format.into(),
+        provider,
+    ) {
+        Ok(parsed) => parsed,
+        Err(error) => return TextShapingOutcome::failed(error),
+    };
+    resolve_text_layout_with_provider_and_parsed_outcome(request, &parsed, provider)
+}
+
 pub(crate) fn resolve_text_layout_with_provider_and_parsed(
     request: &UiTextLayoutRequest<'_>,
     parsed: &UiParsedText,
@@ -316,6 +399,23 @@ pub(crate) fn resolve_text_layout_with_provider_and_parsed(
     resolution_from_layout(request, layout)
 }
 
+pub(crate) fn resolve_text_layout_with_provider_and_parsed_outcome(
+    request: &UiTextLayoutRequest<'_>,
+    parsed: &UiParsedText,
+    provider: &mut SharedTextLayoutSession,
+) -> TextLayoutOutcome<UiTextLayoutResolution> {
+    layout_parsed_text_with_provider_and_viewport_outcome(
+        parsed,
+        request.style,
+        request.frame,
+        request.clip_frame,
+        request.layout_viewport(),
+        request.document_key,
+        provider,
+    )
+    .map(|layout| resolution_from_layout(request, layout))
+}
+
 fn resolve_text_layout_inner(
     request: &UiTextLayoutRequest<'_>,
     layout: impl FnOnce(&str) -> UiResolvedTextLayout,
@@ -325,7 +425,7 @@ fn resolve_text_layout_inner(
     resolution_from_layout(request, layout)
 }
 
-fn resolution_from_layout(
+pub(crate) fn resolution_from_layout(
     request: &UiTextLayoutRequest<'_>,
     layout: UiResolvedTextLayout,
 ) -> UiTextLayoutResolution {
@@ -348,7 +448,74 @@ fn resolution_from_layout(
 mod tests {
     use super::*;
     use zircon_runtime_interface::ui::layout::UiFrame;
-    use zircon_runtime_interface::ui::surface::UiTextRenderMode;
+    use zircon_runtime_interface::ui::surface::{
+        UiResolvedTextLine, UiResolvedTextRun, UiTextRenderMode, UiTextRunKind,
+    };
+
+    #[test]
+    fn layout_cache_heap_estimate_includes_owned_line_run_and_advance_storage() {
+        let line_text = "owned-line".to_string();
+        let run_text = "owned-run".to_string();
+        let layout = UiResolvedTextLayout {
+            lines: vec![UiResolvedTextLine {
+                text: line_text.clone(),
+                placement_frame: UiFrame::default(),
+                frame: UiFrame::new(0.0, 0.0, 120.0, 20.0),
+                source_range: UiTextRange {
+                    start: 0,
+                    end: line_text.len(),
+                },
+                visual_range: UiTextRange {
+                    start: 0,
+                    end: line_text.len(),
+                },
+                measured_width: 80.0,
+                glyph_advances: vec![8.0; 4],
+                baseline: 14.0,
+                direction: UiTextDirection::LeftToRight,
+                runs: vec![UiResolvedTextRun {
+                    kind: UiTextRunKind::Plain,
+                    text: run_text.clone(),
+                    source_range: UiTextRange {
+                        start: 0,
+                        end: run_text.len(),
+                    },
+                    visual_range: UiTextRange {
+                        start: 0,
+                        end: run_text.len(),
+                    },
+                    direction: UiTextDirection::LeftToRight,
+                }],
+                ellipsized: false,
+            }],
+            ..UiResolvedTextLayout::default()
+        };
+        let resolution = UiTextLayoutResolution {
+            layout,
+            size: UiSize::new(120.0, 20.0),
+            first_baseline: 14.0,
+            source_hash: EphemeralCacheHash::from_hashable("owned-line"),
+        };
+
+        assert!(
+            resolution.estimated_cache_heap_bytes()
+                >= line_text.len() + run_text.len() + 4 * std::mem::size_of::<f32>()
+        );
+    }
+
+    #[test]
+    fn style_key_heap_estimate_includes_owned_font_and_language_strings() {
+        let key = UiTextStyleKey::from_style(&UiResolvedStyle {
+            font_family: Some("Zircon Sans".to_string()),
+            language: Some("zh-Hans-CN".to_string()),
+            ..UiResolvedStyle::default()
+        });
+
+        assert_eq!(
+            key.estimated_heap_bytes(),
+            "Zircon Sans".len() + "zh-Hans-CN".len()
+        );
+    }
 
     #[test]
     fn style_key_encodes_clamp_overflow_float_bits() {

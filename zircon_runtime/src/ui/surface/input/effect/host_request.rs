@@ -54,12 +54,13 @@ pub(super) fn host_request_for_effect(
         UiDispatchEffect::RequestClipboard { request } => {
             UiDispatchHostRequestKind::Clipboard(request.clone())
         }
-        UiDispatchEffect::RequestLinkActivation { target, href } => {
-            UiDispatchHostRequestKind::ActivateLink {
-                target: *target,
-                href: href.clone(),
-            }
-        }
+        UiDispatchEffect::RequestLinkActivation {
+            target,
+            link_target,
+        } => UiDispatchHostRequestKind::ActivateLink {
+            target: *target,
+            link_target: link_target.clone(),
+        },
         _ => return None,
     };
     Some(UiDispatchHostRequest {

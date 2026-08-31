@@ -96,7 +96,7 @@ fn capture_frame_rejects_extreme_dimensions_before_rendering_or_allocation() {
 }
 
 fn assert_handle_entry_points_reject_session(
-    api: &zircon_runtime_interface::ZrRuntimeApiV7,
+    api: &zircon_runtime_interface::ZrRuntimeApiV8,
     session: ZrRuntimeSessionHandle,
     expected_code: ZrStatusCode,
     expected_message: &str,
@@ -153,6 +153,54 @@ fn assert_handle_entry_points_reject_session(
     let present_viewport = api.present_viewport.expect("present_viewport");
     assert_session_status(
         unsafe { present_viewport(session, valid_frame_request()) },
+        expected_code,
+        expected_message,
+    );
+
+    let request_viewport_pick = api.request_viewport_pick.expect("request_viewport_pick");
+    let pick_request = zircon_runtime_interface::ZrRuntimeViewportPickRequestV1::new(
+        default_viewport(),
+        valid_viewport_size(),
+        zircon_runtime_interface::ZrRuntimeViewportPixelV1::new(1, 1),
+        1,
+        1,
+        zircon_runtime_interface::ZrRuntimeViewportPickPurposeV1::Press,
+        0,
+    );
+    let mut pick_ticket = zircon_runtime_interface::ZrRuntimeViewportPickTicket::invalid();
+    assert_session_status(
+        unsafe { request_viewport_pick(session, pick_request, &mut pick_ticket) },
+        expected_code,
+        expected_message,
+    );
+    assert!(!pick_ticket.is_valid());
+
+    let poll_viewport_pick = api.poll_viewport_pick.expect("poll_viewport_pick");
+    let mut pick_result = zircon_runtime_interface::ZrRuntimeViewportPickResultV1::invalid();
+    assert_session_status(
+        unsafe {
+            poll_viewport_pick(
+                session,
+                zircon_runtime_interface::ZrRuntimeViewportPickTicket::new(1),
+                &mut pick_result,
+            )
+        },
+        expected_code,
+        expected_message,
+    );
+    assert_eq!(
+        pick_result,
+        zircon_runtime_interface::ZrRuntimeViewportPickResultV1::invalid()
+    );
+
+    let cancel_viewport_pick = api.cancel_viewport_pick.expect("cancel_viewport_pick");
+    assert_session_status(
+        unsafe {
+            cancel_viewport_pick(
+                session,
+                zircon_runtime_interface::ZrRuntimeViewportPickTicket::new(1),
+            )
+        },
         expected_code,
         expected_message,
     );

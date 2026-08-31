@@ -15,28 +15,28 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn atlas_m
         return candidates;
     };
     if let Some(parent) = root.parent() {
-        push_candidate(
-            &mut candidates,
-            parent.join(".zircon").join("cache").join(ATLAS_CACHE_DIR),
-        );
+        let atlas_dir = parent.join(".zircon").join("cache").join(ATLAS_CACHE_DIR);
+        if let Ok(entries) = fs::read_dir(atlas_dir) {
+            candidates =
+                collect_atlas_manifest_candidates(entries.flatten().map(|entry| entry.path()));
+        }
     }
     candidates
 }
 
-fn push_candidate(candidates: &mut Vec<PathBuf>, atlas_dir: PathBuf) {
-    let Ok(entries) = fs::read_dir(atlas_dir) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path
-            .extension()
-            .and_then(|extension| extension.to_str())
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("toml"))
-            && !candidates.iter().any(|candidate| candidate == &path)
-        {
-            candidates.push(path);
-        }
-    }
-    candidates.sort();
+fn collect_atlas_manifest_candidates(paths: impl IntoIterator<Item = PathBuf>) -> Vec<PathBuf> {
+    let mut candidates = paths
+        .into_iter()
+        .filter(|path| {
+            path.extension()
+                .and_then(|extension| extension.to_str())
+                .is_some_and(|extension| extension.eq_ignore_ascii_case("toml"))
+        })
+        .collect::<Vec<_>>();
+    candidates.sort_unstable();
+    candidates
 }
+
+#[cfg(test)]
+#[path = "discovery/atlas_candidate_tests.rs"]
+mod atlas_candidate_tests;

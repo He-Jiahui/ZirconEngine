@@ -70,4 +70,25 @@ target architecture.
 
 ## 修复结果与回传
 
-Open state: Editor02 still needs to complete the generation-lease hard cut and make both Python guard suites plus managed Rust behavior GREEN before returning this handoff as fixed.
+Open state: the generation-lease source guard is current and both Python suites are GREEN; managed Rust behavior is still required before returning this handoff as fixed.
+
+### 2026-08-28 lease-aware guard repair
+
+The current production owner has hard-cut `watch_view` to an immutable gateway lease and complete
+`GatewaySessionIdentity`. The stale guard still split on the retired
+`watch_view_with_gateway_generation` function, then treated stale-generation compensation and
+live-token collision as one source interval. The focused regression reproduced this as `IndexError`
+before any contract assertion.
+
+The guard now anchors `watch_view_with_identity`, verifies lease/identity capture before the
+foreign `watch_world` call, requires an old-lease `unwatch_world` only when replacement wins, and
+separately proves the collision-to-bind interval contains no unwatch. It also rejects the retired
+generation callback vocabulary and names the existing replacement/token-reuse Rust regressions.
+The active-owner `zircon_editor/src/core/sync/pump/tests.rs` bytes were read only and not edited.
+
+`python -B -m unittest tools.tests.test_editor02_world_sync_watch_map_contract tools.tests.test_editor02_world_sync_subscription_table_contract -v`
+passed `13/13`; the focused repaired guard passed `1/1`, `py_compile` passed, and scoped
+`git diff --check` passed. A fresh managed `zircon_runtime` gate in the same workspace already
+stopped before its target test on the canonical Render17 lower-layer
+`rhi-diagnostic-readback-layout-width-drift` E0308, so this chain does not repeat a known failing
+Cargo closure or misreport static evidence as managed Rust acceptance.

@@ -56,16 +56,3 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section
         height: section_metrics.line_height,
     }
 }
-
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
-    rect: &FrameRect,
-) -> FrameRect {
-    let x = rect.x.ceil();
-    let y = rect.y.ceil();
-    FrameRect {
-        x,
-        y,
-        width: ((rect.x + rect.width).floor() - x).max(0.0),
-        height: ((rect.y + rect.height).floor() - y).max(0.0),
-    }
-}

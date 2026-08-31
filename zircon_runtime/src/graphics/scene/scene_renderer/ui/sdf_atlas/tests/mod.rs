@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use super::*;
 use crate::core::framework::text::{
-    TextFontFaceHandle, TextGlyph, TextGlyphFlags, TextGlyphRotation,
+    TextFontCollectionHandle, TextFontFaceHandle, TextGlyph, TextGlyphFlags, TextGlyphRotation,
 };
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::ui::render::{
@@ -11,8 +11,8 @@ use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiTextRouteIdentity,
 };
 use crate::text::atlas::{
-    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet,
-    GlyphAtlasStorageFormat, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
+    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasFormat, GlyphAtlasPageKey,
+    GlyphAtlasPageSpec, GlyphAtlasSet, GlyphAtlasStorageFormat,
 };
 use crate::text::sdf::{SdfBakeParams, SdfMode};
 use crate::text::{ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, ShapedGlyphRotation};
@@ -27,6 +27,8 @@ mod allocation;
 mod cache_report;
 mod owner;
 mod plan;
+
+const TEST_FONT_COLLECTION: TextFontCollectionHandle = TextFontCollectionHandle::new(1);
 
 fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
     ScreenSpaceUiTextBatch {
@@ -77,6 +79,7 @@ fn artifact_text_batch(glyph_id: u32, writing_mode: UiTextWritingMode) -> Screen
             source_text: Arc::from("fi"),
             source_text_origin: 0,
             font_generation: 7,
+            font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
             style: UiResolvedStyle::default(),
             writing_mode,
             lines: vec![Some(ResolvedTextGlyphArtifactLine {
@@ -96,6 +99,7 @@ fn artifact_text_batch(glyph_id: u32, writing_mode: UiTextWritingMode) -> Screen
                 }],
                 layout_line: UiResolvedTextLine {
                     text: "fi".to_string(),
+                    placement_frame: UiFrame::default(),
                     frame: text.frame,
                     source_range: UiTextRange { start: 0, end: 2 },
                     visual_range: UiTextRange { start: 0, end: 1 },
@@ -107,26 +111,20 @@ fn artifact_text_batch(glyph_id: u32, writing_mode: UiTextWritingMode) -> Screen
                     ellipsized: false,
                 },
             })],
+            logical_virtual_line_sequences: None,
         }),
         line_index: 0,
-        refreshed_line: None,
         font_generation: 7,
+        glyph_range: 0..1,
     });
     text
 }
 
-fn refreshed_artifact_text_batch() -> (ScreenSpaceUiTextBatch, ScreenSpaceUiTextBatch) {
+fn republished_artifact_text_batch() -> (ScreenSpaceUiTextBatch, ScreenSpaceUiTextBatch) {
     let original = artifact_text_batch(0xfb01, UiTextWritingMode::HorizontalTb);
     let replacement = artifact_text_batch(0xfb02, UiTextWritingMode::HorizontalTb);
-    let refreshed_line = replacement
-        .glyph_artifact_line
-        .as_ref()
-        .and_then(|line| line.artifact.lines.first())
-        .and_then(Option::as_ref)
-        .expect("replacement artifact line")
-        .clone();
-    let mut refreshed = original.clone();
-    let artifact_line = refreshed
+    let mut republished = original.clone();
+    let artifact_line = republished
         .glyph_artifact_line
         .as_mut()
         .expect("original artifact line");
@@ -138,9 +136,14 @@ fn refreshed_artifact_text_batch() -> (ScreenSpaceUiTextBatch, ScreenSpaceUiText
             .expect("original artifact line")
             .artifact
     ));
-    artifact_line.refreshed_line = Some(Arc::new(refreshed_line));
+    let replacement_artifact_line = replacement
+        .glyph_artifact_line
+        .as_ref()
+        .expect("replacement artifact line");
+    artifact_line.artifact = Arc::clone(&replacement_artifact_line.artifact);
+    Arc::make_mut(&mut artifact_line.artifact).font_generation = 8;
     artifact_line.font_generation = 8;
-    (original, refreshed)
+    (original, republished)
 }
 
 fn glyph_slots(indices: &[usize]) -> Vec<Option<usize>> {

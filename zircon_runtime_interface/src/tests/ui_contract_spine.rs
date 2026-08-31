@@ -30,13 +30,17 @@ use crate::ui::{
         UiPainterState, UiResolvedElementStyle, UiRgbaColor, UiStyleColor,
     },
     surface::{
-        UiEditableTextState, UiNavigationEventKind, UiNavigationRoute, UiPointerActivationPhase,
-        UiPointerEventKind, UiPointerRoute, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
-        UiRenderExtractKind, UiRenderList, UiRenderStats, UiResolvedStyle, UiTextCaret,
-        UiTextEditAction, UiTextSelection,
+        UiNavigationEventKind, UiNavigationRoute, UiPointerActivationPhase, UiPointerEventKind,
+        UiPointerRoute, UiPointerRoutingPath, UiRenderCommand, UiRenderCommandKind,
+        UiRenderExtract, UiRenderExtractKind, UiRenderList, UiRenderStats, UiResolvedStyle,
+        UiTextByteRange, UiTextCaretAffinity,
     },
-    template::{UiAssetDocument, UiTemplateDocument, UiTemplateNode},
-    text::{UiTextCursorStyle, UiTextEdit, UiTextEditSource},
+    template::{UiAssetDocument, UiTemplateNode},
+    text::{
+        UiTextByteSelection, UiTextChangedRanges, UiTextCursorStyle, UiTextDocumentId,
+        UiTextDocumentRevision, UiTextEditKind, UiTextEditReceipt, UiTextEditReceiptError,
+        UiTextEditSource, UI_TEXT_EDIT_RECEIPT_SCHEMA_VERSION,
+    },
     tree::UiDirtyFlags,
     widget::{
         UiPopupAnchor, UiWidgetBehavior, UiWidgetContract, UiWidgetEvent, UiWidgetEventKind,
@@ -351,32 +355,31 @@ fn ui_accessibility_snapshot_represents_roles_states_actions_and_diagnostics() {
 #[test]
 fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
     let node_id = UiNodeId::new(21);
-    let before = UiEditableTextState {
-        text: "Hello".to_string(),
-        caret: UiTextCaret::default(),
-        selection: Some(UiTextSelection::collapsed(0)),
-        composition: None,
-        read_only: false,
-    };
-    let after = UiEditableTextState {
-        text: "Hello!".to_string(),
-        caret: UiTextCaret {
-            offset: 6,
-            ..UiTextCaret::default()
-        },
-        selection: Some(UiTextSelection::collapsed(6)),
-        composition: None,
-        read_only: false,
-    };
-    let edit = UiTextEdit {
+    let edit = UiTextEditReceipt::new(
         node_id,
-        source: UiTextEditSource::Keyboard,
-        action: UiTextEditAction::Insert {
-            text: "!".to_string(),
+        UiTextDocumentId::issue(),
+        UiTextDocumentRevision::new(7),
+        UiTextEditSource::Keyboard,
+        UiTextEditKind::Insert,
+        UiTextChangedRanges {
+            old: UiTextByteRange::new(5, 5),
+            new: UiTextByteRange::new(5, 6),
         },
-        before: before.clone(),
-        after: after.clone(),
-    };
+        UiTextByteSelection::collapsed(6),
+    )
+    .unwrap();
+    assert_eq!(edit.schema_version, UI_TEXT_EDIT_RECEIPT_SCHEMA_VERSION);
+    assert_eq!(edit.revision, UiTextDocumentRevision::new(8));
+    assert_eq!(
+        edit.selection.focus_affinity,
+        UiTextCaretAffinity::Downstream
+    );
+    let upstream_selection =
+        UiTextByteSelection::collapsed_with_affinity(6, UiTextCaretAffinity::Upstream);
+    assert_eq!(
+        round_trip(&upstream_selection).focus_affinity,
+        UiTextCaretAffinity::Upstream
+    );
     let events = vec![
         UiWidgetEvent::Activate {
             target: node_id,
@@ -391,7 +394,7 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
             source: UiWidgetEventSource::Pointer,
         },
         UiWidgetEvent::TextEditChange {
-            edit: Box::new(edit.clone()),
+            receipt: Box::new(edit.clone()),
         },
         UiWidgetEvent::OpenChanged {
             target: node_id,
@@ -438,6 +441,86 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
     assert_eq!(events[0].kind(), UiWidgetEventKind::Activate);
     assert_eq!(events[2].kind(), UiWidgetEventKind::TextEditChange);
     assert_eq!(round_trip(&edit), edit);
+    assert!(edit.validate().is_ok());
+    let serialized_edit = serde_json::to_string(&edit).unwrap();
+    assert!(!serialized_edit.contains("before"));
+    assert!(!serialized_edit.contains("after"));
+    assert!(!serialized_edit.contains("action"));
+
+    let mut invalid_revision = edit.clone();
+    invalid_revision.revision = UiTextDocumentRevision::new(9);
+    assert_eq!(
+        invalid_revision.validate(),
+        Err(UiTextEditReceiptError::NonConsecutiveRevision)
+    );
+    let mut invalid_old_range = edit.clone();
+    invalid_old_range.changed.old = UiTextByteRange::new(6, 5);
+    assert_eq!(
+        invalid_old_range.validate(),
+        Err(UiTextEditReceiptError::InvalidOldRange)
+    );
+    let mut invalid_new_range = edit.clone();
+    invalid_new_range.changed.new = UiTextByteRange::new(7, 6);
+    assert_eq!(
+        invalid_new_range.validate(),
+        Err(UiTextEditReceiptError::InvalidNewRange)
+    );
+    let mut invalid_schema = edit.clone();
+    invalid_schema.schema_version = UI_TEXT_EDIT_RECEIPT_SCHEMA_VERSION + 1;
+    assert_eq!(
+        invalid_schema.validate(),
+        Err(UiTextEditReceiptError::UnsupportedSchemaVersion)
+    );
+    assert!(
+        serde_json::from_value::<UiTextEditReceipt>(
+            serde_json::to_value(&invalid_schema).expect("invalid receipt serializes")
+        )
+        .is_err(),
+        "wire deserialization must reject an unsupported receipt schema"
+    );
+    let mut invalid_document = edit.clone();
+    invalid_document.document_id = UiTextDocumentId::default();
+    assert_eq!(
+        invalid_document.validate(),
+        Err(UiTextEditReceiptError::InvalidDocumentId)
+    );
+    assert!(
+        serde_json::from_value::<UiTextEditReceipt>(
+            serde_json::to_value(&invalid_document).expect("invalid receipt serializes")
+        )
+        .is_err(),
+        "wire deserialization must reject a nil document id"
+    );
+    let mut exhausted = edit.clone();
+    exhausted.previous_revision = UiTextDocumentRevision::new(u64::MAX);
+    assert_eq!(
+        exhausted.validate(),
+        Err(UiTextEditReceiptError::RevisionExhausted)
+    );
+    let mut invalid_event = events[2].clone();
+    let UiWidgetEvent::TextEditChange { receipt } = &mut invalid_event else {
+        unreachable!("the event fixture must remain a text edit change");
+    };
+    receipt.revision = UiTextDocumentRevision::new(11);
+    assert!(
+        serde_json::from_value::<UiWidgetEvent>(
+            serde_json::to_value(&invalid_event).expect("invalid event serializes")
+        )
+        .is_err(),
+        "nested widget-event deserialization must validate its receipt"
+    );
+    assert_eq!(
+        UiTextEditReceipt::new(
+            node_id,
+            UiTextDocumentId::issue(),
+            UiTextDocumentRevision::new(u64::MAX),
+            UiTextEditSource::Programmatic,
+            UiTextEditKind::Replace,
+            UiTextChangedRanges::default(),
+            UiTextByteSelection::collapsed(0),
+        ),
+        Err(UiTextEditReceiptError::RevisionExhausted)
+    );
     assert_eq!(round_trip(&cursor), cursor);
     assert_eq!(round_trip(&widget), widget);
     assert_eq!(round_trip(&scrollbar), scrollbar);
@@ -578,7 +661,7 @@ fn ui_binding_update_contract_represents_attribute_state_and_ecs_domains() {
         scroll_delta: 0.0,
         target: Some(node_id),
         hit_path: Default::default(),
-        bubbled: vec![node_id],
+        routing_path: UiPointerRoutingPath::from_bubble_route(vec![node_id]),
         stacked: vec![node_id],
         entered: Vec::new(),
         left: Vec::new(),
@@ -591,6 +674,12 @@ fn ui_binding_update_contract_represents_attribute_state_and_ecs_domains() {
         root_targets: Vec::new(),
     });
     pointer_result.record_binding_report(report.clone());
+    let pointer_wire = serde_json::to_value(&pointer_result).unwrap();
+    assert_eq!(
+        pointer_wire["route"]["bubbled"],
+        serde_json::json!([node_id])
+    );
+    assert!(pointer_wire["route"].get("routing_path").is_none());
     assert_eq!(round_trip(&pointer_result), pointer_result);
     assert_eq!(pointer_result.binding_reports, vec![report.clone()]);
 
@@ -676,53 +765,47 @@ fn ui_render_extract_kind_and_stats_contract_does_not_break_legacy_extracts() {
 }
 
 #[test]
-fn ui_template_contract_sections_are_defaulted_for_legacy_toml() {
-    let legacy: UiTemplateDocument = toml::from_str(
+fn ui_compiled_template_node_contract_sections_are_defaulted() {
+    let legacy: UiTemplateNode = toml::from_str(
         r#"
-version = 1
-
-[root]
 component = "Button"
 control_id = "ok"
 "#,
     )
     .unwrap();
 
-    assert_eq!(legacy.root.component.as_deref(), Some("Button"));
-    assert!(!legacy.root.focus.focusable);
-    assert!(legacy.root.navigation.tab_index.is_none());
-    assert_eq!(legacy.root.picking.pointer, UiPickMode::Inherit);
-    assert_eq!(legacy.root.a11y.role, UiA11yRole::Generic);
-    assert!(!legacy.root.widget.disabled);
+    assert_eq!(legacy.component.as_deref(), Some("Button"));
+    assert!(!legacy.focus.focusable);
+    assert!(legacy.navigation.tab_index.is_none());
+    assert_eq!(legacy.picking.pointer, UiPickMode::Inherit);
+    assert_eq!(legacy.a11y.role, UiA11yRole::Generic);
+    assert!(!legacy.widget.disabled);
 
-    let modern: UiTemplateDocument = toml::from_str(
+    let modern: UiTemplateNode = toml::from_str(
         r#"
-version = 1
-
-[root]
 component = "TextInput"
 control_id = "search"
 
-[root.focus]
+[focus]
 focusable = true
 autofocus = true
 
-[root.navigation.tab_index]
+[navigation.tab_index]
 order = 3
 tabbable = true
 
-[root.picking]
+[picking]
 pointer = "receive"
 focus = "receive"
 accessibility = "receive"
 text_hit = true
 
-[root.a11y]
+[a11y]
 role = "text_input"
 name = "Search"
 tooltip = "Search assets"
 
-[root.widget]
+[widget]
 behavior = "text_input"
 disabled = false
 checked = false
@@ -731,14 +814,14 @@ tooltip = "Search assets"
     )
     .unwrap();
 
-    assert!(modern.root.focus.focusable);
-    assert!(modern.root.focus.autofocus);
-    assert_eq!(modern.root.navigation.tab_index, Some(UiTabIndex::new(3)));
-    assert_eq!(modern.root.picking.pointer, UiPickMode::Receive);
-    assert_eq!(modern.root.a11y.role, UiA11yRole::TextInput);
-    assert_eq!(modern.root.a11y.name.as_deref(), Some("Search"));
-    assert_eq!(modern.root.widget.checked, Some(false));
-    assert_eq!(modern.root.widget.behavior, UiWidgetBehavior::TextInput);
+    assert!(modern.focus.focusable);
+    assert!(modern.focus.autofocus);
+    assert_eq!(modern.navigation.tab_index, Some(UiTabIndex::new(3)));
+    assert_eq!(modern.picking.pointer, UiPickMode::Receive);
+    assert_eq!(modern.a11y.role, UiA11yRole::TextInput);
+    assert_eq!(modern.a11y.name.as_deref(), Some("Search"));
+    assert_eq!(modern.widget.checked, Some(false));
+    assert_eq!(modern.widget.behavior, UiWidgetBehavior::TextInput);
 
     let mut authored = UiTemplateNode {
         component: Some("Checkbox".to_string()),

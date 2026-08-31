@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::virtual_geometry::renderer::VirtualGeometryGpuReadback;
 use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryPageAssignmentRecord, RenderVirtualGeometryPageReplacementRecord,
@@ -26,10 +28,11 @@ impl From<VirtualGeometryGpuReadback> for RenderVirtualGeometryReadbackOutputs {
 }
 
 fn flat_page_table_entries(entries: &[(u32, u32)]) -> Vec<u32> {
-    entries
-        .iter()
-        .flat_map(|&(page_id, slot)| [page_id, slot])
-        .collect()
+    let mut flat_entries = Vec::with_capacity(entries.len().saturating_mul(2));
+    for &(page_id, slot) in entries {
+        flat_entries.extend_from_slice(&[page_id, slot]);
+    }
+    flat_entries
 }
 
 fn completed_page_assignments(
@@ -51,33 +54,35 @@ fn page_replacements(
     page_table_entries: &[(u32, u32)],
     completed_page_assignments: &[(u32, u32)],
 ) -> Vec<RenderVirtualGeometryPageReplacementRecord> {
+    let mut slots_by_page_id = HashMap::with_capacity(
+        completed_page_assignments
+            .len()
+            .saturating_add(page_table_entries.len()),
+    );
+    for &(page_id, slot) in completed_page_assignments
+        .iter()
+        .chain(page_table_entries.iter())
+    {
+        slots_by_page_id.entry(page_id).or_insert(slot);
+    }
+
     replacements
         .iter()
         .map(
             |&(new_page_id, old_page_id)| RenderVirtualGeometryPageReplacementRecord {
                 old_page_id: u64::from(old_page_id),
                 new_page_id: u64::from(new_page_id),
-                physical_slot: slot_for_new_page(
-                    new_page_id,
-                    completed_page_assignments,
-                    page_table_entries,
-                ),
+                physical_slot: slots_by_page_id
+                    .get(&new_page_id)
+                    .copied()
+                    .unwrap_or_default(),
             },
         )
         .collect()
 }
 
-fn slot_for_new_page(
-    page_id: u32,
-    completed_page_assignments: &[(u32, u32)],
-    page_table_entries: &[(u32, u32)],
-) -> u32 {
-    completed_page_assignments
-        .iter()
-        .chain(page_table_entries.iter())
-        .find_map(|&(candidate_page_id, slot)| (candidate_page_id == page_id).then_some(slot))
-        .unwrap_or_default()
-}
+#[cfg(test)]
+mod performance_tests;
 
 #[cfg(test)]
 mod tests {

@@ -1,14 +1,17 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::{
-    GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderPipelineDiagnosticStage,
-    ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport, GEOMETRY_SOURCE_ID_STATIC_MESH,
-    SHADING_MODEL_ID_STANDARD_PBR,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceId, SHADER_PIPELINE_TARGET_COUNT,
+    SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
+    ShaderPipelineDiagnosticStage, ShaderPipelineFallbackAction, ShaderPipelineFallbackState,
+    ShaderPipelineTarget, ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
 };
 use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshPassPipelineKind, MeshPipelineVariantId,
 };
+
+use super::pipeline_creation_metrics::shader_pipeline_target_for_mesh_kind;
 
 const FIRST_CACHE_PIPELINE_VARIANT_ID: u32 = 1;
 const DEFAULT_MESH_SHADER_VARIANT_PLATFORM_TOKEN: &str = "wgpu-runtime";
@@ -28,13 +31,16 @@ impl MeshPipelineVariantKey {
         shader_quality: ShaderQualityTier,
         environment_only_pbr_base_profile: bool,
     ) -> Self {
+        let pbr_ior_override = pipeline_key.pbr_ior_override;
+        let pipeline_key = pipeline_key.pipeline_variant_identity();
         let mut shader_variant_key = pipeline_key.shader_variant_key_for_geometry(
             shader_pass_type_for_mesh_pipeline_kind(kind),
             geometry_source,
             DEFAULT_MESH_SHADER_VARIANT_PLATFORM_TOKEN,
         );
         if environment_only_pbr_base_profile
-            && supports_environment_only_pbr_base_profile(kind, pipeline_key)
+            && !pbr_ior_override
+            && supports_environment_only_pbr_base_profile(kind, &pipeline_key)
         {
             shader_variant_key.features = shader_variant_key.features.union(
                 ShaderFeatureBits::new(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR),
@@ -43,7 +49,7 @@ impl MeshPipelineVariantKey {
         shader_variant_key.quality = shader_quality;
         Self {
             kind,
-            pipeline_key: pipeline_key.clone(),
+            pipeline_key,
             shader_variant_key,
         }
     }
@@ -66,7 +72,7 @@ pub(crate) struct MeshPipelineVariantRegistry {
     variant_ids: HashMap<MeshPipelineVariantKey, MeshPipelineVariantId>,
     variant_keys: Vec<MeshPipelineVariantKey>,
     registered_shader_variants: HashSet<ShaderVariantKey>,
-    texture_presence_normalized_variant_count: usize,
+    registered_pipeline_variants_by_target: [usize; SHADER_PIPELINE_TARGET_COUNT],
     miss_report: ShaderVariantMissReport,
     environment_only_pbr_base_profile: bool,
 }
@@ -116,14 +122,12 @@ impl MeshPipelineVariantRegistry {
         }
 
         self.miss_report.record_request(key.shader_variant_key());
-        let id = MeshPipelineVariantId::new(
-            FIRST_CACHE_PIPELINE_VARIANT_ID + self.variant_keys.len() as u32,
-        );
+        let id = next_pipeline_variant_id(self.variant_keys.len());
         self.registered_shader_variants
             .insert(key.shader_variant_key().clone());
-        if !self.has_texture_presence_equivalent_variant(&key) {
-            self.texture_presence_normalized_variant_count += 1;
-        }
+        let target = shader_pipeline_target_for_mesh_kind(kind);
+        self.registered_pipeline_variants_by_target[target.index()] =
+            self.registered_pipeline_variants_by_target[target.index()].saturating_add(1);
         self.variant_keys.push(key.clone());
         self.variant_ids.insert(key, id);
         self.record_registered_variant_counts();
@@ -196,6 +200,47 @@ impl MeshPipelineVariantRegistry {
             .record_pipeline_diagnostic(key, stage, message);
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn record_pipeline_fallback(
+        &mut self,
+        pipeline_variant_id: MeshPipelineVariantId,
+        entity_id: u64,
+        consumer: &str,
+        state: ShaderPipelineFallbackState,
+        action: ShaderPipelineFallbackAction,
+        reason: &str,
+        state_age_microseconds: u64,
+    ) {
+        let key = pipeline_variant_id
+            .value()
+            .checked_sub(FIRST_CACHE_PIPELINE_VARIANT_ID)
+            .map(|index| index as usize)
+            .and_then(|index| self.variant_keys.get(index))
+            .map(MeshPipelineVariantKey::shader_variant_key);
+        let Some(key) = key else {
+            self.miss_report.record_unresolved_pipeline_fallback(
+                pipeline_variant_id.value(),
+                entity_id,
+                consumer,
+                state,
+                action,
+                reason,
+                state_age_microseconds,
+            );
+            return;
+        };
+        self.miss_report.record_pipeline_fallback(
+            key,
+            pipeline_variant_id.value(),
+            entity_id,
+            consumer,
+            state,
+            action,
+            reason,
+            state_age_microseconds,
+        );
+    }
+
     pub(crate) fn record_compile_miss(&mut self, key: &ShaderVariantKey) {
         self.miss_report.record_compile_miss(key);
     }
@@ -204,28 +249,30 @@ impl MeshPipelineVariantRegistry {
         self.miss_report.record_registered_variant_counts(
             self.variant_keys.len(),
             self.registered_shader_variants.len(),
-            self.texture_presence_normalized_variant_count,
+            self.variant_keys.len(),
         );
-    }
-
-    fn has_texture_presence_equivalent_variant(&self, key: &MeshPipelineVariantKey) -> bool {
-        let mut candidate = key.clone();
-        for presence_bits in 0_u8..16 {
-            candidate.pipeline_key.has_base_color_texture = presence_bits & 0b0001 != 0;
-            candidate.pipeline_key.has_metallic_roughness_texture = presence_bits & 0b0010 != 0;
-            candidate.pipeline_key.has_occlusion_texture = presence_bits & 0b0100 != 0;
-            candidate.pipeline_key.has_emissive_texture = presence_bits & 0b1000 != 0;
-            if self.variant_ids.contains_key(&candidate) {
-                return true;
-            }
+        for target in ShaderPipelineTarget::ALL {
+            self.miss_report
+                .record_registered_pipeline_target_variant_count(
+                    target,
+                    self.registered_pipeline_variants_by_target[target.index()],
+                );
         }
-        false
     }
 
     #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.variant_keys.len()
     }
+}
+
+fn next_pipeline_variant_id(variant_count: usize) -> MeshPipelineVariantId {
+    let variant_offset =
+        u32::try_from(variant_count).expect("mesh pipeline variant count exceeds u32 capacity");
+    let value = FIRST_CACHE_PIPELINE_VARIANT_ID
+        .checked_add(variant_offset)
+        .expect("mesh pipeline variant ID space is exhausted");
+    MeshPipelineVariantId::new(value)
 }
 
 fn supports_environment_only_pbr_base_profile(
@@ -257,6 +304,7 @@ fn shader_pass_type_for_mesh_pipeline_kind(kind: MeshPassPipelineKind) -> Shader
         MeshPassPipelineKind::TaaReactiveMask | MeshPassPipelineKind::TaaReactiveMaterialMask => {
             ShaderPassType::TaaReactiveMask
         }
+        MeshPassPipelineKind::HitProxy => ShaderPassType::HitProxy,
     }
 }
 
@@ -281,15 +329,16 @@ impl MeshPipelineVariantResolver for MeshPipelineVariantRegistry {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        ShaderFeatureBits, ShaderPassType, ShaderQualityTier, GEOMETRY_SOURCE_ID_SKINNED_MESH,
-        GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
+        SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType, ShaderPipelineTarget,
+        ShaderQualityTier,
     };
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
         MeshPassPipelineKind, MeshPipelineVariantId,
     };
 
-    use super::MeshPipelineVariantRegistry;
+    use super::{MeshPipelineVariantRegistry, next_pipeline_variant_id};
 
     #[test]
     fn mesh_pipeline_variant_registry_reuses_pass_pipeline_shape_id() {
@@ -310,30 +359,94 @@ mod tests {
     }
 
     #[test]
+    fn mesh_pipeline_variant_id_allocation_rejects_wrapping() {
+        let last_variant_count = usize::try_from(u32::MAX - 1)
+            .expect("u32 variant count must fit the host address space");
+        let exhausted_variant_count =
+            usize::try_from(u32::MAX).expect("u32 variant count must fit the host address space");
+
+        assert_eq!(
+            next_pipeline_variant_id(last_variant_count).value(),
+            u32::MAX
+        );
+        assert!(
+            std::panic::catch_unwind(|| next_pipeline_variant_id(exhausted_variant_count)).is_err()
+        );
+    }
+
+    #[test]
+    fn mesh_pipeline_variant_registry_does_not_duplicate_pso_for_ior_routing() {
+        let mut registry = MeshPipelineVariantRegistry::default();
+        let baseline = default_pipeline_key();
+        let mut routed = baseline.clone();
+        routed.pbr_ior_override = true;
+
+        let baseline_id = registry.resolve_variant(
+            MeshPassPipelineKind::Base,
+            &baseline,
+            ShaderQualityTier::Medium,
+        );
+        let routed_id = registry.resolve_variant(
+            MeshPassPipelineKind::Base,
+            &routed,
+            ShaderQualityTier::Medium,
+        );
+
+        assert_eq!(baseline_id, routed_id);
+        assert_eq!(registry.len(), 1);
+    }
+
+    #[test]
+    fn environment_only_profile_excludes_non_default_ior() {
+        let mut registry = MeshPipelineVariantRegistry::default();
+        registry.enable_environment_only_pbr_base_profile();
+        let mut key = default_pipeline_key();
+        key.pbr_ior_override = true;
+
+        let variant =
+            registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
+        let variant_key = registry
+            .key_for_variant(variant)
+            .expect("non-default IOR Base variant key");
+
+        assert!(
+            !variant_key
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
+        assert!(registry.base_pipeline_requires_forward_receiver(variant));
+    }
+
+    #[test]
     fn environment_only_profile_specializes_only_compatible_base_variants() {
         let mut registry = MeshPipelineVariantRegistry::default();
         let key = default_pipeline_key();
 
         let generic =
             registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
-        assert!(!registry
-            .key_for_variant(generic)
-            .expect("generic Base variant key")
-            .shader_variant_key()
-            .features
-            .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR));
+        assert!(
+            !registry
+                .key_for_variant(generic)
+                .expect("generic Base variant key")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
         assert!(registry.base_pipeline_requires_forward_receiver(generic));
 
         registry.enable_environment_only_pbr_base_profile();
         let specialized =
             registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
         assert_ne!(specialized, generic);
-        assert!(registry
-            .key_for_variant(specialized)
-            .expect("environment-only Base variant key")
-            .shader_variant_key()
-            .features
-            .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR));
+        assert!(
+            registry
+                .key_for_variant(specialized)
+                .expect("environment-only Base variant key")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
         assert!(!registry.base_pipeline_requires_forward_receiver(specialized));
 
         let gbuffer = registry.resolve_variant(
@@ -341,12 +454,14 @@ mod tests {
             &key,
             ShaderQualityTier::Medium,
         );
-        assert!(!registry
-            .key_for_variant(gbuffer)
-            .expect("environment-only GBuffer variant key")
-            .shader_variant_key()
-            .features
-            .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR));
+        assert!(
+            !registry
+                .key_for_variant(gbuffer)
+                .expect("environment-only GBuffer variant key")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
 
         let mut shadow_receiver = key;
         shadow_receiver.receive_shadows = true;
@@ -355,12 +470,14 @@ mod tests {
             &shadow_receiver,
             ShaderQualityTier::Medium,
         );
-        assert!(!registry
-            .key_for_variant(shadow_receiver)
-            .expect("shadow-receiving Base variant key")
-            .shader_variant_key()
-            .features
-            .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR));
+        assert!(
+            !registry
+                .key_for_variant(shadow_receiver)
+                .expect("shadow-receiving Base variant key")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
     }
 
     #[test]
@@ -376,18 +493,22 @@ mod tests {
             registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
 
         assert_ne!(generic, specialized);
-        assert!(registry
-            .key_for_variant(specialized)
-            .expect("specialized Base variant key")
-            .shader_variant_key()
-            .features
-            .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR));
-        assert!(!registry
-            .key_for_variant(generic)
-            .expect("generic Base variant key after provider upgrade")
-            .shader_variant_key()
-            .features
-            .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR));
+        assert!(
+            registry
+                .key_for_variant(specialized)
+                .expect("specialized Base variant key")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
+        assert!(
+            !registry
+                .key_for_variant(generic)
+                .expect("generic Base variant key after provider upgrade")
+                .shader_variant_key()
+                .features
+                .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+        );
     }
 
     #[test]
@@ -441,12 +562,16 @@ mod tests {
             GEOMETRY_SOURCE_ID_SKINNED_MESH
         );
         assert_eq!(shader_variant.shading_model, SHADING_MODEL_ID_STANDARD_PBR);
-        assert!(shader_variant
-            .features
-            .contains(ShaderFeatureBits::ALPHA_TEST));
-        assert!(shader_variant
-            .canonical_string()
-            .contains("|platform=wgpu-runtime"));
+        assert!(
+            shader_variant
+                .features
+                .contains(ShaderFeatureBits::ALPHA_TEST)
+        );
+        assert!(
+            shader_variant
+                .canonical_string()
+                .contains("|platform=wgpu-runtime")
+        );
     }
 
     #[test]
@@ -512,6 +637,25 @@ mod tests {
         assert_eq!(
             variant_key.shader_variant_key().pass_type,
             ShaderPassType::DepthPrepass
+        );
+    }
+
+    #[test]
+    fn mesh_pipeline_variant_registry_maps_hit_proxy_to_dedicated_pass_type() {
+        let mut registry = MeshPipelineVariantRegistry::default();
+        let key = default_pipeline_key();
+
+        let variant = registry.resolve_variant(
+            MeshPassPipelineKind::HitProxy,
+            &key,
+            ShaderQualityTier::Medium,
+        );
+        let variant_key = registry.key_for_variant(variant).unwrap();
+
+        assert_eq!(variant_key.kind(), MeshPassPipelineKind::HitProxy);
+        assert_eq!(
+            variant_key.shader_variant_key().pass_type,
+            ShaderPassType::HitProxy
         );
     }
 
@@ -617,27 +761,75 @@ mod tests {
     }
 
     #[test]
-    fn texture_presence_combinations_expose_shader_equivalent_pipeline_variant_expansion() {
+    fn mesh_pipeline_variant_registry_attributes_exact_pipeline_targets_without_rescanning() {
         let mut registry = MeshPipelineVariantRegistry::default();
+        let key = default_pipeline_key();
+        registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
+        registry.resolve_variant(
+            MeshPassPipelineKind::ShadowDepth,
+            &key,
+            ShaderQualityTier::Medium,
+        );
+        let mut alpha_key = key.clone();
+        alpha_key.alpha_mask = true;
+        registry.resolve_variant(
+            MeshPassPipelineKind::ShadowDepthAlphaMask,
+            &alpha_key,
+            ShaderQualityTier::Medium,
+        );
+        registry.resolve_variant(
+            MeshPassPipelineKind::ShadowDepth,
+            &key,
+            ShaderQualityTier::Medium,
+        );
 
-        for presence_bits in 0_u8..16 {
-            let mut key = default_pipeline_key();
-            key.has_base_color_texture = presence_bits & 0b0001 != 0;
-            key.has_metallic_roughness_texture = presence_bits & 0b0010 != 0;
-            key.has_occlusion_texture = presence_bits & 0b0100 != 0;
-            key.has_emissive_texture = presence_bits & 0b1000 != 0;
+        for report in [registry.miss_report(), {
+            registry.reset_miss_report();
+            registry.miss_report()
+        }] {
+            assert_eq!(
+                report
+                    .pipeline_target_metrics(ShaderPipelineTarget::Base)
+                    .registered_pipeline_variant_count,
+                1
+            );
+            assert_eq!(
+                report
+                    .pipeline_target_metrics(ShaderPipelineTarget::ShadowDepth)
+                    .registered_pipeline_variant_count,
+                1
+            );
+            assert_eq!(
+                report
+                    .pipeline_target_metrics(ShaderPipelineTarget::ShadowDepthAlphaMask)
+                    .registered_pipeline_variant_count,
+                1
+            );
+            assert_eq!(
+                report
+                    .pipeline_target_metrics(ShaderPipelineTarget::Oit)
+                    .registered_pipeline_variant_count,
+                0
+            );
+        }
+    }
+
+    #[test]
+    fn repeated_material_binding_requests_reuse_one_pipeline_variant() {
+        let mut registry = MeshPipelineVariantRegistry::default();
+        let key = default_pipeline_key();
+
+        for _ in 0_u8..16 {
             registry.resolve_variant(MeshPassPipelineKind::Base, &key, ShaderQualityTier::Medium);
         }
 
         let report = registry.miss_report();
         assert_eq!(report.request_count, 16);
-        assert_eq!(report.registered_pipeline_variant_count, 16);
+        assert_eq!(report.memory_hit_count, 15);
+        assert_eq!(report.registered_pipeline_variant_count, 1);
         assert_eq!(report.registered_shader_variant_count, 1);
         assert_eq!(report.texture_presence_normalized_pipeline_variant_count, 1);
-        assert_eq!(
-            report.texture_presence_equivalent_pipeline_variant_count,
-            15
-        );
+        assert_eq!(report.texture_presence_equivalent_pipeline_variant_count, 0);
     }
 
     #[test]

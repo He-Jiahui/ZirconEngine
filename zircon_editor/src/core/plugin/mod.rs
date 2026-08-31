@@ -31,10 +31,12 @@ pub use lifecycle_message_bridge::{
     EditorPluginLifecycleMessageBridge, EditorPluginLifecycleMessagePumpReport,
 };
 pub use manager::EditorPluginManager;
+pub(crate) use manager::ProjectPluginRegistrationCloseReceipt;
 pub use manager::{
     EditorPluginDiscovery, EditorPluginDiscoveryError, EditorPluginSource, EditorPluginState,
     EditorPluginTransitionError,
 };
+pub(crate) use materializer::materialize_serialized_native_contribution_batch;
 pub use materializer::{
     materialize_serialized_contribution_batch, SerializedContributionMaterializationError,
 };

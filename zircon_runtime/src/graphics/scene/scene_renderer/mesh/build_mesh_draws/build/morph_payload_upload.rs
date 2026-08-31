@@ -2,11 +2,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::{
-    MeshAsset, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-    MESH_ATTRIBUTE_TANGENT,
+    MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
+    MeshAsset,
 };
 use crate::graphics::scene::gpu_scene::{
-    GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuScene, GpuSceneMorphUploadReport,
+    GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuScene, GpuScenePreparedMorphUpload,
 };
 
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMorphPayload};
@@ -24,9 +24,17 @@ pub(super) fn morph_payload_from_mesh_asset(
         return None;
     }
 
-    let mut deltas = Vec::new();
-    let mut weights = Vec::new();
-    let mut previous_weights = Vec::new();
+    let active_target_capacity = active_morph_target_capacity(
+        mesh_asset.morph_targets.len(),
+        morph_weights,
+        previous_morph_weights,
+    );
+    let delta_capacity = active_target_capacity
+        .saturating_mul(vertex_count)
+        .saturating_mul(MORPH_DELTA_ROWS_PER_VERTEX_TARGET);
+    let mut deltas = Vec::with_capacity(delta_capacity);
+    let mut weights = Vec::with_capacity(active_target_capacity);
+    let mut previous_weights = Vec::with_capacity(active_target_capacity);
     let mut target_count = 0u32;
 
     for target_index in 0..mesh_asset.morph_targets.len() {
@@ -93,12 +101,31 @@ pub(super) fn morph_payload_from_mesh_asset(
     }))
 }
 
+fn active_morph_target_capacity(
+    target_count: usize,
+    morph_weights: &[f32],
+    previous_morph_weights: Option<&[f32]>,
+) -> usize {
+    (0..target_count)
+        .filter(|target_index| {
+            let weight = morph_weights
+                .get(*target_index)
+                .copied()
+                .unwrap_or_default();
+            let previous_weight = previous_morph_weights
+                .and_then(|weights| weights.get(*target_index))
+                .copied()
+                .unwrap_or(weight);
+            weight.abs() > f32::EPSILON || previous_weight.abs() > f32::EPSILON
+        })
+        .count()
+}
+
 pub(super) fn upload_morph_payloads(
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
     gpu_scene: &mut GpuScene,
     pending_draws: &mut [PendingMeshDraw],
-) -> GpuSceneMorphUploadReport {
+) -> GpuScenePreparedMorphUpload {
     let collected = collect_morph_payload_rows(
         pending_draws
             .iter()
@@ -112,12 +139,11 @@ pub(super) fn upload_morph_payloads(
                 .copied()
         });
     }
-    gpu_scene.upload_morph_buffers(
+    gpu_scene.prepare_morph_buffers(
         device,
-        queue,
-        &collected.payloads,
-        &collected.deltas,
-        &collected.weights,
+        collected.payloads,
+        collected.deltas,
+        collected.weights,
     )
 }
 
@@ -220,9 +246,8 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::asset::{
-        AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
-        MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-        MESH_ATTRIBUTE_TANGENT,
+        AssetUri, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+        MESH_ATTRIBUTE_TANGENT, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
     };
     use crate::core::framework::render::RenderMeshTopology;
     use crate::graphics::scene::gpu_scene::GpuMorphPayload;
@@ -364,3 +389,7 @@ mod tests {
         mesh
     }
 }
+
+#[cfg(test)]
+#[path = "morph_payload_upload/capacity_tests.rs"]
+mod capacity_tests;

@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 use crate::asset::artifact::{IblBakeArtifactAssetDerivedError, IblSourceCubemapStagingError};
-use crate::asset::assets::{ExternalSourceCubemapContainerError, ExternalSourceCubemapDecodeError};
+use crate::asset::assets::{
+    ExternalSourceCubemapContainerError, ExternalSourceCubemapDecodeError, ZcubeSourceCubemapError,
+};
 use crate::asset::importer::AssetImportError;
 
 #[derive(Debug, Error)]
@@ -18,8 +20,8 @@ pub enum EnvironmentIblSourceStagingError {
     ReadAssetDerived(#[source] IblBakeArtifactAssetDerivedError),
     #[error("write environment IBL asset-derived artifact: {0}")]
     WriteAssetDerived(#[source] IblBakeArtifactAssetDerivedError),
-    #[error("remove invalid environment IBL asset-derived artifact {path}: {source}")]
-    RemoveAssetDerived {
+    #[error("remove invalid staged environment IBL artifact {path}: {source}")]
+    RemoveInvalidStagedArtifact {
         path: PathBuf,
         #[source]
         source: std::io::Error,
@@ -28,6 +30,8 @@ pub enum EnvironmentIblSourceStagingError {
     ExternalContainer(#[source] ExternalSourceCubemapContainerError),
     #[error("decode external source cubemap: {0}")]
     ExternalDecode(#[source] ExternalSourceCubemapDecodeError),
+    #[error("decode captured source cubemap: {0}")]
+    SourceZcube(#[source] ZcubeSourceCubemapError),
     #[error("stage environment IBL source bundle: {0}")]
     Stage(#[source] IblSourceCubemapStagingError),
     #[error("inspect staged environment IBL output {path}: {source}")]

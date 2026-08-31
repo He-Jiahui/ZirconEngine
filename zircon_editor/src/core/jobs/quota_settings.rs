@@ -79,6 +79,7 @@ pub fn register_editor_job_quota_settings(
                 SettingSchema::Int {
                     minimum: 1,
                     maximum: MAXIMUM_USER_JOB_CATEGORY_QUOTA,
+                    step: 1,
                 },
                 SettingValue::Int(default),
                 true,

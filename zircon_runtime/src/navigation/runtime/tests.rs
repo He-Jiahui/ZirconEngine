@@ -1,4 +1,6 @@
+use std::hint::black_box;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::time::{Duration, Instant};
 
 use crate::core::framework::navigation::{
     NavAvoidanceQuality, NavMeshAgentDescriptor, NavMeshAsset, NavMeshObstacleDescriptor,
@@ -14,13 +16,13 @@ use crate::scene::World;
 
 use super::math::distance_xz;
 use super::world_scan::{
-    MAX_NAVIGATION_AVOIDANCE_CANDIDATE_VISITS, MAX_NAVIGATION_AVOIDANCE_CELL_VISITS,
-    MAX_NAVIGATION_AVOIDANCE_NEIGHBORS,
+    collect_navigation_world_projection, MAX_NAVIGATION_AVOIDANCE_CANDIDATE_VISITS,
+    MAX_NAVIGATION_AVOIDANCE_CELL_VISITS, MAX_NAVIGATION_AVOIDANCE_NEIGHBORS,
 };
 use super::BuiltinNavigationManager;
 
 #[test]
-fn tick_world_agent_moves_only_selected_agent_and_avoids_local_colliders() {
+fn optimization_wave_20260824d_runtime08d_targeted_tick_behavior() {
     let manager = BuiltinNavigationManager::new();
     manager
         .load_nav_mesh(NavMeshAsset::simple_quad(DEFAULT_AGENT_TYPE, 6.0))
@@ -174,7 +176,7 @@ fn avoidance_projection_rotates_a_bounded_dense_neighborhood() {
 }
 
 #[test]
-fn navigation_projection_counts_typed_rows_and_index_lookups_at_scale() {
+fn optimization_wave_20260824d_runtime08d_projection_scale_regression() {
     for expected_rows in [1, 100, 10_000] {
         let manager = BuiltinNavigationManager::new();
         let mut world = World::empty();
@@ -182,7 +184,9 @@ fn navigation_projection_counts_typed_rows_and_index_lookups_at_scale() {
             let position = Vec3::new(index as Real * 4.0, 0.0, 0.0);
             spawn_test_agent(&mut world, position, position + Vec3::X);
             spawn_test_obstacle(&mut world, position + Vec3::Z, 0.3);
-            let unrelated = world.spawn_node(NodeKind::Empty);
+            let unrelated = world
+                .spawn_node(NodeKind::Empty)
+                .expect("test scene spawn should succeed");
             world
                 .set_dynamic_component(
                     unrelated,
@@ -255,6 +259,79 @@ fn navigation_world_projection_avoids_full_world_and_json_value_scans() {
         !source.contains("NavMeshAgentDescriptor::deserialize(value.as_ref())")
             && !source.contains("NavMeshObstacleDescriptor::deserialize(value.as_ref())"),
         "dynamic component rows already borrow serde_json::Value and must not add an invalid wrapper conversion"
+    );
+}
+
+#[test]
+fn optimization_wave_20260824d_runtime08d_targeted_agent_lookup_uses_the_projection_index() {
+    let mut world = World::empty();
+    let first = spawn_test_agent(&mut world, Vec3::ZERO, Vec3::X);
+    let selected = spawn_test_agent(&mut world, Vec3::X, Vec3::X * 2.0);
+    let mut projection = collect_navigation_world_projection(&world);
+
+    assert_eq!(
+        projection.agent_descriptor(selected).unwrap().destination,
+        Some((Vec3::X * 2.0).to_array())
+    );
+    assert!(projection.agent_descriptor(u64::MAX).is_none());
+    assert_eq!(
+        projection.agent_descriptor(first).unwrap().destination,
+        Some(Vec3::X.to_array())
+    );
+    assert_eq!(projection.agent_descriptor_lookups, 3);
+
+    let runtime_source = include_str!("../runtime.rs");
+    let targeted_tick = runtime_source
+        .split("pub fn tick_world_agent(")
+        .nth(1)
+        .and_then(|source| source.split("fn stats").next())
+        .expect("targeted navigation tick implementation");
+    assert!(targeted_tick.contains("projection.agent_descriptor(entity)"));
+    assert!(!targeted_tick.contains("projection.agents.iter()"));
+}
+
+#[test]
+#[ignore = "managed Runtime08D targeted agent lookup performance evidence"]
+fn optimization_wave_20260824d_runtime08d_targeted_agent_lookup_evidence() {
+    const AGENT_COUNT: usize = 10_000;
+    const LOOKUPS: usize = 100_000;
+    const MAX_LOOKUP_LATENCY: Duration = Duration::from_millis(500);
+
+    let mut world = World::empty();
+    let mut selected = 0;
+    for index in 0..AGENT_COUNT {
+        selected = spawn_test_agent(
+            &mut world,
+            Vec3::new(index as Real, 0.0, 0.0),
+            Vec3::new(index as Real + 1.0, 0.0, 0.0),
+        );
+    }
+    let mut projection = collect_navigation_world_projection(&world);
+
+    let started = Instant::now();
+    for _ in 0..LOOKUPS {
+        let descriptor = projection
+            .agent_descriptor(black_box(selected))
+            .expect("tail agent must remain indexed");
+        black_box(descriptor);
+    }
+    let elapsed = started.elapsed();
+
+    assert_eq!(projection.agent_descriptor_lookups, LOOKUPS as u64);
+    assert!(elapsed <= MAX_LOOKUP_LATENCY);
+    let comparisons_before = AGENT_COUNT as u64 * LOOKUPS as u64;
+    let index_probes_after = LOOKUPS as u64;
+    let probe_reduction_percent =
+        (1.0 - index_probes_after as f64 / comparisons_before as f64) * 100.0;
+    println!(
+        "RUNTIME08D_AGENT_INDEX_BENCH_V1 agents={} lookups={} comparisons_before={} index_probes_after={} probe_reduction_percent={:.4} elapsed_ns={} target_ns={}",
+        AGENT_COUNT,
+        LOOKUPS,
+        comparisons_before,
+        index_probes_after,
+        probe_reduction_percent,
+        elapsed.as_nanos(),
+        MAX_LOOKUP_LATENCY.as_nanos(),
     );
 }
 
@@ -495,7 +572,9 @@ fn navigation_manager_accessors_recover_poisoned_state_lock() {
 }
 
 fn spawn_test_agent(world: &mut World, position: Vec3, destination: Vec3) -> u64 {
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .update_transform(entity, Transform::from_translation(position))
         .unwrap();
@@ -521,7 +600,9 @@ fn spawn_test_agent(world: &mut World, position: Vec3, destination: Vec3) -> u64
 }
 
 fn spawn_test_obstacle(world: &mut World, position: Vec3, radius: Real) -> u64 {
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .update_transform(entity, Transform::from_translation(position))
         .unwrap();

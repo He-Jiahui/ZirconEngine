@@ -2,6 +2,9 @@ use crate::core::math::{Vec3, Vec4};
 
 use crate::graphics::scene::scene_renderer::primitives::LineVertex;
 
+const RING_SEGMENTS: usize = 48;
+pub(crate) const RING_VERTEX_CAPACITY: usize = RING_SEGMENTS * 2;
+
 pub(crate) fn append_ring(
     vertices: &mut Vec<LineVertex>,
     center: Vec3,
@@ -19,13 +22,27 @@ pub(crate) fn append_ring(
         normal.cross(Vec3::X).normalize_or_zero()
     };
     let bitangent = normal.cross(tangent).normalize_or_zero();
-    const SEGMENTS: usize = 48;
     let mut previous = center + tangent * radius;
-    for step in 1..=SEGMENTS {
-        let angle = std::f32::consts::TAU * step as f32 / SEGMENTS as f32;
+    for step in 1..=RING_SEGMENTS {
+        let angle = std::f32::consts::TAU * step as f32 / RING_SEGMENTS as f32;
         let next = center + (tangent * angle.cos() + bitangent * angle.sin()) * radius;
         vertices.push(LineVertex::new(previous, color));
         vertices.push(LineVertex::new(next, color));
         previous = next;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::math::{Vec3, Vec4};
+
+    use super::{RING_VERTEX_CAPACITY, append_ring};
+
+    #[test]
+    fn ring_capacity_matches_non_degenerate_output() {
+        let mut vertices = Vec::new();
+        append_ring(&mut vertices, Vec3::ZERO, Vec3::Z, 1.0, Vec4::ONE);
+
+        assert_eq!(vertices.len(), RING_VERTEX_CAPACITY);
     }
 }

@@ -5,7 +5,7 @@ use std::sync::{Arc, MutexGuard};
 use crate::core::framework::animation::{
     AnimationClipEvent, AnimationClipEventQueueAdmission, AnimationClipEventSampler,
     AnimationClipEventSamplingLimits, AnimationClipEventSamplingRange,
-    AnimationClipEventSamplingRequest, AnimationPoseOutput,
+    AnimationClipEventSamplingRequest, AnimationPoseSnapshot,
 };
 use crate::core::math::Real;
 use crate::scene::EntityId;
@@ -198,14 +198,6 @@ impl LevelSystem {
         )
     }
 
-    pub fn record_animation_poses(
-        &self,
-        replacement_epoch: u64,
-        animation_poses: BTreeMap<EntityId, AnimationPoseOutput>,
-    ) -> bool {
-        self.record_animation_pose_snapshot(replacement_epoch, Arc::new(animation_poses))
-    }
-
     /// Publishes an immutable animation pose snapshot for the current replacement epoch.
     ///
     /// Ordinary component mutations do not retire the producer. The payload is stamped with the
@@ -213,18 +205,17 @@ impl LevelSystem {
     pub fn record_animation_pose_snapshot(
         &self,
         replacement_epoch: u64,
-        animation_poses: Arc<BTreeMap<EntityId, AnimationPoseOutput>>,
+        animation_poses: AnimationPoseSnapshot,
     ) -> bool {
         let published = self.frame_state_snapshot();
-        let published_matches_payload =
-            published.animation_poses().as_ref() == animation_poses.as_ref();
+        let published_matches_snapshot = Arc::ptr_eq(published.animation_poses(), &animation_poses);
         let world = self.lock_world();
         if self.world_replacement_epoch.load(Ordering::Acquire) != replacement_epoch {
             return false;
         }
         let world_generation = world.world_generation();
         let mut current = self.lock_frame_state();
-        if published_matches_payload
+        if published_matches_snapshot
             && published.world_generation() == world_generation
             && Arc::ptr_eq(&published, &current)
         {
@@ -272,7 +263,7 @@ impl LevelSystem {
     pub(super) fn publish_animation_frame(
         frame_state: &mut Arc<LevelFrameStateSnapshot>,
         world_generation: u64,
-        animation_poses: Arc<BTreeMap<EntityId, AnimationPoseOutput>>,
+        animation_poses: AnimationPoseSnapshot,
     ) {
         *frame_state =
             Arc::new(frame_state.with_animation_poses(world_generation, animation_poses));

@@ -3,7 +3,7 @@ use crate::ui::control::EditorUiControlService;
 use zircon_runtime_interface::ui::event_ui::UiRouteId;
 
 use super::activity_routes::register_activity_routes;
-use super::stub_route::register_stub_route;
+use super::binding_route::register_binding_route;
 
 pub fn register_workbench_reflection_routes(
     service: &mut EditorUiControlService,
@@ -39,5 +39,5 @@ fn register_menu_route(
     service: &mut EditorUiControlService,
     binding: EditorUiBinding,
 ) -> UiRouteId {
-    register_stub_route(service, binding)
+    register_binding_route(service, binding)
 }

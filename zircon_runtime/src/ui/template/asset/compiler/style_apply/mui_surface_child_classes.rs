@@ -5,7 +5,6 @@ use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 use super::{
     append_class, bool_attribute, bool_attribute_any, bool_from_attributes_any, pascal_case,
-    string_attribute_any, string_from_attributes_any,
 };
 
 pub(super) fn append_component_classes(
@@ -106,12 +105,11 @@ fn append_dialog_content_classes(node: &mut UiTemplateNode, prefix: &str) {
 }
 
 fn append_mobile_stepper_classes(node: &mut UiTemplateNode, prefix: &str) {
-    let position = string_attribute_any(node, &["position"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "bottom".to_string());
+    let position =
+        borrowed_surface_child_attribute(&node.attributes, &["position"]).unwrap_or("bottom");
     append_class(
         &mut node.classes,
-        format!("{prefix}-position{}", pascal_case(&position)),
+        format!("{prefix}-position{}", pascal_case(position)),
     );
 }
 
@@ -125,25 +123,26 @@ fn append_speed_dial_action_classes(node: &mut UiTemplateNode, prefix: &str) {
         append_class(&mut node.classes, format!("{prefix}-staticTooltipClosed"));
     }
 
-    let placement = string_attribute_any(node, &["tooltipPlacement", "tooltip_placement"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "left".to_string());
+    let placement = borrowed_surface_child_attribute(
+        &node.attributes,
+        &["tooltipPlacement", "tooltip_placement"],
+    )
+    .unwrap_or("left");
     append_class(
         &mut node.classes,
-        format!("{prefix}-tooltipPlacement{}", pascal_case(&placement)),
+        format!("{prefix}-tooltipPlacement{}", pascal_case(placement)),
     );
 }
 
 fn append_swipeable_drawer_classes(node: &mut UiTemplateNode) {
     let anchor = drawer_anchor(&node.attributes);
     let variant = drawer_variant(&node.attributes);
-    append_drawer_root_classes(&mut node.classes, &anchor, &variant);
+    append_drawer_root_classes(&mut node.classes, anchor, variant);
 }
 
 fn append_tab_scroll_button_classes(node: &mut UiTemplateNode, prefix: &str) {
-    let orientation = string_attribute_any(node, &["orientation"])
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "horizontal".to_string());
+    let orientation = borrowed_surface_child_attribute(&node.attributes, &["orientation"])
+        .unwrap_or("horizontal");
     append_class(&mut node.classes, format!("{prefix}-{orientation}"));
     if bool_attribute(node, "disabled") {
         append_class(&mut node.classes, format!("{prefix}-disabled"));
@@ -230,7 +229,7 @@ fn append_swipeable_drawer_slot_classes(
     let anchor = drawer_anchor(owner_attributes);
     let variant = drawer_variant(owner_attributes);
     match slot_name {
-        "root" => append_drawer_root_classes(&mut child.classes, &anchor, &variant),
+        "root" => append_drawer_root_classes(&mut child.classes, anchor, variant),
         "docked" if variant != "temporary" => {
             append_class(&mut child.classes, "MuiDrawer-docked".to_string());
         }
@@ -239,7 +238,7 @@ fn append_swipeable_drawer_slot_classes(
             append_class(&mut child.classes, "PrivateSwipeArea-root".to_string());
             append_class(
                 &mut child.classes,
-                format!("PrivateSwipeArea-anchor{}", pascal_case(&anchor)),
+                format!("PrivateSwipeArea-anchor{}", pascal_case(anchor)),
             );
         }
         _ => {}
@@ -256,16 +255,31 @@ fn append_drawer_root_classes(classes: &mut Vec<String>, anchor: &str, variant: 
     }
 }
 
-fn drawer_anchor(attributes: &BTreeMap<String, Value>) -> String {
-    string_from_attributes_any(attributes, &["anchor"]).unwrap_or_else(|| "left".to_string())
+fn drawer_anchor(attributes: &BTreeMap<String, Value>) -> &str {
+    borrowed_surface_child_attribute(attributes, &["anchor"]).unwrap_or("left")
 }
 
-fn drawer_variant(attributes: &BTreeMap<String, Value>) -> String {
-    string_from_attributes_any(attributes, &["variant", "mui_variant"])
-        .unwrap_or_else(|| "temporary".to_string())
+fn drawer_variant(attributes: &BTreeMap<String, Value>) -> &str {
+    borrowed_surface_child_attribute(attributes, &["variant", "mui_variant"]).unwrap_or("temporary")
 }
 
 fn has_open_icon(attributes: &BTreeMap<String, Value>) -> bool {
-    string_from_attributes_any(attributes, &["openIcon", "open_icon"])
-        .is_some_and(|value| !value.is_empty())
+    borrowed_surface_child_attribute(attributes, &["openIcon", "open_icon"]).is_some()
 }
+
+fn borrowed_surface_child_attribute<'a>(
+    attributes: &'a BTreeMap<String, Value>,
+    names: &[&str],
+) -> Option<&'a str> {
+    names.iter().find_map(|name| {
+        attributes
+            .get(*name)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+    })
+}
+
+#[cfg(test)]
+#[path = "mui_surface_child_classes/borrowed_attributes_tests.rs"]
+mod borrowed_attributes_tests;

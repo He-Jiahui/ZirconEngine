@@ -1,7 +1,10 @@
 use std::path::Path;
 
 use self::authority::discovery_authority;
-use super::{NativePluginLoadReport, NativePluginLoader};
+use super::{
+    NativePluginDiscoveryRefreshTicket, NativePluginDiscoveryRoot, NativePluginDiscoverySnapshot,
+    NativePluginLoadReport, NativePluginLoader,
+};
 
 pub(super) mod authority;
 
@@ -9,6 +12,30 @@ pub(super) mod authority;
 mod tests;
 
 impl NativePluginLoader {
+    /// Resolves and interns a canonical discovery root for later nonblocking requests.
+    ///
+    /// Root resolution may query the filesystem and belongs in project-open or other admitted
+    /// setup work, not in an interactive UI request handler.
+    pub fn resolve_discovery_root(&self, root: impl AsRef<Path>) -> NativePluginDiscoveryRoot {
+        discovery_authority().resolve_root(root.as_ref())
+    }
+
+    /// Requests a bounded newest-generation refresh without waiting for collector I/O.
+    pub fn request_discovery_refresh(
+        &self,
+        root: &NativePluginDiscoveryRoot,
+    ) -> NativePluginDiscoveryRefreshTicket {
+        discovery_authority().request_refresh(root)
+    }
+
+    /// Returns the immutable last-good root publication without filesystem or collector I/O.
+    pub fn latest_discovery_snapshot(
+        &self,
+        root: &NativePluginDiscoveryRoot,
+    ) -> Option<std::sync::Arc<NativePluginDiscoverySnapshot>> {
+        discovery_authority().latest_snapshot(root)
+    }
+
     /// Projects the canonical authority's last-good snapshot. A cold root waits for the single
     /// bounded authority refresh; later calls perform no synchronous filesystem traversal.
     pub fn discover(&self, root: impl AsRef<Path>) -> NativePluginLoadReport {

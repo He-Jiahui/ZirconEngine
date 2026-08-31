@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use super::super::support::{env_lock, EventRuntimeHarness};
 use crate::core::commands::EditorKeyChord;
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::settings::{
@@ -10,12 +11,6 @@ use crate::core::settings::{
     SettingsScope, SettingsStore, EDITOR_KEYMAP_OVERRIDES_KEY, SETTINGS_USER_ROOT_ENV,
 };
 use crate::ui::host::{module::EDITOR_KEYMAP_NAME, EditorKeymapService};
-use zircon_runtime_interface::ui::dispatch::{
-    UiInputEventMetadata, UiInputModifiers, UiInputSequence, UiInputTimestamp,
-    UiKeyboardInputEvent, UiKeyboardInputState,
-};
-
-use super::super::support::{env_lock, EventRuntimeHarness};
 
 #[test]
 fn host_and_manager_service_share_the_user_settings_keymap() {
@@ -61,8 +56,12 @@ fn host_and_manager_service_share_the_user_settings_keymap() {
         )
         .unwrap();
     assert_eq!(
-        manager_keymap.resolve_keyboard_input(&keyboard_event("O", 79, true, false, false)),
-        Some("file.project.open".to_string())
+        manager_keymap
+            .snapshot()
+            .chord_for_command("file.project.open")
+            .unwrap()
+            .to_string(),
+        "Ctrl+O"
     );
     assert_eq!(
         harness
@@ -103,32 +102,6 @@ fn write_user_keymap_override(root: &Path) {
     SettingsStore::from_roots(root, None)
         .save_from(SettingsScope::User, &settings)
         .expect("the versioned settings store should save the User layer");
-}
-
-fn keyboard_event(
-    logical_key: &str,
-    key_code: u32,
-    ctrl: bool,
-    shift: bool,
-    alt: bool,
-) -> UiKeyboardInputEvent {
-    let mut metadata =
-        UiInputEventMetadata::new(UiInputTimestamp::from_micros(1), UiInputSequence::new(1));
-    metadata.modifiers = UiInputModifiers {
-        control: ctrl,
-        shift,
-        alt,
-        ..UiInputModifiers::default()
-    };
-    UiKeyboardInputEvent {
-        metadata,
-        state: UiKeyboardInputState::Pressed,
-        key_code,
-        scan_code: None,
-        physical_key: logical_key.to_string(),
-        logical_key: logical_key.to_string(),
-        text: None,
-    }
 }
 
 fn restore_environment(key: &str, previous: Option<std::ffi::OsString>) {

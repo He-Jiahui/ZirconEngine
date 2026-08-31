@@ -140,13 +140,17 @@ pub(in crate::dynamic_api::session) fn ime_cursor_area(
     }
 }
 
+fn owned_utf8_payload(payload: &[u8]) -> Option<String> {
+    std::str::from_utf8(payload).ok().map(str::to_owned)
+}
+
 pub(in crate::dynamic_api::session) fn ime_surrounding_text(
     event: ZrRuntimeEventV1,
     payload: &[u8],
 ) -> Result<ImeSurroundingText, ZrStatus> {
-    let value = match String::from_utf8(payload.to_vec()) {
-        Ok(value) => value,
-        Err(_) => return Err(invalid_argument(b"invalid runtime ime payload")),
+    let value = match owned_utf8_payload(payload) {
+        Some(value) => value,
+        None => return Err(invalid_argument(b"invalid runtime ime payload")),
     };
     let cursor = event.key_code as usize;
     let anchor = event.scan_code as usize;
@@ -228,3 +232,7 @@ pub(in crate::dynamic_api::session) fn gamepad_axis(axis: u32) -> GamepadAxis {
 pub(in crate::dynamic_api::session) fn nonzero_u16(value: u32) -> Option<u16> {
     u16::try_from(value).ok().filter(|value| *value != 0)
 }
+
+#[cfg(test)]
+#[path = "input_events/borrowed_utf8_tests.rs"]
+mod borrowed_utf8_tests;

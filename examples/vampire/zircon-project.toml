@@ -1,5 +1,6 @@
 name = "Zircon Vampire Roguelite"
-format_version = 1
+format_version = 3
+project_guid = "837f1b65-bbcf-4b72-af59-1317f512a8fc"
 default_scene = "res://scenes/main.scene.toml"
 library_version = 3
 

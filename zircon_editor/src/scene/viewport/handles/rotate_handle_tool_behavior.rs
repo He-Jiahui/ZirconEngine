@@ -19,7 +19,7 @@ impl HandleTool for RotateHandleTool {
         ctx: &crate::scene::viewport::handles::handle_build_context::HandleBuildContext<'_>,
     ) -> Option<HandleOverlayExtract> {
         let (selected, basis) = selected_basis(ctx)?;
-        let mut elements = Vec::new();
+        let mut elements = Vec::with_capacity(4);
         push_axis_ring(
             &mut elements,
             OverlayAxis::X,
@@ -96,3 +96,7 @@ impl HandleTool for RotateHandleTool {
 
     fn end_drag(&self, _session: HandleDragSession) {}
 }
+
+#[cfg(test)]
+#[path = "rotate_handle_tool_behavior/overlay_capacity_tests.rs"]
+mod overlay_capacity_tests;

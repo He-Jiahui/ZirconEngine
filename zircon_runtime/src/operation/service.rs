@@ -1,17 +1,15 @@
-use std::collections::{BTreeMap, HashMap, VecDeque};
-use std::io::{self, Write};
-use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::sync::mpsc::{self, Receiver, SyncSender};
+use std::collections::BTreeMap;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
-    ZrRuntimeOperationPhase, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
+    ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
+    ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use crate::core::CoreHandle;
-use crate::core::runtime::tasks::TaskTimerSubscription;
 use crate::scene::World;
 
 use super::maintenance::{
@@ -23,114 +21,18 @@ use super::{RuntimeOperationContext, RuntimeOperationHandler, RuntimeOperationSe
 
 mod admission;
 mod completion;
+mod json_budget;
+mod limits;
+mod prepare_completion;
+mod task_state;
 
-const DEFAULT_MAX_TASKS: usize = 1_024;
-const DEFAULT_MAX_IN_FLIGHT_PREPARES: usize = 32;
-const DEFAULT_MAX_RETAINED_BYTES: usize = 4 * 1024 * 1024;
-const DEFAULT_MAX_OWNER_APPLIES_PER_TICK: usize = 8;
-const DEFAULT_TERMINAL_RESULT_TTL: Duration = Duration::from_secs(60);
-
-#[derive(Clone, Copy, Debug)]
-pub(super) struct RuntimeOperationLimits {
-    pub(super) max_tasks: usize,
-    pub(super) max_in_flight_prepares: usize,
-    pub(super) max_retained_bytes: usize,
-    pub(super) max_owner_applies_per_tick: usize,
-    pub(super) terminal_result_ttl: Duration,
-}
-
-impl Default for RuntimeOperationLimits {
-    fn default() -> Self {
-        Self {
-            max_tasks: DEFAULT_MAX_TASKS,
-            max_in_flight_prepares: DEFAULT_MAX_IN_FLIGHT_PREPARES,
-            max_retained_bytes: DEFAULT_MAX_RETAINED_BYTES,
-            max_owner_applies_per_tick: DEFAULT_MAX_OWNER_APPLIES_PER_TICK,
-            terminal_result_ttl: DEFAULT_TERMINAL_RESULT_TTL,
-        }
-    }
-}
-
-#[derive(Default)]
-pub(super) struct RuntimeOperationTaskState {
-    pub(super) next_handle: u64,
-    pub(super) tasks: HashMap<ZrRuntimeOperationHandle, RuntimeOperationTask>,
-    pub(super) queued_snapshot_tasks: VecDeque<ZrRuntimeOperationHandle>,
-    pub(super) ready_apply_tasks: VecDeque<ZrRuntimeOperationHandle>,
-    pub(super) retained_bytes: usize,
-    pub(super) pending_admissions: usize,
-    pub(super) pending_admission_bytes: usize,
-    pub(super) in_flight_prepares: usize,
-    pub(super) maintenance_subscription: Option<TaskTimerSubscription>,
-    pub(super) maintenance_deadline: Option<Instant>,
-    pub(super) maintenance_generation: u64,
-}
-
-impl RuntimeOperationTaskState {
-    fn compact_phase_indexes(&mut self, maximum_tasks: usize) {
-        if self.queued_snapshot_tasks.len() >= maximum_tasks {
-            let tasks = &self.tasks;
-            self.queued_snapshot_tasks.retain(|handle| {
-                tasks.get(handle).is_some_and(|task| {
-                    task.phase == ZrRuntimeOperationPhase::Queued && !task.snapshot_claimed
-                })
-            });
-        }
-        if self.ready_apply_tasks.len() >= maximum_tasks {
-            let tasks = &self.tasks;
-            self.ready_apply_tasks.retain(|handle| {
-                tasks.get(handle).is_some_and(|task| {
-                    task.phase == ZrRuntimeOperationPhase::ReadyToApply && !task.apply_claimed
-                })
-            });
-        }
-    }
-
-    fn allocate_handle(
-        &mut self,
-    ) -> Result<ZrRuntimeOperationHandle, RuntimeOperationServiceError> {
-        if self.next_handle == 0 {
-            self.next_handle = 1;
-        }
-        let handle = ZrRuntimeOperationHandle::new(self.next_handle);
-        self.next_handle = self
-            .next_handle
-            .checked_add(1)
-            .ok_or(RuntimeOperationServiceError::HandleExhausted)?;
-        Ok(handle)
-    }
-}
-
-enum RuntimeOperationPrepareCompletion {
-    Prepared {
-        handle: ZrRuntimeOperationHandle,
-        command: serde_json::Value,
-        result: serde_json::Value,
-        command_bytes: usize,
-        result_bytes: usize,
-    },
-    Failed {
-        handle: ZrRuntimeOperationHandle,
-        error: String,
-        detail_kind: ZrRuntimeOperationDetailKindV2,
-    },
-}
-
-struct RuntimeOperationCompletionBatch {
-    sender: SyncSender<RuntimeOperationPrepareCompletion>,
-    receiver: Receiver<RuntimeOperationPrepareCompletion>,
-    handles: Vec<ZrRuntimeOperationHandle>,
-}
-
-struct RuntimeOperationCompletionReceiver {
-    receiver: Receiver<RuntimeOperationPrepareCompletion>,
-    handles: Vec<ZrRuntimeOperationHandle>,
-}
-
-#[derive(Clone, Copy)]
-struct RuntimeOperationAdmissionReservation {
-    bytes: usize,
-}
+use json_budget::{json_value_byte_len, truncate_utf8_to_bytes};
+pub(super) use limits::RuntimeOperationLimits;
+use prepare_completion::{
+    RuntimeOperationCompletionBatch, RuntimeOperationCompletionReceiver,
+    RuntimeOperationPrepareCompletion,
+};
+pub(super) use task_state::RuntimeOperationTaskState;
 
 /// Registry, bounded task store, and prepare completion queue for one runtime session.
 pub struct RuntimeOperationService {
@@ -811,52 +713,4 @@ impl Default for RuntimeOperationService {
     fn default() -> Self {
         Self::new()
     }
-}
-
-fn consume_raw_admission(
-    state: &mut RuntimeOperationTaskState,
-    reservation: RuntimeOperationAdmissionReservation,
-) {
-    state.pending_admissions = state
-        .pending_admissions
-        .checked_sub(1)
-        .expect("raw operation admission count must be released exactly once");
-    state.pending_admission_bytes = state
-        .pending_admission_bytes
-        .checked_sub(reservation.bytes)
-        .expect("raw operation admission bytes must be released exactly once");
-}
-
-struct JsonByteCounter(usize);
-
-impl Write for JsonByteCounter {
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.0 = self.0.saturating_add(bytes.len());
-        Ok(bytes.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-
-fn json_value_byte_len(value: &serde_json::Value) -> Result<usize, RuntimeOperationServiceError> {
-    let mut counter = JsonByteCounter(0);
-    serde_json::to_writer(&mut counter, value).map_err(|error| {
-        RuntimeOperationServiceError::PayloadEncoding {
-            message: error.to_string(),
-        }
-    })?;
-    Ok(counter.0)
-}
-
-fn truncate_utf8_to_bytes(message: String, maximum: usize) -> String {
-    if message.len() <= maximum {
-        return message;
-    }
-    let mut end = maximum;
-    while end > 0 && !message.is_char_boundary(end) {
-        end -= 1;
-    }
-    message[..end].to_owned()
 }

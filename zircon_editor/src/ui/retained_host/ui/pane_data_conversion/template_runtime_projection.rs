@@ -114,21 +114,20 @@ fn host_template_node_with_content_fallback(
     node: RetainedUiHostNodeProjection,
     content_size: PaneContentSize,
 ) -> Option<host_contract::TemplatePaneNodeData> {
-    let control_id = node.control_id.clone();
     let mut node = host_template_node(node)?;
     if matches!(
-        control_id.as_deref(),
-        Some("HierarchyListPanel")
-            | Some("HierarchyTreeSlotAnchor")
-            | Some("AnimationEditorBodyPanel")
-            | Some("AnimationSequenceContentPanel")
-            | Some("AnimationTimelineSlotAnchor")
-            | Some("AnimationGraphContentPanel")
-            | Some("AnimationGraphCanvasSlotAnchor")
-            | Some("ModulePluginListPanel")
-            | Some("ModulePluginListSlotAnchor")
-            | Some("BuildExportTargetsPanel")
-            | Some("BuildExportTargetsSlotAnchor")
+        node.control_id.as_str(),
+        "HierarchyListPanel"
+            | "HierarchyTreeSlotAnchor"
+            | "AnimationEditorBodyPanel"
+            | "AnimationSequenceContentPanel"
+            | "AnimationTimelineSlotAnchor"
+            | "AnimationGraphContentPanel"
+            | "AnimationGraphCanvasSlotAnchor"
+            | "ModulePluginListPanel"
+            | "ModulePluginListSlotAnchor"
+            | "BuildExportTargetsPanel"
+            | "BuildExportTargetsSlotAnchor"
     ) && node.frame.width <= 0.0
         && node.frame.height <= 0.0
     {

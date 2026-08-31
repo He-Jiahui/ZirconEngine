@@ -16,7 +16,7 @@ pub(super) fn push_runtime_command(
         .map(frame_from_ui)
         .or_else(|| parent_clip.cloned());
 
-    for element in command.to_paint_elements(0) {
+    for element in command.to_transient_paint_elements(0) {
         push_runtime_paint_element(output, command, &element, command_clip.clone());
     }
 }

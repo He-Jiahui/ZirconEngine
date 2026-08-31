@@ -1,7 +1,7 @@
 use super::font_asset_cache::MAX_CACHED_FONT_ASSET_FACE_COUNT;
 use super::*;
 use crate::asset::ProjectAssetManager;
-use crate::core::framework::text::TextFontFaceHandle;
+use crate::core::framework::text::{TextFontCollectionHandle, TextFontFaceHandle};
 use crate::core::math::UVec2;
 use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasPageKey};
 use crate::text::font::{font_handle_registry_report, shared_font_database_test_serial_guard};
@@ -11,8 +11,10 @@ use std::path::PathBuf;
 mod cache_generation;
 mod handle_resolution;
 mod offline;
+mod owner_recovery;
 
 const TEXT_SDF_MANIFEST_WORK_DIRECTORY: &str = ".runtime_text_sdf_manifest_work";
+const TEST_FONT_COLLECTION: TextFontCollectionHandle = TextFontCollectionHandle::new(1);
 
 #[derive(Default)]
 struct SdfAtlasPlan {
@@ -65,6 +67,7 @@ fn sdf_cpu_preparation_batches_metrics_advances_and_invisible_controls() {
     let mut bake = SdfFontBakeCache::new();
     let mut font_database = FontDatabase::with_default_fallbacks();
     let asset_manager = ProjectAssetManager::default();
+    let generation = bake.observed_font_generation;
     let run = CpuPreparationRun {
         text: "A\u{200b} ".to_string(),
         resolved_advances: None,
@@ -114,8 +117,55 @@ fn sdf_font_resolver_reuses_registered_asset_owner_without_manifest_io() {
         &ProjectAssetManager::default(),
     );
 
-    assert_eq!(resolved, Some(registered.faces[0]));
+    assert_eq!(resolved, Ok(registered.faces[0]));
     assert_eq!(font_database.face_count(), 1);
+}
+
+#[test]
+fn sdf_default_font_resolver_uses_runtime_baseline_without_manifest_io() {
+    let mut font_database = FontDatabase::default();
+    let baseline = font_database
+        .register_test_face(
+            crate::text::FontFaceDescriptor::regular("Runtime Default"),
+            Arc::from([1_u8].as_slice()),
+        )
+        .expect("register runtime default fixture");
+    assert!(font_database.set_runtime_default_primary_face(baseline));
+
+    let resolved = resolve_font_face(
+        Some(DEFAULT_FONT_ASSET),
+        &mut font_database,
+        &ProjectAssetManager::default(),
+    );
+
+    assert_eq!(resolved, Ok(baseline));
+    assert_eq!(font_database.face_count(), 1);
+    assert_eq!(
+        font_database.font_asset_primary_face(DEFAULT_FONT_ASSET),
+        None
+    );
+}
+
+#[test]
+fn sdf_runtime_font_lookup_does_not_admit_an_unregistered_asset() {
+    let mut bake = SdfFontBakeCache::new();
+    let font_database = FontDatabase::with_default_fallbacks();
+    let face_count = font_database.face_count();
+
+    let resolved = bake.font_asset_faces.resolve(
+        bake.observed_font_generation,
+        Some("res://fonts/unadmitted-runtime-font.font.toml"),
+        &font_database,
+    );
+
+    assert_eq!(resolved, None);
+    assert_eq!(font_database.face_count(), face_count);
+    assert_eq!(
+        bake.font_asset_faces
+            .report()
+            .resident_no_registered_faces_count,
+        1
+    );
 }
 
 #[test]
@@ -123,7 +173,7 @@ fn sdf_cpu_preparation_caches_shaped_metrics_across_frames() {
     let mut bake = SdfFontBakeCache::new();
     let mut font_database = FontDatabase::with_default_fallbacks();
     let asset_manager = ProjectAssetManager::default();
-    let face = TextFontFaceHandle::new(7, 11);
+    let face = TextFontFaceHandle::new(TEST_FONT_COLLECTION, 7, 11);
     let run = CpuPreparationRun {
         text: "AB".to_string(),
         resolved_advances: None,
@@ -150,38 +200,47 @@ fn sdf_cpu_preparation_caches_shaped_metrics_across_frames() {
     assert_eq!(bake.measured_glyphs.len(), cached_after_first);
     assert_eq!(bake.face_resolutions.len(), cached_after_first);
     assert_eq!(bake.font_asset_faces.len(), 1);
-    assert!(bake
-        .measured_glyphs
-        .keys()
-        .all(|key| { key.font_id == Some(face) && key.glyph_id.is_some() }));
-    assert!(bake
-        .face_resolutions
-        .keys()
-        .all(|key| { key.font_id == Some(face) && key.glyph_id.is_some() }));
+    assert!(
+        bake.measured_glyphs
+            .keys()
+            .all(|key| { key.font_id == Some(face) && key.glyph_id.is_some() })
+    );
+    assert!(
+        bake.face_resolutions
+            .keys()
+            .all(|key| { key.font_id == Some(face) && key.glyph_id.is_some() })
+    );
 }
 
 #[test]
 fn sdf_font_asset_face_cache_evicts_oldest_asset_at_its_hard_limit() {
     let mut bake = SdfFontBakeCache::new();
     let mut font_database = FontDatabase::with_default_fallbacks();
-    let asset_manager = ProjectAssetManager::default();
     for index in 0..=MAX_CACHED_FONT_ASSET_FACE_COUNT {
         let asset = format!("res://fonts/missing-{index}.font.toml");
-        let _ =
-            bake.resolve_font_asset_face_cached(Some(&asset), &mut font_database, &asset_manager);
+        let _ = bake.resolve_font_asset_face_cached(Some(&asset), &mut font_database);
     }
 
     assert_eq!(
         bake.font_asset_faces.len(),
         MAX_CACHED_FONT_ASSET_FACE_COUNT
     );
-    assert!(!bake
-        .font_asset_faces
-        .contains("res://fonts/missing-0.font.toml"));
-    assert!(bake.font_asset_faces.contains(&format!(
-        "res://fonts/missing-{}.font.toml",
+    assert!(
+        !bake
+            .font_asset_faces
+            .contains(generation, "res://fonts/missing-0.font.toml")
+    );
+    assert!(bake.font_asset_faces.contains(
+        generation,
+        &format!(
+            "res://fonts/missing-{}.font.toml",
+            MAX_CACHED_FONT_ASSET_FACE_COUNT
+        )
+    ));
+    assert_eq!(
+        bake.font_asset_faces.report().resident_error_count,
         MAX_CACHED_FONT_ASSET_FACE_COUNT
-    )));
+    );
 }
 
 #[test]
@@ -191,7 +250,7 @@ fn sdf_cpu_preparation_resolves_all_shaped_handles_in_one_batch() {
     let mut font_database = FontDatabase::with_default_fallbacks();
     let asset_manager = ProjectAssetManager::default();
     let stale_generation = shared_font_database_generation().saturating_add(1);
-    let handle = TextFontFaceHandle::new(7, stale_generation);
+    let handle = TextFontFaceHandle::new(TEST_FONT_COLLECTION, 7, stale_generation);
     let run = CpuPreparationRun {
         text: "ABCD".to_string(),
         resolved_advances: None,
@@ -274,7 +333,11 @@ fn stale_shaped_face_handle_cannot_reuse_its_glyph_id_on_a_fallback_face() {
     let key = SdfAtlasGlyphKey {
         glyph: 'A',
         glyph_id: Some(777),
-        font_id: Some(TextFontFaceHandle::new(0, stale_generation)),
+        font_id: Some(TextFontFaceHandle::new(
+            TEST_FONT_COLLECTION,
+            0,
+            stale_generation,
+        )),
         font_instance_id: None,
         font: Some(DEFAULT_FONT_ASSET.into()),
         font_family: Some("Studio Mono".into()),
@@ -436,16 +499,18 @@ fn sdf_font_bake_falls_back_when_fontsdf_cannot_open_requested_face_index() {
     let mut font_database = FontDatabase::with_default_fallbacks();
     let asset_manager = ProjectAssetManager::default();
     let manifest = write_face_index_manifest(1);
-    assert!(manifest.path().starts_with(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("zircon_runtime manifest must have a workspace parent")
-            .join("docs")
-            .join("tests")
-            .join("runtime")
-            .join("text")
-            .join(TEXT_SDF_MANIFEST_WORK_DIRECTORY)
-    ));
+    assert!(
+        manifest.path().starts_with(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .expect("zircon_runtime manifest must have a workspace parent")
+                .join("docs")
+                .join("tests")
+                .join("runtime")
+                .join("text")
+                .join(TEXT_SDF_MANIFEST_WORK_DIRECTORY)
+        )
+    );
     let plan = atlas_plan_for_asset('A', manifest.path().to_string_lossy().as_ref());
 
     let atlas = bake.build_atlas_from_slots(
@@ -489,6 +554,8 @@ fn sdf_font_bake_report_handles_empty_atlas_plan() {
             resident_font_count: 0,
             loaded_font_count: 0,
             generation_failure_count: 0,
+            resident_font_asset_error_count: 0,
+            resident_font_asset_no_registered_faces_count: 0,
             r8_byte_len: 0,
             rgba_byte_len: 0,
             offline_glyph_count: 0,

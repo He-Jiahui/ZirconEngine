@@ -1,12 +1,9 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
-    event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{UiFrame, UiSize},
     surface::UiSurfaceFrame,
-    tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
 
 use crate::ui::binding::EditorUiBinding;
@@ -23,13 +20,15 @@ use super::host_projection::{
     build_builtin_viewport_toolbar_surface, project_builtin_viewport_toolbar_host_projection,
     rebuild_builtin_viewport_toolbar_surface,
 };
+use super::surface_frame_cache::ViewportToolbarSurfaceFrameCache;
 
 pub(crate) struct BuiltinViewportToolbarTemplateBridge {
     runtime: Arc<EditorUiHostRuntime>,
     projection: RetainedUiProjection,
     bindings_by_control: BTreeMap<String, BTreeMap<UiEventKind, EditorUiBinding>>,
-    surface: UiSurface,
+    surface: zircon_runtime::ui::surface::UiSurface,
     host_projection: RetainedUiHostProjection,
+    surface_frame_cache: ViewportToolbarSurfaceFrameCache,
     #[cfg(test)]
     layout_recompute_count: usize,
 }
@@ -68,6 +67,7 @@ impl BuiltinViewportToolbarTemplateBridge {
             bindings_by_control,
             surface,
             host_projection,
+            surface_frame_cache: ViewportToolbarSurfaceFrameCache::default(),
             #[cfg(test)]
             layout_recompute_count: 0,
         })
@@ -112,81 +112,79 @@ impl BuiltinViewportToolbarTemplateBridge {
     }
 
     pub(crate) fn surface_frame_for_projection_controls<F>(
-        &self,
+        &mut self,
         surface_key: &str,
         surface_size: UiSize,
-        mut hit_control_id: F,
+        hit_control_id: F,
     ) -> Arc<UiSurfaceFrame>
     where
         F: FnMut(&str) -> Option<String>,
     {
-        let mut surface = UiSurface::new(UiTreeId::new(format!(
-            "zircon.editor.viewport_toolbar.{surface_key}"
-        )));
-        let root_frame = UiFrame::new(
-            0.0,
-            0.0,
-            surface_size.width.max(1.0),
-            surface_size.height.max(1.0),
-        );
-        let mut root = UiTreeNode::new(
-            UiNodeId::new(1),
-            UiNodePath::new(format!("viewport_toolbar/{surface_key}/root")),
+        self.surface_frame_cache.resolve(
+            &self.host_projection,
+            surface_key,
+            surface_size,
+            None,
+            hit_control_id,
         )
-        .with_frame(root_frame)
-        .with_clip_to_bounds(true)
-        .with_input_policy(UiInputPolicy::Ignore);
-        root.layout_cache.clip_frame = Some(root_frame);
-        surface.tree.insert_root(root);
+    }
 
-        let mut next_node_id = 2;
-        for projection_node in &self.host_projection.nodes {
-            let Some(projection_control_id) = projection_node.control_id.as_deref() else {
-                continue;
-            };
-            if projection_node.routes.is_empty() || projection_node.disabled {
-                continue;
-            }
-            let Some(control_id) = hit_control_id(projection_control_id) else {
-                continue;
-            };
-            let mut metadata = UiTemplateNodeMetadata {
-                component: projection_node.component.clone(),
-                control_id: Some(control_id.clone()),
-                ..Default::default()
-            };
-            metadata.attributes.insert(
-                "source".to_string(),
-                toml::Value::String("viewport_toolbar".to_string()),
-            );
-            metadata.attributes.insert(
-                "projection_control_id".to_string(),
-                toml::Value::String(projection_control_id.to_string()),
-            );
-            let node = UiTreeNode::new(
-                UiNodeId::new(next_node_id),
-                UiNodePath::new(format!(
-                    "viewport_toolbar/{surface_key}/{projection_control_id}"
-                )),
-            )
-            .with_frame(projection_node.frame)
-            .with_state_flags(UiStateFlags {
-                visible: true,
-                enabled: true,
-                clickable: true,
-                hoverable: true,
-                focusable: true,
-                pressed: false,
-                checked: false,
-                dirty: false,
-            })
-            .with_input_policy(UiInputPolicy::Receive)
-            .with_template_metadata(metadata);
-            let _ = surface.tree.insert_child(UiNodeId::new(1), node);
-            next_node_id += 1;
-        }
+    pub(crate) fn surface_frame_for_projection_controls_with_hit_route_key<F>(
+        &mut self,
+        surface_key: &str,
+        surface_size: UiSize,
+        hit_route_key: &[&str],
+        hit_control_id: F,
+    ) -> Arc<UiSurfaceFrame>
+    where
+        F: FnMut(&str) -> Option<String>,
+    {
+        self.surface_frame_cache.resolve(
+            &self.host_projection,
+            surface_key,
+            surface_size,
+            Some(hit_route_key),
+            hit_control_id,
+        )
+    }
 
-        surface.rebuild();
-        surface.surface_frame()
+    pub(crate) fn surface_frame_from_cached_layout_for_projection_controls<F>(
+        &mut self,
+        surface_key: &str,
+        surface_size: UiSize,
+        hit_control_id: F,
+    ) -> Option<Arc<UiSurfaceFrame>>
+    where
+        F: FnMut(&str) -> Option<String>,
+    {
+        self.surface_frame_cache.resolve_if_layout_matches(
+            surface_key,
+            surface_size,
+            None,
+            hit_control_id,
+        )
+    }
+
+    pub(crate) fn surface_frame_from_cached_layout_for_projection_controls_with_hit_route_key<F>(
+        &mut self,
+        surface_key: &str,
+        surface_size: UiSize,
+        hit_route_key: &[&str],
+        hit_control_id: F,
+    ) -> Option<Arc<UiSurfaceFrame>>
+    where
+        F: FnMut(&str) -> Option<String>,
+    {
+        self.surface_frame_cache.resolve_if_layout_matches(
+            surface_key,
+            surface_size,
+            Some(hit_route_key),
+            hit_control_id,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn hit_control_projection_count(&self) -> usize {
+        self.surface_frame_cache.hit_control_projection_count()
     }
 }

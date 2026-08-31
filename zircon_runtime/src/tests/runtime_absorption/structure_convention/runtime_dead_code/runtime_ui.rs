@@ -41,7 +41,7 @@ fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
             "pub(crate) struct PublicRuntimeFrame",
             "pub extract: RenderFrameExtract",
             "pub viewport_size: UVec2",
-            "pub ui: Option<UiRenderExtract>",
+            "pub ui: Option<Arc<UiRenderSubmission>>",
         ],
     );
     assert!(

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ShaderAssetKind {
+    Module,
     Surface,
     Include,
     Compute,
@@ -12,6 +13,7 @@ pub enum ShaderAssetKind {
 impl ShaderAssetKind {
     pub const fn token(self) -> &'static str {
         match self {
+            Self::Module => "module",
             Self::Surface => "surface",
             Self::Include => "include",
             Self::Compute => "compute",

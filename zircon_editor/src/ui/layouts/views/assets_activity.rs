@@ -1,11 +1,16 @@
 use std::collections::BTreeMap;
 
+use zircon_runtime_interface::resource::ResourceKind;
+
+use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::view_projection::{
     build_view_template_node_projection, compose_view_template_node_model,
     AssetWorkspaceProjectionGeneration,
 };
 use crate::ui::layouts::windows::workbench_host_window::AssetsActivityPaneViewData;
 use crate::ui::retained_host::primitives::ModelRc;
+#[cfg(feature = "profiling")]
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 use crate::ui::workbench::asset_content_layout::{
     asset_content_paint_metadata, AssetContentPaintNodeInput, AssetContentSurface,
 };
@@ -19,6 +24,7 @@ mod responsive_layout;
 #[cfg(test)]
 mod responsive_layout_tests;
 
+use super::{asset_kind_filter_options, ASSETS_ACTIVITY_KIND_FILTER_CONTROL_ID};
 use content_layout::apply_assets_activity_content_layout;
 use content_nodes::append_assets_activity_content_nodes;
 use reference_nodes::{
@@ -27,8 +33,6 @@ use reference_nodes::{
 use responsive_layout::apply_assets_activity_responsive_layout;
 
 const ASSETS_ACTIVITY_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/assets_activity.zui";
-const ASSETS_ACTIVITY_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
-const ASSETS_ACTIVITY_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
 
 pub(crate) fn assets_activity_pane_data(
     snapshot: &AssetWorkspaceSnapshot,
@@ -133,24 +137,6 @@ pub(crate) fn assets_activity_pane_data(
         "AssetsActivityViewModeThumbButton".to_string(),
         "Thumb".to_string(),
     );
-    text_overrides.insert("AssetsActivityKindAllChip".to_string(), "All".to_string());
-    text_overrides.insert(
-        "AssetsActivityKindTextureChip".to_string(),
-        "Tex".to_string(),
-    );
-    text_overrides.insert(
-        "AssetsActivityKindMaterialChip".to_string(),
-        "Mat".to_string(),
-    );
-    text_overrides.insert("AssetsActivityKindSceneChip".to_string(), "Scn".to_string());
-    text_overrides.insert(
-        "AssetsActivityKindModelChip".to_string(),
-        "Mesh".to_string(),
-    );
-    text_overrides.insert(
-        "AssetsActivityKindShaderChip".to_string(),
-        "Shd".to_string(),
-    );
     text_overrides.insert(
         "AssetsActivityPreviewTabButton".to_string(),
         "Preview".to_string(),
@@ -164,17 +150,16 @@ pub(crate) fn assets_activity_pane_data(
     let Ok(projection) = build_view_template_node_projection(
         "assets_activity.template_projection",
         ASSETS_ACTIVITY_LAYOUT_ASSET_PATH,
-        &[(
-            ASSETS_ACTIVITY_STYLE_ASSET_ID,
-            ASSETS_ACTIVITY_STYLE_ASSET_PATH,
-        )],
+        &[],
         size,
         &text_overrides,
     ) else {
         return AssetsActivityPaneViewData {
             nodes: ModelRc::default(),
+            render_source_frame: None,
         };
     };
+    let render_source_frame = projection.source_frame();
     let generation = AssetWorkspaceProjectionGeneration::from_snapshot(snapshot);
     let nodes = compose_view_template_node_model(
         "assets_activity.template_composition",
@@ -185,6 +170,7 @@ pub(crate) fn assets_activity_pane_data(
             if snapshot.utility_tab == AssetUtilityTab::References {
                 sync_assets_activity_reference_nodes(nodes, snapshot);
             }
+            apply_assets_activity_kind_filter_state(nodes, snapshot.kind_filter);
             apply_assets_activity_visual_state(nodes, snapshot);
             apply_assets_activity_responsive_layout(nodes, snapshot, size);
             if snapshot.utility_tab == AssetUtilityTab::References {
@@ -192,7 +178,7 @@ pub(crate) fn assets_activity_pane_data(
             }
             apply_assets_activity_content_layout(nodes, snapshot);
 
-            asset_content_paint_metadata(
+            let metadata = asset_content_paint_metadata(
                 nodes.iter().map(|node| {
                     AssetContentPaintNodeInput::new(
                         node.control_id.as_str(),
@@ -204,10 +190,19 @@ pub(crate) fn assets_activity_pane_data(
                     )
                 }),
                 AssetContentSurface::Activity,
-            )
+            );
+            #[cfg(feature = "profiling")]
+            record_current_ui_perf_counter(
+                UiPerfCounter::AssetContentGenerationIdentityParseCount,
+                metadata.identity_parse_count() as f64,
+            );
+            metadata
         },
     );
-    AssetsActivityPaneViewData { nodes }
+    AssetsActivityPaneViewData {
+        nodes,
+        render_source_frame,
+    }
 }
 
 #[cfg(test)]
@@ -247,36 +242,6 @@ fn apply_assets_activity_visual_state(
         "AssetsActivityReferencesTabButton",
         snapshot.utility_tab == AssetUtilityTab::References,
     );
-    mark_toggle_state(
-        nodes,
-        "AssetsActivityKindAllChip",
-        snapshot.kind_filter.is_none(),
-    );
-    mark_toggle_state(
-        nodes,
-        "AssetsActivityKindTextureChip",
-        snapshot.kind_filter == Some(zircon_runtime_interface::resource::ResourceKind::Texture),
-    );
-    mark_toggle_state(
-        nodes,
-        "AssetsActivityKindMaterialChip",
-        snapshot.kind_filter == Some(zircon_runtime_interface::resource::ResourceKind::Material),
-    );
-    mark_toggle_state(
-        nodes,
-        "AssetsActivityKindSceneChip",
-        snapshot.kind_filter == Some(zircon_runtime_interface::resource::ResourceKind::Scene),
-    );
-    mark_toggle_state(
-        nodes,
-        "AssetsActivityKindModelChip",
-        snapshot.kind_filter == Some(zircon_runtime_interface::resource::ResourceKind::Model),
-    );
-    mark_toggle_state(
-        nodes,
-        "AssetsActivityKindShaderChip",
-        snapshot.kind_filter == Some(zircon_runtime_interface::resource::ResourceKind::Shader),
-    );
     let has_selection =
         snapshot.selected_asset_uuid.is_some() || !snapshot.selection.display_name.is_empty();
     mark_panel_selected(
@@ -315,6 +280,21 @@ fn apply_assets_activity_visual_state(
         ],
         has_selection && snapshot.utility_tab == AssetUtilityTab::Preview,
     );
+}
+
+fn apply_assets_activity_kind_filter_state(
+    nodes: &mut [crate::ui::layouts::views::ViewTemplateNodeData],
+    kind_filter: Option<ResourceKind>,
+) {
+    let (selected_label, options) = asset_kind_filter_options(kind_filter);
+
+    if let Some(node) = nodes
+        .iter_mut()
+        .find(|node| node.control_id == ASSETS_ACTIVITY_KIND_FILTER_CONTROL_ID)
+    {
+        node.value_text = selected_label.into();
+        node.options = model_rc(options);
+    }
 }
 
 fn mark_toggle_state(

@@ -13,6 +13,9 @@ use zircon_runtime_interface::ui::{
 
 use super::super::painter_state::UiRenderPainterStateSource;
 
+#[cfg(test)]
+mod direct_hex_color_tests;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum CollectionRowKind {
     List,
@@ -433,25 +436,38 @@ fn value_as_f32(value: &Value) -> Option<f32> {
 
 fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
     let encoded = value.trim().strip_prefix('#')?;
-    if !encoded.as_bytes().iter().all(u8::is_ascii_hexdigit) {
-        return None;
-    }
+    let encoded = encoded.as_bytes();
     let (red, green, blue, alpha) = match encoded.len() {
         6 => (
-            u8::from_str_radix(&encoded[0..2], 16).ok()?,
-            u8::from_str_radix(&encoded[2..4], 16).ok()?,
-            u8::from_str_radix(&encoded[4..6], 16).ok()?,
+            decode_hex_byte(encoded, 0)?,
+            decode_hex_byte(encoded, 2)?,
+            decode_hex_byte(encoded, 4)?,
             u8::MAX,
         ),
         8 => (
-            u8::from_str_radix(&encoded[0..2], 16).ok()?,
-            u8::from_str_radix(&encoded[2..4], 16).ok()?,
-            u8::from_str_radix(&encoded[4..6], 16).ok()?,
-            u8::from_str_radix(&encoded[6..8], 16).ok()?,
+            decode_hex_byte(encoded, 0)?,
+            decode_hex_byte(encoded, 2)?,
+            decode_hex_byte(encoded, 4)?,
+            decode_hex_byte(encoded, 6)?,
         ),
         _ => return None,
     };
     Some(UiRgbaColor::from_u8(red, green, blue, alpha))
+}
+
+fn decode_hex_byte(encoded: &[u8], offset: usize) -> Option<u8> {
+    let high = decode_hex_digit(*encoded.get(offset)?)?;
+    let low = decode_hex_digit(*encoded.get(offset + 1)?)?;
+    Some((high << 4) | low)
+}
+
+fn decode_hex_digit(encoded: u8) -> Option<u8> {
+    match encoded {
+        b'0'..=b'9' => Some(encoded - b'0'),
+        b'a'..=b'f' => Some(encoded - b'a' + 10),
+        b'A'..=b'F' => Some(encoded - b'A' + 10),
+        _ => None,
+    }
 }
 
 fn css_color(color: UiRgbaColor) -> String {

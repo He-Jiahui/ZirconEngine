@@ -2,26 +2,25 @@ use crate::core::framework::render::{
     OverlayLineSegment, RenderOverlayExtract, RenderVirtualGeometryBvhVisualizationInstance,
     RenderVirtualGeometryBvhVisualizationNode, RenderVirtualGeometryDebugSnapshot,
     RenderVirtualGeometryExecutionState, RenderVirtualGeometryVisBufferMark, SceneGizmoKind,
-    SceneGizmoOverlayExtract,
+    SceneGizmoOverlayExtract, UiRenderSubmission,
 };
 use crate::core::math::{Vec3, Vec4};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::graphics::{ViewportCameraStackOutputPolicy, ViewportRenderFrame};
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
 use super::build_virtual_geometry_debug_snapshot::build_virtual_geometry_debug_snapshot;
 
 pub(super) fn build_runtime_frame(
-    ui: Option<UiRenderExtract>,
-    context: &FrameSubmissionContext,
+    ui: Option<Arc<UiRenderSubmission>>,
+    context: &mut FrameSubmissionContext,
     prepared: PreparedRuntimeSubmission,
     output_policy: ViewportCameraStackOutputPolicy,
 ) -> ViewportRenderFrame {
-    let extract = context.source_extract();
+    let extract = context.submission_extract();
     let virtual_geometry_debug_snapshot = build_virtual_geometry_debug_snapshot(&extract, context);
     let runtime_overlays = runtime_virtual_geometry_debug_overlays(
         &extract.debug.overlays,
@@ -37,6 +36,11 @@ pub(super) fn build_runtime_frame(
         .with_ui(ui)
         .with_frame_visibility(context.visibility_context().frame_visibility.clone())
         .with_previous_motion_vector_camera(context.previous_motion_vector_camera().cloned())
+        .with_post_process_override(context.post_process_shared())
+        .with_environment_source_cubemap_override(
+            context.take_environment_source_cubemap_override(),
+        )
+        .with_particle_previous_sprites_override(context.take_particle_previous_sprites_override())
         .with_prepared_runtime_sidebands(prepared.into_prepared_runtime_sidebands())
         .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot.map(Arc::new));
     frame.render_region = frame.render_region().with_local_size(context.render_size());
@@ -307,7 +311,8 @@ mod tests {
         RenderOverlayExtract, RenderParticlePreviousSpriteSnapshot, RenderPipelineHandle,
         RenderPluginRendererOutputs, RenderProfileBundle,
         RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
-        SceneViewportRenderPacket, TemporalJitterSample, ViewportCameraSnapshot,
+        SceneViewportRenderPacket, SourceCubemapEnvironment, SourceCubemapMipChain,
+        TemporalJitterSample, ViewportCameraSnapshot,
     };
     use crate::core::math::{Transform, UVec2, Vec3, Vec4};
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
@@ -339,9 +344,19 @@ mod tests {
             rotation: 0.0,
             billboard_basis: None,
         }];
-        let mut source_extract = extract.clone();
-        source_extract.particles.previous_sprites = particle_previous_sprites.clone();
-        let context = FrameSubmissionContext::new(
+        let environment_source_cubemap_override = SourceCubemapEnvironment::new(
+            SourceCubemapMipChain::new(
+                1,
+                1,
+                vec![[0.25, 0.5, 0.75, 1.0]; 6],
+                1,
+                1,
+                vec![[0.1, 0.2, 0.3, 1.0]; 6],
+            ),
+            88,
+            [1, 2, 3, 4],
+        );
+        let mut context = FrameSubmissionContext::new(
             UVec2::new(640, 480),
             UVec2::new(640, 480),
             RenderPipelineHandle::new(1),
@@ -367,12 +382,16 @@ mod tests {
                 format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
             },
             Default::default(),
+            crate::core::framework::render::RenderViewFamilyPipeline::resolve(
+                UVec2::new(640, 480),
+                Default::default(),
+                crate::core::framework::render::RenderUpscalerKind::Spatial,
+            ),
             None,
             Default::default(),
             Default::default(),
             AntiAliasFallbackReport::exact(AntiAliasMode::Taa),
             advanced_runtime_plan_with_virtual_geometry(),
-            Default::default(),
             Default::default(),
             false,
             true,
@@ -380,7 +399,7 @@ mod tests {
             Default::default(),
             None,
             None,
-            std::sync::Arc::new(source_extract),
+            std::sync::Arc::new(extract.clone()),
             0,
             0,
             0,
@@ -392,7 +411,9 @@ mod tests {
             None,
             None,
             1,
-        );
+        )
+        .with_environment_source_cubemap_override(Some(environment_source_cubemap_override.clone()))
+        .with_particle_previous_sprites_override(Some(particle_previous_sprites.clone()));
         let prepared = PreparedRuntimeSubmission::new(
             vec![5],
             None,
@@ -409,13 +430,21 @@ mod tests {
             },
         );
 
+        let context_post_process = context.post_process_shared();
         let frame = build_runtime_frame(
             None,
-            &context,
+            &mut context,
             prepared,
             ViewportCameraStackOutputPolicy::new(false, false),
         );
 
+        assert!(Arc::ptr_eq(
+            &context_post_process,
+            frame
+                .post_process_override
+                .as_ref()
+                .expect("runtime frame must share the renderer-owned post-process snapshot"),
+        ));
         assert_eq!(frame.viewport_size, UVec2::new(640, 480));
         assert_eq!(
             frame.output_target().kind(),
@@ -451,10 +480,21 @@ mod tests {
             &[9]
         );
         assert_eq!(frame.extract.view.anti_alias.mode, AntiAliasMode::Taa);
+        assert_eq!(frame.previous_particle_sprites(), particle_previous_sprites);
+        assert!(frame.extract.particles.previous_sprites.is_empty());
         assert_eq!(
-            frame.extract.particles.previous_sprites,
-            particle_previous_sprites
+            frame
+                .source_cubemap_environment()
+                .expect("runtime frame carries renderer-owned environment override")
+                .source_revision,
+            environment_source_cubemap_override.source_revision
         );
+        assert!(frame
+            .extract
+            .environment
+            .skybox
+            .source_cubemap_environment()
+            .is_none());
         assert_ne!(
             frame.extract.view.camera.temporal_jitter,
             TemporalJitterSample::default()
@@ -485,17 +525,18 @@ mod tests {
             handle: RenderPipelineHandle::new(1),
             name: "empty".to_string(),
             renderer_name: "empty".to_string(),
-            stages: vec![RenderPassStage::Opaque3d],
-            pass_stages: Vec::new(),
+            execution_pass_metadata: Vec::new(),
             enabled_features: Vec::new(),
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            ambient_occlusion_profile: None,
             half_resolution_transparency_depth_sigma:
                 crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
             graph,
         })
+        .expect("empty runtime frame pipeline execution packet")
     }
 
     fn advanced_runtime_plan_with_virtual_geometry() -> AdvancedProfileRuntimePlan {

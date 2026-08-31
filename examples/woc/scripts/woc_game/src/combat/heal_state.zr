@@ -182,16 +182,23 @@ pub applyHealingThreat(
 ): void {
     if (source.kind != "player" || healed <= 0) { return; }
     var awareCount = 0;
+    var onlyAwareIndex = -1;
     var index = 0;
     while (index < mobs.dead.length) {
         if (!<bool>mobs.dead[index] && <bool>mobs.hostile[index] &&
             <bool>mobs.inCombat[index] && <bool>mobs.hasThreatEntries[index] &&
             mobAwareOfTarget(mobs, index, target.kind)) {
             awareCount = awareCount + 1;
+            onlyAwareIndex = index;
         }
         index = index + 1;
     }
     if (awareCount == 0) { return; }
+    if (awareCount == 1) {
+        mobs.healerThreat[onlyAwareIndex] = <float>mobs.healerThreat[onlyAwareIndex] +
+            <float>healed * 0.5 * threatModifier(source);
+        return;
+    }
     var perMob = <float>healed * 0.5 * threatModifier(source) / <float>awareCount;
     index = 0;
     while (index < mobs.dead.length) {
@@ -385,6 +392,18 @@ pub contractTest(): int {
     ) != 100 || copyTarget.hp != 1000 || events.randomIndex != 0 ||
         events.healEvents != 1 || events.lastCrit || events.weaponProcCalls != 0) {
         return -8;
+    }
+    var singleSource = makeEntity(<uint>13, "player", 100, 100);
+    var singleTarget = makeEntity(<uint>14, "player", 50, 100);
+    var singleAware = new AwareMobProjection();
+    singleAware.addMob(true, true, true, true, true, false);
+    singleAware.addMob(false, false, true, true, true, false);
+    singleAware.addMob(false, true, true, true, true, false);
+    applyHealingThreat(singleSource, singleTarget, 200, singleAware);
+    if (<float>singleAware.healerThreat[0] != 0.0 ||
+        <float>singleAware.healerThreat[1] != 0.0 ||
+        !closeEnough(<float>singleAware.healerThreat[2], 100.0)) {
+        return -9;
     }
     return 1;
 }

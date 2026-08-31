@@ -15,13 +15,13 @@ node = "root"
 component = "VerticalGroup"
 control_id = "ConsolePaneBodyRoot"
 classes = ["editor-pane", "console-pane", "panel"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.regular" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "header" }, { node = "body" }, { node = "footer" }]
 
 [nodes.header]
 component = "VerticalGroup"
 control_id = "ConsoleHeader"
-layout = { container = { kind = "VerticalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" } }
 children = [{ node = "level_counts" }, { node = "source_filters" }]
 
 [nodes.level_counts]
@@ -61,7 +61,7 @@ events = [{ id = "ConsolePaneBody/FilterInfo", event = "Click", action = { actio
 [nodes.source_filters]
 component = "VerticalGroup"
 control_id = "ConsoleSourceFilters"
-layout = { container = { kind = "VerticalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" } }
 children = [{ node = "source_filters_primary" }, { node = "source_filters_secondary" }]
 
 [nodes.source_filters_primary]
@@ -129,7 +129,7 @@ events = [{ id = "ConsolePaneBody/SourceScriptBuild", event = "Click", action = 
 component = "VerticalGroup"
 control_id = "ConsoleBodySection"
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }
-children = [{ node = "output_line_prototype", slot = { layout = { padding = { left = 8.0, right = 12.0 } } } }]
+children = [{ node = "output_line_prototype", slot = { layout = { padding = { left = "$editor.density.gap.medium", right = "$editor.density.gap.large" } } } }]
 
 [nodes.output_line_prototype]
 component = "Label"
@@ -140,7 +140,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 1
 [nodes.footer]
 component = "HorizontalGroup"
 control_id = "ConsoleFooter"
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.regular" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 children = [{ node = "footer_spacer" }, { node = "clear" }]
 
 [nodes.footer_spacer]

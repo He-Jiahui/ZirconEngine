@@ -11,10 +11,15 @@ tests:
   - existing retained Welcome recent pointer open/remove/scroll suites
   - current-source Windows focused Cargo and 10k-row scroll/move storm pending
 doc_type: implementation-evidence
-status: static_complete_dynamic_pending
+status: superseded_by_2026_08_23_current_source_review
 ---
 
 # Editor Retained Welcome Recent Pointer 逐文件性能静态审查（2026-07-17）
+
+> Superseded by
+> `2026-08-23-editor-retained-welcome-recent-typed-item-receipt-hard-cutover-architecture-review.md`.
+> Current source has two mirror nodes, no scroll rebuild and O(1) arithmetic row hit; the N-row
+> node/rebuild findings below are historical and must not drive current implementation.
 
 ## 范围与覆盖
 

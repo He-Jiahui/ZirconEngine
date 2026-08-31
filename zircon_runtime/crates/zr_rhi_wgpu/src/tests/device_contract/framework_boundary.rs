@@ -21,7 +21,7 @@ fn app_editor_and_core_framework_sources_do_not_import_wgpu() {
 }
 
 #[test]
-fn deterministic_rhi_contract_device_stays_test_only_and_out_of_product_call_graphs() {
+fn deterministic_test_backend_and_neutral_product_owner_remain_distinct() {
     let workspace_root = workspace_root();
     let runtime_root = workspace_root.join("zircon_runtime");
     let rhi_wgpu_module = std::fs::read_to_string(
@@ -33,17 +33,15 @@ fn deterministic_rhi_contract_device_stays_test_only_and_out_of_product_call_gra
     )
     .expect("read zr_rhi_wgpu crate root");
     let compact_rhi_wgpu_module = rhi_wgpu_module.split_whitespace().collect::<String>();
-    let read_runtime_source = |relative: &str| {
-        std::fs::read_to_string(runtime_root.join("src").join(relative))
-            .unwrap_or_else(|error| panic!("read runtime source {relative}: {error}"))
-    };
-    let render_backend = read_runtime_source("graphics/backend/render_backend/render_backend.rs");
-    let request_device = read_runtime_source("graphics/backend/render_backend/request_device.rs");
-    let scene_renderer =
-        read_runtime_source("graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs");
-    let scene_renderer_construct = read_runtime_source(
-        "graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs",
-    );
+    let neutral_mvp_renderer = std::fs::read_to_string(
+        runtime_root
+            .join("src")
+            .join("graphics")
+            .join("backend")
+            .join("render_backend")
+            .join("neutral_mvp_renderer.rs"),
+    )
+    .expect("read neutral MVP renderer");
 
     assert!(
         compact_rhi_wgpu_module.contains("#[cfg(test)]moddevice;"),
@@ -59,14 +57,13 @@ fn deterministic_rhi_contract_device_stays_test_only_and_out_of_product_call_gra
         "the deterministic contract test types must not retain production-shaped WGPU aliases"
     );
     assert!(
-        render_backend.contains("pub(crate) struct RenderBackend")
-            && render_backend.contains("pub(crate) device: wgpu::Device")
-            && render_backend.contains("pub(crate) queue: wgpu::Queue")
-            && request_device.contains("adapter.request_device(")
-            && scene_renderer.contains("backend: RenderBackend")
-            && scene_renderer_construct
-                .contains("crate::graphics::backend::RenderBackend::new_offscreen()?"),
-        "SceneRenderer must construct graphics/backend's real wgpu device/queue owner"
+        neutral_mvp_renderer.contains("device: WgpuRenderDevice")
+            && neutral_mvp_renderer.contains("WgpuRenderDeviceContext::new(")
+            && neutral_mvp_renderer.contains("WgpuRenderDevice::new(context, profile)")
+            && neutral_mvp_renderer.contains("self.frame.submit(&self.device)")
+            && !neutral_mvp_renderer.contains("RenderBackend::new_offscreen")
+            && !neutral_mvp_renderer.contains("queue.submit"),
+        "the neutral MVP product path must own and submit through the production RHI device"
     );
 
     let product_roots = [
@@ -79,8 +76,6 @@ fn deterministic_rhi_contract_device_stays_test_only_and_out_of_product_call_gra
         for symbol in [
             "DeterministicRhiContractDevice",
             "DeterministicRhiContractCommandList",
-            "WgpuRenderDevice",
-            "WgpuCommandList",
         ] {
             collect_product_symbol_mentions(&root, symbol, &mut offenders);
         }
@@ -88,7 +83,7 @@ fn deterministic_rhi_contract_device_stays_test_only_and_out_of_product_call_gra
 
     assert!(
         offenders.is_empty(),
-        "product sources must use graphics/backend's real wgpu owner, not the deterministic RHI contract device: {offenders:?}"
+        "product sources must never use the deterministic RHI test backend: {offenders:?}"
     );
 }
 

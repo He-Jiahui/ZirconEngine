@@ -78,7 +78,7 @@ def materialize_plugin_asset_pack(
         completed = run_plugin_asset_pack_command(command, repo_root, diagnostics)
         if completed is None or completed.returncode != 0:
             return False
-        if not pack_path.exists() or not pack_path.is_file():
+        if not pack_path.is_file():
             diagnostics.append(f"plugin asset pack {pack_path} was not written")
             return False
         return plugin_asset_pack_report_is_clean(pack_report_path, diagnostics)

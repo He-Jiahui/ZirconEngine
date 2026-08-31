@@ -17,6 +17,7 @@ secondary_references:
   - dev/Fyrox/editor/src/scene_viewer/mod.rs
 measurement_tooling:
   - tools/mvp/Build-RenderExtractProfilingInputs.ps1
+  - tools/mvp/RenderExtractSourceIdentity.psm1
   - tools/mvp/New-RenderExtractScaleProject.ps1
   - tools/mvp/Capture-RenderExtractBaseline.ps1
   - tools/mvp/Write-RenderExtractBaselineReport.ps1
@@ -121,11 +122,13 @@ parsed. Product-process metrics exclude child processes and GPU memory. Record G
 available; record power only from an OS or device source that explicitly identifies its sampling
 method. A missing GPU or power tool is reported as unavailable, never inferred from CPU time.
 
-Create each scale point with `tools/mvp/New-RenderExtractScaleProject.ps1` under
-`E:\ZirconBuilds\mvp-perf-projects\<session>`, then supply that created project to the capture
-tool. The generated project keeps `res://scenes/main.scene.toml` and `assets/...` resource
-references; its manifest records the current source fingerprint and primitive count, but no
-absolute resource path becomes part of the project contract. The 100k point is an extract and
+Build the profiling inputs first, then create each scale point with
+`tools/mvp/New-RenderExtractScaleProject.ps1 -ProfilingInputManifestPath <manifest>` under
+`E:\ZirconBuilds\mvp-perf-projects\<session>` and supply that project to the capture tool. The
+generator verifies the manifest BuildSet, copies the template only from that BuildSet snapshot,
+and records the same BuildSetId plus primitive count in the project metadata. The generated project
+keeps `res://scenes/main.scene.toml` and `assets/...` references; no absolute resource path becomes
+part of the project contract. The 100k point is an extract and
 payload-scaling workload: clone, projection rebuild, mesh visit, sort, and interaction copying all
 occur before renderer visibility culling. It is not evidence that every primitive fits in the
 captured viewport. Use the representative 1k and 10k runs for decoded product-image inspection and

@@ -1,12 +1,45 @@
 use super::*;
-use crate::core::framework::text::{TextGlyphFlags, TextGlyphRotation};
+use crate::core::framework::text::{TextDirection, TextGlyphFlags, TextGlyphRotation};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedTextLayout, UiResolvedTextRun, UiTextCaret, UiTextCaretAffinity, UiTextDirection,
     UiTextRunKind, UiTextWritingMode,
 };
 
+mod cluster_geometry;
+mod invariant_failures;
+mod virtual_replacement;
 mod visual_projection_contract;
+
+#[test]
+fn glyph_artifact_handle_identity_tracks_render_and_rebuild_state() {
+    let artifact = Arc::new(ResolvedTextGlyphArtifact {
+        source_text: Arc::from("identity"),
+        source_text_origin: 0,
+        font_generation: 7,
+        font_lease: ResolvedTextGlyphArtifactFontLease::process_default(),
+        style: UiResolvedStyle::default(),
+        writing_mode: UiTextWritingMode::HorizontalTb,
+        lines: Vec::new(),
+        logical_virtual_line_sequences: None,
+    });
+    let changed_generation = Arc::new(ResolvedTextGlyphArtifact {
+        font_generation: 8,
+        ..artifact.as_ref().clone()
+    });
+    let changed_source = Arc::new(ResolvedTextGlyphArtifact {
+        source_text: Arc::from("different"),
+        ..artifact.as_ref().clone()
+    });
+    let first = register_resolved_text_glyph_artifact(Arc::clone(&artifact));
+    let same = register_resolved_text_glyph_artifact(artifact);
+    let changed_generation = register_resolved_text_glyph_artifact(changed_generation);
+    let changed_source = register_resolved_text_glyph_artifact(changed_source);
+
+    assert_eq!(first, same);
+    assert_ne!(first, changed_generation);
+    assert_ne!(first, changed_source);
+}
 
 #[test]
 fn glyph_artifact_source_origin_accepts_only_full_source_or_exact_layout_slice() {
@@ -35,6 +68,7 @@ fn glyph_artifact_exact_source_slice_preserves_absolute_glyph_ranges() {
     };
     let layout_line = UiResolvedTextLine {
         text: source.to_string(),
+        placement_frame: UiFrame::default(),
         frame: UiFrame::new(0.0, 0.0, 40.0, 20.0),
         source_range,
         visual_range: UiTextRange { start: 0, end: 4 },
@@ -64,6 +98,8 @@ fn glyph_artifact_exact_source_slice_preserves_absolute_glyph_ranges() {
     let mut provider = SharedTextLayoutSession::new();
 
     let artifact = build_resolved_text_glyph_artifact(source, &style, &layout, &mut provider)
+        .into_result()
+        .expect("an exact source slice must shape successfully")
         .expect("an exact source slice must retain an artifact");
     let glyphs = &artifact.lines[0].as_ref().expect("artifact line").glyphs;
 
@@ -80,10 +116,159 @@ fn glyph_artifact_exact_source_slice_preserves_absolute_glyph_ranges() {
 }
 
 #[test]
+fn glyph_artifact_projects_a_retained_final_fragment_without_an_artifact_shape_request() {
+    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
+    let source = "Reuse";
+    let style = UiResolvedStyle {
+        font_size: 16.0,
+        line_height: 20.0,
+        ..UiResolvedStyle::default()
+    };
+    let source_range = UiTextRange {
+        start: 0,
+        end: source.len(),
+    };
+    let mut layout_provider = SharedTextLayoutSession::new();
+    let fragment = Arc::new(
+        crate::text::layout::shape_horizontal_physical_line_fragment_with_provider(
+            source,
+            &crate::text::text_style(&style),
+            TextDirection::LeftToRight.into(),
+            source_range.into(),
+            &mut layout_provider,
+        )
+        .into_result()
+        .expect("the retained final fragment must shape"),
+    );
+    let layout_line = UiResolvedTextLine {
+        text: source.to_string(),
+        placement_frame: UiFrame::default(),
+        frame: UiFrame::new(
+            0.0,
+            0.0,
+            fragment.metrics().width,
+            fragment.metrics().line_height,
+        ),
+        source_range,
+        visual_range: source_range,
+        measured_width: fragment.metrics().width,
+        glyph_advances: fragment.grapheme_advances().to_vec(),
+        baseline: fragment.metrics().baseline,
+        direction: UiTextDirection::LeftToRight,
+        runs: vec![UiResolvedTextRun {
+            kind: UiTextRunKind::Plain,
+            text: source.to_string(),
+            source_range,
+            visual_range: source_range,
+            direction: UiTextDirection::LeftToRight,
+        }],
+        ellipsized: false,
+    };
+    let layout = UiResolvedTextLayout {
+        writing_mode: UiTextWritingMode::HorizontalTb,
+        font_size: style.font_size,
+        line_height: fragment.metrics().line_height,
+        measured_width: layout_line.measured_width,
+        measured_height: layout_line.frame.height,
+        source_range,
+        lines: vec![layout_line],
+        ..UiResolvedTextLayout::default()
+    };
+    assert!(
+        retained_line_fragment_for_artifact(
+            Some(&[Some(Arc::clone(&fragment))]),
+            0,
+            source,
+            0,
+            fragment.font_generation() ^ 1,
+            &layout.lines[0],
+        )
+        .is_none(),
+        "a fragment from another font generation must not bypass artifact shaping"
+    );
+    let mut artifact_provider = SharedTextLayoutSession::new();
+
+    let artifact = build_resolved_text_glyph_artifact_with_line_fragments(
+        Arc::from(source),
+        &style,
+        &layout,
+        Some(&[Some(fragment)]),
+        None,
+        &mut artifact_provider,
+    )
+    .into_result()
+    .expect("retained fragment projection must succeed")
+    .expect("retained fragment projection must build an artifact");
+
+    assert!(
+        artifact.lines[0]
+            .as_ref()
+            .is_some_and(|line| !line.glyphs.is_empty())
+    );
+    let report = artifact_provider.cache_report();
+    assert_eq!(report.entry_count, 0);
+    assert_eq!(report.miss_count, 0);
+}
+
+#[test]
+fn glyph_artifact_rejects_a_typed_shaping_failure_without_publishing_a_partial_artifact() {
+    let source = "invalid";
+    let style = UiResolvedStyle {
+        font_size: 0.0,
+        line_height: 20.0,
+        ..UiResolvedStyle::default()
+    };
+    let source_range = UiTextRange {
+        start: 0,
+        end: source.len(),
+    };
+    let layout_line = UiResolvedTextLine {
+        text: source.to_string(),
+        placement_frame: UiFrame::default(),
+        frame: UiFrame::new(0.0, 0.0, 48.0, 20.0),
+        source_range,
+        visual_range: source_range,
+        measured_width: 48.0,
+        glyph_advances: vec![8.0; source.len()],
+        baseline: 16.0,
+        direction: UiTextDirection::LeftToRight,
+        runs: vec![UiResolvedTextRun {
+            kind: UiTextRunKind::Plain,
+            text: source.to_string(),
+            source_range,
+            visual_range: source_range,
+            direction: UiTextDirection::LeftToRight,
+        }],
+        ellipsized: false,
+    };
+    let layout = UiResolvedTextLayout {
+        writing_mode: UiTextWritingMode::HorizontalTb,
+        font_size: style.font_size,
+        line_height: style.line_height,
+        measured_width: layout_line.measured_width,
+        measured_height: layout_line.frame.height,
+        source_range,
+        lines: vec![layout_line],
+        ..UiResolvedTextLayout::default()
+    };
+    let mut provider = SharedTextLayoutSession::new();
+
+    assert!(matches!(
+        build_resolved_text_glyph_artifact(source, &style, &layout, &mut provider),
+        TextShapingOutcome::Failed(failure)
+            if failure.error() == &TextLayoutError::InvalidFontSize
+    ));
+    let report = provider.cache_report();
+    assert_eq!(report.entry_count, 0);
+    assert_eq!(report.insert_count, 0);
+}
+
+#[test]
 fn glyph_artifact_line_source_ranges_must_remain_owned_by_the_layout() {
     let layout_source_range = UiTextRange { start: 4, end: 12 };
     let mut line = UiResolvedTextLine {
         text: "glyph".to_string(),
+        placement_frame: UiFrame::default(),
         frame: UiFrame::new(0.0, 0.0, 40.0, 12.0),
         source_range: UiTextRange { start: 4, end: 9 },
         visual_range: UiTextRange { start: 0, end: 5 },
@@ -140,6 +325,7 @@ fn glyph_artifact_build_keeps_internal_shaping_out_of_the_neutral_dto_report() {
     };
     let layout_line = UiResolvedTextLine {
         text: source.to_string(),
+        placement_frame: UiFrame::default(),
         frame: UiFrame::new(0.0, 0.0, 140.0, 20.0),
         source_range: UiTextRange {
             start: 0,
@@ -184,14 +370,18 @@ fn glyph_artifact_build_keeps_internal_shaping_out_of_the_neutral_dto_report() {
     let mut provider = SharedTextLayoutSession::new();
 
     let artifact = build_resolved_text_glyph_artifact(source, &style, &layout, &mut provider)
+        .into_result()
+        .expect("plain canonical shaping should succeed")
         .expect("plain canonical shaping should build a glyph artifact");
     let neutral_projection_after = crate::text::service::current_thread_neutral_projection_count();
     let registration_batch_after =
         crate::text::font::current_thread_font_handle_registration_batch_count();
 
-    assert!(artifact.lines[0]
-        .as_ref()
-        .is_some_and(|line| !line.glyphs.is_empty()));
+    assert!(
+        artifact.lines[0]
+            .as_ref()
+            .is_some_and(|line| !line.glyphs.is_empty())
+    );
     assert_eq!(neutral_projection_after, neutral_projection_before);
     assert_eq!(registration_batch_after, registration_batch_before + 1);
 }
@@ -208,6 +398,7 @@ fn glyph_artifact_build_reports_the_shaped_cache_delta() {
     };
     let layout_line = UiResolvedTextLine {
         text: source.to_string(),
+        placement_frame: UiFrame::default(),
         frame: UiFrame::new(0.0, 0.0, 160.0, 20.0),
         source_range: UiTextRange {
             start: 0,
@@ -251,10 +442,12 @@ fn glyph_artifact_build_reports_the_shaped_cache_delta() {
     let mut config = crate::core::diagnostics::profiling::ProfileCaptureConfig::default();
     config.session_id = "glyph-artifact-shaped-cache-delta".to_owned();
     config.max_spans = 1;
-    config.max_counters = 8;
+    config.max_counters = 10;
     assert!(crate::core::diagnostics::profiling::start_capture(config).active);
 
     let artifact = build_resolved_text_glyph_artifact(source, &style, &layout, &mut provider)
+        .into_result()
+        .expect("plain canonical shaping should succeed")
         .expect("plain canonical shaping should build a glyph artifact");
 
     let snapshot = crate::core::diagnostics::profiling::snapshot();
@@ -262,9 +455,11 @@ fn glyph_artifact_build_reports_the_shaped_cache_delta() {
         !crate::core::diagnostics::profiling::reset_capture().active,
         "artifact build profiling capture must reset before another test starts"
     );
-    assert!(artifact.lines[0]
-        .as_ref()
-        .is_some_and(|line| !line.glyphs.is_empty()));
+    assert!(
+        artifact.lines[0]
+            .as_ref()
+            .is_some_and(|line| !line.glyphs.is_empty())
+    );
     assert_eq!(
         snapshot
             .spans
@@ -280,6 +475,8 @@ fn glyph_artifact_build_reports_the_shaped_cache_delta() {
         ("artifact_build_line_count", 1.0),
         ("artifact_build_shaped_cache_hit_count", 0.0),
         ("artifact_build_shaped_cache_miss_count", 1.0),
+        ("artifact_build_retained_fragment_projection_count", 0.0),
+        ("artifact_build_fallback_shape_request_count", 1.0),
         ("artifact_build_font_handle_registration_batch_count", 1.0),
         (
             "artifact_build_font_handle_registration_lock_acquire_count",
@@ -332,6 +529,7 @@ fn glyph_artifact_idle_cpu_profiler_skips_local_registration_measurement() {
 fn visual_glyph_artifact_keeps_contextual_arabic_glyphs_in_visual_order() {
     let line = UiResolvedTextLine {
         text: "مالس".to_string(),
+        placement_frame: UiFrame::default(),
         frame: UiFrame::new(0.0, 0.0, 40.0, 12.0),
         source_range: UiTextRange { start: 0, end: 8 },
         visual_range: UiTextRange { start: 0, end: 8 },
@@ -373,6 +571,7 @@ fn visual_glyph_artifact_keeps_contextual_arabic_glyphs_in_visual_order() {
 fn visual_glyph_artifact_projects_resolved_advance_to_an_unsplit_ligature() {
     let line = UiResolvedTextLine {
         text: "fi".to_string(),
+        placement_frame: UiFrame::default(),
         frame: UiFrame::new(0.0, 0.0, 30.0, 12.0),
         source_range: UiTextRange { start: 0, end: 2 },
         visual_range: UiTextRange { start: 0, end: 2 },
@@ -397,314 +596,10 @@ fn visual_glyph_artifact_projects_resolved_advance_to_an_unsplit_ligature() {
 }
 
 #[test]
-fn artifact_cluster_geometry_snaps_ligature_caret_and_selection_to_whole_glyph() {
-    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
-    let line = UiResolvedTextLine {
-        text: "fi".to_string(),
-        frame: UiFrame::new(10.0, 20.0, 30.0, 12.0),
-        source_range: UiTextRange { start: 0, end: 2 },
-        visual_range: UiTextRange { start: 0, end: 2 },
-        measured_width: 30.0,
-        glyph_advances: vec![12.0, 18.0],
-        baseline: 9.0,
-        direction: UiTextDirection::LeftToRight,
-        runs: vec![zircon_runtime_interface::ui::surface::UiResolvedTextRun {
-            kind: UiTextRunKind::Plain,
-            text: "fi".to_string(),
-            source_range: UiTextRange { start: 0, end: 2 },
-            visual_range: UiTextRange { start: 0, end: 2 },
-            direction: UiTextDirection::LeftToRight,
-        }],
-        ellipsized: false,
-    };
-    let mut ligature = glyph(77, 0..2);
-    ligature.advance = 30.0;
-    ligature.flags.right_to_left = false;
-    let artifact = ResolvedTextGlyphArtifact {
-        source_text: Arc::from("fi"),
-        source_text_origin: 0,
-        font_generation: shared_font_database_generation(),
-        style: UiResolvedStyle::default(),
-        writing_mode: UiTextWritingMode::HorizontalTb,
-        lines: vec![Some(ResolvedTextGlyphArtifactLine {
-            glyphs: vec![ligature],
-            layout_line: line.clone(),
-        })],
-    };
-
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_advance(
-            &artifact,
-            0,
-            &line,
-            &UiTextCaret {
-                offset: 1,
-                affinity: UiTextCaretAffinity::Upstream,
-            },
-        ),
-        Some(0.0)
-    );
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_advance(
-            &artifact,
-            0,
-            &line,
-            &UiTextCaret {
-                offset: 1,
-                affinity: UiTextCaretAffinity::Downstream,
-            },
-        ),
-        Some(30.0)
-    );
-    assert_eq!(
-        resolved_text_glyph_artifact_range_advance_spans(
-            &artifact,
-            0,
-            &line,
-            UiTextRange { start: 0, end: 1 },
-        ),
-        Some(vec![(0.0, 30.0)])
-    );
-    let mut mismatched_line = line.clone();
-    mismatched_line.glyph_advances[0] = 13.0;
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_advance(
-            &artifact,
-            0,
-            &mismatched_line,
-            &UiTextCaret {
-                offset: 1,
-                affinity: UiTextCaretAffinity::Downstream,
-            },
-        ),
-        None
-    );
-}
-
-#[test]
-fn artifact_cluster_geometry_maps_rtl_affinity_to_opposite_visual_edges() {
-    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
-    let line = UiResolvedTextLine {
-        text: "fi".to_string(),
-        frame: UiFrame::new(10.0, 20.0, 30.0, 12.0),
-        source_range: UiTextRange { start: 0, end: 2 },
-        visual_range: UiTextRange { start: 0, end: 2 },
-        measured_width: 30.0,
-        glyph_advances: vec![12.0, 18.0],
-        baseline: 9.0,
-        direction: UiTextDirection::RightToLeft,
-        runs: vec![zircon_runtime_interface::ui::surface::UiResolvedTextRun {
-            kind: UiTextRunKind::Plain,
-            text: "fi".to_string(),
-            source_range: UiTextRange { start: 0, end: 2 },
-            visual_range: UiTextRange { start: 0, end: 2 },
-            direction: UiTextDirection::RightToLeft,
-        }],
-        ellipsized: false,
-    };
-    let mut ligature = glyph(77, 0..2);
-    ligature.advance = 30.0;
-    let artifact = ResolvedTextGlyphArtifact {
-        source_text: Arc::from("fi"),
-        source_text_origin: 0,
-        font_generation: shared_font_database_generation(),
-        style: UiResolvedStyle::default(),
-        writing_mode: UiTextWritingMode::HorizontalTb,
-        lines: vec![Some(ResolvedTextGlyphArtifactLine {
-            glyphs: vec![ligature],
-            layout_line: line.clone(),
-        })],
-    };
-
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_advance(
-            &artifact,
-            0,
-            &line,
-            &UiTextCaret {
-                offset: 1,
-                affinity: UiTextCaretAffinity::Upstream,
-            },
-        ),
-        Some(30.0)
-    );
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_advance(
-            &artifact,
-            0,
-            &line,
-            &UiTextCaret {
-                offset: 1,
-                affinity: UiTextCaretAffinity::Downstream,
-            },
-        ),
-        Some(0.0)
-    );
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_at_advance(&artifact, 0, &line, 12.0),
-        Some(UiTextCaret {
-            offset: 2,
-            affinity: UiTextCaretAffinity::Downstream,
-        })
-    );
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_at_advance(&artifact, 0, &line, 18.0),
-        Some(UiTextCaret {
-            offset: 0,
-            affinity: UiTextCaretAffinity::Upstream,
-        })
-    );
-    assert_eq!(
-        resolved_text_glyph_artifact_range_advance_spans(
-            &artifact,
-            0,
-            &line,
-            UiTextRange { start: 0, end: 1 },
-        ),
-        Some(vec![(0.0, 30.0)])
-    );
-}
-
-#[test]
-fn artifact_cluster_geometry_merges_multiglyph_backend_clusters() {
-    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
-    let line = UiResolvedTextLine {
-        text: "fi".to_string(),
-        frame: UiFrame::new(10.0, 20.0, 30.0, 12.0),
-        source_range: UiTextRange { start: 0, end: 2 },
-        visual_range: UiTextRange { start: 0, end: 2 },
-        measured_width: 30.0,
-        glyph_advances: vec![12.0, 18.0],
-        baseline: 9.0,
-        direction: UiTextDirection::LeftToRight,
-        runs: vec![visual_run("fi", 0, 2, 0, 2)],
-        ellipsized: false,
-    };
-    let mut leading = glyph(77, 0..1);
-    leading.advance = 10.0;
-    leading.flags.right_to_left = false;
-    leading.flags.cluster_start = true;
-    let trailing = TextGlyph {
-        glyph_id: 78,
-        source_range: 1..2,
-        visual_range: 1..2,
-        advance: 20.0,
-        flags: TextGlyphFlags::default(),
-        ..leading.clone()
-    };
-    let artifact = ResolvedTextGlyphArtifact {
-        source_text: Arc::from("fi"),
-        source_text_origin: 0,
-        font_generation: shared_font_database_generation(),
-        style: UiResolvedStyle::default(),
-        writing_mode: UiTextWritingMode::HorizontalTb,
-        lines: vec![Some(ResolvedTextGlyphArtifactLine {
-            glyphs: vec![leading, trailing],
-            layout_line: line.clone(),
-        })],
-    };
-
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_advance(
-            &artifact,
-            0,
-            &line,
-            &UiTextCaret {
-                offset: 1,
-                affinity: UiTextCaretAffinity::Upstream,
-            },
-        ),
-        Some(0.0)
-    );
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_advance(
-            &artifact,
-            0,
-            &line,
-            &UiTextCaret {
-                offset: 1,
-                affinity: UiTextCaretAffinity::Downstream,
-            },
-        ),
-        Some(30.0)
-    );
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_at_advance(&artifact, 0, &line, 12.0),
-        Some(UiTextCaret {
-            offset: 0,
-            affinity: UiTextCaretAffinity::Downstream,
-        })
-    );
-    assert_eq!(
-        resolved_text_glyph_artifact_range_advance_spans(
-            &artifact,
-            0,
-            &line,
-            UiTextRange { start: 0, end: 1 },
-        ),
-        Some(vec![(0.0, 30.0)])
-    );
-}
-
-#[test]
-fn artifact_cluster_geometry_rejects_a_stale_font_generation() {
-    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
-    let line = UiResolvedTextLine {
-        text: "fi".to_string(),
-        frame: UiFrame::new(10.0, 20.0, 30.0, 12.0),
-        source_range: UiTextRange { start: 0, end: 2 },
-        visual_range: UiTextRange { start: 0, end: 2 },
-        measured_width: 30.0,
-        glyph_advances: vec![12.0, 18.0],
-        baseline: 9.0,
-        direction: UiTextDirection::LeftToRight,
-        runs: vec![zircon_runtime_interface::ui::surface::UiResolvedTextRun {
-            kind: UiTextRunKind::Plain,
-            text: "fi".to_string(),
-            source_range: UiTextRange { start: 0, end: 2 },
-            visual_range: UiTextRange { start: 0, end: 2 },
-            direction: UiTextDirection::LeftToRight,
-        }],
-        ellipsized: false,
-    };
-    let mut ligature = glyph(77, 0..2);
-    ligature.advance = 30.0;
-    ligature.flags.right_to_left = false;
-    let artifact = ResolvedTextGlyphArtifact {
-        source_text: Arc::from("fi"),
-        source_text_origin: 0,
-        font_generation: shared_font_database_generation().wrapping_add(1),
-        style: UiResolvedStyle::default(),
-        writing_mode: UiTextWritingMode::HorizontalTb,
-        lines: vec![Some(ResolvedTextGlyphArtifactLine {
-            glyphs: vec![ligature],
-            layout_line: line.clone(),
-        })],
-    };
-    let caret = UiTextCaret {
-        offset: 1,
-        affinity: UiTextCaretAffinity::Downstream,
-    };
-
-    assert_eq!(
-        resolved_text_glyph_artifact_caret_advance(&artifact, 0, &line, &caret),
-        None
-    );
-    assert_eq!(
-        resolved_text_glyph_artifact_range_advance_spans(
-            &artifact,
-            0,
-            &line,
-            UiTextRange { start: 0, end: 1 },
-        ),
-        None
-    );
-}
-
-#[test]
 fn visual_glyph_artifact_preserves_tab_and_justified_space_advances() {
     let line = UiResolvedTextLine {
         text: "a\tb c".to_string(),
+        placement_frame: UiFrame::default(),
         frame: UiFrame::new(0.0, 0.0, 91.0, 12.0),
         source_range: UiTextRange { start: 0, end: 5 },
         visual_range: UiTextRange { start: 0, end: 5 },

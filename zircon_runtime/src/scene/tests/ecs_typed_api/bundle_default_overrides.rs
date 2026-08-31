@@ -1,11 +1,11 @@
 use std::sync::{Arc, Mutex};
 
 use crate::core::math::Transform;
+use crate::scene::World;
 use crate::scene::components::{
     ActiveSelf, Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, RenderLayerMask,
 };
 use crate::scene::ecs::LifecycleEventKind;
-use crate::scene::World;
 
 use super::{Health, Mana};
 
@@ -72,7 +72,9 @@ fn empty_bundle_spawn_publishes_each_node_record_default_once() {
     assert!(world.contains_component::<MeshRenderer>(entity));
     assert_eq!(
         *lifecycle_counts.lock().expect("lifecycle counters"),
-        [1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1,]
+        [
+            1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1,
+        ]
     );
 }
 

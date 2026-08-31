@@ -9,6 +9,10 @@ use super::reference::AnimationAssetReferenceBinary;
 use crate::core::math::Real;
 use crate::core::resource::AssetReference;
 
+#[cfg(test)]
+#[path = "clip/borrowed_encoding_tests.rs"]
+mod borrowed_encoding_tests;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationClipBoneTrackAsset {
     pub bone_name: String,
@@ -50,6 +54,15 @@ struct AnimationClipBinaryAsset {
     event_tracks: Vec<AnimationEventTrackAsset>,
 }
 
+#[derive(Clone, Serialize)]
+struct AnimationClipBinaryAssetRef<'a> {
+    name: &'a Option<String>,
+    skeleton: AnimationAssetReferenceBinary,
+    duration_seconds: Real,
+    tracks: &'a [AnimationClipBoneTrackAsset],
+    event_tracks: &'a [AnimationEventTrackAsset],
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 struct AnimationClipBinaryAssetV1 {
     name: Option<String>,
@@ -74,6 +87,18 @@ impl From<&AnimationClipAsset> for AnimationClipBinaryAsset {
             duration_seconds: value.duration_seconds,
             tracks: value.tracks.clone(),
             event_tracks: value.event_tracks.clone(),
+        }
+    }
+}
+
+impl<'a> From<&'a AnimationClipAsset> for AnimationClipBinaryAssetRef<'a> {
+    fn from(value: &'a AnimationClipAsset) -> Self {
+        Self {
+            name: &value.name,
+            skeleton: AnimationAssetReferenceBinary::from(&value.skeleton),
+            duration_seconds: value.duration_seconds,
+            tracks: &value.tracks,
+            event_tracks: &value.event_tracks,
         }
     }
 }
@@ -152,7 +177,7 @@ impl AnimationClipAsset {
     pub fn to_bytes(&self) -> AnimationAssetResult<Vec<u8>> {
         encode_binary_asset(
             AnimationBinaryAssetKind::Clip,
-            &AnimationClipBinaryAsset::from(self),
+            &AnimationClipBinaryAssetRef::from(self),
         )
     }
 

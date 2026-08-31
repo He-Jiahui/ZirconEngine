@@ -2,8 +2,8 @@ use crate::ui::retained_host::primitives::SharedString;
 
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, SceneViewportChromeSettings, TransformHandleKind,
-    TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, SceneViewportChromeSettings,
+    TransformHandleKind, TransformSpace, ViewOrientation,
 };
 
 use super::SceneViewportChromeData;
@@ -12,6 +12,7 @@ pub(crate) fn blank_viewport_chrome() -> SceneViewportChromeData {
     SceneViewportChromeData {
         mode: SharedString::default(),
         transform_space: SharedString::default(),
+        pivot_mode: SharedString::default(),
         projection_mode: SharedString::default(),
         view_orientation: SharedString::default(),
         display_mode: SharedString::default(),
@@ -34,6 +35,7 @@ pub(crate) fn scene_viewport_chrome(
     SceneViewportChromeData {
         mode: scene_mode_label(&settings.mode).into(),
         transform_space: transform_space_label(settings.transform_space).into(),
+        pivot_mode: pivot_mode_label(settings.pivot_mode).into(),
         projection_mode: projection_mode_label(settings.projection_mode).into(),
         view_orientation: view_orientation_label(settings.view_orientation).into(),
         display_mode: display_mode_label(settings.display_mode).into(),
@@ -44,9 +46,9 @@ pub(crate) fn scene_viewport_chrome(
         translate_snap: settings.translate_step,
         rotate_snap_deg: settings.rotate_step_deg,
         scale_snap: settings.scale_step,
-        translate_snap_label: format!("T {}", format_step(settings.translate_step)).into(),
-        rotate_snap_label: format!("R {}", format_step(settings.rotate_step_deg)).into(),
-        scale_snap_label: format!("S {}", format_step(settings.scale_step)).into(),
+        translate_snap_label: format_step_label('T', settings.translate_step).into(),
+        rotate_snap_label: format_step_label('R', settings.rotate_step_deg).into(),
+        scale_snap_label: format_step_label('S', settings.scale_step).into(),
     }
 }
 
@@ -66,6 +68,13 @@ fn transform_space_label(space: TransformSpace) -> &'static str {
     match space {
         TransformSpace::Local => "Local",
         TransformSpace::Global => "Global",
+    }
+}
+
+fn pivot_mode_label(mode: PivotMode) -> &'static str {
+    match mode {
+        PivotMode::Primary => "Primary",
+        PivotMode::Centroid => "Centroid",
     }
 }
 
@@ -104,12 +113,16 @@ fn grid_mode_label(mode: GridMode) -> &'static str {
     }
 }
 
-fn format_step(value: f32) -> String {
+fn format_step_label(prefix: char, value: f32) -> String {
     if value.fract().abs() <= f32::EPSILON {
-        format!("{value:.0}")
+        format!("{prefix} {value:.0}")
     } else if (value * 10.0).fract().abs() <= f32::EPSILON {
-        format!("{value:.1}")
+        format!("{prefix} {value:.1}")
     } else {
-        format!("{value:.2}")
+        format!("{prefix} {value:.2}")
     }
 }
+
+#[cfg(test)]
+#[path = "viewport_chrome/allocation_tests.rs"]
+mod allocation_tests;

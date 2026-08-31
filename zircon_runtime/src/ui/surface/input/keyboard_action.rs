@@ -109,13 +109,21 @@ pub(super) fn keyboard_component_text(keyboard: &UiKeyboardInputEvent) -> Option
     }
 
     let text = keyboard.text.as_deref()?;
-    if text.is_empty()
-        || text.chars().any(char::is_control)
-        || text.chars().all(char::is_whitespace)
-    {
+    if !keyboard_text_is_usable(text) {
         return None;
     }
     Some(text)
+}
+
+fn keyboard_text_is_usable(text: &str) -> bool {
+    let mut has_non_whitespace = false;
+    for character in text.chars() {
+        if character.is_control() {
+            return false;
+        }
+        has_non_whitespace |= !character.is_whitespace();
+    }
+    has_non_whitespace
 }
 
 pub(super) fn keyboard_requests_default_activation(keyboard: &UiKeyboardInputEvent) -> bool {
@@ -161,3 +169,7 @@ fn normalized_key_matches(key: &str, expected: &[&str]) -> bool {
             .eq(expected.bytes())
     })
 }
+
+#[cfg(test)]
+#[path = "keyboard_action/single_scan_text_tests.rs"]
+mod single_scan_text_tests;

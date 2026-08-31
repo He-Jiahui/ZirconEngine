@@ -1,5 +1,5 @@
 use zircon_runtime_interface::reflect::{
-    ReflectEditorHint, ReflectFieldInfo, ReflectObjectAddress, ReflectReadRequest,
+    ReflectEditorHint, ReflectFieldId, ReflectFieldInfo, ReflectObjectAddress, ReflectReadRequest,
     ReflectScriptVisibility, ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath,
     ReflectTypeRegistration, ReflectedValue,
 };
@@ -76,7 +76,7 @@ fn reflection_schema_projects_only_public_vm_components() {
 
     assert_eq!(projected.registrations().len(), 1);
     assert_eq!(
-        projected.registrations()[0].type_path.type_path,
+        projected.registrations()[0].type_path.type_path(),
         "gameplay.Component.PublicHealth"
     );
 }
@@ -255,8 +255,10 @@ fn catalog_rejects_builtin_type_path_collision_without_existing_levels() {
         ReflectScriptVisibility::Public,
         vec![scalar_field("value")],
     );
-    collision.plugin_id = Some("zircon_runtime".to_string());
-    collision.type_path.plugin_id = Some("zircon_runtime".to_string());
+    collision.type_path = collision
+        .type_path
+        .with_plugin_id("zircon_runtime")
+        .expect("test plugin id should be valid");
 
     let error = catalog
         .publish_generation(
@@ -327,7 +329,9 @@ fn initial_dynamic_component_json_must_match_the_registered_schema() {
     world
         .register_vm_type(registration, VmTypeBacking::DynamicComponent)
         .expect("typed VM component should register");
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
     let error = world
         .set_dynamic_component(
@@ -355,7 +359,9 @@ fn initial_dynamic_component_json_requires_every_registered_field() {
     world
         .register_vm_type(registration, VmTypeBacking::DynamicComponent)
         .expect("typed VM component should register");
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
     let error = world
         .set_dynamic_component(
@@ -381,21 +387,23 @@ fn initial_dynamic_json_and_dense_reads_share_the_same_declared_value_semantics(
         "ValueShapes",
         ReflectScriptVisibility::Public,
         vec![
-            ReflectFieldInfo::new("scalar", "Scalar", ReflectEditorHint::Scalar),
-            ReflectFieldInfo::new("unsigned", "Unsigned", ReflectEditorHint::Unsigned),
-            ReflectFieldInfo::new("entity", "Entity", ReflectEditorHint::Entity),
-            ReflectFieldInfo::new("resource", "Resource", ReflectEditorHint::Resource),
-            ReflectFieldInfo::new("rotation", "Quaternion", ReflectEditorHint::Vec4),
-            ReflectFieldInfo::new("tags", "List<String>", ReflectEditorHint::Json),
-            ReflectFieldInfo::new("weights", "Map<String, Scalar>", ReflectEditorHint::Json),
-            ReflectFieldInfo::new("payload", "Json", ReflectEditorHint::Json),
+            test_field("scalar", "Scalar", ReflectEditorHint::Scalar),
+            test_field("unsigned", "Unsigned", ReflectEditorHint::Unsigned),
+            test_field("entity", "Entity", ReflectEditorHint::Entity),
+            test_field("resource", "Resource", ReflectEditorHint::Resource),
+            test_field("rotation", "Quaternion", ReflectEditorHint::Vec4),
+            test_field("tags", "List<String>", ReflectEditorHint::Json),
+            test_field("weights", "Map<String, Scalar>", ReflectEditorHint::Json),
+            test_field("payload", "Json", ReflectEditorHint::Json),
         ],
     );
     let mut world = World::empty();
     world
         .register_vm_type(registration, VmTypeBacking::DynamicComponent)
         .expect("VM value-shape component should register");
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -445,7 +453,10 @@ fn initial_dynamic_json_and_dense_reads_share_the_same_declared_value_semantics(
     ];
     for (field, expected) in cases {
         let value = world
-            .reflect_read(ReflectReadRequest::new(address.clone(), field))
+            .reflect_read(ReflectReadRequest::new(
+                address.clone(),
+                ReflectFieldId::from_stable_keys("tests.vm-reflection-field", field),
+            ))
             .expect("validated initial JSON must remain readable through reflection");
         assert_eq!(value.field.value, expected, "field `{field}` diverged");
     }
@@ -570,7 +581,9 @@ fn catalog_rejects_removing_a_vm_type_with_live_world_components() {
         )
         .expect("first schema generation should publish");
     level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,
@@ -697,7 +710,6 @@ fn state_schema(registrations: Vec<ReflectTypeRegistration>) -> VmStateSchema {
             .map(|(index, registration)| VmStateTypeSchema {
                 registration,
                 type_hash: index as u32 + 1,
-                renames: Vec::new(),
             })
             .collect(),
     }
@@ -712,17 +724,32 @@ fn vm_component_registration(
     ReflectTypeRegistration::new(
         ReflectTypePath::new(type_path, short_type_path)
             .expect("test VM type path should be valid")
-            .with_plugin_id("gameplay"),
+            .with_plugin_id("gameplay")
+            .expect("test plugin id should be valid"),
         short_type_path,
         ReflectTypeInfo::struct_with_fields(fields),
         ReflectSerializationStrategy::Value,
     )
     .as_component()
-    .with_plugin_owned(true)
     .with_plugin_id("gameplay")
+    .expect("test plugin id should be valid")
     .with_script_visibility(visibility)
 }
 
 fn scalar_field(name: &str) -> ReflectFieldInfo {
-    ReflectFieldInfo::new(name, "Scalar", ReflectEditorHint::Scalar)
+    test_field(name, "Scalar", ReflectEditorHint::Scalar)
+}
+
+fn test_field(
+    name: &str,
+    value_type_path: &str,
+    editor_hint: ReflectEditorHint,
+) -> ReflectFieldInfo {
+    ReflectFieldInfo::from_stable_keys(
+        "tests.vm-reflection-field",
+        name,
+        name,
+        value_type_path,
+        editor_hint,
+    )
 }

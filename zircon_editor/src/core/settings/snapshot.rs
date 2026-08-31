@@ -1,13 +1,14 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
 use super::registry::SettingsRegistry;
 use super::{
-    EditorCommandPaletteMru, EditorKeymapOverrides, SettingValue, SettingsKey,
-    EDITOR_COMMAND_PALETTE_MRU_KEY, EDITOR_DESIGN_TOKENS_KEY, EDITOR_KEYMAP_OVERRIDES_KEY,
-    EDITOR_LOCALE_KEY, VIEWPORT_ROTATE_STEP_DEGREES_KEY, VIEWPORT_SCALE_STEP_KEY,
-    VIEWPORT_TRANSLATE_STEP_KEY,
+    EDITOR_AUTOSAVE_INTERVAL_SECS_KEY, EDITOR_COMMAND_PALETTE_MRU_KEY, EDITOR_DESIGN_TOKENS_KEY,
+    EDITOR_KEYMAP_OVERRIDES_KEY, EDITOR_LOCALE_KEY, EditorCommandPaletteMru, EditorKeymapOverrides,
+    SettingValue, SettingsCatalog, SettingsKey, VIEWPORT_ROTATE_STEP_DEGREES_KEY,
+    VIEWPORT_SCALE_STEP_KEY, VIEWPORT_TRANSLATE_STEP_KEY,
 };
 
 /// Parsed built-in keys retained by the registry at registration time.
@@ -21,6 +22,7 @@ pub(super) struct BuiltInSettingsSlots {
     keymap_overrides: Option<SettingsKey>,
     command_palette_mru: Option<SettingsKey>,
     locale: Option<SettingsKey>,
+    autosave_interval_secs: Option<SettingsKey>,
     viewport_translate_step: Option<SettingsKey>,
     viewport_rotate_step_degrees: Option<SettingsKey>,
     viewport_scale_step: Option<SettingsKey>,
@@ -33,6 +35,7 @@ impl BuiltInSettingsSlots {
             EDITOR_KEYMAP_OVERRIDES_KEY => &mut self.keymap_overrides,
             EDITOR_COMMAND_PALETTE_MRU_KEY => &mut self.command_palette_mru,
             EDITOR_LOCALE_KEY => &mut self.locale,
+            EDITOR_AUTOSAVE_INTERVAL_SECS_KEY => &mut self.autosave_interval_secs,
             VIEWPORT_TRANSLATE_STEP_KEY => &mut self.viewport_translate_step,
             VIEWPORT_ROTATE_STEP_DEGREES_KEY => &mut self.viewport_rotate_step_degrees,
             VIEWPORT_SCALE_STEP_KEY => &mut self.viewport_scale_step,
@@ -63,6 +66,12 @@ impl BuiltInSettingsSlots {
         self.locale
             .as_ref()
             .expect("the settings authority requires the locale slot")
+    }
+
+    fn autosave_interval_secs(&self) -> &SettingsKey {
+        self.autosave_interval_secs
+            .as_ref()
+            .expect("the settings authority requires the autosave-interval slot")
     }
 
     fn viewport_translate_step(&self) -> &SettingsKey {
@@ -110,16 +119,34 @@ impl ViewportSnapSettings {
 #[derive(Clone, Debug, PartialEq)]
 pub struct SettingsSnapshot {
     generation: u64,
+    catalog: Arc<SettingsCatalog>,
     design_tokens: Arc<EditorDesignTokens>,
     keymap_overrides: Arc<EditorKeymapOverrides>,
     command_palette_mru: Arc<EditorCommandPaletteMru>,
     locale: Arc<str>,
+    autosave_interval: Duration,
     viewport_snap: ViewportSnapSettings,
 }
 
 impl SettingsSnapshot {
     pub const fn generation(&self) -> u64 {
         self.generation
+    }
+
+    pub fn catalog(&self) -> &SettingsCatalog {
+        self.catalog.as_ref()
+    }
+
+    pub fn shares_catalog_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.catalog, &other.catalog)
+    }
+
+    pub(crate) fn catalog_handle(&self) -> Arc<SettingsCatalog> {
+        Arc::clone(&self.catalog)
+    }
+
+    pub(crate) fn shares_catalog_handle_with(&self, catalog: &Arc<SettingsCatalog>) -> bool {
+        Arc::ptr_eq(&self.catalog, catalog)
     }
 
     pub fn design_tokens(&self) -> &EditorDesignTokens {
@@ -150,6 +177,11 @@ impl SettingsSnapshot {
         self.locale.as_ref()
     }
 
+    /// The effective user-configured autosave cadence for the active editor process.
+    pub const fn autosave_interval(&self) -> Duration {
+        self.autosave_interval
+    }
+
     pub const fn viewport_snap(&self) -> ViewportSnapSettings {
         self.viewport_snap
     }
@@ -158,6 +190,7 @@ impl SettingsSnapshot {
         let slots = &registry.built_in_slots;
         Self {
             generation: registry.revision,
+            catalog: Arc::new(SettingsCatalog::from_registry(registry)),
             design_tokens: Arc::new(built_in_design_tokens(registry, slots.design_tokens())),
             keymap_overrides: Arc::new(built_in_keymap_overrides(
                 registry,
@@ -168,6 +201,7 @@ impl SettingsSnapshot {
                 slots.command_palette_mru(),
             )),
             locale: Arc::from(built_in_locale(registry, slots.locale())),
+            autosave_interval: built_in_autosave_interval(registry, slots.autosave_interval_secs()),
             viewport_snap: ViewportSnapSettings {
                 translate_step: built_in_float(registry, slots.viewport_translate_step()),
                 rotate_step_degrees: built_in_float(registry, slots.viewport_rotate_step_degrees()),
@@ -184,10 +218,12 @@ impl SettingsSnapshot {
         let slots = &registry.built_in_slots;
         let mut snapshot = Self {
             generation: registry.revision,
+            catalog: Arc::clone(&previous.catalog),
             design_tokens: Arc::clone(&previous.design_tokens),
             keymap_overrides: Arc::clone(&previous.keymap_overrides),
             command_palette_mru: Arc::clone(&previous.command_palette_mru),
             locale: Arc::clone(&previous.locale),
+            autosave_interval: previous.autosave_interval,
             viewport_snap: previous.viewport_snap,
         };
         if &change.key == slots.design_tokens() {
@@ -205,6 +241,9 @@ impl SettingsSnapshot {
             ));
         } else if &change.key == slots.locale() {
             snapshot.locale = Arc::from(built_in_locale(registry, slots.locale()));
+        } else if &change.key == slots.autosave_interval_secs() {
+            snapshot.autosave_interval =
+                built_in_autosave_interval(registry, slots.autosave_interval_secs());
         } else if &change.key == slots.viewport_translate_step() {
             snapshot.viewport_snap.translate_step =
                 built_in_float(registry, slots.viewport_translate_step());
@@ -272,5 +311,18 @@ fn built_in_locale(registry: &SettingsRegistry, key: &SettingsKey) -> String {
     {
         SettingValue::Enum(value) => value.clone(),
         _ => unreachable!("the built-in locale setting uses an enum schema"),
+    }
+}
+
+fn built_in_autosave_interval(registry: &SettingsRegistry, key: &SettingsKey) -> Duration {
+    match registry
+        .resolve(key)
+        .expect("the built-in autosave interval setting is registered")
+    {
+        SettingValue::Int(seconds) => Duration::from_secs(
+            u64::try_from(*seconds)
+                .expect("the autosave-interval setting schema only permits positive seconds"),
+        ),
+        _ => unreachable!("the built-in autosave interval setting uses an integer schema"),
     }
 }

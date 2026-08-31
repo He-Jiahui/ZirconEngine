@@ -1,13 +1,18 @@
 use super::super::super::data::TemplatePaneNodeData;
-use crate::ui::retained_host::primitives::SharedString;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segmented_options(
     node: &TemplatePaneNodeData,
-) -> Vec<SharedString> {
-    (0..node.options.row_count())
-        .filter_map(|row| node.options.row_data(row))
+) -> impl Iterator<Item = &str> + '_ {
+    node.options
+        .iter()
+        .map(String::as_str)
         .filter(|option| !option.trim().is_empty())
-        .collect()
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segmented_option_count(
+    node: &TemplatePaneNodeData,
+) -> usize {
+    segmented_options(node).count()
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selected_segment_value(

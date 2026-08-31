@@ -71,7 +71,7 @@ fn command_list_raster_draw_submit_validates_vertex_and_index_buffer_state() {
     assert_eq!(
         device.submit(invalid_vertex_usage).unwrap_err(),
         RhiError::InvalidBufferUsage {
-            buffer: not_vertex.raw(),
+            buffer: not_vertex.diagnostic_id(),
             required: BufferUsage::VERTEX,
             actual: BufferUsage::COPY_DST,
         }
@@ -85,7 +85,7 @@ fn command_list_raster_draw_submit_validates_vertex_and_index_buffer_state() {
     assert_eq!(
         device.submit(vertex_binding_out_of_range).unwrap_err(),
         RhiError::BufferBindingOutOfRange {
-            buffer: vertex_buffer.raw(),
+            buffer: vertex_buffer.diagnostic_id(),
             offset: 0,
             size: 40,
         }
@@ -129,7 +129,7 @@ fn command_list_raster_draw_submit_validates_vertex_and_index_buffer_state() {
     assert_eq!(
         device.submit(invalid_index_usage).unwrap_err(),
         RhiError::InvalidBufferUsage {
-            buffer: not_index.raw(),
+            buffer: not_index.diagnostic_id(),
             required: BufferUsage::INDEX,
             actual: BufferUsage::VERTEX,
         }
@@ -190,7 +190,7 @@ fn command_list_buffer_copy_submit_validates_usage_flags() {
     assert_eq!(
         device.submit(source_command_list).unwrap_err(),
         RhiError::InvalidBufferUsage {
-            buffer: invalid_source.raw(),
+            buffer: invalid_source.diagnostic_id(),
             required: BufferUsage::COPY_SRC,
             actual: BufferUsage::UNIFORM,
         }
@@ -214,7 +214,7 @@ fn command_list_buffer_copy_submit_validates_usage_flags() {
     assert_eq!(
         device.submit(destination_command_list).unwrap_err(),
         RhiError::InvalidBufferUsage {
-            buffer: invalid_destination.raw(),
+            buffer: invalid_destination.diagnostic_id(),
             required: BufferUsage::COPY_DST,
             actual: BufferUsage::STORAGE,
         }

@@ -34,6 +34,20 @@ impl VmScriptBehaviorBridge {
         }
     }
 
+    fn cache_callback(
+        &self,
+        callback: &ScriptBehaviorCallbackRef,
+        handle: VmCallbackHandle,
+    ) -> bool {
+        let mut callbacks = self.lock_callbacks();
+        if let Some(cached) = callbacks.get_mut(callback) {
+            *cached = handle;
+            return false;
+        }
+        callbacks.insert(callback.clone(), handle);
+        true
+    }
+
     fn manager(&self) -> Result<Arc<VmPluginManager>, ScriptHostError> {
         self.lock_manager().upgrade().ok_or_else(|| {
             ScriptHostError::new("script behavior bridge is not bound to an active VM manager")
@@ -75,8 +89,7 @@ impl VmScriptBehaviorBridge {
                 callback.stable_id()
             )));
         }
-        self.lock_callbacks()
-            .insert(callback.clone(), registration.callback);
+        self.cache_callback(callback, registration.callback);
         Ok(registration.callback)
     }
 
@@ -108,7 +121,7 @@ impl ScriptBehaviorBridge for VmScriptBehaviorBridge {
             .invoke_callback(&mut handle, arguments)
             .map_err(|error| ScriptHostError::new(error.to_string()));
         if result.is_ok() && handle != resolved_handle {
-            self.lock_callbacks().insert(callback.clone(), handle);
+            self.cache_callback(callback, handle);
         }
         result
     }
@@ -131,6 +144,29 @@ mod tests {
 
         assert!(source.contains("let resolved_handle = handle;"));
         assert!(source.contains("if result.is_ok() && handle != resolved_handle"));
+    }
+
+    #[test]
+    fn behavior_callback_cache_only_clones_a_missing_key() {
+        let manager = VmPluginManager::mock();
+        let package = package("cache");
+        let slot = manager.load_package(package).unwrap();
+        register_same_node(&manager, slot, 1);
+        let bridge = VmScriptBehaviorBridge::new();
+        bridge.bind_manager(&manager);
+        let callback = ScriptBehaviorCallbackRef::parse("cache::shared.task").unwrap();
+        let first = bridge.resolve_callback(&manager, &callback).unwrap();
+        let refreshed = VmCallbackHandle {
+            generation: first.generation + 1,
+            ..first
+        };
+
+        assert!(!bridge.cache_callback(&callback, refreshed));
+        assert_eq!(bridge.lock_callbacks().get(&callback), Some(&refreshed));
+
+        let missing = ScriptBehaviorCallbackRef::parse("cache::missing.task").unwrap();
+        assert!(bridge.cache_callback(&missing, first));
+        assert_eq!(bridge.lock_callbacks().get(&missing), Some(&first));
     }
 
     #[test]

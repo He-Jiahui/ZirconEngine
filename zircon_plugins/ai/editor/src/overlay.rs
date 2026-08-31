@@ -1,11 +1,10 @@
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 use zircon_editor::core::editor_authoring_extension::ViewportToolModeDescriptor;
 use zircon_editor::core::editor_extension::{
-    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
-    EditorUiTemplateDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError, EditorUiTemplateDescriptor,
 };
 use zircon_editor::core::editor_operation::EditorOperationPath;
-use zircon_plugin_editor_support::{EditorAuthoringSurface, register_authoring_surface};
+use zircon_plugin_editor_support::{register_authoring_surface, EditorAuthoringSurface};
 use zircon_runtime::core::framework::ai::{AiPerceptionSense, AiPerceptionStimulus};
 use zircon_runtime::core::framework::render::{
     OverlayLineSegment, OverlayPickShape, SceneGizmoKind, SceneGizmoOverlayExtract,
@@ -20,11 +19,16 @@ use crate::extension_ids::{
 };
 use crate::runtime_mirror::AiPieMirror;
 
+#[cfg(test)]
+#[path = "overlay/allocation_tests.rs"]
+mod allocation_tests;
+
 const FOV_COLOR: Vec4 = Vec4::new(0.2, 0.85, 1.0, 1.0);
 const HEARING_COLOR: Vec4 = Vec4::new(1.0, 0.68, 0.18, 0.9);
 const SIGHT_STIMULUS_COLOR: Vec4 = Vec4::new(0.35, 1.0, 0.52, 1.0);
 const HEARING_STIMULUS_COLOR: Vec4 = Vec4::new(1.0, 0.72, 0.2, 1.0);
 const OTHER_STIMULUS_COLOR: Vec4 = Vec4::new(0.95, 0.32, 0.76, 1.0);
+const CIRCLE_SEGMENTS: usize = 24;
 
 pub trait AiPerceptionViewportGizmoSink {
     fn replace_ai_perception_overlay(&mut self, overlay: Option<SceneGizmoOverlayExtract>);
@@ -107,22 +111,17 @@ pub(crate) fn register_ai_perception_overlay(
     ))?;
     register_authoring_surface(
         registry,
-        EditorAuthoringSurface::new(
-            AI_PERCEPTION_DEBUG_VIEW_ID,
-            "AI Perception Debug",
-            "AI",
-            "Plugins/AI/Perception Debug",
-        ),
+        EditorAuthoringSurface::new(AI_PERCEPTION_DEBUG_VIEW_ID, "AI Perception Debug", "AI"),
     )?;
     let operation = EditorOperationPath::parse(AI_TOGGLE_PERCEPTION_OVERLAY_OPERATION)
         .map_err(EditorExtensionRegistryError::OperationPath)?;
     registry.register_command(
-        EditorCommandDescriptor::operation(operation.clone(), "Toggle Perception Overlay")
-            .with_menu_path("Plugins/AI/Toggle Perception Overlay")
-            .with_required_capabilities([AI_DEBUG_CAPABILITY]),
-    )?;
-    registry.register_menu_item(
-        EditorMenuItemDescriptor::new("Plugins/AI/Toggle Perception Overlay", operation.clone())
+        EditorCommandDescriptor::operation(operation.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &operation,
+                "plugins",
+                &["ai"],
+            ))
             .with_required_capabilities([AI_DEBUG_CAPABILITY]),
     )?;
     registry.register_viewport_tool_mode(
@@ -156,14 +155,15 @@ fn build_ai_perception_overlay_with_options(
     mirror: &AiPieMirror,
     options: AiPerceptionOverlayOptions,
 ) -> SceneGizmoOverlayExtract {
+    let capacity = overlay_capacity(world, mirror, options);
     let mut overlay = SceneGizmoOverlayExtract::new(
         owner,
         SceneGizmoKind::AiPerception,
         false,
+        Vec::with_capacity(capacity.lines),
         Vec::new(),
         Vec::new(),
-        Vec::new(),
-        Vec::new(),
+        Vec::with_capacity(capacity.pick_shapes),
     );
     for frame in mirror.agents_in_world(world) {
         let Some(debug) = frame.perception_debug.as_ref() else {
@@ -215,6 +215,60 @@ fn build_ai_perception_overlay_with_options(
     overlay
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct OverlayCapacity {
+    lines: usize,
+    pick_shapes: usize,
+}
+
+fn overlay_capacity(
+    world: &WorldHandle,
+    mirror: &AiPieMirror,
+    options: AiPerceptionOverlayOptions,
+) -> OverlayCapacity {
+    let mut capacity = OverlayCapacity::default();
+    for frame in mirror.agents_in_world(world) {
+        let Some(debug) = frame.perception_debug.as_ref() else {
+            continue;
+        };
+        if !debug.position.is_finite() {
+            continue;
+        }
+        capacity.pick_shapes += 1;
+        if options.sight_cone {
+            capacity.lines += sight_cone_line_count(debug.sight_fov_degrees, debug.sight_range);
+        }
+        if options.hearing_radius && valid_radius(debug.hearing_radius) {
+            capacity.lines += CIRCLE_SEGMENTS;
+            capacity.pick_shapes += 1;
+        }
+        if options.stimuli {
+            let stimulus_count = frame
+                .perception
+                .as_ref()
+                .into_iter()
+                .flat_map(|perception| perception.stimuli.iter())
+                .filter(|stimulus| stimulus.position.is_finite())
+                .count();
+            capacity.lines += stimulus_count;
+            capacity.pick_shapes += stimulus_count;
+        }
+    }
+    capacity
+}
+
+fn sight_cone_line_count(fov_degrees: Real, range: Real) -> usize {
+    if !valid_radius(range) || !fov_degrees.is_finite() {
+        return 0;
+    }
+    let fov_degrees = fov_degrees.clamp(0.0, 360.0);
+    if fov_degrees >= 359.9 {
+        CIRCLE_SEGMENTS
+    } else {
+        ((fov_degrees / 15.0).ceil() as usize).clamp(1, CIRCLE_SEGMENTS) + 2
+    }
+}
+
 fn append_sight_cone(
     lines: &mut Vec<OverlayLineSegment>,
     origin: Vec3,
@@ -262,10 +316,9 @@ fn append_circle(lines: &mut Vec<OverlayLineSegment>, origin: Vec3, radius: Real
     if !valid_radius(radius) {
         return;
     }
-    const SEGMENTS: usize = 24;
     let mut previous = origin + Vec3::Z * radius;
-    for index in 1..=SEGMENTS {
-        let angle = std::f32::consts::TAU * index as Real / SEGMENTS as Real;
+    for index in 1..=CIRCLE_SEGMENTS {
+        let angle = std::f32::consts::TAU * index as Real / CIRCLE_SEGMENTS as Real;
         let next = origin + direction_from_yaw(angle) * radius;
         lines.push(OverlayLineSegment {
             start: previous,

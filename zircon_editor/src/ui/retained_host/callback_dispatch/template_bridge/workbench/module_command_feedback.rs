@@ -37,8 +37,145 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     fn active_workbench_feedback_module(&self) -> WorkbenchFeedbackModule {
         WorkbenchFeedbackModule::from_selected_tab(|control_id| {
-            self.control_bool(control_id, "selected") || self.control_bool(control_id, "checked")
+            self.control_selected_or_checked(control_id)
         })
+    }
+
+    fn control_selected_or_checked(&self, control_id: &str) -> bool {
+        let Some(node_id) = self.control_node_id(control_id) else {
+            return false;
+        };
+        self.template_surface
+            .surface
+            .tree
+            .nodes
+            .get(&node_id)
+            .and_then(|node| node.template_metadata.as_ref())
+            .is_some_and(|metadata| {
+                metadata
+                    .attributes
+                    .get("selected")
+                    .and_then(toml::Value::as_bool)
+                    .unwrap_or(false)
+                    || metadata
+                        .attributes
+                        .get("checked")
+                        .and_then(toml::Value::as_bool)
+                        .unwrap_or(false)
+            })
+    }
+}
+
+#[cfg(test)]
+mod optimization_batch_20260830bq_editor_tests {
+    use std::collections::HashMap;
+    use std::time::Instant;
+
+    use super::WorkbenchFeedbackModule;
+
+    const SAMPLE_PAIRS: usize = 17;
+    const PROBES_PER_SAMPLE: usize = 100_000;
+    const MODULE_IDS: [&str; 11] = [
+        "WorkbenchModuleScene",
+        "WorkbenchModuleEffect",
+        "WorkbenchModuleAbility",
+        "WorkbenchModuleTags",
+        "WorkbenchModulePerception",
+        "WorkbenchModuleMaterial",
+        "WorkbenchModuleBehavior",
+        "WorkbenchModuleRender",
+        "WorkbenchModuleAssets",
+        "WorkbenchModuleVfx",
+        "WorkbenchModuleHud",
+    ];
+
+    #[test]
+    fn selected_tab_resolution_preserves_order_and_default() {
+        assert_eq!(
+            WorkbenchFeedbackModule::from_selected_tab(|id| id == "WorkbenchModuleRender"),
+            WorkbenchFeedbackModule::Render
+        );
+        assert_eq!(
+            WorkbenchFeedbackModule::from_selected_tab(|_| false),
+            WorkbenchFeedbackModule::Effect
+        );
+    }
+
+    #[test]
+    fn selected_tab_resolution_uses_one_node_lookup_for_both_flags() {
+        let source = include_str!("module_command_feedback.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production implementation");
+        assert!(implementation.contains("fn control_selected_or_checked"));
+        assert!(implementation.contains(".nodes"));
+        assert!(implementation.contains(".get(&node_id)"));
+        assert!(!implementation.contains(
+            "self.control_bool(control_id, \"selected\") || self.control_bool(control_id, \"checked\")"
+        ));
+    }
+
+    #[test]
+    #[ignore = "managed Windows release performance evidence"]
+    fn optimization_batch_20260830bq_editor_workbench_module_lookup_p95() {
+        let nodes = MODULE_IDS
+            .iter()
+            .enumerate()
+            .map(|(index, id)| (*id, [index == 7, index == 9]))
+            .collect::<HashMap<_, _>>();
+        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy.push(measure(&nodes, false));
+                optimized.push(measure(&nodes, true));
+            } else {
+                optimized.push(measure(&nodes, true));
+                legacy.push(measure(&nodes, false));
+            }
+        }
+        let legacy_p95_ns = percentile(&legacy, 95);
+        let optimized_p95_ns = percentile(&optimized, 95);
+        println!(
+            "EDITOR315_WORKBENCH_MODULE_LOOKUP_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} probes_per_sample={PROBES_PER_SAMPLE} controls={} legacy_node_lookups_per_probe=2 optimized_node_lookups_per_probe=1 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            MODULE_IDS.len(),
+            sample_csv(&legacy),
+            sample_csv(&optimized),
+        );
+        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
+    }
+
+    fn measure(nodes: &HashMap<&'static str, [bool; 2]>, optimized: bool) -> u128 {
+        let started = Instant::now();
+        let mut selected_count = 0usize;
+        for _ in 0..PROBES_PER_SAMPLE {
+            for id in MODULE_IDS {
+                let selected = if optimized {
+                    nodes.get(id).is_some_and(|flags| flags[0] || flags[1])
+                } else {
+                    nodes.get(id).is_some_and(|flags| flags[0])
+                        || nodes.get(id).is_some_and(|flags| flags[1])
+                };
+                selected_count += selected as usize;
+            }
+        }
+        std::hint::black_box(selected_count);
+        started.elapsed().as_nanos().max(1)
+    }
+
+    fn percentile(samples: &[u128], percentile: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        sorted[(sorted.len() * percentile).div_ceil(100).saturating_sub(1)]
+    }
+
+    fn sample_csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 }
 
@@ -54,7 +191,7 @@ struct ModuleOutputFeedback {
     text: &'static str,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum WorkbenchFeedbackModule {
     Scene,
     Effect,
@@ -225,7 +362,7 @@ impl WorkbenchFeedbackModule {
             Self::Effect => "Simulation Output: gameplay effect preview running",
             Self::Ability => "Simulation: ability playtest preview running",
             Self::Tags => "Validation: gameplay tag references scanning",
-            Self::Perception => "AI_Guard_01   simulation tick   00:12.4",
+            Self::Perception => "Perception simulation tick",
             Self::Material => "Preview Variants: material preview refreshed",
             Self::Behavior => "Runtime Trace: behavior tree preview running",
             Self::Render => "Frame Preview: render graph frame queued",
@@ -266,105 +403,6 @@ fn module_command_feedback(
             active_module.simulate_status(),
             active_module.output(active_module.simulate_output()),
         ),
-        "workbench.module.effect.apply.invoke" => ModuleCommandFeedback {
-            status_text: "Gameplay effect applied",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchEffectOutputRow",
-                "text",
-                "Simulation Output: applied +50 health preview",
-            )),
-        },
-        "workbench.module.material.compile.invoke" => ModuleCommandFeedback {
-            status_text: "Material compiled",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchMaterialOutputRow",
-                "text",
-                "Shader Output: compile complete, 2 warnings",
-            )),
-        },
-        "workbench.module.behavior.validate.invoke" => ModuleCommandFeedback {
-            status_text: "Behavior tree validated",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchBehaviorOutputRow",
-                "text",
-                "Validation: selector branch is reachable",
-            )),
-        },
-        "workbench.module.assets.import.invoke" => ModuleCommandFeedback {
-            status_text: "Asset import queued",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchAssetsOutputRow",
-                "text",
-                "Import: queued SM_Tree_Oak_01 and dependencies",
-            )),
-        },
-        "workbench.module.vfx.simulate.invoke" => ModuleCommandFeedback {
-            status_text: "VFX simulation running",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchVfxOutputRow",
-                "text",
-                "Compile Output: simulation running, no errors",
-            )),
-        },
-        "workbench.module.ability.playtest.invoke" => ModuleCommandFeedback {
-            status_text: "Ability playtest queued",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchAbilityOutputRow",
-                "value_text",
-                "Playtest queued   predicted activation   GA_DashAttack",
-            )),
-        },
-        "workbench.module.tags.add.invoke" => ModuleCommandFeedback {
-            status_text: "Tag add dialog prepared",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchTagsValidationRow",
-                "value_text",
-                "Add Tag   pending registry update",
-            )),
-        },
-        "workbench.module.tags.rename.invoke" => ModuleCommandFeedback {
-            status_text: "Tag rename prepared",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchTagsValidationRow",
-                "value_text",
-                "Rename Tag   pending redirect update",
-            )),
-        },
-        "workbench.module.perception.simulate.invoke" => ModuleCommandFeedback {
-            status_text: "Perception simulation running",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchPerceptionEventRow",
-                "value_text",
-                "AI_Guard_01   simulation tick   00:12.4",
-            )),
-        },
-        "workbench.module.render.compile.invoke" => ModuleCommandFeedback {
-            status_text: "Render graph compiled",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchRenderCaptureRow",
-                "value_text",
-                "Windows DX12   30 fps   GPU 6.24 ms   compiled",
-            )),
-        },
-        "workbench.module.hud.preview.invoke" => ModuleCommandFeedback {
-            status_text: "HUD preview refreshed",
-            message_count: "1 Message",
-            output: Some(output(
-                "WorkbenchHudValidationRow",
-                "value_text",
-                "Preview refreshed   localization warning remains",
-            )),
-        },
         _ => return None,
     };
     Some(feedback)

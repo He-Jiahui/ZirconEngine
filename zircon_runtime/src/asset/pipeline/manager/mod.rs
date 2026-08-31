@@ -10,11 +10,12 @@ mod registration;
 mod resource_sync;
 mod service_contracts;
 
-pub use asset_manager::{asset_manager_handle, AssetManager};
+pub use asset_manager::{AssetManager, asset_manager_handle};
 pub use driver::AssetIoDriver;
 pub use project_asset_manager::{
-    project_asset_manager_handle, ProjectAssetManager, ProjectAssetManagerAccess,
-    ProjectAssetWatchDiagnostics,
+    ProjectAssetGenerationSnapshot, ProjectAssetGenerationToken, ProjectAssetManager,
+    ProjectAssetManagerAccess, ProjectAssetWatchDiagnostics, ProjectGeneratedSourceReceipt,
+    ProjectGenerationCommitOutcome, ProjectGenerationMatch, project_asset_manager_handle,
 };
 pub use records::{AssetPipelineInfo, AssetStatusRecord, ProjectInfo};
 pub use registration::{ASSET_MANAGER_NAME, PROJECT_ASSET_MANAGER_NAME};

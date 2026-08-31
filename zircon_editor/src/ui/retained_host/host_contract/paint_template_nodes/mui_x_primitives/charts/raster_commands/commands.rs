@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::raster::ChartRaster;
 use super::super::ChartKind;
@@ -39,11 +41,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
                 ChartKind::Aggregate | ChartKind::Bar => unreachable!("non-raster chart kind"),
             }
             let resource_key = cache_key.resource_key();
-            store_chart_raster(cache_key, resource_key.clone(), raster.rgba.clone());
-            CachedChartRaster {
-                resource_key,
-                rgba: raster.rgba,
-            }
+            let rgba = Arc::<[u8]>::from(raster.rgba);
+            store_chart_raster(cache_key, resource_key.clone(), Arc::clone(&rgba));
+            CachedChartRaster { resource_key, rgba }
         });
     commands.push(HostPaintCommand::image_pixels(
         plot.clone(),

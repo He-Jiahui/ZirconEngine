@@ -117,8 +117,8 @@ fn smaa_terminal_anti_alias_routes_output_transfer_through_terminal_input() {
 }
 
 #[test]
-fn dynamic_resolution_upscales_terminal_anti_alias_before_device_output() {
-    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+fn primary_upscale_runs_after_terminal_anti_alias_and_before_device_output() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
         &Default::default(),
         &Default::default(),
         RenderExposureSettings::default(),
@@ -127,6 +127,7 @@ fn dynamic_resolution_upscales_terminal_anti_alias_before_device_output() {
         false,
         &AntiAliasSettings::fxaa(),
         true,
+        false,
     );
 
     let fxaa = stack
@@ -142,8 +143,8 @@ fn dynamic_resolution_upscales_terminal_anti_alias_before_device_output() {
     let upscale = stack
         .effects
         .iter()
-        .find(|effect| effect.kind == PostProcessEffectKind::Upscale)
-        .expect("dynamic resolution should declare an explicit upscale node");
+        .find(|effect| effect.kind == PostProcessEffectKind::PrimaryUpscale)
+        .expect("dynamic resolution should declare an explicit primary upscale node");
     assert_eq!(
         upscale.required_inputs,
         vec![PostProcessGraphResourceNames::FINAL_COMPOSITED.to_string()]
@@ -157,7 +158,7 @@ fn dynamic_resolution_upscales_terminal_anti_alias_before_device_output() {
         .expect("dynamic resolution stack should keep final transfer");
     assert_eq!(
         output_transfer.required_inputs,
-        vec![PostProcessGraphResourceNames::UPSCALED.to_string()]
+        vec![PostProcessGraphResourceNames::PRIMARY_UPSCALED.to_string()]
     );
     assert_eq!(
         output_transfer.produced_outputs,
@@ -173,8 +174,8 @@ fn dynamic_resolution_upscales_terminal_anti_alias_before_device_output() {
     let upscale_index = graph
         .nodes
         .iter()
-        .position(|node| node.kind == PostProcessEffectKind::Upscale)
-        .expect("validated graph should keep upscale");
+        .position(|node| node.kind == PostProcessEffectKind::PrimaryUpscale)
+        .expect("validated graph should keep primary upscale");
     let output_index = graph
         .nodes
         .iter()
@@ -185,8 +186,8 @@ fn dynamic_resolution_upscales_terminal_anti_alias_before_device_output() {
 }
 
 #[test]
-fn dynamic_resolution_declares_upscale_before_output_transfer() {
-    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+fn dynamic_resolution_declares_primary_upscale_before_output_transfer() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
         &Default::default(),
         &Default::default(),
         RenderExposureSettings::default(),
@@ -195,20 +196,21 @@ fn dynamic_resolution_declares_upscale_before_output_transfer() {
         false,
         &AntiAliasSettings::off(),
         true,
+        false,
     );
 
     let upscale = stack
         .effects
         .iter()
-        .find(|effect| effect.kind == PostProcessEffectKind::Upscale)
-        .expect("dynamic resolution should declare an explicit upscale node");
+        .find(|effect| effect.kind == PostProcessEffectKind::PrimaryUpscale)
+        .expect("dynamic resolution should declare an explicit primary upscale node");
     assert_eq!(
         upscale.required_inputs,
         vec![PostProcessGraphResourceNames::TONEMAPPED.to_string()]
     );
     assert_eq!(
         upscale.produced_outputs,
-        vec![PostProcessGraphResourceNames::UPSCALED.to_string()]
+        vec![PostProcessGraphResourceNames::PRIMARY_UPSCALED.to_string()]
     );
 
     let output_transfer = stack
@@ -218,11 +220,11 @@ fn dynamic_resolution_declares_upscale_before_output_transfer() {
         .expect("dynamic resolution stack should keep final transfer");
     assert_eq!(
         output_transfer.required_inputs,
-        vec![PostProcessGraphResourceNames::UPSCALED.to_string()]
+        vec![PostProcessGraphResourceNames::PRIMARY_UPSCALED.to_string()]
     );
     assert!(output_transfer
         .after
-        .contains(&PostProcessEffectKind::Upscale));
+        .contains(&PostProcessEffectKind::PrimaryUpscale));
 
     let graph = stack.validated_graph();
     let uber_index = graph
@@ -233,8 +235,8 @@ fn dynamic_resolution_declares_upscale_before_output_transfer() {
     let upscale_index = graph
         .nodes
         .iter()
-        .position(|node| node.kind == PostProcessEffectKind::Upscale)
-        .expect("validated graph should keep upscale");
+        .position(|node| node.kind == PostProcessEffectKind::PrimaryUpscale)
+        .expect("validated graph should keep primary upscale");
     let output_index = graph
         .nodes
         .iter()
@@ -242,4 +244,79 @@ fn dynamic_resolution_declares_upscale_before_output_transfer() {
         .expect("validated graph should keep final transfer");
     assert!(uber_index < upscale_index);
     assert!(upscale_index < output_index);
+}
+
+#[test]
+fn dual_spatial_upscale_routes_primary_into_secondary_before_output_transfer() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
+        &Default::default(),
+        &Default::default(),
+        RenderExposureSettings::default(),
+        &RenderPostProcessEffectStackSettings::default(),
+        false,
+        false,
+        &AntiAliasSettings::off(),
+        true,
+        true,
+    );
+
+    let primary = stack
+        .effects
+        .iter()
+        .find(|effect| effect.kind == PostProcessEffectKind::PrimaryUpscale)
+        .expect("dual spatial path requires primary upscale");
+    assert_eq!(
+        primary.produced_outputs,
+        vec![PostProcessGraphResourceNames::PRIMARY_UPSCALED.to_string()]
+    );
+
+    let secondary = stack
+        .effects
+        .iter()
+        .find(|effect| effect.kind == PostProcessEffectKind::SecondaryUpscale)
+        .expect("dual spatial path requires secondary upscale");
+    assert_eq!(
+        secondary.required_inputs,
+        vec![PostProcessGraphResourceNames::PRIMARY_UPSCALED.to_string()]
+    );
+    assert_eq!(secondary.after, vec![PostProcessEffectKind::PrimaryUpscale]);
+    assert_eq!(
+        secondary.produced_outputs,
+        vec![PostProcessGraphResourceNames::SECONDARY_UPSCALED.to_string()]
+    );
+
+    let output_transfer = stack
+        .effects
+        .iter()
+        .find(|effect| effect.kind == PostProcessEffectKind::OutputTransfer)
+        .expect("dual spatial path keeps output transfer");
+    assert_eq!(
+        output_transfer.required_inputs,
+        vec![PostProcessGraphResourceNames::SECONDARY_UPSCALED.to_string()]
+    );
+    assert_eq!(
+        output_transfer.after,
+        vec![PostProcessEffectKind::SecondaryUpscale]
+    );
+
+    let ordered_kinds = stack
+        .validated_graph()
+        .nodes
+        .into_iter()
+        .map(|node| node.kind)
+        .collect::<Vec<_>>();
+    let primary_index = ordered_kinds
+        .iter()
+        .position(|kind| *kind == PostProcessEffectKind::PrimaryUpscale)
+        .unwrap();
+    let secondary_index = ordered_kinds
+        .iter()
+        .position(|kind| *kind == PostProcessEffectKind::SecondaryUpscale)
+        .unwrap();
+    let output_index = ordered_kinds
+        .iter()
+        .position(|kind| *kind == PostProcessEffectKind::OutputTransfer)
+        .unwrap();
+    assert!(primary_index < secondary_index);
+    assert!(secondary_index < output_index);
 }

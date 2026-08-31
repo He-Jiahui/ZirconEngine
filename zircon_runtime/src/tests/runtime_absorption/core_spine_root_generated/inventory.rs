@@ -113,10 +113,14 @@ pub(super) const EXPECTED_RUNTIME_02_GUARD_TEST_ANCHORS: &[(&str, &[&str])] = &[
 
 pub(super) const MIRROR_DOCS: &[(&str, &str)] = &[
     (
-        "Runtime 02 numbered output archive",
+        "Runtime 02 plan",
         include_str!(
-            "../../../../../docs/plans/zircon_runtime/runtime/02/2026-07-09-core-spine-and-root-surface-output-records.md"
+            "../../../../../docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md"
         ),
+    ),
+    (
+        "runtime index",
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
     ),
     (
         "root surface doc",

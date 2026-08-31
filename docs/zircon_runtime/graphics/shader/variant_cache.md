@@ -7,6 +7,8 @@ related_code:
   - zircon_runtime/src/graphics/shader/variant_cache/disk.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs
   - zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm/execution_budget.rs
@@ -60,8 +62,8 @@ plan_sources:
 tests:
   - zircon_runtime/src/graphics/shader/variant_cache/disk.rs::tests::render_shader_variant_cache_hits_disk_after_restart
   - zircon_runtime/src/graphics/shader/variant_cache/disk.rs::tests::render_shader_variant_cache_treats_corrupt_entry_as_miss_after_cleanup
-  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs::tests::render_shader_variant_prewarm_writes_disk_entries
-  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs::tests::render_shader_variant_prewarm_custom_ids_hit_staged_fallback_root
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs::render_shader_variant_prewarm_writes_disk_entries
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs::render_shader_variant_prewarm_custom_ids_hit_staged_fallback_root
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs::tests::mesh_pipeline_variant_registry_counts_variant_misses_and_memory_hits
   - rustfmt --edition 2021 --check zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Runtime custom id staged fallback lookup contract: passed)
   - source/docs anchor scan, conflict marker scan, trailing-whitespace scan, scoped git diff --check (2026-06-28 Runtime custom id staged fallback lookup contract: passed; diff-check only reported LF/CRLF warnings)
@@ -101,6 +103,12 @@ The live WGPU render-pipeline maps still key by the complete `PipelineKey`. That
 Manifest-level preflight failures are stored in `ShaderVariantPrewarmReport.preflight_error`. They do not invent a variant index or affect per-variant counts, but the command-line wrapper still returns its failure exit code.
 
 `zircon_runtime::dynamic_api::prewarm_shader_variants(...)` is the Rust-side headless entry point. The first implemented producer is `builtin_fallback_shader_prewarm_manifest()`, which emits the base forward fallback mesh variant using the same key/source/hash contract as `MeshPipelineCache::ensure_pipeline(...)`.
+
+The physical owner boundary keeps `prewarm.rs` as the thin entry route and `prewarm/worker.rs` as the
+single production execution owner. Primary unit tests live in `prewarm/tests.rs`; combined module and
+pipeline validation tests remain in `prewarm/tests/combined_validation_tests.rs`. Structure guards
+read these owners independently so a production assertion cannot be satisfied accidentally by test
+text. Status: `runtime_07_15_shader_prewarm_test_owner_and_source_guard_routing_static_passed_cargo_deferred`.
 
 When WGPU module validation is enabled, the headless prewarm entry points cache both pass and failure outcomes once per source id for the current batch. Render-pipeline validation remains request-scoped because pipeline state is part of its contract.
 

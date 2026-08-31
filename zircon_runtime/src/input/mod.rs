@@ -1,5 +1,6 @@
 //! Runtime input subsystem and protocol types.
 
+pub mod camera_controller;
 mod module;
 pub mod prelude;
 mod runtime;

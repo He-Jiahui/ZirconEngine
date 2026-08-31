@@ -1,6 +1,10 @@
-use std::sync::atomic::Ordering;
+use std::sync::{atomic::Ordering, Arc};
 
 use bytemuck::{Pod, Zeroable};
+use zircon_runtime::graphics::{
+    RenderPassBufferUploadSink, RuntimePrepareFrameTransaction,
+    RuntimePrepareFrameTransactionRecorder,
+};
 
 use crate::hybrid_gi::scene_representation::{
     HybridGiGlobalSdfPageKey, HybridGiGlobalSdfSceneState, GLOBAL_SDF_CLIPMAP_COUNT,
@@ -42,19 +46,24 @@ struct GlobalSdfTracePageTable {
 impl GlobalSdfGpuState {
     pub(in crate::hybrid_gi::renderer::gpu_resources) fn create_trace_bindings(
         &self,
-        queue: &wgpu::Queue,
+        buffer_uploads: &mut dyn RenderPassBufferUploadSink,
+        frame_transactions: &mut RuntimePrepareFrameTransactionRecorder<'_>,
         scene: &HybridGiGlobalSdfSceneState,
     ) -> GlobalSdfGpuTraceBindings {
         let page_table = build_trace_page_table(scene);
         let signature = trace_page_signature(&page_table);
         if self.trace_page_signature.load(Ordering::Relaxed) != signature {
-            queue.write_buffer(
+            buffer_uploads.write_buffer(
                 &self.trace_page_table_buffer,
                 0,
                 bytemuck::cast_slice(&page_table.slots),
             );
-            self.trace_page_signature
-                .store(signature, Ordering::Relaxed);
+            let committed_signature = Arc::clone(&self.trace_page_signature);
+            frame_transactions.register(RuntimePrepareFrameTransaction::new(
+                "hybrid-gi.global-sdf.trace-page-table",
+                move || committed_signature.store(signature, Ordering::Relaxed),
+                || {},
+            ));
         }
         GlobalSdfGpuTraceBindings {
             page_table_buffer: self.trace_page_table_buffer.clone(),

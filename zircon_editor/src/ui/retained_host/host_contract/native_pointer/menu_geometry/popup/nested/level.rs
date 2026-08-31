@@ -17,7 +17,7 @@ pub(super) fn nested_menu_level_hit(
     x: f32,
     y: f32,
 ) -> Option<NestedMenuLevelHit> {
-    let branch = items.row_data(selected_index)?;
+    let branch = items.get(selected_index)?;
     if branch.children.row_count() == 0 {
         return None;
     }

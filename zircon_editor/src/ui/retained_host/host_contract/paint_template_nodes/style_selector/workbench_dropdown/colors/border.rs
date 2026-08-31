@@ -15,12 +15,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdow
         palette.error_border
     } else {
         match state {
-            UiPainterResolvedState::Pressed
-            | UiPainterResolvedState::Focused
-            | UiPainterResolvedState::Open => palette.focus_border,
-            UiPainterResolvedState::Hovered
-            | UiPainterResolvedState::Dragging
-            | UiPainterResolvedState::DropHovered => palette.hover_border,
+            UiPainterResolvedState::Focused | UiPainterResolvedState::DropHovered => {
+                palette.focus_border
+            }
+            UiPainterResolvedState::Pressed | UiPainterResolvedState::Open => palette.border,
+            UiPainterResolvedState::Hovered | UiPainterResolvedState::Dragging => {
+                palette.hover_border
+            }
             UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
                 palette.disabled_border
             }

@@ -21,36 +21,24 @@ export default defineConfig({
     port: 4317,
     strictPort: true,
     fs: { allow: [consoleRoot, ...hubVisualFiles] },
+    proxy: {
+      "/control": {
+        target: "http://127.0.0.1:6518",
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on("proxyReq", (request) => {
+            request.setHeader("Origin", "http://127.0.0.1:6518");
+            request.setHeader("Referer", "http://127.0.0.1:6518/ui/");
+            request.setHeader("Sec-Fetch-Site", "same-origin");
+          });
+        },
+      },
+    },
   },
   build: {
     outDir: "dist",
     emptyOutDir: true,
     sourcemap: false,
     assetsDir: "assets",
-    rolldownOptions: {
-      output: {
-        codeSplitting: {
-          groups: [
-            {
-              name: "react-vendor",
-              test: /node_modules[\\/](?:react|react-dom|scheduler)[\\/]/,
-              priority: 30,
-            },
-            {
-              name: "mui-vendor",
-              test: /node_modules[\\/](?:@mui|@emotion)[\\/]/,
-              priority: 20,
-              maxSize: 400 * 1024,
-            },
-            {
-              name: "vendor",
-              test: /node_modules[\\/]/,
-              priority: 10,
-              maxSize: 400 * 1024,
-            },
-          ],
-        },
-      },
-    },
   },
 });

@@ -2,12 +2,6 @@ use super::super::super::super::data::{FrameRect, HostMenuStateData, HostWindowP
 use super::super::frames::shell_content_width;
 use super::popup_bottom::open_menu_popup_bottom;
 
-pub(in crate::ui::retained_host::host_contract) fn menu_damage_frame(
-    presentation: &HostWindowPresentationData,
-) -> FrameRect {
-    menu_damage_frame_with_state(presentation, &presentation.menu_state)
-}
-
 pub(in crate::ui::retained_host::host_contract) fn menu_damage_frame_with_state(
     presentation: &HostWindowPresentationData,
     menu_state: &HostMenuStateData,

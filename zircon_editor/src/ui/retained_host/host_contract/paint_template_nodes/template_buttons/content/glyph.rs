@@ -1,17 +1,35 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_button_glyphs::{
-    button_glyph_for_key, button_icon_size, push_button_glyph, ButtonGlyph,
+    button_icon_size, push_button_glyph, ButtonGlyph,
 };
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
-use super::super::identity::button_key;
+use super::super::identity::{button_identity_contains, button_identity_values};
 use super::layout::content_centered_y;
 use super::metrics::{button_chevron_reserve, button_icon_gap, trailing_glyph_inset};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_glyph(
     node: &TemplatePaneNodeData,
 ) -> ButtonGlyph {
-    button_glyph_for_key(&button_key(node))
+    let values = button_identity_values(node);
+    if ["delete", "trash", "danger"]
+        .iter()
+        .any(|needle| button_identity_contains(&values, needle))
+    {
+        ButtonGlyph::Trash
+    } else if ["dropdown", "drop-down", "menu"]
+        .iter()
+        .any(|needle| button_identity_contains(&values, needle))
+    {
+        ButtonGlyph::ChevronDown
+    } else if ["icon", "add", "plus"]
+        .iter()
+        .any(|needle| button_identity_contains(&values, needle))
+    {
+        ButtonGlyph::Plus
+    } else {
+        ButtonGlyph::None
+    }
 }
 
 pub(super) fn button_glyph_width(

@@ -11,7 +11,9 @@ fn indexed_projection_registration(field_names: &[String]) -> ReflectTypeRegistr
         .iter()
         .enumerate()
         .map(|(index, name)| {
-            ReflectFieldInfo::new(
+            ReflectFieldInfo::from_stable_keys(
+                "test.IndexedProjection",
+                name,
                 name,
                 indexed_projection_type_name(index),
                 ReflectEditorHint::None,
@@ -424,7 +426,9 @@ fn rust_reflection_macros_generate_type_function_and_module_descriptors() {
     assert_eq!(
         registration.type_info.fields,
         vec![
-            zircon_runtime_interface::reflect::ReflectFieldInfo::new(
+            zircon_runtime_interface::reflect::ReflectFieldInfo::from_stable_keys(
+                "TestVec3",
+                "x",
                 "x",
                 "float",
                 zircon_runtime_interface::reflect::ReflectEditorHint::None,
@@ -432,14 +436,18 @@ fn rust_reflection_macros_generate_type_function_and_module_descriptors() {
             .with_serializable(false)
             .with_editor_visible(false)
             .with_documentation("x axis"),
-            zircon_runtime_interface::reflect::ReflectFieldInfo::new(
+            zircon_runtime_interface::reflect::ReflectFieldInfo::from_stable_keys(
+                "TestVec3",
+                "y",
                 "y",
                 "float",
                 zircon_runtime_interface::reflect::ReflectEditorHint::None,
             )
             .with_serializable(false)
             .with_editor_visible(false),
-            zircon_runtime_interface::reflect::ReflectFieldInfo::new(
+            zircon_runtime_interface::reflect::ReflectFieldInfo::from_stable_keys(
+                "TestVec3",
+                "z",
                 "z",
                 "float",
                 zircon_runtime_interface::reflect::ReflectEditorHint::None,

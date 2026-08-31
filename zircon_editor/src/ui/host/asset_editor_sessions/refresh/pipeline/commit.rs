@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::host::asset_editor_sessions::{
-    ui_asset_source_hash, UiAssetExternalConflict, UiAssetStaleImportDiagnostic,
+    ui_asset_source_digest, UiAssetExternalConflict, UiAssetStaleImportDiagnostic,
 };
 use crate::ui::host::editor_error::EditorError;
 use crate::ui::host::editor_ui_host::EditorUiHost;
@@ -45,10 +45,10 @@ impl EditorUiHost {
             let Some(entry) = sessions.get_mut(&result.plan.instance_id) else {
                 continue;
             };
-            let source_fingerprint = ui_asset_source_hash(entry.session.source_buffer().text());
+            let source_fingerprint = ui_asset_source_digest(entry.session.source_buffer().text());
             let current_asset_id = normalize_ui_asset_asset_id(&entry.session.route().asset_id);
             if source_fingerprint != result.plan.source_fingerprint
-                || entry.disk_source_hash != result.plan.disk_source_hash
+                || entry.disk_source_digest != result.plan.disk_source_digest
                 || current_asset_id != result.plan.asset_id
             {
                 requeue_asset_ids.extend(batch.changed_asset_ids.iter().cloned());
@@ -169,7 +169,7 @@ impl EditorUiHost {
             let Some(entry) = sessions.get_mut(&result.plan.instance_id) else {
                 continue;
             };
-            let source_fingerprint = ui_asset_source_hash(entry.session.source_buffer().text());
+            let source_fingerprint = ui_asset_source_digest(entry.session.source_buffer().text());
             if source_fingerprint != result.plan.source_fingerprint {
                 requeue_asset_ids.extend(batch.changed_asset_ids.iter().cloned());
                 continue;
@@ -227,7 +227,7 @@ fn apply_external_conflict(
     entry.conflict = Some(UiAssetExternalConflict::new(
         asset_id.clone(),
         source_path,
-        entry.disk_source_hash,
+        entry.disk_source_digest,
         local_source,
         external_source,
     ));

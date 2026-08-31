@@ -10,9 +10,9 @@ impl RetainedEditorHost {
                 self.set_status_line("Opened default workbench".to_string());
             }
             Err(error) => {
-                self.startup_session.status_message = error.to_string();
+                let error = update_startup_error(&mut self.startup_session.status_message, error);
                 self.refresh_welcome_snapshot();
-                self.set_status_line(error.to_string());
+                self.set_status_line(error);
             }
         }
     }
@@ -44,3 +44,13 @@ impl RetainedEditorHost {
         }
     }
 }
+
+fn update_startup_error(status_message: &mut String, error: impl std::fmt::Display) -> String {
+    let formatted = error.to_string();
+    status_message.clone_from(&formatted);
+    formatted
+}
+
+#[cfg(test)]
+#[path = "startup_views/reused_error_tests.rs"]
+mod reused_error_tests;

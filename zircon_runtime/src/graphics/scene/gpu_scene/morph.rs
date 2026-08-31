@@ -1,11 +1,14 @@
 use super::gpu_scene::{
-    create_storage_buffer, grow_capacity, GpuScene, GPU_SCENE_INITIAL_MORPH_CAPACITY,
+    GPU_SCENE_INITIAL_MORPH_CAPACITY, GpuScene, create_storage_buffer, grow_capacity,
 };
 use super::layout::{
-    GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GPU_MORPH_DELTA_STRIDE,
-    GPU_MORPH_PAYLOAD_STRIDE, GPU_MORPH_WEIGHT_STRIDE,
+    GPU_MORPH_DELTA_STRIDE, GPU_MORPH_PAYLOAD_STRIDE, GPU_MORPH_WEIGHT_STRIDE, GpuMorphDelta,
+    GpuMorphPayload, GpuMorphWeight,
 };
-use super::upload::{write_changed_pod_buffer, write_full_pod_buffer};
+use super::upload::GpuSceneBufferUploadBatchBuilder;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GpuSceneMorphUploadReport {
@@ -16,18 +19,72 @@ pub(crate) struct GpuSceneMorphUploadReport {
     pub(crate) rebuilt_bind_group: bool,
 }
 
+pub(crate) struct GpuScenePreparedMorphUpload {
+    pub(super) owner: Arc<()>,
+    pub(super) batch: WgpuBufferUploadBatch,
+    pub(super) report: GpuSceneMorphUploadReport,
+    pub(super) commit: GpuSceneMorphUploadCommit,
+}
+
+pub(super) struct GpuSceneMorphUploadCommit {
+    payloads: Vec<GpuMorphPayload>,
+    deltas: Vec<GpuMorphDelta>,
+    weights: Vec<GpuMorphWeight>,
+    reservation: GpuSceneMorphPreparationReservation,
+}
+
+struct GpuSceneMorphPreparationReservation {
+    state: Arc<AtomicBool>,
+}
+
+impl GpuScenePreparedMorphUpload {
+    pub(crate) const fn report(&self) -> GpuSceneMorphUploadReport {
+        self.report
+    }
+
+    pub(super) fn is_owned_by(&self, owner: &Arc<()>) -> bool {
+        Arc::ptr_eq(&self.owner, owner)
+    }
+}
+
+impl GpuSceneMorphUploadCommit {
+    pub(super) fn commit(self, gpu_scene: &mut GpuScene) {
+        let Self {
+            payloads,
+            deltas,
+            weights,
+            reservation: _reservation,
+        } = self;
+        gpu_scene.morph_payloads_shadow = payloads;
+        gpu_scene.morph_deltas_shadow = deltas;
+        gpu_scene.morph_weights_shadow = weights;
+        gpu_scene.morph_payloads_require_full_upload = false;
+        gpu_scene.morph_deltas_require_full_upload = false;
+        gpu_scene.morph_weights_require_full_upload = false;
+    }
+}
+
+impl Drop for GpuSceneMorphPreparationReservation {
+    fn drop(&mut self) {
+        self.state.store(false, Ordering::Release);
+    }
+}
+
 impl GpuScene {
-    pub(crate) fn upload_morph_buffers(
+    pub(crate) fn prepare_morph_buffers(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        payloads: &[GpuMorphPayload],
-        deltas: &[GpuMorphDelta],
-        weights: &[GpuMorphWeight],
-    ) -> GpuSceneMorphUploadReport {
-        let payload_changed = self.morph_payloads_shadow != payloads;
-        let delta_changed = self.morph_deltas_shadow != deltas;
-        let weight_changed = self.morph_weights_shadow != weights;
+        payloads: Vec<GpuMorphPayload>,
+        deltas: Vec<GpuMorphDelta>,
+        weights: Vec<GpuMorphWeight>,
+    ) -> GpuScenePreparedMorphUpload {
+        let reservation = self.reserve_morph_upload_preparation();
+        let payload_changed =
+            self.morph_payloads_require_full_upload || self.morph_payloads_shadow != payloads;
+        let delta_changed =
+            self.morph_deltas_require_full_upload || self.morph_deltas_shadow != deltas;
+        let weight_changed =
+            self.morph_weights_require_full_upload || self.morph_weights_shadow != weights;
         let required_payload_capacity =
             u32::try_from(payloads.len()).expect("morph payload buffer capacity exceeded u32");
         let required_delta_capacity =
@@ -39,6 +96,7 @@ impl GpuScene {
         let weight_buffer_replaced = required_weight_capacity > self.morph_weights_capacity;
 
         if payload_buffer_replaced {
+            self.morph_payloads_require_full_upload = true;
             self.morph_payloads_capacity =
                 grow_capacity(required_payload_capacity, GPU_SCENE_INITIAL_MORPH_CAPACITY);
             self.morph_payloads_buffer = create_storage_buffer(
@@ -51,6 +109,7 @@ impl GpuScene {
             );
         }
         if delta_buffer_replaced {
+            self.morph_deltas_require_full_upload = true;
             self.morph_deltas_capacity =
                 grow_capacity(required_delta_capacity, GPU_SCENE_INITIAL_MORPH_CAPACITY);
             self.morph_deltas_buffer = create_storage_buffer(
@@ -60,6 +119,7 @@ impl GpuScene {
             );
         }
         if weight_buffer_replaced {
+            self.morph_weights_require_full_upload = true;
             self.morph_weights_capacity =
                 grow_capacity(required_weight_capacity, GPU_SCENE_INITIAL_MORPH_CAPACITY);
             self.morph_weights_buffer = create_storage_buffer(
@@ -72,59 +132,44 @@ impl GpuScene {
             );
         }
 
+        let mut uploads = GpuSceneBufferUploadBatchBuilder::new();
         let uploaded_bytes = if payload_changed {
-            if payload_buffer_replaced {
-                write_full_pod_buffer(queue, &self.morph_payloads_buffer, payloads, payloads.len())
+            if self.morph_payloads_require_full_upload {
+                uploads.push_pod_slice(&self.morph_payloads_buffer, 0, &payloads)
             } else {
-                write_changed_pod_buffer(
-                    queue,
+                uploads.push_changed_pod_slice(
                     &self.morph_payloads_buffer,
                     &self.morph_payloads_shadow,
-                    payloads,
+                    &payloads,
                 )
             }
         } else {
             0
         } + if delta_changed {
-            if delta_buffer_replaced {
-                write_full_pod_buffer(queue, &self.morph_deltas_buffer, deltas, deltas.len())
+            if self.morph_deltas_require_full_upload {
+                uploads.push_pod_slice(&self.morph_deltas_buffer, 0, &deltas)
             } else {
-                write_changed_pod_buffer(
-                    queue,
+                uploads.push_changed_pod_slice(
                     &self.morph_deltas_buffer,
                     &self.morph_deltas_shadow,
-                    deltas,
+                    &deltas,
                 )
             }
         } else {
             0
         } + if weight_changed {
-            if weight_buffer_replaced {
-                write_full_pod_buffer(queue, &self.morph_weights_buffer, weights, weights.len())
+            if self.morph_weights_require_full_upload {
+                uploads.push_pod_slice(&self.morph_weights_buffer, 0, &weights)
             } else {
-                write_changed_pod_buffer(
-                    queue,
+                uploads.push_changed_pod_slice(
                     &self.morph_weights_buffer,
                     &self.morph_weights_shadow,
-                    weights,
+                    &weights,
                 )
             }
         } else {
             0
         };
-
-        if payload_changed {
-            self.morph_payloads_shadow.clear();
-            self.morph_payloads_shadow.extend_from_slice(payloads);
-        }
-        if delta_changed {
-            self.morph_deltas_shadow.clear();
-            self.morph_deltas_shadow.extend_from_slice(deltas);
-        }
-        if weight_changed {
-            self.morph_weights_shadow.clear();
-            self.morph_weights_shadow.extend_from_slice(weights);
-        }
 
         let rebuilt_bind_group =
             payload_buffer_replaced || delta_buffer_replaced || weight_buffer_replaced;
@@ -132,12 +177,36 @@ impl GpuScene {
             self.rebuild_scene_bind_group(device);
         }
 
-        GpuSceneMorphUploadReport {
-            payload_count: u32::try_from(payloads.len()).unwrap_or(u32::MAX),
-            delta_count: u32::try_from(deltas.len()).unwrap_or(u32::MAX),
-            weight_count: u32::try_from(weights.len()).unwrap_or(u32::MAX),
-            uploaded_bytes,
-            rebuilt_bind_group,
+        GpuScenePreparedMorphUpload {
+            owner: Arc::clone(&self.upload_transaction_owner),
+            batch: uploads.into_batch(),
+            report: GpuSceneMorphUploadReport {
+                payload_count: u32::try_from(payloads.len()).unwrap_or(u32::MAX),
+                delta_count: u32::try_from(deltas.len()).unwrap_or(u32::MAX),
+                weight_count: u32::try_from(weights.len()).unwrap_or(u32::MAX),
+                uploaded_bytes,
+                rebuilt_bind_group,
+            },
+            commit: GpuSceneMorphUploadCommit {
+                payloads,
+                deltas,
+                weights,
+                reservation,
+            },
+        }
+    }
+
+    fn reserve_morph_upload_preparation(&self) -> GpuSceneMorphPreparationReservation {
+        let reserved = self
+            .morph_preparation_reservation
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok();
+        assert!(
+            reserved,
+            "GPU Scene permits one outstanding morph preparation"
+        );
+        GpuSceneMorphPreparationReservation {
+            state: Arc::clone(&self.morph_preparation_reservation),
         }
     }
 
@@ -170,7 +239,8 @@ mod tests {
     use std::sync::Arc;
 
     use crate::graphics::scene::gpu_scene::{
-        GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuScene, GPU_MORPH_DELTA_STRIDE,
+        GPU_MORPH_DELTA_STRIDE, GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuScene,
+        GpuSceneMorphUploadReport,
     };
 
     const TEST_SKINNED_JOINT_MATRIX_COUNT: u64 = 256;
@@ -190,13 +260,7 @@ mod tests {
         ];
         let weights = [GpuMorphWeight::new(0.25), GpuMorphWeight::new(0.75)];
 
-        let first_report = scene.upload_morph_buffers(
-            &backend.device,
-            &backend.queue,
-            &payloads,
-            &deltas,
-            &weights,
-        );
+        let first_report = submit_morph_upload(&mut scene, &backend, &payloads, &deltas, &weights);
 
         assert_eq!(first_report.payload_count, 1);
         assert_eq!(first_report.delta_count, 2);
@@ -207,13 +271,7 @@ mod tests {
         assert_eq!(scene.debug_morph_deltas_shadow(), &deltas);
         assert_eq!(scene.debug_morph_weights_shadow(), &weights);
 
-        let second_report = scene.upload_morph_buffers(
-            &backend.device,
-            &backend.queue,
-            &payloads,
-            &deltas,
-            &weights,
-        );
+        let second_report = submit_morph_upload(&mut scene, &backend, &payloads, &deltas, &weights);
 
         assert_eq!(second_report.payload_count, 1);
         assert_eq!(second_report.delta_count, 2);
@@ -238,21 +296,15 @@ mod tests {
         ];
         let weights = [GpuMorphWeight::new(0.25), GpuMorphWeight::new(0.75)];
 
-        let first_report = scene.upload_morph_buffers(
-            &backend.device,
-            &backend.queue,
-            &payloads,
-            &deltas,
-            &weights,
-        );
+        let first_report = submit_morph_upload(&mut scene, &backend, &payloads, &deltas, &weights);
         assert!(first_report.rebuilt_bind_group);
 
         let shrunk_payloads = [GpuMorphPayload::new(0, 0, 1, 1)];
         let shrunk_deltas = [GpuMorphDelta::position_xyz(7.0, 8.0, 9.0)];
         let shrunk_weights = [GpuMorphWeight::new(0.5)];
-        let shrunk_report = scene.upload_morph_buffers(
-            &backend.device,
-            &backend.queue,
+        let shrunk_report = submit_morph_upload(
+            &mut scene,
+            &backend,
             &shrunk_payloads,
             &shrunk_deltas,
             &shrunk_weights,
@@ -280,31 +332,126 @@ mod tests {
             GpuMorphDelta::position_xyz(4.0, 5.0, 6.0),
         ];
         let weights = [GpuMorphWeight::new(0.25)];
-        let _ = scene.upload_morph_buffers(
-            &backend.device,
-            &backend.queue,
-            &payloads,
-            &initial_deltas,
-            &weights,
-        );
+        let _ = submit_morph_upload(&mut scene, &backend, &payloads, &initial_deltas, &weights);
 
         let changed_deltas = [
             initial_deltas[0],
             GpuMorphDelta::position_xyz(7.0, 8.0, 9.0),
         ];
-        let report = scene.upload_morph_buffers(
-            &backend.device,
-            &backend.queue,
-            &payloads,
-            &changed_deltas,
-            &weights,
-        );
+        let report =
+            submit_morph_upload(&mut scene, &backend, &payloads, &changed_deltas, &weights);
 
         assert_eq!(
             report.uploaded_bytes, GPU_MORPH_DELTA_STRIDE as u64,
             "one changed morph delta must upload exactly one storage row"
         );
         assert!(!report.rebuilt_bind_group);
+    }
+
+    #[test]
+    fn render_gpu_scene_dropped_morph_preparation_keeps_committed_shadow_for_retry() {
+        let Some(backend) = test_backend() else {
+            return;
+        };
+        let mut scene = test_gpu_scene(&backend.device);
+        let payloads = [GpuMorphPayload::new(0, 0, 1, 1)];
+        let deltas = [GpuMorphDelta::position_xyz(1.0, 2.0, 3.0)];
+        let weights = [GpuMorphWeight::new(0.5)];
+        submit_morph_upload(&mut scene, &backend, &payloads, &deltas, &weights);
+        let grown_payloads =
+            vec![GpuMorphPayload::new(0, 0, 1, 1); scene.morph_payloads_capacity as usize + 1];
+        let dropped = scene.prepare_morph_buffers(
+            &backend.device,
+            grown_payloads,
+            deltas.to_vec(),
+            weights.to_vec(),
+        );
+        assert!(dropped.report().uploaded_bytes > 0);
+        assert!(dropped.report().rebuilt_bind_group);
+        let mut dropped_frame = scene.prepare_direct_updates();
+        dropped_frame.append_morph_upload(dropped);
+        drop(dropped_frame);
+        assert_eq!(scene.debug_morph_payloads_shadow(), &payloads);
+
+        let retry = scene.prepare_morph_buffers(
+            &backend.device,
+            payloads.to_vec(),
+            deltas.to_vec(),
+            weights.to_vec(),
+        );
+        assert!(retry.report().uploaded_bytes > 0);
+    }
+
+    #[test]
+    fn render_gpu_scene_rejects_overlapping_morph_preparations() {
+        let Some(backend) = test_backend() else {
+            return;
+        };
+        let mut scene = test_gpu_scene(&backend.device);
+        let first = scene.prepare_morph_buffers(
+            &backend.device,
+            vec![GpuMorphPayload::new(0, 0, 1, 1)],
+            vec![GpuMorphDelta::position_xyz(1.0, 2.0, 3.0)],
+            vec![GpuMorphWeight::new(0.5)],
+        );
+
+        let overlapping = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            scene.prepare_morph_buffers(&backend.device, Vec::new(), Vec::new(), Vec::new())
+        }));
+        assert!(overlapping.is_err());
+
+        drop(first);
+        let retry =
+            scene.prepare_morph_buffers(&backend.device, Vec::new(), Vec::new(), Vec::new());
+        drop(retry);
+    }
+
+    #[test]
+    fn render_gpu_scene_rejects_foreign_morph_preparation_attachment() {
+        let Some(backend) = test_backend() else {
+            return;
+        };
+        let mut source_scene = test_gpu_scene(&backend.device);
+        let mut target_scene = test_gpu_scene(&backend.device);
+        let prepared = source_scene.prepare_morph_buffers(
+            &backend.device,
+            vec![GpuMorphPayload::new(0, 0, 1, 1)],
+            vec![GpuMorphDelta::position_xyz(1.0, 2.0, 3.0)],
+            vec![GpuMorphWeight::new(0.5)],
+        );
+        let mut target_frame = target_scene.prepare_direct_updates();
+
+        let attachment = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            target_frame.append_morph_upload(prepared);
+        }));
+
+        assert!(attachment.is_err());
+        drop(target_frame);
+        let retry =
+            source_scene.prepare_morph_buffers(&backend.device, Vec::new(), Vec::new(), Vec::new());
+        drop(retry);
+    }
+
+    fn submit_morph_upload(
+        scene: &mut GpuScene,
+        backend: &crate::graphics::backend::RenderBackend,
+        payloads: &[GpuMorphPayload],
+        deltas: &[GpuMorphDelta],
+        weights: &[GpuMorphWeight],
+    ) -> GpuSceneMorphUploadReport {
+        let prepared = scene.prepare_morph_buffers(
+            &backend.device,
+            payloads.to_vec(),
+            deltas.to_vec(),
+            weights.to_vec(),
+        );
+        let report = prepared.report();
+        let mut frame = scene.prepare_direct_updates();
+        frame.append_morph_upload(prepared);
+        scene
+            .submit_prepared_upload(backend, frame)
+            .expect("morph upload batch must be accepted by the test backend");
+        report
     }
 
     fn test_backend() -> Option<crate::graphics::backend::RenderBackend> {

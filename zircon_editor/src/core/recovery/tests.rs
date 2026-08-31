@@ -5,16 +5,25 @@ use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::Duration;
 
+use zircon_runtime_interface::project::session_lock::ProjectSessionAdmissionLifecycleV1;
+use zircon_runtime_interface::project::session_lock::ProjectSessionPrincipalV1;
+use zircon_runtime_interface::project::{
+    ProjectActivationOperationIdGenerator, ProjectLaunchInstanceId,
+};
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
+
 use super::{
     AutosaveDocumentId, AutosaveDocumentState, AutosaveExtension, AutosaveJobPolicy,
-    AutosavePolicy, AutosaveScheduler, AutosaveSourcePath, AutosaveStore, RestoreAction,
-    RestoreCandidate, RestoreFlow, RestoreFlowError, RestoreResolution, RestoreStartup,
+    AutosavePolicy, AutosaveScheduler, AutosaveSnapshotProvenance, AutosaveSourceDigest,
+    AutosaveSourcePath, AutosaveStore, RestoreAction, RestoreCandidate, RestoreFlow,
+    RestoreFlowError, RestoreFreshness, RestoreResolution, RestoreStartup, SessionAdmissionRequest,
     SessionGuard, SessionGuardAdmission, SessionGuardError, SessionLockDurability,
     SessionLockInspection,
 };
 use crate::core::jobs::{JobCategory, JobPriority, MutexGroup};
 
 mod autosave_adapter;
+mod session_guard;
 
 fn document_id(value: &str) -> AutosaveDocumentId {
     AutosaveDocumentId::parse(value).expect("test document id should be valid")
@@ -28,6 +37,10 @@ fn recovery_source_path(value: &str) -> AutosaveSourcePath {
     AutosaveSourcePath::parse(value).expect("test recovery source path should be valid")
 }
 
+fn autosave_snapshot_provenance() -> AutosaveSnapshotProvenance {
+    AutosaveSnapshotProvenance::capture(0, AutosaveSourceDigest::missing())
+}
+
 fn expected_lock_durability() -> SessionLockDurability {
     #[cfg(windows)]
     {
@@ -36,6 +49,33 @@ fn expected_lock_durability() -> SessionLockDurability {
     #[cfg(not(windows))]
     {
         SessionLockDurability::Published
+    }
+}
+
+fn test_session_admission() -> SessionAdmissionRequest {
+    let operation = ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new())
+        .allocate()
+        .expect("fixture operation");
+    SessionAdmissionRequest::new(
+        operation,
+        ProjectSessionPrincipalV1::Welcome,
+        ZrRuntimeBuildSetId::parse(
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        )
+        .expect("fixture BuildSet"),
+    )
+}
+
+fn claim_acquired(
+    project_root: impl AsRef<std::path::Path>,
+    now: std::time::SystemTime,
+) -> SessionGuard {
+    let admission = test_session_admission();
+    match SessionGuard::claim_at(project_root, &admission, now).expect("claim session guard") {
+        SessionGuardAdmission::Acquired(guard) => guard,
+        SessionGuardAdmission::Active { .. } | SessionGuardAdmission::Residual(_) => {
+            panic!("fresh test project root must acquire its session guard")
+        }
     }
 }
 
@@ -103,7 +143,7 @@ fn autosave_submission_failure_releases_the_in_flight_plan_for_retry() {
 
 #[test]
 fn autosave_dirty_inputs_are_projected_from_editor03_history_state() {
-    let source = include_str!("autosave.rs");
+    let source = include_str!("autosave/policy.rs");
 
     assert!(source.contains("pub fn from_history_dirty"));
     assert!(source.contains("HistoryDirtyState"));
@@ -138,6 +178,7 @@ fn autosave_writes_only_the_project_autosave_tree_and_preserves_source_bytes() {
             &recovery_source_path("scenes/main.zscene"),
             1,
             &extension("zscene"),
+            &autosave_snapshot_provenance(),
             b"autosave snapshot",
         )
         .unwrap();
@@ -168,6 +209,7 @@ fn autosave_rotates_each_document_to_the_latest_three_sequences() {
                 &recovery_source_path("scenes/world_01.zscene"),
                 sequence,
                 &zscene_extension,
+                &autosave_snapshot_provenance(),
                 format!("snapshot-{sequence}").as_bytes(),
             )
             .unwrap();
@@ -182,8 +224,11 @@ fn autosave_rotates_each_document_to_the_latest_three_sequences() {
         names,
         BTreeSet::from([
             "2.zscene".to_string(),
+            "2.snapshot.json".to_string(),
             "3.zscene".to_string(),
+            "3.snapshot.json".to_string(),
             "4.zscene".to_string(),
+            "4.snapshot.json".to_string(),
             "recovery.json".to_string(),
         ])
     );
@@ -204,27 +249,34 @@ fn autosave_rejects_reusing_an_existing_snapshot_sequence() {
             &recovery_source_path("scenes/main.zscene"),
             1,
             &zscene_extension,
+            &autosave_snapshot_provenance(),
             b"first snapshot",
         )
         .unwrap();
-    assert!(store
-        .write_snapshot(
-            &document,
-            &recovery_source_path("scenes/main.zscene"),
-            1,
-            &zscene_extension,
-            b"replacement snapshot",
-        )
-        .is_err());
-    assert!(store
-        .write_snapshot(
-            &document,
-            &recovery_source_path("scenes/main.zscene"),
-            1,
-            &backup_extension,
-            b"different-extension snapshot",
-        )
-        .is_err());
+    assert!(
+        store
+            .write_snapshot(
+                &document,
+                &recovery_source_path("scenes/main.zscene"),
+                1,
+                &zscene_extension,
+                &autosave_snapshot_provenance(),
+                b"replacement snapshot",
+            )
+            .is_err()
+    );
+    assert!(
+        store
+            .write_snapshot(
+                &document,
+                &recovery_source_path("scenes/main.zscene"),
+                1,
+                &backup_extension,
+                &autosave_snapshot_provenance(),
+                b"different-extension snapshot",
+            )
+            .is_err()
+    );
     assert_eq!(
         fs::read(root.join(".zircon/autosave/scene_main/1.zscene")).unwrap(),
         b"first snapshot"
@@ -246,6 +298,7 @@ fn autosave_sequence_reservation_allows_only_one_concurrent_extension() {
             &recovery_source_path("scenes/main.zscene"),
             1,
             &extension("zscene"),
+            &autosave_snapshot_provenance(),
             b"zscene snapshot",
         )
     });
@@ -258,6 +311,7 @@ fn autosave_sequence_reservation_allows_only_one_concurrent_extension() {
             &recovery_source_path("scenes/main.zscene"),
             1,
             &extension("backup"),
+            &autosave_snapshot_provenance(),
             b"backup snapshot",
         )
     });
@@ -274,9 +328,11 @@ fn autosave_sequence_reservation_allows_only_one_concurrent_extension() {
     let snapshot_files = snapshots
         .iter()
         .filter(|name| {
-            name.split_once('.')
-                .and_then(|(sequence, _)| sequence.parse::<u64>().ok())
-                .is_some()
+            !name.ends_with(".snapshot.json")
+                && name
+                    .split_once('.')
+                    .and_then(|(sequence, _)| sequence.parse::<u64>().ok())
+                    .is_some()
         })
         .collect::<Vec<_>>();
     assert_eq!(snapshot_files.len(), 1);
@@ -297,6 +353,7 @@ fn autosave_sequence_reservation_rejects_same_sequence_from_independent_stores()
             &recovery_source_path("scenes/main.zscene"),
             1,
             &extension("zscene"),
+            &autosave_snapshot_provenance(),
             b"zscene snapshot",
         )
     });
@@ -309,6 +366,7 @@ fn autosave_sequence_reservation_rejects_same_sequence_from_independent_stores()
             &recovery_source_path("scenes/main.zscene"),
             1,
             &extension("backup"),
+            &autosave_snapshot_provenance(),
             b"backup snapshot",
         )
     });
@@ -322,9 +380,11 @@ fn autosave_sequence_reservation_rejects_same_sequence_from_independent_stores()
         .filter_map(Result::ok)
         .filter_map(|entry| entry.file_name().into_string().ok())
         .filter(|name| {
-            name.split_once('.')
-                .and_then(|(sequence, _)| sequence.parse::<u64>().ok())
-                .is_some()
+            !name.ends_with(".snapshot.json")
+                && name
+                    .split_once('.')
+                    .and_then(|(sequence, _)| sequence.parse::<u64>().ok())
+                    .is_some()
         })
         .collect::<Vec<_>>();
     assert_eq!(snapshots.len(), 1);
@@ -343,6 +403,7 @@ fn autosave_stale_sequence_marker_blocks_reuse_but_not_recovery_discovery() {
             &source_path,
             1,
             &extension("zscene"),
+            &autosave_snapshot_provenance(),
             b"first snapshot",
         )
         .unwrap();
@@ -358,12 +419,14 @@ fn autosave_stale_sequence_marker_blocks_reuse_but_not_recovery_discovery() {
             &source_path,
             2,
             &extension("zscene"),
+            &autosave_snapshot_provenance(),
             b"second snapshot",
         ),
         Err(super::AutosaveError::SnapshotSequenceUnavailable { sequence: 2, .. })
     ));
 
-    let candidates = store.recovery_candidates().unwrap();
+    let report = store.recovery_catalog().unwrap();
+    let candidates = report.candidates();
     assert_eq!(candidates.len(), 1);
     assert_eq!(candidates[0].autosave_path(), snapshot.as_path());
     assert!(stale_marker.exists());
@@ -381,277 +444,22 @@ fn autosave_rejects_path_traversal_identifiers_and_extensions() {
 }
 
 #[test]
-fn session_guard_persists_heartbeat_and_requires_explicit_residual_takeover() {
-    let root = temporary_root("session-guard");
-    let start = std::time::UNIX_EPOCH + Duration::from_secs(10);
-    let mut guard = SessionGuard::acquire_at(&root, start).unwrap();
-    let initial = guard.record().clone();
-    assert!(matches!(
-        SessionGuard::inspect(&root).unwrap(),
-        SessionLockInspection::Residual(record) if record == initial
-    ));
-    assert!(matches!(
-        SessionGuard::acquire_at(&root, start),
-        Err(SessionGuardError::AlreadyHeld { .. })
-    ));
-
-    assert_eq!(
-        guard
-            .refresh_heartbeat_at(start + Duration::from_secs(1))
-            .unwrap(),
-        expected_lock_durability()
-    );
-    assert_eq!(guard.record().heartbeat_unix_millis(), 11_000);
-    assert_eq!(guard.release().unwrap(), expected_lock_durability());
-    assert!(guard.is_released());
-    assert_eq!(
-        SessionGuard::inspect(&root).unwrap(),
-        SessionLockInspection::Missing
-    );
-    remove_temporary_root(&root);
-}
-
-#[test]
-fn session_guard_claim_reports_the_active_record_without_transferring_ownership() {
-    let root = temporary_root("session-guard-active-claim");
-    let mut guard = SessionGuard::acquire(&root).unwrap();
-    let expected = guard.record().clone();
-
-    assert!(matches!(
-        SessionGuard::claim(&root).unwrap(),
-        SessionGuardAdmission::Active {
-            record: Some(record)
-        } if record == expected
-    ));
-    assert!(matches!(
-        SessionGuard::inspect(&root).unwrap(),
-        SessionLockInspection::Residual(record) if record == expected
-    ));
-
-    guard.release().unwrap();
-    remove_temporary_root(&root);
-}
-
-#[test]
-fn session_guard_claim_holds_a_residual_record_until_explicit_takeover() {
-    let root = temporary_root("session-guard-residual-claim");
-    let guard = SessionGuard::acquire(&root).unwrap();
-    let expected = guard.record().clone();
-    drop(guard);
-
-    let claim = SessionGuard::claim(&root).unwrap();
-    assert!(matches!(
-        claim,
-        SessionGuardAdmission::Residual(ref residual) if residual.record() == &expected
-    ));
-    assert!(matches!(
-        SessionGuard::inspect(&root).unwrap(),
-        SessionLockInspection::Residual(record) if record == expected
-    ));
-
-    drop(claim);
-    let mut replacement =
-        SessionGuard::replace_residual_at(&root, &expected, std::time::SystemTime::now()).unwrap();
-    replacement.release().unwrap();
-    remove_temporary_root(&root);
-}
-
-#[cfg(any(windows, unix))]
-#[test]
-fn session_guard_uses_the_physical_project_identity_for_directory_aliases() {
-    let root = temporary_root("session-guard-project-alias");
-    let physical = root.join("physical-project");
-    let alias = root.join("project-alias");
-    fs::create_dir_all(&physical).unwrap();
-    create_project_directory_alias(&physical, &alias);
-
-    let mut guard = SessionGuard::acquire(&alias).unwrap();
-    assert_eq!(
-        guard.path(),
-        physical.join(".zircon").join("session.lock").as_path()
-    );
-    assert!(matches!(
-        SessionGuard::inspect(&physical).unwrap(),
-        SessionLockInspection::Residual(_)
-    ));
-    guard.release().unwrap();
-    remove_temporary_root(&root);
-}
-
-#[test]
-fn residual_takeover_failure_keeps_the_selected_lock() {
-    let root = temporary_root("session-guard-takeover-failure");
-    let start = std::time::UNIX_EPOCH + Duration::from_secs(10);
-    let guard = SessionGuard::acquire_at(&root, start).unwrap();
-    let expected = guard.record().clone();
-    drop(guard);
-
-    assert!(matches!(
-        SessionGuard::replace_residual_at(
-            &root,
-            &expected,
-            std::time::UNIX_EPOCH - Duration::from_secs(1),
-        ),
-        Err(SessionGuardError::ClockBeforeUnixEpoch)
-    ));
-    assert!(matches!(
-        SessionGuard::inspect(&root).unwrap(),
-        SessionLockInspection::Residual(record) if record == expected
-    ));
-    remove_temporary_root(&root);
-}
-
-#[test]
-fn residual_takeover_persists_a_new_guard_record() {
-    let root = temporary_root("session-guard-takeover-success");
-    let start = std::time::UNIX_EPOCH + Duration::from_secs(10);
-    let guard = SessionGuard::acquire_at(&root, start).unwrap();
-    let expected = guard.record().clone();
-    drop(guard);
-
-    let mut replacement =
-        SessionGuard::replace_residual_at(&root, &expected, start + Duration::from_secs(1))
-            .unwrap();
-    let replacement_record = replacement.record().clone();
-    assert_ne!(replacement_record, expected);
-    assert!(matches!(
-        SessionGuard::inspect(&root).unwrap(),
-        SessionLockInspection::Residual(record) if record == replacement_record
-    ));
-
-    assert_eq!(replacement.release().unwrap(), expected_lock_durability());
-    remove_temporary_root(&root);
-}
-
-#[test]
-fn concurrent_residual_takeover_keeps_exactly_one_live_guard() {
-    let root = temporary_root("session-guard-concurrent-takeover");
-    let start = std::time::UNIX_EPOCH + Duration::from_secs(10);
-    let guard = SessionGuard::acquire_at(&root, start).unwrap();
-    let expected = Arc::new(guard.record().clone());
-    drop(guard);
-
-    let start_takeover = Arc::new(Barrier::new(3));
-    let hold_results = Arc::new(Barrier::new(3));
-    let (sender, receiver) = mpsc::channel();
-    let first_root = root.clone();
-    let first_expected = Arc::clone(&expected);
-    let first_start_takeover = Arc::clone(&start_takeover);
-    let first_hold_results = Arc::clone(&hold_results);
-    let first_sender = sender.clone();
-    let first = thread::spawn(move || {
-        first_start_takeover.wait();
-        let result = SessionGuard::replace_residual_at(
-            &first_root,
-            &first_expected,
-            start + Duration::from_secs(1),
-        );
-        first_sender.send(result.is_ok()).unwrap();
-        first_hold_results.wait();
-    });
-    let second_root = root.clone();
-    let second_expected = Arc::clone(&expected);
-    let second_start_takeover = Arc::clone(&start_takeover);
-    let second_hold_results = Arc::clone(&hold_results);
-    let second = thread::spawn(move || {
-        second_start_takeover.wait();
-        let result = SessionGuard::replace_residual_at(
-            &second_root,
-            &second_expected,
-            start + Duration::from_secs(2),
-        );
-        sender.send(result.is_ok()).unwrap();
-        second_hold_results.wait();
-    });
-
-    start_takeover.wait();
-    let successes = [receiver.recv().unwrap(), receiver.recv().unwrap()]
-        .into_iter()
-        .filter(|success| *success)
-        .count();
-    assert_eq!(successes, 1);
-    hold_results.wait();
-    first.join().unwrap();
-    second.join().unwrap();
-    remove_temporary_root(&root);
-}
-
-#[test]
-fn live_guard_rejects_takeover_before_heartbeat_and_release() {
-    let root = temporary_root("session-guard-live-owner");
-    let start = std::time::UNIX_EPOCH + Duration::from_secs(10);
-    let residual = SessionGuard::acquire_at(&root, start).unwrap();
-    let expected = residual.record().clone();
-    drop(residual);
-
-    let mut guard =
-        SessionGuard::replace_residual_at(&root, &expected, start + Duration::from_secs(1))
-            .unwrap();
-    let successor = guard.record().clone();
-    assert!(matches!(
-        SessionGuard::replace_residual_at(&root, &expected, start + Duration::from_secs(2)),
-        Err(SessionGuardError::AlreadyHeld { .. })
-    ));
-    assert_eq!(
-        guard
-            .refresh_heartbeat_at(start + Duration::from_secs(3))
-            .unwrap(),
-        expected_lock_durability()
-    );
-    assert_eq!(guard.release().unwrap(), expected_lock_durability());
-    assert!(matches!(
-        SessionGuard::replace_residual_at(&root, &successor, start + Duration::from_secs(4)),
-        Err(SessionGuardError::OwnershipLost { .. })
-    ));
-    remove_temporary_root(&root);
-}
-
-#[test]
-fn session_guard_rejects_duplicate_persisted_record_fields() {
-    let root = temporary_root("session-guard-duplicate-fields");
-    let directory = root.join(".zircon");
-    fs::create_dir_all(&directory).unwrap();
-    fs::write(
-        directory.join("session.lock"),
-        "version=1\nprocess_id=1\nprocess_id=2\ninstance_id=1-10-1\nheartbeat_unix_millis=10000\n",
-    )
-    .unwrap();
-
-    assert!(matches!(
-        SessionGuard::inspect(&root),
-        Err(SessionGuardError::InvalidRecord { .. })
-    ));
-    remove_temporary_root(&root);
-}
-
-#[cfg(windows)]
-#[test]
-fn windows_session_guard_lease_uses_the_cross_session_namespace() {
-    let root = temporary_root("session-guard-global-namespace");
-    let name = super::session_guard::session_mutex_name_for_test(&root);
-
-    assert!(name.starts_with("Global\\ZirconEngineProjectSession-"));
-}
-
-#[test]
 fn restore_flow_requires_a_residual_lock_and_one_explicit_action_per_document() {
     let root = temporary_root("restore-flow");
     let start = std::time::UNIX_EPOCH + Duration::from_secs(20);
-    let mut guard = SessionGuard::acquire_at(&root, start).unwrap();
+    let mut guard = claim_acquired(&root, start);
     let lock = SessionGuard::inspect(&root).unwrap();
     let newer = RestoreCandidate::new(
         document_id("scene_main"),
         root.join("scene.zscene"),
         root.join(".zircon/autosave/scene_main/3.zscene"),
-        Some(start),
-        start + Duration::from_secs(1),
+        RestoreFreshness::SnapshotAheadOfSource,
     );
     let older = RestoreCandidate::new(
         document_id("scene_old"),
         root.join("old.zscene"),
         root.join(".zircon/autosave/scene_old/2.zscene"),
-        Some(start + Duration::from_secs(2)),
-        start + Duration::from_secs(1),
+        RestoreFreshness::SnapshotAlreadyCommitted,
     );
     let startup = RestoreFlow::detect(lock, [newer.clone(), older]).unwrap();
     assert!(matches!(
@@ -688,15 +496,14 @@ fn restore_flow_requires_a_residual_lock_and_one_explicit_action_per_document() 
 fn restore_flow_rejects_duplicate_and_unexpected_document_choices() {
     let root = temporary_root("restore-flow-invalid-choices");
     let start = std::time::UNIX_EPOCH + Duration::from_secs(20);
-    let guard = SessionGuard::acquire_at(&root, start).unwrap();
+    let guard = claim_acquired(&root, start);
     let lock = SessionGuard::inspect(&root).unwrap();
     drop(guard);
     let candidate = RestoreCandidate::new(
         document_id("scene_main"),
         root.join("scene.zscene"),
         root.join(".zircon/autosave/scene_main/3.zscene"),
-        Some(start),
-        start + Duration::from_secs(1),
+        RestoreFreshness::SnapshotAheadOfSource,
     );
 
     assert!(matches!(
@@ -733,7 +540,7 @@ fn restore_flow_rejects_duplicate_and_unexpected_document_choices() {
 fn restore_flow_preserves_residual_takeover_without_candidates() {
     let root = temporary_root("restore-flow-residual-takeover");
     let start = std::time::UNIX_EPOCH + Duration::from_secs(20);
-    let guard = SessionGuard::acquire_at(&root, start).unwrap();
+    let guard = claim_acquired(&root, start);
     let expected = guard.record().clone();
     let lock = SessionGuard::inspect(&root).unwrap();
     drop(guard);
@@ -741,8 +548,7 @@ fn restore_flow_preserves_residual_takeover_without_candidates() {
         document_id("scene_main"),
         root.join("scene.zscene"),
         root.join(".zircon/autosave/scene_main/3.zscene"),
-        Some(start + Duration::from_secs(1)),
-        start,
+        RestoreFreshness::SnapshotAlreadyCommitted,
     );
 
     let startup = RestoreFlow::detect(lock, [candidate]).unwrap();
@@ -767,34 +573,17 @@ fn restore_flow_preserves_residual_takeover_without_candidates() {
 }
 
 fn temporary_root(label: &str) -> std::path::PathBuf {
-    std::env::temp_dir().join(format!(
-        "zircon-editor-autosave-{label}-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system clock should be after Unix epoch")
-            .as_nanos()
-    ))
-}
-
-#[cfg(windows)]
-fn create_project_directory_alias(target: &std::path::Path, alias: &std::path::Path) {
-    let command = format!(r#"mklink /J "{}" "{}""#, alias.display(), target.display());
-    let output = std::process::Command::new("cmd")
-        .args(["/D", "/S", "/C"])
-        .arg(command)
-        .output()
-        .expect("start mklink for project alias fixture");
-    assert!(
-        output.status.success(),
-        "create project alias fixture failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
-#[cfg(unix)]
-fn create_project_directory_alias(target: &std::path::Path, alias: &std::path::Path) {
-    std::os::unix::fs::symlink(target, alias).expect("create project alias fixture");
+    std::env::current_dir()
+        .expect("current directory should be available")
+        .join("target")
+        .join(format!(
+            "zircon-editor-autosave-{label}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock should be after Unix epoch")
+                .as_nanos()
+        ))
 }
 
 fn remove_temporary_root(path: &std::path::Path) {

@@ -1,15 +1,16 @@
 use std::collections::BTreeMap;
 
 use zircon_runtime_interface::ui::{
+    ecs::UiEcsProjectionSnapshot,
     event_ui::UiNodeId,
     layout::UiFrame,
     surface::{
-        UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind, UiHitGridCellDebugRecord,
-        UiHitGridDebugStats, UiHitTestQuery, UiInvalidationDebugReport, UiMaterialBatchDebugStat,
-        UiOverdrawCellDebugRecord, UiOverdrawDebugStats, UiRenderCommand,
+        UI_SURFACE_DEBUG_SCHEMA_VERSION, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind,
+        UiHitGridCellDebugRecord, UiHitGridDebugStats, UiHitTestQuery, UiInvalidationDebugReport,
+        UiMaterialBatchDebugStat, UiOverdrawCellDebugRecord, UiOverdrawDebugStats, UiRenderCommand,
         UiRenderCommandDebugRecord, UiRenderCommandKind, UiRenderDebugSnapshot, UiRenderDebugStats,
         UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
-        UiSurfaceFrame, UiWidgetReflectorNode, UI_SURFACE_DEBUG_SCHEMA_VERSION,
+        UiSurfaceFrame, UiWidgetReflectorNode,
     },
 };
 
@@ -19,11 +20,40 @@ pub fn debug_surface_frame(surface_frame: &UiSurfaceFrame) -> UiSurfaceDebugSnap
     debug_surface_frame_with_options(surface_frame, &UiSurfaceDebugOptions::default())
 }
 
+pub(super) fn debug_surface_frame_with_ecs_projection(
+    surface_frame: &UiSurfaceFrame,
+    ecs_projection: &UiEcsProjectionSnapshot,
+) -> UiSurfaceDebugSnapshot {
+    debug_surface_frame_with_context(
+        surface_frame,
+        None,
+        None,
+        None,
+        Some(ecs_projection),
+        &UiSurfaceDebugOptions::default(),
+    )
+}
+
 pub fn debug_surface_frame_with_options(
     surface_frame: &UiSurfaceFrame,
     options: &UiSurfaceDebugOptions,
 ) -> UiSurfaceDebugSnapshot {
-    debug_surface_frame_with_context(surface_frame, None, None, None, options)
+    debug_surface_frame_with_context(surface_frame, None, None, None, None, options)
+}
+
+pub(super) fn debug_surface_frame_with_options_and_ecs_projection(
+    surface_frame: &UiSurfaceFrame,
+    ecs_projection: &UiEcsProjectionSnapshot,
+    options: &UiSurfaceDebugOptions,
+) -> UiSurfaceDebugSnapshot {
+    debug_surface_frame_with_context(
+        surface_frame,
+        None,
+        None,
+        None,
+        Some(ecs_projection),
+        options,
+    )
 }
 
 pub fn debug_surface_frame_for_selection(
@@ -31,7 +61,30 @@ pub fn debug_surface_frame_for_selection(
     selected_node: UiNodeId,
     options: &UiSurfaceDebugOptions,
 ) -> UiSurfaceDebugSnapshot {
-    debug_surface_frame_with_context(surface_frame, Some(selected_node), None, None, options)
+    debug_surface_frame_with_context(
+        surface_frame,
+        Some(selected_node),
+        None,
+        None,
+        None,
+        options,
+    )
+}
+
+pub(super) fn debug_surface_frame_for_selection_with_ecs_projection(
+    surface_frame: &UiSurfaceFrame,
+    ecs_projection: &UiEcsProjectionSnapshot,
+    selected_node: UiNodeId,
+    options: &UiSurfaceDebugOptions,
+) -> UiSurfaceDebugSnapshot {
+    debug_surface_frame_with_context(
+        surface_frame,
+        Some(selected_node),
+        None,
+        None,
+        Some(ecs_projection),
+        options,
+    )
 }
 
 pub fn debug_surface_frame_for_pick(
@@ -45,6 +98,24 @@ pub fn debug_surface_frame_for_pick(
         hit_dump.hit_path.target,
         Some(query),
         Some(hit_dump),
+        None,
+        options,
+    )
+}
+
+pub(super) fn debug_surface_frame_for_pick_with_ecs_projection(
+    surface_frame: &UiSurfaceFrame,
+    ecs_projection: &UiEcsProjectionSnapshot,
+    query: UiHitTestQuery,
+    options: &UiSurfaceDebugOptions,
+) -> UiSurfaceDebugSnapshot {
+    let hit_dump = debug_hit_test_surface_frame_with_query(surface_frame, query.clone());
+    debug_surface_frame_with_context(
+        surface_frame,
+        hit_dump.hit_path.target,
+        Some(query),
+        Some(hit_dump),
+        Some(ecs_projection),
         options,
     )
 }
@@ -54,6 +125,7 @@ fn debug_surface_frame_with_context(
     selected_node: Option<UiNodeId>,
     pick_query: Option<UiHitTestQuery>,
     pick_hit_test: Option<zircon_runtime_interface::ui::surface::UiHitTestDebugDump>,
+    ecs_projection: Option<&UiEcsProjectionSnapshot>,
     options: &UiSurfaceDebugOptions,
 ) -> UiSurfaceDebugSnapshot {
     let render_counts = render_command_counts(surface_frame);
@@ -109,19 +181,21 @@ fn debug_surface_frame_with_context(
             ..UiSurfaceDebugCaptureContext::default()
         },
         tree_id: surface_frame.tree_id.clone(),
-        roots: surface_frame.arranged_tree.roots.clone(),
+        roots: surface_frame.arranged_tree.roots.to_vec(),
         nodes,
-        canvas_layers: surface_frame.arranged_tree.canvas_layers.clone(),
+        canvas_layers: surface_frame.arranged_tree.canvas_layers.to_vec(),
         rebuild: surface_frame.last_rebuild,
-        layout_engine_report: surface_frame.layout_engine_report.clone(),
-        pipeline_report: surface_frame.pipeline_report.clone(),
-        ecs_projection: surface_frame.ecs_projection.clone(),
+        layout_engine_report: surface_frame.layout_engine_report.as_ref().clone(),
+        pipeline_report: surface_frame.pipeline_report.as_ref().clone(),
+        ecs_projection: ecs_projection.cloned().unwrap_or_default(),
         render,
-        render_batches: UiRenderDebugSnapshot::from_render_extract(&surface_frame.render_extract),
+        render_batches: UiRenderDebugSnapshot::from_render_frame_extract(
+            &surface_frame.render_extract,
+        ),
         hit_test,
         pick_hit_test,
         overdraw,
-        focus_state: surface_frame.focus_state.clone(),
+        focus_state: surface_frame.focus_state.as_ref().clone(),
         invalidation: UiInvalidationDebugReport {
             rebuild: surface_frame.last_rebuild,
             dirty_flags: surface_frame.last_rebuild.dirty_flags,
@@ -303,7 +377,7 @@ fn hit_grid_cell_records(surface_frame: &UiSurfaceFrame) -> Vec<UiHitGridCellDeb
                 surface_frame.hit_grid.cell_size,
                 cell_index,
             ),
-            entry_indices: cell.entries.clone(),
+            entry_indices: cell.entries.as_slice().to_vec(),
             entry_node_ids: cell
                 .entries
                 .iter()

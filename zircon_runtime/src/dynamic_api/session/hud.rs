@@ -1,5 +1,6 @@
 use crate::core::math::UVec2;
 use crate::scene::World;
+use crate::ui::surface::{resolve_text_layout_with_cache, UiTextLayoutRequest, UiTextMeasureCache};
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
@@ -7,7 +8,7 @@ use zircon_runtime_interface::ui::surface::{
     UiTextRenderMode, UiTextWrap,
 };
 
-const HUD_COMPONENT_IDS: [&str; 2] = ["gameplay.hud_text", "vampire.hud_text"];
+pub(super) const HUD_COMPONENT_IDS: [&str; 2] = ["gameplay.hud_text", "vampire.hud_text"];
 const HUD_TREE_ID: &str = "runtime.gameplay.hud";
 const HUD_MARGIN: f32 = 16.0;
 const HUD_MIN_WIDTH: f32 = 220.0;
@@ -15,28 +16,47 @@ const HUD_MAX_WIDTH: f32 = 420.0;
 const HUD_LINE_HEIGHT: f32 = 19.0;
 const HUD_PADDING_X: f32 = 12.0;
 const HUD_PADDING_Y: f32 = 10.0;
+const HUD_MIN_HEIGHT: f32 = 48.0;
+const HUD_MAX_HEIGHT: f32 = 220.0;
 
 pub(super) fn runtime_session_hud_extract(
     world: &World,
     viewport_size: UVec2,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> Option<UiRenderExtract> {
     let text = collect_hud_text(world)?;
     if is_vampire_combat_hud_text(&text) {
         return None;
     }
-    Some(build_text_hud_extract(text, viewport_size))
+    Some(build_text_hud_extract(
+        text,
+        viewport_size,
+        text_measure_cache,
+    ))
 }
 
-fn build_text_hud_extract(text: String, viewport_size: UVec2) -> UiRenderExtract {
+fn build_text_hud_extract(
+    text: String,
+    viewport_size: UVec2,
+    text_measure_cache: &mut UiTextMeasureCache,
+) -> UiRenderExtract {
     let width = hud_width(viewport_size);
-    let height = hud_height(&text);
-    let panel_frame = UiFrame::new(HUD_MARGIN, HUD_MARGIN, width, height);
     let text_frame = UiFrame::new(
         HUD_MARGIN + HUD_PADDING_X,
         HUD_MARGIN + HUD_PADDING_Y,
         (width - HUD_PADDING_X * 2.0).max(1.0),
-        (height - HUD_PADDING_Y * 2.0).max(1.0),
+        (HUD_MAX_HEIGHT - HUD_PADDING_Y * 2.0).max(1.0),
     );
+    let text_style = hud_text_style();
+    // Fallback UI extraction owns this measure/arrange work. Rendering receives the
+    // canonical layout and only applies the final panel clip.
+    let text_layout = resolve_text_layout_with_cache(
+        &UiTextLayoutRequest::new(&text, &text_style, text_frame, None),
+        text_measure_cache,
+    )
+    .layout;
+    let height = hud_height(text_layout.measured_height);
+    let panel_frame = UiFrame::new(HUD_MARGIN, HUD_MARGIN, width, height);
     UiRenderExtract {
         tree_id: UiTreeId::new(HUD_TREE_ID),
         list: UiRenderList {
@@ -65,15 +85,8 @@ fn build_text_hud_extract(text: String, viewport_size: UVec2) -> UiRenderExtract
                     frame: text_frame,
                     clip_frame: Some(panel_frame),
                     z_index: 101,
-                    style: UiResolvedStyle {
-                        foreground_color: Some("#f8fbffff".to_string()),
-                        font_size: 15.0,
-                        line_height: HUD_LINE_HEIGHT,
-                        wrap: UiTextWrap::Word,
-                        text_render_mode: UiTextRenderMode::Auto,
-                        ..UiResolvedStyle::default()
-                    },
-                    text_layout: None,
+                    style: text_style,
+                    text_layout: Some(text_layout),
                     text: Some(text),
                     image: None,
                     opacity: 1.0,
@@ -81,6 +94,17 @@ fn build_text_hud_extract(text: String, viewport_size: UVec2) -> UiRenderExtract
             ],
         },
         raster_scale: 1.0,
+    }
+}
+
+fn hud_text_style() -> UiResolvedStyle {
+    UiResolvedStyle {
+        foreground_color: Some("#f8fbffff".to_string()),
+        font_size: 15.0,
+        line_height: HUD_LINE_HEIGHT,
+        wrap: UiTextWrap::Word,
+        text_render_mode: UiTextRenderMode::Auto,
+        ..UiResolvedStyle::default()
     }
 }
 
@@ -122,9 +146,8 @@ fn hud_width(viewport_size: UVec2) -> f32 {
     available.clamp(HUD_MIN_WIDTH, HUD_MAX_WIDTH)
 }
 
-fn hud_height(text: &str) -> f32 {
-    let line_count = text.lines().count().max(1) as f32;
-    (line_count * HUD_LINE_HEIGHT + 24.0).clamp(48.0, 220.0)
+fn hud_height(measured_text_height: f32) -> f32 {
+    (measured_text_height + HUD_PADDING_Y * 2.0).clamp(HUD_MIN_HEIGHT, HUD_MAX_HEIGHT)
 }
 
 fn is_vampire_combat_hud_text(text: &str) -> bool {
@@ -166,10 +189,20 @@ mod tests {
     use super::*;
     use crate::scene::components::NodeKind;
 
+    fn hud_extract(world: &World, viewport_size: UVec2) -> Option<UiRenderExtract> {
+        let mut text_measure_cache = UiTextMeasureCache::default();
+        text_measure_cache.begin_frame();
+        let extract = runtime_session_hud_extract(world, viewport_size, &mut text_measure_cache);
+        text_measure_cache.finish_frame();
+        extract
+    }
+
     #[test]
     fn runtime_session_hud_extract_reads_text_component() {
         let mut world = World::empty();
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,
@@ -178,13 +211,45 @@ mod tests {
             )
             .unwrap();
 
-        let extract = runtime_session_hud_extract(&world, UVec2::new(800, 600)).unwrap();
+        let extract = hud_extract(&world, UVec2::new(800, 600)).unwrap();
         let panel = extract.list.commands.first().unwrap();
         let text = extract.list.commands.get(1).unwrap();
         assert_eq!(text.text.as_deref(), Some("Lv 2\nBuff: Haste"));
+        assert!(text.text_layout.is_some());
         assert!(panel.frame.width >= HUD_MIN_WIDTH);
         assert!(text.frame.x > panel.frame.x);
         assert!(text.frame.y > panel.frame.y);
+    }
+
+    #[test]
+    fn runtime_session_hud_extract_resolves_soft_wrapped_cjk_before_renderer() {
+        let mut world = World::empty();
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        world
+            .set_dynamic_component(
+                entity,
+                "gameplay.hud_text",
+                serde_json::json!("中文文本布局需要在渲染前完成并根据自动换行扩展信息面板高度"),
+            )
+            .unwrap();
+
+        let extract = hud_extract(&world, UVec2::new(252, 160)).unwrap();
+        let panel = extract.list.commands.first().expect("HUD panel command");
+        let text = extract.list.commands.get(1).expect("HUD text command");
+        let layout = text
+            .text_layout
+            .as_ref()
+            .expect("HUD text must carry the canonical layout");
+
+        assert!(
+            layout.lines.len() > 1,
+            "fixture must soft-wrap without newlines"
+        );
+        assert!(layout.rich_text_artifact.is_some());
+        assert!(panel.frame.height > HUD_MIN_HEIGHT);
+        assert_eq!(text.clip_frame, Some(panel.frame));
     }
 
     #[test]
@@ -203,9 +268,13 @@ mod tests {
 
         let mut world = World::empty();
         for _ in 0..4_096 {
-            world.spawn_node(NodeKind::Empty);
+            world
+                .spawn_node(NodeKind::Empty)
+                .expect("test scene spawn should succeed");
         }
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,
@@ -214,7 +283,7 @@ mod tests {
             )
             .unwrap();
 
-        let extract = runtime_session_hud_extract(&world, UVec2::new(800, 600)).unwrap();
+        let extract = hud_extract(&world, UVec2::new(800, 600)).unwrap();
         assert!(extract
             .list
             .commands
@@ -225,7 +294,9 @@ mod tests {
     #[test]
     fn runtime_session_hud_extract_suppresses_vampire_combat_panel_text() {
         let mut world = World::empty();
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,
@@ -237,7 +308,7 @@ mod tests {
             .unwrap();
 
         assert!(
-            runtime_session_hud_extract(&world, UVec2::new(1280, 720)).is_none(),
+            hud_extract(&world, UVec2::new(1280, 720)).is_none(),
             "vampire health must render through scene-following world HUD bars, not a screen-space panel"
         );
     }

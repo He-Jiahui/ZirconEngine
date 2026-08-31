@@ -60,8 +60,10 @@ fn render_text_atlas_sampling_shader_declares_subpixel_rgb_decode() {
 #[test]
 fn render_text_atlas_sampling_shader_declares_distance_field_decodes() {
     assert!(GLYPH_ATLAS_SAMPLING_SHADER.contains("glyph_atlas_decode_signed_distance_coverage"));
-    assert!(GLYPH_ATLAS_SAMPLING_SHADER
-        .contains("glyph_atlas_decode_multi_channel_signed_distance_coverage"));
+    assert!(
+        GLYPH_ATLAS_SAMPLING_SHADER
+            .contains("glyph_atlas_decode_multi_channel_signed_distance_coverage")
+    );
     assert!(GLYPH_ATLAS_SAMPLING_SHADER.contains("glyph_atlas_median_rgb"));
 }
 

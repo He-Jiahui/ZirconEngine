@@ -1,8 +1,11 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::io;
+use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::editor_message::DocumentId;
 
+use super::save::{DocumentSourceWriteAuthority, DocumentSourceWriteLease};
 use super::{
     DocumentAutosavePayload, DocumentCloseLease, DocumentSaveReport, DocumentToolkit,
     DocumentToolkitDescriptor, DocumentToolkitSnapshot, SaveCtx, SaveError, SaveReason,
@@ -11,6 +14,7 @@ use super::{
 
 pub struct DocumentToolkitRegistry<Host> {
     state: Mutex<RegistryState<Host>>,
+    source_writes: DocumentSourceWriteAuthority,
 }
 
 struct RegistryState<Host> {
@@ -22,8 +26,34 @@ struct RegistryState<Host> {
 
 struct RegistryEntry<Host> {
     toolkit: Arc<dyn DocumentToolkit<Host>>,
+    descriptor: DocumentToolkitDescriptor,
     active_saves: usize,
     closing: bool,
+}
+
+fn validate_menu_items(descriptor: &DocumentToolkitDescriptor) -> Result<(), ToolkitRegistryError> {
+    let instance = descriptor.instance_id();
+    let mut paths = BTreeSet::new();
+    for menu_item in descriptor.menu_items() {
+        let mut segment_count = 0;
+        let valid = menu_item.path().split('/').all(|segment| {
+            segment_count += 1;
+            !segment.is_empty() && segment.trim() == segment
+        });
+        if !valid || segment_count < 2 {
+            return Err(ToolkitRegistryError::InvalidMenuPath {
+                instance: instance.clone(),
+                path: menu_item.path().to_string(),
+            });
+        }
+        if !paths.insert(menu_item.path()) {
+            return Err(ToolkitRegistryError::DuplicateMenuPath {
+                instance: instance.clone(),
+                path: menu_item.path().to_string(),
+            });
+        }
+    }
+    Ok(())
 }
 
 impl<Host> Default for RegistryState<Host> {
@@ -50,7 +80,7 @@ impl<Host> RegistryState<Host> {
             generation,
             self.by_document
                 .values()
-                .map(|entry| entry.toolkit.descriptor().clone())
+                .map(|entry| entry.descriptor.clone())
                 .collect(),
         );
     }
@@ -60,11 +90,22 @@ impl<Host> Default for DocumentToolkitRegistry<Host> {
     fn default() -> Self {
         Self {
             state: Mutex::new(RegistryState::default()),
+            source_writes: DocumentSourceWriteAuthority::default(),
         }
     }
 }
 
 impl<Host> DocumentToolkitRegistry<Host> {
+    pub(crate) fn with_source_write<T>(
+        &self,
+        project_root: &Path,
+        source_path: &Path,
+        operation: impl FnOnce(&DocumentSourceWriteLease<'_>) -> T,
+    ) -> io::Result<T> {
+        let lease = self.source_writes.acquire(project_root, source_path)?;
+        Ok(operation(&lease))
+    }
+
     pub fn allocate_document_id(&self) -> Result<DocumentId, ToolkitRegistryError> {
         let mut state = self.lock_state();
         let next = state
@@ -79,28 +120,26 @@ impl<Host> DocumentToolkitRegistry<Host> {
         &self,
         toolkit: Arc<dyn DocumentToolkit<Host>>,
     ) -> Result<(), ToolkitRegistryError> {
-        let descriptor = toolkit.descriptor();
+        let descriptor = toolkit.descriptor().clone();
+        let document = descriptor.document_id();
+        let instance = descriptor.instance_id().clone();
+        validate_menu_items(&descriptor)?;
         let mut state = self.lock_state();
-        if state.by_document.contains_key(&descriptor.document_id()) {
-            return Err(ToolkitRegistryError::DocumentAlreadyRegistered {
-                document: descriptor.document_id(),
-            });
+        if state.by_document.contains_key(&document) {
+            return Err(ToolkitRegistryError::DocumentAlreadyRegistered { document });
         }
-        if state.by_instance.contains_key(descriptor.instance_id()) {
-            return Err(ToolkitRegistryError::InstanceAlreadyRegistered {
-                instance: descriptor.instance_id().clone(),
-            });
+        if state.by_instance.contains_key(&instance) {
+            return Err(ToolkitRegistryError::InstanceAlreadyRegistered { instance });
         }
         let generation = state.next_generation()?;
 
-        state
-            .by_instance
-            .insert(descriptor.instance_id().clone(), descriptor.document_id());
-        state.last_document_id = state.last_document_id.max(descriptor.document_id().value());
+        state.by_instance.insert(instance, document);
+        state.last_document_id = state.last_document_id.max(document.value());
         state.by_document.insert(
-            descriptor.document_id(),
+            document,
             RegistryEntry {
                 toolkit,
+                descriptor,
                 active_saves: 0,
                 closing: false,
             },
@@ -177,11 +216,13 @@ impl<Host> DocumentToolkitRegistry<Host> {
         let closed = state
             .by_document
             .values()
-            .map(|entry| entry.toolkit.descriptor().clone())
+            .map(|entry| entry.descriptor.clone())
             .collect();
-        state.by_document.clear();
+        let retired = std::mem::take(&mut state.by_document);
         state.by_instance.clear();
         state.publish_snapshot(generation);
+        drop(state);
+        drop(retired);
         Ok(closed)
     }
 
@@ -199,18 +240,28 @@ impl<Host> DocumentToolkitRegistry<Host> {
         host: &Host,
         reason: SaveReason,
     ) -> Result<DocumentSaveReport, SaveError> {
-        let (toolkit, _lease) = self.begin_save(document)?;
-        let descriptor = toolkit.descriptor().clone();
+        let (toolkit, instance, _lease) = self.begin_save(document)?;
+        toolkit
+            .validate_references(host)
+            .map_err(|source| SaveError::ReferenceValidationFailed { document, source })?;
         let mut context = SaveCtx::new(reason);
         toolkit
             .save(host, &mut context)
             .map_err(|source| SaveError::HookFailed { document, source })?;
         Ok(DocumentSaveReport::new(
             document,
-            descriptor.instance_id().clone(),
+            instance,
             reason,
             context.written_bytes(),
+            context.source_write_guarantee(),
         ))
+    }
+
+    pub fn validate_references(&self, document: DocumentId, host: &Host) -> Result<(), SaveError> {
+        let (toolkit, _instance, _lease) = self.begin_save(document)?;
+        toolkit
+            .validate_references(host)
+            .map_err(|source| SaveError::ReferenceValidationFailed { document, source })
     }
 
     /// Uses the foreground-save lease for snapshot capture. Autosave therefore
@@ -221,7 +272,7 @@ impl<Host> DocumentToolkitRegistry<Host> {
         document: DocumentId,
         host: &Host,
     ) -> Result<DocumentAutosavePayload, SaveError> {
-        let (toolkit, _lease) = self.begin_save(document)?;
+        let (toolkit, _instance, _lease) = self.begin_save(document)?;
         toolkit
             .capture_autosave(host)
             .map_err(|source| SaveError::AutosaveHookFailed { document, source })
@@ -257,7 +308,14 @@ impl<Host> DocumentToolkitRegistry<Host> {
     fn begin_save(
         &self,
         document: DocumentId,
-    ) -> Result<(Arc<dyn DocumentToolkit<Host>>, SaveLease<'_, Host>), SaveError> {
+    ) -> Result<
+        (
+            Arc<dyn DocumentToolkit<Host>>,
+            ToolkitInstanceId,
+            SaveLease<'_, Host>,
+        ),
+        SaveError,
+    > {
         let mut state = self.lock_state();
         let entry = state
             .by_document
@@ -272,6 +330,7 @@ impl<Host> DocumentToolkitRegistry<Host> {
         entry.active_saves = 1;
         Ok((
             Arc::clone(&entry.toolkit),
+            entry.descriptor.instance_id().clone(),
             SaveLease {
                 registry: self,
                 document,
@@ -310,7 +369,10 @@ impl<Host> DocumentToolkitRegistry<Host> {
             .ok_or(ToolkitRegistryError::CloseLeaseInvalid { document })?;
         state.by_instance.remove(instance);
         state.publish_snapshot(generation);
-        Ok(entry.toolkit.descriptor().clone())
+        let descriptor = entry.descriptor.clone();
+        drop(state);
+        drop(entry);
+        Ok(descriptor)
     }
 
     pub(super) fn rollback_close(&self, document: DocumentId, instance: &ToolkitInstanceId) {

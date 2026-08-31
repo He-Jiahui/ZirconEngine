@@ -1,4 +1,4 @@
-use unicode_vo::{char_orientation, Orientation};
+use unicode_vo::{Orientation, char_orientation};
 
 use crate::text::{ShapedGlyphRotation, VerticalMode};
 
@@ -133,8 +133,8 @@ pub(super) const fn transform_or_rotate_rotation(
 #[cfg(test)]
 mod tests {
     use super::{
-        transform_or_rotate_rotation, vertical_glyph_metrics, vertical_shape_orientation,
-        VerticalShapeOrientation,
+        VerticalShapeOrientation, transform_or_rotate_rotation, vertical_glyph_metrics,
+        vertical_shape_orientation,
     };
     use crate::text::{ShapedGlyphRotation, VerticalMode};
 

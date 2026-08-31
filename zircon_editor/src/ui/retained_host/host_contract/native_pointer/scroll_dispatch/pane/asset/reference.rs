@@ -12,8 +12,8 @@ pub(super) fn dispatch_asset_reference_scroll(
     };
 
     pane_host.invoke_asset_reference_pointer_scrolled(
-        mode.clone(),
-        list_kind.clone(),
+        mode.as_str().into(),
+        list_kind.as_str().into(),
         pointer.local_x,
         pointer.local_y,
         delta,

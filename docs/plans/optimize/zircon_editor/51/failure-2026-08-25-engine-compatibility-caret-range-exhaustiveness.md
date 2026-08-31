@@ -75,3 +75,32 @@ Open state: `部分推进，待受管编译与 Editor 产品回归`; no fixed/re
 - The focused caret test count is therefore zero. This is forward compile evidence,
   not a GREEN result; the failure remains open until those lower-layer owners restore
   the package test boundary and the same managed filter executes successfully.
+
+### 2026-08-31 exact-owner continuation
+
+- Editor51 已接管当前精确源码 blob
+  `zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs`，
+  SHA-256 为
+  `B4BCE07D63A2604548CC9B3CD53C7AFE4CB6EBC512CD7A93EAD5C6017D5E6FC7`。
+- 生产分支保持五类显式穷举且无 `_` fallback：`^1`、`^1.2` 取 next-major，
+  `^0.2` 取 next-minor，`^0.0.3` 取 next-patch，`^0.0` 取
+  next-minor；major、zero-major minor、zero-major/minor patch 三类
+  `checked_add` 溢出均直接断言 `caret_range(...).is_none()`。
+- 独立只读终态 review 为 `Critical / Important / Minor = 0 / 0 / 0`；
+  `rustfmt --edition 2021 --check` 与 scoped `git diff --check` 均通过。
+- 已提交受管 Windows 库级编译 ticket
+  `d63bd88448ae40a0ad9f444d5b227990`（request
+  `caret_compile_check_20260831_0135`）和聚焦测试 ticket
+  `580ff315af974093972fb9e06e895486`（request
+  `caret_focused_tests_20260831_0135`）。两者 source manifest hash 均为
+  `21deb6eaa2a3cdcb595190e8cca8e9a997b6724bc4b7d05c50834052f310ba8a`，
+  当前状态均为 `queued`。
+
+Open state: `源码与静态复核完成，待受管编译、聚焦测试及 Editor 产品回归`；
+在 GREEN 结果形成前不创建 fixed/return 记录。
+
+## 产出记录与时间
+
+| 时间（Asia/Shanghai） | 状态 | 完成项目 | 量化证据 | 后续门禁 |
+|---|---|---|---|---|
+| 2026-08-31 09:35 | 部分推进 | 接管精确源码；补齐 5 类 caret 形态与 3 类 overflow 回归；完成独立终态 review；提交 2 个托管 Windows 验证 | SHA-256 `B4BCE07D...E6FC7`；C/I/M=`0/0/0`；rustfmt=`0`；diff-check=`0`；tickets=`d63bd884...`、`580ff315...` | 两个 ticket GREEN 后重跑 `build-editor.ps1 -Ephemeral`；未通过前保持 `open` |

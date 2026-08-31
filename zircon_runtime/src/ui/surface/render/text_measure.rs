@@ -1,11 +1,11 @@
 use super::resolve::{resolve_style, resolve_text};
-use crate::ui::text::{measure_text_size, measure_unwrapped_text_height, UiTextMeasureCache};
+use crate::ui::text::UiTextMeasureCache;
 use zircon_runtime_interface::ui::layout::UiSize;
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 
 pub(crate) fn measure_text_with_cache(
     metadata: Option<&UiTemplateNodeMetadata>,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> UiSize {
     let Some(text) = resolve_text(metadata) else {
         return UiSize::default();
@@ -15,10 +15,7 @@ pub(crate) fn measure_text_with_cache(
     }
 
     let style = resolve_style(metadata);
-    match text_measure_cache {
-        Some(cache) => cache.measure_text_size(&text, &style),
-        None => measure_text_size(&text, &style),
-    }
+    text_measure_cache.measure_text_size(&text, &style)
 }
 
 /// Exact height-only measure for a leaf whose width is already fixed by its constraint.
@@ -26,7 +23,7 @@ pub(crate) fn measure_text_with_cache(
 /// otherwise falls back to complete text measurement.
 pub(crate) fn measure_text_with_fixed_width_cache(
     metadata: Option<&UiTemplateNodeMetadata>,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
     fixed_width: f32,
 ) -> UiSize {
     let Some(text) = resolve_text(metadata) else {
@@ -37,13 +34,9 @@ pub(crate) fn measure_text_with_fixed_width_cache(
     }
 
     let style = resolve_style(metadata);
-    match text_measure_cache {
-        Some(cache) => cache
-            .measure_unwrapped_text_height(&text, &style)
-            .map(|height| UiSize::new(fixed_width, height))
-            .unwrap_or_else(|| cache.measure_text_size(&text, &style)),
-        None => measure_unwrapped_text_height(&text, &style)
-            .map(|height| UiSize::new(fixed_width, height))
-            .unwrap_or_else(|| measure_text_size(&text, &style)),
+    if let Some(height) = text_measure_cache.measure_unwrapped_text_height(&text, &style) {
+        UiSize::new(fixed_width, height)
+    } else {
+        text_measure_cache.measure_text_size(&text, &style)
     }
 }

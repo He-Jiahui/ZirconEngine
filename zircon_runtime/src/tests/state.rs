@@ -1,8 +1,8 @@
 use std::any::type_name;
 use std::sync::{Arc, Mutex};
 
+use crate::core::runtime::state_machine::{NextState, OnEnter, OnExit, OnTransition, StateSpec};
 use crate::core::CoreRuntime;
-use crate::core::framework::state::{NextState, OnEnter, OnExit, OnTransition, StateSpec};
 
 mod hook_index;
 
@@ -49,7 +49,7 @@ fn state_spec_initializes_current_state_and_records_initial_event() {
     assert_eq!(event.exited, None);
     assert_eq!(event.entered, Some(GameFlow::Loading));
     assert!(event.allow_same_state_transitions);
-    assert_eq!(runtime.state_transition_events::<GameFlow>(), vec![event]);
+    assert_eq!(runtime.latest_state_transition::<GameFlow>(), Some(event));
 }
 
 #[test]
@@ -79,11 +79,11 @@ fn next_state_applies_pending_transition_once_and_resets_queue() {
 #[test]
 fn set_if_neq_suppresses_identity_transitions_but_set_keeps_them_explicit() {
     let runtime = CoreRuntime::new();
-    runtime.init_state::<GameFlow>();
+    let initial = runtime.init_state::<GameFlow>();
 
     runtime.set_next_state_if_neq(GameFlow::Loading);
     assert_eq!(runtime.apply_state_transition::<GameFlow>(), None);
-    assert_eq!(runtime.state_transition_events::<GameFlow>().len(), 1);
+    assert_eq!(runtime.latest_state_transition::<GameFlow>(), Some(initial));
 
     runtime.set_next_state(GameFlow::Loading);
     let event = runtime.apply_state_transition::<GameFlow>().unwrap();
@@ -91,7 +91,7 @@ fn set_if_neq_suppresses_identity_transitions_but_set_keeps_them_explicit() {
     assert_eq!(event.exited, Some(GameFlow::Loading));
     assert_eq!(event.entered, Some(GameFlow::Loading));
     assert!(event.allow_same_state_transitions);
-    assert_eq!(runtime.state_transition_events::<GameFlow>().len(), 2);
+    assert_eq!(runtime.latest_state_transition::<GameFlow>(), Some(event));
 }
 
 #[test]
@@ -155,12 +155,18 @@ fn independent_state_specs_keep_events_and_current_values_separate() {
         runtime.state::<PauseMode>().unwrap().get(),
         &PauseMode::Paused
     );
-    assert_eq!(runtime.state_transition_events::<GameFlow>().len(), 2);
-    assert_eq!(runtime.state_transition_events::<PauseMode>().len(), 2);
+    assert_eq!(
+        runtime.latest_state_transition::<GameFlow>(),
+        Some(flow_event)
+    );
+    assert_eq!(
+        runtime.latest_state_transition::<PauseMode>(),
+        Some(pause_event)
+    );
 }
 
 #[test]
-fn repeated_state_initialization_has_no_transition_side_effects() {
+fn repeated_state_initialization_does_not_publish_or_dispatch_a_second_transition() {
     let runtime = CoreRuntime::new();
     let enter_count = Arc::new(Mutex::new(0_u32));
     let hook_count = Arc::clone(&enter_count);
@@ -169,11 +175,31 @@ fn repeated_state_initialization_has_no_transition_side_effects() {
     });
 
     let initial = runtime.init_state::<GameFlow>();
-    let repeated = runtime.init_state::<GameFlow>();
+    let _repeated = runtime.init_state::<GameFlow>();
 
-    assert_eq!(repeated.exited, None);
-    assert_eq!(repeated.entered, Some(GameFlow::Loading));
-    assert!(repeated.allow_same_state_transitions);
-    assert_eq!(runtime.state_transition_events::<GameFlow>(), vec![initial]);
+    assert_eq!(
+        runtime.state::<GameFlow>().unwrap().get(),
+        &GameFlow::Loading
+    );
+    assert_eq!(runtime.latest_state_transition::<GameFlow>(), Some(initial));
     assert_eq!(*enter_count.lock().unwrap(), 1);
+}
+
+#[test]
+fn state_transition_observation_retains_only_the_latest_event() {
+    let runtime = CoreRuntime::new();
+    runtime.init_state::<PauseMode>();
+
+    let mut expected = None;
+    for index in 0..100_000 {
+        let next = if index & 1 == 0 {
+            PauseMode::Paused
+        } else {
+            PauseMode::Running
+        };
+        runtime.set_next_state(next);
+        expected = runtime.apply_state_transition::<PauseMode>();
+    }
+
+    assert_eq!(runtime.latest_state_transition::<PauseMode>(), expected);
 }

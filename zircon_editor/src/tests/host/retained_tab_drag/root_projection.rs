@@ -112,10 +112,10 @@ fn shared_shell_pointer_route_uses_shared_root_projection_document_bounds_when_d
 
 #[test]
 fn resolve_host_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawers_are_collapsed() {
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: BTreeMap::from([
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        BTreeMap::from([
             (
                 ActivityDrawerSlot::RightTop,
                 drawer(
@@ -137,11 +137,8 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawer
                 ),
             ),
         ]),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+        Vec::new(),
+    );
     let model = workbench_model(
         BTreeMap::from([
             (
@@ -224,10 +221,10 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawer
 #[test]
 fn resolve_host_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_visible_drawer_geometry_is_stale(
 ) {
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: BTreeMap::from([
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        BTreeMap::from([
             (
                 ActivityDrawerSlot::RightTop,
                 drawer(
@@ -249,11 +246,8 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_
                 ),
             ),
         ]),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+        Vec::new(),
+    );
     let model = workbench_model(
         BTreeMap::from([
             (
@@ -356,10 +350,10 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_
 #[test]
 fn resolve_host_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when_visible_drawer_geometry_is_stale(
 ) {
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: BTreeMap::from([(
+    let layout = workbench_layout(
+        MainPageId::workbench(),
+        vec![workbench_page(MainPageId::workbench())],
+        BTreeMap::from([(
             ActivityDrawerSlot::Bottom,
             drawer(
                 ActivityDrawerSlot::Bottom,
@@ -369,11 +363,8 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when
                 true,
             ),
         )]),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+        Vec::new(),
+    );
     let model = workbench_model(
         BTreeMap::from([(
             ActivityDrawerSlot::Bottom,

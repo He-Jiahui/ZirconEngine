@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeError},
 };
 
-use super::UiSurface;
+use super::{UiSurface, semantics::component_role_is_one_of};
 
 const CURRENT_TOAST_ID: &str = "current_toast_id";
 const AUTO_HIDE_DURATION_MS: &str = "auto_hide_duration_ms";
@@ -60,12 +60,7 @@ impl UiSurface {
 }
 
 fn is_toast_component(metadata: &UiTemplateNodeMetadata) -> bool {
-    matches!(metadata.component.as_str(), "Snackbar" | "Toast")
-        || metadata
-            .attributes
-            .get("role")
-            .and_then(toml::Value::as_str)
-            .is_some_and(|role| matches!(role, "snackbar" | "toast"))
+    component_role_is_one_of(metadata, &["snackbar", "toast"])
 }
 
 fn string_retained_value(

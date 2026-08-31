@@ -66,7 +66,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip
         border: palette.border,
         title: palette.text,
         body: palette.text_muted,
-        icon: palette.focus_ring,
+        icon: palette.accent,
         shadow: palette.shadow,
         disabled_surface: palette.surface_disabled,
         disabled_border: palette.border_disabled,

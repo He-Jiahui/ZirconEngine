@@ -7,7 +7,9 @@ use zircon_runtime_interface::ui::dispatch::UiInputModifiers;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
 use super::super::super::super::NativePointerButtonState;
+use super::super::super::viewport_button::viewport_button_id;
 use super::super::input::button_dispatch_input;
+use super::super::release_capture::finish_primary_capture_if_released;
 use super::steps::dispatch_button_steps;
 
 pub(in crate::ui::retained_host::host_contract) fn dispatch_native_pointer_button(
@@ -21,8 +23,13 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_native_pointer_butto
     let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::Click);
     let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::Click);
 
-    let Some(input) = button_dispatch_input(ui, button, modifiers) else {
+    let button = button.unwrap_or(UiPointerButton::Primary);
+    let Some(button_id) = viewport_button_id(button) else {
         return NativePointerDispatchResult::idle();
     };
+    if let Some(result) = finish_primary_capture_if_released(ui, state, button, x, y) {
+        return result;
+    }
+    let input = button_dispatch_input(ui, button, button_id, modifiers);
     dispatch_button_steps(ui, state, input, x, y)
 }

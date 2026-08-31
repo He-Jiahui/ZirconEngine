@@ -2,26 +2,26 @@ use std::{collections::BTreeMap, path::Path};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::diagnostics::profiling::{
-    export_report, reset_capture, start_capture, stop_capture, test_capture_lock,
-    ProfileCaptureConfig, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
-    PROFILE_TIMELINE_NATIVE_FILE, PROFILE_TIMELINE_PERFETTO_FILE,
+    PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE,
+    PROFILE_TIMELINE_PERFETTO_FILE, ProfileCaptureConfig, export_report, reset_capture,
+    start_capture, stop_capture, test_capture_lock,
 };
 use crate::core::framework::render::{
     RenderBudgetKey, RenderFrameProfile, RenderFramework, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderSubmissionConfig, RenderViewportDescriptor,
-    RenderViewportHandle,
+    RenderViewportHandle, UiRenderSubmission,
 };
 use crate::core::math::UVec2;
 use crate::graphics::runtime::WgpuRenderFramework;
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::{
+    ProfileSnapshot,
     ui::{
         event_ui::{UiNodeId, UiNodePath, UiTreeId},
         layout::UiFrame,
         surface::{UiRichTextFormat, UiTextDirection, UiTextWritingMode},
         tree::{UiTemplateNodeMetadata, UiTreeNode},
     },
-    ProfileSnapshot,
 };
 
 use super::support::{
@@ -29,9 +29,9 @@ use super::support::{
     assert_counter_is_zero, assert_span_frame_count, managed_output_root,
 };
 use super::{
-    assert_profile_file, collect_resolved_gpu_profile, native_text_raster_is_settled, test_extract,
-    visible_text_state, FRAME_PROFILES_FILE, GPU_FLUSH_FRAMES, MAX_SAMPLES, MEASURED_FRAMES,
-    REPETITIONS, WARMUP_FRAMES,
+    FRAME_PROFILES_FILE, GPU_FLUSH_FRAMES, MAX_SAMPLES, MEASURED_FRAMES, REPETITIONS,
+    WARMUP_FRAMES, assert_profile_file, collect_resolved_gpu_profile,
+    native_text_raster_is_settled, test_extract, visible_text_state,
 };
 
 const TEXT_NODE_COUNT: usize = 4;
@@ -60,12 +60,15 @@ fn multilingual_text_profile_contract_resolves_rich_rtl_and_vertical_layouts() {
     assert_eq!(commands.len(), TEXT_NODE_COUNT);
 
     let cjk = command_for_node(commands, CJK_NODE_ID);
-    assert_eq!(cjk.style.language.as_deref(), Some("zh-hans"));
+    assert_eq!(cjk.style.language.as_deref(), Some("zh-Hans"));
     let arabic = command_for_node(commands, ARABIC_NODE_ID);
     assert_eq!(arabic.style.text_direction, UiTextDirection::RightToLeft);
     assert_eq!(arabic.style.language.as_deref(), Some("ar"));
     let markdown = command_for_node(commands, MARKDOWN_NODE_ID);
-    assert_eq!(markdown.style.rich_text_format, UiRichTextFormat::Markdown);
+    assert_eq!(
+        markdown.style.rich_text_format,
+        UiRichTextFormat::MarkdownInlineV1
+    );
     let vertical = command_for_node(commands, VERTICAL_NODE_ID);
     let vertical_layout = vertical
         .text_layout
@@ -219,7 +222,9 @@ fn rebuild_and_submit(
         .submit_frame_extract_with_ui(
             viewport,
             test_extract(),
-            Some(surface.render_extract.clone()),
+            Some(UiRenderSubmission::single(std::sync::Arc::new(
+                surface.render_extract.clone(),
+            ))),
         )
         .expect("multilingual text baseline should submit a complete UI extract");
 }
@@ -448,7 +453,7 @@ fn markdown_text_attributes(text: &str) -> BTreeMap<String, toml::Value> {
         .into_iter()
         .chain([(
             "rich_text_format".to_string(),
-            toml::Value::String("markdown".to_string()),
+            toml::Value::String("markdown_inline_v1".to_string()),
         )])
         .collect()
 }

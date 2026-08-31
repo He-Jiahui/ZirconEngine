@@ -1,5 +1,6 @@
 use super::super::super::data::{FrameRect, PaneData};
 use super::super::geometry::contains;
+use super::super::identity::profile_control_id;
 use super::route_check::viewport_toolbar_route_hit;
 
 pub(super) fn pane_route_hits_viewport_toolbar(
@@ -10,9 +11,11 @@ pub(super) fn pane_route_hits_viewport_toolbar(
     pane: &PaneData,
     content: &FrameRect,
 ) -> bool {
-    let expected_prefix = format!("viewport_toolbar_control.{surface_key}.");
-    if !id.starts_with(&expected_prefix)
-        || !matches!(pane.kind.as_str(), "Scene" | "Game")
+    let Some(expected_control_id) = profile_control_id(id, "viewport_toolbar_control", surface_key)
+    else {
+        return false;
+    };
+    if !matches!(pane.kind.as_str(), "Scene" | "Game")
         || !pane.show_toolbar
         || !contains(content, x, y)
     {
@@ -25,5 +28,5 @@ pub(super) fn pane_route_hits_viewport_toolbar(
         width: content.width,
         height: toolbar_height,
     };
-    viewport_toolbar_route_hit(id, x, y, surface_key, pane, &toolbar)
+    viewport_toolbar_route_hit(expected_control_id, x, y, pane, &toolbar)
 }

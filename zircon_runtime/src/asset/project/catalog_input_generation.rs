@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-use crate::asset::{AssetId, AssetReference, AssetUri};
+use crate::asset::{AssetId, AssetReference, AssetUri, ReferenceRepair};
 use crate::core::resource::{ResourceLocator, ResourceRecord};
 
 use super::{AssetMetaDocument, PackageAssetRegistry, ProjectManifest};
@@ -24,6 +24,7 @@ pub struct ProjectCatalogInputRecord {
     source_mtime_unix_ms: u64,
     artifact_reference_revision: u64,
     direct_references: Arc<[AssetReference]>,
+    reference_repairs: Arc<[ReferenceRepair]>,
 }
 
 impl ProjectCatalogInputRecord {
@@ -55,6 +56,11 @@ impl ProjectCatalogInputRecord {
         &self.direct_references
     }
 
+    /// Observations requiring an explicit authoring-document fix-up.
+    pub fn reference_repairs(&self) -> &[ReferenceRepair] {
+        &self.reference_repairs
+    }
+
     fn from_source(resource: ResourceRecord, source: ProjectCatalogInputSource) -> Self {
         let mut direct_references = source.direct_references;
         direct_references.sort_by(|left, right| {
@@ -72,6 +78,7 @@ impl ProjectCatalogInputRecord {
             meta: source.meta,
             source_mtime_unix_ms: source.source_mtime_unix_ms,
             direct_references: direct_references.into(),
+            reference_repairs: source.reference_repairs.into(),
         }
     }
 
@@ -85,6 +92,7 @@ impl ProjectCatalogInputRecord {
             source_mtime_unix_ms: self.source_mtime_unix_ms,
             artifact_reference_revision,
             direct_references: Arc::clone(&self.direct_references),
+            reference_repairs: Arc::clone(&self.reference_repairs),
         }
     }
 
@@ -105,6 +113,7 @@ impl ProjectCatalogInputRecord {
                 meta,
                 source_mtime_unix_ms,
                 direct_references,
+                Vec::new(),
             ),
         )
     }
@@ -123,6 +132,7 @@ pub(crate) struct ProjectCatalogInputSource {
     meta: AssetMetaDocument,
     source_mtime_unix_ms: u64,
     direct_references: Vec<AssetReference>,
+    reference_repairs: Vec<ReferenceRepair>,
 }
 
 impl ProjectCatalogInputSource {
@@ -132,6 +142,7 @@ impl ProjectCatalogInputSource {
         meta: AssetMetaDocument,
         source_mtime_unix_ms: u64,
         direct_references: Vec<AssetReference>,
+        reference_repairs: Vec<ReferenceRepair>,
     ) -> Self {
         Self {
             source_path,
@@ -139,6 +150,7 @@ impl ProjectCatalogInputSource {
             meta,
             source_mtime_unix_ms,
             direct_references,
+            reference_repairs,
         }
     }
 }
@@ -528,5 +540,36 @@ fn record_locator(record: &ProjectCatalogInputRecord) -> String {
 }
 
 fn next_sequence() -> u64 {
-    NEXT_CATALOG_INPUT_GENERATION.fetch_add(1, Ordering::Relaxed)
+    advance_sequence(&NEXT_CATALOG_INPUT_GENERATION)
+}
+
+fn advance_sequence(sequence: &AtomicU64) -> u64 {
+    sequence
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            current.checked_add(1)
+        })
+        .expect("project catalog input generation sequence exhausted")
+}
+
+#[cfg(test)]
+mod sequence_tests {
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    use super::advance_sequence;
+
+    #[test]
+    fn final_catalog_input_sequence_is_published_once_without_wrapping() {
+        let sequence = AtomicU64::new(u64::MAX - 1);
+
+        assert_eq!(advance_sequence(&sequence), u64::MAX - 1);
+        assert_eq!(sequence.load(Ordering::Relaxed), u64::MAX);
+    }
+
+    #[test]
+    #[should_panic(expected = "project catalog input generation sequence exhausted")]
+    fn exhausted_catalog_input_sequence_never_reuses_an_old_generation() {
+        let sequence = AtomicU64::new(u64::MAX);
+
+        let _ = advance_sequence(&sequence);
+    }
 }

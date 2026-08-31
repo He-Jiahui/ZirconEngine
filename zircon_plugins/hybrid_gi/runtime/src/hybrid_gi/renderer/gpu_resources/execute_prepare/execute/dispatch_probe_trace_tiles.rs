@@ -11,6 +11,9 @@ use crate::hybrid_gi::scene_representation::{
     HybridGiTraceFallbackReason, HybridGiTraceRequest, GLOBAL_SDF_CLIPMAP_COUNT,
 };
 use crate::hybrid_gi::types::HybridGiPrepareFrame;
+use zircon_runtime::graphics::{
+    RenderPassBufferUploadSink, RuntimePrepareFrameTransactionRecorder,
+};
 
 use super::hybrid_gi_prepare_execution_buffers::HybridGiPrepareExecutionBuffers;
 use super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
@@ -91,7 +94,8 @@ pub(super) fn dispatch_probe_trace_tiles(
     global_sdf_state: &GlobalSdfGpuState,
     global_sdf_scene_state: &HybridGiGlobalSdfSceneState,
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
+    buffer_uploads: &mut dyn RenderPassBufferUploadSink,
+    frame_transactions: &mut RuntimePrepareFrameTransactionRecorder<'_>,
     encoder: &mut wgpu::CommandEncoder,
     buffers: &HybridGiPrepareExecutionBuffers,
     inputs: &HybridGiPrepareExecutionInputs,
@@ -119,7 +123,11 @@ pub(super) fn dispatch_probe_trace_tiles(
 
     let available_surface_cache_params =
         probe_trace_tile_surface_cache_params(scene_prepare_resources);
-    let global_sdf_bindings = global_sdf_state.create_trace_bindings(queue, global_sdf_scene_state);
+    let global_sdf_bindings = global_sdf_state.create_trace_bindings(
+        buffer_uploads,
+        frame_transactions,
+        global_sdf_scene_state,
+    );
     let trace_route = HybridGiTraceCapabilityGraph.select(
         HybridGiTraceRequest {
             domain: HybridGiTraceDomain::Screen,

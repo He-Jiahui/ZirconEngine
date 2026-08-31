@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime::ui::surface::{UiSurface, UiVirtualListItemKey};
 use zircon_runtime::ui::tree::UiRuntimeTreeRoutingExt;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
@@ -27,6 +27,7 @@ use crate::ui::workbench::reference::{
     EditorWorkbenchTemplateControlIds, EditorWorkbenchTemplateFrames,
     EditorWorkbenchTemplateSurface,
 };
+use crate::ui::workbench::snapshot::InspectorPluginComponentPropertySnapshot;
 
 #[cfg(test)]
 use super::super::projection_support::load_builtin_runtime;
@@ -41,6 +42,7 @@ use super::error::BuiltinHostWindowTemplateBridgeError;
 use super::extension_module_navigation::{
     workbench_extension_workspace_control_id, EXTENSION_MODULE_WORKSPACE_CONTROLS,
 };
+use super::icon_tooltip::WorkbenchIconTooltipInputState;
 use super::layout_frames::{
     bottom_resize_splitter_frame_from_drawer_shell, left_resize_splitter_frame_from_drawer_shell,
     right_resize_splitter_frame_from_drawer_shell, union_visible_frames,
@@ -49,6 +51,7 @@ use super::layout_frames::{
 use super::module_navigation::{
     workbench_module_workspace_control_id, MODULE_TAB_CONTROLS, MODULE_WORKSPACE_CONTROLS,
 };
+use super::responsive_layout::apply_workbench_responsive_layout;
 use super::scene_hierarchy_projection::SceneHierarchyProjectionState;
 
 mod mounted_layout;
@@ -64,8 +67,19 @@ pub(crate) struct BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(super) template_surface: EditorWorkbenchTemplateSurface,
     pub(super) mount_frame: UiFrame,
     pub(super) presentation_scale_factor: f32,
+    committed_mount_origin: (f32, f32),
+    committed_presentation_scale_factor: f32,
     pub(super) asset_creation_menu: AssetCreationMenuState,
     pub(super) scene_hierarchy_projection: SceneHierarchyProjectionState,
+    pub(super) inspector_source_properties: Arc<[InspectorPluginComponentPropertySnapshot]>,
+    pub(super) inspector_component_label: String,
+    pub(super) inspector_has_selection: bool,
+    pub(super) inspector_has_component: bool,
+    pub(super) component_properties: Arc<[InspectorPluginComponentPropertySnapshot]>,
+    pub(super) component_property_keys: Arc<[UiVirtualListItemKey]>,
+    pub(super) component_customization_available: bool,
+    pub(super) icon_tooltip_input: WorkbenchIconTooltipInputState,
+    pub(super) compact_module_details_drawer_open: bool,
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
@@ -108,9 +122,27 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             template_surface,
             mount_frame,
             presentation_scale_factor: 1.0,
+            committed_mount_origin: (mount_frame.x, mount_frame.y),
+            committed_presentation_scale_factor: 1.0,
             asset_creation_menu: AssetCreationMenuState::default(),
             scene_hierarchy_projection: SceneHierarchyProjectionState::default(),
+            inspector_source_properties: Arc::from([]),
+            inspector_component_label: String::new(),
+            inspector_has_selection: false,
+            inspector_has_component: false,
+            component_properties: Arc::from([]),
+            component_property_keys: Arc::from([]),
+            component_customization_available: false,
+            icon_tooltip_input: WorkbenchIconTooltipInputState::default(),
+            compact_module_details_drawer_open: false,
         };
+        bridge.initialize_live_control_state()?;
+        apply_workbench_responsive_layout(
+            &mut bridge.template_surface.surface,
+            shell_size,
+            1.0,
+            bridge.compact_module_details_drawer_open,
+        )?;
         bridge.apply_responsive_toolbar_layout(shell_size)?;
         bridge
             .template_surface
@@ -152,8 +184,31 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.template_surface.pending_host_projection_patch_nodes()
     }
 
+    pub(crate) fn pending_host_projection_geometry_patch_indices(&self) -> Option<Vec<usize>> {
+        if self.committed_mount_origin != (self.mount_frame.x, self.mount_frame.y)
+            || self.committed_presentation_scale_factor != self.presentation_scale_factor
+        {
+            return None;
+        }
+        self.template_surface
+            .pending_host_projection_geometry_patch_indices()
+    }
+
+    pub(crate) fn has_pending_host_projection_commit(&self) -> bool {
+        self.template_surface.has_pending_host_projection_commit()
+    }
+
+    pub(crate) fn has_pending_surface_state_change(&self) -> bool {
+        self.template_surface
+            .surface
+            .pending_invalidation_changed_node_count()
+            > 0
+    }
+
     pub(crate) fn mark_host_projection_committed(&mut self) {
         self.template_surface.mark_host_projection_committed();
+        self.committed_mount_origin = (self.mount_frame.x, self.mount_frame.y);
+        self.committed_presentation_scale_factor = self.presentation_scale_factor;
     }
 
     pub(crate) fn refresh_prepared_state_change(
@@ -190,6 +245,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     pub(super) fn control_node_id(&self, control_id: &str) -> Option<UiNodeId> {
         self.template_surface.control_node_id(control_id)
+    }
+
+    fn control_parent_id(&self, control_id: &str) -> Option<UiNodeId> {
+        let node_id = self.control_node_id(control_id)?;
+        self.template_surface
+            .surface
+            .tree
+            .nodes
+            .get(&node_id)
+            .and_then(|node| node.parent)
     }
 
     #[cfg(test)]
@@ -302,16 +367,14 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             self.mount_frame.y,
             self.presentation_scale_factor,
         );
-        let route = match event.button {
-            Some(button) => self
-                .template_surface
-                .surface
-                .route_pointer_event_with_button(event.kind, event.point, button)?,
-            None => self
-                .template_surface
-                .surface
-                .route_pointer_event(event.kind, event.point)?,
-        };
+        let route = self
+            .template_surface
+            .surface
+            .route_pointer_input_event(event)?;
+        let _ = self
+            .template_surface
+            .surface
+            .apply_default_pointer_scroll(&route)?;
         Ok(route)
     }
 
@@ -418,12 +481,31 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
+    fn initialize_live_control_state(
+        &mut self,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.select_exclusive(MODULE_TAB_CONTROLS, "WorkbenchModuleEffect")?;
+        self.select_exclusive(TOOL_CONTROLS, "WorkbenchToolSelect")?;
+        self.select_exclusive(RAIL_CONTROLS, "WorkbenchRailScene")?;
+        self.initialize_panel_live_control_state()?;
+        self.initialize_blend_space_transport_state()?;
+        self.initialize_run_mode_menu_indicator()?;
+        self.initialize_layout_menu_indicator()?;
+        self.set_control_active("WorkbenchModuleDetailsDrawerToggle", false)?;
+        self.apply_workbench_module_workspace("workbench.module.effect.select")
+    }
+
     pub(super) fn select_exclusive_selected(
         &mut self,
         controls: &[&str],
         selected_control_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        let selection_parent = self.control_parent_id(selected_control_id);
         for control_id in controls {
+            if selection_parent.is_some() && self.control_parent_id(control_id) != selection_parent
+            {
+                continue;
+            }
             self.set_selected(control_id, *control_id == selected_control_id)?;
         }
         Ok(())
@@ -445,6 +527,30 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 control_id,
                 Some(*control_id) == workbench_module_workspace_control_id(action_id),
             )?;
+        }
+        self.refresh_compact_module_details_toggle_visibility()
+    }
+
+    pub(super) fn toggle_compact_module_details_drawer(
+        &mut self,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.compact_module_details_drawer_open = !self.compact_module_details_drawer_open;
+        self.set_control_active(
+            "WorkbenchModuleDetailsDrawerToggle",
+            self.compact_module_details_drawer_open,
+        )?;
+        apply_workbench_responsive_layout(
+            &mut self.template_surface.surface,
+            UiSize::new(self.mount_frame.width, self.mount_frame.height),
+            self.presentation_scale_factor,
+            self.compact_module_details_drawer_open,
+        )?;
+        let roots = self.template_surface.surface.tree.roots.clone();
+        for root_id in roots {
+            self.template_surface
+                .surface
+                .tree
+                .mark_layout_dirty(root_id)?;
         }
         Ok(())
     }
@@ -469,7 +575,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 Some(*control_id) == workbench_extension_workspace_control_id(action_id),
             )?;
         }
-        Ok(())
+        self.refresh_compact_module_details_toggle_visibility()
     }
 
     pub(super) fn should_open_dropdown_for_module_field_action(

@@ -26,6 +26,7 @@ impl RetainedEditorHost {
             self.runtime.set_session_mode(EditorSessionMode::Project);
             self.runtime.set_welcome_snapshot(welcome_snapshot);
             self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
+            self.sync_hub_focus_binding()?;
             self.set_status_line(status_message);
             return Ok(());
         }
@@ -35,14 +36,20 @@ impl RetainedEditorHost {
                 self.editor_manager
                     .apply_project_workspace(document.editor_workspace.clone())
                     .map_err(|error| error.to_string())?;
+                let project_root = document.root_path.clone();
+                let default_scene = document.manifest.default_scene.clone();
                 let authoring_world = self
                     .editor_manager
                     .prepare_authoring_world(document.world)
                     .map_err(|error| error.to_string())?;
-                self.runtime.replace_world(
-                    authoring_world,
-                    document.root_path.to_string_lossy().into_owned(),
-                )?;
+                self.runtime
+                    .replace_world(authoring_world, project_root.to_string_lossy().into_owned())
+                    .map_err(|error| error.to_string())?;
+                let scene_document = self
+                    .editor_manager
+                    .activate_startup_scene_document(&project_root, &default_scene)
+                    .map_err(|error| error.to_string())?;
+                self.runtime.bind_scene_document(scene_document);
                 self.runtime.set_session_mode(EditorSessionMode::Project);
                 self.runtime.set_welcome_snapshot(welcome_snapshot);
                 self.editor_manager
@@ -52,7 +59,9 @@ impl RetainedEditorHost {
                 self.mark_render_and_presentation_dirty();
             }
             (EditorSessionMode::Welcome | EditorSessionMode::Playing, _) => {
-                self.runtime.clear_project(welcome_snapshot)?;
+                self.runtime
+                    .clear_project(welcome_snapshot)
+                    .map_err(|error| error.to_string())?;
                 self.editor_manager
                     .show_welcome_page()
                     .map_err(|error| error.to_string())?;
@@ -63,6 +72,7 @@ impl RetainedEditorHost {
             }
         }
 
+        self.sync_hub_focus_binding()?;
         self.set_status_line(status_message);
         Ok(())
     }

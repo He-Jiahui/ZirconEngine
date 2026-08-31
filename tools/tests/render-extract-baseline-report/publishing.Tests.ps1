@@ -130,6 +130,31 @@ Describe 'Render-extract baseline publication' {
         }
     }
 
+    It 'rejects a run whose BuildSet identity differs from the capture summary' {
+        $directory = Join-Path $TestDrive ("baseline-report-build-set-drift-" + [guid]::NewGuid().ToString('N'))
+        try {
+            $summaryPath = New-RenderExtractBaselineFixture `
+                -Directory $directory `
+                -FrameDurationsUs @(1000, 2000, 3000) `
+                -ProcessDurationsMs @(10, 20, 30)
+            $summary = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
+            $summary.runs[0].profiling_input.build_set_id = '9' * 64
+            [IO.File]::WriteAllText($summaryPath, ($summary | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
+            Mock Assert-RenderExtractBaselineEvidenceDirectory {
+                param($Path)
+                Resolve-ZirconWindowsPath -Path $Path
+            }
+
+            { Write-RenderExtractBaselineReport -BaselineSummaryPath $summaryPath | Out-Null } |
+                Should Throw 'BuildSet identity'
+        }
+        finally {
+            if ([IO.Directory]::Exists($directory)) {
+                Remove-Item -LiteralPath $directory -Recurse -Force
+            }
+        }
+    }
+
     It 'rejects a run whose frozen asset input differs from its product capture session' {
         $directory = Join-Path $TestDrive ("baseline-report-asset-input-drift-" + [guid]::NewGuid().ToString('N'))
         try {

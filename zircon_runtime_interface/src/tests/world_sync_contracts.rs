@@ -1,9 +1,12 @@
 use std::collections::BTreeMap;
 
+use crate::math::{Quat, Transform, Vec3};
+use crate::reflect::ReflectedValue;
 use crate::resource::ResourceId;
 use crate::world_sync::{
-    AssetReloadFrameApplyReportDto, ComponentSelector, EntityRow, InvalidationBatch, QueryFilter,
-    WatchKey, WatchRegistration, WatchToken, WorldFact, WorldQuery, WorldQueryResult,
+    AssetReloadFrameApplyReportDto, ComponentSelector, ComponentWorldQuery, EntityRow,
+    InvalidationBatch, QueryFilter, WatchKey, WatchRegistration, WatchToken, WorldFact,
+    WorldHierarchyQuery, WorldHierarchyRow, WorldInspectionFieldRow, WorldQuery, WorldQueryResult,
 };
 
 fn json_round_trip<T>(value: &T) -> T
@@ -15,7 +18,7 @@ where
 
 #[test]
 fn world_query_contract_round_trips_filters_selectors_and_generation_hint() {
-    let query = WorldQuery {
+    let query = WorldQuery::Components(ComponentWorldQuery {
         filter: QueryFilter {
             with: vec!["zircon.scene.Transform".to_string()],
             without: vec!["zircon.scene.Hidden".to_string()],
@@ -25,7 +28,7 @@ fn world_query_contract_round_trips_filters_selectors_and_generation_hint() {
             ComponentSelector::new("zircon.scene.Transform"),
         ],
         generation_hint: Some(41),
-    };
+    });
 
     let encoded = serde_json::to_string(&query).unwrap();
     let decoded = json_round_trip(&query);
@@ -43,27 +46,114 @@ fn world_query_returns_not_modified_only_for_a_matching_generation_hint() {
             serde_json::json!({ "value": "Hero" }),
         )]),
     }];
-    let current = WorldQuery {
+    let current = WorldQuery::Components(ComponentWorldQuery {
         generation_hint: Some(9),
-        ..WorldQuery::default()
-    };
-    let stale = WorldQuery {
+        ..ComponentWorldQuery::default()
+    });
+    let stale = WorldQuery::Components(ComponentWorldQuery {
         generation_hint: Some(8),
-        ..WorldQuery::default()
-    };
+        ..ComponentWorldQuery::default()
+    });
 
     assert_eq!(
-        current.result_for_generation(9, rows.clone()),
+        current.component_result_for_generation(9, rows.clone()),
         WorldQueryResult::NotModified { generation: 9 }
     );
     assert_eq!(
-        stale.result_for_generation(9, rows.clone()),
-        WorldQueryResult::Rows(rows.clone())
+        stale.component_result_for_generation(9, rows.clone()),
+        WorldQueryResult::ComponentRows {
+            generation: 9,
+            rows: rows.clone(),
+        }
     );
     assert_eq!(
-        WorldQuery::default().result_for_generation(9, rows.clone()),
-        WorldQueryResult::Rows(rows)
+        WorldQuery::default().component_result_for_generation(9, rows.clone()),
+        WorldQueryResult::ComponentRows {
+            generation: 9,
+            rows,
+        }
     );
+}
+
+#[test]
+fn hierarchy_query_round_trips_generation_bearing_runtime_rows() {
+    let query = WorldQuery::Hierarchy(WorldHierarchyQuery {
+        generation_hint: Some(11),
+    });
+    let rows = vec![WorldHierarchyRow {
+        entity: 7,
+        parent: None,
+        depth: 0,
+        display_name: "Runtime Root".to_string(),
+        kind: "Entity".to_string(),
+        subtree_hash: 19,
+        active_in_hierarchy: true,
+        has_children: false,
+    }];
+
+    assert_eq!(json_round_trip(&query), query);
+    assert_eq!(
+        query.hierarchy_result_for_generation(12, rows.clone()),
+        WorldQueryResult::HierarchyRows {
+            generation: 12,
+            rows,
+        }
+    );
+}
+
+#[test]
+fn focused_inspector_query_round_trips_fields_and_missing_entity_state() {
+    let query = WorldQuery::inspection_fields(7, Some(11));
+    let fields = vec![WorldInspectionFieldRow {
+        component_type_path: "zircon.scene.Name".to_string(),
+        component_display_name: "Name".to_string(),
+        field_name: "value".to_string(),
+        field_display_name: "Value".to_string(),
+        value_type_path: "String".to_string(),
+        value: ReflectedValue::String("Runtime Root".to_string()),
+        writable: true,
+        serializable: true,
+        plugin_owned: false,
+    }];
+
+    assert_eq!(json_round_trip(&query), query);
+    assert_eq!(
+        query.inspection_fields_result_for_generation(12, 7, Some(fields.clone())),
+        WorldQueryResult::InspectionFields {
+            generation: 12,
+            entity: 7,
+            fields,
+        }
+    );
+    assert_eq!(
+        query.inspection_fields_result_for_generation(12, 9, None),
+        WorldQueryResult::EntityMissing {
+            generation: 12,
+            entity: 9,
+        }
+    );
+}
+
+#[test]
+fn transform_snapshot_query_carries_world_replacement_identity() {
+    let transform = Transform {
+        translation: Vec3::new(1.0, 2.0, 3.0),
+        rotation: Quat::IDENTITY,
+        scale: Vec3::ONE,
+    };
+    let query = WorldQuery::transform_snapshot(7);
+    let result = query.transform_snapshot_result(11, 13, 7, Some(transform));
+
+    assert_eq!(
+        result,
+        WorldQueryResult::TransformSnapshot {
+            generation: 11,
+            world_replacement_epoch: 13,
+            entity: 7,
+            transform,
+        }
+    );
+    assert_eq!(json_round_trip(&query), query);
 }
 
 #[test]
@@ -80,30 +170,36 @@ fn entity_rows_are_canonicalized_by_stable_entity_identity() {
     ];
 
     assert_eq!(
-        WorldQuery::default().result_for_generation(1, rows),
-        WorldQueryResult::Rows(vec![
-            EntityRow {
-                entity: 2,
-                components: BTreeMap::new(),
-            },
-            EntityRow {
-                entity: 9,
-                components: BTreeMap::new(),
-            },
-        ])
+        WorldQuery::default().component_result_for_generation(1, rows),
+        WorldQueryResult::ComponentRows {
+            generation: 1,
+            rows: vec![
+                EntityRow {
+                    entity: 2,
+                    components: BTreeMap::new(),
+                },
+                EntityRow {
+                    entity: 9,
+                    components: BTreeMap::new(),
+                },
+            ],
+        }
     );
 }
 
 #[test]
 fn saturated_generation_never_returns_not_modified() {
-    let query = WorldQuery {
+    let query = WorldQuery::Components(ComponentWorldQuery {
         generation_hint: Some(u64::MAX),
-        ..WorldQuery::default()
-    };
+        ..ComponentWorldQuery::default()
+    });
 
     assert_eq!(
-        query.result_for_generation(u64::MAX, Vec::new()),
-        WorldQueryResult::Rows(Vec::new())
+        query.component_result_for_generation(u64::MAX, Vec::new()),
+        WorldQueryResult::ComponentRows {
+            generation: u64::MAX,
+            rows: Vec::new(),
+        }
     );
 }
 
@@ -143,6 +239,9 @@ fn invalidation_batch_round_trip_preserves_generation_tokens_and_facts() {
             },
             WorldFact::SceneLoaded { scene },
             WorldFact::SceneUnloaded { scene },
+            WorldFact::WorldReplaced {
+                replacement_epoch: 17,
+            },
             WorldFact::AssetReloadApplied(AssetReloadFrameApplyReportDto {
                 applied: 3,
                 failed: 1,
@@ -156,6 +255,7 @@ fn invalidation_batch_round_trip_preserves_generation_tokens_and_facts() {
     let decoded = json_round_trip(&batch);
 
     assert!(encoded.contains("asset_reload_applied"));
+    assert!(encoded.contains("world_replaced"));
     assert_eq!(decoded, batch);
 }
 
@@ -183,10 +283,13 @@ fn canonical_dirty_tokens_require_strictly_increasing_runtime_tokens() {
 #[test]
 fn world_sync_contract_rejects_retired_or_unknown_wire_fields() {
     let query = r#"{
-        "filter":{"with":[],"without":[]},
-        "select":[],
-        "generation_hint":null,
-        "legacy_generation":4
+        "kind":"components",
+        "data":{
+            "filter":{"with":[],"without":[]},
+            "select":[],
+            "generation_hint":null,
+            "legacy_generation":4
+        }
     }"#;
     let watch = r#"{
         "key":{"kind":"world_structure"},

@@ -147,19 +147,22 @@ fn parse_engine_version(version: &str) -> NativeDistributionCompatibilityResult<
     if release.is_empty() {
         return Err(NativeDistributionCompatibilityError::EmptyVersion);
     }
-    let parts = release.split('.').collect::<Vec<_>>();
-    if parts.len() < 2 || parts.len() > 3 {
+    let mut parts = release.split('.');
+    let major = parts.next();
+    let minor = parts.next();
+    let patch = parts.next();
+    let extra = parts.next();
+    let (Some(major), Some(minor), patch, None) = (major, minor, patch, extra) else {
         return Err(NativeDistributionCompatibilityError::InvalidVersionShape {
             version: version.to_string(),
         });
-    }
-    let major = parse_version_component(parts[0], version)?;
-    let minor = parse_version_component(parts[1], version)?;
-    let patch = if parts.len() == 3 {
-        parse_version_component(parts[2], version)?
-    } else {
-        0
     };
+    let major = parse_version_component(major, version)?;
+    let minor = parse_version_component(minor, version)?;
+    let patch = patch
+        .map(|component| parse_version_component(component, version))
+        .transpose()?
+        .unwrap_or_default();
     Ok(EngineVersion {
         major,
         minor,
@@ -233,3 +236,7 @@ mod tests {
         assert!(diagnostic.contains("incompatible with loader ABI"));
     }
 }
+
+#[cfg(test)]
+#[path = "compatibility/version_streaming_tests.rs"]
+mod version_streaming_tests;

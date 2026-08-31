@@ -37,7 +37,7 @@ related_code:
   - zircon_runtime_interface/src/reflect/type_path.rs
   - zircon_runtime_interface/src/reflect/type_registration.rs
   - zircon_runtime_interface/src/reflect/reflected_value.rs
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime/reflection_macros/src/derive_type.rs
 tests:

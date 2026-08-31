@@ -12,11 +12,3 @@ component = "HorizontalGroup"
 control_id = "PaneSurfaceControlsRoot"
 classes = ["editor-surface-controls", "pane-controls"]
 layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
-children = [{ node = "trigger_action" }]
-
-[nodes.trigger_action]
-component = "IconButton"
-control_id = "TriggerAction"
-props = { label = "Action", icon = "flash-outline", icon_placement = "leading" }
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-events = [{ id = "PaneSurface/TriggerAction", event = "Click", action = { action = "file.project.open" } }]

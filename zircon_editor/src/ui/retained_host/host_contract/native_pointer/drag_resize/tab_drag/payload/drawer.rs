@@ -9,11 +9,11 @@ use self::bottom::bottom_drawer_tab_drag_payload;
 use self::left::left_drawer_tab_drag_payload;
 use self::right::right_drawer_tab_drag_payload;
 
-pub(super) fn drawer_tab_drag_payload(
-    presentation: &HostWindowPresentationData,
+pub(super) fn drawer_tab_drag_payload<'a>(
+    presentation: &'a HostWindowPresentationData,
     surface_key: &SharedString,
     index: usize,
-) -> Option<(TabData, SharedString)> {
+) -> Option<(&'a TabData, &'a SharedString)> {
     match surface_key.as_str() {
         "left" => left_drawer_tab_drag_payload(presentation, index),
         "right" => right_drawer_tab_drag_payload(presentation, index),

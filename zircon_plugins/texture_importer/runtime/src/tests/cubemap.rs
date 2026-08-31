@@ -1,10 +1,41 @@
+use std::hint::black_box;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use image::{Rgba, RgbaImage};
-use zircon_runtime::asset::{AssetImportContext, AssetUri, ImportedAsset};
+use zircon_runtime::asset::{
+    AssetImportContext, AssetUri, ImportedAsset, TexturePayload, ZCUBE_SOURCE_CUBEMAP_FORMAT,
+    encode_source_cubemap_zcube_rgba16f_mips_owned,
+};
 use zircon_runtime::core::framework::render::RenderImageDimension;
 
+use crate::array::contiguous_rgba_layer_bytes;
+use crate::cubemap::sample_equirect_bilinear;
 use crate::plugin_registration;
+
+#[test]
+fn binary_source_cubemap_container_imports_without_manifest_decode_or_f32_expansion() {
+    let root = test_root("binary-source-cubemap");
+    let source_rgba16f = vec![0x3c; 6 * (2 * 2 + 1) * 8];
+    let encoded = encode_source_cubemap_zcube_rgba16f_mips_owned(2, 2, source_rgba16f).unwrap();
+
+    let texture = import_cubemap_bytes(&root, "captured.zcube", encoded.clone());
+
+    assert_cube_descriptor(&texture, 2);
+    let TexturePayload::Container {
+        format,
+        bytes,
+        mip_count,
+        array_layers,
+    } = &texture.payload
+    else {
+        panic!("binary source cubemap must remain a container");
+    };
+    assert_eq!(format, ZCUBE_SOURCE_CUBEMAP_FORMAT);
+    assert_eq!(bytes, &encoded);
+    assert_eq!(*mip_count, 2);
+    assert_eq!(*array_layers, 6);
+}
 
 #[test]
 fn six_file_cubemap_manifest_imports_in_wgpu_face_order() {
@@ -111,7 +142,257 @@ fn texture_array_manifest_imports_files_and_stacked_slice() {
     assert_eq!(sliced.rgba[16], 4);
 }
 
+#[test]
+fn texture_hotpath_equirect_neighborhood_matches_channel_reference() {
+    let image = patterned_image(17, 9);
+    for uv in [
+        [-0.001, 0.0],
+        [0.0, 0.5],
+        [0.999, 0.5],
+        [1.001, 1.0],
+        [0.371, 0.823],
+    ] {
+        assert_eq!(
+            sample_equirect_bilinear(&image, uv),
+            legacy_sample_equirect_bilinear(&image, uv),
+            "bilinear neighborhood mismatch at {uv:?}"
+        );
+    }
+}
+
+#[test]
+fn texture_hotpath_contiguous_array_slices_match_crop_reference() {
+    let image = patterned_image(13, 15);
+
+    let optimized = contiguous_rgba_layer_bytes(&image, 3).collect::<Vec<_>>();
+    let legacy = legacy_crop_rgba_layers(&image, 3);
+
+    assert_eq!(optimized, legacy);
+    assert_eq!(optimized.len(), 5);
+}
+
+#[test]
+#[ignore = "release performance gate"]
+fn texture_hotpath_equirect_release_gate_reuses_pixel_neighborhood() {
+    const SAMPLE_PAIRS: usize = 21;
+    const UV_SAMPLES: usize = 8_192;
+    const REQUIRED_IMPROVEMENT_PERCENT: u128 = 40;
+
+    let image = patterned_image(1_024, 512);
+    let uv_samples = (0..UV_SAMPLES)
+        .map(|index| {
+            let x = index % 128;
+            let y = index / 128;
+            [(x as f32 + 0.37) / 128.0, (y as f32 + 0.63) / 64.0]
+        })
+        .collect::<Vec<_>>();
+    for _ in 0..2 {
+        black_box(measure_equirect_sampler(
+            &image,
+            &uv_samples,
+            legacy_sample_equirect_bilinear,
+        ));
+        black_box(measure_equirect_sampler(
+            &image,
+            &uv_samples,
+            sample_equirect_bilinear,
+        ));
+    }
+
+    let (legacy_samples, optimized_samples) = alternating_samples(
+        SAMPLE_PAIRS,
+        || measure_equirect_sampler(&image, &uv_samples, legacy_sample_equirect_bilinear),
+        || measure_equirect_sampler(&image, &uv_samples, sample_equirect_bilinear),
+    );
+    assert_performance_gate(
+        "plugins07_equirect_neighborhood",
+        &legacy_samples,
+        &optimized_samples,
+        REQUIRED_IMPROVEMENT_PERCENT,
+        &format!(
+            "uv_samples={UV_SAMPLES} legacy_pixel_fetches_per_sample={} optimized_pixel_fetches_per_sample={} source_width=1024 source_height=512",
+            UV_SAMPLES * 16,
+            UV_SAMPLES * 4
+        ),
+    );
+}
+
+#[test]
+#[ignore = "release performance gate"]
+fn texture_hotpath_array_release_gate_uses_contiguous_layer_copies() {
+    const SAMPLE_PAIRS: usize = 21;
+    const WIDTH: u32 = 512;
+    const LAYER_HEIGHT: u32 = 8;
+    const LAYERS: u32 = 128;
+    const REQUIRED_IMPROVEMENT_PERCENT: u128 = 30;
+
+    let image = patterned_image(WIDTH, LAYER_HEIGHT * LAYERS);
+    for _ in 0..2 {
+        black_box(measure_array_extraction(
+            &image,
+            LAYER_HEIGHT,
+            legacy_crop_rgba_layers,
+        ));
+        black_box(measure_array_extraction(
+            &image,
+            LAYER_HEIGHT,
+            optimized_contiguous_rgba_layers,
+        ));
+    }
+
+    let (legacy_samples, optimized_samples) = alternating_samples(
+        SAMPLE_PAIRS,
+        || measure_array_extraction(&image, LAYER_HEIGHT, legacy_crop_rgba_layers),
+        || measure_array_extraction(&image, LAYER_HEIGHT, optimized_contiguous_rgba_layers),
+    );
+    assert_performance_gate(
+        "plugins07_contiguous_array_layers",
+        &legacy_samples,
+        &optimized_samples,
+        REQUIRED_IMPROVEMENT_PERCENT,
+        &format!(
+            "width={WIDTH} layer_height={LAYER_HEIGHT} layers={LAYERS} legacy_generic_crops_per_sample={LAYERS} optimized_contiguous_copies_per_sample={LAYERS}"
+        ),
+    );
+}
+
+fn legacy_sample_equirect_bilinear(image: &RgbaImage, uv: [f32; 2]) -> Rgba<u8> {
+    let width = image.width().max(1);
+    let height = image.height().max(1);
+    let x = uv[0].rem_euclid(1.0) * width as f32 - 0.5;
+    let y = uv[1].clamp(0.0, 1.0) * height as f32 - 0.5;
+    let x0 = x.floor() as i64;
+    let y0 = y.floor() as i64;
+    let tx = x - x.floor();
+    let ty = y - y.floor();
+    let mut result = [0_u8; 4];
+    for (channel, value) in result.iter_mut().enumerate() {
+        let sample = |sx: i64, sy: i64| {
+            let wrapped_x = sx.rem_euclid(width as i64) as u32;
+            let clamped_y = sy.clamp(0, height as i64 - 1) as u32;
+            image.get_pixel(wrapped_x, clamped_y)[channel] as f32
+        };
+        let top = sample(x0, y0) * (1.0 - tx) + sample(x0 + 1, y0) * tx;
+        let bottom = sample(x0, y0 + 1) * (1.0 - tx) + sample(x0 + 1, y0 + 1) * tx;
+        *value = (top * (1.0 - ty) + bottom * ty).round() as u8;
+    }
+    Rgba(result)
+}
+
+fn legacy_crop_rgba_layers(image: &RgbaImage, layer_height: u32) -> Vec<Vec<u8>> {
+    (0..image.height() / layer_height)
+        .map(|layer| {
+            image::imageops::crop_imm(image, 0, layer * layer_height, image.width(), layer_height)
+                .to_image()
+                .into_raw()
+        })
+        .collect()
+}
+
+fn optimized_contiguous_rgba_layers(image: &RgbaImage, layer_height: u32) -> Vec<Vec<u8>> {
+    contiguous_rgba_layer_bytes(image, layer_height).collect()
+}
+
+fn measure_equirect_sampler(
+    image: &RgbaImage,
+    uv_samples: &[[f32; 2]],
+    sampler: fn(&RgbaImage, [f32; 2]) -> Rgba<u8>,
+) -> Duration {
+    let started = Instant::now();
+    let mut checksum = 0_u64;
+    for &uv in uv_samples {
+        let pixel = sampler(black_box(image), black_box(uv));
+        checksum = checksum.wrapping_add(pixel.0.iter().map(|value| u64::from(*value)).sum());
+    }
+    black_box(checksum);
+    started.elapsed()
+}
+
+fn measure_array_extraction(
+    image: &RgbaImage,
+    layer_height: u32,
+    extractor: fn(&RgbaImage, u32) -> Vec<Vec<u8>>,
+) -> Duration {
+    let started = Instant::now();
+    black_box(extractor(black_box(image), black_box(layer_height)));
+    started.elapsed()
+}
+
+fn alternating_samples(
+    sample_pairs: usize,
+    mut legacy: impl FnMut() -> Duration,
+    mut optimized: impl FnMut() -> Duration,
+) -> (Vec<Duration>, Vec<Duration>) {
+    let mut legacy_samples = Vec::with_capacity(sample_pairs);
+    let mut optimized_samples = Vec::with_capacity(sample_pairs);
+    for pair in 0..sample_pairs {
+        if pair % 2 == 0 {
+            legacy_samples.push(legacy());
+            optimized_samples.push(optimized());
+        } else {
+            optimized_samples.push(optimized());
+            legacy_samples.push(legacy());
+        }
+    }
+    (legacy_samples, optimized_samples)
+}
+
+fn assert_performance_gate(
+    marker: &str,
+    legacy_samples: &[Duration],
+    optimized_samples: &[Duration],
+    threshold_percent: u128,
+    workload: &str,
+) {
+    let legacy_p95 = nearest_rank_p95(legacy_samples).as_nanos();
+    let optimized_p95 = nearest_rank_p95(optimized_samples).as_nanos();
+    let improvement_percent =
+        legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
+    println!(
+        "PERF_RESULT {marker} sample_pairs=21 order=alternating_legacy_first_even {workload} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={threshold_percent}",
+        durations_csv(legacy_samples),
+        durations_csv(optimized_samples),
+    );
+    assert!(
+        improvement_percent >= threshold_percent,
+        "{marker} must improve P95 by at least {threshold_percent}% (legacy={legacy_p95}ns optimized={optimized_p95}ns improvement={improvement_percent}%)"
+    );
+}
+
+fn nearest_rank_p95(samples: &[Duration]) -> Duration {
+    let mut sorted = samples.to_vec();
+    sorted.sort_unstable();
+    sorted[(sorted.len() * 95).div_ceil(100).saturating_sub(1)]
+}
+
+fn durations_csv(samples: &[Duration]) -> String {
+    samples
+        .iter()
+        .map(|sample| sample.as_nanos().to_string())
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn patterned_image(width: u32, height: u32) -> RgbaImage {
+    RgbaImage::from_fn(width, height, |x, y| {
+        Rgba([
+            x.wrapping_mul(17).wrapping_add(y.wrapping_mul(3)) as u8,
+            x.wrapping_mul(5).wrapping_add(y.wrapping_mul(29)) as u8,
+            x.wrapping_mul(11).wrapping_add(y.wrapping_mul(7)) as u8,
+            255,
+        ])
+    })
+}
+
 fn import_manifest(root: &Path, name: &str, manifest: &str) -> zircon_runtime::asset::TextureAsset {
+    import_cubemap_bytes(root, name, manifest.as_bytes().to_vec())
+}
+
+fn import_cubemap_bytes(
+    root: &Path,
+    name: &str,
+    bytes: Vec<u8>,
+) -> zircon_runtime::asset::TextureAsset {
     let report = plugin_registration();
     let importer = report
         .extensions
@@ -122,7 +403,7 @@ fn import_manifest(root: &Path, name: &str, manifest: &str) -> zircon_runtime::a
     let context = AssetImportContext::new(
         source_path,
         AssetUri::parse(&format!("res://textures/{name}")).expect("valid manifest uri"),
-        manifest.as_bytes().to_vec(),
+        bytes,
         Default::default(),
     );
     let outcome = importer.import(&context).expect("manifest import");

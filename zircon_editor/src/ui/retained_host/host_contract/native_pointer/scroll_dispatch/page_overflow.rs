@@ -31,16 +31,16 @@ pub(super) fn dispatch_host_page_overflow_menu_scroll(
             .unwrap_or(-1);
     let state_changed = (scroll_offset - state.scroll_offset).abs() > f32::EPSILON
         || hovered_page_index != state.hovered_page_index;
-    if state_changed {
-        ui.global::<UiHostContext>()
-            .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData {
-                open: true,
-                hovered_page_index,
-                scroll_offset,
-            });
+    if !state_changed {
+        // Keep the event consumed at either extent without invalidating unchanged pixels.
+        return Some(NativePointerDispatchResult::idle());
     }
+    ui.global::<UiHostContext>()
+        .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData {
+            open: true,
+            hovered_page_index,
+            scroll_offset,
+        });
 
-    // Consume boundary scroll too: a pointer over this popup must never scroll
-    // the covered document pane after the popup has reached either extent.
     Some(NativePointerDispatchResult::region(popup))
 }

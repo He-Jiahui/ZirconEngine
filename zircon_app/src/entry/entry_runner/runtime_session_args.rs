@@ -11,6 +11,7 @@ const RUNTIME_SESSION_PROJECT_ARG: &str = "--project";
 const RUNTIME_SESSION_PROFILE_ARG: &str = "--runtime-session-profile";
 const RUNTIME_SESSION_PLAY_SCENE_ARG: &str = "--play-scene";
 const RUNTIME_SESSION_PLAY_REPORT_PIPE_ARG: &str = "--play-report-pipe";
+const RUNTIME_SESSION_REFERENCE_CPU_PRESENTER_ARG: &str = "--reference-cpu-presenter";
 const RUNTIME_SESSION_HELP_ARG: &str = "--help";
 const RUNTIME_SESSION_SHORT_HELP_ARG: &str = "-h";
 
@@ -26,6 +27,7 @@ Options:
   --play-scene=<relative-path>          Load the same project-relative Play snapshot with an equals-form argument
   --play-report-pipe <name>             Select a logical Play startup report outlet
   --play-report-pipe=<name>             Select the same logical Play startup report outlet with an equals-form argument
+  --reference-cpu-presenter              Explicitly use the degraded CPU copy presenter when a qualified native backend is unavailable
   --log-level <level>                   Select verbose, debug, log, warn, error, or off process logging
   --log-filter <filter>                 Select comma-separated log filters such as warn,zircon_runtime::asset=debug
   -h, --help                            Print this help without loading the dynamic runtime library
@@ -55,6 +57,7 @@ pub(super) struct RuntimeSessionStartupArgs {
     pub(super) project_root: Option<PathBuf>,
     pub(super) play_scene: Option<RelPath>,
     pub(super) play_report_pipe: Option<String>,
+    pub(super) reference_cpu_presenter: bool,
     pub(super) help_requested: bool,
     pub(super) remaining_args: Vec<String>,
 }
@@ -156,12 +159,21 @@ where
     let mut project_root = None;
     let mut play_scene = None;
     let mut play_report_pipe = None;
+    let mut reference_cpu_presenter = false;
     let mut help_requested = false;
     let mut args = args.into_iter().map(Into::into);
 
     while let Some(arg) = args.next() {
         if arg == RUNTIME_SESSION_HELP_ARG || arg == RUNTIME_SESSION_SHORT_HELP_ARG {
             help_requested = true;
+            continue;
+        }
+
+        if arg == RUNTIME_SESSION_REFERENCE_CPU_PRESENTER_ARG {
+            if reference_cpu_presenter {
+                return Err(duplicate_reference_cpu_presenter_error().into());
+            }
+            reference_cpu_presenter = true;
             continue;
         }
 
@@ -263,6 +275,7 @@ where
         project_root,
         play_scene,
         play_report_pipe,
+        reference_cpu_presenter,
         help_requested,
         remaining_args,
     })
@@ -447,6 +460,15 @@ fn empty_play_report_pipe_value_error() -> RuntimeStartupArgumentError {
     )
 }
 
+fn duplicate_reference_cpu_presenter_error() -> RuntimeStartupArgumentError {
+    RuntimeStartupArgumentError::new(
+        RUNTIME_SESSION_REFERENCE_CPU_PRESENTER_ARG,
+        "<multiple>",
+        "reference CPU presenter was enabled more than once",
+        "provide --reference-cpu-presenter at most once",
+    )
+}
+
 #[cfg(test)]
 mod tests {
     #[cfg(windows)]
@@ -479,8 +501,32 @@ mod tests {
         assert_eq!(parsed.project_root, None);
         assert_eq!(parsed.play_scene, None);
         assert_eq!(parsed.play_report_pipe, None);
+        assert!(!parsed.reference_cpu_presenter);
         assert!(!parsed.help_requested);
         assert_eq!(parsed.remaining_args, ["--log-level=debug"]);
+    }
+
+    #[test]
+    fn runtime_session_args_require_explicit_reference_cpu_presenter_opt_in() {
+        let parsed =
+            parse_runtime_session_startup_args(["--reference-cpu-presenter".to_string()]).unwrap();
+
+        assert!(parsed.reference_cpu_presenter);
+        assert!(parsed.remaining_args.is_empty());
+    }
+
+    #[test]
+    fn runtime_session_args_reject_duplicate_reference_cpu_presenter_opt_ins() {
+        let error = parse_runtime_session_startup_args([
+            "--reference-cpu-presenter".to_string(),
+            "--reference-cpu-presenter".to_string(),
+        ])
+        .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "runtime startup diagnostic: component=runtime_app argument=--reference-cpu-presenter requested=<multiple> cause=reference CPU presenter was enabled more than once recovery=provide --reference-cpu-presenter at most once"
+        );
     }
 
     #[test]
@@ -599,6 +645,7 @@ mod tests {
             "minimal",
             "headless",
             "--project",
+            "--reference-cpu-presenter",
             "--log-level",
             "--log-filter",
             "ZIRCON_RUNTIME_LIBRARY",

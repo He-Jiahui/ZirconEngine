@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::CoreError;
 use zircon_runtime::core::framework::bridge::PluginInterface;
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
+use zircon_runtime::core::CoreError;
 use zircon_runtime::plugin::{
     BridgeImport, PluginEventCatalogManifest, PluginEventManifest, PluginModuleId,
     PluginOptionManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
 };
 use zircon_runtime::scene::ecs::{
-    Event, Resource, RuntimeSceneSystemContext, SceneSystemClockDomain, SystemOrderingConstraint,
-    SystemRef, SystemStage,
+    Event, Resource, RuntimeSceneSystemContext, SceneSystemClockDomain, SceneSystemTickPolicy,
+    SystemOrderingConstraint, SystemRef, SystemStage,
 };
 
 pub struct RuntimePluginRegistrationBuilder<'registry> {
@@ -51,31 +51,34 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
     }
 
     /// Registers a factory that produces a fresh callback for every runtime scene-system instance.
-    pub fn runtime_scene_system<S>(
+    pub fn runtime_scene_system<S, F>(
         &mut self,
         id: impl Into<String>,
         stage: SystemStage,
-        system_factory: impl Fn() -> S + Send + Sync + 'static,
-    ) -> RuntimePluginRuntimeSceneSystemBuilder<'_, S>
+        system_factory: F,
+    ) -> RuntimePluginRuntimeSceneSystemBuilder<'_, F>
     where
         S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
+        F: Fn() -> S + Send + Sync + 'static,
     {
         RuntimePluginRuntimeSceneSystemBuilder {
             registry: self.registry,
             owner: self.owner,
             id: id.into(),
             stage,
-            system_factory: Arc::new(system_factory),
+            system_factory,
             sets: Vec::new(),
             constraints: Vec::new(),
             order: 0,
-            clock_domain: SceneSystemClockDomain::Virtual,
+            tick_policy: SceneSystemTickPolicy::for_stage(stage),
         }
     }
 
+    /// Registers an immutable factory that creates one fresh resource value
+    /// for every world initialized from the runtime extension plan.
     pub fn resource<T>(
         &mut self,
-        init: impl FnMut() -> T + Send + 'static,
+        init: impl Fn() -> T + Send + Sync + 'static,
     ) -> Result<(), RuntimeExtensionRegistryError>
     where
         T: Resource,
@@ -142,22 +145,19 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
     }
 }
 
-pub struct RuntimePluginRuntimeSceneSystemBuilder<'registry, S> {
+pub struct RuntimePluginRuntimeSceneSystemBuilder<'registry, F> {
     registry: &'registry mut RuntimeExtensionRegistry,
     owner: PluginModuleId,
     id: String,
     stage: SystemStage,
-    system_factory: Arc<dyn Fn() -> S + Send + Sync>,
+    system_factory: F,
     sets: Vec<String>,
     constraints: Vec<SystemOrderingConstraint>,
     order: i32,
-    clock_domain: SceneSystemClockDomain,
+    tick_policy: SceneSystemTickPolicy,
 }
 
-impl<'registry, S> RuntimePluginRuntimeSceneSystemBuilder<'registry, S>
-where
-    S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
-{
+impl<'registry, F> RuntimePluginRuntimeSceneSystemBuilder<'registry, F> {
     pub fn in_set(mut self, set: impl Into<String>) -> Self {
         self.sets.push(set.into());
         self
@@ -168,8 +168,8 @@ where
         self
     }
 
-    pub fn with_clock_domain(mut self, clock_domain: SceneSystemClockDomain) -> Self {
-        self.clock_domain = clock_domain;
+    pub fn with_tick_policy(mut self, tick_policy: SceneSystemTickPolicy) -> Self {
+        self.tick_policy = tick_policy;
         self
     }
 
@@ -185,7 +185,11 @@ where
         self
     }
 
-    pub fn register(self) -> Result<(), RuntimeExtensionRegistryError> {
+    pub fn register<S>(self) -> Result<(), RuntimeExtensionRegistryError>
+    where
+        S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
+        F: Fn() -> S + Send + Sync + 'static,
+    {
         let set_ids = self
             .sets
             .into_iter()
@@ -195,11 +199,9 @@ where
 
         let mut builder = self
             .registry
-            .register_runtime_scene_system(self.owner, self.id, self.stage, move || {
-                system_factory()
-            })
+            .register_runtime_scene_system(self.owner, self.id, self.stage, system_factory)
             .with_order(self.order)
-            .with_clock_domain(self.clock_domain);
+            .with_tick_policy(self.tick_policy);
 
         for set in set_ids {
             builder = builder.in_set(set);
@@ -216,6 +218,11 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{Arc, Barrier};
+    use std::thread;
+    use std::time::{Duration, Instant};
+
     use super::*;
 
     const MODULE_OWNER: &str = "sdk_registration.runtime";
@@ -282,7 +289,7 @@ mod tests {
             .in_set(SYSTEM_SET)
             .after(SystemRef::System(WORLD_TRANSFORM_SYSTEM.to_string()))
             .with_order(7)
-            .with_clock_domain(SceneSystemClockDomain::Real)
+            .with_tick_policy(SceneSystemTickPolicy::monotonic_real())
             .register()
             .expect("runtime scene system registered");
         module
@@ -323,19 +330,15 @@ mod tests {
             imported.call(|_| ()),
             Err(zircon_runtime::core::framework::bridge::BridgeError::Absent)
         );
-        assert!(
-            registry
-                .components()
-                .iter()
-                .any(|component| component.type_id == "sdk_registration.weather")
-        );
+        assert!(registry
+            .components()
+            .iter()
+            .any(|component| component.type_id == "sdk_registration.weather"));
 
-        assert!(
-            registry
-                .modules()
-                .iter()
-                .any(|module| module.name == MODULE_NAME)
-        );
+        assert!(registry
+            .modules()
+            .iter()
+            .any(|module| module.name == MODULE_NAME));
 
         let systems = registry.plugin_runtime_systems().collect::<Vec<_>>();
         assert_eq!(systems.len(), 2);
@@ -349,7 +352,10 @@ mod tests {
         assert_eq!(system.id, SYSTEM_ID);
         assert_eq!(system.stage, SystemStage::PostUpdate);
         assert_eq!(system.order, 7);
-        assert_eq!(system.clock_domain, SceneSystemClockDomain::Real);
+        assert_eq!(
+            system.tick_policy.clock_domain(),
+            SceneSystemClockDomain::MonotonicReal
+        );
         assert_eq!(system.sets.len(), 1);
         assert_eq!(
             system.constraints,
@@ -363,8 +369,8 @@ mod tests {
             .find(|(_, system)| system.id == DEFAULT_DOMAIN_SYSTEM_ID)
             .expect("default-domain runtime system registered");
         assert_eq!(
-            default_domain_system.clock_domain,
-            SceneSystemClockDomain::Virtual
+            default_domain_system.tick_policy,
+            SceneSystemTickPolicy::virtual_time()
         );
 
         let events = registry.plugin_events().collect::<Vec<_>>();
@@ -384,27 +390,23 @@ mod tests {
             std::any::type_name::<SdkRegistrationResource>()
         );
 
-        assert!(
-            registry
-                .plugin_options()
-                .iter()
-                .any(|option| option.key == OPTION_ID)
-        );
+        assert!(registry
+            .plugin_options()
+            .iter()
+            .any(|option| option.key == OPTION_ID));
         let event_catalog = registry
             .plugin_event_catalogs()
             .iter()
             .find(|catalog| catalog.namespace == CATALOG_NAMESPACE)
             .expect("event catalog registered");
-        assert!(
-            event_catalog
-                .events
-                .iter()
-                .any(|event| event.id == EVENT_ID)
-        );
+        assert!(event_catalog
+            .events
+            .iter()
+            .any(|event| event.id == EVENT_ID));
     }
 
     #[test]
-    fn runtime_registration_rejects_real_clock_domain_for_fixed_stages() {
+    fn runtime_registration_rejects_non_fixed_tick_policy_for_fixed_stages() {
         let mut registry = RuntimeExtensionRegistry::default();
         let mut module = RuntimePluginRegistrationBuilder::new(&mut registry)
             .module(MODULE_OWNER)
@@ -416,7 +418,7 @@ mod tests {
                 SystemStage::FixedUpdate,
                 || |_context| Ok::<_, CoreError>(()),
             )
-            .with_clock_domain(SceneSystemClockDomain::Real)
+            .with_tick_policy(SceneSystemTickPolicy::monotonic_real())
             .register()
             .expect_err("fixed stages must reject the real-time clock domain");
 
@@ -460,5 +462,55 @@ mod tests {
         let removed = registry.revoke_owner_registrations(owner);
         assert_eq!(removed.components.len(), 1);
         assert!(registry.components().is_empty());
+    }
+
+    #[test]
+    fn sdk_resource_registration_supports_concurrent_world_initialization() {
+        let active_calls = Arc::new(AtomicUsize::new(0));
+        let peak_active_calls = Arc::new(AtomicUsize::new(0));
+        let mut registry = RuntimeExtensionRegistry::default();
+        let mut module = RuntimePluginRegistrationBuilder::new(&mut registry)
+            .module("sdk_registration.concurrent")
+            .expect("module registered");
+        let active_calls_for_factory = Arc::clone(&active_calls);
+        let peak_active_calls_for_factory = Arc::clone(&peak_active_calls);
+
+        module
+            .resource(move || {
+                let active = active_calls_for_factory.fetch_add(1, Ordering::SeqCst) + 1;
+                peak_active_calls_for_factory.fetch_max(active, Ordering::SeqCst);
+                let deadline = Instant::now() + Duration::from_millis(250);
+                while active_calls_for_factory.load(Ordering::SeqCst) < 2
+                    && Instant::now() < deadline
+                {
+                    thread::yield_now();
+                }
+                thread::sleep(Duration::from_millis(20));
+                active_calls_for_factory.fetch_sub(1, Ordering::SeqCst);
+                SdkRegistrationResource
+            })
+            .expect("concurrent resource factory registered");
+        drop(module);
+
+        let registry = Arc::new(registry);
+        let start = Arc::new(Barrier::new(2));
+        thread::scope(|scope| {
+            for _ in 0..2 {
+                let registry = Arc::clone(&registry);
+                let start = Arc::clone(&start);
+                scope.spawn(move || {
+                    start.wait();
+                    let mut local_registry = registry.as_ref().clone();
+                    let mut world = zircon_runtime::scene::World::new();
+                    local_registry
+                        .apply_to_world(&mut world)
+                        .expect("SDK resource registration should apply to each world");
+                    assert!(world.contains_resource::<SdkRegistrationResource>());
+                });
+            }
+        });
+
+        assert_eq!(peak_active_calls.load(Ordering::SeqCst), 2);
+        assert_eq!(active_calls.load(Ordering::SeqCst), 0);
     }
 }

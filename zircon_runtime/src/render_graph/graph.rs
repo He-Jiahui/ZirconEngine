@@ -1,13 +1,48 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 
-use super::RenderGraphDump;
+mod access_allocation_table;
+mod access_index;
+mod compute_binding_access_packet;
+mod compute_dispatch_access_packet;
+mod external_access_packet;
+mod transient_allocation;
+
+use super::access::{
+    RenderGraphResourceAccessId, RenderGraphResourceAccessMetadata, RenderGraphVersionedAccessKey,
+};
+use super::error::RenderGraphError;
 use super::types::{
     PassFlags, QueueLane, RenderGraphComputePassMetadata, RenderGraphComputeWorkload,
     RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
     RenderGraphResourceDeclaration, RenderGraphResourceDesc, RenderGraphResourceKind,
     RenderGraphResourceLifetime, RenderGraphResourceVersion, RenderPassId,
 };
-use crate::rhi::{TextureDimension, TextureFormat, TextureResidency};
+use super::RenderGraphDump;
+use access_allocation_table::physical_allocation_ids_by_resource;
+pub use access_allocation_table::{
+    CompiledRenderGraphAccessAllocationBinding, CompiledRenderGraphAccessAllocationTable,
+};
+use access_index::CompiledRenderGraphAccessIndex;
+use compute_binding_access_packet::build_compute_binding_access_packets;
+pub use compute_binding_access_packet::{
+    CompiledRenderGraphComputeBindingAccess, CompiledRenderGraphComputeBindingAccessPacket,
+};
+use compute_dispatch_access_packet::build_compute_dispatch_access_packets;
+pub use compute_dispatch_access_packet::{
+    CompiledRenderGraphComputeDispatchAccess, CompiledRenderGraphComputeDispatchAccessPacket,
+};
+use external_access_packet::build_external_access_packet;
+pub use external_access_packet::{
+    CompiledRenderGraphExternalAccess, CompiledRenderGraphExternalAccessPacket,
+};
+use transient_allocation::{
+    build_transient_allocation_plan, validate_resource_lifetime_storage_sizes,
+};
+pub use transient_allocation::{
+    CompiledRenderGraphTransientAllocation, CompiledRenderGraphTransientAllocationId,
+    CompiledRenderGraphTransientAllocationPlan, CompiledRenderGraphTransientSlotReservation,
+    RenderGraphPhysicalAllocationId,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompiledRenderPass {
@@ -22,21 +57,6 @@ pub struct CompiledRenderPass {
     pub compute_workload: Option<RenderGraphComputeWorkload>,
     pub compute_pass_metadata: Option<RenderGraphComputePassMetadata>,
     pub resources: Vec<RenderGraphPassResourceAccess>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum CompiledRenderGraphAccessIndexKind {
-    Read,
-    Write,
-}
-
-impl From<RenderGraphResourceAccessKind> for CompiledRenderGraphAccessIndexKind {
-    fn from(access: RenderGraphResourceAccessKind) -> Self {
-        match access {
-            RenderGraphResourceAccessKind::Read => Self::Read,
-            RenderGraphResourceAccessKind::Write => Self::Write,
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -72,87 +92,6 @@ pub(crate) struct CompiledRenderGraphCompileWork {
     pub cull_dependency_visit_count: usize,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CompiledRenderGraphTransientAllocation {
-    pub resource: RenderGraphResource,
-    pub resource_name: String,
-    pub kind: RenderGraphResourceKind,
-    pub slot: usize,
-    pub size_bytes: u64,
-    pub bucket_key_hash: u64,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct CompiledRenderGraphTransientSlotReservation {
-    pub kind: RenderGraphResourceKind,
-    pub slot: usize,
-    pub bytes_reserved: u64,
-    pub bucket_key_hash: u64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct CompiledRenderGraphTransientAllocationPlan {
-    pub allocations: Vec<CompiledRenderGraphTransientAllocation>,
-    pub slot_reservations: Vec<CompiledRenderGraphTransientSlotReservation>,
-    pub texture_slot_count: usize,
-    pub buffer_slot_count: usize,
-    pub sparse_texture_slot_count: usize,
-    pub dense_texture_bytes_reserved: u64,
-    pub dense_buffer_bytes_reserved: u64,
-    pub sparse_texture_virtual_bytes: u64,
-}
-
-impl CompiledRenderGraphTransientAllocationPlan {
-    pub fn slot_for(&self, resource_name: &str) -> Option<usize> {
-        self.allocations
-            .iter()
-            .find(|allocation| allocation.resource_name == resource_name)
-            .map(|allocation| allocation.slot)
-    }
-
-    pub fn size_bytes_for(&self, resource_name: &str) -> Option<u64> {
-        self.allocations
-            .iter()
-            .find(|allocation| allocation.resource_name == resource_name)
-            .map(|allocation| allocation.size_bytes)
-    }
-
-    pub fn slot_bytes(&self, kind: RenderGraphResourceKind, slot: usize) -> Option<u64> {
-        let mut matched = self
-            .slot_reservations
-            .iter()
-            .filter(|reservation| reservation.kind == kind && reservation.slot == slot)
-            .peekable();
-        matched.peek()?;
-        Some(
-            matched
-                .map(|reservation| reservation.bytes_reserved)
-                .fold(0_u64, u64::saturating_add),
-        )
-    }
-
-    pub fn slot_bytes_for_bucket(
-        &self,
-        kind: RenderGraphResourceKind,
-        slot: usize,
-        bucket_key_hash: u64,
-    ) -> Option<u64> {
-        self.slot_reservations
-            .iter()
-            .find(|reservation| {
-                reservation.kind == kind
-                    && reservation.slot == slot
-                    && reservation.bucket_key_hash == bucket_key_hash
-            })
-            .map(|reservation| reservation.bytes_reserved)
-    }
-
-    pub fn total_dense_bytes_reserved(&self) -> u64 {
-        self.dense_texture_bytes_reserved
-            .saturating_add(self.dense_buffer_bytes_reserved)
-    }
-}
-
 impl CompiledRenderGraphStats {
     pub fn queue_lane_count(&self, queue: QueueLane) -> usize {
         match queue {
@@ -168,28 +107,20 @@ pub struct CompiledRenderGraph {
     name: String,
     passes: Vec<CompiledRenderPass>,
     pass_indices: HashMap<RenderPassId, usize>,
-    pass_resource_access_indices: HashMap<
-        (
-            RenderPassId,
-            RenderGraphResource,
-            CompiledRenderGraphAccessIndexKind,
-        ),
-        (usize, usize),
-    >,
-    pass_resource_version_indices: HashMap<
-        (
-            RenderPassId,
-            RenderGraphResource,
-            CompiledRenderGraphAccessIndexKind,
-        ),
-        RenderGraphResourceVersion,
-    >,
+    access_index: CompiledRenderGraphAccessIndex,
+    compute_binding_access_packets:
+        HashMap<RenderPassId, CompiledRenderGraphComputeBindingAccessPacket>,
+    compute_dispatch_access_packets:
+        HashMap<RenderPassId, CompiledRenderGraphComputeDispatchAccessPacket>,
+    external_access_packet: CompiledRenderGraphExternalAccessPacket,
     resource_declarations: Vec<RenderGraphResourceDeclaration>,
     resource_declaration_indices: HashMap<RenderGraphResource, usize>,
     resource_declaration_indices_by_name: HashMap<String, usize>,
     resource_lifetimes: Vec<RenderGraphResourceLifetime>,
     resource_lifetime_indices: HashMap<RenderGraphResource, usize>,
     transient_allocation_plan: CompiledRenderGraphTransientAllocationPlan,
+    physical_allocation_ids: HashMap<RenderGraphResource, RenderGraphPhysicalAllocationId>,
+    access_allocation_table: CompiledRenderGraphAccessAllocationTable,
     // Frame statistics are compiled with the graph so steady-frame diagnostics
     // do not rescan pass, access, and lifetime metadata.
     stats: CompiledRenderGraphStats,
@@ -202,8 +133,10 @@ impl CompiledRenderGraph {
         resource_declarations: Vec<RenderGraphResourceDeclaration>,
         resource_lifetimes: Vec<RenderGraphResourceLifetime>,
         pass_resource_versions: Vec<Vec<RenderGraphResourceVersion>>,
+        pass_resource_input_versions: Vec<Vec<Option<RenderGraphResourceVersion>>>,
+        pass_resource_access_metadata: Vec<Vec<RenderGraphResourceAccessMetadata>>,
         compile_work: CompiledRenderGraphCompileWork,
-    ) -> Self {
+    ) -> Result<Self, RenderGraphError> {
         let pass_indices = passes
             .iter()
             .enumerate()
@@ -219,59 +152,58 @@ impl CompiledRenderGraph {
             .enumerate()
             .map(|(index, declaration)| (declaration.name.clone(), index))
             .collect::<HashMap<_, _>>();
-        let mut pass_resource_access_indices = HashMap::new();
-        for (pass_index, pass) in passes.iter().enumerate() {
-            for (access_index, access) in pass.resources.iter().enumerate() {
-                let Some(declaration_index) =
-                    resource_declaration_indices_by_name.get(access.name.as_str())
-                else {
-                    continue;
-                };
-                let declaration = &resource_declarations[*declaration_index];
-                if declaration.kind != access.kind {
-                    continue;
-                }
-                pass_resource_access_indices
-                    .entry((pass.id, declaration.resource, access.access.into()))
-                    .or_insert((pass_index, access_index));
-            }
-        }
-        let mut pass_resource_version_indices = HashMap::new();
-        for (pass_index, pass) in passes.iter().enumerate() {
-            let Some(resource_versions) = pass_resource_versions.get(pass_index) else {
-                continue;
-            };
-            for (access, version) in pass.resources.iter().zip(resource_versions) {
-                pass_resource_version_indices
-                    .entry((pass.id, version.resource(), access.access.into()))
-                    .or_insert(*version);
-            }
-        }
+        let access_index = CompiledRenderGraphAccessIndex::new(
+            &passes,
+            &resource_declarations,
+            &resource_declaration_indices_by_name,
+            &pass_resource_versions,
+            &pass_resource_input_versions,
+            &pass_resource_access_metadata,
+        )?;
+        let compute_binding_access_packets =
+            build_compute_binding_access_packets(&passes, &access_index, &resource_declarations)?;
+        let compute_dispatch_access_packets =
+            build_compute_dispatch_access_packets(&passes, &access_index, &resource_declarations)?;
+        let external_access_packet =
+            build_external_access_packet(&passes, &access_index, &resource_lifetimes)
+                .map_err(|message| RenderGraphError::ExternalAccessPacketBuild { message })?;
         let resource_lifetime_indices = resource_lifetimes
             .iter()
             .enumerate()
             .map(|(index, lifetime)| (lifetime.resource, index))
             .collect();
-        let transient_allocation_plan = build_transient_allocation_plan(&resource_lifetimes);
+        validate_resource_lifetime_storage_sizes(&resource_lifetimes)?;
+        let transient_allocation_plan = build_transient_allocation_plan(&resource_lifetimes)?;
+        transient_allocation_plan.validate_transient_allocation_intervals()?;
+        let physical_allocation_ids =
+            physical_allocation_ids_by_resource(&resource_lifetimes, &transient_allocation_plan);
+        let access_allocation_table = CompiledRenderGraphAccessAllocationTable::new(
+            access_index.versioned_access_keys(),
+            &physical_allocation_ids,
+        );
         let stats = CompiledRenderGraphStats::from_compiled_graph(
             &passes,
             &resource_lifetimes,
             compile_work,
         );
-        Self {
+        Ok(Self {
             name,
             passes,
             pass_indices,
-            pass_resource_access_indices,
-            pass_resource_version_indices,
+            access_index,
+            compute_binding_access_packets,
+            compute_dispatch_access_packets,
+            external_access_packet,
             resource_declarations,
             resource_declaration_indices,
             resource_declaration_indices_by_name,
             resource_lifetimes,
             resource_lifetime_indices,
             transient_allocation_plan,
+            physical_allocation_ids,
+            access_allocation_table,
             stats,
-        }
+        })
     }
 
     pub fn name(&self) -> &str {
@@ -297,12 +229,76 @@ impl CompiledRenderGraph {
         resource: RenderGraphResource,
         access: RenderGraphResourceAccessKind,
     ) -> Option<&RenderGraphPassResourceAccess> {
-        let (pass_index, access_index) =
-            self.pass_resource_access_indices
-                .get(&(pass, resource, access.into()))?;
-        self.passes
-            .get(*pass_index)
-            .and_then(|pass| pass.resources.get(*access_index))
+        self.access_index
+            .pass_resource_access(&self.passes, pass, resource, access)
+    }
+
+    /// Returns the stable compiled identity at an authoring access ordinal.
+    ///
+    /// The pass handle remains stable when compiler dependency inference
+    /// topologically reorders the compiled pass list.
+    pub fn access_id_at(
+        &self,
+        pass: RenderPassId,
+        access_index: usize,
+    ) -> Option<RenderGraphResourceAccessId> {
+        self.access_index.access_id_at(pass, access_index)
+    }
+
+    /// Returns the stable compiled identity for an unambiguous pass resource access.
+    ///
+    /// Returns `None` if future range-aware authoring records more than one
+    /// matching access. Callers that require an exact binding must use
+    /// [`Self::access_id_at`] instead.
+    pub fn access_id_for(
+        &self,
+        pass: RenderPassId,
+        resource: RenderGraphResource,
+        access: RenderGraphResourceAccessKind,
+    ) -> Option<RenderGraphResourceAccessId> {
+        self.access_index.access_id_for(pass, resource, access)
+    }
+
+    /// Returns the immutable exact-ID packet for one live generic-compute pass.
+    ///
+    /// External rows may carry a logical access key but cannot resolve a WGPU
+    /// binding until the separate typed lease packet exists.
+    pub fn compute_binding_access_packet(
+        &self,
+        pass: RenderPassId,
+    ) -> Option<&CompiledRenderGraphComputeBindingAccessPacket> {
+        self.compute_binding_access_packets.get(&pass)
+    }
+
+    /// Returns the exact compiled resource target for a dynamic compute dispatch.
+    pub fn compute_dispatch_access_packet(
+        &self,
+        pass: RenderPassId,
+    ) -> Option<&CompiledRenderGraphComputeDispatchAccessPacket> {
+        self.compute_dispatch_access_packets.get(&pass)
+    }
+
+    /// Returns the immutable access-ID packet for live imported resources.
+    pub fn external_access_packet(&self) -> &CompiledRenderGraphExternalAccessPacket {
+        &self.external_access_packet
+    }
+
+    /// Returns the range and use intent frozen for one compiled access.
+    pub fn access_metadata(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<RenderGraphResourceAccessMetadata> {
+        self.access_index.metadata(access)
+    }
+
+    pub fn access_metadata_for(
+        &self,
+        pass: RenderPassId,
+        resource: RenderGraphResource,
+        access: RenderGraphResourceAccessKind,
+    ) -> Option<RenderGraphResourceAccessMetadata> {
+        self.access_id_for(pass, resource, access)
+            .and_then(|access| self.access_metadata(access))
     }
 
     pub fn resource_version_for_access(
@@ -311,9 +307,88 @@ impl CompiledRenderGraph {
         resource: RenderGraphResource,
         access: RenderGraphResourceAccessKind,
     ) -> Option<RenderGraphResourceVersion> {
-        self.pass_resource_version_indices
-            .get(&(pass, resource, access.into()))
-            .copied()
+        self.access_id_for(pass, resource, access)
+            .and_then(|access| self.resource_version_for_id(access))
+    }
+
+    /// Returns the version produced by one exact compiled access.
+    pub fn resource_version_for_id(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<RenderGraphResourceVersion> {
+        self.access_index.produced_version(access)
+    }
+
+    /// Returns the explicit producer value consumed by this access, when authoring
+    /// selected one instead of relying on the legacy latest-resource path.
+    pub fn input_version_for_access(
+        &self,
+        pass: RenderPassId,
+        resource: RenderGraphResource,
+        access: RenderGraphResourceAccessKind,
+    ) -> Option<RenderGraphResourceVersion> {
+        self.access_id_for(pass, resource, access)
+            .and_then(|access| self.input_version_for_id(access))
+    }
+
+    /// Returns the explicit producer value selected by one exact access.
+    pub fn input_version_for_id(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<RenderGraphResourceVersion> {
+        self.access_index.input_version(access)
+    }
+
+    /// Returns the backend-neutral exact binding key for one compiled access.
+    ///
+    /// Physical WGPU view and buffer-slice resolution is intentionally owned by
+    /// the frame-scoped execution binding table, never by this compiled graph.
+    pub fn versioned_access_key(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<RenderGraphVersionedAccessKey> {
+        self.access_index.versioned_access_key(access)
+    }
+
+    /// Returns the compiler-proven transient backing identity for a logical resource.
+    ///
+    /// Texture view aliases resolve to their parent transient backing. External
+    /// and persistent resources deliberately return `None` until their typed
+    /// lease contracts exist; callers must not substitute string names.
+    pub fn physical_allocation_id_for_resource(
+        &self,
+        resource: RenderGraphResource,
+    ) -> Option<RenderGraphPhysicalAllocationId> {
+        self.physical_allocation_ids.get(&resource).copied()
+    }
+
+    /// Returns the transient backing identity selected by one exact compiled access.
+    ///
+    /// This only exposes a backend-neutral identity. The frame-scoped product
+    /// binding table owns WGPU views and buffer slices.
+    pub fn physical_allocation_id_for_access(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<RenderGraphPhysicalAllocationId> {
+        self.access_allocation_table
+            .binding(access)
+            .and_then(|binding| binding.physical_allocation)
+    }
+
+    /// Returns one dense compiler-order row for every live resource access.
+    ///
+    /// The rows retain logical version/scope facts and may expose only a
+    /// compiler-proven transient allocation. Device-local bindings remain in
+    /// the product execution layer.
+    pub fn access_allocation_bindings(&self) -> &[CompiledRenderGraphAccessAllocationBinding] {
+        self.access_allocation_table.bindings()
+    }
+
+    pub fn access_allocation_binding(
+        &self,
+        access: RenderGraphResourceAccessId,
+    ) -> Option<&CompiledRenderGraphAccessAllocationBinding> {
+        self.access_allocation_table.binding(access)
     }
 
     pub fn resource_declarations(&self) -> &[RenderGraphResourceDeclaration] {
@@ -354,6 +429,29 @@ impl CompiledRenderGraph {
     pub fn resource_lifetime_by_name(&self, name: &str) -> Option<&RenderGraphResourceLifetime> {
         self.resource_declaration_by_name(name)
             .and_then(|declaration| self.resource_lifetime(declaration.resource))
+    }
+
+    /// Resolves a graph-owned texture to the persistent physical owner that
+    /// supplies its frame lease.
+    ///
+    /// Texture-view aliases keep their own logical access identity, while the
+    /// parent owns lifetime and storage. Access ranges are already projected
+    /// into the parent subresource space by the compiler.
+    pub fn persistent_texture_backing_resource(
+        &self,
+        resource: RenderGraphResource,
+    ) -> Option<RenderGraphResource> {
+        let declaration = self.resource_declaration(resource)?;
+        if declaration.kind != RenderGraphResourceKind::TransientTexture {
+            return None;
+        }
+        let backing_resource = declaration
+            .texture_view_alias
+            .map(|alias| RenderGraphResource::TransientTexture(alias.parent))
+            .unwrap_or(resource);
+        self.resource_lifetime(backing_resource)
+            .is_some_and(|lifetime| lifetime.usage.persistent)
+            .then_some(backing_resource)
     }
 
     pub fn dump(&self) -> RenderGraphDump {
@@ -426,339 +524,5 @@ impl CompiledRenderGraphStats {
         }
 
         stats
-    }
-}
-
-fn build_transient_allocation_plan(
-    resource_lifetimes: &[RenderGraphResourceLifetime],
-) -> CompiledRenderGraphTransientAllocationPlan {
-    let mut allocations = allocate_transient_lifetimes_by_bucket(
-        resource_lifetimes.iter().filter(|lifetime| {
-            lifetime.kind == RenderGraphResourceKind::TransientTexture
-                && !lifetime.usage.persistent
-                && !lifetime.is_sparse_reserved_texture()
-        }),
-        transient_texture_bucket_key,
-    );
-    let sparse_texture_lifetimes = resource_lifetimes
-        .iter()
-        .filter(|lifetime| {
-            lifetime.kind == RenderGraphResourceKind::TransientTexture
-                && !lifetime.imported
-                && !lifetime.usage.persistent
-                && lifetime.is_sparse_reserved_texture()
-        })
-        .collect::<Vec<_>>();
-    let sparse_texture_slot_count = sparse_texture_lifetimes.len();
-    let sparse_texture_virtual_bytes = sparse_texture_lifetimes
-        .iter()
-        .copied()
-        .map(resource_lifetime_size_bytes)
-        .fold(0_u64, u64::saturating_add);
-    let mut buffer_allocations = allocate_transient_lifetimes_by_bucket(
-        resource_lifetimes.iter().filter(|lifetime| {
-            lifetime.kind == RenderGraphResourceKind::TransientBuffer && !lifetime.usage.persistent
-        }),
-        transient_buffer_bucket_key,
-    );
-    allocations.append(&mut buffer_allocations);
-    allocations.sort_by(|left, right| left.resource_name.cmp(&right.resource_name));
-    let slot_reservations = slot_reservations_for(&allocations);
-    let texture_slot_count = slot_reservations
-        .iter()
-        .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientTexture)
-        .count();
-    let buffer_slot_count = slot_reservations
-        .iter()
-        .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientBuffer)
-        .count();
-    let dense_texture_bytes_reserved = slot_reservations
-        .iter()
-        .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientTexture)
-        .map(|reservation| reservation.bytes_reserved)
-        .fold(0_u64, u64::saturating_add);
-    let dense_buffer_bytes_reserved = slot_reservations
-        .iter()
-        .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientBuffer)
-        .map(|reservation| reservation.bytes_reserved)
-        .fold(0_u64, u64::saturating_add);
-
-    CompiledRenderGraphTransientAllocationPlan {
-        allocations,
-        slot_reservations,
-        texture_slot_count,
-        buffer_slot_count,
-        sparse_texture_slot_count,
-        dense_texture_bytes_reserved,
-        dense_buffer_bytes_reserved,
-        sparse_texture_virtual_bytes,
-    }
-}
-
-fn allocate_transient_lifetimes<'a>(
-    lifetimes: impl Iterator<Item = &'a RenderGraphResourceLifetime>,
-    bucket_key_hash: u64,
-) -> Vec<CompiledRenderGraphTransientAllocation> {
-    let mut lifetimes = lifetimes
-        .filter(|lifetime| !lifetime.imported && !lifetime.usage.persistent)
-        .collect::<Vec<_>>();
-    lifetimes.sort_by(|left, right| {
-        left.first_pass
-            .cmp(&right.first_pass)
-            .then_with(|| left.last_pass.cmp(&right.last_pass))
-            .then_with(|| left.name.cmp(&right.name))
-    });
-
-    let mut active_slots = BTreeSet::<(usize, usize)>::new();
-    let mut free_slots = BTreeSet::<usize>::new();
-    let mut next_slot = 0_usize;
-    let mut allocations = Vec::new();
-    for lifetime in lifetimes {
-        while active_slots
-            .first()
-            .is_some_and(|(last_pass, _)| *last_pass < lifetime.first_pass)
-        {
-            let Some((_, slot)) = active_slots.pop_first() else {
-                break;
-            };
-            free_slots.insert(slot);
-        }
-        let slot = free_slots.pop_first().unwrap_or_else(|| {
-            let slot = next_slot;
-            next_slot += 1;
-            slot
-        });
-        active_slots.insert((lifetime.last_pass, slot));
-        allocations.push(CompiledRenderGraphTransientAllocation {
-            resource: lifetime.resource,
-            resource_name: lifetime.name.clone(),
-            kind: lifetime.kind,
-            slot,
-            size_bytes: resource_lifetime_size_bytes(lifetime),
-            bucket_key_hash,
-        });
-    }
-
-    allocations
-}
-
-fn allocate_transient_lifetimes_by_bucket<'a, F>(
-    lifetimes: impl Iterator<Item = &'a RenderGraphResourceLifetime>,
-    bucket_key_for: F,
-) -> Vec<CompiledRenderGraphTransientAllocation>
-where
-    F: Fn(&RenderGraphResourceLifetime) -> Option<TransientAllocationBucketKey>,
-{
-    let mut lifetimes_by_bucket = HashMap::<TransientAllocationBucketKey, Vec<_>>::new();
-    for lifetime in lifetimes {
-        let Some(bucket_key) = bucket_key_for(lifetime) else {
-            continue;
-        };
-        lifetimes_by_bucket
-            .entry(bucket_key)
-            .or_default()
-            .push(lifetime);
-    }
-    let mut lifetimes_by_bucket = lifetimes_by_bucket.into_iter().collect::<Vec<_>>();
-    lifetimes_by_bucket.sort_by(|(left_key, _), (right_key, _)| {
-        left_key
-            .stable_hash()
-            .cmp(&right_key.stable_hash())
-            .then_with(|| left_key.cmp(right_key))
-    });
-
-    let mut allocations = Vec::new();
-    for (bucket_key, lifetimes) in lifetimes_by_bucket {
-        allocations.extend(allocate_transient_lifetimes(
-            lifetimes.into_iter(),
-            bucket_key.stable_hash(),
-        ));
-    }
-    allocations
-}
-
-fn slot_reservations_for(
-    allocations: &[CompiledRenderGraphTransientAllocation],
-) -> Vec<CompiledRenderGraphTransientSlotReservation> {
-    let mut reservation_bytes = HashMap::<(RenderGraphResourceKind, usize, u64), u64>::new();
-
-    for allocation in allocations {
-        reservation_bytes
-            .entry((allocation.kind, allocation.slot, allocation.bucket_key_hash))
-            .and_modify(|bytes_reserved| {
-                *bytes_reserved = (*bytes_reserved).max(allocation.size_bytes);
-            })
-            .or_insert(allocation.size_bytes);
-    }
-
-    let mut reservations = reservation_bytes
-        .into_iter()
-        .map(|((kind, slot, bucket_key_hash), bytes_reserved)| {
-            CompiledRenderGraphTransientSlotReservation {
-                kind,
-                slot,
-                bytes_reserved,
-                bucket_key_hash,
-            }
-        })
-        .collect::<Vec<_>>();
-
-    reservations.sort_by(|left, right| {
-        resource_kind_sort_key(left.kind)
-            .cmp(&resource_kind_sort_key(right.kind))
-            .then_with(|| left.bucket_key_hash.cmp(&right.bucket_key_hash))
-            .then_with(|| left.slot.cmp(&right.slot))
-    });
-    reservations
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum TransientAllocationBucketKey {
-    Texture {
-        width: u32,
-        height: u32,
-        depth: u32,
-        mip_levels: u32,
-        sample_count: u32,
-        format_key: u64,
-        dimension_key: u64,
-        residency_key: u64,
-        usage_bits: u32,
-    },
-    Buffer {
-        size_bytes: u64,
-        usage_bits: u32,
-    },
-}
-
-impl TransientAllocationBucketKey {
-    fn stable_hash(&self) -> u64 {
-        const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
-        const FNV_PRIME: u64 = 0x100000001b3;
-
-        fn mix(hash: &mut u64, value: u64) {
-            *hash ^= value;
-            *hash = hash.wrapping_mul(FNV_PRIME);
-        }
-
-        let mut hash = FNV_OFFSET_BASIS;
-        match self {
-            Self::Texture {
-                width,
-                height,
-                depth,
-                mip_levels,
-                sample_count,
-                format_key,
-                dimension_key,
-                residency_key,
-                usage_bits,
-            } => {
-                mix(&mut hash, 1);
-                mix(&mut hash, u64::from(*width));
-                mix(&mut hash, u64::from(*height));
-                mix(&mut hash, u64::from(*depth));
-                mix(&mut hash, u64::from(*mip_levels));
-                mix(&mut hash, u64::from(*sample_count));
-                mix(&mut hash, *format_key);
-                mix(&mut hash, *dimension_key);
-                mix(&mut hash, *residency_key);
-                mix(&mut hash, u64::from(*usage_bits));
-            }
-            Self::Buffer {
-                size_bytes,
-                usage_bits,
-            } => {
-                mix(&mut hash, 2);
-                mix(&mut hash, *size_bytes);
-                mix(&mut hash, u64::from(*usage_bits));
-            }
-        }
-        hash
-    }
-}
-
-fn transient_texture_bucket_key(
-    lifetime: &RenderGraphResourceLifetime,
-) -> Option<TransientAllocationBucketKey> {
-    let RenderGraphResourceDesc::Texture(desc) = &lifetime.desc else {
-        return None;
-    };
-    Some(TransientAllocationBucketKey::Texture {
-        width: desc.width,
-        height: desc.height,
-        depth: desc.depth,
-        mip_levels: desc.mip_levels,
-        sample_count: desc.sample_count,
-        format_key: texture_format_key(desc.format),
-        dimension_key: texture_dimension_key(desc.dimension),
-        residency_key: texture_residency_key(desc.residency),
-        usage_bits: desc.usage.bits(),
-    })
-}
-
-fn transient_buffer_bucket_key(
-    lifetime: &RenderGraphResourceLifetime,
-) -> Option<TransientAllocationBucketKey> {
-    let RenderGraphResourceDesc::Buffer(desc) = &lifetime.desc else {
-        return None;
-    };
-    Some(TransientAllocationBucketKey::Buffer {
-        size_bytes: desc.size_bytes,
-        usage_bits: desc.usage.bits(),
-    })
-}
-
-fn resource_lifetime_size_bytes(lifetime: &RenderGraphResourceLifetime) -> u64 {
-    match &lifetime.desc {
-        RenderGraphResourceDesc::Texture(desc) => {
-            desc.checked_storage_size_bytes().unwrap_or(u64::MAX)
-        }
-        RenderGraphResourceDesc::Buffer(desc) => desc.size_bytes,
-        RenderGraphResourceDesc::External => 0,
-    }
-}
-
-fn texture_format_key(format: TextureFormat) -> u64 {
-    match format {
-        TextureFormat::R8Unorm => 1,
-        TextureFormat::R16Float => 2,
-        TextureFormat::R32Float => 3,
-        TextureFormat::Rg16Float => 4,
-        TextureFormat::Rg11b10Ufloat => 5,
-        TextureFormat::Rgba8Unorm => 6,
-        TextureFormat::Rgba8UnormSrgb => 7,
-        TextureFormat::Bgra8Unorm => 8,
-        TextureFormat::Bgra8UnormSrgb => 9,
-        TextureFormat::Rgba16Float => 10,
-        TextureFormat::Rgba32Float => 11,
-        TextureFormat::Depth24Plus => 12,
-        TextureFormat::Depth24PlusStencil8 => 13,
-        TextureFormat::Depth32Float => 14,
-    }
-}
-
-fn texture_dimension_key(dimension: TextureDimension) -> u64 {
-    match dimension {
-        TextureDimension::D1 => 1,
-        TextureDimension::D2 => 2,
-        TextureDimension::D2Array => 3,
-        TextureDimension::D3 => 4,
-        TextureDimension::Cube => 5,
-    }
-}
-
-fn texture_residency_key(residency: TextureResidency) -> u64 {
-    match residency {
-        TextureResidency::Dense => 1,
-        TextureResidency::SparseReserved => 2,
-    }
-}
-
-const fn resource_kind_sort_key(kind: RenderGraphResourceKind) -> u8 {
-    match kind {
-        RenderGraphResourceKind::TransientTexture => 0,
-        RenderGraphResourceKind::TransientBuffer => 1,
-        RenderGraphResourceKind::External => 2,
     }
 }

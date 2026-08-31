@@ -9,7 +9,7 @@ related_code:
   - zircon_runtime_interface/src/ui/window/pump.rs
   - zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
-  - zircon_runtime_interface/src/runtime_api/events.rs
+  - zircon_runtime_interface/src/runtime_api/session/events.rs
   - zircon_runtime_interface/src/ui/mod.rs
   - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
@@ -35,7 +35,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/window/pump.rs
   - zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
-  - zircon_runtime_interface/src/runtime_api/events.rs
+  - zircon_runtime_interface/src/runtime_api/session/events.rs
   - zircon_runtime_interface/src/ui/mod.rs
   - zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs
   - zircon_runtime_interface/src/tests/window_transient_contracts.rs

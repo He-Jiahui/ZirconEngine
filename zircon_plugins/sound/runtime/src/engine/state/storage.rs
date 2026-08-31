@@ -12,11 +12,11 @@ use zircon_runtime::core::framework::sound::{
     SoundTrackMeter, SoundVolumeDescriptor, SoundVolumeId,
 };
 
-use crate::SoundConfig;
 use crate::dynamic_events::handlers::DynamicEventHandlerRegistry;
 use crate::kira_bridge::DefaultKiraEngine;
 use crate::output::SoundOutputDeviceRuntimeState;
 use crate::timeline::playback::SoundTimelineSequencePlayback;
+use crate::SoundConfig;
 
 use super::super::{SoundHrtfRenderState, SoundHrtfRenderStateKey};
 use super::{

@@ -13,6 +13,10 @@ impl WorldGeneration {
         self.0 = self.0.saturating_add(1);
     }
 
+    pub(super) const fn advanced_by(self, count: u64) -> Self {
+        Self(self.0.saturating_add(count))
+    }
+
     /// Carries a session revision across wholesale world replacement.
     fn advance_after(&mut self, previous: Self) {
         self.0 = self.0.max(previous.0).saturating_add(1);
@@ -50,7 +54,9 @@ impl PartialEq for LifecycleVisibilityRevision {
 impl World {
     /// Returns the current runtime synchronization revision.
     pub fn world_generation(&self) -> u64 {
-        self.world_generation.get()
+        self.world_generation
+            .get()
+            .saturating_add(self.derived_state_dirty.pending_component_mutation_count())
     }
 
     /// Returns the revision observed by component lifecycle callbacks.

@@ -1,5 +1,6 @@
 use crate::render_graph::{
-    RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
+    RenderGraphComputeDispatchExtent, RenderGraphComputePipelineResolution,
+    RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -7,6 +8,7 @@ pub struct RenderGraphComputeDispatchRecord {
     pub pass_name: String,
     pub executor_id: String,
     pub pipeline_label: String,
+    pub pipeline_resolution: Option<RenderGraphComputePipelineResolution>,
     pub workgroup_size: [u32; 3],
     pub dispatch_groups: [u32; 3],
     /// False when the count is generated on GPU and consumed by an indirect
@@ -30,6 +32,7 @@ impl RenderGraphComputeDispatchRecord {
             pass_name: pass_name.into(),
             executor_id: executor_id.into(),
             pipeline_label: pipeline_label.into(),
+            pipeline_resolution: None,
             workgroup_size,
             dispatch_groups,
             dispatch_groups_known: true,
@@ -37,6 +40,14 @@ impl RenderGraphComputeDispatchRecord {
             storage_write_resources,
             resource_accesses: Vec::new(),
         }
+    }
+
+    pub fn with_pipeline_resolution(
+        mut self,
+        resolution: RenderGraphComputePipelineResolution,
+    ) -> Self {
+        self.pipeline_resolution = Some(resolution);
+        self
     }
 
     pub fn with_resource_accesses(

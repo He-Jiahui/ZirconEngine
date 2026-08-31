@@ -2,8 +2,7 @@ use super::*;
 
 #[test]
 fn template_tree_builder_projects_template_instance_into_shared_ui_tree_with_metadata() {
-    let document = UiTemplateLoader::load_toml_str(WORKBENCH_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(WORKBENCH_TEMPLATE_TOML);
 
     let tree =
         UiTemplateTreeBuilder::build_tree(UiTreeId::new("workbench.template"), &instance).unwrap();

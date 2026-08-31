@@ -1,4 +1,7 @@
 import type { AuditEvent } from "../api/contracts";
+import { CircularProgress, Stack, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
+import { controlClient } from "../api/client";
 import { type DisplayAuditEvent, VirtualAuditList } from "../components/audit/VirtualAuditList";
 import { HubPanel } from "../theme";
 
@@ -23,6 +26,19 @@ export function coalesceAuditEvents(events: AuditEvent[]): DisplayAuditEvent[] {
   return compact;
 }
 
-export function AuditPage({ events }: { events: AuditEvent[] }) {
-  return <HubPanel title="只读审计轨迹"><VirtualAuditList events={coalesceAuditEvents(events)} /></HubPanel>;
+export function AuditPage({ fallback, refreshKey }: { fallback: AuditEvent[]; refreshKey: number }) {
+  const [events, setEvents] = useState<AuditEvent[] | null>(fallback.length > 0 ? fallback : null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    controlClient.logs(undefined, controller.signal).then((range) => { setEvents(range.events); setError(null); }).catch((reason) => {
+      if (!controller.signal.aborted) setError(String(reason));
+    });
+    return () => controller.abort();
+  }, [refreshKey]);
+  return <HubPanel title="只读审计轨迹"><Stack spacing={1}>
+    {error && !events && <Typography role="alert">{error}</Typography>}
+    {!events && !error && <CircularProgress aria-label="加载审计轨迹" size={24} />}
+    {events && <VirtualAuditList events={coalesceAuditEvents(events)} />}
+  </Stack></HubPanel>;
 }

@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
 
-use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
+use super::query_state::{CachedArchetypePlan, find_cached_archetype_plan};
+use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, ComponentStorageLocation, QueryFilter, QueryMutData, QueryState,
     StableEntityLocation,
 };
-use crate::scene::World;
 
 /// Mutable full-query iterator over a call-local stable candidate snapshot.
 pub struct QueryMutIter<'world, 'state, D, F = ()>

@@ -16,10 +16,10 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn append_dependen
     for dependency in &feature.dependencies {
         if !plugin_is_enabled_for_target(&dependency.plugin_id, plugin_selections, enabled_plugins)
         {
-            status.add_missing_plugin(dependency.plugin_id.clone());
+            status.add_missing_plugin(&dependency.plugin_id);
         }
         if !available_capabilities.contains(&dependency.capability) {
-            status.add_missing_capability(dependency.capability.clone());
+            status.add_missing_capability(&dependency.capability);
         }
     }
 }

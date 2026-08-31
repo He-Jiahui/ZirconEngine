@@ -3,6 +3,10 @@ use std::collections::BTreeSet;
 use super::super::super::{RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlot};
 use super::super::{RuntimeSessionArchivePruneReport, RuntimeSessionArchiveRetentionPolicy};
 
+mod partition;
+
+use self::partition::partition_pruned_slot_ids;
+
 /// A generation-bound prune decision that can be inspected before it publishes
 /// its retained and removed slot rows.
 #[derive(Debug)]
@@ -195,18 +199,14 @@ fn preview_matching_slot_ids(
         }
     }
 
-    let removed_slot_ids = canonical_slot_ids(archive)
-        .into_iter()
-        .filter(|slot_id| scoped_slot_ids.contains(slot_id))
-        .filter(|slot_id| !kept_slot_ids.contains(slot_id))
-        .collect::<Vec<_>>();
-    let removed_set = removed_slot_ids.iter().cloned().collect::<BTreeSet<_>>();
+    let (retained_slot_ids, removed_slot_ids) = partition_pruned_slot_ids(
+        canonical_slot_ids(archive),
+        &scoped_slot_ids,
+        &kept_slot_ids,
+    );
 
     Ok(RuntimeSessionArchivePruneReport {
-        retained_slot_ids: canonical_slot_ids(archive)
-            .into_iter()
-            .filter(|slot_id| !removed_set.contains(slot_id))
-            .collect(),
+        retained_slot_ids,
         removed_slot_ids,
     })
 }
@@ -265,19 +265,11 @@ fn preview_matching_slot_ids_after_upsert(
         kept_slot_ids.insert(captured_slot.slot_id.clone());
     }
 
-    let removed_slot_ids = all_slot_ids
-        .iter()
-        .filter(|slot_id| scoped_slot_ids.contains(*slot_id))
-        .filter(|slot_id| !kept_slot_ids.contains(*slot_id))
-        .cloned()
-        .collect::<Vec<_>>();
-    let removed_set = removed_slot_ids.iter().cloned().collect::<BTreeSet<_>>();
+    let (retained_slot_ids, removed_slot_ids) =
+        partition_pruned_slot_ids(all_slot_ids, &scoped_slot_ids, &kept_slot_ids);
 
     Ok(RuntimeSessionArchivePruneReport {
-        retained_slot_ids: all_slot_ids
-            .into_iter()
-            .filter(|slot_id| !removed_set.contains(slot_id))
-            .collect(),
+        retained_slot_ids,
         removed_slot_ids,
     })
 }

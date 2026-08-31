@@ -46,7 +46,6 @@ fn project_asset_and_hierarchy_actions_use_explicit_dense_composition() {
     for (file_name, expected_leading_action_count) in [
         ("asset_surface_controls.zui", 6),
         ("hierarchy_body.zui", 1),
-        ("pane_surface_controls.zui", 1),
         ("startup_welcome_controls.zui", 3),
     ] {
         let template = std::fs::read_to_string(

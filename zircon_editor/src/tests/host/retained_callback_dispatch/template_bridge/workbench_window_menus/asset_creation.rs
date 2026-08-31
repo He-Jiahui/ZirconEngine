@@ -67,6 +67,14 @@ fn asset_creation_menu_reuses_generation_and_publishes_collision_safe_o1_actions
             .unwrap();
     }
     assert_eq!(bridge.asset_creation_menu_publish_count(), 1);
+    assert!(
+        bridge
+            .control_frame("WorkbenchToolbarMainMenu")
+            .expect("main menu should expose its content-measured frame")
+            .width
+            > 190.0,
+        "the authored width must grow for Command Palette, its shortcut, and its icon"
+    );
 
     for entry in generation.entries() {
         let request = bridge
@@ -80,6 +88,84 @@ fn asset_creation_menu_reuses_generation_and_publishes_collision_safe_o1_actions
         assert_eq!(request.asset_type(), entry.asset_type());
         assert_eq!(request.template_id(), entry.template_id());
     }
+}
+
+#[test]
+fn main_menu_shortcuts_follow_effective_keymap_without_rebuilding_stable_generations() {
+    let shell_size = UiSize::new(900.0, 620.0);
+    let chrome = default_preview_fixture().build_chrome();
+    let registry = EditorCommandRegistry::default_workbench();
+    let context = CommandEvalCtx::interactive().with_project_open(true);
+    let contributions = ContributionSnapshot::default();
+    let capabilities = CapabilitySet::default();
+    let i18n = crate::core::i18n::EditorI18nService::default();
+    let locale = i18n.active_locale();
+    let overridden = EditorKeymap::default_workbench().with_overrides(&EditorKeymapOverrides::new(
+        BTreeMap::from([
+            (
+                EditorOperationPath::parse("file.project.open").unwrap(),
+                Some("Alt+O".parse::<EditorKeyChord>().unwrap()),
+            ),
+            (
+                EditorOperationPath::parse("file.project.save").unwrap(),
+                None,
+            ),
+        ]),
+    ));
+    let overridden_model = WorkbenchViewModel::build_with_contributions_and_context(
+        &registry,
+        &overridden,
+        &i18n,
+        &locale,
+        &chrome,
+        &contributions,
+        &capabilities,
+        None,
+        &context,
+    );
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(shell_size)
+        .expect("componentized workbench template should project");
+
+    for _ in 0..10 {
+        bridge
+            .recompute_layout_with_workbench_model(
+                shell_size,
+                &overridden_model,
+                &WorkbenchChromeMetrics::default(),
+            )
+            .unwrap();
+    }
+    let overridden_items = control_string_array(&bridge, "WorkbenchToolbarMainMenu", "menu_items");
+    assert!(overridden_items
+        .contains(&"Open Project|action=menu.item.open_project,icon=folder|Alt+O".to_string()));
+    assert!(overridden_items
+        .contains(&"Save Project|action=menu.item.save_project,icon=save".to_string()));
+    assert_eq!(bridge.asset_creation_menu_publish_count(), 1);
+
+    let default_model = WorkbenchViewModel::build_with_contributions_and_context(
+        &registry,
+        &EditorKeymap::default_workbench(),
+        &i18n,
+        &locale,
+        &chrome,
+        &contributions,
+        &capabilities,
+        None,
+        &context,
+    );
+    bridge
+        .recompute_layout_with_workbench_model(
+            shell_size,
+            &default_model,
+            &WorkbenchChromeMetrics::default(),
+        )
+        .unwrap();
+    let default_items = control_string_array(&bridge, "WorkbenchToolbarMainMenu", "menu_items");
+    assert!(default_items
+        .contains(&"Open Project|action=menu.item.open_project,icon=folder|Ctrl+O".to_string()));
+    assert!(default_items
+        .contains(&"Save Project|action=menu.item.save_project,icon=save|Ctrl+S".to_string()));
+    assert_eq!(bridge.asset_creation_menu_publish_count(), 2);
 }
 
 #[test]
@@ -200,7 +286,7 @@ fn workbench_main_menu_asset_creation_invokes_registered_operation() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(create.clone(), "Create UI Layout")
+            EditorCommandDescriptor::operation(create.clone())
                 .with_event(EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser)),
         )
         .unwrap();

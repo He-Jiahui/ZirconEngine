@@ -87,10 +87,17 @@ pub(crate) fn build_selected_node_prop_state_items(
         return Vec::new();
     };
 
-    let mut rows = Vec::new();
+    let mut rows = Vec::with_capacity(prop_state_row_capacity(&node.props, &node.params));
     collect_value_items(&mut rows, "prop", "", &node.props);
     collect_value_items(&mut rows, "state", "", &node.params);
     rows
+}
+
+fn prop_state_row_capacity(
+    props: &BTreeMap<String, Value>,
+    state: &BTreeMap<String, Value>,
+) -> usize {
+    props.len().saturating_add(state.len())
 }
 
 pub(crate) fn set_selected_node_control_id(
@@ -464,6 +471,10 @@ fn node_label(node: &UiNodeDefinition) -> String {
         .or_else(|| node.slot_name.clone())
         .unwrap_or_else(|| "Node".to_string())
 }
+
+#[cfg(test)]
+#[path = "inspector_fields/capacity_tests.rs"]
+mod capacity_tests;
 
 fn set_selected_child_numeric_slot_value(
     document: &mut UiAssetDocument,

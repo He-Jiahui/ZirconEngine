@@ -5,19 +5,20 @@ use crate::core::framework::render::{
     AntiAliasFallbackReport, AntiAliasMode, FrameHistoryInvalidationReason, PostProcessPassGraph,
     RenderAmbientLightSnapshot, RenderCameraOrderReport, RenderCameraTargetResolutionReport,
     RenderCapabilitySummary, RenderDirectionalLightSnapshot, RenderFrameExtract,
-    RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderMeshSnapshot, RenderPipelineHandle,
-    RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderRectLightSnapshot,
-    RenderSpotLightSnapshot, RenderViewFamilyPipeline,
-    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCpuReferenceInstance,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryPagePayload,
-    RenderVirtualGeometryPayloadSource, ShaderQualityTier, SolariRuntimeReport,
-    TemporalJitterSample, TemporalJitterSequence, ViewportCameraSnapshot,
+    RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderMeshSnapshot,
+    RenderParticlePreviousSpriteSnapshot, RenderPipelineHandle, RenderPointLightSnapshot,
+    RenderPostProcessEffectStackSettings, RenderRectLightSnapshot, RenderSpotLightSnapshot,
+    RenderViewFamilyPipeline, RenderVirtualGeometryBvhVisualizationInstance,
+    RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryPagePayload, RenderVirtualGeometryPayloadSource, ShaderQualityTier,
+    SolariRuntimeReport, SourceCubemapEnvironment, TemporalJitterSample, TemporalJitterSequence,
+    ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec3};
 use crate::graphics::runtime::FrameHistoryValidationKey;
 use crate::graphics::{
-    EnvironmentIblBakeReservation, ViewVisibilityContext, ViewportRenderOutputTarget,
-    VisibilityViewKey,
+    EnvironmentIblBakeReservation, RendererPostProcessSnapshot, ViewVisibilityContext,
+    ViewportRenderOutputTarget, VisibilityViewKey,
 };
 
 use crate::graphics::{
@@ -64,28 +65,28 @@ pub(super) struct FrameSubmissionContext {
     history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
     output_target: ViewportRenderOutputTarget,
     camera_target_resolution: RenderCameraTargetResolutionReport,
-    // Set once during frame-context construction. Consumers must use this shared contract instead
-    // of independently deriving phase resolution from `render_size`.
-    view_family_pipeline: Option<RenderViewFamilyPipeline>,
-    scene_camera_order_report: Option<RenderCameraOrderReport>,
+    // Resolved before graph allocation. Consumers must use this shared contract instead of
+    // independently deriving phase resolution from `render_size`.
+    view_family_pipeline: RenderViewFamilyPipeline,
+    scene_camera_order_report: Option<Arc<RenderCameraOrderReport>>,
     ui_stats: UiSubmissionStats,
-    post_process_effect_stack: RenderPostProcessEffectStackSettings,
+    post_process: Arc<RendererPostProcessSnapshot>,
     anti_alias_fallback: AntiAliasFallbackReport,
     advanced_runtime_plan: AdvancedProfileRuntimePlan,
     solari_runtime_report: SolariRuntimeReport,
-    post_process_graph: PostProcessPassGraph,
     hybrid_gi_enabled: bool,
     virtual_geometry_enabled: bool,
     hybrid_gi_extract: Option<RenderHybridGiExtract>,
     hybrid_gi_payload_source: RenderHybridGiPayloadSource,
     hybrid_gi_update_plan: Option<VisibilityHybridGiUpdatePlan>,
     hybrid_gi_feedback: Option<VisibilityHybridGiFeedback>,
-    // Owns the viewport-sized extract once so submit/prepare/stat readers can borrow heavy scene
-    // payload slices without cloning meshes, lights, or particle previous-state vectors.
-    source_extract: Arc<RenderFrameExtract>,
+    // Owns the renderer-resolved view overlay while sharing the immutable generation scene.
+    // Submit/prepare/stat readers borrow heavy scene slices without cloning their domains.
+    submission_extract: Arc<RenderFrameExtract>,
     particle_sprite_count: usize,
     particle_previous_state_sprite_count: usize,
     particle_anonymous_stream_ambiguity_sprite_count: usize,
+    particle_previous_sprites_override: Option<Vec<RenderParticlePreviousSpriteSnapshot>>,
     virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
     virtual_geometry_payload_source: RenderVirtualGeometryPayloadSource,
     virtual_geometry_cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
@@ -95,6 +96,7 @@ pub(super) struct FrameSubmissionContext {
     virtual_geometry_page_upload_plan: Option<VisibilityVirtualGeometryPageUploadPlan>,
     virtual_geometry_feedback: Option<VisibilityVirtualGeometryFeedback>,
     environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
+    environment_source_cubemap_override: Option<SourceCubemapEnvironment>,
     predicted_generation: u64,
 }
 
@@ -117,20 +119,20 @@ impl FrameSubmissionContext {
         history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
         output_target: ViewportRenderOutputTarget,
         camera_target_resolution: RenderCameraTargetResolutionReport,
-        scene_camera_order_report: Option<RenderCameraOrderReport>,
+        view_family_pipeline: RenderViewFamilyPipeline,
+        scene_camera_order_report: Option<Arc<RenderCameraOrderReport>>,
         ui_stats: UiSubmissionStats,
-        post_process_effect_stack: RenderPostProcessEffectStackSettings,
+        post_process: RendererPostProcessSnapshot,
         anti_alias_fallback: AntiAliasFallbackReport,
         advanced_runtime_plan: AdvancedProfileRuntimePlan,
         solari_runtime_report: SolariRuntimeReport,
-        post_process_graph: PostProcessPassGraph,
         hybrid_gi_enabled: bool,
         virtual_geometry_enabled: bool,
         hybrid_gi_extract: Option<RenderHybridGiExtract>,
         hybrid_gi_payload_source: RenderHybridGiPayloadSource,
         hybrid_gi_update_plan: Option<VisibilityHybridGiUpdatePlan>,
         hybrid_gi_feedback: Option<VisibilityHybridGiFeedback>,
-        source_extract: Arc<RenderFrameExtract>,
+        submission_extract: Arc<RenderFrameExtract>,
         particle_sprite_count: usize,
         particle_previous_state_sprite_count: usize,
         particle_anonymous_stream_ambiguity_sprite_count: usize,
@@ -202,24 +204,24 @@ impl FrameSubmissionContext {
             history_invalidation_reason,
             output_target,
             camera_target_resolution,
-            view_family_pipeline: None,
+            view_family_pipeline,
             scene_camera_order_report,
             ui_stats,
-            post_process_effect_stack,
+            post_process: Arc::new(post_process),
             anti_alias_fallback,
             advanced_runtime_plan,
             solari_runtime_report,
-            post_process_graph,
             hybrid_gi_enabled,
             virtual_geometry_enabled,
             hybrid_gi_extract,
             hybrid_gi_payload_source,
             hybrid_gi_update_plan,
             hybrid_gi_feedback,
-            source_extract,
+            submission_extract,
             particle_sprite_count,
             particle_previous_state_sprite_count,
             particle_anonymous_stream_ambiguity_sprite_count,
+            particle_previous_sprites_override: None,
             virtual_geometry_extract,
             virtual_geometry_payload_source,
             virtual_geometry_cpu_reference_instances,
@@ -228,6 +230,7 @@ impl FrameSubmissionContext {
             virtual_geometry_page_upload_plan,
             virtual_geometry_feedback,
             environment_ibl_bake_reservation: None,
+            environment_source_cubemap_override: None,
             predicted_generation,
         }
     }
@@ -278,17 +281,18 @@ impl FrameSubmissionContext {
         self
     }
 
-    /// Installs the single view-family resolution contract for this submitted frame.
-    ///
-    /// `build_frame_submission_context` resolves this before graph allocation. The explicit
-    /// builder keeps the existing constructor source-compatible while its active owner completes
-    /// the cross-module handoff; there is deliberately no scalar-size fallback for consumers.
-    pub(super) fn with_view_family_pipeline(
+    pub(super) fn with_environment_source_cubemap_override(
         mut self,
-        view_family_pipeline: RenderViewFamilyPipeline,
+        source_cubemap: Option<SourceCubemapEnvironment>,
     ) -> Self {
-        self.view_family_pipeline = Some(view_family_pipeline);
+        self.environment_source_cubemap_override = source_cubemap;
         self
+    }
+
+    pub(super) fn take_environment_source_cubemap_override(
+        &mut self,
+    ) -> Option<SourceCubemapEnvironment> {
+        self.environment_source_cubemap_override.take()
     }
 
     pub(super) fn take_environment_ibl_bake_reservation(
@@ -317,12 +321,12 @@ impl FrameSubmissionContext {
         &self.visibility_context
     }
 
-    pub(super) fn source_extract(&self) -> Arc<RenderFrameExtract> {
-        Arc::clone(&self.source_extract)
+    pub(super) fn submission_extract(&self) -> Arc<RenderFrameExtract> {
+        Arc::clone(&self.submission_extract)
     }
 
     pub(super) fn source_world(&self) -> crate::core::framework::render::RenderWorldSnapshotHandle {
-        self.source_extract.world
+        self.submission_extract.world
     }
 
     pub(super) fn view_visibility(
@@ -367,13 +371,11 @@ impl FrameSubmissionContext {
 
     /// Returns the only per-frame resolution/phase contract valid for graph consumers.
     pub(super) fn view_family_pipeline(&self) -> &RenderViewFamilyPipeline {
-        self.view_family_pipeline.as_ref().expect(
-            "frame-context consumers require the ViewFamily pipeline resolved during submission",
-        )
+        &self.view_family_pipeline
     }
 
     pub(super) fn scene_camera_order_report(&self) -> Option<&RenderCameraOrderReport> {
-        self.scene_camera_order_report.as_ref()
+        self.scene_camera_order_report.as_deref()
     }
 
     pub(super) fn ui_stats(&self) -> &UiSubmissionStats {
@@ -381,7 +383,7 @@ impl FrameSubmissionContext {
     }
 
     pub(super) fn post_process_effect_stack(&self) -> RenderPostProcessEffectStackSettings {
-        self.post_process_effect_stack
+        self.post_process.post_process().effect_stack
     }
 
     pub(super) fn anti_alias_fallback(&self) -> AntiAliasFallbackReport {
@@ -397,7 +399,11 @@ impl FrameSubmissionContext {
     }
 
     pub(super) fn post_process_graph(&self) -> &PostProcessPassGraph {
-        &self.post_process_graph
+        &self.post_process.post_process().graph
+    }
+
+    pub(super) fn post_process_shared(&self) -> Arc<RendererPostProcessSnapshot> {
+        Arc::clone(&self.post_process)
     }
 
     pub(super) fn hybrid_gi_enabled(&self) -> bool {
@@ -425,41 +431,44 @@ impl FrameSubmissionContext {
     }
 
     pub(super) fn scene_meshes(&self) -> &[RenderMeshSnapshot] {
-        &self.source_extract.geometry.meshes
+        &self.submission_extract.geometry.meshes
     }
 
     pub(super) fn scene_camera_position(&self) -> Vec3 {
-        self.source_extract.view.camera.transform.translation
+        self.submission_extract.view.camera.transform.translation
     }
 
     pub(super) fn scene_directional_lights(&self) -> &[RenderDirectionalLightSnapshot] {
-        &self.source_extract.lighting.directional_lights
+        &self.submission_extract.lighting.directional_lights
     }
 
     pub(super) fn scene_point_lights(&self) -> &[RenderPointLightSnapshot] {
-        &self.source_extract.lighting.point_lights
+        &self.submission_extract.lighting.point_lights
     }
 
     pub(super) fn scene_spot_lights(&self) -> &[RenderSpotLightSnapshot] {
-        &self.source_extract.lighting.spot_lights
+        &self.submission_extract.lighting.spot_lights
     }
 
     pub(super) fn scene_baked_lighting(
         &self,
     ) -> Option<&crate::core::framework::render::LightmapConsumeContract> {
-        self.source_extract.environment.baked_lighting()
+        self.submission_extract.environment.baked_lighting()
     }
 
     pub(super) fn scene_has_baked_probe_grid(&self) -> bool {
-        self.source_extract.environment.light_probe_grid().is_some()
+        self.submission_extract
+            .environment
+            .light_probe_grid()
+            .is_some()
     }
 
     pub(super) fn scene_ambient_lights(&self) -> &[RenderAmbientLightSnapshot] {
-        &self.source_extract.lighting.ambient_lights
+        &self.submission_extract.lighting.ambient_lights
     }
 
     pub(super) fn scene_rect_lights(&self) -> &[RenderRectLightSnapshot] {
-        &self.source_extract.lighting.rect_lights
+        &self.submission_extract.lighting.rect_lights
     }
 
     pub(super) fn particle_sprite_count(&self) -> usize {
@@ -472,6 +481,20 @@ impl FrameSubmissionContext {
 
     pub(super) fn particle_anonymous_stream_ambiguity_sprite_count(&self) -> usize {
         self.particle_anonymous_stream_ambiguity_sprite_count
+    }
+
+    pub(super) fn with_particle_previous_sprites_override(
+        mut self,
+        previous_sprites: Option<Vec<RenderParticlePreviousSpriteSnapshot>>,
+    ) -> Self {
+        self.particle_previous_sprites_override = previous_sprites;
+        self
+    }
+
+    pub(super) fn take_particle_previous_sprites_override(
+        &mut self,
+    ) -> Option<Vec<RenderParticlePreviousSpriteSnapshot>> {
+        self.particle_previous_sprites_override.take()
     }
 
     pub(super) fn virtual_geometry_extract(&self) -> Option<&RenderVirtualGeometryExtract> {

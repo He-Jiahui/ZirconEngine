@@ -14,8 +14,8 @@ pub(super) fn normal_button_style(
             surface: button_palette.surface_primary_rest,
             border: button_palette.border,
             border_width,
-            text: button_palette.text,
-            glyph: button_palette.text,
+            text: button_palette.primary_text,
+            glyph: button_palette.primary_text,
             interaction,
         },
         WorkbenchButtonKind::Secondary => WorkbenchButtonStyle {

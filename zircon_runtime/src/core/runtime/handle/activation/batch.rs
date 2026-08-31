@@ -5,13 +5,15 @@ use std::sync::Arc;
 use crate::core::{CoreError, LifecycleState};
 
 use super::super::super::descriptors::{FrozenModuleGraph, RegistryName};
-use super::super::super::state::{
-    ModuleLifecycleCommand, ModuleLifecycleTransitionPermit, ModuleLifecycleTransitionToken,
-};
+use super::super::super::state::{ModuleLifecycleCommand, ModuleLifecycleTransitionPermit};
 use super::super::CoreHandle;
 use super::service_lifecycle::{
     prepare_reactivation_services, rollback_reactivation_services, validate_reactivation_services,
 };
+
+mod transaction_set;
+
+use self::transaction_set::LifecycleTransactionSet;
 
 struct BatchModuleActivation {
     module_name: String,
@@ -32,29 +34,31 @@ impl CoreHandle {
         crate::profile_scope!("runtime", "core", "activate_registered_modules");
         let graph = self.frozen_module_graph()?;
         let mut owner_modules = Vec::with_capacity(graph.module_activation_order().len());
-        let mut transition_tokens = Vec::with_capacity(graph.module_activation_order().len());
+        let mut transitions =
+            LifecycleTransactionSet::new(self, graph.module_activation_order().len());
         for module_name in graph.module_activation_order() {
-            match self.acquire_module_lifecycle_transition(
-                module_name,
-                ModuleLifecycleCommand::Activate,
-            )? {
+            let permit = match self
+                .acquire_module_lifecycle_transition(module_name, ModuleLifecycleCommand::Activate)
+            {
+                Ok(permit) => permit,
+                Err(error) => return transitions.finish(Err(error)),
+            };
+            match permit {
                 ModuleLifecycleTransitionPermit::Owner(token) => {
+                    transitions.push(token);
                     owner_modules.push(module_name.clone());
-                    transition_tokens.push(token);
                 }
                 ModuleLifecycleTransitionPermit::Completed(Err(error)) => {
-                    self.complete_batch_module_lifecycle_transitions(
-                        &transition_tokens,
-                        Err(error.clone()),
-                    );
-                    return Err(error);
+                    return transitions.finish(Err(error));
                 }
                 ModuleLifecycleTransitionPermit::Completed(Ok(())) => {}
                 ModuleLifecycleTransitionPermit::Wait => {
-                    return Err(CoreError::ModuleLifecycleCoordinatorUnresolved {
-                        module: module_name.clone(),
-                        command: ModuleLifecycleCommand::Activate.as_str(),
-                    });
+                    return transitions.finish(Err(
+                        CoreError::ModuleLifecycleCoordinatorUnresolved {
+                            module: module_name.clone(),
+                            command: ModuleLifecycleCommand::Activate.as_str(),
+                        },
+                    ));
                 }
             }
         }
@@ -64,8 +68,7 @@ impl CoreHandle {
             owner_modules.as_slice(),
             ready_timeout,
         );
-        self.complete_batch_module_lifecycle_transitions(&transition_tokens, result.clone());
-        result
+        transitions.finish(result)
     }
 
     fn activate_owned_modules_with_ready_timeout(
@@ -135,16 +138,6 @@ impl CoreHandle {
         }
 
         Ok(())
-    }
-
-    fn complete_batch_module_lifecycle_transitions(
-        &self,
-        transition_tokens: &[ModuleLifecycleTransitionToken],
-        result: Result<(), CoreError>,
-    ) {
-        for token in transition_tokens {
-            self.complete_module_lifecycle_transition(token, result.clone());
-        }
     }
 
     fn begin_batch_module_activation(

@@ -2,8 +2,8 @@ use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_extension::{
     EditorExtensionRegistry, EditorExtensionRegistryError,
 };
-use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_runtime::core::framework::sound::{
     AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
 };
@@ -79,7 +79,7 @@ pub fn sound_editor_command_descriptors() -> Vec<EditorCommandDescriptor> {
         .into_iter()
         .map(|spec| {
             let path = EditorOperationPath::parse(spec.path).expect("valid sound operation path");
-            EditorCommandDescriptor::operation(path, spec.display_name)
+            EditorCommandDescriptor::operation(path)
                 .with_payload_schema_id(spec.payload_schema)
                 .with_required_capabilities([SOUND_AUTHORING_CAPABILITY])
         })
@@ -122,125 +122,96 @@ pub fn sound_audio_volume_inspector_customization() -> InspectorCustomizationDes
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct SoundOperationSpec {
     path: &'static str,
-    display_name: &'static str,
     payload_schema: &'static str,
 }
 
 fn sound_editor_operation_specs() -> Vec<SoundOperationSpec> {
     vec![
-        mixer_spec("sound.mixer.track.create", "Create Sound Track"),
-        mixer_spec(
-            "sound.mixer.track.update_controls",
-            "Update Sound Track Controls",
-        ),
-        mixer_spec("sound.mixer.track.delete", "Delete Sound Track"),
-        mixer_spec("sound.mixer.send.upsert", "Upsert Sound Send"),
-        mixer_spec("sound.mixer.send.delete", "Delete Sound Send"),
-        mixer_spec("sound.mixer.effect.add", "Add Sound Effect"),
-        mixer_spec("sound.mixer.effect.update", "Update Sound Effect"),
-        mixer_spec("sound.mixer.effect.delete", "Delete Sound Effect"),
-        mixer_spec("sound.mixer.effect.reorder", "Reorder Sound Effects"),
-        mixer_spec("sound.mixer.preset.list", "List Sound Mixer Presets"),
-        mixer_spec("sound.mixer.preset.apply", "Apply Sound Mixer Preset"),
-        mixer_spec("sound.mixer.sidechain.set_source", "Set Sidechain Source"),
-        mixer_spec("sound.mixer.automation.bind", "Bind Sound Automation"),
-        mixer_spec("sound.mixer.automation.unbind", "Unbind Sound Automation"),
-        mixer_spec(
-            "sound.dynamic_event.registry.open",
-            "Open Sound Dynamic Event Registry",
-        ),
-        mixer_spec("sound.output.device.refresh", "Refresh Sound Outputs"),
-        mixer_spec("sound.output.device.configure", "Configure Sound Output"),
-        mixer_spec("sound.output.device.start", "Start Sound Output"),
-        mixer_spec("sound.output.device.stop", "Stop Sound Output"),
-        mixer_spec(
-            "sound.debug.acoustic.toggle_layer",
-            "Toggle Acoustic Debug Layer",
-        ),
+        mixer_spec("sound.mixer.track.create"),
+        mixer_spec("sound.mixer.track.update_controls"),
+        mixer_spec("sound.mixer.track.delete"),
+        mixer_spec("sound.mixer.send.upsert"),
+        mixer_spec("sound.mixer.send.delete"),
+        mixer_spec("sound.mixer.effect.add"),
+        mixer_spec("sound.mixer.effect.update"),
+        mixer_spec("sound.mixer.effect.delete"),
+        mixer_spec("sound.mixer.effect.reorder"),
+        mixer_spec("sound.mixer.preset.list"),
+        mixer_spec("sound.mixer.preset.apply"),
+        mixer_spec("sound.mixer.sidechain.set_source"),
+        mixer_spec("sound.mixer.automation.bind"),
+        mixer_spec("sound.mixer.automation.unbind"),
+        mixer_spec("sound.dynamic_event.registry.open"),
+        mixer_spec("sound.output.device.refresh"),
+        mixer_spec("sound.output.device.configure"),
+        mixer_spec("sound.output.device.start"),
+        mixer_spec("sound.output.device.stop"),
+        mixer_spec("sound.debug.acoustic.toggle_layer"),
         component_spec(
             "sound.component.audio_source.apply",
-            "Apply AudioSource",
             "sound.component.audiosource.apply.v1",
         ),
         component_spec(
             "sound.component.audio_source.set_input",
-            "Set AudioSource Input",
             "sound.component.audiosource.input.v1",
         ),
         component_spec(
             "sound.component.audio_source.set_output_track",
-            "Set AudioSource Output Track",
             "sound.component.audiosource.output_track.v1",
         ),
         component_spec(
             "sound.component.audio_source.upsert_send",
-            "Upsert AudioSource Send",
             "sound.component.audiosource.send.v1",
         ),
         component_spec(
             "sound.component.audio_source.delete_send",
-            "Delete AudioSource Send",
             "sound.component.audiosource.send.delete.v1",
         ),
         component_spec(
             "sound.component.audio_source.bind_parameter",
-            "Bind AudioSource Parameter",
             "sound.component.audiosource.parameter_binding.v1",
         ),
         component_spec(
             "sound.component.audio_source.unbind_parameter",
-            "Unbind AudioSource Parameter",
             "sound.component.audiosource.parameter_binding.delete.v1",
         ),
         component_spec(
             "sound.component.audio_listener.apply",
-            "Apply AudioListener",
             "sound.component.audiolistener.apply.v1",
         ),
         component_spec(
             "sound.component.audio_listener.set_active",
-            "Set Active AudioListener",
             "sound.component.audiolistener.active.v1",
         ),
         component_spec(
             "sound.component.audio_listener.set_hrtf_profile",
-            "Set AudioListener HRTF Profile",
             "sound.component.audiolistener.hrtf_profile.v1",
         ),
         component_spec(
             "sound.component.audio_volume.apply",
-            "Apply AudioVolume",
             "sound.component.audiovolume.apply.v1",
         ),
         component_spec(
             "sound.component.audio_volume.set_shape",
-            "Set AudioVolume Shape",
             "sound.component.audiovolume.shape.v1",
         ),
         component_spec(
             "sound.component.audio_volume.set_impulse_response",
-            "Set AudioVolume Impulse Response",
             "sound.component.audiovolume.impulse_response.v1",
         ),
     ]
 }
 
-fn mixer_spec(path: &'static str, display_name: &'static str) -> SoundOperationSpec {
+fn mixer_spec(path: &'static str) -> SoundOperationSpec {
     SoundOperationSpec {
         path,
-        display_name,
         payload_schema: schema_id(path),
     }
 }
 
-fn component_spec(
-    path: &'static str,
-    display_name: &'static str,
-    suffix: &'static str,
-) -> SoundOperationSpec {
+fn component_spec(path: &'static str, suffix: &'static str) -> SoundOperationSpec {
     SoundOperationSpec {
         path,
-        display_name,
         payload_schema: suffix,
     }
 }

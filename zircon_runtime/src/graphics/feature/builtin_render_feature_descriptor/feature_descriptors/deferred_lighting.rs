@@ -6,8 +6,8 @@ use crate::graphics::pipeline::RenderPassStage;
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
-) -> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
+-> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "deferred_lighting",
         vec![
@@ -17,25 +17,27 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             "visibility".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Lighting,
-            "deferred-lighting",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("lighting.deferred")
-        .read_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
-        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-        .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
-        .read_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE)
-        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .read_required_external_texture(PostProcessGraphResourceNames::SHADOW_ATLAS)
-        .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
-        .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
-        .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
-        .write_texture_with_ops(
-            PostProcessGraphResourceNames::SCENE_COLOR,
-            RenderGraphAttachmentOps::clear_store(),
-        )],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Lighting,
+                "deferred-lighting",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("lighting.deferred")
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE)
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_required_external_texture(PostProcessGraphResourceNames::SHADOW_ATLAS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCENE_COLOR,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+        ],
     )
 }
 
@@ -93,9 +95,11 @@ mod tests {
             .find(|pass| pass.pass_name == "deferred-lighting")
             .expect("deferred lighting pass");
 
-        assert!(!pass
-            .resources
-            .iter()
-            .any(|resource| { resource.name == PostProcessGraphResourceNames::FINAL_COLOR }));
+        assert!(
+            !pass
+                .resources
+                .iter()
+                .any(|resource| { resource.name == PostProcessGraphResourceNames::FINAL_COLOR })
+        );
     }
 }

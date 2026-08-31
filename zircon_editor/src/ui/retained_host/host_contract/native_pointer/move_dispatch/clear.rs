@@ -8,7 +8,7 @@ use super::super::template_hover_damage::{
 use crate::ui::retained_host::host_contract::frame_geometry::union_frame;
 
 pub(super) fn clear_hovered_template_move(ui: &UiHostWindow) -> NativePointerDispatchResult {
-    let before = ui.get_pane_interaction_state();
+    let before = ui.get_pane_interaction_generation();
     let pane_host = ui.global::<PaneSurfaceHostContext>();
     if before.activity_asset_references_hovered_index >= 0
         || before.activity_asset_used_by_hovered_index >= 0
@@ -21,12 +21,15 @@ pub(super) fn clear_hovered_template_move(ui: &UiHostWindow) -> NativePointerDis
         pane_host.invoke_asset_reference_pointer_left("browser".into());
     }
     ui.clear_hovered_template_node_for_pointer_move();
-    let after = ui.get_pane_interaction_state();
+    let after = ui.get_pane_interaction_generation();
     let reference_damage = merge_hover_damage(
-        browser_reference_hover_damage(&before, &after),
-        activity_reference_hover_damage(&before, &after),
+        browser_reference_hover_damage(before.as_ref(), after.as_ref()),
+        activity_reference_hover_damage(before.as_ref(), after.as_ref()),
     );
-    let damage = merge_hover_damage(template_hover_damage(&before, &after), reference_damage);
+    let damage = merge_hover_damage(
+        template_hover_damage(before.as_ref(), after.as_ref()),
+        reference_damage,
+    );
     if let Some(damage) = damage {
         return NativePointerDispatchResult::region(damage);
     }

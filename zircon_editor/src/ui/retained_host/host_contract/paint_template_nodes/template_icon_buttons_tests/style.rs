@@ -123,8 +123,8 @@ fn icon_button_style_selector_uses_shared_state_priority() {
 
     assert_eq!(style.state, UiPainterResolvedState::Pressed);
     assert_eq!(style.background, Some(PALETTE.surface_pressed));
-    assert_eq!(style.border, Some(PALETTE.focus_ring));
-    assert_eq!(style.glyph, PALETTE.focus_ring);
+    assert_eq!(style.border, None);
+    assert_eq!(style.glyph, PALETTE.accent);
 
     node.disabled = true;
     let disabled_style = icon_button_style(&node, icon_button_context(&node));
@@ -189,8 +189,8 @@ fn selected_focused_toolbar_icon_button_keeps_selected_surface_and_active_glyph(
 
     assert_eq!(style.state, UiPainterResolvedState::Focused);
     assert_eq!(style.background, Some(PALETTE.surface_selected));
-    assert_eq!(style.border, Some(PALETTE.focus_ring));
-    assert_eq!(style.glyph, PALETTE.focus_ring);
+    assert_eq!(style.border, None);
+    assert_eq!(style.glyph, PALETTE.accent);
 }
 
 #[test]
@@ -256,7 +256,7 @@ fn asset_import_icon_button_focus_keeps_primary_accent_fill() {
 
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
     assert_eq!(focused.background, Some(PALETTE.accent));
-    assert_eq!(focused.border, Some(PALETTE.accent));
+    assert_eq!(focused.border, Some(PALETTE.focus_ring));
     assert_eq!(focused.glyph, PALETTE.shell_background);
 
     node.hovered = true;

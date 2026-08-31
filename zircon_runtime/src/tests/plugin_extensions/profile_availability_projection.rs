@@ -335,18 +335,20 @@ fn availability_projection_profile_feature_path_preserves_manifest_bytes() {
             RuntimeProfileId::Client2d,
             &manifest,
             std::iter::empty::<&RuntimePluginRegistrationReport>(),
-        );
+        )
+        .expect_err("missing profile providers should reject plugin-only composition");
     let with_features = crate::builtin::runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports(
         RuntimeProfileId::Client2d,
         &manifest,
         std::iter::empty::<&RuntimePluginRegistrationReport>(),
         std::iter::empty::<&RuntimePluginFeatureRegistrationReport>(),
-    );
+    )
+    .expect_err("missing profile providers should reject feature composition");
 
     assert_eq!(
-        serde_json::to_vec(&with_features.runtime_plugin_availability)
+        serde_json::to_vec(with_features.runtime_plugin_availability())
             .expect("feature-path availability should serialize"),
-        serde_json::to_vec(&without_features.runtime_plugin_availability)
+        serde_json::to_vec(without_features.runtime_plugin_availability())
             .expect("plugin-path availability should serialize")
     );
 }

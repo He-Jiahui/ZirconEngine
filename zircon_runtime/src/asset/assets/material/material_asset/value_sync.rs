@@ -1,3 +1,4 @@
+use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 
 use crate::asset::AssetReference;
@@ -58,19 +59,19 @@ pub(super) fn sync_texture_slot(
     texture: Option<&AssetReference>,
 ) {
     match texture {
-        Some(texture) => {
-            let fallback = slots.get(slot).and_then(|value| value.fallback.clone());
-            let transform = slots.get(slot).and_then(|value| value.transform);
-            let uv_channel = slots
-                .get(slot)
-                .map(MaterialTextureSlotValue::texture_uv_channel)
-                .unwrap_or_default();
-            let mut value = MaterialTextureSlotValue::new(texture.clone());
-            value.fallback = fallback;
-            value.transform = transform;
-            value.uv_channel = uv_channel;
-            slots.insert(slot.to_string(), value);
-        }
+        Some(texture) => match slots.entry(slot.to_string()) {
+            Entry::Occupied(mut entry) => {
+                let previous = entry.get();
+                let mut value = MaterialTextureSlotValue::new(texture.clone());
+                value.fallback = previous.fallback.clone();
+                value.transform = previous.transform;
+                value.uv_channel = previous.texture_uv_channel();
+                entry.insert(value);
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(MaterialTextureSlotValue::new(texture.clone()));
+            }
+        },
         None => {
             let should_remove = if let Some(value) = slots.get_mut(slot) {
                 value.reference = None;
@@ -133,4 +134,50 @@ fn toml_array<const N: usize>(value: [f32; N]) -> toml::Value {
             .map(|value| toml::Value::Float(value as f64))
             .collect(),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use crate::asset::{AssetReference, AssetUri};
+    use crate::core::framework::render::RenderMaterialTextureTransform;
+
+    use super::{sync_texture_slot, MaterialTextureSlotValue};
+
+    fn reference(locator: &str) -> AssetReference {
+        AssetReference::from_locator(AssetUri::parse(locator).unwrap())
+    }
+
+    #[test]
+    fn texture_slot_sync_preserves_existing_slot_metadata() {
+        let mut previous = MaterialTextureSlotValue::new(reference("res://old.texture"));
+        previous.fallback = Some("white".to_string());
+        previous.transform = Some(RenderMaterialTextureTransform::default());
+        previous.uv_channel = 3;
+        let mut slots = BTreeMap::from([("base_color".to_string(), previous)]);
+        let replacement = reference("res://new.texture");
+
+        sync_texture_slot(&mut slots, "base_color", Some(&replacement));
+
+        let synchronized = slots.get("base_color").unwrap();
+        assert_eq!(synchronized.reference.as_ref(), Some(&replacement));
+        assert_eq!(synchronized.fallback.as_deref(), Some("white"));
+        assert!(synchronized.transform.is_some());
+        assert_eq!(synchronized.uv_channel, 3);
+    }
+
+    #[test]
+    fn texture_slot_sync_inserts_a_new_slot() {
+        let mut slots = BTreeMap::new();
+        let reference = reference("res://new.texture");
+
+        sync_texture_slot(&mut slots, "normal", Some(&reference));
+
+        let synchronized = slots.get("normal").unwrap();
+        assert_eq!(synchronized.reference.as_ref(), Some(&reference));
+        assert_eq!(synchronized.fallback, None);
+        assert_eq!(synchronized.transform, None);
+        assert_eq!(synchronized.uv_channel, 0);
+    }
 }

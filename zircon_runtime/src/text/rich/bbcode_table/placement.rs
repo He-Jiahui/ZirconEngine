@@ -60,8 +60,10 @@ impl TablePlacementCursor {
 
             return CellPlacement {
                 row_index,
-                column_index: u16::try_from(column_index).unwrap_or(u16::MAX),
-                column_span: u16::try_from(column_span).unwrap_or(u16::MAX),
+                column_index: u16::try_from(column_index)
+                    .expect("table construction bounds the compact column index"),
+                column_span: u16::try_from(column_span)
+                    .expect("table construction bounds the compact column span"),
                 row_span,
             };
         }

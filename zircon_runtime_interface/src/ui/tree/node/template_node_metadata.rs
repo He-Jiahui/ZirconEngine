@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use toml::Value;
 
 use crate::ui::accessibility::UiAccessibilityContract;
+use crate::ui::layout::UiPixelSnappingPolicy;
 use crate::ui::template::UiBindingRef;
 use crate::ui::widget::UiWidgetContract;
 
@@ -11,6 +12,8 @@ use crate::ui::widget::UiWidgetContract;
 pub struct UiTemplateNodeMetadata {
     pub component: String,
     pub control_id: Option<String>,
+    #[serde(default)]
+    pub pixel_snapping: UiPixelSnappingPolicy,
     pub classes: Vec<String>,
     pub attributes: BTreeMap<String, Value>,
     pub slot_attributes: BTreeMap<String, Value>,

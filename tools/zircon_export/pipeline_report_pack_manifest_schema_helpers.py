@@ -94,6 +94,7 @@ def pack_manifest_schema_diagnostics(
     *,
     validate_integer_schema_diagnostics: SchemaDiagnostic,
     validate_object_array_schema_diagnostics: SchemaDiagnostic,
+    chunks_are_schema_clean: bool | None = None,
 ) -> list[str]:
     diagnostics: list[str] = []
     diagnostics.extend(
@@ -135,8 +136,25 @@ def pack_manifest_schema_diagnostics(
             pack_chunk_hash_uniqueness_diagnostics(f"{label}.chunks", chunks)
         )
         diagnostics.extend(pack_chunk_hash_order_diagnostics(f"{label}.chunks", chunks))
-        diagnostics.extend(pack_total_size_diagnostics(label, pack, chunks))
-        diagnostics.extend(pack_chunk_offset_diagnostics(f"{label}.chunks", chunks))
+        if chunks_are_schema_clean is None:
+            chunks_are_schema_clean = all(
+                pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks
+            )
+        diagnostics.extend(
+            pack_total_size_diagnostics(
+                label,
+                pack,
+                chunks,
+                chunks_are_schema_clean=chunks_are_schema_clean,
+            )
+        )
+        diagnostics.extend(
+            pack_chunk_offset_diagnostics(
+                f"{label}.chunks",
+                chunks,
+                chunks_are_schema_clean=chunks_are_schema_clean,
+            )
+        )
     return diagnostics
 
 
@@ -185,11 +203,17 @@ def pack_total_size_diagnostics(
     label: str,
     pack: dict[str, Any],
     chunks: list[Any],
+    *,
+    chunks_are_schema_clean: bool | None = None,
 ) -> list[str]:
     total_size = pack.get("total_size")
     if not isinstance(total_size, int) or isinstance(total_size, bool):
         return []
-    if not all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks):
+    if chunks_are_schema_clean is None:
+        chunks_are_schema_clean = all(
+            pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks
+        )
+    if not chunks_are_schema_clean:
         return []
     chunk_size_sum = 0
     for chunk in chunks:
@@ -221,8 +245,14 @@ def pack_version_diagnostics(
 def pack_chunk_offset_diagnostics(
     label: str,
     chunks: list[Any],
+    *,
+    chunks_are_schema_clean: bool | None = None,
 ) -> list[str]:
-    if not all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks):
+    if chunks_are_schema_clean is None:
+        chunks_are_schema_clean = all(
+            pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks
+        )
+    if not chunks_are_schema_clean:
         return []
     expected_offset = 24
     for index, chunk in enumerate(sorted(chunks, key=pack_chunk_offset_sort_key)):
@@ -249,13 +279,24 @@ def pack_asset_chunk_reference_diagnostics(
     label: str,
     pack: dict[str, Any],
     assets: list[Any],
+    *,
+    chunks_are_schema_clean: bool | None = None,
+    assets_are_schema_clean: bool | None = None,
 ) -> list[str]:
     chunks = pack.get("chunks")
     if not isinstance(chunks, list):
         return []
-    if not all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks):
+    if chunks_are_schema_clean is None:
+        chunks_are_schema_clean = all(
+            pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks
+        )
+    if not chunks_are_schema_clean:
         return []
-    if not all(pack_asset_entry_is_schema_clean(asset) for asset in assets):
+    if assets_are_schema_clean is None:
+        assets_are_schema_clean = all(
+            pack_asset_entry_is_schema_clean(asset) for asset in assets
+        )
+    if not assets_are_schema_clean:
         return []
     chunk_hashes: set[tuple[int, ...]] = set()
     for chunk in chunks:
@@ -285,10 +326,21 @@ def pack_asset_chunk_size_diagnostics(
     chunk_label: str,
     chunks: list[Any],
     assets: list[Any],
+    *,
+    chunks_are_schema_clean: bool | None = None,
+    assets_are_schema_clean: bool | None = None,
 ) -> list[str]:
-    if not all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks):
+    if chunks_are_schema_clean is None:
+        chunks_are_schema_clean = all(
+            pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks
+        )
+    if not chunks_are_schema_clean:
         return []
-    if not all(pack_asset_entry_is_schema_clean(asset) for asset in assets):
+    if assets_are_schema_clean is None:
+        assets_are_schema_clean = all(
+            pack_asset_entry_is_schema_clean(asset) for asset in assets
+        )
+    if not assets_are_schema_clean:
         return []
     chunk_sizes: dict[tuple[int, ...], int] = {}
     for chunk in chunks:

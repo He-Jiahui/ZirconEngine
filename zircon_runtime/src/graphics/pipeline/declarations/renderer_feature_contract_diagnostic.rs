@@ -177,7 +177,8 @@ fn material_validation_error_source(
     match error {
         RenderMaterialValidationError::InvalidMaskCutoff { .. }
         | RenderMaterialValidationError::InvalidLightingModel { .. }
-        | RenderMaterialValidationError::UnregisteredShadingModel { .. } => None,
+        | RenderMaterialValidationError::UnregisteredShadingModel { .. }
+        | RenderMaterialValidationError::UnsupportedTextureUvChannel { .. } => None,
         RenderMaterialValidationError::UnresolvedMaterialReference { .. }
         | RenderMaterialValidationError::MissingRuntimeShaderSource
         | RenderMaterialValidationError::UnresolvedShaderReference { .. }

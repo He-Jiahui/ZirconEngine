@@ -12,21 +12,22 @@ pub use decision::{
     DecisionCenterConfig, DecisionCenterInstanceId, DecisionNotification,
     DecisionNotificationCenter, DecisionNotificationError, DecisionNotificationSnapshot,
     DecisionOption, DecisionOptionId, DecisionReceipt, DecisionReceiptBatch, DecisionReceiptCursor,
-    DecisionReceiptSequence, DecisionResolveReport, DecisionTicket, MAX_DECISION_OPTIONS,
-    MAX_DECISION_OPTION_ID_BYTES, MAX_LOCALIZATION_KEY_BYTES,
+    DecisionReceiptSequence, DecisionResolveReport, DecisionTicket,
+    MAX_DECISION_DISPLAY_SUBJECT_BYTES, MAX_DECISION_OPTION_ID_BYTES, MAX_DECISION_OPTIONS,
+    MAX_LOCALIZATION_KEY_BYTES,
 };
 pub use identity::{
-    NotificationId, NotificationIdentityError, NotificationSource, NotificationSourceKind,
-    MAX_NOTIFICATION_ID_BYTES, MAX_NOTIFICATION_SOURCE_ID_BYTES,
+    MAX_NOTIFICATION_ID_BYTES, MAX_NOTIFICATION_SOURCE_ID_BYTES, NotificationId,
+    NotificationIdentityError, NotificationSource, NotificationSourceKind,
 };
 pub use presentation::{
-    present_decision, present_progress, present_toast, LocalizedDecisionNotification,
-    LocalizedDecisionOption, LocalizedProgressNotification, LocalizedToastNotification,
+    LocalizedDecisionNotification, LocalizedDecisionOption, LocalizedProgressNotification,
+    LocalizedToastNotification, present_decision, present_progress, present_toast,
 };
 pub(crate) use progress::AUTOMATIC_PROGRESS_SOURCE_ID;
 pub use progress::{
-    ProgressNotification, ProgressNotificationCenter, ProgressNotificationError,
-    ProgressNotificationSnapshot, MAX_PROGRESS_NOTIFICATIONS,
+    MAX_PROGRESS_NOTIFICATIONS, ProgressNotification, ProgressNotificationCenter,
+    ProgressNotificationError, ProgressNotificationSnapshot,
 };
 pub use service::EditorNotificationService;
 pub use toast::{

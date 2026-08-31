@@ -3,10 +3,14 @@ use super::*;
 #[test]
 fn world_resolves_entity_paths_and_mutates_component_properties() {
     let mut world = World::new();
-    let root = world.spawn_node(NodeKind::Cube);
+    let root = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     world.rename_node(root, "Root").unwrap();
 
-    let hero = world.spawn_node(NodeKind::Mesh);
+    let hero = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.rename_node(hero, "Hero").unwrap();
     world.set_parent_checked(hero, Some(root)).unwrap();
     world
@@ -88,60 +92,88 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
         ScenePropertyValue::Scalar(0.0)
     );
 
-    assert!(world
-        .set_property(
-            hero,
-            &translation_path,
-            ScenePropertyValue::Vec3([4.0, 5.0, 6.0]),
-        )
-        .unwrap());
-    assert!(world
-        .set_property(hero, &mass_path, ScenePropertyValue::Scalar(5.5))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &mass_density_path, ScenePropertyValue::Scalar(3.25),)
-        .unwrap());
-    assert!(world
-        .set_property(
-            hero,
-            &ccd_mode_path,
-            ScenePropertyValue::Enum("linear_cast".to_string()),
-        )
-        .unwrap());
-    assert!(world
-        .set_property(
-            hero,
-            &sleep_policy_path,
-            ScenePropertyValue::Enum("never".to_string()),
-        )
-        .unwrap());
-    assert!(world
-        .set_property(hero, &weight_path, ScenePropertyValue::Scalar(0.75))
-        .unwrap());
-    assert!(!world
-        .set_property(hero, &weight_path, ScenePropertyValue::Scalar(0.75))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &render_queue_path, ScenePropertyValue::Integer(2_450))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &material_queue_path, ScenePropertyValue::Integer(-12))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &order_path, ScenePropertyValue::Integer(14))
-        .unwrap());
-    assert!(!world
-        .set_property(hero, &order_path, ScenePropertyValue::Integer(14))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &depth_bias_path, ScenePropertyValue::Scalar(-0.5))
-        .unwrap());
-    assert!(!world
-        .set_property(hero, &depth_bias_path, ScenePropertyValue::Scalar(-0.5))
-        .unwrap());
-    assert!(world
-        .set_property(hero, &morph_weight_path, ScenePropertyValue::Scalar(0.6))
-        .unwrap());
+    assert!(
+        world
+            .set_property(
+                hero,
+                &translation_path,
+                ScenePropertyValue::Vec3([4.0, 5.0, 6.0]),
+            )
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &mass_path, ScenePropertyValue::Scalar(5.5))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &mass_density_path, ScenePropertyValue::Scalar(3.25),)
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(
+                hero,
+                &ccd_mode_path,
+                ScenePropertyValue::Enum("linear_cast".to_string()),
+            )
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(
+                hero,
+                &sleep_policy_path,
+                ScenePropertyValue::Enum("never".to_string()),
+            )
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &weight_path, ScenePropertyValue::Scalar(0.75))
+            .unwrap()
+    );
+    assert!(
+        !world
+            .set_property(hero, &weight_path, ScenePropertyValue::Scalar(0.75))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &render_queue_path, ScenePropertyValue::Integer(2_450))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &material_queue_path, ScenePropertyValue::Integer(-12))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &order_path, ScenePropertyValue::Integer(14))
+            .unwrap()
+    );
+    assert!(
+        !world
+            .set_property(hero, &order_path, ScenePropertyValue::Integer(14))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &depth_bias_path, ScenePropertyValue::Scalar(-0.5))
+            .unwrap()
+    );
+    assert!(
+        !world
+            .set_property(hero, &depth_bias_path, ScenePropertyValue::Scalar(-0.5))
+            .unwrap()
+    );
+    assert!(
+        world
+            .set_property(hero, &morph_weight_path, ScenePropertyValue::Scalar(0.6))
+            .unwrap()
+    );
 
     let node = world.find_node(hero).unwrap();
     assert_eq!(node.transform.translation, Vec3::new(4.0, 5.0, 6.0));
@@ -220,12 +252,18 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
 #[test]
 fn world_entity_paths_suffix_duplicate_sibling_names() {
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Cube);
+    let root = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     world.rename_node(root, "Root").unwrap();
-    let first = world.spawn_node(NodeKind::Mesh);
+    let first = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.rename_node(first, "Hero").unwrap();
     world.set_parent_checked(first, Some(root)).unwrap();
-    let second = world.spawn_node(NodeKind::Mesh);
+    let second = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.rename_node(second, "Hero").unwrap();
     world.set_parent_checked(second, Some(root)).unwrap();
 
@@ -245,7 +283,9 @@ fn world_entity_paths_suffix_duplicate_sibling_names() {
 #[test]
 fn world_rejects_zero_length_transform_rotation_property_writes() {
     let mut world = World::new();
-    let hero = world.spawn_node(NodeKind::Mesh);
+    let hero = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let rotation_path = ComponentPropertyPath::parse("Transform.rotation").unwrap();
     let rotation_w_path = ComponentPropertyPath::parse("Transform.rotation.w").unwrap();
 
@@ -281,7 +321,9 @@ fn world_rejects_zero_length_transform_rotation_property_writes() {
 #[test]
 fn world_rejects_non_finite_transform_property_writes() {
     let mut world = World::new();
-    let hero = world.spawn_node(NodeKind::Mesh);
+    let hero = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let translation_path = ComponentPropertyPath::parse("Transform.translation").unwrap();
     let translation_x_path = ComponentPropertyPath::parse("Transform.translation.x").unwrap();
     let scale_path = ComponentPropertyPath::parse("Transform.scale").unwrap();

@@ -26,7 +26,7 @@ pub(crate) fn validate_graph(graph: &SoundMixerGraph) -> Result<(), SoundError> 
         ));
     }
     for track in &graph.tracks {
-        validate_track_controls(track)?;
+        validate_track_controls(&track.display_name, track.controls)?;
         if let Some(parent) = track.parent {
             if !track_ids.contains(&parent) {
                 return Err(SoundError::UnknownTrack { track: parent });

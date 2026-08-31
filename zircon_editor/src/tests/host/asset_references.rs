@@ -29,6 +29,7 @@ use crate::core::document::AuthoringSceneInstaller;
 use crate::core::project::{
     NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest,
 };
+use crate::core::recovery::ProjectSessionEffect;
 use crate::tests::support::env_lock;
 use crate::ui::host::editor_asset_manager::{editor_asset_manager_handle, EditorAssetManager};
 use crate::ui::host::module::{module_descriptor, EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME};
@@ -70,6 +71,7 @@ fn editor_runtime_with_config_path(path: &Path) -> CoreRuntime {
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
     runtime.activate_module(ASSET_MODULE_NAME).unwrap();
     runtime.activate_module(EDITOR_MODULE_NAME).unwrap();
+    crate::tests::support::configure_editor_test_runtime_build_set(&runtime);
     runtime
 }
 
@@ -78,7 +80,14 @@ struct AcceptingSceneInstaller;
 impl AuthoringSceneInstaller for AcceptingSceneInstaller {
     type Error = &'static str;
 
-    fn install_scene(&mut self, _scene: &zircon_runtime::scene::Scene) -> Result<(), Self::Error> {
+    fn prepare_scene_transition(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn install_scene(
+        &mut self,
+        _document: &crate::core::project::ProjectSceneDocument,
+    ) -> Result<(), Self::Error> {
         Ok(())
     }
 }
@@ -141,7 +150,35 @@ fn create_scene_document_refreshes_editor_assets_before_document_publication() {
         "editor asset catalog retained a transient scene staging source"
     );
 
-    manager.close_project().unwrap();
+    let close = manager
+        .begin_project_close()
+        .expect("begin project close")
+        .expect("active close operation");
+    for effect in [
+        ProjectSessionEffect::FocusBinding,
+        ProjectSessionEffect::AssetJobs,
+        ProjectSessionEffect::UserInterface,
+        ProjectSessionEffect::Play,
+    ] {
+        manager
+            .prepare_project_close_effect(&close, effect)
+            .expect("prepare headless close effect");
+        manager
+            .commit_project_close_effect(&close, effect)
+            .expect("commit headless close effect");
+    }
+    manager
+        .commit_project_close(&close)
+        .expect("commit manager close effects");
+    manager
+        .prepare_project_close_effect(&close, ProjectSessionEffect::WorkspaceProjection)
+        .expect("prepare headless workspace close");
+    manager
+        .commit_project_close_effect(&close, ProjectSessionEffect::WorkspaceProjection)
+        .expect("commit headless workspace close");
+    manager
+        .finalize_project_close(&close)
+        .expect("finalize project close");
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(config_path);
     let _ = fs::remove_dir_all(project_root);

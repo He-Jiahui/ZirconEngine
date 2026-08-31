@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::core::project::RecentProjectValidation;
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::workbench::layout::{MainHostPageLayout, MainPageId, WorkbenchLayout};
@@ -84,11 +82,8 @@ fn welcome_startup_projects_into_exclusive_page_model() {
                 title: "Welcome".to_string(),
                 window_instance: welcome_instance.instance_id.clone(),
             }],
-            drawers: BTreeMap::new(),
             activity_windows: Default::default(),
             floating_windows: Vec::new(),
-            region_overrides: BTreeMap::new(),
-            view_overrides: BTreeMap::new(),
         },
         vec![welcome_instance],
         descriptors,
@@ -100,6 +95,12 @@ fn welcome_startup_projects_into_exclusive_page_model() {
         &chrome,
     );
 
+    assert_eq!(model.host_strip.pages.len(), 1);
+    assert_eq!(
+        model.host_strip.pages[0].id,
+        MainPageId::new("page:welcome")
+    );
+    assert_eq!(model.host_strip.pages[0].title, "Welcome");
     assert!(!model.drawer_ring.visible);
     assert!(matches!(
         model.document,

@@ -4,27 +4,23 @@ use crate::core::framework::render::{
     RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
     RenderShaderBindingResourceType, RenderShaderStage,
 };
-
-const RENDERER_MATERIAL_TEXTURE_BIND_GROUP: u32 = 2;
-const RENDERER_MATERIAL_UNIFORM_BINDING: u32 = 0;
-const RENDERER_BASE_COLOR_TEXTURE_BINDING: u32 = 1;
-const RENDERER_BASE_COLOR_SAMPLER_BINDING: u32 = 2;
-const RENDERER_NORMAL_TEXTURE_BINDING: u32 = 3;
-const RENDERER_NORMAL_SAMPLER_BINDING: u32 = 4;
-const RENDERER_METALLIC_ROUGHNESS_TEXTURE_BINDING: u32 = 5;
-const RENDERER_METALLIC_ROUGHNESS_SAMPLER_BINDING: u32 = 6;
-const RENDERER_OCCLUSION_TEXTURE_BINDING: u32 = 7;
-const RENDERER_OCCLUSION_SAMPLER_BINDING: u32 = 8;
-const RENDERER_EMISSIVE_TEXTURE_BINDING: u32 = 9;
-const RENDERER_EMISSIVE_SAMPLER_BINDING: u32 = 10;
-const RENDERER_CLEARCOAT_NORMAL_TEXTURE_BINDING: u32 = 11;
-const RENDERER_CLEARCOAT_NORMAL_SAMPLER_BINDING: u32 = 12;
-const RENDERER_GPU_SCENE_BIND_GROUP: u32 = 3;
-const RENDERER_GPU_SCENE_PRIMITIVE_BINDING: u32 = 0;
-const RENDERER_GPU_SCENE_INSTANCE_BINDING: u32 = 1;
-const RENDERER_GPU_SCENE_LIGHT_BINDING: u32 = 2;
-const RENDERER_CURRENT_SKINNED_PALETTE_BINDING: u32 = 3;
-const RENDERER_PREVIOUS_SKINNED_PALETTE_BINDING: u32 = 4;
+#[cfg(test)]
+use crate::graphics::scene::gpu_scene::{
+    GPU_SCENE_INSTANCE_DATA_BINDING, GPU_SCENE_LIGHT_DATA_BINDING,
+    GPU_SCENE_PREVIOUS_SKINNED_JOINT_PALETTE_BINDING, GPU_SCENE_PRIMITIVE_DATA_BINDING,
+    GPU_SCENE_SKINNED_JOINT_PALETTE_BINDING,
+};
+use crate::graphics::scene::resources::{
+    GPU_SCENE_DRAW_BIND_GROUP, MATERIAL_BASE_COLOR_SAMPLER_BINDING,
+    MATERIAL_BASE_COLOR_TEXTURE_BINDING, MATERIAL_BIND_GROUP,
+    MATERIAL_CLEARCOAT_NORMAL_SAMPLER_BINDING, MATERIAL_CLEARCOAT_NORMAL_TEXTURE_BINDING,
+    MATERIAL_EMISSIVE_SAMPLER_BINDING, MATERIAL_EMISSIVE_TEXTURE_BINDING,
+    MATERIAL_METALLIC_ROUGHNESS_SAMPLER_BINDING, MATERIAL_METALLIC_ROUGHNESS_TEXTURE_BINDING,
+    MATERIAL_NORMAL_SAMPLER_BINDING, MATERIAL_NORMAL_TEXTURE_BINDING,
+    MATERIAL_OCCLUSION_SAMPLER_BINDING, MATERIAL_OCCLUSION_TEXTURE_BINDING,
+    MATERIAL_UNIFORM_BINDING, RendererShaderBindingContract, gpu_scene_shader_binding_contract,
+    material_shader_binding_contract,
+};
 
 pub(super) fn renderer_material_layout_diagnostics(
     shader: &ShaderAsset,
@@ -43,92 +39,11 @@ fn push_material_bind_group_diagnostics(
     shader: &ShaderAsset,
     diagnostics: &mut Vec<RenderMaterialValidationError>,
 ) {
-    let expected = [
-        ExpectedRendererBinding {
-            binding: RENDERER_MATERIAL_UNIFORM_BINDING,
-            label: "material property uniform",
-            resource_type: RenderShaderBindingResourceType::UniformBuffer,
-            required_visibility: &[RenderShaderStage::Vertex, RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_BASE_COLOR_TEXTURE_BINDING,
-            label: "base-color texture",
-            resource_type: RenderShaderBindingResourceType::Texture,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_BASE_COLOR_SAMPLER_BINDING,
-            label: "base-color sampler",
-            resource_type: RenderShaderBindingResourceType::Sampler,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_NORMAL_TEXTURE_BINDING,
-            label: "normal texture",
-            resource_type: RenderShaderBindingResourceType::Texture,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_NORMAL_SAMPLER_BINDING,
-            label: "normal sampler",
-            resource_type: RenderShaderBindingResourceType::Sampler,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_METALLIC_ROUGHNESS_TEXTURE_BINDING,
-            label: "metallic-roughness texture",
-            resource_type: RenderShaderBindingResourceType::Texture,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_METALLIC_ROUGHNESS_SAMPLER_BINDING,
-            label: "metallic-roughness sampler",
-            resource_type: RenderShaderBindingResourceType::Sampler,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_OCCLUSION_TEXTURE_BINDING,
-            label: "occlusion texture",
-            resource_type: RenderShaderBindingResourceType::Texture,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_OCCLUSION_SAMPLER_BINDING,
-            label: "occlusion sampler",
-            resource_type: RenderShaderBindingResourceType::Sampler,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_EMISSIVE_TEXTURE_BINDING,
-            label: "emissive texture",
-            resource_type: RenderShaderBindingResourceType::Texture,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_EMISSIVE_SAMPLER_BINDING,
-            label: "emissive sampler",
-            resource_type: RenderShaderBindingResourceType::Sampler,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_CLEARCOAT_NORMAL_TEXTURE_BINDING,
-            label: "clearcoat-normal texture",
-            resource_type: RenderShaderBindingResourceType::Texture,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_CLEARCOAT_NORMAL_SAMPLER_BINDING,
-            label: "clearcoat-normal sampler",
-            resource_type: RenderShaderBindingResourceType::Sampler,
-            required_visibility: &[RenderShaderStage::Fragment],
-        },
-    ];
-
     push_bind_group_diagnostics(
         shader,
-        RENDERER_MATERIAL_TEXTURE_BIND_GROUP,
+        MATERIAL_BIND_GROUP,
         "renderer material ABI",
-        &expected,
+        material_shader_binding_contract(),
         diagnostics,
     );
 }
@@ -137,60 +52,20 @@ fn push_gpu_scene_bind_group_diagnostics(
     shader: &ShaderAsset,
     diagnostics: &mut Vec<RenderMaterialValidationError>,
 ) {
-    let expected = [
-        ExpectedRendererBinding {
-            binding: RENDERER_GPU_SCENE_PRIMITIVE_BINDING,
-            label: "GPUScene primitive storage buffer",
-            resource_type: RenderShaderBindingResourceType::StorageBuffer,
-            required_visibility: &[RenderShaderStage::Vertex, RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_GPU_SCENE_INSTANCE_BINDING,
-            label: "GPUScene instance storage buffer",
-            resource_type: RenderShaderBindingResourceType::StorageBuffer,
-            required_visibility: &[RenderShaderStage::Vertex, RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_GPU_SCENE_LIGHT_BINDING,
-            label: "GPUScene light storage buffer",
-            resource_type: RenderShaderBindingResourceType::StorageBuffer,
-            required_visibility: &[RenderShaderStage::Vertex, RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_CURRENT_SKINNED_PALETTE_BINDING,
-            label: "current skinned joint palette storage",
-            resource_type: RenderShaderBindingResourceType::StorageBuffer,
-            required_visibility: &[RenderShaderStage::Vertex],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_PREVIOUS_SKINNED_PALETTE_BINDING,
-            label: "previous skinned joint palette storage",
-            resource_type: RenderShaderBindingResourceType::StorageBuffer,
-            required_visibility: &[RenderShaderStage::Vertex],
-        },
-    ];
-
     push_bind_group_diagnostics(
         shader,
-        RENDERER_GPU_SCENE_BIND_GROUP,
+        GPU_SCENE_DRAW_BIND_GROUP,
         "renderer GPUScene ABI",
-        &expected,
+        gpu_scene_shader_binding_contract(),
         diagnostics,
     );
-}
-
-struct ExpectedRendererBinding {
-    binding: u32,
-    label: &'static str,
-    resource_type: RenderShaderBindingResourceType,
-    required_visibility: &'static [RenderShaderStage],
 }
 
 fn push_bind_group_diagnostics(
     shader: &ShaderAsset,
     group: u32,
     abi_name: &str,
-    expected_bindings: &[ExpectedRendererBinding],
+    expected_bindings: &[RendererShaderBindingContract],
     diagnostics: &mut Vec<RenderMaterialValidationError>,
 ) {
     let mut groups = shader
@@ -230,7 +105,7 @@ fn push_expected_binding_diagnostics(
     group: u32,
     abi_name: &str,
     bind_group: &RenderShaderBindGroupLayoutDescriptor,
-    expected: &ExpectedRendererBinding,
+    expected: &RendererShaderBindingContract,
     diagnostics: &mut Vec<RenderMaterialValidationError>,
 ) {
     let mut bindings = bind_group
@@ -270,13 +145,13 @@ fn push_expected_binding_diagnostics(
         ));
     }
 
-    if !binding_has_required_visibility(binding, expected.required_visibility) {
+    if !binding_visibility_is_compatible(binding, expected.allowed_visibility) {
         diagnostics.push(material_abi_diagnostic(
             binding_path(group, expected.binding),
             format!(
-                "{abi_name} requires group {group} binding {} visibility to include {} stage",
+                "{abi_name} requires group {group} binding {} visibility to be empty or a subset of the {} stage set",
                 expected.binding,
-                visibility_description(expected.required_visibility)
+                visibility_description(expected.allowed_visibility)
             ),
         ));
     }
@@ -286,7 +161,7 @@ fn push_extra_binding_diagnostics(
     group: u32,
     abi_name: &str,
     bind_group: &RenderShaderBindGroupLayoutDescriptor,
-    expected_bindings: &[ExpectedRendererBinding],
+    expected_bindings: &[RendererShaderBindingContract],
     diagnostics: &mut Vec<RenderMaterialValidationError>,
 ) {
     for binding in bind_group.bindings.iter().filter(|binding| {
@@ -305,14 +180,15 @@ fn push_extra_binding_diagnostics(
     }
 }
 
-fn binding_has_required_visibility(
+fn binding_visibility_is_compatible(
     binding: &RenderShaderBindingDescriptor,
-    required_visibility: &[RenderShaderStage],
+    allowed_visibility: &[RenderShaderStage],
 ) -> bool {
     binding.visibility.is_empty()
-        || required_visibility
+        || binding
+            .visibility
             .iter()
-            .any(|stage| binding.visibility.contains(stage))
+            .all(|stage| allowed_visibility.contains(stage))
 }
 
 fn material_abi_diagnostic(path: String, diagnostic: String) -> RenderMaterialValidationError {
@@ -331,7 +207,7 @@ fn binding_path(group: u32, binding: u32) -> String {
     format!("{}.binding{binding}", bind_group_path(group))
 }
 
-fn expected_binding_list(expected_bindings: &[ExpectedRendererBinding]) -> String {
+fn expected_binding_list(expected_bindings: &[RendererShaderBindingContract]) -> String {
     let bindings = expected_bindings
         .iter()
         .map(|binding| binding.binding.to_string())
@@ -375,100 +251,100 @@ mod tests {
     fn renderer_material_layout_diagnostics_accept_current_renderer_abi() {
         let shader = shader_with_layout(vec![
             bind_group(
-                RENDERER_MATERIAL_TEXTURE_BIND_GROUP,
+                MATERIAL_BIND_GROUP,
                 vec![
                     binding(
-                        RENDERER_BASE_COLOR_TEXTURE_BINDING,
+                        MATERIAL_BASE_COLOR_TEXTURE_BINDING,
                         RenderShaderBindingResourceType::Texture,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_BASE_COLOR_SAMPLER_BINDING,
+                        MATERIAL_BASE_COLOR_SAMPLER_BINDING,
                         RenderShaderBindingResourceType::Sampler,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_NORMAL_TEXTURE_BINDING,
+                        MATERIAL_NORMAL_TEXTURE_BINDING,
                         RenderShaderBindingResourceType::Texture,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_NORMAL_SAMPLER_BINDING,
+                        MATERIAL_NORMAL_SAMPLER_BINDING,
                         RenderShaderBindingResourceType::Sampler,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_METALLIC_ROUGHNESS_TEXTURE_BINDING,
+                        MATERIAL_METALLIC_ROUGHNESS_TEXTURE_BINDING,
                         RenderShaderBindingResourceType::Texture,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_METALLIC_ROUGHNESS_SAMPLER_BINDING,
+                        MATERIAL_METALLIC_ROUGHNESS_SAMPLER_BINDING,
                         RenderShaderBindingResourceType::Sampler,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_OCCLUSION_TEXTURE_BINDING,
+                        MATERIAL_OCCLUSION_TEXTURE_BINDING,
                         RenderShaderBindingResourceType::Texture,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_OCCLUSION_SAMPLER_BINDING,
+                        MATERIAL_OCCLUSION_SAMPLER_BINDING,
                         RenderShaderBindingResourceType::Sampler,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_EMISSIVE_TEXTURE_BINDING,
+                        MATERIAL_EMISSIVE_TEXTURE_BINDING,
                         RenderShaderBindingResourceType::Texture,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_EMISSIVE_SAMPLER_BINDING,
+                        MATERIAL_EMISSIVE_SAMPLER_BINDING,
                         RenderShaderBindingResourceType::Sampler,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_MATERIAL_UNIFORM_BINDING,
+                        MATERIAL_UNIFORM_BINDING,
                         RenderShaderBindingResourceType::UniformBuffer,
                         vec![RenderShaderStage::Vertex, RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_CLEARCOAT_NORMAL_TEXTURE_BINDING,
+                        MATERIAL_CLEARCOAT_NORMAL_TEXTURE_BINDING,
                         RenderShaderBindingResourceType::Texture,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_CLEARCOAT_NORMAL_SAMPLER_BINDING,
+                        MATERIAL_CLEARCOAT_NORMAL_SAMPLER_BINDING,
                         RenderShaderBindingResourceType::Sampler,
                         vec![RenderShaderStage::Fragment],
                     ),
                 ],
             ),
             bind_group(
-                RENDERER_GPU_SCENE_BIND_GROUP,
+                GPU_SCENE_DRAW_BIND_GROUP,
                 vec![
                     binding(
-                        RENDERER_GPU_SCENE_PRIMITIVE_BINDING,
+                        GPU_SCENE_PRIMITIVE_DATA_BINDING,
                         RenderShaderBindingResourceType::StorageBuffer,
                         vec![RenderShaderStage::Vertex, RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_GPU_SCENE_INSTANCE_BINDING,
+                        GPU_SCENE_INSTANCE_DATA_BINDING,
                         RenderShaderBindingResourceType::StorageBuffer,
                         vec![RenderShaderStage::Vertex, RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_GPU_SCENE_LIGHT_BINDING,
+                        GPU_SCENE_LIGHT_DATA_BINDING,
                         RenderShaderBindingResourceType::StorageBuffer,
                         vec![RenderShaderStage::Vertex, RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_CURRENT_SKINNED_PALETTE_BINDING,
+                        GPU_SCENE_SKINNED_JOINT_PALETTE_BINDING,
                         RenderShaderBindingResourceType::StorageBuffer,
                         vec![RenderShaderStage::Vertex],
                     ),
                     binding(
-                        RENDERER_PREVIOUS_SKINNED_PALETTE_BINDING,
+                        GPU_SCENE_PREVIOUS_SKINNED_JOINT_PALETTE_BINDING,
                         RenderShaderBindingResourceType::StorageBuffer,
                         vec![RenderShaderStage::Vertex],
                     ),
@@ -482,9 +358,9 @@ mod tests {
     #[test]
     fn renderer_material_layout_diagnostics_report_missing_material_and_gpu_scene_groups() {
         let shader = shader_with_layout(vec![bind_group(
-            RENDERER_MATERIAL_TEXTURE_BIND_GROUP,
+            MATERIAL_BIND_GROUP,
             vec![binding(
-                RENDERER_MATERIAL_UNIFORM_BINDING,
+                MATERIAL_UNIFORM_BINDING,
                 RenderShaderBindingResourceType::UniformBuffer,
                 vec![RenderShaderStage::Fragment],
             )],
@@ -502,29 +378,31 @@ mod tests {
             "pipeline_layout.group3",
             "@group(3)"
         ));
-        assert!(!diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic_path(diagnostic) == Some("pipeline_layout.group1")));
+        assert!(
+            !diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic_path(diagnostic) == Some("pipeline_layout.group1"))
+        );
     }
 
     #[test]
     fn renderer_material_layout_diagnostics_validate_gpu_scene_and_material_bindings() {
         let shader = shader_with_layout(vec![
             bind_group(
-                RENDERER_MATERIAL_TEXTURE_BIND_GROUP,
+                MATERIAL_BIND_GROUP,
                 vec![
                     binding(
-                        RENDERER_BASE_COLOR_TEXTURE_BINDING,
+                        MATERIAL_BASE_COLOR_TEXTURE_BINDING,
                         RenderShaderBindingResourceType::Sampler,
                         vec![RenderShaderStage::Fragment],
                     ),
                     binding(
-                        RENDERER_BASE_COLOR_SAMPLER_BINDING,
+                        MATERIAL_BASE_COLOR_SAMPLER_BINDING,
                         RenderShaderBindingResourceType::Sampler,
                         vec![RenderShaderStage::Compute],
                     ),
                     binding(
-                        RENDERER_NORMAL_SAMPLER_BINDING,
+                        MATERIAL_NORMAL_SAMPLER_BINDING,
                         RenderShaderBindingResourceType::Sampler,
                         vec![RenderShaderStage::Fragment],
                     ),
@@ -536,15 +414,15 @@ mod tests {
                 ],
             ),
             bind_group(
-                RENDERER_GPU_SCENE_BIND_GROUP,
+                GPU_SCENE_DRAW_BIND_GROUP,
                 vec![
                     binding(
-                        RENDERER_GPU_SCENE_PRIMITIVE_BINDING,
+                        GPU_SCENE_PRIMITIVE_DATA_BINDING,
                         RenderShaderBindingResourceType::UniformBuffer,
                         vec![RenderShaderStage::Vertex],
                     ),
                     binding(
-                        RENDERER_CURRENT_SKINNED_PALETTE_BINDING,
+                        GPU_SCENE_SKINNED_JOINT_PALETTE_BINDING,
                         RenderShaderBindingResourceType::Texture,
                         vec![RenderShaderStage::Vertex],
                     ),
@@ -618,6 +496,26 @@ mod tests {
             &diagnostics,
             "pipeline_layout.group2.binding10",
             "Sampler"
+        ));
+    }
+
+    #[test]
+    fn renderer_material_layout_diagnostics_reject_mixed_allowed_and_compute_visibility() {
+        let shader = shader_with_layout(vec![bind_group(
+            MATERIAL_BIND_GROUP,
+            vec![binding(
+                MATERIAL_BASE_COLOR_TEXTURE_BINDING,
+                RenderShaderBindingResourceType::Texture,
+                vec![RenderShaderStage::Fragment, RenderShaderStage::Compute],
+            )],
+        )]);
+
+        let diagnostics = renderer_material_layout_diagnostics(&shader);
+
+        assert!(diagnostic_contains(
+            &diagnostics,
+            "pipeline_layout.group2.binding1",
+            "subset of the fragment stage set"
         ));
     }
 

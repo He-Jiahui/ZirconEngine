@@ -40,8 +40,24 @@ impl LogRecord {
 }
 
 fn escape_line(value: &str) -> String {
-    value
-        .replace('\\', "\\\\")
-        .replace('\r', "\\r")
-        .replace('\n', "\\n")
+    let escaped_capacity = value.len().saturating_add(
+        value
+            .bytes()
+            .filter(|byte| matches!(byte, b'\\' | b'\r' | b'\n'))
+            .count(),
+    );
+    let mut escaped = String::with_capacity(escaped_capacity);
+    for character in value.chars() {
+        match character {
+            '\\' => escaped.push_str("\\\\"),
+            '\r' => escaped.push_str("\\r"),
+            '\n' => escaped.push_str("\\n"),
+            character => escaped.push(character),
+        }
+    }
+    escaped
 }
+
+#[cfg(test)]
+#[path = "record/single_pass_escape_tests.rs"]
+mod single_pass_escape_tests;

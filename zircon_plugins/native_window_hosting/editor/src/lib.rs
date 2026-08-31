@@ -9,9 +9,10 @@ pub use capability::{
 };
 #[cfg(feature = "editor")]
 pub use plugin::{
-    NATIVE_WINDOW_HOSTING_DIST_CRATE_NAME, NATIVE_WINDOW_HOSTING_DIST_EDITOR_ENTRY,
-    NativeWindowHostingEditorPlugin, editor_capabilities, editor_plugin, editor_plugin_descriptor,
+    editor_capabilities, editor_plugin, editor_plugin_descriptor,
     native_window_hosting_dist_module_manifest, package_manifest, plugin_registration,
+    NativeWindowHostingEditorPlugin, NATIVE_WINDOW_HOSTING_DIST_CRATE_NAME,
+    NATIVE_WINDOW_HOSTING_DIST_EDITOR_ENTRY,
 };
 
 #[cfg(all(test, feature = "editor"))]

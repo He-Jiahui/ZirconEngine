@@ -1,6 +1,7 @@
 mod admission_ledger;
 mod admission_reservation;
 mod construction;
+mod diagnostics;
 mod lifecycle;
 mod pending;
 mod pending_task;

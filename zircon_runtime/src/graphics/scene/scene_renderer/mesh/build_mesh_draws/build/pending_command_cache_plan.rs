@@ -102,12 +102,12 @@ fn pending_mesh_command_cache_plan_item(
             pending_draw,
             pending_draw_has_enabled_skinned_gpu_source(pending_draw),
         ),
-        if pending_draw.material_uniform_override_payload.is_some() {
+        if pending_draw.material.uniform_override_payload.is_some() {
             RenderMeshStaticState::from_transform_static(false)
         } else {
             pending_draw.static_state
         },
-        pending_draw.common.cast_shadows.casts_shadows(),
+        pending_draw.material.common.cast_shadows.casts_shadows(),
     )
 }
 
@@ -177,8 +177,8 @@ mod tests {
     };
 
     use super::{
-        summarize_pending_mesh_command_cache_plan_items, PendingMeshCommandCachePlanItem,
-        PendingMeshCommandCacheVisibility,
+        PendingMeshCommandCachePlanItem, PendingMeshCommandCacheVisibility,
+        summarize_pending_mesh_command_cache_plan_items,
     };
 
     #[test]

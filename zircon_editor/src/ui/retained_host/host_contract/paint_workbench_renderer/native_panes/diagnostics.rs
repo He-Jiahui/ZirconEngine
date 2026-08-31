@@ -11,7 +11,8 @@ pub(in crate::ui::retained_host::host_contract) fn draw_pane_debug_overlay(
     if pane.kind.as_str() != "RuntimeDiagnostics" {
         return false;
     }
-    let primitives = (0..pane.runtime_diagnostics.overlay_primitives.row_count())
-        .filter_map(|row| pane.runtime_diagnostics.overlay_primitives.row_data(row));
-    draw_debug_reflector_overlay_iter(frame, primitives, body, clip)
+    let content_present = pane.runtime_diagnostics.overlay_primitives.row_count() > 0;
+    let primitives = pane.runtime_diagnostics.overlay_primitives.iter();
+    draw_debug_reflector_overlay_iter(frame, primitives, body, clip);
+    content_present
 }

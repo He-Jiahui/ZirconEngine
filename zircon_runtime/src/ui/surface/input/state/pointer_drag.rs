@@ -1,7 +1,11 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::{component::UiDragMetrics, event_ui::UiNodeId, layout::UiPoint};
 
 use super::UiSurfaceInputState;
+
+const POINTER_DRAG_HASH_CLEAR_THRESHOLD: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiSurfacePointerDragState {
@@ -75,7 +79,17 @@ impl UiSurfaceInputState {
     }
 
     pub fn clear_pointer_drags_for_nodes(&mut self, node_ids: &[UiNodeId]) {
+        if node_ids.len() >= POINTER_DRAG_HASH_CLEAR_THRESHOLD {
+            let node_ids = node_ids.iter().copied().collect::<HashSet<_>>();
+            self.pointer_drags
+                .retain(|owner, _| !node_ids.contains(owner));
+            return;
+        }
         self.pointer_drags
             .retain(|owner, _| !node_ids.contains(owner));
     }
 }
+
+#[cfg(test)]
+#[path = "pointer_drag/hash_clear_tests.rs"]
+mod hash_clear_tests;

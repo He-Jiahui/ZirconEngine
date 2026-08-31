@@ -93,11 +93,13 @@ pub(super) fn badge_overlay_rect(
     width: f32,
     height: f32,
 ) -> FrameRect {
+    let width = badge_bounded_extent(width).max(BADGE_MIN_TEXT_EXTENT);
+    let height = badge_bounded_extent(height).max(BADGE_MIN_TEXT_EXTENT);
     FrameRect {
-        x: (anchor_x - width * BADGE_CENTER_RATIO).round(),
-        y: (anchor_y - height * BADGE_CENTER_RATIO).round(),
-        width: width.round().max(BADGE_MIN_TEXT_EXTENT),
-        height: height.round().max(BADGE_MIN_TEXT_EXTENT),
+        x: anchor_x - width * BADGE_CENTER_RATIO,
+        y: anchor_y - height * BADGE_CENTER_RATIO,
+        width,
+        height,
     }
 }
 
@@ -160,6 +162,16 @@ mod tests {
         assert!((height - 20.0).abs() <= 0.01);
         assert!((rect.x - 22.0).abs() <= 0.01);
         assert!((rect.y - 20.0).abs() <= 0.01);
+    }
+
+    #[test]
+    fn badge_overlay_preserves_fractional_post_dpi_geometry() {
+        let rect = badge_overlay_rect(40.25, 30.75, 36.5, 20.5);
+
+        assert_eq!(rect.x, 22.0);
+        assert_eq!(rect.y, 20.5);
+        assert_eq!(rect.width, 36.5);
+        assert_eq!(rect.height, 20.5);
     }
 
     #[test]

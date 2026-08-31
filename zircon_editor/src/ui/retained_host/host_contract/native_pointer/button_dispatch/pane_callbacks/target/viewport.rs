@@ -32,19 +32,21 @@ pub(super) fn dispatch_viewport_pane_target_button(
             presentation,
             pointer,
             surface_key,
-            control_id.as_ref(),
+            *control_id,
             state,
             button,
             cleared_text_input_frame,
         )),
-        PanePointerTarget::Viewport(_) => Some(dispatch_viewport_body_target_button(
-            pane_host,
-            pointer,
-            kind,
-            button_id,
-            modifiers,
-            cleared_text_input_frame,
-        )),
+        PanePointerTarget::SceneViewport(_) | PanePointerTarget::GameViewport(_) => {
+            Some(dispatch_viewport_body_target_button(
+                pane_host,
+                pointer,
+                kind,
+                button_id,
+                modifiers,
+                cleared_text_input_frame,
+            ))
+        }
         _ => None,
     }
 }

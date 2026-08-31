@@ -239,16 +239,13 @@ fn sample_layout_with_plain_active_window() -> WorkbenchLayout {
                 id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
                 activity_window: workbench.clone(),
-                document_workspace: DocumentNode::default(),
             },
             MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::new("asset"),
                 title: "Asset".to_string(),
                 activity_window: asset.clone(),
-                document_workspace: DocumentNode::default(),
             },
         ],
-        drawers: BTreeMap::new(),
         activity_windows: BTreeMap::from([
             (
                 workbench.clone(),
@@ -288,8 +285,6 @@ fn sample_layout_with_plain_active_window() -> WorkbenchLayout {
             ),
         ]),
         floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
     }
 }
 
@@ -308,9 +303,7 @@ fn sample_layout_with_collapsed_active_drawer() -> WorkbenchLayout {
             id: MainPageId::workbench(),
             title: "Workbench".to_string(),
             activity_window: workbench.clone(),
-            document_workspace: DocumentNode::default(),
         }],
-        drawers: BTreeMap::new(),
         activity_windows: BTreeMap::from([(
             workbench.clone(),
             ActivityWindowLayout {
@@ -325,8 +318,6 @@ fn sample_layout_with_collapsed_active_drawer() -> WorkbenchLayout {
             },
         )]),
         floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
     }
 }
 

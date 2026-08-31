@@ -1,0 +1,30 @@
+milestone: A2
+status: in_progress
+mvp_gate: design-ready
+owner_sessions:
+  - root-designment02-penpot-zui-roundtrip-20260831
+changed_scope:
+  - zircon_runtime/tests/zui_penpot_bridge_contract.rs
+  - zircon_runtime/tests/fixtures/ui/penpot_roundtrip.zui
+packages:
+  - zircon_runtime
+feature_profiles:
+  - target-client-default
+interface_boundaries:
+  - .zui v2 source -> UiZuiAssetLoader -> UiV2DocumentCompiler
+target_dir: coordinator-managed
+cargo_profile: development
+storage_mode: reuse
+commands:
+  - validate-matrix.ps1 -Package zircon_runtime -SkipBuild -TestTarget zui_penpot_bridge_contract -DryRun
+  - validate-matrix.ps1 -Package zircon_runtime -SkipBuild -TestTarget zui_penpot_bridge_contract
+focused_tests:
+  - zui_penpot_bridge_contract
+product_evidence:
+  - generated Penpot roundtrip .zui fixture
+failures_repaired:
+  - virtual rows prototype ownership in fixture
+deferred_external_checks:
+  - Managed Cargo result pending after command_post_timeout and cargo_cpu_lane_reserved
+  - Rendered Editor layout parity belongs to the Editor runtime UI owner
+unlocks: []

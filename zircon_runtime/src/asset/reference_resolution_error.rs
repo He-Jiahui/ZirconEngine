@@ -27,6 +27,15 @@ pub enum ReferenceResolutionError {
     #[error("asset reference {guid} and path hint {path} are both dangling")]
     Dangling { guid: AssetUuid, path: String },
     #[error(
+        "asset reference guid {guid} is missing while path hint {path} is occupied by {candidate_uuid} at {candidate_path}"
+    )]
+    PathOccupiedCandidate {
+        guid: AssetUuid,
+        path: String,
+        candidate_uuid: AssetUuid,
+        candidate_path: ResourceLocator,
+    },
+    #[error(
         "asset reference {guid} targets missing subasset {label} at {path}; candidates: {candidates:?}"
     )]
     DanglingSubasset {

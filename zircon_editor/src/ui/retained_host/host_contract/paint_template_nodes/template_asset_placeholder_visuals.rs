@@ -10,6 +10,7 @@ mod preview_image;
 
 use self::geometry::{has_paintable_thumbnail_extent, thumbnail_surface_rect};
 use self::preview_image::push_thumbnail_preview_image_command;
+use super::style_selector::focus_visible_for_node;
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
 const VISUAL_SURFACE_INSET_RATIO: f32 = 0.12;
@@ -187,7 +188,7 @@ fn thumbnail_well_border_color(
     if !is_typed_thumbnail_visual(node) {
         return [0, 0, 0, 0];
     }
-    if node.focused {
+    if focus_visible_for_node(node) {
         palette.focused_border
     } else {
         palette.typed_border
@@ -225,19 +226,19 @@ fn push_thumbnail_icon_command(
     let Some(edge) = thumbnail_icon_edge(node, rect, metrics) else {
         return;
     };
+    let icon_rect = thumbnail_icon_rect(node, rect, edge);
+    let Some(damage_frame) = intersect(&icon_rect, clip) else {
+        return;
+    };
     let Some(image) = load_existing_icon_asset_pixels_for_size(
         thumbnail_icon_name(node),
         edge,
         edge,
         thumbnail_icon_tint(node, palette),
+        Some(damage_frame),
     ) else {
         return;
     };
-
-    let icon_rect = thumbnail_icon_rect(node, rect, edge);
-    if intersect(&icon_rect, clip).is_none() {
-        return;
-    }
     commands.push(HostPaintCommand::image_pixels(
         icon_rect,
         Some(clip.clone()),
@@ -264,19 +265,19 @@ fn push_typed_thumbnail_preview_commands(
     let Some(edge) = typed_thumbnail_preview_icon_edge(rect, metrics) else {
         return;
     };
+    let icon_rect = typed_thumbnail_preview_icon_rect(rect, edge);
+    let Some(damage_frame) = intersect(&icon_rect, clip) else {
+        return;
+    };
     let Some(image) = load_existing_icon_asset_pixels_for_size(
         thumbnail_icon_name(node),
         edge,
         edge,
         thumbnail_icon_tint(node, palette),
+        Some(damage_frame),
     ) else {
         return;
     };
-
-    let icon_rect = typed_thumbnail_preview_icon_rect(rect, edge);
-    if intersect(&icon_rect, clip).is_none() {
-        return;
-    }
     commands.push(HostPaintCommand::image_pixels(
         icon_rect,
         Some(clip.clone()),

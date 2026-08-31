@@ -65,24 +65,46 @@ class EditorWorldSyncWatchMapContractTests(unittest.TestCase):
     def test_live_runtime_token_collision_preserves_existing_editor_binding(self) -> None:
         pump = self.read("zircon_editor/src/core/sync/pump.rs")
         regressions = self.read("zircon_editor/src/core/sync/pump/tests.rs")
-        watch_view = pump.split("pub fn watch_view", 1)[1].split(
+        watch_view = pump.split("pub(crate) fn watch_view_with_identity", 1)[1].split(
+            "pub fn unwatch_view", 1
+        )[0]
+        after_watch = watch_view.split(
+            "let token = lease.gateway().watch_world(registration.clone())?;", 1
+        )[1]
+        stale_generation_path, collision_to_bind = after_watch.split(
+            "self.reject_live_watch_token(token)?;", 1
+        )
+        collision_to_bind = collision_to_bind.split(
             "if let Err(error) = self.watches.bind", 1
         )[0]
-        returned_token_path = watch_view.split(
-            "let token = gateway.watch_world(registration.clone())?;", 1
-        )[1]
 
-        self.assertIn("reject_live_watch_token", pump)
-        self.assertIn("self.reject_live_watch_token(token)?;", watch_view)
-        self.assertLess(
-            returned_token_path.index("self.synchronize_gateway_generation(gateway);"),
-            returned_token_path.index("self.reject_live_watch_token(token)?;"),
-        )
-        self.assertNotIn("unwatch_world", watch_view)
-        self.assertNotIn("TokenCollisionCleanup", pump)
+        self.assertIn("let lease = gateway.current_lease();", watch_view)
+        self.assertIn("let identity = lease.identity().clone();", watch_view)
+        self.assertIn("self.synchronize_gateway_identity(identity.clone());", watch_view)
+        self.assertIn("let current = gateway.current_lease();", stale_generation_path)
+        self.assertIn("if current.identity() != &identity", stale_generation_path)
         self.assertIn(
-            "live_token_collision_preserves_the_existing_editor_binding", regressions
+            "let _ = lease.gateway().unwatch_world(token);", stale_generation_path
         )
+        self.assertIn("reject_live_watch_token", pump)
+        self.assertLess(
+            watch_view.index("self.synchronize_gateway_identity(identity.clone());"),
+            watch_view.index(
+                "let token = lease.gateway().watch_world(registration.clone())?;"
+            ),
+        )
+        self.assertNotIn("unwatch_world", collision_to_bind)
+        self.assertNotIn("watch_view_with_gateway_generation", pump)
+        self.assertNotIn("with_current_gateway_generation", watch_view)
+        self.assertNotIn("synchronize_gateway_generation_value", watch_view)
+        self.assertNotIn("TokenCollisionCleanup", pump)
+        for regression in (
+            "live_token_collision_preserves_the_existing_editor_binding",
+            "watch_registration_cannot_bind_a_token_from_a_gateway_replaced_mid_registration",
+            "stale_unwatch_after_gateway_replacement_cannot_revoke_a_current_session_token",
+            "reused_watch_token_cannot_cross_transport_epoch_or_project_boundary",
+        ):
+            self.assertIn(regression, regressions)
 
     def test_public_integration_gate_avoids_unrelated_lib_test_modules(self) -> None:
         source = self.read("zircon_editor/tests/editor_world_sync_watch_map.rs")

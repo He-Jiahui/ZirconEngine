@@ -1,6 +1,9 @@
 use crate::ui::retained_host::primitives::SharedString;
 
-pub(super) fn normalized_menu_row_action_id(action_id: &str, label: &str) -> SharedString {
+pub(in crate::ui::retained_host::host_contract::surface_hit_test::template_node) fn normalized_menu_row_action_id(
+    action_id: &str,
+    label: &str,
+) -> SharedString {
     if action_id.starts_with("menu.item.") {
         return action_id.into();
     }

@@ -106,6 +106,7 @@ pub(super) fn editor_data_fixture() -> EditorDataSnapshot {
             parent: "Scene".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
             scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
+            render_layer_mask: 1,
             plugin_components: Vec::new(),
         }),
         status_line: "Console ready".to_string(),

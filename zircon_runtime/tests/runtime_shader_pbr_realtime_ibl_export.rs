@@ -17,16 +17,30 @@ use zircon_runtime::core::framework::render::{
     DEFAULT_RENDER_LAYER_MASK,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
-use zircon_runtime::graphics::{RealtimeIblGpuTimingReport, ViewportFrame, WgpuRenderFramework};
+use zircon_runtime::core::resource::ResourceState;
+use zircon_runtime::graphics::{
+    RealtimeIblCpuTimingReport, RealtimeIblGpuTimingReport, ViewportFrame, WgpuRenderFramework,
+};
 
+#[path = "runtime_shader_pbr_realtime_ibl_export/cpu_profile_capture.rs"]
+mod cpu_profile_capture;
+#[path = "runtime_shader_pbr_realtime_ibl_export/gltf_zero_roughness.rs"]
+mod gltf_zero_roughness;
 #[path = "runtime_shader_pbr_hdri_export/scene_fixtures.rs"]
 mod scene_fixtures;
 mod support;
+#[path = "runtime_shader_pbr_realtime_ibl_export/timing_reports.rs"]
+mod timing_reports;
 
+use cpu_profile_capture::{clear_current_cpu_timing_sidecar, RealtimeIblCpuProfileCapture};
 use scene_fixtures::{
     write_pbr_matrix_material, write_pbr_matrix_scene, write_single_pbr_material,
     write_single_pbr_sphere_scene_with_camera_view, write_uv_sphere_model,
     SinglePbrSphereCameraView,
+};
+use timing_reports::{
+    assert_realtime_binding_cache_metrics, assert_realtime_capture_and_source_mip_binding_metrics,
+    assert_realtime_cpu_timings, assert_realtime_gpu_timings, cpu_timing_report, gpu_timing_report,
 };
 
 const PBR_MATRIX_DIMENSION: usize = 8;
@@ -36,19 +50,25 @@ const PBR_MATRIX_STEP_X: f32 = 0.7;
 const PBR_MATRIX_STEP_Y: f32 = 0.62;
 const PBR_MATRIX_SPHERE_SCALE: f32 = 0.21;
 const REALTIME_GENERATION_TICKET_FRAME_COUNT: usize = 21;
+const REALTIME_GENERATION_TICKET_COUNT: usize = 3;
 const RENDERDOC_CAPTURE_FINAL_SH9_SLICE_ENV: &str = "ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9";
 const OUTPUT_NAME: &str =
-    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_reflection_20260819.png";
+    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_reflection_20260823_p1_2.png";
 const TIMING_REPORT_NAME: &str =
-    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_timing_20260819.txt";
+    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_timing_20260823_p1_2.txt";
 const GPU_TIMING_REPORT_NAME: &str =
-    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_gpu_timing_20260819.txt";
+    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_gpu_timing_20260823_p1_2.txt";
+const CPU_TIMING_REPORT_NAME: &str =
+    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_cpu_timing_20260824.txt";
 const MULTI_VIEW_OUTPUT_SIZE: UVec2 = UVec2::new(800, 600);
 const MULTI_VIEW_COLUMNS: u32 = 5;
 const MULTI_VIEW_CONTACT_SHEET_NAME: &str =
     "runtime_shader_pbr_procedural_realtime_ibl_mirror_cardinal_120deg_contact_sheet_20260714.png";
 const MULTI_VIEW_TIMING_REPORT_NAME: &str =
     "runtime_shader_pbr_procedural_realtime_ibl_mirror_cardinal_120deg_timing_20260815.txt";
+// The fixed directional-sky mirror baseline has 63 pixels at or above 700 and a 765 maximum.
+const DIRECTIONAL_PROCEDURAL_MIRROR_MIN_HIGHLIGHT_RGB_SUM: u16 = 700;
+const DIRECTIONAL_PROCEDURAL_MIRROR_MAX_HIGHLIGHT_PIXELS: usize = 128;
 
 #[derive(Clone, Copy)]
 struct RealtimeMultiViewCase {
@@ -191,6 +211,83 @@ fn realtime_multiview_timing_report_separates_setup_and_reused_frames() {
 }
 
 #[test]
+fn realtime_ibl_cpu_timing_report_preserves_cpu_clock_boundaries() {
+    let report = RealtimeIblCpuTimingReport {
+        profile_capture_epoch: 17,
+        frame_number: 4,
+        generation_start_frame_number: 1,
+        generation_elapsed_frame_count: 4,
+        coalesced_source_change_count: 3,
+        queued_generation_pending: true,
+        command_plan_creation_micros: 13,
+        pipeline_ensure_micros: 7,
+        binding_creation_micros: 5,
+        execution_resource_binding_micros: 3,
+        validation_micros: 2,
+        execution_resource_cache_hits: 1,
+        execution_resource_cache_misses: 0,
+        execution_resource_cache_entry_count: 2,
+        execution_resource_cache_topology_capacity: 42,
+        ..RealtimeIblCpuTimingReport::default()
+    };
+
+    let serialized = cpu_timing_report(&[report]);
+
+    assert!(serialized.contains("clock_domain=cpu_command_recording_only"));
+    assert!(serialized.contains("profile_capture_epoch=17"));
+    assert!(serialized.contains("generation_start_frame=1"));
+    assert!(serialized.contains("generation_elapsed_frames=4"));
+    assert!(serialized.contains("coalesced_source_changes=3"));
+    assert!(serialized.contains("queued_generation_pending=true"));
+    assert!(serialized.contains("command_plan_creation_micros=13"));
+    assert!(serialized.contains("execution_resource_cache_hits=1"));
+    assert!(serialized.contains("execution_resource_cache_entry_count=2"));
+    assert!(serialized.contains("execution_resource_cache_topology_capacity=42"));
+    assert!(!serialized.contains("elapsed_gpu_nanoseconds"));
+}
+
+#[test]
+fn realtime_ibl_cpu_timing_sidecar_uses_shared_stale_file_cleanup() {
+    let source = include_str!("runtime_shader_pbr_realtime_ibl_export.rs");
+    let matrix_export = source
+        .split("\nfn export_procedural_realtime_ibl_pbr_matrix_png()")
+        .nth(1)
+        .and_then(|body| {
+            body.split("\nfn export_procedural_realtime_ibl_mirror_cardinal_120deg_png()")
+                .next()
+        })
+        .expect("realtime IBL matrix export body");
+
+    assert!(matrix_export.contains("clear_current_cpu_timing_sidecar(&cpu_timing_output);"));
+    assert!(!matrix_export.contains("match fs::remove_file(&cpu_timing_output)"));
+}
+
+#[test]
+fn realtime_ibl_gpu_timing_sidecar_excludes_cpu_clock_windows() {
+    let source = include_str!("runtime_shader_pbr_realtime_ibl_export/timing_reports.rs");
+    let gpu_report = source
+        .split("pub(super) fn gpu_timing_report")
+        .nth(1)
+        .and_then(|body| body.split("pub(super) fn cpu_timing_report").next())
+        .expect("GPU timing sidecar formatter");
+
+    for cpu_window in [
+        "binding_creation_micros=",
+        "capture_binding_creation_micros=",
+        "source_mip_binding_creation_micros=",
+        "execution_resource_cache_hits=",
+        "execution_resource_cache_misses=",
+        "execution_resource_cache_entry_count=",
+        "execution_resource_cache_topology_capacity=",
+    ] {
+        assert!(
+            !gpu_report.contains(cpu_window),
+            "GPU timing sidecar must not serialize CPU clock window {cpu_window}"
+        );
+    }
+}
+
+#[test]
 fn realtime_ibl_export_temporary_projects_stay_under_evidence_root() {
     let root = unique_temp_project_root("shader_pbr_realtime_ibl_test");
 
@@ -208,7 +305,17 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
     let mut project = ProjectManager::open(&root).unwrap();
-    project.scan_and_import().unwrap();
+    let imported = project.scan_and_import().unwrap();
+    let scene_record = imported
+        .iter()
+        .find(|record| record.primary_locator() == &scene_uri)
+        .expect("realtime IBL matrix scene must be discovered during import");
+    assert_eq!(
+        scene_record.state,
+        ResourceState::Ready,
+        "realtime IBL matrix scene must publish an artifact: {:#?}",
+        scene_record.diagnostics
+    );
     let world =
         zircon_runtime::scene::world::World::load_scene_from_uri(&project, &scene_uri).unwrap();
     let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
@@ -224,13 +331,19 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
     snapshot.overlays = RenderOverlayExtract::default();
 
     let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
-    let framework = WgpuRenderFramework::new(asset_runtime.access()).unwrap();
+    let framework =
+        WgpuRenderFramework::new(asset_runtime.access(), asset_runtime.worker_pool()).unwrap();
     let viewport = framework
         .create_viewport(
             RenderViewportDescriptor::new(PBR_MATRIX_OUTPUT_SIZE)
                 .with_label("shader06.realtime-ibl-matrix"),
         )
         .unwrap();
+    let cpu_timing_output = shader_test_output_dir().join(CPU_TIMING_REPORT_NAME);
+    assert!(cpu_timing_output.starts_with(shader_test_output_dir()));
+    clear_current_cpu_timing_sidecar(&cpu_timing_output);
+    let cpu_timing_feature_enabled = RealtimeIblCpuProfileCapture::feature_enabled();
+    let mut cpu_timing_capture = RealtimeIblCpuProfileCapture::begin();
     let mut initial_ticket_millis = Vec::with_capacity(REALTIME_GENERATION_TICKET_FRAME_COUNT);
     for _ in 0..REALTIME_GENERATION_TICKET_FRAME_COUNT {
         let started = Instant::now();
@@ -278,7 +391,43 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
         }
         slice_millis.push(started.elapsed().as_secs_f64() * 1000.0);
     }
-    submit_compiled_realtime_ibl_frame(&framework, viewport, updated_snapshot);
+
+    let mut warm_snapshot = updated_snapshot;
+    warm_snapshot.environment.skybox.procedural.source_revision = warm_snapshot
+        .environment
+        .skybox
+        .procedural
+        .source_revision
+        .wrapping_add(1);
+    warm_snapshot.preview =
+        PreviewEnvironmentExtract::from_environment(&warm_snapshot.environment, true, Vec4::ZERO);
+    let mut warm_ticket_millis = Vec::with_capacity(REALTIME_GENERATION_TICKET_FRAME_COUNT);
+    for slice_index in 0..REALTIME_GENERATION_TICKET_FRAME_COUNT {
+        let capture_this_slice =
+            capture_final_sh9_slice && slice_index + 1 == REALTIME_GENERATION_TICKET_FRAME_COUNT;
+        if capture_this_slice {
+            framework
+                .request_graphics_debugger_capture(viewport)
+                .expect("request RenderDoc capture for final SH9 warm slice");
+        }
+        let started = Instant::now();
+        submit_compiled_realtime_ibl_frame(&framework, viewport, warm_snapshot.clone());
+        if capture_this_slice {
+            let capture_status = framework
+                .query_graphics_debugger_status()
+                .expect("query final SH9 RenderDoc capture status");
+            assert!(
+                !capture_status.capture_pending,
+                "final SH9 RenderDoc capture must complete in its requested frame"
+            );
+            assert_eq!(
+                capture_status.last_error, None,
+                "final SH9 RenderDoc capture must complete without a debugger error"
+            );
+        }
+        warm_ticket_millis.push(started.elapsed().as_secs_f64() * 1000.0);
+    }
+    submit_compiled_realtime_ibl_frame(&framework, viewport, warm_snapshot);
     let final_frame = capture_compiled_viewport_frame(&framework, viewport);
     assert!(
         framework.realtime_ibl_gpu_timing_supported(),
@@ -287,7 +436,32 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
     let gpu_timings = framework
         .take_realtime_ibl_gpu_timing_reports()
         .expect("drain compiled realtime IBL GPU timing reports");
-    assert_realtime_gpu_timings(&gpu_timings);
+    assert_realtime_gpu_timings(&gpu_timings, REALTIME_GENERATION_TICKET_COUNT);
+    assert_realtime_binding_cache_metrics(&gpu_timings);
+    assert_realtime_capture_and_source_mip_binding_metrics(
+        &gpu_timings,
+        REALTIME_GENERATION_TICKET_COUNT,
+    );
+    let cpu_timings = if cpu_timing_capture.has_owned_capture() {
+        cpu_timing_capture.stop();
+        framework
+            .take_realtime_ibl_cpu_timing_reports()
+            .expect("drain compiled realtime IBL CPU timing reports")
+    } else if !cpu_timing_feature_enabled {
+        framework
+            .take_realtime_ibl_cpu_timing_reports()
+            .expect("drain disabled realtime IBL CPU timing reports")
+    } else {
+        Vec::new()
+    };
+    if cpu_timing_capture.has_owned_capture() {
+        assert_realtime_cpu_timings(&cpu_timings, REALTIME_GENERATION_TICKET_COUNT);
+    } else if !cpu_timing_feature_enabled {
+        assert!(
+            cpu_timings.is_empty(),
+            "CPU timing reports require the profiling feature capture"
+        );
+    }
 
     let output = shader_test_output_dir().join(OUTPUT_NAME);
     save_viewport_frame_png(&final_frame, &output);
@@ -295,12 +469,16 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
     let timing_output = shader_test_output_dir().join(TIMING_REPORT_NAME);
     fs::write(
         &timing_output,
-        timing_report(&initial_ticket_millis, &slice_millis),
+        timing_report(&initial_ticket_millis, &slice_millis, &warm_ticket_millis),
     )
     .expect("write realtime IBL frame timing report");
     let gpu_timing_output = shader_test_output_dir().join(GPU_TIMING_REPORT_NAME);
     fs::write(&gpu_timing_output, gpu_timing_report(&gpu_timings))
         .expect("write realtime IBL GPU timing report");
+    if cpu_timing_capture.has_owned_capture() {
+        fs::write(&cpu_timing_output, cpu_timing_report(&cpu_timings))
+            .expect("write realtime IBL CPU timing report");
+    }
     assert!(output.starts_with(shader_test_output_dir()));
     assert!(timing_output.starts_with(shader_test_output_dir()));
     assert!(gpu_timing_output.starts_with(shader_test_output_dir()));
@@ -325,7 +503,8 @@ fn export_procedural_realtime_ibl_mirror_cardinal_120deg_png() {
         zircon_runtime::scene::world::World::load_scene_from_uri(&project, &scene_uri).unwrap();
     let environment = directional_procedural_environment();
     let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
-    let framework = WgpuRenderFramework::new(asset_runtime.access()).unwrap();
+    let framework =
+        WgpuRenderFramework::new(asset_runtime.access(), asset_runtime.worker_pool()).unwrap();
     let viewport = framework
         .create_viewport(
             RenderViewportDescriptor::new(MULTI_VIEW_OUTPUT_SIZE)
@@ -651,6 +830,34 @@ fn assert_realtime_mirror_view(frame: &ViewportFrame, label: &str) {
     );
 }
 
+fn assert_directional_procedural_mirror_highlight(frame: &ViewportFrame, label: &str) {
+    let (x, y, brightest_sum) = brightest_pixel_position(frame);
+    assert!(
+        brightest_sum >= DIRECTIONAL_PROCEDURAL_MIRROR_MIN_HIGHLIGHT_RGB_SUM,
+        "{label} must retain the near-mirror directional-sun highlight: brightest_sum={brightest_sum}"
+    );
+    assert!(
+        (frame.width / 3..=frame.width * 2 / 3).contains(&x)
+            && (frame.height / 4..=frame.height * 3 / 4).contains(&y),
+        "{label} directional-sun highlight must remain on the sphere: x={x}, y={y}, width={}, height={}",
+        frame.width,
+        frame.height
+    );
+    let highlight_pixel_count = frame
+        .rgba
+        .chunks_exact(4)
+        .filter(|pixel| {
+            u16::from(pixel[0]) + u16::from(pixel[1]) + u16::from(pixel[2])
+                >= DIRECTIONAL_PROCEDURAL_MIRROR_MIN_HIGHLIGHT_RGB_SUM
+        })
+        .count();
+    assert!(
+        (1..=DIRECTIONAL_PROCEDURAL_MIRROR_MAX_HIGHLIGHT_PIXELS)
+            .contains(&highlight_pixel_count),
+        "{label} directional-sun highlight must stay localized: count={highlight_pixel_count}, max={DIRECTIONAL_PROCEDURAL_MIRROR_MAX_HIGHLIGHT_PIXELS}"
+    );
+}
+
 fn mean_absolute_rgb_difference_rects(
     frame: &ViewportFrame,
     start_x: u32,
@@ -720,7 +927,11 @@ fn average_luma_band(frame: &ViewportFrame, start_y: u32, end_y: u32) -> f64 {
     sum / count.max(1) as f64
 }
 
-fn timing_report(initial_ticket_millis: &[f64], update_ticket_millis: &[f64]) -> String {
+fn timing_report(
+    initial_ticket_millis: &[f64],
+    update_ticket_millis: &[f64],
+    warm_ticket_millis: &[f64],
+) -> String {
     let initial_average =
         initial_ticket_millis.iter().sum::<f64>() / initial_ticket_millis.len().max(1) as f64;
     let initial_maximum = initial_ticket_millis
@@ -730,6 +941,9 @@ fn timing_report(initial_ticket_millis: &[f64], update_ticket_millis: &[f64]) ->
     let update_average =
         update_ticket_millis.iter().sum::<f64>() / update_ticket_millis.len().max(1) as f64;
     let update_maximum = update_ticket_millis.iter().copied().fold(0.0_f64, f64::max);
+    let warm_average =
+        warm_ticket_millis.iter().sum::<f64>() / warm_ticket_millis.len().max(1) as f64;
+    let warm_maximum = warm_ticket_millis.iter().copied().fold(0.0_f64, f64::max);
     let initial_slices = initial_ticket_millis
         .iter()
         .enumerate()
@@ -742,107 +956,17 @@ fn timing_report(initial_ticket_millis: &[f64], update_ticket_millis: &[f64]) ->
         .map(|(index, millis)| format!("update_ticket_frame_{index:02}_cpu_ms={millis:.3}"))
         .collect::<Vec<_>>()
         .join("\n");
-    format!(
-        "initial_ticket_frame_count={}\ninitial_ticket_average_cpu_ms={initial_average:.3}\ninitial_ticket_max_cpu_ms={initial_maximum:.3}\nupdate_ticket_frame_count={}\nupdate_ticket_average_cpu_ms={update_average:.3}\nupdate_ticket_max_cpu_ms={update_maximum:.3}\n{initial_slices}\n{update_slices}\n",
-        initial_ticket_millis.len(),
-        update_ticket_millis.len(),
-    )
-}
-
-fn assert_realtime_gpu_timings(reports: &[RealtimeIblGpuTimingReport]) {
-    assert_eq!(
-        reports.len(),
-        REALTIME_GENERATION_TICKET_FRAME_COUNT * 2,
-        "each initial and updated ticket frame must produce one GPU timestamp"
-    );
-    assert!(
-        reports
-            .iter()
-            .all(|report| report.elapsed_gpu_nanoseconds > 0.0),
-        "every realtime IBL ticket operation must consume measurable GPU time: {reports:?}"
-    );
-    assert!(
-        reports
-            .iter()
-            .all(|report| report.pass_count == 1 && report.dispatch_count == 1),
-        "a ticket frame must record exactly one graph pass and dispatch: {reports:?}"
-    );
-    assert!(
-        reports.iter().all(|report| report.scheduled_workgroups > 0),
-        "every ticket operation must report its dispatched workgroups: {reports:?}"
-    );
-    assert!(
-        reports
-            .iter()
-            .all(|report| report.completed_workgroups == report.scheduled_workgroups),
-        "GPU timestamp readback must report every scheduled workgroup as completed: {reports:?}"
-    );
-    assert!(
-        reports
-            .iter()
-            .all(|report| !report.recipe_fingerprint.is_empty()),
-        "every ticket operation must identify its complete bake recipe: {reports:?}"
-    );
-    assert_eq!(
-        reports
-            .iter()
-            .filter(|report| report.operation_label == "diffuse_sh9")
-            .count(),
-        2,
-        "each complete ticket must timestamp its terminal SH9 operation"
-    );
-    assert_eq!(
-        reports
-            .iter()
-            .filter(|report| report.terminal_reason == "published_after_sh9")
-            .count(),
-        2,
-        "only each terminal SH9 operation may publish a ticket"
-    );
-    let generations = reports
+    let warm_slices = warm_ticket_millis
         .iter()
-        .map(|report| report.generation)
-        .collect::<std::collections::HashSet<_>>();
-    assert!(
-        generations.len() >= 2,
-        "initial and updated environments must publish distinct generation timings: {reports:?}"
-    );
-}
-
-fn gpu_timing_report(reports: &[RealtimeIblGpuTimingReport]) -> String {
-    let average_millis = reports
-        .iter()
-        .map(|report| report.elapsed_gpu_nanoseconds / 1_000_000.0)
-        .sum::<f64>()
-        / reports.len().max(1) as f64;
-    let maximum_millis = reports
-        .iter()
-        .map(|report| report.elapsed_gpu_nanoseconds / 1_000_000.0)
-        .fold(0.0_f64, f64::max);
-    let samples = reports
-        .iter()
-        .map(|report| {
-            format!(
-                "frame_{:02}_gpu_ms={:.6} generation={} recipe={} state={} work_slot={} passes={} dispatches={} scheduled_workgroups={} completed_workgroups={} terminal_reason={} operation={}",
-                report.frame_number,
-                report.elapsed_gpu_nanoseconds / 1_000_000.0,
-                report.generation,
-                report.recipe_fingerprint,
-                report.logical_state,
-                report.work_slot,
-                report.pass_count,
-                report.dispatch_count,
-                report.scheduled_workgroups,
-                report.completed_workgroups,
-                report.terminal_reason,
-                report.operation_label,
-            )
-        })
+        .enumerate()
+        .map(|(index, millis)| format!("warm_ticket_frame_{index:02}_cpu_ms={millis:.3}"))
         .collect::<Vec<_>>()
         .join("\n");
     format!(
-        "timestamp_query_supported=true\nticket_operation_sample_count={}\nticket_operation_average_gpu_ms={average_millis:.6}\nticket_operation_max_gpu_ms={maximum_millis:.6}\n{samples}\n",
-        reports.len()
+        "initial_ticket_frame_count={}\ninitial_ticket_average_cpu_ms={initial_average:.3}\ninitial_ticket_max_cpu_ms={initial_maximum:.3}\nupdate_ticket_frame_count={}\nupdate_ticket_average_cpu_ms={update_average:.3}\nupdate_ticket_max_cpu_ms={update_maximum:.3}\nwarm_ticket_frame_count={}\nwarm_ticket_average_cpu_ms={warm_average:.3}\nwarm_ticket_max_cpu_ms={warm_maximum:.3}\n{initial_slices}\n{update_slices}\n{warm_slices}\n",
+        initial_ticket_millis.len(),
+        update_ticket_millis.len(),
+        warm_ticket_millis.len(),
     )
 }
 

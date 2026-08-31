@@ -1,4 +1,6 @@
-use crate::core::framework::render::{CameraRenderDescriptor, RenderViewportRect};
+use crate::core::framework::render::{
+    CameraRenderDescriptor, RenderViewFamilyTarget, RenderViewportRect,
+};
 use crate::core::math::{Real, UVec2};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -27,6 +29,17 @@ impl ViewportRenderRegion {
             local_size: rect.physical_size,
             depth_min: rect.depth_min.clamp(0.0, 1.0),
             depth_max: rect.depth_max.clamp(0.0, 1.0),
+        }
+    }
+
+    pub(crate) fn from_view_family_target(target: RenderViewFamilyTarget) -> Self {
+        let viewport = target.viewport();
+        Self {
+            physical_position: viewport.physical_position,
+            physical_size: viewport.physical_size,
+            local_size: viewport.physical_size,
+            depth_min: viewport.depth_min,
+            depth_max: viewport.depth_max,
         }
     }
 

@@ -11,15 +11,11 @@ pub fn validate_document_action_policy(
     let mut diagnostics = Vec::new();
     for node in document.iter_nodes() {
         for binding in &node.bindings {
-            let route = binding
-                .action
-                .as_ref()
+            let action_ref = binding.action.as_ref();
+            let route = action_ref
                 .and_then(|action| action.route.as_deref())
                 .or(binding.route.as_deref());
-            let action = binding
-                .action
-                .as_ref()
-                .and_then(|action| action.action.as_deref());
+            let action = action_ref.and_then(|action| action.action.as_deref());
             let side_effect = UiActionSideEffectClass::infer(route, action);
             if policy.allows(side_effect) {
                 continue;
@@ -41,3 +37,7 @@ pub fn validate_document_action_policy(
     }
     UiActionPolicyReport { diagnostics }
 }
+
+#[cfg(test)]
+#[path = "validate/action_ref_tests.rs"]
+mod action_ref_tests;

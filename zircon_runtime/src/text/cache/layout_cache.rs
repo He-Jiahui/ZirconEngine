@@ -49,6 +49,8 @@ pub(crate) struct TextLayoutCacheReport {
     pub(crate) frame_index: u64,
     pub(crate) capacity: usize,
     pub(crate) entry_count: usize,
+    pub(crate) estimated_bytes: usize,
+    pub(crate) peak_estimated_bytes: usize,
     pub(crate) hit_count: u64,
     pub(crate) miss_count: u64,
     pub(crate) collision_miss_count: u64,
@@ -69,6 +71,7 @@ struct TextLayoutCacheEntry<K, V> {
     text: Arc<str>,
     width_validity: TextLayoutWidthValidity,
     value: V,
+    estimated_bytes: usize,
 }
 
 impl<K, V> IndexedTextCacheEntry<K> for TextLayoutCacheEntry<K, V> {
@@ -81,6 +84,7 @@ impl<K, V> IndexedTextCacheEntry<K> for TextLayoutCacheEntry<K, V> {
 pub(crate) struct TextLayoutCache<K: Eq + Hash, V> {
     index: IndexedTextCache<K, TextLayoutCacheEntry<K, V>>,
     capacity: usize,
+    estimated_bytes: usize,
     frame_report: TextLayoutCacheReport,
 }
 
@@ -106,6 +110,7 @@ where
         let mut cache = Self {
             index: IndexedTextCache::new(),
             capacity,
+            estimated_bytes: 0,
             frame_report: TextLayoutCacheReport::default(),
         };
         cache.frame_report.capacity = capacity;
@@ -117,6 +122,8 @@ where
             frame_index,
             capacity: self.capacity,
             entry_count: self.index.len(),
+            estimated_bytes: self.estimated_bytes,
+            peak_estimated_bytes: self.estimated_bytes,
             ..TextLayoutCacheReport::default()
         };
     }
@@ -132,6 +139,7 @@ where
             .saturating_add(self.index.len() as u64);
         self.frame_report.clear_count = self.frame_report.clear_count.saturating_add(1);
         self.index.clear();
+        self.estimated_bytes = 0;
         self.refresh_report_size();
     }
 
@@ -146,6 +154,7 @@ where
     pub(crate) fn report(&self) -> TextLayoutCacheReport {
         let mut report = self.frame_report;
         report.entry_count = self.index.len();
+        report.estimated_bytes = self.estimated_bytes;
         report
     }
 
@@ -187,25 +196,52 @@ where
         width_validity: TextLayoutWidthValidity,
         value: V,
     ) -> &V {
+        self.insert_with_additional_heap_bytes(key, text, width_validity, value, 0)
+    }
+
+    pub(crate) fn insert_with_additional_heap_bytes(
+        &mut self,
+        key: K,
+        text: impl Into<Arc<str>>,
+        width_validity: TextLayoutWidthValidity,
+        value: V,
+        additional_heap_bytes: usize,
+    ) -> &V {
         let text = text.into();
+        let estimated_bytes = std::mem::size_of::<TextLayoutCacheEntry<K, V>>()
+            .saturating_add(text.len())
+            .saturating_add(additional_heap_bytes);
         let lookup = self.index.find_slot(&key, |entry| {
             entry.text.as_ref() == text.as_ref() && entry.width_validity == width_validity
         });
         self.record_lookup(lookup.candidate_count);
         let slot = lookup.slot.filter(|slot| self.index.entry(*slot).is_some());
+        let replaced_bytes = slot
+            .and_then(|slot| self.index.entry(slot))
+            .map(|entry| entry.estimated_bytes)
+            .unwrap_or(0);
         if slot.is_none() {
             self.trim_before_insert();
         }
+        self.estimated_bytes = self
+            .estimated_bytes
+            .saturating_sub(replaced_bytes)
+            .saturating_add(estimated_bytes);
+        self.refresh_report_bytes();
         let (_, entry, inserted) = self.index.update_or_insert_with(
             slot,
             value,
             true,
-            |entry, value| entry.value = value,
+            |entry, value| {
+                entry.value = value;
+                entry.estimated_bytes = estimated_bytes;
+            },
             |value| TextLayoutCacheEntry {
                 key,
                 text,
                 width_validity,
                 value,
+                estimated_bytes,
             },
         );
         if inserted {
@@ -230,6 +266,12 @@ where
         if slot.is_none() {
             self.trim_before_insert();
         }
+        let estimated_bytes =
+            std::mem::size_of::<TextLayoutCacheEntry<K, V>>().saturating_add(text.len());
+        if slot.is_none() {
+            self.estimated_bytes = self.estimated_bytes.saturating_add(estimated_bytes);
+            self.refresh_report_bytes();
+        }
         let (_, entry, inserted) = self.index.update_or_insert_with(
             slot,
             (),
@@ -240,6 +282,7 @@ where
                 text: Arc::from(text),
                 width_validity,
                 value: layout(),
+                estimated_bytes,
             },
         );
         if inserted {
@@ -286,9 +329,10 @@ where
         let mut eviction_scans = 0_u64;
         let mut entry_moves = 0_u64;
         while self.index.len() >= self.capacity {
-            let Some((_, work)) = self.index.pop_oldest_with_work() else {
+            let Some((entry, work)) = self.index.pop_oldest_with_work() else {
                 break;
             };
+            self.estimated_bytes = self.estimated_bytes.saturating_sub(entry.estimated_bytes);
             evicted = evicted.saturating_add(1);
             eviction_scans = eviction_scans.saturating_add(work.scan_count as u64);
             entry_moves = entry_moves.saturating_add(work.entry_move_count as u64);
@@ -301,9 +345,10 @@ where
         let mut eviction_scans = 0_u64;
         let mut entry_moves = 0_u64;
         while self.index.len() > self.capacity {
-            let Some((_, work)) = self.index.pop_oldest_with_work() else {
+            let Some((entry, work)) = self.index.pop_oldest_with_work() else {
                 break;
             };
+            self.estimated_bytes = self.estimated_bytes.saturating_sub(entry.estimated_bytes);
             evicted = evicted.saturating_add(1);
             eviction_scans = eviction_scans.saturating_add(work.scan_count as u64);
             entry_moves = entry_moves.saturating_add(work.entry_move_count as u64);
@@ -337,6 +382,15 @@ where
 
     fn refresh_report_size(&mut self) {
         self.frame_report.entry_count = self.index.len();
+        self.frame_report.estimated_bytes = self.estimated_bytes;
+    }
+
+    fn refresh_report_bytes(&mut self) {
+        self.frame_report.estimated_bytes = self.estimated_bytes;
+        self.frame_report.peak_estimated_bytes = self
+            .frame_report
+            .peak_estimated_bytes
+            .max(self.estimated_bytes);
     }
 }
 

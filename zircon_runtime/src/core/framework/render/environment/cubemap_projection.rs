@@ -1,4 +1,7 @@
-use crate::core::math::Real;
+use crate::core::framework::render::{
+    ProjectionMode, RenderEnvironmentCaptureRequest, ViewportCameraSnapshot,
+};
+use crate::core::math::{Mat4, Real, Transform, Vec3};
 
 const CUBEMAP_PI: Real = std::f32::consts::PI;
 const CUBEMAP_TAU: Real = std::f32::consts::TAU;
@@ -54,6 +57,112 @@ impl CubemapFace {
             5 => Some(Self::NegativeZ),
             _ => None,
         }
+    }
+
+    /// Returns the D3D/cmft projection axes for this cube-array layer.
+    ///
+    /// These are texture axes, not a right-handed camera basis: `u` and `v`
+    /// increase with texel X and Y, while `forward` points through the face
+    /// center. A `-Z`-forward right-handed camera looking along `forward` with
+    /// image-up `-v` has screen-right `-u`, so a scene capture must include an
+    /// explicit clip-X reflection (and account for its winding reversal).
+    pub const fn projection_axes(self) -> CubemapFaceProjectionAxes {
+        let axes = FACE_UVN[self.index()];
+        CubemapFaceProjectionAxes {
+            u: axes[0],
+            v: axes[1],
+            forward: axes[2],
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CubemapFaceProjectionAxes {
+    pub u: [Real; 3],
+    pub v: [Real; 3],
+    pub forward: [Real; 3],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CubemapCaptureView {
+    pub view_from_world: Mat4,
+    pub reverses_winding: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CubemapCaptureCamera {
+    pub camera: ViewportCameraSnapshot,
+    pub reverses_winding: bool,
+}
+
+/// Builds the reflection-aware view used to rasterize a scene into one
+/// canonical cubemap layer.
+///
+/// Multiplying this matrix by the engine's regular 90-degree right-handed
+/// projection maps increasing cubemap U to clip X and increasing cubemap V to
+/// decreasing clip Y. The view has a negative determinant, so raster pipeline
+/// selection must reverse its normal front-face winding.
+pub fn cubemap_capture_view_from_world(
+    face: CubemapFace,
+    capture_origin: [Real; 3],
+) -> CubemapCaptureView {
+    let axes = face.projection_axes();
+    let image_up = [-axes.v[0], -axes.v[1], -axes.v[2]];
+    let view_from_world = Mat4::from_cols_array_2d(&[
+        [axes.u[0], image_up[0], -axes.forward[0], 0.0],
+        [axes.u[1], image_up[1], -axes.forward[1], 0.0],
+        [axes.u[2], image_up[2], -axes.forward[2], 0.0],
+        [
+            -dot3(axes.u, capture_origin),
+            -dot3(image_up, capture_origin),
+            dot3(axes.forward, capture_origin),
+            1.0,
+        ],
+    ]);
+
+    CubemapCaptureView {
+        view_from_world,
+        reverses_winding: true,
+    }
+}
+
+/// Builds one request-scoped scene camera for a canonical cubemap layer.
+///
+/// `Transform::looking_at` remains a regular right-handed camera transform.
+/// The clip-X reflection converts its screen-right `-u` into the cmft/D3D
+/// cubemap `+u` direction, while the returned flag keeps raster winding an
+/// explicit pipeline concern.
+pub fn cubemap_capture_camera(
+    face: CubemapFace,
+    request: &RenderEnvironmentCaptureRequest,
+) -> CubemapCaptureCamera {
+    let axes = face.projection_axes();
+    let origin = Vec3::from_array(request.position());
+    let forward = Vec3::from_array(axes.forward);
+    let image_up = -Vec3::from_array(axes.v);
+    let perspective = Mat4::perspective_rh(
+        std::f32::consts::FRAC_PI_2,
+        1.0,
+        request.near_plane(),
+        request.far_plane(),
+    );
+    let clip_x_reflection = Mat4::from_scale(Vec3::new(-1.0, 1.0, 1.0));
+    let camera = ViewportCameraSnapshot {
+        transform: Transform::looking_at(origin, origin + forward, image_up),
+        projection_mode: ProjectionMode::Perspective,
+        fov_y_radians: std::f32::consts::FRAC_PI_2,
+        z_near: request.near_plane(),
+        z_far: request.far_plane(),
+        aspect_ratio: 1.0,
+        projection_override: Some(clip_x_reflection * perspective),
+        hdr: true,
+        msaa_samples: 1,
+        ..ViewportCameraSnapshot::default()
+    };
+
+    CubemapCaptureCamera {
+        camera,
+        reverses_winding: true,
     }
 }
 
@@ -176,6 +285,10 @@ fn normalize_or_positive_z(direction: [Real; 3]) -> [Real; 3] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::framework::render::{
+        RenderEnvironmentCaptureRequest, ViewProjectionMatrixPair,
+    };
+    use crate::core::math::{UVec2, Vec3};
 
     #[test]
     fn render_env_equirect_to_cube_golden_directions() {
@@ -231,6 +344,112 @@ mod tests {
     }
 
     #[test]
+    fn cubemap_projection_axes_match_face_texel_directions() {
+        for face in CubemapFace::ALL {
+            let axes = face.projection_axes();
+            assert_vec3_close(axes.forward, cubemap_texel_direction(face, 0, 0, 1));
+            assert!((dot3(axes.u, axes.v)).abs() <= 0.00001);
+            assert!((dot3(axes.u, axes.forward)).abs() <= 0.00001);
+            assert!((dot3(axes.v, axes.forward)).abs() <= 0.00001);
+            assert_vec3_close(cross3(axes.u, axes.v), negate3(axes.forward));
+            assert_vec3_close(cross3(axes.forward, negate3(axes.v)), negate3(axes.u));
+            assert!((length_squared(axes.u) - 1.0).abs() <= 0.00001);
+            assert!((length_squared(axes.v) - 1.0).abs() <= 0.00001);
+            assert!((length_squared(axes.forward) - 1.0).abs() <= 0.00001);
+        }
+    }
+
+    #[test]
+    fn cubemap_capture_view_maps_texture_axes_and_reports_winding_reflection() {
+        let origin = [3.0, -2.0, 5.0];
+        let origin_vec = Vec3::from_array(origin);
+
+        for face in CubemapFace::ALL {
+            let axes = face.projection_axes();
+            let view = cubemap_capture_view_from_world(face, origin);
+            let forward = Vec3::from_array(axes.forward);
+
+            assert!(view.reverses_winding);
+            assert_vec3_close(
+                view.view_from_world
+                    .transform_point3(origin_vec + forward)
+                    .to_array(),
+                [0.0, 0.0, -1.0],
+            );
+            assert_vec3_close(
+                view.view_from_world
+                    .transform_point3(origin_vec + forward + Vec3::from_array(axes.u))
+                    .to_array(),
+                [1.0, 0.0, -1.0],
+            );
+            assert_vec3_close(
+                view.view_from_world
+                    .transform_point3(origin_vec + forward + Vec3::from_array(axes.v))
+                    .to_array(),
+                [0.0, -1.0, -1.0],
+            );
+            assert!((view.view_from_world.determinant() + 1.0).abs() <= 0.00001);
+        }
+    }
+
+    #[test]
+    fn cubemap_capture_camera_matches_canonical_face_projection() {
+        let request = RenderEnvironmentCaptureRequest::new("probe", [3.0, -2.0, 5.0], 1)
+            .unwrap()
+            .with_clip_planes(0.25, 320.0)
+            .unwrap()
+            .with_face_size(256)
+            .unwrap();
+        let origin = Vec3::from_array(request.position());
+
+        for face in CubemapFace::ALL {
+            let axes = face.projection_axes();
+            let capture = cubemap_capture_camera(face, &request);
+            let pair = ViewProjectionMatrixPair::from_camera(
+                &capture.camera,
+                UVec2::splat(request.face_size()),
+            );
+            let forward = Vec3::from_array(axes.forward);
+
+            assert!(capture.reverses_winding);
+            assert!(capture.camera.hdr);
+            assert_eq!(capture.camera.msaa_samples, 1);
+            assert_eq!(capture.camera.aspect_ratio, 1.0);
+            assert_eq!(capture.camera.z_near, request.near_plane());
+            assert_eq!(capture.camera.z_far, request.far_plane());
+            assert_vec3_close(
+                pair.clip_from_world_unjittered
+                    .project_point3(origin + forward)
+                    .to_array(),
+                [0.0, 0.0, expected_projected_depth(&request)],
+            );
+            assert_vec2_close(
+                pair.clip_from_world_unjittered
+                    .project_point3(origin + forward + Vec3::from_array(axes.u))
+                    .truncate()
+                    .to_array(),
+                [1.0, 0.0],
+            );
+            assert_vec2_close(
+                pair.clip_from_world_unjittered
+                    .project_point3(origin + forward + Vec3::from_array(axes.v))
+                    .truncate()
+                    .to_array(),
+                [0.0, -1.0],
+            );
+
+            let reflected = cubemap_capture_view_from_world(face, request.position());
+            let expected = Mat4::perspective_rh(
+                std::f32::consts::FRAC_PI_2,
+                1.0,
+                request.near_plane(),
+                request.far_plane(),
+            ) * reflected.view_from_world;
+            assert_mat4_close(pair.clip_from_world_unjittered, expected);
+        }
+    }
+
+    #[test]
     fn cubemap_texel_solid_angles_cover_unit_sphere() {
         let face_size = 16;
         let mut total = 0.0;
@@ -272,5 +491,47 @@ mod tests {
                 "component {index}: actual={actual:?} expected={expected:?}"
             );
         }
+    }
+
+    fn assert_mat4_close(actual: Mat4, expected: Mat4) {
+        let actual = actual.to_cols_array();
+        let expected = expected.to_cols_array();
+        for index in 0..16 {
+            assert!(
+                (actual[index] - expected[index]).abs() <= 0.00001,
+                "component {index}: actual={actual:?} expected={expected:?}"
+            );
+        }
+    }
+
+    fn expected_projected_depth(request: &RenderEnvironmentCaptureRequest) -> Real {
+        Mat4::perspective_rh(
+            std::f32::consts::FRAC_PI_2,
+            1.0,
+            request.near_plane(),
+            request.far_plane(),
+        )
+        .project_point3(Vec3::NEG_Z)
+        .z
+    }
+
+    fn dot3(a: [Real; 3], b: [Real; 3]) -> Real {
+        a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+    }
+
+    fn length_squared(value: [Real; 3]) -> Real {
+        dot3(value, value)
+    }
+
+    fn cross3(a: [Real; 3], b: [Real; 3]) -> [Real; 3] {
+        [
+            a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0],
+        ]
+    }
+
+    fn negate3(value: [Real; 3]) -> [Real; 3] {
+        [-value[0], -value[1], -value[2]]
     }
 }

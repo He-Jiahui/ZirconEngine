@@ -1,9 +1,19 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/binding.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/access_bindings.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/external_access_bindings.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/persistent_texture_access_bindings.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lifecycle.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lookup.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/reporting.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/texture_views.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_device_epoch_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/resource_resolver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/native.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_command_lists.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_recording.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/hzb_occlusion.rs
@@ -17,6 +27,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/temporal.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/terminal.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_plugins/particles/runtime/src/render/executors.rs
@@ -54,10 +66,20 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/history/domain_state.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/reports.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/temporal.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/computed_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/light_scatter.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/generic_compute_executor.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/resolve_trace_handoff.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/hzb.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/history_epilogue_plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/typed_optional_external_tests.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
@@ -69,10 +91,19 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/binding.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/access_bindings.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/persistent_texture_access_bindings.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lifecycle.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lookup.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/reporting.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/texture_views.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_device_epoch_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/resource_resolver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/native.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_command_lists.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_recording.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/hzb_occlusion.rs
@@ -215,7 +246,17 @@ doc_type: module-detail
 
 # RenderGraph Execution Resources
 
-`RenderGraphExecutionResources` is the WGPU-side resource table used by scene renderer graph executors. The compiled `RenderGraph` remains RHI-neutral and exposes logical resource declarations, lifetimes, and the transient allocation plan; this module turns the live lifetimes into concrete `wgpu::TextureView`, `wgpu::Texture`, and `wgpu::Buffer` objects while keeping executor lookup keyed by stable graph resource names.
+`RenderGraphExecutionResources` is the WGPU-side resource table used by scene renderer graph executors. The compiled `RenderGraph` remains RHI-neutral and exposes logical resource declarations, lifetimes, the transient allocation plan, and an immutable external-access packet; this module turns live lifetimes into concrete WGPU objects while retaining name lookup only at the compatibility boundary.
+
+The resource table is folder-backed by ownership: `mod.rs` only mounts the module and owns the
+per-frame state; `binding.rs` owns logical-to-physical registration, `lookup.rs` owns pass-facing
+resolution, `lifecycle.rs` owns pooled materialization and release, `reporting.rs` owns diagnostics,
+and `texture_views.rs` owns view-descriptor validation; `access_bindings.rs` owns exact transient
+views, buffer windows, and one WGPU texture backing per compiler physical allocation;
+`external_access_bindings.rs` owns the access-ID keyed physical external lease table; and
+`persistent_texture_access_bindings.rs` owns exact persistent texture/backing/view leases. This is a hard cut from the former flat
+owner, so consumers retain the selected `RenderGraphExecutionResources` surface without a
+compatibility module.
 
 ## Logical Names And Backing Resources
 
@@ -227,7 +268,30 @@ Executors still ask for resources by logical names such as `scene-color`, `scree
 - `buffers` stores physical WGPU buffer backings.
 - `buffer_backings` maps logical buffer names to the physical backing key.
 
-This keeps the graph-execution-local `require_texture_view(...)`, `require_buffer(...)`, and `owned_texture(...)` lookup shape stable while allowing the materialization step to use the compiled transient plan. The raw texture/buffer lookup helpers are not part of the public scene-renderer surface; pass executors should resolve through `RgResourceResolver` or the GPU context helper layer.
+This keeps the graph-execution-local `require_texture_view(...)`, `require_buffer(...)`, and `owned_texture(...)` lookup shape stable while allowing the materialization step to use the compiled transient plan. The raw texture/buffer lookup helpers are not part of the public scene-renderer surface; pass executors should resolve through `RgResourceResolver` or the GPU context helper layer. The three compatibility mutators that import a raw view, insert a raw buffer, or create a texture alias are scoped to the scene-renderer owner as well; plugin and external feature code must use the qualified binding packet or the graph resource binder instead of mutating this table directly.
+
+The GPU execution context follows the same boundary for native command recording. Its `Device`,
+`CommandEncoder`, and scene bind handles are stored with scene-renderer visibility; cross-crate
+features must request the short-lived `RenderPassGpuNativeContext` capability through
+`native_context()`. The capability intentionally excludes the graph resource table and plugin
+output mailbox, while readback publication uses the explicit `plugin_outputs()`/
+`plugin_outputs_mut()` methods. The native context does not expose its raw `Device`: pass-local
+buffer, bind-group, layout, shader-module, and pipeline creation goes through
+`RenderPassGpuResourceFactory`. This keeps graph texture allocation outside the pass capability and
+counts every admitted create in the current pass profile without changing encoder or submission
+ownership.
+
+## External Access Leases
+
+`CompiledRenderGraph::external_access_packet()` contains one immutable entry for each live external
+access: its stable `RenderGraphResourceAccessId`, versioned key, declared external type, and any
+producer-supplied physical descriptor. After frame and plugin producers bind their WGPU objects,
+`materialize_external_access_bindings(...)` creates an access-ID keyed lease table. Generic compute
+and resolver-backed non-compute consumers resolve typed external textures and buffers through this
+table, while indirect-dispatch arguments use the same exact buffer lease. A concrete buffer access
+scope must agree with the schema window; descriptor-less report-only imports remain compatible on
+the legacy name path, but a pipeline that requires a physical texture descriptor fails closed
+rather than guessing from a resource label.
 
 ## Pass-Scoped Resolver Lookup
 
@@ -265,7 +329,15 @@ After graph targets, optional history resources, and transient resources are mat
 
 `RenderGraphExecutionRecord` carries this alias report beside the existing `RenderGraphExecutionResourceReport`. `update_base_stats(...)` copies it into `RenderStats.last_graph_execution_alias_report`, and runtime diagnostics only project stable counts: logical texture/buffer names, aliased names, and distinct physical backing labels. The full alias rows stay available to query/capture consumers without creating high-cardinality diagnostic paths.
 
-Pass profile timing follows the same execution-record path. `execute_graph_stage(...)` times each executor call with a CPU `Instant`, records `RenderGraphPassProfileRecord { pass_name, executor_id, cpu_elapsed_micros }`, and exposes the per-frame rows through `RenderGraphExecutionProfileReport`. These are CPU wall-time spans around command recording, not GPU timestamp queries; GPU timestamp and RenderDoc profile alignment remain future profiling work. Diagnostics mirror only pass count, total CPU microseconds, and max CPU microseconds under `render.graph.execution.profile.*`.
+Pass profile timing follows the same execution-record path. `execute_graph_stage(...)` times each executor call with a CPU `Instant`, records the pass identity, budget, CPU time, render/dispatch work, upload bytes, and `RenderPassNativeResourceCreateMetrics`, then exposes the per-frame rows through `RenderGraphExecutionProfileReport`. The native create metrics distinguish buffers, bind groups, bind-group layouts, shader modules, pipeline layouts, compute pipelines, and render pipelines. `RenderFrameProfile` preserves those per-pass rows; fixed-cardinality diagnostics aggregate them under `render.profile.native_resource_create.*` without creating pass-name paths. Compute workload audit context uses immutable frame geometry plus the volumetric source descriptor frozen in `CompiledHistoryEpiloguePlan`; it does not recover the final froxel output by resource name from the materialized table. CPU spans and resource-create counts are measurement inputs, not GPU timestamp queries or proof that a cache will improve performance; GPU timestamp and RenderDoc profile alignment remain future profiling work.
+
+The first built-in coverage cut is the generic compute executor. Its bounded pipeline cache keeps the
+raw device only for limits and validation error scopes; cache-miss bind-group layout, pipeline-layout,
+shader-module, and compute-pipeline creates use the pass factory, as does the dispatch bind group.
+A successful cache hit therefore contributes one observed create and a successful cold miss five.
+Other built-in renderer helpers that still receive the owner-scoped raw device are not yet covered,
+so the metric is explicitly factory-admitted work rather than a claim of complete WGPU allocation
+interception.
 
 ## Materialization Completeness Report
 
@@ -282,6 +354,8 @@ Renderer-owned frame resources now have an explicit actual-binding owner in `ren
 The 2026-06-22 F16 structure slice split the compiled-scene render orchestration without changing graph semantics. `render/bind_compiled_scene_graph_resources.rs` now composes frame imports, history imports, transient materialization, execution-owned HZB buffers, and plugin runtime-prepare external buffers before materialization validation. The narrower `bind_frame_graph_resources.rs`, `bind_history_graph_resources.rs`, `bind_execution_owned_graph_resources.rs`, and `bind_plugin_graph_resources.rs` remain the actual owner modules for each binding family. `render/execute_compiled_scene_graph_stages.rs` now owns the early graph stages, optional lighting stage, scene passes, post-process stage, history-copy report, and late UI/overlay/debug stage loop, including the associated RenderDoc marker scopes and stage-order tests. `render/submit_compiled_scene_frame.rs` owns final command submission, HZB indirect-args readbacks, HZB cull readback reporting, test-only scene-velocity/exposure/color-LUT readbacks, and the transient-pool release/report update. `render.rs` remains the compiled-scene orchestration boundary for draw preparation, graph binding/stage/submission delegation, renderer output assembly, and GPUScene previous-frame rolls.
 
 Built-in history resources now have an explicit actual-binding owner in `render/bind_history_graph_resources.rs`. The render path computes frame-level availability for TAA scene color, screen-space reflection, HZB, Hybrid GI, and exposure history, then the binder imports only enabled resources that are live in the compiled graph. It binds TAA previous/current texture views, previous SSR/HZB texture views, the `history-global-illumination` alias, and exposure previous/current buffers before transient materialization validation. This keeps history imports graph-lifetime-aware without treating those history textures as plugin-owned resources. Hybrid GI history writeback is paired with the graph-owned GI output: `copy_history_textures.rs` copies the owned `postprocess.global-illumination` texture into the selected camera's physical history region when present, falling back to the legacy fixed target only if that graph output is unavailable.
+
+TAA scene color and exposure use a different ownership path from epilogue texture copies: their current history resources are external graph destinations written directly by the TAA attachment pass and exposure compute pass. `RenderPassGpuExecutionContext` records a `SceneHistoryWriteIntent` only after the corresponding command encoding succeeds. SSR resolve, HZB build, volumetric light-scatter, generic-compute SSAO, and the Hybrid GI plugin resolve publish the same receipt after producing their graph-owned or external copy source. The plugin-facing entry is `record_frame_history_write(FrameHistorySlot)`, which maps the public compiled-feature history contract onto the renderer's scene-history domains without exposing the private transaction type. `RecordedGraphPass` carries these receipts across serial or parallel recording, and `RenderGraphStageExecution` merges committed pass receipts for the frame. The history epilogue uses that merged receipt when producing `RenderHistoryCopyReport` and the frame transaction, so a merely declared live writer cannot validate direct history or copy a stale GI/AO/SSR/HZB/volumetric source when its executor skipped or failed. Submission remains the only persistent-history commit point.
 
 First-party plugin external buffers now have a separate graph-lifetime-aware binding owner in `render/bind_plugin_graph_resources.rs`. Runtime prepare collectors can register actual per-frame WGPU buffers through `RuntimePrepareCollectorContext`, and `SceneRendererAdvancedPluginReadbacks` carries those bindings to the graph binder. Registered buffers are bound first and produce runtime-prepare alias rows; the current particles GPU buffer names and `virtual-geometry-feedback` still receive deterministic `:plugin-external-fallback` backings when no registered buffer is present. Virtual Geometry now registers a runtime-prepare backing for prepared NodeAndClusterCull page-request feedback, so live `virtual-geometry-feedback` lifetimes use that sideband buffer when page requests exist. Particles now register `particles.runtime-prepare` with the plugin's shared `ParticlesManager`: concrete GPU instances execute through `ParticleGpuRuntimeOwner` and register real `ParticleGpuBackend` buffers for `particles.gpu.*`; frames without concrete GPU instances can still use neutral `ParticleExtract.gpu_frame` summary-derived buffers, and frames without either source fall back to deterministic materialization buffers.
 
@@ -307,7 +381,7 @@ This is also the only materialization contract used by WGPU-facing tests. Each f
 
 The pool is now byte-budgeted in addition to frame-age bounded. Returned textures store `TextureDesc::checked_storage_size_bytes()` as their estimated retained size, returned buffers store `BufferDesc.size_bytes`, and frame end first removes stale entries, then evicts the least-recently-used retained entries until the texture and buffer pools fit their independent budgets. The default internal budgets are `TRANSIENT_RESOURCE_POOL_TEXTURE_BUDGET_BYTES` and `TRANSIENT_RESOURCE_POOL_BUFFER_BUDGET_BYTES`; tests can inject smaller budgets to exercise the eviction path without allocating large GPU resources.
 
-This preserves the existing per-pass resolver contract while adding the RDG-style distinction between logical graph resources and reusable physical resources. The current implementation still binds all live resources for the frame up front; it does not do pass-boundary acquire/release inside a command encoder. Budget eviction only runs after the frame's owned backings have been released, so it never removes resources that are still bound by the in-flight graph execution table.
+This preserves the existing per-pass resolver contract while adding the RDG-style distinction between logical graph resources and reusable physical resources. The current implementation still binds all live resources for the frame up front; it does not do pass-boundary acquire/release inside a command encoder. Both abort release and submitted retirement clear the exact-access tables before returning allocations to the pool, so the frame-scoped full-texture handles cannot extend the physical owner lifetime. Budget eviction only runs after the frame's owned backings have been released, so it never removes resources that are still bound by the in-flight graph execution table.
 
 The pool publishes `RenderGraphTransientPoolReport` through `RenderGraphExecutionResourceReport`. Runtime diagnostics record created, reused, retained-entry, stale-evicted, budget-evicted, retained-byte, and budget-byte texture/buffer rows under `render.graph.execution.transient_pool.*`, so frame captures and automated diagnostics can distinguish first-frame allocation churn, steady-state reuse, stale cleanup, and memory-pressure cleanup.
 
@@ -331,6 +405,87 @@ The validation is intentionally local to the resource table:
 
 This keeps environment-specific planning in `environment/ibl_bake_wgpu_command_plan.rs` while allowing the generic graph resource table to expose a Cube texture backing as a mip-scoped `D2Array` storage view for PMREM and IEM compute passes. It does not create bind groups, compute pipelines, upload parameter buffers, allocate readback buffers, or submit command encoders.
 
+Graph-backed IBL PMREM/IEM readback resolves each live texture `Write` through its compiled access ID.
+The transient access table retains one full WGPU texture handle per compiler physical allocation in
+addition to subresource views; a multi-mip PMREM readback is admitted only when all live writes map
+to that same allocation. Graph-backed IBL irradiance SH9 output and readback follow the same
+exact-resource rule for buffers:
+`ibl_bake_wgpu_dispatch.rs` resolves the declared output through
+`RenderPassGpuExecutionContext::require_buffer_binding(...)`, preserving the compiled transient
+offset and non-zero size in `StorageBufferRange`. The graph readback descriptor carries that same
+range into staging `copy_buffer_to_buffer` and product diagnostic admission, so a non-zero transient
+window is not read from offset zero. Direct environment-capture targets continue to use the legacy
+full-buffer `StorageBuffer` variant because they are outside a compiled graph and are owned by the
+capture target rather than the frame resource table.
+
+Graph-owned persistent textures now have a separate frame-scoped exact lease table. Materialization
+indexes each live persistent texture access by `RenderGraphResourceAccessId`, retains one WGPU texture
+handle per resolved persistent backing resource, and materializes the compiler-projected subresource
+view for each access. Equal `(backing, range)` scopes reuse one created WGPU view, while each access keeps
+its own lease identity. `CompiledRenderGraph::persistent_texture_backing_resource(...)` normalizes a
+logical texture-view alias to its persistent parent, so alias lifetime flags and logical names cannot
+fork execution ownership. Sparse/provider-owned resources remain outside this table and fail closed at
+the missing typed-lease boundary. `graph_owned_texture_view_for_access(...)` and
+`graph_owned_texture_for_access(...)` select the transient physical-allocation table or this persistent
+table without falling back to a resource name. Both tables are cleared before owned backings return to,
+or retire into, the transient pool.
+
+The standard resolver-backed texture view, descriptor, optional view, owned texture, physical texture,
+full-mip, explicit-mip, and mip-count helper families now first resolve the compiled graph-owned access
+ID. Normal view consumers receive the exact prebuilt view. Compatibility helpers that intentionally ask
+for a full chain or a separately selected mip first validate the exact lease, then create/return that
+explicit view contract. Buffer helpers remain on their independent exact byte-window path; this texture
+cut does not widen a `wgpu::BufferBinding`.
+
+Persistent exposure buffers use the imported-resource path rather than a second graph-owned
+persistent-buffer table. The post-process descriptor publishes a 16-byte `STORAGE | COPY_SRC |
+COPY_DST` schema for both exposure history slots. `exposure-resolve` declares compute storage reads
+and read-write output, while `scene-composite`, `color-lut-bake`, and `uber` declare their actual
+fragment/compute read stages. Pipeline authoring lowers those scopes through the versioned external
+access APIs, and `CompiledRenderGraphExternalAccessPacket` retains one exact access-ID lease per live
+consumer. The WGPU external binding table therefore resolves every exposure binding as `0..16`
+instead of widening a report-only import by name. Split DoF, motion-blur, and blur passes remain
+outside this dependency because their shaders do not sample resolved exposure.
+
+Typed external texture accesses now materialize a physical view from the compiler packet rather
+than cloning one producer default view for every access. When a provider publishes both the WGPU
+texture backing and its physical descriptor, the frame table creates the exact mip/layer/aspect view
+from `Texture(range)` and reuses one created view for equal `(graph resource, range)` scopes. Access
+IDs remain distinct even when their views are shared. A provider that publishes only a view may reuse
+that view only for a compiler-canonical range that covers the complete physical descriptor; a partial
+mip/layer/plane request fails before encoding. Legacy `UnresolvedExternal` access remains an explicit
+whole-view compatibility path rather than being reported as an exact lease.
+
+TAA scene-color history is the first fixed-size temporal product family wired through that exact
+external-texture path. Both ping-pong slots publish a View-sized `Rgba16Float`, one-mip descriptor
+with `SAMPLED | RENDER_ATTACHMENT` usage. The previous slot declares a full-texture fragment sampled
+read; the current slot declares a full-texture color-attachment write. `TemporalHistoryStore` retains
+the texture/view lifetime pair, and the compiled-scene binder borrows the backing texture, default
+view, physical descriptor, and stable identity into one external binding. The materializer can
+therefore create the access-scoped view directly from the compiled packet. This fixed View schema is
+not a template for HZB or volumetric history, whose mip/depth policies require a dynamic resource
+catalog, nor for AO's explicit 1x1 fallback variant.
+
+Hybrid GI and SSR now use the same fixed View-sized external-texture contract without sharing an
+allocation owner. Hybrid GI's lighting and temporal-metadata previous slots are one-mip
+`Rgba16Float` fragment inputs published by the plugin descriptor and backed by renderer history
+textures. SSR's existing reprojection shader now receives its previous history through a declared
+fragment sampled access instead of reading `SceneFrameHistoryTextures` directly from the GPU
+executor. Missing cold-start bindings remain optional and select the existing fallback view while
+the domain-validity flag disables blending. These changes make the compiled access packet the
+execution authority. Uber keeps its current-Hybrid-GI-output-first policy, but its previous-GI
+fallback is now another resolver-backed exact access; SSR auxiliary shader entries bind fallback
+views instead of undeclared history-owner views. They do not change GI/SSR filtering weights or
+claim a measured optimization.
+
+`CompiledRenderPipeline` also freezes a `CompiledHistoryEpiloguePlan` from the final live writer access
+of the canonical GI, SSR, HZB, and volumetric outputs. The frame-owned serial encoder still performs the
+cross-frame copies so submission and completion ordering do not move prematurely, but history encoding
+now resolves graph sources only through the compiled access IDs and fails before submission when the
+physical lease is missing. A history output must declare `COPY_SRC` during pipeline compilation. This is
+the source-side prerequisite for a future UE-style graph extraction/copy epilogue; barrier lowering,
+queue ownership, dynamic WGPU validation, PNG, and RenderDoc evidence remain open.
+
 ## Runtime Prepare Collector Scene Resource Boundary
 
 The 2026-07-07 editor command-palette validation exposed a crate-level compile blocker in `runtime_prepare_collector.rs`: production code needed `ResourceStreamer` and `MaterialCaptureSeed` while `graphics::scene::resources` was private to the scene module. `graphics::scene::mod.rs` now keeps `resources` visible only inside `crate::graphics`, and `runtime_prepare_collector.rs` imports those internal types through `graphics::scene::resources::{...}`. The 2026-07-08 closeout removed the stale test-only gates from `MaterialCaptureSeed`, `MaterialRuntime::capture_seed()`, and the material-capture accessor child because runtime prepare collectors now consume that neutral material/texture-sampling context in production. This is a boundary repair only; it does not make the `resources` folder public, does not change graph resource materialization, and does not add a renderer facade.
@@ -338,6 +493,37 @@ The 2026-07-07 editor command-palette validation exposed a crate-level compile b
 ## Validation State
 
 The materialization and pool source tests cover compatible non-overlapping textures sharing one bucketed owned WGPU backing, descriptor-incompatible textures arriving in separate graph buckets and distinct bucketed physical labels, compatible non-overlapping buffers sharing one bucketed WGPU backing, transient pool reuse across frames, stale pool entry eviction, budget pressure evicting retained entries down to the configured byte cap, render-scale 0.5 to 1.0 to 0.5 switching retaining bounded descriptor buckets, and stale logical texture/buffer bindings being rejected when they are not part of the compiled live lifetime set. The runtime diagnostics contract also asserts the `render.graph.execution.transient_pool.*` count/byte series and `render.graph.materialization.stale_*` count rows when the lib-test crate can compile.
+
+The 2026-08-30 persistent exact-view source slice adds direct-mip materialization coverage and a
+persistent-parent texture-view-alias resolver regression. The alias regression asserts the compiled
+parent backing identity, materializes the per-access WGPU view lease, and resolves it through the
+pass-scoped resolver. Exact rustfmt, locked Cargo metadata, scoped diff checking, and source-contract
+classification passed. Managed Cargo/WGPU execution, PNG/RDC capture, timing, VRAM, power, and
+coordinator acceptance remain pending; no dynamic rendering or performance result is claimed.
+
+The 2026-08-30 exposure external-buffer continuation adds builder, feature-descriptor, compiled
+pipeline, and external-packet contract tests for the exact 16-byte lease and its producer provenance.
+Scoped rustfmt, locked Cargo metadata, source-contract checks, and scoped diff checking passed. The
+managed Cargo/WGPU lane is still blocked before test execution, so framebuffer PNG, RenderDoc RDC,
+GPU timing, VRAM, power, and visual acceptance remain pending.
+
+The 2026-08-30 provider-owned external-texture continuation adds source regressions for an exact mip2
+view created from a physical backing, rejection of a partial view-only lease, and compatibility for a
+canonical full-scope view-only lease. The materializer caches equal physical scopes instead of creating
+one WGPU view per access. Managed Cargo/WGPU execution, framebuffer PNG, RenderDoc RDC, timing, VRAM,
+power, and coordinator acceptance remain pending; no dynamic rendering or performance result is
+claimed.
+
+The 2026-08-30 TAA continuation adds source regressions across feature authoring, compiled external
+packet retention, history backing publication, and compiled-scene binding. Exact rustfmt, locked Cargo
+metadata, scoped source-contract checks, and scoped diff checking passed. Managed Cargo remains
+blocked before compilation by `cargo_reuse_target_mismatch`; no WGPU execution, consecutive-frame
+PNG, RenderDoc RDC, timing, VRAM, power, or visual acceptance is claimed.
+
+The 2026-08-30 Hybrid GI/SSR continuation adds plugin descriptor, compiled SSR packet,
+resolver-only SSR execution, and physical history binder source regressions. Exact rustfmt, locked
+metadata, source-contract, and scoped diff checks passed. Managed Cargo/WGPU, consecutive-frame PNG,
+RenderDoc, timing, VRAM, power, and visual acceptance remain pending.
 
 `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` passed on 2026-06-12 after the pool diagnostics bridge with existing warnings only. Earlier focused lib-test commands were blocked before running their filtered tests by unrelated `zircon_runtime` lib-test compile errors in `zircon_runtime/src/ui/tests/runtime_input_manager.rs` and `zircon_runtime/src/ui/tests/style_mapping.rs`; an earlier materialization test attempt was also blocked by the dirty `zircon_runtime/src/scene/tests/ecs_schedule.rs` test source. The stale-binding follow-up later compiled the focused lib-test binary with `cargo test -p zircon_runtime --lib materialization_validation_rejects_stale --no-run --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-stale-lifetime-validation-0618 --message-format short --color never` in 8m06s, then direct exact execution of `materialization_validation_rejects_stale_texture_binding_outside_live_lifetimes` and `materialization_validation_rejects_stale_buffer_binding_outside_live_lifetimes` both passed.
 
@@ -370,3 +556,29 @@ The 2026-06-24 Plan 01 Render pass executor registry test owner split keeps `gra
 The 2026-07-14 Runtime15 follow-up preserves the Plan 01 command-list split and moves the remaining mesh pass-recording responsibility from `render_pass_execution_context/gpu.rs` into `render_pass_execution_context/gpu/mesh_recording.rs`. The three current owners are 387/146/516 lines after rustfmt. The child retains the original function signatures, attachment operations, command replay order, advanced PBR/transmission routing, error messages and resource access modes; no compatibility shim or duplicate path remains. Guard `runtime_15_render_pass_gpu_context_mesh_command_lists_are_child_owner` locks mounts, moved anchors, documentation and the three-file 800-line budget.
 
 The follow-up GPU context propagation slice passes the resolver from `RenderPassExecutionContext` into `RenderPassGpuExecutionContext` and migrates deferred lighting texture/buffer lookup onto resolver-backed helpers in `gpu/resource_lookup.rs`. The next deferred scene bridge slice extracts `gpu/deferred.rs` and moves depth-prepass plus deferred G-buffer lookups onto the same compiled-pass access gate; `gpu.rs` is 810 lines after the split. The mesh bridge slice moves mesh-stage attachments, optional light-grid buffers, and TAA reactive-mask mesh attachments onto resolver-backed helpers; `gpu.rs` is 839 lines and `gpu/resource_lookup.rs` is 70 lines after that slice. The scene surface bridge slice extracts `gpu/surface.rs` for sprite, screen-space UI, preview-sky, and overlay bridge lookup; `gpu.rs` is 730 lines, `gpu/surface.rs` is 158 lines, and `gpu/resource_lookup.rs` is 70 lines after that split. The particle bridge slice moves `scene-color` write / `scene-depth` read transparent rendering and `scene-velocity` write / `scene-depth` read velocity rendering through resolver-backed helpers in `gpu/particle.rs`, removes the particles plugin executor's redundant direct `gpu.resources.require_texture_view(...)` precheck, and leaves `gpu/particle.rs` at 76 lines. The SSR bridge slice moves resolve, reflection-pyramid, coarse-pyramid, and specular-occlusion graph inputs/outputs plus mip-target alias lookup through resolver-backed helpers in `gpu/post_process/screen_space_reflection.rs`; the optional shared-input helpers preserve fallback textures when a pass does not declare a slot, and the SSR descriptor now declares `light-list` for the shared post-process bind group. The root postprocess bridge slice moves stack/color-LUT/effect-chain/compute-resource/temporal/terminal lookups through the same helpers, adds `gpu/post_process/{effects,computed_resources,temporal,terminal}.rs`, leaves root `gpu/post_process.rs` at 490 lines, and keeps SSR mip-count metadata behind a resolver-gated helper. `rustfmt --edition 2021` and the follow-up `--check` passed over the touched Rust files. The latest `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-resolver-cutover-0617 --message-format short --color never` rerun passed with the existing 142-warning set. The package-scoped particles plugin check still stops before compilation because `zircon_plugins/Cargo.lock` would need an update under `--locked`. Remaining direct GPU lookup work is now `RenderGraphExecutionResources` visibility tightening plus the existing `gpu/hzb_occlusion.rs` legacy lookup; helper fallback/internal calls remain by design.
+
+## Device-qualified executor caches
+
+`RenderGraphExecutionResources` records the device identity that materialized the current graph, and
+`RenderPassGpuExecutionContext::device_epoch()` exposes that fact as an opaque, comparable
+`RenderPassDeviceEpoch`. Persistent native objects owned by an executor must not infer compatibility
+from executor registration lifetime or from texture formats alone.
+
+Core advanced-lighting executors use the private `RenderPassDeviceEpochCache<K, V>`. Its identity is
+the materialized device epoch plus the local pipeline descriptor key. Stable frames reuse the cached
+value; an epoch or key change drops the complete old entry before constructing and publishing its
+replacement. Failed replacement leaves the cache empty, so an old-generation pipeline can never be
+used as fallback. Froxel, OIT, planar filtering, and the shared SSS bundle require the epoch before
+resource lookup or GPU command encoding; in particular, OIT counter clear occurs only after current-
+epoch pipeline admission.
+
+The stable-frame source upper bound is nine constant-time epoch/key comparisons when all affected
+passes execute. This is not measured timing. The 2026-08-31 slice has source contracts, drop-order unit
+tests, rustfmt, scoped diff checking, and locked metadata only; managed Cargo/WGPU, live device-loss
+recovery, fresh PNG/RDC, RenderDoc markers, 300-frame timing, VRAM, and power evidence remain pending.
+
+Transient texture and buffer allocations use the same `RenderPassDeviceEpoch` owner as graph
+execution resources and persistent executor caches. The pool converts the current RHI profile into
+that opaque value once per frame; submission-ticket scalar access is confined to the ticket-admission
+boundary. This keeps free and pending allocation retirement on one graph epoch identity without
+changing descriptor-key reuse, completion qualification, or budget-eviction ordering.

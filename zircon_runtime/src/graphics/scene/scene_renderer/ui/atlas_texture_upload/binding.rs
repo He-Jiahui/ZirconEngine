@@ -1,6 +1,6 @@
 use crate::text::atlas::{GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapTextureUploadRequest};
 
-use super::write::{write_glyph_atlas_texture_upload_bytes, GlyphAtlasTextureUploadWrite};
+use super::write::GlyphAtlasTextureUploadWrite;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct GlyphAtlasBitmapTextureUploadBinding<'a> {
@@ -107,21 +107,11 @@ pub(super) fn glyph_atlas_bitmap_texture_upload_binding_plan<'a>(
         bindings.push(GlyphAtlasBitmapTextureUploadBinding {
             request_index,
             write: glyph_atlas_texture_upload_write_for_bitmap_request(request),
-            bytes: staging_page.bytes.as_slice(),
+            bytes: staging_page.bytes.as_ref(),
         });
     }
 
     GlyphAtlasBitmapTextureUploadBindingPlan { bindings, failures }
-}
-
-pub(super) fn write_glyph_atlas_bitmap_texture_upload_bindings(
-    queue: &wgpu::Queue,
-    texture: &wgpu::Texture,
-    bindings: &[GlyphAtlasBitmapTextureUploadBinding<'_>],
-) {
-    for binding in bindings {
-        write_glyph_atlas_texture_upload_bytes(queue, texture, binding.bytes, binding.write);
-    }
 }
 
 fn glyph_atlas_texture_upload_write_for_bitmap_request(

@@ -7,19 +7,19 @@ use zircon_runtime::core::framework::navigation::{
 use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::manager::ManagerResolver;
 use zircon_runtime::core::math::{Real, Transform, Vec3};
-use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::core::{CoreRuntime, TasksModule};
+use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::world::World;
 
+use crate::test_support::navigation_manager;
 use crate::tests::support::two_island_navmesh;
-use crate::{
-    module_descriptor, navigation_component_descriptors, DefaultNavigationManager,
-    NAVIGATION_MODULE_NAME,
-};
+use crate::{module_descriptor, navigation_component_descriptors, NAVIGATION_MODULE_NAME};
 
 #[test]
 fn navigation_module_resolves_manager_and_queries_loaded_navmesh() {
     let runtime = CoreRuntime::new();
+    runtime.register_module(TasksModule.descriptor()).unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(NAVIGATION_MODULE_NAME).unwrap();
     let resolver = ManagerResolver::new(runtime.handle());
@@ -42,6 +42,7 @@ fn navigation_module_resolves_manager_and_queries_loaded_navmesh() {
 #[test]
 fn resolved_navigation_manager_exposes_filtered_path_query() {
     let runtime = CoreRuntime::new();
+    runtime.register_module(TasksModule.descriptor()).unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(NAVIGATION_MODULE_NAME).unwrap();
     let resolver = ManagerResolver::new(runtime.handle());
@@ -65,7 +66,7 @@ fn resolved_navigation_manager_exposes_filtered_path_query() {
 
 #[test]
 fn navigation_manager_ticks_dynamic_agents_toward_destination() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     world
         .register_component_type(navigation_component_descriptors()[2].clone())
@@ -97,7 +98,7 @@ fn navigation_manager_ticks_dynamic_agents_toward_destination() {
 
 #[test]
 fn navigation_manager_limits_agent_start_velocity_by_acceleration() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     world
         .register_component_type(navigation_component_descriptors()[2].clone())
@@ -131,7 +132,7 @@ fn navigation_manager_limits_agent_start_velocity_by_acceleration() {
 
 #[test]
 fn navigation_manager_auto_braking_stops_at_agent_stopping_distance() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     world
         .register_component_type(navigation_component_descriptors()[2].clone())
@@ -169,7 +170,7 @@ fn navigation_manager_auto_braking_stops_at_agent_stopping_distance() {
 
 #[test]
 fn navigation_manager_applies_basic_obstacle_avoidance_and_stats() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -217,7 +218,7 @@ fn navigation_manager_applies_basic_obstacle_avoidance_and_stats() {
 
 #[test]
 fn loaded_navmesh_no_path_blocks_agent_instead_of_direct_fallback() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     world
         .register_component_type(navigation_component_descriptors()[2].clone())
@@ -256,7 +257,7 @@ fn loaded_navmesh_no_path_blocks_agent_instead_of_direct_fallback() {
 
 #[test]
 fn automatic_agent_tick_does_not_cross_manual_off_mesh_links() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     world
         .register_component_type(navigation_component_descriptors()[2].clone())
@@ -297,7 +298,7 @@ fn automatic_agent_tick_does_not_cross_manual_off_mesh_links() {
 
 #[test]
 fn explicit_path_query_can_still_cross_manual_off_mesh_links() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut asset = two_island_navmesh(true);
     asset.off_mesh_links[0].traversal_mode = NavLinkTraversalMode::Manual;
     let handle = manager.load_nav_mesh(asset).unwrap();
@@ -315,7 +316,7 @@ fn explicit_path_query_can_still_cross_manual_off_mesh_links() {
 
 #[test]
 fn automatic_agent_tick_respects_auto_traverse_links_opt_out() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     world
         .register_component_type(navigation_component_descriptors()[2].clone())
@@ -355,7 +356,7 @@ fn automatic_agent_tick_respects_auto_traverse_links_opt_out() {
 
 #[test]
 fn carved_runtime_obstacle_blocks_agent_path_on_loaded_navmesh() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -410,7 +411,7 @@ fn carved_runtime_obstacle_blocks_agent_path_on_loaded_navmesh() {
 
 #[test]
 fn removed_runtime_obstacle_restores_agent_path() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -466,7 +467,7 @@ fn removed_runtime_obstacle_restores_agent_path() {
 
 #[test]
 fn changed_obstacle_releases_tile_cache_slot_before_replacement() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -535,7 +536,7 @@ fn changed_obstacle_releases_tile_cache_slot_before_replacement() {
 
 #[test]
 fn default_navmesh_selection_uses_first_loaded_handle() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let first = manager.load_nav_mesh(two_island_navmesh(false)).unwrap();
     let second = manager.load_nav_mesh(two_island_navmesh(true)).unwrap();
     assert!(first.0 < second.0);
@@ -549,7 +550,7 @@ fn default_navmesh_selection_uses_first_loaded_handle() {
 
 #[test]
 fn invalid_navigation_settings_are_rejected() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut duplicate_area = NavigationSettingsAsset::default();
     duplicate_area.areas.push(NavigationAreaSettings {
         id: AREA_WALKABLE,

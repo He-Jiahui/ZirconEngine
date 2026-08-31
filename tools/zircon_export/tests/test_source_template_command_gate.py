@@ -254,6 +254,14 @@ class SourceTemplateCommandGateTests(unittest.TestCase):
                 ),
                 report["diagnostics"],
             )
+            self.assertFalse(
+                any(
+                    "SourceTemplate build plan command must be a non-empty string array"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
 
     def test_source_template_rejects_plan_with_dangling_manifest_path_option(
         self,

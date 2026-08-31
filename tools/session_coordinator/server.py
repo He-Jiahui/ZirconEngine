@@ -63,6 +63,7 @@ from .processes import current_process_identity, process_is_alive
 from .git_finalize import GitFinalizeService
 from .git_guard import remove_commit_guard
 from .workspace_copy import WorkspaceCopyService
+from .workspace_scan import WorkspaceScanSingleFlight
 from .benchmark_validation_grants import BenchmarkValidationGrantService
 from .legacy import LegacyMigrationService
 from .audit import RolloutAuditService
@@ -441,7 +442,11 @@ class CoordinatorApplication:
         )
         self.governance = StateConvergenceService(self.database, config.repo_root)
         self.manifest_retention = ManifestRetentionService(self.database, config.state_root)
-        self.validation_tickets = ValidationTicketService(self.database)
+        self.validation_tickets = ValidationTicketService(
+            self.database,
+            repo_root=config.repo_root,
+            object_store=self.object_store,
+        )
         self.artifact_receipts = ManagedArtifactReceiptService(
             self.database, config.state_root / "managed-artifacts"
         )
@@ -512,6 +517,7 @@ class CoordinatorApplication:
                     if root.name.casefold() == "cargo-targets"
                 ),
                 mutation_gate=lambda: self._mutation_lock,
+                object_store=self.object_store,
             )
             self.workspace_copy.set_cargo_materialization_preflight(
                 lambda: self._require_artifact_governance_clean()
@@ -563,6 +569,12 @@ class CoordinatorApplication:
         self.supervision.initialize(automatic_start=automatic_start)
         if self.cargo_jobs is not None:
             self.cargo_jobs.set_admission_guard(self._require_admission_checkpoint)
+            self.cargo_jobs.set_cargo_start_guard(
+                self.supervision.require_cargo_start_allowed_in_connection
+            )
+            self.supervision.set_cargo_start_transition(
+                self.cargo_jobs.managed_start_registration
+            )
             self.cargo_jobs.set_reservation_consume_guard(
                 self._require_reservation_consume_guard
             )
@@ -1459,6 +1471,11 @@ class CoordinatorApplication:
                 command=tuple(str(part) for part in arguments.get("command") or ()),
                 toolchain=arguments.get("toolchain") or {},
                 coverage=arguments.get("coverage") or {},
+                overlay_ownership_preflight=lambda session_id, paths: (
+                    self._require_workspace_copy().require_overlay_ownership(
+                        session_id, paths
+                    )
+                ),
             )
             return {
                 "receipt": {
@@ -2437,6 +2454,7 @@ class CoordinatorApplication:
         cleanup_plan_id: str | None = None
         unmanaged_artifacts_deleted: list[str] = []
         compacted_manifest_batches: list[str] = []
+        retired_manifest_batch: dict[str, object] | None = None
         try:
             self.command_requests.retry_deferred_failures()
             self.command_requests.prune()
@@ -2492,6 +2510,14 @@ class CoordinatorApplication:
                     self.cleanup.apply(cleanup_plan)
             if self.artifact_governance is not None and not self.read_only:
                 unmanaged_artifacts_deleted = list(self.artifact_governance.cleanup().deleted)
+            retired = self.manifest_retention.retire_incremental(actor="maintenance")
+            if retired is not None:
+                retired_manifest_batch = {
+                    "batch_id": retired.batch_id,
+                    "archive_path": str(retired.archive_path),
+                    "retired_count": retired.retired_count,
+                    "retired_bytes": retired.retired_bytes,
+                }
             for batch_id in self.manifest_retention.pending_compactions():
                 self.manifest_retention.compact(batch_id, actor="maintenance")
                 compacted_manifest_batches.append(batch_id)
@@ -2552,6 +2578,7 @@ class CoordinatorApplication:
             "retention_plan_id": retention_plan_id,
             "cleanup_plan_id": cleanup_plan_id,
             "unmanaged_artifacts_deleted": unmanaged_artifacts_deleted,
+            "retired_manifest_batch": retired_manifest_batch,
             "compacted_manifest_batches": compacted_manifest_batches,
         }
 
@@ -3128,6 +3155,24 @@ class RunningCoordinator:
         return True
 
     @staticmethod
+    def _run_validation_worker_tick(
+        application: CoordinatorApplication, stop_event: threading.Event
+    ) -> bool:
+        if application.validation_ticket_worker is None or application.read_only:
+            return not stop_event.is_set()
+        try:
+            application.advance_validation_queue(
+                actor="maintenance", require_admission=False
+            )
+        except Exception as error:  # pragma: no cover - defensive worker boundary
+            if stop_event.is_set():
+                return False
+            RunningCoordinator._record_maintenance_failure(
+                application, "validation.ticket_worker_failed", error
+            )
+        return not stop_event.is_set()
+
+    @staticmethod
     def _maintenance_loop(
         application: CoordinatorApplication,
         watch_interval_seconds: float,
@@ -3137,17 +3182,11 @@ class RunningCoordinator:
         watch_interval = max(watch_interval_seconds, 0.05)
         maintenance_interval = max(maintenance_interval_seconds, watch_interval)
         next_maintenance = time.monotonic() + maintenance_interval
+        workspace_scan = WorkspaceScanSingleFlight(application.watcher)
         while not stop_event.wait(watch_interval):
-            try:
-                observation = application.watcher.prepare_scan()
-                application.watcher.apply_scan(observation)
-            except Exception as error:  # pragma: no cover - defensive long-lived boundary
-                if stop_event.is_set():
-                    break
-                RunningCoordinator._record_maintenance_failure(
-                    application, "watch.scan_failed", error
-                )
-            if stop_event.is_set():
+            if not RunningCoordinator._run_validation_worker_tick(
+                application, stop_event
+            ):
                 break
             if application.cargo_jobs is not None and not application.read_only:
                 try:
@@ -3193,6 +3232,39 @@ class RunningCoordinator:
                                     json.dumps(reservation_reconciliation, sort_keys=True),
                                 ),
                             )
+                except Exception as error:  # pragma: no cover - defensive long-lived boundary
+                    if stop_event.is_set():
+                        break
+                    RunningCoordinator._record_maintenance_failure(
+                        application, "cargo.reconcile_failed", error
+                    )
+            if not RunningCoordinator._run_validation_worker_tick(
+                application, stop_event
+            ):
+                break
+            scan_outcome = workspace_scan.poll()
+            if scan_outcome is not None:
+                observation, scan_error = scan_outcome
+                if scan_error is not None:
+                    RunningCoordinator._record_maintenance_failure(
+                        application, "watch.scan_failed", scan_error
+                    )
+                else:
+                    try:
+                        application.watcher.apply_scan(observation)
+                    except Exception as error:  # pragma: no cover - defensive boundary
+                        if stop_event.is_set():
+                            break
+                        RunningCoordinator._record_maintenance_failure(
+                            application, "watch.scan_failed", error
+                        )
+            if stop_event.is_set():
+                break
+            workspace_scan.request()
+            if stop_event.is_set():
+                break
+            if application.cargo_jobs is not None and not application.read_only:
+                try:
                     application.cleanup.retry_pending_jobs()
                     application.cleanup.evict_idle_pools_under_pressure()
                 except Exception as error:  # pragma: no cover - defensive long-lived boundary
@@ -3240,17 +3312,6 @@ class RunningCoordinator:
                     RunningCoordinator._record_maintenance_failure(
                         application, "validation_copy.recovery_failed", error
                     )
-            if application.validation_ticket_worker is not None and not application.read_only:
-                try:
-                    application.advance_validation_queue(
-                        actor="maintenance", require_admission=False
-                    )
-                except Exception as error:  # pragma: no cover - defensive worker boundary
-                    if stop_event.is_set():
-                        break
-                    RunningCoordinator._record_maintenance_failure(
-                        application, "validation.ticket_worker_failed", error
-                    )
             if stop_event.is_set():
                 break
             if time.monotonic() >= next_maintenance:
@@ -3264,6 +3325,7 @@ class RunningCoordinator:
                     )
                 finally:
                     next_maintenance = time.monotonic() + maintenance_interval
+        workspace_scan.close()
 
 
 def run_forever(config: CoordinatorConfig, *, automatic_start: bool = False) -> None:

@@ -6,17 +6,19 @@ use crate::core::framework::render::{
     RenderFrameExtract, RenderPluginRendererOutputs, RenderWorldSnapshotHandle,
 };
 use crate::core::math::UVec2;
-use crate::graphics::backend::{read_texture_rgba, RenderBackend};
+use crate::graphics::ViewportRenderFrame;
+use crate::graphics::backend::{RenderBackend, read_texture_rgba};
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutorId,
     RenderPassExecutorRegistry, RenderPassGpuExecutionContext,
 };
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
-use crate::graphics::ViewportRenderFrame;
 use crate::render_graph::{
     BindingSchemaEntry, ComputeBindingKind, PassFlags, QueueLane, RenderGraphBuilder,
     RenderGraphComputeDispatchExtent, RenderGraphComputePassMetadata,
     RenderGraphComputeShaderSource, RenderGraphComputeWorkload, RenderGraphExternalResourceBinding,
+    RenderGraphResourceAccessIntent, RenderGraphResourceAccessKind, RenderGraphResourceAccessRange,
+    RenderGraphShaderStages, RenderGraphTextureSubresourceRange,
 };
 use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
 use crate::scene::world::World;
@@ -59,9 +61,11 @@ fn export_generic_executor_per_pixel_product_png() {
         &[255, 255, 64, 255]
     );
     let output = product_png_path();
-    assert!(output
-        .components()
-        .all(|component| component.as_os_str() != "target"));
+    assert!(
+        output
+            .components()
+            .all(|component| component.as_os_str() != "target")
+    );
     std::fs::create_dir_all(
         output
             .parent()
@@ -86,8 +90,15 @@ fn render_per_pixel_storage_texture() -> Option<PerPixelProductCapture> {
     };
     let output_size = UVec2::new(13, 9);
     let mut graph_builder = RenderGraphBuilder::new("generic-compute-per-pixel-dispatch");
-    let output = graph_builder.import_external_resource_with_binding(
+    let output = graph_builder.import_present_external_texture_with_binding(
         "per-pixel-output",
+        TextureDesc::new(
+            "generic-compute-per-pixel-output",
+            output_size.x,
+            output_size.y,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::SAMPLED | TextureUsage::STORAGE,
+        ),
         RenderGraphExternalResourceBinding::required_texture(),
     );
     let pass_id = graph_builder.add_pass_with_executor(
@@ -95,7 +106,18 @@ fn render_per_pixel_storage_texture() -> Option<PerPixelProductCapture> {
         QueueLane::AsyncCompute,
         Some(COMPUTE_GENERIC_EXECUTOR_ID),
     );
-    graph_builder.write_external(pass_id, output).unwrap();
+    graph_builder
+        .access_external(
+            pass_id,
+            output,
+            RenderGraphResourceAccessKind::Write,
+            RenderGraphResourceAccessRange::Texture(RenderGraphTextureSubresourceRange::full()),
+            RenderGraphResourceAccessIntent::storage_texture_write(
+                RenderGraphShaderStages::COMPUTE,
+            ),
+            None,
+        )
+        .unwrap();
     graph_builder
         .set_pass_flags(
             pass_id,
@@ -223,6 +245,8 @@ fn render_per_pixel_storage_texture() -> Option<PerPixelProductCapture> {
         .with_resource_resolver(&graph, pass.id)
         .with_compute_workload(pass.compute_workload.as_ref())
         .with_compute_pass_metadata(pass.compute_pass_metadata.as_ref())
+        .with_compute_binding_access_packet(graph.compute_binding_access_packet(pass.id))
+        .with_compute_dispatch_access_packet(graph.compute_dispatch_access_packet(pass.id))
         .with_gpu(gpu);
 
     RenderPassExecutorRegistry::with_builtin_noop_executors()

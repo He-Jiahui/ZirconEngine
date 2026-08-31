@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::ui::template::UiTemplateInstance;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
@@ -16,6 +18,7 @@ use super::slot_contract::infer_slot_contract;
 #[derive(Default)]
 pub struct UiTemplateTreeBuilder {
     next_node_id: u64,
+    control_path_by_id: BTreeMap<String, String>,
 }
 
 impl UiTemplateTreeBuilder {
@@ -23,7 +26,10 @@ impl UiTemplateTreeBuilder {
         tree_id: UiTreeId,
         instance: &UiTemplateInstance,
     ) -> Result<UiTree, UiTemplateBuildError> {
-        let mut builder = Self { next_node_id: 1 };
+        let mut builder = Self {
+            next_node_id: 1,
+            control_path_by_id: BTreeMap::new(),
+        };
         let mut tree = UiTree::new(tree_id);
         builder.insert_node(&mut tree, None, &instance.root, "root")?;
         Ok(tree)
@@ -66,6 +72,18 @@ impl UiTemplateTreeBuilder {
         node: &UiTemplateNode,
         path: &str,
     ) -> Result<UiNodeId, UiTemplateBuildError> {
+        if let Some(control_id) = node.control_id.as_deref() {
+            if let Some(first_node_path) = self.control_path_by_id.get(control_id) {
+                return Err(UiTemplateBuildError::DuplicateControlId {
+                    control_id: control_id.to_string(),
+                    first_node_path: first_node_path.clone(),
+                    duplicate_node_path: path.to_string(),
+                });
+            }
+            self.control_path_by_id
+                .insert(control_id.to_string(), path.to_string());
+        }
+
         let node_id = UiNodeId::new(self.next_node_id);
         self.next_node_id += 1;
 
@@ -97,6 +115,7 @@ impl UiTemplateTreeBuilder {
             .with_template_metadata(UiTemplateNodeMetadata {
                 component: node.component.clone().unwrap_or_default(),
                 control_id: node.control_id.clone(),
+                pixel_snapping: Default::default(),
                 classes: node.classes.clone(),
                 attributes: node.attributes.clone(),
                 slot_attributes: node.slot_attributes.clone(),
@@ -121,7 +140,7 @@ impl UiTemplateTreeBuilder {
                 })?;
             let slot = infer_slot_contract(node, parent_id, node_id, parent_container, path)?;
             tree.insert_child(parent_id, tree_node)?;
-            tree.slots.push(slot);
+            tree.push_layout_slot(slot);
         } else {
             tree.insert_root(tree_node);
         }

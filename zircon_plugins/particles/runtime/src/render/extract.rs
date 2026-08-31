@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use zircon_runtime::core::framework::render::{
     ParticleExtract, RenderParticleBoundsSnapshot, RenderParticleGpuFrameExtract,
@@ -6,6 +6,10 @@ use zircon_runtime::core::framework::render::{
 use zircon_runtime::core::math::{Real, Vec3};
 
 use crate::ParticleRuntimeSnapshot;
+
+#[cfg(test)]
+#[path = "extract/performance_tests.rs"]
+mod performance_tests;
 
 pub fn build_particle_extract(
     snapshot: &ParticleRuntimeSnapshot,
@@ -26,7 +30,7 @@ pub fn build_particle_extract(
         .collect::<Vec<_>>();
     emitters.sort_unstable();
     emitters.dedup();
-    let bounds = build_bounds(&sprites);
+    let bounds = build_bounds(&sprites, snapshot.emitters.len());
     ParticleExtract {
         emitters,
         sprites,
@@ -38,33 +42,33 @@ pub fn build_particle_extract(
 }
 
 fn build_gpu_frame(snapshot: &ParticleRuntimeSnapshot) -> Option<RenderParticleGpuFrameExtract> {
-    let gpu_emitters = snapshot
-        .emitters
-        .iter()
-        .filter(|emitter| emitter.backend == crate::ParticleSimulationBackend::Gpu)
-        .collect::<Vec<_>>();
-    if gpu_emitters.is_empty() {
+    let mut alive_count = 0u32;
+    let mut per_emitter_spawned = Vec::with_capacity(snapshot.emitters.len());
+    for emitter in &snapshot.emitters {
+        if emitter.backend != crate::ParticleSimulationBackend::Gpu {
+            continue;
+        }
+        let live_particles = emitter.live_particles as u32;
+        alive_count += live_particles;
+        per_emitter_spawned.push(live_particles);
+    }
+    if per_emitter_spawned.is_empty() {
         return None;
     }
-    let alive_count = gpu_emitters
-        .iter()
-        .map(|emitter| emitter.live_particles as u32)
-        .sum::<u32>();
     Some(RenderParticleGpuFrameExtract {
         alive_count,
         spawned_total: alive_count,
-        per_emitter_spawned: gpu_emitters
-            .iter()
-            .map(|emitter| emitter.live_particles as u32)
-            .collect(),
+        per_emitter_spawned,
         indirect_draw_args: [6, alive_count, 0, 0],
     })
 }
 
 fn build_bounds(
     sprites: &[zircon_runtime::core::framework::render::RenderParticleSpriteSnapshot],
+    emitter_capacity_hint: usize,
 ) -> Vec<RenderParticleBoundsSnapshot> {
-    let mut ranges: BTreeMap<_, (Vec3, Vec3)> = BTreeMap::new();
+    let mut ranges: HashMap<_, (Vec3, Vec3)> =
+        HashMap::with_capacity(emitter_capacity_hint.min(sprites.len()));
     for sprite in sprites {
         let half = Vec3::splat(sprite.size.max(0.0) * 0.5);
         let min = sprite.position - half;
@@ -78,7 +82,7 @@ fn build_bounds(
             .or_insert((min, max));
     }
 
-    ranges
+    let mut bounds = ranges
         .into_iter()
         .map(|(entity, (min, max))| {
             let center = (min + max) * 0.5;
@@ -89,5 +93,7 @@ fn build_bounds(
                 radius,
             }
         })
-        .collect()
+        .collect::<Vec<_>>();
+    bounds.sort_unstable_by_key(|bounds| bounds.entity);
+    bounds
 }

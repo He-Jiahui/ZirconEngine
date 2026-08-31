@@ -1,12 +1,17 @@
-use std::time::Instant;
-
 use crate::core::framework::text::TextDirection;
 use crate::text::{BackendShapeRequest, ShapedGlyphRotation, TextShapingWorkBudget, VerticalMode};
 use crate::text::{TextRange, TextStyle};
-#[cfg(feature = "profiling")]
-use unicode_segmentation::UnicodeSegmentation;
 
-use super::{bidi::BidiParagraph, shape_horizontal_line, shape_text};
+use super::{
+    DirectTextShapeRunProvider, FontCollectionTextShapeRunProvider, TextShapeRunProvider,
+    TextShapingOutcome, bidi::BidiParagraph, shape_horizontal_range, shape_text,
+};
+
+#[cfg(feature = "profiling")]
+mod letter_spacing_profile;
+mod line_break_receipt;
+mod performance;
+mod script_receipt;
 
 #[test]
 fn text_vertical_cjk_upright_advances_on_y() {
@@ -21,7 +26,8 @@ fn text_vertical_cjk_upright_advances_on_y() {
             end: text.len(),
         },
         VerticalMode::Mixed,
-    ));
+    ))
+    .expect("vertical CJK shaping must resolve a rasterizable face");
     let line = shaped.lines.first().expect("vertical shaped line");
 
     assert!(
@@ -48,7 +54,8 @@ fn text_vertical_latin_sideways_rotated() {
         TextDirection::LeftToRight,
         TextRange { start: 0, end: 2 },
         VerticalMode::Mixed,
-    ));
+    ))
+    .expect("vertical Latin shaping must resolve a rasterizable face");
 
     assert!(
         shaped.lines[0]
@@ -56,6 +63,43 @@ fn text_vertical_latin_sideways_rotated() {
             .iter()
             .all(|glyph| glyph.rotation == ShapedGlyphRotation::Cw90)
     );
+}
+
+#[test]
+fn text_horizontal_direct_shaping_retains_raw_line_metrics() {
+    let text = "metrics";
+    let style = test_style();
+    let shaped = shape_text(BackendShapeRequest::horizontal(
+        text,
+        &style,
+        TextDirection::LeftToRight,
+        TextRange {
+            start: 0,
+            end: text.len(),
+        },
+    ))
+    .expect("horizontal shaping must resolve a rasterizable face");
+
+    assert_eq!(
+        shaped.horizontal_line_raw_metrics.len(),
+        shaped.lines.len(),
+        "the direct backend retains one raw metric sidecar per hard line"
+    );
+    let raw = shaped
+        .horizontal_line_raw_metrics_at(0)
+        .expect("the direct backend must retain raw horizontal metrics");
+    assert!(raw.ascent() > 0.0);
+    assert!(raw.descent() >= 0.0);
+    assert!(raw.line_spacing_gap() >= 0.0);
+    let spans = shaped
+        .horizontal_glyph_metric_spans_for_line(0)
+        .expect("the direct backend must retain complete face-metric span coverage");
+    assert_eq!(spans.first().map(|span| span.glyph_start), Some(0));
+    assert_eq!(
+        spans.last().map(|span| span.glyph_end),
+        Some(shaped.lines[0].glyphs.len())
+    );
+    assert!(spans.iter().all(|span| span.metrics.ascent() > 0.0));
 }
 
 #[test]
@@ -71,7 +115,8 @@ fn text_vertical_punctuation_centered() {
             end: text.len(),
         },
         VerticalMode::Mixed,
-    ));
+    ))
+    .expect("vertical punctuation shaping must resolve a rasterizable face");
     let glyph = shaped.lines[0].glyphs.first().expect("punctuation glyph");
 
     assert_eq!(glyph.rotation, ShapedGlyphRotation::None);
@@ -85,20 +130,41 @@ fn text_bidi_levels_preserve_ltr_rtl_isolate_boundaries() {
     let bidi = BidiParagraph::new(text, TextDirection::Auto);
 
     assert_eq!(bidi.resolved_base_direction(), TextDirection::LeftToRight);
-    assert_eq!(bidi.level_for_range(TextRange { start: 0, end: 1 }) % 2, 0);
+    assert_eq!(
+        bidi.level_for_range(TextRange { start: 0, end: 1 })
+            .expect("valid LTR source range")
+            % 2,
+        0
+    );
     assert_eq!(
         bidi.level_for_range(TextRange {
             start: "abc \u{2067}".len(),
             end: "abc \u{2067}א".len(),
-        }) % 2,
+        })
+        .expect("valid RTL isolate source range")
+            % 2,
         1
     );
     assert_eq!(
         bidi.level_for_range(TextRange {
             start: "abc \u{2067}אב\u{2069} ".len(),
             end: text.len(),
-        }) % 2,
+        })
+        .expect("valid trailing LTR source range")
+            % 2,
         0
+    );
+}
+
+#[test]
+fn text_bidi_level_rejects_invalid_source_ranges() {
+    use super::bidi::BidiInvariantError;
+
+    let bidi = BidiParagraph::new("abc", TextDirection::LeftToRight);
+
+    assert_eq!(
+        bidi.level_for_range(TextRange { start: 0, end: 4 }),
+        Err(BidiInvariantError::InvalidResolvedRange { start: 0, end: 4 })
     );
 }
 
@@ -114,7 +180,9 @@ fn text_bidi_mixed_ltr_rtl_visual_order_matches_uax9() {
         })
         .collect::<Vec<_>>();
 
-    let visual = bidi.visual_order_for_line(0..text.len(), &glyph_ranges);
+    let visual = bidi
+        .visual_order_for_line(0..text.len(), &glyph_ranges)
+        .expect("valid text ranges must produce UAX#9 visual order");
     let visual_text = visual
         .into_iter()
         .map(|index| &text[glyph_ranges[index].start..glyph_ranges[index].end])
@@ -127,7 +195,7 @@ fn text_bidi_mixed_ltr_rtl_visual_order_matches_uax9() {
 fn text_shape_projects_resolved_bidi_level_per_glyph() {
     let style = test_style();
     let text = "abc אבג";
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         text,
         &style,
         TextDirection::Auto,
@@ -154,7 +222,7 @@ fn text_shape_projects_resolved_bidi_level_per_glyph() {
 fn text_shape_keeps_mixed_bidi_clusters_in_logical_source_order() {
     let style = test_style();
     let text = "abc אבג";
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         text,
         &style,
         TextDirection::Auto,
@@ -190,7 +258,7 @@ fn text_shape_clusters_map_source_ranges_monotonic() {
     let source = "xxa\u{0304}\u{0301}b";
     let line_text = &source[2..];
 
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         line_text,
         &style,
         TextDirection::LeftToRight,
@@ -227,7 +295,7 @@ fn text_shape_clusters_map_source_ranges_monotonic() {
 fn text_shape_flags_space_tab_and_rtl_clusters() {
     let style = test_style();
     let text = "א \t";
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         text,
         &style,
         TextDirection::RightToLeft,
@@ -260,7 +328,7 @@ fn text_shape_flags_space_tab_and_rtl_clusters() {
 fn text_shape_latin_widths_preserve_backend_variation() {
     let style = test_style();
 
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         "Wi",
         &style,
         TextDirection::LeftToRight,
@@ -281,7 +349,7 @@ fn text_shape_latin_widths_preserve_backend_variation() {
 fn text_shape_ligature_source_range_covers_cluster() {
     let style = test_style();
 
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         "fi",
         &style,
         TextDirection::LeftToRight,
@@ -300,7 +368,7 @@ fn text_oversized_run_keeps_one_logical_shaped_line() {
     let budget = TextShapingWorkBudget::default();
     let text = "a".repeat(budget.max_inline_input_bytes() + 1);
     assert!(budget.exceeds_inline_threshold(text.len()));
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         &text,
         &test_style(),
         TextDirection::LeftToRight,
@@ -332,7 +400,7 @@ fn text_semantic_context_preserves_a_ligature_crossing_the_work_boundary() {
     let budget = TextShapingWorkBudget::default();
     let boundary = budget.max_inline_input_bytes();
     let text = format!("{}fi", "a".repeat(boundary - 1));
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         &text,
         &test_style(),
         TextDirection::LeftToRight,
@@ -360,182 +428,9 @@ fn text_semantic_context_preserves_a_ligature_crossing_the_work_boundary() {
 }
 
 #[test]
-fn text_shape_hard_lines_preserve_separator_coverage_as_virtual_glyphs() {
-    let style = test_style();
-    let text = "a\r\nb\u{2028}c";
-    let shaped = shape_horizontal_line(
-        text,
-        &style,
-        TextDirection::LeftToRight,
-        TextRange {
-            start: 20,
-            end: 20 + text.len(),
-        },
-    );
-
-    assert_eq!(
-        shaped
-            .lines
-            .iter()
-            .map(|line| line.source_range)
-            .collect::<Vec<_>>(),
-        vec![
-            TextRange { start: 20, end: 23 },
-            TextRange { start: 23, end: 27 },
-            TextRange { start: 27, end: 28 },
-        ]
-    );
-    assert_eq!(
-        shaped
-            .lines
-            .iter()
-            .map(|line| shaped.line_text(line))
-            .collect::<Vec<_>>(),
-        vec![Some("a\r\n"), Some("b\u{2028}"), Some("c")]
-    );
-    let virtual_breaks = shaped
-        .lines
-        .iter()
-        .flat_map(|line| &line.glyphs)
-        .filter(|glyph| glyph.cluster_flags.virtual_glyph)
-        .collect::<Vec<_>>();
-    assert_eq!(virtual_breaks.len(), 2);
-    assert_eq!(
-        virtual_breaks[0].source_range,
-        TextRange { start: 21, end: 23 }
-    );
-    assert_eq!(
-        virtual_breaks[1].source_range,
-        TextRange { start: 24, end: 27 }
-    );
-    assert!(
-        virtual_breaks
-            .iter()
-            .all(|glyph| glyph.cluster_flags.mandatory_break && glyph.advance == 0.0)
-    );
-}
-
-#[test]
-fn text_shape_uax14_soft_break_flags_follow_word_spaces() {
-    let style = test_style();
-    let text = "Hello world";
-
-    let shaped = shape_horizontal_line(
-        text,
-        &style,
-        TextDirection::LeftToRight,
-        TextRange {
-            start: 0,
-            end: text.len(),
-        },
-    );
-
-    let glyphs = &shaped.lines.first().expect("shaped line").glyphs;
-    assert!(
-        glyphs
-            .iter()
-            .any(|glyph| glyph.source_range.end == "Hello ".len()
-                && glyph.cluster_flags.soft_break),
-        "UAX#14 should expose a soft break after the separating space"
-    );
-    assert!(
-        !glyphs.iter().any(
-            |glyph| glyph.source_range.end == text.len() && glyph.cluster_flags.mandatory_break
-        ),
-        "the synthetic end-of-text break must not be projected as content"
-    );
-}
-
-#[test]
-fn text_shape_uax14_soft_break_flags_follow_cjk_boundaries() {
-    let style = test_style();
-    let text = "中文";
-    let first_char_end = text.chars().next().expect("cjk char").len_utf8();
-
-    let shaped = shape_horizontal_line(
-        text,
-        &style,
-        TextDirection::LeftToRight,
-        TextRange {
-            start: 0,
-            end: text.len(),
-        },
-    );
-
-    let glyphs = &shaped.lines.first().expect("shaped line").glyphs;
-    assert!(
-        glyphs.iter().any(|glyph| {
-            glyph.source_range.end == first_char_end && glyph.cluster_flags.soft_break
-        }),
-        "UAX#14 should expose a CJK ideographic break opportunity"
-    );
-}
-
-#[test]
-fn text_script_segmentation_arabic_latin_runs() {
-    let style = test_style();
-    let text = "abc مرحبا";
-
-    let shaped = shape_horizontal_line(
-        text,
-        &style,
-        TextDirection::LeftToRight,
-        TextRange {
-            start: 0,
-            end: text.len(),
-        },
-    );
-
-    let glyphs = &shaped.lines.first().expect("shaped line").glyphs;
-    assert!(
-        glyphs
-            .iter()
-            .any(|glyph| glyph.source_range.start < 3 && glyph.script.iso15924 == "Latn"),
-        "Latin clusters should carry a Latn script tag"
-    );
-    assert!(
-        glyphs.iter().any(
-            |glyph| glyph.source_range.start >= "abc ".len() && glyph.script.iso15924 == "Arab"
-        ),
-        "Arabic clusters should carry an Arab script tag"
-    );
-    assert!(
-        glyphs.iter().any(|glyph| {
-            glyph.source_range.start == 3
-                && glyph.source_range.end == 4
-                && glyph.script.iso15924 == "Latn"
-        }),
-        "common separator clusters should inherit the preceding resolved script"
-    );
-}
-
-#[test]
-fn text_script_segmentation_keeps_emoji_zwj_sequence_as_emoji_script() {
-    let style = test_style();
-    let text = "a👨‍👩‍👧b";
-
-    let shaped = shape_horizontal_line(
-        text,
-        &style,
-        TextDirection::LeftToRight,
-        TextRange {
-            start: 0,
-            end: text.len(),
-        },
-    );
-
-    let glyphs = &shaped.lines.first().expect("shaped line").glyphs;
-    assert!(glyphs.iter().any(|glyph| {
-        glyph.source_range.start >= 1
-            && glyph.source_range.end <= text.len() - 1
-            && glyph.script.iso15924 == "Zsye"
-    }));
-}
-
-#[test]
 fn text_shaping_projects_actual_backend_font_id() {
     let text = "Actual backend face";
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         text,
         &test_style(),
         TextDirection::LeftToRight,
@@ -561,7 +456,7 @@ fn text_fallback_arabic_mark_cluster_stays_on_one_actual_backend_face() {
         language: Some("ar".to_string()),
         ..test_style()
     };
-    let shaped = shape_horizontal_line(
+    let shaped = shape_horizontal_range(
         text,
         &style,
         TextDirection::RightToLeft,
@@ -602,82 +497,85 @@ fn text_shape_request_inherits_run_language_from_resolved_style() {
 }
 
 #[test]
-#[ignore = "managed Text02 capture-inactive direct-shaping 31-sample timing evidence; no machine-time acceptance threshold"]
-fn direct_shaping_scale_evidence_reports_capture_inactive_p50_p95() {
-    const SAMPLE_COUNT: usize = 31;
-    const SCALE_UNITS: [usize; 4] = [1, 100, 1_000, 10_000];
+fn collection_bound_direct_provider_preserves_the_injected_font_identity() {
+    let font_collection = crate::text::font::FontCollectionService::from_database(
+        crate::text::font::runtime_default_font_database_for_test(),
+    );
+    assert_ne!(
+        font_collection.collection_id(),
+        crate::text::font::shared_font_collection_service().collection_id()
+    );
+    let snapshot = font_collection.collection_snapshot();
+    let mut provider = FontCollectionTextShapeRunProvider::new(&snapshot);
+    assert_eq!(provider.font_collection_revision(), snapshot.revision());
 
-    let style = test_style();
-    for workload in DirectShapeScaleWorkload::ALL {
-        for unit_count in SCALE_UNITS {
-            let text = workload.unit().repeat(unit_count);
-            let mut samples_ns = Vec::with_capacity(SAMPLE_COUNT);
-            for _ in 0..SAMPLE_COUNT {
-                let started = Instant::now();
-                let shaped = shape_text(workload.request(&text, &style));
-                samples_ns.push(started.elapsed().as_nanos());
-                assert!(
-                    shaped.lines.iter().any(|line| !line.glyphs.is_empty()),
-                    "{} at {unit_count} units must produce direct backend glyphs",
-                    workload.label()
-                );
-            }
-
-            println!(
-                "TEXT02_DIRECT_SHAPING_TIME workload={} units={unit_count} samples={SAMPLE_COUNT} capture=inactive p50_ns={} p95_ns={}",
-                workload.label(),
-                percentile_ns(&mut samples_ns, 50),
-                percentile_ns(&mut samples_ns, 95),
-            );
-        }
-    }
+    let text = "surface input";
+    let outcome = provider.shape_horizontal_range_with_kerning(
+        text,
+        &test_style(),
+        TextDirection::LeftToRight,
+        TextRange {
+            start: 0,
+            end: text.len(),
+        },
+        true,
+    );
+    let TextShapingOutcome::Ready(shaped) = outcome else {
+        panic!("collection-bound provider should shape the embedded default font");
+    };
+    assert!(
+        shaped
+            .lines
+            .iter()
+            .flat_map(|line| &line.glyphs)
+            .all(|glyph| {
+                glyph
+                    .font_id
+                    .is_some_and(|font| font.collection == snapshot.collection_id())
+            })
+    );
 }
 
 #[test]
-#[ignore = "managed Text02 long-line semantic-request timing evidence; no machine-time acceptance threshold"]
-fn direct_shaping_long_semantic_request_evidence_reports_p50_p95() {
-    const SAMPLE_COUNT: usize = 31;
+fn direct_provider_keeps_one_snapshot_across_font_publication() {
+    let font_collection = crate::text::font::FontCollectionService::from_database(
+        crate::text::font::runtime_default_font_database_for_test(),
+    );
+    let snapshot = font_collection.collection_snapshot();
+    let mut provider = DirectTextShapeRunProvider::from_font_collection(snapshot.clone());
 
-    let style = test_style();
-    let budget = TextShapingWorkBudget::default();
-    for workload in DirectShapeScaleWorkload::ALL {
-        let unit_count =
-            (budget.max_inline_input_bytes() / workload.unit().len()).saturating_add(17);
-        let text = workload.unit().repeat(unit_count);
-        assert!(budget.exceeds_inline_threshold(text.len()));
-        let mut samples_ns = Vec::with_capacity(SAMPLE_COUNT);
-        for _ in 0..SAMPLE_COUNT {
-            let started = Instant::now();
-            let shaped = shape_text(workload.request(&text, &style));
-            samples_ns.push(started.elapsed().as_nanos());
-            assert_eq!(
-                shaped.lines.len(),
-                1,
-                "{} must retain one logical source line across the inline-work threshold",
-                workload.label()
-            );
-            assert!(
-                shaped.lines[0]
-                    .glyphs
-                    .iter()
-                    .all(|glyph| !glyph.cluster_flags.virtual_glyph)
-            );
-            assert!(
-                shaped.lines[0]
-                    .glyphs
-                    .iter()
-                    .any(|glyph| glyph.font_id.is_some())
-            );
-        }
+    let (published_generation, _, changed) = font_collection
+        .mutate(|database| database.set_default_ui_family("DirectProviderPublicationBoundary"));
 
-        println!(
-            "TEXT02_LONG_SEMANTIC_REQUEST_TIME workload={} bytes={} samples={SAMPLE_COUNT} p50_ns={} p95_ns={}",
-            workload.label(),
-            text.len(),
-            percentile_ns(&mut samples_ns, 50),
-            percentile_ns(&mut samples_ns, 95),
-        );
-    }
+    assert!(changed);
+    assert!(published_generation > snapshot.generation());
+    assert_eq!(provider.font_collection_revision(), snapshot.revision());
+
+    let text = "stable snapshot";
+    let outcome = provider.shape_horizontal_range_with_kerning(
+        text,
+        &test_style(),
+        TextDirection::LeftToRight,
+        TextRange {
+            start: 0,
+            end: text.len(),
+        },
+        true,
+    );
+    let TextShapingOutcome::Ready(shaped) = outcome else {
+        panic!("snapshot-bound direct provider should remain usable after publication");
+    };
+    assert!(
+        shaped
+            .lines
+            .iter()
+            .flat_map(|line| &line.glyphs)
+            .all(|glyph| {
+                glyph
+                    .font_id
+                    .is_some_and(|font| font.collection == snapshot.collection_id())
+            })
+    );
 }
 
 #[test]
@@ -701,172 +599,6 @@ fn direct_shapers_do_not_partition_semantic_segments_at_backend_work_budgets() {
         !cosmic.contains("is_run_cap_break"),
         "the fallback backend must preserve the same full semantic request rather than reject a valid long line"
     );
-}
-
-#[cfg(feature = "profiling")]
-#[test]
-#[ignore = "managed Text02 direct-shaping counter topology evidence"]
-fn direct_shaping_counter_evidence_reports_aggregated_backend_calls() {
-    const SAMPLE_COUNT: usize = 31;
-    const SCALE_UNITS: [usize; 4] = [1, 100, 1_000, 10_000];
-    const DIRECT_SHAPE_COUNTERS_PER_SAMPLE: usize = 4;
-
-    let _capture_guard = crate::core::diagnostics::profiling::test_capture_lock();
-    let style = test_style();
-    for workload in DirectShapeScaleWorkload::ALL {
-        for unit_count in SCALE_UNITS {
-            let text = workload.unit().repeat(unit_count);
-            let expected_request_count = SAMPLE_COUNT as f64;
-            let expected_input_bytes = text.len().saturating_mul(SAMPLE_COUNT) as f64;
-            let maximum_backend_calls = text
-                .graphemes(true)
-                .count()
-                .saturating_mul(SAMPLE_COUNT)
-                .saturating_mul(2) as f64;
-            let mut config = crate::core::diagnostics::profiling::ProfileCaptureConfig::default();
-            config.session_id = format!("text02-direct-shaping-{}-{unit_count}", workload.label());
-            config.max_counters = SAMPLE_COUNT * DIRECT_SHAPE_COUNTERS_PER_SAMPLE;
-            assert!(crate::core::diagnostics::profiling::start_capture(config).active);
-
-            for _ in 0..SAMPLE_COUNT {
-                let shaped = shape_text(workload.request(&text, &style));
-                assert!(
-                    shaped.lines.iter().any(|line| !line.glyphs.is_empty()),
-                    "{} at {unit_count} units must produce direct backend glyphs",
-                    workload.label()
-                );
-            }
-
-            let snapshot = crate::core::diagnostics::profiling::snapshot();
-            assert!(
-                !crate::core::diagnostics::profiling::reset_capture().active,
-                "direct shaping profiling capture must reset before the next workload"
-            );
-            assert_eq!(
-                snapshot.counters.len(),
-                SAMPLE_COUNT * DIRECT_SHAPE_COUNTERS_PER_SAMPLE,
-                "each direct shape must publish the request, input, output, and aggregated backend-call counters without retention truncation"
-            );
-            let direct_requests =
-                profile_counter_total(&snapshot, "text_direct_shape_request_count");
-            let backend_calls =
-                profile_counter_total(&snapshot, "text_direct_backend_shape_call_count");
-            let direct_input_bytes =
-                profile_counter_total(&snapshot, "text_direct_shape_input_byte_count");
-            let direct_output_glyphs =
-                profile_counter_total(&snapshot, "text_direct_shape_output_glyph_count");
-
-            assert_eq!(direct_requests, expected_request_count);
-            assert_eq!(direct_input_bytes, expected_input_bytes);
-            assert!(
-                backend_calls >= expected_request_count,
-                "{} must make at least one real backend call per direct shape",
-                workload.label()
-            );
-            assert!(
-                backend_calls <= maximum_backend_calls,
-                "{} backend calls must stay linear in grapheme count; calls={backend_calls}, upper={maximum_backend_calls}",
-                workload.label()
-            );
-            assert!(direct_output_glyphs > 0.0);
-
-            println!(
-                "TEXT02_DIRECT_SHAPING_COUNTERS workload={} units={unit_count} samples={SAMPLE_COUNT} direct_requests={direct_requests} backend_calls={backend_calls} input_bytes={direct_input_bytes} output_glyphs={direct_output_glyphs}",
-                workload.label(),
-            );
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-enum DirectShapeScaleWorkload {
-    Latin,
-    Cjk,
-    Rtl,
-    Ligature,
-    VerticalCjk,
-}
-
-impl DirectShapeScaleWorkload {
-    const ALL: [Self; 5] = [
-        Self::Latin,
-        Self::Cjk,
-        Self::Rtl,
-        Self::Ligature,
-        Self::VerticalCjk,
-    ];
-
-    const fn label(self) -> &'static str {
-        match self {
-            Self::Latin => "latin",
-            Self::Cjk => "cjk",
-            Self::Rtl => "rtl",
-            Self::Ligature => "ligature",
-            Self::VerticalCjk => "vertical_cjk",
-        }
-    }
-
-    const fn unit(self) -> &'static str {
-        match self {
-            Self::Latin => "A",
-            Self::Cjk | Self::VerticalCjk => "汉",
-            Self::Rtl => "ب",
-            Self::Ligature => "office",
-        }
-    }
-
-    fn request<'a>(self, text: &'a str, style: &'a TextStyle) -> BackendShapeRequest<'a> {
-        let source_range = TextRange {
-            start: 0,
-            end: text.len(),
-        };
-        match self {
-            Self::VerticalCjk => BackendShapeRequest::vertical(
-                text,
-                style,
-                TextDirection::LeftToRight,
-                source_range,
-                VerticalMode::Mixed,
-            ),
-            Self::Latin | Self::Cjk | Self::Rtl | Self::Ligature => {
-                BackendShapeRequest::horizontal(
-                    text,
-                    style,
-                    if matches!(self, Self::Rtl) {
-                        TextDirection::RightToLeft
-                    } else {
-                        TextDirection::LeftToRight
-                    },
-                    source_range,
-                )
-            }
-        }
-    }
-}
-
-#[cfg(feature = "profiling")]
-fn profile_counter_total(
-    snapshot: &crate::core::diagnostics::profiling::ProfileSnapshot,
-    name: &str,
-) -> f64 {
-    snapshot
-        .counters
-        .iter()
-        .filter(|counter| counter.stream == "runtime" && counter.name == name)
-        .map(|counter| counter.value)
-        .sum()
-}
-
-fn percentile_ns(samples: &mut [u128], percentile: usize) -> u128 {
-    assert!(!samples.is_empty(), "percentile requires samples");
-    assert!((1..=100).contains(&percentile));
-    samples.sort_unstable();
-    let index = samples
-        .len()
-        .saturating_mul(percentile)
-        .div_ceil(100)
-        .saturating_sub(1);
-    samples[index]
 }
 
 fn test_style() -> TextStyle {

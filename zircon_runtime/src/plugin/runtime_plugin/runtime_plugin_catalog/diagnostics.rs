@@ -5,13 +5,38 @@ use crate::core::CoreError;
 use super::derived_projection::RuntimePluginCatalogProjection;
 use super::RuntimePluginCatalog;
 
+fn catalog_diagnostic_capacity(
+    module_order_error: Option<&CoreError>,
+    registrations: &[crate::plugin::RuntimePluginRegistrationReport],
+    feature_registrations: &[crate::plugin::RuntimePluginFeatureRegistrationReport],
+    projection: &RuntimePluginCatalogProjection,
+) -> usize {
+    let capacity = registrations.iter().fold(
+        usize::from(module_order_error.is_some()),
+        |capacity, registration| capacity.saturating_add(registration.diagnostics.len()),
+    );
+    let capacity = feature_registrations
+        .iter()
+        .fold(capacity, |capacity, registration| {
+            capacity.saturating_add(registration.diagnostics.len())
+        });
+    capacity
+        .saturating_add(projection.feature_definition_diagnostics().len())
+        .saturating_add(projection.bridge_dependency_diagnostics().len())
+}
+
 pub(super) fn collect_catalog_diagnostics(
     module_order_error: Option<&CoreError>,
     registrations: &[crate::plugin::RuntimePluginRegistrationReport],
     feature_registrations: &[crate::plugin::RuntimePluginFeatureRegistrationReport],
     projection: &RuntimePluginCatalogProjection,
 ) -> Vec<String> {
-    let mut diagnostics = Vec::new();
+    let mut diagnostics = Vec::with_capacity(catalog_diagnostic_capacity(
+        module_order_error,
+        registrations,
+        feature_registrations,
+        projection,
+    ));
     if let Some(error) = module_order_error {
         diagnostics.push(format!(
             "runtime plugin module descriptor ordering failed: {error}"
@@ -43,3 +68,7 @@ impl RuntimePluginCatalog {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "diagnostics/capacity_tests.rs"]
+mod capacity_tests;

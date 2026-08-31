@@ -28,10 +28,17 @@ pub(super) fn projected_value_text(
                 .get("value")
                 .or_else(|| attributes.get("items"))
                 .or_else(|| attributes.get("entries"))
-                .map(UiValue::from_toml)
-                .map(|value| value.display_text())
+                .map(display_toml_value)
         })
         .unwrap_or_default()
+}
+
+fn display_toml_value(value: &toml::Value) -> String {
+    match value {
+        toml::Value::Array(values) => format!("{} items", values.len()),
+        toml::Value::Table(values) => format!("{} entries", values.len()),
+        _ => UiValue::from_toml(value).display_text(),
+    }
 }
 
 #[cfg(test)]
@@ -50,5 +57,26 @@ mod tests {
             projected_value_text("search-field", &attributes, &Default::default()),
             "strafe"
         );
+    }
+
+    #[test]
+    fn collection_value_summaries_do_not_depend_on_nested_contents() {
+        let nested_array = Value::Array(vec![
+            Value::Array(vec![Value::Integer(1), Value::Integer(2)]),
+            Value::Table(Default::default()),
+        ]);
+        let nested_table = Value::Table(
+            [("nested".to_string(), nested_array.clone())]
+                .into_iter()
+                .collect(),
+        );
+
+        for (value, expected) in [(nested_array, "2 items"), (nested_table, "1 entries")] {
+            let attributes = BTreeMap::from([("value".to_string(), value)]);
+            assert_eq!(
+                projected_value_text("list", &attributes, &Default::default()),
+                expected
+            );
+        }
     }
 }

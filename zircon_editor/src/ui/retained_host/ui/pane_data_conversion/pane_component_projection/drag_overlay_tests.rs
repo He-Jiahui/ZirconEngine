@@ -82,6 +82,8 @@ fn projected_node(
 ) -> RetainedUiHostNodeProjection {
     RetainedUiHostNodeProjection {
         node_id: format!("{component}Node"),
+        surface_node_id: None,
+        has_workbench_icon_tooltip: false,
         parent_id: None,
         component: component.to_owned(),
         control_id: Some(format!("{component}Control")),

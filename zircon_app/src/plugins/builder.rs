@@ -316,6 +316,30 @@ pub struct ResolvedPluginGroup {
 }
 
 impl ResolvedPluginGroup {
+    pub(crate) fn from_compiled_module_graph(
+        name: impl Into<String>,
+        modules: Vec<Arc<dyn EngineModule>>,
+        descriptors: Vec<ModuleDescriptor>,
+    ) -> Result<Self, PluginGroupError> {
+        let name = name.into();
+        if modules.len() != descriptors.len()
+            || modules
+                .iter()
+                .zip(&descriptors)
+                .any(|(module, descriptor)| module.module_name() != descriptor.name)
+        {
+            return Err(PluginGroupError::ModuleOrder {
+                group: name,
+                reason: "compiled module and descriptor order diverged".to_owned(),
+            });
+        }
+        Ok(Self {
+            name,
+            modules,
+            descriptors,
+        })
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }

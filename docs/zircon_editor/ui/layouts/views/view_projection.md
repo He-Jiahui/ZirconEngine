@@ -1,7 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
+  - zircon_editor/src/ui/layouts/views/view_projection/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets
   - zircon_editor/src/ui/layouts/views/view_projection/tests.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
@@ -32,8 +33,9 @@ related_code:
   - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/assets/ui/theme/editor_base.zui
 implementation_files:
-  - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
+  - zircon_editor/src/ui/layouts/views/view_projection/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets
   - zircon_editor/src/ui/layouts/views/view_projection/tests.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
@@ -143,6 +145,8 @@ For `.zui` and `.v2.ui.toml` assets, the projection loader:
 There is no fallback from a v2 asset to the legacy recursive document path. If a v2 asset is malformed, projection fails for that pane instead of silently reparsing with the old schema.
 
 The projection module also hard-rejects old `.ui.toml` view paths before attempting any load. `.zui` is accepted by the same v2 gate as `.v2.ui.toml`, which keeps active editor pane templates on the v2 heap-resident prototype cache and prevents Asset Browser base template nodes such as `AssetBrowserContentPanel` from being dropped when callers request `.zui` panes.
+
+Visual projection is metadata-only. `ViewTemplateNodeData` carries the authored `media_source` or `icon_name` and leaves `preview_image` empty; it does not probe files, decode raster images, parse SVG, or build intrinsic-size pixel buffers. The retained paint path first rejects clipped nodes, then resolves the locator through the bounded shared visual cache at the physical target size. For ordinary images whose aspect is not known before materialization, the painter uses the visible container as the provisional target and computes the final aspect-fit rectangle from the returned pixel product. This keeps projection and resource-generation changes from creating a parallel SVG cache while preserving final image geometry.
 
 For render text metadata, `view_projection.rs` and `ui/asset_editor/node_projection.rs` preserve the runtime interface's `UiTextAlign::Start` and `UiTextAlign::End` values as `"start"` and `"end"` instead of collapsing them to physical left/right. Retained painting resolves those logical values later against `UiTextDirection`, so projection remains a semantic DTO bridge and does not own direction policy.
 

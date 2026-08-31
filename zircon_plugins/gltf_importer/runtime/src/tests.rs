@@ -5,7 +5,15 @@ use crate::test_fixtures::{
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
+use zircon_runtime::asset::assets::{
+    default_pbr_shader_reference, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+};
 use zircon_runtime::asset::{AssetUri, DataAssetFormat, ImportedAssetEntry, MaterialAsset};
+use zircon_runtime::core::framework::render::{
+    RenderImageColorSpace, RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
+};
+
+mod material_extensions;
 
 #[test]
 fn package_declares_gltf_importer() {
@@ -138,20 +146,13 @@ fn importer_decodes_triangle_gltf_into_model_asset() {
     match &entry.asset {
         ImportedAsset::Model(model) => {
             assert_eq!(model.primitives.len(), 1);
-            assert_eq!(model.primitives[0].vertices.len(), 3);
-            assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
+            assert!(model.primitives[0].vertices.is_empty());
+            assert!(model.primitives[0].indices.is_empty());
             assert_eq!(
                 model.primitives[0].mesh.as_ref().unwrap().locator,
                 label_uri("Mesh0/Primitive0")
             );
-            let virtual_geometry = model.primitives[0]
-                .virtual_geometry
-                .as_ref()
-                .expect("plugin importer should cook virtual geometry");
-            assert_eq!(
-                virtual_geometry.debug.source_hint.as_deref(),
-                Some("res://models/triangle.gltf")
-            );
+            assert!(model.primitives[0].virtual_geometry.is_none());
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
@@ -211,6 +212,10 @@ fn importer_decodes_triangle_gltf_into_model_asset() {
     match &entry_for_label(&outcome, "Mesh0/Primitive0").asset {
         ImportedAsset::Mesh(mesh) => {
             assert_eq!(mesh.vertex_count().unwrap(), 3);
+            assert!(
+                mesh.virtual_geometry.is_none(),
+                "default import settings must not eagerly cook optional virtual geometry"
+            );
             assert_eq!(
                 mesh.skin
                     .as_ref()
@@ -228,6 +233,12 @@ fn importer_decodes_triangle_gltf_into_model_asset() {
                     [0.0, 0.1, 0.0],
                     [0.0, 0.0, 0.1],
                 ]))
+            );
+            assert!(
+                mesh.morph_targets[0]
+                    .attributes
+                    .contains_key(MESH_ATTRIBUTE_NORMAL),
+                "missing base normals require generated morph-target flat-normal deltas"
             );
         }
         other => panic!("unexpected Mesh0/Primitive0 asset: {other:?}"),
@@ -342,6 +353,134 @@ fn importer_preserves_gltf_material_texcoord_as_texture_slot_uv_channel() {
 }
 
 #[test]
+fn importer_preserves_explicit_zero_roughness_for_reflective_gltf_material() {
+    let gltf = gltf::Gltf::from_slice(
+        br#"
+{
+  "asset": { "version": "2.0" },
+  "materials": [
+    {
+      "name": "ZeroRoughnessReflector",
+      "pbrMetallicRoughness": {
+        "metallicFactor": 1.0,
+        "roughnessFactor": 0.0
+      }
+    }
+  ]
+}
+"#,
+    )
+    .expect("in-memory zero-roughness glTF fixture should parse");
+    let root_uri = AssetUri::parse("res://models/zero_roughness_reflector.gltf").unwrap();
+    let outcome = crate::subassets::add_gltf_material_subassets(
+        AssetImportOutcome::new(
+            root_uri.clone(),
+            ImportedAsset::Model(ModelAsset {
+                uri: root_uri.clone(),
+                primitives: Vec::new(),
+            }),
+        ),
+        &root_uri,
+        &gltf.document,
+    );
+
+    match &entry_for_locator(&outcome, &label_uri_for(&root_uri, "Material0")).asset {
+        ImportedAsset::Material(material) => {
+            assert_eq!(material.metallic, 1.0);
+            assert_eq!(material.roughness, 0.0);
+            let descriptor = material.standard_material_descriptor();
+            assert_eq!(descriptor.metallic, 1.0);
+            assert_eq!(descriptor.roughness, 0.0);
+        }
+        other => panic!("unexpected Material0 asset: {other:?}"),
+    }
+}
+
+#[test]
+fn importer_preserves_gltf_normal_texture_scale_for_standard_pbr() {
+    let gltf = gltf::Gltf::from_slice(
+        br#"
+{
+  "asset": { "version": "2.0" },
+  "textures": [{}],
+  "materials": [
+    {
+      "name": "NormalScaleMaterial",
+      "normalTexture": { "index": 0, "scale": 0.35 }
+    }
+  ]
+}
+"#,
+    )
+    .expect("in-memory normal-scale glTF fixture should parse");
+    let root_uri = AssetUri::parse("res://models/normal_scale_material.gltf").unwrap();
+    let outcome = crate::subassets::add_gltf_material_subassets(
+        AssetImportOutcome::new(
+            root_uri.clone(),
+            ImportedAsset::Model(ModelAsset {
+                uri: root_uri.clone(),
+                primitives: Vec::new(),
+            }),
+        ),
+        &root_uri,
+        &gltf.document,
+    );
+
+    match &entry_for_locator(&outcome, &label_uri_for(&root_uri, "Material0")).asset {
+        ImportedAsset::Material(material) => {
+            assert_eq!(material.normal_scale(), 0.35);
+            assert_eq!(material.standard_material_descriptor().normal_scale, 0.35);
+        }
+        other => panic!("unexpected Material0 asset: {other:?}"),
+    }
+}
+
+#[test]
+fn importer_materials_reference_the_compound_default_pbr_shader_asset() {
+    let gltf = gltf::Gltf::from_slice(
+        br#"
+{
+  "asset": { "version": "2.0" },
+  "materials": [
+    {
+      "name": "CompoundPbrMaterial",
+      "pbrMetallicRoughness": {
+        "metallicFactor": 1.0,
+        "roughnessFactor": 0.0
+      }
+    }
+  ]
+}
+"#,
+    )
+    .expect("in-memory compound-PBR glTF fixture should parse");
+    let root_uri = AssetUri::parse("res://models/compound_pbr_material.gltf").unwrap();
+    let expected_shader = default_pbr_shader_reference().locator;
+    let outcome = crate::subassets::add_gltf_material_subassets(
+        AssetImportOutcome::new(
+            root_uri.clone(),
+            ImportedAsset::Model(ModelAsset {
+                uri: root_uri.clone(),
+                primitives: Vec::new(),
+            }),
+        ),
+        &root_uri,
+        &gltf.document,
+    );
+
+    for label in ["DefaultMaterial", "Material0"] {
+        let entry = entry_for_locator(&outcome, &label_uri_for(&root_uri, label));
+        assert!(entry.dependencies.contains(&expected_shader));
+        match &entry.asset {
+            ImportedAsset::Material(material) => {
+                assert_eq!(material.shader.locator, expected_shader);
+            }
+            other => panic!("unexpected {label} asset: {other:?}"),
+        }
+    }
+}
+
+#[test]
 fn importer_preserves_gltf_texture_transform_on_standard_material_slot() {
     let root = unique_temp_root("gltf_importer_texture_transform");
     fs::create_dir_all(&root).unwrap();
@@ -362,42 +501,61 @@ fn importer_preserves_gltf_texture_transform_on_standard_material_slot() {
                 material,
                 &root_uri,
                 "base_color",
+                "Texture0/Srgb",
                 [0.3, 0.4],
                 [0.1, 0.2],
+                0.1,
                 1,
             );
-            assert_texture_slot_transform(material, &root_uri, "normal", [0.5, 0.6], [0.3, 0.4], 0);
+            assert_texture_slot_transform(
+                material,
+                &root_uri,
+                "normal",
+                "Texture0/Linear",
+                [0.5, 0.6],
+                [0.3, 0.4],
+                0.2,
+                0,
+            );
             assert_texture_slot_transform(
                 material,
                 &root_uri,
                 "metallic_roughness",
+                "Texture0/Linear",
                 [0.4, 0.5],
                 [0.2, 0.3],
+                0.3,
                 0,
             );
             assert_texture_slot_transform(
                 material,
                 &root_uri,
                 "occlusion",
+                "Texture0/Linear",
                 [0.6, 0.7],
                 [0.4, 0.5],
+                0.4,
                 1,
             );
             assert_texture_slot_transform(
                 material,
                 &root_uri,
                 "emissive",
+                "Texture0/Srgb",
                 [0.7, 0.8],
                 [0.5, 0.6],
+                0.5,
                 1,
             );
 
             let descriptor = material.standard_material_descriptor();
             assert_vec2_near(descriptor.base_color_texture_transform.scale, [0.3, 0.4]);
             assert_vec2_near(descriptor.base_color_texture_transform.offset, [0.1, 0.2]);
+            assert_f32_near(descriptor.base_color_texture_transform.rotation, 0.1);
             assert_eq!(descriptor.base_color_texture_uv_channel, 1);
             assert_vec2_near(descriptor.normal_texture_transform.scale, [0.5, 0.6]);
             assert_vec2_near(descriptor.normal_texture_transform.offset, [0.3, 0.4]);
+            assert_f32_near(descriptor.normal_texture_transform.rotation, 0.2);
             assert_eq!(descriptor.normal_texture_uv_channel, 0);
             assert_vec2_near(
                 descriptor.metallic_roughness_texture_transform.scale,
@@ -407,19 +565,161 @@ fn importer_preserves_gltf_texture_transform_on_standard_material_slot() {
                 descriptor.metallic_roughness_texture_transform.offset,
                 [0.2, 0.3],
             );
+            assert_f32_near(
+                descriptor.metallic_roughness_texture_transform.rotation,
+                0.3,
+            );
             assert_eq!(descriptor.metallic_roughness_texture_uv_channel, 0);
             assert_vec2_near(descriptor.occlusion_texture_transform.scale, [0.6, 0.7]);
             assert_vec2_near(descriptor.occlusion_texture_transform.offset, [0.4, 0.5]);
+            assert_f32_near(descriptor.occlusion_texture_transform.rotation, 0.4);
             assert_eq!(descriptor.occlusion_texture_uv_channel, 1);
             assert_eq!(material.occlusion_strength(), 0.25);
             assert_eq!(descriptor.occlusion_strength, 0.25);
             assert_vec2_near(descriptor.emissive_texture_transform.scale, [0.7, 0.8]);
             assert_vec2_near(descriptor.emissive_texture_transform.offset, [0.5, 0.6]);
+            assert_f32_near(descriptor.emissive_texture_transform.rotation, 0.5);
             assert_eq!(descriptor.emissive_texture_uv_channel, 1);
         }
         other => panic!("unexpected Material0 asset: {other:?}"),
     }
 
+    for (label, color_space, format) in [
+        (
+            "Texture0/Srgb",
+            RenderImageColorSpace::Srgb,
+            RGBA8_UNORM_SRGB_FORMAT,
+        ),
+        (
+            "Texture0/Linear",
+            RenderImageColorSpace::Linear,
+            RGBA8_UNORM_FORMAT,
+        ),
+    ] {
+        match &entry_for_locator(&outcome, &label_uri_for(&root_uri, label)).asset {
+            ImportedAsset::Texture(texture) => {
+                assert_eq!(texture.texture_descriptor().color_space, color_space);
+                assert_eq!(texture.texture_descriptor().format, format);
+                assert_gltf_sampler_descriptor(&texture.texture_descriptor().sampler);
+            }
+            other => panic!("unexpected {label} asset: {other:?}"),
+        }
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn texture_subassets_preserve_each_texture_index_that_shares_one_image_source() {
+    let gltf = gltf::Gltf::from_slice(
+        br#"{
+            "asset": { "version": "2.0" },
+            "images": [{ "uri": "data:image/png;base64,AA==" }],
+            "textures": [
+                { "source": 0 },
+                { "source": 0 }
+            ]
+        }"#,
+    )
+    .expect("shared-image texture fixture must parse");
+    let root_uri = AssetUri::parse("res://models/shared_image.gltf").unwrap();
+    let outcome = crate::subassets::add_gltf_texture_subassets(
+        AssetImportOutcome::new(
+            root_uri.clone(),
+            ImportedAsset::Model(ModelAsset {
+                uri: root_uri.clone(),
+                primitives: Vec::new(),
+            }),
+        ),
+        &root_uri,
+        &gltf.document,
+        vec![gltf::image::Data {
+            pixels: vec![17, 34, 51, 255],
+            format: gltf::image::Format::R8G8B8A8,
+            width: 1,
+            height: 1,
+        }],
+    )
+    .expect("shared-image texture subassets must import");
+
+    for label in ["Texture0", "Texture1"] {
+        match &entry_for_locator(&outcome, &label_uri_for(&root_uri, label)).asset {
+            ImportedAsset::Texture(texture) => {
+                assert_eq!(texture.rgba, vec![17, 34, 51, 255]);
+                assert_eq!(texture.width, 1);
+                assert_eq!(texture.height, 1);
+            }
+            other => panic!("unexpected {label} asset: {other:?}"),
+        }
+    }
+}
+
+#[test]
+fn texture_subassets_accept_ext_texture_webp_source_without_a_core_source() {
+    let gltf = gltf::Gltf::from_slice(
+        br#"{
+            "asset": { "version": "2.0" },
+            "extensionsUsed": ["EXT_texture_webp"],
+            "images": [{ "uri": "data:image/webp;base64,AA==" }],
+            "textures": [{
+                "extensions": { "EXT_texture_webp": { "source": 0 } }
+            }]
+        }"#,
+    )
+    .expect("extension-owned texture source fixture must parse");
+    let root_uri = AssetUri::parse("res://models/webp_source.gltf").unwrap();
+    let outcome = crate::subassets::add_gltf_texture_subassets(
+        AssetImportOutcome::new(
+            root_uri.clone(),
+            ImportedAsset::Model(ModelAsset {
+                uri: root_uri.clone(),
+                primitives: Vec::new(),
+            }),
+        ),
+        &root_uri,
+        &gltf.document,
+        vec![gltf::image::Data {
+            pixels: vec![68, 85, 102, 255],
+            format: gltf::image::Format::R8G8B8A8,
+            width: 1,
+            height: 1,
+        }],
+    )
+    .expect("extension-owned texture source must import");
+
+    match &entry_for_locator(&outcome, &label_uri_for(&root_uri, "Texture0")).asset {
+        ImportedAsset::Texture(texture) => assert_eq!(texture.rgba, vec![68, 85, 102, 255]),
+        other => panic!("unexpected Texture0 asset: {other:?}"),
+    }
+}
+
+#[test]
+fn importer_rejects_khr_texture_basisu_before_image_decode() {
+    let root = unique_temp_root("gltf_importer_basisu_unsupported");
+    fs::create_dir_all(&root).unwrap();
+    let gltf_path = root.join("basisu_texture.gltf");
+    let source = br#"{
+        "asset": { "version": "2.0" },
+        "extensionsUsed": ["KHR_texture_basisu"],
+        "images": [{ "uri": "basis.ktx2", "mimeType": "image/ktx2" }],
+        "textures": [{
+            "extensions": { "KHR_texture_basisu": { "source": 0 } }
+        }]
+    }"#;
+    fs::write(&gltf_path, source).unwrap();
+    let root_uri = AssetUri::parse("res://models/basisu_texture.gltf").unwrap();
+
+    let error = import_gltf(&AssetImportContext::new(
+        gltf_path,
+        root_uri,
+        source.to_vec(),
+        toml::Table::new(),
+    ))
+    .unwrap_err();
+
+    let message = error.to_string();
+    assert!(message.contains("KHR_texture_basisu"));
+    assert!(message.contains("KTX2/BasisU transcoder"));
     let _ = fs::remove_dir_all(root);
 }
 
@@ -767,7 +1067,7 @@ fn label_uri_for(root_uri: &AssetUri, label: &str) -> AssetUri {
 }
 
 fn default_pbr_shader_uri() -> AssetUri {
-    AssetUri::parse("res://shaders/default_pbr.zshader").unwrap()
+    default_pbr_shader_reference().locator
 }
 
 fn identity_bind_matrix() -> [[f32; 4]; 4] {
@@ -783,8 +1083,10 @@ fn assert_texture_slot_transform(
     material: &MaterialAsset,
     root_uri: &AssetUri,
     slot: &str,
+    expected_texture_label: &str,
     expected_scale: [f32; 2],
     expected_offset: [f32; 2],
+    expected_rotation: f32,
     expected_uv_channel: u32,
 ) {
     let value = material
@@ -793,11 +1095,12 @@ fn assert_texture_slot_transform(
         .unwrap_or_else(|| panic!("{slot} texture slot should be imported"));
     assert_eq!(
         value.reference.as_ref().unwrap().locator,
-        label_uri_for(root_uri, "Texture0")
+        label_uri_for(root_uri, expected_texture_label)
     );
     let transform = value.texture_transform();
     assert_vec2_near(transform.scale, expected_scale);
     assert_vec2_near(transform.offset, expected_offset);
+    assert_f32_near(transform.rotation, expected_rotation);
     assert_eq!(value.texture_uv_channel(), expected_uv_channel);
 }
 
@@ -808,6 +1111,28 @@ fn assert_vec2_near(actual: [f32; 2], expected: [f32; 2]) {
             "expected {expected:?}, got {actual:?}"
         );
     }
+}
+
+fn assert_f32_near(actual: f32, expected: f32) {
+    assert!(
+        (actual - expected).abs() <= 0.000_001,
+        "expected {expected:?}, got {actual:?}"
+    );
+}
+
+fn assert_gltf_sampler_descriptor(sampler: &RenderSamplerDescriptor) {
+    assert_eq!(
+        sampler.address_mode_u,
+        RenderSamplerAddressMode::MirrorRepeat
+    );
+    assert_eq!(
+        sampler.address_mode_v,
+        RenderSamplerAddressMode::ClampToEdge
+    );
+    assert_eq!(sampler.address_mode_w, RenderSamplerAddressMode::Repeat);
+    assert_eq!(sampler.mag_filter, RenderSamplerFilter::Nearest);
+    assert_eq!(sampler.min_filter, RenderSamplerFilter::Nearest);
+    assert_eq!(sampler.mipmap_filter, RenderSamplerFilter::Linear);
 }
 
 fn unique_temp_root(label: &str) -> PathBuf {
@@ -913,8 +1238,11 @@ fn write_triangle_gltf(root: &Path) -> PathBuf {
       "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg=="
     }
   ],
+  "samplers": [
+    { "magFilter": 9728, "minFilter": 9986, "wrapS": 33648, "wrapT": 33071 }
+  ],
   "textures": [
-    { "source": 0 }
+    { "sampler": 0, "source": 0 }
   ],
   "materials": [
     {
@@ -1217,6 +1545,7 @@ fn write_material_texture_transform_gltf(root: &Path) -> PathBuf {
             "KHR_texture_transform": {
               "offset": [0.1, 0.2],
               "scale": [0.3, 0.4],
+              "rotation": 0.1,
               "texCoord": 1
             }
           }
@@ -1226,7 +1555,8 @@ fn write_material_texture_transform_gltf(root: &Path) -> PathBuf {
           "extensions": {
             "KHR_texture_transform": {
               "offset": [0.2, 0.3],
-              "scale": [0.4, 0.5]
+              "scale": [0.4, 0.5],
+              "rotation": 0.3
             }
           }
         }
@@ -1238,6 +1568,7 @@ fn write_material_texture_transform_gltf(root: &Path) -> PathBuf {
           "KHR_texture_transform": {
             "offset": [0.3, 0.4],
             "scale": [0.5, 0.6],
+            "rotation": 0.2,
             "texCoord": 0
           }
         }
@@ -1250,6 +1581,7 @@ fn write_material_texture_transform_gltf(root: &Path) -> PathBuf {
           "KHR_texture_transform": {
             "offset": [0.4, 0.5],
             "scale": [0.6, 0.7],
+            "rotation": 0.4,
             "texCoord": 1
           }
         }
@@ -1260,7 +1592,8 @@ fn write_material_texture_transform_gltf(root: &Path) -> PathBuf {
         "extensions": {
           "KHR_texture_transform": {
             "offset": [0.5, 0.6],
-            "scale": [0.7, 0.8]
+            "scale": [0.7, 0.8],
+            "rotation": 0.5
           }
         }
       }

@@ -53,11 +53,8 @@ pub(in crate::tests::host::retained_menu_pointer) fn welcome_input_window(
             title: "Welcome".to_string(),
             window_instance: welcome_instance_id,
         }],
-        drawers: BTreeMap::new(),
         activity_windows: BTreeMap::new(),
         floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
     };
 
     let mut data = fixture.editor.clone().into_snapshot();
@@ -153,11 +150,8 @@ pub(super) fn asset_browser_window_with_workspace(
             title: "Asset Browser".to_string(),
             window_instance: instance_id,
         }],
-        drawers: BTreeMap::new(),
         activity_windows: BTreeMap::new(),
         floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
     };
 
     let mut data = fixture.editor.clone().into_snapshot();

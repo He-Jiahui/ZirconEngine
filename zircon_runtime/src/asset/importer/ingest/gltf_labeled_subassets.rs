@@ -1,14 +1,14 @@
-use gltf::image::{Data as GltfImageData, Format as GltfImageFormat};
 use std::collections::HashSet;
 
 use crate::asset::{
-    AssetImportError, AssetImportOutcome, AssetReference, AssetUri, ImportedAsset,
-    ImportedAssetEntry, MeshAsset, ModelAsset, ModelPrimitiveAsset, SceneAsset, SceneEntityAsset,
-    SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset, SceneMobilityAsset, TextureAsset,
-    TransformAsset,
+    AssetImportOutcome, AssetReference, AssetUri, ImportedAsset, ImportedAssetEntry, MeshAsset,
+    ModelAsset, ModelPrimitiveAsset, SceneAsset, SceneEntityAsset, SceneMeshInstanceAsset,
+    SceneMeshPrimitiveBindingAsset, SceneMobilityAsset, TransformAsset,
 };
 
 mod material;
+#[cfg(test)]
+mod texture_variant_tests;
 
 pub(crate) use self::material::add_gltf_material_subassets;
 
@@ -23,85 +23,13 @@ pub(crate) struct GltfPrimitiveSubasset {
     pub(crate) mesh: MeshAsset,
 }
 
-pub(crate) fn add_gltf_texture_subassets(
-    mut outcome: AssetImportOutcome,
-    root_uri: &AssetUri,
-    document: &gltf::Document,
-    images: Vec<GltfImageData>,
-) -> Result<AssetImportOutcome, AssetImportError> {
-    let texture_sources = document
-        .textures()
-        .map(|texture| gltf_texture_source_index(&texture))
-        .collect::<Result<Vec<_>, _>>()?;
-    let mut remaining_uses = vec![0usize; images.len()];
-    for &image_index in &texture_sources {
-        let uses = remaining_uses.get_mut(image_index).ok_or_else(|| {
-            AssetImportError::Parse(format!(
-                "gltf texture references missing image {image_index}"
-            ))
-        })?;
-        *uses += 1;
-    }
-    let mut images = images.into_iter().map(Some).collect::<Vec<_>>();
-
-    for (texture, image_index) in document.textures().zip(texture_sources) {
-        let uri = gltf_label_uri(root_uri, &format!("Texture{}", texture.index()));
-        let uses = remaining_uses.get_mut(image_index).ok_or_else(|| {
-            AssetImportError::Parse(format!(
-                "gltf texture {} references missing image {}",
-                texture.index(),
-                image_index
-            ))
-        })?;
-        *uses -= 1;
-        let image = if *uses == 0 {
-            images[image_index].take().expect("validated image source")
-        } else {
-            images[image_index]
-                .as_ref()
-                .expect("validated image source")
-                .clone()
-        };
-        let (width, height) = (image.width, image.height);
-        let rgba = rgba8_pixels_from_gltf_image(image, image_index)?;
-        let asset = TextureAsset::new_rgba8(uri.clone(), width, height, rgba);
-        outcome = with_root_dependency_and_entry(
-            outcome,
-            ImportedAssetEntry::new(uri, ImportedAsset::Texture(asset)),
-        );
-    }
-    Ok(outcome)
-}
-
-fn gltf_texture_source_index(texture: &gltf::Texture<'_>) -> Result<usize, AssetImportError> {
-    if let Some(extension) = texture.extension_value("EXT_texture_webp") {
-        let source = extension
-            .get("source")
-            .and_then(serde_json::Value::as_u64)
-            .and_then(|source| usize::try_from(source).ok())
-            .ok_or_else(|| {
-                AssetImportError::Parse(format!(
-                    "gltf texture {} has malformed EXT_texture_webp source metadata",
-                    texture.index()
-                ))
-            })?;
-        return Ok(source);
-    }
-    texture.source().map(|image| image.index()).ok_or_else(|| {
-        AssetImportError::Parse(format!(
-            "gltf texture {} has neither a core source nor EXT_texture_webp source",
-            texture.index()
-        ))
-    })
-}
-
 pub(crate) fn add_gltf_mesh_subassets(
     mut outcome: AssetImportOutcome,
     root_uri: &AssetUri,
     meshes: Vec<GltfMeshSubasset>,
 ) -> AssetImportOutcome {
     for mesh in meshes {
-        let mesh_uri = gltf_label_uri(root_uri, &format!("Mesh{}", mesh.mesh_index));
+        let mesh_uri = gltf_indexed_label_uri(root_uri, "Mesh", mesh.mesh_index);
         let mesh_model = ModelAsset {
             uri: mesh_uri.clone(),
             primitives: mesh
@@ -123,13 +51,7 @@ pub(crate) fn add_gltf_mesh_subassets(
             push_dependency_once(
                 &mut mesh_entry,
                 &mut dependency_index,
-                gltf_label_uri(
-                    root_uri,
-                    &format!(
-                        "Mesh{}/Primitive{}",
-                        mesh.mesh_index, primitive.primitive_index
-                    ),
-                ),
+                gltf_mesh_primitive_uri(root_uri, mesh.mesh_index, primitive.primitive_index),
             );
             push_dependency_once(
                 &mut mesh_entry,
@@ -157,7 +79,7 @@ pub(crate) fn add_gltf_scene_subassets(
     document: &gltf::Document,
 ) -> AssetImportOutcome {
     for node in document.nodes() {
-        let uri = gltf_label_uri(root_uri, &format!("Node{}", node.index()));
+        let uri = gltf_indexed_label_uri(root_uri, "Node", node.index());
         let mut entity = scene_entity_from_gltf_node(root_uri, &node, None);
         entity.parent = None;
         let entry = scene_entry_with_node_dependencies(
@@ -172,7 +94,7 @@ pub(crate) fn add_gltf_scene_subassets(
     }
 
     for scene in document.scenes() {
-        let uri = gltf_label_uri(root_uri, &format!("Scene{}", scene.index()));
+        let uri = gltf_indexed_label_uri(root_uri, "Scene", scene.index());
         let mut entities = Vec::new();
         for node in scene.nodes() {
             push_scene_node(root_uri, &node, None, &mut entities);
@@ -186,70 +108,6 @@ pub(crate) fn add_gltf_scene_subassets(
         outcome = with_root_dependency_and_entry(outcome, entry);
     }
     outcome
-}
-
-fn rgba8_pixels_from_gltf_image(
-    image: GltfImageData,
-    image_index: usize,
-) -> Result<Vec<u8>, AssetImportError> {
-    let pixel_count = image
-        .width
-        .checked_mul(image.height)
-        .and_then(|pixels| usize::try_from(pixels).ok())
-        .ok_or_else(|| {
-            AssetImportError::Parse(format!(
-                "gltf image {image_index} extent {}x{} is too large",
-                image.width, image.height
-            ))
-        })?;
-
-    if image.format == GltfImageFormat::R8G8B8A8 {
-        validate_image_len(&image, image_index, pixel_count * 4)?;
-        return Ok(image.pixels);
-    }
-
-    let mut rgba = Vec::with_capacity(pixel_count * 4);
-    match image.format {
-        GltfImageFormat::R8 => {
-            validate_image_len(&image, image_index, pixel_count)?;
-            for value in &image.pixels {
-                rgba.extend_from_slice(&[*value, *value, *value, 255]);
-            }
-        }
-        GltfImageFormat::R8G8 => {
-            validate_image_len(&image, image_index, pixel_count * 2)?;
-            for chunk in image.pixels.chunks_exact(2) {
-                rgba.extend_from_slice(&[chunk[0], chunk[0], chunk[0], chunk[1]]);
-            }
-        }
-        GltfImageFormat::R8G8B8 => {
-            validate_image_len(&image, image_index, pixel_count * 3)?;
-            for chunk in image.pixels.chunks_exact(3) {
-                rgba.extend_from_slice(&[chunk[0], chunk[1], chunk[2], 255]);
-            }
-        }
-        GltfImageFormat::R8G8B8A8 => unreachable!("RGBA8 returned above"),
-        other => {
-            return Err(AssetImportError::Parse(format!(
-                "gltf image {image_index} format {other:?} is not supported for TextureAsset rgba8 output"
-            )));
-        }
-    }
-    Ok(rgba)
-}
-
-fn validate_image_len(
-    image: &GltfImageData,
-    image_index: usize,
-    expected: usize,
-) -> Result<(), AssetImportError> {
-    if image.pixels.len() != expected {
-        return Err(AssetImportError::Parse(format!(
-            "gltf image {image_index} expected {expected} decoded bytes but found {}",
-            image.pixels.len()
-        )));
-    }
-    Ok(())
 }
 
 fn scene_entry_with_node_dependencies<'a>(
@@ -275,22 +133,19 @@ fn push_node_dependencies(
     push_dependency_once(
         entry,
         dependency_index,
-        gltf_label_uri(root_uri, &format!("Node{}", node.index())),
+        gltf_indexed_label_uri(root_uri, "Node", node.index()),
     );
     if let Some(mesh) = node.mesh() {
         push_dependency_once(
             entry,
             dependency_index,
-            gltf_label_uri(root_uri, &format!("Mesh{}", mesh.index())),
+            gltf_indexed_label_uri(root_uri, "Mesh", mesh.index()),
         );
         for primitive in mesh.primitives() {
             push_dependency_once(
                 entry,
                 dependency_index,
-                gltf_label_uri(
-                    root_uri,
-                    &format!("Mesh{}/Primitive{}", mesh.index(), primitive.index()),
-                ),
+                gltf_mesh_primitive_uri(root_uri, mesh.index(), primitive.index()),
             );
             push_dependency_once(
                 entry,
@@ -362,7 +217,7 @@ fn mesh_instance_from_gltf_node(
 ) -> Option<SceneMeshInstanceAsset> {
     let mesh = node.mesh()?;
     Some(SceneMeshInstanceAsset {
-        model: gltf_label_reference(root_uri, &format!("Mesh{}", mesh.index())),
+        model: gltf_indexed_label_reference(root_uri, "Mesh", mesh.index()),
         mesh: None,
         material: material_reference_for_index(root_uri, first_mesh_material_index(&mesh)),
         render_queue: 0,
@@ -390,10 +245,11 @@ fn mesh_primitive_bindings_from_gltf_mesh(
 ) -> Vec<SceneMeshPrimitiveBindingAsset> {
     mesh.primitives()
         .map(|primitive| SceneMeshPrimitiveBindingAsset {
-            mesh: gltf_label_reference(
+            mesh: AssetReference::from_locator(gltf_mesh_primitive_uri(
                 root_uri,
-                &format!("Mesh{}/Primitive{}", mesh.index(), primitive.index()),
-            ),
+                mesh.index(),
+                primitive.index(),
+            )),
             material: material_reference_for_index(root_uri, primitive.material().index()),
         })
         .collect()
@@ -436,7 +292,7 @@ fn material_reference_for_index(
 
 fn material_uri_for_index(root_uri: &AssetUri, material_index: Option<usize>) -> AssetUri {
     match material_index {
-        Some(index) => gltf_label_uri(root_uri, &format!("Material{index}")),
+        Some(index) => gltf_indexed_label_uri(root_uri, "Material", index),
         None => gltf_label_uri(root_uri, "DefaultMaterial"),
     }
 }
@@ -445,7 +301,137 @@ pub(crate) fn gltf_label_reference(root_uri: &AssetUri, label: &str) -> AssetRef
     AssetReference::from_locator(gltf_label_uri(root_uri, label))
 }
 
+fn gltf_indexed_label_reference(root_uri: &AssetUri, label: &str, index: usize) -> AssetReference {
+    AssetReference::from_locator(gltf_indexed_label_uri(root_uri, label, index))
+}
+
+fn gltf_indexed_label_uri(root_uri: &AssetUri, label: &str, index: usize) -> AssetUri {
+    AssetUri::parse(&format!("{root_uri}#{label}{index}"))
+        .expect("generated indexed gltf subasset locator must be valid")
+}
+
+fn gltf_mesh_primitive_uri(
+    root_uri: &AssetUri,
+    mesh_index: usize,
+    primitive_index: usize,
+) -> AssetUri {
+    AssetUri::parse(&format!(
+        "{root_uri}#Mesh{mesh_index}/Primitive{primitive_index}"
+    ))
+    .expect("generated gltf mesh primitive locator must be valid")
+}
+
 pub(crate) fn gltf_label_uri(root_uri: &AssetUri, label: &str) -> AssetUri {
     AssetUri::parse(&format!("{root_uri}#{label}"))
         .expect("generated gltf subasset locator must be valid")
+}
+
+#[cfg(test)]
+mod plugins07_label_uri_tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    use super::*;
+
+    const SAMPLE_PAIRS: usize = 21;
+    const LABELS_PER_SAMPLE: usize = 8_192;
+
+    #[test]
+    fn registry_label_hotpath_contract_single_buffer_gltf_uris() {
+        let root = AssetUri::parse("res://models/plugins07.glb").unwrap();
+
+        assert_eq!(
+            gltf_indexed_label_uri(&root, "Node", 42),
+            gltf_label_uri(&root, "Node42")
+        );
+        assert_eq!(
+            gltf_mesh_primitive_uri(&root, 7, 11),
+            gltf_label_uri(&root, "Mesh7/Primitive11")
+        );
+        assert_eq!(
+            gltf_indexed_label_reference(&root, "Material", 9).locator,
+            gltf_label_uri(&root, "Material9")
+        );
+    }
+
+    #[test]
+    #[ignore = "release performance gate"]
+    fn registry_label_hotpath_performance_release_single_buffer_gltf_uris() {
+        let root = AssetUri::parse("res://models/plugins07-benchmark.glb").unwrap();
+        for _ in 0..4 {
+            black_box(measure_legacy(&root));
+            black_box(measure_single_buffer(&root));
+        }
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair_index in 0..SAMPLE_PAIRS {
+            let (legacy_ns, optimized_ns) = if pair_index % 2 == 0 {
+                (measure_legacy(&root), measure_single_buffer(&root))
+            } else {
+                let optimized_ns = measure_single_buffer(&root);
+                (measure_legacy(&root), optimized_ns)
+            };
+            legacy_samples.push(legacy_ns);
+            optimized_samples.push(optimized_ns);
+        }
+
+        let legacy_p95 = nearest_rank_p95(&legacy_samples);
+        let optimized_p95 = nearest_rank_p95(&optimized_samples);
+        let improvement_percent =
+            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
+        println!(
+            "PERF_RESULT plugins07_single_buffer_gltf_label_uris sample_pairs={SAMPLE_PAIRS} labels_per_sample={LABELS_PER_SAMPLE} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=20 legacy_uri_input_allocations_per_sample={} optimized_uri_input_allocations_per_sample={LABELS_PER_SAMPLE} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10",
+            csv(&legacy_samples),
+            csv(&optimized_samples),
+            LABELS_PER_SAMPLE * 2,
+        );
+        assert!(
+            improvement_percent >= 20,
+            "single-buffer glTF label URIs must improve P95 by at least 20%"
+        );
+    }
+
+    fn measure_legacy(root: &AssetUri) -> u128 {
+        let started = Instant::now();
+        for index in 0..LABELS_PER_SAMPLE {
+            let uri = if index % 2 == 0 {
+                gltf_label_uri(black_box(root), &format!("Node{}", black_box(index)))
+            } else {
+                gltf_label_uri(
+                    black_box(root),
+                    &format!("Mesh{}/Primitive{}", black_box(index), black_box(index + 1)),
+                )
+            };
+            black_box(uri);
+        }
+        started.elapsed().as_nanos().max(1)
+    }
+
+    fn measure_single_buffer(root: &AssetUri) -> u128 {
+        let started = Instant::now();
+        for index in 0..LABELS_PER_SAMPLE {
+            let uri = if index % 2 == 0 {
+                gltf_indexed_label_uri(black_box(root), "Node", black_box(index))
+            } else {
+                gltf_mesh_primitive_uri(black_box(root), black_box(index), black_box(index + 1))
+            };
+            black_box(uri);
+        }
+        started.elapsed().as_nanos().max(1)
+    }
+
+    fn nearest_rank_p95(samples: &[u128]) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = (sorted.len() * 95).div_ceil(100);
+        sorted[rank.saturating_sub(1)]
+    }
+
+    fn csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    }
 }

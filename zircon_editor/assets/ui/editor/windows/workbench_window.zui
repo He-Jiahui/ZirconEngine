@@ -26,11 +26,11 @@ widgets = [
   "res://ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui#WorkbenchModuleWorkspace",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_alert.zui#WorkbenchAlert",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_command_palette.zui#WorkbenchCommandPalette",
+  "res://ui/editor/components/workbench/floating/workbench_preferences.zui#WorkbenchPreferences",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_confirm_dialog.zui#WorkbenchConfirmDialog",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_context_menu.zui#WorkbenchContextMenu",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_dialog.zui#WorkbenchDialog",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui#WorkbenchDragOverlay",
-  "res://ui/editor/components/workbench/primitives/feedback/workbench_dropdown_popup.zui#WorkbenchDropdownPopup",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui#WorkbenchNotificationCenter",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui#WorkbenchPopupMenu",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
@@ -51,11 +51,12 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow",
   "res://ui/editor/components/workbench/shell/workbench_viewport_panel.zui#WorkbenchViewportPanel",
 ]
-styles = ["res://ui/theme/editor_workbench_strict.zui"]
+styles = ["res://ui/theme/editor_workbench_spatial.zui"]
 
 [nodes.root]
 component = "Overlay"
 control_id = "WorkbenchWindowRoot"
+pixel_snapping = "snap_to_pixel"
 classes = ["editor-workbench", "workbench-window-root"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
@@ -64,10 +65,18 @@ children = [
   { node = "toolbar_run_mode_menu" },
   { node = "toolbar_layout_menu" },
   { node = "toolbar_module_overflow_menu" },
+  { node = "assets_world_tools_menu" },
+  { node = "assets_gameplay_tools_menu" },
+  { node = "assets_production_tools_menu" },
+  { node = "ability_animation_tools_menu" },
+  { node = "render_tools_menu" },
+  { node = "hud_tools_menu" },
   { node = "notification_center" },
-  { node = "toast_overlay" },
+  { node = "toast_overlay", slot = { layout = { padding = { left = "$editor.density.gap.large", right = "$editor.density.gap.large" }, alignment = { horizontal = "End", vertical = "End" } } } },
+  { node = "settings_window", slot = { layout = { padding = { left = "$editor.density.gap.large", top = "$editor.density.gap.large", right = "$editor.density.gap.large", bottom = "$editor.density.gap.large" }, alignment = { horizontal = "Center", vertical = "Center" } } } },
   { node = "command_palette" },
   { node = "context_menu" },
+  { node = "host_chrome_tooltip_anchor" },
   { node = "icon_button_tooltip" },
 ]
 
@@ -87,29 +96,81 @@ children = [
 component = "WorkbenchPopupMenu"
 control_id = "WorkbenchToolbarMainMenu"
 classes = ["workbench-popup-menu", "workbench-toolbar-menu"]
-props = { value = "Menu", value_text = "Menu", menu_items = ["Asset Browser|icon=folder", "Open Project|icon=folder", "Save Project|icon=save", "---", "Command Palette|submenu"], popup_open = false, visibility = "collapsed", popup_anchor_x = 0.0, popup_anchor_y = 0.0, layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 72.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 148.0, preferred = 148.0, max = 148.0, stretch = "Fixed" }, z_index = 200 }
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchToolbarMenu" }, open_property = "popup_open" }
+props = { value = "Menu", value_text = "Menu", menu_items = ["Asset Browser|action=menu.item.asset_browser,icon=folder", "Open Project|action=menu.item.open_project,icon=folder", "Save Project|action=menu.item.save_project,icon=save", "---", "Command Palette|action=menu.item.command_palette,icon=search"], popup_open = false, visibility = "collapsed", placement = "bottom-start", popup_offset_y = "$editor.chrome.workbench_toolbar.popup.command_offset_y", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 160.0, preferred = 160.0, max = 160.0, stretch = "Fixed" }, z_index = 200 }
 
 [nodes.toolbar_run_mode_menu]
 component = "WorkbenchPopupMenu"
 control_id = "WorkbenchRunModeMenu"
 classes = ["workbench-popup-menu", "workbench-toolbar-menu"]
-props = { value = "Play In Editor", value_text = "Play In Editor", selection_mode = "single", menu_items = ["Play In Editor|checked,icon=play", "Simulate|icon=play", "Standalone|disabled,icon=grid", "Network Preview|disabled,submenu"], popup_open = false, visibility = "collapsed", popup_anchor_x = 0.0, popup_anchor_y = 0.0, layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -68.0, y = 72.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 124.0, preferred = 124.0, max = 124.0, stretch = "Fixed" }, z_index = 200 }
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchRunMode" }, open_property = "popup_open" }
+props = { value = "", value_text = "", selection_mode = "single", menu_items = ["Play In Editor|action=menu.item.play_in_editor,icon=play", "Simulate|action=menu.item.simulate,icon=play", "Standalone|action=menu.item.standalone,disabled,icon=grid", "Network Preview|action=menu.item.network_preview,disabled,icon=route"], popup_open = false, visibility = "collapsed", placement = "bottom-end", popup_offset_y = "$editor.chrome.workbench_toolbar.popup.command_offset_y", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 130.0, preferred = 130.0, max = 130.0, stretch = "Fixed" }, z_index = 200 }
 
 [nodes.toolbar_layout_menu]
 component = "WorkbenchPopupMenu"
 control_id = "WorkbenchLayoutMenu"
 classes = ["workbench-popup-menu", "workbench-toolbar-menu"]
-props = { value = "Default Layout", value_text = "Default Layout", menu_items = ["Default Layout|checked,disabled,icon=grid", "Gameplay Layout|disabled,icon=grid", "Rendering Layout|disabled,icon=grid", "Reset Layout|danger,icon=trash"], popup_open = false, visibility = "collapsed", popup_anchor_x = 0.0, popup_anchor_y = 0.0, layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -22.0, y = 72.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 124.0, preferred = 124.0, max = 124.0, stretch = "Fixed" }, z_index = 200 }
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchLayoutGrid" }, open_property = "popup_open" }
+props = { value = "", value_text = "", menu_items = ["Default Layout|action=menu.item.default_layout,disabled,icon=grid", "Gameplay Layout|action=menu.item.gameplay_layout,disabled,icon=grid", "Rendering Layout|action=menu.item.rendering_layout,disabled,icon=grid", "Reset Layout|action=menu.item.reset_layout,danger,icon=trash"], popup_open = false, visibility = "collapsed", placement = "bottom-end", popup_offset_y = "$editor.chrome.workbench_toolbar.popup.command_offset_y", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 130.0, preferred = 130.0, max = 130.0, stretch = "Fixed" }, z_index = 200 }
 
 [nodes.toolbar_module_overflow_menu]
 component = "WorkbenchPopupMenu"
 control_id = "WorkbenchModuleOverflowMenu"
 classes = ["workbench-popup-menu", "workbench-toolbar-menu", "workbench-module-overflow-menu"]
-props = { value = "More Modules", value_text = "More Modules", menu_items = ["Behavior|icon=grid", "Render|icon=grid", "Assets|icon=folder", "VFX|icon=grid", "HUD|icon=grid"], popup_open = false, visibility = "collapsed", popup_anchor_x = 604.0, popup_anchor_y = 72.0, layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 604.0, y = 72.0 }, width = { min = 172.0, preferred = 172.0, max = 172.0, stretch = "Fixed" }, height = { min = 154.0, preferred = 154.0, max = 154.0, stretch = "Fixed" }, z_index = 205 }
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchModuleMore" }, open_property = "popup_open" }
+props = { value = "More Modules", value_text = "More Modules", menu_items = ["Behavior|action=menu.item.behavior,icon=grid", "Render|action=menu.item.render,icon=grid", "Assets|action=menu.item.assets,icon=folder", "VFX|action=menu.item.v_f_x,icon=grid", "HUD|action=menu.item.h_u_d,icon=grid"], popup_open = false, visibility = "collapsed", placement = "bottom-start", popup_offset_y = "$editor.chrome.workbench_toolbar.popup.module_offset_y", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_width = 172.0, layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 172.0, preferred = 172.0, max = 172.0, stretch = "Fixed" }, height = { min = 160.0, preferred = 160.0, max = 160.0, stretch = "Fixed" }, z_index = 205 }
+
+[nodes.assets_world_tools_menu]
+component = "WorkbenchPopupMenu"
+control_id = "WorkbenchAssetsWorldToolsMenu"
+classes = ["workbench-popup-menu", "workbench-assets-tool-menu"]
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchAssetsWorldTools" }, open_property = "popup_open" }
+props = { value = "World Editors", value_text = "World Editors", menu_items = ["Terrain Editor|action=menu.item.assets.terrain_editor,icon=terrain", "Foliage Editor|action=menu.item.assets.foliage_editor,icon=leaf", "Level Streaming|action=menu.item.assets.level_streaming,icon=layers", "Level Variant|action=menu.item.assets.level_variant,icon=branch", "Prefab Editor|action=menu.item.assets.prefab_editor,icon=prefab", "Scatter Editor|action=menu.item.assets.scatter_editor,icon=sparkles", "Volume Editor|action=menu.item.assets.volume_editor,icon=trigger-volume", "Weather Editor|action=menu.item.assets.weather_editor,icon=sky"], popup_open = false, visibility = "collapsed", placement = "bottom-end", popup_offset_y = "$editor.density.gap.small", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_width = 220.0, layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, height = { min = 250.0, preferred = 250.0, max = 250.0, stretch = "Fixed" }, z_index = 205 }
+
+[nodes.assets_gameplay_tools_menu]
+component = "WorkbenchPopupMenu"
+control_id = "WorkbenchAssetsGameplayToolsMenu"
+classes = ["workbench-popup-menu", "workbench-assets-tool-menu"]
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchAssetsGameplayTools" }, open_property = "popup_open" }
+props = { value = "Gameplay & Simulation", value_text = "Gameplay & Simulation", menu_items = ["Spawn Rules|action=menu.item.assets.spawn_rules,icon=player-start", "World State|action=menu.item.assets.world_state,icon=globe", "Collision Proxy|action=menu.item.assets.collision_proxy,icon=collider", "Physics Collision|action=menu.item.assets.physics_collision,icon=physics", "Navmesh AI|action=menu.item.assets.navmesh_ai,icon=navmesh", "Lobby Editor|action=menu.item.assets.lobby_editor,icon=gamepad", "Matchmaking Editor|action=menu.item.assets.matchmaking_editor,icon=git-network-outline"], popup_open = false, visibility = "collapsed", placement = "bottom-end", popup_offset_y = "$editor.density.gap.small", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_width = 220.0, layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, height = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, z_index = 205 }
+
+[nodes.assets_production_tools_menu]
+component = "WorkbenchPopupMenu"
+control_id = "WorkbenchAssetsProductionToolsMenu"
+classes = ["workbench-popup-menu", "workbench-assets-tool-menu"]
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchAssetsProductionTools" }, open_property = "popup_open" }
+props = { value = "Production Tools", value_text = "Production Tools", menu_items = ["Data Table|action=menu.item.assets.data_table,icon=table", "Source Control|action=menu.item.assets.source_control,icon=source-control", "Build Export|action=menu.item.assets.build_export,icon=build", "Automation Report|action=menu.item.assets.automation_report,icon=test", "Project Overview|action=menu.item.assets.project_overview,icon=folder", "Plugin Manager|action=menu.item.assets.plugin_manager,icon=plugin", "Save Data|action=menu.item.assets.save_data,icon=save"], popup_open = false, visibility = "collapsed", placement = "bottom-end", popup_offset_y = "$editor.density.gap.small", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_width = 220.0, layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, height = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, z_index = 205 }
+
+[nodes.ability_animation_tools_menu]
+component = "WorkbenchPopupMenu"
+control_id = "WorkbenchAbilityAnimationToolsMenu"
+classes = ["workbench-popup-menu", "workbench-ability-tool-menu"]
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchAbilityAnimationTools" }, open_property = "popup_open" }
+props = { value = "Animation Tools", value_text = "Animation Tools", menu_items = ["Sequencer|action=menu.item.ability.sequencer,icon=sequence", "Montage Editor|action=menu.item.ability.montage_editor,icon=animation-clip", "Blend Space|action=menu.item.ability.blend_space,icon=curve-bezier", "Pose Library|action=menu.item.ability.pose_library,icon=skeleton", "Retarget|action=menu.item.ability.retarget,icon=bone", "Control Rig|action=menu.item.ability.control_rig,icon=constraint", "Motion Matching|action=menu.item.ability.motion_matching,icon=animation", "Animation Compression|action=menu.item.ability.animation_compression,icon=archive"], popup_open = false, visibility = "collapsed", placement = "bottom-end", popup_offset_y = "$editor.density.gap.small", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_width = 220.0, layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, height = { min = 250.0, preferred = 250.0, max = 250.0, stretch = "Fixed" }, z_index = 205 }
+
+[nodes.render_tools_menu]
+component = "WorkbenchPopupMenu"
+control_id = "WorkbenchRenderToolsMenu"
+classes = ["workbench-popup-menu", "workbench-render-tool-menu"]
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchRenderTools" }, open_property = "popup_open" }
+props = { value = "Render Tools", value_text = "Render Tools", menu_items = ["Shader Editor|action=menu.item.render.shader_editor,icon=shader", "Lighting Bake|action=menu.item.render.lighting_bake,icon=light", "Post Process|action=menu.item.render.post_process,icon=rendering"], popup_open = false, visibility = "collapsed", placement = "bottom-end", popup_offset_y = "$editor.density.gap.small", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_width = 220.0, layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, height = { min = 100.0, preferred = 100.0, max = 100.0, stretch = "Fixed" }, z_index = 205 }
+
+[nodes.hud_tools_menu]
+component = "WorkbenchPopupMenu"
+control_id = "WorkbenchHudToolsMenu"
+classes = ["workbench-popup-menu", "workbench-hud-tool-menu"]
+widget = { popup_anchor = { kind = "control", control_id = "WorkbenchHudTools" }, open_property = "popup_open" }
+props = { value = "HUD Tools", value_text = "HUD Tools", menu_items = ["Console Diagnostics|action=menu.item.hud.console_diagnostics,icon=terminal-outline", "Runtime Diagnostics|action=menu.item.hud.runtime_diagnostics,icon=diagnostics", "Telemetry Dashboard|action=menu.item.hud.telemetry_dashboard,icon=profiler", "Performance|action=menu.item.hud.performance,icon=frame-time", "Font Atlas|action=menu.item.hud.font_atlas,icon=font", "Menu Flow|action=menu.item.hud.menu_flow,icon=branch", "Accessibility Audit|action=menu.item.hud.accessibility_audit,icon=eye", "Icon Library|action=menu.item.hud.icon_library,icon=image", "UI Binding|action=menu.item.hud.ui_binding,icon=link", "UI Asset Editor|action=menu.item.hud.ui_asset_editor,icon=ui"], popup_open = false, visibility = "collapsed", placement = "bottom-end", popup_offset_y = "$editor.density.gap.small", layout_offset_y = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_width = 238.0, layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 238.0, preferred = 238.0, max = 238.0, stretch = "Fixed" }, height = { min = 310.0, preferred = 310.0, max = 310.0, stretch = "Fixed" }, z_index = 205 }
 
 [nodes.command_palette]
 component = "WorkbenchCommandPalette"
@@ -117,38 +178,52 @@ control_id = "WorkbenchCommandPalette"
 props = { open = false, popup_open = false, visibility = "collapsed", catalog_generation = 0, match_count = 0, window_count = 12, window_offset = 0, window_request_current_offset = 0, window_request_offset = -1, window_request_focus = "", window_request_generation = 0, virtualization_enabled = true, total_count = 0, viewport_start = 0, viewport_count = 0, page_size = 12 }
 events = [{ id = "CommandPalette/QueryChanged", event = "Change", route = "editor.command_palette.query_changed" }, { id = "CommandPalette/WindowRequested", event = "Change", route = "editor.command_palette.window_requested" }, { id = "CommandPalette/Commit", event = "Submit", route = "editor.command_palette.commit" }]
 
+[nodes.settings_window]
+component = "WorkbenchPreferences"
+control_id = "WorkbenchPreferences"
+props = { open = false, popup_open = false, focused = false, selected = false, visibility = "collapsed", title = "Editor Settings", locale = "en", settings_generation = 0, selected_category_id = "", settings_category_scroll_offset = 0.0, settings_scroll_offset = 0.0, categories = [], settings = [], plugin_pages = [], close_on_backdrop_click = true, keep_mounted = true, aria_modal = true, aria_labelledby = "Editor Settings", aria_describedby = "Editor settings and plugin preference pages", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+
 [nodes.notification_center]
 component = "WorkbenchNotificationCenter"
 control_id = "WorkbenchNotificationCenter"
 classes = ["workbench-notification-center", "workbench-overlay-notification-center"]
-props = { open = false, popup_open = false, focused = false, selected = false, visibility = "visible", title = "Notifications", notification_generation = 0, unread_count = 0, overflow_count = 0, notifications = [], selected_notification_id = "", focused_index = 0, visible_limit = 8, empty_text = "No notifications", placement = "bottom-end", popup_anchor_x = 0.0, popup_anchor_y = 0.0, popup_anchor_width = 320.0, popup_anchor_height = 0.0, anchor_origin_vertical = "top", anchor_origin_horizontal = "right", transform_origin_vertical = "top", transform_origin_horizontal = "right", popup_offset_x = 0.0, popup_offset_y = 18.0, close_on_backdrop_click = true, keep_mounted = true, aria_modal = false, aria_labelledby = "Workbench notification center", aria_describedby = "Editor notifications", z_index = 1490, disable_portal = false, portal_layer = "notification-center", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -24.0, y = 76.0 }, width = { min = 300.0, preferred = 340.0, max = 380.0, stretch = "Fixed" }, height = { min = 190.0, preferred = 246.0, max = 320.0, stretch = "Fixed" }, z_index = 255 }
+widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "WorkbenchWindowTopToolbarRegion" }, open_property = "popup_open" }
+props = { open = false, popup_open = false, focused = false, selected = false, visibility = "visible", title = "Notifications", notification_generation = 0, unread_count = 0, overflow_count = 0, notifications = [], selected_notification_id = "", focused_index = -1, visible_limit = 8, empty_text = "No notifications", placement = "bottom-end", anchor_origin_vertical = "top", anchor_origin_horizontal = "right", transform_origin_vertical = "top", transform_origin_horizontal = "right", popup_offset_x = 0.0, popup_offset_y = "$editor.density.gap.small", close_on_backdrop_click = true, keep_mounted = true, aria_modal = false, aria_labelledby = "Workbench notification center", aria_describedby = "Editor notifications", z_index = 1490, disable_portal = false, portal_layer = "notification-center", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 300.0, preferred = 340.0, max = 380.0, stretch = "Fixed" }, height = { min = 190.0, preferred = 246.0, max = 320.0, stretch = "Fixed" }, z_index = 255 }
 
 [nodes.toast_overlay]
 component = "WorkbenchToast"
 control_id = "WorkbenchToast"
 classes = ["workbench-alert", "workbench-toast", "workbench-overlay-toast"]
-props = { open = false, popup_open = false, focused = false, selected = false, visibility = "collapsed", text = "", value = "", value_text = "", severity = "info", color = "info", icon = "info", action_label = "", action_color = "#238f98", toast_queue = [], current_toast_id = "", expired_toast_id = "", queue_length = 0, auto_hide_duration_ms = 3500, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = false }
-layout = { anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -24.0, y = -64.0 }, width = { min = 320.0, preferred = 390.0, max = 440.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 36.0, max = 42.0, stretch = "Fixed" }, z_index = 250 }
+props = { open = false, popup_open = false, focused = false, selected = false, visibility = "collapsed", text = "", value = "", value_text = "", severity = "info", color = "info", icon = "info", action_label = "", action_color = "$editor.semantic.info", toast_queue = [], current_toast_id = "", expired_toast_id = "", queue_length = 0, auto_hide_duration_ms = 3500, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = false }
+layout = { anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = 0.0, y = -64.0 }, width = { min = 0.0, preferred = 390.0, max = 440.0, stretch = "Stretch" }, height = { min = 32.0, preferred = 36.0, max = 42.0, stretch = "Fixed" }, z_index = 250 }
 
 [nodes.context_menu]
 component = "WorkbenchContextMenu"
 control_id = "WorkbenchContextMenu"
 classes = ["workbench-context-menu", "workbench-popup-menu"]
-props = { open = false, popup_open = false, visibility = "collapsed", value = "", value_text = "", menu_items = [], options = [], context_target = "", context_target_path = "", focused_index = 0, popup_anchor_x = 0.0, popup_anchor_y = 0.0, popup_anchor_width = 0.0, popup_anchor_height = 0.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+widget = { behavior = "popup", popup_anchor = { kind = "pointer", owner_property = "context_target" }, open_property = "popup_open" }
+props = { open = false, popup_open = false, visibility = "collapsed", value = "", value_text = "", menu_items = [], options = [], context_target = "", context_target_path = "", focused_index = -1, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_width = 220.0, layout_min_height = "$editor.control.height.compact", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, height = { min = 158.0, preferred = 158.0, max = 158.0, stretch = "Fixed" }, z_index = 260 }
+
+[nodes.host_chrome_tooltip_anchor]
+component = "Container"
+control_id = "WorkbenchHostChromeTooltipAnchor"
+props = { visibility = "visible", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" }, z_index = 1499 }
 
 [nodes.icon_button_tooltip]
 component = "WorkbenchTooltip"
 control_id = "WorkbenchIconTooltip"
 classes = ["workbench-tooltip", "workbench-icon-tooltip"]
-props = { text = "", label_text = "", show_icon = false, open = false, popup_open = false, visibility = "collapsed", placement = "top", popup_anchor_x = 0.0, popup_anchor_y = 0.0, popup_anchor_width = 0.0, popup_anchor_height = 0.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+widget = { behavior = "popup", open_property = "popup_open" }
+props = { text = "", label_text = "", show_icon = false, open = false, popup_open = false, visibility = "collapsed", placement = "top", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, layout_min_width = 96.0, tooltip_wrap_width = 1000.0, transition_kind = "fade", transition_in = true, transition_status = "entering", transition_progress = 0.0, transition_duration_ms = 100, transition_easing = "linear" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 96.0, preferred = 280.0, max = 320.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, z_index = 1500 }
 
 [nodes.top_toolbar]
 component = "WorkbenchTopToolbar"
 control_id = "WorkbenchWindowTopToolbarRegion"
-layout = { width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.chrome.workbench_toolbar.height", preferred = "$editor.chrome.workbench_toolbar.height", max = "$editor.chrome.workbench_toolbar.height", stretch = "Fixed" } }
 
 [nodes.main_band]
 component = "WorkbenchMainBand"

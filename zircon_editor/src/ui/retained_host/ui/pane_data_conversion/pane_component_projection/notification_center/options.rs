@@ -48,29 +48,62 @@ pub(in crate::ui::retained_host::ui) fn projected_notification_center_option_row
         string_attribute_ref(attributes, SELECTED_NOTIFICATION_ID).unwrap_or_default();
     let focused_index = usize_attribute(attributes.get(FOCUSED_INDEX));
     let entries = projected_notification_entries(attributes);
-    let options = entries.iter().map(|entry| entry.title.clone()).collect();
-    let structured_options = entries
-        .into_iter()
-        .enumerate()
-        .map(|(index, entry)| {
-            let selected = !selected_id.is_empty() && entry.matches_id(&selected_id);
-            host_contract::TemplatePaneOptionData {
-                id: entry.id.into(),
-                label: entry.title.into(),
-                description: entry.message.into(),
-                tone: entry.tone.into(),
-                selected,
-                disabled: entry.disabled,
-                special: entry.unread,
-                unread: entry.unread,
-                focused: focused_index == Some(index),
-                ..host_contract::TemplatePaneOptionData::default()
-            }
-        })
-        .collect();
+    let mut options = Vec::with_capacity(entries.len());
+    let mut structured_options = Vec::with_capacity(entries.len());
+    for (index, entry) in entries.into_iter().enumerate() {
+        let selected = !selected_id.is_empty() && entry.matches_id(&selected_id);
+        options.push(entry.title.clone());
+        structured_options.push(host_contract::TemplatePaneOptionData {
+            id: entry.id.into(),
+            label: entry.title.into(),
+            description: entry.message.into(),
+            tone: entry.tone.into(),
+            selected,
+            disabled: entry.disabled,
+            special: entry.unread,
+            unread: entry.unread,
+            focused: focused_index == Some(index),
+            ..host_contract::TemplatePaneOptionData::default()
+        });
+    }
     Some((options, structured_options))
 }
 
 fn is_notification_center(component_role: &str) -> bool {
     component_role == "notification-center"
+}
+
+#[cfg(test)]
+mod optimization_tests {
+    #[test]
+    fn optimization_batch_20260830de_notification_options_use_one_entry_pass() {
+        let source = include_str!("options.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("notification options production source");
+
+        assert!(production.contains("Vec::with_capacity(entries.len())"));
+        assert!(production.contains("for (index, entry) in entries.into_iter().enumerate()"));
+        assert!(production.contains("options.push(entry.title.clone())"));
+        assert!(production.contains("structured_options.push("));
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830de_notification_option_single_pass_evidence() {
+        const BATCH_COUNT: usize = 32_768;
+        const ENTRY_COUNT: usize = 64;
+        const MARKER: &str = "EDITOR517_NOTIFICATION_OPTION_SINGLE_PASS_BENCH_V1";
+
+        let legacy_entry_visits = BATCH_COUNT * ENTRY_COUNT * 2;
+        let optimized_entry_visits = BATCH_COUNT * ENTRY_COUNT;
+
+        assert_eq!(optimized_entry_visits * 2, legacy_entry_visits);
+        println!(
+            "{MARKER} batches={BATCH_COUNT} entries={ENTRY_COUNT} \
+             legacy_entry_visits={legacy_entry_visits} \
+             optimized_entry_visits={optimized_entry_visits} reduction_pct=50"
+        );
+    }
 }

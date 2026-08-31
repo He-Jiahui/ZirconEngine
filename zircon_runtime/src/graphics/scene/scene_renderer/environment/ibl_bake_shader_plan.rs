@@ -1,16 +1,20 @@
 use crate::core::framework::render::{
-    source_cubemap_roughness_from_pmrem_mip, ComputeDispatchBuilder, ComputeDispatchPlan,
-    ComputeKernelRef, IblBakeArtifactContents, IblBakeArtifactRequest,
-    RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind, ShaderResourceAccess,
-    ShaderResourceDescriptor, ShaderResourceKind, CANONICAL_IBL_BAKE_RECIPE,
+    source_cubemap_roughness_from_pmrem_mip, IblBakeArtifactContents, IblBakeArtifactRequest,
+    SourceCubemapPrefilterQuality, CANONICAL_IBL_BAKE_RECIPE,
     SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+};
+use crate::graphics::shader::invocation::{
+    ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef,
+    RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind, ShaderResourceAccess,
+    ShaderResourceDescriptor, ShaderResourceKind,
 };
 
 use super::ibl_bake_graph_plan::{
     ibl_bake_pmrem_dispatch_groups, ibl_bake_terminal_pmrem_average_mip,
     IBL_BAKE_IRRADIANCE_CUBE_PIPELINE_LABEL, IBL_BAKE_IRRADIANCE_CUBE_RESOURCE,
-    IBL_BAKE_IRRADIANCE_SH9_PIPELINE_LABEL, IBL_BAKE_IRRADIANCE_SH9_RESOURCE,
-    IBL_BAKE_PMREM_PIPELINE_LABEL, IBL_BAKE_PMREM_RESOURCE, IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
+    IBL_BAKE_IRRADIANCE_SH9_DISPATCH_GROUPS, IBL_BAKE_IRRADIANCE_SH9_PIPELINE_LABEL,
+    IBL_BAKE_IRRADIANCE_SH9_RESOURCE, IBL_BAKE_PMREM_PIPELINE_LABEL, IBL_BAKE_PMREM_RESOURCE,
+    IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
 };
 
 pub(in crate::graphics::scene::scene_renderer) const IBL_BAKE_COMPUTE_ENTRY_POINT: &str = "cs_main";
@@ -77,8 +81,20 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_pmrem_kernel_plan(
     request: &IblBakeArtifactRequest,
     mip_level: u32,
 ) -> IblBakeComputeKernelPlan {
+    ibl_bake_pmrem_kernel_plan_with_quality(
+        request,
+        mip_level,
+        SourceCubemapPrefilterQuality::Normal,
+    )
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_pmrem_kernel_plan_with_quality(
+    request: &IblBakeArtifactRequest,
+    mip_level: u32,
+    quality: SourceCubemapPrefilterQuality,
+) -> IblBakeComputeKernelPlan {
     let roughness = pmrem_roughness_for_mip(request.pmrem_mip_count(), mip_level);
-    let sample_count = pmrem_sample_count(roughness, mip_level);
+    let sample_count = pmrem_sample_count(roughness, mip_level, quality);
     let mip_size = pmrem_mip_size(request.pmrem_face_size(), mip_level);
     let write_terminal_average_to_all_faces = ibl_bake_terminal_pmrem_average_mip(
         request.pmrem_face_size(),
@@ -142,7 +158,7 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_irradiance_sh9_kernel
         .bind_texture(IBL_BAKE_SOURCE_CUBEMAP_RESOURCE)
         .bind_sampler(IBL_BAKE_SOURCE_SAMPLER_RESOURCE)
         .bind_storage_write(IBL_BAKE_IRRADIANCE_SH9_RESOURCE)
-        .dispatch_groups(irradiance_sh9_dispatch_groups());
+        .dispatch_groups(IBL_BAKE_IRRADIANCE_SH9_DISPATCH_GROUPS);
 
     IblBakeComputeKernelPlan {
         kind: IblBakeComputeKernelKind::IrradianceSh9,
@@ -279,12 +295,17 @@ fn irradiance_dispatch_groups() -> [u32; 3] {
     ]
 }
 
-const fn irradiance_sh9_dispatch_groups() -> [u32; 3] {
-    [1, 1, 1]
-}
-
-fn pmrem_sample_count(roughness: f32, mip_level: u32) -> u32 {
-    CANONICAL_IBL_BAKE_RECIPE.pmrem_sample_count(roughness, mip_level)
+fn pmrem_sample_count(
+    roughness: f32,
+    mip_level: u32,
+    quality: SourceCubemapPrefilterQuality,
+) -> u32 {
+    let normal = CANONICAL_IBL_BAKE_RECIPE.pmrem_sample_count(roughness, mip_level);
+    match quality {
+        SourceCubemapPrefilterQuality::Fast => (normal / 2).max(16),
+        SourceCubemapPrefilterQuality::Normal => normal,
+        SourceCubemapPrefilterQuality::High => normal.saturating_mul(2),
+    }
 }
 
 fn pmrem_roughness_for_mip(mip_count: u32, mip_level: u32) -> f32 {
@@ -472,6 +493,35 @@ mod tests {
     }
 
     #[test]
+    fn capture_pmrem_quality_scales_the_canonical_sample_budget() {
+        let request = IblBakeArtifactRequest::new(
+            ProceduralSkyParams::default_gradient().ibl_bake_key(),
+            128,
+            8,
+        );
+        let sample_count = |quality| {
+            ibl_bake_pmrem_kernel_plan_with_quality(&request, 7, quality)
+                .dispatch
+                .parameters
+                .get("sample_count")
+                .cloned()
+        };
+
+        assert_eq!(
+            sample_count(SourceCubemapPrefilterQuality::Fast),
+            Some(ShaderParameterValue::U32 { value: 64 })
+        );
+        assert_eq!(
+            sample_count(SourceCubemapPrefilterQuality::Normal),
+            Some(ShaderParameterValue::U32 { value: 128 })
+        );
+        assert_eq!(
+            sample_count(SourceCubemapPrefilterQuality::High),
+            Some(ShaderParameterValue::U32 { value: 256 })
+        );
+    }
+
+    #[test]
     fn ibl_bake_shader_plans_keep_source_and_fixed_pmrem_layouts_independent() {
         let request = IblBakeArtifactRequest::new(
             ProceduralSkyParams::default_gradient().ibl_bake_key(),
@@ -546,6 +596,15 @@ mod tests {
         assert!(
             !IBL_BAKE_PMREM_WGSL.contains("distribution_ggx(no_h, roughness) * no_h * 0.25"),
             "the canceled NoH/VoH factor must not be multiplied into the UE PDF"
+        );
+        assert!(
+            IBL_BAKE_PMREM_WGSL
+                .contains("let denominator = (1.0 - no_h_squared) + no_h_squared * alpha2"),
+            "PMREM D_GGX must evaluate the positive denominator without cancellation"
+        );
+        assert!(
+            !IBL_BAKE_PMREM_WGSL.contains("max(PI * denominator * denominator, 0.000001)"),
+            "a full-denominator floor must not flatten valid low-roughness PMREM peaks"
         );
         assert!(
             IBL_BAKE_PMREM_WGSL.contains("textureDimensions(source_cubemap)")

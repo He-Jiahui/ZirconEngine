@@ -31,10 +31,10 @@ mod tests {
 
     use super::*;
     use crate::asset::registry::{AssetRegistryEntry, AssetRegistryIndex};
-    use crate::asset::{AssetKind, AssetUri, AssetUuid, ReferenceRepairKind};
+    use crate::asset::{AssetKind, AssetUri, AssetUuid, ReferenceResolutionError};
 
     #[test]
-    fn importer_outcome_exposes_complete_guid_repair() {
+    fn importer_rejects_path_candidate_when_guid_is_unregistered() {
         let root = std::env::temp_dir().join(format!(
             "zircon_import_reference_repair_{}",
             std::process::id()
@@ -73,18 +73,23 @@ mod tests {
             Arc::new(vec![(RelPath::parse("assets").unwrap(), root.clone())]),
         );
 
-        let outcome = import_model(&context).unwrap();
-        assert_eq!(outcome.reference_repairs.len(), 1);
-        let repair = &outcome.reference_repairs[0];
-        assert_eq!(repair.kind, ReferenceRepairKind::Guid);
-        assert_eq!(repair.stale.guid(), stale);
-        assert_eq!(repair.stale.sub(), Some("Mesh0"));
-        assert_eq!(repair.resolved.guid(), resolved);
-        assert_eq!(
-            repair.resolved.path_hint().as_str(),
-            "assets/models/hero.glb"
-        );
-        assert_eq!(repair.resolved.sub(), Some("Mesh0"));
+        let error = import_model(&context).unwrap_err();
+        assert!(matches!(
+            error,
+            AssetImportError::ProjectDocument(
+                crate::asset::assets::ProjectDocumentError::Reference(
+                    ReferenceResolutionError::PathOccupiedCandidate {
+                        guid,
+                        path,
+                        candidate_uuid,
+                        candidate_path,
+                    }
+                )
+            ) if guid == stale
+                && path == "assets/models/hero.glb"
+                && candidate_uuid == resolved
+                && candidate_path == AssetUri::parse("res://models/hero.glb#Mesh0").unwrap()
+        ));
         fs::remove_dir_all(root).unwrap();
     }
 }

@@ -57,8 +57,8 @@ fn notification_center_metrics_from_host(metrics: HostControlMetrics) -> Notific
         mark_radius: metrics.border_width,
         message_font_size,
         message_line_height,
-        panel_radius: metrics.radius_control,
-        row_radius: metrics.radius_control,
+        panel_radius: metrics.radius_control + metrics.gap_s,
+        row_radius: (metrics.radius_control - metrics.border_width * 2.0).max(0.0),
         title_font_size,
         title_line_height,
         empty_text_top: metrics.row_height + metrics.gap_l + metrics.gap_m,
@@ -102,8 +102,8 @@ mod tests {
 
         let notification = notification_center_metrics_from_host(host);
 
-        assert_eq!(notification.panel_radius, 5.0);
-        assert_eq!(notification.row_radius, 5.0);
+        assert_eq!(notification.panel_radius, 8.0);
+        assert_eq!(notification.row_radius, 2.0);
         assert_eq!(notification.border_width, 1.5);
         assert_eq!(notification.header_font_size, 12.0);
         assert_eq!(notification.header_line_height, 15.0);

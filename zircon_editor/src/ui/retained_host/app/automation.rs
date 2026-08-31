@@ -52,18 +52,44 @@ pub fn run_retained_host_automation(
     config: EditorHostRunConfig,
     bindings: &[EditorUiBinding],
 ) -> Result<RetainedHostAutomationResult, Box<dyn Error>> {
-    let (startup_request, prepared_project, _, editor_plugin_registrations, hub_handshake) =
+    let play_backend = config.play_backend();
+    let (startup_request, _, editor_plugin_registrations, project_runtime_build_set, hub_handshake) =
         config.into_parts();
     reject_automation_hub_handshake(hub_handshake)?;
+    if matches!(
+        startup_request.as_ref(),
+        Some(crate::core::gui_startup_request::EditorGuiStartupRequest::Project { .. })
+    ) && project_runtime_build_set.is_none()
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "project startup requires an App-preflighted runtime BuildSet",
+        )
+        .into());
+    }
+    if matches!(
+        startup_request.as_ref(),
+        Some(crate::core::gui_startup_request::EditorGuiStartupRequest::Project { .. })
+    ) && play_backend.is_none()
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "project startup requires an App-owned embedded Play backend",
+        )
+        .into());
+    }
     let ui = UiHostWindow::new()?;
     let mut retained_host = RetainedEditorHost::new(
         core,
         runtime_gateway,
         ui.clone_strong(),
         startup_request,
-        prepared_project,
+        project_runtime_build_set,
         None,
     )?;
+    if let Some(play_backend) = play_backend {
+        retained_host.runtime.set_play_backend(play_backend);
+    }
     let settings_snapshot = retained_host.editor_manager.context().settings().snapshot();
     apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
     install_editor_v2_design_tokens(settings_snapshot.as_ref());
@@ -86,12 +112,8 @@ pub fn run_retained_host_automation(
             invoke_automation_callbacks(&ui, &host, bindings)
         };
     let host_window_diagnostics = ui.take_host_diagnostics();
-    let settings_persistence = host
-        .borrow()
-        .editor_manager
-        .context()
-        .settings_persistence()
-        .clone();
+    let settings_mutations =
+        std::sync::Arc::clone(host.borrow().editor_manager.context().settings_mutations());
     {
         let retained_host = host.borrow();
         super::emit_host_window_diagnostics(
@@ -99,15 +121,16 @@ pub fn run_retained_host_automation(
             host_window_diagnostics,
         );
     }
-    let project_close_result = {
-        let retained_host = host.borrow();
-        retained_host.editor_manager.close_project()
-    };
+    host.borrow_mut().shutdown_runtime_session();
+    let project_close_result = host
+        .borrow_mut()
+        .commit_project_close()
+        .map_err(std::io::Error::other);
     drop(host);
-    let settings_shutdown = match settings_persistence.flush_then_shutdown() {
+    let settings_shutdown = match settings_mutations.flush_then_shutdown() {
         Ok(shutdown) => shutdown,
         Err(error) => {
-            let guard = settings_persistence.shutdown();
+            let guard = settings_mutations.shutdown();
             drop(guard);
             return Err(error.into());
         }
@@ -179,9 +202,15 @@ fn invoke_automation_callbacks(
         })?
         .project_info
         .clone();
-    let project_scene = host.runtime.project_scene_snapshot().ok_or_else(|| {
-        "retained-host automation completed without an authoritative scene".to_string()
-    })?;
+    let project_scene = host
+        .runtime
+        .project_scene_snapshot()
+        .map_err(|error| {
+            format!("retained-host automation could not access the authoring scene: {error}")
+        })?
+        .ok_or_else(|| {
+            "retained-host automation completed without an authoritative scene".to_string()
+        })?;
     let opened_project_inspection_generation = project_scene.inspection_artifact().generation();
     let scene_nodes = editor_snapshot
         .scene_entries

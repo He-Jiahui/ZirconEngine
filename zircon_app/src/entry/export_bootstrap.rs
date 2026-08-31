@@ -1,33 +1,35 @@
 use std::path::{Path, PathBuf};
 
 use zircon_runtime::asset::project::ProjectPaths;
-use zircon_runtime::core::{CoreError, CoreHandle};
+use zircon_runtime::core::CoreError;
 use zircon_runtime::{
-    core::framework::platform::RuntimeTargetMode, core::framework::project::ExportProfile,
-    core::framework::project::ProjectPluginManifest,
+    core::framework::project::ExportProfile, core::framework::project::ProjectPluginManifest,
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
 };
 
-use super::{
-    EntryConfig, EntryProfile, EntryRunner, EntryRuntimeBootstrap, NativePluginRuntimeBootstrap,
-};
+use super::{EntryConfig, ProductComposition, ProductCompositionRequest, ProductRoleRequest};
 
+/// Admitted export configuration and its linked runtime plugin reports.
 #[derive(Clone, Debug)]
 pub struct ExportRuntimeBootstrapConfig {
-    pub entry_profile: EntryProfile,
-    pub target_mode: RuntimeTargetMode,
+    /// Plugin selections serialized into the export receipt.
     pub project_plugins: ProjectPluginManifest,
+    /// Target, runtime profile, and packaging identity for the exported product.
     pub export_profile: ExportProfile,
+    /// Linked runtime plugin registrations emitted by generated provider tables.
     pub runtime_plugin_registrations: Vec<RuntimePluginRegistrationReport>,
+    /// Linked runtime feature registrations emitted by generated provider tables.
     pub runtime_plugin_feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
 }
 
+/// Deferred linked runtime plugin registration provider used by generated exports.
 #[derive(Clone, Copy, Debug)]
 pub struct ExportRuntimePluginRegistrationProvider {
     register: fn() -> RuntimePluginRegistrationReport,
 }
 
 impl ExportRuntimePluginRegistrationProvider {
+    /// Stores a registration function without executing it in generated code.
     pub const fn new(register: fn() -> RuntimePluginRegistrationReport) -> Self {
         Self { register }
     }
@@ -37,6 +39,7 @@ impl ExportRuntimePluginRegistrationProvider {
     }
 }
 
+/// Deferred linked runtime feature registration provider used by generated exports.
 #[derive(Clone, Copy, Debug)]
 pub struct ExportRuntimePluginFeatureRegistrationProvider {
     register: fn() -> RuntimePluginFeatureRegistrationReport,
@@ -44,6 +47,7 @@ pub struct ExportRuntimePluginFeatureRegistrationProvider {
 }
 
 impl ExportRuntimePluginFeatureRegistrationProvider {
+    /// Stores a feature registration function without executing it in generated code.
     pub const fn new(register: fn() -> RuntimePluginFeatureRegistrationReport) -> Self {
         Self {
             register,
@@ -51,6 +55,7 @@ impl ExportRuntimePluginFeatureRegistrationProvider {
         }
     }
 
+    /// Overrides the package identity attached to the generated feature report.
     pub const fn with_provider_package_id(mut self, provider_package_id: &'static str) -> Self {
         self.provider_package_id = Some(provider_package_id);
         self
@@ -66,15 +71,9 @@ impl ExportRuntimePluginFeatureRegistrationProvider {
 }
 
 impl ExportRuntimeBootstrapConfig {
-    pub fn new(
-        entry_profile: EntryProfile,
-        target_mode: RuntimeTargetMode,
-        project_plugins: ProjectPluginManifest,
-        export_profile: ExportProfile,
-    ) -> Self {
+    /// Creates an export request from its single profile and plugin-manifest authority.
+    pub fn new(project_plugins: ProjectPluginManifest, export_profile: ExportProfile) -> Self {
         Self {
-            entry_profile,
-            target_mode,
             project_plugins,
             export_profile,
             runtime_plugin_registrations: Vec::new(),
@@ -82,6 +81,7 @@ impl ExportRuntimeBootstrapConfig {
         }
     }
 
+    /// Appends already materialized linked runtime plugin reports.
     pub fn with_runtime_plugin_registrations(
         mut self,
         registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
@@ -90,6 +90,7 @@ impl ExportRuntimeBootstrapConfig {
         self
     }
 
+    /// Executes deferred linked runtime plugin providers at the handwritten boundary.
     pub fn with_runtime_plugin_registration_providers(
         mut self,
         providers: impl IntoIterator<Item = ExportRuntimePluginRegistrationProvider>,
@@ -102,6 +103,7 @@ impl ExportRuntimeBootstrapConfig {
         self
     }
 
+    /// Appends already materialized linked runtime feature reports.
     pub fn with_runtime_plugin_feature_registrations(
         mut self,
         registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
@@ -111,6 +113,7 @@ impl ExportRuntimeBootstrapConfig {
         self
     }
 
+    /// Executes deferred linked runtime feature providers at the handwritten boundary.
     pub fn with_runtime_plugin_feature_registration_providers(
         mut self,
         providers: impl IntoIterator<Item = ExportRuntimePluginFeatureRegistrationProvider>,
@@ -123,11 +126,13 @@ impl ExportRuntimeBootstrapConfig {
         self
     }
 
+    /// Projects the export receipt into an unresolved product entry request.
     pub fn entry_config(&self) -> EntryConfig {
-        EntryConfig::new(self.entry_profile)
-            .with_target_mode(self.target_mode)
-            .with_project_plugins(self.project_plugins.clone())
-            .with_export_profile(self.export_profile.clone())
+        EntryConfig::for_product_role(ProductRoleRequest::from_export_profile(
+            &self.export_profile,
+        ))
+        .with_export_project_plugins(self.project_plugins.clone())
+        .with_export_profile(self.export_profile.clone())
     }
 
     fn into_parts(
@@ -137,10 +142,10 @@ impl ExportRuntimeBootstrapConfig {
         Vec<RuntimePluginRegistrationReport>,
         Vec<RuntimePluginFeatureRegistrationReport>,
     ) {
+        let product_role = ProductRoleRequest::from_export_profile(&self.export_profile);
         (
-            EntryConfig::new(self.entry_profile)
-                .with_target_mode(self.target_mode)
-                .with_project_plugins(self.project_plugins)
+            EntryConfig::for_product_role(product_role)
+                .with_export_project_plugins(self.project_plugins)
                 .with_export_profile(self.export_profile),
             self.runtime_plugin_registrations,
             self.runtime_plugin_feature_registrations,
@@ -148,36 +153,29 @@ impl ExportRuntimeBootstrapConfig {
     }
 }
 
+/// Composes a linked/static exported runtime and retains its complete owner set.
 pub fn bootstrap_export_runtime(
     config: ExportRuntimeBootstrapConfig,
-) -> Result<CoreHandle, CoreError> {
-    Ok(bootstrap_export_runtime_with_report(config)?.into_core())
-}
-
-pub fn bootstrap_export_runtime_with_report(
-    config: ExportRuntimeBootstrapConfig,
-) -> Result<EntryRuntimeBootstrap, CoreError> {
+) -> Result<ProductComposition, CoreError> {
     let (entry_config, registrations, feature_registrations) = config.into_parts();
-    EntryRunner::bootstrap_with_runtime_plugin_and_feature_registrations_and_report(
-        entry_config,
-        registrations,
-        feature_registrations,
-    )
+    ProductCompositionRequest::new(entry_config)
+        .with_runtime_plugin_and_feature_registrations(registrations, feature_registrations)
+        .compose()
 }
 
+/// Composes an exported runtime with linked and native dynamic plugin reports.
 pub fn bootstrap_export_runtime_with_native_plugins_from_export_root(
     config: ExportRuntimeBootstrapConfig,
     export_root: impl AsRef<Path>,
-) -> Result<NativePluginRuntimeBootstrap, CoreError> {
+) -> Result<ProductComposition, CoreError> {
     let (entry_config, registrations, feature_registrations) = config.into_parts();
-    EntryRunner::bootstrap_with_runtime_plugin_and_feature_registrations_and_native_plugins_from_export_root(
-        entry_config,
-        registrations,
-        feature_registrations,
-        export_root,
-    )
+    ProductCompositionRequest::new(entry_config)
+        .with_runtime_plugin_and_feature_registrations(registrations, feature_registrations)
+        .with_native_plugins_from_export_root(export_root)
+        .compose()
 }
 
+/// Resolves the nearest export root visible from the executable or working directory.
 pub fn discover_export_root() -> std::io::Result<PathBuf> {
     let current_exe = std::env::current_exe()?;
     let current_dir = std::env::current_dir()?;

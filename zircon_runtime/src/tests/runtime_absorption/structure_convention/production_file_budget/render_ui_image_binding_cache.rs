@@ -73,7 +73,9 @@ fn runtime_15_screen_space_ui_image_bindings_are_instance_cached() {
         "an empty UI frame should retain the reusable image vertex buffer"
     );
     assert!(
-        !image.contains(".and_then(|clip| viewport.intersection(clip))\n            .unwrap_or(viewport)"),
+        !image.contains(
+            ".and_then(|clip| viewport.intersection(clip))\n            .unwrap_or(viewport)"
+        ),
         "an image clip outside the viewport must skip the batch instead of drawing with the full viewport scissor"
     );
     assert_contains_all(

@@ -15,6 +15,16 @@ def write_report_targets(
 ) -> bool:
     """Write one report payload to all targets, keeping write failures diagnostic."""
 
+    written, _rendered_report = write_rendered_report_targets(targets, report)
+    return written
+
+
+def write_rendered_report_targets(
+    targets: Iterable[ReportTarget],
+    report: dict[str, Any],
+) -> tuple[bool, str]:
+    """Write all targets and return the latest serialized report."""
+
     encoded_report = json.dumps(report, indent=2)
     written_targets: list[ReportTarget] = []
     failed = False
@@ -28,16 +38,17 @@ def write_report_targets(
             written_targets.append((label, path))
 
     if not failed:
-        return True
+        return True, encoded_report
 
+    encoded_report = json.dumps(report, indent=2)
     for label, path in written_targets:
         try:
-            rewritten_report = json.dumps(report, indent=2)
-            path.write_text(rewritten_report, encoding="utf-8")
+            path.write_text(encoded_report, encoding="utf-8")
         except OSError as error:
             add_report_write_diagnostic(report, f"{label} update", path, error)
             remove_stale_report_target(label, path, report)
-    return False
+            encoded_report = json.dumps(report, indent=2)
+    return False, encoded_report
 
 
 def add_report_write_diagnostic(

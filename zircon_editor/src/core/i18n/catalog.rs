@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use serde::Deserialize;
 
-use super::{EditorI18nError, EditorLocale};
+use super::{EditorI18nError, EditorLocale, bundle::validate_translation_key};
 
 const ENGLISH_BUNDLE: &str = include_str!("../../../assets/i18n/en.toml");
 const SIMPLIFIED_CHINESE_BUNDLE: &str = include_str!("../../../assets/i18n/zh-CN.toml");
@@ -88,7 +88,7 @@ impl EditorI18nCatalog {
             .and_then(|translations| translations.get(key))
             .or_else(|| {
                 self.bundles
-                    .get(&EditorLocale::english())
+                    .get(EditorLocale::english_tag())
                     .and_then(|translations| translations.get(key))
             })
             .cloned()
@@ -116,15 +116,4 @@ impl EditorI18nCatalog {
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
-}
-
-fn validate_translation_key(key: &str) -> Result<(), EditorI18nError> {
-    if key.is_empty()
-        || !key
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
-    {
-        return Err(EditorI18nError::InvalidTranslationKey(key.to_owned()));
-    }
-    Ok(())
 }

@@ -109,18 +109,19 @@ impl BoundedLineDecoder {
         }
     }
 
-    fn push(&mut self, input: &[u8]) -> Vec<DecodedOutputLine> {
-        let mut lines = Vec::new();
+    fn push(&mut self, input: &[u8], mut emit: impl FnMut(DecodedOutputLine) -> bool) -> bool {
         for byte in input {
             if *byte == b'\n' {
-                lines.push(self.finish_line());
+                if !emit(self.finish_line()) {
+                    return false;
+                }
             } else if self.bytes.len() < self.max_bytes {
                 self.bytes.push(*byte);
             } else {
                 self.truncated_bytes = self.truncated_bytes.saturating_add(1);
             }
         }
-        lines
+        true
     }
 
     fn finish(&mut self) -> Option<DecodedOutputLine> {
@@ -355,10 +356,10 @@ fn spawn_reader(
                         break;
                     }
                     Ok(read) => {
-                        for line in decoder.push(&buffer[..read]) {
-                            if !enqueue_line(&sender, stream, line, &queue_bytes, &counters) {
-                                return;
-                            }
+                        if !decoder.push(&buffer[..read], |line| {
+                            enqueue_line(&sender, stream, line, &queue_bytes, &counters)
+                        }) {
+                            return;
                         }
                     }
                     Err(error) => {
@@ -489,6 +490,7 @@ fn append_output_budget_diagnostics(
 
 #[cfg(test)]
 mod performance_source_guards {
+    use std::hint::black_box;
     use std::io::Cursor;
     use std::mem;
     use std::sync::{Arc, Mutex};
@@ -499,8 +501,39 @@ mod performance_source_guards {
     use super::{
         BoundedLineDecoder, OutputByteBudget, PlayOutputCounters, PlayOutputLine, PlayOutputPump,
         PlayOutputStream, PLAY_OUTPUT_DRAIN_BYTE_LIMIT, PLAY_OUTPUT_MAX_LINE_BYTES,
-        PLAY_OUTPUT_QUEUE_BYTE_CAPACITY,
+        PLAY_OUTPUT_QUEUE_BYTE_CAPACITY, PLAY_OUTPUT_READ_CHUNK_BYTES,
     };
+
+    const STREAMING_DECODE_SAMPLE_PAIRS: usize = 17;
+
+    fn legacy_push(
+        decoder: &mut BoundedLineDecoder,
+        input: &[u8],
+    ) -> Vec<super::DecodedOutputLine> {
+        let mut lines = Vec::new();
+        for byte in input {
+            if *byte == b'\n' {
+                lines.push(decoder.finish_line());
+            } else if decoder.bytes.len() < decoder.max_bytes {
+                decoder.bytes.push(*byte);
+            } else {
+                decoder.truncated_bytes = decoder.truncated_bytes.saturating_add(1);
+            }
+        }
+        lines
+    }
+
+    fn elapsed_micros(run: impl FnOnce()) -> u128 {
+        let started = Instant::now();
+        run();
+        started.elapsed().as_micros()
+    }
+
+    fn nearest_rank_p95(samples: &mut [u128]) -> u128 {
+        samples.sort_unstable();
+        let rank = (samples.len() * 95).div_ceil(100);
+        samples[rank.saturating_sub(1)]
+    }
 
     fn pump_with_queued_lines(lines: &[String]) -> (PlayOutputPump, Arc<OutputByteBudget>) {
         let (sender, receiver) = bounded(lines.len());
@@ -537,13 +570,123 @@ mod performance_source_guards {
     #[test]
     fn bounded_decoder_truncates_an_unterminated_line_without_retaining_its_tail() {
         let mut decoder = BoundedLineDecoder::new(8);
-        assert!(decoder.push(b"0123456789").is_empty());
+        assert!(decoder.push(b"0123456789", |_| true));
 
         let line = decoder
             .finish()
             .expect("unterminated output must flush once");
         assert_eq!(line.text, "01234567");
         assert_eq!(line.truncated_bytes, 2);
+    }
+
+    #[test]
+    fn optimization_batch_20260826_editor07_play_output_streaming_decode_preserves_line_order() {
+        let mut decoder = BoundedLineDecoder::new(64);
+        let mut lines = Vec::new();
+
+        assert!(decoder.push(b"first\r\nsecond\nthird", |line| {
+            lines.push(line.text);
+            true
+        }));
+        lines.push(decoder.finish().unwrap().text);
+
+        assert_eq!(lines, ["first", "second", "third"]);
+    }
+
+    #[test]
+    fn optimization_batch_20260826_editor07_play_output_streaming_decode_stops_on_consumer_rejection(
+    ) {
+        let mut decoder = BoundedLineDecoder::new(64);
+        let mut lines = Vec::new();
+
+        assert!(!decoder.push(b"first\nsecond\nthird\n", |line| {
+            lines.push(line.text);
+            lines.len() < 2
+        }));
+
+        assert_eq!(lines, ["first", "second"]);
+    }
+
+    #[test]
+    fn optimization_batch_20260826_editor07_play_output_streaming_decode_has_no_per_chunk_line_vector(
+    ) {
+        let source = include_str!("output.rs");
+        let decoder = source
+            .split_once("impl BoundedLineDecoder")
+            .unwrap()
+            .1
+            .split_once("fn truncate_to_byte_limit")
+            .unwrap()
+            .0;
+
+        assert!(decoder.contains("mut emit: impl FnMut(DecodedOutputLine) -> bool"));
+        assert!(decoder.contains("if !emit(self.finish_line())"));
+        assert!(!decoder.contains("let mut lines = Vec::new()"));
+    }
+
+    #[test]
+    #[ignore = "release performance evidence for the managed validation coordinator"]
+    fn optimization_batch_20260826_editor07_play_output_streaming_decode_performance_evidence() {
+        let input = vec![b'\n'; PLAY_OUTPUT_READ_CHUNK_BYTES];
+        let expected_lines = input.len();
+
+        for _ in 0..4 {
+            let mut legacy = BoundedLineDecoder::new(PLAY_OUTPUT_MAX_LINE_BYTES);
+            black_box(legacy_push(&mut legacy, black_box(&input)));
+            let mut optimized = BoundedLineDecoder::new(PLAY_OUTPUT_MAX_LINE_BYTES);
+            assert!(optimized.push(black_box(&input), |line| {
+                black_box(line);
+                true
+            }));
+        }
+
+        let mut legacy_samples = Vec::with_capacity(STREAMING_DECODE_SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(STREAMING_DECODE_SAMPLE_PAIRS);
+        for sample_index in 0..STREAMING_DECODE_SAMPLE_PAIRS {
+            let measure_legacy = || {
+                elapsed_micros(|| {
+                    let mut decoder = BoundedLineDecoder::new(PLAY_OUTPUT_MAX_LINE_BYTES);
+                    let lines = legacy_push(&mut decoder, black_box(&input));
+                    assert_eq!(black_box(lines.len()), expected_lines);
+                })
+            };
+            let measure_optimized = || {
+                elapsed_micros(|| {
+                    let mut decoder = BoundedLineDecoder::new(PLAY_OUTPUT_MAX_LINE_BYTES);
+                    let mut line_count = 0usize;
+                    assert!(decoder.push(black_box(&input), |line| {
+                        black_box(line);
+                        line_count = line_count.saturating_add(1);
+                        true
+                    }));
+                    assert_eq!(black_box(line_count), expected_lines);
+                })
+            };
+            if sample_index % 2 == 0 {
+                legacy_samples.push(measure_legacy());
+                optimized_samples.push(measure_optimized());
+            } else {
+                optimized_samples.push(measure_optimized());
+                legacy_samples.push(measure_legacy());
+            }
+        }
+
+        let legacy_p95 = nearest_rank_p95(&mut legacy_samples);
+        let optimized_p95 = nearest_rank_p95(&mut optimized_samples);
+        println!(
+            "EDITOR07_PLAY_OUTPUT_STREAMING_DECODE_BENCH_V1 sample_pairs={} chunk_bytes={} decoded_lines={} legacy_temporary_line_vectors_per_chunk=1 optimized_temporary_line_vectors_per_chunk=0 legacy_p95_us={} optimized_p95_us={} legacy_samples_us={:?} optimized_samples_us={:?}",
+            STREAMING_DECODE_SAMPLE_PAIRS,
+            PLAY_OUTPUT_READ_CHUNK_BYTES,
+            expected_lines,
+            legacy_p95,
+            optimized_p95,
+            legacy_samples,
+            optimized_samples,
+        );
+        assert!(
+            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(75),
+            "streaming decode p95 must be at least 25% below the temporary-vector path: legacy={legacy_p95}us optimized={optimized_p95}us"
+        );
     }
 
     #[test]

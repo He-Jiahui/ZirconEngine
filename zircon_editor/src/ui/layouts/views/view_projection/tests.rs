@@ -173,6 +173,57 @@ fn v2_view_template_projection_reuses_layout_and_reapplies_text_overrides() {
 }
 
 #[test]
+fn v2_view_template_projection_text_update_visits_only_indexed_geometry_commands() {
+    projection_cache::clear_for_tests();
+    let document_tree_id = "view.v2.project_overview.indexed_geometry";
+    let size = UiSize::new(640.0, 480.0);
+    let first_overrides = BTreeMap::from([(
+        "ProjectOverviewTitleText".to_string(),
+        "1111111111".to_string(),
+    )]);
+    let second_overrides = BTreeMap::from([(
+        "ProjectOverviewTitleText".to_string(),
+        "2222222222".to_string(),
+    )]);
+
+    let _ = build_view_template_nodes(
+        document_tree_id,
+        "/assets/ui/editor/project_overview.zui",
+        &[],
+        size,
+        &first_overrides,
+    )
+    .unwrap();
+    let render_command_count =
+        projection_cache::render_command_count_for_tests(document_tree_id).unwrap();
+    let command_visits_before = projection_cache::geometry_command_visit_count_for_tests();
+
+    let updated = build_view_template_nodes(
+        document_tree_id,
+        "/assets/ui/editor/project_overview.zui",
+        &[],
+        size,
+        &second_overrides,
+    )
+    .unwrap();
+    let command_visits =
+        projection_cache::geometry_command_visit_count_for_tests() - command_visits_before;
+
+    assert_eq!(
+        updated
+            .iter()
+            .find(|node| node.control_id == "ProjectOverviewTitleText")
+            .map(|node| node.text.as_str()),
+        Some("2222222222")
+    );
+    assert!(render_command_count > 1);
+    assert!(
+        command_visits < render_command_count as u64,
+        "a local text update visited {command_visits} of {render_command_count} render commands"
+    );
+}
+
+#[test]
 fn v2_view_template_projection_stable_update_does_not_mutate_or_rebuild_surface() {
     projection_cache::clear_for_tests();
     let size = UiSize::new(640.0, 480.0);
@@ -266,15 +317,11 @@ fn v2_view_template_projection_size_change_reuses_surface_and_matches_full_build
 fn v2_hierarchy_projection_size_change_uses_stable_projected_row_topology() {
     projection_cache::clear_for_tests();
     let overrides = BTreeMap::new();
-    let style_imports = [(
-        "res://ui/theme/editor_base.zui",
-        "/assets/ui/theme/editor_base.zui",
-    )];
 
     let _ = build_view_template_node_projection(
         "view.v2.hierarchy.resized_surface",
         "/assets/ui/editor/hierarchy.zui",
-        &style_imports,
+        &[],
         UiSize::new(280.0, 600.0),
         &overrides,
     )
@@ -282,7 +329,7 @@ fn v2_hierarchy_projection_size_change_uses_stable_projected_row_topology() {
     let resized = build_view_template_node_projection(
         "view.v2.hierarchy.resized_surface",
         "/assets/ui/editor/hierarchy.zui",
-        &style_imports,
+        &[],
         UiSize::new(280.0, 620.0),
         &overrides,
     )
@@ -298,7 +345,7 @@ fn v2_hierarchy_projection_size_change_uses_stable_projected_row_topology() {
     let full = build_view_template_node_projection(
         "view.v2.hierarchy.resized_full_reference",
         "/assets/ui/editor/hierarchy.zui",
-        &style_imports,
+        &[],
         UiSize::new(280.0, 620.0),
         &overrides,
     )

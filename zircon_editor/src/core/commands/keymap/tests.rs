@@ -9,6 +9,7 @@ use zircon_runtime_interface::ui::dispatch::{
     UiKeyboardInputEvent, UiKeyboardInputState,
 };
 
+use crate::core::commands::{PlayModePredicate, WhenClause};
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::settings::{
     editor_keymap_overrides, settings_registry_with_defaults, EditorKeymapOverrides, SettingValue,
@@ -63,22 +64,70 @@ fn keymap_reports_conflicts_after_a_settings_override() {
     let effective = EditorKeymap::default_workbench()
         .with_overrides(&overrides([("file.project.open", Some("Ctrl+S"))]));
 
-    assert_eq!(
-        effective.resolve(&EditorKeyChord::from_str("Ctrl+S").unwrap()),
-        Some("file.project.open"),
-        "candidate order must remain the operation-path order used before indexing"
-    );
-    let conflicts = effective.conflicts();
+    let conflicts = effective.conflicts_with_when(|command_id| {
+        Some(match command_id {
+            "file.project.open" | "file.project.save" => WhenClause::ProjectOpen,
+            _ => WhenClause::Always,
+        })
+    });
     assert_eq!(conflicts.len(), 1);
     assert_eq!(conflicts[0].chord().to_string(), "Ctrl+S");
     assert_eq!(
-        conflicts[0]
-            .command_ids()
-            .iter()
-            .map(|command_id| command_id.as_str())
-            .collect::<Vec<_>>(),
-        vec!["file.project.open", "file.project.save"]
+        conflicts[0].first_command_id().as_str(),
+        "file.project.open"
     );
+    assert_eq!(
+        conflicts[0].second_command_id().as_str(),
+        "file.project.save"
+    );
+}
+
+#[test]
+fn keymap_allows_same_chord_for_disjoint_when_domains() {
+    let effective = EditorKeymap::default_workbench()
+        .with_overrides(&overrides([("file.project.open", Some("Ctrl+S"))]));
+
+    let conflicts = effective.conflicts_with_when(|command_id| {
+        Some(match command_id {
+            "file.project.open" => {
+                WhenClause::FocusedDocumentKind(crate::core::commands::DocumentKind::scene())
+            }
+            "file.project.save" => {
+                WhenClause::FocusedDocumentKind(crate::core::commands::DocumentKind::material())
+            }
+            _ => WhenClause::Always,
+        })
+    });
+
+    assert!(conflicts
+        .iter()
+        .all(|conflict| conflict.chord().to_string() != "Ctrl+S"));
+}
+
+#[test]
+fn keymap_allows_same_chord_for_exhaustive_disjoint_play_mode_domains() {
+    let effective = EditorKeymap::default_workbench()
+        .with_overrides(&overrides([("file.project.open", Some("Ctrl+S"))]));
+
+    let conflicts = effective.conflicts_with_when(|command_id| {
+        Some(match command_id {
+            "file.project.open" => {
+                WhenClause::Not(Box::new(WhenClause::PlayMode(PlayModePredicate::Edit)))
+            }
+            "file.project.save" => WhenClause::All(vec![
+                WhenClause::Not(Box::new(WhenClause::PlayMode(PlayModePredicate::Building))),
+                WhenClause::Not(Box::new(WhenClause::PlayMode(PlayModePredicate::Playing))),
+                WhenClause::Not(Box::new(WhenClause::PlayMode(
+                    PlayModePredicate::CleanupFailed,
+                ))),
+            ]),
+            _ => WhenClause::Always,
+        })
+    });
+
+    assert!(conflicts
+        .iter()
+        .all(|conflict| conflict.chord().to_string() != "Ctrl+S"));
 }
 
 #[test]
@@ -162,9 +211,26 @@ fn keyboard_input_uses_the_generated_signature_index_for_large_keymaps() {
 
     assert_eq!(keymap.signature_index.len(), 10_009);
     assert_eq!(
-        keymap.resolve_keyboard_input(&keyboard_event("F10000", 0, true, false, false, false)),
+        keymap.resolve_keyboard_input_when(
+            &keyboard_event("F10000", 0, true, false, false, false),
+            |_| true,
+        ),
         Some("benchmark.command.9999")
     );
+}
+
+#[test]
+fn keymap_reports_a_missing_command_predicate_as_a_conservative_conflict() {
+    let effective = EditorKeymap::default_workbench()
+        .with_overrides(&overrides([("file.project.open", Some("Ctrl+S"))]));
+
+    let conflicts = effective.conflicts_with_when(|command_id| match command_id {
+        "file.project.save" => Some(WhenClause::ProjectOpen),
+        _ => None,
+    });
+
+    assert_eq!(conflicts.len(), 1);
+    assert_eq!(conflicts[0].chord().to_string(), "Ctrl+S");
 }
 
 #[test]
@@ -172,43 +238,77 @@ fn keyboard_signature_lookup_preserves_fallback_and_ignored_key_behavior() {
     let keymap = EditorKeymap::default_workbench();
 
     assert_eq!(
-        keymap.resolve_keyboard_input(&keyboard_event("p", 80, true, true, false, false)),
+        keymap.resolve_keyboard_input_when(
+            &keyboard_event("p", 80, true, true, false, false),
+            |_| true,
+        ),
         Some("editor.command.palette")
     );
     assert_eq!(
-        keymap.resolve_keyboard_input(&keyboard_event("", 116, false, false, false, false)),
+        keymap.resolve_keyboard_input_when(
+            &keyboard_event("", 116, false, false, false, false),
+            |_| true,
+        ),
         Some("runtime.play_mode.enter")
     );
     assert_eq!(
-        keymap.resolve_keyboard_input(&keyboard_event(
-            "unidentified",
-            46,
-            false,
-            false,
-            false,
-            false
-        )),
+        keymap.resolve_keyboard_input_when(
+            &keyboard_event("unidentified", 46, false, false, false, false),
+            |_| true,
+        ),
         Some("scene.node.delete_selected")
     );
     assert_eq!(
-        keymap.resolve_keyboard_input(&keyboard_event("DeadAcute", 0, false, false, false, false)),
+        keymap.resolve_keyboard_input_when(
+            &keyboard_event("DeadAcute", 0, false, false, false, false),
+            |_| true,
+        ),
         None
     );
     assert_eq!(
-        keymap.resolve_keyboard_input(&keyboard_event("control", 17, false, false, false, false)),
+        keymap.resolve_keyboard_input_when(
+            &keyboard_event("control", 17, false, false, false, false),
+            |_| true,
+        ),
         None
     );
     let mut released = keyboard_event("p", 80, true, true, false, false);
     released.state = UiKeyboardInputState::Released;
-    assert_eq!(keymap.resolve_keyboard_input(&released), None);
+    assert_eq!(
+        keymap.resolve_keyboard_input_when(&released, |_| true),
+        None
+    );
+}
+
+#[test]
+fn enabled_keyboard_resolution_skips_disabled_candidates_and_rejects_ambiguity() {
+    let effective = EditorKeymap::default_workbench()
+        .with_overrides(&overrides([("file.project.open", Some("Ctrl+S"))]));
+    let input = keyboard_event("s", 83, true, false, false, false);
+
+    assert_eq!(
+        effective
+            .resolve_keyboard_input_when(&input, |command_id| command_id == "file.project.save"),
+        Some("file.project.save")
+    );
+    assert_eq!(
+        effective.resolve_keyboard_input_when(&input, |command_id| {
+            matches!(command_id, "file.project.open" | "file.project.save")
+        }),
+        None,
+        "two enabled commands for the same chord must not fall back to path order"
+    );
 }
 
 #[test]
 fn keyboard_hot_path_keeps_lookup_in_the_borrowed_signature_index() {
     let source = include_str!("../keymap.rs");
+    let chord_only_resolver = ["pub fn resolve_", "keyboard_input("].concat();
 
     assert!(source.contains("signature_index"));
     assert!(source.contains("EditorKeyboardChordInput::from_keyboard_input(keyboard)?"));
+    assert!(source.contains("pub fn resolve_keyboard_input_when("));
+    assert!(!source.contains(&chord_only_resolver));
     assert!(!source.contains("EditorKeyChord::from_keyboard_input(keyboard)"));
     assert!(!source.contains(".iter()\n            .find(|binding| &binding.chord"));
 }
@@ -221,7 +321,7 @@ fn keyboard_signature_lookup_handles_a_million_event_storm_without_rebuilding_th
 
     for _ in 0..1_000_000 {
         assert_eq!(
-            std::hint::black_box(keymap.resolve_keyboard_input(&event)),
+            std::hint::black_box(keymap.resolve_keyboard_input_when(&event, |_| true)),
             Some("editor.command.palette")
         );
     }

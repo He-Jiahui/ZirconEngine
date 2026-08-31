@@ -61,18 +61,18 @@ impl RetainedEditorHost {
                 target: RecomputeInvalidationTarget::ShellContent(scope),
             });
         }
+        if workbench_projection_reuses_host(pending_reasons, legacy_dirty_reasons) {
+            record_current_ui_perf_counter(
+                UiPerfCounter::HostInvalidationWorkbenchProjectionTargetCount,
+                1.0,
+            );
+            return Some(RecomputeInvalidationDecision {
+                paint_only_reasons: pending_reasons.intersection(HostInvalidationMask::PAINT_ONLY),
+                reuse_shell_layout: false,
+                target: RecomputeInvalidationTarget::WorkbenchProjection,
+            });
+        }
         if legacy_dirty_reasons.is_empty() {
-            if pending_reasons == HostInvalidationMask::WORKBENCH_PROJECTION {
-                record_current_ui_perf_counter(
-                    UiPerfCounter::HostInvalidationWorkbenchProjectionTargetCount,
-                    1.0,
-                );
-                return Some(RecomputeInvalidationDecision {
-                    paint_only_reasons: HostInvalidationMask::NONE,
-                    reuse_shell_layout: false,
-                    target: RecomputeInvalidationTarget::WorkbenchProjection,
-                });
-            }
             if let Some(view_ids) = pending_transaction.presentation_only_view_ids() {
                 record_current_ui_perf_counter(
                     UiPerfCounter::HostInvalidationViewPresentationTargetCount,
@@ -126,6 +126,18 @@ impl RetainedEditorHost {
     }
 }
 
+fn workbench_projection_reuses_host(
+    pending_reasons: HostInvalidationMask,
+    legacy_dirty_reasons: HostInvalidationMask,
+) -> bool {
+    let allowed_pending = HostInvalidationMask::WORKBENCH_PROJECTION
+        .union(HostInvalidationMask::PAINT_ONLY)
+        .union(HostInvalidationMask::RENDER);
+    pending_reasons.contains(HostInvalidationMask::WORKBENCH_PROJECTION)
+        && pending_reasons.intersection(allowed_pending) == pending_reasons
+        && legacy_dirty_reasons.intersection(HostInvalidationMask::RENDER) == legacy_dirty_reasons
+}
+
 fn shell_content_reuses_committed_layout(pending_reasons: HostInvalidationMask) -> bool {
     let allowed_reasons =
         HostInvalidationMask::SHELL_CONTENT.union(HostInvalidationMask::PRESENTATION_DATA);
@@ -152,7 +164,7 @@ fn window_metrics_reuses_committed_shell(
 mod tests {
     use super::{
         legacy_dirty_allows_shell_content_patch, shell_content_reuses_committed_layout,
-        window_metrics_reuses_committed_shell,
+        window_metrics_reuses_committed_shell, workbench_projection_reuses_host,
     };
     use crate::ui::retained_host::HostInvalidationMask;
 
@@ -164,6 +176,39 @@ mod tests {
         assert!(shell_content_reuses_committed_layout(
             HostInvalidationMask::SHELL_CONTENT.union(HostInvalidationMask::PRESENTATION_DATA)
         ));
+    }
+
+    #[test]
+    fn workbench_projection_accepts_render_and_paint_without_full_shell_recompute() {
+        assert!(workbench_projection_reuses_host(
+            HostInvalidationMask::WORKBENCH_PROJECTION
+                .union(HostInvalidationMask::PAINT_ONLY)
+                .union(HostInvalidationMask::RENDER),
+            HostInvalidationMask::RENDER,
+        ));
+    }
+
+    #[test]
+    fn workbench_projection_rejects_global_presentation() {
+        assert!(!workbench_projection_reuses_host(
+            HostInvalidationMask::WORKBENCH_PROJECTION
+                .union(HostInvalidationMask::PRESENTATION_DATA),
+            HostInvalidationMask::PRESENTATION_DATA,
+        ));
+    }
+
+    #[test]
+    fn workbench_projection_rejects_layout_hit_test_and_window_metrics() {
+        for incompatible in [
+            HostInvalidationMask::LAYOUT,
+            HostInvalidationMask::HIT_TEST,
+            HostInvalidationMask::WINDOW_METRICS,
+        ] {
+            assert!(!workbench_projection_reuses_host(
+                HostInvalidationMask::WORKBENCH_PROJECTION.union(incompatible),
+                incompatible,
+            ));
+        }
     }
 
     #[test]

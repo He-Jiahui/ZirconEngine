@@ -2,20 +2,26 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use zircon_runtime::scene::{NodeId, Scene};
+use zircon_runtime_interface::math::Transform;
 
 use crate::core::editing::command::EditorCommand;
 use crate::core::editing::context::CoreEditContext;
-use crate::core::editing::engine::{
-    EditCommandError, HistoryContextId, MergeMode, SelectionSnapshot,
-};
+use crate::core::editing::engine::{EditCommandError, MergeMode, SelectionSnapshot};
 use crate::core::editing::intent::EditorIntent;
 use crate::core::editing::selection::SceneSelection;
+use crate::core::play::WorldDomain;
 
-use super::editor_state::EditorState;
 use super::no_project_open::no_project_open;
+use super::{
+    editor_state::EditorState, EditorStateOperationError, GizmoTransactionError,
+    GizmoTransactionPhase,
+};
 
 impl EditorState {
-    pub fn apply_intent(&mut self, intent: EditorIntent) -> Result<bool, String> {
+    pub fn apply_intent(
+        &mut self,
+        intent: EditorIntent,
+    ) -> Result<bool, EditorStateOperationError> {
         let mutates_edit_world = matches!(
             &intent,
             EditorIntent::CreateNode(_)
@@ -26,11 +32,9 @@ impl EditorState {
                 | EditorIntent::SetParents(_, _)
                 | EditorIntent::SetTransform(_, _)
                 | EditorIntent::ApplyInspectorChanges
-                | EditorIntent::Undo
-                | EditorIntent::Redo
         );
         if self.is_playing() && mutates_edit_world {
-            return Err("scene editing is disabled during play mode".to_string());
+            return Err(EditorStateOperationError::SceneEditingDisabledDuringPlay);
         }
         self.prepare_non_gizmo_scene_action()?;
         match intent {
@@ -40,7 +44,7 @@ impl EditorState {
                     .viewport_controller
                     .selection()
                     .active_primary()
-                    .ok_or_else(|| "created scene node did not become selected".to_string())?;
+                    .ok_or(EditorStateOperationError::CreatedNodeNotSelected)?;
                 self.set_status_line(format!("Created node {id}"));
                 Ok(true)
             }
@@ -84,21 +88,7 @@ impl EditorState {
                 self.set_status_line(format!("Deleted {deleted_count} scene node(s)"));
                 Ok(true)
             }
-            EditorIntent::SelectNode(id) => {
-                if self
-                    .world
-                    .try_with_world(|scene| scene.find_node(id).is_none())
-                    .ok_or_else(no_project_open)?
-                {
-                    return Err(format!("Cannot select missing node {id}"));
-                }
-                self.viewport_controller
-                    .selection_mut()
-                    .select_only_active(id);
-                self.sync_selection_state();
-                self.set_status_line(format!("Selected node {id}"));
-                Ok(true)
-            }
+            EditorIntent::SelectNode(id) => self.select_node_in_world(WorldDomain::Edit, id),
             EditorIntent::RenameNode(id, name) => {
                 let command = self
                     .capture_scene_command(|scene| EditorCommand::rename_node(scene, id, name))?;
@@ -166,12 +156,12 @@ impl EditorState {
             }
             EditorIntent::ApplyInspectorChanges => self.apply_inspector_changes(),
             EditorIntent::Undo => {
+                let history_context = self.scene_history_context()?;
                 self.bind_transaction_context()?;
-                let changed = self
-                    .transactions()
-                    .undo(HistoryContextId::Global)
-                    .map_err(|error| error.to_string())?;
+                let camera_before = self.capture_active_scene_camera_authority()?;
+                let changed = self.transactions().undo(history_context)?;
                 if changed {
+                    self.resync_active_scene_camera_after_mutation(camera_before)?;
                     self.sync_selection_from_transaction_context()?;
                     self.sync_selection_state();
                     self.set_status_line("Undo");
@@ -181,12 +171,12 @@ impl EditorState {
                 Ok(changed)
             }
             EditorIntent::Redo => {
+                let history_context = self.scene_history_context()?;
                 self.bind_transaction_context()?;
-                let changed = self
-                    .transactions()
-                    .redo(HistoryContextId::Global)
-                    .map_err(|error| error.to_string())?;
+                let camera_before = self.capture_active_scene_camera_authority()?;
+                let changed = self.transactions().redo(history_context)?;
                 if changed {
+                    self.resync_active_scene_camera_after_mutation(camera_before)?;
                     self.sync_selection_from_transaction_context()?;
                     self.sync_selection_state();
                     self.set_status_line("Redo");
@@ -202,7 +192,7 @@ impl EditorState {
         &mut self,
         label: &str,
         command: EditorCommand,
-    ) -> Result<(), String> {
+    ) -> Result<(), EditorStateOperationError> {
         self.execute_scene_commands(label, [command], MergeMode::Disable)
     }
 
@@ -211,21 +201,48 @@ impl EditorState {
         label: &str,
         commands: impl IntoIterator<Item = EditorCommand>,
         merge_mode: MergeMode,
-    ) -> Result<(), String> {
-        if self.gizmo_transaction.is_some() || self.viewport_controller.is_handle_drag_active() {
-            return Err(
-                "scene mutation requires the active gizmo preview to be canceled first".to_string(),
-            );
+    ) -> Result<(), EditorStateOperationError> {
+        if self.interactive_transform.is_some() || self.viewport_controller.is_handle_drag_active()
+        {
+            return Err(EditorStateOperationError::SceneActionBlockedByActiveGizmo);
         }
         self.execute_prepared_scene_commands(label, commands, merge_mode)
     }
 
-    pub(in crate::ui::workbench) fn execute_gizmo_scene_command(
+    pub(crate) fn execute_gizmo_scene_command(
         &mut self,
         label: &str,
         command: EditorCommand,
-    ) -> Result<(), String> {
-        self.execute_prepared_scene_commands(label, [command], MergeMode::Disable)
+    ) -> Result<(), GizmoTransactionError> {
+        let history_context = self
+            .active_scene_history_context()
+            .ok_or(GizmoTransactionError::SceneDocumentNotActive)?;
+        self.bind_interactive_transform_context()?;
+        let editor_context = Arc::clone(&self.context);
+        let mut scope = editor_context
+            .transactions()
+            .begin(label, history_context)
+            .map_err(|source| GizmoTransactionError::EditCommand {
+                phase: GizmoTransactionPhase::CommandExecution,
+                source,
+            })?;
+        scope.set_merge_mode(MergeMode::Disable);
+        scope
+            .push(command)
+            .map_err(|source| GizmoTransactionError::EditCommand {
+                phase: GizmoTransactionPhase::CommandExecution,
+                source,
+            })?;
+        scope
+            .commit_after_apply(|selection_after| {
+                self.sync_selection_from_transaction_snapshot(selection_after)
+            })
+            .map_err(|source| GizmoTransactionError::EditCommand {
+                phase: GizmoTransactionPhase::CommandExecution,
+                source,
+            })?;
+        self.sync_selection_state();
+        Ok(())
     }
 
     fn execute_prepared_scene_commands(
@@ -233,27 +250,55 @@ impl EditorState {
         label: &str,
         commands: impl IntoIterator<Item = EditorCommand>,
         merge_mode: MergeMode,
-    ) -> Result<(), String> {
+    ) -> Result<(), EditorStateOperationError> {
         if self.is_playing() {
-            return Err("scene editing is disabled during play mode".to_string());
+            return Err(EditorStateOperationError::SceneEditingDisabledDuringPlay);
         }
+        let history_context = self.scene_history_context()?;
         self.bind_transaction_context()?;
+        let camera_before = self.capture_active_scene_camera_authority()?;
         let editor_context = Arc::clone(&self.context);
         let mut scope = editor_context
             .transactions()
-            .begin(label, HistoryContextId::Global)
-            .map_err(|error| error.to_string())?;
+            .begin(label, history_context)?;
         scope.set_merge_mode(merge_mode);
         for command in commands {
-            scope.push(command).map_err(|error| error.to_string())?;
+            scope.push(command)?;
         }
-        scope
-            .commit_after_apply(|selection_after| {
-                self.sync_selection_from_transaction_snapshot(selection_after)
-            })
-            .map_err(|error| error.to_string())?;
+        scope.commit_after_apply(|selection_after| {
+            self.sync_selection_from_transaction_snapshot(selection_after)
+        })?;
+        self.resync_active_scene_camera_after_mutation(camera_before)?;
         self.sync_selection_state();
         Ok(())
+    }
+
+    fn capture_active_scene_camera_authority(
+        &self,
+    ) -> Result<(NodeId, Option<Transform>), EditorStateOperationError> {
+        self.world
+            .with_world(|scene| {
+                let active_camera = scene.active_camera();
+                (active_camera, scene.world_transform(active_camera))
+            })?
+            .ok_or_else(no_project_open)
+    }
+
+    fn resync_active_scene_camera_after_mutation(
+        &mut self,
+        (active_camera_before, active_camera_transform_before): (NodeId, Option<Transform>),
+    ) -> Result<(), EditorStateOperationError> {
+        let world = &self.world;
+        let viewport = &mut self.viewport_controller;
+        world
+            .with_world(|scene| {
+                viewport.resync_active_camera_after_scene_mutation(
+                    scene,
+                    active_camera_before,
+                    active_camera_transform_before,
+                );
+            })?
+            .ok_or_else(no_project_open)
     }
 
     pub(crate) fn capture_scene_command<R>(
@@ -261,29 +306,62 @@ impl EditorState {
         capture: impl FnOnce(
             &zircon_runtime::scene::Scene,
         ) -> Result<R, crate::core::editing::engine::EditCommandError>,
-    ) -> Result<R, String> {
-        self.world
-            .try_with_world(capture)
-            .ok_or_else(no_project_open)
-            .and_then(|result| result.map_err(|error| error.to_string()))
+    ) -> Result<R, EditorStateOperationError> {
+        let command = self
+            .world
+            .with_world(capture)?
+            .ok_or_else(no_project_open)??;
+        Ok(command)
     }
 
-    pub(crate) fn bind_transaction_context(&self) -> Result<(), String> {
+    pub(crate) fn bind_transaction_context(&self) -> Result<(), EditorStateOperationError> {
         let selection = self.viewport_controller.selection();
+        let world_domain = selection.active_domain();
+        self.bind_transaction_context_for(world_domain)
+    }
+
+    pub(crate) fn bind_transaction_context_for(
+        &self,
+        world_domain: crate::core::play::WorldDomain,
+    ) -> Result<(), EditorStateOperationError> {
+        let selection = self.viewport_controller.selection();
+        let selection = SceneSelection::new(
+            selection.items(world_domain).iter().copied().collect(),
+            selection.primary(world_domain),
+        );
+        self.transactions()
+            .with_context_mut::<CoreEditContext, _>(|context| {
+                context.bind_selection(world_domain, selection)
+            })?
+            .ok_or(EditorStateOperationError::TransactionContextMissing)??;
+        Ok(())
+    }
+
+    fn bind_interactive_transform_context(&self) -> Result<(), GizmoTransactionError> {
+        let selection = self.viewport_controller.selection();
+        let world_domain = selection.active_domain();
         let selection = SceneSelection::new(
             selection.active_items().iter().copied().collect(),
             selection.active_primary(),
         );
         self.transactions()
             .with_context_mut::<CoreEditContext, _>(|context| {
-                context.bind_authoring_selection(selection)
+                context.bind_selection(world_domain, selection)
             })
-            .map_err(|error| error.to_string())?
-            .ok_or_else(|| "editor transaction context is not CoreEditContext".to_string())?
-            .map_err(|error| error.to_string())
+            .map_err(|source| GizmoTransactionError::EditCommand {
+                phase: GizmoTransactionPhase::ContextBinding,
+                source,
+            })?
+            .ok_or(GizmoTransactionError::TransactionContextMissing)?
+            .map_err(|source| GizmoTransactionError::EditCommand {
+                phase: GizmoTransactionPhase::ContextBinding,
+                source,
+            })
     }
 
-    pub(crate) fn ensure_transaction_context_selection_is_current(&self) -> Result<(), String> {
+    pub(crate) fn ensure_transaction_context_selection_is_current(
+        &self,
+    ) -> Result<(), EditorStateOperationError> {
         let selection = self.viewport_controller.selection();
         let selection = SceneSelection::new(
             selection.active_items().iter().copied().collect(),
@@ -291,26 +369,24 @@ impl EditorState {
         );
         let current = self
             .transactions()
-            .with_context::<CoreEditContext, _>(CoreEditContext::scene_selection)
-            .map_err(|error| error.to_string())?
-            .ok_or_else(|| "editor transaction context is not CoreEditContext".to_string())?;
+            .with_context::<CoreEditContext, _>(CoreEditContext::scene_selection)?
+            .ok_or(EditorStateOperationError::TransactionContextMissing)?;
         if matches!(current, Ok(current) if current == selection) {
             return Ok(());
         }
         self.bind_transaction_context()
     }
 
-    fn sync_selection_from_transaction_context(&mut self) -> Result<(), String> {
+    fn sync_selection_from_transaction_context(&mut self) -> Result<(), EditorStateOperationError> {
         let selection = self
             .transactions()
-            .with_context::<CoreEditContext, _>(CoreEditContext::selection_snapshot)
-            .map_err(|error| error.to_string())?
-            .ok_or_else(|| "editor transaction context is not CoreEditContext".to_string())?;
-        self.sync_selection_from_transaction_snapshot(&selection)
-            .map_err(|error| error.to_string())
+            .with_context::<CoreEditContext, _>(CoreEditContext::selection_snapshot)?
+            .ok_or(EditorStateOperationError::TransactionContextMissing)?;
+        self.sync_selection_from_transaction_snapshot(&selection)?;
+        Ok(())
     }
 
-    fn sync_selection_from_transaction_snapshot(
+    pub(in crate::ui::workbench) fn sync_selection_from_transaction_snapshot(
         &mut self,
         selection: &SelectionSnapshot,
     ) -> Result<(), EditCommandError> {

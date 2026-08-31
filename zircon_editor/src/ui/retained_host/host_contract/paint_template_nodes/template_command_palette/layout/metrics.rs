@@ -50,10 +50,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn command
         .max(metrics.font_body)
         .round();
     let search_icon_x = metrics.input_pad[0] + metrics.border_width * 2.0;
+    let compact_radius = (metrics.radius_control - metrics.border_width * 2.0).max(0.0);
     WorkbenchCommandPaletteMetrics {
-        panel_radius: metrics.radius_control + metrics.border_width * 2.0,
-        search_radius: metrics.radius_control,
-        row_radius: (metrics.radius_control - metrics.border_width).max(0.0),
+        panel_radius: metrics.radius_control + metrics.gap_s,
+        search_radius: compact_radius,
+        row_radius: compact_radius,
         border_width: metrics.border_width.max(0.0),
         min_frame_extent: metrics.border_width.max(1.0),
         font_size,

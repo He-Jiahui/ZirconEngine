@@ -1,110 +1,189 @@
 use std::time::Duration;
 
-use crate::core::framework::time::{Fixed, FixedStepPlan, Real, Time, Virtual};
+use crate::core::framework::time::{
+    ClockDomainId, ClockDomainStamp, MonotonicReal, Time, TimePolicy, TimePolicyError,
+    TimePolicyTransaction,
+};
+
+use super::frame_clock::FrameClockRebaseReceipt;
+
+mod product_policy;
+
+pub use product_policy::{ProductTimePolicies, ProductTimePolicyDigest};
 
 /// Diagnostic path for total real-time frames advanced by the runtime.
 pub const TIME_FRAME_COUNT_DIAGNOSTIC: &str = "time.frame_count";
-/// Diagnostic path for fixed simulation steps drained during the frame.
-pub const TIME_FIXED_STEPS_DIAGNOSTIC: &str = "time.fixed_steps";
 /// Diagnostic path for real frame duration measured in milliseconds.
 pub const TIME_FRAME_TIME_DIAGNOSTIC: &str = "time.frame_time";
 /// Diagnostic path for frames per second derived from real frame duration.
 pub const TIME_FPS_DIAGNOSTIC: &str = "time.fps";
 
-/// Runtime-owned clock bundle advanced once per outer frame.
+/// Core-owned outer-frame clock and defaults for subsequently created Worlds.
+///
+/// Virtual/fixed simulation time is deliberately absent: each `LevelSystem`
+/// owns those derived clocks, their debt, and their commit boundary.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RuntimeTimeClocks {
-    real: Time<Real>,
-    virtual_time: Time<Virtual>,
-    fixed: Time<Fixed>,
+pub(crate) struct RuntimeTimeAuthority {
+    real: Time<MonotonicReal>,
+    default_world_time_policy: TimePolicy,
+    policy_generation: u64,
 }
 
-impl Default for RuntimeTimeClocks {
+impl Default for RuntimeTimeAuthority {
     fn default() -> Self {
         Self {
-            real: Time::<Real>::default(),
-            virtual_time: Time::<Virtual>::default(),
-            fixed: Time::<Fixed>::default(),
+            real: Time::<MonotonicReal>::default(),
+            default_world_time_policy: TimePolicy::default(),
+            policy_generation: 0,
         }
     }
 }
 
-impl RuntimeTimeClocks {
-    pub fn real(&self) -> Time<Real> {
+impl RuntimeTimeAuthority {
+    pub(crate) const fn real(&self) -> Time<MonotonicReal> {
         self.real
     }
 
-    pub fn virtual_time(&self) -> Time<Virtual> {
-        self.virtual_time
+    pub(crate) const fn time_policy(&self) -> TimePolicy {
+        self.default_world_time_policy
     }
 
-    pub fn fixed(&self) -> Time<Fixed> {
-        self.fixed
+    pub(crate) const fn time_policy_generation(&self) -> u64 {
+        self.policy_generation
     }
 
-    pub fn advance_by(&mut self, real_delta: Duration, max_fixed_steps: u32) -> RuntimeTimeAdvance {
-        self.real.advance_by(real_delta);
-        self.virtual_time.advance_from_real_delta(real_delta);
-        let virtual_time_paused = self.virtual_time.is_paused();
-        let fixed_step_plan = if virtual_time_paused {
-            self.fixed.drain_steps(0)
-        } else {
-            self.fixed.accumulate_overstep(self.virtual_time.delta());
-            self.fixed.drain_steps(max_fixed_steps)
-        };
+    pub(crate) fn apply_time_policy(
+        &mut self,
+        transaction: TimePolicyTransaction,
+    ) -> Result<TimePolicyReceipt, TimePolicyError> {
+        let applied = transaction.prepare()?;
+        let previous = self.default_world_time_policy;
+        let changed = applied != previous;
 
-        RuntimeTimeAdvance {
-            real_delta,
-            virtual_delta: self.virtual_time.delta(),
-            virtual_time_paused,
-            fixed_step_plan,
+        if changed {
+            self.default_world_time_policy = applied;
+            self.policy_generation = self.policy_generation.saturating_add(1);
+        }
+
+        Ok(TimePolicyReceipt {
+            previous,
+            applied,
+            generation: self.policy_generation,
+            changed,
+        })
+    }
+
+    pub(crate) fn advance_by_with_discontinuity(
+        &mut self,
+        raw_real_delta: Duration,
+        fixed_step_budget: u32,
+        discontinuity: Option<FrameTimeDiscontinuity>,
+    ) -> FrameTimeSnapshot {
+        if let Some(FrameTimeDiscontinuity::FrameClockRebased(receipt)) = discontinuity {
+            self.real
+                .set_clock_domain_source_generation(receipt.generation());
+        }
+        self.real.advance_by(raw_real_delta);
+
+        FrameTimeSnapshot {
+            outer_frame_index: self.real.frame_index(),
+            raw_real_delta,
+            real_elapsed: self.real.elapsed(),
+            fixed_step_budget,
+            discontinuity,
+            real_clock_domain_stamp: self.real.clock_domain_stamp(),
         }
     }
+}
 
-    pub fn pause_virtual_time(&mut self) {
-        self.virtual_time.pause();
+/// Immutable evidence for an accepted default World time-policy transaction.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TimePolicyReceipt {
+    previous: TimePolicy,
+    applied: TimePolicy,
+    generation: u64,
+    changed: bool,
+}
+
+impl TimePolicyReceipt {
+    pub const fn previous(self) -> TimePolicy {
+        self.previous
     }
 
-    pub fn unpause_virtual_time(&mut self) {
-        self.virtual_time.unpause();
+    pub const fn applied(self) -> TimePolicy {
+        self.applied
     }
 
-    pub fn set_virtual_time_max_delta(&mut self, max_delta: Duration) {
-        self.virtual_time.set_max_delta(max_delta);
+    pub const fn generation(self) -> u64 {
+        self.generation
     }
 
-    pub fn set_virtual_time_relative_speed_f64(&mut self, speed: f64) {
-        self.virtual_time.set_relative_speed_f64(speed);
-    }
-
-    pub fn set_fixed_timestep(&mut self, timestep: Duration) {
-        self.fixed.set_timestep(timestep);
+    pub const fn changed(self) -> bool {
+        self.changed
     }
 }
 
-/// Summary of one runtime time update, including the fixed-step work budget.
+/// Typed discontinuity observed while preparing one outer-frame time snapshot.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct RuntimeTimeAdvance {
-    real_delta: Duration,
-    virtual_delta: Duration,
-    virtual_time_paused: bool,
-    fixed_step_plan: FixedStepPlan,
+pub enum FrameTimeDiscontinuity {
+    FrameClockRebased(FrameClockRebaseReceipt),
 }
 
-impl RuntimeTimeAdvance {
-    pub fn real_delta(&self) -> Duration {
-        self.real_delta
+/// Immutable real-time input and fixed-step budget for one outer frame.
+///
+/// World-local virtual/fixed delta, pause state, debt, and clock stamps are
+/// materialized later as `WorldTimeSnapshot` by the owning `LevelSystem`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct FrameTimeSnapshot {
+    outer_frame_index: u64,
+    raw_real_delta: Duration,
+    real_elapsed: Duration,
+    fixed_step_budget: u32,
+    discontinuity: Option<FrameTimeDiscontinuity>,
+    real_clock_domain_stamp: ClockDomainStamp,
+}
+
+impl FrameTimeSnapshot {
+    pub const fn outer_frame_index(self) -> u64 {
+        self.outer_frame_index
     }
 
-    pub fn virtual_delta(&self) -> Duration {
-        self.virtual_delta
+    pub const fn raw_real_delta(self) -> Duration {
+        self.raw_real_delta
     }
 
-    pub fn virtual_time_paused(&self) -> bool {
-        self.virtual_time_paused
+    /// Monotonic-real elapsed time captured atomically with this outer frame.
+    pub const fn real_elapsed(self) -> Duration {
+        self.real_elapsed
     }
 
-    pub fn fixed_step_plan(&self) -> FixedStepPlan {
-        self.fixed_step_plan
+    /// Maximum fixed steps the outer-frame owner permits each World to commit.
+    pub const fn fixed_step_budget(self) -> u32 {
+        self.fixed_step_budget
+    }
+
+    pub const fn discontinuity(self) -> Option<FrameTimeDiscontinuity> {
+        self.discontinuity
+    }
+
+    /// The shared monotonic source stamp for the outer frame.
+    pub const fn real_clock_domain_stamp(self) -> ClockDomainStamp {
+        self.real_clock_domain_stamp
+    }
+
+    /// Only the monotonic-real domain is owned by this outer-frame snapshot.
+    pub const fn clock_domain_stamp(self, domain: ClockDomainId) -> Option<ClockDomainStamp> {
+        match domain {
+            ClockDomainId::MonotonicReal => Some(self.real_clock_domain_stamp),
+            ClockDomainId::WorldVirtual
+            | ClockDomainId::WorldFixed
+            | ClockDomainId::WallUtc
+            | ClockDomainId::Input
+            | ClockDomainId::Render
+            | ClockDomainId::Audio
+            | ClockDomainId::Network
+            | ClockDomainId::Media
+            | ClockDomainId::EditorPreview => None,
+        }
     }
 }

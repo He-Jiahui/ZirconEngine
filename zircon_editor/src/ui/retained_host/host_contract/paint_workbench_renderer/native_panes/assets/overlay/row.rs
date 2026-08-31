@@ -20,20 +20,14 @@ pub(super) fn draw_asset_tree_hover_row_overlay(
     nodes: &ModelRc<TemplatePaneNodeData>,
     body: &FrameRect,
     clip: &FrameRect,
-    row_control_id: &str,
     hovered_index: i32,
     scroll_px: f32,
 ) -> bool {
     if hovered_index < 0 {
         return false;
     }
-    let Some(row) = asset_tree_row_frame(
-        nodes,
-        body,
-        row_control_id,
-        hovered_index as usize,
-        scroll_px.max(0.0),
-    ) else {
+    let Some(row) = asset_tree_row_frame(nodes, body, hovered_index as usize, scroll_px.max(0.0))
+    else {
         return false;
     };
     if intersect(&row, clip).is_none() {

@@ -6,8 +6,9 @@ use super::{
 };
 use crate::asset::assets::{TextureAsset, TexturePayload};
 use crate::core::framework::render::{
-    build_source_cubemap_from_source_mips, decode_rgba16f_texels, source_cubemap_face_mip_offset,
-    source_cubemap_mip_size, source_cubemap_sample_count, CubemapFace, SourceCubemapMipChain,
+    build_source_cubemap_from_source_mips, decode_rgba16f_texels_into_exact,
+    source_cubemap_face_mip_offset, source_cubemap_mip_size, source_cubemap_sample_count,
+    CubemapFace, SourceCubemapMipChain,
 };
 
 const DDS_HEADER_SIZE: usize = 128;
@@ -33,19 +34,26 @@ pub fn decode_external_source_cubemap(
     let Some(info) = external_source_cubemap_container_info(texture)? else {
         return Ok(None);
     };
-    let TexturePayload::Container { bytes, .. } = &texture.payload else {
-        return Ok(None);
-    };
-    let source_texels = match info.kind {
-        ExternalSourceCubemapContainerKind::Dds => decode_dds(bytes, &info)?,
-        ExternalSourceCubemapContainerKind::Ktx1 => decode_ktx1(bytes, &info)?,
-        ExternalSourceCubemapContainerKind::Ktx2 => decode_ktx2(bytes, &info)?,
-    };
+    let source_texels = decode_external_source_cubemap_texels(texture, &info)?;
     Ok(Some(build_source_cubemap_from_source_mips(
         info.face_size,
         info.mip_count,
         source_texels,
     )))
+}
+
+pub(crate) fn decode_external_source_cubemap_texels(
+    texture: &TextureAsset,
+    info: &ExternalSourceCubemapContainerInfo,
+) -> Result<Vec<[f32; 4]>, ExternalSourceCubemapDecodeError> {
+    let TexturePayload::Container { bytes, .. } = &texture.payload else {
+        return Err(invalid(info.kind, "texture payload is not a container"));
+    };
+    Ok(match info.kind {
+        ExternalSourceCubemapContainerKind::Dds => decode_dds(bytes, info)?,
+        ExternalSourceCubemapContainerKind::Ktx1 => decode_ktx1(bytes, info)?,
+        ExternalSourceCubemapContainerKind::Ktx2 => decode_ktx2(bytes, info)?,
+    })
 }
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
@@ -232,39 +240,44 @@ fn write_face_mip(
 ) -> Result<(), ExternalSourceCubemapDecodeError> {
     let mip_size = source_cubemap_mip_size(info.face_size, mip);
     let texel_count = mip_size as usize * mip_size as usize;
-    let decoded = decode_texels(bytes, format);
-    if decoded.len() != texel_count {
-        return Err(invalid(
-            info.kind,
-            format!(
-                "decoded face {face:?} mip {mip} has {} texels, expected {texel_count}",
-                decoded.len()
-            ),
-        ));
-    }
     let offset = source_cubemap_face_mip_offset(info.face_size, info.mip_count, face, mip);
-    output[offset..offset + texel_count].copy_from_slice(&decoded);
-    Ok(())
-}
-
-fn decode_texels(bytes: &[u8], format: SourceTexelFormat) -> Vec<[f32; 4]> {
+    let destination = &mut output[offset..offset + texel_count];
     match format {
-        SourceTexelFormat::Rgba16Float => decode_rgba16f_texels(bytes)
-            .into_iter()
-            .map(sanitize_texel)
-            .collect(),
-        SourceTexelFormat::Rgba32Float => bytes
-            .chunks_exact(16)
-            .map(|chunk| {
-                sanitize_texel([
+        SourceTexelFormat::Rgba16Float => {
+            if !decode_rgba16f_texels_into_exact(bytes, destination) {
+                return Err(invalid(
+                    info.kind,
+                    format!(
+                        "decoded face {face:?} mip {mip} has {} texels, expected {texel_count}",
+                        bytes.len() / SourceTexelFormat::Rgba16Float.bytes_per_texel()
+                    ),
+                ));
+            }
+            for texel in destination.iter_mut() {
+                *texel = sanitize_texel(*texel);
+            }
+        }
+        SourceTexelFormat::Rgba32Float => {
+            let decoded_count = bytes.len() / 16;
+            if bytes.len() % 16 != 0 || decoded_count != texel_count {
+                return Err(invalid(
+                    info.kind,
+                    format!(
+                        "decoded face {face:?} mip {mip} has {decoded_count} texels, expected {texel_count}"
+                    ),
+                ));
+            }
+            for (destination, chunk) in destination.iter_mut().zip(bytes.chunks_exact(16)) {
+                *destination = sanitize_texel([
                     read_f32(chunk, 0),
                     read_f32(chunk, 4),
                     read_f32(chunk, 8),
                     read_f32(chunk, 12),
-                ])
-            })
-            .collect(),
+                ]);
+            }
+        }
     }
+    Ok(())
 }
 
 fn sanitize_texel(mut texel: [f32; 4]) -> [f32; 4] {
@@ -349,5 +362,63 @@ fn invalid(
     ExternalSourceCubemapDecodeError::InvalidPayload {
         kind,
         reason: reason.into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rgba32_face_mip_decodes_into_destination_without_changing_layout() {
+        let info = ExternalSourceCubemapContainerInfo {
+            kind: ExternalSourceCubemapContainerKind::Dds,
+            format: "dds/rgba32f".to_string(),
+            face_size: 1,
+            mip_count: 1,
+        };
+        let bytes = [
+            2.0_f32.to_le_bytes(),
+            (-1.0_f32).to_le_bytes(),
+            f32::NAN.to_le_bytes(),
+            7.0_f32.to_le_bytes(),
+        ]
+        .concat();
+        let mut output = vec![[9.0; 4]; source_cubemap_sample_count(1, 1)];
+
+        write_face_mip(
+            &mut output,
+            &info,
+            CubemapFace::PositiveX,
+            0,
+            &bytes,
+            SourceTexelFormat::Rgba32Float,
+        )
+        .expect("valid RGBA32F face/mip");
+
+        assert_eq!(output[0], [2.0, 0.0, 0.0, 1.0]);
+    }
+
+    #[test]
+    fn rgba32_face_mip_rejects_wrong_length_before_writing() {
+        let info = ExternalSourceCubemapContainerInfo {
+            kind: ExternalSourceCubemapContainerKind::Dds,
+            format: "dds/rgba32f".to_string(),
+            face_size: 1,
+            mip_count: 1,
+        };
+        let mut output = vec![[9.0; 4]; source_cubemap_sample_count(1, 1)];
+
+        let result = write_face_mip(
+            &mut output,
+            &info,
+            CubemapFace::PositiveX,
+            0,
+            &[0; 15],
+            SourceTexelFormat::Rgba32Float,
+        );
+
+        assert!(result.is_err());
+        assert_eq!(output[0], [9.0; 4]);
     }
 }

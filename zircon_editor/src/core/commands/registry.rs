@@ -8,15 +8,17 @@ use crate::core::editing::operation::{
 };
 use crate::core::editor_event::EditorEvent;
 use crate::core::editor_operation::EditorOperationPath;
+use crate::core::i18n::{EditorI18nService, EditorLocale};
 
 use super::{
     defaults::default_workbench_commands, menu::menu_bar_model, menu::menu_model,
     AssetWriteTargetDescriptor, CommandEvalCtx, EditorCommandAction, EditorCommandDescriptor,
-    EditorCommandPaletteCatalog,
+    EditorCommandExecutorRegistry, EditorCommandExecutorRegistryError, EditorCommandPaletteCatalog,
+    NativePluginEditorCommandBinding,
 };
 
 /// The only registry for editor command metadata, invocation, discovery, and extensions.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct EditorCommandRegistry {
     commands: BTreeMap<EditorOperationPath, EditorCommandDescriptor>,
     #[serde(skip)]
@@ -24,6 +26,20 @@ pub struct EditorCommandRegistry {
     generation: u64,
     #[serde(skip)]
     palette_catalog: OnceLock<Arc<EditorCommandPaletteCatalog>>,
+    #[serde(skip)]
+    executors: EditorCommandExecutorRegistry,
+}
+
+impl Clone for EditorCommandRegistry {
+    fn clone(&self) -> Self {
+        Self {
+            commands: self.commands.clone(),
+            operation_factories: self.operation_factories.clone(),
+            generation: self.generation,
+            palette_catalog: OnceLock::new(),
+            executors: EditorCommandExecutorRegistry::default(),
+        }
+    }
 }
 
 impl PartialEq for EditorCommandRegistry {
@@ -109,10 +125,23 @@ impl EditorCommandRegistry {
     pub fn validate_descriptor(
         command: &EditorCommandDescriptor,
     ) -> Result<(), EditorCommandRegistryError> {
-        validate_menu_path(command)?;
         validate_payload_schema_id(command)?;
         validate_headless_commandlet(command)?;
-        validate_asset_write_target(command)
+        validate_asset_write_target(command)?;
+        if let Some(contract) = command.execution_contract() {
+            contract.validate().map_err(|error| {
+                EditorCommandRegistryError::InvalidExecutionContract {
+                    command_id: command.id().clone(),
+                    detail: error.to_string(),
+                }
+            })?;
+        } else if matches!(command.action(), EditorCommandAction::NativeEndpoint) {
+            return Err(EditorCommandRegistryError::InvalidExecutionContract {
+                command_id: command.id().clone(),
+                detail: "native endpoint commands require an execution contract".to_owned(),
+            });
+        }
+        Ok(())
     }
 
     pub(crate) fn attach_asset_write_target(
@@ -150,6 +179,18 @@ impl EditorCommandRegistry {
         self.generation
     }
 
+    /// Publishes a freshly materialized registry after the preceding live generation.
+    ///
+    /// Projection builders register descriptors into a private registry before publication, so
+    /// their construction mutation count is not a stable catalog revision. Different projections
+    /// with the same number of descriptors must still publish distinct, monotonic generations.
+    pub(crate) fn publish_projection_after(&mut self, previous_generation: u64) {
+        self.generation = previous_generation
+            .checked_add(1)
+            .expect("editor command registry generation overflowed");
+        let _ = self.palette_catalog.take();
+    }
+
     pub fn command<Q>(&self, id: &Q) -> Option<&EditorCommandDescriptor>
     where
         EditorOperationPath: std::borrow::Borrow<Q>,
@@ -179,6 +220,47 @@ impl EditorCommandRegistry {
         operation: &EditorOperationPath,
     ) -> Option<&OperationCommandFactoryRegistration> {
         self.operation_factories.get(operation)
+    }
+
+    pub fn register_native_executor(
+        &mut self,
+        command_id: &EditorOperationPath,
+        binding: NativePluginEditorCommandBinding,
+    ) -> Result<(), EditorCommandExecutorRegistryError> {
+        let descriptor = self.command(command_id).cloned().ok_or_else(|| {
+            EditorCommandExecutorRegistryError::MissingCommand {
+                command_id: command_id.clone(),
+            }
+        })?;
+        self.executors.register_native(&descriptor, binding)
+    }
+
+    pub fn native_executor(
+        &self,
+        command_id: &EditorOperationPath,
+    ) -> Option<&super::NativeCommandExecutorRegistration> {
+        self.executors.get(command_id)
+    }
+
+    pub fn revoke_native_executor(&mut self, command_id: &EditorOperationPath) -> bool {
+        self.executors.revoke(command_id)
+    }
+
+    pub fn native_executor_count(&self) -> usize {
+        self.executors.len()
+    }
+
+    pub fn invoke_native_executor(
+        &self,
+        command_id: &EditorOperationPath,
+        payload: &[u8],
+    ) -> Result<super::EditorCommandExecutionReceipt, EditorCommandExecutorRegistryError> {
+        self.executors
+            .get(command_id)
+            .ok_or_else(|| EditorCommandExecutorRegistryError::MissingExecutor {
+                command_id: command_id.clone(),
+            })
+            .map(|executor| executor.invoke(payload))
     }
 
     pub fn descriptor_for_event(&self, event: &EditorEvent) -> Option<&EditorCommandDescriptor> {
@@ -211,12 +293,23 @@ impl EditorCommandRegistry {
         }))
     }
 
-    pub fn menu_bar_model(&self, context: &CommandEvalCtx) -> super::MenuBarModel {
-        menu_bar_model(self, context)
+    pub fn menu_bar_model(
+        &self,
+        i18n: &EditorI18nService,
+        locale: &EditorLocale,
+        context: &CommandEvalCtx,
+    ) -> super::MenuBarModel {
+        menu_bar_model(self, i18n, locale, context)
     }
 
-    pub fn menu_model(&self, label: &str, context: &CommandEvalCtx) -> Option<super::MenuModel> {
-        menu_model(self, label, context)
+    pub fn menu_model(
+        &self,
+        root_id: &str,
+        i18n: &EditorI18nService,
+        locale: &EditorLocale,
+        context: &CommandEvalCtx,
+    ) -> Option<super::MenuModel> {
+        menu_model(self, root_id, i18n, locale, context)
     }
 
     pub fn ensure_enabled(
@@ -304,7 +397,7 @@ impl EditorCommandRegistry {
 pub enum EditorCommandRegistryError {
     DuplicateCommand(EditorOperationPath),
     OperationFactory(OperationCommandFactoryError),
-    InvalidCommandMenuPath(String),
+    Executor(EditorCommandExecutorRegistryError),
     InvalidCommandPayloadSchemaId(String),
     HeadlessCommandletMissingRoute(EditorOperationPath),
     HeadlessCommandletMissingName(EditorOperationPath),
@@ -320,6 +413,10 @@ pub enum EditorCommandRegistryError {
         argument: String,
     },
     ConflictingAssetWriteTarget(EditorOperationPath),
+    InvalidExecutionContract {
+        command_id: EditorOperationPath,
+        detail: String,
+    },
     MissingCommand(EditorOperationPath),
     CommandNotCallableFromRemote(EditorOperationPath),
 }
@@ -331,9 +428,7 @@ impl std::fmt::Display for EditorCommandRegistryError {
                 write!(formatter, "editor command {id} already registered")
             }
             Self::OperationFactory(error) => error.fmt(formatter),
-            Self::InvalidCommandMenuPath(path) => {
-                write!(formatter, "editor command menu path `{path}` is invalid")
-            }
+            Self::Executor(error) => error.fmt(formatter),
             Self::InvalidCommandPayloadSchemaId(schema_id) => write!(
                 formatter,
                 "editor command payload schema id `{schema_id}` is invalid"
@@ -384,6 +479,10 @@ impl std::fmt::Display for EditorCommandRegistryError {
             Self::ConflictingAssetWriteTarget(command_id) => write!(
                 formatter,
                 "editor command {command_id} has conflicting asset write targets"
+            ),
+            Self::InvalidExecutionContract { command_id, detail } => write!(
+                formatter,
+                "editor command {command_id} has an invalid execution contract: {detail}"
             ),
             Self::MissingCommand(id) => write!(formatter, "editor command {id} is not registered"),
             Self::CommandNotCallableFromRemote(id) => write!(
@@ -438,24 +537,6 @@ impl std::fmt::Display for EditorCommandDispatchError {
 }
 
 impl std::error::Error for EditorCommandDispatchError {}
-
-fn validate_menu_path(
-    descriptor: &EditorCommandDescriptor,
-) -> Result<(), EditorCommandRegistryError> {
-    if let Some(menu_path) = descriptor.menu_path() {
-        let mut segment_count = 0;
-        let invalid_segment = menu_path.split('/').any(|segment| {
-            segment_count += 1;
-            segment.trim().is_empty() || segment.trim() != segment
-        });
-        if invalid_segment || segment_count < MIN_MENU_PATH_SEGMENTS {
-            return Err(EditorCommandRegistryError::InvalidCommandMenuPath(
-                menu_path.to_string(),
-            ));
-        }
-    }
-    Ok(())
-}
 
 fn validate_payload_schema_id(
     descriptor: &EditorCommandDescriptor,
@@ -545,7 +626,6 @@ fn valid_headless_commandlet_name(name: &str) -> bool {
     })
 }
 
-const MIN_MENU_PATH_SEGMENTS: usize = 2;
 const MIN_PAYLOAD_SCHEMA_SEGMENTS: usize = 3;
 
 fn validate_asset_write_target(
@@ -572,322 +652,4 @@ fn validate_asset_write_target(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-    use std::time::Instant;
-
-    use crate::core::asset::AssetWriteAccess;
-    use crate::core::editor_event::{EditorEvent, EditorEventTransient};
-    use crate::core::editor_operation::EditorOperationPath;
-
-    use super::super::{
-        CommandEvalCtx, EditorCommandAction, EditorCommandCategory, EditorCommandDescriptor,
-        EditorCommandPaletteMru, WhenClause,
-    };
-    use super::{EditorCommandRegistry, EditorCommandRegistryError};
-
-    #[test]
-    fn command_descriptor_validation_streams_path_segments() {
-        let source = include_str!("registry.rs");
-        let menu_collect = ["split('/')", ".collect::<Vec<_>>()"].concat();
-        let schema_collect = ["split('.')", ".collect::<Vec<_>>()"].concat();
-        assert!(!source.contains(&menu_collect));
-        assert!(!source.contains(&schema_collect));
-    }
-
-    #[test]
-    fn headless_commandlets_require_unique_typed_routes() {
-        let descriptor = EditorCommandDescriptor::new(
-            EditorOperationPath::parse("test.commandlet.plugin_list")
-                .expect("test command id should be valid"),
-            "List Plugins",
-            EditorCommandCategory::Command,
-            EditorCommandAction::HeadlessPluginList,
-        )
-        .with_payload_schema_id("editor.commandlet.plugin-list")
-        .with_required_capabilities(["plugin.catalog.read"]);
-        let mut registry = EditorCommandRegistry::default();
-
-        assert!(matches!(
-            registry.register(descriptor.clone()),
-            Err(EditorCommandRegistryError::HeadlessCommandletMissingRoute(
-                _
-            ))
-        ));
-
-        let route = EditorOperationPath::parse("commandlet.route.plugin_list")
-            .expect("test commandlet route should be valid");
-        let descriptor = descriptor.with_headless_commandlet_route(route.clone());
-        assert!(matches!(
-            registry.register(descriptor.clone()),
-            Err(EditorCommandRegistryError::HeadlessCommandletMissingName(_))
-        ));
-        let descriptor = descriptor.with_headless_commandlet_name("plugin-list");
-        registry
-            .register(descriptor.clone())
-            .expect("a routed headless commandlet should register");
-        assert_eq!(
-            registry
-                .command_for_headless_commandlet_route(&route)
-                .map(EditorCommandDescriptor::id),
-            Some(descriptor.id())
-        );
-
-        let duplicate = EditorCommandDescriptor::new(
-            EditorOperationPath::parse("test.commandlet.plugin_list_copy")
-                .expect("test command id should be valid"),
-            "List Plugins Copy",
-            EditorCommandCategory::Command,
-            EditorCommandAction::HeadlessPluginList,
-        )
-        .with_payload_schema_id("editor.commandlet.plugin-list-copy")
-        .with_required_capabilities(["plugin.catalog.read"])
-        .with_headless_commandlet_route(route.clone())
-        .with_headless_commandlet_name("plugin-list-copy");
-
-        assert!(matches!(
-            registry.register(duplicate),
-            Err(EditorCommandRegistryError::DuplicateHeadlessCommandletRoute(route_error))
-                if route_error == route
-        ));
-
-        let duplicate_name = EditorCommandDescriptor::new(
-            EditorOperationPath::parse("test.commandlet.plugin_list_name_copy")
-                .expect("test command id should be valid"),
-            "List Plugins Name Copy",
-            EditorCommandCategory::Command,
-            EditorCommandAction::HeadlessPluginList,
-        )
-        .with_payload_schema_id("editor.commandlet.plugin-list-name-copy")
-        .with_required_capabilities(["plugin.catalog.read"])
-        .with_headless_commandlet_route(
-            EditorOperationPath::parse("commandlet.route.plugin_list_name_copy")
-                .expect("test commandlet route should be valid"),
-        )
-        .with_headless_commandlet_name("plugin-list");
-
-        assert!(matches!(
-            registry.register(duplicate_name),
-            Err(EditorCommandRegistryError::DuplicateHeadlessCommandletName(name))
-                if name == "plugin-list"
-        ));
-    }
-
-    #[test]
-    fn stable_command_catalog_is_shared_until_registry_generation_changes() {
-        let mut registry = EditorCommandRegistry::default_workbench();
-
-        let first = registry.command_palette_catalog();
-        let second = registry.command_palette_catalog();
-
-        assert!(Arc::ptr_eq(&first, &second));
-        assert_eq!(first.generation(), registry.generation());
-
-        registry
-            .register(test_command(10_000))
-            .expect("new command should advance the catalog generation");
-        let next = registry.command_palette_catalog();
-
-        assert!(!Arc::ptr_eq(&first, &next));
-        assert_eq!(next.generation(), first.generation() + 1);
-        assert_eq!(next.len(), first.len() + 1);
-    }
-
-    #[test]
-    fn palette_query_retains_only_the_requested_window_without_truncating_matches() {
-        let mut registry = EditorCommandRegistry::default();
-        for index in 0..1_000 {
-            registry
-                .register(test_command(index))
-                .expect("generated command ids should be unique");
-        }
-
-        let catalog = registry.command_palette_catalog();
-        let window =
-            catalog.query_window(&CommandEvalCtx::interactive(), "palette command", 480, 24);
-
-        assert_eq!(window.total_match_count(), 1_000);
-        assert_eq!(window.offset(), 480);
-        assert_eq!(window.len(), 24);
-        assert_eq!(window.metrics().retained_handles, 24);
-        assert_eq!(window.metrics().visited_entries, 1_000);
-        assert_eq!(window.metrics().enablement_evaluations, 1_000);
-        assert_eq!(window.metrics().candidate_handles, 504);
-        assert_eq!(window.metrics().owned_buffers, 4);
-        assert_eq!(
-            window.entries().next().map(|entry| entry.id.as_str()),
-            Some("test.palette.command_0480")
-        );
-        assert_eq!(
-            window.entries().last().map(|entry| entry.id.as_str()),
-            Some("test.palette.command_0503")
-        );
-    }
-
-    #[test]
-    fn palette_mru_precedes_catalog_order_and_breaks_fuzzy_score_ties() {
-        let mut registry = EditorCommandRegistry::default();
-        for index in 0..4 {
-            registry
-                .register(test_command(index))
-                .expect("generated command ids should be unique");
-        }
-        let mru = EditorCommandPaletteMru::new([
-            EditorOperationPath::parse("test.palette.command_0003")
-                .expect("the recent command id should be valid"),
-            EditorOperationPath::parse("test.palette.command_0001")
-                .expect("the recent command id should be valid"),
-        ])
-        .expect("the bounded MRU list should be valid");
-        let context = CommandEvalCtx::interactive();
-
-        let catalog = registry.command_palette_catalog();
-        let unfiltered = catalog.query_window_with_mru(&context, "", 0, 4, &mru);
-        let fuzzy = catalog.query_window_with_mru(&context, "palette command", 0, 4, &mru);
-        let expected = vec![
-            "test.palette.command_0003",
-            "test.palette.command_0001",
-            "test.palette.command_0000",
-            "test.palette.command_0002",
-        ];
-
-        assert_eq!(
-            unfiltered
-                .entries()
-                .map(|entry| entry.id.as_str())
-                .collect::<Vec<_>>(),
-            expected
-        );
-        assert_eq!(
-            fuzzy
-                .entries()
-                .map(|entry| entry.id.as_str())
-                .collect::<Vec<_>>(),
-            expected
-        );
-    }
-
-    #[test]
-    fn palette_query_index_visits_only_documents_with_the_rarest_query_byte() {
-        let mut commands = (0..1_000).map(test_command).collect::<Vec<_>>();
-        commands.push(EditorCommandDescriptor::new(
-            EditorOperationPath::parse("test.palette.unique_zanzibar")
-                .expect("unique command id should be valid"),
-            "Unique Zanzibar Action",
-            EditorCommandCategory::Command,
-            EditorCommandAction::Emit(EditorEvent::Transient(
-                EditorEventTransient::OpenCommandPalette,
-            )),
-        ));
-        let registry =
-            EditorCommandRegistry::new(commands).expect("generated command ids should be unique");
-
-        let window = registry.command_palette_catalog().query_window(
-            &CommandEvalCtx::interactive(),
-            "zanzibar",
-            0,
-            12,
-        );
-
-        assert_eq!(window.total_match_count(), 1);
-        assert_eq!(window.metrics().visited_entries, 1);
-        assert_eq!(window.metrics().enablement_evaluations, 1);
-        assert_eq!(
-            window.entries().next().map(|entry| entry.id.as_str()),
-            Some("test.palette.unique_zanzibar")
-        );
-    }
-
-    #[test]
-    fn palette_catalog_enablement_slot_preserves_descriptor_requirements() {
-        let descriptor = test_command(0)
-            .with_when(WhenClause::SelectionNonEmpty)
-            .with_required_capabilities(["palette.execute"])
-            .with_asset_write_target_arguments("asset_type", "asset_locator");
-        let registry = EditorCommandRegistry::new(vec![descriptor])
-            .expect("the descriptor should satisfy the registry contract");
-        let selected = CommandEvalCtx::interactive()
-            .with_selection_count(1)
-            .with_capabilities(["palette.execute"]);
-
-        let catalog = registry.command_palette_catalog();
-        assert!(catalog.query_window(&selected, "palette", 0, 16).is_empty());
-        assert_eq!(
-            catalog
-                .query_window(
-                    &selected.with_asset_write_access(AssetWriteAccess::Writable),
-                    "palette",
-                    0,
-                    16,
-                )
-                .total_match_count(),
-            1
-        );
-    }
-
-    #[test]
-    fn one_thousand_query_updates_emit_current_source_burst_metrics() {
-        let mut registry = EditorCommandRegistry::default();
-        for index in 0..1_000 {
-            registry
-                .register(test_command(index))
-                .expect("generated command ids should be unique");
-        }
-        let context = CommandEvalCtx::interactive();
-        let catalog = registry.command_palette_catalog();
-
-        let mut elapsed_micros = Vec::with_capacity(1_000);
-        let mut maximum_visited_entries = 0;
-        let mut maximum_document_byte_visits = 0;
-        let mut maximum_text_comparisons = 0;
-        let mut maximum_enablement_evaluations = 0;
-        let mut maximum_candidate_handles = 0;
-        let mut maximum_retained_handles = 0;
-        let mut maximum_owned_buffers = 0;
-        for index in 0..1_000 {
-            let query = format!("command {:02}", index % 100);
-            let started_at = Instant::now();
-            let metrics = catalog.query_window(&context, &query, 0, 16).metrics();
-            elapsed_micros.push(started_at.elapsed().as_micros());
-            maximum_visited_entries = maximum_visited_entries.max(metrics.visited_entries);
-            maximum_document_byte_visits =
-                maximum_document_byte_visits.max(metrics.document_byte_visits);
-            maximum_text_comparisons = maximum_text_comparisons.max(metrics.text_comparisons);
-            maximum_enablement_evaluations =
-                maximum_enablement_evaluations.max(metrics.enablement_evaluations);
-            maximum_candidate_handles = maximum_candidate_handles.max(metrics.candidate_handles);
-            maximum_retained_handles = maximum_retained_handles.max(metrics.retained_handles);
-            maximum_owned_buffers = maximum_owned_buffers.max(metrics.owned_buffers);
-        }
-        elapsed_micros.sort_unstable();
-        let p95_index = elapsed_micros
-            .len()
-            .saturating_mul(95)
-            .div_ceil(100)
-            .saturating_sub(1);
-        let p95_micros = elapsed_micros[p95_index];
-
-        println!(
-            "EDITOR08_PALETTE_QUERY_BURST samples=1000 p95_us={p95_micros} max_visits={maximum_visited_entries} max_document_byte_visits={maximum_document_byte_visits} max_text_comparisons={maximum_text_comparisons} max_enablement_evaluations={maximum_enablement_evaluations} max_candidate_handles={maximum_candidate_handles} max_retained_handles={maximum_retained_handles} max_owned_buffers={maximum_owned_buffers}"
-        );
-        assert_eq!(maximum_visited_entries, 1_000);
-        assert!(maximum_document_byte_visits > 0);
-        assert!(maximum_text_comparisons > 0);
-        assert_eq!(maximum_enablement_evaluations, 1_000);
-        assert!(maximum_candidate_handles <= 16);
-        assert!(maximum_retained_handles <= 16);
-        assert_eq!(maximum_owned_buffers, 4);
-    }
-
-    fn test_command(index: usize) -> EditorCommandDescriptor {
-        EditorCommandDescriptor::new(
-            EditorOperationPath::parse(&format!("test.palette.command_{index:04}"))
-                .expect("generated command id should be valid"),
-            format!("Palette Command {index:04}"),
-            EditorCommandCategory::Command,
-            EditorCommandAction::Emit(EditorEvent::Transient(
-                EditorEventTransient::OpenCommandPalette,
-            )),
-        )
-    }
-}
+mod tests;

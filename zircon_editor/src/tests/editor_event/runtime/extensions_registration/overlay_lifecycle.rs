@@ -75,7 +75,7 @@ fn viewport_overlay_provider_registration_routes_toggle_and_capability_lifecycle
         .expect("provider registration is unique");
     extension
         .register_command(
-            EditorCommandDescriptor::operation(toggle.clone(), "Toggle Weather Overlay")
+            EditorCommandDescriptor::operation(toggle.clone())
                 .with_event(EditorEvent::Viewport(
                     EditorViewportEvent::ToggleOverlayProvider {
                         provider_id: PROVIDER_ID.to_string(),
@@ -86,7 +86,7 @@ fn viewport_overlay_provider_registration_routes_toggle_and_capability_lifecycle
         .expect("toggle operation is an ordinary viewport event");
     extension
         .register_menu_item(
-            EditorMenuItemDescriptor::new("View/Debug Overlays/Weather", toggle.clone())
+            EditorMenuItemDescriptor::for_operation(toggle.clone())
                 .with_required_capabilities([CAPABILITY]),
         )
         .expect("toggle menu is capability-gated");
@@ -358,7 +358,7 @@ fn rejected_plugin_extension_does_not_publish_runtime_event_consumers() {
         }))
         .unwrap();
 
-    runtime
+    let contribution_handle = runtime
         .runtime
         .register_editor_plugin_registration(EditorPluginRegistrationReport {
             package_manifest: PluginPackageManifest::new(
@@ -371,6 +371,7 @@ fn rejected_plugin_extension_does_not_publish_runtime_event_consumers() {
             successful_lifecycle_stages: Vec::new(),
             failed_lifecycle_stages: Vec::new(),
             runtime_event_consumers: consumer_registry(),
+            native_command_bindings: Default::default(),
             diagnostics: Vec::new(),
         })
         .expect_err("invalid extension must reject the complete plugin registration");
@@ -515,8 +516,17 @@ fn editor_runtime_contains_overlay_provider_extract_panic() {
                 provider_id: PROVIDER_ID.to_string(),
             })
             .expect_err("a faulted provider must remain quarantined");
-        assert!(error.contains("quarantined after callback failure"));
-        assert!(error.contains("provider extract panic"));
+        assert!(matches!(
+            error,
+            crate::ui::workbench::state::EditorViewportStateError::ViewportController(
+                crate::scene::viewport::SceneViewportControllerError::ViewportOverlayProvider(
+                    crate::scene::viewport::ViewportOverlayProviderError::Quarantined {
+                        ref provider_id,
+                        detail: Some(ref detail),
+                    }
+                )
+            ) if provider_id == PROVIDER_ID && detail == "provider extract panic"
+        ));
         shell
             .state
             .apply_viewport_command(&ViewportCommand::Resized {
@@ -569,4 +579,155 @@ fn editor_runtime_rejects_scene_mode_with_an_unregistered_overlay_provider() {
         EditorExtensionRegistryError::MissingViewportOverlayProvider { provider_id }
             if provider_id == "missing.viewport.overlay.provider"
     ));
+}
+
+#[test]
+fn editor_runtime_revokes_plugin_scene_modes_and_overlay_providers_as_one_owner_transaction() {
+    use std::sync::Arc;
+
+    use crate::core::editor_authoring_extension::SceneModeDescriptor;
+    use crate::core::editor_extension::{
+        EditorExtensionRegistry, ViewportOverlayProvider, ViewportOverlayProviderContext,
+        ViewportOverlayProviderRegistration,
+    };
+    use crate::core::editor_message::SceneModeId;
+    use crate::core::editor_operation::EditorOperationPath;
+    use crate::core::plugin::EditorPluginRegistrationReport;
+    use crate::scene::modes::{SceneModeActivation, SceneModeRegistration};
+    use crate::ui::binding::ViewportCommand;
+    use zircon_runtime::core::framework::render::SceneGizmoOverlayExtract;
+    use zircon_runtime::plugin::PluginPackageManifest;
+
+    const OWNER_ID: &str = "plugin.weather.lifecycle";
+    const MODE_ID: &str = "plugin.weather.lifecycle.mode";
+    const PROVIDER_ID: &str = "plugin.weather.lifecycle.overlay";
+    const TOGGLE_OPERATION: &str = "plugin.weather.lifecycle.toggle_overlay";
+
+    struct LifecycleOverlayProvider;
+
+    impl ViewportOverlayProvider for LifecycleOverlayProvider {
+        fn extract(
+            &self,
+            _context: &ViewportOverlayProviderContext<'_>,
+        ) -> Vec<SceneGizmoOverlayExtract> {
+            Vec::new()
+        }
+    }
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::with_enabled_subsystems(
+        "zircon_editor_event_plugin_contribution_retirement",
+        &[],
+    );
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_scene_mode(SceneModeRegistration::new(
+            SceneModeDescriptor::new(
+                MODE_ID,
+                "Lifecycle Mode",
+                "weather.debug",
+                EditorOperationPath::parse("plugin.weather.lifecycle.activate").unwrap(),
+            )
+            .with_overlay_provider_id(PROVIDER_ID),
+            || crate::tests::support::pass_through_scene_mode(SceneModeId::new(MODE_ID)),
+        ))
+        .expect("plugin scene mode registration");
+    extension
+        .register_viewport_overlay_provider(ViewportOverlayProviderRegistration::new(
+            PROVIDER_ID,
+            || -> Arc<dyn ViewportOverlayProvider> { Arc::new(LifecycleOverlayProvider) },
+        ))
+        .expect("plugin overlay provider registration");
+    extension
+        .register_command(
+            EditorCommandDescriptor::operation(
+                EditorOperationPath::parse(TOGGLE_OPERATION).unwrap(),
+            )
+            .with_event(EditorEvent::Viewport(
+                crate::core::editor_event::EditorViewportEvent::ToggleOverlayProvider {
+                    provider_id: PROVIDER_ID.to_string(),
+                },
+            )),
+        )
+        .expect("plugin overlay toggle command registration");
+
+    runtime
+        .runtime
+        .register_editor_plugin_registration(EditorPluginRegistrationReport {
+            package_manifest: PluginPackageManifest::new(OWNER_ID, "Weather Lifecycle"),
+            capabilities: Vec::new(),
+            extensions: extension,
+            lifecycle: Default::default(),
+            successful_lifecycle_stages: Vec::new(),
+            failed_lifecycle_stages: Vec::new(),
+            runtime_event_consumers: Default::default(),
+            native_command_bindings: Default::default(),
+            diagnostics: Vec::new(),
+        })
+        .expect("plugin contribution registration");
+
+    {
+        let mut shell = runtime.runtime.shell().lock();
+        shell
+            .state
+            .viewport_controller
+            .activate_scene_mode(SceneModeActivation::Custom(SceneModeId::new(MODE_ID)))
+            .expect("plugin scene mode activation");
+        shell
+            .state
+            .apply_viewport_command(&ViewportCommand::ToggleOverlayProvider {
+                provider_id: PROVIDER_ID.to_string(),
+            })
+            .expect("plugin overlay provider activation");
+    }
+
+    let removed = runtime
+        .runtime
+        .revoke_editor_plugin_contribution(&contribution_handle)
+        .expect("plugin contribution retirement");
+    assert!(removed);
+
+    let mut shell = runtime.runtime.shell().lock();
+    assert_eq!(
+        shell.state.viewport_controller.active_scene_mode(),
+        SceneModeActivation::Select
+    );
+    let mode_error = shell
+        .state
+        .viewport_controller
+        .activate_scene_mode(SceneModeActivation::Custom(SceneModeId::new(MODE_ID)))
+        .expect_err("retired scene mode must be absent from the registry");
+    assert!(matches!(
+        mode_error,
+        crate::scene::viewport::SceneViewportControllerError::SceneModeRegistry(
+            crate::scene::modes::SceneModeRegistryError::UnknownMode { ref mode_id }
+        ) if mode_id == &SceneModeId::new(MODE_ID)
+    ));
+    let provider_error = shell
+        .state
+        .apply_viewport_command(&ViewportCommand::ToggleOverlayProvider {
+            provider_id: PROVIDER_ID.to_string(),
+        })
+        .expect_err("retired overlay provider must be absent from the registry");
+    assert!(matches!(
+        provider_error,
+        crate::ui::workbench::state::EditorViewportStateError::ViewportController(
+            crate::scene::viewport::SceneViewportControllerError::ViewportOverlayProvider(
+                crate::scene::viewport::ViewportOverlayProviderError::UnknownProvider {
+                    ref provider_id
+                }
+            )
+        ) if provider_id == PROVIDER_ID
+    ));
+    drop(shell);
+    assert!(runtime
+        .runtime
+        .commands()
+        .lock()
+        .command(TOGGLE_OPERATION)
+        .is_none());
+    assert!(!runtime
+        .runtime
+        .revoke_editor_plugin_contribution(&contribution_handle)
+        .expect("retiring an already removed plugin should be idempotent"));
 }

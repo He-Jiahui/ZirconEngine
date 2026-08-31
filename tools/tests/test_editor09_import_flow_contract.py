@@ -33,12 +33,14 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
             public_reexports(facade, "import_flow"),
             {
             "EditorAssetImportAdmissionLimits",
+            "EditorAssetImportExecutionError",
             "EditorAssetImportFlow",
             "EditorAssetImportReason",
             "EditorAssetImportRequest",
             "EditorAssetImportResult",
             "EditorAssetImportSubmitError",
             "EditorAssetImportTicket",
+            "EditorModelImportTicket",
             },
         )
 
@@ -50,9 +52,13 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
     def test_import_flow_is_folder_backed_and_split_by_responsibility(self) -> None:
         for name in (
             "mod.rs",
+            "diagnostics.rs",
             "error.rs",
             "flight.rs",
             "job.rs",
+            "lock.rs",
+            "model_submit.rs",
+            "model_ticket.rs",
             "state.rs",
             "submit.rs",
             "tests.rs",
@@ -95,6 +101,22 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, combined)
 
+    def test_model_ingress_uses_the_runtime_gltf_subasset_generation(self) -> None:
+        workspace = read("zircon_editor/src/ui/retained_host/app/assets/workspace.rs")
+        helpers = read("zircon_editor/src/ui/retained_host/app/helpers.rs")
+        host = read("zircon_editor/src/ui/retained_host/app.rs")
+        runtime_gltf = read("zircon_runtime/src/asset/importer/ingest/import_gltf.rs")
+
+        for source in (workspace, helpers, host):
+            self.assertNotIn("derive_animation_assets_from_model_source", source)
+            self.assertNotIn("animation_assets", source)
+        self.assertNotIn("for derived_uri", workspace)
+        self.assertIn("add_gltf_animation_and_skin_subassets", runtime_gltf)
+        self.assertIn(
+            "outcome = add_gltf_animation_and_skin_subassets",
+            runtime_gltf,
+        )
+
     def test_generation_single_flight_and_admission_are_bounded(self) -> None:
         facade = read("zircon_editor/src/core/asset/import_flow/mod.rs")
         flight = read("zircon_editor/src/core/asset/import_flow/flight.rs")
@@ -102,12 +124,14 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
         job = read("zircon_editor/src/core/asset/import_flow/job.rs")
         submit = read("zircon_editor/src/core/asset/import_flow/submit.rs")
         index = read("zircon_editor/src/core/asset/index.rs")
+        index_tests = read("zircon_editor/src/core/asset/index/tests.rs")
 
         for contract in (
             "EditorAssetImportReason",
             "EditorAssetImportRequest",
             "EditorAssetImportResult",
             "EditorAssetImportTicket",
+            "EditorModelImportTicket",
         ):
             self.assertIn(contract, facade)
         self.assertIn("EditorAssetImportAdmissionLimits", facade)
@@ -124,17 +148,31 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
         self.assertIn("complete_uuid_clear", state)
         self.assertIn("ImportFlight", flight)
         self.assertIn("Condvar", flight)
-        self.assertIn("wait_admission", flight)
+        self.assertIn("try_admission", flight)
+        self.assertNotIn("wait_admission", flight)
         self.assertIn("publish_admission", flight)
         self.assertIn("#[derive(Clone)]\npub struct EditorAssetImportTicket", facade)
         self.assertNotIn("JobTicket<EditorAssetImportResult>", facade)
+        self.assertIn("pub fn wait_until", facade)
+        self.assertNotIn("pub fn wait(&self)", facade)
+        self.assertNotIn("fn wait(", flight)
         self.assertIn("impl Drop for ImportLease", job)
         self.assertLess(job.index("self.state.finish"), job.index("self.flight.complete"))
         self.assertIn("begin_import", submit)
         self.assertIn("clear_import", job)
+        self.assertNotIn(".wait(", submit)
+        self.assertIn("AdmissionPending", submit)
+        self.assertIn("UuidLifecycleTransitionPending", state)
+        self.assertIn("RegistryGenerationSuperseded", submit)
         self.assertIn("EditorAssetImportGeneration", index)
         self.assertIn("import_generation", index)
         self.assertIn("is_current_import_generation", index)
+        self.assertIn("from_runtime_project", index)
+        self.assertIn("ProjectManager", index)
+        self.assertIn(
+            "fn runtime_snapshot_factory_projects_all_metadata_into_one_editor_index",
+            index_tests,
+        )
 
     def test_submission_and_execution_failures_stay_typed(self) -> None:
         error = read("zircon_editor/src/core/asset/import_flow/error.rs")
@@ -142,9 +180,15 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
 
         self.assertIn("EditorAssetImportSubmitError", error)
         self.assertIn("AssetNotIndexed", error)
+        self.assertIn("AdmissionPending", error)
+        self.assertIn("UuidLifecycleTransitionPending", error)
+        self.assertIn("RegistryGenerationSuperseded", error)
+        self.assertIn("EditorAssetImportExecutionError", error)
+        self.assertIn("RuntimeDidNotCommit", error)
         self.assertIn("EditorAssetIndexError", error)
         self.assertIn("JobSubmitError", error)
         self.assertIn("JobError::failed", job)
+        self.assertIn("RuntimeDidNotCommit", job)
 
     def test_import_flow_uses_workspace_edition_2021_syntax(self) -> None:
         combined = "\n".join(
@@ -162,19 +206,24 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
             (
                 read("zircon_editor/src/core/asset/import_flow/tests.rs"),
                 read("zircon_editor/src/core/asset/import_flow/tests/concurrency.rs"),
+                read("zircon_editor/src/core/asset/import_flow/tests/diagnostics.rs"),
             )
         )
 
         for test_name in (
             "successful_import_uses_runtime_backend_and_clears_importing_state",
+            "missing_runtime_commit_status_is_typed_and_clears_importing_state",
+            "ticket_wait_until_returns_pending_at_an_explicit_deadline",
             "backend_failure_is_typed_and_clears_importing_state",
             "unknown_uri_is_rejected_before_job_submission",
             "duplicate_generation_storm_shares_one_job_and_merges_reasons",
             "failed_generation_can_be_submitted_again",
             "admission_limits_bound_entries_bytes_and_oldest_age",
             "shared_flight_cancel_releases_importing_once",
-            "admission_waiter_observes_original_fast_failure",
+            "unadmitted_shared_flight_returns_pending_without_waiting",
+            "uuid_lifecycle_transition_returns_pending_without_waiting",
             "registry_generation_change_retries_before_job_submission",
+            "repeated_registry_revalidation_returns_superseded_without_job_submission",
             "uuid_import_lifecycle_blocks_start_and_stale_clear_boundaries",
             "completed_generation_expires_even_under_hot_key_reuse",
             "completed_result_bytes_are_reclaimed_before_new_admission",
@@ -182,6 +231,12 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
             "shutdown_submission_rejection_releases_import_lifecycle",
             "import_job_publishes_zero_to_one_progress_sequence",
             "uuid_importing_survives_registry_path_migration_until_all_uri_jobs_finish",
+            "repeated_result_observation_projects_one_import_completion",
+            "import_warning_and_failure_keep_the_import_channel_and_asset_jump",
+            "import_completion_storm_uses_the_bounded_editor_log_store",
+            "pending_model_cancel_projects_one_warning_without_result_observation",
+            "model_completion_before_submission_arm_is_deferred_and_emitted_once",
+            "submission_rejection_overrides_a_pre_arm_cancel_projection",
         ):
             self.assertIn(f"fn {test_name}", tests)
 

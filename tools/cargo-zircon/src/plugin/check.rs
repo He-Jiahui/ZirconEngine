@@ -28,7 +28,7 @@ pub fn check_plugin_workspace_with_artifact_root(
 ) -> Result<PluginCheckReport, PluginCheckError> {
     let plugin_root = repo_root.join("zircon_plugins");
     let workspace_path = plugin_root.join("Cargo.toml");
-    let workspace: Value = fs::read_to_string(&workspace_path)?.parse()?;
+    let workspace: Value = toml::from_str(&fs::read_to_string(&workspace_path)?)?;
     let workspace_members = workspace
         .get("workspace")
         .and_then(|workspace| workspace.get("members"))
@@ -40,13 +40,17 @@ pub fn check_plugin_workspace_with_artifact_root(
         .collect::<HashSet<_>>();
     let runtime_catalog_source =
         fs::read_to_string(plugin_root.join("first_party_runtime_catalog/src/lib.rs"))?;
-    let runtime_catalog_cargo: Value =
-        fs::read_to_string(plugin_root.join("first_party_runtime_catalog/Cargo.toml"))?.parse()?;
+    let runtime_catalog_cargo: Value = toml::from_str(&fs::read_to_string(
+        plugin_root.join("first_party_runtime_catalog/Cargo.toml"),
+    )?)?;
     let editor_catalog_source =
         fs::read_to_string(plugin_root.join("first_party_editor_catalog/src/catalog.rs"))?;
-    let editor_catalog_cargo: Value =
-        fs::read_to_string(plugin_root.join("first_party_editor_catalog/Cargo.toml"))?.parse()?;
-    let app_cargo: Value = fs::read_to_string(repo_root.join("zircon_app/Cargo.toml"))?.parse()?;
+    let editor_catalog_cargo: Value = toml::from_str(&fs::read_to_string(
+        plugin_root.join("first_party_editor_catalog/Cargo.toml"),
+    )?)?;
+    let app_cargo: Value = toml::from_str(&fs::read_to_string(
+        repo_root.join("zircon_app/Cargo.toml"),
+    )?)?;
     let mut manifest_paths = Vec::new();
     collect_plugin_manifests(&plugin_root, &mut manifest_paths)?;
     manifest_paths.sort();
@@ -65,10 +69,9 @@ pub fn check_plugin_workspace_with_artifact_root(
             diagnostic.message = format!("{display_path}: {}", diagnostic.message);
             diagnostics.push(diagnostic);
         }
-        if let (Some(artifact_root), Some(artifact_path)) = (
-            artifact_root,
-            native_artifact_path(&manifest_text, artifact_root),
-        ) {
+        if let Some(artifact_path) = artifact_root
+            .and_then(|artifact_root| native_artifact_path(&manifest_text, artifact_root))
+        {
             for mut diagnostic in validate_native_artifact(&manifest_text, &artifact_path) {
                 diagnostic.message = format!("{display_path}: {}", diagnostic.message);
                 diagnostics.push(diagnostic);
@@ -148,7 +151,7 @@ pub fn check_plugin_workspace_with_artifact_root(
 }
 
 fn native_artifact_path(manifest_text: &str, artifact_root: &Path) -> Option<PathBuf> {
-    let manifest: Value = manifest_text.parse().ok()?;
+    let manifest: Value = toml::from_str(manifest_text).ok()?;
     let dist_crate = manifest
         .get("distribution")?
         .get("dist_crate")?

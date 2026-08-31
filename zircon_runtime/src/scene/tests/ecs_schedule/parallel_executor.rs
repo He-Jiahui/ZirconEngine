@@ -1,13 +1,13 @@
 use std::sync::{Arc, Mutex};
 
-use crate::core::{CoreRuntime, JobScheduler};
-use crate::scene::ecs::{
-    Component, QueryState, ResMutParam, ResParam, Resource, ScheduleConflictGraph,
-    ScheduleConflictNode, ScheduleParallelBatch, ScheduleParallelExecutor,
-    ScheduleParallelExecutorError, ScheduleParallelTaskRegistry, SystemParamAccess, SystemStage,
-    SystemState, SCHEDULE_PARALLEL_BATCHES_DIAGNOSTIC, SCHEDULE_SERIAL_FALLBACKS_DIAGNOSTIC,
-};
+use crate::core::{CoreRuntime, JobScheduler, TaskPools};
 use crate::scene::World;
+use crate::scene::ecs::{
+    Component, QueryState, ResMutParam, ResParam, Resource, SCHEDULE_PARALLEL_BATCHES_DIAGNOSTIC,
+    SCHEDULE_SERIAL_FALLBACKS_DIAGNOSTIC, ScheduleConflictGraph, ScheduleConflictNode,
+    ScheduleParallelBatch, ScheduleParallelExecutor, ScheduleParallelExecutorError,
+    ScheduleParallelTaskRegistry, SystemParamAccess, SystemStage, SystemState,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 struct ScheduleHealth(u32);
@@ -23,6 +23,10 @@ impl Component for SchedulePlayer {}
 struct ScheduleFrameCounter(u32);
 
 impl Resource for ScheduleFrameCounter {}
+
+fn test_job_scheduler() -> JobScheduler {
+    JobScheduler::from_pool(TaskPools::process_default().compute().clone())
+}
 
 #[test]
 fn schedule_parallel_executor_runs_registered_batches_through_job_scheduler() {
@@ -60,7 +64,7 @@ fn schedule_parallel_executor_runs_registered_batches_through_job_scheduler() {
             Ok(())
         });
     }
-    let executor = ScheduleParallelExecutor::new(JobScheduler::default().with_diagnostics());
+    let executor = ScheduleParallelExecutor::new(test_job_scheduler().with_diagnostics());
 
     let report = executor
         .run_batches_with_report(&batches, &registry)
@@ -111,8 +115,7 @@ fn schedule_parallel_executor_can_run_parallel_batches_serially_with_report() {
             Ok(())
         });
     }
-    let executor =
-        ScheduleParallelExecutor::new(JobScheduler::default()).with_parallel_enabled(false);
+    let executor = ScheduleParallelExecutor::new(test_job_scheduler()).with_parallel_enabled(false);
 
     let report = executor
         .run_batches_with_report(&batches, &registry)
@@ -140,8 +143,7 @@ fn schedule_parallel_execution_report_records_diagnostic_counts() {
     let mut registry = ScheduleParallelTaskRegistry::<&'static str>::new();
     registry.register("a", || Ok(()));
     registry.register("b", || Ok(()));
-    let executor =
-        ScheduleParallelExecutor::new(JobScheduler::default()).with_parallel_enabled(false);
+    let executor = ScheduleParallelExecutor::new(test_job_scheduler()).with_parallel_enabled(false);
     let report = executor
         .run_batches_with_report(&batches, &registry)
         .unwrap();
@@ -191,9 +193,9 @@ fn parallel_and_serial_execution_reach_identical_world_state() {
     let serial_state = Arc::new(Mutex::new(RepresentativeScheduleWorld::default()));
     let parallel_registry = representative_schedule_registry(parallel_state.clone());
     let serial_registry = representative_schedule_registry(serial_state.clone());
-    let parallel_executor = ScheduleParallelExecutor::new(JobScheduler::default());
+    let parallel_executor = ScheduleParallelExecutor::new(test_job_scheduler());
     let serial_executor =
-        ScheduleParallelExecutor::new(JobScheduler::default()).with_parallel_enabled(false);
+        ScheduleParallelExecutor::new(test_job_scheduler()).with_parallel_enabled(false);
 
     let parallel_report = parallel_executor
         .run_batches_with_report(&batches, &parallel_registry)
@@ -250,7 +252,7 @@ fn executor_batches_are_chained_through_job_dependencies() {
             Ok(())
         });
     }
-    let executor = ScheduleParallelExecutor::new(JobScheduler::default().with_diagnostics());
+    let executor = ScheduleParallelExecutor::new(test_job_scheduler().with_diagnostics());
 
     let report = executor
         .run_batches_with_report(&batches, &registry)
@@ -272,7 +274,7 @@ fn schedule_parallel_executor_reports_missing_tasks_before_running_batch() {
     )]);
     let batches = graph.conservative_parallel_batches();
     let registry = ScheduleParallelTaskRegistry::<&'static str>::new();
-    let executor = ScheduleParallelExecutor::new(JobScheduler::default());
+    let executor = ScheduleParallelExecutor::new(test_job_scheduler());
 
     let error = executor.run_batches(&batches, &registry).unwrap_err();
 
@@ -415,7 +417,7 @@ fn schedule_parallel_executor_reports_task_failure_by_batch_order() {
     registry.register("ok.task", || Ok(()));
     registry.register("fail.task", || Err("boom"));
     registry.register("also.ok.task", || Ok(()));
-    let executor = ScheduleParallelExecutor::new(JobScheduler::default());
+    let executor = ScheduleParallelExecutor::new(test_job_scheduler());
 
     let error = executor.run_batches(&batches, &registry).unwrap_err();
 

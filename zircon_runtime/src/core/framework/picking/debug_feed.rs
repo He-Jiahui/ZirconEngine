@@ -35,10 +35,7 @@ impl PickingDebugFeed {
     }
 
     pub fn metric(&self, kind: PickingDebugMetricKind) -> Option<usize> {
-        self.metrics
-            .iter()
-            .find(|metric| metric.kind == kind)
-            .map(|metric| metric.value)
+        metric_value(&self.metrics, kind)
     }
 
     pub fn pointer(&self, pointer: PointerId) -> Option<&PickingDebugPointerRow> {
@@ -47,6 +44,26 @@ impl PickingDebugFeed {
 
     pub fn blocked_pointers(&self) -> impl Iterator<Item = &PickingDebugPointerRow> {
         self.pointers.iter().filter(|row| row.blocked)
+    }
+}
+
+fn metric_value(metrics: &[PickingDebugMetric], kind: PickingDebugMetricKind) -> Option<usize> {
+    let expected_index = expected_metric_index(kind);
+    metrics
+        .get(expected_index)
+        .filter(|metric| metric.kind == kind)
+        .or_else(|| metrics.iter().find(|metric| metric.kind == kind))
+        .map(|metric| metric.value)
+}
+
+const fn expected_metric_index(kind: PickingDebugMetricKind) -> usize {
+    match kind {
+        PickingDebugMetricKind::Pointers => 0,
+        PickingDebugMetricKind::Rays => 1,
+        PickingDebugMetricKind::BackendOutputs => 2,
+        PickingDebugMetricKind::RawHits => 3,
+        PickingDebugMetricKind::HoveredHits => 4,
+        PickingDebugMetricKind::BlockedPointers => 5,
     }
 }
 
@@ -102,3 +119,7 @@ impl PickingDebugPointerRow {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "debug_feed/indexed_metric_tests.rs"]
+mod indexed_metric_tests;

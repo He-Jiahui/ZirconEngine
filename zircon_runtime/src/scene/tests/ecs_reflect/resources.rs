@@ -1,9 +1,9 @@
 use std::{cell::Cell, hint::black_box, time::Instant};
 
 use zircon_runtime_interface::reflect::{
-    ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue, ReflectObjectAddress,
-    ReflectReadRequest, ReflectSchemaRequest, ReflectSerializationStrategy, ReflectTypeInfo,
-    ReflectTypePath, ReflectTypeRegistration, ReflectWriteRequest, ReflectedValue,
+    ReflectEditorHint, ReflectError, ReflectFieldId, ReflectFieldInfo, ReflectFieldValue,
+    ReflectObjectAddress, ReflectReadRequest, ReflectSchemaRequest, ReflectSerializationStrategy,
+    ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration, ReflectWriteRequest, ReflectedValue,
 };
 
 use crate::scene::ecs::Resource;
@@ -14,6 +14,8 @@ const RESOURCE_SINGLE_WRITE_BENCH_PAIRS: usize = 21;
 const RESOURCE_SINGLE_WRITE_BENCH_WRITES: usize = 100_000;
 
 thread_local! {
+    static FRAME_COUNTER_NAMED_READS: Cell<usize> = const { Cell::new(0) };
+    static FRAME_COUNTER_SLOT_READS: Cell<usize> = const { Cell::new(0) };
     static FRAME_COUNTER_SINGLE_WRITES: Cell<usize> = const { Cell::new(0) };
     static FRAME_COUNTER_BATCH_WRITES: Cell<usize> = const { Cell::new(0) };
 }
@@ -34,11 +36,11 @@ fn manual_resource_registration_adds_reflected_resource_schema() {
     let registration = world
         .reflect_schema(FRAME_COUNTER_TYPE_PATH)
         .expect("resource schema should be registered");
-    assert_eq!(registration.type_path.type_path, FRAME_COUNTER_TYPE_PATH);
-    assert_eq!(registration.type_path.short_type_path, "FrameCounter");
+    assert_eq!(registration.type_path.type_path(), FRAME_COUNTER_TYPE_PATH);
+    assert_eq!(registration.type_path.short_type_path(), "FrameCounter");
     assert_eq!(registration.display_name, "Frame Counter");
-    assert!(!registration.is_component);
-    assert!(registration.is_resource);
+    assert!(!registration.is_component());
+    assert!(registration.is_resource());
     assert!(matches!(
         registration.serialization,
         ReflectSerializationStrategy::ResourceHandle
@@ -63,13 +65,22 @@ fn resource_reflection_reads_and_writes_field_through_facade() {
     world.insert_resource(FrameCounter { value: 7 });
     let address = frame_counter_address();
 
+    reset_frame_counter_read_routes();
     let read = world
-        .reflect_read(ReflectReadRequest::new(address.clone(), "value"))
+        .reflect_read(ReflectReadRequest::new(
+            address.clone(),
+            frame_counter_field_id(),
+        ))
         .expect("resource field should read through reflection");
     assert_eq!(
         read.field,
-        ReflectFieldValue::new("value", ReflectedValue::Unsigned(7))
+        ReflectFieldValue::new(
+            frame_counter_field_id(),
+            "value",
+            ReflectedValue::Unsigned(7),
+        )
     );
+    assert_eq!(frame_counter_read_routes(), (0, 1));
     let fields = world
         .reflect_fields(
             zircon_runtime_interface::reflect::ReflectFieldsRequest::new(address.clone()),
@@ -78,14 +89,18 @@ fn resource_reflection_reads_and_writes_field_through_facade() {
         .fields;
     assert_eq!(
         fields,
-        vec![ReflectFieldValue::new("value", ReflectedValue::Unsigned(7))]
+        vec![ReflectFieldValue::new(
+            frame_counter_field_id(),
+            "value",
+            ReflectedValue::Unsigned(7),
+        )]
     );
 
     reset_frame_counter_write_routes();
     let response = world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "value",
+            frame_counter_field_id(),
             ReflectedValue::Unsigned(11),
         ))
         .expect("resource field should write through reflection");
@@ -93,7 +108,11 @@ fn resource_reflection_reads_and_writes_field_through_facade() {
     assert!(response.changed);
     assert_eq!(
         response.field,
-        ReflectFieldValue::new("value", ReflectedValue::Unsigned(11))
+        ReflectFieldValue::new(
+            frame_counter_field_id(),
+            "value",
+            ReflectedValue::Unsigned(11),
+        )
     );
     assert_eq!(world.get_resource::<FrameCounter>().unwrap().value, 11);
     assert_eq!(frame_counter_write_routes(), (1, 0));
@@ -101,7 +120,7 @@ fn resource_reflection_reads_and_writes_field_through_facade() {
     let unchanged = world
         .reflect_write(ReflectWriteRequest::new(
             address,
-            "value",
+            frame_counter_field_id(),
             ReflectedValue::Unsigned(11),
         ))
         .expect("same resource value should be accepted as unchanged");
@@ -121,7 +140,7 @@ fn resource_reflection_write_updates_change_tick() {
     world
         .reflect_write(ReflectWriteRequest::new(
             frame_counter_address(),
-            "value",
+            frame_counter_field_id(),
             ReflectedValue::Unsigned(2),
         ))
         .expect("resource write should route through mutable resource access");
@@ -140,7 +159,10 @@ fn missing_reflected_resource_returns_structured_error() {
 
     assert_eq!(
         world
-            .reflect_read(ReflectReadRequest::new(frame_counter_address(), "value"))
+            .reflect_read(ReflectReadRequest::new(
+                frame_counter_address(),
+                frame_counter_field_id(),
+            ))
             .expect_err("missing reflected resources should be structured"),
         ReflectError::MissingResource {
             type_path: FRAME_COUNTER_TYPE_PATH.to_string(),
@@ -150,7 +172,7 @@ fn missing_reflected_resource_returns_structured_error() {
         world
             .reflect_write(ReflectWriteRequest::new(
                 frame_counter_address(),
-                "value",
+                frame_counter_field_id(),
                 ReflectedValue::Unsigned(1),
             ))
             .expect_err("missing reflected resource writes should be structured"),
@@ -173,7 +195,10 @@ fn resource_registration_without_adapter_returns_structured_error() {
 
     assert_eq!(
         world
-            .reflect_read(ReflectReadRequest::new(frame_counter_address(), "value"))
+            .reflect_read(ReflectReadRequest::new(
+                frame_counter_address(),
+                frame_counter_field_id(),
+            ))
             .expect_err("metadata-only resource should report missing resource adapter"),
         ReflectError::NoResourceAdapter {
             type_path: FRAME_COUNTER_TYPE_PATH.to_string(),
@@ -186,16 +211,24 @@ fn component_and_resource_reflection_share_address_and_facade_shape() {
     let mut world = World::empty();
     register_frame_counter_resource(&mut world);
     world.insert_resource(FrameCounter { value: 3 });
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let component_address =
         ReflectObjectAddress::component(entity, "Name").expect("component address should be valid");
     let resource_address = frame_counter_address();
 
     let component_read = world
-        .reflect_read(ReflectReadRequest::new(component_address.clone(), "value"))
+        .reflect_read(ReflectReadRequest::new(
+            component_address.clone(),
+            ReflectFieldId::from_stable_keys("zircon_runtime::scene::components::Name", "value"),
+        ))
         .expect("component read should use shared facade");
     let resource_read = world
-        .reflect_read(ReflectReadRequest::new(resource_address.clone(), "value"))
+        .reflect_read(ReflectReadRequest::new(
+            resource_address.clone(),
+            frame_counter_field_id(),
+        ))
         .expect("resource read should use shared facade");
 
     assert_eq!(component_read.address, component_address.clone());
@@ -208,7 +241,7 @@ fn component_and_resource_reflection_share_address_and_facade_shape() {
         .expect("component and resource schemas should share schema facade")
         .registrations
         .into_iter()
-        .map(|registration| registration.type_path.type_path)
+        .map(|registration| registration.type_path.type_path().to_string())
         .collect::<Vec<_>>();
     assert!(schema_type_paths.contains(&"zircon_runtime::scene::components::Name".to_string()));
     assert!(schema_type_paths.contains(&FRAME_COUNTER_TYPE_PATH.to_string()));
@@ -218,7 +251,7 @@ fn component_and_resource_reflection_share_address_and_facade_shape() {
             .reflect_read(ReflectReadRequest::new(
                 ReflectObjectAddress::component(entity, FRAME_COUNTER_TYPE_PATH)
                     .expect("component-shaped resource address should be valid DTO"),
-                "value",
+                frame_counter_field_id(),
             ))
             .expect_err("resource registration cannot be addressed as a component"),
         ReflectError::AddressKindMismatch {
@@ -231,7 +264,10 @@ fn component_and_resource_reflection_share_address_and_facade_shape() {
             .reflect_read(ReflectReadRequest::new(
                 ReflectObjectAddress::resource("Name")
                     .expect("resource-shaped component address should be valid DTO"),
-                "value",
+                ReflectFieldId::from_stable_keys(
+                    "zircon_runtime::scene::components::Name",
+                    "value",
+                ),
             ))
             .expect_err("component registration cannot be addressed as a resource"),
         ReflectError::AddressKindMismatch {
@@ -253,7 +289,9 @@ fn frame_counter_registration() -> ReflectTypeRegistration {
         ReflectTypePath::new(FRAME_COUNTER_TYPE_PATH, "FrameCounter")
             .expect("frame counter type path should be valid"),
         "Frame Counter",
-        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::from_stable_keys(
+            FRAME_COUNTER_TYPE_PATH,
+            "value",
             "value",
             "Unsigned",
             ReflectEditorHint::Unsigned,
@@ -272,7 +310,7 @@ fn frame_counter_adapter() -> ReflectResource {
         ensure: None,
         contains: frame_counter_contains,
         read_field: frame_counter_read_field,
-        read_fields: frame_counter_read_fields,
+        read_field_by_slot: frame_counter_read_field_by_slot,
         write_field_by_slot: frame_counter_write_field_by_slot,
         write_fields_by_slot: frame_counter_write_fields_by_slot,
     }
@@ -298,6 +336,7 @@ fn frame_counter_read_field(
     world: &World,
     field_name: &str,
 ) -> Result<ReflectedValue, ReflectError> {
+    FRAME_COUNTER_NAMED_READS.with(|count| count.set(count.get().saturating_add(1)));
     let resource = world
         .get_resource::<FrameCounter>()
         .ok_or_else(missing_frame_counter_resource)?;
@@ -307,11 +346,22 @@ fn frame_counter_read_field(
     }
 }
 
-fn frame_counter_read_fields(world: &World) -> Result<Vec<ReflectFieldValue>, ReflectError> {
-    Ok(vec![ReflectFieldValue::new(
-        "value",
-        frame_counter_read_field(world, "value")?,
-    )])
+fn frame_counter_field_id() -> ReflectFieldId {
+    ReflectFieldId::from_stable_keys(FRAME_COUNTER_TYPE_PATH, "value")
+}
+
+fn frame_counter_read_field_by_slot(
+    world: &World,
+    field_slot: u32,
+) -> Result<ReflectedValue, ReflectError> {
+    FRAME_COUNTER_SLOT_READS.with(|count| count.set(count.get().saturating_add(1)));
+    if field_slot != 0 {
+        return Err(unknown_frame_counter_field(&format!("#{field_slot}")));
+    }
+    let resource = world
+        .get_resource::<FrameCounter>()
+        .ok_or_else(missing_frame_counter_resource)?;
+    Ok(ReflectedValue::Unsigned(resource.value as u64))
 }
 
 fn frame_counter_write_fields_by_slot(
@@ -364,6 +414,18 @@ fn frame_counter_write_field_by_slot(
 fn reset_frame_counter_write_routes() {
     FRAME_COUNTER_SINGLE_WRITES.with(|count| count.set(0));
     FRAME_COUNTER_BATCH_WRITES.with(|count| count.set(0));
+}
+
+fn reset_frame_counter_read_routes() {
+    FRAME_COUNTER_NAMED_READS.with(|count| count.set(0));
+    FRAME_COUNTER_SLOT_READS.with(|count| count.set(0));
+}
+
+fn frame_counter_read_routes() -> (usize, usize) {
+    (
+        FRAME_COUNTER_NAMED_READS.with(Cell::get),
+        FRAME_COUNTER_SLOT_READS.with(Cell::get),
+    )
 }
 
 fn frame_counter_write_routes() -> (usize, usize) {

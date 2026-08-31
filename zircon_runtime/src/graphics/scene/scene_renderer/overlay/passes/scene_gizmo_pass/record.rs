@@ -1,5 +1,5 @@
 use crate::graphics::scene::scene_renderer::overlay::{
-    begin_line_pass_for_region, PreparedIconDraw,
+    PreparedIconDraw, begin_line_pass_for_region,
 };
 use crate::graphics::types::ViewportRenderRegion;
 

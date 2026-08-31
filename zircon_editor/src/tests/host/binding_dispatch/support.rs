@@ -18,7 +18,7 @@ pub(super) fn test_state() -> EditorState {
 pub(super) fn cube_id(state: &EditorState) -> NodeId {
     state
         .world
-        .with_world(|scene: &zircon_runtime::scene::Scene| {
+        .expect_with_world(|scene: &zircon_runtime::scene::Scene| {
             scene
                 .nodes()
                 .iter()
@@ -31,7 +31,7 @@ pub(super) fn cube_id(state: &EditorState) -> NodeId {
 pub(super) fn camera_id(state: &EditorState) -> NodeId {
     state
         .world
-        .with_world(|scene: &zircon_runtime::scene::Scene| {
+        .expect_with_world(|scene: &zircon_runtime::scene::Scene| {
             scene
                 .nodes()
                 .iter()

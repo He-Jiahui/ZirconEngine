@@ -20,15 +20,18 @@ impl RenderExposureReadbackReport {
 
     pub fn from_raw_f32x4_bytes(bytes: &[u8]) -> Self {
         let mut words = [0.0_f32; 4];
+        let mut invalid_word_count = 0;
         for (word, chunk) in words.iter_mut().zip(bytes.chunks_exact(4)) {
-            *word = f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+            let decoded = f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+            invalid_word_count += (!decoded.is_finite()) as usize;
+            *word = decoded;
         }
         Self {
             available: true,
             byte_len: bytes.len(),
             expected_byte_len: EXPOSURE_READBACK_EXPECTED_BYTE_LEN,
             invalid_byte_len: bytes.len() != EXPOSURE_READBACK_EXPECTED_BYTE_LEN,
-            invalid_word_count: words.iter().filter(|word| !word.is_finite()).count(),
+            invalid_word_count,
             multiplier_bits: words[0].to_bits(),
             resolved_ev100_bits: words[1].to_bits(),
             average_ev100_bits: words[2].to_bits(),
@@ -125,3 +128,7 @@ mod tests {
         assert!(!report.history_valid());
     }
 }
+
+#[cfg(test)]
+#[path = "exposure_readback/single_pass_tests.rs"]
+mod single_pass_tests;

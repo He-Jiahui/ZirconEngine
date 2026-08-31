@@ -12,7 +12,8 @@ use crate::core::jobs::{
 };
 use crate::core::recovery::{
     AutosaveDocumentId, AutosaveDocumentRequest, AutosaveExtension, AutosaveJobPolicy,
-    AutosaveSnapshot, AutosaveSnapshotSource, AutosaveSourcePath,
+    AutosaveSnapshot, AutosaveSnapshotProvenance, AutosaveSnapshotSource, AutosaveSourceDigest,
+    AutosaveSourcePath,
 };
 
 use super::{EditorError, EditorManager};
@@ -115,6 +116,10 @@ struct EditorDocumentAutosaveSource {
 }
 
 impl AutosaveSnapshotSource for EditorDocumentAutosaveSource {
+    fn source_path(&self) -> AutosaveSourcePath {
+        self.source_path.clone()
+    }
+
     fn capture(&self, _document: &AutosaveDocumentId) -> Result<AutosaveSnapshot, JobError> {
         let manager = self.manager.upgrade().ok_or_else(|| {
             JobError::failed(std::io::Error::other(
@@ -144,10 +149,13 @@ impl AutosaveSnapshotSource for EditorDocumentAutosaveSource {
                 "autosave source identity changed after admission",
             )));
         }
+        let source_digest =
+            AutosaveSourceDigest::observe(&self.physical_source_path).map_err(JobError::failed)?;
         Ok(AutosaveSnapshot::new(
             self.sequence,
             extension,
             self.source_path.clone(),
+            AutosaveSnapshotProvenance::capture(self.dirty_generation, source_digest),
             payload.into_bytes(),
         ))
     }

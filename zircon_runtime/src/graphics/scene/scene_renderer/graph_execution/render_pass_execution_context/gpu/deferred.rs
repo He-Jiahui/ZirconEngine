@@ -117,6 +117,18 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             gbuffer_normal_resource_name,
             RenderGraphResourceAccessKind::Read,
         )?;
+        let ambient_occlusion_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let post_process_stack = self.post_process_stack;
+        let ambient_occlusion_view = ambient_occlusion_view.or_else(|| {
+            post_process_stack
+                .as_ref()
+                .map(|stack| stack.white_texture_view())
+        });
         let gbuffer_material_view = Self::require_texture_view_by_name(
             resources,
             resource_resolver,
@@ -135,19 +147,19 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             scene_depth_resource_name,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let light_grid_params_buffer = Self::require_buffer_by_name(
+        let light_grid_params_buffer = Self::require_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let light_zbins_buffer = Self::require_buffer_by_name(
+        let light_zbins_buffer = Self::require_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::LIGHT_ZBINS,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let light_tile_masks_buffer = Self::require_buffer_by_name(
+        let light_tile_masks_buffer = Self::require_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
@@ -220,6 +232,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             gpu_scene_bind_group,
             gbuffer_albedo_view,
             gbuffer_normal_view,
+            ambient_occlusion_view,
             gbuffer_material_view,
             gbuffer_emissive_view,
             scene_depth_view,
@@ -236,7 +249,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             subsurface_retained_view,
             attachment_ops,
             render_region,
-        );
+        )?;
         Ok(())
     }
 }

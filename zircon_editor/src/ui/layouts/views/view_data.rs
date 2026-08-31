@@ -1,12 +1,15 @@
 use std::fmt;
 
 use crate::ui::retained_host::primitives::{Image, ModelRc, SharedString};
-use zircon_runtime_interface::ui::style::ResolvedButtonStyle;
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId, style::ResolvedButtonStyle, surface::UiRenderFrameCommandRef,
+};
 
 #[derive(Clone)]
 pub(crate) struct SceneViewportChromeData {
     pub mode: SharedString,
     pub transform_space: SharedString,
+    pub pivot_mode: SharedString,
     pub projection_mode: SharedString,
     pub view_orientation: SharedString,
     pub display_mode: SharedString,
@@ -53,56 +56,6 @@ pub(crate) struct RecentProjectData {
 }
 
 #[derive(Clone)]
-pub(crate) struct AssetFolderData {
-    pub id: SharedString,
-    pub name: SharedString,
-    pub count: i32,
-    pub depth: i32,
-    pub selected: bool,
-}
-
-#[derive(Clone)]
-pub(crate) struct AssetItemData {
-    pub uuid: SharedString,
-    pub locator: SharedString,
-    pub name: SharedString,
-    pub file_name: SharedString,
-    pub kind: SharedString,
-    pub extension: SharedString,
-    pub dirty: bool,
-    pub has_error: bool,
-    pub has_preview: bool,
-    pub state: SharedString,
-    pub revision: SharedString,
-    pub selected: bool,
-    pub preview: Image,
-}
-
-#[derive(Clone)]
-pub(crate) struct AssetReferenceData {
-    pub uuid: SharedString,
-    pub locator: SharedString,
-    pub name: SharedString,
-    pub kind: SharedString,
-    pub known_project_asset: bool,
-}
-
-#[derive(Clone)]
-pub(crate) struct AssetSelectionData {
-    pub uuid: SharedString,
-    pub name: SharedString,
-    pub locator: SharedString,
-    pub kind: SharedString,
-    pub meta_path: SharedString,
-    pub toolkit_view_id: SharedString,
-    pub state: SharedString,
-    pub revision: SharedString,
-    pub diagnostics: SharedString,
-    pub has_preview: bool,
-    pub preview: Image,
-}
-
-#[derive(Clone)]
 pub(crate) struct WelcomePresentation {
     pub pane: WelcomePaneData,
     pub recent_projects: ModelRc<RecentProjectData>,
@@ -119,6 +72,8 @@ pub(crate) struct ViewTemplateFrameData {
 #[derive(Clone)]
 pub(crate) struct ViewTemplateNodeData {
     pub node_id: SharedString,
+    pub surface_node_id: Option<UiNodeId>,
+    pub surface_render_command_ref: Option<UiRenderFrameCommandRef>,
     pub control_id: SharedString,
     pub role: SharedString,
     pub text: SharedString,
@@ -170,6 +125,11 @@ impl fmt::Debug for ViewTemplateNodeData {
         formatter
             .debug_struct("ViewTemplateNodeData")
             .field("node_id", &self.node_id)
+            .field("surface_node_id", &self.surface_node_id)
+            .field(
+                "surface_render_command_ref",
+                &self.surface_render_command_ref,
+            )
             .field("control_id", &self.control_id)
             .field("role", &self.role)
             .field("text", &self.text)
@@ -225,6 +185,8 @@ impl PartialEq for ViewTemplateNodeData {
         let preview_size = self.preview_image.size();
         let other_preview_size = other.preview_image.size();
         self.node_id == other.node_id
+            && self.surface_node_id == other.surface_node_id
+            && self.surface_render_command_ref == other.surface_render_command_ref
             && self.control_id == other.control_id
             && self.role == other.role
             && self.text == other.text
@@ -276,6 +238,8 @@ impl Default for ViewTemplateNodeData {
     fn default() -> Self {
         Self {
             node_id: SharedString::default(),
+            surface_node_id: None,
+            surface_render_command_ref: None,
             control_id: SharedString::default(),
             role: SharedString::default(),
             text: SharedString::default(),

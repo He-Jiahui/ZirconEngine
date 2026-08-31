@@ -1,34 +1,42 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::HashMap;
+use std::sync::Arc;
 
-use zircon_runtime_interface::ui::surface::{resolve_ui_text_render_mode, UiTextRenderMode};
+use zircon_runtime_interface::ui::surface::{UiTextRenderMode, resolve_ui_text_render_mode};
 
-use super::super::font_asset::load_ui_font_manifest_with_asset_manager;
 use crate::asset::ProjectAssetManager;
+use crate::asset::assets::FontSourceBudgetError;
 use crate::core::framework::asset::{ResourceCacheIdentity, ResourceManager as _};
-use crate::text::{CompositeFontDescriptor, TextRenderState};
+use crate::text::TextRenderState;
+use crate::text::font::{
+    FontDatabaseError, FontLoadError, FontLoadIoFailure, RuntimeFontAssetAdmissionError,
+    RuntimeFontAssetClaimScope, RuntimeFontAssetClaimUpdateReport,
+    prepare_runtime_font_asset_admission,
+};
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct LoadedUiFontAsset {
     pub(super) family: Option<String>,
     pub(super) render_mode: Option<UiTextRenderMode>,
-    pub(super) composite_font: Option<CompositeFontDescriptor>,
 }
 
+#[cfg(test)]
 pub(super) struct EnsuredUiFontAsset<'a> {
     pub(super) faces_changed: bool,
-    #[cfg(test)]
     pub(super) record: Option<&'a LoadedUiFontAsset>,
-    #[cfg(test)]
     pub(super) loaded: bool,
-    #[cfg(test)]
     pub(super) cache_hit: bool,
-    #[cfg(test)]
     pub(super) status: UiFontAssetCacheStatus,
-    #[cfg(not(test))]
-    _marker: std::marker::PhantomData<&'a LoadedUiFontAsset>,
+    pub(super) failure: Option<&'a UiFontAssetLoadError>,
 }
 
 pub(super) type UiFontAssetCache = HashMap<String, UiFontAssetCacheEntry>;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct UiFontAssetRefreshReport {
+    pub(super) claims: RuntimeFontAssetClaimUpdateReport,
+    pub(super) font_collection_changed: bool,
+    pub(super) font_records_reloaded: bool,
+}
 
 #[cfg(test)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,17 +46,107 @@ pub(super) enum UiFontAssetCacheStatus {
     Error,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct UiFontAssetCacheReport {
+    pub(crate) ready_count: usize,
+    pub(crate) missing_count: usize,
+    pub(crate) error_count: usize,
+    pub(crate) source_contract_failure_count: usize,
+    pub(crate) source_not_found_count: usize,
+    pub(crate) source_permission_denied_count: usize,
+    pub(crate) source_other_io_failure_count: usize,
+    pub(crate) source_decode_failure_count: usize,
+    pub(crate) source_budget_failure_count: usize,
+    pub(crate) registration_failure_count: usize,
+    pub(crate) no_registered_faces_count: usize,
+}
+
+#[derive(Debug)]
 pub(super) struct UiFontAssetCacheEntry {
     resource_identity: Option<ResourceCacheIdentity>,
     state: UiFontAssetCacheState,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 enum UiFontAssetCacheState {
     Ready(LoadedUiFontAsset),
     Missing,
-    Error,
+    Error(UiFontAssetLoadError),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum UiFontAssetLoadError {
+    Source(FontLoadError),
+    SourceReadFailed(FontLoadIoFailure),
+    SourceDecodeFailed,
+    SourceBudgetExceeded(FontSourceBudgetError),
+    RegistrationFailed,
+    NoRegisteredFaces,
+}
+
+impl UiFontAssetCacheReport {
+    fn record_failure(&mut self, error: UiFontAssetLoadError) {
+        self.error_count = self.error_count.saturating_add(1);
+        match error {
+            UiFontAssetLoadError::SourceReadFailed(cause)
+            | UiFontAssetLoadError::Source(
+                FontLoadError::ManifestReadFailed(cause)
+                | FontLoadError::AllowedRootUnavailable(cause)
+                | FontLoadError::ManifestSourceUnavailable(cause),
+            ) => match cause {
+                crate::text::font::FontLoadIoFailure::NotFound => {
+                    self.source_not_found_count = self.source_not_found_count.saturating_add(1);
+                }
+                crate::text::font::FontLoadIoFailure::PermissionDenied => {
+                    self.source_permission_denied_count =
+                        self.source_permission_denied_count.saturating_add(1);
+                }
+                crate::text::font::FontLoadIoFailure::Other => {
+                    self.source_other_io_failure_count =
+                        self.source_other_io_failure_count.saturating_add(1);
+                }
+            },
+            UiFontAssetLoadError::Source(_) => {
+                self.source_contract_failure_count =
+                    self.source_contract_failure_count.saturating_add(1);
+            }
+            UiFontAssetLoadError::SourceDecodeFailed => {
+                self.source_decode_failure_count =
+                    self.source_decode_failure_count.saturating_add(1);
+            }
+            UiFontAssetLoadError::SourceBudgetExceeded(_) => {
+                self.source_budget_failure_count =
+                    self.source_budget_failure_count.saturating_add(1);
+            }
+            UiFontAssetLoadError::RegistrationFailed => {
+                self.registration_failure_count = self.registration_failure_count.saturating_add(1);
+            }
+            UiFontAssetLoadError::NoRegisteredFaces => {
+                self.no_registered_faces_count = self.no_registered_faces_count.saturating_add(1);
+            }
+        }
+    }
+}
+
+impl UiFontAssetLoadError {
+    pub(super) fn from_database_error(error: FontDatabaseError) -> Self {
+        match error {
+            FontDatabaseError::ReadFailed { source, .. } => {
+                Self::SourceReadFailed(source.kind().into())
+            }
+            FontDatabaseError::SourceDecode { .. } => Self::SourceDecodeFailed,
+            FontDatabaseError::SourceBudget { source, .. } => Self::SourceBudgetExceeded(source),
+            _ => Self::RegistrationFailed,
+        }
+    }
+
+    fn from_admission_error(error: RuntimeFontAssetAdmissionError) -> Self {
+        match error {
+            RuntimeFontAssetAdmissionError::Source(error) => Self::Source(error),
+            RuntimeFontAssetAdmissionError::Database(error) => Self::from_database_error(error),
+            RuntimeFontAssetAdmissionError::NoRegisteredFaces => Self::NoRegisteredFaces,
+        }
+    }
 }
 
 impl UiFontAssetCacheEntry {
@@ -62,7 +160,8 @@ impl UiFontAssetCacheEntry {
     pub(super) fn loaded_asset(&self) -> Option<&LoadedUiFontAsset> {
         match &self.state {
             UiFontAssetCacheState::Ready(record) => Some(record),
-            UiFontAssetCacheState::Missing | UiFontAssetCacheState::Error => None,
+            UiFontAssetCacheState::Missing => None,
+            UiFontAssetCacheState::Error(_) => None,
         }
     }
 
@@ -71,45 +170,56 @@ impl UiFontAssetCacheEntry {
         match &self.state {
             UiFontAssetCacheState::Ready(_) => UiFontAssetCacheStatus::Ready,
             UiFontAssetCacheState::Missing => UiFontAssetCacheStatus::Missing,
-            UiFontAssetCacheState::Error => UiFontAssetCacheStatus::Error,
+            UiFontAssetCacheState::Error(_) => UiFontAssetCacheStatus::Error,
+        }
+    }
+
+    #[cfg(test)]
+    fn failure(&self) -> Option<&UiFontAssetLoadError> {
+        match &self.state {
+            UiFontAssetCacheState::Error(error) => Some(error),
+            UiFontAssetCacheState::Ready(_) | UiFontAssetCacheState::Missing => None,
         }
     }
 }
 
+pub(super) fn font_asset_cache_report(font_assets: &UiFontAssetCache) -> UiFontAssetCacheReport {
+    let mut report = UiFontAssetCacheReport::default();
+    for entry in font_assets.values() {
+        match &entry.state {
+            UiFontAssetCacheState::Ready(_) => {
+                report.ready_count = report.ready_count.saturating_add(1);
+            }
+            UiFontAssetCacheState::Missing => {
+                report.missing_count = report.missing_count.saturating_add(1);
+            }
+            UiFontAssetCacheState::Error(error) => report.record_failure(*error),
+        }
+    }
+    report
+}
+
+#[cfg(test)]
 impl<'a> EnsuredUiFontAsset<'a> {
     fn cache_hit(entry: &'a UiFontAssetCacheEntry) -> Self {
-        #[cfg(not(test))]
-        let _ = entry;
         Self {
             faces_changed: false,
-            #[cfg(test)]
             record: entry.loaded_asset(),
-            #[cfg(test)]
             loaded: false,
-            #[cfg(test)]
             cache_hit: true,
-            #[cfg(test)]
             status: entry.status(),
-            #[cfg(not(test))]
-            _marker: std::marker::PhantomData,
+            failure: entry.failure(),
         }
     }
 
     fn reloaded(entry: &'a UiFontAssetCacheEntry, loaded: bool, faces_changed: bool) -> Self {
-        #[cfg(not(test))]
-        let _ = (entry, loaded);
         Self {
             faces_changed,
-            #[cfg(test)]
             record: entry.loaded_asset(),
-            #[cfg(test)]
             loaded,
-            #[cfg(test)]
             cache_hit: false,
-            #[cfg(test)]
             status: entry.status(),
-            #[cfg(not(test))]
-            _marker: std::marker::PhantomData,
+            failure: entry.failure(),
         }
     }
 }
@@ -124,88 +234,101 @@ pub(super) fn effective_text_render_mode(
     )
 }
 
-pub(super) fn load_font_asset_record(
+pub(super) fn refresh_font_asset_records(
     text_state: &mut TextRenderState,
-    asset_ref: &str,
+    font_assets: &mut UiFontAssetCache,
     asset_manager: &ProjectAssetManager,
-) -> Option<(LoadedUiFontAsset, bool)> {
-    let manifest = load_ui_font_manifest_with_asset_manager(asset_ref, Some(asset_manager))?;
-    let report = text_state.replace_font_source(
-        asset_ref,
-        &manifest.source_path,
-        manifest.asset.as_ref(),
-        manifest.family.as_deref(),
-        manifest.face_index,
-    )?;
-    let composite_font = manifest
-        .asset
-        .as_ref()
-        .and_then(|asset| asset.composite_font.clone());
-    Some((
-        LoadedUiFontAsset {
-            family: manifest.family,
-            render_mode: manifest.render_mode,
-            composite_font,
-        },
-        report.database_changed || report.asset_mapping_changed,
-    ))
+    active_font_dependencies: &[Arc<str>],
+    font_claim_scope: &mut RuntimeFontAssetClaimScope,
+) -> UiFontAssetRefreshReport {
+    let pending = active_font_dependencies
+        .iter()
+        .filter_map(|asset_ref| {
+            let resource_identity = asset_manager.resource_cache_identity(asset_ref);
+            let cache_hit = font_assets
+                .get(asset_ref.as_ref())
+                .is_some_and(|entry| entry.resource_identity == resource_identity);
+            (!cache_hit).then(|| (Arc::clone(asset_ref), resource_identity))
+        })
+        .collect::<Vec<_>>();
+    let admissions = pending
+        .iter()
+        .map(|(asset_ref, _)| {
+            prepare_runtime_font_asset_admission(asset_manager, Arc::clone(asset_ref))
+        })
+        .collect();
+    let transition = font_claim_scope
+        .replace_shared_claims_with_admissions(active_font_dependencies, admissions);
+    if transition.claims.released_claim_count > 0 {
+        font_assets.retain(|asset_ref, _| {
+            active_font_dependencies
+                .iter()
+                .any(|active| active.as_ref() == asset_ref)
+        });
+    }
+
+    let font_records_reloaded = !pending.is_empty();
+    debug_assert_eq!(pending.len(), transition.admissions.len());
+    for ((asset_ref, resource_identity), outcome) in pending.into_iter().zip(transition.admissions)
+    {
+        debug_assert_eq!(asset_ref.as_ref(), outcome.asset_ref.as_ref());
+        let state = match outcome.result {
+            Ok(report) => UiFontAssetCacheState::Ready(LoadedUiFontAsset {
+                family: report.family,
+                render_mode: report.render_mode,
+            }),
+            Err(_) if resource_identity.is_none() => UiFontAssetCacheState::Missing,
+            Err(error) => {
+                UiFontAssetCacheState::Error(UiFontAssetLoadError::from_admission_error(error))
+            }
+        };
+        font_assets.insert(
+            asset_ref.to_string(),
+            UiFontAssetCacheEntry::new(resource_identity, state),
+        );
+    }
+
+    UiFontAssetRefreshReport {
+        claims: transition.claims,
+        font_collection_changed: text_state.refresh_font_collection(),
+        font_records_reloaded,
+    }
 }
 
-fn apply_default_font_asset_projection(
-    text_state: &mut TextRenderState,
-    record: Option<&LoadedUiFontAsset>,
-) -> bool {
-    let composite_changed = text_state
-        .set_project_composite_font(record.and_then(|record| record.composite_font.clone()));
-    let family_changed =
-        text_state.set_default_ui_family_asset(record.and_then(|record| record.family.as_deref()));
-    composite_changed || family_changed
-}
-
+#[cfg(test)]
 pub(super) fn ensure_font_asset_record<'a>(
     text_state: &mut TextRenderState,
     font_assets: &'a mut UiFontAssetCache,
     asset_manager: &ProjectAssetManager,
     asset_ref: &str,
+    active_font_dependencies: &mut Vec<Arc<str>>,
+    font_claim_scope: &mut RuntimeFontAssetClaimScope,
 ) -> EnsuredUiFontAsset<'a> {
     let resource_identity = asset_manager.resource_cache_identity(asset_ref);
-    let slot = font_assets.entry(asset_ref.to_string());
-    match slot {
-        Entry::Occupied(slot) if slot.get().resource_identity == resource_identity => {
-            let entry = slot.into_mut();
-            EnsuredUiFontAsset::cache_hit(entry)
-        }
-        slot => {
-            let loaded_record = load_font_asset_record(text_state, asset_ref, asset_manager);
-            let (record, source_changed) = match loaded_record {
-                Some((record, database_changed)) => (Some(record), database_changed),
-                None => {
-                    let report = text_state.remove_font_asset(asset_ref);
-                    (
-                        None,
-                        report.database_changed || report.asset_mapping_changed,
-                    )
-                }
-            };
-            let projection_changed = asset_ref == super::DEFAULT_FONT_ASSET
-                && apply_default_font_asset_projection(text_state, record.as_ref());
-            let font_inputs_changed = source_changed || projection_changed;
-            let state = match record {
-                Some(record) => UiFontAssetCacheState::Ready(record),
-                None if resource_identity.is_some() => UiFontAssetCacheState::Error,
-                None => UiFontAssetCacheState::Missing,
-            };
-            let loaded = matches!(&state, UiFontAssetCacheState::Ready(_));
-            let new_entry = UiFontAssetCacheEntry::new(resource_identity, state);
-            let entry = match slot {
-                Entry::Occupied(mut slot) => {
-                    slot.insert(new_entry);
-                    slot.into_mut()
-                }
-                Entry::Vacant(slot) => slot.insert(new_entry),
-            };
-
-            EnsuredUiFontAsset::reloaded(entry, loaded, font_inputs_changed)
-        }
+    let cache_hit = font_assets
+        .get(asset_ref)
+        .is_some_and(|entry| entry.resource_identity == resource_identity);
+    if !active_font_dependencies
+        .iter()
+        .any(|active| active.as_ref() == asset_ref)
+    {
+        active_font_dependencies.push(Arc::<str>::from(asset_ref));
+    }
+    let refresh = refresh_font_asset_records(
+        text_state,
+        font_assets,
+        asset_manager,
+        active_font_dependencies,
+        font_claim_scope,
+    );
+    let entry = &font_assets[asset_ref];
+    if cache_hit {
+        EnsuredUiFontAsset::cache_hit(entry)
+    } else {
+        EnsuredUiFontAsset::reloaded(
+            entry,
+            matches!(entry.state, UiFontAssetCacheState::Ready(_)),
+            refresh.font_collection_changed,
+        )
     }
 }

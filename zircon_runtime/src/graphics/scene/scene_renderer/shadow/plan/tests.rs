@@ -1,9 +1,9 @@
 use super::*;
 use crate::core::framework::render::{
-    FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract, RenderFrameExtract,
-    RenderLayerSet, RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderWorldSnapshotHandle, ShadowPcfQuality,
-    ShadowResolutionTier, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    DEFAULT_RENDER_LAYER_MASK, FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract,
+    RenderFrameExtract, RenderLayerSet, RenderOverlayExtract, RenderPointLightSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
+    RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::graphics::scene::scene_renderer::shadow::shadow_light_params_hash;
@@ -60,6 +60,88 @@ fn shadow_with_quality(
         resolution_preference: tier,
         pcf_quality,
     }
+}
+
+fn point_light(light_id: u64, shadow: Option<LightShadowSettings>) -> RenderPointLightSnapshot {
+    RenderPointLightSnapshot {
+        node_id: light_id,
+        light_id,
+        layer_mask: default_light_layer_mask(),
+        position: Vec3::ZERO,
+        color: Vec3::ONE,
+        intensity: 4.0,
+        range: 8.0,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
+        shadow,
+    }
+}
+
+fn spot_light(light_id: u64, shadow: Option<LightShadowSettings>) -> RenderSpotLightSnapshot {
+    RenderSpotLightSnapshot {
+        node_id: light_id,
+        light_id,
+        layer_mask: default_light_layer_mask(),
+        position: Vec3::ZERO,
+        direction: Vec3::new(0.0, -1.0, 0.0),
+        color: Vec3::ONE,
+        intensity: 3.0,
+        range: 6.0,
+        inner_angle_radians: 0.25,
+        outer_angle_radians: 0.5,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
+        shadow,
+    }
+}
+
+#[test]
+fn shadow_slot_request_capacity_preallocates_dense_shadow_sets() {
+    let lighting = LightingExtract {
+        point_lights: (0..SHADOW_REQUEST_PREALLOCATION_SAMPLE_LIGHTS_PER_KIND)
+            .map(|index| point_light(index as u64 + 1, Some(shadow(ShadowResolutionTier::T256))))
+            .collect(),
+        spot_lights: (0..SHADOW_REQUEST_PREALLOCATION_SAMPLE_LIGHTS_PER_KIND)
+            .map(|index| {
+                spot_light(
+                    index as u64 + 10_000,
+                    Some(shadow(ShadowResolutionTier::T512)),
+                )
+            })
+            .collect(),
+        ..LightingExtract::default()
+    };
+    let expected = SHADOW_REQUEST_PREALLOCATION_SAMPLE_LIGHTS_PER_KIND
+        .saturating_mul(POINT_LIGHT_SHADOW_FACE_COUNT as usize)
+        .saturating_add(SHADOW_REQUEST_PREALLOCATION_SAMPLE_LIGHTS_PER_KIND);
+
+    assert_eq!(
+        shadow_slot_request_capacity_if_dense(&lighting),
+        Some(expected)
+    );
+    let requests = shadow_slot_requests_for_additional_lights(&lighting);
+    assert_eq!(requests.len(), expected);
+    assert_eq!(requests.capacity(), requests.len());
+}
+
+#[test]
+fn shadow_slot_request_capacity_preserves_sparse_growth_path() {
+    let lighting = LightingExtract {
+        point_lights: (0..SHADOW_REQUEST_PREALLOCATION_SAMPLE_LIGHTS_PER_KIND)
+            .map(|index| {
+                point_light(
+                    index as u64 + 1,
+                    (index + 1 == SHADOW_REQUEST_PREALLOCATION_SAMPLE_LIGHTS_PER_KIND)
+                        .then(|| shadow(ShadowResolutionTier::T256)),
+                )
+            })
+            .collect(),
+        ..LightingExtract::default()
+    };
+
+    assert_eq!(shadow_slot_request_capacity_if_dense(&lighting), None);
+    assert_eq!(
+        shadow_slot_requests_for_additional_lights(&lighting).len(),
+        POINT_LIGHT_SHADOW_FACE_COUNT as usize
+    );
 }
 
 #[test]
@@ -225,18 +307,21 @@ fn render_shadow_frame_plan_assigns_point_light_contiguous_face_slots() {
             slot_count: POINT_LIGHT_SHADOW_FACE_COUNT
         })
     );
-    assert!(plan
-        .slots()
-        .iter()
-        .all(|slot| slot.flags_bits() & GPU_SHADOW_SLOT_FLAG_POINT_FACE != 0));
-    assert!(plan
-        .slots()
-        .iter()
-        .all(|slot| slot.view_proj != Mat4::IDENTITY.to_cols_array_2d()));
-    assert!(plan
-        .atlas_passes()
-        .iter()
-        .all(|slot_pass| slot_pass.view_proj != Mat4::IDENTITY));
+    assert!(
+        plan.slots()
+            .iter()
+            .all(|slot| slot.flags_bits() & GPU_SHADOW_SLOT_FLAG_POINT_FACE != 0)
+    );
+    assert!(
+        plan.slots()
+            .iter()
+            .all(|slot| slot.view_proj != Mat4::IDENTITY.to_cols_array_2d())
+    );
+    assert!(
+        plan.atlas_passes()
+            .iter()
+            .all(|slot_pass| slot_pass.view_proj != Mat4::IDENTITY)
+    );
     assert_eq!(
         plan.atlas_passes()
             .iter()

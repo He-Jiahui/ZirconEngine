@@ -1,7 +1,8 @@
+use super::types::ModulePluginDevelopmentWatchPoll;
 use super::*;
 use std::sync::Arc;
 
-use zircon_runtime::plugin::native::NativePluginHostHandle;
+use zircon_runtime::plugin::native::host::NativePluginHostHandle;
 
 struct UnavailableModulePluginLiveHostBackend;
 
@@ -14,6 +15,10 @@ impl ModulePluginLiveHostBackend for UnavailableModulePluginLiveHostBackend {
             request.plugin_id,
             request.command.label(),
         ))
+    }
+
+    fn poll_development_watches(&self) -> ModulePluginDevelopmentWatchPoll {
+        ModulePluginDevelopmentWatchPoll::default()
     }
 }
 
@@ -82,6 +87,10 @@ fn live_backend_dispatch_routes_unload_and_hot_reload_commands() {
                 diagnostics: Vec::new(),
             })
         }
+
+        fn poll_development_watches(&self) -> ModulePluginDevelopmentWatchPoll {
+            ModulePluginDevelopmentWatchPoll::default()
+        }
     }
 
     let project_root = std::path::Path::new("project");
@@ -131,7 +140,11 @@ fn runtime_native_live_backend_reports_missing_editor_package_on_hot_reload() {
             .expect("system clock should be after unix epoch")
             .as_nanos()
     ));
-    let backend = NativePluginDevelopmentLiveHostBackend::new(NativePluginHostHandle::default());
+    let backend = NativePluginDevelopmentLiveHostBackend::new(
+        NativePluginHostHandle::default(),
+        crate::core::jobs::test_job_system(),
+        Arc::new(|| {}),
+    );
     let error = dispatch_live_plugin_backend_action(
         &backend,
         "physics",

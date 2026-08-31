@@ -11,11 +11,12 @@ use zircon_runtime::scene::World;
 
 use zircon_runtime::navigation::NavRepathBudget;
 
-use crate::{navigation_component_descriptors, DefaultNavigationManager};
+use crate::navigation_component_descriptors;
+use crate::test_support::navigation_manager;
 
 #[test]
 fn repath_budget_caps_queries_per_frame() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     world.insert_resource(NavRepathBudget::new(2));
     manager
@@ -37,7 +38,7 @@ fn repath_budget_caps_queries_per_frame() {
 
 #[test]
 fn agent_tick_event_payload_contains_typed_editor_debug_state() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 8.0))
@@ -72,7 +73,7 @@ fn agent_tick_event_payload_contains_typed_editor_debug_state() {
 
 #[test]
 fn agent_tick_report_publishes_arrival_without_enabling_debug_capture() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 8.0))
@@ -94,7 +95,7 @@ fn agent_tick_report_publishes_arrival_without_enabling_debug_capture() {
 
 #[test]
 fn repath_budget_rotates_across_pending_agents_without_starvation() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     world.insert_resource(NavRepathBudget::new(1));
     manager
@@ -125,7 +126,7 @@ fn repath_budget_rotates_across_pending_agents_without_starvation() {
 
 #[test]
 fn desired_velocity_writeback_keeps_transform_owned_by_character_controller() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 6.0))
@@ -155,7 +156,7 @@ fn desired_velocity_writeback_keeps_transform_owned_by_character_controller() {
 
 #[test]
 fn desired_velocity_feedback_synchronizes_controller_motion_each_frame() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 8.0))
@@ -192,7 +193,7 @@ fn desired_velocity_feedback_synchronizes_controller_motion_each_frame() {
 
 #[test]
 fn agents_route_to_their_explicit_nav_mesh_crowd() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 2.0))
@@ -229,7 +230,7 @@ fn agents_route_to_their_explicit_nav_mesh_crowd() {
 
 #[test]
 fn repath_budget_rotates_across_nav_mesh_crowds_without_starvation() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     world.insert_resource(NavRepathBudget::new(1));
     let first = manager
@@ -251,7 +252,7 @@ fn repath_budget_rotates_across_nav_mesh_crowds_without_starvation() {
 
 #[test]
 fn switching_nav_mesh_retires_the_previous_crowd_binding() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     let first = manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 8.0))
@@ -277,7 +278,7 @@ fn switching_nav_mesh_retires_the_previous_crowd_binding() {
 
 #[test]
 fn invalid_agent_does_not_abort_other_crowd_agents() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     let mesh = manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 8.0))
@@ -296,7 +297,7 @@ fn invalid_agent_does_not_abort_other_crowd_agents() {
 
 #[test]
 fn twenty_agent_corridor_crossing_has_no_deadlock() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = crowd_world();
     manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 12.0))

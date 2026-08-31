@@ -3,13 +3,16 @@ use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiGlyphArtifactCacheIdentity, ScreenSpaceUiGlyphArtifactLine,
     ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
 };
+use crate::text::TextRenderState;
 use crate::text::font::TextDecorationMetrics;
 use crate::text::sdf::SdfRunCpuPreparation;
-use crate::text::TextRenderState;
+
+use super::ScreenSpaceUiTextFrameProductGeneration;
 
 #[derive(Default)]
 pub(super) struct SdfTextCpuFrame {
     valid: bool,
+    retained_frame_generation: Option<ScreenSpaceUiTextFrameProductGeneration>,
     prepared_sdf_texts: Vec<PreparedSdfCpuText>,
     prepared_native_texts: Vec<PreparedSdfCpuText>,
     sdf_runs: Vec<SdfRunCpuPreparation>,
@@ -38,18 +41,106 @@ impl SdfTextCpuFrame {
         text_state: &mut TextRenderState,
         asset_manager: &ProjectAssetManager,
     ) -> bool {
-        if self.matches(sdf_texts, native_texts) {
+        self.prepare_with_retained_generation(
+            sdf_texts,
+            native_texts,
+            text_state,
+            asset_manager,
+            None,
+        )
+    }
+
+    pub(super) fn prepare_retained(
+        &mut self,
+        sdf_texts: &[ScreenSpaceUiTextBatch],
+        native_texts: &[ScreenSpaceUiTextBatch],
+        text_state: &mut TextRenderState,
+        asset_manager: &ProjectAssetManager,
+        generation: ScreenSpaceUiTextFrameProductGeneration,
+    ) -> bool {
+        self.prepare_with_retained_generation(
+            sdf_texts,
+            native_texts,
+            text_state,
+            asset_manager,
+            Some(generation),
+        )
+    }
+
+    pub(super) fn prepare_retained_segments<'a, SdfSegments, NativeSegments>(
+        &mut self,
+        sdf_segments: SdfSegments,
+        native_segments: NativeSegments,
+        text_state: &mut TextRenderState,
+        asset_manager: &ProjectAssetManager,
+        generation: ScreenSpaceUiTextFrameProductGeneration,
+    ) -> bool
+    where
+        SdfSegments: Clone + Iterator<Item = &'a [ScreenSpaceUiTextBatch]>,
+        NativeSegments: Clone + Iterator<Item = &'a [ScreenSpaceUiTextBatch]>,
+    {
+        self.prepare_with_retained_text_iter(
+            sdf_segments.flat_map(|segment| segment.iter()),
+            native_segments.flat_map(|segment| segment.iter()),
+            text_state,
+            asset_manager,
+            Some(generation),
+        )
+    }
+
+    fn prepare_with_retained_generation(
+        &mut self,
+        sdf_texts: &[ScreenSpaceUiTextBatch],
+        native_texts: &[ScreenSpaceUiTextBatch],
+        text_state: &mut TextRenderState,
+        asset_manager: &ProjectAssetManager,
+        retained_generation: Option<ScreenSpaceUiTextFrameProductGeneration>,
+    ) -> bool {
+        self.prepare_with_retained_text_iter(
+            sdf_texts.iter(),
+            native_texts.iter(),
+            text_state,
+            asset_manager,
+            retained_generation,
+        )
+    }
+
+    fn prepare_with_retained_text_iter<'a, SdfTexts, NativeTexts>(
+        &mut self,
+        sdf_texts: SdfTexts,
+        native_texts: NativeTexts,
+        text_state: &mut TextRenderState,
+        asset_manager: &ProjectAssetManager,
+        retained_generation: Option<ScreenSpaceUiTextFrameProductGeneration>,
+    ) -> bool
+    where
+        SdfTexts: Clone + Iterator<Item = &'a ScreenSpaceUiTextBatch>,
+        NativeTexts: Clone + Iterator<Item = &'a ScreenSpaceUiTextBatch>,
+    {
+        if self.valid
+            && retained_generation.is_some()
+            && self.retained_frame_generation == retained_generation
+        {
+            return true;
+        }
+        if self.matches_iter(sdf_texts.clone(), native_texts.clone()) {
+            self.retained_frame_generation = retained_generation;
             return true;
         }
 
-        text_state.prepare_sdf_runs_cpu_into(sdf_texts, asset_manager, &mut self.sdf_runs);
-        text_state.prepare_sdf_decoration_metrics_into(
-            native_texts,
+        text_state.prepare_sdf_runs_cpu_iter_into(
+            sdf_texts.clone(),
+            asset_manager,
+            &mut self.sdf_runs,
+        );
+        text_state.prepare_sdf_decoration_metrics_iter_into(
+            native_texts.clone(),
             asset_manager,
             &mut self.native_decoration_metrics,
         );
-        replace_prepared_texts(&mut self.prepared_sdf_texts, sdf_texts);
-        replace_prepared_texts(&mut self.prepared_native_texts, native_texts);
+        replace_prepared_texts_iter(&mut self.prepared_sdf_texts, sdf_texts);
+        replace_prepared_texts_iter(&mut self.prepared_native_texts, native_texts);
+        self.retained_frame_generation = retained_generation;
         self.valid = true;
         false
     }
@@ -69,36 +160,41 @@ impl SdfTextCpuFrame {
 
     pub(super) fn invalidate(&mut self) {
         self.valid = false;
+        self.retained_frame_generation = None;
     }
 
-    fn matches(
+    fn matches_iter<'a, SdfTexts, NativeTexts>(
         &self,
-        sdf_texts: &[ScreenSpaceUiTextBatch],
-        native_texts: &[ScreenSpaceUiTextBatch],
-    ) -> bool {
+        sdf_texts: SdfTexts,
+        native_texts: NativeTexts,
+    ) -> bool
+    where
+        SdfTexts: IntoIterator<Item = &'a ScreenSpaceUiTextBatch>,
+        NativeTexts: IntoIterator<Item = &'a ScreenSpaceUiTextBatch>,
+    {
         self.valid
-            && text_cpu_inputs_match(&self.prepared_sdf_texts, sdf_texts)
-            && text_cpu_inputs_match(&self.prepared_native_texts, native_texts)
+            && text_cpu_inputs_match_iter(&self.prepared_sdf_texts, sdf_texts)
+            && text_cpu_inputs_match_iter(&self.prepared_native_texts, native_texts)
     }
 }
 
-fn replace_prepared_texts(
-    prepared: &mut Vec<PreparedSdfCpuText>,
-    texts: &[ScreenSpaceUiTextBatch],
-) {
+fn replace_prepared_texts_iter<'a, Texts>(prepared: &mut Vec<PreparedSdfCpuText>, texts: Texts)
+where
+    Texts: IntoIterator<Item = &'a ScreenSpaceUiTextBatch>,
+{
     prepared.clear();
-    prepared.extend(texts.iter().map(PreparedSdfCpuText::from));
+    prepared.extend(texts.into_iter().map(PreparedSdfCpuText::from));
 }
 
-fn text_cpu_inputs_match(
-    prepared: &[PreparedSdfCpuText],
-    texts: &[ScreenSpaceUiTextBatch],
-) -> bool {
-    prepared.len() == texts.len()
-        && prepared
-            .iter()
-            .zip(texts)
-            .all(|(prepared, text)| prepared.matches(text))
+fn text_cpu_inputs_match_iter<'a, Texts>(prepared: &[PreparedSdfCpuText], texts: Texts) -> bool
+where
+    Texts: IntoIterator<Item = &'a ScreenSpaceUiTextBatch>,
+{
+    let mut texts = texts.into_iter();
+    prepared
+        .iter()
+        .all(|prepared| texts.next().is_some_and(|text| prepared.matches(text)))
+        && texts.next().is_none()
 }
 
 impl From<&ScreenSpaceUiTextBatch> for PreparedSdfCpuText {
@@ -151,7 +247,7 @@ mod tests {
         UiTextWritingMode,
     };
 
-    use super::PreparedSdfCpuText;
+    use super::{PreparedSdfCpuText, text_cpu_inputs_match_iter};
     use crate::core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation};
     use crate::graphics::scene::scene_renderer::ui::render::{
         ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiTextBatch, ScreenSpaceUiTextRouteIdentity,
@@ -172,21 +268,50 @@ mod tests {
         assert!(!prepared.matches(&vertical));
 
         let replacement = artifact_text_batch(0xfb02, UiTextWritingMode::HorizontalTb);
-        let refreshed_line = replacement
-            .glyph_artifact_line
-            .as_ref()
-            .and_then(|line| line.artifact.lines.first())
-            .and_then(Option::as_ref)
-            .expect("replacement artifact line")
-            .clone();
-        let mut refreshed = horizontal.clone();
-        let artifact_line = refreshed
+        let mut republished = horizontal.clone();
+        let artifact_line = republished
             .glyph_artifact_line
             .as_mut()
             .expect("original artifact line");
-        artifact_line.refreshed_line = Some(Arc::new(refreshed_line));
+        artifact_line.artifact = Arc::clone(
+            &replacement
+                .glyph_artifact_line
+                .as_ref()
+                .expect("replacement artifact line")
+                .artifact,
+        );
+        Arc::make_mut(&mut artifact_line.artifact).font_generation = 8;
         artifact_line.font_generation = 8;
-        assert!(!prepared.matches(&refreshed));
+        assert!(!prepared.matches(&republished));
+    }
+
+    #[test]
+    fn cpu_snapshot_segment_stream_preserves_flat_order_and_change_detection() {
+        let first = artifact_text_batch(0xfb01, UiTextWritingMode::HorizontalTb);
+        let second = artifact_text_batch(0xfb02, UiTextWritingMode::HorizontalTb);
+        let prepared = vec![
+            PreparedSdfCpuText::from(&first),
+            PreparedSdfCpuText::from(&second),
+        ];
+        let empty: &[ScreenSpaceUiTextBatch] = &[];
+        let segments = [
+            empty,
+            std::slice::from_ref(&first),
+            empty,
+            std::slice::from_ref(&second),
+        ];
+
+        assert!(text_cpu_inputs_match_iter(
+            &prepared,
+            segments.into_iter().flatten(),
+        ));
+
+        let changed = artifact_text_batch(0xfb03, UiTextWritingMode::HorizontalTb);
+        let changed_segments = [std::slice::from_ref(&first), std::slice::from_ref(&changed)];
+        assert!(!text_cpu_inputs_match_iter(
+            &prepared,
+            changed_segments.into_iter().flatten(),
+        ));
     }
 
     fn artifact_text_batch(
@@ -215,6 +340,7 @@ mod tests {
                     source_text: Arc::from("fi"),
                     source_text_origin: 0,
                     font_generation: 7,
+                    font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
                     style: UiResolvedStyle::default(),
                     writing_mode,
                     lines: vec![Some(ResolvedTextGlyphArtifactLine {
@@ -234,6 +360,7 @@ mod tests {
                         }],
                         layout_line: UiResolvedTextLine {
                             text: "fi".to_string(),
+                            placement_frame: UiFrame::default(),
                             frame,
                             source_range: UiTextRange { start: 0, end: 2 },
                             visual_range: UiTextRange { start: 0, end: 1 },
@@ -245,10 +372,11 @@ mod tests {
                             ellipsized: false,
                         },
                     })],
+                    logical_virtual_line_sequences: None,
                 }),
                 line_index: 0,
-                refreshed_line: None,
                 font_generation: 7,
+                glyph_range: 0..1,
             }),
             layout_error: None,
             color: [1.0, 1.0, 1.0, 1.0],

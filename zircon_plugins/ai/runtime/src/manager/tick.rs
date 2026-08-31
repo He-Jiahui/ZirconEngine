@@ -3,15 +3,15 @@ use std::sync::Arc;
 use zircon_runtime::core::framework::ai::{AiAgentTickReport, AiAgentTickRequest, AiManagerError};
 use zircon_runtime::core::framework::scene::WorldHandle;
 
-use super::DefaultAiManager;
 use super::state::{ActiveBehaviorAgent, AgentBlackboard};
 use super::validation::{validate_blackboard_entries, validate_perception_snapshot};
-use crate::AiBehaviorTickLod;
+use super::DefaultAiManager;
 use crate::behavior_tree::{
-    BehaviorIntegrationHost, BehaviorTreeInstanceState, abort_behavior_tree_instance,
-    evaluate_behavior_tree,
+    abort_behavior_tree_instance, evaluate_behavior_tree, BehaviorIntegrationHost,
+    BehaviorTreeInstanceState,
 };
 use crate::blackboard::BlackboardStore;
+use crate::AiBehaviorTickLod;
 
 pub(super) fn tick_agent(
     manager: &DefaultAiManager,

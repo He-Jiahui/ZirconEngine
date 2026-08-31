@@ -1,14 +1,14 @@
-use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
 use crate::core::editor_event::{
     EditorAssetEvent, EditorEvent, EditorEventRecord, EditorEventSource,
 };
-use crate::core::logging::{EditorLogService, LogChannel, LogFilter, LogJumpTarget, LogSeverity};
-use crate::ui::activity::{activity_log_views, ActivityLogView};
+use crate::core::logging::{EditorLogService, LogJumpTarget};
 use crate::ui::host::EditorHostEventController;
-use crate::ui::workbench::snapshot::{ConsoleOutputSnapshot, EditorConsoleMessageLevel};
+use crate::ui::workbench::shell_state::WorkbenchShellStateData;
+use crate::ui::workbench::snapshot::ConsoleOutputSnapshot;
+use crate::ui::workbench::ActivityLogConsoleProjection;
 
 pub(crate) const ACTIVITY_LOG_JUMP_ACTION_PREFIX: &str = "workbench.activity_log.jump.";
 
@@ -27,28 +27,17 @@ pub(crate) fn activity_log_console_output(
     message_filter: ConsoleMessageFilter,
     source_filter: ConsoleSourceFilter,
 ) -> ConsoleOutputSnapshot {
-    let filter = activity_log_filter(message_filter, source_filter);
-    let records = logs.snapshot(&filter);
-    let views = activity_log_views(&records);
-    let text = views
-        .iter()
-        .map(activity_log_row_text)
-        .collect::<Vec<_>>()
-        .join("\n");
-    let levels = views
-        .iter()
-        .map(|view| console_level(view.severity()))
-        .collect::<Vec<_>>();
-    let jump_sequences = views
-        .iter()
-        .map(|view| view.jump().map(|_| view.sequence()))
-        .collect::<Vec<_>>();
-    ConsoleOutputSnapshot::activity(
-        Arc::from(text),
-        Arc::from(levels),
-        message_filter,
-        source_filter,
-        Arc::from(jump_sequences),
+    ActivityLogConsoleProjection::default().project(logs, message_filter, source_filter)
+}
+
+pub(crate) fn activity_log_console_output_for_shell(
+    shell: &mut WorkbenchShellStateData,
+) -> ConsoleOutputSnapshot {
+    let manager = Arc::clone(&shell.manager);
+    shell.activity_log_console_projection.project(
+        manager.context().logs(),
+        shell.console_message_filter,
+        shell.console_source_filter,
     )
 }
 
@@ -96,12 +85,14 @@ impl EditorHostEventController {
                 (Arc::clone(&path), Some((path, line, column)))
             }
         };
-        let record = self.dispatch_event(
-            EditorEventSource::RetainedHost,
-            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_locator: asset_locator.to_string(),
-            }),
-        )?;
+        let record = self
+            .dispatch_event(
+                EditorEventSource::RetainedHost,
+                EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                    asset_locator: asset_locator.to_string(),
+                }),
+            )
+            .map_err(|error| error.to_string())?;
         let opened = record
             .result
             .value
@@ -121,57 +112,13 @@ impl EditorHostEventController {
     }
 }
 
-fn activity_log_filter(
-    message_filter: ConsoleMessageFilter,
-    source_filter: ConsoleSourceFilter,
-) -> LogFilter {
-    let minimum_severity = match message_filter {
-        ConsoleMessageFilter::All | ConsoleMessageFilter::Info => LogSeverity::Info,
-        ConsoleMessageFilter::Warning => LogSeverity::Warning,
-        ConsoleMessageFilter::Error => LogSeverity::Error,
-    };
-    let channels = source_channel(source_filter)
-        .into_iter()
-        .collect::<BTreeSet<_>>();
-    LogFilter::new(channels, minimum_severity)
-}
-
-fn source_channel(filter: ConsoleSourceFilter) -> Option<LogChannel> {
-    match filter {
-        ConsoleSourceFilter::All => None,
-        ConsoleSourceFilter::Editor => Some(LogChannel::Editor),
-        ConsoleSourceFilter::Runtime => Some(LogChannel::Runtime),
-        ConsoleSourceFilter::Play => Some(LogChannel::Play),
-        ConsoleSourceFilter::Plugin => Some(LogChannel::Plugin),
-        ConsoleSourceFilter::Import => Some(LogChannel::Import),
-        ConsoleSourceFilter::ScriptBuild => Some(LogChannel::ScriptBuild),
-    }
-}
-
-fn activity_log_row_text(view: &ActivityLogView) -> String {
-    let message = view.message().replace('\r', "\\r").replace('\n', "\\n");
-    format!(
-        "#{} [frame {}] [{}] {message}",
-        view.sequence(),
-        view.timestamp_frame(),
-        view.source()
-    )
-}
-
-fn console_level(severity: LogSeverity) -> EditorConsoleMessageLevel {
-    match severity {
-        LogSeverity::Info => EditorConsoleMessageLevel::Info,
-        LogSeverity::Warning => EditorConsoleMessageLevel::Warning,
-        LogSeverity::Error => EditorConsoleMessageLevel::Error,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
     use crate::core::logging::{
         EditorLogConfig, EditorLogService, LogEntry, LogJump, LogSeverity, LogSource,
     };
+    use crate::ui::workbench::snapshot::CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY;
 
     use super::{
         activity_log_console_output, activity_log_jump_action, activity_log_jump_action_id,
@@ -270,6 +217,36 @@ mod tests {
         assert!(!after.contains(&format!("#{first} ")));
         assert!(after.contains(&format!("#{third} ")));
         assert_eq!(after.levels().len(), 2);
+    }
+
+    #[test]
+    fn projection_materializes_only_the_visible_record_tail() {
+        let retained_records = CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY + 44;
+        let logs =
+            EditorLogService::new(EditorLogConfig::new(retained_records, 64 * 1024).unwrap());
+        let mut first_sequence = 0;
+        let mut last_sequence = 0;
+        for index in 0..retained_records {
+            let sequence = emit(
+                &logs,
+                LogSource::editor(),
+                LogSeverity::Info,
+                &format!("record-{index}"),
+                index as u64,
+                None,
+            );
+            if index == 0 {
+                first_sequence = sequence;
+            }
+            last_sequence = sequence;
+        }
+
+        let output =
+            activity_log_console_output(&logs, ConsoleMessageFilter::All, ConsoleSourceFilter::All);
+
+        assert_eq!(output.levels().len(), CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
+        assert!(!output.contains(&format!("#{first_sequence} ")));
+        assert!(output.contains(&format!("#{last_sequence} ")));
     }
 
     #[test]

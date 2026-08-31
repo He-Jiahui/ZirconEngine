@@ -1,3 +1,4 @@
+use super::dock_overflow::host_dock_overflow_keyboard_target_with_state;
 use super::menu::menu_popup_keyboard_target;
 use super::model::PopupKeyboardTarget;
 use super::options::option_popup_keyboard_target;
@@ -13,6 +14,14 @@ pub(in crate::ui::retained_host::host_contract) fn active_popup_keyboard_target_
     ui: &UiHostWindow,
 ) -> Option<PopupKeyboardTarget> {
     let generation = ui.get_host_presentation_generation();
+    if generation.dock_overflow_menu_state().open {
+        if let Some(target) = host_dock_overflow_keyboard_target_with_state(
+            generation.structure(),
+            generation.dock_overflow_menu_state(),
+        ) {
+            return Some(target);
+        }
+    }
     if generation.page_overflow_menu_state().open {
         if let Some(target) = host_page_overflow_keyboard_target_with_state(
             generation.structure(),
@@ -21,7 +30,8 @@ pub(in crate::ui::retained_host::host_contract) fn active_popup_keyboard_target_
             return Some(target);
         }
     }
-    if !generation.workbench_hit_index().has_popup_rows() {
+    let popup_rows = generation.workbench_hit_index().popup_rows();
+    if popup_rows.is_empty() {
         return None;
     }
     let presentation = generation.structure();
@@ -30,20 +40,26 @@ pub(in crate::ui::retained_host::host_contract) fn active_popup_keyboard_target_
         &presentation.host_shell.native_window_bounds,
         &presentation.workbench_window_nodes,
     );
-    active_popup_keyboard_target(&presentation.workbench_window_nodes, interaction, &bounds)
+    active_popup_keyboard_target(
+        &presentation.workbench_window_nodes,
+        interaction,
+        &bounds,
+        popup_rows,
+    )
 }
 
 fn active_popup_keyboard_target(
     nodes: &ModelRc<TemplatePaneNodeData>,
     interaction: &HostPaneInteractionStateData,
     bounds: &FrameRect,
+    popup_rows: &[usize],
 ) -> Option<PopupKeyboardTarget> {
     let mut fallback = None;
-    for row in (0..nodes.row_count()).rev() {
-        let Some(node) = nodes.row_data(row) else {
+    for row in popup_rows.iter().rev().copied() {
+        let Some(node) = nodes.get(row) else {
             continue;
         };
-        let Some(target) = popup_keyboard_target_for_node(&node, interaction, bounds) else {
+        let Some(target) = popup_keyboard_target_for_node(node, interaction, bounds) else {
             continue;
         };
         let is_hovered_popup =

@@ -8,6 +8,7 @@ use crate::asset::{
     AssetManager, AssetUri, DataAsset, DataAssetFormat, FunctionAssetImporter, ImportedAsset,
     ProjectAssetManager,
 };
+use crate::core::framework::project::ProjectPluginManifest;
 use crate::core::resource::ResourceKind;
 use crate::plugin::{
     PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
@@ -41,16 +42,18 @@ fn runtime_extension_registry_installs_asset_importers_before_project_open() {
 fn runtime_module_registration_reports_install_asset_importers_before_project_open() {
     let plugin = WeatherImporterRuntimePlugin::new();
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
+    let manifest = ProjectPluginManifest {
+        selections: vec![registration.project_selection.clone()],
+    };
     let report = crate::builtin::runtime_modules_for_target_with_plugin_registration_reports(
         RuntimeTargetMode::ClientRuntime,
-        None,
+        Some(&manifest),
         [&registration],
-    );
-    let fatal_messages = report.fatal_messages();
-    assert!(fatal_messages.is_empty(), "{fatal_messages:?}");
+    )
+    .expect("asset importer module composition should compile");
 
     let runtime = crate::core::CoreRuntime::new();
-    for module in report.modules {
+    for module in report.modules() {
         runtime.register_module(module.descriptor()).unwrap();
     }
     runtime

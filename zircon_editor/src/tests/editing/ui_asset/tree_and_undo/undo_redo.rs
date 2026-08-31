@@ -1,0 +1,605 @@
+use super::super::support::*;
+use zircon_runtime_interface::ui::template::UiNodeDefinitionKind;
+
+#[test]
+fn ui_asset_editor_undo_stack_replays_document_diffs_for_tree_edits() {
+    let mut undo_stack = UiAssetEditorUndoStack::default();
+    let before_document =
+        crate::tests::support::load_test_ui_asset(SIMPLE_LAYOUT_ASSET_TOML).expect("before");
+    let after_document =
+        crate::tests::support::load_test_ui_asset(STYLE_AUTHORING_LAYOUT_ASSET_TOML)
+            .expect("after");
+
+    undo_stack.push_edit(
+        "Insert Palette Item",
+        Some(UiAssetEditorTreeEdit::InsertPaletteItem {
+            node_id: "button_2".to_string(),
+            parent_node_id: Some("root".to_string()),
+            palette_item_label: "Native / Button".to_string(),
+            insert_mode: "child".to_string(),
+        }),
+        None,
+        SIMPLE_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        Some(before_document.clone()),
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        Some(after_document.clone()),
+        UiAssetEditorUndoExternalEffects::default(),
+    );
+
+    let undone = undo_stack.undo().expect("undo replay");
+    let mut undone_source = STYLE_AUTHORING_LAYOUT_ASSET_TOML.to_string();
+    assert!(undone
+        .apply_to_source(&mut undone_source)
+        .expect("apply undo source diff"));
+    assert_eq!(undone_source, SIMPLE_LAYOUT_ASSET_TOML);
+    let mut undone_document = after_document.clone();
+    assert!(undone
+        .apply_to_document(&mut undone_document)
+        .expect("apply undo diff"));
+    assert_eq!(undone_document, before_document);
+
+    let redone = undo_stack.redo().expect("redo replay");
+    let mut redone_source = SIMPLE_LAYOUT_ASSET_TOML.to_string();
+    assert!(redone
+        .apply_to_source(&mut redone_source)
+        .expect("apply redo source diff"));
+    assert_eq!(redone_source, STYLE_AUTHORING_LAYOUT_ASSET_TOML);
+    let mut redone_document = before_document.clone();
+    assert!(redone
+        .apply_to_document(&mut redone_document)
+        .expect("apply redo diff"));
+    assert_eq!(redone_document, after_document);
+}
+
+fn redo_transition_for_document_commands(
+    commands: Vec<UiAssetEditorDocumentReplayCommand>,
+) -> UiAssetEditorUndoTransition {
+    let mut undo_stack = UiAssetEditorUndoStack::default();
+    undo_stack.push_edit(
+        "Replay Document Commands",
+        None,
+        Some(UiAssetEditorDocumentReplayBundle {
+            undo: Vec::new(),
+            redo: commands,
+        }),
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        None,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        None,
+        UiAssetEditorUndoExternalEffects::default(),
+    );
+
+    let _ = undo_stack.undo().expect("move replay to redo stack");
+    undo_stack.redo().expect("redo replay")
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_rejects_invalid_style_rule_replay_atomically() {
+    let mut document = crate::tests::support::load_test_ui_asset(STYLE_AUTHORING_LAYOUT_ASSET_TOML)
+        .expect("document");
+    let original_document = document.clone();
+
+    let redone = redo_transition_for_document_commands(vec![
+        UiAssetEditorDocumentReplayCommand::InsertStyleRule {
+            stylesheet_index: 0,
+            index: 0,
+            selector: "Button#".to_string(),
+            rule: Some(UiStyleRule {
+                id: Some("bad_rule".to_string()),
+                selector: "Button#".to_string(),
+                set: Default::default(),
+            }),
+        },
+    ]);
+
+    assert_eq!(
+        redone.apply_to_document(&mut document),
+        Err("invalid style rule replay")
+    );
+    assert_eq!(document, original_document);
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_rolls_back_partial_document_command_replay() {
+    let mut document = crate::tests::support::load_test_ui_asset(STYLE_AUTHORING_LAYOUT_ASSET_TOML)
+        .expect("document");
+    let original_document = document.clone();
+
+    let redone = redo_transition_for_document_commands(vec![
+        UiAssetEditorDocumentReplayCommand::UpsertStyleToken {
+            token_name: "temporary".to_string(),
+            value: toml::Value::Integer(42),
+        },
+        UiAssetEditorDocumentReplayCommand::InsertStyleRule {
+            stylesheet_index: 0,
+            index: 0,
+            selector: "Button#".to_string(),
+            rule: Some(UiStyleRule {
+                id: Some("bad_rule".to_string()),
+                selector: "Button#".to_string(),
+                set: Default::default(),
+            }),
+        },
+    ]);
+
+    assert_eq!(
+        redone.apply_to_document(&mut document),
+        Err("invalid style rule replay")
+    );
+    assert_eq!(document, original_document);
+    assert!(!document.tokens.contains_key("temporary"));
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_rejects_invalid_set_stylesheets_replay() {
+    let mut document = crate::tests::support::load_test_ui_asset(STYLE_AUTHORING_LAYOUT_ASSET_TOML)
+        .expect("document");
+    let original_document = document.clone();
+    let mut invalid_stylesheets = document.stylesheets.clone();
+    invalid_stylesheets[0].rules[0].selector = "Button#".to_string();
+
+    let redone = redo_transition_for_document_commands(vec![
+        UiAssetEditorDocumentReplayCommand::SetStyleSheets {
+            stylesheets: invalid_stylesheets,
+        },
+    ]);
+
+    assert_eq!(
+        redone.apply_to_document(&mut document),
+        Err("invalid stylesheet replay")
+    );
+    assert_eq!(document, original_document);
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_applies_valid_set_stylesheets_replay() {
+    let mut document = crate::tests::support::load_test_ui_asset(STYLE_AUTHORING_LAYOUT_ASSET_TOML)
+        .expect("document");
+    let mut expected_stylesheets = document.stylesheets.clone();
+    expected_stylesheets[0].rules.clear();
+
+    let redone = redo_transition_for_document_commands(vec![
+        UiAssetEditorDocumentReplayCommand::SetStyleSheets {
+            stylesheets: expected_stylesheets.clone(),
+        },
+    ]);
+
+    assert!(redone
+        .apply_to_document(&mut document)
+        .expect("valid stylesheets replay should apply"));
+    assert_eq!(document.stylesheets, expected_stylesheets);
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_tracks_inverse_tree_edits_for_command_log_entries() {
+    let mut undo_stack = UiAssetEditorUndoStack::default();
+    undo_stack.push_edit(
+        "Move Node",
+        Some(UiAssetEditorTreeEdit::MoveNode {
+            node_id: "button".to_string(),
+            direction: "Down".to_string(),
+        }),
+        None,
+        SIMPLE_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::single("button"),
+        Default::default(),
+        None,
+        Some(crate::tests::support::load_test_ui_asset(SIMPLE_LAYOUT_ASSET_TOML).expect("before")),
+        STYLED_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::single("button"),
+        Default::default(),
+        None,
+        Some(crate::tests::support::load_test_ui_asset(STYLED_LAYOUT_ASSET_TOML).expect("after")),
+        UiAssetEditorUndoExternalEffects::default(),
+    );
+
+    assert_eq!(undo_stack.next_undo_label().as_deref(), Some("Move Node"));
+    assert_eq!(
+        undo_stack.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::MoveNode {
+            node_id: "button".to_string(),
+            direction: "Up".to_string(),
+        })
+    );
+
+    let _ = undo_stack.undo().expect("undo");
+    assert_eq!(undo_stack.next_redo_label().as_deref(), Some("Move Node"));
+    assert_eq!(
+        undo_stack.next_redo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::MoveNode {
+            node_id: "button".to_string(),
+            direction: "Up".to_string(),
+        })
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_insert_and_unwrap() {
+    let insert_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/simple-layout.zui",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut insert_session = UiAssetEditorSession::from_source(
+        insert_route,
+        SIMPLE_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("insert session");
+    let palette_index = insert_session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Native / Button")
+        .expect("button palette item");
+    insert_session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    assert!(insert_session
+        .select_palette_index(palette_index)
+        .expect("select button palette item"));
+    assert!(insert_session
+        .insert_selected_palette_item_as_child()
+        .expect("insert button as child"));
+    assert_eq!(
+        insert_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::RemoveNode {
+            node_id: "button".to_string(),
+            parent_node_id: Some("root".to_string()),
+        })
+    );
+    assert!(insert_session.undo().expect("undo insert"));
+    assert_eq!(
+        insert_session.next_redo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::RemoveNode {
+            node_id: "button".to_string(),
+            parent_node_id: Some("root".to_string()),
+        })
+    );
+
+    let unwrap_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.zui",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut unwrap_session = UiAssetEditorSession::from_source(
+        unwrap_route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("unwrap session");
+    unwrap_session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(unwrap_session
+        .wrap_selected_node_with("VerticalBox")
+        .expect("wrap selected node"));
+    let wrapper_id = unwrap_session
+        .pane_presentation()
+        .inspector_selected_node_id;
+    assert!(unwrap_session
+        .unwrap_selected_node()
+        .expect("unwrap selected wrapper"));
+    assert_eq!(
+        unwrap_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::WrapNode {
+            node_id: "button".to_string(),
+            wrapper_node_id: wrapper_id,
+            wrapper_widget_type: "VerticalBox".to_string(),
+        })
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_reparent_and_reference_conversion(
+) {
+    let reparent_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/tree-reparent.zui",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut reparent_session = UiAssetEditorSession::from_source(
+        reparent_route,
+        TREE_REPARENT_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("reparent session");
+    reparent_session
+        .select_hierarchy_index(3)
+        .expect("select loose node from hierarchy");
+    assert!(reparent_session
+        .reparent_selected_node_into_previous()
+        .expect("reparent into previous sibling container"));
+    assert!(reparent_session
+        .reparent_selected_node_outdent()
+        .expect("outdent node"));
+    assert_eq!(
+        reparent_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::ReparentNode {
+            node_id: "loose".to_string(),
+            parent_node_id: Some("group_a".to_string()),
+            direction: "into_previous".to_string(),
+        })
+    );
+
+    let convert_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.zui",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut convert_session = UiAssetEditorSession::from_source(
+        convert_route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("convert session");
+    let imported_widget =
+        crate::tests::support::load_test_ui_asset(PARAMETERIZED_IMPORTED_WIDGET_ASSET_TOML)
+            .expect("parameterized imported widget");
+    let reference = "asset://ui/common/toolbar_button.ui#ToolbarButton";
+    convert_session
+        .register_widget_import(reference, imported_widget)
+        .expect("register widget import");
+    let palette_index = convert_session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Reference / ToolbarButton")
+        .expect("toolbar reference palette item");
+    convert_session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(convert_session
+        .select_palette_index(palette_index)
+        .expect("select toolbar reference palette item"));
+    assert!(convert_session
+        .convert_selected_node_to_reference()
+        .expect("convert selected node to reference"));
+    assert_eq!(
+        convert_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::RestoreNodeDefinition {
+            node_id: "button".to_string(),
+            kind: UiNodeDefinitionKind::Native,
+            widget_type: Some("Button".to_string()),
+            component: None,
+            component_ref: None,
+        })
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_extract_and_promote() {
+    let extract_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.zui",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut extract_session = UiAssetEditorSession::from_source(
+        extract_route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("extract session");
+    extract_session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(extract_session
+        .extract_selected_node_to_component()
+        .expect("extract selected node to component"));
+    assert_eq!(
+        extract_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::InlineExtractedComponent {
+            node_id: "button".to_string(),
+            component_name: "SaveButton".to_string(),
+            component_root_id: "savebutton_root".to_string(),
+        })
+    );
+
+    let promote_route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.zui",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut promote_session = UiAssetEditorSession::from_source(
+        promote_route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("promote session");
+    promote_session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(promote_session
+        .extract_selected_node_to_component()
+        .expect("extract selected node to component"));
+    assert!(promote_session
+        .promote_selected_component_to_external_widget(
+            "res://ui/widgets/save_button.zui",
+            "SaveButton",
+            "ui.widgets.save_button",
+        )
+        .expect("promote selected component")
+        .is_some());
+    assert_eq!(
+        promote_session.next_undo_inverse_tree_edit(),
+        Some(UiAssetEditorInverseTreeEdit::RestorePromotedComponent {
+            source_component_name: "SaveButton".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
+            component_name: "SaveButton".to_string(),
+            document_id: "ui.widgets.save_button".to_string(),
+        })
+    );
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_tracks_composite_external_effect_vectors() {
+    let mut undo_stack = UiAssetEditorUndoStack::default();
+    undo_stack.push_edit(
+        "Composite Effects",
+        Some(UiAssetEditorTreeEdit::Generic {
+            kind: UiAssetEditorTreeEditKind::DocumentEdit,
+        }),
+        None,
+        SIMPLE_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        Some(crate::tests::support::load_test_ui_asset(SIMPLE_LAYOUT_ASSET_TOML).expect("before")),
+        STYLED_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        Some(crate::tests::support::load_test_ui_asset(STYLED_LAYOUT_ASSET_TOML).expect("after")),
+        UiAssetEditorUndoExternalEffects {
+            undo: vec![
+                UiAssetEditorExternalEffect::RemoveAssetSource {
+                    asset_id: "res://ui/theme/editor_base.zui".to_string(),
+                },
+                UiAssetEditorExternalEffect::UpsertAssetSource {
+                    asset_id: "res://ui/theme/editor_local.zui".to_string(),
+                    source:
+                        "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_local\"\nversion = 1\n"
+                            .to_string(),
+                },
+            ],
+            redo: vec![
+                UiAssetEditorExternalEffect::UpsertAssetSource {
+                    asset_id: "res://ui/theme/editor_base.zui".to_string(),
+                    source:
+                        "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_base\"\nversion = 1\n"
+                            .to_string(),
+                },
+                UiAssetEditorExternalEffect::RemoveAssetSource {
+                    asset_id: "res://ui/theme/editor_local.zui".to_string(),
+                },
+            ],
+        },
+    );
+
+    assert_eq!(
+        undo_stack.next_undo_external_effects(),
+        vec![
+            UiAssetEditorExternalEffect::RemoveAssetSource {
+                asset_id: "res://ui/theme/editor_base.zui".to_string(),
+            },
+            UiAssetEditorExternalEffect::UpsertAssetSource {
+                asset_id: "res://ui/theme/editor_local.zui".to_string(),
+                source: "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_local\"\nversion = 1\n"
+                    .to_string(),
+            },
+        ]
+    );
+
+    let _ = undo_stack.undo().expect("undo composite");
+    assert_eq!(
+        undo_stack.next_redo_external_effects(),
+        vec![
+            UiAssetEditorExternalEffect::UpsertAssetSource {
+                asset_id: "res://ui/theme/editor_base.zui".to_string(),
+                source: "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_base\"\nversion = 1\n"
+                    .to_string(),
+            },
+            UiAssetEditorExternalEffect::RemoveAssetSource {
+                asset_id: "res://ui/theme/editor_local.zui".to_string(),
+            },
+        ]
+    );
+}
+
+#[test]
+fn ui_asset_editor_undo_stack_keeps_source_only_replays_for_source_edits() {
+    let mut undo_stack = UiAssetEditorUndoStack::default();
+    undo_stack.push_edit(
+        "Source Edit",
+        None,
+        None,
+        SIMPLE_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        None,
+        STYLED_LAYOUT_ASSET_TOML.to_string(),
+        UiDesignerSelectionModel::default(),
+        Default::default(),
+        None,
+        None,
+        UiAssetEditorUndoExternalEffects::default(),
+    );
+
+    let undone = undo_stack.undo().expect("undo snapshot");
+    assert!(undone.document.is_none());
+    let mut undone_source = STYLED_LAYOUT_ASSET_TOML.to_string();
+    assert!(undone
+        .apply_to_source(&mut undone_source)
+        .expect("apply undo source replay"));
+    assert_eq!(undone_source, SIMPLE_LAYOUT_ASSET_TOML);
+
+    let redone = undo_stack.redo().expect("redo snapshot");
+    assert!(redone.document.is_none());
+    let mut redone_source = SIMPLE_LAYOUT_ASSET_TOML.to_string();
+    assert!(redone
+        .apply_to_source(&mut redone_source)
+        .expect("apply redo source replay"));
+    assert_eq!(redone_source, STYLED_LAYOUT_ASSET_TOML);
+}
+
+#[test]
+fn ui_asset_editor_session_redo_restores_tree_edit_selection_and_source_summary() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.zui",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Split,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+    let palette_index = session
+        .pane_presentation()
+        .palette_items
+        .iter()
+        .position(|item| item == "Native / Button")
+        .expect("button palette item");
+
+    session
+        .select_hierarchy_index(0)
+        .expect("select root from hierarchy");
+    assert!(session
+        .select_palette_index(palette_index)
+        .expect("select palette item"));
+    assert!(session
+        .insert_selected_palette_item_as_child()
+        .expect("insert button as child"));
+
+    let inserted = session.pane_presentation();
+    assert_eq!(inserted.inspector_selected_node_id, "button_2");
+    assert_eq!(inserted.source_selected_block_label, "[nodes.button_2]");
+    assert!(inserted
+        .source_selected_excerpt
+        .contains("[nodes.button_2]"));
+
+    assert!(session.undo().expect("undo tree edit"));
+    let undone = session.pane_presentation();
+    assert_eq!(undone.inspector_selected_node_id, "root");
+    assert_eq!(undone.source_selected_block_label, "[nodes.root]");
+
+    assert!(session.redo().expect("redo tree edit"));
+    let redone = session.pane_presentation();
+    assert_eq!(redone.inspector_selected_node_id, "button_2");
+    assert_eq!(redone.source_selected_block_label, "[nodes.button_2]");
+    assert!(redone.source_selected_excerpt.contains("[nodes.button_2]"));
+}

@@ -14,7 +14,7 @@ pub(crate) fn sdf_offline_artifact_path(
         .join("v1")
         .join(&identity.asset_guid)
         .join(format!("face_{:04}", identity.face_index))
-        .join(hex(&identity.variation_hash))
+        .join(hex(identity.variation_hash.as_bytes()))
         .join(format!(
             "{}_{}_{}.zsdf",
             mode_name(identity.params.mode),

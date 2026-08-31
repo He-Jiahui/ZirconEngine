@@ -7,13 +7,13 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::core::framework::render::{FroxelGridParams, ViewportCameraSnapshot};
 use crate::core::math::{UVec2, Vec3};
 
-use super::super::super::light_scatter::{FroxelLightScatterPipeline, FroxelLightScatterRequest};
 use super::super::super::GpuFroxelTemporalReprojection;
+use super::super::super::light_scatter::{FroxelLightScatterPipeline, FroxelLightScatterRequest};
 use super::super::FroxelViewReconstruction;
 use super::fixture::{
-    clear_shadow_atlas, create_lighting_resources, create_shadow_resources, d3_view_descriptor,
     LightingResources, READBACK_BYTES_PER_ROW, TEST_GRID, TEST_OUTPUT,
-    TEST_SHADOWED_RECEIVER_DEPTH,
+    TEST_SHADOWED_RECEIVER_DEPTH, clear_shadow_atlas, create_lighting_resources,
+    create_shadow_resources, d3_view_descriptor,
 };
 use super::support::{f16_bits_to_f32, render_test_output_dir, test_device};
 
@@ -244,10 +244,10 @@ fn encode_scatter(
     shadow_slots: &wgpu::Buffer,
     shadow_globals: &wgpu::Buffer,
 ) {
+    let mut recording = (device, encoder);
     pipeline
         .encode(
-            device,
-            encoder,
+            &mut recording,
             FroxelLightScatterRequest {
                 grid,
                 view,
@@ -266,9 +266,21 @@ fn encode_scatter(
                 ),
                 light_buffer: &lighting.light_buffer,
                 light_count: 1,
-                light_grid_params_buffer: &lighting.params_buffer,
-                light_zbins_buffer: &lighting.zbins_buffer,
-                light_tile_masks_buffer: &lighting.tile_masks_buffer,
+                light_grid_params_buffer: wgpu::BufferBinding {
+                    buffer: &lighting.params_buffer,
+                    offset: 0,
+                    size: None,
+                },
+                light_zbins_buffer: wgpu::BufferBinding {
+                    buffer: &lighting.zbins_buffer,
+                    offset: 0,
+                    size: None,
+                },
+                light_tile_masks_buffer: wgpu::BufferBinding {
+                    buffer: &lighting.tile_masks_buffer,
+                    offset: 0,
+                    size: None,
+                },
                 shadow_atlas_view: shadow_view,
                 shadow_sampler,
                 shadow_slots_buffer: shadow_slots,

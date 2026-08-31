@@ -14,6 +14,9 @@ RUNTIME_03_SOURCE_FILES = (
     "zircon_runtime/src/dynamic_api/session/menu.rs",
     "zircon_runtime/src/scene/level_system.rs",
     "zircon_runtime/src/scene/module/world_driver.rs",
+    "zircon_runtime/src/scene/world_time/mod.rs",
+    "zircon_runtime/src/scene/world_time/controller.rs",
+    "zircon_runtime/src/scene/world_time/snapshot.rs",
     "zircon_runtime/src/core/framework/scene/system_stage.rs",
     "zircon_runtime/src/scene/ecs/schedule_stage_plan.rs",
     "zircon_runtime/src/scene/ecs/schedule_runner.rs",
@@ -29,6 +32,7 @@ RUNTIME_03_SOURCE_FILES = (
 RUNTIME_03_GUARD_FILES = (
     "zircon_runtime/src/scene/tests/ecs_schedule.rs",
     "zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs",
+    "zircon_runtime/src/scene/tests/ecs_schedule/world_time_controller.rs",
     "zircon_runtime/src/scene/tests/ecs_schedule/parallel_executor.rs",
     "zircon_runtime/src/scene/tests/ecs_schedule/schedule_plan.rs",
     "zircon_runtime/src/scene/tests/ecs_schedule/world_driver.rs",

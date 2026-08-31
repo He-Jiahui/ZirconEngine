@@ -17,10 +17,14 @@ fn inspector_bootstrap_layout_self_hosts_shell_sections() {
         "content_panel",
         "header_panel",
         "name_row",
+        "name_value",
         "parent_row",
+        "parent_value",
         "position_row",
+        "position_value",
         "separator_row",
         "actions_row",
+        "components_value",
     ] {
         assert!(
             layout.nodes.contains_key(required_node),
@@ -38,6 +42,7 @@ fn inspector_projection_maps_bootstrap_asset_into_mount_nodes() {
             parent: "Root".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
             scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
+            render_layer_mask: 1,
             plugin_components: Vec::new(),
         }),
         UiSize::new(360.0, 520.0),
@@ -50,10 +55,14 @@ fn inspector_projection_maps_bootstrap_asset_into_mount_nodes() {
         "InspectorContentPanel",
         "InspectorHeaderPanel",
         "InspectorNameRow",
+        "InspectorNameValue",
         "InspectorParentRow",
+        "InspectorParentValue",
         "InspectorPositionRow",
+        "InspectorPositionValue",
         "InspectorSeparatorRow",
         "InspectorActionsRow",
+        "InspectorComponentsValue",
     ] {
         let frame = nodes
             .iter()
@@ -75,34 +84,34 @@ fn inspector_projection_maps_bootstrap_asset_into_mount_nodes() {
         .iter()
         .find(|node| node.control_id == "InspectorHeaderPanel")
         .expect("header panel");
-    assert_eq!(header.text.to_string(), "Inspector • Camera");
+    assert_eq!(header.text.to_string(), "Inspector");
     let name = nodes
         .iter()
-        .find(|node| node.control_id == "InspectorNameRow")
-        .expect("name row");
-    assert_eq!(name.text.to_string(), "Name • Camera");
+        .find(|node| node.control_id == "InspectorNameValue")
+        .expect("name value");
+    assert_eq!(name.value_text.to_string(), "Camera");
     let parent = nodes
         .iter()
-        .find(|node| node.control_id == "InspectorParentRow")
-        .expect("parent row");
-    assert_eq!(parent.text.to_string(), "Parent • Root");
+        .find(|node| node.control_id == "InspectorParentValue")
+        .expect("parent value");
+    assert_eq!(parent.value_text.to_string(), "Root");
     let position = nodes
         .iter()
-        .find(|node| node.control_id == "InspectorPositionRow")
-        .expect("position row");
-    assert_eq!(position.text.to_string(), "Position • 1.0, 2.0, 3.0");
+        .find(|node| node.control_id == "InspectorPositionValue")
+        .expect("position value");
+    assert_eq!(position.value_text.to_string(), "1.0, 2.0, 3.0");
     let separator = nodes
         .iter()
         .find(|node| node.control_id == "InspectorSeparatorRow")
         .expect("separator row");
     let actions = nodes
         .iter()
-        .find(|node| node.control_id == "InspectorActionsRow")
-        .expect("actions row");
-    assert!(header.selected);
+        .find(|node| node.control_id == "InspectorComponentsValue")
+        .expect("components value");
+    assert!(!header.selected);
     assert_eq!(header.text_tone.to_string(), "default");
-    assert!(actions.selected);
-    assert_eq!(actions.surface_variant.to_string(), "panel");
+    assert!(!actions.selected);
+    assert_eq!(actions.value_text.to_string(), "0");
 
     assert!(header.frame.y >= content.frame.y);
     assert!(name.frame.y >= header.frame.y + header.frame.height);

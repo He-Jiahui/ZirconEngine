@@ -7,6 +7,8 @@ use super::identity::{alert_has_icon, is_alert_root_node, is_alert_slot_node};
 use super::message::push_alert_message;
 use super::surface::push_alert_surface;
 
+const MAX_ALERT_COMMANDS: usize = 15;
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_alert_primitive_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -27,6 +29,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_al
         return true;
     }
 
+    reserve_alert_command_capacity(commands);
     push_alert_surface(commands, node, &paint_rect, clip, order, opacity);
     if alert_has_icon(node) {
         push_alert_icon(commands, node, &paint_rect, clip, order + 1, opacity);
@@ -50,3 +53,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_al
 
     true
 }
+
+fn reserve_alert_command_capacity(commands: &mut Vec<HostPaintCommand>) {
+    commands.reserve(MAX_ALERT_COMMANDS);
+}
+
+#[cfg(test)]
+#[path = "commands/reserve_capacity_tests.rs"]
+mod reserve_capacity_tests;

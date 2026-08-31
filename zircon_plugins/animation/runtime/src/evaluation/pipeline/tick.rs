@@ -2,17 +2,18 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use zircon_runtime::asset::project_asset_manager_handle;
-use zircon_runtime::core::CoreHandle;
-use zircon_runtime::core::framework::animation::{AnimationParameterValue, AnimationPoseOutput};
+use zircon_runtime::core::framework::animation::{
+    AnimationParameterValue, AnimationPoseMap, AnimationPoseOutput, AnimationPoseSnapshot,
+};
 use zircon_runtime::core::framework::physics::{
     SimulatedPoseFeed, SkeletalPoseTarget, SkeletalPoseTargets,
 };
 use zircon_runtime::core::manager::{animation_manager_handle, resolve_manager_service};
 use zircon_runtime::core::math::Real;
+use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::components::AnimationStateMachinePlayerComponent;
 use zircon_runtime::scene::{EntityId, LevelSystem};
 
-use super::AnimationEvaluationPipeline;
 use super::direct_clip_worker::sample_direct_clip_pose_requests;
 use super::events::{enqueue_clip_event_samples, publish_clip_events, publish_events};
 use super::graph_evaluate::resolve_graph_pose_requests;
@@ -20,12 +21,11 @@ use super::parameter_apply::{
     apply_clip_player_updates, apply_sequence_player_updates, scan_animation_scene,
 };
 use super::pose_apply::apply_pose_transforms_to_scene_nodes;
-use super::sequences::{LoadedSequenceSample, apply_loaded_sequences};
+use super::sequences::{apply_loaded_sequences, LoadedSequenceSample};
 use super::simulated_pose_blend::blend_simulated_pose_feed;
 use super::state_machine_layers::apply_state_machine_layers;
 use super::state_machine_step::resolve_state_machine_pose_requests;
-use crate::ik::apply_ik_commands;
-
+use super::{AnimationEvaluationPipeline, PresentationPoseChange};
 pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: Real) {
     let Ok(animation) =
         animation_manager_handle(core).and_then(|handle| resolve_manager_service(core, handle))
@@ -101,17 +101,18 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
             previous_state_machine_times.as_ref(),
             &admission.deferred_entities,
         );
-        let Some((pose_snapshot, targets_changed)) =
+        let Some((pose_snapshot, pose_change)) =
             level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
                 let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
                 projection.commit_revision_stage(revision_stage, &admission.deferred_entities);
                 pipeline.projection = projection;
                 pipeline.set_clip_event_admission_cursor(admission.next_cursor);
-                let changed =
+                let update =
                     pipeline.update_presentation_poses(&scan.pose_source_entities, BTreeMap::new());
-                let targets_changed = changed.is_some();
-                let pose_snapshot = changed.unwrap_or_else(|| pipeline.presentation_poses());
-                (pose_snapshot, targets_changed)
+                match update {
+                    Some(update) => (update.snapshot, Some(update.change)),
+                    None => (pipeline.presentation_poses(), None),
+                }
             })
         else {
             return;
@@ -128,10 +129,10 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         {
             return;
         }
-        if targets_changed
-            && !publish_skeletal_pose_targets(level, replacement_epoch, &pose_snapshot)
-        {
-            return;
+        if let Some(change) = pose_change {
+            if !publish_skeletal_pose_targets(level, replacement_epoch, &pose_snapshot, &change) {
+                return;
+            }
         }
         if !level.record_animation_pose_snapshot(replacement_epoch, pose_snapshot) {
             return;
@@ -189,11 +190,10 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         mut layer_diagnostics,
         mut active_state_updates,
         mut transition_updates,
-        state_machine_checkpoint,
+        state_machine_journal,
     ) = level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
         let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
-        let state_machine_checkpoint =
-            pipeline.state_machine_runtime_checkpoint(&state_machine_sample_entities);
+        pipeline.begin_state_machine_runtime_transaction(&state_machine_sample_entities);
         pipeline.projection = projection;
         pipeline
             .clip_evaluator_mut()
@@ -224,6 +224,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
             &mut state_machine_poses,
         );
         state_machine_event_samples.extend(layer_result.events);
+        let state_machine_journal = pipeline.finish_state_machine_runtime_transaction();
         (
             animation_poses,
             graph_poses,
@@ -233,7 +234,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
             layer_result.diagnostics,
             active_state_updates,
             transition_updates,
-            state_machine_checkpoint,
+            state_machine_journal,
         )
     })
     else {
@@ -258,7 +259,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
                 .projection
                 .commit_revision_stage(revision_stage, &admission.deferred_entities);
             pipeline.finish_clip_event_admission(
-                state_machine_checkpoint,
+                state_machine_journal,
                 &admission.deferred_entities,
                 admission.next_cursor,
             );
@@ -308,13 +309,8 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
     {
         return;
     }
-    let Some(ik_diagnostics) =
-        level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
-            let ik_commands = animation.drain_ik_commands_excluding(
-                level.world_handle(),
-                replacement_epoch,
-                &admission.deferred_entities,
-            );
+    if level
+        .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
             let pipeline = world.resource::<AnimationEvaluationPipeline>();
             if world.contains_resource::<SimulatedPoseFeed>() {
                 blend_simulated_pose_feed(
@@ -324,18 +320,9 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
                     &mut animation_poses,
                 );
             }
-            apply_ik_commands(
-                pipeline,
-                asset_manager,
-                &scan.skeletons_by_entity,
-                ik_commands,
-                &mut animation_poses,
-            )
         })
-    else {
-        return;
-    };
-    if !publish_events(level, replacement_epoch, ik_diagnostics) {
+        .is_none()
+    {
         return;
     }
 
@@ -365,20 +352,23 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
     if !apply_pose_transforms_to_scene_nodes(level, replacement_epoch, &animation_poses) {
         return;
     }
-    let Some((pose_snapshot, targets_changed)) =
+    let Some((pose_snapshot, pose_change)) =
         level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
             let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
-            let changed =
+            let update =
                 pipeline.update_presentation_poses(&scan.pose_source_entities, animation_poses);
-            let targets_changed = changed.is_some();
-            let pose_snapshot = changed.unwrap_or_else(|| pipeline.presentation_poses());
-            (pose_snapshot, targets_changed)
+            match update {
+                Some(update) => (update.snapshot, Some(update.change)),
+                None => (pipeline.presentation_poses(), None),
+            }
         })
     else {
         return;
     };
-    if targets_changed && !publish_skeletal_pose_targets(level, replacement_epoch, &pose_snapshot) {
-        return;
+    if let Some(change) = pose_change {
+        if !publish_skeletal_pose_targets(level, replacement_epoch, &pose_snapshot, &change) {
+            return;
+        }
     }
     if !level.record_animation_pose_snapshot(replacement_epoch, pose_snapshot) {
         return;
@@ -441,7 +431,8 @@ fn retain_non_deferred_entity_updates<T>(
 fn publish_skeletal_pose_targets(
     level: &LevelSystem,
     replacement_epoch: u64,
-    animation_poses: &BTreeMap<EntityId, AnimationPoseOutput>,
+    animation_poses: &AnimationPoseMap,
+    change: &PresentationPoseChange,
 ) -> bool {
     level
         .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
@@ -449,28 +440,43 @@ fn publish_skeletal_pose_targets(
                 return;
             }
             let targets = world.resource_mut::<SkeletalPoseTargets>();
-            targets.clear();
-            for (entity, pose) in animation_poses {
-                targets.replace(
-                    *entity,
-                    Arc::from(
-                        pose.bones
-                            .iter()
-                            .map(|bone| SkeletalPoseTarget {
-                                bone_name: bone.name.clone(),
-                                local_transform: bone.local_transform,
-                                normalized_weight: 1.0,
-                            })
-                            .collect::<Vec<_>>(),
-                    ),
-                );
+            match change {
+                PresentationPoseChange::Full => {
+                    targets.clear();
+                    for (entity, pose) in animation_poses {
+                        targets.replace(*entity, skeletal_pose_targets(pose));
+                    }
+                }
+                PresentationPoseChange::Partial { changed_entities } => {
+                    for entity in changed_entities {
+                        if let Some(pose) = animation_poses.get(entity) {
+                            targets.replace(*entity, skeletal_pose_targets(pose));
+                        } else {
+                            targets.remove(*entity);
+                        }
+                    }
+                }
             }
         })
         .is_some()
 }
 
+fn skeletal_pose_targets(pose: &AnimationPoseOutput) -> Arc<[SkeletalPoseTarget]> {
+    Arc::from(
+        pose.bones
+            .iter()
+            .map(|bone| SkeletalPoseTarget {
+                bone_name: bone.name.clone(),
+                local_transform: bone.local_transform,
+                normalized_weight: 1.0,
+            })
+            .collect::<Vec<_>>(),
+    )
+}
+
 fn record_empty_animation_state(level: &LevelSystem) {
     let replacement_epoch = level.capture_world_replacement_epoch();
+    let empty_pose_snapshot = AnimationPoseSnapshot::default();
     if level
         .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
             if let Some(pipeline) = world.get_resource_mut::<AnimationEvaluationPipeline>() {
@@ -478,8 +484,13 @@ fn record_empty_animation_state(level: &LevelSystem) {
             }
         })
         .is_none()
-        || !publish_skeletal_pose_targets(level, replacement_epoch, &BTreeMap::new())
-        || !level.record_animation_poses(replacement_epoch, BTreeMap::new())
+        || !publish_skeletal_pose_targets(
+            level,
+            replacement_epoch,
+            empty_pose_snapshot.as_ref(),
+            &PresentationPoseChange::Full,
+        )
+        || !level.record_animation_pose_snapshot(replacement_epoch, empty_pose_snapshot)
     {
         return;
     }
@@ -514,7 +525,8 @@ mod tests {
                 ("jump".into(), AnimationParameterValue::Trigger),
                 ("speed".into(), AnimationParameterValue::Scalar(2.0)),
                 ("grounded".into(), AnimationParameterValue::Bool(true)),
-            ]),
+            ])
+            .into(),
             active_state: Some("Idle".into()),
             playing: true,
         };

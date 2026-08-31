@@ -6,7 +6,6 @@ use super::scene_renderer_advanced_plugin_readbacks::SceneRendererAdvancedPlugin
 impl SceneRendererAdvancedPluginReadbacks {
     pub(in crate::graphics::scene::scene_renderer::core) fn collect_into_outputs(
         self,
-        _device: &wgpu::Device,
         outputs: &mut SceneRendererAdvancedPluginOutputs,
     ) -> Result<(), GraphicsError> {
         self.collect_neutral_outputs_into(outputs);
@@ -72,5 +71,54 @@ mod tests {
                 .indirect_draw_args,
             [6, 5, 0, 0]
         );
+    }
+
+    #[test]
+    fn cpu_only_plugin_owners_do_not_borrow_the_native_device() {
+        let readback_source = include_str!("collect_into_outputs.rs");
+        let readback_owner = readback_source
+            .split("fn collect_into_outputs(")
+            .nth(1)
+            .and_then(|source| source.split("fn collect_neutral_outputs_into(").next())
+            .expect("advanced-plugin readback publication owner");
+        let resource_source = include_str!(
+            "../advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs"
+        );
+        let resource_owner = resource_source
+            .split("fn new(")
+            .nth(1)
+            .and_then(|source| {
+                source
+                    .split("fn register_runtime_prepare_collector(")
+                    .next()
+            })
+            .expect("advanced-plugin CPU capability owner");
+        let output_caller =
+            include_str!("../../scene_renderer_runtime_outputs/store_last_runtime_outputs.rs");
+        let construct_source =
+            include_str!("../../scene_renderer_core_construct/construct/construct.rs");
+        let construct_caller = construct_source
+            .split("let advanced_plugin_resources =")
+            .nth(1)
+            .and_then(|source| source.split("let volumetric_fog_enabled =").next())
+            .expect("advanced-plugin capability construction caller");
+        let runtime_prepare_context = include_str!("../../../../../runtime_prepare_collector.rs");
+        let root_context = runtime_prepare_context
+            .split("pub struct RuntimePrepareCollectorContext")
+            .nth(1)
+            .and_then(|source| {
+                source
+                    .split("/// Runtime-prepare capability for CPU writes")
+                    .next()
+            })
+            .expect("runtime-prepare root context");
+
+        assert!(!readback_owner.contains("wgpu::Device"));
+        assert!(!resource_owner.contains("wgpu::Device"));
+        assert!(!output_caller.contains("renderer.backend.device"));
+        assert!(!construct_caller.contains("device,"));
+        assert!(runtime_prepare_context.contains("pub fn gpu_recording_context("));
+        assert!(!root_context.contains("pub device:"));
+        assert!(readback_owner.contains("collect_neutral_outputs_into(outputs)"));
     }
 }

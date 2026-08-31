@@ -15,7 +15,13 @@ use crate::asset::{
     MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
     MESH_ATTRIBUTE_UV1,
 };
-use crate::core::framework::animation::{AnimationChannelValueAsset, AnimationInterpolationAsset};
+use crate::core::framework::{
+    animation::{AnimationChannelValueAsset, AnimationInterpolationAsset},
+    render::{
+        RenderImageColorSpace, RenderSamplerAddressMode, RenderSamplerDescriptor,
+        RenderSamplerFilter,
+    },
+};
 
 mod basic_import;
 mod external_inputs;
@@ -113,8 +119,10 @@ fn assert_texture_slot_transform(
     material: &MaterialAsset,
     root_uri: &AssetUri,
     slot: &str,
+    expected_texture_label: &str,
     expected_scale: [f32; 2],
     expected_offset: [f32; 2],
+    expected_rotation: f32,
     expected_uv_channel: u32,
 ) {
     let value = material
@@ -123,11 +131,12 @@ fn assert_texture_slot_transform(
         .unwrap_or_else(|| panic!("{slot} texture slot should be imported"));
     assert_eq!(
         value.reference.as_ref().unwrap().locator,
-        label_uri(root_uri, "Texture0")
+        label_uri(root_uri, expected_texture_label)
     );
     let transform = value.texture_transform();
     assert_vec2_near(transform.scale, expected_scale);
     assert_vec2_near(transform.offset, expected_offset);
+    assert_f32_near(transform.rotation, expected_rotation);
     assert_eq!(value.texture_uv_channel(), expected_uv_channel);
 }
 
@@ -138,6 +147,28 @@ fn assert_vec2_near(actual: [f32; 2], expected: [f32; 2]) {
             "expected {expected:?}, got {actual:?}"
         );
     }
+}
+
+fn assert_f32_near(actual: f32, expected: f32) {
+    assert!(
+        (actual - expected).abs() <= 0.000_001,
+        "expected {expected:?}, got {actual:?}"
+    );
+}
+
+fn assert_gltf_sampler_descriptor(sampler: &RenderSamplerDescriptor) {
+    assert_eq!(
+        sampler.address_mode_u,
+        RenderSamplerAddressMode::MirrorRepeat
+    );
+    assert_eq!(
+        sampler.address_mode_v,
+        RenderSamplerAddressMode::ClampToEdge
+    );
+    assert_eq!(sampler.address_mode_w, RenderSamplerAddressMode::Repeat);
+    assert_eq!(sampler.mag_filter, RenderSamplerFilter::Nearest);
+    assert_eq!(sampler.min_filter, RenderSamplerFilter::Nearest);
+    assert_eq!(sampler.mipmap_filter, RenderSamplerFilter::Linear);
 }
 
 fn entry_for_locator<'a>(

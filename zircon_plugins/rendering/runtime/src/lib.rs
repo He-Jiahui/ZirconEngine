@@ -95,7 +95,7 @@ impl RenderingFeatureKind {
     pub const fn enabled_by_default(self) -> bool {
         matches!(
             self,
-            Self::PostProcess | Self::Ssao | Self::ReflectionProbes | Self::BakedLighting
+            Self::PostProcess | Self::ReflectionProbes | Self::BakedLighting
         )
     }
 
@@ -192,6 +192,10 @@ mod tests {
             zircon_runtime::plugin::PluginMaturity::Stable
         );
         assert_eq!(descriptor.optional_features().len(), 15);
+        assert!(descriptor
+            .optional_features()
+            .iter()
+            .any(|feature| feature.id == "rendering.ssao" && !feature.enabled_by_default));
         assert!(
             descriptor
                 .optional_features()
@@ -231,7 +235,6 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![
                 "rendering.post_process",
-                "rendering.ssao",
                 "rendering.reflection_probes",
                 "rendering.baked_lighting",
             ]

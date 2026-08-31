@@ -128,6 +128,28 @@ impl TextureFormat {
         matches!(self, Self::Depth24PlusStencil8)
     }
 
+    /// Formats admitted by the write-only storage-texture contract shared by
+    /// graph materialization and the WGPU backend.
+    pub const fn supports_write_only_storage(self) -> bool {
+        matches!(
+            self,
+            Self::R32Float | Self::Rgba8Unorm | Self::Rgba16Float | Self::Rgba32Float
+        )
+    }
+
+    /// Returns whether this format can back the supplied alternate view
+    /// format. The MVP deliberately exposes only WGPU's portable sRGB view
+    /// reinterpretation instead of a backend-specific typeless-format API.
+    pub const fn supports_alternate_view_format(self, alternate: Self) -> bool {
+        matches!(
+            (self, alternate),
+            (Self::Rgba8Unorm, Self::Rgba8UnormSrgb)
+                | (Self::Rgba8UnormSrgb, Self::Rgba8Unorm)
+                | (Self::Bgra8Unorm, Self::Bgra8UnormSrgb)
+                | (Self::Bgra8UnormSrgb, Self::Bgra8Unorm)
+        )
+    }
+
     pub const fn is_hdr_color(self) -> bool {
         matches!(
             self,
@@ -152,6 +174,14 @@ impl TextureUsage {
     pub const COPY_SRC: Self = Self(1 << 3);
     pub const COPY_DST: Self = Self(1 << 4);
     pub const PRESENT: Self = Self(1 << 5);
+    pub const ALL: Self = Self(
+        Self::RENDER_ATTACHMENT.0
+            | Self::SAMPLED.0
+            | Self::STORAGE.0
+            | Self::COPY_SRC.0
+            | Self::COPY_DST.0
+            | Self::PRESENT.0,
+    );
 
     pub const fn bits(self) -> u32 {
         self.0
@@ -159,6 +189,10 @@ impl TextureUsage {
 
     pub const fn contains(self, other: Self) -> bool {
         (self.0 & other.0) == other.0
+    }
+
+    pub const fn has_unknown_bits(self) -> bool {
+        (self.0 & !Self::ALL.0) != 0
     }
 }
 
@@ -203,6 +237,10 @@ pub struct TextureDesc {
     pub format: TextureFormat,
     pub usage: TextureUsage,
     pub dimension: TextureDimension,
+    /// Alternate shader-visible formats declared while the texture is
+    /// created. The base format is always available and must not be repeated.
+    #[serde(default)]
+    pub view_formats: Vec<TextureFormat>,
     #[serde(default)]
     pub residency: TextureResidency,
 }
@@ -225,6 +263,7 @@ impl TextureDesc {
             format,
             usage,
             dimension: TextureDimension::D2,
+            view_formats: Vec::new(),
             residency: TextureResidency::Dense,
         }
     }
@@ -251,6 +290,14 @@ impl TextureDesc {
 
     pub fn with_sample_count(mut self, sample_count: u32) -> Self {
         self.sample_count = sample_count;
+        self
+    }
+
+    pub fn with_view_formats(
+        mut self,
+        view_formats: impl IntoIterator<Item = TextureFormat>,
+    ) -> Self {
+        self.view_formats = view_formats.into_iter().collect();
         self
     }
 
@@ -436,12 +483,80 @@ impl SamplerDesc {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextureViewDimension {
+    D1,
+    D2,
+    D2Array,
+    D3,
+    Cube,
+    CubeArray,
+}
+
+/// Selects the texture component exposed by a shader-visible view. `All` is
+/// required for color textures and combined depth-stencil attachments;
+/// depth/stencil shader reads must select one component explicitly.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextureViewAspect {
+    #[default]
+    All,
+    DepthOnly,
+    StencilOnly,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextureSampleType {
+    Float { filterable: bool },
+    Depth,
+    Sint,
+    Uint,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SamplerBindingType {
+    Filtering,
+    NonFiltering,
+    Comparison,
+}
+
+/// Storage-texture access admitted by the neutral MVP ABI. Read and
+/// read-write storage need feature negotiation and shader reflection support
+/// before they can join this portable contract.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum StorageTextureAccess {
+    WriteOnly,
+}
+
+/// Requires a shader-visible texture view with this exact format and
+/// dimension. The view itself remains a separate RHI resource so subresource
+/// range/lifetime validation is shared with sampled textures.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StorageTextureBindingDesc {
+    pub access: StorageTextureAccess,
+    pub format: TextureFormat,
+    pub view_dimension: TextureViewDimension,
+}
+
+impl StorageTextureBindingDesc {
+    pub const fn write_only(format: TextureFormat, view_dimension: TextureViewDimension) -> Self {
+        Self {
+            access: StorageTextureAccess::WriteOnly,
+            format,
+            view_dimension,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BindingResourceType {
     UniformBuffer,
     StorageBuffer,
-    Texture,
-    StorageTexture,
-    Sampler,
+    SampledTexture {
+        sample_type: TextureSampleType,
+        view_dimension: TextureViewDimension,
+        multisampled: bool,
+    },
+    StorageTexture(StorageTextureBindingDesc),
+    Sampler(SamplerBindingType),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -449,6 +564,10 @@ pub struct BindGroupLayoutEntryDesc {
     pub binding: u32,
     pub visibility: Vec<ShaderStage>,
     pub resource_type: BindingResourceType,
+    #[serde(default)]
+    pub has_dynamic_offset: bool,
+    #[serde(default)]
+    pub min_binding_size: Option<u64>,
 }
 
 impl BindGroupLayoutEntryDesc {
@@ -461,7 +580,19 @@ impl BindGroupLayoutEntryDesc {
             binding,
             visibility: visibility.into(),
             resource_type,
+            has_dynamic_offset: false,
+            min_binding_size: None,
         }
+    }
+
+    pub const fn with_dynamic_offset(mut self) -> Self {
+        self.has_dynamic_offset = true;
+        self
+    }
+
+    pub const fn with_min_binding_size(mut self, size: u64) -> Self {
+        self.min_binding_size = Some(size);
+        self
     }
 }
 

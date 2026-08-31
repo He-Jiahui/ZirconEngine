@@ -10,14 +10,12 @@ use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::world::World;
 
-use crate::{
-    navigation_component_descriptors, DefaultNavigationManager, NavMeshBakeTaskState,
-    NavMeshDirtyBounds,
-};
+use crate::test_support::navigation_manager;
+use crate::{navigation_component_descriptors, NavMeshBakeTaskState, NavMeshDirtyBounds};
 
 #[test]
 fn bake_surface_accepts_typed_resource_json_from_dynamic_properties() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     let entity = world.spawn_node(NodeKind::Cube);
     world
@@ -51,7 +49,7 @@ fn bake_surface_accepts_typed_resource_json_from_dynamic_properties() {
 
 #[test]
 fn bake_surface_ignores_script_only_empty_nodes() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     let surface = world.spawn_node(NodeKind::Cube);
     let empty = world.spawn_node(NodeKind::Empty);
@@ -82,7 +80,7 @@ fn bake_surface_ignores_script_only_empty_nodes() {
 
 #[test]
 fn bake_surface_applies_modifier_area_and_embeds_offmesh_links() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -143,7 +141,7 @@ fn bake_surface_applies_modifier_area_and_embeds_offmesh_links() {
 
 #[test]
 fn bake_surface_expands_offmesh_bridge_lanes_and_tracks_stats() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -207,7 +205,7 @@ fn bake_surface_expands_offmesh_bridge_lanes_and_tracks_stats() {
 
 #[test]
 fn bake_surface_respects_disabled_link_generation_and_settings_hash() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -267,7 +265,7 @@ fn bake_surface_respects_disabled_link_generation_and_settings_hash() {
 
 #[test]
 fn carved_obstacle_removes_static_bake_source() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -304,7 +302,7 @@ fn carved_obstacle_removes_static_bake_source() {
 
 #[test]
 fn bake_input_falls_back_to_render_mesh_without_physics() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::empty();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -335,7 +333,7 @@ fn bake_input_falls_back_to_render_mesh_without_physics() {
 
 #[test]
 fn golden_level_bake_then_path_length_within_tolerance() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::empty();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -367,7 +365,7 @@ fn golden_level_bake_then_path_length_within_tolerance() {
 
 #[test]
 fn modifier_volume_marks_area_id_in_polymesh() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::empty();
     for descriptor in navigation_component_descriptors() {
         world.register_component_type(descriptor).unwrap();
@@ -421,7 +419,7 @@ fn modifier_volume_marks_area_id_in_polymesh() {
 
 #[test]
 fn tiled_bake_does_not_block_main_thread() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let world = tiled_test_world(24);
     let started_at = Instant::now();
 
@@ -442,7 +440,7 @@ fn tiled_bake_does_not_block_main_thread() {
 
 #[test]
 fn tile_boundary_paths_are_continuous() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let world = tiled_test_world(8);
     let asset = manager
         .bake_surface(&world, NavMeshBakeRequest::default())
@@ -462,7 +460,7 @@ fn tile_boundary_paths_are_continuous() {
 
 #[test]
 fn dirty_tile_rebuild_only_affects_neighbors() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = tiled_test_world(10);
     let initial = manager
         .bake_surface(&world, NavMeshBakeRequest::default())
@@ -504,7 +502,7 @@ fn dirty_tile_rebuild_only_affects_neighbors() {
 
 #[test]
 fn dirty_tile_rebuild_reconciles_vacated_and_new_tiles() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = tiled_test_world(10);
     let initial = manager
         .bake_surface(&world, NavMeshBakeRequest::default())
@@ -547,7 +545,7 @@ fn dirty_tile_rebuild_reconciles_vacated_and_new_tiles() {
 
 #[test]
 fn dirty_tile_rebuild_rejects_changed_bake_identity() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = tiled_test_world(6);
     manager
         .bake_surface(&world, NavMeshBakeRequest::default())
@@ -577,7 +575,7 @@ fn dirty_tile_rebuild_rejects_changed_bake_identity() {
 
 #[test]
 fn dirty_tile_rebuild_can_empty_the_entire_previous_grid() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = tiled_test_world(4);
     let initial = manager
         .bake_surface(&world, NavMeshBakeRequest::default())
@@ -619,7 +617,7 @@ fn dirty_tile_rebuild_can_empty_the_entire_previous_grid() {
 
 #[test]
 fn successful_non_tiled_bake_clears_previous_tiled_snapshot() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = tiled_test_world(4);
     manager
         .bake_surface(&world, NavMeshBakeRequest::default())

@@ -3,19 +3,134 @@ Set-StrictMode -Version Latest
 $projectSaveEvidenceRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $projectSaveEvidenceRepoRoot 'tools\WindowsPathResolver.psm1') -ErrorAction Stop
 
+$mvpProjectSaveDiagnosticTokenByByte = [string[]]::new(256)
+for ($byteValue = 0; $byteValue -lt $mvpProjectSaveDiagnosticTokenByByte.Length; $byteValue++) {
+    $isUnreserved =
+        ($byteValue -ge 0x41 -and $byteValue -le 0x5A) -or
+        ($byteValue -ge 0x61 -and $byteValue -le 0x7A) -or
+        ($byteValue -ge 0x30 -and $byteValue -le 0x39) -or
+        $byteValue -eq 0x2D -or
+        $byteValue -eq 0x2E -or
+        $byteValue -eq 0x5F -or
+        $byteValue -eq 0x7E
+    $mvpProjectSaveDiagnosticTokenByByte[$byteValue] = if ($isUnreserved) {
+        [string][char]$byteValue
+    }
+    else {
+        '%' + $byteValue.ToString('X2', [Globalization.CultureInfo]::InvariantCulture)
+    }
+}
+
+function Get-MvpProjectSaveLifecycleDiagnostics {
+    param(
+        [Parameter(Mandatory)][string]$DiagnosticText
+    )
+
+    $marker = 'editor_project_save result='
+    $started = [Collections.Generic.List[object]]::new()
+    $completed = [Collections.Generic.List[object]]::new()
+    $searchIndex = 0
+    while ($searchIndex -lt $DiagnosticText.Length) {
+        $markerIndex = $DiagnosticText.IndexOf($marker, $searchIndex, [StringComparison]::Ordinal)
+        if ($markerIndex -lt 0) {
+            break
+        }
+        $lineStart = $DiagnosticText.LastIndexOf([char]10, $markerIndex)
+        if ($lineStart -lt 0) {
+            $lineStart = 0
+        }
+        else {
+            $lineStart++
+        }
+        $nextLineIndex = $DiagnosticText.IndexOf([char]10, $markerIndex)
+        if ($nextLineIndex -lt 0) {
+            $lineEnd = $DiagnosticText.Length
+            $searchIndex = $DiagnosticText.Length
+        }
+        else {
+            $lineEnd = $nextLineIndex
+            $searchIndex = $nextLineIndex + 1
+        }
+        if ($lineEnd -gt $lineStart -and $DiagnosticText[$lineEnd - 1] -eq [char]13) {
+            $lineEnd--
+        }
+        $line = $DiagnosticText.Substring($lineStart, $lineEnd - $lineStart)
+        $entry = [pscustomobject]@{
+            index = $markerIndex
+            text = $line
+        }
+        if ($line -match 'editor_project_save result=(?:failed|post_persist_sync_failed)(?:\s|$)') {
+            throw 'Authoring automation project save diagnostics contain a failed save lifecycle.'
+        }
+        if ($line -match 'editor_project_save result=started(?:\s|$)') {
+            $started.Add($entry)
+        }
+        if ($line -match 'editor_project_save result=completed(?:\s|$)') {
+            $completed.Add($entry)
+        }
+    }
+    return [pscustomobject]@{
+        started = $started
+        completed = $completed
+    }
+}
+
+function Get-MvpProjectSaveDiagnosticTokens {
+    param(
+        [Parameter(Mandatory)][string]$Line
+    )
+
+    $values = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
+    $duplicateCounts = $null
+    foreach ($token in $Line.Split(
+            [char[]]$null,
+            [StringSplitOptions]::RemoveEmptyEntries)) {
+        $equalsIndex = $token.IndexOf([char]61)
+        if ($equalsIndex -le 0 -or $equalsIndex -ge ($token.Length - 1)) {
+            continue
+        }
+        $name = $token.Substring(0, $equalsIndex)
+        if ($values.ContainsKey($name)) {
+            if ($null -eq $duplicateCounts) {
+                $duplicateCounts = [Collections.Generic.Dictionary[string, int]]::new([StringComparer]::Ordinal)
+            }
+            [int]$count = 0
+            if ($duplicateCounts.TryGetValue($name, [ref]$count)) {
+                $duplicateCounts[$name] = $count + 1
+            }
+            else {
+                $duplicateCounts.Add($name, 2)
+            }
+        }
+        else {
+            $values.Add($name, $token.Substring($equalsIndex + 1))
+        }
+    }
+    return [pscustomobject]@{
+        values = $values
+        duplicate_counts = $duplicateCounts
+    }
+}
+
 function Get-MvpProjectSaveDiagnosticField {
     param(
-        [Parameter(Mandatory)][string]$Line,
+        [Parameter(Mandatory)]$Tokens,
         [Parameter(Mandatory)][string]$Name,
         [Parameter(Mandatory)][string]$Label
     )
 
-    $pattern = '(?:^|\s)' + [regex]::Escape($Name) + '=([^\s]+)'
-    $matches = [regex]::Matches($Line, $pattern)
-    if ($matches.Count -ne 1) {
-        throw "$Label must contain exactly one '$Name' field; found $($matches.Count)."
+    [string]$value = $null
+    [int]$count = if ($Tokens.values.TryGetValue($Name, [ref]$value)) { 1 } else { 0 }
+    if ($null -ne $Tokens.duplicate_counts) {
+        [int]$duplicateCount = 0
+        if ($Tokens.duplicate_counts.TryGetValue($Name, [ref]$duplicateCount)) {
+            $count = $duplicateCount
+        }
     }
-    return $matches[0].Groups[1].Value
+    if ($count -ne 1) {
+        throw "$Label must contain exactly one '$Name' field; found $count."
+    }
+    return $value
 }
 
 function ConvertTo-MvpProjectSaveUInt64 {
@@ -37,23 +152,7 @@ function ConvertTo-MvpProjectSaveDiagnosticToken {
 
     $builder = [Text.StringBuilder]::new()
     foreach ($byte in [Text.Encoding]::UTF8.GetBytes($Value)) {
-        $isUnreserved =
-            ($byte -ge 0x41 -and $byte -le 0x5A) -or
-            ($byte -ge 0x61 -and $byte -le 0x7A) -or
-            ($byte -ge 0x30 -and $byte -le 0x39) -or
-            $byte -eq 0x2D -or
-            $byte -eq 0x2E -or
-            $byte -eq 0x5F -or
-            $byte -eq 0x7E
-        if ($isUnreserved) {
-            $null = $builder.Append([char]$byte)
-        }
-        else {
-            $null = $builder.Append('%')
-            $null = $builder.Append(
-                $byte.ToString('X2', [Globalization.CultureInfo]::InvariantCulture)
-            )
-        }
+        $null = $builder.Append($mvpProjectSaveDiagnosticTokenByByte[$byte])
     }
     return $builder.ToString()
 }
@@ -66,35 +165,9 @@ function Assert-MvpProjectSaveLifecycleEvidence {
         [Parameter(Mandatory)][string]$ExpectedProjectPath
     )
 
-    $diagnosticLines = @($DiagnosticText -split '\r?\n')
-    $projectSaveLines = @(
-        for ($index = 0; $index -lt $diagnosticLines.Count; $index++) {
-            if ($diagnosticLines[$index] -match 'editor_project_save result=') {
-                [pscustomobject]@{
-                    index = $index
-                    text = $diagnosticLines[$index]
-                }
-            }
-        }
-    )
-    $failureLines = @(
-        $projectSaveLines | Where-Object {
-            $_.text -match 'editor_project_save result=(?:failed|post_persist_sync_failed)(?:\s|$)'
-        }
-    )
-    if ($failureLines.Count -ne 0) {
-        throw 'Authoring automation project save diagnostics contain a failed save lifecycle.'
-    }
-    $startedLines = @(
-        $projectSaveLines | Where-Object {
-            $_.text -match 'editor_project_save result=started(?:\s|$)'
-        }
-    )
-    $completedLines = @(
-        $projectSaveLines | Where-Object {
-            $_.text -match 'editor_project_save result=completed(?:\s|$)'
-        }
-    )
+    $lifecycleDiagnostics = Get-MvpProjectSaveLifecycleDiagnostics -DiagnosticText $DiagnosticText
+    $startedLines = $lifecycleDiagnostics.started
+    $completedLines = $lifecycleDiagnostics.completed
     if ($startedLines.Count -ne 1 -or $completedLines.Count -ne 1) {
         throw "Authoring automation project save diagnostics require exactly one started/completed pair; found started=$($startedLines.Count) completed=$($completedLines.Count)."
     }
@@ -105,51 +178,57 @@ function Assert-MvpProjectSaveLifecycleEvidence {
 
     $started = [string]$startedLines[0].text
     $completed = [string]$completedLines[0].text
+    $startedTokens = Get-MvpProjectSaveDiagnosticTokens -Line $started
+    $completedTokens = Get-MvpProjectSaveDiagnosticTokens -Line $completed
     try {
         $expectedProject = Resolve-ZirconWindowsPath -Path $ExpectedProjectPath
     }
     catch {
         throw "Project save evidence has invalid expected project path '$ExpectedProjectPath': $($_.Exception.Message)"
     }
-    foreach ($diagnostic in @(
-        @{ line = $started; label = 'Project save started diagnostic' },
-        @{ line = $completed; label = 'Project save completed diagnostic' }
-    )) {
+    $pathDiagnosticTokens = @($startedTokens, $completedTokens)
+    $pathDiagnosticLabels = [string[]]@(
+        'Project save started diagnostic',
+        'Project save completed diagnostic'
+    )
+    for ($diagnosticIndex = 0; $diagnosticIndex -lt $pathDiagnosticTokens.Count; $diagnosticIndex++) {
+        $diagnosticTokens = $pathDiagnosticTokens[$diagnosticIndex]
+        $diagnosticLabel = $pathDiagnosticLabels[$diagnosticIndex]
         $encodedProject = Get-MvpProjectSaveDiagnosticField `
-            -Line $diagnostic.line `
+            -Tokens $diagnosticTokens `
             -Name 'project' `
-            -Label $diagnostic.label
+            -Label $diagnosticLabel
         if ($encodedProject -match '%(?![0-9A-Fa-f]{2})') {
-            throw "$($diagnostic.label) has malformed percent-encoded project '$encodedProject'."
+            throw "$diagnosticLabel has malformed percent-encoded project '$encodedProject'."
         }
         $decodedProject = [Uri]::UnescapeDataString($encodedProject)
         $canonicalEncodedProject = ConvertTo-MvpProjectSaveDiagnosticToken -Value $decodedProject
         if ($encodedProject -cne $canonicalEncodedProject) {
-            throw "$($diagnostic.label) project token '$encodedProject' does not use canonical percent encoding."
+            throw "$diagnosticLabel project token '$encodedProject' does not use canonical percent encoding."
         }
         try {
             $actualProject = Resolve-ZirconWindowsPath -Path $decodedProject
         }
         catch {
-            throw "$($diagnostic.label) has invalid project path '$decodedProject'."
+            throw "$diagnosticLabel has invalid project path '$decodedProject'."
         }
         if (-not $actualProject.OperationalPath.Equals($expectedProject.OperationalPath, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "$($diagnostic.label) project '$($actualProject.DisplayPath)' differs from staged project '$($expectedProject.DisplayPath)'."
+            throw "$diagnosticLabel project '$($actualProject.DisplayPath)' differs from staged project '$($expectedProject.DisplayPath)'."
         }
     }
     $preSaveDirty = Get-MvpProjectSaveDiagnosticField `
-        -Line $started `
+        -Tokens $startedTokens `
         -Name 'pre_save_dirty' `
         -Label 'Project save started diagnostic'
     if ($preSaveDirty -ne 'true') {
         throw "Project save started diagnostic has pre_save_dirty '$preSaveDirty' instead of 'true'."
     }
     $preSaveDirtyGeneration = ConvertTo-MvpProjectSaveUInt64 `
-        -Value (Get-MvpProjectSaveDiagnosticField -Line $started -Name 'pre_save_dirty_generation' -Label 'Project save started diagnostic') `
+        -Value (Get-MvpProjectSaveDiagnosticField -Tokens $startedTokens -Name 'pre_save_dirty_generation' -Label 'Project save started diagnostic') `
         -Name 'pre_save_dirty_generation' `
         -Label 'Project save started diagnostic'
     $saveTokenGeneration = ConvertTo-MvpProjectSaveUInt64 `
-        -Value (Get-MvpProjectSaveDiagnosticField -Line $started -Name 'save_token_generation' -Label 'Project save started diagnostic') `
+        -Value (Get-MvpProjectSaveDiagnosticField -Tokens $startedTokens -Name 'save_token_generation' -Label 'Project save started diagnostic') `
         -Name 'save_token_generation' `
         -Label 'Project save started diagnostic'
     if ($preSaveDirtyGeneration -eq 0 -or $saveTokenGeneration -ne $preSaveDirtyGeneration) {
@@ -161,7 +240,7 @@ function Assert-MvpProjectSaveLifecycleEvidence {
         @{ name = 'save_token_generation'; expected = $saveTokenGeneration }
     )) {
         $actual = ConvertTo-MvpProjectSaveUInt64 `
-            -Value (Get-MvpProjectSaveDiagnosticField -Line $completed -Name $field.name -Label 'Project save completed diagnostic') `
+            -Value (Get-MvpProjectSaveDiagnosticField -Tokens $completedTokens -Name $field.name -Label 'Project save completed diagnostic') `
             -Name $field.name `
             -Label 'Project save completed diagnostic'
         if ($actual -ne $field.expected) {
@@ -170,7 +249,7 @@ function Assert-MvpProjectSaveLifecycleEvidence {
     }
 
     $persistedGeneration = ConvertTo-MvpProjectSaveUInt64 `
-        -Value (Get-MvpProjectSaveDiagnosticField -Line $completed -Name 'persisted_generation' -Label 'Project save completed diagnostic') `
+        -Value (Get-MvpProjectSaveDiagnosticField -Tokens $completedTokens -Name 'persisted_generation' -Label 'Project save completed diagnostic') `
         -Name 'persisted_generation' `
         -Label 'Project save completed diagnostic'
     if ($persistedGeneration -ne $SaveGeneration) {
@@ -180,7 +259,7 @@ function Assert-MvpProjectSaveLifecycleEvidence {
         throw "Project save completed diagnostic persisted_generation '$persistedGeneration' differs from unchanged save_token_generation '$saveTokenGeneration'."
     }
     $saveMark = Get-MvpProjectSaveDiagnosticField `
-        -Line $completed `
+        -Tokens $completedTokens `
         -Name 'save_mark' `
         -Label 'Project save completed diagnostic'
     if ($saveMark -ne 'Marked') {

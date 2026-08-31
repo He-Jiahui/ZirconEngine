@@ -168,6 +168,12 @@ jobs:
       - name: Test convention runner
         run: python -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
 
+      - name: Test Cargo test-reachability guard
+        run: python -m unittest tools.tests.test_validate_cargo_test_reachability -v
+
+      - name: Guard Cargo test reachability
+        run: python tools/validate_cargo_test_reachability.py --json
+
       - name: Run convention gates
         run: python tools/check_conventions.py --json
 
@@ -182,6 +188,9 @@ jobs:
 
       - name: Build plugin workspace
         run: cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
+
+      - name: Guard plugin Cargo test reachability
+        run: python tools/validate_cargo_test_reachability.py --manifest-path zircon_plugins/Cargo.toml --json
 
       - name: Check Rust plugin declarations, artifacts, and catalog wiring
         run: cargo run --locked -p cargo-zircon -- plugin check --root . --artifact-root zircon_plugins/target/debug

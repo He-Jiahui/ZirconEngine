@@ -7,8 +7,9 @@ fn render_cache_counts_a_shared_damage_frame_once() {
         .map(|node_id| quad(node_id, shared_frame))
         .collect::<Vec<_>>();
     let mut cache = UiSurfaceRenderCache::default();
+    let previous = extract(Vec::new());
 
-    let first = cache.update(extract(commands), false);
+    let first = cache.update(&previous, extract(commands), false);
 
     assert_eq!(first.stats.rebuilt_command_count, 1_024);
     assert_eq!(first.stats.damage_rect_count, 1);

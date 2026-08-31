@@ -227,8 +227,8 @@ mod tests {
     };
 
     use super::{
-        AtomicFilePreferenceStorageBackend, PATH_CACHE_MAX_ENTRIES, PreferenceStorageBackend,
-        map_io_error,
+        map_io_error, AtomicFilePreferenceStorageBackend, PreferenceStorageBackend,
+        PATH_CACHE_MAX_ENTRIES,
     };
     use crate::core::framework::platform::PreferenceKey;
 

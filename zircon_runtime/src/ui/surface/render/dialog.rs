@@ -12,7 +12,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::painter_state::UiRenderPainterStateSource;
-use crate::ui::text::measure_text_size;
+use super::popup_position::{PopupPlacement, resolve_anchored_popup_geometry};
+use crate::ui::text::UiTextMeasureCache;
 
 const DIALOG_PADDING_X: f32 = 20.0;
 const DIALOG_TITLE_TOP: f32 = 18.0;
@@ -149,9 +150,11 @@ pub(super) fn dialog_render_commands(
     state_flags: &UiStateFlags,
     component_state: Option<&UiComponentState>,
     frame: UiFrame,
+    popup_anchor_frame: Option<UiFrame>,
     clip_frame: Option<UiFrame>,
     z_index: i32,
     opacity: f32,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> Vec<UiRenderCommand> {
     let Some(metadata) = metadata else {
         return Vec::new();
@@ -162,6 +165,14 @@ pub(super) fn dialog_render_commands(
     if frame.width <= 1.0 || frame.height <= 1.0 || !dialog_open(metadata) {
         return Vec::new();
     }
+    let (frame, clip_frame) = resolve_anchored_popup_geometry(
+        metadata,
+        frame,
+        popup_anchor_frame,
+        clip_frame,
+        PopupPlacement::Center,
+        0.0,
+    );
 
     let state = DialogRenderState::resolve(metadata, state_flags, component_state);
     let visual = DialogVisual::resolve(metadata);
@@ -244,6 +255,7 @@ pub(super) fn dialog_render_commands(
         clip_frame,
         z_index,
         opacity,
+        text_measure_cache,
     );
 
     commands
@@ -301,6 +313,7 @@ fn push_dialog_actions(
     clip_frame: Option<UiFrame>,
     z_index: i32,
     opacity: f32,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) {
     let action_y = frame.y + frame.height - DIALOG_ACTION_BOTTOM - visual.action_line_height;
     let mut action_right = frame.x + frame.width - DIALOG_PADDING_X;
@@ -315,7 +328,7 @@ fn push_dialog_actions(
             ],
         )
         .unwrap_or_else(|| "Confirm".to_string());
-        let confirm_width = action_width(&confirm, visual);
+        let confirm_width = action_width(&confirm, visual, text_measure_cache);
         let confirm_enabled = bool_attribute(metadata, "confirm_enabled")
             .or_else(|| bool_attribute(metadata, "confirmEnabled"))
             .unwrap_or(true);
@@ -345,7 +358,7 @@ fn push_dialog_actions(
 
         let cancel = first_string(metadata, &["cancel_text", "cancelText", "close_text"])
             .unwrap_or_else(|| "Cancel".to_string());
-        let cancel_width = action_width(&cancel, visual);
+        let cancel_width = action_width(&cancel, visual, text_measure_cache);
         action_right -= cancel_width;
         commands.push(text_command(
             node_id,
@@ -376,7 +389,7 @@ fn push_dialog_actions(
             "close_text",
         ],
     ) {
-        let width = action_width(&action, visual);
+        let width = action_width(&action, visual, text_measure_cache);
         commands.push(text_command(
             node_id,
             UiFrame::new(
@@ -544,14 +557,18 @@ fn severity_border_color(metadata: &UiTemplateNodeMetadata, visual: &DialogVisua
     }
 }
 
-fn action_width(text: &str, visual: &DialogVisual) -> f32 {
+fn action_width(
+    text: &str,
+    visual: &DialogVisual,
+    text_measure_cache: &mut UiTextMeasureCache,
+) -> f32 {
     let style = UiResolvedStyle {
         font_size: visual.action_font_size,
         line_height: visual.action_line_height,
         ..UiResolvedStyle::default()
     };
-    (measure_text_size(text, &style).width + DIALOG_ACTION_TEXT_PADDING_X * 2.0)
-        .max(DIALOG_ACTION_MIN_WIDTH)
+    let measured = text_measure_cache.measure_text_size(text, &style);
+    (measured.width + DIALOG_ACTION_TEXT_PADDING_X * 2.0).max(DIALOG_ACTION_MIN_WIDTH)
 }
 
 fn first_string(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> Option<String> {

@@ -2,7 +2,7 @@ use crate::core::editor_event::{
     EditorEvent, EditorEventDispatcher, EditorEventEnvelope, EditorEventJournal, EditorEventRecord,
     EditorEventSource,
 };
-use crate::ui::host::EditorHostEventController;
+use crate::ui::host::{EditorEventDispatcherError, EditorHostEventController};
 
 impl EditorHostEventController {
     pub fn journal(&self) -> EditorEventJournal {
@@ -12,7 +12,7 @@ impl EditorHostEventController {
     pub fn dispatch_envelope(
         &self,
         envelope: EditorEventEnvelope,
-    ) -> Result<EditorEventRecord, String> {
+    ) -> Result<EditorEventRecord, EditorEventDispatcherError> {
         <Self as EditorEventDispatcher>::dispatch_envelope(self, envelope)
     }
 
@@ -20,7 +20,7 @@ impl EditorHostEventController {
         &self,
         binding: crate::ui::binding::EditorUiBinding,
         source: EditorEventSource,
-    ) -> Result<EditorEventRecord, String> {
+    ) -> Result<EditorEventRecord, EditorEventDispatcherError> {
         <Self as EditorEventDispatcher>::dispatch_binding(self, binding.as_ui_binding(), source)
     }
 
@@ -28,7 +28,7 @@ impl EditorHostEventController {
         &self,
         source: EditorEventSource,
         event: EditorEvent,
-    ) -> Result<EditorEventRecord, String> {
+    ) -> Result<EditorEventRecord, EditorEventDispatcherError> {
         <Self as EditorEventDispatcher>::dispatch_event(self, source, event)
     }
 }

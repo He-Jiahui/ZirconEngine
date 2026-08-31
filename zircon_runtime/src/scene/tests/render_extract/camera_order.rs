@@ -3,7 +3,9 @@ use super::*;
 #[test]
 fn world_render_camera_order_report_projects_active_scene_cameras() {
     let mut world = World::empty();
-    let hidden_parent = world.spawn_node(NodeKind::Cube);
+    let hidden_parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     world.set_active_self(hidden_parent, false).unwrap();
 
     let primary_a = spawn_camera_on_layer(&mut world, 0b0001);
@@ -228,7 +230,9 @@ fn scene_camera_extraction_stays_on_typed_camera_storage() {
 #[test]
 fn scene_camera_fallback_uses_the_first_stable_camera_without_an_active_camera() {
     let mut world = World::empty();
-    let _non_camera = world.spawn_node(NodeKind::Mesh);
+    let _non_camera = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let first_camera = spawn_camera_on_layer(&mut world, 0b0001);
     let _second_camera = spawn_camera_on_layer(&mut world, 0b0010);
 
@@ -295,16 +299,20 @@ fn render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views(
     ));
 
     assert_eq!(extract.view.scene_camera_entity, Some(primary));
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == main_mesh));
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == custom_target_mesh));
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == main_mesh)
+    );
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == custom_target_mesh)
+    );
     assert_eq!(
         extract
             .view

@@ -19,8 +19,8 @@ pub(super) fn dispatch_popup_input(
             UiPopupEffectKind::Close
         }
     };
-    let event = UiInputEvent::Popup(popup.clone());
     if !popup_matches_retained_state(surface, &popup) {
+        let event = owned_popup_input_event(popup);
         let mut result = UiInputDispatchResult::new(event, UiDispatchReply::unhandled());
         result
             .diagnostics
@@ -30,6 +30,7 @@ pub(super) fn dispatch_popup_input(
         return with_popup_route_policy(surface, result);
     }
 
+    let event = UiInputEvent::Popup(popup.clone());
     let reply = UiDispatchReply::handled().with_effect(UiDispatchEffect::Popup {
         kind: effect_kind,
         popup_id: popup.popup_id,
@@ -40,6 +41,10 @@ pub(super) fn dispatch_popup_input(
     result.diagnostics.routed = result.rejected_effects.is_empty();
     result.diagnostics.handled_phase = Some("popup.effect".to_string());
     with_popup_route_policy(surface, result)
+}
+
+fn owned_popup_input_event(popup: UiPopupInputEvent) -> UiInputEvent {
+    UiInputEvent::Popup(popup)
 }
 
 fn with_popup_route_policy(
@@ -60,3 +65,7 @@ fn popup_matches_retained_state(surface: &UiSurface, popup: &UiPopupInputEvent) 
             .popup_matches(popup.popup_id.as_str(), popup.owner),
     }
 }
+
+#[cfg(test)]
+#[path = "popup/stale_owned_event_tests.rs"]
+mod stale_owned_event_tests;

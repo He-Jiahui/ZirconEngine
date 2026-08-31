@@ -9,6 +9,7 @@ pub(super) fn menu_action_id(action: &MenuAction) -> String {
         MenuAction::OpenScene => "workbench.scene.open".to_string(),
         MenuAction::CreateScene => "workbench.scene.create".to_string(),
         MenuAction::SaveProject => "workbench.project.save".to_string(),
+        MenuAction::SaveAllDocuments => "workbench.document.save_all".to_string(),
         MenuAction::CloseProject => "workbench.project.close".to_string(),
         MenuAction::SaveLayout => "workbench.layout.save".to_string(),
         MenuAction::ResetLayout => "workbench.layout.reset".to_string(),
@@ -24,6 +25,7 @@ pub(super) fn menu_action_id(action: &MenuAction) -> String {
             "workbench.play_mode.select.simulate".to_string()
         }
         MenuAction::EnterPlayMode => "workbench.play_mode.enter".to_string(),
+        MenuAction::KeepPlayChanges => "workbench.play_mode.keep_changes".to_string(),
         MenuAction::ExitPlayMode => "workbench.play_mode.exit".to_string(),
         MenuAction::Undo => "workbench.history.undo".to_string(),
         MenuAction::Redo => "workbench.history.redo".to_string(),
@@ -41,6 +43,7 @@ pub(super) fn menu_action_control_id(action: &MenuAction) -> String {
         MenuAction::OpenScene => "OpenScene".to_string(),
         MenuAction::CreateScene => "CreateScene".to_string(),
         MenuAction::SaveProject => "SaveProject".to_string(),
+        MenuAction::SaveAllDocuments => "SaveAllDocuments".to_string(),
         MenuAction::CloseProject => "CloseProject".to_string(),
         MenuAction::SaveLayout => "SaveLayout".to_string(),
         MenuAction::ResetLayout => "ResetLayout".to_string(),
@@ -81,6 +84,7 @@ pub(super) fn menu_action_control_id(action: &MenuAction) -> String {
         MenuAction::SelectPlayMode(PlayKind::Play) => "SelectPlayMode.Play".to_string(),
         MenuAction::SelectPlayMode(PlayKind::Simulate) => "SelectPlayMode.Simulate".to_string(),
         MenuAction::EnterPlayMode => "EnterPlayMode".to_string(),
+        MenuAction::KeepPlayChanges => "KeepPlayChanges".to_string(),
         MenuAction::ExitPlayMode => "ExitPlayMode".to_string(),
         MenuAction::Undo => "Undo".to_string(),
         MenuAction::Redo => "Redo".to_string(),

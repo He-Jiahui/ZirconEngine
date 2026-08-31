@@ -16,7 +16,7 @@ impl RetainedEditorHost {
                 .editor_manager
                 .update_ui_asset_editor_source(&instance_id, value.to_string())
             {
-                Ok(()) => self.mark_presentation_dirty(),
+                Ok(()) => self.mark_presentation_dirty_for_view(&instance_id),
                 Err(error) => self.set_status_line(error.to_string()),
             },
             "source.cursor.set" => match self
@@ -25,7 +25,7 @@ impl RetainedEditorHost {
             {
                 Ok(changed) => {
                     if changed {
-                        self.mark_presentation_dirty();
+                        self.mark_presentation_dirty_for_view(&instance_id);
                     }
                 }
                 Err(error) => self.set_status_line(error.to_string()),

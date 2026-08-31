@@ -1,10 +1,9 @@
 use crate::core::math::UVec2;
-use crate::text::atlas::render_gpu_plan::{
-    glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuBindGroupLayout,
-    GlyphAtlasGpuSamplerBindingType, GlyphAtlasGpuTextureSampleType,
-    GlyphAtlasGpuTextureViewDimension,
-};
 use crate::text::atlas::GlyphAtlasStorageFormat;
+use crate::text::atlas::render_gpu_plan::{
+    GlyphAtlasGpuBindGroupLayout, GlyphAtlasGpuSamplerBindingType, GlyphAtlasGpuTextureSampleType,
+    GlyphAtlasGpuTextureViewDimension, glyph_atlas_gpu_bind_group_layout,
+};
 
 use super::super::atlas_texture_upload::{
     create_glyph_atlas_texture_array_resources, glyph_atlas_texture_array_spec,
@@ -73,8 +72,8 @@ pub(super) fn create_glyph_atlas_bitmap_sampler(device: &wgpu::Device) -> wgpu::
 pub(super) fn glyph_atlas_bitmap_sampler_descriptor() -> wgpu::SamplerDescriptor<'static> {
     wgpu::SamplerDescriptor {
         label: Some("zircon-screen-space-ui-glyph-atlas-sampler"),
-        mag_filter: wgpu::FilterMode::Nearest,
-        min_filter: wgpu::FilterMode::Nearest,
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Linear,
         mipmap_filter: wgpu::MipmapFilterMode::Nearest,
         lod_min_clamp: 0.0,
         lod_max_clamp: 0.0,

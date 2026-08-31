@@ -34,12 +34,9 @@ fn create_split_can_insert_before_target_tabs() {
         )
         .unwrap();
 
-    let MainHostPageLayout::WorkbenchPage {
-        document_workspace, ..
-    } = &layout.main_pages[0]
-    else {
-        panic!("expected workbench page");
-    };
+    let document_workspace = layout
+        .content_workspace_for_page(&MainPageId::workbench())
+        .expect("workbench page should resolve its activity-window content workspace");
 
     let DocumentNode::SplitNode { first, second, .. } = document_workspace else {
         panic!("expected split root");

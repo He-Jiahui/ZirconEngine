@@ -1,14 +1,20 @@
 use std::collections::BTreeMap;
+use std::ops::Index;
 use std::sync::Arc;
 
 use super::geometry::{
-    draw_items, draw_items_with_stats, full_projection_draw_items_with_stats, DrawItem,
-    ImageVertex, SolidGeometry, SolidInstance, SolidVertex, UI_QUAD_VERTEX_COUNT,
+    damage_with_analytic_coverage, draw_items, draw_items_with_stats,
+    full_projection_draw_items_with_stats, DrawItem, ImageVertex, SolidGeometry, SolidInstance,
+    SolidVertex, UI_QUAD_VERTEX_COUNT,
 };
-use zr_rhi::{UiSurfaceDrawList, UiSurfacePresentStats, UiSurfaceRect};
+use zr_rhi::{
+    UiSurfaceDrawList, UiSurfacePresentStats, UiSurfacePresentStatsAccumulator, UiSurfaceRect,
+};
 
+mod bounds_index;
 mod dependency_depths;
 
+use bounds_index::BoundsIndex;
 use dependency_depths::dependency_depths;
 
 #[derive(Clone, Debug)]
@@ -49,6 +55,66 @@ pub(super) enum DrawOp {
     Text(TextDraw),
 }
 
+impl DrawOp {
+    fn bounds(&self) -> UiSurfaceRect {
+        match self {
+            Self::Solid(draw) => draw.bounds,
+            Self::Image(draw) => draw.bounds,
+            Self::Text(draw) => draw.bounds,
+        }
+    }
+}
+
+pub(super) trait DrawOpSequence {
+    fn len(&self) -> usize;
+    fn get(&self, index: usize) -> Option<&DrawOp>;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl DrawOpSequence for Vec<DrawOp> {
+    fn len(&self) -> usize {
+        Vec::len(self)
+    }
+
+    fn get(&self, index: usize) -> Option<&DrawOp> {
+        self.as_slice().get(index)
+    }
+}
+
+pub(super) struct DrawOpSelection<'a> {
+    ops: &'a [DrawOp],
+    op_indices: &'a [usize],
+}
+
+impl DrawOpSelection<'_> {
+    pub(super) fn len(&self) -> usize {
+        self.op_indices.len()
+    }
+}
+
+impl DrawOpSequence for DrawOpSelection<'_> {
+    fn len(&self) -> usize {
+        self.op_indices.len()
+    }
+
+    fn get(&self, index: usize) -> Option<&DrawOp> {
+        self.op_indices
+            .get(index)
+            .and_then(|op_index| self.ops.get(*op_index))
+    }
+}
+
+impl Index<usize> for DrawOpSelection<'_> {
+    type Output = DrawOp;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        DrawOpSequence::get(self, index).expect("damage draw-op selection index must remain valid")
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct BatchDrawPlanStats {
     pub(super) draw_calls: u64,
@@ -81,7 +147,25 @@ pub(super) struct BatchDrawPlan {
     pub(super) image_upload_sources: Vec<ImageUploadSource>,
     /// Reused only for an unchanged full projection; damage still derives live visibility stats.
     pub(super) full_draw_list_stats: Option<UiSurfacePresentStats>,
+    command_damage_index: BoundsIndex,
+    draw_op_damage_index: BoundsIndex,
+    fused_border_commands: Vec<bool>,
     pub(super) stats: BatchDrawPlanStats,
+}
+
+impl BatchDrawPlan {
+    pub(super) fn draw_ops_intersecting<'a>(
+        &'a self,
+        rect: UiSurfaceRect,
+        candidate_storage: &'a mut Vec<usize>,
+    ) -> DrawOpSelection<'a> {
+        self.draw_op_damage_index
+            .query_sorted_into(rect, candidate_storage);
+        DrawOpSelection {
+            ops: &self.ops,
+            op_indices: candidate_storage.as_slice(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -105,6 +189,7 @@ struct BatchPlanCacheKey {
 pub(super) struct CompiledUiBatchPlanCache {
     key: Option<BatchPlanCacheKey>,
     plan: Option<Arc<BatchDrawPlan>>,
+    command_damage_candidates: Vec<usize>,
 }
 
 pub(super) struct ResolvedBatchDrawPlan {
@@ -151,7 +236,15 @@ impl CompiledUiBatchPlanCache {
                         stats
                     })
                 } else {
-                    Some(draw_list.stats())
+                    damage_with_analytic_coverage(draw_list.damage, draw_list.projection_size())
+                        .map(|damage| {
+                            damage_draw_list_stats(
+                                plan,
+                                draw_list,
+                                damage,
+                                &mut self.command_damage_candidates,
+                            )
+                        })
                 };
                 return ResolvedBatchDrawPlan {
                     plan: Arc::clone(plan),
@@ -201,7 +294,43 @@ fn full_projection_batch_draw_plan_with_stats(
         full_projection_draw_items_with_stats(draw_list);
     let mut plan = batch_draw_plan_from_items(items);
     plan.full_draw_list_stats = Some(full_draw_list_stats);
+    plan.command_damage_index = BoundsIndex::new(draw_list.commands.iter().enumerate().filter_map(
+        |(index, command)| {
+            draw_list
+                .command_effective_rect_with_damage(command, None)
+                .map(|rect| (index, rect))
+        },
+    ));
     (plan, full_draw_list_stats, damage_draw_list_stats)
+}
+
+fn damage_draw_list_stats(
+    plan: &BatchDrawPlan,
+    draw_list: &UiSurfaceDrawList,
+    damage: UiSurfaceRect,
+    candidate_storage: &mut Vec<usize>,
+) -> UiSurfacePresentStats {
+    let mut stats = UiSurfacePresentStatsAccumulator::new(draw_list);
+    plan.command_damage_index
+        .query_sorted_into(damage, candidate_storage);
+    for command_index in candidate_storage.iter().copied() {
+        let Some(command) = draw_list.commands.get(command_index) else {
+            continue;
+        };
+        stats.record_command_visit();
+        if draw_list.command_visible_with_damage(command, Some(damage)) {
+            stats.record_visible(command, draw_list);
+            if plan
+                .fused_border_commands
+                .get(command_index)
+                .copied()
+                .unwrap_or(false)
+            {
+                stats.record_draw_item_fusion();
+            }
+        }
+    }
+    stats.finish()
 }
 
 fn batch_draw_plan_from_items(mut items: Vec<DrawItem>) -> BatchDrawPlan {
@@ -211,6 +340,16 @@ fn batch_draw_plan_from_items(mut items: Vec<DrawItem>) -> BatchDrawPlan {
 
     let (depths, layer_count, dependency_count, overlap_candidate_count) =
         dependency_depths(&items);
+    let mut fused_border_commands = Vec::new();
+    for command_index in items.iter().filter_map(|item| match item {
+        DrawItem::Solid(item) => item.fused_border_command_index,
+        DrawItem::Image(_) | DrawItem::Text(_) => None,
+    }) {
+        if fused_border_commands.len() <= command_index {
+            fused_border_commands.resize(command_index + 1, false);
+        }
+        fused_border_commands[command_index] = true;
+    }
     let mut layered_item_indices = (0..items.len()).collect::<Vec<_>>();
     layered_item_indices
         .sort_unstable_by_key(|item_index| (depths[*item_index], items[*item_index].order()));
@@ -275,6 +414,11 @@ fn batch_draw_plan_from_items(mut items: Vec<DrawItem>) -> BatchDrawPlan {
     let solid_vertex_count = (solid_vertices.len() as u64)
         .saturating_add(solid_instance_count.saturating_mul(u64::from(UI_QUAD_VERTEX_COUNT)));
     let image_vertex_count = image_vertices.len() as u64;
+    let draw_op_damage_index = BoundsIndex::new(
+        ops.iter()
+            .enumerate()
+            .map(|(op_index, op)| (op_index, op.bounds())),
+    );
 
     BatchDrawPlan {
         stats: BatchDrawPlanStats {
@@ -300,6 +444,9 @@ fn batch_draw_plan_from_items(mut items: Vec<DrawItem>) -> BatchDrawPlan {
         image_vertices,
         image_upload_sources,
         full_draw_list_stats: None,
+        command_damage_index: BoundsIndex::default(),
+        draw_op_damage_index,
+        fused_border_commands,
     }
 }
 

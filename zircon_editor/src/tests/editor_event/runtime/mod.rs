@@ -31,6 +31,7 @@ use super::support::{env_lock, EventRuntimeHarness};
 
 mod animation_assets;
 mod console;
+mod error_propagation;
 mod extensions_registration;
 mod extensions_validation;
 mod integration;

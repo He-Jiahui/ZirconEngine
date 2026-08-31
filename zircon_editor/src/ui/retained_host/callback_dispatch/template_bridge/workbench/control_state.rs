@@ -212,6 +212,24 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             })
     }
 
+    pub(super) fn control_float(&self, control_id: &str, property: &str) -> Option<f32> {
+        let node_id = self.control_node_id(control_id)?;
+        let value = self
+            .template_surface
+            .surface
+            .tree
+            .nodes
+            .get(&node_id)
+            .and_then(|node| node.template_metadata.as_ref())
+            .and_then(|metadata| metadata.attributes.get(property))?;
+        match value {
+            toml::Value::Float(value) => Some(*value as f32),
+            toml::Value::Integer(value) => Some(*value as f32),
+            toml::Value::String(value) => value.parse().ok(),
+            _ => None,
+        }
+    }
+
     pub(super) fn control_string(&self, control_id: &str, property: &str) -> Option<String> {
         let node_id = self.control_node_id(control_id)?;
         self.template_surface
@@ -246,7 +264,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .unwrap_or_default()
     }
 
-    fn control_node_ids_with_descendants(&self, control_id: &str) -> Vec<UiNodeId> {
+    pub(super) fn control_node_ids_with_descendants(&self, control_id: &str) -> Vec<UiNodeId> {
         let Some(root_id) = self.control_node_id(control_id) else {
             return Vec::new();
         };

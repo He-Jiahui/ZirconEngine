@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -10,7 +10,7 @@ use super::parsed_document::ParsedUiAssetImportDocument;
 /// multiple open documents share the same physical read/parse result.
 #[derive(Default)]
 pub(in crate::ui::host::asset_editor_sessions) struct UiAssetImportGeneration {
-    parsed_by_physical_path: BTreeMap<PathBuf, Result<Arc<ParsedUiAssetImportDocument>, String>>,
+    parsed_by_physical_path: HashMap<PathBuf, Result<Arc<ParsedUiAssetImportDocument>, String>>,
 }
 
 impl UiAssetImportGeneration {
@@ -19,11 +19,17 @@ impl UiAssetImportGeneration {
         physical_path: &Path,
         load: impl FnOnce() -> Result<ParsedUiAssetImportDocument, String>,
     ) -> Result<Arc<ParsedUiAssetImportDocument>, EditorError> {
-        let cached = self
-            .parsed_by_physical_path
-            .entry(physical_path.to_path_buf())
-            .or_insert_with(|| load().map(Arc::new))
-            .clone();
-        cached.map_err(EditorError::UiAsset)
+        if let Some(cached) = self.parsed_by_physical_path.get(physical_path).cloned() {
+            return cached.map_err(EditorError::UiAsset);
+        }
+
+        let loaded = load().map(Arc::new);
+        self.parsed_by_physical_path
+            .insert(physical_path.to_path_buf(), loaded.clone());
+        loaded.map_err(EditorError::UiAsset)
     }
 }
+
+#[cfg(test)]
+#[path = "generation/hash_cache_tests.rs"]
+mod hash_cache_tests;

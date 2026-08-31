@@ -207,6 +207,9 @@ menu_items = ["open|label=Open"]
         for (counter_name, expected_value) in [
             ("ui_text.prewarm.owner_overlap_joins", Some(0.0)),
             ("ui_text.prewarm.requested", None),
+            ("ui_text.prewarm.invalid_requests", Some(0.0)),
+            ("ui_text.prewarm.generation_deferred", Some(0.0)),
+            ("ui_text.prewarm.failed", Some(0.0)),
             ("text.shape_batch.requested", None),
         ] {
             let samples = first_frame_profile
@@ -277,7 +280,7 @@ fn owner_prewarm_overlap_keeps_worker_samples_on_the_calling_frame_once() {
     config.session_id = "ui-text-owner-overlap-frame".to_string();
     config.max_frames = 2;
     config.max_spans = 64;
-    config.max_counters = 128;
+    config.max_counters = 160;
     start_capture(config);
 
     {
@@ -565,7 +568,7 @@ fn render_extract_prewarms_rich_and_vertical_owner_text_before_layout() {
         config.session_id = "ui-text-rich-cache-frame".to_string();
         config.max_frames = 2;
         config.max_spans = 32;
-        config.max_counters = 128;
+        config.max_counters = 160;
         start_capture(config);
         {
             crate::profile_frame!("runtime", "rich_cache_test_frame");

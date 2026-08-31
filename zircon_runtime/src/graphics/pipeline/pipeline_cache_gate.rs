@@ -3,6 +3,8 @@ use std::io::Read;
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
 
+use zr_rhi::{RenderAdapterFacts, RenderBackendKind};
+
 use crate::core::resource::io::atomic_write;
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
@@ -22,11 +24,11 @@ pub(crate) enum PipelineCacheGate {
 }
 
 pub(crate) const fn pipeline_cache_gate(
-    backend: wgpu::Backend,
+    backend: RenderBackendKind,
     has_seed_data: bool,
     pipeline_cache_feature_enabled: bool,
 ) -> PipelineCacheGate {
-    if !matches!(backend, wgpu::Backend::Vulkan) {
+    if !matches!(backend, RenderBackendKind::Vulkan) {
         return PipelineCacheGate::UnsupportedBackend;
     }
     if !pipeline_cache_feature_enabled {
@@ -55,10 +57,10 @@ impl RuntimePipelineCache {
 
     pub(crate) fn new(
         device: &wgpu::Device,
-        adapter_info: &wgpu::AdapterInfo,
+        adapter_facts: &RenderAdapterFacts,
         project_root: &Path,
     ) -> Self {
-        let Some(cache_key) = wgpu::util::pipeline_cache_key(adapter_info) else {
+        let Some(cache_key) = pipeline_cache_key(adapter_facts) else {
             return Self::disabled();
         };
         let path = ShaderVariantCacheDisk::default_project_root(project_root)
@@ -66,7 +68,7 @@ impl RuntimePipelineCache {
             .join(format!("{cache_key}.bin"));
         let seed = read_pipeline_cache_seed(&path);
         let gate = pipeline_cache_gate(
-            adapter_info.backend,
+            adapter_facts.backend,
             seed.is_some(),
             device.features().contains(wgpu::Features::PIPELINE_CACHE),
         );
@@ -109,6 +111,19 @@ impl RuntimePipelineCache {
         }
         atomic_write(path, &encode_pipeline_cache_seed(&data))
     }
+}
+
+fn pipeline_cache_key(adapter: &RenderAdapterFacts) -> Option<String> {
+    pipeline_cache_key_from_ids(adapter.backend, adapter.vendor_id, adapter.device_id)
+}
+
+fn pipeline_cache_key_from_ids(
+    backend: RenderBackendKind,
+    vendor_id: u32,
+    device_id: u32,
+) -> Option<String> {
+    matches!(backend, RenderBackendKind::Vulkan)
+        .then(|| format!("wgpu_pipeline_cache_vulkan_{vendor_id}_{device_id}"))
 }
 
 impl Drop for RuntimePipelineCache {
@@ -181,27 +196,40 @@ mod tests {
     use std::fs;
 
     use super::{
-        decode_pipeline_cache_seed, encode_pipeline_cache_seed, pipeline_cache_gate,
-        read_pipeline_cache_seed_with_limit, PipelineCacheGate,
+        PipelineCacheGate, decode_pipeline_cache_seed, encode_pipeline_cache_seed,
+        pipeline_cache_gate, pipeline_cache_key_from_ids, read_pipeline_cache_seed_with_limit,
     };
+    use zr_rhi::RenderBackendKind;
 
     #[test]
     fn render_perf_pipeline_cache_gate_is_vulkan_only_and_reports_cold_seed() {
         assert_eq!(
-            pipeline_cache_gate(wgpu::Backend::Vulkan, true, true),
+            pipeline_cache_gate(RenderBackendKind::Vulkan, true, true),
             PipelineCacheGate::Enabled
         );
         assert_eq!(
-            pipeline_cache_gate(wgpu::Backend::Vulkan, false, true),
+            pipeline_cache_gate(RenderBackendKind::Vulkan, false, true),
             PipelineCacheGate::MissingSeedData
         );
         assert_eq!(
-            pipeline_cache_gate(wgpu::Backend::Dx12, true, true),
+            pipeline_cache_gate(RenderBackendKind::Dx12, true, true),
             PipelineCacheGate::UnsupportedBackend
         );
         assert_eq!(
-            pipeline_cache_gate(wgpu::Backend::Vulkan, true, false),
+            pipeline_cache_gate(RenderBackendKind::Vulkan, true, false),
             PipelineCacheGate::UnsupportedDeviceFeature
+        );
+    }
+
+    #[test]
+    fn render_perf_pipeline_cache_key_preserves_wgpu_vulkan_compatibility() {
+        assert_eq!(
+            pipeline_cache_key_from_ids(RenderBackendKind::Vulkan, 4_314, 8_675),
+            Some("wgpu_pipeline_cache_vulkan_4314_8675".to_owned())
+        );
+        assert_eq!(
+            pipeline_cache_key_from_ids(RenderBackendKind::Dx12, 4_314, 8_675),
+            None
         );
     }
 

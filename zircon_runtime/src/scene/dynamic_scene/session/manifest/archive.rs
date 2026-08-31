@@ -5,6 +5,10 @@ use serde::{Deserialize, Serialize};
 use super::order::compare_slot_summary_update_order;
 use super::summary::RuntimeSessionSlotSummary;
 
+mod sorted_lookup;
+
+use self::sorted_lookup::sorted_index_by_key;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RuntimeSessionArchiveManifest {
     pub format_version: u32,
@@ -22,7 +26,8 @@ impl RuntimeSessionArchiveManifest {
     }
 
     pub fn slot(&self, slot_id: &str) -> Option<&RuntimeSessionSlotSummary> {
-        self.slots.iter().find(|slot| slot.slot_id == slot_id)
+        sorted_index_by_key(&self.slots, slot_id, |slot| slot.slot_id.as_str())
+            .and_then(|index| self.slots.get(index))
     }
 
     pub fn slot_ids(&self) -> impl Iterator<Item = &str> {

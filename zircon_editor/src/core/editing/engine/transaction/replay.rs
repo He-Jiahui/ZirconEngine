@@ -21,10 +21,11 @@ impl EditorTransactionEngine {
         self.flush_operation_group()?;
         self.start_operation("query dirty state")?;
         let mut state = self.lock_state();
-        let dirty = state
-            .histories
-            .get(&history)
-            .is_some_and(HistoryStore::is_dirty);
+        let dirty = !history.is_volatile()
+            && state
+                .histories
+                .get(&history)
+                .is_some_and(HistoryStore::is_dirty);
         self.clear_operation_locked(&mut state);
         Ok(dirty)
     }
@@ -40,7 +41,8 @@ impl EditorTransactionEngine {
         let status = match state.histories.get(&history) {
             Some(store) => store.status(generation),
             None => HistoryStatus::empty(generation),
-        };
+        }
+        .for_context(history);
         self.clear_operation_locked(&mut state);
         Ok(status)
     }
@@ -82,11 +84,15 @@ impl EditorTransactionEngine {
         let offset = cursor.map_or(0, HistoryPageCursor::offset);
         let (status, records, has_more) = match state.histories.get(&history) {
             Some(store) => {
-                let status = store.status(generation);
+                let status = store.status(generation).for_context(history);
                 let (records, has_more) = store.detail_window(offset, page_size);
                 (status, records, has_more)
             }
-            None => (HistoryStatus::empty(generation), Vec::new(), false),
+            None => (
+                HistoryStatus::empty(generation).for_context(history),
+                Vec::new(),
+                false,
+            ),
         };
         let next_cursor = has_more.then(|| {
             HistoryPageCursor::new(
@@ -105,6 +111,9 @@ impl EditorTransactionEngine {
         history: HistoryContextId,
         transaction: TransactionId,
     ) -> Result<TransactionJournal, TransactionJournalError> {
+        if history.is_volatile() {
+            return Err(TransactionJournalError::VolatileHistory { history });
+        }
         self.flush_operation_group()
             .map_err(TransactionJournalError::from)?;
         self.start_operation("serialize transaction journal")
@@ -171,6 +180,25 @@ impl EditorTransactionEngine {
             };
             (context, store, state.current_frame, mutation)
         };
+        let route = match store.replay_route(undo).cloned() {
+            Some(route) => route,
+            None => {
+                let mut state = self.lock_state();
+                state.histories.insert(history, store);
+                state.context = Some(context);
+                self.clear_operation_locked(&mut state);
+                return Err(EditCommandError::InvariantViolation {
+                    invariant: "a replayable history must retain its target world route",
+                });
+            }
+        };
+        if let Err(error) = context.activate_world_route(&route) {
+            let mut state = self.lock_state();
+            state.histories.insert(history, store);
+            state.context = Some(context);
+            self.clear_operation_locked(&mut state);
+            return Err(error);
+        }
         let result = if undo {
             store.undo(context.as_mut())
         } else {

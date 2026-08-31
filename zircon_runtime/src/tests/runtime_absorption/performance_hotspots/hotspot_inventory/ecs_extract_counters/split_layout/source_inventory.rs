@@ -5,7 +5,7 @@ pub(super) fn assert_ecs_extract_counters_source_inventory(sources: &SplitLayout
         "performance hotpath source inventory",
         sources.source_inventory,
         &[
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/hotspot_inventory/ecs_extract_counters.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/hotspot_inventory/ecs_extract_counters/query_change.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/hotspot_inventory/ecs_extract_counters/extract_cache.rs",

@@ -1,9 +1,7 @@
-use std::collections::BTreeMap;
-
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::WorkbenchViewModel;
 
-use super::super::super::ShellRegionId;
+use super::super::super::{LogicalRegionPreferredExtents, ShellRegionId};
 
 pub(super) fn tool_region_has_tabs(
     model: &WorkbenchViewModel,
@@ -38,13 +36,13 @@ pub(super) fn tool_region_extent(
     model: &WorkbenchViewModel,
     region: ShellRegionId,
     slots: &[ActivityDrawerSlot],
-    transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
-    token_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
+    transient_region_preferred: LogicalRegionPreferredExtents<'_>,
+    token_region_preferred: LogicalRegionPreferredExtents<'_>,
 ) -> f32 {
     transient_region_preferred
-        .and_then(|map| map.get(&region).copied())
+        .get(region)
         .or_else(|| persisted_tool_region_extent(model, slots))
-        .or_else(|| token_region_preferred.and_then(|map| map.get(&region).copied()))
+        .or_else(|| token_region_preferred.get(region))
         .unwrap_or(0.0)
 }
 

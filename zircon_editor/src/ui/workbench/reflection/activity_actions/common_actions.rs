@@ -3,8 +3,10 @@ use zircon_runtime_interface::ui::{
     event_ui::UiValueType,
 };
 
-pub(super) fn common_tab_actions() -> Vec<UiActionDescriptor> {
-    vec![
+pub(super) const COMMON_TAB_ACTION_COUNT: usize = 2;
+
+pub(super) fn common_tab_actions() -> [UiActionDescriptor; COMMON_TAB_ACTION_COUNT] {
+    [
         UiActionDescriptor::new(
             "workbench.view.focus",
             UiEventKind::Click,

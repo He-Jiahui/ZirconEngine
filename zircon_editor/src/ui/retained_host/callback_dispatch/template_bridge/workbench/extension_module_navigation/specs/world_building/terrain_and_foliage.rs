@@ -1,24 +1,5 @@
 use super::{action, spec, ActionControl, ExtensionNavigationSpec};
 
-const TERRAIN_EDITOR_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionTerrainEditorSculptTab",
-    "WorkbenchExtensionTerrainEditorPaintTab",
-    "WorkbenchExtensionTerrainEditorStreamingTab",
-];
-const TERRAIN_EDITOR_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.terrain_editor.sculpt_tab.select",
-        "WorkbenchExtensionTerrainEditorSculptTab",
-    ),
-    action(
-        "workbench.extension.terrain_editor.paint_tab.select",
-        "WorkbenchExtensionTerrainEditorPaintTab",
-    ),
-    action(
-        "workbench.extension.terrain_editor.streaming_tab.select",
-        "WorkbenchExtensionTerrainEditorStreamingTab",
-    ),
-];
 const TERRAIN_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionTerrainEditorLandscapeRow",
     "WorkbenchExtensionTerrainEditorHeightfieldRow",
@@ -27,7 +8,6 @@ const TERRAIN_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionTerrainEditorCellA1209Row",
     "WorkbenchExtensionTerrainEditorRockLayerTableRow",
     "WorkbenchExtensionTerrainEditorStreamingCellTableRow",
-    "WorkbenchExtensionTerrainEditorOutputRow",
 ];
 const TERRAIN_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -58,20 +38,16 @@ const TERRAIN_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.terrain_editor.streaming_cell_table_row.select",
         "WorkbenchExtensionTerrainEditorStreamingCellTableRow",
     ),
-    action(
-        "workbench.extension.terrain_editor.output.select",
-        "WorkbenchExtensionTerrainEditorOutputRow",
-    ),
 ];
 const TERRAIN_EDITOR_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsTerrainEditorButton",
+    "WorkbenchAssetsWorldToolsMenu",
     "WorkbenchExtensionTerrainEditorPreviewButton",
     "WorkbenchExtensionTerrainEditorBuildButton",
 ];
 const TERRAIN_EDITOR_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.terrain_editor.open",
-        "WorkbenchAssetsTerrainEditorButton",
+        "WorkbenchAssetsWorldToolsMenu",
     ),
     action(
         "workbench.extension.terrain_editor.preview.invoke",
@@ -94,8 +70,6 @@ const TERRAIN_EDITOR_FIELD_ACTIONS: &[&str] = &[
 pub(in super::super) const TERRAIN_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.terrain_editor.open",
     "WorkbenchExtensionTerrainEditorWorkspace",
-    TERRAIN_EDITOR_TAB_CONTROLS,
-    TERRAIN_EDITOR_TAB_ACTIONS,
     TERRAIN_EDITOR_ROW_CONTROLS,
     TERRAIN_EDITOR_ROW_ACTIONS,
     TERRAIN_EDITOR_COMMAND_CONTROLS,
@@ -103,25 +77,6 @@ pub(in super::super) const TERRAIN_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSp
     TERRAIN_EDITOR_FIELD_ACTIONS,
 );
 
-const FOLIAGE_EDITOR_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionFoliageEditorPaintTab",
-    "WorkbenchExtensionFoliageEditorEraseTab",
-    "WorkbenchExtensionFoliageEditorClustersTab",
-];
-const FOLIAGE_EDITOR_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.foliage_editor.paint_tab.select",
-        "WorkbenchExtensionFoliageEditorPaintTab",
-    ),
-    action(
-        "workbench.extension.foliage_editor.erase_tab.select",
-        "WorkbenchExtensionFoliageEditorEraseTab",
-    ),
-    action(
-        "workbench.extension.foliage_editor.clusters_tab.select",
-        "WorkbenchExtensionFoliageEditorClustersTab",
-    ),
-];
 const FOLIAGE_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionFoliageEditorForestRow",
     "WorkbenchExtensionFoliageEditorOakRow",
@@ -130,7 +85,6 @@ const FOLIAGE_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionFoliageEditorForestA13Row",
     "WorkbenchExtensionFoliageEditorRiver02Row",
     "WorkbenchExtensionFoliageEditorCliff01Row",
-    "WorkbenchExtensionFoliageEditorOutputRow",
 ];
 const FOLIAGE_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -161,20 +115,16 @@ const FOLIAGE_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.foliage_editor.cliff_01_table_row.select",
         "WorkbenchExtensionFoliageEditorCliff01Row",
     ),
-    action(
-        "workbench.extension.foliage_editor.output.select",
-        "WorkbenchExtensionFoliageEditorOutputRow",
-    ),
 ];
 const FOLIAGE_EDITOR_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsFoliageEditorButton",
+    "WorkbenchAssetsWorldToolsMenu",
     "WorkbenchExtensionFoliageEditorPreviewButton",
     "WorkbenchExtensionFoliageEditorBuildButton",
 ];
 const FOLIAGE_EDITOR_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.foliage_editor.open",
-        "WorkbenchAssetsFoliageEditorButton",
+        "WorkbenchAssetsWorldToolsMenu",
     ),
     action(
         "workbench.extension.foliage_editor.preview.invoke",
@@ -197,8 +147,6 @@ const FOLIAGE_EDITOR_FIELD_ACTIONS: &[&str] = &[
 pub(in super::super) const FOLIAGE_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.foliage_editor.open",
     "WorkbenchExtensionFoliageEditorWorkspace",
-    FOLIAGE_EDITOR_TAB_CONTROLS,
-    FOLIAGE_EDITOR_TAB_ACTIONS,
     FOLIAGE_EDITOR_ROW_CONTROLS,
     FOLIAGE_EDITOR_ROW_ACTIONS,
     FOLIAGE_EDITOR_COMMAND_CONTROLS,

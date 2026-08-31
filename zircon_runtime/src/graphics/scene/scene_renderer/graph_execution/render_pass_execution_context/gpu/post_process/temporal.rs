@@ -1,4 +1,5 @@
-use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
+use crate::core::framework::render::RenderPipelinePhase;
+use crate::graphics::scene::scene_renderer::history::SceneHistoryDomain;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
 use super::super::RenderPassGpuExecutionContext;
@@ -68,14 +69,21 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             taa_history_current_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        let taa_history_valid = stack
-            .history_textures
-            .is_some_and(SceneFrameHistoryTextures::taa_scene_color_history_valid);
-        let bind_group_created = stack.post_process.execute_taa_resolve(
+        let taa_history_valid = stack.history_textures.is_some()
+            && stack.history_available(SceneHistoryDomain::TaaSceneColor);
+        let phase_targets = self
+            .frame
+            .view_family_pipeline()
+            .phase_targets(RenderPipelinePhase::TemporalReconstruction)
+            .ok_or_else(|| {
+                format!(
+                    "TAA resolve graph executor for pass `{pass_name}` requires a temporal reconstruction phase"
+                )
+            })?;
+        let (bind_group_created, mut params_uploads) = stack.post_process.execute_taa_resolve(
             self.device,
-            self.queue,
             self.encoder,
-            stack.target.size,
+            phase_targets,
             scene_color_view,
             scene_depth_view,
             scene_velocity_view,
@@ -94,9 +102,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             taa_history_valid,
             self.frame.extract.view.anti_alias,
         );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         if bind_group_created {
             self.record_taa_resolve_bind_group_create();
         }
+        self.record_history_write(SceneHistoryDomain::TaaSceneColor);
         Ok(())
     }
 
@@ -127,18 +137,21 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             RenderGraphResourceAccessKind::Write,
         )?;
         let camera = self.frame.effective_camera();
-        self.motion_vector_camera_status = stack.post_process.execute_velocity_camera(
-            self.device,
-            self.queue,
-            self.encoder,
-            stack.target.size,
-            scene_depth_view,
-            velocity_view,
-            attachment_ops,
-            &camera,
-            self.frame.previous_motion_vector_camera(),
-            effect_stack_uses_reconstructed_velocity(self.frame.extract.post_process.effect_stack),
-        );
+        let scene_linear_size = stack.scene_linear_size(self.frame, pass_name)?;
+        let (motion_vector_camera_status, mut params_uploads) =
+            stack.post_process.execute_velocity_camera(
+                self.device,
+                self.encoder,
+                scene_linear_size,
+                scene_depth_view,
+                velocity_view,
+                attachment_ops,
+                &camera,
+                self.frame.previous_motion_vector_camera(),
+                effect_stack_uses_reconstructed_velocity(self.frame.post_process().effect_stack),
+            );
+        self.motion_vector_camera_status = motion_vector_camera_status;
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 
@@ -174,7 +187,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             motion_vector_source_view,
             motion_vector_tile_max_view,
             attachment_ops,
-            effect_stack_uses_reconstructed_velocity(self.frame.extract.post_process.effect_stack),
+            effect_stack_uses_reconstructed_velocity(self.frame.post_process().effect_stack),
         );
         Ok(())
     }
@@ -211,7 +224,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             motion_vector_tile_max_coarse_view,
             motion_vector_neighbor_max_view,
             attachment_ops,
-            effect_stack_uses_reconstructed_velocity(self.frame.extract.post_process.effect_stack),
+            effect_stack_uses_reconstructed_velocity(self.frame.post_process().effect_stack),
         );
         Ok(())
     }

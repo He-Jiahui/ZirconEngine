@@ -22,17 +22,49 @@ pub(in crate::ui::retained_host::app::module_plugin_actions) fn dispatch_live_pl
 pub(in crate::ui::retained_host::app::module_plugin_actions) fn live_plugin_backend_success_message(
     outcome: &ModulePluginLiveHostOutcome,
 ) -> String {
-    if outcome.diagnostics.is_empty() {
-        return format!(
-            "Plugin {} {}",
-            outcome.plugin_id,
-            outcome.command.past_tense()
+    const PREFIX: &str = "Plugin ";
+    const DIAGNOSTIC_PREFIX: &str = ": ";
+    const DIAGNOSTIC_SEPARATOR: &str = "; ";
+
+    let action = outcome.command.past_tense();
+    let diagnostic_bytes = outcome
+        .diagnostics
+        .iter()
+        .map(String::len)
+        .fold(0usize, usize::saturating_add);
+    let separator_bytes = outcome
+        .diagnostics
+        .len()
+        .saturating_sub(1)
+        .saturating_mul(DIAGNOSTIC_SEPARATOR.len());
+    let capacity = PREFIX
+        .len()
+        .saturating_add(outcome.plugin_id.len())
+        .saturating_add(1)
+        .saturating_add(action.len())
+        .saturating_add(
+            (!outcome.diagnostics.is_empty())
+                .then_some(DIAGNOSTIC_PREFIX.len() + diagnostic_bytes + separator_bytes)
+                .unwrap_or_default(),
         );
+    let mut message = String::with_capacity(capacity);
+    message.push_str(PREFIX);
+    message.push_str(&outcome.plugin_id);
+    message.push(' ');
+    message.push_str(action);
+    if outcome.diagnostics.is_empty() {
+        return message;
     }
-    format!(
-        "Plugin {} {}: {}",
-        outcome.plugin_id,
-        outcome.command.past_tense(),
-        outcome.diagnostics.join("; ")
-    )
+    message.push_str(DIAGNOSTIC_PREFIX);
+    for (index, diagnostic) in outcome.diagnostics.iter().enumerate() {
+        if index > 0 {
+            message.push_str(DIAGNOSTIC_SEPARATOR);
+        }
+        message.push_str(diagnostic);
+    }
+    message
 }
+
+#[cfg(test)]
+#[path = "dispatch/single_allocation_success_message_tests.rs"]
+mod single_allocation_success_message_tests;

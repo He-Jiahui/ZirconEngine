@@ -160,7 +160,10 @@ def unsupported_export_strategies_from_validate_report(
 
 def _dedupe(values: list[str]) -> list[str]:
     deduped: list[str] = []
+    seen: set[str] = set()
     for value in values:
-        if value not in deduped:
-            deduped.append(value)
+        if value in seen:
+            continue
+        seen.add(value)
+        deduped.append(value)
     return deduped

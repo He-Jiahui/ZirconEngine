@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::core::editor_event::ViewInstanceId;
 use crate::core::editor_message::EditorViewInvalidationMask;
 
-use super::{EditorMessagePayload, EditorViewDirtyMark};
+use super::{EditorMessagePayload, EditorMessageSchemaId, EditorViewDirtyMark};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EditorMessage {
@@ -19,11 +19,8 @@ impl EditorMessage {
         }
     }
 
-    pub fn custom(schema_id: impl Into<String>, payload: serde_json::Value) -> Self {
-        Self::new(EditorMessagePayload::Custom {
-            schema_id: schema_id.into(),
-            payload,
-        })
+    pub(crate) fn custom(schema_id: EditorMessageSchemaId, payload: serde_json::Value) -> Self {
+        Self::new(EditorMessagePayload::Custom { schema_id, payload })
     }
 
     pub fn with_dirty(mut self, view: ViewInstanceId, mask: EditorViewInvalidationMask) -> Self {

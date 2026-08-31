@@ -24,6 +24,7 @@ advanced-render-runtime-plugins = [
     "dep:zircon_plugin_virtual_geometry_runtime",
 ]
 navigation-runtime-plugin = ["dep:zircon_plugin_navigation_runtime"]
+ui-document-importer = ["dep:zircon_plugin_ui_document_importer_runtime"]
 zr-vm-language-runtime-plugin = ["dep:zircon_plugin_zr_vm_language_runtime"]
 backend-zr-vm = [
     "zr-vm-language-runtime-plugin",
@@ -43,6 +44,7 @@ zircon_plugin_rendering_runtime = { path = "../rendering/runtime", optional = tr
 zircon_plugin_solari_runtime = { path = "../solari/runtime", optional = true }
 zircon_plugin_sound_runtime = { path = "../sound/runtime", optional = true }
 zircon_plugin_texture_runtime = { path = "../texture/runtime", optional = true }
+zircon_plugin_ui_document_importer_runtime = { path = "../ui_document_importer/runtime", optional = true }
 zircon_plugin_virtual_geometry_runtime = { path = "../virtual_geometry/runtime", optional = true }
 zircon_plugin_zr_vm_language_runtime = { path = "../zr_vm_language/runtime", optional = true }
 zircon_runtime = { workspace = true }

@@ -41,7 +41,9 @@ fn viewport_edit_mode_projection_consumes_runtime_reflection_inspector_fields() 
     scene
         .register_component_type(cloud_layer_descriptor())
         .expect("dynamic component descriptor should register");
-    let entity = scene.spawn_node(NodeKind::Mesh);
+    let entity = scene
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     scene
         .rename_node(entity, "Cloud")
         .expect("test entity should be named");
@@ -92,8 +94,12 @@ fn viewport_edit_mode_projection_consumes_runtime_reflection_inspector_fields() 
 #[test]
 fn viewport_edit_mode_projection_exposes_ambient_and_rect_light_fields() {
     let mut scene = Scene::empty();
-    let ambient = scene.spawn_node(NodeKind::AmbientLight);
-    let rect = scene.spawn_node(NodeKind::RectLight);
+    let ambient = scene
+        .spawn_node(NodeKind::AmbientLight)
+        .expect("test scene spawn should succeed");
+    let rect = scene
+        .spawn_node(NodeKind::RectLight)
+        .expect("test scene spawn should succeed");
 
     let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
     controller.selection_mut().select_only_active(ambient);

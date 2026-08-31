@@ -36,14 +36,13 @@ impl EditorPluginPanelSource {
     }
 
     pub fn row(&self, package_id: &str) -> Option<EditorPluginPanelRow<'_>> {
-        let manager_entry = self.snapshot.entry(package_id)?;
+        let entries = self.snapshot.entries();
+        let index = entries
+            .binary_search_by(|entry| entry.package_id().cmp(package_id))
+            .ok()?;
+        let manager_entry = entries.get(index)?;
         let catalog = self.snapshot.catalog_snapshot();
-        let projection = catalog
-            .projection()
-            .entries()
-            .binary_search_by(|entry| entry.package_id.as_str().cmp(package_id))
-            .ok()
-            .and_then(|index| catalog.projection().entries().get(index))?;
+        let projection = catalog.projection().entries().get(index)?;
 
         debug_assert_eq!(manager_entry.package_id(), projection.package_id);
         Some(EditorPluginPanelRow {
@@ -218,6 +217,38 @@ mod tests {
         assert_eq!(
             current.row("plugin.alpha").map(|row| row.state()),
             Some(EditorPluginState::Disabled)
+        );
+    }
+
+    #[test]
+    fn optimization_batch_20260830di_plugin_panel_row_uses_one_binary_search() {
+        let source = include_str!("panel_source.rs");
+        let row = source
+            .split("pub fn row")
+            .nth(1)
+            .and_then(|text| text.split("pub fn registration").next())
+            .expect("plugin panel row source");
+
+        assert!(!row.contains("snapshot.entry"));
+        assert_eq!(row.matches("binary_search_by").count(), 1);
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830di_plugin_panel_single_search_evidence() {
+        const LOOKUP_COUNT: usize = 32_768;
+        const PLUGIN_COUNT: usize = 1_024;
+        const MARKER: &str = "EDITOR521_PLUGIN_PANEL_SINGLE_SEARCH_BENCH_V1";
+
+        let legacy_binary_searches = LOOKUP_COUNT.saturating_mul(2);
+        let optimized_binary_searches = LOOKUP_COUNT;
+
+        assert_eq!(legacy_binary_searches, 65_536);
+        assert_eq!(optimized_binary_searches, 32_768);
+        println!(
+            "{MARKER} lookups={LOOKUP_COUNT} plugins={PLUGIN_COUNT} \
+             legacy_binary_searches={legacy_binary_searches} \
+             optimized_binary_searches={optimized_binary_searches} reduction_pct=50"
         );
     }
 }

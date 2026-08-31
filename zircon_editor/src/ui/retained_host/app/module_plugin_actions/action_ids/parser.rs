@@ -3,33 +3,34 @@ use super::ModulePluginAction;
 pub(in crate::ui::retained_host::app::module_plugin_actions) fn parse_module_plugin_action(
     action_id: &str,
 ) -> Option<ModulePluginAction<'_>> {
-    action_id
-        .strip_prefix("workbench.plugin.enable.")
+    let action = action_id.strip_prefix("workbench.plugin.")?;
+    action
+        .strip_prefix("enable.")
         .map(|plugin_id| ModulePluginAction::SetEnabled {
             plugin_id,
             enabled: true,
         })
         .or_else(|| {
-            action_id
-                .strip_prefix("workbench.plugin.disable.")
+            action
+                .strip_prefix("disable.")
                 .map(|plugin_id| ModulePluginAction::SetEnabled {
                     plugin_id,
                     enabled: false,
                 })
         })
         .or_else(|| {
-            action_id
-                .strip_prefix("workbench.plugin.packaging.next.")
+            action
+                .strip_prefix("packaging.next.")
                 .map(|plugin_id| ModulePluginAction::CyclePackaging { plugin_id })
         })
         .or_else(|| {
-            action_id
-                .strip_prefix("workbench.plugin.target_modes.next.")
+            action
+                .strip_prefix("target_modes.next.")
                 .map(|plugin_id| ModulePluginAction::CycleTargetModes { plugin_id })
         })
         .or_else(|| {
-            action_id
-                .strip_prefix("workbench.plugin.feature.enable_dependencies.")
+            action
+                .strip_prefix("feature.enable_dependencies.")
                 .and_then(parse_module_plugin_feature_action)
                 .map(
                     |(plugin_id, feature_id)| ModulePluginAction::EnableFeatureDependencies {
@@ -39,8 +40,8 @@ pub(in crate::ui::retained_host::app::module_plugin_actions) fn parse_module_plu
                 )
         })
         .or_else(|| {
-            action_id
-                .strip_prefix("workbench.plugin.feature.enable.")
+            action
+                .strip_prefix("feature.enable.")
                 .and_then(parse_module_plugin_feature_action)
                 .map(
                     |(plugin_id, feature_id)| ModulePluginAction::SetFeatureEnabled {
@@ -51,8 +52,8 @@ pub(in crate::ui::retained_host::app::module_plugin_actions) fn parse_module_plu
                 )
         })
         .or_else(|| {
-            action_id
-                .strip_prefix("workbench.plugin.feature.disable.")
+            action
+                .strip_prefix("feature.disable.")
                 .and_then(parse_module_plugin_feature_action)
                 .map(
                     |(plugin_id, feature_id)| ModulePluginAction::SetFeatureEnabled {
@@ -63,13 +64,13 @@ pub(in crate::ui::retained_host::app::module_plugin_actions) fn parse_module_plu
                 )
         })
         .or_else(|| {
-            action_id
-                .strip_prefix("workbench.plugin.unload.")
+            action
+                .strip_prefix("unload.")
                 .map(|plugin_id| ModulePluginAction::Unload { plugin_id })
         })
         .or_else(|| {
-            action_id
-                .strip_prefix("workbench.plugin.hot_reload.")
+            action
+                .strip_prefix("hot_reload.")
                 .map(|plugin_id| ModulePluginAction::HotReload { plugin_id })
         })
 }
@@ -81,3 +82,7 @@ fn parse_module_plugin_feature_action(action: &str) -> Option<(&str, &str)> {
     }
     Some((plugin_id, feature_id))
 }
+
+#[cfg(test)]
+#[path = "parser/common_prefix_tests.rs"]
+mod common_prefix_tests;

@@ -7,7 +7,10 @@ use zircon_runtime_interface::ui::{
 };
 
 const MICROS_PER_MILLI: u64 = 1_000;
+const TOOLTIP_INTRO_FRAME_INTERVAL_MS: u64 = 16;
 pub const DEFAULT_DOUBLE_CLICK_TIMEOUT_MS: u64 = 500;
+pub const DEFAULT_TOOLTIP_DELAY_MS: u64 = 150;
+pub const DEFAULT_TOOLTIP_INTRO_DURATION_MS: u64 = 100;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiInputTimerState {
@@ -15,6 +18,7 @@ pub struct UiInputTimerState {
     typeahead_expirations: BTreeMap<UiNodeId, UiInputTimestamp>,
     submenu_hover_expirations: BTreeMap<UiNodeId, UiSubmenuHoverTimerExpiration>,
     tooltip_expirations: BTreeMap<UiNodeId, UiTooltipTimerExpiration>,
+    tooltip_intro: Option<UiTooltipIntroTimer>,
     double_click_candidate: Option<UiDoubleClickTimerCandidate>,
     toast_expirations: BTreeMap<UiNodeId, UiToastTimerExpiration>,
 }
@@ -29,6 +33,12 @@ struct UiSubmenuHoverTimerExpiration {
 struct UiTooltipTimerExpiration {
     deadline: UiInputTimestamp,
     tooltip_id: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct UiTooltipIntroTimer {
+    started_at: UiInputTimestamp,
+    deadline: UiInputTimestamp,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -66,6 +76,10 @@ impl UiInputTimerState {
                 self.tooltip_expirations
                     .values()
                     .map(|expiration| expiration.deadline.monotonic_micros),
+            )
+            .chain(
+                self.tooltip_intro
+                    .map(|intro| intro.next_sample_micros(now)),
             )
             .chain(
                 self.toast_expirations
@@ -109,6 +123,10 @@ impl UiInputTimerState {
         self.tooltip_expirations
             .get(&target)
             .map(|expiration| expiration.tooltip_id.as_str())
+    }
+
+    pub fn tooltip_intro_progress(&self, now: UiInputTimestamp) -> Option<f32> {
+        self.tooltip_intro.map(|intro| intro.progress(now))
     }
 
     pub fn toast_expiration(&self, target: UiNodeId) -> Option<UiInputTimestamp> {
@@ -204,6 +222,29 @@ impl UiInputTimerState {
         self.tooltip_expirations.clear();
     }
 
+    pub fn arm_tooltip_intro(&mut self, started_at: UiInputTimestamp) {
+        let duration_micros = DEFAULT_TOOLTIP_INTRO_DURATION_MS.saturating_mul(MICROS_PER_MILLI);
+        self.tooltip_intro = Some(UiTooltipIntroTimer {
+            started_at,
+            deadline: UiInputTimestamp::from_micros(
+                started_at.monotonic_micros.saturating_add(duration_micros),
+            ),
+        });
+    }
+
+    pub fn clear_tooltip_intro(&mut self) {
+        self.tooltip_intro = None;
+    }
+
+    pub fn expire_tooltip_intro(&mut self, now: UiInputTimestamp) {
+        if self
+            .tooltip_intro
+            .is_some_and(|intro| intro.deadline <= now)
+        {
+            self.clear_tooltip_intro();
+        }
+    }
+
     pub fn double_click_count_for_release(
         &self,
         target: UiNodeId,
@@ -285,14 +326,15 @@ impl UiInputTimerState {
     }
 
     pub fn drain_expired_typeahead(&mut self, now: UiInputTimestamp) -> Vec<UiNodeId> {
-        let expired = self
-            .typeahead_expirations
-            .iter()
-            .filter_map(|(target, deadline)| (*deadline <= now).then_some(*target))
-            .collect::<Vec<_>>();
-        for target in &expired {
-            self.typeahead_expirations.remove(target);
-        }
+        let mut expired = Vec::new();
+        self.typeahead_expirations.retain(|target, deadline| {
+            if *deadline <= now {
+                expired.push(*target);
+                false
+            } else {
+                true
+            }
+        });
         expired
     }
 
@@ -300,44 +342,70 @@ impl UiInputTimerState {
         &mut self,
         now: UiInputTimestamp,
     ) -> Vec<(UiNodeId, String)> {
-        let expired = self
-            .submenu_hover_expirations
-            .iter()
-            .filter_map(|(target, expiration)| {
-                (expiration.deadline <= now).then(|| (*target, expiration.option_id.clone()))
-            })
-            .collect::<Vec<_>>();
-        for (target, _) in &expired {
-            self.submenu_hover_expirations.remove(target);
-        }
+        let mut expired = Vec::new();
+        self.submenu_hover_expirations.retain(|target, expiration| {
+            if expiration.deadline <= now {
+                expired.push((*target, std::mem::take(&mut expiration.option_id)));
+                false
+            } else {
+                true
+            }
+        });
         expired
     }
 
     pub fn drain_expired_tooltips(&mut self, now: UiInputTimestamp) -> Vec<(UiNodeId, String)> {
-        let expired = self
-            .tooltip_expirations
-            .iter()
-            .filter_map(|(target, expiration)| {
-                (expiration.deadline <= now).then(|| (*target, expiration.tooltip_id.clone()))
-            })
-            .collect::<Vec<_>>();
-        for (target, _) in &expired {
-            self.tooltip_expirations.remove(target);
-        }
+        let mut expired = Vec::new();
+        self.tooltip_expirations.retain(|target, expiration| {
+            if expiration.deadline <= now {
+                expired.push((*target, std::mem::take(&mut expiration.tooltip_id)));
+                false
+            } else {
+                true
+            }
+        });
         expired
     }
 
     pub fn drain_expired_toasts(&mut self, now: UiInputTimestamp) -> Vec<(UiNodeId, String)> {
-        let expired = self
-            .toast_expirations
-            .iter()
-            .filter_map(|(target, expiration)| {
-                (expiration.deadline <= now).then(|| (*target, expiration.toast_id.clone()))
-            })
-            .collect::<Vec<_>>();
-        for (target, _) in &expired {
-            self.toast_expirations.remove(target);
-        }
+        let mut expired = Vec::new();
+        self.toast_expirations.retain(|target, expiration| {
+            if expiration.deadline <= now {
+                expired.push((*target, std::mem::take(&mut expiration.toast_id)));
+                false
+            } else {
+                true
+            }
+        });
         expired
     }
 }
+
+impl UiTooltipIntroTimer {
+    fn next_sample_micros(self, now: UiInputTimestamp) -> u64 {
+        let frame_interval_micros =
+            TOOLTIP_INTRO_FRAME_INTERVAL_MS.saturating_mul(MICROS_PER_MILLI);
+        now.monotonic_micros
+            .saturating_add(frame_interval_micros)
+            .min(self.deadline.monotonic_micros)
+    }
+
+    fn progress(self, now: UiInputTimestamp) -> f32 {
+        let duration = self
+            .deadline
+            .monotonic_micros
+            .saturating_sub(self.started_at.monotonic_micros);
+        if duration == 0 {
+            return 1.0;
+        }
+        let elapsed = now
+            .monotonic_micros
+            .saturating_sub(self.started_at.monotonic_micros)
+            .min(duration);
+        (elapsed as f64 / duration as f64) as f32
+    }
+}
+
+#[cfg(test)]
+#[path = "timers/retain_drain_tests.rs"]
+mod retain_drain_tests;

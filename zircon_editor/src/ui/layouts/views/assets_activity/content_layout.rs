@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use slint::SharedString;
 use zircon_runtime_interface::ui::design_tokens::{EditorDensityTokens, EditorTypographyTokens};
 
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
@@ -19,14 +22,32 @@ const ACTIVITY_NAME_MIN_TAIL_STEM_CHARS: usize = 3;
 const ACTIVITY_NAME_PREFERRED_TAIL_STEM_CHARS: usize = 6;
 const META_MIN_WIDTH_ROW_FRACTION: f32 = 0.75;
 
+struct ActivityContentNodeIndex {
+    by_control_id: HashMap<SharedString, usize>,
+}
+
+impl ActivityContentNodeIndex {
+    fn from_nodes(nodes: &[ViewTemplateNodeData]) -> Self {
+        let mut by_control_id = HashMap::with_capacity(nodes.len());
+        for (index, node) in nodes.iter().enumerate() {
+            by_control_id
+                .entry(node.control_id.clone())
+                .or_insert(index);
+        }
+        Self { by_control_id }
+    }
+
+    fn index_of(&self, control_id: &str) -> Option<usize> {
+        self.by_control_id.get(control_id).copied()
+    }
+}
+
 pub(super) fn apply_assets_activity_content_layout(
     nodes: &mut [ViewTemplateNodeData],
     snapshot: &AssetWorkspaceSnapshot,
 ) {
-    let Some(panel_index) = nodes
-        .iter()
-        .position(|node| node.control_id == ACTIVITY_CONTENT_PANEL_CONTROL_ID)
-    else {
+    let node_index = ActivityContentNodeIndex::from_nodes(nodes);
+    let Some(panel_index) = node_index.index_of(ACTIVITY_CONTENT_PANEL_CONTROL_ID) else {
         return;
     };
     let panel = nodes[panel_index].frame.clone();
@@ -39,7 +60,7 @@ pub(super) fn apply_assets_activity_content_layout(
         snapshot.visible_assets.len(),
     );
     if snapshot.visible_folders.is_empty() && snapshot.visible_assets.is_empty() {
-        layout_empty_state(nodes, &panel, metrics);
+        layout_empty_state(nodes, &node_index, &panel, metrics);
         return;
     }
 
@@ -47,6 +68,7 @@ pub(super) fn apply_assets_activity_content_layout(
     for index in 0..snapshot.visible_folders.len() {
         layout_content_row(
             nodes,
+            &node_index,
             &panel,
             metrics,
             snapshot.view_mode,
@@ -64,6 +86,7 @@ pub(super) fn apply_assets_activity_content_layout(
         let name_control_id = item_name_control_id(index);
         layout_content_row(
             nodes,
+            &node_index,
             &panel,
             metrics,
             snapshot.view_mode,
@@ -75,7 +98,7 @@ pub(super) fn apply_assets_activity_content_layout(
             &name_control_id,
             &item_meta_control_id(index),
         );
-        compact_item_name(nodes, &name_control_id);
+        compact_item_name(nodes, &node_index, &name_control_id);
         y += metrics.item_height + metrics.row_gap;
     }
 }
@@ -83,6 +106,7 @@ pub(super) fn apply_assets_activity_content_layout(
 #[allow(clippy::too_many_arguments)]
 fn layout_content_row(
     nodes: &mut [ViewTemplateNodeData],
+    index: &ActivityContentNodeIndex,
     panel: &ViewTemplateFrameData,
     metrics: AssetContentLayoutMetrics,
     view_mode: AssetViewMode,
@@ -99,6 +123,7 @@ fn layout_content_row(
     if row_width <= 0.0 {
         hide_controls(
             nodes,
+            index,
             [
                 row_control_id,
                 badge_control_id,
@@ -112,7 +137,7 @@ fn layout_content_row(
         return;
     }
 
-    set_frame(nodes, row_control_id, row_x, y, row_width, height);
+    set_frame(nodes, index, row_control_id, row_x, y, row_width, height);
     let density = EditorDensityTokens::workbench_dense();
     let inner_gap = density.gap_small;
     let badge_extent = match view_mode {
@@ -123,6 +148,7 @@ fn layout_content_row(
     let badge_y = y + (height - badge_extent) * 0.5;
     set_frame(
         nodes,
+        index,
         badge_control_id,
         badge_x,
         badge_y,
@@ -131,6 +157,7 @@ fn layout_content_row(
     );
     set_frame(
         nodes,
+        index,
         type_control_id,
         badge_x,
         badge_y,
@@ -139,9 +166,9 @@ fn layout_content_row(
     );
 
     let typography = EditorTypographyTokens::workbench_default();
-    let meta_width = nodes
-        .iter()
-        .find(|node| node.control_id == meta_control_id)
+    let meta_width = index
+        .index_of(meta_control_id)
+        .and_then(|index| nodes.get(index))
         .map(|node| {
             measure_runtime_text_width(node.text.as_str(), typography.caption_size)
                 + density.gap_medium
@@ -155,6 +182,7 @@ fn layout_content_row(
     let label_y = y + (height - label_height) * 0.5;
     set_frame(
         nodes,
+        index,
         name_control_id,
         name_x,
         label_y,
@@ -163,6 +191,7 @@ fn layout_content_row(
     );
     set_frame(
         nodes,
+        index,
         meta_control_id,
         meta_x,
         label_y,
@@ -171,9 +200,16 @@ fn layout_content_row(
     );
 }
 
-fn compact_item_name(nodes: &mut [ViewTemplateNodeData], control_id: &str) {
+fn compact_item_name(
+    nodes: &mut [ViewTemplateNodeData],
+    index: &ActivityContentNodeIndex,
+    control_id: &str,
+) {
     let typography = EditorTypographyTokens::workbench_default();
-    let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) else {
+    let Some(node) = index
+        .index_of(control_id)
+        .and_then(|index| nodes.get_mut(index))
+    else {
         return;
     };
     if node.frame.width <= 0.0 {
@@ -195,6 +231,7 @@ fn compact_item_name(nodes: &mut [ViewTemplateNodeData], control_id: &str) {
 
 fn layout_empty_state(
     nodes: &mut [ViewTemplateNodeData],
+    index: &ActivityContentNodeIndex,
     panel: &ViewTemplateFrameData,
     metrics: AssetContentLayoutMetrics,
 ) {
@@ -202,6 +239,7 @@ fn layout_empty_state(
     let height = density.row_height;
     set_frame(
         nodes,
+        index,
         EMPTY_CONTROL_ID,
         panel.x + metrics.row_x,
         panel.y + metrics.first_row_y(),
@@ -212,13 +250,17 @@ fn layout_empty_state(
 
 fn set_frame(
     nodes: &mut [ViewTemplateNodeData],
+    index: &ActivityContentNodeIndex,
     control_id: &str,
     x: f32,
     y: f32,
     width: f32,
     height: f32,
 ) {
-    if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
+    if let Some(node) = index
+        .index_of(control_id)
+        .and_then(|index| nodes.get_mut(index))
+    {
         node.frame = ViewTemplateFrameData {
             x,
             y,
@@ -230,11 +272,15 @@ fn set_frame(
 
 fn hide_controls<'a>(
     nodes: &mut [ViewTemplateNodeData],
+    index: &ActivityContentNodeIndex,
     control_ids: impl IntoIterator<Item = &'a str>,
     x: f32,
     y: f32,
 ) {
     for control_id in control_ids {
-        set_frame(nodes, control_id, x, y, 0.0, 0.0);
+        set_frame(nodes, index, control_id, x, y, 0.0, 0.0);
     }
 }
+
+#[cfg(test)]
+mod indexed_lookup_tests;

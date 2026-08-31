@@ -7,7 +7,8 @@ version = 2
 display_name = "Assets Activity"
 
 [imports]
-styles = ["res://ui/theme/editor_base.zui"]
+widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput", "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab"]
+styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]
 node = "assets_activity_root"
@@ -19,11 +20,11 @@ props = { text = "Assets", font_size = "$editor.typography.overlay.size", font_w
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_open_browser_button]
-component = "IconButton"
+component = "WorkbenchIconButton"
 control_id = "OpenAssetBrowser"
 props = { label = "Open Asset Browser", icon = "folder-open-outline", icon_placement = "icon_only", dispatch_kind = "asset" }
 layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", action = { action = "view.asset_browser.open" } }]
+events = [{ id = "Workbench/AssetsActivityOpenBrowser", event = "Click", action = { action = "view.asset_browser.open" } }]
 
 [nodes.toolbar_title_row]
 component = "HorizontalBox"
@@ -40,149 +41,66 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.toolbar_subtitle_row]
 component = "HorizontalBox"
 control_id = "AssetsActivityToolbarSubtitleRow"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 children = [{ node = "toolbar_subtitle_text" }]
 
 [nodes.toolbar_search_field]
-component = "TextField"
+component = "WorkbenchSearchInput"
 control_id = "SearchEdited"
 props = { placeholder = "Search", dispatch_kind = "asset" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "workbench.asset.set_search_query" }]
+events = [{ id = "Workbench/AssetsActivitySearchEdited", event = "Change", route = "workbench.assets_activity.search.edit" }]
 
 [nodes.toolbar_view_mode_list_button]
-component = "IconButton"
+component = "WorkbenchIconButton"
 control_id = "AssetsActivityViewModeListButton"
 props = { label = "List view", icon = "list-outline", icon_placement = "icon_only", dispatch_kind = "asset", action_id = "workbench.asset.view_mode.set", value = "list" }
 layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
+events = [{ id = "Workbench/AssetsActivityViewModeList", event = "Change", route = "workbench.assets_activity.view_mode.list" }]
 
 [nodes.toolbar_view_mode_thumb_button]
-component = "IconButton"
+component = "WorkbenchIconButton"
 control_id = "AssetsActivityViewModeThumbButton"
 props = { label = "Thumbnail view", icon = "grid-outline", icon_placement = "icon_only", dispatch_kind = "asset", action_id = "workbench.asset.view_mode.set", value = "thumbnail" }
 layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
+events = [{ id = "Workbench/AssetsActivityViewModeThumbnail", event = "Change", route = "workbench.assets_activity.view_mode.thumbnail" }]
 
 [nodes.toolbar_search_row]
 component = "HorizontalBox"
 control_id = "AssetsActivityToolbarSearchRow"
 layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-children = [{ node = "toolbar_search_field" }, { node = "toolbar_open_browser_button" }, { node = "toolbar_view_mode_list_button" }, { node = "toolbar_view_mode_thumb_button" }]
+children = [{ node = "toolbar_search_field" }, { node = "toolbar_open_browser_button" }]
 
-[nodes.toolbar_kind_all_chip]
-component = "Button"
-control_id = "AssetsActivityKindAllChip"
-props = { label = "All", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value_text = "" }
-layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
+[nodes.toolbar_kind_filter_dropdown]
+component = "WorkbenchDropdown"
+control_id = "AssetsActivityKindFilterDropdown"
+props = { value = "All", value_text = "All Types", options = ["All|label=All Types", "Texture|label=Textures", "Material|label=Materials", "Scene|label=Scenes", "Model|label=Models", "Mesh|label=Meshes", "Shader|label=Shaders", "PhysicsMaterial|label=Physics Materials", "AnimationSkeleton|label=Animation Skeletons", "AnimationClip|label=Animation Clips", "AnimationSequence|label=Animation Sequences", "AnimationGraph|label=Animation Graphs", "AnimationStateMachine|label=Animation State Machines", "UiLayout|label=UI Layouts", "UiWidget|label=UI Widgets", "UiStyle|label=UI Styles"], dispatch_kind = "asset" }
+layout = { width = { min = 148.0, preferred = 220.0, max = 300.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "Workbench/AssetsActivityKindFilterChanged", event = "Change", route = "workbench.assets_activity.kind_filter.change" }]
 
-[nodes.toolbar_kind_texture_chip]
-component = "Button"
-control_id = "AssetsActivityKindTextureChip"
-props = { label = "Tex", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "Texture" }
-layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_material_chip]
-component = "Button"
-control_id = "AssetsActivityKindMaterialChip"
-props = { label = "Mat", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "Material" }
-layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_scene_chip]
-component = "Button"
-control_id = "AssetsActivityKindSceneChip"
-props = { label = "Scn", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "Scene" }
-layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_model_chip]
-component = "Button"
-control_id = "AssetsActivityKindModelChip"
-props = { label = "Mesh", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "Model" }
-layout = { width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_shader_chip]
-component = "Button"
-control_id = "AssetsActivityKindShaderChip"
-props = { label = "Shd", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "Shader" }
-layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_primary_row]
+[nodes.toolbar_filter_row]
 component = "HorizontalBox"
-control_id = "AssetsActivityToolbarKindPrimaryRow"
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
-children = [{ node = "toolbar_kind_all_chip" }, { node = "toolbar_kind_texture_chip" }, { node = "toolbar_kind_material_chip" }, { node = "toolbar_kind_scene_chip" }, { node = "toolbar_kind_model_chip" }, { node = "toolbar_kind_shader_chip" }]
-
-[nodes.toolbar_kind_physics_chip]
-component = "Button"
-control_id = "AssetsActivityKindPhysicsChip"
-props = { label = "Phy", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "PhysicsMaterial" }
-layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_skeleton_chip]
-component = "Button"
-control_id = "AssetsActivityKindSkeletonChip"
-props = { label = "Skel", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "AnimationSkeleton" }
-layout = { width = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_clip_chip]
-component = "Button"
-control_id = "AssetsActivityKindClipChip"
-props = { label = "Clip", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "AnimationClip" }
-layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_sequence_chip]
-component = "Button"
-control_id = "AssetsActivityKindSequenceChip"
-props = { label = "Seq", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "AnimationSequence" }
-layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_graph_chip]
-component = "Button"
-control_id = "AssetsActivityKindGraphChip"
-props = { label = "Gph", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "AnimationGraph" }
-layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_state_chip]
-component = "Button"
-control_id = "AssetsActivityKindStateChip"
-props = { label = "Stat", dispatch_kind = "asset", action_id = "workbench.asset.kind_filter.set", value = "AnimationStateMachine" }
-layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
-
-[nodes.toolbar_kind_secondary_row]
-component = "HorizontalBox"
-control_id = "AssetsActivityToolbarKindSecondaryRow"
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
-children = [{ node = "toolbar_kind_physics_chip" }, { node = "toolbar_kind_skeleton_chip" }, { node = "toolbar_kind_clip_chip" }, { node = "toolbar_kind_sequence_chip" }, { node = "toolbar_kind_graph_chip" }, { node = "toolbar_kind_state_chip" }]
+control_id = "AssetsActivityToolbarFilterRow"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_kind_filter_dropdown" }, { node = "toolbar_view_mode_list_button" }, { node = "toolbar_view_mode_thumb_button" }]
 
 [nodes.toolbar_panel]
 component = "VerticalBox"
 control_id = "AssetsActivityToolbarPanel"
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 122.0, preferred = 122.0, max = 122.0, stretch = "Fixed" } }
-children = [{ node = "toolbar_title_row" }, { node = "toolbar_subtitle_row" }, { node = "toolbar_search_row" }, { node = "toolbar_kind_primary_row" }, { node = "toolbar_kind_secondary_row" }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_title_row" }, { node = "toolbar_subtitle_row" }, { node = "toolbar_search_row" }, { node = "toolbar_filter_row" }]
 
 [nodes.tree_title_text]
 component = "Label"
 control_id = "AssetsActivityTreeTitleText"
 props = { text = "Folders", font_size = "$editor.typography.overlay.size", font_weight = "$editor.typography.emphasis.weight" }
-layout = { width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 15.0, preferred = 15.0, max = 15.0, stretch = "Fixed" } }
 
 [nodes.tree_subtitle_text]
 component = "Label"
 control_id = "AssetsActivityTreeSubtitleText"
 props = { text = "Project/assets", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 
 [nodes.tree_header_top_space]
 component = "Space"
@@ -269,33 +187,36 @@ children = [{ node = "tree_scroll_top_space" }, { node = "tree_row_panel" }, { n
 [nodes.tree_panel]
 component = "VerticalBox"
 control_id = "AssetsActivityTreePanel"
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 248.0, preferred = 248.0, max = 248.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 188.0, preferred = 220.0, max = 250.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "tree_header_panel" }, { node = "tree_divider" }, { node = "tree_scroll_body" }]
 
 [nodes.content_panel]
 component = "Space"
 control_id = "AssetsActivityContentPanel"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 320.0, preferred = 640.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.main_panel]
 component = "HorizontalBox"
 control_id = "AssetsActivityMainPanel"
 layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "tree_panel" }, { node = "content_panel" }]
+children = [
+  { node = "tree_panel", slot = { layout = { width = { min = 188.0, preferred = 220.0, max = 250.0, weight = 1.0, stretch = "Stretch" } } } },
+  { node = "content_panel", slot = { layout = { width = { min = 320.0, preferred = 640.0, weight = 4.0, stretch = "Stretch" } } } },
+]
 
 [nodes.utility_preview_button]
-component = "Button"
+component = "WorkbenchTab"
 control_id = "AssetsActivityPreviewTabButton"
-props = { label = "Preview", dispatch_kind = "asset", action_id = "workbench.asset.utility_tab.set", value = "preview" }
+props = { text = "Preview", dispatch_kind = "asset", action_id = "workbench.asset.utility_tab.set", value_text = "preview" }
 layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "workbench.asset.set_utility_tab" }]
+events = [{ id = "Workbench/AssetsActivityUtilityPreview", event = "Change", route = "workbench.assets_activity.utility.preview" }]
 
 [nodes.utility_references_button]
-component = "Button"
+component = "WorkbenchTab"
 control_id = "AssetsActivityReferencesTabButton"
-props = { label = "Refs", dispatch_kind = "asset", action_id = "workbench.asset.utility_tab.set", value = "references" }
+props = { text = "Refs", dispatch_kind = "asset", action_id = "workbench.asset.utility_tab.set", value_text = "references" }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "workbench.asset.set_utility_tab" }]
+events = [{ id = "Workbench/AssetsActivityUtilityReferences", event = "Change", route = "workbench.assets_activity.utility.references" }]
 
 [nodes.utility_tabs_spacer]
 component = "Space"
@@ -346,19 +267,19 @@ layout = { width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 1
 component = "Label"
 control_id = "AssetsActivityPreviewIdentityText"
 props = { text = "", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 
 [nodes.preview_adapter_text]
 component = "Label"
 control_id = "AssetsActivityPreviewToolkitText"
 props = { text = "", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 
 [nodes.preview_meta_path_text]
 component = "Label"
 control_id = "AssetsActivityPreviewMetaPathText"
 props = { text = "", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 
 [nodes.preview_diagnostics_text]
 component = "Label"
@@ -387,25 +308,25 @@ children = [{ node = "preview_visual_panel", slot = { layout = { alignment = { v
 component = "Label"
 control_id = "AssetsActivityReferenceLeftTitleText"
 props = { text = "References", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.reference_left_empty_text]
 component = "Label"
 control_id = "AssetsActivityReferenceLeftEmptyText"
 props = { text = "No direct references", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 
 [nodes.reference_left_row_name_text]
 component = "Label"
 control_id = "AssetsActivityReferenceLeftRowNameText"
 props = { text = "", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 
 [nodes.reference_left_row_locator_text]
 component = "Label"
 control_id = "AssetsActivityReferenceLeftRowLocatorText"
 props = { text = "", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 
 [nodes.reference_left_row_kind_text]
 component = "Label"
@@ -416,7 +337,7 @@ layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed"
 [nodes.reference_left_row_text_stack]
 component = "VerticalBox"
 control_id = "AssetsActivityReferenceLeftRowTextStack"
-layout = { container = { kind = "VerticalBox", gap = 1.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.chrome.separator.thickness" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "reference_left_row_name_text" }, { node = "reference_left_row_locator_text" }]
 
 [nodes.reference_left_row_panel]
@@ -443,25 +364,25 @@ children = [{ node = "reference_left_title_text" }, { node = "reference_left_scr
 component = "Label"
 control_id = "AssetsActivityReferenceRightTitleText"
 props = { text = "Used By", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.reference_right_empty_text]
 component = "Label"
 control_id = "AssetsActivityReferenceRightEmptyText"
 props = { text = "No direct references", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 
 [nodes.reference_right_row_name_text]
 component = "Label"
 control_id = "AssetsActivityReferenceRightRowNameText"
 props = { text = "", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 
 [nodes.reference_right_row_locator_text]
 component = "Label"
 control_id = "AssetsActivityReferenceRightRowLocatorText"
 props = { text = "", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { stretch = "Stretch" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 13.0, preferred = 13.0, max = 13.0, stretch = "Fixed" } }
 
 [nodes.reference_right_row_kind_text]
 component = "Label"
@@ -472,7 +393,7 @@ layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed"
 [nodes.reference_right_row_text_stack]
 component = "VerticalBox"
 control_id = "AssetsActivityReferenceRightRowTextStack"
-layout = { container = { kind = "VerticalBox", gap = 1.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.chrome.separator.thickness" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "reference_right_row_name_text" }, { node = "reference_right_row_locator_text" }]
 
 [nodes.reference_right_row_panel]
@@ -515,6 +436,6 @@ children = [{ node = "utility_tabs_row" }, { node = "utility_tabs_divider" }, { 
 [nodes.assets_activity_root]
 component = "VerticalBox"
 control_id = "AssetsActivityRoot"
-classes = ["editor-shell"]
+classes = ["workbench-shell-root"]
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "toolbar_panel" }, { node = "main_panel" }, { node = "utility_panel" }]

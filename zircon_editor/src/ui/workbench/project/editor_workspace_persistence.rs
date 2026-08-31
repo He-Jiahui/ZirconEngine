@@ -1,12 +1,18 @@
 use std::fs;
+use std::io;
 use std::path::Path;
 
 use zircon_runtime::core::resource::io::atomic_write;
 use zircon_runtime::scene::world::SceneProjectError;
 
-use super::constants::EDITOR_PROJECT_FORMAT_VERSION;
+#[cfg(test)]
+#[path = "editor_workspace_persistence/borrowed_save_tests.rs"]
+mod borrowed_save_tests;
+
 use super::editor_project_document::EditorWorkspaceRestoreDiagnostic;
-use super::editor_workspace_document::EditorWorkspaceDocument;
+use super::editor_workspace_document::{
+    decode_editor_workspace_document, encode_editor_workspace_document,
+};
 use super::project_editor_workspace::ProjectEditorWorkspace;
 use super::workspace_document_path::workspace_document_path;
 
@@ -54,7 +60,7 @@ pub(in crate::ui::workbench::project) fn load_editor_workspace_with_diagnostics(
     if !path.exists() {
         return (None, Vec::new());
     }
-    let source = match fs::read_to_string(&path) {
+    let source = match fs::read(&path) {
         Ok(source) => source,
         Err(error) => {
             return (
@@ -66,20 +72,8 @@ pub(in crate::ui::workbench::project) fn load_editor_workspace_with_diagnostics(
             );
         }
     };
-    match serde_json::from_str::<EditorWorkspaceDocument>(&source) {
-        Ok(document) if document.format_version == EDITOR_PROJECT_FORMAT_VERSION => {
-            (Some(document.editor_workspace), Vec::new())
-        }
-        Ok(document) => (
-            None,
-            vec![EditorWorkspaceRestoreDiagnostic::new(
-                path,
-                format!(
-                    "unsupported editor workspace format version {}",
-                    document.format_version
-                ),
-            )],
-        ),
+    match decode_editor_workspace_document(&source) {
+        Ok(workspace) => (Some(workspace), Vec::new()),
         Err(error) => (
             None,
             vec![EditorWorkspaceRestoreDiagnostic::new(
@@ -96,11 +90,7 @@ pub(in crate::ui::workbench::project) fn save_editor_workspace(
 ) -> Result<(), SceneProjectError> {
     let path = workspace_document_path(root);
     if let Some(workspace) = editor_workspace {
-        let document = EditorWorkspaceDocument {
-            format_version: EDITOR_PROJECT_FORMAT_VERSION,
-            editor_workspace: workspace.clone(),
-        };
-        let serialized = serde_json::to_string_pretty(&document)?;
+        let serialized = encode_editor_workspace_document(workspace).map_err(io::Error::other)?;
         atomic_write(&path, serialized.as_bytes())?;
     } else if path.exists() {
         fs::remove_file(path)?;

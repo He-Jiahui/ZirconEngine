@@ -20,10 +20,12 @@ pub(crate) fn dispatch_menu_action(
     let envelope = retained_menu_action(action)?;
     if let EditorEvent::WorkbenchMenu(action) = &envelope.event {
         if let Some(operation_path) = operation_path_for_menu_action(action) {
-            let record = runtime.invoke_operation(
-                EditorOperationSource::Menu,
-                EditorOperationInvocation::new(operation_path),
-            )?;
+            let record = runtime
+                .invoke_operation(
+                    EditorOperationSource::Menu,
+                    EditorOperationInvocation::new(operation_path),
+                )
+                .map_err(|error| error.to_string())?;
             let mut effects = UiHostEventEffects::default();
             apply_record_effects(&mut effects, &record);
             return Ok(effects);
@@ -41,10 +43,12 @@ pub(crate) fn dispatch_host_menu_action_with_template_fallback(
         return result;
     }
     if let Ok(operation_path) = EditorOperationPath::parse(action) {
-        let record = runtime.invoke_operation(
-            EditorOperationSource::Menu,
-            EditorOperationInvocation::new(operation_path),
-        )?;
+        let record = runtime
+            .invoke_operation(
+                EditorOperationSource::Menu,
+                EditorOperationInvocation::new(operation_path),
+            )
+            .map_err(|error| error.to_string())?;
         let mut effects = UiHostEventEffects::default();
         apply_record_effects(&mut effects, &record);
         return Ok(effects);

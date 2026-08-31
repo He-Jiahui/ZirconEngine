@@ -5,7 +5,7 @@ pub(super) fn assert_scene_project_source_inventory(sources: &SplitLayoutSources
         "performance hotpath source inventory",
         sources.source_inventory,
         &[
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/dynamic_session_event.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/project_io.rs",

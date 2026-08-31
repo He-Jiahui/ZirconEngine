@@ -7,28 +7,12 @@ use zircon_runtime_interface::ui::layout::UiSize;
 use super::ViewTemplateNodeData;
 
 const WELCOME_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/welcome.zui";
-const WELCOME_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
-const WELCOME_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
-const WELCOME_MATERIAL_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.zui";
-const WELCOME_MATERIAL_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.zui";
-const WELCOME_TOKENS_STYLE_ASSET_PATH: &str = "/assets/ui/editor/theme/editor_tokens.zui";
-const WELCOME_TOKENS_STYLE_ASSET_ID: &str = "res://ui/editor/theme/editor_tokens.zui";
 
 pub(crate) fn welcome_pane_nodes(size: UiSize) -> ModelRc<ViewTemplateNodeData> {
     build_view_template_node_projection(
         "welcome.template_projection",
         WELCOME_LAYOUT_ASSET_PATH,
-        &[
-            (WELCOME_STYLE_ASSET_ID, WELCOME_STYLE_ASSET_PATH),
-            (
-                WELCOME_MATERIAL_STYLE_ASSET_ID,
-                WELCOME_MATERIAL_STYLE_ASSET_PATH,
-            ),
-            (
-                WELCOME_TOKENS_STYLE_ASSET_ID,
-                WELCOME_TOKENS_STYLE_ASSET_PATH,
-            ),
-        ],
+        &[],
         size,
         &BTreeMap::new(),
     )

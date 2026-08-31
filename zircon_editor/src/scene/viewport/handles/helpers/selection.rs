@@ -11,10 +11,9 @@ pub(in crate::scene::viewport::handles) fn selected_basis(
     ctx: &HandleBuildContext<'_>,
 ) -> Option<(u64, HandleBasis)> {
     let selected = ctx.selected?;
-    let node = ctx.scene.find_node(selected)?;
     Some((
-        selected,
-        build_handle_basis(node.transform, ctx.settings.transform_space, ctx.camera),
+        selected.entity,
+        build_handle_basis(selected.transform, ctx.settings.transform_space, ctx.camera),
     ))
 }
 
@@ -23,13 +22,12 @@ pub(in crate::scene::viewport::handles) fn begin_transform_session(
     axis: GizmoAxis,
 ) -> Option<TransformHandleDragSession> {
     let selected = ctx.selected?;
-    let node = ctx.scene.find_node(selected)?;
     Some(TransformHandleDragSession {
-        node_id: selected,
+        node_id: selected.entity,
         axis,
         start_cursor: ctx.cursor,
-        initial_transform: node.transform,
-        basis: build_handle_basis(node.transform, ctx.settings.transform_space, ctx.camera),
+        initial_transform: selected.transform,
+        basis: build_handle_basis(selected.transform, ctx.settings.transform_space, ctx.camera),
         space: ctx.settings.transform_space,
         snap_enabled: ctx.settings.grid_mode == GridMode::VisibleAndSnap,
         translate_step: ctx.snap_steps.translate_step,

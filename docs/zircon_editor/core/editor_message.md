@@ -27,10 +27,12 @@ related_code:
   - zircon_editor/src/core/editor_message/message/protocol.rs
   - zircon_editor/src/core/editor_message/message/request.rs
   - zircon_editor/src/core/editor_message/message/response.rs
+  - zircon_editor/src/core/editor_message/message/schema_id.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/mod.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/message.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/selection_delta.rs
   - zircon_editor/src/core/editor_message/message/transaction.rs
+  - zircon_editor/src/core/play/live_link.rs
   - zircon_editor/src/core/context/editor_context.rs
   - zircon_editor/src/core/editor_event/service/editor_event_service.rs
   - zircon_editor/src/core/jobs/event.rs
@@ -66,6 +68,7 @@ implementation_files:
   - zircon_editor/src/core/editor_message/message/protocol.rs
   - zircon_editor/src/core/editor_message/message/request.rs
   - zircon_editor/src/core/editor_message/message/response.rs
+  - zircon_editor/src/core/editor_message/message/schema_id.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/mod.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/message.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/selection_delta.rs
@@ -88,6 +91,7 @@ tests:
   - zircon_editor/src/tests/editor_message/bus/publish.rs
   - zircon_editor/src/tests/editor_message/bus/request.rs
   - zircon_editor/src/tests/editor_message/refresh.rs
+  - zircon_editor/src/tests/editor_message/schema_id.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_fragment.rs
   - tests/acceptance/editor-architecture-plan-01-m1.md
 doc_type: module-detail
@@ -109,6 +113,8 @@ The module is split by ownership. `bus.rs` owns mutable routing state, `inbox.rs
 
 Subscribers register exact `EditorTopic` values. `publish` targets matching subscribers, `broadcast` targets every subscriber, and `request` targets one subscriber. Each publication constructs one immutable delivery payload; subscriber fanout clones only its `Arc` handle, so custom JSON and job strings are not deep-cloned per recipient.
 
+Custom payload identity is a typed `EditorMessageSchemaId`, not an arbitrary string. Built-in producers construct only `zircon.editor.<local-schema>`; plugin materialization constructs only `zircon.plugin.<plugin-id>.<local-schema>`. Every segment is non-empty lowercase ASCII with digits, `_`, or `-`, and the complete identifier is limited by `MAX_EDITOR_MESSAGE_SCHEMA_ID_BYTES` (256 bytes). Deserialization runs the same parser, so persisted or plugin-provided JSON cannot bypass namespace and shape checks. The validated value owns an `Arc<str>`; cloning a delivery or cached built-in schema does not duplicate identifier bytes.
+
 Each inbox has three independent count limits, a 2 MiB default single-delivery logical byte limit, a 16 MiB default total logical retained-payload limit, and one protocol-owned retention policy:
 
 - `Lossless`: transaction events, document open/close/save, play-state edges, job start/terminal events, and every synchronous request. A full lossless lane preserves existing edges and reports backpressure instead of discarding them; a request does not invoke its handler when admission fails.
@@ -116,6 +122,8 @@ Each inbox has three independent count limits, a 2 MiB default single-delivery l
 - `Bounded`: schema-labelled custom messages whose semantics are unknown to the core. A full lane evicts its oldest bounded item and increments an explicit drop counter.
 
 `EditorMessageInboxStats` exposes depth by class, drained/coalesced/dropped/backpressured totals, and queue age in publication messages. Production consumers drain deliveries; the old cloning inspection helper is test-only and cannot become a per-frame production polling API.
+
+Scene focus identity is never anonymous. `SelectionDomain::Scene(WorldDomain)` carries either `Edit` or the exact `Play(PlayInstanceId)`, and `FocusObject` carries the same `WorldDomain`. Latest-message keys therefore isolate authoring selection and every play instance even when their entity numbers or revisions match. `SelectionDomain::edit_scene()` and `play_scene(instance)` are construction helpers, not compatibility aliases for the deleted unit `Scene` value.
 
 The inbox stores surviving deliveries in a sequence-keyed `BTreeMap` and maintains lane depth/bytes at enqueue, replacement, eviction, and drain boundaries. `latest_by_key` resolves coalescing without searching the mixed queue; `latest_order` and `bounded_order` restrict pressure scans to their bounded lanes. Drain iterates the sequence map, preserving global surviving publication order. Payload byte cost, including the dynamic dirty-view identifier, is computed once before the delivery is shared and is never reserialized per subscriber. Dirty state is merged only when at least one inbox accepts the publication, so an oversized rejected message cannot retain its view identifier through the dirty set.
 
@@ -150,6 +158,7 @@ Built-in topic strings include `editor.document`, `editor.transaction`, `editor.
 - Unknown and concurrently removed request targets return a typed error.
 - Lossless inbox saturation returns typed backpressure and retains the already queued edge order.
 - Latest and bounded pressure is visible through dispatch reports and inbox counters; no pane owns a private retention rule.
+- Focus and selection messages without an explicit world identity are not representable; stopping one play instance cannot coalesce away another instance's latest focus fact.
 - Empty invalidation masks are ignored.
 - The raw `EditorMessageBus` is crate-private; cross-service consumers use `SharedEditorMessageBus`.
 - `serde_json::Value` makes message envelopes `PartialEq`, not `Eq`.
@@ -157,7 +166,7 @@ Built-in topic strings include `editor.document`, `editor.transaction`, `editor.
 
 ## Test Coverage
 
-The message tests cover exact-topic routing, protocol/payload matrix, broadcast, dirty merging, unknown/backpressured requests, handler re-entry, checked ID exhaustion, lossless order, latest coalescing plus atomic same-key replacement eviction, bounded eviction, mixed/zero/drain lane counters, single/total/dirty-view byte budgets, shared fanout identity, and a paused 100-subscriber/10,000-update storm. The ignored single-thread evidence gate runs 1/5/100 subscribers over a full 4,096 lossless mixed backlog, requires Windows RSS samples, enforces a 50 ms publish-p95 budget, permits only bounded per-inbox metadata allocation, and still rejects payload-size multiplied by fanout. It reports allocation/RSS/queue counters. The static architecture contract is green; managed editor-library and performance gates remain pending and no fixed return is claimed yet.
+The message tests cover exact-topic routing, protocol/payload matrix, broadcast, dirty merging, unknown/backpressured requests, handler re-entry, checked ID exhaustion, lossless order, world-qualified Edit/Play-instance latest coalescing, atomic same-key replacement eviction, bounded eviction, mixed/zero/drain lane counters, single/total/dirty-view byte budgets, shared fanout identity, and a paused 100-subscriber/10,000-update storm. The ignored single-thread evidence gate runs 1/5/100 subscribers over a full 4,096 lossless mixed backlog, requires Windows RSS samples, enforces a 50 ms publish-p95 budget, permits only bounded per-inbox metadata allocation, and still rejects payload-size multiplied by fanout. It reports allocation/RSS/queue counters. The static architecture contract is green; managed editor-library and performance gates remain pending and no fixed return is claimed yet.
 
 ## Plan Sources
 

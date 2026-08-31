@@ -132,7 +132,7 @@ related_code:
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/particles.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/queue_override.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/transparent3d.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
@@ -758,7 +758,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/preview_sky_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/resource_resolver.rs
@@ -1296,11 +1296,25 @@ doc_type: module-detail
 
 # Render Product Submit
 
+## 2026-08-27 WGPU Product Control-Owner Cutover
+
+The product offscreen backend now installs one `WgpuRenderDevice` as the generation-qualified owner of device faults, submission history, completion polling, diagnostic service, profile, and retained UI image registry. `RenderBackend` keeps its existing product-facing method names, but native command buffers are wrapped in `WgpuNativeSubmissionPacket` and buffer/texture upload batches enter the same bounded `WgpuSubmissionService`; the old backend-local coordinator, error supervisor, profile, and UI registry fields are removed, and the unused public `WgpuSubmissionCoordinator` type is hard-deleted.
+
+This is a source-only control-plane cut, not the completed native hard cut. Existing passes still use same-generation typed WGPU device/queue clones for resource creation, queue writes, and surface presentation. The legacy `GpuReadbackQueue`, synchronous readback helpers, two-submit scene/present path, real WGPU validation, performance profile, RenderDoc capture, and PNG evidence remain open. The canonical implementation and measurement status is recorded in `docs/plans/optimize/zircon_runtime/90/2026-08-27-product-diagnostic-readback-owner-cutover-plan.md`.
+
+The first product diagnostic consumers now use that owner. Compiled-scene viewport async capture registers a bounded native RGBA8 source lease, records its copy in the final serial command-buffer suffix after output writeback, and binds the staging frame to the scene `SubmissionTicket`. A bounded central delivery router drains the device delivery ring once after the frame-begin poll, moves payload bytes without cloning, and invokes mailbox callbacks after releasing owner locks. This source slice adds no capture-only native submission or device poll.
+
+The compiled buffer-consumer follow-up adds a native buffer range lease beside the viewport texture lease. A source must carry `COPY_SRC`; offset and byte length must be non-zero, WGPU copy-aligned, and within the native buffer. Compiled HZB stats, HZB indirect args/draw-count, and realtime IBL timestamp resolve requests register into the same active production batch as viewport capture. One staging allocation and the final serial encoder tail cover all admitted buffer and texture copies, and the opaque diagnostic frame binds to the scene ticket before the scene packet commits.
+
+HZB diagnostic state remains independently bounded at four source frames. Admission rejection, registration failure, cancelled scene submission, map failure, and device loss produce unavailable/drop behavior; no HZB or indirect diagnostic blocks the render thread or becomes a required next-frame input.
+
+Direct-scene realtime IBL now uses the same production buffer source and central router. Its timestamp copy is encoded after the old pass recording and before the final scene submit, then carried by `submit_graphics_command_buffers_with_diagnostics` under that path's one scene ticket. Diagnostic begin, admission, or prepare failure fails closed without failing the image; every existing pre-submit failure after an IBL batch is recorded also releases the scheduler reservation. The legacy IBL `GpuReadbackQueue` request API has been removed. Typed timer/statistics query delivery, advanced plugin readback, IBL artifact aggregation, synchronous capture, dynamic WGPU validation, PNG, RenderDoc, profiler, and power evidence remain open.
+
 ## 2026-07-03 Deferred Project-Shader GBuffer Default-Feature WGPU Refresh
 
 Plan 08 three shading-model forward/deferred product parity now has a default-feature WGPU refresh for the non-custom Deferred/GBuffer project-shader probe: `render_plan08_deferred_project_shader_gbuffer_probe_default_features_wgpu_refresh_passed_renderdoc_deferred`. It is mirrored as `DEFERRED_PROBE_DEFAULT_STATUS` beside `STATUS`, `DEFAULT_FEATURES_STATUS`, and `DEFERRED_PROBE_STATUS`; the product chain remains `render_product_three_shading_models_forward_deferred_parity`, `runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired`, PBR/Blinn-Phong/Unlit, Forward + Deferred, `light_grid_external_fallback_buffers_satisfy_materialization_report`, `deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path`, and `average_channel_in_region`.
 
-The first counted default-feature rerun failed before submission in the Base pass because a standalone full-pass project shader was imported as Surface metadata while lacking `fn zr_material_surface`. `shader_uses_material_surface_source` now lets the mesh source owner keep that full-pass WGSL raw, and `runtime_surface_shader_with_full_pass_entry_points_uses_raw_wgsl_source` guards the WGPU module path. Evidence: the default-feature parity backfill remains 5876 filtered and 11.81s; this default-feature probe passed 1/1 with 6202 filtered and 3.56s. RenderDoc/product capture, workspace/full CI, and broader product coverage outside focused filters remain open.
+The first counted default-feature rerun historically failed before submission in the Base pass because a standalone full-pass project shader was imported as Surface metadata while lacking `fn zr_material_surface`. That compatibility path is now retired: Surface assets must publish the canonical material function and full executable WGSL must use an executable shader kind. `runtime_surface_shader_with_full_pass_entry_points_is_rejected_before_source_selection` guards the fail-closed streaming boundary; the earlier raw-Surface WGPU result remains historical evidence only. Current-source Cargo/Naga/WGPU, RenderDoc/product capture, workspace/full CI, and broader product coverage remain open.
 
 ## 2026-07-04 Custom Shading-Model Deferred-Lighting Product Readback PNG
 
@@ -1446,7 +1460,7 @@ Runtime 15 F12 offscreen target texture owner cleanup closes the fixed frame-tar
 
 Runtime 15 M2 offscreen target construct directory naming hard cutover closes the OffscreenTarget construction-owner `*_new` directory debt. `graphics/backend/render_backend/offscreen_target_new/` has been removed, and the live constructor owner directory is now `graphics/backend/render_backend/offscreen_target_construct/`; `render_backend/mod.rs` mounts `mod offscreen_target_construct;` without a compatibility module. The directory still holds `OffscreenTarget::new(...)`, fixed offscreen frame target texture bundle construction, cluster buffer creation, and texture bundle ownership. Status: `runtime_15_offscreen_target_construct_naming_hard_cutover_static_passed_cargo_timeout_no_result`; guard: `runtime_15_offscreen_target_construct_uses_owner_name`.
 
-Runtime 15 F12 render backend state owner cleanup closes the backend-state owner part of the same contract. `RenderBackend::RETAINED_STATE_OWNER_COUNT` and `retained_state_owner_count()` explicitly read the WGPU instance, adapter, and backend config owners retained by `graphics/backend/render_backend/render_backend.rs`. `RenderBackend::caps()` consumes that count with a debug assertion while projecting backend capabilities, so those state fields are documented live owners for WGPU backend lifetime and config continuity rather than `#[allow(dead_code)]` placeholders. Status: `runtime_15_render_backend_state_owner_cleanup_coremin_check_passed`; guard: `runtime_15_render_backend_state_owner_cleanup`.
+Runtime 15 F12 render backend state owner cleanup closes the backend-state owner part of the same contract. PFO-4d0 supersedes the earlier artificial retained-owner count: the offscreen bootstrap moves raw `Instance` into the one-shot `WgpuRenderDeviceContext`, and `RenderBackend::caps()` delegates to the validated production generation owner instead of maintaining a second native capability mapper. The guard rejects a duplicate raw instance field and locks the unique `Arc<WgpuRenderDevice>`, profile, neutral caps, and shared UI context. Raw `Adapter/Device/Queue` remain only until their real resource/write consumers migrate in PFO-4d1 through PFO-4d4. Status: `runtime_15_render_backend_state_owner_cleanup_coremin_check_passed_pfo_4d0_source_updated_dynamic_validation_pending`; guard: `runtime_15_render_backend_state_owner_cleanup`.
 
 Runtime 15 F12 gpu texture resource owner cleanup closes the material texture binding owner part of the same contract. `GpuTextureResource::RETAINED_TEXTURE_BINDING_OWNER_COUNT` and `retained_texture_binding_owner_count()` explicitly read the source identity, WGPU texture, texture view, and sampler retained by `graphics/scene/resources/gpu_texture/gpu_texture_resource.rs`. `GpuTextureResource::view()` and `sampler()` consume that count with debug assertions while exposing material binding resources, so those fields are documented live owners for material texture bind groups rather than `#[allow(dead_code)]` placeholders. Status: `runtime_15_gpu_texture_resource_owner_cleanup_coremin_check_passed`; guard: `runtime_15_gpu_texture_resource_owner_cleanup`.
 
@@ -1853,6 +1867,14 @@ The 2026-06-07 renderer-upload cleanup extends that ownership to style-family up
 
 The same cleanup now covers DoF, motion blur, and SSR upload policy. `effect_stack_settings/depth_of_field_settings.rs`, `motion_blur_settings.rs`, and `screen_space_reflection_settings.rs` own the clamped renderer values for DoF focus/aperture/radius/lens fields, motion-blur shutter/sample fields, and SSR intensity/thickness/ray-distance/temporal/roughness fields. `build_post_process_params(...)` delegates to those helpers, so submit-side settings remain the single CPU upload contract while the final pass, pass graph, and shader bindings stay unchanged.
 
+The 2026-08-27 PFO-4d1r ownership cut records the built-in motion-vector tile-max fullscreen
+parameter as immutable persistent state. `FullscreenPassParameterBindings` serializes the shared
+`OnceLock<FullscreenPassPlan>` once, creates a mapped `UNIFORM` buffer, and retains it with the bind
+group. It no longer accepts `wgpu::Queue`, exposes a dynamic write method, keeps `COPY_DST`, or stores
+a duplicate String/discriminant layout. The group-two binding ABI and tile-span bytes remain
+unchanged; current evidence is source/static only, with WGPU and product motion-blur validation
+pending.
+
 The color-transform upload path uses the same settings-owned boundary. `effect_stack_settings/color_transform_settings.rs` now owns tonemap operator encoding, white-point clamping, LUT intensity clamping, and LUT layout validation, and `build_post_process_params(...)` reads those helpers for `effect_flags` plus `effect_tonemap_lut`. This does not change the final pass layout or LUT residency path; it removes duplicated upload policy from the WGPU parameter packer.
 
 The scalar blur upload path is also settings-owned. `effect_stack_settings/blur_settings.rs` now owns `RenderBlurSettings::is_enabled()` and `render_radius()`, so submit/product-node activation and `effect_blur_dof` packing share the same neutral settings contract.
@@ -1977,7 +1999,7 @@ The 2026-07-02 Plan 08 three shading-model forward/deferred product parity defau
 
 The same guard now also locks the existing `graphics/tests/project_render/render_quality.rs::deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path` probe under status `render_plan08_deferred_project_shader_gbuffer_probe_wgpu_passed_renderdoc_deferred`. That test uses pure green `write_flat_color_wgsl(..., [0.0, 1.0, 0.0])` for the Forward project shader side and `average_channel_in_region(...)` for center-region sampling, so the Forward assertion is no longer diluted by the red material tint needed for Deferred GBuffer material/base-color decode. After an initial 120s Cargo build timeout and an interim direct-binary pass, final no-default Cargo validation passed 1/1 with 5825 filtered. RenderDoc/product capture, default features, workspace/full CI, and broader product coverage outside the focused filters remain pending.
 
-The 2026-06-25 Asset-root shader edit revision export slice closes the offline staged-cache edit-key gap before product capture. `bin/zircon_shader_prewarm/manifest/revision.rs` projects `.zmeta.source_digest` and raw source/include content hashes into stable non-zero `ShaderVariantKey.material_revision` values, while `manifest.rs` consumes them in `shader_source_from_zmeta(...)` and fallback `shader_prewarm_source(...)`. `shader_prewarm_asset_root_manifest_uses_zmeta_source_digest_revision`, `shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision`, and `runtime_15_shader_prewarm_asset_revision_export_is_wired` lock the tests, child owner, and docs/status anchors. Status is `render_plan08_asset_root_shader_edit_revision_export_passed_cargo_renderdoc_deferred`.
+The 2026-06-25 Asset-root shader edit revision export slice closes the offline staged-cache edit-key gap before product capture. `bin/zircon_shader_prewarm/manifest/revision.rs` projects `.zmeta.source_digest` and source/include content hashes into stable non-zero revisions, while `manifest.rs` consumes them in `shader_source_from_zmeta(...)` and fallback `shader_prewarm_source(...)`. The current kind hard-cut only places explicit Surface revisions into `ShaderVariantKey.material_revision`; a raw WGSL Module may export a resource revision but produces no material key. `shader_prewarm_asset_root_manifest_uses_zmeta_source_digest_revision`, `shader_prewarm_asset_root_manifest_does_not_promote_raw_wgsl_module`, and `runtime_15_shader_prewarm_asset_revision_export_is_wired` lock those boundaries. Status is `render_plan08_asset_root_shader_edit_revision_export_passed_cargo_renderdoc_deferred`.
 
 The 2026-06-29 Runtime 15 F5 shader prewarm args typed errors slice keeps the render-product prewarm CLI's usage failures structured before the CLI/run boundary. `bin/zircon_shader_prewarm/error.rs` owns `ShaderPrewarmArgsError::Usage` and `ShaderPrewarmArgsResult`, while `args.rs` now returns typed usage errors for argv UTF-8, missing value, quality/geometry/shading id parsing, custom token normalization, and duplicate id validation. `run.rs` remains the string display boundary for this args slice, and manifest/report/resource-registry write failures remain follow-up work. Status is `runtime_15_shader_prewarm_args_typed_errors_static_passed_cargo_deferred`, guarded by `shader_prewarm_args_missing_value_reports_typed_usage_error` and `review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary`.
 
@@ -2021,7 +2043,7 @@ The 2026-07-02 Plan 08 Selected plugin/source-registry guard Cargo-wrapper backf
 
 The 2026-06-25 Asset-root resource registry revision overlay slice adds the explicit handoff for callers that can export live `ResourceRecord` data before staging, narrowing the older live project registry exact revision overlay gap to a supplied JSON input. `zircon_shader_prewarm --resource-registry` and `tools/zircon_build.py --shader-resource-registry` feed `bin/zircon_shader_prewarm/manifest/resource_registry.rs`, which filters shader records with non-zero revisions and lets `.zmeta` shader scans use matching `ResourceRecord.revision` for `ShaderVariantKey.material_revision`. Unmatched `.zmeta` sources still use source-hash revision and raw sources still use content-hash revision. `shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay` and `runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired` lock the behavior and structure. Status is `render_plan08_asset_root_resource_registry_revision_overlay_typecheck_passed_test_timeout_no_result`; automatic registry export remains a follow-up.
 
-The 2026-06-27 Staged shader resource registry auto-export slice makes that follow-up concrete for staged asset roots without claiming live registry export. `tools/zircon_build.py --prewarm-shaders` now forwards `--export-resource-registry` to write `ZirconEngine/cache/shader_resource_records.json` unless an explicit `--shader-resource-registry` is provided. `shader_resource_records_from_asset_root(...)` exports shader-only ready records from staged `.zmeta` files, `run.rs` feeds them through `ShaderPrewarmResourceRegistryOverlay::from_records(...)`, and the manifest scan skips sidecar-owned raw shader sources so the generated revision is consumed without duplicate fallback variants. `shader_prewarm_asset_root_exports_shader_resource_records` verifies that path, and `runtime_15_shader_prewarm_registry_auto_export_is_wired` locks the docs/status anchors. Status is `render_plan08_shader_resource_registry_auto_export_focused_tests_passed_renderdoc_deferred`; live Runtime `ResourceManager` revision export, custom geometry-source plugin ids, full project/plugin registry export, Naga/WGPU compile acceptance, and RenderDoc/product capture remain pending.
+The 2026-06-27 Staged shader resource registry auto-export slice makes that follow-up concrete for staged asset roots without claiming live registry export. `tools/zircon_build.py --prewarm-shaders` now forwards `--export-resource-registry` to write `ZirconEngine/cache/shader_resource_records.json` unless an explicit `--shader-resource-registry` is provided. `shader_resource_records_from_asset_root(...)` exports shader-only ready records from staged `.zmeta` files, `run.rs` feeds them through `ShaderPrewarmResourceRegistryOverlay::from_records(...)`, and the manifest scan skips sidecar-owned raw shader sources so the generated revision is consumed without duplicate fallback variants. `shader_prewarm_asset_root_exports_raw_module_records_without_material_variants` verifies that a raw Module record still exports while its material manifest stays empty, and `runtime_15_shader_prewarm_registry_auto_export_is_wired` locks the docs/status anchors. Status is `render_plan08_shader_resource_registry_auto_export_focused_tests_passed_renderdoc_deferred`; live Runtime `ResourceManager` revision export, custom geometry-source plugin ids, full project/plugin registry export, Naga/WGPU compile acceptance, and RenderDoc/product capture remain pending.
 
 The 2026-06-24 Render product anti-alias particle/reactive tests owner split keeps the product anti-alias submit coverage readable without changing the WGPU frame path. `graphics/tests/render_product_anti_alias.rs` now stays at 566 lines as the general AA/FXAA/TAA product parent, while `graphics/tests/render_product_anti_alias/particle.rs` owns particle transparent pass contribution and previous-state velocity-gap coverage, and `graphics/tests/render_product_anti_alias/reactive_mask.rs` owns authored/transparent TAA reactive-mask material-writer coverage. Guard `runtime_15_render_product_anti_alias_focused_tests_are_child_owners` locks the moved owners, line budgets, and docs/status anchors. Status is `render_plan07_product_anti_alias_particle_reactive_tests_owner_split_static_passed_cargo_deferred_implementation_cadence`: scoped rustfmt/static scans, line-count scan, docs-anchor scan, stale-path scan, whitespace scan, and scoped diff-check passed; Cargo/WGPU/RenderDoc remain deferred by milestone implementation cadence.
 
@@ -2078,3 +2100,302 @@ Graph execution keeps behavior in feature owners while moving secondary responsi
 ## 2026-07-13 Runtime 05 Scene-Fixture Contract Refresh
 
 The Runtime 05 broad-scene follow-up keeps renderer-neutral camera projection separate from the selected core pipeline: the sprite layer fixture now opts into `CorePipelineKind::Core2d` explicitly before asserting 2D phase filtering. Output-target conversion fixtures likewise declare a linear texture target and pass the same prepared linear format into `writeback_plan`; the conversion is then the intentional linear-to-framework-output transfer instead of a prepared-format mismatch. A fresh current-source Runtime test binary passed the sprite regression 1/1 and the complete output-target writeback group 6/6. The subsequent `scene::` sweep reached 1622 passed / 11 failed / 5 ignored; none of the Runtime 05 scene/editor-boundary regressions recurred, while the remaining failures stay in active volumetric, deferred-shader, IBL, fallback-shader, and Text SDF owners.
+
+## 2026-08-27 Product Diagnostic Runtime-Prepare Readbacks
+
+Compiled-scene runtime-prepare GPU readbacks now register with the production `WgpuRenderDevice` diagnostic service and central delivery router. `RuntimePrepareCollector::requests_gpu_readback()` is an explicit capability declaration: only Hybrid GI and the concrete particle collector request an early product diagnostic scope, while collectors without readback work keep the diagnostics-off path free of staging, callbacks, copies, and extra submission. The scope is RAII-owned across runtime prepare and graph recording, so every early-return path cancels an unprepared active batch.
+
+Viewport capture, advanced-plugin buffers, HZB/indirect diagnostics, and realtime IBL timestamps are admitted in that priority order, encoded in the final serial tail, and bound to the compiled scene ticket. Runtime-prepare callbacks move the owned byte vector directly into the plugin future. Hybrid GI keeps its three-frame local feedback bound; particles now enforce the same three logical batches before dispatching new compute work. The device-level request/byte budget remains a separate global bound. This slice has scoped format, source-contract, `COPY_SRC`, ordering, and whitespace evidence only; Cargo, real WGPU, PNG, RenderDoc, profiling, and power validation remain pending.
+
+## 2026-08-27 Native Diagnostic Query Reservation
+
+The production WGPU device now exposes a bounded native query reservation for transitional raw
+passes. `begin_native_diagnostic_query_frame` allocates only generation-qualified query sets and
+admission state; it does not allocate a ticket, submit, flush, or poll. The scene tail supplies the
+actual `zr_rhi::DiagnosticQueryPlan` through `prepare_native_diagnostic_query_frame`, which appends
+resolve/copy commands to the caller-owned encoder. The resulting opaque query frame is accepted by
+`enqueue_native_recording_packet_with_frame_diagnostics` and bound to the same scene ticket as
+native buffer/texture diagnostics. Cancellation and device-admission failures terminate the
+reservation through the typed diagnostic service. Product-scene `GpuPassTimer` and
+`GpuPipelineStatisticsTimer` adapters now reserve their ranges from this recorder, append the
+actual plan at the scene tail, and consume typed delivery after the next frame's sole backend poll.
+They no longer register product-scene timer/statistics bytes with the legacy external readback
+queue.
+
+## 2026-08-27 IBL Artifact Product Diagnostic Tail
+
+Runtime IBL artifact writeback no longer owns an artifact-specific command buffer, queue submit,
+map callback queue, or device poll. Before transient graph resources are retired, PMREM face/mip
+regions, the SH9 buffer, and optional IEM faces register with the existing product diagnostic
+scope. Native `Rgba16Float` admission validates the texture dimension, sample count, format,
+`COPY_SRC` usage, mip/layer range, extent, and eight-byte texel layout, then appends all copies to
+the same serial tail and scene ticket as the other product diagnostics.
+
+The feature-owned pending object is CPU-only. It stores bounded section slots, validates each
+delivered byte length, assembles PMREM in face-major/mip-major order, and fails the entire artifact
+after any rejected or failed section instead of publishing partial cache bytes. Ownership moves to
+the runtime writeback queue only after scene submission succeeds; the next frame's single backend
+completion poll routes callbacks before cache assembly. A full central router now rejects a new
+registration explicitly and retains all existing callbacks, preventing an unresolved artifact from
+waiting forever after silent callback eviction. Current evidence is source/static only; Cargo,
+real WGPU, PNG, RenderDoc, profiling, and power validation remain pending.
+
+Both direct and compiled-pipeline frame entry points call the shared
+`SceneRenderer::poll_frame_submission_completions` owner. It performs the only backend completion
+poll, drains IBL artifact callbacks/cache work, routes typed query deliveries, then collects timer
+and pipeline-statistics results before returning the `SubmissionPollReceipt` used by the frame
+transaction. `SceneRendererCore` no longer owns or polls a legacy `GpuReadbackQueue`.
+
+Explicit RGBA8 viewport/output-target capture and RGBA16Float retained scene-color capture now use
+the same production diagnostic owner. The compatibility call records one bounded diagnostic copy
+packet through `WgpuRenderDevice`, waits for its own central-router callback with a 30-second limit,
+and reads the capacity-one mailbox with `try_recv`; it does not create a helper-owned queue submit,
+raw device poll, infinite receive, or `wait_indefinitely`. The old buffer, RGBA8, and RGBA16Float
+synchronous helper modules are test-only. This bounded wait is exclusive to explicit capture APIs;
+normal frame begin retains one nonblocking completion poll. Current evidence is source/static only;
+Cargo, real WGPU, PNG, RenderDoc, profile, and power validation remain pending.
+
+Shared native UI surfaces do not own the render device's completion timeline. A context cloned from
+`WgpuRenderDevice` therefore does not instantiate or poll the legacy `GpuReadbackQueue`, even when
+the surface descriptor requests GPU timing; it reports timestamps unsupported until surface work
+is lowered into the production typed-query packet. A standalone UI surface that requests its own
+device retains the compatibility timer and advances only that private device.
+
+The shared product context also retains the exact `Arc<WgpuRenderDevice>` owner. Native retained-UI
+present recording returns its command buffer through a generation-qualified recorder packet and
+calls the device's sole submission entry; successful shared presents publish the real
+`SubmissionTicket` in `UiSurfacePresentStats`. Submission precedes retained-cache readiness and
+native present, so a rejected or failed submission cannot publish either state. Retained UI and
+multi-viewport independent presentation deliberately remain explicit packets.
+
+External-image copy ownership and scene-tail fusion are now implemented for the PFO-4b product
+path. A shared context allocates a generation-stable destination after the final output size is
+known and before scene recording starts. Direct and compiled rendering append the texture copy
+after final-output writeback and before the diagnostic/query tail, then submit it in the same scene
+packet. The typed copy receipt therefore binds the image to the scene `SubmissionTicket`, and
+`RenderFrameSubmissionReceipt::viewport_product_submission` equals the scene ticket. The receipt
+now accepts `scene <= viewport product <= present`, including equality when both terminal copies
+share the scene packet, while still rejecting foreign owner/generation and earlier tickets.
+
+Both frame-extract and runtime-frame submit paths carry the complete scene receipt into product
+publication. The registry validates the copy generation and exact recorded product ticket before
+moving the image or mutating either index. `RenderFrameworkError::FrameProductPublicationFailed`
+preserves the scene receipt and recorded product ticket across the public framework boundary, and
+graphics-debugger capture success is published only after product publication succeeds. Product
+graphics contains zero compatibility `copy_texture_for_external_image` calls, so a new direct or
+compiled product generation adds no independent native copy submission.
+
+PFO-4c also removes the product `ViewportSurface` raw WGPU surface/configuration/acquire/present
+owner. Direct and compiled surface entry points perform the frame's sole completion poll before
+neutral acquire, retain the acquired image in a RAII `WgpuNativeSurfaceFrameTarget`, and append the
+surface blit after output/product copy but before the diagnostic tail. The scene submission owner
+validates the target's device and active lease, registers its resources before the sole flush, and
+returns the same ticket consumed by neutral present. The old `present_texture` and independent
+surface packet API are deleted. Prepare, record, submit, and present failure paths explicitly
+discard the frame and retain cleanup failures; Drop is only a final retry. This establishes the
+one-packet source topology for direct/compiled viewport surfaces, not a measured runtime result.
+Dynamic WGPU, PNG, RenderDoc, 300-frame profiling, and power evidence remain pending.
+
+PFO-4d0 starts the remaining native resource/write hard cut after a full graphics call-site and
+local Unreal RHI/RDG review. `RenderBackend` no longer clones or retains raw `wgpu::Instance`;
+offscreen bootstrap moves it into the one-shot `WgpuRenderDeviceContext`. Backend capability
+queries now return the `WgpuRenderDevice` neutral caps snapshot created after adapter, feature,
+limit, and queue-topology validation. This removes the duplicate capability authority without
+pretending the remaining raw `Adapter/Device/Queue` consumers are already migrated. The next
+ordered slices are bounded frame uploads, persistent resource lifecycle, RDG transient physical
+handles, pipeline-cache identity, and only then deletion of the remaining raw fields. Current
+evidence is source/static only; Cargo, WGPU, PNG, RenderDoc, profile, memory, and power remain
+pending.
+
+PFO-4d1a-d moves scene constants, reflection-probe buffer parameters, GPU Scene, shadow-atlas frame
+data, and compiled irradiance-volume parameters into one backend-owned frame buffer-upload
+transaction. Scene constants, probe parameters, and shadow data use exact-capacity packed payloads;
+shadow active slots and its stale disabled tail form one contiguous slot-buffer write. Probe planar,
+array, and header ranges capture the final resources after a provider upgrade and share one payload;
+probe cubemap texture data retains its format-aware texture-upload path. GPU Scene preserves merged
+dirty ranges and its staging-copy threshold, but mesh build now returns a `GpuScenePreparedUpload`
+instead of enqueueing from inside extraction.
+The direct or compiled frame owner appends all prepared writes into one `WgpuBufferUploadBatch`,
+records its Copy ticket as `RenderFrameSubmissionProducer::FrameBufferUpload`, and only then commits
+GPU Scene dirty state and the shadow stale-tail baseline. Failed backend admission therefore leaves
+the source state retryable. The eventual scene packet remains the sole graphics flush owner, so the
+change adds no native submission or completion poll. This remains a transitional native batch while
+the target buffers are raw WGPU resources; PFO-4d2 must replace those owners before this becomes a
+neutral `BufferUploadBatch`. Current evidence is source/static only; driver write count, frame-time
+distribution, PNG, RenderDoc, memory, and power measurements remain pending.
+
+PFO-4d1e extends that transaction through compiled RDG execution without introducing a shared upload
+lock. Every `RenderPassGpuExecutionContext` owns a pass-local pre-submit batch; successful
+`RecordedGraphPass` values carry their batch back with profiling output, and the stage owner merges
+serial or ordered parallel-bucket results with ownership-moving `Vec::append`. The contract is limited
+to frame-initialization targets with one CPU producer because all collected writes become visible before
+the graph command buffers execute. Compiled rendering retains the scene/probe/shadow/irradiance/GPU
+Scene batch until all graph stages succeed, appends the graph batch, records the same single
+`FrameBufferUpload` ticket, and only then commits retry-sensitive CPU shadow state. The first consumer,
+light-grid params/z-bins/tile masks, now shares one exact-capacity payload across at most three target
+ranges instead of issuing three direct `queue.write_buffer` calls. The scene-renderer production-candidate
+source inventory falls from 35 writes in 29 files to 32 writes in 28 files. These are source/static
+measurements only; WGPU product, PNG, RenderDoc, timing, memory-traffic, and power validation remain
+pending.
+
+PFO-4d1f migrates three additional single-producer RDG parameter buffers through the same pass-local
+transport: TAA resolve, camera velocity, and bloom. Each enabled pass returns one complete immutable
+upload; disabled bloom and unavailable/cut camera-velocity paths return an empty batch. A small WGPU
+helper owns exact-length byte-slice payload construction, while feature owners retain parameter
+packing and target selection. Their production direct writes fall from three to zero, taking the
+scene-renderer production-candidate inventory to 29 writes in 25 files. Exposure is not included because
+histogram and resolve share one parameter buffer and currently form two CPU producers; that buffer must
+move to one frame-preparation owner before it can join the transaction safely.
+
+PFO-4d1g moves exposure to that frame-preparation owner. Histogram and resolve consume one prepared
+buffer instead of independently rebuilding and writing identical params. HZB stats reset is encoded
+before its dispatches, while clustered lighting, color-LUT, DOF prepare, and half-resolution composite
+append single-producer parameter batches. The exposure adaptation step still uses a fixed 1/60 second
+delta; replacing it requires the authoritative runtime frame delta to cross the extract boundary and
+remains a P0 correctness task.
+
+PFO-4d1h removes the remaining post-process direct buffer-write path. Nine 432-byte full-screen and SSR
+parameter slots are allocated with the persistent post-process resource set, so frame recording no
+longer creates those buffers. Each slot has one CPU producer; the coarse SSR mip chain prepares its
+shared params once before recording all mips. Reflection-probe and hybrid-GI probe/trace data use one
+count-bounded exact payload for up to three ranges, and the final pass appends its params to the same
+batch. SSAO remains a graph-binding-time decision but appends to the outer frame batch. Post-process
+production code now has zero direct `queue.write_buffer` calls; the current scene-renderer remainder is
+13 calls in 11 non-test files. These are source/static results only, not dynamic performance evidence.
+
+PFO-4d1i extends the graph upload transaction with delayed HZB parameter-state publication. Each HZB
+workspace entry owns a persistent buffer revision and committed args count. Recording returns a 32-byte
+upload plus a revision-qualified token when the value changes, without mutating committed state. Pass
+and stage owners move those tokens in graph order; the compiled frame commits them only after the merged
+`FrameBufferUpload` ticket is accepted and recorded. Failed graph/admission paths therefore retry, while
+stable entries continue to skip uploads. HZB execute no longer receives a queue, and the current
+scene-renderer remainder is 12 direct writes in 10 non-test files. Dynamic validation is still pending.
+
+PFO-4d1j removes mesh indirect preparation from the raw queue data plane. Indirect args and compaction
+metadata now keep separate accepted and reusable staged CPU shadows, qualified by preparation and native
+buffer revisions. Nine fixed mesh phases append their dirty ranges to the existing frame upload batch;
+the frame owner publishes those shadows only after the one Copy ticket is accepted and recorded. Graph
+or admission failure leaves the accepted baseline unchanged, including when the failed frame allocated a
+new buffer. Stable targets allocate no payload, while changed ranges share one immutable payload owner per
+target. Exact range detection remains in place pending real 1K/10K/100K profile evidence. The source-only
+scene-renderer remainder is 11 direct writes in 9 non-test files; WGPU, PNG, RenderDoc, timing, memory,
+and power validation remain pending.
+
+PFO-4d1k moves skinned-palette ownership into GPU Scene. Two grow-only storage buffers alternate as
+staged current and last-successful previous arenas; active matrices are packed in pending-draw order and
+each 192-byte GPU instance row carries current/previous matrix base and joint count. The arena upload is
+appended to the same `GpuScenePreparedUpload` and therefore to the frame's existing
+`FrameBufferUpload` ticket. Direct and visible-remap scene bind groups consume the selected arena
+orientation, while mesh draws no longer retain palette buffers or create palette-specific scene bind
+groups. Only successful scene completion rolls the staged slot and span map into previous history.
+The old per-instance fixed-capacity GPU buffers and two queue writes per updated palette are deleted;
+the fixed 256-joint CPU snapshot remains a documented follow-up rather than a second GPU resource path.
+Current evidence is source/static only; WGPU, screenshots, RenderDoc, scale profiling, memory, and power
+validation remain pending.
+
+PFO-4d1l moves region-scoped scene-clear color parameters into that same frame upload transaction.
+`SceneRegionClearResources` still records the viewport/scissor-clipped triangle required for Base/Overlay
+and split-view correctness, but it no longer receives a queue or publishes its 16-byte uniform while
+the graph can still fail. The prepared color upload is retained by `RenderGraphStageExecution`, taken
+only after all graph stages succeed, and accepted with the one `FrameBufferUpload` ticket before the
+scene command buffers are submitted. Depth-only, no-clear, and empty-region paths create no upload.
+This ownership correction does not complete the separate full-target attachment-clear fusion task;
+dynamic WGPU, screenshot, RenderDoc, timing, and power evidence remain pending.
+
+PFO-4d1m applies the same transaction boundary to retained exposure-history invalidation. Newly created
+or resized history buffers keep their mapped default initialization and no longer receive two redundant
+reset writes. A retained camera cut records a pending reset; when exposure history is live, the compiled
+frame appends two buffer ranges backed by one immutable payload to its existing `FrameBufferUpload`.
+The history owner clears that pending intent only after backend admission and producer-ledger recording,
+so graph or admission failure retries on the next frame. This is a source ownership result; exposure
+readback, WGPU screenshots, RenderDoc, timing, and power validation remain pending.
+
+PFO-4d1n moves static environment cubemap staging into the frame upload transaction. Source, PMREM,
+and irradiance data now arrive as one complete immutable artifact; environments without an IEM carry a
+pre-encoded 1x1 black irradiance cube. On a changed upload key, the renderer validates all mip layouts,
+packs one shared staging payload, appends one range to the existing `FrameBufferUpload`, and records
+per-mip buffer-to-texture copies in the scene encoder. The old render-thread float conversion and
+per-face/mip texture-write fallback are gone. Stable keys allocate no payload, and the upload key remains
+pending until scene submission succeeds. Cold fallback-texture initialization remains PFO-4d2 work;
+dynamic WGPU, HDRI/no-IEM screenshots, RenderDoc, timing, and power evidence are pending.
+
+PFO-4d1o removes the remaining cold scene-SH9 buffer write. The default SH9 bytes are supplied through
+mapped buffer creation while retaining `COPY_DST` for later frame-transaction updates. This does not
+solve per-renderer neutral cubemap, BRDF LUT, sampler, or binding duplication; those resources require a
+generation-local shared system-texture owner in PFO-4d2a. Compile and dynamic WGPU evidence remain pending.
+
+PFO-4d1p makes SSS setup the sole per-camera parameter producer. Its 80-byte parameter block and
+512-byte profile table are transient graph uniforms with explicit setup-write/scatter-read versions;
+one immutable 592-byte payload supplies both ranges through the existing frame upload transaction.
+Scatter no longer resolves or clones profiles, inverts the camera matrix, or creates native buffers.
+The setup encoder clears indirect arguments and the first setup workgroup restores the fixed Y/Z
+dispatch dimensions before active tiles atomically accumulate X. This preserves in-flight isolation
+without shared mutable executor state. Source/static checks pass; WGPU, screenshots, RenderDoc,
+timing, memory, and power evidence remain pending.
+
+PFO-4d2a0 begins persistent system-texture convergence without exposing a native registry bypass.
+The three cold environment fallback slots now clone one WGPU black-cube texture/view identity instead
+of creating and uploading three identical 1x1x6 resources. Their initialization therefore falls from
+three texture creates, three view creates, and three 48-byte writes to one of each. The filtering
+sampler is also stable across real-environment texture rebinds because its descriptor is independent of
+cube size, mip count, and content. Dynamic source/specular/irradiance textures remain separate and use
+the existing staged frame transaction. This is a per-core precursor only: a device-generation owner,
+cross-core BRDF/black-cube/sampler leases, shadow fallback migration, WGPU screenshots, RenderDoc,
+timing, memory, and power evidence remain pending.
+
+PFO-4d2a1 removes the concrete same-generation duplication in full-scene shadow startup. The scene
+bundle publishes an owning `ShadowSceneEnvironmentBindingLease` from its initialized black cube,
+preintegrated BRDF LUT, stable filtering sampler, and SH9 buffer. `ShadowMapRenderer` no longer receives
+a device during construction or creates private environment fallbacks; its source, specular, and
+irradiance slots bind the same leased black-cube view while BRDF, sampler, and SH9 bind their scene
+resources. Shadow cold startup therefore removes four textures, four views, one sampler, and one buffer.
+Per-atlas-slot camera uniforms and bind groups remain a separate hot-path task. Current evidence is
+source/static only; WGPU shadow draws, screenshots, RenderDoc identity, timing, memory, and power remain
+pending.
+
+PFO-4d2b moves shadow atlas slot camera data out of graph recording resource creation. A grow-only
+workspace owns one uniform buffer partitioned by the device's uniform-offset alignment and one fixed
+offset bind group per capacity slot. Capacity grows to the next power of two; stable frames create no
+native slot buffers or bind groups. After the shadow frame plan is built, the outer frame owner packs
+all active `SceneUniform` values into one aligned immutable payload and appends one upload range to the
+existing `FrameBufferUpload` transaction. Graph recording only borrows the prepared bind group and
+returns an explicit error when preparation is missing; it no longer receives the queue. Source/static
+checks pass. WGPU 1/4/16/64-slot runs, screenshots, RenderDoc identity, timing, memory, and power remain
+pending.
+
+Render-submit invalid state is now fail-closed. Consuming the viewport-owned advanced runtime plan more
+than once returns `RenderFrameworkError::InvalidSubmissionState`; a missing SceneLinear phase returns
+`GraphicsError::MissingViewFamilyPhase` instead of panicking. Because phase validation occurs after scene
+resource preparation, that failure is routed through `settle_failed_frame_submissions` before it crosses
+the framework boundary, preserving producer ticket settlement and the typed phase identity. Focused
+source guards cover the old panic sites, but the source-matched managed Rust test did not run because
+request `6d6bb68074fd4e3e8d6abaa787698b96` timed out acquiring Cargo ownership. Dynamic WGPU and product
+evidence remain pending. The compiled-scene preparation boundary also returns
+`GraphicsError::MissingFrameGraphResourceBacking` when a live graph resource has no physical owner and
+`GraphicsError::MissingPreparedGpuSceneUpload` when prepared draws lose their GPU Scene upload. The
+latter aborts the pending realtime-IBL submission before returning, and both variants retain their typed
+identity when mapped to `RenderFrameworkError`; neither condition is converted into a panic or a second
+submission path. The wider `scene_renderer/core` audit also removed the final seven production
+`expect` sites from hit-proxy readback aggregation, cubemap upload indexing, and packed scene-uniform
+upload construction; these now fail closed through `let-else`, `MissingTarget`, or
+`InvalidBufferUploadRange` while retaining the single frame upload payload.
+
+The render-graph packet-lowering boundary is also fail-closed: missing access-index entries return
+`CompiledAccessIndexEntryMissing`, missing dispatch declarations return `ResourceDeclarationMissing`,
+and an empty binding candidate list returns the existing `ComputeBindingAccessMissing`. The production
+`panic!`/`expect`/`unwrap` scan for `render_graph` remains zero; this source slice changes only compile-time
+error handling and does not change access-candidate selection, scope matching, or dispatch math.
+
+`ViewportSurface` blit pipeline format conversion now also propagates through
+`create_viewport_surface -> Result`, returning `GraphicsError::SurfaceStatus` for an unsupported
+neutral format instead of panicking in the production constructor. The shader, pipeline selection,
+and single surface transaction order remain unchanged.
+
+The RGBA32F product diagnostic decoder now converts its validated 16-byte payload with
+`chunks_exact(4)` and fixed lane indexing, preserving little-endian output without a production
+`expect`.
+
+The built-in texture descriptor catalog now treats a missing phase or output target as a
+fail-closed `Option`; the existing resource-schema `Result<String>` boundary reports the missing
+contract instead of panicking while deriving an allocation extent. Valid pipeline dimensions and
+fallback order are unchanged.

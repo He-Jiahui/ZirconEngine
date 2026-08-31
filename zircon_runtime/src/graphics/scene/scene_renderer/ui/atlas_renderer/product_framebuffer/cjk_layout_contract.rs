@@ -41,3 +41,37 @@ fn native_bitmap_layout_product_text_uses_checked_in_cjk_face() {
         "each CJK code point in the product scene must be drawable by the embedded proof face"
     );
 }
+
+#[test]
+fn native_bitmap_layout_product_proof_enters_the_canonical_ui_glyph_pipeline() {
+    let source = include_str!("native_layout.rs");
+
+    for required in [
+        "shared_font_database_snapshot",
+        "layout_text",
+        "UiRenderExtract",
+        "native_text_batches_for_product_proof",
+        "native_bitmap_atlas_glyph_runs",
+        "canonical_native_layout",
+    ] {
+        assert!(
+            source.contains(required),
+            "native CJK product proof must retain `{required}`"
+        );
+    }
+    for forbidden in [
+        "TextArea",
+        "TextRenderer",
+        "TextAtlas",
+        "layout_runs()",
+        "NativeBitmapAtlasTextArea",
+        "ScreenSpaceUiTextBatch {",
+        concat!("refresh_screen_space_", "text_batch_glyphs"),
+        "canonical_native_layout_batch",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "native CJK product proof must not restore `{forbidden}`"
+        );
+    }
+}

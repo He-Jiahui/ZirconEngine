@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 use std::ffi::OsStr;
 use std::fs::{self, File};
 use std::io::{Read, Write};
@@ -13,8 +13,8 @@ const PERSISTENT_INVENTORY_FORMAT_VERSION: u32 = 1;
 #[derive(Default)]
 pub(crate) struct ExportGenerationInventory {
     digests_by_canonical_path: BTreeMap<PathBuf, ExportDigest>,
-    visiting_directories: BTreeSet<PathBuf>,
-    seen_file_paths: BTreeSet<PathBuf>,
+    visiting_directories: HashSet<PathBuf>,
+    seen_file_paths: HashSet<PathBuf>,
     persistent_cache_path: Option<PathBuf>,
     persistent_file_digests: BTreeMap<PathBuf, PersistedFileDigest>,
     persistent_tool_identities: BTreeMap<String, PersistedToolIdentity>,
@@ -552,6 +552,9 @@ fn hash_os_string(hasher: &mut blake3::Hasher, value: &std::ffi::OsStr) {
     use std::os::unix::ffi::OsStrExt;
     hash_bytes(hasher, value.as_bytes());
 }
+
+#[cfg(test)]
+mod hash_membership_tests;
 
 #[cfg(test)]
 mod tests {

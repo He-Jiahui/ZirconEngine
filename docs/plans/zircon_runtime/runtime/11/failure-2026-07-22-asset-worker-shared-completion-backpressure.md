@@ -50,4 +50,16 @@ worker pool把观察者数量编码成payload消息数量，没有Runtime11统�
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+### 当前源码复核（2026-08-25）
+
+- `AssetWorkerPool` 已在 Runtime11 的 IO `TaskPool` 上实现 single-flight：同一请求的多个观察者只取得 `AssetWorkerCompletionTicket`，终态只保有一个 `Arc<CpuAssetPayload>`，不会按 waiter 深拷贝 payload。
+- `CompletionRegistry` 对唯一任务、live waiter、已完成条目、已完成字节数以及 request/completion age 分别施加预算；超限、过期、取消和关闭均以可观察终态唤醒 ticket。worker 不通过完成 channel 发送大 payload，也不创建私有线程或队列。
+- `Drop` 先切换关闭状态并取消未完成/未收割条目，不等待 IO worker；对应的 source tests 已覆盖共享 owner、1/1k/100k waiter 上限、完成条目/字节预算、过期、取消和非阻塞 Drop。
+- 此结构与 Unreal `FStreamableHandle` 的共享句柄及受管活动请求模型、Bevy `Arc<StrongHandle>` 的共享资产寿命模型一致；Zircon 仍保持 Runtime11 统一任务池和 timer 的所有权边界。
+
+### 仍待受管验收
+
+- 尚未运行本记录列出的 Cargo 矩阵，不能将 source tests 记为通过。
+- 尚未采集 unique/waiters `1/1k/100k`、payload `4KiB/256MiB`、workers `1/8/64`、stall `0/1/60s` 的 queue age、clone bytes、RSS、cancel/drop wall 数据，也没有功耗或与参考引擎的耗时对比；在这些数据出现前，不开展新的性能微优化或宣称瓶颈已消失。
+
+Open state: `源码实现已覆盖共享结果与背压设计；受管验证和 Performance01 量化采样待完成`; no pass is claimed.

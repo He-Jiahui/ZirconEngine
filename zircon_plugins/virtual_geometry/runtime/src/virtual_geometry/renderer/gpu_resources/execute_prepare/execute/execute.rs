@@ -1,5 +1,5 @@
 use crate::virtual_geometry::types::VirtualGeometryPrepareFrame;
-use zircon_runtime::graphics::GraphicsError;
+use zircon_runtime::graphics::{GraphicsError, RenderPassBufferUploadSink};
 
 use super::super::super::super::gpu_readback::VirtualGeometryGpuPendingReadback;
 use super::super::super::virtual_geometry_gpu_resources::VirtualGeometryGpuResources;
@@ -13,7 +13,7 @@ impl VirtualGeometryGpuResources {
     pub(in crate::virtual_geometry::renderer) fn execute_prepare(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        buffer_uploads: &mut dyn RenderPassBufferUploadSink,
         encoder: &mut wgpu::CommandEncoder,
         prepare: Option<&VirtualGeometryPrepareFrame>,
         page_budget: Option<u32>,
@@ -24,7 +24,7 @@ impl VirtualGeometryGpuResources {
 
         let inputs = collect_inputs(prepare);
         let buffers = create_buffers(device, &inputs);
-        queue_params(self, queue, prepare, &inputs, page_budget);
+        queue_params(self, buffer_uploads, &inputs, page_budget);
         let bind_group = create_bind_group(self, device, &buffers);
         dispatch(self, encoder, &bind_group, &inputs);
 

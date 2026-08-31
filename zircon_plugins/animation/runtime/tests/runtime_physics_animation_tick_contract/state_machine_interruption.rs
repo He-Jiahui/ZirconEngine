@@ -81,12 +81,10 @@ fn simulated_pose_blends_under_ragdoll_mask() {
             .targets(entity)
             .and_then(|targets| targets.iter().find(|target| target.bone_name == "Hand"))
             .expect("blended simulated pose should be published as the next physics target");
-        assert!(
-            published
-                .local_transform
-                .translation
-                .abs_diff_eq(Vec3::new(2.5, 0.0, 0.0), 1.0e-4)
-        );
+        assert!(published
+            .local_transform
+            .translation
+            .abs_diff_eq(Vec3::new(2.5, 0.0, 0.0), 1.0e-4));
     });
 }
 
@@ -162,13 +160,11 @@ fn exit_time_gate_waits_for_normalized_state_progress_without_skipping_crossfade
 
     runtime.tick_level_seconds(&level, 0.5).unwrap();
     assert_hand_translation(&level, entity, 0.0);
-    assert!(
-        level
-            .animation_playback_times(level.capture_world_replacement_epoch())
-            .expect("current World exposes playback state")
-            .2
-            .is_empty()
-    );
+    assert!(level
+        .animation_playback_times(level.capture_world_replacement_epoch())
+        .expect("current World exposes playback state")
+        .2
+        .is_empty());
 
     runtime.tick_level_seconds(&level, 0.25).unwrap();
     assert_hand_translation(&level, entity, 0.0);
@@ -312,14 +308,12 @@ fn one_shot_trigger_zero_duration_pose_failure_commits_nothing_until_retry() {
             "a missing target pose must commit neither state nor Trigger removal"
         );
     });
-    assert!(
-        level
-            .animation_playback_times(level.capture_world_replacement_epoch())
-            .expect("current World exposes playback state")
-            .2
-            .get(&entity)
-            .is_none()
-    );
+    assert!(level
+        .animation_playback_times(level.capture_world_replacement_epoch())
+        .expect("current World exposes playback state")
+        .2
+        .get(&entity)
+        .is_none());
 
     register_single_clip_graph(&asset_manager, &run_graph_uri, &run_clip_uri);
     runtime.tick_level_seconds(&level, 0.0).unwrap();
@@ -390,7 +384,8 @@ fn one_shot_trigger_interruption_waits_for_source_pose_then_consumes() {
                     parameters: BTreeMap::from([
                         ("start".to_string(), AnimationParameterValue::Bool(true)),
                         ("interrupt".to_string(), AnimationParameterValue::Trigger),
-                    ]),
+                    ])
+                    .into(),
                     active_state: Some("Idle".to_string()),
                     playing: true,
                 }),
@@ -543,14 +538,12 @@ fn one_shot_trigger_deferred_clip_event_admission_retries_before_consuming() {
             "deferred event admission must retain the trigger and active state"
         );
     });
-    assert!(
-        level
-            .animation_playback_times(level.capture_world_replacement_epoch())
-            .expect("current World exposes playback state")
-            .2
-            .get(&entity)
-            .is_none()
-    );
+    assert!(level
+        .animation_playback_times(level.capture_world_replacement_epoch())
+        .expect("current World exposes playback state")
+        .2
+        .get(&entity)
+        .is_none());
 
     asset_manager.resource_manager().register_ready(
         ResourceRecord::new(
@@ -567,13 +560,11 @@ fn one_shot_trigger_deferred_clip_event_admission_retries_before_consuming() {
         assert_eq!(player.active_state.as_deref(), Some("Idle"));
         assert!(!player.parameters.contains_key("fire"));
     });
-    assert!(
-        level
-            .animation_playback_times(level.capture_world_replacement_epoch())
-            .expect("current World exposes playback state")
-            .2
-            .contains_key(&entity)
-    );
+    assert!(level
+        .animation_playback_times(level.capture_world_replacement_epoch())
+        .expect("current World exposes playback state")
+        .2
+        .contains_key(&entity));
 }
 
 pub(super) fn uri(name: &str) -> AssetUri {
@@ -591,11 +582,10 @@ pub(super) fn assert_hand_translation(
         .iter()
         .find(|bone| bone.name == "Hand")
         .expect("Hand pose");
-    assert!(
-        hand.local_transform
-            .translation
-            .abs_diff_eq(Vec3::new(expected, 0.0, 0.0), 1.0e-4)
-    );
+    assert!(hand
+        .local_transform
+        .translation
+        .abs_diff_eq(Vec3::new(expected, 0.0, 0.0), 1.0e-4));
 }
 
 pub(super) fn spawn_state_machine_player(
@@ -619,7 +609,7 @@ pub(super) fn spawn_state_machine_player(
                 entity,
                 Some(AnimationStateMachinePlayerComponent {
                     state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(machine_id),
-                    parameters,
+                    parameters: parameters.into(),
                     active_state: Some("Idle".to_string()),
                     playing: true,
                 }),

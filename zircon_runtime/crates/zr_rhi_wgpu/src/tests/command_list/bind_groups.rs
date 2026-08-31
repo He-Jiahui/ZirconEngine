@@ -60,6 +60,7 @@ fn command_list_records_bind_groups_and_submit_validates_raster_pipeline_layout(
             zr_rhi::CommandListCommand::SetBindGroup {
                 slot: 0,
                 bind_group,
+                dynamic_offsets: Vec::new(),
             },
             zr_rhi::CommandListCommand::Draw {
                 vertex_start: 0,
@@ -70,9 +71,12 @@ fn command_list_records_bind_groups_and_submit_validates_raster_pipeline_layout(
             zr_rhi::CommandListCommand::EndRenderPass,
         ]
     );
-    assert!(device
-        .is_fence_complete(device.submit(draw).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(draw).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 
     let mut missing_bind_group = device
         .create_command_list(RenderQueueClass::Graphics, "missing-raster-bindings")
@@ -85,6 +89,232 @@ fn command_list_records_bind_groups_and_submit_validates_raster_pipeline_layout(
         RhiError::InvalidBindGroupUsage {
             reason: "draw requires bind group slot 0 to be bound".to_string(),
         }
+    );
+}
+
+#[test]
+fn command_list_records_dynamic_bind_group_offsets() {
+    let device = DeterministicRhiContractDevice::new_headless();
+    let layout = device
+        .create_bind_group_layout(&BindGroupLayoutDesc::new(
+            "dynamic-command-layout",
+            vec![BindGroupLayoutEntryDesc::new(
+                0,
+                BindingResourceType::UniformBuffer,
+                vec![ShaderStage::Compute],
+            )
+            .with_dynamic_offset()
+            .with_min_binding_size(64)],
+        ))
+        .unwrap();
+    let uniform = device
+        .create_buffer(&BufferDesc::new(
+            "dynamic-command-uniform",
+            512,
+            BufferUsage::UNIFORM,
+        ))
+        .unwrap();
+    let bind_group = device
+        .create_bind_group(&BindGroupDesc::new(
+            "dynamic-command-bind-group",
+            layout,
+            vec![BindGroupEntryDesc::new(
+                0,
+                BindGroupEntryResource::Buffer(zr_rhi::BindGroupBufferBinding::new(
+                    uniform,
+                    0,
+                    Some(64),
+                )),
+            )],
+        ))
+        .unwrap();
+    let mut command_list = device
+        .create_command_list(RenderQueueClass::Compute, "dynamic-command-list")
+        .unwrap();
+
+    command_list.set_bind_group_with_dynamic_offsets(0, bind_group, vec![256]);
+
+    assert_eq!(
+        command_list.recorded_commands(),
+        &[zr_rhi::CommandListCommand::SetBindGroup {
+            slot: 0,
+            bind_group,
+            dynamic_offsets: vec![256],
+        }]
+    );
+}
+
+#[test]
+fn command_list_rejects_misaligned_dynamic_bind_group_offsets() {
+    let device = DeterministicRhiContractDevice::new_headless();
+    let shader = device
+        .create_shader_module(&ShaderModuleDesc::new(
+            "dynamic-offset-compute",
+            ShaderStage::Compute,
+            "main",
+            "@compute @workgroup_size(1) fn main() {}",
+        ))
+        .unwrap();
+    let bind_group_layout = device
+        .create_bind_group_layout(&BindGroupLayoutDesc::new(
+            "dynamic-offset-layout",
+            vec![BindGroupLayoutEntryDesc::new(
+                0,
+                BindingResourceType::UniformBuffer,
+                vec![ShaderStage::Compute],
+            )
+            .with_dynamic_offset()
+            .with_min_binding_size(64)],
+        ))
+        .unwrap();
+    let pipeline_layout = device
+        .create_pipeline_layout(&PipelineLayoutDesc::new(
+            "dynamic-offset-pipeline-layout",
+            vec![bind_group_layout],
+        ))
+        .unwrap();
+    let pipeline = create_compute_pipeline_with_layout(
+        &device,
+        "dynamic-offset-pipeline",
+        shader,
+        pipeline_layout,
+    );
+    let uniform = device
+        .create_buffer(&BufferDesc::new(
+            "dynamic-offset-uniform",
+            512,
+            BufferUsage::UNIFORM,
+        ))
+        .unwrap();
+    let bind_group = device
+        .create_bind_group(&BindGroupDesc::new(
+            "dynamic-offset-bind-group",
+            bind_group_layout,
+            vec![BindGroupEntryDesc::new(
+                0,
+                BindGroupEntryResource::Buffer(zr_rhi::BindGroupBufferBinding::new(
+                    uniform,
+                    0,
+                    Some(64),
+                )),
+            )],
+        ))
+        .unwrap();
+    let mut command_list = device
+        .create_command_list(RenderQueueClass::Compute, "misaligned-dynamic-offset")
+        .unwrap();
+    command_list.set_pipeline(pipeline);
+    command_list.set_bind_group_with_dynamic_offsets(0, bind_group, vec![128]);
+    command_list.dispatch_compute(1, 1, 1);
+
+    assert_eq!(
+        device.submit(command_list).unwrap_err(),
+        RhiError::InvalidBindGroupUsage {
+            reason: format!(
+                "bind group `{}` dynamic offset 128 for layout binding 0 must be aligned to 256",
+                bind_group.diagnostic_id(),
+            ),
+        }
+    );
+}
+
+#[test]
+fn command_list_interprets_dynamic_offsets_in_ascending_binding_order() {
+    let device = DeterministicRhiContractDevice::new_headless();
+    let shader = device
+        .create_shader_module(&ShaderModuleDesc::new(
+            "ordered-dynamic-offset-compute",
+            ShaderStage::Compute,
+            "main",
+            "@compute @workgroup_size(1) fn main() {}",
+        ))
+        .unwrap();
+    let bind_group_layout = device
+        .create_bind_group_layout(&BindGroupLayoutDesc::new(
+            "ordered-dynamic-offset-layout",
+            vec![
+                BindGroupLayoutEntryDesc::new(
+                    2,
+                    BindingResourceType::UniformBuffer,
+                    vec![ShaderStage::Compute],
+                )
+                .with_dynamic_offset()
+                .with_min_binding_size(64),
+                BindGroupLayoutEntryDesc::new(
+                    0,
+                    BindingResourceType::UniformBuffer,
+                    vec![ShaderStage::Compute],
+                )
+                .with_dynamic_offset()
+                .with_min_binding_size(64),
+            ],
+        ))
+        .unwrap();
+    let pipeline_layout = device
+        .create_pipeline_layout(&PipelineLayoutDesc::new(
+            "ordered-dynamic-offset-pipeline-layout",
+            vec![bind_group_layout],
+        ))
+        .unwrap();
+    let pipeline = create_compute_pipeline_with_layout(
+        &device,
+        "ordered-dynamic-offset-pipeline",
+        shader,
+        pipeline_layout,
+    );
+    let low_range_uniform = device
+        .create_buffer(&BufferDesc::new(
+            "ordered-dynamic-offset-low-range",
+            64,
+            BufferUsage::UNIFORM,
+        ))
+        .unwrap();
+    let high_range_uniform = device
+        .create_buffer(&BufferDesc::new(
+            "ordered-dynamic-offset-high-range",
+            512,
+            BufferUsage::UNIFORM,
+        ))
+        .unwrap();
+    let bind_group = device
+        .create_bind_group(&BindGroupDesc::new(
+            "ordered-dynamic-offset-bind-group",
+            bind_group_layout,
+            vec![
+                BindGroupEntryDesc::new(
+                    2,
+                    BindGroupEntryResource::Buffer(zr_rhi::BindGroupBufferBinding::new(
+                        high_range_uniform,
+                        0,
+                        Some(64),
+                    )),
+                ),
+                BindGroupEntryDesc::new(
+                    0,
+                    BindGroupEntryResource::Buffer(zr_rhi::BindGroupBufferBinding::new(
+                        low_range_uniform,
+                        0,
+                        Some(64),
+                    )),
+                ),
+            ],
+        ))
+        .unwrap();
+    let mut command_list = device
+        .create_command_list(
+            RenderQueueClass::Compute,
+            "ordered-dynamic-offset-command-list",
+        )
+        .unwrap();
+    command_list.set_pipeline(pipeline);
+    command_list.set_bind_group_with_dynamic_offsets(0, bind_group, vec![0, 256]);
+    command_list.dispatch_compute(1, 1, 1);
+
+    assert_eq!(
+        device
+            .submission_status(device.submit(command_list).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
     );
 }
 
@@ -116,9 +346,12 @@ fn command_list_submit_validates_compute_pipeline_bind_groups() {
     dispatch.set_pipeline(pipeline);
     dispatch.set_bind_group(0, bind_group);
     dispatch.dispatch_compute(2, 1, 1);
-    assert!(device
-        .is_fence_complete(device.submit(dispatch).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(dispatch).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 
     let mut missing_bind_group = device
         .create_command_list(RenderQueueClass::Compute, "missing-compute-bindings")
@@ -163,6 +396,8 @@ fn command_list_submit_validates_bind_group_layout_compatibility() {
     let expected_bind_group =
         create_uniform_bind_group(&device, "expected-bindings", expected_layout);
     let other_bind_group = create_uniform_bind_group(&device, "other-bindings", other_layout);
+    let stale_bind_group = create_uniform_bind_group(&device, "stale-bindings", expected_layout);
+    device.destroy_bind_group(stale_bind_group).unwrap();
     let pipeline = create_raster_pipeline_with_layout_and_vertex_input(
         &device,
         "layout-check-raster",
@@ -178,10 +413,10 @@ fn command_list_submit_validates_bind_group_layout_compatibility() {
     let mut unknown_bind_group = device
         .create_command_list(RenderQueueClass::Graphics, "unknown-bind-group")
         .unwrap();
-    unknown_bind_group.set_bind_group(0, BindGroupHandle::new(9_999));
+    unknown_bind_group.set_bind_group(0, stale_bind_group);
     assert_eq!(
         device.submit(unknown_bind_group).unwrap_err(),
-        RhiError::UnknownBindGroup(9_999)
+        RhiError::UnknownBindGroup(stale_bind_group.diagnostic_id())
     );
 
     let mut invalid_slot = device
@@ -206,9 +441,9 @@ fn command_list_submit_validates_bind_group_layout_compatibility() {
         RhiError::InvalidBindGroupUsage {
             reason: format!(
                 "bind group `{}` layout `{}` does not match pipeline layout slot 0 `{}`",
-                other_bind_group.raw(),
-                other_layout.raw(),
-                expected_layout.raw()
+                other_bind_group.diagnostic_id(),
+                other_layout.diagnostic_id(),
+                expected_layout.diagnostic_id()
             ),
         }
     );
@@ -225,8 +460,8 @@ fn command_list_submit_validates_bind_group_layout_compatibility() {
         RhiError::InvalidBindGroupUsage {
             reason: format!(
                 "bind group slot 0 layout `{}` does not match pipeline layout `{}`",
-                other_layout.raw(),
-                expected_layout.raw()
+                other_layout.diagnostic_id(),
+                expected_layout.diagnostic_id()
             ),
         }
     );

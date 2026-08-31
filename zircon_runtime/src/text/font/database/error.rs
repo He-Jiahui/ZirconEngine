@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use crate::asset::assets::{FontFaceExtractionError, FontSourceDecodeError};
-use crate::text::font::instance::FontInstanceError;
+use crate::asset::assets::{FontFaceExtractionError, FontSourceBudgetError, FontSourceDecodeError};
 use crate::text::FontFaceId;
+use crate::text::font::instance::FontInstanceError;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum FontDatabaseError {
@@ -10,11 +10,19 @@ pub(crate) enum FontDatabaseError {
     EmptyFamily,
     #[error("font source contains no bytes")]
     EmptyBytes,
+    #[error("cooked font artifact schema or content hash is invalid")]
+    InvalidCookedArtifact,
     #[error("font source {path} could not be read: {source}")]
     ReadFailed {
         path: PathBuf,
         #[source]
         source: std::io::Error,
+    },
+    #[error("font source {path} exceeds a runtime budget: {source}")]
+    SourceBudget {
+        path: PathBuf,
+        #[source]
+        source: FontSourceBudgetError,
     },
     #[error("font source {path} could not be decoded: {source}")]
     SourceDecode {

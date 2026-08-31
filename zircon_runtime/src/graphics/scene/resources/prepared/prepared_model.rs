@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::asset::ModelAsset;
 use crate::core::framework::render::RenderMeshBounds;
 
-use super::super::resource_streamer::model_geometry_resolution::ModelMeshDependencyState;
 use super::super::GpuModelResource;
+use super::super::resource_streamer::model_geometry_resolution::ModelMeshDependencyState;
 use super::PreparedGeometryDeformation;
 use crate::graphics::RuntimePrepareMeshSdfSeed;
 

@@ -6,14 +6,27 @@ use crate::project::{AssetRef, PersistedAssetReference, RelPath};
 use crate::resource::{AssetUuid, ResourceLocator, ResourceScheme};
 use crate::serialization::MigrateError;
 
-use super::{RetiredAssetRefMigrationError, RetiredAssetReference};
+use super::{RetiredAssetRefMigrationBudget, RetiredAssetRefMigrationError, RetiredAssetReference};
 
 /// Rewrites only exact retired `{ uuid, url }` objects through the supplied resolver.
 pub fn migrate_retired_asset_references_with<E>(
     value: Value,
+    resolver: impl FnMut(RetiredAssetReference) -> Result<AssetRef, E>,
+) -> Result<Value, RetiredAssetRefMigrationError<E>> {
+    migrate_retired_asset_references_with_budget(
+        value,
+        RetiredAssetRefMigrationBudget::standard(),
+        resolver,
+    )
+}
+
+/// Rewrites exact retired references under caller-owned structural limits.
+pub fn migrate_retired_asset_references_with_budget<E>(
+    value: Value,
+    budget: RetiredAssetRefMigrationBudget,
     mut resolver: impl FnMut(RetiredAssetReference) -> Result<AssetRef, E>,
 ) -> Result<Value, RetiredAssetRefMigrationError<E>> {
-    migrate_value(value, &mut resolver)
+    migrate_value_with_budget(value, budget, &mut resolver)
 }
 
 /// Plan 11's context-free v0-to-v1 rule for `res://` project references.
@@ -41,9 +54,22 @@ pub fn migrate_retired_asset_references(value: Value) -> Result<Value, MigrateEr
 /// the distinct `Builtin { locator }` authoring contract.
 pub fn migrate_retired_persisted_asset_references_with<E>(
     value: Value,
+    project_resolver: impl FnMut(RetiredAssetReference) -> Result<AssetRef, E>,
+) -> Result<Value, RetiredAssetRefMigrationError<E>> {
+    migrate_retired_persisted_asset_references_with_budget(
+        value,
+        RetiredAssetRefMigrationBudget::standard(),
+        project_resolver,
+    )
+}
+
+/// Rewrites project and builtin retired references under caller-owned structural limits.
+pub fn migrate_retired_persisted_asset_references_with_budget<E>(
+    value: Value,
+    budget: RetiredAssetRefMigrationBudget,
     mut project_resolver: impl FnMut(RetiredAssetReference) -> Result<AssetRef, E>,
 ) -> Result<Value, RetiredAssetRefMigrationError<E>> {
-    migrate_value(value, &mut |reference| {
+    migrate_value_with_budget(value, budget, &mut |reference| {
         if reference.locator().scheme() == ResourceScheme::Builtin {
             return Ok(PersistedAssetReference::builtin(
                 reference.locator().clone(),
@@ -81,29 +107,132 @@ pub fn migrate_retired_persisted_asset_reference_with<E>(
     })
 }
 
-fn migrate_value<E, R>(
-    value: Value,
+fn migrate_value_with_budget<E, R>(
+    mut value: Value,
+    budget: RetiredAssetRefMigrationBudget,
     resolver: &mut impl FnMut(RetiredAssetReference) -> Result<R, E>,
 ) -> Result<Value, RetiredAssetRefMigrationError<E>>
 where
     R: serde::Serialize,
 {
-    match value {
-        Value::Array(values) => values
-            .into_iter()
-            .map(|value| migrate_value(value, resolver))
-            .collect::<Result<Vec<_>, _>>()
-            .map(Value::Array),
-        Value::Object(values) if is_exact_retired_shape(&values) => {
-            migrate_reference(values, resolver)
+    admit_migration_value(&value, budget)?;
+
+    let mut stack = vec![RewriteFrame::Visit(&mut value)];
+    while let Some(frame) = stack.pop() {
+        match frame {
+            RewriteFrame::Visit(current) => {
+                if matches!(current, Value::Object(values) if is_exact_retired_shape(values)) {
+                    let Value::Object(values) = std::mem::take(current) else {
+                        unreachable!("exact retired references are objects");
+                    };
+                    *current = migrate_reference(values, resolver)?;
+                    continue;
+                }
+                match current {
+                    Value::Array(values) => {
+                        stack.push(RewriteFrame::Array(values.iter_mut()));
+                    }
+                    Value::Object(values) => {
+                        stack.push(RewriteFrame::Object(values.iter_mut()));
+                    }
+                    _ => {}
+                }
+            }
+            RewriteFrame::Array(mut values) => {
+                if let Some(value) = values.next() {
+                    stack.push(RewriteFrame::Array(values));
+                    stack.push(RewriteFrame::Visit(value));
+                }
+            }
+            RewriteFrame::Object(mut values) => {
+                if let Some((_, value)) = values.next() {
+                    stack.push(RewriteFrame::Object(values));
+                    stack.push(RewriteFrame::Visit(value));
+                }
+            }
         }
-        Value::Object(values) => values
-            .into_iter()
-            .map(|(key, value)| Ok((key, migrate_value(value, resolver)?)))
-            .collect::<Result<Map<_, _>, _>>()
-            .map(Value::Object),
-        value => Ok(value),
     }
+    Ok(value)
+}
+
+enum RewriteFrame<'value> {
+    Visit(&'value mut Value),
+    Array(std::slice::IterMut<'value, Value>),
+    Object(serde_json::map::IterMut<'value>),
+}
+
+fn admit_migration_value<E>(
+    value: &Value,
+    budget: RetiredAssetRefMigrationBudget,
+) -> Result<(), RetiredAssetRefMigrationError<E>> {
+    let mut visited_nodes = 0_usize;
+    let mut references = 0_usize;
+    let mut stack = vec![AdmissionFrame::Visit(value, 0_usize)];
+    while let Some(frame) = stack.pop() {
+        match frame {
+            AdmissionFrame::Visit(current, depth) => {
+                visited_nodes = visited_nodes.checked_add(1).unwrap_or(usize::MAX);
+                ensure_resource_limit(
+                    "retired asset migration nodes",
+                    visited_nodes,
+                    budget.max_nodes(),
+                )?;
+                ensure_resource_limit("retired asset migration depth", depth, budget.max_depth())?;
+                if matches!(current, Value::Object(values) if is_exact_retired_shape(values)) {
+                    references = references.checked_add(1).unwrap_or(usize::MAX);
+                    ensure_resource_limit(
+                        "retired asset migration references",
+                        references,
+                        budget.max_references(),
+                    )?;
+                }
+                let child_depth = depth.checked_add(1).unwrap_or(usize::MAX);
+                match current {
+                    Value::Array(values) => {
+                        stack.push(AdmissionFrame::Array(values.iter(), child_depth));
+                    }
+                    Value::Object(values) => {
+                        stack.push(AdmissionFrame::Object(values.iter(), child_depth));
+                    }
+                    _ => {}
+                }
+            }
+            AdmissionFrame::Array(mut values, depth) => {
+                if let Some(value) = values.next() {
+                    stack.push(AdmissionFrame::Array(values, depth));
+                    stack.push(AdmissionFrame::Visit(value, depth));
+                }
+            }
+            AdmissionFrame::Object(mut values, depth) => {
+                if let Some((_, value)) = values.next() {
+                    stack.push(AdmissionFrame::Object(values, depth));
+                    stack.push(AdmissionFrame::Visit(value, depth));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+enum AdmissionFrame<'value> {
+    Visit(&'value Value, usize),
+    Array(std::slice::Iter<'value, Value>, usize),
+    Object(serde_json::map::Iter<'value>, usize),
+}
+
+fn ensure_resource_limit<E>(
+    resource: &'static str,
+    found: usize,
+    max: usize,
+) -> Result<(), RetiredAssetRefMigrationError<E>> {
+    if found > max {
+        return Err(RetiredAssetRefMigrationError::ResourceLimitExceeded {
+            resource,
+            max,
+            found,
+        });
+    }
+    Ok(())
 }
 
 fn is_exact_retired_shape(values: &Map<String, Value>) -> bool {
@@ -146,6 +275,13 @@ fn flatten_default_error(error: RetiredAssetRefMigrationError<MigrateError>) -> 
         RetiredAssetRefMigrationError::InvalidShape { message } => {
             MigrateError::invalid_payload(message)
         }
+        RetiredAssetRefMigrationError::ResourceLimitExceeded {
+            resource,
+            max,
+            found,
+        } => MigrateError::invalid_payload(format!(
+            "retired asset reference migration {resource} limit {max} exceeded (found {found})"
+        )),
         RetiredAssetRefMigrationError::Resolve(error) => error,
     }
 }

@@ -22,6 +22,12 @@ try {
         '.\tools\tests\mvp-acceptance-snapshot-admission.Tests.ps1',
         '.\tools\tests\mvp-staging-tree-manifest-device-path.Tests.ps1',
         '.\tools\tests\mvp-build-set.Tests.ps1',
+        '.\tools\tests\tooling15-integrated-bootstrap.Tests.ps1',
+        '.\tools\tests\mvp-project-open-evidence.Tests.ps1',
+        '.\tools\tests\mvp-project-save-evidence.Tests.ps1',
+        '.\tools\tests\mvp-process-timing-evidence.Tests.ps1',
+        '.\tools\tests\mvp-scene-persistence-evidence.Tests.ps1',
+        '.\tools\tests\mvp-persistence-comparison.Tests.ps1',
         '.\tools\tests\mvp-build-summary-evidence.Tests.ps1',
         '.\tools\tests\mvp-artifact-storage-policy.Tests.ps1',
         '.\tools\tests\mvp-project-copy-policy.Tests.ps1',
@@ -55,7 +61,7 @@ try {
         -PassThru `
         -OutputFormat NUnitXml `
         -OutputFile (Join-Path $env:MVP_EVIDENCE_ROOT "tooling15-wave${wave}-control-plane-nunit.xml")
-    if ($controlPlaneResult.FailedCount -ne 0 -or $controlPlaneResult.TotalCount -ne 361) {
+    if ($controlPlaneResult.FailedCount -ne 0 -or $controlPlaneResult.TotalCount -ne 412) {
         throw "Tooling15 pinned integrated contracts failed: total=$($controlPlaneResult.TotalCount), passed=$($controlPlaneResult.PassedCount), failed=$($controlPlaneResult.FailedCount)."
     }
     Write-Host "TOOLING15_INTEGRATED_PESTER total=$($controlPlaneResult.TotalCount) passed=$($controlPlaneResult.PassedCount) failed=$($controlPlaneResult.FailedCount)"

@@ -10,6 +10,7 @@ use crate::core::math::{Transform, UVec2, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
 use crate::graphics::types::ViewportRenderFrame;
 
+use super::super::prepared_batches::prepare_sprite_draw_batches;
 use super::*;
 
 #[test]
@@ -56,11 +57,34 @@ fn sprite_image_vertices_keep_stretch_as_single_quad() {
 #[test]
 fn sprite_vertex_projection_reuses_one_matrix_and_appends_fixed_vertices() {
     let source = include_str!("../build_sprite_vertices.rs");
+    let production = source
+        .split("#[cfg(test)]")
+        .next()
+        .expect("sprite vertex production source");
 
     assert!(source.contains("fn append_sprite_quad_vertices("));
-    assert!(source.contains("Vec::with_capacity(slices.len().saturating_mul(6))"));
+    assert!(production.contains("visit_sprite_image_slices("));
+    assert!(production.contains("append_sprite_quad_vertices("));
+    assert!(!production.contains("let slices = sprite_image_slices("));
     assert_eq!(source.matches("sprite.transform.matrix()").count(), 1);
     assert!(!source.contains("fn sprite_quad_vertices("));
+}
+
+#[test]
+fn prepared_sprite_batches_project_adjacent_vertices_directly_into_final_storage() {
+    let first = test_sprite(RenderSpriteImageMode::Stretch);
+    let mut second = test_sprite(RenderSpriteImageMode::Stretch);
+    second.entity = 2;
+    let mut camera = ViewportCameraSnapshot::default();
+    camera.projection_mode = ProjectionMode::Orthographic;
+    camera.core_pipeline = CorePipelineKind::Core2d;
+    let extract = empty_sprite_extract(camera, vec![first, second]);
+    let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
+
+    let batches = prepare_sprite_draw_batches(&frame, RenderPassStage::Transparent2d);
+
+    assert_eq!(batches.len(), 1);
+    assert_eq!(batches[0].vertices().len(), 12);
 }
 
 #[test]
@@ -237,6 +261,6 @@ fn empty_sprite_extract(
             virtual_geometry_debug: None,
         },
     );
-    extract.sprites = SpriteExtract::from_sprites(core_pipeline, sprites);
+    extract.sprites = SpriteExtract::from_sprites(core_pipeline, sprites).into();
     extract
 }

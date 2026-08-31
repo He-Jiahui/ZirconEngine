@@ -54,8 +54,8 @@ pub(super) fn encode(artifact: &SdfOfflineArtifact) -> Result<Vec<u8>, SdfOfflin
     push_u32(&mut bytes, HEADER_LEN as u32);
     bytes.extend_from_slice(guid);
     push_u32(&mut bytes, identity.face_index);
-    bytes.extend_from_slice(&identity.variation_hash);
-    bytes.extend_from_slice(&identity.source_hash);
+    bytes.extend_from_slice(identity.variation_hash.as_bytes());
+    bytes.extend_from_slice(identity.source_hash.as_bytes());
     push_u32(&mut bytes, identity.params.mode.shader_discriminant());
     push_u32(&mut bytes, identity.params.bake_em_px);
     push_u32(&mut bytes, identity.params.spread_px_milli);
@@ -240,8 +240,8 @@ pub(super) fn decode(bytes: &[u8]) -> Result<SdfOfflineArtifact, SdfOfflineArtif
         SdfOfflineArtifactIdentity {
             asset_guid,
             face_index,
-            variation_hash,
-            source_hash,
+            variation_hash: variation_hash.into(),
+            source_hash: source_hash.into(),
             params: SdfBakeParams {
                 mode,
                 bake_em_px,

@@ -9,6 +9,9 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
 };
 
+#[cfg(test)]
+mod indexed_focus_tests;
+
 pub(super) fn validate_snapshot_bounded<E>(
     snapshot: &mut UiAccessibilityTreeSnapshot,
     mut observe_diagnostics: impl FnMut(usize) -> Result<(), E>,
@@ -211,16 +214,14 @@ fn validate_focus(
     let Some(focused) = snapshot.focused else {
         return;
     };
-    let valid = nodes
-        .get(&focused)
-        .and_then(|index| snapshot.nodes.get(*index))
-        .is_some_and(|node| !node.state.hidden && !node.state.disabled);
-    if valid {
-        if let Some(node) = snapshot
+    let focused_index = nodes.get(&focused).copied().filter(|index| {
+        snapshot
             .nodes
-            .iter_mut()
-            .find(|node| node.node_id == focused)
-        {
+            .get(*index)
+            .is_some_and(|node| !node.state.hidden && !node.state.disabled)
+    });
+    if let Some(index) = focused_index {
+        if let Some(node) = snapshot.nodes.get_mut(index) {
             node.state.focused = true;
         }
         return;
@@ -236,19 +237,18 @@ fn validate_focus(
         Some(focused),
         "focused runtime node is not a valid accessibility focus target",
     ));
-    let fallback = snapshot.roots.iter().copied().find(|root| {
-        nodes
-            .get(root)
-            .and_then(|index| snapshot.nodes.get(*index))
-            .is_some_and(|node| !node.state.hidden && !node.state.disabled)
+    let fallback = snapshot.roots.iter().find_map(|root| {
+        nodes.get(root).copied().and_then(|index| {
+            snapshot
+                .nodes
+                .get(index)
+                .is_some_and(|node| !node.state.hidden && !node.state.disabled)
+                .then_some((*root, index))
+        })
     });
-    snapshot.focused = fallback;
-    if let Some(fallback) = fallback {
-        if let Some(node) = snapshot
-            .nodes
-            .iter_mut()
-            .find(|node| node.node_id == fallback)
-        {
+    snapshot.focused = fallback.map(|(root, _)| root);
+    if let Some((_, index)) = fallback {
+        if let Some(node) = snapshot.nodes.get_mut(index) {
             node.state.focused = true;
         }
     }

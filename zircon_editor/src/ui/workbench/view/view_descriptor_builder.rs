@@ -4,6 +4,13 @@ use crate::ui::workbench::autolayout::PaneConstraints;
 
 use super::{ActivityWindowTemplateSpec, DockPolicy, PaneTemplateSpec, ViewDescriptor};
 
+const ORDERED_DEFAULT_PRESETS: [DefaultWorkbenchPreset; 4] = [
+    DefaultWorkbenchPreset::Authoring,
+    DefaultWorkbenchPreset::Review,
+    DefaultWorkbenchPreset::Focus,
+    DefaultWorkbenchPreset::Debug,
+];
+
 impl ViewDescriptor {
     pub fn with_document_kind(mut self, document_kind: DocumentKind) -> Self {
         self.document_kind = Some(document_kind);
@@ -29,9 +36,7 @@ impl ViewDescriptor {
         mut self,
         presets: impl IntoIterator<Item = DefaultWorkbenchPreset>,
     ) -> Self {
-        self.default_presets = presets.into_iter().collect();
-        self.default_presets.sort();
-        self.default_presets.dedup();
+        self.default_presets = normalize_default_presets(presets);
         self
     }
 
@@ -67,3 +72,30 @@ impl ViewDescriptor {
         self
     }
 }
+
+fn normalize_default_presets(
+    presets: impl IntoIterator<Item = DefaultWorkbenchPreset>,
+) -> Vec<DefaultWorkbenchPreset> {
+    let mut present = [false; ORDERED_DEFAULT_PRESETS.len()];
+    for preset in presets {
+        let index = match preset {
+            DefaultWorkbenchPreset::Authoring => 0,
+            DefaultWorkbenchPreset::Review => 1,
+            DefaultWorkbenchPreset::Focus => 2,
+            DefaultWorkbenchPreset::Debug => 3,
+        };
+        present[index] = true;
+    }
+
+    let mut normalized = Vec::with_capacity(present.iter().filter(|&&value| value).count());
+    for (preset, is_present) in ORDERED_DEFAULT_PRESETS.into_iter().zip(present) {
+        if is_present {
+            normalized.push(preset);
+        }
+    }
+    normalized
+}
+
+#[cfg(test)]
+#[path = "view_descriptor_builder/finite_preset_tests.rs"]
+mod finite_preset_tests;

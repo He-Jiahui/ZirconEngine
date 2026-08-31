@@ -8,6 +8,9 @@ use zircon_runtime_interface::ui::event_ui::{
     UiReflectionDiff, UiReflectionNodePatch, UiReflectionSnapshot, UiTreeId,
 };
 
+#[cfg(test)]
+mod optimization_tests;
+
 impl UiEventManager {
     pub fn replace_tree(&mut self, snapshot: UiReflectionSnapshot) -> UiReflectionDiff {
         let tree_id = snapshot.tree_id.clone();
@@ -48,8 +51,12 @@ impl UiEventManager {
         node_path: &UiNodePath,
         property_name: &str,
     ) -> Option<UiPropertyDescriptor> {
-        self.query_node(node_path)
-            .and_then(|node| node.properties.get(property_name).cloned())
+        let (tree_id, node_id) = self.node_index.get(node_path)?;
+        self.trees
+            .get(tree_id)
+            .and_then(|tree| tree.nodes.get(node_id))
+            .and_then(|node| node.properties.get(property_name))
+            .cloned()
     }
 
     pub fn set_property(
@@ -102,15 +109,14 @@ impl UiEventManager {
             let (tree_id, node_id) = self
                 .node_index
                 .get(&patch.node_path)
-                .cloned()
                 .ok_or_else(|| UiInvocationError::UnknownNode(patch.node_path.0.clone()))?;
             let tree = self
                 .trees
-                .get(&tree_id)
+                .get(tree_id)
                 .ok_or_else(|| UiInvocationError::UnknownTree(tree_id.0.clone()))?;
             let node = tree
                 .nodes
-                .get(&node_id)
+                .get(node_id)
                 .ok_or_else(|| UiInvocationError::UnknownNode(patch.node_path.0.clone()))?;
             for property_name in patch.properties.keys() {
                 if !node.properties.contains_key(property_name) {
@@ -120,7 +126,7 @@ impl UiEventManager {
                     });
                 }
             }
-            resolved.push((tree_id, node_id, patch_index));
+            resolved.push((tree_id, *node_id, patch_index));
         }
 
         let mut changed_by_tree = BTreeMap::<UiTreeId, BTreeSet<_>>::new();
@@ -128,7 +134,7 @@ impl UiEventManager {
             let patch = &patches[patch_index];
             let node = self
                 .trees
-                .get_mut(&tree_id)
+                .get_mut(tree_id)
                 .and_then(|tree| tree.nodes.get_mut(&node_id))
                 .expect("reflection patch targets were validated before mutation");
             let mut changed = false;
@@ -149,7 +155,10 @@ impl UiEventManager {
                 }
             }
             if changed {
-                changed_by_tree.entry(tree_id).or_default().insert(node_id);
+                changed_by_tree
+                    .entry(tree_id.clone())
+                    .or_default()
+                    .insert(node_id);
             }
         }
 

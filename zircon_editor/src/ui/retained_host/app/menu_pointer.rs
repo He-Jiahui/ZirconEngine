@@ -10,8 +10,7 @@ impl RetainedEditorHost {
             UiPoint::new(x, y),
         ) {
             Ok(dispatch) => {
-                self.menu_pointer_state = dispatch.pointer.state;
-                self.apply_menu_pointer_state_to_ui();
+                self.apply_menu_pointer_dispatch_state(dispatch.pointer.state);
                 if let Some(effects) = dispatch.effects {
                     self.apply_dispatch_effects(effects);
                 }
@@ -24,8 +23,7 @@ impl RetainedEditorHost {
         self.use_committed_pointer_layout();
         match self.menu_pointer_bridge.handle_move(UiPoint::new(x, y)) {
             Ok(dispatch) => {
-                self.menu_pointer_state = dispatch.state;
-                self.apply_menu_pointer_state_to_ui();
+                self.apply_menu_pointer_dispatch_state(dispatch.state);
             }
             Err(error) => self.set_status_line(error),
         }
@@ -38,10 +36,17 @@ impl RetainedEditorHost {
             .handle_scroll(UiPoint::new(x, y), delta)
         {
             Ok(dispatch) => {
-                self.menu_pointer_state = dispatch.state;
-                self.apply_menu_pointer_state_to_ui();
+                self.apply_menu_pointer_dispatch_state(dispatch.state);
             }
             Err(error) => self.set_status_line(error),
         }
+    }
+
+    fn apply_menu_pointer_dispatch_state(&mut self, state: HostMenuPointerState) {
+        if self.menu_pointer_state == state {
+            return;
+        }
+        self.menu_pointer_state = state;
+        self.apply_menu_pointer_state_to_ui();
     }
 }

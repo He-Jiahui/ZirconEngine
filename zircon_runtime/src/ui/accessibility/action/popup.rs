@@ -32,13 +32,18 @@ pub(super) fn dispatch_dismiss(
         Err(error) => return finish_popup_dismiss_lookup_error(result, target, error),
     };
     let (popup_id, property) = dismiss_target;
-    let report = surface.mutate_property(
-        UiPropertyMutationRequest::accessibility_action(
-            popup_id,
-            property.clone(),
-            UiValue::Bool(false),
-        )
-        .with_source(UiReflectedPropertySource::RuntimeState),
-    );
+    let report = surface.mutate_property(popup_dismiss_mutation_request(popup_id, property));
     finish_popup_dismiss_mutation(popup_id, result, report)
 }
+
+fn popup_dismiss_mutation_request(
+    popup_id: UiNodeId,
+    property: String,
+) -> UiPropertyMutationRequest {
+    UiPropertyMutationRequest::accessibility_action(popup_id, property, UiValue::Bool(false))
+        .with_source(UiReflectedPropertySource::RuntimeState)
+}
+
+#[cfg(test)]
+#[path = "popup/owned_property_tests.rs"]
+mod owned_property_tests;

@@ -16,23 +16,21 @@ pub use capability::{
     NATIVE_RUNTIME_REGISTRATION_MANIFEST, PLUGIN_ID, RUNTIME_CAPABILITIES,
 };
 pub use evaluation::{
-    AnimationAssetRevision, AnimationChannelDataRole, AnimationClipCompileError,
-    AnimationClipEvaluator, AnimationClipEvaluatorStats, AnimationEvaluationDiagnostic,
-    AnimationEvaluationError, AnimationEvaluationPipeline, AnimationEvaluationProjectionStats,
-    AnimationGraphCompileError, AnimationStateMachineLayerDiagnostic,
-    AnimationStateMachineLayerError, AnimationTransformChannel, CompiledAnimationClip,
-    CompiledAnimationGraph, CompiledAnimationGraphEvaluation, CompiledClipTrack,
-    CompiledGraphClipInstance, DirectClipWorkerStats, PoseBlendError, PoseBuffer, PoseBufferError,
-    PoseLayer, PoseLayerBlendMode, PosePool, SkeletonTargetTable, MAX_DIRECT_CLIP_WORKER_SHARDS,
+    compile_animation_graph_runtime, AnimationAssetRevision, AnimationChannelDataRole,
+    AnimationClipCompileError, AnimationClipEvaluator, AnimationClipEvaluatorStats,
+    AnimationEvaluationDiagnostic, AnimationEvaluationError, AnimationEvaluationPipeline,
+    AnimationEvaluationProjectionStats, AnimationGraphCompileError,
+    AnimationStateMachineLayerDiagnostic, AnimationStateMachineLayerError,
+    AnimationTransformChannel, CompiledAnimationClip, CompiledAnimationGraph,
+    CompiledAnimationGraphEvaluation, CompiledClipTrack, CompiledGraphClipInstance,
+    DirectClipWorkerStats, PoseBlendError, PoseBuffer, PoseBufferError, PoseLayer,
+    PoseLayerBlendMode, PosePool, SkeletonTargetTable, MAX_DIRECT_CLIP_WORKER_SHARDS,
 };
 pub use gpu_skinning::{
     AnimationGpuSkinningDecision, SkinningPalette, SkinningPaletteDoubleBuffer,
     SkinningPaletteError, MAX_SKIN_JOINTS,
 };
-pub use ik::{
-    AnimationIkDiagnostic, AnimationIkError, AnimationIkExecutionError, LookAtJob, TwoBoneIkJob,
-    TwoBoneIkSolution,
-};
+pub use ik::{AnimationIkError, LookAtJob, TwoBoneIkJob, TwoBoneIkSolution};
 pub use manager::DefaultAnimationManager;
 pub use mask::{AvatarMaskAsset, AvatarMaskError, AvatarMaskRule, MaskWeights};
 pub use module::{
@@ -47,17 +45,16 @@ pub use plugin::{
 pub use runtime_system::{
     register_runtime_system, AnimationRuntimeSystem, ANIMATION_CLIP_EVENT,
     ANIMATION_CLIP_EVENT_SCHEMA, ANIMATION_EVALUATE_SYSTEM, ANIMATION_EVALUATION_DIAGNOSTIC_EVENT,
-    ANIMATION_EVALUATION_DIAGNOSTIC_SCHEMA, ANIMATION_IK_DIAGNOSTIC_EVENT,
-    ANIMATION_IK_DIAGNOSTIC_SCHEMA, ANIMATION_LAYER_DIAGNOSTIC_EVENT,
+    ANIMATION_EVALUATION_DIAGNOSTIC_SCHEMA, ANIMATION_LAYER_DIAGNOSTIC_EVENT,
     ANIMATION_LAYER_DIAGNOSTIC_SCHEMA, ANIMATION_SYSTEM_SET,
 };
 pub use state_machine::{
-    AnimationStateMachineCompileError, BlendSpace1D, BlendSpace2D, BlendSpaceCompileError,
-    BlendSpacePoint1D, BlendSpacePoint2D, BlendSpaceWeights2, BlendSpaceWeights3,
-    CompiledAnimationStateMachine, CompiledConditionExpression, CompiledStateMachineEvaluation,
-    CompiledStateMachineLayer, CompiledStateMachineLayers, ConditionExpression,
-    ConditionExpressionCompileError, InterruptionPolicy, StateMachineLayerCompileError,
-    TransitionDesc, TransitionRequest, TransitionRuntime, TransitionState, TransitionWeights,
+    compile_animation_state_machine_layers_runtime, compile_animation_state_machine_runtime,
+    AnimationStateMachineCompileError, BlendSpaceCompileError, CompiledAnimationStateMachine,
+    CompiledConditionExpression, CompiledStateMachineEvaluation, CompiledStateMachineLayer,
+    CompiledStateMachineLayers, ConditionExpression, ConditionExpressionCompileError,
+    InterruptionPolicy, StateMachineLayerCompileError, TransitionDesc, TransitionRequest,
+    TransitionRuntime, TransitionState, TransitionWeights,
 };
 pub use zircon_runtime::animation::{
     apply_compiled_sequence_to_world, compile_sequence_for_world, CompiledAnimationSequence,

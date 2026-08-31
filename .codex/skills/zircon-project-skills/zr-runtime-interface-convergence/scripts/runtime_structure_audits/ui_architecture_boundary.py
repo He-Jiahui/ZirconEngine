@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 EXPECTED_UI_ENTRY_COUNT = 20
-EXPECTED_SURFACE_ENTRY_COUNT = 26
+EXPECTED_SURFACE_ENTRY_COUNT = 44
 EXPECTED_LEGACY_FULL_HITS = 70
 EXPECTED_LEGACY_PRODUCTION_HITS = 0
 EXPECTED_LEGACY_PRODUCTION_FILE_COUNT = 0
@@ -91,31 +91,49 @@ EXPECTED_UI_ENTRIES = (
 
 EXPECTED_SURFACE_ENTRIES = (
     "arranged.rs",
+    "arranged_visibility.rs",
+    "binding_targets.rs",
+    "binding_transaction.rs",
+    "clipboard_transfers.rs",
     "component_state.rs",
     "control_index.rs",
     "diagnostics.rs",
     "ecs_projection.rs",
     "focus",
     "focus.rs",
+    "frame_hit_test",
     "frame_hit_test.rs",
     "input",
     "interaction_gate.rs",
+    "invalidation",
     "invalidation.rs",
     "mod.rs",
+    "mutation_snapshot.rs",
     "navigation",
+    "navigation_index",
+    "navigation_index.rs",
     "node_pool.rs",
     "pointer",
     "popup_stack.rs",
     "property_mutation",
     "property_mutation.rs",
+    "reflection_snapshot",
     "reflection_snapshot.rs",
     "render",
+    "secure_text_values.rs",
+    "session_identity.rs",
     "slots.rs",
     "surface",
     "surface.rs",
+    "text_artifact",
+    "text_artifact.rs",
     "text_geometry.rs",
     "text_shape.rs",
+    "timeline",
     "timeline.rs",
+    "virtual_list_materialization",
+    "virtual_list_materialization.rs",
+    "virtual_list_prototype_pool.rs",
 )
 
 RUNTIME_V2_ANCHORS = (
@@ -211,7 +229,7 @@ RUNTIME_09_DOC_ANCHORS = (
     "compute_taffy_child_frames",
     "UiScrollVirtualizationPlan",
     "plan_scrollable_virtual_window",
-    "virtualized_list_only_materializes_visible_window",
+    "retained_virtual_list_only_arranges_visible_window",
     "scroll_offset_invalidates_virtualization_window",
     "non_virtualized_scroll_offset_keeps_full_window_dirty_domain",
     "UI_TEMPLATE_RUNTIME_PIPELINE_STAGES",
@@ -219,8 +237,8 @@ RUNTIME_09_DOC_ANCHORS = (
     "UiTemplateRuntimePipelineError",
     "template_validate_rejects_unknown_component_contract",
     "template_instance_failure_surfaces_loader_error",
-    "runtime_09_m3_1_binary_leaf_dto_artifact_not_generated_source",
-    "compiled_template_artifact_stays_binary_leaf_dto_not_generated_source",
+    "runtime_09_m3_1_toml_envelope_leaf_dto_not_generated_source",
+    "compiled_template_artifact_stays_toml_envelope_leaf_dto_not_generated_source",
     "// @generated <generator> - do not edit by hand",
     "v2-replacement-mainline",
     "ui_legacy_hits=70",

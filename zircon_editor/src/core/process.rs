@@ -76,6 +76,7 @@ impl ProcessTreeLease {
         let tree = Self::attach(child, label)?;
         #[cfg(windows)]
         if let Err(source) = windows_job::resume_initial_thread(child.id()) {
+            let mut tree = tree;
             let _ = tree.terminate(label);
             return Err(ProcessTreeTerminationError::TreeStart {
                 label: label.to_string(),
@@ -106,7 +107,7 @@ impl ProcessTreeLease {
         }
     }
 
-    pub(crate) fn terminate(self, label: &str) -> ProcessTreeTermination {
+    pub(crate) fn terminate(&mut self, label: &str) -> ProcessTreeTermination {
         #[cfg(windows)]
         {
             return match self.job.terminate() {
@@ -468,27 +469,27 @@ mod windows_job {
             Ok(job)
         }
 
-        pub(super) fn terminate(mut self) -> io::Result<()> {
-            let terminated = unsafe { TerminateJobObject(self.handle, 1) } != 0;
-            let terminate_error = (!terminated).then(io::Error::last_os_error);
-            let close_result = self.close();
-            if terminated || close_result.is_ok() {
-                Ok(())
-            } else {
-                Err(terminate_error.unwrap_or_else(|| {
-                    close_result.expect_err("failed process-job close must retain its error")
-                }))
+        pub(super) fn terminate(&mut self) -> io::Result<()> {
+            if self.handle.is_null() {
+                return Ok(());
             }
+            let terminated = unsafe { TerminateJobObject(self.handle, 1) } != 0;
+            if !terminated {
+                return Err(io::Error::last_os_error());
+            }
+            // The tree is already terminal. A later Drop retries the handle close if this fails.
+            let _ = self.close();
+            Ok(())
         }
 
         fn close(&mut self) -> io::Result<()> {
             if self.handle.is_null() {
                 return Ok(());
             }
-            let handle = mem::replace(&mut self.handle, ptr::null_mut());
-            if unsafe { CloseHandle(handle) } == 0 {
+            if unsafe { CloseHandle(self.handle) } == 0 {
                 return Err(io::Error::last_os_error());
             }
+            self.handle = ptr::null_mut();
             Ok(())
         }
     }
@@ -590,6 +591,14 @@ mod tests {
         assert!(source.contains("previous_suspend_count == 1"));
     }
 
+    #[test]
+    fn persistent_tree_termination_keeps_the_lease_retryable_after_a_failure() {
+        let source = include_str!("process.rs");
+
+        assert!(source.contains("pub(crate) fn terminate(&mut self, label: &str)"));
+        assert!(source.contains("pub(super) fn terminate(&mut self) -> io::Result<()>"));
+    }
+
     #[cfg(windows)]
     #[test]
     fn suspended_windows_child_runs_only_after_job_attachment_and_can_be_tree_terminated() {
@@ -622,7 +631,7 @@ mod tests {
             !marker.exists(),
             "the suspended child must not run before the process-job attachment"
         );
-        let tree = ProcessTreeLease::attach_and_start(&child, "process-tree fixture")
+        let mut tree = ProcessTreeLease::attach_and_start(&child, "process-tree fixture")
             .expect("fixture child should attach to its persistent process job");
         let deadline = Instant::now() + Duration::from_secs(2);
         while !marker.exists() && Instant::now() < deadline {

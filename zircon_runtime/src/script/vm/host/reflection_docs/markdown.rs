@@ -209,14 +209,32 @@ fn render_capabilities(
         return;
     }
 
-    let mut capabilities = capabilities.iter().collect::<Vec<_>>();
+    let mut capabilities = capabilities.iter().map(String::as_str).collect::<Vec<_>>();
     capabilities.sort();
-    let capabilities = capabilities
-        .into_iter()
-        .map(|capability| format!("`{capability}`"))
-        .collect::<Vec<_>>()
-        .join(", ");
-    push_line(output, &format!("{label}{capabilities}"));
+    push_capability_line(output, label, &capabilities);
+}
+
+fn push_capability_line(output: &mut String, label: &str, capabilities: &[&str]) {
+    output.reserve(capability_line_capacity(label, capabilities));
+    output.push_str(label);
+    for (index, capability) in capabilities.iter().enumerate() {
+        if index > 0 {
+            output.push_str(", ");
+        }
+        output.push('`');
+        output.push_str(capability);
+        output.push('`');
+    }
+    output.push('\n');
+}
+
+fn capability_line_capacity(label: &str, capabilities: &[&str]) -> usize {
+    capabilities
+        .iter()
+        .fold(label.len().saturating_add(1), |capacity, capability| {
+            capacity.saturating_add(capability.len()).saturating_add(2)
+        })
+        .saturating_add(capabilities.len().saturating_sub(1).saturating_mul(2))
 }
 
 fn render_named_type_ref(
@@ -289,3 +307,7 @@ fn push_line(output: &mut String, line: &str) {
     output.push_str(line);
     output.push('\n');
 }
+
+#[cfg(test)]
+#[path = "markdown/capacity_tests.rs"]
+mod capacity_tests;

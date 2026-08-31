@@ -119,6 +119,12 @@ impl TaaResolveBindGroupCache {
         }
         self.frame_target = Some(frame_target);
         self.history_pair = Some(history_pair);
+        if let Some(entry) = self.entries.back().filter(|entry| entry.key == key) {
+            return PreparedTaaResolveBindGroup {
+                bind_group: entry.bind_group.clone(),
+                created: false,
+            };
+        }
         if let Some(index) = self.entries.iter().position(|entry| entry.key == key) {
             let entry = self
                 .entries
@@ -208,8 +214,11 @@ pub(crate) fn create_bind_group(
 }
 
 #[cfg(test)]
+mod mru_tests;
+
+#[cfg(test)]
 mod tests {
-    use super::{TaaResolveBindGroupKey, MAX_TAA_RESOLVE_BIND_GROUPS};
+    use super::{MAX_TAA_RESOLVE_BIND_GROUPS, TaaResolveBindGroupKey};
     use crate::graphics::resource_identity::SampledTextureIdentity;
 
     #[test]

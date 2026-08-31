@@ -156,7 +156,7 @@ fn componentized_workbench_module_command_feedback_paints_native_preview_pixels(
             .expect("ability output row projection after command")
             .value_text
             .as_deref(),
-        Some("Playtest queued   predicted activation   GA_DashAttack")
+        Some("Playtest queued   activation phase   GA_DashAttack")
     );
 
     let pixels = paint_runtime_render_commands_for_test(

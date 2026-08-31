@@ -4,8 +4,6 @@ use super::{assert_contains_all, read_runtime_src};
 fn runtime_15_native_bitmap_atlas_skips_steady_upload_plan_work() {
     let atlas_frame = read_runtime_src("text/native_bitmap_atlas.rs");
     let renderer = read_runtime_src("graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs");
-    let prepare_report =
-        read_runtime_src("graphics/scene/scene_renderer/ui/atlas_renderer/prepare_report.rs");
     let renderer_state =
         read_runtime_src("graphics/scene/scene_renderer/ui/atlas_renderer/state.rs");
     let instance_buffer =
@@ -60,9 +58,11 @@ fn runtime_15_native_bitmap_atlas_skips_steady_upload_plan_work() {
             "glyph_atlas_bitmap_renderer_instance_buffer_write_required(",
             "blake3::hash(instance_bytes)",
             "draw_pass.instance_buffer_payload_hash = Some(payload_hash);",
-            "queue.write_buffer(instance_buffer, 0, instance_bytes);",
+            "uploads.push(WgpuBufferUpload::from_bytes(",
+            "force_full_upload: bool",
         ],
     );
+    assert!(!instance_buffer.contains("queue.write_buffer("));
     assert!(
         !instance_buffer.contains("&& let"),
         "native bitmap atlas instance-buffer code must remain compatible with the Rust 2021 workspace edition"
@@ -76,22 +76,24 @@ fn runtime_15_native_bitmap_atlas_skips_steady_upload_plan_work() {
         ],
     );
     assert_contains_all(
-        "native bitmap atlas mixed storage avoids stable source vectors",
+        "native bitmap atlas mixed storage uses one canonical frame submission",
         &text,
         &[
-            "fn native_bitmap_atlas_renderer_storage_submissions<'a>(",
-            "(!submission.submission.upload_commands().is_empty())",
-            ".then(|| submission.source_bytes())",
-            ".unwrap_or_default();",
+            "NativeBitmapAtlasHandoff::SingleStorageReplacement",
+            "| NativeBitmapAtlasHandoff::MixedStorageReplacement",
+            "prepare_native_bitmap_atlas_frame_submission(",
+            "&bitmap_frame.submission",
+            "bitmap_frame.source_bytes()",
         ],
     );
     assert_contains_all(
-        "native bitmap atlas report aggregation remains a focused child owner",
-        &prepare_report,
+        "native bitmap atlas renderer binds format resources in painter order",
+        &renderer,
         &[
-            "pub(super) fn glyph_atlas_bitmap_renderer_prepare_report_for_storage_passes(",
-            "upload_plan_build_count",
-            "upload_plan_skip_count",
+            "glyph_atlas_bitmap_renderer_submission_atlas_requirements(",
+            "write_glyph_atlas_bitmap_texture_upload_frame_plan_for_resources(",
+            "for command in &draw_pass.draw_commands",
+            "command.key.page_key.format",
         ],
     );
     assert_contains_all(
@@ -108,10 +110,6 @@ fn runtime_15_native_bitmap_atlas_skips_steady_upload_plan_work() {
         (
             "scene_renderer/ui/atlas_renderer/renderer.rs",
             renderer.as_str(),
-        ),
-        (
-            "scene_renderer/ui/atlas_renderer/prepare_report.rs",
-            prepare_report.as_str(),
         ),
         ("scene_renderer/ui/text.rs", text.as_str()),
     ] {

@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use zircon_runtime::builtin::{
-    runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports,
-    RuntimeModuleLoadDiagnostic,
-};
+use zircon_runtime::builtin::runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports;
 use zircon_runtime::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
 use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
@@ -22,25 +19,19 @@ pub(super) fn resolve_builtin_plugin_group(
     features: impl IntoIterator<Item = BuiltinPluginGroupFeature>,
 ) -> Result<PluginGroupBuilder, PluginGroupError> {
     let manifest = ProjectPluginManifest::default();
-    let report = runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports(
-        profile_id,
-        &manifest,
-        std::iter::empty::<&RuntimePluginRegistrationReport>(),
-    );
-    if let Some(error) = report.diagnostics().iter().find_map(|diagnostic| {
-        if let RuntimeModuleLoadDiagnostic::Core(error) = diagnostic {
-            Some(error)
-        } else {
-            None
-        }
-    }) {
-        return Err(PluginGroupError::ModuleOrder {
+    let composition =
+        runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports(
+            profile_id,
+            &manifest,
+            std::iter::empty::<&RuntimePluginRegistrationReport>(),
+        )
+        .map_err(|rejection| PluginGroupError::ModuleOrder {
             group: group_name.to_owned(),
-            reason: error.to_string(),
-        });
-    }
+            reason: rejection.to_string(),
+        })?;
 
-    let mut builder = PluginGroupBuilder::from_modules(group_name, report.modules)?;
+    let mut builder =
+        PluginGroupBuilder::from_modules(group_name, composition.modules().iter().cloned())?;
     for feature in features {
         if let Some(module) = feature.resolve_module() {
             builder = builder.add_module(module)?;

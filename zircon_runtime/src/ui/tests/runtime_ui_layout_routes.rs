@@ -370,7 +370,10 @@ fn runtime_ui_manager_window_pump_batch_reports_failing_index() {
 fn assert_route_report_exported(surface: &crate::ui::surface::UiSurface) {
     assert_route_report_counts_and_reasons(surface);
     let frame = surface.surface_frame();
-    assert_eq!(frame.layout_engine_report, surface.layout_engine_report);
+    assert_eq!(
+        frame.layout_engine_report.as_ref(),
+        &surface.layout_engine_report,
+    );
     let snapshot = surface.debug_snapshot();
     assert_eq!(
         snapshot.layout_engine_report,
@@ -533,7 +536,8 @@ fn assert_public_runtime_frame_uses_surface_render_extract(manager: &RuntimeUiMa
         .expect("runtime public frame should carry the surface UI extract");
 
     assert_eq!(
-        ui, &surface_frame.render_extract,
+        ui,
+        &surface_frame.render_extract.to_extract(),
         "public runtime frame UI extract drifted from UiSurfaceFrame"
     );
     assert_eq!(
@@ -589,14 +593,11 @@ fn assert_pointer_route_authority(manager: &mut RuntimeUiManager, control_id: &s
     assert_eq!(surface.hit_test(point), frame_hit);
     assert_eq!(frame_hit.top_hit, Some(node_id));
     assert_eq!(frame_hit.path.target, Some(node_id));
-    assert_eq!(frame_hit.path.bubble_route.first().copied(), Some(node_id));
+    assert_eq!(frame_hit.path.bubble_route().next(), Some(node_id));
 
     manager.register_pointer_handler(node_id, UiPointerEventKind::Down, move |context| {
         assert_eq!(context.route.hit_path.target, Some(node_id));
-        assert_eq!(
-            context.route.hit_path.bubble_route.first().copied(),
-            Some(node_id)
-        );
+        assert_eq!(context.route.hit_path.bubble_route().next(), Some(node_id));
         UiPointerDispatchEffect::handled()
     });
 

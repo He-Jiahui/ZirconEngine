@@ -42,14 +42,15 @@ fn focused_warning_alert_keeps_tone_border_without_active_focus_ring() {
 }
 
 #[test]
-fn pressed_warning_alert_still_uses_active_focus_ring_border() {
+fn pressed_warning_alert_preserves_its_status_tone_border() {
     let mut node = TemplatePaneNodeData::default();
     node.pressed = true;
 
     let style = select_workbench_alert_style(&node, WorkbenchAlertTone::Warning);
 
     assert_eq!(style.state, UiPainterResolvedState::Pressed);
-    assert_eq!(style.border, PALETTE.focus_ring);
+    assert_eq!(style.border, PALETTE.warning);
+    assert_ne!(style.border, PALETTE.focus_ring);
 }
 
 #[test]

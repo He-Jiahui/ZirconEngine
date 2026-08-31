@@ -23,7 +23,7 @@ pub(super) fn alert_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchA
 
     WorkbenchAlertMetrics {
         border_width: metrics.border_width,
-        radius: metrics.radius_control,
+        radius: metrics.radius_control + metrics.gap_s,
         font_size: metrics.font_body,
         line_height: metrics.line_height(metrics.font_body),
         icon_size: (metrics.row_height - metrics.gap_m - metrics.border_width * 2.0)
@@ -79,7 +79,7 @@ pub(super) fn toast_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchT
 
     WorkbenchToastMetrics {
         border_width: metrics.border_width,
-        radius: metrics.radius_control,
+        radius: metrics.radius_control + metrics.gap_s,
         font_size,
         line_height: metrics.line_height(font_size),
         icon_size,
@@ -105,6 +105,7 @@ mod tests {
         host.radius_control = 3.0;
         host.font_body = 12.5;
         host.line_height_ratio = 1.4;
+        host.gap_s = 5.0;
         host.gap_m = 9.0;
         host.gap_l = 14.0;
         host.row_height = 34.0;
@@ -112,7 +113,7 @@ mod tests {
         let alert = alert_metrics_from_host(host);
 
         assert_eq!(alert.border_width, 2.0);
-        assert_eq!(alert.radius, 3.0);
+        assert_eq!(alert.radius, 8.0);
         assert_eq!(alert.font_size, 12.5);
         assert!((alert.line_height - 17.5).abs() < f32::EPSILON);
         assert_eq!(alert.icon_size, 21.0);
@@ -137,7 +138,7 @@ mod tests {
         let toast = toast_metrics_from_host(host);
 
         assert_eq!(toast.border_width, 2.0);
-        assert_eq!(toast.radius, 3.0);
+        assert_eq!(toast.radius, 8.0);
         assert_eq!(toast.font_size, 11.0);
         assert!((toast.line_height - 14.3).abs() < f32::EPSILON);
         assert_eq!(toast.icon_size, 19.0);

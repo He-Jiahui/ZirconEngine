@@ -158,14 +158,14 @@ fn rust_owned_host_window_snapshot_respects_template_node_order_and_clip() {
         .expect("baseline order/clip snapshot should render");
 
     let mut with_nodes = baseline;
-    with_nodes.host_scene_data.document_dock.pane = pane_with_nodes(
+    with_nodes.host_scene_data.document_dock.pane = std::sync::Arc::new(pane_with_nodes(
         "Inspector",
         vec![
             disabled_template_node("BackPanel", "Panel", "Back", 10.0, 10.0, 58.0, 28.0),
             selected_template_node("FrontPanel", "Panel", "Front", 10.0, 10.0, 58.0, 28.0),
             primary_template_node("ClippedPanel", "Panel", "Clip", 100.0, 44.0, 80.0, 24.0),
         ],
-    );
+    ));
     ui.set_host_presentation(with_nodes);
     let snapshot = ui
         .window()

@@ -1,7 +1,9 @@
 use std::collections::BTreeSet;
+use std::hint::black_box;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Barrier, Condvar, Mutex};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use super::{
     EditorLogConfig, EditorLogError, EditorLogEventSink, EditorLogService, EditorLogStore,
@@ -200,6 +202,177 @@ fn byte_bounded_store_evicts_oldest_records_before_accepting_new_entries() {
 }
 
 #[test]
+fn record_lookup_tracks_the_retained_sequence_window_across_eviction_and_clear() {
+    let retained = entry("retained", LogSeverity::Info, LogSource::editor());
+    let entry_bytes = retained.estimated_bytes();
+    let store = EditorLogStore::new(EditorLogConfig::new(3, entry_bytes * 3).unwrap());
+
+    for _ in 0..5 {
+        store.push(retained.clone()).unwrap();
+    }
+
+    assert!(store.record(0).is_none());
+    assert!(store.record(1).is_none());
+    assert!(store.record(2).is_none());
+    for sequence in 3..=5 {
+        assert_eq!(store.record(sequence).unwrap().sequence(), sequence);
+    }
+    assert!(store.record(6).is_none());
+
+    assert_eq!(store.clear(), (3, Some(5)));
+    assert!(store.record(5).is_none());
+    assert_eq!(store.push(retained).unwrap().sequence(), 6);
+    assert_eq!(store.record(6).unwrap().sequence(), 6);
+}
+
+#[test]
+fn record_lookup_uses_the_retained_window_offset_instead_of_scanning() {
+    let source = include_str!("store.rs");
+    let lookup = source
+        .split("pub fn record(&self, sequence: u64)")
+        .nth(1)
+        .and_then(|source| source.split("pub(super) fn clear").next())
+        .expect("record lookup implementation");
+
+    assert!(lookup.contains("checked_sub"));
+    assert!(lookup.contains(".get(offset)"));
+    assert!(!lookup.contains(".iter()"));
+    assert!(!lookup.contains(".find("));
+}
+
+#[test]
+fn tail_snapshot_bounds_results_and_preserves_filtered_sequence_order() {
+    let store = EditorLogStore::new(EditorLogConfig::new(8, 4096).unwrap());
+    store
+        .push(entry("editor-info", LogSeverity::Info, LogSource::editor()))
+        .unwrap();
+    store
+        .push(entry(
+            "runtime-warning",
+            LogSeverity::Warning,
+            LogSource::runtime(),
+        ))
+        .unwrap();
+    store
+        .push(entry(
+            "editor-error",
+            LogSeverity::Error,
+            LogSource::editor(),
+        ))
+        .unwrap();
+    store
+        .push(entry(
+            "runtime-error",
+            LogSeverity::Error,
+            LogSource::runtime(),
+        ))
+        .unwrap();
+
+    let runtime_filter =
+        LogFilter::new(BTreeSet::from([LogChannel::Runtime]), LogSeverity::Warning);
+    let records = store.snapshot_tail(&runtime_filter, 2);
+
+    assert_eq!(
+        records
+            .iter()
+            .map(|record| record.entry().message())
+            .collect::<Vec<_>>(),
+        ["runtime-warning", "runtime-error"]
+    );
+    assert!(store.snapshot_tail(&runtime_filter, 0).is_empty());
+    assert_eq!(store.snapshot_tail(&LogFilter::default(), 2).len(), 2);
+}
+
+#[test]
+#[ignore = "managed Editor11 performance evidence"]
+fn editor11_log_sequence_direct_index_evidence() {
+    const RETAINED_RECORDS: usize = 1_000_000;
+    const LOOKUPS: usize = 100_000;
+    const MAX_LOOKUP_LATENCY: Duration = Duration::from_millis(500);
+
+    let retained = entry("lookup-evidence", LogSeverity::Info, LogSource::editor());
+    let entry_bytes = retained.estimated_bytes();
+    let store = EditorLogStore::new(
+        EditorLogConfig::new(RETAINED_RECORDS, entry_bytes * RETAINED_RECORDS).unwrap(),
+    );
+    for _ in 0..RETAINED_RECORDS {
+        store.push(retained.clone()).unwrap();
+    }
+
+    let target_sequence = RETAINED_RECORDS as u64;
+    let started = Instant::now();
+    for _ in 0..LOOKUPS {
+        let record = black_box(store.record(black_box(target_sequence))).unwrap();
+        black_box(record);
+    }
+    let elapsed = started.elapsed();
+
+    assert!(elapsed <= MAX_LOOKUP_LATENCY);
+    let comparisons_before = RETAINED_RECORDS as u64 * LOOKUPS as u64;
+    let index_probes_after = LOOKUPS as u64;
+    let probe_reduction_percent =
+        (1.0 - index_probes_after as f64 / comparisons_before as f64) * 100.0;
+    println!(
+        "EDITOR_LOG_BENCH_V1 kind=sequence_lookup retained_records={} lookups={} comparisons_before={} index_probes_after={} probe_reduction_percent={:.4} elapsed_ns={} target_ns={}",
+        RETAINED_RECORDS,
+        LOOKUPS,
+        comparisons_before,
+        index_probes_after,
+        probe_reduction_percent,
+        elapsed.as_nanos(),
+        MAX_LOOKUP_LATENCY.as_nanos(),
+    );
+}
+
+#[test]
+#[ignore = "managed Editor11 performance evidence"]
+fn editor11_log_tail_window_evidence() {
+    const RETAINED_RECORDS: usize = 100_000;
+    const WINDOW_RECORDS: usize = 256;
+    const SNAPSHOTS: usize = 1_000;
+    const MAX_TAIL_SNAPSHOT_LATENCY: Duration = Duration::from_secs(2);
+
+    let retained = entry(
+        "tail-window-evidence",
+        LogSeverity::Info,
+        LogSource::editor(),
+    );
+    let entry_bytes = retained.estimated_bytes();
+    let store = EditorLogStore::new(
+        EditorLogConfig::new(RETAINED_RECORDS, entry_bytes * RETAINED_RECORDS).unwrap(),
+    );
+    for _ in 0..RETAINED_RECORDS {
+        store.push(retained.clone()).unwrap();
+    }
+
+    let filter = LogFilter::default();
+    let started = Instant::now();
+    for _ in 0..SNAPSHOTS {
+        let records = store.snapshot_tail(black_box(&filter), black_box(WINDOW_RECORDS));
+        assert_eq!(records.len(), WINDOW_RECORDS);
+        black_box(records);
+    }
+    let elapsed = started.elapsed();
+
+    assert!(elapsed <= MAX_TAIL_SNAPSHOT_LATENCY);
+    let materialized_records_before = RETAINED_RECORDS as u64 * SNAPSHOTS as u64;
+    let materialized_records_after = WINDOW_RECORDS as u64 * SNAPSHOTS as u64;
+    let materialization_reduction_percent =
+        (1.0 - materialized_records_after as f64 / materialized_records_before as f64) * 100.0;
+    println!(
+        "EDITOR_LOG_TAIL_BENCH_V1 retained_records={} window_records={} snapshots={} materialized_records_before={} materialized_records_after={} materialization_reduction_percent={:.4} elapsed_ns={} target_ns={}",
+        RETAINED_RECORDS,
+        WINDOW_RECORDS,
+        SNAPSHOTS,
+        materialized_records_before,
+        materialized_records_after,
+        materialization_reduction_percent,
+        elapsed.as_nanos(),
+        MAX_TAIL_SNAPSHOT_LATENCY.as_nanos(),
+    );
+}
+
+#[test]
 fn event_dispatch_limits_cannot_exceed_the_authoritative_store_budget() {
     let config = EditorLogConfig::new(2, 128).unwrap();
 
@@ -307,26 +480,34 @@ fn rolling_sink_starts_a_new_segment_when_daily_file_is_full() {
 
     assert_ne!(first, second);
     assert_ne!(second, third);
-    assert!(first
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .contains("-0.log"));
-    assert!(second
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .contains("-1.log"));
-    assert!(third
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .contains("-2.log"));
-    assert!(next_day
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .contains("editor-20001-0.log"));
+    assert!(
+        first
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains("-0.log")
+    );
+    assert!(
+        second
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains("-1.log")
+    );
+    assert!(
+        third
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains("-2.log")
+    );
+    assert!(
+        next_day
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains("editor-20001-0.log")
+    );
     std::fs::remove_dir_all(directory).unwrap();
 }
 

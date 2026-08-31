@@ -1,7 +1,23 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/frame.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/scene_payload.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/shared_scene_domain.rs
   - zircon_runtime/src/core/framework/render/frame_extract/geometry.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/view.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/post_process.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/sprite_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/sprite_phase_input.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/particle.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/particle_extract_policy.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/particle_gpu_frame.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/visibility.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/visibility_renderable.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/lighting.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/debug_overlay.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/extract_context.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/world_snapshot_handle.rs
   - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/tests/virtual_geometry_debug_snapshot_contract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
@@ -48,7 +64,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -68,7 +84,21 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_frame_extract_geometry.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/frame.rs
   - zircon_runtime/src/core/framework/render/frame_extract/geometry.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/view.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/post_process.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/sprite_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/sprite_phase_input.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/particle.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/particle_extract_policy.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/particle_gpu_frame.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/visibility.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/visibility_renderable.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/lighting.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/debug_overlay.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/extract_context.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/world_snapshot_handle.rs
   - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/tests/virtual_geometry_debug_snapshot_contract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
@@ -196,8 +226,8 @@ tests:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_extracts_select_each_sequence_descriptor
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_primary_stack_terminal_only
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_base_when_no_primary_base_exists
-  - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_counts_previous_state_by_entity
-  - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_consumes_duplicate_entity_previous_state_once_per_row
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::particle_extract_counts_previous_state_by_entity
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::particle_extract_consumes_duplicate_entity_previous_state_once_per_row
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs::tests::particle_vertices_filter_sprites_by_selected_camera_layers
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs::tests::particle_velocity_vertices_filter_current_sprites_by_selected_camera_layers
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_skips_core_particle_pass_when_particle_sprites_miss_selected_camera_layers
@@ -214,7 +244,27 @@ doc_type: module-detail
 
 ## Purpose
 
-`RenderFrameExtract` is the neutral frame DTO submitted through `RenderFramework`. Scene and runtime producers fill it directly so graphics code can compile and execute render graph work without reading editor state or concrete world internals.
+`RenderFrameExtract` is the neutral frame DTO submitted through `RenderFramework`. Scene producers
+seal cacheable scene domains in `RenderFrameScenePayload`; the DTO combines one shared payload
+handle with owned timing and view state so graphics code can compile and execute render graph work
+without reading editor state or concrete world internals.
+
+## Shared Scene Contract
+
+`RenderFrameScenePayload` owns the generation-qualified world handle plus geometry, animation,
+authored lighting/environment/post-process inputs, debug data, sprites, particles, and visibility.
+Each large domain is a `RenderSharedSceneDomain<T>`: cloning a frame clones Arc handles, not scene
+vectors. If a submission still needs to derive one domain during the Runtime07 M2 transition,
+copy-on-write is isolated to that domain and unchanged domains retain pointer identity.
+
+`RenderFrameExtract` itself owns only `Arc<RenderFrameScenePayload>`, `RenderFrameTiming`, and
+`RenderViewExtract`. Editor-camera and timing changes are submission-local and do not mutate the
+cache-owned scene generation. World, level, snapshot, and synthetic producers use
+`RenderFrameScenePayload::new(...)` plus `RenderFrameExtract::new(...)`; direct struct literals are
+not a second construction authority. Renderer-derived environment hydration, particle history,
+effective post-process, budget, and view-family state are not authored scene facts and remain
+scheduled for migration into the renderer submission context rather than being normalized into the
+shared payload contract.
 
 ## View Size Contract
 
@@ -228,7 +278,7 @@ The size is derived from the selected descriptor's explicit viewport rectangle o
 
 Plan 09 CO-M4 now keeps visibility renderable layer input typed through the frame DTO. `VisibilityRenderableInput.render_layer_mask` is a `RenderLayerSet`; `RenderFrameExtract::from_snapshot(...)` clones the typed mesh snapshot layer set instead of projecting through `to_legacy_mask_lossy()`, and `render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width` locks layer 40 through the snapshot adapter. The 2026-06-23 status anchor is `render_plan09_visibility_renderable_input_layer_set_static_passed_cargo_lock_blocked_timeout_no_result`; its focused locked Cargo test timed out after 124 seconds with no test binary, while locked check was blocked before compilation by current `Cargo.lock` drift. The inline `frame_extract.rs` tests were moved to `frame_extract/tests.rs`, keeping the production owner below the large-file threshold.
 
-The 2026-06-24 Plan 09 frame extract geometry owner split moved mesh phase input, `GeometryExtract`, `StaticMeshBatchExtract`, static mesh batch keys, and static batching from `frame_extract.rs` into `frame_extract/geometry.rs`. The root now re-exports `GeometryExtract`, `GeometryPhaseInput`, and `StaticMeshBatchExtract` from the child owner, so existing `frame_extract::{...}` callers keep the same public path while the root stays at 682 lines and the geometry child owns 223 lines. `runtime_15_frame_extract_geometry_is_child_owner` guards the moved-owner boundary, line-budget ceiling, child mount, and documentation anchors. Status anchor: `render_plan09_frame_extract_geometry_owner_split_static_passed_cargo_deferred_active_compile_lane`; scoped static validation is recorded in Plan 09, while Cargo/WGPU/RenderDoc remain deferred because another cargo/rustc compile lane was active during validation.
+The 2026-06-24 Plan 09 frame extract geometry owner split moved mesh phase input, `GeometryExtract`, `StaticMeshBatchExtract`, static mesh batch keys, and static batching from `frame_extract.rs` into `frame_extract/geometry.rs`. The root re-exports `GeometryExtract`, `GeometryPhaseInput`, and `StaticMeshBatchExtract` from that child owner, so existing `frame_extract::{...}` callers keep the same public path. The later directory cutover makes `frame_extract.rs` a structural facade: `frame.rs` owns the neutral submission DTO and snapshot adapter, `scene_payload.rs` owns the immutable scene-generation aggregate, `shared_scene_domain.rs` owns independent Arc/COW domains, `view.rs` owns camera projection, `post_process.rs` owns post-process construction and resolution, and the particle, visibility, lighting, sprite, and base DTO owners remain separate leaves. `runtime_15_frame_extract_geometry_is_child_owner` continues to guard the geometry child mount and documentation anchors. Status anchor: `render_plan09_frame_extract_geometry_owner_split_static_passed_cargo_deferred_active_compile_lane`; the historical Plan 09 validation record remains unchanged, and current Cargo/WGPU/RenderDoc acceptance is still deferred.
 
 `RenderViewExtract::effective_view_size()` is the canonical read path for SRP and RenderGraph descriptor derivation. It clamps through the camera viewport when present and falls back to `1 x 1` only when the extract does not yet know a surface or headless target size.
 
@@ -276,7 +326,7 @@ During WGPU submit the report is copied into `FrameSubmissionContext` and projec
 
 `RenderPhaseQueue::summary()` returns `RenderPhaseQueueSummary` for an already-built queue. It records total item count, named `RenderPhaseQueueSummaryPhaseCount` rows in `RENDER_PHASES_BY_QUEUE_ORDER`, phase-order spans, and the first and last `RenderPhaseQueueOrderingKey` values. Each phase-count row carries phase, owned `diagnostic_name`, phase order, and item count, with `phase_count_row_for_phase(...)` as the direct lookup helper, while each span records the phases represented by that shared order bucket, its owned joined `diagnostic_name`, the sorted queue index range, and first/last ordering keys. `span_for_phase(...)` maps a concrete phase such as `Opaque3d` back to its shared phase-order bucket, and `span_for_queue_index(...)` maps a sorted queue item index back to the bucket range that contains it. `active_phase_counts()` and `active_phase_order_spans()` stream only rows whose queue counts are nonzero for compact diagnostics, while the stored vectors preserve zero-count rows for stable table layouts. `RenderPhaseQueueSummaryPhaseCount::diagnostic_name()` returns a borrowed view of the stored phase label, while `RenderPhaseQueueSummaryPhaseOrderSpan::diagnostic_name()` returns a borrowed view of the stored shared-bucket label, such as `opaque-2d+opaque-3d` or `transparent-2d+transparent-3d`. Serialized diagnostics can therefore display both per-phase rows and bucket groups without rescanning or resorting queue items. The queue summary and its child rows derive `Serialize`/`Deserialize`, and the serialized payload carries those owned `diagnostic_name` fields directly. `GeometryExtract::phase_queue_summary()` and `SpriteExtract::phase_queue_summary()` expose the same reporting view directly from frame DTOs by deriving it from the current sorted `phase_queue`; they do not cache a second copy of queue state.
 
-`RenderFrameExtract::phase_queue_summary()` returns `RenderFramePhaseQueueSummary`, whose DTOs and lookup helpers live in `frame_phase_queue_summary.rs` so `frame_extract.rs` remains focused on frame extraction data and adapters. The frame summary carries the mesh and sprite summaries side by side plus total, per-phase, and per-phase-order bucket counts across both queues. The frame summary preserves the full child queue bounds through geometry and sprite first/last ordering keys, so diagnostics can inspect the top-level mesh and sprite ordering ranges before drilling into individual buckets. Its `phase_counts` table is ordered by `RENDER_PHASES_BY_QUEUE_ORDER`; each `RenderFramePhaseQueueSummaryPhaseCount` row records the phase, owned `diagnostic_name`, phase order, geometry count, sprite count, and combined total, with `phase_count_row_for_phase(...)` as the direct lookup helper and a borrowed `diagnostic_name()` label accessor. Its `phase_order_spans` table records one `RenderFramePhaseQueueSummaryPhaseOrderSpan` per shared phase-order bucket, including the represented phases plus an owned joined `diagnostic_name`, geometry, sprite, and total counts, and the span exposes the same borrowed stored `diagnostic_name()` label as the child queue summary. `active_phase_counts()` and `active_phase_order_spans()` provide compact nonzero frame rows for editor panels, runtime logs, and future RenderDoc label exporters without losing the stable full-table vectors. Each frame bucket also preserves the child queue evidence for that bucket: mesh and sprite start index, exclusive end index, first ordering key, and last ordering key. `phase_order_span_for_phase_order(...)`, `phase_order_span_for_phase(...)`, `phase_order_span_for_geometry_queue_index(...)`, and `phase_order_span_for_sprite_queue_index(...)` let diagnostics jump directly to buckets such as opaque 2D/3D or transparent 2D/3D without recomputing bucket membership or rescanning child queues. The frame summary and its child rows derive `Serialize`/`Deserialize`, matching the child `RenderPhaseQueueSummary` payloads so runtime diagnostics, editor panels, and future RenderDoc label exporters can persist exactly the same bucket evidence they inspect in memory. This is intentionally a reporting view over the sorted queues, not a second grouping or ordering path.
+`RenderFrameExtract::phase_queue_summary()` returns `RenderFramePhaseQueueSummary`, whose DTOs and lookup helpers live in `frame_phase_queue_summary.rs`, while the frame DTO and adapter live in `frame_extract/frame.rs` behind the `frame_extract.rs` facade. The frame summary carries the mesh and sprite summaries side by side plus total, per-phase, and per-phase-order bucket counts across both queues. The frame summary preserves the full child queue bounds through geometry and sprite first/last ordering keys, so diagnostics can inspect the top-level mesh and sprite ordering ranges before drilling into individual buckets. Its `phase_counts` table is ordered by `RENDER_PHASES_BY_QUEUE_ORDER`; each `RenderFramePhaseQueueSummaryPhaseCount` row records the phase, owned `diagnostic_name`, phase order, geometry count, sprite count, and combined total, with `phase_count_row_for_phase(...)` as the direct lookup helper and a borrowed `diagnostic_name()` label accessor. Its `phase_order_spans` table records one `RenderFramePhaseQueueSummaryPhaseOrderSpan` per shared phase-order bucket, including the represented phases plus an owned joined `diagnostic_name`, geometry, sprite, and total counts, and the span exposes the same borrowed stored `diagnostic_name()` label as the child queue summary. `active_phase_counts()` and `active_phase_order_spans()` provide compact nonzero frame rows for editor panels, runtime logs, and future RenderDoc label exporters without losing the stable full-table vectors. Each frame bucket also preserves the child queue evidence for that bucket: mesh and sprite start index, exclusive end index, first ordering key, and last ordering key. `phase_order_span_for_phase_order(...)`, `phase_order_span_for_phase(...)`, `phase_order_span_for_geometry_queue_index(...)`, and `phase_order_span_for_sprite_queue_index(...)` let diagnostics jump directly to buckets such as opaque 2D/3D or transparent 2D/3D without recomputing bucket membership or rescanning child queues. The frame summary and its child rows derive `Serialize`/`Deserialize`, matching the child `RenderPhaseQueueSummary` payloads so runtime diagnostics, editor panels, and future RenderDoc label exporters can persist exactly the same bucket evidence they inspect in memory. This is intentionally a reporting view over the sorted queues, not a second grouping or ordering path.
 
 `RenderPhaseSortKey` now exposes `RenderPhaseSortComponents` as the shared ordering input for 3D, 2D, UI, overlay, and debug draw records. The packed order is render queue, material queue, order in layer, UI z-index, depth or reverse depth for transparent phases, then entity tie-breaker.
 

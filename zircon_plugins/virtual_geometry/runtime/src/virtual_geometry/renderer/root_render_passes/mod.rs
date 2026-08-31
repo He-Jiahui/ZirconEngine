@@ -1,3 +1,4 @@
+mod packed_words;
 mod virtual_geometry_executed_cluster_selection_pass;
 mod virtual_geometry_hardware_rasterization_pass;
 mod virtual_geometry_indirect_stats;

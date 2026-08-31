@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Mapping
 
 
-GPU_TIMING_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_gpu_timing_evidence_v2"
+GPU_TIMING_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_gpu_timing_evidence_v3"
 GPU_TIMING_WARMUP_SAMPLE_COUNT = 5
 GPU_TIMING_MEASURED_SAMPLE_COUNT = 31
 REQUIRED_HDRI_DIRECT_GPU_PASSES = (
@@ -42,6 +42,9 @@ _SAMPLE_STANDARD_PATTERN = re.compile(
 _SAMPLE_PASS_PATTERN = re.compile(
     r"sample\.([0-9]{3})\.pass\.([a-z][a-z0-9_]*)_us\Z"
 )
+_SAMPLE_MESH_SUBMISSION_PATTERN = re.compile(
+    r"sample\.([0-9]{3})\.mesh\.([a-z][a-z0-9_]*)\Z"
+)
 _SHA256_HEXDIGEST_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
 _MAX_U32 = (1 << 32) - 1
 _MAX_U64 = (1 << 64) - 1
@@ -66,6 +69,13 @@ _MEASURED_STANDARD_FIELDS = frozenset(
         "pass_coverage",
     }
 )
+_MESH_SUBMISSION_FIELDS = (
+    "opaque_command_count",
+    "advanced_pbr_opaque_command_count",
+    "cached_command_hit_count",
+    "command_rebuild_count",
+    "dynamic_command_count",
+)
 
 
 @dataclass(frozen=True)
@@ -88,6 +98,7 @@ class GpuTimingEvidence:
     timestamp_frequency_hz: float
     total_distribution: GpuTimingDistribution
     pass_distributions: Mapping[str, GpuTimingDistribution]
+    mesh_submission: Mapping[str, int]
 
     @property
     def pass_median_gpu_time_us(self) -> Mapping[str, int]:
@@ -163,7 +174,7 @@ def validate_gpu_timing_evidence(
     )
     pass_names = _read_pass_coverage(fields, path)
     _require_exact_distribution_fields(fields, pass_names, path)
-    sample_generations, total_samples, pass_samples = _read_samples(
+    sample_generations, total_samples, pass_samples, mesh_samples = _read_samples(
         fields, pass_names, path
     )
     if sample_generations != list(range(first_measured, last_measured + 1)):
@@ -188,6 +199,7 @@ def validate_gpu_timing_evidence(
         timestamp_frequency_hz,
         total_distribution,
         pass_distributions,
+        mesh_samples,
     )
 
 
@@ -200,6 +212,7 @@ def _require_measured_fields(fields: Mapping[str, str], path: Path) -> None:
         and _TOTAL_AGGREGATE_PATTERN.fullmatch(field) is None
         and _SAMPLE_STANDARD_PATTERN.fullmatch(field) is None
         and _SAMPLE_PASS_PATTERN.fullmatch(field) is None
+        and _SAMPLE_MESH_SUBMISSION_PATTERN.fullmatch(field) is None
     )
     if unexpected_fields:
         raise RuntimeError(
@@ -299,6 +312,9 @@ def _require_exact_distribution_fields(
         expected_fields.update(
             f"{prefix}.pass.{pass_name}_us" for pass_name in pass_names
         )
+        expected_fields.update(
+            f"{prefix}.mesh.{field_name}" for field_name in _MESH_SUBMISSION_FIELDS
+        )
 
     actual_fields = set(fields)
     if actual_fields != expected_fields:
@@ -312,10 +328,11 @@ def _require_exact_distribution_fields(
 
 def _read_samples(
     fields: Mapping[str, str], pass_names: tuple[str, ...], path: Path
-) -> tuple[list[int], list[int], dict[str, list[int]]]:
+) -> tuple[list[int], list[int], dict[str, list[int]], dict[str, int]]:
     generations: list[int] = []
     totals: list[int] = []
     pass_samples = {pass_name: [] for pass_name in pass_names}
+    mesh_submission: dict[str, int] | None = None
     for index in range(GPU_TIMING_MEASURED_SAMPLE_COUNT):
         prefix = f"sample.{index:03}"
         generation = _require_positive_u64(fields, f"{prefix}.frame_generation", path)
@@ -331,9 +348,22 @@ def _read_samples(
             raise RuntimeError(
                 f"GPU timing sample total does not match its pass samples: index={index} path={path}"
             )
+        sample_mesh_submission = {
+            field_name: _require_non_negative_integer(
+                fields, f"{prefix}.mesh.{field_name}", path, _MAX_U32
+            )
+            for field_name in _MESH_SUBMISSION_FIELDS
+        }
+        if mesh_submission is None:
+            mesh_submission = sample_mesh_submission
+        elif mesh_submission != sample_mesh_submission:
+            raise RuntimeError(
+                "GPU timing mesh submission changed during measured distribution: "
+                f"index={index} path={path}"
+            )
         generations.append(generation)
         totals.append(total)
-    return generations, totals, pass_samples
+    return generations, totals, pass_samples, mesh_submission or {}
 
 
 def _validated_distribution(
@@ -484,6 +514,7 @@ def main() -> int:
                 "gpu_timing_report": str(evidence.report_path),
                 "last_measured_frame_generation": evidence.last_measured_frame_generation,
                 "measured_sample_count": evidence.measured_sample_count,
+                "mesh_submission": dict(evidence.mesh_submission),
                 "pass_distributions_us": {
                     pass_name: {
                         "max": distribution.max_us,

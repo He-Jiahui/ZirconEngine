@@ -1,7 +1,7 @@
 use super::*;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
-use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime_interface::hub_protocol::HubSessionToken;
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn new(
@@ -9,7 +9,7 @@ impl RetainedEditorHost {
         runtime_gateway: SharedEditorRuntimeGateway,
         ui: UiHostWindow,
         startup_request: Option<EditorGuiStartupRequest>,
-        prepared_project: Option<ProjectManager>,
+        project_runtime_build_set: Option<ZrRuntimeBuildSetId>,
         hub_launch_session: Option<HubSessionToken>,
     ) -> Result<Self, Box<dyn Error>> {
         zircon_runtime::profile_scope!("editor", "retained_host", "new");
@@ -24,7 +24,7 @@ impl RetainedEditorHost {
             ui,
             viewport,
             startup_request,
-            prepared_project,
+            project_runtime_build_set,
             hub_launch_session,
         )
     }

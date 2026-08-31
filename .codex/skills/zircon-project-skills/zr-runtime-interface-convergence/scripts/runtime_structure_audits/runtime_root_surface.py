@@ -47,9 +47,17 @@ ROOT_MODULE_DECISIONS: dict[str, tuple[str, str]] = {
         "runtime-module-entry",
         "Runtime 14 keeps navigation as the built-in fallback runtime module family root",
     ),
+    "operation": (
+        "runtime-module-entry",
+        "runtime-owned operation registry and task lifecycle surface consumed by module families",
+    ),
     "platform": ("runtime-module-entry", "absorbed runtime platform module entry"),
     "scene": ("runtime-module-entry", "absorbed runtime scene/world/ECS module entry"),
     "script": ("runtime-module-entry", "absorbed runtime script/VM module entry"),
+    "text": (
+        "runtime-module-entry",
+        "shared runtime text services and public typography contract surface",
+    ),
     "ui": ("runtime-module-entry", "absorbed runtime UI module entry"),
     "graphics": (
         "graphics-rhi-deferred",

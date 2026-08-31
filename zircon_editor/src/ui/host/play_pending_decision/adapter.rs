@@ -3,20 +3,21 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use crate::core::i18n::EditorI18nService;
 use crate::core::notifications::{
-    present_decision, DecisionNotification, DecisionNotificationCenter, DecisionNotificationError,
-    DecisionOption, DecisionOptionId, DecisionReceiptCursor, DecisionReceiptSequence,
-    DecisionResolveReport, DecisionTicket, NotificationId, NotificationSource,
+    DecisionNotification, DecisionNotificationCenter, DecisionNotificationError, DecisionOption,
+    DecisionOptionId, DecisionReceiptCursor, DecisionReceiptSequence, DecisionTicket,
+    NotificationId, NotificationSource,
 };
 use crate::core::play::PendingEditDecisionPrompt;
 
 use super::{
-    PlayPendingDecisionOption, PlayPendingDecisionSelection, PlayPendingEditDecisionOutcome,
-    PLAY_PENDING_EDITS_APPLY_OPTION, PLAY_PENDING_EDITS_DISCARD_OPTION,
+    PlayPendingDecisionPublishError, PlayPendingDecisionReceiptDispatchError,
+    PlayPendingDecisionReceiptRecoveryError, PlayPendingDecisionSelection,
+    PlayPendingEditDecisionOutcome, PLAY_PENDING_EDITS_APPLY_OPTION,
+    PLAY_PENDING_EDITS_DISCARD_OPTION,
 };
 
-// Keep selection mappings for the same bounded horizon as core receipt replay.
+// Retain owned ticket identities for the same bounded horizon as core receipt replay.
 const MAX_RETAINED_DECISIONS: usize = 256;
 const PLAY_PENDING_EDITS_NOTIFICATION_PREFIX: &str = "editor.play.pending_edits";
 
@@ -42,7 +43,6 @@ struct PlayPendingEditDecisionState {
 #[derive(Clone)]
 struct TrackedPlayDecision {
     ticket: DecisionTicket,
-    selections: BTreeMap<DecisionOptionId, String>,
 }
 
 #[derive(Debug)]
@@ -50,7 +50,8 @@ pub(super) enum PlayPendingReceiptConsumeError {
     CursorExpired {
         resume_cursor: DecisionReceiptCursor,
     },
-    Dispatch(String),
+    Decision(DecisionNotificationError),
+    Dispatch(PlayPendingDecisionReceiptDispatchError),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -77,7 +78,7 @@ impl PlayPendingEditDecisionAdapter {
         &self,
         center: &DecisionNotificationCenter,
         prompt: &PendingEditDecisionPrompt,
-    ) -> Result<bool, String> {
+    ) -> Result<bool, PlayPendingDecisionPublishError> {
         self.publish_with_stale_cutoff(center, prompt, None)
     }
 
@@ -86,7 +87,7 @@ impl PlayPendingEditDecisionAdapter {
         center: &DecisionNotificationCenter,
         prompt: &PendingEditDecisionPrompt,
         stale_cutoff: DecisionReceiptCursor,
-    ) -> Result<bool, String> {
+    ) -> Result<bool, PlayPendingDecisionPublishError> {
         self.publish_with_stale_cutoff(center, prompt, Some(stale_cutoff))
     }
 
@@ -95,7 +96,7 @@ impl PlayPendingEditDecisionAdapter {
         center: &DecisionNotificationCenter,
         prompt: &PendingEditDecisionPrompt,
         stale_cutoff: Option<DecisionReceiptCursor>,
-    ) -> Result<bool, String> {
+    ) -> Result<bool, PlayPendingDecisionPublishError> {
         #[cfg(test)]
         self.run_before_publish_state_lock_hook();
         let mut state = self
@@ -149,65 +150,38 @@ impl PlayPendingEditDecisionAdapter {
         }
 
         let sequence = state.next_sequence;
-        state.next_sequence = state.next_sequence.checked_add(1).ok_or_else(|| {
-            "play pending-edit decision identifier space is exhausted".to_string()
-        })?;
+        state.next_sequence = state
+            .next_sequence
+            .checked_add(1)
+            .ok_or(PlayPendingDecisionPublishError::SequenceExhausted)?;
         let notification_id = NotificationId::parse(format!(
             "{PLAY_PENDING_EDITS_NOTIFICATION_PREFIX}.{sequence}"
-        ))
-        .map_err(|error| error.to_string())?;
-        let apply_option = DecisionOptionId::parse(PLAY_PENDING_EDITS_APPLY_OPTION)
-            .map_err(|error| error.to_string())?;
-        let discard_option = DecisionOptionId::parse(PLAY_PENDING_EDITS_DISCARD_OPTION)
-            .map_err(|error| error.to_string())?;
+        ))?;
+        let apply_option = DecisionOptionId::parse(PLAY_PENDING_EDITS_APPLY_OPTION)?;
+        let discard_option = DecisionOptionId::parse(PLAY_PENDING_EDITS_DISCARD_OPTION)?;
         let notification = DecisionNotification::new(
             notification_id.clone(),
-            NotificationSource::builtin("editor.play").map_err(|error| error.to_string())?,
+            NotificationSource::builtin("editor.play")?,
             "editor.play.pending_edits.title",
             "editor.play.pending_edits.message",
             vec![
-                DecisionOption::new(apply_option.clone(), "editor.play.pending_edits.apply")
-                    .map_err(|error| error.to_string())?,
-                DecisionOption::new(discard_option.clone(), "editor.play.pending_edits.discard")
-                    .map_err(|error| error.to_string())?,
+                DecisionOption::new(apply_option.clone(), "editor.play.pending_edits.apply")?,
+                DecisionOption::new(discard_option.clone(), "editor.play.pending_edits.discard")?,
             ],
-        )
-        .map_err(|error| error.to_string())?
-        .with_message_argument("pending_count", prompt.pending_count as u64)
-        .map_err(|error| error.to_string())?
-        .with_message_argument("payload_bytes", prompt.payload_bytes as u64)
-        .map_err(|error| error.to_string())?
+        )?
+        .with_message_argument("pending_count", prompt.pending_count as u64)?
+        .with_message_argument("payload_bytes", prompt.payload_bytes as u64)?
         .with_message_argument(
             "oldest_age_secs",
             prompt.oldest_age.map_or(0, |age| age.as_secs()),
-        )
-        .map_err(|error| error.to_string())?;
-        let ticket = center
-            .publish(notification)
-            .map_err(|error| error.to_string())?;
+        )?;
+        let ticket = center.publish(notification)?;
         state
             .completed_receipt_tickets
             .extend(stale_receipt_tickets);
-        state.decisions.insert(
-            notification_id.clone(),
-            TrackedPlayDecision {
-                ticket,
-                selections: BTreeMap::from([
-                    (
-                        apply_option,
-                        format!(
-                            "play_pending_decision_{sequence}_{PLAY_PENDING_EDITS_APPLY_OPTION}"
-                        ),
-                    ),
-                    (
-                        discard_option,
-                        format!(
-                            "play_pending_decision_{sequence}_{PLAY_PENDING_EDITS_DISCARD_OPTION}"
-                        ),
-                    ),
-                ]),
-            },
-        );
+        state
+            .decisions
+            .insert(notification_id.clone(), TrackedPlayDecision { ticket });
         state.decision_order.push_back(notification_id);
         while state.decision_order.len() > MAX_RETAINED_DECISIONS {
             let Some(expired) = state.decision_order.pop_front() else {
@@ -220,79 +194,6 @@ impl PlayPendingEditDecisionAdapter {
         Ok(true)
     }
 
-    pub(super) fn pending_options(
-        &self,
-        center: &DecisionNotificationCenter,
-        i18n: &EditorI18nService,
-    ) -> Vec<PlayPendingDecisionOption> {
-        let pending = center.pending_snapshot();
-        let decisions = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .decisions
-            .values()
-            .cloned()
-            .collect::<Vec<_>>();
-        let mut options = Vec::new();
-        for decision in decisions {
-            let Some(snapshot) = pending
-                .iter()
-                .find(|snapshot| snapshot.ticket() == &decision.ticket)
-            else {
-                continue;
-            };
-            let presentation = present_decision(snapshot, i18n);
-            for option in presentation.options() {
-                let Some(selection_id) = decision.selections.get(option.id()) else {
-                    continue;
-                };
-                options.push(PlayPendingDecisionOption::new(
-                    selection_id.clone(),
-                    presentation.ticket().clone(),
-                    option.id().clone(),
-                    presentation.title().to_string(),
-                    format!("{} [{}]", presentation.message(), option.label()),
-                ));
-            }
-        }
-        options
-    }
-
-    pub(super) fn selection(&self, selection_id: &str) -> Option<PlayPendingDecisionSelection> {
-        self.state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .decisions
-            .values()
-            .find_map(|decision| {
-                decision
-                    .selections
-                    .iter()
-                    .find_map(|(option_id, recorded_selection_id)| {
-                        (recorded_selection_id == selection_id).then(|| {
-                            PlayPendingDecisionSelection::new(
-                                decision.ticket.clone(),
-                                option_id.clone(),
-                            )
-                        })
-                    })
-            })
-    }
-
-    pub(super) fn resolve(
-        &self,
-        center: &DecisionNotificationCenter,
-        selection_id: &str,
-    ) -> Result<DecisionResolveReport, String> {
-        let selection = self
-            .selection(selection_id)
-            .ok_or_else(|| format!("unknown pending play-decision selection `{selection_id}`"))?;
-        center
-            .resolve(selection.ticket(), selection.option_id())
-            .map_err(|error| error.to_string())
-    }
-
     /// Drains core Decision receipts exactly once for the Play tickets owned by this adapter.
     ///
     /// The handler runs outside the adapter state lock. If a later receipt fails, successful
@@ -303,7 +204,10 @@ impl PlayPendingEditDecisionAdapter {
         center: &DecisionNotificationCenter,
         mut consume: impl FnMut(
             &PlayPendingDecisionSelection,
-        ) -> Result<PlayPendingEditDecisionOutcome, String>,
+        ) -> Result<
+            PlayPendingEditDecisionOutcome,
+            PlayPendingDecisionReceiptDispatchError,
+        >,
     ) -> Result<Vec<(DecisionTicket, PlayPendingEditDecisionOutcome)>, PlayPendingReceiptConsumeError>
     {
         let _receipt_gate = self
@@ -320,7 +224,7 @@ impl PlayPendingEditDecisionAdapter {
             DecisionNotificationError::CursorExpired { resume_cursor, .. } => {
                 PlayPendingReceiptConsumeError::CursorExpired { resume_cursor }
             }
-            error => PlayPendingReceiptConsumeError::Dispatch(error.to_string()),
+            error => PlayPendingReceiptConsumeError::Decision(error),
         })?;
 
         let mut outcomes = Vec::new();
@@ -375,8 +279,11 @@ impl PlayPendingEditDecisionAdapter {
         &self,
         center: &DecisionNotificationCenter,
         resume_cursor: DecisionReceiptCursor,
-        republish: impl FnOnce(DecisionReceiptCursor) -> Result<ExpiredReceiptRepublish, String>,
-    ) -> Result<ExpiredReceiptRecovery, String> {
+        republish: impl FnOnce(
+            DecisionReceiptCursor,
+        )
+            -> Result<ExpiredReceiptRepublish, PlayPendingDecisionPublishError>,
+    ) -> Result<ExpiredReceiptRecovery, PlayPendingDecisionReceiptRecoveryError> {
         let _receipt_gate = self
             .receipt_gate
             .lock()
@@ -397,18 +304,14 @@ impl PlayPendingEditDecisionAdapter {
                 Ok(ExpiredReceiptRecovery::ReplacementPublished)
             }
             ExpiredReceiptRepublish::NotRequired => {
-                Err(
-                    "an owned Apply/Discard choice was lost and no pending prompt is available for explicit replacement"
-                        .to_string(),
-                )
+                Err(PlayPendingDecisionReceiptRecoveryError::ReplacementPromptUnavailable)
             }
             ExpiredReceiptRepublish::ExistingDecision => {
                 let stale_cutoff = self.refresh_expired_recovery_cutoff(center, stale_cutoff)?;
                 let classification = self.expired_receipt_classification(center, stale_cutoff);
                 if classification.replacement_required {
                     return Err(
-                        "expired pending play-edit receipt recovery did not establish a replacement Decision"
-                            .to_string(),
+                        PlayPendingDecisionReceiptRecoveryError::ReplacementDecisionNotEstablished,
                     );
                 }
                 self.commit_expired_receipt_cutoff(stale_cutoff);
@@ -423,7 +326,7 @@ impl PlayPendingEditDecisionAdapter {
         &self,
         center: &DecisionNotificationCenter,
         requested_resume: DecisionReceiptCursor,
-    ) -> Result<DecisionReceiptCursor, String> {
+    ) -> Result<DecisionReceiptCursor, DecisionNotificationError> {
         let candidate = self
             .state
             .lock()
@@ -434,11 +337,7 @@ impl PlayPendingEditDecisionAdapter {
         let cutoff = match center.receipts_since(candidate) {
             Ok(_) => candidate,
             Err(DecisionNotificationError::CursorExpired { resume_cursor, .. }) => resume_cursor,
-            Err(error) => {
-                return Err(format!(
-                    "failed to establish expired-receipt recovery cursor: {error}"
-                ));
-            }
+            Err(error) => return Err(error),
         };
         self.state
             .lock()
@@ -503,8 +402,12 @@ impl PlayPendingEditDecisionAdapter {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .decisions
             .values()
-            .find(|decision| {
-                &decision.ticket == ticket && decision.selections.contains_key(option_id)
+            .find(|decision| &decision.ticket == ticket)
+            .filter(|_| {
+                matches!(
+                    option_id.as_str(),
+                    PLAY_PENDING_EDITS_APPLY_OPTION | PLAY_PENDING_EDITS_DISCARD_OPTION
+                )
             })
             .map(|decision| {
                 PlayPendingDecisionSelection::new(decision.ticket.clone(), option_id.clone())

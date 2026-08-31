@@ -29,11 +29,21 @@ fn updated_transform_is_reflected_in_render_extract() {
 #[test]
 fn mesh_renderer_sort_fields_feed_geometry_phase_queue() {
     let mut world = World::new();
-    let render_first = world.spawn_node(NodeKind::Mesh);
-    let depth_earlier = world.spawn_node(NodeKind::Mesh);
-    let depth_later = world.spawn_node(NodeKind::Mesh);
-    let order_middle = world.spawn_node(NodeKind::Mesh);
-    let material_later = world.spawn_node(NodeKind::Mesh);
+    let render_first = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let depth_earlier = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let depth_later = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let order_middle = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let material_later = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
 
     let fixtures = [
         (render_first, -10, 0, 90, 0.0),
@@ -163,8 +173,12 @@ fn render_mesh_phase_projection_consumes_entries_without_cloning_snapshots() {
 #[test]
 fn render_extract_separates_directional_point_and_spot_lights() {
     let mut world = World::new();
-    let point = world.spawn_node(NodeKind::PointLight);
-    let spot = world.spawn_node(NodeKind::SpotLight);
+    let point = world
+        .spawn_node(NodeKind::PointLight)
+        .expect("test scene spawn should succeed");
+    let spot = world
+        .spawn_node(NodeKind::SpotLight)
+        .expect("test scene spawn should succeed");
 
     world
         .update_transform(point, Transform::from_translation(Vec3::new(3.0, 4.0, 5.0)))
@@ -269,23 +283,31 @@ fn render_extract_separates_directional_point_and_spot_lights() {
 
     let frame_extract = world.to_render_frame_extract();
     assert_eq!(frame_extract.lighting.directional_lights.len(), 1);
-    assert!(frame_extract
-        .lighting
-        .point_lights
-        .iter()
-        .any(|light| light.node_id == point));
-    assert!(frame_extract
-        .lighting
-        .spot_lights
-        .iter()
-        .any(|light| light.node_id == spot));
+    assert!(
+        frame_extract
+            .lighting
+            .point_lights
+            .iter()
+            .any(|light| light.node_id == point)
+    );
+    assert!(
+        frame_extract
+            .lighting
+            .spot_lights
+            .iter()
+            .any(|light| light.node_id == spot)
+    );
 }
 
 #[test]
 fn render_product_pbr_world_frame_extract_exposes_authored_ambient_and_rect_light_slots() {
     let mut world = World::new();
-    let ambient = world.spawn_node(NodeKind::AmbientLight);
-    let rect = world.spawn_node(NodeKind::RectLight);
+    let ambient = world
+        .spawn_node(NodeKind::AmbientLight)
+        .expect("test scene spawn should succeed");
+    let rect = world
+        .spawn_node(NodeKind::RectLight)
+        .expect("test scene spawn should succeed");
 
     world
         .update_transform(
@@ -352,6 +374,7 @@ fn render_product_pbr_world_frame_extract_exposes_authored_ambient_and_rect_ligh
         Vec3::new(0.05, 0.06, 0.07)
     );
     assert_eq!(snapshot.scene.ambient_lights[0].intensity, 0.35);
+    assert!(!snapshot.scene.ambient_lights[0].affects_lightmapped_meshes);
     assert!(!snapshot.scene.ambient_lights[0].renderer_degraded);
     assert_eq!(snapshot.scene.ambient_lights[0].degradation_reason, None);
 
@@ -381,9 +404,11 @@ fn render_product_pbr_world_frame_extract_exposes_authored_ambient_and_rect_ligh
 
     let default_ambient = RenderAmbientLightSnapshot::default();
     assert!(default_ambient.renderer_degraded);
-    assert!(default_ambient
-        .degradation_reason
-        .as_deref()
-        .unwrap()
-        .contains("no authored scene component"));
+    assert!(
+        default_ambient
+            .degradation_reason
+            .as_deref()
+            .unwrap()
+            .contains("no authored scene component")
+    );
 }

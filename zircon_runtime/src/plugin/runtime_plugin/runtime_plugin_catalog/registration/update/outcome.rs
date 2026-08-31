@@ -1,3 +1,5 @@
+use super::super::super::PluginCatalogGeneration;
+
 /// Work performed while evaluating one catalog update candidate.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RuntimePluginCatalogUpdateMetrics {
@@ -14,7 +16,7 @@ pub struct RuntimePluginCatalogUpdateMetrics {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[must_use = "rejected catalog updates retain the last-good generation"]
 pub struct RuntimePluginCatalogUpdateOutcome {
-    published_generation: Option<u64>,
+    published_generation: Option<PluginCatalogGeneration>,
     diagnostics: Vec<String>,
     metrics: RuntimePluginCatalogUpdateMetrics,
 }
@@ -40,7 +42,7 @@ impl RuntimePluginCatalogUpdateOutcome {
     }
 
     pub(super) fn published(
-        catalog_generation: u64,
+        catalog_generation: PluginCatalogGeneration,
         metrics: RuntimePluginCatalogUpdateMetrics,
     ) -> Self {
         Self {
@@ -48,6 +50,13 @@ impl RuntimePluginCatalogUpdateOutcome {
             diagnostics: Vec::new(),
             metrics,
         }
+    }
+
+    pub(super) fn generation_exhausted(metrics: RuntimePluginCatalogUpdateMetrics) -> Self {
+        Self::rejected(
+            vec!["runtime plugin catalog generation space is exhausted".to_string()],
+            metrics,
+        )
     }
 
     pub fn is_published(&self) -> bool {
@@ -62,7 +71,7 @@ impl RuntimePluginCatalogUpdateOutcome {
         self.published_generation.is_none() && self.diagnostics.is_empty()
     }
 
-    pub fn published_generation(&self) -> Option<u64> {
+    pub fn published_generation(&self) -> Option<PluginCatalogGeneration> {
         self.published_generation
     }
 

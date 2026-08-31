@@ -1,15 +1,15 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     Arc,
+    atomic::{AtomicUsize, Ordering},
 };
 
+use crate::scene::World;
 use crate::scene::components::{Hierarchy, Name};
 use crate::scene::ecs::{
     Command, CommandQueue, Component, DeferredCommandOperation, DeferredCommandTarget,
     DeferredSystemKey, LifecycleEventKind, Resource, StorageType, WorkerCommandBuffer,
 };
-use crate::scene::World;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);

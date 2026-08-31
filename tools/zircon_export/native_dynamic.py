@@ -22,7 +22,10 @@ from .native_dynamic_cli_options import (
     resolve_user_path,
 )
 from .native_dynamic_materialize import materialize_native_dynamic_packages
-from .native_dynamic_materialize_io import reset_native_dynamic_plugins_dir
+from .native_dynamic_materialize_io import (
+    native_dynamic_cas_scope,
+    reset_native_dynamic_plugins_dir,
+)
 from .native_dynamic_stage_payload_finalize import (
     finalize_native_dynamic_stage_payload,
 )
@@ -45,6 +48,17 @@ from .native_dynamic_plan import (
 
 
 def run_native_dynamic(args: argparse.Namespace) -> int:
+    mutates_native_artifacts = (
+        getattr(args, "native_dynamic_sign_command", None) is not None
+        or getattr(args, "native_dynamic_notarize_command", None) is not None
+    )
+    with native_dynamic_cas_scope(
+        allow_hardlinks=not mutates_native_artifacts,
+    ):
+        return _run_native_dynamic(args)
+
+
+def _run_native_dynamic(args: argparse.Namespace) -> int:
     out_root = resolve_user_path(args.out)
     diagnostics: list[str] = []
     repo_root = resolve_native_dynamic_path(

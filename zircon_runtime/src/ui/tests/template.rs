@@ -1,10 +1,7 @@
-use crate::ui::template::UiTemplateLoader;
-use crate::ui::template::{
-    UiTemplateInstance, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder, UiTemplateValidator,
-};
+use crate::ui::template::{UiTemplateInstance, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder};
+use serde::Deserialize;
 use toml::Value;
 use zircon_runtime_interface::ui::{
-    binding::UiEventKind,
     event_ui::UiTreeId,
     layout::{
         AxisConstraint, StretchMode, UiAlignment, UiAxis, UiContainerKind, UiFrame,
@@ -12,7 +9,7 @@ use zircon_runtime_interface::ui::{
         UiScrollbarVisibility, UiSize, UiSizeBoxConfig, UiSlotKind, UiVirtualListConfig,
         UiVirtualListWindow,
     },
-    template::UiTemplateError,
+    template::UiTemplateNode,
     tree::UiInputPolicy,
 };
 
@@ -20,18 +17,15 @@ const WORKBENCH_TEMPLATE_TOML: &str = r#"
 version = 1
 
 [root]
-template = "WorkbenchShell"
-slots = { menu_bar = [{ template = "MenuBar" }], activity_rail = [{ component = "ActivityRail", control_id = "ActivityRailRoot" }], document_host = [{ component = "ToolWindowStack", control_id = "DocumentHost" }] }
-
-[components.WorkbenchShell]
-slots = { menu_bar = { required = true }, activity_rail = { required = true }, document_host = { required = true } }
-root = { component = "WorkbenchShell", children = [{ slot = "menu_bar" }, { slot = "activity_rail" }, { slot = "document_host" }] }
-
-[components.MenuBar]
-root = { component = "UiHostToolbar", children = [
-    { component = "IconButton", control_id = "OpenProject", bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }], attributes = { icon = "folder-open-outline", label = "Open" } },
-    { component = "IconButton", control_id = "SaveProject", bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }], attributes = { icon = "save-outline", label = "Save" } }
-] }
+component = "WorkbenchShell"
+children = [
+    { component = "UiHostToolbar", children = [
+        { component = "IconButton", control_id = "OpenProject", bindings = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }], attributes = { icon = "folder-open-outline", label = "Open" } },
+        { component = "IconButton", control_id = "SaveProject", bindings = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }], attributes = { icon = "save-outline", label = "Save" } }
+    ] },
+    { component = "ActivityRail", control_id = "ActivityRailRoot" },
+    { component = "ToolWindowStack", control_id = "DocumentHost" }
+]
 "#;
 
 const SHARED_CONTAINER_TEMPLATE_TOML: &str = r#"
@@ -130,19 +124,41 @@ children = [
 
 mod interaction_bindings;
 mod layout_compute;
-mod loader_instance_validation;
 mod slot_contracts;
 mod surface_containers;
 
 fn tree_from_root_toml(root: String) -> zircon_runtime_interface::ui::tree::UiTree {
-    let document =
-        UiTemplateLoader::load_toml_str(&format!("version = 1\n\n[root]\n{root}")).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(&format!("root = {root}"));
     UiTemplateTreeBuilder::build_tree(UiTreeId::new("interaction.metadata"), &instance).unwrap()
 }
 
 fn root_with_inline_node(node: &str) -> String {
-    format!("template = \"Root\"\n\n[components.Root]\nroot = {node}")
+    node.to_string()
+}
+
+#[derive(Deserialize)]
+struct CompiledTemplateFixture {
+    root: UiTemplateNode,
+}
+
+pub(super) fn compiled_instance_from_toml(source: &str) -> UiTemplateInstance {
+    let fixture: CompiledTemplateFixture = toml::from_str(source).unwrap();
+    assert_compiled_node(&fixture.root);
+    UiTemplateInstance::new(fixture.root)
+}
+
+fn assert_compiled_node(node: &UiTemplateNode) {
+    assert!(
+        node.component.is_some() && node.template.is_none() && node.slot.is_none(),
+        "compiled template fixtures must contain native component nodes only"
+    );
+    assert!(
+        node.slots.is_empty(),
+        "compiled template fixtures cannot contain unresolved slot fills"
+    );
+    for child in &node.children {
+        assert_compiled_node(child);
+    }
 }
 
 fn only_root_node(

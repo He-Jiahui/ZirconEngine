@@ -30,8 +30,8 @@ pub fn inspect_font_sdf_artifact(
     Ok(FontSdfArtifactInspection {
         asset_guid: identity.asset_guid.clone(),
         face_index: identity.face_index,
-        variation_hash: identity.variation_hash,
-        source_hash: identity.source_hash,
+        variation_hash: identity.variation_hash.into_bytes(),
+        source_hash: identity.source_hash.into_bytes(),
         mode: public_mode(identity.params.mode),
         bake_em_px: identity.params.bake_em_px,
         spread_px_milli: identity.params.spread_px_milli,

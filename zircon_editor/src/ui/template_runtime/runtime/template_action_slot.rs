@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiActionRef;
 
+use super::compiled_template_action::CompiledTemplateAction;
 use super::plugin_documents::EditorPluginV2DocumentOwner;
 
 #[derive(Clone, Debug)]
@@ -12,7 +13,7 @@ pub(super) struct TemplateActionSlot {
     control_id: Option<String>,
     plugin_owner: Option<EditorPluginV2DocumentOwner>,
     source_attributes: BTreeMap<String, Value>,
-    action_source: UiActionRef,
+    compiled_action: Option<CompiledTemplateAction>,
 }
 
 impl TemplateActionSlot {
@@ -30,7 +31,7 @@ impl TemplateActionSlot {
             control_id: control_id.map(str::to_string),
             plugin_owner,
             source_attributes,
-            action_source,
+            compiled_action: CompiledTemplateAction::compile(&action_source),
         }
     }
 
@@ -58,7 +59,7 @@ impl TemplateActionSlot {
         self.source_attributes.extend(attributes.clone());
     }
 
-    pub(super) fn action_source(&self) -> &UiActionRef {
-        &self.action_source
+    pub(super) fn compiled_action(&self) -> Option<&CompiledTemplateAction> {
+        self.compiled_action.as_ref()
     }
 }

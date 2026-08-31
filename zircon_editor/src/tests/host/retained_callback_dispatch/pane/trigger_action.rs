@@ -1,42 +1,17 @@
 use super::super::support::*;
-use zircon_runtime_interface::ui::binding::UiBindingValue;
-
 #[test]
-fn builtin_pane_surface_trigger_action_matches_dotted_menu_action_dispatch() {
+fn builtin_pane_surface_does_not_expose_the_retired_fixture_action() {
     let _guard = env_lock().lock().unwrap();
-
-    let legacy_harness =
-        EventRuntimeHarness::new("zircon_retained_parity_pane_surface_action_legacy");
-    let legacy_effects =
-        dispatch_menu_action(&legacy_harness.runtime, "workbench.scene.create").unwrap();
-    let legacy_record = legacy_harness
-        .runtime
-        .journal()
-        .records()
-        .last()
-        .unwrap()
-        .clone();
-
-    let builtin_harness =
-        EventRuntimeHarness::new("zircon_retained_parity_pane_surface_action_builtin");
+    let harness = EventRuntimeHarness::new("zircon_retained_empty_pane_surface");
     let bridge = BuiltinPaneSurfaceTemplateBridge::new().unwrap();
-    let builtin_effects = dispatch_builtin_pane_surface_control(
-        &builtin_harness.runtime,
+    let result = dispatch_builtin_pane_surface_control(
+        &harness.runtime,
         &bridge,
         "TriggerAction",
         UiEventKind::Click,
-        vec![UiBindingValue::string("workbench.scene.create")],
-    )
-    .expect("templated pane surface action should resolve")
-    .unwrap();
-    let builtin_record = builtin_harness
-        .runtime
-        .journal()
-        .records()
-        .last()
-        .unwrap()
-        .clone();
+        Vec::new(),
+    );
 
-    assert_eq!(builtin_effects, legacy_effects);
-    assert_eq!(builtin_record, legacy_record);
+    assert!(result.is_none());
+    assert!(harness.runtime.journal().records().is_empty());
 }

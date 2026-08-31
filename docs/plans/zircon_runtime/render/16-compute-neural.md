@@ -27,6 +27,11 @@ plan_sources:
 2. 神经网络推理底座(NN Runtime,插件):算子集 compute 化(GEMM/Conv/激活/归一化/上下采样等,对照 UE NNERuntimeRDG 算子清单的核心子集),模型资产(算子图 + 权重 buffer),图执行器把算子序列编译为 graph compute pass 链;首个应用场景:NN 后处理(风格化/降噪/上采样占位)挂进计划 07 链尾的 upscale 槽位。
 3. CPU 推理回落档(对照 NNERuntimeBasicCpu):无 compute 能力或调试时同模型可在 CPU 跑,产物一致性可对拍。
 
+> 2026-08-24 当前源码状态：`BindingSchemaEntry` 已硬切为静态
+> `RenderGraphBufferBindingRange { offset, size }`，可精确表达 buffer 窗口；图编译对已知
+> transient buffer 验证范围和 `UNIFORM`/`STORAGE` usage，具体设备仍在执行期复验对齐和外部资源
+> 的物理大小。此为 source-level 实现，managed Cargo 与 GPU 验证仍待执行，非验收结论。
+
 ## 现状与差距
 
 - compute 已在引擎内多处使用(后处理/SSAO/粒子),但都是 executor 内手写:无统一描述符、无 dispatch_indirect 封装、readback 各自为政;插件想加 compute pass 没有正门。
@@ -165,13 +170,20 @@ pub enum ComputeBindingKind {
     StorageTextureWrite,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct RenderGraphBufferBindingRange {
+    pub offset: u64,
+    pub size: Option<u64>, // None 表示从 offset 到 buffer 尾部
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BindingSchemaEntry {
     pub binding: u32,            // group1 内编号(§8 槽位:compute pass 全部资源属 pass 级 = group1)
     pub resource: String,        // graph 资源名;执行期经 RgResourceResolver 解析为 RgTextureHandle/RgBufferHandle 物理资源
     pub kind: ComputeBindingKind,
     pub texture_mip_level: Option<u32>, // Some 时绑定一个瞬态纹理 mip;None 为默认 view
-    pub buffer_offset: Option<u64>, // Some 时从设备对齐的 byte offset 绑定 buffer;None 为整个 buffer
+    pub texture_full_mip_chain: bool,
+    pub buffer_range: Option<RenderGraphBufferBindingRange>, // Some 时为精确静态窗口;None 为整个 buffer
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -240,12 +252,10 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             entry_point: "cs_main".into(),
             workgroup_size: [8, 8, 1],
             bindings: vec![
-                BindingSchemaEntry { binding: 0, resource: "my.params".into(),
-                    kind: ComputeBindingKind::UniformBuffer, texture_mip_level: None, buffer_offset: None },
-                BindingSchemaEntry { binding: 1, resource: "scene-color".into(),
-                    kind: ComputeBindingKind::SampledTexture, texture_mip_level: None, buffer_offset: None },
-                BindingSchemaEntry { binding: 2, resource: "my.output".into(),
-                    kind: ComputeBindingKind::StorageBufferReadWrite, texture_mip_level: None, buffer_offset: None },
+                BindingSchemaEntry::new(0, "my.params", ComputeBindingKind::UniformBuffer)
+                    .with_buffer_range(0, Some(256)),
+                BindingSchemaEntry::new(1, "scene-color", ComputeBindingKind::SampledTexture),
+                BindingSchemaEntry::new(2, "my.output", ComputeBindingKind::StorageBufferReadWrite),
             ],
             dispatch: RenderGraphComputeDispatchExtent::PerPixel {
                 target: "scene-color".into(), local_size: [8, 8] },

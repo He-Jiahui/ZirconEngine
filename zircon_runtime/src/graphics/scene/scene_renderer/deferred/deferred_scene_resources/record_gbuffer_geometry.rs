@@ -1,14 +1,17 @@
+use crate::graphics::pipeline::PipelineAdmission;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshPassPipelineKind,
     MeshSceneDataBindHandle,
 };
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::DeferredSceneResources;
+
+const DEFERRED_GBUFFER_PIPELINE_CONSUMER: &str = "deferred_gbuffer";
 
 impl DeferredSceneResources {
     pub(crate) fn record_gbuffer_geometry<'a, I>(
@@ -89,14 +92,50 @@ impl DeferredSceneResources {
         let mut replayer = MeshDrawCommandReplayer::default();
         for stream in mesh_draw_commands {
             replayer.replay_command_stream(&mut pass, stream, |replayer, pass, command| {
-                let gbuffer_variant_id = mesh_pipelines
-                    .gbuffer_variant_id_for_command_variant(command.pipeline_variant_id)
-                    .expect("deferred GBuffer command must map to a cache-backed variant");
+                let gbuffer_variant_id = match mesh_pipelines
+                    .gbuffer_variant_admission_for_command_variant(command.pipeline_variant_id)
+                {
+                    PipelineAdmission::Ready(variant_id) => variant_id,
+                    PipelineAdmission::Deferred(unavailable)
+                    | PipelineAdmission::Failed(unavailable) => {
+                        mesh_pipelines.record_pipeline_fallback_for_command_variant(
+                            command,
+                            command.pipeline_variant_id,
+                            DEFERRED_GBUFFER_PIPELINE_CONSUMER,
+                            unavailable,
+                        );
+                        replayer.invalidate_state_after_external_pipeline();
+                        return false;
+                    }
+                };
                 if replayer.should_set_pipeline(MeshPassPipelineKind::GBuffer, gbuffer_variant_id) {
-                    let pipeline = mesh_pipelines
-                        .ensure_gbuffer_pipeline_for_variant(device, streamer, gbuffer_variant_id)
-                        .expect("deferred GBuffer command must resolve a mesh pipeline");
-                    pass.set_pipeline(pipeline);
+                    match mesh_pipelines.ensure_gbuffer_pipeline_admission_for_variant(
+                        device,
+                        streamer,
+                        gbuffer_variant_id,
+                    ) {
+                        PipelineAdmission::Ready(()) => {
+                            mesh_pipelines.record_bound_mesh_pass_pipeline(
+                                MeshPassPipelineKind::GBuffer,
+                                gbuffer_variant_id,
+                            );
+                            pass.set_pipeline(
+                                mesh_pipelines
+                                    .gbuffer_pipeline_for_ready_variant(gbuffer_variant_id),
+                            );
+                        }
+                        PipelineAdmission::Deferred(unavailable)
+                        | PipelineAdmission::Failed(unavailable) => {
+                            mesh_pipelines.record_pipeline_fallback_for_command_variant(
+                                command,
+                                gbuffer_variant_id,
+                                DEFERRED_GBUFFER_PIPELINE_CONSUMER,
+                                unavailable,
+                            );
+                            replayer.invalidate_state_after_external_pipeline();
+                            return false;
+                        }
+                    }
                 }
                 replayer.bind_forward_shadow_receiver_if_needed(
                     pass,

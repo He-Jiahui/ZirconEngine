@@ -2,8 +2,17 @@ use crate::plugin::{PluginFeatureBundleManifest, PluginFeatureDependency};
 
 use super::rows::ParticlesFeatureRow;
 
+fn join_string_parts(parts: &[&str]) -> String {
+    let capacity = parts.iter().map(|part| part.len()).sum();
+    let mut joined = String::with_capacity(capacity);
+    for part in parts {
+        joined.push_str(part);
+    }
+    joined
+}
+
 pub(super) fn particles_feature(row: &ParticlesFeatureRow) -> PluginFeatureBundleManifest {
-    let feature_id = format!("particles.{}", row.id_suffix);
+    let feature_id = join_string_parts(&["particles.", row.id_suffix]);
     let mut manifest = PluginFeatureBundleManifest::new(feature_id, row.display_name, "particles")
         .with_dependency(PluginFeatureDependency::primary(
             "particles",
@@ -17,4 +26,17 @@ pub(super) fn particles_feature(row: &ParticlesFeatureRow) -> PluginFeatureBundl
         ));
     }
     manifest
+}
+
+#[cfg(test)]
+mod tests {
+    use super::join_string_parts;
+
+    #[test]
+    fn exact_particles_identifier_join_preserves_feature_id() {
+        assert_eq!(
+            join_string_parts(&["particles.", "animation_control"]),
+            "particles.animation_control"
+        );
+    }
 }

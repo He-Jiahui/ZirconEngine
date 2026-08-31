@@ -8,7 +8,7 @@ display_name = "Workbench Scene Tree Panel"
 widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
   "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow",
 ]
 styles = ["res://ui/editor/theme/editor_tokens.zui"]
@@ -22,14 +22,21 @@ component = "VerticalGroup"
 control_id = "WorkbenchSceneTreePanel"
 classes = ["workbench-panel", "workbench-left-panel"]
 layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "scene_tabs" }, { node = "scene_content" }]
+children = [{ node = "scene_header" }, { node = "scene_content" }]
 
-[nodes.scene_tabs]
+[nodes.scene_header]
 component = "HorizontalGroup"
 control_id = "LeftDrawerHeaderRoot"
-classes = ["workbench-tabs"]
+classes = ["workbench-panel-header"]
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
-children = [{ node = "scene_tab_scene" }, { node = "scene_tab_layers" }]
+children = [{ node = "scene_title" }]
+
+[nodes.scene_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchSceneTitle"
+classes = ["workbench-section-title"]
+props = { text = "Scene" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.scene_content]
 component = "VerticalGroup"
@@ -37,22 +44,6 @@ control_id = "LeftDrawerContentRoot"
 classes = ["workbench-left-drawer-content"]
 layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "scene_search_row" }, { node = "scene_tree" }]
-
-[nodes.scene_tab_scene]
-component = "WorkbenchTab"
-control_id = "WorkbenchSceneTabScene"
-classes = ["workbench-tab"]
-props = { text = "Scene", checked = true, selected = true, value = true, layout_min_height = "$editor.chrome.panel_header.height" }
-layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
-events = [{ id = "PanelTab/SceneTreeScene", event = "Click", route = "workbench.panel_tab.select.scene_tree_scene" }]
-
-[nodes.scene_tab_layers]
-component = "WorkbenchTab"
-control_id = "WorkbenchSceneTabLayers"
-classes = ["workbench-tab"]
-props = { text = "Layers", layout_min_height = "$editor.chrome.panel_header.height" }
-layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
-events = [{ id = "PanelTab/SceneTreeLayers", event = "Click", route = "workbench.panel_tab.select.scene_tree_layers" }]
 
 [nodes.scene_search_row]
 component = "HorizontalGroup"
@@ -67,11 +58,15 @@ classes = ["workbench-search-input", "workbench-muted"]
 props = { query = "", placeholder = "Search..." }
 widget = { value_property = "query" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [
+  { id = "Workbench/SceneSearchEditFromShell", event = "Change", component_event = "ValueChanged", route = "workbench.hierarchy.shell_search.edit" },
+  { id = "Workbench/SceneSearchCommitFromShell", event = "Submit", component_event = "Commit", route = "workbench.hierarchy.shell_search.commit" },
+]
 
 [nodes.scene_filter_button]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchSceneFilter"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/scene/filter.svg", label = "Filter" }
 layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "Hierarchy/OpenFilter", event = "Click", route = "workbench.hierarchy.open_filter" }]
@@ -79,15 +74,16 @@ events = [{ id = "Hierarchy/OpenFilter", event = "Click", route = "workbench.hie
 [nodes.scene_add_button]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchSceneAdd"
-classes = ["workbench-icon-button"]
+classes = ["workbench-icon-button", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/controls/add.svg", label = "Add" }
 layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "Hierarchy/AddEntity", event = "Click", route = "workbench.hierarchy.add_entity" }]
 
 [nodes.scene_tree]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchSceneTree"
-layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.xsmall", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 repeat = { kind = "virtual_rows", prototype = "WorkbenchSceneSlot10Item", virtual_control_prefix = "WorkbenchSceneVirtualItem", authored_count = 10, node_path_namespace = "v2" }
 children = [{ node = "scene_root_item" }, { node = "scene_environment_item" }, { node = "scene_level_item" }, { node = "scene_props_item" }, { node = "scene_player_item" }, { node = "scene_audio_item" }, { node = "scene_slot_07_item" }, { node = "scene_slot_08_item" }, { node = "scene_slot_09_item" }, { node = "scene_slot_10_item" }]
 
@@ -96,7 +92,7 @@ component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneRootItem"
 classes = ["workbench-tree-item"]
 props = { text = "Root", icon = "zircon_editor_shell/scene/root.svg", tree_depth = 0, expanded = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectRoot", event = "Click", route = "workbench.hierarchy.select_root" }]
 
 [nodes.scene_environment_item]
@@ -104,7 +100,7 @@ component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneEnvironmentItem"
 classes = ["workbench-tree-item", "workbench-indent-1"]
 props = { text = "Environment", icon = "zircon_editor_shell/scene/sky.svg", tree_depth = 1, expanded = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectEnvironment", event = "Click", route = "workbench.hierarchy.select_environment" }]
 
 [nodes.scene_level_item]
@@ -112,15 +108,15 @@ component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneLevelItem"
 classes = ["workbench-tree-item", "workbench-indent-1"]
 props = { text = "Level", icon = "zircon_editor_shell/scene/geometry.svg", tree_depth = 1, expanded = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectLevel", event = "Click", route = "workbench.hierarchy.select_level" }]
 
 [nodes.scene_props_item]
 component = "WorkbenchTreeRow"
 control_id = "WorkbenchScenePropsItem"
 classes = ["workbench-tree-item", "workbench-indent-2"]
-props = { text = "Props", icon = "zircon_editor_shell/scene/props.svg", tree_depth = 2, tree_indent_px = 40.0, expanded = true, selected = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+props = { text = "Props", icon = "zircon_editor_shell/scene/props.svg", tree_depth = 2, tree_indent_px = 40.0, expanded = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectProps", event = "Click", route = "workbench.hierarchy.select_props" }]
 
 [nodes.scene_player_item]
@@ -128,7 +124,7 @@ component = "WorkbenchTreeRow"
 control_id = "WorkbenchScenePlayerItem"
 classes = ["workbench-tree-item"]
 props = { text = "PlayerStart", icon = "zircon_editor_shell/scene/player-start.svg", tree_depth = 0, expanded = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectPlayer", event = "Click", route = "workbench.hierarchy.select_player" }]
 
 [nodes.scene_audio_item]
@@ -136,7 +132,7 @@ component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneAudioItem"
 classes = ["workbench-tree-item"]
 props = { text = "AudioZone", icon = "zircon_editor_shell/scene/audio-zone.svg", tree_depth = 0, expanded = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectAudio", event = "Click", route = "workbench.hierarchy.select_audio" }]
 
 [nodes.scene_slot_07_item]
@@ -144,7 +140,7 @@ component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneSlot07Item"
 classes = ["workbench-tree-item"]
 props = { text = "Scene Item 07", tree_depth = 0, expanded = false, visibility = "collapsed" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectSlot07", event = "Click", route = "workbench.hierarchy.select_slot07" }]
 
 [nodes.scene_slot_08_item]
@@ -152,7 +148,7 @@ component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneSlot08Item"
 classes = ["workbench-tree-item"]
 props = { text = "Scene Item 08", tree_depth = 0, expanded = false, visibility = "collapsed" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectSlot08", event = "Click", route = "workbench.hierarchy.select_slot08" }]
 
 [nodes.scene_slot_09_item]
@@ -160,7 +156,7 @@ component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneSlot09Item"
 classes = ["workbench-tree-item"]
 props = { text = "Scene Item 09", tree_depth = 0, expanded = false, visibility = "collapsed" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectSlot09", event = "Click", route = "workbench.hierarchy.select_slot09" }]
 
 [nodes.scene_slot_10_item]
@@ -168,5 +164,5 @@ component = "WorkbenchTreeRow"
 control_id = "WorkbenchSceneSlot10Item"
 classes = ["workbench-tree-item"]
 props = { text = "Scene Item 10", tree_depth = 0, expanded = false, visibility = "collapsed" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 events = [{ id = "Hierarchy/SelectSlot10", event = "Click", route = "workbench.hierarchy.select_slot10" }]

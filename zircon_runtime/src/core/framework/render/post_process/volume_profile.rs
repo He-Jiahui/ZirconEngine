@@ -1,10 +1,11 @@
 use crate::core::framework::render::{
-    RenderBloomSettings, RenderColorGradingSettings, RenderPostProcessEffectStackSettings,
-    VolumetricFogSettings,
+    AoSourceSettings, RenderBloomSettings, RenderColorGradingSettings,
+    RenderPostProcessEffectStackSettings, VolumetricFogSettings,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RenderPostProcessVolumeProfile {
+    pub ambient_occlusion: Option<AoSourceSettings>,
     pub volumetric_fog: Option<VolumetricFogSettings>,
     pub bloom: Option<RenderBloomSettings>,
     pub color_grading: Option<RenderColorGradingSettings>,
@@ -12,6 +13,11 @@ pub struct RenderPostProcessVolumeProfile {
 }
 
 impl RenderPostProcessVolumeProfile {
+    pub const fn with_ambient_occlusion(mut self, ambient_occlusion: AoSourceSettings) -> Self {
+        self.ambient_occlusion = Some(ambient_occlusion);
+        self
+    }
+
     pub const fn with_volumetric_fog(mut self, volumetric_fog: VolumetricFogSettings) -> Self {
         self.volumetric_fog = Some(volumetric_fog);
         self

@@ -71,8 +71,9 @@ fn derived_state_projected_reads_use_direct_parent_branches() {
             && world_matrix.contains("loop {")
             && world_matrix.contains("let Some(parent) = self.parent_for_read(current) else")
             && world_matrix.contains("for current in lineage.iter().rev().copied()")
-            && world_matrix
-                .contains("world = world * transform_to_mat4(self.local_transform_value(current));")
+            && world_matrix.contains(
+                "world = world * transform_to_mat4(self.local_transform_value(current));"
+            )
             && world_matrix.contains("Some(world)")
             && !world_matrix.contains("project_world_matrix_for_read_inner")
             && !world_matrix.contains(".map(|parent|")
@@ -158,7 +159,8 @@ fn derived_state_projected_value_reads_use_direct_branches() {
     );
     assert!(
         source.contains("self.replace_derived_component(entity, WorldMatrix(world));")
-            && source.contains("self.replace_derived_component(entity, ActiveInHierarchy(active));")
+            && source
+                .contains("self.replace_derived_component(entity, ActiveInHierarchy(active));")
             && !source.contains("self.world_matrices")
             && !world_owner.contains("world_matrices:")
             && !world_owner.contains("active_in_hierarchy:")

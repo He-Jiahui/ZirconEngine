@@ -10,6 +10,7 @@ use crate::core::runtime::tasks::{JobHandle, JobScheduler, TaskPool, TaskPoolDes
 
 mod fence_accounting;
 mod fence_failures;
+mod suspended_order;
 
 fn lane(limits: BoundedKeyedIoLimits) -> BoundedKeyedIoLane {
     BoundedKeyedIoLane::new(
@@ -106,6 +107,47 @@ fn preference_persistence_lane_coalesces_same_key_without_crossing_fence() {
     ));
     blocker.wait();
     assert_eq!(*calls.lock().unwrap(), vec![2]);
+}
+
+#[test]
+fn bounded_keyed_io_lane_coalesces_equal_typed_domain_keys() {
+    #[derive(Clone, PartialEq, Eq)]
+    struct PhysicalPathIdentity(u64);
+
+    let (scheduler, release_tx, blocker) = blocked_scheduler();
+    let lane = BoundedKeyedIoLane::new(BoundedKeyedIoLimits::new(2, 16), scheduler);
+    let first = lane
+        .try_admit(
+            BoundedKeyedIoKey::from_value(PhysicalPathIdentity(7)),
+            1,
+            8,
+            BoundedKeyedIoWorkDeadline::none(),
+            Box::new(|| Ok(())),
+        )
+        .unwrap();
+    let first_ticket = first.ticket();
+    first.activate();
+    let second_ticket = lane
+        .try_admit(
+            BoundedKeyedIoKey::from_value(PhysicalPathIdentity(7)),
+            2,
+            8,
+            BoundedKeyedIoWorkDeadline::none(),
+            Box::new(|| Ok(())),
+        )
+        .unwrap()
+        .activate();
+
+    assert_eq!(
+        first_ticket.terminal(),
+        Some(BoundedKeyedIoTerminal::Superseded { successor: 2 })
+    );
+    release_tx.send(()).unwrap();
+    assert_eq!(
+        second_ticket.wait_until(Instant::now() + Duration::from_secs(2)),
+        BoundedKeyedIoWaitResult::Terminal(BoundedKeyedIoTerminal::Succeeded)
+    );
+    blocker.wait();
 }
 
 #[test]

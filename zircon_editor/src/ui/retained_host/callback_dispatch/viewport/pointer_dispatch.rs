@@ -101,6 +101,6 @@ fn map_pointer_route_to_viewport_event(
         UiPointerEventKind::Scroll => Some(EditorViewportEvent::Scrolled {
             delta: route.scroll_delta,
         }),
-        UiPointerEventKind::Cancel => None,
+        UiPointerEventKind::Cancel => Some(EditorViewportEvent::CancelInteraction),
     }
 }

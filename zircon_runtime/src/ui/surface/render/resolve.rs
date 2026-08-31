@@ -1,20 +1,24 @@
 use toml::Value;
 
 use zircon_runtime_interface::ui::surface::{
-    normalize_ui_text_language_tag, UiEditableTextState, UiRenderCommandKind, UiResolvedStyle,
-    UiTextCaret, UiTextCaretAffinity, UiTextComposition, UiTextOverflow, UiTextRange,
-    UiTextSelection, UiVisualAssetRef,
+    UiEditableTextState, UiRenderCommandKind, UiResolvedStyle, UiTextCaret, UiTextCaretAffinity,
+    UiTextComposition, UiTextOverflow, UiTextRange, UiTextSelection, UiVisualAssetRef,
 };
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 use zircon_runtime_interface::ui::widget::UiWidgetBehavior;
 use zircon_runtime_interface::ui::{
-    component::UiComponentState,
+    component::{UiComponentState, UiValue},
     event_ui::UiStateFlags,
     style::{UiPainterFamily, UiPainterResolvedState},
 };
 
 use super::painter_state::UiRenderPainterStateSource;
+use crate::text::text_language_cache_identity;
 use crate::ui::editable_text_composition::composition_clauses_from_metadata;
+use crate::ui::surface::input::{
+    editable_value_property_for_metadata, is_editable_text_component, is_number_field_metadata,
+};
+use crate::ui::text::clamp_grapheme_boundary;
 
 mod text_style_parsing;
 
@@ -46,9 +50,7 @@ pub(super) fn resolve_command_kind(
     }
 }
 
-pub(in crate::ui::surface) fn resolve_style(
-    metadata: Option<&UiTemplateNodeMetadata>,
-) -> UiResolvedStyle {
+pub(crate) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiResolvedStyle {
     let font_size = resolve_style_table_number(metadata, "font", "size")
         .or_else(|| resolve_style_number(metadata, "font_size"))
         .unwrap_or(UiResolvedStyle::DEFAULT_FONT_SIZE);
@@ -77,7 +79,7 @@ pub(in crate::ui::surface) fn resolve_style(
         font_family: resolve_style_table_string(metadata, "font", "family")
             .or_else(|| resolve_style_string(metadata, "font_family"))
             .map(str::to_string),
-        language: normalize_ui_text_language_tag(
+        language: text_language_cache_identity(
             resolve_style_table_string(metadata, "font", "language")
                 .or_else(|| resolve_style_string(metadata, "text_language"))
                 .or_else(|| resolve_style_string(metadata, "language")),
@@ -104,16 +106,22 @@ pub(in crate::ui::surface) fn resolve_style(
             .and_then(parse_text_writing_mode)
             .unwrap_or_default(),
         text_overflow: resolve_text_overflow(metadata),
-        rich_text_format: resolve_style_table_string(metadata, "font", "rich_text_format")
-            .or_else(|| resolve_style_string(metadata, "rich_text_format"))
-            .and_then(parse_rich_text_format)
-            .unwrap_or_default(),
+        rich_text_format: resolve_rich_text_format(metadata),
         text_render_mode: resolve_style_table_string(metadata, "font", "render_mode")
             .or_else(|| resolve_style_string(metadata, "text_render_mode"))
             .and_then(parse_text_render_mode)
             .unwrap_or_default(),
         ..UiResolvedStyle::default()
     }
+}
+
+pub(crate) fn resolve_rich_text_format(
+    metadata: Option<&UiTemplateNodeMetadata>,
+) -> zircon_runtime_interface::ui::surface::UiRichTextFormat {
+    resolve_style_table_string(metadata, "font", "rich_text_format")
+        .or_else(|| resolve_style_string(metadata, "rich_text_format"))
+        .and_then(parse_rich_text_format)
+        .unwrap_or_default()
 }
 
 fn resolve_line_height(metadata: Option<&UiTemplateNodeMetadata>, font_size: f32) -> f32 {
@@ -199,7 +207,7 @@ pub(super) fn resolve_painter_state(
     state.resolved_state_for_family(family)
 }
 
-pub(super) fn resolve_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
+pub(crate) fn resolve_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
     if let Some(label) = resolve_visible_label_text(metadata) {
         return Some(label);
     }
@@ -244,7 +252,7 @@ pub(super) fn resolve_editable_text_state(
     }
     let text = resolve_editable_text_value(metadata, visible_text);
     let caret = UiTextCaret {
-        offset: clamp_text_boundary(
+        offset: clamp_grapheme_boundary(
             &text,
             resolve_usize_attribute(Some(metadata), "caret_offset").unwrap_or(text.len()),
         ),
@@ -288,7 +296,11 @@ fn resolve_non_empty_string_attribute<'a>(
 
 fn resolve_visible_value_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
     let metadata = metadata?;
-    let value_property = metadata.widget.value_property.as_deref().unwrap_or("value");
+    let value_property = if is_editable_text_component(metadata) {
+        editable_value_property_for_metadata(metadata)
+    } else {
+        metadata.widget.value_property.as_deref().unwrap_or("value")
+    };
     let value = metadata.attributes.get(value_property).or_else(|| {
         (value_property != "value")
             .then(|| metadata.attributes.get("value"))
@@ -398,20 +410,25 @@ fn supports_visible_value_fallback(metadata: Option<&UiTemplateNodeMetadata>) ->
     )
 }
 
-fn is_editable_text_component(metadata: &UiTemplateNodeMetadata) -> bool {
-    resolve_bool_attribute(Some(metadata), "editable_text").unwrap_or(false)
-        || metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::TextInput
-        || matches!(
-            metadata.component.as_str(),
-            "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField" | "SearchField"
-        )
-}
-
 fn resolve_editable_text_value(
     metadata: &UiTemplateNodeMetadata,
     visible_text: Option<&str>,
 ) -> String {
-    let value_property = metadata.widget.value_property.as_deref().unwrap_or("value");
+    let value_property = editable_value_property_for_metadata(metadata);
+    if is_number_field_metadata(metadata) {
+        if resolve_bool_attribute(Some(metadata), "number_edit_active").unwrap_or(false) {
+            return resolve_string_attribute(Some(metadata), "value_text")
+                .unwrap_or_default()
+                .to_string();
+        }
+        return metadata
+            .attributes
+            .get(value_property)
+            .map(UiValue::from_toml)
+            .or_else(|| metadata.widget.value.clone())
+            .map(|value| value.display_text())
+            .unwrap_or_default();
+    }
     metadata
         .attributes
         .get(value_property)
@@ -441,8 +458,8 @@ fn resolve_selection(metadata: &UiTemplateNodeMetadata, text: &str) -> Option<Ui
     let anchor = resolve_usize_attribute(Some(metadata), "selection_anchor")?;
     let focus = resolve_usize_attribute(Some(metadata), "selection_focus")?;
     Some(UiTextSelection {
-        anchor: clamp_text_boundary(text, anchor),
-        focus: clamp_text_boundary(text, focus),
+        anchor: clamp_grapheme_boundary(text, anchor),
+        focus: clamp_grapheme_boundary(text, focus),
     })
 }
 
@@ -452,8 +469,8 @@ fn resolve_composition(metadata: &UiTemplateNodeMetadata, text: &str) -> Option<
     let composition_text = resolve_string_attribute(Some(metadata), "composition_text")?;
     Some(UiTextComposition {
         range: UiTextRange {
-            start: clamp_text_boundary(text, start),
-            end: clamp_text_boundary(text, end),
+            start: clamp_grapheme_boundary(text, start),
+            end: clamp_grapheme_boundary(text, end),
         },
         preedit_clauses: composition_clauses_from_metadata(metadata, composition_text),
         text: composition_text.to_string(),
@@ -586,14 +603,6 @@ fn value_as_f32(value: &Value) -> Option<f32> {
         .as_float()
         .or_else(|| value.as_integer().map(|value| value as f64))
         .map(|value| value as f32)
-}
-
-fn clamp_text_boundary(text: &str, offset: usize) -> usize {
-    let mut offset = offset.min(text.len());
-    while offset > 0 && !text.is_char_boundary(offset) {
-        offset -= 1;
-    }
-    offset
 }
 
 fn resolve_text_overflow(metadata: Option<&UiTemplateNodeMetadata>) -> UiTextOverflow {

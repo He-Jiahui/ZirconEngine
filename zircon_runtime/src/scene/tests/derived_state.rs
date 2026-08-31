@@ -20,7 +20,9 @@ mod spawn_paths;
 
 fn detached_node_record(id: u64, kind: NodeKind) -> NodeRecord {
     let mut source = World::empty();
-    let entity = source.spawn_node(kind);
+    let entity = source
+        .spawn_node(kind)
+        .expect("test scene spawn should succeed");
     let mut record = source.node_record(entity).unwrap();
     record.id = id;
     record.name = format!("Imported {id}");
@@ -29,9 +31,15 @@ fn detached_node_record(id: u64, kind: NodeKind) -> NodeRecord {
 
 fn pending_reparented_world() -> World {
     let mut world = World::new();
-    let first_parent = world.spawn_node(NodeKind::Cube);
-    let second_parent = world.spawn_node(NodeKind::Cube);
-    let child = world.spawn_node(NodeKind::Mesh);
+    let first_parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let second_parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .update_transform(
             first_parent,
@@ -73,9 +81,13 @@ fn direct_child_hierarchy_world(node_count: usize) -> World {
     assert!(node_count > 0, "a hierarchy baseline needs a root entity");
 
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     for _ in 1..node_count {
-        let child = world.spawn_node(NodeKind::Empty);
+        let child = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world.set_parent_checked(child, Some(root)).unwrap();
     }
     world
@@ -112,7 +124,7 @@ fn derived_state_full_rebuild_baseline_is_deterministic_for_one_hundred_thousand
 }
 
 #[test]
-fn derived_state_single_transform_change_currently_rebuilds_every_cached_row() {
+fn derived_state_leaf_transform_change_rebuilds_only_affected_rows() {
     let mut world = direct_child_hierarchy_world(DERIVED_STATE_MEDIUM_NODE_COUNT);
     world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
     let changed = world.nodes().last().unwrap().id;
@@ -130,12 +142,114 @@ fn derived_state_single_transform_change_currently_rebuilds_every_cached_row() {
     assert_eq!(diagnostics.hierarchy_parent_snapshot_entities, 0);
     assert_eq!(diagnostics.hierarchy_validity_entities, 0);
     assert_eq!(diagnostics.active_propagation_entities, 0);
+    assert_eq!(diagnostics.world_matrix_propagation_entities, 1);
+    assert_eq!(diagnostics.node_cache_rebuilt_entities, 1);
+}
+
+#[test]
+fn derived_state_parent_transform_change_rebuilds_the_affected_subtree() {
+    let mut world = direct_child_hierarchy_world(DERIVED_STATE_MEDIUM_NODE_COUNT);
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+    let root = world.nodes().first().unwrap().id;
+
+    world.reset_ecs_frame_performance_diagnostics();
+    world
+        .update_transform(root, Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)))
+        .unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    let diagnostics = world.ecs_frame_performance_diagnostics().derived_state;
     assert_eq!(
         diagnostics.world_matrix_propagation_entities,
         DERIVED_STATE_MEDIUM_NODE_COUNT as u64
     );
-    assert_eq!(
-        diagnostics.node_cache_rebuilt_entities,
-        DERIVED_STATE_MEDIUM_NODE_COUNT as u64
+    assert_eq!(diagnostics.node_cache_rebuilt_entities, 1);
+}
+
+#[test]
+fn derived_state_leaf_active_change_rebuilds_only_the_affected_row() {
+    let mut world = direct_child_hierarchy_world(DERIVED_STATE_MEDIUM_NODE_COUNT);
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+    let changed = world.nodes().last().unwrap().id;
+
+    world.reset_ecs_frame_performance_diagnostics();
+    assert!(world.set_active_self(changed, false).unwrap());
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    let diagnostics = world.ecs_frame_performance_diagnostics().derived_state;
+    assert_eq!(diagnostics.hierarchy_parent_snapshot_entities, 0);
+    assert_eq!(diagnostics.hierarchy_validity_entities, 0);
+    assert_eq!(diagnostics.active_propagation_entities, 1);
+    assert_eq!(diagnostics.world_matrix_propagation_entities, 0);
+    assert_eq!(diagnostics.node_cache_rebuilt_entities, 1);
+}
+
+fn assert_structured_reparent_avoids_global_hierarchy_work(node_count: usize) {
+    assert!(
+        node_count >= 4,
+        "reparent scale fixture needs two roots and a subtree"
     );
+
+    let mut world = World::empty();
+    let first_parent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let second_parent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let changed = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let changed_descendant = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    world
+        .set_parent_checked(changed, Some(first_parent))
+        .unwrap();
+    world
+        .set_parent_checked(changed_descendant, Some(changed))
+        .unwrap();
+    for _ in 4..node_count {
+        let unrelated = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        world
+            .set_parent_checked(unrelated, Some(first_parent))
+            .unwrap();
+    }
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    world.reset_ecs_frame_performance_diagnostics();
+    assert!(
+        world
+            .set_parent_checked(changed, Some(second_parent))
+            .unwrap()
+    );
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    let diagnostics = world.ecs_frame_performance_diagnostics().derived_state;
+    assert_eq!(diagnostics.hierarchy_parent_snapshot_entities, 0);
+    assert_eq!(diagnostics.hierarchy_validity_entities, 0);
+    assert_eq!(diagnostics.hierarchy_topology_rebuild_entities, 0);
+    assert_eq!(diagnostics.active_propagation_entities, 2);
+    assert_eq!(diagnostics.world_matrix_propagation_entities, 2);
+    assert_eq!(diagnostics.node_cache_rebuilt_entities, 1);
+    assert_eq!(
+        world.find_node(changed).unwrap().parent,
+        Some(second_parent)
+    );
+    assert_eq!(
+        world.find_node(changed_descendant).unwrap().parent,
+        Some(changed)
+    );
+}
+
+#[test]
+fn derived_state_structured_reparent_avoids_global_hierarchy_work_at_one_thousand_nodes() {
+    assert_structured_reparent_avoids_global_hierarchy_work(DERIVED_STATE_MEDIUM_NODE_COUNT);
+}
+
+#[test]
+fn derived_state_structured_reparent_avoids_global_hierarchy_work_at_one_hundred_thousand_nodes() {
+    assert_structured_reparent_avoids_global_hierarchy_work(DERIVED_STATE_LARGE_NODE_COUNT);
 }

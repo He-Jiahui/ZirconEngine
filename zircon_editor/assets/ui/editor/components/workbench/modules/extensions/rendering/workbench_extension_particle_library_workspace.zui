@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "particle_library_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.particle_library_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionParticleLibraryWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "particle_library_rail_gap" }, { node = "particle_library_left" }, { node = "particle_library_center" }, { node = "particle_library_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "particle_library_workspace_main" },
+  { node = "particle_library_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.particle_library_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_rail_gap" }, { node = "particle_library_left" }, { node = "particle_library_center" }, { node = "particle_library_right_reserve" }]
+
+[nodes.particle_library_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.particle_library_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionParticleLibraryRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.particle_library_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionParticleLibraryLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "particle_library_title" }, { node = "particle_library_emitters_tab" }, { node = "particle_library_metadata_tab" }, { node = "particle_library_compile_tab" }, { node = "particle_library_sparks_row" }, { node = "particle_library_dust_row" }, { node = "particle_library_impact_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_title" }, { node = "particle_library_left_content" }]
+
+[nodes.particle_library_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionParticleLibraryLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_sparks_row" }, { node = "particle_library_dust_row" }, { node = "particle_library_impact_row" }]
 
 [nodes.particle_library_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionParticleLibraryTitle"
 props = { text = "Particle Library" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.particle_library_emitters_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionParticleLibraryEmittersTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Emitters", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ParticleLibraryEmittersTab", event = "Click", route = "workbench.extension.particle_library.emitters" }]
-
-[nodes.particle_library_metadata_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionParticleLibraryMetadataTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Metadata", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ParticleLibraryMetadataTab", event = "Click", route = "workbench.extension.particle_library.metadata" }]
-
-[nodes.particle_library_compile_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionParticleLibraryCompileTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Compile", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ParticleLibraryCompileTab", event = "Click", route = "workbench.extension.particle_library.compile" }]
 
 [nodes.particle_library_sparks_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/ParticleLibraryImpactRow", event = "Click",
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionParticleLibraryCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "particle_library_center_header" }, { node = "particle_library_table" }, { node = "particle_library_output" }]
 
 [nodes.particle_library_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionParticleLibraryCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "particle_library_center_title" }, { node = "particle_library_header_fill" }, { node = "particle_library_simulate_button" }, { node = "particle_library_compile_button" }]
 
 [nodes.particle_library_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionParticleLibrarySimulateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Simulate", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Simulate", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 90.0, preferred = 90.0, max = 100.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/ParticleLibrarySimulate", event = "Click", route = "workbench.extension.particle_library.simulate" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/ParticleLibrarySimulate", event = "Click", 
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionParticleLibraryCompileButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Compile", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Compile", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 88.0, preferred = 88.0, max = 98.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/ParticleLibraryCompile", event = "Click", route = "workbench.extension.particle_library.compile_command" }]
 
 [nodes.particle_library_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionParticleLibraryTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "particle_library_gpu_spark_row" }, { node = "particle_library_cpu_dust_row" }, { node = "particle_library_impact_gpu_row" }, { node = "particle_library_archived_row" }]
 
 [nodes.particle_library_gpu_spark_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/ParticleLibraryArchivedRow", event = "Click
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionParticleLibraryOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Particles", value_text = "P_Sparks   GPU   4 emitters" }
+props = { text = "Particles", value_text = "P_Sparks   GPU   4 emitters", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ParticleLibraryOutput", event = "Click", route = "workbench.extension.particle_library.output" }]
 
 [nodes.particle_library_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionParticleLibraryRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "particle_library_details_title" }, { node = "particle_library_emitter_dropdown" }, { node = "particle_library_duration_field" }, { node = "particle_library_bounds_dropdown" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_details_title" }, { node = "particle_library_right_content" }]
+
+[nodes.particle_library_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionParticleLibraryRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particle_library_emitter_dropdown_property_row" }, { node = "particle_library_duration_field_property_row" }, { node = "particle_library_bounds_dropdown_property_row" }]
 
 [nodes.particle_library_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,16 +202,30 @@ control_id = "WorkbenchExtensionParticleLibraryDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.particle_library_emitter_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionParticleLibraryEmitterDropdownPropertyRow"
+props = { text = "Emitter" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "particle_library_emitter_dropdown", slot = { name = "value" } }]
+
 [nodes.particle_library_emitter_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionParticleLibraryEmitterDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "P_Sparks", value = "P_Sparks", options = ["P_Sparks", "P_DustTrail", "P_ImpactBurst"] }
+props = { value_text = "P_Sparks", value = "P_Sparks", options = ["P_Sparks", "P_DustTrail", "P_ImpactBurst"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/ParticleLibraryEmitterEdit", event = "Change", route = "workbench.extension.particle_library.emitter.edit" },
   { id = "WorkbenchExtension/ParticleLibraryEmitterCommit", event = "Submit", route = "workbench.extension.particle_library.emitter.commit" },
 ]
+
+[nodes.particle_library_duration_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionParticleLibraryDurationFieldPropertyRow"
+props = { text = "Duration" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "particle_library_duration_field", slot = { name = "value" } }]
 
 [nodes.particle_library_duration_field]
 component = "WorkbenchField"
@@ -218,11 +238,18 @@ events = [
   { id = "WorkbenchExtension/ParticleLibraryDurationCommit", event = "Submit", route = "workbench.extension.particle_library.duration.commit" },
 ]
 
+[nodes.particle_library_bounds_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionParticleLibraryBoundsDropdownPropertyRow"
+props = { text = "Bounds" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "particle_library_bounds_dropdown", slot = { name = "value" } }]
+
 [nodes.particle_library_bounds_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionParticleLibraryBoundsDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Fixed Bounds", value = "Fixed Bounds", options = ["Fixed Bounds", "Dynamic Bounds", "GPU Estimated"] }
+props = { value_text = "Fixed Bounds", value = "Fixed Bounds", options = ["Fixed Bounds", "Dynamic Bounds", "GPU Estimated"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/ParticleLibraryBoundsEdit", event = "Change", route = "workbench.extension.particle_library.bounds.edit" },

@@ -51,8 +51,7 @@ impl RetainedEditorHost {
                     );
                     *chrome = self.build_chrome();
                     let context = self.runtime.project_command_eval_snapshot(chrome);
-                    let commands = self.runtime.commands().lock();
-                    *model = WorkbenchViewModel::build_with_context(&commands, chrome, &context);
+                    *model = self.runtime.build_workbench_view_model(chrome, &context);
                 }
             }
         }
@@ -79,11 +78,8 @@ impl RetainedEditorHost {
             );
         self.sync_activity_rail_pointer_layout(model);
         self.sync_host_page_pointer_layout(model);
-        self.sync_document_tab_pointer_layout(model, floating_window_projection_bundle);
-        self.sync_drawer_header_pointer_layout_with_workbench_layout_frames(
-            model,
-            componentized_workbench_layout_frames,
-        );
+        self.sync_document_tab_pointer_layout(model);
+        self.sync_drawer_header_pointer_layout(model);
     }
 }
 
@@ -100,7 +96,7 @@ mod tests {
             .find("model.status_bar = StatusBarModel::from_chrome(chrome)")
             .expect("incremental viewport projection");
         let full = production
-            .find("WorkbenchViewModel::build_with_context")
+            .find("build_workbench_view_model")
             .expect("conservative model fallback");
 
         assert!(incremental < full);

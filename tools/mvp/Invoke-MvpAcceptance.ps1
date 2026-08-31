@@ -17,6 +17,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$script:MvpAcceptanceUpperHexDigits = [char[]]'0123456789ABCDEF'
 
 if ($RequireF5Evidence) {
     # The F5 product claim is indivisible: creation, authoring, reopen, and visual evidence
@@ -52,6 +53,20 @@ Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingProjection.psm1') -F
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingTreeManifest.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpDatePreservingJson.psm1') -Force -ErrorAction Stop
+
+function ConvertTo-MvpAcceptanceUpperHex {
+    param([Parameter(Mandatory)][byte[]]$Bytes)
+
+    $characters = [char[]]::new($Bytes.Length * 2)
+    for ($index = 0; $index -lt $Bytes.Length; $index++) {
+        $value = $Bytes[$index]
+        $characters[$index * 2] = $script:MvpAcceptanceUpperHexDigits[$value -shr 4]
+        $characters[$index * 2 + 1] = $script:MvpAcceptanceUpperHexDigits[$value -band 0x0F]
+    }
+    return [string]::new($characters)
+}
 
 function Get-MvpFileSha256 {
     param([Parameter(Mandatory)][string]$Path)
@@ -59,7 +74,7 @@ function Get-MvpFileSha256 {
     $stream = [IO.File]::OpenRead($Path)
     $hasher = [Security.Cryptography.SHA256]::Create()
     try {
-        return -join ($hasher.ComputeHash($stream) | ForEach-Object { $_.ToString('X2') })
+        return ConvertTo-MvpAcceptanceUpperHex -Bytes $hasher.ComputeHash($stream)
     }
     finally {
         $hasher.Dispose()
@@ -70,12 +85,38 @@ function Get-MvpFileSha256 {
 function Assert-MvpAcceptanceArtifactRoot {
     param(
         [Parameter(Mandatory)]$Resolution,
+        [Parameter(Mandatory)][string]$OriginalPath,
         [Parameter(Mandatory)][string]$Label
     )
 
-    $displayPath = [string]$Resolution.DisplayPath
-    if ($displayPath -notmatch '^[D-F]:\\ZirconBuilds(?:\\|$)') {
-        throw "$Label '$displayPath' must resolve under an approved D:\ZirconBuilds, E:\ZirconBuilds, or F:\ZirconBuilds root."
+    $namespaceIds = switch ($Label) {
+        'StagingRoot' { @('mvp-staging-runs', 'mvp-test-fixtures') }
+        'EvidenceRoot' { @('mvp-acceptance-evidence', 'mvp-test-fixtures') }
+        default { throw "Unsupported acceptance artifact label '$Label'." }
+    }
+    $failures = [Collections.Generic.List[string]]::new()
+    $namespaceAuthorized = $false
+    foreach ($namespaceId in $namespaceIds) {
+        try {
+            Resolve-MvpArtifactStoragePath `
+                -Path ([string]$Resolution.DisplayPath) `
+                -NamespaceId $namespaceId | Out-Null
+            $namespaceAuthorized = $true
+            break
+        }
+        catch {
+            $failures.Add($_.Exception.Message) | Out-Null
+        }
+    }
+    if (-not $namespaceAuthorized) {
+        throw "$Label '$($Resolution.DisplayPath)' must resolve under approved storage roots and one registered acceptance namespace: $($failures -join ' | ')"
+    }
+
+    # Resolve-ZirconWindowsPath follows reparse points to provide an operational path. Validate
+    # the caller's original existing root through the no-follow native handle after namespace
+    # admission so an approved junction cannot resolve to a physical target and bypass this check.
+    if (Test-Path -LiteralPath $OriginalPath -PathType Container) {
+        Get-MvpAcceptanceNativeDirectoryIdentity -Path $OriginalPath | Out-Null
     }
 }
 
@@ -242,6 +283,12 @@ function Get-MvpRequiredProperty {
     return $property.Value
 }
 
+function ConvertFrom-MvpJsonText {
+    param([Parameter(Mandatory)][string]$Json)
+
+    return ConvertFrom-MvpDatePreservingJson -Json $Json
+}
+
 function Read-MvpJsonObject {
     param(
         [Parameter(Mandatory)][string]$Path,
@@ -253,11 +300,7 @@ function Read-MvpJsonObject {
     }
     try {
         $json = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
-        $convertFromJson = Get-Command ConvertFrom-Json -ErrorAction Stop
-        if ($convertFromJson.Parameters.ContainsKey('DateKind')) {
-            return $json | ConvertFrom-Json -DateKind String
-        }
-        return $json | ConvertFrom-Json
+        return ConvertFrom-MvpJsonText -Json $json
     }
     catch {
         throw "$Label '$Path' is not valid JSON: $($_.Exception.Message)"
@@ -272,38 +315,54 @@ function Read-MvpProcessJournal {
         -StagingRoot $StagingRoot `
         -Label 'Process execution journal'
     $entries = @{}
-    $lines = @(Get-Content -LiteralPath $journalPath -Encoding UTF8)
-    if ($lines.Count -eq 0) {
-        throw 'Process execution journal contains no entries.'
+    $reader = [IO.StreamReader]::new(
+        $journalPath,
+        [Text.UTF8Encoding]::new($false, $true),
+        $true,
+        8192)
+    $lineNumber = 0
+    $entryCount = 0
+    try {
+        while ($true) {
+            $line = $reader.ReadLine()
+            if ($null -eq $line) {
+                break
+            }
+            $lineNumber++
+            if ([string]::IsNullOrWhiteSpace($line)) {
+                continue
+            }
+            try {
+                $entry = ConvertFrom-MvpJsonText -Json $line
+            }
+            catch {
+                throw "Process execution journal line $lineNumber is not valid JSON: $($_.Exception.Message)"
+            }
+            $phase = [string](Get-MvpRequiredProperty -Value $entry -Name 'phase' -Label "Process execution journal line $lineNumber")
+            if ($entries.ContainsKey($phase)) {
+                throw "Process execution journal contains duplicate phase '$phase'."
+            }
+            foreach ($propertyName in @('started_at_utc', 'ended_at_utc', 'exit_code', 'outcome')) {
+                $null = Get-MvpRequiredProperty -Value $entry -Name $propertyName -Label "Process execution journal phase '$phase'"
+            }
+            [DateTimeOffset]$startedAt = [DateTimeOffset]::MinValue
+            [DateTimeOffset]$endedAt = [DateTimeOffset]::MinValue
+            if (-not [DateTimeOffset]::TryParse([string]$entry.started_at_utc, [ref]$startedAt) -or
+                -not [DateTimeOffset]::TryParse([string]$entry.ended_at_utc, [ref]$endedAt) -or
+                $endedAt -lt $startedAt) {
+                throw "Process execution journal phase '$phase' has invalid timing evidence."
+            }
+            $entries[$phase] = $entry
+            $entryCount++
+        }
     }
-    for ($index = 0; $index -lt $lines.Count; $index++) {
-        $line = [string]$lines[$index]
-        if ([string]::IsNullOrWhiteSpace($line)) {
-            continue
-        }
-        try {
-            $entry = $line | ConvertFrom-Json -ErrorAction Stop
-        }
-        catch {
-            throw "Process execution journal line $($index + 1) is not valid JSON: $($_.Exception.Message)"
-        }
-        $phase = [string](Get-MvpRequiredProperty -Value $entry -Name 'phase' -Label "Process execution journal line $($index + 1)")
-        if ($entries.ContainsKey($phase)) {
-            throw "Process execution journal contains duplicate phase '$phase'."
-        }
-        foreach ($propertyName in @('started_at_utc', 'ended_at_utc', 'exit_code', 'outcome')) {
-            $null = Get-MvpRequiredProperty -Value $entry -Name $propertyName -Label "Process execution journal phase '$phase'"
-        }
-        [DateTimeOffset]$startedAt = [DateTimeOffset]::MinValue
-        [DateTimeOffset]$endedAt = [DateTimeOffset]::MinValue
-        if (-not [DateTimeOffset]::TryParse([string]$entry.started_at_utc, [ref]$startedAt) -or
-            -not [DateTimeOffset]::TryParse([string]$entry.ended_at_utc, [ref]$endedAt) -or
-            $endedAt -lt $startedAt) {
-            throw "Process execution journal phase '$phase' has invalid timing evidence."
-        }
-        $entries[$phase] = $entry
+    catch [Text.DecoderFallbackException] {
+        throw 'Process execution journal is not valid UTF-8.'
     }
-    if ($entries.Count -eq 0) {
+    finally {
+        $reader.Dispose()
+    }
+    if ($entryCount -eq 0) {
         throw 'Process execution journal contains no non-empty entries.'
     }
     return $entries
@@ -587,6 +646,7 @@ function Assert-MvpDiagnosticsMatchSummary {
 function Assert-MvpStagingManifestIntegrity {
     param(
         [Parameter(Mandatory)][string]$StagingRoot,
+        [Parameter(Mandatory)][string]$CapabilityRoot,
         [Parameter(Mandatory)]$Manifest
     )
 
@@ -661,6 +721,15 @@ function Assert-MvpStagingManifestIntegrity {
         -Manifest $Manifest `
         -EntryBytes $entryBytes `
         -StagingRoot $StagingRoot
+    $preflight = Get-MvpRequiredProperty -Value $Manifest -Name 'preflight' -Label 'Staging manifest'
+    $storageCapabilityEvidence = Get-MvpRequiredProperty `
+        -Value $Manifest `
+        -Name 'storage_capability' `
+        -Label 'Staging manifest'
+    $null = Assert-MvpArtifactStorageCapabilityEvidence `
+        -Evidence $storageCapabilityEvidence `
+        -ExpectedPath $CapabilityRoot `
+        -ExpectedRequiredFreeSpaceBytes ([Int64]$preflight.required_free_space_bytes)
 
     return $entries.Count
 }
@@ -2314,9 +2383,9 @@ $acceptanceStagingSnapshotIdentity = $null
 $acceptanceStagingSnapshotLease = $null
 try {
 $stagingRootResolution = Resolve-ZirconWindowsPath -Path $StagingRoot
-Assert-MvpAcceptanceArtifactRoot -Resolution $stagingRootResolution -Label 'StagingRoot'
+Assert-MvpAcceptanceArtifactRoot -Resolution $stagingRootResolution -OriginalPath $StagingRoot -Label 'StagingRoot'
 $evidenceRootResolution = Resolve-ZirconWindowsPath -Path $EvidenceRoot
-Assert-MvpAcceptanceArtifactRoot -Resolution $evidenceRootResolution -Label 'EvidenceRoot'
+Assert-MvpAcceptanceArtifactRoot -Resolution $evidenceRootResolution -OriginalPath $EvidenceRoot -Label 'EvidenceRoot'
 $resolvedEvidenceRoot = $evidenceRootResolution.DisplayPath
 $stagingSnapshot = New-MvpAcceptanceStagingSnapshot -StagingRoot $StagingRoot -PassThru
 $acceptanceStagingSnapshotRoot = [string]$stagingSnapshot.snapshot_root
@@ -2356,7 +2425,14 @@ $resolvedStagingRoot = $acceptanceStagingSnapshotRoot
 $stagingManifestPath = Join-Path $resolvedStagingRoot 'staging-manifest.json'
 $startupSummaryPath = Join-Path $resolvedStagingRoot 'startup-summary.json'
 $stagingManifest = Read-MvpJsonObject -Path $stagingManifestPath -Label 'Staging manifest'
-$stagingEntryCount = Assert-MvpStagingManifestIntegrity -StagingRoot $resolvedStagingRoot -Manifest $stagingManifest
+$stagingEntryCount = Assert-MvpStagingManifestIntegrity `
+    -StagingRoot $resolvedStagingRoot `
+    -CapabilityRoot $expectedStagingResolution.DisplayPath `
+    -Manifest $stagingManifest
+$storageCapabilityEvidence = Get-MvpRequiredProperty `
+    -Value $stagingManifest `
+    -Name 'storage_capability' `
+    -Label 'Staging manifest'
 $startupSummary = Read-MvpJsonObject -Path $startupSummaryPath -Label 'Startup summary'
 
 $runId = [string](Get-MvpRequiredProperty -Value $stagingManifest -Name 'run_id' -Label 'Staging manifest')
@@ -2533,6 +2609,7 @@ $manifest = [ordered]@{
     created_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
     staging_manifest_sha256 = $stagingManifestHash
     startup_summary_sha256 = $startupSummaryHash
+    storage_capability = $storageCapabilityEvidence
     staging_entry_count = $stagingEntryCount
     staged_project_root = $stagedProjectRoot
     project_identity = $projectIdentityEvidence
@@ -2564,6 +2641,7 @@ $result = [ordered]@{
     render_device_limits = if ($null -eq $renderDevice) { $null } else { $renderDevice.limits }
     staging_manifest_sha256 = $stagingManifestHash
     startup_summary_sha256 = $startupSummaryHash
+    storage_capability = $storageCapabilityEvidence
     staging_entry_count = $stagingEntryCount
     staged_project_root = $stagedProjectRoot
     project_identity = $projectIdentityEvidence

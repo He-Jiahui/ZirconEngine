@@ -5,11 +5,11 @@ use crate::asset::project::ProjectManager;
 use crate::core::resource::{MaterialMarker, MeshMarker};
 use crate::scene::components::{MeshRenderer, MeshRendererLodLevel, MeshRendererPrimitiveBinding};
 
+use super::SceneProjectError;
 use super::references::{
     handle_for_reference, material_handle_for_reference, model_handle_for_reference,
     reference_for_material_handle, reference_for_mesh_handle, reference_for_model_handle,
 };
-use super::SceneProjectError;
 
 pub(super) fn mesh_from_asset(
     project: &ProjectManager,

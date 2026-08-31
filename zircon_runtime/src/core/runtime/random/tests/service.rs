@@ -64,9 +64,10 @@ fn service_state_restores_authority_but_checkpoint_restores_stream_progress() {
     stream.release();
     let authority = service.snapshot();
     let checkpoint = service.checkpoint().expect("idle registry checkpoint");
+    assert_eq!(checkpoint.streams()[0].master_seed_generation(), 0);
 
     let empty_registry = RandomService::from_state(authority);
-    let restored_registry = RandomService::from_checkpoint(checkpoint)
+    let restored_registry = RandomService::from_checkpoint(checkpoint.clone())
         .expect("checkpoint within the default stream capacity");
     assert_eq!(empty_registry.registered_stream_count(), 0);
     assert_eq!(restored_registry.registered_stream_count(), 1);
@@ -81,6 +82,23 @@ fn service_state_restores_authority_but_checkpoint_restores_stream_progress() {
         .snapshot();
     assert_eq!(derived_again.draw_index(), 0);
     assert_eq!(resumed.draw_index(), 1);
+
+    let unseen_key = RandomStreamKey::for_entity(
+        key().world(),
+        RandomEntityKey::new(46, 2),
+        key().system(),
+        key().purpose(),
+        key().authoring_seed(),
+    );
+    let expected_unseen = RandomService::from_state(checkpoint.service_state())
+        .acquire_stream(unseen_key)
+        .expect("authority-only service derives unseen key")
+        .snapshot();
+    let restored_unseen = restored_registry
+        .acquire_stream(unseen_key)
+        .expect("checkpoint service derives unseen key")
+        .snapshot();
+    assert_eq!(restored_unseen, expected_unseen);
 }
 
 #[test]

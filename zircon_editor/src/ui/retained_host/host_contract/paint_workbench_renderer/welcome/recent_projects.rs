@@ -1,4 +1,4 @@
-use super::super::super::data::{FrameRect, PaneData};
+use super::super::super::data::{FrameRect, PaneData, WelcomePaneLayoutData};
 use super::super::super::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::welcome_recent_geometry::welcome_recent_visible_row_count;
 
@@ -15,14 +15,15 @@ use rows::draw_recent_project_rows;
 pub(in crate::ui::retained_host::host_contract) fn draw_welcome_recent_projects(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
+    layout: &WelcomePaneLayoutData,
     body: &FrameRect,
     recent_panel: &FrameRect,
     clip: &FrameRect,
 ) {
-    let header = recent_projects_header_frame(pane, body, recent_panel);
+    let header = recent_projects_header_frame(layout, body, recent_panel);
     draw_recent_projects_header(frame, &header, clip);
 
-    let list = recent_projects_list_frame(pane, body, recent_panel, &header);
+    let list = recent_projects_list_frame(layout, body, recent_panel, &header);
     draw_recent_projects_list_surface(frame, &list, clip);
 
     let row_count = pane.welcome.recent_projects.row_count();

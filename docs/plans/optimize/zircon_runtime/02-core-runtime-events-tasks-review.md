@@ -12,6 +12,12 @@ related_code:
   - zircon_runtime/src/asset/pipeline/worker_pool
   - zircon_runtime/src/operation/maintenance.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
+  - zircon_plugins/navigation/runtime/src/lib.rs
+  - zircon_plugins/navigation/runtime/src/manager.rs
+  - zircon_runtime/src/platform/module.rs
+  - zircon_runtime/src/platform/service_types/driver.rs
+  - zircon_runtime/src/platform/preferences/persistence/adapter.rs
+  - zircon_app/src/entry/engine_entry.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/01-core-runtime-lifecycle-registry-review.md
@@ -23,7 +29,9 @@ reference_engines:
   - dev/bevy/crates/bevy_ecs/src/message/message_cursor.rs
   - dev/godot/core/object/worker_thread_pool.cpp
   - dev/godot/core/object/message_queue.h
+  - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/TaskGraphInterfaces.h
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Private/Async/Fundamental/Scheduler.cpp
+  - dev/Fyrox/fyrox-impl/src/engine/mod.rs
 ---
 
 # 02 · Core Runtime Event 与 Task Execution 工程化差距
@@ -33,6 +41,12 @@ reference_engines:
 当前实现不是简单的 demo：event bus 已有明确的 lossless/drop-oldest/latest policy、同 topic 发布序、共享 payload、取消订阅和队列诊断；task 层也有三类 pool、依赖 continuation、worker 内协助等待、panic 记录、bounded keyed I/O 的容量/截止期/取消/停机保护，以及数量可观的并发行为测试。
 
 但这些局部能力没有收敛为“动态 runtime library 可以安全卸载”的统一执行所有权。`CoreRuntime::new` 必然取得 `OnceLock` 中的进程级 Rayon pools，而 dynamic session destroy 没有停止 admission、排空任务或 join worker；process timer 也被 `OnceLock` 永久持有。对 `cdylib` 来说，这意味着 host 收到 destroy 成功并卸载代码后，旧 worker 仍可能等待或执行库内函数。该项为 P0，并直接扩展 `01` 的产品 shutdown 缺口。
+
+2026-08-26 implementation update, pending acceptance: `CoreRuntime::try_new()` now creates an instance-owned `ExecutionRuntime` through fallible pool construction, and dynamic-session destroy requests its scoped drain after module deactivation. This corrects the historical CoreRuntime process-default statement only. The legacy scheduler, callback dispatcher, process timer, and private worker paths are still outside scope ownership, so the P0 unload conclusion remains open.
+
+2026-08-27 graphics, Navigation, and Platform owner update, pending acceptance: every production-visible `WgpuRenderFramework` constructor now requires an explicit Runtime-owned `TaskPool`; all three direct full-compute allocations and the unused implicit Solari constructor are removed. `DefaultNavigationManager` likewise requires an injected pool, and its module declares `TasksModule` before deriving the worker from the activation Core. Navigation production private-pool sites are `1 -> 0`; 55 test constructors use a retained two-worker fixture. Platform then removes `PlatformDriver::default()`, requires the backend constructor to accept a pool, and replaces the crate-private adapter's process-owner `new(...)` with `with_pool(...)`; both builtin and App override factories inject the activation Core owner. Platform implicit owner-selection routes are `3 -> 0`, direct process-default sites are `2 -> 0`, and 42 driver plus four adapter test constructors use retained one-worker fixtures. Preference/platform-host/window/event-loop algorithms are unchanged. The timer/text/asset-standalone/private-worker families remain open, so P1-4 and the aggregate unload conclusion are not closed. This is static owner evidence, not a performance or power result.
+
+2026-08-27 offline Font SDF owner update, pending acceptance: the library bake API no longer resolves `TaskPools::process_default()` and instead requires `&TaskPool`; the standalone CLI owns one explicit `EngineTaskGraph`, obtains a bounded shutdown receipt, and the integration tests retain a two-worker graph. Implicit process-owner routes are `1 -> 0` and worker sets are `3 -> 1`. In the 16-logical-processor source model, total configured workers remain 16 while generation-visible parallelism changes `4 -> 16`; this is not elapsed-time or power evidence. Product renderer SDF/shape prewarm and the private bitmap raster workers remain measurement-gated, so the text family and aggregate unload conclusion stay open.
 
 本轮确认 1 项 P0、6 项 P1 和 4 项 P2。event 与 task 必须共同审查，是因为跨线程事件接收、deadline timer、asset/operation maintenance 和 module shutdown 都依赖同一个 cancellation/quiescence 边界；分别修局部 API 会继续制造无法证明停机的后台执行路径。
 

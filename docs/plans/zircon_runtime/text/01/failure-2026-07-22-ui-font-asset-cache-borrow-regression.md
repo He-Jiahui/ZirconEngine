@@ -136,6 +136,19 @@ job `7a3535adc537456e9a3fe3857903652d`、run `ddfbf16587684a9d822fa0e4c76beeca` 
 
 Current-source default/UI broad return is also green: managed job `15ff3d8dfd154e93bd1f8fe23ea33aa6`, run `1cffe3b7d1c047958ee2cb49122fe325`, executed `cargo +1.94.1 test -p zircon_runtime --lib text_font_asset --locked --jobs 1 --color never -- --test-threads=1` with exit `0`: `8 passed / 0 failed / 8995 filtered`. It covers one-entry cache authority, production panic guard, resource-revision reload, Missing/Error negative-cache recovery, Ready-to-Missing face retirement, shared owner mapping invalidation, and TTC owner cleanup. The original Layout15 editor upward job `4eefa547982a4bd896813d9fad698f21` / run `ceff37fc13224768af1c365287f242e5` is terminal and released with exit 101 after 50m14s: it compiled Runtime/Text but then reported 56 unrelated editor private-field, pane-template, event DTO, lifetime, and test-type errors. No Text01 source file was diagnosed. This failure remains `open / external_editor_return_pending` rather than being misclassified as Text01 RED.
 
+2026-08-28 current-source static return found the Text01 composite-activation guard still requiring the removed
+`resolved_texts.font_faces_changed()` projection. Production now aggregates semantic changes from
+`refresh_shared_font_database()` and each `ensure_font_asset_record(...).faces_changed`, then routes the result
+through one `invalidate_font_faces` authority covering shaping, bitmap-atlas, SDF-atlas, SDF CPU, and retained
+segment products. The focused guard was first reproduced RED at the obsolete assertion, then updated to enforce
+that incremental aggregation and the complete invalidation fan-out without changing the foreign-owned Rust file.
+The full static suite then exposed the same modularization drift in the raster-worker assertion: the face-epoch
+drain call now belongs to `native_bitmap_atlas/frame.rs`, while the worker disposition and cache invalidation
+counters remain in their lower owner leaves. The guard now follows that leaf boundary and still rejects retired
+atlas-page-generation worker identities.
+This repairs the stale plan anchor only; the failure remains `open / external_editor_return_pending` until the
+existing managed Rust upward gate can be rerun on an unblocked shared snapshot.
+
 The current-source production cache-report refinement is green: job `d73b8e1acabc4ca7b25653a3c4931d2f` / run `dd5fa01d1d8a4966af9fc76fa2db727a` completed default-feature `cargo +1.94.1 check -p zircon_runtime --lib --locked --jobs 1 --color never` with exit 0 in 23m09s, after moving `record/loaded/cache_hit/status` to test-only observations so production only carries the semantic `faces_changed` report. The attempted fresh UI broad lib-test job `4bb84ac5c91e4a25bef3cf294e8dad5e` / run `c3c2cc913a854a14b3fc11e7c150a945` could not execute its Text filters because current `deferred/lighting_pipeline/tests/runtime_pipeline.rs` imports removed `create_lighting_pipeline` (external E0432). It is not Text01 RED; retain the prior 8/0 focused/default/UI evidence and leave this failure open pending the external test repair.
 
 外部 Frameworks05 current-source compile job `282d191c8da14fb38a3edd5804464424`、run

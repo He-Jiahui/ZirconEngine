@@ -211,11 +211,20 @@ fn is_native_dynamic_artifact(path: &Path) -> bool {
     let Some(extension) = path.extension().and_then(|extension| extension.to_str()) else {
         return false;
     };
-    matches!(
-        extension.to_ascii_lowercase().as_str(),
-        "dll" | "so" | "dylib" | "pdb" | "dbg" | "dsym"
-    )
+    match extension.len() {
+        2 => extension.eq_ignore_ascii_case("so"),
+        3 => ["dll", "pdb", "dbg"]
+            .iter()
+            .any(|supported| extension.eq_ignore_ascii_case(supported)),
+        4 => extension.eq_ignore_ascii_case("dsym"),
+        5 => extension.eq_ignore_ascii_case("dylib"),
+        _ => false,
+    }
 }
+
+#[cfg(test)]
+#[path = "copy/native_extension_tests.rs"]
+mod native_extension_tests;
 
 #[cfg(test)]
 mod tests {

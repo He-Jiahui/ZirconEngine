@@ -25,7 +25,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_r
     matches!(
         state,
         UiPainterResolvedState::Focused
-            | UiPainterResolvedState::Pressed
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered
     )

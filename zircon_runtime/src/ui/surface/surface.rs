@@ -1,32 +1,38 @@
 use std::{
     cell::RefCell,
     collections::{BTreeMap, BTreeSet},
+    sync::Arc,
 };
 
 use serde::{Deserialize, Serialize};
 
 use super::{
-    arranged_focus_path,
-    component_state::{
-        property_may_affect_runtime_pseudo_state, UiComponentStatePropertyChange,
-        UiSurfaceComponentStateStore,
-    },
+    arranged_focus_path_indexed,
+    arranged_visibility::UiArrangedVisibilityIndex,
+    clipboard_transfers::UiSurfaceClipboardTransferStore,
+    component_state::{UiSurfaceComponentStateMigrationReport, UiSurfaceComponentStateStore},
     control_index::UiSurfaceControlIndex,
-    debug_hit_test_surface_frame, debug_surface_frame, debug_surface_frame_for_pick,
-    debug_surface_frame_for_selection, debug_surface_frame_with_options,
-    frame_hit_test::{hit_test_projected_grid_with_query, UiProjectedHitTestIndex},
-    input::UiSurfaceInputState,
+    debug_hit_test_surface_frame, debug_surface_frame_for_pick_with_ecs_projection,
+    debug_surface_frame_for_selection_with_ecs_projection, debug_surface_frame_with_ecs_projection,
+    debug_surface_frame_with_options_and_ecs_projection,
+    frame_hit_test::UiProjectedHitTestIndex,
+    input::{self, UiSurfaceInputState},
     invalidation::{
         UiInvalidationCommit, UiInvalidationGenerations, UiInvalidationTransaction,
         UiSurfaceInvalidationApplyError, UiSurfaceInvalidationState,
     },
+    navigation_index::UiSurfaceNavigationIndex,
     node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport},
-    property_mutation::{
-        mutate_tree_property, UiPropertyMutationReport, UiPropertyMutationRequest,
-        UiPropertyMutationStatus,
-    },
     reflector_snapshot,
-    render::{popup_base_z, UiSurfaceRenderCache},
+    render::{UiSurfaceRenderCache, popup_base_z},
+    secure_text_values::UiSurfaceSecureTextValueStore,
+    session_identity::{UiSurfaceSessionIdentity, UiSurfaceSessionIdentityHandle},
+    virtual_list_materialization::UiVirtualListMaterializationIndex,
+    virtual_list_prototype_pool::UiVirtualListPrototypePoolIndex,
+};
+use crate::text::{
+    RichSemanticProjection, RichTextFormat,
+    font::{FontCollectionService, shared_font_collection_service},
 };
 use crate::ui::text::UiTextMeasureCache;
 use crate::ui::v2::UiV2RuntimeStyleIndex;
@@ -35,12 +41,9 @@ use crate::ui::{
     tree::{UiHitTestIndex, UiHitTestResult, UiRuntimeTreeRoutingExt},
 };
 use zircon_runtime_interface::ui::accessibility::UiAccessibilityTreeSnapshot;
-use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTree, UiTreeError};
+use zircon_runtime_interface::ui::tree::{UiTree, UiTreeError};
 use zircon_runtime_interface::ui::{
-    component::UiValue,
-    dispatch::UiTransientDismissalTarget,
     event_ui::{UiNodeId, UiReflectorSnapshot, UiTreeId},
-    focus::{UiFocusChangeEvent, UiFocusChangeReason},
     layout::{UiFrame, UiLayoutEngineSelectionReport, UiPoint},
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{
@@ -48,26 +51,41 @@ use zircon_runtime_interface::ui::{
         UiHitTestQuery, UiNavigationState, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
         UiRenderList, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot, UiSurfaceWindowState,
     },
+    template::UiCompiledBindingProgram,
 };
 
+mod compiled_binding_event_index;
 mod default_interactions;
 mod event_routing;
+mod font_generation;
 mod frame_publication;
 mod interaction_state;
 mod pointer_component_events;
+mod property_transaction;
 mod rebuild;
 mod virtual_window;
 
+use compiled_binding_event_index::UiCompiledBindingEventIndex;
 use frame_publication::UiSurfaceFramePublication;
-pub use rebuild::UiSurfaceRebuildReport;
+pub use rebuild::{
+    UiAuthoredGeometryFallbackReason, UiAuthoredGeometryPublication, UiSurfaceRebuildReport,
+};
 use virtual_window::UiVirtualWindowState;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiSurface {
     pub tree: UiTree,
+    #[serde(default, skip)]
+    pub(super) session_identity: UiSurfaceSessionIdentity,
+    #[serde(default)]
+    pub(super) compiled_bindings: UiCompiledBindingProgram,
+    #[serde(default, skip)]
+    pub(super) compiled_binding_event_index: UiCompiledBindingEventIndex,
     pub arranged_tree: UiArrangedTree,
     #[serde(default, skip)]
     pub(super) arranged_node_indices: BTreeMap<UiNodeId, usize>,
+    #[serde(default, skip)]
+    pub(super) arranged_visibility: UiArrangedVisibilityIndex,
     #[serde(default, skip)]
     pub(super) arranged_slot_indices: BTreeMap<UiNodeId, usize>,
     #[serde(default, skip)]
@@ -81,17 +99,25 @@ pub struct UiSurface {
     #[serde(default)]
     pub component_states: UiSurfaceComponentStateStore,
     #[serde(default, skip)]
+    pub(super) secure_text_values: UiSurfaceSecureTextValueStore,
+    #[serde(default, skip)]
+    pub(super) clipboard_transfers: UiSurfaceClipboardTransferStore,
+    #[serde(default, skip)]
     pub(super) control_index: UiSurfaceControlIndex,
     #[serde(default, skip)]
     pub(crate) runtime_style: UiV2RuntimeStyleIndex,
     pub navigation: UiNavigationState,
+    #[serde(default, skip)]
+    pub(super) navigation_index: UiSurfaceNavigationIndex,
     pub render_extract: UiRenderExtract,
     #[serde(default)]
     pub window_state: UiSurfaceWindowState,
-    #[serde(default)]
+    #[serde(default, skip)]
     pub render_cache: UiSurfaceRenderCache,
     #[serde(default, skip)]
     pub(crate) text_measure_cache: UiTextMeasureCache,
+    #[serde(default, skip)]
+    pub(super) observed_text_font_generation: u64,
     #[serde(default)]
     pub node_pool: UiSurfaceNodePool,
     #[serde(default)]
@@ -113,22 +139,63 @@ pub struct UiSurface {
     pub(super) pending_pool_report: UiSurfaceNodePoolReport,
     #[serde(default, skip)]
     pub(super) frame_publication: RefCell<UiSurfaceFramePublication>,
+    #[serde(default, skip)]
+    pub(super) virtual_list_materialization: UiVirtualListMaterializationIndex,
+    #[serde(default, skip)]
+    pub(super) virtual_list_prototype_pool: UiVirtualListPrototypePoolIndex,
 }
 
 impl UiSurface {
-    /// Returns the generation used by UI text measurement and shaping caches.
+    /// Returns the process-owner generation used by Editor-host and standalone UI caches.
+    /// Core-owned Runtime surfaces track the generation of their injected collection internally.
     pub fn shared_font_database_generation() -> u64 {
         crate::text::font::shared_font_database_generation()
     }
 
+    pub(crate) fn install_compiled_binding_program(&mut self, program: UiCompiledBindingProgram) {
+        self.control_index
+            .install_compiled_controls(&self.tree, &program);
+        self.compiled_binding_event_index = UiCompiledBindingEventIndex::from_program(&program);
+        self.compiled_bindings = program;
+    }
+
+    pub fn binding_program(&self) -> &UiCompiledBindingProgram {
+        &self.compiled_bindings
+    }
+
+    /// Resolves an unambiguous retained control through the incremental surface index.
+    pub fn unique_control_node_id(&self, control_id: &str) -> Option<UiNodeId> {
+        self.control_index
+            .unique_node_id_for_surface(&self.tree, control_id)
+    }
+
+    /// Builds an Editor-host or standalone surface from the process-owner font collection.
+    /// Core-owned Runtime surfaces use `new_with_font_collection` through their owner-aware
+    /// builders so layout and rendering share one font collection revision.
     pub fn new(tree_id: UiTreeId) -> Self {
+        Self::new_with_font_collection(tree_id, shared_font_collection_service())
+    }
+
+    pub(crate) fn text_font_asset_dependencies(&self) -> Vec<String> {
+        super::render::text_font_asset_dependencies(&self.tree)
+    }
+
+    pub(crate) fn new_with_font_collection(
+        tree_id: UiTreeId,
+        font_collection: Arc<FontCollectionService>,
+    ) -> Self {
+        let observed_text_font_generation = font_collection.generation();
         Self {
             tree: UiTree::new(tree_id.clone()),
+            session_identity: UiSurfaceSessionIdentity::default(),
+            compiled_bindings: UiCompiledBindingProgram::default(),
+            compiled_binding_event_index: UiCompiledBindingEventIndex::default(),
             arranged_tree: UiArrangedTree {
                 tree_id: tree_id.clone(),
                 ..Default::default()
             },
             arranged_node_indices: BTreeMap::new(),
+            arranged_visibility: UiArrangedVisibilityIndex::default(),
             arranged_slot_indices: BTreeMap::new(),
             layout_slot_index: UiLayoutSlotIndex::default(),
             hit_test: UiHitTestIndex::default(),
@@ -136,9 +203,12 @@ impl UiSurface {
             focus: UiFocusState::default(),
             input: UiSurfaceInputState::default(),
             component_states: UiSurfaceComponentStateStore::default(),
+            secure_text_values: UiSurfaceSecureTextValueStore::default(),
+            clipboard_transfers: UiSurfaceClipboardTransferStore::default(),
             control_index: UiSurfaceControlIndex::default(),
             runtime_style: UiV2RuntimeStyleIndex::default(),
             navigation: UiNavigationState::default(),
+            navigation_index: UiSurfaceNavigationIndex::default(),
             render_extract: UiRenderExtract {
                 tree_id,
                 list: UiRenderList::default(),
@@ -146,7 +216,8 @@ impl UiSurface {
             },
             window_state: UiSurfaceWindowState::default(),
             render_cache: UiSurfaceRenderCache::default(),
-            text_measure_cache: UiTextMeasureCache::default(),
+            text_measure_cache: UiTextMeasureCache::new_with_font_collection(font_collection),
+            observed_text_font_generation,
             node_pool: UiSurfaceNodePool::default(),
             invalidation: UiSurfaceInvalidationState::default(),
             last_layout_geometry_changed_node_ids: BTreeSet::new(),
@@ -158,7 +229,13 @@ impl UiSurface {
             layout_engine_selection_indices: BTreeMap::new(),
             pending_pool_report: UiSurfaceNodePoolReport::default(),
             frame_publication: RefCell::new(UiSurfaceFramePublication::default()),
+            virtual_list_materialization: UiVirtualListMaterializationIndex::default(),
+            virtual_list_prototype_pool: UiVirtualListPrototypePoolIndex::default(),
         }
+    }
+
+    pub(crate) fn session_identity(&self) -> UiSurfaceSessionIdentityHandle {
+        self.session_identity.handle()
     }
 
     pub fn component_state(
@@ -214,7 +291,7 @@ impl UiSurface {
             }
         }
 
-        for change in transaction.changes().cloned().collect::<Vec<_>>() {
+        for change in transaction.into_changes() {
             self.mark_node_dirty(change.node_id, change.dirty)?;
             self.invalidation.record_change(&change);
         }
@@ -228,6 +305,23 @@ impl UiSurface {
     pub(crate) fn seed_component_states_from_tree_metadata(&mut self) {
         self.component_states.seed_from_tree_metadata(&self.tree);
         self.seed_popup_stack_from_tree_metadata();
+    }
+
+    pub(crate) fn adopt_hot_reload_state_from(
+        &mut self,
+        previous: &Self,
+    ) -> UiSurfaceComponentStateMigrationReport {
+        let report = self.component_states.migrate_stable_from(
+            &previous.component_states,
+            &previous.tree,
+            &self.tree,
+        );
+        self.input = UiSurfaceInputState::default();
+        self.focus = UiFocusState::default();
+        self.navigation = UiNavigationState::default();
+        self.control_index = UiSurfaceControlIndex::default();
+        self.window_state = previous.window_state.clone();
+        report
     }
 
     pub(crate) fn apply_runtime_state_style_all(
@@ -290,12 +384,7 @@ impl UiSurface {
     }
 
     pub fn hit_test_with_query(&self, query: UiHitTestQuery) -> UiHitTestResult {
-        hit_test_projected_grid_with_query(
-            self.projected_hit_test
-                .authoritative_grid(&self.hit_test.grid),
-            &self.arranged_tree,
-            query,
-        )
+        self.hit_test_published_surface_frame_with_query(query)
     }
 
     pub(super) fn rendered_popup_background(
@@ -318,6 +407,24 @@ impl UiSurface {
             })
             .min_by_key(|(command_index, command)| (command.z_index, *command_index))
             .map(|(command_index, command)| (command_start + command_index, command))
+    }
+
+    pub(crate) fn current_render_commands_for_node(
+        &self,
+        node_id: UiNodeId,
+    ) -> Option<&[UiRenderCommand]> {
+        self.render_cache
+            .commands_for_node(&self.render_extract, node_id)
+            .map(|(_, commands)| commands)
+    }
+
+    pub(crate) fn compile_rich_semantic_projection(
+        &self,
+        source_markup: &str,
+        format: RichTextFormat,
+    ) -> Option<RichSemanticProjection> {
+        self.text_measure_cache
+            .compile_rich_semantic_projection(source_markup, format)
     }
 
     pub fn accessibility_snapshot(&self) -> UiAccessibilityTreeSnapshot {
@@ -343,14 +450,22 @@ impl UiSurface {
     }
 
     pub fn debug_snapshot(&self) -> UiSurfaceDebugSnapshot {
-        debug_surface_frame(&self.surface_frame())
+        let surface_frame = self.surface_frame();
+        let ecs_projection = self.ui_ecs_projection();
+        debug_surface_frame_with_ecs_projection(&surface_frame, &ecs_projection)
     }
 
     pub fn debug_snapshot_with_options(
         &self,
         options: &UiSurfaceDebugOptions,
     ) -> UiSurfaceDebugSnapshot {
-        debug_surface_frame_with_options(&self.surface_frame(), options)
+        let surface_frame = self.surface_frame();
+        let ecs_projection = self.ui_ecs_projection();
+        debug_surface_frame_with_options_and_ecs_projection(
+            &surface_frame,
+            &ecs_projection,
+            options,
+        )
     }
 
     pub fn debug_snapshot_for_pick(
@@ -358,7 +473,14 @@ impl UiSurface {
         query: UiHitTestQuery,
         options: &UiSurfaceDebugOptions,
     ) -> UiSurfaceDebugSnapshot {
-        debug_surface_frame_for_pick(&self.surface_frame(), query, options)
+        let surface_frame = self.surface_frame();
+        let ecs_projection = self.ui_ecs_projection();
+        debug_surface_frame_for_pick_with_ecs_projection(
+            &surface_frame,
+            &ecs_projection,
+            query,
+            options,
+        )
     }
 
     pub fn debug_snapshot_for_selection(
@@ -366,7 +488,14 @@ impl UiSurface {
         selected_node: UiNodeId,
         options: &UiSurfaceDebugOptions,
     ) -> UiSurfaceDebugSnapshot {
-        debug_surface_frame_for_selection(&self.surface_frame(), selected_node, options)
+        let surface_frame = self.surface_frame();
+        let ecs_projection = self.ui_ecs_projection();
+        debug_surface_frame_for_selection_with_ecs_projection(
+            &surface_frame,
+            &ecs_projection,
+            selected_node,
+            options,
+        )
     }
 
     pub fn debug_snapshot_json(
@@ -374,350 +503,6 @@ impl UiSurface {
         options: &UiSurfaceDebugOptions,
     ) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(&self.debug_snapshot_with_options(options))
-    }
-
-    pub fn mutate_property(
-        &mut self,
-        request: UiPropertyMutationRequest,
-    ) -> Result<UiPropertyMutationReport, UiTreeError> {
-        self.mutate_property_with_popup_branch_close(request, true)
-    }
-
-    pub(crate) fn dismiss_transient_ui(
-        &mut self,
-        target: UiTransientDismissalTarget,
-    ) -> Result<Option<UiNodeId>, UiTreeError> {
-        let popup_closures = matches!(
-            target,
-            UiTransientDismissalTarget::All | UiTransientDismissalTarget::PopupStack
-        )
-        .then(|| self.declarative_popup_closures())
-        .unwrap_or_default();
-        let route_owner = self.input.dismiss_transient_ui(target);
-        for (popup_node_id, property) in popup_closures {
-            let _ = self.mutate_property_with_popup_branch_close(
-                UiPropertyMutationRequest::new(popup_node_id, property, UiValue::Bool(false)),
-                false,
-            )?;
-        }
-        Ok(route_owner)
-    }
-
-    pub(crate) fn dismiss_popup_by_id(
-        &mut self,
-        popup_id: &str,
-    ) -> Result<Option<UiNodeId>, UiTreeError> {
-        let fallback_route_owner = self.input.popup_owner(popup_id);
-        let popup_node_id = self
-            .input
-            .popup_stack
-            .iter()
-            .find(|popup| popup.popup_id == popup_id)
-            .and_then(|popup| popup.popup_node)
-            .or_else(|| {
-                self.unique_popup_state_for_id(popup_id)
-                    .map(|(node_id, _, _)| node_id)
-            });
-        let Some(popup_node_id) = popup_node_id else {
-            self.input.close_popup(popup_id);
-            return Ok(fallback_route_owner);
-        };
-        let route_owner = self.popup_route_owner_for_node(popup_node_id).or_else(|| {
-            (!self.is_popup_stack_node(popup_node_id))
-                .then_some(fallback_route_owner)
-                .flatten()
-        });
-        let mut popup_closures = self.popup_branch_closures(popup_node_id);
-        let Some((property, open)) = self.popup_state_for_node(popup_node_id) else {
-            self.input.close_popup_with_node(popup_node_id, popup_id);
-            return Ok(route_owner);
-        };
-        if !open {
-            self.input.close_popup_with_node(popup_node_id, popup_id);
-            return Ok(route_owner);
-        }
-        popup_closures.push((popup_node_id, property.to_string()));
-        for (popup_node_id, property) in popup_closures {
-            let _ = self.mutate_property_with_popup_branch_close(
-                UiPropertyMutationRequest::new(popup_node_id, property, UiValue::Bool(false)),
-                false,
-            )?;
-        }
-        Ok(route_owner)
-    }
-
-    pub(crate) fn set_declarative_popup_open_by_id(
-        &mut self,
-        popup_id: &str,
-        open: bool,
-    ) -> Result<bool, UiTreeError> {
-        let Some((popup_node_id, property, current_open)) =
-            self.unique_popup_state_for_id(popup_id)
-        else {
-            return Ok(false);
-        };
-        if current_open == open {
-            if open {
-                self.synchronize_open_popup_state(popup_node_id, property)?;
-            }
-            return Ok(true);
-        }
-        let _ = self.mutate_property(UiPropertyMutationRequest::new(
-            popup_node_id,
-            property,
-            UiValue::Bool(open),
-        ))?;
-        Ok(true)
-    }
-
-    fn mutate_property_with_popup_branch_close(
-        &mut self,
-        request: UiPropertyMutationRequest,
-        close_popup_branch: bool,
-    ) -> Result<UiPropertyMutationReport, UiTreeError> {
-        let node_id = request.node_id;
-        let property = request.property.clone();
-        let value = request.value.clone();
-        let popup_close_descendants = (close_popup_branch
-            && matches!(property.as_str(), "open" | "popup_open")
-            && matches!(&value, UiValue::Bool(false))
-            && self.is_popup_stack_node(node_id))
-        .then(|| self.popup_branch_closures(node_id))
-        .unwrap_or_default();
-        for (descendant_id, descendant_property) in popup_close_descendants {
-            let _ = self.mutate_property_with_popup_branch_close(
-                UiPropertyMutationRequest::new(
-                    descendant_id,
-                    descendant_property,
-                    UiValue::Bool(false),
-                ),
-                false,
-            )?;
-        }
-        let mut report = mutate_tree_property(&mut self.tree, request)?;
-        let previous_component_value =
-            if matches!(report.status, UiPropertyMutationStatus::Accepted) {
-                self.component_states
-                    .get(node_id)
-                    .and_then(|state| state.value(&property).cloned())
-            } else {
-                None
-            };
-        if matches!(report.status, UiPropertyMutationStatus::Accepted) {
-            if let Some(attribute_value) = self
-                .tree
-                .nodes
-                .get(&node_id)
-                .and_then(|node| node.template_metadata.as_ref())
-                .and_then(|metadata| metadata.attributes.get(&property))
-                .cloned()
-            {
-                let _ = self.runtime_style.set_base_attribute(
-                    node_id,
-                    property.clone(),
-                    attribute_value,
-                );
-            }
-        }
-        let component_state_change = if matches!(report.status, UiPropertyMutationStatus::Accepted)
-        {
-            self.component_states
-                .sync_from_property(node_id, &property, &value)
-        } else {
-            UiComponentStatePropertyChange::default()
-        };
-        let popup_open_alias_state_change =
-            if matches!(report.status, UiPropertyMutationStatus::Accepted) {
-                self.sync_popup_open_alias_state(node_id, &property, &value)
-            } else {
-                UiComponentStatePropertyChange::default()
-            };
-        let component_state_change = component_state_change.merge(popup_open_alias_state_change);
-        let custom_pseudo_state_changed = matches!(&value, UiValue::Bool(_))
-            && !property_may_affect_runtime_pseudo_state(&property)
-            && self.runtime_style.depends_on_pseudo_state(&property);
-        if matches!(report.status, UiPropertyMutationStatus::Accepted) {
-            if component_state_change.pseudo_state_changed || custom_pseudo_state_changed {
-                self.mark_component_state_render_dirty(node_id)?;
-                report.mark_render_dirty();
-            } else if component_state_change.value_changed {
-                self.mark_node_dirty(
-                    node_id,
-                    UiDirtyFlags {
-                        render: true,
-                        ..UiDirtyFlags::default()
-                    },
-                )?;
-                report.mark_render_dirty();
-            } else if property_may_affect_runtime_pseudo_state(&property) {
-                let changed = self.apply_runtime_state_style_subtree(node_id, true)?;
-                if changed > 0 {
-                    report.mark_render_dirty();
-                }
-            }
-            if component_state_change.any_changed() {
-                report.record_component_state_value_update(
-                    node_id,
-                    property.clone(),
-                    previous_component_value,
-                    value.clone(),
-                );
-            }
-        }
-        if matches!(report.status, UiPropertyMutationStatus::Accepted)
-            && matches!(
-                property.as_str(),
-                "disabled" | "enabled" | "visible" | "visibility" | "focusable"
-            )
-        {
-            let reason = focus_reconcile_reason(&property, &self.tree, node_id);
-            report.focus_change = self.reconcile_focus_after_tree_change(reason);
-        }
-        if matches!(report.status, UiPropertyMutationStatus::Accepted)
-            && matches!(property.as_str(), "open" | "popup_open")
-        {
-            if let UiValue::Bool(open) = value {
-                let popup_stack_node = self.is_popup_stack_node(node_id);
-                if !open && popup_stack_node {
-                    self.reset_popup_open_state(node_id, property.as_str())?;
-                }
-                if open {
-                    if self.synchronize_open_popup_state(node_id, property.as_str())? {
-                        report.mark_render_dirty();
-                    }
-                } else {
-                    let control_anchored_popup = self.popup_uses_control_anchor(node_id);
-                    let popup_owner = self.sync_popup_stack_for_node(node_id, false);
-                    report.focus_change = self.apply_mui_modal_focus_transition(
-                        node_id,
-                        false,
-                        control_anchored_popup.then_some(popup_owner).flatten(),
-                    )?;
-                }
-            }
-        }
-        if matches!(report.status, UiPropertyMutationStatus::Accepted) {
-            self.invalidation
-                .record_dirty(node_id, report.invalidation.dirty);
-        }
-        Ok(report)
-    }
-
-    fn synchronize_open_popup_state(
-        &mut self,
-        node_id: UiNodeId,
-        property: &str,
-    ) -> Result<bool, UiTreeError> {
-        let control_anchored_popup = self.popup_uses_control_anchor(node_id);
-        let popup_owner = self.sync_popup_stack_for_node(node_id, true);
-        if control_anchored_popup && popup_owner.is_none() {
-            let _ = self.reject_control_anchored_popup(node_id, property)?;
-            return Ok(true);
-        }
-        let _ = self.apply_mui_modal_focus_transition(
-            node_id,
-            true,
-            control_anchored_popup.then_some(popup_owner).flatten(),
-        )?;
-        Ok(false)
-    }
-
-    fn sync_popup_open_alias_state(
-        &mut self,
-        node_id: UiNodeId,
-        property: &str,
-        value: &UiValue,
-    ) -> UiComponentStatePropertyChange {
-        if !matches!(value, UiValue::Bool(_)) || !self.is_popup_stack_node(node_id) {
-            return UiComponentStatePropertyChange::default();
-        }
-        let alias = match property {
-            "open" => "popup_open",
-            "popup_open" => "open",
-            _ => return UiComponentStatePropertyChange::default(),
-        };
-        let Some(attribute_value) = self
-            .tree
-            .nodes
-            .get(&node_id)
-            .and_then(|node| node.template_metadata.as_ref())
-            .and_then(|metadata| metadata.attributes.get(alias))
-            .cloned()
-        else {
-            return UiComponentStatePropertyChange::default();
-        };
-        let _ = self
-            .runtime_style
-            .set_base_attribute(node_id, alias.to_string(), attribute_value);
-        self.component_states
-            .sync_from_property(node_id, alias, value)
-    }
-
-    pub(crate) fn reject_control_anchored_popup(
-        &mut self,
-        node_id: UiNodeId,
-        property: &str,
-    ) -> Result<Option<UiFocusChangeEvent>, UiTreeError> {
-        self.reset_popup_open_state(node_id, property)?;
-        self.apply_mui_modal_focus_transition(node_id, false, None)
-    }
-
-    fn reset_popup_open_state(
-        &mut self,
-        node_id: UiNodeId,
-        property: &str,
-    ) -> Result<(), UiTreeError> {
-        let value = UiValue::Bool(false);
-        let properties = if let Some(metadata) = self
-            .tree
-            .nodes
-            .get_mut(&node_id)
-            .and_then(|node| node.template_metadata.as_mut())
-        {
-            let properties = ["open", "popup_open"]
-                .into_iter()
-                .filter(|candidate| {
-                    *candidate == property || metadata.attributes.contains_key(*candidate)
-                })
-                .collect::<Vec<_>>();
-            for property in &properties {
-                metadata
-                    .attributes
-                    .insert((*property).to_string(), toml::Value::Boolean(false));
-            }
-            properties
-        } else {
-            Vec::new()
-        };
-        if properties.is_empty() {
-            return Ok(());
-        }
-        let mut component_state_change = UiComponentStatePropertyChange::default();
-        for property in properties {
-            let _ = self.runtime_style.set_base_attribute(
-                node_id,
-                property.to_string(),
-                toml::Value::Boolean(false),
-            );
-            component_state_change = component_state_change.merge(
-                self.component_states
-                    .sync_from_property(node_id, property, &value),
-            );
-        }
-        if component_state_change.pseudo_state_changed {
-            self.mark_component_state_render_dirty(node_id)?;
-        }
-        self.mark_node_dirty(
-            node_id,
-            UiDirtyFlags {
-                layout: true,
-                hit_test: true,
-                render: true,
-                input: true,
-                ..UiDirtyFlags::default()
-            },
-        )?;
-        Ok(())
     }
 
     pub fn reflector_snapshot(&self, query: Option<UiHitTestQuery>) -> UiReflectorSnapshot {
@@ -729,29 +514,14 @@ impl UiSurface {
     }
 
     pub fn focus_path(&self) -> UiFocusPath {
-        arranged_focus_path(&self.arranged_tree, self.focus.focused)
+        arranged_focus_path_indexed(
+            &self.arranged_tree,
+            &self.arranged_node_indices,
+            self.focus.focused,
+        )
     }
 
     pub fn focused_route(&self) -> Vec<UiNodeId> {
         self.focus_path().bubble_route
-    }
-}
-
-fn focus_reconcile_reason(property: &str, tree: &UiTree, node_id: UiNodeId) -> UiFocusChangeReason {
-    match property {
-        "disabled" | "enabled" | "focusable" => UiFocusChangeReason::Disabled,
-        "visible" => UiFocusChangeReason::Hidden,
-        "visibility" => tree
-            .nodes
-            .get(&node_id)
-            .map(|node| {
-                if node.is_render_visible() {
-                    UiFocusChangeReason::Disabled
-                } else {
-                    UiFocusChangeReason::Hidden
-                }
-            })
-            .unwrap_or(UiFocusChangeReason::Hidden),
-        _ => UiFocusChangeReason::Clear,
     }
 }

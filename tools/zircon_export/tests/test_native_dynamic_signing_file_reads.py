@@ -210,14 +210,15 @@ def run_stage_with_read_failure(
     unreadable_file: Path,
     message: str,
 ) -> int:
-    original_read_bytes = Path.read_bytes
+    original_open = Path.open
 
-    def read_bytes_or_fail(path: Path) -> bytes:
-        if path.resolve() == unreadable_file:
+    def open_or_fail(path: Path, *open_args, **open_kwargs):
+        mode = open_args[0] if open_args else open_kwargs.get("mode", "r")
+        if path.resolve() == unreadable_file and mode == "rb":
             raise OSError(message)
-        return original_read_bytes(path)
+        return original_open(path, *open_args, **open_kwargs)
 
-    with mock.patch.object(Path, "read_bytes", read_bytes_or_fail):
+    with mock.patch.object(Path, "open", open_or_fail):
         return _run_stage_quiet(args)
 
 
@@ -226,18 +227,19 @@ def run_stage_with_second_read_failure(
     unreadable_file: Path,
     message: str,
 ) -> int:
-    original_read_bytes = Path.read_bytes
+    original_open = Path.open
     read_counts: dict[Path, int] = {}
 
-    def read_bytes_or_fail(path: Path) -> bytes:
+    def open_or_fail(path: Path, *open_args, **open_kwargs):
+        mode = open_args[0] if open_args else open_kwargs.get("mode", "r")
         resolved = path.resolve()
-        if resolved == unreadable_file:
+        if resolved == unreadable_file and mode == "rb":
             read_counts[resolved] = read_counts.get(resolved, 0) + 1
             if read_counts[resolved] == 2:
                 raise OSError(message)
-        return original_read_bytes(path)
+        return original_open(path, *open_args, **open_kwargs)
 
-    with mock.patch.object(Path, "read_bytes", read_bytes_or_fail):
+    with mock.patch.object(Path, "open", open_or_fail):
         return _run_stage_quiet(args)
 
 

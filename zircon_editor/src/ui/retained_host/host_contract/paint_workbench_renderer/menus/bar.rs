@@ -27,14 +27,14 @@ pub(in crate::ui::retained_host::host_contract) fn draw_menu_bar_labels(
         height: scene.menu_chrome.top_bar_height_px.max(0.0),
     };
     for row in 0..scene.menu_chrome.menu_frames.row_count() {
-        let Some(menu_frame) = scene.menu_chrome.menu_frames.row_data(row) else {
+        let Some(menu_frame) = scene.menu_chrome.menu_frames.get(row) else {
             continue;
         };
-        let Some(menu) = scene.menu_chrome.menus.row_data(row) else {
+        let Some(menu) = scene.menu_chrome.menus.get(row) else {
             continue;
         };
         let visual = menu_bar_control_visual(menu_state.open_menu_index == row as i32, palette);
-        let frame_rect = scrolled_menu_frame(&menu_frame.frame, presentation);
+        let frame_rect = scrolled_menu_frame(&menu_frame.frame, menu_state.menu_bar_scroll_px);
         if let Some(background) = visual.background {
             draw_rect_clipped(frame, frame_rect.clone(), Some(&clip), background);
         }

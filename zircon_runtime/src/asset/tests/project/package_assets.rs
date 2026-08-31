@@ -151,7 +151,7 @@ fn project_root_registration_publishes_physical_asset_paths_for_an_alias_root() 
 
 #[cfg(any(unix, windows))]
 #[test]
-fn project_root_registration_canonicalizes_and_deduplicates_internal_asset_aliases() {
+fn runtime85_project_dedup_recovery_batch_root_alias_semantics() {
     let parent = unique_temp_project_root("project_asset_root_alias_registry");
     let project_root = parent.join("project");
     let assets_root = project_root.join("assets");

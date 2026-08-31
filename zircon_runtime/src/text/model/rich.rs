@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use zircon_runtime_interface::resource::ResourceId;
+use zircon_runtime_interface::ui::text::UiRichLinkTarget;
 
 use crate::core::math::{Vec2, Vec4};
 
-use super::{font::FontFamilyName, OpenTypeFeature, TextAlign};
+use super::{OpenTypeFeature, TextAlign, font::FontFamilyName};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct StyleOverride {
@@ -21,6 +22,35 @@ pub struct StyleOverride {
     pub code: Option<bool>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RichOrderedListMarker {
+    Decimal,
+    AlphaLower,
+    AlphaUpper,
+    RomanLower,
+    RomanUpper,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RichListItemKind {
+    Unordered,
+    Ordered {
+        ordinal: u32,
+        marker: RichOrderedListMarker,
+    },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RichListItem {
+    pub kind: RichListItemKind,
+    /// One-based semantic nesting level, independent of visual indent policy.
+    pub level: u32,
+    /// Byte range of the real marker in [`RichParseResult::text`].
+    pub marker_range: (u32, u32),
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ParagraphOverride {
     /// Paragraph-local alignment, resolved inside the indented content frame.
@@ -29,8 +59,7 @@ pub struct ParagraphOverride {
     pub indent: Option<f32>,
     /// Nesting depth measured by the layout owner's tab interval.
     pub indent_level: Option<u16>,
-    /// Byte range of a real list marker in [`RichParseResult::text`].
-    pub list_prefix: Option<(u32, u32)>,
+    pub list_item: Option<RichListItem>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -43,6 +72,36 @@ pub enum InlineBaseline {
     Bottom,
 }
 
+/// Stable resource identity for an image-backed rich-text icon.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct RichIconAssetId(ResourceId);
+
+impl RichIconAssetId {
+    pub const fn from_resource_id(resource_id: ResourceId) -> Self {
+        Self(resource_id)
+    }
+
+    pub const fn resource_id(self) -> ResourceId {
+        self.0
+    }
+}
+
+/// Authoring-local slot resolved against one rich-text owner's current direct children.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct RichInlineWidgetSlotId(u64);
+
+impl RichInlineWidgetSlotId {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn value(self) -> u64 {
+        self.0
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum InlineObjectRef {
@@ -50,20 +109,41 @@ pub enum InlineObjectRef {
         texture: ResourceId,
         size: Vec2,
         baseline: InlineBaseline,
+        /// Explicit replacement text. `Some("")` marks a decorative image.
+        #[serde(default)]
+        alternative_text: Option<String>,
+        /// Secondary authoring fallback used only when alternative text is absent.
+        #[serde(default)]
+        tooltip: Option<String>,
     },
     Icon {
-        glyph: char,
-        font: FontFamilyName,
+        asset: RichIconAssetId,
+        size: Vec2,
+        baseline: InlineBaseline,
+        /// Explicit replacement text. `Some("")` marks a decorative icon.
+        #[serde(default)]
+        alternative_text: Option<String>,
     },
     Widget {
-        id: u64,
+        slot: RichInlineWidgetSlotId,
         size: Vec2,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LinkRef {
-    pub href: String,
+    #[serde(rename = "href")]
+    pub target: UiRichLinkTarget,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tooltip: Option<Arc<str>>,
+}
+
+impl LinkRef {
+    pub(crate) fn retained_heap_bytes(&self) -> usize {
+        self.target
+            .retained_heap_bytes()
+            .saturating_add(self.tooltip.as_ref().map_or(0, |tooltip| tooltip.len()))
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -160,12 +240,107 @@ pub struct RichTable {
     pub cells: Vec<RichTableCell>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RichTextAuthoringDiagnosticSeverity {
+    Warning,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RichTextAuthoringDiagnosticCode {
+    UnsupportedTag,
+    UnmatchedClosingTag,
+    ImplicitlyClosedTag,
+    UnclosedTag,
+    UnsupportedAttribute,
+    MalformedAttribute,
+    InvalidAttributeValue,
+    UnsupportedStyleProperty,
+    MalformedTag,
+    UnterminatedQuotedAttribute,
+    MalformedEntity,
+    UnrecognizedEntity,
+    BidirectionalMark,
+    BidirectionalEmbedding,
+    BidirectionalOverride,
+    BidirectionalIsolate,
+}
+
+impl RichTextAuthoringDiagnosticCode {
+    pub const fn diagnostic_code(self) -> &'static str {
+        match self {
+            Self::UnsupportedTag => "ZR-TEXT-RICH-AUTHOR-001",
+            Self::UnmatchedClosingTag => "ZR-TEXT-RICH-AUTHOR-002",
+            Self::ImplicitlyClosedTag => "ZR-TEXT-RICH-AUTHOR-003",
+            Self::UnclosedTag => "ZR-TEXT-RICH-AUTHOR-004",
+            Self::UnsupportedAttribute => "ZR-TEXT-RICH-AUTHOR-005",
+            Self::MalformedAttribute => "ZR-TEXT-RICH-AUTHOR-006",
+            Self::InvalidAttributeValue => "ZR-TEXT-RICH-AUTHOR-007",
+            Self::UnsupportedStyleProperty => "ZR-TEXT-RICH-AUTHOR-008",
+            Self::MalformedTag => "ZR-TEXT-RICH-AUTHOR-009",
+            Self::UnterminatedQuotedAttribute => "ZR-TEXT-RICH-AUTHOR-010",
+            Self::MalformedEntity => "ZR-TEXT-RICH-AUTHOR-011",
+            Self::UnrecognizedEntity => "ZR-TEXT-RICH-AUTHOR-012",
+            Self::BidirectionalMark => "ZR-TEXT-RICH-AUTHOR-013",
+            Self::BidirectionalEmbedding => "ZR-TEXT-RICH-AUTHOR-014",
+            Self::BidirectionalOverride => "ZR-TEXT-RICH-AUTHOR-015",
+            Self::BidirectionalIsolate => "ZR-TEXT-RICH-AUTHOR-016",
+        }
+    }
+
+    pub const fn message_key(self) -> &'static str {
+        match self {
+            Self::UnsupportedTag => "text.rich.author.unsupported_tag",
+            Self::UnmatchedClosingTag => "text.rich.author.unmatched_closing_tag",
+            Self::ImplicitlyClosedTag => "text.rich.author.implicitly_closed_tag",
+            Self::UnclosedTag => "text.rich.author.unclosed_tag",
+            Self::UnsupportedAttribute => "text.rich.author.unsupported_attribute",
+            Self::MalformedAttribute => "text.rich.author.malformed_attribute",
+            Self::InvalidAttributeValue => "text.rich.author.invalid_attribute_value",
+            Self::UnsupportedStyleProperty => "text.rich.author.unsupported_style_property",
+            Self::MalformedTag => "text.rich.author.malformed_tag",
+            Self::UnterminatedQuotedAttribute => "text.rich.author.unterminated_quoted_attribute",
+            Self::MalformedEntity => "text.rich.author.malformed_entity",
+            Self::UnrecognizedEntity => "text.rich.author.unrecognized_entity",
+            Self::BidirectionalMark => "text.rich.author.bidirectional_mark",
+            Self::BidirectionalEmbedding => "text.rich.author.bidirectional_embedding",
+            Self::BidirectionalOverride => "text.rich.author.bidirectional_override",
+            Self::BidirectionalIsolate => "text.rich.author.bidirectional_isolate",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RichTextAuthoringRecovery {
+    DroppedMarkup,
+    ImplicitlyClosed,
+    ClosedAtEndOfInput,
+    IgnoredAttribute,
+    IgnoredStyleDeclaration,
+    PreservedAsText,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RichTextAuthoringDiagnostic {
+    pub severity: RichTextAuthoringDiagnosticSeverity,
+    pub code: RichTextAuthoringDiagnosticCode,
+    /// Byte range in the source markup, not in the stripped visible text.
+    pub source_range: (u32, u32),
+    pub recovery: RichTextAuthoringRecovery,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RichParseResult {
     pub text: Arc<str>,
     pub runs: Vec<StyledRun>,
     pub paragraphs: Vec<((u32, u32), ParagraphOverride)>,
     pub tables: Vec<RichTable>,
+    #[serde(default)]
+    pub authoring_diagnostics: Vec<RichTextAuthoringDiagnostic>,
+    #[serde(default)]
+    pub authoring_diagnostics_truncated: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

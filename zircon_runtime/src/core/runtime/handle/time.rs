@@ -1,72 +1,89 @@
 use std::sync::MutexGuard;
 use std::time::Duration;
 
-use crate::core::framework::time::{Fixed, Real, Time, Virtual};
+use crate::core::framework::time::{
+    MonotonicReal, Time, TimePolicy, TimePolicyError, TimePolicyTransaction,
+};
 
-use super::super::frame_clock::FrameClock;
+use super::super::frame_clock::{
+    ClockDiscontinuity, FrameClock, FrameClockRebaseCause, FrameClockRebaseReceipt,
+};
 use super::super::time::{
-    RuntimeTimeAdvance, RuntimeTimeClocks, TIME_FIXED_STEPS_DIAGNOSTIC, TIME_FPS_DIAGNOSTIC,
-    TIME_FRAME_COUNT_DIAGNOSTIC, TIME_FRAME_TIME_DIAGNOSTIC,
+    FrameTimeDiscontinuity, FrameTimeSnapshot, RuntimeTimeAuthority, TimePolicyReceipt,
+    TIME_FPS_DIAGNOSTIC, TIME_FRAME_COUNT_DIAGNOSTIC, TIME_FRAME_TIME_DIAGNOSTIC,
 };
 use super::CoreHandle;
 
 impl CoreHandle {
-    pub fn time_clocks(&self) -> RuntimeTimeClocks {
-        *self.lock_time()
+    /// Returns the outer monotonic frame clock. World-derived clocks belong to Levels.
+    pub fn real_time(&self) -> Time<MonotonicReal> {
+        self.lock_time().real()
     }
 
-    pub fn real_time(&self) -> Time<Real> {
-        self.time_clocks().real()
+    /// Returns the default policy used when a new Level is created.
+    pub fn time_policy(&self) -> TimePolicy {
+        self.lock_time().time_policy()
     }
 
-    pub fn virtual_time(&self) -> Time<Virtual> {
-        self.time_clocks().virtual_time()
+    /// Returns the generation of the default policy for subsequently created Levels.
+    pub fn time_policy_generation(&self) -> u64 {
+        self.lock_time().time_policy_generation()
     }
 
-    pub fn fixed_time(&self) -> Time<Fixed> {
-        self.time_clocks().fixed()
-    }
-
-    pub fn advance_time_by(
+    /// Changes the default policy for subsequently created Levels.
+    ///
+    /// Existing Levels retain their own timing policy and fixed debt. Live
+    /// multi-World policy propagation requires an explicit Level transaction.
+    pub fn apply_time_policy(
         &self,
-        real_delta: Duration,
+        transaction: TimePolicyTransaction,
+    ) -> Result<TimePolicyReceipt, TimePolicyError> {
+        self.lock_time().apply_time_policy(transaction)
+    }
+
+    pub fn advance_time_by(&self, real_delta: Duration, max_fixed_steps: u32) -> FrameTimeSnapshot {
+        self.advance_time_by_with_discontinuity(real_delta, max_fixed_steps, None)
+    }
+
+    pub fn tick_time(&self, max_fixed_steps: u32) -> FrameTimeSnapshot {
+        let frame_tick = self.lock_frame_clock().tick();
+        self.advance_time_by_with_discontinuity(
+            frame_tick.delta(),
+            max_fixed_steps,
+            frame_tick
+                .rebase()
+                .map(FrameTimeDiscontinuity::FrameClockRebased),
+        )
+    }
+
+    fn advance_time_by_with_discontinuity(
+        &self,
+        raw_real_delta: Duration,
         max_fixed_steps: u32,
-    ) -> RuntimeTimeAdvance {
-        let (advance, clocks) = {
+        discontinuity: Option<FrameTimeDiscontinuity>,
+    ) -> FrameTimeSnapshot {
+        let snapshot = {
             let mut time = self.lock_time();
-            let advance = time.advance_by(real_delta, max_fixed_steps);
-            (advance, *time)
+            time.advance_by_with_discontinuity(raw_real_delta, max_fixed_steps, discontinuity)
         };
-        record_time_diagnostics(self, clocks, advance);
-        advance
+        record_time_diagnostics(self, snapshot);
+        snapshot
     }
 
-    pub fn tick_time(&self, max_fixed_steps: u32) -> RuntimeTimeAdvance {
-        let real_delta = self.lock_frame_clock().tick();
-        self.advance_time_by(real_delta, max_fixed_steps)
+    pub(crate) fn rebase_frame_clock(&self) -> FrameClockRebaseReceipt {
+        self.lock_frame_clock()
+            .rebase_for(FrameClockRebaseCause::SessionActivationCompleted)
     }
 
-    pub fn pause_virtual_time(&self) {
-        self.lock_time().pause_virtual_time();
+    pub fn submit_clock_discontinuity(
+        &self,
+        discontinuity: ClockDiscontinuity,
+    ) -> FrameClockRebaseReceipt {
+        self.lock_frame_clock()
+            .rebase_for(FrameClockRebaseCause::ClockDiscontinuity(discontinuity))
     }
 
-    pub fn unpause_virtual_time(&self) {
-        self.lock_time().unpause_virtual_time();
-    }
-
-    pub fn set_virtual_time_max_delta(&self, max_delta: Duration) {
-        self.lock_time().set_virtual_time_max_delta(max_delta);
-    }
-
-    pub fn set_virtual_time_relative_speed_f64(&self, speed: f64) {
-        self.lock_time().set_virtual_time_relative_speed_f64(speed);
-    }
-
-    pub fn set_fixed_timestep(&self, timestep: Duration) {
-        self.lock_time().set_fixed_timestep(timestep);
-    }
-
-    fn lock_time(&self) -> MutexGuard<'_, RuntimeTimeClocks> {
+    fn lock_time(&self) -> MutexGuard<'_, RuntimeTimeAuthority> {
         self.inner
             .time
             .lock()
@@ -81,14 +98,9 @@ impl CoreHandle {
     }
 }
 
-fn record_time_diagnostics(
-    handle: &CoreHandle,
-    clocks: RuntimeTimeClocks,
-    advance: RuntimeTimeAdvance,
-) {
-    let frame_index = clocks.real().frame_index();
-    let fixed_steps = advance.fixed_step_plan().step_count as f64;
-    let real_delta_seconds = advance.real_delta().as_secs_f64();
+fn record_time_diagnostics(handle: &CoreHandle, snapshot: FrameTimeSnapshot) {
+    let frame_index = snapshot.outer_frame_index();
+    let real_delta_seconds = snapshot.raw_real_delta().as_secs_f64();
     let mut diagnostics = handle.lock_diagnostics();
 
     diagnostics.record_static(
@@ -97,13 +109,6 @@ fn record_time_diagnostics(
         frame_index as f64,
         Some("frame"),
         &["time", "frame"],
-    );
-    diagnostics.record_static(
-        TIME_FIXED_STEPS_DIAGNOSTIC,
-        frame_index,
-        fixed_steps,
-        Some("step"),
-        &["time", "fixed"],
     );
     if real_delta_seconds == 0.0 {
         return;
@@ -129,16 +134,70 @@ mod tests {
     use std::panic::{self, AssertUnwindSafe};
     use std::time::Duration;
 
-    use crate::core::{CoreRuntime, TIME_FRAME_COUNT_DIAGNOSTIC};
+    use crate::core::{
+        CoreRuntime, TimePolicy, TimePolicyError, TimePolicyTransaction,
+        TIME_FRAME_COUNT_DIAGNOSTIC,
+    };
 
     #[test]
-    fn core_handle_time_accessors_recover_poisoned_runtime_clocks() {
+    fn core_handle_commits_only_valid_default_world_time_policy_transactions() {
+        let runtime = CoreRuntime::new();
+        let handle = runtime.handle();
+        let initial = handle.time_policy();
+
+        let receipt = handle
+            .apply_time_policy(TimePolicyTransaction::new(TimePolicy::new(
+                Duration::from_millis(100),
+                0.5,
+                Duration::from_millis(20),
+            )))
+            .expect("a valid time policy should commit");
+
+        assert!(receipt.changed());
+        assert_eq!(receipt.previous(), initial);
+        assert_eq!(receipt.generation(), 1);
+        assert_eq!(handle.time_policy(), receipt.applied());
+
+        for (invalid_policy, expected_error) in [
+            (
+                TimePolicy::new(Duration::ZERO, 1.0, Duration::from_millis(16)),
+                TimePolicyError::VirtualMaxDeltaZero,
+            ),
+            (
+                TimePolicy::new(
+                    Duration::from_millis(16),
+                    f64::NAN,
+                    Duration::from_millis(16),
+                ),
+                TimePolicyError::VirtualRelativeSpeedNotFinite,
+            ),
+            (
+                TimePolicy::new(Duration::from_millis(16), -1.0, Duration::from_millis(16)),
+                TimePolicyError::VirtualRelativeSpeedNegative,
+            ),
+            (
+                TimePolicy::new(Duration::from_millis(16), 1.0, Duration::ZERO),
+                TimePolicyError::FixedTimestepZero,
+            ),
+        ] {
+            let rejection = handle
+                .apply_time_policy(TimePolicyTransaction::new(invalid_policy))
+                .expect_err("an invalid time policy must reject before mutation");
+
+            assert_eq!(rejection, expected_error);
+            assert_eq!(handle.time_policy(), receipt.applied());
+            assert_eq!(handle.time_policy_generation(), receipt.generation());
+        }
+    }
+
+    #[test]
+    fn core_handle_time_accessors_recover_poisoned_outer_time_locks() {
         let runtime = CoreRuntime::new();
         let handle = runtime.handle();
 
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
             let _guard = handle.inner.time.lock().unwrap();
-            panic!("poison core handle runtime time");
+            panic!("poison core handle outer time");
         }));
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
             let _guard = handle.inner.frame_clock.lock().unwrap();
@@ -149,22 +208,22 @@ mod tests {
             panic!("poison core handle time diagnostics");
         }));
 
-        handle.pause_virtual_time();
-        assert!(handle.virtual_time().is_paused());
-        handle.unpause_virtual_time();
-        handle.set_virtual_time_max_delta(Duration::from_millis(33));
-        handle.set_virtual_time_relative_speed_f64(1.0);
-        handle.set_fixed_timestep(Duration::from_millis(16));
+        handle
+            .apply_time_policy(TimePolicyTransaction::new(TimePolicy::new(
+                Duration::from_millis(33),
+                1.0,
+                Duration::from_millis(16),
+            )))
+            .expect("valid policy should recover poisoned outer time");
 
         let advance = handle.advance_time_by(Duration::from_millis(16), 4);
-        assert_eq!(advance.real_delta(), Duration::from_millis(16));
+        assert_eq!(advance.raw_real_delta(), Duration::from_millis(16));
         assert_eq!(handle.real_time().frame_index(), 1);
-        assert_eq!(handle.fixed_time().timestep(), Duration::from_millis(16));
 
         let tick_advance = handle.tick_time(4);
         assert!(handle.real_time().frame_index() >= 2);
         assert_eq!(
-            tick_advance.real_delta(),
+            tick_advance.raw_real_delta(),
             handle.real_time().delta(),
             "tick_time should advance from the recovered frame clock delta"
         );

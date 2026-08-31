@@ -171,13 +171,15 @@ pub(super) fn plugin_virtual_geometry_descriptor() -> RenderFeatureDescriptor {
         "plugin.virtual_geometry.registry",
         Vec::new(),
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::DepthPrepass,
-            "plugin-virtual-geometry-registry",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("virtual-geometry.prepare")
-        .with_side_effects()],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::DepthPrepass,
+                "plugin-virtual-geometry-registry",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("virtual-geometry.prepare")
+            .with_side_effects(),
+        ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
 }

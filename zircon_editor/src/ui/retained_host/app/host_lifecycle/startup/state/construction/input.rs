@@ -14,7 +14,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) struct StartupHos
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) runtime_lease:
         RetainedHostRuntimeLease,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) native_plugin_host:
-        zircon_runtime::plugin::native::NativePluginHostHandle,
+        zircon_runtime::plugin::native::host::NativePluginHostHandle,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) viewport:
         RetainedViewportController,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) startup_session:

@@ -697,7 +697,7 @@ fn session_with_source(temp: &std::path::Path, source: &std::path::Path) -> HubR
 
 fn write_valid_project_manifest(root: &std::path::Path, name: &str) {
     let document = format!(
-        "name = {name:?}\nformat_version = 2\ndefault_scene = \"res://scenes/main.scene.toml\"\nasset_roots = [\"assets\"]\nlibrary_version = 1\n"
+        "name = {name:?}\nformat_version = 3\nproject_guid = \"0e62bc49-5a20-430e-9902-aa4b9b6518a4\"\ndefault_scene = \"res://scenes/main.scene.toml\"\nasset_roots = [\"assets\"]\nlibrary_version = 1\n"
     );
     zircon_runtime_interface::project::ProjectManifestSummary::parse_toml_str(&document)
         .expect("test project manifest must satisfy the shared summary contract");

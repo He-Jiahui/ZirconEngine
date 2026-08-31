@@ -6,6 +6,35 @@ use crate::core::framework::platform::RuntimeTargetMode;
 use super::default_packaging::default_packaging;
 use super::default_true::default_true;
 
+fn default_feature_runtime_crate_name(feature_id: &str) -> String {
+    const PREFIX: &str = "zircon_plugin_";
+    const SUFFIX: &str = "_runtime";
+
+    let mut name = String::with_capacity(PREFIX.len() + feature_id.len() + SUFFIX.len());
+    name.push_str(PREFIX);
+    name.extend(feature_id.chars().map(sanitize_crate_path_character));
+    name.push_str(SUFFIX);
+    name
+}
+
+fn local_feature_runtime_crate_path(owner_plugin_id: &str, feature_id: &str) -> String {
+    const FEATURES_SEGMENT: &str = "/features/";
+    const RUNTIME_SEGMENT: &str = "/runtime";
+
+    let feature_slug = feature_id
+        .rsplit_once('.')
+        .map(|(_, suffix)| suffix)
+        .unwrap_or(feature_id);
+    let mut path = String::with_capacity(
+        owner_plugin_id.len() + FEATURES_SEGMENT.len() + feature_slug.len() + RUNTIME_SEGMENT.len(),
+    );
+    path.push_str(owner_plugin_id);
+    path.push_str(FEATURES_SEGMENT);
+    path.extend(feature_slug.chars().map(sanitize_crate_path_character));
+    path.push_str(RUNTIME_SEGMENT);
+    path
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectPluginFeatureSelection {
     pub id: String,
@@ -84,17 +113,14 @@ impl ProjectPluginFeatureSelection {
     pub fn runtime_crate_name(&self) -> String {
         self.runtime_crate
             .clone()
-            .unwrap_or_else(|| format!("zircon_plugin_{}_runtime", feature_crate_stem(&self.id)))
+            .unwrap_or_else(|| default_feature_runtime_crate_name(&self.id))
     }
 
     pub fn runtime_crate_path(&self, owner_plugin_id: &str) -> String {
         if let Some(provider_package_id) = self.external_provider_package_id(owner_plugin_id) {
             return format!("{provider_package_id}/runtime");
         }
-        format!(
-            "{owner_plugin_id}/features/{}/runtime",
-            feature_directory_slug(&self.id)
-        )
+        local_feature_runtime_crate_path(owner_plugin_id, &self.id)
     }
 
     pub fn provider_package_id_or_owner<'a>(&'a self, owner_plugin_id: &'a str) -> &'a str {
@@ -120,13 +146,6 @@ pub(super) fn feature_directory_slug(feature_id: &str) -> String {
         .collect()
 }
 
-fn feature_crate_stem(feature_id: &str) -> String {
-    feature_id
-        .chars()
-        .map(sanitize_crate_path_character)
-        .collect()
-}
-
 fn sanitize_crate_path_character(character: char) -> char {
     match character {
         'a'..='z' | '0'..='9' | '_' => character,
@@ -134,3 +153,7 @@ fn sanitize_crate_path_character(character: char) -> char {
         _ => '_',
     }
 }
+
+#[cfg(test)]
+#[path = "project_plugin_feature_selection/single_buffer_feature_paths_tests.rs"]
+mod single_buffer_feature_paths_tests;

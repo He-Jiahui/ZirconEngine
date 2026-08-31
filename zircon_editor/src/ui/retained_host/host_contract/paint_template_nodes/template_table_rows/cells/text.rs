@@ -24,7 +24,7 @@ fn option_cells_look_like_declared_cells(cells: &[String]) -> bool {
     }
     let whole_row_like_count = cells
         .iter()
-        .filter(|cell| split_archived_table_text(cell.as_str()).len() > 1)
+        .filter(|cell| cell.split_whitespace().nth(3).is_some())
         .count();
     whole_row_like_count * 2 <= cells.len()
 }

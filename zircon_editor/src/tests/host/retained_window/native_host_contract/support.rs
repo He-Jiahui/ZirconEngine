@@ -1,6 +1,7 @@
 pub(super) use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};
 pub(super) use crate::ui::retained_host::{
     build_pane_template_surface_frame, callback_dispatch::BuiltinViewportToolbarTemplateBridge,
+    compile_welcome_pane_layout,
     to_host_contract_component_showcase_pane_from_host_pane_with_runtime, FloatingWindowData,
     FrameRect, HostChromeControlFrameData, HostChromeTabData, HostClosePromptData,
     HostDocumentDockSurfaceData, HostMenuChromeData, HostMenuChromeItemData,
@@ -72,6 +73,7 @@ pub(super) fn viewport_toolbar_hit_control_id_for_test(projection_control_id: &s
     match projection_control_id {
         "ActivateSceneMode" => "mode.move",
         "SetTransformSpace" => "space.global",
+        "SetPivotMode" => "pivot.cycle",
         "SetProjectionMode" => "projection.perspective",
         "AlignView" => "align.neg_z",
         "SetDisplayMode" => "display.cycle",
@@ -156,6 +158,7 @@ pub(super) fn welcome_pane_with_nodes(nodes: Vec<TemplatePaneNodeData>) -> PaneD
         ..PaneData::default()
     };
     pane.welcome.nodes = model_rc(nodes);
+    pane.welcome.layout = compile_welcome_pane_layout(&pane.welcome.nodes);
     pane.body_surface_frame = build_pane_template_surface_frame(&pane, UiSize::new(1000.0, 1000.0));
     pane
 }

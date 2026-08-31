@@ -558,7 +558,7 @@ fn validate_unique_feature_names(
 ) -> Result<(), RendererDataDocumentError> {
     let mut seen_features = BTreeSet::new();
     for feature in features {
-        if !seen_features.insert(feature.name.clone()) {
+        if !seen_features.insert(feature.name.as_str()) {
             return Err(RendererDataDocumentError::DuplicateRenderFeature {
                 feature: feature.name.clone(),
             });
@@ -692,3 +692,7 @@ fn validate_quality_gate(
 const fn default_renderer_data_document_version() -> u32 {
     RENDERER_DATA_DOCUMENT_VERSION
 }
+
+#[cfg(test)]
+#[path = "renderer_data_document/borrowed_feature_name_tests.rs"]
+mod borrowed_feature_name_tests;

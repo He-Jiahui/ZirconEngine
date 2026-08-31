@@ -94,7 +94,7 @@ fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
 #[test]
 fn runtime_plugin_id_non_copy_contract_reaches_workspace_consumers() {
     let entry_config_source =
-        include_str!("../../../../../../zircon_app/src/entry/entry_config.rs");
+        include_str!("../../../../../../zircon_app/src/entry/product_host_config/request.rs");
     let editor_catalog_source =
         include_str!("../../../../../../zircon_plugins/first_party_editor_catalog/src/catalog.rs");
     let runtime_catalog_source =

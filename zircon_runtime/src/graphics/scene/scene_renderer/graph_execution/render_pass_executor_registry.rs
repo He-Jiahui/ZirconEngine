@@ -1,13 +1,13 @@
-use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
+use crate::graphics::CompiledRenderPipeline;
+use crate::graphics::RenderFeatureDescriptor;
 use crate::graphics::feature::COMPUTE_GENERIC_EXECUTOR_ID;
 use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
 use crate::graphics::scene::anti_alias::smaa::SMAA_EXECUTOR_ID;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_compute_executor::ibl_bake_compute_executor_registrations;
-use crate::graphics::CompiledRenderPipeline;
-use crate::graphics::RenderFeatureDescriptor;
 
 use super::builtin_postprocess_executors::{
     bloom_extract_executor, bloom_postprocess_executor, blur_postprocess_executor,
@@ -17,32 +17,34 @@ use super::builtin_postprocess_executors::{
     hzb_build_executor, hzb_occlusion_cull_executor, motion_blur_postprocess_executor,
     motion_vector_neighbor_max_executor, motion_vector_tile_max_coarse_executor,
     motion_vector_tile_max_executor, output_transfer_postprocess_executor,
-    particle_velocity_executor, scene_composite_postprocess_executor,
+    particle_velocity_executor, primary_upscale_postprocess_executor,
+    scene_composite_postprocess_executor,
     screen_space_reflection_reflection_pyramid_coarse_executor,
     screen_space_reflection_reflection_pyramid_executor, screen_space_reflection_resolve_executor,
-    screen_space_reflection_specular_occlusion_executor, smaa_postprocess_executor,
-    taa_reactive_mask_mesh_executor, taa_resolve_postprocess_executor, uber_postprocess_executor,
-    upscale_postprocess_executor, velocity_camera_executor, velocity_mesh_object_executor,
+    screen_space_reflection_specular_occlusion_executor, secondary_upscale_postprocess_executor,
+    smaa_postprocess_executor, taa_reactive_mask_mesh_executor, taa_resolve_postprocess_executor,
+    uber_postprocess_executor, velocity_camera_executor, velocity_mesh_object_executor,
 };
 use super::builtin_scene_executors::{
     advanced_pbr_opaque_executor, deferred_gbuffer_executor, deferred_lighting_executor,
     depth_prepass_executor, half_resolution_transparency_composite_executor,
-    half_resolution_transparency_depth_downsample_executor, mesh_executor, overlay_gizmo_executor,
+    half_resolution_transparency_depth_downsample_executor, mesh_executor,
+    output_target_direct_import_executor, output_target_writeback_executor, overlay_gizmo_executor,
     particle_billboard_executor, screen_space_ui_executor, shadow_atlas_executor, sprite_executor,
-    transmission_mesh_executor, transmission_scene_copy_executor,
+    surface_present_executor, transmission_mesh_executor, transmission_scene_copy_executor,
 };
 use super::generic_compute_executor::generic_compute_executor;
 use super::preview_sky_executor::preview_sky_scene_color_executor;
 use super::render_pass_executor_registration::{
-    render_pass_executor_from_fn, render_pass_executor_from_parallel_safe_fn, RenderPassExecutor,
-    RenderPassRecordingPolicy,
+    RenderPassExecutor, RenderPassRecordingPolicy, render_pass_executor_from_fn,
+    render_pass_executor_from_parallel_safe_fn,
 };
 use super::{RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration};
 
 pub type RenderPassExecutorFn = fn(&mut RenderPassExecutionContext<'_>) -> Result<(), String>;
 
 pub struct RenderPassExecutorRegistry {
-    executors: BTreeMap<RenderPassExecutorId, Arc<dyn RenderPassExecutor>>,
+    executors: HashMap<RenderPassExecutorId, Arc<dyn RenderPassExecutor>>,
     generation: u64,
     last_validated_pipeline_generation: AtomicU64,
     last_validated_registry_generation: AtomicU64,
@@ -70,7 +72,7 @@ impl Clone for RenderPassExecutorRegistry {
 impl Default for RenderPassExecutorRegistry {
     fn default() -> Self {
         Self {
-            executors: BTreeMap::new(),
+            executors: HashMap::new(),
             generation: 1,
             last_validated_pipeline_generation: AtomicU64::new(0),
             last_validated_registry_generation: AtomicU64::new(0),
@@ -109,7 +111,14 @@ impl RenderPassExecutorRegistry {
             "post.output-transfer".into(),
             output_transfer_postprocess_executor,
         );
-        registry.register("post.upscale".into(), upscale_postprocess_executor);
+        registry.register(
+            "post.primary-upscale".into(),
+            primary_upscale_postprocess_executor,
+        );
+        registry.register(
+            "post.secondary-upscale".into(),
+            secondary_upscale_postprocess_executor,
+        );
         registry.register(FXAA_EXECUTOR_ID.into(), fxaa_postprocess_executor);
         registry.register(SMAA_EXECUTOR_ID.into(), smaa_postprocess_executor);
         registry.register_parallel_safe("sprite.opaque".into(), sprite_executor);
@@ -217,6 +226,18 @@ impl RenderPassExecutorRegistry {
         registry.register("post.uber".into(), uber_postprocess_executor);
         registry.register("ui.screen-space".into(), screen_space_ui_executor);
         registry.register("overlay.gizmo".into(), overlay_gizmo_executor);
+        registry.register(
+            crate::graphics::pipeline::SURFACE_PRESENT_EXECUTOR_ID.into(),
+            surface_present_executor,
+        );
+        registry.register(
+            crate::graphics::pipeline::OUTPUT_TARGET_DIRECT_IMPORT_EXECUTOR_ID.into(),
+            output_target_direct_import_executor,
+        );
+        registry.register(
+            crate::graphics::pipeline::OUTPUT_TARGET_WRITEBACK_EXECUTOR_ID.into(),
+            output_target_writeback_executor,
+        );
         registry
     }
 
@@ -420,3 +441,7 @@ fn registry_register_builtin_noop_executor(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "render_pass_executor_registry/hash_index_tests.rs"]
+mod hash_index_tests;

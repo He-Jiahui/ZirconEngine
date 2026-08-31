@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::asset::{AssetId, AssetUri, AssetUuid};
+use crate::asset::{AssetId, AssetKind, AssetUri, AssetUuid};
 use crate::core::resource::ResourceRegistry;
 
 use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError};
@@ -10,6 +10,7 @@ use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError};
 pub struct AssetRegistryIndex {
     pub(super) entries_by_uuid: HashMap<AssetUuid, AssetRegistryEntry>,
     pub(super) uuids_by_path: HashMap<AssetUri, AssetUuid>,
+    pub(super) uuids_by_type: HashMap<AssetKind, HashSet<AssetUuid>>,
     pub(super) uuid_by_asset_id: HashMap<AssetId, AssetUuid>,
     pub(super) referencers_by_uuid: HashMap<AssetUuid, HashSet<AssetUuid>>,
     pub(super) entry_uuids_by_source: HashMap<AssetUri, HashSet<AssetUuid>>,
@@ -81,7 +82,7 @@ impl AssetRegistryIndex {
 
     pub fn entries(&self) -> Vec<&AssetRegistryEntry> {
         let mut entries = self.entries_by_uuid.values().collect::<Vec<_>>();
-        entries.sort_by(|left, right| left.path().cmp(right.path()));
+        entries.sort_unstable_by(|left, right| left.path().cmp(right.path()));
         entries
     }
 
@@ -119,6 +120,10 @@ impl AssetRegistryIndex {
         }
         self.uuids_by_path
             .insert(entry.path().clone(), entry.uuid());
+        self.uuids_by_type
+            .entry(entry.type_marker())
+            .or_default()
+            .insert(entry.uuid());
         self.uuid_by_asset_id
             .insert(AssetId::from_asset_uuid(entry.uuid()), entry.uuid());
         self.entry_uuids_by_source
@@ -143,6 +148,17 @@ impl AssetRegistryIndex {
         for uuid in removed {
             if let Some(entry) = self.entries_by_uuid.remove(&uuid) {
                 self.uuids_by_path.remove(entry.path());
+                let type_marker = entry.type_marker();
+                let remove_type_bucket = self
+                    .uuids_by_type
+                    .get_mut(&type_marker)
+                    .is_some_and(|uuids| {
+                        uuids.remove(&uuid);
+                        uuids.is_empty()
+                    });
+                if remove_type_bucket {
+                    self.uuids_by_type.remove(&type_marker);
+                }
                 self.uuid_by_asset_id
                     .remove(&AssetId::from_asset_uuid(uuid));
                 for dependency in entry.dependencies() {
@@ -292,3 +308,11 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "asset_registry_index/optimization_tests.rs"]
+mod optimization_tests;
+
+#[cfg(test)]
+#[path = "asset_registry_index/type_posting_tests.rs"]
+mod type_posting_tests;

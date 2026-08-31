@@ -49,7 +49,7 @@ impl EditorPluginDescriptor {
     pub fn with_event_consumer(mut self, consumer: PluginEventConsumerManifest) -> Self {
         self.event_consumers.push(consumer);
         self.event_consumers
-            .sort_by(|left, right| left.consumer_id.cmp(&right.consumer_id));
+            .sort_unstable_by(|left, right| left.consumer_id.cmp(&right.consumer_id));
         self
     }
 
@@ -75,6 +75,10 @@ impl EditorPluginDescriptor {
         super::catalog_gen::builtin_editor_plugin_descriptors()
     }
 }
+
+#[cfg(test)]
+#[path = "descriptor/optimization_tests.rs"]
+mod optimization_tests;
 
 pub trait EditorPlugin {
     fn descriptor(&self) -> &EditorPluginDescriptor;

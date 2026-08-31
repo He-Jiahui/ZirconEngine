@@ -78,23 +78,10 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
         "resolve_camera_sequence_borrowed(cameras)",
         ".map(CameraLoopSubmission::from)",
         "stream_camera_loop_extract_submissions(",
-        "let mut source_extract = Arc::new(extract);",
-        "Some(CameraLoopExtractSourceState::capture(source))",
-        "for (submission_index, submission) in submissions.into_iter().enumerate()",
-        "if submission_index > 0",
-        "view_target_size: Option<crate::core::math::UVec2>",
-        "extract.view.target_size = self.view_target_size",
-        "post_process: CameraLoopPostProcessSourceState",
-        "CameraLoopPostProcessSourceState::capture(&extract.post_process)",
-        "self.post_process.restore_to(&mut extract.post_process)",
-        "virtual_geometry: extract.geometry.virtual_geometry.take()",
-        "hybrid_global_illumination: extract.lighting.hybrid_global_illumination.take()",
-        "fn source_payloads(&self) -> FrameSubmissionSourcePayloads<'_>",
-        "FrameSubmissionSourcePayloads {",
-        "Arc::make_mut(&mut source_extract)",
-        "source_state.restore_for_submission(extract)",
-        "extract.select_camera_descriptor(submission.camera)",
-        "submit_selected_camera(\n            &mut source_extract,",
+        "let source_extract = extract;",
+        "for submission in submissions",
+        "source_extract.for_camera_submission(submission.camera)",
+        "submit_selected_camera(\n            &submission_extract,",
     ] {
         assert!(
             camera_loop.contains(required_camera_loop_anchor),
@@ -112,10 +99,12 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
         );
     }
     for forbidden_camera_loop_post_process_restore in [
+        "CameraLoopPostProcessSourceState",
         "post_process: PostProcessExtract",
         "post_process: extract.post_process.clone()",
         "post_process: frame.extract.post_process.clone()",
         "extract.post_process = self.post_process.clone()",
+        "self.post_process.restore_to(&mut extract.post_process)",
     ] {
         assert!(
             !camera_loop.contains(forbidden_camera_loop_post_process_restore),
@@ -123,6 +112,12 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
         );
     }
     for forbidden_camera_loop_feature_payload_restore in [
+        "FrameSubmissionSourcePayloads",
+        "CameraLoopExtractSourceState",
+        "Arc::make_mut(&mut source_extract)",
+        "let mut submission_extract = source_extract.clone()",
+        "extract.geometry.virtual_geometry.take()",
+        "extract.lighting.hybrid_global_illumination.take()",
         "extract.geometry.virtual_geometry = self.virtual_geometry.clone()",
         "extract.lighting.hybrid_global_illumination = self.hybrid_global_illumination.clone()",
         "virtual_geometry: extract.geometry.virtual_geometry.clone()",
@@ -139,7 +134,7 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
     for required_frame_loop_anchor in [
         "pub(super) fn submit_camera_loop_frame(",
         "stream_camera_loop_frame_submissions(",
-        "CameraLoopFrameSourceState::capture(&mut frame)",
+        "CameraLoopFrameSourceState::capture(&frame)",
         "for (submission_index, submission) in submissions.into_iter().enumerate()",
         "if submission_index > 0",
         "source_state.restore_for_submission(&mut frame);",
@@ -147,6 +142,9 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
         "terminal_ui.take()",
         "submit_selected_frame(\n            &mut frame,",
         "fn select_frame_camera_for_submission(",
+        "frame.select_camera_descriptor(camera);",
+        "extract: Arc<RenderFrameExtract>",
+        "frame.extract = Arc::clone(&self.extract);",
         "fn restore_for_submission(&self, frame: &mut ViewportRenderFrame)",
     ] {
         assert!(
@@ -158,10 +156,8 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
         "submit_camera_loop_frame(",
         "submit_selected_runtime_frame",
         "frame: &mut ViewportRenderFrame,",
-        "source_payloads: Option<FrameSubmissionSourcePayloads<'_>>",
         "build_frame_submission_context_from_runtime_frame_extract(",
-        "&mut frame.extract",
-        "source_payloads,",
+        "&frame.extract",
         "attach_prepared_sidebands_to_runtime_frame(frame, prepared);",
         "render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(",
         "&*frame,",
@@ -187,6 +183,12 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
             "pub fn select_camera_descriptor(&mut self, descriptor: CameraRenderDescriptor)"
         ),
         "RenderFrameExtract should expose in-place selected-camera projection for streaming submit"
+    );
+    assert!(
+        !camera_loop.contains("FrameSubmissionSourcePayloads")
+            && !camera_loop.contains("CameraLoopExtractSourceState")
+            && !camera_loop.contains("Arc::make_mut(&mut source_extract)"),
+        "camera-loop submission must not regain mutable scene-payload escape paths"
     );
     assert!(
         !camera_loop.contains("project_frame_to_selected_camera("),

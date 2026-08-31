@@ -8,9 +8,9 @@ use crate::scene::ecs::Event;
 use crate::scene::{RuntimeEventMirrorError, RuntimeEventMirrorRegistration, SceneResult, World};
 use serde::Serialize;
 
+use super::super::RuntimeExtensionRegistry;
 use super::super::owner::PluginModuleId;
 use super::super::validation::validate_plugin_event_catalog_manifest;
-use super::super::RuntimeExtensionRegistry;
 
 #[derive(Clone)]
 pub struct EventRegistration {
@@ -215,7 +215,11 @@ fn plugin_event_catalog_namespace_from_module(module_name: &str) -> Option<Strin
     if plugin_id.is_empty() {
         return None;
     }
-    Some(format!("{plugin_id}.events"))
+    let capacity = plugin_id.len() + ".events".len();
+    let mut namespace = String::with_capacity(capacity);
+    namespace.push_str(plugin_id);
+    namespace.push_str(".events");
+    Some(namespace)
 }
 
 fn validate_event_manifest(
@@ -227,4 +231,22 @@ fn validate_event_manifest(
         version: 1,
         events: vec![manifest.clone()],
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::plugin_event_catalog_namespace_from_module;
+
+    #[test]
+    fn exact_event_catalog_namespace_preserves_module_identity() {
+        assert_eq!(
+            plugin_event_catalog_namespace_from_module("weather.runtime"),
+            Some("weather.events".to_string())
+        );
+        assert_eq!(
+            plugin_event_catalog_namespace_from_module("weather"),
+            Some("weather.events".to_string())
+        );
+        assert_eq!(plugin_event_catalog_namespace_from_module(".runtime"), None);
+    }
 }

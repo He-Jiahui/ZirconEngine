@@ -4,7 +4,7 @@ use crate::ui::event_ui::{UiNodeId, UiTreeId};
 
 use super::{
     UiBatchKey, UiBatchPlan, UiBatchSplitReason, UiRenderCachePlan, UiRenderExtract,
-    UiRenderVisualizerSnapshot, UiRendererParitySnapshot,
+    UiRenderFrameExtract, UiRenderVisualizerSnapshot, UiRendererParitySnapshot,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -22,7 +22,14 @@ pub struct UiRenderDebugSnapshot {
 
 impl UiRenderDebugSnapshot {
     pub fn from_render_extract(extract: &UiRenderExtract) -> Self {
-        let elements = extract.list.to_paint_elements();
+        Self::from_paint_elements(extract.tree_id.clone(), extract.list.to_paint_elements())
+    }
+
+    pub fn from_render_frame_extract(extract: &UiRenderFrameExtract) -> Self {
+        Self::from_paint_elements(extract.tree_id.clone(), extract.list.to_paint_elements())
+    }
+
+    fn from_paint_elements(tree_id: UiTreeId, elements: Vec<super::UiPaintElement>) -> Self {
         let plan = UiBatchPlan::from_paint_elements(&elements);
         let cache = UiRenderCachePlan::from_paint_elements_and_batches(
             0,
@@ -33,12 +40,12 @@ impl UiRenderDebugSnapshot {
         let visualizer =
             UiRenderVisualizerSnapshot::from_paint_elements_batches_cache(&elements, &plan, &cache);
         let parity = UiRendererParitySnapshot::from_paint_elements_batches(
-            extract.tree_id.clone(),
+            tree_id.clone(),
             &elements,
             &plan,
         );
         Self {
-            tree_id: extract.tree_id.clone(),
+            tree_id,
             stats: UiRenderDebugStatsV2 {
                 element_count: elements.len(),
                 batch_count: plan.stats.batch_count,

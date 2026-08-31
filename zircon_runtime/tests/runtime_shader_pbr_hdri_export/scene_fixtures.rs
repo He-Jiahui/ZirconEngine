@@ -1,14 +1,16 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use zircon_runtime::asset::assets::{
-    AlphaMode, MaterialAsset, SceneAsset, SceneCameraAsset, SceneDirectionalLightAsset,
-    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
+    AlphaMode, MaterialAsset, MaterialTextureSlotValue, SceneAsset, SceneCameraAsset,
+    SceneDirectionalLightAsset, SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
+    TransformAsset,
 };
+use zircon_runtime::asset::project::AssetMetaDocument;
 use zircon_runtime::asset::{
-    AssetReference, AssetUri, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+    AssetKind, AssetReference, AssetUri, MeshVertex, ModelAsset, ModelPrimitiveAsset,
 };
-use zircon_runtime::core::framework::render::ProjectionMode;
+use zircon_runtime::core::framework::render::{ProjectionMode, RenderMaterialTextureTransform};
 use zircon_runtime::core::math::{Transform, Vec2, Vec3};
 use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
 use zircon_runtime_interface::resource::ResourceScheme;
@@ -18,6 +20,14 @@ const SINGLE_PBR_SPHERE_SCALE: [f32; 3] = [1.35, 1.35, 1.35];
 const SINGLE_PBR_SPHERE_ORTHO_SIZE: f32 = 3.4;
 const SINGLE_PBR_SPHERE_PERSPECTIVE_CAMERA_Z: f32 = 4.2;
 const SINGLE_PBR_SPHERE_ORTHOGRAPHIC_CAMERA_Z: f32 = 7.0;
+const STANDARD_INPUTS_NORMAL_SCALE: f32 = 0.55;
+const STANDARD_INPUTS_IOR: f32 = 2.0;
+const STANDARD_INPUTS_TEXTURE_TRANSFORM: RenderMaterialTextureTransform =
+    RenderMaterialTextureTransform {
+        scale: [1.35, 0.85],
+        offset: [0.1, -0.065],
+        rotation: 0.37,
+    };
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct SinglePbrSphereCameraView {
@@ -187,9 +197,50 @@ pub(super) fn write_single_pbr_material(
     normal_texture: Option<&str>,
     metallic_roughness_texture: Option<&str>,
 ) {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
+    let material = single_pbr_material(
+        name,
+        base_color,
+        metallic,
+        roughness,
+        base_color_texture,
+        normal_texture,
+        metallic_roughness_texture,
+    );
+    write_material(path, &material);
+}
+
+pub(super) fn write_single_pbr_material_with_standard_inputs(
+    path: PathBuf,
+    name: &str,
+    base_color: [f32; 4],
+    metallic: f32,
+    roughness: f32,
+    base_color_texture: Option<&str>,
+    normal_texture: Option<&str>,
+    metallic_roughness_texture: Option<&str>,
+) {
+    let mut material = single_pbr_material(
+        name,
+        base_color,
+        metallic,
+        roughness,
+        base_color_texture,
+        normal_texture,
+        metallic_roughness_texture,
+    );
+    apply_standard_pbr_input_coverage(&mut material);
+    write_material(path, &material);
+}
+
+fn single_pbr_material(
+    name: &str,
+    base_color: [f32; 4],
+    metallic: f32,
+    roughness: f32,
+    base_color_texture: Option<&str>,
+    normal_texture: Option<&str>,
+    metallic_roughness_texture: Option<&str>,
+) -> MaterialAsset {
     let mut material = MaterialAsset {
         name: Some(name.to_string()),
         shader: super::asset_reference("builtin://shader/pbr.wgsl"),
@@ -218,6 +269,44 @@ pub(super) fn write_single_pbr_material(
     material
         .property_values
         .insert("receive_shadows".to_string(), toml::Value::Boolean(false));
+    material
+}
+
+fn apply_standard_pbr_input_coverage(material: &mut MaterialAsset) {
+    for (slot, reference) in [
+        ("base_color", material.base_color_texture.clone()),
+        ("normal", material.normal_texture.clone()),
+        (
+            "metallic_roughness",
+            material.metallic_roughness_texture.clone(),
+        ),
+    ] {
+        if let Some(reference) = reference {
+            material.texture_slots.insert(
+                slot.to_string(),
+                MaterialTextureSlotValue {
+                    reference: Some(reference),
+                    fallback: None,
+                    transform: Some(STANDARD_INPUTS_TEXTURE_TRANSFORM),
+                    uv_channel: 0,
+                },
+            );
+        }
+    }
+    material.property_values.insert(
+        "normal_scale".to_string(),
+        toml::Value::Float(STANDARD_INPUTS_NORMAL_SCALE as f64),
+    );
+    material.property_values.insert(
+        "ior".to_string(),
+        toml::Value::Float(STANDARD_INPUTS_IOR as f64),
+    );
+}
+
+fn write_material(path: PathBuf, material: &MaterialAsset) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
     fs::write(
         path,
         material
@@ -227,6 +316,126 @@ pub(super) fn write_single_pbr_material(
     .unwrap();
 }
 
+#[cfg(test)]
+mod standard_pbr_input_tests {
+    use super::*;
+    use zircon_runtime::asset::assets::ZMaterialDocument;
+
+    #[test]
+    fn standard_pbr_input_fixture_preserves_texture_transforms_normal_scale_and_ior() {
+        let mut material = single_pbr_material(
+            "Standard PBR input coverage",
+            [1.0, 1.0, 1.0, 1.0],
+            0.0,
+            1.0,
+            Some("res://textures/base_color.png"),
+            Some("res://textures/normal.png"),
+            Some("res://textures/metallic_roughness.png"),
+        );
+        apply_standard_pbr_input_coverage(&mut material);
+
+        assert_standard_pbr_input_descriptor(&material);
+    }
+
+    #[test]
+    fn standard_pbr_input_fixture_survives_project_serialization() {
+        let mut material = single_pbr_material(
+            "Standard PBR input serialization coverage",
+            [1.0, 1.0, 1.0, 1.0],
+            0.0,
+            1.0,
+            Some("res://textures/base_color.png"),
+            Some("res://textures/normal.png"),
+            Some("res://textures/metallic_roughness.png"),
+        );
+        apply_standard_pbr_input_coverage(&mut material);
+
+        let document = material
+            .to_project_toml_string(persist_fixture_reference)
+            .expect("serialize Standard-PBR input fixture as a project material");
+        let loaded = MaterialAsset::from_zmaterial_document(
+            ZMaterialDocument::from_project_toml_str(&document, restore_fixture_reference)
+                .expect("deserialize Standard-PBR input fixture project material"),
+        );
+
+        assert_standard_pbr_input_descriptor(&loaded);
+    }
+
+    fn assert_standard_pbr_input_descriptor(material: &MaterialAsset) {
+        let descriptor = material.standard_material_descriptor();
+        assert_eq!(
+            descriptor.base_color_texture_transform,
+            STANDARD_INPUTS_TEXTURE_TRANSFORM
+        );
+        assert_eq!(
+            descriptor.normal_texture_transform,
+            STANDARD_INPUTS_TEXTURE_TRANSFORM
+        );
+        assert_eq!(
+            descriptor.metallic_roughness_texture_transform,
+            STANDARD_INPUTS_TEXTURE_TRANSFORM
+        );
+        assert_eq!(descriptor.normal_scale, STANDARD_INPUTS_NORMAL_SCALE);
+        assert_eq!(descriptor.metallic, 0.0);
+        assert_eq!(descriptor.advanced_features.ior, STANDARD_INPUTS_IOR);
+        assert!(descriptor.advanced_features.dielectric_f0() > 0.04);
+        assert!(descriptor.advanced_features.requires_forward_path());
+    }
+
+    fn restore_fixture_reference(
+        reference: &PersistedAssetReference,
+    ) -> Result<AssetReference, zircon_runtime::asset::ReferenceResolutionError> {
+        if let Some(locator) = reference.builtin_locator() {
+            return Ok(AssetReference::from_locator(locator.clone()));
+        }
+        let project = reference
+            .project_ref()
+            .expect("Standard-PBR fixture reference must be project-local");
+        let relative_path = project
+            .path_hint()
+            .as_str()
+            .strip_prefix("assets/")
+            .expect("Standard-PBR fixture project reference must be rooted below assets");
+        let locator = AssetUri::new(
+            ResourceScheme::Res,
+            relative_path.to_owned(),
+            project.sub().map(str::to_owned),
+        )
+        .expect("Standard-PBR fixture project reference locator");
+        Ok(AssetReference::new(project.guid(), locator))
+    }
+}
+
+fn write_pbr_matrix_asset_metadata(asset_root: &Path) {
+    write_fixture_asset_metadata(
+        asset_root.join("models/pbr_matrix_sphere.model.toml"),
+        "res://models/pbr_matrix_sphere.model.toml",
+        AssetKind::Model,
+    );
+    for row in 0..super::PBR_MATRIX_DIMENSION {
+        for column in 0..super::PBR_MATRIX_DIMENSION {
+            let uri = format!("res://materials/pbr_matrix_r{row}_c{column}.zmaterial");
+            write_fixture_asset_metadata(
+                asset_root.join(format!("materials/pbr_matrix_r{row}_c{column}.zmaterial")),
+                &uri,
+                AssetKind::Material,
+            );
+        }
+    }
+}
+
+fn write_fixture_asset_metadata(source_path: PathBuf, uri: &str, asset_kind: AssetKind) {
+    let reference = super::asset_reference(uri);
+    let file_name = source_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .expect("fixture asset source file name");
+    let meta_path = source_path.with_file_name(format!("{file_name}.zmeta"));
+    AssetMetaDocument::new(reference.uuid, reference.locator, asset_kind)
+        .save(meta_path)
+        .expect("write fixture asset metadata");
+}
+
 pub(super) fn write_pbr_matrix_scene(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
@@ -234,6 +443,13 @@ pub(super) fn write_pbr_matrix_scene(path: PathBuf) {
 
     let mut entities =
         Vec::with_capacity(super::PBR_MATRIX_DIMENSION * super::PBR_MATRIX_DIMENSION + 2);
+    // The serialized scene carries stable locator UUIDs before the first import. Seed matching
+    // sidecars for its external assets so the fixture follows the normal project authoring flow.
+    let asset_root = path
+        .parent()
+        .and_then(Path::parent)
+        .expect("PBR matrix scene must reside under the fixture asset root");
+    write_pbr_matrix_asset_metadata(asset_root);
     entities.push(camera_entity(
         1,
         "Camera",
@@ -321,6 +537,18 @@ pub(super) fn write_single_pbr_sphere_scene_with_camera_view(
     path: PathBuf,
     camera_view: SinglePbrSphereCameraView,
 ) {
+    write_single_pbr_sphere_scene_with_camera_view_and_material(
+        path,
+        camera_view,
+        "res://materials/single_metal_sphere.zmaterial",
+    );
+}
+
+pub(super) fn write_single_pbr_sphere_scene_with_camera_view_and_material(
+    path: PathBuf,
+    camera_view: SinglePbrSphereCameraView,
+    material_uri: &str,
+) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
@@ -343,7 +571,7 @@ pub(super) fn write_single_pbr_sphere_scene_with_camera_view(
             mesh: Some(SceneMeshInstanceAsset {
                 model: super::asset_reference("res://models/single_pbr_sphere.model.toml"),
                 mesh: None,
-                material: super::asset_reference("res://materials/single_metal_sphere.zmaterial"),
+                material: super::asset_reference(material_uri),
                 render_queue: 0,
                 material_queue: 0,
                 order_in_layer: 0,

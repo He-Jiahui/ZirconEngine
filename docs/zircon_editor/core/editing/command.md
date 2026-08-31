@@ -41,7 +41,7 @@ doc_type: module-detail
 
 The M10 reflection command slice adds `SetReflectedSceneFieldCommand` and removes the editor undo/redo mutation path that previously wrote through `ComponentPropertyPath`. Editor history now mutates component fields through the runtime reflection facade instead of routing plugin fields through legacy property strings or the compact fixed-node update path. This aligns inspector editing with the runtime projection work: the viewport now reads inspector rows from reflected runtime metadata, and inspector submission writes the same reflected field contract back into the scene for fixed and plugin-owned fields.
 
-`ComponentPropertyPath` can still appear in animation and asset authoring code as asset data, but it is no longer an editor scene mutation command. Runtime scene state that is changed through the inspector must pass through reflected component addresses and reflected field names.
+`ComponentPropertyPath` can still appear in animation and asset authoring code as asset data, but it is no longer an editor scene mutation command. Runtime scene state that is changed through the inspector must pass through reflected component addresses and stable reflected field IDs.
 
 ## Bevy Source Basis
 
@@ -59,14 +59,21 @@ Zircon intentionally mirrors the architectural shape rather than copying Bevy's 
 
 - target entity id,
 - reflected component type path,
-- reflected field name,
+- stable reflected field ID,
 - `ReflectedValue` before the edit,
 - `ReflectedValue` after the edit,
 - selection before and after the command.
 
-Capture is eager. `EditorCommand::set_reflected_scene_field(...)` first calls `Scene::reflect_read(...)` to snapshot the current field value. If the value is unchanged, it returns `Ok(None)` and does not create history noise. Otherwise it calls `Scene::reflect_write(...)`; the normalized value returned by `ReflectWriteResponse` becomes the command's `after` value.
+Capture is eager. `EditorCommand::set_reflected_scene_field(...)` accepts the authoring field name at the
+inspector boundary, resolves it once against the current schema to a stable field ID, and calls
+`Scene::reflect_read(...)` by ID to snapshot the current value. If the value is unchanged, it returns
+`Ok(None)` and does not create history noise. Otherwise it calls `Scene::reflect_write(...)`; the accepted
+request value returned by `ReflectWriteResponse` becomes the command's `after` value. The journal stores the
+resolved ID, not the authoring name.
 
-Apply and undo both call the same runtime reflection write helper. This keeps fixed components, plugin-owned dynamic JSON components, editability checks, field type validation, and missing entity/component errors centralized in `zircon_runtime::scene::reflect`.
+Apply and undo both call the same runtime reflection write helper by stable ID without resolving the old
+authoring name again. This keeps fixed components, plugin-owned dynamic JSON components, editability checks,
+field type validation, and missing entity/component errors centralized in `zircon_runtime::scene::reflect`.
 
 ## Inspector Flow
 
@@ -76,11 +83,11 @@ Apply and undo both call the same runtime reflection write helper. This keeps fi
 2. `parent_field` becomes `zircon_runtime::scene::components::Hierarchy.parent`.
 3. `transform_fields` become `zircon_runtime::scene::components::LocalTransform.translation`.
 4. `inspector_dynamic_fields` still contains reflected ids emitted by runtime projection, such as `weather.Component.CloudLayer.coverage`.
-5. The editor splits each reflected id into `component_type_path` and `field_name`, creates `EditorCommand::set_reflected_scene_field(...)`, batches the captured commands, and pushes the batch to editor history.
+5. The editor splits each composite UI id into `component_type_path` and `field_name` only at the capture boundary. Command capture resolves the current name to a stable field ID before the batch enters editor history; apply and undo use that ID.
 
 The fixed form keeps its dedicated validation for trimmed non-empty names, parent entity parsing, and Vec3 translation parsing. The generic reflected component text parser currently accepts bool, signed integer, unsigned integer, scalar, string, enum, resource, Vec2, Vec3, Vec4, quaternion, and entity reflected values. Vector-like values accept comma-separated or whitespace-separated finite numbers with optional `[]` or `()` wrappers, and entity values accept an entity id or `none`/`null`. Maps, lists, raw JSON, and null values remain unsupported by the generic inspector customization until the editor has dedicated controls for those shapes.
 
-The UI adapter editability gate uses the same reflected contract before it accepts draft field changes. `EditorState::can_edit_dynamic_component_field` resolves the field id into a reflected component address, checks `Scene::reflect_schema(...)` for an editor-visible editable field, and then confirms the selected entity can read that reflected field. A loaded dynamic JSON blob without a registered reflected schema is visible as protected data but is not accepted for generic inspector mutation.
+The UI adapter editability gate uses the same reflected contract before it accepts draft field changes. `EditorState::can_edit_dynamic_component_field` resolves the composite UI field name through the reflected schema to a stable field ID, checks that the field is editor-visible and editable, and then confirms the selected entity can read that ID. A loaded dynamic JSON blob without a registered reflected schema is visible as protected data but is not accepted for generic inspector mutation.
 
 The workbench data snapshot uses the same reflected source for plugin component property rows. When a schema is loaded, `EditorState::snapshot_with_inspector_customizations` projects plugin fields from `Scene::reflect_schema(...)` and `Scene::reflect_fields(...)`, then applies the capability-filtered `InspectorCustomization` responsibility chain. Draft text remains editor-owned until command capture. If a dynamic JSON component has no loaded schema or matching customization, the snapshot falls back to protected read-only JSON rows and emits the current unloaded-plugin diagnostic.
 

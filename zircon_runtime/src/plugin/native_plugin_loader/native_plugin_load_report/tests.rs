@@ -17,6 +17,30 @@ use crate::plugin::native_plugin_loader::{
 };
 
 #[test]
+fn load_report_collections_are_owned_by_the_report_module() {
+    let report_source = include_str!("../native_plugin_load_report.rs").replace("\r\n", "\n");
+    for field in ["discovered", "loaded", "diagnostics", "projection"] {
+        assert!(
+            !report_source.lines().any(|line| {
+                let line = line.trim_start();
+                line.starts_with("pub(") && line.contains(&format!("{field}:"))
+            }),
+            "NativePluginLoadReport::{field} must remain owner-private"
+        );
+    }
+
+    let authority_source = include_str!("../discover/authority.rs").replace("\r\n", "\n");
+    assert!(
+        !authority_source.contains("discovered: snapshot.candidates().to_vec()"),
+        "discovery authority must construct reports through the report owner"
+    );
+    assert!(
+        !authority_source.contains("report.diagnostics.push("),
+        "discovery authority must mutate reports through the report owner"
+    );
+}
+
+#[test]
 fn diagnostic_only_report_preserves_private_projection_initialization() {
     let report = NativePluginLoadReport::diagnostic_only("collector I/O lane is unavailable");
 

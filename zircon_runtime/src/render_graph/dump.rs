@@ -9,6 +9,7 @@ use super::types::{
     RenderGraphResourceKind, RenderGraphResourceLifetime, RenderGraphResourceUsageFlags,
     RenderPassId,
 };
+use super::RenderGraphResourceAccessId;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderGraphDump {
@@ -42,6 +43,7 @@ pub struct RenderGraphDumpPassRow {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderGraphDumpPassResourceRow {
+    pub access_id: RenderGraphResourceAccessId,
     pub name: String,
     pub kind: RenderGraphResourceKind,
     pub access: RenderGraphResourceAccessKind,
@@ -59,6 +61,8 @@ pub struct RenderGraphDumpResourceRow {
     pub live: bool,
     pub first_pass: Option<usize>,
     pub last_pass: Option<usize>,
+    /// Collision-free compiler-local transient allocation identity.
+    pub transient_allocation_id: Option<usize>,
     /// Slot index within `transient_bucket_key_hash`; it is not globally unique.
     pub transient_slot: Option<usize>,
     /// Descriptor-compatibility bucket that qualifies `transient_slot`.
@@ -89,6 +93,7 @@ pub enum RenderGraphDumpResourceDesc {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderGraphDumpTransientSlotRow {
+    pub allocation_id: usize,
     pub kind: RenderGraphResourceKind,
     pub slot: usize,
     pub bucket_key_hash: u64,
@@ -120,7 +125,10 @@ impl RenderGraphDump {
                 resources: pass
                     .resources
                     .iter()
-                    .map(|access| pass_resource_row(graph, pass.id, access))
+                    .enumerate()
+                    .map(|(access_index, access)| {
+                        pass_resource_row(graph, pass.id, access_index, access)
+                    })
                     .collect(),
             })
             .collect();
@@ -134,11 +142,7 @@ impl RenderGraphDump {
                     .iter()
                     .find(|allocation| allocation.resource_name == declaration.name);
                 let slot_reserved_bytes = allocation.and_then(|allocation| {
-                    allocation_plan.slot_bytes_for_bucket(
-                        allocation.kind,
-                        allocation.slot,
-                        allocation.bucket_key_hash,
-                    )
+                    allocation_plan.slot_bytes_for_allocation(allocation.allocation_id)
                 });
                 resource_row(declaration, lifetime, allocation, slot_reserved_bytes)
             })
@@ -147,6 +151,7 @@ impl RenderGraphDump {
             .slot_reservations
             .iter()
             .map(|reservation| RenderGraphDumpTransientSlotRow {
+                allocation_id: reservation.allocation_id.index(),
                 kind: reservation.kind,
                 slot: reservation.slot,
                 bucket_key_hash: reservation.bucket_key_hash,
@@ -203,7 +208,9 @@ impl RenderGraphDump {
             ));
             for resource in &pass.resources {
                 text.push_str(&format!(
-                    "    {} {} kind={} version={} ops={}\n",
+                    "    access={}:{} {} {} kind={} version={} ops={}\n",
+                    resource.access_id.pass().index(),
+                    resource.access_id.access_index(),
                     resource_access_label(resource.access),
                     resource.name,
                     resource_kind_label(resource.kind),
@@ -221,13 +228,14 @@ impl RenderGraphDump {
         text.push_str("resources:\n");
         for resource in &self.resource_rows {
             text.push_str(&format!(
-                "  resource name={} kind={} imported={} usage={} live={} lifetime={} slot={} bucket={} size_bytes={} slot_reserved_bytes={} desc={}\n",
+                "  resource name={} kind={} imported={} usage={} live={} lifetime={} allocation={} slot={} bucket={} size_bytes={} slot_reserved_bytes={} desc={}\n",
                 resource.name,
                 resource_kind_label(resource.kind),
                 resource.imported,
                 resource_usage_text(resource.usage),
                 resource.live,
                 lifetime_text(resource.first_pass, resource.last_pass),
+                optional_usize_text(resource.transient_allocation_id),
                 optional_usize_text(resource.transient_slot),
                 optional_u64_text(resource.transient_bucket_key_hash),
                 optional_u64_text(resource.size_bytes),
@@ -238,7 +246,8 @@ impl RenderGraphDump {
         text.push_str("transient_slots:\n");
         for slot in &self.transient_slot_rows {
             text.push_str(&format!(
-                "  slot kind={} index={} bucket={} bytes_reserved={}\n",
+                "  slot allocation={} kind={} index={} bucket={} bytes_reserved={}\n",
+                slot.allocation_id,
                 resource_kind_label(slot.kind),
                 slot.slot,
                 slot.bucket_key_hash,
@@ -287,16 +296,15 @@ fn executable_topology(graph: &CompiledRenderGraph) -> ExecutableTopology {
 fn pass_resource_row(
     graph: &CompiledRenderGraph,
     pass: RenderPassId,
+    access_index: usize,
     access: &RenderGraphPassResourceAccess,
 ) -> RenderGraphDumpPassResourceRow {
+    let access_id = RenderGraphResourceAccessId::new(pass, access_index);
     let version = graph
-        .resource_declaration_by_name(&access.name)
-        .filter(|declaration| declaration.kind == access.kind)
-        .and_then(|declaration| {
-            graph.resource_version_for_access(pass, declaration.resource, access.access)
-        })
+        .resource_version_for_id(access_id)
         .map_or(0, |version| version.ordinal());
     RenderGraphDumpPassResourceRow {
+        access_id,
         name: access.name.clone(),
         kind: access.kind,
         access: access.access,
@@ -320,6 +328,7 @@ fn resource_row(
         live: lifetime.is_some(),
         first_pass: lifetime.map(|lifetime| lifetime.first_pass),
         last_pass: lifetime.map(|lifetime| lifetime.last_pass),
+        transient_allocation_id: allocation.map(|allocation| allocation.allocation_id.index()),
         transient_slot: allocation.map(|allocation| allocation.slot),
         transient_bucket_key_hash: allocation.map(|allocation| allocation.bucket_key_hash),
         size_bytes: allocation.map(|allocation| allocation.size_bytes),
@@ -437,7 +446,15 @@ fn resource_desc_text(desc: &RenderGraphDumpResourceDesc) -> String {
             residency,
         } => format!(
             "texture:{}x{}x{} mips={} samples={} format={:?} usage=0x{:x} dimension={:?} residency={:?}",
-            width, height, depth, mip_levels, sample_count, format, usage_bits, dimension, residency
+            width,
+            height,
+            depth,
+            mip_levels,
+            sample_count,
+            format,
+            usage_bits,
+            dimension,
+            residency
         ),
         RenderGraphDumpResourceDesc::Buffer {
             size_bytes,
@@ -470,7 +487,7 @@ mod tests {
             TextureFormat::Rgba16Float,
             TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
         ));
-        let output = builder.import_external_resource("output");
+        let output = builder.import_present_external_resource("output");
 
         let write_r8 = builder.add_pass("write-r8", QueueLane::Graphics);
         let write_r16 = builder.add_pass("write-r16", QueueLane::Graphics);
@@ -535,7 +552,7 @@ mod tests {
             TextureFormat::Rgba8UnormSrgb,
             TextureUsage::RENDER_ATTACHMENT,
         ));
-        let output = builder.import_external_resource("output");
+        let output = builder.import_present_external_resource("output");
 
         let write_left = builder.add_pass("write-left", QueueLane::Graphics);
         let write_right = builder.add_pass("write-right", QueueLane::AsyncCompute);

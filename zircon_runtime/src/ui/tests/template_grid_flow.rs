@@ -1,5 +1,6 @@
+use super::template::compiled_instance_from_toml;
 use crate::ui::surface::UiSurface;
-use crate::ui::template::{UiTemplateInstance, UiTemplateLoader, UiTemplateSurfaceBuilder};
+use crate::ui::template::UiTemplateSurfaceBuilder;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiTreeId},
     layout::{
@@ -44,8 +45,7 @@ children = [
 
 #[test]
 fn template_builder_maps_grid_and_flow_slots_into_shared_runtime_layout_contract() {
-    let document = UiTemplateLoader::load_toml_str(GRID_FLOW_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(GRID_FLOW_TEMPLATE_TOML);
     let surface = UiTemplateSurfaceBuilder::build_surface(
         UiTreeId::new("runtime.ui.template.grid"),
         &instance,
@@ -270,8 +270,7 @@ fn template_builder_maps_grid_and_flow_slots_into_shared_runtime_layout_contract
 
 #[test]
 fn template_mui_responsive_layout_recomputes_from_viewport_breakpoints() {
-    let document = UiTemplateLoader::load_toml_str(GRID_FLOW_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(GRID_FLOW_TEMPLATE_TOML);
     let mut surface = UiTemplateSurfaceBuilder::build_surface(
         UiTreeId::new("runtime.ui.template.grid.responsive"),
         &instance,

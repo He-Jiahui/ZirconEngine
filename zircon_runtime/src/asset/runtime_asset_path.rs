@@ -13,7 +13,7 @@ mod diagnostics;
 const ZIRCON_ASSET_ROOT_ENV: &str = "ZIRCON_ASSET_ROOT";
 
 pub fn runtime_asset_path(relative: impl AsRef<Path>) -> PathBuf {
-    runtime_asset_path_from_roots(relative.as_ref(), Vec::new())
+    runtime_asset_path_from_roots(relative.as_ref(), std::iter::empty())
 }
 
 pub fn runtime_asset_path_with_dev_asset_root(
@@ -22,7 +22,7 @@ pub fn runtime_asset_path_with_dev_asset_root(
 ) -> PathBuf {
     runtime_asset_path_from_roots(
         relative.as_ref(),
-        vec![dev_asset_root.as_ref().to_path_buf()],
+        std::iter::once(dev_asset_root.as_ref().to_path_buf()),
     )
 }
 
@@ -70,7 +70,10 @@ pub fn runtime_asset_root() -> PathBuf {
     fallback
 }
 
-fn runtime_asset_path_from_roots(path: &Path, dev_asset_roots: Vec<PathBuf>) -> PathBuf {
+fn runtime_asset_path_from_roots(
+    path: &Path,
+    dev_asset_roots: impl IntoIterator<Item = PathBuf>,
+) -> PathBuf {
     let relative = normalize_runtime_asset_relative_path(path);
     let candidates = runtime_asset_root_candidates_with_dev_roots(dev_asset_roots);
     runtime_asset_path_from_candidates(&relative, candidates)
@@ -152,11 +155,11 @@ struct RuntimeAssetRootCandidates {
 }
 
 fn runtime_asset_root_candidates() -> RuntimeAssetRootCandidates {
-    runtime_asset_root_candidates_with_dev_roots(Vec::new())
+    runtime_asset_root_candidates_with_dev_roots(std::iter::empty())
 }
 
 fn runtime_asset_root_candidates_with_dev_roots(
-    dev_asset_roots: Vec<PathBuf>,
+    dev_asset_roots: impl IntoIterator<Item = PathBuf>,
 ) -> RuntimeAssetRootCandidates {
     let executable = std::env::current_exe().ok();
     let explicit_root = std::env::var_os(ZIRCON_ASSET_ROOT_ENV);
@@ -168,11 +171,12 @@ fn runtime_asset_root_candidates_with_dev_roots(
 }
 
 fn runtime_asset_root_candidates_with_inputs(
-    dev_asset_roots: Vec<PathBuf>,
+    dev_asset_roots: impl IntoIterator<Item = PathBuf>,
     explicit_root: Option<&OsStr>,
     executable: Option<&Path>,
 ) -> RuntimeAssetRootCandidates {
-    let mut candidates = Vec::new();
+    let dev_asset_roots = dev_asset_roots.into_iter();
+    let mut candidates = Vec::with_capacity(dev_asset_roots.size_hint().0.saturating_add(2));
 
     if let Some(root) = explicit_root {
         let root = Path::new(root);
@@ -205,11 +209,9 @@ fn runtime_asset_root_candidates_with_inputs(
         }
     }
 
-    if !candidates
-        .iter()
-        .any(|candidate| candidate == &crate_asset_root())
-    {
-        candidates.push(crate_asset_root());
+    let crate_root = crate_asset_root();
+    if !candidates.iter().any(|candidate| candidate == &crate_root) {
+        candidates.push(crate_root);
     }
     RuntimeAssetRootCandidates {
         paths: candidates,
@@ -268,7 +270,9 @@ fn normalize_runtime_asset_relative_path(path: &Path) -> PathBuf {
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
     use std::path::Path;
+    use std::time::Instant;
 
     use crate::asset::project::ProjectPaths;
 
@@ -277,6 +281,9 @@ mod tests {
         runtime_asset_path, runtime_asset_path_from_candidates,
         runtime_asset_path_with_dev_asset_root, runtime_asset_root_candidates_with_inputs,
     };
+
+    const SAMPLE_PAIRS: usize = 21;
+    const CANDIDATE_BUILDS_PER_SAMPLE: usize = 16_384;
 
     #[test]
     fn explicit_environment_asset_root_is_the_only_product_candidate() {
@@ -347,6 +354,23 @@ mod tests {
             ]
         );
         assert!(!candidates.paths.contains(&project_asset_root));
+    }
+
+    #[test]
+    fn single_dev_root_iterator_preserves_candidate_order_and_deduplication() {
+        let dev_asset_root = std::env::temp_dir().join("zircon-runtime-single-dev-root");
+
+        let candidates = runtime_asset_root_candidates_with_inputs(
+            std::iter::once(dev_asset_root.clone()),
+            None,
+            None,
+        );
+
+        assert!(!candidates.authoritative);
+        assert_eq!(
+            candidates.paths,
+            vec![dev_asset_root, super::crate_asset_root()]
+        );
     }
 
     #[test]
@@ -499,5 +523,108 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&dev_root);
         assert_eq!(resolved, expected);
+    }
+
+    #[test]
+    #[ignore = "release-only performance contract"]
+    fn benchmark_single_dev_root_candidate_construction() {
+        let dev_asset_root = std::env::temp_dir().join("zircon-runtime-candidate-benchmark");
+        let mut legacy_raw = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_raw = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair_index in 0..SAMPLE_PAIRS {
+            if pair_index % 2 == 0 {
+                legacy_raw.push(measure_candidate_builds(
+                    legacy_single_dev_root_candidates,
+                    &dev_asset_root,
+                ));
+                optimized_raw.push(measure_candidate_builds(
+                    optimized_single_dev_root_candidates,
+                    &dev_asset_root,
+                ));
+            } else {
+                optimized_raw.push(measure_candidate_builds(
+                    optimized_single_dev_root_candidates,
+                    &dev_asset_root,
+                ));
+                legacy_raw.push(measure_candidate_builds(
+                    legacy_single_dev_root_candidates,
+                    &dev_asset_root,
+                ));
+            }
+        }
+
+        let legacy_p95_ns = nearest_rank(&legacy_raw, 95);
+        let optimized_p95_ns = nearest_rank(&optimized_raw, 95);
+        let improvement_percent = legacy_p95_ns
+            .saturating_sub(optimized_p95_ns)
+            .saturating_mul(100)
+            / legacy_p95_ns.max(1);
+        assert!(
+            optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(85),
+            "iterator-backed candidate construction must improve P95 by at least 15%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
+        );
+        println!(
+            "PERF_RESULT task=plugins07_iterator_runtime_asset_roots sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank candidate_builds_per_sample={CANDIDATE_BUILDS_PER_SAMPLE} candidates_per_build=2 legacy_allocations_per_build=5 optimized_allocations_per_build=3 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
+            raw_samples(&legacy_raw),
+            raw_samples(&optimized_raw)
+        );
+    }
+
+    fn legacy_single_dev_root_candidates(dev_asset_root: &Path) -> usize {
+        let dev_asset_roots = vec![dev_asset_root.to_path_buf()];
+        let mut candidates = Vec::new();
+        for root in dev_asset_roots {
+            if !candidates.iter().any(|candidate| candidate == &root) {
+                candidates.push(root);
+            }
+        }
+        if !candidates
+            .iter()
+            .any(|candidate| candidate == &super::crate_asset_root())
+        {
+            candidates.push(super::crate_asset_root());
+        }
+        black_box(candidate_checksum(&candidates))
+    }
+
+    fn optimized_single_dev_root_candidates(dev_asset_root: &Path) -> usize {
+        let candidates = runtime_asset_root_candidates_with_inputs(
+            std::iter::once(dev_asset_root.to_path_buf()),
+            None,
+            None,
+        );
+        black_box(candidate_checksum(&candidates.paths))
+    }
+
+    fn candidate_checksum(candidates: &[std::path::PathBuf]) -> usize {
+        candidates
+            .iter()
+            .map(|candidate| candidate.components().count())
+            .sum()
+    }
+
+    fn measure_candidate_builds(plan: fn(&Path) -> usize, dev_asset_root: &Path) -> u64 {
+        let started = Instant::now();
+        let mut checksum = 0;
+        for _ in 0..CANDIDATE_BUILDS_PER_SAMPLE {
+            checksum ^= plan(black_box(dev_asset_root));
+        }
+        black_box(checksum);
+        u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX)
+    }
+
+    fn nearest_rank(samples: &[u64], percentile: usize) -> u64 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = sorted.len().saturating_mul(percentile).div_ceil(100);
+        sorted[rank.saturating_sub(1)]
+    }
+
+    fn raw_samples(samples: &[u64]) -> String {
+        samples
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 }

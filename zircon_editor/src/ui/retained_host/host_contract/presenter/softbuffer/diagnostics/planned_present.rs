@@ -40,10 +40,7 @@ pub(in crate::ui::retained_host::host_contract) fn plan_present_for_diagnostics(
             outcome.full_paint,
             outcome.region_paint,
         );
-        let overlay_text = diagnostics
-            .clone()
-            .with_invalidation_diagnostics(invalidation)
-            .overlay_text();
+        let overlay_text = diagnostics.overlay_text_with_invalidation_diagnostics(invalidation);
         let expanded_damage = if outcome.region_paint {
             damage_with_debug_overlay(
                 damage.clone(),
@@ -68,9 +65,6 @@ pub(in crate::ui::retained_host::host_contract) fn plan_present_for_diagnostics(
         outcome.full_paint,
         outcome.region_paint,
     );
-    let overlay_text = diagnostics
-        .clone()
-        .with_invalidation_diagnostics(invalidation)
-        .overlay_text();
+    let overlay_text = diagnostics.overlay_text_with_invalidation_diagnostics(invalidation);
     planned_present(presentation, damage, diagnostics, overlay_text)
 }

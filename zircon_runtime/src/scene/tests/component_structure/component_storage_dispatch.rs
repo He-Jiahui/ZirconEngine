@@ -8,7 +8,9 @@ fn component_storage_stays_sparse_only_after_archetype_table_cutover() {
     );
     assert!(store_source.contains("StorageError::TableOwnedByArchetype"));
     assert!(store_source.contains("self.sparse_components.get(&component_id)?.get(entity)"));
-    assert!(store_source.contains("self.sparse_components.get_mut(&component_id)?.get_mut(entity)"));
+    assert!(
+        store_source.contains("self.sparse_components.get_mut(&component_id)?.get_mut(entity)")
+    );
     for forbidden in [
         "TableComponentStorage",
         "table_components:",

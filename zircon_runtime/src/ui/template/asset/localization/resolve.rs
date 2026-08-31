@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use toml::Value;
 use zircon_runtime_interface::ui::template::{
@@ -10,13 +10,13 @@ const DEFAULT_LOCALIZATION_TABLE: &str = "default";
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiLocalizationTableCatalog {
-    tables: BTreeMap<String, BTreeMap<String, UiLocalizationTableEntry>>,
+    tables: HashMap<String, HashMap<String, UiLocalizationTableEntry>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct UiLocalizationTableEntry {
     source_uri: Option<String>,
-    keys: BTreeSet<String>,
+    keys: HashSet<String>,
 }
 
 impl UiLocalizationTableCatalog {
@@ -46,10 +46,6 @@ impl UiLocalizationTableCatalog {
             .insert(table.into(), entry);
         self
     }
-
-    fn table(&self, locale: &str, table: &str) -> Option<&UiLocalizationTableEntry> {
-        self.tables.get(locale)?.get(table)
-    }
 }
 
 pub fn validate_localization_report_against_catalog(
@@ -61,10 +57,19 @@ pub fn validate_localization_report_against_catalog(
     if locale.is_empty() {
         return Vec::new();
     }
+    let locale_tables = catalog.tables.get(locale);
+    let mut emitted_diagnostics = HashSet::new();
     let mut diagnostics = report
         .dependencies
         .iter()
-        .filter_map(|dependency| validate_dependency(locale, dependency, catalog))
+        .filter_map(|dependency| {
+            validate_dependency(
+                locale,
+                dependency,
+                locale_tables,
+                &mut emitted_diagnostics,
+            )
+        })
         .collect::<Vec<_>>();
     diagnostics.sort();
     diagnostics.dedup();
@@ -76,21 +81,32 @@ pub fn localization_table_keys_from_toml_str(
 ) -> Result<BTreeSet<String>, toml::de::Error> {
     let value = Value::Table(toml::from_str(source)?);
     let mut keys = BTreeSet::new();
-    collect_locale_keys("", &value, &mut keys);
+    let mut path = String::new();
+    collect_locale_keys(&mut path, &value, &mut keys);
     Ok(keys)
 }
 
-fn validate_dependency(
+fn validate_dependency<'dependency>(
     locale: &str,
-    dependency: &UiLocalizationDependency,
-    catalog: &UiLocalizationTableCatalog,
+    dependency: &'dependency UiLocalizationDependency,
+    locale_tables: Option<&HashMap<String, UiLocalizationTableEntry>>,
+    emitted_diagnostics: &mut HashSet<(&'dependency str, &'dependency str, &'dependency str, bool)>,
 ) -> Option<UiLocalizationDiagnostic> {
     let table_name = dependency
         .reference
         .table
         .as_deref()
         .unwrap_or(DEFAULT_LOCALIZATION_TABLE);
-    let Some(table) = catalog.table(locale, table_name) else {
+    let Some(table) = locale_tables.and_then(|tables| tables.get(table_name)) else {
+        let identity = (
+            dependency.path.as_str(),
+            dependency.reference.key.as_str(),
+            table_name,
+            dependency.reference.fallback.is_some(),
+        );
+        if !emitted_diagnostics.insert(identity) {
+            return None;
+        }
         return Some(UiLocalizationDiagnostic::new(
             "missing_locale_table",
             UiLocalizationDiagnosticSeverity::Error,
@@ -104,19 +120,30 @@ fn validate_dependency(
     if table.keys.contains(&dependency.reference.key) {
         return None;
     }
-    let source = table
-        .source_uri
-        .as_deref()
-        .map(|source_uri| format!(" in {source_uri}"))
-        .unwrap_or_default();
+    let identity = (
+        dependency.path.as_str(),
+        dependency.reference.key.as_str(),
+        table_name,
+        dependency.reference.fallback.is_some(),
+    );
+    if !emitted_diagnostics.insert(identity) {
+        return None;
+    }
+    let message = match table.source_uri.as_deref() {
+        Some(source_uri) => format!(
+            "locale key {} is missing from {locale}/{table_name} in {source_uri}",
+            dependency.reference.key
+        ),
+        None => format!(
+            "locale key {} is missing from {locale}/{table_name}",
+            dependency.reference.key
+        ),
+    };
     Some(UiLocalizationDiagnostic::new(
         "missing_locale_key",
         missing_ref_severity(dependency),
         dependency.path.clone(),
-        format!(
-            "locale key {} is missing from {locale}/{table_name}{source}",
-            dependency.reference.key
-        ),
+        message,
     ))
 }
 
@@ -128,26 +155,27 @@ fn missing_ref_severity(dependency: &UiLocalizationDependency) -> UiLocalization
     }
 }
 
-fn collect_locale_keys(prefix: &str, value: &Value, keys: &mut BTreeSet<String>) {
+fn collect_locale_keys(path: &mut String, value: &Value, keys: &mut BTreeSet<String>) {
     match value {
         Value::Table(table) => {
+            let prefix_len = path.len();
             for (key, value) in table {
-                let path = join_key(prefix, key);
-                collect_locale_keys(&path, value, keys);
+                path.truncate(prefix_len);
+                if prefix_len > 0 {
+                    path.push('.');
+                }
+                path.push_str(key);
+                collect_locale_keys(path, value, keys);
             }
+            path.truncate(prefix_len);
         }
         Value::Array(_) => {}
-        _ if !prefix.is_empty() => {
-            let _ = keys.insert(prefix.to_string());
+        _ if !path.is_empty() => {
+            let _ = keys.insert(path.clone());
         }
         _ => {}
     }
 }
 
-fn join_key(prefix: &str, key: &str) -> String {
-    if prefix.is_empty() {
-        key.to_string()
-    } else {
-        format!("{prefix}.{key}")
-    }
-}
+#[cfg(test)]
+mod performance_tests;

@@ -1,8 +1,8 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::style_selector::WorkbenchSliderStyle;
 use super::super::super::template_slider_geometry::{
-    pixel_aligned_rect, slider_label, slider_percent, slider_range_min_percent, slider_tick_count,
-    slider_track_rect, slider_value_rect,
+    slider_label, slider_percent, slider_range_min_percent, slider_tick_count, slider_track_rect,
+    slider_value_rect,
 };
 use super::super::identity::{is_workbench_slider, slider_style};
 
@@ -31,21 +31,20 @@ pub(super) fn build_slider_command_context(
         return SliderCommandContext::NotSlider;
     }
 
-    let rect = pixel_aligned_rect(rect);
     if rect.width <= 0.0 || rect.height <= 0.0 {
         return SliderCommandContext::Consumed;
     }
 
     let label = slider_label(node);
     let has_label = label.is_some();
-    let value_rect = slider_value_rect(&rect);
-    let track_rect = slider_track_rect(&rect, value_rect.as_ref(), has_label, node);
+    let value_rect = slider_value_rect(rect);
+    let track_rect = slider_track_rect(rect, value_rect.as_ref(), has_label, node);
     if track_rect.width <= 1.0 {
         return SliderCommandContext::Consumed;
     }
 
     SliderCommandContext::Ready(SliderCommandParts {
-        rect,
+        rect: rect.clone(),
         value_rect,
         track_rect,
         label,

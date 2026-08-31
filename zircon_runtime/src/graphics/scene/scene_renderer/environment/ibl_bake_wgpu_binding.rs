@@ -39,13 +39,24 @@ impl IblBakeWgpuBindGroupLayouts {
 pub(in crate::graphics::scene::scene_renderer) enum IblBakeWgpuOutputBindingResource<'a> {
     StorageTexture2DArray(&'a wgpu::TextureView),
     StorageBuffer(&'a wgpu::Buffer),
+    /// Graph-backed output with the compiler-proven byte window.
+    ///
+    /// The legacy `StorageBuffer` variant remains for direct environment
+    /// capture targets, which are not owned by a compiled render graph.
+    StorageBufferRange {
+        buffer: &'a wgpu::Buffer,
+        offset: wgpu::BufferAddress,
+        size: Option<std::num::NonZeroU64>,
+    },
 }
 
 impl IblBakeWgpuOutputBindingResource<'_> {
     fn kind(&self) -> IblBakeWgpuOutputBindingKind {
         match self {
             Self::StorageTexture2DArray(_) => IblBakeWgpuOutputBindingKind::StorageTexture2DArray,
-            Self::StorageBuffer(_) => IblBakeWgpuOutputBindingKind::StorageBuffer,
+            Self::StorageBuffer(_) | Self::StorageBufferRange { .. } => {
+                IblBakeWgpuOutputBindingKind::StorageBuffer
+            }
         }
     }
 
@@ -53,6 +64,15 @@ impl IblBakeWgpuOutputBindingResource<'_> {
         match self {
             Self::StorageTexture2DArray(view) => wgpu::BindingResource::TextureView(view),
             Self::StorageBuffer(buffer) => buffer.as_entire_binding(),
+            Self::StorageBufferRange {
+                buffer,
+                offset,
+                size,
+            } => wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                buffer,
+                offset: *offset,
+                size: *size,
+            }),
         }
     }
 }

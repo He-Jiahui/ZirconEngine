@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;
 
 use crate::core::math::{Vec2, Vec3, Vec4};
@@ -90,7 +90,8 @@ pub struct LightmapConsumeContract {
     pub light_set_generation: u64,
     pub atlas: AssetId,
     pub atlas_descriptor: LightmapAtlasDescriptor,
-    pub slots: Vec<(u64, LightmapInstanceSlot)>,
+    #[serde(deserialize_with = "deserialize_sorted_lightmap_slots")]
+    slots: Vec<(u64, LightmapInstanceSlot)>,
 }
 
 impl LightmapConsumeContract {
@@ -98,8 +99,9 @@ impl LightmapConsumeContract {
         light_set_generation: u64,
         atlas: AssetId,
         atlas_descriptor: LightmapAtlasDescriptor,
-        slots: Vec<(u64, LightmapInstanceSlot)>,
+        mut slots: Vec<(u64, LightmapInstanceSlot)>,
     ) -> Self {
+        sort_lightmap_slots(&mut slots);
         Self {
             contract_version: LIGHTMAP_CONSUME_CONTRACT_VERSION,
             light_set_generation,
@@ -114,13 +116,14 @@ impl LightmapConsumeContract {
         validate_generation(self.light_set_generation)?;
         self.atlas_descriptor.validate()?;
 
-        let mut instance_ids = HashSet::with_capacity(self.slots.len());
+        let mut previous_instance_id = None;
         for (instance_id, slot) in &self.slots {
-            if !instance_ids.insert(*instance_id) {
+            if previous_instance_id == Some(*instance_id) {
                 return Err(LightmapContractValidationError::DuplicateInstanceId {
                     instance_id: *instance_id,
                 });
             }
+            previous_instance_id = Some(*instance_id);
             slot.validate()?;
             if slot.atlas_page >= self.atlas_descriptor.page_count {
                 return Err(LightmapContractValidationError::AtlasPageOutOfRange {
@@ -132,7 +135,7 @@ impl LightmapConsumeContract {
         Ok(())
     }
 
-    /// Returns slots in their immutable contract order.
+    /// Returns slots in immutable ascending instance-id order.
     pub fn slots(&self) -> &[(u64, LightmapInstanceSlot)] {
         &self.slots
     }
@@ -142,10 +145,28 @@ impl LightmapConsumeContract {
     }
 
     pub fn slot_for_instance(&self, instance_id: u64) -> Option<LightmapInstanceSlot> {
+        let index = self
+            .slots
+            .partition_point(|(candidate, _)| *candidate < instance_id);
         self.slots
-            .iter()
-            .find_map(|(candidate, slot)| (*candidate == instance_id).then_some(*slot))
+            .get(index)
+            .and_then(|(candidate, slot)| (*candidate == instance_id).then_some(*slot))
     }
+}
+
+fn deserialize_sorted_lightmap_slots<'de, D>(
+    deserializer: D,
+) -> Result<Vec<(u64, LightmapInstanceSlot)>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut slots = Vec::<(u64, LightmapInstanceSlot)>::deserialize(deserializer)?;
+    sort_lightmap_slots(&mut slots);
+    Ok(slots)
+}
+
+fn sort_lightmap_slots(slots: &mut [(u64, LightmapInstanceSlot)]) {
+    slots.sort_by_key(|(instance_id, _)| *instance_id);
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

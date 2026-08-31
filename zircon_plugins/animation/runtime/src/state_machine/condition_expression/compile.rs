@@ -1,3 +1,4 @@
+use zircon_runtime::core::framework::animation::compiler::state_machine::AnimationCompiledTransitionCondition;
 use zircon_runtime::core::framework::animation::AnimationTransitionConditionAsset;
 
 use super::compiled_condition_expression::{CompiledConditionExpression, CompiledConditionProgram};
@@ -41,6 +42,25 @@ pub(in crate::state_machine) fn compile_all_conditions(
             .map(ConditionExpression::condition),
     );
     compile_program(&expression, parameters)
+}
+
+pub(in crate::state_machine) fn compile_shared_conditions(
+    conditions: &[AnimationCompiledTransitionCondition],
+) -> Result<CompiledConditionProgram, ConditionExpressionCompileError> {
+    let mut instructions = conditions
+        .iter()
+        .map(|condition| {
+            Ok(ConditionInstruction::Compare {
+                parameter: ParameterSlot::new(condition.parameter())?,
+                operator: condition.operator(),
+                value: condition.value().cloned(),
+            })
+        })
+        .collect::<Result<Vec<_>, ConditionExpressionCompileError>>()?;
+    instructions.push(ConditionInstruction::All(child_count(conditions.len())?));
+    Ok(CompiledConditionProgram {
+        instructions: instructions.into_boxed_slice(),
+    })
 }
 
 fn compile_node(

@@ -3,22 +3,21 @@ use std::path::Path;
 use std::sync::Arc;
 
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
+use zircon_runtime::asset::registry::AssetRegistryIndex;
 use zircon_runtime::asset::{AssetUri, AssetUuid};
 
 use super::details::build_details_generation;
 use super::folders::build_folder_records;
-use crate::ui::host::editor_asset_manager::{
-    AssetCatalogRecord, EditorAssetCatalogGeneration, ReferenceGraph,
-};
+use crate::ui::host::editor_asset_manager::{AssetCatalogRecord, EditorAssetCatalogGeneration};
 
 pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generation(
     project: &ProjectManager,
+    runtime_registry: &AssetRegistryIndex,
     assets_root: &Path,
     catalog_revision: u64,
     publish_epoch: u64,
     catalog_by_uuid: &HashMap<AssetUuid, AssetCatalogRecord>,
     uuid_by_locator: &HashMap<AssetUri, AssetUuid>,
-    reference_graph: &ReferenceGraph,
 ) -> Arc<EditorAssetCatalogGeneration> {
     let mut records = catalog_by_uuid.values().collect::<Vec<_>>();
     records.sort_by(|left, right| left.locator.cmp(&right.locator));
@@ -29,7 +28,7 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generati
                 record,
                 catalog_by_uuid,
                 uuid_by_locator,
-                reference_graph,
+                runtime_registry,
             ))
         })
         .collect::<Vec<_>>();
@@ -43,6 +42,11 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generati
                     .asset,
             )
         })
+        .collect::<Vec<_>>();
+
+    let catalog_records = records
+        .iter()
+        .map(|record| Some(Arc::new((*record).clone())))
         .collect::<Vec<_>>();
 
     Arc::new(EditorAssetCatalogGeneration::from_parts(
@@ -62,5 +66,6 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generati
         build_folder_records(catalog_by_uuid),
         assets,
         details,
+        catalog_records,
     ))
 }

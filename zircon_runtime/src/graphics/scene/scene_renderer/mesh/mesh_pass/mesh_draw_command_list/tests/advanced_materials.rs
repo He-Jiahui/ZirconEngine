@@ -25,6 +25,35 @@ fn render_advanced_static_material_bypasses_opaque_cache_and_keeps_late_forward_
 }
 
 #[test]
+fn render_non_default_ior_bypasses_gbuffer_and_keeps_late_forward_command() {
+    let mut variants = MeshPipelineVariantRegistry::default();
+    let mut cache = CachedMeshDrawCommands::default();
+    let mut batch = static_batch(MeshDrawQueuePhase::Opaque, 10)
+        .with_cache_identity(7, 7 << 16, 0)
+        .with_static_state(RenderMeshStaticState::new(true, 11, 17));
+    batch.pipeline_key.pbr_ior_override = true;
+
+    let buffers = build_mesh_pass_command_buffers_from_batches_cached(
+        [batch],
+        &mut variants,
+        &mut cache,
+        1,
+        ShaderQualityTier::default(),
+    );
+
+    assert!(buffers.opaque().commands().is_empty());
+    assert_eq!(buffers.advanced_pbr_opaque().commands().len(), 1);
+    assert!(buffers.transparent().commands().is_empty());
+    assert!(
+        buffers.advanced_pbr_opaque().commands()[0]
+            .pipeline_key()
+            .pbr_ior_override
+    );
+    assert_eq!(buffers.stats().cached_command_hit_count, 0);
+    assert!(buffers.stats().dynamic_command_count > 0);
+}
+
+#[test]
 fn render_advanced_command_lists_keep_transmission_after_late_forward_opaque() {
     let mut variants = MeshPipelineVariantRegistry::default();
     let mut clearcoat = batch(MeshDrawQueuePhase::Opaque, 10);

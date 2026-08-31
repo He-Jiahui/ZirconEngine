@@ -31,6 +31,7 @@ pub use resource_event_kind::ResourceEventKind;
 pub use resource_handle::ResourceHandle;
 pub use resource_id::ResourceId;
 pub use resource_record::ResourceRecord;
+pub use stable_uuid::STABLE_UUID_ALGORITHM_VERSION;
 pub use state::ResourceState;
 pub use untyped_handle::UntypedResourceHandle;
 

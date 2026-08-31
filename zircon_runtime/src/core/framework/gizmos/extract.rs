@@ -52,7 +52,7 @@ impl<'a> GizmoOverlayExtractRequest<'a> {
 pub fn extract_gizmo_overlay(
     request: GizmoOverlayExtractRequest<'_>,
 ) -> Option<SceneGizmoOverlayExtract> {
-    let mut lines = Vec::new();
+    let mut lines = Vec::with_capacity(estimated_request_line_count(&request));
     for buffer in request.buffers {
         if buffer.config().enabled {
             push_commands(
@@ -103,11 +103,27 @@ fn push_commands(
     transform: Transform,
     color_policy: GizmoColorPolicy,
 ) {
-    lines.reserve(commands.iter().map(estimated_line_count).sum());
     let transform = transform.matrix();
     for command in commands {
         push_command(lines, command, transform, color_policy);
     }
+}
+
+fn estimated_request_line_count(request: &GizmoOverlayExtractRequest<'_>) -> usize {
+    request
+        .buffers
+        .iter()
+        .filter(|buffer| buffer.config().enabled)
+        .flat_map(|buffer| buffer.commands())
+        .chain(
+            request
+                .retained
+                .iter()
+                .filter(|retained| retained.config.enabled)
+                .flat_map(|retained| retained.asset.commands()),
+        )
+        .map(estimated_line_count)
+        .fold(0usize, usize::saturating_add)
 }
 
 fn estimated_line_count(command: &GizmoCommand) -> usize {
@@ -205,12 +221,9 @@ fn push_command(
             *size,
             color_policy.apply(*color),
         ),
-        GizmoCommand::Aabb { min, max, color } => push_aabb(
-            lines,
-            transform_point(transform, *min),
-            transform_point(transform, *max),
-            color_policy.apply(*color),
-        ),
+        GizmoCommand::Aabb { min, max, color } => {
+            push_aabb(lines, transform, *min, *max, color_policy.apply(*color))
+        }
         GizmoCommand::Axis {
             origin,
             axis,
@@ -366,7 +379,13 @@ fn push_cube(lines: &mut Vec<OverlayLineSegment>, transform: Mat4, size: Vec3, c
     push_box_edges(lines, &corners, color);
 }
 
-fn push_aabb(lines: &mut Vec<OverlayLineSegment>, min: Vec3, max: Vec3, color: Vec4) {
+fn push_aabb(
+    lines: &mut Vec<OverlayLineSegment>,
+    transform: Mat4,
+    min: Vec3,
+    max: Vec3,
+    color: Vec4,
+) {
     let corners = [
         Vec3::new(min.x, min.y, min.z),
         Vec3::new(max.x, min.y, min.z),
@@ -376,7 +395,8 @@ fn push_aabb(lines: &mut Vec<OverlayLineSegment>, min: Vec3, max: Vec3, color: V
         Vec3::new(max.x, min.y, max.z),
         Vec3::new(max.x, max.y, max.z),
         Vec3::new(min.x, max.y, max.z),
-    ];
+    ]
+    .map(|point| transform_point(transform, point));
     push_box_edges(lines, &corners, color);
 }
 
@@ -417,3 +437,6 @@ fn transform_point(transform: Mat4, point: Vec3) -> Vec3 {
 fn transform_vector(transform: Mat4, vector: Vec3) -> Vec3 {
     transform.transform_vector3(vector)
 }
+
+#[cfg(test)]
+mod performance_tests;

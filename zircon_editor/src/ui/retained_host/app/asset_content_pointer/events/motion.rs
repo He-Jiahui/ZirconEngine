@@ -1,4 +1,5 @@
 use super::super::super::{RetainedEditorHost, UiPoint};
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn asset_content_pointer_moved(
@@ -15,6 +16,12 @@ impl RetainedEditorHost {
         else {
             return;
         };
+        if surface_mode == "browser" {
+            record_current_ui_perf_counter(
+                UiPerfCounter::AssetBrowserLogicalItemCount,
+                target.snapshot.visible_assets.len() as f64,
+            );
+        }
         let point = UiPoint::new(x, y);
         let Some(Some(state)) =
             self.dispatch_prepared_asset_content_pointer(surface_mode, &target, false, |bridge| {

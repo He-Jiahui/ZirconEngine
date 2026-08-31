@@ -2,14 +2,14 @@ use std::sync::mpsc;
 
 use crate::core::math::UVec2;
 use crate::graphics::shader::{
-    create_compute_shader_bind_group_layout, hzb_build_dispatch_plan, hzb_build_msaa_dispatch_plan,
-    ShaderWgpuResourceDescriptor, HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE,
-    HZB_TARGET_RESOURCE,
+    HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
+    ShaderWgpuResourceDescriptor, create_compute_shader_bind_group_layout, hzb_build_dispatch_plan,
+    hzb_build_msaa_dispatch_plan,
 };
 use crate::graphics::visibility::HzbBuilder;
 
 use super::execute_hzb_build::{
-    create_hzb_params_upload_buffer, execute_hzb_build_mip_with_resources, HzbBuildMipResources,
+    HzbBuildMipResources, create_hzb_params_upload_buffer, execute_hzb_build_mip_with_resources,
 };
 
 const TEST_SCENE_SIZE: UVec2 = UVec2::new(4, 4);

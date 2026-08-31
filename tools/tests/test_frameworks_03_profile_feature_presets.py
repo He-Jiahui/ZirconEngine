@@ -26,7 +26,7 @@ RUNTIME_PROFILE_DEFAULTS = (
 RUNTIME_PROFILE_ASSEMBLY = (
     REPO_ROOT / "zircon_runtime" / "src" / "plugin" / "runtime_profile" / "assembly_presets.rs"
 )
-APP_ENTRY_RUNNER_MODULE = REPO_ROOT / "zircon_app" / "src" / "entry" / "entry_runner" / "mod.rs"
+APP_ENTRY_MODULE = REPO_ROOT / "zircon_app" / "src" / "entry" / "mod.rs"
 SCENE_PROJECT_IO_MODULE = (
     REPO_ROOT
     / "zircon_runtime"
@@ -304,11 +304,11 @@ class Frameworks03ProfileFeaturePresetTests(unittest.TestCase):
             ["graphics"],
         )
 
-    def test_minimal_app_does_not_mount_diagnostic_log_startup_parsing(self) -> None:
-        source = APP_ENTRY_RUNNER_MODULE.read_text(encoding="utf-8")
+    def test_minimal_app_does_not_mount_diagnostic_log_cli_parsing(self) -> None:
+        source = APP_ENTRY_MODULE.read_text(encoding="utf-8")
 
         self.assertIn(
-            '#[cfg(feature = "diagnostic-log")]\nmod diagnostic_log_args;',
+            '#[cfg(feature = "diagnostic-log")]\npub(crate) mod cli;',
             source,
         )
 

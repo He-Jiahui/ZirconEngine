@@ -10,9 +10,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
   "res://ui/editor/components/workbench/primitives/data/workbench_component_property_row.zui#WorkbenchComponentPropertyRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
 ]
 styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
@@ -24,38 +23,23 @@ default_classes = ["workbench-panel", "workbench-right-panel"]
 component = "VerticalGroup"
 control_id = "WorkbenchInspectorPanel"
 classes = ["workbench-panel", "workbench-right-panel"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.large" }, width = { preferred = "$editor.density.right_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "inspector_tabs" }, { node = "inspector_content" }]
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { preferred = "$editor.density.right_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "inspector_header" }, { node = "inspector_filter_row" }, { node = "inspector_content" }]
 
-[nodes.inspector_tabs]
+[nodes.inspector_header]
 component = "HorizontalGroup"
 control_id = "RightDrawerHeaderRoot"
-classes = ["workbench-tabs"]
+classes = ["workbench-panel-header"]
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
-children = [{ node = "inspector_tab_inspector" }, { node = "inspector_tab_history" }]
+children = [{ node = "inspector_title" }]
 
 [nodes.inspector_content]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "RightDrawerContentRoot"
 classes = ["workbench-right-drawer-content"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.large" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "inspector_title" }, { node = "inspector_tags" }, { node = "inspector_transform" }, { node = "inspector_mesh" }, { node = "inspector_add_component" }]
-
-[nodes.inspector_tab_inspector]
-component = "WorkbenchTab"
-control_id = "WorkbenchInspectorTabInspector"
-classes = ["workbench-tab"]
-props = { text = "Inspector", checked = true, selected = true, value = true }
-layout = { width = { min = 130.0, preferred = 130.0, max = 130.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "PanelTab/InspectorMain", event = "Click", route = "workbench.panel_tab.select.inspector_main" }]
-
-[nodes.inspector_tab_history]
-component = "WorkbenchTab"
-control_id = "WorkbenchInspectorTabHistory"
-classes = ["workbench-tab"]
-props = { text = "History" }
-layout = { width = { min = 120.0, preferred = 120.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "PanelTab/InspectorHistory", event = "Click", route = "workbench.panel_tab.select.inspector_history" }]
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.large", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "inspector_metadata" }, { node = "inspector_transform" }, { node = "inspector_mesh" }, { node = "inspector_add_component" }, { node = "inspector_filter_empty" }]
 
 [nodes.inspector_title]
 component = "WorkbenchSectionTitle"
@@ -64,31 +48,60 @@ classes = ["workbench-section-title"]
 props = { text = "Props" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 
-[nodes.inspector_tags]
+[nodes.inspector_filter_row]
 component = "HorizontalGroup"
-control_id = "WorkbenchInspectorTags"
+control_id = "WorkbenchInspectorFilterRow"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+children = [{ node = "inspector_filter_field" }]
+
+[nodes.inspector_filter_field]
+component = "WorkbenchSearchInput"
+control_id = "WorkbenchInspectorFilter"
+classes = ["workbench-search-input", "workbench-muted"]
+props = { query = "", placeholder = "Filter properties..." }
+widget = { value_property = "query" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [
+  { id = "Workbench/InspectorSearchEdit", event = "Change", component_event = "ValueChanged", route = "workbench.inspector.search.edit" },
+  { id = "Workbench/InspectorSearchCommit", event = "Submit", component_event = "Commit", route = "workbench.inspector.search.commit" },
+]
+
+[nodes.inspector_filter_empty]
+component = "WorkbenchLabel"
+control_id = "WorkbenchInspectorFilterEmpty"
+classes = ["workbench-muted"]
+props = { text = "No matching properties", text_tone = "muted", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+
+[nodes.inspector_metadata]
+component = "HorizontalGroup"
+control_id = "WorkbenchInspectorMetadata"
 layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.large" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
-children = [{ node = "inspector_tag" }, { node = "inspector_layer" }]
+children = [{ node = "inspector_layer_label" }, { node = "inspector_layer_mask" }]
 
-[nodes.inspector_tag]
-component = "WorkbenchDropdown"
-control_id = "WorkbenchInspectorTag"
-classes = ["workbench-field"]
-props = { value = "untagged", value_text = "Untagged", options = ["untagged", "gameplay", "lighting"], popup_open = false }
+[nodes.inspector_layer_label]
+component = "WorkbenchLabel"
+control_id = "WorkbenchInspectorRenderLayerLabel"
+classes = ["workbench-transform-row-label"]
+props = { text = "Layer mask", text_tone = "muted", font_size = "$editor.typography.body.size" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.inspector_layer]
-component = "WorkbenchDropdown"
-control_id = "WorkbenchInspectorLayer"
+[nodes.inspector_layer_mask]
+component = "WorkbenchAxisValueField"
+control_id = "WorkbenchInspectorRenderLayerMask"
 classes = ["workbench-field"]
-props = { value = "default", value_text = "Default", options = ["default", "foreground", "background"], popup_open = false }
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { value = "1", placeholder = "1" }
+layout = { width = { min = 100.0, preferred = 120.0, max = 140.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [
+  { id = "Inspector/RenderLayerMaskEdit", event = "Change", route = "workbench.inspector.render_layer_mask.edit" },
+  { id = "Inspector/RenderLayerMaskCommit", event = "Submit", route = "workbench.inspector.render_layer_mask.commit" },
+]
 
 [nodes.inspector_transform]
 component = "VerticalGroup"
 control_id = "WorkbenchInspectorTransform"
 classes = ["workbench-property-section", "workbench-transform-section"]
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
 children = [{ node = "transform_label" }, { node = "position_row" }, { node = "rotation_row" }, { node = "scale_row" }]
 
 [nodes.transform_label]
@@ -99,19 +112,31 @@ props = { text = "Transform" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
 [nodes.position_row]
-component = "HorizontalGroup"
+component = "VerticalGroup"
 control_id = "WorkbenchTransformPosition"
 classes = ["workbench-property-row", "workbench-transform-row", "workbench-transform-position-row"]
 props = { text = "Position", value = "X 128.4   Y 64.2   Z -32.7", layout_label_width = 83.0, layout_axis_width = 14.0, layout_primary_value_width = 61.0, layout_value_width = 68.0, layout_offset_x = 0.0, layout_offset_y = 12.0 }
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-children = [{ node = "position_label" }, { node = "position_axis_x" }, { node = "position_value_x" }, { node = "position_axis_y" }, { node = "position_value_y" }, { node = "position_axis_z" }, { node = "position_value_z" }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "position_label" }, { node = "position_values" }]
 
 [nodes.position_label]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformPositionLabel"
 classes = ["workbench-transform-row-label"]
 props = { text = "Position", text_tone = "muted", font_size = "$editor.typography.body.size" }
-layout = { width = { min = 83.0, preferred = 83.0, max = 83.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+
+[nodes.position_values]
+component = "WrapBox"
+control_id = "WorkbenchTransformPositionValues"
+layout = { container = { kind = "WrapBox", horizontal_gap = "$editor.density.gap.small", vertical_gap = "$editor.density.gap.small", item_min_width = 76.0 }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "position_value_x_group" }, { node = "position_value_y_group" }, { node = "position_value_z_group" }]
+
+[nodes.position_value_x_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransformPositionXGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { min = 70.0, preferred = 76.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "position_axis_x" }, { node = "position_value_x" }]
 
 [nodes.position_axis_x]
 component = "WorkbenchLabel"
@@ -149,6 +174,12 @@ events = [
   { id = "Inspector/TransformPositionYCommit", event = "Submit", route = "workbench.inspector.transform.position_y.commit" },
 ]
 
+[nodes.position_value_y_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransformPositionYGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { min = 70.0, preferred = 76.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "position_axis_y" }, { node = "position_value_y" }]
+
 [nodes.position_axis_z]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformPositionAxisZ"
@@ -167,20 +198,38 @@ events = [
   { id = "Inspector/TransformPositionZCommit", event = "Submit", route = "workbench.inspector.transform.position_z.commit" },
 ]
 
-[nodes.rotation_row]
+[nodes.position_value_z_group]
 component = "HorizontalGroup"
+control_id = "WorkbenchTransformPositionZGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { min = 70.0, preferred = 76.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "position_axis_z" }, { node = "position_value_z" }]
+
+[nodes.rotation_row]
+component = "VerticalGroup"
 control_id = "WorkbenchTransformRotation"
 classes = ["workbench-property-row", "workbench-transform-row", "workbench-transform-rotation-row"]
 props = { text = "Rotation", value = "X 0 deg   Y 90 deg   Z 0 deg" }
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-children = [{ node = "rotation_label" }, { node = "rotation_axis_x" }, { node = "rotation_value_x" }, { node = "rotation_axis_y" }, { node = "rotation_value_y" }, { node = "rotation_axis_z" }, { node = "rotation_value_z" }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "rotation_label" }, { node = "rotation_values" }]
 
 [nodes.rotation_label]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformRotationLabel"
 classes = ["workbench-transform-row-label"]
 props = { text = "Rotation", text_tone = "muted", font_size = "$editor.typography.body.size" }
-layout = { width = { min = 83.0, preferred = 83.0, max = 83.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+
+[nodes.rotation_values]
+component = "WrapBox"
+control_id = "WorkbenchTransformRotationValues"
+layout = { container = { kind = "WrapBox", horizontal_gap = "$editor.density.gap.small", vertical_gap = "$editor.density.gap.small", item_min_width = 76.0 }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "rotation_value_x_group" }, { node = "rotation_value_y_group" }, { node = "rotation_value_z_group" }]
+
+[nodes.rotation_value_x_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransformRotationXGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { min = 70.0, preferred = 76.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "rotation_axis_x" }, { node = "rotation_value_x" }]
 
 [nodes.rotation_axis_x]
 component = "WorkbenchLabel"
@@ -210,6 +259,12 @@ classes = ["workbench-axis-value-field"]
 props = { value = "90 deg", disabled = true, editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
+[nodes.rotation_value_y_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransformRotationYGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { min = 70.0, preferred = 76.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "rotation_axis_y" }, { node = "rotation_value_y" }]
+
 [nodes.rotation_axis_z]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformRotationAxisZ"
@@ -224,27 +279,45 @@ classes = ["workbench-axis-value-field"]
 props = { value = "0 deg", disabled = true, editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
-[nodes.scale_row]
+[nodes.rotation_value_z_group]
 component = "HorizontalGroup"
+control_id = "WorkbenchTransformRotationZGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { min = 70.0, preferred = 76.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "rotation_axis_z" }, { node = "rotation_value_z" }]
+
+[nodes.scale_row]
+component = "VerticalGroup"
 control_id = "WorkbenchTransformScale"
 classes = ["workbench-property-row", "workbench-transform-row", "workbench-transform-scale-row"]
 props = { text = "Scale", value = "X 1.00   Y 1.00   Z 1.00" }
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-children = [{ node = "scale_label" }, { node = "scale_link" }, { node = "scale_axis_x" }, { node = "scale_value_x" }, { node = "scale_axis_y" }, { node = "scale_value_y" }, { node = "scale_axis_z" }, { node = "scale_value_z" }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "scale_label" }, { node = "scale_values" }]
 
 [nodes.scale_label]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformScaleLabel"
 classes = ["workbench-transform-row-label"]
 props = { text = "Scale", text_tone = "muted", font_size = "$editor.typography.body.size" }
-layout = { width = { min = 83.0, preferred = 83.0, max = 83.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
 [nodes.scale_link]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformScaleLink"
 classes = ["workbench-transform-scale-link"]
-props = { icon = "link", text = "", text_tone = "muted", font_size = "$editor.typography.caption.size", layout_offset_x = -12.0, layout_icon_size = 17.0 }
+props = { icon = "link", text = "", text_tone = "muted", font_size = "$editor.typography.caption.size", layout_offset_x = -12.0, layout_icon_size = 17.0, responsive_min_tier = "wide" }
 layout = { width = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.scale_values]
+component = "WrapBox"
+control_id = "WorkbenchTransformScaleValues"
+layout = { container = { kind = "WrapBox", horizontal_gap = "$editor.density.gap.small", vertical_gap = "$editor.density.gap.small", item_min_width = 76.0 }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "scale_value_x_group" }, { node = "scale_value_y_group" }, { node = "scale_value_z_group" }]
+
+[nodes.scale_value_x_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransformScaleXGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { min = 70.0, preferred = 76.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "scale_axis_x" }, { node = "scale_value_x" }]
 
 [nodes.scale_axis_x]
 component = "WorkbenchLabel"
@@ -282,6 +355,12 @@ events = [
   { id = "Inspector/TransformScaleYCommit", event = "Submit", route = "workbench.inspector.transform.scale_y.commit" },
 ]
 
+[nodes.scale_value_y_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransformScaleYGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { min = 70.0, preferred = 76.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "scale_axis_y" }, { node = "scale_value_y" }]
+
 [nodes.scale_axis_z]
 component = "WorkbenchLabel"
 control_id = "WorkbenchTransformScaleAxisZ"
@@ -300,13 +379,18 @@ events = [
   { id = "Inspector/TransformScaleZCommit", event = "Submit", route = "workbench.inspector.transform.scale_z.commit" },
 ]
 
+[nodes.scale_value_z_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransformScaleZGroup"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { min = 70.0, preferred = 76.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "scale_axis_z" }, { node = "scale_value_z" }]
+
 [nodes.inspector_mesh]
 component = "VerticalGroup"
 control_id = "WorkbenchInspectorMesh"
 classes = ["workbench-property-section"]
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
-repeat = { kind = "virtual_rows", prototype = "WorkbenchComponentPropertySlot04Row", virtual_control_prefix = "WorkbenchComponentPropertyVirtualRow", authored_count = 4, node_path_namespace = "v2" }
-children = [{ node = "mesh_label" }, { node = "mesh_row" }, { node = "material_row" }, { node = "component_property_slot_03_row" }, { node = "component_property_slot_04_row" }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "mesh_label" }, { node = "inspector_mesh_properties" }]
 
 [nodes.mesh_label]
 component = "WorkbenchSectionTitle"
@@ -314,6 +398,14 @@ control_id = "WorkbenchMeshLabel"
 classes = ["workbench-section-title", "workbench-mesh-title"]
 props = { text = "Mesh Renderer" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+
+[nodes.inspector_mesh_properties]
+component = "ScrollableBox"
+control_id = "WorkbenchInspectorMeshProperties"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto", virtualization = { item_extent = 28.0, overscan = 2 } }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" } }
+repeat = { kind = "virtual_rows", prototype = "WorkbenchComponentPropertySlot04Row", virtual_control_prefix = "WorkbenchComponentPropertyVirtualRow", authored_count = 1, node_path_namespace = "v2" }
+children = [{ node = "component_property_slot_04_row" }]
 
 [nodes.mesh_row]
 component = "WorkbenchComponentPropertyRow"

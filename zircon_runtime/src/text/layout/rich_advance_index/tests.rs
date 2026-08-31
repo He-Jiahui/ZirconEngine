@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::core::framework::text::TextDirection;
-use crate::text::rich::parser_registry::parse_rich_text;
+use crate::text::rich::parser_registry::parse_rich_text as try_parse_rich_text;
 use crate::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
 use crate::text::{
     RichParseResult, RichTextFormat, ShapedGlyphRun, StyleOverride, StyledRun, TextRange,
@@ -11,22 +11,31 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use super::*;
 
+fn parse_rich_text(markup: &str, format: RichTextFormat) -> RichParseResult {
+    try_parse_rich_text(markup, format).expect("test rich source fits parser budgets")
+}
+
 #[test]
 fn rich_boundary_correction_shapes_only_bounded_span_edges() {
     let source = format!("A{}Z", "x".repeat(98));
     let parsed = parse_rich_text(&source, RichTextFormat::Plain);
     let style = TextStyle::default();
     let mut provider = RecordingProvider::default();
-    let index = RichAdvanceIndex::new(&parsed, &style, &mut provider, |_, _| (0.0, 0.0));
+    let index = RichAdvanceIndex::new(&parsed, &style, &mut provider, |_, _| (0.0, 0.0))
+        .into_result()
+        .expect("build rich advance index");
     provider.requests.clear();
 
-    let corrected = index.corrected_advance_with_provider(
-        &parsed.text,
-        1,
-        parsed.text.len().saturating_sub(1),
-        None,
-        &mut provider,
-    );
+    let corrected = index
+        .corrected_advance_with_provider(
+            &parsed.text,
+            1,
+            parsed.text.len().saturating_sub(1),
+            None,
+            &mut provider,
+        )
+        .into_result()
+        .expect("correct rich advance");
 
     assert!(corrected.is_finite());
     assert_eq!(provider.requests.len(), 2);
@@ -41,16 +50,21 @@ fn rich_boundary_correction_shapes_soft_hyphen_suffix_with_span_tail() {
     let parsed = parse_rich_text("AV", RichTextFormat::Plain);
     let style = TextStyle::default();
     let mut provider = RecordingProvider::default();
-    let index = RichAdvanceIndex::new(&parsed, &style, &mut provider, |_, _| (0.0, 0.0));
+    let index = RichAdvanceIndex::new(&parsed, &style, &mut provider, |_, _| (0.0, 0.0))
+        .into_result()
+        .expect("build rich advance index");
     provider.requests.clear();
 
-    let corrected = index.corrected_advance_with_provider(
-        &parsed.text,
-        0,
-        parsed.text.len(),
-        Some("-"),
-        &mut provider,
-    );
+    let corrected = index
+        .corrected_advance_with_provider(
+            &parsed.text,
+            0,
+            parsed.text.len(),
+            Some("-"),
+            &mut provider,
+        )
+        .into_result()
+        .expect("correct rich advance");
 
     assert!(corrected.is_finite());
     assert_eq!(provider.requests, vec!["AV-".to_string()]);
@@ -82,7 +96,9 @@ fn rich_span_index_shapes_one_to_one_thousand_alternating_runs_once_each() {
 
         let index = RichAdvanceIndex::new(&parsed, &TextStyle::default(), &mut provider, |_, _| {
             (0.0, 0.0)
-        });
+        })
+        .into_result()
+        .expect("build alternating rich advance index");
 
         assert_eq!(
             index.metrics_in_range(0, parsed.text.len()).len(),
@@ -113,7 +129,9 @@ fn rich_span_index_source_line_request_topology_evidence() {
 
     let _ = RichAdvanceIndex::new(&parsed, &TextStyle::default(), &mut provider, |_, _| {
         (0.0, 0.0)
-    });
+    })
+    .into_result()
+    .expect("build source topology rich advance index");
 
     assert_eq!(provider.requests.len(), 3);
     assert_eq!(provider.requests[0], "first");
@@ -136,16 +154,16 @@ struct RecordingProvider {
 }
 
 impl TextShapeRunProvider for RecordingProvider {
-    fn shape_horizontal_line_with_kerning(
+    fn shape_horizontal_range_with_kerning(
         &mut self,
         text: &str,
         style: &TextStyle,
         direction: TextDirection,
         source_range: TextRange,
         include_kerning: bool,
-    ) -> Arc<ShapedGlyphRun> {
+    ) -> crate::text::shaping::TextShapingOutcome {
         self.requests.push(text.to_string());
-        self.direct.shape_horizontal_line_with_kerning(
+        self.direct.shape_horizontal_range_with_kerning(
             text,
             style,
             direction,

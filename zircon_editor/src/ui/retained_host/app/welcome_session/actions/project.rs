@@ -1,56 +1,32 @@
 use super::super::super::*;
-use zircon_runtime::asset::project::ProjectPaths;
-
-fn welcome_session_after_project_close(
-    mut session: EditorStartupSessionDocument,
-    closed_root: Option<&std::path::Path>,
-) -> EditorStartupSessionDocument {
-    session.mode = EditorSessionMode::Welcome;
-    session.project = None;
-    session.open_builtin_view = None;
-    session.status_message = closed_root.map_or_else(
-        || "Project was already closed; restored the welcome workspace.".to_string(),
-        |root| {
-            format!(
-                "Closed project {}",
-                ProjectPaths::display_path(root).display()
-            )
-        },
-    );
-    session
-}
+use super::next_project_launch_operation_id;
+use zircon_runtime_interface::project::{
+    ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource,
+};
 
 impl RetainedEditorHost {
-    pub(in crate::ui::retained_host::app) fn close_project_from_workbench(
-        &mut self,
-    ) -> Result<(), String> {
-        let palette_closed = self
-            .workbench_window_bridge
-            .close_command_palette()
-            .map_err(|error| error.to_string())?;
-        self.scene_picker_session = None;
-        if palette_closed {
-            self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
-        }
-        let closed_root = self
-            .editor_manager
-            .close_project()
-            .map_err(|error| error.to_string())?;
-
-        let welcome_session = welcome_session_after_project_close(
-            self.startup_session.clone(),
-            closed_root.as_deref(),
-        );
-        self.apply_startup_session(welcome_session)
-    }
-
     pub(super) fn create_project_from_welcome(&mut self) {
-        match self
-            .editor_manager
-            .create_project_and_open(self.startup_session.draft.clone())
+        let draft = self.startup_session.draft.clone();
+        let result = next_project_launch_operation_id()
+            .and_then(|operation_id| {
+                ProjectLaunchIntent::create_project(
+                    operation_id,
+                    ProjectLaunchSource::Welcome,
+                    ProjectLaunchProfile::Normal,
+                    draft.project_name,
+                    draft.location,
+                    draft.template.pack_id(),
+                )
+                .map_err(|error| error.to_string())
+            })
+            .and_then(|intent| {
+                self.editor_manager
+                    .execute_project_launch_intent(intent)
+                    .map_err(|error| error.to_string())
+            })
             .map_err(|error| error.to_string())
-            .and_then(|session| self.apply_startup_session(session))
-        {
+            .and_then(|session| self.apply_startup_session(session));
+        match result {
             Ok(()) => {}
             Err(error) => {
                 self.startup_session.status_message = error.clone();
@@ -61,12 +37,25 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn open_existing_project_from_welcome(&mut self) {
-        let result = crate::core::project::ProjectAuthority::default()
-            .probe_draft(&self.startup_session.draft)
+        let result = self
+            .startup_session
+            .draft
+            .project_root()
             .map_err(|error| error.to_string())
-            .and_then(|opened| {
+            .and_then(|project_root| {
+                next_project_launch_operation_id().and_then(|operation_id| {
+                    ProjectLaunchIntent::open_existing(
+                        operation_id,
+                        ProjectLaunchSource::Welcome,
+                        ProjectLaunchProfile::Normal,
+                        project_root,
+                    )
+                    .map_err(|error| error.to_string())
+                })
+            })
+            .and_then(|intent| {
                 self.editor_manager
-                    .open_project_and_remember(opened.root())
+                    .execute_project_launch_intent(intent)
                     .map_err(|error| error.to_string())
             })
             .and_then(|session| self.apply_startup_session(session));
@@ -75,57 +64,5 @@ impl RetainedEditorHost {
             self.refresh_welcome_snapshot();
             self.set_status_line(error);
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
-
-    use super::welcome_session_after_project_close;
-
-    #[test]
-    fn successful_close_returns_to_welcome_without_retaining_project_navigation() {
-        let mut session = EditorStartupSessionDocument::default();
-        session.mode = EditorSessionMode::Project;
-        session.open_builtin_view = Some("editor.scene".to_string());
-
-        let welcome =
-            welcome_session_after_project_close(session, Some(Path::new("C:/projects/forest")));
-
-        assert_eq!(welcome.mode, EditorSessionMode::Welcome);
-        assert!(welcome.project.is_none());
-        assert!(welcome.open_builtin_view.is_none());
-        assert_eq!(welcome.status_message, "Closed project C:/projects/forest");
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn successful_close_projects_operation_roots_to_a_display_path() {
-        let welcome = welcome_session_after_project_close(
-            EditorStartupSessionDocument::default(),
-            Some(Path::new(r"\\?\C:\projects\forest")),
-        );
-
-        assert_eq!(welcome.status_message, r"Closed project C:\projects\forest");
-    }
-
-    #[test]
-    fn retry_after_committed_runtime_close_still_repairs_the_welcome_surface() {
-        let mut session = EditorStartupSessionDocument::default();
-        session.mode = EditorSessionMode::Project;
-        session.open_builtin_view = Some("editor.asset_browser".to_string());
-
-        let welcome = welcome_session_after_project_close(session, None);
-
-        assert_eq!(welcome.mode, EditorSessionMode::Welcome);
-        assert!(welcome.project.is_none());
-        assert!(welcome.open_builtin_view.is_none());
-        assert_eq!(
-            welcome.status_message,
-            "Project was already closed; restored the welcome workspace."
-        );
     }
 }

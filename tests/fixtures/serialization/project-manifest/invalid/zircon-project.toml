@@ -1,5 +1,6 @@
 name = "Shared Invalid Project"
-format_version = 2
+format_version = 3
+project_guid = "d6f0a0a6-968b-4c44-a31f-f960eea0010e"
 engine_version_req = "not a semver requirement"
 default_scene = "res://scenes/main.scene.toml"
 asset_roots = ["assets"]

@@ -2,14 +2,60 @@ use std::any::Any;
 use std::error::Error;
 
 use thiserror::Error;
+use zircon_runtime::scene::SceneError;
 
 use super::journal::{CommandJournalPayload, CommandJournalUnavailable};
 use super::{HistoryContextId, TransactionId};
 use crate::core::editing::selection::SelectionSnapshot;
-use crate::core::gateway::EditorRuntimeGatewayHandle;
+use crate::core::gateway::{EditorRuntimeOperationRoute, GatewaySessionIdentity};
+use crate::core::play::WorldDomain;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EditWorldRoute {
+    world_domain: WorldDomain,
+    gateway_identity: Option<GatewaySessionIdentity>,
+}
+
+impl EditWorldRoute {
+    pub fn logical(world_domain: WorldDomain) -> Self {
+        Self {
+            world_domain,
+            gateway_identity: None,
+        }
+    }
+
+    /// Captures a route pinned to one concrete runtime-session generation.
+    pub fn runtime(world_domain: WorldDomain, gateway_identity: GatewaySessionIdentity) -> Self {
+        Self {
+            world_domain,
+            gateway_identity: Some(gateway_identity),
+        }
+    }
+
+    pub const fn world_domain(&self) -> WorldDomain {
+        self.world_domain
+    }
+
+    pub fn gateway_identity(&self) -> Option<&GatewaySessionIdentity> {
+        self.gateway_identity.as_ref()
+    }
+}
 
 pub trait EditContext: Any + Send {
-    fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle;
+    fn capture_world_route(
+        &self,
+        world_domain: WorldDomain,
+    ) -> Result<EditWorldRoute, EditCommandError>;
+
+    fn activate_world_route(&mut self, route: &EditWorldRoute) -> Result<(), EditCommandError>;
+
+    fn retire_world_route(&mut self, world_domain: WorldDomain) -> Result<(), EditCommandError>;
+
+    fn runtime_operations(&self) -> Result<EditorRuntimeOperationRoute, EditCommandError> {
+        Err(EditCommandError::InvariantViolation {
+            invariant: "the edit context does not expose runtime operation routing",
+        })
+    }
 
     fn selection_snapshot(&self) -> SelectionSnapshot;
 
@@ -98,6 +144,12 @@ pub enum EditCommandError {
         #[source]
         source: Box<dyn Error + Send + Sync>,
     },
+    #[error("scene mutation failed during {operation}")]
+    SceneMutation {
+        operation: &'static str,
+        #[source]
+        source: SceneError,
+    },
     #[error("edit context has the wrong concrete type; expected {expected}")]
     ContextTypeMismatch { expected: &'static str },
     #[error("history capacity must be greater than zero")]
@@ -106,6 +158,20 @@ pub enum EditCommandError {
     CrossContextNested {
         active: HistoryContextId,
         requested: HistoryContextId,
+    },
+    #[error("history {requested:?} does not belong to world domain {world_domain:?}")]
+    CrossWorldHistory {
+        world_domain: WorldDomain,
+        requested: HistoryContextId,
+    },
+    #[error("edit world route {world_domain:?} is unavailable")]
+    WorldRouteUnavailable { world_domain: WorldDomain },
+    #[error("edit world route {world_domain:?} changed before it could be activated")]
+    WorldRouteStale { world_domain: WorldDomain },
+    #[error("cannot {operation} volatile history {history:?}")]
+    VolatileHistoryPersistenceUnsupported {
+        history: HistoryContextId,
+        operation: &'static str,
     },
     #[error("transaction scope is no longer active")]
     ScopeClosed,

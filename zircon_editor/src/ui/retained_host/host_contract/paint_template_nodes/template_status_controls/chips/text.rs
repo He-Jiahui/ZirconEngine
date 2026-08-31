@@ -8,6 +8,10 @@ use super::super::super::template_status_control_geometry::{
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+#[cfg(test)]
+#[path = "text/capacity_tests.rs"]
+mod capacity_tests;
+
 pub(super) fn push_status_chip_text(
     commands: &mut Vec<HostPaintCommand>,
     rect: &FrameRect,
@@ -19,7 +23,7 @@ pub(super) fn push_status_chip_text(
     opacity: f32,
 ) {
     let base = status_chip_text_rect(rect);
-    if !frame_is_within(rect, &base) {
+    if !frame_is_within(rect, &base) || intersect(&base, clip).is_none() {
         return;
     }
     match split_status_chip_text(label) {

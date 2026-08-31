@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
 pub const ZRPACK_MAGIC: [u8; 4] = *b"ZRPK";
@@ -246,7 +246,7 @@ pub(crate) fn validate_zrpack_document_manifest(
 pub(crate) fn validate_zrpack_asset_entries(
     assets: &[ZrPackAssetEntry],
 ) -> Result<(), ZrPackError> {
-    let mut seen_paths = BTreeSet::new();
+    let mut seen_paths = HashSet::new();
     for asset in assets {
         validate_zrpack_asset_path(&asset.path)?;
         if !seen_paths.insert(asset.path.as_str()) {
@@ -263,7 +263,7 @@ pub(crate) fn validate_zrpack_asset_entries(
 }
 
 pub(crate) fn validate_zrpack_asset_path_list(paths: &[String]) -> Result<(), ZrPackError> {
-    let mut seen_paths = BTreeSet::new();
+    let mut seen_paths = HashSet::new();
     for path in paths {
         validate_zrpack_asset_path(path)?;
         if !seen_paths.insert(path.as_str()) {
@@ -294,7 +294,7 @@ pub(crate) fn validate_zrpack_asset_path(path: &str) -> Result<(), ZrPackError> 
 }
 
 fn validate_zrpack_chunk_table(manifest: &ZrPackDocumentManifest) -> Result<(), ZrPackError> {
-    let mut seen_chunk_hashes = BTreeSet::new();
+    let mut seen_chunk_hashes = HashSet::new();
     for chunk in &manifest.pack.chunks {
         if !seen_chunk_hashes.insert(&chunk.hash) {
             return Err(ZrPackError::DuplicateChunkHash);
@@ -328,7 +328,7 @@ fn validate_zrpack_chunk_table(manifest: &ZrPackDocumentManifest) -> Result<(), 
         .iter()
         .map(|chunk| (chunk.hash, u64::from(chunk.size)))
         .collect::<BTreeMap<_, _>>();
-    let mut asset_hashes = BTreeSet::new();
+    let mut asset_hashes = HashSet::new();
     for asset in &manifest.assets {
         let chunk_size = chunk_sizes
             .get(&asset.chunk_hash)
@@ -339,7 +339,7 @@ fn validate_zrpack_chunk_table(manifest: &ZrPackDocumentManifest) -> Result<(), 
         asset_hashes.insert(asset.chunk_hash);
     }
 
-    if asset_hashes != chunk_sizes.keys().copied().collect::<BTreeSet<_>>() {
+    if asset_hashes != chunk_sizes.keys().copied().collect::<HashSet<_>>() {
         return Err(ZrPackError::PackChunkTableMismatch);
     }
 
@@ -357,4 +357,124 @@ fn is_safe_normalized_zrpack_asset_path(path: &str) -> bool {
         && path
             .split('/')
             .all(|part| !part.is_empty() && part != "." && part != "..")
+}
+
+#[cfg(test)]
+mod optimization_tests {
+    use std::collections::BTreeSet;
+    use std::hint::black_box;
+    use std::time::{Duration, Instant};
+
+    use super::*;
+
+    const PATH_ADMISSION_COUNT: usize = 65_536;
+    const UNIQUE_PATH_COUNT: usize = 8_192;
+    const SAMPLE_COUNT: usize = 17;
+
+    fn percentile_95(samples: &mut [Duration]) -> Duration {
+        samples.sort_unstable();
+        samples[(samples.len() - 1) * 95 / 100]
+    }
+
+    fn asset_paths() -> Vec<String> {
+        (0..PATH_ADMISSION_COUNT)
+            .map(|index| {
+                format!(
+                    "generated/assets/with/a/long/shared/prefix/artifact_{:05}.bin",
+                    (index * 4_099) % UNIQUE_PATH_COUNT
+                )
+            })
+            .collect()
+    }
+
+    fn ordered_unique_count(paths: &[String]) -> usize {
+        let mut unique = BTreeSet::new();
+        paths
+            .iter()
+            .filter(|path| unique.insert(path.as_str()))
+            .count()
+    }
+
+    fn hash_unique_count(paths: &[String]) -> usize {
+        let mut unique = HashSet::new();
+        paths
+            .iter()
+            .filter(|path| unique.insert(path.as_str()))
+            .count()
+    }
+
+    #[test]
+    fn optimization_batch_20260826ab_runtime04_hash_manifest_validation_preserves_first_duplicate_error(
+    ) {
+        let assets = vec![
+            ZrPackAssetEntry::new("assets/a.bin", [1; 32], 1),
+            ZrPackAssetEntry::new("assets/b.bin", [2; 32], 1),
+            ZrPackAssetEntry::new("assets/a.bin", [3; 32], 1),
+        ];
+
+        assert_eq!(
+            validate_zrpack_asset_entries(&assets),
+            Err(ZrPackError::DuplicateAssetPath("assets/a.bin".to_string()))
+        );
+    }
+
+    #[test]
+    fn optimization_batch_20260826ab_runtime04_pack_manifest_uses_hash_membership_and_sorted_windows(
+    ) {
+        let source = include_str!("manifest.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap();
+
+        assert!(production.contains("use std::collections::{BTreeMap, HashSet};"));
+        assert_eq!(production.matches("HashSet::new()").count(), 4);
+        assert!(production.contains("collect::<HashSet<_>>()"));
+        assert!(production.matches(".windows(2)").count() >= 2);
+        assert!(!production.contains("BTreeSet"));
+    }
+
+    #[test]
+    #[ignore = "release performance evidence"]
+    fn optimization_batch_20260826ab_runtime04_pack_manifest_hash_validation_performance_evidence()
+    {
+        let paths = asset_paths();
+        assert_eq!(ordered_unique_count(&paths), hash_unique_count(&paths));
+
+        let mut ordered_samples = Vec::with_capacity(SAMPLE_COUNT);
+        let mut hash_samples = Vec::with_capacity(SAMPLE_COUNT);
+        for sample in 0..SAMPLE_COUNT {
+            if sample % 2 == 0 {
+                let started = Instant::now();
+                black_box(ordered_unique_count(black_box(&paths)));
+                ordered_samples.push(started.elapsed());
+
+                let started = Instant::now();
+                black_box(hash_unique_count(black_box(&paths)));
+                hash_samples.push(started.elapsed());
+            } else {
+                let started = Instant::now();
+                black_box(hash_unique_count(black_box(&paths)));
+                hash_samples.push(started.elapsed());
+
+                let started = Instant::now();
+                black_box(ordered_unique_count(black_box(&paths)));
+                ordered_samples.push(started.elapsed());
+            }
+        }
+
+        let ordered_p95 = percentile_95(&mut ordered_samples);
+        let hash_p95 = percentile_95(&mut hash_samples);
+        println!(
+            "RUNTIME04_PACK_MANIFEST_HASH_VALIDATION_BENCH_V1 \
+             admissions={PATH_ADMISSION_COUNT} unique_paths={UNIQUE_PATH_COUNT} \
+             borrowed_identity=true sorted_windows_preserved=true \
+             ordered_p95_ns={} hash_p95_ns={}",
+            ordered_p95.as_nanos(),
+            hash_p95.as_nanos(),
+        );
+        assert!(
+            hash_p95.as_nanos() * 100 <= ordered_p95.as_nanos() * 60,
+            "hash-validation P95 {:?} exceeded 60% of ordered-validation P95 {:?}",
+            hash_p95,
+            ordered_p95,
+        );
+    }
 }

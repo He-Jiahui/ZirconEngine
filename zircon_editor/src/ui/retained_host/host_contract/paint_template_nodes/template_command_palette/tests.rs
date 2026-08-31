@@ -21,9 +21,9 @@ fn command_palette_metrics_project_from_host_control_metrics() {
 
     let metrics = command_palette_metrics_from_host(host);
 
-    assert_eq!(metrics.panel_radius, 8.0);
-    assert_eq!(metrics.search_radius, 5.0);
-    assert_eq!(metrics.row_radius, 3.5);
+    assert_eq!(metrics.panel_radius, 10.0);
+    assert_eq!(metrics.search_radius, 2.0);
+    assert_eq!(metrics.row_radius, 2.0);
     assert_eq!(metrics.border_width, 1.5);
     assert_eq!(metrics.min_frame_extent, 1.5);
     assert_eq!(metrics.font_size, 13.0);

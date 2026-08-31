@@ -10,6 +10,10 @@ use zircon_runtime::plugin::{
 
 use super::nodes::standard_node_descriptors;
 
+#[cfg(test)]
+#[path = "catalog/borrowed_lookup_tests.rs"]
+mod borrowed_lookup_tests;
+
 pub(crate) const BOOTSTRAP_BEHAVIOR_NODE_OWNER: PluginModuleId = PluginModuleId::from_raw(u32::MAX);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -365,9 +369,7 @@ impl FrozenBehaviorNodeCatalog {
     }
 
     pub fn resolve(&self, id: &str) -> Option<BehaviorNodeSlot> {
-        self.descriptors
-            .resolve(&id.to_string())
-            .map(BehaviorNodeSlot)
+        self.descriptors.resolve_borrowed(id).map(BehaviorNodeSlot)
     }
 
     pub fn get(&self, slot: BehaviorNodeSlot) -> Option<&BehaviorNodeDescriptor> {

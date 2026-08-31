@@ -6,7 +6,12 @@ use zircon_runtime::graphics::{
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutorRegistration,
     RenderPassStage, RuntimePrepareCollectorRegistration,
 };
-use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeWorkload};
+use zircon_runtime::render_graph::{
+    QueueLane, RenderGraphComputeWorkload, RenderGraphResourceAccessIntent,
+    RenderGraphShaderStages, RenderGraphTextureSubresourceRange, RenderResourceSchema,
+    RenderTextureExtentPolicy, RenderTextureSchema,
+};
+use zircon_runtime::rhi::{TextureFormat, TextureUsage};
 
 mod capability;
 mod hybrid_gi;
@@ -32,7 +37,7 @@ pub(crate) use hybrid_gi::{
     HybridGiRuntimeState, HybridGiSceneInputs,
 };
 use render_pass_executors::{
-    hybrid_gi_history_executor, hybrid_gi_resolve_executor, hybrid_gi_scene_prepare_executor,
+    hybrid_gi_resolve_executor, hybrid_gi_scene_prepare_executor,
     hybrid_gi_trace_schedule_executor, HYBRID_GI_SCENE_BUFFER_MINIMUM_SIZE_BYTES,
     HYBRID_GI_TRACE_BUFFER_MINIMUM_SIZE_BYTES,
 };
@@ -109,28 +114,33 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             .with_executor_id("hybrid-gi.resolve")
             .read_buffer(PostProcessGraphResourceNames::HYBRID_GI_TRACE)
             .read_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
-            .read_external_texture(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
-            .read_external_texture(
-                PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA,
+            .read_persistent_external_texture_with_schema_and_access(
+                PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI,
+                hybrid_gi_history_schema(),
+                RenderGraphTextureSubresourceRange::full(),
+                RenderGraphResourceAccessIntent::sampled_texture(RenderGraphShaderStages::FRAGMENT),
             )
-            .write_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
-            .write_texture(PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "hybrid-gi-history",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("hybrid-gi.history")
-            .with_side_effects()
-            .read_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
-            .read_texture(PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA)
-            .write_external_texture(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
-            .write_external_texture(
+            .read_persistent_external_texture_with_schema_and_access(
                 PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA,
-            ),
+                hybrid_gi_history_schema(),
+                RenderGraphTextureSubresourceRange::full(),
+                RenderGraphResourceAccessIntent::sampled_texture(RenderGraphShaderStages::FRAGMENT),
+            )
+            .write_persistent_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
+            .write_persistent_texture(PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA),
         ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
+}
+
+fn hybrid_gi_history_schema() -> RenderResourceSchema {
+    RenderResourceSchema::texture(
+        RenderTextureSchema::new(
+            TextureFormat::Rgba16Float,
+            TextureUsage::SAMPLED | TextureUsage::RENDER_ATTACHMENT,
+        )
+        .with_extent(RenderTextureExtentPolicy::View),
+    )
 }
 
 pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {
@@ -144,7 +154,6 @@ pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistratio
             hybrid_gi_trace_schedule_executor,
         ),
         RenderPassExecutorRegistration::new("hybrid-gi.resolve", hybrid_gi_resolve_executor),
-        RenderPassExecutorRegistration::new("hybrid-gi.history", hybrid_gi_history_executor),
     ]
 }
 

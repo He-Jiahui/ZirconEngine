@@ -1,7 +1,8 @@
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, TransformHandleKind, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformHandleKind, TransformSpace,
+    ViewOrientation,
 };
 use crate::ui::binding::ViewportCommand;
 
@@ -45,6 +46,12 @@ pub(super) fn default_viewport_command(action_id: &str) -> Option<ViewportComman
         }
         "workbench.viewport.transform_space.global" => {
             Some(ViewportCommand::SetTransformSpace(TransformSpace::Global))
+        }
+        "workbench.viewport.pivot.primary" => {
+            Some(ViewportCommand::SetPivotMode(PivotMode::Primary))
+        }
+        "workbench.viewport.pivot.centroid" => {
+            Some(ViewportCommand::SetPivotMode(PivotMode::Centroid))
         }
         "workbench.viewport.projection.perspective" => Some(ViewportCommand::SetProjectionMode(
             ProjectionMode::Perspective,

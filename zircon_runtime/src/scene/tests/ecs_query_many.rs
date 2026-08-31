@@ -1,8 +1,8 @@
+use crate::scene::World;
 use crate::scene::components::Name;
 use crate::scene::ecs::{
     Changed, Component, Mut, QueryEntityError, QueryState, SystemState, UniqueEntityArray,
 };
-use crate::scene::World;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
@@ -162,16 +162,16 @@ fn system_mutable_query_data_read_only_projection_uses_run_window_filters() {
     type ChangedHealth = QueryState<&'static mut Health, Changed<Health>>;
     let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
 
-    let baseline = system.run(&mut world, |query| {
+    let baseline = system.run(&mut world, |mut query| {
         query.iter().map(|health| health.0).collect::<Vec<_>>()
     });
     assert_eq!(baseline, vec![10, 20]);
 
-    let unchanged = system.run(&mut world, |query| query.iter().count());
+    let unchanged = system.run(&mut world, |mut query| query.iter().count());
     assert_eq!(unchanged, 0);
 
     world.get_mut::<Health>(second).unwrap().0 += 1;
-    let changed = system.run(&mut world, |query| {
+    let changed = system.run(&mut world, |mut query| {
         query.iter().map(|health| health.0).collect::<Vec<_>>()
     });
     assert_eq!(changed, vec![21]);

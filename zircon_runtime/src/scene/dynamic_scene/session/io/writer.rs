@@ -1,21 +1,22 @@
-use std::path::Path;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
 use thiserror::Error;
 
+use crate::asset::project::{ResolvedProjectPath, ResolvedProjectPathIdentity};
 use crate::core::runtime::{
-    BoundedKeyedIoAdmissionError, BoundedKeyedIoDiagnostics, BoundedKeyedIoFailure,
-    BoundedKeyedIoLane, BoundedKeyedIoLimits, BoundedKeyedIoShutdownGuard, BoundedKeyedIoTicket,
-    BoundedKeyedIoWorkDeadline, JobScheduler, TaskPools,
+    BoundedKeyedIoAdmissionError, BoundedKeyedIoCancelAuthority, BoundedKeyedIoCancelError,
+    BoundedKeyedIoDiagnostics, BoundedKeyedIoFailure, BoundedKeyedIoKey, BoundedKeyedIoLane,
+    BoundedKeyedIoLimits, BoundedKeyedIoShutdownGuard, BoundedKeyedIoTicket,
+    BoundedKeyedIoWorkDeadline, JobScheduler,
 };
+use crate::core::{CoreHandle, CoreWeak};
 
 use super::super::{
-    RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError,
-    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchiveArtifact,
+    RuntimeSessionArchiveError,
 };
 use super::atomic::{
-    archive_path_identity, canonical_archive_target, prepare_archive_path_write,
-    save_artifact_to_prepared_path_atomically,
+    admit_archive_path_write, reserve_archive_path_write, save_artifact_to_prepared_path_atomically,
 };
 
 const DEFAULT_ARCHIVE_WRITER_ENTRIES: usize = 64;
@@ -42,13 +43,16 @@ impl Default for RuntimeSessionArchiveWriterLimits {
 #[derive(Debug)]
 pub struct RuntimeSessionArchiveWriteSubmission {
     ticket: BoundedKeyedIoTicket,
+    cancel_authority: BoundedKeyedIoCancelAuthority,
     outcome: Arc<Mutex<Option<Result<(), RuntimeSessionArchiveError>>>>,
 }
 
 #[derive(Debug, Error)]
 pub enum RuntimeSessionArchiveWriterSubmitError {
-    #[error("runtime session archive writer could not prepare the target: {0}")]
-    Target(#[from] RuntimeSessionArchiveError),
+    #[error("runtime session archive writer runtime task owner is unavailable")]
+    RuntimeUnavailable,
+    #[error("runtime session archive writer path authority rejected the write: {0}")]
+    PathAuthority(#[from] RuntimeSessionArchiveError),
     #[error("runtime session archive writer admission failed: {0:?}")]
     Admission(BoundedKeyedIoAdmissionError),
 }
@@ -58,6 +62,10 @@ impl RuntimeSessionArchiveWriteSubmission {
         self.ticket.clone()
     }
 
+    pub fn cancel_before_start(&self) -> Result<(), BoundedKeyedIoCancelError> {
+        self.ticket.cancel_before_start(&self.cancel_authority)
+    }
+
     pub fn take_outcome(&self) -> Option<Result<(), RuntimeSessionArchiveError>> {
         lock(&self.outcome).take()
     }
@@ -65,41 +73,74 @@ impl RuntimeSessionArchiveWriteSubmission {
 
 pub struct RuntimeSessionArchiveWriter {
     lane: BoundedKeyedIoLane,
+    owner: RuntimeSessionArchiveWriterOwner,
+}
+
+enum RuntimeSessionArchiveWriterOwner {
+    Runtime(CoreWeak),
+    #[cfg(test)]
+    Fixture,
 }
 
 impl RuntimeSessionArchiveWriter {
-    pub fn new(limits: RuntimeSessionArchiveWriterLimits) -> Self {
-        let scheduler = JobScheduler::from_pool(TaskPools::process_default().io().clone());
-        Self::with_scheduler(limits, scheduler)
+    pub fn with_runtime(limits: RuntimeSessionArchiveWriterLimits, runtime: &CoreHandle) -> Self {
+        let scheduler = JobScheduler::from_pool(runtime.task_graph().worker_pool().clone());
+        Self::with_owner(
+            limits,
+            scheduler,
+            RuntimeSessionArchiveWriterOwner::Runtime(runtime.downgrade()),
+        )
     }
 
+    #[cfg(test)]
     pub(crate) fn with_scheduler(
         limits: RuntimeSessionArchiveWriterLimits,
         scheduler: JobScheduler,
+    ) -> Self {
+        Self::with_owner(limits, scheduler, RuntimeSessionArchiveWriterOwner::Fixture)
+    }
+
+    fn with_owner(
+        limits: RuntimeSessionArchiveWriterLimits,
+        scheduler: JobScheduler,
+        owner: RuntimeSessionArchiveWriterOwner,
     ) -> Self {
         Self {
             lane: BoundedKeyedIoLane::new(
                 BoundedKeyedIoLimits::new(limits.max_entries, limits.max_retained_bytes),
                 scheduler,
             ),
+            owner,
         }
     }
 
     pub fn try_submit(
         &self,
         artifact: RuntimeSessionArchiveArtifact,
-        path: impl AsRef<Path>,
+        target: ResolvedProjectPath,
         deadline: BoundedKeyedIoWorkDeadline,
     ) -> Result<RuntimeSessionArchiveWriteSubmission, RuntimeSessionArchiveWriterSubmitError> {
-        let target = canonical_archive_target(path.as_ref())?;
+        let runtime_admission_lease = match &self.owner {
+            RuntimeSessionArchiveWriterOwner::Runtime(runtime) => Some(
+                runtime
+                    .upgrade()
+                    .ok_or(RuntimeSessionArchiveWriterSubmitError::RuntimeUnavailable)?,
+            ),
+            #[cfg(test)]
+            RuntimeSessionArchiveWriterOwner::Fixture => None,
+        };
         let retained_bytes = retained_write_bytes(&artifact, &target).ok_or(
             RuntimeSessionArchiveWriterSubmitError::Admission(
                 BoundedKeyedIoAdmissionError::RetainedBytesOverflow,
             ),
         )?;
-        let key: Arc<str> = archive_path_identity(&target).into();
-        let write_ticket = prepare_archive_path_write(&artifact, &target)?;
-        let write_generation = write_ticket.write_generation();
+        let path_identity = ResolvedProjectPathIdentity::from(target.clone());
+        let key = BoundedKeyedIoKey::from_value(path_identity.clone());
+        let write_reservation = reserve_archive_path_write(&artifact, path_identity)?;
+        let write_generation = write_reservation.write_generation();
+        let write_ticket = Arc::new(OnceLock::new());
+        let write_ticket_for_work = Arc::clone(&write_ticket);
+        let artifact_for_work = artifact.clone();
         let outcome = Arc::new(Mutex::new(None));
         let outcome_for_work = Arc::clone(&outcome);
         let admission = self
@@ -110,8 +151,14 @@ impl RuntimeSessionArchiveWriter {
                 retained_bytes,
                 deadline,
                 Box::new(move || {
-                    let result =
-                        save_artifact_to_prepared_path_atomically(&artifact, &target, write_ticket);
+                    let write_ticket = write_ticket_for_work
+                        .get()
+                        .expect("activated archive write must have an admitted path ticket");
+                    let result = save_artifact_to_prepared_path_atomically(
+                        &artifact_for_work,
+                        &target,
+                        write_ticket,
+                    );
                     let terminal = if result.is_ok() {
                         Ok(())
                     } else {
@@ -122,8 +169,19 @@ impl RuntimeSessionArchiveWriter {
                 }),
             )
             .map_err(RuntimeSessionArchiveWriterSubmitError::Admission)?;
+        let cancel_authority = admission.cancel_authority();
+        let admitted_ticket = admit_archive_path_write(&artifact, write_reservation)?;
+        assert!(
+            write_ticket.set(admitted_ticket).is_ok(),
+            "archive write path ticket must be published exactly once"
+        );
         let ticket = admission.activate();
-        Ok(RuntimeSessionArchiveWriteSubmission { ticket, outcome })
+        drop(runtime_admission_lease);
+        Ok(RuntimeSessionArchiveWriteSubmission {
+            ticket,
+            cancel_authority,
+            outcome,
+        })
     }
 
     pub fn diagnostics(&self) -> BoundedKeyedIoDiagnostics {
@@ -135,11 +193,14 @@ impl RuntimeSessionArchiveWriter {
     }
 }
 
-fn retained_write_bytes(artifact: &RuntimeSessionArchiveArtifact, path: &Path) -> Option<usize> {
+fn retained_write_bytes(
+    artifact: &RuntimeSessionArchiveArtifact,
+    path: &ResolvedProjectPath,
+) -> Option<usize> {
     artifact
         .serialized_bytes()
         .len()
-        .checked_add(path.as_os_str().len())?
+        .checked_add(path.operation_path().as_os_str().len())?
         .checked_add(ARCHIVE_WRITER_METADATA_BYTES)
 }
 
@@ -148,3 +209,6 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
+
+#[cfg(test)]
+mod tests;

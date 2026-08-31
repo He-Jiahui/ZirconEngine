@@ -1,12 +1,13 @@
 use std::path::PathBuf;
 
-use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::project::{ProjectManager, ResolvedProjectPath};
 use zircon_runtime_interface::project::ProjectManifestSummary;
 
 #[derive(Clone, Debug)]
 pub struct CreatedProject {
     pub root: PathBuf,
     pub summary: ProjectManifestSummary,
+    identity: ResolvedProjectPath,
     // The creation transaction establishes this first project generation. Callers transfer it
     // into the host instead of reopening the just-committed manifest from disk.
     project: ProjectManager,
@@ -14,15 +15,20 @@ pub struct CreatedProject {
 
 impl CreatedProject {
     pub(super) fn new(
-        root: PathBuf,
+        identity: ResolvedProjectPath,
         summary: ProjectManifestSummary,
         project: ProjectManager,
     ) -> Self {
         Self {
-            root,
+            root: identity.operation_path().to_path_buf(),
             summary,
+            identity,
             project,
         }
+    }
+
+    pub fn identity(&self) -> &ResolvedProjectPath {
+        &self.identity
     }
 
     pub fn project(&self) -> &ProjectManager {
@@ -36,7 +42,7 @@ impl CreatedProject {
 
 impl PartialEq for CreatedProject {
     fn eq(&self, other: &Self) -> bool {
-        self.root == other.root && self.summary == other.summary
+        self.identity == other.identity && self.summary == other.summary
     }
 }
 

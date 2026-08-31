@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+use std::hash::Hash;
+use std::sync::Arc;
+
 use crate::core::framework::render::RenderVirtualGeometryDebugSnapshot;
 use crate::graphics::scene::RenderGraphLightGridReport;
-use std::sync::Arc;
 
 use super::{viewport_record::ViewportRecord, ViewportCameraHistoryKey};
 
@@ -12,14 +15,17 @@ impl ViewportRecord {
         virtual_geometry_debug_snapshot: Option<&Arc<RenderVirtualGeometryDebugSnapshot>>,
     ) {
         if let Some(report) = light_grid_report {
-            self.light_grid_reports.insert(key.clone(), report);
+            set_borrowed_hash_value(&mut self.light_grid_reports, key, report);
         } else {
             self.light_grid_reports.remove(key);
         }
 
         if let Some(snapshot) = virtual_geometry_debug_snapshot {
-            self.virtual_geometry_debug_snapshots
-                .insert(key.clone(), snapshot.clone());
+            set_borrowed_hash_value(
+                &mut self.virtual_geometry_debug_snapshots,
+                key,
+                Arc::clone(snapshot),
+            );
         } else {
             self.virtual_geometry_debug_snapshots.remove(key);
         }
@@ -41,6 +47,17 @@ impl ViewportRecord {
         self.virtual_geometry_debug_snapshots
             .get(key)
             .map(Arc::as_ref)
+    }
+}
+
+fn set_borrowed_hash_value<K, V>(values: &mut HashMap<K, V>, key: &K, value: V)
+where
+    K: Clone + Eq + Hash,
+{
+    if let Some(current) = values.get_mut(key) {
+        *current = value;
+    } else {
+        values.insert(key.clone(), value);
     }
 }
 
@@ -151,3 +168,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "product_reports/key_reuse_tests.rs"]
+mod key_reuse_tests;

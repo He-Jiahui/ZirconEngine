@@ -16,16 +16,12 @@ impl RetainedEditorHost {
             self.welcome_recent_pointer_size,
             ViewContentKind::Welcome,
         );
-        self.sync_welcome_recent_pointer_size();
-        match self
+        let size_state_changed = self.sync_welcome_recent_pointer_size();
+        let dispatch = self
             .welcome_recent_pointer_bridge
-            .handle_scroll(UiPoint::new(x, y), delta)
-        {
-            Ok(dispatch) => {
-                self.welcome_recent_pointer_state = dispatch.state;
-                self.apply_welcome_recent_pointer_state_to_ui();
-            }
-            Err(error) => self.set_status_line(error),
+            .handle_scroll(UiPoint::new(x, y), delta);
+        if size_state_changed || dispatch.changed {
+            self.apply_welcome_recent_pointer_state_to_ui();
         }
     }
 }

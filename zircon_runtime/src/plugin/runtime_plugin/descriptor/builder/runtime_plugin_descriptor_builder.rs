@@ -7,6 +7,15 @@ use crate::{
 
 use super::super::RuntimePluginDescriptor;
 
+fn join_string_parts(parts: &[&str]) -> String {
+    let capacity = parts.iter().map(|part| part.len()).sum();
+    let mut joined = String::with_capacity(capacity);
+    for part in parts {
+        joined.push_str(part);
+    }
+    joined
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimePluginDescriptorBuilder {
     descriptor: RuntimePluginDescriptor,
@@ -33,11 +42,10 @@ impl RuntimePluginDescriptorBuilder {
         let package_id = package_id.into();
         let display_name = display_name.into();
         let crate_name = crate_name.into();
-        let module_descriptor = ModuleDescriptor::new(
-            format!("{package_id}.runtime"),
-            format!("Runtime plugin module for {display_name}"),
-        )
-        .with_init_level(InitLevel::Post);
+        let module_id = join_string_parts(&[&package_id, ".runtime"]);
+        let module_description = join_string_parts(&["Runtime plugin module for ", &display_name]);
+        let module_descriptor =
+            ModuleDescriptor::new(module_id, module_description).with_init_level(InitLevel::Post);
 
         Self {
             descriptor: RuntimePluginDescriptor {
@@ -170,5 +178,22 @@ impl RuntimePluginDescriptorBuilder {
 
     pub fn build(self) -> RuntimePluginDescriptor {
         self.descriptor
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::join_string_parts;
+
+    #[test]
+    fn exact_runtime_descriptor_metadata_preserves_identity_and_description() {
+        assert_eq!(
+            join_string_parts(&["weather", ".runtime"]),
+            "weather.runtime"
+        );
+        assert_eq!(
+            join_string_parts(&["Runtime plugin module for ", "Weather"]),
+            "Runtime plugin module for Weather"
+        );
     }
 }

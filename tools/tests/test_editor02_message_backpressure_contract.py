@@ -74,19 +74,28 @@ class EditorMessageBackpressureContractTests(unittest.TestCase):
         source = self.read("zircon_editor/src/tests/editor_message/bus/mod.rs")
         self.assertIn("mod backpressure;", source)
 
-        backpressure = self.read(
-            "zircon_editor/src/tests/editor_message/bus/backpressure.rs"
+        backpressure_root = self.read(
+            "zircon_editor/src/tests/editor_message/bus/backpressure/mod.rs"
+        )
+        for leaf in ("behavior", "fixture", "performance"):
+            self.assertIn(f"mod {leaf};", backpressure_root)
+
+        behavior = self.read(
+            "zircon_editor/src/tests/editor_message/bus/backpressure/behavior.rs"
+        )
+        performance = self.read(
+            "zircon_editor/src/tests/editor_message/bus/backpressure/performance.rs"
         )
         self.assertIn(
             "managed_fanout_allocation_rss_queue_age_and_publish_p95_report",
-            backpressure,
+            performance,
         )
-        self.assertIn("[1, 5, 100]", backpressure)
-        self.assertIn("large_payload_publish_allocated_bytes", backpressure)
-        self.assertIn("publish_p95_ns", backpressure)
-        self.assertIn("MIXED_LOSSLESS_BACKLOG", backpressure)
-        self.assertIn("MAX_PUBLISH_P95_NS", backpressure)
-        self.assertIn("rss_before.is_some()", backpressure)
+        self.assertIn("[1, 5, 100]", performance)
+        self.assertIn("large_payload_publish_allocated_bytes", performance)
+        self.assertIn("publish_p95_ns", performance)
+        self.assertIn("MIXED_LOSSLESS_BACKLOG", performance)
+        self.assertIn("MAX_PUBLISH_P95_NS", performance)
+        self.assertIn("rss_before.is_some()", performance)
         for case in (
             "mixed_lane_depths_bytes_and_drain_stay_consistent",
             "zero_capacity_and_byte_budget_reject_without_mutation",
@@ -94,8 +103,8 @@ class EditorMessageBackpressureContractTests(unittest.TestCase):
             "dirty_view_bytes_respect_delivery_budget_without_mutating_dirty_state",
             "identifier_exhaustion_is_typed_and_atomic",
         ):
-            self.assertIn(case, backpressure)
-        self.assertIn("metadata_operation_budget", backpressure)
+            self.assertIn(case, behavior)
+        self.assertIn("metadata_operation_budget", performance)
         self.assertIn("CoalescedAfterDrop", self.read("zircon_editor/src/core/editor_message/inbox.rs"))
 
 

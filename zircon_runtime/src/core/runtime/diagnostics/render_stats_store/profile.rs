@@ -1,6 +1,9 @@
-use crate::core::framework::render::{RenderBudgetKey, RenderStats, RenderSubsystemProfileEntry};
+use crate::core::framework::render::{
+    RenderBudgetKey, RenderPassNativeResourceCreateMetrics, RenderStats,
+    RenderSubsystemProfileEntry,
+};
 
-use super::{record_bool, record_bytes, record_count, record_microseconds, DiagnosticStore};
+use super::{DiagnosticStore, record_bool, record_bytes, record_count, record_microseconds};
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
@@ -126,9 +129,67 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         profile.degrade_step_active as usize,
         &["render", "profile", "budget", "degrade"],
     );
+    record_native_resource_creates(
+        store,
+        frame_index,
+        profile.passes.iter().fold(
+            RenderPassNativeResourceCreateMetrics::default(),
+            |total, pass| total.saturating_add(pass.native_resource_creates),
+        ),
+    );
 
     for subsystem in &profile.subsystems {
         record_subsystem_gpu_timing(store, frame_index, subsystem);
+    }
+}
+
+fn record_native_resource_creates(
+    store: &mut DiagnosticStore,
+    frame_index: u64,
+    metrics: RenderPassNativeResourceCreateMetrics,
+) {
+    let paths = [
+        (
+            "render.profile.native_resource_create.total_count",
+            metrics.total_count(),
+        ),
+        (
+            "render.profile.native_resource_create.buffer_count",
+            metrics.buffer_count,
+        ),
+        (
+            "render.profile.native_resource_create.bind_group_count",
+            metrics.bind_group_count,
+        ),
+        (
+            "render.profile.native_resource_create.bind_group_layout_count",
+            metrics.bind_group_layout_count,
+        ),
+        (
+            "render.profile.native_resource_create.shader_module_count",
+            metrics.shader_module_count,
+        ),
+        (
+            "render.profile.native_resource_create.pipeline_layout_count",
+            metrics.pipeline_layout_count,
+        ),
+        (
+            "render.profile.native_resource_create.compute_pipeline_count",
+            metrics.compute_pipeline_count,
+        ),
+        (
+            "render.profile.native_resource_create.render_pipeline_count",
+            metrics.render_pipeline_count,
+        ),
+    ];
+    for (path, value) in paths {
+        record_count(
+            store,
+            path,
+            frame_index,
+            value as usize,
+            &["render", "profile", "native_resource_create"],
+        );
     }
 }
 
@@ -205,7 +266,8 @@ mod tests {
     use std::sync::Arc;
 
     use crate::core::framework::render::{
-        RenderBudgetKey, RenderFrameProfile, RenderStats, RenderSubsystemProfileEntry,
+        RenderBudgetKey, RenderFrameProfile, RenderPassNativeResourceCreateMetrics,
+        RenderPassProfileEntry, RenderStats, RenderSubsystemProfileEntry,
     };
     use crate::core::runtime::diagnostics::DiagnosticStore;
 
@@ -225,6 +287,20 @@ mod tests {
                 parallel_recording_executed_bucket_count: 2,
                 profile_latency_frames: 2,
                 budget_warning_count: 1,
+                passes: vec![
+                    RenderPassProfileEntry {
+                        native_resource_creates: RenderPassNativeResourceCreateMetrics::new(
+                            1, 2, 3, 4, 5, 6, 7,
+                        ),
+                        ..RenderPassProfileEntry::default()
+                    },
+                    RenderPassProfileEntry {
+                        native_resource_creates: RenderPassNativeResourceCreateMetrics::new(
+                            10, 20, 30, 40, 50, 60, 70,
+                        ),
+                        ..RenderPassProfileEntry::default()
+                    },
+                ],
                 subsystems: vec![RenderSubsystemProfileEntry {
                     key: RenderBudgetKey::BasePass,
                     gpu_time_us: Some(4_000),
@@ -286,11 +362,31 @@ mod tests {
             1.0,
             "bool",
         );
-        assert!(store
-            .snapshot()
-            .series
-            .iter()
-            .all(|series| !series.path.as_str().contains("opaque")));
+        assert_series(
+            &store,
+            "render.profile.native_resource_create.total_count",
+            308.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.profile.native_resource_create.buffer_count",
+            11.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.profile.native_resource_create.render_pipeline_count",
+            77.0,
+            "count",
+        );
+        assert!(
+            store
+                .snapshot()
+                .series
+                .iter()
+                .all(|series| !series.path.as_str().contains("opaque"))
+        );
     }
 
     fn assert_series(store: &DiagnosticStore, path: &str, value: f64, unit: &str) {

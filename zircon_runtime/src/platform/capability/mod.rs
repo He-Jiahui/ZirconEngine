@@ -1,6 +1,7 @@
 mod backends;
 mod matrix;
 mod report;
+mod runtime;
 mod status;
 
 pub use backends::{
@@ -12,4 +13,8 @@ pub use backends::{
 };
 pub use matrix::PlatformCapabilityMatrix;
 pub use report::PlatformCapabilityReport;
+pub use runtime::{
+    PlatformRuntimeCapabilityReport, PlatformRuntimeCapabilityStatus,
+    PlatformRuntimeHostRequirement,
+};
 pub use status::CapabilityStatus;

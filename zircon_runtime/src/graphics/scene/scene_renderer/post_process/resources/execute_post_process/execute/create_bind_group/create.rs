@@ -27,8 +27,8 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn creat
     depth_of_field_bokeh_view: &wgpu::TextureView,
     effect_lut_view: &wgpu::TextureView,
     effect_lut_3d_view: &wgpu::TextureView,
-    cluster_buffer: &wgpu::Buffer,
-    exposure_buffer: &wgpu::Buffer,
+    cluster_buffer: wgpu::BufferBinding<'_>,
+    exposure_buffer: wgpu::BufferBinding<'_>,
 ) -> wgpu::BindGroup {
     let entries = bind_group_entries(
         resources,

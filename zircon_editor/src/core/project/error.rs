@@ -5,8 +5,9 @@ use zircon_runtime::asset::project::{ProjectManifestError, ProjectPaths};
 use zircon_runtime::asset::AssetImportError;
 use zircon_runtime::core::CoreError;
 use zircon_runtime::scene::world::SceneProjectError;
-use zircon_runtime_interface::project::ProjectNameError;
-use zircon_runtime_interface::project::ProjectTemplatePackError;
+use zircon_runtime_interface::project::{
+    CanonicalDescriptorIdentityError, ProjectNameError, ProjectTemplatePackError,
+};
 
 #[derive(Debug, Error)]
 pub enum ProjectAuthorityError {
@@ -16,6 +17,14 @@ pub enum ProjectAuthorityError {
         #[source]
         source: ProjectNameError,
     },
+    #[error("canonical project descriptor identity is invalid: {source}")]
+    CanonicalDescriptorIdentity {
+        #[from]
+        #[source]
+        source: CanonicalDescriptorIdentityError,
+    },
+    #[error("current project manifest preflight is missing its required project GUID")]
+    CurrentManifestMissingProjectGuid,
     #[error("project location cannot be empty")]
     EmptyProjectLocation,
     #[error("project path cannot be empty or blank")]
@@ -50,6 +59,11 @@ pub enum ProjectAuthorityError {
         path = display_project_path(path)
     )]
     ManifestMissing { path: PathBuf },
+    #[error(
+        "project manifest exceeds the {max_bytes}-byte preflight limit: {path}",
+        path = display_project_path(path)
+    )]
+    ManifestPreflightTooLarge { path: PathBuf, max_bytes: usize },
     #[error("project manifest failed: {source}")]
     Manifest {
         #[from]

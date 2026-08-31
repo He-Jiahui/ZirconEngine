@@ -2,8 +2,9 @@ use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::render::PostProcessGraphResourceNames;
 use zircon_runtime::graphics::{
-    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
-    RenderPassExecutor, RenderPassExecutorRegistration, RenderPassStage,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassDeviceEpoch,
+    RenderPassExecutionContext, RenderPassExecutor, RenderPassExecutorRegistration,
+    RenderPassGpuResourceFactory, RenderPassStage,
 };
 use zircon_runtime::render_graph::{
     PassFlags, QueueLane, RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
@@ -15,8 +16,8 @@ mod plugin;
 
 pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
 pub use plugin::{
-    feature_manifest, plugin_feature_registration, runtime_plugin_feature,
-    RenderingContactShadowRuntimeFeature,
+    RenderingContactShadowRuntimeFeature, feature_manifest, plugin_feature_registration,
+    runtime_plugin_feature,
 };
 
 pub const FEATURE_ID: &str = "rendering.contact_shadow";
@@ -40,26 +41,27 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             "lighting".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::AmbientOcclusion,
-            PASS_NAME,
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id(EXECUTOR_ID)
-        .with_side_effects()
-        .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
-            CONTACT_SHADOW_PIPELINE_LABEL,
-            CONTACT_SHADOW_WORKGROUP_SIZE,
-            PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION,
-            [
-                CONTACT_SHADOW_WORKGROUP_SIZE[0],
-                CONTACT_SHADOW_WORKGROUP_SIZE[1],
-            ],
-        ))
-        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-        .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
-        .write_storage_texture(PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION)],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::AmbientOcclusion,
+                PASS_NAME,
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id(EXECUTOR_ID)
+            .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
+                CONTACT_SHADOW_PIPELINE_LABEL,
+                CONTACT_SHADOW_WORKGROUP_SIZE,
+                PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION,
+                [
+                    CONTACT_SHADOW_WORKGROUP_SIZE[0],
+                    CONTACT_SHADOW_WORKGROUP_SIZE[1],
+                ],
+            ))
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+            .write_storage_texture(PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION),
+        ],
     )
 }
 
@@ -72,7 +74,7 @@ pub fn render_pass_executor_registration() -> RenderPassExecutorRegistration {
 
 #[derive(Default)]
 struct ContactShadowRenderPassExecutor {
-    pipeline: Mutex<Option<ContactShadowPipeline>>,
+    pipeline: Mutex<Option<ContactShadowPipelineCache>>,
 }
 
 impl RenderPassExecutor for ContactShadowRenderPassExecutor {
@@ -82,6 +84,12 @@ impl RenderPassExecutor for ContactShadowRenderPassExecutor {
         let pass_name = context.pass_name.clone();
         let executor_id = context.executor_id.as_str().to_string();
         let gpu = context.require_gpu()?;
+        let Some(device_epoch) = gpu.device_epoch() else {
+            return Err(
+                "contact shadow executor requires a materialized device epoch before pipeline recording"
+                    .to_string(),
+            );
+        };
         let depth_view = gpu.require_texture_view(
             PostProcessGraphResourceNames::SCENE_DEPTH,
             RenderGraphResourceAccessKind::Read,
@@ -103,13 +111,25 @@ impl RenderPassExecutor for ContactShadowRenderPassExecutor {
             .pipeline
             .lock()
             .map_err(|_| "contact shadow pipeline cache lock poisoned".to_string())?;
-        if pipeline_guard.is_none() {
-            *pipeline_guard = Some(ContactShadowPipeline::new(gpu.device));
-        }
-        let pipeline = pipeline_guard
+        let cache_matches = pipeline_guard
             .as_ref()
-            .expect("contact shadow pipeline cache was initialized");
-        let bind_group = gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            .is_some_and(|cached| cached.device_epoch == device_epoch);
+        if !cache_matches {
+            drop(pipeline_guard.take());
+            let native = gpu.native_context();
+            let pipeline = ContactShadowPipeline::new(&native);
+            drop(native);
+            *pipeline_guard = Some(ContactShadowPipelineCache {
+                device_epoch,
+                pipeline,
+            });
+        }
+        let pipeline = &pipeline_guard
+            .as_ref()
+            .expect("contact shadow pipeline cache was initialized")
+            .pipeline;
+        let native = gpu.native_context();
+        let bind_group = native.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-contact-shadow-bind-group"),
             layout: &pipeline.bind_group_layout,
             entries: &[
@@ -131,6 +151,7 @@ impl RenderPassExecutor for ContactShadowRenderPassExecutor {
                 },
             ],
         });
+        drop(native);
         let viewport_size = gpu.viewport_size();
         let dispatch_groups = [
             viewport_size
@@ -144,7 +165,8 @@ impl RenderPassExecutor for ContactShadowRenderPassExecutor {
             1,
         ];
         {
-            let mut pass = gpu
+            let mut native = gpu.native_context();
+            let mut pass = native
                 .encoder
                 .begin_compute_pass(&wgpu::ComputePassDescriptor {
                     label: Some(PASS_NAME),
@@ -166,68 +188,74 @@ impl RenderPassExecutor for ContactShadowRenderPassExecutor {
     }
 }
 
+struct ContactShadowPipelineCache {
+    device_epoch: RenderPassDeviceEpoch,
+    pipeline: ContactShadowPipeline,
+}
+
 struct ContactShadowPipeline {
     bind_group_layout: wgpu::BindGroupLayout,
     pipeline: wgpu::ComputePipeline,
 }
 
 impl ContactShadowPipeline {
-    fn new(device: &wgpu::Device) -> Self {
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("zircon-contact-shadow-bind-group-layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Depth,
+    fn new(factory: &impl RenderPassGpuResourceFactory) -> Self {
+        let bind_group_layout =
+            factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("zircon-contact-shadow-bind-group-layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Depth,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: wgpu::ShaderStages::COMPUTE,
-                    ty: wgpu::BindingType::StorageTexture {
-                        access: wgpu::StorageTextureAccess::WriteOnly,
-                        format: wgpu::TextureFormat::Rgba8Unorm,
-                        view_dimension: wgpu::TextureViewDimension::D2,
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 3,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::StorageTexture {
+                            access: wgpu::StorageTextureAccess::WriteOnly,
+                            format: wgpu::TextureFormat::Rgba8Unorm,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-            ],
-        });
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                ],
+            });
+        let shader = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("zircon-contact-shadow-shader"),
             source: wgpu::ShaderSource::Wgsl(CONTACT_SHADOW_SHADER_SOURCE.into()),
         });
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        let pipeline_layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-contact-shadow-pipeline-layout"),
             bind_group_layouts: &[Some(&bind_group_layout)],
             immediate_size: 0,
         });
-        let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        let pipeline = factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some(CONTACT_SHADOW_PIPELINE_LABEL),
             layout: Some(&pipeline_layout),
             module: &shader,
@@ -366,7 +394,10 @@ fn validate_context(context: &RenderPassExecutionContext<'_>) -> Result<(), Stri
     if context.declared_queue != contract.declared_queue {
         return Err(format!(
             "contact shadow executor `{}` declared queue mismatch for pass `{}`: expected `{:?}`, got `{:?}`",
-            contract.executor_id, context.pass_name, contract.declared_queue, context.declared_queue
+            contract.executor_id,
+            context.pass_name,
+            contract.declared_queue,
+            context.declared_queue
         ));
     }
     if !queue_is_compatible(context.queue, contract.declared_queue) {
@@ -496,9 +527,11 @@ mod tests {
 
         let feature = &report.extensions.render_features()[0];
         assert_eq!(feature.name, FEATURE_NAME);
-        assert!(feature
-            .required_extract_sections
-            .contains(&"visibility".to_string()));
+        assert!(
+            feature
+                .required_extract_sections
+                .contains(&"visibility".to_string())
+        );
 
         let pass = &feature.stage_passes[0];
         assert_eq!(pass.stage, RenderPassStage::AmbientOcclusion);
@@ -569,6 +602,10 @@ mod tests {
             .find(|pass| pass.name == PASS_NAME)
             .expect("contact shadow pass should compile");
         assert!(!pass.culled);
+        assert!(
+            !pass.flags.has_side_effects,
+            "uber consumes contact shadow occlusion through the graph"
+        );
         assert_eq!(pass.queue, QueueLane::AsyncCompute);
         assert_eq!(
             pass.compute_workload
@@ -652,17 +689,62 @@ mod tests {
 
     #[test]
     fn contact_shadow_shader_declares_expected_compute_bindings() {
-        assert!(CONTACT_SHADOW_SHADER_SOURCE
-            .contains("@group(0) @binding(0) var depth_tex: texture_depth_2d"));
-        assert!(CONTACT_SHADOW_SHADER_SOURCE
-            .contains("@group(0) @binding(1) var normal_tex: texture_2d<f32>"));
-        assert!(CONTACT_SHADOW_SHADER_SOURCE
-            .contains("@group(0) @binding(2) var hzb_furthest_tex: texture_2d<f32>"));
+        assert!(
+            CONTACT_SHADOW_SHADER_SOURCE
+                .contains("@group(0) @binding(0) var depth_tex: texture_depth_2d")
+        );
+        assert!(
+            CONTACT_SHADOW_SHADER_SOURCE
+                .contains("@group(0) @binding(1) var normal_tex: texture_2d<f32>")
+        );
+        assert!(
+            CONTACT_SHADOW_SHADER_SOURCE
+                .contains("@group(0) @binding(2) var hzb_furthest_tex: texture_2d<f32>")
+        );
         assert!(CONTACT_SHADOW_SHADER_SOURCE.contains(
             "@group(0) @binding(3) var contact_shadow_out: texture_storage_2d<rgba8unorm, write>"
         ));
         assert!(CONTACT_SHADOW_SHADER_SOURCE.contains("@compute @workgroup_size(8, 8, 1)"));
         assert!(CONTACT_SHADOW_SHADER_SOURCE.contains("textureStore(contact_shadow_out"));
+    }
+
+    #[test]
+    fn contact_shadow_pipeline_cache_is_device_epoch_qualified_and_fail_closed() {
+        let source = include_str!("lib.rs");
+        let production_end = source
+            .rfind("mod tests {")
+            .expect("contact shadow production source must precede its tests");
+        let production = &source[..production_end];
+        let epoch_gate = production
+            .find("let Some(device_epoch) = gpu.device_epoch()")
+            .expect("executor must require a materialized device epoch");
+        let resource_lookup = production
+            .find("gpu.require_texture_view(")
+            .expect("executor must resolve graph textures");
+        let cache_lock = production
+            .find(".lock()")
+            .expect("executor must synchronize its persistent pipeline cache");
+        let pipeline_create = production
+            .find("let pipeline = ContactShadowPipeline::new(&native)")
+            .expect("executor must rebuild the pipeline on cache miss");
+        let cache_release = production
+            .find("drop(pipeline_guard.take())")
+            .expect("executor must release the old native cache before rebuilding");
+
+        assert!(production.contains("pipeline: Mutex<Option<ContactShadowPipelineCache>>"));
+        assert!(production.contains("device_epoch: RenderPassDeviceEpoch"));
+        assert!(production.contains("cached.device_epoch == device_epoch"));
+        assert!(production.contains("RenderPassGpuResourceFactory"));
+        assert!(!production.contains("native.device"));
+        assert!(production.contains(
+            "contact shadow executor requires a materialized device epoch before pipeline recording"
+        ));
+        assert!(epoch_gate < resource_lookup);
+        assert!(epoch_gate < cache_lock);
+        assert!(cache_lock < cache_release);
+        assert!(cache_release < pipeline_create);
+        assert!(epoch_gate < pipeline_create);
+        assert!(!production.contains("Mutex<Option<ContactShadowPipeline>>"));
     }
 
     fn test_extract() -> RenderFrameExtract {

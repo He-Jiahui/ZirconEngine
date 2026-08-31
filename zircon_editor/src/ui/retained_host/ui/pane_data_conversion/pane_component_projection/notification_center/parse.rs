@@ -1,6 +1,8 @@
 use toml::Value;
 
-use super::attributes::{bool_value, first_string_value, normalized_tone, string_bool};
+use super::attributes::{
+    bool_value, first_string_value, first_string_value_ref, normalized_tone, string_bool,
+};
 use super::entry::NotificationProjectionEntry;
 
 #[cfg(test)]
@@ -73,6 +75,8 @@ fn notification_entry_from_string(value: &str) -> Option<NotificationProjectionE
     }
 
     let mut entry = NotificationProjectionEntry::new(id);
+    let mut has_explicit_title = false;
+    let mut has_explicit_tone = false;
     for part in parts {
         let Some((key, value)) = part.split_once('=') else {
             continue;
@@ -80,14 +84,26 @@ fn notification_entry_from_string(value: &str) -> Option<NotificationProjectionE
         let key = key.trim();
         let value = value.trim();
         match key {
-            "title" | "label" | "text" | "name" => entry.title = value.to_string(),
+            "title" | "label" | "text" | "name" => {
+                entry.title = value.to_string();
+                has_explicit_title = true;
+            }
             "message" | "body" | "description" | "detail" => entry.message = value.to_string(),
-            "severity" | "level" | "kind" | "tone" => entry.tone = normalized_tone(value),
+            "severity" | "level" | "tone" => {
+                entry.tone = normalized_tone(value).to_string();
+                has_explicit_tone = true;
+            }
+            "kind" if !has_explicit_tone => {
+                entry.tone = normalized_tone(value).to_string();
+            }
             "unread" | "new" => entry.unread = string_bool(value).unwrap_or(false),
             "disabled" => entry.disabled = string_bool(value).unwrap_or(false),
             "enabled" => entry.disabled = string_bool(value) == Some(false),
             _ => {}
         }
+    }
+    if !has_explicit_title {
+        entry.title = entry.id.clone();
     }
     Some(entry)
 }
@@ -108,9 +124,10 @@ fn notification_entry_from_table(
             .unwrap_or_else(|| id.clone()),
         message: first_string_value(values, &["message", "body", "description", "detail"])
             .unwrap_or_default(),
-        tone: first_string_value(values, &["severity", "level", "kind", "tone"])
-            .map(|value| normalized_tone(&value))
-            .unwrap_or_else(|| "info".to_string()),
+        tone: first_string_value_ref(values, &["severity", "level", "tone", "kind"])
+            .map(normalized_tone)
+            .unwrap_or("info")
+            .to_string(),
         unread: values
             .get("unread")
             .or_else(|| values.get("new"))

@@ -1,4 +1,4 @@
-use crate::ui::layout::solve_axis_constraints;
+use crate::ui::layout::constraints::solve_axis_constraints_into;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{
@@ -9,6 +9,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::slot::{slot_for_container_child, slot_padding, UiLayoutSlotIndex};
+use super::workspace::UiLinearArrangeScratch;
 
 pub(crate) fn resolve_linear_child_main_extents(
     tree: &UiTree,
@@ -18,7 +19,8 @@ pub(crate) fn resolve_linear_child_main_extents(
     available_extent: f32,
     gap: f32,
     slot_index: &UiLayoutSlotIndex,
-) -> Result<Vec<f32>, UiTreeError> {
+    scratch: &mut UiLinearArrangeScratch,
+) -> Result<(), UiTreeError> {
     let layout_child_count = children
         .iter()
         .filter(|child_id| {
@@ -28,14 +30,14 @@ pub(crate) fn resolve_linear_child_main_extents(
         .count();
     let gap_total = gap.max(0.0) * layout_child_count.saturating_sub(1) as f32;
     let available_extent = (available_extent - gap_total).max(0.0);
-    let mut constraints = Vec::with_capacity(children.len());
+    scratch.constraints.clear();
 
     for child_id in children {
         let node = tree
             .node(*child_id)
             .ok_or(UiTreeError::MissingNode(*child_id))?;
         if !node.effective_visibility().occupies_layout() {
-            constraints.push(collapsed_axis_constraint());
+            scratch.constraints.push(collapsed_axis_constraint());
             continue;
         }
         let slot = slot_for_container_child(
@@ -61,7 +63,7 @@ pub(crate) fn resolve_linear_child_main_extents(
             UiAxis::Horizontal => node.layout_stretch_width,
             UiAxis::Vertical => node.layout_stretch_height,
         };
-        constraints.push(linear_main_axis_constraint(
+        scratch.constraints.push(linear_main_axis_constraint(
             match axis {
                 UiAxis::Horizontal => node.constraints.width,
                 UiAxis::Vertical => node.constraints.height,
@@ -73,10 +75,20 @@ pub(crate) fn resolve_linear_child_main_extents(
         ));
     }
 
-    Ok(solve_axis_constraints(available_extent, &constraints)
-        .into_iter()
-        .map(|constraint| constraint.resolved)
-        .collect())
+    let UiLinearArrangeScratch {
+        constraints,
+        resolved,
+        priorities,
+        active_indices,
+    } = scratch;
+    solve_axis_constraints_into(
+        available_extent,
+        constraints,
+        resolved,
+        priorities,
+        active_indices,
+    );
+    Ok(())
 }
 
 pub(crate) fn size_axis_extent(size: UiSize, axis: UiAxis) -> f32 {

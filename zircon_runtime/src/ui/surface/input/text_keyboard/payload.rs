@@ -40,8 +40,19 @@ pub(in crate::ui::surface::input) fn keyboard_text_payload(
     }
 
     let text = keyboard.text.as_deref()?;
-    if text.is_empty() || text.chars().any(char::is_control) {
+    if text.is_empty() || keyboard_text_contains_control(text) {
         return None;
     }
     Some(text)
 }
+
+fn keyboard_text_contains_control(text: &str) -> bool {
+    if text.is_ascii() {
+        return text.as_bytes().iter().any(u8::is_ascii_control);
+    }
+    text.chars().any(char::is_control)
+}
+
+#[cfg(test)]
+#[path = "payload/byte_control_tests.rs"]
+mod byte_control_tests;

@@ -34,7 +34,7 @@ fn create_hzb_pipeline(
     device: &wgpu::Device,
     hzb_bind_group_layout: &wgpu::BindGroupLayout,
     shader_label: &'static str,
-    plan: &crate::core::framework::render::ComputeDispatchPlan,
+    plan: &crate::graphics::shader::invocation::ComputeDispatchPlan,
     shader_source: &str,
 ) -> wgpu::ComputePipeline {
     let shader_source = [ZR_REDUCE_INCLUDE, shader_source].concat();

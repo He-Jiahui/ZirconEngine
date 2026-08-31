@@ -5,6 +5,9 @@ use zircon_runtime_interface::ZrRuntimePayloadLimitV1;
 
 use super::RuntimeLibraryError;
 
+const REQUEST_WRITER_INITIAL_CAPACITY_BYTES: usize = 4 * 1024;
+const DEADLINE_CHECK_INTERVAL_BYTES: usize = 1024;
+
 pub(super) fn encode_runtime_request<T: serde::Serialize + ?Sized>(
     value: &T,
     limit: ZrRuntimePayloadLimitV1,
@@ -28,22 +31,35 @@ struct RuntimeRequestWriter {
     bytes: Vec<u8>,
     limit: ZrRuntimePayloadLimitV1,
     started: Instant,
+    next_deadline_check_at: usize,
     depth: usize,
     in_string: bool,
     escaped: bool,
     failure: Option<String>,
+    #[cfg(test)]
+    deadline_checks: usize,
+    #[cfg(test)]
+    capacity_growths: usize,
 }
 
 impl RuntimeRequestWriter {
     fn new(limit: ZrRuntimePayloadLimitV1) -> Self {
+        let initial_capacity = limit
+            .max_encoded_bytes
+            .min(REQUEST_WRITER_INITIAL_CAPACITY_BYTES);
         Self {
-            bytes: Vec::new(),
+            bytes: Vec::with_capacity(initial_capacity),
             limit,
             started: Instant::now(),
+            next_deadline_check_at: 0,
             depth: 0,
             in_string: false,
             escaped: false,
             failure: None,
+            #[cfg(test)]
+            deadline_checks: 0,
+            #[cfg(test)]
+            capacity_growths: 0,
         }
     }
 
@@ -59,13 +75,29 @@ impl RuntimeRequestWriter {
         Ok(self.bytes)
     }
 
-    fn check_deadline(&self) -> Result<(), String> {
+    fn check_deadline(&mut self) -> Result<(), String> {
+        #[cfg(test)]
+        {
+            self.deadline_checks = self.deadline_checks.saturating_add(1);
+        }
         if self.started.elapsed().as_micros() > u128::from(self.limit.max_processing_time_micros) {
             return Err(format!(
                 "JSON processing exceeded {} microseconds",
                 self.limit.max_processing_time_micros
             ));
         }
+        Ok(())
+    }
+
+    fn check_deadline_if_due(&mut self) -> Result<(), String> {
+        if self.bytes.len() < self.next_deadline_check_at {
+            return Ok(());
+        }
+        self.check_deadline()?;
+        self.next_deadline_check_at = self
+            .bytes
+            .len()
+            .saturating_add(DEADLINE_CHECK_INTERVAL_BYTES);
         Ok(())
     }
 
@@ -107,7 +139,7 @@ impl Write for RuntimeRequestWriter {
                 "bounded runtime request writer already failed",
             ));
         }
-        if let Err(error) = self.check_deadline() {
+        if let Err(error) = self.check_deadline_if_due() {
             self.failure = Some(error);
             return Err(io::Error::new(
                 io::ErrorKind::TimedOut,
@@ -129,7 +161,13 @@ impl Write for RuntimeRequestWriter {
             self.failure = Some(error);
             return Err(io::Error::other("runtime request nesting depth exceeded"));
         }
+        #[cfg(test)]
+        let prior_capacity = self.bytes.capacity();
         self.bytes.extend_from_slice(bytes);
+        #[cfg(test)]
+        if self.bytes.capacity() > prior_capacity {
+            self.capacity_growths = self.capacity_growths.saturating_add(1);
+        }
         Ok(bytes.len())
     }
 
@@ -137,3 +175,6 @@ impl Write for RuntimeRequestWriter {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod performance_tests;

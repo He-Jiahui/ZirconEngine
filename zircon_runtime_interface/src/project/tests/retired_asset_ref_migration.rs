@@ -1,8 +1,9 @@
 use serde_json::json;
 
 use crate::project::{
-    migrate_retired_asset_references, migrate_retired_asset_references_with, AssetRef, RelPath,
-    RetiredAssetRefMigrationError,
+    migrate_retired_asset_references, migrate_retired_asset_references_with,
+    migrate_retired_asset_references_with_budget, AssetRef, RelPath,
+    RetiredAssetRefMigrationBudget, RetiredAssetRefMigrationError,
 };
 
 #[test]
@@ -89,5 +90,71 @@ fn malformed_exact_shape_returns_a_typed_shape_error() {
     assert!(matches!(
         error,
         RetiredAssetRefMigrationError::InvalidShape { .. }
+    ));
+}
+
+#[test]
+fn programmatic_value_depth_is_rejected_before_the_resolver_runs() {
+    let mut value = json!(null);
+    for _ in 0..=128 {
+        value = json!([value]);
+    }
+
+    let error = migrate_retired_asset_references_with::<String>(value, |_| {
+        panic!("depth admission must run before reference resolution")
+    })
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        RetiredAssetRefMigrationError::ResourceLimitExceeded {
+            resource: "retired asset migration depth",
+            max: 128,
+            found: 129,
+        }
+    ));
+}
+
+#[test]
+fn caller_budget_rejects_nodes_before_the_resolver_runs() {
+    let error = migrate_retired_asset_references_with_budget::<String>(
+        json!([null, null]),
+        RetiredAssetRefMigrationBudget::new(2, 128, 8),
+        |_| panic!("node admission must run before reference resolution"),
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        RetiredAssetRefMigrationError::ResourceLimitExceeded {
+            resource: "retired asset migration nodes",
+            max: 2,
+            found: 3,
+        }
+    ));
+}
+
+#[test]
+fn caller_budget_rejects_reference_count_before_the_resolver_runs() {
+    let retired = || {
+        json!({
+            "uuid": "11111111-2222-4333-8444-555555555555",
+            "url": "res://models/hero.glb"
+        })
+    };
+    let error = migrate_retired_asset_references_with_budget::<String>(
+        json!([retired(), retired()]),
+        RetiredAssetRefMigrationBudget::new(16, 128, 1),
+        |_| panic!("reference admission must complete before resolution"),
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        RetiredAssetRefMigrationError::ResourceLimitExceeded {
+            resource: "retired asset migration references",
+            max: 1,
+            found: 2,
+        }
     ));
 }

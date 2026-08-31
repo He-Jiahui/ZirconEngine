@@ -2,15 +2,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::AssetUri;
+use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
-    CorePipelineKind, DisplayMode, PostProcessGraphResourceNames, RenderFramework, RenderPhase,
-    RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
-    ShaderFeatureBits, ShaderQualityTier, ShaderVariantMissReport,
-    ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
-    ShaderVariantRuntimeDimensionCount, GEOMETRY_SOURCE_ID_SKINNED_MESH,
-    SHADING_MODEL_ID_STANDARD_PBR,
+    CorePipelineKind, DisplayMode, GEOMETRY_SOURCE_ID_SKINNED_MESH, PostProcessGraphResourceNames,
+    RenderFramework, RenderPhase, RenderPipelineHandle, RenderQualityProfile, RenderStats,
+    RenderViewportDescriptor, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderQualityTier,
+    ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmManifest,
+    ShaderVariantPrewarmReport, ShaderVariantRuntimeDimensionCount,
 };
 use crate::core::math::UVec2;
 use crate::core::resource::ResourceId;

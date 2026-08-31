@@ -1,6 +1,10 @@
+use std::collections::BTreeMap;
+
+use zircon_runtime::plugin::native::NativePluginEditorCommandBinding;
 use zircon_runtime::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
 
 use crate::core::editor_extension::EditorExtensionRegistry;
+use crate::core::editor_operation::EditorOperationPath;
 use crate::core::plugin::sdk::lifecycle::{
     EditorPluginLifecycleEvent, EditorPluginLifecycleRecord, EditorPluginLifecycleReport,
     EditorPluginLifecycleStage,
@@ -20,6 +24,7 @@ pub(super) fn package_declares_editor_contribution(package: &PluginPackageManife
 pub(super) fn native_editor_registration_from_package(
     package_manifest: PluginPackageManifest,
     extensions: EditorExtensionRegistry,
+    native_command_bindings: BTreeMap<EditorOperationPath, NativePluginEditorCommandBinding>,
     mut diagnostics: Vec<String>,
 ) -> EditorPluginRegistrationReport {
     diagnostics.sort();
@@ -35,6 +40,7 @@ pub(super) fn native_editor_registration_from_package(
         failed_lifecycle_stages: Vec::new(),
         runtime_event_consumers:
             crate::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry::default(),
+        native_command_bindings,
         diagnostics,
     }
 }

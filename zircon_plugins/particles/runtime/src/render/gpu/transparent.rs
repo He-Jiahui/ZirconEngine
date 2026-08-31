@@ -1,8 +1,8 @@
 use zircon_runtime::core::math::Vec3;
-use zircon_runtime::graphics::ViewportRenderRegion;
+use zircon_runtime::graphics::{RenderPassBufferUploadSink, ViewportRenderRegion};
 
 use super::program::{
-    ParticleGpuTransparentShaderEntries, PARTICLE_GPU_TRANSPARENT_RENDER_PARAMS_BYTES,
+    PARTICLE_GPU_TRANSPARENT_RENDER_PARAMS_BYTES, ParticleGpuTransparentShaderEntries,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -170,7 +170,7 @@ impl ParticleGpuTransparentRenderer {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn record(
         &self,
-        queue: &wgpu::Queue,
+        buffer_uploads: &mut dyn RenderPassBufferUploadSink,
         encoder: &mut wgpu::CommandEncoder,
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
@@ -180,7 +180,7 @@ impl ParticleGpuTransparentRenderer {
         params: ParticleGpuTransparentRenderParams,
         render_region: ViewportRenderRegion,
     ) {
-        queue.write_buffer(&self.render_params_buffer, 0, &params.encode());
+        buffer_uploads.write_buffer(&self.render_params_buffer, 0, &params.encode());
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("ParticleGpuTransparentPass"),
@@ -281,5 +281,50 @@ fn write_f32s(bytes: &mut [u8], start: usize, values: &[f32]) {
         let byte_start = start + index * std::mem::size_of::<f32>();
         bytes[byte_start..byte_start + std::mem::size_of::<f32>()]
             .copy_from_slice(&value.to_le_bytes());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn transparent_params_follow_the_render_pass_upload_recorder_chain() {
+        let transparent = include_str!("transparent.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(product, _)| product)
+            .expect("transparent renderer should retain a test boundary");
+        let backend = include_str!("backend.rs");
+        let runtime_owner = include_str!("runtime_owner.rs");
+        let executors = include_str!("../executors.rs");
+
+        assert!(transparent.contains("RenderPassBufferUploadSink"));
+        assert!(!transparent.contains("queue.write_buffer"));
+        assert!(
+            transparent.contains("write_buffer(&self.render_params_buffer, 0, &params.encode())")
+        );
+
+        for source in [backend, runtime_owner] {
+            let transparent_record = source
+                .split_once("pub fn record_transparent_render")
+                .map(|(_, tail)| tail)
+                .expect("particle transparent upload chain");
+            let signature = transparent_record
+                .split_once('{')
+                .map(|(signature, _)| signature)
+                .expect("particle transparent record signature");
+            assert!(!signature.contains("wgpu::Queue"));
+            assert!(signature.contains("RenderPassBufferUploadSink"));
+        }
+        let executor = executors
+            .split_once("fn record_particle_gpu_transparent")
+            .map(|(_, tail)| tail)
+            .expect("particle transparent executor");
+        let executor_signature = executor
+            .split_once('{')
+            .map(|(signature, _)| signature)
+            .expect("particle transparent executor signature");
+        assert!(!executor_signature.contains("wgpu::Queue"));
+        assert!(executor.contains("&mut draw.buffer_uploads"));
+        assert!(executors.contains("gpu.plugin_outputs_mut().particles"));
+        assert!(!executors.contains("gpu.plugin_outputs.particles"));
     }
 }

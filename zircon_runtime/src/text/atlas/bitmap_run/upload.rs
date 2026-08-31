@@ -1,6 +1,6 @@
 use super::super::{
-    glyph_atlas_upload_command, GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasPageSpec,
-    GlyphAtlasRect, GlyphAtlasSet, GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
+    GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasPageSpec, GlyphAtlasRect, GlyphAtlasSet,
+    GlyphAtlasUploadCommand, GlyphAtlasUploadMode, glyph_atlas_upload_command,
 };
 use super::types::{GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadCopy};
 

@@ -1,5 +1,5 @@
 use zircon_runtime_interface::reflect::{
-    ReflectError, ReflectFieldValue, ReflectTypeRegistration, ReflectedValue, ZrReflect,
+    ReflectError, ReflectTypeRegistration, ReflectedValue, ZrReflect,
 };
 
 use crate::scene::ecs::Component;
@@ -12,14 +12,13 @@ where
     T: Component + ZrReflect + Clone,
 {
     let registration = T::reflect_type_registration()?;
-    let type_path = registration.type_path.type_path.clone();
+    let type_path = registration.type_path.type_path().to_string();
     finish_component_registration(
         registration,
         ReflectComponent::new(
             type_path,
             contains::<T>,
             read_field::<T>,
-            read_fields::<T>,
             write_field::<T>,
             remove::<T>,
         )
@@ -54,11 +53,11 @@ fn finish_component_registration(
 fn validate_component_registration(
     registration: &ReflectTypeRegistration,
 ) -> Result<(), ReflectError> {
-    if registration.is_component && !registration.is_resource {
+    if registration.is_component() {
         return Ok(());
     }
     Err(ReflectError::InvalidRegistration {
-        type_path: registration.type_path.type_path.clone(),
+        type_path: registration.type_path.type_path().to_string(),
         reason: "derived component adapters require component-only registrations".to_string(),
     })
 }
@@ -99,26 +98,6 @@ where
     T: Component + ZrReflect + Clone,
 {
     component::<T>(world, entity, type_path)?.read_reflected_field(field_name)
-}
-
-fn read_fields<T>(
-    world: &World,
-    entity: EntityId,
-    type_path: &str,
-) -> Result<Vec<ReflectFieldValue>, ReflectError>
-where
-    T: Component + ZrReflect + Clone,
-{
-    let component = component::<T>(world, entity, type_path)?;
-    let registration = world.type_registry().registration(type_path)?;
-    let mut values = Vec::with_capacity(registration.type_info.fields.len());
-    for field in &registration.type_info.fields {
-        values.push(ReflectFieldValue::new(
-            field.name.clone(),
-            component.read_reflected_field(&field.name)?,
-        ));
-    }
-    Ok(values)
 }
 
 fn write_field<T>(

@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::ProjectPluginManifest;
 
@@ -47,7 +49,7 @@ pub(in crate::plugin::export_build_plan) fn project_runtime_crate_diagnostics(
         if let Some(crate_name) = selection.runtime_crate.as_deref() {
             let first_diagnostic = diagnostics.len();
             validate_project_selection_runtime_crate_name(
-                &format!("project plugin {} runtime_crate", selection.id),
+                format_args!("project plugin {} runtime_crate", selection.id),
                 crate_name,
                 &mut diagnostics,
             );
@@ -65,7 +67,7 @@ pub(in crate::plugin::export_build_plan) fn project_runtime_crate_diagnostics(
             };
             let first_diagnostic = diagnostics.len();
             validate_project_runtime_crate_name(
-                &format!("project plugin feature {} runtime_crate", feature.id),
+                format_args!("project plugin feature {} runtime_crate", feature.id),
                 crate_name,
                 &mut diagnostics,
             );
@@ -91,7 +93,7 @@ pub(in crate::plugin::export_build_plan) fn project_editor_crate_diagnostics(
         if let Some(crate_name) = selection.editor_crate.as_deref() {
             let first_diagnostic = diagnostics.len();
             validate_project_runtime_crate_name(
-                &format!("project plugin {} editor_crate", selection.id),
+                format_args!("project plugin {} editor_crate", selection.id),
                 crate_name,
                 &mut diagnostics,
             );
@@ -109,7 +111,7 @@ pub(in crate::plugin::export_build_plan) fn project_editor_crate_diagnostics(
             };
             let first_diagnostic = diagnostics.len();
             validate_project_runtime_crate_name(
-                &format!("project plugin feature {} editor_crate", feature.id),
+                format_args!("project plugin feature {} editor_crate", feature.id),
                 crate_name,
                 &mut diagnostics,
             );
@@ -122,7 +124,7 @@ pub(in crate::plugin::export_build_plan) fn project_editor_crate_diagnostics(
 }
 
 fn validate_project_runtime_crate_name(
-    context: &str,
+    context: fmt::Arguments<'_>,
     crate_name: &str,
     diagnostics: &mut Vec<String>,
 ) {
@@ -145,7 +147,7 @@ fn validate_project_runtime_crate_name(
 }
 
 fn validate_project_selection_runtime_crate_name(
-    context: &str,
+    context: fmt::Arguments<'_>,
     crate_name: &str,
     diagnostics: &mut Vec<String>,
 ) {
@@ -206,4 +208,36 @@ fn project_selection_runtime_crate_name_is_valid(crate_name: &str) -> bool {
 
 fn project_selection_runtime_crate_name_prefix_is_valid(crate_name: &str) -> bool {
     crate_name.starts_with("zircon_plugin_") || crate_name.starts_with("builtin_")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        validate_project_runtime_crate_name, validate_project_selection_runtime_crate_name,
+    };
+
+    #[test]
+    fn deferred_crate_diagnostic_context_preserves_contract() {
+        let mut diagnostics = Vec::new();
+        validate_project_selection_runtime_crate_name(
+            format_args!("project plugin audio runtime_crate"),
+            "Zircon__",
+            &mut diagnostics,
+        );
+        validate_project_runtime_crate_name(
+            format_args!("project plugin audio editor_crate"),
+            "Zircon__",
+            &mut diagnostics,
+        );
+
+        assert_eq!(
+            diagnostics,
+            vec![
+                "project plugin audio runtime_crate `Zircon__` must use `zircon_plugin_` crate prefix or `builtin_` runtime-domain prefix and contain only lowercase ASCII letters, digits, and underscores".to_string(),
+                "project plugin audio runtime_crate `Zircon__` must not end with an underscore or contain repeated underscores".to_string(),
+                "project plugin audio editor_crate `Zircon__` must use `zircon_plugin_` prefix and contain only lowercase ASCII letters, digits, and underscores".to_string(),
+                "project plugin audio editor_crate `Zircon__` must not end with an underscore or contain repeated underscores".to_string(),
+            ]
+        );
+    }
 }

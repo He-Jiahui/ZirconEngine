@@ -4,10 +4,11 @@ use zircon_runtime_interface::{
     ZrRuntimeBindViewportSurfaceRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
-use super::super::{window_surface::runtime_native_surface_target, RuntimeEntryApp};
+use super::super::{
+    window_surface::{runtime_native_surface_target, NativeSurfaceTargetUnavailable},
+    RuntimeEntryApp,
+};
 use crate::entry::runtime_library::RuntimeLibraryError;
-
-const FORCE_CAPTURE_PRESENT_ENV: &str = "ZR_RUNTIME_FORCE_CAPTURE_PRESENT";
 
 impl RuntimeEntryApp {
     pub(in crate::entry::runtime_entry_app) fn bind_current_window_surface(
@@ -23,19 +24,20 @@ impl RuntimeEntryApp {
         &mut self,
         window: &dyn Window,
     ) -> Result<bool, RuntimeLibraryError> {
-        if force_capture_present() {
+        if self.reference_cpu_presenter_enabled {
             write_log(
                 "runtime_surface_present",
-                "runtime_force_capture_present_enabled",
+                "runtime_reference_cpu_presenter_enabled capability=degraded",
             );
             return Ok(false);
         }
         if !self.session.supports_viewport_surface_present() {
-            return Ok(false);
+            return Err(RuntimeLibraryError::capability_unavailable(
+                "runtime did not export viewport surface presentation; use --reference-cpu-presenter only for a degraded diagnostic path",
+            ));
         }
-        let Some(target) = runtime_native_surface_target(window) else {
-            return Ok(false);
-        };
+        let target =
+            runtime_native_surface_target(window).map_err(native_surface_unavailable_error)?;
         self.surface_present_attempted = true;
         self.session
             .bind_viewport_surface(ZrRuntimeBindViewportSurfaceRequestV1::new(
@@ -47,8 +49,10 @@ impl RuntimeEntryApp {
     }
 }
 
-fn force_capture_present() -> bool {
-    std::env::var(FORCE_CAPTURE_PRESENT_ENV).is_ok_and(|value| {
-        value == "1" || value.eq_ignore_ascii_case("true") || value.eq_ignore_ascii_case("yes")
-    })
+fn native_surface_unavailable_error(
+    unavailable: NativeSurfaceTargetUnavailable,
+) -> RuntimeLibraryError {
+    RuntimeLibraryError::capability_unavailable(format!(
+        "qualified native surface target unavailable: {unavailable}; use --reference-cpu-presenter only for a degraded diagnostic path"
+    ))
 }

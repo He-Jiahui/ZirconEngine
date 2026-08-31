@@ -6,6 +6,8 @@ pub(super) struct RecentProjectRowFrames {
     pub(super) row: FrameRect,
     pub(super) text: FrameRect,
     pub(super) open: FrameRect,
+    pub(super) safe: FrameRect,
+    pub(super) recover: FrameRect,
     pub(super) remove: FrameRect,
 }
 
@@ -19,6 +21,8 @@ pub(super) fn recent_project_row_frames(list: &FrameRect, index: usize) -> Recen
         row: frame_rect(geometry.row),
         text: frame_rect(geometry.text),
         open: frame_rect(geometry.open),
+        safe: frame_rect(geometry.safe),
+        recover: frame_rect(geometry.recover),
         remove: frame_rect(geometry.remove),
     }
 }

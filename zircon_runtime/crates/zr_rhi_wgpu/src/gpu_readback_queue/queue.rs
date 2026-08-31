@@ -2,76 +2,13 @@ use std::ops::Range;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 
+use zr_rhi::DiagnosticReadbackBudget;
+
 use super::staging_ring::{align_readback_offset, StagingCapacityPolicy, READBACK_FRAME_SLOTS};
+use super::texture_readback::{
+    texture_r32_uint_texel_readback_copy, texture_rgba_readback_copy, TextureReadbackCopy,
+};
 use super::ticket::{ReadbackCallback, ReadbackError, ReadbackTicket};
-
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct TextureRgbaReadbackLayout {
-    pub(crate) unpadded_bytes_per_row: u32,
-    pub(crate) padded_bytes_per_row: u32,
-    pub(crate) staging_byte_len: u64,
-    height: u32,
-}
-
-impl TextureRgbaReadbackLayout {
-    pub(crate) fn unpack_rgba(self, mapped: &[u8]) -> Result<Vec<u8>, ReadbackError> {
-        let staging_byte_len =
-            usize::try_from(self.staging_byte_len).map_err(|_| ReadbackError::CapacityOverflow)?;
-        if mapped.len() < staging_byte_len {
-            return Err(ReadbackError::BufferMap(
-                "texture readback mapped range was smaller than its staging layout".to_string(),
-            ));
-        }
-        let row_bytes = usize::try_from(self.unpadded_bytes_per_row)
-            .map_err(|_| ReadbackError::CapacityOverflow)?;
-        let padded_row_bytes = usize::try_from(self.padded_bytes_per_row)
-            .map_err(|_| ReadbackError::CapacityOverflow)?;
-        let total_rgba_bytes = row_bytes
-            .checked_mul(self.height as usize)
-            .ok_or(ReadbackError::CapacityOverflow)?;
-        let mut rgba = Vec::with_capacity(total_rgba_bytes);
-        for row in 0..self.height as usize {
-            let start = row
-                .checked_mul(padded_row_bytes)
-                .ok_or(ReadbackError::CapacityOverflow)?;
-            let end = start
-                .checked_add(row_bytes)
-                .ok_or(ReadbackError::CapacityOverflow)?;
-            let Some(source_row) = mapped.get(start..end) else {
-                return Err(ReadbackError::BufferMap(
-                    "texture readback row exceeded its mapped staging range".to_string(),
-                ));
-            };
-            rgba.extend_from_slice(source_row);
-        }
-        Ok(rgba)
-    }
-}
-
-pub(crate) fn texture_rgba_readback_layout(
-    width: u32,
-    height: u32,
-) -> Result<TextureRgbaReadbackLayout, ReadbackError> {
-    if width == 0 || height == 0 {
-        return Err(ReadbackError::InvalidTextureExtent { width, height });
-    }
-    let unpadded_bytes_per_row = width
-        .checked_mul(4)
-        .ok_or(ReadbackError::InvalidTextureExtent { width, height })?;
-    let padded_bytes_per_row = unpadded_bytes_per_row
-        .div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
-        .checked_mul(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
-        .ok_or(ReadbackError::InvalidTextureExtent { width, height })?;
-    let staging_byte_len = u64::from(padded_bytes_per_row)
-        .checked_mul(u64::from(height))
-        .ok_or(ReadbackError::InvalidTextureExtent { width, height })?;
-    Ok(TextureRgbaReadbackLayout {
-        unpadded_bytes_per_row,
-        padded_bytes_per_row,
-        staging_byte_len,
-        height,
-    })
-}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ReadbackPollStats {
@@ -84,10 +21,14 @@ pub struct ReadbackPollStats {
 
 pub struct GpuReadbackQueue {
     device: wgpu::Device,
+    budget: DiagnosticReadbackBudget,
     slots: [StagingSlot; READBACK_FRAME_SLOTS],
     next_ticket: u64,
     pending: Vec<PendingRequest>,
     active_frame: Option<ActiveFrame>,
+    active_frame_bytes: u64,
+    in_flight_request_count: usize,
+    in_flight_bytes: u64,
     slot_reuse_rejection_count: u32,
     last_poll_stats: ReadbackPollStats,
 }
@@ -96,23 +37,32 @@ impl GpuReadbackQueue {
     pub const FRAME_SLOTS: usize = READBACK_FRAME_SLOTS;
 
     pub fn new(device: &wgpu::Device) -> Self {
+        Self::with_budget(device, DiagnosticReadbackBudget::default())
+    }
+
+    pub fn with_budget(device: &wgpu::Device, budget: DiagnosticReadbackBudget) -> Self {
         Self {
             device: device.clone(),
+            budget,
             slots: std::array::from_fn(StagingSlot::new),
             next_ticket: 1,
             pending: Vec::new(),
             active_frame: None,
+            active_frame_bytes: 0,
+            in_flight_request_count: 0,
+            in_flight_bytes: 0,
             slot_reuse_rejection_count: 0,
             last_poll_stats: ReadbackPollStats::default(),
         }
     }
 
-    pub fn prepare_frame(
-        &mut self,
-        device: &wgpu::Device,
-        frame_index: u64,
-    ) -> Result<ReadbackPollStats, ReadbackError> {
-        let mut stats = self.poll_completed(device);
+    pub fn prepare_frame(&mut self, frame_index: u64) -> Result<ReadbackPollStats, ReadbackError> {
+        let mut stats = ReadbackPollStats {
+            in_flight_count: self.in_flight_count(),
+            in_flight_bytes: self.in_flight_bytes(),
+            slot_reuse_rejection_count: self.slot_reuse_rejection_count,
+            ..ReadbackPollStats::default()
+        };
         if let Some(active) = self.active_frame {
             return Err(ReadbackError::FrameAlreadyActive {
                 active: active.frame_index,
@@ -136,6 +86,7 @@ impl GpuReadbackQueue {
             slot_index,
             encoded: false,
         });
+        self.active_frame_bytes = 0;
         stats.in_flight_count = self.in_flight_count();
         stats.in_flight_bytes = self.in_flight_bytes();
         stats.slot_reuse_rejection_count = self.slot_reuse_rejection_count;
@@ -150,13 +101,12 @@ impl GpuReadbackQueue {
         range: Range<u64>,
         callback: ReadbackCallback,
     ) -> Result<ReadbackTicket, ReadbackError> {
-        if self.active_frame.is_none() {
-            return Err(ReadbackError::NoActiveFrame);
-        }
+        self.ensure_request_admission_frame()?;
         validate_range(&range)?;
+        let byte_len = range.end - range.start;
+        self.validate_request_admission(byte_len)?;
         let ticket = ReadbackTicket::new(self.next_ticket);
         self.next_ticket = self.next_ticket.wrapping_add(1).max(1);
-        let byte_len = range.end - range.start;
         self.pending.push(PendingRequest {
             ticket,
             name: name.into(),
@@ -167,6 +117,8 @@ impl GpuReadbackQueue {
             byte_len,
             callback: Some(callback),
         });
+        self.active_frame_bytes = self.active_frame_bytes.saturating_add(byte_len);
+        self.register_in_flight_request(byte_len);
         Ok(ticket)
     }
 
@@ -178,25 +130,58 @@ impl GpuReadbackQueue {
         height: u32,
         callback: Box<dyn FnOnce(Result<Vec<u8>, ReadbackError>) + Send + 'static>,
     ) -> Result<ReadbackTicket, ReadbackError> {
-        if self.active_frame.is_none() {
-            return Err(ReadbackError::NoActiveFrame);
-        }
-        let layout = texture_rgba_readback_layout(width, height)?;
+        self.ensure_request_admission_frame()?;
+        let copy = texture_rgba_readback_copy(width, height)?;
+        self.validate_request_admission(copy.layout.staging_byte_len)?;
         let ticket = ReadbackTicket::new(self.next_ticket);
         self.next_ticket = self.next_ticket.wrapping_add(1).max(1);
         self.pending.push(PendingRequest {
             ticket,
             name: name.into(),
-            source: ReadbackSource::TextureRgba {
+            source: ReadbackSource::Texture {
                 texture: texture.clone(),
-                width,
-                layout,
+                copy,
             },
-            byte_len: layout.staging_byte_len,
+            byte_len: copy.layout.staging_byte_len,
             callback: Some(Box::new(move |result| {
-                callback(result.and_then(|bytes| layout.unpack_rgba(bytes)));
+                callback(result.and_then(|bytes| copy.layout.unpack_rgba(bytes)));
             })),
         });
+        self.active_frame_bytes = self
+            .active_frame_bytes
+            .saturating_add(copy.layout.staging_byte_len);
+        self.register_in_flight_request(copy.layout.staging_byte_len);
+        Ok(ticket)
+    }
+
+    pub fn request_texture_r32_uint_texel(
+        &mut self,
+        name: impl Into<String>,
+        texture: &wgpu::Texture,
+        pixel: [u32; 2],
+        callback: Box<dyn FnOnce(Result<u32, ReadbackError>) + Send + 'static>,
+    ) -> Result<ReadbackTicket, ReadbackError> {
+        self.ensure_request_admission_frame()?;
+        let copy = texture_r32_uint_texel_readback_copy(texture, pixel)?;
+        self.validate_request_admission(copy.layout.staging_byte_len)?;
+        let ticket = ReadbackTicket::new(self.next_ticket);
+        self.next_ticket = self.next_ticket.wrapping_add(1).max(1);
+        self.pending.push(PendingRequest {
+            ticket,
+            name: name.into(),
+            source: ReadbackSource::Texture {
+                texture: texture.clone(),
+                copy,
+            },
+            byte_len: copy.layout.staging_byte_len,
+            callback: Some(Box::new(move |result| {
+                callback(result.and_then(|bytes| copy.layout.unpack_r32_uint(bytes)));
+            })),
+        });
+        self.active_frame_bytes = self
+            .active_frame_bytes
+            .saturating_add(copy.layout.staging_byte_len);
+        self.register_in_flight_request(copy.layout.staging_byte_len);
         Ok(ticket)
     }
 
@@ -265,25 +250,22 @@ impl GpuReadbackQueue {
                     request.destination_offset,
                     request.byte_len,
                 ),
-                ReadbackSource::TextureRgba {
-                    texture,
-                    width,
-                    layout,
-                } => encoder.copy_texture_to_buffer(
-                    texture.as_image_copy(),
+                ReadbackSource::Texture { texture, copy } => encoder.copy_texture_to_buffer(
+                    wgpu::TexelCopyTextureInfo {
+                        texture,
+                        mip_level: 0,
+                        origin: copy.origin,
+                        aspect: wgpu::TextureAspect::All,
+                    },
                     wgpu::TexelCopyBufferInfo {
                         buffer: staging,
                         layout: wgpu::TexelCopyBufferLayout {
                             offset: request.destination_offset,
-                            bytes_per_row: Some(layout.padded_bytes_per_row),
-                            rows_per_image: Some(layout.height),
+                            bytes_per_row: Some(copy.layout.padded_bytes_per_row),
+                            rows_per_image: Some(copy.layout.height),
                         },
                     },
-                    wgpu::Extent3d {
-                        width: *width,
-                        height: layout.height,
-                        depth_or_array_layers: 1,
-                    },
+                    copy.extent,
                 ),
             }
         }
@@ -311,6 +293,7 @@ impl GpuReadbackQueue {
         let slot = &mut self.slots[active.slot_index];
         if slot.requests.is_empty() {
             self.active_frame = None;
+            self.active_frame_bytes = 0;
             slot.frame_index = None;
             slot.used_bytes = 0;
             return Ok(());
@@ -329,11 +312,11 @@ impl GpuReadbackQueue {
         });
         slot.completion = Some(receiver);
         self.active_frame = None;
+        self.active_frame_bytes = 0;
         Ok(())
     }
 
-    pub fn poll_completed(&mut self, device: &wgpu::Device) -> ReadbackPollStats {
-        let _ = device.poll(wgpu::PollType::Poll);
+    pub(crate) fn collect_completed_after_device_poll(&mut self) -> ReadbackPollStats {
         let mut stats = ReadbackPollStats::default();
         for slot_index in 0..READBACK_FRAME_SLOTS {
             self.collect_slot(slot_index, &mut stats);
@@ -345,6 +328,12 @@ impl GpuReadbackQueue {
         stats
     }
 
+    #[cfg(test)]
+    pub fn poll_completed(&mut self) -> ReadbackPollStats {
+        let _ = self.device.poll(wgpu::PollType::Poll);
+        self.collect_completed_after_device_poll()
+    }
+
     pub fn stats(&self) -> ReadbackPollStats {
         ReadbackPollStats {
             in_flight_count: self.in_flight_count(),
@@ -354,17 +343,41 @@ impl GpuReadbackQueue {
         }
     }
 
-    pub fn cancel(&mut self, ticket: ReadbackTicket) {
-        self.pending.retain(|request| request.ticket != ticket);
-        for slot in &mut self.slots {
-            if let Some(request) = slot
-                .requests
-                .iter_mut()
-                .find(|request| request.ticket == ticket)
-            {
-                request.callback = None;
+    pub fn cancel(&mut self, ticket: ReadbackTicket) -> bool {
+        let mut cancelled = false;
+        let mut retained = Vec::with_capacity(self.pending.len());
+        let mut released_pending_count = 0_usize;
+        let mut released_pending_bytes = 0_u64;
+        for mut request in self.pending.drain(..) {
+            if request.ticket == ticket {
+                cancelled |= complete_error_callback(
+                    request.callback.take(),
+                    ReadbackError::Cancelled { ticket },
+                );
+                released_pending_count = released_pending_count.saturating_add(1);
+                released_pending_bytes = released_pending_bytes.saturating_add(request.byte_len);
+            } else {
+                retained.push(request);
             }
         }
+        self.pending = retained;
+        self.active_frame_bytes = self
+            .active_frame_bytes
+            .saturating_sub(released_pending_bytes);
+        self.release_in_flight_requests(released_pending_count, released_pending_bytes);
+        for slot in &mut self.slots {
+            for request in slot
+                .requests
+                .iter_mut()
+                .filter(|request| request.ticket == ticket)
+            {
+                cancelled |= complete_error_callback(
+                    request.callback.take(),
+                    ReadbackError::Cancelled { ticket },
+                );
+            }
+        }
+        cancelled
     }
 
     pub fn abort_frame(&mut self, frame_index: u64) {
@@ -375,115 +388,197 @@ impl GpuReadbackQueue {
             return;
         }
         self.active_frame = None;
+        let mut released_request_count = 0_usize;
+        let mut released_bytes = 0_u64;
         for mut request in self.pending.drain(..) {
-            if let Some(callback) = request.callback.take() {
-                let _ = catch_unwind(AssertUnwindSafe(|| {
-                    callback(Err(ReadbackError::FrameAborted { frame_index }));
-                }));
-            }
+            released_request_count = released_request_count.saturating_add(1);
+            released_bytes = released_bytes.saturating_add(request.byte_len);
+            complete_error_callback(
+                request.callback.take(),
+                ReadbackError::FrameAborted { frame_index },
+            );
         }
         let slot = &mut self.slots[active.slot_index];
         for mut request in slot.requests.drain(..) {
-            if let Some(callback) = request.callback.take() {
-                let _ = catch_unwind(AssertUnwindSafe(|| {
-                    callback(Err(ReadbackError::FrameAborted { frame_index }));
-                }));
-            }
+            released_request_count = released_request_count.saturating_add(1);
+            released_bytes = released_bytes.saturating_add(request.byte_len);
+            complete_error_callback(
+                request.callback.take(),
+                ReadbackError::FrameAborted { frame_index },
+            );
         }
         slot.frame_index = None;
         slot.used_bytes = 0;
+        self.active_frame_bytes = 0;
+        self.release_in_flight_requests(released_request_count, released_bytes);
     }
 
     fn collect_slot(&mut self, slot_index: usize, stats: &mut ReadbackPollStats) {
-        let slot = &mut self.slots[slot_index];
-        let completion = match slot.completion.as_ref().map(Receiver::try_recv) {
-            Some(Ok(result)) => SlotCompletion::Map(result),
-            Some(Err(TryRecvError::Disconnected)) => SlotCompletion::Disconnected,
-            Some(Err(TryRecvError::Empty)) | None => return,
-        };
-        slot.completion = None;
+        let (released_request_count, released_bytes) = {
+            let slot = &mut self.slots[slot_index];
+            let completion = match slot.completion.as_ref().map(Receiver::try_recv) {
+                Some(Ok(result)) => SlotCompletion::Map(result),
+                Some(Err(TryRecvError::Disconnected)) => SlotCompletion::Disconnected,
+                Some(Err(TryRecvError::Empty)) | None => return,
+            };
+            slot.completion = None;
+            let released_request_count = slot.requests.len();
+            let released_bytes = slot.requests.iter().fold(0_u64, |total, request| {
+                total.saturating_add(request.byte_len)
+            });
 
-        match completion {
-            SlotCompletion::Map(Ok(())) => {
-                if let Some(buffer) = slot.buffer.as_ref() {
-                    let mapped = buffer.get_mapped_range(0..slot.used_bytes);
-                    for mut request in slot.requests.drain(..) {
-                        let mapped_bytes = usize::try_from(request.destination_offset)
-                            .ok()
-                            .zip(usize::try_from(request.byte_len).ok())
-                            .and_then(|(start, byte_len)| {
-                                start
-                                    .checked_add(byte_len)
-                                    .and_then(|end| mapped.get(start..end))
-                            });
-                        if let Some(callback) = request.callback.take() {
-                            let delivered_bytes = mapped_bytes.is_some();
-                            let request_name = request.name;
-                            let ticket = request.ticket;
-                            let _ = catch_unwind(AssertUnwindSafe(move || {
-                                match mapped_bytes {
-                                Some(bytes) => callback(Ok(bytes)),
-                                None => callback(Err(ReadbackError::BufferMap(format!(
-                                    "readback request {ticket:?} ({request_name}) exceeded its mapped staging range"
-                                )))),
-                            }
-                            }));
-                            stats.completed_request_count =
-                                stats.completed_request_count.saturating_add(1);
-                            if delivered_bytes {
-                                stats.completed_bytes =
-                                    stats.completed_bytes.saturating_add(request.byte_len);
+            match completion {
+                SlotCompletion::Map(Ok(())) => {
+                    if let Some(buffer) = slot.buffer.as_ref() {
+                        let mapped = buffer.get_mapped_range(0..slot.used_bytes);
+                        for mut request in slot.requests.drain(..) {
+                            let mapped_bytes = usize::try_from(request.destination_offset)
+                                .ok()
+                                .zip(usize::try_from(request.byte_len).ok())
+                                .and_then(|(start, byte_len)| {
+                                    start
+                                        .checked_add(byte_len)
+                                        .and_then(|end| mapped.get(start..end))
+                                });
+                            if let Some(callback) = request.callback.take() {
+                                let delivered_bytes = mapped_bytes.is_some();
+                                let request_name = request.name;
+                                let ticket = request.ticket;
+                                let _ = catch_unwind(AssertUnwindSafe(move || {
+                                    match mapped_bytes {
+                                    Some(bytes) => callback(Ok(bytes)),
+                                    None => callback(Err(ReadbackError::BufferMap(format!(
+                                        "readback request {ticket:?} ({request_name}) exceeded its mapped staging range"
+                                    )))),
+                                }
+                                }));
+                                stats.completed_request_count =
+                                    stats.completed_request_count.saturating_add(1);
+                                if delivered_bytes {
+                                    stats.completed_bytes =
+                                        stats.completed_bytes.saturating_add(request.byte_len);
+                                }
                             }
                         }
+                        drop(mapped);
+                        buffer.unmap();
+                    } else {
+                        let frame_index = slot.frame_index;
+                        fail_slot_requests(
+                            slot,
+                            stats,
+                            format!(
+                                "completed readback frame {:?} has no staging buffer in slot {slot_index}",
+                                frame_index
+                            ),
+                        );
                     }
-                    drop(mapped);
-                    buffer.unmap();
-                } else {
-                    let frame_index = slot.frame_index;
+                }
+                SlotCompletion::Map(Err(error)) => {
+                    fail_slot_requests(slot, stats, error.to_string());
+                }
+                SlotCompletion::Disconnected => {
                     fail_slot_requests(
                         slot,
                         stats,
-                        format!(
-                            "completed readback frame {:?} has no staging buffer in slot {slot_index}",
-                            frame_index
-                        ),
+                        "WGPU map callback disconnected before completion".to_string(),
                     );
                 }
             }
-            SlotCompletion::Map(Err(error)) => {
-                fail_slot_requests(slot, stats, error.to_string());
-            }
-            SlotCompletion::Disconnected => {
-                fail_slot_requests(
-                    slot,
-                    stats,
-                    "WGPU map callback disconnected before completion".to_string(),
-                );
-            }
-        }
-        slot.frame_index = None;
-        slot.used_bytes = 0;
+            slot.frame_index = None;
+            slot.used_bytes = 0;
+            (released_request_count, released_bytes)
+        };
+        self.release_in_flight_requests(released_request_count, released_bytes);
     }
 
     fn in_flight_count(&self) -> usize {
-        self.slots
-            .iter()
-            .map(|slot| slot.requests.len())
-            .sum::<usize>()
-            .saturating_add(self.pending.len())
+        self.in_flight_request_count
     }
 
     fn in_flight_bytes(&self) -> u64 {
-        self.slots
-            .iter()
-            .map(|slot| {
-                slot.requests
-                    .iter()
-                    .map(|request| request.byte_len)
-                    .sum::<u64>()
-            })
-            .sum::<u64>()
-            .saturating_add(self.pending.iter().map(|request| request.byte_len).sum())
+        self.in_flight_bytes
+    }
+
+    fn ensure_request_admission_frame(&self) -> Result<(), ReadbackError> {
+        let Some(active) = self.active_frame else {
+            return Err(ReadbackError::NoActiveFrame);
+        };
+        if active.encoded {
+            return Err(ReadbackError::FrameRequestsSealed {
+                frame_index: active.frame_index,
+            });
+        }
+        Ok(())
+    }
+
+    fn validate_request_admission(&self, byte_len: u64) -> Result<(), ReadbackError> {
+        if byte_len > self.budget.max_request_bytes() {
+            return Err(ReadbackError::RequestBytesExceeded {
+                requested_bytes: byte_len,
+                limit_bytes: self.budget.max_request_bytes(),
+            });
+        }
+        if self.pending.len() >= self.budget.max_requests_per_frame() {
+            return Err(ReadbackError::FrameRequestLimitExceeded {
+                current_requests: self.pending.len(),
+                limit: self.budget.max_requests_per_frame(),
+            });
+        }
+        if byte_len
+            > self
+                .budget
+                .max_frame_bytes()
+                .saturating_sub(self.active_frame_bytes)
+        {
+            return Err(ReadbackError::FrameBytesExceeded {
+                current_bytes: self.active_frame_bytes,
+                requested_bytes: byte_len,
+                limit_bytes: self.budget.max_frame_bytes(),
+            });
+        }
+        if self.in_flight_request_count >= self.budget.max_pending_requests() {
+            return Err(ReadbackError::PendingRequestLimitExceeded {
+                current_requests: self.in_flight_request_count,
+                limit: self.budget.max_pending_requests(),
+            });
+        }
+        if byte_len
+            > self
+                .budget
+                .max_pending_bytes()
+                .saturating_sub(self.in_flight_bytes)
+        {
+            return Err(ReadbackError::PendingBytesExceeded {
+                current_bytes: self.in_flight_bytes,
+                requested_bytes: byte_len,
+                limit_bytes: self.budget.max_pending_bytes(),
+            });
+        }
+        Ok(())
+    }
+
+    fn register_in_flight_request(&mut self, byte_len: u64) {
+        self.in_flight_request_count = self.in_flight_request_count.saturating_add(1);
+        self.in_flight_bytes = self.in_flight_bytes.saturating_add(byte_len);
+    }
+
+    fn release_in_flight_requests(&mut self, request_count: usize, byte_len: u64) {
+        self.in_flight_request_count = self.in_flight_request_count.saturating_sub(request_count);
+        self.in_flight_bytes = self.in_flight_bytes.saturating_sub(byte_len);
+    }
+}
+
+impl Drop for GpuReadbackQueue {
+    fn drop(&mut self) {
+        for mut request in self.pending.drain(..) {
+            complete_error_callback(request.callback.take(), ReadbackError::Shutdown);
+        }
+        for slot in &mut self.slots {
+            for mut request in slot.requests.drain(..) {
+                complete_error_callback(request.callback.take(), ReadbackError::Shutdown);
+            }
+        }
     }
 }
 
@@ -503,6 +598,16 @@ fn fail_slot_requests(slot: &mut StagingSlot, stats: &mut ReadbackPollStats, mes
     if let Some(buffer) = slot.buffer.as_ref() {
         buffer.unmap();
     }
+}
+
+fn complete_error_callback(callback: Option<ReadbackCallback>, error: ReadbackError) -> bool {
+    let Some(callback) = callback else {
+        return false;
+    };
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        callback(Err(error));
+    }));
+    true
 }
 
 enum SlotCompletion {
@@ -532,10 +637,9 @@ enum ReadbackSource {
         buffer: wgpu::Buffer,
         source_offset: u64,
     },
-    TextureRgba {
+    Texture {
         texture: wgpu::Texture,
-        width: u32,
-        layout: TextureRgbaReadbackLayout,
+        copy: TextureReadbackCopy,
     },
 }
 

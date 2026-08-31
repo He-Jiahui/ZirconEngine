@@ -1,5 +1,45 @@
 use super::*;
-use crate::text::font::register_font_handles;
+use crate::text::font::{
+    FontCollectionService, register_font_handle_batch_for_collection, register_font_handles,
+};
+
+#[test]
+fn sdf_bake_resolves_shaped_handles_only_through_its_owned_font_collection() {
+    let first_collection = FontCollectionService::from_database(FontDatabase::default());
+    let second_collection = FontCollectionService::from_database(FontDatabase::default());
+    let backend_face = FontFaceId(5_101);
+    let first_handles = register_font_handle_batch_for_collection(
+        &first_collection,
+        &[(Some(backend_face), None)],
+        first_collection.generation(),
+    );
+    let key = SdfAtlasGlyphKey {
+        glyph: 'A',
+        glyph_id: Some(41),
+        font_id: first_handles[0].0,
+        font_instance_id: None,
+        font: None,
+        font_family: None,
+        language: None,
+        font_weight: FontWeight::NORMAL.0,
+        bake_params: SdfBakeParams::default(),
+    };
+    let database = FontDatabase::default();
+    let mut owning_bake = SdfFontBakeCache::new_with_font_collection(first_collection);
+    let mut foreign_bake = SdfFontBakeCache::new_with_font_collection(second_collection);
+
+    owning_bake.prime_shaped_face_resolutions(std::slice::from_ref(&key), &database);
+    foreign_bake.prime_shaped_face_resolutions(std::slice::from_ref(&key), &database);
+
+    assert_eq!(
+        owning_bake.shaped_face_resolutions.get(&key),
+        Some(&Some(SdfShapedFontResolution {
+            face: backend_face,
+            instance: None,
+        }))
+    );
+    assert_eq!(foreign_bake.shaped_face_resolutions.get(&key), Some(&None));
+}
 
 #[test]
 fn sdf_atlas_build_resolves_all_shaped_handles_in_one_batch() {

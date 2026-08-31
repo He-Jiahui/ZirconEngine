@@ -1,13 +1,10 @@
-use std::collections::{btree_map::Entry, BTreeMap};
-use std::fmt;
+use std::collections::{BTreeMap, btree_map::Entry};
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::core::asset::{
-    AssetTypeContribution, AssetTypeId, AssetTypeIdError, AssetTypeRegistryError,
-};
+use crate::core::asset::{AssetTypeContribution, AssetTypeId};
 use crate::core::commands::{
     EditorCommandContributionSet, EditorCommandDescriptor, EditorCommandRegistryError,
 };
@@ -16,9 +13,11 @@ use crate::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodePaletteDescriptor, SceneModeDescriptor,
     TimelineEditorDescriptor, TimelineTrackDescriptor,
 };
-use crate::core::editor_operation::{EditorOperationPath, EditorOperationPathError};
-use crate::core::extension::InspectorCustomizationDescriptor;
+use crate::core::editor_operation::EditorOperationPath;
+use crate::core::extension::{ContributionTicket, InspectorCustomizationDescriptor};
+use crate::core::i18n::EditorLocalizationBundle;
 use crate::core::settings::SettingsPageDescriptor;
+use crate::core::tools::{ToolOwnerGeneration, ToolResourceKindDeclaration};
 use crate::scene::modes::SceneModeRegistration;
 
 use contribution_descriptors::{validate_asset_importer, validate_menu_item_path};
@@ -29,7 +28,8 @@ mod view_descriptor;
 mod viewport_overlay_provider;
 
 pub use contribution_descriptors::{
-    AssetImporterDescriptor, DrawerDescriptor, EditorMenuItemDescriptor,
+    AssetImporterDescriptor, DrawerDescriptor, EditorExtensionRegistryError,
+    EditorMenuItemDescriptor,
 };
 pub use template_contributions::EditorUiTemplateDescriptor;
 pub use view_descriptor::{
@@ -39,6 +39,43 @@ pub use viewport_overlay_provider::{
     ViewportOverlayProvider, ViewportOverlayProviderContext, ViewportOverlayProviderFactory,
     ViewportOverlayProviderRegistration,
 };
+
+/// Exact host-issued identity of one live editor contribution generation.
+///
+/// Display owner ids are intentionally insufficient for retirement: a delayed teardown from an
+/// older load must not revoke a newer contribution that reused the same plugin id.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EditorContributionHandle {
+    owner_id: String,
+    ticket: ContributionTicket,
+    owner_generation: ToolOwnerGeneration,
+}
+
+impl EditorContributionHandle {
+    pub(crate) fn new(
+        owner_id: impl Into<String>,
+        ticket: ContributionTicket,
+        owner_generation: ToolOwnerGeneration,
+    ) -> Self {
+        Self {
+            owner_id: owner_id.into(),
+            ticket,
+            owner_generation,
+        }
+    }
+
+    pub fn owner_id(&self) -> &str {
+        &self.owner_id
+    }
+
+    pub(crate) const fn ticket(&self) -> ContributionTicket {
+        self.ticket
+    }
+
+    pub(crate) const fn owner_generation(&self) -> ToolOwnerGeneration {
+        self.owner_generation
+    }
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct EditorExtensionRegistry {
@@ -54,6 +91,8 @@ pub struct EditorExtensionRegistry {
         BTreeMap<String, template_contributions::EditorUiTemplatePaneDataSourceRegistration>,
     asset_importers: BTreeMap<String, AssetImporterDescriptor>,
     asset_type_contributions: BTreeMap<AssetTypeId, AssetTypeContribution>,
+    #[serde(skip)]
+    localization_bundles: BTreeMap<String, EditorLocalizationBundle>,
     settings_pages: BTreeMap<String, SettingsPageDescriptor>,
     #[serde(skip)]
     scene_mode_descriptors: BTreeMap<String, SceneModeDescriptor>,
@@ -65,6 +104,7 @@ pub struct EditorExtensionRegistry {
     graph_node_palettes: BTreeMap<String, GraphNodePaletteDescriptor>,
     timeline_editors: BTreeMap<AssetTypeId, TimelineEditorDescriptor>,
     timeline_track_types: BTreeMap<String, TimelineTrackDescriptor>,
+    tool_resource_kinds: BTreeMap<String, ToolResourceKindDeclaration>,
     command_contributions: EditorCommandContributionSet,
 }
 
@@ -73,7 +113,25 @@ impl EditorExtensionRegistry {
         mut self,
     ) -> Result<crate::core::extension::ContributionBatch, EditorExtensionRegistryError> {
         let pane_data_sources = self.ui_template_pane_data_sources();
-        let commands = self.take_command_contributions();
+        let mut commands = self.take_command_contributions();
+        for command in &mut commands {
+            let Some(bundle_id) = command.presentation().source().bundle_id() else {
+                continue;
+            };
+            let bundle = self
+                .localization_bundles
+                .get(bundle_id.as_str())
+                .ok_or_else(|| EditorExtensionRegistryError::CommandLocalization {
+                    command_id: command.id().clone(),
+                    detail: format!("missing localization bundle `{bundle_id}`"),
+                })?;
+            command.bind_localization_bundle(bundle).map_err(|detail| {
+                EditorExtensionRegistryError::CommandLocalization {
+                    command_id: command.id().clone(),
+                    detail,
+                }
+            })?;
+        }
         let mut factories = self
             .take_operation_factories()
             .into_iter()
@@ -105,6 +163,9 @@ impl EditorExtensionRegistry {
         for contribution in self.asset_type_contributions.into_values() {
             batch.register_asset_type_contribution(contribution)?;
         }
+        for bundle in self.localization_bundles.into_values() {
+            batch.register_localization_bundle(bundle)?;
+        }
         for descriptor in self.settings_pages.into_values() {
             batch.register_settings_page(descriptor)?;
         }
@@ -125,6 +186,9 @@ impl EditorExtensionRegistry {
         }
         for descriptor in self.timeline_track_types.into_values() {
             batch.register_timeline_track_type(descriptor)?;
+        }
+        for declaration in self.tool_resource_kinds.into_values() {
+            batch.register_tool_resource_kind(declaration)?;
         }
         for command in commands {
             if let Some(factory) = factories.remove(command.id()) {
@@ -233,10 +297,24 @@ impl EditorExtensionRegistry {
         descriptor: SettingsPageDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
         validate_contribution_id("settings page", descriptor.id())?;
-        if !descriptor.is_valid_category_path() {
-            return Err(EditorExtensionRegistryError::InvalidContributionId {
-                kind: "settings page category",
-                id: descriptor.category_path().to_string(),
+        let Some(bundle) = self
+            .localization_bundles
+            .get(descriptor.localization_bundle_id())
+        else {
+            return Err(EditorExtensionRegistryError::MissingLocalizationBundle {
+                page_id: descriptor.id().to_owned(),
+                bundle_id: descriptor.localization_bundle_id().to_owned(),
+            });
+        };
+        if let Some(key) = descriptor
+            .localization_keys()
+            .find(|key| !bundle.contains_key(key))
+            .map(str::to_owned)
+        {
+            return Err(EditorExtensionRegistryError::UnknownLocalizationKey {
+                page_id: descriptor.id().to_owned(),
+                bundle_id: descriptor.localization_bundle_id().to_owned(),
+                key,
             });
         }
         insert_unique(
@@ -244,6 +322,18 @@ impl EditorExtensionRegistry {
             descriptor.id().to_string(),
             descriptor,
             "settings page",
+        )
+    }
+
+    pub fn register_localization_bundle(
+        &mut self,
+        bundle: EditorLocalizationBundle,
+    ) -> Result<(), EditorExtensionRegistryError> {
+        insert_unique(
+            &mut self.localization_bundles,
+            bundle.id().to_owned(),
+            bundle,
+            "localization bundle",
         )
     }
 
@@ -363,6 +453,19 @@ impl EditorExtensionRegistry {
             .map_err(EditorExtensionRegistryError::Command)
     }
 
+    pub fn register_tool_resource_kind(
+        &mut self,
+        declaration: ToolResourceKindDeclaration,
+    ) -> Result<(), EditorExtensionRegistryError> {
+        let kind = declaration.kind().as_str().to_owned();
+        insert_unique(
+            &mut self.tool_resource_kinds,
+            kind,
+            declaration,
+            "tool resource kind",
+        )
+    }
+
     pub fn views(&self) -> Vec<&ViewDescriptor> {
         self.views.values().collect()
     }
@@ -405,6 +508,10 @@ impl EditorExtensionRegistry {
         self.settings_pages.values().collect()
     }
 
+    pub fn localization_bundles(&self) -> Vec<&EditorLocalizationBundle> {
+        self.localization_bundles.values().collect()
+    }
+
     pub fn scene_mode_descriptors(&self) -> Vec<&SceneModeDescriptor> {
         self.scene_mode_descriptors.values().collect()
     }
@@ -445,6 +552,10 @@ impl EditorExtensionRegistry {
 
     pub fn timeline_track_types(&self) -> Vec<&TimelineTrackDescriptor> {
         self.timeline_track_types.values().collect()
+    }
+
+    pub fn tool_resource_kinds(&self) -> Vec<&ToolResourceKindDeclaration> {
+        self.tool_resource_kinds.values().collect()
     }
 
     pub fn command_ids(&self) -> impl Iterator<Item = &EditorOperationPath> {
@@ -542,6 +653,16 @@ fn validate_graph_node_palette(
     descriptor: &GraphNodePaletteDescriptor,
 ) -> Result<(), EditorExtensionRegistryError> {
     validate_contribution_id("graph node palette", descriptor.id())?;
+    validate_contribution_id("graph node palette owner", descriptor.owner_id())?;
+    if descriptor.schema_version() == 0 {
+        return Err(
+            EditorExtensionRegistryError::InvalidDescriptorSchemaVersion {
+                kind: "graph node palette",
+                id: descriptor.id().to_owned(),
+                version: descriptor.schema_version(),
+            },
+        );
+    }
     if descriptor.nodes().is_empty() {
         return Err(EditorExtensionRegistryError::View(format!(
             "editor graph node palette `{}` must declare at least one node",
@@ -572,126 +693,6 @@ fn validate_contribution_id(
         });
     }
     Ok(())
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum EditorExtensionRegistryError {
-    DuplicateContribution {
-        kind: &'static str,
-        id: String,
-    },
-    InvalidContributionId {
-        kind: &'static str,
-        id: String,
-    },
-    InvalidUiDocument {
-        kind: &'static str,
-        document: String,
-    },
-    MissingUiTemplate {
-        template_id: String,
-    },
-    UnknownExtensionOwner {
-        owner_id: String,
-    },
-    InvalidAssetImporterExtensions(String),
-    InvalidMenuPath(String),
-    CommandViewTargetConflict {
-        command_id: EditorOperationPath,
-        view_id: String,
-    },
-    MenuCapabilitiesRequireContributedCommand {
-        command_id: EditorOperationPath,
-    },
-    MissingViewportOverlayProvider {
-        provider_id: String,
-    },
-    SceneMode(String),
-    ViewportOverlayProvider(String),
-    Command(EditorCommandRegistryError),
-    OperationPath(EditorOperationPathError),
-    AssetTypeId(AssetTypeIdError),
-    AssetTypeRegistry(AssetTypeRegistryError),
-    View(String),
-}
-
-impl fmt::Display for EditorExtensionRegistryError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DuplicateContribution { kind, id } => {
-                write!(formatter, "editor {kind} {id} already registered")
-            }
-            Self::InvalidContributionId { kind, id } => {
-                write!(formatter, "editor {kind} id `{id}` is invalid")
-            }
-            Self::InvalidUiDocument { kind, document } => write!(
-                formatter,
-                "editor {kind} `{document}` must reference a supported editor UI asset"
-            ),
-            Self::MissingUiTemplate { template_id } => write!(
-                formatter,
-                "editor UI template pane data source references missing template `{template_id}`"
-            ),
-            Self::UnknownExtensionOwner { owner_id } => {
-                write!(
-                    formatter,
-                    "editor extension owner `{owner_id}` is not registered"
-                )
-            }
-            Self::InvalidAssetImporterExtensions(id) => {
-                write!(
-                    formatter,
-                    "editor asset importer `{id}` must declare at least one source extension"
-                )
-            }
-            Self::InvalidMenuPath(path) => {
-                write!(formatter, "editor menu item path `{path}` is invalid")
-            }
-            Self::CommandViewTargetConflict {
-                command_id,
-                view_id,
-            } => write!(
-                formatter,
-                "editor command {command_id} does not open extension view {view_id}"
-            ),
-            Self::MenuCapabilitiesRequireContributedCommand { command_id } => write!(
-                formatter,
-                "editor menu capability constraints for {command_id} must be owned by a command contributed by the same extension"
-            ),
-            Self::MissingViewportOverlayProvider { provider_id } => write!(
-                formatter,
-                "editor scene mode references unregistered overlay provider `{provider_id}`"
-            ),
-            Self::SceneMode(error) => {
-                write!(formatter, "editor scene mode registration failed: {error}")
-            }
-            Self::ViewportOverlayProvider(error) => {
-                write!(
-                    formatter,
-                    "editor viewport overlay provider registration failed: {error}"
-                )
-            }
-            Self::Command(error) => write!(formatter, "{error}"),
-            Self::OperationPath(error) => write!(formatter, "{error}"),
-            Self::AssetTypeId(error) => write!(formatter, "{error}"),
-            Self::AssetTypeRegistry(error) => write!(formatter, "{error}"),
-            Self::View(error) => formatter.write_str(error),
-        }
-    }
-}
-
-impl std::error::Error for EditorExtensionRegistryError {}
-
-impl From<AssetTypeIdError> for EditorExtensionRegistryError {
-    fn from(error: AssetTypeIdError) -> Self {
-        Self::AssetTypeId(error)
-    }
-}
-
-impl From<AssetTypeRegistryError> for EditorExtensionRegistryError {
-    fn from(error: AssetTypeRegistryError) -> Self {
-        Self::AssetTypeRegistry(error)
-    }
 }
 
 fn insert_unique<T>(

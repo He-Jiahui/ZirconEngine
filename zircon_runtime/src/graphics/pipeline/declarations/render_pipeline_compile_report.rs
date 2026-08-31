@@ -34,7 +34,7 @@ impl RenderPipelineCompileReport {
     pub fn diagnostics_by_material(
         &self,
     ) -> HashMap<AssetReference, Vec<&RendererFeatureContractDiagnostic>> {
-        let mut diagnostics = HashMap::new();
+        let mut diagnostics = HashMap::with_capacity(self.diagnostics.len());
         for diagnostic in &self.diagnostics {
             let Some(material) = diagnostic.material_reference() else {
                 continue;

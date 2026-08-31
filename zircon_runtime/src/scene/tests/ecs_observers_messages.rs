@@ -387,25 +387,29 @@ fn immediate_entity_event_observers_run_global_then_targeted_callbacks() {
 }
 
 #[test]
-fn observer_dispatch_uses_keyed_immutable_buckets() {
+fn observer_dispatch_uses_indexed_immutable_buckets() {
     let observer_source = observer_source();
 
-    assert!(observer_source
-        .contains("HashMap<LifecycleObserverKey, Arc<BTreeMap<ObserverId, LifecycleObserver>>>"));
-    assert!(observer_source.contains("HashMap<TypeId, Arc<BTreeMap<ObserverId, EventObserver>>>"));
-    assert!(observer_source.contains(
-        "HashMap<EntityEventObserverKey, Arc<BTreeMap<ObserverId, EntityEventObserver>>>"
-    ));
+    assert!(observer_source.contains("HashMap<LifecycleObserverKey, Arc<Vec<LifecycleObserver>>>"));
+    assert!(observer_source.contains("HashMap<TypeId, Arc<Vec<EventObserver>>>"));
+    assert!(
+        observer_source.contains("HashMap<EntityEventObserverKey, Arc<Vec<EntityEventObserver>>>")
+    );
     assert!(observer_source.contains("observer_locations: HashMap<ObserverId, ObserverBucket>"));
-    assert!(observer_source
-        .contains("entity_event_types_by_entity: HashMap<EntityId, HashSet<TypeId>>"));
+    assert!(
+        observer_source
+            .contains("entity_event_types_by_entity: HashMap<EntityId, HashSet<TypeId>>")
+    );
     assert!(observer_source.contains("pub(crate) struct LifecycleCallbackBucket"));
     assert!(observer_source.contains("pub(crate) struct EventCallbackBucket"));
     assert!(observer_source.contains("pub(crate) struct EntityEventCallbackBucket"));
-    assert!(observer_source.contains("pub fn remove(&mut self, id: ObserverId) -> SceneResult<()>"));
+    assert!(
+        observer_source.contains("pub fn remove(&mut self, id: ObserverId) -> SceneResult<()>")
+    );
     assert!(observer_source.contains("fn insert_observer_into_bucket<T>"));
-    assert!(observer_source.contains("Arc::make_mut(bucket).insert(id, observer)"));
-    assert!(observer_source.contains("Arc::make_mut(bucket).remove(&id).is_some()"));
+    assert!(observer_source.contains("let observers = Arc::make_mut(bucket)"));
+    assert!(observer_source.contains("observers.push(observer)"));
+    assert!(observer_source.contains("observers.remove(index)"));
     assert!(observer_source.contains("pub(crate) fn remove_entity_observers"));
     assert!(!observer_source.contains("lifecycle_observers: Vec<"));
     assert!(!observer_source.contains("event_observers: Vec<"));
@@ -472,8 +476,10 @@ fn message_id_debug_uses_cached_type_name_tail_branch() {
         "message<DamageMessage>#7"
     );
     assert!(messages_source.contains("let message_type_name = type_name::<T>();"));
-    assert!(messages_source
-        .contains("let message_type_label = match message_type_name.rsplit(\"::\").next()"));
+    assert!(
+        messages_source
+            .contains("let message_type_label = match message_type_name.rsplit(\"::\").next()")
+    );
     assert!(messages_source.contains("Some(label) => label,"));
     assert!(messages_source.contains("None => message_type_name,"));
     assert!(!messages_source.contains(".unwrap_or(type_name::<T>())"));
@@ -546,8 +552,10 @@ fn event_and_message_cursors_use_direct_lookup_branches() {
         message_store_lookup_source.contains("let store = self.stores.get(&TypeId::of::<T>())?;")
     );
     assert!(message_store_lookup_source.contains("store.downcast_ref::<Messages<T>>()"));
-    assert!(!message_store_lookup_source
-        .contains(".and_then(|store| store.downcast_ref::<Messages<T>>())"));
+    assert!(
+        !message_store_lookup_source
+            .contains(".and_then(|store| store.downcast_ref::<Messages<T>>())")
+    );
 }
 
 #[test]

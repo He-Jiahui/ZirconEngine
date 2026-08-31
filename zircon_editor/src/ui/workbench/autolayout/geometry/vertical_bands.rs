@@ -1,6 +1,6 @@
 use super::super::{
-    compact_bottom_defaults, fixed_axis, solve_axis_constraints, AxisConstraint, ShellFrame,
-    ShellSizePx, WorkbenchChromeMetrics,
+    compact_bottom_defaults, fixed_axis, solve_axis_constraints, AxisConstraint,
+    ResolvedAxisConstraint, ShellFrame, ShellSizePx, WorkbenchChromeMetrics,
 };
 
 /// Inputs for the shell's flex-column bands, expressed entirely in logical layout units.
@@ -35,19 +35,9 @@ pub(super) fn resolve_vertical_flex_bands(
     size: ShellSizePx,
     request: VerticalFlexBandRequest,
 ) -> VerticalFlexBands {
-    let mut constraints = vec![
-        fixed_axis(request.metrics.top_bar_height),
-        fixed_axis(request.metrics.host_bar_height),
-        request.center_constraint,
-    ];
-    if let Some(bottom_constraint) = request.bottom_constraint {
-        constraints.push(bottom_constraint);
-    }
-    constraints.push(fixed_axis(request.metrics.status_bar_height));
-
-    let gap_count = constraints.len().saturating_sub(1) as f32;
+    let gap_count = 3.0 + request.bottom_constraint.is_some() as u8 as f32;
     let available_height = (size.height - gap_count * request.metrics.separator_thickness).max(0.0);
-    let resolved = solve_axis_constraints(available_height, &constraints);
+    let resolved = solve_vertical_band_constraints(available_height, &request);
     let top_height = resolved[0].resolved;
     let host_height = resolved[1].resolved;
     let status_height = resolved
@@ -80,6 +70,25 @@ pub(super) fn resolve_vertical_flex_bands(
         center_band_frame,
         bottom_frame,
         status_bar_frame,
+    }
+}
+
+fn solve_vertical_band_constraints(
+    available_height: f32,
+    request: &VerticalFlexBandRequest,
+) -> Vec<ResolvedAxisConstraint> {
+    let top = fixed_axis(request.metrics.top_bar_height);
+    let host = fixed_axis(request.metrics.host_bar_height);
+    let status = fixed_axis(request.metrics.status_bar_height);
+    match request.bottom_constraint {
+        Some(bottom) => solve_axis_constraints(
+            available_height,
+            &[top, host, request.center_constraint, bottom, status],
+        ),
+        None => solve_axis_constraints(
+            available_height,
+            &[top, host, request.center_constraint, status],
+        ),
     }
 }
 
@@ -131,3 +140,7 @@ pub(crate) fn compact_bottom_height_limit(available_height: f32) -> Option<f32> 
 #[cfg(test)]
 #[path = "vertical_bands/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "vertical_bands/allocation_tests.rs"]
+mod allocation_tests;

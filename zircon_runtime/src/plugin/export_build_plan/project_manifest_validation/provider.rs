@@ -23,7 +23,7 @@ pub(in crate::plugin::export_build_plan) fn project_feature_provider_package_id_
             };
             let first_diagnostic = diagnostics.len();
             validate_project_plugin_package_id(
-                &format!("project plugin feature {} provider_package_id", feature.id),
+                format_args!("project plugin feature {} provider_package_id", feature.id),
                 provider_package_id,
                 &mut diagnostics,
             );

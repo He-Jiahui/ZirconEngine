@@ -1,14 +1,14 @@
-use std::path::{Path, PathBuf};
-
 use zircon_plugin_rendering_reflection_probes_runtime::{
-    capture_and_persist_reflection_probe, register_captured_reflection_probe,
-    CapturedReflectionProbeAsset, CapturedReflectionProbeConsumeError,
-    CapturedReflectionProbePlacement, ReflectionProbeCaptureError, ReflectionProbeCaptureReport,
-    ReflectionProbeCaptureRequest, ReflectionProbeCaptureRequestError,
+    cancel_reflection_probe_capture, poll_reflection_probe_capture,
+    request_reflection_probe_capture, request_reflection_probe_capture_with_placement,
+    take_reflection_probe_capture_source, CapturedReflectionProbeConsumeError,
+    CapturedReflectionProbePlacement, ReflectionProbeCaptureError, ReflectionProbeCaptureRequest,
+    ReflectionProbeCaptureRequestError,
 };
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
-use zircon_runtime::core::framework::render::RenderSceneSnapshot;
-use zircon_runtime::graphics::SceneRenderer;
+use zircon_runtime::core::framework::render::{
+    RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureSourcePayload,
+    RenderEnvironmentCaptureStatus, RenderFramework, RenderSceneSnapshot,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReflectionProbeCaptureEditorCommand {
@@ -60,56 +60,73 @@ impl ReflectionProbeCaptureEditorCommand {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ReflectionProbeCaptureEditorTrigger {
-    cache_root: PathBuf,
-}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ReflectionProbeCaptureEditorTrigger;
 
 impl ReflectionProbeCaptureEditorTrigger {
-    pub fn new(cache_root: impl Into<PathBuf>) -> Self {
-        Self {
-            cache_root: cache_root.into(),
-        }
+    pub const fn new() -> Self {
+        Self
     }
 
-    pub fn cache_root(&self) -> &Path {
-        &self.cache_root
-    }
-
-    pub fn execute(
+    pub fn submit(
         &self,
-        renderer: &mut SceneRenderer,
+        framework: &dyn RenderFramework,
         scene: &RenderSceneSnapshot,
         command: &ReflectionProbeCaptureEditorCommand,
-    ) -> Result<ReflectionProbeCaptureReport, ReflectionProbeCaptureError> {
+    ) -> Result<RenderEnvironmentCaptureHandle, ReflectionProbeCaptureEditorExecutionError> {
         let request = command.request()?;
-        capture_and_persist_reflection_probe(renderer, scene, &self.cache_root, &request)
+        request_reflection_probe_capture(framework, scene, &request).map_err(Into::into)
     }
 
-    pub fn execute_and_register(
+    pub fn submit_with_placement(
         &self,
-        renderer: &mut SceneRenderer,
-        asset_manager: &ProjectAssetManager,
+        framework: &dyn RenderFramework,
         scene: &RenderSceneSnapshot,
         command: &ReflectionProbeCaptureEditorCommand,
     ) -> Result<ReflectionProbeCaptureEditorResult, ReflectionProbeCaptureEditorExecutionError>
     {
-        let request = command.request()?;
         let placement = command
             .placement()?
             .ok_or(ReflectionProbeCaptureEditorExecutionError::MissingPlacement)?;
-        let capture =
-            capture_and_persist_reflection_probe(renderer, scene, &self.cache_root, &request)?;
-        let asset =
-            register_captured_reflection_probe(asset_manager, &request, &capture, &placement)?;
-        Ok(ReflectionProbeCaptureEditorResult { capture, asset })
+        let request = command.request()?;
+        let handle = request_reflection_probe_capture_with_placement(
+            framework, scene, &request, &placement,
+        )?;
+        Ok(ReflectionProbeCaptureEditorResult { handle, placement })
+    }
+
+    pub fn poll(
+        &self,
+        framework: &dyn RenderFramework,
+        handle: RenderEnvironmentCaptureHandle,
+    ) -> Result<RenderEnvironmentCaptureStatus, ReflectionProbeCaptureEditorExecutionError> {
+        poll_reflection_probe_capture(framework, handle).map_err(Into::into)
+    }
+
+    pub fn cancel(
+        &self,
+        framework: &dyn RenderFramework,
+        handle: RenderEnvironmentCaptureHandle,
+    ) -> Result<(), ReflectionProbeCaptureEditorExecutionError> {
+        cancel_reflection_probe_capture(framework, handle).map_err(Into::into)
+    }
+
+    pub fn take_source_payload(
+        &self,
+        framework: &dyn RenderFramework,
+        handle: RenderEnvironmentCaptureHandle,
+    ) -> Result<
+        Option<RenderEnvironmentCaptureSourcePayload>,
+        ReflectionProbeCaptureEditorExecutionError,
+    > {
+        take_reflection_probe_capture_source(framework, handle).map_err(Into::into)
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ReflectionProbeCaptureEditorResult {
-    pub capture: ReflectionProbeCaptureReport,
-    pub asset: CapturedReflectionProbeAsset,
+    pub handle: RenderEnvironmentCaptureHandle,
+    pub placement: CapturedReflectionProbePlacement,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -127,14 +144,27 @@ pub enum ReflectionProbeCaptureEditorExecutionError {
     #[error(transparent)]
     Capture(#[from] ReflectionProbeCaptureError),
     #[error(transparent)]
-    Consume(#[from] CapturedReflectionProbeConsumeError),
-    #[error("reflection-probe capture editor command has no runtime placement")]
+    Placement(#[from] CapturedReflectionProbeConsumeError),
+    #[error("reflection-probe capture editor command has no placement metadata")]
     MissingPlacement,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn editor_trigger_is_nonblocking_and_does_not_own_runtime_resources() {
+        let source = include_str!("trigger.rs");
+        assert!(source.contains("pub fn submit"));
+        assert!(source.contains("pub fn poll"));
+        assert!(source.contains("pub fn cancel"));
+        assert!(source.contains("pub fn take_source_payload"));
+        assert!(!source.contains(&["Scene", "Renderer"].concat()));
+        assert!(!source.contains(&["cache", "_root"].concat()));
+        assert!(!source.contains(&["ProjectAsset", "Manager"].concat()));
+        assert!(!source.contains(&["capture_and_persist", "_reflection_probe"].concat()));
+    }
 
     #[test]
     fn editor_command_keeps_runtime_capture_request_serialized() {
@@ -144,35 +174,10 @@ mod tests {
             [3.0, 1.5, -2.0],
             9,
         );
-
         let command = ReflectionProbeCaptureEditorCommand::from_request(&request).unwrap();
 
         assert_eq!(command.request().unwrap(), request);
-        assert!(command.request_json().contains("\"schema_version\": 1"));
+        assert!(command.request_json().contains("\"schema_version\": 2"));
         assert!(command.placement().unwrap().is_none());
-    }
-
-    #[test]
-    fn editor_command_keeps_capture_and_runtime_placement_serialized() {
-        let request = ReflectionProbeCaptureRequest::new(
-            "atrium",
-            "lib://probes/atrium.zcube",
-            [3.0, 1.5, -2.0],
-            9,
-        );
-        let placement = CapturedReflectionProbePlacement::box_probe(
-            9,
-            "lib://probes/atrium.pmrem",
-            [8.0, 4.0, 6.0],
-            1.0,
-        );
-
-        let command =
-            ReflectionProbeCaptureEditorCommand::from_request_and_placement(&request, &placement)
-                .unwrap();
-
-        assert_eq!(command.request().unwrap(), request);
-        assert_eq!(command.placement().unwrap(), Some(placement));
-        assert!(command.placement_json().unwrap().contains("pmrem_uri"));
     }
 }

@@ -20,6 +20,14 @@ macro_rules! profile_dynamic_scope {
     ($stream:expr, $category:expr, $name:expr $(,)?) => {
         #[cfg(feature = "profiling-tracy")]
         let _zr_profile_dynamic_scope_name: String = ($name).into();
+        #[cfg(feature = "profiling-tracy")]
+        let _zr_profile_dynamic_tracy_span = tracing::info_span!(
+            "zircon.profile.scope",
+            stream = $stream,
+            category = $category,
+            name = %_zr_profile_dynamic_scope_name,
+        )
+        .entered();
         #[cfg(all(feature = "profiling", not(feature = "profiling-tracy")))]
         let _zr_profile_dynamic_scope = $crate::core::diagnostics::profiling::capture_active()
             .then(|| {
@@ -33,17 +41,9 @@ macro_rules! profile_dynamic_scope {
                 $crate::core::diagnostics::profiling::ProfileScope::enter_named(
                     $stream,
                     $category,
-                    _zr_profile_dynamic_scope_name.clone(),
+                    _zr_profile_dynamic_scope_name,
                 )
             });
-        #[cfg(feature = "profiling-tracy")]
-        let _zr_profile_dynamic_tracy_span = tracing::info_span!(
-            "zircon.profile.scope",
-            stream = $stream,
-            category = $category,
-            name = %_zr_profile_dynamic_scope_name,
-        )
-        .entered();
     };
 }
 
@@ -88,3 +88,7 @@ macro_rules! profile_counter {
         );
     };
 }
+
+#[cfg(test)]
+#[path = "macros/dynamic_name_handoff_tests.rs"]
+mod dynamic_name_handoff_tests;

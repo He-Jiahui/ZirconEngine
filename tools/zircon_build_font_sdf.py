@@ -219,7 +219,7 @@ def _integer(record: Mapping, field: str, default: int) -> int:
 def _codepoints(values: object) -> tuple[str, ...]:
     if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
         raise FontSdfBakeManifestError("codepoints must be an array")
-    selected: set[int] = set()
+    selected_ranges: list[tuple[int, int]] = []
     for value in values:
         if not isinstance(value, str):
             raise FontSdfBakeManifestError("codepoints must use U+XXXX notation")
@@ -228,13 +228,30 @@ def _codepoints(values: object) -> tuple[str, ...]:
         end = _codepoint_scalar(bounds[-1], value)
         if end < start:
             raise FontSdfBakeManifestError(f"codepoint range is reversed: {value!r}")
-        for codepoint in range(start, end + 1):
-            if 0xD800 <= codepoint <= 0xDFFF:
-                raise FontSdfBakeManifestError(
-                    f"range contains a surrogate, not a Unicode scalar: {value!r}"
-                )
-            selected.add(codepoint)
-    return tuple(f"U+{codepoint:04X}" for codepoint in sorted(selected))
+        if start <= 0xDFFF and end >= 0xD800:
+            raise FontSdfBakeManifestError(
+                f"range contains a surrogate, not a Unicode scalar: {value!r}"
+            )
+        selected_ranges.append((start, end))
+    merged_ranges = _merge_codepoint_ranges(selected_ranges)
+    return tuple(
+        f"U+{codepoint:04X}"
+        for start, end in merged_ranges
+        for codepoint in range(start, end + 1)
+    )
+
+
+def _merge_codepoint_ranges(
+    selected_ranges: list[tuple[int, int]],
+) -> list[tuple[int, int]]:
+    merged_ranges: list[tuple[int, int]] = []
+    for start, end in sorted(selected_ranges):
+        if merged_ranges and start <= merged_ranges[-1][1] + 1:
+            previous_start, previous_end = merged_ranges[-1]
+            merged_ranges[-1] = (previous_start, max(previous_end, end))
+        else:
+            merged_ranges.append((start, end))
+    return merged_ranges
 
 
 def _codepoint_scalar(value: str, source: str) -> int:

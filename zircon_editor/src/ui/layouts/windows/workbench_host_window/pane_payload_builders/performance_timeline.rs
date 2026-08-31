@@ -14,19 +14,23 @@ const MAX_TIMELINE_ROWS: usize = 12;
 const MIN_FRAME_BUDGET_MS: f64 = 0.001;
 
 pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
-    let diagnostics = context
-        .runtime_diagnostics
-        .cloned()
-        .unwrap_or_else(RuntimeDiagnosticsSnapshot::default);
-    let profile = diagnostics.profile;
-    let hotspot_report = analyze_hotspots(&profile);
+    let default_diagnostics;
+    let diagnostics = match context.runtime_diagnostics {
+        Some(diagnostics) => diagnostics,
+        None => {
+            default_diagnostics = RuntimeDiagnosticsSnapshot::default();
+            &default_diagnostics
+        }
+    };
+    let profile = &diagnostics.profile;
+    let hotspot_report = analyze_hotspots(profile);
 
     PanePayload::PerformanceTimelineV1(PerformanceTimelinePanePayload {
-        summary: summary(&profile),
+        summary: summary(profile),
         session_label: format!("Session {}", profile.session_id),
         output_label: format!("Output {}/{}", profile.output_root, profile.session_id),
-        frame_rows: frame_rows(&profile),
-        span_summary_rows: span_rows(&profile),
+        frame_rows: frame_rows(profile),
+        span_summary_rows: span_rows(profile),
         hotspot_rows: hotspot_report
             .hotspots
             .iter()
@@ -41,7 +45,7 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
                 count_label: format!("{} spans", hotspot.count),
             })
             .collect(),
-        capture_controls: capture_controls(&profile),
+        capture_controls: capture_controls(profile),
     })
 }
 

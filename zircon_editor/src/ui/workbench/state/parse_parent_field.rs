@@ -1,6 +1,8 @@
+use super::InspectorEditError;
+
 pub(super) fn parse_parent_field(
     value: &str,
-) -> Result<Option<zircon_runtime::scene::NodeId>, String> {
+) -> Result<Option<zircon_runtime::scene::NodeId>, InspectorEditError> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
         return Ok(None);
@@ -8,5 +10,7 @@ pub(super) fn parse_parent_field(
     trimmed
         .parse::<zircon_runtime::scene::NodeId>()
         .map(Some)
-        .map_err(|error| format!("Parent field must be a valid node id: {error}"))
+        .map_err(|_| InspectorEditError::InvalidParentField {
+            value: value.to_string(),
+        })
 }

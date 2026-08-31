@@ -8,7 +8,7 @@ use crate::ui::weight_heatmap::{
 
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 
-fn weight_heatmap_node(width: f32, height: f32) -> TemplatePaneNodeData {
+pub(super) fn weight_heatmap_node(width: f32, height: f32) -> TemplatePaneNodeData {
     TemplatePaneNodeData {
         control_id: "WorkbenchWeightHeatmap".into(),
         role: "Canvas".into(),

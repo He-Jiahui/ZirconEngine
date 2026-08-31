@@ -5,6 +5,7 @@ use crate::{
             UiAccessibilityAction, UiAccessibilityActionRequest, UiAccessibilityActionResult,
             UiAccessibilityActionSource, UiAccessibilityActionStatus, UiAccessibilityDiagnostic,
             UiAccessibilityDiagnosticCode, UiAccessibilityDiagnosticSeverity,
+            UiAccessibilityNode, UiAccessibilityTreeSnapshot,
         },
         dispatch::{
             UiAccessibilityInputEvent, UiInputEvent, UiInputEventMetadata, UiInputSequence,
@@ -12,10 +13,10 @@ use crate::{
         },
         event_ui::UiNodeId,
     },
-    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV7,
+    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV8,
     ZrRuntimeCaptureAccessibilityTreeFnV2, ZrRuntimeEventV1, ZrRuntimeSessionHandle,
     ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V7,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V8,
     ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
 };
 
@@ -24,6 +25,101 @@ where
     T: serde::Serialize + serde::de::DeserializeOwned,
 {
     serde_json::from_str(&serde_json::to_string(value).unwrap()).unwrap()
+}
+
+#[test]
+fn accessibility_snapshot_node_falls_back_for_unsorted_wire_input() {
+    let snapshot = UiAccessibilityTreeSnapshot {
+        nodes: [9, 2, 7]
+            .into_iter()
+            .map(|node_id| UiAccessibilityNode {
+                node_id: UiNodeId::new(node_id),
+                ..UiAccessibilityNode::default()
+            })
+            .collect(),
+        ..UiAccessibilityTreeSnapshot::default()
+    };
+
+    assert_eq!(
+        snapshot.node(UiNodeId::new(9)).map(|node| node.node_id),
+        Some(UiNodeId::new(9))
+    );
+}
+
+#[test]
+#[ignore = "release-only accessibility node lookup benchmark"]
+fn accessibility_snapshot_sorted_node_lookup_benchmark() {
+    use std::{hint::black_box, time::Instant};
+
+    const NODE_COUNT: u64 = 4_096;
+    const PROBE_COUNT: usize = 100_000;
+    const SAMPLE_COUNT: usize = 11;
+    let snapshot = UiAccessibilityTreeSnapshot {
+        nodes: (0..NODE_COUNT)
+            .map(|node_id| UiAccessibilityNode {
+                node_id: UiNodeId::new(node_id),
+                ..UiAccessibilityNode::default()
+            })
+            .collect(),
+        ..UiAccessibilityTreeSnapshot::default()
+    };
+    let probes: Vec<_> = (0..PROBE_COUNT)
+        .map(|probe| UiNodeId::new(NODE_COUNT - 1 - (probe as u64 % 16)))
+        .collect();
+    let mut linear_samples = Vec::with_capacity(SAMPLE_COUNT);
+    let mut indexed_samples = Vec::with_capacity(SAMPLE_COUNT);
+
+    for sample in 0..SAMPLE_COUNT {
+        let measure_linear = || {
+            let started = Instant::now();
+            for node_id in &probes {
+                black_box(
+                    snapshot
+                        .nodes
+                        .iter()
+                        .find(|node| node.node_id == *node_id)
+                        .expect("benchmark probe must exist"),
+                );
+            }
+            started.elapsed().as_nanos()
+        };
+        let measure_indexed = || {
+            let started = Instant::now();
+            for node_id in &probes {
+                black_box(
+                    snapshot
+                        .node(*node_id)
+                        .expect("benchmark probe must exist"),
+                );
+            }
+            started.elapsed().as_nanos()
+        };
+        if sample % 2 == 0 {
+            linear_samples.push(measure_linear());
+            indexed_samples.push(measure_indexed());
+        } else {
+            indexed_samples.push(measure_indexed());
+            linear_samples.push(measure_linear());
+        }
+    }
+
+    linear_samples.sort_unstable();
+    indexed_samples.sort_unstable();
+    let p50 = SAMPLE_COUNT / 2;
+    let p95 = SAMPLE_COUNT - 1;
+    eprintln!(
+        "RUNTIME_INTERFACE03_ACCESSIBILITY_NODE_LOOKUP_BENCH_V1 nodes={NODE_COUNT} probes={PROBE_COUNT} samples={SAMPLE_COUNT} linear_p50_ns={} indexed_p50_ns={} linear_p95_ns={} indexed_p95_ns={}",
+        linear_samples[p50],
+        indexed_samples[p50],
+        linear_samples[p95],
+        indexed_samples[p95],
+    );
+    assert!(
+        indexed_samples[p95].saturating_mul(5) <= linear_samples[p95].saturating_mul(4),
+        "sorted lookup must improve P95 by at least 20%: linear={}ns indexed={}ns",
+        linear_samples[p95],
+        indexed_samples[p95],
+    );
 }
 
 #[test]
@@ -205,16 +301,16 @@ fn runtime_accessibility_capture_function_type_matches_abi_shape() {
 
 #[test]
 fn runtime_api_default_leaves_accessibility_capture_optional() {
-    let api = ZrRuntimeApiV7::empty();
+    let api = ZrRuntimeApiV8::empty();
 
-    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V7);
-    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV7>());
+    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V8);
+    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV8>());
     assert!(api.capture_frame.is_none());
     assert!(api.capture_accessibility_tree.is_none());
     assert!(api.profile_control.is_none());
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV7, capture_accessibility_tree),
-        core::mem::offset_of!(ZrRuntimeApiV7, capture_frame)
+        core::mem::offset_of!(ZrRuntimeApiV8, capture_accessibility_tree),
+        core::mem::offset_of!(ZrRuntimeApiV8, capture_frame)
             + core::mem::size_of::<Option<ZrRuntimeCaptureFrameFnV2>>()
     );
 }

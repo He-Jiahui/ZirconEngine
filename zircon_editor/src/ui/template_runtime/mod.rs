@@ -6,6 +6,7 @@ mod model;
 mod retained_adapter;
 mod runtime;
 mod showcase_demo_state;
+mod workbench_tooltip;
 
 pub(crate) use builtin::{UI_HOST_WINDOW_DOCUMENT_ID, WORKBENCH_WINDOW_DOCUMENT_ID};
 pub use harness::{EditorUiCompatibilityHarness, EditorUiCompatibilitySnapshot};
@@ -26,3 +27,4 @@ pub(crate) use showcase_demo_state::{
     UiComponentShowcaseDemoError, UiComponentShowcaseDemoEventInput, UiComponentShowcaseDemoState,
     SHOWCASE_DOCUMENT_ID,
 };
+pub(crate) use workbench_tooltip::workbench_icon_tooltip_text;

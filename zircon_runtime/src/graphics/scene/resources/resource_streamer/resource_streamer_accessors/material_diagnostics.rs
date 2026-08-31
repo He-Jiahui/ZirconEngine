@@ -19,19 +19,17 @@ use super::super::ResourceStreamer;
 
 impl ResourceStreamer {
     pub(crate) fn material_uniform_payload_byte_len(&self, id: &ResourceId) -> Option<u64> {
-        self.materials
-            .get(id)
+        self.latest_prepared_material_bundle(id)
             .map(|prepared| prepared.uniform.payload_byte_len())
     }
 
     pub(crate) fn material_uniform_buffer_byte_len(&self, id: &ResourceId) -> Option<u64> {
-        self.materials
-            .get(id)
+        self.latest_prepared_material_bundle(id)
             .map(|prepared| prepared.uniform.buffer_byte_len())
     }
 
     pub(crate) fn material_uniform_field_count(&self, id: &ResourceId) -> Option<usize> {
-        self.materials.get(id).map(|prepared| {
+        self.latest_prepared_material_bundle(id).map(|prepared| {
             prepared
                 .runtime
                 .shader_property_uniform_payload
@@ -41,7 +39,7 @@ impl ResourceStreamer {
     }
 
     pub(crate) fn material_uniform_unsupported_count(&self, id: &ResourceId) -> Option<usize> {
-        self.materials.get(id).map(|prepared| {
+        self.latest_prepared_material_bundle(id).map(|prepared| {
             prepared
                 .runtime
                 .shader_property_uniform_payload
@@ -54,8 +52,7 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<RenderMaterialPropertyUniformSummary> {
-        self.materials
-            .get(id)
+        self.latest_prepared_material_bundle(id)
             .map(|prepared| prepared.runtime.shader_property_uniform_payload.summary())
     }
 
@@ -79,7 +76,7 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<RenderMaterialPropertyValueSummary> {
-        self.materials.get(id).map(|prepared| {
+        self.latest_prepared_material_bundle(id).map(|prepared| {
             RenderMaterialPropertyValueSummary::from_values(
                 &prepared.runtime.shader_property_values,
             )
@@ -114,7 +111,7 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<RenderMaterialTextureSlotSummary> {
-        self.materials.get(id).map(|prepared| {
+        self.latest_prepared_material_bundle(id).map(|prepared| {
             RenderMaterialTextureSlotSummary::from_non_standard_slots(
                 &prepared.runtime.non_standard_texture_slots,
             )
@@ -161,8 +158,11 @@ impl ResourceStreamer {
     pub(crate) fn material_management_records(&self) -> Vec<RenderMaterialManagementRecord> {
         let mut records = self
             .materials
-            .iter()
-            .map(|(id, prepared)| prepared.runtime.readiness_report.management_record(*id))
+            .keys()
+            .filter_map(|id| {
+                self.material_readiness_report(id)
+                    .map(|report| report.management_record(*id))
+            })
             .collect::<Vec<_>>();
         records.sort_by_key(|record| record.material_id);
         records

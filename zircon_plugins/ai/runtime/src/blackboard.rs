@@ -3,5 +3,5 @@ mod observer;
 mod store;
 
 pub use layout::{BlackboardLayout, BlackboardLayoutError, BlackboardSlot};
-pub(crate) use observer::BlackboardObserverSet;
+pub(crate) use observer::{BlackboardObserver, BlackboardObserverSet};
 pub use store::{BlackboardRuntimeError, BlackboardStore, BlackboardWriteOutcome};

@@ -6,6 +6,8 @@ use super::{JobCategory, JobId};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JobEvent {
+    #[serde(default)]
+    journal_sequence: u64,
     id: JobId,
     label: Arc<str>,
     category: JobCategory,
@@ -20,11 +22,16 @@ impl JobEvent {
         kind: JobEventKind,
     ) -> Self {
         Self {
+            journal_sequence: 0,
             id,
             label,
             category,
             kind,
         }
+    }
+
+    pub fn journal_sequence(&self) -> u64 {
+        self.journal_sequence
     }
 
     pub fn id(&self) -> JobId {
@@ -41,6 +48,23 @@ impl JobEvent {
 
     pub fn kind(&self) -> &JobEventKind {
         &self.kind
+    }
+
+    pub(super) fn with_journal_sequence(mut self, journal_sequence: u64) -> Self {
+        self.journal_sequence = journal_sequence;
+        self
+    }
+
+    pub(super) fn estimated_retained_bytes(&self) -> usize {
+        let detail_bytes = match &self.kind {
+            JobEventKind::Progress { message, .. } | JobEventKind::Failed { message } => {
+                message.len()
+            }
+            JobEventKind::Started | JobEventKind::Completed | JobEventKind::Cancelled => 0,
+        };
+        std::mem::size_of::<Self>()
+            .saturating_add(self.label.len())
+            .saturating_add(detail_bytes)
     }
 }
 

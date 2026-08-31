@@ -1,13 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::mem::size_of;
-use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::time::{Duration, Instant};
 
 use crate::scene::World;
 
 use super::inline_command_arena::{InlineCommandArena, WorkerInlineCommandArena};
 use super::queued_command::{InlineCommand, QueuedCommand};
+use super::worker_command_buffer::WorkerArenaReclaim;
 use super::{
     Command, CommandQueueMetrics, DeferredCommandReport, DeferredSystemKey, QueuedStructuralCommand,
 };
@@ -204,12 +205,38 @@ impl CommandQueue {
         self.commands.is_empty()
     }
 
+    pub(super) fn has_worker_inline_arenas(&self) -> bool {
+        !self.worker_inline_arenas.is_empty()
+    }
+
     pub fn metrics(&self) -> CommandQueueMetrics {
         self.metrics
     }
 
+    /// Explicitly returns retained inline block backing storage to the
+    /// allocator when this queue has no live commands. This is intentionally
+    /// separate from `apply` so ordinary frame-to-frame reuse remains intact.
+    pub fn trim_retained_inline_storage(&mut self) -> usize {
+        if !self.is_empty() {
+            return 0;
+        }
+        let mut released_bytes = self.inline_arena.trim_idle_storage();
+        for worker_arena in &mut self.worker_inline_arenas {
+            released_bytes = released_bytes.saturating_add(worker_arena.arena.trim_idle_storage());
+        }
+        self.metrics.inline_arena_storage_trimmed(released_bytes);
+        released_bytes
+    }
+
     pub(super) fn record_worker_batch_merge(&mut self, elapsed: Duration) {
         self.metrics.record_worker_batch_merge(elapsed);
+    }
+
+    pub(super) fn merge_empty_worker_metrics(&mut self, other: &mut Self) {
+        debug_assert!(other.commands.is_empty());
+        debug_assert!(other.worker_inline_arenas.is_empty());
+        self.metrics.merge_from(other.metrics);
+        other.metrics = CommandQueueMetrics::default();
     }
 
     pub(crate) fn discard_pending(&mut self) {
@@ -288,8 +315,10 @@ impl CommandQueue {
             }
         }
 
-        for command in &mut other.commands {
-            command.remap_appended_arena(queue_block_offset, &worker_arena_remaps);
+        if queue_block_offset != 0 || !worker_arena_remaps.is_empty() {
+            for command in &mut other.commands {
+                command.remap_appended_arena(queue_block_offset, &worker_arena_remaps);
+            }
         }
         self.commands.append(&mut other.commands);
         self.metrics.merge_from(other.metrics);
@@ -322,6 +351,40 @@ impl CommandQueue {
                 (index, 0, false, 0)
             };
 
+        self.finish_appending_worker(
+            other,
+            worker_arena_index,
+            block_offset,
+            storage_grew,
+            leading_padding,
+        );
+    }
+
+    /// Appends one known-distinct worker arena without searching the destination.
+    /// `merge_worker_buffers` sorts and rejects duplicate keys before using this
+    /// fast path for an otherwise arena-free command queue.
+    pub(super) fn append_worker_with_known_absent_arena(
+        &mut self,
+        other: &mut Self,
+        key: &DeferredSystemKey,
+    ) {
+        debug_assert!(other.worker_inline_arenas.is_empty());
+        let worker_arena_index = self.worker_inline_arenas.len();
+        self.worker_inline_arenas.push(WorkerInlineCommandArena {
+            key: key.clone(),
+            arena: std::mem::take(&mut other.inline_arena),
+        });
+        self.finish_appending_worker(other, worker_arena_index, 0, false, 0);
+    }
+
+    fn finish_appending_worker(
+        &mut self,
+        other: &mut Self,
+        worker_arena_index: usize,
+        block_offset: usize,
+        storage_grew: bool,
+        leading_padding: usize,
+    ) {
         if storage_grew {
             self.metrics.inline_block_storage_grew();
         }
@@ -350,20 +413,20 @@ impl CommandQueue {
         &mut self,
         worker_queue: &mut Self,
         key: &DeferredSystemKey,
-    ) {
+    ) -> WorkerArenaReclaim {
         let Some(index) = self
             .worker_inline_arenas
             .iter()
             .position(|arena| arena.matches(key))
         else {
-            return;
+            return WorkerArenaReclaim::Absent;
         };
         if self
             .commands
             .iter()
             .any(|command| command.references_worker_arena(index))
         {
-            return;
+            return WorkerArenaReclaim::Pending;
         }
         assert!(
             worker_queue.is_empty(),
@@ -377,6 +440,7 @@ impl CommandQueue {
             }
         }
         worker_queue.inline_arena = worker_arena.arena;
+        WorkerArenaReclaim::Reclaimed
     }
 }
 

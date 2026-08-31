@@ -17,46 +17,35 @@ pub(super) struct MaterialLayoutMetrics {
 impl MaterialLayoutMetrics {
     fn resolve(metadata: &UiTemplateNodeMetadata) -> Option<Self> {
         let mut authored_metric = false;
-        let metrics = Self {
-            padding_left: number_attr(metadata, "layout_padding_left", &mut authored_metric)
-                .unwrap_or(0.0)
-                .max(0.0),
-            padding_right: number_attr(metadata, "layout_padding_right", &mut authored_metric)
-                .unwrap_or(0.0)
-                .max(0.0),
-            padding_top: number_attr(metadata, "layout_padding_top", &mut authored_metric)
-                .unwrap_or(0.0)
-                .max(0.0),
-            padding_bottom: number_attr(metadata, "layout_padding_bottom", &mut authored_metric)
-                .unwrap_or(0.0)
-                .max(0.0),
-            spacing: number_attr(metadata, "layout_spacing", &mut authored_metric)
-                .unwrap_or(0.0)
-                .max(0.0),
-            min_width: number_attr(metadata, "layout_min_width", &mut authored_metric)
-                .unwrap_or(0.0)
-                .max(0.0),
-            min_height: number_attr(metadata, "layout_min_height", &mut authored_metric)
-                .unwrap_or(0.0)
-                .max(0.0),
-            icon_size: number_attr(metadata, "layout_icon_size", &mut authored_metric)
-                .unwrap_or(0.0)
-                .max(0.0),
-            leading_slot_width: number_attr(
-                metadata,
-                "layout_leading_slot_width",
-                &mut authored_metric,
-            )
-            .unwrap_or(0.0)
-            .max(0.0),
-            trailing_slot_width: number_attr(
-                metadata,
-                "layout_trailing_slot_width",
-                &mut authored_metric,
-            )
-            .unwrap_or(0.0)
-            .max(0.0),
+        let mut metrics = Self {
+            padding_left: 0.0,
+            padding_right: 0.0,
+            padding_top: 0.0,
+            padding_bottom: 0.0,
+            spacing: 0.0,
+            min_width: 0.0,
+            min_height: 0.0,
+            icon_size: 0.0,
+            leading_slot_width: 0.0,
+            trailing_slot_width: 0.0,
         };
+        for (key, value) in &metadata.attributes {
+            let target = match key.as_str() {
+                "layout_padding_left" => &mut metrics.padding_left,
+                "layout_padding_right" => &mut metrics.padding_right,
+                "layout_padding_top" => &mut metrics.padding_top,
+                "layout_padding_bottom" => &mut metrics.padding_bottom,
+                "layout_spacing" => &mut metrics.spacing,
+                "layout_min_width" => &mut metrics.min_width,
+                "layout_min_height" => &mut metrics.min_height,
+                "layout_icon_size" => &mut metrics.icon_size,
+                "layout_leading_slot_width" => &mut metrics.leading_slot_width,
+                "layout_trailing_slot_width" => &mut metrics.trailing_slot_width,
+                _ => continue,
+            };
+            authored_metric = true;
+            *target = value_as_f32(value).unwrap_or(0.0).max(0.0);
+        }
         authored_metric.then_some(metrics)
     }
 
@@ -150,19 +139,13 @@ fn has_icon_attribute(metadata: &UiTemplateNodeMetadata) -> bool {
     })
 }
 
-fn number_attr(
-    metadata: &UiTemplateNodeMetadata,
-    key: &str,
-    authored_metric: &mut bool,
-) -> Option<f32> {
-    let value = metadata.attributes.get(key)?;
-    *authored_metric = true;
-    value_as_f32(value)
-}
-
 fn value_as_f32(value: &Value) -> Option<f32> {
     value
         .as_float()
         .or_else(|| value.as_integer().map(|value| value as f64))
         .map(|value| value as f32)
 }
+
+#[cfg(test)]
+#[path = "material/single_pass_tests.rs"]
+mod single_pass_tests;

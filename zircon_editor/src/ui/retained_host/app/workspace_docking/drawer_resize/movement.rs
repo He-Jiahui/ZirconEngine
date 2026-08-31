@@ -9,7 +9,10 @@ impl RetainedEditorHost {
         let Some(active) = self.active_drawer_resize else {
             return;
         };
-        let _ = self.shell_pointer_bridge.update_resize(UiPoint::new(x, y));
+        self.apply_drawer_resize_pointer_position(active, x, y);
+    }
+
+    fn apply_drawer_resize_pointer_position(&mut self, active: ActiveDrawerResize, x: f32, y: f32) {
         let preferred = match active.region {
             ShellRegionId::Left => active.base_preferred + (x - active.start_x),
             ShellRegionId::Right => active.base_preferred - (x - active.start_x),
@@ -28,7 +31,7 @@ impl RetainedEditorHost {
         }
         self.transient_region_preferred
             .insert(active.region, preferred);
-        self.mark_layout_dirty();
+        self.invalidate_host(HostInvalidationMask::WINDOW_METRICS);
         self.use_committed_pointer_layout();
     }
 
@@ -37,12 +40,12 @@ impl RetainedEditorHost {
         x: f32,
         y: f32,
     ) {
-        self.update_drawer_resize_capture(x, y);
         let _ = self.shell_pointer_bridge.finish_resize(UiPoint::new(x, y));
 
         let Some(active) = self.active_drawer_resize.take() else {
             return;
         };
+        self.apply_drawer_resize_pointer_position(active, x, y);
         let preferred = self
             .transient_region_preferred
             .get(&active.region)
@@ -65,5 +68,23 @@ impl RetainedEditorHost {
         }
 
         self.use_committed_pointer_layout();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn transient_drawer_resize_reuses_the_committed_shell_metrics_stage() {
+        let source = include_str!("movement.rs");
+        let update = source
+            .split("fn update_drawer_resize_capture")
+            .nth(1)
+            .and_then(|tail| tail.split("fn finish_drawer_resize_capture").next())
+            .expect("drawer resize movement implementation");
+
+        assert!(update.contains("HostInvalidationMask::WINDOW_METRICS"));
+        assert!(!update.contains("mark_layout_dirty"));
+        assert!(update.contains("if previous_preferred == preferred"));
+        assert!(update.contains("return;"));
     }
 }

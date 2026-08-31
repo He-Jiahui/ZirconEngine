@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 
+use crate::scene::World;
 use crate::scene::ecs::{
     CommandQueue, CommandQueueMetrics, Commands, DeferredCommandError, DeferredCommandReport,
     DeferredCommandTarget, DeferredEntityRef, DeferredSpawnToken, DeferredSystemKey,
     WorkerCommandBuffer, WorkerCommandBufferMergeError,
 };
-use crate::scene::World;
 
 impl World {
     pub(crate) fn allocate_direct_system_deferred_key(&mut self) -> DeferredSystemKey {
@@ -57,6 +57,12 @@ impl World {
         self.command_queue.metrics()
     }
 
+    /// Releases idle deferred-command inline backing storage on an explicit
+    /// maintenance or pressure path without changing normal frame reuse.
+    pub fn trim_deferred_command_storage(&mut self) -> usize {
+        self.command_queue.trim_retained_inline_storage()
+    }
+
     pub(crate) fn merge_worker_command_buffer(&mut self, buffer: &mut WorkerCommandBuffer) {
         buffer.merge_into(&mut self.command_queue);
     }
@@ -98,16 +104,13 @@ impl World {
         tokens: BTreeSet<DeferredSpawnToken>,
     ) -> Result<BTreeMap<DeferredSpawnToken, crate::scene::EntityId>, crate::scene::SceneError>
     {
-        let mut next_id = self.next_id;
+        let mut allocator = self.entity_id_allocator;
         let mut resolved = BTreeMap::new();
         for token in tokens {
-            let entity = next_id;
-            next_id = next_id
-                .checked_add(1)
-                .ok_or(crate::scene::SceneError::EntityIdExhausted { entity })?;
+            let entity = allocator.reserve_next()?;
             resolved.insert(token, entity);
         }
-        self.next_id = next_id;
+        self.entity_id_allocator = allocator;
         Ok(resolved)
     }
 

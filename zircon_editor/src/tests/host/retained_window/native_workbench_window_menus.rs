@@ -38,9 +38,21 @@ fn componentized_workbench_toolbar_run_menu_paints_native_preview_pixels() {
         .dispatch_control_state("WorkbenchRunMode", UiEventKind::Click)
         .expect("run mode menu should dispatch")
         .expect("run mode should expose a menu binding");
-    let menu_frame = bridge
-        .control_frame("WorkbenchRunModeMenu")
-        .expect("opened run mode menu should have a native frame");
+    let menu_frame = rendered_control_frame(&bridge, "WorkbenchRunModeMenu");
+    let menu_layout_height = bridge
+        .surface()
+        .tree
+        .nodes
+        .values()
+        .find(|node| {
+            node.template_metadata
+                .as_ref()
+                .and_then(|metadata| metadata.control_id.as_deref())
+                == Some("WorkbenchRunModeMenu")
+        })
+        .map(|node| node.layout_cache.frame.height)
+        .expect("run mode menu should have a layout frame");
+    assert!((menu_layout_height - 130.0).abs() < f32::EPSILON);
     let menu_node = workbench_window_node(&bridge, "WorkbenchRunModeMenu");
     assert_eq!(menu_node.role.as_str(), "Menu");
     assert!(menu_node.popup_open);
@@ -170,6 +182,39 @@ fn workbench_window_node(
         .filter_map(|row| nodes.row_data(row))
         .find(|node| node.control_id.as_str() == control_id)
         .unwrap_or_else(|| panic!("{control_id} should project to native host nodes"))
+}
+
+fn rendered_control_frame(
+    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    control_id: &str,
+) -> UiFrame {
+    let node_id = bridge
+        .surface()
+        .tree
+        .nodes
+        .values()
+        .find_map(|node| {
+            node.template_metadata
+                .as_ref()
+                .and_then(|metadata| metadata.control_id.as_deref())
+                .filter(|candidate| *candidate == control_id)
+                .map(|_| node.node_id)
+        })
+        .unwrap_or_else(|| panic!("{control_id} should resolve to one runtime node"));
+    bridge
+        .surface()
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .filter(|command| command.node_id == node_id)
+        .map(|command| command.frame)
+        .max_by(|left, right| {
+            let left_area = left.width.max(0.0) * left.height.max(0.0);
+            let right_area = right.width.max(0.0) * right.height.max(0.0);
+            left_area.total_cmp(&right_area)
+        })
+        .unwrap_or_else(|| panic!("{control_id} should emit popup render commands"))
 }
 
 fn structured_menu_item(node: &TemplatePaneNodeData, row: usize) -> TemplatePaneMenuItemData {

@@ -480,6 +480,13 @@ Focused checks that passed for this slice:
     were retried and still stopped before compilation because the root and plugin
     lock files need refresh; no lock file was modified while other Cargo work was
     active.
+- 2026-08-31 contact shadow device-recovery contract: render-pass GPU contexts expose
+  the materialized graph device identity as an opaque, comparable
+  `RenderPassDeviceEpoch`. The persistent contact-shadow pipeline cache is keyed by
+  that epoch, reuses its bind-group layout and compute pipeline on stable frames,
+  rebuilds once after a device-generation change, and rejects recording when the
+  graph has no materialized epoch. Executors must not assume plugin registration
+  lifetime proves that cached native resources belong to the current device.
 - 2026-06-14 contact shadow post-process consumption slice: scoped `rustfmt
   --edition 2021`, scoped `git diff --check`, a 12-symbol source-contract scan,
   and a 4-call-site SSR fallback scan passed for the `post.stack` graph read,

@@ -4,6 +4,7 @@ mod language;
 mod property_layout;
 mod readiness;
 mod shader_asset;
+mod source_contract;
 mod zshader;
 
 pub use dependency::ShaderDependencyAsset;
@@ -18,6 +19,8 @@ pub use readiness::{
     ShaderReadinessReport, ShaderRuntimeSourceKind, ShaderRuntimeSourceReadiness,
 };
 pub use shader_asset::ShaderAsset;
+use source_contract::classify_surface_source_contract;
+pub use source_contract::{ShaderSurfaceSourceContract, ShaderSurfaceSourceContractError};
 pub use zshader::{
     ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderOptionAsset,
     ShaderSourceFileAsset, ShaderTextureSlotAsset, ZShaderComputeDocumentV2, ZShaderDocumentV2,

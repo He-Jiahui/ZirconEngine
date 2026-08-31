@@ -16,12 +16,16 @@ pub use registration_report::RuntimePluginRegistrationReport;
 pub use runtime_plugin::RuntimePlugin;
 pub use runtime_plugin::RuntimePluginFeature;
 pub use runtime_plugin_catalog::{
-    RuntimeExtensionCatalogReport, RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker,
+    CompiledProjectPluginPlan, PluginCatalogGeneration, RuntimeExtensionCatalogReport,
+    RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker,
     RuntimePluginBridgeLifecycleBlock, RuntimePluginBridgeLifecycleError,
     RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
     RuntimePluginBridgeLifecycleReport, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
-    RuntimePluginCatalogProjectPlanMetrics, RuntimePluginCatalogProjectionMetrics,
-    RuntimePluginCatalogUpdate, RuntimePluginCatalogUpdateMetrics,
+    RuntimePluginCatalogAuthority, RuntimePluginCatalogCandidate,
+    RuntimePluginCatalogPreparationError, RuntimePluginCatalogPreparedGeneration,
+    RuntimePluginCatalogProjectPlanCacheMetrics, RuntimePluginCatalogProjectPlanMetrics,
+    RuntimePluginCatalogProjectionMetrics, RuntimePluginCatalogPublicationError,
+    RuntimePluginCatalogSnapshot, RuntimePluginCatalogUpdate, RuntimePluginCatalogUpdateMetrics,
     RuntimePluginCatalogUpdateOutcome, RuntimePluginFeatureBlock,
-    RuntimePluginFeatureDependencyReport,
+    RuntimePluginFeatureDependencyReport, RuntimePluginModuleProposal,
 };

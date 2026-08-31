@@ -866,7 +866,8 @@ fn create_test_project(label: &str) -> PathBuf {
         root.join("zircon-project.toml"),
         concat!(
             "name = \"NeuralImportTest\"\n",
-            "format_version = 2\n",
+            "format_version = 3\n",
+            "project_guid = \"b1f87b6d-4823-4b9a-b902-c0e4bb02b1aa\"\n",
             "default_scene = \"res://scenes/main.scene.toml\"\n",
             "asset_roots = [\"assets\"]\n",
             "library_version = 1\n",

@@ -147,6 +147,7 @@ fn isolated_scene_mode_exit_panic_does_not_skip_remaining_shutdown() {
     let settings = SceneViewportSettings::default();
     let mut ctx = SceneModeCtx::new(&mut selection, &settings);
     let mut stack = SceneModeStack::new(
+        SceneModeActivation::Custom(SceneModeId::new("scene.safe-base")),
         registry
             .create(&SceneModeId::new("scene.safe-base"))
             .unwrap(),
@@ -154,7 +155,8 @@ fn isolated_scene_mode_exit_panic_does_not_skip_remaining_shutdown() {
     )
     .unwrap();
     stack
-        .push(
+        .push_overlay(
+            SceneModeActivation::Custom(SceneModeId::new("scene.panicking-overlay")),
             registry
                 .create(&SceneModeId::new("scene.panicking-overlay"))
                 .unwrap(),
@@ -191,6 +193,7 @@ fn isolated_scene_mode_enter_panic_rejects_stack_mutation_and_runs_cleanup() {
     let settings = SceneViewportSettings::default();
     let mut ctx = SceneModeCtx::new(&mut selection, &settings);
     let mut stack = SceneModeStack::new(
+        SceneModeActivation::Custom(SceneModeId::new("scene.safe-base")),
         Box::new(RecordingMode::new(
             "scene.safe-base",
             InputOutcome::PassThrough,
@@ -206,9 +209,17 @@ fn isolated_scene_mode_enter_panic_rejects_stack_mutation_and_runs_cleanup() {
             .create(&SceneModeId::new("scene.panicking-enter"))
             .unwrap();
         let error = if replace_base {
-            stack.replace_base(mode, &mut ctx)
+            stack.replace_base(
+                SceneModeActivation::Custom(SceneModeId::new("scene.panicking-enter")),
+                mode,
+                &mut ctx,
+            )
         } else {
-            stack.push(mode, &mut ctx)
+            stack.push_overlay(
+                SceneModeActivation::Custom(SceneModeId::new("scene.panicking-enter")),
+                mode,
+                &mut ctx,
+            )
         }
         .unwrap_err();
 
@@ -225,8 +236,10 @@ fn isolated_scene_mode_enter_panic_rejects_stack_mutation_and_runs_cleanup() {
         [
             "enter:scene.panicking-enter",
             "exit:scene.panicking-enter",
+            "exit:scene.safe-base",
             "enter:scene.panicking-enter",
             "exit:scene.panicking-enter",
+            "enter:scene.safe-base",
         ]
     );
 }
@@ -252,6 +265,7 @@ fn isolated_scene_mode_input_panic_invalidates_overlay_and_still_exits() {
     let settings = SceneViewportSettings::default();
     let mut ctx = SceneModeCtx::new(&mut selection, &settings);
     let mut stack = SceneModeStack::new(
+        SceneModeActivation::Custom(SceneModeId::new("scene.safe-base")),
         Box::new(RecordingMode::new(
             "scene.safe-base",
             InputOutcome::Consumed,
@@ -261,7 +275,8 @@ fn isolated_scene_mode_input_panic_invalidates_overlay_and_still_exits() {
     )
     .unwrap();
     stack
-        .push(
+        .push_overlay(
+            SceneModeActivation::Custom(SceneModeId::new("scene.panicking-input")),
             registry
                 .create(&SceneModeId::new("scene.panicking-input"))
                 .unwrap(),

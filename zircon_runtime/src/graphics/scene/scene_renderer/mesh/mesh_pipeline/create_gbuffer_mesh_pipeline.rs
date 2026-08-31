@@ -21,6 +21,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_gbuffer_mesh_pipe
             buffers: &[GpuMeshVertex::layout()],
         },
         primitive: wgpu::PrimitiveState {
+            front_face: super::mesh_front_face(key),
             cull_mode: (!key.double_sided).then_some(wgpu::Face::Back),
             ..Default::default()
         },
@@ -71,7 +72,7 @@ mod tests {
 
     use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
     use crate::graphics::scene::gpu_scene::GpuScene;
-    use crate::graphics::scene::resources::{default_pipeline_key, GPU_MATERIAL_UNIFORM_MIN_SIZE};
+    use crate::graphics::scene::resources::{GPU_MATERIAL_UNIFORM_MIN_SIZE, default_pipeline_key};
     use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::{
         create_forward_shadow_receiver_layout,

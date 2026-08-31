@@ -40,9 +40,10 @@ pub(super) fn resolve_pending_feature_dependencies<'a>(
     let mut stats = FeatureResolutionStats::default();
     let mut current_ready = OrderedReadySet::new(pending.len());
     let mut next_ready = OrderedReadySet::new(pending.len());
-    let mut waiting_by_capability = HashMap::<String, Vec<usize>>::new();
+    let mut waiting_by_capability = HashMap::<String, Vec<usize>>::with_capacity(pending.len());
     let mut states =
         Vec::<Option<(PendingFeatureSelection<'a>, FeatureStatus)>>::with_capacity(pending.len());
+    let mut unresolved_feature_count = 0;
 
     for (index, active) in pending.into_iter().enumerate() {
         let feature = definitions
@@ -98,6 +99,7 @@ pub(super) fn resolve_pending_feature_dependencies<'a>(
                     .or_default()
                     .push(index);
             }
+            unresolved_feature_count += 1;
             states.push(Some((active, status)));
         }
     }
@@ -113,6 +115,7 @@ pub(super) fn resolve_pending_feature_dependencies<'a>(
         let Some((active, status)) = states[index].take() else {
             continue;
         };
+        unresolved_feature_count -= 1;
         debug_assert!(status.is_available());
         let feature = definitions
             .definitions
@@ -134,13 +137,16 @@ pub(super) fn resolve_pending_feature_dependencies<'a>(
         );
     }
 
-    block_unresolved_features(
-        states.into_iter().flatten().collect(),
-        projection,
-        target,
-        report,
-    );
+    let unresolved_features = collect_present_with_capacity(states, unresolved_feature_count);
+    block_unresolved_features(unresolved_features, projection, target, report);
     stats
+}
+
+fn collect_present_with_capacity<T>(values: Vec<Option<T>>, present_count: usize) -> Vec<T> {
+    let mut present = Vec::with_capacity(present_count);
+    present.extend(values.into_iter().flatten());
+    debug_assert_eq!(present.len(), present_count);
+    present
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -186,5 +192,28 @@ fn publish_available_feature<'a>(
                 stats.ready_queue_pushes += 1;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod performance_contract_tests {
+    use super::collect_present_with_capacity;
+
+    #[test]
+    fn preallocated_present_collection_preserves_order_and_omits_empty_slots() {
+        let present =
+            collect_present_with_capacity(vec![Some(7), None, Some(3), None, Some(11)], 3);
+
+        assert_eq!(present, vec![7, 3, 11]);
+        assert!(present.capacity() >= 3);
+    }
+
+    #[test]
+    fn capability_wait_index_reserves_one_bucket_per_pending_feature() {
+        let pending_count = 8;
+        let waiting_by_capability =
+            std::collections::HashMap::<String, Vec<usize>>::with_capacity(pending_count);
+
+        assert!(waiting_by_capability.capacity() >= pending_count);
     }
 }

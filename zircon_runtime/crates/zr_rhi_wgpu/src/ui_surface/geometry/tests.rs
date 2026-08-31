@@ -48,9 +48,275 @@ fn wgpu_ui_surface_generates_border_items_inside_damage() {
 
     let items = solid_items(&draw_list);
 
-    assert_eq!(items.len(), 4);
-    assert!(items.iter().all(|item| item.rect.width > 0.0));
-    assert!(items.iter().all(|item| item.rect.height > 0.0));
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0].vertices().len(), 6);
+    assert!(items[0]
+        .vertices()
+        .iter()
+        .all(|vertex| vertex.corner_radius == 0.0 && vertex.border_width == 2.0));
+}
+
+#[test]
+fn wgpu_ui_surface_fuses_matching_fill_and_border_into_one_analytic_item() {
+    let frame = UiSurfaceRect::new(10.25, 12.5, 24.0, 20.0);
+    let fill = [32, 40, 52, 224];
+    let border = [96, 174, 255, 255];
+    let draw_list = UiSurfaceDrawList::new(
+        (100, 100),
+        None,
+        vec![
+            UiSurfaceCommand {
+                z_index: 7,
+                frame,
+                clip: None,
+                kind: UiSurfaceCommandKind::Quad {
+                    color: fill,
+                    corner_radius: 8.0,
+                },
+            },
+            UiSurfaceCommand {
+                z_index: 8,
+                frame,
+                clip: None,
+                kind: UiSurfaceCommandKind::Border {
+                    color: border,
+                    width: 1.0,
+                    corner_radius: 8.0,
+                },
+            },
+        ],
+    );
+
+    let (items, stats) = draw_items_with_stats(&draw_list);
+    let [DrawItem::Solid(item)] = items.as_slice() else {
+        panic!("matching fill and border must become one solid item");
+    };
+
+    assert_eq!(stats.visible_command_count, 2);
+    assert_eq!(stats.visible_draw_item_count, 1);
+    assert_eq!(stats.draw_calls, 1);
+    assert!(item.vertices().iter().all(|vertex| {
+        vertex.color == normalized_color(border)
+            && vertex.fill_color == normalized_color(fill)
+            && vertex.corner_radius == 8.0
+            && vertex.border_width == 1.0
+    }));
+}
+
+#[test]
+fn wgpu_ui_surface_only_fuses_fill_and_border_when_they_are_draw_order_neighbors() {
+    let frame = UiSurfaceRect::new(10.25, 12.5, 24.0, 20.0);
+    let fill = UiSurfaceCommand {
+        z_index: 7,
+        frame,
+        clip: None,
+        kind: UiSurfaceCommandKind::Quad {
+            color: [32, 40, 52, 224],
+            corner_radius: 8.0,
+        },
+    };
+    let border = UiSurfaceCommand {
+        z_index: 9,
+        frame,
+        clip: None,
+        kind: UiSurfaceCommandKind::Border {
+            color: [96, 174, 255, 255],
+            width: 1.0,
+            corner_radius: 8.0,
+        },
+    };
+    let intervening = UiSurfaceCommand {
+        z_index: 8,
+        frame: UiSurfaceRect::new(12.0, 14.0, 4.0, 4.0),
+        clip: None,
+        kind: UiSurfaceCommandKind::Quad {
+            color: [255, 255, 255, 255],
+            corner_radius: 0.0,
+        },
+    };
+
+    let adjacent = UiSurfaceDrawList::new((100, 100), None, vec![fill.clone(), border.clone()]);
+    assert_eq!(
+        solid_items(&adjacent).len(),
+        1,
+        "matching draw-order neighbors may fuse across distinct z values"
+    );
+
+    let separated = UiSurfaceDrawList::new((100, 100), None, vec![fill, border, intervening]);
+    assert_eq!(
+        solid_items(&separated).len(),
+        3,
+        "fusion must never cross an intervening draw item"
+    );
+}
+
+#[test]
+fn wgpu_ui_surface_does_not_fuse_invalid_border_widths_into_a_fill() {
+    for width in [0.0, -0.5, f32::NAN, f32::INFINITY] {
+        let frame = UiSurfaceRect::new(10.25, 12.5, 24.0, 20.0);
+        let fill = [32, 40, 52, 224];
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            None,
+            vec![
+                UiSurfaceCommand {
+                    z_index: 7,
+                    frame,
+                    clip: None,
+                    kind: UiSurfaceCommandKind::Quad {
+                        color: fill,
+                        corner_radius: 8.0,
+                    },
+                },
+                UiSurfaceCommand {
+                    z_index: 8,
+                    frame,
+                    clip: None,
+                    kind: UiSurfaceCommandKind::Border {
+                        color: [96, 174, 255, 255],
+                        width,
+                        corner_radius: 8.0,
+                    },
+                },
+            ],
+        );
+
+        let items = solid_items(&draw_list);
+        let [item] = items.as_slice() else {
+            panic!("invalid border width {width:?} must leave only the original fill");
+        };
+        assert!(item.vertices().iter().all(|vertex| {
+            vertex.color == normalized_color(fill)
+                && vertex.fill_color == [0.0; 4]
+                && vertex.border_width == 0.0
+        }));
+    }
+}
+
+#[test]
+fn wgpu_ui_surface_only_fuses_identical_fill_and_border_geometry() {
+    let frame = UiSurfaceRect::new(10.25, 12.5, 24.0, 20.0);
+    let fill = UiSurfaceCommand {
+        z_index: 7,
+        frame,
+        clip: None,
+        kind: UiSurfaceCommandKind::Quad {
+            color: [32, 40, 52, 224],
+            corner_radius: 8.0,
+        },
+    };
+    let mismatches = [
+        (
+            "frame",
+            UiSurfaceCommand {
+                z_index: 8,
+                frame: UiSurfaceRect::new(10.5, 12.5, 24.0, 20.0),
+                clip: None,
+                kind: UiSurfaceCommandKind::Border {
+                    color: [96, 174, 255, 255],
+                    width: 1.0,
+                    corner_radius: 8.0,
+                },
+            },
+        ),
+        (
+            "clip",
+            UiSurfaceCommand {
+                z_index: 8,
+                frame,
+                clip: Some(UiSurfaceRect::new(10.25, 12.5, 20.0, 20.0)),
+                kind: UiSurfaceCommandKind::Border {
+                    color: [96, 174, 255, 255],
+                    width: 1.0,
+                    corner_radius: 8.0,
+                },
+            },
+        ),
+        (
+            "radius",
+            UiSurfaceCommand {
+                z_index: 8,
+                frame,
+                clip: None,
+                kind: UiSurfaceCommandKind::Border {
+                    color: [96, 174, 255, 255],
+                    width: 1.0,
+                    corner_radius: 7.0,
+                },
+            },
+        ),
+    ];
+
+    for (label, border) in mismatches {
+        let draw_list = UiSurfaceDrawList::new((100, 100), None, vec![fill.clone(), border]);
+        let items = solid_items(&draw_list);
+
+        assert_eq!(
+            items.len(),
+            2,
+            "a {label} mismatch must preserve separate source items"
+        );
+        assert!(items
+            .iter()
+            .flat_map(SolidItem::vertices)
+            .all(|vertex| vertex.fill_color == [0.0; 4]));
+    }
+}
+
+#[test]
+fn wgpu_ui_surface_fractional_square_quad_uses_analytic_coverage() {
+    let frame = UiSurfaceRect::new(10.25, 12.5, 20.0, 18.25);
+    let draw_list = UiSurfaceDrawList::new(
+        (100, 100),
+        None,
+        vec![UiSurfaceCommand {
+            z_index: 0,
+            frame,
+            clip: None,
+            kind: UiSurfaceCommandKind::Quad {
+                color: [255, 255, 255, 255],
+                corner_radius: 0.0,
+            },
+        }],
+    );
+
+    let items = solid_items(&draw_list);
+
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0].rect, UiSurfaceRect::new(9.25, 11.5, 22.0, 20.25));
+    assert_eq!(items[0].vertices().len(), 6);
+    assert!(items[0].vertices().iter().all(|vertex| {
+        vertex.half_extent == [10.0, 9.125]
+            && vertex.corner_radius == 0.0
+            && vertex.border_width == 0.0
+    }));
+}
+
+#[test]
+fn wgpu_ui_surface_square_border_preserves_subpixel_physical_width() {
+    let draw_list = UiSurfaceDrawList::new(
+        (100, 100),
+        None,
+        vec![UiSurfaceCommand {
+            z_index: 0,
+            frame: UiSurfaceRect::new(10.25, 12.5, 24.0, 20.0),
+            clip: None,
+            kind: UiSurfaceCommandKind::Border {
+                color: [255, 255, 255, 255],
+                width: 0.625,
+                corner_radius: 0.0,
+            },
+        }],
+    );
+
+    let items = solid_items(&draw_list);
+
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0].vertices().len(), 6);
+    assert!(items[0]
+        .vertices()
+        .iter()
+        .all(|vertex| vertex.corner_radius == 0.0 && vertex.border_width == 0.625));
 }
 
 #[test]
@@ -73,7 +339,7 @@ fn wgpu_ui_surface_damage_and_clip_trim_solid_item_geometry() {
     let items = solid_items(&draw_list);
 
     assert_eq!(items.len(), 1);
-    assert_eq!(items[0].rect, UiSurfaceRect::new(25.0, 25.0, 15.0, 15.0));
+    assert_eq!(items[0].rect, UiSurfaceRect::new(24.0, 24.0, 16.0, 16.0));
 }
 
 #[test]
@@ -213,13 +479,130 @@ fn wgpu_ui_surface_generates_analytic_rounded_quads_for_fill_and_border() {
             && vertex.corner_radius == 8.0
             && vertex.border_width == 2.0
     }));
-    assert_eq!(items[0].vertices()[0].local_position, [-10.0, -10.0]);
-    assert_eq!(items[0].vertices()[5].local_position, [10.0, 10.0]);
+    assert_eq!(items[0].vertices()[0].local_position, [-11.0, -11.0]);
+    assert_eq!(items[0].vertices()[5].local_position, [11.0, 11.0]);
     assert!(items.iter().all(|item| {
         item.vertices()
             .iter()
             .all(|vertex| vertex.position[0].is_finite() && vertex.position[1].is_finite())
     }));
+}
+
+#[test]
+fn wgpu_ui_surface_analytic_border_preserves_subpixel_physical_width() {
+    let draw_list = UiSurfaceDrawList::new(
+        (100, 100),
+        None,
+        vec![UiSurfaceCommand {
+            z_index: 0,
+            frame: UiSurfaceRect::new(10.0, 10.0, 24.0, 20.0),
+            clip: None,
+            kind: UiSurfaceCommandKind::Border {
+                color: [255, 255, 255, 255],
+                width: 0.625,
+                corner_radius: 8.0,
+            },
+        }],
+    );
+
+    let items = solid_items(&draw_list);
+
+    assert_eq!(items.len(), 1);
+    assert!(items[0]
+        .vertices()
+        .iter()
+        .all(|vertex| vertex.border_width == 0.625));
+}
+
+#[test]
+fn wgpu_ui_surface_analytic_border_rejects_nonpositive_or_nonfinite_width() {
+    for width in [0.0, -0.5, f32::NAN, f32::INFINITY] {
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            None,
+            vec![UiSurfaceCommand {
+                z_index: 0,
+                frame: UiSurfaceRect::new(10.0, 10.0, 24.0, 20.0),
+                clip: None,
+                kind: UiSurfaceCommandKind::Border {
+                    color: [255, 255, 255, 255],
+                    width,
+                    corner_radius: 8.0,
+                },
+            }],
+        );
+
+        assert!(
+            solid_items(&draw_list).is_empty(),
+            "invalid analytic border width {width:?} must not become a rounded fill"
+        );
+    }
+}
+
+#[test]
+fn wgpu_ui_surface_analytic_quad_bounds_include_the_outer_coverage_fringe() {
+    let frame = UiSurfaceRect::new(10.75, 12.25, 20.0, 18.0);
+    let draw_list = UiSurfaceDrawList::new(
+        (100, 100),
+        None,
+        vec![UiSurfaceCommand {
+            z_index: 0,
+            frame,
+            clip: None,
+            kind: UiSurfaceCommandKind::Quad {
+                color: [255, 255, 255, 255],
+                corner_radius: 8.0,
+            },
+        }],
+    );
+
+    let items = solid_items(&draw_list);
+
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0].rect, UiSurfaceRect::new(9.75, 11.25, 22.0, 20.0));
+    assert_eq!(items[0].vertices()[0].local_position, [-11.0, -10.0]);
+    assert_eq!(items[0].vertices()[5].local_position, [11.0, 10.0]);
+    assert!(items[0].vertices().iter().all(|vertex| {
+        vertex.half_extent == [10.0, 9.0]
+            && vertex.corner_radius == 8.0
+            && vertex.border_width == 0.0
+    }));
+}
+
+#[test]
+fn wgpu_ui_surface_damage_redraws_content_beneath_the_analytic_fringe() {
+    let rounded_frame = UiSurfaceRect::new(10.75, 12.25, 20.0, 18.0);
+    let background_frame = UiSurfaceRect::new(10.0, 14.0, 0.5, 4.0);
+    let draw_list = UiSurfaceDrawList::new(
+        (100, 100),
+        Some(rounded_frame),
+        vec![
+            UiSurfaceCommand {
+                z_index: 0,
+                frame: background_frame,
+                clip: None,
+                kind: UiSurfaceCommandKind::Quad {
+                    color: [20, 24, 28, 255],
+                    corner_radius: 0.0,
+                },
+            },
+            UiSurfaceCommand {
+                z_index: 1,
+                frame: rounded_frame,
+                clip: None,
+                kind: UiSurfaceCommandKind::Quad {
+                    color: [255, 255, 255, 255],
+                    corner_radius: 8.0,
+                },
+            },
+        ],
+    );
+
+    let items = solid_items(&draw_list);
+
+    assert_eq!(items.len(), 2);
+    assert_eq!(items[0].rect, background_frame);
+    assert_eq!(items[1].rect, UiSurfaceRect::new(9.75, 11.25, 22.0, 20.0));
 }
 
 #[test]
@@ -331,20 +714,21 @@ fn wgpu_ui_surface_skips_finite_rects_with_non_finite_endpoints() {
 
 #[test]
 fn wgpu_ui_surface_fractional_rounded_rect_uses_the_unclipped_geometry_path() {
-    let frame = UiSurfaceRect::new(0.25, 0.5, 19.5, 18.75);
+    let frame = UiSurfaceRect::new(4.25, 4.5, 19.5, 18.75);
     let command = UiSurfaceCommand {
         z_index: 0,
         frame,
-        clip: Some(UiSurfaceRect::new(0.0, 0.0, 20.0, 20.0)),
+        clip: Some(UiSurfaceRect::new(0.0, 0.0, 30.0, 30.0)),
         kind: UiSurfaceCommandKind::Quad {
             color: [255, 255, 255, 255],
             corner_radius: 6.0,
         },
     };
     let draw_list = UiSurfaceDrawList::new((100, 100), None, vec![command.clone()]);
-    let effective = effective_rect_with_clip_status(&command, frame, (100, 100), None)
+    let raster_frame = analytic_raster_frame(frame).expect("analytic raster frame");
+    let effective = effective_rect_with_clip_status(&command, raster_frame, (100, 100), None)
         .expect("fractional rounded rect remains visible");
-    let expected = solid_vertices(frame, [255, 255, 255, 255], (100, 100), 6.0);
+    let expected = solid_vertices(frame, raster_frame, [255, 255, 255, 255], (100, 100), 6.0);
     let items = solid_items(&draw_list);
 
     assert!(!effective.clipped);
@@ -427,9 +811,9 @@ fn wgpu_ui_surface_image_uvs_follow_clipped_rect() {
     let DrawItem::Image(image) = &items[0] else {
         panic!("expected clipped image item");
     };
-    assert_eq!(image.rect, UiSurfaceRect::new(5.0, 5.0, 10.0, 10.0));
-    assert_eq!(image.vertices[0].uv, [0.25, 0.25]);
-    assert_eq!(image.vertices[5].uv, [0.75, 0.75]);
+    assert_eq!(image.rect, UiSurfaceRect::new(4.0, 4.0, 12.0, 12.0));
+    assert_eq!(image.vertices[0].uv, [0.2, 0.2]);
+    assert_eq!(image.vertices[5].uv, [0.8, 0.8]);
 }
 
 #[test]
@@ -496,8 +880,16 @@ fn wgpu_ui_surface_image_uvs_compose_clipped_rect_with_atlas_uv() {
     let DrawItem::Image(image) = &items[0] else {
         panic!("expected clipped atlas image item");
     };
-    assert_eq!(image.vertices[0].uv, [0.5625, 0.3125]);
-    assert_eq!(image.vertices[5].uv, [0.6875, 0.4375]);
+    assert!(image.vertices[0]
+        .uv
+        .into_iter()
+        .zip([0.55, 0.3])
+        .all(|(actual, expected)| (actual - expected).abs() <= f32::EPSILON));
+    assert!(image.vertices[5]
+        .uv
+        .into_iter()
+        .zip([0.7, 0.45])
+        .all(|(actual, expected)| (actual - expected).abs() <= f32::EPSILON));
 }
 
 #[test]
@@ -554,9 +946,9 @@ fn wgpu_ui_surface_text_bounds_clip_to_damage_and_command_clip() {
     let clip = command_effective_rect(&command, &draw_list).unwrap();
     let bounds = text_bounds_from_rect(clip);
 
-    assert_eq!(clip, UiSurfaceRect::new(25.0, 25.0, 15.0, 15.0));
-    assert_eq!(bounds.left, 25);
-    assert_eq!(bounds.top, 25);
+    assert_eq!(clip, UiSurfaceRect::new(24.0, 24.0, 16.0, 16.0));
+    assert_eq!(bounds.left, 24);
+    assert_eq!(bounds.top, 24);
     assert_eq!(bounds.right, 40);
     assert_eq!(bounds.bottom, 40);
 }

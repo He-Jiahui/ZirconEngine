@@ -279,23 +279,22 @@ fn validate_uv_rect(
     atlas_height: u32,
 ) -> Result<(), SpriteAtlasValidationError> {
     let SpriteAtlasUvRect { min, max } = entry.uv_rect;
-    if !min.iter().chain(max.iter()).all(|value| value.is_finite()) {
-        return Err(SpriteAtlasValidationError::NonFiniteUv {
-            name: Some(entry.name.clone()),
-            min,
-            max,
-        });
-    }
-    if !min
-        .iter()
-        .chain(max.iter())
-        .all(|value| (0.0..=1.0).contains(value))
-    {
-        return Err(SpriteAtlasValidationError::UvOutOfRange {
-            name: Some(entry.name.clone()),
-            min,
-            max,
-        });
+    match uv_value_issue(min, max) {
+        Some(SpriteAtlasUvValueIssue::NonFinite) => {
+            return Err(SpriteAtlasValidationError::NonFiniteUv {
+                name: Some(entry.name.clone()),
+                min,
+                max,
+            });
+        }
+        Some(SpriteAtlasUvValueIssue::OutOfRange) => {
+            return Err(SpriteAtlasValidationError::UvOutOfRange {
+                name: Some(entry.name.clone()),
+                min,
+                max,
+            });
+        }
+        None => {}
     }
     if min[0] >= max[0] || min[1] >= max[1] {
         return Err(SpriteAtlasValidationError::InvalidUvOrdering {
@@ -317,6 +316,23 @@ fn validate_uv_rect(
     Ok(())
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SpriteAtlasUvValueIssue {
+    NonFinite,
+    OutOfRange,
+}
+
+fn uv_value_issue(min: [f32; 2], max: [f32; 2]) -> Option<SpriteAtlasUvValueIssue> {
+    let mut out_of_range = false;
+    for value in min.into_iter().chain(max) {
+        if !value.is_finite() {
+            return Some(SpriteAtlasUvValueIssue::NonFinite);
+        }
+        out_of_range |= !(0.0..=1.0).contains(&value);
+    }
+    out_of_range.then_some(SpriteAtlasUvValueIssue::OutOfRange)
+}
+
 fn uv_rects_match(actual: SpriteAtlasUvRect, expected: SpriteAtlasUvRect) -> bool {
     actual
         .min
@@ -329,6 +345,10 @@ fn uv_rects_match(actual: SpriteAtlasUvRect, expected: SpriteAtlasUvRect) -> boo
 fn display_entry_name(name: &Option<String>) -> &str {
     name.as_deref().unwrap_or("<unnamed>")
 }
+
+#[cfg(test)]
+#[path = "validation/single_pass_uv_tests.rs"]
+mod single_pass_uv_tests;
 
 #[cfg(test)]
 mod tests {

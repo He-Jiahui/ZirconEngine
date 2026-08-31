@@ -13,7 +13,6 @@ related_code:
   - tools/tests/test_editor17_recovery_test_ownership_contract.py
   - zircon_editor/src/core/recovery/mod.rs
   - zircon_editor/src/core/recovery/tests.rs
-  - zircon_editor/src/core/recovery/tests/autosave_adapter.rs
 tests:
   - python -m unittest tools.tests.test_editor17_recovery_test_ownership_contract
 ---
@@ -81,3 +80,11 @@ continues.
 ## 修复结果与回传
 
 Open state: Editor17 still needs to complete the owner split and make both the Python ownership contract and managed Rust recovery suites GREEN before returning this handoff as fixed.
+
+## 2026-08-27 in-progress split metadata boundary
+
+The deleted `tests/autosave_adapter.rs` leaf is removed from structured metadata.
+Its folder-backed replacement remains foreign and untracked in the shared worktree,
+so this record does not claim that replacement as an integrated owner. The tracked
+ownership contract, recovery module, and `tests.rs` facade remain the durable anchors;
+no Editor17 source bytes or acceptance state changed.

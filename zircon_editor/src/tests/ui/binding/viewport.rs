@@ -1,6 +1,7 @@
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, TransformHandleKind, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformHandleKind, TransformSpace,
+    ViewOrientation,
 };
 use crate::ui::binding::{
     EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, ViewportCommand,
@@ -194,6 +195,7 @@ fn viewport_toolbar_command_roundtrips_for_projection_alignment_and_snaps() {
             TransformHandleKind::Scale,
         )),
         ViewportCommand::SetTransformSpace(TransformSpace::Global),
+        ViewportCommand::SetPivotMode(PivotMode::Primary),
         ViewportCommand::SetProjectionMode(ProjectionMode::Orthographic),
         ViewportCommand::AlignView(ViewOrientation::PosY),
         ViewportCommand::SetGridMode(GridMode::VisibleAndSnap),

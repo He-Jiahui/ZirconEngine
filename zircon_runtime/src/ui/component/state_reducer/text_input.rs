@@ -1,18 +1,7 @@
 use unicode_segmentation::UnicodeSegmentation;
-use zircon_runtime_interface::ui::{
-    component::{
-        UiComponentDescriptor, UiComponentEvent, UiComponentEventError, UiComponentState,
-        UiValidationState, UiValue,
-    },
-    surface::{
-        UiEditableTextState, UiTextCaret, UiTextCaretAffinity, UiTextComposition, UiTextEditAction,
-        UiTextRange, UiTextSelection,
-    },
-};
-
-use crate::ui::{
-    editable_text_composition::{composition_clauses_from_value, composition_clauses_value},
-    text::apply_text_edit_action,
+use zircon_runtime_interface::ui::component::{
+    UiComponentDescriptor, UiComponentEvent, UiComponentEventError, UiComponentState,
+    UiValidationState, UiValue,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -36,9 +25,10 @@ pub(super) fn event_manages_validation(
     is_text_input_control(descriptor)
         && matches!(
             event,
-            UiComponentEvent::KeyboardText { .. }
-                | UiComponentEvent::ValueChanged { .. }
+            UiComponentEvent::ValueChanged { .. }
+                | UiComponentEvent::SecureValueChanged { .. }
                 | UiComponentEvent::Commit { .. }
+                | UiComponentEvent::SecureCommit { .. }
                 | UiComponentEvent::Focus { .. }
         )
 }
@@ -67,32 +57,6 @@ pub(super) fn is_text_input_control(descriptor: &UiComponentDescriptor) -> bool 
             | "FieldEditor"
             | "SourceEditor"
     )
-}
-
-pub(super) fn apply_keyboard_text(
-    state: &mut UiComponentState,
-    descriptor: &UiComponentDescriptor,
-    text: &str,
-) -> Result<(), UiComponentEventError> {
-    if text_input_read_only(state, descriptor) {
-        return Ok(());
-    }
-    let Some(text) = keyboard_text_input_payload(text) else {
-        return Ok(());
-    };
-    let Some(primary_property) = text_input_primary_property(descriptor) else {
-        return Ok(());
-    };
-
-    let current_text = string_setting(state, descriptor, primary_property).unwrap_or_default();
-    let next_state = apply_text_edit_action(
-        text_input_edit_state(state, descriptor, current_text),
-        UiTextEditAction::Insert { text },
-    );
-    write_text_input_edit_state(state, descriptor, primary_property, next_state);
-    state.flags.focused = true;
-    apply_validation_trigger(state, descriptor, TextInputValidationTrigger::Change);
-    Ok(())
 }
 
 pub(super) fn apply_value_event(
@@ -252,135 +216,6 @@ fn validation_property_candidates(descriptor: &UiComponentDescriptor) -> Vec<&'s
     candidates
 }
 
-fn text_input_edit_state(
-    state: &UiComponentState,
-    descriptor: &UiComponentDescriptor,
-    text: String,
-) -> UiEditableTextState {
-    let caret_offset = usize_state_value(state, "caret_offset")
-        .map(|offset| clamp_text_input_boundary(&text, offset))
-        .unwrap_or(text.len());
-    let selection = usize_state_value(state, "selection_anchor")
-        .zip(usize_state_value(state, "selection_focus"))
-        .map(|(anchor, focus)| UiTextSelection {
-            anchor: clamp_text_input_boundary(&text, anchor),
-            focus: clamp_text_input_boundary(&text, focus),
-        });
-    let composition = usize_state_value(state, "composition_start")
-        .zip(usize_state_value(state, "composition_end"))
-        .zip(string_state_value(state, "composition_text"))
-        .map(|((start, end), composition_text)| UiTextComposition {
-            range: UiTextRange {
-                start: clamp_text_input_boundary(&text, start),
-                end: clamp_text_input_boundary(&text, end),
-            },
-            preedit_clauses: composition_clauses_from_value(
-                state.values.get("composition_clauses"),
-                &composition_text,
-            ),
-            text: composition_text,
-            restore_text: string_state_value(state, "composition_restore_text"),
-        });
-
-    UiEditableTextState {
-        caret: UiTextCaret {
-            offset: caret_offset,
-            affinity: caret_affinity_from_state(state),
-        },
-        selection,
-        composition,
-        read_only: text_input_read_only(state, descriptor),
-        text,
-    }
-}
-
-fn write_text_input_edit_state(
-    state: &mut UiComponentState,
-    descriptor: &UiComponentDescriptor,
-    primary_property: &str,
-    edit_state: UiEditableTextState,
-) {
-    super::set_value(
-        state,
-        primary_property.to_string(),
-        UiValue::String(edit_state.text.clone()),
-    );
-    for mirror_property in text_input_mirror_properties(descriptor, primary_property) {
-        super::set_value(
-            state,
-            mirror_property.to_string(),
-            UiValue::String(edit_state.text.clone()),
-        );
-    }
-    super::set_value(
-        state,
-        "caret_offset".to_string(),
-        UiValue::Int(edit_state.caret.offset as i64),
-    );
-    super::set_value(
-        state,
-        "caret_affinity".to_string(),
-        UiValue::String(caret_affinity_name(edit_state.caret.affinity).to_string()),
-    );
-    let (selection_anchor, selection_focus) = edit_state
-        .selection
-        .as_ref()
-        .map(|selection| (selection.anchor, selection.focus))
-        .unwrap_or((edit_state.caret.offset, edit_state.caret.offset));
-    super::set_value(
-        state,
-        "selection_anchor".to_string(),
-        UiValue::Int(selection_anchor as i64),
-    );
-    super::set_value(
-        state,
-        "selection_focus".to_string(),
-        UiValue::Int(selection_focus as i64),
-    );
-
-    let (composition_start, composition_end, composition_text, restore_text, preedit_clauses) =
-        edit_state
-            .composition
-            .as_ref()
-            .map(|composition| {
-                (
-                    composition.range.start,
-                    composition.range.end,
-                    composition.text.clone(),
-                    composition.restore_text.clone().unwrap_or_default(),
-                    composition_clauses_value(&composition.preedit_clauses),
-                )
-            })
-            .unwrap_or((
-                edit_state.caret.offset,
-                edit_state.caret.offset,
-                String::new(),
-                String::new(),
-                UiValue::Array(Vec::new()),
-            ));
-    super::set_value(
-        state,
-        "composition_start".to_string(),
-        UiValue::Int(composition_start as i64),
-    );
-    super::set_value(
-        state,
-        "composition_end".to_string(),
-        UiValue::Int(composition_end as i64),
-    );
-    super::set_value(
-        state,
-        "composition_text".to_string(),
-        UiValue::String(composition_text),
-    );
-    super::set_value(
-        state,
-        "composition_restore_text".to_string(),
-        UiValue::String(restore_text),
-    );
-    super::set_value(state, "composition_clauses".to_string(), preedit_clauses);
-}
-
 fn mirror_text_input_value(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -396,13 +231,6 @@ fn mirror_text_input_value(
             UiValue::String(text.clone()),
         );
     }
-}
-
-fn text_input_read_only(state: &UiComponentState, descriptor: &UiComponentDescriptor) -> bool {
-    bool_setting(state, descriptor, "readOnly", false)
-        || bool_setting(state, descriptor, "read_only", false)
-        || bool_setting(state, descriptor, "inputReadOnly", false)
-        || bool_setting(state, descriptor, "input_read_only", false)
 }
 
 fn text_input_primary_property(descriptor: &UiComponentDescriptor) -> Option<&'static str> {
@@ -432,53 +260,6 @@ fn text_input_mirror_properties(
     } else {
         Vec::new()
     }
-}
-
-fn keyboard_text_input_payload(text: &str) -> Option<String> {
-    let text = text
-        .chars()
-        .filter(|ch| !ch.is_control())
-        .collect::<String>();
-    (!text.trim().is_empty()).then_some(text)
-}
-
-fn usize_state_value(state: &UiComponentState, property: &str) -> Option<usize> {
-    match state.values.get(property) {
-        Some(UiValue::Int(value)) if *value >= 0 => Some(*value as usize),
-        _ => None,
-    }
-}
-
-fn string_state_value(state: &UiComponentState, property: &str) -> Option<String> {
-    state.values.get(property).and_then(textual_value)
-}
-
-fn caret_affinity_from_state(state: &UiComponentState) -> UiTextCaretAffinity {
-    state
-        .values
-        .get("caret_affinity")
-        .and_then(|value| match value {
-            UiValue::String(value) | UiValue::Enum(value) => Some(value),
-            _ => None,
-        })
-        .is_some_and(|value| value.eq_ignore_ascii_case("upstream"))
-        .then_some(UiTextCaretAffinity::Upstream)
-        .unwrap_or(UiTextCaretAffinity::Downstream)
-}
-
-fn caret_affinity_name(affinity: UiTextCaretAffinity) -> &'static str {
-    match affinity {
-        UiTextCaretAffinity::Downstream => "downstream",
-        UiTextCaretAffinity::Upstream => "upstream",
-    }
-}
-
-fn clamp_text_input_boundary(text: &str, offset: usize) -> usize {
-    let mut offset = offset.min(text.len());
-    while offset > 0 && !text.is_char_boundary(offset) {
-        offset -= 1;
-    }
-    offset
 }
 
 fn bool_setting(
@@ -554,94 +335,4 @@ fn textual_value(value: &UiValue) -> Option<String> {
 
 fn non_empty_textual_value(value: &UiValue) -> Option<String> {
     textual_value(value).filter(|value| !value.is_empty())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use zircon_runtime_interface::ui::{
-        component::UiComponentCategory,
-        surface::{UiTextByteRange, UiTextPreeditClause, UiTextPreeditClauseKind},
-    };
-
-    #[test]
-    fn component_text_input_round_trips_multibyte_preedit_clauses() {
-        let descriptor = UiComponentDescriptor::new(
-            "TextField",
-            "Text Field",
-            UiComponentCategory::Input,
-            "text-field",
-        );
-        let clauses = vec![
-            UiTextPreeditClause::new(UiTextByteRange::new(0, 1), UiTextPreeditClauseKind::Input),
-            UiTextPreeditClause::new(
-                UiTextByteRange::new(1, 4),
-                UiTextPreeditClauseKind::Converted,
-            ),
-        ];
-        let mut state = UiComponentState::default();
-        state.values.insert(
-            "value".to_string(),
-            UiValue::String("a\u{754c}".to_string()),
-        );
-        state
-            .values
-            .insert("composition_start".to_string(), UiValue::Int(0));
-        state
-            .values
-            .insert("composition_end".to_string(), UiValue::Int(4));
-        state.values.insert(
-            "composition_text".to_string(),
-            UiValue::String("a\u{754c}".to_string()),
-        );
-        state.values.insert(
-            "composition_clauses".to_string(),
-            composition_clauses_value(&clauses),
-        );
-
-        let editable = text_input_edit_state(&state, &descriptor, "a\u{754c}".to_string());
-        assert_eq!(
-            editable
-                .composition
-                .as_ref()
-                .map(|composition| composition.preedit_clauses.clone()),
-            Some(clauses.clone())
-        );
-
-        write_text_input_edit_state(&mut state, &descriptor, "value", editable);
-        assert_eq!(
-            state.values.get("composition_clauses"),
-            Some(&composition_clauses_value(&clauses))
-        );
-    }
-
-    #[test]
-    fn component_text_input_round_trips_upstream_caret_affinity() {
-        let descriptor = UiComponentDescriptor::new(
-            "TextField",
-            "Text Field",
-            UiComponentCategory::Input,
-            "text-field",
-        );
-        let mut state = UiComponentState::default();
-        state
-            .values
-            .insert("value".to_string(), UiValue::String("abc".to_string()));
-        state
-            .values
-            .insert("caret_offset".to_string(), UiValue::Int(1));
-        state.values.insert(
-            "caret_affinity".to_string(),
-            UiValue::String("upstream".to_string()),
-        );
-
-        let editable = text_input_edit_state(&state, &descriptor, "abc".to_string());
-        assert_eq!(editable.caret.affinity, UiTextCaretAffinity::Upstream);
-
-        write_text_input_edit_state(&mut state, &descriptor, "value", editable);
-        assert_eq!(
-            state.values.get("caret_affinity"),
-            Some(&UiValue::String("upstream".to_string()))
-        );
-    }
 }

@@ -1,13 +1,18 @@
 use super::*;
 
 use zircon_runtime_interface::reflect::{
-    ReflectEditorHint, ReflectFieldInfo, ReflectFieldValue, ReflectSerializationStrategy,
+    ReflectEditorHint, ReflectFieldId, ReflectFieldInfo, ReflectSerializationStrategy,
     ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration, ReflectedValue,
 };
 
 use crate::script::{
-    VmStateBlob, VmStateObject, VmStateSchema, VmStateTypeIdentity, VmStateTypeSchema,
+    VmStateBlob, VmStateFieldValue, VmStateObject, VmStateSchema, VmStateTypeIdentity,
+    VmStateTypeSchema,
 };
+
+fn health_field_id() -> ReflectFieldId {
+    ReflectFieldId::from_stable_keys("tests.hot-reload-state", "health")
+}
 
 #[derive(Debug)]
 struct MigrationRollbackBackend {
@@ -90,8 +95,8 @@ impl VmPluginInstance for MigrationRollbackInstance {
             }],
             &[VmStateObject {
                 type_path,
-                fields: vec![ReflectFieldValue::new(
-                    "old_health",
+                fields: vec![VmStateFieldValue::new(
+                    health_field_id(),
                     ReflectedValue::Scalar(75.0),
                 )],
             }],
@@ -107,10 +112,15 @@ impl VmPluginInstance for MigrationRollbackInstance {
                 types: vec![VmStateTypeSchema {
                     registration: state_registration(
                         type_path,
-                        ReflectFieldInfo::new("old_health", "f64", ReflectEditorHint::Scalar),
+                        ReflectFieldInfo::from_stable_keys(
+                            "tests.hot-reload-state",
+                            "health",
+                            "old_health",
+                            "f64",
+                            ReflectEditorHint::Scalar,
+                        ),
                     ),
                     type_hash: 1,
-                    renames: Vec::new(),
                 }],
             }
         } else {
@@ -119,10 +129,15 @@ impl VmPluginInstance for MigrationRollbackInstance {
                 types: vec![VmStateTypeSchema {
                     registration: state_registration(
                         type_path,
-                        ReflectFieldInfo::new("health", "f64", ReflectEditorHint::Scalar),
+                        ReflectFieldInfo::from_stable_keys(
+                            "tests.hot-reload-state",
+                            "health",
+                            "health",
+                            "f64",
+                            ReflectEditorHint::Scalar,
+                        ),
                     ),
                     type_hash: 2,
-                    renames: Vec::new(),
                 }],
             }
         }))
@@ -132,7 +147,7 @@ impl VmPluginInstance for MigrationRollbackInstance {
         let objects = state.reflected_objects()?;
         let restored_old_health = objects.iter().any(|object| {
             object.fields.iter().any(|field| {
-                field.field_name == "old_health" && field.value == ReflectedValue::Scalar(75.0)
+                field.field_id == health_field_id() && field.value == ReflectedValue::Scalar(75.0)
             })
         });
         if !restored_old_health {

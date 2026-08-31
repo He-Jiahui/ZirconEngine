@@ -47,7 +47,7 @@ fn render_text_rich_underline_and_strike_project_without_fixed_one_pixel_quads()
         font_size: 20.0,
         line_height: 24.0,
         text_render_mode: UiTextRenderMode::Native,
-        rich_text_format: UiRichTextFormat::Html,
+        rich_text_format: UiRichTextFormat::HtmlSubsetV1,
         ..UiResolvedStyle::default()
     };
     let layout = layout_text(markup, &style, frame, None);

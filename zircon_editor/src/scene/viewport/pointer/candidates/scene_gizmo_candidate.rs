@@ -10,7 +10,7 @@ use super::projected_ring_segments;
 pub(in crate::scene::viewport::pointer) fn scene_gizmo_candidate(
     owner: u64,
     shape: &OverlayPickShape,
-    projection: &ViewportProjectionContext<'_>,
+    projection: &ViewportProjectionContext,
 ) -> Option<PrecisionCandidate> {
     match shape {
         OverlayPickShape::Sphere { center, radius } => {

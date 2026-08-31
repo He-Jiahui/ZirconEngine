@@ -15,17 +15,27 @@ pub use action_policy::{
     UiActionPolicyReport, UiActionSideEffectClass,
 };
 pub use binding::{
-    UiBindingDiagnostic, UiBindingDiagnosticCode, UiBindingDiagnosticSeverity, UiBindingExpression,
-    UiBindingExpressionParseError, UiBindingReport, UiBindingTarget, UiBindingTargetAssignment,
-    UiBindingTargetKind, UiBindingTargetSchema,
+    UiActionPayloadFieldName, UiBindingContractTerm, UiBindingDiagnostic, UiBindingDiagnosticCode,
+    UiBindingDiagnosticSeverity, UiBindingExpression, UiBindingExpressionEvaluationError,
+    UiBindingExpressionParseError, UiBindingMissingValuePolicy, UiBindingMissingValueResolution,
+    UiBindingReport, UiBindingSchemaNameError, UiBindingSchemaNameKind, UiBindingTarget,
+    UiBindingTargetAssignment, UiBindingTargetKind, UiBindingTargetSchema,
+    UI_BINDING_EXPRESSION_INLINE_STACK_CAPACITY, UI_BINDING_EXPRESSION_MAX_DEPTH,
+    UI_BINDING_EXPRESSION_MAX_NODES, UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES,
+    UI_BINDING_EXPRESSION_MAX_TOKENS, UI_BINDING_SCHEMA_NAME_MAX_BYTES,
 };
 pub use compiler::{
-    UiCompileCacheKey, UiCompiledAssetArtifact, UiCompiledAssetCacheRecord,
-    UiCompiledAssetDependency, UiCompiledAssetDependencyManifest, UiCompiledAssetHeader,
-    UiCompiledAssetPackageArtifactEntry, UiCompiledAssetPackageManifest,
-    UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
-    UiCompiledAssetPackageValidationReport, UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+    UiBindingId, UiBindingPackageLifecycleStage, UiCompileCacheKey, UiCompiledActionId,
+    UiCompiledActionPayloadField, UiCompiledActionPayloadValue, UiCompiledAssetArtifact,
+    UiCompiledAssetCacheRecord, UiCompiledAssetDependency, UiCompiledAssetDependencyManifest,
+    UiCompiledAssetHeader, UiCompiledAssetId, UiCompiledAssetPackageArtifactEntry,
+    UiCompiledAssetPackageManifest, UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
+    UiCompiledAssetPackageValidationReport, UiCompiledBinding, UiCompiledBindingExpression,
+    UiCompiledBindingGeneration, UiCompiledBindingHandle, UiCompiledBindingProgram,
+    UiCompiledBindingTarget, UiCompiledBindingTargetEndpoint, UiCompiledBindingTargetId,
+    UiCompiledBindingTargetKind, UiCompiledControlId, UiCompiledNodeBindings, UiCompiledNodeId,
+    UiCompiledRouteId, UiPropertyId, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION, UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
 };
 pub use component_contract::{
     UiComponentApiVersion, UiComponentBindingContract, UiComponentContractDiagnostic,

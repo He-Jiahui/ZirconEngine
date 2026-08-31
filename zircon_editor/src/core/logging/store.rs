@@ -75,11 +75,33 @@ impl EditorLogStore {
             .collect()
     }
 
+    pub fn snapshot_tail(&self, filter: &LogFilter, max_records: usize) -> Vec<LogRecord> {
+        if max_records == 0 {
+            return Vec::new();
+        }
+        let state = self.lock_state();
+        let mut records = Vec::with_capacity(max_records.min(state.records.len()));
+        records.extend(
+            state
+                .records
+                .iter()
+                .rev()
+                .filter(|record| filter.matches(record.entry()))
+                .take(max_records)
+                .cloned(),
+        );
+        records.reverse();
+        records
+    }
+
     pub fn record(&self, sequence: u64) -> Option<LogRecord> {
-        self.lock_state()
+        let state = self.lock_state();
+        let first_sequence = state.records.front()?.sequence();
+        let offset = usize::try_from(sequence.checked_sub(first_sequence)?).ok()?;
+        state
             .records
-            .iter()
-            .find(|record| record.sequence() == sequence)
+            .get(offset)
+            .filter(|record| record.sequence() == sequence)
             .cloned()
     }
 

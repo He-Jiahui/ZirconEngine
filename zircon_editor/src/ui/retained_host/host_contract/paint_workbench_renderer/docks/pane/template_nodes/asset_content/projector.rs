@@ -1,3 +1,5 @@
+#[cfg(feature = "profiling")]
+use std::cell::Cell;
 use std::rc::Rc;
 
 use crate::ui::retained_host::host_contract::data::{
@@ -8,11 +10,13 @@ use crate::ui::retained_host::host_contract::paint_geometry::{
 };
 use crate::ui::retained_host::host_contract::paint_template_nodes::TemplateNodePaintTransform;
 use crate::ui::retained_host::primitives::ModelRc;
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter_batch, UiPerfCounter};
 use crate::ui::workbench::asset_content_layout::{
-    activity_reference_row_index, browser_reference_row_index, browser_source_tree_row_index,
-    ActivityAssetReferenceListKind, ActivityContentNodeIdentity, AssetContentNodeIdentity,
-    AssetContentPaintMetadata, AssetContentRect, AssetContentSurface,
-    BrowserAssetReferenceListKind, BrowserContentNodeIdentity,
+    asset_thumbnail_card_geometry, compact_thumbnail_file_name_to_width,
+    ActivityAssetReferenceListKind, ActivityContentNodeIdentity, AssetBrowserPaintItem,
+    AssetBrowserSlotBinding, AssetContentPaintMetadata, AssetContentRect,
+    AssetContentRowDescriptor, AssetContentSurface, BrowserAssetReferenceListKind,
+    BrowserContentNodeIdentity, BrowserThumbnailNodeRole,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer::docks::pane::template_nodes)
@@ -30,6 +34,8 @@ struct ActivityAssetContentProjector
     references_hovered_index: i32,
     used_by_scroll_px: f32,
     used_by_hovered_index: i32,
+    #[cfg(feature = "profiling")]
+    descriptor_lookup_count: Cell<usize>,
 }
 
 impl ActivityAssetContentProjector {
@@ -66,7 +72,28 @@ impl ActivityAssetContentProjector {
             references_hovered_index: interaction.activity_asset_references_hovered_index,
             used_by_scroll_px: interaction.activity_asset_used_by_scroll_px.max(0.0),
             used_by_hovered_index: interaction.activity_asset_used_by_hovered_index,
+            #[cfg(feature = "profiling")]
+            descriptor_lookup_count: Cell::new(0),
         })
+    }
+
+    #[inline]
+    fn record_descriptor_lookup(&self) {
+        #[cfg(feature = "profiling")]
+        self.descriptor_lookup_count
+            .set(self.descriptor_lookup_count.get().saturating_add(1));
+    }
+}
+
+#[cfg(feature = "profiling")]
+impl Drop for ActivityAssetContentProjector {
+    fn drop(&mut self) {
+        record_current_ui_perf_counter_batch(|counters| {
+            counters.push((
+                UiPerfCounter::AssetContentDescriptorLookupCount,
+                self.descriptor_lookup_count.get() as f64,
+            ));
+        });
     }
 }
 
@@ -82,67 +109,71 @@ impl TemplateNodePaintTransform for ActivityAssetContentProjector {
         ))
     }
 
-    fn transform(
+    fn transform_row(
         &self,
+        row: usize,
         mut node: TemplatePaneNodeData,
         clip: FrameRect,
     ) -> Option<(TemplatePaneNodeData, FrameRect)> {
-        if let Some((list_kind, index)) = activity_reference_row_index(node.control_id.as_str()) {
-            let (reference_clip, scroll_px, hovered_index) = match list_kind {
-                ActivityAssetReferenceListKind::References => (
-                    self.references_clip.as_ref()?,
-                    self.references_scroll_px,
-                    self.references_hovered_index,
-                ),
-                ActivityAssetReferenceListKind::UsedBy => (
-                    self.used_by_clip.as_ref()?,
-                    self.used_by_scroll_px,
-                    self.used_by_hovered_index,
-                ),
-            };
-            node.frame.y -= scroll_px;
-            if node.has_clip_frame {
-                node.clip_frame.y -= scroll_px;
+        self.record_descriptor_lookup();
+        match self.metadata.row_descriptor(row) {
+            AssetContentRowDescriptor::ActivityReference {
+                list_kind,
+                index,
+                paints_hover,
+            } => {
+                let (reference_clip, scroll_px, hovered_index) = match list_kind {
+                    ActivityAssetReferenceListKind::References => (
+                        self.references_clip.as_ref()?,
+                        self.references_scroll_px,
+                        self.references_hovered_index,
+                    ),
+                    ActivityAssetReferenceListKind::UsedBy => (
+                        self.used_by_clip.as_ref()?,
+                        self.used_by_scroll_px,
+                        self.used_by_hovered_index,
+                    ),
+                };
+                node.frame.y -= scroll_px;
+                if node.has_clip_frame {
+                    node.clip_frame.y -= scroll_px;
+                }
+                node.hovered = paints_hover && i32::try_from(index).ok() == Some(hovered_index);
+
+                let reference_clip = intersect(&clip, reference_clip)?;
+                let node_frame = translated(
+                    &frame_from_template(&node.frame),
+                    self.origin_x,
+                    self.origin_y,
+                );
+                intersect(&node_frame, &reference_clip)?;
+                Some((node, reference_clip))
             }
-            node.hovered = node.control_id.as_str().contains("RowPanel")
-                && i32::try_from(index).ok() == Some(hovered_index);
+            AssetContentRowDescriptor::ActivityContent(identity) => {
+                if identity == ActivityContentNodeIdentity::ContentPanel {
+                    return Some((node, clip));
+                }
+                if identity.scrolls() {
+                    node.frame.y -= self.scroll_px;
+                    if node.has_clip_frame {
+                        node.clip_frame.y -= self.scroll_px;
+                    }
+                }
+                node.hovered = identity.is_row()
+                    && identity.shared_row_index(self.metadata.folder_row_count())
+                        == Some(self.hovered_row_index);
 
-            let reference_clip = intersect(&clip, reference_clip)?;
-            let node_frame = translated(
-                &frame_from_template(&node.frame),
-                self.origin_x,
-                self.origin_y,
-            );
-            intersect(&node_frame, &reference_clip)?;
-            return Some((node, reference_clip));
-        }
-        let Some(AssetContentNodeIdentity::Activity(identity)) =
-            self.metadata.identity(node.control_id.as_str())
-        else {
-            return Some((node, clip));
-        };
-        if identity == ActivityContentNodeIdentity::ContentPanel {
-            return Some((node, clip));
-        }
-
-        if self.metadata.is_scroll_node(node.control_id.as_str()) {
-            node.frame.y -= self.scroll_px;
-            if node.has_clip_frame {
-                node.clip_frame.y -= self.scroll_px;
+                let content_clip = intersect(&clip, self.content_clip.as_ref()?)?;
+                let node_frame = translated(
+                    &frame_from_template(&node.frame),
+                    self.origin_x,
+                    self.origin_y,
+                );
+                intersect(&node_frame, &content_clip)?;
+                Some((node, content_clip))
             }
+            _ => Some((node, clip)),
         }
-        node.hovered = identity.is_row()
-            && identity.shared_row_index(self.metadata.folder_row_count())
-                == Some(self.hovered_row_index);
-
-        let content_clip = intersect(&clip, self.content_clip.as_ref()?)?;
-        let node_frame = translated(
-            &frame_from_template(&node.frame),
-            self.origin_x,
-            self.origin_y,
-        );
-        intersect(&node_frame, &content_clip)?;
-        Some((node, content_clip))
     }
 }
 
@@ -164,13 +195,8 @@ struct BrowserAssetContentProjector
     references_hovered_index: i32,
     used_by_scroll_px: f32,
     used_by_hovered_index: i32,
-    mode: BrowserAssetContentProjectionMode,
-}
-
-#[derive(Clone, Copy)]
-enum BrowserAssetContentProjectionMode {
-    List,
-    Thumbnail,
+    #[cfg(feature = "profiling")]
+    descriptor_lookup_count: Cell<usize>,
 }
 
 impl BrowserAssetContentProjector {
@@ -200,11 +226,6 @@ impl BrowserAssetContentProjector {
         {
             return None;
         }
-        let mode = if metadata.browser_uses_thumbnails() {
-            BrowserAssetContentProjectionMode::Thumbnail
-        } else {
-            BrowserAssetContentProjectionMode::List
-        };
         Some(Self {
             metadata,
             origin_x: origin.x,
@@ -221,14 +242,34 @@ impl BrowserAssetContentProjector {
             references_hovered_index: interaction.browser_asset_references_hovered_index,
             used_by_scroll_px: interaction.browser_asset_used_by_scroll_px.max(0.0),
             used_by_hovered_index: interaction.browser_asset_used_by_hovered_index,
-            mode,
+            #[cfg(feature = "profiling")]
+            descriptor_lookup_count: Cell::new(0),
         })
+    }
+
+    #[inline]
+    fn record_descriptor_lookup(&self) {
+        #[cfg(feature = "profiling")]
+        self.descriptor_lookup_count
+            .set(self.descriptor_lookup_count.get().saturating_add(1));
+    }
+}
+
+#[cfg(feature = "profiling")]
+impl Drop for BrowserAssetContentProjector {
+    fn drop(&mut self) {
+        record_current_ui_perf_counter_batch(|counters| {
+            counters.push((
+                UiPerfCounter::AssetContentDescriptorLookupCount,
+                self.descriptor_lookup_count.get() as f64,
+            ));
+        });
     }
 }
 
 impl TemplateNodePaintTransform for BrowserAssetContentProjector {
     fn row_visit_indices(&self, _row_count: usize, clip: &FrameRect) -> Option<Vec<usize>> {
-        Some(self.metadata.visible_browser_node_rows(
+        let (rows, visible_item_count) = self.metadata.visible_browser_node_rows(
             self.scroll_px,
             self.source_tree_scroll_px,
             self.references_scroll_px,
@@ -236,91 +277,223 @@ impl TemplateNodePaintTransform for BrowserAssetContentProjector {
             self.origin_x,
             self.origin_y,
             asset_content_rect(clip),
-        ))
+        );
+        record_current_ui_perf_counter_batch(|counters| {
+            counters.extend_from_slice(&[
+                (
+                    UiPerfCounter::AssetBrowserLogicalItemCount,
+                    self.metadata.browser_logical_item_count() as f64,
+                ),
+                (
+                    UiPerfCounter::AssetBrowserMaterializedItemCount,
+                    self.metadata.browser_materialized_item_count() as f64,
+                ),
+                (
+                    UiPerfCounter::AssetBrowserMaterializedNodeCount,
+                    self.metadata.browser_materialized_node_count() as f64,
+                ),
+                (
+                    UiPerfCounter::AssetBrowserVisibleItemCount,
+                    visible_item_count as f64,
+                ),
+                (
+                    UiPerfCounter::AssetBrowserVisibleNodeCount,
+                    rows.len() as f64,
+                ),
+            ]);
+        });
+        Some(rows)
     }
 
-    fn transform(
+    fn transform_row(
         &self,
+        row: usize,
         mut node: TemplatePaneNodeData,
         clip: FrameRect,
     ) -> Option<(TemplatePaneNodeData, FrameRect)> {
-        if let Some(index) = browser_source_tree_row_index(node.control_id.as_str()) {
-            let source_tree_clip = self.source_tree_clip.as_ref()?;
-            node.frame.y -= self.source_tree_scroll_px;
-            if node.has_clip_frame {
-                node.clip_frame.y -= self.source_tree_scroll_px;
+        self.record_descriptor_lookup();
+        match self.metadata.row_descriptor(row) {
+            AssetContentRowDescriptor::BrowserSourceTree { index } => {
+                let source_tree_clip = self.source_tree_clip.as_ref()?;
+                node.frame.y -= self.source_tree_scroll_px;
+                if node.has_clip_frame {
+                    node.clip_frame.y -= self.source_tree_scroll_px;
+                }
+                node.hovered = i32::try_from(index).ok() == Some(self.source_tree_hovered_index);
+
+                let source_tree_clip = intersect(&clip, source_tree_clip)?;
+                let node_frame = translated(
+                    &frame_from_template(&node.frame),
+                    self.origin_x,
+                    self.origin_y,
+                );
+                intersect(&node_frame, &source_tree_clip)?;
+                Some((node, source_tree_clip))
             }
-            node.hovered = i32::try_from(index).ok() == Some(self.source_tree_hovered_index);
+            AssetContentRowDescriptor::BrowserReference {
+                list_kind,
+                index,
+                paints_hover,
+            } => {
+                let (reference_clip, scroll_px, hovered_index) = match list_kind {
+                    BrowserAssetReferenceListKind::References => (
+                        self.references_clip.as_ref()?,
+                        self.references_scroll_px,
+                        self.references_hovered_index,
+                    ),
+                    BrowserAssetReferenceListKind::UsedBy => (
+                        self.used_by_clip.as_ref()?,
+                        self.used_by_scroll_px,
+                        self.used_by_hovered_index,
+                    ),
+                };
+                node.frame.y -= scroll_px;
+                if node.has_clip_frame {
+                    node.clip_frame.y -= scroll_px;
+                }
+                node.hovered = paints_hover && i32::try_from(index).ok() == Some(hovered_index);
 
-            let source_tree_clip = intersect(&clip, source_tree_clip)?;
-            let node_frame = translated(
-                &frame_from_template(&node.frame),
-                self.origin_x,
-                self.origin_y,
-            );
-            intersect(&node_frame, &source_tree_clip)?;
-            return Some((node, source_tree_clip));
-        }
-        if let Some((list_kind, index)) = browser_reference_row_index(node.control_id.as_str()) {
-            let (reference_clip, scroll_px, hovered_index) = match list_kind {
-                BrowserAssetReferenceListKind::References => (
-                    self.references_clip.as_ref()?,
-                    self.references_scroll_px,
-                    self.references_hovered_index,
-                ),
-                BrowserAssetReferenceListKind::UsedBy => (
-                    self.used_by_clip.as_ref()?,
-                    self.used_by_scroll_px,
-                    self.used_by_hovered_index,
-                ),
-            };
-            node.frame.y -= scroll_px;
-            if node.has_clip_frame {
-                node.clip_frame.y -= scroll_px;
+                let reference_clip = intersect(&clip, reference_clip)?;
+                let node_frame = translated(
+                    &frame_from_template(&node.frame),
+                    self.origin_x,
+                    self.origin_y,
+                );
+                intersect(&node_frame, &reference_clip)?;
+                Some((node, reference_clip))
             }
-            node.hovered = node.control_id.as_str().contains("RowPanel")
-                && i32::try_from(index).ok() == Some(hovered_index);
+            AssetContentRowDescriptor::BrowserContent(identity) => {
+                let (slot_index, paints_hover, thumbnail_role) = match identity {
+                    BrowserContentNodeIdentity::Row { index } => (index, true, None),
+                    BrowserContentNodeIdentity::Thumbnail { index, role } => {
+                        (index, role.paints_hover(), Some(role))
+                    }
+                    _ => return Some((node, clip)),
+                };
+                let (logical_index, y_offset) = if self.metadata.browser_has_virtual_items() {
+                    let binding = self
+                        .metadata
+                        .browser_slot_binding(self.scroll_px, slot_index)?;
+                    let thumbnail_slot_card = thumbnail_role
+                        .and_then(|_| self.metadata.browser_thumbnail_slot_card_frame(slot_index));
+                    if !apply_browser_slot_item(
+                        &mut node,
+                        binding,
+                        thumbnail_role,
+                        thumbnail_slot_card,
+                    ) {
+                        return None;
+                    }
+                    (binding.logical_index, binding.y_offset)
+                } else {
+                    (slot_index, 0.0)
+                };
 
-            let reference_clip = intersect(&clip, reference_clip)?;
-            let node_frame = translated(
-                &frame_from_template(&node.frame),
-                self.origin_x,
-                self.origin_y,
+                node.frame.y += y_offset - self.scroll_px;
+                if node.has_clip_frame {
+                    node.clip_frame.y += y_offset - self.scroll_px;
+                }
+                node.hovered = paints_hover
+                    && i32::try_from(logical_index).ok() == Some(self.hovered_row_index);
+
+                let row_clip = intersect(&clip, self.row_clip.as_ref()?)?;
+                let node_frame = translated(
+                    &frame_from_template(&node.frame),
+                    self.origin_x,
+                    self.origin_y,
+                );
+                intersect(&node_frame, &row_clip)?;
+                Some((node, row_clip))
+            }
+            _ => Some((node, clip)),
+        }
+    }
+}
+
+fn apply_browser_slot_item(
+    node: &mut TemplatePaneNodeData,
+    binding: AssetBrowserSlotBinding<'_>,
+    thumbnail_role: Option<BrowserThumbnailNodeRole>,
+    thumbnail_slot_card: Option<AssetContentRect>,
+) -> bool {
+    match binding.item {
+        AssetBrowserPaintItem::List(item) => {
+            node.text = item.text.clone().into();
+            node.options = item.cells.clone();
+            node.selected = binding.selected;
+            true
+        }
+        AssetBrowserPaintItem::Thumbnail(item) => {
+            let role = thumbnail_role?;
+            let slot_card = thumbnail_slot_card?;
+            if role == BrowserThumbnailNodeRole::SelectionMarker && !binding.selected {
+                return false;
+            }
+            let geometry = asset_thumbnail_card_geometry(
+                slot_card,
+                !item.name_continuation.is_empty(),
+                item.type_label_width,
             );
-            intersect(&node_frame, &reference_clip)?;
-            return Some((node, reference_clip));
+            apply_thumbnail_item_frame(node, geometry.for_role(role));
+            node.selected = binding.selected;
+            match role {
+                BrowserThumbnailNodeRole::Card => {
+                    node.border_width = if binding.selected { 1.0 } else { 0.0 };
+                }
+                BrowserThumbnailNodeRole::Visual => {
+                    node.component_variant = item.visual_variant.clone().into();
+                    node.media_source = item.preview_artifact_path.clone().into();
+                    node.has_preview_image = !item.preview_artifact_path.trim().is_empty();
+                    node.surface_variant = if binding.selected {
+                        "asset-preview-visual".into()
+                    } else {
+                        "asset-placeholder-visual".into()
+                    };
+                }
+                BrowserThumbnailNodeRole::NameContinuation => {
+                    node.text = item.name_continuation.clone().into();
+                }
+                BrowserThumbnailNodeRole::Name => {
+                    node.text = if item.source_file_name.is_empty() {
+                        item.name.clone()
+                    } else {
+                        compact_thumbnail_file_name_to_width(
+                            item.source_file_name.as_str(),
+                            item.file_extension.as_str(),
+                            node.frame.width,
+                            node.font_size,
+                        )
+                    }
+                    .into();
+                    node.value_text = item.source_file_name.clone().into();
+                }
+                BrowserThumbnailNodeRole::Type => {
+                    node.text = item.type_label.clone().into();
+                }
+                BrowserThumbnailNodeRole::Meta => {
+                    node.text = item.state_label.clone().into();
+                }
+                BrowserThumbnailNodeRole::InfoBand
+                | BrowserThumbnailNodeRole::SelectionMarker
+                | BrowserThumbnailNodeRole::TypeBadge => {}
+            }
+            true
         }
-        let Some(AssetContentNodeIdentity::Browser(identity)) =
-            self.metadata.identity(node.control_id.as_str())
-        else {
-            return Some((node, clip));
-        };
-        let (index, paints_hover) = match (self.mode, identity) {
-            (
-                BrowserAssetContentProjectionMode::List,
-                BrowserContentNodeIdentity::Row { index },
-            ) => (index, true),
-            (
-                BrowserAssetContentProjectionMode::Thumbnail,
-                BrowserContentNodeIdentity::Thumbnail { index, role },
-            ) => (index, role.paints_hover()),
-            _ => return Some((node, clip)),
-        };
+    }
+}
 
-        node.frame.y -= self.scroll_px;
-        if node.has_clip_frame {
-            node.clip_frame.y -= self.scroll_px;
-        }
-        node.hovered = paints_hover && i32::try_from(index).ok() == Some(self.hovered_row_index);
-
-        let row_clip = intersect(&clip, self.row_clip.as_ref()?)?;
-        let node_frame = translated(
-            &frame_from_template(&node.frame),
-            self.origin_x,
-            self.origin_y,
-        );
-        intersect(&node_frame, &row_clip)?;
-        Some((node, row_clip))
+fn apply_thumbnail_item_frame(node: &mut TemplatePaneNodeData, frame: AssetContentRect) {
+    let delta_x = frame.x - node.frame.x;
+    let delta_y = frame.y - node.frame.y;
+    node.frame.x = frame.x;
+    node.frame.y = frame.y;
+    node.frame.width = frame.width;
+    node.frame.height = frame.height;
+    if node.has_clip_frame {
+        node.clip_frame.x += delta_x;
+        node.clip_frame.y += delta_y;
+        node.clip_frame.width = frame.width;
+        node.clip_frame.height = frame.height;
     }
 }
 

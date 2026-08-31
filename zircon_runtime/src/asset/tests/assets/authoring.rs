@@ -55,6 +55,66 @@ fn authoring_assets_roundtrip_and_collect_references() {
 }
 
 #[test]
+fn optimization_batch_20260826c_runtime86_terrain_references_append_into_one_reserved_buffer() {
+    let source = include_str!("../../assets/authoring.rs");
+    let terrain = source
+        .split_once("impl TerrainAsset")
+        .expect("terrain asset implementation should exist")
+        .1
+        .split_once("impl TerrainLayerAsset")
+        .expect("terrain layer implementation should exist")
+        .0;
+
+    assert!(terrain.contains("let reference_capacity = self"));
+    assert!(terrain.contains("TerrainLayerAsset::direct_reference_count"));
+    assert!(terrain.contains("Vec::with_capacity(reference_capacity)"));
+    assert!(terrain.contains("layer.append_direct_references(&mut references)"));
+    assert!(!terrain.contains("flat_map(TerrainLayerAsset::direct_references)"));
+}
+
+#[test]
+fn optimization_batch_20260826c_runtime86_terrain_references_preserve_layer_order() {
+    let material_a = reference("res://materials/a.zmaterial");
+    let weightmap_b = reference("res://terrain/b.png");
+    let material_c = reference("res://materials/c.zmaterial");
+    let weightmap_c = reference("res://terrain/c.png");
+    let terrain = TerrainAsset {
+        uri: AssetUri::parse("res://terrain/order.terrain.toml").unwrap(),
+        name: "Order".to_string(),
+        width: 1,
+        height: 1,
+        sample_spacing: 1.0,
+        height_scale: 1.0,
+        height_samples: vec![0.0],
+        layers: vec![
+            TerrainLayerAsset {
+                name: "A".to_string(),
+                material: Some(material_a.clone()),
+                weightmap: None,
+                strength: 1.0,
+            },
+            TerrainLayerAsset {
+                name: "B".to_string(),
+                material: None,
+                weightmap: Some(weightmap_b.clone()),
+                strength: 1.0,
+            },
+            TerrainLayerAsset {
+                name: "C".to_string(),
+                material: Some(material_c.clone()),
+                weightmap: Some(weightmap_c.clone()),
+                strength: 1.0,
+            },
+        ],
+    };
+
+    assert_eq!(
+        terrain.direct_references(),
+        vec![material_a, weightmap_b, material_c, weightmap_c]
+    );
+}
+
+#[test]
 fn tilemap_asset_validates_projection_and_layer_sizes() {
     let tile_set = reference("res://tiles/world.tileset.toml");
     let tilemap = TileMapAsset {

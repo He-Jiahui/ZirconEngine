@@ -25,13 +25,13 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "MenuAction",
         "OpenProject",
-        EditorUiBindingPayload::menu_action("workbench.project.open"),
+        EditorUiBindingPayload::editor_command("file.project.open"),
     );
     insert_click(
         &mut bindings,
         "MenuAction",
         "SaveProject",
-        EditorUiBindingPayload::menu_action("workbench.project.save"),
+        EditorUiBindingPayload::editor_command("file.project.save"),
     );
     insert_submit(
         &mut bindings,
@@ -92,12 +92,26 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
             GridMode::VisibleAndSnap,
         )),
     );
+    insert_click(
+        &mut bindings,
+        "Workbench",
+        "ToggleSnapFromStatus",
+        EditorUiBindingPayload::viewport_command(ViewportCommand::SetGridMode(
+            GridMode::VisibleAndSnap,
+        )),
+    );
+    insert_click(
+        &mut bindings,
+        "Workbench",
+        "FrameSelectionFromStatus",
+        EditorUiBindingPayload::viewport_command(ViewportCommand::FrameSelection),
+    );
 
     insert_click(
         &mut bindings,
         "Run",
         "Play",
-        EditorUiBindingPayload::menu_action("workbench.play_mode.enter"),
+        EditorUiBindingPayload::editor_command("runtime.play_mode.enter"),
     );
     insert_click(
         &mut bindings,
@@ -169,6 +183,30 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         "OpenFilter",
         EditorUiBindingPayload::menu_action("workbench.hierarchy.filter.open"),
     );
+    insert_change(
+        &mut bindings,
+        "Workbench",
+        "SceneSearchEdit",
+        EditorUiBindingPayload::menu_action("workbench.hierarchy.search.edit"),
+    );
+    insert_submit(
+        &mut bindings,
+        "Workbench",
+        "SceneSearchCommit",
+        EditorUiBindingPayload::menu_action("workbench.hierarchy.search.commit"),
+    );
+    insert_change(
+        &mut bindings,
+        "Workbench",
+        "SceneSearchEditFromShell",
+        EditorUiBindingPayload::menu_action("workbench.hierarchy.search.edit"),
+    );
+    insert_submit(
+        &mut bindings,
+        "Workbench",
+        "SceneSearchCommitFromShell",
+        EditorUiBindingPayload::menu_action("workbench.hierarchy.search.commit"),
+    );
     insert_click(
         &mut bindings,
         "Hierarchy",
@@ -205,29 +243,17 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         EditorUiBindingPayload::menu_action("workbench.inspector.component.add"),
     );
     insert_inspector_transform_axis_bindings(&mut bindings);
-    insert_click(
+    insert_change(
         &mut bindings,
-        "PanelTab",
-        "SceneTreeScene",
-        EditorUiBindingPayload::menu_action("scene_tree.scene_tab.select"),
+        "Inspector",
+        "RenderLayerMaskEdit",
+        EditorUiBindingPayload::menu_action("inspector.render_layer_mask.edit"),
     );
-    insert_click(
+    insert_submit(
         &mut bindings,
-        "PanelTab",
-        "SceneTreeLayers",
-        EditorUiBindingPayload::menu_action("scene_tree.layers_tab.select"),
-    );
-    insert_click(
-        &mut bindings,
-        "PanelTab",
-        "InspectorMain",
-        EditorUiBindingPayload::menu_action("inspector.main_tab.select"),
-    );
-    insert_click(
-        &mut bindings,
-        "PanelTab",
-        "InspectorHistory",
-        EditorUiBindingPayload::menu_action("inspector.history_tab.select"),
+        "Inspector",
+        "RenderLayerMaskCommit",
+        EditorUiBindingPayload::menu_action("inspector.render_layer_mask.commit"),
     );
     insert_click(
         &mut bindings,
@@ -277,6 +303,23 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         "DeleteButton",
         EditorUiBindingPayload::menu_action("component_lab.button.delete"),
     );
+    for (name, action) in [
+        ("MiniAdd", "component_lab.icon_button.add"),
+        ("MiniOpen", "component_lab.icon_button.open"),
+        ("MiniSave", "component_lab.icon_button.save"),
+        ("MiniDelete", "component_lab.icon_button.delete"),
+        ("MiniShow", "component_lab.icon_button.show"),
+        ("MiniHide", "component_lab.icon_button.hide"),
+        ("MiniLock", "component_lab.icon_button.lock"),
+        ("MiniMore", "component_lab.icon_button.more"),
+    ] {
+        insert_click(
+            &mut bindings,
+            "ComponentLab",
+            name,
+            EditorUiBindingPayload::menu_action(action),
+        );
+    }
     insert_click(
         &mut bindings,
         "ComponentLab",
@@ -325,6 +368,25 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         "InputSearchCommit",
         EditorUiBindingPayload::menu_action("component_lab.input_search.commit"),
     );
+    for (control, action) in [
+        ("InputStepper", "input_stepper"),
+        ("InputSlider", "input_slider"),
+        ("InputRangeSlider", "input_range_slider"),
+        ("InputStepsSlider", "input_steps_slider"),
+    ] {
+        insert_change(
+            &mut bindings,
+            "ComponentLab",
+            &format!("{control}Edit"),
+            EditorUiBindingPayload::menu_action(format!("component_lab.{action}.edit")),
+        );
+        insert_submit(
+            &mut bindings,
+            "ComponentLab",
+            &format!("{control}Commit"),
+            EditorUiBindingPayload::menu_action(format!("component_lab.{action}.commit")),
+        );
+    }
     insert_click(
         &mut bindings,
         "ComponentLab",
@@ -441,6 +503,12 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         "ToggleTheme",
         EditorUiBindingPayload::menu_action("workbench.theme.toggle"),
     );
+    insert_click(
+        &mut bindings,
+        "Workbench",
+        "ToggleModuleDetailsDrawer",
+        EditorUiBindingPayload::menu_action("workbench.module.details_drawer.toggle"),
+    );
 
     bindings
 }
@@ -538,6 +606,76 @@ mod tests {
     }
 
     #[test]
+    fn scene_search_and_component_lab_numeric_fields_have_edit_and_commit_bindings() {
+        let bindings = workbench_window_template_bindings();
+
+        for (binding_id, event_kind, action) in [
+            (
+                "Workbench/SceneSearchEdit",
+                EditorUiEventKind::Change,
+                "workbench.hierarchy.search.edit",
+            ),
+            (
+                "Workbench/SceneSearchCommit",
+                EditorUiEventKind::Submit,
+                "workbench.hierarchy.search.commit",
+            ),
+            (
+                "Workbench/SceneSearchEditFromShell",
+                EditorUiEventKind::Change,
+                "workbench.hierarchy.search.edit",
+            ),
+            (
+                "Workbench/SceneSearchCommitFromShell",
+                EditorUiEventKind::Submit,
+                "workbench.hierarchy.search.commit",
+            ),
+        ] {
+            assert_menu_binding(&bindings, binding_id, event_kind, action);
+        }
+        for (control, action) in [
+            ("InputStepper", "input_stepper"),
+            ("InputSlider", "input_slider"),
+            ("InputRangeSlider", "input_range_slider"),
+            ("InputStepsSlider", "input_steps_slider"),
+        ] {
+            assert_menu_binding(
+                &bindings,
+                &format!("ComponentLab/{control}Edit"),
+                EditorUiEventKind::Change,
+                &format!("component_lab.{action}.edit"),
+            );
+            assert_menu_binding(
+                &bindings,
+                &format!("ComponentLab/{control}Commit"),
+                EditorUiEventKind::Submit,
+                &format!("component_lab.{action}.commit"),
+            );
+        }
+    }
+
+    #[test]
+    fn component_lab_icon_button_samples_have_click_bindings() {
+        let bindings = workbench_window_template_bindings();
+
+        for (binding_id, action) in [
+            ("ComponentLab/MiniAdd", "component_lab.icon_button.add"),
+            ("ComponentLab/MiniOpen", "component_lab.icon_button.open"),
+            ("ComponentLab/MiniSave", "component_lab.icon_button.save"),
+            (
+                "ComponentLab/MiniDelete",
+                "component_lab.icon_button.delete",
+            ),
+            ("ComponentLab/MiniShow", "component_lab.icon_button.show"),
+            ("ComponentLab/MiniHide", "component_lab.icon_button.hide"),
+            ("ComponentLab/MiniLock", "component_lab.icon_button.lock"),
+            ("ComponentLab/MiniMore", "component_lab.icon_button.more"),
+        ] {
+            assert_menu_binding(&bindings, binding_id, EditorUiEventKind::Click, action);
+        }
+    }
+
+    #[test]
     fn workbench_command_palette_commit_binding_is_registered() {
         let bindings = workbench_window_template_bindings();
         let binding = bindings
@@ -567,6 +705,50 @@ mod tests {
             window_binding.payload(),
             &EditorUiBindingPayload::menu_action("editor.command_palette.window_requested")
         );
+    }
+
+    #[test]
+    fn top_toolbar_registered_commands_dispatch_through_the_command_registry() {
+        let bindings = workbench_window_template_bindings();
+
+        for (binding_id, command_id) in [
+            ("MenuAction/OpenProject", "file.project.open"),
+            ("MenuAction/SaveProject", "file.project.save"),
+            ("Run/Play", "runtime.play_mode.enter"),
+        ] {
+            let binding = bindings
+                .get(binding_id)
+                .unwrap_or_else(|| panic!("{binding_id} should be registered"));
+            assert_eq!(binding.path().event_kind, EditorUiEventKind::Click);
+            assert_eq!(
+                binding.payload(),
+                &EditorUiBindingPayload::editor_command(command_id)
+            );
+        }
+    }
+
+    #[test]
+    fn status_shortcuts_have_unique_bindings_with_canonical_viewport_payloads() {
+        let bindings = workbench_window_template_bindings();
+
+        for (binding_id, expected_payload) in [
+            (
+                "Workbench/ToggleSnapFromStatus",
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetGridMode(
+                    GridMode::VisibleAndSnap,
+                )),
+            ),
+            (
+                "Workbench/FrameSelectionFromStatus",
+                EditorUiBindingPayload::viewport_command(ViewportCommand::FrameSelection),
+            ),
+        ] {
+            let binding = bindings
+                .get(binding_id)
+                .unwrap_or_else(|| panic!("{binding_id} should be registered"));
+            assert_eq!(binding.path().event_kind, EditorUiEventKind::Click);
+            assert_eq!(binding.payload(), &expected_payload);
+        }
     }
 
     fn assert_menu_binding(

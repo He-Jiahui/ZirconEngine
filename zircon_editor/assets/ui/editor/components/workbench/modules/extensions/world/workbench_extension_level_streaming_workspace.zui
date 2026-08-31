@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "level_streaming_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.level_streaming_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionLevelStreamingWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "level_streaming_rail_gap" }, { node = "level_streaming_left" }, { node = "level_streaming_center" }, { node = "level_streaming_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "level_streaming_workspace_main" },
+  { node = "level_streaming_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.level_streaming_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_streaming_rail_gap" }, { node = "level_streaming_left" }, { node = "level_streaming_center" }, { node = "level_streaming_right_reserve" }]
+
+[nodes.level_streaming_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.level_streaming_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionLevelStreamingRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.level_streaming_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLevelStreamingLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "level_streaming_title" }, { node = "level_streaming_cells_tab" }, { node = "level_streaming_rules_tab" }, { node = "level_streaming_events_tab" }, { node = "level_streaming_world_row" }, { node = "level_streaming_cell_a12_row" }, { node = "level_streaming_rule_player_distance_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_streaming_title" }, { node = "level_streaming_left_content" }]
+
+[nodes.level_streaming_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionLevelStreamingLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_streaming_world_row" }, { node = "level_streaming_cell_a12_row" }, { node = "level_streaming_rule_player_distance_row" }]
 
 [nodes.level_streaming_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionLevelStreamingTitle"
 props = { text = "Level Streaming" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.level_streaming_cells_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionLevelStreamingCellsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Cells", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LevelStreamingCellsTab", event = "Click", route = "workbench.extension.level_streaming.cells" }]
-
-[nodes.level_streaming_rules_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionLevelStreamingRulesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Rules", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LevelStreamingRulesTab", event = "Click", route = "workbench.extension.level_streaming.rules" }]
-
-[nodes.level_streaming_events_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionLevelStreamingEventsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Events", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LevelStreamingEventsTab", event = "Click", route = "workbench.extension.level_streaming.events" }]
 
 [nodes.level_streaming_world_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/LevelStreamingRulePlayerDistanceRow", event
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLevelStreamingCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "level_streaming_center_header" }, { node = "level_streaming_cell_table" }, { node = "level_streaming_output" }]
 
 [nodes.level_streaming_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionLevelStreamingCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "level_streaming_center_title" }, { node = "level_streaming_header_fill" }, { node = "level_streaming_preview_button" }, { node = "level_streaming_load_button" }]
 
 [nodes.level_streaming_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionLevelStreamingPreviewButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Preview", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Preview", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LevelStreamingPreview", event = "Click", route = "workbench.extension.level_streaming.preview" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/LevelStreamingPreview", event = "Click", ro
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionLevelStreamingLoadButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Load", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Load", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LevelStreamingLoad", event = "Click", route = "workbench.extension.level_streaming.load" }]
 
 [nodes.level_streaming_cell_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionLevelStreamingCellTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "level_streaming_cell_a12_table_row" }, { node = "level_streaming_cell_a13_table_row" }, { node = "level_streaming_hlod_04_table_row" }, { node = "level_streaming_cell_b12_table_row" }]
 
 [nodes.level_streaming_cell_a12_table_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/LevelStreamingCellB12TableRow", event = "Cl
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionLevelStreamingOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Streaming Output", value_text = "18 loaded   2 warnings   async" }
+props = { text = "Streaming Output", value_text = "18 loaded   2 warnings   async", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LevelStreamingOutput", event = "Click", route = "workbench.extension.level_streaming.output" }]
 
 [nodes.level_streaming_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLevelStreamingRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "level_streaming_details_title" }, { node = "level_streaming_cell_dropdown" }, { node = "level_streaming_rule_dropdown" }, { node = "level_streaming_distance_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_streaming_details_title" }, { node = "level_streaming_right_content" }]
+
+[nodes.level_streaming_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionLevelStreamingRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "level_streaming_cell_dropdown_property_row" }, { node = "level_streaming_rule_dropdown_property_row" }, { node = "level_streaming_distance_field_property_row" }]
 
 [nodes.level_streaming_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,27 +202,48 @@ control_id = "WorkbenchExtensionLevelStreamingDetailsTitle"
 props = { text = "Streaming Rules" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.level_streaming_cell_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionLevelStreamingCellDropdownPropertyRow"
+props = { text = "Cell" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "level_streaming_cell_dropdown", slot = { name = "value" } }]
+
 [nodes.level_streaming_cell_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionLevelStreamingCellDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Cell_A12", value = "Cell_A12", options = ["Cell_A12", "Cell_A13", "HLOD_04", "Cell_B12"] }
+props = { value_text = "Cell_A12", value = "Cell_A12", options = ["Cell_A12", "Cell_A13", "HLOD_04", "Cell_B12"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/LevelStreamingCellEdit", event = "Change", route = "workbench.extension.level_streaming.cell.edit" },
   { id = "WorkbenchExtension/LevelStreamingCellCommit", event = "Submit", route = "workbench.extension.level_streaming.cell.commit" },
 ]
 
+[nodes.level_streaming_rule_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionLevelStreamingRuleDropdownPropertyRow"
+props = { text = "Rule" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "level_streaming_rule_dropdown", slot = { name = "value" } }]
+
 [nodes.level_streaming_rule_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionLevelStreamingRuleDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Player Distance", value = "Player Distance", options = ["Player Distance", "Always Loaded", "Data Layer", "Manual"] }
+props = { value_text = "Player Distance", value = "Player Distance", options = ["Player Distance", "Always Loaded", "Data Layer", "Manual"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/LevelStreamingRuleEdit", event = "Change", route = "workbench.extension.level_streaming.rule.edit" },
   { id = "WorkbenchExtension/LevelStreamingRuleCommit", event = "Submit", route = "workbench.extension.level_streaming.rule.commit" },
 ]
+
+[nodes.level_streaming_distance_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionLevelStreamingDistanceFieldPropertyRow"
+props = { text = "Distance" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "level_streaming_distance_field", slot = { name = "value" } }]
 
 [nodes.level_streaming_distance_field]
 component = "WorkbenchField"

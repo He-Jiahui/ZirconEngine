@@ -4,7 +4,7 @@ use super::super::super::template::dispatch_template_pane_target_button;
 use super::input::ResultPaneTargetInput;
 
 pub(super) fn dispatch_template_result_target(
-    input: &ResultPaneTargetInput<'_, '_>,
+    input: &ResultPaneTargetInput<'_, '_, '_>,
 ) -> Option<NativePointerDispatchResult> {
     dispatch_template_pane_target_button(
         input.ui,

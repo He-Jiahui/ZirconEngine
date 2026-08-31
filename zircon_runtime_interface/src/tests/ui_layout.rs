@@ -210,7 +210,7 @@ fn ui_tree_slot_contract_defaults_missing_slots_and_round_trips_slots() {
     let legacy_tree: UiTree =
         serde_json::from_str(r#"{"tree_id":"legacy.template.tree","roots":[],"nodes":{}}"#)
             .unwrap();
-    assert!(legacy_tree.slots.is_empty());
+    assert!(legacy_tree.layout_slots().is_empty());
 
     let parent_id = UiNodeId::new(1);
     let child_id = UiNodeId::new(2);
@@ -219,14 +219,11 @@ fn ui_tree_slot_contract_defaults_missing_slots_and_round_trips_slots() {
         .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::Fill))
         .with_order(5)
         .with_z_order(9);
-    let tree = UiTree {
-        tree_id: UiTreeId::new("slot.template.tree"),
-        roots: vec![parent_id],
-        nodes: Default::default(),
-        slots: vec![slot.clone()],
-    };
+    let mut tree = UiTree::new(UiTreeId::new("slot.template.tree"));
+    tree.roots.push(parent_id);
+    tree.push_layout_slot(slot.clone());
 
     let round_trip: UiTree = serde_json::from_str(&serde_json::to_string(&tree).unwrap()).unwrap();
 
-    assert_eq!(round_trip.slots, vec![slot]);
+    assert_eq!(round_trip.layout_slots(), &[slot]);
 }

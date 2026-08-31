@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use crate::ui::timeline_strip::{TimelineStripGeneration, TimelineStripStaticContent};
@@ -8,6 +10,10 @@ use super::super::render_commands::HostPaintCommand;
 use super::geometry::TimelineStripGeometry;
 use super::metrics::TimelineStripMetrics;
 use super::palette::TimelineStripPalette;
+
+#[cfg(test)]
+#[path = "text/capacity_tests.rs"]
+mod capacity_tests;
 
 pub(super) fn push_timeline_text(
     commands: &mut Vec<HostPaintCommand>,
@@ -42,7 +48,7 @@ pub(super) fn push_timeline_text(
             ),
             clip,
             order + 6,
-            tick.label().to_owned(),
+            tick.label(),
             palette.tick_text,
             metrics,
             opacity,
@@ -61,7 +67,7 @@ pub(super) fn push_timeline_text(
             },
             clip,
             order + 7,
-            generation.track_label().to_owned(),
+            generation.track_label(),
             palette.track_text,
             metrics,
             opacity,
@@ -93,16 +99,17 @@ pub(super) fn push_timeline_text(
     );
 }
 
-fn push_text(
+fn push_text<'a>(
     commands: &mut Vec<HostPaintCommand>,
     frame: FrameRect,
     clip: &FrameRect,
     order: i32,
-    text: String,
+    text: impl Into<Cow<'a, str>>,
     color: [u8; 4],
     metrics: TimelineStripMetrics,
     opacity: f32,
 ) {
+    let text = text.into();
     if text.trim().is_empty()
         || !frame.x.is_finite()
         || !frame.y.is_finite()
@@ -117,7 +124,7 @@ fn push_text(
         frame,
         Some(clip.clone()),
         order,
-        text,
+        text.into_owned(),
         color,
         metrics.font_size,
         metrics.line_height,

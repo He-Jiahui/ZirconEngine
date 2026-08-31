@@ -1,12 +1,19 @@
 //! Render graph construction and compilation.
 
+mod access;
 mod builder;
 mod dump;
 mod error;
 mod graph;
+mod resource_schema;
 mod store_lint;
 mod types;
 
+pub use access::{
+    RenderGraphBufferRange, RenderGraphResourceAccessId, RenderGraphResourceAccessIntent,
+    RenderGraphResourceAccessMetadata, RenderGraphResourceAccessRange, RenderGraphShaderStages,
+    RenderGraphTextureAspect, RenderGraphTextureSubresourceRange, RenderGraphVersionedAccessKey,
+};
 pub use builder::RenderGraphBuilder;
 pub use dump::{
     RenderGraphDump, RenderGraphDumpPassResourceRow, RenderGraphDumpPassRow,
@@ -14,8 +21,18 @@ pub use dump::{
 };
 pub use error::RenderGraphError;
 pub use graph::{
-    CompiledRenderGraph, CompiledRenderGraphStats, CompiledRenderGraphTransientAllocation,
-    CompiledRenderGraphTransientAllocationPlan, CompiledRenderPass,
+    CompiledRenderGraph, CompiledRenderGraphAccessAllocationBinding,
+    CompiledRenderGraphAccessAllocationTable, CompiledRenderGraphComputeBindingAccess,
+    CompiledRenderGraphComputeBindingAccessPacket, CompiledRenderGraphComputeDispatchAccess,
+    CompiledRenderGraphComputeDispatchAccessPacket, CompiledRenderGraphExternalAccess,
+    CompiledRenderGraphExternalAccessPacket, CompiledRenderGraphStats,
+    CompiledRenderGraphTransientAllocation, CompiledRenderGraphTransientAllocationId,
+    CompiledRenderGraphTransientAllocationPlan, CompiledRenderGraphTransientSlotReservation,
+    CompiledRenderPass, RenderGraphPhysicalAllocationId,
+};
+pub use resource_schema::{
+    RenderBufferSchema, RenderResourceFallback, RenderResourceSchema, RenderTextureExtentPolicy,
+    RenderTextureExtentReference, RenderTextureExtentRounding, RenderTextureSchema,
 };
 pub use store_lint::{
     RenderGraphAttachmentBandwidthLedger, RenderGraphAttachmentBandwidthRow,
@@ -24,13 +41,17 @@ pub use store_lint::{
 pub use types::{
     BindingSchemaEntry, ComputeBindingKind, ExternalResource, PassFlags, QueueLane,
     RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
-    RenderGraphComputeDispatchExtent, RenderGraphComputePassMetadata,
-    RenderGraphComputeShaderSource, RenderGraphComputeWorkload, RenderGraphExternalResourceBinding,
+    RenderGraphBufferBindingRange, RenderGraphComputeDispatchExtent,
+    RenderGraphComputePassMetadata, RenderGraphComputePipelineFallbackPolicy,
+    RenderGraphComputePipelineFamily, RenderGraphComputePipelineResolution,
+    RenderGraphComputePipelineResolutionStatus, RenderGraphComputeShaderSource,
+    RenderGraphComputeWorkload, RenderGraphExternalResourceBinding,
     RenderGraphExternalResourceRequirement, RenderGraphExternalResourceType,
     RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
     RenderGraphResourceDeclaration, RenderGraphResourceDesc, RenderGraphResourceKind,
     RenderGraphResourceLifetime, RenderGraphResourceUsageFlags, RenderGraphResourceVersion,
-    RenderPassId, RgBufferHandle, RgTextureHandle,
+    RenderGraphResourceVersionToken, RenderGraphTextureViewAlias, RenderPassId, RgBufferHandle,
+    RgTextureHandle,
 };
 
 #[cfg(test)]

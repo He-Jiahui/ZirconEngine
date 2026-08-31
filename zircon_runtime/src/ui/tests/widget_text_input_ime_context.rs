@@ -66,7 +66,7 @@ fn text_input_ime_preedit_preserves_validated_clauses_through_render_extract() {
         ),
     ];
 
-    let result = dispatch_ime_preedit_with_clauses(&mut surface, "XY", clauses.clone());
+    let result = dispatch_ime_preedit_with_clauses(&mut surface, "XY", None, clauses.clone());
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     let command = surface
@@ -99,6 +99,77 @@ fn text_input_ime_preedit_preserves_validated_clauses_through_render_extract() {
     assert_eq!(
         attribute[1].get("kind").and_then(toml::Value::as_str),
         Some("target_converted")
+    );
+}
+
+#[test]
+fn text_input_ime_preedit_remaps_cursor_and_clauses_through_constraints() {
+    let mut surface = text_input_surface_with_selection_and_attributes(
+        "abcd",
+        3,
+        1,
+        3,
+        [
+            ("input_filter", toml::Value::String("digits".to_string())),
+            ("max_chars", toml::Value::Integer(4)),
+        ],
+    );
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+    let clauses = vec![
+        UiImePreeditClause::new(UiTextByteRange::new(0, 1), UiImePreeditClauseKind::Input),
+        UiImePreeditClause::new(
+            UiTextByteRange::new(1, 3),
+            UiImePreeditClauseKind::TargetConverted,
+        ),
+        UiImePreeditClause::new(
+            UiTextByteRange::new(3, 5),
+            UiImePreeditClauseKind::Converted,
+        ),
+    ];
+
+    let result = dispatch_ime_preedit_with_clauses(
+        &mut surface,
+        "A12B3",
+        Some(UiTextByteRange::new(2, 3)),
+        clauses,
+    );
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "a12d");
+    assert_eq!(int_attr(&surface, "selection_anchor"), 2);
+    assert_eq!(int_attr(&surface, "selection_focus"), 3);
+    let receipt = result
+        .diagnostics
+        .text_constraint
+        .expect("constrained preedit publishes mapping evidence");
+    assert_eq!(receipt.removed_filter_scalar_count, 2);
+    assert!(receipt.max_graphemes_truncated);
+    assert!(receipt.preedit_cursor_range_adjusted);
+    assert_eq!(receipt.preedit_clause_range_adjusted_count, 1);
+    assert_eq!(receipt.preedit_clause_dropped_count, 2);
+
+    let command = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.text.as_deref() == Some("a12d")
+        })
+        .expect("updated constrained preedit render command");
+    let mapped_clauses = command
+        .text_layout
+        .as_ref()
+        .and_then(|layout| layout.editable.as_ref())
+        .and_then(|editable| editable.composition.as_ref())
+        .map(|composition| &composition.preedit_clauses)
+        .expect("constrained preedit composition clauses");
+    assert_eq!(
+        mapped_clauses,
+        &[UiImePreeditClause::new(
+            UiTextByteRange::new(0, 2),
+            UiImePreeditClauseKind::TargetConverted,
+        )]
     );
 }
 
@@ -168,9 +239,11 @@ fn text_input_ime_surrounding_text_trims_a_wide_grapheme_window_to_the_byte_limi
         .expect("byte-limited surrounding text");
     assert!(surrounding.text.len() < 4_000);
     assert!(surrounding.text.graphemes(true).count() < 512);
-    assert!(surrounding
-        .text
-        .is_char_boundary(surrounding.cursor_byte as usize));
+    assert!(
+        surrounding
+            .text
+            .is_char_boundary(surrounding.cursor_byte as usize)
+    );
     assert_eq!(surrounding.anchor_byte, surrounding.cursor_byte);
 }
 
@@ -384,6 +457,7 @@ fn dispatch_ime(
 fn dispatch_ime_preedit_with_clauses(
     surface: &mut UiSurface,
     text: &str,
+    cursor_range: Option<UiTextByteRange>,
     preedit_clauses: Vec<UiImePreeditClause>,
 ) -> zircon_runtime_interface::ui::dispatch::UiInputDispatchResult {
     surface
@@ -397,7 +471,7 @@ fn dispatch_ime_preedit_with_clauses(
                 ),
                 kind: UiImeInputEventKind::Preedit,
                 text: text.to_string(),
-                cursor_range: None,
+                cursor_range,
                 preedit_clauses,
                 delete_surrounding: None,
             }),
@@ -556,8 +630,10 @@ fn usize_attr(surface: &UiSurface, key: &str) -> Option<usize> {
 
 fn binding(path: &str, event: UiEventKind) -> UiBindingRef {
     UiBindingRef {
+        component_event: super::typed_component_event_kind_for_test(path),
         id: path.to_string(),
         event,
+        mode: Default::default(),
         route: Some(path.replace('/', ".")),
         action: None,
         targets: Vec::new(),

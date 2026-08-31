@@ -3,7 +3,9 @@ use unicode_segmentation::UnicodeSegmentation;
 use super::super::render::ScreenSpaceUiTextBatch;
 use super::super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 
-pub(super) fn resolved_horizontal_shaped_glyph_advances(text: &ScreenSpaceUiTextBatch) -> Vec<f32> {
+pub(in crate::graphics::scene::scene_renderer::ui) fn resolved_horizontal_shaped_glyph_advances(
+    text: &ScreenSpaceUiTextBatch,
+) -> Vec<f32> {
     let mut natural_advances = None;
     if visual_range_topology_requires_projection(text) {
         let advances = natural_shaped_glyph_advances(text);

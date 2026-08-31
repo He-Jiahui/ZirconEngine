@@ -1,15 +1,69 @@
 use super::*;
 
 #[test]
+fn transient_handoff_consumers_preserve_compiler_buffer_windows() {
+    let scene_depth = include_str!("render_pass_executors/scene_depth_handoff.rs");
+    let trace_schedule = include_str!("render_pass_executors/trace_schedule_handoff.rs");
+    let resolve = include_str!("render_pass_executors/resolve_trace_handoff.rs");
+    let scene_depth_production = scene_depth
+        .split_once("#[cfg(test)]")
+        .map(|(source, _)| source)
+        .expect("scene depth handoff test boundary");
+    let trace_schedule_production = trace_schedule
+        .split_once("#[cfg(test)]")
+        .map(|(source, _)| source)
+        .expect("trace schedule handoff test boundary");
+    let resolve_production = resolve
+        .split_once("#[cfg(test)]")
+        .map(|(source, _)| source)
+        .expect("resolve handoff test boundary");
+
+    assert!(scene_depth.contains("require_buffer_binding("));
+    assert!(scene_depth.contains("gpu.native_context()"));
+    assert!(scene_depth.contains("drop(native)"));
+    assert!(scene_depth.contains("RenderPassGpuResourceFactory"));
+    assert!(scene_depth.contains("gpu.plugin_outputs().hybrid_gi.scene_prepare"));
+    assert!(!scene_depth_production.contains("gpu.device"));
+    assert!(!scene_depth_production.contains("gpu.encoder"));
+    assert!(!scene_depth_production.contains("native.device"));
+    assert!(scene_depth.contains("write_buffer_binding("));
+    assert!(scene_depth.contains("BindingResource::Buffer(hybrid_gi_scene_buffer)"));
+    assert!(scene_depth.contains("binding.buffer.size().checked_sub(binding.offset)"));
+    assert!(!scene_depth.contains("hybrid_gi_scene_buffer.as_entire_binding()"));
+    assert!(trace_schedule.contains("require_buffer_binding("));
+    assert!(trace_schedule.contains("gpu.native_context()"));
+    assert!(trace_schedule.contains("drop(native)"));
+    assert!(trace_schedule.contains("RenderPassGpuResourceFactory"));
+    assert!(!trace_schedule_production.contains("gpu.device"));
+    assert!(!trace_schedule_production.contains("gpu.encoder"));
+    assert!(!trace_schedule_production.contains("native.device"));
+    assert!(trace_schedule.contains("BindingResource::Buffer(hybrid_gi_scene_buffer)"));
+    assert!(trace_schedule.contains("BindingResource::Buffer(hybrid_gi_trace_buffer)"));
+    assert!(!trace_schedule.contains("hybrid_gi_scene_buffer.as_entire_binding()"));
+    assert!(!trace_schedule.contains("hybrid_gi_trace_buffer.as_entire_binding()"));
+    assert!(resolve.contains("require_buffer_binding("));
+    assert!(resolve.contains("gpu.native_context()"));
+    assert!(resolve.contains("drop(native)"));
+    assert!(resolve.contains("RenderPassGpuResourceFactory"));
+    assert!(!resolve_production.contains("gpu.device"));
+    assert!(!resolve_production.contains("gpu.encoder"));
+    assert!(!resolve_production.contains("native.device"));
+    assert!(resolve.contains("BindingResource::Buffer(hybrid_gi_trace_buffer)"));
+    assert!(!resolve.contains("hybrid_gi_trace_buffer.as_entire_binding()"));
+}
+
+#[test]
 fn hybrid_gi_registration_contributes_render_feature_descriptor() {
     let report = plugin_registration();
 
     assert!(report.is_success(), "{:?}", report.diagnostics);
-    assert!(report
-        .extensions
-        .modules()
-        .iter()
-        .any(|module| module.name == HYBRID_GI_MODULE_NAME));
+    assert!(
+        report
+            .extensions
+            .modules()
+            .iter()
+            .any(|module| module.name == HYBRID_GI_MODULE_NAME)
+    );
     assert_eq!(
         report.extensions.render_features()[0].name,
         HYBRID_GI_FEATURE_NAME
@@ -26,13 +80,17 @@ fn hybrid_gi_registration_contributes_render_feature_descriptor() {
         report.package_manifest.maturity,
         zircon_runtime::plugin::PluginMaturity::Experimental
     );
-    assert!(report
-        .package_manifest
-        .capabilities
-        .contains(&HYBRID_GI_ADVANCED_RENDER_CAPABILITY.to_string()));
-    assert!(report.package_manifest.modules[0]
-        .capabilities
-        .contains(&HYBRID_GI_ADVANCED_RENDER_CAPABILITY.to_string()));
+    assert!(
+        report
+            .package_manifest
+            .capabilities
+            .contains(&HYBRID_GI_ADVANCED_RENDER_CAPABILITY.to_string())
+    );
+    assert!(
+        report.package_manifest.modules[0]
+            .capabilities
+            .contains(&HYBRID_GI_ADVANCED_RENDER_CAPABILITY.to_string())
+    );
     let feature = &report.extensions.render_features()[0];
     assert_eq!(
         feature.required_extract_sections,
@@ -64,7 +122,6 @@ fn hybrid_gi_registration_contributes_render_feature_descriptor() {
             "hybrid-gi-scene-prepare",
             "hybrid-gi-trace-schedule",
             "hybrid-gi-resolve",
-            "hybrid-gi-history",
         ]
     );
     let scene_prepare_pass = feature
@@ -135,38 +192,53 @@ fn hybrid_gi_registration_contributes_render_feature_descriptor() {
         .iter()
         .find(|pass| pass.pass_name == "hybrid-gi-resolve")
         .expect("hybrid GI temporal resolve pass");
+    assert!(resolve_pass.resources.iter().any(|resource| {
+        resource.name
+            == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::SCENE_VELOCITY
+            && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Read
+    }));
     for resource_name in [
-        zircon_runtime::core::framework::render::PostProcessGraphResourceNames::SCENE_VELOCITY,
         zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI,
         zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA,
     ] {
-        assert!(resolve_pass.resources.iter().any(|resource| {
-            resource.name == resource_name
-                && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Read
-        }));
+        let resource = resolve_pass
+            .resources
+            .iter()
+            .find(|resource| resource.name == resource_name)
+            .expect("hybrid GI history resource");
+        assert_eq!(
+            resource.access,
+            zircon_runtime::graphics::RenderFeatureResourceAccess::Read
+        );
+        assert!(resource.usage.persistent);
+        assert_eq!(resource.schema, Some(super::hybrid_gi_history_schema()));
+        assert_eq!(
+            resource.access_metadata,
+            Some(
+                zircon_runtime::render_graph::RenderGraphResourceAccessMetadata::new(
+                    zircon_runtime::render_graph::RenderGraphResourceAccessRange::Texture(
+                        zircon_runtime::render_graph::RenderGraphTextureSubresourceRange::full(),
+                    ),
+                    zircon_runtime::render_graph::RenderGraphResourceAccessIntent::sampled_texture(
+                        zircon_runtime::render_graph::RenderGraphShaderStages::FRAGMENT,
+                    ),
+                ),
+            )
+        );
     }
     assert!(resolve_pass.resources.iter().any(|resource| {
         resource.name
             == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA
             && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Write
+            && resource.usage.persistent
     }));
-    let history_pass = feature
-        .stage_passes
-        .iter()
-        .find(|pass| pass.pass_name == "hybrid-gi-history")
-        .expect("hybrid GI history pass");
-    assert!(history_pass
-        .resources
-        .iter()
-        .any(|resource| resource.name
-            == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HYBRID_GI_LIGHTING
-            && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Read));
-    assert!(history_pass.resources.iter().any(|resource| {
+    assert!(resolve_pass.resources.iter().any(|resource| {
         resource.name
-            == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA
+            == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HYBRID_GI_LIGHTING
             && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Write
+            && resource.usage.persistent
     }));
-    assert_eq!(report.extensions.render_pass_executors().len(), 4);
+    assert_eq!(report.extensions.render_pass_executors().len(), 3);
     assert_eq!(report.extensions.runtime_prepare_collectors().len(), 1);
     assert_eq!(
         report.extensions.runtime_prepare_collectors()[0].collector_id(),
@@ -187,7 +259,6 @@ fn hybrid_gi_registration_contributes_render_feature_descriptor() {
             "hybrid-gi.scene-prepare",
             "hybrid-gi.trace-schedule",
             "hybrid-gi.resolve",
-            "hybrid-gi.history",
         ]
     );
 }

@@ -25,7 +25,7 @@ class EditorUiAssetRootPerformanceContractTests(unittest.TestCase):
         self.assertLess(fast_path, clone)
         self.assertIn("replay.apply_to_document(document)", body)
 
-    def test_node_projection_borrows_roots_and_moves_owned_extract_text(self) -> None:
+    def test_node_projection_borrows_roots_and_render_text_until_model_creation(self) -> None:
         source = (ASSET_EDITOR_ROOT / "node_projection.rs").read_text(encoding="utf-8")
         dirty = function_body(
             source,
@@ -39,8 +39,11 @@ class EditorUiAssetRootPerformanceContractTests(unittest.TestCase):
         )
 
         self.assertNotIn(".roots.clone()", dirty)
-        self.assertNotIn("entry.text = command.text.clone()", projection)
-        self.assertIn("if let Some(text) = command.text", projection)
+        self.assertIn("text: Option<&'a str>", source)
+        self.assertIn("command.text.as_deref()", projection)
+        self.assertIn(".and_then(|info| info.text)", projection)
+        self.assertNotIn("info.text.clone()", projection)
+        self.assertNotIn("text.clone()", projection)
 
 
 if __name__ == "__main__":

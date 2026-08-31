@@ -5,16 +5,16 @@ use std::sync::Arc;
 use zircon_runtime::asset::pipeline::manager::{ProjectAssetManager, ProjectAssetManagerAccess};
 use zircon_runtime::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use zircon_runtime::core::framework::render::{
-    AdvancedLightingExtract, CapturedFrame, DEFAULT_RENDER_LAYER_MASK, EnvironmentExtract,
-    FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
+    AdvancedLightingExtract, CapturedFrame, EnvironmentExtract, FallbackSkyboxKind,
+    LightShadowSettings, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
     RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
     RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
     RenderSceneSnapshot, RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
     RendererCommon, ShaderQualityTier, ShadowPcfQuality, ShadowResolutionTier,
-    ViewportCameraSnapshot, VolumetricFogSettings,
+    ViewportCameraSnapshot, VolumetricFogSettings, DEFAULT_RENDER_LAYER_MASK,
 };
 use zircon_runtime::core::framework::scene::Mobility;
-use zircon_runtime::core::manager::{RegisteredManagerService, manager_service_handle};
+use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
@@ -22,13 +22,14 @@ use zircon_runtime::core::resource::{
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
+    TaskPool,
 };
 use zircon_runtime::graphics::WgpuRenderFramework;
 
 use super::{
-    FEATURE_NAME, INTEGRATE_EXECUTOR, INTEGRATE_PASS, LIGHT_SCATTER_EXECUTOR, LIGHT_SCATTER_PASS,
-    MEDIA_INJECT_EXECUTOR, MEDIA_INJECT_PASS, render_feature_descriptor,
-    render_pass_executor_registrations,
+    render_feature_descriptor, render_pass_executor_registrations, FEATURE_NAME,
+    INTEGRATE_EXECUTOR, INTEGRATE_PASS, LIGHT_SCATTER_EXECUTOR, LIGHT_SCATTER_PASS,
+    MEDIA_INJECT_EXECUTOR, MEDIA_INJECT_PASS,
 };
 
 mod evidence;
@@ -97,6 +98,10 @@ impl ProjectAssetTestRuntime {
     fn access(&self) -> ProjectAssetManagerAccess {
         self.access.clone()
     }
+
+    fn worker_pool(&self) -> TaskPool {
+        self._runtime.task_graph().worker_pool().clone()
+    }
 }
 
 #[test]
@@ -126,10 +131,12 @@ fn export_volumetric_compiled_scene_window_light_shaft_perf_wgpu_png() {
         [render_feature_descriptor()],
         render_pass_executor_registrations(),
         Vec::new(),
+        asset_runtime.worker_pool(),
     )
     .expect("volumetric fog pluginized WGPU framework");
     let baseline_framework =
-        WgpuRenderFramework::new(asset_runtime.access()).expect("baseline WGPU framework");
+        WgpuRenderFramework::new(asset_runtime.access(), asset_runtime.worker_pool())
+            .expect("baseline WGPU framework");
 
     let (baseline_frame, baseline_stats) = render_frame(
         &baseline_framework,
@@ -210,6 +217,7 @@ fn capture_volumetric_compiled_scene_window_light_shaft_renderdoc() {
         [render_feature_descriptor()],
         render_pass_executor_registrations(),
         Vec::new(),
+        asset_runtime.worker_pool(),
     )
     .expect("volumetric fog RenderDoc framework");
 

@@ -3,27 +3,35 @@ use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::framework::text::TextDirection;
-use crate::text::rich::parser_registry::parse_rich_text;
+use crate::text::rich::parser_registry::parse_rich_text as try_parse_rich_text;
 use crate::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
-use crate::text::{InlineBaseline, LayoutItem, RichTextFormat};
+use crate::text::{
+    InlineBaseline, LayoutItem, OpenTypeFeature, RichParseResult, RichTextFormat, StyleOverride,
+};
 use crate::text::{ShapedGlyphRun, TextRange, TextStyle};
 
 use super::*;
+
+fn parse_rich_text(markup: &str, format: RichTextFormat) -> RichParseResult {
+    try_parse_rich_text(markup, format).expect("test rich source fits parser budgets")
+}
 
 #[test]
 fn text_rich_inline_image_reserves_metric_in_layout() {
     let parsed = parse_rich_text(
         "before<img src=\"res://icons/star.png\" width=\"16\" height=\"24\" baseline=\"baseline\">after",
-        RichTextFormat::Html,
+        RichTextFormat::HtmlSubsetV1,
     );
     let style = TextStyle {
         font_size: 10.0,
         line_height: 12.0,
         ..TextStyle::default()
     };
-    let mut provider = DirectTextShapeRunProvider;
+    let mut provider = DirectTextShapeRunProvider::default();
 
-    let layout = layout_rich_line_with_provider(&parsed, &style, &mut provider);
+    let layout = layout_rich_line_with_provider(&parsed, &style, &mut provider)
+        .into_result()
+        .expect("layout rich line");
 
     assert_eq!(layout.lines.len(), 1);
     assert!(layout.size.x > 16.0);
@@ -58,8 +66,10 @@ fn text_rich_inline_baseline_modes_project_expected_line_metrics() {
         line_height: 12.0,
         ..TextStyle::default()
     };
-    let mut metrics_provider = DirectTextShapeRunProvider;
-    let text_metrics = line_metrics_with_provider(&style, &mut metrics_provider);
+    let mut metrics_provider = DirectTextShapeRunProvider::default();
+    let text_metrics = line_metrics_with_provider(&style, &mut metrics_provider)
+        .into_result()
+        .expect("measure text metrics");
     let text_ascent = text_metrics.baseline;
     let text_descent = text_metrics.line_height - text_ascent;
     let expected = [
@@ -87,10 +97,12 @@ fn text_rich_inline_baseline_modes_project_expected_line_metrics() {
                 "<img src=\"res://icons/star.png\" width=\"16\" height=\"20\" baseline=\"{}\">",
                 baseline_name(baseline)
             ),
-            RichTextFormat::Html,
+            RichTextFormat::HtmlSubsetV1,
         );
-        let mut provider = DirectTextShapeRunProvider;
-        let layout = layout_rich_line_with_provider(&parsed, &style, &mut provider);
+        let mut provider = DirectTextShapeRunProvider::default();
+        let layout = layout_rich_line_with_provider(&parsed, &style, &mut provider)
+            .into_result()
+            .expect("layout rich line");
         let line = &layout.lines[0];
         assert!((line.ascent - expected_ascent).abs() < 0.01);
         assert!((line.descent - expected_descent).abs() < 0.01);
@@ -110,12 +122,16 @@ fn text_rich_run_style_overrides_participate_in_layout_metrics() {
         ..TextStyle::default()
     };
     let plain = parse_rich_text("Wide", RichTextFormat::Plain);
-    let large = parse_rich_text("[size=20]Wide[/size]", RichTextFormat::BbCode);
-    let mut plain_provider = DirectTextShapeRunProvider;
-    let mut large_provider = DirectTextShapeRunProvider;
+    let large = parse_rich_text("[size=20]Wide[/size]", RichTextFormat::BbCodeV1);
+    let mut plain_provider = DirectTextShapeRunProvider::default();
+    let mut large_provider = DirectTextShapeRunProvider::default();
 
-    let plain = layout_rich_line_with_provider(&plain, &style, &mut plain_provider);
-    let large = layout_rich_line_with_provider(&large, &style, &mut large_provider);
+    let plain = layout_rich_line_with_provider(&plain, &style, &mut plain_provider)
+        .into_result()
+        .expect("layout plain rich line");
+    let large = layout_rich_line_with_provider(&large, &style, &mut large_provider)
+        .into_result()
+        .expect("layout large rich line");
 
     assert!(large.size.x > plain.size.x);
     assert!(large.lines[0].ascent > plain.lines[0].ascent);
@@ -123,19 +139,54 @@ fn text_rich_run_style_overrides_participate_in_layout_metrics() {
 }
 
 #[test]
+fn rich_run_style_projects_italic_and_open_type_features_to_shaping_style() {
+    let base = TextStyle::default();
+    let features = vec![
+        OpenTypeFeature::new(*b"liga", 0),
+        OpenTypeFeature::new(*b"ss01", 1),
+    ];
+    let resolved = resolve_rich_run_style(
+        &base,
+        &StyleOverride {
+            italic: Some(true),
+            features: Some(features.clone()),
+            ..StyleOverride::default()
+        },
+    );
+
+    assert!(resolved.italic);
+    assert_eq!(resolved.features.as_ref(), features.as_slice());
+    assert!(
+        !resolve_rich_run_style(
+            &TextStyle {
+                italic: true,
+                ..TextStyle::default()
+            },
+            &StyleOverride {
+                italic: Some(false),
+                ..StyleOverride::default()
+            },
+        )
+        .italic
+    );
+}
+
+#[test]
 fn text_rich_forced_lines_preserve_inline_metrics_and_original_run_indices() {
     let parsed = parse_rich_text(
         "first\n<img src=\"res://icons/star.png\" width=\"16\" height=\"24\">second",
-        RichTextFormat::Html,
+        RichTextFormat::HtmlSubsetV1,
     );
     let style = TextStyle {
         font_size: 10.0,
         line_height: 12.0,
         ..TextStyle::default()
     };
-    let mut provider = DirectTextShapeRunProvider;
+    let mut provider = DirectTextShapeRunProvider::default();
 
-    let layout = layout_rich_text_with_provider(&parsed, &style, &mut provider);
+    let layout = layout_rich_text_with_provider(&parsed, &style, &mut provider)
+        .into_result()
+        .expect("layout rich text");
 
     assert_eq!(layout.lines.len(), 2);
     assert!(layout.lines[1].origin.y >= layout.lines[0].ascent + layout.lines[0].descent);
@@ -156,7 +207,9 @@ fn text_rich_forced_lines_preserve_inline_metrics_and_original_run_indices() {
 #[test]
 fn text_rich_forced_line_ranges_share_unicode_separator_semantics() {
     assert_eq!(
-        super::rich_forced_line_ranges("a\r\nb\u{2028}c\u{0085}"),
+        super::rich_forced_line_ranges("a\r\nb\u{2028}c\u{0085}")
+            .into_result()
+            .expect("valid source ranges"),
         vec![(0, 1), (3, 4), (7, 8), (10, 10)]
     );
 }
@@ -172,7 +225,9 @@ fn text_rich_glyph_wrap_keeps_boundary_shaping_context_bounded() {
     };
     let mut provider = CountingShapeRunProvider::default();
 
-    let layout = layout_rich_text_glyph_wrapped_with_provider(&parsed, &style, 12.0, &mut provider);
+    let layout = layout_rich_text_glyph_wrapped_with_provider(&parsed, &style, 12.0, &mut provider)
+        .into_result()
+        .expect("layout glyph-wrapped rich text");
 
     assert!(
         layout.lines.len() > 1,
@@ -201,8 +256,11 @@ fn text_rich_line_materialization_borrows_source_and_uses_a_run_cursor() {
 
     assert!(!source.contains("parsed.text.clone()"));
     assert!(!source.contains("measure_text_source_range_width_with_provider"));
-    assert!(!source
-        .contains(".runs\n            .iter()\n            .enumerate()\n            .filter_map"));
+    assert!(
+        !source.contains(
+            ".runs\n            .iter()\n            .enumerate()\n            .filter_map"
+        )
+    );
     assert!(source.contains("run_cursor"));
 }
 
@@ -222,17 +280,17 @@ struct CountingShapeRunProvider {
 }
 
 impl TextShapeRunProvider for CountingShapeRunProvider {
-    fn shape_horizontal_line_with_kerning(
+    fn shape_horizontal_range_with_kerning(
         &mut self,
         text: &str,
         style: &TextStyle,
         direction: TextDirection,
         source_range: TextRange,
         include_kerning: bool,
-    ) -> Arc<ShapedGlyphRun> {
+    ) -> crate::text::shaping::TextShapingOutcome {
         self.shaped_grapheme_counts
             .push(text.graphemes(true).count());
-        self.direct.shape_horizontal_line_with_kerning(
+        self.direct.shape_horizontal_range_with_kerning(
             text,
             style,
             direction,

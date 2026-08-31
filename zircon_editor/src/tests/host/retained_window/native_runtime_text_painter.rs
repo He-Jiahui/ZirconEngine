@@ -60,6 +60,7 @@ fn editable_text_command() -> UiRenderCommand {
         }),
         lines: vec![UiResolvedTextLine {
             text: "Hello".to_string(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(10.0, 20.0, 50.0, 12.0),
             source_range: UiTextRange { start: 0, end: 5 },
             visual_range: UiTextRange { start: 0, end: 5 },

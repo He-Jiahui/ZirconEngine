@@ -1,6 +1,10 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use super::HighlightSet;
+
+#[cfg(test)]
+#[path = "viewport_highlight_store/hash_index_tests.rs"]
+mod hash_index_tests;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ViewportHighlightSet {
@@ -24,7 +28,7 @@ impl ViewportHighlightSet {
 /// render extraction consumes the latest accepted value for its viewport.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ViewportHighlightStore {
-    by_viewport: BTreeMap<u64, ViewportHighlightSet>,
+    by_viewport: HashMap<u64, ViewportHighlightSet>,
 }
 
 impl ViewportHighlightStore {

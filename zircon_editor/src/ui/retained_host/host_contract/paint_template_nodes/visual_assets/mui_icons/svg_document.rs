@@ -25,9 +25,28 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn module_
 }
 
 fn escape_xml_attribute(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('"', "&quot;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
+    let escaped_capacity = value.chars().fold(value.len(), |capacity, character| {
+        capacity.saturating_add(match character {
+            '&' => "&amp;".len() - 1,
+            '"' => "&quot;".len() - 1,
+            '<' => "&lt;".len() - 1,
+            '>' => "&gt;".len() - 1,
+            _ => 0,
+        })
+    });
+    let mut escaped = String::with_capacity(escaped_capacity);
+    for character in value.chars() {
+        match character {
+            '&' => escaped.push_str("&amp;"),
+            '"' => escaped.push_str("&quot;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            _ => escaped.push(character),
+        }
+    }
+    escaped
 }
+
+#[cfg(test)]
+#[path = "svg_document/single_pass_escape_tests.rs"]
+mod single_pass_escape_tests;

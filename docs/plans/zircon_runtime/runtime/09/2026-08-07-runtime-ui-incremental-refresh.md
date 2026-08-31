@@ -1,6 +1,12 @@
 ---
 related_code:
   - zircon_runtime/src/ui/surface
+  - zircon_runtime/src/ui/surface/surface/rebuild.rs
+  - zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs
+  - zircon_runtime/src/ui/surface/surface/property_transaction.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs
   - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime_interface/src/ui/pipeline
@@ -9,7 +15,7 @@ related_code:
   - zircon_editor/src/ui/layouts/views/view_projection.rs
 related_failures:
   - failure-2026-07-17-ui-render-command-transient-extraction.md
-status: completed
+status: in_progress
 ---
 
 # Runtime UI 增量刷新与不可变帧计划
@@ -18,7 +24,7 @@ Plan: docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md
 
 Milestone: M3
 
-Status: completed
+Status: in_progress
 
 Files: ["docs/plans/zircon_runtime/runtime/09/2026-08-07-runtime-ui-incremental-refresh.md", "zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events/motion.rs", "zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target/dispatch.rs", "zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target/state.rs", "zircon_editor/src/ui/retained_host/app/tests/root_pointer_fallbacks.rs", "zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs", "zircon_editor/src/ui/retained_host/asset_pointer/reference/bridge.rs", "zircon_editor/src/ui/retained_host/asset_pointer/tree/bridge.rs", "zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/clear.rs", "zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/entry.rs", "zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/pane/entry.rs", "zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/pane/entry/target.rs"]
 
@@ -201,3 +207,58 @@ r4 最终代码独立复核为 accepted，review `066744fae9c64ce4ac35df432b53e1
 - 发布 EXE 搭配匹配 `zircon_runtime.dll` 启动真实窗口，注入 600 次 `WM_MOUSEMOVE`、30 ms 间隔后正常关闭，PID 34804 exit code 0，进程无残留。profile 输出：`C:/Users/HeJiahui/ZirconBuilds/runtime-ui-m3-profile-output/mouse-hover-optimized-20260808-r3`。
 - `ui_hotspots.json` 显示 `idle_hover` 602 frames，frame p95 `1.584 ms`、max `4.583 ms`、slow path 0、presentation rebuild 0、dirty layout/render/model/chrome full rebuild 0、region paint 13、chrome patch 13；无 profile alerts。startup 的两次 presentation/full paint 仅属于首次启动，不计入 hover 热路径。
 - 新增真实 Host 回归覆盖 sibling 空白跨列表和同一行重新进入；由于 `zircon_editor` lib-test harness 仍在执行测试前被共享工作树 153 个既有 test-only 编译错误阻断，未声称该测试已执行。独立复审确认状态同步和 O(1) 稳定 no-op 路径，无 Critical/Important。
+
+## 2026-08-27 增量重建所有者结构收敛
+
+状态：`runtime_09_15_ui_surface_incremental_rebuild_owner_split_static_passed_cargo_profile_deferred`。
+
+M0-M3 的历史交付与证据保持不变；总体计划恢复为 `in_progress`，直到 M4-M7、publication、
+scale 与产品门禁真正关闭。本切片在完整复审当前 `UiSurface` rebuild 路径和 Unreal Slate
+invalidation root/widget-list/heap/index 分工后，只把 `rebuild_dirty`、1/4/256 增量降级预算及
+layout-engine report patch/merge helper 从 1194 行父文件迁入 711 行 child，父文件降到 500 行。
+四个移动项规范化哈希 4/4 与拆分前一致，静态 production-owner guard 1/1 通过。
+
+本次没有改变 dirty frontier、Taffy 生命周期、patch outcome 或性能阈值，故 P1-9/P1-10 与
+persistent graph 仍是待 profile 后实施的算法任务。Cargo、真实 App/Editor/Play、CPU/allocation/
+RSS/power 画像均未执行，不据此声明增量算法、能耗或整体 UI MVP 已验收。
+
+## 2026-08-27 Surface Property Transaction 所有者收敛
+
+状态：`runtime_09_15_ui_surface_property_transaction_owner_split_static_passed_cargo_profile_deferred`。
+
+按 Unreal Slate attribute descriptor/value-change 与 invalidation reason 分工复审后，surface
+property transaction 已从 959 行 `surface.rs` 移入 485 行 `surface/property_transaction.rs`，
+父 owner 降到 483 行。transaction 仍以同一 `UiSurface` 原子同步 tree property、component
+state、runtime style、focus/popup、editable text、clipboard revision 和 typed invalidation；12 个
+移动项规范化哈希 12/12 与拆分前一致，静态 production-owner guard 1/1 通过。
+
+该结构切片没有改变 mutation/dirty/focus/popup/text 算法或 transaction 成本。M4-M7、
+property update 的 allocation/latency、真实 UI 产品路径、Cargo 与 power profile 继续开放，不能
+据此关闭增量刷新计划或宣称算法最优。
+
+## 2026-08-27 Pointer Component State 所有者收敛
+
+状态：`runtime_09_15_ui_pointer_component_state_owner_split_static_passed_cargo_profile_deferred`。
+
+对照 Unreal `SlateApplication` 输入路由与 `SWidget` hover/invalidation state 分工，pointer
+component event root 中的 hover/pressed/focus state、pseudo-style propagation 与 render dirty 已
+移入 226 行 `pointer_component_events/state_invalidation.rs`，父 event/binding/action owner 降到
+674 行。7 个移动项规范化哈希 7/7 与拆分前一致，静态 production-owner guard 1/1 通过。
+
+该结构切片不改变 ancestor probes、subtree style update、dirty domain、event ordering 或 binding
+payload 成本。M4-M7、真实 pointer 产品路径、Cargo 与 CPU/allocation/RSS/power profile 继续开放，
+不能据此关闭增量刷新或宣称 pointer 热路径已优化。
+
+## 2026-08-28 Pointer Template Action 所有者收敛
+
+状态：`runtime_09_15_ui_pointer_template_action_owner_split_static_passed_cargo_profile_deferred`。
+
+pointer event root 的 binding/action payload 责任继续按 Unreal pointer routing 与 `FUIAction`
+contract 分开：事件 envelope、focus/damage 留在 426 行父 owner，handle lookup、action/route
+projection、missing-value policy 与 payload expression/property resolution 移入 262 行
+`pointer_component_events/template_action.rs`。9 个移动方法规范化哈希 9/9 一致，未增加第二
+dispatch、action registry、tree 或 binding store。
+
+该结构切片没有修改 event ordering、compiled handle 映射、payload 解析或 allocation 算法。
+M4-M7、真实 pointer/action 产品路径、Cargo 与 CPU/allocation/RSS/power profile 继续开放，不能
+据此关闭增量刷新、宣称 pointer/action 热路径已优化或触发 milestone commit/企微同步。

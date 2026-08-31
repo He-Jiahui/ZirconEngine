@@ -9,7 +9,7 @@ use super::*;
 fn runtime_15_render_layer_schema_v1_mask_api_uses_current_names() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let camera_source = read_text(
-        &manifest_root.join("src/core/framework/render/camera.rs"),
+        &manifest_root.join("src/core/framework/render/camera/layer_set.rs"),
         "render camera source should be readable",
     );
     let light_buffer = read_text(

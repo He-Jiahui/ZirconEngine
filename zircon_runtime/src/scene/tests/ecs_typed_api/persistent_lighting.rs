@@ -1,5 +1,5 @@
-use crate::scene::components::{AmbientLight, DirectionalLight, PointLight, RectLight, SpotLight};
 use crate::scene::World;
+use crate::scene::components::{AmbientLight, DirectionalLight, PointLight, RectLight, SpotLight};
 
 #[test]
 fn persistent_lights_use_generic_storage_across_clone_serde_and_records() {

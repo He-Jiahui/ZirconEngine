@@ -13,10 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_aler
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_alert_slot_node(
     node: &TemplatePaneNodeData,
 ) -> bool {
-    component_variant_contains(node, "muiAlertSlot")
-        || component_variant_contains(node, "AlertSlot")
-        || component_variant_contains(node, "alertSlot")
-        || component_variant_token_starts_with(node, "alertSlot")
+    alert_slot_variant(&node.component_variant)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_has_icon(
@@ -41,14 +38,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_h
         || component_variant_contains(node, "alertSlotCloseIcon")
 }
 
-fn component_variant_token_starts_with(node: &TemplatePaneNodeData, expected_prefix: &str) -> bool {
-    node.component_variant
-        .as_str()
+fn alert_slot_variant(component_variant: &str) -> bool {
+    component_variant
         .split(|character: char| {
             character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
         })
         .any(|part| {
-            part.get(..expected_prefix.len())
-                .is_some_and(|prefix| prefix.eq_ignore_ascii_case(expected_prefix))
+            part.eq_ignore_ascii_case("muiAlertSlot")
+                || part
+                    .get(.."alertSlot".len())
+                    .is_some_and(|prefix| prefix.eq_ignore_ascii_case("alertSlot"))
         })
 }
+
+#[cfg(test)]
+#[path = "identity/single_scan_slot_tests.rs"]
+mod single_scan_slot_tests;

@@ -12,8 +12,6 @@ impl SceneEnvironmentSh9 {
     pub(crate) fn from_frame(frame: &ViewportRenderFrame) -> Self {
         Self {
             coefficients: frame
-                .environment()
-                .skybox
                 .source_cubemap_environment()
                 .map(|environment| environment.irradiance_sh9)
                 .unwrap_or([[0.0; 4]; 9]),

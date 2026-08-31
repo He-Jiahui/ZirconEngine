@@ -26,7 +26,7 @@ classes = ["showcase-panel", "material-control"]
 props = { text = "Foldout Group", expanded = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/GroupToggled", event = "Toggle", route = "component_lab.showcase.toggle_expanded.group" },
+  { id = "UiComponentShowcase/GroupToggled", event = "Toggle", component_event = "ToggleExpanded", route = "component_lab.showcase.toggle_expanded.group" },
 ]
 
 [nodes.foldout_demo]
@@ -36,7 +36,7 @@ classes = ["showcase-panel", "material-control"]
 props = { text = "Foldout", expanded = false, validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/FoldoutToggled", event = "Toggle", route = "component_lab.showcase.toggle_expanded.foldout" },
+  { id = "UiComponentShowcase/FoldoutToggled", event = "Toggle", component_event = "ToggleExpanded", route = "component_lab.showcase.toggle_expanded.foldout" },
 ]
 
 [nodes.property_row_demo]
@@ -53,7 +53,7 @@ classes = ["showcase-panel", "material-control"]
 props = { text = "Inspector Section", expanded = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/InspectorSectionToggled", event = "Toggle", route = "component_lab.showcase.toggle_expanded.inspector_section" },
+  { id = "UiComponentShowcase/InspectorSectionToggled", event = "Toggle", component_event = "ToggleExpanded", route = "component_lab.showcase.toggle_expanded.inspector_section" },
 ]
 
 [nodes.array_field_demo]
@@ -63,11 +63,11 @@ classes = ["showcase-field", "material-control"]
 props = { items = ["Label", "NumberField", "AssetField"], value_text = "3 elements", element_type = "UiComponentRef", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/ArrayFieldChanged", event = "Change", route = "component_lab.showcase.value_changed.array_field" },
-  { id = "UiComponentShowcase/ArrayFieldAddElement", event = "Submit", route = "component_lab.showcase.add_element.array_field" },
-  { id = "UiComponentShowcase/ArrayFieldSetElement", event = "Submit", route = "component_lab.showcase.set_element.array_field" },
-  { id = "UiComponentShowcase/ArrayFieldRemoveElement", event = "Submit", route = "component_lab.showcase.remove_element.array_field" },
-  { id = "UiComponentShowcase/ArrayFieldMoveElement", event = "DragEnd", route = "component_lab.showcase.move_element.array_field" },
+  { id = "UiComponentShowcase/ArrayFieldChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.array_field" },
+  { id = "UiComponentShowcase/ArrayFieldAddElement", event = "Submit", component_event = "AddElement", route = "component_lab.showcase.add_element.array_field" },
+  { id = "UiComponentShowcase/ArrayFieldSetElement", event = "Submit", component_event = "SetElement", route = "component_lab.showcase.set_element.array_field" },
+  { id = "UiComponentShowcase/ArrayFieldRemoveElement", event = "Submit", component_event = "RemoveElement", route = "component_lab.showcase.remove_element.array_field" },
+  { id = "UiComponentShowcase/ArrayFieldMoveElement", event = "DragEnd", component_event = "MoveElement", route = "component_lab.showcase.move_element.array_field" },
 ]
 
 [nodes.map_field_demo]
@@ -77,10 +77,10 @@ classes = ["showcase-field", "material-control"]
 props = { entries = { speed = 1.0, visible = true }, value_text = "2 entries", key_type = "String", value_type = "UiValue", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/MapFieldChanged", event = "Change", route = "component_lab.showcase.value_changed.map_field" },
-  { id = "UiComponentShowcase/MapFieldAddEntry", event = "Submit", route = "component_lab.showcase.add_map_entry.map_field" },
-  { id = "UiComponentShowcase/MapFieldSetEntry", event = "Submit", route = "component_lab.showcase.set_map_entry.map_field" },
-  { id = "UiComponentShowcase/MapFieldRemoveEntry", event = "Submit", route = "component_lab.showcase.remove_map_entry.map_field" },
+  { id = "UiComponentShowcase/MapFieldChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.map_field" },
+  { id = "UiComponentShowcase/MapFieldAddEntry", event = "Submit", component_event = "AddMapEntry", route = "component_lab.showcase.add_map_entry.map_field" },
+  { id = "UiComponentShowcase/MapFieldSetEntry", event = "Submit", component_event = "SetMapEntry", route = "component_lab.showcase.set_map_entry.map_field" },
+  { id = "UiComponentShowcase/MapFieldRemoveEntry", event = "Submit", component_event = "RemoveMapEntry", route = "component_lab.showcase.remove_map_entry.map_field" },
 ]
 
 [nodes.list_row_demo]
@@ -91,8 +91,8 @@ props = { text = "List Row", value = "selected", selected = true, focused = true
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ListRowClicked", event = "Click", route = "component_lab.showcase.select.list_row" },
-  { id = "UiComponentShowcase/ListRowHovered", event = "Hover", route = "component_lab.showcase.hover.list_row" },
-  { id = "UiComponentShowcase/ListRowPressed", event = "Press", route = "component_lab.showcase.press.list_row" },
+  { id = "UiComponentShowcase/ListRowHovered", event = "Hover", component_event = "Hover", route = "component_lab.showcase.hover.list_row" },
+  { id = "UiComponentShowcase/ListRowPressed", event = "Press", component_event = "Press", route = "component_lab.showcase.press.list_row" },
 ]
 
 [nodes.table_row_demo]
@@ -109,7 +109,7 @@ classes = ["showcase-field", "material-control"]
 props = { items = ["Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Row 7"], total_count = 10000, viewport_start = 0, viewport_count = 25, item_extent = 28.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/VirtualListScrolled", event = "Scroll", route = "component_lab.showcase.set_visible_range.virtual_list" },
+  { id = "UiComponentShowcase/VirtualListScrolled", event = "Scroll", component_event = "SetVisibleRange", route = "component_lab.showcase.set_visible_range.virtual_list" },
 ]
 
 [nodes.paged_list_demo]
@@ -119,7 +119,7 @@ classes = ["showcase-field"]
 props = { data_source = "showcase.large_items", total_count = 10000, page_index = 0, page_size = 100, page_count = 100, items = ["Page row 0", "Page row 1", "Page row 2"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/PagedListNextPage", event = "Click", route = "component_lab.showcase.set_page.paged_list" },
+  { id = "UiComponentShowcase/PagedListNextPage", event = "Click", component_event = "SetPage", route = "component_lab.showcase.set_page.paged_list" },
 ]
 
 [nodes.world_space_surface_demo]
@@ -129,8 +129,8 @@ classes = ["showcase-field"]
 props = { world_position = [0.0, 1.5, 3.0], world_rotation = [0.0, 180.0, 0.0], world_scale = [1.0, 1.0, 1.0], world_size = [2.0, 1.0], pixels_per_meter = 256.0, billboard = true, depth_test = true, render_order = 0, camera_target = "viewport-main" }
 layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/WorldSpaceSurfaceMoved", event = "DragEnd", route = "component_lab.showcase.set_world_transform.world_space_surface" },
-  { id = "UiComponentShowcase/WorldSpaceSurfaceConfigured", event = "Submit", route = "component_lab.showcase.set_world_surface.world_space_surface" },
+  { id = "UiComponentShowcase/WorldSpaceSurfaceMoved", event = "DragEnd", component_event = "SetWorldTransform", route = "component_lab.showcase.set_world_transform.world_space_surface" },
+  { id = "UiComponentShowcase/WorldSpaceSurfaceConfigured", event = "Submit", component_event = "SetWorldSurface", route = "component_lab.showcase.set_world_surface.world_space_surface" },
 ]
 
 [nodes.tree_row_demo]
@@ -140,7 +140,7 @@ classes = ["showcase-field", "material-control"]
 props = { text = "Tree Row", expanded = true, tree_depth = 2, tree_indent_px = 24.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/TreeRowToggled", event = "Toggle", route = "component_lab.showcase.toggle_expanded.tree_row" },
+  { id = "UiComponentShowcase/TreeRowToggled", event = "Toggle", component_event = "ToggleExpanded", route = "component_lab.showcase.toggle_expanded.tree_row" },
 ]
 
 [nodes.context_action_menu_demo]
@@ -150,10 +150,10 @@ classes = ["showcase-field", "material-control"]
 props = { value = "Inspect", menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed|Ctrl+D", "Delete|disabled|Del"], popup_open = true, popup_anchor_x = 156.0, popup_anchor_y = 24.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/ContextActionMenuChanged", event = "Change", route = "component_lab.showcase.select_option.context_action_menu" },
-  { id = "UiComponentShowcase/ContextActionMenuOpenPopup", event = "Click", route = "component_lab.showcase.open_popup.context_action_menu" },
-  { id = "UiComponentShowcase/ContextActionMenuOpenAt", event = "Press", route = "component_lab.showcase.open_popup_at.context_action_menu" },
-  { id = "UiComponentShowcase/ContextActionMenuClosePopup", event = "Click", route = "component_lab.showcase.close_popup.context_action_menu" },
+  { id = "UiComponentShowcase/ContextActionMenuChanged", event = "Change", component_event = "SelectOption", route = "component_lab.showcase.select_option.context_action_menu" },
+  { id = "UiComponentShowcase/ContextActionMenuOpenPopup", event = "Click", component_event = "OpenPopup", route = "component_lab.showcase.open_popup.context_action_menu" },
+  { id = "UiComponentShowcase/ContextActionMenuOpenAt", event = "Press", component_event = "OpenPopupAt", route = "component_lab.showcase.open_popup_at.context_action_menu" },
+  { id = "UiComponentShowcase/ContextActionMenuClosePopup", event = "Click", component_event = "ClosePopup", route = "component_lab.showcase.close_popup.context_action_menu" },
 ]
 
 [nodes.collections_section_root]

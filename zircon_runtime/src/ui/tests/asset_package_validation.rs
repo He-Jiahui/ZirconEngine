@@ -3,15 +3,17 @@ use crate::ui::template::{
     fingerprint_document, UiAssetLoader, UiDocumentCompiler, UiRuntimeCompiledAssetArtifact,
 };
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetFingerprint, UiAssetKind, UiCompiledAssetPackageManifest,
-    UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection, UiInvalidationStage,
-    UiResourceDependencySource, UiResourceFallbackMode, UiResourceKind,
-    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+    UiAssetDocument, UiAssetFingerprint, UiAssetKind, UiBindingPackageLifecycleStage,
+    UiCompiledAssetPackageManifest, UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
+    UiCompiledAssetPackageValidationReport, UiInvalidationStage, UiResourceDependencySource,
+    UiResourceFallbackMode, UiResourceKind, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
     UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
 };
 
-const COMPILED_ASSET_BINARY_MAGIC: &[u8; 8] = b"ZRUIA016";
-const COMPILED_ASSET_BINARY_HEADER_LEN: usize = COMPILED_ASSET_BINARY_MAGIC.len() + 4 + 8;
+const COMPILED_ASSET_TOML_ENVELOPE_MAGIC: &[u8; 8] = b"ZRUIA018";
+const COMPILED_ASSET_TOML_ENVELOPE_HEADER_LEN: usize =
+    COMPILED_ASSET_TOML_ENVELOPE_MAGIC.len() + 4 + 8;
 
 const PACKAGE_LAYOUT: &str = r##"
 [asset]
@@ -306,7 +308,7 @@ fn asset_package_validation_dependency_manifest_matches_cache_key_in_stable_orde
 }
 
 #[test]
-fn asset_package_binary_artifact_roundtrips_deterministic_envelope() {
+fn asset_package_toml_envelope_roundtrips_deterministic_payload() {
     let layout = package_layout();
     let compiler = package_compiler();
 
@@ -317,26 +319,28 @@ fn asset_package_binary_artifact_roundtrips_deterministic_envelope() {
     let second = artifact.to_bytes().unwrap();
     let decoded = UiRuntimeCompiledAssetArtifact::from_bytes(&first).unwrap();
     let schema_version = u32::from_le_bytes(
-        first[COMPILED_ASSET_BINARY_MAGIC.len()..COMPILED_ASSET_BINARY_MAGIC.len() + 4]
+        first[COMPILED_ASSET_TOML_ENVELOPE_MAGIC.len()
+            ..COMPILED_ASSET_TOML_ENVELOPE_MAGIC.len() + 4]
             .try_into()
             .unwrap(),
     );
     let payload_len = u64::from_le_bytes(
-        first[COMPILED_ASSET_BINARY_MAGIC.len() + 4..COMPILED_ASSET_BINARY_HEADER_LEN]
+        first
+            [COMPILED_ASSET_TOML_ENVELOPE_MAGIC.len() + 4..COMPILED_ASSET_TOML_ENVELOPE_HEADER_LEN]
             .try_into()
             .unwrap(),
     );
-    let payload = std::str::from_utf8(&first[COMPILED_ASSET_BINARY_HEADER_LEN..]).unwrap();
+    let payload = std::str::from_utf8(&first[COMPILED_ASSET_TOML_ENVELOPE_HEADER_LEN..]).unwrap();
     let payload_artifact = toml::from_str::<UiRuntimeCompiledAssetArtifact>(payload).unwrap();
 
     assert_eq!(first, second);
     assert_eq!(
-        &first[..COMPILED_ASSET_BINARY_MAGIC.len()],
-        COMPILED_ASSET_BINARY_MAGIC
+        &first[..COMPILED_ASSET_TOML_ENVELOPE_MAGIC.len()],
+        COMPILED_ASSET_TOML_ENVELOPE_MAGIC
     );
     assert_eq!(
         schema_version,
-        UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION
+        UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION
     );
     assert_eq!(payload_len, payload.len() as u64);
     assert!(payload.starts_with("[report]\n"));
@@ -444,6 +448,50 @@ fn asset_package_validation_profiles_report_runtime_and_editor_stripping() {
         .retained_sections
         .contains(&UiCompiledAssetPackageSection::SourceDocument));
     assert!(editor_report.stripped_sections.is_empty());
+}
+
+#[test]
+fn package_report_distinguishes_compilation_from_runtime_binding_execution() {
+    let report = package_compiler()
+        .validate_package(&package_layout(), UiCompiledAssetPackageProfile::Runtime)
+        .unwrap();
+
+    assert_eq!(
+        UiBindingPackageLifecycleStage::ALL,
+        [
+            UiBindingPackageLifecycleStage::Declared,
+            UiBindingPackageLifecycleStage::Compiled,
+            UiBindingPackageLifecycleStage::Loaded,
+            UiBindingPackageLifecycleStage::Bound,
+            UiBindingPackageLifecycleStage::Executed,
+            UiBindingPackageLifecycleStage::Applied,
+        ]
+    );
+    assert_eq!(
+        UiBindingPackageLifecycleStage::ALL.map(|stage| stage.as_str()),
+        ["declared", "compiled", "loaded", "bound", "executed", "applied"]
+    );
+    assert_eq!(
+        report.binding_lifecycle_stage,
+        UiBindingPackageLifecycleStage::Compiled
+    );
+    assert!(report
+        .retained_sections
+        .contains(&UiCompiledAssetPackageSection::RuntimeBindings));
+    let encoded = toml::to_string(&report).unwrap();
+    assert!(encoded.contains("binding_lifecycle_stage = \"compiled\""));
+
+    let legacy_encoded = encoded
+        .lines()
+        .filter(|line| !line.starts_with("binding_lifecycle_stage = "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let legacy_report: UiCompiledAssetPackageValidationReport =
+        toml::from_str(&legacy_encoded).unwrap();
+    assert_eq!(
+        legacy_report.binding_lifecycle_stage,
+        UiBindingPackageLifecycleStage::Declared
+    );
 }
 
 #[test]

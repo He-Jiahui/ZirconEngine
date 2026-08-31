@@ -154,6 +154,11 @@ def materialized_package_loadable_artifacts_match_manifest(
         for path in manifest_paths
         if Path(path).suffix.lower() in NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS
     }
+    loadable_artifacts_by_prefix = native_dynamic_loadable_artifact_prefix_index(
+        loadable_manifest_paths
+    )
+    plugins_root: Path | None = None
+    plugins_root_resolved = False
     for index, package in enumerate(materialized_packages):
         destination = str(package["destination"])
         destination_path = resolve_native_dynamic_payload_path(
@@ -161,11 +166,13 @@ def materialized_package_loadable_artifacts_match_manifest(
             Path(destination).expanduser(),
             diagnostics,
         )
-        plugins_root = resolve_native_dynamic_payload_path(
-            "NativeDynamic payload plugins_dir",
-            plugins_dir,
-            diagnostics,
-        )
+        if not plugins_root_resolved:
+            plugins_root = resolve_native_dynamic_payload_path(
+                "NativeDynamic payload plugins_dir",
+                plugins_dir,
+                diagnostics,
+            )
+            plugins_root_resolved = True
         if destination_path is None or plugins_root is None:
             return False
         try:
@@ -194,11 +201,7 @@ def materialized_package_loadable_artifacts_match_manifest(
             for artifact_path in loadable_artifacts
             if isinstance(artifact_path, str)
         }
-        expected_artifacts = sorted(
-            path
-            for path in loadable_manifest_paths
-            if path.startswith(package_prefix)
-        )
+        expected_artifacts = loadable_artifacts_by_prefix.get(package_prefix, [])
         for artifact_path in expected_artifacts:
             if artifact_path not in reported_artifacts:
                 if diagnostics is not None:
@@ -210,3 +213,16 @@ def materialized_package_loadable_artifacts_match_manifest(
                     )
                 return False
     return True
+
+
+def native_dynamic_loadable_artifact_prefix_index(
+    loadable_manifest_paths: set[str],
+) -> dict[str, list[str]]:
+    artifacts_by_prefix: dict[str, list[str]] = {}
+    for path in sorted(loadable_manifest_paths):
+        parent, separator, _ = path.rpartition("/")
+        while separator and parent:
+            prefix = f"{parent.rstrip('/')}/"
+            artifacts_by_prefix.setdefault(prefix, []).append(path)
+            parent, separator, _ = parent.rpartition("/")
+    return artifacts_by_prefix

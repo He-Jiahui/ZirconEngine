@@ -32,7 +32,7 @@ impl SubmitContextSources {
             camera_loop: include_str!(
                 "../../../../graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs"
             ),
-            frame_extract: include_str!("../../../../core/framework/render/frame_extract.rs"),
+            frame_extract: include_str!("../../../../core/framework/render/frame_extract/frame.rs"),
             collect_feedback: include_str!(
                 "../../../../graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs"
             ),

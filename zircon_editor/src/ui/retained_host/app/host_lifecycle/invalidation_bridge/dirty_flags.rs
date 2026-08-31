@@ -71,7 +71,7 @@ impl RetainedEditorHost {
         self.capture_pending_ui_perf_scenario();
         record_ui_dirty_mask(mask);
         if let Some(view) = view {
-            self.invalidation.invalidate_view(view.clone(), mask);
+            self.invalidation.invalidate_view(view, mask);
         } else {
             self.invalidation.invalidate(mask);
         }

@@ -1,13 +1,17 @@
 use std::sync::Arc;
 
 use zircon_runtime::asset::{AssetId, ProjectAssetManager};
-use zircon_runtime::core::framework::animation::AnimationParameterMap;
-use zircon_runtime::core::framework::animation::{AnimationGraphAsset, AnimationSkeletonAsset};
+use zircon_runtime::core::framework::animation::{
+    AnimationGraphAsset, AnimationParameterSet, AnimationSkeletonAsset,
+};
 use zircon_runtime::core::resource::{
     AnimationGraphMarker, AnimationSkeletonMarker, ResourceHandle, ResourceSnapshot,
 };
 
-use crate::{CompiledAnimationGraph, CompiledAnimationGraphEvaluation, SkeletonTargetTable};
+use crate::{
+    compile_animation_graph_runtime, CompiledAnimationGraph, CompiledAnimationGraphEvaluation,
+    SkeletonTargetTable,
+};
 
 use super::AnimationEvaluationPipeline;
 
@@ -27,13 +31,14 @@ impl AnimationEvaluationPipeline {
         assets: &ProjectAssetManager,
         graph_id: AssetId,
         skeleton_id: AssetId,
-        parameters: &AnimationParameterMap,
+        parameters: &AnimationParameterSet,
     ) -> Option<Arc<CompiledAnimationGraphEvaluation>> {
-        if let Some(cached) = self.graph_evaluation_cache.iter().find(|cached| {
-            cached.graph_id == graph_id
-                && cached.skeleton_id == skeleton_id
-                && cached.parameters == *parameters
-        }) {
+        let cache_key = (graph_id, skeleton_id, parameters.content_fingerprint());
+        if let Some(cached) = self
+            .graph_evaluation_cache
+            .get(&cache_key)
+            .filter(|cached| cached.parameters == *parameters)
+        {
             return Some(Arc::clone(&cached.evaluation));
         }
         let graph = load_graph_snapshot(assets, graph_id)?;
@@ -48,7 +53,7 @@ impl AnimationEvaluationPipeline {
         });
         if !is_current {
             let targets = Arc::new(SkeletonTargetTable::compile(&skeleton).ok()?);
-            let compiled = Arc::new(CompiledAnimationGraph::compile(&graph, targets).ok()?);
+            let compiled = Arc::new(compile_animation_graph_runtime(&graph, targets).ok()?);
             self.graph_cache.insert(
                 key,
                 CachedCompiledGraph {
@@ -63,7 +68,7 @@ impl AnimationEvaluationPipeline {
 
         let cached = self.graph_cache.get_mut(&key)?;
         cached.last_used = access;
-        let evaluation = Arc::new(cached.graph.evaluate(parameters));
+        let evaluation = Arc::new(cached.graph.evaluate(parameters.as_map()));
         self.graph_evaluation_count = self.graph_evaluation_count.saturating_add(1);
         self.cache_graph_evaluation(graph_id, skeleton_id, parameters, Arc::clone(&evaluation));
         Some(evaluation)
@@ -88,18 +93,56 @@ fn load_graph_snapshot(
     assets: &ProjectAssetManager,
     id: AssetId,
 ) -> Option<ResourceSnapshot<AnimationGraphAsset>> {
-    assets.load_animation_graph_asset(id).ok()?;
-    assets
-        .resource_manager()
-        .snapshot::<AnimationGraphMarker, AnimationGraphAsset>(ResourceHandle::new(id))
+    let resources = assets.resource_manager();
+    let handle = ResourceHandle::<AnimationGraphMarker>::new(id);
+    resources.snapshot(handle).or_else(|| {
+        assets.load_animation_graph_asset(id).ok()?;
+        resources.snapshot(handle)
+    })
 }
 
 fn load_skeleton_snapshot(
     assets: &ProjectAssetManager,
     id: AssetId,
 ) -> Option<ResourceSnapshot<AnimationSkeletonAsset>> {
-    assets.load_animation_skeleton_asset(id).ok()?;
-    assets
-        .resource_manager()
-        .snapshot::<AnimationSkeletonMarker, AnimationSkeletonAsset>(ResourceHandle::new(id))
+    let resources = assets.resource_manager();
+    let handle = ResourceHandle::<AnimationSkeletonMarker>::new(id);
+    resources.snapshot(handle).or_else(|| {
+        assets.load_animation_skeleton_asset(id).ok()?;
+        resources.snapshot(handle)
+    })
+}
+
+#[cfg(test)]
+mod optimization_tests {
+    #[test]
+    fn optimization_batch_20260830cg_graph_cache_checks_resident_snapshots_first() {
+        let source = include_str!("graph_cache.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production source");
+
+        for (start, end, loader) in [
+            (
+                "fn load_graph_snapshot(",
+                "fn load_skeleton_snapshot(",
+                "load_animation_graph_asset",
+            ),
+            (
+                "fn load_skeleton_snapshot(",
+                "#[cfg(test)]",
+                "load_animation_skeleton_asset",
+            ),
+        ] {
+            let start = source.find(start).expect("snapshot helper");
+            let helper = production.get(start..).unwrap_or(&source[start..]);
+            let helper = helper.split(end).next().expect("snapshot helper boundary");
+            assert!(
+                helper.find("resources.snapshot").expect("resident lookup")
+                    < helper.find(loader).expect("loader fallback")
+            );
+            assert!(helper.contains(".or_else(||"));
+        }
+    }
 }

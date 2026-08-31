@@ -8,8 +8,8 @@ use super::action_guard::SessionActionGuard;
 use super::allocation_registry::{forget_session_census, session_has_outstanding_allocations};
 use super::session_slot::SessionSlot;
 use super::{RuntimeFrameActivity, RuntimeWakeRegistration};
-use crate::dynamic_api::session::RuntimeDynamicSession;
 use crate::dynamic_api::session::status::{invalid_argument, not_found, teardown_incomplete};
+use crate::dynamic_api::session::RuntimeDynamicSession;
 
 static SESSION_REGISTRY: OnceLock<Mutex<SessionRegistry>> = OnceLock::new();
 

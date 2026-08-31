@@ -2,13 +2,12 @@ use std::fmt;
 use std::sync::Arc;
 use std::thread::JoinHandle;
 
-use crossbeam_channel::{bounded, Receiver, Sender};
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
-
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFrameworkError, RenderSubmissionConfig, RenderViewportHandle,
+    UiRenderSubmission,
 };
 use crate::graphics::types::ViewportRenderFrame;
+use crossbeam_channel::{bounded, Receiver, Sender};
 
 use super::super::wgpu_render_framework::WgpuRenderFrameworkCore;
 
@@ -17,7 +16,7 @@ pub(in crate::graphics::runtime::render_framework) type FrameSubmissionExecutor 
         &WgpuRenderFrameworkCore,
         RenderViewportHandle,
         RenderFrameExtract,
-        Option<UiRenderExtract>,
+        Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError>;
 
 pub(in crate::graphics::runtime::render_framework) type RuntimeFrameSubmissionExecutor =
@@ -169,7 +168,7 @@ enum FrameSubmissionKind {
         execute: FrameSubmissionExecutor,
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
-        ui: Option<UiRenderExtract>,
+        ui: Option<Arc<UiRenderSubmission>>,
     },
     RuntimeFrame {
         execute: RuntimeFrameSubmissionExecutor,
@@ -183,7 +182,7 @@ impl FrameSubmission {
         execute: FrameSubmissionExecutor,
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
-        ui: Option<UiRenderExtract>,
+        ui: Option<Arc<UiRenderSubmission>>,
     ) -> Self {
         Self {
             kind: FrameSubmissionKind::Extract {
@@ -210,6 +209,8 @@ impl FrameSubmission {
     }
 
     fn execute(self, core: &WgpuRenderFrameworkCore) -> Result<(), RenderFrameworkError> {
+        core.ensure_device_admission()?;
+
         match self.kind {
             FrameSubmissionKind::Extract {
                 execute,
@@ -266,7 +267,7 @@ impl RenderSubmissionScheduler {
         execute: FrameSubmissionExecutor,
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
-        ui: Option<UiRenderExtract>,
+        ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError> {
         self.submit_submission(
             core,
@@ -433,5 +434,25 @@ mod tests {
             .expect("worker occupancy must finish after submission execution");
 
         assert!(operation_lock < started && started < busy && busy < execute && execute < idle);
+    }
+
+    #[test]
+    fn frame_submission_checks_device_admission_before_dispatching_work() {
+        let source = include_str!("queue.rs");
+        let execution = source
+            .split("fn execute(self, core: &WgpuRenderFrameworkCore)")
+            .nth(1)
+            .expect("frame submission must retain its execution entry point");
+        let admission = execution
+            .find("core.ensure_device_admission()?;")
+            .expect("frame submission must reject work for a faulted device");
+        let dispatch = execution
+            .find("match self.kind")
+            .expect("frame submission must dispatch one sealed frame kind");
+
+        assert!(
+            admission < dispatch,
+            "device admission must happen before either frame execution path"
+        );
     }
 }

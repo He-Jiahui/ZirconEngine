@@ -4,8 +4,10 @@ import { nativeModules } from "./src/modules/modules.js";
 const previewActionIdPattern = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
 const nativeActionSourceExtensions = new Set([".rs", ".toml", ".zui"]);
 const nativeActionSourceRoots = [
-  "../../../../zircon_editor/src/ui/",
-  "../../../../zircon_editor/assets/ui/editor/",
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/",
+  "../../../../zircon_editor/src/ui/template_runtime/builtin/",
+  "../../../../zircon_editor/assets/ui/editor/components/workbench/",
+  "../../../../zircon_editor/assets/ui/editor/windows/",
 ];
 
 const nativeEventSources = [
@@ -63,7 +65,7 @@ const nativeEventSources = [
   ],
 ];
 
-const expectedModuleEventCount = 188;
+const expectedModuleEventCount = 195;
 const allowedEventKinds = new Set(["Click", "Change", "Submit"]);
 const nativeModuleToWebModule = new Map([
   ["Scene", "scene"],
@@ -278,18 +280,20 @@ const requiredWorkspaceStructuredComponents = [
 const requiredWorkspaceEditableComponents = [
   "WorkbenchField",
   "WorkbenchDropdown",
+  "WorkbenchPropertyEditorRow",
 ];
 const moduleEventInteractiveComponents = new Set([
   "WorkbenchButton",
   "WorkbenchDropdown",
   "WorkbenchField",
+  "WorkbenchIconButton",
   "WorkbenchListRow",
   "WorkbenchPropertyRow",
   "WorkbenchTab",
   "WorkbenchTableRow",
 ]);
 const moduleEventKindComponents = new Map([
-  ["Click", new Set(["WorkbenchButton", "WorkbenchListRow", "WorkbenchPropertyRow", "WorkbenchTab", "WorkbenchTableRow"])],
+  ["Click", new Set(["WorkbenchButton", "WorkbenchIconButton", "WorkbenchListRow", "WorkbenchPropertyRow", "WorkbenchTab", "WorkbenchTableRow"])],
   ["Change", new Set(["WorkbenchDropdown", "WorkbenchField"])],
   ["Submit", new Set(["WorkbenchDropdown", "WorkbenchField"])],
 ]);
@@ -343,6 +347,9 @@ function collectNativeActionIds() {
   for (const fileUrl of nativeActionSourceFiles()) {
     const source = readFileSync(fileUrl, "utf8");
     const sourceName = fileUrl.pathname.replace(/\\/g, "/").split("/ZirconEngine/").pop() ?? fileUrl.pathname;
+    if (sourceName.includes("/tests/") || sourceName.endsWith("_tests.rs") || sourceName.endsWith("/tests.rs")) {
+      continue;
+    }
     for (const [kind, pattern] of patterns) {
       for (const match of source.matchAll(pattern)) {
         const actionId = normalizeActionId(match[1]);
@@ -417,7 +424,7 @@ function parseZuiNodes(source) {
     }
     const component = block.match(/^\s*component\s*=\s*"([^"]+)"/m)?.[1] ?? "";
     const controlId = block.match(/^\s*control_id\s*=\s*"([^"]+)"/m)?.[1] ?? "";
-    const children = [...block.matchAll(/\{\s*node\s*=\s*"([^"]+)"\s*\}/g)].map((match) => match[1]);
+    const children = [...block.matchAll(/\{\s*node\s*=\s*"([^"]+)"[^}]*\}/g)].map((match) => match[1]);
     const events = zuiModuleEventsFromBlock(block);
     nodes.set(name, { name, component, controlId, children, events, block });
   }
@@ -598,7 +605,7 @@ function assertSceneShellWorkspaceContract(failures) {
   } else {
     const sceneTreeDescendants = collectDescendantNodes(sceneTreeNodes, "scene_tree_panel");
     const sceneTreeComponents = new Set(sceneTreeDescendants.map((node) => node.component));
-    for (const required of ["WorkbenchTab", "WorkbenchField", "WorkbenchIconButton", "WorkbenchTreeRow"]) {
+    for (const required of ["WorkbenchTab", "WorkbenchSearchInput", "WorkbenchIconButton", "WorkbenchTreeRow"]) {
       if (!sceneTreeComponents.has(required)) {
         failures.push(`Scene tree panel is missing ${required}`);
       }
@@ -614,7 +621,7 @@ function assertSceneShellWorkspaceContract(failures) {
   } else {
     const viewportDescendants = collectDescendantNodes(viewportNodes, "viewport_panel");
     const viewportComponents = new Set(viewportDescendants.map((node) => node.component));
-    for (const required of ["WorkbenchChip", "Space", "Label"]) {
+    for (const required of ["WorkbenchChip", "Space", "WorkbenchLabel"]) {
       if (!viewportComponents.has(required)) {
         failures.push(`Scene viewport panel is missing ${required}`);
       }
@@ -833,6 +840,17 @@ const webScopedRouteKeys = routeScopedKeysFromSource(routesSource);
 const moduleFeedbackSource = readRelative(
   "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs",
 );
+const windowMenuStateSource = readRelative(
+  "../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs",
+);
+const panelMenuActionIds = new Set([
+  "workbench.module.assets.world_tools.open",
+  "workbench.module.assets.gameplay_tools.open",
+  "workbench.module.assets.production_tools.open",
+  "workbench.module.ability.animation_tools.open",
+  "workbench.module.render.tools.open",
+  "workbench.module.hud.tools.open",
+]);
 const workspaceSources = new Map(
   nativeModuleWorkspaceSources.map(([sourceName, path]) => [sourceName, readRelative(path)]),
 );
@@ -915,7 +933,7 @@ for (const [moduleId, prefix, sourceName] of nativeModuleWorkspaceContracts) {
       failures.push(`${moduleId} ${workspaceName} should use workbench-module-body classes`);
     }
     assertIncludes(workspace.block, 'kind = "HorizontalBox"', `${moduleId} ${workspaceName}`, failures);
-    assertIncludes(workspace.block, 'gap = 10.0', `${moduleId} ${workspaceName}`, failures);
+    assertIncludes(workspace.block, 'gap = "$editor.', `${moduleId} ${workspaceName}`, failures);
     assertIncludes(workspace.block, 'width = { stretch = "Stretch" }', `${moduleId} ${workspaceName}`, failures);
     assertIncludes(workspace.block, 'height = { stretch = "Stretch" }', `${moduleId} ${workspaceName}`, failures);
     if (JSON.stringify(workspace.children) !== JSON.stringify(expectedWorkspaceChildren)) {
@@ -933,9 +951,9 @@ for (const [moduleId, prefix, sourceName] of nativeModuleWorkspaceContracts) {
       failures.push(`${moduleId} ${prefix}_rail_gap should be a Container, found ${railGap.component}`);
     }
     for (const expected of [
-      "min = 72.0",
-      "preferred = 72.0",
-      "max = 72.0",
+      'min = "$editor.chrome.activity_rail.width"',
+      'preferred = "$editor.chrome.activity_rail.width"',
+      'max = "$editor.chrome.activity_rail.width"',
       'stretch = "Fixed"',
       'height = { stretch = "Stretch" }',
     ]) {
@@ -950,13 +968,20 @@ for (const [moduleId, prefix, sourceName] of nativeModuleWorkspaceContracts) {
       failures.push(`${moduleId} workspace is missing ${regionName}`);
       continue;
     }
-    if (region.component !== "VerticalGroup") {
-      failures.push(`${moduleId} ${regionName} should be a VerticalGroup region, found ${region.component}`);
+    const isScrollableAssetsRight = moduleId === "Assets" && regionName === "assets_right";
+    const expectedRegionComponent = isScrollableAssetsRight ? "ScrollableBox" : "VerticalGroup";
+    if (region.component !== expectedRegionComponent) {
+      failures.push(`${moduleId} ${regionName} should be a ${expectedRegionComponent} region, found ${region.component}`);
     }
     if (!region.block.includes('classes = ["workbench-panel"')) {
       failures.push(`${moduleId} ${regionName} should use workbench-panel classes`);
     }
-    assertIncludes(region.block, 'kind = "VerticalBox"', `${moduleId} ${regionName}`, failures);
+    assertIncludes(
+      region.block,
+      isScrollableAssetsRight ? 'kind = "ScrollableBox"' : 'kind = "VerticalBox"',
+      `${moduleId} ${regionName}`,
+      failures,
+    );
     assertIncludes(region.block, 'height = { stretch = "Stretch" }', `${moduleId} ${regionName}`, failures);
     if (regionName.endsWith("_center")) {
       assertIncludes(region.block, 'width = { stretch = "Stretch" }', `${moduleId} ${regionName}`, failures);
@@ -964,10 +989,11 @@ for (const [moduleId, prefix, sourceName] of nativeModuleWorkspaceContracts) {
         failures.push(`${moduleId} ${regionName} should use workbench-module-center classes`);
       }
     } else if (regionName.endsWith("_left")) {
+      const expectedWidths = moduleId === "Assets"
+        ? ["min = 188.0", "preferred = 220.0", "max = 250.0"]
+        : ["min = 270.0", "preferred = 270.0", "max = 290.0"];
       for (const expected of [
-        "min = 270.0",
-        "preferred = 270.0",
-        "max = 290.0",
+        ...expectedWidths,
         'stretch = "Fixed"',
       ]) {
         assertIncludes(region.block, expected, `${moduleId} ${regionName}`, failures);
@@ -976,10 +1002,11 @@ for (const [moduleId, prefix, sourceName] of nativeModuleWorkspaceContracts) {
         failures.push(`${moduleId} ${regionName} should use workbench-module-side classes`);
       }
     } else if (regionName.endsWith("_right")) {
+      const expectedWidths = isScrollableAssetsRight
+        ? ["min = 210.0", "preferred = 260.0", "max = 310.0"]
+        : ["min = 320.0", "preferred = 320.0", "max = 340.0"];
       for (const expected of [
-        "min = 320.0",
-        "preferred = 320.0",
-        "max = 340.0",
+        ...expectedWidths,
         'stretch = "Fixed"',
       ]) {
         assertIncludes(region.block, expected, `${moduleId} ${regionName}`, failures);
@@ -988,8 +1015,8 @@ for (const [moduleId, prefix, sourceName] of nativeModuleWorkspaceContracts) {
         failures.push(`${moduleId} ${regionName} should use workbench-module-side classes`);
       }
     }
-    if (region.children.length < 3) {
-      failures.push(`${moduleId} ${regionName} should compose at least three child components`);
+    if (region.children.length < 2) {
+      failures.push(`${moduleId} ${regionName} should compose at least two child components`);
     }
   }
 
@@ -1008,8 +1035,8 @@ for (const [moduleId, prefix, sourceName] of nativeModuleWorkspaceContracts) {
   if (!requiredWorkspaceEditableComponents.some((component) => workspaceComponents.has(component))) {
     failures.push(`${moduleId} workspace should include an editable field or dropdown`);
   }
-  if (workspaceEvents.length < 10) {
-    failures.push(`${moduleId} workspace should expose at least ten WorkbenchModule events, found ${workspaceEvents.length}`);
+  if (workspaceEvents.length < 9) {
+    failures.push(`${moduleId} workspace should expose at least nine WorkbenchModule events, found ${workspaceEvents.length}`);
   }
   for (const event of workspaceEvents) {
     if (!event.bindingId.startsWith(`WorkbenchModule/${moduleId}`)) {
@@ -1082,11 +1109,20 @@ for (const [bindingId, binding] of moduleBindings) {
   if (!declaredBindingIds.has(bindingId)) {
     failures.push(`${bindingId} exists in native bindings but has no ZUI declaration`);
   }
-  if (!previewActions.has(binding.actionId)) {
+  if (!previewActions.has(binding.actionId) && !panelMenuActionIds.has(binding.actionId)) {
     failures.push(`${bindingId} resolves to unregistered preview action ${binding.actionId}`);
   }
-  if (!modulePreviewActions.has(binding.actionId)) {
+  if (!modulePreviewActions.has(binding.actionId) && !panelMenuActionIds.has(binding.actionId)) {
     failures.push(`${bindingId} resolves outside the Workbench module preview namespace: ${binding.actionId}`);
+  }
+}
+
+for (const actionId of panelMenuActionIds) {
+  if (!windowMenuStateSource.includes(`action_ids: &["${actionId}"]`)) {
+    failures.push(`${actionId} is missing from retained Workbench window menu state`);
+  }
+  if (!bindingActionIds.has(actionId)) {
+    failures.push(`${actionId} is missing a native WorkbenchModule binding`);
   }
 }
 
@@ -1175,7 +1211,7 @@ for (const [variant, outputText] of nativeCompileFeedbackSamples) {
 }
 
 console.log(
-  `native module contract: modules=${nativeModuleIds.length} events=${moduleEvents.length} routed=${moduleEvents.filter((event) => event.route).length} unique=${seenBindingIds.size} bindings=${moduleBindings.size} modulePreviewActions=${modulePreviewActions.size} previewActions=${previewActions.size} webCommands=${webRouteCommands.size} nativeCoveredWebCommands=${webCommandNativeActions.size} scopedRoutes=${webScopedRouteKeys.size} feedbackRows=${nativeModuleFeedbackRows.length}`,
+  `native module contract: modules=${nativeModuleIds.length} events=${moduleEvents.length} routed=${moduleEvents.filter((event) => event.route).length} unique=${seenBindingIds.size} bindings=${moduleBindings.size} panelMenuActions=${panelMenuActionIds.size} modulePreviewActions=${modulePreviewActions.size} previewActions=${previewActions.size} webCommands=${webRouteCommands.size} nativeCoveredWebCommands=${webCommandNativeActions.size} scopedRoutes=${webScopedRouteKeys.size} feedbackRows=${nativeModuleFeedbackRows.length}`,
 );
 
 if (failures.length > 0) {

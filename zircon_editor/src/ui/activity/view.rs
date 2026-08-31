@@ -7,8 +7,8 @@ use crate::core::i18n::EditorI18nService;
 use crate::core::jobs::JobId;
 use crate::core::logging::{LogJump, LogRecord, LogSeverity, LogSource};
 use crate::core::notifications::{
-    present_progress, present_toast, LocalizedProgressNotification, LocalizedToastNotification,
-    ProgressNotificationSnapshot, ToastNotificationSnapshot, ToastSeverity,
+    LocalizedProgressNotification, LocalizedToastNotification, ProgressNotificationSnapshot,
+    ToastNotificationSnapshot, ToastSeverity, present_progress, present_toast,
 };
 
 use super::slot::ActivityDrawerSlotPreference;

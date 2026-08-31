@@ -89,15 +89,23 @@ impl DiagnosticLogFilter {
 
     pub fn parse(value: impl AsRef<str>) -> Result<Self, DiagnosticLogLevelParseError> {
         let value = value.as_ref().trim();
-        let normalized = value.to_ascii_lowercase();
-        match normalized.as_str() {
-            "verbose" | "trace" => Ok(Self::Minimum(DiagnosticLogLevel::Verbose)),
-            "debug" => Ok(Self::Minimum(DiagnosticLogLevel::Debug)),
-            "log" | "info" => Ok(Self::Minimum(DiagnosticLogLevel::Log)),
-            "warn" | "warning" => Ok(Self::Minimum(DiagnosticLogLevel::Warn)),
-            "error" | "err" => Ok(Self::Minimum(DiagnosticLogLevel::Error)),
-            "off" | "none" | "quiet" => Ok(Self::Off),
-            _ => Err(DiagnosticLogLevelParseError::new(value)),
+        if value.eq_ignore_ascii_case("verbose") || value.eq_ignore_ascii_case("trace") {
+            Ok(Self::Minimum(DiagnosticLogLevel::Verbose))
+        } else if value.eq_ignore_ascii_case("debug") {
+            Ok(Self::Minimum(DiagnosticLogLevel::Debug))
+        } else if value.eq_ignore_ascii_case("log") || value.eq_ignore_ascii_case("info") {
+            Ok(Self::Minimum(DiagnosticLogLevel::Log))
+        } else if value.eq_ignore_ascii_case("warn") || value.eq_ignore_ascii_case("warning") {
+            Ok(Self::Minimum(DiagnosticLogLevel::Warn))
+        } else if value.eq_ignore_ascii_case("error") || value.eq_ignore_ascii_case("err") {
+            Ok(Self::Minimum(DiagnosticLogLevel::Error))
+        } else if value.eq_ignore_ascii_case("off")
+            || value.eq_ignore_ascii_case("none")
+            || value.eq_ignore_ascii_case("quiet")
+        {
+            Ok(Self::Off)
+        } else {
+            Err(DiagnosticLogLevelParseError::new(value))
         }
     }
 
@@ -398,3 +406,7 @@ mod tests {
         assert_eq!(selected_filter_env_override(None, None, None), None);
     }
 }
+
+#[cfg(test)]
+#[path = "level/borrowed_parse_tests.rs"]
+mod borrowed_parse_tests;

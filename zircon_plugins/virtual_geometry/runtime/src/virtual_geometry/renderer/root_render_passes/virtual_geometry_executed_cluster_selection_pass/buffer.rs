@@ -3,6 +3,8 @@ use std::sync::Arc;
 use wgpu::util::DeviceExt;
 use zircon_runtime::core::framework::render::RenderVirtualGeometrySelectedCluster;
 
+use super::super::packed_words::collect_fixed_packed_words;
+
 pub(super) fn create_selected_cluster_buffer(
     device: &wgpu::Device,
     selected_clusters: &[RenderVirtualGeometrySelectedCluster],
@@ -11,10 +13,10 @@ pub(super) fn create_selected_cluster_buffer(
         return None;
     }
 
-    let packed_words = selected_clusters
-        .iter()
-        .flat_map(RenderVirtualGeometrySelectedCluster::packed_words)
-        .collect::<Vec<_>>();
+    let packed_words = collect_fixed_packed_words(
+        selected_clusters,
+        RenderVirtualGeometrySelectedCluster::packed_words,
+    );
     Some(Arc::new(device.create_buffer_init(
         &wgpu::util::BufferInitDescriptor {
             label: Some("zircon-vg-executed-selected-clusters"),

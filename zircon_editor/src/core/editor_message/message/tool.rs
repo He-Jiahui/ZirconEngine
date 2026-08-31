@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::tools::ToolLifecycleEvent;
+use crate::core::tools::ToolTransitionBatch;
 
-/// Typed lifecycle fact emitted by the sole ToolScheduler service.
+/// Ordered transition emitted by the sole ToolScheduler service.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ToolMessage {
-    Lifecycle(ToolLifecycleEvent),
+    Transition(ToolTransitionBatch),
 }

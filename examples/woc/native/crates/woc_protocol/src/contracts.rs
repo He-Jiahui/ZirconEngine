@@ -33,6 +33,33 @@ pub struct FixedTickInput {
     pub offline_bootstrap: Option<OfflineSessionBootstrap>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct FixedTickInputRef<'a> {
+    pub tick: u64,
+    pub commands: &'a [Command],
+    pub wall_time_forbidden: bool,
+    pub committed_state: &'a [u8],
+    pub committed_state_digest: u32,
+    pub generation: u64,
+    pub movement_frames: &'a [MovementFrame],
+    pub offline_bootstrap: Option<&'a OfflineSessionBootstrap>,
+}
+
+impl<'a> From<&'a FixedTickInput> for FixedTickInputRef<'a> {
+    fn from(input: &'a FixedTickInput) -> Self {
+        Self {
+            tick: input.tick,
+            commands: &input.commands,
+            wall_time_forbidden: input.wall_time_forbidden,
+            committed_state: &input.committed_state,
+            committed_state_digest: input.committed_state_digest,
+            generation: input.generation,
+            movement_frames: &input.movement_frames,
+            offline_bootstrap: input.offline_bootstrap.as_ref(),
+        }
+    }
+}
+
 /// Source-derived inputs that construct one fresh standard offline simulation.
 /// This is a first-tick envelope, never an authoritative gameplay command.
 pub const OFFLINE_WEAPON_SKIN_COUNT: usize = 29;

@@ -44,7 +44,7 @@ def collect_plugin_asset_roots(
         manifest_path,
         distribution.get("assets", []),
     )
-    existing_roots = [root for root in roots if root.exists() and root.is_dir()]
+    existing_roots = [root for root in roots if root.is_dir()]
     return tuple(unique_asset_roots(existing_roots))
 
 

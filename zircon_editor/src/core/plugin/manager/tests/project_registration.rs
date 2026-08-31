@@ -73,12 +73,50 @@ fn project_native_reports_replace_only_project_rows_and_record_host_lifecycle() 
     assert!(refreshed_registration.lifecycle_stage_succeeded(&EditorPluginLifecycleStage::Loaded));
     assert!(refreshed_registration.lifecycle_stage_succeeded(&EditorPluginLifecycleStage::Enabled));
 
-    manager
+    let receipt = manager
         .clear_project_registration_reports()
         .expect("closing the project should clear its native registrations");
     let cleared = manager.state_snapshot();
+    assert!(receipt.is_terminal());
+    assert_eq!(
+        receipt.retired_package_ids(),
+        &["fixture.project.two".to_string()]
+    );
+    assert!(receipt.remaining_project_package_ids().is_empty());
+    assert_eq!(
+        receipt.previous_manager_generation(),
+        refreshed.generation()
+    );
+    assert_eq!(
+        receipt.previous_catalog_generation(),
+        refreshed.catalog_generation()
+    );
+    assert_eq!(receipt.manager_generation(), cleared.generation());
+    assert_eq!(receipt.catalog_generation(), cleared.catalog_generation());
     assert!(cleared.entry("fixture.project.two").is_none());
     assert!(cleared.entry("fixture.builtin").is_some());
+}
+
+#[test]
+fn clearing_an_empty_project_registration_set_returns_one_terminal_generation() {
+    let manager = EditorPluginManager::new(EditorPluginCatalog::from_descriptors([], []))
+        .expect("empty manager should be admissible");
+
+    let receipt = manager
+        .clear_project_registration_reports()
+        .expect("an already empty project registration set is terminal");
+    let terminal = manager.state_snapshot();
+
+    assert!(receipt.is_terminal());
+    assert!(receipt.retired_package_ids().is_empty());
+    assert!(receipt.remaining_project_package_ids().is_empty());
+    assert_eq!(receipt.previous_manager_generation(), terminal.generation());
+    assert_eq!(
+        receipt.previous_catalog_generation(),
+        terminal.catalog_generation()
+    );
+    assert_eq!(receipt.manager_generation(), terminal.generation());
+    assert_eq!(receipt.catalog_generation(), terminal.catalog_generation());
 }
 
 fn host_owned_project_report(package_id: &str) -> EditorPluginRegistrationReport {
@@ -95,6 +133,7 @@ fn host_owned_project_report(package_id: &str) -> EditorPluginRegistrationReport
         successful_lifecycle_stages: Vec::new(),
         failed_lifecycle_stages: Vec::new(),
         runtime_event_consumers: EditorRuntimeEventConsumerRegistry::default(),
+        native_command_bindings: Default::default(),
         diagnostics: Vec::new(),
     }
 }

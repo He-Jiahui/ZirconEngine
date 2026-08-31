@@ -1,10 +1,16 @@
+use crate::core::framework::text::TextLayoutError;
 use crate::text::RichTextFormat;
 use crate::text::SharedTextLayoutSession;
-use crate::ui::text::rich_text::parse_source_text;
+use crate::text::layout::GraphemeAdvanceMetric;
+use crate::ui::text::rich_text::{UiParsedText, parse_source_text as try_parse_source_text};
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRange, UiTextWrap};
 
 use super::*;
+
+fn parse_source_text(text: &str, format: RichTextFormat) -> UiParsedText {
+    try_parse_source_text(text, format).expect("test text fits parser budgets")
+}
 
 #[test]
 fn glyph_wrap_shapes_complete_source_and_bounded_line_edges() {
@@ -60,7 +66,73 @@ fn wrapping_source_has_no_production_growing_prefix_candidate() {
     assert!(!source.contains("Vec<TextSegment"));
     assert!(source.contains("GraphemeAdvanceIndex::measured_with_provider"));
     assert!(source.contains("corrected_glyph_ranges_with_provider"));
+    assert!(source.contains("append_corrected_glyph_ranges"));
     assert!(source.contains("visit_source_segments_preserving_hard_lines"));
+}
+
+#[test]
+fn corrected_glyph_ranges_are_committed_without_rechecking_each_grapheme() {
+    let style = UiResolvedStyle::default();
+    let neutral_style = text_style(&style);
+    let mut provider = SharedTextLayoutSession::new();
+    let index = GraphemeAdvanceIndex::measured_with_provider("abcd", &neutral_style, &mut provider)
+        .into_result()
+        .expect("measure glyph range fixture");
+    let mut lines = Vec::new();
+    let mut current = CandidateLine::empty();
+    append_segment(
+        &mut current,
+        zircon_runtime_interface::ui::surface::UiTextRunKind::Plain,
+        "p",
+        UiTextRange { start: 0, end: 1 },
+    );
+    let mut current_advance = 3.0;
+
+    append_corrected_glyph_ranges(
+        &mut lines,
+        &mut current,
+        zircon_runtime_interface::ui::surface::UiTextRunKind::Plain,
+        "abcd",
+        UiTextRange { start: 1, end: 5 },
+        &index,
+        vec![(0, 2), (2, 4)],
+        &mut current_advance,
+    )
+    .into_result()
+    .expect("corrected glyph ranges remain valid");
+
+    assert_eq!(lines.len(), 1);
+    assert_eq!(lines[0].text, "pab");
+    assert_eq!(current.text, "cd");
+    assert!((current_advance - index.advance(2, 4)).abs() < 0.01);
+}
+
+#[test]
+fn corrected_glyph_ranges_fail_closed_when_a_metric_cannot_be_sliced() {
+    let index = GraphemeAdvanceIndex::from_metrics(vec![GraphemeAdvanceMetric {
+        source_start: 1,
+        source_end: 9,
+        advance: 4.0,
+        cross_extent: 10.0,
+    }]);
+    let mut lines = Vec::new();
+    let mut current = CandidateLine::empty();
+    let mut current_advance = 0.0;
+
+    let outcome = append_corrected_glyph_ranges(
+        &mut lines,
+        &mut current,
+        zircon_runtime_interface::ui::surface::UiTextRunKind::Plain,
+        "ab",
+        UiTextRange { start: 0, end: 2 },
+        &index,
+        vec![(0, 1)],
+        &mut current_advance,
+    );
+
+    assert_eq!(outcome.into_result(), Err(TextLayoutError::LayoutFailed));
+    assert!(lines.is_empty());
+    assert!(current.text.is_empty());
 }
 
 #[test]
@@ -122,7 +194,7 @@ fn rich_runs_joined_without_wrap_remain_one_logical_candidate_line() {
     let first = "x".repeat(boundary / 2);
     let second = "x".repeat(boundary / 2 + 1);
     let source = format!("{first}<b>{second}</b>");
-    let parsed = parse_source_text(&source, RichTextFormat::Html);
+    let parsed = parse_source_text(&source, RichTextFormat::HtmlSubsetV1);
     let style = UiResolvedStyle::default();
     let mut provider = SharedTextLayoutSession::new();
 

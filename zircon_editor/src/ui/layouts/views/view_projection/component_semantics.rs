@@ -12,7 +12,7 @@ pub(super) fn resolve_role(
     match component {
         "Button" => "Button",
         "Label" | "Text" => "Label",
-        "InputField" | "TextField" | "NumberField" => "InputField",
+        "InputField" | "SearchField" | "TextField" | "NumberField" => "InputField",
         "RangeField" | "Slider" | "RangeSlider" => "RangeField",
         "Progress" | "ProgressBar" | "LinearProgress" | "CircularProgress" | "Spinner" => {
             "Progress"
@@ -51,7 +51,7 @@ pub(crate) fn resolve_component_role(component: &str) -> &'static str {
         "Canvas" => "canvas",
         "Icon" => "icon",
         "IconButton" => "icon-button",
-        "InputField" | "TextField" => "input-field",
+        "InputField" | "SearchField" | "TextField" => "input-field",
         "NumberField" => "number-field",
         "RangeField" => "range-field",
         "Slider" => "slider",

@@ -9,10 +9,10 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
 ]
 styles = []
@@ -21,24 +21,47 @@ root = "ability_workspace"
 default_classes = ["workbench-module-body"]
 
 [nodes.ability_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchModuleAbilityWorkspace"
 classes = ["workbench-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "ability_rail_gap" }, { node = "ability_left" }, { node = "ability_center" }, { node = "ability_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "ability_workspace_main" },
+  { node = "ability_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.ability_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ability_rail_gap" }, { node = "ability_left" }, { node = "ability_center" }, { node = "ability_right_reserve" }]
+
+[nodes.ability_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.ability_rail_gap]
 component = "Container"
 control_id = "WorkbenchAbilityRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.ability_left]
 component = "VerticalGroup"
 control_id = "WorkbenchAbilityLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "ability_title" }, { node = "ability_graph_tab" }, { node = "ability_tasks_tab" }, { node = "ability_debug_tab" }, { node = "ability_task_row_01" }, { node = "ability_task_row_02" }, { node = "ability_asset_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "ability_title" }, { node = "ability_left_content" }]
+
+[nodes.ability_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchAbilityLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ability_task_row_01" }, { node = "ability_task_row_02" }, { node = "ability_asset_row" }]
 
 [nodes.ability_title]
 component = "WorkbenchSectionTitle"
@@ -46,35 +69,11 @@ control_id = "WorkbenchAbilityTitle"
 props = { text = "Gameplay Ability" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
-[nodes.ability_graph_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchAbilityGraphTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Graph", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AbilityGraphTab", event = "Click", route = "workbench.module.ability.graph" }]
-
-[nodes.ability_tasks_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchAbilityTasksTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Tasks", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AbilityTasksTab", event = "Click", route = "workbench.module.ability.tasks" }]
-
-[nodes.ability_debug_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchAbilityDebugTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Debug", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AbilityDebugTab", event = "Click", route = "workbench.module.ability.debug" }]
-
 [nodes.ability_task_row_01]
 component = "WorkbenchListRow"
 control_id = "WorkbenchAbilityTaskActivateRow"
-classes = ["workbench-list-row", "workbench-row-selected"]
-props = { text = "Activate Ability", icon = "play", selected = true }
+classes = ["workbench-list-row"]
+props = { text = "Activate Ability", icon = "play" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/AbilityTaskActivate", event = "Click", route = "workbench.module.ability.task.activate" }]
 
@@ -82,7 +81,7 @@ events = [{ id = "WorkbenchModule/AbilityTaskActivate", event = "Click", route =
 component = "WorkbenchListRow"
 control_id = "WorkbenchAbilityTaskCostRow"
 classes = ["workbench-list-row"]
-props = { text = "Apply Cost", icon = "gear", selected = false }
+props = { text = "Apply Cost", icon = "gear" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/AbilityTaskCost", event = "Click", route = "workbench.module.ability.task.cost" }]
 
@@ -90,7 +89,7 @@ events = [{ id = "WorkbenchModule/AbilityTaskCost", event = "Click", route = "wo
 component = "WorkbenchListRow"
 control_id = "WorkbenchAbilityAssetRow"
 classes = ["workbench-list-row"]
-props = { text = "GA_DashAttack", icon = "play", selected = false }
+props = { text = "GA_DashAttack", icon = "play" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/AbilityAssetDash", event = "Click", route = "workbench.module.ability.asset.dash" }]
 
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchModule/AbilityAssetDash", event = "Click", route = "w
 component = "VerticalGroup"
 control_id = "WorkbenchAbilityCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "ability_center_header" }, { node = "ability_graph_canvas" }, { node = "ability_output" }]
 
 [nodes.ability_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchAbilityCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "ability_center_title" }, { node = "ability_header_fill" }, { node = "ability_playtest_button" }]
 
 [nodes.ability_center_title]
@@ -128,10 +127,11 @@ layout = { width = { min = 82.0, preferred = 82.0, max = 92.0, stretch = "Fixed"
 events = [{ id = "WorkbenchModule/AbilityPlaytest", event = "Click", route = "workbench.module.ability.playtest" }]
 
 [nodes.ability_graph_canvas]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchAbilityGraphCanvas"
 classes = ["workbench-panel", "workbench-module-graph"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.regular", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "ability_phase_table" }, { node = "ability_phase_row_01" }, { node = "ability_phase_row_02" }, { node = "ability_graph_row" }]
 
 [nodes.ability_phase_table]
@@ -143,8 +143,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 2
 [nodes.ability_phase_row_01]
 component = "WorkbenchTableRow"
 control_id = "WorkbenchAbilityPhaseActivateRow"
-classes = ["workbench-table-row", "workbench-row-selected"]
-props = { text = "Activation", value_text = "Activate Ability   Server   Ready", selected = true }
+classes = ["workbench-table-row"]
+props = { text = "Activation", value_text = "Activate Ability   Server   Ready" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/AbilityPhaseActivate", event = "Click", route = "workbench.module.ability.phase.activate" }]
 
@@ -168,22 +168,36 @@ events = [{ id = "WorkbenchModule/AbilityGraphSelect", event = "Click", route = 
 component = "WorkbenchTableRow"
 control_id = "WorkbenchAbilityOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Timeline", value_text = "1.22s Ability Activated   OK   GA_DashAttack" }
+props = { text = "Timeline", value_text = "1.22s Ability Activated   OK   GA_DashAttack", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AbilityOutput", event = "Click", route = "workbench.module.ability.output" }]
 
 [nodes.ability_right]
 component = "VerticalGroup"
 control_id = "WorkbenchAbilityRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "ability_details_title" }, { node = "ability_name_field" }, { node = "ability_net_policy_dropdown" }, { node = "ability_cooldown_field" }, { node = "ability_sequencer_button" }, { node = "ability_montage_editor_button" }, { node = "ability_blend_space_button" }, { node = "ability_pose_library_button" }, { node = "ability_retarget_button" }, { node = "ability_control_rig_button" }, { node = "ability_motion_matching_button" }, { node = "ability_animation_compression_button" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "ability_details_title" }, { node = "ability_right_content" }]
+
+[nodes.ability_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchAbilityRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ability_name_property_row" }, { node = "ability_net_policy_property_row" }, { node = "ability_cooldown_property_row" }, { node = "ability_animation_tools_button" }]
 
 [nodes.ability_details_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchAbilityDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.ability_name_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchAbilityNamePropertyRow"
+props = { text = "Name" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "ability_name_field", slot = { name = "value" } }]
 
 [nodes.ability_name_field]
 component = "WorkbenchField"
@@ -196,88 +210,46 @@ events = [
   { id = "WorkbenchModule/AbilityNameCommit", event = "Submit", route = "workbench.module.ability.name.commit" },
 ]
 
+[nodes.ability_net_policy_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchAbilityNetPolicyPropertyRow"
+props = { text = "Net Policy" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "ability_net_policy_dropdown", slot = { name = "value" } }]
+
 [nodes.ability_net_policy_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchAbilityNetPolicyDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Server Initiated", value = "Server Initiated" }
+props = { value = "server_initiated", value_text = "Server Initiated", options = ["server_initiated|label=Server Initiated", "client_predicted|label=Client Predicted", "local_only|label=Local Only"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/AbilityNetPolicyEdit", event = "Change", route = "workbench.module.ability.net_policy.edit" },
   { id = "WorkbenchModule/AbilityNetPolicyCommit", event = "Submit", route = "workbench.module.ability.net_policy.commit" },
 ]
 
+[nodes.ability_cooldown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchAbilityCooldownPropertyRow"
+props = { text = "Cooldown" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "ability_cooldown_field", slot = { name = "value" } }]
+
 [nodes.ability_cooldown_field]
 component = "WorkbenchField"
 control_id = "WorkbenchAbilityCooldownField"
 classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Cooldown: 4.00s" }
+props = { value = "4.00s" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/AbilityCooldownEdit", event = "Change", route = "workbench.module.ability.cooldown.edit" },
   { id = "WorkbenchModule/AbilityCooldownCommit", event = "Submit", route = "workbench.module.ability.cooldown.commit" },
 ]
 
-[nodes.ability_sequencer_button]
+[nodes.ability_animation_tools_button]
 component = "WorkbenchButton"
-control_id = "WorkbenchAbilitySequencerButton"
+control_id = "WorkbenchAbilityAnimationTools"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Sequencer", button_variant = "outlined", button_color = "secondary" }
+props = { text = "Animation Tools", icon = "more", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/SequencerOpen", event = "Click", route = "workbench.extension.sequencer.open" }]
-
-[nodes.ability_montage_editor_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchAbilityMontageEditorButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Montage Editor", button_variant = "outlined", button_color = "secondary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/MontageEditorOpen", event = "Click", route = "workbench.extension.montage_editor.open" }]
-
-[nodes.ability_blend_space_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchAbilityBlendSpaceButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Blend Space", button_variant = "outlined", button_color = "secondary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BlendSpaceOpen", event = "Click", route = "workbench.extension.blend_space.open" }]
-
-[nodes.ability_pose_library_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchAbilityPoseLibraryButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Pose Library", button_variant = "outlined", button_color = "secondary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PoseLibraryOpen", event = "Click", route = "workbench.extension.pose_library.open" }]
-
-[nodes.ability_retarget_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchAbilityRetargetButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Retarget", button_variant = "outlined", button_color = "secondary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/RetargetOpen", event = "Click", route = "workbench.extension.retarget.open" }]
-
-[nodes.ability_control_rig_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchAbilityControlRigButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Control Rig", button_variant = "outlined", button_color = "secondary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ControlRigOpen", event = "Click", route = "workbench.extension.control_rig.open" }]
-
-[nodes.ability_motion_matching_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchAbilityMotionMatchingButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Motion Matching", button_variant = "outlined", button_color = "secondary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/MotionMatchingOpen", event = "Click", route = "workbench.extension.motion_matching.open" }]
-
-[nodes.ability_animation_compression_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchAbilityAnimationCompressionButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Animation Compression", button_variant = "outlined", button_color = "secondary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/AnimationCompressionOpen", event = "Click", route = "workbench.extension.animation_compression.open" }]
+events = [{ id = "WorkbenchModule/AbilityAnimationToolsOpen", event = "Click", route = "workbench.module.ability.animation_tools.open" }]

@@ -40,6 +40,7 @@ fn source_geometry_prefers_artifact_cluster_edges_over_dto_grapheme_advances() {
             source_text: Arc::from("fi"),
             source_text_origin: 0,
             font_generation: crate::text::font::shared_font_database_generation(),
+            font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
             style: UiResolvedStyle::default(),
             writing_mode: UiTextWritingMode::HorizontalTb,
             lines: vec![Some(ResolvedTextGlyphArtifactLine {
@@ -62,6 +63,7 @@ fn source_geometry_prefers_artifact_cluster_edges_over_dto_grapheme_advances() {
                 }],
                 layout_line: line,
             })],
+            logical_virtual_line_sequences: None,
         },
     )));
 
@@ -141,12 +143,14 @@ fn vertical_source_geometry_uses_artifact_clusters_and_falls_back_when_stale_or_
             source_text: Arc::from("fi"),
             source_text_origin: 0,
             font_generation,
+            font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
             style: UiResolvedStyle::default(),
             writing_mode: UiTextWritingMode::VerticalRl,
             lines: vec![Some(ResolvedTextGlyphArtifactLine {
                 glyphs: glyphs.clone(),
                 layout_line: artifact_line.clone(),
             })],
+            logical_virtual_line_sequences: None,
         }))
     };
     layout.rich_text_artifact = Some(attach_artifact(
@@ -495,6 +499,7 @@ fn layout_with_advances(text: &str, glyph_advances: Vec<f32>) -> UiResolvedTextL
         direction: UiTextDirection::LeftToRight,
         lines: vec![UiResolvedTextLine {
             text: text.to_string(),
+            placement_frame: UiFrame::default(),
             frame: UiFrame::new(10.0, 20.0, 30.0, 12.0),
             source_range: UiTextRange {
                 start: 0,

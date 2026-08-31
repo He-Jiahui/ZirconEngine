@@ -11,14 +11,14 @@ param(
     [string]$ReopenAutomationRequest,
     [switch]$CreateProject,
     [string]$ProjectName = 'ZirconMvpFixture',
-    [string]$StagingRoot = 'E:\ZirconBuilds',
+    [string]$StagingRoot,
     [string]$RunId = ('mvp-f0-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)),
-    [ValidateRange(1, 4)]
-    [int]$RepeatCount = 2,
-    [ValidateRange(1, 4)]
-    [int]$ReopenRepeatCount = 2,
-    [ValidateRange(1, 600)]
-    [int]$TimeoutSeconds = 90,
+    [Nullable[int]]$RepeatCount,
+    [Nullable[int]]$ReopenRepeatCount,
+    [Nullable[int]]$TimeoutSeconds,
+    [Nullable[int]]$ProgressInactivityTimeoutSeconds,
+    [ValidateRange(1024, 67108864)]
+    [int]$MaxProcessLogBytes = 4194304,
     [switch]$NoLaunch,
     [switch]$AllowUnsafeStagingRoot,
     [switch]$Json
@@ -31,9 +31,41 @@ Import-Module (Join-Path $PSScriptRoot 'MvpProjectOpenEvidence.psm1') -Force -Er
 Import-Module (Join-Path $PSScriptRoot 'MvpStagingPreflight.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpStagingRelease.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpProductInputManifest.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpBuildSet.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingTreeManifest.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpStageProcessEnvironmentPolicy.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpStagingTerminalReceipt.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpStagingCancellationRequest.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpProcessLivenessProbe.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAutomationScenarioSpec.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpScenarioRegistry.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpProcessQualificationContext.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpRunArtifactBudget.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'StagedProcessSupervisor.psm1') -Force -ErrorAction Stop
 $pathResolverRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $pathResolverRepoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpProjectCopyPolicy.psm1') -Force -ErrorAction Stop
+
+if ([string]::IsNullOrWhiteSpace($StagingRoot)) {
+    $StagingRoot = Get-MvpArtifactStorageDefaultRootPath -CapabilityClass 'windows-local-artifact'
+}
+
+$script:MvpMaximumDiagnosticFileCount = 64
+$script:MvpMaximumDiagnosticDirectoryDepth = 8
+$script:MvpMaximumAdditionalArtifactFileCount = 4096
+$script:MvpRunArtifactBudgetPolicyId = 'mvp.staging-run-artifacts.v1'
+$script:MvpScenarioRegistryPath = Join-Path $PSScriptRoot 'mvp-scenario-registry.json'
+$script:MvpProjectCopyPolicyPath = Join-Path $PSScriptRoot 'mvp-project-copy-policy.json'
+$script:MvpUpperHexDigits = [char[]]'0123456789ABCDEF'
+
+function Assert-MvpStagingCancellationNotRequested {
+    param([Parameter(Mandatory)][scriptblock]$CancellationProbe)
+
+    if ([bool](& $CancellationProbe)) {
+        throw [OperationCanceledException]::new('MVP staging was cancelled by its run-bound external request.')
+    }
+}
 
 function Get-FileSha256 {
     param([Parameter(Mandatory)][string]$Path)
@@ -41,7 +73,15 @@ function Get-FileSha256 {
     $stream = [IO.File]::OpenRead($Path)
     $hasher = [Security.Cryptography.SHA256]::Create()
     try {
-        return -join ($hasher.ComputeHash($stream) | ForEach-Object { $_.ToString('X2') })
+        $hashBytes = $hasher.ComputeHash($stream)
+        $characters = [char[]]::new($hashBytes.Length * 2)
+        $index = 0
+        foreach ($hashByte in $hashBytes) {
+            $characters[$index] = $script:MvpUpperHexDigits[$hashByte -shr 4]
+            $characters[$index + 1] = $script:MvpUpperHexDigits[$hashByte -band 0x0F]
+            $index += 2
+        }
+        return [string]::new($characters)
     }
     finally {
         $hasher.Dispose()
@@ -112,17 +152,49 @@ function Assert-MvpDistinctProfileRuntimeLibraries {
     }
 }
 
+function Assert-MvpProductInputBuildIdentity {
+    param([Parameter(Mandatory)]$ProductInputs)
+
+    if ($null -eq $ProductInputs.build_set) {
+        throw 'ProductInputManifest requires a BuildSet receipt before staging.'
+    }
+
+    $manifestDirectory = [IO.Path]::GetDirectoryName($ProductInputs.operation_path)
+    if ([string]::IsNullOrWhiteSpace($manifestDirectory)) {
+        throw "ProductInputManifest '$($ProductInputs.operation_path)' does not have a containing directory for its BuildSet receipt."
+    }
+    $manifestDirectory = [IO.Path]::GetFullPath($manifestDirectory).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    # The product-input resolver returns a device path. PowerShell's Join-Path does not
+    # preserve that form, so compose the validated receipt path through System.IO instead.
+    $buildSetRelativePath = $ProductInputs.build_set.manifest_relative_path.Replace('/', [IO.Path]::DirectorySeparatorChar)
+    $buildSetManifestPath = [IO.Path]::GetFullPath([IO.Path]::Combine($manifestDirectory, $buildSetRelativePath))
+    $manifestDirectoryPrefix = $manifestDirectory + [IO.Path]::DirectorySeparatorChar
+    if (-not $buildSetManifestPath.StartsWith($manifestDirectoryPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "ProductInputManifest BuildSet receipt path escapes its product-input directory: $($ProductInputs.build_set.manifest_relative_path)"
+    }
+    $buildSet = Assert-MvpProductBuildSet -ManifestPath $buildSetManifestPath
+    foreach ($propertyName in @('build_set_id', 'git_revision', 'dirty_overlay_sha256')) {
+        if ([string]$buildSet.$propertyName -ne [string]$ProductInputs.build_set.$propertyName) {
+            throw "ProductInputManifest BuildSet identity '$propertyName' differs from the validated BuildSet receipt."
+        }
+    }
+}
+
 function Resolve-MvpStagingRoot {
     param([Parameter(Mandatory)][string]$Path)
 
-    # Authorize against the stable display form, then retain the physical operation path for the
-    # complete staging transaction. Result presentation converts it back at the outer boundary.
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    $displayPath = $resolution.DisplayPath.TrimEnd('\')
-    if (-not $AllowUnsafeStagingRoot -and $displayPath -notmatch '^[D-F]:\\ZirconBuilds(?:\\|$)') {
-        throw "StagingRoot '$displayPath' is not under an approved D:\ZirconBuilds, E:\ZirconBuilds, or F:\ZirconBuilds root."
+    if ($AllowUnsafeStagingRoot) {
+        return (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
     }
-    return $resolution.OperationalPath
+    try {
+        $storage = Resolve-MvpArtifactStorageRootPath `
+            -Path $Path `
+            -CapabilityClass 'windows-local-artifact'
+        return $storage.operation_path
+    }
+    catch {
+        throw "StagingRoot '$Path' is not under an approved artifact storage root: $($_.Exception.Message)"
+    }
 }
 
 function Assert-MvpRunId {
@@ -180,32 +252,66 @@ function Get-MvpOperationalFileList {
     param(
         [Parameter(Mandatory)][string]$Path,
         [Parameter(Mandatory)][string]$Label,
-        [string]$Extension
+        [string]$Extension,
+        [ValidateRange(1, [Int32]::MaxValue)][int]$MaximumFileCount = [Int32]::MaxValue,
+        [ValidateRange(0, [Int32]::MaxValue)][int]$MaximumDirectoryDepth = [Int32]::MaxValue,
+        [AllowNull()]$ProjectCopyPolicySnapshot
     )
 
     try {
         # Windows PowerShell 5.1 lacks the EnumerationOptions overload. Traverse the
         # operational tree explicitly so reparse points cannot redirect input staging.
         $pendingDirectories = [System.Collections.Generic.Stack[string]]::new()
+        $pendingDirectoryDepths = [System.Collections.Generic.Stack[int]]::new()
         $files = [System.Collections.Generic.List[string]]::new()
+        [Int64]$encounteredFileCount = 0
         $pendingDirectories.Push($Path)
+        $pendingDirectoryDepths.Push(0)
         while ($pendingDirectories.Count -gt 0) {
             $directory = $pendingDirectories.Pop()
+            $directoryDepth = $pendingDirectoryDepths.Pop()
             foreach ($file in [IO.Directory]::GetFiles($directory)) {
                 $attributes = [IO.File]::GetAttributes($file)
-                if (([int]$attributes -band [int][IO.FileAttributes]::ReparsePoint) -eq 0) {
-                    if (-not [string]::IsNullOrWhiteSpace($Extension) -and
-                        -not [IO.Path]::GetExtension($file).Equals($Extension, [StringComparison]::OrdinalIgnoreCase)) {
+                if ([bool]($attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                    throw "$Label source file '$file' cannot be staged because it is a reparse point."
+                }
+                if ($null -ne $ProjectCopyPolicySnapshot) {
+                    $relativeFile = Get-MvpRelativePath -Root $Path -Path $file -Label "$Label file"
+                    if (-not (Test-MvpProjectCopyPolicyPathIncluded `
+                            -PolicySnapshot $ProjectCopyPolicySnapshot `
+                            -RelativePath $relativeFile)) {
                         continue
                     }
-                    $files.Add($file) | Out-Null
                 }
+                $encounteredFileCount++
+                if ($encounteredFileCount -gt $MaximumFileCount) {
+                    throw "$Label file count exceeds its budget of $MaximumFileCount files."
+                }
+                if (-not [string]::IsNullOrWhiteSpace($Extension) -and
+                    -not [IO.Path]::GetExtension($file).Equals($Extension, [StringComparison]::OrdinalIgnoreCase)) {
+                    continue
+                }
+                $files.Add($file) | Out-Null
             }
             foreach ($childDirectory in [IO.Directory]::GetDirectories($directory)) {
                 $attributes = [IO.File]::GetAttributes($childDirectory)
-                if (([int]$attributes -band [int][IO.FileAttributes]::ReparsePoint) -eq 0) {
-                    $pendingDirectories.Push($childDirectory)
+                if ([bool]($attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                    throw "$Label source directory '$childDirectory' cannot be staged because it is a reparse point."
                 }
+                if ($null -ne $ProjectCopyPolicySnapshot) {
+                    $relativeDirectory = Get-MvpRelativePath -Root $Path -Path $childDirectory -Label "$Label directory"
+                    if (-not (Test-MvpProjectCopyPolicyPathIncluded `
+                            -PolicySnapshot $ProjectCopyPolicySnapshot `
+                            -RelativePath $relativeDirectory)) {
+                        continue
+                    }
+                }
+                $childDirectoryDepth = $directoryDepth + 1
+                if ($childDirectoryDepth -gt $MaximumDirectoryDepth) {
+                    throw "$Label directory depth exceeds its budget of $MaximumDirectoryDepth levels."
+                }
+                $pendingDirectories.Push($childDirectory)
+                $pendingDirectoryDepths.Push($childDirectoryDepth)
             }
         }
         return @($files.ToArray() | Sort-Object)
@@ -213,26 +319,6 @@ function Get-MvpOperationalFileList {
     catch {
         throw "$Label '$Path' could not be enumerated through its resolver operational path: $($_.Exception.Message)"
     }
-}
-
-function Test-MvpProjectSourceRelativePath {
-    param([Parameter(Mandatory)][string]$RelativePath)
-
-    # Derived project state must be rebuilt by the staged products from source inputs.
-    $normalized = $RelativePath.Replace('\', '/').TrimStart('/')
-    foreach ($generatedDirectory in @(
-        '.zircon/autosave',
-        '.zircon/cache',
-        '.zircon/play',
-        '.zircon/registry',
-        '.zircon/thumbnails'
-    )) {
-        if ($normalized.Equals($generatedDirectory, [StringComparison]::OrdinalIgnoreCase) -or
-            $normalized.StartsWith($generatedDirectory + '/', [StringComparison]::OrdinalIgnoreCase)) {
-            return $false
-        }
-    }
-    return $true
 }
 
 function Copy-MvpStageFile {
@@ -475,49 +561,17 @@ function ConvertTo-MvpProcessArgument {
     return '"' + $Value + ((@('\') * $trailingBackslashes) -join '') + '"'
 }
 
-function Write-MvpProcessJournalEntry {
-    param(
-        [Parameter(Mandatory)][string]$StageRoot,
-        [Parameter(Mandatory)][string]$Phase,
-        [Parameter(Mandatory)][string]$StartedAtUtc,
-        [Parameter(Mandatory)][string]$EndedAtUtc,
-        [Parameter(Mandatory)][AllowNull()][Nullable[int]]$ExitCode,
-        [Parameter(Mandatory)][ValidateSet('exited', 'timed_out', 'cleanup_failed')][string]$Outcome
-    )
-
-    $logRoot = Join-ZirconWindowsPath -Path $StageRoot -ChildPath 'logs'
-    [IO.Directory]::CreateDirectory($logRoot) | Out-Null
-    $journalPath = Join-ZirconWindowsPath -Path $logRoot -ChildPath 'process-execution-journal.jsonl'
-    $entry = [ordered]@{
-        phase = $Phase
-        started_at_utc = $StartedAtUtc
-        ended_at_utc = $EndedAtUtc
-        exit_code = $ExitCode
-        outcome = $Outcome
-    }
-    [IO.File]::AppendAllText(
-        $journalPath,
-        (($entry | ConvertTo-Json -Compress) + [Environment]::NewLine),
-        [Text.UTF8Encoding]::new($false)
-    )
-}
-
-function Start-MvpStagedProcess {
+function New-MvpStagedProcessLaunch {
     param(
         [Parameter(Mandatory)][string]$ExecutablePath,
         [Parameter(Mandatory)][string]$WorkingDirectory,
         [Parameter(Mandatory)][hashtable]$Environment,
         [Parameter(Mandatory)][string]$StageRoot,
-        [Parameter(Mandatory)][string]$Phase,
         [string]$ProjectRoot,
         [string[]]$Arguments = @()
     )
 
-    # ProcessStartInfo keeps F0 launch behavior available to Windows PowerShell 5.1, whose
-    # Start-Process command lacks the Environment parameter used by newer PowerShell hosts.
-    # Timeout cleanup, release checks, and the process journal must retain the physical staging
-    # identity. Resolve it before starting a child so an invalid root cannot leave an untracked
-    # product process behind.
+    # Resolve all product-bound paths before the supervisor creates its suspended child.
     $stagedProductRoot = (Resolve-ZirconWindowsPath -Path $StageRoot).OperationalPath
     $executableResolution = Resolve-ZirconWindowsPath -Path $ExecutablePath
     $workingDirectoryResolution = Resolve-ZirconWindowsPath -Path $WorkingDirectory
@@ -533,9 +587,6 @@ function Start-MvpStagedProcess {
     }
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $executableResolution.OperationalPath
-    # Project-local paths cross the product boundary through the existing `.` RelPath contract.
-    # Keep physical identities for cleanup and evidence, but give the child an ordinary Windows
-    # cwd so runtimes such as .NET Framework do not reject the verbatim device prefix.
     $startInfo.WorkingDirectory = if ($null -eq $projectRootResolution) {
         $workingDirectoryResolution.DisplayPath
     }
@@ -545,10 +596,7 @@ function Start-MvpStagedProcess {
     $startInfo.UseShellExecute = $false
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
-    # These staging-owned paths address project-external capture and log outlets. Keep their
-    # resolver operation paths in the driver and pass ordinary display paths to the child.
-    # The asset root is deliberately absent: `assets` is a product-relative request resolved by
-    # the executable, while project input itself is carried through `--project .` above.
+    $declaredEnvironment = @{}
     $productPathEnvironmentVariables = @(
         'ZIRCON_LOG_ROOT',
         'ZIRCON_RUNTIME_CAPTURE_FRAME_PNG',
@@ -561,18 +609,17 @@ function Start-MvpStagedProcess {
             $environmentValue = (Resolve-ZirconWindowsPath -Path $environmentValue).DisplayPath
         }
         $startInfo.EnvironmentVariables[[string]$name] = $environmentValue
+        $declaredEnvironment[[string]$name] = $environmentValue
     }
-    if (-not $Environment.ContainsKey('ZIRCON_RUNTIME_CAPTURE_FRAME_PNG')) {
-        $startInfo.EnvironmentVariables.Remove('ZIRCON_RUNTIME_CAPTURE_FRAME_PNG')
-    }
-    if (-not $Environment.ContainsKey('ZIRCON_RUNTIME_EXIT_AFTER_PRESENTED_FRAMES')) {
-        $startInfo.EnvironmentVariables.Remove('ZIRCON_RUNTIME_EXIT_AFTER_PRESENTED_FRAMES')
-    }
-    if (-not $Environment.ContainsKey('ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG')) {
-        $startInfo.EnvironmentVariables.Remove('ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG')
-    }
-    if (-not $Environment.ContainsKey('ZIRCON_RUNTIME_MVP_INPUT_PROBE')) {
-        $startInfo.EnvironmentVariables.Remove('ZIRCON_RUNTIME_MVP_INPUT_PROBE')
+    foreach ($name in @(
+        'ZIRCON_RUNTIME_CAPTURE_FRAME_PNG',
+        'ZIRCON_RUNTIME_EXIT_AFTER_PRESENTED_FRAMES',
+        'ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG',
+        'ZIRCON_RUNTIME_MVP_INPUT_PROBE'
+    )) {
+        if (-not $Environment.ContainsKey($name)) {
+            $startInfo.EnvironmentVariables.Remove($name)
+        }
     }
     $childArguments = if ($null -eq $projectRootResolution) {
         @($Arguments)
@@ -585,187 +632,11 @@ function Start-MvpStagedProcess {
             ConvertTo-MvpProcessArgument -Value $_
         }) -join ' '
     }
-
-    $process = [Diagnostics.Process]::new()
-    $process.StartInfo = $startInfo
-    $startedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
-    if (-not $process.Start()) {
-        $process.Dispose()
-        throw "The operating system did not start '$ExecutablePath'."
-    }
     return [pscustomobject]@{
-        process = $process
-        stdout_task = $process.StandardOutput.ReadToEndAsync()
-        stderr_task = $process.StandardError.ReadToEndAsync()
+        start_info = $startInfo
+        declared_environment = $declaredEnvironment
         staged_product_root = $stagedProductRoot
-        phase = $Phase
-        started_at_utc = $startedAtUtc
-        ended_at_utc = $null
     }
-}
-
-function Get-MvpStagedProcesses {
-    param([Parameter(Mandatory)][string]$StageDirectory)
-
-    # Win32_Process exposes executable paths in normal display form, while staging retains
-    # resolver operational paths. Normalize only at this WMI observation boundary.
-    $resolvedDirectory = (Resolve-ZirconWindowsPath -Path $StageDirectory).DisplayPath.TrimEnd('\\')
-    $directoryPrefix = $resolvedDirectory + [IO.Path]::DirectorySeparatorChar
-    return @(
-        Get-CimInstance Win32_Process -ErrorAction Stop |
-            Where-Object {
-                $executablePath = [string]$_.ExecutablePath
-                -not [string]::IsNullOrWhiteSpace($executablePath) -and
-                    $executablePath.StartsWith($directoryPrefix, [StringComparison]::OrdinalIgnoreCase)
-            }
-    )
-}
-
-function Stop-MvpStagedProcesses {
-    param([Parameter(Mandatory)][string]$StageDirectory)
-
-    $taskKill = Get-Command taskkill.exe -ErrorAction Stop
-    $deadline = [DateTime]::UtcNow.AddSeconds(5)
-    do {
-        $lingering = @(Get-MvpStagedProcesses -StageDirectory $StageDirectory)
-        if ($lingering.Count -eq 0) {
-            return @()
-        }
-        foreach ($stagedProcess in $lingering) {
-            & $taskKill.Source '/PID' $stagedProcess.ProcessId '/T' '/F' 2>$null | Out-Null
-        }
-        if ([DateTime]::UtcNow -lt $deadline) {
-            Start-Sleep -Milliseconds 50
-        }
-    } while ([DateTime]::UtcNow -lt $deadline)
-
-    return @(Get-MvpStagedProcesses -StageDirectory $StageDirectory)
-}
-
-function Stop-MvpTimedOutStagedProcessTree {
-    param(
-        [Parameter(Mandatory)][int]$RootProcessId,
-        [Parameter(Mandatory)][string]$StageDirectory
-    )
-
-    # A root process can exit between WaitForExit timing out and taskkill receiving its PID.
-    # Sweep the staged executable directory as well so an orphaned helper cannot survive that race.
-    $taskKill = Get-Command taskkill.exe -ErrorAction Stop
-    & $taskKill.Source '/PID' $RootProcessId '/T' '/F' 2>$null | Out-Null
-
-    $lingering = @(Stop-MvpStagedProcesses -StageDirectory $StageDirectory)
-    if ($lingering.Count -eq 0) {
-        return
-    }
-    $details = $lingering | ForEach-Object {
-        "pid=$($_.ProcessId) name=$($_.Name) path=$($_.ExecutablePath)"
-    }
-    throw "Could not terminate timed-out staged process tree rooted at pid ${RootProcessId}: $($details -join '; ')."
-}
-
-function Receive-MvpProcessStream {
-    param(
-        [Parameter(Mandatory)]$Task,
-        [Parameter(Mandatory)][string]$Label
-    )
-
-    try {
-        if (-not $Task.Wait(5000)) {
-            return "[MVP staging could not drain $Label within 5 seconds after process cleanup.]"
-        }
-        return $Task.GetAwaiter().GetResult()
-    }
-    catch {
-        return "[MVP staging could not drain ${Label}: $($_.Exception.Message)]"
-    }
-}
-
-function Complete-MvpStagedProcess {
-    param(
-        [Parameter(Mandatory)]$ProcessState,
-        [Parameter(Mandatory)][string]$StdoutPath,
-        [Parameter(Mandatory)][string]$StderrPath,
-        [Parameter(Mandatory)][int]$TimeoutSeconds
-    )
-
-    $process = $ProcessState.process
-    $timedOut = -not $process.WaitForExit($TimeoutSeconds * 1000)
-    $timeoutCleanupErrors = [System.Collections.Generic.List[string]]::new()
-    if ($timedOut) {
-        try {
-            Stop-MvpTimedOutStagedProcessTree `
-                -RootProcessId $process.Id `
-                -StageDirectory $ProcessState.staged_product_root
-        }
-        catch {
-            $timeoutCleanupErrors.Add($_.Exception.Message)
-            try {
-                if (-not $process.HasExited) {
-                    $process.Kill()
-                }
-            }
-            catch {
-                $timeoutCleanupErrors.Add("Fallback root-process termination failed: $($_.Exception.Message)")
-            }
-        }
-    }
-    $processExited = if ($timedOut) {
-        $process.WaitForExit(5000)
-    }
-    else {
-        $process.WaitForExit()
-        $true
-    }
-    if (-not $processExited) {
-        $timeoutCleanupErrors.Add('Root process did not exit within 5 seconds after timeout cleanup.')
-    }
-    $ProcessState.ended_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
-    $exitCode = if ($processExited) { $process.ExitCode } else { -1 }
-    $releaseError = $null
-    if (-not $timedOut) {
-        try {
-            Assert-MvpStagingProcessesReleased -StageDirectory $ProcessState.staged_product_root
-        }
-        catch {
-            $releaseError = $_.Exception
-        }
-    }
-    $stdout = Receive-MvpProcessStream -Task $ProcessState.stdout_task -Label 'stdout'
-    $stderr = Receive-MvpProcessStream -Task $ProcessState.stderr_task -Label 'stderr'
-    [IO.File]::WriteAllText($StdoutPath, $stdout, [Text.UTF8Encoding]::new($false))
-    [IO.File]::WriteAllText($StderrPath, $stderr, [Text.UTF8Encoding]::new($false))
-    $outcome = if ($timedOut) {
-        'timed_out'
-    }
-    elseif ($null -ne $releaseError) {
-        'cleanup_failed'
-    }
-    else {
-        'exited'
-    }
-    $journalExitCode = if ($timedOut) { $null } else { $exitCode }
-    Write-MvpProcessJournalEntry `
-        -StageRoot $ProcessState.staged_product_root `
-        -Phase $ProcessState.phase `
-        -StartedAtUtc $ProcessState.started_at_utc `
-        -EndedAtUtc $ProcessState.ended_at_utc `
-        -ExitCode $journalExitCode `
-        -Outcome $outcome
-    if ($timedOut) {
-        $cleanupDetail = if ($timeoutCleanupErrors.Count -eq 0) {
-            ''
-        }
-        else {
-            " Cleanup: $($timeoutCleanupErrors -join '; ')"
-        }
-        throw [TimeoutException]::new("Process did not exit within $TimeoutSeconds seconds.$cleanupDetail")
-    }
-    if ($null -ne $releaseError) {
-        throw [InvalidOperationException]::new(
-            "Process exited with code $exitCode. Cleanup: $($releaseError.Message)"
-        )
-    }
-    return $exitCode
 }
 
 function Get-MvpRuntimeProductDiagnosticsEvidence {
@@ -960,14 +831,24 @@ function Invoke-MvpStagedProduct {
         [Parameter(Mandatory)][string]$ExecutablePath,
         [Parameter(Mandatory)][string]$WorkingDirectory,
         [Parameter(Mandatory)][string]$StageRoot,
+        [Parameter(Mandatory)][string]$RunId,
         [string]$ProjectRoot,
         [ValidateRange(0, [int]::MaxValue)]
         [int]$AttemptOffset = 0,
-        [ValidateRange(1, 4)]
-        [int]$RunCount = $RepeatCount,
-        [string]$EditorWindowCaptureName
+        [Nullable[int]]$RunCount,
+        [string]$EditorWindowCaptureName,
+        [Parameter(Mandatory)]$ScenarioRegistration,
+        [Parameter(Mandatory)]$ExecutionPolicy,
+        [Parameter(Mandatory)]$QualificationContext,
+        [Parameter(Mandatory)]$ArtifactBudget,
+        [Parameter(Mandatory)][scriptblock]$CancellationProbe
     )
 
+    $effectiveRunCount = if ($null -eq $RunCount) { [int]$ExecutionPolicy.attempt_count } else { [int]$RunCount }
+    if ($effectiveRunCount -lt [int]$ExecutionPolicy.attempt_minimum -or
+        $effectiveRunCount -gt [int]$ExecutionPolicy.attempt_maximum) {
+        throw "Scenario '$($ExecutionPolicy.scenario_id)' run count $effectiveRunCount is outside resolved policy range $($ExecutionPolicy.attempt_minimum)..$($ExecutionPolicy.attempt_maximum)."
+    }
     if (-not [string]::IsNullOrWhiteSpace($EditorWindowCaptureName)) {
         if ($Product -ne 'editor') {
             throw "EditorWindowCaptureName is only valid for the editor product, not '$Product'."
@@ -993,11 +874,12 @@ function Invoke-MvpStagedProduct {
         'editor' { 'editor_process_teardown_complete' }
         default { throw "Unsupported staged MVP product '$Product'." }
     }
+    $environmentPolicy = Get-MvpStageProcessEnvironmentPolicy -Scenario ($Product + '_first_frame')
     $results = [System.Collections.Generic.List[object]]::new()
     $logDirectory = Join-ZirconWindowsPath -Path $StageRoot -ChildPath 'logs'
     $captureDirectory = Join-ZirconWindowsPath -Path $StageRoot -ChildPath 'captures'
     [IO.Directory]::CreateDirectory($logDirectory) | Out-Null
-    for ($runIndex = 1; $runIndex -le $RunCount; $runIndex++) {
+    for ($runIndex = 1; $runIndex -le $effectiveRunCount; $runIndex++) {
         $attempt = $AttemptOffset + $runIndex
         $stdout = Join-ZirconWindowsPath -Path $logDirectory -ChildPath "$Product-$attempt.stdout.log"
         $stderr = Join-ZirconWindowsPath -Path $logDirectory -ChildPath "$Product-$attempt.stderr.log"
@@ -1034,28 +916,49 @@ function Invoke-MvpStagedProduct {
         $started = [Diagnostics.Stopwatch]::StartNew()
         $processState = $null
         $exitCode = $null
+        $progressState = New-MvpProcessLivenessProbeState `
+            -DiagnosticRoot $diagnosticRoot `
+            -ScenarioRegistration $ScenarioRegistration
+        $progressProbe = { Read-MvpProcessLivenessProgress -State $progressState }.GetNewClosure()
+        Assert-MvpStagingCancellationNotRequested -CancellationProbe $CancellationProbe
         try {
-            $processState = Start-MvpStagedProcess `
+            $processLaunch = New-MvpStagedProcessLaunch `
                 -ExecutablePath $ExecutablePath `
                 -WorkingDirectory $WorkingDirectory `
                 -Environment $environment `
                 -StageRoot $StageRoot `
-                -Phase "$Product-$attempt" `
                 -ProjectRoot $ProjectRoot
+            $processState = Start-MvpSupervisedProcess `
+                -StartInfo $processLaunch.start_info `
+                -StageRoot $processLaunch.staged_product_root `
+                -RunId $RunId `
+                -Phase "$Product-$attempt" `
+                -StdoutPath $stdout `
+                -StderrPath $stderr `
+                -MaximumRetainedLogBytes $MaxProcessLogBytes `
+                -EnvironmentPolicy $environmentPolicy `
+                -QualificationContext $QualificationContext `
+                -ArtifactBudget $ArtifactBudget `
+                -DeclaredEnvironment $processLaunch.declared_environment
         }
         catch {
             $started.Stop()
             throw "Staged $Product attempt $attempt could not launch from '$ExecutablePath' in '$WorkingDirectory': $($_.Exception.Message)"
         }
         try {
-            $exitCode = Complete-MvpStagedProcess `
+            $exitCode = Complete-MvpSupervisedProcess `
                 -ProcessState $processState `
-                -StdoutPath $stdout `
-                -StderrPath $stderr `
-                -TimeoutSeconds $TimeoutSeconds
+                -TimeoutSeconds $ExecutionPolicy.process_timeout_seconds `
+                -CancellationProbe $CancellationProbe `
+                -CancellationReason 'external_request' `
+                -ProgressProbe $progressProbe `
+                -ProgressInactivityTimeoutSeconds $ExecutionPolicy.progress_inactivity_timeout_seconds
+        }
+        catch [OperationCanceledException] {
+            throw
         }
         catch [TimeoutException] {
-            throw "Staged $Product attempt $attempt did not exit within $TimeoutSeconds seconds."
+            throw "Staged $Product attempt $attempt did not exit within $($ExecutionPolicy.process_timeout_seconds) seconds."
         }
         catch {
             throw "Staged $Product attempt $attempt could not collect process output: $($_.Exception.Message)"
@@ -1063,7 +966,7 @@ function Invoke-MvpStagedProduct {
         finally {
             $started.Stop()
             if ($null -ne $processState) {
-                $processState.process.Dispose()
+                Close-MvpSupervisedProcessState -ProcessState $processState
             }
         }
         $failureMessage = if ($exitCode -ne 0) {
@@ -1073,7 +976,6 @@ function Invoke-MvpStagedProduct {
             $null
         }
         try {
-            Assert-MvpStagingProcessesReleased -StageDirectory $StageRoot
             if (-not [string]::IsNullOrWhiteSpace($ProjectRoot)) {
                 Test-MvpStagedProjectDirectoryReleased `
                     -StageDirectory $StageRoot `
@@ -1092,8 +994,10 @@ function Invoke-MvpStagedProduct {
         $diagnosticFiles = @(Get-MvpOperationalFileList `
                 -Path $diagnosticRoot `
                 -Label "Staged $Product diagnostic root" `
-                -Extension '.log')
-        $diagnosticText = ($diagnosticFiles | ForEach-Object { [IO.File]::ReadAllText($_) }) -join "`n"
+                -Extension '.log' `
+                -MaximumFileCount $script:MvpMaximumDiagnosticFileCount `
+                -MaximumDirectoryDepth $script:MvpMaximumDiagnosticDirectoryDepth)
+        $diagnosticText = Get-MvpSupervisedBoundedDiagnosticText -Paths $diagnosticFiles
         if ($diagnosticText.IndexOf($firstFrameDiagnostic, [StringComparison]::Ordinal) -lt 0) {
             throw "Staged $Product attempt $attempt exited without the $firstFrameDiagnostic diagnostic under '$diagnosticRoot'. See $stdout and $stderr."
         }
@@ -1226,7 +1130,9 @@ function Get-MvpAuthoringAutomationEvidence {
 
     $diagnosticFiles = @(Get-MvpOperationalFileList `
             -Path $DiagnosticRoot `
-            -Label 'Staged editor authoring automation diagnostic root')
+            -Label 'Staged editor authoring automation diagnostic root' `
+            -MaximumFileCount $script:MvpMaximumDiagnosticFileCount `
+            -MaximumDirectoryDepth $script:MvpMaximumDiagnosticDirectoryDepth)
     if ($diagnosticFiles.Count -eq 0) {
         throw "Staged editor authoring automation did not emit diagnostic log evidence under '$DiagnosticRoot'."
     }
@@ -1252,14 +1158,9 @@ function Get-MvpStagedProcessStderrSummary {
         [int]$MaximumCharacters = 2048
     )
 
-    if (-not [IO.File]::Exists($Path)) {
-        return '<unavailable>'
-    }
-    $content = [IO.File]::ReadAllText($Path).Trim()
-    if ($content.Length -le $MaximumCharacters) {
-        return $content
-    }
-    return $content.Substring($content.Length - $MaximumCharacters)
+    $tailPath = [IO.Path]::ChangeExtension($Path, 'tail.log')
+    $summaryPath = if ([IO.File]::Exists($tailPath)) { $tailPath } else { $Path }
+    return Get-MvpSupervisedBoundedTailText -Path $summaryPath -MaximumCharacters $MaximumCharacters
 }
 
 function Invoke-MvpStagedAuthoringAutomation {
@@ -1267,9 +1168,15 @@ function Invoke-MvpStagedAuthoringAutomation {
         [Parameter(Mandatory)][string]$ExecutablePath,
         [Parameter(Mandatory)][string]$WorkingDirectory,
         [Parameter(Mandatory)][string]$StageRoot,
+        [Parameter(Mandatory)][string]$RunId,
         [Parameter(Mandatory)][string]$ProjectRoot,
         [Parameter(Mandatory)][string]$AutomationRequestPath,
-        [Parameter(Mandatory)][string]$EvidenceLabel
+        [Parameter(Mandatory)][string]$EvidenceLabel,
+        [Parameter(Mandatory)]$ScenarioRegistration,
+        [Parameter(Mandatory)]$ExecutionPolicy,
+        [Parameter(Mandatory)]$QualificationContext,
+        [Parameter(Mandatory)]$ArtifactBudget,
+        [Parameter(Mandatory)][scriptblock]$CancellationProbe
     )
 
     $logDirectory = Join-ZirconWindowsPath -Path $StageRoot -ChildPath 'logs'
@@ -1282,26 +1189,48 @@ function Invoke-MvpStagedAuthoringAutomation {
         ZIRCON_LOG_ROOT = (Join-ZirconWindowsPath -Path $logDirectory -ChildPath "$EvidenceLabel.diagnostics")
         ZIRCON_LOG_FILTER = 'log'
     }
+    $environmentPolicy = Get-MvpStageProcessEnvironmentPolicy -Scenario 'editor_authoring'
+    $progressState = New-MvpProcessLivenessProbeState `
+        -DiagnosticRoot $environment.ZIRCON_LOG_ROOT `
+        -ScenarioRegistration $ScenarioRegistration
+    $progressProbe = { Read-MvpProcessLivenessProgress -State $progressState }.GetNewClosure()
+    Assert-MvpStagingCancellationNotRequested -CancellationProbe $CancellationProbe
     $started = [Diagnostics.Stopwatch]::StartNew()
     $processState = $null
     $automationRequestArgument = (Resolve-ZirconWindowsPath -Path $AutomationRequestPath).DisplayPath
     try {
-        $processState = Start-MvpStagedProcess `
+        $processLaunch = New-MvpStagedProcessLaunch `
             -ExecutablePath $ExecutablePath `
             -WorkingDirectory $WorkingDirectory `
             -Environment $environment `
             -StageRoot $StageRoot `
-            -Phase $EvidenceLabel `
             -ProjectRoot $ProjectRoot `
             -Arguments @('--run', 'authoring-automation', '--automation', $automationRequestArgument)
-        $exitCode = Complete-MvpStagedProcess `
-            -ProcessState $processState `
+        $processState = Start-MvpSupervisedProcess `
+            -StartInfo $processLaunch.start_info `
+            -StageRoot $processLaunch.staged_product_root `
+            -RunId $RunId `
+            -Phase $EvidenceLabel `
             -StdoutPath $stdout `
             -StderrPath $stderr `
-            -TimeoutSeconds $TimeoutSeconds
+            -MaximumRetainedLogBytes $MaxProcessLogBytes `
+            -EnvironmentPolicy $environmentPolicy `
+            -QualificationContext $QualificationContext `
+            -ArtifactBudget $ArtifactBudget `
+            -DeclaredEnvironment $processLaunch.declared_environment
+        $exitCode = Complete-MvpSupervisedProcess `
+            -ProcessState $processState `
+            -TimeoutSeconds $ExecutionPolicy.process_timeout_seconds `
+            -CancellationProbe $CancellationProbe `
+            -CancellationReason 'external_request' `
+            -ProgressProbe $progressProbe `
+            -ProgressInactivityTimeoutSeconds $ExecutionPolicy.progress_inactivity_timeout_seconds
+    }
+    catch [OperationCanceledException] {
+        throw
     }
     catch [TimeoutException] {
-        throw "Staged editor $EvidenceLabel automation did not exit within $TimeoutSeconds seconds."
+        throw "Staged editor $EvidenceLabel automation did not exit within $($ExecutionPolicy.process_timeout_seconds) seconds."
     }
     catch {
         $stderrSummary = Get-MvpStagedProcessStderrSummary -Path $stderr
@@ -1310,10 +1239,9 @@ function Invoke-MvpStagedAuthoringAutomation {
     finally {
         $started.Stop()
         if ($null -ne $processState) {
-            $processState.process.Dispose()
+            Close-MvpSupervisedProcessState -ProcessState $processState
         }
     }
-    Assert-MvpStagingProcessesReleased -StageDirectory $StageRoot
     Test-MvpStagedProjectDirectoryReleased `
         -StageDirectory $StageRoot `
         -ProjectDirectory $ProjectRoot
@@ -1335,32 +1263,8 @@ function Invoke-MvpStagedAuthoringAutomation {
     return $report
 }
 
-function Assert-MvpStagingProcessesReleased {
-    param([Parameter(Mandatory)][string]$StageDirectory)
-
-    $lingering = @(Get-MvpStagedProcesses -StageDirectory $StageDirectory)
-    if ($lingering.Count -eq 0) {
-        return
-    }
-
-    $details = $lingering | ForEach-Object {
-        "pid=$($_.ProcessId) name=$($_.Name) path=$($_.ExecutablePath)"
-    }
-    $remaining = @(Stop-MvpStagedProcesses -StageDirectory $StageDirectory)
-    if ($remaining.Count -eq 0) {
-        throw "Staged executable process(es) remain after product exit and were terminated: $($details -join '; ')."
-    }
-
-    $remainingDetails = $remaining | ForEach-Object {
-        "pid=$($_.ProcessId) name=$($_.Name) path=$($_.ExecutablePath)"
-    }
-    throw "Staged executable process(es) remain after product exit after cleanup: $($remainingDetails -join '; ')."
-}
-
 function Test-MvpStagingDirectoryReleased {
     param([Parameter(Mandatory)][string]$StageDirectory)
-
-    Assert-MvpStagingProcessesReleased -StageDirectory $StageDirectory
 
     $probe = "$StageDirectory.release-probe"
     if ([IO.Directory]::Exists($probe) -or [IO.File]::Exists($probe)) {
@@ -1370,13 +1274,94 @@ function Test-MvpStagingDirectoryReleased {
     Move-ZirconWindowsPath -Source $probe -Destination $StageDirectory
 }
 
-function Invoke-MvpProductStaging {
+function Invoke-MvpProductStagingCore {
+    param(
+        [Parameter(Mandatory)][string]$StagingRootPath,
+        [Parameter(Mandatory)][string]$StagingStartedAtUtc,
+        [Parameter(Mandatory)]$CancellationState
+    )
+
+    $cancellationProbe = { Test-MvpStagingCancellationRequested -State $CancellationState }.GetNewClosure()
+    Assert-MvpStagingCancellationNotRequested -CancellationProbe $cancellationProbe
+    $projectCopyPolicy = Get-MvpProjectCopyPolicySnapshot -Path $script:MvpProjectCopyPolicyPath
+    $scenarioRegistry = Read-MvpScenarioRegistry -Path $script:MvpScenarioRegistryPath
+    $scenarioRegistryReceipt = Get-MvpScenarioRegistryReceipt -Registry $scenarioRegistry
+    $runtimeScenario = Get-MvpScenarioRegistration -Registry $scenarioRegistry -ScenarioId 'mvp.runtime-first-frame.v1'
+    $editorScenario = Get-MvpScenarioRegistration -Registry $scenarioRegistry -ScenarioId 'mvp.editor-first-frame.v1'
+    $createScenario = Get-MvpScenarioRegistration -Registry $scenarioRegistry -ScenarioId 'mvp.editor-project-create.v1'
+    $authoringScenario = Get-MvpScenarioRegistration -Registry $scenarioRegistry -ScenarioId 'mvp.editor-authoring.v1'
+    $reopenScenario = Get-MvpScenarioRegistration -Registry $scenarioRegistry -ScenarioId 'mvp.editor-reopen.v1'
+    $runtimeExecutionPolicy = Resolve-MvpScenarioExecutionPolicy `
+        -ScenarioRegistration $runtimeScenario `
+        -ScenarioVariant 'host.default' `
+        -RequestedAttemptCount $RepeatCount `
+        -RequestedTimeoutSeconds $TimeoutSeconds `
+        -RequestedProgressInactivityTimeoutSeconds $ProgressInactivityTimeoutSeconds
+    $editorExecutionPolicy = Resolve-MvpScenarioExecutionPolicy `
+        -ScenarioRegistration $editorScenario `
+        -ScenarioVariant 'host.default' `
+        -RequestedAttemptCount $RepeatCount `
+        -RequestedTimeoutSeconds $TimeoutSeconds `
+        -RequestedProgressInactivityTimeoutSeconds $ProgressInactivityTimeoutSeconds
+    $createExecutionPolicy = Resolve-MvpScenarioExecutionPolicy `
+        -ScenarioRegistration $createScenario `
+        -ScenarioVariant 'host.default' `
+        -RequestedTimeoutSeconds $TimeoutSeconds `
+        -RequestedProgressInactivityTimeoutSeconds $ProgressInactivityTimeoutSeconds
+    $authoringExecutionPolicy = Resolve-MvpScenarioExecutionPolicy `
+        -ScenarioRegistration $authoringScenario `
+        -ScenarioVariant 'host.default' `
+        -RequestedTimeoutSeconds $TimeoutSeconds `
+        -RequestedProgressInactivityTimeoutSeconds $ProgressInactivityTimeoutSeconds
+    $reopenExecutionPolicy = Resolve-MvpScenarioExecutionPolicy `
+        -ScenarioRegistration $reopenScenario `
+        -ScenarioVariant 'host.default' `
+        -RequestedAttemptCount $ReopenRepeatCount `
+        -RequestedTimeoutSeconds $TimeoutSeconds `
+        -RequestedProgressInactivityTimeoutSeconds $ProgressInactivityTimeoutSeconds
+    $scenarioExecutionPolicyReceipts = @(
+        $runtimeExecutionPolicy,
+        $editorExecutionPolicy,
+        $createExecutionPolicy,
+        $authoringExecutionPolicy,
+        $reopenExecutionPolicy
+    )
     $productInputs = Resolve-MvpProductInputManifest -Path $ProductInputManifest
-    $currentSourceFingerprint = Get-MvpSourceFingerprint
-    if ($productInputs.source_fingerprint -ne $currentSourceFingerprint) {
-        throw "ProductInputManifest source_fingerprint '$($productInputs.source_fingerprint)' differs from the current source fingerprint '$currentSourceFingerprint'. Rebuild product inputs before staging."
-    }
+    Assert-MvpProductInputBuildIdentity -ProductInputs $productInputs
     $SourceFingerprint = $productInputs.source_fingerprint
+    $qualificationContextParameters = @{
+        RunId = $RunId
+        SourceFingerprint = $SourceFingerprint
+        BuildSetId = if ($null -eq $productInputs.build_set) { $null } else { $productInputs.build_set.build_set_id }
+        ScenarioRegistryReceipt = $scenarioRegistryReceipt
+        ScenarioVariant = 'host.default'
+        ProductReceiptIds = @()
+    }
+    $runtimeQualificationContext = New-MvpProcessQualificationContext `
+        @qualificationContextParameters `
+        -ScenarioRegistration $runtimeScenario
+    $editorQualificationContext = New-MvpProcessQualificationContext `
+        @qualificationContextParameters `
+        -ScenarioRegistration $editorScenario
+    $createQualificationContext = New-MvpProcessQualificationContext `
+        @qualificationContextParameters `
+        -ScenarioRegistration $createScenario
+    $authoringQualificationContext = New-MvpProcessQualificationContext `
+        @qualificationContextParameters `
+        -ScenarioRegistration $authoringScenario
+    $reopenQualificationContext = New-MvpProcessQualificationContext `
+        @qualificationContextParameters `
+        -ScenarioRegistration $reopenScenario
+    $processQualificationContexts = @(
+        $runtimeQualificationContext,
+        $editorQualificationContext,
+        $createQualificationContext,
+        $authoringQualificationContext,
+        $reopenQualificationContext
+    )
+    $processQualificationContextSetReceipt = Get-MvpProcessQualificationContextSetReceipt `
+        -Contexts $processQualificationContexts `
+        -ExpectedRunId $RunId
     $runtimeExecutablePath = $productInputs.artifacts['runtime-executable'].operation_path
     $editorExecutablePath = $productInputs.artifacts['editor-executable'].operation_path
     $runtimeLibraryPath = $productInputs.artifacts['runtime-library/runtime'].operation_path
@@ -1403,6 +1388,16 @@ function Invoke-MvpProductStaging {
     else {
         Resolve-MvpInputFile -Path $ReopenAutomationRequest -Label 'ReopenAutomationRequest'
     }
+    if ($null -ne $authoringAutomationRequestPath) {
+        Assert-MvpAutomationScenarioSpec `
+            -Path $authoringAutomationRequestPath `
+            -ExpectedScenarioId $authoringScenario.scenario_id | Out-Null
+    }
+    if ($null -ne $reopenAutomationRequestPath) {
+        Assert-MvpAutomationScenarioSpec `
+            -Path $reopenAutomationRequestPath `
+            -ExpectedScenarioId $reopenScenario.scenario_id | Out-Null
+    }
     if ($CreateProject -and $null -ne $projectRootPath) {
         throw 'CreateProject cannot be combined with ProjectRoot; the staged editor must create the canonical project.'
     }
@@ -1421,12 +1416,11 @@ function Invoke-MvpProductStaging {
     if ($null -ne $reopenAutomationRequestPath -and $null -eq $authoringAutomationRequestPath) {
         throw 'ReopenAutomationRequest requires AuthoringAutomationRequest so persisted state has a source-bound authoring predecessor.'
     }
-    if ($null -ne $reopenAutomationRequestPath -and ($RepeatCount -ne 2 -or $ReopenRepeatCount -ne 2)) {
-        throw 'ReopenAutomationRequest requires RepeatCount and ReopenRepeatCount to both equal 2 for the fixed F5 evidence sequence.'
+    if ($null -ne $reopenAutomationRequestPath -and
+        ($runtimeExecutionPolicy.attempt_count -ne 2 -or $reopenExecutionPolicy.attempt_count -ne 2)) {
+        throw 'ReopenAutomationRequest requires runtime and reopen execution policies to resolve two attempts for the fixed F5 evidence sequence.'
     }
-    $stagingRootPath = Resolve-MvpStagingRoot -Path $StagingRoot
     $stagingRootDisplayPath = (Resolve-ZirconWindowsPath -Path $stagingRootPath).DisplayPath
-    Assert-MvpRunId -Value $RunId
     $validationMetadata = Resolve-MvpValidationMetadata
     $engineAssetFiles = @(Get-MvpOperationalFileList -Path $engineAssetRootPath -Label 'EngineAssetRoot')
     if ($engineAssetFiles.Count -eq 0) {
@@ -1440,10 +1434,10 @@ function Invoke-MvpProductStaging {
         @()
     }
     else {
-        @(Get-MvpOperationalFileList -Path $projectRootPath -Label 'ProjectRoot' | Where-Object {
-            $relative = Get-MvpRelativePath -Root $projectRootPath -Path $_ -Label 'Project file'
-            Test-MvpProjectSourceRelativePath -RelativePath $relative
-        })
+        @(Get-MvpOperationalFileList `
+            -Path $projectRootPath `
+            -Label 'ProjectRoot' `
+            -ProjectCopyPolicySnapshot $projectCopyPolicy)
     }
     if ($null -ne $projectRootPath -and $projectFiles.Count -eq 0) {
         throw "ProjectRoot '$projectRootPath' has no source files to stage."
@@ -1473,6 +1467,12 @@ function Invoke-MvpProductStaging {
         -StagingRootPath $stagingRootDisplayPath `
         -InputCopies ($inputCopies.ToArray()) `
         -InteractiveDesktopRequired (-not $NoLaunch)
+    # The unsafe switch bypasses only the registered staging namespace for tests;
+    # it must not bypass the physical storage capability required by terminal receipts.
+    $storageCapabilityEvidence = Get-MvpArtifactStorageCapabilityEvidence `
+        -RootPath $stagingRootPath `
+        -CapabilityClass 'windows-local-artifact' `
+        -RequiredFreeSpaceBytes ([Int64]$preflight.required_free_space_bytes)
 
     $stageDirectory = Join-ZirconWindowsPath -Path $stagingRootPath -ChildPath $RunId
     $partialDirectory = "$stageDirectory.partial-$([guid]::NewGuid().ToString('N'))"
@@ -1556,6 +1556,7 @@ function Invoke-MvpProductStaging {
             size_bytes = $productInputManifestEntry.size_bytes
             sha256 = $productInputManifestEntry.sha256
             source_fingerprint = $SourceFingerprint
+            build_set = $productInputs.build_set
             artifacts = @(
                 @(
                     'runtime-executable',
@@ -1577,10 +1578,16 @@ function Invoke-MvpProductStaging {
             run_id = $RunId
             source_fingerprint = $SourceFingerprint
             product_input_manifest = $productInputManifestEvidence
+            project_copy_policy = $projectCopyPolicy.receipt
+            scenario_registry = $scenarioRegistryReceipt
+            scenario_execution_policies = $scenarioExecutionPolicyReceipts
+            process_qualification_contexts = $processQualificationContexts
+            process_qualification_context_set = $processQualificationContextSetReceipt
             toolchain = $validationMetadata.toolchain
             target = $validationMetadata.target
             staged_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
             preflight = $preflight
+            storage_capability = $storageCapabilityEvidence
             entries = $entries.ToArray()
         }
         Write-MvpJson -Path (Join-ZirconWindowsPath -Path $partialDirectory -ChildPath 'staging-manifest.json') -Value $manifest
@@ -1588,13 +1595,36 @@ function Invoke-MvpProductStaging {
     }
     catch {
         $stagingFailure = $_
+        $cleanupOutcome = 'not_required'
+        $cleanupMessage = $null
         try {
             if ([IO.Directory]::Exists($partialDirectory)) {
                 [IO.Directory]::Delete($partialDirectory, $true)
+                $cleanupOutcome = 'succeeded'
             }
         }
         catch {
-            Write-Verbose "Could not remove failed MVP staging temporary directory '$partialDirectory': $($_.Exception.Message)"
+            $cleanupOutcome = 'failed'
+            $cleanupMessage = $_.Exception.Message
+        }
+        try {
+            Write-MvpStagingTerminalReceipt `
+                -StagingRoot $stagingRootPath `
+                -RunId $RunId `
+                -Outcome 'failed' `
+                -Phase 'input_publication' `
+                -StartedAtUtc $stagingStartedAtUtc `
+                -StagingDirectoryPublished $false `
+                -CleanupOutcome $cleanupOutcome `
+                -CleanupMessage $cleanupMessage `
+                -FailureKind 'input_publication_failed' `
+                -QualificationContextSetReceipt $processQualificationContextSetReceipt `
+                -StorageCapabilityEvidence $storageCapabilityEvidence `
+                -RequiredFreeSpaceBytes ([Int64]$preflight.required_free_space_bytes) `
+                -FailureMessage $stagingFailure.Exception.Message | Out-Null
+        }
+        catch {
+            throw "MVP staging input publication failed for run '$RunId': $($stagingFailure.Exception.Message) Terminal receipt publication also failed: $($_.Exception.Message)"
         }
         throw $stagingFailure
     }
@@ -1604,6 +1634,24 @@ function Invoke-MvpProductStaging {
     $baselineAutomation = $null
     $authoringAutomation = $null
     $reopenAutomation = @()
+    $runArtifactBudget = if ($NoLaunch) {
+        $null
+    }
+    else {
+        New-MvpRunArtifactBudget `
+            -Root $stageDirectory `
+            -PolicyId $script:MvpRunArtifactBudgetPolicyId `
+            -MaximumAdditionalBytes ([Int64]$preflight.evidence_reserve_bytes) `
+            -MaximumAdditionalFileCount $script:MvpMaximumAdditionalArtifactFileCount
+    }
+    $runArtifactBudgetReceipt = if ($null -eq $runArtifactBudget) {
+        $null
+    }
+    else {
+        Get-MvpRunArtifactBudgetPolicyReceipt -Budget $runArtifactBudget
+    }
+    $runArtifactBudgetMeasurement = $null
+    $stagingPhase = if ($NoLaunch) { 'evidence_publication' } else { 'product_startup' }
     try {
         if (-not $NoLaunch) {
             $stagedProjectRoot = if ($null -eq $projectRootPath) { $null } else { Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'project' }
@@ -1624,42 +1672,60 @@ function Invoke-MvpProductStaging {
                     ZIRCON_LOG_ROOT = $createDiagnosticRoot
                     ZIRCON_LOG_FILTER = 'log'
                 }
+                $createEnvironmentPolicy = Get-MvpStageProcessEnvironmentPolicy -Scenario 'editor_project_create'
+                $createProgressState = New-MvpProcessLivenessProbeState `
+                    -DiagnosticRoot $createDiagnosticRoot `
+                    -ScenarioRegistration $createScenario
+                $createProgressProbe = { Read-MvpProcessLivenessProgress -State $createProgressState }.GetNewClosure()
+                Assert-MvpStagingCancellationNotRequested -CancellationProbe $cancellationProbe
                 $createStarted = [Diagnostics.Stopwatch]::StartNew()
                 $createProcess = $null
                 $createExitCode = $null
                 try {
-                    $createProcess = Start-MvpStagedProcess `
+                    $createProcessLaunch = New-MvpStagedProcessLaunch `
                         -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe') `
                         -WorkingDirectory $createProjectLocation `
                         -Environment $createEnvironment `
                         -StageRoot $stageDirectory `
-                        -Phase 'editor-create' `
                         -Arguments @('--create-project', '--project-name', $ProjectName, '--location', '.', '--template', 'renderable-empty')
-                    $createExitCode = Complete-MvpStagedProcess `
-                        -ProcessState $createProcess `
+                    $createProcess = Start-MvpSupervisedProcess `
+                        -StartInfo $createProcessLaunch.start_info `
+                        -StageRoot $createProcessLaunch.staged_product_root `
+                        -RunId $RunId `
+                        -Phase 'editor-create' `
                         -StdoutPath $createStdout `
                         -StderrPath $createStderr `
-                        -TimeoutSeconds $TimeoutSeconds
+                        -MaximumRetainedLogBytes $MaxProcessLogBytes `
+                        -EnvironmentPolicy $createEnvironmentPolicy `
+                        -QualificationContext $createQualificationContext `
+                        -ArtifactBudget $runArtifactBudget `
+                        -DeclaredEnvironment $createProcessLaunch.declared_environment
+                    $createExitCode = Complete-MvpSupervisedProcess `
+                        -ProcessState $createProcess `
+                        -TimeoutSeconds $createExecutionPolicy.process_timeout_seconds `
+                        -CancellationProbe $cancellationProbe `
+                        -CancellationReason 'external_request' `
+                        -ProgressProbe $createProgressProbe `
+                        -ProgressInactivityTimeoutSeconds $createExecutionPolicy.progress_inactivity_timeout_seconds
                 }
                 finally {
                     $createStarted.Stop()
                     if ($null -ne $createProcess) {
-                        $createProcess.process.Dispose()
+                        Close-MvpSupervisedProcessState -ProcessState $createProcess
                     }
                 }
-                Assert-MvpStagingProcessesReleased -StageDirectory $stageDirectory
                 if ($createExitCode -ne 0) {
                     throw "Staged editor project creation failed with exit code $createExitCode."
                 }
                 $createDiagnosticFiles = @(Get-MvpOperationalFileList `
                         -Path $createDiagnosticRoot `
-                        -Label 'Staged editor project creation diagnostic root')
+                        -Label 'Staged editor project creation diagnostic root' `
+                        -MaximumFileCount $script:MvpMaximumDiagnosticFileCount `
+                        -MaximumDirectoryDepth $script:MvpMaximumDiagnosticDirectoryDepth)
                 if ($createDiagnosticFiles.Count -eq 0) {
                     throw "Staged editor project creation emitted no diagnostic log evidence under '$createDiagnosticRoot'."
                 }
-                $createDiagnosticText = ($createDiagnosticFiles | ForEach-Object {
-                    [IO.File]::ReadAllText($_)
-                }) -join [Environment]::NewLine
+                $createDiagnosticText = Get-MvpSupervisedBoundedDiagnosticText -Paths $createDiagnosticFiles
                 foreach ($diagnostic in @(
                     'editor_first_frame_presented',
                     'editor_process_teardown_complete',
@@ -1718,27 +1784,42 @@ function Invoke-MvpProductStaging {
                     -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe') `
                     -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor') `
                     -StageRoot $stageDirectory `
+                    -RunId $RunId `
                     -ProjectRoot $stagedProjectRoot `
                     -AutomationRequestPath $stagedReopenAutomationPath `
-                    -EvidenceLabel 'editor-baseline'
-                Assert-MvpStagingProcessesReleased -StageDirectory $stageDirectory
+                    -EvidenceLabel 'editor-baseline' `
+                    -ScenarioRegistration $reopenScenario `
+                    -ExecutionPolicy $reopenExecutionPolicy `
+                    -QualificationContext $reopenQualificationContext `
+                    -ArtifactBudget $runArtifactBudget `
+                    -CancellationProbe $cancellationProbe
             }
             $productRuns += Invoke-MvpStagedProduct `
                 -Product 'runtime' `
                 -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'runtime\zircon_runtime.exe') `
                 -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'runtime') `
                 -StageRoot $stageDirectory `
-                -ProjectRoot $stagedProjectRoot
-            Assert-MvpStagingProcessesReleased -StageDirectory $stageDirectory
+                -RunId $RunId `
+                -ProjectRoot $stagedProjectRoot `
+                -ScenarioRegistration $runtimeScenario `
+                -ExecutionPolicy $runtimeExecutionPolicy `
+                -QualificationContext $runtimeQualificationContext `
+                -ArtifactBudget $runArtifactBudget `
+                -CancellationProbe $cancellationProbe
             if ($null -ne $stagedAuthoringAutomationPath) {
                 $authoringAutomation = Invoke-MvpStagedAuthoringAutomation `
                     -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe') `
                     -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor') `
                     -StageRoot $stageDirectory `
+                    -RunId $RunId `
                     -ProjectRoot $stagedProjectRoot `
                     -AutomationRequestPath $stagedAuthoringAutomationPath `
-                    -EvidenceLabel 'editor-authoring'
-                Assert-MvpStagingProcessesReleased -StageDirectory $stageDirectory
+                    -EvidenceLabel 'editor-authoring' `
+                    -ScenarioRegistration $authoringScenario `
+                    -ExecutionPolicy $authoringExecutionPolicy `
+                    -QualificationContext $authoringQualificationContext `
+                    -ArtifactBudget $runArtifactBudget `
+                    -CancellationProbe $cancellationProbe
             }
             if ($null -eq $stagedReopenAutomationPath) {
                 $productRuns += Invoke-MvpStagedProduct `
@@ -1746,42 +1827,63 @@ function Invoke-MvpProductStaging {
                     -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe') `
                     -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor') `
                     -StageRoot $stageDirectory `
-                    -ProjectRoot $stagedProjectRoot
+                    -RunId $RunId `
+                    -ProjectRoot $stagedProjectRoot `
+                    -ScenarioRegistration $editorScenario `
+                    -ExecutionPolicy $editorExecutionPolicy `
+                    -QualificationContext $editorQualificationContext `
+                    -ArtifactBudget $runArtifactBudget `
+                    -CancellationProbe $cancellationProbe
             }
             else {
-                for ($reopenAttempt = 1; $reopenAttempt -le $ReopenRepeatCount; $reopenAttempt++) {
+                for ($reopenAttempt = 1; $reopenAttempt -le $reopenExecutionPolicy.attempt_count; $reopenAttempt++) {
                     $reopenAutomation += Invoke-MvpStagedAuthoringAutomation `
                         -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe') `
                         -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor') `
                         -StageRoot $stageDirectory `
+                        -RunId $RunId `
                         -ProjectRoot $stagedProjectRoot `
                         -AutomationRequestPath $stagedReopenAutomationPath `
-                        -EvidenceLabel "editor-reopen-$reopenAttempt"
-                    Assert-MvpStagingProcessesReleased -StageDirectory $stageDirectory
+                        -EvidenceLabel "editor-reopen-$reopenAttempt" `
+                        -ScenarioRegistration $reopenScenario `
+                        -ExecutionPolicy $reopenExecutionPolicy `
+                        -QualificationContext $reopenQualificationContext `
+                        -ArtifactBudget $runArtifactBudget `
+                        -CancellationProbe $cancellationProbe
                     $editorRunParameters = @{
                         Product = 'editor'
                         ExecutablePath = (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe')
                         WorkingDirectory = (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor')
                         StageRoot = $stageDirectory
+                        RunId = $RunId
                         ProjectRoot = $stagedProjectRoot
                         AttemptOffset = $reopenAttempt - 1
                         RunCount = 1
+                        ScenarioRegistration = $editorScenario
+                        ExecutionPolicy = $editorExecutionPolicy
+                        QualificationContext = $editorQualificationContext
+                        ArtifactBudget = $runArtifactBudget
+                        CancellationProbe = $cancellationProbe
                     }
                     if ($reopenAttempt -eq 1) {
                         $editorRunParameters.EditorWindowCaptureName = 'editor-after-reopen.png'
                     }
                     $productRuns += Invoke-MvpStagedProduct @editorRunParameters
-                    Assert-MvpStagingProcessesReleased -StageDirectory $stageDirectory
                 }
                 $productRuns += Invoke-MvpStagedProduct `
                     -Product 'runtime' `
                     -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'runtime\zircon_runtime.exe') `
                     -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'runtime') `
                     -StageRoot $stageDirectory `
+                    -RunId $RunId `
                     -ProjectRoot $stagedProjectRoot `
-                    -AttemptOffset $RepeatCount `
-                    -RunCount 1
-                Assert-MvpStagingProcessesReleased -StageDirectory $stageDirectory
+                    -AttemptOffset $runtimeExecutionPolicy.attempt_count `
+                    -RunCount 1 `
+                    -ScenarioRegistration $runtimeScenario `
+                    -ExecutionPolicy $runtimeExecutionPolicy `
+                    -QualificationContext $runtimeQualificationContext `
+                    -ArtifactBudget $runArtifactBudget `
+                    -CancellationProbe $cancellationProbe
             }
             Test-MvpStagingDirectoryReleased -StageDirectory $stageDirectory
             Write-MvpJson -Path (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'startup-summary.json') -Value ([ordered]@{
@@ -1793,20 +1895,100 @@ function Invoke-MvpProductStaging {
                 baseline_automation = $baselineAutomation
                 authoring_automation = $authoringAutomation
                 reopen_automation = $reopenAutomation
+                artifact_budget = $runArtifactBudgetReceipt
+                project_copy_policy = $projectCopyPolicy.receipt
+                scenario_registry = $scenarioRegistryReceipt
+                scenario_execution_policies = $scenarioExecutionPolicyReceipts
+                process_qualification_contexts = $processQualificationContexts
+                process_qualification_context_set = $processQualificationContextSetReceipt
             })
         }
+        $stagingPhase = 'evidence_publication'
+        Assert-MvpStagingCancellationNotRequested -CancellationProbe $cancellationProbe
         $treeManifestPath = Write-MvpAcceptanceStagingTreeManifest -StagingRoot $stageDirectory
+        if ($null -ne $runArtifactBudget) {
+            $runArtifactBudgetMeasurement = Assert-MvpRunArtifactBudget -Budget $runArtifactBudget
+        }
     }
     catch {
-        throw "MVP product startup failed for staging run $($RunId): $($_.Exception.Message)"
+        $startupFailure = $_
+        $cleanupOutcome = 'succeeded'
+        $cleanupMessage = $null
+        try {
+            Test-MvpStagingDirectoryReleased -StageDirectory $stageDirectory
+        }
+        catch {
+            $cleanupOutcome = 'failed'
+            $cleanupMessage = $_.Exception.Message
+        }
+        $failureMessage = [string]$startupFailure.Exception.Message
+        $terminalOutcome = if ($startupFailure.Exception -is [TimeoutException] -or $failureMessage -match 'did not exit within') {
+            'timed_out'
+        }
+        elseif ($startupFailure.Exception -is [OperationCanceledException]) {
+            'cancelled'
+        }
+        else {
+            'failed'
+        }
+        $failureKind = switch ($terminalOutcome) {
+            'timed_out' { 'product_timeout' }
+            'cancelled' { 'product_cancelled' }
+            default { $stagingPhase + '_failed' }
+        }
+        $failureManifestPath = Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'staging-manifest.json'
+        $failureManifestSha256 = (Get-FileSha256 -Path $failureManifestPath).ToLowerInvariant()
+        try {
+            Write-MvpStagingTerminalReceipt `
+                -StagingRoot $stagingRootPath `
+                -RunId $RunId `
+                -Outcome $terminalOutcome `
+                -Phase $stagingPhase `
+                -StartedAtUtc $stagingStartedAtUtc `
+                -StagingDirectoryPublished $true `
+                -CleanupOutcome $cleanupOutcome `
+                -CleanupMessage $cleanupMessage `
+                -FailureKind $failureKind `
+                -FailureMessage $failureMessage `
+                -QualificationContextSetReceipt $processQualificationContextSetReceipt `
+                -StorageCapabilityEvidence $storageCapabilityEvidence `
+                -RequiredFreeSpaceBytes ([Int64]$preflight.required_free_space_bytes) `
+                -StagingManifestSha256 $failureManifestSha256 | Out-Null
+        }
+        catch {
+            throw "MVP product startup failed for staging run $($RunId): $failureMessage Terminal receipt publication also failed: $($_.Exception.Message)"
+        }
+        if ($terminalOutcome -eq 'cancelled') {
+            throw $startupFailure
+        }
+        throw "MVP product startup failed for staging run $($RunId): $failureMessage"
     }
 
     $manifestPath = Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'staging-manifest.json'
+    $manifestSha256 = Get-FileSha256 -Path $manifestPath
+    $terminalReceipt = Write-MvpStagingTerminalReceipt `
+        -StagingRoot $stagingRootPath `
+        -RunId $RunId `
+        -Outcome 'succeeded' `
+        -Phase 'complete' `
+        -StartedAtUtc $stagingStartedAtUtc `
+        -StagingDirectoryPublished $true `
+        -CleanupOutcome $(if ($NoLaunch) { 'not_required' } else { 'succeeded' }) `
+        -QualificationContextSetReceipt $processQualificationContextSetReceipt `
+        -StorageCapabilityEvidence $storageCapabilityEvidence `
+        -RequiredFreeSpaceBytes ([Int64]$preflight.required_free_space_bytes) `
+        -StagingManifestSha256 ($manifestSha256.ToLowerInvariant())
     return [ordered]@{
+        run_id = $RunId
         staging_root = (Resolve-ZirconWindowsPath -Path $stageDirectory).DisplayPath
         manifest = (Resolve-ZirconWindowsPath -Path $manifestPath).DisplayPath
         tree_manifest = (Resolve-ZirconWindowsPath -Path $treeManifestPath).DisplayPath
-        output_hash = Get-FileSha256 -Path $manifestPath
+        output_hash = $manifestSha256
+        terminal_receipt = [ordered]@{
+            path = (Resolve-ZirconWindowsPath -Path $terminalReceipt.path).DisplayPath
+            bytes = $terminalReceipt.bytes
+            sha256 = $terminalReceipt.sha256
+        }
         launched = -not $NoLaunch
         staged_project_root = if ($null -eq $stagedProjectRoot) {
             $null
@@ -1818,6 +2000,72 @@ function Invoke-MvpProductStaging {
         baseline_automation = $baselineAutomation
         authoring_automation = $authoringAutomation
         reopen_automation = $reopenAutomation
+        project_copy_policy = $projectCopyPolicy.receipt
+        scenario_registry = $scenarioRegistryReceipt
+        scenario_execution_policies = $scenarioExecutionPolicyReceipts
+        process_qualification_contexts = $processQualificationContexts
+        process_qualification_context_set = $processQualificationContextSetReceipt
+        storage_capability = $storageCapabilityEvidence
+        artifact_budget = if ($null -eq $runArtifactBudgetReceipt) {
+            $null
+        }
+        else {
+            [ordered]@{
+                policy = $runArtifactBudgetReceipt
+                measurement = $runArtifactBudgetMeasurement
+            }
+        }
+    }
+}
+
+function Invoke-MvpProductStaging {
+    $stagingStartedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
+    $stagingRootPath = Resolve-MvpStagingRoot -Path $StagingRoot
+    Assert-MvpRunId -Value $RunId
+    $stageDirectory = Join-ZirconWindowsPath -Path $stagingRootPath -ChildPath $RunId
+    if (-not $AllowUnsafeStagingRoot) {
+        try {
+            Resolve-MvpArtifactStoragePath `
+                -Path $stageDirectory `
+                -NamespaceId 'mvp-staging-runs' | Out-Null
+        }
+        catch {
+            throw "MVP staging run '$RunId' is outside the registered staging namespace: $($_.Exception.Message)"
+        }
+    }
+    $cancellationState = New-MvpStagingCancellationProbeState -StagingRoot $stagingRootPath -RunId $RunId
+    $terminalReceiptPath = Get-MvpStagingTerminalReceiptPath -StagingRoot $stagingRootPath -RunId $RunId
+    if ([IO.File]::Exists($terminalReceiptPath)) {
+        throw "MVP staging run '$RunId' already has a terminal receipt at '$terminalReceiptPath'; choose a new RunId."
+    }
+    try {
+        return Invoke-MvpProductStagingCore `
+            -StagingRootPath $stagingRootPath `
+            -StagingStartedAtUtc $stagingStartedAtUtc `
+            -CancellationState $cancellationState
+    }
+    catch {
+        $stagingFailure = $_
+        if (-not [IO.File]::Exists($terminalReceiptPath) -and -not [IO.Directory]::Exists($stageDirectory)) {
+            $admissionOutcome = if ($stagingFailure.Exception -is [OperationCanceledException]) { 'cancelled' } else { 'failed' }
+            $admissionFailureKind = if ($admissionOutcome -eq 'cancelled') { 'operation_cancelled' } else { 'admission_failed' }
+            try {
+                Write-MvpStagingTerminalReceipt `
+                    -StagingRoot $stagingRootPath `
+                    -RunId $RunId `
+                    -Outcome $admissionOutcome `
+                    -Phase 'admission' `
+                    -StartedAtUtc $stagingStartedAtUtc `
+                    -StagingDirectoryPublished $false `
+                    -CleanupOutcome 'not_required' `
+                    -FailureKind $admissionFailureKind `
+                    -FailureMessage $stagingFailure.Exception.Message | Out-Null
+            }
+            catch {
+                throw "MVP staging admission failed for run '$RunId': $($stagingFailure.Exception.Message) Terminal receipt publication also failed: $($_.Exception.Message)"
+            }
+        }
+        throw $stagingFailure
     }
 }
 

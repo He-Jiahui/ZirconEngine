@@ -16,7 +16,8 @@ pub enum PostProcessEffectKind {
     ScreenSpaceReflectionReflectionPyramidCoarse,
     ScreenSpaceReflectionSpecularOcclusion,
     ScreenSpaceReflectionResolve,
-    Upscale,
+    PrimaryUpscale,
+    SecondaryUpscale,
     OutputTransfer,
     Fxaa,
     Smaa,
@@ -45,7 +46,8 @@ impl PostProcessEffectKind {
                 "screen-space-reflection-specular-occlusion"
             }
             Self::ScreenSpaceReflectionResolve => "screen-space-reflection-resolve",
-            Self::Upscale => "upscale",
+            Self::PrimaryUpscale => "primary-upscale",
+            Self::SecondaryUpscale => "secondary-upscale",
             Self::OutputTransfer => "output-transfer",
             Self::Fxaa => "fxaa",
             Self::Smaa => "smaa",

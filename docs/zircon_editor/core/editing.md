@@ -3,6 +3,7 @@ related_code:
   - zircon_editor/src/core/editing/engine/mod.rs
   - zircon_editor/src/core/editing/engine/command.rs
   - zircon_editor/src/core/editing/engine/history.rs
+  - zircon_editor/src/core/editing/engine/journal/
   - zircon_editor/src/core/editing/engine/transaction.rs
   - zircon_editor/src/core/editing/engine/transaction/dirty_batch.rs
   - zircon_editor/src/core/editing/engine/routing.rs
@@ -16,6 +17,7 @@ implementation_files:
   - zircon_editor/src/core/editing/engine/mod.rs
   - zircon_editor/src/core/editing/engine/command.rs
   - zircon_editor/src/core/editing/engine/history.rs
+  - zircon_editor/src/core/editing/engine/journal/
   - zircon_editor/src/core/editing/engine/transaction.rs
   - zircon_editor/src/core/editing/engine/transaction/dirty_batch.rs
   - zircon_editor/src/core/editing/engine/routing.rs
@@ -54,15 +56,49 @@ doc_type: module-detail
 
 `EditCommand` applies immediately when pushed into a `TransactionScope`, reverts for undo or cancellation, and receives a deterministic `finalize` callback whenever a record is discarded. `apply` and `revert` failures use `CommandExecutionError`, which preserves an `EditCommandError` source and explicitly reports whether the failed call left the command effect unchanged or applied. The engine invokes a reverse recovery only for an applied effect; it does not guess from private command state. Errors remain typed, including source-preserving reflection and external-effect variants, and the engine exposes no string error channel.
 
-The engine owns a narrow `EditContext` trait instead of importing UI state. A command can obtain its concrete fixture or future service adapter through `Any`, while selection capture and restoration stay explicit transaction operations. `SelectionSnapshot` is a journal-ready JSON value wrapper until the Selection Model plan supplies the final typed selection DTO.
+The engine owns a narrow `EditContext` trait instead of importing UI state. Selection capture,
+restoration, and world-route retirement stay explicit transaction operations. Runtime-backed
+extension commands request the bounded `runtime_operations` capability instead of obtaining a raw,
+replaceable gateway handle. `EditorRuntimeOperationRoute` retains one immutable gateway origin, so
+submit, poll, and harvest cannot cross runtime generations. Concrete downcasts through `Any` remain
+limited to commands owned by the same context implementation.
 
 ## History invariants
 
-Each `HistoryContextId` is either `Global` or `Document(DocumentId)`. The former empty numeric identifier API was removed from the message subsystem, and transaction messages now use the editing-owned identifier directly.
+`HistoryContextId` is partitioned into persistent authoring contexts (`Global` and
+`Document(DocumentId)`) and the instance-qualified volatile context
+`PlaySession(PlayInstanceId)`. `HistoryContextId::world_domain` is the canonical mapping to
+`WorldDomain`; history routing requires that domain explicitly and returns
+`EditCommandError::CrossWorldHistory` instead of allowing an edit-world history to contain a play
+entity, or the inverse. The former empty numeric identifier API was removed from the message
+subsystem, and transaction messages use the editing-owned identifier directly.
+
+Play history has no saved baseline. Its public dirty state is always false, it is excluded from
+dirty batches, and save-token plus transaction-journal persistence APIs reject it with typed
+errors. `EditContext` exposes `capture_world_route`, `activate_world_route`, and
+`retire_world_route`; the deleted
+single-gateway `runtime_gateway` method has no compatibility path. `CoreEditContext` owns stable
+authoring and play gateway handles plus one selection slot per `WorldDomain`. The same play handle
+is injected into the transaction context and `PlayDomainLink`, while the link remains the sole
+attach/detach authority.
+
+A root transaction captures the exact `WorldDomain + GatewaySessionIdentity`, nested scopes inherit
+that route, and every retained `TransactionRecord` keeps it. Undo/redo activates the target record's
+route instead of recapturing the current gateway generation. Replacing a gateway for the same play
+instance therefore yields `WorldRouteStale`; an old command cannot be redirected into a replacement
+world. `discard_play_history(instance)` is the per-instance whole-stack cleanup owner: while the
+gateway is still reachable it finalizes records, removes the store and branch-generation entry,
+reactivates the authoring route, and retires the play selection slot even when the play history is
+empty. The host's terminal detach path reserves the exact instance and gateway identity under the
+`PlaySessionController` transition gate, releases the gate while extension finalizers run, and then
+reacquires it for identity-qualified detach. Reentrant detach and premature backend retirement are
+typed rejections, avoiding both callback deadlock and session destruction during cleanup. Normal
+stop, crash, project close, and host shutdown share this order.
 
 `HistoryStore` uses a `VecDeque<TransactionRecord>` plus a cursor. Committing after undo drains and finalizes the redo segment. Capacity pressure evicts and finalizes the oldest record. `saved_top` and its reachability flag are the sole dirty-state authority. Evicting the saved first record shifts its reachable baseline to the position before the retained first record; truncation or deeper eviction marks the baseline unreachable only when no retained undo path can return to it.
 
-Every record retains its participants, before/after selection snapshots, significance, and engine frame number. No wall-clock timestamp participates in history ordering.
+Every record retains its exact world route, participants, before/after selection snapshots,
+significance, and engine frame number. No wall-clock timestamp participates in history ordering.
 
 ## Scope and merge behavior
 
@@ -76,15 +112,64 @@ The engine uses one state mutex, but removes the edit context and the active his
 
 `EditorCommand` is the scene mutation family consumed by the shared engine. Its four variants are create, delete, update, and reflected-field write. Constructors only capture intent or before/after values from `&Scene`; they never mutate the world. `TransactionScope::push` is the first mutation point. The deleted `Batch` variant is replaced by multiple pushes in one scope, and command-local selection fields are replaced by the transaction record's before/after selection snapshots.
 
-`CoreEditContext` binds the active `LevelSystem` handle plus a typed `SceneSelectionSnapshot` immediately before a scene transaction. Workbench create/delete/rename/reparent/transform/import/inspector actions, undo, and redo all use `EditorContext::transactions()` with `HistoryContextId::Global`; `EditorState` has no private history owner. Replacing or closing a project clears and finalizes the shared Global history before the bound scene is replaced.
+`CoreEditContext` binds the authoring `LevelSystem` facade and keeps the replaceable Play facade
+separate. A transaction selects the facade only through its captured world route; entity identifiers
+never choose a gateway implicitly. `DocumentLifecycleAuthority` remains the only authoring scene
+identity authority; after it commits an activation, `EditorState` holds only that committed
+`DocumentId` binding. Authoring scene commands, gizmo release, undo/redo, save marking, close
+prompts, snapshots, and event tracing use `HistoryContextId::Document(document)` with no `Global`
+fallback. An unbound scene refuses editing. Replacing or closing a project clears and finalizes the
+bound document history before the bound scene is replaced.
 
-Project replacement, project close, and play enter/exit hold an exclusive transaction-engine transition from gizmo cancellation through world mutation. Project transitions finalize Global history and clear `CoreEditContext` inside that same operation lane, so another command cannot bind the old world or append old-world history between cleanup steps. Ordinary scene actions cancel a gizmo preview before command capture; the shared executor rejects a leaked active capture, while gizmo release alone uses the private already-applied commit path.
+Project replacement, project close, and play enter/exit hold an exclusive transaction-engine transition from gizmo cancellation through world mutation. Project transitions finalize the bound document history and clear `CoreEditContext` inside that same operation lane, so another command cannot bind the old world or append old-world history between cleanup steps. Ordinary scene actions cancel a gizmo preview before command capture; the shared executor rejects a leaked active capture, while gizmo release alone uses the private already-applied commit path.
 
 Gizmo interaction previews transforms directly while the gesture retains only the initial and latest `Transform`. Release constructs one already-applied transform command and commits it through one transaction scope; a 100-frame drag therefore produces one transaction and one retained command without per-frame command or node-name allocation. This staging is gesture-local transform data, not a second undo stack.
 
-Play mode retains the edit history but rejects scene mutation, undo, and redo intents while the play snapshot is active. Gizmos are disabled for the play session and the prior setting is restored on exit, preventing viewport handle mutation from bypassing the transaction guard. Snapshot `can_undo/can_redo` is false while playing and reflects the retained edit history again after exit.
+The transaction engine supports instance-qualified Play mutation and replay without exposing a
+persistent dirty state. The workbench resolves the active selection domain before exposing history:
+Play Inspector batches and Ctrl+Z/redo use
+`HistoryContextId::PlaySession(attached_instance)`, while an Edit selection does not fall back to the
+retained authoring history during Play. Inspector command capture occurs inside the transaction's
+already-pinned Play context, so partial transform batches preserve the other runtime axes and never
+read authoring drafts as their before value. Authoring edit history remains intact across Play and is
+visible again after exit. Play gizmos remain disabled until the secondary session exposes an
+identity-qualified renderer picking and editor-overlay contract; authoring viewport hits must not be
+reused as Play entity identity.
+
+Undoable operation registrations require an explicit `EditOperationTarget` owned by the generic
+editing layer; there is no implicit workspace default or post-construction target setter.
+During Play, the host defers and routes an invocation through `PlaySessionController::route_edit`
+before calling the operation factory. `PlayDomain` operations can capture immediately, running
+document edits are rejected, and other document/workspace operations enter the bounded pending-edit
+queue. A queued operation publishes `EditorOperationEvent::EditQueued` without creating a command or
+touching history. The former Play-owned target type is deleted rather than retained as an alias.
+
+`runtime.play_mode.keep_changes` is the only explicit Play-to-authoring property bridge. The command
+is available from the Play menu/command palette and is injected into scene-row context menus only
+while the controller is Playing; every surface dispatches the same typed `MenuAction`. It requires
+one selected entity in the active `WorldDomain::Play(instance)`, pins the current play gateway
+identity, and requests a fresh typed Inspector projection without a generation hint. The command
+copies only fields marked both writable and serializable, excludes `Hierarchy.parent`, and rejects
+runtime-spawned entities that have no authoring counterpart. It captures every reflected command
+before opening one `HistoryContextId::Document(document)` transaction, so schema/counterpart failure
+cannot leave a partial authoring transaction. The Play selection and Play history remain untouched;
+the resulting authoring transaction becomes undoable after exiting Play. An Edit selection while
+Play is still active does not bypass the existing authoring-history lock.
+
+`EditorPlaySession` no longer stores an authoring-world clone or replaces the authoring world on
+exit. With separate authoring and Play gateways, that legacy restore was redundant and would erase
+changes accepted by Keep Changes. Play exit restores only editor selection, gizmo settings, and the
+pre-Play session mode.
 
 Production state construction requires an explicit `Arc<EditorContext>`. Test-only convenience constructors may build a fixture Context under `#[cfg(test)]`; production retained-host and CLI operation paths inject the owning `EditorManager` Context so commands, jobs, gateway, and transactions stay single-owner.
+
+## Durable journal boundary
+
+`engine/journal/` is folder-backed: command payload declarations, transaction serialization, codec registration/replay, and durable file storage have separate owners. A `JournalDocumentKey` is derived only from a validated project-relative UTF-8 source path; session-local `DocumentId` never names a journal directory. The durable owner writes `<project>/.zircon/journal/<document-key>/transactions.zjr` with the `ZRJNL001` container and format version 2, followed by monotonically sequenced length-delimited BLAKE3-checked records. Each record payload independently uses the shared `$zircon` schema `zircon.editor.editing.transaction-journal` v1. The retired raw JSON DTO and its private `schema_version` field have no reader. Command-level `schema_version` remains a separate business contract used by `EditCommandCodecRegistry`; it is not the transaction document or container version. Each accepted append calls `sync_data`; the reader enforces container, file, record, checksum, transaction schema, sequence, and valid-prefix boundaries. A corrupt or truncated tail remains visible as typed recovery state and is rejected for further append rather than being silently extended. `JournalTailFault::InvalidTransaction` owns the original `TransactionJournalReadError`, so the source chain remains `DurableJournalError -> JournalTailFault -> TransactionJournalReadError -> LoadError`; startup recovery can distinguish a future schema from malformed payload or engine-invariant failure without parsing display text.
+
+`EditCommandCodecRegistry` is the sole command payload decode authority. `core/editing/journal_codecs/` owns the explicit v1 registrations for scene create, delete, update, and reflected-field commands; it decodes owned DTOs and rejects incompatible create intent/record kinds, noncanonical or no-op node updates, and incomplete or no-op reflected writes before a scope is opened. A delete journal remains a forward descriptor and never serializes its move-only detached inverse batch. `TransactionJournalReplayer` validates and decodes every command before it opens a target scope, then replays through the normal transaction engine using the caller's live history context. It does not reuse the persisted session-local history identifier. The durable owner can explicitly compact a snapshot-covered prefix and read-only discover journal directories into valid entries plus typed isolated issues; linking an autosave checkpoint to compaction and turning discovery into a startup recovery selection remain separate Recovery Coordinator work. This layer intentionally exposes typed artifacts rather than creating a second document or autosave authority.
+
+`core/recovery/document_journal/DocumentJournalCoordinator` is the project-scoped bridge for that work. It holds `DocumentId -> JournalDocumentKey` only in process memory, derives the key from its own project root plus the physical source path, and gives each document an independent writer slot. Project admission creates the one coordinator; startup activation and picker routes reserve a `DocumentId`, bind it before authoring-world installation/lifecycle publication, release it on failed publication or a later scene close, and never infer identity from a `res://` URI. Production append is deliberately absent: only `#[cfg(test)] append_for_test` currently exercises writer ownership, because the transaction engine does not yet publish immutable materialized bytes at commit linearization. Journal persistence never consumes the lossy editor message bus or a `Global` history record. Reads and prefix compaction serialize within the document append gate, and compaction drops the old writer before replacing the file. Immutable commit capture, save/close drain, autosave checkpoint wiring, and startup candidate selection remain product work.
 
 ## Events and validation status
 
@@ -151,8 +236,10 @@ history-set construction; live cursors deduplicate only journal delta; cursors o
 history receive Reset. Reset includes histories known by the engine, including cleared histories
 whose branch generation is retained.
 
-Commit, successful undo/redo and exclusive history clear advance branch generation and dirty
-generation together. A successful `mark_saved_if_unchanged` that moves `saved_top` advances only the
+Persistent-history commit, successful undo/redo and exclusive history clear advance branch
+generation and dirty generation together. Volatile play-history mutations advance only their
+per-history branch generation and never enter the dirty journal. A successful
+`mark_saved_if_unchanged` that moves `saved_top` advances only the
 dirty generation: the clean transition becomes observable without invalidating the same save token's
 idempotent `AlreadyMarked` completion. The journal never stores a dirty boolean; each returned state
 derives it from the current `HistoryStore::is_dirty` under the engine lock.

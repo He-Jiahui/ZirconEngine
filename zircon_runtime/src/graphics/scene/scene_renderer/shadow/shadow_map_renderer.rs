@@ -1,84 +1,182 @@
 use std::collections::BTreeSet;
+use std::mem::size_of;
+use std::num::NonZeroU64;
+use std::sync::Arc;
 
 use bytemuck::bytes_of;
-use wgpu::util::DeviceExt;
 
 use crate::core::framework::scene::EntityId;
-use crate::core::math::{is_finite_mat4, Mat4};
+use crate::core::math::{Mat4, is_finite_mat4};
+use crate::graphics::pipeline::PipelineAdmission;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshPassPipelineKind,
     MeshSceneDataBindHandle,
 };
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
-use crate::graphics::scene::scene_renderer::primitives::{SceneEnvironmentSh9, SceneUniform};
+use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
 use crate::render_graph::RenderGraphAttachmentOps;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use super::plan::ShadowAtlasSlotPass;
 
+const SHADOW_ATLAS_PIPELINE_CONSUMER: &str = "shadow_atlas";
+
 pub(crate) struct ShadowMapRenderer {
     scene_layout: wgpu::BindGroupLayout,
-    _environment_cube_texture: wgpu::Texture,
-    environment_cube_view: wgpu::TextureView,
-    environment_cube_sampler: wgpu::Sampler,
-    _environment_brdf_lut_texture: wgpu::Texture,
-    environment_brdf_lut_view: wgpu::TextureView,
-    _environment_specular_cube_texture: wgpu::Texture,
-    environment_specular_cube_view: wgpu::TextureView,
-    _environment_irradiance_cube_texture: wgpu::Texture,
-    environment_irradiance_cube_view: wgpu::TextureView,
-    environment_sh9_buffer: wgpu::Buffer,
+    environment: ShadowSceneEnvironmentBindingLease,
+    slot_scene_workspace: ShadowSlotSceneWorkspace,
+}
+
+#[derive(Default)]
+struct ShadowSlotSceneWorkspace {
+    buffer: Option<wgpu::Buffer>,
+    bind_groups: Vec<wgpu::BindGroup>,
+    uniform_stride: u64,
+}
+
+pub(in crate::graphics::scene::scene_renderer) struct ShadowSceneEnvironmentBindingLease {
+    _black_cube_texture: wgpu::Texture,
+    black_cube_view: wgpu::TextureView,
+    sampler: wgpu::Sampler,
+    _brdf_lut_texture: wgpu::Texture,
+    brdf_lut_view: wgpu::TextureView,
+    sh9_buffer: wgpu::Buffer,
+}
+
+impl ShadowSceneEnvironmentBindingLease {
+    pub(in crate::graphics::scene::scene_renderer) fn new(
+        black_cube_texture: wgpu::Texture,
+        black_cube_view: wgpu::TextureView,
+        sampler: wgpu::Sampler,
+        brdf_lut_texture: wgpu::Texture,
+        brdf_lut_view: wgpu::TextureView,
+        sh9_buffer: wgpu::Buffer,
+    ) -> Self {
+        Self {
+            _black_cube_texture: black_cube_texture,
+            black_cube_view,
+            sampler,
+            _brdf_lut_texture: brdf_lut_texture,
+            brdf_lut_view,
+            sh9_buffer,
+        }
+    }
 }
 
 impl ShadowMapRenderer {
-    pub(crate) fn new(device: &wgpu::Device, scene_layout: &wgpu::BindGroupLayout) -> Self {
-        let (environment_cube_texture, environment_cube_view) = create_shadow_environment_cube(
-            device,
-            "zircon-shadow-map-scene-environment-cube",
-            "zircon-shadow-map-scene-environment-cube-view",
-        );
-        let environment_cube_sampler = create_shadow_environment_sampler(device);
-        let (environment_brdf_lut_texture, environment_brdf_lut_view) =
-            create_shadow_environment_brdf_lut(device);
-        let (environment_specular_cube_texture, environment_specular_cube_view) =
-            create_shadow_environment_cube(
-                device,
-                "zircon-shadow-map-scene-environment-specular-pmrem-cube",
-                "zircon-shadow-map-scene-environment-specular-pmrem-cube-view",
-            );
-        let (environment_irradiance_cube_texture, environment_irradiance_cube_view) =
-            create_shadow_environment_cube(
-                device,
-                "zircon-shadow-map-scene-environment-irradiance-cube",
-                "zircon-shadow-map-scene-environment-irradiance-cube-view",
-            );
-        let environment_sh9_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("zircon-shadow-map-scene-environment-sh9"),
-            contents: bytes_of(&SceneEnvironmentSh9::default()),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
+    pub(in crate::graphics::scene::scene_renderer) fn new(
+        scene_layout: &wgpu::BindGroupLayout,
+        environment: ShadowSceneEnvironmentBindingLease,
+    ) -> Self {
         Self {
             scene_layout: scene_layout.clone(),
-            _environment_cube_texture: environment_cube_texture,
-            environment_cube_view,
-            environment_cube_sampler,
-            _environment_brdf_lut_texture: environment_brdf_lut_texture,
-            environment_brdf_lut_view,
-            _environment_specular_cube_texture: environment_specular_cube_texture,
-            environment_specular_cube_view,
-            _environment_irradiance_cube_texture: environment_irradiance_cube_texture,
-            environment_irradiance_cube_view,
-            environment_sh9_buffer,
+            environment,
+            slot_scene_workspace: ShadowSlotSceneWorkspace::default(),
         }
+    }
+
+    pub(crate) fn prepare_slot_scene_uploads(
+        &mut self,
+        device: &wgpu::Device,
+        slot_passes: &[ShadowAtlasSlotPass],
+    ) -> Result<WgpuBufferUploadBatch, String> {
+        let mut uploads = WgpuBufferUploadBatch::new();
+        if slot_passes.is_empty() {
+            return Ok(uploads);
+        }
+
+        self.ensure_slot_scene_capacity(device, slot_passes.len())?;
+        let stride = usize::try_from(self.slot_scene_workspace.uniform_stride).map_err(|_| {
+            "shadow slot scene uniform stride exceeds host address space".to_owned()
+        })?;
+        let payload_len = stride
+            .checked_mul(slot_passes.len())
+            .ok_or_else(|| "shadow slot scene payload size overflow".to_owned())?;
+        let mut payload = vec![0; payload_len];
+        for (slot_ordinal, slot_pass) in slot_passes.iter().enumerate() {
+            let scene_uniform = scene_uniform_for_view_projection(slot_pass.view_proj);
+            let bytes = bytes_of(&scene_uniform);
+            let start = slot_ordinal
+                .checked_mul(stride)
+                .expect("validated shadow slot payload offset must fit usize");
+            payload[start..start + bytes.len()].copy_from_slice(bytes);
+        }
+
+        let payload: Arc<[u8]> = Arc::from(payload);
+        let buffer = self
+            .slot_scene_workspace
+            .buffer
+            .as_ref()
+            .expect("non-empty shadow slot preparation must materialize its workspace")
+            .clone();
+        uploads.push(
+            WgpuBufferUpload::new(buffer, 0, payload, 0..payload_len)
+                .ok_or_else(|| "shadow slot scene upload range escaped its payload".to_owned())?,
+        );
+        Ok(uploads)
+    }
+
+    fn ensure_slot_scene_capacity(
+        &mut self,
+        device: &wgpu::Device,
+        required_slots: usize,
+    ) -> Result<(), String> {
+        if required_slots <= self.slot_scene_workspace.bind_groups.len() {
+            return Ok(());
+        }
+        let capacity = required_slots
+            .checked_next_power_of_two()
+            .ok_or_else(|| "shadow slot scene workspace capacity overflow".to_owned())?;
+        let uniform_size = size_of::<SceneUniform>() as u64;
+        let alignment = u64::from(device.limits().min_uniform_buffer_offset_alignment.max(1));
+        let uniform_stride = align_up_u64(uniform_size, alignment)
+            .ok_or_else(|| "shadow slot scene uniform alignment overflow".to_owned())?;
+        let buffer_size = uniform_stride
+            .checked_mul(capacity as u64)
+            .ok_or_else(|| "shadow slot scene workspace byte size overflow".to_owned())?;
+        if buffer_size > device.limits().max_buffer_size {
+            return Err(format!(
+                "shadow slot scene workspace requires {buffer_size} bytes but device limit is {}",
+                device.limits().max_buffer_size
+            ));
+        }
+
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-shadow-slot-scene-uniform-workspace"),
+            size: buffer_size,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let binding_size =
+            NonZeroU64::new(uniform_size).expect("SceneUniform must have a non-zero binding size");
+        let bind_groups = (0..capacity)
+            .map(|slot_ordinal| {
+                create_slot_scene_bind_group(
+                    device,
+                    &self.scene_layout,
+                    &self.environment,
+                    &buffer,
+                    slot_ordinal as u64 * uniform_stride,
+                    binding_size,
+                )
+            })
+            .collect();
+
+        self.slot_scene_workspace = ShadowSlotSceneWorkspace {
+            buffer: Some(buffer),
+            bind_groups,
+            uniform_stride,
+        };
+        Ok(())
     }
 
     pub(crate) fn record_atlas_commands_with_attachment_ops<'a>(
         &self,
         device: &wgpu::Device,
-        _queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         pass_name: &str,
         atlas_view: &wgpu::TextureView,
@@ -89,28 +187,30 @@ impl ShadowMapRenderer {
         gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
         mesh_draw_commands: MeshDrawCommandStream<'a>,
         attachment_ops: RenderGraphAttachmentOps,
-    ) -> MeshDrawReplayStats {
+    ) -> Result<MeshDrawReplayStats, String> {
         if slot_passes.is_empty() || mesh_draw_commands.is_empty() {
             record_depth_only_pass(encoder, pass_name, atlas_view, attachment_ops);
-            return MeshDrawReplayStats::default();
+            return Ok(MeshDrawReplayStats::default());
         }
 
         let forward_shadow_receiver_bind_group = mesh_pipelines
             .create_forward_shadow_receiver_bind_group(device, None, None, None, None);
         let mut wrote_first_slot = false;
         let mut combined = MeshDrawReplayStats::default();
-        for slot_pass in slot_passes {
+        for (slot_ordinal, slot_pass) in slot_passes.iter().enumerate() {
             if slot_pass.rect.width == 0 || slot_pass.rect.height == 0 {
                 continue;
             }
-            let scene_uniform = scene_uniform_for_view_projection(slot_pass.view_proj);
-            let scene_uniform_buffer =
-                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("zircon-shadow-map-slot-scene-uniform"),
-                    contents: bytes_of(&scene_uniform),
-                    usage: wgpu::BufferUsages::UNIFORM,
-                });
-            let scene_bind_group = self.create_slot_scene_bind_group(device, &scene_uniform_buffer);
+            let scene_bind_group = self
+                .slot_scene_workspace
+                .bind_groups
+                .get(slot_ordinal)
+                .ok_or_else(|| {
+                    format!(
+                        "shadow slot scene workspace prepared {} bindings but pass ordinal {slot_ordinal} was requested",
+                        self.slot_scene_workspace.bind_groups.len()
+                    )
+                })?;
 
             let atlas_attachment_ops = if wrote_first_slot {
                 RenderGraphAttachmentOps::load_store()
@@ -145,7 +245,7 @@ impl ShadowMapRenderer {
                 slot_pass.rect.width,
                 slot_pass.rect.height,
             );
-            pass.set_bind_group(0, &scene_bind_group, &[]);
+            pass.set_bind_group(0, scene_bind_group, &[]);
             pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);
             let visible_entities = slot_pass
                 .view_key
@@ -167,52 +267,7 @@ impl ShadowMapRenderer {
         if !wrote_first_slot {
             record_depth_only_pass(encoder, pass_name, atlas_view, attachment_ops);
         }
-        combined
-    }
-
-    fn create_slot_scene_bind_group(
-        &self,
-        device: &wgpu::Device,
-        scene_uniform_buffer: &wgpu::Buffer,
-    ) -> wgpu::BindGroup {
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("zircon-shadow-map-slot-scene-bind-group"),
-            layout: &self.scene_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: scene_uniform_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&self.environment_cube_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&self.environment_cube_sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(&self.environment_brdf_lut_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 4,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.environment_specular_cube_view,
-                    ),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 5,
-                    resource: wgpu::BindingResource::TextureView(
-                        &self.environment_irradiance_cube_view,
-                    ),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 6,
-                    resource: self.environment_sh9_buffer.as_entire_binding(),
-                },
-            ],
-        })
+        Ok(combined)
     }
 
     fn replay_shadow_command_stream<'pass>(
@@ -225,47 +280,51 @@ impl ShadowMapRenderer {
         mesh_draw_commands: MeshDrawCommandStream<'pass>,
         visible_entities: Option<&BTreeSet<EntityId>>,
     ) -> MeshDrawReplayStats {
+        let mesh_draw_commands = if visible_entities.is_some() {
+            // Global indirect batches span commands from multiple entities. Until shadow
+            // visibility owns view-local compacted ranges, filtering must stay per command.
+            mesh_draw_commands.without_indirect()
+        } else {
+            mesh_draw_commands
+        };
         let mut replayer = MeshDrawCommandReplayer::default();
         replayer.replay_command_stream(pass, mesh_draw_commands, |replayer, pass, command| {
             if visible_entities.is_some_and(|entities| !entities.contains(&command.source_entity)) {
                 return false;
             }
-            match command.pipeline_kind {
-                MeshPassPipelineKind::ShadowDepthAlphaMask => {
-                    if replayer.should_set_pipeline(
-                        command.pipeline_kind,
-                        command.pipeline_variant_id,
-                    ) {
-                        let pipeline = mesh_pipelines
-                            .ensure_shadow_pipeline_for_variant(
-                                device,
-                                streamer,
-                                command.pipeline_variant_id,
-                            )
-                            .expect(
-                                "shadow alpha mask command must resolve a cache-backed pipeline variant",
-                            );
-                        pass.set_pipeline(pipeline);
-                    }
-                }
-                MeshPassPipelineKind::ShadowDepth => {
-                    if replayer.should_set_pipeline(
-                        command.pipeline_kind,
-                        command.pipeline_variant_id,
-                    ) {
-                        let pipeline = mesh_pipelines
-                            .ensure_shadow_pipeline_for_variant(
-                                device,
-                                streamer,
-                                command.pipeline_variant_id,
-                            )
-                            .expect(
-                                "shadow depth command must resolve a cache-backed pipeline variant",
-                            );
-                        pass.set_pipeline(pipeline);
-                    }
+            let kind = match command.pipeline_kind {
+                MeshPassPipelineKind::ShadowDepthAlphaMask | MeshPassPipelineKind::ShadowDepth => {
+                    command.pipeline_kind
                 }
                 _ => return false,
+            };
+            if replayer.should_set_pipeline(kind, command.pipeline_variant_id) {
+                match mesh_pipelines.ensure_shadow_pipeline_admission_for_variant(
+                    device,
+                    streamer,
+                    kind,
+                    command.pipeline_variant_id,
+                ) {
+                    PipelineAdmission::Ready(()) => {
+                        mesh_pipelines
+                            .record_bound_mesh_pass_pipeline(kind, command.pipeline_variant_id);
+                        pass.set_pipeline(
+                            mesh_pipelines
+                                .shadow_pipeline_for_ready_variant(command.pipeline_variant_id),
+                        );
+                    }
+                    PipelineAdmission::Deferred(unavailable)
+                    | PipelineAdmission::Failed(unavailable) => {
+                        mesh_pipelines.record_pipeline_fallback_for_command_variant(
+                            command,
+                            command.pipeline_variant_id,
+                            SHADOW_ATLAS_PIPELINE_CONSUMER,
+                            unavailable,
+                        );
+                        replayer.invalidate_state_after_external_pipeline();
+                        return false;
+                    }
+                }
             }
             replayer.bind_standard_material_if_needed(pass, command);
             replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
@@ -276,79 +335,61 @@ impl ShadowMapRenderer {
     }
 }
 
-fn create_shadow_environment_cube(
+fn create_slot_scene_bind_group(
     device: &wgpu::Device,
-    texture_label: &'static str,
-    view_label: &'static str,
-) -> (wgpu::Texture, wgpu::TextureView) {
-    let texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some(texture_label),
-        size: wgpu::Extent3d {
-            width: 1,
-            height: 1,
-            depth_or_array_layers: 6,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba16Float,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[],
-    });
-    let view = texture.create_view(&wgpu::TextureViewDescriptor {
-        label: Some(view_label),
-        format: Some(wgpu::TextureFormat::Rgba16Float),
-        dimension: Some(wgpu::TextureViewDimension::Cube),
-        usage: Some(wgpu::TextureUsages::TEXTURE_BINDING),
-        aspect: wgpu::TextureAspect::All,
-        base_mip_level: 0,
-        mip_level_count: Some(1),
-        base_array_layer: 0,
-        array_layer_count: Some(6),
-    });
-    (texture, view)
-}
-
-fn create_shadow_environment_sampler(device: &wgpu::Device) -> wgpu::Sampler {
-    device.create_sampler(&wgpu::SamplerDescriptor {
-        label: Some("zircon-shadow-map-scene-environment-cube-sampler"),
-        mag_filter: wgpu::FilterMode::Linear,
-        min_filter: wgpu::FilterMode::Linear,
-        mipmap_filter: wgpu::MipmapFilterMode::Linear,
-        address_mode_u: wgpu::AddressMode::ClampToEdge,
-        address_mode_v: wgpu::AddressMode::ClampToEdge,
-        address_mode_w: wgpu::AddressMode::ClampToEdge,
-        ..Default::default()
+    scene_layout: &wgpu::BindGroupLayout,
+    environment: &ShadowSceneEnvironmentBindingLease,
+    uniform_buffer: &wgpu::Buffer,
+    uniform_offset: u64,
+    uniform_size: NonZeroU64,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("zircon-shadow-map-slot-scene-bind-group"),
+        layout: scene_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                    buffer: uniform_buffer,
+                    offset: uniform_offset,
+                    size: Some(uniform_size),
+                }),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::TextureView(&environment.black_cube_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: wgpu::BindingResource::Sampler(&environment.sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: wgpu::BindingResource::TextureView(&environment.brdf_lut_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: wgpu::BindingResource::TextureView(&environment.black_cube_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
+                resource: wgpu::BindingResource::TextureView(&environment.black_cube_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 6,
+                resource: environment.sh9_buffer.as_entire_binding(),
+            },
+        ],
     })
 }
 
-fn create_shadow_environment_brdf_lut(device: &wgpu::Device) -> (wgpu::Texture, wgpu::TextureView) {
-    let texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("zircon-shadow-map-scene-environment-brdf-lut"),
-        size: wgpu::Extent3d {
-            width: 1,
-            height: 1,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rg16Float,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[],
-    });
-    let view = texture.create_view(&wgpu::TextureViewDescriptor {
-        label: Some("zircon-shadow-map-scene-environment-brdf-lut-view"),
-        format: Some(wgpu::TextureFormat::Rg16Float),
-        dimension: Some(wgpu::TextureViewDimension::D2),
-        usage: Some(wgpu::TextureUsages::TEXTURE_BINDING),
-        aspect: wgpu::TextureAspect::All,
-        base_mip_level: 0,
-        mip_level_count: Some(1),
-        base_array_layer: 0,
-        array_layer_count: Some(1),
-    });
-    (texture, view)
+fn align_up_u64(value: u64, alignment: u64) -> Option<u64> {
+    let remainder = value % alignment;
+    if remainder == 0 {
+        Some(value)
+    } else {
+        value.checked_add(alignment - remainder)
+    }
 }
 
 fn visible_shadow_entities_for_view(
@@ -380,6 +421,7 @@ fn scene_uniform_for_view_projection(view_proj: Mat4) -> SceneUniform {
         view_proj_unjittered: view_proj_cols,
         inverse_view_proj: finite_mat4_or_identity(view_proj.inverse()).to_cols_array_2d(),
         ambient_color: [0.0, 0.0, 0.0, 1.0],
+        lightmapped_ambient_color: [0.0, 0.0, 0.0, 1.0],
         previous_view_proj_unjittered: view_proj_cols,
         motion_params: [0.0, 0.0, 0.0, 0.0],
         jitter_params: [0.0, 0.0, 0.0, 0.0],
@@ -459,7 +501,6 @@ mod tests {
     use wgpu::util::DeviceExt;
 
     use crate::core::framework::render::RenderPhase;
-    use crate::core::math::Mat4;
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
@@ -467,6 +508,7 @@ mod tests {
         DrawInstanceSource, MeshDrawArgs, MeshDrawCommand, MeshGeometryHandle,
         MeshPassPipelineKind, MeshPipelineVariantId,
     };
+    use crate::graphics::scene::scene_renderer::primitives::SceneEnvironmentSh9;
 
     #[test]
     fn shadow_atlas_view_filter_keeps_only_visible_source_entities() {
@@ -486,24 +528,84 @@ mod tests {
     }
 
     #[test]
-    fn shadow_atlas_binds_forward_shadow_receiver_layout_slot() {
-        let source = include_str!("shadow_map_renderer.rs");
-
-        assert!(source.contains("create_forward_shadow_receiver_bind_group"));
-        assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
-        assert!(source.contains("replayer.bind_standard_material_if_needed(pass, command);"));
-    }
-
-    #[test]
-    fn shadow_atlas_allocates_immutable_scene_uniform_per_slot() {
+    fn shadow_view_filter_disables_global_indirect_batches_before_replay() {
         let source = include_str!("shadow_map_renderer.rs")
             .split("#[cfg(test)]")
             .next()
             .expect("production source section should exist");
 
-        assert!(source.contains("create_buffer_init"));
-        assert!(source.contains("create_slot_scene_bind_group"));
-        assert!(!source.contains("queue.write_buffer(&self.scene_uniform_buffer"));
+        assert!(source.contains("if visible_entities.is_some()"));
+        assert!(source.contains("mesh_draw_commands.without_indirect()"));
+    }
+
+    #[test]
+    fn shadow_atlas_binds_forward_shadow_receiver_layout_slot() {
+        let source = include_str!("shadow_map_renderer.rs");
+
+        assert!(source.contains("create_forward_shadow_receiver_bind_group"));
+        assert!(
+            source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])")
+        );
+        assert!(source.contains("replayer.bind_standard_material_if_needed(pass, command);"));
+    }
+
+    #[test]
+    fn shadow_atlas_uses_one_persistent_aligned_scene_uniform_workspace() {
+        let production = include_str!("shadow_map_renderer.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production source section should exist");
+        let record = production
+            .split("fn record_atlas_commands_with_attachment_ops")
+            .nth(1)
+            .and_then(|source| source.split("fn replay_shadow_command_stream").next())
+            .expect("shadow atlas recording must remain bounded");
+        let prepare = production
+            .split("fn prepare_slot_scene_uploads")
+            .nth(1)
+            .and_then(|source| source.split("fn record_atlas_commands").next())
+            .expect("shadow slot preparation must remain bounded");
+
+        assert!(!record.contains("queue:"));
+        assert!(!record.contains("create_buffer_init"));
+        assert!(!record.contains("create_bind_group"));
+        assert!(prepare.contains("checked_next_power_of_two()"));
+        assert!(prepare.contains("min_uniform_buffer_offset_alignment"));
+        assert!(prepare.contains("WgpuBufferUpload::new(buffer, 0, payload, 0..payload_len)"));
+        assert!(prepare.contains("wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST"));
+    }
+
+    #[test]
+    fn shadow_environment_bindings_are_leased_without_private_resource_creation() {
+        let production = include_str!("shadow_map_renderer.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production source section should exist");
+        let constructor = production
+            .split("impl ShadowMapRenderer")
+            .nth(1)
+            .and_then(|source| source.split("fn new(").nth(1))
+            .and_then(|source| source.split("fn prepare_slot_scene_uploads").next())
+            .expect("shadow constructor must remain bounded");
+        let slot_bindings = production
+            .split("fn create_slot_scene_bind_group")
+            .nth(1)
+            .and_then(|source| source.split("fn align_up_u64").next())
+            .expect("shadow scene binding must remain bounded");
+
+        assert!(!constructor.contains("device:"));
+        assert!(!constructor.contains("create_texture"));
+        assert!(!constructor.contains("create_sampler"));
+        assert!(!constructor.contains("create_buffer"));
+        assert_eq!(
+            slot_bindings
+                .matches("&environment.black_cube_view")
+                .count(),
+            3
+        );
+        assert!(slot_bindings.contains("&environment.brdf_lut_view"));
+        assert!(slot_bindings.contains("&environment.sampler"));
+        assert!(slot_bindings.contains("environment.sh9_buffer.as_entire_binding()"));
     }
 
     #[test]
@@ -523,24 +625,31 @@ mod tests {
         let error_scope = backend
             .device
             .push_error_scope(wgpu::ErrorFilter::Validation);
-        let renderer = super::ShadowMapRenderer::new(&backend.device, &scene_layout);
-        let scene_uniform = super::scene_uniform_for_view_projection(Mat4::IDENTITY);
-        let scene_uniform_buffer =
-            backend
-                .device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("zircon-test-shadow-map-scene-uniform"),
-                    contents: bytes_of(&scene_uniform),
-                    usage: wgpu::BufferUsages::UNIFORM,
-                });
-        let _scene_bind_group =
-            renderer.create_slot_scene_bind_group(&backend.device, &scene_uniform_buffer);
+        let mut renderer = super::ShadowMapRenderer::new(
+            &scene_layout,
+            test_shadow_environment_binding_lease(&backend.device),
+        );
+        renderer
+            .ensure_slot_scene_capacity(&backend.device, 1)
+            .expect("shadow slot workspace should support one scene uniform");
+        let _scene_bind_group = renderer
+            .slot_scene_workspace
+            .bind_groups
+            .first()
+            .expect("prepared shadow slot workspace should publish one bind group");
         let error = pollster::block_on(error_scope.pop());
 
         assert!(
             error.is_none(),
             "shadow-map scene bind group should match scene environment layout: {error:?}"
         );
+    }
+
+    #[test]
+    fn shadow_scene_uniform_stride_alignment_is_checked() {
+        assert_eq!(super::align_up_u64(432, 256), Some(512));
+        assert_eq!(super::align_up_u64(512, 256), Some(512));
+        assert_eq!(super::align_up_u64(u64::MAX, 256), None);
     }
 
     fn test_command(source_entity: u64) -> MeshDrawCommand {
@@ -558,5 +667,59 @@ mod tests {
             MeshDrawArgs::direct_indexed(0, 3),
         )
         .with_source_entity(source_entity)
+    }
+
+    fn test_shadow_environment_binding_lease(
+        device: &wgpu::Device,
+    ) -> super::ShadowSceneEnvironmentBindingLease {
+        let black_cube_texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("zircon-test-shadow-black-cube"),
+            size: wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 6,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba16Float,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+        let black_cube_view = black_cube_texture.create_view(&wgpu::TextureViewDescriptor {
+            label: Some("zircon-test-shadow-black-cube-view"),
+            dimension: Some(wgpu::TextureViewDimension::Cube),
+            ..Default::default()
+        });
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
+        let brdf_lut_texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("zircon-test-shadow-brdf-lut"),
+            size: wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rg16Float,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+        let brdf_lut_view = brdf_lut_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sh9_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-test-shadow-environment-sh9"),
+            contents: bytes_of(&SceneEnvironmentSh9::default()),
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
+
+        super::ShadowSceneEnvironmentBindingLease::new(
+            black_cube_texture,
+            black_cube_view,
+            sampler,
+            brdf_lut_texture,
+            brdf_lut_view,
+            sh9_buffer,
+        )
     }
 }

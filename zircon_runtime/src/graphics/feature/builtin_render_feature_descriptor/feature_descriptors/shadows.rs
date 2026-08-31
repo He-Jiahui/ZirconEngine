@@ -6,8 +6,8 @@ use crate::graphics::pipeline::RenderPassStage;
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
-) -> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
+-> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "shadows",
         vec![
@@ -17,17 +17,18 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             "visibility".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Shadow,
-            "shadow-atlas",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("shadow.atlas")
-        .with_side_effects()
-        .write_required_external_texture_with_ops(
-            PostProcessGraphResourceNames::SHADOW_ATLAS,
-            RenderGraphAttachmentOps::clear_store(),
-        )],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Shadow,
+                "shadow-atlas",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("shadow.atlas")
+            .write_required_external_texture_with_ops(
+                PostProcessGraphResourceNames::SHADOW_ATLAS,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+        ],
     )
 }
 
@@ -64,5 +65,6 @@ mod tests {
             atlas.external_binding,
             RenderGraphExternalResourceBinding::required_texture()
         );
+        assert!(!pass.flags.has_side_effects);
     }
 }

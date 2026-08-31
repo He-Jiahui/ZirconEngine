@@ -1,5 +1,5 @@
 use woc_protocol::{
-    event_stream_digest, fnv1a_bytes, Command, FixedTickInput, MovementFrame,
+    event_stream_digest, fnv1a_bytes, Command, FixedTickInputRef, MovementFrame,
     OfflineSessionBootstrap, ProtocolError, WorldSnapshot, FNV1A_OFFSET,
 };
 
@@ -273,15 +273,15 @@ impl<V: WocProjectVm> WocTransactionalRuntime<V> {
             });
         }
 
-        let input = FixedTickInput {
+        let input = FixedTickInputRef {
             tick: attempted_tick,
-            commands,
+            commands: &commands,
             wall_time_forbidden: true,
-            committed_state: self.committed.state.clone(),
+            committed_state: &self.committed.state,
             committed_state_digest: self.committed.state_digest,
             generation: self.committed.generation,
-            movement_frames,
-            offline_bootstrap: self.bootstrap_for_next_tick().cloned(),
+            movement_frames: &movement_frames,
+            offline_bootstrap: self.bootstrap_for_next_tick(),
         };
         let input_payload = match input.encode_payload() {
             Ok(payload) => payload,

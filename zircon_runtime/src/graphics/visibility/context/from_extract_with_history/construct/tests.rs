@@ -1,11 +1,11 @@
 use crate::core::framework::render::{
-    sort_render_cameras, CameraRenderDescriptor, CorePipelineKind, DebugOverlayExtract,
-    EnvironmentExtract, GeometryExtract, GeometryPhaseInput, LightShadowSettings, LightingExtract,
-    ParticleExtract, PostProcessExtract, RenderCameraOrderInput, RenderCameraTarget,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode,
+    CameraRenderDescriptor, CorePipelineKind, DebugOverlayExtract, EnvironmentExtract,
+    GeometryExtract, GeometryPhaseInput, LightShadowSettings, LightingExtract, ParticleExtract,
+    PostProcessExtract, RenderCameraOrderInput, RenderCameraTarget, RenderDirectionalLightSnapshot,
+    RenderFrameExtract, RenderFrameScenePayload, RenderLayerSet, RenderMaterialAlphaMode,
     RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot,
     RenderSpotLightSnapshot, RenderViewExtract, RenderWorldSnapshotHandle, ShadowPcfQuality,
-    ShadowResolutionTier, SpriteExtract, ViewportCameraSnapshot,
+    ShadowResolutionTier, SpriteExtract, ViewportCameraSnapshot, sort_render_cameras,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Real, Transform, Vec3, Vec4};
@@ -17,10 +17,9 @@ use crate::graphics::visibility::{VisibilityContext, VisibilityViewKey};
 #[test]
 fn visibility_context_records_relevance_and_filters_main_view_layers() {
     let camera = ViewportCameraSnapshot::default();
-    let frame = RenderFrameExtract {
-        world: RenderWorldSnapshotHandle::new(1),
-        view: RenderViewExtract::from_camera(camera),
-        geometry: GeometryExtract::from_meshes_and_phase_inputs(
+    let frame = frame_extract(
+        RenderViewExtract::from_camera(camera),
+        GeometryExtract::from_meshes_and_phase_inputs(
             CorePipelineKind::Core3d,
             vec![
                 mesh_at(1, Vec3::new(0.0, 0.0, -5.0), 1),
@@ -31,17 +30,8 @@ fn visibility_context_records_relevance_and_filters_main_view_layers() {
                 GeometryPhaseInput::new(2, 1, RenderMaterialAlphaMode::Mask { cutoff: 0.5 }, -5.0),
             ],
         ),
-        animation_poses: Vec::new(),
-        lighting: LightingExtract::default(),
-        environment: EnvironmentExtract::default(),
-        post_process: PostProcessExtract::default(),
-        debug: DebugOverlayExtract {
-            overlays: RenderOverlayExtract::default(),
-        },
-        sprites: SpriteExtract::default(),
-        particles: ParticleExtract::default(),
-        visibility: Default::default(),
-    };
+        LightingExtract::default(),
+    );
 
     let context = VisibilityContext::from_extract(&frame);
 
@@ -72,13 +62,15 @@ fn visibility_context_records_relevance_and_filters_main_view_layers() {
     assert_eq!(main_view.stats.frustum_culled_count, 0);
     assert_eq!(main_view.stats.occlusion_culled_count, 0);
     assert_eq!(main_view.stats.visible_count, 1);
-    assert!(context
-        .frame_visibility
-        .view(&VisibilityViewKey::ShadowCascade {
-            light: 10,
-            cascade: 0
-        })
-        .is_none());
+    assert!(
+        context
+            .frame_visibility
+            .view(&VisibilityViewKey::ShadowCascade {
+                light: 10,
+                cascade: 0
+            })
+            .is_none()
+    );
 
     let visible = context
         .primitive_relevance
@@ -124,10 +116,9 @@ fn visibility_batch_key_preserves_layers_above_legacy_mask_width() {
 #[test]
 fn visibility_context_builds_shadow_view_independent_from_main_layers() {
     let camera = ViewportCameraSnapshot::default();
-    let frame = RenderFrameExtract {
-        world: RenderWorldSnapshotHandle::new(1),
-        view: RenderViewExtract::from_camera(camera),
-        geometry: GeometryExtract::from_meshes_and_phase_inputs(
+    let frame = frame_extract(
+        RenderViewExtract::from_camera(camera),
+        GeometryExtract::from_meshes_and_phase_inputs(
             CorePipelineKind::Core3d,
             vec![
                 mesh_at(1, Vec3::new(0.0, 0.0, -5.0), 1),
@@ -138,8 +129,7 @@ fn visibility_context_builds_shadow_view_independent_from_main_layers() {
                 GeometryPhaseInput::new(2, 1, RenderMaterialAlphaMode::Mask { cutoff: 0.5 }, -5.0),
             ],
         ),
-        animation_poses: Vec::new(),
-        lighting: LightingExtract {
+        LightingExtract {
             directional_lights: vec![RenderDirectionalLightSnapshot {
                 node_id: 10,
                 light_id: 10,
@@ -152,15 +142,7 @@ fn visibility_context_builds_shadow_view_independent_from_main_layers() {
             }],
             ..LightingExtract::default()
         },
-        environment: EnvironmentExtract::default(),
-        post_process: PostProcessExtract::default(),
-        debug: DebugOverlayExtract {
-            overlays: RenderOverlayExtract::default(),
-        },
-        sprites: SpriteExtract::default(),
-        particles: ParticleExtract::default(),
-        visibility: Default::default(),
-    };
+    );
 
     let context = VisibilityContext::from_extract(&frame);
 
@@ -191,10 +173,9 @@ fn visibility_context_builds_shadow_view_independent_from_main_layers() {
 #[test]
 fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
     let camera = ViewportCameraSnapshot::default();
-    let frame = RenderFrameExtract {
-        world: RenderWorldSnapshotHandle::new(1),
-        view: RenderViewExtract::from_camera(camera),
-        geometry: GeometryExtract::from_meshes_and_phase_inputs(
+    let frame = frame_extract(
+        RenderViewExtract::from_camera(camera),
+        GeometryExtract::from_meshes_and_phase_inputs(
             CorePipelineKind::Core3d,
             vec![mesh_at(1, Vec3::new(0.0, 0.0, -5.0), 1)],
             vec![GeometryPhaseInput::new(
@@ -204,8 +185,7 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
                 -5.0,
             )],
         ),
-        animation_poses: Vec::new(),
-        lighting: LightingExtract {
+        LightingExtract {
             directional_lights: vec![RenderDirectionalLightSnapshot {
                 node_id: 10,
                 light_id: 10,
@@ -243,24 +223,18 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
             }],
             ..LightingExtract::default()
         },
-        environment: EnvironmentExtract::default(),
-        post_process: PostProcessExtract::default(),
-        debug: DebugOverlayExtract {
-            overlays: RenderOverlayExtract::default(),
-        },
-        sprites: SpriteExtract::default(),
-        particles: ParticleExtract::default(),
-        visibility: Default::default(),
-    };
+    );
 
     let context = VisibilityContext::from_extract(&frame);
 
     assert_eq!(context.frame_visibility.shadow_views().count(), 11);
     for cascade in 0..4 {
-        assert!(context
-            .frame_visibility
-            .view(&VisibilityViewKey::ShadowCascade { light: 10, cascade })
-            .is_some());
+        assert!(
+            context
+                .frame_visibility
+                .view(&VisibilityViewKey::ShadowCascade { light: 10, cascade })
+                .is_some()
+        );
     }
     let first_cascade = context
         .frame_visibility
@@ -282,15 +256,19 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
         first_cascade.camera.transform.translation
     );
     for face in 0..6 {
-        assert!(context
-            .frame_visibility
-            .view(&VisibilityViewKey::ShadowPointFace { light: 20, face })
-            .is_some());
+        assert!(
+            context
+                .frame_visibility
+                .view(&VisibilityViewKey::ShadowPointFace { light: 20, face })
+                .is_some()
+        );
     }
-    assert!(context
-        .frame_visibility
-        .view(&VisibilityViewKey::ShadowSpot { light: 30 })
-        .is_some());
+    assert!(
+        context
+            .frame_visibility
+            .view(&VisibilityViewKey::ShadowSpot { light: 30 })
+            .is_some()
+    );
 }
 
 #[test]
@@ -309,12 +287,11 @@ fn visibility_context_builds_custom_target_view_from_camera_descriptors() {
         RenderCameraOrderInput::from_descriptor(10, custom_camera.clone()),
         RenderCameraOrderInput::from_descriptor(20, main_camera.clone()),
     ]);
-    let frame = RenderFrameExtract {
-        world: RenderWorldSnapshotHandle::new(1),
-        view: RenderViewExtract::from_camera(main_camera.camera.clone())
+    let frame = frame_extract(
+        RenderViewExtract::from_camera(main_camera.camera.clone())
             .with_cameras(vec![custom_camera.clone(), main_camera.clone()])
             .with_scene_camera_order_report(20, scene_camera_order_report),
-        geometry: GeometryExtract::from_meshes_and_phase_inputs(
+        GeometryExtract::from_meshes_and_phase_inputs(
             CorePipelineKind::Core3d,
             vec![
                 mesh_at(1, Vec3::new(0.0, 0.0, -5.0), 1),
@@ -325,17 +302,8 @@ fn visibility_context_builds_custom_target_view_from_camera_descriptors() {
                 GeometryPhaseInput::new(2, 1, RenderMaterialAlphaMode::Opaque, -5.0),
             ],
         ),
-        animation_poses: Vec::new(),
-        lighting: LightingExtract::default(),
-        environment: EnvironmentExtract::default(),
-        post_process: PostProcessExtract::default(),
-        debug: DebugOverlayExtract {
-            overlays: RenderOverlayExtract::default(),
-        },
-        sprites: SpriteExtract::default(),
-        particles: ParticleExtract::default(),
-        visibility: Default::default(),
-    };
+        LightingExtract::default(),
+    );
 
     let context = VisibilityContext::from_extract(&frame);
 
@@ -468,25 +436,37 @@ fn frame_from_meshes(meshes: Vec<RenderMeshSnapshot>) -> RenderFrameExtract {
         })
         .collect::<Vec<_>>();
 
-    RenderFrameExtract {
-        world: RenderWorldSnapshotHandle::new(1),
-        view: RenderViewExtract::from_camera(ViewportCameraSnapshot::default()),
-        geometry: GeometryExtract::from_meshes_and_phase_inputs(
+    frame_extract(
+        RenderViewExtract::from_camera(ViewportCameraSnapshot::default()),
+        GeometryExtract::from_meshes_and_phase_inputs(
             CorePipelineKind::Core3d,
             meshes,
             phase_inputs,
         ),
-        animation_poses: Vec::new(),
-        lighting: LightingExtract::default(),
-        environment: EnvironmentExtract::default(),
-        post_process: PostProcessExtract::default(),
-        debug: DebugOverlayExtract {
+        LightingExtract::default(),
+    )
+}
+
+fn frame_extract(
+    view: RenderViewExtract,
+    geometry: GeometryExtract,
+    lighting: LightingExtract,
+) -> RenderFrameExtract {
+    let scene = RenderFrameScenePayload::new(
+        RenderWorldSnapshotHandle::new(1),
+        geometry,
+        Vec::new(),
+        lighting,
+        EnvironmentExtract::default(),
+        PostProcessExtract::default(),
+        DebugOverlayExtract {
             overlays: RenderOverlayExtract::default(),
         },
-        sprites: SpriteExtract::default(),
-        particles: ParticleExtract::default(),
-        visibility: Default::default(),
-    }
+        SpriteExtract::default(),
+        ParticleExtract::default(),
+        Default::default(),
+    );
+    RenderFrameExtract::new(scene, view, Default::default())
 }
 
 fn mesh_at(node_id: u64, translation: Vec3, legacy_layer_bits: u32) -> RenderMeshSnapshot {

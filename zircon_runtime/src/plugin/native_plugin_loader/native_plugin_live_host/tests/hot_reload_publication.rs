@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use super::super::super::abi_declarations::{
-    NativePluginByteSliceV2, NativePluginCallbackStatusV2, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    NativePluginByteSliceV3, NativePluginCallbackStatusV3, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
 };
 use super::runtime_behavior::{
     callback_concurrency_fixture_lock, counted_replacement_unload, replacement_unload_count,
@@ -28,18 +28,18 @@ fn replacement_unload_failure_count() -> &'static AtomicUsize {
 }
 
 unsafe extern "C" fn retained_rollback_restore_failure(
-    _state: NativePluginByteSliceV2,
-) -> NativePluginCallbackStatusV2 {
+    _state: NativePluginByteSliceV3,
+) -> NativePluginCallbackStatusV3 {
     retained_rollback_restore_count().fetch_add(1, Ordering::SeqCst);
-    NativePluginCallbackStatusV2 {
+    NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
         diagnostics: RETAINED_ROLLBACK_RESTORE_FAILURE_DIAGNOSTIC.as_ptr().cast(),
     }
 }
 
-unsafe extern "C" fn replacement_unload_failure() -> NativePluginCallbackStatusV2 {
+unsafe extern "C" fn replacement_unload_failure() -> NativePluginCallbackStatusV3 {
     replacement_unload_failure_count().fetch_add(1, Ordering::SeqCst);
-    NativePluginCallbackStatusV2 {
+    NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
         diagnostics: REPLACEMENT_UNLOAD_FAILURE_DIAGNOSTIC.as_ptr().cast(),
     }

@@ -38,6 +38,10 @@ fn main(
     @builtin(local_invocation_index) local_index: u32,
     @builtin(workgroup_id) workgroup_id: vec3<u32>,
 ) {
+    if (local_index == 0u && all(workgroup_id == vec3<u32>(0u))) {
+        indirect_args.group_count_y = 1u;
+        indirect_args.group_count_z = 1u;
+    }
     if (local_index == 0u) {
         atomicStore(&tile_active, 0u);
     }

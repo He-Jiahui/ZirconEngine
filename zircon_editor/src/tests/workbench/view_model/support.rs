@@ -49,36 +49,33 @@ pub(super) fn sample_workbench_chrome() -> EditorChromeSnapshot {
         .with_workbench_slot(WorkbenchSlot::LeftTopDrawer)
         .with_icon_key("hierarchy"),
     ];
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![MainHostPageLayout::WorkbenchPage {
-            id: MainPageId::workbench(),
-            title: "Workbench".to_string(),
-            activity_window: ActivityWindowId::workbench(),
-            document_workspace: DocumentNode::Tabs(TabStackLayout {
-                tabs: vec![scene_instance.instance_id.clone()],
-                active_tab: Some(scene_instance.instance_id.clone()),
-            }),
-        }],
-        drawers: BTreeMap::from([(
-            ActivityDrawerSlot::LeftTop,
-            ActivityDrawerLayout {
-                slot: ActivityDrawerSlot::LeftTop,
-                tab_stack: TabStackLayout {
-                    tabs: vec![hierarchy_instance.instance_id.clone()],
-                    active_tab: Some(hierarchy_instance.instance_id.clone()),
-                },
-                active_view: Some(hierarchy_instance.instance_id.clone()),
-                mode: ActivityDrawerMode::Pinned,
-                extent: 288.0,
-                visible: true,
+    let mut layout = WorkbenchLayout::default();
+    layout.main_pages = vec![MainHostPageLayout::WorkbenchPage {
+        id: MainPageId::workbench(),
+        title: "Workbench".to_string(),
+        activity_window: ActivityWindowId::workbench(),
+    }];
+    let default_window = layout
+        .default_activity_window_mut()
+        .expect("default workbench window");
+    default_window.content_workspace = DocumentNode::Tabs(TabStackLayout {
+        tabs: vec![scene_instance.instance_id.clone()],
+        active_tab: Some(scene_instance.instance_id.clone()),
+    });
+    default_window.activity_drawers = BTreeMap::from([(
+        ActivityDrawerSlot::LeftTop,
+        ActivityDrawerLayout {
+            slot: ActivityDrawerSlot::LeftTop,
+            tab_stack: TabStackLayout {
+                tabs: vec![hierarchy_instance.instance_id.clone()],
+                active_tab: Some(hierarchy_instance.instance_id.clone()),
             },
-        )]),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+            active_view: Some(hierarchy_instance.instance_id.clone()),
+            mode: ActivityDrawerMode::Pinned,
+            extent: 288.0,
+            visible: true,
+        },
+    )]);
 
     EditorChromeSnapshot::build(
         EditorDataSnapshot {
@@ -155,14 +152,8 @@ pub(super) fn sample_exclusive_chrome() -> EditorChromeSnapshot {
                 title: "Prefab Editor".to_string(),
                 window_instance: prefab_instance.instance_id.clone(),
             }],
-            drawers: BTreeMap::from([(
-                ActivityDrawerSlot::RightTop,
-                ActivityDrawerLayout::new(ActivityDrawerSlot::RightTop),
-            )]),
             activity_windows: Default::default(),
             floating_windows: Vec::new(),
-            region_overrides: BTreeMap::new(),
-            view_overrides: BTreeMap::new(),
         },
         vec![prefab_instance],
         descriptors,
@@ -235,23 +226,25 @@ pub(super) fn sample_floating_window_chrome() -> EditorChromeSnapshot {
             can_redo: true,
             bridge_diagnostics: Default::default(),
         },
-        &WorkbenchLayout {
-            active_main_page: MainPageId::workbench(),
-            main_pages: vec![MainHostPageLayout::WorkbenchPage {
+        &{
+            let mut layout = WorkbenchLayout::default();
+            layout.main_pages = vec![MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
                 activity_window: ActivityWindowId::workbench(),
-                document_workspace: DocumentNode::Tabs(TabStackLayout {
-                    tabs: vec![scene_instance.instance_id.clone()],
-                    active_tab: Some(scene_instance.instance_id.clone()),
-                }),
-            }],
-            drawers: BTreeMap::from([(
+            }];
+            let default_window = layout
+                .default_activity_window_mut()
+                .expect("default workbench window");
+            default_window.content_workspace = DocumentNode::Tabs(TabStackLayout {
+                tabs: vec![scene_instance.instance_id.clone()],
+                active_tab: Some(scene_instance.instance_id.clone()),
+            });
+            default_window.activity_drawers = BTreeMap::from([(
                 ActivityDrawerSlot::LeftTop,
                 ActivityDrawerLayout::new(ActivityDrawerSlot::LeftTop),
-            )]),
-            activity_windows: Default::default(),
-            floating_windows: vec![FloatingWindowLayout {
+            )]);
+            layout.floating_windows = vec![FloatingWindowLayout {
                 window_id: MainPageId::new("window:prefab"),
                 title: "Prefab Popout".to_string(),
                 workspace: DocumentNode::SplitNode {
@@ -268,9 +261,8 @@ pub(super) fn sample_floating_window_chrome() -> EditorChromeSnapshot {
                 },
                 focused_view: Some(prefab_instance.instance_id.clone()),
                 frame: ShellFrame::new(111.0, 92.0, 640.0, 420.0),
-            }],
-            region_overrides: BTreeMap::new(),
-            view_overrides: BTreeMap::new(),
+            }];
+            layout
         },
         vec![scene_instance, floating_scene_instance, prefab_instance],
         descriptors,

@@ -13,6 +13,6 @@ pub(crate) use graph_compile::{
 };
 #[cfg(test)]
 pub(crate) use graph_compile::{graph_compile_invocations, reset_graph_compile_invocations};
-pub(crate) use graph_validation::{validate_effect, validate_graph};
+pub(crate) use graph_validation::{validate_effect, validate_graph, validate_track_controls};
 pub(crate) use manager::{DefaultKiraEngine, KiraEngine};
 pub(crate) use playback_data::{cached_static_sound_data, static_sound_data};

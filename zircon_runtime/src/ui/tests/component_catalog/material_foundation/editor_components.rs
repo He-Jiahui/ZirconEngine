@@ -78,15 +78,16 @@ fn material_editor_foundation_catalog_covers_editor_descriptor_contracts() {
     );
     for event in [
         UiComponentEventKind::Focus,
-        UiComponentEventKind::KeyboardText,
         UiComponentEventKind::ValueChanged,
         UiComponentEventKind::Commit,
     ] {
         assert_has_event(text_field, event);
     }
-    assert!(text_field
-        .required_host_capabilities
-        .contains(&UiHostCapability::TextInput));
+    assert!(
+        text_field
+            .required_host_capabilities
+            .contains(&UiHostCapability::TextInput)
+    );
 
     let textarea = registry
         .descriptor("TextareaAutosize")
@@ -135,15 +136,16 @@ fn material_editor_foundation_catalog_covers_editor_descriptor_contracts() {
     }
     for event in [
         UiComponentEventKind::Focus,
-        UiComponentEventKind::KeyboardText,
         UiComponentEventKind::ValueChanged,
         UiComponentEventKind::Commit,
     ] {
         assert_has_event(textarea, event);
     }
-    assert!(textarea
-        .required_host_capabilities
-        .contains(&UiHostCapability::TextInput));
+    assert!(
+        textarea
+            .required_host_capabilities
+            .contains(&UiHostCapability::TextInput)
+    );
 
     inputs::assert_descriptors(&registry);
     selection_inputs::assert_descriptors(&registry);
@@ -173,9 +175,11 @@ fn material_editor_foundation_catalog_covers_editor_descriptor_contracts() {
         .expect("DockHost descriptor");
     assert_eq!(dock_host.descriptor_kind, UiComponentDescriptorKind::Layout);
     assert_eq!(dock_host.layout_role, UiComponentLayoutRole::EditorDock);
-    assert!(dock_host
-        .required_host_capabilities
-        .contains(&UiHostCapability::Editor));
+    assert!(
+        dock_host
+            .required_host_capabilities
+            .contains(&UiHostCapability::Editor)
+    );
 
     let virtual_list = registry
         .descriptor("VirtualList")
@@ -185,12 +189,16 @@ fn material_editor_foundation_catalog_covers_editor_descriptor_contracts() {
     assert_has_prop(virtual_list, "item_extent");
     assert_has_prop(virtual_list, "overscan");
     assert_has_event(virtual_list, UiComponentEventKind::SetVisibleRange);
-    assert!(virtual_list
-        .required_host_capabilities
-        .contains(&UiHostCapability::VirtualizedLayout));
-    assert!(virtual_list
-        .required_render_capabilities
-        .contains(&UiRenderCapability::VirtualizedLayout));
+    assert!(
+        virtual_list
+            .required_host_capabilities
+            .contains(&UiHostCapability::VirtualizedLayout)
+    );
+    assert!(
+        virtual_list
+            .required_render_capabilities
+            .contains(&UiRenderCapability::VirtualizedLayout)
+    );
 
     let tree_view = registry
         .descriptor("TreeView")
@@ -219,11 +227,14 @@ fn material_editor_foundation_catalog_covers_editor_descriptor_contracts() {
     ] {
         assert_has_prop(search_field, prop);
     }
-    assert_has_event(search_field, UiComponentEventKind::KeyboardText);
+    assert_has_event(search_field, UiComponentEventKind::Focus);
     assert_has_event(search_field, UiComponentEventKind::ValueChanged);
-    assert!(search_field
-        .required_host_capabilities
-        .contains(&UiHostCapability::TextInput));
+    assert_has_event(search_field, UiComponentEventKind::Commit);
+    assert!(
+        search_field
+            .required_host_capabilities
+            .contains(&UiHostCapability::TextInput)
+    );
 
     let field_editor = registry
         .descriptor("FieldEditor")
@@ -231,7 +242,14 @@ fn material_editor_foundation_catalog_covers_editor_descriptor_contracts() {
     assert_has_prop(field_editor, "text");
     assert_has_prop(field_editor, "value_text");
     assert!(field_editor.slot_schema("field").is_some());
-    assert_has_event(field_editor, UiComponentEventKind::KeyboardText);
+    assert_has_event(field_editor, UiComponentEventKind::Focus);
+    assert_has_event(field_editor, UiComponentEventKind::ValueChanged);
+    assert_has_event(field_editor, UiComponentEventKind::Commit);
+    assert!(
+        field_editor
+            .required_host_capabilities
+            .contains(&UiHostCapability::TextInput)
+    );
 
     let asset_grid = registry
         .descriptor("AssetGrid")
@@ -248,12 +266,16 @@ fn material_editor_foundation_catalog_covers_editor_descriptor_contracts() {
         UiComponentDescriptorKind::Layout
     );
     assert_eq!(viewport_host.layout_role, UiComponentLayoutRole::Canvas);
-    assert!(viewport_host
-        .required_host_capabilities
-        .contains(&UiHostCapability::CanvasRender));
-    assert!(viewport_host
-        .required_render_capabilities
-        .contains(&UiRenderCapability::Canvas));
+    assert!(
+        viewport_host
+            .required_host_capabilities
+            .contains(&UiHostCapability::CanvasRender)
+    );
+    assert!(
+        viewport_host
+            .required_render_capabilities
+            .contains(&UiRenderCapability::Canvas)
+    );
     assert_has_event(viewport_host, UiComponentEventKind::SetWorldSurface);
 
     let graph_canvas = registry
@@ -268,9 +290,14 @@ fn material_editor_foundation_catalog_covers_editor_descriptor_contracts() {
         .descriptor("SourceEditor")
         .expect("SourceEditor descriptor");
     assert_has_prop(source_editor, "text");
-    assert!(source_editor
-        .required_host_capabilities
-        .contains(&UiHostCapability::TextInput));
+    assert_has_event(source_editor, UiComponentEventKind::Focus);
+    assert_has_event(source_editor, UiComponentEventKind::ValueChanged);
+    assert_has_event(source_editor, UiComponentEventKind::Commit);
+    assert!(
+        source_editor
+            .required_host_capabilities
+            .contains(&UiHostCapability::TextInput)
+    );
 
     let timeline = registry
         .descriptor("Timeline")

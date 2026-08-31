@@ -1,6 +1,6 @@
 mod target;
 
-use crate::ui::retained_host::host_contract::data::HostWindowPresentationData;
+use crate::ui::retained_host::host_contract::data::HostPresentationGeneration;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 
@@ -10,17 +10,18 @@ use super::super::super::routing::route_pointer_move_to_pane;
 
 pub(in super::super) fn dispatch_pane_pointer_move(
     ui: &UiHostWindow,
-    presentation: &HostWindowPresentationData,
+    generation: &HostPresentationGeneration,
     x: f32,
     y: f32,
 ) -> Option<NativePointerDispatchResult> {
-    let pointer = route_pointer_move_to_pane(presentation, x, y)?;
-    let before = ui.get_host_presentation_generation();
-    dispatch_pane_pointer_move_target(ui, &pointer, before.pane_interaction_state());
-    let after = ui.get_host_presentation_generation();
-    Some(pointer_move_redraw(
-        &pointer,
-        before.pane_interaction_state(),
-        after.pane_interaction_state(),
-    ))
+    let pointer = route_pointer_move_to_pane(
+        generation.structure(),
+        generation.pane_interaction_state(),
+        x,
+        y,
+    )?;
+    let before = generation.pane_interaction_state();
+    dispatch_pane_pointer_move_target(ui, &pointer, before);
+    let after = ui.get_pane_interaction_generation();
+    Some(pointer_move_redraw(&pointer, before, after.as_ref()))
 }

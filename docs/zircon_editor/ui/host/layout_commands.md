@@ -12,6 +12,7 @@ implementation_files:
   - zircon_editor/src/ui/host/window_host_manager.rs
   - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
 plan_sources:
+  - docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.md
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md
 tests:
@@ -34,3 +35,9 @@ Functional editor windows need one extra normalization step. `PreferredHost::Flo
 When the resolved floating window does not yet exist, `attach_instance(...)` creates it with `LayoutCommand::DetachViewToWindow` and asks the native-window host manager to open the matching native window. The host manager allocates a per-window runtime `UiSurface` and exposes its tree id as `zircon.editor.native_window.window:{instance_id}`, so Window menu entries such as Material Editor and Animation Editor open as independent Unreal-style feature windows instead of failing on a missing placeholder window or sharing the main workbench surface.
 
 Drawer-backed utility windows such as Asset Browser and Diagnostics now receive distinct exclusive page ids. They no longer collide on the shared `exclusive` placeholder when multiple utility windows are opened in one session.
+
+## Global focus identity
+
+Each document stack or floating window keeps its own active tab, while `EditorSessionState.focused_view` records the one view that owns editor-wide command and toolkit context. A `FocusView` command therefore reports a semantic change when that global identity changes even if the target was already active inside its local stack. This keeps command enablement and focused-toolkit menus correct across main-to-floating and floating-to-floating window switches.
+
+Closing the globally focused view first selects the remaining active tab in the same drawer, document stack, or floating window. It falls back to the current main page only when the original host has disappeared or has no active tab. The session never retains a focus id that is absent from `open_view_instances`.

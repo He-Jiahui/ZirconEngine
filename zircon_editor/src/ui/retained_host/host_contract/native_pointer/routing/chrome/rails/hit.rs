@@ -9,11 +9,10 @@ pub(super) fn activity_rail_button_hit(
     x: f32,
     y: f32,
 ) -> Option<crate::ui::retained_host::primitives::SharedString> {
-    for row in 0..buttons.row_count() {
-        let button = buttons.row_data(row)?;
+    for button in buttons.iter() {
         let button_frame = translated(&button.frame, rail.x, rail.y);
         if contains(&button_frame, x, y) {
-            return Some(button.control_id);
+            return Some(button.control_id.clone());
         }
     }
     None

@@ -7,9 +7,9 @@ use zircon_plugin_navigation_recast::{
 };
 use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
-    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE, NavAgentTickReport,
-    NavAgentWritebackMode, NavMeshAgentDescriptor, NavMeshHandle, NavPathQuery,
+    NavAgentTickReport, NavAgentWritebackMode, NavMeshAgentDescriptor, NavMeshHandle, NavPathQuery,
     NavigationAgentDebugState, NavigationDebugCapture, NavigationError, NavigationManager,
+    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Real, Vec3};
 use zircon_runtime::navigation::NavRepathBudget;
@@ -476,7 +476,7 @@ mod input_sampling_tests {
 
     use serde_json::json;
     use zircon_runtime::core::framework::navigation::{
-        NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE, NavMeshAgentDescriptor,
+        NavMeshAgentDescriptor, NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
     };
     use zircon_runtime::scene::{NodeKind, World};
 

@@ -2,10 +2,9 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::core::CoreError;
-
 mod component_type_descriptor;
 mod entity_path;
+mod level_manager_error;
 mod level_summary;
 mod mobility;
 mod module_identity;
@@ -42,6 +41,7 @@ pub trait SceneArtifactTicket: Send + Sync + fmt::Debug + 'static {
 
 pub use component_type_descriptor::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 pub use entity_path::{ComponentPropertyPath, EntityPath, PathParseError};
+pub use level_manager_error::LevelManagerError;
 pub use level_summary::LevelSummary;
 pub use mobility::Mobility;
 pub use module_identity::SCENE_MODULE_NAME;
@@ -52,14 +52,18 @@ pub use system_stage::SystemStage;
 pub use world_handle::WorldHandle;
 
 pub trait LevelManager: Send + Sync {
-    fn create_default_level_handle(&self) -> Result<WorldHandle, CoreError>;
+    fn create_default_level_handle(&self) -> Result<WorldHandle, LevelManagerError>;
     fn level_exists(&self, handle: WorldHandle) -> bool;
     fn level_summary(&self, handle: WorldHandle) -> Option<LevelSummary>;
-    fn load_level_asset(&self, project_root: &str, uri: &str) -> Result<WorldHandle, CoreError>;
+    fn load_level_asset(
+        &self,
+        project_root: &str,
+        uri: &str,
+    ) -> Result<WorldHandle, LevelManagerError>;
     fn save_level_asset(
         &self,
         handle: WorldHandle,
         project_root: &str,
         uri: &str,
-    ) -> Result<Arc<dyn SceneArtifactTicket>, CoreError>;
+    ) -> Result<Arc<dyn SceneArtifactTicket>, LevelManagerError>;
 }

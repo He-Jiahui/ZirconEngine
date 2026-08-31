@@ -8,8 +8,10 @@ use crate::ui::{
 };
 
 mod compute;
+mod focused_impact;
 
 use compute::*;
+use focused_impact::*;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -45,7 +47,11 @@ impl UiEcsProjectionSnapshot {
     }
 
     pub fn node(&self, node_id: UiNodeId) -> Option<&UiEcsNodeProjection> {
-        self.nodes.iter().find(|node| node.node_id == node_id)
+        self.nodes
+            .binary_search_by_key(&node_id, |node| node.node_id)
+            .ok()
+            .and_then(|index| self.nodes.get(index))
+            .or_else(|| self.nodes.iter().find(|node| node.node_id == node_id))
     }
 
     pub fn diff_from(&self, previous: &Self) -> UiEcsProjectionDelta {
@@ -112,9 +118,7 @@ impl UiEcsProjectionSnapshot {
     }
 
     pub fn schedule_impact(&self, stage: UiPipelineStage) -> Option<UiEcsProjectionScheduleImpact> {
-        self.schedule_impacts()
-            .into_iter()
-            .find(|impact| impact.stage == stage)
+        projection_schedule_impact_from_nodes(&self.nodes, stage)
     }
 
     pub fn node_ids_requiring_stage(&self, stage: UiPipelineStage) -> Vec<UiNodeId> {
@@ -131,9 +135,7 @@ impl UiEcsProjectionSnapshot {
         &self,
         domain: UiEcsDirtyDomainKind,
     ) -> Option<UiEcsDirtyDomainImpact> {
-        self.dirty_domain_impacts()
-            .into_iter()
-            .find(|impact| impact.domain == domain)
+        projection_dirty_domain_impact_from_nodes(&self.nodes, domain)
     }
 
     pub fn node_ids_in_dirty_domain(&self, domain: UiEcsDirtyDomainKind) -> Vec<UiNodeId> {
@@ -477,9 +479,7 @@ impl UiEcsProjectionDelta {
     }
 
     pub fn schedule_impact(&self, stage: UiPipelineStage) -> Option<UiEcsProjectionScheduleImpact> {
-        self.schedule_impacts()
-            .into_iter()
-            .find(|impact| impact.stage == stage)
+        projection_schedule_impact_from_changes(&self.changes, stage)
     }
 
     pub fn node_ids_requiring_stage(&self, stage: UiPipelineStage) -> Vec<UiNodeId> {
@@ -509,9 +509,7 @@ impl UiEcsProjectionDelta {
         &self,
         domain: UiEcsDirtyDomainKind,
     ) -> Option<UiEcsDirtyDomainImpact> {
-        self.dirty_domain_impacts()
-            .into_iter()
-            .find(|impact| impact.domain == domain)
+        projection_dirty_domain_impact_from_changes(&self.changes, domain)
     }
 
     pub fn node_ids_in_dirty_domain(&self, domain: UiEcsDirtyDomainKind) -> Vec<UiNodeId> {

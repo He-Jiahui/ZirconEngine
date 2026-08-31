@@ -26,7 +26,7 @@ STORAGE_ANCHORS = (
     "sparse_components: HashMap<ComponentId, SparseComponentStorage>,",
     "pub struct ComponentStorageLocation",
     "pub(crate) fn insert_preflighted_at_tick<T>",
-    "pub fn get_with_ticks_at_location<T>",
+    "pub(crate) fn get_with_ticks_at_location<T>",
 )
 COMPONENT_STORAGE_PRIVATE_REEXPORT_ANCHORS = (
     (
@@ -35,7 +35,7 @@ COMPONENT_STORAGE_PRIVATE_REEXPORT_ANCHORS = (
     ),
     (
         "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
-        "pub use store::ComponentStorage;",
+        "pub(crate) use store::ComponentStorage;",
     ),
     (
         "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
@@ -136,13 +136,13 @@ ENTITY_LIFECYCLE_ANCHORS = (
     "const FIRST_GENERATION: u32 = 1;",
     "free_slots: Vec<u32>",
     "stable_to_internal: HashMap<EntityId, InternalEntity>",
-    "InternalEntity::new(slot_index, slot.generation)",
-    "slot.generation = next_generation(slot.generation);",
+    "let internal = InternalEntity::new(slot_index, slot.generation);",
+    "slot.generation = next_generation;",
     "self.free_slots.push(internal.index());",
-    "pub const fn generation(self) -> u32",
-    "self.index as u64 | ((self.generation as u64) << 32)",
+    "pub(crate) const fn generation(self) -> u32",
+    "pub(crate) const fn new(index: u32, generation: u32) -> Self",
     "pub struct StableEntityLocation",
-    "pub struct DespawnedEntity",
+    "pub(crate) struct DespawnedEntity",
 )
 OBSERVER_ANCHORS = (
     "pub struct ObserverStore",
@@ -151,7 +151,7 @@ OBSERVER_ANCHORS = (
     "pub fn observe_entity_event<E>(",
     "pub fn remove(&mut self, id: ObserverId) -> SceneResult<()>",
     "pub(crate) fn lifecycle_callbacks(",
-    "lifecycle_buckets: HashMap<LifecycleObserverKey, Arc<BTreeMap<ObserverId, LifecycleObserver>>>",
+    "lifecycle_buckets: HashMap<LifecycleObserverKey, Arc<Vec<LifecycleObserver>>>",
     "observer_locations: HashMap<ObserverId, ObserverBucket>",
 )
 COMMAND_ANCHORS = (

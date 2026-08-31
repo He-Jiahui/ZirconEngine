@@ -1,34 +1,23 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct InternalEntity {
+/// A generational storage handle that is meaningful only to its owning `World`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub(crate) struct InternalEntity {
     index: u32,
     generation: u32,
 }
 
 impl InternalEntity {
-    pub const PLACEHOLDER: Self = Self::new(u32::MAX, 0);
+    pub(crate) const INVALID_INDEX: u32 = u32::MAX;
+    pub(crate) const PLACEHOLDER: Self = Self::new(Self::INVALID_INDEX, 0);
 
-    pub const fn new(index: u32, generation: u32) -> Self {
+    pub(crate) const fn new(index: u32, generation: u32) -> Self {
         Self { index, generation }
     }
 
-    pub const fn index(self) -> u32 {
+    pub(crate) const fn index(self) -> u32 {
         self.index
     }
 
-    pub const fn generation(self) -> u32 {
+    pub(crate) const fn generation(self) -> u32 {
         self.generation
-    }
-
-    pub const fn to_bits(self) -> u64 {
-        self.index as u64 | ((self.generation as u64) << 32)
-    }
-
-    pub const fn from_bits(bits: u64) -> Self {
-        Self {
-            index: bits as u32,
-            generation: (bits >> 32) as u32,
-        }
     }
 }

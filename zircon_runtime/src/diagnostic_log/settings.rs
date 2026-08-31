@@ -232,10 +232,8 @@ mod tests {
             settings.sink.critical_enqueue_timeout,
             Duration::from_millis(7)
         );
-        assert!(
-            settings
-                .format_diagnostics()
-                .contains("diagnostic_log.critical_enqueue_timeout_ms=7")
-        );
+        assert!(settings
+            .format_diagnostics()
+            .contains("diagnostic_log.critical_enqueue_timeout_ms=7"));
     }
 }

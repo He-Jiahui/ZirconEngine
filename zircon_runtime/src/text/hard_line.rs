@@ -164,7 +164,7 @@ fn for_each_hard_line(text: &str, mut visit: impl FnMut(HardLine) -> bool) {
     });
 }
 
-fn is_hard_line_separator(character: char) -> bool {
+pub(crate) fn is_hard_line_separator(character: char) -> bool {
     matches!(
         character,
         '\r' | '\n' | '\u{000b}' | '\u{000c}' | '\u{0085}' | '\u{2028}' | '\u{2029}'

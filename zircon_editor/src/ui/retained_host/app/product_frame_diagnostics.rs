@@ -1,3 +1,4 @@
+use std::fmt::{self, Write as _};
 use std::io;
 use std::path::Path;
 
@@ -9,6 +10,81 @@ use crate::ui::workbench::snapshot::EditorDataSnapshot;
 
 // Product-frame evidence is gathered before the retained UI begins frame pumping.
 const UNKNOWN_PRODUCT_FRAME_LOG_FRAME: u64 = 0;
+const PRODUCT_FRAME_DIAGNOSTIC_BASE_CAPACITY: usize = 512;
+
+struct PercentEncodedDiagnosticToken<'a>(&'a str);
+
+impl fmt::Display for PercentEncodedDiagnosticToken<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        const HEX: &[u8; 16] = b"0123456789ABCDEF";
+
+        let bytes = self.0.as_bytes();
+        let mut safe_start = 0;
+        for (index, &byte) in bytes.iter().enumerate() {
+            if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+                continue;
+            }
+            if safe_start < index {
+                formatter.write_str(
+                    std::str::from_utf8(&bytes[safe_start..index])
+                        .expect("safe diagnostic token spans are ASCII"),
+                )?;
+            }
+            let encoded = [b'%', HEX[(byte >> 4) as usize], HEX[(byte & 0x0f) as usize]];
+            formatter.write_str(
+                std::str::from_utf8(&encoded).expect("percent encoding bytes are ASCII"),
+            )?;
+            safe_start = index + 1;
+        }
+        if safe_start < bytes.len() {
+            formatter.write_str(
+                std::str::from_utf8(&bytes[safe_start..])
+                    .expect("safe diagnostic token suffix is ASCII"),
+            )?;
+        }
+        Ok(())
+    }
+}
+
+fn build_product_frame_diagnostic(
+    project_path: &str,
+    selected_node_id: &impl fmt::Display,
+    selected_node_name: &str,
+    translation: &[String; 3],
+    scale: &[String; 3],
+) -> String {
+    let encoded_values = [
+        project_path,
+        selected_node_name,
+        translation[0].as_str(),
+        translation[1].as_str(),
+        translation[2].as_str(),
+        scale[0].as_str(),
+        scale[1].as_str(),
+        scale[2].as_str(),
+    ];
+    let capacity = encoded_values
+        .iter()
+        .fold(PRODUCT_FRAME_DIAGNOSTIC_BASE_CAPACITY, |capacity, value| {
+            capacity.saturating_add(value.len().saturating_mul(3))
+        });
+    let mut diagnostic = String::with_capacity(capacity);
+    write!(
+        &mut diagnostic,
+        "editor_product_frame_diagnostics project_path={} selected_node_id={} selected_node_name={} inspector_translation_x={} inspector_translation_y={} inspector_translation_z={} inspector_scale_x={} inspector_scale_y={} inspector_scale_z={}",
+        PercentEncodedDiagnosticToken(project_path),
+        selected_node_id,
+        PercentEncodedDiagnosticToken(selected_node_name),
+        PercentEncodedDiagnosticToken(&translation[0]),
+        PercentEncodedDiagnosticToken(&translation[1]),
+        PercentEncodedDiagnosticToken(&translation[2]),
+        PercentEncodedDiagnosticToken(&scale[0]),
+        PercentEncodedDiagnosticToken(&scale[1]),
+        PercentEncodedDiagnosticToken(&scale[2]),
+    )
+    .expect("writing to a String cannot fail");
+    diagnostic
+}
 
 pub(super) fn editor_product_frame_diagnostics(
     snapshot: &EditorDataSnapshot,
@@ -54,17 +130,14 @@ pub(super) fn editor_product_frame_diagnostics(
         ));
     }
 
-    Ok(format!(
-        "editor_product_frame_diagnostics project_path={} selected_node_id={} selected_node_name={} inspector_translation_x={} inspector_translation_y={} inspector_translation_z={} inspector_scale_x={} inspector_scale_y={} inspector_scale_z={}",
-        product_frame_project_path_token(&snapshot.project_path),
-        selected.entity,
-        percent_encode_diagnostic_token(&selected.display_name),
-        percent_encode_diagnostic_token(&inspector.translation[0]),
-        percent_encode_diagnostic_token(&inspector.translation[1]),
-        percent_encode_diagnostic_token(&inspector.translation[2]),
-        percent_encode_diagnostic_token(&inspector.scale[0]),
-        percent_encode_diagnostic_token(&inspector.scale[1]),
-        percent_encode_diagnostic_token(&inspector.scale[2]),
+    let project_path = ProjectPaths::display_path(Path::new(&snapshot.project_path));
+    let project_path = project_path.to_string_lossy();
+    Ok(build_product_frame_diagnostic(
+        &project_path,
+        &selected.entity,
+        &selected.display_name,
+        &inspector.translation,
+        &inspector.scale,
     ))
 }
 
@@ -126,3 +199,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "product_frame_diagnostics/single_buffer_diagnostic_tests.rs"]
+mod single_buffer_diagnostic_tests;

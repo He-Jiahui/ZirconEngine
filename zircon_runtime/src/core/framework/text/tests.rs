@@ -1,7 +1,9 @@
 use super::{
-    TextDirection, TextFontFaceHandle, TextFontRequest, TextLayoutError, TextLayoutMetrics,
-    TextLayoutService, TextRenderMode, TextShapeRequest, TextShapeResult,
+    TextDirection, TextFontCollectionHandle, TextFontFaceHandle, TextFontRequest, TextLayoutError,
+    TextLayoutMetrics, TextLayoutService, TextRenderMode, TextShapeRequest, TextShapeResult,
 };
+
+const TEST_FONT_COLLECTION: TextFontCollectionHandle = TextFontCollectionHandle::new(1);
 
 struct RecordingTextLayoutService;
 
@@ -67,8 +69,8 @@ fn text_layout_contract_returns_typed_error_for_invalid_font_size() {
 
 #[test]
 fn text_font_face_handle_distinguishes_reused_slot_generations() {
-    let initial = TextFontFaceHandle::new(7, 1);
-    let reloaded = TextFontFaceHandle::new(7, 2);
+    let initial = TextFontFaceHandle::new(TEST_FONT_COLLECTION, 7, 1);
+    let reloaded = TextFontFaceHandle::new(TEST_FONT_COLLECTION, 7, 2);
 
     assert_ne!(initial, reloaded);
     assert_eq!(initial.index, reloaded.index);

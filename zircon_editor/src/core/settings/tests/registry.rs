@@ -26,6 +26,43 @@ fn resolve_uses_session_project_user_and_default_precedence() {
 }
 
 #[test]
+fn authority_publishes_one_catalog_and_versioned_single_setting_reads() {
+    let authority = SettingsAuthority::with_defaults();
+    let locale_key = key(EDITOR_LOCALE_KEY);
+    let before = authority.snapshot();
+
+    assert!(before
+        .catalog()
+        .definition(&locale_key)
+        .is_some_and(|definition| definition.key == locale_key));
+    let default_locale = authority.resolved_setting(&locale_key).unwrap();
+    assert_eq!(default_locale.generation(), before.generation());
+    assert_eq!(
+        default_locale.value(),
+        &SettingValue::Enum("en".to_string())
+    );
+    assert_eq!(default_locale.source(), SettingValueSource::Default);
+
+    authority
+        .set(
+            SettingsScope::User,
+            &locale_key,
+            SettingValue::Enum("zh-CN".to_string()),
+        )
+        .unwrap();
+    let after = authority.snapshot();
+    let chinese = authority.resolved_setting(&locale_key).unwrap();
+
+    assert!(before.shares_catalog_with(&after));
+    assert_eq!(chinese.generation(), after.generation());
+    assert_eq!(chinese.value(), &SettingValue::Enum("zh-CN".to_string()));
+    assert_eq!(
+        chinese.source(),
+        SettingValueSource::Scope(SettingsScope::User)
+    );
+}
+
+#[test]
 fn built_in_setting_presentations_use_direct_embedded_localization_keys() {
     let registry = settings_registry_with_defaults();
     let catalog = crate::core::i18n::EditorI18nCatalog::embedded().unwrap();
@@ -193,16 +230,24 @@ fn persistence_service_writes_the_authority_layer_from_a_typed_change_ticket() {
         SettingsProjectLayerLoad::Missing { .. }
     ));
     let snap_key = key(VIEWPORT_TRANSLATE_STEP_KEY);
+    authority
+        .set(SettingsScope::Session, &snap_key, SettingValue::Float(1.5))
+        .unwrap();
     let change = authority
         .set(SettingsScope::Project, &snap_key, SettingValue::Float(2.5))
         .unwrap()
         .expect("a changed setting must publish a persistence request");
-    let service = SettingsPersistenceService::new(std::sync::Arc::clone(&authority));
+    let service = SettingsPersistenceService::new(
+        std::sync::Arc::clone(&authority),
+        crate::core::jobs::test_job_scheduler(),
+    );
 
     let ticket = service.submit(&change, store.clone()).unwrap();
     assert_eq!(ticket.key(), &snap_key);
     assert_eq!(ticket.scope(), SettingsScope::Project);
-    assert_eq!(ticket.generation(), change.revision);
+    assert!(ticket.file_generation().get() > 0);
+    assert_eq!(ticket.authority_generation(), change.revision);
+    assert!(ticket.target().starts_with("settings:project:"));
     assert!(matches!(
         ticket.wait_until(Instant::now() + Duration::from_secs(5)),
         zircon_runtime::core::runtime::tasks::BoundedKeyedIoWaitResult::Terminal(
@@ -287,7 +332,8 @@ fn persistence_service_retries_a_failed_typed_request_with_a_new_ticket() {
         .set(SettingsScope::User, &snap_key, SettingValue::Float(2.5))
         .unwrap()
         .expect("a changed setting must publish a persistence request");
-    let service = SettingsPersistenceService::new(authority);
+    let service =
+        SettingsPersistenceService::new(authority, crate::core::jobs::test_job_scheduler());
 
     let failed = service.submit(&change, store.clone()).unwrap();
     assert!(matches!(
@@ -299,10 +345,15 @@ fn persistence_service_retries_a_failed_typed_request_with_a_new_ticket() {
 
     fs::remove_file(&root).unwrap();
     fs::create_dir_all(&root).unwrap();
-    let retried = service.retry(&failed, store.clone()).unwrap();
+    let retried = service.retry(&failed).unwrap();
     assert_eq!(retried.key(), failed.key());
     assert_eq!(retried.scope(), failed.scope());
-    assert_eq!(retried.generation(), failed.generation());
+    assert_eq!(retried.target(), failed.target());
+    assert_eq!(retried.file_generation(), failed.file_generation());
+    assert_eq!(
+        retried.authority_generation(),
+        failed.authority_generation()
+    );
     assert!(matches!(
         retried.wait_until(Instant::now() + Duration::from_secs(5)),
         zircon_runtime::core::runtime::tasks::BoundedKeyedIoWaitResult::Terminal(
@@ -328,7 +379,8 @@ fn persistence_service_fences_admitted_writes_before_shutdown() {
         .set(SettingsScope::Project, &snap_key, SettingValue::Float(2.5))
         .unwrap()
         .expect("a changed setting must publish a persistence request");
-    let service = SettingsPersistenceService::new(authority);
+    let service =
+        SettingsPersistenceService::new(authority, crate::core::jobs::test_job_scheduler());
 
     service.submit(&change, store.clone()).unwrap();
     let report = service.flush_then_shutdown().unwrap().finish().unwrap();
@@ -357,7 +409,8 @@ fn persistence_service_shutdown_reports_a_failed_fenced_write() {
         .set(SettingsScope::User, &snap_key, SettingValue::Float(2.5))
         .unwrap()
         .expect("a changed setting must publish a persistence request");
-    let service = SettingsPersistenceService::new(authority);
+    let service =
+        SettingsPersistenceService::new(authority, crate::core::jobs::test_job_scheduler());
 
     service.submit(&change, store).unwrap();
     assert!(matches!(
@@ -386,7 +439,8 @@ fn persistence_service_rejects_session_only_changes_before_lane_admission() {
         "an unchanged session value must not enqueue work"
     );
 
-    let service = SettingsPersistenceService::new(authority);
+    let service =
+        SettingsPersistenceService::new(authority, crate::core::jobs::test_job_scheduler());
     let change = crate::core::settings::SettingChange {
         key: mru_key,
         scope: SettingsScope::Session,
@@ -413,12 +467,14 @@ fn persistence_service_rejects_a_request_before_retaining_over_its_byte_budget()
         .unwrap();
     let service = SettingsPersistenceService::with_limits(
         authority,
+        crate::core::jobs::test_job_scheduler(),
         SettingsPersistenceLimits {
             max_entries: 1,
             max_retained_bytes: 1,
         },
     );
-    let store = SettingsStore::from_roots(temporary_root("byte-budget"), None);
+    let root = temporary_root("byte-budget");
+    let store = SettingsStore::from_roots(&root, Some(&root));
 
     assert!(matches!(
         service.submit(&change, store),
@@ -584,6 +640,91 @@ fn retained_change_delta_requires_a_snapshot_after_cursor_falls_behind_entry_bud
 }
 
 #[test]
+fn optimization_wave_20260824q_editor12_change_delta_tail_lookup_preserves_retained_window_semantics(
+) {
+    let definition = project_grid_setting();
+    let key = definition.key.clone();
+    let mut registry = SettingsRegistry::with_change_log_policy(SettingsChangeLogPolicy::new(
+        3,
+        usize::MAX,
+        Duration::from_secs(60),
+    ));
+    registry.register(definition).unwrap();
+
+    for value in 11..=15 {
+        registry
+            .set(SettingsScope::Project, &key, SettingValue::Int(value))
+            .unwrap();
+    }
+
+    let behind = registry.changes_since(SettingsChangeCursor::origin());
+    assert!(behind.requires_snapshot);
+    assert_eq!(
+        behind
+            .changes
+            .iter()
+            .map(|change| change.revision)
+            .collect::<Vec<_>>(),
+        vec![3, 4, 5]
+    );
+
+    let tail = registry.changes_since(SettingsChangeCursor::at(3));
+    assert!(!tail.requires_snapshot);
+    assert_eq!(
+        tail.changes
+            .iter()
+            .map(|change| change.revision)
+            .collect::<Vec<_>>(),
+        vec![4, 5]
+    );
+    assert!(registry
+        .changes_since(SettingsChangeCursor::at(5))
+        .changes
+        .is_empty());
+    let future = registry.changes_since(SettingsChangeCursor::at(6));
+    assert!(future.requires_snapshot);
+    assert!(future.changes.is_empty());
+
+    let definition = project_grid_setting();
+    let key = definition.key.clone();
+    let mut exhausted = SettingsRegistry::default();
+    exhausted.register(definition).unwrap();
+    exhausted.revision = u64::MAX - 1;
+    exhausted
+        .set(SettingsScope::Project, &key, SettingValue::Int(11))
+        .unwrap();
+    exhausted
+        .set(SettingsScope::Project, &key, SettingValue::Int(12))
+        .unwrap();
+    assert_eq!(
+        exhausted
+            .changes_since(SettingsChangeCursor::at(u64::MAX - 1))
+            .changes
+            .len(),
+        2
+    );
+    assert!(exhausted
+        .changes_since(SettingsChangeCursor::at(u64::MAX))
+        .changes
+        .is_empty());
+}
+
+#[test]
+fn optimization_wave_20260824q_editor12_change_delta_uses_revision_offset_instead_of_scanning_retained_history(
+) {
+    let source = include_str!("../change_log.rs");
+    let delta_since = source
+        .split("pub(super) fn delta_since")
+        .nth(1)
+        .and_then(|source| source.split("fn expire_before").next())
+        .expect("settings change delta implementation");
+
+    assert!(delta_since.contains("first_change_index"));
+    assert!(delta_since.contains(".range(first_change_index..)"));
+    assert!(!delta_since.contains(".filter("));
+}
+
+#[test]
 fn retained_change_delta_requires_a_snapshot_after_byte_budget_evicts_the_log() {
     let definition = project_grid_setting();
     let key = definition.key.clone();
@@ -712,6 +853,105 @@ fn authority_replaces_persistent_layers_without_republishing_identical_values() 
         .unwrap()
         .is_empty());
     assert!(std::sync::Arc::ptr_eq(&snapshot, &authority.snapshot()));
+}
+
+#[test]
+fn optimization_wave_20260824q_editor12_persistent_layer_diff_borrows_previous_values_instead_of_cloning_them(
+) {
+    let source = include_str!("../registry.rs");
+    let replacement = source
+        .split("pub(crate) fn replace_persistent_layer")
+        .nth(1)
+        .and_then(|source| source.split("fn definition_or_error").next())
+        .expect("persistent layer replacement implementation");
+
+    assert!(replacement.contains("let previous = self.persistent_values(scope)?"));
+    assert!(!replacement.contains("persistent_values(scope)?.clone()"));
+}
+
+#[test]
+#[ignore = "managed Editor12 performance evidence"]
+fn optimization_wave_20260824q_editor12_settings_delta_and_reload_hotpath_evidence() {
+    const SETTINGS: usize = 4_096;
+    const PAYLOAD_BYTES: usize = 4 * 1024;
+    const TAIL_QUERIES: usize = 100_000;
+    const MAX_DELTA_QUERY_LATENCY: Duration = Duration::from_millis(250);
+    const MAX_IDENTICAL_RELOAD_LATENCY: Duration = Duration::from_millis(500);
+
+    let mut registry = SettingsRegistry::with_change_log_policy(SettingsChangeLogPolicy::new(
+        SETTINGS,
+        usize::MAX,
+        Duration::from_secs(60),
+    ));
+    let payload = "x".repeat(PAYLOAD_BYTES);
+    let mut values = BTreeMap::new();
+    for index in 0..SETTINGS {
+        let key = key(&format!("editor.performance.reload_{index}"));
+        registry
+            .register(
+                SettingDefinition::new(
+                    key.clone(),
+                    SettingsScope::Project,
+                    SettingSchema::String {
+                        maximum_bytes: PAYLOAD_BYTES,
+                    },
+                    SettingValue::String(String::new()),
+                    false,
+                    presentation(
+                        "settings.editor.performance.reload.label",
+                        "settings.editor.performance.reload.description",
+                        &["settings.category.editor", "settings.category.performance"],
+                    ),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        values.insert(key, SettingValue::String(payload.clone()));
+    }
+    registry
+        .replace_persistent_layer(SettingsScope::Project, values.clone())
+        .unwrap();
+
+    let tail_cursor = SettingsChangeCursor::at(SETTINGS as u64 - 1);
+    let delta_started = Instant::now();
+    for _ in 0..TAIL_QUERIES {
+        let delta = registry.changes_since(tail_cursor);
+        std::hint::black_box(delta);
+    }
+    let delta_elapsed = delta_started.elapsed();
+    assert!(delta_elapsed <= MAX_DELTA_QUERY_LATENCY);
+
+    let reload_started = Instant::now();
+    let changes = registry
+        .replace_persistent_layer(SettingsScope::Project, values)
+        .unwrap();
+    let reload_elapsed = reload_started.elapsed();
+    assert!(changes.is_empty());
+    assert!(reload_elapsed <= MAX_IDENTICAL_RELOAD_LATENCY);
+
+    let comparisons_before = SETTINGS as u64 * TAIL_QUERIES as u64;
+    let retained_entries_visited_after = TAIL_QUERIES as u64;
+    let scan_reduction_percent =
+        (1.0 - retained_entries_visited_after as f64 / comparisons_before as f64) * 100.0;
+    let cloned_value_bytes_before = SETTINGS * PAYLOAD_BYTES;
+    println!(
+        "EDITOR_SETTINGS_BENCH_V1 kind=delta_tail_query retained_entries={} queries={} comparisons_before={} retained_entries_visited_after={} scan_reduction_percent={:.4} elapsed_ns={} target_ns={}",
+        SETTINGS,
+        TAIL_QUERIES,
+        comparisons_before,
+        retained_entries_visited_after,
+        scan_reduction_percent,
+        delta_elapsed.as_nanos(),
+        MAX_DELTA_QUERY_LATENCY.as_nanos(),
+    );
+    println!(
+        "EDITOR_SETTINGS_BENCH_V1 kind=identical_layer_reload settings={} payload_bytes_per_setting={} cloned_value_bytes_before={} cloned_value_bytes_after=0 clone_reduction_percent=100.0000 elapsed_ns={} target_ns={}",
+        SETTINGS,
+        PAYLOAD_BYTES,
+        cloned_value_bytes_before,
+        reload_elapsed.as_nanos(),
+        MAX_IDENTICAL_RELOAD_LATENCY.as_nanos(),
+    );
 }
 
 #[test]

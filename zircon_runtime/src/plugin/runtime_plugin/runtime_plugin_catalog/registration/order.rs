@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::{sort_module_activation_order, CoreError};
 use crate::plugin::{
-    PluginModuleKind, RuntimePlugin, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    PluginModuleKind, PluginModuleManifest, RuntimePlugin, RuntimePluginDescriptor,
+    RuntimePluginRegistrationReport,
 };
 
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_plugins<'a>(
@@ -53,6 +55,25 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_p
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_plugin_registration_report_refs(
     registrations: Vec<&RuntimePluginRegistrationReport>,
 ) -> Result<Vec<&RuntimePluginRegistrationReport>, CoreError> {
+    order_runtime_plugin_registration_report_refs_with_module_filter(registrations, |module| {
+        module.kind == PluginModuleKind::Runtime
+    })
+}
+
+pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_plugin_registration_report_refs_for_target(
+    registrations: Vec<&RuntimePluginRegistrationReport>,
+    target: RuntimeTargetMode,
+) -> Result<Vec<&RuntimePluginRegistrationReport>, CoreError> {
+    order_runtime_plugin_registration_report_refs_with_module_filter(registrations, move |module| {
+        module.kind == PluginModuleKind::Runtime
+            && (module.target_modes.is_empty() || module.target_modes.contains(&target))
+    })
+}
+
+fn order_runtime_plugin_registration_report_refs_with_module_filter(
+    registrations: Vec<&RuntimePluginRegistrationReport>,
+    module_filter: impl Fn(&PluginModuleManifest) -> bool,
+) -> Result<Vec<&RuntimePluginRegistrationReport>, CoreError> {
     let mut registration_indices = Vec::new();
     let mut module_descriptors = Vec::new();
     for (registration_index, registration) in registrations.iter().enumerate() {
@@ -60,7 +81,7 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_p
             .package_manifest
             .modules
             .iter()
-            .filter(|module| module.kind == PluginModuleKind::Runtime)
+            .filter(|module| module_filter(module))
         {
             registration_indices.push(registration_index);
             module_descriptors.push(module.module_descriptor());

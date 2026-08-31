@@ -244,23 +244,28 @@ impl RenderMaterialReadinessReport {
     }
 
     pub fn push_validation_error_once(&mut self, error: RenderMaterialValidationError) {
-        if !self.validation_errors.contains(&error) {
-            self.validation_errors.push(error);
-        }
+        push_unique_with_recent_fast_path(&mut self.validation_errors, error);
     }
 
     pub fn push_fallback_usage_once(&mut self, usage: RenderMaterialFallbackUsage) {
-        if !self.fallback_usages.contains(&usage) {
-            self.fallback_usages.push(usage);
-        }
+        push_unique_with_recent_fast_path(&mut self.fallback_usages, usage);
     }
 
     pub fn push_diagnostic_once(&mut self, diagnostic: RenderMaterialReadinessDiagnostic) {
-        if !self.diagnostics.contains(&diagnostic) {
-            self.diagnostics.push(diagnostic);
-        }
+        push_unique_with_recent_fast_path(&mut self.diagnostics, diagnostic);
     }
 }
+
+fn push_unique_with_recent_fast_path<T: PartialEq>(items: &mut Vec<T>, item: T) {
+    if items.last() == Some(&item) || items.contains(&item) {
+        return;
+    }
+    items.push(item);
+}
+
+#[cfg(test)]
+#[path = "readiness_report/recent_duplicate_fast_path_tests.rs"]
+mod recent_duplicate_fast_path_tests;
 
 #[cfg(test)]
 mod tests;

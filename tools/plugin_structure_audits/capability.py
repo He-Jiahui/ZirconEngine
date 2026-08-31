@@ -167,8 +167,16 @@ def audit_plugin_capability_conformance(repo_root: Path) -> PluginCapabilityAudi
             )
             continue
 
-        constants = parse_capability_string_constants(capability_path)
-        runtime_capabilities = parse_runtime_capability_values(capability_path, constants)
+        capability_text = capability_path.read_text(encoding="utf-8")
+        constants = parse_capability_string_constants(
+            capability_path,
+            source_text=capability_text,
+        )
+        runtime_capabilities = parse_runtime_capability_values(
+            capability_path,
+            constants,
+            source_text=capability_text,
+        )
         display_root = root
 
         if not runtime_capabilities:
@@ -376,9 +384,17 @@ def declare_plugin_bodies(text: str) -> list[str]:
     return bodies
 
 
-def parse_capability_string_constants(capability_path: Path) -> dict[str, str]:
+def parse_capability_string_constants(
+    capability_path: Path,
+    *,
+    source_text: str | None = None,
+) -> dict[str, str]:
     constants: dict[str, str] = {}
-    text = capability_path.read_text(encoding="utf-8")
+    text = (
+        capability_path.read_text(encoding="utf-8")
+        if source_text is None
+        else source_text
+    )
     for match in re.finditer(
         r"pub\s+const\s+([A-Z0-9_]*CAPABILITY)\s*:\s*&str\s*=\s*\"([^\"]+)\"\s*;",
         text,
@@ -408,8 +424,14 @@ def parse_capability_string_constants(capability_path: Path) -> dict[str, str]:
 def parse_runtime_capability_values(
     capability_path: Path,
     constants: dict[str, str],
+    *,
+    source_text: str | None = None,
 ) -> list[str]:
-    text = capability_path.read_text(encoding="utf-8")
+    text = (
+        capability_path.read_text(encoding="utf-8")
+        if source_text is None
+        else source_text
+    )
     match = re.search(
         r"pub\s+const\s+RUNTIME_CAPABILITIES\s*:\s*&\[\s*&str\s*\]\s*=\s*&\[(.*?)\]\s*;",
         text,

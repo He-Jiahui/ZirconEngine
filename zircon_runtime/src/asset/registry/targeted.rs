@@ -74,13 +74,17 @@ impl AssetRegistryIndex {
     }
 
     pub(crate) fn source_entries(&self, locator: &AssetUri) -> Vec<AssetRegistryEntry> {
-        self.entry_uuids_by_source
-            .get(&source_locator(locator))
-            .into_iter()
-            .flatten()
-            .filter_map(|uuid| self.entries_by_uuid.get(uuid))
-            .cloned()
-            .collect()
+        let source = source_locator(locator);
+        let uuids = self.entry_uuids_by_source.get(&source);
+        let mut entries = Vec::with_capacity(uuids.map_or(0, HashSet::len));
+        if let Some(uuids) = uuids {
+            for uuid in uuids {
+                if let Some(entry) = self.entries_by_uuid.get(uuid) {
+                    entries.push(entry.clone());
+                }
+            }
+        }
+        entries
     }
 
     pub(crate) fn retarget_runtime_dependency_paths(
@@ -268,8 +272,10 @@ fn resolve_unique_dependencies(
 }
 
 fn dependency_paths(meta: &AssetMetaDocument) -> Vec<(AssetUuid, Vec<AssetUri>)> {
-    let mut dependencies = Vec::new();
-    if !meta.entries.iter().any(|entry| entry.url.label().is_none()) {
+    let has_root_dependencies = !meta.entries.iter().any(|entry| entry.url.label().is_none());
+    let mut dependencies =
+        Vec::with_capacity(meta.entries.len() + usize::from(has_root_dependencies));
+    if has_root_dependencies {
         dependencies.push((meta.uuid, meta.dependencies.clone()));
     }
     dependencies.extend(
@@ -443,3 +449,7 @@ mod tests {
             .join(",")
     }
 }
+
+#[cfg(test)]
+#[path = "targeted/optimization_tests.rs"]
+mod optimization_tests;

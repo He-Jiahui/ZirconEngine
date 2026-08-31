@@ -2,10 +2,7 @@
 fn builtin_root_stays_structural_after_runtime_module_split() {
     let source = include_str!("../../../builtin/mod.rs");
 
-    for required in [
-        "mod runtime_modules;",
-        "pub use runtime_modules::builtin_runtime_modules;",
-    ] {
+    for required in ["mod runtime_modules;", "RuntimeModuleCompositionPlan"] {
         assert!(
             source.contains(required),
             "expected builtin/mod.rs to keep structural wiring `{required}`"

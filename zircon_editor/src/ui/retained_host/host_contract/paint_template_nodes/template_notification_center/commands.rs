@@ -7,7 +7,7 @@ use super::identity::is_notification_center;
 use super::instrumentation::{
     record_metrics_resolution, record_palette_resolution, record_row_count_read, record_row_visit,
 };
-use super::layout::{notification_center_metrics, pixel_aligned_rect, row_rect};
+use super::layout::{notification_center_metrics, paint_rect, row_rect};
 use super::panel::{push_empty_notification_message, push_notification_panel_commands};
 use super::row::push_notification_row;
 use super::style::current_notification_center_palette;
@@ -27,7 +27,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_no
         return true;
     }
 
-    let rect = pixel_aligned_rect(rect);
+    let rect = paint_rect(rect);
     if rect.width <= 1.0 || rect.height <= 1.0 {
         return true;
     }
@@ -37,7 +37,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_no
     let palette = current_notification_center_palette();
     #[cfg(test)]
     record_metrics_resolution();
-    let metrics = notification_center_metrics();
+    let metrics = notification_center_metrics_for_node(node);
     push_notification_panel_commands(
         commands, node, &rect, clip, order, opacity, palette, &metrics,
     );
@@ -78,6 +78,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_no
     }
 
     true
+}
+
+fn notification_center_metrics_for_node(
+    node: &TemplatePaneNodeData,
+) -> super::layout::NotificationCenterMetrics {
+    let mut metrics = notification_center_metrics();
+    if node.corner_radius.is_finite() && node.corner_radius > 0.0 {
+        metrics.panel_radius = node.corner_radius;
+    }
+    metrics
 }
 
 const NOTIFICATION_CENTER_PAINT_OVERSCAN_ROWS: usize = 1;
@@ -260,6 +270,17 @@ mod tests {
         assert_eq!(counters.row_visits, 3);
         assert_eq!(counters.title_text_copies, 1);
         assert_eq!(counters.message_text_copies, 1);
+    }
+
+    #[test]
+    fn node_panel_radius_overrides_the_host_fallback_without_flattening_row_radius() {
+        let mut node = notification_test_node(true);
+        node.corner_radius = 14.0;
+
+        let metrics = notification_center_metrics_for_node(&node);
+
+        assert_eq!(metrics.panel_radius, 14.0);
+        assert_eq!(metrics.row_radius, 6.0);
     }
 
     fn notification_test_node(popup_open: bool) -> TemplatePaneNodeData {

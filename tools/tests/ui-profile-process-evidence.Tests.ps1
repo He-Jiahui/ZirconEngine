@@ -4,7 +4,7 @@ if (Test-Path -LiteralPath $script:ProcessEvidenceModule) {
 }
 
 function New-ValidProcessEvidence {
-    return [ordered]@{
+    return [pscustomobject][ordered]@{
         process_id = 4242
         elapsed_ms = 2000
         processor_time_delta_ms = 200

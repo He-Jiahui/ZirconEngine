@@ -5,11 +5,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ZR_VM_PROJECT_BACKEND_SELECTOR;
 use zircon_runtime::script::{
-    VmStateBlob, VmStateSchema, VmStateTypeSchema, VM_STATE_SCHEMA_VERSION_V2,
+    VmStateBlob, VmStateSchema, VmStateTypeSchema, VM_STATE_SCHEMA_VERSION_V3,
 };
 use zircon_runtime_interface::reflect::{
-    ReflectEditorHint, ReflectFieldInfo, ReflectSerializationStrategy, ReflectTypeInfo,
-    ReflectTypePath, ReflectTypeRegistration,
+    ReflectEditorHint, ReflectFieldId, ReflectFieldInfo, ReflectSerializationStrategy,
+    ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration,
 };
 
 const FIXTURE_STATE_TYPE_HASH: u32 = 0x5A56_0002;
@@ -320,8 +320,9 @@ pub(super) fn fixture_state_blob(value: &str) -> VmStateBlob {
 }
 
 fn fixture_state_json(value: &str) -> String {
+    let field_id = ReflectFieldId::from_stable_keys("fixture.ZrVmState", "value");
     let payload = format!(
-        "[{{\"type_path\":{{\"type_path\":\"fixture.ZrVmState\",\"short_type_path\":\"ZrVmState\"}},\"fields\":[{{\"field_name\":\"value\",\"value\":{{\"kind\":\"String\",\"value\":\"{value}\"}}}}]}}]"
+        "[{{\"type_path\":{{\"type_path\":\"fixture.ZrVmState\",\"short_type_path\":\"ZrVmState\"}},\"fields\":[{{\"field_id\":\"{field_id}\",\"value\":{{\"kind\":\"String\",\"value\":\"{value}\"}}}}]}}]"
     );
     let payload_bytes = payload
         .as_bytes()
@@ -330,7 +331,7 @@ fn fixture_state_json(value: &str) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"schema_version\":{VM_STATE_SCHEMA_VERSION_V2},\"types\":[{{\"type_path\":{{\"type_path\":\"fixture.ZrVmState\",\"short_type_path\":\"ZrVmState\"}},\"type_hash\":{FIXTURE_STATE_TYPE_HASH}}}],\"payload\":[{payload_bytes}]}}"
+        "{{\"schema_version\":{VM_STATE_SCHEMA_VERSION_V3},\"types\":[{{\"type_path\":{{\"type_path\":\"fixture.ZrVmState\",\"short_type_path\":\"ZrVmState\"}},\"type_hash\":{FIXTURE_STATE_TYPE_HASH}}}],\"payload\":[{payload_bytes}]}}"
     )
 }
 
@@ -339,7 +340,9 @@ fn fixture_schema_json() -> String {
         ReflectTypePath::new("fixture.ZrVmState", "ZrVmState")
             .expect("fixture type path should be valid"),
         "Fixture State",
-        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::from_stable_keys(
+            "fixture.ZrVmState",
+            "value",
             "value",
             "String",
             ReflectEditorHint::String,
@@ -347,11 +350,10 @@ fn fixture_schema_json() -> String {
         ReflectSerializationStrategy::Value,
     );
     VmStateSchema {
-        schema_version: VM_STATE_SCHEMA_VERSION_V2,
+        schema_version: VM_STATE_SCHEMA_VERSION_V3,
         types: vec![VmStateTypeSchema {
             registration,
             type_hash: FIXTURE_STATE_TYPE_HASH,
-            renames: Vec::new(),
         }],
     }
     .to_json()

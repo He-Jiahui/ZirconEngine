@@ -1,8 +1,12 @@
 use std::num::NonZeroIsize;
+use std::sync::Arc;
 
-use zr_rhi::{RenderNativeSurfaceTarget, RhiError};
+use zr_rhi::{RenderDeviceFeature, RenderDeviceRequestPolicy, RenderNativeSurfaceTarget, RhiError};
 
-use crate::GPU_TIMESTAMP_REQUIRED_FEATURES;
+use crate::{
+    initial_wgpu_render_device_profile, wgpu_adapter_facts, wgpu_device_request,
+    wgpu_features_for_device_request, WgpuRenderDevice, WgpuRenderDeviceContext,
+};
 
 const SURFACE_FRAME_LATENCY: u32 = 2;
 
@@ -49,6 +53,8 @@ pub(super) fn choose_surface_format(
     formats: &[wgpu::TextureFormat],
 ) -> Option<wgpu::TextureFormat> {
     [
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        wgpu::TextureFormat::Rgba8UnormSrgb,
         wgpu::TextureFormat::Bgra8Unorm,
         wgpu::TextureFormat::Rgba8Unorm,
     ]
@@ -81,34 +87,49 @@ pub(super) fn choose_alpha_mode(
     }
 }
 
-pub(super) fn request_device(
+pub(super) fn request_owned_render_device(
+    instance: wgpu::Instance,
     adapter: &wgpu::Adapter,
     allow_gpu_timing: bool,
-) -> Result<(wgpu::Device, wgpu::Queue), RhiError> {
-    let requested_features = requested_device_features(adapter.features(), allow_gpu_timing);
-    pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+) -> Result<Arc<WgpuRenderDevice>, RhiError> {
+    let request_policy = device_request_policy(allow_gpu_timing);
+    let profile_request = wgpu_device_request(adapter.features(), &request_policy)
+        .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))?;
+    let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
         label: Some("zircon-ui-device"),
-        required_features: requested_features,
+        required_features: profile_request.requested_features(),
         required_limits: wgpu::Limits::default(),
         memory_hints: wgpu::MemoryHints::Performance,
         trace: wgpu::Trace::Off,
         experimental_features: wgpu::ExperimentalFeatures::disabled(),
     }))
-    .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))
+    .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))?;
+    let profile = initial_wgpu_render_device_profile(
+        wgpu_adapter_facts(&adapter.get_info(), adapter.features()),
+        &device,
+        &profile_request,
+    );
+    let context = WgpuRenderDeviceContext::new(instance, adapter.clone(), device, queue);
+    Ok(Arc::new(WgpuRenderDevice::new(context, profile)?))
 }
 
 pub(super) fn requested_device_features(
     adapter_features: wgpu::Features,
     allow_gpu_timing: bool,
-) -> wgpu::Features {
-    let mut requested_features = wgpu::Features::empty();
-    if adapter_features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE) {
-        requested_features |= wgpu::Features::INDIRECT_FIRST_INSTANCE;
+) -> Result<wgpu::Features, RhiError> {
+    let policy = device_request_policy(allow_gpu_timing);
+
+    wgpu_features_for_device_request(adapter_features, &policy)
+        .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))
+}
+
+fn device_request_policy(allow_gpu_timing: bool) -> RenderDeviceRequestPolicy {
+    if allow_gpu_timing {
+        RenderDeviceRequestPolicy::mvp_baseline()
+            .with_optional_feature(RenderDeviceFeature::GpuTimestamp)
+    } else {
+        RenderDeviceRequestPolicy::mvp_baseline()
     }
-    if allow_gpu_timing && adapter_features.contains(GPU_TIMESTAMP_REQUIRED_FEATURES) {
-        requested_features |= GPU_TIMESTAMP_REQUIRED_FEATURES;
-    }
-    requested_features
 }
 
 pub(super) fn instance_descriptor() -> wgpu::InstanceDescriptor {

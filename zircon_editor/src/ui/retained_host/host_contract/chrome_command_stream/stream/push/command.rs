@@ -16,11 +16,13 @@ impl ChromeCommandStream {
         if !visible_frame(&frame) {
             return;
         }
+        self.image_resources_compacted = false;
         self.commands.push(ChromeCommand {
             layer,
             z_index,
             frame,
             clip,
+            source: None,
             kind,
         });
     }

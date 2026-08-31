@@ -6,7 +6,9 @@ use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError};
 use super::super::component_contract::validate_document_component_contracts;
 use super::super::localization::validate_document_localization;
 use super::super::resource_ref::collect_document_resource_dependencies;
+use super::binding_program::compile_binding_program;
 use super::cache::{compile_cache_key_from_compiler, UiAssetCompileCache, UiCompileCacheOutcome};
+use super::control_scope::validate_unique_control_ids;
 use super::shape_validator::validate_document_shape;
 use super::ui_document_compiler::{CompilationArtifacts, UiCompiledDocument, UiDocumentCompiler};
 use super::ui_style_resolver::UiStyleResolver;
@@ -48,6 +50,7 @@ impl UiDocumentCompiler {
             &tokens,
             &BTreeMap::new(),
             None,
+            None,
             &mut artifacts,
         )?;
         let root = roots
@@ -58,8 +61,12 @@ impl UiDocumentCompiler {
                 detail: "asset expansion produced no root nodes".to_string(),
             })?;
 
-        let mut instance = UiTemplateInstance { root };
+        validate_unique_control_ids(&root, &document.asset.id)?;
+
+        let mut instance = UiTemplateInstance::new(root);
         UiStyleResolver::apply(document, self, &mut instance.root, &artifacts)?;
+        let binding_program = compile_binding_program(&instance.root, &document.asset.id)?;
+        let instance = UiTemplateInstance::with_binding_program(instance.root, binding_program);
         let resource_report = collect_document_resource_dependencies(
             document,
             &self.widget_imports,

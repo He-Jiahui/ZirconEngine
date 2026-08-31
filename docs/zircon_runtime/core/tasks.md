@@ -1,12 +1,16 @@
 ---
 related_code:
   - zircon_runtime/src/core/runtime/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/diagnostic_observation
   - zircon_runtime/src/core/runtime/tasks/diagnostics.rs
+  - zircon_runtime/src/core/runtime/tasks/diagnostics/snapshot.rs
   - zircon_runtime/src/core/runtime/tasks/pool.rs
   - zircon_runtime/src/core/runtime/tasks/pools.rs
   - zircon_runtime/src/core/runtime/tasks/report.rs
   - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler/pending.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
@@ -15,19 +19,27 @@ related_code:
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/core_handle.rs
   - zircon_runtime/src/core/framework/tasks/mod.rs
+  - zircon_editor/src/core/logging/runtime_task_diagnostics
+  - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
 implementation_files:
   - zircon_runtime/src/core/runtime/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/diagnostic_observation
   - zircon_runtime/src/core/runtime/tasks/diagnostics.rs
+  - zircon_runtime/src/core/runtime/tasks/diagnostics/snapshot.rs
   - zircon_runtime/src/core/runtime/tasks/pool.rs
   - zircon_runtime/src/core/runtime/tasks/pools.rs
   - zircon_runtime/src/core/runtime/tasks/report.rs
   - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler/pending.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
+  - zircon_editor/src/core/logging/runtime_task_diagnostics
+  - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
 plan_sources:
   - user: 2026-05-16 continue Bevy-style app/prelude/state/time/tasks/log/diagnostic completion
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
@@ -47,11 +59,13 @@ tests:
   - zircon_runtime/src/tests/tasks.rs::task_diagnostics_reports_conserved_lifecycle_snapshots_during_transitions
   - zircon_runtime/src/tests/tasks.rs::worker_side_wait_is_reported_as_explicit_wait
   - zircon_runtime/src/tests/tasks.rs::task_diagnostics_distinguish_panics_from_dependency_cancellation
-  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs::tests::detached_spawn_counts_panicked_tasks_as_completed
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs::detached_spawn_counts_panicked_tasks_as_completed
+  - zircon_runtime/src/core/runtime/tasks/diagnostic_observation/tests.rs
+  - zircon_editor/src/core/logging/runtime_task_diagnostics/tests.rs
   - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::repeated_editor_runtime_fixtures_release_every_runtime_root
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs::tests::job_handle_accessors_recover_poisoned_state_lock
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs::tests::job_handle_wait_recovers_poisoned_state_lock
-  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs::tests::pending_scheduled_job_recovers_poisoned_task_lock
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs::pending_scheduled_job_recovers_poisoned_task_lock
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_task_lock_poison_recovery_guard_covers_job_handles
   - zircon_runtime/src/tests/prelude.rs
   - cargo test -p zircon_runtime --lib tasks --locked
@@ -108,6 +122,8 @@ Runtime 15 M3 extends the E9/F2 poison-safe lock rule to JobSystem state. `job_h
 
 `JobSchedulerDiagnosticsState` remains private to `core::runtime::tasks`. `tasks/mod.rs` imports it for sibling task modules, but does not re-export it outside the owner module. The public diagnostic surface remains `JobSchedulerReport`, the scheduler diagnostic methods, and the stable `tasks.*` diagnostic keys.
 
+`JobScheduler::task_diagnostic_source()` is the bounded terminal-observation surface for host integration. Its independent observation flag does not activate full lifecycle counter/timing sampling. It retains at most 256 panic/cancellation facts, caps each UTF-8 message at 4 KiB, returns at most 64 observations per cursor read, and reports an exact retention gap. Task identity allocation reuses the 64 diagnostics shards instead of adding a scheduler-global hot atomic. The runtime owns no editor types or log store; the editor host owns its cursor and emits observations through the sole `EditorLogService` as the existing runtime source.
+
 The line format starts with aggregate allocation:
 
 - `tasks.total_threads`
@@ -130,4 +146,4 @@ During the 2026-06-13 editor UI grouped-keyboard validation, the Material catalo
 
 `job_handle_accessors_recover_poisoned_state_lock`, `job_handle_wait_recovers_poisoned_state_lock`, and `pending_scheduled_job_recovers_poisoned_task_lock` deliberately poison JobHandle state and pending scheduled task locks, then verify dependent callbacks, wait, completion marking, and scheduled task launch still work. `structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_task_lock_poison_recovery_guard_covers_job_handles` keeps the task owner files, this document, Runtime 15 status rows, and plan mirrors synchronized under `runtime_15_core_runtime_task_lock_poison_recovery_static_passed_cargo_deferred`.
 
-`job_system_boundary` mirrors the Runtime 11 structure without Cargo: `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, and `risks = []`. The 2026-06-21 inventory split moves module/Rayon source ownership into `job_system_source_inventory.py` and API/test/doc anchor ownership into `job_system_anchor_inventory.py`, leaving the boundary file as the audit reader and renderer. The behavior anchors now include panic-safe handle completion for scheduled jobs, dependent jobs, and worker-side wait assist through the task-pool-owned `assist_current_thread_once(...)` helper.
+`job_system_boundary` mirrors the Runtime 11 structure without Cargo: `expected_module_count = 13`, `diagnostic_anchor_count = 11`, `behavior_test_anchor_count = 46`, `missing_behavior_test_anchors = []`, `missing_api_snippets = {}`, `oversized_modules = []`, and `runtime_editor_dependency_references = []`. The current full-tree scan reports three direct-Rayon paths because `graphics/.../mesh_draw_command_list/builder.rs` remains outside the two-path task-owner whitelist; the aggregate audit's two `risks` entries are limited to that external migration blocker. The 2026-06-21 inventory split keeps module/Rayon source ownership in `job_system_source_inventory.py` and API/test/doc anchor ownership in `job_system_anchor_inventory.py`, with the boundary file as audit reader and risk aggregator. Runtime11's seven added anchors cover observation-only sampling separation, bounded retention/batches, severity/identity, UTF-8 bounds, shard-local identity allocation, dependency-panic classification, and first-terminal-winner consistency.

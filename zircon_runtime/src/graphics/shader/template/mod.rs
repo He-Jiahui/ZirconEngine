@@ -3,6 +3,7 @@ mod deferred_gbuffer;
 mod material_surface;
 mod module_registry;
 mod pass_specialization;
+mod reflection;
 mod taa_reactive_mask;
 mod validation;
 
@@ -10,26 +11,31 @@ mod validation;
 mod tests;
 
 pub(crate) use assemble::{
-    assemble_material_shader_template, MaterialShaderTemplateAssembly,
-    MaterialShaderTemplateRequest, ShaderAssemblySegment, ShaderAssemblySegmentKind,
-    ShaderTemplateAssemblyError,
+    MaterialShaderTemplateAssembly, MaterialShaderTemplateRequest, ShaderAssemblySegment,
+    ShaderAssemblySegmentKind, ShaderTemplateAssemblyError, assemble_material_shader_template,
 };
 pub(crate) use deferred_gbuffer::{
-    assemble_deferred_gbuffer_shader_template, DeferredGBufferShaderTemplateRequest,
+    DeferredGBufferShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
 };
 pub(crate) use material_surface::{
-    standard_material_surface_source, standard_material_surface_source_for_features,
-    StandardMaterialSurfaceSource,
+    StandardMaterialSurfaceSource, standard_material_surface_source,
+    standard_material_surface_source_for_features,
 };
 pub(crate) use module_registry::{
-    builtin_shader_ide_module_includes, environment_standard_pbr_include, ShaderModuleRegistry,
-    ShaderModuleResolutionError, ShaderTemplateInclude,
+    ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
+    builtin_shader_ide_module_includes, environment_standard_pbr_include,
+    pbr_extras_include_for_features,
+};
+pub(crate) use reflection::{
+    ShaderEntryPointReflection, ShaderFragmentOutputNumericType, ShaderFragmentOutputScalarKind,
+    ShaderResourceBindingIdentity, ShaderResourceBindingReflection, ShaderStageIoReflection,
+    ShaderStageVisibility, ShaderTemplateReflection, ShaderVertexInputScalarKind,
 };
 pub(crate) use taa_reactive_mask::{
-    assemble_taa_reactive_mask_shader_template, TaaReactiveMaskShaderTemplateRequest,
+    TaaReactiveMaskShaderTemplateRequest, assemble_taa_reactive_mask_shader_template,
 };
 pub(crate) use validation::{
+    MaterialShaderTemplateValidation, ShaderTemplateValidationError,
     validate_material_shader_template_wgsl, validate_material_shader_template_wgsl_with_segments,
-    validate_shader_variant_prewarm_wgsl, MaterialShaderTemplateValidation,
-    ShaderTemplateValidationError,
+    validate_shader_variant_prewarm_wgsl,
 };

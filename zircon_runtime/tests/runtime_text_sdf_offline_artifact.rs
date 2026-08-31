@@ -1,14 +1,20 @@
 #![cfg(feature = "font-sdf-build-tool")]
 
+use std::time::Duration;
+
+use zircon_runtime::core::{EngineTaskGraph, EngineTaskGraphOptions};
 use zircon_runtime::text::font_sdf_build_tool::{
     bake_font_sdf_artifact, inspect_font_sdf_artifact, FontSdfBakeMode, FontSdfBakeRequest,
     FontSdfGlyphSelection,
 };
 
 const ASSET_GUID: &str = "12345678-90ab-4cde-8f01-234567890abc";
+const TEST_TASK_GRAPH_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(2);
+const TEST_TASK_GRAPH_WORKER_THREADS: usize = 2;
 
 #[test]
 fn text_sdf_offline_build_is_deterministic_and_decodable_for_every_mode() {
+    let task_graph = test_task_graph();
     let font = std::fs::read(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf"),
     )
@@ -20,8 +26,10 @@ fn text_sdf_offline_build_is_deterministic_and_decodable_for_every_mode() {
         FontSdfBakeMode::Mtsdf,
     ] {
         let request = fixture_request(mode);
-        let first = bake_font_sdf_artifact(&font, &request).expect("first bake");
-        let second = bake_font_sdf_artifact(&font, &request).expect("second bake");
+        let first =
+            bake_font_sdf_artifact(task_graph.worker_pool(), &font, &request).expect("first bake");
+        let second =
+            bake_font_sdf_artifact(task_graph.worker_pool(), &font, &request).expect("second bake");
 
         assert_eq!(first.bytes(), second.bytes());
         assert_eq!(first.report(), second.report());
@@ -39,20 +47,39 @@ fn text_sdf_offline_build_is_deterministic_and_decodable_for_every_mode() {
         assert_eq!(inspection.glyph_count, first.report().generated_glyph_count);
         assert_eq!(inspection.page_count, first.report().page_count);
     }
+
+    task_graph
+        .shutdown(TEST_TASK_GRAPH_SHUTDOWN_TIMEOUT)
+        .expect("offline SDF test task graph should stop");
 }
 
 #[test]
 fn text_sdf_offline_inspection_rejects_corrupt_checksum() {
+    let task_graph = test_task_graph();
     let font = std::fs::read(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf"),
     )
     .expect("read FiraSans fixture");
-    let artifact = bake_font_sdf_artifact(&font, &fixture_request(FontSdfBakeMode::Msdf))
-        .expect("bake artifact");
+    let artifact = bake_font_sdf_artifact(
+        task_graph.worker_pool(),
+        &font,
+        &fixture_request(FontSdfBakeMode::Msdf),
+    )
+    .expect("bake artifact");
     let mut corrupt = artifact.into_bytes();
     *corrupt.last_mut().expect("artifact payload") ^= 0x5a;
 
     assert!(inspect_font_sdf_artifact(&corrupt).is_err());
+    task_graph
+        .shutdown(TEST_TASK_GRAPH_SHUTDOWN_TIMEOUT)
+        .expect("offline SDF test task graph should stop");
+}
+
+fn test_task_graph() -> EngineTaskGraph {
+    EngineTaskGraph::try_new(EngineTaskGraphOptions::with_worker_threads(
+        TEST_TASK_GRAPH_WORKER_THREADS,
+    ))
+    .expect("offline SDF test task graph")
 }
 
 fn fixture_request(mode: FontSdfBakeMode) -> FontSdfBakeRequest {

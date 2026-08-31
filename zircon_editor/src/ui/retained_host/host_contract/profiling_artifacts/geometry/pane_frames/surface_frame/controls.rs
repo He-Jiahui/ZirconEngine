@@ -49,7 +49,7 @@ pub(super) fn collect_surface_frame_control_nodes(
         }
         push_named_profile_frame(
             out,
-            format!("{kind}.{surface}.{control_id}").as_str(),
+            format!("{kind}.{surface}.{control_id}"),
             kind,
             surface,
             effective_frame.into(),

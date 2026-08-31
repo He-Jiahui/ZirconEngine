@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use super::{line_break_chunks, line_break_chunks_with_provider, word_smart_line_break_chunks};
-use crate::core::framework::text::TextDirection;
+use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
-use crate::text::{ShapedGlyphRun, TextRange, TextStyle};
+use crate::text::{ShapedGlyph, ShapedGlyphRun, ShapedHardLine, TextRange, TextStyle};
 
 #[test]
 fn line_break_chunks_keep_cjk_open_punctuation_with_following_text() {
@@ -34,9 +34,19 @@ fn line_break_chunks_shape_physical_paragraphs_independently() {
     let text = "one\ntwo\nthree";
     let mut provider = CountingShapeRunProvider::default();
 
-    let chunks = line_break_chunks_with_provider(text, &TextStyle::default(), &mut provider);
+    let chunks = line_break_chunks_with_provider(text, &TextStyle::default(), &mut provider)
+        .into_result()
+        .expect("build line break chunks");
 
     assert_eq!(provider.shape_calls, 3);
+    assert_eq!(
+        provider.requested_ranges,
+        vec![
+            TextRange { start: 0, end: 4 },
+            TextRange { start: 4, end: 8 },
+            TextRange { start: 8, end: 13 },
+        ]
+    );
     assert_eq!(
         chunks.iter().map(|chunk| chunk.text).collect::<Vec<_>>(),
         vec!["one\n", "two\n", "three"]
@@ -44,6 +54,97 @@ fn line_break_chunks_shape_physical_paragraphs_independently() {
     assert!(chunks[0].mandatory_break);
     assert!(chunks[1].mandatory_break);
     assert!(!chunks[2].mandatory_break);
+}
+
+#[test]
+fn line_break_chunks_normalize_visual_glyph_order_before_materializing_boundaries() {
+    let text = "a b c";
+    let shaped = Arc::new(ShapedGlyphRun {
+        source_text: Arc::from(text),
+        source_range: TextRange {
+            start: 0,
+            end: text.len(),
+        },
+        unicode_data_snapshot: crate::text::compiled_unicode_data_snapshot_id(),
+        primary_face_id: None,
+        direction: TextDirection::RightToLeft,
+        orientation: crate::text::TextOrientation::Horizontal,
+        vertical_mode: crate::text::VerticalMode::Mixed,
+        include_kerning: true,
+        measured_width: 5.0,
+        measured_height: 10.0,
+        horizontal_composition_receipt: None,
+        horizontal_line_raw_metrics: Vec::new(),
+        horizontal_glyph_metric_spans: Vec::new(),
+        lines: vec![ShapedHardLine {
+            line_index: 0,
+            source_range: TextRange {
+                start: 0,
+                end: text.len(),
+            },
+            visual_range: TextRange {
+                start: 0,
+                end: text.len(),
+            },
+            measured_width: 5.0,
+            baseline: 8.0,
+            line_height: 10.0,
+            glyphs: vec![break_glyph(3..4), break_glyph(1..2), plain_glyph(0..1)],
+        }],
+    });
+    let mut provider = FixedShapeRunProvider { shaped };
+
+    let chunks = line_break_chunks_with_provider(text, &TextStyle::default(), &mut provider)
+        .into_result()
+        .expect("visual-order fixture must produce logical chunks");
+
+    assert_eq!(
+        chunks.iter().map(|chunk| chunk.text).collect::<Vec<_>>(),
+        vec!["a ", "b ", "c"]
+    );
+}
+
+#[test]
+fn line_break_chunks_fail_closed_on_non_utf8_cluster_ranges() {
+    let text = "éx";
+    let shaped = Arc::new(ShapedGlyphRun {
+        source_text: Arc::from(text),
+        source_range: TextRange {
+            start: 0,
+            end: text.len(),
+        },
+        unicode_data_snapshot: crate::text::compiled_unicode_data_snapshot_id(),
+        primary_face_id: None,
+        direction: TextDirection::LeftToRight,
+        orientation: crate::text::TextOrientation::Horizontal,
+        vertical_mode: crate::text::VerticalMode::Mixed,
+        include_kerning: true,
+        measured_width: 2.0,
+        measured_height: 10.0,
+        horizontal_composition_receipt: None,
+        horizontal_line_raw_metrics: Vec::new(),
+        horizontal_glyph_metric_spans: Vec::new(),
+        lines: vec![ShapedHardLine {
+            line_index: 0,
+            source_range: TextRange {
+                start: 0,
+                end: text.len(),
+            },
+            visual_range: TextRange {
+                start: 0,
+                end: text.len(),
+            },
+            measured_width: 2.0,
+            baseline: 8.0,
+            line_height: 10.0,
+            glyphs: vec![plain_glyph(1..2)],
+        }],
+    });
+    let mut provider = FixedShapeRunProvider { shaped };
+
+    let outcome = line_break_chunks_with_provider(text, &TextStyle::default(), &mut provider);
+
+    assert_eq!(outcome.into_result(), Err(TextLayoutError::BidiInvariant));
 }
 
 #[test]
@@ -232,19 +333,79 @@ fn word_smart_line_break_chunks_keep_cjk_closing_delimiter_after_punctuation_wit
 struct CountingShapeRunProvider {
     direct: DirectTextShapeRunProvider,
     shape_calls: usize,
+    requested_ranges: Vec<TextRange>,
+}
+
+struct FixedShapeRunProvider {
+    shaped: Arc<ShapedGlyphRun>,
+}
+
+impl TextShapeRunProvider for FixedShapeRunProvider {
+    fn shape_horizontal_range_with_kerning(
+        &mut self,
+        _text: &str,
+        _style: &TextStyle,
+        _direction: TextDirection,
+        _source_range: TextRange,
+        _include_kerning: bool,
+    ) -> crate::text::shaping::TextShapingOutcome {
+        crate::text::shaping::TextShapingOutcome::Ready(Arc::clone(&self.shaped))
+    }
+}
+
+fn break_glyph(range: std::ops::Range<usize>) -> ShapedGlyph {
+    ShapedGlyph {
+        glyph_id: 1,
+        font_id: None,
+        font_instance_id: None,
+        source_range: TextRange {
+            start: range.start,
+            end: range.end,
+        },
+        visual_range: TextRange {
+            start: range.start,
+            end: range.end,
+        },
+        advance: 1.0,
+        x: 0.0,
+        y: 0.0,
+        offset_x: 0.0,
+        offset_y: 0.0,
+        direction: TextDirection::RightToLeft,
+        bidi_level: 1,
+        cluster_flags: crate::text::ShapedGlyphClusterFlags {
+            cluster_start: true,
+            soft_break: true,
+            rtl: true,
+            ..crate::text::ShapedGlyphClusterFlags::default()
+        },
+        rotation: crate::text::ShapedGlyphRotation::None,
+        script: crate::text::ShapedGlyphScript::default(),
+    }
+}
+
+fn plain_glyph(range: std::ops::Range<usize>) -> ShapedGlyph {
+    ShapedGlyph {
+        cluster_flags: crate::text::ShapedGlyphClusterFlags {
+            cluster_start: true,
+            ..crate::text::ShapedGlyphClusterFlags::default()
+        },
+        ..break_glyph(range)
+    }
 }
 
 impl TextShapeRunProvider for CountingShapeRunProvider {
-    fn shape_horizontal_line_with_kerning(
+    fn shape_horizontal_range_with_kerning(
         &mut self,
         text: &str,
         style: &TextStyle,
         direction: TextDirection,
         source_range: TextRange,
         include_kerning: bool,
-    ) -> Arc<ShapedGlyphRun> {
+    ) -> crate::text::shaping::TextShapingOutcome {
         self.shape_calls = self.shape_calls.saturating_add(1);
-        self.direct.shape_horizontal_line_with_kerning(
+        self.requested_ranges.push(source_range);
+        self.direct.shape_horizontal_range_with_kerning(
             text,
             style,
             direction,

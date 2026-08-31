@@ -121,10 +121,20 @@ impl SettingsChangeLog {
         } else {
             cursor.revision < latest_revision
         };
+        let first_change_index = if cursor.revision >= latest_revision {
+            self.entries.len()
+        } else {
+            self.entries.front().map_or(0, |entry| {
+                let next_revision = cursor.revision.saturating_add(1);
+                let offset = next_revision.saturating_sub(entry.change.revision);
+                usize::try_from(offset)
+                    .unwrap_or(usize::MAX)
+                    .min(self.entries.len())
+            })
+        };
         let changes = self
             .entries
-            .iter()
-            .filter(|entry| entry.change.revision > cursor.revision)
+            .range(first_change_index..)
             .map(|entry| entry.change.clone())
             .collect();
         SettingsChangeDelta {

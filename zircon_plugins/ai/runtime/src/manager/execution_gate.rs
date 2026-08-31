@@ -3,6 +3,10 @@ use std::sync::{Arc, Condvar, Mutex};
 
 use zircon_runtime::plugin::PluginModuleId;
 
+#[cfg(test)]
+#[path = "execution_gate/canonical_owner_tests.rs"]
+mod canonical_owner_tests;
+
 #[derive(Clone, Debug, Default)]
 pub(super) struct BehaviorNodeExecutionGate {
     inner: Arc<ExecutionGateInner>,
@@ -26,8 +30,7 @@ impl BehaviorNodeExecutionGate {
         &self,
         mut owners: Vec<PluginModuleId>,
     ) -> Option<BehaviorNodeExecutionLease> {
-        owners.sort_by_key(|owner| owner.raw());
-        owners.dedup();
+        canonicalize_owners(&mut owners);
         let mut state = self
             .inner
             .state
@@ -103,16 +106,43 @@ impl BehaviorNodeExecutionGate {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        for owner in owners {
-            if let Some(count) = state.in_flight.get_mut(owner) {
-                *count -= 1;
-                if *count == 0 {
-                    state.in_flight.remove(owner);
-                }
-            }
+        if release_owners(&mut state, owners) {
+            self.inner.idle.notify_all();
         }
-        self.inner.idle.notify_all();
     }
+}
+
+fn release_owners(state: &mut ExecutionGateState, owners: &[PluginModuleId]) -> bool {
+    let mut revoking_owner_became_idle = false;
+    for owner in owners {
+        let became_idle = if let Some(count) = state.in_flight.get_mut(owner) {
+            *count -= 1;
+            *count == 0
+        } else {
+            false
+        };
+        if became_idle {
+            state.in_flight.remove(owner);
+            revoking_owner_became_idle |= state.revoking.contains(owner);
+        }
+    }
+    revoking_owner_became_idle
+}
+
+fn canonicalize_owners(owners: &mut Vec<PluginModuleId>) {
+    if owners.len() < 2 {
+        return;
+    }
+    let first = owners[0];
+    if owners[1..].iter().all(|owner| *owner == first) {
+        owners.truncate(1);
+        return;
+    }
+    if owners.windows(2).all(|pair| pair[0].raw() < pair[1].raw()) {
+        return;
+    }
+    owners.sort_unstable_by_key(|owner| owner.raw());
+    owners.dedup();
 }
 
 #[derive(Debug)]

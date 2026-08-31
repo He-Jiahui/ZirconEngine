@@ -91,6 +91,64 @@ fn text_input_keyboard_control_delete_deletes_next_word() {
 }
 
 #[test]
+fn secure_text_control_arrows_do_not_reveal_word_boundaries() {
+    let value = "alpha beta";
+    let password = [("input_kind", toml::Value::String("password".to_string()))];
+    let mut right = text_input_surface_with_attributes(value, 0, password.clone());
+    right.focus_node(UiNodeId::new(2)).unwrap();
+
+    let right_result = dispatch_key_with_control(&mut right, "ArrowRight", 39);
+
+    assert_eq!(
+        right_result.reply.disposition,
+        UiDispatchDisposition::Handled
+    );
+    assert_eq!(int_attr(&right, "caret_offset"), value.len() as i64);
+    assert_eq!(text_attr(&right, "content"), value);
+
+    let mut left = text_input_surface_with_attributes(value, value.len(), password);
+    left.focus_node(UiNodeId::new(2)).unwrap();
+
+    let left_result = dispatch_key_with_control(&mut left, "ArrowLeft", 37);
+
+    assert_eq!(
+        left_result.reply.disposition,
+        UiDispatchDisposition::Handled
+    );
+    assert_eq!(int_attr(&left, "caret_offset"), 0);
+    assert_eq!(text_attr(&left, "content"), value);
+}
+
+#[test]
+fn secure_text_control_delete_uses_line_boundaries_instead_of_words() {
+    let value = "alpha beta";
+    let password = [("input_kind", toml::Value::String("password".to_string()))];
+    let mut backward = text_input_surface_with_attributes(value, value.len(), password.clone());
+    backward.focus_node(UiNodeId::new(2)).unwrap();
+
+    let backward_result = dispatch_key_with_control(&mut backward, "Backspace", 8);
+
+    assert_eq!(
+        backward_result.reply.disposition,
+        UiDispatchDisposition::Handled
+    );
+    assert_eq!(text_attr(&backward, "content"), "");
+    assert!(backward_result.diagnostics.secure_text_redacted);
+
+    let mut forward = text_input_surface_with_attributes(value, 0, password);
+    forward.focus_node(UiNodeId::new(2)).unwrap();
+
+    let forward_result = dispatch_key_with_control(&mut forward, "Delete", 46);
+
+    assert_eq!(
+        forward_result.reply.disposition,
+        UiDispatchDisposition::Handled
+    );
+    assert_eq!(text_attr(&forward, "content"), "");
+    assert!(forward_result.diagnostics.secure_text_redacted);
+}
+
+#[test]
 fn text_input_keyboard_control_a_selects_all_text() {
     let value = "alpha beta";
     let mut surface = text_input_surface(value, 5);

@@ -7,41 +7,63 @@ use super::super::bind_group_layouts;
 use super::super::create_buffer_bundle::create_buffer_bundle;
 use super::super::create_fallback_texture_views::create_fallback_texture_views;
 use super::super::create_pipeline_bundle::{create_pipeline_bundle, output_transfer_pipeline};
-use crate::graphics::shader::{motion_vector_tile_max_pass_plan, FullscreenPassParameterBindings};
+use crate::graphics::backend::SystemTextureGenerationLease;
+use crate::graphics::shader::{FullscreenPassParameterBindings, motion_vector_tile_max_pass_plan};
+use crate::graphics::types::GraphicsError;
 
 impl ScenePostProcessResources {
     pub(crate) fn new(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        system_textures: &SystemTextureGenerationLease,
         final_color_format: wgpu::TextureFormat,
         backend_name: &str,
-    ) -> Self {
-        Self::Full(FullScenePostProcessResources::new(
-            device,
-            queue,
-            final_color_format,
-            backend_name,
-        ))
+    ) -> Result<Self, GraphicsError> {
+        validate_post_process_construction(device, "full resources", || {
+            Self::Full(FullScenePostProcessResources::new(
+                device,
+                system_textures,
+                final_color_format,
+                backend_name,
+            ))
+        })
     }
 
     pub(crate) fn output_transfer_only(
         device: &wgpu::Device,
         final_color_format: wgpu::TextureFormat,
-    ) -> Self {
-        let bind_group_layout = bind_group_layouts::output_transfer(device);
-        let pipeline = output_transfer_pipeline(device, final_color_format, &bind_group_layout);
-        Self::OutputTransferOnly(SceneOutputTransferResources {
-            terminal_resource_cache: TerminalPostProcessResourceCache::new(),
-            bind_group_layout,
-            pipeline,
+    ) -> Result<Self, GraphicsError> {
+        validate_post_process_construction(device, "output transfer resources", || {
+            let bind_group_layout = bind_group_layouts::output_transfer(device);
+            let pipeline = output_transfer_pipeline(device, final_color_format, &bind_group_layout);
+            Self::OutputTransferOnly(SceneOutputTransferResources {
+                terminal_resource_cache: TerminalPostProcessResourceCache::new(),
+                bind_group_layout,
+                pipeline,
+            })
         })
+    }
+}
+
+fn validate_post_process_construction<T>(
+    device: &wgpu::Device,
+    operation: &str,
+    construct: impl FnOnce() -> T,
+) -> Result<T, GraphicsError> {
+    // This scope runs once during renderer initialization; frame recording never waits on it.
+    let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
+    let resources = construct();
+    match pollster::block_on(error_scope.pop()) {
+        Some(error) => Err(GraphicsError::WgpuValidation(format!(
+            "post-process {operation} construction: {error}"
+        ))),
+        None => Ok(resources),
     }
 }
 
 impl FullScenePostProcessResources {
     fn new(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        system_textures: &SystemTextureGenerationLease,
         final_color_format: wgpu::TextureFormat,
         backend_name: &str,
     ) -> Self {
@@ -69,7 +91,6 @@ impl FullScenePostProcessResources {
             bind_group_layouts::motion_vector_tile_max_parameters(device);
         let motion_vector_tile_max_parameter_bindings = FullscreenPassParameterBindings::new(
             device,
-            queue,
             motion_vector_tile_max_pass_plan(),
             &motion_vector_tile_max_parameter_bind_group_layout,
         )
@@ -106,9 +127,11 @@ impl FullScenePostProcessResources {
             depth_sampling_mode,
         );
         let buffer_bundle = create_buffer_bundle(device);
-        let fallback_texture_views = create_fallback_texture_views(device, queue);
+        let fallback_texture_views = create_fallback_texture_views(system_textures);
 
         Self {
+            post_process_pass_parameter_buffers: buffer_bundle
+                .post_process_pass_parameter_buffers,
             hzb_fallback_resource_identity:
                 crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity::new(),
             depth_sampling_mode,
@@ -177,6 +200,8 @@ impl FullScenePostProcessResources {
             hzb_params_buffer: buffer_bundle.hzb_params_buffer,
             half_res_transparency_params_buffer: buffer_bundle.half_res_transparency_params_buffer,
             taa_resolve_params_buffer: buffer_bundle.taa_resolve_params_buffer,
+            primary_upscale_params_buffer: buffer_bundle.primary_upscale_params_buffer,
+            secondary_upscale_params_buffer: buffer_bundle.secondary_upscale_params_buffer,
             exposure_params_buffer: buffer_bundle.exposure_params_buffer,
             color_lut_bake_params_buffer: buffer_bundle.color_lut_bake_params_buffer,
             default_exposure_buffer: buffer_bundle.default_exposure_buffer,
@@ -238,4 +263,35 @@ fn upscale_sampler(device: &wgpu::Device) -> wgpu::Sampler {
         mipmap_filter: wgpu::MipmapFilterMode::Nearest,
         ..Default::default()
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::graphics::backend::RenderBackend;
+    use crate::graphics::types::GraphicsError;
+
+    use super::validate_post_process_construction;
+
+    #[test]
+    fn post_process_construction_validation_scope_reports_its_operation() {
+        let Ok(backend) = RenderBackend::new_offscreen() else {
+            return;
+        };
+
+        let result =
+            validate_post_process_construction(&backend.device, "test-invalid-shader", || {
+                backend
+                    .device
+                    .create_shader_module(wgpu::ShaderModuleDescriptor {
+                        label: Some("zircon-post-process-invalid-test-shader"),
+                        source: wgpu::ShaderSource::Wgsl("not valid WGSL".into()),
+                    })
+            });
+
+        assert!(matches!(
+            result,
+            Err(GraphicsError::WgpuValidation(message))
+                if message.contains("post-process test-invalid-shader construction")
+        ));
+    }
 }

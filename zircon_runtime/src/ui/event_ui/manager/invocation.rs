@@ -14,20 +14,16 @@ impl UiEventManager {
         self.invoke_route_internal(route_id, arguments, UiInvocationSource::Route)
     }
 
-    pub fn invoke_binding(&self, binding: UiEventBinding) -> UiInvocationResult {
+    pub fn invoke_binding(&self, mut binding: UiEventBinding) -> UiInvocationResult {
         let key = binding.native_binding();
         let Some(route_id) = self.routes_by_binding.get(&key).copied() else {
             return UiInvocationResult::failure(
                 None,
-                Some(binding.clone()),
+                Some(binding),
                 UiInvocationError::UnknownBinding(key),
             );
         };
-        let arguments = binding
-            .action
-            .as_ref()
-            .map(|call| call.arguments.clone())
-            .unwrap_or_default();
+        let arguments = take_binding_arguments(&mut binding);
         self.invoke_route_internal(route_id, arguments, UiInvocationSource::Binding)
     }
 
@@ -181,3 +177,15 @@ impl UiEventManager {
         result
     }
 }
+
+fn take_binding_arguments(binding: &mut UiEventBinding) -> Vec<UiBindingValue> {
+    binding
+        .action
+        .as_mut()
+        .map(|call| std::mem::take(&mut call.arguments))
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+#[path = "invocation/owned_binding_arguments_tests.rs"]
+mod owned_binding_arguments_tests;

@@ -1,5 +1,5 @@
 use crate::ui::asset_editor::UiDesignerSelectionModel;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::sync::Arc;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::UiAssetDocument;
@@ -299,10 +299,7 @@ pub(crate) fn build_source_outline_index(
 ) -> UiAssetSourceOutlineIndex {
     build_source_outline_index_for_node_ids(
         source,
-        document
-            .iter_nodes()
-            .map(|node| node.node_id.as_str())
-            .collect::<BTreeSet<_>>(),
+        document.iter_nodes().map(|node| node.node_id.as_str()),
     )
 }
 
@@ -310,7 +307,7 @@ fn build_source_outline_index_for_node_ids<'node>(
     source: &str,
     node_ids: impl IntoIterator<Item = &'node str>,
 ) -> UiAssetSourceOutlineIndex {
-    let node_ids = node_ids.into_iter().collect::<BTreeSet<_>>();
+    let node_ids = node_ids.into_iter().collect::<HashSet<_>>();
     if node_ids.is_empty() {
         return UiAssetSourceOutlineIndex::default();
     }
@@ -319,7 +316,7 @@ fn build_source_outline_index_for_node_ids<'node>(
     let mut headers = Vec::new();
     let mut direct_entries = BTreeMap::new();
     let mut tree_candidates = BTreeMap::new();
-    let mut seen_tree_node_ids = BTreeSet::new();
+    let mut seen_tree_node_ids = HashSet::with_capacity(node_ids.len());
     let mut last_array_headers = BTreeMap::new();
     let mut last_non_array_header = None;
     let mut pending_direct = None::<(String, usize)>;
@@ -610,6 +607,9 @@ fn invalid_prefix(diagnostics: &[String], message: &str) -> String {
         format!("source invalid, preview uses last valid snapshot; {message}")
     }
 }
+
+#[cfg(test)]
+mod hash_membership_tests;
 
 #[cfg(test)]
 mod tests {

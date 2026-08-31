@@ -1,5 +1,9 @@
 use zircon_runtime::core::framework::ai::{AiDecisionStatus, AiPerceptionSense};
 
+#[cfg(test)]
+#[path = "parameters/allocation_tests.rs"]
+mod allocation_tests;
+
 pub(crate) const TASK_RESULT_PARAMETER_KEY: &str = "result";
 pub(crate) const MOVE_TARGET_PARAMETER_KEY: &str = "target";
 pub(crate) const ANIMATION_PARAMETER_PARAMETER_KEY: &str = "parameter";
@@ -101,13 +105,19 @@ pub(super) const PERCEPTION_SENSE_EXPECTED_VALUES: &str =
 pub(super) const NON_NEGATIVE_SCALAR_EXPECTED_VALUE: &str = "a non-negative scalar";
 
 pub(crate) fn parse_task_result(value: &str) -> Option<AiDecisionStatus> {
-    match normalized_parameter_value(value).as_str() {
-        "idle" => Some(AiDecisionStatus::Idle),
-        "running" | "in_progress" | "inprogress" => Some(AiDecisionStatus::Running),
-        "succeeded" | "success" | "succeed" => Some(AiDecisionStatus::Succeeded),
-        "failed" | "failure" | "fail" => Some(AiDecisionStatus::Failed),
-        "blocked" => Some(AiDecisionStatus::Blocked),
-        _ => None,
+    let value = value.trim();
+    if value.eq_ignore_ascii_case("idle") {
+        Some(AiDecisionStatus::Idle)
+    } else if matches_ascii_case_insensitive(value, &["running", "in_progress", "inprogress"]) {
+        Some(AiDecisionStatus::Running)
+    } else if matches_ascii_case_insensitive(value, &["succeeded", "success", "succeed"]) {
+        Some(AiDecisionStatus::Succeeded)
+    } else if matches_ascii_case_insensitive(value, &["failed", "failure", "fail"]) {
+        Some(AiDecisionStatus::Failed)
+    } else if value.eq_ignore_ascii_case("blocked") {
+        Some(AiDecisionStatus::Blocked)
+    } else {
+        None
     }
 }
 
@@ -118,24 +128,35 @@ pub(crate) enum ParallelPolicy {
 }
 
 pub(crate) fn parse_parallel_policy(value: &str) -> Option<ParallelPolicy> {
-    match normalized_parameter_value(value).as_str() {
-        "all" => Some(ParallelPolicy::All),
-        "any" => Some(ParallelPolicy::Any),
-        _ => None,
+    let value = value.trim();
+    if value.eq_ignore_ascii_case("all") {
+        Some(ParallelPolicy::All)
+    } else if value.eq_ignore_ascii_case("any") {
+        Some(ParallelPolicy::Any)
+    } else {
+        None
     }
 }
 
 pub(crate) fn parse_perception_sense(value: &str) -> Option<AiPerceptionSense> {
-    match normalized_parameter_value(value).as_str() {
-        "sight" | "see" | "vision" => Some(AiPerceptionSense::Sight),
-        "hearing" | "hear" | "sound" => Some(AiPerceptionSense::Hearing),
-        "damage" => Some(AiPerceptionSense::Damage),
-        "touch" => Some(AiPerceptionSense::Touch),
-        "custom" => Some(AiPerceptionSense::Custom),
-        _ => None,
+    let value = value.trim();
+    if matches_ascii_case_insensitive(value, &["sight", "see", "vision"]) {
+        Some(AiPerceptionSense::Sight)
+    } else if matches_ascii_case_insensitive(value, &["hearing", "hear", "sound"]) {
+        Some(AiPerceptionSense::Hearing)
+    } else if value.eq_ignore_ascii_case("damage") {
+        Some(AiPerceptionSense::Damage)
+    } else if value.eq_ignore_ascii_case("touch") {
+        Some(AiPerceptionSense::Touch)
+    } else if value.eq_ignore_ascii_case("custom") {
+        Some(AiPerceptionSense::Custom)
+    } else {
+        None
     }
 }
 
-fn normalized_parameter_value(value: &str) -> String {
-    value.trim().to_ascii_lowercase()
+fn matches_ascii_case_insensitive(value: &str, candidates: &[&str]) -> bool {
+    candidates
+        .iter()
+        .any(|candidate| value.eq_ignore_ascii_case(candidate))
 }

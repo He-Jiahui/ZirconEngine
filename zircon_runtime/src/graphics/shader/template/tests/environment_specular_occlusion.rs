@@ -42,8 +42,11 @@ fn environment_specular_occlusion_matches_unreal_roughness_squared_contract() {
 
     assert!(helper.contains("let roughness_sq = clamped_roughness * clamped_roughness;"));
     assert!(helper.contains("return clamped_occlusion;"));
-    assert!(helper
-        .contains("pow(clamped_no_v + clamped_occlusion, roughness_sq) - 1.0 + clamped_occlusion"));
+    assert!(
+        helper.contains(
+            "pow(clamped_no_v + clamped_occlusion, roughness_sq) - 1.0 + clamped_occlusion"
+        )
+    );
     assert!(helper.contains("return clamp(specular_occlusion, 0.0, 1.0);"));
 }
 
@@ -70,8 +73,10 @@ fn environment_components_apply_ao_separately_to_diffuse_and_specular() {
         "let specular_occlusion = zr_environment_specular_occlusion(\n            no_v,\n            clamped_roughness,\n            clamped_occlusion,\n        );"
     ));
     assert!(components.contains("* specular_occlusion;"));
-    assert!(components
-        .contains("diffuse_environment * clamped_occlusion,\n        specular_environment,"));
+    assert!(
+        components
+            .contains("diffuse_environment * clamped_occlusion,\n        specular_environment,")
+    );
     assert!(!components.contains("specular_environment * clamped_occlusion"));
 }
 
@@ -91,8 +96,11 @@ fn clearcoat_environment_uses_shared_specular_occlusion_before_texture_work() {
         .expect("clearcoat must retain planar reflection selection");
 
     assert!(occlusion < early_out && early_out < planar);
-    assert!(clearcoat
-        .contains("zr_environment_specular_occlusion(no_v, clamped_roughness, clamped_occlusion)"));
+    assert!(
+        clearcoat.contains(
+            "zr_environment_specular_occlusion(no_v, clamped_roughness, clamped_occlusion)"
+        )
+    );
     assert!(
         clearcoat.contains("zr_environment_env_brdf_lut(vec3<f32>(0.04), clamped_roughness, no_v)")
     );
@@ -103,8 +111,21 @@ fn clearcoat_environment_uses_shared_specular_occlusion_before_texture_work() {
 fn fallback_mesh_uses_the_same_gltf_occlusion_strength_contract() {
     let fallback = include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl");
 
-    assert!(fallback
-        .contains("mix(1.0, occlusion_sample, clamp(material_properties.data0.z, 0.0, 1.0))"));
+    assert!(
+        fallback
+            .contains("mix(1.0, occlusion_sample, clamp(material_properties.data0.z, 0.0, 1.0))")
+    );
     assert!(!fallback.contains("occlusion * textureSampleBias("));
     assert!(!fallback.contains("if (occlusion <= 0.0)"));
+}
+
+#[test]
+fn fallback_mesh_keeps_zero_gltf_roughness_at_the_pbr_minimum() {
+    let fallback = include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl");
+
+    assert!(fallback.contains(
+        "let roughness = clamp(\n        material_properties.data0.y * metallic_roughness.g,\n        ZR_STANDARD_MATERIAL_MIN_ROUGHNESS,\n        1.0,\n    );"
+    ));
+    assert!(!fallback.contains("if (roughness <= 0.0)"));
+    assert!(!fallback.contains("roughness = 1.0;"));
 }

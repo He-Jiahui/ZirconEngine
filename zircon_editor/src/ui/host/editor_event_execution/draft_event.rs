@@ -5,13 +5,14 @@ use crate::ui::binding::{
     DraftCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
 };
 use crate::ui::binding_dispatch::apply_draft_binding;
+use crate::ui::binding_dispatch::EditorBindingDispatchError;
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
 use super::execution_outcome::ExecutionOutcome;
 pub(super) fn execute_draft_event(
     shell: &mut WorkbenchShellStateData,
     event: &EditorDraftEvent,
-) -> Result<ExecutionOutcome, String> {
+) -> Result<ExecutionOutcome, EditorBindingDispatchError> {
     let binding = match event {
         EditorDraftEvent::SetInspectorField {
             subject_path,
@@ -37,8 +38,7 @@ pub(super) fn execute_draft_event(
         ),
     };
 
-    let changed =
-        apply_draft_binding(&mut shell.state, &binding).map_err(|error| error.to_string())?;
+    let changed = apply_draft_binding(&mut shell.state, &binding)?;
     Ok(ExecutionOutcome {
         changed,
         effects: vec![

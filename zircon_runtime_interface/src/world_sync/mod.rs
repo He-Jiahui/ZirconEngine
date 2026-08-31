@@ -6,6 +6,8 @@ mod watch;
 
 pub use invalidation::{AssetReloadFrameApplyReportDto, InvalidationBatch, WorldFact};
 pub use query::{
-    ComponentSelector, EntityId, EntityRow, QueryFilter, WorldQuery, WorldQueryResult,
+    ComponentSelector, ComponentWorldQuery, EntityId, EntityRow, QueryFilter, WorldHierarchyQuery,
+    WorldHierarchyRow, WorldInspectionFieldRow, WorldInspectionFieldsQuery, WorldQuery,
+    WorldQueryResult, WorldTransformSnapshotQuery,
 };
 pub use watch::{WatchKey, WatchRegistration, WatchToken};

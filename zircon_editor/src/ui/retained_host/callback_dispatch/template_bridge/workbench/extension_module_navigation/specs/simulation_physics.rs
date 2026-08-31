@@ -1,24 +1,5 @@
 use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
-const COLLISION_PROXY_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionCollisionProxyProxyTab",
-    "WorkbenchExtensionCollisionProxyChannelsTab",
-    "WorkbenchExtensionCollisionProxyContactsTab",
-];
-const COLLISION_PROXY_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.collision_proxy.proxy_tab.select",
-        "WorkbenchExtensionCollisionProxyProxyTab",
-    ),
-    action(
-        "workbench.extension.collision_proxy.channels_tab.select",
-        "WorkbenchExtensionCollisionProxyChannelsTab",
-    ),
-    action(
-        "workbench.extension.collision_proxy.contacts_tab.select",
-        "WorkbenchExtensionCollisionProxyContactsTab",
-    ),
-];
 const COLLISION_PROXY_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionCollisionProxyRockCliffRow",
     "WorkbenchExtensionCollisionProxyHullProxyARow",
@@ -27,7 +8,6 @@ const COLLISION_PROXY_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionCollisionProxyDecimatorTableRow",
     "WorkbenchExtensionCollisionProxyHullMergeTableRow",
     "WorkbenchExtensionCollisionProxyChannelMaskTableRow",
-    "WorkbenchExtensionCollisionProxyOutputRow",
 ];
 const COLLISION_PROXY_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -58,20 +38,16 @@ const COLLISION_PROXY_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.collision_proxy.channel_mask_table_row.select",
         "WorkbenchExtensionCollisionProxyChannelMaskTableRow",
     ),
-    action(
-        "workbench.extension.collision_proxy.output.select",
-        "WorkbenchExtensionCollisionProxyOutputRow",
-    ),
 ];
 const COLLISION_PROXY_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsCollisionProxyButton",
+    "WorkbenchAssetsGameplayToolsMenu",
     "WorkbenchExtensionCollisionProxyBakeButton",
     "WorkbenchExtensionCollisionProxyTestContactsButton",
 ];
 const COLLISION_PROXY_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.collision_proxy.open",
-        "WorkbenchAssetsCollisionProxyButton",
+        "WorkbenchAssetsGameplayToolsMenu",
     ),
     action(
         "workbench.extension.collision_proxy.bake.invoke",
@@ -94,8 +70,6 @@ const COLLISION_PROXY_FIELD_ACTIONS: &[&str] = &[
 pub(super) const COLLISION_PROXY_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.collision_proxy.open",
     "WorkbenchExtensionCollisionProxyWorkspace",
-    COLLISION_PROXY_TAB_CONTROLS,
-    COLLISION_PROXY_TAB_ACTIONS,
     COLLISION_PROXY_ROW_CONTROLS,
     COLLISION_PROXY_ROW_ACTIONS,
     COLLISION_PROXY_COMMAND_CONTROLS,
@@ -103,25 +77,6 @@ pub(super) const COLLISION_PROXY_NAVIGATION_SPEC: ExtensionNavigationSpec = spec
     COLLISION_PROXY_FIELD_ACTIONS,
 );
 
-const PHYSICS_COLLISION_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionPhysicsCollisionBodiesTab",
-    "WorkbenchExtensionPhysicsCollisionMaterialsTab",
-    "WorkbenchExtensionPhysicsCollisionContactsTab",
-];
-const PHYSICS_COLLISION_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.physics_collision.bodies_tab.select",
-        "WorkbenchExtensionPhysicsCollisionBodiesTab",
-    ),
-    action(
-        "workbench.extension.physics_collision.materials_tab.select",
-        "WorkbenchExtensionPhysicsCollisionMaterialsTab",
-    ),
-    action(
-        "workbench.extension.physics_collision.contacts_tab.select",
-        "WorkbenchExtensionPhysicsCollisionContactsTab",
-    ),
-];
 const PHYSICS_COLLISION_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPhysicsCollisionPlayerCapsuleRow",
     "WorkbenchExtensionPhysicsCollisionMaterialIceRow",
@@ -130,7 +85,6 @@ const PHYSICS_COLLISION_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPhysicsCollisionIceMaterialTableRow",
     "WorkbenchExtensionPhysicsCollisionWallContactTableRow",
     "WorkbenchExtensionPhysicsCollisionCcdWarningTableRow",
-    "WorkbenchExtensionPhysicsCollisionOutputRow",
 ];
 const PHYSICS_COLLISION_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -161,20 +115,16 @@ const PHYSICS_COLLISION_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.physics_collision.ccd_warning_table_row.select",
         "WorkbenchExtensionPhysicsCollisionCcdWarningTableRow",
     ),
-    action(
-        "workbench.extension.physics_collision.output.select",
-        "WorkbenchExtensionPhysicsCollisionOutputRow",
-    ),
 ];
 const PHYSICS_COLLISION_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsPhysicsCollisionButton",
+    "WorkbenchAssetsGameplayToolsMenu",
     "WorkbenchExtensionPhysicsCollisionSimulateButton",
     "WorkbenchExtensionPhysicsCollisionValidateButton",
 ];
 const PHYSICS_COLLISION_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.physics_collision.open",
-        "WorkbenchAssetsPhysicsCollisionButton",
+        "WorkbenchAssetsGameplayToolsMenu",
     ),
     action(
         "workbench.extension.physics_collision.simulate.invoke",
@@ -197,8 +147,6 @@ const PHYSICS_COLLISION_FIELD_ACTIONS: &[&str] = &[
 pub(super) const PHYSICS_COLLISION_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.physics_collision.open",
     "WorkbenchExtensionPhysicsCollisionWorkspace",
-    PHYSICS_COLLISION_TAB_CONTROLS,
-    PHYSICS_COLLISION_TAB_ACTIONS,
     PHYSICS_COLLISION_ROW_CONTROLS,
     PHYSICS_COLLISION_ROW_ACTIONS,
     PHYSICS_COLLISION_COMMAND_CONTROLS,

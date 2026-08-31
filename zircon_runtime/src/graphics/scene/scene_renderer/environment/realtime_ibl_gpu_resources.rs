@@ -1,10 +1,18 @@
 use crate::core::framework::render::{IblBakeArtifactRequest, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES};
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
+use crate::render_graph::CompiledRenderGraph;
 
 use super::realtime_ibl_graph_plan::{
     RealtimeIblGraphPlan, RealtimeIblGraphSlotResources, RealtimeIblGraphTextureResources,
 };
-use super::realtime_ibl_time_slice::IblRealtimeBufferSlot;
+use super::realtime_ibl_time_slice::{IblRealtimeBufferSlot, RealtimeIblFrameBatch};
+
+pub(in crate::graphics) mod execution_resource_cache;
+
+use execution_resource_cache::{
+    RealtimeIblExecutionResourceCache, RealtimeIblExecutionResourceCacheStats,
+    RealtimeIblExecutionResourceResolution,
+};
 
 const CUBE_FACE_COUNT: u32 = 6;
 const IBL_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
@@ -12,6 +20,7 @@ const IBL_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float
 pub(in crate::graphics) struct RealtimeIblGpuResources {
     slot_a: RealtimeIblGpuSlotResources,
     slot_b: RealtimeIblGpuSlotResources,
+    execution_resource_cache: RealtimeIblExecutionResourceCache,
 }
 
 struct RealtimeIblGpuSlotResources {
@@ -35,7 +44,38 @@ impl RealtimeIblGpuResources {
         Self {
             slot_a: RealtimeIblGpuSlotResources::new(device, request, "a"),
             slot_b: RealtimeIblGpuSlotResources::new(device, request, "b"),
+            execution_resource_cache: RealtimeIblExecutionResourceCache::default(),
         }
+    }
+
+    /// Caches only immutable handles for one compiled graph topology. A cache
+    /// entry belongs to this device-owned allocation and is never shared across
+    /// a resource-layout change or a new runtime instance.
+    pub(in crate::graphics) fn execution_resources_for(
+        &mut self,
+        request: &IblBakeArtifactRequest,
+        batch: &RealtimeIblFrameBatch,
+        plan: &RealtimeIblGraphPlan,
+        graph: &CompiledRenderGraph,
+        required_resource_names: &[String],
+        cpu_timing_enabled: bool,
+    ) -> Result<RealtimeIblExecutionResourceResolution<'_>, String> {
+        let slot_a = &self.slot_a;
+        let slot_b = &self.slot_b;
+        self.execution_resource_cache.resolve(
+            request,
+            batch,
+            plan,
+            graph,
+            required_resource_names,
+            cpu_timing_enabled,
+            |resources| bind_graph_plan(slot_a, slot_b, plan, required_resource_names, resources),
+        )
+    }
+
+    #[cfg(test)]
+    fn execution_resource_cache_stats(&self) -> RealtimeIblExecutionResourceCacheStats {
+        self.execution_resource_cache.stats()
     }
 
     pub(in crate::graphics) fn bind_graph_plan(
@@ -44,28 +84,13 @@ impl RealtimeIblGpuResources {
         required_resource_names: &[String],
         resources: &mut RenderGraphExecutionResources,
     ) -> Result<(), String> {
-        self.bind_slot(&plan.ready, required_resource_names, resources)?;
-        self.bind_slot(&plan.work, required_resource_names, resources)
-    }
-
-    fn bind_slot(
-        &self,
-        graph: &RealtimeIblGraphSlotResources,
-        required_resource_names: &[String],
-        resources: &mut RenderGraphExecutionResources,
-    ) -> Result<(), String> {
-        let gpu = self.slot(graph.slot);
-        bind_texture_views(
-            &graph.source,
-            &gpu.source,
+        bind_graph_plan(
+            &self.slot_a,
+            &self.slot_b,
+            plan,
             required_resource_names,
             resources,
-        )?;
-        bind_texture_views(&graph.pmrem, &gpu.pmrem, required_resource_names, resources)?;
-        if is_required_resource(required_resource_names, &graph.sh9.name) {
-            resources.bind_execution_owned_buffer(&graph.sh9.name, &graph.sh9.name, &gpu.sh9);
-        }
-        Ok(())
+        )
     }
 
     fn slot(&self, slot: IblRealtimeBufferSlot) -> &RealtimeIblGpuSlotResources {
@@ -127,6 +152,57 @@ impl RealtimeIblGpuResources {
 
     pub(in crate::graphics) fn sh9(&self, slot: IblRealtimeBufferSlot) -> &wgpu::Buffer {
         &self.slot(slot).sh9
+    }
+}
+
+fn bind_graph_plan(
+    slot_a: &RealtimeIblGpuSlotResources,
+    slot_b: &RealtimeIblGpuSlotResources,
+    plan: &RealtimeIblGraphPlan,
+    required_resource_names: &[String],
+    resources: &mut RenderGraphExecutionResources,
+) -> Result<(), String> {
+    bind_slot(
+        slot_resource(slot_a, slot_b, plan.ready.slot),
+        &plan.ready,
+        required_resource_names,
+        resources,
+    )?;
+    bind_slot(
+        slot_resource(slot_a, slot_b, plan.work.slot),
+        &plan.work,
+        required_resource_names,
+        resources,
+    )
+}
+
+fn bind_slot(
+    gpu: &RealtimeIblGpuSlotResources,
+    graph: &RealtimeIblGraphSlotResources,
+    required_resource_names: &[String],
+    resources: &mut RenderGraphExecutionResources,
+) -> Result<(), String> {
+    bind_texture_views(
+        &graph.source,
+        &gpu.source,
+        required_resource_names,
+        resources,
+    )?;
+    bind_texture_views(&graph.pmrem, &gpu.pmrem, required_resource_names, resources)?;
+    if is_required_resource(required_resource_names, &graph.sh9.name) {
+        resources.bind_execution_owned_buffer(&graph.sh9.name, &graph.sh9.name, &gpu.sh9);
+    }
+    Ok(())
+}
+
+fn slot_resource<'slots>(
+    slot_a: &'slots RealtimeIblGpuSlotResources,
+    slot_b: &'slots RealtimeIblGpuSlotResources,
+    slot: IblRealtimeBufferSlot,
+) -> &'slots RealtimeIblGpuSlotResources {
+    match slot {
+        IblRealtimeBufferSlot::A => slot_a,
+        IblRealtimeBufferSlot::B => slot_b,
     }
 }
 

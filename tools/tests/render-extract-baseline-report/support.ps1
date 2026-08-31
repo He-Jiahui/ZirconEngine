@@ -2,7 +2,10 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $reporter = Join-Path $repoRoot 'tools\mvp\Write-RenderExtractBaselineReport.ps1'
 $evidenceModule = Join-Path $repoRoot 'tools\mvp\RenderExtractBaselineEvidence.psm1'
 $metricsModule = Join-Path $repoRoot 'tools\mvp\RenderExtractBaselineMetrics.psm1'
+$scenarioModule = Join-Path $repoRoot 'tools\mvp\RenderExtractPerformanceScenario.psm1'
 Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module $scenarioModule -Force -DisableNameChecking -ErrorAction Stop
+. (Join-Path $repoRoot 'tools\performance-machine-manifest.ps1')
 $originalTestMode = $env:RENDER_EXTRACT_BASELINE_REPORT_TEST_MODE
 
 try {
@@ -15,6 +18,7 @@ finally {
 
 Import-Module $evidenceModule -Force -DisableNameChecking -ErrorAction Stop
 Import-Module $metricsModule -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
 
 $assertEvidenceDirectoryContract = (Get-Command Assert-RenderExtractBaselineEvidenceDirectory -CommandType Function).ScriptBlock
 
@@ -255,12 +259,10 @@ function New-RenderExtractBaselineFixture {
     [IO.Directory]::CreateDirectory($profilesDirectory) | Out-Null
     [IO.Directory]::CreateDirectory($capturesDirectory) | Out-Null
     $runs = [System.Collections.Generic.List[object]]::new()
-    $scenarioPlans = @(
-        [pscustomobject]@{ logical_id = 'pipelined-first-frame'; product = 'runtime'; runtime_profile = 'runtime-pipelined'; warmup_presented_frame_count = 0; measured_presented_frame_count = 1; target_presented_frame_count = 1 },
-        [pscustomobject]@{ logical_id = 'pipelined-steady'; product = 'runtime'; runtime_profile = 'runtime-pipelined'; warmup_presented_frame_count = 60; measured_presented_frame_count = 300; target_presented_frame_count = 360 },
-        [pscustomobject]@{ logical_id = 'synchronous-steady'; product = 'runtime'; runtime_profile = 'runtime'; warmup_presented_frame_count = 60; measured_presented_frame_count = 300; target_presented_frame_count = 360 },
-        [pscustomobject]@{ logical_id = 'editor-first-frame'; product = 'editor'; runtime_profile = 'editor'; warmup_presented_frame_count = 0; measured_presented_frame_count = 1; target_presented_frame_count = 1 }
-    )
+    $scenarioPlans = @(Get-RenderExtractBaselineRunPlan `
+            -RepeatCount ([Math]::Max(3, $FrameDurationsUs.Count)) `
+            -WarmupPresentedFrameCount 60 `
+            -MeasuredPresentedFrameCount 300)
     for ($scenarioIndex = 0; $scenarioIndex -lt $scenarioPlans.Count; $scenarioIndex++) {
         $scenario = $scenarioPlans[$scenarioIndex]
         for ($index = 0; $index -lt $FrameDurationsUs.Count; $index++) {
@@ -282,15 +284,23 @@ function New-RenderExtractBaselineFixture {
             $capturePath = Join-Path $capturesDirectory "$sessionId.png"
             [IO.File]::WriteAllBytes($capturePath, [byte[]](137, 80, 78, 71, $attempt))
             $startedAt = [DateTimeOffset]::Parse('2026-08-11T00:00:00.0000000+00:00').AddMilliseconds((($scenarioIndex * 10) + $index) * 100)
-            $runs.Add([ordered]@{
+                $runs.Add([ordered]@{
                     logical_id = $scenario.logical_id
+                    scenario_id = $scenario.scenario_id
+                    scenario_version = $scenario.scenario_version
+                    scenario_binding_id = $scenario.scenario_binding_id
                     product = $scenario.product
                     attempt = $attempt
                     invocation_id = $invocationId
                     runtime_profile = $scenario.runtime_profile
+                    measurement_window = $scenario.measurement_window
+                    repeat_count = $scenario.repeat_count
                     warmup_presented_frame_count = $scenario.warmup_presented_frame_count
                     measured_presented_frame_count = $scenario.measured_presented_frame_count
                     target_presented_frame_count = $scenario.target_presented_frame_count
+                    cache_contract = $scenario.cache_contract
+                    required_metrics = @($scenario.required_metrics)
+                    budget_contract = $scenario.budget_contract
                     exit_code = 0
                     peak_working_set_bytes = 104857600 + ($attempt * 1048576)
                     total_processor_time_ms = 5 + $attempt
@@ -305,6 +315,8 @@ function New-RenderExtractBaselineFixture {
                     system_trace_etl = $null
                     profiling_input = [ordered]@{
                         manifest_sha256 = 'B' * 64
+                        build_set_id = '3' * 64
+                        build_set_manifest_sha256 = '4' * 64
                         executable_sha256 = if ($scenario.product -eq 'runtime') { 'C' * 64 } else { 'E' * 64 }
                         library_sha256 = if ($scenario.product -eq 'runtime') { 'D' * 64 } else { 'F' * 64 }
                         asset_manifest_sha256 = if ($scenario.product -eq 'runtime') { '1' * 64 } else { '2' * 64 }
@@ -314,12 +326,39 @@ function New-RenderExtractBaselineFixture {
                 }) | Out-Null
         }
     }
+    $machineObservations = [ordered]@{}
+    foreach ($category in @(
+            'cpu', 'gpu', 'memory', 'bios', 'os', 'display_modes', 'power_policy',
+            'thermal_frequency', 'background_load', 'virtualization'
+        )) {
+        $machineObservations[$category] = [ordered]@{
+            status = 'captured'
+            data = @([ordered]@{ fixture = $category })
+        }
+    }
+    $machineManifestPath = Join-Path $Directory 'machine-manifest.json'
+    $machineManifest = New-ZirconPerformanceMachineManifest -Observations $machineObservations
+    $machineManifest.captured_utc = '2026-08-26T00:00:00.0000000Z'
+    [IO.File]::WriteAllText(
+        $machineManifestPath,
+        ($machineManifest | ConvertTo-Json -Depth 8),
+        [Text.UTF8Encoding]::new($false)
+    )
+    $machineSnapshot = Read-RenderExtractJsonEvidence `
+        -Path $machineManifestPath `
+        -Label 'Fixture machine manifest'
     $summary = [ordered]@{
-        schema_version = 4
+        schema_version = 5
         generated_at_utc = '2026-08-11T00:00:00.0000000+00:00'
         source_fingerprint = ('A' * 64)
         profiling_input_manifest_sha256 = ('B' * 64)
+        build_set_id = ('3' * 64)
+        build_set_manifest_sha256 = ('4' * 64)
         invocation_id = $invocationId
+        machine_manifest = [ordered]@{
+            path = $machineManifestPath
+            sha256 = $machineSnapshot.sha256
+        }
         project = [ordered]@{
             runtime_argument = '.'
             physical_identity = 'E:\fixture-project'
@@ -328,7 +367,7 @@ function New-RenderExtractBaselineFixture {
         runs = @($runs)
     }
     $summaryPath = Join-Path $Directory 'render-extract-baseline.json'
-    [IO.File]::WriteAllText($summaryPath, ($summary | ConvertTo-Json -Depth 7), [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($summaryPath, ($summary | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
     return $summaryPath
 }
 

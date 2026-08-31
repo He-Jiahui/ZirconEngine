@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lifecycle.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
   - zircon_runtime/src/render_graph/dump.rs
   - zircon_runtime/src/render_graph/builder/compile.rs
@@ -15,7 +15,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/binding.rs
   - zircon_runtime/src/render_graph/graph.rs
   - zircon_runtime/src/render_graph/builder/compile.rs
   - zircon_runtime/src/render_graph/dump.rs

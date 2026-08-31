@@ -2,8 +2,8 @@ use crate::core::framework::render::{
     build_source_cubemap_from_equirect, source_cubemap_mip_count, SourceCubemapMipChain,
     SourceCubemapPrefilterQuality,
 };
-use crate::core::framework::tasks::TaskPoolDescriptor;
 use crate::core::runtime::tasks::TaskPool;
+use crate::core::runtime::tasks::TaskPoolDescriptor;
 
 #[test]
 fn task_pool_in_place_scope_keeps_the_scope_body_on_the_caller() {

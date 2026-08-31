@@ -7,7 +7,9 @@ use zircon_runtime_interface::reflect::ReflectError;
 #[test]
 fn world_component_type_registry_gates_dynamic_component_attachment_when_present() {
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     world
         .register_component_type(
             ComponentTypeDescriptor::new("weather.Component.CloudLayer", "weather", "Cloud Layer")
@@ -58,7 +60,9 @@ fn world_component_type_registry_gates_dynamic_component_attachment_when_present
 #[test]
 fn dynamic_plugin_components_attach_to_entities_and_roundtrip_with_world_serialization() {
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
 
     assert!(world
         .set_dynamic_component(
@@ -105,7 +109,9 @@ fn dynamic_plugin_components_attach_to_entities_and_roundtrip_with_world_seriali
 #[test]
 fn dynamic_plugin_component_instances_report_schema_when_loaded_and_protect_when_missing() {
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -140,7 +146,9 @@ fn dynamic_plugin_component_instances_report_schema_when_loaded_and_protect_when
 #[test]
 fn dynamic_plugin_component_property_writes_use_existing_scene_property_paths() {
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -167,7 +175,9 @@ fn dynamic_plugin_component_property_writes_use_existing_scene_property_paths() 
 #[test]
 fn registered_dynamic_component_properties_gate_editor_writes() {
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     world
         .register_component_type(
             ComponentTypeDescriptor::new("weather.Component.CloudLayer", "weather", "Cloud Layer")
@@ -228,7 +238,9 @@ fn registered_dynamic_component_properties_gate_editor_writes() {
 #[test]
 fn plugin_unload_is_blocked_while_entities_still_hold_plugin_components() {
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,

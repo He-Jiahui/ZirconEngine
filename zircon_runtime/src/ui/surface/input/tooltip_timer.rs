@@ -18,8 +18,8 @@ pub(super) fn dispatch_tooltip_timer_input(
         UiTooltipTimerInputEventKind::Elapsed => UiTooltipEffectKind::Show,
         UiTooltipTimerInputEventKind::Canceled => UiTooltipEffectKind::Cancel,
     };
-    let event = UiInputEvent::TooltipTimer(tooltip.clone());
     if !tooltip_timer_matches_retained_state(surface, &tooltip) {
+        let event = owned_tooltip_timer_event(tooltip);
         let mut result = UiInputDispatchResult::new(event, UiDispatchReply::unhandled());
         result
             .diagnostics
@@ -28,6 +28,7 @@ pub(super) fn dispatch_tooltip_timer_input(
         result.diagnostics.handled_phase = Some("tooltip.stale".to_string());
         return with_tooltip_route_policy(surface, result);
     }
+    let event = UiInputEvent::TooltipTimer(tooltip.clone());
     let reply = UiDispatchReply::handled().with_effect(UiDispatchEffect::Tooltip {
         kind: effect_kind,
         tooltip_id: tooltip.tooltip_id,
@@ -37,6 +38,10 @@ pub(super) fn dispatch_tooltip_timer_input(
     result.diagnostics.routed = result.rejected_effects.is_empty();
     result.diagnostics.handled_phase = Some("tooltip.effect".to_string());
     with_tooltip_route_policy(surface, result)
+}
+
+fn owned_tooltip_timer_event(tooltip: UiTooltipTimerInputEvent) -> UiInputEvent {
+    UiInputEvent::TooltipTimer(tooltip)
 }
 
 fn with_tooltip_route_policy(
@@ -60,3 +65,7 @@ fn tooltip_timer_matches_retained_state(
             .tooltip_matches(tooltip.tooltip_id.as_str(), tooltip.owner),
     }
 }
+
+#[cfg(test)]
+#[path = "tooltip_timer/stale_owned_event_tests.rs"]
+mod stale_owned_event_tests;

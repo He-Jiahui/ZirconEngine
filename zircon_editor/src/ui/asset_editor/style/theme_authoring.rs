@@ -7,6 +7,10 @@ mod action_projection;
 mod merge;
 mod promotion;
 
+#[cfg(test)]
+#[path = "theme_authoring/refactor_label_cache_tests.rs"]
+mod refactor_label_cache_tests;
+
 pub(crate) use promotion::{
     can_promote_local_theme_to_external_style_asset, default_external_style_draft,
     promote_local_theme_to_external_style_asset, UiAssetExternalStyleDraft,
@@ -175,15 +179,11 @@ pub(crate) enum UiAssetThemeRefactorAction {
 }
 
 impl UiAssetThemeRefactorAction {
-    fn label(
-        &self,
-        document: &UiAssetDocument,
-        imported_styles: &BTreeMap<String, UiAssetDocument>,
-    ) -> String {
+    fn label(&self, imported_tokens: &BTreeMap<String, Value>) -> String {
         match self {
             Self::RemoveDuplicateLocalToken { token_name } => format!(
                 "duplicate local token • {token_name} • inherited = {}",
-                imported_theme_tokens(document, imported_styles)
+                imported_tokens
                     .get(token_name)
                     .map(Value::to_string)
                     .unwrap_or_default()
@@ -265,9 +265,10 @@ pub(crate) fn build_theme_refactor_items(
     document: &UiAssetDocument,
     imported_styles: &BTreeMap<String, UiAssetDocument>,
 ) -> Vec<String> {
-    theme_refactor_actions(document, imported_styles)
+    let (actions, imported_tokens) = theme_refactor_projection(document, imported_styles);
+    actions
         .into_iter()
-        .map(|action| action.label(document, imported_styles))
+        .map(|action| action.label(&imported_tokens))
         .collect()
 }
 
@@ -682,6 +683,13 @@ pub(crate) fn theme_refactor_actions(
     document: &UiAssetDocument,
     imported_styles: &BTreeMap<String, UiAssetDocument>,
 ) -> Vec<UiAssetThemeRefactorAction> {
+    theme_refactor_projection(document, imported_styles).0
+}
+
+fn theme_refactor_projection(
+    document: &UiAssetDocument,
+    imported_styles: &BTreeMap<String, UiAssetDocument>,
+) -> (Vec<UiAssetThemeRefactorAction>, BTreeMap<String, Value>) {
     let imported_tokens = imported_theme_tokens(document, imported_styles);
     let imported_rules = imported_theme_rules(document, imported_styles);
     let mut actions = Vec::new();
@@ -718,7 +726,7 @@ pub(crate) fn theme_refactor_actions(
         }
     }
 
-    actions
+    (actions, imported_tokens)
 }
 
 pub(crate) fn apply_theme_refactor_action(

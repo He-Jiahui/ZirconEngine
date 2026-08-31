@@ -10,6 +10,17 @@ use crate::scene::viewport::pointer::{
 use super::ViewportOverlayPointerRouter;
 
 impl ViewportOverlayPointerRouter {
+    pub(crate) fn clear_scene(&mut self) -> bool {
+        let had_scene = self.interaction_extract.take().is_some()
+            || self.scene_world_generation.take().is_some()
+            || self.renderer_visible_spatial_snapshot.take().is_some()
+            || !self.renderable_candidates.is_empty();
+        self.renderable_candidates = Vec::new().into();
+        let layout_changed = self.sync(ViewportPointerLayout::default());
+        let source_changed = self.refresh_renderer_visible_spatial_pick_source();
+        had_scene || layout_changed || source_changed
+    }
+
     pub(crate) fn sync(&mut self, layout: ViewportPointerLayout) -> bool {
         if self.layout == layout {
             return false;

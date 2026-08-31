@@ -33,7 +33,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_i
         && inner_bottom <= outer_bottom
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paint_rect(
     rect: &FrameRect,
 ) -> FrameRect {
     if !has_paintable_alert_extent(rect) {
@@ -44,24 +44,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_a
             height: 0.0,
         };
     }
-    let right = rect.x + rect.width;
-    let bottom = rect.y + rect.height;
-    if !right.is_finite() || !bottom.is_finite() {
-        return FrameRect {
-            x: rect.x,
-            y: rect.y,
-            width: 0.0,
-            height: 0.0,
-        };
-    }
-    let x = rect.x.ceil();
-    let y = rect.y.ceil();
-    FrameRect {
-        x,
-        y,
-        width: (right.floor() - x).max(0.0),
-        height: (bottom.floor() - y).max(0.0),
-    }
+    rect.clone()
 }
 
 pub(super) fn centered_rect(rect: &FrameRect, left: f32, width: f32, height: f32) -> FrameRect {
@@ -82,20 +65,20 @@ pub(super) fn fitted_centered_square(rect: &FrameRect, left: f32, desired_size: 
 
 #[cfg(test)]
 mod tests {
-    use super::pixel_aligned_rect;
+    use super::paint_rect;
     use crate::ui::retained_host::host_contract::data::FrameRect;
 
     #[test]
-    fn pixel_alignment_preserves_degenerate_extents_for_the_paint_guard() {
-        let aligned = pixel_aligned_rect(&FrameRect {
+    fn alert_paint_rect_preserves_fractional_geometry_and_degenerate_extents() {
+        let aligned = paint_rect(&FrameRect {
             x: 4.4,
             y: 6.6,
             width: 0.4,
             height: -2.0,
         });
 
-        assert_eq!(aligned.x, 5.0);
-        assert_eq!(aligned.y, 7.0);
+        assert_eq!(aligned.x, 4.4);
+        assert_eq!(aligned.y, 6.6);
         assert_eq!(aligned.width, 0.0);
         assert_eq!(aligned.height, 0.0);
     }

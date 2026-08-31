@@ -1,13 +1,13 @@
-use crate::core::framework::render::AntiAliasSettings;
-use crate::core::math::UVec2;
+use crate::core::framework::render::{AntiAliasSettings, RenderViewFamilyPhaseTargets};
 use crate::graphics::resource_identity::SampledTextureIdentity;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::scene::scene_renderer::post_process::{
     PostProcessDepthSamplingMode, ScenePostProcessResources,
 };
 use crate::render_graph::RenderGraphAttachmentOps;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
-use super::taa_resolve_bind_group_cache::{create_bind_group, TaaResolveBindGroupKey};
+use super::taa_resolve_bind_group_cache::{TaaResolveBindGroupKey, create_bind_group};
 use super::taa_resolve_params::TaaResolveParams;
 
 impl ScenePostProcessResources {
@@ -15,9 +15,8 @@ impl ScenePostProcessResources {
     pub(crate) fn execute_taa_resolve(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
-        viewport_size: UVec2,
+        phase_targets: RenderViewFamilyPhaseTargets,
         scene_color_view: &wgpu::TextureView,
         scene_depth_view: &wgpu::TextureView,
         scene_velocity_view: &wgpu::TextureView,
@@ -35,17 +34,17 @@ impl ScenePostProcessResources {
         taa_history_attachment_ops: RenderGraphAttachmentOps,
         history_valid: bool,
         anti_alias: AntiAliasSettings,
-    ) -> bool {
+    ) -> (bool, WgpuBufferUploadBatch) {
         let params = TaaResolveParams::new(
-            viewport_size,
+            phase_targets,
             anti_alias.mode == crate::core::framework::render::AntiAliasMode::Taa && history_valid,
             anti_alias.taa_quality,
         );
-        queue.write_buffer(
-            &self.taa_resolve_params_buffer,
+        let params_uploads = WgpuBufferUploadBatch::from(WgpuBufferUpload::from_bytes(
+            self.taa_resolve_params_buffer.clone(),
             0,
             bytemuck::bytes_of(&params),
-        );
+        ));
         let scene_depth_binding_view = match self.depth_sampling_mode {
             PostProcessDepthSamplingMode::RawDepthTexture => scene_depth_view,
             PostProcessDepthSamplingMode::ViewportDepthFallback => &self.black_texture_view,
@@ -152,8 +151,39 @@ impl ScenePostProcessResources {
         });
         pass.set_pipeline(&self.taa_resolve_pipeline);
         pass.set_bind_group(0, bind_group, &[]);
+        let output_viewport = phase_targets.output().viewport();
+        pass.set_viewport(
+            0.0,
+            0.0,
+            output_viewport.physical_size.x.max(1) as f32,
+            output_viewport.physical_size.y.max(1) as f32,
+            output_viewport.depth_min,
+            output_viewport.depth_max,
+        );
+        pass.set_scissor_rect(
+            0,
+            0,
+            output_viewport.physical_size.x.max(1),
+            output_viewport.physical_size.y.max(1),
+        );
         pass.draw(0..3, 0..1);
         drop(pass);
-        bind_group_created
+        (bind_group_created, params_uploads)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn taa_params_are_returned_as_pre_submit_uploads() {
+        let source = include_str!("execute_taa_resolve.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("TAA resolve production source");
+
+        assert!(!production.contains("queue.write_buffer"));
+        assert!(production.contains("WgpuBufferUpload::from_bytes("));
+        assert!(production.contains("WgpuBufferUploadBatch"));
     }
 }

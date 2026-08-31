@@ -16,6 +16,10 @@ pub(super) fn projected_transition_metadata(
     popup_open: bool,
 ) -> ProjectedTransitionMetadata {
     let kind = kind::projected_transition_kind(attributes, component_role);
+    if kind.is_empty() {
+        return ProjectedTransitionMetadata::without_transition(kind);
+    }
+
     let transition_in = state::projected_transition_in(attributes, kind.as_str(), popup_open);
     let status = state::projected_transition_status(attributes, transition_in);
     let progress = state::projected_transition_progress(attributes, status.as_str(), transition_in);

@@ -1,6 +1,12 @@
-use crate::core::framework::render::IblBakeKey;
+use crate::core::framework::render::{
+    IblBakeKey, RealtimeIblFailureKind, RealtimeIblFailureOperation, RealtimeIblFailureReport,
+    RealtimeIblReadiness,
+};
 
 const CUBE_FACE_COUNT: u8 = 6;
+const REALTIME_IBL_MAX_CONSECUTIVE_FAILURES: u8 = 3;
+const REALTIME_IBL_INITIAL_RETRY_BACKOFF_FRAMES: u64 = 1;
+const REALTIME_IBL_MAX_RETRY_BACKOFF_FRAMES: u64 = 4;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::graphics) struct RealtimeIblTimeSliceConfig {
@@ -83,6 +89,23 @@ pub(in crate::graphics) enum RealtimeIblOperation {
     ProjectDiffuseSh9,
 }
 
+fn realtime_ibl_failure_operation(operation: RealtimeIblOperation) -> RealtimeIblFailureOperation {
+    match operation {
+        RealtimeIblOperation::CaptureSky(_) => RealtimeIblFailureOperation::CaptureSky,
+        RealtimeIblOperation::GenerateSourceMip { .. } => {
+            RealtimeIblFailureOperation::GenerateSourceMip
+        }
+        RealtimeIblOperation::Prefilter { .. } => RealtimeIblFailureOperation::Prefilter,
+        RealtimeIblOperation::ProjectDiffuseSh9 => RealtimeIblFailureOperation::ProjectDiffuseSh9,
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::graphics) enum RealtimeIblSliceAttempt {
+    Succeeded,
+    Failed(RealtimeIblFailureKind),
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::graphics) struct RealtimeIblPrefilterDispatchSlice {
     pub mip_level: u8,
@@ -95,6 +118,7 @@ pub(in crate::graphics) struct RealtimeIblBatchToken {
     generation: u64,
     state: u8,
     substep: u8,
+    attempt_frame_number: u64,
 }
 
 impl RealtimeIblBatchToken {
@@ -108,7 +132,7 @@ pub(in crate::graphics) struct RealtimeIblFrameBatch {
     token: RealtimeIblBatchToken,
     ready_slot: IblRealtimeBufferSlot,
     work_slot: IblRealtimeBufferSlot,
-    operations: Vec<RealtimeIblOperation>,
+    operations: [RealtimeIblOperation; 1],
     topology_cache_capacity: usize,
 }
 
@@ -177,7 +201,8 @@ impl RealtimeIblFrameBatch {
 pub(in crate::graphics) enum RealtimeIblCompletion {
     Advanced,
     Published,
-    Retry,
+    RetryScheduled,
+    Failed,
     Stale,
 }
 
@@ -189,6 +214,8 @@ struct EnvironmentGenerationTicket {
     generation: u64,
     key: IblBakeKey,
     stage: EnvironmentGenerationStage,
+    consecutive_failure_count: u8,
+    retry_not_before_frame: Option<u64>,
 }
 
 impl EnvironmentGenerationTicket {
@@ -197,6 +224,8 @@ impl EnvironmentGenerationTicket {
             generation,
             key,
             stage: EnvironmentGenerationStage::CaptureSky { first_face: 0 },
+            consecutive_failure_count: 0,
+            retry_not_before_frame: None,
         }
     }
 
@@ -348,6 +377,8 @@ pub(in crate::graphics) struct RealtimeIblTimeSliceScheduler {
     ready_slot: IblRealtimeBufferSlot,
     current_frame: Option<u64>,
     current_batch: Option<RealtimeIblFrameBatch>,
+    failure_report: Option<RealtimeIblFailureReport>,
+    terminal_failure_key: Option<IblBakeKey>,
 }
 
 impl RealtimeIblTimeSliceScheduler {
@@ -360,6 +391,8 @@ impl RealtimeIblTimeSliceScheduler {
             ready_slot: IblRealtimeBufferSlot::A,
             current_frame: None,
             current_batch: None,
+            failure_report: None,
+            terminal_failure_key: None,
         }
     }
 
@@ -367,10 +400,17 @@ impl RealtimeIblTimeSliceScheduler {
         if self.ticket.is_some_and(|ticket| ticket.key == key) {
             return false;
         }
+        if self.ticket.is_none() && self.terminal_failure_key == Some(key) {
+            return false;
+        }
         if self.published_key == Some(key) && self.ticket.is_none() {
+            self.failure_report = None;
+            self.terminal_failure_key = None;
             return false;
         }
 
+        self.failure_report = None;
+        self.terminal_failure_key = None;
         self.generation = self.generation.wrapping_add(1);
         self.ticket = (self.published_key != Some(key))
             .then(|| EnvironmentGenerationTicket::new(self.generation, key));
@@ -384,6 +424,12 @@ impl RealtimeIblTimeSliceScheduler {
         frame_number: u64,
     ) -> Option<RealtimeIblFrameBatch> {
         let ticket = self.ticket?;
+        if ticket
+            .retry_not_before_frame
+            .is_some_and(|retry_frame| !frame_sequence_has_reached(frame_number, retry_frame))
+        {
+            return None;
+        }
         if self.current_frame == Some(frame_number) {
             return self.current_batch.clone();
         }
@@ -392,10 +438,11 @@ impl RealtimeIblTimeSliceScheduler {
                 generation: ticket.generation,
                 state: ticket.logical_state(),
                 substep: ticket.substep(),
+                attempt_frame_number: frame_number,
             },
             ready_slot: self.ready_slot,
             work_slot: self.ready_slot.other(),
-            operations: vec![ticket.operation(self.config)],
+            operations: [ticket.operation(self.config)],
             topology_cache_capacity: self.config.topology_cache_capacity(),
         };
         self.current_frame = Some(frame_number);
@@ -403,10 +450,10 @@ impl RealtimeIblTimeSliceScheduler {
         Some(batch)
     }
 
-    pub(in crate::graphics) fn complete_frame(
+    pub(in crate::graphics) fn complete_attempt(
         &mut self,
         token: RealtimeIblBatchToken,
-        gpu_succeeded: bool,
+        attempt: RealtimeIblSliceAttempt,
     ) -> RealtimeIblCompletion {
         if token.generation != self.generation
             || self
@@ -417,11 +464,11 @@ impl RealtimeIblTimeSliceScheduler {
         {
             return RealtimeIblCompletion::Stale;
         }
+        let attempt_frame = self
+            .current_frame
+            .expect("a current realtime IBL batch must own its frame number");
         self.current_batch = None;
         self.current_frame = None;
-        if !gpu_succeeded {
-            return RealtimeIblCompletion::Retry;
-        }
 
         let Some(ticket) = self.ticket.as_mut() else {
             return RealtimeIblCompletion::Stale;
@@ -429,6 +476,39 @@ impl RealtimeIblTimeSliceScheduler {
         if ticket.generation != token.generation {
             return RealtimeIblCompletion::Stale;
         }
+        if let RealtimeIblSliceAttempt::Failed(failure_kind) = attempt {
+            ticket.consecutive_failure_count = ticket.consecutive_failure_count.saturating_add(1);
+            let terminal =
+                ticket.consecutive_failure_count >= REALTIME_IBL_MAX_CONSECUTIVE_FAILURES;
+            let retry_not_before_frame = (!terminal).then(|| {
+                attempt_frame
+                    .wrapping_add(retry_backoff_frames(ticket.consecutive_failure_count) + 1)
+            });
+            ticket.retry_not_before_frame = retry_not_before_frame;
+            let failed_key = ticket.key;
+            self.failure_report = Some(RealtimeIblFailureReport {
+                bake_key: failed_key,
+                generation: ticket.generation,
+                logical_state: token.state,
+                substep: token.substep,
+                operation: realtime_ibl_failure_operation(ticket.operation(self.config)),
+                failure_kind,
+                failed_attempt_count: ticket.consecutive_failure_count,
+                retry_not_before_frame,
+                terminal,
+                last_good_available: self.published_key.is_some(),
+            });
+            if terminal {
+                self.ticket = None;
+                self.terminal_failure_key = Some(failed_key);
+                return RealtimeIblCompletion::Failed;
+            }
+            return RealtimeIblCompletion::RetryScheduled;
+        }
+
+        ticket.consecutive_failure_count = 0;
+        ticket.retry_not_before_frame = None;
+        self.failure_report = None;
         if ticket.is_terminal() {
             self.ready_slot = self.ready_slot.other();
             self.published_key = Some(ticket.key);
@@ -438,6 +518,22 @@ impl RealtimeIblTimeSliceScheduler {
             ticket.advance(self.config);
             RealtimeIblCompletion::Advanced
         }
+    }
+
+    #[cfg(test)]
+    pub(in crate::graphics) fn complete_frame(
+        &mut self,
+        token: RealtimeIblBatchToken,
+        gpu_succeeded: bool,
+    ) -> RealtimeIblCompletion {
+        self.complete_attempt(
+            token,
+            if gpu_succeeded {
+                RealtimeIblSliceAttempt::Succeeded
+            } else {
+                RealtimeIblSliceAttempt::Failed(RealtimeIblFailureKind::Submission)
+            },
+        )
     }
 
     pub(in crate::graphics) fn published_key(&self) -> Option<IblBakeKey> {
@@ -459,6 +555,48 @@ impl RealtimeIblTimeSliceScheduler {
     pub(in crate::graphics) fn is_rebake_pending(&self) -> bool {
         self.ticket.is_some()
     }
+
+    pub(in crate::graphics) fn readiness(&self) -> RealtimeIblReadiness {
+        if self.failure_report.is_some_and(|report| report.terminal) {
+            if self.published_key.is_some() {
+                RealtimeIblReadiness::FailedLastGood
+            } else {
+                RealtimeIblReadiness::FailedFallback
+            }
+        } else {
+            match (self.published_key.is_some(), self.ticket.is_some()) {
+                (false, false) => RealtimeIblReadiness::Fallback,
+                (false, true) => RealtimeIblReadiness::Baking,
+                (true, false) => RealtimeIblReadiness::Ready,
+                (true, true) => RealtimeIblReadiness::RefreshingLastGood,
+            }
+        }
+    }
+
+    pub(in crate::graphics) fn failure_report(&self) -> Option<RealtimeIblFailureReport> {
+        self.failure_report
+    }
+}
+
+fn retry_backoff_frames(failed_attempt_count: u8) -> u64 {
+    let exponent = u32::from(failed_attempt_count.saturating_sub(1));
+    REALTIME_IBL_INITIAL_RETRY_BACKOFF_FRAMES
+        .checked_shl(exponent)
+        .unwrap_or(REALTIME_IBL_MAX_RETRY_BACKOFF_FRAMES)
+        .min(REALTIME_IBL_MAX_RETRY_BACKOFF_FRAMES)
+}
+
+pub(in crate::graphics) fn frame_sequence_age(
+    frame_number: u64,
+    earlier_frame: u64,
+) -> Option<u64> {
+    // Half-range ordering keeps short-lived retry and freshness distances unambiguous across wrap.
+    let age = frame_number.wrapping_sub(earlier_frame);
+    (age <= i64::MAX as u64).then_some(age)
+}
+
+fn frame_sequence_has_reached(frame_number: u64, target_frame: u64) -> bool {
+    frame_sequence_age(frame_number, target_frame).is_some()
 }
 
 #[cfg(test)]

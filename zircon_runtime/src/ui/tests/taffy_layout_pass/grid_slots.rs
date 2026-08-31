@@ -13,11 +13,11 @@ fn taffy_layout_pass_maps_grid_slot_placement_without_fallback() {
     );
     insert_child(&mut tree, 300, node(301));
     insert_child(&mut tree, 300, node(302));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(300), UiNodeId::new(301), UiSlotKind::Grid)
             .with_grid_placement(UiGridSlotPlacement::new(0, 0)),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(300), UiNodeId::new(302), UiSlotKind::Grid)
             .with_grid_placement(UiGridSlotPlacement::new(1, 1)),
     );
@@ -44,11 +44,11 @@ fn taffy_layout_pass_maps_grid_slot_span_without_fallback() {
     );
     insert_child(&mut tree, 320, node(321));
     insert_child(&mut tree, 320, node(322));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(320), UiNodeId::new(321), UiSlotKind::Grid)
             .with_grid_placement(UiGridSlotPlacement::new(0, 0)),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(320), UiNodeId::new(322), UiSlotKind::Grid)
             .with_grid_placement(UiGridSlotPlacement::new(1, 0).with_span(2, 2)),
     );
@@ -72,7 +72,7 @@ fn taffy_layout_pass_expands_grid_tracks_for_out_of_bounds_slot_span_without_fal
         }),
     );
     insert_child(&mut tree, 330, node(331));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(330), UiNodeId::new(331), UiSlotKind::Grid)
             .with_grid_placement(UiGridSlotPlacement::new(1, 1).with_span(2, 2)),
     );
@@ -95,7 +95,7 @@ fn taffy_layout_pass_maps_grid_slot_padding_and_alignment_without_fallback() {
         }),
     );
     insert_child(&mut tree, 350, fixed_node(351, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(350), UiNodeId::new(351), UiSlotKind::Grid)
             .with_grid_placement(UiGridSlotPlacement::new(1, 1))
             .with_padding(UiMargin::new(2.0, 3.0, 4.0, 5.0))
@@ -120,7 +120,7 @@ fn taffy_layout_pass_reports_grid_slot_alignment_without_fixed_extent_fallback()
         }),
     );
     insert_child(&mut tree, 360, node(361));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(360), UiNodeId::new(361), UiSlotKind::Grid)
             .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::Start)),
     );

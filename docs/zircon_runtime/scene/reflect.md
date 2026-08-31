@@ -208,13 +208,19 @@ Non-finite float values are rejected before converting `ReflectedValue::Scalar`,
 
 - `contains(&World, EntityId, &str) -> bool`
 - `read_field(&World, EntityId, &str, &str) -> Result<ReflectedValue, ReflectError>`
-- `read_fields(&World, EntityId, &str) -> Result<Vec<ReflectFieldValue>, ReflectError>`
 - `write_field(&mut World, EntityId, &str, &str, ReflectedValue) -> Result<bool, ReflectError>`
 - `read_field_by_slot(&World, EntityId, &str, u32) -> Result<ReflectedValue, ReflectError>`
 - `write_field_by_slot(&mut World, EntityId, &str, u32, ReflectedValue) -> Result<bool, ReflectError>`
+- `write_fields_by_slot(&mut World, EntityId, &str, &[(u32, ReflectedValue)]) -> Result<bool, ReflectError>`
+- optional `stage_clone` support for transaction preflight
 - `remove(&mut World, EntityId, &str) -> Result<bool, ReflectError>`
 
-The name-based forwarding methods remain the tooling/inspector surface. Plugins 08 M1 adds optional dense callbacks used after `ScriptCallTable` resolves names at module load; missing dense callbacks return a structured invalid-registration error instead of falling back to name dispatch. Built-in derived adapters, the two invariant-sensitive special adapters, and dynamic JSON adapters all install dense callbacks. `ReflectResource` is the matching resource function table with world-level `contains`, `read_field`, `read_fields`, and `write_field` callbacks.
+The name-based methods remain legacy adapter/tooling helpers. Public reflection routing and bulk enumeration
+use the admitted schema catalog and dense callbacks; they do not ask adapters to enumerate named fields.
+Built-in derived adapters, the two invariant-sensitive special adapters, and dynamic JSON adapters all
+install dense callbacks. `ReflectResource` is the matching resource function table with world-level
+`contains` and named `read_field` helpers plus mandatory dense read, write, batch-write, and preflight
+transfer callbacks; ensure and stage-clone support are optional capabilities.
 
 ## WorldReflection Facade
 
@@ -222,9 +228,9 @@ The name-based forwarding methods remain the tooling/inspector surface. Plugins 
 
 - `list_reflect_types` iterates `TypeRegistry` deterministically, applies `ReflectSchemaFilter`, and pre-sizes the schema response vector for focused and registry-wide requests.
 - `reflect_schema` resolves a full or unambiguous short type path and clones the neutral `ReflectTypeRegistration`.
-- `reflect_fields` routes `ReflectObjectAddress::Component` to a component adapter and `ReflectObjectAddress::Resource` to a resource adapter.
-- `reflect_read` routes through the matching adapter `read_field` and wraps the normalized value in `ReflectReadResponse`.
-- `reflect_write` routes through the matching adapter `write_field`, then reads the same field back so callers receive the normalized current value in `ReflectWriteResponse`.
+- `reflect_fields` iterates the admitted schema in order and reads each component or resource value through its dense slot adapter.
+- `reflect_read` resolves the stable field ID through the schema catalog and reads the corresponding dense slot.
+- `reflect_write` resolves the stable field ID, validates the request, writes the corresponding dense slot, and acknowledges the accepted request value without an implicit readback.
 
 `World` exposes public wrappers with the same facade names: `list_reflect_types`, `reflect_schema`, `reflect_fields`, `reflect_read`, and `reflect_write`. These wrappers keep callers anchored on `World` as the runtime scene authority while centralizing routing rules in `WorldReflection`. Component and resource adapter lookup use direct success-path branches to borrow adapters for read and field-list routes. Component writes still clone only after lookup so the registry borrow ends before mutable world access.
 
@@ -355,8 +361,9 @@ The unified derive and World adapter return structured errors consistently:
 - Write to a read-only field: `ReflectError::NonEditableField { type_path, field_name }`.
 - Wrong reflected value kind, non-finite scalar/vector input or invalid enum value: typed `TypeMismatch` or `UnsupportedConversion` results.
 
-`WorldReflection::reflect_write` continues to read the field back after a successful adapter write,
-so callers receive the normalized `ReflectWriteResponse.field` value after World-owned mutation.
+`WorldReflection::reflect_write` returns the accepted request value after a successful adapter write.
+Callers that require a post-mutation normalized value must issue an explicit reflected read; the write path
+does not perform a hidden second adapter access.
 
 ## M8.4 Validation
 
@@ -400,7 +407,7 @@ Dynamic component adapters keep legacy descriptor behavior separate from VM-back
 
 - `contains` is true only when the entity exists and `World::dynamic_component(entity, type_path)` is present.
 - Legacy descriptor reads first require the declared JSON key, then build `ComponentPropertyPath::new(type_path, [field_name])`, call `World::dynamic_component_property`, and retain the established `ScenePropertyValue` conversion vocabulary such as lowercase `number`/`float`. A declared but absent key therefore remains `ReflectError::UnknownField` on both legacy and VM paths. VM-backed reads use the strict declared JSON converter so nested List/Map/Json values share exactly the same schema semantics as registration and initial attachment. Both paths use direct success branches for component presence, declared-field lookup, JSON object field presence, and property retrieval.
-- `read_fields` iterates reflected field metadata in schema order, pre-sizes the returned field-value vector from the reflected schema field count, and reads only declared fields.
+- `WorldReflection::reflect_fields` iterates reflected field metadata in schema order, pre-sizes the returned field-value vector, and reads each declared field through its dense slot.
 - Legacy writes convert through `ScenePropertyValue`, preserving shortest f32 JSON decimals such as `0.9`. VM writes require an existing complete component, validate the declared field type and the resulting full object, then commit the JSON replacement; public property writes cannot create partial VM instances.
 - Missing entities, missing dynamic component instances, undeclared fields, read-only fields, and unsupported value conversions return structured `ReflectError` variants.
 
@@ -433,8 +440,11 @@ M8.6 proves the reflection facade is not component-only. It keeps resources owne
 
 - `contains(&World) -> bool`
 - `read_field(&World, &str) -> Result<ReflectedValue, ReflectError>`
-- `read_fields(&World) -> Result<Vec<ReflectFieldValue>, ReflectError>`
-- `write_field(&mut World, &str, ReflectedValue) -> Result<bool, ReflectError>`
+- `read_field_by_slot(&World, u32) -> Result<ReflectedValue, ReflectError>`
+- `write_field_by_slot(&mut World, u32, ReflectedValue) -> Result<bool, ReflectError>`
+- `write_fields_by_slot(&mut World, &[(u32, ReflectedValue)]) -> Result<bool, ReflectError>`
+- optional `ensure`, stage-clone byte estimation, and stage-clone callbacks
+- mandatory preflight-value transfer into the staged artifact world
 
 The M8.6 test adapter is intentionally test-only. `FrameCounter { value: u32 }` lives in `zircon_runtime/src/scene/tests/ecs_reflect/resources.rs`, registers type path `zircon_runtime::scene::tests::ecs_reflect::FrameCounter`, and exposes one editable `value: Unsigned` field with `ReflectSerializationStrategy::ResourceHandle`.
 
@@ -450,7 +460,8 @@ The resource tests cover structured resource failures and shared facade shape:
 - Component registrations addressed as resources return `ReflectError::AddressKindMismatch` because the resource route rejects non-resource registrations before adapter lookup.
 - Resource registrations addressed as components return `ReflectError::AddressKindMismatch` because the component route rejects non-component registrations before adapter lookup.
 
-`WorldReflection::reflect_write` still reads the resource field back after a successful write, so callers receive a normalized `ReflectWriteResponse.field` matching the current world state.
+`WorldReflection::reflect_write` acknowledges the accepted resource request value after a successful dense
+slot write. An explicit reflected read owns any required post-mutation normalization check.
 
 ## M8.6 Validation
 

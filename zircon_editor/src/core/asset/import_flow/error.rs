@@ -5,9 +5,21 @@ use crate::core::asset::EditorAssetIndexError;
 use crate::core::jobs::{JobSubmitError, MutexGroupError};
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum EditorAssetImportExecutionError {
+    #[error("runtime asset import did not commit a status for {uri}")]
+    RuntimeDidNotCommit { uri: AssetUri },
+}
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum EditorAssetImportSubmitError {
     #[error("asset import URI is not present in the runtime registry projection: {uri}")]
     AssetNotIndexed { uri: AssetUri },
+    #[error("asset import admission is pending for {uri}")]
+    AdmissionPending { uri: AssetUri },
+    #[error("asset import UUID lifecycle transition is pending for {uri}")]
+    UuidLifecycleTransitionPending { uri: AssetUri },
+    #[error("runtime asset registry generation changed repeatedly while submitting {uri}")]
+    RegistryGenerationSuperseded { uri: AssetUri },
     #[error("asset import admission reached its retained flight limit of {limit}")]
     FlightLimitReached { limit: usize },
     #[error(

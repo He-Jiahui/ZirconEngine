@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::retained_host::host_contract::data::{
-    HostPresentationGenerationCursor, UiAssetEditorPaneData,
+    HostPresentationGenerationCursor, SceneViewportChromeData, UiAssetEditorPaneData,
 };
 use crate::ui::retained_host::primitives::{CloseRequestResponse, PlatformError};
 use crate::ui::retained_host::ui::patch_ui_asset_presentation;
@@ -14,6 +14,7 @@ use super::target::NativeFloatingWindowTarget;
 pub(crate) struct NativeWindowPresenterStore {
     windows: BTreeMap<MainPageId, UiHostWindow>,
     applied_generations: BTreeMap<MainPageId, NativeWindowAppliedGeneration>,
+    presented_rows: BTreeMap<MainPageId, usize>,
 }
 
 struct NativeWindowAppliedGeneration {
@@ -82,6 +83,7 @@ impl NativeWindowPresenterStore {
         for window_id in stale {
             if let Some(window) = self.windows.remove(&window_id) {
                 self.applied_generations.remove(&window_id);
+                self.presented_rows.remove(&window_id);
                 window.hide()?;
             }
         }
@@ -104,12 +106,25 @@ impl NativeWindowPresenterStore {
                 self.applied_generations
                     .get(&target.window_id)
                     .is_some_and(|applied| applied.source == source && applied.target == *target)
+                    && self.presented_rows.contains_key(&target.window_id)
             });
             if already_applied {
                 continue;
             }
 
             apply(window, target);
+            let presented_row = window
+                .get_host_presentation_generation()
+                .structure()
+                .native_floating_surface_data
+                .floating_windows
+                .iter()
+                .position(|presented| presented.window_id.as_str() == target.window_id.0.as_str());
+            if let Some(row) = presented_row {
+                self.presented_rows.insert(target.window_id.clone(), row);
+            } else {
+                self.presented_rows.remove(&target.window_id);
+            }
             if let Some(source) = source_generation {
                 self.applied_generations.insert(
                     target.window_id.clone(),
@@ -133,6 +148,46 @@ impl NativeWindowPresenterStore {
 
     pub(crate) fn window(&self, window_id: &MainPageId) -> Option<UiHostWindow> {
         self.windows.get(window_id).map(UiHostWindow::clone_strong)
+    }
+
+    /// Patches viewport chrome in each independently presented native child window.
+    pub(crate) fn patch_scene_viewport_chrome(
+        &self,
+        viewport: &SceneViewportChromeData,
+    ) -> NativePresentationPatch {
+        let mut result = NativePresentationPatch {
+            presenter_visit_count: self.windows.len(),
+            ..NativePresentationPatch::default()
+        };
+        for (window_id, window) in &self.windows {
+            let Some(&row) = self.presented_rows.get(window_id) else {
+                continue;
+            };
+            if window
+                .get_host_presentation_generation()
+                .structure()
+                .native_floating_surface_data
+                .native_floating_window_id
+                .as_str()
+                != window_id.0.as_str()
+            {
+                continue;
+            }
+            if !window.patch_native_scene_viewport_chrome(
+                row,
+                window_id.0.as_str(),
+                viewport.clone(),
+            ) {
+                continue;
+            }
+            let damage = window
+                .native_viewport_chrome_damage_frame()
+                .unwrap_or_else(|| window.get_host_window_bootstrap().shell_frame);
+            window.request_frame_update_region(damage);
+            result.damage_region_count += 1;
+            result.presenter_ids.insert(window_id.clone());
+        }
+        result
     }
 
     /// Patches the already-presented UI Asset pane in every native child window.

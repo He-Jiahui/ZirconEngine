@@ -7,21 +7,22 @@ use crate::core::framework::render::{
     FrameHistoryInvalidationReason, FrameHistoryStatus, MotionVectorCameraStatus,
     RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderGpuSceneUploadPath,
     RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
-    RenderGraphExecutionCoverageReport, RenderGraphExecutionProfileReport,
-    RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
-    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderGraphTransientPoolReport,
-    RenderHistoryCopyReport, RenderHybridGiPayloadSource, RenderPipelineHandle,
-    RenderPostProcessEffectStackReport, RenderQualityProfile, RenderQueueCapability, RenderStats,
-    RenderViewportDescriptor, RenderViewportHandle,
-    RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryDebugSnapshot,
-    RenderVirtualGeometryHardwareRasterizationSource,
+    RenderGraphExecutionBatchReport, RenderGraphExecutionCoverageReport,
+    RenderGraphExecutionProfileReport, RenderGraphExecutionResourceReport,
+    RenderGraphMaterializationReport, RenderGraphPassProfileRecord,
+    RenderGraphStageExecutionReport, RenderGraphTransientPoolReport, RenderHistoryCopyReport,
+    RenderHybridGiPayloadSource, RenderPipelineHandle, RenderPostProcessEffectStackReport,
+    RenderQualityProfile, RenderQueueCapability, RenderStats, RenderViewportDescriptor,
+    RenderViewportHandle, RenderVirtualGeometryClusterSelectionInputSource,
+    RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryHardwareRasterizationSource,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPayloadSource,
     RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Source,
     SolariRuntimeDegradation, SolariRuntimeReport, SolariRuntimeStatus, SolariSettings,
+    UiRenderSubmission,
 };
 use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
-use crate::core::{ManagerDescriptor, ModuleDescriptor, RegistryName, StartupMode};
+use crate::core::{CoreError, ManagerDescriptor, ModuleDescriptor, RegistryName, StartupMode};
 use crate::engine_module::factory;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
@@ -43,6 +44,24 @@ pub(super) fn fake_render_module() -> ModuleDescriptor {
                     Arc::new(FakeRenderFramework),
                 )) as ServiceObject,
             )
+        }),
+    ))
+}
+
+pub(super) fn failing_render_module() -> ModuleDescriptor {
+    ModuleDescriptor::new(
+        DIAGNOSTICS_TEST_MODULE,
+        "runtime diagnostics failing render service",
+    )
+    .with_manager(ManagerDescriptor::new(
+        RegistryName::new(crate::core::manager::RENDER_FRAMEWORK_NAME).unwrap(),
+        StartupMode::Immediate,
+        Vec::new(),
+        factory(|_| {
+            Err(CoreError::Initialization(
+                "post-process full resources construction".to_owned(),
+                "wgpu validation failed: injected diagnostic regression".to_owned(),
+            ))
         }),
     ))
 }
@@ -76,7 +95,7 @@ impl RenderFramework for FakeRenderFramework {
         &self,
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
-        _ui: Option<UiRenderExtract>,
+        _ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError> {
         self.submit_frame_extract(viewport, extract)
     }
@@ -224,7 +243,11 @@ impl RenderFramework for FakeRenderFramework {
                 RenderGraphTransientPoolReport::new(6, 5, 7, 2, 3, 4, 1, 8, 9)
                     .with_retained_bytes(4_096, 512)
                     .with_budget_bytes(1_048_576, 65_536)
-                    .with_budget_evictions(10, 11),
+                    .with_budget_evictions(10, 11)
+                    .with_persistent_extraction(2, 8_192, 1, 1)
+                    .with_submission_retirement(3, 12_288, 4, 4_096, 5, 6, 7, 8)
+                    .with_device_epoch_discards(9, 10)
+                    .with_maintenance_work(11, 12, 13, 14, 15, 16, 17, 18),
             ),
             last_graph_materialization_report: RenderGraphMaterializationReport {
                 required_texture_count: 4,
@@ -269,6 +292,9 @@ impl RenderFramework for FakeRenderFramework {
             ),
             last_graph_execution_coverage_report: RenderGraphExecutionCoverageReport::new(
                 14, 14, 14, 0, 0, 0,
+            ),
+            last_graph_execution_batch_report: RenderGraphExecutionBatchReport::new(
+                5, 14, 3, 1, 1, 6, 4,
             ),
             last_graph_execution_profile_report: RenderGraphExecutionProfileReport::new(vec![
                 RenderGraphPassProfileRecord::new("depth-prepass", "mesh.depth", 150),

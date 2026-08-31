@@ -11,6 +11,25 @@ use serde_json::json;
 use crate::foundation::{module_descriptor, FOUNDATION_MODULE_NAME};
 
 #[test]
+fn foundation_descriptor_exposes_only_behavioral_managers() {
+    let descriptor = module_descriptor();
+
+    assert!(
+        descriptor.drivers.is_empty(),
+        "foundation must not publish placeholder drivers as ready capabilities"
+    );
+    assert_eq!(descriptor.managers.len(), 2);
+    assert!(descriptor
+        .managers
+        .iter()
+        .any(|manager| manager.name.as_str() == CONFIG_MANAGER_NAME));
+    assert!(descriptor
+        .managers
+        .iter()
+        .any(|manager| manager.name.as_str() == EVENT_MANAGER_NAME));
+}
+
+#[test]
 fn foundation_root_stays_structural_after_module_split() {
     let source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -128,7 +147,7 @@ fn foundation_registry_services_do_not_retain_the_runtime_root() {
     assert_eq!(config.get_value("runtime.gone"), None);
     assert_eq!(
         config.set_value("runtime.gone", json!(true)),
-        Err(crate::core::CoreError::RuntimeUnavailable)
+        Err(crate::core::framework::foundation::ConfigManagerError::RuntimeUnavailable)
     );
 
     let receiver = events.subscribe("runtime.gone", EngineEventDeliveryPolicy::Lossless);

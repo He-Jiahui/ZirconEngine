@@ -1,9 +1,12 @@
+use super::super::font_assets::UiFontAssetCacheReport;
 use super::super::prepare_report::{
-    text_raster_upload_report, ScreenSpaceUiTextSdfGenerationReport,
+    ScreenSpaceUiResolvedTextReport, ScreenSpaceUiTextBatchResidencyReport,
+    ScreenSpaceUiTextSdfGenerationReport, text_raster_upload_report,
 };
 use super::super::resolved_batches::ResolvedScreenSpaceUiTextBatches;
 use super::super::*;
 use super::support::text_batch;
+use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiResolvedGlyphArtifactRouteReport;
 use crate::text::atlas::GlyphAtlasStorageFormat;
 use crate::text::sdf::SdfAtlasRect;
 
@@ -13,7 +16,8 @@ use super::super::super::sdf_upload::SdfAtlasUploadPageReport;
 #[test]
 fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
     let auto = [text_batch("Auto", UiTextRenderMode::Auto)];
-    let native = [text_batch("Native", UiTextRenderMode::Native)];
+    let mut native = [text_batch("Native", UiTextRenderMode::Native)];
+    native[0].glyph_advances = vec![2.0, 4.0];
     let sdf = [text_batch("Sdf", UiTextRenderMode::Sdf)];
     let mut resolved = ResolvedScreenSpaceUiTextBatches::from_explicit_batches(&native, &sdf);
     resolved.push_resolved_auto_text(auto[0].clone(), UiTextRenderMode::Sdf);
@@ -58,6 +62,7 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
         bake: Default::default(),
         atlas_upload_byte_len: 512 * 512,
         atlas_upload_full_texture: true,
+        atlas_upload_preparation_failed: false,
         atlas_upload: SdfAtlasUploadReport {
             mode: SdfAtlasUploadMode::FullTexture,
             byte_len: 512 * 512,
@@ -107,10 +112,15 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
     sdf_report.bake.generation_failure_count = 7;
 
     let report = text_prepare_report(
-        &auto,
-        &native,
-        &sdf,
-        &resolved,
+        [auto.len(), native.len(), sdf.len()],
+        resolved.auto_route_report(),
+        ScreenSpaceUiResolvedGlyphArtifactRouteReport {
+            artifact_command_count: 1,
+            source_isomorphic_fallback_command_count: 1,
+            missing_artifact_count: 1,
+            ..ScreenSpaceUiResolvedGlyphArtifactRouteReport::default()
+        },
+        ScreenSpaceUiResolvedTextReport::from_resolved_texts(&resolved),
         ScreenSpaceUiTextSdfFallbackReport::default(),
         ScreenSpaceUiNativePrepareReport {
             font_ids: ScreenSpaceUiTextFontIdReport::default(),
@@ -136,14 +146,15 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
                 retry_submission: Default::default(),
                 retry_state: Default::default(),
                 discarded_stale_retry_glyph_count: 0,
-                glyphon_fallback_reason: Some(
-                    native_bitmap_atlas::NativeBitmapAtlasGlyphonFallbackReason::UnsupportedGlyphFormat,
+                native_degradation_reason: Some(
+                    native_bitmap_atlas::NativeBitmapAtlasDegradationReason::UnsupportedGlyphFormat,
                 ),
                 first_frame_degradation: None,
-                replaces_glyphon: false,
+                native_submission_ready: false,
                 submission: Default::default(),
             },
         },
+        UiFontAssetCacheReport::default(),
         MissingGlyphDiagnosticsReport::default(),
         GlyphAtlasBitmapRendererPrepareReport::default(),
         atlas_report.clone(),
@@ -156,10 +167,23 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             input_auto_text_batch_count: 1,
             input_native_text_batch_count: 1,
             input_sdf_text_batch_count: 1,
+            resolved_glyph_artifact_routes: ScreenSpaceUiResolvedGlyphArtifactRouteReport {
+                artifact_command_count: 1,
+                source_isomorphic_fallback_command_count: 1,
+                missing_artifact_count: 1,
+                ..ScreenSpaceUiResolvedGlyphArtifactRouteReport::default()
+            },
             resolved_native_text_batch_count: 1,
             resolved_sdf_text_batch_count: 2,
+            renderer_batch_residency: ScreenSpaceUiTextBatchResidencyReport {
+                materialized_batch_count: 3,
+                text_byte_count: "Native".len() + "Sdf".len() + "Auto".len(),
+                glyph_advance_byte_count: 2 * std::mem::size_of::<f32>(),
+            },
+            post_layout_stale_artifact_batch_rejection_count: 0,
             auto_route: Default::default(),
             sdf_fallback: ScreenSpaceUiTextSdfFallbackReport::default(),
+            font_assets: UiFontAssetCacheReport::default(),
             native_font_ids: ScreenSpaceUiTextFontIdReport::default(),
             missing_glyphs: MissingGlyphDiagnosticsReport::default(),
             layout_fallbacks: crate::text::TextLayoutFallbackReport::default(),
@@ -190,11 +214,11 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
                 retry_submission: Default::default(),
                 retry_state: Default::default(),
                 discarded_stale_retry_glyph_count: 0,
-                glyphon_fallback_reason: Some(
-                    native_bitmap_atlas::NativeBitmapAtlasGlyphonFallbackReason::UnsupportedGlyphFormat,
+                native_degradation_reason: Some(
+                    native_bitmap_atlas::NativeBitmapAtlasDegradationReason::UnsupportedGlyphFormat,
                 ),
                 first_frame_degradation: None,
-                replaces_glyphon: false,
+                native_submission_ready: false,
                 submission: Default::default(),
             },
             bitmap_atlas_renderer: GlyphAtlasBitmapRendererPrepareReport::default(),
@@ -278,6 +302,12 @@ fn text_prepare_report_exposes_all_outstanding_raster_work() {
             upload_copy_count: 3,
             upload_byte_len: 384,
             resident_page_byte_len: 16_384,
+            bitmap_page_shadow: crate::text::atlas::GlyphAtlasBitmapPageShadowReport {
+                resident_page_count: 2,
+                resident_byte_count: 12_288,
+                max_byte_count: 32 * 1024 * 1024,
+                budget_rejection_count: 1,
+            },
             ..Default::default()
         },
         ..NativeBitmapAtlasPrepareReport::default()
@@ -286,15 +316,16 @@ fn text_prepare_report_exposes_all_outstanding_raster_work() {
         .with_upload_counters_for_test(3, 384, 1, 1, false);
 
     let report = text_prepare_report(
-        &[],
-        &native,
-        &[],
-        &resolved,
+        [0, native.len(), 0],
+        resolved.auto_route_report(),
+        ScreenSpaceUiResolvedGlyphArtifactRouteReport::default(),
+        ScreenSpaceUiResolvedTextReport::from_resolved_texts(&resolved),
         ScreenSpaceUiTextSdfFallbackReport::default(),
         ScreenSpaceUiNativePrepareReport {
             font_ids: ScreenSpaceUiTextFontIdReport::default(),
             bitmap_atlas: native_bitmap_atlas,
         },
+        UiFontAssetCacheReport::default(),
         MissingGlyphDiagnosticsReport::default(),
         bitmap_renderer,
         SdfAtlasCacheReport::default(),
@@ -332,6 +363,10 @@ fn text_prepare_report_exposes_all_outstanding_raster_work() {
             atlas_slot_cache_miss_count: 0,
             atlas_slot_cache_insert_count: 0,
             atlas_resident_page_byte_len: 16_384,
+            atlas_page_shadow_resident_page_count: 2,
+            atlas_page_shadow_resident_byte_count: 12_288,
+            atlas_page_shadow_max_byte_count: 32 * 1024 * 1024,
+            atlas_page_shadow_budget_rejection_count: 1,
             worker_request_submitted_count: 2,
             worker_pending_count: 3,
             worker_request_deferred_count: 5,
@@ -423,7 +458,7 @@ fn text_prepare_report_exposes_raster_upload_scroll_counters() {
 }
 
 #[test]
-fn raster_upload_report_excludes_planned_placeholders_when_glyphon_fallback_wins() {
+fn raster_upload_report_excludes_planned_placeholders_when_native_degradation_wins() {
     let native_bitmap_atlas = NativeBitmapAtlasPrepareReport {
         visible_raster_glyph_count: 2,
         source_image_count: 1,

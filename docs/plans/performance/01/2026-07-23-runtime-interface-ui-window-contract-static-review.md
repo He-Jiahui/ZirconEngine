@@ -27,7 +27,7 @@ status: static_complete_dynamic_pending
 
 ## 性能结论
 
-- `event.rs`、`impact.rs`、`metrics.rs`和metadata facade主要是值类型合同；impact判词与transient-effect iterator无额外集合分配。`normalize(self)`大多移动既有字段，正向避免二次深复制；drag payload转成`Box`仍会发生一次堆分配。
+- `event.rs`、`impact.rs`、`metrics.rs`和metadata facade主要是值类型合同；impact判词与transient-effect iterator无额外集合分配。`normalize(self)`大多移动既有字段，正向避免二次深复制；drag payload在归一化边界只提升一次为`Arc`，后续input/effect/retained-state共享同一不可变authority，并保持既有JSON对象形状。
 - `UiWindowInputPumpBatch`是无entry/bytes/age上限的`Vec`。`push_coalesced`只删除**相邻 redraw**，没有合并pointer move、raw mouse motion、touch move、wheel、analog、drag-over或resize；ABI adapter甚至统一调用`push`。EditorUI01现有管线图“push_coalesced 合并 move”与当前源码不符，必须纠正。
 - `runtime_events_to_window_input_pump_batch`逐项转换，遇到末尾非法事件会丢弃此前已完成的全部转换；没有事件索引、partial/transaction policy、reserve、count/time预算或overflow语义。下游`UiInputManager::dispatch_window_input_pump_batch`又按N逐项同步路由并分配容量N的result Vec，producer burst可直接放大主线程工作和驻留。
 - 每个ABI input event的`input_context()`先在`window_metadata()`克隆一次`UiWindowId(String)`，`from_window_metadata()`再克隆一次，临时第一份随后丢弃。keyboard每event物化physical/logical两个String；`key_char`与controller button再复制同一正文，axis也每event分配control String。`payload_bytes()`无条件`to_vec()`；accessibility仅为JSON解析建立整份临时bytes，文本/IME/file-drop虽最终需要owned正文，也缺payload bytes上限。

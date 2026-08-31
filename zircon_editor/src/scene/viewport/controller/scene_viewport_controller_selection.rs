@@ -49,6 +49,7 @@ mod tests {
     use super::*;
     use crate::core::commands::{CommandEvalCtx, WhenClause};
     use crate::core::editor_message::SceneModeId;
+    use crate::core::play::PlayInstanceId;
     use crate::scene::modes::SceneModeActivation;
     use crate::scene::selection::WorldDomain;
     use crate::scene::viewport::TransformHandleKind;
@@ -135,7 +136,8 @@ mod tests {
 
         assert!(controller
             .selection_mut()
-            .set_active_domain(WorldDomain::Play));
+            .activate_play_domain(PlayInstanceId::for_test(1)));
+        assert!(controller.selection_mut().clear_active());
         let play = controller.project_command_eval_ctx(CommandEvalCtx::interactive());
         assert!(!WhenClause::SelectionNonEmpty.eval(&play));
     }

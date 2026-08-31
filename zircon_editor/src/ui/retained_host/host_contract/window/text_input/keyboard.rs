@@ -7,6 +7,7 @@ use winit::keyboard::{Key, NamedKey};
 use zircon_runtime_interface::ui::dispatch::UiKeyboardInputEvent;
 
 use super::super::UiHostWindow;
+use crate::core::commands::EditorKeyChord;
 use crate::ui::retained_host::host_contract::globals::UiHostContext;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use consumed::native_keyboard_event_consumed;
@@ -48,11 +49,31 @@ impl UiHostWindow {
         event: &KeyEvent,
         keyboard: Option<UiKeyboardInputEvent>,
     ) -> NativePointerDispatchResult {
+        if self.chord_capture_focus_active() {
+            return self.dispatch_focused_chord_key_event(event, keyboard.as_ref());
+        }
         let text_focus_was_active = self.text_input_focus_active();
         let result = self.dispatch_focused_key_event(event);
         if !native_keyboard_event_consumed(text_focus_was_active, event, &result) {
             dispatch_unhandled_keyboard_input(self, event, keyboard);
         }
         result
+    }
+
+    fn dispatch_focused_chord_key_event(
+        &self,
+        event: &KeyEvent,
+        keyboard: Option<&UiKeyboardInputEvent>,
+    ) -> NativePointerDispatchResult {
+        if event.state != ElementState::Pressed {
+            return NativePointerDispatchResult::idle();
+        }
+        if matches!(&event.logical_key, Key::Named(NamedKey::Escape)) {
+            return self.cancel_focused_chord_capture();
+        }
+        let Some(chord) = keyboard.and_then(EditorKeyChord::from_keyboard_input) else {
+            return NativePointerDispatchResult::idle();
+        };
+        self.dispatch_focused_chord_commit(chord.to_string().into())
     }
 }

@@ -1,8 +1,6 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
 use super::template_icon_assets::push_icon_asset_pixels;
-use super::template_icon_button_glyph_kind::icon_button_glyph_kind;
-use super::template_icon_button_glyph_shapes::push_icon_button_glyph_shape;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_icon_button_glyph(
     commands: &mut Vec<HostPaintCommand>,
@@ -13,38 +11,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
     color: [u8; 4],
     opacity: f32,
 ) {
-    let rendered_asset = push_icon_button_asset_glyph(
+    if node.icon_name.trim().is_empty() {
+        return;
+    }
+    push_icon_asset_pixels(
         commands,
         node.icon_name.as_str(),
         rect,
         clip,
         order,
-        color,
+        Some(color),
         opacity,
     );
-    if !rendered_asset {
-        push_icon_button_glyph_shape(
-            commands,
-            icon_button_glyph_kind(node),
-            rect,
-            clip,
-            order,
-            color,
-            opacity,
-        );
-    }
-}
-
-fn push_icon_button_asset_glyph(
-    commands: &mut Vec<HostPaintCommand>,
-    icon_name: &str,
-    rect: &FrameRect,
-    clip: &FrameRect,
-    order: i32,
-    color: [u8; 4],
-    opacity: f32,
-) -> bool {
-    push_icon_asset_pixels(commands, icon_name, rect, clip, order, Some(color), opacity)
 }
 
 #[cfg(test)]
@@ -92,7 +70,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_svg_icon_button_keeps_manual_glyph_fallback() {
+    fn missing_svg_icon_button_fails_closed_without_manual_pixel_fallback() {
         let node = TemplatePaneNodeData {
             control_id: "WorkbenchToolbarMenu".into(),
             role: "IconButton".into(),
@@ -123,9 +101,6 @@ mod tests {
             1.0,
         );
 
-        assert!(commands.len() > 1);
-        assert!(commands
-            .iter()
-            .all(|command| command.image_pixels.is_none()));
+        assert!(commands.is_empty());
     }
 }

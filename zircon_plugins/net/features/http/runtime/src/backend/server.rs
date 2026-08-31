@@ -102,10 +102,11 @@ async fn handle_route_request(
     let mut request = NetHttpRequestDescriptor::new(NetRequestId::new(0), method, path);
     request.headers = headers;
     request.body = body;
-    let response = route_handler
-        .as_ref()
-        .map(|handler| handler(request.clone()))
-        .unwrap_or_else(|| route_response.for_request(request.request));
+    let request_id = request.request;
+    let response = match route_handler {
+        Some(handler) => handler(request),
+        None => route_response.for_request(request_id),
+    };
 
     build_route_response(response)
 }

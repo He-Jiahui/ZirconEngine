@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AssetUri, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
-    MeshSkinAsset, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    AssetUri, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0, MaterialAsset, MeshAsset,
+    MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshSkinAsset,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
@@ -412,7 +412,7 @@ fn direct_morph_extract(
         RenderWorldSnapshotHandle::new(world),
         snapshot_with_projection_for_mesh_cache_tests(ProjectionMode::Perspective),
     );
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![direct_morph_mesh_snapshot(material_id, mesh_id)],
     );
@@ -438,7 +438,7 @@ fn direct_morph_parity_extract(
     let mut descriptor = CameraRenderDescriptor::from_camera_payload(Some(2401), camera);
     descriptor.clear = RenderCameraClear::Color(Vec4::ZERO);
     extract.view.select_camera_descriptor(descriptor);
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![direct_morph_parity_mesh_snapshot(
             material_id,
@@ -457,7 +457,7 @@ fn skinned_morph_parity_extract(
     gpu_morphed: bool,
 ) -> RenderFrameExtract {
     let mut extract = direct_morph_parity_extract(material_id, mesh_id, world, gpu_morphed);
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![skinned_morph_parity_mesh_snapshot(
             material_id,
@@ -465,10 +465,10 @@ fn skinned_morph_parity_extract(
             gpu_morphed,
         )],
     );
-    extract.animation_poses = vec![RenderSkeletalPoseExtract {
+    *extract.animation_poses = vec![RenderSkeletalPoseExtract {
         entity: SKINNED_MORPH_PARITY_NODE_ID,
         skeleton: skeleton_id,
-        pose: skinned_morph_pose(),
+        pose: Arc::new(skinned_morph_pose()),
     }];
     extract
 }

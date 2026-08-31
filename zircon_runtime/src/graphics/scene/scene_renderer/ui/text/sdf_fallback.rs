@@ -151,7 +151,7 @@ fn apply_sdf_atlas_fallbacks_internal<'a>(
     let pending_sdf_texts = std::mem::take(sdf_texts);
     let mut retained_sdf_texts = Vec::with_capacity(pending_sdf_texts.len());
     let mut retained_sdf_run_indices = Vec::with_capacity(pending_sdf_texts.len());
-    let mut native_fallback_run_indices = Vec::new();
+    let mut native_fallback_run_indices = Vec::with_capacity(pending_sdf_texts.len());
     let mut report = ScreenSpaceUiTextSdfFallbackReport::default();
 
     for (index, text) in pending_sdf_texts.into_iter().enumerate() {
@@ -534,3 +534,7 @@ fn span_source_byte_count(span: &SdfAtlasGlyphFallbackSpan) -> usize {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "sdf_fallback/preallocated_native_indices_tests.rs"]
+mod preallocated_native_indices_tests;

@@ -263,7 +263,12 @@ impl SceneAssetManagementRecord {
 
 impl SceneEntityAsset {
     pub fn direct_references(&self) -> Vec<AssetReference> {
-        let mut references = Vec::new();
+        let mut references = Vec::with_capacity(self.direct_reference_count());
+        self.append_direct_references(&mut references);
+        references
+    }
+
+    pub(super) fn append_direct_references(&self, references: &mut Vec<AssetReference>) {
         if let Some(camera) = &self.camera {
             references.extend(camera.direct_references());
         }
@@ -297,7 +302,6 @@ impl SceneEntityAsset {
         if let Some(prefab) = &self.prefab_instance {
             references.extend(prefab.direct_references());
         }
-        references
     }
 
     pub fn direct_reference_count(&self) -> usize {

@@ -12,22 +12,28 @@
 |---|---:|---:|---|
 | `zircon_app` | 190 | 28,885 | 局部 E3：product host/bootstrap/session teardown/runtime entry及PBR viewer/evidence链；其余 queued |
 | `zircon_runtime` | 7,643 | 1,081,110 | 局部 E3：core/runtime/resource/scene/platform/systems、graphics到terminal composition、runtime UI architecture及text/font/shaping/layout/editing/IME；其余 queued |
-| `zircon_runtime_interface` | 442 | 50,545 | 七轮纵向E3：生产源码已归入ABI、DTO、UI、diagnostic/plugin、host output、project/Hub protocol及contract certification；source drift需重检 |
+| `zircon_runtime_interface` | 442 | 50,545 | 七轮纵向首审加Runtime DLL ABI/FFI当前源码复核：生产源码已归入ABI、DTO、UI、diagnostic/plugin、host output、project/Hub protocol及contract certification；source drift需重检 |
 | `zircon_editor` | 5,711 | 563,950 | 局部 E3：retained UI、document/scene/asset/Inspector/plugin/Play/command/jobs/notifications/logging及Settings/Preferences/locale/appearance纵向切片；其余 queued |
 | `zircon_plugins` | 2,817 | 221,355 | 局部 E3：plugin SDK、ZrVM real backend、first-party catalog与公共注册面；feature内部算法仍queued |
-| `zircon_hub` | 130 | 38,964 | 五轮纵向E3：backend/web/remote/control-plane/application-host；其余queued |
+| `zircon_hub` | 138 | 39,949 | 五轮纵向首审加第六轮全tracked current-source E3刷新；production/Web/tests/config均已重判 |
 | `zircon-engine-derive` | - | 870 | E0 |
 | `cargo-zircon` | - | 4,310 | E0 |
 
 这些数据只用于控制覆盖面，不能用于评价质量。后续每个大域必须把 production、tests、build scripts、features、examples/fixtures 和产品调用点分开统计。
 
-### 2.1 `zircon_runtime_interface` 七轮覆盖补记
+### 2.1 `zircon_runtime_interface` 七轮首审覆盖补记
 
 截至2026-08-19，Interface 01-06已将当前production源码全部归入至少一份纵向报告；Interface07随后独立审查此前没有作为owner对象的契约测试与认证基础设施，而不是把测试数量算作实现完成。07的中央`src/tests`范围为35文件、13,563行、234项test、0 ignored；全crate识别401项test，分布于72个含测试Rust文件。加上9个跨crate生产者/消费者测试文件后，可确定性重建的冻结集合为81文件、25,568行、899,573 bytes、496项selected test与2项ignored，source fingerprint为`eea8fdb2c7e7d9042f381d8c8995f6d53675503137b6fc7f9937b9bc3a093f1e`；结构审计脚本和CI配置不混入该统计。
 
 本轮确认的认证边界是：same-version Rust round-trip、本机layout、linked symbol与fake table测试均有局部价值，但没有required lane正向加载构建出的真实Runtime DLL并完成BuildSet skew、跨语言header/consumer、unload/reload、guard-page/fault、golden corpus和fuzz资格。18个参考文件共17,485行、613,618 bytes，fingerprint为`5028e6d929c5a0199c22039386b6cda8458e66be18488d087ecce14b5d2d33e5`；覆盖Godot生成接口与历史C extension兼容、Unreal BuildId/module manifest与test taxonomy、Bevy compile-fail、Fyrox Rust dylib边界以及Unity Graphics package API validation/serialization。详细差距和32项资格门见`zircon_runtime_interface/07-contract-certification-abi-layout-version-skew-cross-language-fuzz-test-architecture-review.md`。
 
 07为review-only；未运行Cargo、真实DLL、C/C++、Miri/sanitizer/fuzz或性能。结构审计脚本在184.1秒超时且没有结果，不计作动态证据。选定Editor real-runtime ABI源码存在其他Session修改，因此七轮Interface报告仍必须在实施前重取source fingerprint。
+
+### 2.2 `zircon_runtime_interface` Runtime DLL ABI/FFI当前源码复核补记
+
+第八轮以Interface01为历史基线，重新冻结Interface ABI declarations、Runtime dynamic producer、App loader/session、Runtime Host foreign output、Editor session gateway、focused tests与Cargo/build surfaces共144个去重文件、32,738行、1,163,829 bytes，fingerprint为`d4fb5ae3fbbd9e511f8d57be8e921ca89ea675ca79f12817c8f8304ce205484c`。16个Unreal/Godot/Bevy/Fyrox/Unity Graphics参考文件共17,531行、637,269 bytes，fingerprint为`242067c4408c619c4a440ed1a29c6680f1d73e0832fadea574e7dda0aec2cc98`。本轮算法统一为normalized lowercase path、逐文件SHA-256与`path + NUL + hash + LF`；它与Interface01旧算法不直接可比。
+
+复核确认V7 opaque allocation registry、checked byte slices、共享JSON/frame budget和checked session handle exhaustion为真实进展；Interface01原43项现为27 Open、14 Partial、2 Closed，本轮新增destroy/release/App abort、Editor gateway table size与空frame语义3项P1 Open。合并账本为5项P0、33项P1、8项P2，21项Gate为15 Fail、5 Partial、1 Pass。本轮仍为review-only；没有修改production/tests或运行Cargo、真实DLL、C/C++、Miri/sanitizer/fuzz、故障子进程与性能。结构审计脚本两种模式均无输出，不作为通过证据；并发working-tree修改要求实施前重取指纹。
 
 ## 3. `core::runtime` 物理范围
 
@@ -172,7 +178,7 @@ Physics轮次详细阅读覆盖：
 
 - 默认/runtime/dist/editor/animation Cargo feature传播和plugin manifest，确认普通发行路径没有启用`backend-jolt`，无feature默认`unconfigured/Disabled`；
 - engine FixedUpdate调用链、Physics manager accumulator与产品`fixed_update_step_plan`，确认存在两个fixed clock authority；
-- scene `node_records()`到owned `PhysicsWorldSyncState`、Jolt managed world、active body回写、LevelSystem replacement epoch/frame snapshot的完整生产链；
+- scene `r`node_records()`到owned `PhysicsWorldSyncState`、Jolt managed world、active body回写、LevelSystem replacement epoch/frame snapshot的完整生产链；
 - builtin积分/近似query/contact/constraint与Jolt native world/layer/shape/mass/command/readback，确认Jolt query为空、event来自pairwise近似、constraint为step后投影；
 - query filter/result allocation、collision layer/matrix、local shape transform/scale/multi-shape、material/mass、mesh asset registration/cook缺口；
 - scene property/reflection校验、ragdoll profile/runtime/editor helper、animation pose feed和open physics overlay failure；
@@ -660,27 +666,28 @@ GPU UI轮次详细阅读覆盖：
 
 本轮没有运行Cargo、Editor、WGPU、RenderDoc、HDR或device-loss测试，也未执行同画质Unreal benchmark。focused production set未出现在当前工作区修改列表，但跨域Editor/test有其他Session修改，11C标记`source_recheck_required`。详细3 P0、30 P1、8 P2及四阶段重构gate见`zircon_runtime/11c-gpu-ui-renderer-atlas-sdf-batch-clip-submit-review.md`。
 
-## 28. Zircon App Product Host / Bootstrap / Dynamic Runtime / Shutdown 物理范围
+## 28. Zircon App Product Host / Bootstrap / Dynamic Runtime / Shutdown 当前源码物理范围
 
 | 子域 | 文件/行数 | 本轮状态 |
 |---|---:|---|
-| production focused set | 117 / 14,947 | E3：entry/bootstrap、runtime/editor runner、dynamic library/session、runtime app、plugin group与两个产品binary |
-| focused tests | 56 / 6,986 | E2：396个test attributes、0 ignored；180次`include_str!`说明source guard占比过高 |
-| combined focused set | 173 / 21,933 | fingerprint `743cb2c27f4ca99e3f325cf1a711d886cb840b4aae7b853abf094ba3bd0f5ed1` |
+| production focused set | 120 / 16,628 | E3：entry/bootstrap、runtime/editor runner、dynamic library/session、runtime app、plugin group与两个产品binary；fingerprint `8b27173c442719b7586ba0b386ddbcca12b3a988173b0fa3433167c3fdd715a4` |
+| focused tests | 60 / 9,006 | E2：197个test attributes、0 ignored；163次`include_str!`说明source guard占比仍高 |
+| Cargo/build + selected union | 2 / 186；182 / 25,820 | union 426 tests、0 ignored、180次`include_str!`；fingerprint `a576b778adf2d7a54c64a77ba7a1f2eaf530032aa6ff6ef38c4dfaa3ff203ae3` |
 | crate-level integration | 3 files / 4 tests | 仅一个真实Editor authoring restart；无runtime/server/DLL/surface/shutdown产品矩阵 |
+| cross-crate consumers / five-engine references | 23 / 4,926；19 / 22,420 | Editor Play/gateway、Runtime Host/Interface/FFI及Unreal/Bevy/Fyrox/Godot/Unity Graphics selected evidence |
 
 Zircon App product host轮次详细阅读覆盖：
 
 - 从`EntryConfig`追踪module/plugin selection、`BuiltinEngineEntry`、Core activation、Editor/runtime/export/automation composition与owner返回；
 - 确认`target-server`没有binary，`run_headless()`只bootstrap后返回；client内的headless/minimal仍创建Winit并固定16ms tick；
 - 复核Cargo feature依赖，确认required `target-client`强制desktop default-platform、X11/Wayland、输入和dynamic DLL，Web/Android附加feature没有形成独立产品artifact；
-- 逐读DLL path、V6 table validation、Editor gateway table、session create/destroy、owned buffer、operation、wake registry和teardown failure，确认library/frame/buffer owner基础真实，但host API为空、ABI size策略矛盾、surface只有全局bool、Drop硬编码viewport 1且多类foreign output无预算；
-- 从Winit ApplicationHandler追踪window create/event/input/host request/cadence/surface native/fallback/resize/redraw/drop，确认WindowId/DeviceId被丢弃、Destroyed不清owner、suspend/exiting缺失、native surface失败无恢复、CPU fallback整帧readback；
-- 追踪Play CLI到runtime V3 session和Editor process backend，确认`--play-report-pipe`仅生成带outlet标签的stdout文本，Editor不解析phase，runtime又在首帧前报告ready；
-- 追踪binary crash flush、runner terminal merge和log shutdown，确认session destroy失败abort是合理最后防线，但没有process-wide quiesce/drain/deactivate/flush coordinator，log shutdown结果也被忽略；
-- 对照Unreal GuardedMain/FEngineLoop、Bevy App runner/Winit state、Fyrox normal/headless executor和Godot setup/iteration/cleanup；Unity Graphics仓不含主循环源码，未推断其闭源lifecycle。
+- 逐读DLL path、V7 table validation、Editor gateway table、session create/destroy、shared foreign output、operation、wake registry和teardown failure，确认library/frame/buffer owner与六类统一输出预算是真实基础；host API仍为空、ABI size策略矛盾、surface只有全局bool且Drop硬编码viewport 1；
+- 从Winit ApplicationHandler追踪window create/event/input/host request/cadence/surface native/fallback/resize/redraw/drop，确认失焦cadence已降为10 Hz；WindowId/DeviceId仍被丢弃、Destroyed不清owner、suspend/exiting缺失，native target只实现Win32，其他平台退回整帧CPU readback；
+- 追踪Play CLI、Runtime session和Editor process backend，确认`--play-report-pipe`仍只生成带outlet标签的stdout文本，Editor不解析phase，runtime在首帧前报告ready，report写失败还可覆盖primary startup/terminal cause；
+- 追踪binary crash flush、runner terminal merge和log shutdown，确认三owner terminal聚合与log shutdown影响exit code是真实进展；session destroy失败abort仍只是最后防线，process-wide quiesce/drain/deactivate/flush coordinator与flush后terminal receipt仍缺失；
+- 对照Unreal GuardedMain/FEngineLoop退出顺序、Bevy App/Winit lifecycle、Fyrox normal/headless executor、Godot setup/iteration/cleanup及Unity HDRP resource disposal；Unity Graphics仓不含Player主循环源码，不推断其闭源lifecycle。
 
-本轮没有运行Cargo、真实binary/DLL、signal、Android/Web、multiwindow、surface/device loss或同负载benchmark。focused production set成文前未出现在工作区修改列表；详细4 P0、27 P1、8 P2及14个验收gate见`zircon_app/01-product-host-bootstrap-loop-dynamic-runtime-shutdown-review.md`。PBR viewer明确排除，由下一节独立拥有。
+本轮没有运行Cargo、真实binary/DLL、signal、Android/Web、X11/Wayland、multiwindow、surface/device loss或同负载benchmark。focused范围存在其他Session/用户的未提交修改，本文冻结当前bytes而不把它们当作集成资格。App01的4项P0仍全Open；扩展后的30项P1为26 Open、3 Partial、1 Closed，8项P2为7 Open、1 Closed，17项gate为15 Fail、2 Partial。App08替代App01的currentness且不重复累计；详见`zircon_app/08-product-host-bootstrap-loop-dynamic-runtime-shutdown-current-source-review.md`。PBR viewer明确排除，由下一节独立拥有。
 
 ## 29. Zircon App PBR Viewer / Evidence / RenderDoc 物理范围
 
@@ -763,7 +770,7 @@ Plugin SDK/package轮次详细阅读覆盖：
 - 从project selection追踪Editor/App discovery、compatibility、`Library::new`、descriptor/entry和registration filter，确认loader先执行全部editor candidate，之后才检查enabled/target selection；
 - 逐个统计39个dist entry，确认全部`invoke_command: None`、`bridge_methods: []`、`on_host_ready: None`，只有glTF带state callback；对应第一方业务native projection均无system执行声明，dynamic artifact主要是metadata shell；
 - 逐读`cargo-zircon` artifact probe和CI，确认manifest/catalog/dist build基础真实，但artifact validator只调用descriptor与查entry symbol，dist matrix仅在Ubuntu构建，不执行完整entry/behavior产品场景；
-- 逐读`zircon_export plugin build/validate`、loadable hash/signing sidecar与export loader manifest，确认工具链能生成hash并调用外部signer，但runtime/editor/app loader不读取sidecar或`native_plugins.toml`；
+- 逐读`zircon_export plugin build/validate`、loadable hash/signing sidecar与export loader manifest，确认工具链能生成hash并调用外部signer，但runtime/editor/app loader不读取sidecar或`r`native_plugins.toml`；
 - 复核package dependency、project selection和distribution schema，确认缺version/source/digest/interface version、project lock、per-platform artifact mapping与install/update/rollback service；
 - 对照Unreal discovered/enabled/loading phase与plugin descriptor policy、Godot generated GDExtension C interface/init/reload、Bevy static plugin lifecycle及Fyrox dynamic Rust ABI风险声明；Unity Graphics仓不含权威native plugin manager，未推断闭源行为。
 
@@ -951,10 +958,10 @@ Hub UI/service-shell轮次详细阅读覆盖：
 - 对照Editor Asset/Plugin报告确认Hub raw extension scanner和manifest scanner构成重复authority；普通project又固定获得Elysium封面、猜测platform和伪`1.8.2`；
 - 从Settings输入追踪完整draft invoke、Rust patch、health、source validation、refresh和persist，确认没有draft revision/CAS，warn目录被计入100% Ready，save又在refresh/persist前改变内存config/engine；
 - 从Team/Cloud/topbar追踪Git identity/author、package history和coming-soon，确认contributors被误称members、email自动投影、failed package history也可算ready，Update/Marketplace/Auth/Cloud/RBAC仍没有provider；
-- 逐读custom window、responsive nav、tree/list/table/popover和Tauri config，确认undecorated窗口没有drag region、折叠nav丢accessible name、自定义tree/table缺keyboard contract且CSP为`null`；
+- 逐读custom window、responsive nav、tree/list/table/popover和Tauri config，确认undecorated窗口没有drag region、折叠nav丢accessible name、自定义tree/table缺keyboard contract且CSP为`r`null`；
 - 对照Unreal Project Browser/Asset Registry/Slate accessibility、Godot cancellable scan与AccessibilityServer listbox语义、Fyrox async size/Child owner；Bevy与Unity Graphics不含可比商业Hub owner，未据此推断服务可省略。
 
-本轮`npm run typecheck`实际exit 0。真实Tauri截图矩阵因当前binary不存在、Rust build仍被Hub 01的`E0061` P0阻断而未运行；没有使用Vite fallback截图冒充产品证据。详细0个新增P0、46个P1、8个P2、M0-M5路线及22个验收门见`zircon_hub/02-web-shell-catalog-settings-team-cloud-accessibility-performance-review.md`。
+本轮`r`npm run typecheck`实际exit 0。真实Tauri截图矩阵因当前binary不存在、Rust build仍被Hub 01的`E0061` P0阻断而未运行；没有使用Vite fallback截图冒充产品证据。详细0个新增P0、46个P1、8个P2、M0-M5路线及22个验收门见`zircon_hub/02-web-shell-catalog-settings-team-cloud-accessibility-performance-review.md`。
 
 ## 41. Tooling Workspace / Toolchain / CI / Validation / Developer Entrypoint 物理范围
 
@@ -1065,7 +1072,7 @@ Reflection/codegen轮次详细阅读覆盖：
 
 - 确认根`.gitignore`的`examples/*`隐藏WOC所有后续新增文件；tracked `package.json`当前引用两个只存在于本机ignored set的脚本，clean clone必然缺入口依赖；
 - 按Git tracked set重算386个`.mjs`，只有188个被任一package script引用，198个无入口；默认generate/check分别只覆盖11/28个，`.github`没有WOC lane；
-- 实际执行`npm run check`，80.945秒exit 1，在第7步复现typed contract实际157、测试硬编码148的漂移，后21步被`&&`短路；
+- 实际执行`r`npm run check`，80.945秒exit 1，在第7步复现typed contract实际157、测试硬编码148的漂移，后21步被`&&`短路；
 - 量化130个`writeFileSync` writer、0个`renameSync`、64个multi-emit generator，追踪reference 8文档、JS/Rust双语言projection均无transaction/generation/journal；
 - 量化291个`execFileSync`与仅20个TypeScript AST consumer，确认上游source parity依赖重复Git调用、regex/slice与多套expected count，没有统一typed IR和dependency graph；
 - 识别106个generated ZrVM文件、84,087行和56,242个`if`，追踪ability/content generator把数据查找与rank/effect选择生成进解释执行源码，暴露紧凑只读table/string view能力缺口；
@@ -2059,12 +2066,12 @@ Editor Procedural Content Generation / Rule Graph / Biome / World Generation Aut
 - 精确检索production asset/type/node/pin/data/compiler/executor/cache/request/partition/managed generated resource/editor product，确认没有engine PCG产品；`WorldGeneration`仅是Scene world revision counter，不能计为世界生成系统；
 - 逐Scatter Workbench route/template/binding/action追踪，确认UI由固定行、固定统计和固定冲突构成，没有graph canvas/model、backend job、generation receipt、inspection或cancel/retry产品闭环；
 - 逐Terrain package manifest、diagnostic-only importer、operation descriptor、TerrainAsset与Scene reference追踪，确认import明确断路、operations没有executor、资产模型是平面高度数组且没有runtime consumer、chunk/LOD/edit layer/stream/cook receipt；
-- 逐WOC固定source commit、sentinel/digest、hash/noise/terrain known vector、decoration lattice与collision grid追踪，确认项目脚本确有可复现codegen和邻域candidate重演基础；`npm run check:m3-terrain`通过，耗时11.5秒；
+- 逐WOC固定source commit、sentinel/digest、hash/noise/terrain known vector、decoration lattice与collision grid追踪，确认项目脚本确有可复现codegen和邻域candidate重演基础；`r`npm run check:m3-terrain`通过，耗时11.5秒；
 - 核对WOC输出边界，确认它没有engine graph/type/compiler/cache、stable generated identity、provenance/regeneration diff、managed render instances、terrain artifact、partition/cook receipt或通用Editor workflow；
 - 对照Unreal PCG Graph/Compiler/Executor/Cache/Partition/Managed Resource/Editor determinism-diff-profile-log，Godot Noise/MultiMesh，Fyrox Terrain edit/undo/quadtree，Bevy asset event/render batching及Unity Graphics GPU instance backend，严格区分通用PCG产品、地形编辑、实例渲染和项目专用内容脚本；
 - 建立`PcgGraphSource -> typed compiler artifact -> deterministic GenerationRequest/cache/partition -> immutable typed data -> managed generated resource -> typed adapters`、Biome/WorldRecipe与transactional Editor toolkit，记录5项P0、70项P1、12项P2、M0-M11及32项资格门。
 
-本轮没有修改production Runtime/Editor/interface/plugin/App代码或tests。`npm run check:m3-terrain`在11.5秒内通过；此前`zircon_editor --lib`测试编译在617.2秒后被239个既有错误/122个warning阻断，本轮未重复无法抵达PCG产品行为的相同lane。详细内容见`zircon_editor/40-procedural-content-generation-rule-graph-biome-world-generation-authoring-review.md`。2个在途文件均非本轮产生，实施前必须重算132文件fingerprint并复核preview actions与world-building binding终态。
+本轮没有修改production Runtime/Editor/interface/plugin/App代码或tests。`r`npm run check:m3-terrain`在11.5秒内通过；此前`zircon_editor --lib`测试编译在617.2秒后被239个既有错误/122个warning阻断，本轮未重复无法抵达PCG产品行为的相同lane。详细内容见`zircon_editor/40-procedural-content-generation-rule-graph-biome-world-generation-authoring-review.md`。2个在途文件均非本轮产生，实施前必须重算132文件fingerprint并复核preview actions与world-building binding终态。
 
 ## 87. Editor Level Variant / Data Layer / Level Instance / World Outliner Authoring 物理范围
 
@@ -2288,7 +2295,7 @@ Runtime Interface Profiling / Plugin Event / Script Diagnostic / Manifest轮次�
 | 包外业务consumer | 非Neural production source | 0个`NnModelAsset`/`NnGraphExecutor`/`NnPostProcessSettings`consumer |
 | 参考 | Unreal NNE/NNEEditor/BasicCPU/RDG/NNEDenoiser；Godot/Bevy/Fyrox asset；Unity Graphics Upscaler | 严格区分通用Neural runtime、asset分层和render provider，不外推缺失参考域 |
 
-本轮逐41个文件确认`.znn`格式、ONNX子集转换、CPU reference interpreter和GPU descriptor/WGSL planner均有可保留实现，同时追踪出产品链在包边界终止：`NeuralRuntimePlugin::register()`为空，Post Process测试固定全部runtime extension为空，native dist只有registration manifest；Editor Host默认可注册ONNX importer并生成`neural.model`，仓内却没有Runtime asset loader、model service或包外consumer。
+本轮逐41个文件确认`.znn`格式、ONNX子集转换、CPU reference interpreter和GPU descriptor/WGSL planner均有可保留实现，同时追踪出产品链在包边界终止：`NeuralRuntimePlugin::register()`为空，Post Process测试固定全部runtime extension为空，native dist只有registration manifest；Editor Host默认可注册ONNX importer并生成`r`neural.model`，仓内却没有Runtime asset loader、model service或包外consumer。
 
 进一步逐format/validate/parser/converter/EditCommand/CLI/CPU/GPU路径确认：Import和undo直接覆盖目标且完整旧bytes进入history；ONNX parser无producer budget、signed dimension直接`as u32`、忽略opset/domain/external data；`.znn`在证明op table记录数前按不可信count预分配并无界复制weights；model validation不验证topology/producer/kind/arity/shape/alias，CPU/GPU又有不一致的晚期contract，GPU Reshape直接别名且elementwise只按output count读取。
 
@@ -3385,7 +3392,7 @@ Runtime03、Runtime graphics/asset/system、Editor12及各具体domain报告继�
 | positive instrumentation | profile frame/scope/counter已有19/368/375处；reserve/with_capacity 1,190处 | 保留现有观测与容量基础，通过HotPath/Metric ID接入资格，不重写所有宏/容器 |
 | Runtime07 historical dynamic evidence | 双次Vampire 30.8944/33.9832 FPS、116 draws、偏差9.521868%；trace与ECS/extract基线接受 | 是有效历史BuildSet/workload证据，不外推当前dirty source、新plugin或其他产品规模 |
 | Runtime07 current structure audit | 40/46 source、90/91 test owner、219 anchors中35 missing、11 large-file hotspots/3 debt、7 risks | 红项混合asset submodule误报、scheduler/extract snippet漂移与animation metric真实handoff缺口；必须typed分型 |
-| world projection | `node_records()`每次分配、全实体投影并排序；frame/tick语义spot-read命中Physics/Nav/AI等 | cold serialization/inspection API可保留；frame consumer迁移typed borrowed/incremental projection |
+| world projection | `r`node_records()`每次分配、全实体投影并排序；frame/tick语义spot-read命中Physics/Nav/AI等 | cold serialization/inspection API可保留；frame consumer迁移typed borrowed/incremental projection |
 | local positive cost contracts | QueryState/extract cache、scheduler batch bytes、asset worker wall/copy/queue、animation/sound/native/UI allocation tests | 迁移为catalog关联的Workload/CostContract/Observation，不把局部绿色冒充全产品资格 |
 | reference engines | Unreal Array/MemStack/ParallelFor、Bevy ECS Table、Godot LocalVector/RID、Fyrox Pool/Sparse/TaskPool、Unity RenderGraph pool/compiler | 组合吸收容量、scratch、dense storage、generation、batch、compile-plan与reuse约束；不复制实现或声称整机领先 |
 | currentness | revision `ae2be3d...`；77个输入0 missing/0 duplicate；fingerprint `6364601e...d4e7` | 当前worktree有相邻dirty source；实施前重取SourceSet、typed audit、workload和BuildSet |
@@ -3555,8 +3562,8 @@ Runtime03、Runtime graphics/asset/system、Editor12及各具体domain报告继�
 
 本轮从默认feature装配、pipeline compile、资源producer/binding、shader、history copy、lighting consumer一直追到产品测试，确认已有真实generic compute、shared HZB、AO current/history与Render Graph access底座，但当前产品路径存在三项P0：
 
-- `ssao.wgsl`没有view-space position reconstruction、projection/world radius、thickness/falloff或far-depth guard，只比较8个相邻像素的raw device depth，并按world-space `normal.z`固定压暗；它是分辨率/朝向相关的edge darkener，不是几何AO；
-- 默认Forward+没有Deferred Geometry或normal attachment writer，Mesh pass只写depth/scene color，却仍将retained `normal_view`作为`GBUFFER_NORMAL`绑定给SSAO，首次值无资格、pipeline切换后还可能stale；
+- `ssao.wgsl`没有view-space position reconstruction、projection/world radius、thickness/falloff或far-depth guard，只比较8个相邻像素的raw device depth，并按world-space `r`normal.z`固定压暗；它是分辨率/朝向相关的edge darkener，不是几何AO；
+- 默认Forward+没有Deferred Geometry或normal attachment writer，Mesh pass只写depth/scene color，却仍将retained `r`normal_view`作为`GBUFFER_NORMAL`绑定给SSAO，首次值无资格、pipeline切换后还可能stale；
 - terminal `post_process.wgsl`把AO平方后乘到完整lit scene color，使direct diffuse/specular、emissive和sky/background一起变暗，SSR又把同一标量当specular occlusion。
 
 进一步确认当前只支持full-resolution、固定8 taps与四个硬编码tuning值；没有edge-aware spatial denoise、motion reprojection、depth/normal rejection、disocclusion、neighborhood clamp、quality tier或project/camera/volume settings。AO params使用display `target.size`，但depth/normal/HZB/current AO按`target.render_size`分配；degrade ladder先切到0.85/0.7 scale才稍后关闭SSAO，因此错误坐标域是正常降级状态。AO history又按output size分配、只复制render-size左上区域，并继承全局history bool。
@@ -3568,6 +3575,8 @@ Runtime03、Runtime graphics/asset/system、Editor12及各具体domain报告继�
 报告登记3项P0、48项P1、12项P2、M0-M5及40项runtime资格门。Runtime09A/09B/09C/09H1/09H2/23继续拥有通用RHI、HZB、shader/PSO、history/velocity、terminal/SSR与projection合同；Plugins04拥有package/capability truth，Editor22拥有通用authoring framework。本篇只拥有AO算法、输入资格、AO专属denoise/history、lighting composition、quality/scalability与产品oracle。详见`zircon_runtime/27-screen-space-ambient-occlusion-gtao-denoise-temporal-depth-normal-scalability-product-integration-review.md`。
 
 本轮只新增review、metadata与索引，没有修改production、tests、Cargo、manifest、workflow或lockfile。三个P0关闭前，当前SSAO不得默认启用或以“画面更暗/pass执行”宣称Complete。
+
+2026-08-30执行更新：冻结审查之后已完成M0默认关闭、qualified writer/order与terminal全场景乘法移除，并推进M1 canonical settings/profile/input receipt/history identity源码。`AoSourceSettings`已贯通camera、scene asset/TOML、Volume、frame extract、conditional graph cache与final compile；`CompiledAoProfile`持久保存typed depth/normal/HZB receipt及compiled generation，现已成为48-byte shader params唯一authority。旧8-neighbor raw-depth darkener已替换为inverse-projection world reconstruction、perspective/orthographic view、world-unit projected radius、footprint HZB mip和quality-bounded horizon bitmask evaluate；evaluate现写transient raw AO，独立3x3 depth/normal joint-bilateral spatial pass写final AO，compiled output receipt指向该spatial producer。final AO只在显式profile下进入唯一deferred-lighting consumer，并只调制ambient/environment diffuse；direct/specular/emissive/unlit保持独立。逐帧typed command-record receipt现核对两compute dispatch、raw/final access、lighting read与profile/output generation，并进入`RenderStats`及固定diagnostics；它不代表GPU终态。motion-qualified temporal、half-resolution bilateral upsample、真实shader/OOM/device-loss last-good与GPU completion、独立specular-occlusion和动态证据仍开放；状态为`ssao_m1_profile_output_execution_receipt_m2_gtao_spatial_m3_indirect_diffuse_source_implemented_static_checks_passed_dynamic_validation_pending`，不得计Complete或accepted milestone。详见Runtime27报告2.4/2.5节。
 
 ## 151. Hardware Ray Tracing / BLAS-TLAS / Ray Query-Pipeline / SBT / Denoising / Scalability 物理范围
 
@@ -3722,7 +3731,7 @@ production精确标识搜索确认`VegetationSpecies/VegetationAsset/FoliageAsse
 | Unreal/Unity/Godot/Bevy/Fyrox参考 | 65 / 25,760 / 1,030,358 | E2/E3：component/proxy/stage/DBuffer/mesh/mobile/RT，HDRP/URP projector-system-chunk-atlas-technique，RID/node与forward/clustered paths |
 | 冻结合计 | 286 / 64,535 / 2,492,770 | SHA-256 `2c472f87c0cc2648b6952eac4790500d1ab8dc9254127dba39d84a17c0bb7b35` |
 
-当前`rendering.decals`插件定义Deferred/ScreenSpace mode和四字段projector descriptor，注册PostProcess pass后由`noop_render_executor`直接返回`Ok(())`。projector struct/package外无consumer，Scene静态schema无plugin payload，`RenderFrameExtract`无Decal snapshot，GPU context无prepared Decal work；`MaterialDomain`没有Decal，atlas_region只是无人消费String。
+当前`rendering.decals`插件定义Deferred/ScreenSpace mode和四字段projector descriptor，注册PostProcess pass后由`r`noop_render_executor`直接返回`Ok(())`。projector struct/package外无consumer，Scene静态schema无plugin payload，`RenderFrameExtract`无Decal snapshot，GPU context无prepared Decal work；`MaterialDomain`没有Decal，atlas_region只是无人消费String。
 
 pass只读depth/color并原位写color，normal/ORM/emissive没有attachment；两个mode无分支，opacity/normal_blend/atlas_region均未读取。pipeline把Decals插在baked lighting/reflection probes/bloom之后，不具备pre-lighting DBuffer/GBuffer语义。测试只验证registration/descriptor/quality-gate枚举，不执行GPU命令或像素oracle；examples/templates没有真实caller。
 
@@ -3752,7 +3761,7 @@ production没有Weather/Climate package、source asset、compiler、artifact、W
 
 本轮只新增review、metadata与索引，没有修改production、tests、Cargo、manifest、workflow或产品资产。source/compiler/authority、deterministic transition/region、network/save、domain adapters和产品资格关闭前，不得把静态Workbench、gradient sun、fog density、Rain particle、SDK Weather或fixture名称称为Weather Ready。
 
-## 160. Camera Endpoint / Director / Rig / Controller / Blend / Shake / Cinematic Cut / History / Multi-View / Network / Save / Scalability 物理范围
+## 160. Camera Endpoint / Director / Rig / Controller / Blend / Shake / Cinematic Cut / History / Multi-View / Network / Save / Scalability 历史物理范围（由287刷新）
 
 | 范围 | 文件 / 行 / bytes | 本轮证据 |
 |---|---:|---|
@@ -3770,7 +3779,7 @@ Zircon已有真实Scene-to-render Camera链：`SceneCameraAsset`保存pipeline�
 
 `ViewportCameraHistoryKey`不包含World/source/director generation、core pipeline、lens/projection epoch；ViewportRecord至少七个keyed map没有retirement/prune。Velocity只能用运动阈值推测`CameraCutOrInvalid`，既不能识别同位置硬切，也可能误判快速连续运动。
 
-报告登记0个新P0、72个runtime子P1、16个P2与40项资格门。Editor30保留5项P0和P1-01..60父要求；Runtime37只拥有`Camera source/artifact -> Director/evaluator -> ViewResult/cut epoch -> render/audio/AI/network adapters -> bounded receipts`的可执行分解。详见`zircon_runtime/37-camera-endpoint-director-rig-controller-blend-shake-cinematic-cut-history-multiview-network-save-scalability-product-integration-review.md`。
+报告登记0个新P0、72个runtime子P1、16个P2与40项资格门。Editor30保留5项P0和P1-01..60父要求；Runtime37只拥有`Camera source/artifact -> Director/evaluator -> ViewResult/cut epoch -> render/audio/AI/network adapters -> bounded receipts`的可执行分解。本节是历史冻结，当前物理范围与状态以第287节和Runtime126为准。详见`zircon_runtime/37-camera-endpoint-director-rig-controller-blend-shake-cinematic-cut-history-multiview-network-save-scalability-product-integration-review.md`。
 
 本轮只新增review、metadata与索引，没有修改production、tests、Cargo、manifest、workflow或产品资产。Director ownership、compiled program、cut/history retirement、multi-view/network/save和真实产品证据关闭前，不得把可渲染Camera DTO、Orbit控制器或Sequencer静态页面称为Camera System Ready。
 
@@ -4081,6 +4090,21 @@ Hub已经有可启动的Tauri宿主、Rust-owned state、focus refresh、后台a
 
 React initial snapshot与event subscription分开建立，事件没有host/session/window/generation/sequence，listener失败没有retry/resync；native load或schema validation失败还能被`fallbackShellState`吞成可操作shell。报告建立`BootMachine`、`InstanceCoordinator`、`WindowSession`、generation-qualified IPC handshake、`LifecycleCoordinator`、shutdown participant/receipt、crash marker/recovery mode和真实Tauri/OS qualification，登记0项新增P0、40项P1、12项P2与32项资格门。Hub01继续拥有single-instance store、process/Child supervisor，Hub04继续拥有durable operation/effect/shutdown P0，不重复累计。本轮只写review与重构计划，未修改production/tests，未运行Cargo、Tauri真窗口、第二实例、close/crash、DPI/多显示器、OS shutdown或性能测试。详见`zircon_hub/05-application-host-bootstrap-window-ipc-close-shutdown-crash-recovery-review.md`。
 
+## 178A. Hub Product Control Plane / Project Lifecycle / Process / Delivery / Web / Host / Test Evidence 当前源码全量范围
+
+| 集合 | 文件 / 有效文本行 / bytes | 本轮证据 |
+|---|---:|---|
+| Rust production | 98 / 21,605 / 860,439 | E3逐文件检查全部domain/state/Tauri/process/settings/projection；fingerprint `1f027b87691e160cc00fba30ba4c9f9852ae2291c7a1796de9ed3a0ffcf7d803` |
+| Web production | 66 / 7,050 / 257,572 | E3逐文件检查全部page/component/IPC/validator/types/theme/CSS；fingerprint `1d58fc5110a0523bdb1e2057aaceae6741cf7daf9fe5713c8d08dfe2087d6773` |
+| Integration tests | 39 / 18,341 / 708,770 | E3分类270项test；仅1个文件导入production Hub crate，38个以source-shape为主；fingerprint `46c17875ddfa084d3712c08ad760fecf919561bcd652eb173cfd564779d0381c` |
+| Assets / generated schemas / build-config | 54 / 347,396 bytes；4 / 4,586 / 298,295；11 / 2,422 / 82,076 | E2/E3核对视觉引用、Tauri生成合同与Cargo/npm/Tauri/capability配置 |
+| Hub全部tracked union | 272 / 54,290有效文本行 / 2,554,548 bytes | fingerprint `5690936e9f36db40fad62514d5ca20a75aba4c6ca3e0977dc856a9f60c782abb`；当前三处既有dirty Hub源码纳入bytes |
+| Unreal、Godot、Fyrox、Bevy、Unity Graphics参考 | 22 / 11,686 / 476,569 | E2/E3按project record/browser、installed compatibility、process/export owner、app/task lifecycle、package validation/promotion路由；fingerprint `13ed3c742b4ebac0a11f64cbb3d894efe59b9f5259a67fcd11f07fa5e31adbdc` |
+
+第六轮确认staged create、shared recent/focus lease、typed action/message、receipt hash、remote fail-closed和恢复的258项inline test harness可保留；同时确认global session mutex仍包住folder modal/scan/Git/persist，command无version/principal/capability/immutable target/budget，无界detached worker与Editor Child无terminal owner，Package/Install仍是未签名递归copy，Web state失败仍可退成可操作fallback而action连接live backend，native close也没有host lifecycle authority。
+
+Hub01的旧`persist_unchecked(None)`调用在当前工作树已改为`persist_unchecked()`，所以`ZHUB-P0-01`仅按source shape Closed；本轮未运行Cargo，不能推断build通过。Hub01-05的323项唯一finding合计14 P0 / 254 P1 / 55 P2，当前为322 Open、0 Partial、1 Closed，13项其余P0全Open；8个新增观察只强化既有owner而不重复计数。本轮没有修改production/tests，也没有运行Cargo、npm、Tauri、双进程、故障、a11y或性能验证。详见`zircon_hub/06-current-source-product-control-plane-project-lifecycle-process-delivery-web-host-test-evidence-review.md`。
+
 ## 179. First-Party Asset Importer Source / Dependency / Subasset / Artifact / Sandbox / Product Integration 物理范围
 
 | 范围 | 文件 / 行 / bytes | 本轮证据 |
@@ -4212,7 +4236,7 @@ Animation Editor四份ZUI、Animation Graph三份ZUI和Timeline一份ZUI均不�
 | Bake / Agent / Editor | 假几何、settings未应用、全World JSON扫描、crowd组合fallback、operation拒绝Bake、11份ZUI占位 | 五份开放failure保持open；本轮不以source drift静态关闭 |
 | Recast、Unreal、Godot、Fyrox参考 | 18个关键文件/目录 | E3核对算法边界、dirty/tile lifecycle、server iteration、Editor command；Bevy/Unity Graphics为负向适用边界 |
 
-Navigation包内已有真实Recast、Detour、DetourCrowd、DetourTileCache bridge、typed组件/查询、off-mesh traversal、dirty tile plan、overlay frame与局部generation。纵向产品链仍分裂：ordinary Client安装core Rust fallback，Editor Host才source-link Recast provider，Server未启用Navigation；NativeDynamic只导出metadata。两套同名`navigation.runtime`实现没有共同provider、artifact schema、backend generation或qualification receipt。
+Navigation包内已有真实Recast、Detour、DetourCrowd、DetourTileCache bridge、typed组件/查询、off-mesh traversal、dirty tile plan、overlay frame与局部generation。纵向产品链仍分裂：ordinary Client安装core Rust fallback，Editor Host才source-link Recast provider，Server未启用Navigation；NativeDynamic只导出metadata。两套同名`r`navigation.runtime`实现没有共同provider、artifact schema、backend generation或qualification receipt。
 
 当前`NavMeshAsset`保存raw vertices/indices/polygon DTO而不是Detour tile blob；每次find/sample/raycast会重建并销毁native navmesh/query，TileCache又把全asset变成一个`0/0/0`layer并硬编码walkability与4 tile上限。Bake不读取真实render mesh，collider被简化为顶面/圆盘/AABB，TriangleMesh与HeightField跳过，空输入生成synthetic quad；agent/profile settings多数只进入hash/warning，`output_asset`没有writer或原子发布。
 
@@ -4932,7 +4956,7 @@ Runtime Sprite2D/Canvas2D/Sprite Atlas/TileSet/TileMap纵向首轮E3已经完成
 | Manifest/dist/project surface | 121 / 8,797 / 316,314 / 79 | 39份plugin manifest、39份dist Cargo、39份dist lib、workspace/README和两个project manifest |
 | 去重合计 | **382 / 63,060 / 2,293,771 / 501** | Zircon fingerprint `dc79aca7d60e5295b847f7406ce03a786de6eba64eea99fcaebd4b29519d6ab1`；冻结时5个入选路径dirty |
 
-当前Native/VM discovery budget、generation snapshot、path containment、Editor enablement/hot reload和export selection是真实可保留底座；但39份首方manifest/dist之外没有tracked可安装artifact，project selection不锁version/source/digest/signer，`native_plugins.toml`又会在id/path mismatch时只写diagnostic并继续发布candidate。现有测试明确固化mismatch后`discovered().len() == 1`，候选随后可进入`Library::new`，因此新增1项P0要求可执行制品准入fail-closed。
+当前Native/VM discovery budget、generation snapshot、path containment、Editor enablement/hot reload和export selection是真实可保留底座；但39份首方manifest/dist之外没有tracked可安装artifact，project selection不锁version/source/digest/signer，`r`native_plugins.toml`又会在id/path mismatch时只写diagnostic并继续发布candidate。现有测试明确固化mismatch后`discovered().len() == 1`，候选随后可进入`Library::new`，因此新增1项P0要求可执行制品准入fail-closed。
 
 真实Project Plugins只扫描`<project>/zircon_plugins`并管理enablement/packaging/target/feature/unload/hot reload；Workbench Plugin Manager则写死三个插件、版本和统计，只返回queued文字；Hub明确将plugin install/toggle/Marketplace标为禁用。五参考冻结19个文件、17,691行、659,576 bytes，fingerprint `5bb518c7c3ca726bd39c25ef4507d97f894e76f1e74d6b08359144f6aca219ca`。报告登记1项P0、48项P1、12项P2与48项资格门；目标是`SignedRepositorySnapshot + PluginLockfile + VerifiedPluginArtifact + TransactionalPluginInstaller + InstalledPluginGeneration + ActivationCoordinator + PluginDeploymentService`。本轮只修改review文档，未运行Cargo、DLL、Editor/Hub、网络、签名、fault、soak或benchmark；tooling按用户要求暂不纳入。详见`zircon_plugins/21-plugin-artifact-marketplace-third-party-package-install-update-trust-non-cargo-product-integration-review.md`。
 
@@ -5112,7 +5136,7 @@ Runtime能够生成clipboard host request，但App、Editor和dynamic ABI没有c
 | Zircon资产产品链 | **209 / 33,959 / 30,988 / 1,205,005 / 250** | ZUI、asset core、catalog/details/preview、event/runtime access、retained pointer/effects、workspace snapshot/layout和focused tests；另有3项ignore；fingerprint `b62334ab04a3e22ee0fd9cbfdf74a1bd065b721624feda05a181b267ad06f6ea` |
 | 五引擎参考切片 | **17 / 22,457 / 19,478 / 842,734 / 21** | Unreal Content Browser/rename、Godot FileSystem dock/index、Fyrox asset browser、Bevy source/path/event与Unity Graphics consumer；fingerprint `6cc4f7152ec189fb0002bde57974c3efed0331b4f944d99438868b935f72252b` |
 
-当前catalog/details/preview generation、稳定folder排序、`navigate_to_asset`意图、enabled Asset Type Registry、operation write-target准入与typed asset drag payload是真实可保留底座；但Asset Browser生产pointer只发Select Folder/Item，没有双击、Enter或Open Asset路由，toolkit/context descriptor主要停留在文本或snapshot。`Locate selected asset`事件无target，只打开Assets pane并请求preview refresh。
+当前catalog/details/preview generation、稳定folder排序、`r`navigate_to_asset`意图、enabled Asset Type Registry、operation write-target准入与typed asset drag payload是真实可保留底座；但Asset Browser生产pointer只发Select Folder/Item，没有双击、Enter或Open Asset路由，toolkit/context descriptor主要停留在文本或snapshot。`Locate selected asset`事件无target，只打开Assets pane并请求preview refresh。
 
 本轮新增四项P0。第一，default scene asset/resource change会触发重新open ProjectManager、scan/import、load scene并直接replace authoring world，完全绕过dirty/history/conflict transition。第二，Locate按钮文案与行为不符。第三，Browser条目无法激活已存在的toolkit打开内核。第四，catalog只保存`ResourceKind`并从其重建AssetTypeId，使插件exact type、toolkit、context和presentation在真实资产条目上丢失。
 
@@ -5159,9 +5183,9 @@ Runtime能够生成clipboard host request，但App、Editor和dynamic ABI没有c
 
 当前双层有界变化队列、project activation/deactivation、candidate generation、targeted/full import以及Editor asset delta桥接是真实可保留底座。冻结时8个范围内路径已有非本轮dirty修改，报告按working-tree current source取证，并记录baseline HEAD与协调器epoch。
 
-本轮新增三项P0。第一，普通`notify::Error`只发布诊断，不把project标为dirty，也不请求完整reconcile；只有错误队列自身溢出才触发。第二，reconcile虽能提交新generation，却仍发布原始输入变化；overflow可使变化列表为空，而Editor没有generation wake订阅且只在非空delta时刷新，Runtime与Editor可永久分叉。第三，Compound source成员的单文件Modified会被shape heuristic当作独立Single source targeted import，产生错误成员sidecar并让父Compound保持陈旧。
+本轮新增三项P0。第一，普通`r`notify::Error`只发布诊断，不把project标为dirty，也不请求完整reconcile；只有错误队列自身溢出才触发。第二，reconcile虽能提交新generation，却仍发布原始输入变化；overflow可使变化列表为空，而Editor没有generation wake订阅且只在非空delta时刷新，Runtime与Editor可永久分叉。第三，Compound source成员的单文件Modified会被shape heuristic当作独立Single source targeted import，产生错误成员sidecar并让父Compound保持陈旧。
 
-参考冻结表明：Unreal将平台buffer失真提升为rescan并以持久FileCache重建差异；Godot用完整filesystem snapshot、dependency closure和更新后信号发布产品；Bevy区分Asset/Meta/Folder/RemovedUnknown与source identity并测试反向依赖；Fyrox以`need_rescan()`重建资源并处理metadata event；Unity Graphics本地corpus只作为重导入consumer旁证，不用于推断完整AssetDatabase实现。
+参考冻结表明：Unreal将平台buffer失真提升为rescan并以持久FileCache重建差异；Godot用完整filesystem snapshot、dependency closure和更新后信号发布产品；Bevy区分Asset/Meta/Folder/RemovedUnknown与source identity并测试反向依赖；Fyrox以`r`need_rescan()`重建资源并处理metadata event；Unity Graphics本地corpus只作为重导入consumer旁证，不用于推断完整AssetDatabase实现。
 
 报告登记3项P0、48项P1、12项P2与48项资格门；Runtime25/51/53/64/85/86/87与Editor57继续唯一拥有filesystem、registry、scene reload、resource、build graph、schema、reference和workspace父边界。目标是`AssetWatchAuthority + AssetChangeAccumulator + AssetSourceOwnershipIndex + AssetReconciliationPlanner + AssetGenerationCommit + AssetGenerationDelta + AssetProductDelivery`。本轮只修改review文档与索引，未运行Cargo、Editor、真实filesystem fault、overflow、rename storm、soak或benchmark；tooling按用户要求暂不纳入。详见`zircon_runtime/88-runtime-asset-watch-change-ingress-coalescing-rename-overflow-targeted-reimport-generation-reload-product-integration-current-source-review.md`。
 
@@ -5364,3 +5388,4232 @@ Local Fog仍由Post Process Volume加Collider临时表达，Sphere与rotated Box
 真实spawn/update、compact和indirect compute在runtime prepare中由owner提前录制，随后才把已执行buffer登记成static external resource；Render Graph三个compute executor只校验resource/queue contract。VFX Graph另定义五节点asset、固定`[1,1,1]` workload和两个直接`Ok(())`的executor。GPU aggregate在拓扑/暂停/asset变化时重建，固定1,048,576 slot按顺序争用，readback queue无本地上限且FIFO队首可阻塞后续完成；CPU/GPU renderer仍缺material/texture完整消费、GPU velocity/history、renderer family与world scalability。
 
 报告新增0项P0，因为particles仍诚实标为experimental/Partial且相关optional feature默认关闭；Editor15的可见假成功P0继续唯一计数。本文登记48项P1、12项P2、M0-M12与44项资格门，目标是`ParticleSourceDocument -> ParticleSemanticCompiler -> CompiledParticleProgram -> ParticleWorldRuntime -> authoritative CPU/GPU executor -> immutable ParticleRenderPacket -> Render Graph`。本轮只修改review与索引，未运行Cargo、WGPU、Editor、RenderDoc、产品场景或benchmark；tooling按用户要求排除。详见`zircon_runtime/99d-runtime-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-current-source-review.md`。
+
+## 257. Runtime Sprite2D / Canvas2D / Sprite Atlas / TileSet / TileMap 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon production / contract / product | **102 / 17,852 / 16,440 / 662,744 / 88 / 0** | Sprite/Mesh2d component、Scene I/O、extract/visibility/phase、geometry/batch/WGPU、Atlas/TileSet/TileMap asset、plugin/Editor/product边界；fingerprint `ee953df7b02e8cf17ee4ac2e8abc7c05622a75b50a91b190a730e1f65852fdab` |
+| dedicated tests / acceptance | **27 / 7,425 / 6,940 / 283,193 / 126 / 0** | geometry/phase/atlas/asset/component/plugin/profile/WGPU submit与历史acceptance；fingerprint `f5d8834097494f17459770d5041699d11aca42adaf59d4e781e28ab83d4ec666` |
+| 五引擎参考切片 | **69 / 42,763 / 36,942 / 1,622,957 / 58 / 0** | Unreal Paper2D、Godot Canvas2D、Unity Graphics URP 2D、Bevy Sprite/Material2d/TilemapChunk、Fyrox Sprite/TileMap；fingerprint `abe2cd1d1491f9b7ebf5de678d392fc51dbef11c7ec983550760c39246a1989a` |
+
+当前Sprite2D是真实最小渲染链：component/snapshot保留texture、material、atlas UV、rect、flip、anchor、四种image mode、color、z与alpha；Scene能建立2D phase，CPU能生成tiled/sliced geometry，WGPU能提交texture draw，stats能报告ready/fallback/batch/slice/vertex。Atlas validator较严格，TileSet/TileMap也有typed TOML importer、ResourceKind、marker、cache和load facade，tilemap capability仍诚实标Partial。
+
+旧Runtime68“Sprite完全未进入visibility”已过时：`build_visibility_input`现已加入Sprite entity/stable key/mobility/layer mask。但输入没有2D bounds、camera rectangle、spatial index或chunk bounds，`RenderSpriteBounds`仍无production consumer，因此只证明membership/upload planning，不证明camera/frustum culling。phase queue的camera order/sorting layer/Y-sort仍固定为0/0/None，empty phase又会回退全量Sprite。
+
+核心断层仍开放：Scene project I/O明确把Sprite2D/Mesh2D设为None并忽略/丢弃TileMap；Sprite material没有被resource streamer、batch key、pipeline或shader消费；Opaque2d/AlphaMask2d/Transparent2d共用一条SrcAlpha、depth-write-off且无cutoff的pipeline。Core2d每batch每帧建vertex buffer并开render pass，Transparent3d mixed路径虽共用pass仍per-Sprite建buffer；Tiled/Sliced达到1000 slice后静默截断。
+
+SpriteAtlas仍不是runtime resource/artifact，Sprite只保存inline UV；Editor atlas manifest走filesystem与process-global cache。TileSet无semantic validator，TileMap只检查dense layer cell count，projection enum无执行数学。tilemap runtime只有component descriptor和DiagnosticOnly importer，systems/events为空，native dist无command/state/unload；Editor注册的import/create/open/paint operation没有handler，所引用两个ZUI文档不存在，standalone paint helper只在tests调用。
+
+本文新增0项P0，因为Scene数据丢失继续由Runtime61/Editor34唯一计数，tilemap_2d仍为Partial/optional；登记48项P1、12项P2、M0-M12与44项资格门。目标是`versioned 2D source/artifacts -> Canvas2dWorldService -> dirty/spatial/sort/batch compilers -> immutable Canvas2dRenderPacket -> Render Graph/GPU Scene -> physics/navigation/occlusion/streaming adapters -> product receipts`。本轮只修改review与索引，未运行Cargo、WGPU、Editor、RenderDoc、产品场景或benchmark；tooling按用户要求排除。详见`zircon_runtime/99e-runtime-sprite2d-canvas2d-sprite-atlas-tileset-tilemap-batching-sorting-lighting-physics-streaming-product-integration-current-source-review.md`。
+
+## 258. Runtime Scene Text / Text2D / Text3D / Billboard / Layout / Extract / Render 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / ignored | 本轮证据 |
+|---|---:|---|
+| production-like 与 inline tests | **677 / 112,287 / 103,072 / 3,964,222 / 610 / 2** | 中立text合同、shared text、Scene schema/I/O、frame extract、UI GPU、Dynamic HUD、Editor/App；fingerprint `58a9338040129341d3b02e41338cd72acaea0cb084a1d6418db5a66758abb621` |
+| dedicated test files / directories | **215 / 53,768 / 48,990 / 1,885,745 / 1,469 / 15** | text/UI/Scene/Editor测试边界；SceneText component/save/depth/billboard/picking测试为0；fingerprint `348163630382f0e987066191d860da7090a58968b018dbb0e8ccce9f8d275a87` |
+| 去重合计 | **892 / 166,055 / 152,062 / 5,849,967 / 2,079 / 17** | manifest为lowercase relative path + TAB + file SHA-256；fingerprint `b4bdc94dd121b18df9d12aff0c033d39700f85c675963ff668a4c552862bb235` |
+| 五引擎参考切片 | **19 / 9,405 / 8,168 / 328,432 / 17 / 0** | Unreal TextRender、Bevy Text2d、Godot Label3D、Fyrox UI text、Unity Graphics TMP shader；fingerprint `91788e58f04cf82be1aaf5f23fa77c8e3507717d78487290f7722564b57a2636` |
+
+旧Runtime70之后，`core::framework::text`已新增中立`TextLayoutService`、typed font/direction/writing/render request、generation-qualified face以及保留source/visual range和backend glyph identity的`TextGlyph`；UI glyph artifact也会保留shaping identity而不允许renderer随意二次shape。这些是真实进展。但trait仍只到shape/metrics，没有paragraph artifact、stable semantic identity、dirty graph、cancellation、world bounds或view policy。
+
+tracked Assets/Runtime/Editor/App中`SceneText/Text2D/Text3D/Label3D/WorldText/BillboardText`精确命中为0。`NodeKind`、`SceneNode/NodeRecord`、`SceneEntityAsset`、snapshot/project I/O/reflection、`RenderFrameExtract`与Editor create/kind/menu均没有Scene Text。`ScreenSpaceUiTextBatch`绑定UI tree/node/`UiFrame`/clip，glyph atlas shader按`screen_rect_px`映射clip space并固定`z=0`；glyphon WGPU路径同样只属于UI surface，因此不能通过“增加transform”升级成world renderer。
+
+本轮新增0项P0，Scene字段守恒、font/shaping/editing/localization/rich text、visibility/material/residency和HUD硬编码继续由原报告唯一计数；登记48项P1、12项P2、M0-M10与48项资格门。目标链为`SceneTextSourceDocument -> SceneTextCompiler -> immutable SceneTextLayoutArtifact -> SceneTextDeltaExtract -> SceneTextResourceService -> SceneTextSubmissionService -> SceneTextAuthoringAdapter`。本轮只修改review和索引，未运行Cargo、Editor/App、WGPU、RenderDoc、pixel、fault、scale、soak或同画质Unreal benchmark；tooling按用户要求排除。详见`zircon_runtime/99f-runtime-scene-text-text2d-text3d-billboard-font-layout-localization-extract-render-product-integration-current-source-review.md`。
+
+## 259. Runtime XR / OpenXR / Device / Session / Stereo View / Tracking / Input 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / ignored | 本轮证据 |
+|---|---:|---|
+| tracked产品文本源码 | **18,759 / 3,254,992 / 3,062,126 / 113,877,529 / 20,943 / 248** | root Cargo、Runtime/Interface/Host/App/Editor/Plugins/examples/templates/tests全部`.rs/.toml/.wgsl/.json/.ron/.zui/.zr`；fingerprint `83ea13bbc6a61a624086fd4c1921a5f2bda0a287ce56b01fb7ca7be58a41d390` |
+| 五引擎聚焦参考 | **32 / 21,672 / 18,378 / 866,379 / 14 / 0** | Unreal OpenXR/HMD、Godot OpenXR core/action/extensions/editor、Unity Graphics XR render/tests、Bevy manual view、Fyrox negative boundary；fingerprint `044d1e8ddcb8d662308e348fa124dc0ba4e4d40e905237e2d24ce703e46cca4d` |
+
+产品源码对`OpenXR/openxr`、whole-word `XR`、`HMD/HeadMounted`、`foveat*`、OpenXR frame calls与predicted display time有效命中为0；`LateUpdate`只命中禁止恢复legacy Scene alias的guard，121行`stereo`全部属于audio/test catalog。当前122个`multiview_mask:`赋值分布于95个文件，全部为`None`，`Some`为0。
+
+普通渲染底座有真实进展：camera loop已使用source-state capture、`Arc::make_mut`和advanced payload借用避免整帧复制；temporal/camera history key已纳入viewport位置/尺寸、allocation、target、Base/Overlay与layer identity；plugin/profile也有generic maturity/capability/unavailable reason。这些只证明普通camera/window/plugin工程化，不能关闭XR provider/session/device/swapchain/view/action/compositor缺口。
+
+WGPU backend仍以`HighPerformance + compatible_surface: None`自行选择adapter，RHI只有engine-owned texture create/destroy；graph “external texture”只接收既有WGPU view，不提供OpenXR native image binding或acquire/wait/release lease。App仍由Winit cadence执行tick再request redraw；Input仍只有keyboard/pointer/touch/gamepad/rumble。Runtime66的72项P1、16项P2、XR-M0至M9与48项门禁因此全部保持open并继续唯一计数；本报告新增0项P0/P1/P2，只刷新证据并纠正旧119计数与Bevy过时说明。
+
+本轮只修改review和索引，未运行Cargo、真实OpenXR runtime、头显、WGPU/GPU capture、CTS、motion-to-photon、fault、thermal、soak或同画质Unreal benchmark；tooling按用户要求排除。详见`zircon_runtime/99g-runtime-xr-openxr-device-session-stereo-view-tracking-input-late-update-foveation-compositor-product-integration-current-source-review.md`。
+
+## 260. Runtime Console Command / CVar / Config Layer / Remote 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes | 本轮证据 |
+|---|---:|---|
+| tracked产品文本源码 | **18,753 / 3,254,294 / 113,858,905** | 3,061,482非空行、20,944项test attribute、248项ignored；fingerprint `ff30d40ef4e0334c88c47a9dd5176e9692c8a8560beeb29a1e3e0366ceb68b0e` |
+| Config + preferences | **24 / 5,045 / 172,494** | raw ConfigStore、Foundation flush/atomic writer、Preference overlay/generation/quota/fault tests |
+| Operation + dynamic/interface boundary | **17 / 3,738 / 131,882** | handler registry、bounded admission、snapshot/prepare/apply、cancel/deadline/harvest/ABI |
+| Diagnostics + log | **37 / 4,923 / 164,131** | devtools/runtime/dynamic diagnostics、log projection与control observability exact-zero |
+| Module/profile + App args | **38 / 6,649 / 242,098** | feature truth、builtin assembly、profile、runtime/headless启动面 |
+| Editor commands + Console | **31 / 6,794 / 232,923** | descriptor/registry/commandlet/remote flag/dispatcher/ZUI/output/tests |
+| 五引擎聚焦参考 | **32 / 26,526 / 930,695** | Unreal Console/Remote/Cheat、Godot settings/debugger/queue、Bevy remote、Unity/Fyrox typed debug settings；fingerprint `77820d825e20adbc5f69d1ce7cb30d1d8f2630015d100eec6998ec09c3e5d085` |
+
+全产品对`cvar`、console variable/command、remote console与cheat manager精确搜索仍只有1行Editor测试文本，production为0；runtime preset/builtin/profile、App `--exec`/command file/CVar override及runtime diagnostics whole-word control术语均为0。Editor Console仍只有level/source filter、virtualized output与Clear，没有input、parser、completion、history或submit。
+
+底座有真实进展：Preference storage具generation ticket、durability、deadline/cancel、entry/retained-byte quota与atomic backend；RuntimeOperationService具1,024 task、32 prepare、4 MiB retention、owner-thread snapshot/apply、worker prepare与bounded ABI；Editor command registry具stable path、generation-cached catalog、capability与typed commandlet report。但三者分别不是CVar authority、runtime command catalog或remote gateway。
+
+`EditorCommandDescriptor`的constructor与serde default仍令`callable_from_remote = true`，无source dispatcher又默认Remote；当前production没有external transport caller，因此本轮不新增P0，但任何网络/IPC接线前必须通过authenticated principal、surface/role/scope、shipping、quota、redaction、replay/dedup与audit fail-close。Runtime67的72项P1、16项P2、CTRL-M0至M9与48项门禁全部保持open并继续唯一计数；本文新增0项P0/P1/P2。
+
+本轮只修改review和索引，未运行Cargo、App/Editor、remote network、replication、security fuzz、fault、soak或同规模Unreal benchmark；tooling按用户要求排除。详见`zircon_runtime/99h-runtime-console-command-cvar-registry-cheat-exec-config-layer-replication-remote-product-integration-current-source-review.md`。
+
+## 261. Runtime Scene ECS / Entity / Component / Storage / Query / Schedule / Event 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / ignored / unsafe行 | 本轮证据 |
+|---|---:|---|
+| 全产品文本 | **18,845 / 3,305,644 / 3,112,346 / 119,102,085 / 20,725 / 246 / 1,648** | root Cargo、Runtime/App/Editor/Plugins、examples/templates/tests；fingerprint `9fae89abee856f0da717ea5d54ea24e977111bbe36013ce93357ad2c175397aa` |
+| `scene/ecs` | **143 / 22,173 / 19,881 / 707,022 / 45 / 1 / 204** | entity/component/storage/query/system/schedule/command/event/message/observer全部源码；fingerprint `5925ad607f40562cbfb66f5364a44b57bf2049beca7add6f3f064e03f7059ce3` |
+| World/module/product chain | **89 / 25,491 / 23,628 / 962,473 / 80 / 1 / 0** | World、LevelSystem、module/plugin注册、animation产品调用；fingerprint `431364503842d929868c5fb91a2150488897723e959e89919aa93a63b5b57b47` |
+| focused ECS tests | **89 / 20,181 / 18,231 / 758,675 / 479 / 3 / 0** | identity/storage/query/change/command/schedule/event/observer/system/performance测试；fingerprint `587e9980cf34287014b5739c922c6f267364400e1af9a4b826514611b3606ab6` |
+| 五引擎26个显式参考文件 | **26 / 23,515 / 20,627 / 921,948 / 142 / 0 / 321** | Unreal Mass、Bevy ECS、Fyrox pool、Godot lifecycle/worker与Unity Graphics jobs；fingerprint `fa13fb44639f1829304f4131d985735c3aeeda79daa546706a6c75e56580160f` |
+
+当前Scene ECS不是纯HashMap样例：generation entity slot、table/sparse两类canonical live store、archetype column、bundle结构事务、compiled query/change tick、packed deferred command、event/message/observer、access conflict graph、worldless worker lane和frame diagnostics均是真实底座，应在重构中保留。
+
+两项P0仍由当前源码直接证明。`Query::iter(&self)`、`iter_combinations`、`count`与`is_empty`继续通过共享receiver把同一raw `QueryState`转为可变引用，safe caller可制造并存别名和cache reallocation失效；`RemovedComponentEvents`继续按TypeId向Vec永久追加，reader只推进局部cursor，没有retention、ack reclamation或World维护。
+
+Runtime60的2项P0、72项P1、18项P2与40项门禁继续唯一计数；92项差距closed为0，仅P1-18、P1-42、P1-44、P1-54、P1-67与P2-16因排序验证、clock domain和诊断增强成为Partial。worldful Query/Res/Event/Message系统仍串行，`before/after`拓扑关系不会阻止无access冲突的系统进入同一worker batch，virtual pause又跳过event/deferred维护。Event reader缺Drop retire，Message cursor在迭代前ack到尾部，observer仍同步递归且无panic/depth隔离；第一方产品主要只有animation参数应用的少量standalone query，尚无统一executor采用矩阵。
+
+目标保持为`WorldIdentity + EntityAllocator + ComponentSchemaRegistry + ArchetypeStore + QueryPlan + WorldCell + SystemMeta + ScheduleGraph + EcsExecutor + DeferredWorld + EventRegistry + ObserverGraph + EcsDiagnostics`，按M0-M7先修两项P0，再完成identity/schema/storage、query/access、统一executor、deferred transaction、channel lifecycle、第一方迁移和竞争性资格。必须hard cutover，不能保留raw World双写或compat facade。
+
+本轮只修改review与索引，未运行Cargo、Miri、sanitizer、loom、fuzz、产品scene、100h soak或同负载Unreal/Bevy benchmark；tooling按用户要求排除。详见`zircon_runtime/99i-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event-product-integration-current-source-review.md`。
+
+## 262. Runtime Scene World / Level / Registry / Lifecycle / Project I/O / Snapshot / Serialization / Transaction 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / ignored / unsafe行 | 本轮证据 |
+|---|---:|---|
+| Level/module lifecycle | **17 / 2,865 / 2,548 / 102,649 / 23 / 1 / 0** | `LevelSystem`、level manager contract/lifecycle/project I/O、artifact lane与public scene contracts；fingerprint `303e47af9f657d290c8bfe1a51c2aedca175fd42a81b74b8502bed1951d1b522` |
+| World/document/persistence | **63 / 14,668 / 13,582 / 530,217 / 54 / 1 / 5** | World clone/state/project I/O、DynamicScene document/spawn、SceneAsset、atomic file与durable transaction；fingerprint `9a1aff396347e79dd3cae9c0f7c07a5055cf04814b526828b09c6665f2500e94` |
+| Product consumers | **38 / 3,742 / 3,400 / 131,247 / 25 / 0 / 4** | Runtime project open、Editor authoring/save/play snapshot/project document真实调用链；fingerprint `deb4d2faee813d76048c5cf20eab75600b16b709d1266c32e76bbabd0086a4ee` |
+| Focused tests/fixtures | **9 / 5,822 / 5,119 / 203,475 / 58 / 1 / 0** | World JSON、hierarchy、DynamicScene transaction、SceneAsset、Editor snapshot/project与Vampire fixture；fingerprint `9c2e44198c23def6095d123714d967bae812609f2ad07c2f961669129956d507` |
+| 去重production | **118 / 21,275 / 19,530 / 764,113 / 102 / 2 / 9** | 当前World/Level/persistence产品源码物理冻结；fingerprint `235d9764ca52d7edd47dfa799a5b97cb4d06830d52b21e003b0e48310fc5c129` |
+| 去重focused set | **126 / 27,045 / 24,604 / 965,721 / 158 / 3 / 9** | production加显式产品测试/fixture；fingerprint `3d6665edccce41597a9dabf6d8d7321cc8d4e5ebd979bf00c49e200e2f5d0e49` |
+| 五引擎30个显式参考文件 | **30 / 36,013 / 30,024 / 1,351,243 / 49 / 0 / 4** | Unreal WorldContext/LevelStreaming、Bevy world serialization、Fyrox SceneContainer、Godot PackedScene、Unity Graphics reload policy；fingerprint `c6be811aeb3b54d5836611aaa5ffc262107782146118efd8bb5eecd4e6ec8c47` |
+
+当前底座不是空壳：World/LevelSystem、dynamic JSON clone、bounded keyed artifact lane、DynamicScene preflight/commit、single-file atomic writer与generic journaled multi-file transaction均有真实实现。后者尚未接入Editor workspace+scene保存链，不能把基础设施存在误判为产品事务已闭环。
+
+Runtime61的5项P0全部保持Open：任意registered typed component仍会在`World::clone`清空canonical storage并按七组白名单重建时丢失；Exit Play仍以该clone覆盖authoring truth；versioned snapshot仍spawn进带Camera/DirectionalLight/Cube的`World::new()`；terrain/tilemap/prefab与Sprite2D/Mesh2D canonical roundtrip仍缺。旧“dynamic clone全丢”措辞已纠正，因为dynamic JSON map目前会被clone，但canonical project persistence仍不开放。
+
+60项P1中仅005稳定遍历、006 exhaustion terminal、026部分JSON preflight、048单文件durability为Partial，其余56项Open；14项P2中仅004的`Arc<[String]>` subsystem read snapshot为Partial，其余13项Open；45项RWL门禁全部Fail。目标是`WorldContextRegistry + LevelInstanceRegistry + WorldLifecycleCoordinator + AuthoringSceneDocument + SceneSchemaRegistry + SnapshotCompiler + ScenePersistenceService + WorldReplacementTransaction`，按M0-M7先建立P0数据守恒RED测试，再完成identity/schema/artifact/replacement/durable persistence/product hard-cutover与资格证据。
+
+本轮只修改review与索引，未运行Cargo、Editor、Vampire、fault injection、断电恢复、100K entity、多World/PIE或同语义Unreal/Fyrox/Godot benchmark；tooling按用户要求排除。详见`zircon_runtime/99j-runtime-scene-world-level-registry-lifecycle-project-io-snapshot-clone-serialization-schema-transaction-product-integration-current-source-review.md`。
+
+## 263. Runtime Scene Hierarchy / Transform / Reparent / Activation / Visibility / Bounds 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / ignored / unsafe行 | 本轮证据 |
+|---|---:|---|
+| Hierarchy authority / public contracts | **34 / 6,598 / 6,058 / 237,914 / 9 / 1 / 0** | Mobility、Scene components、typed API、hierarchy/derived/query/records、detached batch与reflection；fingerprint `8d3a8e97a9d096faaaf4540c851ba46c3673223cd75214e21bd1044209b6a8e7` |
+| Derived state / render handoff | **9 / 4,026 / 3,684 / 143,880 / 10 / 0 / 0** | frame extract、mesh/sprite DTO、render/visibility与derived diagnostics；fingerprint `d6332badd5dd1d974357e3dbaf0adb060cc59a8156279717485ae9865adb74d4` |
+| Editor product consumers | **7 / 1,598 / 1,437 / 51,834 / 1 / 0 / 0** | command、gateway、viewport packet/controller产品调用；fingerprint `f9a2dc95828b13587e66f4214e5def8437bbebe12db745aaca56adbc4ed19b4c` |
+| Focused tests | **12 / 3,283 / 2,977 / 125,130 / 85 / 0 / 0** | derived/hierarchy/performance/subscription与Editor node/viewport/gateway；fingerprint `de0dd0dfe542c741f2d40014ffd9c09631f26d98fd5da10904fd551d2298b39f` |
+| 去重 production | **50 / 12,222 / 11,179 / 433,628 / 20 / 1 / 0** | 当前Scene hierarchy/derived/render/editor产品源码物理冻结；fingerprint `b302d016f4baca63adbc028a18bd1b86ac84f26782c631ee3b3c654005659997` |
+| 去重 focused set | **62 / 15,505 / 14,156 / 558,758 / 105 / 1 / 0** | production加显式focused tests；fingerprint `f67ed5c8e81429cd0490a316b997116cb0812c4a9b761f488ceda4b715608b5c` |
+| 五引擎20个显式参考文件 | **20 / 40,518 / 34,525 / 1,599,782 / 49 / 0 / 46** | Unreal SceneComponent/Actor、Bevy hierarchy/transform/visibility、Fyrox Graph、Godot Node3D/VisualInstance、Unity Graphics GPUDriven；fingerprint `1c7a756a3b74d93fc56ef936ccf42e7ec0024bd219372b54d8d4e402e0ae35f1` |
+
+当前底座包括stable hierarchy order、HierarchyMutationIndex、显式derived stages、detached subtree batch、Editor undo与stable render primitive key；但generic typed/reflection入口仍可破坏protected/derived state，两项Runtime62 P0均保持Open。五个World级dirty bool仍驱动whole-world hierarchy/active/world matrix/NodeCache工作，viewport geometry在clone上flush而gizmo读原Scene，VisibilityInput仍无bounds、generation、delta、removal或multiview shared truth。
+
+Runtime62的64项P1仅043 direct-child index与062旧失效断言修正为Partial，其余62项Open；16项P2全部Open，48项RSH门禁全部Fail。目标为`SceneGraphAuthority + SceneMutationTransaction + AttachmentTransformRule + SceneLifecycleQueue + IncrementalDerivedStatePlanner + SceneParticipationState + MobilityPolicy + SpatialRepresentationRegistry + SceneRenderDelta`，按M62-0至M62-7先关闭protected/derived authority两项P0，再做topology transaction、增量derived、participation/mobility、spatial/render delta、Editor迁移与规模资格。
+
+本轮只修改review和索引，未运行Cargo、Editor、RenderDoc、fault/fuzz/soak、100K/1M benchmark或同语义跨引擎性能实验；tooling按用户要求排除。详见`zircon_runtime/99k-runtime-scene-hierarchy-transform-propagation-reparent-activation-mobility-visibility-bounds-render-product-integration-current-source-review.md`。
+
+## 264. Runtime Scene Reflection / Type Schema / Property Address / Inspection 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / ignored / unsafe行 | 本轮证据 |
+|---|---:|---|
+| Public contracts | **18 / 1,405 / 1,245 / 39,455 / 0 / 0 / 0** | reflect DTO、world invalidation/watch与entity path；fingerprint `020f0b59eab94c65754065d6b38a6bfc6aea3f33f4390070710aa67583f66911` |
+| Catalog / adapters / storage | **27 / 4,064 / 3,721 / 141,643 / 6 / 0 / 0** | type/component registry、reflect adapters、dynamic storage与compiled binding；fingerprint `88abd1189fd73fb053000d402c2076ca5777c56372e50eac1e8f74826f3388d5` |
+| Property / inspection production | **30 / 8,389 / 7,867 / 316,941 / 4 / 0 / 0** | property access、inspection artifact、publication、subscription与watch；fingerprint `79a760f02934d08a908a4769660dbfeac50aab9b1ea9745c1707275e22679198` |
+| Builtin declarations | **20 / 1,523 / 1,405 / 45,765 / 0 / 0 / 0** | 当前builtin scene component reflection inventory；fingerprint `65281480b2b45e8616e3e6ec7e7cacf08ac278b60db71ea733789f667cb5516c` |
+| Editor consumers | **6 / 2,270 / 2,087 / 79,349 / 3 / 0 / 0** | reflected command、field editor、viewport projection与scene inspection publication；fingerprint `0ad5861c7ac218351adf26b062b4bd33fe352264db39eab8e05407c087812071` |
+| Focused tests | **25 / 7,912 / 7,252 / 302,285 / 189 / 1 / 0** | reflect/property path/dynamic component/inspection/subscription与Editor reflected command；fingerprint `da2639fc5021cb50999a0fae8e80955b6fe1617f5f56042caabc7abd364bd3e9` |
+| 去重 production | **101 / 17,651 / 16,325 / 623,153 / 13 / 0 / 0** | 当前reflection/schema/address/inspection产品源码物理冻结；fingerprint `8ffc5a1a660e2c19b2d3635726c25e1eb1dc38e1fa1b10d7e835245db25240c0` |
+| 去重 focused set | **126 / 25,563 / 23,577 / 925,438 / 202 / 1 / 0** | production加显式focused tests；fingerprint `247a609cc8a999e4f278f0492fa9db0ccff032b2ddb8df385a0858f90e2d34d4` |
+| 五引擎37个显式参考文件 | **37 / 41,133 / 35,620 / 1,532,682** | Unreal property system、Bevy reflect、Fyrox inspector、Godot property metadata、Unity Graphics typed parameters；fingerprint `5cc304dca687b7bbd1678e9911f7f0e14dec5e0a894bdf3a117b7e1a3f2e4952` |
+
+当前底座不是占位壳：descriptor、component/type registry、table/sparse adapter、dynamic JSON value、property access、inspection artifact、bounded subscription batch与Editor publication均存在真实实现。但catalog参与者没有统一事务，`register_component_type`先改变ComponentTypeRegistry，随后更严格TypeRegistry失败时会留下不可重试的半注册状态；Runtime63唯一P0仍为Open。
+
+67项P1仅045因resource单字段直接slot writer由Open变为Partial，其余66项Open；17项P2全部Open，48项RSR门禁全部Fail。删除单元素`Vec`只关闭一个allocation候选，仍没有compiled slot/provider generation/CAS/multi-field transaction/managed latency证据。目标为`ReflectionCatalogTransaction + StableTypeSchema + TypedPropertyAddress + CompiledPropertyPlan + ReflectionMutationTransaction + InspectionPublication + SubscriptionCursor`，按M63-0至M63-7先关闭半注册P0，再迁移typed address、mutation、artifact、subscription与Editor产品链。
+
+本轮只修改review和索引，未运行Cargo、Editor、plugin reload、fuzz/fault/scale/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_runtime/99l-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor-product-integration-current-source-review.md`。
+
+## 265. Runtime Resource Authority / Asset Handle / Load Request / Version Lease 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / ignored / unsafe行 | 本轮证据 |
+|---|---:|---|
+| Public contracts与typed facade | **27 / 2,393 / 2,080 / 74,073 / 4 / 0 / 0** | interface resource、framework asset contract与typed facade |
+| Resource authority/readiness/lease/event | **57 / 11,747 / 10,779 / 398,823 / 103 / 1 / 5** | record、payload slot、mutation、readiness、lease、event与management projection |
+| Project load/publication lifecycle | **28 / 3,852 / 3,490 / 145,879 / 25 / 1 / 0** | project asset manager、artifact access、residency stripe、watch/reload/close |
+| Runtime/Editor产品consumer | **129 / 24,734 / 22,864 / 937,190 / 204 / 0 / 0** | renderer/frame、resource streamer、Editor asset state/preview与PBR viewer |
+| Focused tests | **23 / 4,425 / 4,003 / 159,398 / 89 / 1 / 0** | wrong payload、readiness、lease、project load/reload/close与产品边界测试 |
+| 去重focused set | **258 / 45,267 / 41,520 / 1,646,963 / 377 / 2 / 5** | 当前resource authority/load/version/cache产品源码物理冻结；fingerprint `aa10fe2eb59372a98fc6ace37190f8fd71d8bc343b7a27e4f3e996d63ff5d299` |
+| 五引擎37个显式参考文件 | **37 / 48,023 / 41,512 / 1,829,528** | Unreal Streamable/AsyncLoading2、Bevy Asset、Fyrox Resource、Godot ResourceLoader/UID、Unity Graphics RenderGraph/Reload；fingerprint `f2d4a8dd53c809b99089f3fef752293c71bea632bf8dc1cd9d5673f5bbe0667a` |
+
+当前最高风险不是API数量不足，而是authority事实不一致。public `store_payload`仍不校验exact payload type；wrong payload可成功进入slot，generic readiness因任意`TypeId`存在而报告Loaded，typed facade因downcast mismatch报告NotLoaded，`ensure_resident`又因任意payload存在直接返回。Runtime64的RAR-P0-001保持Open。
+
+产品冷加载仍没有ticket、owner、priority、deadline、cancel或terminal receipt。`ensure_resident`在调用线程跨artifact read、decode和publish持fixed residency stripe，typed load随后可能深clone；frame submission/resource streamer范围仍有29个direct synchronous `load_*_asset`调用。RAR-P0-002保持Open。
+
+Runtime64的2项P0、66项P1全部Open；17项P2仅002因Arc/COW registry staging从Open变为Partial，50项RAR门禁全部Fail。目标保持为`ExactAssetTypeCatalog + QualifiedAssetId + ResourceVersionSlot + VersionLease + AssetLoadCoordinator + TypedDependencyGraph + CachePolicy + ReloadTransaction`，按M64.1-M64.10推进；第一实现切片必须先完成exact type admission、wrong-payload原子拒绝与authority零变化证明。
+
+本轮只修改review与索引，未运行Cargo、renderer/Editor、fault/scale/soak或同负载跨引擎benchmark；tooling按用户要求排除。详见`zircon_runtime/99m-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation-product-integration-current-source-review.md`。
+
+## 266. Runtime Scalability / Quality Profile / Device Profile / Dynamic Resolution 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / ignored | 本轮证据 |
+|---|---:|---|
+| 中立render contracts | **267 / 50,268 / 45,476 / 1,759,372 / 476 / 0** | profile、camera、view family、budget/sample/receipt候选合同；fingerprint `771ffc88c5b89965814a07fb959fa2ffbcf8629909881179e44c2ccfdffe8964` |
+| RenderFramework authority | **137 / 20,119 / 18,484 / 771,046 / 194 / 0** | budget、capability、compile、frame profiler、viewport、submission与stats；fingerprint `64bad2f885ff0ad24607d0c1931b4b6239eaa6b31e7f23f4e7f5f0058a1d3222` |
+| Feature consumers | **410 / 155,714 / 145,365 / 5,844,844 / 1,415 / 18** | graphics、Hybrid GI、Virtual Geometry中的quality/LOD/mip/budget/fallback消费者；fingerprint `1bea820b7c4643f254e165e7700010b3ac2429f99715fafd15260b1c9a2bc90a` |
+| App products | **191 / 32,669 / 29,859 / 1,230,287 / 547 / 0** | bootstrap、runtime preview、viewer、cadence与产品caller零搜索；fingerprint `2a9cd5d8b8ecff74a72ed5be244415c6deb751c254b0eb5394510f171bc0ddad` |
+| Editor viewport | **32 / 3,288 / 2,961 / 118,889 / 44 / 0** | default profile、viewport lifecycle、fake/framework integration tests；fingerprint `6e67ebf9935101025d03ef6ff6b507bb687dee9b1ed6ce6a2e61397a70dc426e` |
+| Focused render tests | **142 / 53,089 / 49,587 / 1,922,070 / 508 / 0** | profile、feature、pipeline、stats、dynamic resolution及product submit测试；fingerprint `a84b698a7f908952fd38e7f910188316d296afa02107a97cb8136d2c29de1248` |
+| 去重focused set | **1,054 / 266,922 / 246,759 / 9,864,458 / 2,771 / 18** | 当前quality authority/product源码物理冻结；canonical `path|hash` fingerprint `b8aee18e2b3fbfea4310d143795ca9fc821e98569d82dd45e39b4d229310f5e8` |
+| 五引擎35个显式参考文件 | **35 / 27,318 / - / 1,160,496 / 18 / -** | Unreal scalability/device/user/DR，Unity schema/DR及5份tests，Godot viewport，Fyrox quality settings，Bevy adapter/upscaling；fingerprint `395e6f04839b5c6e52ab9696763b35b28ba2c13e9468095037b3da357606a8de` |
+
+当前底座包括按viewport保存的`RenderQualityProfile`、锁外compile再提交、capability裁剪、frame/GPU profile、global memory degrade ladder与带generation/reason/history-reset的动态分辨率controller；但这些部件仍不是统一authority。production继续使用camera固定scale，一份global ladder跨viewport共享，GPU sample在ladder求值后merge且不驱动controller，profile没有schema/catalog/device/benchmark/requested-effective receipt。
+
+PBR viewer迁入`WgpuRenderFramework`、GPU timing evidence升级为5个warm-up加31个连续measured samples是真实进展，但viewer仍无production quality caller；App cadence的focus/mobile固定interval也不能替代display refresh/device budget resolver。Runtime65的64项P1、16项P2全部Open，48项SQ门禁全部Fail。目标保持`QualityProfileCatalog + DeviceProfileResolver + CapabilityTierResolver + ProductQualityPolicy + FrameBudgetController + DynamicResolutionCoordinator + FeatureScalabilityRegistry + PerViewportQualityState + QualityTransitionTransaction + EffectiveQualityReceipt`，按SQ-M0至M8推进，首个实现切片必须先完成SQ-M1 schema/catalog。
+
+本轮只修改review与索引，未运行Cargo、真实窗口、多GPU/refresh、VRAM/OS pressure、thermal/power、device loss、soak或同quality跨引擎benchmark；tooling按用户要求排除。详见`zircon_runtime/99n-runtime-scalability-quality-profile-device-profile-capability-tier-dynamic-resolution-frame-budget-lod-feature-fallback-product-integration-current-source-review.md`。
+
+## 267. Runtime Task Execution / Scheduler / Timer / Shutdown 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes | 本轮证据 |
+|---|---:|---|
+| Task core与Core接线 | **36 / 6,167 / 5,531 / 201,308 / 45** | framework task DTO、runtime scheduler/pool/handle/timer/bounded lane与Core owner；fingerprint `e7458fce0d1cd3da5705dce9fded72c27ebbd56336953d96450643332212b416` |
+| Product consumers与private workers | **170 / 54,858 / 49,997 / 1,940,112 / 293** | Runtime/Editor/App/plugins production Rust中的task/scheduler/timer/lane/thread/join语义扫描；fingerprint `c573e6ad2d4af923e5301df7c95b975c52ddb0e363b05555ddf297b99a999ef1` |
+| Focused tests | **27 / 7,057 / 6,433 / 238,450 / 142** | task、bounded keyed lane、JobSystem absorption与Editor job contract；fingerprint `8654ba155073a0b1593447908aedad18699a9c8dcaafe01dad856ab78b704142` |
+| 五引擎31个显式参考文件 | **31 / 13,120 / 11,234 / 504,735 / 18** | Unreal Tasks/low-level scheduler、Bevy tasks、Godot WorkerThreadPool、Fyrox task回投与Unity Graphics jobs；fingerprint `cc65d9e4d228ea51761d6582e0c5b4035e67e83c66c50c80a4176a5f8d27fdb1` |
+
+当前底座不是临时空壳：三类Rayon pool、dependency continuation、worker wait-assist、panic terminal publication、64-shard diagnostics、bounded keyed I/O reservation/fence/ticket，以及Editor entry/byte/age/category admission、priority、mutex、progress和cooperative cancel均有真实实现。但它们没有收敛为统一execution owner：TasksModule仍是descriptor，process pool/timer越过dynamic session，handle无TaskId/owner/typed result/cancel/deadline，dynamic shutdown不关闭admission或join worker，线程预算也看不到Graphics/Text/Asset/Navigation/App/Editor私有worker。
+
+新增`tasks.execution_samples/ms`只有aggregate total且无production consumer；bounded lane线性coalescing只改善局部热点；Editor reservation仍不能提供runtime scope quiescence。Runtime59的72项P1与18项P2全部Open，40项门禁全部Fail；Runtime02与Editor09两项父P0保持唯一计数。目标为`ExecutionRuntime + WorkerInventory + WorkerDomain + TaskScope + TaskDescriptor + Task<T,E> + DependencyGraph + DeadlineService + BoundedOperationLane<K,T,E> + DedicatedWorkerLease + ExecutionDiagnostics`，首个实现切片必须从owner、worker inventory与scope shutdown开始。
+
+本轮只修改review与索引，未运行Cargo、dynamic DLL unload、Editor真实shutdown、fault/scale/soak/sanitizer/profiler或同负载跨引擎benchmark；tooling按用户要求排除。详见`zircon_runtime/99o-runtime-task-execution-job-scheduler-handle-dependency-cancellation-thread-budget-timer-shutdown-diagnostics-product-integration-current-source-review.md`。
+
+## 268. Runtime Plugin Interface Bridge / Native Replay / VM / World Retirement 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / dirty | 本轮证据 |
+|---|---:|---|
+| Bridge core与catalog | **16 / 2,814 / 2,496 / 95,360 / 11 / 0** | core bridge、table/import/weak、registry registration、dependency/lifecycle与interface validation；fingerprint `e306bb6833d7254f05a077e8a2303abbbf2981bd6a87742243e728ae64e15d7f` |
+| Native bridge与registration replay | **14 / 6,177 / 5,674 / 228,105 / 21 / 0** | native scope/library owner、live host lifecycle/loading/reload/method/replay/report；fingerprint `14ae594d5a25d1852512c27fb60de02d46dfea50839df1d649eb17ce1caef344` |
+| VM、App、Editor与first-party consumer | **22 / 6,054 / 5,564 / 226,128 / 19 / 2** | VM host/manager、App entry、Editor Play/diagnostics、AI/Physics/ZrVM manifests与adapters；fingerprint `f016e0f20fb17cf71c61c7135c95036e446a334695a4ccdd32d5328a18b200f4` |
+| Focused tests | **17 / 8,959 / 8,147 / 318,089 / 192 / 0** | table/dependency/native scope/replay/VM/App/Editor/AI contract；fingerprint `446ff09f56f0a55bff116bf4b4ac8ab46a0dd0964b26aa45a22cab60c27b2ade` |
+| 五引擎14个显式参考文件 | **14 / 8,730 / 7,553 / 316,759 / 19 / 0** | Unreal modular/module、Godot extension、Fyrox dylib/plugin、Bevy App/Plugin、Unity ContextContainer；fingerprint `1a501f6a7e3199af01ad507f5da8054c57d73c3b8de252a3d437ea2eee5398fa` |
+
+当前底座不是空壳：frozen table、dense slot、weak cache、owner lifecycle、native callback lease、registration replay cache、VM adapter与Editor matrix均有真实实现。但call admission、provider generation、library lease、World system holder和module lifecycle仍是分裂事实；disable/deactivate不能证明任意Rust/native/VM调用已停止。native registration replay只有tests caller，普通App/Editor Play不安装DLL system；replay closure又强持old call scope，reload后旧World继续调度关闭generation并长期pin旧DLL。
+
+App虽能保存`RuntimePluginBridgeLifecycleState`，retained Editor仍使用无lifecycle activation；带lifecycle构造器与`register_bridge_host_module`均无production caller。Physics file manifest继续遗漏`physics.query.v1`，AI optional dependency仍无条件import且`.ok()`吞Physics bridge错误。Runtime58的3项本地P0、64项P1、16项P2全部Open，40项BRG门禁全部Fail。目标保持`InterfaceContractCatalog + BridgeTableGeneration + TypedInterfaceHandle + BridgeCallLease + PluginActivationTransaction + WorldBridgeBindingRegistry + VmBridgeAdapter + BridgeObservationStream`，首个实现切片必须先固化3项P0 RED tests并建立contract identity。
+
+本轮只修改review与索引，未运行Cargo、真实DLL产品链、active-call reload、multi-world soak、fault/sanitizer/profile或同负载跨引擎benchmark；tooling按用户要求排除。详见`zircon_runtime/99p-runtime-plugin-interface-bridge-slot-generation-strong-weak-native-vm-lifecycle-diagnostics-product-integration-current-source-review.md`。
+
+## 269. Editor Scene Hierarchy / World Outliner / Expansion / Selection / Rename / Reparent / Multi-World 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes / ignored / dirty | 本轮证据 |
+|---|---:|---|
+| Runtime inspection与hierarchy authority | **17 / 6,087 / 5,519 / 217,938 / 48 / 1 / 2** | artifact、row builder、override、subscription、hierarchy mutation与derived state；fingerprint `f76ea2321bd5e821acf3ed62b3a97a03fa329302428712d184fe0dad80411899` |
+| Editor publication、projection与paint | **22 / 4,218 / 3,887 / 146,796 / 8 / 0 / 0** | message、publication、fragment、retained control、pane DTO与native row paint；fingerprint `a2cc11b9c7eb701ddda7775794b88e7cb1cb207f58f7fb3a3550316c10bf2d7f` |
+| Interaction、command与World replacement | **26 / 3,896 / 3,605 / 137,308 / 27 / 0 / 0** | pointer、drag、rename、event、intent、transaction与workspace reload；fingerprint `d3f45459f8b17f483dcde8efbb09d7bb4d000b53424e07f26cc18a47de2bb6de` |
+| Focused tests | **12 / 3,365 / 3,051 / 114,950 / 74 / 0 / 1** | transaction行为较强，interaction lifecycle缺口明确；fingerprint `3be76134c15ebd9bd5fff13d52997676771238b0b64be95b7adbb79dfcf16eb1` |
+| Zircon去重focused set | **77 / 17,566 / 16,062 / 616,992 / 157 / 1 / 3** | 当前World Outliner产品源码物理冻结；fingerprint `a51cddd5c7e1e17ccf12bd8d0408ff17f257c6aa835d781899c59e079b079366` |
+| 五引擎18个显式参考文件 | **18 / 19,930 / 17,191 / 706,227 / 49 / 0 / 0** | Unreal Scene Outliner、Godot SceneTree、Fyrox World Viewer、Bevy hierarchy identity与Unity Graphics recycled tree cells；fingerprint `b72dcf98e83fceff5eba95e6353cbea0ce031e0d831be64940508088cec78bb8` |
+
+当前底座不是静态mock：Runtime已经有generation-scoped inspection artifact、稳定parent/depth/subtree hash和稀疏name patch；Editor能拒绝旧fragment、保留filter外selection、把多选reparent收敛为top-level roots并通过共享transaction整体rollback；native paint也只遍历可见row。它们应进入未来typed Outliner，而不是被重写成UI私有树。
+
+两条当前可达P0仍必须先关闭。Hierarchy在primary press时立即武装drag和旁路NodeId集合，release到另一row/root无需移动threshold、capture或validated drop session即可提交reparent；World/project replacement又不会退休active drag、rename click或inline rename，旧World事件可能命中新World复用的同值NodeId。其余产品链仍把row降为`id/name/depth/selected`，令expanded等于has-children，按总item数clone retained control，并缺typed item/provider/mode/column/filter、drop preflight、sibling anchor、transform/owner/reference政策。
+
+报告登记2项P0、24项P1、8项P2与40项资格门；Editor41保持World Outliner canonical owner，Editor03拥有Scene selection/reparent语义，Editor55拥有structured drag payload，Runtime24/109/110/111拥有identity、World、hierarchy与inspection父合同。目标为`SceneDocumentSessionRegistry + WorldOutlinerRegistry + OutlinerItemId + OutlinerViewState + HierarchyInteractionController + ReparentPlanner`，按ED60-M0至M6先止血、再收敛identity/model/view/plan，最后完成bounded row pool与100K/1M资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、pointer/IME、多窗口、多World、100K/1M、fault/soak或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world-product-integration-current-source-review.md`。
+
+## 270. Editor Scene Document / Authoring World / Dirty Transition / Autosave / Recovery 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test attributes | 本轮证据 |
+|---|---:|---|
+| Core document与project scene authority | **10 / 3,101 / 2,855 / 118,224 / 20** | lifecycle、route、scene document、manager/session、project access与installer；fingerprint `f8c43f1938e33da2a7be24da847ef25881825b7b9ee1efeeb8143dc65d14ae33` |
+| Retained product paths | **24 / 4,884 / 4,501 / 182,537 / 37** | startup、picker、workspace save/reload、autosave、native close与callback dispatch；fingerprint `debf0a0c13537deb877eedcaa8bf82e8515883d20408a6c08bf1149c73ae5b19` |
+| Runtime/support persistence | **7 / 3,017 / 2,724 / 98,936 / 3** | project scene IO、authoring codec、atomic writer与workspace support；fingerprint `8b2a53e20ca868478218dd041ef300495bff890133b25d9cf93fd8cfcae47c5b` |
+| Focused tests | **9 / 3,779 / 3,487 / 133,850 / 74** | lifecycle、picker、create rollback、save/close/autosave与MVP authoring；fingerprint `26bfac7a07b4c33eba02ae1125181660bb2e3c8afc9a4e2e032159d5707b8a4d` |
+| Zircon去重focused set | **50 / 14,781 / 13,567 / 533,547 / 134** | 当前Scene Document产品源码物理冻结；fingerprint `75ba0acef0f1c2fc336cbe2a9508de748ebcdb018140789d0f673d7c6155ee2b` |
+| 五引擎19个显式参考文件 | **19 / 32,259 / 27,885 / 1,254,980 / 24** | Unreal save/autosave、Godot edited scenes、Fyrox scene container、Bevy asset source与Unity Graphics Editor使用面；fingerprint `abe11cf4e0b832ecc50184b533daaf36f29da6910a2063af7f4d9d7127d0564b` |
+
+当前局部能力真实存在：Runtime writer要求显式World与target scene URI并执行serialize-before-atomic-write，Editor create route具有staging/catalog rollback，document lifecycle、session guard、autosave/recovery DTO和workspace rollback也可保留。但它们尚未形成Scene Document产品authority：普通startup只激活project-root文档而不登记default scene identity；secondary scene的Save Project仍写manifest default target；Open/New、Close Project、window close、watcher reload与autosave分别绕过dirty/session/transition合同。
+
+Editor02/03/57拥有的5项父P0继续Open，本报告不新增或重复计数P0；新增28项P1、8项P2与40项资格门。目标为`SceneDocumentSessionRegistry + DocumentTransitionCoordinator + DocumentSaveCoordinator + SceneExternalChangeReconciler`，按ED61-M0至M6先关闭现有数据丢失路径，再完成qualified source identity、expected-revision CAS、scene autosave/recovery、多Scene workspace与规模故障资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、crash recovery、外部并发写、multi-scene、100K/1M、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/61-editor-scene-document-authoring-world-open-new-reload-save-close-dirty-transition-autosave-recovery-multi-document-product-integration-current-source-review.md`。
+
+## 271. Editor Inspector / Property Grid / Reflection Schema / Multi-Selection / Transaction 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes | 本轮证据 |
+|---|---:|---|
+| Zircon production focused set | **52 / 9,342 / 334,986** | core Inspector、state/snapshot、binding dispatch、legacy pane、componentized workbench、runtime component adapter与inspection publication；fingerprint `48fce3c2d4d74750db117b00a8b17c1270ba9eb8307ada7da079e1fe20e32b48` |
+| Focused tests | **11 / 2,742 / 95,728** | selection/Apply、reflected command、adapter与component property preview；fingerprint `5cd5662b12b6cb7911f7cead9a2cd6bba0f49434accdd6959a82befe2076e614` |
+| Inspector UI assets | **7 / 811 / 57,491** | legacy body/surface与componentized workbench panel；fingerprint `d47465c6124944030746c0e46be561b8d76e88c17e63d5a164c423a68ade3ba7` |
+| Unreal PropertyEditor selected set | **4 / 9,238 / 323,605** | property handle、per-object values、interactive transaction与details roots；fingerprint `2fbbfd5c43ebbbb013d9f44a26d49c5515fed849a134f1900cdbc2588a1a6b84` |
+| Godot Inspector selected set | **4 / 10,340 / 362,775** | common-property intersection、per-target undo与revert/resource工作流；fingerprint `c15df248a6c03bb3233240280dfc6899dc32722d60282a27a0273bd35e3fbf66` |
+| Fyrox Inspector subtree | **28 / 8,315 / 309,683** | real editor definition、recursive path、collection、curve与sync；fingerprint `de3ccaaf59793ba957f6ae9ce9f5910617e2d960c3c9d784d2c4f211ff2c6d09` |
+| Bevy Reflect selected set | **6 / 2,679 / 93,749** | parsed structured path与container reflect kinds；fingerprint `a718f9b237c933a1a9ff3e9bdb51735aa8f383e5c83631ba66d8854ac7da23c0` |
+| Unity Graphics selected set | **2 / 1,046 / 39,813** | relative SerializedProperty与真实curve consumer；fingerprint `1820bba19d25a50861e35941ace524d63460eb566dd2e3acd3f8f69c30b8d1da` |
+
+当前Inspector有真实reflection、selection snapshot、command batch/undo、inspection artifact、customization ticket和retained/componentized surface基础，但authoring请求仍是primary来源的完整字符串表单。任意Apply都会重写Name、Parent、Translation、Scale与全部dynamic draft；Transform又在selection同步时量化为两位小数，所以Editor05两项数据破坏P0继续Open。componentized单轴提交仍落到相同full Apply，插件component property的Edit/Commit则只更新模板preview而不提交World。
+
+Editor05保持唯一canonical owner，本轮新增finding为0；其2项P0、32项P1、9项P2全部Open，20个资格门全部Fail。Editor44/57/60/61与Runtime111继续分别拥有override、asset reference、selection/document identity和reflection artifact父合同。目标保持为`InspectorSessionRegistry + PropertyProjectionArtifact + TypedPropertyHandle + PropertyEditCoordinator + PropertyEditorRegistry + ComponentAuthoringCoordinator`，按ED62-M0至M6先关闭数据破坏，再迁移schema/address、session/delta、interaction transaction、typed editors、单一presentation和规模资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、save/reopen、plugin reload、pointer/IME、10K fields/targets、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/62-editor-inspector-property-grid-reflection-schema-multi-selection-edit-transaction-undo-prefab-override-customization-asset-reference-virtualization-product-integration-current-source-review.md`。
+
+## 272. Editor Authoring Transaction / Command / History / Savepoint / Async Operation 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes | 本轮证据 |
+|---|---:|---|
+| Zircon transaction core | **29 / 4,740 / 155,195** | command、history、scope、rollback、save token、dirty batch、event、journal、routing与operation bridge；fingerprint `1862f96f09cb49f2c137dfbaae5aad2435371643eb9708cde1c62b7c18e5aebd` |
+| Zircon product integration | **52 / 14,627 / 537,866** | Global scene/menu、DirtyRegistry、UI asset、Animation、Navigation、Neural、pending edit与host dispatch；fingerprint `eb8a4c82c7a1cf4d6d7b98ceff8cb0c3efd2acfd11ce41439bcdb0498b6ccd8b` |
+| Zircon focused tests | **23 / 9,220 / 310,855** | scope/history/recovery/locking/group/journal/dirty，以及真实UI asset与插件command测试；fingerprint `408a3a6b8f96959b8c7e2d2c969b49b93eaaadf89f4cd5a86cffa3f2710941f6` |
+| Unreal selected set | **4 / 2,323 / 74,975** | transaction context、RAII、memory buffer、barrier、object event与editor lifecycle；fingerprint `aedff26f6976e837c2da41f5ffc45dcf9016397e2643981a3ff1874aa353dc4d` |
+| Godot selected set | **5 / 1,660 / 57,699** | per-history manager、object routing、merge、saved version、reference retention与tests；fingerprint `77f1ae91a52451861241899c9d88558330f9cec744de3b63a5c190b687d4991b` |
+| Fyrox selected set | **15 / 5,199 / 171,037** | command stack、scene/UI/animation/ABSM command域、reverse/finalize与generational handle；fingerprint `a74cd173ae2ab15e112158cd30a113228d03cba09145e62fc723b9399feff687` |
+| Bevy selected set | **4 / 6,773 / 250,518** | index+generation entity、change ticks与deferred command queue；fingerprint `aee21320b695dc0546635c370b8afd664eb568077239c57c61ca47b8546e1244` |
+| Unity Graphics selected set | **4 / 2,512 / 103,038** | SerializedObject消费、multi-object undo、created/destroyed object与undo-redo refresh；fingerprint `55fd07386b6b4d634104de7cb9bb5fe0010db78354ee4a9144648b6194c0efd8` |
+
+当前transaction core的局部同步不变量已显著成熟：RAII scope、`CommandEffect`、嵌套/rollback recovery、fault封闭、history cursor、save token、dirty generation cursor、exclusive transition和operation factory dispatch都可保留。但history只是namespace，没有绑定Document Session、World generation、EditContext或selection domain；同一个engine-wide operation/context/active stack/group又让独立document错误串行。把`Global`机械改成`Document(id)`仍可能让旧history在当前World上回放裸NodeId command，因此identity/session必须先于产品路由迁移。
+
+产品仍是多权威：Scene/Menu使用Global，DirtyRegistry查询Document，UI asset保留无界私有stack且cursor先于fallible replay移动，Animation只有可写dirty bool，Navigation/Neural在同步command内轮询runtime或转换/覆盖文件。Editor02的5项P0、30项P1、8项P2继续由父报告唯一计数；Editor63只新增11项P1、4项P2与40个全部Fail的资格门。目标是`DocumentTransactionSession + QualifiedObjectAddress + TransactionScopeLease + TypedCommandDescriptor + InteractionGroupToken + HistoryBudget + SavepointCoordinator + AsyncCommandCoordinator + JournalCodecRegistry`，按ED63-M0至M7先做RED/identity/session，再做command/merge/async、产品硬切和journal/scale资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、多document save/reopen、plugin reload、外部文件冲突、crash recovery、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/63-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation-product-integration-current-source-review.md`。
+
+## 273. Editor Scene Component Authoring / Type Catalog / Structural Mutation / Plugin Lifecycle 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / test attributes | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime catalog/mutation | **18 / 4,400 / 162,431 / 11** | descriptor、schema generation、dynamic storage、reflection、plugin owner/revoke与DynamicScene；fingerprint `867bc332a6f033a89a6d3cf697d3cdf88d1d36a3728a23f7687eb38050c36238` |
+| Zircon Editor product | **9 / 2,627 / 106,022 / 3** | intent/command、snapshot、retained projection、pane payload与Add Component ZUI；fingerprint `1918847ec85cca61fa6c70cc7c374fde1f3a8f31a78c3c4b81edfb5b009d972f` |
+| First-party component providers | **14 / 1,130 / 40,699 / 3** | AI、Navigation、Particles、Sound、Prefab、Decal、VFX、Terrain与Tilemap的18 descriptor/137 property；fingerprint `36acbfe270cafe524490eada5ad3b226564ffaa70508d0fc509e258f161dcdb9` |
+| Zircon focused tests | **9 / 4,520 / 167,082 / 80** | reflection field、registry、serialization、unload guard及静态surface contract；fingerprint `76a6070b3b9185d4ac6b586777b3c6acbf2f27ce33766955496f1bb89b63226a` |
+| 五引擎24个显式参考文件 | **24 / 25,618 / 929,817 / 30** | Unreal component/subobject、Godot create/missing node、Bevy required/reflect、Fyrox constructor command与Unity Volume；分引擎fingerprint见Editor64报告 |
+
+Runtime动态组件注册/set/remove、reflection/schema generation、plugin owner/revoke、DynamicScene与Editor字段事务是真实底座；14个第一方provider文件也已声明18种component和137个property。但可见`workbench.inspector.add_component`只有ZUI route而无production handler，Editor intent/command没有add/remove/enable/disable/reorder，Inspector只枚举已有dynamic component且retained surface只显示第一项。Runtime descriptor又只有type/plugin/display/property，不能表达stable schema/provider/instance identity、target admission、default factory、dependency、multiplicity、ordering、enable、lifecycle与migration。
+
+Editor05/31/44/50/55/63和Runtime99i-99l继续唯一拥有假按钮、脚本规则、default/override、provider生命周期、数据守恒、transaction identity与Runtime父合同。Editor64不新增P0，登记15项P1、5项P2与40个全部Fail的资格门；目标为Runtime唯一`ComponentAuthoringCatalog + ComponentStructuralMutationPlanner + ComponentStructuralMutationReceipt`，Editor只持有generation-qualified session、topology snapshot、intent/command和产品交互。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、add/remove/save/reopen、plugin unload/reload、multi-selection、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/64-editor-scene-component-authoring-type-catalog-add-remove-enable-disable-dependency-multiplicity-ordering-default-reflection-transaction-plugin-lifecycle-product-integration-current-source-review.md`。
+
+## 274. Editor Scene Object Creation / Placement Palette / Factory / Asset Drag-Drop / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / test attributes | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime creation | **3 / 321 / 12,595 / 0** | `NodeKind`、`NodeRecord`、default/spawn/bootstrap；fingerprint `3be0b48f239f4549672ace3c05d3522ea3952b2000de0020d59fba888d7f608e` |
+| Zircon Editor command/catalog | **12 / 3,113 / 113,659 / 10** | intent、command/journal、fixed command/menu/id/binding与extension batch；fingerprint `51ac6de5c2464e555157e7cb8bec8bedbd63ed5af1fd3117b855ed5f06cd8ab7` |
+| Zircon Editor product/drop | **12 / 1,528 / 81,177 / 0** | asset payload、pointer、reference consumer、Quick Import、viewport与ZUI；fingerprint `ea0fc8f62b2a93fb9b33d81266eeaefd2480b91a1794326f47936a79f3aaa409` |
+| Zircon focused tests | **8 / 2,323 / 77,909 / 51** | create/undo/journal/import、menu registry与drag source/reference-field tests；fingerprint `21b51c958f5dae09653811f5011ebf057ca1626bb6272a50a08ad3235872dfc0` |
+| Unreal selected set | **10 / 5,642 / 206,673 / 0** | placement subsystem/factory/category/palette/drag/positioning/transaction；fingerprint `efd360e3b03ece477487a83182bc20d98d9d7598b6ec98afb423d86e0ae90a96` |
+| Godot selected set | **3 / 13,690 / 514,193 / 0** | searchable creation、favorite/history、scene/asset drop、3D preview与Undo；fingerprint `b9cfeaffe6cc5587ecb14d6ec9e50258310af7d43f804c7f949d93d2bf5a7a2e` |
+| Bevy selected set | **5 / 4,762 / 166,026 / 51** | reflect construction、Scene/Template、dependency、bundle write与failure cleanup；fingerprint `73d530f614b8c4fa76ead32f80865eca45153a0beb997860234291ccef45c11e` |
+| Fyrox selected set | **4 / 3,048 / 103,912 / 0** | constructor menu、asset preview/drop、pick/plane/grid与reversible subgraph；fingerprint `a5cae301b84d140b88277c6e6be4542293443cac78b065b3456fa2582debe83f` |
+| Unity Graphics selected set | **5 / 2,270 / 90,722 / 9** | Volume目录、filter/category、add/remove/order/reset、Undo与runtime collection tests；fingerprint `63019e522aafa6cd33167615fa919853f117e1bd9f49b9cd5340b1fa82fd27b0` |
+
+当前`spawn_node`、create/undo/journal、typed asset drag payload与viewport pointer是真实底座，但公开创建合同仍是闭集`NodeKind`或`model/material`，菜单/id/binding多处穷举，单`NodeRecord`不能守恒复杂图。Scene没有placeable catalog/factory、typed request/receipt、qualified destination、transform solver、preview session或asset-to-viewport drop consumer；Quick Import还把资产摄取与World修改绑成一个动作。
+
+Editor08/44/50/55/57/59/60/61/63/64和Runtime99i-99k继续唯一拥有command、default/template、extension、payload、asset、viewport、hierarchy、document、transaction、component与World父合同。Editor65不新增P0，登记18项P1、6项P2与48个全部Fail的资格门；目标为Runtime唯一factory/plan/receipt与Editor catalog/session/transform/command/preference闭环。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、asset-to-viewport drop、preview/cancel/commit、save/reopen、plugin reload、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/65-editor-scene-object-creation-placement-palette-factory-asset-drag-drop-template-favorites-preview-transform-transaction-plugin-product-integration-current-source-review.md`。
+
+## 275. Editor Scene Viewport Camera Navigation / Orbit-Pan-Zoom-Fly / Projection / Frame Selection / Bookmark / Pilot 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime navigation kernel | **20 / 1,123 / 982 / 32,715 / 7** | free/orbit/pan settings、state、input、output、dynamic adapter与tests；fingerprint `f156e9f2084d2aa02ebdb59727ae6eabdfa90b27d0d0457b76ac7bb15bb6b837` |
+| Zircon Editor navigation core | **13 / 1,326 / 1,203 / 46,003 / 9** | camera state、pointer input、orbit/pan/zoom、projection、alignment、frame与settings；fingerprint `4018f291660cc8b9c0dc69370a88672a4c7e94632a0fc06950bc8a5ee93bd9b3` |
+| Zircon Editor product route | **13 / 2,626 / 2,400 / 120,153 / 8** | command/codec/event/dispatch/workbench state、toolbar与静态speed chip；fingerprint `aa0ab1ef038e9dcd848a436060f9304360fdb88a1e5d3927acf57d4d97eab250` |
+| Zircon focused tests | **8 / 2,129 / 1,933 / 73,915 / 49** | controller、binding、dispatch、toolbar projection与chrome snapshot；fingerprint `e1229baf7483c05aa6555d99391c2c42ced1b3c7be3477ce341499ee27987fb7` |
+| Unreal selected set | **8 / 17,412 / 14,521 / 647,980 / 1 spec** | viewport camera、input/gesture、focus、settings、navigation helper、pilot与speed tests；fingerprint `cc0a09978975ba2f29657752e13aa30dbfd4e7cd0a065592009038b7244ce712` |
+| Godot selected set | **4 / 9,055 / 7,716 / 350,451 / 0** | navigation controller、scheme、gesture、inertia、freelook、projection、focus与pilot；fingerprint `9b020bf6a0337e588ca37d2aa0469141e848b8c801a519c6c00abfef7df0da18` |
+| Fyrox selected set | **4 / 1,310 / 1,193 / 46,233 / 0** | editor camera、AABB fit、projection、input、preview与per-scene persistence；fingerprint `75794d1db42fc82968d0e9ed89e7eea0531158f57e1ffffeb85ecb780c32a82b` |
+| Bevy selected set | **6 / 2,006 / 1,840 / 77,312 / 1** | free/pan controller、touch/grab、scroll normalization、projection与orbit/zoom examples；fingerprint `5c23792ed479e27bbb7d1252c14e89737e29aecae2d8a8a5db12536169c34e14` |
+| Unity Graphics selected set | **7 / 1,007 / 909 / 45,419 / 1 disabled lexical attribute** | SceneView camera creation/settings、preview、alignment、frustum validation与apply；fingerprint `f109df967d51ec84628b2c5a84322456c99c8d54a8ea14fd2994d689f7e7c1fa` |
+
+Runtime free/orbit/pan controller和Editor orbit target、projection/alignment、Frame Selection与toolbar route是真实底座；但Editor只接orbit，input envelope缺keyboard/modifier/dt/focus/device/gesture/capture，orbit viewport size为死字段，scroll `signum()`丢失幅度，projection/axis/frame state不守恒。Frame Selection只框node position、保留旧远距离且失败仍可显示成功，主工作台`0.25` speed chip也没有event/settings/controller consumer。
+
+Editor58/59/30/63和Runtime37继续唯一拥有multi-view session/currentness、capture/picking、Camera asset/rig/director、transaction与runtime endpoint父合同。Editor66不新增P0，登记23项P1、7项P2与48个全部Fail的资格门；目标为Runtime validated navigation input/profile/output与projection-aware framing math，以及Editor per-view camera session、navigation coordinator、history/bookmark和可逆pilot闭环。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、native input设备、projection/framing render golden、save/reopen、pilot undo、focus/capture、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/66-editor-scene-viewport-camera-navigation-orbit-pan-zoom-fly-projection-alignment-frame-selection-bookmark-pilot-persistence-input-product-integration-current-source-review.md`。
+
+## 276. Editor Scene Viewport Transform Manipulation / Gizmo / Pivot / Coordinate Space / Grid / Snapping / Workplane / Numeric / Surface-Vertex Alignment 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Zircon transform kernel | **41 / 3,047 / 2,785 / 102,258 / 14** | handles、controller、projection、preview/transaction、grid extract与renderer；fingerprint `24bc98f5be81522e70715550afcd936b81c4d8cdb80ca5810ff1fc686783ab1e` |
+| Zircon settings and product route | **22 / 4,108 / 3,754 / 165,217 / 6** | settings authority/schema、typed command、toolbar/top bar/status bar与snap route；fingerprint `b76d26a70808e391eef8c59fef114f71a678afd4978aa3b2f4223908fe26df23` |
+| Zircon focused tests | **10 / 3,072 / 2,809 / 107,668 / 66** | settings round-trip、viewport state、binding、dispatch、projection与status bar；fingerprint `cf8836d3f0ae3fa5c3cbd22f6ef28f7436b4b81007befeb8a5a6909e9f653c92` |
+| Unreal selected set | **9 / 20,029 / 16,918 / 727,308 / 0** | widget delta、pivot/multi-selection、grid/rotation/scale/surface/actor/vertex snap与settings；fingerprint `3e8ba2c83eb370ddaf5beaedbdec524cbf8fa5bcf9a86aceca8ce7d3a92b2146` |
+| Godot selected set | **4 / 12,586 / 10,703 / 500,558 / 0** | axis/plane/view/trackball、group pivot、vertex snap、numeric settings与undo；fingerprint `35def937d58afcd8c3054efa834ca415421387ca66338886012b80452d4e9db1` |
+| Fyrox selected set | **10 / 2,253 / 2,076 / 82,083 / 0** | selection roots、parent/world conversion、ray-plane math、smart move与CommandGroup；fingerprint `624efbc943f587a7ca9060ce8f0d4751489ce522186893fd859e680859e704e7` |
+| Bevy selected set | **3 / 1,386 / 1,280 / 49,458 / 0** | opt-in transform gizmo、ray-plane solver、view axis、snap settings与render separation；fingerprint `ad53f2f65ad23624043a1a40dce9caa7adb2949f51975e14bf911d004fa07e3c` |
+| Unity Graphics selected set | **2 / 543 / 489 / 26,369 / 0** | pivot rotation、native snap consumer、modifier与negative-size policy；fingerprint `b645f1284f3ba832ab870cadfedfc8dd030a26f9eac98a8b06aee77fa3e38bf0` |
+
+Move、Rotate、Scale HandleTool、overlay/picking、preview/cancel/history和project-scope snap settings均为真实底座；但三种solver共用屏幕轴投影标量，Rotate没有ring-plane角、Scale仍是单轴加法与正值硬夹，Local basis使用local而非world transform。当前只支持单节点、X/Y/Z与Local/Global，无multi-selection pivot、plane/view/uniform、workplane、numeric或surface/vertex/bounds snapping。Grid又固定XZ、1米、21x21并与translation step脱节；Workbench Snap单向开启且status只显示translation step。
+
+Editor03/53/58/59/63/65/66和Runtime Scene父报告继续唯一拥有selection/pivot、tool scheduler、viewport session、input/capture/picking、transaction、placement、camera与scene transform父合同。Editor67不新增P0，登记27项P1、8项P2与48个全部Fail的资格门；目标为纯`TransformManipulationKernel`、qualified `ViewportTransformSession + SelectionTransformPlan`、`GridWorkplaneState + TransformSnapProfile + SnapCandidateProvider`、Numeric Entry与typed command receipt。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、multi-selection、parented/nonuniform hierarchy、surface/vertex query、render/input golden、save/reopen、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/67-editor-scene-viewport-transform-manipulation-gizmo-pivot-coordinate-space-grid-snapping-workplane-numeric-surface-vertex-alignment-preference-transaction-product-integration-current-source-review.md`。
+
+## 277. Editor Scene Viewport Display Mode / Lighting / Skybox / Show Flag / Debug Visualization / Overlay Composition / Profile / Persistence 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Zircon Editor visualization state and product route | **23 / 3,367 / 3,109 / 128,089 / 10** | settings、packet、command/codec、toolbar、chrome、play transition与project settings；fingerprint `af46616849505fb25156c784dcee2be537411228c1809951870208cee1ad0c26` |
+| Zircon Runtime visualization contracts and execution | **19 / 5,334 / 4,892 / 185,553 / 47** | camera/overlay/environment、wire/base/OIT、lighting/shadow、post-process/runtime feature；fingerprint `3ea33df6015dfa90a9d3a7323f629813ff53c6e210d3caf64bbdc7009c44e2aa` |
+| Zircon render diagnostics and Editor consumption | **10 / 1,857 / 1,728 / 78,364 / 13** | frame profile、GPU timing、capabilities、framework query与diagnostics pane；fingerprint `0618086f87d782945ece4e2e871151cd40bf8a8e1d240e97b68e4f1862b2e213` |
+| Zircon focused Editor tests | **10 / 2,310 / 2,089 / 80,333 / 53** | packet/state/play、binding/dispatch、toolbar/template/chrome与diagnostics body；fingerprint `ffe0abc00b1e3ef5799f14f355f053719dbaadc349f08f30bcc796a2c8d39aa7` |
+| Unreal selected set | **5 / 3,448 / 3,019 / 153,462 / 0** | Show Flag/View Mode resolver、buffer registry与per-instance viewport persistence；fingerprint `a48e699d48cab98110e071fcd2fabfd7f3e273b832c14294dcfe28e53305497a` |
+| Godot selected set | **2 / 7,927 / 6,790 / 311,055 / 0** | display/debug modes、per-view state、environment/gizmo/info/perf与capability metadata；fingerprint `464935fa172c4d19cd40bd8af41ed42df20f050e28c19155962826c748f766d7` |
+| Fyrox selected set | **5 / 2,691 / 2,463 / 100,015 / 0** | persistent debug categories、graphics quality、grid、mode consumer与save；fingerprint `cfefaea885bbad9871303b7d7a32aa716c9d4d406c52532fa426d8f1426fb042` |
+| Bevy selected set | **3 / 2,469 / 2,247 / 90,658 / 0** | GPU wire phase、capability gate、gizmo group config、diagnostic overlay；fingerprint `eb3a4dd20cbd947ee36eb3d26cb01b780a462c19dda1f491ac37118fdd2c1a4c` |
+| Unity Graphics selected set | **8 / 1,858 / 1,644 / 83,647 / 0** | modular debug fragments、effective query、serializer与SceneView mode validation；fingerprint `ae958cf51605919ed8e371854fd3ca90687d468a4a08de4e28227b6656333a8a` |
+
+typed command、viewport render packet、render pass、Runtime frame profile/capability和VG debug config都是真实底座；但当前产品只暴露`Lit / Wireframe Overlay / Wireframe Only`与Lighting/Skybox两个布尔值。Wireframe从静态streamer model在CPU重建线段，不能覆盖非model、deformed、VG、sprite或particle；WireOnly又跳过shaded/OIT，使没有wire product的对象直接消失。Lighting Off只是固定`ambient = 0.55`并关闭直射光/阴影，不是定义明确的Unlit；Skybox Off则关闭整个EnvironmentExtract，把background与probe、baked、probe grid错误绑成同一开关。
+
+产品尚无Show Flag/View Mode registry、per-view visualization profile/persistence、resolver与effective receipt、capability admission、debug target选择或overlay composition；已有camera/environment/diagnostic能力也没有形成Scene Viewport产品控制面。Editor22/58/59/67与Runtime graphics/environment/post-process/quality父报告继续唯一拥有通用工具、多viewport/currentness、selection/highlight、transform/grid及Runtime父合同。Editor68新增0项P0、29项P1、8项P2与48个全部Fail的资格门；目标为`ViewportVisualizationProfile + ViewportVisualizationResolver + EffectiveViewportVisualizationReceipt + ShowFlagRegistry + ViewModeDefinition + OverlayCompositionPlan + ViewportVisualizationPreferenceStore`。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GPU capture/render golden、multi-viewport persistence、save/reopen、plugin reload、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/68-editor-scene-viewport-display-mode-lighting-skybox-show-flag-debug-visualization-overlay-composition-profile-persistence-product-integration-current-source-review.md`。
+
+## 278. Editor Scene Viewport Realtime Update / Preview Simulation / Time Domain / Pause-Step / Animation-Particle-Physics-Audio / Visibility Throttling 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Zircon Editor viewport preview state and product route | 18 / 2,351 / 2,143 / 88,132 / 10 | command、settings、controller、toolbar projection、render snapshot、route与workbench state |
+| Zircon Editor cadence, activity, invalidation and host wake | 14 / 2,694 / 2,458 / 102,541 / 25 | gateway、Play tick owner、dirty/render、frame demand、native wait与window activity |
+| Zircon Runtime time, schedule and dynamic frame demand | 11 / 1,632 / 1,441 / 55,278 / 10 | real/virtual/fixed clocks、WorldDriver、dynamic session/profile与demand |
+| Zircon focused tests | 13 / 2,717 / 2,458 / 94,774 / 66 | viewport command/state/toolbar、gateway demand、native product与runtime animation demand |
+| Unreal selected set | 9 / 24,381 / 20,370 / 893,941 / 0 | realtime base/override、bounded frames、Preview World、audio、PIE transition与config |
+| Godot selected set | 4 / 14,805 / 12,525 / 543,729 / 0 | viewport update mode、visibility process gate、listener/Doppler、state restore与perf |
+| Fyrox selected set | 7 / 9,399 / 8,531 / 359,751 / 9 | editor fixed loop、GraphUpdateSwitches、音频/粒子恢复与动画transport |
+| Bevy selected set | 6 / 3,076 / 2,695 / 111,747 / 38 | focus-aware update mode、virtual/fixed time、paused condition与schedule stepping |
+| Unity Graphics selected set | 6 / 2,430 / 2,083 / 90,201 / 0 | scoped always-refresh、background/60 Hz/culling、VFX transport/rate与scheduler visibility |
+
+Runtime real/virtual/fixed clocks、WorldDriver、dynamic frame demand、Editor gateway与Host `WaitUntil`/coalesced redraw是真实可保留底座；current source还已证明active animation tick会请求Immediate并在暂停后回Idle。本轮不重复旧Runtime22普通stage real-delta问题或旧Runtime08C animation demand陈述。
+
+但普通Edit authoring world从不进入Runtime tick链，`pump_runtime_event_consumers`只有active Play session和Play gateway才调用`tick_frame()`。Scene Viewport command/settings/state/toolbar没有Realtime、Pause/Resume/Step/Speed、selective Animation/Particle/Physics/Audio、listener/mute或effective receipt；render成功后清除dirty，时间变化也不会自行产生新extract。Window没有focus regain、occlusion、minimized或pane visibility调度政策，多view demand、background Hz、fixed debt、owner override、isolated preview world和退出恢复均缺席。
+
+Editor07/14/15/17/18/25/47/53/58/66/68及Runtime08A-08C/22/99D继续唯一拥有Play、资产预览工具、gateway/tool/view/camera/visualization和各Runtime父合同。Editor69不新增P0，登记30项P1、8项P2与48个全部Fail的资格门；目标为Runtime-owned `PreviewWorldSession + PreviewTimeDomain + PreviewSubsystemPolicy + FrameDemandContributionRegistry`、Editor-owned per-view registry/activity/audio/persistence及generation-qualified `EffectiveViewportPreviewReceipt`，按ED69-M0至M9从底层隔离与时域向Host和产品层推进。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GUI/GPU、动画/粒子/物理/音频预览、save/reopen、multi-viewport、background/minimize、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/69-editor-scene-viewport-realtime-update-preview-simulation-time-domain-pause-step-animation-particle-physics-audio-visibility-throttling-invalidation-performance-product-integration-current-source-review.md`。
+
+## 279. Editor Scene Viewport Object Visibility / Temporary Hide / Isolate-Local View / Selection Eligibility / Hierarchy Feedback 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Zircon Editor visibility product/routes | **36 / 7,160 / 6,673 / 255,381 / 35** | viewport command/state/extract、selection、pointer、Outliner projection与lifecycle route；fingerprint `dc6d7f28202d7caa1a9c21b77bbbd6db6e268c6ef7e8397a432fd4c25d29d850` |
+| Zircon Runtime extract/visibility | **17 / 6,229 / 5,672 / 225,094 / 26** | activation/layer truth、各类render contribution、visible-spatial snapshot与capture；fingerprint `dbd6417ff02aafae7df14b6810e146092fd3130991721acdaf227f3e2a771b0b` |
+| Zircon focused tests | **15 / 4,498 / 4,121 / 157,347 / 97** | viewport state/route/pointer/hierarchy与Runtime active/layer/render tests；fingerprint `a545c6054765211ee003ebcc4829e9c01bf12ba3a1e74bea5aa87a614efc10b6` |
+| Zircon deduplicated focused set | **68 / 17,887 / 16,466 / 637,822 / 158** | 三组按规范化路径去重；fingerprint `4dc466756b821210370fd9724aa095426832abd9ca676d52e11304ab0291ff36` |
+| Unreal selected set | **7 / 17,974 / 15,161 / 720,674 / 0** | temporary hide、hierarchy、deselect、per-view layer bits与Outliner transaction；fingerprint `64d8fbdaff67f53e53c3f05d3a0c4c5529ab64f7d51a2bbf9fb1cdade5d46fe7` |
+| Godot selected set | **3 / 12,093 / 10,185 / 444,421 / 0** | authored visibility UndoRedo/drag与authoring lock selection gate；fingerprint `f9162b042a379097083f5c662f15623aff087d37a39823c22b0efe992497bcc0` |
+| Fyrox selected set | **8 / 5,172 / 4,739 / 193,616 / 2** | scene selection/menu/helper visibility；对象隔离产品负证据；fingerprint `562a111911c97eb933cdca716ae1eddd88dea0c4eaee4ed1d15548adba4fc4c4` |
+| Bevy selected set | **2 / 1,816 / 1,617 / 67,327 / 13** | authored/inherited/per-view visibility、per-camera set与wide render layers；fingerprint `75eb1f46c61d0f70a5ada5a3b3bdb054e64c628d3e31588cd3d55d3dcb890b86` |
+| Unity Graphics selected set | **7 / 7,357 / 6,218 / 338,628 / 12** | SceneView GPU culling、picking/outline与decal/fog/custom-pass consumers；fingerprint `7718961c9445187a217cb08ed8b3ba57f8077d6746252ddc8701b524a9de6ec4` |
+| Five-engine deduplicated set | **27 / 44,412 / 37,920 / 1,764,666 / 27** | 五类本地参考按路径去重；fingerprint `8c1710ecce2246e8b8ef269b6698eee11b839951eb1e539fe574f75fc9b5965b` |
+
+Runtime `ActiveSelf / ActiveInHierarchy / RenderLayerMask`分层、各render contribution的active/layer过滤、renderer-visible spatial query snapshot与Editor pointer query是真实可保留底座。两类authoring component会进入record、capture和save，直接证明temporary hide不能通过修改它们实现；Runtime snapshot也已携带world、viewport、frame generation与view identity。
+
+但Scene Viewport没有Hide Selected/Unselected、Show All、Toggle、Isolate或Local View命令/状态/入口，只有两枚未接线图标。`SceneViewportExtractRequest`没有object filter，selection只检查node存在，gizmo/anchor不消费filter，interaction cache没有filter revision；Editor接纳renderer snapshot时只校验world，snapshot缺失又fallback到全部renderable candidates。只修主mesh会让light、particle、volume、shadow、overlay、picking和selection继续分叉。
+
+Editor58/59/60/61/63/68/69及Runtime Scene/Visibility报告继续唯一拥有ViewInstance、选择机制、Outliner/persistent visibility-lock、document/transaction、Show Flag、preview cadence和authoring World父合同。Editor70不新增P0，登记32项P1、8项P2与48个全部Fail的资格门；目标为Editor per-view visibility session/profile/receipt/eligibility/outliner projection，以及Runtime `CompiledViewportObjectFilter + ObjectParticipationResolver`，按ED70-M0至M9从身份/state machine向统一render/picking产品和规模资格推进。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GUI/GPU、render golden、save/reopen、multi-viewport、Play/prefab transition、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/70-editor-scene-viewport-object-visibility-temporary-hide-isolate-local-view-selection-eligibility-hierarchy-feedback-persistence-performance-product-integration-current-source-review.md`。
+
+## 280. Editor Scene Contextual Action / Context Menu / Target-Selection Snapshot / Availability / Command Routing / Extension / Transaction 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Zircon context-menu product route | **21 / 1,889 / 1,754 / 81,137 / 4** | request、classifier、provider、popup projection、dispatch、hierarchy projection与ZUI；fingerprint `cfec54540684cd1a89bb6ef9e1f70bd686c610bb20c09537e2e9c012f5321efc` |
+| Zircon command/extension/scene-input seams | **15 / 3,917 / 3,588 / 137,854 / 21** | command admission、extension snapshot、editing route、viewport secondary input与selection projection；fingerprint `8a6e7664af755e91416f01712b5927b40289c1fa3ccc39eb3fb5fd0ede33550c` |
+| Zircon focused tests | **8 / 2,556 / 2,311 / 87,750 / 60** | request/render、native pointer、viewport mapping、command predicate与extension lifecycle；fingerprint `d6b6260ceb9b26380097e0ae183787019c911d420cbdc204f15b119c5439de2f` |
+| Zircon deduplicated focused set | **43 / 8,273 / 7,579 / 303,690 / 85** | 三组按路径去重；fingerprint `905d9d9563d2d28ac0248814b991663f698ba46afae413764e789ac6f678f99e` |
+| Unreal selected set | **4 / 7,956 / 6,786 / 291,423 / 0** | typed context、selection/hit/cursor world、ToolMenus、extender与viewport interaction；fingerprint `718f0451f011d67fc1ebef69489105cb8b9ae3a4ea919bdc25ffda69337545d6` |
+| Godot selected set | **2 / 12,586 / 10,697 / 477,240 / 0** | SceneTree动态能力、plugin slot、node path metadata与viewport candidate disambiguation；fingerprint `3a83abec2edd921f55f46adce553f0547b79e9a9b938a9eaaf4ce4e79963305f` |
+| Fyrox selected set | **3 / 4,672 / 4,236 / 185,097 / 0** | stable UUID、current selection/clipboard/resource admission与CommandGroup；fingerprint `7a57c94c63bf6a6045357bbf7d30adcaa30b5e788adf745585275cf48f1c9fb2` |
+| Bevy selected set | **2 / 806 / 737 / 29,207 / 3** | popup focus、keyboard、disabled、activation/close与示例边界；fingerprint `3b3f2720efad9e7a0edaec52961beb01a12c028b6dd3e9dd0fe1063f27ef6cb3` |
+| Unity Graphics selected set | **5 / 6,507 / 5,571 / 271,920 / 0** | graph target-aware menu、selection replacement、dynamic status、read-only降级与Undo；fingerprint `458b09349a14c78e3da4588150a01cfb225f251a97bd84dc83480673834a0dd6` |
+| Five-engine deduplicated set | **16 / 32,527 / 28,027 / 1,254,887 / 3** | 五类本地参考按路径去重；fingerprint `30c161cd061e571740733966106410edac1c7ef9214dd3b0cedab7134880dc50` |
+
+Workbench popup焦点、键盘、disabled/separator/checked/icon投影，Command Registry stable id/`WhenClause`，Extension generation/ticket和`SceneHierarchyProjectionState`的entity/control映射均为真实可保留底座。它们目前没有组成Scene领域产品链。
+
+Scene provider按control/action字符串前缀猜SceneNode，把显示文本清洗成`workbench://scene/<label>`，固定返回Open/Rename/Duplicate/Delete。Request不含document/world/view/entity/selection/command/provider generation；点击只更新popup value并关闭，没有Scene handler、canonical command、transaction、world delta或undo。Viewport secondary则直接创建Orbit drag，没有短击、阈值、current picking target、selection policy或context branch。当前不新增P0，因为危险mutation未接线；可点击no-op和虚假能力表象登记为P1。
+
+Editor08/50/55/59/60/61/63/66/68/70继续唯一拥有通用command、extension、clipboard/delete、picking/selection、Outliner、document、transaction、camera及visibility父合同。Editor71新增46项P1、10项P2与48个全部Fail的资格门；目标为Editor-owned qualified `SceneContextTargetSnapshot + SceneContextActionProviderRegistry + SceneContextActionCatalog + SceneContextMenuSession + SceneContextActionInvocationReceipt`，Runtime只提供neutral entity/hierarchy/query facts。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GUI/GPU、native input、save/reopen、plugin reload、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/71-editor-scene-contextual-action-context-menu-target-selection-snapshot-availability-command-routing-extension-transaction-accessibility-performance-product-integration-current-source-review.md`。
+
+## 281. Editor Scene Viewport Layout / Split View / Orthographic Quadrant / Maximize / Link Sync / Slot Focus 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Zircon layout/model/identity | **21 / 2,665 / 2,442 / 92,186 / 6** | split tree、command、preset、descriptor、instance、workspace、controller/settings；fingerprint `5592813bc6e6f518a2ba55467fadca708d03d3354881940e1e82d6030df146bc` |
+| Zircon product/projection | **24 / 4,840 / 4,466 / 213,864 / 8** | flattened tabs、single pane/frame/product、toolbar route、render poll与ZUI；fingerprint `4ed6121c9d5b1e4a59a1160a82ce0658b9b6b4033660c9759a42ef72e6c58ff0` |
+| Zircon focused tests | **16 / 2,879 / 2,647 / 103,996 / 48** | split model、restore、pane projection、toolbar surface与single product；fingerprint `6cf61dac25ad8d00aa093ee8f2e6105f2a1b955397b65aad3d0ab288b3f72070` |
+| Zircon deduplicated focused set | **61 / 10,384 / 9,555 / 410,046 / 62** | 三组按规范化路径去重；fingerprint `3528a18abcadc313592770594266d8cb2ba3e2aa6b774661024e3dfe633b08ca` |
+| Unreal selected set | **10 / 2,039 / 1,670 / 77,818 / 0** | layout config/entity、2x2 assignment、maximized replacement与config persistence；fingerprint `37185b647dba167b74af41332f2d4ac39522a1a4e4021fb25d016f3c600379fb` |
+| Godot selected set | **4 / 12,586 / 10,703 / 500,558 / 0** | 四个真实viewport、1/2/3/4模式、split state、per-slot state与maximize；fingerprint `b66b3f65e7520ce677e60530691b29a61930baf0ca3c59ef893752a2d85987b9` |
+| Fyrox selected set | **8 / 7,407 / 6,734 / 283,136 / 1** | 单SceneViewer、per-scene camera persistence与通用DockingManager；fingerprint `ece4e97fa814d42318c4ede58dab05d97232007c303d5a8cf79148f62fba8cee` |
+| Bevy selected set | **3 / 2,514 / 2,332 / 100,225 / 3** | 四camera physical viewport、per-camera UI、DPI/resize/clamp/projection update；fingerprint `2dd6dc3ca754fa9bb7146160ecaa1a91a243c0d1912099ed1cb8989936565b28` |
+| Unity Graphics selected set | **5 / 1,988 / 1,788 / 93,150 / 6** | per-SceneView additional settings、draw-mode hook、RTHandle viewport/history与tests；fingerprint `4ac6d92c87550a723e7ebe385892d1084c3b9af874f1168ff67e2dc953918e88` |
+| Five-engine deduplicated set | **30 / 26,534 / 23,227 / 1,054,887 / 10** | 五类本地参考按路径去重；fingerprint `853565c2a3927d7a90a910e69f3b7060a121d2776bec1e696d430028973f0fe6` |
+
+通用`DocumentNode::SplitNode`、Create/Resize Split、tab attach/detach与project workspace serialization是真实可保留底座；Retained Host也能给docked/floating pane生成surface key和toolbar frame。但这些能力没有被编译成多视口产品。
+
+当前split snapshot在`document_tabs::collect`中被压平，`document_pane_selection`只取第一个active或first tab；Host只有一个document pane、toolbar/content/pointer frame、viewport size和render submission/poll链。布局命令可成功把tab移入新leaf并持久化，产品却不显示该leaf。Toolbar route虽携带surface key，dispatch又将其丢弃并操作全局`SceneViewportController`。两项当前可达P0必须先由RED E2E固定。
+
+Editor13/54/58/59/66/68/69继续唯一拥有通用layout、shell geometry、ViewportSession/currentness、input/capture、单viewport camera、visualization与preview cadence父合同。Editor72新增2项P0、48项P1、10项P2与48个全部Fail的资格门；目标为`ViewportLayoutDescriptorRegistry + CompiledViewportLayout + SceneViewportLayoutSession + ViewportSlotSession + ViewportLayoutActivationReceipt + ViewportCameraSyncGroup`，按ED72-M0至M9从truthfulness和stable slot identity推进到multi-cell产品、atomic preset、非破坏maximize、projection-aware link-sync及预算资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GUI/GPU、native input、save/reopen、plugin reload、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/72-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance-product-integration-current-source-review.md`。
+
+## 282. Editor Scene Viewport Region Selection / Marquee / Box-Lasso / Preview / Query / Mutation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Zircon gesture/selection | **19 / 1,552 / 1,362 / 50,498 / 14** | drag session、input route、cancel、selection model/mutation与反馈；fingerprint `3c3ec9cce655f1bb1ca5ca77e8343cdfa4153bd9e6075b33d9b59bea6c9bd6af` |
+| Zircon query/spatial | **21 / 2,127 / 1,941 / 73,576 / 24** | rect scan、pointer candidates、renderer-visible snapshot、projection与extract cache；fingerprint `80448704072a486bd62fa10a52535ca292e4dff91506fb1be76e7422bbfe5729` |
+| Zircon host/focused tests | **11 / 2,855 / 2,603 / 99,268 / 40** | pointer dispatch、event effect、editing viewport与selection integration；fingerprint `eb064404eadb265e95ef9aa8786b3ed1047316624b6f00b376fa939f18d6a345` |
+| Zircon runtime spatial | **4 / 668 / 599 / 23,508 / 8** | visible spatial storage/query与graphics-side implementation；fingerprint `d0a9b336a39f9de08cc6b2611264c1861dca8c87e1464673ad3000ecb5fc83a1` |
+| Zircon deduplicated focused set | **55 / 7,202 / 6,505 / 246,850 / 86** | 四组按规范化路径去重；fingerprint `5617a137622478ca27584d18f5b8a3b03952fa1fb4387458c4b2af347b2ec379` |
+| Unreal selected set | **12 / 2,016 / 1,679 / 67,192 / 0** | legacy Box/Frustum与ITF Marquee/Frustum interaction；fingerprint `bb1f07f00fea158f96838a5a5e24c6d3a1a0bb7fdedd680e6a8be3c426a9a0fa` |
+| Godot selected set | **6 / 14,062 / 11,889 / 553,908 / 0** | region gesture、selection frustum、DynamicBVH与gizmo/subgizmo query；fingerprint `99fc1144f3eae5f62fa30dc6cfa4fc08c786dacbea180015f55c884e4f77fcb3` |
+| Fyrox selected set | **6 / 2,139 / 1,983 / 82,567 / 0** | dedicated select mode、selection frame、world bounds与command commit；fingerprint `fd031d722407a3079e410d16fb146f3b143f97911686727871b975841ba46d3f` |
+| Bevy selected set | **6 / 3,494 / 3,209 / 138,543 / 8** | pointer identity、backend hit merge、ray viewport mapping与cancel lifecycle；fingerprint `e750bfa03ce032d04ed212cb5a85e131bfbe8ded98f963c550e92db4bba4927a` |
+| Unity Graphics selected set | **3 / 4,203 / 3,548 / 192,487 / 0** | Picking/SelectionOutline editor view、filter与GPU culling integration；fingerprint `8fe31f5f64abb710f95cdf96638935723848f3fce135457f6796bdd03b4ef0f5` |
+| Five-engine deduplicated set | **33 / 25,914 / 22,308 / 1,034,697 / 8** | 五类本地参考按路径去重；fingerprint `2705de8213233d7abbe94c52957ec86371f7be5b4ab958d9952e2e6df2a67d45` |
+
+现有`PrimarySelection`能在超过固定4px阈值后，于release调用`selectable_owners_in_rect`并应用Replace/Extend/Toggle；点选侧也已经拥有renderer-visible generation-qualified snapshot、query stats及stale/preparing fail-close。这些是真实可保留底座。当前工作树还已修正旧Pointer Cancel吞没和第二按键覆盖drag路径，本轮不重复旧P0。
+
+Region产品仍缺失：active move没有marquee、candidate preview或Render/Presentation effect；session只含start/current/active/target/mutation，release不重验document/world/view/frame/source currentness。Rect query归一化并丢弃方向，扫描全部retained proxy/gizmo，绕过共享spatial product；没有Window/Crossing、presented pixels/transparent volume、lasso、provider/subobject、typed request/receipt、预算/取消/async。Toggle又逐实体改变generation/revision，结果primary/order依赖遍历。
+
+Editor03/58/59/61/63/70/72与Runtime/Graphics父报告继续唯一拥有通用selection、multi-view、input/capture/shared spatial/highlight、document、transaction、visibility/eligibility和renderer/runtime spatial父合同。Editor73新增0项P0、24项P1、10项P2与48个全部Fail的资格门；目标为qualified `RegionSelectionSession + RegionSelectionShape + RegionSelectionPolicy + RegionSelectionQueryReceipt + RegionSelectionPreviewProduct + SelectionMutationBatch`，按ED73-M0至M9从currentness/identity推进到visual preview、共享query、policy/provider、atomic commit及规模资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GUI/GPU、native input、render golden、save/reopen、plugin reload、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/73-editor-scene-viewport-region-selection-marquee-box-lasso-preview-query-performance-product-integration-current-source-review.md`。
+
+## 283. Editor Scene Selection Authority / Primary-Active / Range / Filter / Named Set / History / Lifecycle 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Selection model/core | **13 / 1,282 / 1,123 / 40,227 / 7** | `SelectionModel`、domain/mutation、mode checkpoint、transaction selection、runtime ID与binding value；fingerprint `e3c56ef8658b14af2e1ad2083f4bab900e7b20d27728e64085c5168542643f50` |
+| Product routes/consumers | **21 / 3,657 / 3,378 / 137,431 / 17** | binding/event/dispatch、workbench、Play、viewport、render packet与publication invalidation；fingerprint `8251ca8d2b656df7f596b96dacae83afbf82fc7708f4ca82e386611c8fbbc5a0` |
+| Projection/focused tests | **11 / 2,889 / 2,635 / 98,145 / 40** | scene inspection delta、Hierarchy fragment/projection、selection/viewport/automation tests；fingerprint `23f207d7826b3337cd6a7021e125869707b2bce81b09f92e3f98cc18b8d4bb97` |
+| Zircon deduplicated focused set | **45 / 7,828 / 7,136 / 275,803 / 64** | 三组按normalized path去重；fingerprint `998f3ae0683f6156ab56022f14e072b815f31a18fe9a24cb0eae030f70791991` |
+| Unreal selected set | **9 / 15,817 / 13,431 / 602,175 / 0** | Typed Element selection、legacy USelection、select all/invert/matching与toolbar product；fingerprint `af859cd262129493c8265ab6d631456213b8da6516087d3827698d5a958f180a` |
+| Godot selected set | **4 / 11,814 / 10,049 / 433,342 / 0** | selection lifecycle/top roots、history、SceneTree与3D viewport policy；fingerprint `c8945e80e0194168817a59a1fa56500a28888aaaa5141d2079fec22a209b4117` |
+| Fyrox selected set | **5 / 3,031 / 2,722 / 101,588 / 0** | per-scene typed selection、command swap与interaction mode；fingerprint `df17eaa1112d5b184a008f55dfc127fd634bf17620f88f958d086c9125707592` |
+| Bevy selected set | **3 / 3,640 / 3,329 / 150,191 / 14** | generational entity identity、observer事件与picking state；fingerprint `8ac1bd375ed2a35975c7468089e0aee65f53645c34bd38ad6f63b37c079ab2ac` |
+| Unity Graphics selected set | **4 / 329 / 257 / 12,257 / 0** | renderer selection/picking pass、instance/submesh ID与alpha parity；fingerprint `c71908a43ad928153c19027e82d9a279519cf932111b60a157b658cbb2b3c2c2` |
+| Five-engine deduplicated set | **25 / 34,631 / 29,788 / 1,299,553 / 14** | 五类本地参考按path去重；fingerprint `055c4ed34889b15576fbae3a119db43584d291afdb6d3ef34551def7ceb8ab11` |
+
+当前`SelectionModel`已经支持Edit/Play双域、有序去重items、primary、generation/revision和Replace/Extend/Toggle/Clear；transaction selection又以`Arc`共享snapshot，runtime highlight与Frame Selection可遍历全量active items。这些是真实可保留底座。正式project/world replacement也会清空selection，因此本轮没有把旧World同值NodeId推断成未证实P0。
+
+Selection产品仍不是单一authority：Viewport模型与transaction context双写且production暴露`selection_mut()`；binding错误收窄u64 NodeId并通过`as_u32()`拒绝合法高位值；重复选择相同节点被伪报changed并触发inspection与Presentation/Reflection刷新；Viewport只比较primary，secondary-only变化可能不更新workbench；mode stack则为每个mode/input深拷贝整份selection。Scene inspection在变化时重建BTreeSet/difference，stale target又被不同consumer过滤成不同集合。All/None/Invert/Matching、query/filter、named set、navigation history、typed provider/subobject、provenance、capability与规模诊断均缺失。
+
+Editor03/58/59/60/61/62/63/64/70/73及Runtime/Graphics父报告继续唯一拥有document/view/tool scope、input/picking、Outliner、document lifecycle、Inspector、transaction、component、eligibility、Region gesture和renderer父合同。Editor74新增0项P0、24项P1、10项P2与48个全部Fail的资格门；目标为per-session `SceneSelectionAuthority + SelectionTargetAddress + SelectionRequest/Plan/Receipt + SelectionQuery + NamedSelectionSet + SelectionNavigationHistory`，按ED74-M0至M9从identity/dual-authority hard cut推进到atomic mutation、lifecycle/provider、consumer projection、advanced operations和规模资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GUI/GPU、native input、save/reopen、plugin reload、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/74-editor-scene-selection-authority-primary-active-range-filter-named-set-history-document-world-scope-lifecycle-performance-product-integration-current-source-review.md`。
+
+## 284. Editor Animation Timeline / Dope Sheet / Curve Editor / Track-Key Selection / Transport / Scrub / Snap 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Session/event | **30 / 7,391 / 6,984 / 270,156 / 26** | sequence session、binding/event/retention、host mutation/dirty/undo route；fingerprint `8d44f93a718c9d85eca7ef0c1a87162d9382c69c4b7c0f0a99a56b0a073a84c9` |
+| Timeline/product | **18 / 3,883 / 3,623 / 163,235 / 13** | generation/cache/painting、pane projection、Sequence/BlendSpace/Sequencer产品；fingerprint `7487fbcb42744976ad77db6f74c18cbd79633d6e05c36b6606d6a2b6336122fd` |
+| Runtime/focused tests | **20 / 3,702 / 3,466 / 134,298 / 35** | compiled sequence/player、plugin runtime与focused tests；fingerprint `74aec279bbd1d32119755017eb70dcd604c5182187df4bd17bacee8786fb86cb` |
+| Zircon deduplicated focused set | **68 / 14,976 / 14,073 / 567,689 / 74** | 三组按normalized path去重；fingerprint `65d35f3580585922a5b5c259211f41e73bfa9a61ebaa4c616b860704dbe08744` |
+| Unreal selected set | **11 / 5,624 / 4,682 / 214,408 / 0** | Sequencer selection/time slider/cache/clipboard与Curve Editor命令/snap/drag/transaction；fingerprint `3c118f2e0374b003d209a88cf5490d02217867ee6a5d2da4a83ac732ab9c4e0e` |
+| Godot selected set | **5 / 14,193 / 11,922 / 524,896 / 0** | track editor、Bezier editor与typed track plugin；fingerprint `1145c075139ff7240855ec902899a1058a40f217a97cca11233a72f426a997bc` |
+| Fyrox selected set | **6 / 5,593 / 5,159 / 222,209 / 2** | animation selection/command/toolbar/track与独立curve editor；fingerprint `40f3badbff86a495b1e523b25242923dd9cc41419e6725f2837d368446610a10` |
+| Bevy selected set | **4 / 3,825 / 3,476 / 144,942 / 11** | typed runtime curves、graph、transition与player scheduling；fingerprint `ac9d9f3b57b7badcd20d451a6d81f5f2afa1f056fbda8434c6660df6ed71d343` |
+| Unity Graphics selected set | **4 / 2,677 / 2,275 / 107,582 / 0** | embedded curve picking/serialization、TextureCurve与clip migration；fingerprint `c939dcd2958695920d55ddc319c4d22d2667ccd592b43d45345e54078b81331b` |
+| Five-engine deduplicated set | **30 / 31,912 / 27,514 / 1,214,037 / 13** | 五类本地参考按path去重；fingerprint `96b4b28962a4a9c95df06b7e5fea3de745ba0ecf9ee05168aa5841ab2585f590` |
+
+Animation asset session的load/save与dirty位、TimelineStrip retained paint primitive、Runtime compiled sequence/player是可保留底座。Session测试还明确规定timeline selection/range/playback是editor-local状态，而不是Sequence asset mutation。
+
+跨层产品合同与该局部意图相反：Host把所有changed animation mutation统一送入document external dirty链；range/span/playback落入DurableReplay，Scrub latest-state key全局共享，event又只按执行时focus选择document。真实Sequence body只有空slot和固定frame 0 Scrub，pane payload与Timeline primitive互不相连。Timeline generation会clone/hash全部keys，static tick cache错误依赖track/key数据并只以64-bit digest命中；进程全局mutex、并发duplicate build、逐tick text和逐key scanline-diamond绘制又没有visible culling、row virtualization、density LOD或batch。
+
+Editor14/55/63/69/74继续唯一拥有Animation总账、通用clipboard、transaction/history、preview cadence和selection authority原则。Editor75新增0项P0、13项P1、6项P2与48个全部Fail的资格门；目标为per-document `AnimationTimelineViewState + AnimationElementAddress + AnimationTimeDomain + AnimationTimelineProjection + AnimationEditTransaction + AnimationPreviewSession`，按ED75-M0至M9从state/identity/time-domain hard cut推进到真实产品、runtime preview、virtualization/cache/render budgets及跨引擎资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GUI/GPU、native input、save/reopen、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/75-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization-product-integration-current-source-review.md`。
+
+## 285. Editor Animation Graph / State Machine / Compiler / Runtime Transition 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Editor authoring/product | **32 / 6,707 / 6,339 / 247,486 / 19** | session mutation、binding/event、locator resolution、pane projection、template与ZUI；fingerprint `a9929d50450afd657685cd06a42175eb96e99071a223466cac60cb164629dd97` |
+| Schema/extension/editor compiler | **19 / 2,635 / 2,399 / 87,831 / 12** | graph/state asset、binary upgrade、reference analysis、descriptor/palette与Editor validator/compiler；fingerprint `fa6511fc59e0283db8e874e44e90600e7acbc856ced08b4af87508dac7a7fa84` |
+| Runtime compiler/evaluator | **89 / 10,197 / 9,402 / 354,064 / 28** | compiled graph/state/condition/blend-space/layer/nested、pipeline cache与双manager；fingerprint `48057ff1e842f58ba0ace434b616bd61e699deefedc12819e436ae3c070d94fd` |
+| Focused tests | **16 / 4,077 / 3,840 / 150,246 / 58** | session、event、host、plugin runtime/editor与framework tests；fingerprint `1f588a5af39768121e9369ed8ec7192a55ef8bcd25862a0256edfff106b18c3a` |
+| Zircon deduplicated focused set | **156 / 23,616 / 21,980 / 839,627 / 117** | 四组按normalized path去重；fingerprint `e092a183d6b40cdc209a313c2d42a3a45d9ded358d963bad4a195dc98630f660` |
+| Unreal selected set | **10 / 8,499 / 7,177 / 331,747 / 0** | AnimBlueprint compiler/schema/validation/debug maps与runtime state machine；fingerprint `b3487bed0bbedc1b0df9559c17523ee256aac562e360300db7eac3dd59f71810` |
+| Godot selected set | **14 / 11,505 / 9,582 / 441,840 / 0** | state machine/blend tree/blend space runtime、编辑器与UndoRedo；fingerprint `591f543053a3991501cd58dc8386b55f0caafb1b6132ccadf8be7b7715ab53e5` |
+| Fyrox selected set | **29 / 11,484 / 10,412 / 427,278 / 11** | ABSM machine/parameter/logic/layer/node与command/editor surface；fingerprint `aa63a08d1462296ab050ef4d93d00a648717daa007d3268423e1633f35d1e2c9` |
+| Bevy selected set | **3 / 2,979 / 2,692 / 113,433 / 9** | petgraph asset、threaded evaluation cache与player/transition边界；fingerprint `f8835c768eb054f0c2d1d8fbebd4c80e93c23a365f579e02cb636246bec9ee1a` |
+| Unity Graphics selected set | **6 / 6,965 / 5,914 / 283,836 / 0** | ShaderGraph undo/delta/validation与VFX migration/compiler/error architecture；fingerprint `18dde5ce743d8f7fee28db72d9ed8d1a4cb1a469d927e501d39b4f1e36e6697b` |
+| Five-engine deduplicated set | **62 / 41,432 / 35,777 / 1,598,134 / 20** | 五类本地参考按path去重；fingerprint `96377ddace595d2c3f4053aee2ae6922c3abf74f6ed9d357677b6a611ea43132` |
+
+asset binary upgrade、compiled graph dense slots、typed condition evaluator、transition/layer/nested runtime与bounded cache是可保留底座。它们目前没有形成单一产品/语义authority。
+
+locator解析或实例查找失败后会回退focused `editor.animation_graph`；Graph与State Machine共用该view id，因此delayed/stale命令可修改另一份状态机。内置Runtime与Animation插件又各自定义并注册同名Animation module/manager，但concrete type、Graph/State能力和production路径不同。真实产品Add Node固定发送`State`，session只接受`output/blend`；palette、asset enum与mutator三方错位。Editor compile只返回output source或计数，compiled pipeline再以`.ok()?`吞掉graph/state/layer错误；frame graph cache还在读取asset revision前按ID/parameters命中，缺失duration则返回normalized 1.0并可能提前通过exit time。
+
+Editor14/63/69/75继续唯一拥有Animation总账、transaction/history、preview cadence与timeline父合同。Editor76新增2项P0、20项P1、8项P2与48个全部Fail的资格门；目标为唯一`AnimationSemanticCompiler + CompiledAnimationProgram + AnimationRuntimeService`、stable Node/Pin/Edge/State/Transition/Layer/Parameter identity、qualified fail-close document target与runtime-backed preview，按ED76-M0至M9推进hard cut、schema/compiler、真实产品、currentness、data-oriented性能及跨引擎资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GUI/GPU、native input、save/reopen、plugin reload、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/76-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence-product-integration-current-source-review.md`。
+
+## 286. Editor Animation Sequence / Clip / Channel Binding / Interpolation / Event / Playback 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations | 本轮证据 |
+|---|---:|---|
+| Asset/schema/import | **46 / 5,493 / 5,060 / 193,714 / 0** | channel/clip/sequence/binary/timeline schema与glTF sibling/import转换；fingerprint `38eb90e4cc87e3c8c26bfd802214cd9d08d766b71230aba393ba37708d6de329` |
+| Runtime compiler/sampling | **46 / 6,607 / 6,092 / 235,060 / 29** | Sequence compiler/writer、双channel sampler、Clip evaluator、event与pipeline；fingerprint `249be1c21cc10ceef9a7b1c6d2dcf867c2f541410cfc01bec8016127c847d2ce` |
+| Editor/product | **34 / 4,409 / 4,178 / 166,846 / 4** | Sequence session、host save/edit、pane/product与可达sibling资产生成；fingerprint `0dc59afc1a887e1062138ca8482299104672e135393025565c5b99df48bbadc3` |
+| Focused tests | **18 / 4,958 / 4,572 / 180,825 / 88** | Sequence、Clip event/plugin runtime、Editor session/event/host与asset helper tests；fingerprint `371af1fbd1c21ba6588155c558f3b14414cc11584c8948eb17fbc862c715632f` |
+| Zircon deduplicated focused set | **144 / 21,467 / 19,902 / 776,445 / 121** | 四组按normalized path去重；fingerprint `527103e50a10013104c542e8c29367381a92f65e582deb661c4ef5186cea2d6b` |
+| Unreal selected set | **21 / 22,039 / 18,603 / 810,219 / 0** | source data model、Sequence/Notify/Sync/Montage、root motion与compression DDC；fingerprint `65f8233319268fc16ed675c384661db5de7f60f25e87dcdf4b4db1fffd9b0b30` |
+| Godot selected set | **7 / 21,262 / 18,135 / 784,235 / 0** | typed track、loop/update mode、compression、Mixer/Player与Editor UndoRedo；fingerprint `b2d3e7077150ea902c604cb8eb40bb319e695fcd06f111550f67860bfe6e05e0` |
+| Fyrox selected set | **7 / 4,291 / 3,866 / 158,775 / 1** | UUID track/signal、双向event、root motion/player、glTF cubic与可恢复Editor command；fingerprint `32df26a05f8bb07d4633287992625aae19cda300866585c5d844335fe641995e` |
+| Bevy selected set | **5 / 3,286 / 2,974 / 119,546 / 11** | typed curve/evaluator、target ID、四类event traversal与glTF cubic/morph；fingerprint `62754cf427d1a2f8687fe17bc4b1fb3da60146046db798f7b6ecdbe492fd6630` |
+| Unity Graphics selected set | **6 / 740 / 588 / 26,930 / 1** | VFX curve bake/sample、typed slot、URP curve binding转换与history原则；fingerprint `c3211b52dbc721612c3c15020d148b128baa31c7f170912b75736e0d5ffd501d` |
+| Five-engine deduplicated set | **46 / 51,618 / 44,166 / 1,899,705 / 13** | 五类本地参考按path去重；fingerprint `1fda455740e1f5ba56caf94889bac089147c089fa33b6cb2af7254b44426a066` |
+
+Sequence property compiler、Clip validator/target table/pose pool与有界event batch是可保留底座，但当前没有形成工程级source-to-playback闭环。三份持久动画schema互不等价，Timeline descriptor无人消费；Sequence可partial compile并由pipeline忽略apply结果，artifact只保存外部asset Vec下标。内置与插件两套sampler都让Step在精确key返回前值，Quaternion Hermite实际忽略切线，类型/切线错误又在两条路径产生不同accept/fallback结果。
+
+负speed会让player反向推进，但event collector对`to <= from`直接返回空；cursor依赖event字符串与Vec下标，neutral record抹掉clip identity并把同一事件再以raw类型发布。多个Sequence写同一属性时无claim/priority/blend/conflict policy，非循环播放也没有Completed/terminal receipt，只会永久clamp并重复提交末帧。
+
+Editor14/32/75/76与Runtime08C继续唯一拥有toolkit/preview、glTF importer、timeline交互、graph/compiler authority及通用animation runtime平台父合同。Editor77新增0项P0、13项P1、6项P2与48个全部Fail的资格门；目标为versioned stable-ID `AnimationSourceDocument`、唯一`AnimationSemanticCompiler`、自包含`CompiledPropertySequence / PreparedAnimationClip / CookedEventIndex`、双向event traversal与原子`AnimationPlaybackTransaction`，按ED77-M0至M9推进schema迁移、采样纠正、event/完成/冲突语义、compression/cook及runtime-backed Editor preview。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GUI/GPU、save/reopen/reimport、cook/DDC、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_editor/77-editor-animation-sequence-clip-channel-binding-interpolation-compression-event-root-motion-sync-preview-compiler-product-integration-current-source-review.md`。
+
+## 287. Runtime Camera Endpoint / Director / Rig / Controller / Cut / History / Multi-View 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Camera source/runtime | **43 / 10,261 / 370,343 / 36 / 0** | Scene/project/component/World/controller/dynamic/script/AI；fingerprint `c004c8ad4b6424290947faefd38bff2d3c3df4a55c079b7f41d97bb995931222` |
+| Render history/adapters | **44 / 6,356 / 217,177 / 65 / 0** | descriptor/order/stack/target/view-family/camera-loop/temporal maps；fingerprint `12826d9ceee2471da0cb16422219c7a273673c12aa27e108683e2c1ce3782e03` |
+| Product consumers | **5 / 1,904 / 77,001 / 18 / 0** | dynamic session、script、AI与直接产品消费点；fingerprint `de42249cf9e3951fac5fbadc78efe726bcd7515f70cd6043e52b439d2455ed14` |
+| Focused tests | **22 / 5,166 / 190,383 / 70 / 0** | controller、source roundtrip、order/stack/target/history/camera-loop/velocity；fingerprint `8c9fd59c694ec827cda496df9114a59452d1d89859ca28bf31c165fd9b3815bc` |
+| Zircon deduplicated focused set | **114 / 23,687 / 854,904 / 189 / 0** | 四组按normalized path去重；fingerprint `837e27a198943e1eb25c7675cf6d579028e0c0e2b3cccefd59c0c245b2a91aa4` |
+| Five-engine selected set | **17 / 11,171 / 467,226 / 4 Rust test declarations** | Unreal 10、Bevy 2、Godot 2、Fyrox 1、Unity Graphics 2；fingerprint `7ed4002331b21b37eed2439e942350b33a1e59d749f56fe73ef6d953abfd5fe5` |
+
+World v2保存active camera、render stack/target generation/view-family以及多类temporal history是真实可保留底座。它们仍没有形成Camera产品authority：active只保存裸EntityId，Scene source不能表达render DTO已有的stack/clear-depth/独立layers/dynamic-resolution/projection override，`Perspective`仍是absence sentinel；dynamic Orbit、script和AI继续直接读写global camera，至少七类per-camera map也没有逐camera retirement。
+
+Runtime37的72项P1按当前源码重判为65 Open、7 Partial，16项P2全部Open；40项资格门为35 Fail、5 Partial。目标收敛到versioned CameraEndpoint/Lens/Rig/Shake source、deterministic CameraProgram、per-World/Player/View Director、single-commit CameraViewResult、explicit cut/history epoch与bounded adapters/history。删除subtree后可能无camera的父correctness blocker继续由既有World/Editor owner关闭，本轮不重复计P0。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、GUI/GPU、native input、save/reopen、network/replay、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_runtime/99za-runtime-camera-endpoint-director-rig-controller-blend-shake-cut-history-multiview-product-integration-current-source-review.md`。
+
+## 288. Runtime Gameplay Framework / Game Instance / World Context / Player / Possession / Travel / Save 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Instance / world / level / session source | **40 / 7,895 / 7,159 / 287,164 / 67 / 1** | dynamic session registry/construction、LevelManager、LevelSystem、World currentness；fingerprint `28d67523898b05955e0a1caf1a9a0e2ccb10704348f51d1b1afac0ac57ff25d8` |
+| Gameplay / input / net / save adapters | **70 / 9,257 / 8,408 / 310,992 / 41 / 1** | gameplay host、Input、Net DTO、scene/plugin/WOC save foundations；fingerprint `4159e803c4cc1778da2aa3c06a67354e410e50e0e90e40c278819b30d64180a2` |
+| App and product integration | **20 / 5,814 / 5,281 / 271,534 / 50 / 0** | App host/headless、Vampire与WOC直接产品消费点；fingerprint `e16e3e31012076ded172b3272520ff1e35316ce911fd9999235cc4694093d152` |
+| Focused tests | **25 / 7,013 / 6,467 / 258,463 / 138 / 4** | Level/session/gameplay/input/net/host/source guards；fingerprint `be20152f0205d3831232ab71bd702d22855c0a840c29c0c0c0849b5c7f82225f` |
+| Zircon deduplicated focused set | **153 / 29,074 / 26,502 / 1,094,769 / 281 / 6** | 四组按normalized path去重；fingerprint `37eadd8fb62b2e3b1a2a7888c60a6661c943b556c30ea9fc8ac2d6bea37e4ee3` |
+| Five-engine selected set | **25 / 12,983 / 11,371 / 992,933 / 26 Rust test declarations / 0** | Unreal/Lyra 11、Bevy 6、Godot 4、Fyrox 3、Unity Graphics 1；fingerprint `62f38e5e073df3a0b5aa057c9bb7bcc1980a68cb9c86abcbf7bced5e24c9d055` |
+
+Gameplay capability ledger、dynamic session teardown、Level replacement epoch/currentness、Dynamic Scene transaction、UI-first input、typed Net DTO、scene ticket与WOC私有事务是可保留底座。它们没有形成统一Gameplay Framework：production没有GameInstance/WorldContext/Experience/GameRule/LocalPlayer/Controller/Pawn/Possession/Travel owner；scene-transition只有单槽producer而无consumer；Level registry无unload/remove；Vampire与WOC继续旁路统一玩家与生命周期合同。
+
+Runtime38的72项P1按当前源码重判为49 Open、23 Partial，16项P2全部Open；40项资格门为30 Fail、9 Partial、1个文档静态Pass。目标收敛到`GameplayFrameworkService + GameInstanceRegistry + WorldContextRegistry + ExperienceRuntime/GameRuleAuthority + PlayerDirectory/PossessionService + SpawnService + TravelCoordinator`，以同代`GameplayFrameSnapshotV1`连接Input/Camera/Audio/UI/Network/Save/Script。性能优于Unreal仍无同场景、同硬件、同画质、同网络raw receipt，不能以空能力或产品私有旁路替代资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、Vampire/WOC、network、save/reopen、PIE、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_runtime/99zb-runtime-gameplay-framework-game-instance-world-context-level-game-mode-game-state-local-player-controller-pawn-possession-spawn-travel-network-save-product-integration-current-source-review.md`。
+
+## 289. Runtime Prefab / Archetype / Prototype / Instance Override / Instantiation / Rebase / Hot Reload 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Prefab definition/import/plugin/World core | **38 / 7,924 / 7,359 / 309,920 / 17 / 3** | DTO、cache、builtin/plugin importer、assembly error report、World IO与editor helper；fingerprint `e9fdeb7f758e26945c0426ef479b67c366eb6ce37ac9246f6b83c39576349a68` |
+| Dynamic Scene transaction/reload substrate | **38 / 6,521 / 5,934 / 227,034 / 33 / 1** | remap、compile/preflight/commit、prepared spawn、reload budget/report；fingerprint `68de3ce680624a069144301f048d90087446a4b0edc300762e2b6f0a6a790295` |
+| Prefab/Scene focused tests | **29 / 9,682 / 9,107 / 355,550 / 96 / 2** | DTO/cache/plugin/editor helper、Scene document与generic transaction覆盖；fingerprint `42f7d39dd0b3a3706545c325aff6303acea25692b6267bf2b8db141a50a42282` |
+| Vampire/WOC product boundary | **8 / 4,057 / 3,519 / 138,426 / 0 / 0** | project、Scene、script与WOC private transaction；fingerprint `a8cba174ba0784321849742599ad1638cd3ac55d2a60d3dd8ba9d8a0fa5f84b2` |
+| Zircon deduplicated focused set | **113 / 28,184 / 25,919 / 1,030,930 / 146 / 6** | 四组按normalized path去重；fingerprint `dd174dd492d3d8892b4f79442425b72cd8636e359985fb7944d74b7e927a6447` |
+| Five-engine selected set | **26 / 17,228 / 15,136 / 649,378 / 47 / 0** | Unreal 10、Godot 5、Fyrox 4、Bevy 4、Unity Graphics 3；fingerprint `51296867757fc06fc15b40d896a5fe011e50ab78a04e3a3cbee80e5a5f61f11a` |
+
+Prefab DTO、Scene document extension preservation、artifact/cache、importer error report、Dynamic Scene bounded compile/preflight/commit、reload queue budget与generic artifact residency是可保留底座。active importer merge吞错已修复，`PRF-P1-003`与`PRF-GATE-03`因此关闭/通过。
+
+产品闭环仍不存在：builtin/plugin以同suffix/priority争用authority，plugin只有diagnostic importer与component descriptor；`World::from_scene_asset`忽略、`to_scene_asset`固定清空`prefab_instance`；`EntityRemap`只是临时裸EntityId BTreeMap；reload成功仍append，失败/删除只skip；net/save/script/Vampire/WOC均无Prefab provenance consumer或真实资产。Runtime39的72项P1按当前源码重判为53 Open、18 Partial、1 Closed，16项P2全部Open；40项资格门为31 Fail、8 Partial、1 Pass。
+
+目标收敛到`PrefabRuntimeService + PrefabCompiler + ResolvedPrefabArtifact + generation-qualified PrefabInstanceRegistry + InstantiationTransaction + UpdateCoordinator + streaming/network/save/script adapters`。首个实施切片只能关闭唯一importer authority、双ID冲突诊断和non-None Prefab World无损RED roundtrip，不能先做append-spawn demo。
+
+本轮只修改review与索引，未运行Cargo、真实Editor、Vampire/WOC、network、save/reopen、streaming、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_runtime/99zc-runtime-prefab-archetype-prototype-class-default-instance-override-runtime-instantiation-propagation-hot-reload-network-save-product-integration-current-source-review.md`。
+
+## 290. Runtime SaveGame / Checkpoint / Slot / Participant / Migration / Platform / Cloud 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Session owner 与 Dynamic Scene tests | **570 / 12,231 / 10,984 / 422,802 / 44 / 0** | slot、capture/restore、artifact、manifest/index、merge、retention、path IO、writer；fingerprint `c627391fbb7620e88405d5a297a5a77c516a4786c7ba3e20c295e1a9d3d783fb` |
+| Runtime storage/schema foundations | **113 / 19,980 / 18,166 / 657,735 / 174 / 0** | Dynamic Scene scene/document、resource transaction、bounded keyed IO、preferences、versioned serialization；fingerprint `04cc65efe892a10a8f4e8d462c99415b163785b874b26a3e27ad02b8a3222cea` |
+| Native plugin 与 VM state | **8 / 3,547 / 3,272 / 130,201 / 13 / 0** | ABI state callback、schema/migration、hot-reload coordinator 与真实 VM backend；fingerprint `621b71ed6db7bdad0d02683f2af2462b5fc23fe116cf029f96a8da0574c6505c` |
+| WOC/Vampire/Editor 产品边界 | **10 / 72,698 / 69,788 / 3,528,384 / 0 / 0** | WOC state/transaction/app storage、Vampire fixture 与 Editor 假 Save/Load 状态；fingerprint `bc7f2a770bc4277269519d9e4bb4a63324c3968f9dbd4656672b87447c038c34` |
+| Zircon deduplicated focused set | **701 / 108,456 / 102,210 / 4,739,122 / 231 / 0** | 四组按normalized path去重；fingerprint `2d739b3dd8d5af490f5c2cb80e757410d1dbe0b641acc06b1697c1e9e2af5e47` |
+| Five-engine selected set | **23 / 12,755 / 11,031 / 487,757 / 19 / 0** | Unreal 8、Godot 5、Fyrox 3、Bevy 5、Unity Graphics 2；fingerprint `12a1b9599fb6fdbc63fe7d7ad89c8453e025ac3e042175ea7c987e4f8ddb3c91` |
+
+Dynamic Scene preflight、Session manifest/index/bounded writer、Runtime Interface migration、shared durable resource transaction、plugin/VM hot-reload state与WOC committed snapshot是真实可保留底座，但产品SaveGame/Checkpoint符号仍为0，Session除owner/tests外只有两层re-export。capture仍会记录`serializable && !editable`字段而restore静默跳过；Session仍只有flush、进程内revision且无journal/recovery；WOC current writer WOS118与main/docs WOS113分裂；Vampire和Editor仍是fixture。
+
+Runtime40的72项P1按当前源码重判为53 Open、19 Partial，16项P2全部Open；40项资格门为33 Fail、7 Partial。目标收敛到`SaveGame/Checkpoint Service + Participant/Schema Catalog + Capture/Restore Transaction + Versioned Envelope + Platform/Server Storage + Cloud Conflict + Receipt`，并以持久CAS、file/parent durability、bounded streaming、历史迁移、跨进程/跨设备/fault/soak和同语义benchmark证明工程资格。
+
+本轮只修改review与索引，未运行Cargo、真实Editor/Vampire/WOC、平台SDK、断电、跨进程竞争、历史存档、cloud/server、fuzz、soak或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_runtime/99zd-runtime-save-game-checkpoint-slot-participant-capture-serialization-migration-platform-cloud-async-network-product-integration-current-source-review.md`。
+
+## 291. Runtime Operation Service / Admission / Prepare / Apply / Cancel / Shutdown 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Operation core与direct tests | **13 / 3,215 / 3,004 / 114,811 / 29 / 1** | registry、admission、task、FIFO、completion、maintenance、harvest与当前in-flight retention；fingerprint `31795ab4685abfd5aa5c2577be0127ec7b4279cdd64298df0f038dbc9b2bb064` |
+| ABI、dynamic session、App与Editor gateway | **22 / 5,363 / 4,825 / 188,174 / 19 / 0** | V7、bounded JSON、foreign output、frame demand/wake、teardown与gateway；fingerprint `446fbb7c67e03ff2202d75032aa780041aa5fa56f056ac4d502d9ec1c2b5eb68` |
+| Navigation producer/consumer | **12 / 2,078 / 1,895 / 71,770 / 9 / 0** | 四个handler、builtin/plugin runtime、Editor command与漂移测试；fingerprint `a8ed929caab3e1178d79821b80f94dc31cf34a6c49bc0aae24fccd383c8677b9` |
+| Zircon去重聚焦集 | **47 / 10,656 / 9,724 / 374,755 / 57 / 1** | 三组按normalized path去重；fingerprint `820695978c05e05f85032942a273924064c44bc15df1d3bf11478b37627eaae8` |
+| canonical owner与实施记录 | **13 / 5,693 / 3,986 / 584,932 / 4 / 0** | P0路由、task/identity/ABI/job/transaction父合同与FIFO记录；fingerprint `99d0b6566bd0a57a9bfe755084c97c252fe67996265e4cba8b8b9c9c7ce1b573` |
+| 五引擎参考集 | **13 / 4,988 / 4,325 / 173,842 / 7 / 0** | Unreal 5、Godot 2、Bevy 2、Fyrox 2、Unity Graphics 2；fingerprint `6d1cb696e6a28a79d52d88f76cb35c40a0f49a31cb1da1097e082a2b3cd0ce56` |
+
+Operation当前已有bounded admission、owner snapshot/worker prepare/owner apply、panic terminal、deadline/TTL、fixed-layout poll、two-phase harvest，以及queued/ready两个FIFO。current worktree还保护仍在prepare的cancelled/expired task不被pressure eviction，并为多处线性扫描加了profile counter；这些是真实底座，但不是完整control plane。
+
+registry/request/handle仍无descriptor/schema、request identity/idempotency、principal/capability、priority/owner/resource quota；snapshot仍公开`world_mut()`，cancel/deadline只阻止publication而不停止worker，apply无effect disposition。ABI仍只有submit/poll/harvest，submit/completion不接wake，frame demand忽略Operation，session teardown不取得Operation fence。唯一navigation consumer的Bake仍固定失败，Editor仍16次spin poll，plugin runtime test仍使用旧签名。
+
+Runtime41的48项P1按当前源码重判为30 Open、18 Partial，12项P2为8 Open、4 Partial；40项Gate为30 Fail、8 Partial、2 Pass。目标收敛到descriptor/identity/admission/deterministic scheduler/read-only snapshot/owned prepare/typed commit/result store/wake/shutdown fence，并由navigation真实Bake与第二个重型consumer共同资格化。
+
+本轮只修改review与索引，未运行Cargo、当前未提交Operation测试、真实Editor/Nav Bake、reactive host、DLL unload、timer failure、race/model、soak或同语义跨引擎benchmark；tooling按用户要求排除。详见`zircon_runtime/99ze-runtime-operation-service-handler-registry-admission-prepare-apply-progress-cancel-deadline-harvest-retention-shutdown-product-integration-current-source-review.md`。
+
+## 292. Runtime Dynamic Session / Registry / FFI / Frame / Event / UI / World Sync / Shader Prewarm 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Dynamic API完整实现与测试 | **77 / 18,762 / 17,228 / 682,974 / 195 / 11** | session/registry/FFI/frame/event/input/host/UI/world/operation/bounded JSON/prewarm；fingerprint `12ffd5daccc7b28b3481250bd6d66469c6ef73ab33dcb3417defba200cb95673` |
+| Runtime Interface V7合同 | **11 / 2,251 / 2,033 / 68,849 / 7 / 0** | API table/session/event/viewport/demand/host/plugin/world/operation固定布局；fingerprint `83cea40ac89ddc31f650418f22d14d2e5019b7129b41e846256f2d26743acc53` |
+| App runtime library/frame/host request | **26 / 5,480 / 4,958 / 196,084 / 90 / 0** | loader/session/foreign output/wake/teardown/cadence/IME/cursor；fingerprint `19442d57abe26b2db45b0e0682fa62e2b0701a79d439c6a452b6e61037dd091a` |
+| Editor core gateway | **21 / 2,934 / 2,635 / 95,550 / 11 / 0** | copied contract、manual capability、frame/viewport/world/plugin/operation/profile/overlay；fingerprint `ca15222141aba22f3115469c8c2ceb0afa0260d12037f12ae7ec94f0ab82d9ea` |
+| Shader CLI聚焦consumer | **3 / 1,692 / 1,593 / 63,052 / 8 / 0** | manifest/material source/run identity与fallback链；fingerprint `d068ae4ccecbce69d97ecdd51c4196b07a9fb562f4b876cd79b275b0e3c5e494` |
+| 五引擎参考集 | **18 / 43,341 / 36,845 / 1,614,620 / 24 / 0** | Unreal 6、Bevy 4、Godot 3、Fyrox 3、Unity Graphics 2；fingerprint `84d5fbaff047ea1f51a5e8473400aff5ec5a1dc4ad72c5e1e57323bffd83ee63` |
+| selected combined scope | **156 / 74,460 / 65,292 / 2,721,129 / 335 / 11** | 上述范围按normalized path去重；fingerprint `6c7ef24cab91d3d5d1b4a9a0bc56b65be1da0093dab263ccf32109a5da8efaa5` |
+
+当前局部进展包括allocation outstanding/high-water census、host request分页无丢项、plugin page remaining/oldest age、world invalidation tail truncate、extract byte scan缓存以及physical-first input source/test。结构审计还确认60/60 source、12/12 table、23/23 operation wrapper、12/12 headless入口和9/9 panic boundary没有形状漂移；这只证明结构anchor，不证明语义资格。
+
+V7/Host仍没有capability、allocator、task/thread、clock、platform或lifecycle negotiation；session/allocation仍是进程全局裸handle map，完整业务仍持有单session mutex，destroy可无限等待且App teardown可abort。黑frame、伪a11y、default Win32 viewport、extract deep clone、有限键盘/单touch、分类host request、UI全扫描/吞alias/顺序ID/last scale、Vampire HUD/menu、poll-only plugin/world和literal同步shader prewarm均未闭合。
+
+Runtime43的64项P1当前为58 Open、6 Partial，16项P2全Open；42项Gate为38 Fail、4 Partial。目标收敛到HostInstance/generation SessionActor、bounded lanes/WakeArbiter、qualified viewport/output、immutable snapshot、transactional startup与shared shader build/cache service。
+
+本轮只修改review与索引，未运行Cargo、未提交Dynamic测试、真实DLL、多host contention、hung callback、pressure、多viewport、多平台、device loss、百万world release P95或shader cold/hot矩阵；tooling按用户要求排除。详见`zircon_runtime/99zf-runtime-dynamic-session-registry-ffi-frame-event-extract-host-request-world-sync-ui-shader-prewarm-product-integration-current-source-review.md`。
+
+## 293. Runtime Process Diagnostic Log / Queue / Sink / Rotation / Crash / Multi-Session 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| DiagnosticLog完整owner与测试 | **31 / 4,121 / 3,688 / 134,682 / 45 / 2** | filter/lazy/settings/controller/worker/metrics/fault/lifecycle/performance；fingerprint `46d26e78ef65c5734efa4f83bfea4c4a0e113210c797d4c7b0a8fa35437cda94` |
+| Runtime集成，排除owner与plugin树 | **70 / 22,118 / 20,342 / 808,137 / 256 / 16** | Log module、dynamic lease、profiling/Tracy及实际log/eprintln/tracing consumers；fingerprint `89bf240445e651dafce77b26fd5e21f82686164c056035e27334227605c07409` |
+| App入口、CLI、teardown与消费者 | **30 / 8,765 / 8,093 / 340,126 / 111 / 0** | binaries、policy parse、EntryRunner、panic/shutdown与runtime library；fingerprint `fbf24db4e921d1f57de6361929e52ecf862be87d777a2b2242c841d75a2f49c7` |
+| Editor日志owner与产品消费者 | **53 / 15,897 / 14,550 / 575,347 / 177 / 3** | store/sequence/bytes/event resync/rolling file/context/activity/console；fingerprint `0105caf8f510fe390fa4ea06aaad531bc8f83f2ab465260b0af66054a4c5daa1` |
+| Plugin ABI、SDK与发行描述 | **53 / 11,060 / 10,050 / 422,356 / 137 / 3** | V3 host callback、temporary capture、SDK与39个dist self-validation table；fingerprint `f13f6538108cd69833f196f9cb27617fde84c6d3824754e2af0fb601a649909d` |
+| Zircon selected union | **237 / 61,961 / 56,723 / 2,280,648 / 726 / 24** | 上述五个互斥物理组；Runtime行为消费者组在最终重扫期间仍有外部会话写入，指纹为最终重扫时点快照 |
+| 五引擎参考集 | **18 / 5,522 / 4,781 / 194,910 / 0 / 0** | Unreal 6、Bevy 1、Godot 3、Fyrox 1、Unity Graphics 7；fingerprint `045b87811d775ab0fdbec1f10a9bfbf3ac3da584d81edd34bab97fd6fb814509` |
+
+当前真实进展包括compiled filter/lazy callsite、count-bounded FIFO、batch worker、queue age/drop/error metrics、explicit flush/shutdown与`sync_data`；critical producer已从无限阻塞改为默认2ms有界等待，control也改用deadline `send_timeout`。Editor还有独立的count+bytes store、sequence、有界event queue/resync和day/size rolling，native plugin production loader entry提供host log/diagnostic callback。这些底座应保留。
+
+但App与Runtime DLL仍可各自创建linked-image router；首个init静默获胜，record无producer timestamp/global sequence/context/typed fields，队列无byte/owner预算，console/file共享单worker，control无sequence fence。process artifact没有rotation、retention、quota、manifest或panic payload，Editor仍同步写第二份文件，custom log与tracing分裂，plugin callback只做entry temporary capture且39个dist self-table均为None。
+
+Runtime44的52项P1当前为39 Open、13 Partial，14项P2全部Open；36项Gate为30 Fail、6 Partial。目标收敛到App-owned single ProcessLogRouter、versioned host service、structured record、byte/owner bounded admission、sink supervisor、sequence fence、rotating artifact、crash coordinator与Editor/plugin projections。
+
+本轮只修改review与索引，未运行Cargo、focused diagnostic tests、54-case/critical benchmark、真实filesystem/process/dual-image/crash/platform矩阵；Runtime07 failure保持open。详见`zircon_runtime/99zg-runtime-process-diagnostic-log-router-filter-record-queue-sink-durability-rotation-crash-multi-session-product-integration-current-source-review.md`。
+
+## 294. Runtime Picking / Pointer / Ray / Hover / Drag-Drop / Backend 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Picking完整owner | **23 / 2,069 / 1,873 / 61,154 / 0 / 0** | ray/backend/hit/resolve/hover/event/report/debug/primitive；fingerprint `1e8c3fdb85e8b4913984d715df669667ea620cbd525967443a66f1fba4f475a8` |
+| Picking专用测试 | **6 / 889 / 811 / 29,809 / 22 / 0** | rays、hits/hover、pipeline、events与diagnostics；fingerprint `391f1ecb75a2c6bd3eb7036b77833e7e4c72feb082849d8b7d0237445448977c` |
+| 相邻产品与owner边界 | **61 / 4,925 / 4,537 / 175,563 / 28 / 0** | Editor pointer完整目录、App/Dynamic input、Runtime UI、renderer visible query、physics query与controller；fingerprint `c998fc48e02d9482ecaf171160058e577773cf18f9b8692759f235480d1be77e` |
+| Zircon focused set | **90 / 7,883 / 7,221 / 266,526 / 50 / 0** | 上述三组互斥物理范围 |
+| 五引擎参考集 | **20 / 32,732 / 27,975 / 1,226,410 / 5 / 0** | Unreal 4、Bevy 6、Godot 4、Fyrox 2、Unity Graphics 4；fingerprint `b2a75ce5298e099d2306ed66f47889f3fc4d90d4f5df73737f207a00f8899d76` |
+
+Picking core已有分阶段数据结构、group order/depth排序、hover diff、基础press/release/click/drag事件、report/debug投影与sphere backend；Editor已删除无人消费的synthetic runtime input，并接入world/viewport/frame generation-bound renderer-visible BVH/grid宽相。这些是可保留底座。
+
+但`run_picking_pipeline`没有非测试caller，schedule label不是barrier，backend同步不可失败且唯一实现仍是ray×sphere线性扫描。identity/frame/view/source/fault/budget均不完整，ray忽略projection override、viewport rect、DPI、jitter和near/far，hover/event按pointer而非surface/view分区，状态机没有capture、edge snapshot、threshold/time/click count或retirement。Editor现行路径固定pointer 1、camera 0、order 0，只生成private route/debug，renderable最终仍是经验屏幕圆形代理；UI、physics与renderer查询没有进入统一backend registry/receipt。
+
+Runtime47的48项P1当前为39 Open、9 Partial，12项P2为10 Open、2 Partial；36项Gate为23 Fail、10 Partial、3 Pass。目标收敛到`PickingFrameCoordinator + QualifiedPointer/Target/View + Backend Registry + exact renderer/physics/UI contribution + immutable ResolvedPickingFrame + capture/gesture/event state`。
+
+本轮只修改review与索引，未运行Cargo、真实Editor/App、GPU ID pass、physics backend、输入设备、多window/view、fault/fuzz/soak/profile或同语义跨引擎benchmark；Editor05与Performance01的两个Picking failure保持open。详见`zircon_runtime/99zh-runtime-picking-pointer-ray-hit-hover-drag-drop-event-backend-product-integration-current-source-review.md`。
+
+## 295. Runtime Preference / Settings / Storage / Durability / Multi-Process 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Preference core与Platform/App集成 | **34 / 5,927 / 5,370 / 199,629 / 12 / 2** | framework SPI、bounded lane、atomic backend、overlay/adapter、module/manager/capability和App root/install；fingerprint `01f8121e12dcfc03c1267f1bd885cbb64ef731218c82a6da5515bfc46d840ed3` |
+| Editor与WOC产品consumer | **51 / 10,881 / 9,984 / 355,122 / 25 / 0** | Editor settings与产品close/project链、WOC settings/gamepad/keybind/inventory和真实main；fingerprint `e5f05826028e0cd4e7f281e8985a554810a9e10641b3f2111e1a277f15acc138` |
+| Preference/Settings专用测试 | **15 / 4,914 / 4,511 / 167,453 / 135 / 0** | lane/platform/backend/Editor/WOC的dedicated unit与integration test文件；fingerprint `a502b41cf87d594c1cad9777b45eae5c6bb9c534aa5b06025d6f4f0f1528dcd8` |
+| Zircon selected set | **100 / 21,722 / 19,865 / 722,204 / 172 / 2** | 上述三组互斥物理范围 |
+| 五引擎参考集 | **20 / 21,544 / 18,385 / 811,232 / 0 / 0** | Unreal 7、Godot 4、Fyrox 2、Bevy 2、Unity Graphics 5；fingerprint `00e972855ce8891ef79af4e4c94e6410cf4bfbcca4dddc53edd71845cc116f03` |
+
+Runtime Preference已有中立SPI、bounded read/admission、read-your-write overlay、same-key coalescing、fence、panic/pre-start deadline、atomic backend和基础diagnostics；Editor另有typed schema、User/Project/Session layers、immutable snapshot、versioned atomic document与真实退出fence。这些是可保留底座。
+
+五个P0仍全部成立：HostProvided primitive success在flush前误报Durable；single-active lane和无界guard Drop使hung backend冻结所有key并阻止退出；root/address无product/principal隔离；raw record无revision/CAS/watch；WOC三个Stored owner无生产构造，refresh/harvest只有测试caller且Inventory effect无consumer。Editor仍是第二filesystem authority，User save未接线，logical setting lane key还与whole-document物理冲突域不一致。
+
+Runtime45的58项P1当前为47 Open、11 Partial，14项P2为13 Open、1 Partial；40项Gate为32 Fail、8 Partial、0 Pass。目标收敛到`App ProductStorageIdentity + Runtime PreferenceService + schema/namespace catalog + reactive revisioned overlay + fair bounded scheduler + capability provider + CAS/recovery/watch + durability/lifecycle receipt + Editor/WOC hard cutover`。
+
+本轮只修改review与索引，未运行Cargo、真实Editor/WOC、fresh process、crash、multi-process、permanent hang、security、soak或benchmark；三份Preference相关failure继续保持open。详见`zircon_runtime/99zi-runtime-preference-settings-scope-storage-overlay-bounded-io-generation-fence-durability-migration-multi-process-product-integration-current-source-review.md`。
+
+## 296. Runtime Engine Module / Service Contract / Context / Factory / Composition 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| EngineModule门面、24个生产实现与descriptor owner | **34 / 2,882 / 2,569 / 100,080 / 10 / 0** | 三authority、当前24/24 parity、Asset统一说明、动态owner borrow；fingerprint `2e27d5df161525b67a321b0bc75dc4e61963df8ffd710da9dea2b124e9fc08e5` |
+| Core descriptor/context/registration/resolution/lifecycle与focused tests | **99 / 17,234 / 16,034 / 676,927 / 136 / 2** | graph、service state、factory、activation、deactivation、devtools及M0 dirty source；fingerprint `51ac3ac000b32487e722685d97f8cbdcc4bacb0bee9d9b84775ef9ef91474c0a` |
+| Runtime/App composition、VM context、plugin declaration与产品测试（剔除并发`registration.rs`） | **85 / 11,406 / 10,491 / 430,350 / 133 / 1** | profile cache、load report、group/entry/bootstrap、VM/package context与dynamic modules；原aggregate fingerprint因并发写入撤回 |
+| Zircon selected union | **218 / 31,522 / 29,094 / 1,207,357 / 279 / 3** | 上述三个互斥物理组；composition aggregate未接受，因此不发布union fingerprint |
+| 旧报告、M0记录与开放failure | **3 / 624 / 501 / 59,839 / 0 / 0** | Runtime46账本、factory panic containment记录和descriptor regeneration handoff；fingerprint `3537c0f8a923e105347840b260858fe6fe2cdf728abe9a82bfafc091c4deb1eb` |
+| 五引擎参考集 | **19 / 15,850 / 13,659 / 588,187 / 35 / 0** | Unreal 6、Bevy 3、Godot 5、Fyrox 2、Unity Graphics 3；fingerprint `d83e47ccbcec01ea67e330c5e3b7ed585d8f64ccf7bdd053254e46e52a218374` |
+| selected combined scope | **240 / 47,996 / 43,254 / 1,855,383 / 314 / 3** | Zircon union、三份记录和参考集按normalized path去重；union aggregate未接受，因此不发布combined fingerprint |
+
+`zircon_plugins/plugin_sdk/src/registration.rs`已审查，但收尾期间由其他registered会话反复改写，无法形成原子current snapshot，故不计入上述冻结统计；正文裁决不依赖其瞬时版本。受其影响的三个aggregate fingerprint均已撤回，稳定的门面/Core/记录/参考子集fingerprint继续保留。
+
+当前真实进展包括Core module/service依赖校验、五态生命周期、build/ready/finish/cleanup、反向卸载、service index/generation/admission、devtools投影、ResolvedPluginGroup局部descriptor snapshot、dynamic descriptor文本可回收owner，以及共享工作树中尚未验收的RAII factory panic reset。24个生产EngineModule实现当前名称与说明一致，旧Asset说明漂移已修复。
+
+但Runtime profile阶段的descriptor cache仍被load report丢弃，App会二次构造默认group并在`set`后重新求值；module/descriptor平行Vec无identity gate，Core又在freeze前按名称重排。EngineService及contract helper无生产consumer，Module/Plugin context字段公开可伪造，VM继续修改raw roots和slot owner。factory Any产物在expected type检查前已publish Running，普通错误与panic cause/provenance仍丢失；默认ready timeout为0，显式ready则每1 ms阻塞轮询。
+
+Runtime46的1项P0当前为0 Open、1 Partial、0 Closed；48项P1为30 Open、18 Partial；12项P2全Open；36项Gate为22 Fail、12 Partial、2 Pass。目标收敛到single ModuleProposal、compiled service contract、sealed context、validate-before-publish和Runtime->App->Core单一graph receipt。
+
+本轮只修改review与索引，未运行Cargo、M0 focused tests、App/Editor、8/64 waiter、hung/cancel/deadline、fresh process、reload、安全、reclamation、soak/profile或跨引擎benchmark；Runtime46 M0仍由原registered会话持有，descriptor regeneration failure继续保持open。详见`zircon_runtime/99zj-runtime-engine-module-service-contract-context-factory-descriptor-snapshot-composition-lifecycle-product-integration-current-source-review.md`。
+
+## 297. Editor Project Operations / Source Control / Workspace / Automation / Submission Gate 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| 五张fake product surface、index、route、binding、field、feedback | **18 / 6,180 / 5,821 / 314,667 / 2 / 0** | `CL_2048`、642 tests、`NebulaGame`、100 binding与fixed queued feedback；fingerprint `a201962fb4e164d844bfdd2a9bcd1089ab4f9cda6a5a3e0accb00121ba10bc43` |
+| 真实Project/Asset、Build Export、Plugin聚焦链 | **23 / 2,339 / 2,103 / 90,086 / 24 / 0** | real overview、catalog revision、build target/job/cancel、plugin status/live-host partial；fingerprint `5f0d7c458605b10304c3b1255f30b5377d516033c55dd9646460db9e15909ec7` |
+| Commandlet与retained-host authoring automation | **7 / 3,187 / 2,933 / 116,335 / 41 / 0** | resolved project、non-degraded open、normal binding、journal与scene snapshot；fingerprint `2ce1e2c40130899685053edac0ceab37bee6d526e099f57fcb4814fe55361bb4` |
+| Zircon selected union | **48 / 11,706 / 10,857 / 521,088 / 67 / 0** | 上述三组互斥working-tree snapshot；fingerprint `fa908ea3b5c826d089738595d794a5738125916b31a7af499f3913eb1955a482` |
+| 旧账本、canonical owner与MVP plan sources | **8 / 3,126 / 2,234 / 298,469 / 0 / 0** | Editor27、document/asset/plugin/command/job/notification与MVP边界；fingerprint `379578e73b6aec733ae5f05c07b8bed2921e229ec708c2dbeea8b646738bb1d8` |
+| 五引擎参考集 | **28 / 13,510 / 11,652 / 473,967 / 23 / 0** | Unreal 15、Godot 4、Bevy 2、Fyrox 2、Unity Graphics 5；fingerprint `2bd863958b76a1d697029ec7e53be63bf87eb481e2d075968dcf67427779e947` |
+| all selected | **84 / 28,342 / 24,743 / 1,293,524 / 90 / 0** | Zircon、plan与reference按normalized path去重；fingerprint `d30971aaceb60f63f83c79f835b7716651372e82857b5562a9bb3f9c8ea582f0` |
+
+五张`production` workspace仍由固定业务事实、100个binding、control-local field edit和fixed feedback驱动，并与真实Project Overview、Build Export、Plugin Manager及authoring automation形成同名第二authority。当前产品源码仍没有`SourceControlProvider`、`RepositoryIdentity`、`WorkspaceRevision`、`ValidationSet`、`ProjectOperationsSnapshot`、`SubmissionCandidate`或immutable submission receipt。
+
+Editor27的5项P0全部Open；60项P1为55 Open、5 Partial；12项P2全部Open。32项Gate为30 Fail、1 Partial、1 Pass，唯一Pass是authoring automation继续通过retained-host callback/journal且无direct dispatch旁路。目标收敛到Editor-owned provider SPI、typed workspace/status/diff/operation、generation-qualified aggregate snapshot、source-bound candidate、pure admission、race-safe submit transaction与immutable receipt，并在M7硬删除旧workspace/route/binding/feedback。
+
+本轮只修改review与索引，没有运行Cargo、Editor、真实repository/provider、diff/stage/resolve/submit、worker/artifact、build/sign/release、fault/scale/soak；tooling按用户要求排除。聚焦ZUI与少量相邻源码含其他session既有working-tree改动，报告未覆盖或回退，最终currentness必须以再次复算为准。详见`zircon_editor/85-editor-project-operations-source-control-provider-workspace-changelist-diff-automation-validation-submission-gate-health-dashboard-product-integration-current-source-review.md`。
+
+## 298. Editor Spawn Rules / Encounter / Population / World State / Scenario / Quest Flag 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Editor product surface | **13 / 4,632 / 4,387 / 242,175 / 1 / 0** | 两张ZUI、index/Assets、40个领域binding、navigation、field、feedback、preview action；fingerprint `fb336361fb727c02b2c17a96af3732f661da5e499cbab507265e38d6e083b44f` |
+| DynamicScene spawn substrate | **31 / 5,357 / 4,901 / 185,784 / 11 / 0** | generation-bound compile/preflight/commit、prepared/task与reload queue/report；fingerprint `aebef63a8d3a212ad87fe5fabfaa5cd81553b3def6cb724787e1dba96f6ef481` |
+| Script gameplay mutation surface | **11 / 1,799 / 1,692 / 70,457 / 5 / 0** | `gameplay.entity` host catalog与直接spawn/despawn实现；fingerprint `ea1e593e61441227a933a988020cc6942a552e5ada3f468c416a57172f10ca35` |
+| Focused Zircon tests | **12 / 2,636 / 2,473 / 107,170 / 34 / 0** | generic DynamicScene transaction/reload与gameplay host tests；fingerprint `4454cf8918d5b30f60ef50d805e10a5cad9b852712bb9502a07f22ce264510b1` |
+| Zircon focused union | **67 / 14,424 / 13,453 / 605,586 / 51 / 0** | 上述四组互斥working-tree snapshot |
+| 五引擎参考集 | **22 / 11,820 / 9,842 / 499,904 / 34 / 0** | Unreal 6、Bevy 6、Godot 3、Fyrox 2、Unity Graphics 5 |
+| all selected | **89 / 26,244 / 23,295 / 1,105,490 / 85 / 0** | Zircon与reference按normalized path去重；fingerprint `9f6b3b15a396a11167a13f9916a62ad5651f970f35c64d1da3c3aa3792404c23` |
+
+两张可达Workspace仍以`SpawnRules_Enemy`、18 rules/96 spawns、`Scenario_NightRaid`、84 keys/42 events、Server/Client Preview和queued文本制造产品完成感；40个领域binding只驱动control selection/field text/fixed feedback。生产范围对`SpawnAuthorityService`、`SpawnInstanceRecord`、`WorldStateSchemaDocument`、`WorldStateTransaction`、`ScenarioDefinition`、`EncounterDirector`与`PopulationDirector`等核心类型精确检索均为0。
+
+DynamicScene已具target generation/schema/component registry fence、隔离preflight、fallible write validation、no-fail publication、prepared/task cancel与bounded reload/revision/report，是可保留的通用Scene mutation底座；成功结果仍只是`EntityRemap`，没有source/artifact revision、stable instance、owner/authority、ownership、whole-instance despawn、lifecycle/query/receipt。脚本仍以同一`gameplay.entity` capability直接`spawn_node`/`remove_entity`任意裸ID。
+
+Editor28的5项P0全部Open；60项P1为52 Open、8 Partial；12项P2全部Open；32项Gate全部Fail。目标收敛到Runtime-owned compiler/authority/runtime service与Editor-owned transactional authoring/simulation projection，并在M8零引用硬删旧Workspace、binding、route、fixed feedback和产品spawn/despawn旁路。
+
+本轮只修改review与索引，没有运行Cargo、Editor、真实compiler/Preview/PIE/server-client/save/fault/100K/soak/profile或跨引擎benchmark；tooling按用户要求排除。两张ZUI和部分DynamicScene源码含其他session既有改动，报告未覆盖或回退，最终currentness以再次复算为准。详见`zircon_editor/86-editor-spawn-rules-encounter-population-world-state-scenario-quest-flag-authority-simulation-authoring-product-integration-current-source-review.md`。
+
+## 299. Editor Input Action / Mapping Context / Binding / Trigger / Modifier / Device / User / Rebinding / Accessibility 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Runtime Input 全目录 | **58 / 6,195 / 5,460 / 202,124 / 55 / 0** | public raw/action schema、module/config、manager/evaluator/generation/workspace、recording与focused tests；fingerprint `31c8ebf2d693559341d5baa252110383d7d834cb1a9278488433e1e932fc33c6` |
+| 产品集成纵切面 | **10 / 3,037 / 2,814 / 120,219 / 15 / 0** | Dynamic Session ingress/construction、script raw input、Project manifest、ResourceKind与App composition；fingerprint `ea0c5515bb576664324cf2fec045194de0f4a803ee184920919d6e2a89f06367` |
+| Editor authoring基础 | **24 / 4,685 / 4,193 / 153,945 / 13 / 0** | asset type/toolkit/dirty、command keymap/chord、settings override与catalog；fingerprint `9e04bffa0fcb40242dfa5c4d08d3bc08cd2937f3163beacc25268da99c5cc623` |
+| Zircon selected union | **92 / 13,917 / 12,467 / 476,288 / 83 / 0** | 上述三组互斥working-tree snapshot；fingerprint `9469524c35c2c145c513c06f7d542ec66c8c999e10367d0e92cd5a1e0b94428a` |
+| 五引擎参考集 | **32 / 18,729 / 16,744 / 717,583 / 52 / 0** | Unreal 11、Godot 6、Bevy 5、Fyrox 3、Unity Graphics 7；fingerprint `8075b9cadb0bce4a47582356c75216a28dd0aabc09e09c0264bfe56dd356961e` |
+| all selected | **124 / 32,646 / 29,211 / 1,193,871 / 135 / 0** | Zircon与reference按normalized path去重；fingerprint `cfe101650b64c7759ff14733de9d28c7b870c79c1334a9e3bc340688f8a690d6` |
+
+当前Input action evaluator已有map-change generation、binding range、frame axis/consumed index、workspace复用与10K规模测试；raw manager还有focus/device cleanup和recording/replay底座。当前工作树把pointer/mouse/keyboard/touch/gamepad的物理提交移动到Runtime UI dispatch之前，并新增capture/release测试，Runtime117的旧physical-first P0证据需要由其owner重新判定。
+
+这些底座没有组成Input authoring产品。26类ResourceKind与builtin registry仍无Input Action/Mapping Context，默认module仍以disabled空map构造，configured descriptor只有测试caller，Project/App/Dynamic Session无artifact install。Action/Context/Binding仍是String/scalar/runtime GamepadId，invalid map会静默去重、自动启用missing context或丢失unknown binding；Gameplay仍用全局raw `key_pressed`，LocalPlayer/InputUser/profile/rebind为0。
+
+Editor29的5项P0全部Open；60项P1为46 Open、14 Partial；12项P2为11 Open、1 Partial；32项Gate全部Fail。目标收敛到stable source documents、shared semantic compiler、immutable artifact、frame-boundary per-user installer、typed Action snapshot、device assignment、player profile、atomic rebind/accessibility与runtime-backed Editor产品。
+
+本轮只修改review与索引，没有运行Cargo、真实Editor、Input compiler、cook/install、PIE、多设备、多用户、rebind/profile、跨平台设备、fault/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。15个selected Zircon路径含其他session既有working-tree改动，报告未覆盖或回退，最终currentness以再次复算为准。详见`zircon_editor/87-editor-input-action-mapping-context-binding-trigger-modifier-device-user-rebinding-accessibility-authoring-product-integration-current-source-review.md`。
+
+## 300. Editor Camera Asset / Component / Rig / Director / Cut / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| Runtime camera与产品集成纵切面 | **93 / 20,809 / 19,178 / 767,434 / 130 / 2** | Scene source/component/persistence、render descriptor/stack/history、controller、Dynamic Session、script/AI、focused tests；fingerprint `97670459e6bb3efa2f52e10bdd2901dc852d4bddc406fc116e433e74ffd7422a` |
+| Editor authoring、viewport、asset、Sequencer与测试 | **75 / 15,772 / 14,667 / 584,343 / 82 / 1** | viewport controller/gizmo、asset registry、generic transaction/preview、静态Sequencer、timeline plugin/compiled sequence；fingerprint `75d1c4ddb11356a7bdf97f37aa7a8940995f33cab0af4cd66feaa5da0d651ac5` |
+| Zircon selected union | **168 / 36,581 / 33,845 / 1,351,777 / 212 / 3** | 上述两组互斥working-tree snapshot；fingerprint `a5d7e5fbed66e6b81b3fdb4080b7f5fa091e8ab2218b0fa9be2ec29c7524cfc3` |
+| 五引擎参考集 | **25 / 13,380 / 11,458 / 555,712 / 4 / 0** | Unreal 10、Godot 4、Bevy 4、Fyrox 2、Unity Graphics 5；fingerprint `a6e30382bf3a6d13a5f827f65b7c80d9fb44ea47721c777d0ffd8d694fc3e0e8` |
+| all selected | **193 / 49,961 / 45,303 / 1,907,489 / 216 / 3** | Zircon与reference按normalized path去重；fingerprint `9e7943535883f2976508fae8cb83fdfd911ceaf9996a1da412ffcada027cd55d` |
+
+World project JSON v2已持久化裸`active_camera`，删除当前camera会稳定fallback，detached subtree undo可恢复原active camera；Editor已有camera icon、pick sphere和短frustum gizmo。这些是对Editor30旧证据的时效修正。它们没有提供stable endpoint reference、per-player/per-view Director、完整Camera Inspector、Rig/Lens/Shake资产或Preview/Pilot。
+
+当前Camera source/component仍无法表达render descriptor已有的Base/Overlay、stack、clear-depth、独立culling/volume masks、dynamic resolution、jitter或projection override；14个component字段仍只有FOV/near/far反射。Dynamic Runtime继续固定安装Orbit并在未消费raw mouse时同时驱动Input与hardcoded camera writer，script/AI继续读写global camera旁路。Sequencer仍硬编码`Camera_A`和`Camera Cut 0000-0180 Ready`，没有typed cut/director/history bridge。
+
+Editor30的5项P0全部Open；60项P1为49 Open、11 Partial；12项P2全部Open；32项Gate为26 Fail、6 Partial。目标收敛到versioned Endpoint/Rig/Lens/Shake source、共享compiler/immutable artifact、per-World/Player/View Director、CameraViewResult/CutEpoch，以及runtime-backed Inspector/Preview/View Through/Pilot/Sequencer/Debugger。
+
+本轮只修改review与索引，没有运行Cargo、真实Editor/Play、native input、Camera compiler/director、save/reopen、stack source、Sequencer Cut、GPU capture、collision、split-screen/XR、network/replay、fault/scale/soak/profile或同语义跨引擎benchmark；tooling按用户要求排除。168个selected Zircon路径中43个含其他session既有working-tree改动，报告未覆盖或回退；最终再次复算193个selected文件，五组fingerprint均与首次冻结一致。详见`zircon_editor/88-editor-camera-asset-component-rig-controller-director-blend-shake-cinematic-cut-preview-authoring-product-integration-current-source-review.md`。
+
+## 301. Runtime Builtin Module / Catalog / Profile / Target / Feature / Extension Assembly 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / test declarations / ignored | 本轮证据 |
+|---|---:|---|
+| builtin、profile、target与manifest | **50 / 6,429 / 5,908 / 232,842 / 50 / 1** | Profile source/build generation、candidate/dependency closure、effective manifest、availability、registration/feature filter、partial extension输入与load report；fingerprint `0668f32a34bc96a288ae073f1652f39d3911876a99c3248bbf4dc41e422765fd` |
+| RuntimePluginCatalog与RuntimeExtensionRegistry | **122 / 9,864 / 8,970 / 355,407 / 46 / 0** | generation/projection/project plan/provider/capability/module order、全部extension family、owner slot/freeze/revoke/bridge lifecycle；fingerprint `88b5443318ee26d3e007c50ebffe5bfd8e15a9f5a61515af046d9e374963c997` |
+| App与dynamic session生产consumer | **6 / 1,292 / 1,174 / 46,482 / 5 / 0** | effective manifest、first-party registration、module append、PluginGroup覆盖、Core提交和dynamic linked plan；fingerprint `0a74a0df61a68216e0f4374bfdf879ad0691b75435c10a5433103079a2a5ca0e` |
+| 旧Runtime42与M0实施记录 | **2 / 687 / 479 / 54,102 / 0 / 0** | P1-01 effective-manifest filter的旧审查、计划、受管RED/green记录及validation-copy阻塞；fingerprint `fe3655c0a4bba5b14b87f56688e85d9c042d7749cbffe8c0949573c9e3000cb6` |
+| Zircon selected union | **178 / 17,585 / 16,052 / 634,731 / 101 / 1** | 前三个源码组按normalized path去重的working-tree snapshot；fingerprint `746fca241e791b21293b134bf3b51a63f3aaaff5ce2d54c7d9194c3699f61716` |
+| 五引擎参考集 | **22 / 16,511 / 14,303 / 613,477 / 35 / 0** | Unreal 6、Bevy 3、Godot 6、Fyrox 4、Unity Graphics 3；fingerprint `b4414d59db7ceedcf0eb1f10918577b0a1cb4afe7646ca9bc139faf08a3be57e` |
+| all selected | **202 / 34,783 / 30,834 / 1,302,310 / 136 / 1** | Zircon与reference按normalized path去重；fingerprint `36f623ac096634a20bda803d95782ad4296eab0fce7e9c10e0e36c06c26d3622` |
+
+Runtime catalog已具备generation、immutable projection、target-keyed project-plan cache、last-good candidate publish和线性feature resolution；availability已有immutable row generation与索引；extension registry已有typed owner、stable slot、完整family merge、freeze/revoke和bridge lifecycle。M0还让Runtime builtin registration extension输入按effective manifest membership过滤，这是本轮确认的真实进展。
+
+最终产品图仍不是这些正式底座的单一产物。App registration module追加没有effective-manifest filter，feature module和builtin extension路径只按feature ID而不按selected provider，builtin继续把registry压平为Importer与9类graphics extension并丢失owner/generation；App还独立构造Default/Dev/Headless组、覆盖Runtime模块、临时追加EditorModule并再次排序。`required_capabilities`无composition consumer，Profile wire intent仍受cfg删除，target仍用synthetic profile和Client/Server/Editor三值，load report公开可提交modules且无transaction/rollback/restart policy。
+
+Runtime136对Runtime42的52项P1重判为44 Open、8 Partial、0 Closed；14项P2全部Open；42项Gate为33 Fail、9 Partial、0 Pass。目标收敛到Runtime唯一`CompositionCompiler`，输出generation-bound immutable plan、selection/provider/capability rows、统一module/extension/artifact admission、typed diagnostics与transaction receipt，App/Core只消费和提交该结果。
+
+本轮只修改review与索引，没有运行Cargo或实现compiler；M0的受管RED/green job在编译前被无关validation-copy drift阻断，因此P1-01只能标记Partial。tooling按用户要求排除；最终再次复算202个selected文件，七组统计与fingerprint均和首次冻结一致。详见`zircon_runtime/99zk-runtime-builtin-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report-product-integration-current-source-review.md`。
+
+## 302. Runtime DLL ABI / FFI / Version / Handle / Foreign Ownership 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes | 本轮证据 |
+|---|---:|---|
+| Interface ABI declarations | **17 / 3,699 / 120,935** | V7 table、carrier、buffer、status、handle、version；fingerprint `7dbff74fa25d8b20f2f97c02a36e049c809f993abea3d10559f2100af5ae3c9f` |
+| Runtime dynamic producer | **47 / 12,432 / 454,352** | export、session/allocation registry、payload、event、frame、surface、operation；fingerprint `454ca7f9cdfee411b84c1fa734e963c824207d6ded64c5b7259a8697b15fc9e8` |
+| App loader/session consumer | **11 / 2,576 / 92,983** | library owner、table validator、session/drop、foreign output；fingerprint `430039d6a5630ace1d3b60fd7d5ccdb1218931c836117d0cf79e85439e630e8d` |
+| Runtime Host foreign output | **10 / 1,240 / 41,904** | safe owner、admission、budget、release、fuse；fingerprint `cb507ae7f6d619bc212c69e213f9038d05c7eb487ee9dc5d6d5401790d25e0c4` |
+| Editor session gateway | **12 / 1,283 / 45,022** | owner lifetime、API调用、decode、frame/protocol validation；fingerprint `9537f2c7653936a7a0025a73c020a18282b53f23d7f91f2ce96ba8e2a54fef78` |
+| production union | **97 / 21,230 / 755,196** | 五个production集合去重；fingerprint `b80491cb3e2901c8ca2aee3d6700eaa91119c45015c56a1e628a5ae5c898d341` |
+| focused tests | **41 / 10,995 / 393,041** | Interface layout/source guards、registry/lifecycle、loader、Host与Editor consumer；fingerprint `7e68307309a952ba744ccee9a0bf53dfd4c63f0a3d381b12e50d7d7e334b2be9` |
+| Cargo/build surfaces | **6 / 513 / 15,592** | crate-type、features、linked/dynamic dependency与App build入口；fingerprint `2a75d93a7c4d2bc9b270459a3a79492b1c83cf69bad2e5356f476b92ef9cbde2` |
+| Zircon selected union | **144 / 32,738 / 1,163,829** | production/tests/build去重的working-tree snapshot；fingerprint `d4fb5ae3fbbd9e511f8d57be8e921ca89ea675ca79f12817c8f8304ce205484c` |
+| 五引擎参考集 | **16 / 17,531 / 637,269** | Unreal 5、Godot 6、Bevy 2、Fyrox 1、Unity Graphics 2；fingerprint `242067c4408c619c4a440ed1a29c6680f1d73e0832fadea574e7dda0aec2cc98` |
+
+V7 exact table、opaque runtime allocation registry、checked slices、共享JSON/frame budgets和checked session handle exhaustion是当前真实底座；legacy `ZrOwnedByteBuffer`、BuildSet/target/schema/artifact身份、capability/limit握手、InterfaceSpec/header、bounded quiesce、qualified handles以及真实DLL/cross-language/skew/fault资格仍未闭合。Runtime允许outstanding allocation导致destroy失败后release并retry，App却在首次destroy失败时abort；Editor gateway不校验table size，并允许非零frame dimensions配空RGBA。
+
+Interface01原43项重判为27 Open、14 Partial、2 Closed；本轮新增3项P1 Open，合并为5项P0、33项P1、8项P2。21项Gate为15 Fail、5 Partial、1 Pass。目标收敛为`BuildSet-bound internal DLL + generated InterfaceSpec/validated token + opaque/generational ownership + bounded close/reload + artifact-bound qualification`。本轮只修改review与索引；没有运行Cargo、真实DLL、C/C++、Miri/sanitizer/fuzz、故障子进程或性能。结构审计无输出且不计通过证据；144个selected Zircon文件中存在其他Session的working-tree修改，实施前必须重取指纹。详见`zircon_runtime_interface/08-runtime-dll-abi-ffi-version-handle-foreign-ownership-current-source-review.md`。
+
+## 303. Runtime Host Foreign Output Safe Owner / Admission / Budget / Fuse / Observability 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes | 本轮证据 |
+|---|---:|---|
+| Runtime Host production/build | **12 / 1,254 / 42,311** | Cargo、crate root、budget/decode/error/item/kind/metrics/owner/policy/state全量；fingerprint `d000fe86a300eb12c0c6f74fb08b3bad562e5ae92ec59990951e3aee0d60e4f7` |
+| Runtime Host tests | **1 / 522 / 18,457** | 10个preflight/release/fuse/deadline/concurrency/performance/policy测试；fingerprint `2cfdba53b5fdb85d39587d9d3d288c84ad4c11470fc361967fb4ff32fda5fc22` |
+| App direct consumer | **5 / 1,796 / 66,012** | loader/session/operation/frame/output owner纵向链；fingerprint `6cf64ad8a4da14c6b838994be5085c38179727f7afe5c1caf3eedccb09b33ae3` |
+| Editor direct consumer | **7 / 934 / 32,952** | gateway/output/frame/protocol/profile/plugin/world纵向链；fingerprint `51dda99c59c2fc4ca6af71fb0bcf0c7bec74611f161afc9a258728055b277c34` |
+| Interface carrier/policy DTO | **12 / 2,234 / 77,062** | buffer/status/handle/table/request/profile/world/accessibility闭包；fingerprint `efc59b841bbfc2d51330ca6878aad55583b4d1d99dc4ff8db362f55e0f8b6404` |
+| Runtime producer/allocation | **3 / 1,130 / 39,696** | frame encode、session FFI与allocation registry；fingerprint `9cdfe9714ee2a3fd4c749f8b7168d080304fdbd4f78ec1fe7e2d4f994c5fa55e` |
+| Zircon selected union | **40 / 7,870 / 276,490** | 上述六组去重working-tree snapshot；fingerprint `3a9d7b6126ed03bffbc88f949331dac8d5a373841be772a5968b1aaa36c6a9c3` |
+| 五引擎参考集 | **16 / 16,702 / 611,289** | Unreal 4、Godot 5、Fyrox 2、Bevy 2、Unity Graphics 3；fingerprint `bb2fe92a52a13130fa0ac4bbe8ab295ade7b3f87866a0606d3d47de3e888bbdd` |
+
+V7 opaque allocation、六类共享policy、per-session fuse、基础metrics与allocation-free JSON syntax preflight是可保留底座；但safe `decode_json`/status仍可解引用Safe Rust伪造carrier，`Copy` releaser没有provider/session epoch，App/Editor仍按`ensure_* -> unsafe FFI`执行而没有atomic admission lease。preflight又以encoded bytes代理JSON node、忽略map key并固定二次typed parse，未提供decoded heap、取消或最大载荷尾延迟预算。
+
+Interface05原91项重判为85 Open、5 Partial、1 Closed；新增1项P1 Open，合并为3项P0、73项P1、16项P2，共92项。18项Gate为11 Fail、6 Partial、1 Pass。目标收敛为`ProviderLease -> SessionLease -> ForeignCallLease -> OwnedRuntimePayload`、generated output registry、single-pass budget-aware transport、typed fault receipt和artifact-bound fault/performance qualification。
+
+本轮只修改review与索引，没有运行Cargo、Miri/sanitizer、真实DLL/unload/reload、guard-page child process、concurrency stress或性能基准；历史M2.4的8/8与Critical 0 / Important 0不能作为当前证据。实施前必须重取40个Zircon selected文件指纹。详见`zircon_runtime_interface/09-runtime-host-foreign-output-safe-owner-admission-budget-fuse-observability-current-source-review.md`。
+
+## 304. Plugins Desktop Export / Native Window Source-Dist-Provider 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes | 本轮证据 |
+|---|---:|---|
+| Desktop Export package全量 | **16 / 1,563 / 65,713** | manifest、Cargo、source/dist Rust、5份ZUI、profile template与tests；fingerprint `2912aa92874f418dff23f92dad9966bd04ba83f02d6a759daa2482c0bd1940e3` |
+| Native Window Hosting package全量 | **8 / 438 / 16,205** | manifest、Cargo、source/dist Rust与tests；fingerprint `172f373927a40abdd4bd4ad0187d6407e4b4c133a3a70553a672f03fdfd9dd31` |
+| 产品装配与command边界 | **10 / 1,730 / 62,651** | first-party catalog、App feature/caller、editor_support与command/factory registry；fingerprint `414c203045a41e6ef7d8f49d88d5fe131aebeaa86c74a7ee1e3105ccfdcfb5cd` |
+| Core消费者与实现 | **94 / 12,972 / 455,827** | export_build、native_registration、两套retained export链、builtin capability/view与native ABI；fingerprint `0a8b202e96c1fda47b96f3f4b2d205903a627ce47ae75302ae1bb46808c18f3d` |
+| Zircon focused union | **128 / 16,703 / 600,396** | 上述四组按tracked path去重working-tree snapshot；fingerprint `bee1d97099418489be87a293104705df2d441ba43ea40431fd56b0ecd6abdfe6` |
+| 五引擎参考集 | **18 / 15,707 / 602,201** | Unreal 5、Godot 4、Bevy 2、Fyrox 4、Unity Graphics 3；fingerprint `1158823f2ba74d2158356faae7a335b4a5ff888892175867dec264369943f508` |
+
+Native Window source已删除重复Workbench/Prefab authoring surface与缺失`authoring.zui`，App也已拆出独立first-party Editor catalog gate；但catalog仍不链接Desktop/Native，两份dist仍为空contribution/behavior，native materializer只检查entry存在且未faulted，所以空包可得到Loaded/Enabled表象。Native feature仍由core配置字符串制造，package没有window backend/provider。
+
+Desktop core已有typed wizard pipeline、job/cancel/streaming/report底座，但retained host另有独立`DesktopExportJobQueue -> DesktopExportEditorJob -> EditorManager`执行链；插件再声明7个无event/factory/bridge的operation、无consumer profile asset和占位report，形成三套事实源。Plugins03原4项P0、48项P1、10项P2共62项，本轮重判为56 Open、0 Partial、6 Closed；目标是`EditorPluginCompositionPlan + EditorContributionBundle + ExportAuthoringService + NativeWindowHostService + FeatureProviderLifecycleTransaction`，并采用hard cutover删除重复ID与compat壳。
+
+本轮只修改review与索引，没有修改production/tests/Cargo/manifest/ZUI，也没有运行Cargo、Editor、DLL、真实窗口、真实导出、跨平台、fault、soak或benchmark。128个Zircon文件中有其他Session的working-tree修改，实施前必须重取指纹；tooling优化按用户要求排除。详见`zircon_plugins/22-desktop-export-native-window-source-dist-provider-current-source-review.md`。
+
+## 305. Runtime Animation / Skeleton / Clip / Pose / Graph / State Machine / Deformation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Runtime Animation与Framework Animation完整目录 | **69 / 9,059 / 8,236 / 298,550 / 39 / 2** | fallback manager、Framework schema/asset/compiler/event/sequence全量；fingerprint `8e8964978c714348c26cad0304b5715636b04afbe12111867ebd40cd57e24ee9` |
+| Animation与Animation Graph插件完整目录 | **176 / 19,626 / 18,070 / 691,741 / 153 / 2** | source/editor/runtime/dist、legacy/compiled evaluator、state/layer/mask/IK/GPU DTO与tests全量；fingerprint `16eaaa3f6dcc880b588f9beb39260a9fb7b8a8d757b37bb775e433a265b8e933` |
+| Editor authoring与产品host纵切面 | **61 / 6,731 / 6,169 / 230,956 / 33 / 0** | document/revision/mutation/history/save/compiler、graph/timeline/curve/session/pane/template；fingerprint `7273daf0f248a1f6ca7b10a8fd302a96f7976c75f1987af1b613fea215a58c35` |
+| glTF、Scene、Render、Physics、App/catalog产品边界 | **28 / 9,222 / 8,522 / 334,587 / 41 / 3** | builtin/plugin importer、frame demand、pose extract、skinning palette、physics bridge、target feature与catalog；fingerprint `cf72578202a82f9a89accc85da376b04203a0088c02c4a32bd4e2150a2139d3f` |
+| Zircon selected union | **334 / 44,638 / 40,997 / 1,555,834 / 266 / 7** | 上述四组按normalized path去重的working-tree snapshot；fingerprint `43fc053661dee039865a580adfd1ed7397fb14a74bbbffcddce96c31d282f5e6` |
+| 五引擎参考集 | **32 / 26,143 / 22,206 / 1,084,243 / 20 / 0** | Unreal 10、Bevy 4、Fyrox 7、Godot 6、Unity Graphics 5；fingerprint `25711706f628d09c8955b681c4435048f6d6bb78de2e9d73493309892ad2a874` |
+| all selected | **366 / 70,781 / 63,203 / 2,640,077 / 286 / 7** | Zircon与reference按normalized path去重；fingerprint `1c8c4cdca30752a5f654e3165c9026a80dd055b8d3dd5a78ecb3f480eb23588b` |
+
+builtin glTF importer的canonical target path、event heap/cursor、插件dense evaluator/mask/trigger、Scene到renderer pose extract以及Editor document/history/save/compiler是当前真实底座。旧报告中“GPU skinning完全断路”已不再准确：renderer能消费animation pose并维护current/previous palette；但其palette用`posed_world * bind_world.inverse()`代替真实inverse-bind matrix，无mesh-joint remap，GPU选择前仍准备整份CPU-skinned primitive，因此只能判Partial。
+
+产品仍由多套局部事实拼接。Runtime fallback与Animation plugin使用相同module/driver/manager名称维护两套行为；新Runtime compiler只是source-only validator，并与插件compiled evaluator、Animation Graph validator/palette继续分裂。frame路径同步load、String/Vec、clone、临时channel与blocking owner未消失；world transform之后再写LocalTransform，frame demand无production true caller；IK生产postprocess已删除，root motion/retarget/montage/sync/inertialization/motion matching/Control Rig仍缺。
+
+Editor当前工作树已有真实document、transaction、undo/redo、last-good和atomic save，但compiler product没有runtime preview consumer，generic Graph/Timeline/Curve foundation无产品consumer，两个core ZUI只是header加空slot，pane只投影字符串列表；八个plugin resource URI仍缺失，first-party Editor catalog也无Animation。App普通Client与Editor Host不启用first-party Animation provider，source/native parity与activation receipt为空。
+
+Runtime08C的20项P1重判为14 Open、4 Partial、2 Closed，5项P2全Open；Plugins13的48项P1重判为39 Open、8 Partial、1 Closed，12项P2全Open；32项Gate无Pass。目标收敛到Runtime唯一compiler/evaluator authority、versioned Skeleton/Rig/SkinBinding/Clip/Program artifact、resident AnimationInstance DAG、typed render/physics/gameplay view以及同artifact Editor preview。首个实现切片先建立双authority、wrong IBM、scheduler rejection和target provider四组RED，再进入artifact hard cut。
+
+本轮只修改review与索引，没有运行Cargo、Editor、PIE、GPU capture、真实glTF corpus、save/reopen、server cook、fault/scale/soak/profile或benchmark。334个selected Zircon文件包含其他Session/用户的working-tree改动，本文未覆盖或回退；实施前必须重取fingerprint。tooling按用户要求排除。详见`zircon_runtime/99zl-runtime-animation-skeleton-clip-pose-graph-state-machine-layer-mask-blend-ik-root-motion-event-extract-product-integration-current-source-review.md`。
+
+## 306. Runtime Physics / World / Body / Shape / Material / Joint / Query / Contact / Trigger / Jolt / Ragdoll 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Runtime Physics路径与Scene/asset/property/diagnostics纵切面 | **62 / 4,411 / 4,118 / 159,001 / 30 / 0** | neutral contracts、Scene schema/serialization、property access、Physics Material、Level fixed tick与diagnostics；fingerprint `31bc891fd07b09ed162b86910625129deb4d3d665b38733e5902ddf917da64e2` |
+| Physics插件source/editor/runtime/dist及测试全量 | **94 / 13,631 / 12,606 / 476,660 / 91 / 0** | manager、builtin/Jolt、query/contact/trigger/joint/ragdoll、Editor placeholder/commands/overlay、dist与tests；fingerprint `ee982df04acac5caa44412c7fe9146748ec895a5cb73b7a760a9ad4d387a2cab` |
+| App/catalog/AI/Particles/Sound/diagnostics含Physics consumer | **27 / 7,474 / 6,890 / 264,394 / 72 / 0** | provider reachability、capability advertisement、downstream query/dependency和产品反馈；fingerprint `784885d2603c73211ea927a64cb27a98fc0f6c95566fa4d85f227028bd423859` |
+| Zircon selected union | **183 / 25,516 / 23,614 / 900,055 / 193 / 0** | 上述三组按normalized path去重的working-tree snapshot；fingerprint `ac2bca31829a8a49e91b0867c5cc56d889c00d28cfd9873b21f7bdac2ab115c0` |
+| 五引擎参考选择集 | **25 / 15,634 / 13,426 / 629,978 / 9 / 0** | Unreal 5、Godot 6、Fyrox 10、Bevy 1、Unity Graphics 3；fingerprint `c378749c7cc6f62f9d0dead6f6293f1b0f8a0813f5389c654c4b348c54d5177a` |
+
+当前Physics已有neutral contracts、Scene schema、Jolt basic native step、Arc snapshot、bounded command queue和World/Level epoch guard等可保留底座；但普通Client/Editor Host和首方catalog没有选择Physics provider，默认又不链接Jolt，builtin无碰撞solver仍可形成Ready表象。production fixed tick只使用scheduler delta且忽略PhysicsSettings；全Scene扫描、global maps/Jolt锁、silent sanitize/writeback和非原子settings仍在。
+
+Jolt native step也未形成完整backend：authored filter、collider local transform/root scale、Physics Material asset、native constraints、native queries和native contact/trigger listener均缺失；manager无论后端都在DTO快照上执行近似query与最坏`O(n^2)`事件重建。mesh/heightfield无production registration/cook/DDC，mass/inertia/material执行不完整。AI直接消费近似raycast而无precision/generation准入，Particles/Sound多停留在能力声明。
+
+Ragdoll仍是String骨名到Empty节点的helper，无Physics Asset artifact、transaction/save/preview/despawn/physical animation；Editor四份ZUI为Space占位，overlay provider failure仍Open，Workbench投影固定124/32、82kg和Ice伪数据。Runtime08A的20项P1重判为17 Open、3 Partial；Plugins12的48项P1为46 Open、2 Partial；Editor18的60项P1全部Open，全部P2及三份failure handoff仍Open。42项资格门为38 Fail、4 Partial、0 Pass。
+
+目标收敛到App只提交selected provider，Runtime拥有neutral compiler、single fixed clock、`PhysicsWorldInstance`、generation handles、bounded query/event publication，Jolt插件拥有完整native solver/query/listener/constraint与provider payload，Editor消费同一artifact/preview snapshot。首个实施切片只建立product reachability、false Ready、dual clock、Jolt fallback、transform/material和silent success RED证据；在truth gate完成前不扩充高级shape或占位Editor功能。
+
+本轮只修改review与索引，没有运行Cargo、真实Client/Editor、Jolt native build、PIE、asset cook/reload、fault/scale/soak/profile或竞争benchmark。selected源码含其他Session/用户的working-tree改动，本文未覆盖或回退；实施前必须重取fingerprint。tooling按用户要求排除。详见`zircon_runtime/99zm-runtime-physics-world-body-shape-collider-material-joint-query-contact-trigger-fixed-step-jolt-character-controller-vehicle-ragdoll-debug-product-integration-current-source-review.md`。
+
+## 307. Runtime Audio / Sound / Clip / Streaming / Device / Mixer / Bus / Effect / Spatial / Timeline / Event 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Runtime Audio合同、Sound asset/import和resource loading纵切面 | **42 / 4,524 / 4,129 / 155,530 / 11 / 1** | channel/source/listener/volume、mixer/effect、device/playback、automation/timeline/acoustic合同及WAV/resource链；fingerprint `030f45a4e1abfee76aaa761f141622f98cf127852d3e0d41d7bb2fa389d5b0bd` |
+| Sound插件source/editor/runtime/dist/features/tests全量 | **1,307 / 27,985 / 25,355 / 970,262 / 383 / 7** | Kira/CPAL、clip/voice/device/graph/spatial/automation/timeline/event、optional features、Editor/dist和测试树；fingerprint `ef6acecccb900516f1f3ee6abb6cccce4433aa30299f25f591b39d9a9337eea3` |
+| Audio Importer、legacy audio family和Opus importer全量 | **21 / 2,392 / 2,153 / 86,856 / 29 / 3** | Symphonia full decode、layout/scratch、experimental descriptor与diagnostic-only Opus；fingerprint `5f557631e22f9116b7c3366deb0a6e6ffe96d20320fd18204a607e74f7461659` |
+| App/catalog/AI/Animation/builtin含Sound consumer | **29 / 5,419 / 5,053 / 196,542 / 68 / 4** | target feature、runtime/editor catalog、module reachability、跨域capability与production caller；fingerprint `a9300bc65cf43b0dc9f2d4a4fc8635bb094d1db4550aa764c0df8f4c512a1665` |
+| Zircon selected union | **1,399 / 40,320 / 36,690 / 1,409,190 / 491 / 15** | 上述四组按normalized path去重的working-tree snapshot；fingerprint `b4f700c269922e459fed15c2caf8f120cc8de01823cb0ae669f18febf2ca35cd` |
+| 五引擎参考选择集 | **30 / 33,809 / 28,257 / 1,232,600 / 4 / 0** | Unreal 11、Godot 7、Fyrox 7、Bevy 4、Unity Graphics 1；fingerprint `7ab056bbe6fdf8db5529d0f3c2bdfc8131176c59fcdf733b3d0d2899459fc862` |
+
+当前Audio已有Runtime neutral contracts、Kira 0.12.2静态PCM、CPAL设备启动、部分track/send图、importer多声道布局与scratch复用、event索引，以及graph/timeline/automation局部COW与分配改进；这些是可保留底座，不等于普通产品已经具备Sound能力。默认Client和Editor Host不启用首方Sound provider，runtime catalog受`base-runtime-plugins`门控，editor catalog完全没有Sound；module factory又固定使用`SoundConfig::default()`，全仓没有App/World对output/source/listener/volume的production调用，也没有RuntimeSceneSystem。
+
+即使显式取得manager，SoundAsset与Symphonia仍完整解码到`Vec<f32>`，LoadedClip再常驻Kira StaticSoundData；mono复制为stereo且超过双声道被拒绝，没有stream index、decoder pool、single-flight、unload、eviction或residency。一个global mutex同时拥有device、clip、voice、graph、listener、volume、automation、timeline、event和telemetry。活动voice存在时结构图变更被拒绝，M1 compiler不执行effect/advanced control/pre-effect send，而内建`music_sfx`与`spatial_room`仍公开这些不可执行preset；既有Kira send frame-capture handoff保持Open。
+
+attenuation/cone/doppler/occlusion/HRTF/convolution没有production render caller，DSP/filter还受`cfg(test)`限制；source整体更新会stop/restart voice，completion依赖后续manager调用轮询。automation在Kira active时Unsupported，timeline依赖caller `delta_seconds`且没有sample clock/seek/scrub，dynamic event pending为无界Vec并同步调用外部executor。device只有mono/stereo和display-name ID，configure先停旧设备却无LKG/hotplug/recovery，callback/XRUN/meter计数没有生产writer。Editor登记33项command但无factory，五份ZUI有29个Space占位，live-output controller无产品owner，optional reverb/timeline feature和dist仍是descriptor/capability壳。
+
+Runtime08B的20项P1重判为12 Open、8 Partial，5项P2全部Open；Plugins11的48项P1重判为43 Open、5 Partial，12项P2全部Open；Editor17的5项P0、60项P1和12项P2全部Open。32项资格门为28 Fail、4 Partial、0 Pass。目标收敛到App只提交selected provider，Runtime拥有neutral contracts、generation-bound activation/effective config、World/audio clock和observation，Sound插件拥有audio-thread command/render、streaming/residency、voice/device supervisor及可执行mixer/spatial graph，Editor消费同artifact和runtime preview。首个实施切片仅建立composition/config/preset/failure/World/resource/telemetry/Editor truth RED门，待MVP前置允许后再实施。
+
+本轮只修改review与索引，没有运行Cargo、真实声卡、Client/Editor、PIE、NativeDynamic、asset cook/reload、hotplug、callback capture、fault/scale/soak/profile或竞争benchmark。selected源码含其他Session/用户的working-tree改动，本文未覆盖或回退；实施前必须重取fingerprint。tooling按用户要求排除。详见`zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor-product-integration-current-source-review.md`。
+
+## 308. Runtime Network / Transport / TLS / HTTP / WebSocket / RUDP / Session / RPC / Replication / Content 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Runtime Net中立合同全量 | **18 / 2,107 / 1,867 / 62,823 / 6 / 0** | endpoint、security、HTTP/WS、session/RPC、sync/reliable/download与manager contract；fingerprint `7f8c451aa840783548f654c772639b6f91ed1eb865981b3936f93a7deaec5a7d` |
+| Net插件runtime/features/editor/dist/tests全量 | **186 / 17,074 / 15,404 / 601,569 / 149 / 14** | base transport、六feature、Editor/dist、局部performance tests及全部Cargo/manifest；fingerprint `c358454d07086153e696239f71480c9d9ed9e61b7ce122dc36c6d6d499f53cab` |
+| App/catalog/export/Workbench产品consumer | **33 / 5,282 / 4,926 / 213,769 / 44 / 0** | target/profile、runtime/editor catalog、feature manifest、export linking和Lobby/Matchmaking projection；fingerprint `d90b23ea590184c18568adc7e7b298968da1d5a54957f74b495b5df94d47a420` |
+| Zircon selected union | **237 / 24,463 / 22,197 / 878,161 / 199 / 14** | 上述三组按normalized path去重的working-tree snapshot；fingerprint `aa375b2e5990c435dfdf3147c6180adbb19938df4f9d7d7fb409523e50363758` |
+| 五引擎参考选择集 | **33 / 27,253 / 22,562 / 1,075,609 / 11 / 0** | Unreal 16、Godot 12、Fyrox 1、Bevy 3、Unity Graphics 1；fingerprint `a74f4b964b48440e78b5ab806c74a58616ce724c72ffd3c6206eaaeb168b0d7c` |
+
+当前Network已有typed DTO、真实TCP/UDP/HTTP/WebSocket loopback、RUDP fragment/ACK/resend/order、RPC direction/quota、Replication delta/interest/budget、Content range/hash/resume及若干heap/index/move/clone优化。这些局部底座没有形成普通产品闭环：默认Client/Server/Editor不链接完整Net provider，runtime catalog只收集root且没有六feature，editor catalog完全没有Net；HTTP和WebSocket各自创建私有manager，RPC/Replication/RUDP又各自维护内存authority，Content生产factory解析canonical manager而测试直接注入HTTP manager绕过断点。
+
+base I/O仍由caller同步等待单一worker，manager与worker各建multi-thread Tokio runtime；timeout不取消底层operation，ingress满可静默丢event，`r`net.flush_egress`为空且diagnostics frame固定0。TCP没有frame/channel/backpressure，UDP poll每次分配65,535字节，endpoint没有DNS/IPv6/Happy Eyeballs和generation identity。HTTP每请求建client并全量buffer，对所有method/error立即retry，无显式port的remote URL还能按path命中local route；WSS只检查pin字符串而未把custom roots/pin接入TLS verifier，server又只有明文WS且inbound/event无界。
+
+RPC使用固定challenge、unused token和caller role，本地queue没有wire/transport；Replication没有World/Reflection/change detection、stable schema、baseline/ACK、spawn/despawn或prediction，Transform只按名字和首f32插值；RUDP不接socket、logic/wire字段不一致且无拥塞/安全/assembly预算。Content仍是development trust下的同步内存chunk/bitmap，没有signed manifest、disk journal、atomic install、cache quota或crash recovery。Net Editor缺5个资源、6个operation factory和产品catalog；Lobby/Matchmaking Workbench继续投影固定房间/玩家/延迟/队列并回填固定feedback，没有Online Services、多人PIE、per-link emulation或真实Network Profiler。
+
+Runtime08E的20项P1重判为18 Open、2 Partial，5项P2全Open；Plugins10的48项P1为43 Open、5 Partial，12项P2全Open；Editor26的5项P0、60项P1、12项P2全部Open。32项资格门为26 Fail、6 Partial、0 Pass。目标收敛到`NetworkActivationPlan -> single NetIoSupervisor -> scoped Driver/Connection/Secure Session -> compiled RPC/Replication artifact -> World replication/prediction`，并配套transactional Content Installer、runtime-backed Editor/Online Services与source/library/native等价provider receipt。
+
+本轮只修改review与索引，没有运行Cargo、App、Editor、dedicated server、NativeDynamic、真实公网/TLS、双进程、packet emulator、fuzz/sanitizer、scale/soak或竞争benchmark。selected源码含其他Session/用户的working-tree修改，本文未覆盖或回退；实施前必须重取237个Zircon文件指纹。tooling按用户要求排除。详见`zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor-product-integration-current-source-review.md`。
+
+## 309. Runtime Navigation / NavMesh / Recast / Detour / TileCache / Crowd / Query / Bake / Streaming 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Runtime Navigation中立合同全量 | **19 / 1,645 / 1,470 / 50,101 / 9 / 0** | asset、agent、surface、query、bake、settings、gizmo与manager合同；fingerprint `858db7da21a7b58159ed79a8c738b0bd26eed1c8c208cb63a181d67eb573a410` |
+| Runtime builtin Navigation全量 | **15 / 3,441 / 3,154 / 119,698 / 28 / 1** | compiled graph、spatial index、query scratch、route cache、agent/repath/avoidance与operation；fingerprint `d70083684858a0e2fe5a75e1807c5a191a4ee2777bcc0c7a9b2185cc4a8b386a` |
+| Navigation插件全量（含vendor） | **183 / 48,058 / 42,585 / 1,541,779 / 148 / 6** | runtime/native/editor/dist、Recast/Detour/Crowd/TileCache vendor、ZUI及全部测试；fingerprint `8fb8abfd5eef8da4b4160a960f6db0f1b1f5e3a3774147bdba02d7ce39809375` |
+| 插件自有代码（不含vendor） | **132 / 20,430 / 18,743 / 704,429 / 148 / 6** | scene projection、bake/query/crowd/obstacle/link、native bridge、Editor与dist；fingerprint `d89642850f839cf2fa63038f8850783a9631b68e2e191fae786c586bfb541b1e` |
+| vendored Recast/Detour | **51 / 27,628 / 23,842 / 837,350 / 0 / 0** | Recast、Detour、DetourCrowd与DetourTileCache；fingerprint `123b3daffb9e7c560b31b9311464739c0d0073e495ed7a2ff5def206c664de38` |
+| App/catalog/AI/script/example/Workbench consumer | **25 / 6,032 / 5,530 / 227,975 / 85 / 0** | provider reachability、AI MoveTo、script host、固定TOML示例与Workbench状态；fingerprint `9bc681319da886106bcf37ed254497133b273003fe415e9590b0f9980e293f72` |
+| Zircon selected union | **240 / 59,020 / 52,601 / 1,933,760 / 268 / 7** | canonical Navigation与产品consumer去重后的working-tree snapshot；fingerprint `f83b123fb7870c2655ca8dec031be849503d7816640d537bc81951c84d7ab36e` |
+| 五引擎参考选择集 | **47 / 48,948 / 40,717 / 1,863,417 / 8 / 0** | Unreal 24、Godot 14、Fyrox 4、Bevy 1、Unity Graphics 4；fingerprint `77a3afc1f6d855cd3ab267f5fb4f4bd2e6ef01440344bf985b76ad559087c2e3` |
+
+当前Navigation已具neutral contracts、vendored Recast/Detour/Crowd/TileCache、native bridge、builtin compiled graph/spatial/scratch、plugin typed agent tick、dirty/tiled task、selected-surface参数与overlay generation/PIE mirror等真实底座；但ordinary Client的builtin、source Recast和plugin legacy仍是多authority，任意obstacle/off-mesh link可clear Crowd并退回O(A^2)路径。raw NavMeshAsset与固定TOML绕过asset/cook/residency，plugin每query重建Detour owner并把failure/no-path/unsupported折叠为`Option`后静默fallback。
+
+bake输入仍用quad/disc/AABB顶面替代真实mesh/collider，TriangleMesh/HeightField无输出，多数agent/surface setting只写hash/warning；tiled bake重复完整source并合并raw DTO，TileCache伪造单layer，均不构成真实Detour tile/layer streaming artifact。Navigation仍可直接写Transform，off-mesh无Character/Physics/Animation/Network ticket；AI MoveTo虽已有destination和Arrived/NoPath反馈，仍无generation request/cancel/deadline/path-following state。
+
+Runtime Bake operation固定失败，BakePanel/surface rows/controller没有产品owner，Editor大量业务ZUI为空`Space`，toggle/filter/query preview无执行链，Workbench显示固定tile/agent/query/rebuild状态。Runtime08D的20项P1为13 Open、7 Partial，5项P2全Open；Plugins14的48项P1为43 Open、5 Partial，12项P2全Open；Editor19全部P0/P1/P2 Open，五份failure均保持Open。32项Gate为26 Fail、6 Partial。目标收敛到`ActivationPlan -> per-World Navigation generation -> typed geometry projection -> versioned Detour tile/layer artifact -> persistent query/Crowd/TileCache -> movement intent/observation -> runtime-backed Editor`。
+
+本轮只修改review与索引，没有运行Cargo、native build、App、Editor、PIE、真实mesh cook、WPR、fuzz/sanitizer、scale/soak或竞争benchmark。selected源码含其他Session/用户的working-tree修改，本文未覆盖或回退；实施前必须重取240个Zircon文件指纹。tooling按用户要求排除。详见`zircon_runtime/99zp-runtime-navigation-navmesh-recast-detour-tilecache-crowd-query-pathfinding-obstacle-off-mesh-link-bake-streaming-world-editor-product-integration-current-source-review.md`。
+
+## 310. Runtime Terrain / Landscape / Heightfield / LOD / Material / Foliage / World Partition 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Terrain 插件全量 | **16 / 1,072 / 971 / 38,904 / 10 / 0** | runtime/editor/dist、manifest、typed import plan与全部测试；fingerprint `0969623ed6793b55e014d0b50cced3b8e697e045b79f685684290b008d309366` |
+| Runtime asset 与 Scene carrier | **17 / 4,806 / 4,549 / 193,510 / 16 / 0** | Terrain source/layer/SceneAsset、artifact、import/load与World project IO；fingerprint `494c1a91f7a324eaf41c8edfb3d757abca7dae321878f46373abcb8c4e3c266c` |
+| Render / Physics / Navigation consumer | **28 / 10,194 / 9,549 / 355,811 / 65 / 0** | descriptor-only slot、HeightField/Jolt conversion、World physics与Navigation geometry；fingerprint `59ede2f75d237de0c12bb73e1ae372a31c4f167abff86d915b81ac8963f73a33` |
+| Catalog / App / Editor / 示例产品纵切面 | **59 / 15,241 / 14,051 / 542,248 / 26 / 0** | first-party catalog、App selection、operation dispatch、Workbench、Vampire/WOC carrier；fingerprint `094926f913759df01ddb1f365485f9c638f33c0963088613197319454f0fedce` |
+| Zircon selected union | **120 / 31,313 / 29,120 / 1,130,473 / 117 / 0** | 上述四组按repository-relative normalized path去重；fingerprint `9c7765ca51f5deb8def3711d8f05f2dae8d6b29cf3f36c45fb7c76834f5b9d63` |
+| 五引擎参考选择集 | **54 / 66,550 / 57,635 / 2,660,579 / 31 / 0** | Unreal 20、Fyrox 8、Godot 10、Unity Graphics 12、Bevy 4；fingerprint `868f011cc0b35e9aafbcccc9f3429c02214509b9798ffb028343d60950035bc3` |
+| all selected | **174 / 97,863 / 86,755 / 3,791,052 / 148 / 0** | Zircon与reference选择集去重；fingerprint `ab3098cffc64d5392e9f35bbb837e475dee6a057d6324b83d7dee46d7ce65575` |
+
+当前Terrain不是“完全没有代码”，但不存在可执行产品闭环。typed source/layer carrier、builtin TOML importer、artifact store/load、正式SceneAsset reference保存、Editor checked import plan、descriptor-only render truth和Jolt HeightField validation均应保留；source插件却不在首方catalog/App，三份资源缺失，operation无factory，runtime importer为DiagnosticOnly且dist stateless。World load不创建Terrain、save固定`terrain: None`，Graphics零pass，因此asset load/registration不能升级为runtime capability。
+
+Physics HeightField仍由独立DTO手工注册，Jolt把每个cell展开为两个triangle shape再组成compound，没有Terrain sample spacing/scale/hole/material/generation或增量更新；Navigation对TriangleMesh/HeightField不收集几何，也没有owning Terrain bake adapter。Vampire同时保存Terrain reference和普通`jungle_terrain.model.toml`，真实像素来自后者；static grass batch也不是Foliage runtime。production无Foliage/Scatter schema、World Partition manifest/cell/source/data layer/HLOD/residency owner，Workbench的64 cells、84K instances、128 clusters、96 MB等仍为固定反馈。
+
+本轮登记5项P0 Open、72项P1为62 Open/10 Partial、14项P2 Open；36项Gate为31 Fail/5 Partial。目标收敛到`WorldAuthoringDocument -> canonical TerrainBuildArtifact -> per-World Terrain/Partition generation -> Render/Physics/Nav/Foliage generation consumers -> runtime-backed Editor observation`。本轮只修改review与索引，没有运行Cargo、App/Editor、PIE、asset cook、GPU/Jolt/Recast动态场景、streaming、fault/scale/soak或竞争benchmark；tooling按用户要求排除。详见`zircon_runtime/99zq-runtime-terrain-landscape-heightfield-clipmap-quadtree-lod-material-layer-virtual-texture-foliage-world-partition-physics-navigation-editor-product-integration-current-source-review.md`。
+
+## 311. Runtime Water / Ocean / Lake / River / Wave / FFT / Underwater / Buoyancy / Query 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Resource、Scene、World、catalog 与 App carrier | **70 / 13,772 / 12,672 / 496,007 / 116 / 0** | ResourceKind、SceneEntityAsset、SceneNode、World project I/O、feature/profile、首方catalog与App selection；fingerprint `bf0251963caf0289305976298b947686d51a0d8120d17661b30adf690e237b86` |
+| Material、feature、Transmission、SSR、OIT 与 Planar 底座 | **124 / 17,370 / 16,153 / 651,657 / 138 / 0** | PBR material、frame/geometry extract、advanced lighting、screen-space transmission、Planar/OIT plugin及graph executor；fingerprint `2f47cd984dae9df366adb8fcdee5df56530b77c6f0cc520d19ebaacd147d86c7` |
+| Physics、Navigation、Audio、VFX 与 Time adapter 底座 | **179 / 16,375 / 14,802 / 542,240 / 80 / 0** | shape/body command、Jolt apply、ground nav area/agent、Sound medium前置、Particles simulation与唯一time owner；fingerprint `1c836b3d0892b76a1456291024a5caffd15fbb4c1c6902ccce5dc208dacc088f` |
+| WOC、Editor 与测试fixture | **13 / 6,980 / 6,622 / 216,575 / 23 / 0** | WOC五湖/水位/游泳/路径、Navmesh AI静态Water选项、ocean bridge与glTF volume-material fixture；fingerprint `db189a0c90085da75d3f156b37874b43fb60141dfbb6eabbef81586f1c2eef7c` |
+| Zircon selected union | **382 / 54,183 / 49,954 / 1,896,370 / 357 / 0** | 上述四组按repository-relative normalized path去重；fingerprint `400cf58678600188fcd7b9eda97ca5f1efe18d5c4f1976b9c91b109974765c0f` |
+| Unreal Water family | **227 / 50,524 / 41,467 / 1,946,934 / 0 / 0** | Experimental Water/Buoyancy/WaterAdvanced/MeshPartitionWater完整source；fingerprint `dffc4dd6d3e16b467edd4e11cdda16ae380f8a1360c0ebe34f42b31fc66c47b0` |
+| Unity HDRP Water Runtime + Editor | **71 / 15,699 / 13,179 / 716,049 / 0 / 0** | WaterSurface/System、GPU/CPU simulation/search、FFT、GBuffer、underwater/waterline与Editor source；fingerprint `b107d3052b2643a0e6531b66e1e4d12d0da03cb31a33e53e421842e72c56dbb1` |
+| Godot、Bevy、Fyrox通用对照 | **6 / 7,374 / 6,419 / 281,457 / 0 / 0** | Godot refraction/SSR、Bevy SSR water material示例与Fyrox共享Fresnel；fingerprint `6eda8ef2f886fa4921743df2fe4b887cbb75f1f36fa2d599a8469fc3a34dd8a4` |
+| reference selected union | **304 / 73,597 / 61,065 / 2,944,440 / 0 / 0** | 五套参考选择集去重；fingerprint `2cdf4129fac4abc3290533e546f68e4b329b48454d423e83fbb5bb7ae20c3a43` |
+| all selected | **686 / 127,780 / 111,019 / 4,840,810 / 357 / 0** | Zircon与reference当前working bytes去重；fingerprint `a9dd6249b30a02edcc2c38066ec6c06c346c56f189437ddbe9fceafd8508d69c` |
+
+当前Zircon没有Water运行时子系统。排除tests/target后的12,207个production Rust文件对Water/Ocean/River/Lake/Buoyancy/Underwater/Caustic/Gerstner等精确词边界命中为0；ResourceKind、Scene、World、BuiltinRenderFeature、RenderProductFeature、首方catalog/App、Physics shape/command和Navigation area/agent均没有Water owner。通用PBR transmission/IOR/attenuation、SSR、Planar、OIT、fixed clock、ApplyForce、ground Navigation、Sound和Particles是真实可保留底座，但没有Water producer、generation或adapter receipt。
+
+两个测试fixture不能提高结论：`ocean.query.v1`只验证plugin interface generation/unload，`water_elemental.glb`只验证普通PBR volume参数。产品侧Navmesh AI Workbench静态列出`Water`但只有固定route/feedback；WOC则在脚本内硬编码水位`-4.5`、五个圆形湖、线性`hasWaterAt`及私有游泳/寻路规则，Water normal资产无production consumer。这些只能作为migration/characterization fixture。
+
+Unreal参考树显示Body/Zone/Mesh/QuadTree/Wave/Query/Buoyancy/Shallow/Editor应分owner；Unity HDRP显示GPU simulation、CPU search、deformation/current/foam、GBuffer、underwater/waterline应分层，并为query显式返回误差、迭代、normal和current。Godot/Bevy/Fyrox只有通用surface/shader证据，不是Water系统基线。本篇不重复Runtime100、141、142与Editor37/38/39的P0，登记62项P1为49 Open/13 Partial、14项P2全Open；44项Gate为40 Fail/4 Partial。目标收敛到`WaterBodySource -> WaterCompiler -> WaterBuildArtifact -> per-World WaterRuntimeService -> generation-bound Render/Query/Physics/Nav/Audio/VFX/Game adapters -> typed receipts`。
+
+本轮只修改review与索引，没有运行Cargo、App/Editor、WGPU、Jolt、Recast、asset cook、roundtrip、fault/scale/soak或竞争benchmark；selected源码包含其他Session/用户working-tree改动，本文未覆盖或回退，实施前必须重取指纹。tooling按用户要求排除。详见`zircon_runtime/99zr-runtime-water-ocean-lake-river-surface-wave-fft-shallow-water-rendering-underwater-buoyancy-query-physics-navigation-editor-product-integration-current-source-review.md`。
+
+## 312. Runtime Cloth / Fabric / Soft Body / Garment / Deformation / Wind / LOD 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Source、Scene 与 Editor carrier | **35 / 4,144 / 3,731 / 136,255 / 3 / 0** | ResourceKind、Mesh/Scene/MeshRenderer与Editor registry；fingerprint `90593998f66398ff542c18d5780d953b0a7be5d22de32961124de8aac49e02a5` |
+| Animation、Physics 与 Jolt 底座 | **154 / 18,056 / 16,556 / 611,361 / 76 / 0** | pose/skin前置、fixed clock、rigid query/filter/contact、skeletal collider与backend全量；fingerprint `12ca26f62b9697083b4becf62aaf90a864f4ae8ac1fd05933f034af6129d6e23` |
+| Render、Deformation 与 Material 底座 | **153 / 35,486 / 32,561 / 1,322,641 / 341 / 0** | current/previous skin/Morph、velocity、GPU mesh、feature/extract、PBR lighting；fingerprint `9e5da5d1f72d9bf273a5076c7efc5b11958e2a18a230e51954538ba6e90b301b` |
+| Catalog、App、tests 与产品证据 | **186 / 29,388 / 27,023 / 1,079,569 / 459 / 0** | first-party catalog、App entry、Editor/tests与WOC本地化命中；fingerprint `7224de8a6696daa0eaa4526fca8b1f44bc0d6d9423aee395171cc8c0b1883d3e` |
+| Zircon selected union | **525 / 85,674 / 78,560 / 3,102,643 / 853 / 0** | 上述四组按repository-relative normalized path去重；fingerprint `d895691b0a9f114d2c8792a712712a470c037c6f72a798a7d19b9afce6441c30` |
+| Unreal Cloth family | **488 / 108,366 / 91,887 / 4,516,943 / 0 / 0** | ChaosCloth、Asset、Dataflow、Editor Core、runtime interface/common与ClothPainter；fingerprint `00d6621caa03b4a7ce29cea6ff864c57c29a97661e586b42c0c4316c595df331` |
+| Godot/Jolt SoftBody family | **18 / 8,321 / 6,850 / 328,764 / 0 / 0** | Scene/Physics/Jolt SoftBody及upstream Jolt constraints/contact/update；fingerprint `5b11067b5f7e9d25d0af209e547abbe60c939d04f0bea815f0daf6b2b036ea7a` |
+| Bevy/Fyrox skin/Morph对照 | **8 / 9,678 / 8,835 / 369,629 / 5 / 0** | current/previous deformation和import/render基础，均无Cloth domain；fingerprint `2c99a3ee9398b522bbc07c82ceef3f8758c56f93c7f5217ba5dc1b39d7e65a0e` |
+| Unity HDRP Fabric | **8 / 1,770 / 1,478 / 76,536 / 0 / 0** | Cotton/Wool/Silk、Charlie/sheen、IBL、raster/RT/path shading；fingerprint `642278d1f94d069c405603d133a67d74503bbb608be71d7011f90402a565860a` |
+| reference selected union | **522 / 128,135 / 109,050 / 5,291,872 / 5 / 0** | 五套参考选择集去重；fingerprint `f10d51d299a792dad580400d1dfab215c543d5c74da1c5c915b5dd3586e8edac` |
+| all selected | **1,047 / 213,809 / 187,610 / 8,394,515 / 858 / 0** | Zircon与reference当前working bytes去重；fingerprint `3b00cadd9c70ab6e1fce7061517e53b32ca8f95ae9538cdd6f453724b04744c8` |
+
+当前Zircon没有Cloth/Garment/SoftBody运行时产品。排除tests后的12,597个production Rust文件有26条领域词法命中，但逐条都是shader路径夹具、WOC护甲本地化或一般`seam`措辞；ResourceKind、SceneEntityAsset/MeshRenderer、Physics handle/shape/Jolt bridge、BuiltinRenderFeature/FrameExtract、Material lighting model、catalog/App/Editor registry都没有Cloth owner。mesh attribute/topology validation、skin/Morph current/previous、velocity、fixed-step、rigid query/filter/material/contact、skeletal collider/Ragdoll、mesh LOD和residency是真实前置，但不能提升Cloth capability。
+
+Unreal参考树明确分离2D/3D sim topology、render topology、Fabric、seam/tether/maps、solver/proxy/cache/bounds、Dataflow与weight-map paint；Godot/Jolt证明更小SoftBody也必须有typed backend lifetime、constraints/collision、vertex output与render update。Unity Graphics只约束Fabric shading，不是solver参考；Bevy/Fyrox没有Cloth owner，只提供skin/Morph负证据。本篇不重复Physics/Animation/Temporal/Material的上层owner，登记0项新P0；64项P1为51 Open/13 Partial，14项P2全Open；36项Gate为33 Fail/3 Partial。目标收敛到`versioned source -> deterministic compiler/artifact -> per-World instance + admitted solver -> generation-qualified deformation -> shared render/editor consumers`。
+
+本轮只修改review与索引，没有运行Cargo、Jolt、WGPU、App/Editor、PIE、asset cook、roundtrip、fault/scale/soak或竞争benchmark；selected源码包含其他Session/用户working-tree改动，本文未覆盖或回退，实施前必须重取指纹。tooling按用户要求排除。详见`zircon_runtime/99zs-runtime-cloth-fabric-soft-body-garment-simulation-collision-deformation-rendering-wind-lod-scalability-editor-product-integration-current-source-review.md`。
+
+## 313. Runtime Hair / Groom / Fur / Strand / Binding / Visibility / Hair BSDF 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Source、Scene、Import 与 Editor carrier | **139 / 27,657 / 25,233 / 961,010 / 141 / 37** | ResourceKind、Mesh/Material/Scene、importer、Scene component、model/glTF与Editor registry；fingerprint `9827386d74d34268ddb60d44463b7b1610f3e0a8d60c73ec9602892580d65192` |
+| Animation、Physics、runtime 与 streaming 前置 | **188 / 27,422 / 24,926 / 959,600 / 104 / 1** | pose、fixed clock、rigid query/collider、GPU Scene与resource streamer；fingerprint `7ae6b2c0fea95bed25ae32c09f652c8507d428c5b5473927803e4bc226b6bf92` |
+| Render、Deformation 与 Material 前置 | **338 / 55,194 / 50,122 / 1,992,320 / 374 / 2** | geometry source、GPU mesh、OIT、visibility、shadow、velocity、shader与shading model；fingerprint `a71fa9715e769018301a72b4d12de066a6b1f9d934bb1f320143ec60415c6454` |
+| Catalog、App、focused tests 与产品证据 | **207 / 32,489 / 29,698 / 1,181,372 / 502 / 3** | first-party catalog、App entry、Editor builtin、Mesh/Morph/OIT/shadow/import tests；fingerprint `957a3f546dbb5ec508f601435b3769979864440275820c1089c31cf14f05b188` |
+| Zircon selected union | **872 / 142,762 / 129,979 / 5,094,302 / 1,121 / 43** | 上述四组按repository-relative normalized path去重；fingerprint `884a734bf9265f236c8d399ee1b20f6e730452ac87b29f2b3204fa498f4bf651` |
+| Unreal Hair Core、Import、Binding、Solver 与 Editor | **271 / 86,786 / 73,374 / 3,427,467 / 0 / 0** | HairStrands source、Alembic/Interchange Groom、binding/cache/solver/deformer/editor；fingerprint `853afeebbfcbaba21c6bd65d83ce701cb7f44f596ce61444ab41278e26cd035e` |
+| Unreal Hair Renderer 与 Shader family | **112 / 46,052 / 38,852 / 1,859,028 / 0 / 0** | visibility、macro group、deep shadow、voxel、environment、composition、velocity、RT与shader全族；fingerprint `be1f265299078a6db97c25b1886ef5eb536f1347f7dd05c6a2abf91e9489bf4a` |
+| Unity HDRP Hair | **10 / 3,159 / 2,565 / 129,833 / 0 / 0** | Kajiya-Kay/Marschner、melanin/absorption、LUT、multiple scattering、raster/RT/path；fingerprint `f5ba559301237d967e66ca1e6fad26a97c2cd9c34bcf77cebafcaa21d1117945` |
+| Bevy、Fyrox、Godot通用基础选择集 | **4 / 6,142 / 5,122 / 224,565 / 0 / 0** | Mesh/skinning/Morph/material通用对照，无Hair domain；fingerprint `f6cbab81982f46add6bd296946ce06ec71fdc9012b1e2d098fe20dffc90f7b25` |
+| reference selected union | **397 / 142,139 / 119,913 / 5,640,893 / 0 / 0** | 五套参考选择集去重；fingerprint `5a55bd3e14303f6e57ad0e5e01db48ba99b5512144916a8286767682e1a6b500` |
+
+当前Zircon没有Hair/Groom/Fur/Strand运行时产品。排除tests与test-named文件后的12,188个production Rust文件对Hair/Groom/Fur/Strand/Alembic/Follicle/Melanin/Marschner等精确词边界命中为0；ResourceKind、SceneEntityAsset/MeshRenderer、BuiltinRenderFeature/FrameExtract、GPU resource、Material、catalog/App/Editor registry都没有Hair owner。typed Mesh/import/artifact、skin/Morph current/previous、fixed-step/query、geometry-source registry、generic OIT、velocity、Mesh LOD、residency与capability profile是真实通用前置，但不能提升Hair capability。generic OIT仍按固定容量写入，overflow在WGSL中直接return且颜色以RGBA8打包，不能替代strand visibility/coverage/deep opacity。
+
+Unreal参考树明确分离HairDescription/attributes、GroomAsset、Binding、Cache、Solver/Deformer、strands/cards/meshes、streaming resources、visibility/macro-group/cluster、deep shadow/voxel/environment/composition/velocity/RT和Editor；Unity HDRP明确Hair optical parameters、Marschner R/TT/TRT、multiple scattering、LUT及raster/RT/path一致性。Bevy 1,408个目标源码文件仅一条一般Hair anisotropy注释，Fyrox 173个与Godot 1,899个目标源码文件没有Hair domain。本文不重复Asset/Physics/Animation/Temporal/Material父owner，登记0项新P0；72项P1为56 Open/16 Partial，16项P2全Open；40项Gate为37 Fail/3 Partial。目标收敛到`versioned Hair source -> deterministic compiler/binding artifact -> per-World instance + admitted provider -> generation-qualified resources -> shared visibility/lighting/editor consumers`。
+
+本轮只修改review与索引，没有运行Cargo、WGPU、App/Editor、PIE、asset cook、roundtrip、GPU capture、fault/scale/soak或竞争benchmark；selected源码包含其他Session/用户working-tree改动，本文未覆盖或回退，实施前必须重取指纹。tooling按用户要求排除。详见`zircon_runtime/99zt-runtime-hair-groom-fur-strand-source-binding-simulation-rendering-lighting-shadow-lod-streaming-scalability-editor-product-integration-current-source-review.md`。
+
+## 314. Runtime Destruction / Fracture / Geometry Collection / Clustering / Damage Field 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Source、Scene、Import 与 Editor carrier | **131 / 23,465 / 21,427 / 814,499 / 152 / 39** | ResourceKind、Mesh/Scene、importer、component、Editor registry；fingerprint `ec0cf0f32a7a89a8454d24f5923af851f53deabe1dfa891cb0627b6f6eda870c` |
+| Physics、Jolt、World 与 Query 前置 | **105 / 11,898 / 10,976 / 412,499 / 55 / 2** | neutral DTO、world/manager、shape/body/constraint、Jolt bridge/query/event；fingerprint `a7a898c69c9d69817c430e80d48e654ad8d6fe9931d442e1bccc53fb2374ecd6` |
+| Render、GPU Scene、Visibility 与 Streaming 前置 | **239 / 48,145 / 44,205 / 1,783,349 / 475 / 67** | frame extract、geometry source、GPU mesh/scene、resource streamer、visibility/shadow/temporal；fingerprint `30442b6dcece9a7942a34bd490656f0de6e4a875adf6e8d73abed3d59a0bfa80` |
+| Catalog、App、focused tests 与产品证据 | **226 / 51,835 / 49,151 / 1,834,073 / 546 / 4** | first-party catalog、App、Physics manifest、Editor builtin与focused tests；fingerprint `0172bcfd27c3942665539420a36d2aa8e67db0a91b8b05653362b76fdeb320b1` |
+| Zircon selected union | **698 / 134,439 / 124,908 / 4,814,288 / 1,212 / 111** | 上述四组按repository-relative normalized path去重；fingerprint `8d0c7461f570714286ebfc596ed144c4466e8cc7e5ac8e67a8ce1a908af68eea` |
+| Unreal Geometry Collection core | **98 / 33,758 / 28,815 / 1,239,620 / 0 / 0** | collection schema/object、hierarchy、collision与physics proxy前置；fingerprint `54538a878a3115fb43ad063f1617636c3c18ceddb39eb8d3c8660ae558f9175b` |
+| Unreal runtime、PhysicsProxy 与 Field System | **80 / 36,183 / 30,573 / 1,469,410 / 0 / 0** | cluster、strain/damage、field commands、events、triple buffering与replication；fingerprint `a2a12cb558f956ba08f88a5f07b07faff7981f0ba4c69c098c5b8efed8448a6a` |
+| Unreal authoring、Fracture、Cache 与 Editor | **264 / 81,986 / 67,760 / 3,060,848 / 0 / 0** | cutters、interior、clustering、cache record/playback、Dataflow与Editor；fingerprint `3fc33d69dda2798014ee6e28d62a0c1c4c07700b49b46605d021ef0a98c547af` |
+| Unreal render/tests 与 secondary evidence | **31 / 15,686 / 13,080 / 684,273 / 78 / 6** | piece transform/render resources、HeadlessChaos tests及Bevy/Fyrox/Godot/Unity负证据；fingerprint `cf3102ba23173d3daaadb8063c7cb47f730ae951716807637bd76286bec5ffa2` |
+| reference selected union | **473 / 167,613 / 140,228 / 6,454,151 / 78 / 6** | Unreal与secondary选择集去重；fingerprint `04fb4a1d51f102544bccbe0fe3ec2a17075eb83ecee93d947888686bf71f13a3` |
+
+当前Zircon没有Destruction/Fracture/Geometry Collection/Clustered Rigid/Damage Field运行时产品。排除tests与test-named文件后的11,951个production Rust文件精确领域组合命中为0；`destruction`的8条命中全是window/session/owner通用销毁生命周期。ResourceKind、SceneEntityAsset、Physics/Jolt、BuiltinRenderFeature/FrameExtract、GPU resource、catalog/App/Editor registry都没有Destruction owner。Mesh/import/artifact cache、per-World Physics、slot+generation handle、GPU Scene current/previous、Mesh LOD、chunk residency与diagnostics是真实前置，但不能提升领域capability；contact DTO缺impulse/relative velocity/subshape/material/tick/generation，Jolt TriangleMesh仍逐三角建立shape并组成StaticCompound。
+
+Unreal参考树明确分离typed Geometry Collection、source/derived/render artifact、Fracture cutter/compiler、clustered physics proxy、damage/field、atomic break output、Chaos Cache、piece rendering和Editor/Dataflow；HeadlessChaos提供hierarchy/clustering/collision/events/fields/mass/serialization/simulation/streaming/visibility测试矩阵。Bevy、Fyrox、Godot与Unity Graphics本地镜像没有可作为完整Destruction产品参考的实现，只提供通用底座或诚实负证据。本文登记0项新P0；72项P1为55 Open/17 Partial，16项P2全Open；40项Gate为34 Fail/6 Partial。目标收敛到`versioned source -> deterministic FractureBuildArtifact -> per-World instance + admitted clustered provider -> atomic break output -> generation-qualified render/cache/adapters`。
+
+本轮只修改review与索引，没有运行Cargo、Jolt、WGPU、App/Editor、PIE、asset cook、roundtrip、GPU capture、fault/scale/soak或竞争benchmark；selected源码包含其他Session/用户working-tree改动，本文未覆盖或回退，实施前必须重取指纹。tooling按用户要求排除。详见`zircon_runtime/99zu-runtime-destruction-fracture-geometry-collection-clustering-damage-field-simulation-rendering-cache-scalability-editor-product-integration-current-source-review.md`。
+
+## 315. Runtime Vegetation / Tree / Foliage / Grass / Species / Instancing / Wind 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Source、Scene、Import 与 Editor carrier | **1,745 / 248,118 / 226,299 / 8,821,014 / 2,296 / 77** | ResourceKind、asset/import、Scene、MeshRenderer及Foliage Editor静态workspace；fingerprint `3abb9f9766a96641282e7b4a54bd809de904b553d18f790359a2c9d560680e8a` |
+| Zircon Render、GPU Scene 与 Material前置 | **257 / 53,380 / 49,196 / 1,996,412 / 499 / 2** | descriptor-only slots、GPU span/current-previous、ordinary mesh count=1、bounds、visibility与shader/material；fingerprint `ac067b18b5d22e29e90127c95ec61a2b2dc835d163702c4246df0d2e7748b96e` |
+| Zircon Catalog、Terrain、App 与 Vampire产品证据 | **227 / 38,101 / 35,075 / 1,375,690 / 436 / 1** | 首方catalog、Terrain插件、App entry及opaque cross-card普通mesh；fingerprint `fd7ce12b5ccf4244ef0aa74c1ce0d14a83932717eaf20e2683060c90f5576abb` |
+| Unreal Foliage、ISM/HISM、Landscape Grass、SpeedTree与Editor | **108 / 42,342 / 35,512 / 1,558,207 / 0 / 0** | species policy、instance/cluster tree、GPU culling、wind、grass async data和真实paint transaction；fingerprint `de818639c7191823d5017fc1d7e52ed0f21a60217419cd4217a1b7c839333a35` |
+| Unity GPUDriven、URP/HDRP Nature与SpeedTree | **82 / 19,949 / 16,650 / 879,294 / 0 / 0** | GPU instance data、visibility/LOD、wind current-history、billboard与跨pass representation；fingerprint `146b43d8a0bed4fe67867e2abb4c98d68b6736dabde4f7e9d27d9a779141cd1a` |
+| Godot MultiMesh与RenderingServer | **294 / 166,648 / 137,620 / 6,659,080 / 0 / 0** | generic transform/color/custom data、visible count、current/previous buffer、AABB和Editor population；fingerprint `324dd750d08ed3a00ff3819c11bc9ab91470bff3d2ff41df53105019e60a1bbc` |
+| Bevy/Fyrox通用GPU batching、visibility与LOD对照 | **318 / 143,098 / 129,602 / 5,499,682 / 130 / 0** | generic preprocessing、indirect/occlusion、current-previous、meshlet/LOD/instancing；无完整Vegetation domain；fingerprint `85bf4fd6b08438eaf1f67d058b772a02885ee2aaf581bfd173b10379c20c1618` |
+
+当前Zircon没有Vegetation/Tree/Foliage/Grass/SpeedTree运行时产品。排除tests与test-named文件后的12,065个production Rust文件精确领域组合命中为0；ResourceKind、Scene、Terrain插件、first-party catalog与App没有领域owner。ordinary mesh consumer仍按draw注册单实例，bounds为translation与transform-scale近似；Tree/Billboard/MeshLod是显式descriptor-only。Mesh/glTF、GPU Scene span/current-previous、HZB/indirect、generic alpha/shadow/velocity/GI/RT、artifact/residency/quality/diagnostics是真实通用前置，但不能提高Vegetation capability。
+
+Foliage Editor静态workspace却硬编码`Forest_A12 Ready`、`84K instances`以及preview/build返回的`84K instances`和`128 clusters`，没有Runtime job、artifact、cluster、diagnostic或terminal receipt。该问题由Editor16 P0-4精确拥有，本文不重复新增P0，将其重新确认为M0继承阻断。Unreal参考明确分离FoliageType、instance storage、HISM cluster、GPU culling、SpeedTree wind、Landscape Grass和Editor transaction；Unity明确GPUDriven data/LOD/visibility、wind history和Nature representation/pass parity；Godot/Bevy/Fyrox只提供通用底座。历史72项P1重判为46 Open/26 Partial，16项P2全Open；40项Gate为31 Fail/9 Partial。目标收敛到`VegetationSpeciesSource -> deterministic BuildArtifact -> Prototype/Placement -> Cell/Cluster/InstanceSet -> Wind/Interaction -> GPU LOD/Visibility/Streaming -> typed adapters`。
+
+本轮只修改review与索引，没有运行Cargo、WGPU、App/Editor、PIE、asset cook、roundtrip、GPU capture、fault/scale/soak或竞争benchmark；selected源码包含其他Session/用户working-tree改动，本文未覆盖或回退，实施前必须重取指纹。tooling按用户要求排除。详见`zircon_runtime/99zv-runtime-vegetation-tree-foliage-grass-species-instancing-wind-animation-billboard-impostor-lod-streaming-scalability-editor-product-integration-current-source-review.md`。
+
+## 316. Runtime Decal Projector / DBuffer / GBuffer / Receiver 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Decal package、catalog 与产品真相 | **294 / 34,582 / 31,620 / 1,282,078 / 477 / 0** | optional feature、concrete-provider admission、App/editor装配与false UI；fingerprint `dd89cb2fc33e5df19b6dd302e93db0d5814ad9dd6e14ff65e9bf9fc28dcab451` |
+| Zircon Scene、Material 与 Extract 前置 | **656 / 24,524 / 22,159 / 849,360 / 56 / 0** | project Scene固定字段、DynamicScene transaction、`.zmaterial`、MaterialDomain、FrameExtract及descriptor-only truth；fingerprint `32f2b0e0682a8be2bf8d9401fc0599de138fa812167105c6f9cc93f6de81ec1e` |
+| Zircon Render/Visibility/Residency/Temporal 前置 | **415 / 78,755 / 72,655 / 2,924,036 / 743 / 0** | graph context/attachments、deferred、HZB/indirect、ResourceStreamer、history、budget与RT generic owner；fingerprint `56660f227a1899e4093bc6194ec2bc8f08fd6654ec3341b78ca5ef87b80c06d9` |
+| Unreal Decal runtime、renderer 与 shaders | **19 / 7,075 / 6,028 / 294,936 / 0 / 0** | component/proxy、per-view visibility、stage/target/write-mask/blend、volume/mobile/mesh/RT/path tracing；fingerprint `b6e57885cf8d28143aac4ade641aed45f97f1a3c2b804e10a625d1da716af255` |
+| Unity HDRP/URP Decal runtime、editor 与 tests | **59 / 12,250 / 10,534 / 538,645 / 1 / 0** | projector、set/chunk/jobs/cull/draw/atlas与DBuffer/ScreenSpace/GBuffer/forward emissive；fingerprint `12cbd0429d81d2c2b891deddace475cfa5c328a1416d90b836bd7a6e1cd9a1cd` |
+| Godot Decal node、renderer、editor 与 tests | **6 / 791 / 650 / 34,581 / 1 / 0** | persisted node、textures/fade/mask、RenderingServer RID、AABB、gizmo和property/bounds test；fingerprint `7c268a8be91a080049aa3601d9bc8bd114adc4061aeb8a968f20f4e3d009c0a0` |
+| Bevy/Fyrox Decal实现 | **7 / 1,533 / 1,372 / 55,104 / 0 / 0** | reflect/visit node、depth projection shader、extract/prepare/storage/binding/cluster及平台限制；fingerprint `a5aade3808ef66805f2ca67cd5d543060a695fde16a94393786dd66e5b7aa971` |
+
+当前Zircon Decal不是可用渲染功能。12,060个production Rust文件中`DecalProjectorDescriptor`只在Decal runtime package出现，独立`DBuffer`为0命中，App/examples/templates没有产品consumer。optional feature注册late PostProcess pass并把`decals.projector-composite`绑定到直接`Ok(())`的noop；执行框架仍会记录executed pass。MaterialDomain与`.zmaterial`无Decal，project Scene无法保存plugin payload，FrameExtract没有projector snapshot，visibility/receiver/batch、DBuffer/GBuffer/forward/RT、atlas/residency、temporal与pixel tests均未闭合。
+
+Runtime catalog已以concrete-provider admission修复Plugins04 P0-001的metadata-only capability false publication；但普通Editor不提交feature registration、generated export会提交，Plugins04 P0-002仍Open。Editor39 P0-01/03/04/05也仍Open：noop、Scene断点、Material false option和产品外观没有修复。本文不新建P0 owner；历史72项P1重判为30 Open/42 Partial，16项P2全Open，40项Gate为23 Fail/17 Partial。Unreal提供component/proxy/visibility/stage/target与mesh/mobile/RT完整分层，Unity提供set/chunk/jobs/technique/atlas，Godot/Fyrox/Bevy证明较小实现也必须有持久化实例、bounds、真实renderer/shader和平台truth。
+
+本轮只修改review与索引，没有运行Cargo、WGPU、App/Editor、PIE、asset cook、Scene roundtrip、GPU capture、fault/scale/soak或竞争benchmark；selected源码包含其他Session/用户working-tree改动，本文未覆盖或回退，实施前必须重取指纹。tooling按用户要求排除。详见`zircon_runtime/99zw-runtime-decal-projector-material-domain-dbuffer-gbuffer-forward-receiver-culling-batching-atlas-streaming-temporal-rt-scalability-editor-product-integration-current-source-review.md`。
+
+## 317. Runtime Weather / Climate / Celestial / Time-of-Day / Wind / Cloud 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon package、authoring与product truth | **650 / 47,960 / 43,821 / 1,805,534 / 567 / 0** | 动态plugin ID、首方catalog、Scene/schema、generic Weather fixture和静态Workbench；fingerprint `35f377f416db523b750c638cd1b36b00445bb724bc6295d7dfbba1215c301f56` |
+| Zircon time、World、Net、Save与Operation基础 | **903 / 62,588 / 57,132 / 2,265,559 / 301 / 0** | real/virtual/fixed clock、World/Level、DynamicScene/archive、operation和generic network；fingerprint `5cb9809903efc35b417f4cf5d04a20140dff223b3e354cdfa3b020effe957678` |
+| Zircon environment、render与domain adapter基础 | **2,421 / 211,374 / 194,698 / 7,768,482 / 2,116 / 3** | Environment/IBL/Fog、frame extract、Particle、Terrain、Sound和render consumer边界；fingerprint `7d9bc0b4beed08dea8aa511ed4852c6c85840b6146269bf86019e519586f40d0` |
+| Unreal Atmosphere、Cloud、Wind与DaySequence | **63 / 20,472 / 16,809 / 833,095 / 0 / 0** | 持久组件、scene proxy、physical atmosphere/cloud renderer、wind query、sequence与replication；fingerprint `075583579a19c61c24e49fa1e14b499c0e208f1b90295fd4c70f56f9bdfc3a70` |
+| Unity HDRP Environment、Sky、Cloud与图形场景 | **70 / 67,504 / 65,088 / 2,164,301 / 0 / 0** | typed Volume/migration、per-camera context、physical sky、cloud map/history/shadow/quality；fingerprint `976df8e0103fb942d739e353c0ea4274ebcbd24dce049710f4da99688d8a70cc` |
+| Godot Environment、Sky、Fog与test | **11 / 5,131 / 4,280 / 212,239 / 9 / 0** | persisted Environment/WorldEnvironment/FogVolume、RID更新、AABB与Sky test；fingerprint `0f765d50388c3fe0c828a6f18674b6a6870ee1eb0fca805171e4364334b4c86e` |
+| Bevy Atmosphere与Fyrox Skybox | **19 / 4,633 / 4,139 / 176,499 / 0 / 0** | ECS extract、真实四类LUT/environment map及Reflect/Visit/texture validation；fingerprint `7cf283a751d152db37f3004d882b13571a5a0af69d3c82a15b9cb83fd8decb24` |
+
+当前Zircon没有Weather/Climate runtime产品。首方package/catalog、ResourceKind、project Scene、World service、FrameExtract、network/save和App均无Weather owner；`WeatherQueryInterface`、weather/climate manifest、component/inspector名字属于generic test fixture，Weather Workbench的Storm/Mountains/timeline/warnings及Preview/Build结果是静态文案。`RuntimeTimeAuthority`和WorldTimeController提供真实real/virtual/fixed基础，却没有calendar/ephemeris/integer celestial tick；World仍以`preview_skybox`布尔值构造gradient Environment，程序sun与DirectionalLight分裂。Particle CPU消费asset gravity+external_force，GPU只消费gravity；Terrain/Material/Physics/Sound/Net没有typed Weather adapter。
+
+历史Editor38的`CaptureCloud`重复gradient子事实已经失效：当前生产代码中该operation为0，test显式断言名称不得出现；但Cloud medium/map/wind/lighting/shadow/history仍为空，所以五项父P0均未关闭。Unreal提供component/proxy/DaySequence，Unity提供typed Volume/per-camera cloud history，Godot/Fyrox给出持久化资源下限，Bevy提供ECS extract/LUT；确定性region/network/save需要Zircon自己的artifact/snapshot/receipt补足。本文0项新P0；72项P1为27 Open/45 Partial，16项P2全Open；40项Gate为23 Fail/17 Partial。目标收敛到`versioned sources -> deterministic WeatherProgramArtifact -> per-World service -> atomic WeatherFrameSnapshot -> typed adapters/receipts`。
+
+本轮只修改review与索引，没有运行Cargo、WGPU、App/Editor、PIE、asset cook、Scene roundtrip、双进程、save/replay、GPU capture、fault/scale/soak或竞争benchmark；selected源码包含其他Session/用户working-tree改动，本文未覆盖或回退，实施前必须重取指纹。tooling按用户要求排除。详见`zircon_runtime/99zx-runtime-weather-climate-celestial-time-of-day-wind-precipitation-cloud-atmosphere-surface-state-determinism-network-save-scalability-editor-product-integration-current-source-review.md`。
+
+## 318. Runtime Cinematic / Sequencer / Take Recorder / Movie Render Queue 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon sequence、plugin与product truth | **35 / 9,830 / 9,324 / 402,172 / 34 / 2** | source/player/compiler/cache、timeline plugin、Workbench route/feedback；fingerprint `a88a17cfcd62c02ef40e95d41d97ba900dce4da0ae323e29506b580cf934a83d` |
+| Zircon time、camera、sound、capture、net/save/operation基础 | **83 / 11,745 / 10,592 / 399,007 / 93 / 5** | clock、render stack/history、automation、readback、replication、archive与operation；fingerprint `eb8ef52564fbf25697b729ef6383760fba276abf83c5888452ae33b8005e1fdd` |
+| Unreal MovieScene、LevelSequence、Take与MRQ | **29 / 14,465 / 11,779 / 552,342 / 20 / 2** | source/section/player/instance/evaluation/hierarchy、domain adapter及compiler/pre-animated/transform tests；fingerprint `aa3e9640ef3f421f61712c247be51623ce734fcb60f2efb549a9039ba9071a7b` |
+| Godot Animation/MovieWriter与tests | **9 / 9,797 / 8,316 / 365,156 / 9 / 0** | typed track、play/seek/capture/cache、fixed-fps movie/audio与player tests；fingerprint `b1f54145d486d24633d7986a759c1cfbf2ff9156425c52dca7104549709b6718` |
+| Bevy、Fyrox与Unity Graphics | **10 / 6,087 / 5,516 / 236,102 / 10 / 0** | stable target/event/graph、UUID track/signal/command、camera capture与AOV；fingerprint `6b7b8a4652c91a292bdce61ead2281ec477c1b0f4ef8f0e0f20f53ec530f802c` |
+
+当前Zircon没有独立Runtime Cinematic产品。排除`dev/`、`docs/`、tooling与tests后的生产源码对`CinematicSequenceSource`、`LevelSequence`、`MovieScene`、`TakeRecorder`、`TakeMetaData`、`MovieRenderQueue`、`MoviePipeline`、possessable、spawnable、pre-animated state和cinematic evaluation field均为0命中。普通`AnimationSequenceAsset`只有seconds/f32 fps、`EntityPath`、可选字符串target和property track；compiled projection以`binding_index/track_index`回读外部source Vec，cache又按asset ID/revision和当前World共享，传入的player entity未被消费，compile/apply失败及receipt被静默丢弃。
+
+Runtime clock、Camera render stack、temporal cut heuristic、Sound automation、capture readback、generic replication/archive/operation都是真实底座，但没有形成rational frame time、section/hierarchy、per-instance binding/spawn/restore、authoritative cut、audio/event traversal、Take lifecycle或Movie Render job/output闭环。三槽capture mailbox只保留最新ready generation并丢弃错误，frame缺format/stride/color/PTS及sequence/shot/frame/sample/tile/pass身份。Sequencer Workbench仍固定显示`SEQ_Intro`、12 shots、428 keys与24 fps；timeline plugin缺声明的authoring ZUI，五个operation没有factory，dist invoke与bridge method均为空。
+
+本文将Runtime执行链从历史Editor45混合边界中拆出，Editor45/83继续拥有authoring document、transaction、UX与product projection；Runtime150唯一拥有source codec、compiler/artifact、binding/hierarchy/evaluation、playback/domain adapters、Take/Movie Render execution及network/save/replay。没有重复登记父P0：Editor45五项父P0当前为4 Open/1 Partial；Runtime150的72项P1为52 Open/20 Partial，16项P2全Open，40项Gate为31 Fail/9 Partial。目标收敛到`versioned sources -> deterministic CinematicProgramArtifact -> per-World playback -> per-instance evaluation -> atomic domain receipts`。
+
+本轮冻结118个Zircon文件、21,575行、801,179 bytes、127项test declaration、7项ignored，以及48个五引擎参考文件、30,349行、1,153,600 bytes、39项test declaration、2项disabled/ignored。只修改review与索引，没有运行Cargo、Editor/App、PIE、asset cook、Scene roundtrip、network/save/replay、Take、Movie Render、GPU、fault/scale/soak/profile或竞争benchmark；selected源码含其他Session/用户working-tree改动，实施前必须重新取指纹。tooling按用户要求排除。详见`zircon_runtime/99zy-runtime-cinematic-sequencer-sequence-shot-track-section-binding-hierarchy-evaluation-camera-cut-audio-event-take-recorder-movie-render-queue-network-save-scalability-editor-product-integration-current-source-review.md`。
+
+## 319. Runtime Gameplay Ability / Effect / Attribute / Tag / Cue / Prediction 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon gameplay/script runtime | **30 / 7,541 / 6,954 / 270,407 / 40 / 0** | host descriptor、39 callbacks、capability/plugin/runtime context/scene script；fingerprint `8b7e4066881315bc4a56f933aa38caa5306d6cdd050b497e09ab3c9b5ef44d78` |
+| Zircon Editor product surface | **16 / 6,554 / 6,152 / 265,609 / 42 / 0** | 三份ZUI、fixed feedback、generated-bottom control/binding及surface tests；fingerprint `c48445c74dc6d17d0a195df7a973f2cdbb560d59b60dedd31d28fd33a8c02aca` |
+| Zircon reusable substrate | **52 / 7,818 / 6,998 / 278,448 / 60 / 0** | ResourceKind/asset、fixed time、RPC/sync/replication budget/interest/late join、Dynamic Scene transaction；fingerprint `bd86429bb638eb44ea7ad447562d8d73d462121f9ef654fa35fda7cc536b93f4` |
+| WOC selected migration oracle | **12 / 98,698 / 95,862 / 4,300,380 / 1 test-main / n/a** | product root/world state、ability admission/casting/effects与generated catalogs；fingerprint `9ba98d33ac66ea5d41644d9d6e425729422e119594db0bd62f452c1827751e3f` |
+| Unreal GAS与GameplayTags | **28 / 35,618 / 29,317 / 1,433,125 / 19 / 0** | ASC/spec/ability/effect/aggregator/attribute/prediction/target/task/cue/tag dictionary/query/tests；fingerprint `e3f1b6e1949e111d16bc259e01aac14076c27dcd7e693245c74f996fc2c1dbbf` |
+| Bevy、Fyrox、Godot与Unity Graphics | **23 / 21,369 / 18,618 / 772,461 / 99 / 0** | ECS/asset/plugin/script/scene lifecycle、multiplayer authority与VFX adapter；fingerprint `0134465e17dffcae86abc2756780f25806ab43115fd5e091ff8c6f57fe75691c` |
+
+当前Zircon没有可交付的Gameplay Ability System。冻结于`2026-08-25T15:45:03+08:00`的physical working-tree词法语料中，排除tests/test-named文件后的12,288个production Rust/TOML/JSON/ZUI对`AbilitySystemComponent`、`GameplayAbilitySpec`、`ActiveGameplayEffect`、`AttributeSet`、`GameplayTagContainer/Query`、`GameplayCue`与`PredictionKey`均为0；`GameplayAbility`和`GameplayEffect`各9次命中全部来自Editor generated-bottom control ID/binding string。该结论逐个读取tracked/untracked physical文件，不依赖Git索引。Runtime `ResourceKind`、asset export、Scene project和first-party provider也没有Tag/Attribute/Effect/Ability/Cue领域类型。
+
+现行`zr.zircon.gameplay` v0.1.0注册39个callback，`expect_entity`把Int/HostHandle直接降为裸u64；单一`gameplay.entity` capability覆盖任意entity query/component/transform/spawn/despawn/damage/heal/presentation。damage/heal clone并线性遍历`script.bindings` JSON的首个enabled binding，写`properties.hp`；damage归零后直接despawn。WOC虽然保留大量规则oracle，当前`world/state`只接入casting/known-ability等一部分，ability admission、通用effects、sequence/aura dispatch仍只被test main引用，形成project-side平行authority。
+
+generic asset/generation、real/virtual/fixed clock、Dynamic Scene prepared transaction以及net RPC/sync/interest/budget/late join是真实底座，但没有per-World gameplay owner、per-owner state、prepared build set、tag/attribute/effect/ability/task/cue/prediction语义、save participant或产品caller。Workbench继续固定显示`GA_DashAttack`、`GE_HealthRegen`、`GE_DamageFire`、`DefaultGameplayTags.ini`、`Server Initiated`、`+50 health`和`predicted activation`，selected Editor tests只验证retained surface与route。
+
+本文不重复Runtime08G的5项父P0，current-source复核仍为5 Open；Runtime151登记72项P1为57 Open/15 Partial，16项P2全Open，40项Gate为33 Fail/7 Partial。目标固定为`versioned Tag/Attribute/Effect/Ability/Cue sources -> deterministic GameplayBuildSetArtifact -> per-World GameplayAbilityWorldRuntime -> per-owner state -> atomic command/transaction/schedule -> GameplayJournal -> network/save/replay/debug/presentation projections`，并要求M0同里程碑迁移首方caller后硬切JSON HP、过宽capability与fixed Workbench success，不留compat/fallback双authority。
+
+本轮冻结110个Zircon选择集文件、120,611行、5,114,844 bytes，以及51个五引擎参考文件、56,987行、2,205,586 bytes。只修改review与索引，没有运行Cargo、Editor/App、Client/Server、PIE、asset cook、Scene roundtrip、save/replay、fault/scale/soak/profile或竞争benchmark；selected源码包含其他Session/用户working-tree改动，实施前必须重新取指纹。tooling按用户要求排除。详见`zircon_runtime/99zz-runtime-gameplay-ability-effect-attribute-tag-query-attribute-set-aggregator-capture-execution-cooldown-cost-cue-targeting-task-prediction-replication-network-save-scalability-editor-product-integration-current-source-review.md`。
+
+## 320. Runtime AI / Behavior Tree / Blackboard / Perception / EQS 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon core AI contracts | **9 / 1,040 / 956 / 31,239 / 0 / 0** | descriptor、ID、manager、tick、snapshot、Blackboard与Perception；fingerprint `5d9772897fc38a3ff2ff55b8e66d45c74b31a49e091f0d90333ee7eb92ce707d` |
+| AI runtime plugin | **84 / 21,634 / 19,893 / 777,751 / 217 / 42** | compiler、catalog、executor、integration、store、manager、perception、plugin与tests；fingerprint `f0d9e3f36761756e21742c6885c48f422812aca02e991e74b69de0a46936eb71` |
+| AI editor plugin | **12 / 2,396 / 2,223 / 83,869 / 18 / 4** | registration、mirror、overlay、controller、ZUI与tests；fingerprint `2fe0566021b50d87516517475c5def9b31dcf5b381f78e71a449d493c49ce81d` |
+| AI manifest与distribution | **3 / 237 / 205 / 8,582 / 2 / 0** | capability/event/interface、runtime/editor artifact与dist entry；fingerprint `0c21e0fec77bed20ffdcd2dd60e2ac74512fff17c1ae8cffe3c62118371d4ab4` |
+| Selected catalog与product path | **15 / 3,843 / 3,287 / 133,287 / 6 / 0** | runtime/editor catalog、builtin classification、overlay contract、Vampire asset/Scene/script；fingerprint `9d9a794e29bac65896d8eca629129dac0ee6e18b9c1f4940b96d2dba8f904b63` |
+| Unreal AI、StateTree与SmartObjects | **16 / 26,956 / 22,819 / 1,091,635 / 0 / 0** | BT component、Blackboard、Perception/Sight、EQS manager、StateTree context与SmartObject subsystem；fingerprint `ba8801549b3c1e20c6316c33387835e9eebc0703f41e0b969ce004853cdc4d48` |
+| Bevy、Fyrox、Godot与Unity Graphics | **6 / 6,266 / 5,439 / 233,805 / 46 / 0** | schedule/task pool、轻量Behavior、NavigationAgent3D与DebugManager；fingerprint `198f5e9f6a3a2ac35e4023d4e774090adeef3c546e188610ba693ba70b8ce193` |
+
+当前Zircon AI不是可交付产品，但也不再是空壳。Behavior compiler已有dense preorder、parent/subtree、implementation slot和immutable Arc generation；executor已有per-agent state、observer/scratch和部分root/preemption abort；Blackboard已有typed partition、dense store、generation与changed-slot observer；Perception已有single record pass、stable pair cursor、256 pair budget与1024 event backlog；runtime package进入first-party catalog。这些均被重判为Partial底座而非完成项。
+
+纵向产品链仍断开：没有production caller注册tree/schema或驱动AI tick，Vampire的`enemy_behavior_tree.toml`字段与AI DTO不兼容、zmeta为普通Data、Scene只保存字符串，敌人AI实际由`main.zr`分支和动态字段执行。Behavior的SetBlackboard/EmitEvent/service依赖静态result参数，PlayAnimation立即成功，ScriptTask无durable handle，MoveTo写动态destination并从历史report推断；TimeLimit/Parallel不完整abort。同一agent并发tick可双执行，owner revoke直接drop instance而不先取消Nav/Animation/Script side effect。
+
+Perception仍每帧重建全World receiver/source并做笛卡尔积，Sight provider unavailable/error会fail-open；Behavior LOD由active camera的20/60米距离改变权威tick频率且pending delta无界。EQS、StateTree、Smart Object、team/squad/world knowledge、network/save/replay均没有runtime owner。AI Editor不在first-party catalog、仍引用不存在的Viewport Tool API，operation无factory，overlay无provider，Workbench固定数据。
+
+本文不重复Editor20五项父P0，current-source复核为5 Open；Runtime08F的20项P1重判为10 Open/10 Partial。Runtime152登记72项P1为57 Open/15 Partial、16项P2全Open；40项Gate为32 Fail/8 Partial。目标固定为`versioned BT/BB/Perception/EQS sources -> deterministic AiBuildSetArtifact -> per-World AiWorldRuntime -> generational Agent -> iterative budgeted VM + task/query broker -> network/save/replay/debug projections`，并要求同里程碑迁移首方caller后硬切旧schema、result伪语义、dynamic MoveTo、camera authority LOD和Vampire脚本AI旁路。
+
+本轮冻结123个Zircon选择集文件、29,150行、1,034,728 bytes、243项test declaration、46项ignored，以及22个参考选择集文件、33,222行、1,325,440 bytes、46项test declaration。只修改review与索引，没有运行Cargo、App/Editor、Client/Server、PIE、asset cook、Scene roundtrip、network/save/replay、fault/scale/soak/profile或竞争benchmark；selected源码包含其他Session/用户working-tree改动，实施前必须重新取指纹。tooling按用户要求排除。详见`zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor-product-integration-current-source-review.md`。
+
+## 321. Editor AI / Behavior Tree / Blackboard / Perception / EQS 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| AI Editor package | **12 / 2,396 / 2,223 / 83,869 / 18 / 4** | registration、mirror、overlay、controller、两份ZUI及allocation tests；fingerprint `4e9ff1e2df2744cca8f9ee8cb64f0794c3644fc2dc45d6584d8375a9f33e1d9f` |
+| catalog与产品装配 | **6 / 497 / 435 / 18,194 / 8 / 0** | manifest、first-party Editor catalog和App委托；fingerprint `514e8008ff1d92c39293b86e61f33fc817209207bddac337b6fb499d360cdef4` |
+| 共享Editor基础 | **25 / 6,563 / 5,979 / 230,667 / 10 / 0** | extension、factory、asset toolkit、transaction、job、event host、scene mode与overlay provider；fingerprint `8f63690270c94003bbf2377fe4f15cb41382d1a524eb55b6d628860fba4f6c1a` |
+| 静态AI Workbench | **4 / 1,212 / 1,134 / 58,308 / 0 / 0** | 两份workspace、generated bottom route和fixed feedback；fingerprint `868616e63779f7631b44f5d892b87f61ee4aa8b0bf4d80f29317328292369beb` |
+| Runtime debug合同 | **6 / 865 / 798 / 34,998 / 0 / 0** | snapshot、tick、event producer与registration；fingerprint `290b986d6efb56ecc79dbbad49997225e23e8db2d45ad551c5d3df80d78ad4c6` |
+| Unreal AI Editor参考 | **21 / 13,761 / 11,811 / 472,330 / 0 / 0** | BT/Blackboard asset/graph/debugger/diff、EQS、GameplayDebugger、StateTree与SmartObject；fingerprint `de11967eda6fed7f2d8d36fdba6ca784d5ea4e1eb6ac2ffb97a4086e580d0957` |
+| Fyrox、Godot、Bevy与Unity Graphics参考 | **13 / 18,632 / 15,909 / 716,665 / 2 / 0** | plugin/command/undo/debug/asset/graph window与Blackboard controller；fingerprint `7a8437c36d7f7f1f5d29b8e6d36bb4747c6b04b09169cea95eb4998385f4ff5a` |
+
+当前AI Editor仍不是默认产品的一部分。`overlay.rs`继续引用不存在的`ViewportToolModeDescriptor/register_viewport_tool_mode`；first-party Editor catalog只有Navigation/Neural；Import/Open/Validate/Compile/Toggle五个operation没有factory。Behavior Tree palette/Blackboard Table无provider，graph/inspector为`Space`，Perception只有无provider agent Table；mirror和overlay controller没有产品caller/provider。plugin manager active snapshot还遗漏factory/provider等贡献，和retained host直接注册路径语义不一致。
+
+本轮确认了真实局部进展：18-node palette来自Runtime目录，typed runtime consumer具备session/sequence/World隔离，node mirror改为分层map并提供borrowed lookup，overlay具备finite过滤和精确容量预分配，focused tests增至18项并另有4项ignored release allocation evidence。但Runtime每tick仍只发布唯一active node，无法形成active path/parallel node/lifecycle timeline；identity也缺program/schema/source generation、bounded journal和reader lease。
+
+默认Workbench继续固定显示`BT_Enemy`、`BB_Enemy`、`AIController_Enemy`、agent/FOV/hearing/trace，并由feedback写入固定Validate/Simulate/Compile结果。Editor20五项父P0仍为5 Open；Editor89不重复P0，新增60项P1为48 Open/12 Partial、12项P2全Open，32项Gate为26 Fail/6 Partial。目标是`versioned AI sources -> transactional documents -> shared deterministic compiler -> atomic build set -> bounded Runtime152 trace -> generation-qualified Editor debugger/toolkits`。
+
+本轮冻结53个Zircon selected文件、11,533行、426,036 bytes、36项test declaration和4项ignored，以及34个五引擎参考文件、32,393行、1,188,995 bytes。只修改review与索引，没有运行Cargo、App/Editor、PIE、asset import/cook、save/reopen、runtime trace、overlay、EQS、StateTree、Smart Object、fault/scale/soak/profile或竞争benchmark；selected源码含17个modified与2个untracked在途文件，实施前必须重取指纹。tooling按用户要求排除，也未实时跟踪协调器。详见`zircon_editor/89-editor-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-debug-authoring-product-integration-current-source-review.md`。
+
+## 322. Editor Gameplay Ability / Effect / Attribute / Tag Query / Cue / Prediction 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Gameplay Workbench surface | **7 / 1,913 / 1,678 / 116,900 / 0 / 0** | 三份Gameplay ZUI、模块组合、generated bottom与toolbar；fingerprint `36eeb30c1fad7ca4edfb72ee7cb691177d2be5da7ce4eae7ed1114256ae8dff0` |
+| Retained route与binding | **12 / 3,409 / 3,308 / 141,204 / 2 / 0** | preview actions、module/extension field/feedback/navigation、bottom route与binding；fingerprint `c511edd9d42ef7960f91ecb87d90cbdd95690a020ea2e12d68ab5a1723249cd2` |
+| Gameplay focused surface tests | **4 / 2,013 / 1,893 / 72,803 / 23 / 0** | route、field、fixed feedback、native input/pixel与projection；fingerprint `aeeb10cd3f71b3310de574664bfba622b76fd059acd9d3c5c345fd59913c251d` |
+| 共享Editor基础 | **27 / 7,030 / 6,337 / 237,976 / 21 / 1** | asset/toolkit、document、transaction/dirty、operation、job、play与runtime event；fingerprint `362e9f5de5b8977923dba577e0a4473abd995081e84bb4f6b4e19294c4c41525` |
+| Catalog与asset边界 | **6 / 592 / 493 / 19,419 / 8 / 0** | App委托、first-party Editor catalog与26类ResourceKind；fingerprint `55a616e4adc5018873869eec25202a48f0387b749df202d624224060577cea09` |
+| Generic gameplay script host | **11 / 1,803 / 1,696 / 70,608 / 5 / 0** | combat/component/input/lifecycle/navigation/scene/transform/value callbacks；fingerprint `6df9c0ab1771adea0691310749db314eeb67d81b391df66da42cb3aeb699b6c0` |
+| Unreal Gameplay Editor参考 | **44 / 22,001 / 18,014 / 882,183 / 1 / 0** | Ability/Effect/Attribute/Cue/Tag/Query authoring、runtime合同与query test；fingerprint `91d3edcdb466296f3885a2ef204f880ef4f6513c3a224cb5fb61c40cbc9170a0` |
+| Unity Graphics、Godot、Fyrox与Bevy参考 | **14 / 17,109 / 14,732 / 658,416 / 2 / 0** | graph data/validation/undo、inspector/debugger、command与asset loader；fingerprint `14c3b2eacea1b53da211f2d0f0931871b5ea4913028471a7991270e181987c65` |
+
+三份Gameplay ZUI合计771行、90个node、68条route、0个provider，固定展示`GE_HealthRegen`、`GE_DamageFire`、`GA_DashAttack`、`DefaultGameplayTags.ini`、`Server Initiated`与`+50 health`。当前在途改动把selected/checked从ZUI预置迁到live初始化并让命令按钮保持momentary，但`componentized_window.rs`仍默认选择Effect，领域真相没有变化。
+
+`module_field_edit.rs`仍只修改控件`value/value_text`；`module_command_feedback.rs`仍固定写sample persisted、compile queued、changes compared、applied +50 health、predicted activation与Tag pending。九类Gameplay bottom row只有route/control/module/panel/mode metadata。focused tests证明route、字符串、input和像素，不证明asset、document、compiler、sandbox、PIE、network或migration。
+
+共享asset/toolkit、document/transaction/dirty、operation、job、Play Session和runtime event consumer是真实底座，但Gameplay没有消费它们。26类`ResourceKind`没有Tag/AttributeSet/Effect/Ability/Cue，first-party Editor catalog只有Navigation/Neural，生产代码对ASC/spec/active effect/attribute set/tag container/query/cue/prediction key精确命中总数为0。
+
+Editor21五项父P0 current-source复核仍为5 Open；Editor90不重复P0，60项P1为48 Open/12 Partial、12项P2全Open，32项Gate为28 Fail/4 Partial。目标固定为`versioned Gameplay sources -> transactional documents -> shared deterministic compiler -> atomic GameplayBuildSetArtifact -> sandbox/PIE/network-qualified runtime -> generation-qualified Editor projections`。
+
+本轮冻结67个Zircon selected文件、16,760行、658,910 bytes、59项test declaration和1项ignored，以及58个五引擎参考selected文件、39,110行、1,540,599 bytes、3项test declaration。只修改review与索引，没有运行Cargo、App/Editor、asset create/import/cook、save/reopen、sandbox/PIE、client/server、prediction、cue、tag migration、fault/scale/soak/profile或竞争benchmark；selected源码含其他Session/用户在途改动，实施前必须重取指纹。tooling按用户要求排除，也未实时跟踪协调器。详见`zircon_editor/90-editor-gameplay-ability-effect-attribute-tag-query-cue-prediction-debug-authoring-product-integration-current-source-review.md`。
+
+## 323. Editor Material / Shader Graph / Material Instance / VFX / Particle 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Editor产品面、projection、operation、UI asset session与catalog | **81 / 17,067 / 16,079 / 700,047 / 82 / 3** | 四份Workbench、route/binding/feedback、Material/RendererData projection、UI document/save/refresh、asset registry、catalog与App接线；fingerprint `b6367ea175e514bd6aee6db1db496cd0f2da5e004180638ffb6cea6cb733e7b0` |
+| Material/Shader source、asset、plugin、importer与compiler | **42 / 7,284 / 6,659 / 258,125 / 37 / 6** | Material plugin、WGSL importer、authoring graph、Material/Shader asset及未跟踪`default_pbr.rs`；fingerprint `d387556b4e922854bdb764d019b328084861244c4448d43ab1f58e7c9da6da4d` |
+| Particle/VFX/Shader Graph package与runtime | **74 / 9,568 / 8,678 / 335,241 / 52 / 1** | Particles editor/runtime/template/tests、Shader Graph/VFX Graph editor/runtime feature；fingerprint `9bca1c27b86ade465fcee1a3c573fa584087862853dbd92f84c5ffa189631282` |
+| Unreal、Unity Graphics、Godot、Fyrox与Bevy参考 | **43 / 64,283 / 55,428 / 2,642,860 / 约63 / 0** | graph model/validation/generation、target、undo、compiled data、preview、stats、shader cache与focused tests；fingerprint `68cf86e052a72c0c0fbe89329bd14c40c93c52b2500e17116ada610c7c0320fd` |
+
+四份Rendering Workbench合计884行、103个node、71条event route、0个provider，固定展示`M_Rock_Cliff`、`P_Bolt_01`、`lighting.wgsl`与`P_Sparks`。对应callback继续写`preview persisted`、`compile queued`、`compile complete, 2 warnings`、`simulation running, no errors`和`60 fps preview`；field edit只改control value，没有document、transaction、dirty、compiler ticket、artifact generation或runtime receipt。
+
+共享Editor已具备operation factory、transaction、document toolkit、save/autosave、CAS/refresh与job；Material/Shader已有强asset/validation合同，WGSL importer真实运行Naga，Particles已有CPU/GPU runtime。领域产品仍未消费这些底座：first-party Editor catalog只有Navigation/Neural，Material两个声明资源物理缺失，Material/Particles operation只有descriptor，Particles菜单disabled，Shader/VFX Editor只有capability descriptor。
+
+当前仍并存多套Material/Shader graph schema。Material compiler只求值base color；Shader Graph直接拼未Naga验证的WGSL并调用未定义texture helper；VFX compiler返回固定pass，Shader/VFX executor均no-op。Editor15五项父P0 current-source复核仍为5 Open；Editor91不重复P0，60项P1为21 Open/39 Partial、12项P2全Open，32项Gate为21 Fail/11 Partial。
+
+本轮冻结197个Zircon physical selected文件、33,919行、31,416非空行、1,293,413 bytes、171项test declaration和10项ignored，以及43个参考文件、64,283行、2,642,860 bytes。selected范围包含49个既有tracked修改和1个未跟踪材质文件；本轮只修改review与索引，没有运行Cargo、App/Editor、asset create/import/save/reopen/cook、GPU preview、particle parity、fault/scale/soak/profile或竞争benchmark。tooling按用户要求排除，也未实时跟踪协调器。详见`zircon_editor/91-editor-material-shader-graph-material-instance-vfx-particle-preview-compiler-diagnostics-authoring-product-integration-current-source-review.md`。
+
+## 324. Editor Terrain / Landscape / Foliage / Scatter / World Partition / Level Streaming 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Terrain插件全量 | **16 / 1,072 / 971 / 38,904 / 10 / 1** | manifest、Editor typed import plan与operation descriptor、Runtime DiagnosticOnly importer、stateless dist及focused tests；fingerprint `0969623ed6793b55e014d0b50cced3b8e697e045b79f685684290b008d309366` |
+| Editor产品面、路由、catalog与App接线 | **26 / 6,579 / 6,280 / 301,938 / 17 / 0** | 四份World Building ZUI、76个action引用、navigation/binding/fixed feedback、operation dispatch与first-party catalog；fingerprint `9f16dcfc29343546bcb0bf22baae5c449af413a5a272dd700581df0e283a90d2` |
+| Editor共享authoring承接 | **125 / 22,420 / 20,205 / 746,518 / 202 / 8** | document、operation、transaction/journal、job与scene-mode stack；fingerprint `881689da38b438ed740a5b81686f591427a224367c60e5c13d315696a97746b5` |
+| Runtime downstream、catalog、Physics/Nav与Vampire oracle | **43 / 11,940 / 10,761 / 427,072 / 24 / 2** | Terrain/Scene carrier、World roundtrip、LevelSystem、descriptor-only render、HeightField/Nav及普通mesh/static grass示例；fingerprint `ab962df4e2d7f42a6a273870f4c7a22fcc0bf23d119ff6c28058b3d49314fed2` |
+| Unreal、Fyrox、Godot、Unity Graphics与Bevy参考 | **44 / 42,148 / 36,073 / 1,620,391 / 15 / 0** | Landscape/Foliage笔刷与事务、cell/source/data-layer/HLOD、Fyrox真实Terrain、heightmap physics、TerrainLit/GPU-driven与visibility/batching；fingerprint `bfe6a7ee37c52a4997c254c6a07cd8c4be32a5c3ef02653ac9e4671107a1050d` |
+
+当前Terrain Editor有局部真实进展：RAW/R16/PNG已成为typed source format，sample count采用`u64::checked_mul`与`usize::try_from`，LayerStack会fail-close，扩展名canonicalization也已补齐。但它仍不读取或解码bytes，不创建source/artifact/document；当前唯一ignored项只是import planning allocation microbenchmark，不能替代产品证据。
+
+Terrain package仍未进入first-party Editor/Runtime executable provider catalog和App默认组合，三份声明资源不存在，Import/Create/Open/Sculpt无operation factory，README所称scene mode实际为空，runtime importer继续固定返回backend未安装。SceneAsset carrier能保存Terrain reference，但World load不消费且save仍固定`terrain: None`；Graphics Terrain是descriptor-only零pass，Physics HeightField与Navigation都未接canonical Terrain generation。
+
+四份World Building ZUI合计920行、108个node、76个直接action引用、0个provider，固定显示Summit Valley、64 cells、84K instances、128 clusters、SC_Forest、18 rules、96 cells与96 MB。route只选择workspace/tab/row或修改control；feedback只写status/message/output，既无document transaction，也无build/stream ticket或runtime snapshot。按钮不再预置selected/checked只是正确的UI语义修复，不改变产品能力。
+
+Editor16五项父P0 current-source复核仍为5 Open；60项P1为58 Open/1 Partial/1 Closed，其中checked sample count关闭、LayerStack fail-close为Partial；12项P2全Open，32项Gate为30 Fail/1 Partial/1 Pass。目标是`versioned world sources -> transactional authoring documents -> bounded incremental build jobs -> immutable artifacts -> runtime generation swap -> generation-qualified Editor projection`，并严格由Runtime142承担Terrain/Foliage/Streaming执行backend。
+
+本轮冻结210个Zircon physical selected文件、42,011行、38,217非空行、1,514,432 bytes、253项test declaration和11项ignored，以及44个五引擎参考文件、42,148行、1,620,391 bytes。selected范围含95个用户或其他Session的在途文件；本轮只修改review与索引，没有运行Cargo、App/Editor、PIE、asset import/cook、GPU capture、physics/nav、streaming、fault/scale/soak/profile或竞争benchmark。tooling按用户要求排除，也未查询或实时跟踪协调器。详见`zircon_editor/92-editor-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-product-integration-current-source-review.md`。
+
+## 325. Editor Sound / Audio Clip / Mixer / Spatial / Acoustic / Timeline / Audition 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Sound Editor与optional feature editors | **25 / 1,607 / 1,436 / 60,362 / 10 / 0** | plugin、33条operation descriptor、五份ZUI、live-output controller/DTO和两个feature壳；fingerprint `dede832f3ce7753ab3e08666ffe0bbed9f95ad294a2941441f9e7b7b772eba13` |
+| Editor shared/product boundary | **142 / 24,467 / 22,144 / 820,361 / 188 / 8** | first-party catalog、asset type/toolkit、document、transaction、operation、job与asset-open dispatch；fingerprint `fdda2aa9a77f90284f2d11f9e6427d87a4c88a013b4005cdd7b865076a4fec6e` |
+| Runtime/asset/import/provider downstream | **313 / 22,325 / 20,371 / 772,170 / 147 / 11** | Sound生产路径、Audio/Sound合同、asset/importer、runtime catalog、App Sound命中与optional runtime/dist；fingerprint `798db94f99a3897564eb294eb3afb6c0e1279fe2b808ee8af4a224080b483f11` |
+| Zircon selected union | **480 / 48,399 / 43,951 / 1,652,893 / 345 / 19** | current physical tree；64个selected文件含其他Session/用户在途改动；fingerprint `6df17124f34673629cd7783f7f9d5a0d857de0ae692555338c76a47da09f4584` |
+| Unreal、Godot、Fyrox、Bevy与Unity Graphics边界参考 | **38 / 26,411 / 22,647 / 962,793 / 5 / 0** | asset toolkit/reimport、Submix/MetaSound graph、waveform/bus/undo、Rust preview/streaming、ECS runtime边界；Graphics仅验证非Audio owner；fingerprint `550f2fc72ed08ed1c558d568e8e91eea62081e2d4b0f3c3384c9aa4a9e124027` |
+
+Sound Editor当前发布两个view、一个generic drawer、三类component customization与33条operation descriptor，但first-party Editor catalog没有Sound，builtin Sound asset没有toolkit。Sound helper只调用`register_command`，全仓没有这33条路径的operation factory；产品dispatch会进入typed `MissingFactory`。五份ZUI合计301行、43个node、29个`Space`和3个Button，只有Refresh/Start/Stop声明inline route，且三条route都没有controller binding。
+
+`SoundEditorLiveOutputController`能通过neutral manager trait枚举设备、读取状态并configure/start/stop，是应保留的真实底座；但产品代码仅重导出类型，没有host factory、view model、generation或shutdown owner，当前行为覆盖只使用fake manager。Audio Clip toolkit/document、waveform、transport/scrub、import settings/reimport diff、Mixer document/transaction/compiler/meter、scene gizmo/World bridge、Acoustic overlay、Timeline track provider均不存在。
+
+当前Runtime在Runtime139之后增加常见多声道WAV layout直达、Symphonia bounded initial reserve与scratch reuse、automation graph局部COW消除、timeline容量/retention及in-place filter优化。这些变化仍完整decode到resident PCM，active automation仍显式Unsupported，timeline仍由`delta_seconds`推进，也没有改变25个Sound Editor/feature editor文件，因此不关闭Editor17任何条目。
+
+Editor17五项P0、60项P1、12项P2 current-source重判全部Open；32项Editor Gate全部Fail。目标固定为`versioned audio sources -> transactional authoring documents -> bounded derived artifacts -> immutable mixer/timeline build sets -> generation-bound runtime audition/world bridge -> truthful Editor projection`。本轮只修改review与索引，没有运行Cargo、Editor、真实声卡、asset import/cook、save/reopen、PIE、hotplug、fault/scale/soak/profile或竞争benchmark；tooling按要求排除，也未查询或实时跟踪协调器。详见`zircon_editor/93-editor-sound-audio-clip-mixer-routing-effect-spatial-acoustic-timeline-audition-product-integration-current-source-review.md`。
+
+## 326. Editor Physics Material / Collider / Joint / Cook / Ragdoll / Debug / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Physics Editor/plugin | **13 / 709 / 637 / 25,310 / 4 / 0** | plugin manifest、四份ZUI、五个有效command descriptor、overlay与ragdoll generator；fingerprint `c63d61e449b2f197db636ea2c6728da9370e3ecffcd81debe42f1f6485a36523` |
+| Physics Workbench route selected | **7 / 1,731 / 1,526 / 98,424 / 0 / 0** | 两份workspace、assets/index入口、navigation specs与固定feedback；fingerprint `ed07388538c5bf124df7f932843eadaab8eb12984445b6c7a4a386be83e3b578` |
+| Editor shared/product boundary | **287 / 37,261 / 33,739 / 1,320,506 / 254 / 8** | asset type、document、transaction、job、extension/provider、viewport与Workbench dispatch；fingerprint `e44b11930367d35c6aa1d6d4cc7ae4bdcabfc14b2e20a09ab1a53221a29ecef9` |
+| Runtime/asset/backend downstream | **130 / 16,143 / 14,938 / 561,551 / 104 / 2** | Physics runtime、framework contracts、Scene physics、Physics Material/importer与selected tests；fingerprint `eb501d2c05ff7e76a383b40bfdd6c36f636e3adaa2dcb56ef6a8e10bc8455448` |
+| Zircon selected union | **417 / 53,404 / 48,677 / 1,882,057 / 358 / 10** | current physical tree；147个selected文件含用户或其他Session在途修改；fingerprint `ab41d1240825b399f88cb8f5d7d4bb95ae88f7c3aaf6fcb9feeb667c2677bd53` |
+| Unreal、Fyrox、Godot、Bevy与Unity Graphics边界参考 | **33 / 13,749 / 11,641 / 502,267 / 3 / 0** | PhysicsAsset transaction/selection/simulation、Collider gizmo/command、Godot handles/UndoRedo、fixed time及VFX downstream consumer；fingerprint `b4ff07111c25c39c312bda054e509fa7651f46a250c8ff94859a1cc41c8ece44` |
+
+Physics插件当前注册Authoring、Diagnostics、Debug Overlay与Ragdoll Profile surface，但五个有效command全部只发event；debug toggle和ragdoll create均为OpenView语义，operation factory、cook job、preview owner和terminal artifact为0。四份ZUI合计17个node、11个`Space`、0个event。`build_physics_overlay`与`generate_initial_ragdoll_profile`只有定义、重导出和测试，没有production caller；已打开的overlay provider failure仍成立。
+
+Collision Proxy与Physics Collision两份Workbench共有38条业务route。通用dispatch对tab/row只改变selection，对field只切popup/control，对command只调用固定feedback；Bake/Test Contacts/Simulate/Validate不会创建JobId、运行Physics PreviewWorld、调用Jolt或产出artifact，却固定显示18 proxies、42 percent、6 hulls、124 bodies、32 contacts、82 kg、4 manifolds和1 warning。
+
+Scene/Runtime已有可保留的RigidBody/Collider/Joint/Material schema、Jolt/builtin backend、query/contact/trigger、manager/world sync与ragdoll partial-spawn rollback，但默认Editor catalog仍无Physics，Physics Material仍无toolkit，Collider/Joint完整Inspector、gizmo、CollisionProfile、cook source/artifact、Ragdoll document/PreviewWorld及generation-bound debug/diagnostics均未形成产品闭环。旧Editor18关于Fyrox无独立Physics authoring的判断已纠正：当前本地Fyrox已有Collider plugin、2D/3D shape gizmo、pick/drag、`SetPropertyCommand`、Try Fit及Trimesh/Convex collider创建。
+
+Editor18五项P0、60项P1、12项P2 current-source重判全部Open；32项Editor Gate全部Fail。目标固定为`versioned physics sources -> transactional authoring documents -> bounded immutable cook artifacts -> isolated preview generation -> Runtime backend acknowledgement -> truthful Inspector/Gizmo/Workbench/Overlay projection`。本轮只修改review与索引，没有运行Cargo、Editor、Jolt native preview、asset import/cook、save/reopen、PIE、export、fault/scale/soak/profile或竞争benchmark；tooling按要求排除，也未查询或实时跟踪协调器。详见`zircon_editor/94-editor-physics-material-rigidbody-collider-joint-collision-profile-cook-ragdoll-debug-preview-product-integration-current-source-review.md`。
+
+## 327. Editor Navigation / NavMesh / Bake / Query / Debug / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Navigation Editor/plugin | **34 / 3,901 / 3,517 / 136,806 / 30 / 0** | manifest、4 surface、5 template、5 component customization、5 operation、2 toolkit augmentation、runtime mirror与provider；fingerprint `dab248c433019c4b2ecb03619de0100403f5d7903928981738756251b8510331` |
+| Navigation Workbench selected | **7 / 2,644 / 2,468 / 141,692 / 0 / 0** | assets/index入口、230行Navmesh AI workspace、binding/spec/feedback/preview action；fingerprint `392db23efe529518b448809f8f45428827482fee9a5cb241671f00701700185a` |
+| Editor shared/product boundary | **417 / 65,401 / 60,190 / 2,325,158 / 355 / 9** | asset、document/editing、jobs、extension、runtime consumer、viewport与Workbench dispatch；fingerprint `04b49c69cc860879339a27d70f26d9f3129afac436a12c61082b55ea188104b7` |
+| Runtime downstream selected | **183 / 49,284 / 43,730 / 1,575,995 / 156 / 7** | plugin runtime/native、framework/builtin Navigation、Bake handler、overlay frame与focused tests；fingerprint `e62647933d1f874ceed83e9881307a1ff5a66cf6350adcd8bd1a3a9f0826245a` |
+| Zircon selected union | **599 / 114,627 / 103,868 / 3,899,047 / 511 / 16** | current physical tree；fingerprint `2d20ee49a98581ba14fd7fd133d233fcb1e6658f13464ab9c13931828cc792d4` |
+| Unreal、Fyrox、Godot、Bevy与Unity Graphics参考 | **36 / 28,341 / 24,000 / 1,056,747 / 0 / 0** | dirty/tile build、TestingActor与query tests、navmesh可逆编辑、region/link/obstacle bake/gizmo、plugin lifecycle和debug consumer；fingerprint `8c703e7f39cd4a480473a59d8a9dbe2e9e3bc1ac57e7157c0646f1383082b58f` |
+
+Navigation默认App/catalog装配、framework DTO、Recast/Detour/Crowd/TileCache、typed selected-surface payload、V2 operation progress、PIE session/sequence/owner-generation拒旧和viewport provider都是真实基础。但11份插件ZUI合计455行、55个node、12个`Space`、3个Button和5处route，其中11个`Space`是资产、component与authoring业务占位，另1个只是Bake toolbar filler；NavMesh/Settings toolkit仍为空，六类Runtime component只有五类空drawer，OffMeshBridge没有customization。
+
+Bake产品链仍自相矛盾。ZUI和retained model已投影stable `surface_entity`与`force_full_rebuild`，但controller只有测试构造者，surface rows、progress和diagnostics无产品producer；Bake Scene也不消费同一checkbox。Runtime `BakeScene/BakeSurface`的prepare/apply固定返回错误，而focused runtime test仍要求Bake成功后继续Clear/Restore。Editor command还在UI线程最多16次`yield_now`轮询，并在submit后的协议/terminal失败上标记Applied。
+
+Overlay frame和provider已有局部真实进展，近期全分类路径避免一次中间snapshot clone；但toggle descriptor没有executor，四个filter checkbox没有event，provider强制Default options、只消费PIE并用selection或0作为owner，缺编辑态source、per-viewport状态、static page/dynamic delta、culling/LOD/budget。230行Navmesh AI Workbench含27个control和19条route，仍固定展示`NavMesh_Main`、`Query_Patrol`、`Tile 12_08`、`96 polys`、`Door_A03`、`18 tiles`与`4 agents`；Rebuild/Query只写预制queued反馈。
+
+Editor19的5项P0、60项P1、12项P2 current-source重判全部Open，32项Editor Gate全部Fail；Editor95只刷新currentness，不重复增加canonical finding总数。Runtime141继续唯一持有world/backend/geometry/artifact/query/Crowd/streaming/native性能差距。目标固定为`NavigationAuthoringDocument + SceneProjection + NavigationAuthoringGateway + bounded Bake Job + immutable artifact transaction + QueryPreviewSession + generation-bound bounded observation`。本轮只修改review与索引，没有运行Cargo、App/Editor、Recast native、真实asset/Bake/query/PIE、fault/scale/soak/profile或竞争benchmark；tooling按要求排除，也未查询或实时跟踪协调器。详见`zircon_editor/95-editor-navigation-navmesh-settings-agent-area-surface-modifier-obstacle-off-mesh-link-bake-query-debug-preview-product-integration-current-source-review.md`。
+
+## 328. Editor Rendering / Render Graph / Capture / Bake / Probe / Post Process 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Rendering plugin/editor selected | **73 / 2,379 / 2,077 / 79,498 / 9 / 0** | plugin.toml、根与15个feature Editor、根Runtime capability和dist/workspace；fingerprint `bccdf74ae4ec7fb2eb2f6172e1d9e32abe0162ee0f7de313b7fe4405f92aaa7c` |
+| Catalog与默认产品装配 | **19 / 2,645 / 2,441 / 97,470 / 19 / 0** | builtin manifest projection、first-party catalog、App feature lane与Editor manager测试；fingerprint `541fcdc90d97ea329d0a12ebe0028ede619e9cd06d08bdf2a6fcb71e974c2d28` |
+| Rendering Workbench selected | **27 / 9,932 / 9,529 / 439,815 / 27 / 0** | 三份workspace、generated bottom、binding/spec/feedback/field edit和focused tests；fingerprint `a93c3f9235e72fa5cf22f51d0d4477e537200874e7ac4e7e55cade4fef143479` |
+| Runtime边界 selected | **28 / 6,065 / 5,515 / 217,462 / 50 / 0** | graph/profile/capture、baked lighting、probe与Post Process typed volume；fingerprint `f77a69f9d42430937a755ba4355a2cacb46d4ea63e411116a163bf6706bb7e42` |
+| PBR Viewer capture selected | **5 / 3,934 / 3,626 / 160,009 / 60 / 0** | RenderDoc 1.4.1 ABI、capture请求、路径和非空rdc artifact验证；fingerprint `7a7db5d7727c965176919cd9c6aa7286d14b3a5bdfab653454922bfef92eef09` |
+| Zircon selected union | **152 / 24,955 / 23,188 / 994,254 / 165 / 0** | current physical working tree；fingerprint `7956dd0ad78ad88a76ff3b65029e5b04a34ed37a554dab3b69d7a99c0f32fd31` |
+| Unreal、Unity Graphics、Godot、Fyrox与Bevy参考 | **42 / 19,303 / 16,496 / 768,308 / 0 / 0** | RenderDoc/Profiler/Graph trace、RenderGraph Viewer、Volume/Bake、LightmapGI、Fyrox worker与Bevy diagnostics；fingerprint `2378abe6b4c9d5981a943a5c8bf2a48aa0975d2f029ce65c2eb20b2576e83ce1` |
+
+Runtime现有Render Graph reports、RenderFrameProfile、GPU timing status、generation-qualified CapturedFrame、有界readback、typed Post Process scene volume和PBR Viewer RenderDoc桥是真实底座。但builtin catalog row只是manifest descriptor投影，不是已加载provider；默认App仍没有Rendering Editor依赖，66个Editor Rust文件仅有16次capability注册，extension/provider/operation/consumer/lifecycle注册均为0。manifest与Runtime列出15项feature，Editor manager测试仍只断言9项，遗漏volumetric fog、OIT、light cookies、irradiance volumes、planar reflections和subsurface scattering。
+
+Render Pipeline、Lighting Bake与Post Process三份Workbench各27个control、19条route，固定显示`Frame 1234`、`GPU 6.24 ms`、`87 assets`、`4 warnings`、`12 volumes`、`02:30`、`Global Stack`、`Bloom 0.65`和`EV +2.1`。command只写固定compiled/queued/applied文本，field edit只改变retained control value/value_text；generated bottom的Render Pipeline五行只是route label。`ReflectionProbeCaptureEditorTrigger`虽有capture/persist/register薄适配和2个roundtrip测试，但没有产品caller、operation、job、transaction、selection或lifecycle，其Runtime下游还调用已删除方法。
+
+Editor22的5项P0、60项P1、12项P2 current-source重判全部Open，32项Editor Gate全部Fail；Editor96只刷新currentness，不重复增加canonical finding总数。Runtime89/90/96/97/99c继续唯一拥有graph/RHI/probe/baker/Post Process执行。目标固定为`transactional render documents + generation-qualified observation + bounded build/capture jobs + immutable atomic artifacts + truthful toolkit/viewport/workbench projection`。本轮只修改review与索引，没有运行Cargo、App/Editor、真实GPU capture、RenderDoc、Bake、save/reopen、PIE、fault/scale/soak/profile或竞争benchmark；Tooling按要求排除，也未查询或实时跟踪协调器。详见`zircon_editor/96-editor-render-pipeline-render-graph-frame-debugger-capture-lighting-bake-reflection-probe-post-process-debug-product-integration-current-source-review.md`。
+
+## 329. Editor UI Asset / HUD / Widget / Binding / Theme / Icon / A11y / Menu Flow / Font Atlas 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| UI Asset editor core | **95 / 25,748 / 24,025 / 901,839 / 31 / 0** | typed session、V1/V2 projection、palette/drop、binding、preview、style/theme、source与undo/replay；fingerprint `a5f6d3617b1e891f9ad809871605eaee08b1f80bb2fd2492ff51bef0456d426f` |
+| Host session与retained app | **70 / 7,242 / 6,709 / 273,558 / 34 / 0** | open/save/hydration/watcher/dependency refresh及retained actions；fingerprint `2dee428f7ddf8344616dbdcd3cca0fec372b3a35da1266fe8759ca6f51595ceb` |
+| Authoring/importer plugins | **16 / 1,308 / 1,187 / 48,159 / 16 / 0** | experimental authoring descriptors与真实`.zui` V2 importer；fingerprint `80d787f25d0eba4760e1f26b59fb41573f7cd30be3500209caf4a9aa19ae12d3` |
+| Product surfaces与Workbench callbacks | **19 / 5,505 / 5,069 / 277,762 / 2 / 0** | UI Asset ZUI、HUD/六extension、navigation/feedback/field edit与font artifact consumer；fingerprint `cbbfd36dc7eb360328f93e9f964faf3f794268b12e11d0677982340d8716ef63` |
+| Focused Editor tests | **102 / 33,919 / 31,198 / 1,191,429 / 448 / 0** | UI Asset/Workbench/ZUI governance结构与小fixture覆盖；fingerprint `cb54e7272039c9da1c68f6a200569a7e58c97a26de8084c3cea31e4b5e599df5` |
+| Runtime/interface boundary selected | **145 / 21,065 / 19,229 / 702,177 / 166 / 0** | V2、component/binding schema、a11y/focus/navigation与glyph atlas边界；fingerprint `edf1003b157cd3e17ba61cf737a33eaf87aa32f57c75f27deb3b2d942bf3b622` |
+| Zircon selected union | **447 / 94,787 / 87,417 / 3,394,924 / 697 / 0** | current physical working tree；UI authoring直接选择集含30个用户或其他Session在途文件；fingerprint `bf2be08280f381773a1dc9235c4a745646e49a8c8b221bba9627ce680b91c38f` |
+| Unreal、Unity Graphics、Godot、Fyrox、Bevy与Slint参考 | **32 / 31,068 / 26,704 / 1,123,180 / 101 / 0** | UMG compiler/factory/transaction、Godot canvas/theme、Fyrox command、Bevy runtime truth、Unity serialized transaction与Slint source-version edit；fingerprint `723b2a8c9091e71cb1e0c911e96d38de40689958e34b932b22252bc79ec46c10` |
+
+V2 authoring仍经legacy projection回写，明确丢失repeat、node slots、ThemeTokens、unknown/trivia与不可达节点；V2 node还没有legacy schema已有的focus/navigation/picking/a11y/widget。普通Save现已具备CAS、staging、flush/sync、atomic replace和成功后mark clean，是实质进展，但reimport失败仍被吞，keep-local合同与CAS测试矛盾，promote及external-effect undo/redo仍无跨资产transaction。
+
+真实UI Asset Editor具有typed session、真实UiSurface、component/slot catalog、binding/theme inspection、watcher generation与replay底座，但Designer只有Select/ResizeSlot/PreviewInteract，PreviewInteract不进入真实input链。HUD加六份extension ZUI共1,665行、196个node、140条route，继续固定Gameplay_HUD、WBP_Inventory、Health.Value、icon-warning、Screen_Start、Inter UI与计数；handler只改control或返回预制成功。
+
+Authoring plugin虽已进入workspace并标为experimental，四个resource URI仍不存在，Create只OpenView且无factory，default minimal host禁用。`.zui` importer可真实生成V2 View/Style/Component，但没有依赖闭合的cooked artifact。Editor23的5项P0重判为2 Open/3 Partial，60项P1为41 Open/19 Partial，12项P2为11 Open/1 Partial；32项Gate为29 Fail/3 Partial。Editor97只刷新currentness，不重复增加canonical finding总数。
+
+目标固定为`lossless UiAuthoringDocument -> validated transaction -> revision CAS -> import/compiler/cook receipt -> immutable runtime artifact generation -> real UiSurface/runtime snapshot -> truthful Editor projection`。本轮只修改review与索引，没有运行Cargo、Editor、asset import/cook、save/reopen、PIE、screen reader、IME、GPU/font atlas、fault/scale/soak/profile或竞争benchmark；Tooling按要求排除，也未查询或实时跟踪协调器。详见`zircon_editor/97-editor-ui-asset-hud-widget-binding-theme-icon-accessibility-menu-flow-font-atlas-authoring-product-integration-current-source-review.md`。
+
+## 330. Editor Data Table / Structured Data / SaveGame / Platform / Cloud Storage 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Editor产品、asset registry与Workbench | **28 / 5,818 / 5,523 / 259,927 / 5 / 0** | 两份workspace、callback/navigation/binding、builtin Data presentation/toolkit边界；fingerprint `439c1c4c51fc6b875a2a7f55f531ce4c260bd92c2f9fda5bd7f897f957cd76e7` |
+| Data import与artifact selected | **43 / 12,390 / 11,284 / 446,754 / 107 / 7** | generic DataAsset/DataMarker、builtin/plugin import、artifact、selection与focused tests；fingerprint `9729e2e136f3bb771d56cb435a1db58018b10e12ee67e6f93660ff7e9757a97c` |
+| Session Archive与focused support | **591 / 18,162 / 16,416 / 641,022 / 128 / 3** | 568-file production owner、capture/spawn support及archive tests；fingerprint `672f53ffdcb4d133bba7269884e3f0fa92cfbccc432438217983e140c323a76d` |
+| Platform preferences、atomic transaction与serialization | **85 / 14,769 / 13,391 / 485,934 / 132 / 6** | capacity/permission、stage/commit/journal/recovery与versioned encoding底座；fingerprint `867b4e5550169c7c227c97c8172dca0d21fd631a6823f4329098b76b799fb28a` |
+| Zircon selected union | **747 / 51,139 / 46,614 / 1,833,637 / 372 / 16** | current physical working tree；49个selected项含用户或其他Session在途修改/拆分；fingerprint `d953cff411a1e75031d2a1cf3e0485b48c997016aa36e7f12409dc66e7b3de99` |
+| Unreal、Godot、Fyrox、Bevy与Unity Graphics参考 | **23 / 9,893 / 8,483 / 365,792 / 10 / 0** | typed DataTable/editor、platform SaveGame async service、user storage、versioned visitor、reflect scene与serialized container；fingerprint `86e0ffc673d8e1777645c26a2c12ebbf0882dc5f1e9fb573eb759b56852a8520` |
+
+`DataAsset`仍只有URI、五类format、完整text和canonical JSON；`DataMarker`/`load_data_asset`只证明generic kind-typed load。builtin Data仍无factory/toolkit，Data `direct_references`为空，CSV/TSV、stable schema/row/field ID、validation、migration、cooked table与typed runtime row lookup均缺席。builtin TOML/JSON借用source parse和plugin XML单遍child扫描是局部进展，但读取前budget、YAML alias/depth、mixed-content顺序、attribute namespace及raw/canonical多份内存仍未解决。
+
+Engine内没有SaveGame service、participant、platform-user/profile、Save envelope、migration planner、cloud provider或产品caller。Session Archive已有dense index、lineage/revision、sealed artifact、512 MiB上限、retention和bounded writer，但其568个production文件仍是无产品consumer的组合facade；持久hash、CAS、crash durability、participant restore和platform identity均不足，不能改名冒充SaveGame。
+
+Data Table与Save Data两份Workbench共468行、55个node、38条route、0 provider，继续固定DT_Items、Schema_Item、128 rows、512 refs、AutoSave_01、SaveData v4、LZ4和queued成功；近期仅移除Save按钮错误selected/checked外观。Editor24的5项P0重判为4 Open/1 Partial，60项P1为46 Open/14 Partial，12项P2为11 Open/1 Partial；32项Gate为29 Fail/3 Partial。Editor98只刷新currentness，不重复增加canonical finding。
+
+目标必须分成`lossless/schema DataTable document -> cooked table generation -> typed runtime handle`与`Save participant capture transaction -> protected envelope -> platform atomic generation/cloud etag -> staged restore -> terminal receipt`两条链。本轮只修改review与索引，没有运行Cargo、Editor、Data import/cook、Save/Load、断电、磁盘满、跨进程、platform user、cloud、fuzz、scale、soak或benchmark；Tooling排除，也未查询或实时跟踪协调器。详见`zircon_editor/98-editor-data-table-structured-data-schema-import-validation-save-game-slot-migration-platform-cloud-storage-authoring-product-integration-current-source-review.md`。
+
+## 331. Editor Runtime Diagnostics / Performance Timeline / Console / Telemetry / Observability 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---:|
+| Workbench静态 diagnostics surface、binding、navigation、feedback | **16 / 5,562 / 5,265 / 288,169 / 2 / 0** | 4个ZUI workspace、108个nodes block、76条route、固定session/metrics/feedback；fingerprint `233d3f68fb9530b597cbc2695d726118ff88afca6a0f33c4fc186e94ea1a0187` |
+| Editor real observability product、gateway、pane、visibility、host lifecycle | **71 / 14,108 / 13,337 / 524,249 / 61 / 3** | runtime diagnostics、performance timeline、profile action/merge、payload/builder、conversion与host recompute；fingerprint `f2c0183fd62801797a5ac7589923dd25e02b1bbf3328d47ee0ec0a4a532dd297` |
+| Runtime diagnostics、profiling、dynamic ABI与output budget | **73 / 15,161 / 14,361 / 500,040 / 94 / 2** | 62个diagnostics/profiling owner文件、runtime collector、child response、interface retention；fingerprint `4b3bf6baee9dba1efc9a2ccf2e12efdc2f61f5063afe68b30e05899e69bb35f1` |
+| `runtime_diagnostics` plugin package | **9 / 436 / 395 / 16,128 / 4 / 0** | manifest、dist/editor capability、builtin view contribution与missing authoring URI；fingerprint `4f68b585158eb145d169ae6b5778cfde2a2d066c2595b7e06509663265005aaf` |
+| focused tests | **15 / 4,684 / 4,434 / 168,787 / 37 / 0** | descriptor、pane projection、dynamic diagnostics、profile retention/merge focused inventory；fingerprint `9a2b452c6179192625346a1a001d8da443259dd11e0dff98b5aa3c07dd5abb31` |
+| Zircon selected union | **180 / 39,014 / 36,868 / 1,460,580 / 198 / 5** | current physical working tree；fingerprint `508b6b782e4dea09fae5c71cccf2b7c940987ff6cd4e89d2ee586f3dece32315` |
+| Unreal、Godot、Bevy、Fyrox与Unity Graphics参考 | **17 / 11,021 / 9,830 / 406,228 / 0 / 0** | AnalysisSession/provider/Timing View、debugger session/profiler、diagnostic/remote、stats/engine与DebugManager/frame timing；fingerprint `414d48196c96d70b0959e36a73833ce19ed4c0a3655f2dd37f6ba6cc0d7b9fbf` |
+
+当前Runtime的authority store写回、current-only snapshot、VG availability、ring capacity、finite budget、retention与局部capture epoch是实质基础，但不构成跨进程观察合同。Editor99的P0重判为5 Open/1 Partial；P1为54 Open/5 Partial/1 Closed；P2为11 Open/1 Partial；32门为28 Fail/4 Partial。Workbench fixture、child diagnostics未消费、错误profile merge、presentation同步observer effect、无界metric cardinality、Telemetry空authority与plugin missing resource仍是主断路。本轮只写review与索引，没有运行Cargo、Editor、双进程capture、断线、scale、artifact、Perfetto回放或privacy验证；Tooling排除，也未查询或实时跟踪协调器。详见`zircon_editor/99-editor-runtime-diagnostics-performance-timeline-console-telemetry-observability-authoring-current-source-review.md`。
+
+## 332. Editor Multiplayer Lobby / Matchmaking / Online Services / Replication / Network Emulation / PIE 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---:|
+| Workbench multiplayer surfaces、asset入口、binding、navigation、feedback | **8 / 1,858 / 1,647 / 100,960 / 0 / 0** | 两份Lobby/Matchmaking ZUI、asset/index入口、online session binding/spec/feedback；固定fixture与control-local mutation；fingerprint `0133a6df5531e1c7bfdd1a15d1c2cd9bcdb5024750491f3c1e2898cebc2e2254` |
+| Editor Net authoring、catalog、Play topology | **51 / 7,868 / 7,172 / 275,928 / 78 / 0** | Net editor contribution、missing resource/factory、first-party catalog、core/play、process backend与menu/event；fingerprint `a369d75dcb3c7965d5d2fdbb18b3e6c1045884b372a4fc177918f9c88e2654b6` |
+| Runtime Net handoff selected | **208 / 19,779 / 17,829 / 687,062 / 161 / 15** | Runtime Net contracts、net plugin/features、catalog、App composition与entry runner；底层差距由Runtime140拥有；fingerprint `fec3d516db3e6a5b764a110221f0f039d8f58e9b9199969411c04bd1f8eeed9c` |
+| focused multiplayer/Play tests | **93 / 12,271 / 11,113 / 426,171 / 127 / 5** | Net feature tests、Play topology tests、catalog/registration/operation descriptors；静态inventory；fingerprint `93262630825671bbefe93a0638eb886f12c6cd6578c2f1109894878bbaaf61e4` |
+| Zircon selected union | **266 / 30,116 / 27,192 / 1,082,023 / 252 / 15** | current physical working tree；fingerprint `aec9a8a5a842e5f75bfbd4a572b651e023ce344cdf1177eb1d65280d3b8653e2` |
+| Unreal、Godot参考 | **15 / 7,660 / 6,184 / 315,282 / 0 / 0** | Online Session/Settings、Play/Network Emulation、ReplicationGraph/Iris/NetworkPrediction、Godot Replication Editor/Profiler/SceneMultiplayer；fingerprint `64cf6be79cfac86a95be0f26a430ceb75fcb13150635662834738187b92641a8` |
+
+Editor当前仅有 descriptor/DTO 和单进程 Play 壳，没有 Lobby/Matchmaking provider、ReplicationSchema compiler/artifact、server+N clients TestSession、per-link emulation 或 network observation provider。Editor100 的5项P0、60项P1、12项P2全部Open，32门为30 Fail/2 Partial。本轮只修改review与索引，没有运行Cargo、Editor、Net provider、多进程PIE、packet emulation、fuzz、fault、scale、soak或competitive benchmark；Tooling排除，也未查询或实时跟踪协调器。详见`zircon_editor/100-editor-multiplayer-lobby-matchmaking-online-services-replication-network-emulation-pie-authoring-current-source-review.md`。
+
+## 333. Editor Project Operations / Source Control / Changelist / Automation / Submission / Health 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/App/Runtime selected union | **195 / 30,302 / 28,220 / 1,169,737 / 216 / 0** | 五张Production workspace、extension index/navigation/binding/feedback、真实Project/Asset/Build/Plugin/Commandlet/Automation owner；fingerprint `3c1edd6e7d483cbd191b40d44161cf5ad31248d044ee4c6f8146f875e61d1de6` |
+| Unreal/Godot/Automation/SourceControl reference set | **28 / 13,483 / 11,652 / 473,967 / 0 / 0** | Unreal SourceControl/Automation/SubmitTool与Godot VCS contracts；fingerprint `238301807e7f0f17b2aecf1b4965b16e6788aec8f6364f6408a11a7738c7ed2b` |
+
+Editor101确认真实 Project Overview 只投影项目与catalog基础字段，Build Export/Plugin Manager/authoring commandlet 各自拥有局部真实状态，但五张Production Workspace仍由固定业务数据和control-local field mutation驱动。SourceControlProvider、RepositoryIdentity、WorkspaceRevision、SubmissionCandidate、SubmissionAdmissionReceipt、ProjectOperationsSnapshot、ValidationSet和TestAttempt在当前 selected product contract 中均无实现。Editor27的5项P0、60项P1、12项P2全部Open，32门为30 Fail/1 Partial/1 Pass。本轮只写review与索引，没有运行Cargo、Editor、repository/worker/artifact/release动态验证；Tooling10/03/09仅作为外部owner边界引用，也未查询或实时跟踪协调器。详见`zircon_editor/101-editor-project-operations-source-control-changelist-diff-automation-validation-submission-health-current-source-review.md`。
+
+## 334. Editor Spawn Rules / Encounter / Population / World State / Scenario 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon selected union | **42 / 10,671 / 9,841 / 447,961 / 80 / 0** | Gameplay Spawn/WorldState workspace、navigation/binding/feedback、DynamicScene spawn/task/reload、Gameplay Host与focused tests；fingerprint `626266c287feb757b3f25cd3e6a0d899e8b68842449d01c988ec4f12a477b2a1` |
+| Unreal/Bevy/Godot/Fyrox/Unity reference | **22 / 11,820 / 9,842 / 499,904 / 10 / 0** | World/GameState/MassSpawner/DataLayer、SceneSpawner/State、MultiplayerSpawner、graph/model command、VFX spawner/compiler/tests；fingerprint `65a5c7d812096afcc2d6d29e2f36281f1015ba719096da582851eb8055bfb4f7` |
+
+Editor102确认两张Gameplay Workspace各230行/19 route/22 event，字段写入仍是control-local mutation；Runtime DynamicScene的generation fence、isolated preflight、atomic publication、async/cancel/reload是通用基础，但公开结果只有EntityRemap，Gameplay Host的`spawn_empty`/`spawn_model`/`despawn`直接对World裸实体操作。SpawnDefinitionDocument、CompiledSpawnPlanArtifact、SpawnInstanceRecord、WorldStateSchemaDocument、ScenarioDefinition、WorldStateTransaction/ChangeSet等当前均无实现。Editor28的5项P0、60项P1（52 Open/8 Partial）、12项P2全部未闭合，32门全Fail。本轮只写review与索引，没有运行Cargo、Editor、PIE、多客户端、save/load、fault、scale或100K动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/102-editor-spawn-rules-encounter-population-world-state-scenario-quest-authority-current-source-review.md`。
+
+## 335. Editor Input Action / Mapping Context / Rebinding / Accessibility 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/App selected | **101 / 17,750 / 15,978 / 610,938 / 233 / 0** | raw input、Action evaluator/module、Dynamic Session physical ownership、Gameplay raw key、Editor registry/dirty/keymap/settings；fingerprint `943c46d563a3cf8499148832d0ba14d06b77023fc4c54d4dc822e13f5b83b4cc` |
+| Unreal/Godot/Bevy/Fyrox/Unity reference | **21 / 13,141 / 11,730 / 513,517 / 54 / 0** | Enhanced Input asset/subsystem/profile/editor、Godot InputMap、Bevy raw input/focus、Fyrox key与Unity inputactions/debug；fingerprint `4e433cc11994f89823a59c49059ce21c1ba1fc0cd9af1a8a02e9eea6e47a1441` |
+
+Editor103确认 `InputActionDocument`、`InputMappingContextDocument`、`InputUser`、`PlayerBindingProfile`、`RebindCaptureReceipt`、`CompiledInputMapArtifact` 等产品合同在当前 selected product source 中均无实现；现有 evaluator 只证明局部 scalar runtime 机制，不能证明 asset authoring/cook/install/per-user/rebind/accessibility。Editor29的5项P0、60项P1（46 Open/14 Partial）、12项P2（11 Open/1 Partial）全部未闭合，32门全Fail。本轮只写review与索引，没有运行Cargo、Editor、设备重连、cook/install、rebind、PIE或accessibility动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/103-editor-input-action-mapping-context-rebinding-accessibility-current-source-review.md`。
+
+## 336. Editor Camera / Rig / Director / Blend / Shake / Cinematic Cut / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/App selected | **103 / 17,518 / 16,112 / 626,486 / 93 / 0** | SceneCameraAsset、CameraComponent、render descriptor/stack、dynamic controller、script/AI consumers、Editor viewport/Sequencer；fingerprint `57bb057923e4b8f533d7307594a8a9f8219a2b65a3ce6c4db56e892ea640565a` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics reference | **25 / 13,380 / 11,458 / 555,712 / 6 / 0** | CameraManager/CameraComponent/SpringArm/CineCamera/CameraCut/GameplayCameras、Godot Camera3D、Bevy/Fyrox camera、Unity URP/HDRP camera paths；fingerprint `3b550450dbf24d497dcb655477b41689c6f65b7f7d42a65776550a6aae6a954f` |
+| Zircon selected union | **128 / 30,898 / 27,570 / 1,182,198 / 99 / 0** | current physical working tree union；fingerprint `53868de388884478e469ba4270bb9fec5aaf3cdaae2f8996989d86316bf099bf` |
+
+Editor104确认 `CameraEndpointDocument`、`Rig/Lens/ShakeDocument`、`CompiledCameraArtifact`、per-player/per-viewport `CameraDirector`、`CameraViewResult`、typed `CameraCutTrack`、`CutHistoryEpoch`、`PilotLease` 等产品合同在当前 selected product source 中均无实现；现有 CameraRenderDescriptor/stack validator、Viewport snapshot、controller 数学和 local cut heuristic 不能证明 asset authoring/cook/install/director/preview/temporal-history 产品完成。Editor30的5项P0、60项P1（49 Open/11 Partial）、12项P2全部未闭合，32门为26 Fail/6 Partial。本轮只写review与索引，没有运行Cargo、Editor、PIE、multi-viewport、camera collision、cut replay、fault、scale或benchmark动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/104-editor-camera-rig-director-blend-shake-cinematic-cut-current-source-review.md`。
+
+## 337. Editor Script Source / Code Editor / Build / Compiler / Hot Reload / Debugger / Visual Script 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/App/WOC selected | **72 / 13,067 / 11,913 / 484,179 / 109 / 0** | script build orchestrator/diagnostics、runtime package/slot/reload、scene binding、first-party catalogs、ZrVM runtime backend、WOC manifests；fingerprint `ba1a4c908f8776ffa4969f9e52afde4dd434a2c6a3aa0f1d990f896235a623be` |
+| Unreal/Godot/Fyrox/HotReload reference | **118 / 35,850 / 29,671 / 1,222,906 / 0 / 0** | Blueprint/Kismet/Compilation/HotReload/LiveCoding、Godot Script/Debugger、Fyrox script Inspector；fingerprint `5160abe3e33330604f5eeeed027b79f42f30038195601f6903bae5806f1a219e` |
+| Zircon selected union | **190 / 48,917 / 41,584 / 1,707,085 / 109 / 0** | current physical working tree union；fingerprint `18e5ad21a11cf5f523547dcb6cf6d84c1e110035d44a164c5daf1378431d60b2` |
+
+Editor105确认 `ScriptWorkspace`、`SourceDocument`、`VisualScriptDocument`、`ScriptArtifactSet`、`ScriptInstallReceipt`、`ScriptClassSchema`、`ScriptComponentSchema`、`ScriptDebugSession`、`BreakpointStore`、`GraphDebugMap` 等产品合同在当前 selected product source 中均无实现；现有 orchestrator、package discovery、slot/generation、hot-reload rollback 和 ZrVM host/reflection 仅是局部底座。WOC 当前有817个`.zr`、247,582行、354个`.zrp`和37个`.zro`，不能证明默认 Editor/Client build/play/cook/debug闭环。Editor31的5项P0、60项P1、12项P2全部Open，32门全Fail。本轮只写review与索引，没有运行Cargo、ZrVM native build、LSP/debug protocol、WOC full compile、Play、Cook、hot reload、fault、scale或UI动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/105-editor-script-source-code-editor-build-compiler-hot-reload-debugger-visual-script-class-component-current-source-review.md`。
+
+## 338. Editor Model / Mesh / Skeleton / Geometry Import / LOD / Collision / Retarget / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/Plugin selected | **64 / 12,306 / 11,230 / 454,733 / 57 / 0** | model/mesh/importer/animation/skinning/LOD/editor workspace/plugin；fingerprint `65fb2c4f41f77ca431efea65d36f84aa054223dd34ffb8960e02dc0d467aac4f` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **22 / 28,133 / 24,721 / 1,089,338 / 32 / 0** | Static/Skeletal/Persona/Interchange/IKRetarget、Godot import/editor/retarget、Fyrox/Bevy mesh、Unity GPU LOD/crossfade；fingerprint `a295bd17d0bd5bae3c9639f050979c81d950cb6dcc6af64261e7a925cdfa2e4b` |
+| Zircon selected union | **86 / 40,439 / 35,951 / 1,544,071 / 89 / 0** | current physical working tree union；fingerprint `86ac071f8234c2b9bb21650de46d355b107dcd3a8231006a7d74a16a2e65f5dc` |
+
+Editor106确认 `GeometryImportSource`、`GeometryImportRecipe`、`NormalizedGeometryScene`、resolved `ModelOverviewArtifact`、`SkinAsset`、`SkeletonProfile/BoneMap`、`LODGroupArtifact`、`CollisionSetup/PhysicsMeshCookReceipt`、`RetargeterArtifact`、`GeometryPreviewSession` 等产品合同在当前 selected product source 中均无实现；现有 MeshAsset/importer/skin/LOD/SDF/VG 是局部底座。Editor32的5项P0、60项P1、12项P2全部Open，32门全Fail。本轮只写review与索引，没有运行Cargo、Importer corpus/fuzz、skinned render、LOD切换、collision cook、retarget solver、VG模板或跨平台动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/106-editor-model-mesh-skeleton-geometry-import-lod-collision-retarget-preview-current-source-review.md`。
+
+## 339. Editor Localization / String Table / Culture / Translation / Fallback / Pseudo / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/UI/text selected | **34 / 14,184 / 13,421 / 703,024 / 20 / 0** | shell i18n、UI localized ref/compiler/renderer、font/culture、preview session 与 design evidence；fingerprint `7eabd1292af54250b7e63fe8e5571ccdd8a7cf2bb0a892ffdbd952d23d410d6a` |
+| Unreal/Godot/Bevy/Unity reference | **17 / 2,460 / 1,992 / 101,262 / 0 / 0** | Localization target/resource/chunk/dashboard/string table/gather、Godot Translation/PO/CSV/editor preview、Bevy text、Unity L10n helper；fingerprint `f7738fd8d56e10468c919b3333c7ade831569d7e0d1fef10c89c4e4dfca2bb33` |
+| Zircon selected union | **51 / 16,644 / 15,413 / 804,286 / 20 / 0** | current physical working tree union；fingerprint `ef2626ccb0edadc0e88f755597652a1dad86eef03f767bb9cf2d85484a875eb6` |
+
+Editor107确认 `LocalizedTextIdentity`、`LocalizationTarget`、`StringTableAsset`、`TranslationArchive`、`CompiledLocalizationCatalog`、`LocalizationService`、`CultureGeneration`、`PseudoLocaleProfile`、`LocalizationPreviewReceipt` 等产品合同在当前 selected product source 中均无实现；现有 shell bundle、locale snapshot、font culture selector 与 dependency collector 不能证明游戏内容 translation/cook/runtime/preview 完成。Editor33的5项P0、60项P1、12项P2全部Open，32门全Fail。本轮只写review与索引，没有运行Cargo、PO/CSV import、gather/cook/package、locale hot-switch、translated render、pseudo/RTL、font qualification或跨平台动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/107-editor-localization-string-table-culture-translation-fallback-pseudo-preview-current-source-review.md`。
+
+## 340. Editor Sprite / Atlas / TileSet / TileMap / Canvas2D / Animation / Collision / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **84 / 11,284 / 10,278 / 389,980 / 82 / 0** | Sprite/atlas/scene/render/visibility、TileSet/TileMap schema、Editor atlas、tilemap plugin/catalog；fingerprint `6bf47abe138db32708ff5dc780f49e8867a425002068de86217495381849d2ff` |
+| Unreal/Godot/Fyrox/Bevy reference | **16 / 6,711 / 5,554 / 248,066 / 11 / 0** | Paper2D Sprite/Atlas/Flipbook/TileSet/TileMap、Godot Sprite/TileMap/TileSet editor、Fyrox/Bevy sprite render；fingerprint `9e6e57bc753b44abb1d6cf3d2c89f50e0f7b0a77bb8b8391c594eabe3ee52def` |
+| Zircon selected union | **100 / 17,995 / 15,832 / 638,046 / 93 / 0** | current physical working tree union；fingerprint `61df3b02fa317153999322c074c99885c0f61bde8c970ae2981d76b0a69209e0` |
+
+Editor108确认 `Sprite2DComponent`、`SpriteAsset`、`SpriteAtlasAsset`、`FlipbookAsset`、`TileMapComponent`、`TileMapChunkArtifact`、`TileMapCollisionCookReceipt`、`Canvas2DView` 等产品合同在当前 selected product source 中均无实现；现有 Sprite render、atlas validation/packer、TileSet/TileMap DTO 与 plugin descriptor 不能证明 Scene 保真、2D authoring、chunk/collision/nav 或高性能 renderer 完成。Editor34的5项P0、60项P1、12项P2全部Open，32门全Fail。本轮只写review与索引，没有运行Cargo、Sprite Scene roundtrip、TileMap render/collision、Atlas reimport/repack、Tiled import、Editor paint/save/undo、Flipbook、GPU capture或大地图压力测试；也未查询或实时跟踪协调器。详见`zircon_editor/108-editor-sprite-atlas-tileset-tilemap-canvas2d-animation-collision-preview-current-source-review.md`。
+## 341. Editor Texture / Image / Cubemap / RenderTarget / Sampler / Compression / Streaming / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **157 / 34,911 / 31,886 / 1,224,840 / 416 / 0** | Texture descriptor/payload/decode、DDS/KTX/KTX2/ASTC、IBL artifact/cache、GPU upload/streaming/output target、sampler、Editor registry/preview、texture/importer/plugin/catalog；fingerprint `55178c2121a271cf553194e0c0003d78478d33a4d14f78ad0eb5e81dc6f13c5a` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **20 / 22,454 / 19,547 / 871,783 / 11 / 0** | Unreal Texture/DerivedData/TextureStreaming/RenderTarget/TextureEditor、Godot texture/layered import/editor、Bevy image/HDR/EXR/cache、Fyrox texture、Unity RenderGraph/atlas/mip debug；fingerprint `8675dce2ad42cccedf052fc515e5834d2908a968ab1ea41d19b05f0fca61167a` |
+| Zircon selected union | **177 / 57,365 / 51,433 / 2,096,623 / 427 / 0** | current physical working tree union；fingerprint `88d58698834550e7d20528f37d6a7e671d08a542dce8ecddcf599e342f2b2d3e` |
+
+Editor109确认普通 Texture 的 source/recipe/canonical float decode/platform artifact/bulk mip/page/runtime install 与 Editor toolkit/preview 尚未形成闭环；Environment IBL 的 RGBA32F、PMREM/SH、versioned key、atomic publication 是应保留的局部工程化样板。当前 builtin/provider 的 mip/normal/compression 语义分裂，普通 HDR/EXR 仍可能经 `to_rgba8()` 量化；requested compression 不等于 actual artifact，cache 没有 source/recipe/platform/bulk 身份；streaming 是全驻留起步的同步原型，SVT 只有 metadata，RenderTarget 仅单层单 mip RGBA8，Sampler 字段不完整，Editor 只有 raw SourceImage thumbnail 且缺 factory/toolkit/catalog closure。Editor35的5项P0、60项P1、12项P2全部Open，32门全Fail。本轮只写 review 与索引，没有运行 Cargo、import/cook/package、GPU/visual/fuzz、cross-platform 或动态 streaming 验证；也未查询或实时跟踪协调器。详见 `zircon_editor/109-editor-texture-image-cubemap-render-target-sampler-compression-streaming-preview-current-source-review.md`。
+## 342. Editor Video / MediaSource / Player / Track / Clock / MediaTexture / Playback / Capture / Recording 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **197 / 19,044 / 17,076 / 642,750 / 113 / 0** | resource identity、sound/time、capture/readback/ABI、gateway/profiling、catalog；fingerprint `a1d9b9b35b5f1353ffb2d056c259010d86b915f56abba6dcecbf742be8e48f04` |
+| Unreal/Godot/Fyrox/Unity reference | **15 / 4,513 / 3,834 / 151,813 / 0 / 0** | Unreal Media interfaces/assets、Godot VideoStream/VideoStreamPlayer/MovieWriter、Unity camera capture passes、Fyrox FBX video record；fingerprint `541e3061919caa8d2de561d79e29428fc151b05d121d09bc912846f44d13caaa` |
+| Zircon selected union | **212 / 23,557 / 20,910 / 794,563 / 113 / 0** | current physical working tree union；fingerprint `05fa6515ff6641ad8e6011d9281c7e19998d830d7d3bf27087a1f6a99709f928` |
+
+Editor110确认当前只有静态 Sound clip、simulation clock、GPU readback/capture evidence 与 gateway ownership 底座；没有 MediaSource/MediaPlayer/VideoFrame/VideoDecoder/MediaClock/MediaTexture/MovieWriter 或已装配 provider。`UiResourceKind::Media` 最终降为 Data，External audio block 没有 PTS/queue 且 voice adapter 明确 unsupported，`ZrRuntimeFrameV1` 只有单帧 RGBA bytes，Editor Capture Frame 仍是固定反馈。播放目标应收敛到 `MediaSourceAsset -> provider/session -> TrackCatalog/SampleQueue/MediaClock -> AudioSink/MediaTexture`，录制目标应独立为 `CaptureSample -> bounded RecorderSession -> Encoder/Muxer -> atomic RecordingArtifact`。Editor36的5项P0、60项P1、12项P2全部Open，32门全Fail。本轮只写 review 与索引，没有运行 Cargo、codec/GPU playback、A/V sync、capture/recording、fuzz 或跨平台动态验证；也未查询或实时跟踪协调器。详见 `zircon_editor/110-editor-video-media-player-track-clock-media-texture-playback-capture-recording-current-source-review.md`。
+## 343. Editor Volume / Zone / Trigger / Region / Gameplay Audio / Post Process / Environment 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **261 / 43,256 / 40,321 / 1,586,154 / 160 / 0** | Scene/PostProcess/Physics、Sound environment、Navigation bake、Workbench/bridge/bindings；fingerprint `c6494ef877c8fea4166eb6826c954b3439eedee6f5c13feec88ef538e7dd6509` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **13 / 4,305 / 3,713 / 167,958 / 5 / 0** | Unreal Volume/Trigger/Physics/Audio/PostProcess/NavModifier、Godot Area3D、Unity Volume Stack、Fyrox Collider、Bevy trigger；fingerprint `d6c195fdc9d1bc577b8191eada11bc5c2cfff1f35960a2ca19aa8c89c9cf5c89` |
+| Zircon selected union | **274 / 47,561 / 44,034 / 1,754,112 / 165 / 0** | current physical working tree union；fingerprint `a21b9231d6f7fcfc519f394d2b4f6d2e1bff66683f119fbe57f5cc1f069a1cd3` |
+
+Editor111确认已有四套局部空间语义：PostProcess evaluator、Physics trigger snapshot、Sound environment DSP、Navigation modifier bake；它们没有共享 stable Region identity/index/artifact/lifecycle。PostProcess unsupported shape 会空 extract 且无诊断，Sound 没有 Scene lifecycle bridge 且 Box 无 rotation，Physics event 缺 pair/shape/sequence/filter/current-overlap，Navigation 使用忽略 rotation 的 AABB/point heuristic，Gameplay/Streaming typed consumers 不存在；Volume workspace 继续固定 VOL_*、DPS、overlap、warning 与 queued feedback。Editor37的5项P0、60项P1、12项P2全部Open，32门全Fail。本轮只写 review 与索引，没有运行 Cargo、physics/audio/post-process/navigation 动态验证、Editor 交互、大世界压力或跨平台 bake；也未查询或实时跟踪协调器。详见 `zircon_editor/111-editor-volume-zone-trigger-region-gameplay-audio-post-process-environment-current-source-review.md`。
+## 344. Editor Weather / Climate / Time-of-Day / Wind / Precipitation / Cloud / Atmosphere 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **215 / 42,557 / 38,835 / 1,527,992 / 318 / 0** | Weather workspace、Scene/time/environment/IBL/fog、particles、catalog、terrain/sound；fingerprint `b5de338f24eae26f3f603bc8ee167dcbc909ee5f9db9319c483c55c15142edb3` |
+| Unreal/Godot/Bevy/Fyrox/Unity reference | **35 / 11,413 / 9,977 / 492,418 / 0 / 0** | Sky/Atmosphere/Cloud/Light/Fog/Wind、Godot Environment/Sky/FogVolume、Bevy atmosphere/fog/volumetric、Fyrox sky/light、Unity HDRP sky/cloud；fingerprint `3af6c816c30892ba482adcd07d9484b84de4104f751897e0d3f2c2927024bb5a` |
+| Zircon selected union | **250 / 53,970 / 48,812 / 2,020,410 / 318 / 0** | current physical working tree union；fingerprint `afed896f26a0ceadb60e0b06e4be5586decbe07b8aef7c20266ad155877541b1` |
+
+Editor112确认当前有 Sky/IBL/Fog/Light/Clock/Particle 的局部底座，但没有 Climate/Celestial/Weather source/compiler/artifact/service；Scene 只有 `preview_skybox`，Sky sun 与 DirectionalLight 不绑定，clock 没有日期/地理/天体 authority；CaptureSky/CaptureCloud 复用同一 gradient recorder/source mip；Particle CPU/GPU external force 不一致，Wind/Precipitation/Wetness/Snow/Lightning/Weather adapter 缺失，Weather workspace 继续固定 Storm/Regions/Layers/Timeline/Warnings/queued。Editor38的5项P0、70项P1、12项P2全部Open，32门全Fail。本轮只写 review 与索引，没有运行 Cargo、weather simulation、GPU cloud/IBL、particle/audio/lightning、Scene roundtrip、network/save 或跨平台动态验证；也未查询或实时跟踪协调器。详见 `zircon_editor/112-editor-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-current-source-review.md`。
+## 345. Editor Spline / Path / Road / River / Decal / Brush / Geometry 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **692 / 42,479 / 38,674 / 1,607,904 / 90 / 0** | Decal package、Scene/DynamicScene/reflection、Material、Scene tools、WOC road source；fingerprint `cb89f25db5e6217ac8d4aca00bf8f617c77c01b2a7e75b27cc3efba27ba59a0d` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **23 / 18,208 / 15,335 / 728,727 / 12 / 0** | Spline/SplineMesh/visualizer、Water/River、Decal/DBuffer、Curve/Path、Fyrox/Bevy/Unity decal；fingerprint `b6c57c8c8771d72a34303a1634a76676cc645a50ed4b33eb80aed9baee8218ff` |
+| Zircon selected union | **715 / 60,687 / 54,009 / 2,336,631 / 102 / 0** | current physical working tree union；fingerprint `84d4a65332343993ee658dc1af92d70793e7ef1e77c8f51da014928a8d7c11f8` |
+
+Editor113确认当前没有 SpatialSpline/Curve3D/PathFollow/SplineMesh/Road/River/WaterBody/GeometryBrush/CSG 产品；WOC road 仍是 generated roadPointX/Z + 全量 segment distance workaround。DynamicScene/reflection/SceneMode/selection/Material 是底座，但 Decal plugin 只 registration/pass/no-op executor，无 GPU draw/material/texture/cull/batch，Editor 无 factory/Inspector/toolkit，Material decal dropdown 与 runtime domain 分裂。Editor39的5项P0、70项P1、12项P2全部Open，32门全Fail。本轮只写 review 与索引，没有运行 Cargo、spline/road/river/decal/CSG dynamic、Editor transaction、pixel golden 或大世界性能验证；也未查询或实时跟踪协调器。详见 `zircon_editor/113-editor-spline-path-road-river-decal-brush-geometry-current-source-review.md`。
+## 346. Editor Procedural Content Generation / Rule Graph / Biome / World Generation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin/WOC selected | **38 / 10,833 / 10,298 / 362,683 / 13 / 0** | Scatter workspace/binding、Terrain、authoring/scene extensions、WOC source/extract/codegen/terrain/decoration/collision；fingerprint `6a98b10f607b6dcba75406c37f40f1bbe1503217ffc8f933f3be5637ed164502` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **31 / 27,167 / 23,345 / 1,109,231 / 11 / 0** | Unreal PCG graph/data/compiler/cache/executor/partition/editor、Godot noise/MultiMesh、Fyrox terrain/brush、Bevy assets/mesh、Unity GPU instance/culling；fingerprint `69b9784d813f443a7e9518d0b27dc33280d306284815f812766997c7dbe7e920` |
+| Zircon selected union | **69 / 38,000 / 33,643 / 1,471,914 / 24 / 0** | current physical working tree union；fingerprint `a57ecc275e5df4347037ef264525ce628cacad36e23a630b57100ddd95e40a16` |
+
+Editor114确认WOC source pin/digest/sentinel、noise/height/slope known vectors、10-yard candidate lattice与collision cell replay是可迁移的deterministic corpus；但production没有PCGGraph/RuleGraph/typed node/pin/data/compiler/executor/cache/generation/managed output/partition owner，Terrain importer为DiagnosticOnly，Scatter workspace固定SC_Forest/64K/1 conflict/seed/density/queued，WOC输出仍是游戏专用Zr函数而非artifact/render/nav/collision/Scene output。Editor40的5项P0、70项P1、12项P2全部Open，32门全Fail。本轮只写 review 与索引，没有运行 Tooling lane、Cargo、PCG graph/determinism/cache/partition/cook/Editor 动态验证；也未查询或实时跟踪协调器。详见 `zircon_editor/114-editor-procedural-content-generation-rule-graph-biome-world-generation-current-source-review.md`。
+
+## 347. Editor Level / Variant / Data Layer / Level Instance / World Outliner 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **55 / 9,319 / 8,447 / 361,755 / 70 / 0** | hierarchy inspection/artifact/delta、retained projection/filter/pointer/transaction、Scene/Prefab IO、ResourceKind、prefab_tools；fingerprint `e13d11d53f80d6346b8b4c7343477250e850ecc676a7a16689ea78d233987749` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **22 / 15,441 / 13,013 / 557,921 / 1 / 0** | Data Layer asset/instance/manager、Level Instance subsystem、Variant binding/property capture、Scene Outliner extension、PackedScene/ScenePatch、render-layer distinction；fingerprint `be457f551dc2269b1d834cc6b7e567da1f92ca54ebd7ecfbf8e5d6ecd378a7ee` |
+| Zircon selected union | **77 / 24,760 / 21,460 / 919,676 / 71 / 0** | current physical working tree union；fingerprint `5b55d4d25648830453659d68d1ba01b6742e0753ee380817ca1b21a52ea0c489` |
+
+Editor115确认Hierarchy的真实generation/selection/transaction底座不能证明World Outliner、Level Variant、Data Layer或Level Instance已经完成。Variant workspace仍固定Vehicle_Showcase/Variant_Red/18 overrides/2 conflicts，Preview/Apply只写queued；没有Variant asset/binding/capture/property/revision/rollback/runtime artifact。Data Layer和Level Instance产品类型、asset kind、membership、state authority、load/edit/rebase/cook均缺失；Prefab World IO会忽略并清除`prefab_instance`，存在P0静默数据损失。Outliner最终projection只有`id/name/depth/selected`，模板按总行数clone并对结构变化full reflow，缺typed item/provider/mode/column/filter、folder/provenance、unloaded descriptor与bounded pool。Editor41的5项P0、70项P1、12项P2全部Open，32门全Fail。本轮只写review与索引，没有运行Cargo、Variant capture/apply、Data Layer state、Level Instance load/rebase、Prefab roundtrip、Outliner十万级性能或动态Editor验证；也未查询或实时跟踪协调器。详见`zircon_editor/115-editor-level-variant-data-layer-level-instance-world-outliner-current-source-review.md`。
+## 348. Editor Scene Snapshot / World Diff / Merge / Restore / Conflict Resolution 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **669 / 30,898 / 27,347 / 1,061,187 / 187 / 0** | DynamicScene、Session Archive、inspection、Editor editing/play/recovery、Diff toolbar/binding/feedback、reflection registry；fingerprint `38a9cca4900a41fce10e3ffe47252dc0db3579423aec2b3e47b021f5b4910443` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **27 / 17,898 / 15,080 / 639,373 / 2 / 0** | Unreal Level Snapshots asset/hash/filter/restorability/results、Godot PackedScene、Fyrox command、Bevy ScenePatch、Unity object ID boundary；fingerprint `5e2b41fe1a51fd3fa7e33450c46363c539c1d30a19789913890a2cd209cd259c` |
+| Zircon selected union | **696 / 48,796 / 42,427 / 1,700,560 / 189 / 0** | current physical working tree union；fingerprint `1d83581809ca62f1a753b19bb3efce067a156d6e941feda0d04f33906b2f6c06` |
+
+Editor116确认DynamicScene reflection capture、Session Archive canonical/seal/cache/retention/bounded writer/path atomicity、Editor transaction与generation delta是可保留底座，但capture会静默跳过未注册/无adapter/不可序列化字段，slot diff只做whole-slot equality，Archive merge只处理slot ID，apply是additive spawn，restore是whole-world replacement。Toolbar Diff、Play Snapshot、autosave RestoreFlow和UI DocumentDiff均无Scene Snapshot/change set/provider/executor且固定成功文字。Editor42的5项P0、70项P1、12项P2全部Open，32门全Fail。本轮只写review与索引，没有运行Cargo、capture/diff/merge/restore动态、fault durability、migration、Editor transaction或大世界benchmark；也未查询或实时跟踪协调器。详见`zircon_editor/116-editor-scene-snapshot-world-diff-merge-restore-conflict-resolution-current-source-review.md`。
+## 349. Editor Multi-User / Collaborative Editing / Session Replication / Locks / Presence / Transaction Conflict 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime Interface/Hub selected | **86 / 13,789 / 12,513 / 466,134 / 78 / 0** | local editing/history/journal/document/session lease、control boundary、Hub Team/Git/Coming Soon；fingerprint `4a47dd55e44e985293c4d8a312fe6001d9de7f240f7e1fe4084980d799912dd6` |
+| Unreal Concert/Godot/Fyrox/Bevy/Unity reference | **29 / 16,897 / 15,080 / 624,005 / 13 / 0** | Concert session/activity/transaction/workspace/lock/presence/authority、Godot undo/debugger、Fyrox command、Bevy Remote、Unity local authoring；fingerprint `b40cb8f51fadd9a7823c0009f01ac8d0cccc26fbd42b9c7f855d516ed8544b8a` |
+| Zircon selected union | **115 / 30,686 / 27,089 / 1,090,139 / 91 / 0** | current physical working tree union；fingerprint `99ffeb15535cc3a04ea3ee34260c06b09f388af5709e37380cfabf198fddc77c` |
+
+Editor117确认本地 transaction、journal、message bus 与 OS SessionOwnershipLease 是可保留底座，但没有 CollaborativeSession/ActivityLog/Presence/DistributedLock/Authority/Reconnect/Conflict owner；TransactionId/DocumentId/history lineage process-local，journal无decoder/replay，remote command无before CAS。Hub Team只读Git contributors，协同入口disabled；本地lease、Runtime multiplayer和VCS不能冒充Multi-User。Editor43的5项P0、70项P1、12项P2全部Open，32门全Fail。本轮只写review与索引，没有运行server、多进程、network/fault/security/scale动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/117-editor-multi-user-collaborative-editing-session-replication-locks-presence-transaction-conflict-current-source-review.md`。
+## 350. Editor Archetype / Class Defaults / Instance Override / Property Propagation / Reset-to-Default 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **80 / 12,850 / 11,690 / 463,627 / 59 / 0** | reflection/default metadata、Prefab DTO/World IO/cache、ECS archetype、Inspector/edit command、Prefab Workbench/plugin；fingerprint `6c97b643a007efcfeb4662c6982da29042f990ad868d93ba286328ff28955476` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **43 / 29,347 / 25,491 / 1,079,792 / 46 / 0** | CDO/archetype/instance cache/reset/property policy、PackedScene inheritance、Fyrox modified/revert、Bevy ReflectDefault、Unity Volume defaults；fingerprint `d54b0b801cebda11d275678f1fba0e1f1eadef54058810871d1f41f9b2e2e8db` |
+| Zircon selected union | **123 / 42,197 / 37,181 / 1,543,419 / 105 / 0** | current physical working tree union；fingerprint `e44dafc09675c28358c79cbb28b332ff408dbc3205a465991ee332f6f85878ac` |
+
+Editor118确认reflection `default_value`、Inspector、ECS archetype storage、Prefab DTO和Material局部override是窄底座，但没有DefaultValueAuthority、typed property identity、origin/modified/reset policy或source propagation；Prefab string path+JSON、World load-save擦除`prefab_instance`、DiagnosticOnly importer、descriptor-only operations和固定Prefab Workbench均不能证明产品完成。Editor44的5项P0、70项P1、12项P2全部Open，32门全Fail。本轮只写review与索引，没有运行Cargo、default resolution、Prefab roundtrip、propagation、fault、cook或100k实例动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/118-editor-archetype-class-defaults-instance-override-property-propagation-reset-current-source-review.md`。
+## 351. Editor Cinematic Sequencer / Shot / Track / Binding / Take Recorder / Movie Render Queue 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin/App selected | **38 / 6,810 / 6,208 / 259,253 / 59 / 0** | Sequencer ZUI/feedback、Animation sequence/timeline/evaluation、camera/capture/dynamic frame、timeline plugin、App frame capture；fingerprint `26ab6555938d86baf2f666711b778ff7a113df1eb365c00e041e0a6e0c433a83` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **29 / 22,553 / 19,218 / 846,294 / 12 / 0** | MovieScene/Sequencer/TakeRecorder/MoviePipeline、Godot Animation/MovieWriter、Fyrox/Bevy animation、Unity capture/AOV；fingerprint `25da31a2fb07cc11eed818950b487df1d1ff012e0af70d73b1ab6f1a624463b0` |
+| Zircon selected union | **67 / 29,363 / 25,426 / 1,105,547 / 71 / 0** | current physical working tree union；fingerprint `eca1bf68f01cdd822f985f5178c7f7cc69ce862372ab58701f90ef0e74d78223` |
+
+Editor119确认AnimationSequence/curve editor/property-track compiler、camera stack、GPU readback与single-frame PNG writer是可保留底座，但Sequencer Workbench固定`SEQ_Intro`/12 shots/428 keys并以queued伪造Preview/Validate；sequence缺stable binding/shot/subsequence/cut/event/spawnable/pre-animated/movie clock，timeline plugin资源/factory缺失且key move失败后可能保留mutation，capture仅单帧无timecode/AOV/sampling/checkpoint/queue/encoder artifact。Editor45的5项P0、70项P1、12项P2全部Open，32门全Fail。本轮只写review与索引，没有运行Cargo、Sequencer/Take/Movie Render/GPU/codec/跨平台动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/119-editor-cinematic-sequencer-shot-track-binding-take-recorder-movie-render-queue-current-source-review.md`。
+## 352. Editor Runtime Gateway / Session / Event Consumer / World Sync / Generation / Backpressure / Reconnect / Shutdown 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/App/Runtime Interface/Runtime selected | **140 / 26,744 / 24,362 / 973,967 / 343 / 0** | gateway、runtime event consumer、world sync、Host/Retained Host、App session、ABI/producer与focused tests；fingerprint `bfb39666ac5b56fff636ce6c91cf9cdd40f3a8a8e9bf29fb51f86d9db119caaa` |
+| Unreal Session/Messaging、Godot/Fyrox/Bevy reference | **15 / 9,968 / 8,507 / 347,606 / 13 / 0** | session identity、message bridge、disconnect、plugin lifecycle与remote protocol；fingerprint `70e7e85de8165d8c66b5a7b60d182308f301259ac654b4932a8ab2bdea58f55a` |
+| Zircon selected union | **155 / 36,712 / 32,869 / 1,321,573 / 356 / 0** | current physical working tree union；fingerprint `30fbf02045a22719b5ffceb2215ff1513165e342669989a47e1723c3319d0d80` |
+
+Editor120确认ArcSwap generation、RuntimeSession owner、foreign-output safety、bounded page、indexed watch map、round-robin consumer和pending-tail恢复是真底座；但多步调用缺origin session/generation lease，token可跨replacement污染，world page缺cursor/final/gap且bus rejection推进watermark，callback panic无隔离，reconcile全量clone/diff，Host Drop与transport loss无统一terminal。Editor47的1项P0、44项P1、12项P2全部Open，36门全Fail。本轮只写review与索引，没有运行Cargo、多进程replacement、callback panic、bus fault、reconnect/shutdown或scale动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/120-editor-runtime-gateway-session-event-consumer-world-sync-generation-backpressure-reconnect-shutdown-current-source-review.md`。
+## 353. Editor Message Bus / Topic / Subscription / Inbox / Retention / Admission / Dispatch / Request / Dirty Projection / Shutdown 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor selected | **66 / 12,147 / 10,965 / 434,869 / 149 / 0** | core/editor_message、context/transaction/job/play/plugin bridge/sync、Host/Retained refresh、focused message tests；fingerprint `4d5ec415735ec7a00af7993701c72df0f2d924fd5d185df28d1cab29d7adb4ce` |
+| Unreal/Bevy/Godot/Fyrox/Unity reference | **17 / 6,530 / 5,537 / 219,669 / 76 / 0** | MessageBus/Router/Subscription/Receiver、observer/message queue、Fyrox message、Unity fixed buffer；fingerprint `7b38cb88a5777a1f81d23d615c49f1d506334f81b20d6eddf0eac50d078b47bf` |
+| Zircon selected union | **83 / 18,677 / 16,502 / 654,538 / 225 / 0** | current physical working tree union；fingerprint `d919c4f91b41506516ccfcd46a97ba0b93da4744b93578079b37439d53a15b64` |
+
+Editor121确认Arc payload sharing、per-subscriber inbox、Lossless/Latest/Bounded retention、bytes/sequence gate、lossless preflight和锁外request callback是真底座；但`view.invalidated`无subscriber时dirty被跳过，dispatch无typed disposition，unregister/ack/nack/cursor/page/lease缺失，plugin bridge产生无界pending，callback/Job failure未纳入commit与shutdown。Editor48的1项P0、52项P1、15项P2全部Open，40门全Fail。本轮只写review与索引，没有运行Cargo、bus race、callback panic、backpressure、shutdown或规模动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/121-editor-message-bus-topic-subscription-inbox-retention-admission-dispatch-request-dirty-projection-shutdown-current-source-review.md`。
+## 354. Editor Event Runtime / Envelope / Listener / Journal / Replay / Snapshot / Dirty / Lifecycle 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/App selected | **80 / 14,775 / 13,507 / 524,029 / 212 / 0** | editor_event、event dispatch/execution/undo、pointer、retained automation、App composition/project automation、focused event tests；fingerprint `da786ae4a0ebe851ede0259cc5b9531c8d100a3faa6f1444e17daa48821c8e45` |
+| Unreal/Bevy/Godot/Fyrox/Unity reference | **15 / 16,861 / 14,141 / 566,660 / 3 / 0** | message router/delegate/transaction、message cursor/queue/undo、Fyrox command/message、Unity MessageManager；fingerprint `24611a87e312571057a897729d80b03505f46da35895b351a2a7df6ce0cbc97a` |
+| Zircon selected union | **95 / 31,636 / 27,648 / 1,090,689 / 215 / 0** | current physical working tree union；fingerprint `6005d1d0d05894054533ee42fe5554b542302feed4ea5546faad7be10fec8966` |
+
+Editor122确认event/revision分离、shared record、retention、listener cursor与route snapshot是真底座；但F5 journal slice/provenance mutation、raw replay、pointer热路径、revision-before-execute均存在工程化断路。Editor49的5项P0、60项P1、15项P2全部Open，40门全Fail。本轮只写review与索引，没有运行Cargo、F5、replay、retention、listener fault、pointer性能或跨进程动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/122-editor-event-runtime-envelope-listener-registry-journal-replay-snapshot-dirty-lifecycle-current-source-review.md`。
+## 355. Editor Extension / Contribution Store / Registry / Toolkit / Provider / Snapshot / Reload / Lifecycle 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon source/test selected（49个证据根展开） | **113 / 24,661 / 22,444 / 864,684 / 255 / 0** | extension/store/toolkit、plugin manager/materialization、scene mode/overlay、Host/Retained startup、focused tests；fingerprint `9f270c006aa4df12272c749c75483bd906e11208b87be72a3c34f773d8e4d4a8` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **14 / 16,849 / 14,257 / 638,005 / 22 / 0** | ModularFeatures/ModuleManager/ToolMenus/AssetEditorToolkit、EditorPlugin、Fyrox Plugin、Bevy Plugin/App、Unity provider registry；fingerprint `8a89883c699b574b9b21705977d6ae26b3ebbc2c64a8acbbe329d271501aec5f` |
+| Plan/docs evidence | **12 / 3,175 / 2,401 / 309,251 / 2 / 0** | plugin/extension owner plans and prior failure handoffs；fingerprint `72ac1ff500a09ef9a2f0a6eb596415e57a3601d0b192cf5ec7d1684efa2abde4` |
+| Zircon/reference/docs union | **139 / 44,685 / 39,102 / 1,811,940 / 279 / 0** | current physical working tree union；fingerprint `a681602d3c45b2bf36d70b1492d82727f78e817004996a592cf6aa1c7ed84350` |
+
+Editor123确认manager active snapshot与Workbench direct registration是两套不相交权威；ContributionStore ticket没有production revoke，扩展 family 没有共同 owner-generation mount、rollback、quiesce 或 unload fence；capability、callback fault、Inspector/field/pane隔离和Toolkit锁边界仍不统一。`register_editor_extension_owned()`的局部候选验证、immutable snapshot、scene/overlay boundary和save/close lease可保留，但不能冒充完整扩展 runtime。Editor50的5项P0、60项P1、15项P2全部Open，40门全Fail。本轮只写review与索引，没有运行Cargo、GUI、插件reload、panic/fault injection、native unload、跨进程或规模benchmark；也未查询或实时跟踪协调器。详见`zircon_editor/123-editor-extension-contribution-store-registry-toolkit-provider-snapshot-reload-lifecycle-current-source-review.md`。
+## 356. Editor Project Startup / Open / Create / Authority / Hub Handshake / Session Guard / Focus / Recent / Recovery 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/App/Runtime Interface/Runtime selected（74个证据根，排除不属于本域的外部计划） | **250 / 34,833 / 31,700 / 1,255,806 / 451 / 0** | ProjectLaunchIntent、ProjectAuthority/preflight/composition、SessionGuard/activation ledger、EditorManager activation/close、Hub handshake/focus、RetainedHost startup/first-present、Recent 与 focused tests；fingerprint `479f92ad0ab3f187e4ed29e0a13c88c7999dc83ec6872501be2c0a3a88763db` |
+| Unreal/Godot/Fyrox/Bevy reference | **13 / 29,487 / 25,337 / 1,065,419 / 22 / 0** | project browser/descriptor/launch loop、migration/backup/recovery/lock、manager/recent、runner/plugin phase；fingerprint `9d9ad77dcfc1754778ad76c7b68a38c70bab14a193e0a581c6af647fda7018b5` |
+| Plan/docs evidence | **14 / 4,890 / 3,657 / 577,818 / 2 / 0** | owner plans、failure handoffs 与既有 Editor51/50、App/Hub 产品审查；fingerprint `25827e52745d658c8ce75a1a80e5a7e9623ff5ccd049ffd86b531b16bf14aff8` |
+| Zircon/reference/docs union | **277 / 69,210 / 60,694 / 2,899,043 / 475 / 0** | current physical working tree union；fingerprint `9891587d096e5b680c7d6ac9def32e1e38818fa5df63ff934c96a950790e05d2` |
+
+Editor124确认旧Editor51的preflight、lifecycle、first-present与focus基础已实质落地，但Ready提交顺序仍早于activation ledger Session commit；跨store没有共同activation receipt，Normal profile没有签名/trust/approval gate，operation id没有dedup/replay authority，`RetainedEditorHost::Drop`也没有覆盖构造后early-return的project close/release。Editor51当前刷新登记5项P0、60项P1、15项P2与40门，旧报告结论以本刷新为准。本轮只写review与索引，没有运行Cargo、双进程Hub/Editor、crash-point、trust、lock、GUI first-present、filesystem或性能动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/124-editor-project-startup-open-create-authority-hub-handshake-session-guard-focus-recent-recovery-current-source-review.md`。
+## 357. Editor Interactive Tool Scheduler / Resource Lease / Input Capture / Scene Mode / Modal / Extension Lifecycle 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor selected（44个证据根） | **20 / 4,726 / 4,274 / 164,111 / 41 / 0** | `core/tools`、context service、SceneModeStack、Viewport input、message delivery与focused tests；fingerprint `4c906626fcb86e78045061fa7b49e59b3c4b9375b961c8c68e7b2563bb5fd21e` |
+| Unreal/Fyrox/Godot/Bevy/Unity Graphics reference | **19 / 9,893 / 8,586 / 369,905 / 7 / 0** | InteractiveToolManager/InputRouter、Fyrox interaction、Godot EditorPluginList、Bevy picking/focus、Unity Graphics tools；fingerprint `1aeb239eee2e721c561b2f9b00f199306274f5ad8403660443778236249c3871` |
+| Plan/docs evidence | **7 / 2,984 / 2,357 / 383,710 / 0 / 0** | owner plans、tool orchestration contract与旧 Editor53 review；fingerprint `497a29b4bf1386ec0f525699e89a9fece80c411b87d85ad26aab72f5cac97f84` |
+| Zircon/reference/docs union | **46 / 17,603 / 15,217 / 917,726 / 48 / 0** | current physical working tree union；fingerprint `61464222e646b2e66a0b81d82be4d7aa2b963b297cadc7fb6919331dda747116` |
+
+Editor125确认scheduler与SceneMode都是局部真实底座，但生产没有任何租约consumer，`active_sets`覆盖和解锁后event重排仍是硬正确性问题。Editor53当前刷新登记3项P0、48项P1、12项P2与36门。本轮只写review与索引，没有运行Cargo、GUI、并发、plugin reload、focus loss、real modal/export或性能动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/125-editor-interactive-tool-scheduler-resource-lease-input-capture-mode-modal-extension-lifecycle-current-source-review.md`。
+## 358. Editor Builtin View / Window Descriptor Catalog / Content Provider / Capability / Template / Localization 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor selected（54个证据根） | **339 / 58,113 / 52,944 / 4,301,374 / 48 / 3** | builtin views、ViewRegistry、capability/template/layout、workbench snapshot、extension view、assets 与 focused tests；fingerprint `f537d1e934c613816d74608aeefcb33f0756eab50b98ff07c58740e740cc147b` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **14 / 11,421 / 9,693 / 415,202 / 1 / 0** | WorkflowTabFactory/TabManager、Godot dock/plugin、Fyrox plugin、Bevy plugin、Unity VolumeComponentProvider；fingerprint `241e317875ff522ce4b188634a4fd25a220b156c24ad8b8b363a66deab1d7e05` |
+| Plan/docs evidence | **19 / 7,270 / 5,634 / 791,344 / 0 / 0** | owner plans、UI extension/workbench contracts与旧 Editor52 review；fingerprint `d1519f4f721902efb00abc1474423a46bd2591ca71fbf1a51ccedcccb01c84ec` |
+| Zircon/reference/docs union | **372 / 76,804 / 68,271 / 5,507,920 / 49 / 3** | current physical working tree union；fingerprint `5a3ca28313205212c71c401008248bb61f636b842b134f09e3e0fe53b22206aa` |
+
+Editor126确认集中目录、能力快照、layout/template metadata和部分真实 session 是可保留底座，但无 provider 的 descriptor 仍能被注册、打开、放入默认 layout 并显示为非 placeholder；raw-ID content kind、functional alias 和 extension view 仍分裂。Editor52当前刷新登记1项P0、40项P1、12项P2与32门。本轮只写review与索引，没有运行Cargo、ZUI compile、真实provider spawn、layout restore、plugin reload、GUI first-present或性能动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/126-editor-builtin-view-window-descriptor-catalog-content-provider-capability-template-localization-current-source-review.md`。
+## 359. Editor Workbench Shell AutoLayout / Constraint Language / Responsive Tier / Region Binding / Geometry Authority 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/runtime interface selected（55个证据根） | **68 / 11,028 / 10,125 / 380,706 / 97 / 1** | 44个autolayout文件、shell recompute/template bridge、Workbench host presentation、runtime axis constraints/style与focused tests；fingerprint `13b882486f371704ca7a4c988f0dd703ac65e11362f98c1c2bad4952aaea734a` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **20 / 16,103 / 13,972 / 589,880 / 42 / 0** | splitter/docking/responsive panel、recursive dock graph、Taffy/ComputedNode、Unity TwoPaneSplitView/GeometryChanged；fingerprint `e4db5ee5108ad855ae62c2d9bab1796e9d20ced3b50fdcae090d29da3ac36e0c` |
+| Plan/docs evidence | **8 / 3,527 / 2,545 / 502,157 / 2 / 0** | engine-wide/P0 owner、Editor01/13/52、Runtime11A、Interface03与Workbench skeleton contract；fingerprint `0dd6769549c4286cf1b3266404f5c178c202fc7c28f0fc34a4bf624f87268d34` |
+| Zircon/reference/docs union | **96 / 30,658 / 26,642 / 1,472,743 / 141 / 1** | current physical working tree union；fingerprint `2fadaf1ef931f1f9ecc611e09385f8c0093f7995192de6305fbf26b9ad945ba1` |
+
+Editor127确认Editor54旧报告的3项P0、52项P1、12项P2与36门仍未封闭：`shell_regions.toml`及CSS-like declaration parser没有生产加载/编译consumer；同一recompute并行产出legacy `WorkbenchShellGeometry`与componentized/Taffy frames，且legacy equality参与复用；root与componentized bridge的布局失败只写诊断，`recompute_if_dirty`仍提交`CommittedShellState`并无条件清除projection pending。当前源码还确认root bridge的`_model`/`_metrics`参数未消费、drawer projection每次标记所有root、responsive tier从字符串属性全树扫描且非法值静默跳过、axis solver不返回infeasible/overflow。目标仍是versioned source/compiler、单一componentized geometry、同代原子published generation与last-good恢复。本轮只写review与索引，没有运行Cargo、GUI、真实DPI/monitor、fault injection、pixel、a11y、soak或性能动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/127-editor-workbench-shell-autolayout-constraint-language-responsive-region-binding-geometry-current-source-review.md`。
+
+## 360. Editor Structured Clipboard / Cut-Copy-Paste / Duplicate / Delete / Cross-Document Remap / Drag Payload 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/Runtime Interface selected | **102 / 18,594 / 17,067 / 660,681 / 108 / 4** | 编辑命令/intent/history/journal、Delete exact `DetachedEntityBatch`、DynamicScene/EntityRemap、文本clipboard、hierarchy drag与focused tests；fingerprint `dd87e23e437a01a11b8f29f0276a704565e1633cb092b7eea9efe4dd1eeb9865` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **13 / 29,536 / 25,105 / 1,117,327 / 31 / 0** | Editor copy/paste/cut、cross-actor remap、SceneTreeDock、Fyrox clipboard、Bevy EntityCloner与Unity Shader Graph transfer；fingerprint `788fc52a4d3848a05194d31d5628f770cf8e3aee5ade76ff6583f7744ee9de42` |
+| Plan/docs evidence | **12 / 5,662 / 4,001 / 627,915 / 1 / 0** | engine-wide/P0 owner、Editor02/03/05/08/23/24/42与Runtime11A/11B/24相关边界；fingerprint `16eb84848ea49a0be7014a0f4918d60b13f411ab849c8921d531bdde0b3a4fac` |
+| Zircon/reference/docs union | **127 / 53,792 / 46,173 / 2,405,923 / 140 / 4** | current physical working tree union；fingerprint `0a5d964a1f72d4ef88d7b6d01d52c2474bda186dd377256d38183b836cb03085` |
+
+Editor128确认旧Editor55的Delete NodeRecord数据损失P0已关闭：当前命令保留`batch: Option<DetachedEntityBatch>`，restore失败也返还原批次；但这只覆盖同进程local undo/rollback。`DeleteNodeJournalPayload`仍只有root/fallback，journal replayer只做forward apply，无法从durable日志重建删前实体或提供重启后Delete undo。当前源码仍没有Copy/Cut/Paste/Duplicate command、Scene subset capture或portable transfer service；DynamicScene只捕获整个World的serializable反射数据，数值EntityRemap在未映射时原样保留，hierarchy drag把`UiDragPayload`与旁路NodeIds分开并直接变成`SetParents`。Editor55当前刷新登记1项当前P0、64项P1、12项P2与40门；旧P0关闭后以Scene structured transfer缺失替换，canonical总数净变化为零。本轮只写review与索引，没有运行Cargo、Editor、GUI、OS clipboard、跨文档、crash、soak或性能动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/128-editor-structured-clipboard-cut-copy-paste-duplicate-delete-cross-document-remap-drag-payload-current-source-review.md`。
+
+## 361. Editor Search / Filter / Query Index / Find Usage / Reference Navigation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/Runtime Interface selected | **135 / 27,804 / 25,729 / 1,116,528 / 268 / 0** | AssetWorkspaceState、Hierarchy filter/reflow、Workbench search/feedback、Runtime AssetRegistryIndex、Editor catalog details、reference rows/pointer与focused tests；fingerprint `22680455d5b7ea9f1eeebed3b8b62adb27412218b7a98aae40204f0800b20c4a` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **17 / 12,198 / 10,502 / 483,650 / 53 / 0** | TextFilter/AssetRegistry/FindInBlueprint/SceneOutliner、Godot Quick Open/Find in Files、Fyrox SearchBar/Dependency、Bevy AssetPath/QueryState、Unity SearchFilter/ShaderGraph；fingerprint `29bd096ef3beb2fb75d0c7744c5ef9b1a5dba6821b6d2b82f9bd0d4db6cab34a` |
+| Plan/docs evidence | **15 / 6,945 / 4,951 / 833,810 / 2 / 0** | engine-wide/P0 owner、Editor search/asset/scene/command/job/domain与Runtime identity/registry边界；fingerprint `e268ab5995e9d2a6b658c9db0875dbaedd6e742aac5549a5294b5feb47bdb718` |
+| Zircon/reference/docs union | **167 / 46,947 / 41,182 / 2,433,988 / 323 / 0** | current physical working tree union；fingerprint `c7703fb45d70f59d6f8a497b476450dbab1fb7ef004cfd2ab05822d7d07655c6` |
+
+Editor129确认Asset Browser与Hierarchy过滤链是真实但局部的底座：前者仍是当前目录ASCII线性三字段匹配/单kind，后者在active query下将sparse fragment升级为authoritative full reflow；Command Palette已有独立的倒排字节posting、fuzzy score与分页，但尚未向内容搜索和引用导航提供公共合同。Runtime `AssetRegistryIndex`已经统一UUID/path依赖与反向引用并稳定排序，Editor旧`ReferenceGraph`重复图差异关闭；然而Workbench Scene搜索无事件且Filter route漂移，Effect/Tags输入无query consumer，Blend Space只有三行fixture，Icon Usage固定`14 references`，Gameplay Tags Reference Scan只切换静态route。Search层仍需typed query/provider/index generation、分页/取消、completeness、stale navigation与跨域Find Usage。本轮只写review与索引，没有运行Cargo、GUI、搜索压力、Unicode/fuzzy、索引损坏重建、取消竞态或跨域导航动态验证；也未查询或实时跟踪协调器。详见`zircon_editor/129-editor-search-filter-query-index-result-find-usage-reference-navigation-current-source-review.md`。
+
+## 362. Editor Command Registry / Keymap / Menu / Palette / Context Routing / Remote Automation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime Interface/Plugin SDK selected | **72 / 15,104 / 13,826 / 525,624 / 113 / 5** | `core/commands`、commandlet、operation identity、settings/keymap service、control/event/operation dispatch、workbench menu/palette、plugin contribution DTO/SDK/materializer；fingerprint `af18b704e5e19c67c094669c7fb7d1e74fdabc8876de38ab51e7bd1a09475323` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **14 source roots** | UICommandList/InputBindingManager/ToolMenus、Godot Shortcut/CommandPalette、Fyrox command/key settings、Bevy menu；Unity Graphics仅作公开局部源码边界，不推断闭源Editor实现 |
+| Plan/docs evidence | **8 owner roots** | engine-wide、Editor01/02/06、Plugins01、Runtime Interface01/02与旧Editor08唯一owner |
+
+Editor130确认命令系统已经具备真实registry/factory、structured enablement、effective keymap、menu projection、immutable palette catalog/byte posting/bounded query window、MRU与headless commandlet；旧版普通`EditorCommand` binding缺Remote复核、disabled candidate遮蔽、命令面板无索引/分页等结论均已关闭。当前三个P0仍由源码直接复现：`UiControlRequest::InvokeBinding/InvokeRoute`承载`EditorOperation`时没有与`CallAction`等价的remote gate并把调用改写为`UiBinding`来源；Runtime Interface和Plugin SDK仍接受二段command ID，而Editor materializer经`EditorOperationPath`要求至少三段；序列化`Command`仍只注册operation descriptor而无factory，发现后无法执行。刷新保持3项P0、44项P1、10项P2，canonical总数净变化为零。本轮只写review与索引，没有运行Cargo、真实Editor、插件DLL、网络control、键盘布局矩阵或动态性能验证，也没有查询或实时跟踪协调器。详见`zircon_editor/130-editor-command-registry-keymap-menu-palette-context-routing-remote-automation-current-source-review.md`。
+
+## 363. Editor Background Jobs / Admission / Scheduling / Cancellation / Progress / Shutdown 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime selected（26个证据根） | **256 / 47,380 / 43,123 / 1,644,196 / 439 / 18** | `core/jobs`、context、save/import/autosave、notification progress、asset refresh、export、welcome probe、host lifecycle、Runtime tasks、execution scope、dynamic session destroy与scene task adoption；fingerprint `0b2a98a5640e62c3a43738ed1a861fb238cd14547904e9f654afab01ff764fb1` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **10 / 4,379 / 3,786 / 159,471 / 7 / 0** | asset compile safe shutdown、async work、notification、task pool、worker group与GPU jobs；fingerprint `fb69b4df1ffd7d985ac388c15aae60141dd4429c0b5940741c946ce5a274b999` |
+| Plan/docs evidence | **8 / 2,563 / 1,837 / 367,761 / 0 / 1** | engine-wide、Runtime task、Editor UI/document/asset/plugin/play与旧Editor09 owner；fingerprint `c6e180f0b4eaa5f7818c506325d433b756c78dccc78cb2ba97012426380687f1` |
+| Zircon/reference/docs union | **274 / 54,322 / 48,746 / 2,171,428 / 446 / 19** | 当前工作树去重物理集合；fingerprint `ccba7c3c78838e08810fb03bcae1085d06d0ad08881f8475cff988810cce0328` |
+
+Editor131关闭旧Editor09的两个P0：keyed merge会重新注册同一JobId的latest cancel/label/priority authority，并有latest-token回归合同；旧无界event queue已替换为4,096 entries、16 MiB、5分钟有界journal，具备checked sequence、progress coalesce、drop/gap、high-water和paused-consumer pressure合同。Runtime已有`ExecutionRuntime/ExecutionScope`并由dynamic session与scene task部分采用，但EditorJobSystem仍直接提交到克隆的scheduler，不进入scope census；CoreRuntime也明确legacy scheduler/timer/private worker及worker join未纳管。故唯一Open P0仍是Editor shutdown quiescence：`shutdown(deadline)`只等待cooperative progress active map，不join/reap executor/thread/process或阻止late commit；产品还在global job shutdown之前拆Editor runtime session，并在unfinished gate之前关闭settings。P1当前为42 Open/4 Partial/2 Closed，P2为8 Open/2 Closed。本轮只写review与索引，没有运行Cargo、真实Editor、线程/进程故障注入、长时间压力或shutdown动态验证。详见`zircon_editor/131-editor-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-current-source-review.md`。
+
+## 364. Editor Notification Center / Toast / Decision / History / Actions / Retention / Accessibility / Diagnostic Integration 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Notification core | **25 / 4,048 / 3,639 / 131,465 / 49 / 4** | identity/model/service、toast deadline index、progress JobId index、decision ticket/receipt与presentation；fingerprint `966ada6e8748a89e7b717f1b0d5547e885c368f03fe0115f23b7ea6574bd17f7` |
+| Product projection与接入 | **107 / 16,166 / 14,744 / 568,478 / 139 / 6** | context/i18n/logging（含Runtime task diagnostic log bridge）、Activity、Play/Recovery decision、retained bridge/parser/cache/painter/tests与3份Workbench资产；fingerprint `18a707f7d483cf9be47f982ba69415ab53eebc169e90401e57e50985edaf63e5` |
+| Status-line绕行面 | **123 / 12,378 / 11,608 / 467,486 / 64 / 0** | 排除test路径后直接出现`set_status_line(`的生产Rust文件，共331处匹配；fingerprint `27ea40342c1d042180fe9f7865629ddfecc394d0e76288dadc11e5db58481d7a` |
+| Zircon selected union | **252 / 32,305 / 29,721 / 1,156,807 / 252 / 10** | 上述三组去重源码集合；fingerprint `ea99548c2c0a73e4c0a1fa43141f32d4ed8778cc914d136e817ac73e3df0699f` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **14 / 4,453 / 3,806 / 157,970 / 3 / 0** | Slate Notification/Message Log、EditorToaster/EditorLog、Graphics provider invalidation、log/messagebox/progress和bounded diagnostic history；fingerprint `034ed860157468889bcf25d2292202cfcc14a669958dd317a84a4d557793e57a` |
+| Plan/docs evidence | **9 / 3,061 / 2,381 / 432,914 / 0 / 0** | engine-wide、Editor UI/plugin/play/command/job与旧Editor10 owner；fingerprint `7470df10738366a09fa78a3ecfc8e3bbeda109fa0a5049f84548e02b46c7387d` |
+| Zircon/reference/docs union | **275 / 39,819 / 35,908 / 1,747,691 / 255 / 10** | 当前工作树去重物理集合；fingerprint `d895576604fbee8e6fcf7fa7d28e87ae05b561b3a3c74d690f2b696461bf2f9a` |
+
+Editor132关闭旧Editor10的severity覆盖P0：parser现在让显式`severity/level/tone`优先于legacy `kind`并有producer形态回归测试。其余两个P0仍可由当前链路复现：toast按NotificationId字典序取current、lifetime却从publish时开始，后到短寿命error可从未显示便过期；普通toast/progress只令center visible，却让open/popup/input全部false，且live snapshot清除后没有journal可恢复。项目恢复已复用Decision ticket/receipt，toast/progress索引与parser/cache也有局部改进；新增Runtime task diagnostic bridge只投影到`EditorLogService`，仍未与Notification Service共享record。default/cancel仍在Activity DTO丢失，固定`UNDO`/close没有typed route，123个生产文件/331处status-line调用说明adoption仍未收敛。当前P0为2 Open/1 Closed，P1为49 Open/3 Partial，P2为8 Open/2 Partial。本轮只写review与索引，没有运行Cargo、真实Editor、键盘/读屏/UIA、持久化恢复、插件卸载或压力验证，也未查询或实时跟踪协调器。详见`zircon_editor/132-editor-notification-center-toast-decision-history-actions-retention-accessibility-diagnostic-integration-current-source-review.md`。
+
+## 365. Editor Logging / Diagnostic Journal / Output Console / Status Routing / Retention / Export 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Logging core | **17 / 2,526 / 2,269 / 81,293 / 27 / 3** | record/store/service、event queue/sink、rolling file、Runtime task bridge与测试；fingerprint `50e7299ce76751b197ecdd64a7003c80469402a9012a64c159c9f3691938f432` |
+| Product projection与接入 | **46 / 13,068 / 12,058 / 493,161 / 104 / 1** | context builder、Runtime task pump、Import/Play/Script producer、Console query/projection/virtualization/paint/jump及三份ZUI资产；fingerprint `033c0e653ad0c32d9d03d3a041163db2de66eb7ae60334e4640a01b916a9e67e` |
+| Status/tracing绕行面 | **130 / 14,851 / 13,859 / 557,532 / 81 / 1** | 排除dedicated test路径后直接出现`set_status_line(`、`set_status_line_with_level(`或`tracing::`的生产Rust文件，共350处匹配；fingerprint `878e83640a2fbd8e2062058515dacd4220b6cd3ba1964671ab60eef8e87808af` |
+| Zircon selected union | **184 / 27,692 / 25,641 / 1,023,537 / 187 / 5** | 上述三组去重源码集合；fingerprint `0d4e4296b2086913cd173ffdf126860ee899c2db3dceb351e2969fe4b071d878` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **13 / 6,460 / 5,496 / 213,966 / 0 / 0** | OutputDeviceRedirector、Tokenized Message/Message Log/Output Log、Godot EditorLog、Bevy tracing layers、Fyrox Log和Unity Graphics provider/message invalidation；fingerprint `ecd3b8e2c398893697ce1927c28d970108f79959b17398db9be97bac4274a918` |
+| Plan/docs evidence | **12 / 3,998 / 3,188 / 411,203 / 0 / 0** | engine-wide、Editor Plugin/Play/Command/Job/Notification、Message Bus/Event Runtime与旧Editor11 owner；fingerprint `143d99385f34d86c9e2cb77de001d082924a6d06e152ffd520b2eacc930631a4` |
+| Zircon/reference/docs union | **209 / 38,150 / 34,325 / 1,648,706 / 187 / 5** | 当前工作树去重物理集合；fingerprint `b6f7b7622af41dfe84f7ad44ad75fbb69616eac71f74642858382ec8d6eec313` |
+
+Editor133保留Editor11的3项P0并刷新当前证据：rolling sink已复用打开句柄，store已有entry/byte预算、tail query与O(1) retained lookup，Console已有stable sequence、immutable chunk delta、virtualized projection/paint，Runtime task、model import、Play和Script Build也已局部进入`EditorLogService`。但`emit`仍在全局emission mutex内同步`write_all + flush`，producer随后同步drain唯一event sink；普通record在零订阅者时仍可报告`Delivered`。130个生产文件/350处status/tracing调用、隐藏`EditorConsoleHistory`、notification及直接stderr仍构成平行authority；journal缺session epoch、cursor/page/loss range、总磁盘配额、durable cursor、health、redaction和crash recovery。真实Console仍缺search、组合facet、selection/copy/export、pause/follow、timestamp和script caret定位，而Console Diagnostics扩展页硬编码`Session_12_10`、两条假row/counter并只返回固定反馈。本轮P0为3 Open，P1为50 Open/5 Partial/3 Closed，P2为12 Open；新增P1-58专门追踪并删除或接线这份虚假Diagnostics产品状态。本轮只写review与索引，没有运行Cargo、真实Editor、慢盘/磁盘满/崩溃、百万记录、键盘/读屏/UIA或重启恢复验证，也未查询或实时跟踪协调器。详见`zircon_editor/133-editor-logging-diagnostic-journal-output-console-status-routing-retention-export-current-source-review.md`。
+
+## 366. Editor Settings / Preferences / Scope Persistence / Locale-i18n / Appearance / Plugin Extensibility 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Settings core | **21 / 4,507 / 4,067 / 154,400 / 41 / 0** | authority、registry/catalog、definition/schema、snapshot/source、change log、scope、store/startup/persistence与全部focused tests；fingerprint `723a53c2aa1a7ba47b38b5a7dcdc5d23e75619d6db70e3cf55077b031b9e8648` |
+| i18n core与bundles | **10 / 1,488 / 1,327 / 54,603 / 11 / 0** | locale/catalog/service、bounded event queue、macro/error、en/zh-CN 67-key bundles与tests；fingerprint `4e89706a7be774291f92a44f47fd72af6be83b79d47e27b9a5963f8d9ccac50e` |
+| Product、extension与appearance闭包 | **73 / 22,281 / 20,752 / 780,055 / 64 / 0** | Settings command/menu/event/window projection/ZUI、native category/entry paint/hit-test/selection、plugin page+bundle admission/revoke、viewport persistence、theme host/V2 projection与17个runtime fallback文件；fingerprint `76784dde99ceeca1b2b81472073fdfb6138f602870dc943c22e707ddba64cf3d` |
+| Editor ZUI inventory | **248 / 39,484 / 34,803 / 2,504,587 / 0 / 0** | 全部Editor ZUI；3,207处直接引号文本属性、3,636处宽松assignment candidate、74个token import文件；fingerprint `eb4341b258d78fdcc9633c8bc4f0e439fa8ec3904fdce0f5888c65bb348dddd5` |
+| Zircon selected union | **349 / 67,207 / 60,433 / 3,459,455 / 116 / 0** | 上述四组去重源码集合；fingerprint `dfd2740a538053fac56bdc9043d8e17306386e99f8c8349a927c66fa4e0a4e4a` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **23 / 10,193 / 8,617 / 435,618 / 0 / 0** | settings module/section/config/i18n/style、EditorSettings/Dialog/ProjectSettings/translation/theme、Fyrox Settings plugin、Bevy token propagation、Unity provider discovery；fingerprint `1fc2309a3ccc00ef2a13724ddd296ec5a5a09b3ff2657dbb066bbdb386e0a98a` |
+| Plan/docs evidence | **25 / 7,009 / 5,616 / 703,888 / 5 / 2** | engine-wide、Editor/Runtime owner/currentness reports与7份settings failure handoff；fingerprint `b67a569eab0c5534be560443ff4a843edaf54cd274b5b94e26384202933ee0c9` |
+| Zircon/reference/docs union | **397 / 84,409 / 74,666 / 4,598,961 / 121 / 2** | `2026-08-26T13:16:40+08:00`最终捕获的去重物理集合；fingerprint `447f37fd7ebaff102bb18a12d723c317cad2190a411468eaa3c5ede585efd5b7` |
+
+Editor134确认Editor12旧证据已有四项重要变化：Settings入口现在有真实command/menu/event/retained-host open链；snapshot已有immutable definition catalog、effective source和12项typed slot；plugin SettingsPage `/2`与LocalizationBundle `/1`已按owner原子admit/revoke并本地化；Settings surface还把metadata数组转换为category/entry model，执行clip-bounded native paint、hit test和category selection。appearance也会在token handle变化时更新host/V2并mark presentation dirty。核心产品差距仍未关闭：persistent mutation先发布内存再由feature选择submit，生产只保存三个Project snap值；project transition/path/source抑制写入还能折叠为`Ok(())`，ticket可Succeeded但磁盘未写。Preferences rows没有effective value/layer/source/editor descriptor或mutation，并且open窗口不按value generation刷新。全Editor仍有3,207处直接文本字面值、无production i18n topic subscriber；theme仍有17文件/19处独立dark fallback且无font/icon/GPU资源准备回滚barrier。当前P0为1 Open/2 Partial，P1为50 Open/8 Partial/1 Closed，P2为10 Open/2 Partial；新增P1-59追踪suppressed-success write，32门作为实现资格。canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、真实Editor、磁盘/崩溃/双进程、locale/RTL/font、theme resource、键盘/读屏/UIA或性能动态验证，也未查询或实时跟踪协调器。详见`zircon_editor/134-editor-settings-preferences-scope-persistence-locale-i18n-appearance-plugin-extensibility-current-source-review.md`。
+
+## 367. Editor Layout Profile / Workspace State / Dock-Tab-Window Restore / Schema Migration 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Layout model | **80 / 6,286 / 5,695 / 215,112 / 42 / 7** | layout/view/window registry/preset完整递归集合；fingerprint `b90da5b4f3d014561af8004df9c46d32034919f447fe7c27485a2ed0f9c027c8` |
+| Persistence与host | **37 / 4,332 / 3,904 / 152,035 / 31 / 2** | workspace/project/preset/host及Runtime ConfigManager selected closure；fingerprint `a4b9739fbd5a3a2792e14c1842e05a7f91fd4add1c2b36b5095966817137e950` |
+| Retained drag与native | **36 / 3,834 / 3,542 / 132,716 / 25 / 0** | tab drag、layout callback、floating projection、native target/presenter/close；fingerprint `d324748bca2df0665e2b66b8f03f9db8ce33b484a18a2a15d295622290fbbd10` |
+| Focused tests | **30 / 5,001 / 4,550 / 178,167 / 103 / 1** | layout command/roundtrip/preset/workspace/registry/native presenter selected tests；fingerprint `32ec9253f8b3049f370b347f7c2de8e54b4a15b0cb0a7b0baa51028b03570187` |
+| Zircon selected union | **183 / 19,453 / 17,691 / 678,030 / 201 / 10** | 上述四组去重源码集合；fingerprint `58bde2a5e7fbbc27a0ee938204c4ee945d6cae6e5ea97dff3c079f5e2e36c8d3` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **15 / 23,784 / 20,603 / 894,831 / 3 / 0** | recursive docking、invalid/unknown tab、named layout、monitor restore、window scale/state与package preference migration；fingerprint `ee4129b0ee266561885d9da0da8b27e11455b25b196b4db33e05d17b070c380a` |
+| Plan/docs evidence | **14 / 4,219 / 3,314 / 529,348 / 0 / 0** | engine-wide、Editor/Runtime owner/currentness与3份failure handoff；fingerprint `3a6233821de8979e4a32ee14085edf2b7569cf01adda790fd842802434c9f849` |
+| Zircon/reference/docs union | **212 / 47,456 / 41,608 / 2,102,209 / 204 / 10** | `2026-08-26T13:51:45+08:00`捕获的去重物理集合；fingerprint `b156cd6fc27e87e0195b8006c4b4bfee270328230886daaa64c9bcba274ac6e9` |
+
+Editor135确认Editor13的五个P0仍全部Open：command先detach后验证，Reset绕开dirty document decision，project restore/bootstrap先清live authority，page preset有损重建topology，schema admission仍无统一bounded validator/migration/LKG/placeholder。当前保留的进展包括drawer region extent预验证、geometry-only重算优化、Runtime ConfigManager debounce/atomic writer/flush/report，以及native dirty-close async save/generation fence；这些只让P1-25、P1-38、P1-45和P1-58达到Partial。新增P1-59追踪native child window在target presentation/geometry apply前先show，P1-60追踪公共`restore_workspace`只交换raw layout而不staging/reconcile registry、instances、payload、toolkit和native target。当前P0为5 Open，P1为56 Open/4 Partial，P2为12 Open；32门作为实现资格，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、真实Editor、磁盘/崩溃/双进程、插件缺失/重载、多显示器/DPI、键盘/读屏/UIA或规模性能动态验证，也未查询或实时跟踪协调器。详见`zircon_editor/135-editor-layout-profile-workspace-state-docking-tab-window-restore-schema-migration-current-source-review.md`。
+
+## 368. Editor Animation Sequence / Graph / State Machine / Timeline-Curve / Preview / Compiler Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Authoring authority与host | **53 / 6,933 / 6,451 / 251,020 / 23 / 0** | core document、session、binding、event、toolkit、save与pane链；fingerprint `a34267312b339b7cf8c9a998886161214f37e7dd48ceb11f0021188bf4ae4692` |
+| Product UI与基础控件 | **41 / 8,297 / 7,487 / 337,945 / 40 / 0** | timeline/curve/graph/preview foundation、host ZUI和8个高级工作区；fingerprint `30e142df49d1c9f714e946bf2141d89f0838561db4a09e5720d9dc37979f4037` |
+| Runtime/compiler/plugin | **206 / 24,717 / 22,614 / 844,569 / 105 / 0** | framework compiler、runtime sequence、animation runtime plugin、graph editor plugin与glTF接点；fingerprint `b0acc5cfb7d32c0e5cee8d57bef1864449ceb8437833a24ab04c3b88cca9c647` |
+| Focused tests | **39 / 8,559 / 7,945 / 313,063 / 146 / 0** | Editor animation event/host/UI/integration与runtime plugin contract tests；fingerprint `7b69ea3b9de35ea3f35da89f183230037f80fe5dcc90d953b247bfd8518f3354` |
+| Zircon selected union | **339 / 48,506 / 44,497 / 1,746,597 / 314 / 0** | 上述四组去重集合；fingerprint `39ed0c130e6f6cd3778888623145d7ad85716caced0ed1b2416c7dc77d098104` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **22 / 27,752 / 23,878 / 1,403,777 / 12 / 0** | transaction、graph schema/compiler、timeline、preview、runtime graph/artifact与局部curve wrapper；fingerprint `f9735de41085c1711498b9005fb6e29167ec15cab18424b2506f32b54149a8df` |
+| Plan/docs evidence | **11 / 4,729 / 3,373 / 444,124 / 2 / 0** | Editor14、75-82、Runtime08C与open ZUI failure；fingerprint `104ea6c63e7a629da66c1ac2dd6dde35ca701091fb77ddd4da2af61520082b7d` |
+| Zircon/reference/docs union | **372 / 80,987 / 71,748 / 3,594,498 / 328 / 0** | `2026-08-26T14:41:07+08:00`捕获的去重物理集合；fingerprint `1a7158b8f5554089778d4bfa85144638cef80f9677b1806857f6302aeed2b2ae` |
+
+Editor136确认Editor14之后的document/transaction/compiler重构是真实进展：Sequence/Graph/State Machine已有默认toolkit route、canonical kind、typed diagnostic、restore rollback、document revision/CAS、history undo/redo、conditional durable save及共享source compiler，故原P0-1/P0-3关闭，P0-2/P0-4部分完成。两个当前P0仍阻断产品：没有production `PreviewSceneBackend`把compiled artifact送入runtime evaluator；已删除`animation_editor.zui`仍被production pane loader、integration test和template boundary引用，且`unwrap_or_default`把错误伪装成空pane。8个高级工作区继续只返回静态queued反馈；compiler diagnostic/last-good没有pane/save/preview/cook consumer，capability、graph editor plugin validator和Sequence world compiler仍分叉。新增P1-61..65追踪whole-asset clone+锁内同步编译、compiler truth漂移、save stage receipt、未接线foundation与runtime lowering分叉。当前P0为2 Open/2 Partial/2 Closed，P1为44 Open/16 Partial/5 Closed，P2为12 Open；32门为17 Partial/15 Open。canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、真实Editor、runtime preview、磁盘/崩溃/导入失败、规模benchmark或平台动态验证，也未查询或实时跟踪协调器。详见`zircon_editor/136-editor-animation-sequence-graph-state-machine-timeline-curve-preview-compiler-authoring-current-source-review.md`。
+
+## 369. Editor Material / Shader Graph / Material Instance / VFX / Particle / Preview / Compiler / Diagnostics Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Editor 产品、command/document/extension 与 projection | **167 / 32,084 / 29,520 / 1,157,589 / 163 / 0** | 四份 Workbench、feedback/route、Material projection、asset session、command/factory、editing/extension store、catalog 与 App；fingerprint `c1576844084b250ce0f6031e2b1c35b2d059e780ad6fc539a7552ff514e14c00` |
+| Material/Shader source、plugin、importer 与 runtime contract | **51 / 9,346 / 8,578 / 343,752 / 52 / 0** | Material Editor、WGSL importer、authoring graph、Material/Shader asset、readiness 与 loader/cache 接点；fingerprint `ef23847a1dd934ddbb4b049a095170bccbf3a79fac0b55d0a6b396bbd1fa364f` |
+| Particle/VFX/Shader Graph package 与 runtime | **74 / 9,568 / 8,678 / 335,241 / 52 / 0** | Particles editor/runtime/templates/tests与Shader Graph/VFX Graph feature；fingerprint `9bca1c27b86ade465fcee1a3c573fa584087862853dbd92f84c5ffa189631282` |
+| Zircon selected union | **292 / 50,998 / 46,776 / 1,836,582 / 267 / 0** | 上述三组去重物理集合；fingerprint `a2027aaf3aeafbe7d31edda1a3a4ed433465cb7bf4e6c535878c37e43393610e` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **29 / 59,560 / 51,593 / 2,474,796 / 0 / 0** | graph model/validation/generation、undo/invalidation、compiled data、preview、runtime material与shader cache；fingerprint `14559f0615e33422264b89c94e6ec8a0cd9e1ddc322d80d1c80df64425cc8d9b` |
+| Plan/docs evidence | **14 / 5,768 / 4,282 / 585,172 / 0 / 0** | Editor15/91、共享Editor owner、Runtime与Plugin parent reports；fingerprint `7403cd97c927f7883c9d03c0eb1cac6498fdb82063766292f63f4dc78405cae8` |
+| 全部证据 union | **335 / 116,326 / 102,651 / 4,896,550 / 267 / 0** | `2026-08-26T15:14:52+08:00`捕获的当前物理集合；fingerprint `5857b03cadf51d3a9cd23738a2373ea2d12ce59decf7611d7dfc3d9658244e71` |
+
+Editor137确认Editor91之后的Shader/Material边界有真实局部进展：raw WGSL importer现产出`ShaderAssetKind::Module`，readiness按kind/shading-model/entry-stage fail-closed，Material拒绝非Surface shader，`.zshader v2`拒绝Module，duplicate/token/stage/entry hot path也增加性能门。这强化P1-007/028/036的Partial证据，但没有形成Editor产品闭环。默认catalog/App仍不装配四类Editor；Material两份资源缺失；Particles三份ZUI共131行、13个`Space`、零业务binding，全部菜单disabled；18个operation无factory。四份Workbench仍为884行、103 nodes、71 routes、0 providers并伪造成功文本；Material compiler只求值base color，WGSL graph不经过Naga且调用未定义helper，VFX/Shader Graph executor仍no-op，三套graph及领域document/save/LKG/runtime preview均未收敛。当前P0为5 Open，P1为21 Open/39 Partial，P2为12 Open；32门为21 Fail/11 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、真实Editor、create/save/reopen/cook、GPU preview、particle parity、故障/规模或平台动态验证，也未查询或实时跟踪协调器。详见`zircon_editor/137-editor-material-shader-graph-material-instance-vfx-particle-preview-compiler-diagnostics-authoring-current-source-review.md`。
+
+## 370. Editor Terrain / Landscape / Foliage / Scatter / World Partition / Level Streaming Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Terrain 插件全量 | **16 / 1,072 / 971 / 38,904 / 10 / 0** | editor/runtime/dist/manifest/tests 全量 |
+| Editor 产品、路由、catalog 与 App | **23 / 5,713 / 5,471 / 267,368 / 11 / 0** | 四份 World Building ZUI、feedback/navigation/binding、catalog 与 App |
+| Editor 共享 authoring 承接 | **172 / 33,267 / 30,148 / 1,112,355 / 264 / 0** | command/document/transaction/job/scene-mode；只判定是否有 Terrain consumer |
+| Runtime downstream、Physics/Nav 与示例 oracle | **41 / 13,861 / 12,685 / 500,200 / 75 / 0** | asset/scene/level/render/physics/nav/catalog/Vampire |
+| Zircon selected union | **252 / 53,913 / 49,275 / 1,918,827 / 360 / 0** | 上述四组去重物理集合 |
+| Unreal/Fyrox/Godot/Unity Graphics/Bevy reference | **30 / 39,058 / 33,890 / 1,498,071 / 0 / 0** | Landscape/Foliage/Partition、Terrain node、heightmap physics、GPU instance 与 visibility/batching |
+| Plan/docs evidence | **11 / 3,996 / 2,940 / 416,616 / 0 / 0** | Editor16/92、Runtime142、共享 owner 与 open failure handoff |
+| 全部证据 union | **293 / 96,967 / 86,105 / 3,833,514 / 360 / 0** | `2026-08-26T15:45:31+08:00` 完成受影响 owner 重扫后的当前物理集合 |
+
+Editor138确认Editor92之后的新增代码没有闭合Terrain/Foliage/World Partition产品链。Terrain import plan继续保留RAW/R16/PNG typed source、checked sample count与LayerStack fail-close，但不读bytes、不decode、不写source/artifact；LevelSystem新增per-World time policy/fixed-step/interpolation，却没有manifest、cell、streaming source、data layer、HLOD、residency或IO pipeline。默认catalog/App仍不装配Terrain，3个声明资源缺失，5个operation无factory且scene mode为空，runtime importer固定DiagnosticOnly，World保存固定`terrain: None`，Graphics仍descriptor-only。四份Workbench仍为920行、108 nodes、76 routes、0 providers，并固定显示84K/64K instances、96 cells/MB与queued文本；Foliage/Scatter/Partition没有source/compiler/artifact/runtime authority。当前P0为5 Open，P1为58 Open/1 Partial/1 Closed，P2为12 Open；32门为30 Fail/1 Partial/1 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、真实Editor、Terrain import/save/reopen、GPU preview、physics/nav/streaming、故障/规模或竞争benchmark，也未查询、轮询或等待协调器。详见`zircon_editor/138-editor-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-current-source-review.md`。
+
+## 371. Editor Sound / Audio Clip / Mixer / Routing / Effect / Spatial / Acoustic / Timeline / Audition 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Sound Editor 与两个 optional feature editor | **25 / 1,607 / 1,436 / 60,362 / 10 / 0** | plugin、33 operation、live-output、五份ZUI与focused tests全量 |
+| Editor shared/product boundary | **160 / 29,694 / 26,937 / 1,000,596 / 229 / 16** | asset toolkit、document/editing/job、extension/store、dispatch、catalog与App |
+| Runtime、asset、importer 与 provider downstream | **1,336 / 32,560 / 29,596 / 1,122,993 / 420 / 12** | Sound runtime递归全量及Audio/Sound framework、asset、importers、features、catalog |
+| Zircon selected union | **1,521 / 63,861 / 57,969 / 2,183,951 / 659 / 28** | 上述三组去重物理集合 |
+| Unreal/Fyrox/Godot/Bevy/Unity Graphics reference | **34 / 19,026 / 16,194 / 682,559 / 2 / 0** | asset open/reimport、Mixer/bus、waveform/audition、streaming与ECS audio lifecycle；Graphics仅作边界 |
+| Plan/docs evidence | **11 / 3,751 / 2,786 / 367,388 / 0 / 0** | Editor17/93、Runtime08b/139、Plugins11/02、engine-wide与open handoff |
+| 全部证据 union | **1,566 / 86,638 / 76,949 / 3,233,898 / 661 / 28** | `2026-08-26T16:07:55+08:00`完成受影响owner重扫后的当前物理集合 |
+
+Editor139确认Editor93之后的Sound Editor产品形态没有闭合。默认catalog/App仍不装配Sound，Sound asset无toolkit，33个operation只有descriptor而无factory；五份ZUI仍为301行、43 nodes、29个`Space`、3个Button、3 routes、0 provider。`SoundEditorLiveOutputController`虽已拆分model/controller且保有正确薄边界，但生产代码没有构造owner、generation、binding或shutdown链。Runtime新增graph hierarchy cache、targeted Arc COW、timeline/automation预校验、in-place low-pass、WAV layout和decoder scratch等真实局部优化；然而完整PCM仍进入`SoundAsset.samples`和resident clip，active Kira automation仍拒绝，timeline仍由`delta_seconds`推进，telemetry没有callback writer，也没有生产AudioWorldSystem/Scene bridge。当前P0为5 Open，P1为60 Open，P2为12 Open；32门全部Fail，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、真实Editor、设备/import/save/PIE/fault/scale/soak/竞争benchmark，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/139-editor-sound-audio-clip-mixer-routing-effect-spatial-acoustic-timeline-audition-current-source-review.md`。
+
+## 372. Editor Physics Material / RigidBody / Collider / Joint / Collision Profile / Cook / Ragdoll / Debug / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Physics Editor/plugin | **13 / 709 / 637 / 25,310 / 4 / 0** | editor crate、四份ZUI与plugin manifest |
+| Physics Workbench selected | **7 / 1,789 / 1,586 / 98,670 / 0 / 0** | 两份workspace、入口、feedback/navigation/template binding |
+| Editor shared/product boundary | **297 / 39,682 / 35,967 / 1,386,492 / 288 / 16** | asset type、document/editing/job、extension/store、dispatch、viewport、catalog与App |
+| Runtime、asset与backend downstream | **134 / 16,118 / 14,920 / 558,704 / 114 / 2** | Physics runtime/dist、framework、Scene/Material asset/importer、diagnostics与runtime catalog |
+| Zircon selected union | **431 / 55,800 / 50,887 / 1,945,196 / 402 / 18** | Editor与Runtime去重物理集合 |
+| Unreal/Fyrox/Godot/Bevy/Unity Graphics reference | **35 / 13,174 / 11,207 / 484,887 / 3 / 0** | transaction/edit mode/gizmo/fixed clock/VFX collision consumer |
+| Plan/docs evidence | **10 / 3,974 / 2,961 / 372,827 / 0 / 0** | Editor18/94、Runtime138、Plugins12、共享owner与open failure |
+| 全部证据 union | **476 / 72,948 / 65,055 / 2,802,910 / 405 / 18** | `2026-08-26T16:37:30+08:00`完成受影响owner重扫后的当前物理集合 |
+
+Editor140确认Editor94之后没有形成新的Physics Editor产品闭环。默认catalog/App仍只编译contracts而不装配Physics Editor/runtime产品；Physics Material只有presentation，四份插件ZUI仍为139行、17 nodes、11个`Space`、0 Button/event/route，Physics operation factory与viewport overlay provider为零。Ragdoll toolkit/template descriptor没有document/factory/production generator，debug toggle和ragdoll create仍只OpenView；`build_physics_overlay`、`generate_initial_ragdoll_profile`和Jolt `register_mesh_asset`仍只有定义、重导出或测试调用。两份Workbench仍为460行、54 nodes、38 routes并固定显示18 proxies、42 percent、6 hulls、124 bodies、32 contacts、4 manifolds、82 kg与1 warning。当前working tree的Arc world snapshot、typed tick delta与pose-target remove是真实Runtime局部改进，但Jolt native query为空、event/constraint仍近似，且不关闭任何Editor条目。当前P0为5 Open，P1为60 Open，P2为12 Open；32门全部Fail，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、真实Editor、Jolt preview、import/cook/save/PIE/export/fault/scale/soak/竞争benchmark，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/140-editor-physics-material-rigidbody-collider-joint-collision-profile-cook-ragdoll-debug-preview-current-source-review.md`。
+
+## 373. Editor Navigation / NavMesh / Settings / Agent / Area / Surface / Modifier / Obstacle / Off-Mesh Link / Bake / Query / Debug / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Navigation Editor/plugin | **34 / 3,901 / 3,517 / 136,806 / 30 / 0** | editor crate、ZUI、manifest与focused tests |
+| Navigation Workbench selected | **7 / 2,644 / 2,468 / 141,692 / 0 / 0** | workspace、入口、feedback、navigation spec、preview action与template binding |
+| Editor shared/product boundary | **251 / 37,453 / 33,921 / 1,313,317 / 293 / 10** | asset/editing/job/extension/runtime event/viewport/catalog/App与Workbench dispatch |
+| Runtime/navigation downstream | **194 / 51,567 / 45,879 / 1,663,426 / 171 / 7** | framework、builtin navigation、plugin runtime/native、asset与focused tests |
+| Zircon selected union | **479 / 92,921 / 83,317 / 3,113,549 / 494 / 17** | Editor与Runtime去重物理集合 |
+| Unreal/Fyrox/Godot/Bevy/Unity Graphics reference | **37 / 36,195 / 30,429 / 1,387,086 / 0 / 0** | world owner、dirty/tile build、query test、gizmo/UndoRedo、plugin lifecycle与debug consumer |
+| Plan/docs evidence | **19 / 6,332 / 4,748 / 587,026 / 0 / 0** | Editor19/95、Runtime141、Plugins14/05、共享owner与5份open failure |
+| 全部证据 union | **535 / 135,448 / 118,494 / 5,087,661 / 494 / 17** | `2026-08-26T17:01:15+08:00`完成受影响owner重扫后的当前物理集合 |
+
+Editor141确认Editor95之后没有形成新的Navigation Editor产品闭环。默认App/catalog装配、中立DTO、typed NavMesh/Settings资产与V1到V2迁移、Recast/Detour/Crowd/TileCache、selected payload、V2 progress、PIE mirror/provider是真实底座；当前working tree的Arc plan共享、dispatch完成竞争修复、builtin agent索引、typed tick delta和overlay clone削减也是局部工程改进。但Runtime Bake prepare/apply仍固定失败且与focused test冲突，11个业务`Space`、缺OffMeshBridge customization、Bake controller仅测试构造、toggle/filter/query无executor、provider固定Default且只读PIE。Navmesh AI Workbench继续固定显示对象、tile、agent、query和queued反馈；geometry顶面近似/synthetic fallback、逐query owner重建及obstacle/link触发Crowd legacy fallback继续由Runtime141持有。当前P0为5 Open，P1为60 Open，P2为12 Open；32门全部Fail，canonical登记总数不重复增加。本轮只写review与索引，没有运行Cargo、真实Editor、Recast native、asset/bake/query/PIE/export/fault/scale/soak/竞争benchmark，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/141-editor-navigation-navmesh-settings-agent-area-surface-modifier-obstacle-off-mesh-link-bake-query-debug-preview-current-source-review.md`。
+
+## 374. Editor AI / Behavior Tree / Blackboard / Perception / EQS / StateTree / Smart Object / Debug Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| AI Editor package | **12 / 2,396 / 2,223 / 83,869 / 18 / 4** | Cargo、两份ZUI、registration、mirror、overlay与allocation tests |
+| AI Runtime package | **84 / 21,634 / 19,893 / 777,751 / 217 / 42** | compiler、catalog、executor、Blackboard、manager、Perception、plugin registration与tests |
+| neutral AI framework | **9 / 1,040 / 956 / 31,239 / 0 / 0** | manager、descriptor、tick、snapshot、event、ID与error contract |
+| 产品入口选择集 | **7 / 1,130 / 1,019 / 51,053 / 2 / 0** | manifest、Editor catalog/App composition、两份Workbench与固定反馈 |
+| 选定Unreal/Fyrox/Godot/Bevy/Unity Graphics参考 | **24 / 27,267 / 23,255 / 975,902 / 2 / 0** | Unreal五个AI Editor域及command/undo/debug/asset/graph补充边界 |
+
+Editor142确认Editor89之后的AI基础有真实在途深化，但没有形成新的AI Editor产品闭环。Runtime已有dense compiled tree、18-node catalog、typed Blackboard/slot generation、changed-slot observer、subtree abort、Navigation/Animation/Script integration host、bounded hearing backlog、pair cursor和Perception/Behavior Update systems；Editor已有session/sequence/World mirror、borrowed node lookup及finite/preallocated overlay geometry。产品链仍在入口处断开：AI Editor引用已删除Viewport Tool API且不进入默认catalog/App，5个operation无factory，Behavior/Perception ZUI无provider/controller，两份Workbench继续固定伪造BT、agent与成功反馈。Runtime系统只tick已经active的agent，生产源码没有tree/schema注册、scene Brain binding或首次activation；单全局mutex、递归无预算executor、无task ticket、Perception全World笛卡尔扫描、Sight provider失败时fail-open和camera-driven LOD仍在。EQS、StateTree、Smart Object没有生产实现。当前P0为5 Open，P1为48 Open/12 Partial，P2为12 Open；32门为26 Fail/6 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor/App、PIE、asset/cook、fault/scale/soak或竞争benchmark，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/142-editor-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-debug-authoring-current-source-review.md`。
+
+## 375. Editor Gameplay Ability / Effect / AttributeSet / Gameplay Tags / Tag Query / Cue / Prediction / Debug Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Gameplay product surface | **13 / 3,984 / 3,719 / 180,571 / 0 / 0** | 三份ZUI、generated bottom、field/command/navigation/lifecycle与template binding |
+| Gameplay focused tests | **4 / 2,013 / 1,893 / 72,803 / 23 / 0** | route、固定字符串、native input/pixel与control projection |
+| Catalog与resource boundary | **4 / 417 / 340 / 13,280 / 2 / 0** | first-party catalog/App composition与26类ResourceKind |
+| Generic gameplay script host | **16 / 2,900 / 2,750 / 106,641 / 15 / 0** | entity/input/transform/component/HP/lifecycle/navigation host与nested tests |
+| Unreal GAS/Tags选定参考 | **20 / 16,975 / 13,773 / 702,425 / 0 / 0** | module、details、graph/schema、tag/query/migration、ASC/effect/prediction/cue/tag runtime |
+| Fyrox/Godot/Bevy/Unity补充参考 | **8 / 7,064 / 6,078 / 266,355 / 0 / 0** | command、undo/debugger、asset loader/event、graph data/undo/VFX model |
+
+Editor143确认Editor90之后仍没有Gameplay Ability Editor产品闭环。三份Gameplay ZUI合计771行、90 nodes、68 routes、0 provider，固定展示Effect/Ability/Tag样例；Workbench默认选择Effect，Save/Compile/Diff/Apply/Playtest/Add/Rename继续写入sample persisted、queued、+50 health、predicted activation和pending registry/redirect文本。field Change/Submit只改`value/value_text`，九个bottom view只切换route、drawer与selected control。first-party catalog/App只有Navigation/Neural，26类ResourceKind不含Tag/AttributeSet/Effect/Ability/Cue，生产领域类型命中为0。通用`zr.zircon.gameplay` script host是真实底座，但其裸u64、宽泛`gameplay.entity`和动态JSON HP操作不提供Definition/Spec、aggregator/capture、tag container/query、activation lifecycle、authority/prediction/rollback或cue lifecycle。当前P0为5 Open，P1为48 Open/12 Partial，P2为12 Open；32门为28 Fail/4 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor/App、asset/cook、PIE/client-server、prediction/tag migration、fault/scale/soak或竞争benchmark，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/143-editor-gameplay-ability-effect-attribute-set-gameplay-tags-tag-query-cue-prediction-debug-authoring-current-source-review.md`。
+
+## 376. Editor Render Pipeline / Render Graph / Frame Debugger / Capture / Lighting Bake / Reflection Probe / Post Process / Debug Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Rendering editor packages | **66 / 1,182 / 1,004 / 37,557 / 3 / 0** | 根Editor package与15个feature crate，16次capability声明且0项真实Editor contribution |
+| Workbench render product surface | **15 / 6,725 / 6,498 / 318,718 / 1 / 0** | 三份ZUI、generated bottom、feedback/navigation/field与template binding |
+| Manifest/catalog/App boundary | **6 / 1,144 / 1,028 / 40,445 / 5 / 0** | 15项manifest、9项旧测试、默认catalog/App未装配Rendering provider |
+| Runtime capture/profile/bake bridge | **20 / 2,952 / 2,687 / 105,409 / 37 / 0** | 真实capture/profile载荷与狭窄offline bake，Editor未消费诊断载荷 |
+| Runtime bake/probe/post-process domain | **60 / 11,348 / 10,322 / 405,757 / 115 / 0** | typed post-process存在，bake producer、probe产品桥与feature executor仍不完整 |
+| Selected Unreal/Unity/Godot/Fyrox/Bevy references | **22 / 13,152 / 11,244 / 494,610 / 1 / 0** | capture/graph viewer、GPU bake、volume editor、visual profiler、probe gizmo与diagnostic参考 |
+
+Editor144确认Editor96之后仍没有Rendering Editor产品闭环。Rendering根Editor package和15个feature Editor crate继续只声明capability；manifest已列15项、focused test仍硬编码9项，默认first-party catalog/App没有Rendering provider。三份Workbench合计689行、81 nodes、57 routes、0 provider，固定展示Frame 1234、1.84/6.24 ms、City_Block_A、87 assets、12 volumes、02:30、Global Stack和queued/compiled/apply文本。Runtime `CapturedFrame`已携带capture report、graph dump和frame profile，但Editor只消费RGBA；offline bake只生成最多4个probe DTO，不产生lightmap，baked-lighting与post-process feature executor仍no-op。Reflection Probe helper没有产品consumer，且下游调用已删除的`SceneRenderer::render_scene_color_hdr`。当前P0为5 Open，P1为60 Open，P2为12 Open；32门全部Fail，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor/App、真实GPU/RenderDoc、pipeline compile、bake/probe/post-process、fault/scale/soak或竞争benchmark，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/144-editor-render-pipeline-render-graph-frame-debugger-capture-lighting-bake-reflection-probe-post-process-debug-current-source-review.md`。
+
+## 377. Editor UI Asset / HUD / Widget / Binding / Theme / Icon / Accessibility / Menu Flow / Font Atlas Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| UI Asset editor core | **101 / 27,684 / 25,760 / 970,738 / 67 / 13** | session、document、designer、binding、theme、preview与replay |
+| Host session与retained product integration | **70 / 7,414 / 6,869 / 281,002 / 37 / 2** | open/save/import/refresh/watcher/editing与真实surface host |
+| Authoring与document importer plugins | **16 / 1,306 / 1,185 / 48,136 / 16 / 1** | capability、descriptor、create入口与`.zui` importer |
+| UI Asset/HUD/extension product surfaces | **10 / 2,681 / 2,341 / 149,600 / 0 / 0** | 真实UI Asset surface与七份Workbench产品表面 |
+| Selected Workbench callback boundary | **7 / 4,502 / 4,443 / 201,921 / 0 / 0** | route feedback、field mutation、navigation与module command |
+| Selected Runtime/interface UI boundary | **235 / 37,458 / 34,378 / 1,283,219 / 143 / 12** | V2/template/binding/accessibility/font合同与真实底层 |
+| Selected Unreal/Unity/Godot/Fyrox/Bevy/Slint reference | **32 / 31,068 / 26,704 / 1,123,180 / 101 / 0** | compiler/factory/transaction/canvas/theme/clipboard/navigation/source-version参考 |
+
+Editor145确认Editor97之后的UI authoring底层继续增长，但产品闭环没有形成。typed session、真实`UiSurface` preview、slot-aware palette/drop、binding/theme inspection、CAS/atomic write、watcher background refresh、V2 importer和Runtime `UiModelSchemaRegistry`/`UiBindingConversionRegistry`都应保留；当前hash membership、borrowed lookup和generation refresh改进也是真实局部优化。五个P0仍在：V2编辑继续经legacy projection丢repeat、slots、ThemeTokens及focus/navigation/picking/a11y/widget；Save在reimport/hydration receipt前推进clean，keep-local仍复用普通Save；promote与external-effect Undo/Redo无跨文件transaction；authoring plugin四个资源不存在且Create无factory。七份Workbench继续以1,665行、196 nodes、140 routes、0 provider固定展示资产名、计数、warning与成功反馈，Designer只有Select/ResizeSlot/PreviewInteract且PreviewInteract只生成metadata。当前P0为2 Open/3 Partial，P1为41 Open/19 Partial，P2为11 Open/1 Partial；32门为29 Fail/3 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、asset cook、save/reopen、PIE、screen reader、IME、GPU/font atlas、fault/scale/soak/profile或竞争benchmark，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/145-editor-ui-asset-hud-widget-binding-theme-icon-accessibility-menu-flow-font-atlas-authoring-current-source-review.md`。
+
+## 378. Editor Data Table / Structured Data / Schema / Import / SaveGame / Slot / Migration / Platform / Cloud Storage Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Editor Data/Save product boundary | **28 / 6,186 / 5,864 / 251,844 / 17 / 4** | 两份ZUI、type registry、feedback/navigation/template binding与reference analysis |
+| Data import/artifact selected | **36 / 9,550 / 8,715 / 342,701 / 54 / 7** | `DataAsset`、builtin/plugin importer、facade、load与artifact |
+| Runtime Session Archive owner | **569 / 11,400 / 10,203 / 392,394 / 20 / 3** | archive/slot/manifest/index/merge/retention/io/writer全目录 |
+| Preferences/atomic/durable transaction/serialization | **85 / 14,768 / 13,393 / 485,699 / 132 / 6** | storage primitive、journal/recovery与versioned serialization |
+| Selected Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **23 / 9,893 / 8,483 / 365,792 / 10 / 0** | DataTable toolkit、Save service、resource IO、visitor、reflect与container参考 |
+
+Editor146确认Editor98之后仍没有DataTable或SaveGame产品闭环。generic `DataAsset`、builtin/plugin importer、artifact hash/chunk/compression、typed Data load、569-file Session Archive以及core owner-lock/BLAKE3/journal/commit-point/recovery transaction都是真实且应保留的底层；但生产源码对DataTable/SaveGame/participant/platform/cloud产品类型与caller精确命中仍为零。Data继续只有全文和canonical JSON，builtin Data只有placeholder、无toolkit，direct references为空；import仍先完整读入，YAML/XML无输入预算，XML递归且丢mixed-content顺序、attribute namespace、comment/PI。Session格式固定v1、无strong integrity hash，path CAS只在进程内map，restore只写`serializable && editable`字段，且没有消费更强durable transaction。两份Workbench继续以468行、55 nodes、38 routes、0 provider固定显示DT_Items、128 rows/512 refs、AutoSave_01、SaveData v4、LZ4及queued/local sample反馈。当前P0为4 Open/1 Partial，P1为46 Open/14 Partial，P2为11 Open/1 Partial；32门为29 Fail/3 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、Data import/cook、Save/Load、kill point、跨进程、platform user、cloud、fuzz、scale、soak或竞争benchmark，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/146-editor-data-table-structured-data-schema-import-validation-save-game-slot-migration-platform-cloud-storage-authoring-current-source-review.md`。
+
+## 379. Editor Runtime Diagnostics / Performance Timeline / Console / Telemetry / Observability Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| 静态 Workbench 与 callback 边界 | **6 / 1,430 / 1,305 / 81,239 / 0 / 0** | 四份ZUI、固定feedback与navigation spec |
+| Editor observability selected | **22 / 2,990 / 2,753 / 105,486 / 18 / 0** | builtin pane、gateway、visibility、profile merge/action与转换 |
+| Runtime diagnostics/profiling selected | **71 / 14,389 / 13,629 / 472,141 / 97 / 0** | store、collector、recorder、export、ABI DTO与output budget |
+| `runtime_diagnostics` plugin | **9 / 436 / 395 / 16,128 / 4 / 0** | package、descriptor、resource URI与tests |
+| Selected Unreal/Godot/Bevy/Fyrox/Unity Graphics reference | **17 / 11,021 / 9,830 / 406,228 / 16 / 0** | analysis session、debugger lifecycle、metric/remote、stats与debug panel参考 |
+
+Editor147确认Editor99之后没有形成工程级Observation产品闭环。Runtime `DiagnosticStore`、frame/span/counter ring、retention、hotspot/Perfetto导出、render/physics/animation collector和child Runtime diagnostics DTO都是真实基础；Editor visibility gate、profile control、UI Debug Reflector与10K logical row clip也应保留。但四份Workbench仍为804行、108 nodes、76 routes、0 provider，固定伪造Session_Player_01、Frame 1234、Actors 420、DAU 128K、Crash Rate 0.18%和2.4M events。Editor `runtime_diagnostics_with_profile()`仍只取host diagnostics并对子进程发送普通profile Snapshot，不消费child diagnostics DTO，FFI failure被静默吞掉。Editor/Runtime各自的Instant origin继续通过saturating span-id offset和vector append伪合并；Timeline producer仍分别截12行，counter无track。可见pane仍同步query、mutex内full snapshot/profile clone和child FFI；metric仍无descriptor/owner/cardinality/finite/bytes admission。Telemetry provider/schema/privacy/auth/delivery/retention/crash evidence为零，plugin仍重复builtin view ID并引用不存在资源。当前P0为5 Open/1 Partial，P1为54 Open/5 Partial/1 Closed，P2为11 Open/1 Partial；32门为28 Fail/4 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、双进程采集、断线、GPU correlation、artifact fault、Telemetry privacy、scale、soak或竞争benchmark，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/147-editor-runtime-diagnostics-performance-timeline-console-telemetry-observability-authoring-current-source-review.md`。
+
+## 380. Editor Multiplayer / Lobby / Matchmaking / Online Services / Replication / Network Emulation / PIE Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Workbench multiplayer surface与callback | **8 / 1,858 / 1,647 / 100,960 / 0 / 0** | 两份ZUI、asset入口、binding、navigation、field mutation与固定feedback |
+| Net Editor与first-party Editor装配 | **12 / 809 / 739 / 31,036 / 9 / 0** | descriptor、5个缺失资源、6个缺失factory及catalog/App断路 |
+| Play request/process/host topology | **43 / 8,121 / 7,402 / 284,087 / 82 / 2** | 单child request/backend/CLI与可保留process lifecycle |
+| Runtime Net handoff selected | **136 / 18,263 / 16,527 / 640,540 / 211 / 8** | mode/session/RPC/Replication局部合同及Runtime140 owner边界 |
+| Selected Unreal/Godot/Bevy/Fyrox/Unity Graphics reference | **22 / 14,354 / 12,241 / 561,098 / 6 / 0** | Online Session、PIE/emulation、Replication、profiler、remote/net/debug lifecycle参考 |
+
+Editor148确认Editor100之后仍没有工程级多人在线Editor产品闭环。Runtime typed Net mode/session DTO、RPC/Replication局部算法和Editor07的process-tree spawn/cancel/output/reap基础都应保留；但Lobby/Matchmaking两份Workbench仍为460行、54 nodes、38 routes、0 provider，固定显示Lobby_Default、8 slots、4 players、6 queues、128 players、48 ms和queued/warning文本，生产Rust没有Online Service/Lobby/Matchmaking authority。Net Editor仍只有descriptor层，5个资源与6个operation factory缺失，first-party catalog/App不装配；Replication Schema没有canonical source、compiler、versioned artifact、compatibility hash或World/server/client install。`PlayStartRequest`与`ProcessPlayBackend`仍只描述和拥有一个child，没有Dedicated/Listen + N clients、role、port/account、artifact/profile/seed、readiness或per-link emulation。当前P0为5 Open，P1为60 Open，P2为12 Open；32门为30 Fail/2 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、Online provider、多进程topology、network emulation、fault/scale/soak或竞争benchmark，Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/148-editor-multiplayer-lobby-matchmaking-online-services-replication-network-emulation-pie-authoring-current-source-review.md`。
+
+## 381. Editor Spawn Rules / Encounter / Population / World State / Scenario / Quest / Authority / Simulation Authoring 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Editor产品表面与callback | **9 / 2,946 / 2,733 / 158,519 / 0 / 0** | 两份ZUI、binding、navigation、field mutation、preview action与固定feedback |
+| DynamicScene spawn/reload focused | **30 / 6,835 / 6,226 / 241,280 / 39 / 4** | remap、compile/preflight/publish、task、reload currentness、prepared spawn与scene asset |
+| Generic gameplay script host | **16 / 2,900 / 2,750 / 106,641 / 15 / 0** | entity/input/transform/component/HP/lifecycle/navigation host与nested tests |
+| Generic state contrast | **14 / 931 / 810 / 28,631 / 2 / 0** | process-local `TypeId + Any` state machine与handle states，不是World State产品 |
+| Selected Unreal/Bevy/Godot/Fyrox/Unity Graphics reference | **22 / 11,820 / 9,842 / 499,904 / 31 / 0** | SpawnActor/MassSpawner/DataLayer、SceneSpawner/State、replicated spawner、model mapping与VFX spawner参考 |
+
+Editor149确认Editor102之后仍没有Spawn Rules/World State/Scenario产品闭环。DynamicScene已经具备compile、isolated preflight、compact no-fail publish、World generation/change-tick fence、async cancel、reload stale/superseded/gap和多类bytes/count/time bound，这些底层应保留；但成功结果仍以`EntityRemap`结束，没有source/artifact revision、stable SpawnInstanceId、owner/instigator/authority、entity ownership set、whole-instance despawn/reload或single terminal SpawnReceipt。两份Workbench继续以460行、54 nodes、38 routes、0 provider固定展示18 rules、12 zones、96 spawns、84 keys、6 layers、42 events和Server authority；生产Rust对14个领域类型的精确命中为零。generic state仍是无产品caller的process-local `TypeId + Any`容器，脚本`gameplay.entity`继续以裸ID直接mutate World。当前P0为5 Open，P1为52 Open/8 Partial，P2为12 Open；32门全部Fail，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、Spawn/World State产品、PIE/network/save/partition、fault/scale/soak或竞争benchmark，Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/149-editor-spawn-rules-encounter-population-world-state-scenario-quest-authority-current-source-review.md`。
+
+## 382. Editor Input Action / Mapping Context / Binding / Trigger / Modifier / Device / User / Rebinding / Accessibility 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Runtime Input两棵源码树 | **66 / 8,494 / 7,559 / 286,663 / 90 / 12** | raw合同、manager、evaluator、event retention、record/replay、camera controller与focused tests |
+| Dynamic/App/Script/Manifest集成边界 | **8 / 2,795 / 2,609 / 112,475 / 14 / 0** | physical-first session dispatch、module selection、raw script和project manifest |
+| Editor authoring primitive | **30 / 6,775 / 6,105 / 224,931 / 53 / 7** | asset type/toolkit、dirty/save、key chord/map/settings与first-party catalog |
+| Zircon selected union | **104 / 18,064 / 16,273 / 624,069 / 157 / 19** | 当前工作树去重选择集 |
+| Selected Unreal/Godot/Bevy/Fyrox/Unity Graphics reference | **23 / 12,911 / 11,558 / 502,917 / 50 / 0** | Enhanced Input资产/profile/editor、InputMap、raw state、key settings与serialized action样例 |
+
+Editor150确认Editor103之后仍没有Input Action/Mapping Context authoring产品闭环。physical-first dispatch、immutable evaluator generation、binding range、workspace、axis/consumed index、focus/disconnect清理、相邻motion coalescing、跨帧host request、有capacity/discarded status的raw recorder和Free/Orbit/Pan camera controller都是真实可保留底座；但production产品类型、Input资产、catalog、manifest与App artifact install仍为零，default Action manager继续disabled+空map且无production evaluate caller。Action/Context/Binding仍依赖String、scalar `f32`和runtime `GamepadId`；priority只排序source容器而不参与evaluate，duplicate/missing/unknown继续静默，raw `gameplay.key_pressed`仍是玩法路径。`InputRecording.frames`仍无总上界，wall-clock/饱和sequence/re-submit replay不具artifact/profile/user/device确定性。当前P0为5 Open，P1为46 Open/14 Partial，P2为11 Open/1 Partial；32门全部Fail，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、真实设备、cook/install、rebind、accessibility、fault/scale/soak或竞争benchmark，Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/150-editor-input-action-mapping-context-binding-trigger-modifier-device-user-rebinding-accessibility-current-source-review.md`。
+
+## 383. Editor Camera / Rig / Director / Blend / Shake / Cinematic Cut / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Runtime camera、controller、render/history与consumer纵切面 | **111 / 16,229 / 14,799 / 584,032 / 98 / 0** | endpoint/source、World active ID、descriptor/stack、controller分层、Dynamic/script/AI、history/velocity与sequence |
+| Editor viewport、asset primitive、preview、Sequencer与测试 | **78 / 16,340 / 15,142 / 605,433 / 114 / 0** | transient viewport camera、Inspector能力、短frustum、preview primitive、static Sequencer surface与timeline plugin |
+| Zircon selected union | **189 / 32,569 / 29,941 / 1,189,465 / 212 / 0** | 当前共享工作树去重选择集 |
+| Selected Unreal/Godot/Bevy/Fyrox/Unity Graphics reference | **25 / 13,380 / 11,458 / 555,712 / 4 / 0** | endpoint/player manager/rig/lens/shake/cut、per-viewport preview、projection/controller、reflection与stack/history |
+
+Editor151确认Free/Orbit/Pan的stateful实现已从Core framework迁到Runtime Input，World v2已保存裸`active_camera`，history key也已覆盖render type/target/viewport与完整layer sets；这些都是应保留的current-source进展。但`CameraComponent` 14字段仍只有FOV/near/far反射，26类ResourceKind无Rig/Lens/Shake，production无Camera compiler/Director/ViewResult/CutEvent。Scene source不能表达Base/Overlay stack、clear depth、独立culling/volume masks、dynamic resolution、jitter或projection override，World extraction仍依赖default Base/empty/clear-depth并复制同一mask。Dynamic Session、script `camera_follow`和AI LOD继续绕过qualified authority；FocusLost不取消drag；history缺World/player/view/purpose/director/source/cut epoch且无active-key retirement。Sequencer继续固定`SEQ_Intro`、Camera Cut、12 shots/428 keys及queued反馈，Velocity仍以阈值猜cut。当前P0为5 Open，P1为49 Open/11 Partial，P2为12 Open；32门为26 Fail/6 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、WGPU、PIE、Camera preview、Sequencer、cut/history capture、split-screen/XR、collision、fault/scale/soak或竞争benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/151-editor-camera-asset-component-rig-controller-director-blend-shake-cinematic-cut-preview-current-source-review.md`。
+
+## 384. Editor Script Source / Build / Hot Reload / Debugger / Visual Script 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Editor build/log/jump/command/catalog | **14 / 3,169 / 2,882 / 104,828 / 45 / 1** | 有界watch/request状态机、diagnostic sink、日志jump、唯一Script命令与Editor catalog |
+| Runtime/Plugin/App/WOC纵切面 | **166 / 28,719 / 26,376 / 1,006,255 / 251 / 5** | startup compile、Scene binding、VM/reflection/state migration、ZrVM provider、feature/profile与WOC入口 |
+| Zircon selected union | **180 / 31,888 / 29,258 / 1,111,083 / 296 / 6** | 当前共享工作树去重选择集 |
+| Selected Unreal/Godot/Bevy/Fyrox/Unity Graphics reference | **115 / 37,538 / 31,257 / 1,292,143 / 3 / 0** | Blueprint/Kismet/Live Coding、ScriptEditor/Debugger、Script Inspector/Build、Reflect/Watcher与Unity Graphics范围核对 |
+| External ZrVM adapter/LSP/debug snapshot | **6 / 3,533 / 3,140 / 138,353 / 11 / 0** | Rust compile binding、LSP capabilities、debug/profile protocol；外部dirty snapshot仅作能力证据 |
+| All selected | **301 / 72,959 / 63,655 / 2,541,579 / 310 / 6** | Zircon、五引擎参考与外部ZrVM合并选择集 |
+
+Editor152确认300 ms debounce、1秒首事件截止、active + one queued request、20路径/64 KiB预算和重复watch路径O(1)字节记账是应保留的局部底座，但`ScriptBuildOrchestrator`与diagnostic sink仍无production caller，三个build step也没有executor。Runtime startup继续同步`discover -> open -> compile -> start_session`，默认Client/Editor profile不启用required ZrVM backend，source/request/artifact/install/session generation没有统一真值。26类ResourceKind无Script Source、Visual Script、Class、Component、Debug Map或Artifact；Scene继续将package/module和任意JSON map写入`script.bindings`。外部ZrVM已有丰富LSP/debug接口，但Zircon没有versioned adapter、transactional code editor、shared ArtifactSet、build-before-Play、qualified hot reload trigger、debug session或Visual Script统一lowering。当前P0为5 Open，P1为60 Open，P2为12 Open；32门为31 Fail/1 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、ZrVM构建、LSP/debug protocol、WOC full build、Editor/Play/Client/Server、hot reload、fault/scale/soak或跨引擎benchmark；Tooling按用户要求排除。详见`zircon_editor/152-editor-script-source-code-editor-build-compiler-hot-reload-debugger-visual-script-class-component-current-source-review.md`。
+
+## 385. Editor Model / Mesh / Skeleton / Geometry Import / LOD / Collision / Retarget / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/Plugin/App selected | **122 / 27,374 / 25,180 / 1,002,693 / 134 / 24** | importer、project transaction、Model/Mesh/Skeleton/Skin/animation/LOD、toolkit/thumbnail、workbench、physics与产品装配 |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **22 / 28,111 / 24,721 / 1,089,338 / 32 / 0** | Interchange/Static/Skeletal/Persona/IKRetarget、Godot importer/toolkits/BoneMap、Fyrox/Bevy skin与Unity LOD/crossfade |
+| 全部选择集 | **144 / 55,485 / 49,901 / 2,092,031 / 166 / 24** | 当前共享dirty working tree去重选择集；实施前必须重算fingerprint |
+
+Editor153确认Quick Import路径编辑已经接入production callback，Editor会提交Runtime-owned `ProjectImportReceipt` job，source/artifact/meta/registry/resource也已有generation fence、journal recovery和compound durable publication；旧atomic publication差距与Editor私有glTF sibling parse可关闭。但同一入口仍接受Runtime外部staging拒绝的`.gltf`，sidecar dependency graph、versioned recipe、normalized scene selection、reimport diff和显式Add to Scene均缺失。Core与split plugin glTF继续持有不同schema/priority/语义；reference-only Model的overview仍把有效Mesh报告为0，Skin缺Skeleton/joint map且multi-skin first-wins，renderer不消费authored IBM，Scene不安装Skeleton/player。Mesh LOD仍按entity origin距离，Collision/Retarget工作台继续固定样例，Model/Mesh/Skeleton toolkit、真实geometry thumbnail与qualified Preview Scene仍不存在。当前P0为4 Open/1 Partial，P1为38 Open/20 Partial/2 Closed，P2为12 Open；32门为21 Fail/10 Partial/1 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、真实Editor、import corpus/fuzz、skinned render、LOD/crossfade、collision cook、retarget、fault/scale/soak、跨平台或provider组合动态测试；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/153-editor-model-mesh-skeleton-geometry-import-lod-collision-retarget-preview-current-source-review.md`。
+
+## 386. Editor Localization / String Table / Culture / Translation / Fallback / Pseudo / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon selected source/contracts | **72 / 14,422 / 13,145 / 505,744 / 68 / 4** | Runtime Interface/UI/asset/project/text、Editor i18n/settings/plugin/notification/command/preview及App入口；fingerprint `ea87e52e4e3d486cf1448df03891bf0290091090f8e6243a9512d58c56cfbdb1` |
+| Product UI corpus | **472 / 52,474 / 46,048 / 3,040,428 / 0 / 0** | Editor与plugin `.zui/.toml`完整产品语料，`text_key =`为0；fingerprint `71a1252e9084f6cb0be016b5ae2294bffe1fc36171b5cd9570d805833a24ab3e` |
+| Zircon selected union | **544 / 66,896 / 59,193 / 3,546,172 / 68 / 4** | 当前共享dirty working tree去重选择集；fingerprint `b193f8569dd7064284d9c5a306ce72bec2128646ee808caf4cacdf9b87661d81` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **20 / 3,367 / 2,731 / 143,527 / 0 / 0** | Target/Runtime/StringTable/chunk、Resource/Domain/Server/PO/CSV/preview与负边界；fingerprint `cc8e7f71f6c5b6f8ac5cb3ad4f9562a92ab9436a4ce843457ef34be2e770ca94` |
+
+Editor154确认Editor shell与Plugin Settings Page已有应保留的局部工程进展：en/zh-CN bundle各74 key且完全对齐，plugin descriptor使用typed bundle/key并随owner snapshot/ticket撤销，Settings Window在一个captured locale内区分BuiltIn/Plugin domain；Decision保存bounded named `u64`并用single-pass模板扫描。但公共Localization产品仍未建立：Runtime/Project/App/Script没有LocalizationService、完整BCP 47/fallback DAG、LocalizedTextIdentity、StringTable/Target/Archive/CompiledCatalog、culture startup/cook/chunk或format API。UI compiler继续用空String绕过localized table的String schema，compiled attributes保留raw table，而render/a11y只接受scalar；dependency manifest与key-set catalog没有shipping consumer。472个产品UI文件仍0处`text_key`，Locale Preview固定`authoring-fallback/en-US/zh-CN`且不把locale/catalog传入compile/render。Runtime locale-sensitive SDF key和localized-dirty profile只证明text底层可局部失效，不证明translation lookup。当前P0为4 Open/1 Partial，P1为44 Open/16 Partial，P2为12 Open；32门为25 Fail/7 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、PO/CSV、gather/cook/package、locale hot-switch、translated render、pseudo/RTL、font qualification或跨平台动态验证；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/154-editor-localization-string-table-culture-translation-import-export-fallback-pseudo-preview-current-source-review.md`。
+
+## 387. Editor Sprite / Atlas / TileSet / TileMap / Canvas 2D / Animation / Collision / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **87 / 12,017 / 11,018 / 418,945 / 98 / 8** | 资产schema、Scene persistence、Sprite extract/renderer、Atlas cache、TileMap plugin/catalog/App；fingerprint `eca57be6964a9fae3b210f562a2f9cb948b38ceebd30b6c6c8a5191d09bb123a` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **41 / 32,872 / 28,501 / 1,277,943 / 48 / 0** | Paper2D、Godot quadrant/editor、Fyrox tile/brush/command、Bevy chunk、Unity URP 2D与tests；fingerprint `676f0c90287162c485bc3424ee1b06747ed959214f51ad4c4ad81d2397073afe` |
+| 全部选择集 | **128 / 44,889 / 39,519 / 1,696,888 / 146 / 8** | 当前共享dirty working tree去重选择集；fingerprint `16b401509d7b84648f18f5fdf389f3944da6dfd4e84624282be2e12d399156d9` |
+
+Editor155确认Editor108之后有两类真实局部进展：TileMap paint按校验后的layer identity寻址，4,096-cell上限、整笔preflight、failure atomicity和delta stats已落地；Sprite renderer也新增batch/sprite/slice/vertex/per-stage queue diagnostics。它们仍未形成产品闭环：Project Scene load/save继续丢Sprite/TileMap；Sprite renderer仍为固定texture shader、单alpha pipeline、material不入batch、离屏不cull、每batch每帧buffer/pass；Atlas pack/write无production caller且PNG/TOML非原子；TileMap runtime只有dynamic descriptor和DiagnosticOnly importer，无typed component/chunk renderer/collision/nav，Editor五个operation无factory、两份ZUI缺失、first-party catalogs/App未装配。当前P0为5 Open，P1为44 Open/16 Partial，P2为12 Open；32门为26 Fail/6 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、WGPU、import/cook、visual、fault、scale、soak或跨平台动态lane；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/155-editor-sprite-atlas-tileset-tilemap-canvas2d-animation-collision-preview-current-source-review.md`。
+
+## 388. Editor Texture / Image / Cubemap / RenderTarget / Sampler / Compression / Streaming / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **238 / 53,313 / 48,560 / 1,860,340 / 552 / 44** | Texture asset/import/artifact、IBL、GPU resource、streaming、preview、plugin/catalog/App；fingerprint `d1caf2223036b169c2224314af3df787e16fbbeb0ac9302cdf802c98d1ca3d33` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **29 / 27,536 / 23,887 / 1,095,686 / 82 / 0** | build/DDC、per-mip I/O、layered/cube/3D Editor、typed image/sampler、RenderGraph texture lifetime与tests；fingerprint `7eec8f42d737a475c5f2185278f3ba0725f2a7d8be4695bf5b58558f931a9944` |
+
+Editor156确认Editor109之后已经形成真实的Texture artifact/loader局部底座：schema v3按mip/layer切分raw/zstd block，保存bootstrap/streamable residency、hash、size、alignment、dependency与target platform；immutable store先发布block再发布manifest并拒绝冲突，loader具bounded entry/ticket/retained bytes、priority/deadline、cancel/close、single-flight、异步I/O、校验和稳定失败码。Runtime mip manager也已有resident/upload byte预算、transition cap、hysteresis与offscreen eviction；IBL float source、PMREM、SH、算法版本、BLAKE3 key和atomic cache继续可保留。产品链仍断裂：普通HDR/EXR统一`to_rgba8()`，builtin不执行offline mip/compression而plugin只真正编码BC5；manifest/loader没有普通import、headless package、ResourceStreamer或GPU install consumer，首次ensure仍完整同步上传，compressed resident rebuild明确拒绝。RenderTarget仍是只支持RGBA8/D2/single-layer/single-mip/sample1的普通Texture handle，SVT只有settings。Editor继续直接解码raw source生成固定192缩略图，Texture ZUI不存在、toolkit/factory/transaction缺失，重复importer owner和stable/complete声明未收敛，first-party Editor catalog/App未装配。当前P0为3 Open/2 Partial，P1为30 Open/30 Partial，P2为12 Open；32门为17 Fail/15 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、WGPU、真实import/cook、visual golden、fuzz/fault/scale/soak、跨平台或headless package动态lane；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/156-editor-texture-image-cubemap-render-target-sampler-compression-streaming-preview-current-source-review.md`。
+
+## 389. Editor Video / MediaSource / Player / Track / Clock / MediaTexture / Playback / Capture / Recording 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Interface/Plugin/App/Editor selected | **309 / 37,233 / 33,825 / 1,298,466 / 255 / 0** | resource/UI、time/sound、audio importer、capture/readback、ABI/gateway/Play、profiling、catalog/App；fingerprint `eaea25ceb186bd723f8d8a9835c42b5dfeac33e1d79df3684af7ad27463591f0` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **40 / 10,244 / 8,693 / 347,261 / 0 / 0** | Unreal Media/MovieSceneCapture、Godot VideoStream/MovieWriter、Bevy screenshot、Unity camera capture及Fyrox负证据；fingerprint `df6d60fee695c22622f118b33185a0d7d97e1fcc163d802b3b4767f8f1c7d706` |
+| 全部选择集 | **349 / 47,477 / 42,518 / 1,645,727 / 255 / 0** | 当前共享dirty working tree去重选择集；Cargo.lock仅单独用于codec依赖取证 |
+
+Editor157确认Editor110之后单帧capture基础已有实质进展：`GpuReadbackQueue`具三槽staging、row unpack、request/frame/pending count与byte budget、cancel/abort/shutdown、panic containment和异步map；`CapturedFrame`携带typed source/report/graph/profile，`CapturedHdrFrame`保留linear RGBA16F；V2 foreign output有shape validation与显式release，Play controller/retained viewport已消费真实capture，App以staging、sync和atomic replace发布PNG。但这些仍不是Media或Recorder产品：UI把Media降为Data，Symphonia整文件解码为常驻SoundAsset，External PCM被Kira adapter明确拒绝；生产源码没有Media source/provider/session/track/timestamp/sample queue/clock/A-V sync/MediaTexture，也没有Recorder cadence、encoder、mux、finalize和recovery。V2仍只有width/height/generation/RGBA，Performance Capture继续返回固定Frame 1234。当前P0为5 Open，P1为49 Open/11 Partial，P2为12 Open；32门为25 Fail/7 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、codec、GPU playback、A/V sync、capture/recording、fuzz/fault/scale/soak、跨平台或headless package动态lane；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/157-editor-video-media-source-player-track-clock-media-texture-playback-capture-recording-current-source-review.md`。
+
+## 390. Editor Volume / Zone / Trigger / Region / Gameplay / Audio / Post Process / Environment 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Plugin/Editor/App selected | **197 / 28,852 / 26,647 / 1,056,339 / 173 / 0** | PP、Physics trigger、Sound environment、Navigation bake/editor、Workbench/callback、catalog/App；fingerprint `1b14a8253a4e01bfe90f14ffb3de20404b0bcb4d343d522e3933f6a90ce960cc` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **22 / 25,378 / 21,610 / 870,612 / 5 / 0** | Unreal 13、Godot 2、Unity Graphics 5、Fyrox 1、Bevy 1；fingerprint `0a311fc4427e32d4193621599c579d209fc95692314128de3223cbe9ab1796d5` |
+| 全部选择集 | **219 / 54,230 / 48,257 / 1,926,951 / 178 / 0** | 当前共享working tree去重物理语料；fingerprint `3620bc1ad88f972ffd63267bca9b34b4f791fed12ec4c833b11588719676ba22` |
+
+Editor158确认四套局部空间能力均有可保留代码，但没有工程级Region产品。PP有15个typed component、参数插值、mask/priority/weight与Box/Sphere extract，却对其它Collider晚期返回None且无作者诊断；更严重的是Runtime effect stack已有LUT/blur/motion blur/DOF/SSR，Scene asset与双向converter完全不保存这些字段。Physics有deterministic Enter/Stay/Exit和World replacement snapshot fence，但event只有world/kind/two entities/point。Sound volume有validation、strongest与DSP字段，却没有Scene/World create-update-remove和production render caller。Navigation Editor有typed operation/progress/undo/PIE generation/overlay，bake area仍忽略rotation、按node point套AABB并把shape近似为quad/disc或直接跳过。Gameplay/Streaming领域类型与factory为零，Volume/PP Workspace继续固定VOL/PPV、数值、warning和queued反馈。当前P0为5 Open，P1为35 Open/25 Partial，P2为12 Open；32门为17 Fail/15 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有修改production代码或tests，也没有运行Cargo、Editor、GPU/audio/physics/nav、fault/scale/soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/158-editor-volume-zone-trigger-region-gameplay-audio-post-process-environment-current-source-review.md`。
+
+## 391. Editor Weather / Climate / Time-of-Day / Wind / Precipitation / Cloud / Atmosphere / Environment 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/Plugin/App selected | **371 / 57,963 / 52,726 / 2,081,567 / 459 / 0** | Weather UI/routing、asset/catalog/App、Scene/time、environment/IBL/fog、particle、terrain、sound与builtin registration；fingerprint `883ed0b6b6cf1c8a249d4deef4cbbee480d29bc708cbaa081464d4dc4bfa4d38` |
+| Unreal/Unity Graphics/Godot/Bevy/Fyrox reference | **46 / 23,710 / 20,180 / 1,061,859 / 9 / 0** | Atmosphere、Cloud、Wind、DaySequence、Environment、Fog、Sky persistence/render链；fingerprint `a5cb37a65914af6ee46ec940578ccbcc48cc543312fbfbd5f5581c1790290249` |
+| 全部选择集 | **417 / 81,673 / 72,906 / 3,143,426 / 468 / 0** | 当前共享working tree去重物理语料；fingerprint `11f2073460ade5da90a91b5530b14509634476295b3359194c86e3c87aec9463` |
+
+Editor159确认Weather Authoring产品链仍未建立。生产roots没有Climate/Celestial/Weather source、compiler、program artifact、World service、snapshot、WindField、SurfaceWeatherState或StrikeId；Scene没有Environment/Weather binding，World仍只从不可序列化的`preview_skybox`构造默认环境。Weather Workspace继续固定Weather_Storm、Mountains、Cloud/Rain/Wind/Lightning时间线、counts/warnings和queued反馈，且没有document/provider/factory/job/runtime receipt。历史`CaptureCloud`伪gradient operation已从生产源码删除，但真实Cloud medium、weather map、lighting/shadow/history仍为零。应保留的局部底座包括per-World virtual/fixed clock与immutable time snapshot、source cubemap/PMREM/SH9/IEM、generation-aware realtime IBL、typed volumetric fog及Particle CPU/GPU；Particle CPU消费external force而GPU只消费gravity，仍不具Weather parity。五套参考均至少闭合persistent source、lifecycle owner、prepared/render representation和真实consumer。当前P0为5 Open，P1为32 Open/38 Partial，P2为12 Open；32门为18 Fail/14 Partial/0 Pass，canonical finding总数不重复增加。最终HEAD虽从`331668a`移动至`2f684e1`，但选择集统计与指纹无漂移。本轮只写review与索引，没有修改production代码或tests，也没有运行Cargo、Editor、WGPU、audio/network/save、fault/scale/soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/159-editor-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-environment-current-source-review.md`。
+
+## 392. Editor Spline / Path / Road / River / Decal / Brush / Geometry 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin/WOC selected | **1,122 / 114,972 / 105,503 / 4,268,190 / 1,133 / 0** | Decal package、Material/Shader/Scene、DynamicScene/plugin component、Editor Scene/Inspector/transaction、preview与WOC；fingerprint `6c4223defde251711c939e137116f8b7c01992bee1bbbd6c9d9e724d1d74e403` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **42 / 32,554 / 27,324 / 1,246,989 / 12 / 0** | Spline/Path/SplineMesh、Road/River/Water metadata、Decal、CSG/Brush与Editor visualizer；fingerprint `a7b14afc381b204b3266b5825c2c95bcb9fc2b9aa32456659dbe8f2244c86bd3` |
+| 全部选择集 | **1,164 / 147,526 / 132,827 / 5,515,179 / 1,145 / 0** | 当前共享dirty working tree去重物理语料；fingerprint `a3e79ec22fcf8b2fdd7fea86390d8270619e8d35dc5fbf29b81d459f8861f6c0` |
+
+Editor160确认Editor113之后通用plugin component与Scene authoring底座有真实进展：dynamic component支持schema/editable/generation、World TOML/DynamicScene roundtrip，Inspector支持插件字段、多选原子编辑、rollback和undo/redo；SceneMode registry、plugin failure isolation与overlay checkpoint也可复用。但Project `SceneEntityAsset`仍是硬编码字段，没有通用versioned plugin/domain carrier；生产源码仍无SpatialSpline、PathFollow、SplineMesh、Road、River/WaterBody、GeometryBrush或CSG source/compiler/artifact/query/toolkit。WOC的14条道路/52个XZ点仍经`roadPointX/Z`分支生成并在每次查询全量遍历segment，使用`< 5.0`项目阈值。Decal feature继续注册PostProcess pass与no-op executor，descriptor只有mode/opacity/normal_blend/String atlas region，Editor只声明未消费drawer ID；`.zmaterial`和Runtime `MaterialDomain`没有Decal，而Workbench与design.js仍暴露`decal`/WarningStripe/12 placements静态第二authority。当前P0为5 Open，P1为56 Open/14 Partial，P2为12 Open；32门为19 Fail/13 Partial/0 Pass，canonical finding总数不重复增加。Decal渲染、Water、Terrain分别归Runtime99zw/99zr/99zq与Editor138关闭。本轮只写review与索引，没有修改production代码或tests，也没有运行Cargo、Editor、WGPU、Spline numeric、Road/River compiler、Decal pixel、CSG boolean、fault/scale/soak、跨平台或跨引擎动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/160-editor-spline-path-road-river-decal-brush-geometry-current-source-review.md`。
+
+## 393. Editor Procedural Content Generation / Rule Graph / Biome / World Generation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor product/shared authoring | **99 / 24,612 / 22,455 / 925,761 / 184 / 8** | Scatter产品面、authoring contribution、editing/job/template bridge与world building binding；fingerprint `f1994d9845d6c111a1d85d952739a3416cd4a133114b163d99cdd3deea2d8f33` |
+| Zircon Runtime/plugin/catalog/consumer | **144 / 29,915 / 27,353 / 1,073,918 / 168 / 5** | ResourceKind、asset/World/GPU Scene、Terrain、first-party catalog与App装配；fingerprint `2c2130d78e58deffeb277fc795210caf73a73f7d49ede193e7dcb1b53ef6ea8b` |
+| WOC deterministic corpus | **13 / 6,584 / 6,362 / 192,884 / 0 / 0** | terrain/zone/biome/decoration codegen、contracts、known vectors与项目脚本；fingerprint `97e59a4fea7de4d69ceb4c9b0f57f49cb1e9846d3bd9007b79e87217012c2247` |
+| Zircon selected union | **256 / 61,111 / 56,170 / 2,192,563 / 352 / 13** | 当前共享dirty working tree去重选择集；fingerprint `b5459ae935e320a7bef22890be450b6489f6826259ba4c15e03b765ff71e7fb3` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **36 / 28,809 / 24,617 / 1,188,483 / 11 / 0** | Unreal PCG runtime/editor为主，Godot/Fyrox/Bevy/Unity Graphics限定为数据、terrain、asset和instancing consumer参考；fingerprint `2e9a5085eda0a93aeed8f972cbc3c0e444def9217c7d075982628e3c28543863` |
+| 全部选择集 | **292 / 89,920 / 80,787 / 3,381,046 / 363 / 13** | 当前共享dirty working tree去重物理语料；fingerprint `987146fd2ec395949f695ed8041452f348a6ce75bec9ac2811f5938083a0de6b` |
+
+Editor161确认Editor114之后仍未形成PCG产品链：production roots对PcgGraph、RuleGraph、BiomeSource、WorldRecipe、CompiledPcg、GenerationOutput、GeneratedObjectId与ManagedGenerated的精确命中为0，26类`ResourceKind`也没有PCG/Biome/WorldRecipe。Scatter Workspace为233行/27 nodes/19 routes/0 provider，callback固定发布SC_Forest、64K、18 rules、1 conflict与queued状态；没有document、factory、job、artifact或runtime receipt。Terrain plugin仍只贡献metadata/commands/importers/toolkit，operation无factory，Runtime importer为DiagnosticOnly，Scene构造World时继续`terrain: None`；首方Runtime/Editor catalog和App没有装配Terrain/PCG provider。GraphEditor descriptor、typed job、artifact store和GPU Scene span是可复用底座，不是PCG实现，且production mesh仍以instance count 1注册。WOC具有稳定seed/zone/biome/source/catalog hash与known vectors，但其Biome分支和逐candidate全量road segment扫描只能作为迁移oracle，不能升级为公共engine authority。当前P0为5 Open，P1为70 Open，P2为12 Open；32门全部Fail，canonical finding总数不重复增加。本轮只写review与索引，没有修改production代码或tests，也没有运行Cargo、Editor、Terrain/PCG generation、cook/package、fault/scale/soak、跨平台或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/161-editor-procedural-content-generation-rule-graph-biome-world-generation-current-source-review.md`。
+
+## 394. Editor Level / Variant / Data Layer / Level Instance / World Outliner 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Level Variant产品面 | **7 / 2,897 / 2,714 / 143,748 / 0 / 0** | 固定workspace、navigation/template binding与fixed feedback；fingerprint `c062aef672d60b322cab064a5723cef629ab14014c47d3b4d99eaaa2a6e534e9` |
+| Prefab / Instance / Scene IO | **27 / 4,182 / 3,862 / 163,832 / 25 / 2** | Prefab DTO、正式Scene codec、World preservation、plugin importer/editor边界；fingerprint `4750e789f2a41969cb1129f5f217abe60734d54b9f8d5cb68ba0d59f67914c90` |
+| Hierarchy / Outliner / world sync | **63 / 9,275 / 8,437 / 331,507 / 96 / 2** | immutable hierarchy artifact、delta/filter、rename/reparent、retained controls与native paint；fingerprint `fa623a2b9e2965780fe5de3603e6a19ba36451ca6462892ab32e9a6370fc59b6` |
+| Zircon selected union | **97 / 16,354 / 15,013 / 639,087 / 121 / 4** | 当前共享dirty working tree去重选择集；fingerprint `874b33f061343d9f2b36d567d72221c47704c3aca8a57f8f9e249b7aae219732` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **22 / 15,419 / 13,013 / 557,921 / 1 / 0** | DataLayer、LevelInstance、Variant、SceneOutliner、PackedScene/tree command、ScenePatch与render-layer语义边界；fingerprint `e5a94b17ea799936d04b1bd66a9fb2999f5f5581f565680d10984c24d3d9bb62` |
+| 全部选择集 | **119 / 31,773 / 28,026 / 1,197,008 / 122 / 4** | 当前共享dirty working tree去重物理语料；fingerprint `1801f61833ad33c3d25da4c7f4d613846ee137454577b6003e5efe6965a62007` |
+
+Editor162确认Editor115之后有两项真实局部进展：Scene/World把`PrefabInstanceAsset`编码为动态组件并在save时恢复，正式codec、World及runtime-extension后的roundtrip均逐字段相等，旧P0-03与G13关闭；Scene tree保持10个物理控件并按viewport裁剪paint，P1-51与G27关闭。产品链仍未建立：Level Variant继续固定Vehicle_Showcase、Variant_Red、18 overrides、2 conflicts与queued反馈，0 provider/document/operation/artifact；26类ResourceKind仍无VariantSet/DataLayer/LevelInstance/WorldFragment。Prefab override仍是字符串path+JSON且无source identity、instantiate/provenance/rebase/edit lifecycle；Outliner最终row仍只有id/name/depth/selected，topology变更全量reflow、filter同步O(N)，没有typed item/provider/mode/column/unloaded descriptor/expansion/真实扩展action或100k/1M资格。当前P0为3 Open/1 Partial/1 Closed，P1为60 Open/9 Partial/1 Closed，P2为12 Open；32门为30 Fail/2 Pass，canonical finding总数不重复增加。Runtime99zc/99j关于World清除prefab metadata的窄描述已过时，但其Prefab runtime主裁决不变。本轮只写review与索引，没有运行Cargo、Editor、save/reopen、cook、fault/scale/soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/162-editor-level-variant-data-layer-level-instance-world-outliner-current-source-review.md`。
+
+## 395. Editor Scene Snapshot / World Diff / Merge / Restore / Conflict Resolution 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored / dirty | 本轮证据 |
+|---|---:|---|
+| Editor authoring / recovery / surface | **136 / 22,304 / 20,418 / 782,753 / 112 / 0 / 119** | toolbar/commands、editing transaction、Play snapshot、recovery executor/assessment、document diff/undo与固定feedback；fingerprint `2c7d1fad618b225fab854584a7988f967251e8de80f5e589c253be4a5db28581` |
+| Runtime Session Archive | **574 / 12,091 / 10,799 / 415,927 / 35 / 0 / 21** | slot/artifact/index/path writer/diff/merge/restore/retention完整owner；fingerprint `5234c2196553340e9a47119f18bd8ee626d06fdb79fcc850a797353e9ef75da3` |
+| DynamicScene / inspection / reflection support | **50 / 10,524 / 9,517 / 363,417 / 92 / 0 / 23** | capture/codec/schema/remap/spawn preflight、inspection与Level replacement支撑；fingerprint `4eb948a437e246414b539e9a7668d46967340541908e42304f85fa698305a77d` |
+| Focused Runtime tests | **23 / 6,845 / 6,271 / 249,565 / 125 / 0 / 13** | DynamicScene与Session archive直接测试；fingerprint `98de0e5a8c60acfa2f6f616b02c254e50260cbc400b778dbc3e335357eec8684` |
+| Zircon selected union | **783 / 51,764 / 47,005 / 1,811,662 / 364 / 0 / 176** | 当前共享dirty working tree去重选择集；fingerprint `d9a1f0fe27034a077831025a01a540b560a8da97baa40abfd1060168cb8ab5ea` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **27 / 17,876 / 15,080 / 639,373 / 1 / 0 / 0** | Unreal LevelSnapshots为产品主基线，Godot/Fyrox/Bevy为局部ownership/transaction/apply参考，Unity Graphics只作render ID边界；fingerprint `7cb0fa45e3ca245f1d6bf6c4df6df41175baeb98e1ed04ba68dda8c6c56f74f3` |
+| 全部选择集 | **810 / 69,640 / 62,085 / 2,451,035 / 365 / 0 / 176** | 当前共享dirty working tree去重物理语料；fingerprint `62352ba93dc8ee17e04a69288a2958c8bb61f0b403bdf1063aa63760624e8eac` |
+
+Editor163确认Scene Snapshot产品合同仍未建立：八个核心领域类型精确检索为零，默认command registry没有Snapshot/Diff/Merge/Restore command，Workbench仍写固定diff成功文字。DynamicScene捕获会静默跳过未注册、无adapter或不可序列化状态；Session diff只是完整equality/数量摘要，merge只处理slot ID，apply为additive spawn，restore为whole-world replacement。`RestoreExecutor`会校验autosave路径并通过共享atomic writer物化安全副本，`ProjectRecoveryAssessment`与Editor transaction/journal也是真实进展；终验期间Session writer进一步删除私有temp/backup路径并复用file/parent-synced `stage_atomic_write`，故P1-20/G29升级为Partial。但仍无Scene Snapshot typed store、persistent/cross-process CAS、Session journal/startup recovery、Scene change set、comparison provider、staging World、authoring revision CAS或逐项receipt。当前P0为5 Open，P1为69 Open/1 Partial，P2为12 Open；32门为31 Fail/1 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、动态restore、fault/scale/soak、跨平台或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/163-editor-scene-snapshot-world-diff-merge-restore-conflict-resolution-current-source-review.md`。
+
+## 396. Editor Multi-User / Collaborative Editing / Session Replication / Locks / Presence / Transaction Conflict 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored / dirty | 本轮证据 |
+|---|---:|---|
+| Editor authoring / journal / session / remote surface | **161 / 28,020 / 25,473 / 976,480 / 231 / 0 / 0** | transaction、codec/replay、document journal、session guard、project preflight、remote control与聚焦测试；fingerprint `a79f55b265162bcb09e611ffe1aa60d2345b1f293519807efa50181bfeb7b521` |
+| Runtime/Interface identity / admission / net DTO | **58 / 5,380 / 4,804 / 166,559 / 18 / 0 / 0** | ProjectGuid/identity、engine compatibility、session lock、framework net与UI control；fingerprint `4b733b9da425b2c1118046b8c0d5ee4bd9892bbbc5f8608aa229444fc9c027c8` |
+| Net plugin product boundary | **169 / 16,302 / 14,700 / 572,716 / 147 / 0 / 0** | transport/RUDP/RPC/replication/content download runtime owner；fingerprint `0a9cea97170fa6fd9ed0d6e3a5daa2eeb923dc381994e629dbcf7ec49ddce0f7` |
+| Hub team / collaboration surface | **4 / 752 / 701 / 26,249 / 6 / 0 / 0** | local Git team overview、Coming Soon capability surface；fingerprint `f89379bf2346a53586083edebbccd73898665117b978b49119c71bc31db678d3` |
+| Zircon selected union | **392 / 50,454 / 45,678 / 1,742,004 / 402 / 0 / 0** | 当前共享working tree去重选择集；fingerprint `fdd6edc0e51004afdad9d7c877f605184896d1425f7c63df70d705478cf0e3ef` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **29 / 16,871 / 14,576 / 624,005 / 11 / 0 / 0** | Unreal Concert为产品主基线，其余只作local transaction/remote observation边界；fingerprint `24c91238a4c7bfb61b4a9f7fa6f8dc0ab38d34da74b207ccdb362b22b2ff5f2f` |
+| 全部选择集 | **421 / 67,325 / 60,254 / 2,366,009 / 413 / 0 / 0** | 当前共享working tree去重物理语料；fingerprint `6ae989be1426d845bc8d426977acfd56500f4a47c20058ff2d63da48222389db` |
+
+Editor164确认Zircon仍没有Multi-User产品：18,517个production物理文件对CollaborativeSessionService、ParticipantId、ActivitySequence、PresenceService、ResourceAuthorityService等12个核心owner名精确命中为0。local transaction、strict codec registry、decode-all-before-apply、bounded/checksummed durable journal、ProjectGuid/preflight和single-workspace OS lease是真实进展，但journal production append被明确限制为`#[cfg(test)] append_for_test`，startup discovery/replay/compaction没有production assembly；Scene update/reflected field也不校验current==before，远端重放会silent LWW。remote `InvokeBinding/InvokeRoute`继续直接执行且command默认remote-callable，请求没有authenticated principal/capability，是必须先封口的P0。Runtime gameplay net与Hub local Git Team不能冒充协作authority。当前P0为5 Open，P1为64 Open/6 Partial，P2为12 Open；32门为29 Fail/3 Partial，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、server、多进程、fault/security/scale/soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/164-editor-multi-user-collaborative-editing-session-replication-locks-presence-transaction-conflict-current-source-review.md`。
+
+## 397. Editor Archetype / Class Defaults / Instance Override / Property Propagation / Reset-to-Default 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored / dirty | 本轮证据 |
+|---|---:|---|
+| Editor authoring / Inspector / transaction / fixed Prefab surfaces | **126 / 24,684 / 22,774 / 890,110 / 157 / 8 / 88** | editing transaction、Inspector、Material projection、Prefab view/route/template/feedback与聚焦测试；fingerprint `a929c658e70bf9d57066083f4a05ae0f1727f3cdf08ab0c6c66eb2aec9ea5dae` |
+| Runtime asset / persistence / importer | **34 / 6,712 / 6,171 / 236,169 / 21 / 4 / 18** | Prefab/Scene DTO、formal/cache/import/load与测试；fingerprint `19650bb79be90bed695d6a1868a6cbea5f35d3524da5d3f0d75ea3c8fe4918ef` |
+| Runtime Scene / reflection / ECS archetype / interface | **82 / 12,779 / 11,716 / 448,609 / 111 / 2 / 25** | World project IO、reflection、storage archetype与interface contract；fingerprint `b19fd3fe6e6dc81eaa1e970178cf6d35312e215b2dc22f10d161f2b53dc41972` |
+| Prefab plugin product boundary | **17 / 1,244 / 1,137 / 45,973 / 10 / 1 / 5** | runtime/editor/dist/manifest、read-only registration与DiagnosticOnly importer；fingerprint `cbac15d7161973a09a06f76200ce3db6d2f9d22c3f3b20bb6feeac292b12a6f6` |
+| Zircon selected union | **259 / 45,419 / 41,798 / 1,620,861 / 299 / 15 / 136** | 当前共享dirty working tree去重选择集；fingerprint `bde026de0d139f955f87b0776ae7bed3ed9dff4c2291fa84b79fb243ff80efd9` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **43 / 29,307 / 25,491 / 1,079,792 / 41 / 0 / 0** | CDO/archetype、component instance data、reset policy、PackedScene/inherit、ResolvedScene与Volume override边界；fingerprint `515b278e59d1921d345eb31896a620e44632e6c84710ae114880eaccd0e761a3` |
+| 全部选择集 | **302 / 74,726 / 67,289 / 2,700,653 / 340 / 15 / 136** | 当前共享dirty working tree去重物理语料；fingerprint `d48e40ba8f6bf68e53ab3b8edf2668ebf093a01686853d48db19c398e6ccb2e6` |
+
+Editor165确认Scene/World Prefab metadata roundtrip与安全封口有真实进展：formal codec、World及runtime-extension后的roundtrip逐字段相等，损坏retained JSON阻止save；`prefab_tools`已删除Apply/Revert/Break helper且不再注册writable operation/menu/factory/executor，旧P0-01/02/04关闭。但产品主体仍不存在：六个default/prefab authority核心类型精确命中为0，`ResetToDefault`的16个命中全部属于layout reset；Prefab DTO继续使用字符串entity/property path与JSON，没有source revision、stable object/component/property identity、typed base evidence、topology、resolver、provenance、propagation/rebase/conflict/orphan、transactional reset/apply/revert/break或resolved cook artifact。主Editor 233行Prefab Workspace继续固定PF_Chest、Chest_04、18 children、6 overrides、2 warnings并直接输出queued反馈；plugin还注册两个不存在的ZUI、使用DiagnosticOnly importer、与builtin importer竞争同一suffix，并与Scene preservation形成双component identity。当前P0为2 Open/3 Closed，P1为59 Open/11 Partial，P2为12 Open；32门为28 Fail/2 Partial/2 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、Prefab instantiate/propagation/transaction/cook、fault/scale/soak、跨平台或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/165-editor-archetype-class-defaults-instance-override-property-propagation-reset-current-source-review.md`。
+
+## 398. Editor Cinematic Sequencer / Take Recorder / Movie Render Queue 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored / dirty | 本轮证据 |
+|---|---:|---|
+| Editor document / timeline / curve / preview / fixed Sequencer surface | **82 / 11,614 / 10,861 / 443,239 / 44 / 4 / 66** | Animation document、Timeline/Curve/Preview基础与固定Sequencer route/feedback；fingerprint `4babbf883bf88b6ae840ee0d8e05b4bce769f13a630983c6053b7970c391f494` |
+| Runtime Animation / compiler / evaluator | **231 / 30,404 / 27,815 / 1,050,617 / 208 / 7 / 94** | Animation source/compiler、World compiled writer、runtime plugin cache/evaluator；fingerprint `334563937870beec46ce7f6c6a41d12e8a540f2b370d543b4786c778e38e3989` |
+| Timeline plugin product boundary | **10 / 1,142 / 1,042 / 42,168 / 15 / 1 / 3** | editor/dist/manifest/helper/tests与缺失authoring resource；fingerprint `1a7b3fba4f2a86407bc7fb1fc3b4a4ad0124e01d0a1ad4076fa4b3928f486970` |
+| Camera / Capture / RHI readback / PNG output substrate | **45 / 8,337 / 7,541 / 294,188 / 89 / 1 / 24** | Camera stack、capture DTO/mailbox、shared readback budget/terminal与atomic single-frame PNG；fingerprint `7ae25ef3299e174ded1f25e1292a9593c6aee7e02f8f165cb92289ffc286d680` |
+| Zircon selected union | **368 / 51,497 / 47,259 / 1,830,212 / 356 / 13 / 187** | 当前共享dirty working tree去重物理语料；fingerprint `669bd5ec6762e6c00e293437cbbef63fd09ecb1935e236a8ead2997cee626208` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **29 / 22,524 / 19,218 / 846,294 / 10 / 0 / 0** | MovieScene/Sequencer/Take/MRQ为主，typed track/command/event/writer/capture/AOV为局部参考；fingerprint `e04a3e8d3905ed1972a83c6120d6dbc5d0201d474ff72df04b1cd8987cb90724` |
+| 全部选择集 | **397 / 74,021 / 66,477 / 2,676,506 / 366 / 13 / 187** | 当前共享dirty working tree与29个参考文件；fingerprint `95d957d0972ac4f158975d16361abdd42313e9b2b0fa7241910ade5790fb835c` |
+
+Editor166确认电影产品主裁决不变：tracked生产源码和1,805个未跟踪生产Rust/TOML/ZUI对10个Cinematic/Take/MRQ核心类型均为0，`ResourceKind`也只有通用AnimationSequence。主Editor 233行Sequencer固定`SEQ_Intro`、Camera Cut、Audio/Event、12 shots、428 keys和queued结果；Timeline插件声明缺失ZUI、五个operation无factory/executor、dist无command/bridge。key move已修复mutation-before-validation并覆盖失败零变更、finite time、equal-time稳定及ignored 16k-key性能门，因此P0-03降为Partial；但三层Vec index、无document revision/transaction/history仍阻断产品。Animation document/compiler/compiled writer、Camera/Capture、bounded shared RHI readback与单帧atomic PNG是真实底座，但没有独立source、hierarchy/binding/evaluation instance、Camera Cut、Take状态机、frozen render job、fixed-step sampling、encoder/muxer、checkpoint或whole-run artifact。当前P0为4 Open/1 Partial，P1为51 Open/19 Partial，P2为12 Open；32门为27 Fail/5 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、PIE、Take/MRQ、GPU movie output、fault/scale/soak、跨平台或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/166-editor-cinematic-sequencer-shot-track-binding-take-recorder-movie-render-queue-current-source-review.md`。
+
+## 399. Editor LiveOps / Feature Flag / Remote Config / Segment / Experiment / Patch / DLC / Crash Control Plane 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Editor control foundation / Settings / Job / Notification / Project / BuildSet | **221 / 31,367 / 28,634 / 1,026,683 / 314 / 13** | 产品truth、通用authoring/operation底座、Project identity与Runtime BuildSet；fingerprint `87256673ed59a40c29a56fd58e93351fec745d7d354a4644776a81c7d25d871b` |
+| Content Download package | **21 / 2,223 / 2,012 / 81,184 / 25 / 4** | HTTP/mirror/range/hash/progress/cancel与内存状态；fingerprint `555562689bb924c74163503063e3a962189e10ec619f20d18252f975f980be2b` |
+| ZrPack / pack tests / delta hot-update adapter | **31 / 4,769 / 4,290 / 162,421 / 68 / 7** | deterministic closure、delta、staging/promotion/backup/receipt与跨pack-plugin断点；fingerprint `2c5f693eb8361c6681f58239e6e6239f938feab0f753075e8a1c8277ed755fac` |
+| Plugin lifecycle / live host / extension registry | **60 / 15,564 / 14,288 / 565,846 / 149 / 26** | owner revoke、dependency、generation、bridge和state restore；fingerprint `914e897e0cf1d8eeb6a684cb32168b4b764938ea46aa1fbc662107a0b94f2e14` |
+| Zircon selected union | **331 / 53,382 / 48,742 / 1,817,267 / 555 / 50** | 当前共享dirty working tree去重选择集；fingerprint `a063a6c1eeb1ebd2f7e6107f38e8c2722b7fa0a797762a9d6854244cff5c106c` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **29 / 24,735 / 21,529 / 968,784 / 24 / 0** | Unreal Hotfix/Update/InstallBundle/GameFeatures为主，其他引擎限定为pack/crash/source/reload/analytics边界；fingerprint `5f6fcb7bdae5d02e4819e03a327b19303536a2bba01c2ae86dee723d78cd7669` |
+| 全部选择集 | **360 / 78,117 / 70,271 / 2,786,051 / 579 / 50** | 当前磁盘Zircon语料与29个参考文件；fingerprint `3dc7f2e770b2b41465f4e0b4101ffa032be535208bb22c2427e74fedab0c477d` |
+
+Editor167确认Editor46主裁决不变：13,730个当前磁盘生产Rust/TOML/ZUI文件对八个LiveOps产品页ID和12个核心domain/receipt类型均为0，13个builtin page与九组Workbench extension binding也没有LiveOps owner；Diagnostics中的Telemetry Dashboard仍由固定数据驱动，不能替代qualified telemetry provider。Runtime BuildSet/artifact manifest、SHA-256 admission、Project typed semver compatibility、bounded Editor Job journal、Content Download、ZrPack和Plugin lifecycle是真实可复用底座，因此P1-004与P1-051由Open升为Partial，并保留旧有7项Partial。产品断点仍未闭合：BuildSet无签名/issuer/environment/revocation且不接pack/download，Content Download固定30秒/1次retry、development security和内存partial/cache，ZrPack无durable journal/fsync/mount/activate/release，pack promote后plugin hot reload失败无整事务补偿；SecurityContext、TrustReceipt、ConsentReceipt、EntitlementDecision、CrashArtifact和SymbolicationResult仍为0。当前P0为6 Open，P1为63 Open/9 Partial，P2为12 Open；36门全部Fail，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、远端provider、真实CDN、签名、断电/crash、fault/scale/soak、跨平台或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/167-editor-liveops-feature-flag-remote-config-segmentation-experiment-patch-dlc-crash-control-plane-current-source-review.md`。
+
+## 400. Editor Runtime Gateway / Session / Event Consumer / World Sync / Reconnect / Shutdown 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon gateway/event/sync/play/Host/App/Interface/Runtime/tests | **978 / 120,277 / 110,435 / 4,331,065 / 1,042 / 37** | 当前磁盘完整owner选择集；fingerprint `ea865468417d20196fbfb2f54aba92cd9310b5ccdeb4900c1977372fbe8bd84f` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **19 / 10,464 / 8,934 / 367,062 / 11 / 0** | session/transport、disconnect、plugin lifecycle、bounded watch、protocol version/dispose边界；fingerprint `1a6f3e93725bdd9f03cc9bfd28b2591a4eabdc15b21b36852ab7cf91e076d6b6` |
+| 全部选择集 | **997 / 130,744 / 119,372 / 4,698,127 / 1,053 / 37** | 当前磁盘Zircon与19个本地参考文件；fingerprint `3a59918a8c52563256135e6a80b380aabe57995baac9b1e497d57a2c6244998f` |
+
+Editor168确认Editor47的直接跨session污染风险已有实质修复：`GatewaySessionIdentity`包含runtime instance/session、transport epoch、gateway generation、project与play instance，ArcSwap generation、short lease/long-lived origin、qualified watch/subscription、stale drain discard和raw值复用测试可阻止A资源误伤B endpoint；runtime event consumer也已有begin/consume/end panic boundary、round-robin、slow/poison quarantine、共享retained-byte预算、精确backlog与有界fault receipt。P0仍不能关闭，因为replacement没有quiesce/rebind/baseline/resync/commit/retire状态机或gap proof，新session在下一帧重订阅前仍会丢数据。World producer继续返回无cursor/final/remaining/revision的batch vector，pump忽略bus disposition后推进watermark；Host tick、world、hierarchy和Inspector也没有同一lease/world revision。typed shutdown顺序是真实底座，但一般exit failure gate、startup rollback journal、Drop唯一authority和产品diagnostics/jobs接入未闭合。当前P0为1 Partial，P1为11 Open/27 Partial/6 Closed，P2为12 Open；36门为9 Fail/27 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、Runtime DLL、PIE、replacement/reconnect、fault injection、bus rejection、Windows ABI、1K/10K、soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/168-editor-runtime-gateway-session-event-consumer-world-sync-generation-backpressure-reconnect-shutdown-current-source-review.md`。
+
+## 401. Editor Message Bus / Topic / Subscription / Dirty Projection / Shutdown 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon bus与直接producer/consumer/tests | **80 / 14,884 / 13,540 / 536,430 / 113 / 6** | 当前磁盘消息控制面选择集，40条selected dirty状态；fingerprint `719a2987bc31049835237bd5f0b53c631f1aca4a2120e702a527e9f6076583b9` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **17 / 6,515 / 5,537 / 219,669 / 74 / 0** | lifecycle、bounded queue、observer cleanup、provider scope与TryPush参考；fingerprint `b29f176fbc608761cf52a11e52a2658f48fc3c78037fcc534f3bd4fd35ee56b1` |
+| 全部选择集 | **97 / 21,399 / 19,077 / 756,099 / 187 / 6** | 当前磁盘Zircon与17个本地参考文件；fingerprint `76e00b9dace2909630c10578d25a99b68f0a59b13dd2ddfa45a2a9804d120510` |
+
+Editor169确认Editor48唯一P0仍为Open：`view.invalidated`只有Host producer、零production subscriber，合法topic让parse-fallback不执行，而bus仍只在至少一个inbox接受后合并dirty；zero-route不分配sequence只是性能优化，不能修复refresh空操作。消息核心的Arc payload、三lane retention、count/bytes预算、checked sequence、lossless atomic fanout、latest index、request lock split和count-only eviction是真实底座。Job新增有界journal、sequence、gap、age/byte budget和backpressure/error restore-front；Log/I18n新增authoritative store/catalog、有界queue和resync；Plugin lifecycle callback已有panic boundary，三项局部P1可关闭。但普通Log/Locale/Transaction与Job仍把zero-route当成功，subscriber仍无owner lease/route fence/shutdown，drain整箱删除且sequence不进serde，Plugin bridge继续bounded inbox到无界shadow queue，Scene Inspection也在publish commit前推进previous observation。当前P0为1 Open，P1为23 Open/26 Partial/3 Closed，P2为15 Open；40门为15 Fail/25 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、race、callback fault、backpressure、shutdown、1/5/100/10K、100K delta、RSS、soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/169-editor-message-bus-topic-subscription-inbox-retention-admission-dispatch-request-dirty-projection-shutdown-current-source-review.md`。
+
+## 402. Editor Event Runtime / Listener / Journal / Replay / Lifecycle 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon event/runtime/Host/App/tests | **101 / 19,035 / 17,543 / 689,929 / 243 / 3** | 当前磁盘事件控制面选择集；fingerprint `577f7d1d5ee89f0933238a0457e6ebecabe28cb295a99254d124043781a80489` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **15 / 16,847 / 14,141 / 566,660 / 2 / 0** | lifecycle、transaction、cursor、bounded queue、command significance与provider scope参考；fingerprint `125fd751183323dcb06d65960507a055b54d7001be54ef2d519ed4688ff2e537` |
+| 全部选择集 | **116 / 35,882 / 31,684 / 1,256,589 / 245 / 3** | 当前磁盘Zircon与15个本地参考文件；fingerprint `0c47f8ac75991d760916ae86bbb847ae1487a282b5621336c459f1b8d62b7965` |
+
+Editor170确认Editor49五项P0仍无关闭项：F5继续以global journal snapshot长度差猜action receipt并通过`r`normalize_cli_action_records()`改写source/binding；raw `EditorEventRecord` replay仍会先执行失败、输入、presentation和外部副作用；`begin_event()`继续在执行前全局推进revision。idle primary mouse move新增latest mailbox、device/edge/lifecycle前flush与sequence-range诊断，因此pointer P0从Open降为Partial，但immediate/drag及每个flushed move仍进入完整callback/event/journal/listener链。Arc immutable payload、Durable/FrameLocal/Latest count/bytes/age retention、latest index、独立delivery cursor、1..256 page、status drop/coalesce/lag与锁外route是真实底座；listener仍无production consumer、owner lease/generation/fence/strict ack/gap-resync/shutdown，旧route在unregister后仍可向orphan inbox投递，cursor exhaustion还以saturation replacement处理。当前P0为4 Open/1 Partial，P1为38 Open/22 Partial，P2为15 Open；40门为25 Fail/15 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、F5、replay、race、fault、125/500/1K Hz、1/5/100/10K listener、soak、跨平台或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/170-editor-event-runtime-envelope-listener-registry-journal-replay-snapshot-dirty-lifecycle-current-source-review.md`。
+
+## 403. Editor Extension / Contribution Store / Registry / Toolkit / Lifecycle 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon extension/plugin/Host/App/Interface/tests | **140 / 29,355 / 26,711 / 1,035,365 / 302 / 15** | 当前磁盘扩展控制面选择集；fingerprint `cffa06ce561b7d8f8106d27c0fee40dfd0a46080b6d0c153105067d597d4fa95` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **14 / 16,849 / 14,257 / 638,005 / 19 / 0** | module/feature/menu owner/toolkit、plugin add/remove/phase与provider scope参考；fingerprint `e1cc884ca7324242a4de28e0d5741d34095077a2d22b77392c20be942d40eae2` |
+| 全部选择集 | **154 / 46,204 / 40,968 / 1,673,370 / 321 / 15** | 当前磁盘Zircon与14个本地参考文件；fingerprint `83b9ef8910af133a07f6a53144ade0a8bfadb9cbc0ca61c3e6f10bcb8c7e9242` |
+
+Editor171确认Editor50最关键的双权威断路仍未修复：manager `active_extensions()`读取全部位于tests，而retained App继续直接遍历run-config registration并永久安装Host贡献。Host注册先安装manager view、overlay和scene registry，之后才提交ContributionStore，runtime consumer还由外层单独install；没有共同commit、rollback或mounted generation。Store的19-family immutable COW snapshot、ticket/source/batch capability、4,096条reset journal是真实底座，serialized settings/localization与Settings locale projection、Inspector/field产品reader、scene/overlay panic isolation也有实质进展；但所有`ContributionStore::revoke()`命中均在tests，生产没有reconciler、owner/build generation、quiesce、reader/callback/job fence或leak census。Toolkit descriptor锁外捕获和retired trait-object锁外drop使P0-05降为Partial，但snapshot全量重建、poison、callback fault、autosave path lease及Dirty/close统一事务仍缺失。当前P0为4 Open/1 Partial，P1为46 Open/14 Partial，P2为15 Open；40门为22 Fail/18 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、reload/unload、panic/hang、race、1/100/1K/10K、soak、跨平台或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/171-editor-extension-contribution-store-registry-toolkit-provider-snapshot-reload-lifecycle-current-source-review.md`。
+
+## 404. Editor Project Startup / Open/Create / Hub / Session / Focus / Recent / Recovery 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon startup/project/Hub/session/focus/recent/tests | **269 / 37,830 / 34,452 / 1,366,805 / 381 / 0** | 当前磁盘项目启动与跨进程会话选择集；fingerprint `656f8084d6c46c04583bd9e10d1353cd47212949eb653fb72f84675cb5dda53a` |
+| Unreal/Godot/Fyrox/Bevy reference | **13 / 29,487 / 25,337 / 1,065,419 / 19 / 0** | compatibility/migration/recovery/restart/recent/runner phase参考；fingerprint `dd7527a76114bbb91a51ecd3e03ae5b37043ec5d488ffdf9b2b00058eff611ac` |
+| 全部选择集 | **282 / 67,317 / 59,789 / 2,432,224 / 400 / 0** | 当前磁盘Zircon与13个本地参考文件；fingerprint `77cfc2578f3f5daf5403fbe90eeae44175a082420bbd04e9de6d733cc54666c1` |
+
+Editor172确认Editor51/124已有大量可保留工程底座：所有主要入口使用versioned ProjectLaunchIntent，preflight在writer/materialization前生成canonical descriptor + GUID + manifest digest的ProjectIdentity并做directional compatibility；Safe/Recovery在composition前移除project scripts/plugins/native/scene restore。SessionGuard区分OS lease与persisted lifecycle，activation ledger记录七类effect，失败补偿不完整时保留RecoveryRequired；Hub Ready晚于first-present，focus以request/sequence/deadline/instance/generation寻址并只在真实native focus后ack。Recent projection现有256 KiB上限、bounded/cancellable lease、revision/CAS、logical clock、tombstone、corruption quarantine和atomic publish。五项P0仍全部Open：Ready record仍先于ledger Session commit；guard/runtime/plugin/document/window/Hub没有共同durable receipt；Normal profile无trust approval；operation id无dedup/replay journal；Retained host构造后的多条error path绕过project close且Drop不补偿。当前P0为5 Open，P1为39 Open/21 Partial，P2为15 Open；40门为18 Fail/18 Partial/4 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、双进程、fault/crash、network filesystem、scale、soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/172-editor-project-startup-open-create-authority-hub-handshake-session-guard-focus-recent-recovery-current-source-review.md`。
+
+## 405. Editor Builtin View / Window Catalog / Content Provider / Capability / Template / Localization 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon view/catalog/Host/workbench/assets/tests | **339 / 58,476 / 53,302 / 4,327,035 / 51 / 4** | 当前磁盘目录、open/restore、snapshot/projection、layout、extension template、资源与测试选择集；fingerprint `1543dc929cfd2a4720ec0c08c13ed0e71e294c3dc60e364aaeb60e72ee7c7706` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **14 / 11,421 / 9,693 / 415,202 / 1 / 0** | tab factory/dock/plugin phase/domain editor/provider与assembly boundary参考；fingerprint `241e317875ff522ce4b188634a4fd25a220b156c24ad8b8b363a66deab1d7e05` |
+| 全部选择集 | **353 / 69,897 / 62,995 / 4,742,237 / 52 / 4** | 当前磁盘Zircon与14个本地参考文件；fingerprint `cd16488659a7ecd125add5578ec571b9b11d8114c6e33e55cc315c1337814f3a` |
+
+Editor173确认Editor52/126的metadata-only主裁决仍未修复：40个builtin descriptor中，`descriptor_content_kind()`只覆盖21个，余下19个已注册ID默认Placeholder，而`resolve_view_tab()`仍可写`placeholder:false`。10个functional panel只拥有ID/title/slot/constraints/icon和design-stack引用；7个functional window主要只有command/menu/topology，`open_descriptor()`及`restore_instance()`都只创建或插入metadata instance，没有provider/session/body/first-present。当前源码引用的16个ZUI资源全部物理存在，extension template replacement已做candidate原子替换，pane-data callback也在shell锁外执行；这些只使template/link/reload/callback相关项成为Partial，不能证明resource compile、owner generation或产品内容可用。当前P0为1 Open，P1为33 Open/7 Partial，P2为12 Open；32门为22 Fail/9 Partial/1 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、ZUI compiler、native window、reload、fault、scale、soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/173-editor-builtin-view-window-descriptor-catalog-content-provider-capability-template-localization-current-source-review.md`。
+
+## 406. Editor Interactive Tool Scheduler / Resource Lease / Input Capture / Scene Mode / Modal / Extension Lifecycle 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon scheduler/SceneMode/viewport/capture/modal/extension/tests | **57 / 11,070 / 10,045 / 383,593 / 110 / 2** | 当前磁盘核心scheduler与真实SceneMode、platform cancel、world-space UI、drawer resize、scene picker产品选择集；fingerprint `91689263113c51ddc374014c2bfa441e1421f6b1b54e6da45c13d92b44ccf7fc` |
+| Unreal/Fyrox/Godot/Bevy/Unity Graphics | **19 / 9,893 / 8,586 / 369,905 / 7 / 0** | tool setup/shutdown、InputRouter capture、scene interaction mode、plugin input与focus/tool restoration参考；fingerprint `1aeb239eee2e721c561b2f9b00f199306274f5ad8403660443778236249c3871` |
+| 全部选择集 | **76 / 20,963 / 18,631 / 753,498 / 117 / 2** | 当前磁盘Zircon与19个本地参考文件；fingerprint `9d6def8dbd3f1e08186d443b6553182e9d0714df27b021dc86978342fcbf989c` |
+
+Editor174确认Editor53/125的product reachability阻断仍未修复：ToolScheduler只有builder构造、消息DTO/retention和tests，`EditorContext::tools()`、acquire/release/withdraw、`TOPIC_TOOL`在生产侧仍无consumer/subscriber，三个ExclusiveResource也无真实holder。scheduler新增当前active set的single-release保护和部分promotion改进，但同一ToolId先后获取两个不同set仍会覆盖`active_sets`并遗留旧resource holder，随后旧holder可被single release拆除；P0-02只能降为Partial。SceneMode已形成真实typed activation/stack revision、candidate install、factory/id/enter/exit/input/update/overlay/drop panic boundary、ctx checkpoint与faulted-instance quarantine，P1-30关闭；native focus loss/pointer cancel、world-space UI和drawer resize也有局部capture清理。它们仍未共享lease/capture generation、terminal receipt或revisioned outbox，service也继续忽略bus dispatch report。当前P0为2 Open/1 Partial，P1为34 Open/13 Partial/1 Closed，P2为12 Open；36门为22 Fail/13 Partial/1 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、concurrency、focus/reload/fault、scale、soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/174-editor-interactive-tool-scheduler-resource-lease-input-capture-mode-modal-extension-lifecycle-current-source-review.md`。
+
+## 407. Editor Workbench Shell AutoLayout / Constraint Language / Responsive / Geometry 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon布局源码、资产与聚焦测试 | **72 / 11,521 / 10,563 / 398,957 / 106 / 4** | autolayout、产品recompute/template/render/pointer链与Runtime/Interface constraint；fingerprint `7accc225c610450d4e65743ccd513f533e4baf4e62c400ee3e087618f951e7ef` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **20 / 16,103 / 13,972 / 589,880 / 42 / 0** | splitter、dock、responsive arrange、single-tree computed publication与真实pane实例化；fingerprint `e4db5ee5108ad855ae62c2d9bab1796e9d20ced3b50fdcae090d29da3ac36e0c` |
+| 计划与契约 | **8 / 3,531 / 2,549 / 509,274 / 2 / 0** | owner、ABI、workspace persistence、provider和Workbench契约；fingerprint `b43391ae9271aa2b79b7914fe5bd721b6f8a023bdaf63f4f2971f1fcfb8b8efb` |
+| 全部选择集 | **100 / 31,155 / 27,084 / 1,498,111 / 150 / 4** | 当前磁盘去重语料；fingerprint `c6482b5c4f18c1e9420d198c279044dd459e6aebcc67775d0bb68193be6c941f` |
+
+Editor175确认Editor54/127的三项P0仍全部Open：`shell_regions.toml`、`WorkbenchShellRegionsAsset`和tuple CSS-like declaration API仍没有生产reader/caller；full与window-metrics recompute继续先算legacy `WorkbenchShellGeometry`、再算或复用componentized/Taffy frame，前者仍决定minimum/floating/reuse，后者决定render/pointer/drag/viewport；两级bridge error只写bounded Editor log，随后仍读取旧frame并提交新model/legacy geometry、清dirty与pending projection。active token `Arc`变化会刷新region defaults，parser增加finite/unsupported拒错，side budget helper、perf counter和microbenchmark也是局部进展，但axis solver仍返回裸vector且测试明确允许minimum 16超过available 5，responsive仍全node扫描、drawer仍全root dirty，missing frame仍可转default。当前P0为3 Open，P1为43 Open/9 Partial，P2为10 Open/2 Partial；36门为24 Fail/11 Partial/1 Pass，canonical finding总数不重复增加。当前在途`drawer_layout.rs`还有5参数调用4参数函数的静态签名漂移，取得Cargo receipt前不能作为可构建基线。本轮只写review与索引，没有运行Cargo、Editor、ZUI compiler、GUI、DPI/monitor、fault、scale、soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/175-editor-workbench-shell-autolayout-constraint-language-responsive-region-binding-geometry-current-source-review.md`。
+
+## 408. Editor Structured Clipboard / Cut-Copy-Paste / Duplicate / Delete / Cross-Document Remap / Drag Payload 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon command/delete/drag/DynamicScene/text clipboard | **106 / 20,349 / 18,580 / 720,016 / 123 / 8** | 当前磁盘产品入口、exact detach、whole-World capture/spawn、drag与host request；fingerprint `43d5af9b1adf8398aecbaaa9c55deab719b87f83711c648fbf38b1dacd07dbeb` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **13 / 29,549 / 25,105 / 1,117,327 / 31 / 0** | capability routing、top-root normalization、deep clone、reference map、dependency closure和single action；fingerprint `788fc52a4d3848a05194d31d5628f770cf8e3aee5ade76ff6583f7744ee9de42` |
+| 计划与契约 | **12 / 5,676 / 4,002 / 628,849 / 1 / 0** | transaction、scene、provider、command、UI/text、identity owner边界；fingerprint `7dfc34970e2f1fe6db9a4afb3fb9e600004d86e67056d14a075ccfaba5864498` |
+| 全部选择集 | **131 / 55,574 / 47,687 / 2,466,192 / 155 / 8** | 当前磁盘去重语料；fingerprint `6b7513bdc1b2ec1cd2689a7573a7154d61c597094e45bd1af49eaabdd64f3a79` |
+
+Editor176确认Editor55/128的当前P0仍为Open：`EditorIntent`、`EditorCommand`、默认command/keymap/menu、provider和service都没有Scene Copy/Cut/Paste/Duplicate；showcase的Duplicate仍是静态文案。旧Delete数据损失修复保持有效：command持有move-only `DetachedEntityBatch`、restore失败返还batch且source guard拒绝NodeRecord恢复；但journal仍只有root/fallback forward payload。DynamicScene已有schema/duplicate/plugin descriptor校验、先分配entity remap、preview、compiled preflight/commit和bounded staging，只能作为Partial底座：capture仍扫描whole World和全部reflected resources，unmapped typed/JSON entity仍原值保留。hierarchy drag仍把`scene://node/{id}`与`active_hierarchy_drag_node_ids`分开保存并在pointer down武装，`UiDragMetrics`没有进入这条产品路径；Runtime clipboard仍仅ReadText/WriteText，Editor对`RequestClipboard`为0 consumer。当前P0为1 Open，P1为48 Open/16 Partial，P2为12 Open；40门为28 Fail/12 Partial/0 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、GUI、OS clipboard、跨文档、crash、scale、soak或性能测试；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/176-editor-structured-clipboard-cut-copy-paste-duplicate-delete-cross-document-remap-drag-payload-current-source-review.md`。
+
+## 409. Editor Search / Filter / Query Index / Find Usage / Reference Navigation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime聚焦源码、资产与测试 | **218 / 42,682 / 39,242 / 1,664,115 / 363 / 15** | 当前磁盘入口、query/projection、palette/picker、registry、reference UI/navigation；fingerprint `83ffdd596e94bab77c08c7252ee5cd3143bfd8951d1951fcd1acef6e8fdcc47c` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **17 / 12,215 / 10,502 / 483,650 / 53 / 0** | compiled filter、registry、async find、cancel/progress、provider/result/navigation参考；fingerprint `53e58e1d593219ca90f76231deadf1b9e675ba22b92c7d6febc39f2a660fd382` |
+
+Editor177确认Editor56/129的两项P0仍全部Open：Workbench Scene无搜索事件且Filter action ID漂移，Effect/Tags继续由generic field bridge吞掉；相同的“有输入/路由但无结果consumer”还存在于Generated Bottom与Runtime Diagnostics。Icon Find Usage仍固定发布14 references，Gameplay Tags Reference Scan仍只选择静态route。Command Palette已有posting、bounded top-K、稳定rank、offset/limit与metrics，Scene Picker已有project ticket、catalog generation、12行窗口和提交时query/window/session重验，Asset结果也已使用64行Arc chunk并支持locator不变的局部replacement；这些是Partial底座，不构成统一Search Service/provider/typed query/completeness/cancel/navigation。Asset仍当前目录全量scan+全量materialize，Hierarchy active filter仍full reflow，Reference UI仍克隆四节点/结果且无field path/edge kind/stale receipt。当前P0为2 Open，P1为31 Open/13 Partial，P2为10 Open/2 Partial；38门为27 Fail/11 Partial/0 Pass，canonical finding总数不重复增加。另发现`asset_workspace_state.rs`生产区已有两次search lowercase，而源码文本测试仍断言一次；未运行测试，不能宣称当前基线green。本轮只写review与索引，没有运行Cargo、Editor、GUI、视觉、race/fault/scale/soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/177-editor-search-filter-query-index-result-find-usage-reference-navigation-current-source-review.md`。
+
+## 410. Editor Command Registry / Keymap / Menu / Palette / Context Routing / Remote Automation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon命令、输入、菜单、palette、control、plugin、settings、commandlet与聚焦测试 | **121 / 28,640 / 26,168 / 1,006,722 / 247 / 8** | 当前磁盘产品路径、公共DTO/SDK与词法测试属性；fingerprint `17a84b6c504facf008b3e2623edbf0f4da856ed73a25c31a2e0ef4e30f8d671c` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **16 / 6,073 / 5,094 / 241,740 / 3 / 0** | action/context、input binding、owner menu、palette lifecycle、undoable command与UI consumer参考；fingerprint `5ecbfda11012b810191835f0e3ce295cf5b9293437e005890aec3594e16c1f5c` |
+
+Editor178确认Editor08/130的三项P0仍全部Open：`InvokeBinding/InvokeRoute`执行operation payload时仍不经过remote-callable gate并把control来源改写为`UiBinding/RetainedHost`；Runtime Interface、Plugin SDK和materializer fixtures继续接受二段command ID，而宿主要求至少三段；serialized plugin Command继续只注册descriptor、不注册factory。当前可保留底座包括operation path/factory、context generation、typed keymap settings、native logical/physical metadata、冲突fail-close、built-in effective shortcut以及palette posting/bounded top-K/window/metrics。contribution store虽能按ticket revoke自己的snapshot，product command registry仍无owner lease/unregister，Host的registry安装与store ticket publication也不是共同commit；palette仍显示default shortcut，Keymap Editor、统一MenuGraph、typed principal/provenance和definition-driven commandlet仍缺失。当前P0为3 Open，P1为25 Open/19 Partial，P2为9 Open/1 Partial；24门为17 Fail/7 Partial/0 Pass，canonical finding总数不重复增加。materializer成功fixture与三段parser存在静态矛盾，但本轮没有运行测试，不能宣称取得动态失败receipt。本轮只写review与索引，没有运行Cargo、Editor、GUI、插件DLL、MCP/网络transport、键盘布局、race/fault/scale/soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/178-editor-command-registry-keymap-menu-palette-context-routing-remote-automation-current-source-review.md`。
+
+## 411. Editor Scene Viewport / Render Product / Surface Lifecycle / Frame Currentness / Multi-Viewport 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor host/viewport/play/gateway、Runtime Interface/Host/App、render framework、RHI UI surface与聚焦测试 | **514 / 69,991 / 64,076 / 2,545,916 / 696 / 0** | 当前磁盘pane到render/present依赖闭包；fingerprint `36ed38d3ee1ba2db835f1b61a4ab448928326e3268e4eb0c68f25541757f3bd1` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **14 / 31,013 / 26,550 / 1,231,129 / 0 / 0** | per-instance viewport、multi-view、preview target、retained view identity与per-camera frame data；fingerprint `0111f755b9352b3dc4cb9057f9f81c0de3c49da2df102ae127e836ef941c9bd7` |
+
+Editor179确认Editor58的旧P0-04已关闭：`submit.rs`、`submit_runtime_frame.rs`和`present_frame_extract.rs`均在direct publication/capture finish前执行post-render viewport generation检查，registry又用`RenderFrameSubmissionReceipt`复核device、sequence和frame generation。Scene/Simulate/Game三图像槽、完整Play gateway/instance/size/generation identity、displayed-frame-qualified Simulate pick、mode-specific input/camera route、gateway viewport-surface ABI、kind visibility和presenter升级失败恢复也是真实进展；但它们只把P0-01降为Partial。Host仍只有一个Scene controller、size和submission，同kind duplicate/floating共享camera/target/cursor；Game固定抓default viewport且frame不含pane/camera/request/present provenance，surface ABI在Editor UI/Play无生产caller。resize仍先destroy旧target，create/quality/submit错误无Stale/Degraded或自动retry，world-space UI仍按screen rect画Quad并做矩形hit。当前P0为2 Open/1 Partial/1 Closed，P1为33 Open/23 Partial，P2为12 Open；46门为28 Fail/15 Partial/3 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、native GPU、Play child process、fault/device、multi-window、HDR、scale、soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/179-editor-scene-viewport-host-render-product-surface-lifecycle-frame-currentness-multi-viewport-current-source-review.md`。
+
+## 412. Editor Scene Viewport / Input / Picking / Selection / Highlight / Gizmo Transaction 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon viewport/mode/selection/gateway、Workbench/host桥、Runtime UI metadata/capture、picking/highlight/spatial与聚焦测试 | **235 / 25,668 / 23,296 / 873,153 / 202 / 11** | 当前磁盘从OS事件到事务、spatial product与runtime store的依赖闭包；fingerprint `461d36ed17b7d8f5c0691725226bfaf375aa021b3509d494f214ae3114732da9` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **23 / 31,789 / 26,957 / 1,213,892 / 1 / 0** | capture owner、multi-object transform、真实geometry picking、per-view picking/selection过滤；fingerprint `27026b4f682be0d33b23cde03924df5fcff9237d31a02d26e15229d5e5a4a4bb` |
+
+Editor180确认Editor59的旧P0-02与P0-03已关闭：Right/Middle在活动Handle期间被拒绝且release只清匹配camera drag；highlight submit错误只记录日志，base Scene extract继续生成。旧P0-01降为Partial：Pointer Cancel已到达`CancelInteraction`并恢复单对象preview，但retained bridge仍使用无metadata `UiPointerEvent`，进入Editor后不再有pointer/device/window/surface/viewport/sequence/capture generation/reason，也没有terminal receipt。pointer cache miss现在只返回Stale/Preparing，完整packet与mesh复制留在render publication，P1-06关闭。其余差距仍在：Handle终止返回`()`且实现为空，workbench用variant消失猜Commit；事务单node/local/固定Move标签，negative scale被0.05钳制；Point使用可见球体+原点圆，Box遍历全量代理圆，Frame只聚合位置；Highlight只有latest store，无overlay revision、frame consumer、teardown或Presented receipt。当前P0为1 Partial/2 Closed，P1为7 Open/1 Closed，P2为1 Open/5 Partial；36门为25 Fail/8 Partial/3 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、GUI、GPU picking、touch/pen、多window、transform fault/scale、soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/180-editor-scene-viewport-interaction-controller-input-picking-selection-highlight-gizmo-transaction-cancel-generation-product-integration-current-source-review.md`。
+
+## 413. Editor Scene Hierarchy / Outliner / Selection / Rename / Reparent 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime hierarchy | **26 / 7,797 / 7,083 / 278,943 / 58 / 3** | Runtime inspection、hierarchy topology、derived state与transaction；fingerprint `2256f9433d4b16fa4e1c857fe63feb608275b3cf169131fc9f94e505f97a33a2` |
+| Zircon Editor projection | **96 / 20,704 / 19,533 / 785,677 / 53 / 1** | inspection publication、generation/selection patch、workbench snapshot、retained projection与paint；fingerprint `3dbe65139411587020a18da1f9113624213392aa6e6419430f585d36e0843ee9` |
+| Zircon Editor interaction | **55 / 5,626 / 5,145 / 201,139 / 32 / 0** | hierarchy pointer、filter、rename、callback dispatch与host lifecycle；fingerprint `76dcf12407a9d9c88cabe5aa6b245e0305af5845957d0ef9a0dbdebca664e64a` |
+| Zircon聚焦测试 | **22 / 7,156 / 6,654 / 256,238 / 110 / 0** | node ops、history、selection、refresh、scene reload、callback/template/list pointer与drag source；fingerprint `274f87e98689de91d877ac94fe44a078b506367a116f59098dd3b40d6f4a0add` |
+| Zircon去重选择集 | **199 / 41,283 / 38,415 / 1,521,997 / 253 / 4** | 当前磁盘Runtime、Editor投影、交互与聚焦测试依赖闭包；fingerprint `4612035deb3780bac035b49941d3d487af52e2ec4f3f491664a66005a2690af9` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **18 / 19,930 / 17,191 / 706,227 / 49 / 0** | stable item identity、hierarchy provider、drop validation/anchor、drag threshold/cancel、UndoRedo reparent、generation identity与tree/list view state参考；fingerprint `b5cac140004338922e81f4435e10273dd7f6eba8d27763489ffacf6325a7fbf6` |
+
+Editor181确认Editor60的两项P0仍全部Open：hierarchy primary press立即写入mutation-capable drag payload，primary release命中另一row或list surface就直接派发reparent，没有threshold、capture、source generation、drop preflight或terminal receipt；World/project replacement也不退休active drag、double-click和inline rename，裸`NodeId`旧交互仍可能命中新World中复用同值ID的实体。当前源码已有不能抹掉的真实进展：Runtime focus死字段已删除，Editor typed immutable `Arc` selection成为唯一focus来源；inspection fragment支持generation、selection revision、sparse/persistent row patch与gap resync；固定10个physical controls、viewport-bounded paint和无损control-to-entity map关闭旧P1-09，focus owner收敛关闭旧P1-03。最终pane仍丢kind/active/children，`expanded = has_children`、全树reflow/filter、replace-only hierarchy click、弱rename及parent-only drop继续阻断工程级Outliner。当前P0为2 Open，P1为17 Open/5 Partial/2 Closed，P2为6 Open/2 Partial；40门为26 Fail/10 Partial/4 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、pointer/capture/IME、跨World迟到事件、100K/1M、fault/soak或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/181-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world-product-integration-current-source-review.md`。
+
+## 414. Editor Scene Document / Save / Reload / Autosave / Recovery / Multi-Document 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Scene identity、transition与save | **35 / 7,409 / 6,732 / 266,781 / 72 / 3** | lifecycle、route、World install、active save与菜单产品链；fingerprint `dccfe93ffa558c982599a673228f5e9cbcfedd6179eef9cdcb110fbe210cb5c4` |
+| Close、autosave与recovery | **96 / 15,974 / 14,649 / 562,238 / 123 / 2** | close prompt、native close、toolkit batch、autosave capture、recovery decision/executor；fingerprint `9a6040d9fde32f1d9edc26cd6ec5a6aa9d6d1bbaedc7690102792749dd11ad47` |
+| Runtime Scene persistence | **38 / 6,544 / 6,039 / 234,575 / 21 / 1** | Scene codec、project IO、atomic file、artifact/import publication；fingerprint `f06cfb50b0446016f45335cc3b4df586e7d9ea6d4aebd7b6f14b84a1c49e1764` |
+| Zircon聚焦测试 | **10 / 3,463 / 3,173 / 124,515 / 64 / 0** | explicit target、dirty admission、document roundtrip、close generation与watcher planning；fingerprint `6e3901593dccddfab1ea0ce014d1f17c49171c93ffb5433c0bfd204af53f191c` |
+| Zircon去重选择集 | **177 / 32,459 / 29,762 / 1,155,294 / 256 / 6** | 当前磁盘Scene Document产品链及依赖闭包；fingerprint `2d59ebcf5e7593f7552be8ed4f8f3300ae45059c82a6e55c2f2e8aa47fb4cd88` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **19 / 30,889 / 26,519 / 1,202,936 / 22 / 0** | explicit target、dirty gate、multi-scene state、asset source/writer与Scene dirty参考；fingerprint `473482bb873f26ca3c86217f80cd17fa3a444e161abaa898178250fef8c88a2c` |
+
+Editor182确认Editor61的五条父P0在当前源码均已关闭：startup安装真实Scene identity，Save Project只保存active URI，Open/Create在副作用前执行dirty gate，Project/native close以generation-frozen prompt真实保存Scene，watcher也按active identity与generation处理clean reload/dirty conflict。但Scene仍不进入统一`DocumentParticipant`、Save All或autosave，recovery只materialize副本且不创建隔离dirty Scene session，产品仍是single-active，workspace无Scene session，codec无显式version/migration/unknown-field保真，保存链也没有source/artifact revision或有界异步规模合同。`ED61-P1-21`升级为唯一当前P0：冲突提示后外部writer再次更新时，默认Save会无expected revision/CAS地静默覆盖最新source；atomic write只防torn file，不防last-writer overwrite。当前P0为1 Open，P1为13 Open/8 Partial/6 Closed/1 Escalated，P2为4 Open/4 Partial；40门为21 Fail/12 Partial/7 Pass，canonical finding总数不重复增加。本轮只写review与索引，没有运行Cargo、Editor、并发writer、crash/fault、scale/soak/profile或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/182-editor-scene-document-authoring-world-open-new-reload-save-close-dirty-transition-autosave-recovery-multi-document-product-integration-current-source-review.md`。
+
+## 415. Editor Inspector / Property Grid / Reflection / Multi-Selection / Transaction 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon production focused set | **67 / 14,309 / 13,198 / 501,326 / 47 / 2** | Inspector extension、mutation、snapshot、pane/componentized projection、adapter、inspection delta与virtual materialization；fingerprint `e6ef6a9c5464d5ab02b4e5dc6f4546392d6e8cad44efe63a711c05fbeee97fd3` |
+| Zircon focused tests | **47 / 12,856 / 12,048 / 475,541 / 170 / 0** | reflected batch、adapter、plugin contribution、pane/workbench projection与scroll；fingerprint `3126f98c28d9e13691afecc6a2e6e3a0a874f30feb462773b1e3253b4a10e1fd` |
+| Inspector UI assets | **4 / 674 / 578 / 43,322 / 0 / 0** | legacy Inspector、host body/controls与componentized panel；fingerprint `ba7d3140f13f161dc2ed73a21377f7950735f775674cbfef08dabf9b6af31fdf` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics | **42 / 32,134 / 27,794 / 1,146,522 / 9 / 0** | multi-value/common-schema、fieldwise transaction、editor instance/container、parsed path、override与Curve consumer参考；各子集fingerprint见Editor183 |
+
+Editor183确认Editor05的两项P0仍全部Open：selection同步继续把Translation/Scale格式化为两位小数，任何Apply又提交完整base/dynamic表单；多选snapshot继续只取primary并把相同Name、Parent、Transform和插件草稿写到所有secondary。componentized property Edit/Commit仍只修改模板row，runtime Inspector/Reflection adapter也只写draft却返回transaction字符串。field editor的ticket/capability snapshot、pane payload metadata、allowlisted customization operation、原子batch失败、focused field delta和有界物理row pool是真实Partial，但最终typed widget/surface、delta consumer、lazy source和正确mutation语义均未闭合。
+
+Editor05保持唯一canonical owner；当前P0为2 Open，P1为25 Open/7 Partial，P2为7 Open/2 Partial；20门为15 Fail/5 Partial/0 Pass。目标收敛为`Runtime typed PropertyAddress/prepare/CAS -> InspectorSessionRegistry -> immutable PropertyProjectionArtifact -> PropertyEditCoordinator -> ticket-owned PropertyEditor/Customization -> single bounded presentation`。本轮只修改review与索引，没有运行Cargo、Editor、save/reopen、plugin reload、pointer/IME、10K fields/targets、fault/soak/profile或同硬件跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/183-editor-inspector-property-grid-reflection-schema-multi-selection-edit-transaction-undo-prefab-override-customization-asset-reference-virtualization-product-integration-current-source-review.md`。
+
+## 416. Editor Authoring Transaction / Command History / Savepoint / Async Operation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon transaction/editing core | **66 / 9,748 / 8,886 / 328,291 / 28 / 3** | command、history、scope、rollback、routing、save token、dirty、journal、recovery coordinator与Animation document；fingerprint `503ca3f484c4650b5323ea37497d5d27dbe47592d3cab53ecb6bf0cb6922aa2d` |
+| Zircon product integration selected set | **190 / 47,413 / 43,715 / 1,660,931 / 261 / 48** | Scene/menu/operation、DirtyRegistry、UI asset、Animation、Navigation、Neural与host/workbench接线；fingerprint `0d26aa1e0f944c9ae52b04af9114afd392c94258cbdd126a50553977e72c4a9d` |
+| Zircon focused tests | **68 / 22,831 / 20,836 / 763,560 / 396 / 0** | engine、history、journal、document route、UI asset、Animation与插件operation测试；fingerprint `b24bec6677e2bb7acd6ab57e6ece974583a11ff9b4a3339eb407919fb39d0b65` |
+| Unreal selected set | **4 / 2,323 / 1,961 / 74,975 / 0 / 0** | transaction context、object lifecycle、RAII、memory budget、barrier与editor lifecycle；fingerprint `e169d17aa4c18694285812f30d1c51930bf65aba6ca98af80e47ac466dead4b0` |
+| Godot selected set | **4 / 1,461 / 1,204 / 49,878 / 0 / 0** | routed histories、merge、reference retention、saved version与version change；fingerprint `2cc21e2814d4ad8a59065b327798adea9e47d3fdde3c010ac436d1e934beaf30` |
+| Fyrox selected set | **16 / 5,404 / 4,767 / 178,555 / 0 / 0** | command stack/group、scene/UI/animation/ABSM domain、reverse/finalize与generational handles；fingerprint `29d823523fdb449caf0e236d363a0de2cdf7e1611663de05280a867193e84f1e` |
+| Bevy selected set | **7 / 7,635 / 6,995 / 279,155 / 36 / 0** | entity generation、change tick/changed-by与deferred command queue；fingerprint `7f954f70acc76f34037376be6769a246bc2a6de2f1b77ca67dabd6c7815a8d72` |
+| Unity Graphics selected set | **4 / 3,444 / 2,934 / 148,888 / 0 / 0** | SerializedObject、多对象Undo、created/destroyed object Undo与undo回调consumer；fingerprint `63925ceef3311d0e39007e8ccda377327f4dc646dad8079f5323f2b17df7c3c2` |
+
+Editor184刷新Editor63/02事务链：主Scene的Document路由、gateway route retention、Animation统一history/dirty、Scene codec和durable journal framework是真实工程进展；旧“Scene固定Global”“Animation无Undo”“journal只有内存projection”结论已纠正。但`HistoryContextId`仍不含DocumentKey/session/world generation，engine仍只有单context/active stack/operation group/gate，scope、participant和command没有owner lease、qualified address、read/write/precondition/resource合同。UI Asset继续使用私有无界双Vec并在fallible replay前移动cursor；Navigation/Neural仍Global且在同步apply/revert内轮询Runtime或读写文件；journal codec/startup/save/recovery无产品闭环，payload仍可在engine mutex内编码。当前P1为8 Open/3 Partial，P2为2 Open/2 Partial；40门为22 Fail/17 Partial/1 Pass，canonical finding总数不重复增加。共享工作树中的`operation_group.rs`还调用当前无定义的`ensure_single_gateway_history`，因此本轮没有宣称编译green。本轮只修改review与索引，没有运行Cargo、Editor、multi-document、plugin unload、crash/fault/scale/soak/profile或同硬件跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/184-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation-product-integration-current-source-review.md`。
+
+## 417. Editor Scene Component Authoring / Type Catalog / Structural Mutation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime focused set | **15 / 3,957 / 3,663 / 147,529 / 6 / 1** | descriptor、registry、World mutation、DynamicScene transaction与owner revoke；fingerprint `90a5bae60d6d0d1383e263e1a86a5725902aecab29e35f1447cb587e3d5f6765` |
+| Zircon Editor product set | **11 / 4,892 / 4,573 / 194,992 / 17 / 0** | command、snapshot、pane、retained route、preview action与ZUI；fingerprint `d44dfb0332622d7f84ace2b0ec1435d8b80cf33e3cbcdb8e2c5c83709d860011` |
+| First-party component providers | **14 / 1,130 / 1,008 / 40,699 / 3 / 0** | 18个production descriptor与137个property；fingerprint `f60bb3677d0a0b200cf9d39b59b2aac13634ba8af2609e647ba91b05ef41cba8` |
+| Zircon focused tests | **10 / 4,948 / 4,613 / 183,421 / 85 / 1** | reflection、registry、serialization、unload、surface与registration atomicity；fingerprint `9e0e8f9c4cac66c24dd2f502931e84a3129e0a9cecf6c8d6f888e2580385431a` |
+| Unreal selected set | **8 / 6,935 / 5,922 / 262,509 / 0 / 0** | catalog、subobject admission、transaction、ownership与register；fingerprint `ee84a78d4b36d93c37496d37fc7f90da7efdb60ce0a66ce723cbbdcd8a70634b` |
+| Godot selected set | **4 / 10,818 / 8,968 / 361,525 / 0 / 0** | searchable creation、Undo、owner/name与missing type；fingerprint `091e77f821e8c0c9877e7d0da3598fd1eb90522a5f98bc6cf62a7182ba6579e7` |
+| Bevy selected set | **5 / 3,624 / 3,229 / 138,745 / 30 / 0** | required graph、constructor、hooks、bundle与reflect adapter；fingerprint `c56b8ef6087607815f1e9c613205a1615f5cb4d3f00db707c849ffab06c3e2a0` |
+| Fyrox selected set | **3 / 1,361 / 1,221 / 47,362 / 0 / 0** | constructor menu、reversible AddNode与Inspector registry；fingerprint `97061ab670e40a8271368439ad0de61b6caecdaa059166d1e4847ead4ac8499e` |
+| Unity Graphics selected set | **4 / 2,880 / 2,466 / 119,676 / 0 / 0** | Volume add/remove/order/active/reset/copy/paste/default与Undo；fingerprint `6fa22f4c6fac7e043acfee8d87f82540e87dcb9cad5d9563cbafb82171faffa4` |
+
+Editor185刷新Editor64组件创作链：14个第一方provider的18个production descriptor/137个property、15个builtin reflection registration、owner freeze/revoke、per-type schema generation、missing-schema JSON保留和DynamicScene preflight/publication都是真实基础。Runtime111旧`RSR-P0-001`所述半注册路径已被当前源码的preflight后publish与精确回归测试覆盖，记为源码闭合、动态验证待补；canonical owner文档仍需独立刷新。
+
+工程级产品仍未成立：descriptor无stable identity/default/dependency/multiplicity/order/enable/lifecycle，World以`HashMap<type_id, JSON>`直接增删且按type id展示；Editor command没有任何component结构variant，snapshot只列primary的dynamic components，componentized surface只取first。Add Component的ZUI route与generated action漂移，后者进入`operation_id=None`、`transaction_id=None`、空effects、revision不变却返回success的preview no-op。Editor64保持唯一canonical owner；当前P1为11 Open/4 Partial，P2为5 Open；40门为34 Fail/6 Partial/0 Pass。目标收敛为`Runtime ComponentType/Instance identity + AuthoringDescriptor + DependencyGraph + DefaultFactory + StructuralPlanner/Lifecycle/Receipt -> Editor qualified Catalog/Topology Session + StructuralCommand + real Add dialog/context actions`。本轮只修改review与索引，没有运行Cargo、Editor、add/remove/save/reopen、plugin reload、multi-selection、fault/scale/soak/profile或跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/185-editor-scene-component-authoring-type-catalog-add-remove-enable-disable-dependency-multiplicity-ordering-default-reflection-transaction-plugin-lifecycle-product-integration-current-source-review.md`。
+
+## 418. Editor Scene Object Creation / Placement / Factory / Asset Drop 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime creation/construction | **7 / 2,220 / 87,624 / 1** | `NodeKind`、`NodeRecord`、bootstrap、detached batch和DynamicScene spawn transaction；fingerprint `9cd58bf7c692f48925888f6bad9ee6fa08614af6fb351b34baa368f06cd43f91` |
+| Zircon Editor command/catalog | **16 / 4,629 / 161,637 / 10** | create intent/command、admission、journal codec、fixed id/binding和extension store；fingerprint `ddbc092d46f83373a46ac17e4a84905ab80e336e6b3722c3fcfbd7590685868b` |
+| Zircon Editor product/drop/viewport | **21 / 4,097 / 179,214 / 5** | asset payload/reference consumer、Quick Import、viewport input/session/settings/math与ZUI；fingerprint `b12aea63a105f2eb166f1db1638daf8607438b9df5d03a72f6cfc19ccb3f8bee` |
+| Zircon focused tests | **12 / 5,383 / 188,393 / 115** | create/undo/journal/import、DynamicScene、save/reopen和drag source/reference field；fingerprint `0412d134ebee2eee4fef6fa2ffd6367e098bdd1d3603d0c0265478520c329731` |
+| Unreal selected set | **10 / 5,642 / 206,673 / 0** | placement subsystem/factory/category/palette/drag/positioning；fingerprint `fcfb21a189c29d027745acffc998e9193f68db9ed96196f7d7695a1726d78ff5` |
+| Godot selected set | **3 / 13,690 / 514,193 / 0** | dynamic type creation、favorite/recent、PackedScene、3D preview/drop/Undo；fingerprint `b89dcdde18e1f518435ee80525c77883f7514c2023413ebfcf63834b7429ffc8` |
+| Fyrox selected set | **4 / 3,048 / 103,912 / 0** | constructor menu、preview/drop、pick/plane/grid和reversible subgraph；fingerprint `3043c9d7c4708f5e51c0c754aa554dd9ca59b5a98524eb5b4c0cd0b862f30b22` |
+| Bevy selected set | **5 / 4,762 / 166,026 / 49** | reflect construction、Scene/DynamicScene、entity remap和failure cleanup；fingerprint `fcf3718bd091faa32d1d5bd6bdbf0076ef8dafc37c0ee77536e94ac5abea4f2a` |
+| Unity Graphics selected set | **5 / 2,270 / 90,722 / 7** | Volume catalog、add/remove/order/reset、Undo和runtime collection；fingerprint `7a0272e9ac8ed0d32dc7a6122ba04c22ab1315c6f9b4a5bc31d32fbfe1849df8` |
+
+Editor186刷新Editor65对象创建/放置链。当前源码的DynamicScene preflight/publication、`DetachedEntityBatch`、Document history与stale world route、create补偿、versioned journal codec、Extension Store immutable snapshot/revoke及viewport snap/transform数学都是真实可复用底座；但目标协议名称全仓仍为0，产品创建仍固定`NodeKind -> one NodeRecord`，Scene/Viewport没有asset payload consumer，Quick Import仍把Asset摄取和当前World实例化串联。
+
+Editor65保持唯一canonical owner；当前18项P1为9 Open/9 Partial，6项P2为5 Open/1 Partial，48门为30 Fail/18 Partial/0 Pass，没有新增P0。目标收敛为`Runtime stable type/factory registry -> isolated construction plan/exact graph receipt -> Editor qualified PlacementSession/TransformSolver -> asset/template统一入口 -> document transaction/journal -> plugin catalog lifecycle -> scale/fault/performance qualification`。本轮只修改review与索引，没有运行Cargo、Editor、viewport drop、save/reopen、plugin reload、fault/scale/profile或同硬件跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/186-editor-scene-object-creation-placement-palette-factory-asset-drag-drop-template-favorites-preview-transform-transaction-plugin-product-integration-current-source-review.md`。
+
+## 419. Editor Scene Viewport Camera Navigation 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime camera kernel | **23 / 1,123 / 32,729 / 3** | Free/Orbit/Pan controller、DTO与dynamic adapter；fingerprint `6ba86f4351345e0ced82a72b1975b6645a957003d3b72d64d3aac64c0a547228` |
+| Zircon Runtime input foundation | **7 / 1,301 / 46,060 / 6** | normalized snapshot、wheel unit、focus/cursor、bounded recording/replay；fingerprint `33b2c354f002373aaed5f42408ab5fd55f919897d6b349f58634254c5ad55d0b` |
+| Zircon Editor navigation core | **13 / 1,624 / 57,418 / 14** | state、navigation、projection、frame、input、feedback与settings；fingerprint `061770621082bc153c231b157fd5624b4a34205e7abb85f95da65eeff83c1fef` |
+| Zircon Editor product route | **15 / 3,731 / 160,310 / 12** | binding、retained route、EditorState、toolbar与ZUI；fingerprint `aba2dac23107ae2fea0c951c9a4bf4dafceb914b3552c3121303a1d87e2e4ad2` |
+| Zircon focused tests | **11 / 3,128 / 108,616 / 77** | controller/input/replay、viewport route/projection/frame与chrome snapshot；fingerprint `f22fe99399466a7c660d978a5aa665b4759b6b30c96764b3aae611a90535e542` |
+| Unreal selected set | **8 / 17,420 / 647,980 / 1** | viewport client、navigation helper、settings、focus/frame、pilot与speed tests；fingerprint `7f3ef3c8d0c7542d73ee870207fe7841b090535ffcc9b92d7197c82e4cf9f397` |
+| Godot selected set | **4 / 9,059 / 350,451 / 0** | schemes、freelook、gesture、inertia、focus cancel与camera preview；fingerprint `5dbeadb37cbb5a1f24d377e7aa252ae9770002c18605a485bf9b3c1a8dbbb2b4` |
+| Fyrox selected set | **4 / 1,314 / 46,233 / 0** | AABB fit、projection-aware pan/zoom、speed与per-scene camera persistence；fingerprint `b31df90896076114dff12aad35e654bf90ad729af7e038b6f7c88fcecd0bf7dd` |
+| Bevy selected set | **6 / 2,012 / 77,312 / 1** | input unit/dt、cursor focus、touch、scroll normalization与smoothing；fingerprint `4f03bb947b052f450b527c14b7fbce810d0fa0f52ba5638774d611f652c16d75` |
+| Unity Graphics selected set | **7 / 1,012 / 45,419 / 0** | SceneView alignment、per-view settings与lens/frustum apply/extract；fingerprint `6f60e86adf941680381ac3a3458dbf01d1fe78b3edb397ab8202bfbca7ae3181` |
+
+Editor187刷新Editor66相机导航链。Runtime camera controller已迁入Input域，`InputFrameSnapshot`、line/pixel wheel、focus-loss cursor release、bounded record/replay、shared projection context、dynamic editor-camera lens validator，以及Play模式复用navigation-only Editor camera入口并阻断authoring Frame Selection，都是真实可复用底座；但Editor产品桥仍把输入降级为裸pointer/scroll，只接单Orbit，Free/Pan没有产品consumer。Orbit pan不消费viewport/FOV，zoom继续`signum()`，projection切换和axis align没有视觉尺度守恒，Frame只聚合position且失败后上层仍发布`Framed node`，可见`0.25` speed chip没有authority。
+
+Editor66保持唯一canonical owner；当前23项P1为14 Open/9 Partial，7项P2为5 Open/2 Partial，48门为36 Fail/12 Partial/0 Pass，没有新增P0。目标收敛为`Runtime normalized input/profile/output + shared projection/framing solver -> Editor qualified per-view camera session/capture -> Free/Pan wiring -> projection/axis/real-bounds Frame -> preference/keymap -> history/bookmark -> preview/pilot transaction -> device/scale/fault/performance qualification`。本轮只修改review与索引，没有运行Cargo、Editor、device matrix、save/reopen、multi-view、pilot、fault/scale/soak/profile或同硬件跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/187-editor-scene-viewport-camera-navigation-orbit-pan-zoom-fly-projection-alignment-frame-selection-bookmark-pilot-persistence-input-product-integration-current-source-review.md`。
+
+## 421. Editor Scene Viewport Visualization 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Editor visualization/product | **20 / 3,195 / 124,102 / 12** | settings、packet、provider、typed route、toolbar与Play状态；fingerprint `c09da78111ef8ddadd956599c3d646b62d9b8b532ec68ef10189474923a78105` |
+| Runtime visualization/execution | **19 / 4,261 / 160,542 / 39** | camera/environment、wire/base、overlay order、lighting/shadow与scene extract；fingerprint `cff9b36ccee135cabc48c9199541c230c8b536b9da5263352d085b27dc513496` |
+| Diagnostics | **9 / 2,104 / 69,547 / 14** | frame profile、GPU timing、capability、VG/product stats与Editor projection；fingerprint `e97fef35d8584d368359fd719b5bb2b9fb6d99709a81a24a843c3d2abbe0d8f2` |
+| Focused tests | **10 / 3,248 / 112,980 / 65** | packet/state/play、binding/toolbar/template/chrome与pane projection；fingerprint `2c3897a52c9c693e2177b4344cb05ea3e852bc684cd7eae752f09a35a5e3ed55` |
+| Unreal selected set | **5 / 3,448 / 153,462 / 0** | Show Flag/View Mode resolver、buffer registry与viewport persistence；fingerprint `d13d6e4a24748391f1249c177cb45f16a195cebc85e7571e2a97fa10d8cde879` |
+| Godot selected set | **2 / 7,927 / 311,055 / 0** | per-view display/debug/environment/gizmo/diagnostic状态；fingerprint `19f90d99bbf52b085292af28ba82b4c2f0809e12457b5ef53d0f2b0b566f3bd0` |
+| Fyrox selected set | **5 / 2,691 / 100,015 / 0** | persistent debug category、graphics quality与scene consumer；fingerprint `ca6288f987ccfe448f37c4294d566422f05463193d1f2aeb83127e1a79489272` |
+| Bevy selected set | **3 / 2,469 / 90,658 / 0** | GPU wire phase、capability gate、gizmo config与bounded diagnostics；fingerprint `d92a46f1be0c3afadcdbe87bfb7a434f7786c57f052bcde941445f88f32313cc` |
+| Unity Graphics selected set | **8 / 1,858 / 83,647 / 0** | modular debug fragments、effective query、serializer与mode validation；fingerprint `8a51bf220eb578d43c78a72ac378a6efced8ac041a6f70c24d729a26bf6eb2d4` |
+
+Editor189刷新Editor68可视化链。新增`ViewportOverlayProviderRegistry`已经具备stable id、owner、required capability、prepare/install、typed toggle error、plugin panic boundary与fault quarantine，并接入真实command/render packet，这是可保留底座。但provider仍只输出固定scene-gizmo list，没有category/layer/depth/priority/cost/settings/generation/receipt或unload fence；Runtime recorder顺序仍固定，test-only `PASS_ORDER`不是composition authority。
+
+Display仍为Shaded/WireOverlay/WireOnly三值，lighting/skybox仍是独立bool；wire每帧CPU构造world-space线段，WireOnly会让无wire source对象消失；Skybox Off继续同时清空背景、IBL/probe/baked lighting，Editor仍写`virtual_geometry_debug: None`。Editor68保持唯一canonical owner；29项P1为21 Open/8 Partial，8项P2为7 Open/1 Partial，48门为38 Fail/10 Partial/0 Pass。目标收敛为`stable profile/registry -> Runtime single resolver/effective receipt -> per-view session/persistence -> GPU wire parity -> lighting/environment -> Show Flag/overlay/debug providers -> qualified diagnostics/product projection`。本轮只修改review与索引，没有运行Cargo、Editor、render golden、save/reopen、multi-view、provider reload、device matrix、fault/scale/soak/profile或同硬件跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/189-editor-scene-viewport-display-mode-lighting-skybox-show-flag-debug-visualization-overlay-composition-profile-persistence-product-integration-current-source-review.md`。
+
+## 422. Editor Scene Viewport Realtime Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Editor viewport/product | **134 / 9,656 / 344,667 / 73** | viewport全树、binding、workbench state与ZUI；fingerprint `ec4f4d46f639f0cb855da018527da91b80c21e523fe5b9baed9b96eb18ef904d` |
+| Editor cadence/host | **116 / 14,797 / 553,950 / 164** | gateway session、Play tick、host lifecycle、image redraw与native window；fingerprint `2208067e93800835a0b2bb9fa062ab47095b489d1473898d7668fdc823bf1496` |
+| Runtime time/frame demand | **28 / 4,332 / 149,753 / 28** | domain、policy、per-Level clock、fixed事务、WorldDriver与demand accumulator；fingerprint `92d2f25b81c29b2546e8ae66e944c8fcbe063b12daeb8f816c18336fd6f9471d` |
+| Focused tests | **22 / 4,933 / 172,136 / 116** | viewport/Host、dynamic demand、world time与fixed transaction；fingerprint `365b96efea065d409adcc6d6e2f4dd1b8bcd4390c842a673887e9ddecbb112e8` |
+| Unreal selected set | **9 / 24,381 / 893,941 / 0** | persistent/override realtime、bounded frames、Preview World、audio/physics与config；fingerprint `0c131dfdbd6a008a9dbb38730382496359e71967008e9ca18dbd79f35bfbbc47` |
+| Godot selected set | **4 / 14,805 / 543,729 / 0** | viewport update mode、visibility process、listener/Doppler与perf；fingerprint `415b4afea3cc9b3758b47261007412e26dc239b88a583a1fd6b52483c0853828` |
+| Fyrox selected set | **7 / 9,399 / 359,751 / 9** | fixed editor loop、GraphUpdateSwitches、preview restore与transport；fingerprint `9d990effeb8bba3208dc6ea50570effb606e4aaab957761053ac9e2d9924c2b1` |
+| Bevy selected set | **6 / 3,076 / 111,747 / 38** | focus-aware loop、virtual/fixed time与schedule stepping；fingerprint `ff94c86ff5a9c75bb4f3b88ecfc21a6e42799766596d0dc6b98376f185a3a863` |
+| Unity Graphics selected set | **6 / 2,430 / 90,201 / 0** | scoped refresh restore、background/60Hz/culling与VFX transport；fingerprint `bf440c85768e0f6ec2562065b2170d0456c389d72b3134c82b58d7fb71760d5b` |
+
+Editor190刷新Editor69实时预览链。Runtime已从Core共享virtual/fixed时钟重构为per-Level `WorldTimeController`，并具备versioned clock domain/policy、fixed begin/commit/abort、world generation fence、stable tick identity、debt守恒、anonymous frame-demand merge和无deadline native Wait；viewport image继续保持paint-only单向边界。
+
+产品层仍未成立：Edit world不进入tick，`EditorPreview`没有实例，Preview Session/isolated world/transport/subsystem admission/side-effect sandbox/owner demand/activity budget/simulation-render generation/audio listener/controls/persistence均缺失。Editor69保持唯一canonical owner；30项P1为16 Open/14 Partial，8项P2为6 Open/2 Partial，48门为34 Fail/12 Partial/2 Pass。目标收敛为`qualified isolated Preview Session -> per-preview time/subsystem policy -> owner demand/activity resolver -> generation currentness/listener -> effective product projection -> fault/scale/power/cross-engine qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/190-editor-scene-viewport-realtime-update-preview-simulation-time-domain-pause-step-animation-particle-physics-audio-visibility-throttling-invalidation-performance-product-integration-current-source-review.md`。
+
+## 420. Editor Scene Viewport Transform Manipulation 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Transform authority/session/command | **8 / 2,185 / 77,284 / 4** | multi-root session、world/local writeback、rollback、batch command/journal与EditorState transaction；fingerprint `1162c07527140ff91bb50f0220f4f501588d3eb2eaa29e599658e5f538f144dd` |
+| Handle solver/controller/render | **38 / 2,955 / 97,362 / 21** | Move/Rotate/Scale、basis、overlay、pointer route、projection与feedback；fingerprint `4f559e2b9af8d547311ca1e4faea4c01046d9315771311561662d391acd52344` |
+| Grid/settings/product route | **22 / 5,527 / 224,080 / 11** | scalar authority、binding/route/status/ZUI、grid extract/pass/vertices；fingerprint `dcc997cb3a943bac8d80172cb0d29587a4b5eba8a4c5ae5868c18fb80f03b05d` |
+| Focused tests | **11 / 3,534 / 121,998 / 75** | settings、viewport lifecycle、batch journal、binding/toolbar/status；fingerprint `36962a0040e0afd8782790a5f046f9cd5dfb65f2b808f2d202afcb052eb871e8` |
+| Unreal selected set | **9 / 20,038 / 727,308 / 0** | Widget/mode/pivot、absolute movement与独立grid/rotate/scale/surface/actor/vertex snap；fingerprint `afc25b7c21219f2247dbf60c7e6fee6c2957ebbe40e7e20e125433d1989fac7e` |
+| Godot selected set | **4 / 12,590 / 500,558 / 0** | axis/plane/view/trackball、group pivot、vertex snap、numeric与undo；fingerprint `e177810108f3af34c65346b0f00c11833d6bf48dd98e916ab33388a9c818c58a` |
+| Fyrox selected set | **10 / 2,263 / 82,083 / 0** | selection roots、parent inverse、ray-plane、smart move与CommandGroup；fingerprint `5d168842d99a905cdbdde37fa86d5e3392c2483831254e3df4b604178a7731db` |
+| Bevy selected set | **3 / 1,389 / 49,458 / 0** | opt-in transform gizmo、ray-plane/atan2、view handle、snap与render split；fingerprint `946b341ee7b29d7f610e2febe2825e6754d9a0a728ab8985fa3fb253e28190ca` |
+| Unity Graphics selected set | **2 / 545 / 26,369 / 0** | pivotRotation、native snap、modifier与negative-size policy；fingerprint `cf1b91f7526978f3bc23516ba1ceab4e68c480bbe9ea7165187b71ee2f1ccaf6` |
+
+Editor188刷新Editor67变换链。当前未跟踪的`InteractiveTransformSession`已冻结Document/world generation、多选roots、world matrix和parent inverse，预览具有pending-first与prefix rollback，TRS residual会拒绝shear，finish生成multi-target batch command/journal并区分Move/Rotate/Scale transaction label。这些是真实工程底座，但它们只把primary solver产生的world delta传播给selection roots。
+
+primary solver仍只有X/Y/Z与Local/Global，Move/Rotate/Scale继续共用`projected_axis_delta`，Rotate为像素标量乘`0.01`，Scale为单轴加法并硬夹`0.05`；pivot固定primary origin，center anchor不可交互。Grid extract仍只有`visible/snap_enabled`，Runtime固定XZ、`-10..10`、1单位网格；Workbench `ToggleSnap`固定开启，任意SetGridMode都投影active。Editor67保持唯一canonical owner；27项P1为20 Open/7 Partial，8项P2为7 Open/1 Partial，48门为34 Fail/14 Partial/0 Pass，没有新增P0。目标收敛为`existing multi-root transaction -> pure solver -> SelectionPlan/space/pivot -> complete handles -> Grid/Workplane/Snap profile -> candidate/numeric -> qualified receipt/semantic journal -> single product model -> device/scale/fault/performance qualification`。本轮只修改review与索引，没有运行Cargo、Editor、真实drag、hierarchy、candidate query、render golden、fault/scale/soak/profile或同硬件跨引擎benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/188-editor-scene-viewport-transform-manipulation-gizmo-pivot-coordinate-space-grid-snapping-workplane-numeric-surface-vertex-alignment-preference-transaction-product-integration-current-source-review.md`。
+
+## 423. Editor Scene Viewport Object Visibility 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Editor viewport/product | **134 / 9,942 / 349,834 / 72** | viewport全树、binding、render submission与Hierarchy投影；fingerprint `e4e625bfdcdee2edf2ab835a6d2e674561cc45b490558e9a84a456a6156694ef` |
+| Runtime visibility/extract | **8 / 2,665 / 99,361 / 16** | active/layer、全部一等贡献、VisibilityInput与visible-spatial snapshot；fingerprint `26b008148d6e45da42282ce6a5b63587abbb802d3ea95bebba5691716df60326` |
+| Focused tests | **18 / 3,538 / 124,654 / 80** | viewport route/pointer/hierarchy与Runtime active/layer/extract；fingerprint `175a5974cc2754b97bb0399956080bb58b83c3fe20395ed6a5c8a6771d9cbc31` |
+| Unreal selected set | **5 / 16,766 / 671,331 / 0** | temporary hide、hierarchy、selection、per-view bit与Outliner；fingerprint `a67e0830ba271bcbfe935c981ca7e32558beaf863b2b12dfde1b314eb9ace08c` |
+| Godot selected set | **2 / 6,821 / 257,886 / 0** | authored visibility UndoRedo与edit lock；fingerprint `eac862f99b152994c19b35efef391efe09773436da367e0037462790eed57e20` |
+| Fyrox selected set | **8 / 6,185 / 215,884 / 10** | selection/menu/helper visibility与对象隔离负证据；fingerprint `fc62be6529b7431fcc0210f3f1c5760a04dbf96c03f006365f425b3e98410ead` |
+| Bevy selected set | **2 / 1,816 / 67,327 / 13** | authored/inherited/view visibility、per-view set与wide layers；fingerprint `be10a812543c1b61597256e6b28b7b5ff1e8b68d89d4bb60a91ce3a48d5c41f3` |
+| Unity Graphics selected set | **5 / 5,464 / 244,032 / 1** | GPU culling、picking/outline、decal/fog/custom pass consumers；fingerprint `ae8d180495dd7c88a481c64c2f6a42c1e2f76ef475189d3c05481fdd7775a60c` |
+
+Editor191刷新Editor70对象临时隐藏/隔离链。当前`ActiveSelf`/`ActiveInHierarchy`/Layer分层、Mesh/Sprite/Particle/五类Light/Post Process Volume的active/layer检查、sorted static/dynamic VisibilityInput、immutable renderer-visible query、同代interaction cache、event-time query counters与world replacement reset均是真实可复用底座。
+
+产品层仍不存在：没有per-view visibility session、compiled object filter、single participation resolver、Hide Selected/Unselected、Show All、Isolate/Local View、selection eligibility、Outliner effective reason、完整consumer传播、lifecycle/profile或规模资格。Editor70保持唯一canonical owner；32项P1为20 Open/12 Partial，8项P2全Open，48门为32 Fail/16 Partial/0 Pass。目标收敛为`qualified per-view session -> immutable compiled filter -> Runtime single resolver -> render/spatial/GPU currentness -> selection/overlay/Hierarchy -> lifecycle/persistence -> fault/scale/backend/cross-engine qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/191-editor-scene-viewport-object-visibility-temporary-hide-isolate-local-view-selection-eligibility-hierarchy-feedback-persistence-performance-product-integration-current-source-review.md`。
+
+## 424. Editor Scene Contextual Action 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Editor context/product | **24 / 5,202 / 185,055 / 27** | request/provider/popup、command/extension、Hierarchy、Viewport secondary/picking与Keep transaction链；fingerprint `572c3de85b3214da67d02b77acd59f6bb698ffe9cf8240d2640924f2feedf122` |
+| Focused tests | **9 / 3,167 / 109,127 / 73** | request/overlay/binding/pointer、command/extension与Keep Play transaction；fingerprint `ac50d0aeaeb3e101f28bae400f7404fd3fec5f6a45e0ccccb85cbf0f5a344d42` |
+| Unreal selected set | **4 / 7,956 / 291,423 / 0** | typed context、selection/hit/cursor、ToolMenus、command list与extenders；fingerprint `074a2a888ebf2ea3672cb73b56a0d9f4a036a6608ffe9db6ea4fd6ae7a655b84` |
+| Godot selected set | **2 / 12,586 / 477,240 / 0** | per-open selection/capability菜单、ownership/inheritance/clipboard与plugin path；fingerprint `805db9a5cc4859b4661cea7cafee00cfbafbfb8ebc4e37f45cfc8f325b5c0486` |
+| Fyrox selected set | **3 / 4,672 / 185,097 / 0** | stable UUID、open-time enablement、selection与CommandGroup；fingerprint `eac702ebaa9f67f3a1ab8224dacdbc78cf54f9d672abee9c324457a17cf96130` |
+| Bevy selected set | **2 / 806 / 29,207 / 3** | popup focus、close/restore、accessible role与context example；fingerprint `1d7f2d9d96d57c24abc97b37ddf78e414fbf3635e328e28231b29726dce79e2c` |
+| Unity Graphics selected set | **5 / 6,507 / 271,920 / 0** | graph-domain dynamic action、status、target与component context dispatch；fingerprint `0267422337076e63fc4cfaf386655d27fb1926814bc14962d86536f84559fbd4` |
+
+Editor192刷新Editor71 Scene Contextual Action链。当前explicit action id、immutable `CommandEvalCtx`、stable command descriptor、extension ticket/generation/capability snapshot、Hierarchy generation/entity-control map、current picking与Keep Play Changes真实transaction均是可复用底座；旧pane projection丢显式action id问题已关闭。
+
+产品链仍没有唯一authority：request只复制UI hit字符串和display text path，Hierarchy identity/revision未接入；Scene provider仍以raw strings投影固定Open/Rename/Duplicate/Delete，只有Play时插入的Keep有业务binding。没有qualified target/selection snapshot、typed provider/catalog、per-open session、invoke-time revalidation/receipt、provider retirement/fault domain、Viewport secondary recognizer或Outliner/Viewport共享action graph。Editor71保持唯一canonical owner；46项P1为23 Open/22 Partial/1 Closed，10项P2全Open，48门为28 Fail/20 Partial/0 Pass。目标收敛为`qualified target/selection snapshot -> typed owner-aware catalog -> immutable per-open session -> canonical command + invoke revalidation -> transaction receipt -> Outliner/Viewport shared projection -> lifecycle/fault/accessibility/scale qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/192-editor-scene-contextual-action-context-menu-target-selection-snapshot-availability-command-routing-extension-transaction-accessibility-performance-product-integration-current-source-review.md`。
+
+## 425. Editor Scene Viewport Layout 当前源码物理范围
+
+| 范围 | 文件 / 行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Editor layout/product | **55 / 10,041 / 401,340 / 36** | split/layout/preset、pane projection、surface/toolbar、render/image与focus/capture；fingerprint `b217d82d15e6c937aeb3a38e60ee53af7b529aba82f66c2d914ed18d078536fa` |
+| Focused tests | **16 / 2,944 / 105,859 / 49** | split/restore、pane、toolbar、image与viewport controller；fingerprint `3d6bbd0519a6bddbaf08998ccb7f5ec9bdad0e10c7741cdf00488718c46e963b` |
+| Unreal selected set | **10 / 2,039 / 77,818 / 0** | layout entity、configuration、maximize、config与2x2；fingerprint `bf48fb3309055fea74ba52f5852616fdcbe68baa2c5091d95f9750f4c2ed7aa1` |
+| Godot selected set | **4 / 12,586 / 500,558 / 0** | 1/2/3/4 viewport、orthogonal camera与menu/persistence；fingerprint `3cf648f003692ca8d20cc1343027e0a9c020b1774308f8040b71c55a15f8bb94` |
+| Fyrox selected set | **8 / 7,407 / 283,136 / 1** | dock config、scene viewer、camera与window settings；fingerprint `33e1759f828ef0bf0cfc28de002de2a45fefd271705eb493e2b481b1f0faab81` |
+| Bevy selected set | **3 / 2,514 / 100,225 / 3** | per-camera viewport rect、resize、target与coordinate conversion；fingerprint `396d12d1f246260767b2aaff13e499ec24882f34e1f5c66438b03fe4f60fea22` |
+| Unity Graphics selected set | **5 / 1,988 / 93,150 / 0** | per-view Scene settings、RTHandle resize/history与tests；fingerprint `eadfe14488eb7bdcff657cfc321c3aca9d7c8e48dece5a6de3f06c2462baa3f2` |
+
+Editor193刷新Editor72 Scene Viewport Layout链。当前通用split tree、per-surface toolbar frame/cache、Scene/Simulate/Game分图像槽、render generation、user/page scoped preset及version fallback、floating/window focus/capture基础均可复用。
+
+产品层仍有两项P0：split snapshot在tab/pane projection中被压成唯一document pane；toolbar route虽携`surface_key`，dispatch却丢弃identity并读写全局settings。Scene/Game仍为single-instance与Null payload，Host继续只有一个controller/size/Scene image；stable slot、layout compiler、per-cell product/focus/input、exact persistence、atomic activation、1/2/3/4、orthographic quadrant、maximize/restore与camera link sync均不存在。Editor72保持唯一canonical owner；48项P1为34 Open/14 Partial，10项P2全Open，48门为36 Fail/12 Partial/0 Pass。目标收敛为`P0 RED guards -> versioned descriptor/stable slot -> per-slot session -> multi-cell projection -> focus/input -> atomic activation -> maximize/sync -> recovery/budget/qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/193-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance-product-integration-current-source-review.md`。
+
+## 426. Editor Scene Viewport Region Selection 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Editor/Runtime Region foundation | **38 / 4,929 / 4,452 / 174,023 / 46** | gesture、selection、query、provider、host effect与Runtime spatial；fingerprint `c8e1a30dd2290af023821c1aea79c26fb7533d3dc5118df7b58b2ebe98ea310b` |
+| Focused tests | **6 / 2,903 / 2,596 / 96,479 / 73** | selection、mode、viewport lifecycle、host pointer与editing；fingerprint `36f4e1a74a413980443087ea24ba0d9f1956586cf62c1467bc81b7882dcd67bc` |
+| Zircon deduplicated focused set | **44 / 7,832 / 7,048 / 270,502 / 119** | 上述两组无重复路径；fingerprint `53ae9676c2ad8eb018f186a0f0070806c7dbc01a178e96a2b838aa1613ea9700` |
+| Unreal selected set | **12 / 2,312 / 1,939 / 78,096 / 0** | legacy/ITF Box、Frustum、Marquee、strict/transparent/provider与transaction；fingerprint `8782f548e716f980628fb4ce0e7db85c422fd719175b7a2285c15fd671a9cf44` |
+| Godot selected set | **6 / 7,049 / 5,908 / 271,225 / 0** | frustum/subgizmo query、3D editor gesture与DynamicBVH；fingerprint `51025dd70d79a81b77a94f3663b48593db3de1b8699867492a32341fc7080df9` |
+| Fyrox selected set | **6 / 3,581 / 3,263 / 130,112 / 0** | selection frame、world bounds、capture和ChangeSelectionCommand；fingerprint `576cc8a73dd9ecb6dd1b07ffe1252d27e16491622c7b75393d30b64588c0595b` |
+| Bevy selected set | **6 / 3,726 / 3,398 / 145,757 / 15** | pointer identity/action、backend hit merge、ray/viewport与cancel lifecycle；fingerprint `2ef1d84a6084c5fb07fe62e3edf653299eafb2e01520bbff56cf4e16cc71dc82` |
+| Unity Graphics selected set | **3 / 4,203 / 3,548 / 192,487 / 0** | SelectionOutline view、include/exclude filter与occlusion-aware culling；fingerprint `d7604e03d4b3d82890ed158e876842d65ae9c7eff71c040ecd8bc6b70c751604` |
+
+Editor194刷新Editor73 Region Selection链。当前press/move/release框选入口、typed Replace/Extend/Toggle、Selection generation/revision、world reset、renderer-visible spatial snapshot、query stats/index及overlay provider owner/capability/quarantine均是真实可复用底座。
+
+产品层仍是release-time helper：active drag不绘制marquee、不发布preview或触发presentation invalidation；session只有两个点与mutation，Region直接同步扫描retained candidates，绕过已经存在的generation-bound spatial product。Window/Crossing/AutoDirection、PresentedPixels/TransparentVolume、Rect/Polygon schema、Scene Mode/subobject provider、typed query receipt、preview/commit parity、atomic selection batch、budget/backpressure/profile/a11y与规模资格均未建立。Editor73保持唯一canonical owner；24项P1为12 Open/12 Partial，10项P2为4 Open/6 Partial，48门为33 Fail/15 Partial/0 Pass。目标收敛为`qualified gesture session -> shape/effective policy -> query planner -> shared spatial/renderer/provider products -> accepted receipt -> preview/highlight -> atomic mutation/terminal receipt`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/194-editor-scene-viewport-region-selection-marquee-box-lasso-preview-query-performance-product-integration-current-source-review.md`。
+
+## 427. Editor Scene Selection Authority 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Selection authority/product foundation | **56 / 10,549 / 9,659 / 368,647 / 45** | model、Play identity、transaction、viewport/mode、binding/event、publication与consumer；fingerprint `85641cbc89d9124f8302bf3dd8cbc477143692c60602ebed883dfda51037fab8` |
+| Focused tests | **17 / 7,418 / 6,715 / 250,817 / 181** | selection、Play、transaction、Hierarchy no-op、message backpressure与automation；fingerprint `c8c2099a77227ddf61c6313c544d1cd01a5eeae2940c0552b90db0664bd5f56c` |
+| Zircon deduplicated focused set | **73 / 17,967 / 16,374 / 619,464 / 226** | 上述两组无重复路径；fingerprint `153a657ebfa713b7226660e28d78053c75bad224a5aa8363fc6f2924afad4a27` |
+| Unreal selected set | **12 / 7,221 / 6,099 / 259,570 / 0** | Typed Element set/interface、legacy batch bridge、actor/component customization与产品操作；fingerprint `c73dbac7963e370c980c209c51dc6a8c28a6b35c46d9030a5969a23e08efc182` |
+| Godot selected set | **4 / 11,814 / 10,049 / 433,342 / 0** | central selection、top roots、lifecycle、history与3D policy；fingerprint `c8945e80e0194168817a59a1fa56500a28888aaaa5141d2079fec22a209b4117` |
+| Fyrox selected set | **5 / 3,031 / 2,722 / 101,588 / 0** | per-scene typed selection、command swap、root normalization与interaction；fingerprint `df17eaa1112d5b184a008f55dfc127fd634bf17620f88f958d086c9125707592` |
+| Bevy selected set | **3 / 3,640 / 3,329 / 150,191 / 14** | generational entity、pointer provenance、hover previous/current复用；fingerprint `8ac1bd375ed2a35975c7468089e0aee65f53645c34bd38ad6f63b37c079ab2ac` |
+| Unity Graphics selected set | **4 / 329 / 257 / 12,257 / 0** | object/selection ID、entity/submesh instance与alpha picking parity；fingerprint `c71908a43ad928153c19027e82d9a279519cf932111b60a157b658cbb2b3c2c2` |
+| 五引擎参考合计 | **28 / 26,035 / 22,456 / 956,948 / 14** | 五组显式路径去重；fingerprint `e56137a2bf9b10384bb8f4b2c5971fb571efcc256b5eebc5856f5348f14e1287` |
+
+Editor195刷新Editor74 Selection Authority链。当前per-Play instance `SelectionModel`与retirement、`SelectionDomain::Scene(WorldDomain)`、conditional selection effects、重复Hierarchy选择no-op regression、Delete survivor/Undo、Arc transaction snapshot、inspection gap/resync和bounded message bus均为真实可复用底座。
+
+产品authority仍未成立：Viewport model与Core transaction snapshot各自可写并通过bind/sync复制，Scene Mode与controller仍暴露裸`&mut SelectionModel`；binding把u64 NodeId用`as_u32()`解码，合法高位ID被拒绝。Delete/Transform各自计算roots，Highlight/Frame、Inspector/Edit-mode与Hierarchy消费不同投影；Subtract/Promote、All/None/Invert/Matching、range、query、named set、navigation history、provider/subobject、request/admission/receipt、policy/lease、diagnostic replay与全链规模资格均缺失。Editor74保持唯一canonical owner；24项P1为12 Open/11 Partial/1 Closed，10项P2为2 Open/6 Partial/2 Closed，48门为32 Fail/15 Partial/1 Pass。唯一Pass仅证明重复Hierarchy选择不制造invalidation。目标收敛为`qualified session/address -> single request/admission authority -> canonical snapshot + atomic receipt -> provider/eligibility -> typed consumer projections -> query/range/named set/history -> bounded observer/qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/195-editor-scene-selection-authority-primary-active-range-filter-named-set-history-document-world-scope-lifecycle-performance-product-integration-current-source-review.md`。
+
+## 428. Editor Animation Timeline 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Animation document/session/event | **47 / 8,378 / 7,807 / 295,768 / 18** | source authority、revision/CAS、transaction、retention、route、dirty/save与trace；fingerprint `4b849275bb5e98051b75625c32fa4de50076a96a2ea4f13d59171ae01dac1462` |
+| Timeline/curve/product/plugin | **36 / 5,212 / 4,785 / 194,961 / 5** | typed foundation、legacy strip/cache/paint、pane/slot、extension descriptors与plugin负证据；fingerprint `47fc97caea04d5f1770ece794a8b069292ec6cfe83834b586987be61a0841189` |
+| Focused tests | **32 / 6,663 / 6,213 / 242,352 / 122** | document history/LKG、session projection、event route、pane slot、cache/paint与plugin helper；fingerprint `2c0385f5ffa5c64b218b8394ce352a2876ce14ce33898af4571dcbfa4a4f6a56` |
+| Zircon deduplicated focused set | **115 / 20,253 / 18,805 / 733,081 / 145** | 上述三组按normalized path去重；fingerprint `cb22b22b1e105d2502584b0988d2d4e28e7c4f205caec805e1864f43e7496ee3` |
+| Unreal selected set | **11 / 5,634 / 4,692 / 204,748 / 0** | Sequencer selection/time slider/cache/clipboard与Curve Editor snap/drag/transaction；fingerprint `0af1f872e9508d0d424a5d69a7b26796a04840ac028a9ec3037107398f0eb936` |
+| Godot selected set | **5 / 14,193 / 11,922 / 524,896 / 0** | track/key/marker editor、Bezier editor与typed track plugin；fingerprint `cd5354dc40d229bd8e74e905504030410bdaa5e07574ad3d71fbc4729168226a` |
+| Fyrox selected set | **6 / 5,593 / 5,159 / 222,209 / 2** | typed animation selection、reversible command、toolbar/track与curve editor；fingerprint `40f3badbff86a495b1e523b25242923dd9cc41419e6725f2837d368446610a10` |
+| Bevy selected set | **4 / 3,825 / 3,476 / 144,942 / 11** | typed runtime curves/evaluator、graph、transition与player scheduling；fingerprint `d3cabb357ddf0bed113be3426d94e7ffed1749d76601e34f25a82c4df0d948ed` |
+| Unity Graphics selected set | **4 / 2,677 / 2,275 / 107,582 / 0** | embedded curve selection/picking/serialization、TextureCurve与clip migration；fingerprint `f0aa6f2d9242c80d88f5c256393ba1c93b8c2089f327f32e0c6558d22d971857` |
+| 五引擎参考合计 | **30 / 31,922 / 27,524 / 1,204,377 / 13** | 五组显式路径去重；fingerprint `08506c8fe7e523e484e469b1720abae069eb722039d94227b2df566e190f813c` |
+
+Editor196刷新Editor75 Animation Timeline链。当前builtin animation toolkit route、`AnimationAuthoringDocumentStore`、monotonic revision/CAS、document history/Undo、last-known-good compilation及per-view Sequence transient state均为真实底座；旧transient scrub/range/selection/playback污染document dirty的问题已关闭。
+
+产品Timeline仍未成立：`ui::timeline`、`ui::curve`和session foundation没有production model/controller/consumer，Sequence ZUI仍是header加空slot，pane payload仍为字符串。Sequence event继续按执行时focus寻址；Scrub使用进程全局latest-state key，其余view state误入DurableReplay。每次持久edit会clone/swap整资产并在document write lock内同步全量compile，高频Animation event又无条件发布全局Presentation/Reflection effect。legacy TimelineStrip虽补上single-flight和width tick budget，仍使用未经验证的64-bit digest全局cache，并全key逐scanline quad绘制。Editor75保持唯一canonical owner；15项P1为7 Open/7 Partial/1 Closed，6项P2为4 Open/2 Partial，48门为27 Fail/19 Partial/2 Pass。目标收敛为`qualified session/event -> stable element identity + rational time -> delta transaction/incremental compile -> immutable paged projection -> Timeline/Curve controller -> runtime preview -> virtualization/LOD/batch/cache qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/196-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization-product-integration-current-source-review.md`。
+
+## 429. Editor Animation Graph / State Machine 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Editor authoring/product | **50 / 8,188 / 7,680 / 295,119 / 26** | document/session、event/binding、locator、transaction、save、pane/slot与capability；fingerprint `e3b9cf28289a460109451c32e2788a2faa5bcbc77d115a316cf072d46d3eacfd` |
+| Schema/compiler/editor plugin | **35 / 7,712 / 7,028 / 258,418 / 34** | asset/binary/reference、shared compiler/schema及Editor插件第二compiler/palette；fingerprint `d48e67cf289db70432467da138b76c3f315eae34948bb77222e8c68c0cd8a9c8` |
+| Runtime compiler/evaluator | **176 / 18,217 / 16,633 / 624,900 / 78** | 双manager、compiled graph/state/layer/blend/nested、cache、pose/event与diagnostic；fingerprint `1626b517efec48227991a49b74024bfb11903a302c255432e210225341910f99` |
+| Focused tests | **41 / 10,226 / 9,510 / 373,877 / 171** | document LKG/history、event route、product slot、shared/runtime compiler与runtime integration；fingerprint `8921ae3f43576f1c7f5d103b7d61cf634a815d2234c25e2c5fb7af4ef78edc19` |
+| Zircon deduplicated focused set | **301 / 44,129 / 40,658 / 1,544,831 / 307** | 上述四组按normalized path去重；fingerprint `f3cddd3ab11a77a6fdd54cb99c2338d85f2d5b575946202d67122a80e85901a0` |
+| Unreal selected set | **7 / 6,576 / 5,581 / 261,709 / 0** | compiler/schema/validation/debug map与runtime transition state；fingerprint `709865614bd17ec62edee6fa39794325791cb85e036f67561550b30b23eeb0e6` |
+| Godot selected set | **6 / 8,665 / 7,226 / 337,039 / 0** | state machine/blend tree/blend space runtime资源与真实Editor；fingerprint `a1579e8950c88b4b3cb7ad23bbc105bee4464dfa8299f4ec079c1d2ba3690231` |
+| Fyrox selected set | **29 / 11,484 / 10,412 / 427,278 / 11** | ABSM typed machine/parameter/logic/layer/node与command/editor surface；fingerprint `aa63a08d1462296ab050ef4d93d00a648717daa007d3268423e1633f35d1e2c9` |
+| Bevy selected set | **3 / 2,979 / 2,692 / 113,433 / 9** | petgraph asset、threaded graph、player与transition边界；fingerprint `f8835c768eb054f0c2d1d8fbebd4c80e93c23a365f579e02cb636246bec9ee1a` |
+| Unity Graphics selected set | **5 / 6,777 / 5,754 / 278,044 / 0** | graph GUID/delta/Undo/validation、migration/compiler/error architecture；fingerprint `2c0a644e17a12a7a7b96fdbb97c024df1b96a8f3f4f5e277f1f3afa3e3304049` |
+| 五引擎参考合计 | **50 / 36,481 / 31,665 / 1,417,503 / 20** | 五组显式路径去重；fingerprint `df8c4ae641ee464064336d930ecf21a7477139bbb09acdbde8683dc39461fd23` |
+
+Editor197刷新Editor76 Animation Graph/State Machine链。Runtime shared compiler、typed dense Graph/State IR、stable diagnostic、全图非递归cycle/unreachable分析、plugin runtime lowering、Editor authoritative document/revision/CAS/history及current/LKG compilation均是当前真实进展；旧固定Add Node、无共享compiler/transaction、只检查Output可达环等描述已被纠正。
+
+两项P0仍未关闭：locator parse/miss会回退执行时focused同kind文档；内置Runtime与Animation Runtime插件继续以相同module/manager stable name注册两个不同`DefaultAnimationManager`类型。产品仍只有header+空Canvas slot和字符串payload，palette/capability/mutator/asset schema未统一，Editor插件继续保留第二compiler，runtime graph/state compile/load失败仍大量经`.ok()?`静默丢失，frame cache缺artifact revision，typed parameter source、condition AST、transition identity/priority、layer/nested/sync、preview/debug及规模资格均未闭环。Editor76保持唯一canonical owner；2项P0均Open，20项P1为10 Open/10 Partial，8项P2为4 Open/4 Partial，48门为29 Fail/19 Partial/0 Pass。目标收敛为`qualified fail-close target -> single runtime/compiler authority -> stable schema IDs -> typed delta authoring + real canvas -> revisioned compile/save/install/LKG -> shared preview/runtime debug -> advanced state semantics -> performance/fault/cross-engine qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/197-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence-product-integration-current-source-review.md`。
+
+## 430. Editor Animation Sequence / Clip 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Schema/compiler/import | **33 / 6,849 / 6,261 / 229,022 / 27** | asset/binary/timeline/event、shared compiler与glTF animation ingest；fingerprint `5141fbabd0e2c203d2b4ff72fb0ca45c2694086d08dc447910ad70e54f9bf0a3` |
+| Runtime evaluation | **44 / 6,516 / 6,002 / 232,526 / 32** | Sequence world binding/sample、Clip evaluator/cache、event与pipeline；fingerprint `cbe2b05573dbe2be503bb00c5e6fd72fa9bed1e3fa64dc99f7f8eec6f59473cd` |
+| Editor authoring/product | **40 / 5,251 / 4,919 / 191,794 / 15** | document/revision/CAS/LKG、mutation/session、pane/slot与save；fingerprint `72f773f3fd9cab07306bee56f294d3b5476e03529d4e7df9a9f629db5d347df3` |
+| Focused tests | **42 / 9,878 / 9,124 / 363,457 / 169** | compiler、Sequence、event、glTF、runtime plugin与Editor contract；fingerprint `8acf16408fac4d029c064fab57280e3b845bdceb50824ecc0160734eadc9ad16` |
+| Zircon deduplicated focused set | **154 / 27,034 / 24,961 / 963,277 / 222** | 上述四组按normalized path去重；fingerprint `e8b5b44c88062e925e07b15caef05f90602fb96745b5170213689617ece09323` |
+| Unreal selected set | **10 / 14,211 / 11,948 / 526,528 / 0** | data model、sequence/compression、notify/sync/montage/root motion；fingerprint `53aedd73c674eef9c1ac2d652f68d777b0c6619584cc076bd8a63ff11b0e67ca` |
+| Godot selected set | **8 / 24,932 / 21,174 / 911,878 / 0** | typed tracks、mixer/player、track/Bezier Editor；fingerprint `f8e4bf1f872752919d21ad8d6c14d7a419cfb167678e42e61cbf616e479b9611` |
+| Fyrox selected set | **5 / 2,380 / 2,158 / 88,554 / 0** | UUID track/signal、reverse、root motion与Editor inspector；fingerprint `19e61c80aab11aefc93bd6780f2aaa8d130d1a4737224b3a072566680adc0511` |
+| Bevy selected set | **4 / 2,861 / 2,595 / 106,085 / 11** | typed curve/evaluator、event traversal与glTF loader；fingerprint `f0539d8a87f7f037c0d85d4d2c09df56d7154b351ce46b63c2db77f8a00e258a` |
+| Unity Graphics selected set | **4 / 154 / 132 / 5,575 / 0** | curve bake/sample、typed slot与binding conversion；fingerprint `521293c58ede460374bb4bfeb6009b7f712eac80f3bb3bbf6f8fc590a543e7e2` |
+| Five-engine reference total | **31 / 44,538 / 38,007 / 1,638,620 / 11** | 五组显式路径去重；fingerprint `8caecf8bf258d7035e0aa7cdc75e063682384843d0f99b216a882834219bee69` |
+
+Editor198刷新Editor77 Animation Sequence/Clip链。当前shared Sequence compiler的strict source diagnostics、自包含key/value/tangent IR、Editor current/LKG compilation、Clip target/revision cache、pose pool和bounded event admission均为真实可复用底座；旧“没有shared compiler”“event无预算且每批全量线性选择”“compiled artifact必然只含source index”等结论已被部分纠正。
+
+但shared IR尚未进入实际world-bound runtime artifact；后者仍保存binding/track index并回查外部source。内置Sequence、插件channel sampler和Clip evaluator三套kernel固化错误Step exact-key行为，Quaternion Hermite忽略tangent，Clip compiler不覆盖duration/key range/event schema，reverse/seek/direction flip、stable EventId/generation cursor、single delivery、terminal state、property claim/arbitration、compression/cook/DDC、root motion、sync marker及runtime-backed Editor preview均缺失。Editor77保持唯一canonical owner；13项P1为8 Open/5 Partial，6项P2为4 Open/2 Partial，48门为40 Fail/8 Partial/0 Pass。目标收敛为`stable versioned source -> one semantic compiler/kernel -> self-contained prepared artifacts -> typed traversal/event -> atomic playback transaction -> compression/root-motion/sync -> runtime-backed Editor product -> fault/performance/cross-engine qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/198-editor-animation-sequence-clip-channel-binding-interpolation-compression-event-root-motion-sync-preview-compiler-product-integration-current-source-review.md`。
+
+## 431. Editor Control Rig 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes | 本轮证据 |
+|---|---:|---|
+| Editor/product | **9 / 5,067 / 4,919 / 230,813** | 固定ZUI、binding、route、feedback与静态action测试；fingerprint `0cf90da14730cdac72deddd505d40f6217a7da2533bd93bb2239a97f3514eb64` |
+| Runtime/IK boundary | **12 / 1,612 / 1,471 / 56,221** | skeletal status、两个纯值IK Job、pipeline/publish边界；fingerprint `dc90374a690ea70e969541185c27794bba2a5aa46bc835bf859ecd8bca760286` |
+| Focused tests | **2 / 183 / 160 / 6,598** | 三个IK数学测试与skeletal runtime status测试；fingerprint `8adc650097216866de6665e4e6c9a66c81df7fcc0410da801e7ce69ca165a8a6` |
+| Zircon deduplicated focused set | **23 / 6,862 / 6,550 / 293,632** | 上述三组按normalized path去重；fingerprint `a651f90802eb5bf3e4cda9ddc0214e84b812eb9ecb43ff2ff1db8327a92a60eb` |
+| Unreal selected set | **17 / 26,280 / 22,693 / 992,887** | ControlRig host/hierarchy/phase、RigVM/compiler、Editor/Sequencer/bake；fingerprint `b4b75d54d5c5b68ffdd31fa74fab77acedf875d0bc03a1f6e14422df9ca9ab05` |
+| Godot selected set | **26 / 9,916 / 8,456 / 392,691** | skeleton modifier/cache、IK/constraint family与Editor UndoRedo；fingerprint `fbce9f6ae05849256e601d117fce814c637f234cc1bd710469195ce266cfd990` |
+| Fyrox selected set | **3 / 770 / 692 / 30,487** | typed pose ownership、blend/root motion与machine边界；fingerprint `294bd20690fde6a3168df3c029f57ebbd63ecc7db87942db7b4ba4b415df79fd` |
+| Bevy selected set | **2 / 1,018 / 931 / 41,097** | serialized graph asset与prepared traversal；fingerprint `f0d6092cf979af8f4ab08466340cf4c2d18cb912c6c092e56983db99a38303e1` |
+| Unity Graphics selected set | **4 / 462 / 414 / 21,159** | skin matrix/deformed stream consumer边界；fingerprint `f087df51937d0fb6a582d70655f297e60c15d36fecffda8b84d08132b7726bde` |
+| Five-engine reference total | **52 / 38,446 / 33,186 / 1,478,321** | 五组显式路径去重；fingerprint `7a209677ff73fef96d84f86ecc72a669193ca9c239213b0c934cddb2f7a03f5b` |
+
+Editor199刷新Editor78 Control Rig链。当前Editor仍是固定`CR_Hero/Spine_CTRL/Hand_IK_L/64 controls/18 constraints/1 warning`、通用action route与queued反馈；control/space/weight edit/commit没有document mutation、transaction、compile、runtime request或receipt。旧framework IK command、manager queue、plugin postprocess/execution diagnostic及integration test已在当前工作树删除，共6文件/1081行；TwoBone/LookAt只剩无production caller的纯值数学Job。
+
+shared Animation compiler没有Control Rig product，`AnimationRigRuntimeStatus`也只是无production producer的skeletal pose/GPU status DTO。Control Rig source/hierarchy/control/space/constraint、Rig Unit graph/phase、compiled program、instance/input snapshot、atomic solve/publish、source-qualified diagnostics、viewport manipulation、backwards solve和Sequence bake均缺失。Editor78保持唯一canonical owner；14项P1为11 Open/3 Partial，5项P2为4 Open/1 Partial，48门为46 Fail/2 Partial/0 Pass。目标收敛为`honest capability -> stable source/hierarchy -> space/constraint transaction -> unique Rig compiler/program -> atomic runtime -> runtime-backed preview/manipulation -> backwards solve/bake -> scale/fault/profile qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/199-editor-control-rig-rig-graph-hierarchy-controls-spaces-constraints-ik-solve-bake-preview-compiler-product-integration-current-source-review.md`。
+
+## 432. Editor Motion Matching / Pose Search 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/product | **12 / 5,956 / 5,688 / 281,614** | 固定ZUI、binding、route、feedback与静态action inventory；fingerprint `3a178e2ccd0112fbeb61879c139615670614ed2c743601d3facd7e40163f5da2` |
+| Zircon shared prerequisite foundation | **14 / 3,395 / 3,064 / 115,042** | 通用jobs、shared compiler、compiled graph与pose snapshot；fingerprint `55f4bc07655fd35f2e99ad447165bc8d88b60e2c4270e8d1cbc5610bcde1fb66` |
+| Zircon deduplicated focused set | **26 / 9,351 / 8,752 / 396,656** | 上述两组按normalized path去重；fingerprint `1dd8e2619aafa27eb17e8b5e4ae1b27200ccb667f9526da897b6e6d943b9a3e4` |
+| Unreal selected set | **30 / 21,271 / 18,004 / 852,509** | Schema/channel/database/index/history/build/search/node/trace/editor/debugger；fingerprint `74de5732d958f497983247069490a003243c479ce9abf61bec8784a91a526925` |
+| Godot selected set | **4 / 4,868 / 4,159 / 181,576** | AnimationTree与Mixer/root-motion边界；fingerprint `8a4732682e2b1ccc891a43caf1e013c72444b6a0a517c23e6dfbf2af24a1f66b` |
+| Fyrox selected set | **5 / 1,828 / 1,633 / 67,123** | typed pose/machine与reversible ABSM command；fingerprint `1b2c8ba330ad2ef0e05e41aaf0a5a7e0acd8b4d5402a2f96a86ea0298f611dab` |
+| Bevy selected set | **3 / 2,979 / 2,692 / 113,433** | serialized/prepared graph、player与transition；fingerprint `f8835c768eb054f0c2d1d8fbebd4c80e93c23a365f579e02cb636246bec9ee1a` |
+| Unity Graphics selected set | **4 / 458 / 414 / 21,159** | deformation/skinning与VFX consumer；fingerprint `f087df51937d0fb6a582d70655f297e60c15d36fecffda8b84d08132b7726bde` |
+| Five-engine reference total | **46 / 31,404 / 26,902 / 1,235,800** | frontmatter显式路径去重；fingerprint `7960a11b4bf9a03eedf6a0cab6d992455f5593da91db22f2b8fc809d5775eaf1` |
+
+Editor200刷新Editor79 Motion Matching/Pose Search链。当前专用workspace继续把`MM_Locomotion/MM_Combat/MM_Traversal`、pose/cost、`184 clips/1 warning`、trajectory options与Cost Bias写死；Preview/Rebuild/field edit/commit只经过通用selection/dropdown/feedback，没有asset、document、transaction、build、query或receipt。tracked production领域词检索为0，另扫描1,505个未跟踪Rust/ZUI文件亦为0；shared Animation compiler只有Sequence/Graph/StateMachine，compiled graph只有Clip/Blend/Additive/Mask。
+
+唯一正向校正是通用`EditorJobSystem`已有estimated byte/pending age、admission key、keyed merge、batch reservation、cooperative cancel、progress、bounded journal与deadline shutdown，故Pose Search Rebuild的任务承载底座标为Partial；但没有`PoseSearchBuildJob`、dependency build key、prepared artifact、LKG/CAS publication、cook/install，且Editor131的quiescent shutdown仍Open。Editor79保持唯一canonical owner；15项P1为14 Open/1 Partial，5项P2全Open，48门为47 Fail/1 Partial/0 Pass。目标收敛为`honest capability -> stable source/schema -> deterministic offline compiler -> generation-safe build/artifact -> qualified history/query -> bounded exact search/receipt -> single Animation runtime playback -> runtime-backed Editor/debugger -> scale/fault/profile qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/200-editor-motion-matching-pose-search-database-feature-schema-trajectory-query-runtime-selection-preview-debugger-product-integration-current-source-review.md`。
+
+## 433. Editor Animation Montage 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/product | **11 / 5,303 / 5,086 / 255,909** | 固定ZUI、binding、route、feedback与静态action inventory；fingerprint `393548fb082c827bfcf2203f4612ec8917b6f482ce39413be9cc12ed08c63c34` |
+| Zircon shared prerequisite foundation | **17 / 3,765 / 3,443 / 136,809** | source schema、LKG、jobs、event budget、Trigger evaluation/commit与integration tests；fingerprint `7b3f557ea42a7c5ef3d09541a033a122af4088ee2886504c8844b4cf3c6b6089` |
+| Zircon deduplicated focused set | **28 / 9,068 / 8,529 / 392,718** | 上述两组按normalized path去重；fingerprint `173d74e4536f6e21d3af8c05650bf76e9961c2923ff99e8f0c77857ba9da4ba6` |
+| Unreal selected set | **16 / 15,925 / 13,374 / 608,443** | Segment/Section/Slot/Montage instance、sub-step、sync、ability、replication与Editor transaction；fingerprint `276be7b3a0d450981c5bb87e3e534760e9fd13d86377c0441b17ac931e4b7995` |
+| Godot selected set | **6 / 6,929 / 5,830 / 261,884** | one-shot、section/marker正反播放、queue/blend/seek与root-motion consumer；fingerprint `a783e9b7c86c6b720f92161e7b70b8a64b58bb93d1552d747779212432bbdeb7` |
+| Fyrox selected set | **5 / 1,391 / 1,244 / 53,942** | signal、layer/mask、active transition、event provenance与play node；fingerprint `e2ad696ed9a9a00ed9731a972d379287cb8734afb11b590e42ca1cdae0ee7aba` |
+| Bevy selected set | **3 / 2,087 / 1,877 / 78,138** | typed player、transition set与animation event traversal；fingerprint `381d9e91000eb8161ebef1c65bbf221f6b061d5992638e294015c2de89d203ee` |
+| Unity Graphics selected set | **4 / 835 / 720 / 34,510** | current/previous deformation、skinning、VAT与motion-vector consumer；fingerprint `66b3099de28325ae88d8812aa69ff2311c97e1b0f63df99295f28873b02028a0` |
+| Five-engine reference total | **34 / 27,167 / 23,045 / 1,036,917** | 五组显式路径去重；fingerprint `b515c56e87ace909dec50017ce694a2e3208abd608b62f2a987287b299badf45` |
+
+Editor201刷新Editor80 Animation Montage链。当前233行专用workspace继续固定`AM_DashAttack/AM_Combo_01/AM_Evade`、Intro/Combo Branch/HitPause、`Slot UpperBody`、`2.8m forward`与`4 sections/3 notifies`；20个action只做selection、dropdown与固定feedback，没有asset mutation、transaction、compile job、runtime request或receipt。tracked runtime/compiler专用语义为0，另扫描2,115个未跟踪Rust/ZUI文件亦为0；shared Animation source/product只有Sequence/Graph/StateMachine。
+
+三项正向校正仅属于共享前置：Animation document已有revision/CAS/current/LKG，Clip Event已有event/byte/span预算、cursor、backpressure与replacement epoch，state-machine Trigger在缺pose或event admission deferred时保留并重试。它们不能表达Section/Slot/Segment/Notify State/Branching Point、action stack、root motion、sync、Gameplay lifecycle或统一frame receipt。Editor80保持唯一canonical owner；18项P1为15 Open/3 Partial，5项P2全Open，48门为46 Fail/2 Partial/0 Pass。目标收敛为`honest capability -> stable Montage source -> canonical compiler/prepared action -> generation-safe job/LKG/cook -> action instance/stack -> bounded sub-step + atomic receipt -> gameplay/network -> runtime-backed Editor/preview/debugger -> fault/scale/cross-engine qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/201-editor-animation-montage-section-slot-segment-notify-branching-point-sync-root-motion-runtime-playback-preview-product-integration-current-source-review.md`。
+
+## 434. Editor Animation Pose Library 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/product | **11 / 5,303 / 5,086 / 255,580** | 固定ZUI、binding、route、feedback与静态action inventory；fingerprint `adc086cf07fffd57508f17e6eb236e8718ab8e92ee0115e43065f809c92a2977` |
+| Zircon shared prerequisite foundation | **35 / 6,996 / 6,432 / 251,178** | source/import/compiler、document/CAS/LKG/jobs、dense pose evaluator、snapshot与consumers；fingerprint `c06e59fbee667824f90e2ed6f947c0f6931c808770046410864488e472ca5190` |
+| Focused tests | **5 / 932 / 845 / 31,056** | pose buffer、allocation、target table、scene target resolution与Animation document；fingerprint `156e765af3edd3321d071a00032d741e1f9e664e3529e33327214c36976e9f9d` |
+| Zircon deduplicated focused set | **51 / 13,231 / 12,363 / 537,814** | 上述三组按normalized path去重；fingerprint `73381823e065885b44cb3adaba10eb854d6f7016b9a1253dc549cccf29864ebb` |
+| Unreal selected set | **8 / 4,771 / 3,949 / 153,445** | PoseAsset source/sparse influence/additive/base、PoseByName/PoseBlend与Persona/factory transaction；fingerprint `bfca4b015e22440be6c6d0cada8b046d7900159f8affdcea2322ce595e606f29` |
+| Godot selected set | **5 / 8,843 / 7,508 / 313,416** | observable AnimationLibrary lifecycle、rename/remove repair、blend-shape与blend-tree tests；fingerprint `702f47e1528746385b287780d863fb4c8d6e41ac8e7e1a08ac07f6a77c54b7c2` |
+| Fyrox selected set | **3 / 1,119 / 963 / 40,371** | reusable pose output/reset/clone_into、blend weight与event policy；fingerprint `14f075ed966fd2124e20d0e8453eed20cfcee099f3a3bb055a3be58e59259db5` |
+| Bevy selected set | **3 / 2,027 / 1,857 / 77,603** | prepared graph、typed evaluator stack/register/commit与variable-width morph weights；fingerprint `799f6e3746cdfd356f11ae54321405821102548dbe3ba6bcfd462746057dea58` |
+| Unity Graphics selected set | **2 / 359 / 325 / 17,789** | stable skin target与current/previous compute deformation consumer；fingerprint `73536e0ff89f1553836962e2a2d73fcf985e7a6f14e62fb82d4167257308345c` |
+| Five-engine reference total | **21 / 17,119 / 14,602 / 602,624** | 五组显式路径去重；fingerprint `6b1b7cc60d30718225bed0f9e0c1ea46c9ac3201be6c4101eec78cbc04f133cb` |
+
+Editor202刷新Editor81 Animation Pose Library链。当前233行workspace继续固定`PL_Combat/PL_Locomotion/PL_Emotes`、`42 poses/6 tags`、`Idle Ready/Aim Offset/Crouch Cover/Mirror Candidate`、`Combat.Ready`与`LeftRight`；20个action只做workspace/tab/row选择、dropdown或固定feedback，Preview/Apply仅返回`queued`，字段commit不产生typed value、asset mutation、transaction、compile job、runtime request或receipt。tracked runtime/compiler精确领域类型为0，另扫描2,265个未跟踪Rust/ZUI文件仍为0；builtin Animation source/compiler只覆盖Skeleton/Clip/Sequence/Graph/StateMachine。
+
+八项正向校正仅属于共享前置：generic Animation document已有revision/CAS/current/LKG与job substrate；dense `SkeletonTargetTable`、SoA `PoseBuffer`、`PosePool`、typed Clip errors、quaternion shortest-path与Arc frame snapshot均可复用。但`AnimationPoseOutput`仍是含骨名`String`的AoS `Vec`，最终sample与scene target每帧分配/复制名称；scene apply按名字first-wins、静默跳过missing并吞掉transform write error；graph base、graph additive与PoseBuffer的weight/negative/overdrive policy分裂；两套legacy manager sampler仍与compiled evaluator并存，glTF morph weights仍被bone-track importer拒绝。Editor81保持唯一canonical owner；18项P1为10 Open/8 Partial，5项P2全Open，48门为43 Fail/5 Partial/0 Pass。目标收敛为`versioned source -> canonical compiler -> immutable sparse artifact -> qualified handle -> single dense evaluator -> atomic receipt/snapshot -> runtime-backed Editor/PreviewWorld -> import/fault/scale qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/202-editor-animation-pose-library-pose-asset-pose-name-curve-weight-additive-base-runtime-evaluation-preview-product-integration-current-source-review.md`。
+
+## 435. Editor Animation Blend Space 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes | 本轮证据 |
+|---|---:|---|
+| Zircon deduplicated focused set | **71 / 17,855 / 16,689 / 708,781** | Workbench/route、generic document、shared schema/compiler、Animation plugin prepared/runtime/pipeline与focused tests；fingerprint `7d23e61ad103c17fdda235720156548bdba800419853a7a2baeb431224d8c061` |
+| Unreal selected set | **8 / 9,713 / 8,324 / 380,098** | 独立asset、axis/sample、prepared topology、player instance、Persona transaction与analysis；fingerprint `f81528b326e8cecd8991c6ed9b0234a29aebb69b0b6d40fa8c630b6ac406e02a` |
+| Godot selected set | **6 / 4,600 / 3,839 / 178,678** | 1D/2D point/triangle、blend/sync mode与UndoRedo Editor；fingerprint `a6220c7a57dc8eb4a76b5ae268cdfbcee29dcd6aac809cdef5f65166039c6e7e` |
+| Fyrox selected set | **1 / 538 / 448 / 17,295** | Rust pose node、三点权重与event collection policy；fingerprint `7545875d748a9e2e0a1959dd5f4284e50d7bb75d4b31019edfd9ea26c9b98150` |
+| Bevy selected set | **4 / 3,041 / 2,750 / 116,334** | serialized/prepared graph、mask/weight、event与transition lifecycle；fingerprint `a762231416f88516e251f6b75cb7c3ea664c4f80a2fda24a98c4cba84d6925c3` |
+| Unity Graphics selected set | **3 / 2,728 / 2,249 / 132,901** | GPU resident instance/deformation currentness与Editor test边界；fingerprint `e3054c02dbc9ba7e04c1582206b01da99d95ef5789b060af503784832519c247` |
+| Five-engine reference total | **22 / 20,620 / 17,610 / 825,306** | 五组显式路径去重；fingerprint `e22e4ebc65546fe0595e75daa08e445af9584d5ca7b80cef773b905a862bbf72` |
+
+Editor203刷新Editor82 Animation Blend Space链。旧报告关于2D O(n^4)全三元组枚举、逐帧`BTreeMap` hull和production每帧必然按名字投影参数的描述已被当前源码部分或完全纠正：shared compiler现有dense Scalar/Vec2 slot与typed diagnostics，runtime通过Spade stable Delaunay预编译triangle/adjacency/hull，per-instance triangle hint邻接游走和revision/layout parameter cache均为真实底座。
+
+产品闭环仍未成立：source只是StateKind内联`parameter + position + graph`，没有ResourceKind、stable axis/sample identity、完整playback/filter/sync/output policy、BuildSet/cook、qualified handle或atomic receipt；Animation Editor standalone target指向缺失ZUI，Graph palette又没有对应asset variant。422行Workbench继续固定3个资产名、8个sample、互相矛盾的axis/range、Run_Fwd权重、3秒时间线和queued feedback。Editor82保持唯一canonical owner；20项P1为7 Open/12 Partial/1 Closed，5项P2全Open，48门为30 Fail/18 Partial/0 Pass。目标收敛为`versioned source -> deterministic prepared artifact -> qualified handle -> per-instance filter/phase -> atomic animation receipt -> runtime-backed Editor/PreviewWorld -> fault/scale/profile qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/203-editor-animation-blend-space-axis-sample-triangulation-interpolation-filter-per-bone-additive-sync-runtime-evaluation-preview-product-integration-current-source-review.md`。
+
+## 436. Editor Project Operations 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/App/Runtime selected union | **221 / 35,405 / 33,025 / 1,331,235 / 222** | 五张production workspace、索引/route/binding/feedback、真实Project/Asset/Build/Plugin/Automation及tests；fingerprint `6186540f5dd4d39930f8b996ebdcbec409df276e7ff18cf561e13a912dc38105` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics reference set | **28 / 13,483 / 11,652 / 473,967 / n/a** | provider/state/operation/changelist/preflight、VCS UX、source watcher、build job与artifact evidence；fingerprint `2bd863958b76a1d697029ec7e53be63bf87eb481e2d075968dcf67427779e947` |
+
+Editor204刷新Editor27/85/101 Project Operations链。五张`production` workspace仍被总索引和Assets入口收录，Source Control在显示2 conflicts时仍返回`Submit queued`，Automation与Project Overview继续用固定worker/test/flake/coverage/health/build事实和control-local字段编辑冒充authority；八个核心产品合同类型在tracked及untracked production源码中均为0。
+
+真实底座新增或强化了Build Export projection cache、overlay generation、terminal session skip、容量测试，Plugin Manager Arc status snapshot、projection cache、debug native artifact watcher，以及Asset Workspace增量投影。这些变化分别属于Editor15/12/04等owner，不产生repository/workspace revision、ValidationSet、ProjectOperationsSnapshot、SubmissionCandidate或AdmissionReceipt。Editor27保持唯一canonical owner；5项P0全Open，60项P1为55 Open/5 Partial，12项P2全Open，总计72 Open/5 Partial/0 Closed；32门为30 Fail/1 Partial/1 Pass。目标收敛为`truthful unavailable -> provider SPI -> typed workspace/diff -> immutable validation/build receipts -> versioned operations snapshot -> frozen candidate -> pure admission -> race-safe submit receipt -> hard-cut fake workspaces -> fault/scale/security qualification`。本轮只修改review与索引，没有运行Cargo、Editor、真实repository/provider/worker/artifact/release矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/204-editor-project-operations-source-control-provider-workspace-changelist-diff-automation-validation-submission-gate-health-dashboard-product-integration-current-source-review.md`。
+
+## 437. Editor Spawn Rules / World State 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor Gameplay product surface | **9 / 2,952 / 2,739 / 158,965 / 0 / 0** | 两张production Workspace、总索引/Assets入口、binding/navigation/fixed feedback与field edit；fingerprint `3aefbe9727550b1b2e90a911d988f53f44b5009eb93458bf00fcbe97e16b96cf` |
+| Zircon DynamicScene spawn/reload substrate | **30 / 6,836 / 6,226 / 241,386 / 39 / 4** | remap、transaction、preflight、reload queue/result预算与TaskGraph cancel；fingerprint `d7939a7eb58e8b0cd77fe44d4482ce1dba39b144c05942af1489104d4eb33cdf` |
+| Zircon Script gameplay host | **16 / 2,900 / 2,750 / 106,641 / 15 / 0** | capability、raw entity、direct mutable World spawn/despawn与tests；fingerprint `57b16b36181f4f13629d26f971ace676e9e0f9b3596e8017d09531857c603cee` |
+| Zircon generic Runtime state contrast | **14 / 929 / 808 / 28,536 / 2 / 0** | TypeId registry、NextState、hook与latest-only transition；fingerprint `41738b127c1165d20a69de11bc8df70ede6091bfed53f054b08d0828056f8fd7` |
+| Zircon selected union | **69 / 13,617 / 12,523 / 535,528 / 56 / 4** | 上述集合按normalized path去重；fingerprint `a4052e6b6096afa15f8c64ee125083547753013add06d1f57f636499bd089b93` |
+| Five-engine reference set | **22 / 11,820 / 9,842 / 499,904 / n/a** | Unreal owner/authority/batch/DataLayer、Godot tracked multiplayer spawn、current Bevy direct Scene apply/typed state、Fyrox provenance/undo、Unity VFX compiled state/tests；fingerprint `bf7859e385fe269b1b6605e28220ac8ef49ce42637015641b5fc879cca7e627a` |
+
+Editor205刷新Editor28/86/102/149 Spawn Rules、Encounter/Population、World State、Scenario、Quest与Authority链。两张233行production Workspace仍各含27 nodes、19 routes与20条binding，继续固定`SpawnRules_Enemy/18 rules/12 zones/96 spawns/Seed 2026`、`Scenario_NightRaid/84 keys/6 layers/42 events/Authority Server`和queued feedback。tracked production以及2,293个未跟踪生产Rust/ZUI/配置文件的14个目标合同类型全部为0；宽语义命中也只来自Editor fixture、ECS普通world state措辞和无关测试。
+
+Editor149之后，Script spawn开始传播底层创建/写入错误，generic state machine改为只保存latest transition，DynamicScene新增EntityId successor cache、hash validation、reload result-size cache、report capacity reuse、bytes诊断与TaskGraph scope cancel。这些只增强P1-18/19/22/23/26/51/58/59的共享底座，仍没有stable SpawnInstance、owner lease、whole-instance lifecycle、World State transaction/journal或terminal receipt。参考复核同时纠正旧结论：当前vendored Bevy `bevy_scene`已无`SceneSpawner/InstanceId/instance_is_ready/despawn_instance`，只保留直接World apply与schedule wrapper，不能继续引用旧API证明stable instance lifecycle。Editor28保持唯一canonical owner；5项P0全Open，60项P1为52 Open/8 Partial/0 Closed，12项P2全Open，32门全部Fail。目标链保持`truthful unavailable -> stable source/schema -> shared compiler/artifact -> Spawn authority/instance receipt + World State transaction/journal -> runtime-backed Editor/simulation -> network/save/partition adapters -> fault/scale/cross-engine qualification`。本轮只修改review与索引，没有运行Cargo、Editor或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/205-editor-spawn-rules-encounter-population-world-state-scenario-quest-authority-current-source-review.md`。
+
+## 438. Editor Input Action / Mapping / Rebinding 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime Input | **66 / 8,494 / 7,559 / 286,663 / 90 / 12** | raw state、Action string schema、evaluator generation/workspace/index、record/replay与camera controller；fingerprint `7497bca16a856eff0739291151bf9ffd61d52a10bfbeb95e3b5e93a4021179d9` |
+| Zircon Dynamic/App/Script/Manifest integration | **10 / 2,738 / 2,555 / 111,576 / 14 / 0** | module装配、dynamic event routing、raw gameplay facade、manifest/resource marker；fingerprint `f120f94cb81525a180589ec74815aaa51c13ad90ac09222b57a441342eb4cd37` |
+| Zircon Editor authoring primitive | **31 / 6,937 / 6,247 / 230,755 / 56 / 8** | asset/dirty/toolkit/keymap primitives及first-party catalog；fingerprint `754eca327fbaf272c28d56153ae0704dec11e6fa7994af397c4de2a85e2d39bd` |
+| Zircon selected union | **107 / 18,169 / 16,361 / 628,994 / 160 / 20** | 上述集合按normalized path去重；fingerprint `8d08c078d624445e6b5d56a01af9e8238310cef1765f7924ba9cca4d153ef757` |
+| Five-engine reference set | **23 / 12,911 / 11,558 / 502,917 / 50 markers / 0** | Unreal Enhanced Input、Godot InputMap、Bevy/Fyrox raw input与Unity Graphics Input System模板；fingerprint `bd49e4deb067d9aa864e7558305d71fdff0eac18701f503ae173ad1af3fbc53f` |
+
+Editor206刷新Editor29/87/103/150 Input Action、Mapping Context、Binding/Trigger/Modifier、Device/User、Rebinding与Accessibility链。11个目标合同类型在索引内production源码及当前2,293个未跟踪production Rust/ZUI/配置文件中全部为0；ResourceKind/catalog/project manifest/App artifact install均没有Input产品，默认Action manager仍以`enabled=false`和空map构造，configured install/evaluate没有production caller，玩法仍调用raw `key_pressed`。
+
+当前Runtime新增或强化的context增量排序、binding scratch-free排序、action state/workspace/axis/consumed index复用、focus/disconnect分配削减和recorder批量front retirement，均属于应保留的性能底座，不能替代stable source、semantic compiler、immutable artifact、frame-barrier receipt、InputUser/device lease、profile/rebind与accessibility authority。`InputRecording`仍为无总上界Vec，replay只clone event重新submit。本轮还纠正旧physical-first概括：text keyboard/IME会先经UI消费，非文本keyboard、pointer/mouse与gamepad通常先写physical；当前按event kind分裂的手写顺序没有统一sequence/capture/ownership合同。Editor29保持唯一canonical owner；5项P0全Open，60项P1为46 Open/14 Partial/0 Closed，12项P2为11 Open/1 Partial/0 Closed，32门全部Fail。目标链保持`truthful unavailable -> stable source/schema -> shared compiler/artifact -> per-user frame-barrier install/evaluate -> device/profile/rebind/accessibility -> runtime-backed Editor/debugger -> PIE/save/network/replay -> fault/scale/cross-engine qualification`。本轮只修改review与索引，没有运行Cargo、Editor、真实设备或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/206-editor-input-action-mapping-context-binding-trigger-modifier-device-user-rebinding-accessibility-current-source-review.md`。
+
+## 439. Editor Camera / Rig / Director / Cut / Play-Simulate 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime camera / scene / render selected set | **81 / 9,724 / 8,794 / 347,621 / 61 / 2** | scene camera source/component/project IO、active camera、runtime bridge、render extract/history/velocity与script/AI consumers；fingerprint `863790b205e28a098dfe0f9dbe8a7f970745bdb420e30595845a40055791046a` |
+| Zircon Editor camera / viewport / cinematic selected set | **72 / 14,667 / 13,448 / 520,854 / 107 / 9** | viewport lifecycle与Simulate bridge、scene deletion、Cinematic workspace、resource/catalog/toolkit primitives及focused tests；fingerprint `f242488f1ef992f6c13a040cc8a65fa277828e0cd90b7031acda9317dc15b0c4` |
+| Zircon selected union | **153 / 24,391 / 22,242 / 868,475 / 168 / 11** | 上述集合按normalized path去重；fingerprint `0e8c28c000aa23ab1cba6e99488d8768ee8f4d88ad212428fd2416ce09373a06` |
+| Five-engine reference set | **25 / 13,380 / 11,458 / 555,712 / 4 / 0** | Unreal PlayerCameraManager/CameraModifier/CineCamera/Sequencer、Godot/Fyrox/Bevy camera owner与Unity Graphics render-side currentness；fingerprint `1c4a7e065903e06cd5dbc6cd1dd6007d8f0aa8fa30c1501105c4c98ccd0ab518` |
+
+Editor207刷新Editor30/88/104/151 Camera Asset、Component、Rig、Controller、Director、Blend、Shake、Cinematic Cut、Play/Simulate与Preview链。`CameraRigDocument`、`CompiledCameraRigArtifact`、`CameraDirector`、`CameraBlend`、`CameraShake`、`SpringArm`、`CineCamera`、`CameraModifier`、`CameraMode`、`CameraCutEvent`、`CameraLensProfile`、`CameraActivationRequest`、`CameraActivationReceipt`和`CameraViewResult`在排除`dev/docs/tools/.codex/target`后的索引内源码以及2,309个未跟踪Rust/ZUI/TOML文件中均为0；当前仍没有独立Rig/Director/Modifier/Mode/Cut/Lens产品合同。
+
+Editor151之后出现了两项真实变化。Simulate会快照transient viewport camera，并经特定Play gateway把有界`ZrRuntimeViewportCameraV1`应用到Runtime `RenderFrameExtract`，因此P1-057与G27校正为Partial；但该桥没有clear/reset事件、generation/tick/lease、player/purpose、cut/history receipt、multi-viewport或Director/possession/eject E2E，Editor本地reset仍可能留下Runtime stale override。`DeleteNodeCommand::capture`也会统计subtree camera并拒绝移除最后相机，修复了直接source invariant的一部分；但没有generation-bound Runtime prepare ticket/stale reject，精确2/128相机subtree与100k非相机产品矩阵也未建立，Runtime08失败交接仍Open。
+
+其余核心断点保持：SceneCameraAsset有15字段，CameraComponent仅14字段且11个跳过反射，source没有render type/stack/clear depth/独立mask/dynamic-resolution/jitter/projection override；descriptor用Base、空stack、默认clear depth和重复render layer填洞。World仍持久化raw active camera ID，history只按七字段key保存且无active sweep/age/bytes/fence retirement，velocity cut仍依赖固定heuristic，Sequencer继续是固定ZUI，Script与AI继续读取全局active camera。Editor30保持唯一canonical owner；5项P0全Open，60项P1为48 Open/12 Partial/0 Closed，12项P2全Open，32门为25 Fail/7 Partial/0 Pass。目标链收敛为`truthful unavailable -> versioned camera source/Rig compiler -> immutable prepared artifact -> qualified Director/activation/cut receipt -> per-player view result -> render history contract -> runtime-backed Editor/PIE/Simulate -> fault/scale/profile qualification`。本轮只修改review与索引，没有运行Cargo、Editor、GPU或动态产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/207-editor-camera-asset-component-rig-controller-director-blend-shake-cinematic-cut-preview-current-source-review.md`。
+
+## 440. Editor Script Source / Build / Hot Reload / Debugger 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor build/log/jump/command/catalog | **12 / 2,995 / 2,716 / 98,941 / 44 / 1** | 5文件Script Build状态机、diagnostic jump/log、command与first-party catalog；fingerprint `bda7d63cf336a0d2a8dd2b565245fc0957f24fc358b96fccfc56695c5734a530` |
+| Zircon Runtime/Plugin/App/WOC纵切面 | **165 / 28,902 / 26,521 / 1,013,122 / 246 / 9** | Runtime Script全目录、startup、scene binding、ZrVM plugin/catalog、target profile与WOC manifests；fingerprint `032d61bb4bcc1c877ef05f96b26e64835c86b3b8fad0da916238f1b0e0d67bb9` |
+| Zircon selected union | **177 / 31,897 / 29,237 / 1,112,063 / 290 / 10** | 上述集合按normalized path去重；fingerprint `be567227df22e23970f1f0f004a427dabb22ec0e49d4eb3a9a93246e79af244d` |
+| Five-engine reference set | **121 / 37,748 / 31,438 / 1,299,471 / 3 / 0** | Unreal Blueprint/Kismet/HotReload/LiveCoding、Godot Script/Debugger、Fyrox Inspector/Build、Bevy Reflect/Watcher、Unity ShaderGraph范围；fingerprint `df60d9a489e8b1c0beb468b8d67133d720481463114c3155bec0f82740d26b19` |
+| External ZrVM snapshot | **6 / 3,533 / 3,140 / 138,353 / 11 / 0** | Rust binding compiler/manifest、LSP capabilities、debug/profile protocol；fingerprint `fb68cc9e08d4968c29f079653bf512dd91e25c9890de18b7a0a08fd2fa80c3ea` |
+
+Editor208刷新Editor31/105/152 Script Source、Code Editor、Build、Compiler、Hot Reload、Debugger、Visual Script、Class与Component链。`zircon_editor/src/core/script_build`仍是5文件、1,696行的有界纯状态机，模块外orchestrator、diagnostic sink和watch/command/Play调用全部为0；Runtime startup仍同步discover package，并由ZrVM real backend执行`ProjectWorkspace::open -> compile -> start_session`。WOC要求Client/Server/EditorHost使用`zr_vm_language`，但Client/EditorHost只启用generic `script`且没有provider，Server连generic `script`都没有。26项ResourceKind及20,127个tracked/untracked Rust/ZUI/TOML文件没有脚本workspace/document/artifact/install/debug-map/class/component/editor合同；5处`SourceDocument`命中只是UI模板编译包section。Scene binding仍为`package/module + JSON map`，jump仍只OpenAsset后把行列写入status line。
+
+Runtime的bounded discovery、slot generation、callback refresh、reflection/state migration、rollback与GC预算属于应保留的工程底座；它们不能替代immutable artifact、qualified install receipt、typed Class/Component schema、LSP/debug adapter或Visual Script统一lowering。WOC规模为818个`.zr`、355个`.zrp`、37个`.zro`和0个`.zri`，不能据此声称默认产品可运行或优于Unreal。Editor31保持唯一canonical owner；5项P0、60项P1和12项P2全部Open，32门为31 Fail/1 Partial/0 Pass。目标链保持`truthful profile/preflight -> transactional workspace/documents -> shared semantic build/artifact -> typed Class/Component -> qualified runtime install/reload -> shared Visual Script lowering -> LSP/debug/profile -> fault/scale/cross-engine qualification`。本轮只修改review与索引，没有运行Cargo、Editor、ZrVM动态协议或产品矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/208-editor-script-source-code-editor-build-compiler-hot-reload-debugger-visual-script-class-component-current-source-review.md`。
+
+## 441. Editor Model / Mesh / Skeleton / Import / LOD / Collision / Retarget 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/Plugin/App selected | **258 / 49,151 / 45,205 / 1,798,206 / 304 / 49** | importer、transaction、Model/Mesh/Skeleton/Skin/animation、LOD、toolkit/thumbnail、workbench、physics与产品装配；fingerprint `c3b657df26514923d8b46b19d2c1ed58007a8c9d626d317259b0ba0e0e9c291f` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **21 / 29,331 / 25,946 / 1,135,717 / 32 / 0** | Interchange/Static/Skeletal/Persona/IKRetarget、Godot importer/toolkits/BoneMap、Fyrox/Bevy skin、Unity LOD/crossfade；fingerprint `8c523e2d1192cdb02f4c8dadf57046b074f8a83b919e1957f8f383197b0bfcec` |
+| 全部选择集 | **279 / 78,482 / 71,151 / 2,933,923 / 336 / 49** | 两组按normalized path去重；fingerprint `3cbcaa6f274b153dc15630001a73444483f67aa4bcd3ada2a7eb00eee55fce0b` |
+
+Editor209刷新Editor32/106/153 Model、Mesh、Skeleton、Geometry Import、LOD、Collision、Retarget与Preview链。`EditorAssetImportFlow`已通过单一Runtime-owned job取得durable `ProjectImportReceipt`，新增terminal import log与pre-arm completion竞态处理；Runtime streamer会解析Model的Mesh reference并把依赖revision纳入prepared geometry revision，plugin也新增tangent/color/UV convergence测试。这些底座必须保留。
+
+产品闭环仍缺失：字符串入口与外部`.gltf`准入冲突，事务成功后自动修改当前Scene；reference-only Model management overview继续报告0 geometry；Core/plugin glTF按availability/priority选择不同版本和输出语义；Skin只有IBM vector且multi-skin first-wins，renderer按bone name和Skeleton local pose反推palette，Scene不安装Skeleton/player。LOD只按entity origin distance且importer写空列表，Collision/Retarget工作台只有route/fixed feedback，Model/Mesh/Skeleton无toolkit，VG editor声明的`authoring.zui`不存在。Editor32保持唯一canonical owner；P0为4 Open/1 Partial，P1为38 Open/20 Partial/2 Closed，P2为12 Open，32门为21 Fail/10 Partial/1 Pass。目标链保持`typed source/recipe -> normalized scene -> stable source assets -> qualified derived artifacts -> atomic receipt -> isolated toolkits/preview -> explicit AddToScene`。本轮只修改review与索引，没有运行Cargo、Editor、Importer corpus、GPU/physics/retarget或跨平台动态矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/209-editor-model-mesh-skeleton-geometry-import-lod-collision-retarget-preview-current-source-review.md`。
+
+## 442. Editor Localization / Culture / Translation / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon selected source/contracts | **68 / 12,936 / 11,652 / 450,742 / 78 / 3** | Runtime Interface/UI/asset/project/text、Editor i18n/context/settings/plugin/notification/command/preview及App config；fingerprint `4f2e16956900fff7a063133dd1dce437a49a6dc60b0f75ea4f3fbbf479260359` |
+| Product UI corpus | **472 / 53,032 / 46,142 / 3,040,850 / 0 / 0** | `zircon_editor/assets/ui`与`zircon_plugins`的`.zui/.toml`完整产品语料，`text_key`为0；fingerprint `904c2d8b7c1ff17217a90056ee8764008f43cdcc47e9a5642c90d304590720a8` |
+| Zircon selected union | **540 / 65,968 / 57,794 / 3,491,592 / 78 / 3** | 上述集合按normalized path去重；fingerprint `3f4f99abafafe4314c21083b899627359082a9d8011940c0614196a50c77af28` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **21 / 3,436 / 2,775 / 144,341 / 0 / 0** | Target/LocRes/chunk/runtime/table/formatter/editor tasks、Translation/Domain/Server/PO/CSV/preview及能力边界；fingerprint `150adcc93b1bd2099f3066967f4b02348328de0a4228985b652efb6acd960def` |
+
+Editor210刷新Editor33/107/154 Localization、String Table、Culture、Translation Import/Export、Fallback、Pseudo-localization与Preview链。Editor shell的en/zh-CN bundle已增至各79 key且集合一致；composition root真实安装i18n publisher；Plugin SettingsPage V2具备typed bundle/key/category及owner校验；Runtime text已用ICU4X规范化language/script/region，SDF glyph identity包含规范化language。这些变化强化既有Partial底座，但不产生Runtime Localization authority。
+
+核心断路保持：component String schema仍制造空String，render与Accessibility仍只读scalar；catalog只存locale/table/key set，package dependency没有production cook/loader consumer。472个产品ZUI/TOML仍0 `text_key`，preview固定三项且只更新report/diagnostic，command descriptor/menu/palette继续以literal英文为authority，Resource/ImportedAsset/project/App仍无Target/Table/Archive/culture policy。三个相关failure均维持open，其中Editor12只达到static green/managed Cargo pending。Editor33保持唯一canonical owner；P0为4 Open/1 Partial，P1为44 Open/16 Partial/0 Closed，P2为12 Open，32门为25 Fail/7 Partial/0 Pass。目标链保持`identity -> deterministic gather -> target/table -> archive -> validation -> compiled catalog -> generation-qualified service -> UI/Text/A11y/Script`。本轮只修改review与索引，没有运行Cargo、Editor、GUI/GPU或动态Localization矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/210-editor-localization-string-table-culture-translation-import-export-fallback-pseudo-preview-current-source-review.md`。
+
+## 443. Editor Sprite / Atlas / TileSet / TileMap / Canvas2D 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **95 / 13,913 / 12,762 / 486,340 / 123 / 10** | schema、Scene I/O、Sprite extract/renderer、Atlas build/cache/stream、TileMap plugin/catalog/App；fingerprint `d8885a70396fa4c5bb4a256921fcaee9b9cd409a149901c10624d2934cdecb5c` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **42 / 33,301 / 28,886 / 1,291,753 / 51 / 0** | Paper2D、Godot quadrant/editor、Fyrox tile/command、Bevy bounds/chunk、Unity URP 2D/tests；fingerprint `307a951e503321d49da1ffdf8f98db5cea0714616cbd086f912cb2de91650855` |
+| 全部选择集 | **137 / 47,214 / 41,648 / 1,778,093 / 174 / 10** | 两组按ordinal相对路径去重；fingerprint `98cdaf195a8181056741016e00f331b558999d39c25ff8d10b486f63ee135694` |
+
+Editor211刷新Editor34/108/155 Sprite、Atlas、TileSet、TileMap、Canvas2D、Animation、Collision与Preview链。当前Sprite image modes、phase/queue统计、UI atlas `resource_key + generation + UV` stream、warm visual cache和bounded atomic TileMap stroke均是应保留底座；但它们没有形成工程级2D产品。Project Scene仍在load固定Sprite/Mesh2D None并在save固定TileMap None；Sprite material不进入shader/pipeline/batch，三种alpha stage共用固定管线，bounds不进入visibility，每batch仍每帧建buffer和render pass。
+
+Atlas仍无Sprite/Atlas/Flipbook ResourceKind、recipe/compiler production caller或atomic artifact publish；retained-host resolver在manifest循环内使用`?`，首个排序manifest不含entry时不会检查后续manifest，冷路径还先解码并缓存单图RGBA。TileSet/TileMap继续是单image、string collider、dense numeric cells且无schema version；runtime importer明确DiagnosticOnly，无typed TileMap/chunk/collision/nav/occlusion owner。五个Editor operation没有factory/controller，两份声明ZUI不存在，first-party runtime/editor catalog也没有provider branch。Editor34保持唯一canonical owner；5项P0全Open，60项P1为44 Open/16 Partial/0 Closed，12项P2全Open，32门为26 Fail/6 Partial/0 Pass。目标链保持`versioned source -> compiler/artifact generation -> Scene roundtrip -> runtime render/cook -> transactional Editor -> fault/scale/cross-platform qualification`。本轮只修改review与索引，没有运行Cargo、Editor、WGPU、import/cook或动态2D矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/211-editor-sprite-atlas-tileset-tilemap-canvas2d-animation-collision-preview-current-source-review.md`。
+
+## 444. Editor Texture / Image / Cubemap / RenderTarget / Streaming / Preview 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin selected | **369 / 75,029 / 68,221 / 2,639,425 / 816 / 44** | Texture asset/import/IBL/RenderArtifact、GPU resource/streamer、RHI upload、Editor type/preview、plugin/catalog/App；fingerprint `7458e2e53c441efe661f3a482179252a5b121f4db67eaa003838d4dbff3f039e` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **51 / 45,757 / 39,521 / 1,783,583 / 96 markers** | source/build key、physical/virtual streaming、typed storage/image、RenderGraph target、Texture Editor；fingerprint `fa6d4237d46c50b2f0138dc7606b5007fa275880834589533f804a3ddfcea0cd` |
+| 全部选择集 | **420 / 120,786 / 107,742 / 4,423,008** | 两组显式路径并集；Zircon产品统计不包含`dev/`参考源码 |
+
+Editor212刷新Editor35/109/156 Texture、Image、Cubemap、RenderTarget、Sampler、Compression、Streaming与Preview链。新shared RGBA8 builder具备linear-space sRGB、Kaiser/Box与normal mip，RenderArtifact schema/cook/store/loader具备mip/layer blocks、bootstrap、hash、codec、priority/deadline/cancel，RHI upload已持有Arc payload并进入frame submission transaction，mip transition也读取revision snapshot；IBL的RGBA32F、PMREM/SH、versioned key、prepared/atomic cache与bounded hydration继续是可迁移的真实底座。
+
+这些实现仍未形成普通产品链。shared builder只在定义、re-export和自身tests命中；RenderArtifact cook/publish/loader construction也只有自身tests，ordinary import/package/ResourceStreamer/install无consumer。普通、array、cubemap入口继续`to_rgba8()`，首次ensure同步clone完整asset全上传，transition同步重读完整asset并创建replacement，compressed partial mip明确Unsupported。Demand只覆盖主视图visible mesh/material，screen coverage虽区分投影，半径仍用transform scale且无UV density/完整consumer图；默认resident budget仍无限。Sampler字段和identity、typed RenderTarget/pool/history/MSAA/resolve、SVT page产品链、Texture toolkit与artifact-aware preview都未闭合。Editor ZUI缺失，重复importer无executor，first-party Editor catalog/App无Texture provider，多个`stable`/`complete`声明仍失真。
+
+Editor35保持唯一canonical owner；P0为3 Open/2 Partial/0 Closed，P1为30 Open/30 Partial/0 Closed，P2为12 Open，32门为17 Fail/15 Partial/0 Pass。目标链保持`stable source/recipe -> canonical HDR/integer image -> shared compiler/actual receipt -> platform mip/layer/page artifact -> async range prepare -> generation/fence-qualified install/retire -> unified demand/budget -> typed Texture Editor toolkit/preview -> product admission/release qualification`。本轮只修改review与索引，没有运行Cargo、Editor、WGPU、真实import/cook/package、visual/fuzz/fault/scale/soak或跨平台动态矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/212-editor-texture-image-cubemap-render-target-sampler-compression-streaming-preview-current-source-review.md`。
+
+## 445. Editor Video / MediaSource / Player / Clock / MediaTexture / Capture / Recording 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Interface/Plugin/App/Editor selected | **1,430 / 66,386 / 60,320 / 2,313,695 / 762 / 39** | resource/UI、time/sound、importer、capture/readback、ABI/gateway/Play、profiling、catalog/App；fingerprint `41aede9c665614243622c4576c2a965de80f56773e6087be2d3fdf953120831e` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **51 / 12,809 / 10,674 / 428,941 / 0 / 0** | Unreal Media/MovieSceneCapture主线，Godot player/writer、Bevy screenshot、Unity camera capture与Fyrox负证据；fingerprint `da37b847cc0919bfa77820eb39aa2976baa33d9c1608cc25bf9edba482cadf9d` |
+| 全部选择集 | **1,481 / 79,195 / 70,994 / 2,742,636 / 762 / 39** | 两组按normalized path去重；另扫描20,124个生产Rust/TOML/ZUI文件的13个目标合同，全部零命中 |
+
+Editor213刷新Editor36/110/157 Video、MediaSource、Player、Track、Clock、MediaTexture、Playback、Capture与Recording链。当前生产路径仍无MediaSource/OpenOptions/Provider/Session/TrackCatalog/VideoSample/MediaClock/MediaTexture/RecorderSession/RecordingArtifact/EncoderProvider/MuxerProvider/CaptureSample。UI继续把Media降为Data；External audio只替换一块PCM后由Kira adapter明确拒绝；Frame V2继续只有width/height/generation/owned RGBA；Performance Capture仍输出固定Frame1234。
+
+三槽有界readback、ticket cancel/abort/shutdown、typed capture source/report、RGBA8与linear RGBA16F、真实Play preview、foreign output显式release以及App原子单PNG是真实底座，应迁入统一readback/capture/artifact owner；它们没有timestamp、sample queue、clock/sync、decoder surface、MediaTexture、cadence、audio、encoder/mux、finalize或recovery，不能包装成媒体产品。开放frame-capture failure的managed replay已越过旧E0433，却被外部`WorldQueryResult::TransformSnapshot`非穷尽匹配阻断，focused test没有执行，不能记动态GREEN。
+
+Editor36保持唯一canonical owner；5项P0全Open，60项P1为49 Open/11 Partial/0 Closed，12项P2全Open，32门为25 Fail/7 Partial/0 Pass。目标链保持`source/provider -> session/track/sample/clock -> audio/video presentation -> Editor toolkit`与`CaptureSource -> timestamped CaptureSample -> bounded Recorder -> encoder/mux -> durable artifact`。本轮只修改review与索引，没有运行Cargo、codec、GPU、A/V sync、recording、fuzz/fault/scale/soak或跨平台动态矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/213-editor-video-media-source-player-track-clock-media-texture-playback-capture-recording-current-source-review.md`。
+
+## 446. Editor Volume / Zone / Trigger / Region / Gameplay / Audio / Post Process 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Plugin/Editor/App selected | **172 / 22,035 / 20,157 / 805,071 / 165 / 4** | PP、Physics trigger、Sound environment、Navigation bake/editor、Workbench/callback、catalog/App；fingerprint `7a163629329188879662c60a164c72527f1d83c26f393e96cecfe9d73697d09b` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **22 / 25,378 / 21,610 / 870,612 / 5 / 0** | Unreal domain volumes、Godot Area3D、Unity Volume stack、Fyrox collider、Bevy typed trigger；fingerprint `a2310c075f07ff632fe2f119023481d00ebe50400f17d3183c3e1c6096471b75` |
+| 全部选择集 | **194 / 47,413 / 41,767 / 1,675,683 / 170 / 4** | 显式路径物理并集；另扫描20,131个生产Rust/TOML/ZUI文件，八个目标合同全部零命中 |
+
+Editor214刷新Editor37/111/158 Volume、Zone、Trigger、Region、Gameplay、Audio、Post Process与Environment链。四个domain继续各持identity、shape、container与lifecycle，不存在shared SpatialRegionId、CompiledRegionGeometry、per-World index/snapshot或typed adapter闭环。PP evaluator、Physics deterministic pair diff与immutable frame snapshot、Sound descriptor/strongest/DSP、Navigation typed operation/progress/snapshot/overlay是真实局部底座，但没有形成跨域Region产品。
+
+当前断路没有关闭：Scene PP双向转换继续丢color lookup、blur、motion blur、DOF与SSR；PhysicsTriggerEvent缺shape/subshape、pair generation、step/sequence、filter与exit cause；Sound plugin生产源码没有volume update/remove调用，Scene/World bridge仍为零；Navigation area按translation和`abs(scale)*0.5`做点/AABB分类并忽略rotation与triangle clipping。DamageZone、CheckpointVolume、StreamingGate、GameplayRegion及四个Region核心合同均为零，Volume/PP Workspace与callback继续固定VOL/PPV、数值、warning及queued结果。
+
+Editor37保持唯一canonical owner；5项P0全Open，60项P1为35 Open/25 Partial/0 Closed，12项P2全Open，32门为17 Fail/15 Partial/0 Pass。目标链保持`versioned source -> deterministic compiled geometry -> generation-qualified per-World index/snapshot -> typed domain adapters -> transactional Editor toolkit`。本轮只修改review与索引，没有运行Cargo、Editor、GPU、audio device、physics backend、navigation bake、fault/scale/soak或跨引擎动态矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/214-editor-volume-zone-trigger-region-gameplay-audio-post-process-environment-current-source-review.md`。
+
+## 447. Editor Weather / Climate / Time-of-Day / Wind / Precipitation / Cloud / Atmosphere 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/Plugin/App selected | **283 / 49,316 / 45,139 / 1,778,761 / 387 / 0** | Weather UI/routing、Scene/time、Environment/IBL/Fog、Particle/Terrain/Sound、catalog/App；fingerprint `75ad8195ecee2269ed81d71cf73f026c609caab026eaa821462431e2f8e5e4c6` |
+| Unreal/Unity Graphics/Godot/Bevy/Fyrox reference | **111 / 29,661 / 24,864 / 1,213,662 / 0 / 0** | Atmosphere、Cloud、Wind、DaySequence、Environment、Fog、Sky persistence/extract；fingerprint `2cf53274c6ee73ca175368e8176a33a902d468eb83fd0416044536c34aa2f625` |
+| 全部选择集 | **394 / 78,977 / 70,003 / 2,992,423 / 387 / 0** | 显式路径物理并集；fingerprint `75618ee53dfa034753c46db1f9acc04728f0df3b9cffe991989b2d63c8cbcd32`；另扫19,584个生产文件的14个目标合同均为零 |
+
+Editor215刷新Editor38/112/159 Weather、Climate、Time-of-Day、Wind、Precipitation、Cloud、Atmosphere与Environment链。每World clock、WorldTimeSnapshot、source cubemap/PMREM/SH9/IEM、realtime IBL generation/time slice/last-good、Fog froxel/history以及Particle CPU/GPU backend是可迁移底座；但它们没有Weather identity、compiler/program、per-World authority、atomic WeatherFrameSnapshot或typed consumer adapter。
+
+当前产品断路保持：SceneEntityAsset没有Environment/Weather，World仍从不可序列化的preview_skybox构造gradient；程序sun与DirectionalLight没有celestial同代身份。Cloud source/medium/render/history为零，Wind/Precipitation/Surface/Sound/Lightning adapter为零，Particle CPU仍叠加external force而GPU只上传gravity。Weather workspace与callback继续固定Weather_Storm、Region_Mountains、四段timeline、8 layers/5 regions/2 warnings及queued结果。历史CaptureCloud伪路径虽已删除，但不构成Cloud产品。
+
+Editor38保持唯一canonical owner；5项P0全Open，70项P1为32 Open/38 Partial/0 Closed，12项P2全Open，32门为18 Fail/14 Partial/0 Pass。目标链保持`versioned Climate/Celestial/Weather/Region sources -> deterministic compiler/artifact -> per-World service/snapshot -> typed domain adapters -> transactional Editor toolkit`。本轮只修改review与索引，没有运行Cargo、Editor、WGPU、audio、network、save、fault/scale/soak或跨引擎动态矩阵；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/215-editor-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-environment-current-source-review.md`。
+
+## 448. Editor Spline / Path / Road / River / Decal / Brush / Geometry 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Runtime/Editor/Plugin/WOC selected | **891 / 56,334 / 51,373 / 1,973,069 / 355 / 0** | Decal、Material/Scene/Shader、dynamic component、Editor Scene/Inspector与WOC；fingerprint `edbecd3d61486a610d29bb593ef7da95b55c8b14c98005c8dfa2f550af7f40cf` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **26 / 18,630 / 15,668 / 742,536 / 12 / 0** | Spline/Path/Road/River/Decal/Brush/CSG与编辑器；fingerprint `252b069e7c8c21dccdb1e19a563218a18d3694466fc16d4a442e46e9074929cb` |
+| 全部选择集 | **917 / 74,964 / 67,041 / 2,715,605 / 367 / 0** | 两组按normalized path去重；fingerprint `78f051a4ab63a5ec48b9305997f0336cabbd4fa4c1892bc9ea7a3fd71a4a4ecb`；另扫19,662个生产文件的十二个目标合同均为零 |
+
+Editor216刷新Editor39/113/160 Spline、Path、Road、River、Decal、Brush与Geometry链。现有动画/glTF曲线数学没有stable点段identity、弧长重参数化、空间标架、分段索引、immutable query、artifact或Project Scene carrier。DynamicScene、World dynamic component、Inspector transaction、operation/job与asset/artifact只作为通用Partial底座，不能替代领域source到consumer闭环。
+
+当前Decal feature仍注册PostProcess pass并绑定直接Ok(())的executor，没有typed material/texture/atlas、Scene install、extract、cull、batch、attachment、shader或draw；rendering manifest却继续声明stable/complete。Editor feature没有真实extension consumer，Material Workbench继续暴露Runtime MaterialDomain不存在的decal值。WOC继续通过roadPointX/Z、嵌套segment循环和小于5.0的裸阈值绕过Road source/query/artifact；当前terrain contract digest为C481FAAA10CC8B8F136A36DE053015C486A15FC90E95687818906A2537FCC29E。
+
+Editor39保持唯一canonical owner；5项P0全Open，70项P1为56 Open/14 Partial/0 Closed，12项P2全Open，32门为19 Fail/13 Partial/0 Pass。目标链保持`versioned spatial/decal/brush sources -> deterministic compiler/artifacts -> Project Scene install -> generation-qualified runtime consumers -> transactional Editor toolkit`。本轮只修改review与索引，没有运行Cargo、Editor、GPU、physics、navigation、water、cook或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/216-editor-spline-path-road-river-decal-brush-geometry-current-source-review.md`。
+
+## 449. Editor PCG / Rule Graph / Biome / World Generation 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/Plugin/WOC selected | **1,208 / 303,389 / 282,879 / 11,351,517 / 1,725 / 129** | Scatter、graph/job/transaction、Terrain、asset/World、GPU Scene、catalog与WOC；fingerprint `4263446290ed494f781ae0d7c64fc1844a9f344310a2b9b5fa5a9afead66df14` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **36 / 34,632 / 29,577 / 1,383,417 / 16 / 0** | PCG全链、noise/MultiMesh、Terrain undo、asset extract与GPU instances；fingerprint `9f15da7ab4a3ea30f2c3af4f72012607168ec074b4d28f456331320ca077f344` |
+| 全部选择集 | **1,244 / 338,021 / 312,456 / 12,734,934 / 1,741 / 129** | 两组按normalized path去重；fingerprint `b80715d5ae32f3fcfd50172fe4e6f52af503bb58f04e1657916ea929416f2ae0`；另扫19,672个生产文件的十二个目标合同均为零 |
+
+Editor217刷新Editor40/114/161 Procedural Content Generation、Rule Graph、Biome与World Generation链。生产源码仍没有PcgGraph/RuleGraph/BiomeSource/WorldRecipe/CompiledPcg/GenerationOutput/GeneratedObjectId/ManagedGenerated/PartitionActor。Scatter Workspace继续以233行、27 nodes、19 routes和0个document/job/artifact binding固定发布SC_Forest、64K、18 rules、1 conflict及queued结果；WorldGeneration只是runtime-only mutation revision，不是PCG。
+
+Terrain的真实变化限于装配底座：Runtime builtin catalog已有Terrain row，package有beta/partial manifest和native dist壳，Editor声明五个operation和import/toolkit/Inspector descriptor；但first-party provider/App未选择Terrain，operation没有factory，runtime importer仍DiagnosticOnly，native invoke/save/restore/unload全部None，Project World继续固定terrain None。GPU Scene已有instance span、dirty和upload基础，但唯一production mesh caller仍注册instance count 1；没有PCG InstanceSet adapter或managed output。
+
+Editor40保持唯一canonical owner；5项P0、70项P1、12项P2全部Open，32门全部Fail。目标链保持`versioned graph/biome/recipe sources -> deterministic compiled DAG -> per-World bounded request service -> immutable managed output/diff -> typed domain consumers -> same-request Editor inspection`。本轮只修改review与索引，没有运行Cargo、Editor、PCG、Terrain、WGPU、cook、fault/scale/soak或benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/217-editor-procedural-content-generation-rule-graph-biome-world-generation-current-source-review.md`。
+
+## 450. Editor Level / Variant / Data Layer / Level Instance / World Outliner 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/Interface/Plugin selected | **76 / 13,542 / 12,482 / 513,684 / 97 / 0** | Variant、Prefab/Scene IO、Hierarchy/World Sync；fingerprint 95908390b4a4eab26d98eb46d8346225fc890043376ebcaba986acbae7b402a9 |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **31 / 18,258 / 15,502 / 670,221 / 2 / 0** | Data Layer、Level Instance、Variant、Outliner、PackedScene、WorldViewer、ScenePatch与render-layer负边界；fingerprint 329ed6a1c3f4a9b427693fdb02728dabe78c998938c10445aed9cb3c5a18c76b |
+| 全部选择集 | **107 / 31,800 / 27,984 / 1,183,905 / 99 / 0** | 两组按normalized path去重；fingerprint 9cd435d79fa9ae1577e3a751d6e9ea54dcb58ae5f59f0830542926e0c1f942dc；另扫19,274个生产文件的十二个目标合同均为零 |
+
+Editor218刷新Editor41/115/162 Level、Variant、Data Layer、Level Instance与World Outliner链。Level Variant继续以233行、19 routes和固定Vehicle_Showcase、Variant_Red、18 overrides、2 conflicts发布queued结果，真实source/compiler/artifact/operation/runtime consumer为零。Data Layer与Level Instance仍无独立ResourceKind、source、world owner、authority、state machine或cook artifact。
+
+Prefab metadata preservation和正式Scene/World codec roundtrip继续成立，但DTO仍是AssetReference、local transform、字符串entity/property path和JSON value，runtime importer仍DiagnosticOnly。ReflectObjectAddress只有component/resource对象级地址与字符串field name，不能替代source-local stable ID、typed selector、declared type和schema fingerprint。
+
+Hierarchy的generation fence、rename sparse delta、固定10个physical controls、viewport-bounded paint、ASCII无分配匹配和projection counters都是真实底座；但最终SceneNodeData仍只有id/name/depth/selected，topology change仍full reflow，filter仍同步O(N)并clone可见行，固定菜单没有production executor，也没有typed item/provider/mode/column、unloaded descriptor或100k/1M资格。
+
+Editor41保持唯一canonical owner；P0为3 Open/1 Partial/1 Closed，P1为60 Open/9 Partial/1 Closed，12项P2全Open，32门为30 Fail/2 Pass。目标链保持Variant、DataLayer、LevelInstance和WorldOutliner四条独立source-to-runtime纵链。本轮只修改review与索引，没有运行Cargo、Editor、save/reopen、cook、fault/scale/soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见zircon_editor/218-editor-level-variant-data-layer-level-instance-world-outliner-current-source-review.md。
+
+## 451. Editor Scene Snapshot / World Diff / Merge / Restore / Conflict Resolution 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor authoring/recovery + Runtime Session/DynamicScene selected | **776 / 48,075 / 43,595 / 1,673,239 / 264 / 0** | Editor surface、Session Archive、DynamicScene/inspection/reflection；fingerprint ab46169504ef665647762fd031b89ca8b7fd22637f6bb013fd92b3149adf80fd |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **27 / 17,876 / 15,080 / 639,373 / 1 / 0** | Level Snapshots、PackedScene、reversible commands、ScenePatch与render ID负边界；fingerprint 5e2b41fe1a51fd3fa7e33450c46363c539c1d30a19789913890a2cd209cd259c |
+| 全部选择集 | **803 / 65,951 / 58,675 / 2,312,612 / 265 / 0** | 两组按normalized path去重；fingerprint 78d96ac9a491f4993fda04c26f4c80d78430e129fe1dbda3a6d95146fe6f1483；另扫19,276个生产文件的十二个目标合同均为零 |
+
+Editor219刷新Editor42/116/163 Scene Snapshot、World Diff、Merge、Restore与Conflict Resolution链。DynamicScene capture继续静默跳过未注册、缺adapter、不可序列化type/field，validation只覆盖schema、descriptor与source entity唯一性，没有capture coverage或fail-closed required policy。ScenePatch仍只包裹完整DynamicScene，preview/apply语义仍是additive spawn；compiled preflight提高失败隔离，但没有typed change、remove/modify/reparent、base/ours/theirs或selective restore。
+
+Session diff继续只有whole scene equality与entity/resource数量，merge只按slot ID执行Reject/Keep/Replace，restore仍从空World生成后整体替换Level World。Archive writer新增/保留bounded keyed admission、同进程path generation/commit authority、staged atomic publish与file/parent sync，但authority不持久且不跨进程，没有typed Snapshot store、journal/startup repair或本域crash qualification，因此只维持P1-20/G29 Partial。
+
+Workbench仍写固定prepared/compared反馈；Restore/OpenComparison只生成安全副本，UiAssetDocumentDiff仍整体替换target document。Editor42保持唯一canonical owner；5项P0全Open，P1为69 Open/1 Partial，12项P2全Open，32门为31 Fail/1 Partial/0 Pass。目标链保持capture artifact、semantic diff、three-way merge、staging restore与single Editor transaction的顺序。本轮只修改review与索引，没有运行Cargo、Editor、restore、fault/scale/soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见zircon_editor/219-editor-scene-snapshot-world-diff-merge-restore-conflict-resolution-current-source-review.md。
+
+## 452. Editor Multi-User / Collaborative Editing / Session Replication / Locks / Presence 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor/Runtime/Interface/Net/Hub selected | **419 / 44,758 / 40,395 / 1,521,366 / 307 / 0** | transaction/journal、identity/preflight/lease、remote control、net plugin与Hub Team；fingerprint cbf3a88953f01b8b5e53159bd73b0f506d00622ef32eb0bee01f686a3d4cfab3 |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference | **29 / 16,871 / 14,576 / 624,005 / 11 / 0** | Concert session/activity/workspace/lock/authority/presence、local history与remote边界；fingerprint b40cb8f51fadd9a7823c0009f01ac8d0cccc26fbd42b9c7f855d516ed8544b8a |
+| 全部选择集 | **448 / 61,629 / 54,971 / 2,145,371 / 318 / 0** | 两组按normalized path去重；fingerprint c1586ca4d2c3ca95c98d5c0292eb93fa6b18fe198269adf0aad582dda4701da0；另扫19,743个产品文件的十二个协作合同均为零 |
+
+Editor220刷新Editor43/117/164 Multi-User、Collaborative Editing、Session Replication、Locks、Presence与Transaction Conflict链。Scene route会绑定/解绑DocumentJournalCoordinator，但production append仍明确封闭为测试配置下的append_for_test；bind/read/compact/discover/codec/replayer没有组成transaction commit或startup recovery。UpdateNode与reflected field replay继续直接写after，不验证current==before，也没有qualified wire identity、server sequence、authority或conflict artifact。
+
+远程UiControlRequest仍无principal/session/device/role/capability；InvokeBinding和InvokeRoute直接执行，只有CallAction检查remote gate，而EditorCommandDescriptor构造与serde默认仍把remote-callable设为true。ProjectGuid、manifest digest、preflight、strict codec、local atomic replay、single-root OS lease、net transport与Hub Git contributor projection都是真实底座，但不能拼装成collaborative provider/session/activity/authority/presence/workspace产品。
+
+Editor43保持唯一canonical owner；5项P0全Open，P1为64 Open/6 Partial，12项P2全Open，32门为29 Fail/3 Partial/0 Pass。目标链保持fail-closed remote surface、identity/admission、checkpoint/sequence/store、typed transaction、authority、presence、conflict/reconnect与独立workspace的依赖顺序。本轮只修改review与索引，没有运行Cargo、Editor、server、多进程、fault/security/scale/soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见zircon_editor/220-editor-multi-user-collaborative-editing-session-replication-locks-presence-transaction-conflict-current-source-review.md。
+## 453. Editor Archetype / Class Defaults / Instance Override / Property Propagation / Reset 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored | 本轮证据 |
+|---|---:|---|
+| Zircon Editor / Runtime / Runtime Interface / Prefab Plugin selected | **302 / 54,419 / 49,853 / 1,917,793 / 325 / 0** | 19,619个生产Rust/TOML/ZUI/Zr物理文件的契约扫描；八个authority/record符号与Apply/Revert均为0，ResetToDefault仅16个layout命中；fingerprint `c439430b0c4b508fb6159b3ef3eb2664b488a3ed1d0aa3186807ce34d28a1452` |
+| Unreal / Godot / Fyrox / Bevy / Unity Graphics reference | **43 / 29,307 / 25,491 / 1,079,792 / 41 / 0** | object/class default、component inheritance、property revert、PackedScene、ScenePatch/ResolvedScene、VolumeParameter；fingerprint `2af9073db5f00945682e36751d042d753de3b832fd5f957296a0b2a3126b1239` |
+| 全部选择集 | **345 / 83,726 / 75,344 / 2,997,585 / 366 / 0** | 两组按normalized path去重；Zircon 与 reference fingerprint 分列冻结；另扫19,619个生产文件，八个目标合同为零，ResetToDefault仅命中16个layout reset |
+
+Editor221 刷新 Editor44/118/165 Archetype、Class Defaults、Instance Override、Property Propagation 与 Reset-to-Default 链。`PrefabAsset` 仍为 URI/name/内嵌 `SceneAsset`/exposed string，`PrefabInstanceAsset` 仍为 AssetReference/local transform/override vector，override 仍为 entity path/property path/JSON value。Scene/World 只做 retained metadata roundtrip；`prefab_instance_for_record` 对坏 JSON 返回 SceneProjectError，但没有 source instantiate、effective resolve、stable remap、propagation 或 break。
+
+`prefab_tools` 的 Editor tests 继续证明 writable operation/menu 不存在，runtime importer 继续使用 `DiagnosticOnlyAssetImporter`，并与 builtin `zircon.builtin.toml.prefab` 以同一 `.prefab.toml` matcher 发生 owner 冲突风险；两个物理 ZUI resource path 仍不存在，component identity 与 Scene reserved identity 也不同。主 Editor ZUI 有233行/19 routes、固定PF_Chest/Chest_04/18 children/6 overrides/2 warnings，callback 只返回 queued 文本。
+
+Reflection 的 typed default/range/enum 与新增 `DocumentSourceWriteAuthority` 是可迁移底座，但前者不是 default authority，后者只负责单文件路径 lease 与 expected-bytes CAS，均没有 Prefab revision、provenance、multi-document transaction 或 propagation consumer。参考实现明确提供 Unreal CDO/archetype/component instance data、Godot PackedScene owner/revert、Fyrox inheritable variable、Bevy resolve/apply scene layers 及 Unity overrideState/Undo；Zircon 仍缺同等数据完整度、事务边界与 resolved runtime artifact。
+
+本轮只修改 review、index 与 coverage，没有运行 Cargo、Editor、Prefab instantiate、propagation、reset/apply/revert/break、cook/runtime install、fault/scale/soak、跨平台或跨引擎动态 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_editor/221-editor-archetype-class-defaults-instance-override-property-propagation-reset-current-source-review.md`。
+
+## 454. Editor Cinematic Sequencer / Shot / Track / Binding / Take Recorder / Movie Render Queue 当前源码物理范围
+
+| 范围 | 文件 / 行 / 非空行 / bytes / tests / ignored / dirty | fingerprint |
+|---|---:|---|
+| Editor Sequencer/document/timeline/curve/preview | **50 / 7,829 / 7,368 / 304,381 / 25 / 0 / 48** | `aa4e1dc4a0360ad46b811587b4f64efcaff7ad5b4e5e528f5865e0306996eeeb` |
+| Runtime Animation/compiler/evaluator | **235 / 30,241 / 27,659 / 1,046,667 / 224 / 12 / 107** | `f02b058bd0449750a5d8ff6b37b37705269ec1130b4949acabae71c1d9360a93` |
+| Timeline plugin | **10 / 1,142 / 1,042 / 42,168 / 15 / 1 / 3** | `1a7b3fba4f2a86407bc7fb1fc3b4a4ad0124e01d0a1ad4076fa4b3928f486970` |
+| Camera/capture/RHI/PNG substrate | **33 / 6,020 / 5,443 / 208,614 / 69 / 2 / 20** | `ee5f44a70189765a4cdb2f0b93346a496f9e64baa5ad270cde57342b0bf3f50a` |
+| Zircon union | **328 / 45,232 / 41,512 / 1,601,830 / 333 / 15 / 178** | `280ff91cc0cb204ec16b2392d9b1aec31db093e09cb3dc0bee177a42337b8ff6` |
+| Unreal/Godot/Fyrox/Bevy/Unity reference | **29 / 22,524 / 19,218 / 846,294 / 10 / 0 / 0** | `2aa441a3ae88ed4c7278ee320a6e28187037275846e83309efefdb702f31c01f` |
+
+Editor222 刷新 Editor45/119/166 Cinematic 链：12 个核心电影契约类型在 tracked 与 2,459 个未跟踪生产文件中均为零；Sequencer、Take Recorder、Movie Render Queue 没有 source、instance、session、queue/job 或 artifact owner。当前报告保留 P0 4/1、P1 51/19、P2 12、32 门 27 Fail/5 Partial/0 Pass，不新增 canonical 总账。参考源码按 Unreal MovieScene/Take/MRQ、Godot typed animation/writer、Fyrox UUID/command、Bevy target/event/graph、Unity capture/AOV 分工；本轮只修改 review 与索引，未运行动态验证，Tooling 排除且未查询、轮询、等待或实时跟踪协调器。详见 `zircon_editor/222-editor-cinematic-sequencer-shot-track-binding-take-recorder-movie-render-queue-current-source-review.md`。
+
+## 455. Runtime Support Crates / Contracts / Math / Resource / RHI / WGPU 当前源码物理范围
+
+| 范围 | files / lines / nonempty / bytes / tests / ignored / unsafe | tracked / dirty | fingerprint |
+|---|---:|---:|---|
+| `zr_contracts` | **15 / 866 / 752 / 25,899 / 9 / 0 / 0** | **0 / 15** | `5907307f22dc91c5f90fa4bb88707f18625cd41bba1ff8d91f4289122b28dd15` |
+| `zr_math` | **14 / 1,488 / 1,306 / 44,264 / 24 / 0 / 0** | **0 / 14** | `5486cb7de1fc98399bcdb27ae6956f502e4554c57ee235cd619347cfcd963592` |
+| `zr_resource` | **71 / 14,936 / 13,624 / 513,421 / 175 / 3 / 4** | **0 / 71** | `7f38c33c2796add609b48f4698018e20b86eb61c6f23d1a07392731a1d6e3867` |
+| `zr_rhi` | **39 / 10,737 / 9,686 / 352,010 / 80 / 0 / 0** | **16 / 34** | `6fba3dc1d00c577cd46e4a08fdd6693d3c81f52dfcdae08b55b469fab56a767b` |
+| `zr_rhi_wgpu` | **148 / 43,685 / 40,728 / 1,570,032 / 389 / 0 / 2** | **62 / 143** | `acd62bc6dbbc6988d59d0aac543cf250d6e3a46748b5d4828519063829ba9429` |
+| Zircon union | **287 / 71,712 / 66,096 / 2,505,626 / 677 / 3 / 6** | **78 / 277** | `60c1c22df1af1dada577d6d6e42ba4bb8cbbfdbb046a93274efae1a5d6ebf6ce` |
+| Unreal/Godot/Bevy/Fyrox/Unity reference selection | **16 / 18,284 / 15,453 / 724,419 / 26** | n/a | `5d16e60eaeb3c1d04ff8247869393eb0f739e87d71d2341364d27918d8dc5334` |
+
+Runtime153 对五个 foundation/support crate 完成逐文件物理清单、manifest/tracking/test/unsafe 扫描，并逐段复核 production owner、Runtime/graphics 消费路径和本地五引擎参考。当前最先阻断工程资格的是 clean source/Cargo 不可复现：三 crate 全部 untracked，WGPU production owner 也未跟踪，`zr_contracts` source consumer与manifest图不一致。其后才是裸WGPU绕过、同步且不可用的readback、resource全局authority锁、事件无snapshot/resync、平台durability语义差异、f32到f32伪narrowing与动态space tag等P1/P2问题。
+
+本轮只修改 review 与索引，不运行 Cargo、GPU、device-loss、fault、scale、soak或跨引擎动态benchmark。Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime/101-runtime-support-crates-contracts-math-resource-rhi-wgpu-workspace-boundary-device-lifecycle-product-integration-current-source-review.md`。
+
+## 456. `zircon_runtime_interface` Serialization / Project / Resource / Reflection / World Sync 当前源码物理范围
+
+| 范围 | files / lines / bytes / tests / dirty | fingerprint |
+|---|---:|---:|---|
+| Interface Cargo/build + serialization/project/resource/reflect/world_sync | **156 / 13,581 / 417,420 / 133 / 44 tracked modified + 31 untracked** | `3dcbb4ea632ef0157e1c9023547cfbb7e4da340941bfd769836907f3c1867b5f` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics reference selection | **16 / 6,804 / 390,050 / 44 / n/a** | `e7bb7d4d70d5b24e86632ececc09468fac3d5161ae0e3e3a361708c8f10d7363` |
+
+Interface10 对 Interface02 的五个公共数据域完成当前源码逐文件复核：stable UUID BLAKE3 framing/version/vector、ProjectGuid/manifest digest/launch idempotency、manifest v1-v3 migration 与 OS lease、PersistedAssetReference Project/Builtin 分层、Runtime TypeRegistry full/short path/ambiguity/adapter/internal generation、world query bounded builder 和 generation-carrying result 均是真实底座；但 generic binary 没有 production owner、canonical spool/atomic commit 没有统一 durability，locator/RelPath 仍非跨平台 grammar，legacy identity 没有 redirect/catalog/tombstone，session admission 没有绑定 ProjectIdentity，ReflectionSchemaResponse 隐藏 catalog generation，invalidation/page 没有 continuation/completeness/ack/resync，Editor in-process gateway 仍无界。当前账本为 2 P0 Open、3 P0 Partial；37 P1 Open、16 P1 Partial、1 P1 Closed；6 P2 Open、1 P2 Closed；新增 `I10-P0-01` 与 `I10-P1-01..04` 不与旧条目或 Interface08/09 重复计数。
+
+本轮只修改 review、index 与 coverage，不运行 Cargo、Editor、DLL、GPU、跨进程、跨平台、fault、fuzz、scale、soak 或动态 benchmark；Tooling/Rust 迁移按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime_interface/10-serialization-project-resource-reflection-world-sync-public-data-contract-current-source-review.md`。
+
+## 457. Runtime Host world-query item accounting failure 当前源码物理范围
+
+| 范围 | files / lines / bytes / tests | fingerprint / 状态 |
+|---|---:|---|
+| Host counter + Interface world-sync query/mod + Runtime dynamic frame | **4 / 647 / 21,152 / 0 / uncommitted source changes preserved** | `d489cce6b82f5b0a5b93defd16692b278310448585ac6584e75925287e1483c8` |
+| Open failure artifact | **1 / 约75 / 约4 KiB / 2 historical managed reproductions** | `failure-2026-08-27-world-query-transform-snapshot-item-count.md` remains **open** |
+
+Interface11 复核确认 `WorldQueryResult` 已公开 `TransformSnapshot`，Runtime `dynamic_api/frame.rs` 在 `world_query_item_count` 中按 1 item 处理，但 `zircon_runtime_host/src/foreign_output/item_count.rs:79-93` 的显式 match 仍遗漏该分支，故 Host library compile 仍会在上层测试前触发 E0004。`I11-P1-01` 是当前 failure 的唯一直接 finding；Interface09 P1-040/P1-043 继续拥有重复 counter 与统一 page/cursor 的架构父问题，不重复计数。
+
+本轮只修改 review、index 与 coverage，不修改生产代码，不运行 Cargo、Editor05 viewport、Plugins05 navigation、DLL、Miri、fuzz 或动态 benchmark；Tooling/Rust 迁移按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime_interface/11-runtime-host-world-query-item-accounting-failure-current-source-review.md`。
+
+## 458. Runtime Random Authority / Stream / Checkpoint / Replay / Consumer 当前源码物理范围
+
+| 范围 | files / lines / nonempty / bytes / tests | tracked / modified / untracked / dirty | fingerprint |
+|---|---:|---:|---|
+| Random contracts/kernel/runtime wiring + AI/Particle consumers | **52 / 7,937 / 7,187 / 263,718 / 32** | **19 / 13 / 33 / 46** | `1b9fa8d3abf2a483ffff9b542056bde51d8308566c33ff0a981e64d3b8e1df72` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics reference selection | **10 / 4,102 / 3,473 / 150,286 / 2** | n/a | `e8c2fb9446b5917fbc5279c094f98777158ba69a397db99f5716a9f323c3e2db` |
+
+Runtime154确认2026-08-29 mixed-era random checkpoint failure已经fixed：registry guard内捕获stream entries与一次seed/generation state，保持唯一`registry -> seed`锁序。versioned PCG32、stable owner key、draw index、single mutable lease、65,536 retained cap、canonical checkpoint和next-draw restore都是真实基础；registry slice本身继续保持`source-complete-validation-pending`，不被本报告误写为失败。
+
+工程闭环仍未成立：RandomService相关目录有33个untracked文件且Cargo/source图由Runtime153两项P0阻断；public partial checkpoint可在没有Project/BuildSet/World/clock/schedule/tick admission时构造Runtime；lease Drop无条件commit而fixed transaction可abort；serde wire在capacity检查前构造无界Vec；derivation framing没有独立profile/BuildSet identity；App/Host/Interface production seed/checkpoint命中为0；AI仍用DefaultHasher，Particle CPU/GPU仍为私有LCG/hash；最大checkpoint历史p95为41.934 ms且没有hitch/bytes/cancel预算。
+
+本轮新增9项P1与4项P2，24门为18 Fail/2 Partial/4 Pass；Runtime153 source/Cargo P0、Runtime22 TIME-P1-021..040、Runtime08F AI和Runtime26 Particle canonical条目不重复计数。只修改review与索引，没有修改生产代码，没有运行Cargo、Miri、fuzz、cross-platform replay、GPU parity、fault/scale/soak或动态benchmark。Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime/102-runtime-random-authority-stream-checkpoint-replay-consumer-performance-current-source-review.md`。
+
+## 459. Runtime Clock / Time Policy / World Fixed Step / Timer / Cadence 当前源码物理范围
+
+| 范围 | files / lines / nonempty / bytes / tests | tracked / modified / untracked / dirty | fingerprint |
+|---|---:|---:|---|
+| Clock/time/fixed/timer/cadence + product/adapter/tests | **53 / 12,438 / 11,205 / 438,523 / 102** | **33 / 30 / 20 / 50** | `7320fa4ad3d8622036bdb9155151da7b8eed5d27e9d7031e7562c59eead3a35e` |
+| Unreal/Bevy/Godot/Fyrox/Unity Graphics reference selection | **19 / 17,688 / 15,405 / 647,189 / 28** | n/a | `08ffddccf7822e023402c09520dc540dc6e85f53d3a9a23d6ae7bdcce5d71cdf` |
+
+Runtime155确认Core全局Virtual/Fixed compatibility clock已经hard-cut，Level独立持有Virtual/Fixed/pause/scale/debt，WorldFixedStep不可复制且逐步commit，SimulationTickId、typed TickContext和committed interpolation均是真实基础；旧TIME-P0-001生产根因关闭，TIME-P0-002的clock/debt部分关闭。
+
+当前工程闭环仍失败：untracked `world_time_controller.rs` test调用已删除的`FrameTimeSnapshot::fixed_step_plan()`；frame source sample和Runtime commit分属两锁且并发可重排；Level不拒绝duplicate/stale snapshot；raw delta/budget绕过ProductTimePolicy且digest未进入BuildSet；每个World获得完整预算；fixed abort不回滚World/RNG/effect；replacement只重置interpolation并保留旧debt；discontinuity pending slot覆盖较早cause；custom source倒退静默归零；saturating tick/generation最终重复identity；App cadence不保相位；World gameplay Timer缺失。
+
+本轮新增1项P0、9项P1与3项P2，30门为19 Fail/6 Partial/5 Pass；Runtime22、Runtime154、Runtime99zm和Runtime153 canonical条目不重复计数。只修改review与索引，没有修改生产代码，没有运行Cargo、Miri、loom、fuzz、跨平台replay、fault/scale/soak、WPR/Tracy、功耗或动态benchmark。Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime/103-runtime-clock-time-policy-world-fixed-step-timer-cadence-current-source-review.md`。
+
+## 460. Runtime Diagnostics / Metric Store / Profiling Trace / Config Authority 当前源码物理范围
+
+| 范围 | files / lines / nonempty / bytes / tests / ignored | tracked / modified / untracked / dirty | fingerprint |
+|---|---:|---:|---|
+| Zircon diagnostics/profiling/config + facade/ABI/product consumers | **121 / 22,053 / 20,573 / 738,657 / 140 / 6** | **84 / 41 / 37 / 78** | `cbb5497a644398afce4a5060d32a257c888348810711f10805d598b559f857fa` |
+| Unreal/Bevy/Godot/Fyrox/Unity Graphics reference selection | **13 / 8,685 / 7,499 / 344,216 / 1 / 0** | n/a | `490d5d48aa43a445c83a21c91f1492a69f66d93be92cd1f5d7d95e1085ea5ac4` |
+
+Runtime156确认DiagnosticStore full/current snapshot、render stats拆分与690个静态path、profile capture gate/retention计数/session basename、16 MiB/65,536 items/250 ms foreign output限制，以及ConfigManager dirty generation/debounce/backup/atomic replace/commit fence/flush/report都是真实底座。Runtime03旧P1-4的temporary-clone问题按原命题关闭，旧profile session `..` basename问题也已关闭。
+
+当前authority仍不成立：process-global recorder让所有Runtime session共享控制状态并竞争单mutex，sample无真实thread/process/capture generation，普通scope/frame token可跨reset写入新capture；capture容量无hard max或byte budget。diagnostics query每次向权威store重写约690个render metric，使history/EMA/stale由observer频率决定；snapshot又缺provider generation、collection window、consistency/partial/page。persistent ConfigManager与CoreHandle raw内存写并存，App、Editor、builtin/plugin Animation和Physics仍绕开dirty generation；默认OS-user文件、process-static newest-manager fence也没有多Runtime/多进程共享契约。export同步直写任意output root且无staging/manifest/hash，产品shutdown没有消费config durability report。
+
+本轮新增0项P0、12项P1与6项P2，30门为22 Fail/4 Partial/4 Pass；Runtime02/03/44/45、Interface04、Editor147、Render17与Runtime153 canonical条目不重复计数。只修改review与索引，没有修改production/test/Cargo/ABI，没有运行Cargo、产品进程、Miri、loom、fuzz、fault、跨进程config、Tracy/WPR、soak或动态benchmark。Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime/104-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-source-review.md`。
+
+## 461. Runtime Interface UI Authoring / Accessibility / Input / Diagnostic / Operation 当前源码物理范围
+
+| 范围 | files / lines / bytes / tests | tracked modified / untracked | fingerprint |
+|---|---:|---:|---|
+| `zircon_runtime_interface/src/ui/**/*.rs` | **248 / 32,932 / 1,056,937 / 83** | **69 / 17** | `fdddb3e4de4bee990865d22131af044544ba3ec9710c0274042f92c8cbfe9e1c` |
+| Runtime producer + Host/App/Editor focused consumers | **463 / 92,811 / 3,231,858 / 461** | **196 / 121** | `57b869daa35c98e4409ffc970171033172f7ad2bf4d6c00e049ae4c8bb25a986` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics reference selection | **20 / 15,151 / 539,471 / 30** | n/a | `6d4eed0a7c10ce1941c51bf1d8b9c40cf2acae14759225e0c2dfe2c54344a12b` |
+
+Interface12 对 Interface03 的 UI 公共合同完成当前源码逐文件与跨层调用链复核。可保留底座包括 UI v2 迭代 graph validator、compiled source/compiler/package fingerprint与cache header、tree dirty/incarnation、surface六域generation、16 MiB/65,536 items/250 ms accessibility producer budget、input effect transaction、operation admission/deadline/harvest和Host per-kind metrics；这些局部进展不能替代完整产品合同。
+
+当前主要断链是三套authoring loader/projection/save仍没有lossless CST/unknown/trivia/migration receipt，accessibility capture/action没有observed generation compare且App/Editor无consumer，control仍为path+JSON与unbounded subscription，reflection diff没有revision/sequence，Host side effect没有execution receipt，debug/status family无统一分页/保留/脱敏，公开operation submit/result仍为String+JSON且无cancel。Interface03旧条目当前重判为P0 1 Open/2 Partial、P1 60 Open/12 Partial、P2 10 Open/2 Partial；32门为19 Fail/13 Partial/0 Pass。没有新增唯一finding，根总账只增加报告篇数而保持663 P0、11,346 P1、2,633 P2。
+
+本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，没有运行Cargo、Editor、DLL、GPU、跨进程、fault、fuzz、scale、soak或动态benchmark。Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime_interface/12-ui-authoring-accessibility-input-diagnostic-status-operation-public-contract-current-source-review.md`。
+
+## 462. Runtime Interface Profiling / Plugin Event / Script Diagnostic / Native Manifest 当前源码物理范围
+
+| 范围 | files / lines / bytes / tests | tracked modified / untracked | fingerprint |
+|---|---:|---:|---|
+| Interface profiling/plugin/native/diagnostic直接合同 | **12 / 2,436 / 92,361 / 21** | **5 / 3** | `ed0b93074f0aa89737d8ded815360f306d12a2bb09c91bcfe6a3fbfee02783eb` |
+| Runtime producer + Host/App/Editor focused consumers | **101 / 24,164 / 856,736 / 175** | **49 / 21** | `a7062f2660467526899d4b25ce7f4f825e1c9d99e824530e71effc5c1ef30db2` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics reference selection | **14 / 13,593 / 492,322 / 1** | n/a | `2c805aa50836390d3104a0a1254ff6e2a005453143246eeb201b65ee094b84ce` |
+
+Interface13 对 Interface04 的 profiling、native manifest/host API、dynamic plugin-event mirror 和 script/plugin/native diagnostic 全链完成当前源码复核。可保留底座包括portable hash-qualified profile basename、recorder retention accounting、event producer/queue/page/wire多层budget、pending page commit/rollback、sequence rollover预检、Editor bounded round-robin pump、Host per-kind metrics、native generational context/callback lease和script build EditorLog projection。
+
+当前公共合同仍不合格：profile capacity没有hard max或总bytes/string/duration admission，Runtime仍根据caller `output_root`同步写固定文件；snapshot没有process/session/build/capture/clock/thread/page/digest，Editor仍以最大span ID offset拼接匿名recorder；V4仍为Unsupported/Ok-discard服务暴露non-null slot，module/nested table/entry report也缺独立size/build/fingerprint；public event subscription仍为裸u64，成功batch没有dropped range/overflow/resync/epoch且App丢弃backlog metadata；script/plugin/native diagnostic仍未共享identity、budget和sink。Interface04旧条目当前重判为P0 2 Open/1 Partial、P1 51 Open/9 Partial、P2 9 Open/2 Partial/1 Closed；32门为25 Fail/7 Partial/0 Pass。没有新增唯一finding，根总账只增加报告篇数到231并保持663 P0、11,346 P1、2,633 P2。
+
+结构审计脚本在30秒与60秒有界尝试中均超时，结果记录为unavailable而非Pass；本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，没有运行Cargo、Runtime DLL、Editor、跨进程、fault、fuzz、scale、soak或动态benchmark。Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime_interface/13-profiling-plugin-event-script-diagnostic-native-manifest-public-contract-current-source-review.md`。
+
+## 463. Runtime Interface Project Manifest / Session Admission / Hub Launch / Focus / Recent 当前源码物理范围
+
+| 范围 | files / lines / bytes / tests / ignored | tracked modified / untracked | fingerprint |
+|---|---:|---:|---|
+| Interface project/hub protocol/BuildSet直接合同 | **79 / 5,892 / 202,953 / 47 / 1** | **19 / 47** | `09996d220be23ad5bbf3891f55de7234c0b746e8a8749f8b101e7b5f0b0cca4a` |
+| App/Runtime/Editor/Hub focused consumers | **108 / 16,906 / 609,490 / 191 / 4** | **49 / 37** | `eedd31d6ff37b3b342130cb76e6df0e14d8ca26cb59c08cf72c39e15d0b85174` |
+| 去重当前源码 | **187 / 22,798 / 812,443 / 238 / 5** | **68 / 84** | `fa65e90dcaeb865f3382d24731e4164066f304bd3a139e8f05557c9d0a879fc6` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics reference selection | **18 / 12,678 / 447,122** | n/a | `10e80eb62d797b0090c412edb50992c443c2bf2bf9d108e6c6b02bc3198e2923` |
+
+Interface14对Interface06的manifest partial probe、ProjectIdentity/migration/compatibility、ProjectLaunchIntent、session admission/OS lease/heartbeat、Hub child/Ready mailbox、generation focus request/ack和shared recent projection完成当前源码复核。可保留底座包括4 MiB Editor preflight、canonical descriptor/ProjectGuid/digest、admission前revalidation、typed launch profile/operation、BuildSet/lifecycle/generation record、production heartbeat、Ready-only Hub probe、first-present mailbox、native-owner focus ack，以及recent revision/CAS/logical clock/tombstone/deadline/quarantine/durable replace与post-Ready非阻断写回。
+
+当前组合合同仍不合格：Hub把summary parse命名为Valid且无界读取，summary/focus/ack/recent仍可绕过validated constructor；ProjectIdentity、BuildSet、operation、process creation、admission epoch、generation和deadline未在同一request/commit/receipt中绑定；session record先Ready、activation ledger Session后commit；Ready milestone是fixed-set constructor而非逐项evidence；launch mailbox无byte cap/claim/ack/remove，publisher自建focus inbox，malformed claim无回收；recent仍以lossy path为identity、无product/profile/BuildSet namespace，而且Interface直接拥有filesystem lock/quarantine/atomic store业务算法。
+
+Interface06旧56项P1当前为20 Open/25 Partial/11 Closed，14项P2为8 Open/6 Partial；36门为14 Fail/14 Partial/8 Pass。没有新增唯一finding，根总账只增加报告篇数到232并保持663 P0、11,346 P1、2,633 P2；Editor172/51五项项目生命周期P0继续由Editor唯一拥有。
+
+本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，没有运行Cargo、Hub、Editor、真实双进程、kill/crash、跨平台、ACL、fuzz、scale、soak或动态benchmark。结构审计沿用此前30秒与60秒有界超时的unavailable结论，不等待该阻塞；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime_interface/14-project-manifest-session-admission-hub-launch-focus-recent-cross-process-contract-current-source-review.md`。
+
+## 464. Runtime Interface Contract Certification / ABI Layout / BuildSet / Real DLL / Skew / Cross-Language / Corpus / Fuzz 当前源码物理范围
+
+| 范围 | files / lines / bytes / test attrs / ignored | tracked / modified / untracked | fingerprint |
+|---|---:|---:|---|
+| Interface直接认证面 | **152 / 37,372 / 1,302,838 / 586 / 7** | **88 / 65 / 64** | `f373ecd675e44cbf3260c7e444ac9a5ae99541cfbaf997c75b0ef57790406ca7` |
+| Runtime/Host/App/Editor/CI focused消费者 | **154 / 36,155 / 1,312,598 / 372 / 17** | **122 / 67 / 32** | `a5a99c822b3769080b02eaffeb68516ec547d85776c4b9510abd137dd71d9efc` |
+| 去重当前源码 | **306 / 73,527 / 2,615,436 / 958 / 24** | **210 / 132 / 96** | `d49c5646d5801d8196e5f61c43ea172fe899a51a221cb6fb13546f5b1bc41a62` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics reference selection | **18 / 17,503 / 613,618** | n/a | `a9d04f7a5d7b2f559a36792d57307fd45901cfbb56ca2a289d4a356b05737c96` |
+
+Interface15对Interface07的Contract Certification、ABI layout、BuildSet、真实DLL、version skew、cross-language、golden corpus、property/fuzz和release qualification全链完成当前源码逐文件复核。InterfaceSpec slot catalog、BuildSet artifact sidecar、target/digest/capability identity、App pre/post-load校验和Windows source-bound staged F5是真实进展；但完整ABI AST/C header/layout/export diff、external host/all-slot/unload/fault、N/N-1 artifact matrix、非Rust consumer、property/fuzz、immutable corpus和release receipt仍未闭合。旧1项P0、48项P1、12项P2当前重判为P0 1 Partial、P1 26 Open/22 Partial、P2 12 Open，32门为16 Fail/16 Partial/0 Pass；没有新增唯一finding，根总账保持663 P0、11,346 P1、2,633 P2。`abi_safety_contracts.rs`仍要求build script中的V7 expected version而实际generator固定V8，`boundary.rs`的dependency/build-dependency allowlist也与当前Cargo漂移；586项Interface测试、7个crate内ignore和17个focused ignore不能替代发布资格。参考源码18个文件覆盖Unreal BuildId/module manifest/test taxonomy、Godot schema/header/C compatibility、Bevy compile-fail lane、Fyrox dylib reload边界和Unity Graphics API validation/serialization compatibility。本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也没有运行Cargo、真实DLL、C/C++ consumer、unload/reload、child-process fault、sanitizer、fuzz、跨版本、跨平台或动态benchmark；Tooling/Rust迁移按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime_interface/15-contract-certification-abi-layout-buildset-real-dll-skew-cross-language-corpus-fuzz-current-source-review.md`。
+
+## 465. Editor Project Operations / Source Control / Changelist / Diff / Automation / Validation / Submission Gate / Health Dashboard 当前源码物理范围
+
+| 范围 | files / lines / bytes / test attrs / ignored | tracked modified / untracked | fingerprint |
+|---|---:|---:|---|
+| Editor项目操作、project authority、commandlet、retained host、Build Export、Plugin Manager、Project Overview与五张production workspace | **257 / 38,795 / 1,454,539 / 300 / 27** | **97 / 46** | `d48596c772fea7f4288aa53303a87f88c6f5a0a89ba63aab1d65721af69b7eaa` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics reference selection | **28 / 13,510 / 473,967** | n/a | `2bd863958b76a1d697029ec7e53bf87eb481e2d075968dcf67427779e947` |
+
+Editor223是Editor85/27的当前树重判，不新增唯一finding。五张production workspace仍含固定`CL_2048`、`642 tests / 7 failed / 3 flakes`、`NebulaGame / Healthy / 72%`和queued action反馈；extension index与Assets Workspace仍可达。Project preflight/manifest、retained-host callback/journal、Build Export queue/cancel/progress、Plugin status/native registration是可保留底座，但`ProjectManifest`没有repository/workspace/source revision或ValidationSet，`ProjectOverviewSnapshot`仍只有八字段，生产树仍零命中`SourceControlProvider`、`RepositoryIdentity`、`WorkspaceRevision`、`ValidationSet`、`SubmissionCandidate`、`SubmissionAdmissionReceipt`与`ProjectOperationsSnapshot`。旧P0/P1/P2/gate状态分别为5 Open、55 Open/5 Partial、12 Open和30 Fail/1 Partial/1 Pass。
+
+本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也没有运行Cargo、Editor、真实repository/provider、diff/stage/resolve/submit、worker、artifact store、build/sign/release、fault、scale、soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/223-editor-project-operations-source-control-provider-workspace-changelist-diff-automation-validation-submission-gate-health-dashboard-current-source-review.md`。
+## 466. Runtime Core Module Lifecycle / Registry / Service Resolution / Activation / Shutdown 当前源码物理范围
+
+| 范围 | files / lines / bytes / test attrs / ignored | tracked modified / untracked | fingerprint |
+|---|---:|---:|---|
+| Runtime CoreRuntime lifecycle、descriptor/frozen graph、activation、registration、resolution、state、behavior tests、App EngineEntry、runtime-library/dynamic session | **99 / 18,253 / 716,286 / 143 / 2** | **28 / 8** | `a4e58145352ddae23e871d17ff2d303797417db5260646e6f4cfa6993bddf713` |
+| Bevy/Fyrox/Godot/Unreal lifecycle reference selection | **8 / 12,658 / 469,610** | n/a | `fdb09b2eedf7b6c82e66daf294a847545403d0f95c3748df3a37e3f84febd9ab` |
+
+Runtime157刷新Runtime01但不新增唯一finding。当前源码已加入FrozenModuleGraph、module activation/dependent closure、service dependency validation/topological shutdown order、generation-bound ServiceHandle/ServiceCallGuard、in-flight drain、prepare-before-veto、LifecycleCoordinator、reentrant/invalid-transition errors和dynamic-session `shutdown_registered_modules_with_drain_timeout`。仍缺普通EngineEntry唯一owner-managed shutdown、跨module atomic lifecycle receipt、service独立teardown contract、event-driven readiness、裸Arc API硬切和observer token set。旧3/5/4项当前重判为P0 0 Open/2 Partial/1 Closed、P1 2 Open/1 Partial/2 Closed、P2 2 Open/2 Partial；本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也未运行Cargo、真实DLL、reload、fault、loom、scale、soak或动态benchmark。详见`zircon_runtime/157-runtime-core-module-lifecycle-registry-service-resolution-shutdown-current-source-review.md`。
+
+## 467. Runtime Core Events / Tasks / Timer / Event Bus / Task Graph 当前源码物理范围
+
+| 范围 | files / lines / bytes / test attrs / ignored | tracked modified / untracked | fingerprint |
+|---|---:|---:|---|
+| Runtime events、tasks、task graph、timer、callback dispatcher、bounded I/O、framework contracts、dynamic session、graphics/Navigation/Platform/asset/operation consumers | **111 / 22,709 / 783,043 / 219 / 22** | **34 / 55** | `e1911720c3b472a2ac7d4fc5fbada54274a334d23ee893af48210fde90f63361` |
+| Bevy/Godot/Unreal/Fyrox task, message and lifecycle reference selection | **8 / 8,223 / 306,737** | n/a | `d9527429640b8e54f4ab338a14e4723f56b854a4edcf9f8164eb87124dfcb6b7` |
+
+Runtime158刷新Runtime02但不新增唯一finding。EngineTaskGraph已经形成runtime-owned compute worker、TaskGraphScope admission、TaskDescriptor/TaskStatus、取消策略、依赖终态和超时重试；bounded keyed/stream I/O具备容量/bytes/deadline/fence，部分graphics、Navigation、Platform生产构造器改为注入式pool，EventBus具备Lossless/drop-oldest/latest policy与诊断采样，Timer具备512 registration limit、取消和tick coalescing。仍有`TaskPools::process_default`、`TaskTimer::process_default`、`TaskCallbackDispatcher::process_default`进程静态owner，generic `spawn -> ()`/closing panic，Lossless无界与publish无receipt，String+JSON事件混合frame/control/ABI，timer panic无统一failure/owner/late-by，以及worker/timer/callback/dedicated线程不在同一shutdown census。旧Runtime02重判为P0 1 Open、P1 2 Open/4 Partial、P2 2 Open/2 Partial，12门为8 Fail/4 Partial/0 Pass。本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也未运行Cargo、真实DLL unload/reload、fault、fuzz、scale、soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_runtime/158-runtime-core-events-tasks-timer-event-bus-task-graph-current-source-review.md`。
+
+## 468. Editor Runtime Diagnostics / Performance Timeline / Console / Telemetry / Observability 当前源码物理范围
+
+| 范围 | files / lines / nonempty / bytes / test attrs / ignored | fingerprint |
+|---|---:|---|
+| Workbench diagnostics workspace、HUD/index、navigation/feedback | **8 / 2,244 / 1,992 / 128,249 / 0 / 0** | `53fa4fa75886ea8a3b19f419243dddf24f7e05c26e1e55780874e00033777af0` |
+| Editor gateway、descriptor、pane、profiling、visibility、reflector | **34 / 6,070 / 5,603 / 216,573 / 48 / 5** | `8d484f19f420e6bbec191ab2cd75ed2ddcd2a1fccc90b6d15a3db798f51af9a7` |
+| Runtime diagnostics/profile、dynamic ABI、Interface/Host output contract | **88 / 15,248 / 14,446 / 502,465 / 103 / 5** | `7f27ff147d0bf8fd01e01ce4f5d116cd5619eac7d4572cf07b5b33604c85d6a2` |
+| `runtime_diagnostics` plugin | **9 / 436 / 395 / 16,128 / 4 / 0** | `cb829cb8247c46a3072eb768ea6dfd3073fb32b2acf7c132d477aa375be1a4e7` |
+| focused Editor host/pane/template tests | **17 / 5,090 / 4,806 / 189,358 / 49 / 0** | `c004c0c3230deafc9b368c776590a9bd7e864aa9570284d039b5225aa15fc5be` |
+| selected union | **156 / 29,088 / 27,242 / 1,052,773 / 204 / 10** | `f0caa552d45dfb797bca506238b6479cb98f415c3427a4b83bbd89653fdeffee` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics reference selection | **17 / 11,021 / n/a / 406,228 / n/a / n/a** | `0ce2b476d82e5af7933cccca8cb89ca51ed4cff958e22307c13a7034b2e920d0` |
+
+Editor224刷新Editor99/25但不新增唯一finding。Runtime已具有bounded series/history、current snapshot、profile rings/retention、typed export error和child `RuntimeDiagnosticsSnapshot` producer；Editor已具有builtin descriptor、visibility gate、pane payload、timeline visible-row conversion与profile controls。当前断链仍在产品authority：Editor只消费child profile而不消费child diagnostic series，四张production workspace继续固定Session/Frame/Actors/DAU/Crash Rate并返回queued反馈，ProfileSnapshot无source/process/clock/generation且通过span-id offset/vector append伪合并，timeline producer对frames/spans/hotspots各取12行，presentation同步full clone/analysis/FFI，DiagnosticStore允许任意字符串隐式建series且无全局cardinality/bytes/owner/finite admission，Telemetry provider/schema/consent为零命中，plugin同时存在builtin view id冲突和missing authoring resource。旧finding当前重判为P0 5 Open/1 Partial、P1 54 Open/5 Partial/1 Closed、P2 11 Open/1 Partial，32门为28 Fail/4 Partial/0 Pass。
+
+本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也没有运行Cargo、Editor、Runtime DLL、真实多进程capture、断线恢复、百万事件timeline、Perfetto回放、artifact collision、Telemetry backend、privacy、fault、scale、soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/224-editor-runtime-diagnostics-performance-timeline-console-telemetry-observability-current-source-review.md`。
+
+## 469. Runtime Stable Identity / Handle / Generation / Owner Epoch / Stale Reference / Exhaustion 当前源码物理范围
+
+| 范围 | files / lines / bytes / test attrs / ignored | tracked modified / untracked | fingerprint |
+|---|---:|---:|---|
+| Interface resource/project/session/world-sync，Runtime Scene/ECS/World/Core service/event/dynamic session/operation/render graph/RHI/script/graphics/UI，App runtime library与Editor gateway/sync/play消费者选择集 | **1,910 / 290,258 / 10,352,311 / 2,622 / 0** | **1,346 / 359** | `2c4f248732c804fc05b6b2c9fc1bab6dc8ac6ce882bdb281e90c504b4a2f65b9` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics identity/reference selection | **13 / 9,493 / 349,455 / 66 / n/a** | n/a | `63048d941d4e07062fda2fcf97fa7d8c2580b65ad68bfaa5b83cdc2e2bdace49` |
+
+Runtime159刷新Runtime24但不新增唯一finding。当前源码已经实现versioned BLAKE3/UUIDv8 stable ID、统一fallible Scene EntityId allocator、ECS checked slot capacity与generation永久退休、RHI allocator/device/device-generation/kind/slot-generation qualification、session/Level checked exhaustion、ServiceHandle generation/lease以及Script host局部边界测试。仍缺公共identity taxonomy与manifest，`EntityId`继续混合persistent/authoring/live语义，`WorldHandle`和公开ABI token仍裸，World/archetype/message/observer/UI allocator仍有saturation、wrap、panic或别名复用；ProjectIdentity admission、WorldSnapshotKey、persistent-to-live remap、统一resolve error、teardown receipt、legacy UUID migration、外部trust边界和跨allocator conformance/metrics也未闭合。旧40项P1重判为8 Closed、17 Partial、15 Open，12项P2全Open；24门为10 Fail、9 Partial、5 Pass。
+
+本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也没有运行Cargo、Editor、Runtime DLL、旧项目迁移、跨进程session、device-loss、fault、fuzz、scale、soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_runtime/159-runtime-stable-identity-handle-generation-owner-epoch-stale-reference-exhaustion-current-source-review.md`。
+
+## 470. Runtime Filesystem / Path / URI / VFS / Mount / Watch / Sandbox / Atomic I/O 当前源码物理范围
+
+| 范围 | files / lines / bytes / test attrs / ignored | tracked modified / untracked | fingerprint |
+|---|---:|---:|---|---|
+| Runtime resource I/O、asset project/watch/pipeline、Interface resource、Hub projects、Editor project/recovery、App runtime-library focused selection | **327 / 50,584 / 1,774,856 / 486 / 20** | working tree mixed; review-only | `b7f5f64a0525a11346c2e1d80c4d4f6691a98a7aeb2e09d9424ec4b3606ecf29` |
+| Unreal、Bevy、Fyrox、Godot、Unity Graphics reference selection | **16 / 6,984 / 279,714** | n/a | `b90d0104917155a9a36d6b36ed1a03137c0e93ec8b95bc33caf022b39425629` |
+
+Runtime160 刷新 Runtime25 的 Filesystem、Path、URI、VFS、Mount、Watch、Sandbox 与 Atomic I/O 当前源码。ProjectPaths 双路径、root admission、symlink/reparse 拒绝、durable transaction、bounded watcher 与 project generation 是可保留底座；sealed `ResourceIo`、未注册 `AssetIoDriver`、direct-fs 绕过、host-dependent locator、lossy URI、TOCTOU/hard-link、mount lifecycle、rename pairing/reconciliation、统一错误与 telemetry 仍未闭合。旧 Runtime25 的 40 项 P1 当前为 33 Open/7 Partial/0 Closed，12 项 P2 全 Open，20 门为 15 Fail/5 Partial/0 Pass；不新增唯一 finding。本轮只修改 review、index 与 coverage，不修改 production/test/Cargo/ABI，也未运行 Cargo、Editor、DLL、跨进程、fault、fuzz、scale、soak 或动态 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 `zircon_runtime/160-runtime-filesystem-path-uri-vfs-mount-watch-sandbox-atomic-io-current-source-review.md`。
+
+## 471. Editor Document / Transaction / Save / Autosave / Recovery / Authoring I/O 当前源码物理范围
+
+| 范围 | files / lines / nonempty / bytes / test attrs / ignored | fingerprint |
+|---|---:|---|
+| core editing/document/dirty/toolkit/recovery/project/settings owner | **242 / 40,792 / 37,001 / 1,393,204 / 331 / 14** | `8ed3f634537e31c18afd4dc47546e1b1c2ac59b47c276c63cd57cbecd23b0b82` |
+| host/session/save/autosave/project integration | **237 / 50,784 / 46,915 / 1,827,845 / 276 / 60** | `ea90d7cfbe294e2a8a0f4ec98fdf82785227baf7e09b6a2aa9f5ef0cfdbaaf7c` |
+| retained-host/workbench close/save/startup integration | **15 / 3,652 / 3,481 / 148,776 / 20 / 0** | `ff47d307bf023debbfff455ffed685ee6a20bcb4ebb378cfc80baceda62bf721` |
+| focused transaction/host/animation/UI close-save tests | **24 / 5,401 / 4,845 / 183,734 / 116 / 0** | `e25ba4863a44e3eb53f58888470820d60773fb2e257fcc7b38d6e40b16605cac` |
+| deduplicated selected union | **518 / 100,629 / 92,242 / 3,553,559 / 743 / 74** | `17c146852954b75a8e131ab89c2343762e5c3e6c4a654395f3e1b5f99f884664` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference selection | **13 / 19,435 / 16,845 / 763,886 / n/a / n/a** | `2c20db524f5215fdb6abf207be9bc81eea6d0e4437681e82ac973b74da1b1271` |
+
+Editor225 刷新 Editor02 的 Document、Transaction、Save、Autosave、Recovery 与 Authoring I/O 当前源码。Close Project/main exit、Save All、atomic canonical write、animation document history、retired autosave、source/snapshot digest freshness、recovery decision/executor、catalog isolation与session heartbeat/release形成可保留底座；tab close/layout reset仍绕过dirty decision，foreground save仍同步`ticket.wait()`，UI asset保留私有无界undo，core history无byte budget，production journal append仍test-only，autosave只按request struct估算bytes且在worker捕获mutable document，Save As/source-control与persisted-but-projection-failed终态仍缺失。旧Editor02当前重判为P0 1 Open/1 Partial/3 Closed、P1 13 Open/9 Partial/8 Closed、P2 4 Open/2 Partial/2 Closed，16门为7 Fail/8 Partial/1 Pass；不新增唯一finding。底层filesystem/provider、secure-open、TOCTOU和non-Windows scene path后果由Runtime160拥有。本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也未运行Cargo、Editor、真实窗口、child process、source-control、fault、kill、scale、soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_editor/225-editor-document-transaction-save-autosave-recovery-authoring-io-current-source-review.md`。
+
+## 472. Runtime Core Resource / Asset / Serialization / Load / Artifact / Pack / Persistence 当前源码物理范围
+
+| 范围 | files / lines / nonempty / bytes / test attrs / ignored | fingerprint |
+|---|---:|---|
+| Core resource authority / interface | **93 / 17,310 / 15,701 / 591,902 / 203 / 4** | `a36a091dd5d36c6039c2a1ba485ffccf5f889ada5f14143bb208813940ac368f` |
+| Full Runtime asset system | **692 / 133,844 / 122,464 / 4,703,967 / 1,350 / 108** | `14b3b6ed7be7f00e09367c51887a35d9da0ce01d757101ec3a2043914b760401` |
+| Runtime / Editor / App product consumers | **269 / 102,894 / 95,729 / 3,827,984 / 1,000 / 35** | `cdfb0659e1fc3199dce63ff6c1939623b138348ead8acdb714d8bf7e2ce26ef7` |
+| Deduplicated Zircon union | **1,053 / 254,001 / 233,850 / 9,121,606 / 2,553 / 147** | `113fa6557b5a2dfa6e5fdc034d75801d500f861b58ac65cefe7d9e8f5f9703f1` |
+| Unreal / Godot / Bevy / Fyrox / Unity Graphics reference selection | **35 / 45,536 / 39,546 / 1,684,211 / n/a / n/a** | `39f51c6276204aa75c4edd5eb4984aab00751a4bc4b43f85a5edb2206052f54e` |
+
+Runtime161 刷新 Runtime04 的 Core Resource、Asset、Serialization、Load、Artifact、Pack 与 Persistence，但不新增唯一finding。项目recovery、registry load-or-rebuild、candidate generation、durable transaction、snapshot/lease、immutable registry generation、render semantic manifest、subasset fail-closed和pack source-change detection是真实底座；exact type/schema identity、generic async load、typed dependency/SCC、cook-qualified artifact、通用semantic streaming、active/candidate/last-good reload、真实source migration、mountable/signed/crash-safe bundle和100K/1M scale资格仍未闭合。旧Runtime04的11项P1当前重判为7 Open/3 Partial/1 Closed，1项P2为Partial；9门为4 Fail/5 Partial/0 Pass。Runtime64/85/86/87/88/99w等专项P0只继承引用，不重复计数。本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也未运行Cargo、Editor、产品进程、fault、fuzz、scale、soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_runtime/161-runtime-core-resource-asset-serialization-load-artifact-pack-persistence-current-source-review.md`。
+
+## 473. Runtime Scene / ECS / World / Level Lifecycle 当前源码物理范围
+
+| 范围 | files / lines / nonempty / bytes / test attrs / ignored / unsafe lines | fingerprint |
+|---|---:|---|
+| Runtime Scene 全树 | **1,167 / 133,180 / 121,051 / 4,839,291 / 1,291 / 0 / 205** | `130464fd1ba5f5502cc052908cbd01140e3483dbd67a6f0555d8737a7aa5ced1` |
+| Scene framework / world-sync / reflect contracts | **46 / 2,738 / 2,442 / 82,332 / 9 / 0 / 0** | `c2179755043d41b76f1051093cf93253370105e6c81671cbddbba850cce92e2b` |
+| Editor Scene / gateway / Play consumers | **224 / 24,442 / 22,087 / 825,893 / 220 / 0 / 65** | `ab7330e4bc6812a2b26c41ca3518d26dc7cc2599657baf258451e96b9a5219df` |
+| Dynamic API / App / scene asset-project I/O product boundary | **401 / 76,449 / 70,080 / 2,814,066 / 997 / 0 / 426** | `677b9176f7920329409821e3ca73137ed41d8ca34d740384f1cc09f29e06c0b9` |
+| Deduplicated Zircon union | **1,838 / 236,809 / 215,660 / 8,561,582 / 2,517 / 0 / 696** | `297b31667668a0127697bb8c48790860be1b7c0810dc6306141a234cc4d096ae` |
+| Unreal / Bevy / Fyrox / Godot / Unity Graphics reference selection | **38 / 56,268 / 47,701 / 2,216,175 / n/a / n/a / n/a** | `14300e2be65652da4cb7bb1a13704aad2dee1394303b8a14da084a779fbd8e29` |
+
+Runtime162 刷新 Runtime05 的 Scene、ECS、World 与 Level 生命周期，但不新增唯一finding。archetype/sparse/compiled query/change tick、deferred structural barrier、replacement epoch、bounded inspection、DynamicScene migration、Play domain link、derived frontier、render dirty journal和mesh-render component delta是真实底座；public live identity仍是无World/epoch/generation的裸`u64`，World clone/serde仍按固定built-in map决定数据守恒，真实World Query/Res系统不能worker并行，逐类型schema/migration、column capture、paged query、普通Events硬预算、partition streaming、session产品consumer、observer isolation和100K/1M资格仍未闭合。旧Runtime05的12项P1当前重判为8 Open/4 Partial/0 Closed，2项P2全Open；7门为4 Fail/3 Partial/0 Pass。Runtime60的Query alias与removed retention、Runtime63的registration atomicity出现源码修复候选，但仍由原owner独立重判，不在本报告重复计数或关闭。表中fingerprint是成文时冻结快照；静态验收期间Scene工作树继续漂移，实施前必须重取current source。本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也未运行Cargo、Editor、产品进程、Miri、loom、fault、fuzz、scale、soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见`zircon_runtime/162-runtime-scene-ecs-world-lifecycle-current-source-review.md`。
+
+## 474. Runtime Platform / Input / Process Host 当前源码物理范围
+
+| 范围 | files / lines / nonempty / bytes / test attrs / ignored | dirty | fingerprint |
+|---|---:|---:|---|
+| Platform / window production | **136 / 13,520 / 12,313 / 471,005 / 14 / 4** | **114** | `79cc1a17a85aaf1220b394fa3a2af122d992a586cbfc7cf14a5965bc749070a2` |
+| Input production | **72 / 6,095 / 5,420 / 200,137 / 36 / 11** | **41** | `5b66766b72e1a524275661bd7b993e8bae2b8f840c6a7ee168a8ccc32e7249a8` |
+| App product host | **91 / 7,354 / 6,695 / 267,023 / 111 / 0** | **59** | `1183ef05ec42d121b417713a65968adfeca49f3d3660994c10f5e02c8353e4ae` |
+| ABI / dynamic session / script chain | **17 / 6,537 / 6,097 / 244,849 / 43 / 1** | **16** | `6b07c99d10cbeddf686a63d560e65646ccffb57497269c125ac9d4bd9b647f8d` |
+| Process / stream chain | **59 / 13,624 / 12,393 / 462,985 / 125 / 5** | **49** | `185ac8ec84d2e903d52738d2fb8ce1f2e5ff7da041fd4b93154b98ea5d25cfc7` |
+| Focused tests | **92 / 14,732 / 13,625 / 532,382 / 294 / 1** | **42** | `450305498ace67e5397715720203353b9ecedb9fd02b56b67f6334f7604515e4` |
+| Unreal / Godot / Bevy / Fyrox / Unity Graphics reference corpus | **16 / 7,962 / 6,762 / 322,735 / 4 / 0** | **0** | `28449c87eadf09d27d45a9b7612e1861cea5601697f13cec47e3d32a483bb74e` |
+
+Runtime163 刷新 Runtime06 的 Platform、Input 与 Process Host，但不新增唯一finding。Runtime PlatformDriver新增的typed window/display/lifecycle/surface/command/scheduler和observed capability、App suspend/destroy/exiting teardown、physical-before-UI、Runtime11 shared bounded stream、Export 256 KiB tail及Play process-tree containment是真实底座；但App没有安装/发布Runtime platform host，仍使用单window、固定viewport 1和无window/device/user/time/sequence的V1 event。InputDriver仍为空，manager无backend lifecycle，逐样本ABI、单Mutex、晚期coalescing、raw-key gameplay、无产品action/replay仍在；Play/Export与其他caller也没有收敛到common ProcessSupervisor和shared stream terminal contract。旧Runtime06的12项P1当前重判为7 Open/5 Partial/0 Closed，2项P2为1 Open/1 Partial；10门为6 Fail/4 Partial/0 Pass。Runtime99q/99r五项P0和Runtime11 failure只记录源码候选状态，继续由原owner复核。成文后的静态验收观察到`zircon_runtime/src/dynamic_api/session/error.rs`再次写入，冻结fingerprint实施前必须重取。本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也未运行Cargo、App、Editor、真实窗口/设备、跨平台、input/process storm、fault、scale、soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime163](zircon_runtime/163-runtime-platform-input-process-host-current-source-review.md)。
+
+## 475. Runtime Script / Plugin Runtime 当前源码物理范围
+
+| 范围 | files / lines / nonempty / bytes / test attrs / ignored | fingerprint |
+|---|---:|---|
+| Catalog / composition / project plan | **450 / 21,498 / 19,592 / 770,632 / 157 / 21** | `5aa0fa3ffbe07080daaddb96468d56c98215cea41c82b9d00042b9cdf4cb442d` |
+| Native ABI / discovery / live host | **114 / 31,190 / 28,461 / 1,121,685 / 346 / 35** | `b13ac5b23f3495807b50273d4406b23934dd1d9889388534ab70c90c011acc05` |
+| Runtime VM / script host / scene | **118 / 22,177 / 20,256 / 769,544 / 201 / 9** | `aa40d535b0debb14daee6ddbaf079384e7bbe00e2885feba2b046de82612bdc6` |
+| First-party ZrVM plugin | **38 / 5,367 / 4,911 / 190,779 / 46 / 1** | `4f35d10e042364ca1df13bd1e16c40827abf9136ab24c0f1f686421381bda798` |
+| Product tests / examples | **61 / 8,903 / 8,281 / 344,654 / 143 / 10** | `5e311955cbb99437af49aba8d74fb5a0f44ae5cbb39837ddc6c8eccd1e2f29ca` |
+| Unreal / Godot / Bevy / Fyrox / Unity Graphics reference corpus | **16 / 12,526 / 10,786 / 457,780 / 19 / 0** | `ec2e7c383525b97e4619541f42b05d20a227ee7696f1e40619649daf711be29c` |
+| Selected production dedup | **273 / 60,151 / 54,946 / 2,136,902 / 600 / 45** | `5a9dc232c34f2b8a070ea3318c1770779c5a8401df593f5e3b63bdf2ae776312` |
+
+Runtime164刷新Runtime07的Script与Plugin Runtime，但不新增唯一finding。typed `PluginCatalogGeneration`、candidate/prepared CAS publication、`CompiledProjectPluginPlan`、App composition/dynamic-session pin、native callback admission/library lease与host-owned bounded command output、VM state/schema/reflection rollback、cooperative GC、panic-safe instance restore和scene三回调是真实底座；但catalog/native/VM/bridge/world仍有平行authority，跨package/backend/contribution发布不失败原子，resolver/trust/signature/isolation、ABI schema/conformance、ZrVM多domain、per-slot call lease、fuel/deadline/memory/host-call预算、完整scene lifecycle、stable binding identity、typed aggregate marshalling、debug/source-map/profiler、verified package artifact和产品资格均未闭合。旧Runtime07的14项P1当前重判为7 Open/7 Partial/0 Closed，2项P2为1 Open/1 Partial；16门为10 Fail/6 Partial/0 Pass。当前dirty `zircon_plugins/plugin_sdk/src/native.rs` 的V3同名自引用别名只登记为Plugins01 owner下静态build blocker candidate，不重复计数或冒充Cargo认证。冻结后工作树继续漂移，实施前必须重取fingerprint。本轮只修改review、index与coverage，不修改production/test/Cargo/ABI，也未运行Cargo、App、Editor、真实ZrVM/native DLL、fault、security、scale、soak或动态benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime164](zircon_runtime/164-runtime-script-plugin-runtime-current-source-review.md)。
+
+## 476. Runtime WOC Progression / Inventory / Item / Economy / Crafting / Quest / Talent 当前源码物理范围
+
+| 范围 | files / lines / bytes / test-main | fingerprint |
+|---|---:|---:|---|
+| `examples/woc/scripts/woc_game/src/progression` 全量 | **101 / 11,844 / 487,097 / 46** | `8b4719502c74095c101745ea6fc027834360f8e638131564e5d4f54539df022a` |
+| progression 非 test-main | **55 / 11,158 / 457,914** | same source freeze |
+| progression 从 `world/state.zr` 普通 fixed-tick 可达 | **15 modules** | same source freeze |
+| 不可达非 test-main 核心 owner | **40 modules** | same source freeze |
+| `world/state.zr` | **66,105 / 3,298,500 bytes** | working-tree mixed |
+| Unreal / Bevy / Godot / Fyrox / Unity Graphics reference selection | **11 files** | n/a |
+
+Runtime165 刷新 Runtime14 的 WOC Progression、Inventory、Item、Economy、Crafting、Quest 与 Talent 当前源码，但不新增唯一 finding。当前目录有 101 个 `.zr`、55 个非 test-main 模块，普通 fixed-tick 仅到达 15 个模块，bank/trade/market/quest/item-instance/crafting/talent commit 等 40 个 owner 不可达；66,105 行 `WorldState` 仍承担实际 progression scalar authority。`main.zr` 只委托 fixedTick/save/restore/stateSchema/lifecycleSelfTest，native server/headless 入口只输出 identity report，生产 native 没有 `WocProjectVm` 实现，因此没有可证明的 server/client/headless progression 执行、原子 transaction、save/reload、replication 或 parity 闭环。旧 Runtime14 当前重判为 6 项 P0 Open、64 项 P1 Open、15 项 P2 Open，16 门资格全部 Fail；本轮只修改 review、index 与 coverage，不修改 production/test/Cargo/ABI，也未运行 Cargo、ZrVM/native DLL、真实多进程、fault、fuzz、scale、soak 或动态 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime165](zircon_runtime/165-runtime-woc-progression-inventory-item-economy-crafting-quest-talent-current-source-review.md)。
+
+## 477. Editor Asset Workspace / Content Browser 当前源码物理范围
+
+| 范围 | files / lines / bytes / test attributes / ignored | fingerprint |
+|---|---:|---|
+| `zircon_editor` Asset Browser、Asset Activity、asset core/index/import/refactor、catalog/details/preview manager、asset event/binding、workspace state、pointer/tree/drag 与 refresh 相关 focused source | **137 / 23,220 / 836,862 / 186 / 15** | `2385ab34192d6f39845de287900a3d10a1e3e9063e6ab8d4be92539ae9c5af09` |
+| Unreal / Godot / Fyrox / Bevy / Unity Graphics reference selection | **10 files** | n/a |
+
+Editor226 刷新 Editor57 的 Asset Workspace / Content Browser。当前真实底座包括 catalog/resource generation、AssetManager publish gate、preview/import admission、Runtime-owned delete/relocation ticket、referencer delete preflight 和 ProjectAuthority active-scene reload ticket；但独立 Browser 的 content rows 仍为4条硬编码 ZUI，pointer click 只发 `SelectItem`，Locate 没有 target identity，Activity/Browser共享可变 state，exact `AssetTypeId` 在 `ResourceKind` projection 处丢失，source/provider capability、instance history/multiselect/lazy tree、Create/Rename/Duplicate/Reimport/bulk/collections、qualified mutation receipt 与端到端 activation 仍未闭合。旧 ED57-P0-01 的直接场景替换描述已被当前 ticket/generation/dirty-policy 路径部分取代，转为 Editor61/225 gate；ED226 当前保留3项入口/identity P0，P1/P2和资格门按报告重判为Open/Partial混合。本轮只修改 review、index 与 coverage，不修改 production/test/Cargo/ABI，也未运行 Cargo、Editor、真实文件 mutation、plugin reload、fault、scale、soak 或动态 benchmark；Tooling按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Editor226](zircon_editor/226-editor-asset-workspace-content-browser-current-source-review.md)。
+
+
+## 478. Runtime Render Graph Builder / Compiler / Lifetime / Barrier / Queue / Execution 当前源码物理范围
+
+| 范围 | files / lines / bytes / test attrs / ignored | fingerprint |
+|---|---:|---|
+| `zircon_runtime` render graph core、compiled pipeline packet、graph execution、compiled scene graph、submission owner、RHI submission slice | **180 / 53,375 / 1,996,476 / 479 / 8** | `032497a51e18580186509650cad9339cae85d93db99bc0b0b4c0e23c7e8fc8c0` |
+| Unreal / Godot / Bevy / Fyrox / Unity Graphics reference selection | **13 / 19,321 / 825,660** | `0fefa091dac3c30444b8da9da5ed925ba316b45b1620f2876dfbfa4c3a8a4c76` |
+
+Runtime166 复审 Runtime89，不把 source-only 候选误报为完成。当前 builder/version/range/culling/transient/CPU recording 基础可保留，但 compiled artifact 没有 per-resource state、barrier batch、queue wait/signal、ownership transfer 或 completion edge；external/persistent/non-compute binding 仍可走 declaration name/whole-resource fallback；product execution 仍由固定 stage orchestration 驱动，history copy、terminal copy、diagnostic readback 与 IBL writeback在图外改变语义。当前登记 3 项 P0、48 项 P1、12 项 P2，资格门为 3 项 Partial、6 项 Fail、3 项 Partial/Fail 混合；本轮只修改 review、index 与 coverage，不修改 production/test/Cargo/ABI，也未运行 Cargo、真实 WGPU、RenderDoc、multi-queue、fault、replay、scale、soak 或 benchmark，Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime166](zircon_runtime/166-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution-current-source-review.md)。
+
+## 479. Runtime Physics 当前工作树 World Sync / Fixed Step / Jolt / Query / Event / Ragdoll
+
+| 范围 | files / lines / bytes / test attrs / ignored | fingerprint |
+|---|---:|---|
+| Runtime framework、Scene/Level、Physics asset 纵切面 | **51 / 3,669 / 129,047 / 16 / 0** | `f685ce734035b63792561741c400e2d86fc598cff8d90d407af14b32ba6e4cff` |
+| Physics plugin runtime/editor/dist、backend、tests、ZUI | **94 / 13,831 / 480,757 / 92 / 1** | `959f49b7bc36c6a688c72be1b3cf91452a43914337ddc22a15954730f86ff179` |
+| first-party catalog、App entry 与 Physics consumers | **218 / 31,033 / 1,140,226 / 484 / 1** | `3baf6de4405e09e13943f9a6f390c4b787fcda91c2a70c378b33c4200e7ebd31` |
+| 去重 Zircon selected union | **363 / 48,533 / 1,750,030 / 592 / 2** | `ffa4c9cdf2ed6517b084ddb5c9526cca60114dca5afa00c0bfab33dd9c6eab8f` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference selection | **43 / 14,925 / 654,966 / 8 / 0** | `7577c845fe15df1c66fac582fd379338f0d38884c10576e3a3f1171fb7de5905` |
+
+Runtime167 刷新 Runtime138 的 Physics 当前工作树，不新增唯一 finding。Arc immutable Level snapshot、owned nested-shape projection 和 typed tick context 是局部改进；但 PhysicsManager 仍是多张 global mutex map，Scene 仍逐 tick full scan，fixed step 仍有双 authority，Jolt constraint 仍在 native update 后由 Rust projection 修正，Jolt 三类 query 为空，contact/trigger 仍从 snapshot 做近似 O(n²) 重建，provider/catalog/dist、artifact/residency、generation/receipt 与下游 precision admission 均未闭合。Runtime138 的 17 Open/3 Partial P1、4 Open P2 和 42 门资格（38 Fail/4 Partial）保持不变。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI，也未运行 Cargo、Jolt、Client/Editor、cook、fault、scale、soak 或 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime167](zircon_runtime/167-runtime-physics-current-working-tree-world-sync-jolt-fixed-step-query-event-ragdoll-review.md)。
+
+## 480. Editor Physics 当前工作树 Authoring / Preview / Overlay / Ragdoll
+
+| 范围 | files / lines / bytes / tests / ignored | fingerprint |
+|---|---:|---|
+| Physics editor plugin、manifest 与四份 ZUI | **12 / 629 / 22,052 / 4 / 0** | `4ff4ad3d0dcd49992a17a8a565a74b5d09e61dd9ebdfae8efddf090e0386a56d` |
+| Editor formal overlay/controller boundary | provider registration、toggle、retirement、cleanup 存在；Physics registration **0** | n/a |
+
+Editor227 刷新 Editor140/94 的 Physics authoring 与产品边界，不新增唯一 finding。Editor core 已有正式 ViewportOverlayProvider registry、generation-aware toggle 和 retirement cleanup，但 Physics 未注册 provider；四份 ZUI 仍为 Space，Ragdoll/debug command 仍是 OpenView，Physics Material 无专用 toolkit，Workbench 的 bake/simulate/validate 仍为固定 queued/sample feedback，不产生 document/transaction/job/PreviewWorld/artifact receipt。5 项 P0、60 项 P1、12 项 P2 与 32 门资格保持 Open/Fail。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、真实 PreviewWorld、cook/save/reopen、fault、scale 或 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Editor227](zircon_editor/227-editor-physics-current-working-tree-authoring-preview-overlay-ragdoll-review.md)。
+
+## 481. Runtime Audio / Sound 当前工作树 Device / Streaming / Mixer / Spatial / Automation
+
+| 范围 | files / lines / bytes / test attrs / ignored | fingerprint |
+|---|---:|---|
+| Runtime framework、Sound asset/import | **34 / 3,143 / 101,164 / 19 / 2** | `1bd784e26fcfa5a07e439e6def0e8af0cee4463c402529df9e575b97b6c69459` |
+| Sound runtime/dist/features 全量 | **1,290 / 26,546 / 916,629 / 431 / 8** | `74e7cb957a9f034bc8e42bdf18a6166bb4e4412a5ba19b34bd2c6b8103614fa5` |
+| Audio importer、legacy audio、Opus importer | **17 / 2,176 / 79,515 / 38 / 3** | `3d33ad9823ff3934e3c842e2817b7978de59c5be04066042499823414cd5e606` |
+| Sound editor 与 ZUI、feature editor | **14 / 1,386 / 52,892 / 8 / 0** | `b4c69c33a0f66c16be3ab4644cae82c206aecda449d23f7aeea7f04d72f3aa03` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference selection | **30 / 33,809 / 1,232,600 / 6 / 0** | `835efb2b8f7cf66ab655b14bc046a71eb4c2324c3b578ee0bcbc09d5caebcfa8` |
+
+Runtime168 刷新 Runtime139/99zn：合同、Kira/CPAL、mixer graph、PCM importer 与大量测试是局部底座，但 SoundEngineState 仍是大 Mutex，Kira callback 没有独立 observation pump，clip 仍完整 PCM + StaticSoundData 双份常驻，streaming/eviction/multichannel/external source 未闭合；空间/DSP 没有 production render caller，active playback 下 automation 和结构 graph edit 直接拒绝，meters/latency 仍是静音/估算，feature/catalog/dist/receipt 仍偏声明。当前资格门 RT-1..RT-6 全未通过；本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI，也未运行真实设备、长时 stream、XRUN、HRTF/IR、scale、soak 或 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime168](zircon_runtime/168-runtime-audio-sound-current-working-tree-device-streaming-mixer-spatial-automation-review.md)。
+
+## 482. Editor Audio / Sound 当前工作树 Mixer / Live Output / Acoustic Authoring
+
+| 范围 | files / lines / bytes / test attrs / ignored | fingerprint |
+|---|---:|---|
+| Sound editor、ZUI 与 sound feature editor | **14 / 1,386 / 52,892 / 8 / 0** | `b4c69c33a0f66c16be3ab4644cae82c206aecda449d23f7aeea7f04d72f3aa03` |
+| Editor core overlay/operation boundary | Sound overlay provider registration **0**；core registry/toggle/retirement 存在 | n/a |
+
+Editor228 刷新 Editor139/93/17：Sound plugin 只有 extension metadata、inspector binding、29 条字符串 operation descriptor、mixer/acoustic ZUI 与 live-output model；track/send/effect/automation、声学 debug、source/listener/volume drawer 主要仍为 Space，只有 Refresh/Start/Stop 设备按钮。没有普通 editor catalog/provider closure、typed handler、document/revision/transaction、PreviewWorld、cook/import artifact、overlay provider 或 terminal receipt；feature editor 仅 descriptor/capability。ED-1..ED-6 全未通过。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、真实 PreviewWorld、设备恢复、长音频、stream seek 或 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Editor228](zircon_editor/228-editor-audio-sound-current-working-tree-mixer-authoring-live-output-acoustic-review.md)。
+## 483. Runtime Navigation 当前工作树 Bake / Artifact / Query / Crowd
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Runtime framework + builtin navigation | **37** | **5,551** | **185,950** | **46** | **4** | `40e8378614d37ad0c221f05d538e50ebc91acfb52a79f711ca2d9cf4a30d3a92` |
+| First-party navigation runtime + native | **83** | **12,961** | **434,802** | **116** | **6** | `73882c92cdd0d57204c95800c3cd89923c85a45f1c11a351083a0bbccd0961f3` |
+| Catalog/App integration | **218** | **30,815** | **1,140,226** | **484** | **1** | `d27c4cd49d65088edafa0214653e878aebf1bcda404a87e4834a6a2c66ca274f` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference selection | **11** | **15,780** | **639,843** | **0** | **0** | n/a |
+
+Runtime169 刷新 Runtime141/99zp。版本化 DTO、builtin graph/scratch/projection、Recast/Detour、shared tiled plan、generation、dirty bake、Crowd scratch、off-mesh traversal、typed tick 和 overlay mirror 只构成局部底座；双 authority、simple-quad 与顶面/圆盘伪几何、默认 native settings、无 cooked tile artifact、不可取消任务、Crowd 触发 legacy、直接 Transform/off-mesh movement、弱 query identity 与 AI receipt 仍是工程级缺口。Bake Scene/Surface operation prepare/apply 仍明确失败。10 项 RT-NAV 资格门为 8 Fail/2 Partial。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI，也未运行 Cargo、Editor、PIE、真实 bake、scale、fault、soak 或动态 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime169](zircon_runtime/169-runtime-navigation-current-working-tree-bake-artifact-query-crowd-editor-boundary-review.md)。
+
+## 484. Editor Navigation 当前工作树 Bake / Asset / Operation / Overlay
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Navigation editor + UI session path | **23** | **3,714** | **128,698** | **34** | **1** | `9595eacaf8de3b0acbe27a81f503878bc222be471ec5efc5245fec21e9af8e7e` |
+| Navigation runtime + native owner evidence | **83** | **12,961** | **434,802** | **116** | **6** | `73882c92cdd0d57204c95800c3cd89923c85a45f1c11a351083a0bbccd0961f3` |
+| Runtime framework + builtin owner evidence | **37** | **5,551** | **185,950** | **46** | **4** | `40e8378614d37ad0c221f05d538e50ebc91acfb52a79f711ca2d9cf4a30d3a92` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference selection | **8** | **10,963** | **452,711** | **0** | **0** | n/a |
+
+Editor229 刷新 Editor141/95/19。asset/toolkit、BakePanel、V2 progress、snapshot restore、PIE mirror 与正式 overlay provider 是局部 wiring；但 Bake prepare/apply 必然拒绝，NavMesh/Settings 与 component drawer 主要 Space，panel/job/artifact identity 未连线，16-poll yield 无 cancel/wake，overlay filters 固定 default、没有 tile/link pick，query preview 与 host/reload closure 缺失。10 项 ED-NAV 资格门为 8 Fail/2 Partial。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、PIE、真实 bake、save/reopen、scale、fault、soak 或动态 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Editor229](zircon_editor/229-editor-navigation-current-working-tree-bake-asset-operation-overlay-review.md)。
+
+## 485. Runtime Animation 当前工作树 Source / Compiled / Pose / Skinning / IK
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Runtime framework + builtin animation | **80** | **10,058** | **372,010** | **77** | **12** | `947af6f2f3279109ba438ed81e08911e9c3f695761099fe2ed4579d860272ae7` |
+| First-party animation runtime/editor + animation graph | **166** | **18,901** | **727,120** | **165** | **1** | `81ed726fe992f714786f9fb6d40d701385ae505b50c723e1d937f66e61ebf043` |
+| Import/render/diagnostic boundary evidence | **198** | **45,727** | **1,808,844** | **501** | **9** | `3661f09b93f1ff25a841da3ad0190810b10abc26e48a32f6bb082b440bd06a1f` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference selection | **32** | **26,143** | n/a | **20** | **0** | `25711706f628d09c8955b681c4435048f6d6bb78de2e9d73493309892ad2a874` |
+
+Runtime170 刷新 Runtime137/99zl：typed animation assets、target table、compiled clip/graph/state-machine cache、bounded event heap、staged evaluation 和 Scene-to-skeletal handoff 是可保留底座；但 builtin/plugin 双 authority、source-only compiler 与 plugin evaluator 分裂、glTF inverse-bind 脱离 skeleton、runtime/renderer 重复 palette、固定 256 GPU admission + CPU fallback、IK 生产文件删除、root motion/retarget/morph/montage/sync 缺失、pose 直接写 Transform 及无 per-World budget/cancel/receipt 仍开放。10 项 RT-AN gate 为 9 Fail/1 Partial。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Cargo、Editor、PreviewWorld、真实设备、scale、fault、soak 或动态 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime170](zircon_runtime/170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md)。
+
+## 486. Editor Animation 当前工作树 Document / Graph / Timeline / Preview / Montage
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Animation document/session/timeline/curve | **47** | **4,779** | **181,269** | **23** | **0** | `2982876f5b0358bd150a25df17534d08582267effb51f85f3ccec7177eec7f9a` |
+| Animation + Animation Graph editor plugin | **10** | **1,115** | **45,155** | **13** | **0** | `189fd013c957a589a071cfdd5e32672f478c70b1b205f7878218267d7a5c4cd2` |
+| Animation ZUI host/workbench assets | **13** | n/a | **156,363** | n/a | n/a | current working-tree asset snapshot |
+
+Editor230 刷新 Editor136/196/197/198/201：document revision、typed mutation、history、last-good、graph palette 和 canonical save 是局部底座；但 last-good 没有 artifact/dependency/runtime receipt，sequence/graph body 只有空 slot，timeline/graph 缺稳定 id 投影，PreviewWorld/skin binding/IK diagnostics 无 consumer，Montage/Control Rig/Retarget/Motion Matching/Pose Library/Compression 是 collapsed 固定 ZUI fixture，save 不发布编译产物状态。10 项 ED-AN gate 为 8 Fail/2 Partial。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、PreviewWorld、render、save/reopen、scale、fault、soak 或动态 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Editor230](zircon_editor/230-editor-animation-current-working-tree-document-graph-timeline-preview-montage-ik-skinning-product-boundary-review.md)。
+
+## 487. Runtime Particle / VFX 当前工作树 World / CPU-GPU / Graph / Renderer / Scalability
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Particles runtime（Rust/TOML/ZUI） | **44** | **7,336** | **280,249** | **45** | **1** | `eb5971f9a2e93d48fccb81aeb4068f399139484e1958a76418613b66ecbb9897` |
+| Particles editor + dist（Rust/TOML/ZUI） | **12** | **709** | **31,183** | **3** | **0** | `018a766b230305578548d770066423b7ba3080b33225684207db11c02e37a067` |
+
+Runtime171 逐读 Particles CPU/GPU、runtime prepare、render extract、Scene dynamic JSON、VFX Graph 和 GPU readback。CPU SoA/free-list、真实 WGSL ping-pong/compact/indirect/readback 和局部 history 可保留；但 typed Scene/scheduler/world owner、CPU fallback 与 GPU owner 的 single authority、persistent allocation、完整曲线/IR、graph-owned dispatch、renderer/material/scalability/device-loss 与产品 command 链未闭合。GPU live count 仍被 extract 当作 spawned/alive 摘要，VFX Graph 固定 `[1,1,1]` 且 executor no-op。Runtime18 项 RT-PFX gate 为 16 Fail/2 Partial，新增24项P1/8项P2。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Cargo、Editor、WGPU、RenderDoc、scale、fault、soak 或动态 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime171](zircon_runtime/171-runtime-particle-vfx-current-working-tree-world-authority-gpu-graph-renderer-scalability-editor-boundary-review.md)。
+
+## 488. Editor Particle / VFX 当前工作树 Authoring / Preview / Graph / Artifact
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|
+| Particles editor + dist（Rust/TOML/ZUI） | **12** | **709** | **31,183** | **3** | **0** | `018a766b230305578548d770066423b7ba3080b33225684207db11c02e37a067` |
+| Particles runtime（关联核对） | **44** | **7,336** | **280,249** | **45** | **1** | `eb5971f9a2e93d48fccb81aeb4068f399139484e1958a76418613b66ecbb9897` |
+
+Editor231 追踪 Particles registration、12 条 operation、三个 ZUI、插件测试、VFX editor descriptor 与 core workbench feedback。入口 descriptor、capability、asset/template 和 layout skeleton 可保留；但 operation 没有 factory/handler 且测试明确 disabled，ZUI 核心区域多为 `Space`，没有 document/transaction/compiler job/PreviewWorld/readback/artifact install。VFX workbench 的 compile/simulation/saved 文案不接真实 runtime。Editor18 项 ED-PFX gate 为 14 Fail/4 Partial，新增18项P1/8项P2。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、Cargo、WGPU、PIE、save/reopen、scale、fault、soak 或动态 benchmark；Tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见[Editor231](zircon_editor/231-editor-particle-vfx-current-working-tree-authoring-preview-graph-artifact-boundary-review.md)。
+
+## 489. Runtime Terrain / Landscape / World Partition 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| `zircon_plugins/terrain` 全量（Rust/TOML） | **16** | **968** | **38,580** | **10** | **1** | `e59fb4861fd39b49058175fc4d4d9cdd162febd67095fa0aa2cc0262fb219639` |
+| Runtime asset/Scene/render/navigation/physics 关联选择 | **8** | **2,126** | **87,174** | **2** | **0** | `d671c3...`（报告冻结值） |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference selection | **15** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime172 逐读 Terrain plugin/runtime/dist、authoring assets、Scene load/save、Terrain render slot、navigation bake、Jolt HeightField、Vampire 与 Workbench 边界。数据 carrier、asset/ref serde、HeightField DTO 和 capability manifest 可保留；但 importer 仍 DiagnosticOnly，World load 不消费 terrain、save 固定 `terrain: None`，Terrain 仅 descriptor-only，nav/physics 没有 Terrain owner，foliage/partition/LOD/material/VT/residency 无执行链。Runtime18 项 RT-TER gate 为 16 Fail/2 Partial，新增24项P1/8项P2。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Cargo、Editor、native importer、GPU、Jolt/Recast、streaming、scale、fault、soak 或动态 benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime172](zircon_runtime/172-runtime-terrain-landscape-world-partition-current-working-tree-authority-render-physics-navigation-review.md)。
+
+## 490. Editor Terrain / Landscape / World Partition 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| `zircon_plugins/terrain` 全量（Rust/TOML） | **16** | **968** | **38,580** | **10** | **1** | `e59fb4861fd39b49058175fc4d4d9cdd162febd67095fa0aa2cc0262fb219639` |
+| Terrain editor authoring/descriptor/test subset | **current plugin subset** | n/a | n/a | **10** | **1** | included above |
+| Workbench/navigation/feedback ZUI and callback paths | **current working-tree assets/routes** | n/a | n/a | n/a | n/a | source paths rechecked |
+
+Editor232 逐读 Terrain editor plugin、authoring validator/tests、缺失的三份 `plugins://` 资源、Scene carrier、Workbench workspace、navigation/feedback/preview routes，并与 Unreal LandscapeEditor/FoliageEdit/WorldPartitionEditor、Fyrox terrain commands、Godot HeightMap、Unity HDRP TerrainLit/GPUDriven、Bevy visibility/batching 对照。descriptor/import plan 是局部底座；但没有 factory、真实 decode/artifact、TerrainDocument、stroke/undo、scene mode、PreviewWorld、partition build/receipt、foliage/scatter ownership，Workbench 仍是 collapsed fixture。Editor18 项 ED-TER gate 为 14 Fail/4 Partial，新增18项P1/8项P2。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、Cargo、UI automation、PreviewWorld、GPU、save/reopen、scale、fault、soak 或动态 benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor232](zircon_editor/232-editor-terrain-landscape-world-partition-current-working-tree-authoring-preview-build-review.md)。
+
+## 491. Runtime Network / Transport / Session / RPC / Replication / Download 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| `zircon_plugins/net` 全量（Rust/TOML） | **186** | **17,102** | **602,589** | **150** | **14** | `28336e23346b57dba0c9a41fd09d5ade1dcb56061933a43993a3f2d135d47c53` |
+| Runtime framework net | **18** | **2,207** | **66,325** | **8** | **1** | current working-tree snapshot |
+| App/catalog integration focused set | **5** | **528** | **19,555** | **4** | **0** | current working-tree snapshot |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics reference selection | **18** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime173 逐读 net plugin、framework contracts、worker/transport/TLS、六个 feature、App/catalog/dist 和关联 editor boundary。TCP/UDP worker、HTTP/WebSocket facade、TLS pin helper、RPC/replication/RUDP/download 局部算法可保留；但 root `DefaultNetManager` 与 feature factory 各自建 manager，dependency 未注入，NetConfig 未驱动 activation，ingress 固定 256/frame=0，flush egress no-op，双 Tokio runtime/2 秒不可取消等待、裸 id、UDP 65,535 分配、未绑定 root UDP 的 RUDP、固定 challenge/raw RPC/heuristic transform、内存 download/cache 与 stateless dist 仍未闭合。默认 client/server/editor-host provider/catalog、World/session/PIE、security、artifact 与 scale 资格均缺。Runtime173 新增32项P1/10项P2；20项 gate 为 15 Fail/5 Partial/0 Pass。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Cargo、socket/TLS、跨进程、PIE、真实 download/install、fault、soak、scale 或 benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime173](zircon_runtime/173-runtime-network-current-working-tree-authority-transport-session-rpc-replication-editor-boundary-review.md)。
+
+## 492. Editor Network / Authoring / Profiler / Multiplayer Workbench 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Net editor plugin（Rust/TOML） | **7** | **403** | **16,279** | **1** | **0** | current working-tree snapshot |
+| Multiplayer Workbench lobby/matchmaking ZUI | **2** | **466** | **29,780** | **0** | **0** | current working-tree snapshot |
+| Online-session feedback/navigation routes | **2** | **273** | **11,465** | **0** | **0** | current working-tree snapshot |
+| Runtime Net owner（关联证据） | **186** | **17,102** | **602,589** | **150** | **14** | `28336e23346b57dba0c9a41fd09d5ade1dcb56061933a43993a3f2d135d47c53` |
+
+Editor233 逐读 Net editor registration/authoring/tests、五个缺失 `plugins://net/editor` 资源、first-party editor catalog、Lobby/Matchmaking Workbench 资产及 online-session callback/navigation routes。描述符、payload schema、asset/graph palette 是局部壳；但没有 resource admission、factory/handler、NetworkDocument、transaction/undo、compiler/artifact、Runtime attach、live profiler、session simulator、standalone/PIE launcher 或 packet capture/replay。Workbench 根节点 collapsed，Lobby_Default/Playlist_Ranked、玩家/队列/警告数和 “simulation queued” 均为静态 fixture，Net provider 未进入 editor catalog。Editor233 新增18项P1/8项P2；18项 gate 为 14 Fail/4 Partial/0 Pass。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、Cargo、UI automation、PreviewWorld、PIE、standalone server/client、save/reopen、fault、scale、soak 或 benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor233](zircon_editor/233-editor-network-current-working-tree-authoring-profiler-multiplayer-boundary-review.md)。
+
+## 493. Runtime AI / Behavior Tree / Blackboard / Perception 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| `zircon_runtime/src/core/framework/ai` | **9** | **1,040** | **31,239** | **0** | **0** | current working-tree snapshot |
+| `zircon_plugins/ai/runtime` | **84** | **21,634** | **777,751** | **217** | **42** | current working-tree snapshot |
+| AI editor/dist/manifest (关联边界) | **15** | **2,619** | **94,151** | **20** | **4** | current working-tree snapshot |
+| first-party catalog + focused Workbench | **12** | **2,018** | n/a | **17** | **0** | current working-tree snapshot |
+| Unreal/Fyrox/Godot/Bevy/Unity Graphics reference selection | **19** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime174 逐读 AI framework、plugin manifest/runtime/dist、behavior tree catalog/compiler/executor/integration、Blackboard、manager state/tick/snapshot、Perception component/scan/stimulus、first-party catalog、App/Editor boundary 与两份 AI Workbench。compiled tree dense artifact、Arc generation、Blackboard typed store/observer、single-pass sample、bounded hearing ingress、owner/revoke gate 和 targeted snapshot 是真实底座；但 asset/import/cook/Scene Agent/world teardown、per-agent concurrency、execution budget、真实 node effect/latent ticket、typed Blackboard transaction、spatial/fair perception、fail-closed LOS、LOD determinism、bounded debug trace 与 native parity 仍缺。`plugin.toml`/runtime descriptor 将 Perception 标为 complete 与实际不符。Runtime174 新增28项P1/8项P2，20项资格门为 Fail/未验证。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Cargo、AI benchmark、PIE、physics/nav/script、fault、soak、scale 或 tooling；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime174](zircon_runtime/174-runtime-ai-current-working-tree-world-agent-behavior-tree-blackboard-perception-execution-debug-review.md)。
+
+## 494. Editor AI / Behavior Tree / Blackboard / Perception 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| `zircon_plugins/ai/editor`（Rust/TOML/ZUI） | **12** | **2,382** | **83,179** | **18** | **4** | current working-tree snapshot |
+| AI Workbench behavior/perception | **2** | **478** | **26,885** | **0** | **0** | current working-tree snapshot |
+| first-party editor catalog + App delegation | **4** | **251** | **8,978** | **6** | **0** | current working-tree snapshot |
+| selected shared Workbench callback/navigation | **2** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal/Fyrox/Godot/Bevy/Unity Graphics reference selection | **9** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor234 逐读 AI editor plugin/overlay/runtime mirror/tests、当前 SceneMode registry、first-party editor catalog/App、AI Workbench ZUI、module navigation 与 command feedback。descriptor、palette、manifest、session/sequence/World mirror 和有限 overlay geometry 可保留；但旧 viewport API 使 overlay registration 不兼容，AI provider 不进入默认 catalog，operation/importer/graph 无 factory/document/transaction/job/artifact，mirror无generation/path/trace/loss，Workbench固定样例和静态反馈遮蔽真实状态，PreviewWorld/PIE/debugger/EQS/StateTree/Smart Object均无产品闭环。Editor234 新增20项P1/8项P2，18项资格门为 Fail/未验证。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、Cargo、UI automation、PreviewWorld、PIE、save/reopen、fault、scale、soak 或 benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor234](zircon_editor/234-editor-ai-current-working-tree-authoring-graph-debug-overlay-workbench-review.md)。
+
+## 495. Runtime Gameplay Ability / Effect / Attribute / Tag / Cue / Prediction 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| gameplay host 根 + gameplay_host/ | **16** | **2,838** | **109,202** | **18** | **0** | current working-tree snapshot |
+| runtime framework/plugin/catalog 关联边界 | n/a | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal GAS/GameplayTags、Bevy、Fyrox、Godot、Unity Graphics reference selection | **13** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime175 逐读 gameplay_host 注册/能力声明、combat JSON hp 路径、component/lifecycle 动态组件、runtime context/capability、Scene/Dynamic Scene、time/net/replication/save 边界、first-party runtime/editor catalog 和 Gameplay Workbench 关联证据。当前没有 AbilitySystemComponent/spec、AttributeSet/aggregator/capture、GameplayTag registry/query、Effect duration/stack/execution、Cue lifecycle、activation/task/cost/cooldown、prediction/rollback、replication delta 或 save participant；host 仍以裸 u64、宽 gameplay.entity capability 和调用者 max_health 改写脚本 JSON，死亡直接 remove entity。Runtime175 新增28项P1/12项P2，24项资格门为22 Fail/2 Partial/0 Pass，不新增唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Cargo、PIE、网络 fault、save/replay、scale、soak 或 benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime175](zircon_runtime/175-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authority-artifact-execution-review.md)。
+
+## 496. Editor Gameplay Ability / Effect / Attribute / Tag / Cue / Prediction 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| 三份 Gameplay Workbench ZUI + shared navigation/feedback/field bridge | **6** | **1,708** | **94,634** | **0** | **0** | current working-tree snapshot |
+| first-party editor catalog/App 与 generated bindings 关联边界 | n/a | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal GameplayAbilitiesEditor/GameplayTagsEditor、Fyrox、Godot、Bevy、Unity Graphics reference selection | **16** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor235 逐读 Ability/Effect/Tags ZUI、module navigation/action mapping、static command feedback、field mutation bridge、first-party editor catalog/App 与 resource/document/job/play 边界。三个 workspace 根节点 collapsed，固定 GA_DashAttack、GE_HealthRegen、GE_DamageFire、DefaultGameplayTags.ini、validation 数字和 predicted activation 文案；Apply/Playtest/Add/Rename 只返回静态或 pending 文本，字段 edit 只改 retained control，没有 provider、ResourceKind/factory、document/operation、shared compiler/artifact、PreviewWorld/PIE、runtime mirror、prediction/replay/network/save debug。Editor235 新增24项P1/10项P2，22项资格门为20 Fail/2 Partial/0 Pass，不新增唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、Cargo、UI automation、PreviewWorld、PIE、save/reopen、fault、scale、soak 或 benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor235](zircon_editor/235-editor-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authoring-debug-workbench-review.md)。
+
+## 497. Runtime Cinematic Sequencer / Evaluation / Take / Movie Render 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| zircon_runtime/src/animation | **21** | **3,340** | **116,404** | **30** | **0** | current working-tree snapshot |
+| zircon_runtime/src/core/framework/animation | **59** | **7,777** | **255,606** | **47** | **0** | current working-tree snapshot |
+| timeline_sequence plugin | **10** | **1,131** | **41,707** | **15** | **0** | current working-tree snapshot |
+| camera/sound/capture/net/save/operation 关联边界 | n/a | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal MovieScene/Take/MRQ、Godot、Fyrox、Bevy、Unity Graphics reference selection | **15** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime176 逐读 AnimationSequence schema/compiler/target/event sampling、AnimationDriver/manager/tick、timeline_sequence editor-only plugin、camera/sound/capture 与 network/save/operation 关联边界。按 World property writer、有限事件 cursor、失败零变更测试是局部底座，但 source 仍以 duration/fps + Vec binding/track/key 表达，compiled artifact 保存 index，缺 cinematic source、shot/section/hierarchy、qualified frame、per-instance playback、camera/audio/event adapter、Take Recorder、Movie Render Queue、output provenance、network/save/replay。Runtime176 新增30项P1/10项P2，24项资格门为21 Fail/3 Partial/0 Pass，不新增唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Cargo、PIE、录制、离线渲染、GPU、fault、scale、soak 或 benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime176](zircon_runtime/176-runtime-cinematic-current-working-tree-sequencer-evaluation-take-render-review.md)。
+
+## 498. Editor Cinematic Sequencer / Take / Movie Render 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Sequencer Workbench、feedback、navigation、preview actions、animation document/session | n/a | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| timeline_sequence editor/dist plugin | **8** | **2,941** | **128,242** | **15** | **0** | current working-tree snapshot |
+| Unreal Sequencer/Take/MRQ、Godot、Fyrox、Bevy、Unity Graphics reference selection | **9** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor236 逐读 Sequencer ZUI、extension feedback/navigation/preview routes、animation editor document/session、timeline_sequence operation/asset contribution、局部 keyframe validator 和 native dist。ZUI 根节点 collapsed，固定 SEQ_Intro、Camera Cut、Audio Theme、Event Cues、12 shots/428 keys、24 fps；Preview/Validate 为静态 queued 文案。插件 descriptor 无 handler，move 仍用 binding/track/key index，authoring.zui 物理缺失，dist 明确 stateless、invoke_command=None、bridge_methods=0；没有 Cinematic provider/resource factory、PreviewWorld/PIE、Take Recorder、Movie Render Queue、runtime mirror 或 output receipt。Editor236 新增24项P1/10项P2，22项资格门为20 Fail/2 Partial/0 Pass，不新增唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、Cargo、UI automation、PreviewWorld、PIE、录制、离线渲染、fault、scale、soak 或 benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor236](zircon_editor/236-editor-cinematic-current-working-tree-sequencer-authoring-review.md)。
+
+## 499. Runtime Video / MediaSource / Player / Track / Clock / MediaTexture / Capture 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| ResourceKind/ImportedAsset/AssetKind 与 builtin media catalog/classification | **6** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| audio/opus importer runtime/dist | **5** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| render capture/report/readback/scheduler + App PNG writer | **8** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Sound runtime/timeline 关联边界 | n/a | n/a | n/a | **0** | **0** | covered by Runtime168; rechecked for boundary |
+| Unreal Media/MediaAssets/MovieSceneCapture、Godot、Bevy、Fyrox、Unity Graphics reference selection | **22** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime177 逐读 ResourceKind、ImportedAsset、asset type/catalog media rows、audio/Opus importer、CapturedFrame/HDR、capture_frame readback、environment capture scheduler、viewport/capture boundary与PNG staging writer，并重查 Unreal `IMediaPlayer`/Controls/Samples/Tracks/TextureSample/Factory/MediaClock、MediaSource/Player/Texture、MovieSceneCapture，Godot VideoStreamPlayer/MovieWriter、Bevy screenshot、Fyrox FBX video 与 Unity capture contracts。结论是当前没有 Video/MediaSource/MediaPlayer/MediaTrack/MediaTexture runtime 域；Sound/Texture importer 与单帧 capture 只能作为 provider/readback 基础。Runtime177 新增30项P1/12项P2，26门为24 Fail/2 Partial/0 Pass，不新增唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 codec/GPU/A-V sync/recording/fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime177](zircon_runtime/177-runtime-video-media-source-player-track-clock-media-texture-playback-capture-recording-current-working-tree-review.md)。
+
+## 500. Editor Video / MediaSource / Player / Track / Clock / MediaTexture / Capture 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| ResourceKind/ImportedAsset/AssetTypeId/catalog 边界 | **4** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| viewport captured-frame polling/tests与capture/output UI | **9** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Render/Performance/Runtime Diagnostics/Material Media Query ZUI | **6** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| audio importer/App PNG writer 关联边界 | n/a | n/a | n/a | **0** | **0** | Runtime177 owner; rechecked for editor boundary |
+| Unreal Media Editor/MediaAssets/Capture、Godot、Bevy、Fyrox、Unity Graphics reference selection | **12** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor237 逐读 asset/type/catalog 边界、viewport frame polling、render/performance/runtime diagnostics capture controls、export output capture、settings capture、Material `Use Media Query` prototype 与关联 runtime/App writer。当前没有 MediaSource/MediaPlayer/MediaTexture/TrackCatalog/MediaClock/RecorderSession/Encoder/Muxer editor owner；固定 Frame 1234/GPU/fps、Capture Snapshot 和 Media Query 不能替代 source document、player preview、PTS/sample inspector、A/V sync、recorder job、artifact recovery 或 cinematic media section。Editor237 新增26项P1/12项P2，24门为22 Fail/2 Partial/0 Pass，不新增 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor、Cargo、UI automation、codec/GPU、A/V sync、recording、fault、scale、soak 或 benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor237](zircon_editor/237-editor-video-media-source-player-track-clock-media-texture-playback-capture-recording-current-working-tree-review.md)。
+
+## 501. Runtime Water / Ocean / Lake / River / Wave / Underwater / Buoyancy 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Resource/Scene/World/catalog/App Water search boundary | **70** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Material/render/SSR/Planar/OIT/time/physics/nav/audio/VFX adjacent substrate | **179** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| WOC and editor/fixture boundary | **13** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal Water/Buoyancy/WaterAdvanced/MeshPartitionWater, Unity HDRP Water, Godot/Bevy/Fyrox references | **304** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime178 逐层重查 Runtime143：当前 production 没有 WaterBody/WaterZone/Ocean/Lake/River/Wave/Underwater/WaterQuery/Buoyancy owner，ResourceKind/Scene/World/catalog/App/render feature 没有 Water chain。PBR/SSR/Planar/OIT、fixed clock、Physics force、Terrain/Nav/Sound/Particles/Spline 是可复用邻接底座；WOC 私有水位、五湖、`hasWaterAt` 与测试 `ocean.query.v1` 不是产品实现。Runtime178 新增28项P1/12项P2，24门为21 Fail/3 Partial/0 Pass，不新增 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Water render/query/physics/GPU/fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime178](zircon_runtime/178-runtime-water-ocean-lake-river-wave-underwater-buoyancy-current-working-tree-review.md)。
+
+## 502. Editor Water / Ocean / Lake / River / Surface / Wave / Underwater / Buoyancy 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| editor asset/type/catalog/document boundary | **4** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Spline/Terrain/Navigation/Foliage/Physics/Weather/Scene authoring boundary | **24** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Water-like Workbench/fixture controls | **3** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal Water Editor, Unity HDRP Water Editor, Godot/Bevy/Fyrox references | **8** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor238 逐读 Water 相关 asset/type/catalog/scene/editing 边界、Navmesh `Water` area、Foliage `River_02`/`Biome_Riverbank` rows、Spline/Terrain/Physics/Weather 邻接 authoring 与 WOC fixture。当前没有 Water asset/factory/provider/document、body/zone/spline/wave authoring、PreviewWorld、surface/underwater overlay、query/buoyancy debugger、compiler artifact 或 runtime mirror；静态控件不能报告 Water Ready。Editor238 新增24项P1/10项P2，22门为20 Fail/2 Partial/0 Pass，不新增 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor/Cargo/UI/PreviewWorld/PIE/Water/physics/query/fault/scale/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor238](zircon_editor/238-editor-water-ocean-lake-river-surface-wave-underwater-buoyancy-authoring-current-working-tree-review.md)。
+
+## 503. Runtime Cloth / Fabric / Soft Body / Garment 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Resource/ImportedAsset/Scene/Physics cloth search boundary | **52** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Mesh/skinning/Morph/GPU deformation/visibility/shadow/material adjacent substrate | **168** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| physics plugin/Jolt/animation/wind/scalability boundary | **126** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal Chaos Cloth/ClothAsset/SimulationModel/Editor, Godot SoftBody/Jolt, Bevy/Fyrox mesh, Unity HDRP Fabric references | **426** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime179 逐层重查 Runtime144/31：ResourceKind、ImportedAsset、SceneNode、Mesh/GPU mesh、Animation、Physics/Jolt、frame extraction、velocity、shadow、visibility、material、catalog 与 editor boundary。当前没有 Cloth/Garment/SoftBody/Fabric source、artifact、component、solver/provider、dynamic vertex output、wind/collision ingress 或 fabric shading owner；skin/Morph、rigid Physics、skeletal collider、LOD、velocity 与 generic material 只是相邻底座。Runtime179 新增30项P1/12项P2，26门为23 Fail/3 Partial/0 Pass，不新增 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Cloth solver/GPU/PIE/fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime179](zircon_runtime/179-runtime-cloth-fabric-soft-body-current-working-tree-review.md)。
+
+## 504. Editor Cloth / Fabric / Soft Body / Garment 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| editor asset/type/catalog/document boundary | **8** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Mesh/Animation/Physics inspector, viewport/preview/transaction adjacent host | **58** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Cloth-like fixture/capture/diagnostics search boundary | **14** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal Chaos Cloth editor/tools, Godot SoftBody, Bevy/Fyrox mesh, Unity HDRP Fabric references | **47** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor239 逐读 builtin asset registry/toolkit、first-party catalog、Scene/Inspector、asset editor preview、viewport selection/gizmo/transaction、PreviewScene、capture/diagnostics 与 Cloth-like fixtures。当前没有 Cloth asset/provider/document、topology/weight-map/pin/collision/attachment authoring、simulation PreviewWorld、cache/compiler job 或 runtime mirror；通用 Mesh/Animation/Physics inspector 不能报告 Cloth Ready。Editor239 新增28项P1/10项P2，24门为21 Fail/3 Partial/0 Pass，不新增 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor/Cargo/PIE/solver/UI/fault/scale/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor239](zircon_editor/239-editor-cloth-fabric-soft-body-current-working-tree-review.md)。
+
+## 505. Runtime Hair / Groom / Fur / Strand 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Resource/ImportedAsset/Scene/catalog/importer Hair search boundary | **58** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Mesh/skinning/Morph/OIT/shadow/velocity/visibility/GPU residency adjacent substrate | **184** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| animation/deformer/material/RT/GI/scalability boundary | **119** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal HairStrands GroomAsset/Binding/Cache/Cluster/Editor, Unity HDRP Hair, Godot/Bevy/Fyrox references | **488** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime180 逐层重查 Runtime145/32：production Rust 对 Hair/Groom/Fur/Strand/Follicle/Marschner 领域扫描为零；ResourceKind/ImportedAsset/Scene/catalog/model import/render/material/visibility/shadow/velocity 没有 Groom source、binding、strand/cluster/cache/deformer 或 Hair BSDF。Mesh/skinning/Morph/OIT/shadow/residency 仅是相邻底座。Runtime180 新增30项P1/12项P2，26门为23 Fail/3 Partial/0 Pass，不新增 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Hair solver/GPU/PIE/fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime180](zircon_runtime/180-runtime-hair-groom-fur-strand-current-working-tree-review.md)。
+
+## 506. Editor Hair / Groom / Fur / Strand 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| editor asset/type/catalog/document boundary | **8** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Asset editor/PreviewScene/viewport/selection/transaction adjacent host | **62** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Hair-like material/capture/diagnostics/fixture boundary | **12** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal HairStrandsEditor/Core Groom factories/tools, Unity HDRP Hair, Godot/Bevy/Fyrox references | **68** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor240 逐读 builtin registry/toolkit、editor catalog、asset editor preview、PreviewScene、viewport interaction、Scene/Inspector 与 capture/diagnostics。当前没有 Groom/Hair/Binding/Cache factory/provider/document、curve/strand viewport、binding builder、grooming tools、Hair material inspector、runtime preview 或 cache editor；generic preview/material 不能报告 Groom Ready。Editor240 新增28项P1/10项P2，24门为21 Fail/3 Partial/0 Pass，不新增 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor/Cargo/PIE/solver/GPU/fault/scale/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor240](zircon_editor/240-editor-hair-groom-fur-strand-current-working-tree-review.md)。
+
+## 507. Runtime Destruction / Fracture / Geometry Collection 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Resource/Scene/Mesh/Physics collection search boundary | **64** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Jolt/rigid/GPU Scene/visibility/LOD/cache/render adjacent substrate | **212** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| damage/field/network/nav/audio/VFX/product boundary | **144** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal GeometryCollection/Fracture/FieldSystem/ChaosCaching/HeadlessChaos, Godot/Bevy/Fyrox/Unity references | **473** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime181 逐层重查 Runtime146/33：production 没有 Destruction/Fracture/GeometryCollection/ClusteredRigid/DamageField/SimulationCache owner；ResourceKind/ImportedAsset/Scene/Physics DTO/Jolt/mesh/GPU Scene/visibility/render/catalog 没有 piece/interior/hierarchy/connection/cluster/damage/field/break/event/cache chain。Mesh/SDF、rigid Physics、GPU Scene、LOD 与 generic cache 是相邻底座。Runtime181 新增30项P1/12项P2，26门为22 Fail/4 Partial/0 Pass，不新增 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Fracture/Jolt/GPU/PIE/fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime181](zircon_runtime/181-runtime-destruction-fracture-geometry-collection-current-working-tree-review.md)。
+
+## 508. Editor Destruction / Fracture / Geometry Collection 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| editor asset/type/catalog/document boundary | **8** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Mesh/Physics inspector, viewport/gizmo/transaction, PreviewScene adjacent host | **64** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| destruction-like fixture/capture/diagnostics boundary | **13** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal Fracture/GeometryCollection/FieldSystem/ChaosCaching editor references, Godot/Bevy/Fyrox/Unity references | **56** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor241 逐读 builtin registry/toolkit、editor catalog、Scene/Inspector、viewport selection/gizmo/transaction、PreviewScene、Physics workbench、capture/diagnostics 与 fixture boundary。当前没有 Geometry Collection/Fracture/Damage Field/Cache asset type、factory、document、piece/cluster/cutter/interior tools、break preview、runtime mirror 或 cache timeline；普通 Mesh/Physics UI 不能报告 Destruction Ready。Editor241 新增28项P1/10项P2，24门为21 Fail/3 Partial/0 Pass，不新增 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor/Cargo/PIE/Fracture/Physics/GPU/fault/scale/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor241](zircon_editor/241-editor-destruction-fracture-geometry-collection-current-working-tree-review.md)。
+
+## 509. Runtime Vegetation / Tree / Foliage / Grass / Instancing 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| ResourceKind/ImportedAsset/Scene/catalog vegetation search boundary | **64** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| GPU Scene/visibility/mesh/LOD/terrain/wind/render adjacent substrate | **211** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| physics/streaming/scalability/plugin/fixture boundary | **138** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal Foliage/ISM/HISM/LandscapeGrass/InstanceCulling, Unity GPUDriven/Nature, Godot MultiMesh, Bevy/Fyrox references | **461** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime182 逐层重查 Runtime147/34：生产没有 vegetation source/artifact、species/placement/instance-set、per-World foliage owner 或 wind/billboard/impostor/LOD/streaming/scalability contract；Tree、Terrain、Billboard 等只出现在 descriptor-only advanced slots，grass billboard 是普通模型 fixture。Runtime182 新增30项P1/12项P2，26门为23 Fail/3 Partial/0 Pass，不新增唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 vegetation render/GPU/physics/fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime182](zircon_runtime/182-runtime-vegetation-tree-foliage-grass-current-working-tree-review.md)。
+
+## 510. Editor Vegetation / Tree / Foliage / Grass / Instancing 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| editor asset/type/catalog/document boundary | **8** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Workbench/viewport/selection/brush/transaction/preview adjacent host | **62** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| foliage fixture/capture/diagnostics boundary | **14** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal FoliageEdit/ISM/LandscapeGrass, Unity GPUDriven/Nature, Godot/Bevy/Fyrox references | **42** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor242 逐读 asset/type registry、editor catalog、Scene/Inspector、viewport/transaction/PreviewScene、Foliage Workbench 与 grass fixture。当前没有 vegetation asset/type/factory/document、scatter/paint/erase/brush、species/placement/instance identity、GPU/LOD/wind preview、build artifact 或 Runtime mirror；Workbench root 为 `visibility = "collapsed"`，静态 Forest_A12/Forest_A13/River_02/Cliff_01 行和 Preview/Build 路由不能证明执行。Editor242 新增28项P1/10项P2，24门为21 Fail/3 Partial/0 Pass，继承 Editor16 唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor/Cargo/UI automation/PreviewWorld/PIE/vegetation/fault/scale/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor242](zircon_editor/242-editor-vegetation-tree-foliage-grass-current-working-tree-review.md)。
+
+## 511. Runtime Decal / Projector / DBuffer / GBuffer 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| decals plugin descriptor/pass/executor boundary | **18** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| render scene/frame extract/material/visibility/receiver adjacent substrate | **141** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| tests/catalog/App/plugin manifest boundary | **36** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal deferred decals, Godot/Fyrox decal, Bevy clustered/forward, Unity HDRP Decal references | **20** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime183 逐读 decals runtime/editor plugin、manifest、render scene/projector、frame extract、material/scene/resource 与 advanced slots。plugin 注册 `decal-projector-composite` PostProcess pass 和四字段 descriptor，但 `render_pass_executor_registration()` 绑定 `noop_render_executor` 并成功返回，实际没有 projector extraction、DBuffer/GBuffer/forward receiver、atlas/material、culling/batching、temporal/RT、residency/device-loss 或 output receipt；Editor plugin 没有 extension owner。Runtime183 新增30项P1/12项P2，26门为22 Fail/4 Partial/0 Pass，继承既有唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 decal GPU/render/fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime183](zircon_runtime/183-runtime-decal-projector-current-working-tree-review.md)。
+
+## 512. Editor Decal / Projector / DBuffer / GBuffer 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| decals editor/runtime plugin and manifest boundary | **8** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| material/scene/viewport/inspector/transaction adjacent host | **58** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| decal fixture/capture/diagnostics/catalog boundary | **12** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal DecalComponent/visualizer/deferred decals, Godot/Fyrox/Bevy, Unity HDRP references | **14** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor243 逐读 decals editor/runtime plugin、manifest、asset/type registry、Scene/Inspector、viewport/transaction、Material Workbench 与 Foliage workspace 邻接宿主。当前没有 Decal asset/type/document/provider、projector gizmo、surface receiver/atlas/material inspector、DBuffer/forward preview、batch/cull diagnostics、transaction/undo 或 runtime receipt；editor plugin 只有 descriptor/capability，没有 `register_editor_extensions()`、drawer、toolkit、SceneMode、overlay 或 operation。Editor243 新增28项P1/10项P2，24门为21 Fail/3 Partial/0 Pass，继承 Editor17 唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor/Cargo/UI automation/PreviewWorld/PIE/decal/GPU/fault/scale/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor243](zircon_editor/243-editor-decal-projector-current-working-tree-review.md)。
+
+## 513. Runtime Weather / Climate / Atmosphere / Cloud / Wind 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| WorldTime/Environment/Fog/Scene/render extract boundary | **164** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| particles/terrain/sound/net/plugin/catalog adjacent substrate | **119** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| weather string/test/fixture/save/network boundary | **83** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal SkyAtmosphere/VolumetricCloud/Wind/DaySequence, Unity HDRP Sky/Clouds, Godot/Bevy/Fyrox references | **16** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime184 逐层重查 Runtime149/36：生产只有 WorldTime、Environment/IBL、Volumetric Fog、Particles、Terrain、Sound 与 Net 等相邻底座，没有 Weather source/artifact/service、deterministic surface state、precipitation/cloud/wind/atmosphere provider、RenderFrameExtract mirror、network/save/replay consumer；`weather.runtime`、`weather.Component.CloudLayer`、`weather.seasonal` 主要位于 loader/extension tests，World environment 仍为 preview/default gradient。Runtime184 新增30项P1/12项P2，26门为23 Fail/3 Partial/0 Pass，不新增唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 weather/atmosphere/GPU/network/save/fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime184](zircon_runtime/184-runtime-weather-climate-atmosphere-current-working-tree-review.md)。
+
+## 514. Editor Weather / Climate / Atmosphere / Cloud / Wind 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| editor asset/type/catalog/document boundary | **8** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Workbench/viewport/PreviewScene/inspector/transaction adjacent host | **48** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| weather timeline/fixture/capture/diagnostics boundary | **31** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal WorldBrowser/SkyAtmosphere/Cloud/Wind/DaySequence, Unity HDRP Lighting/Sky, Godot/Bevy/Fyrox references | **12** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor244 逐读 asset/type registry、editor catalog、Scene/Inspector、viewport/PreviewScene、extension inspector、Weather Workbench 与 capture/diagnostics 边界。当前没有 Weather asset/type/document/provider、timeline/curve/region/layer authoring、PreviewWorld/PIE、sky/cloud/precipitation/wind viewport gizmo、deterministic build artifact 或 runtime mirror；Workbench root 为 `visibility = "collapsed"`，固定 Weather_Storm/Region_Mountains/Layer_Clouds、8 layers/5 regions/2 warnings 与 Preview/Build 路由均为静态 fixture。Editor244 新增28项P1/10项P2，24门为21 Fail/3 Partial/0 Pass，不新增唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor/Cargo/UI automation/PreviewWorld/PIE/weather/GPU/fault/scale/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor244](zircon_editor/244-editor-weather-climate-atmosphere-current-working-tree-review.md)。
+
+## 515. Runtime Direct Lighting / Shadow / Cookie / IES 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| light component/asset/extract/project I/O boundary | **14** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| GPU light ABI/grid/shader/lighting boundary | **22** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| shadow plan/atlas/cache/view/submission boundary | **30** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| cookie/IES/contact-shadow/plugin/tests/reference engines | **76** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Runtime185 逐读 `scene/components/scene/lighting.rs`、scene asset schema、`World::collect_*_lights`、project I/O、`GpuLightData`/packing、CPU light-grid、shadow plan/atlas/cache/submission、cookie metadata、contact-shadow WGSL 与产品测试。四类灯光仍把 shadow 写为 `None`，Rect 显式 degraded；schema 没有 shadow/cookie/IES/photometry/channel，GPU ABI 有槽位复用和 32-bit ID 截断，grid 每帧 CPU 分配并静默截断 `u16::MAX`，CPU/async compute 双 authority，spot/rect 用 sphere bounds；shadow cache 未接 atlas 内容，contact shadow 是无 light 语义的全屏 occlusion。Runtime185 新增30项P1/12项P2，26门为23 Fail/3 Partial/0 Pass，不新增唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Cargo/GPU/PIE/fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime185](zircon_runtime/185-runtime-direct-lighting-shadow-current-working-tree-refresh.md)。
+
+## 516. Editor Direct Lighting / Shadow / Cookie / IES / Lighting Bake 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| viewport settings/render packet/gizmo boundary | **18** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| asset/document/inspector/transaction/PreviewScene boundary | **52** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| lighting bake Workbench/routes/catalog/diagnostics boundary | **21** | n/a | n/a | **0** | **0** | current working-tree snapshot |
+| Unreal/Unity/Godot/Fyrox/Bevy lighting editor references and tests | **35** | n/a | n/a | **0** | **0** | source paths rechecked |
+
+Editor245 逐读 viewport settings/render packet、camera/directional gizmo、PreviewScene/capture/retained host、asset/document/transaction boundary、Lighting Bake ZUI、routes/catalog 和相关 UI tests。当前只有通用 preview lighting/skybox/display/grid 开关；local light gizmo、shadow/cookie/IES/photometry/channel inspector、show flags、lighting profile、bake operation/document/compiler/artifact、PreviewWorld/runtime receipt、atlas/cluster/caster diagnostics 均缺失，Lighting Bake workspace root collapsed 且静态硬编码。Editor245 新增28项P1/10项P2，25门为22 Fail/3 Partial/0 Pass，继承既有唯一 P0。本轮只修改 review/index/coverage，不修改 production/test/Cargo/ABI/ZUI，也未运行 Editor/Cargo/UI automation/PreviewWorld/PIE/lighting/GPU/fault/scale/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor245](zircon_editor/245-editor-direct-lighting-shadow-cookie-ies-lighting-bake-current-working-tree-review.md)。
+
+## 517. Runtime Physics Backend / Shape / Query / Event / Fixed Step 当前工作树
+
+Runtime186 逐文件复核 framework physics、Scene/asset sync、Physics plugin builtin/Jolt/backend/manager/constraint/skeletal 与首方 catalog。Runtime167 的 composition/false-ready/dual-clock/provider P0 继续 Open；本轮新增30项P1（24 Open/6 Partial）、12项P2，26门资格门为24 Fail/2 Partial/0 Pass。Jolt ray/shape/overlap 仍为空，manager 走 builtin 快照 fallback，事件仍 O(n²)且缺 manifold/material/subshape/tick，local collider transform/root scale 被 native 写回覆盖，material/filter/mesh cook/native constraints/fixed容量/线程 admission/command receipt/character/vehicle/ragdoll 均未闭合。本轮仅写 review/index/coverage，未修改 production/test/Cargo/ABI/ZUI，按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime186](zircon_runtime/186-runtime-physics-backend-shape-query-event-lifecycle-current-working-tree-review.md)。
+
+## 518. Editor Physics Authoring / Preview / Overlay / Diagnostics 当前工作树
+
+Editor246 逐文件复核 Physics plugin registration/overlay/ragdoll、4份 ZUI、Physics Collision Workbench、callback feedback/navigation/binding、asset/inspector/viewport/diagnostics 与 catalog。Editor227 的 provider/catalog/operation/document/preview P0 继续 Open；本轮新增28项P1（24 Open/4 Partial）、10项P2，25门资格门为24 Fail/1 Partial/0 Pass。ZUI 仍11个 Space、0 Button/event/route，command 仍 OpenView，overlay 仍纯 clone mapper，ragdoll 仍字符串骨路径与猜测 capsule，Workbench collapsed 且静态 82 kg/4 manifolds/124 bodies，缺 PhysicsAsset/document/cook/PreviewWorld/overlay provider/capture。仅写 review/index/coverage，未修改 Editor/Rust/Cargo/ZUI，按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor246](zircon_editor/246-editor-physics-authoring-preview-debug-current-working-tree-review.md)。
+
+## 519. Runtime Scene ECS / World / Archetype / Query / Schedule 当前工作树
+
+Runtime187 逐文件复核 `zircon_runtime/src/scene/world`、Scene ECS entity/component/archetype/table/sparse/query/change/command/event/resource/schedule、inspection artifact 与 world query。当前 `World` 同时维护 legacy entity/kind maps、EntityRegistry/StableQueryOrder、ArchetypeIndex/ComponentStorage、dynamic JSON、NodeRecord/node cache 与 inspection artifact；clone/deserialize 反复重建 projection，`query_world` Components 仍经全量 `node_records()` 和 reflected fields，derived state、world generation、change tick、schema/topology/lifecycle revision 没有一个 source token。Schedule 的 conflict graph/build receipt 不能抵消 worldful/runtime serial+flush、worker batch 每帧分配、panic partial mutation 和多队列 event/command retirement。Runtime187 新增30项P1（26 Open/4 Partial）、12项P2、30门资格门（28 Fail/2 Partial/0 Pass），不新增唯一 P0；仅写 review/index/coverage，未修改 Runtime/Editor/Rust/Cargo，按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime187](zircon_runtime/187-runtime-scene-ecs-world-archetype-query-schedule-generation-current-working-tree-review.md)。
+
+## 520. Editor Scene World / Authoring / Play / Hierarchy / Document 当前工作树
+
+Editor247 逐文件复核 ProjectSceneDocument/load job、EditorAuthoringWorld gateway、Play controller/snapshot/pending edits、Workbench state、WorldSyncPump、scene inspection publication、Play hierarchy/inspector/gizmo 与 retained hierarchy routes。当前 ProjectSceneDocument、AuthoringWorld、Play JSON snapshot、Edit/Play sync pump、hierarchy/inspector/gizmo 各自缓存 world/identity/generation/selection；authoring snapshot 仍 deep-clone World，load job 无 cancellation/dedup/dependency lease，Play hierarchy 全量 rows/比较且 row lookup O(n)，Inspector 固定100ms polling，Keep Play Changes 仅单实体字段/字符串 path。Editor247 新增28项P1（24 Open/4 Partial）、10项P2、25门资格门（23 Fail/2 Partial/0 Pass），不新增唯一 P0；仅写 review/index/coverage，未修改 Editor/Runtime/Rust/Cargo/ZUI，按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor247](zircon_editor/247-editor-scene-world-authoring-play-hierarchy-document-current-working-tree-review.md)。
+
+## 521. Runtime Asset / Resource Lifecycle / Build / Residency 当前工作树
+
+Runtime188 逐文件复核 `asset` 全目录、`zr_resource` registry/manager/lease/runtime、ProjectManager full/targeted import、importer registry、artifact store、watcher 与 pack 边界。当前已有 locator 规范化、COW registry/index、meta v7、artifact chunk/LRU、bounded watcher 和 targeted transaction 等可保留底座；但 ProjectAssetManager 聚合 project/watch/source path/residency/importer/resource authority，`ensure_resident` 在调用线程同步 I/O/decode，ResourceLease 只有 refcount，registry 与 asset index 双 authority，DefaultHasher cache key 缺 function/recipe/target/toolchain，full/targeted graph、typed dependency、publication/readiness、cook/package/install 未收敛。Runtime85/99m/108-110 P0 继续有效；Runtime188 新增36项P1/14项P2，30门为30 Fail/0 Partial/0 Pass，不新增唯一 P0。本轮只写 review/index/coverage，未修改 Runtime/Editor/tooling 生产代码，未运行 Cargo、真实导入/cook/package、GPU/physics upload、fault、scale、soak、benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime188](zircon_runtime/188-runtime-asset-resource-lifecycle-locator-registry-load-cache-import-cook-current-working-tree-review.md)。
+
+## 522. Editor Asset Workspace / Catalog / Provider / Preview / Import 当前工作树
+
+Editor248 逐文件复核 `core/asset`、`core/project/document/jobs`、`ui/host/editor_asset_manager`、`asset_workspace_state`、retained assets routes、preview refresh 与 import/refactor tests。当前 EditorAssetIndex/CatalogGeneration 的 Arc projection、Runtime-owned deletion/relocation/model import ticket、PreviewScheduler admission、AssetTypeRegistry owner/toolkit/creation 底座可保留；但 catalog 只发布 ResourceKind，Index rows 全量 materialize，workspace 单一 selection/query 且 folder tree/asset filter 全量，PreviewCache 无 byte/LRU/project budget，PreviewScheduler 无 priority/cancel，Manager API 缺通用 activation/provider/create/rename/duplicate/reimport/bulk。Editor226 P0 与 Editor60/61/247 generation 边界继续有效；Editor248 新增32项P1/12项P2，25门为25 Fail/0 Partial/0 Pass，不新增唯一 P0。本轮只写 review/index/coverage，未修改 Editor/Runtime/tooling 生产代码，未运行 Editor/Cargo/UI E2E、100k/1M catalog、preview/import/reimport/fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor248](zircon_editor/248-editor-asset-workspace-catalog-provider-preview-import-reimport-current-working-tree-review.md)。
+
+## 523. Runtime Material / Shader Artifact / Variant / Pipeline / PSO 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Material/Shader asset、graphics material/pipeline、resource streamer、Mesh PSO selected union | **175** | **41,623** | **1,696,435** | n/a | n/a | current working-tree snapshot |
+| direct pipeline creation boundary | n/a | n/a | n/a | n/a | n/a | about 55 render / 27 compute call sites; owner files overlap |
+| Unreal/Unity/Godot/Bevy/Fyrox selected reference contracts | **14** | n/a | n/a | n/a | n/a | source paths rechecked |
+
+Runtime189确认Shader kind/readiness、Naga reflection、source cache v2、Material published/previous/staged candidate、Base typed admission与resolved-PSO pins是真实底座；但`MeshPipelineCache`仍同时拥有多组pass HashMap、variant/layout/fallback、两个私有compiler、driver cache和publication/diagnostic，全renderer也继续绕过唯一artifact authority直接创建PSO。09C七项父P0保持Open/Partial；Runtime189登记36项P1（28 Open/8 Partial）、14项P2，30门为20 Fail/10 Partial/0 Pass。本轮只写review/index/coverage，未修改Runtime/Editor/plugin/Cargo/ABI/ZUI，未运行Cargo/WGPU/DX12/RenderDoc/hot-reload/device-loss/scale/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Runtime189](zircon_runtime/189-runtime-material-shader-artifact-variant-pipeline-pso-cache-publication-current-working-tree-review.md)。
+
+## 524. Editor Material / Instance / Shader Graph / Toolkit / Preview 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Material Editor与optional Shader Graph plugin/dist selected union | **17** | **1,483** | **57,740** | static inventory | n/a | current working-tree snapshot |
+| Core asset/toolkit/operation/document/job/preview adjacent host | n/a | n/a | n/a | n/a | n/a | owner paths rechecked |
+| Unreal/Unity/Godot/Bevy/Fyrox selected editor/runtime references | **12** | n/a | n/a | n/a | n/a | source paths rechecked |
+
+Editor249确认Core operation factory、AssetType/toolkit/graph descriptor与shared document/save/job底座可复用，但Material package引用的graph ZUI和default template物理缺失，六条operation没有factory，native dist无invoke/state/bridge；Material Graph仅折叠base color，第二套ShaderGraph生成未验证WGSL并注册no-op executor。Editor137五项父P0继续全部Open；Editor249登记34项P1（30 Open/4 Partial）、12项P2，26门为22 Fail/4 Partial/0 Pass。本轮只写review/index/coverage，未补资源或修改Editor/Runtime/plugin/Cargo/ABI/ZUI，未运行Editor/Cargo/UI automation/save-reopen/preview/GPU/fault/scale/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor249](zircon_editor/249-editor-material-shader-graph-instance-toolkit-preview-compiler-current-working-tree-review.md)。
+
+## 525. Runtime Camera / View / Director / History / Multi-View 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Camera asset/component、World/query/render、camera controller/stack/history、frame extract、dynamic session、viewport record与关联 consumer selected union | **142** | **23,150** | **846,431** | **232 markers** | **5 markers** | current working-tree snapshot |
+| Unreal/Unity/HDRP/Godot/Bevy/Fyrox selected runtime references | **17** | **11,171** | **467,226** | n/a | n/a | source paths rechecked |
+
+Runtime190逐文件复核 Camera source/schema、World active selection、render descriptor/stack、projection/history/capture、dynamic API/Simulate、AI/reflection-probe consumer 与 multi-view/XR边界。SceneCameraAsset/CameraComponent、stable stack resolver、per-camera history、CameraCut reset enum、bounded Simulate payload是可保留底座；但World仍以裸EntityId为active owner，source缺stack/clear-depth/独立mask/projection override，11/14组件字段跳过reflection，没有Endpoint/Director/Rig/Lens/Shake/Cut/ViewPurpose、source-to-artifact、activation lease、ViewFamily、per-player/per-eye history、capture pin与fail-closed策略。Runtime190新增36项P1（30 Open/6 Partial）、12项P2、30门为23 Fail/7 Partial/0 Pass，继承Runtime37/99za等父P0；本轮只写review/index/coverage，Tooling按用户要求排除，未修改Runtime/Editor/plugin/Cargo/ABI/ZUI或测试，未运行Cargo/GPU/PIE/XR/capture/fault/scale/soak/benchmark，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime190](zircon_runtime/190-runtime-camera-view-director-history-multiview-current-working-tree-review.md)。
+
+## 526. Editor Camera / Viewport / Pilot / Preview / Cut / Capture 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Scene viewport/controller/projection/render packet、Camera Inspector、simulate bridge、editor state、command/authority/viewport tests与sequencer route selected union | **43** | **8,953** | **325,131** | **86 markers** | n/a | current working-tree snapshot |
+| Unreal/Godot/Fyrox/Unity URP/HDRP selected editor references | **12** | **18,357** | **674,010** | n/a | n/a | source paths rechecked |
+
+Editor250逐文件复核 Scene viewport state/navigation、Camera reflection/Inspector、simulate/play同步、multi-viewport、Pilot/View Through、PreviewSession、Sequencer Camera Cut、capture/debug与workspace routes。单transient `ViewportCameraSnapshot`、Orbit/Pan/Zoom、projection/ray helper、active-camera resync和bounded Simulate payload是可保留底座；但没有完整Camera source transaction、asset/toolkit/factory、speed/profile/bookmark/Camera Editor State、per-view identity/session、PreviewWorld、Pilot lease/write-back、typed CutSection、CaptureView artifact/receipt、Camera Debugger、multi-view/XR/split-view或generation/stale clear。Editor250继承Editor30/104/151的5项父P0全部Open，新增34项P1（29 Open/5 Partial）、12项P2、28门为23 Fail/5 Partial/0 Pass；本轮只写review/index/coverage，Tooling按用户要求排除，未修改Editor/Runtime/plugin/Cargo/ABI/ZUI或测试，未运行Editor host/UI automation/PreviewWorld/PIE/Sequencer/capture/fault/scale/soak/visual benchmark，也未查询、轮询、等待或实时跟踪协调器。详见[Editor250](zircon_editor/250-editor-camera-viewport-pilot-preview-cut-capture-current-working-tree-review.md)。
+
+## 527. Editor XR / OpenXR / Origin / Action / Stereo Preview / Mirror / Compositor 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Editor viewport/controller/projection/gizmo、Play preview/Simulate bridge、viewport commands与focused Cargo/test union | **145** | **11,755** | **411,016** | **101 markers** | **0 markers** | current working-tree snapshot |
+| Unreal OpenXR/LevelEditor、Godot OpenXR/editor、Unity Graphics XR、Bevy/Fyrox selected references | **21** | **23,660** | **927,829** | n/a | n/a | source paths rechecked |
+
+Editor251逐文件复核 XR Editor 需要的 provider/catalog、project/device profile、Origin/ReferenceSpace、per-eye ViewSession、ActionSet/InteractionProfile、Play/PIE/PreviewWorld、mirror/compositor/layer/foveation、capture/debug与device lifecycle。Scene viewport/controller、projection/ray/picking、PlayPreviewFrame gateway/instance/generation provenance和bounded Simulate payload是可保留底座；但 `zircon_editor` 对 `OpenXR/XR/HMD/foveation/predicted display/xrLocateViews/multiview_mask` 精确搜索均为0，普通 `ViewportCameraSnapshot` 仍单视图、capture固定default viewport/RGBA、command没有XR操作，无法证明任何 headset output、per-eye history、action sync、late update或swapchain lease。Editor251不重复Runtime66/106/99g与Runtime190的Runtime owner，也不重复Editor29/250的普通Input/Camera owner；新增28项P1（24 Open/4 Partial）、12项P2、28门为22 Fail/6 Partial/0 Pass。本轮只写review/index/coverage，Tooling按用户要求排除，未修改Editor/Runtime/plugin/Cargo/ABI/ZUI或测试，未运行Editor host/UI automation/OpenXR runtime/头显/PreviewWorld/PIE/GPU capture/CTS/motion-to-photon/fault/thermal/soak/visual benchmark，也未查询、轮询、等待或实时跟踪协调器。详见[Editor251](zircon_editor/251-editor-xr-openxr-origin-action-preview-mirror-compositor-current-working-tree-review.md)。
+
+## 528. Editor Render Graph / Frame Debugger / Capture / Lighting Bake / Reflection Probe / Post Process 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Rendering editor packages + manifest | **67** | **1,665** | **54,507** | **3 markers** | **0 markers** | current working-tree snapshot |
+| Workbench/catalog/routes/tests | **22** | **8,367** | **364,133** | **34 markers** | **1 marker** | current working-tree snapshot |
+| Viewport capture observation bridge | **36** | **4,282** | **154,227** | **44 markers** | **1 marker** | current working-tree snapshot |
+| Runtime bake/probe/post-process adjacent evidence | **41** | **4,597** | **165,213** | **50 markers** | **2 markers** | current working-tree snapshot |
+| Editor/adjacent Runtime focused unique union | **297** | **29,981** | **1,125,767** | **252 markers** | **13 markers** | `3cc3166578e128b333d441fa098c1070de0c199b0205ede2dde02722ce91f818` |
+| Unreal/Unity/Godot/Bevy/Fyrox selected references | **31** | **23,821** | **996,610** | n/a | n/a | `ecb4b1cc68f326e01ee98a89f4ae4eba4c8358ef04101a51760164f83f6e9fb3` |
+
+Editor252 逐文件复核 Rendering plugin/editor packages、first-party catalog、Render/Lighting Bake/Post Process Workbench、retained callback bridge、viewport capture/GPU product、Runtime graph dump/profile/debugger、offline lightmap/probe/post-process相邻契约，并与 Unreal RDG/RenderDoc/DumpGPU/GPULightmass、Unity RenderGraph Viewer/debug session、Godot RenderingDeviceGraph/visual profiler/LightmapGI/probe gizmo、Bevy renderer schedule、Fyrox graphics/light/probe实现对照。Runtime的typed observation与bake/probe/post-process底座真实存在，但Editor没有消费 `RenderGraphDump`、`RenderFrameProfile`、`graph_dump`、`frame_profile_json`、debugger request/status、`LightmapBakeRequest/Output` 或 typed Post Process component；Rendering manifest/catalog/status不一致，三份Workbench继续投影固定fixture。GPU product与CPU capture共用 `ViewportState.latest_generation`，还会互相抑制同代结果。旧5项父P0重判为4 Open/1 Partial；Editor252新增40项P1（32 Open/8 Partial）、12项P2，30门为24 Fail/6 Partial/0 Pass。Runtime166继续拥有Render Graph Runtime canonical P0，本轮不重复计数。仅写review/index/coverage，未修改Editor/Runtime/plugin/Cargo/ABI/ZUI或测试，未运行Cargo、Editor host/UI automation、GPU capture、真实bake、device-loss、fault/scale/soak/benchmark；按用户要求未查询、轮询、等待或实时跟踪协调器。详见[Editor252](zircon_editor/252-editor-render-graph-frame-debugger-capture-lighting-bake-reflection-probe-post-process-current-working-tree-review.md)。
+
+## 529. Runtime Platform Host / Window Registry / Display / Event Loop / Application Lifecycle / Surface Command 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Platform control plane（window/framework/platform） | **229** | **23,844** | **815,061** | **221 markers** | **0 markers** | `daca567954a896ee68463aa7f174664d80e534a52df065679591b43bc960ff6f` |
+| App product host（runtime_entry_app/runtime_library/reference presenter） | **114** | **13,451** | **485,285** | **204 markers** | **0 markers** | `90a87ecce1e4211523b348367684f8579b74f80a8b4fb5ee04f1b85f04bd7f83` |
+| Dynamic ABI + Graphics surface | **39** | **6,093** | **205,475** | **42 markers** | **0 markers** | `d78085d0d3e14d6bcce3ea9635f2126b5e0950255063d01fe1016e543dd35bba` |
+| focused unique union | **382** | **43,388** | **1,505,821** | **467 markers** | **0 markers** | `5a4384d1c7c9e8d5374c970913c77cfd130f0867ffdfdf6e20519d40c64aa092` |
+| Unreal/Bevy/Fyrox/Godot/Unity Graphics selected references | **29** | **33,239** | **1,264,240** | n/a | n/a | `a7a04d5299ec6897e8fe7bbc2544eedea4713f2f7679ff1326d55e7081d2b971` |
+
+Runtime191 逐文件复核 Runtime Window/Platform typed control plane、App winit host、dynamic ABI、Graphics/WGPU surface lifecycle与reference CPU presenter，并与 Unreal GenericApplication/WindowsApplication/SlateRHIRenderer、Bevy WinitWindows/ApplicationHandler、Fyrox Executor、Godot DisplayServer、Unity Graphics HDR/dynamic-resolution output观察对照。当前已存在generation-qualified Window/Display/SurfaceLease、requested/observed/effective state、WindowCommand/HostCommandBroker、PlatformHost/ApplicationLifecycle状态机和EventLoopScheduler等真实底座；但关键操作的生产引用仍只有定义，`RuntimeEntryApp`继续持有另一套单窗口、viewport 1、私有cadence/lifecycle authority并丢弃native WindowId。Surface ABI仍是raw Win32 handle，Graphics固定FIFO/BGRA8 sRGB。旧2项父P0从Open重判Partial；64项P1为18 Open/45 Partial/1 Inherited，16项P2 Open，40门为15 Fail/25 Partial/0 Pass。本轮仅写review/index/coverage，未修改Runtime/App/Editor/plugin/Cargo/ABI/ZUI或测试，未运行Cargo、真实OS/GPU/multi-window/hotplug/mobile/fault/soak/benchmark；Tooling按用户要求排除，未查询、轮询、等待或实时跟踪协调器。详见[Runtime191](zircon_runtime/191-runtime-platform-host-window-registry-display-event-loop-application-lifecycle-surface-command-current-working-tree-review.md)。
+
+## 530. Editor Scene Viewport / Host Render Product / Surface Lifecycle / Frame Currentness / Multi-Viewport 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Editor host/viewport/play/gateway + App/Runtime Interface/Host/render/RHI focused closure | **1,000** | **142,602** | **130,033** | **5,095,346** | **1,500 markers** | **0** | `dd07985f398990274fa969444d8d2fcb9bc51c86fd00f2c8f01aa425139f55f4` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics selected references | **14** | **31,013** | **26,550** | **1,231,129** | n/a | n/a | `e9817f7e4b082b86e77e0f0886e6b1b57689abb25116533b98fd58f919c2e8e6` |
+
+Editor253 逐文件复核 RetainedEditorHost viewport controller、Host image/product、native floating presenter、Play/Simulate capture/input/pick、Gateway surface transport、Runtime render receipt、direct/capture与world-space UI，并与 Unreal per-instance `SEditorViewport/FEditorViewportClient/FSceneViewport`、Godot四个真实SubViewport/Camera、Fyrox Scene/Preview render target、Bevy retained view identity和Unity per-camera frame data对照。当前Scene/Simulate/Game分槽、Play gateway/instance/size/generation provenance、displayed-frame-qualified Simulate pick、direct GPU product、Runtime post-render generation-before-publication与surface transition guard是真实底座；但Host只有一个controller/size/dirty，layout `ViewInstanceId`、native `MainPageId/UiHostWindow`和Runtime viewport handle未形成统一session。每个native Host拥有独立default image set，而生产路径只patch structure/chrome/UI Asset，未找到显式per-window viewport image publication；Gateway外bind/unbind/present生产caller为0。resize/submit失败恢复、direct/capture mode epoch、typed currentness与真实world UI仍未闭合。旧4项P0重判2 Open/1 Partial/1 Closed，56项P1为33 Open/23 Partial，12项P2 Open，46门为28 Fail/15 Partial/3 Pass。本轮仅写review/index/coverage，未修改Editor/Runtime/App/plugin/Cargo/ABI/ZUI或测试，未运行Cargo、Editor、真实native floating/GPU/Play/fault/device-loss/HDR/multi-view/soak/benchmark；Tooling排除，未查询、轮询、等待或实时跟踪协调器。详见[Editor253](zircon_editor/253-editor-scene-viewport-host-render-product-surface-lifecycle-frame-currentness-multi-viewport-current-working-tree-review.md)。
+
+## 531. Editor Scene Viewport / Input / Picking / Selection / Highlight / Gizmo Transaction 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Zircon viewport/mode/selection/interactive transform/gateway、Workbench/host bridge、Runtime UI dispatch/surface、picking/highlight/spatial及聚焦测试闭包 | **534** | **99,416** | **91,732** | **3,414,493** | **606 markers** | **56 markers** | `006e1f12754cf1c713426e612174c87fec3c2bc2cbd531841d1f79eea38bec47` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics参考切片 | **23** | **31,789** | **26,957** | **1,213,892** | **1 marker** | **0** | `f9c108ebb4e674e8bf2f8341035b30ce72751fb763ddcbf49c96ca17d87430bd` |
+
+Editor254复核Scene Viewport的输入桥、Scene Mode、selection model、pointer extract/visible spatial query、Runtime picking adapter、box/frame、highlight gateway/store，以及新的world-space interactive batch transaction，并对照Unreal InputRouter/TransformProxy、Godot gizmo ray/frustum/overlap、Fyrox multi-root command、Bevy PointerId/mesh picking和Unity per-view SelectionOutline/Picking。当前事务内核已实现selection-root去重、冻结world/local/parent inverse、共同pivot、全量预检/补偿回滚、typed non-representable拒绝和一个正确kind的BatchTransformCommand，100 preview单history record也有专门测试源码；但authoring bridge仍丢失pointer/window/surface/viewport/capture generation，Handle terminal仍为空`()`，Scale仍正值钳制，ordered hits仍只取top，selection eligibility、真实geometry/shared selectable product与highlight frame consumer仍缺失。原3项P0为0 Open/1 Partial/2 Closed，8项P1为7 Open/0 Partial/1 Closed，6项P2为1 Open/5 Partial，36门为23 Fail/7 Partial/6 Pass。本轮仅写review/index/coverage，未修改Editor/Runtime/plugin/Cargo/ABI/ZUI或测试，未运行Cargo、Editor、GPU picking、multi-window、负scale、highlight render、fault/scale/soak/benchmark；Tooling排除，未查询、轮询、等待或实时跟踪协调器。详见[Editor254](zircon_editor/254-editor-scene-viewport-input-picking-selection-highlight-gizmo-transaction-current-working-tree-review.md)。
+### 532. Editor Interactive Tool Scheduler / Resource Lease / Input Capture / SceneMode / Modal / Extension 生命周期
+
+- 报告：[255-editor-interactive-tool-scheduler-resource-lease-input-capture-scene-mode-modal-extension-lifecycle-current-working-tree-review.md](zircon_editor/255-editor-interactive-tool-scheduler-resource-lease-input-capture-scene-mode-modal-extension-lifecycle-current-working-tree-review.md)
+- 范围：`zircon_editor/src/core/tools`、`core/context/tool_scheduler`、SceneMode/viewport controller、retained pointer/world-space/drawer capture、palette/picker/settings/project close、Export Wizard、extension revoke/host shutdown，以及 Unreal/Fyrox/Godot/Bevy/Unity Graphics 对照。
+- 证据：当前工作树源码、生产调用点、局部 tests、仓内参考源码；未运行 Cargo/GUI/并发/reload/规模性能验证。
+- 当前判定：P0 `0 Open / 2 Partial / 1 Closed`；P1 `17 Open / 28 Partial / 3 Closed`；P2 `8 Open / 3 Partial / 1 Closed`；资格门 `11 Fail / 21 Partial / 4 Pass`。Tooling 排除；实现状态 `pending`。
+
+### 533. Editor Authoring Transaction / Command History / Undo-Redo / Merge / Savepoint / Async Operation 当前工作树
+
+- 报告：[256-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation-current-working-tree-review.md](zircon_editor/256-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation-current-working-tree-review.md)
+- 范围：`core/editing`、dirty/save/document/journal、Scene/Inspector/Hierarchy/Gizmo、Animation、UI Asset、History UI、Navigation/Neural operation，以及Unreal/Godot/Fyrox/Bevy/Unity Graphics参考合同。
+- 证据：当前工作树静态源码、生产调用点、focused tests、owner/failure plans和仓内参考源码；未运行Cargo/GUI/fault/scale/soak/benchmark。
+- 当前判定：沿用Editor184 finding，不新增唯一项；P1 `8 Open / 3 Partial / 0 Closed`，P2 `2 Open / 2 Partial / 0 Closed`，资格门 `22 Fail / 17 Partial / 1 Pass`。新增关键证据为观察查询隐式flush group、close不退休history session、UI Asset失败原子性、同步外部operation和production journal缺口；当前源码另有未定义符号，buildability未验收。Tooling排除；实现状态`pending`。
+
+### 534. Runtime Task Execution / Job Scheduler / Task Graph / Worker Domain / Scope / Cancellation / Deadline / Shutdown / Diagnostics / Product Adoption
+
+- 报告：[192-runtime-task-execution-job-scheduler-task-graph-worker-domain-scope-cancellation-deadline-shutdown-diagnostics-product-adoption-current-working-tree-review.md](zircon_runtime/192-runtime-task-execution-job-scheduler-task-graph-worker-domain-scope-cancellation-deadline-shutdown-diagnostics-product-adoption-current-working-tree-review.md)
+- 范围：Runtime task/operation 93 文件、16,543 行、165 个测试标记，及 asset、scene、plugin、graphics、text、platform、app、editor、network 生产消费者；对照 Unreal TaskGraph、Bevy tasks、Godot WorkerThreadPool、Fyrox TaskPoolHandler 和 Unity Graphics JobHandle/RenderGraph。
+- 当前判定：继承 dynamic-session execution-owner P0 Open；稳定 P1 58 Open / 14 Partial / 0 Closed，P2 16 Open / 2 Partial / 0 Closed，资格门 40 Fail / 0 Partial / 0 Pass。EngineTaskGraph、TaskGraphScope、bounded lanes、terminal dispatcher 和 diagnostic journal 为局部底座；process/static owners、raw escape hatches、OperationService 第二状态机、private workers、blocking reader cancellation、deadline/result/priority/census 未闭合。Tooling 排除；实现状态 pending，仅写 review/index，未运行 Cargo、GPU/IO fault、DLL reload、跨平台 benchmark、sanitizer 或 soak。
+
+### 535. Editor Background Jobs / Admission / Scheduling / Cancellation / Progress / Shutdown / Product Integration
+
+- 报告：[257-editor-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-current-working-tree-review.md](zircon_editor/257-editor-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-current-working-tree-review.md)
+- 范围：`zircon_editor/src/core/jobs` 58 个 Rust 文件、约 10,070 行、147 个 test marker；save/import/scene load/autosave/welcome/export/Play/plugin/profile/host lifecycle product consumers；Runtime task graph/scope/worker/bounded stream；Unreal/Godot/Bevy/Fyrox/Unity Graphics 对照。
+- 当前判定：沿用 Editor09/131，P0 `1 Open / 2 Closed`，P1 `42 Open / 4 Partial / 2 Closed`，P2 `8 Open / 2 Closed`，24 门全部 Fail。`EditorJobSystem` 的 bounded admission/journal、typed ticket、batch reservation、Arc 文本、primary generation 和 observer resync 是可保留底座；但没有 Runtime `TaskGraphScope` owner/census/barrier，shutdown deadline 不能证明 quiescence，Compile/Play reader 仍自建线程，Autosave final drain 忙等且使用 Misc category，状态栏只投影最小 JobId，ticket Drop 隐式 detach，Failed event 丢 typed error。对照 Unreal AssetCompilingManager/AsyncTaskNotification、Godot WorkerThreadPool/EditorProgress、Bevy TaskPool/TaskPoolPlugin、Fyrox TaskPoolHandler 和 Unity Graphics JobHandle/RenderGraph，报告要求唯一 EditorJobAuthority、scope lease、resource-vector admission、typed DAG、cancel acknowledgement、result store、WorkerSupervisor、cursor/resync 与 ordered shutdown。review-only，Tooling 按用户要求排除，未运行 Cargo、真实 Editor、GUI/headless pump、process/pipe/GPU fault、scale/soak、sanitizer 或跨平台 shutdown benchmark。
+
+### 536. Runtime Module / Service Registry / Dependency Resolution / Composition / Lifecycle / App Assembly 当前工作树
+
+| 范围 | files | lines | bytes | tests | 证据 |
+|---|---:|---:|---:|---:|---|
+| Runtime `core/runtime`、`engine_module`、`core/manager` Rust 选集 | **348** | **48,167** | **1,785,502** | **471 markers** | current working-tree snapshot |
+| App `entry` Rust 选集 | **210** | **26,801** | **1,058,623** | included in focused source reading | current working-tree snapshot |
+| Unreal/Bevy/Fyrox/Godot/Unity Graphics selected references | **10** | not re-counted | not re-counted | n/a | source paths and lifecycle anchors rechecked |
+
+Runtime193 逐文件复核 module/service descriptor、registry state、graph freeze、registration、activation/deactivation、resolution、manager facade、engine module/composition、plugin bridge、App EngineEntry/ProductComposition、product shutdown、dynamic session 及对应行为/结构测试，并对照 Unreal ModuleManager、Bevy App/Plugin、Fyrox Static/Dynamic Plugin、Godot Main/GDExtension 和 Unity Graphics RenderGraph lifecycle。当前 graph validation、dependency closure、reverse order、generation handle、call admission/drain、transition coordinator、veto-before-cleanup 与 panic typed error 是真实底座；但 declaration/composition identity、version/capability/provenance、graph-wide transaction、完整 claim rollback、service teardown、guarded manager invocation、event-driven readiness、observer ownership、ordinary App owner、dynamic fail-closed unload 和统一 product phase 均未闭合。沿用 Runtime157 P0 为0 Open/2 Partial/1 Closed；新增32项P1（24 Open/8 Partial）、12项P2（8 Open/4 Partial），30门为20 Fail/8 Partial/2 Pass。本轮仅写review/index/coverage，未修改Runtime/App/Editor/plugin/Cargo/ABI/ZUI或测试，未运行Cargo、真实DLL reload、GPU/OS teardown、loom、fault、scale、soak或benchmark；Tooling按用户要求排除，未查询、轮询、等待或实时跟踪协调器。详见[Runtime193](zircon_runtime/193-runtime-module-service-registry-composition-lifecycle-assembly-current-working-tree-review.md)。
+
+### 537. Runtime Event / Message / Observer / Core Bus / World Mirror / ABI Ingress / Delivery / Lifecycle 当前工作树
+
+| 范围 | files | lines | bytes | tests | 证据 |
+|---|---:|---:|---:|---:|---|
+| Core event bus、Foundation manager 与 focused tests | **25** | **3,717** | **129,663** | **41 markers** | current working-tree snapshot；另有 5 个 ignored benchmark |
+| Scene events/messages/observers/mirror 与 focused tests | **39** | **8,083** | **273,315** | **96 markers** | current working-tree snapshot |
+| Dynamic ABI、App producer、Editor transport consumer | **48** | **12,712** | **460,961** | **68 markers** | current working-tree snapshot |
+| 第一方 typed event producer | **7** | **2,410** | **95,041** | **12 markers** | current working-tree production call sites |
+| 去重 Zircon 选择集 | **118** | **26,183** | **930,328** | **209 markers** | fingerprint `e7f89751721e91e088e2f793f3d954815306a952a629d181b2a7a4e41673c39c` |
+| Unreal/Bevy/Fyrox/Godot/Unity Graphics selected references | **21** | **20,765** | **753,515** | **58 markers** | fingerprint `e2bdccc7a6346b03d3b20aae331346b9d42456e5542246fc394ffa0327096f3d` |
+
+Runtime194 逐文件复核 Core EventBus/Foundation EventManager、Scene typed Events/Messages/Observers、Runtime event mirror、dynamic ABI ingress、App producer、Editor plugin-event consumer及AI/Animation/Navigation/Net/Physics第一方 producer，并对照 Bevy Messages/MessageCursor/Observer、Godot MessageQueue/signals、Unreal MessageBus/MessageContext/MessageEndpoint/Delegates、Fyrox UiMessage/OS event 与 Unity Graphics debug callback lifecycle。当前 Core topic bus、World typed frame event、retained message 与 dynamic mirror/ABI ingress 都有局部真实底座，但没有统一 taxonomy、owner、schema、budget、receipt、sequence、generation 和 shutdown contract。Core EventManager 与 MessageReader/Writer 没有 production 消费者；frame event 慢读 loss 不可见，observer 同步执行且 panic/reentry 未定义，mirror 每订阅重复 observer/JSON/mutex/64 MiB queue 且 allocation commit 早于 Editor semantic apply，V1 ingress 在 session 锁内以宽平 struct 修改 input/UI/camera/world/clock，App 将任一事件错误升级为退出。本轮不新增唯一 P0，Runtime54/55 的 4 项继承 P0 均 Open；36 项 P1 为 30 Open/6 Partial，12 项 P2 为 10 Open/2 Partial，32 门为 25 Fail/6 Partial/1 Pass。Runtime60 旧 cursor 提前确认 finding 已由当前逐项推进实现关闭；其余 gap、retention、ack 与 lifecycle 缺口不变。本轮仅写review/index/coverage，未修改Runtime/App/Editor/plugin/Cargo/ABI/ZUI/tooling或测试，未运行Cargo、真实App/Editor、动态DLL、Miri、loom、fuzz、fault、scale、soak或benchmark；未查询、轮询、等待或实时跟踪协调器。详见[Runtime194](zircon_runtime/194-runtime-event-message-observer-bus-world-mirror-abi-ingress-delivery-lifecycle-current-working-tree-review.md)。
+
+### 538. Runtime Failure Contract / Error Taxonomy / Panic Containment / Health / Recovery / Shutdown / Crash / ABI / Product Integration 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---|
+| Core lifecycle/activation/state/task、Dynamic/Scene/Script/plugin failure、App/Product、Interface/Host、Editor gateway去重选择集 | **251** | **54,976** | **1,939,169** | **526 markers** | **38 markers** | `6e0f35e615d2871e57cfe7338b08527816327dacc95738ad15af0c922c60b8fc` |
+| Unreal/Bevy/Godot/Fyrox/Unity Graphics selected references | **22** | **18,971** | **772,789** | **88 markers** | **0** | `3bcea8f593f16333318f9e2def0b1c997ec46f6f9f6ee50534224aa70c7d397b` |
+
+Runtime195 逐层复核 `domain error -> task/callback boundary -> lifecycle/transaction cleanup -> plugin/session registry -> dynamic ABI status -> App runtime wrapper -> product ledger/shutdown -> Editor gateway`，并对照 Unreal ensure/check/heartbeat/crash context/guarded launch、Bevy ErrorContext/handler panic-origin guard、Godot error reentrancy/SEH、Fyrox game error source/SafeLock和Unity RenderGraph exception cleanup。当前Core activation rollback、Job/TaskGraph panic终态、Scene command invariant cleanup、native/VM plugin generation回退、dynamic destroy失败保留slot供重试以及App在DLL teardown失败时abort均是可保留底座；但domain error跨层后反复压成String/General，ABI只有九种status和线程本地borrowed diagnostics，callback/wake/observer panic缺identity与action，poisoned control lock常无postcondition继续，bool shutdown、16-record Product ledger与phase disposition不能证明逐owner静默，产品无watchdog/crash artifact/平台异常闭环，Editor也没有typed recovery projection。本轮新增0项唯一P0；46项P1为37 Open/9 Partial，12项P2全Open，32门为25 Fail/6 Partial/1 Pass。目标保留各domain typed error，以neutral FailureEnvelope、FailureAuthority、HealthState、RecoveryDirective、owned ABI failure和App CrashArtifactCoordinator收敛，而非创建万能错误enum。本轮仅写review/index/coverage，未修改production Rust/tests/Cargo/ABI/UI/tooling，未运行Cargo、真实DLL/App/Editor、crash subprocess、Miri、loom、sanitizer、fuzz、fault、scale、soak或benchmark；未查询、轮询、等待或实时跟踪协调器。详见[Runtime195](zircon_runtime/195-runtime-failure-contract-error-taxonomy-panic-containment-health-recovery-shutdown-crash-abi-product-integration-current-working-tree-review.md)。
+### 539. Runtime Memory Allocation Domain / Budget / OOM / Pressure / Pooling / Cache Residency / Observability 当前工作树
+
+- 报告：[196-runtime-memory-allocation-domain-budget-oom-pressure-fragmentation-pooling-cache-residency-observability-product-integration-current-working-tree-review.md](zircon_runtime/196-runtime-memory-allocation-domain-budget-oom-pressure-fragmentation-pooling-cache-residency-observability-product-integration-current-working-tree-review.md)
+- 范围：`zircon_runtime/src`、`zr_rhi`、`zr_rhi_wgpu`、`zircon_runtime_host/src`、`zircon_app/src`、`zircon_editor/src` 的 production-like Rust 选择集；排除 tests/benches/examples/fixtures/generated/vendor/target；并重读 Unreal HAL/LLM、Godot memory/paged allocator、Bevy ECS storage、Fyrox pool、Unity Graphics RenderGraph pool 参考切片。
+- 选择集：12,190 files、1,657,818 lines、58,585,249 bytes；fingerprint `0f4f0e0d70404d006f49faa92446347a55bbc944a4e88001774cd5849a663172`。
+- 证据：RHI `GpuMemoryClass/GpuMemoryBudget/GpuMemorySnapshot` 与 fallible resource admission；RenderGraph transient byte budget/stale eviction/degrade ladder；Artifact chunk cache-owned/external `Arc` lease 统计与 trim；InlineCommandArena idle trim；UiSurfaceNodePool bucket/total bound 与 trim；dynamic session allocation census；foreign-output byte/item/decode budgets。
+- 当前判定：沿用 Tooling25 `MEM-P1-001..040`、`MEM-P2-001..012` 唯一键，不新增唯一 P0；P1 `2 Closed / 21 Partial / 17 Open`，P2 `0 Closed / 4 Partial / 8 Open`，32 门 `2 Pass / 13 Partial / 17 Fail`。全局 `MemoryDomain/MemoryTag/MemoryPressure/ProductMemoryBudget/AllocationSiteInventory/AllocationReceipt` 仍不存在，CPU/GPU/mapped/foreign/plugin/cache/RSS 未形成单一 authority。Tooling 按用户要求排除；review-only，仅写报告/索引，未运行 Cargo、真实 GPU/OS pressure、fault injection、fragmentation、long-soak 或 benchmark，也未查询、轮询、等待或实时跟踪协调器。
+
+### 540. Runtime Gameplay Framework / GameInstance / WorldContext / Level / GameMode / GameState / LocalPlayer / Controller / Pawn / Possession / Spawn / Travel / Network / Save / Product Integration 当前工作树
+
+- 报告：[Runtime197](zircon_runtime/197-runtime-gameplay-framework-game-instance-world-context-level-gamemode-gamestate-localplayer-controller-pawn-possession-spawn-travel-network-save-product-integration-current-working-tree-review.md)
+- 选择集：297 个去重文件、56,310 行、51,644 非空行、2,047,689 bytes、478 个测试声明、0 个 ignored marker；指纹 `25aec46e1f24d78509e3ab6a8f0d3b1cd57dd81e91b3e248d07a5ac7a690ce57`。
+- 证据：单 `RuntimeDynamicSession`/单 `LevelSystem` 构造；Level replacement epoch/generation-CAS/frame snapshot；裸 `WorldHandle(u64)` 与只增 `HashMap` registry；单槽 scene transition resource 且无 consumer；script 直接 spawn/despawn/transform；NetManager 只有 trait、RPC diagnostics-first；scene save ticket 不是 Gameplay SaveGame；Headless compose 后立即返回且 profile target mode 为 ClientRuntime；Vampire camera entity `1` 与 WOC 私有 ClientAuthority。
+- 当前判定：沿用 Runtime127 的 GPF-P1-001..072、GPF-P2-001..016、GPF-G01..G40 唯一键，不新增 P0；P1 `49 Open / 23 Partial / 0 Closed`，P2 `16 Open`，Gate `30 Fail / 9 Partial / 1 Pass`。目标重构为 `GameplayFrameworkService -> GameInstanceRegistry -> WorldContextRegistry -> Experience/GameRule -> LevelSet -> PlayerDirectory -> Controller/Pawn possession -> per-player Input/View -> Network/Save/Travel`，不把 RuntimeDynamicSession、LevelSystem 或 WOC 私有 runtime 伪装成这些 owner。
+- 证据来源：当前工作树源码、生产调用点、相关 focused tests，以及 Unreal、Bevy、Godot、Fyrox、Unity Graphics 参考切片；本轮仅写 review/index/coverage，Tooling 按用户要求排除，未运行 Cargo、Editor、Vampire/WOC、网络、save/reopen、PIE、fault/soak 或 benchmark，也未查询、轮询、等待或实时跟踪协调器。
+
+### 541. Runtime Gameplay Ability / Effect / Attribute / Tag / Cue / Prediction 当前工作树
+
+- 报告：[Runtime198](zircon_runtime/198-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authority-artifact-execution-review.md)
+- 选择集：736 个去重文件、41,246 行、36,806 非空行、1,447,644 bytes、285 个测试声明、0 个 ignored marker；指纹 `11e07672c4f29ed8683f3af77d005a156af05880c3113b8e8e098d8ef5786c96`。其中 Gameplay Host 根文件及 15 个子模块为 16 个文件、3,009 行、109,202 bytes。
+- 证据：`zr.zircon.gameplay` v0.1.0 只有 input/entity/navigation/scene_transition 四项 capability；`damage_entity`/`heal_entity`/`current_hp` 操作 `script.bindings.hp` JSON，死亡直接 `remove_entity`；spawn/despawn/transform 与 dynamic component 仍绕过 domain transaction；通用 Sync DTO、replication interpolation index、runtime/editor catalog provider 函数仍没有 AbilitySpec/ActiveEffect/AttributeSet/GameplayTag/Cue/Prediction owner。
+- 当前判定：沿用 Runtime08G 五项 canonical P0（5 Open/0 Partial/0 Closed），新增 RT-GAS-01..28：P1 `25 Open / 3 Partial / 0 Closed`，P2 `12 Open`，资格门 `22 Fail / 2 Partial / 0 Pass`。重构顺序为 domain owner/identity/schema/compiler -> deterministic execution/effect/tag/cue -> targeting/prediction/replication/save -> editor/provider/scale；禁止以 combat JSON adapter 或静态 Workbench fixture 宣称 GAS 完成。
+- 证据来源：当前工作树源码、未提交生产修改、相关 focused tests，以及 Unreal GameplayAbilities/GameplayTags、Bevy asset、Godot multiplayer/node、Fyrox scene/plugin、Unity Visual Effect Graph 参考切片；本轮仅写 review/index/coverage，Tooling 按用户要求排除，未运行 Cargo、PIE、网络 fault、save/replay、scale、soak 或 benchmark，也未查询、轮询、等待或实时跟踪协调器。
+
+### 542. Editor Gameplay Ability / Effect / Attribute / Tag / Cue / Prediction 当前工作树
+
+- 报告：[Editor258](zircon_editor/258-editor-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authoring-debug-workbench-review.md)
+- 选择集：231 个去重文件、50,464 行、46,024 非空行、1,784,203 bytes、350 个测试声明、0 个 ignored marker；指纹 `6ea08036eb8d5283b215804418f5558ce2f343e2e3dea3be6a92058de9cc8bbf`。三份 gameplay ZUI 共 828 行、46,761 bytes。
+- 证据：三份根 workspace 仍 collapsed 且硬编码 ability/effect/tag/validation 数据；Overlay/ScrollableBox/PropertyEditorRow 与 responsive layout 只是 UI substrate；module navigation 仍只返回 control id，field edit 只写 `value/value_text`，generic Save/Compile/Diff/Simulate 仍由静态 feedback 枚举驱动；catalog provider 仍无 Gameplay provider，缺 document/operation/compiler/artifact/PreviewWorld/PIE/runtime mirror。
+- 当前判定：沿用 Editor143 五项 canonical P0（5 Open/0 Partial/0 Closed），新增 ED-GAS-01..24：P1 `21 Open / 3 Partial / 0 Closed`，P2 `10 Open`，资格门 `20 Fail / 2 Partial / 0 Pass`。Apply/Playtest 显式假成功分支已删除属于局部改进，但 generic Simulate 等仍可能在无 backend 时显示运行文案，不能宣称产品闭环。
+- 证据来源：当前工作树源码、未提交 ZUI/bridge/asset/document/play/catalog 修改、相关 focused tests，以及 Unreal GameplayAbilitiesEditor/GameplayTagsEditor、Fyrox command、Godot UndoRedo/Debugger、Bevy asset、Unity ShaderGraph/VisualEffectGraph 参考切片；本轮仅写 review/index/coverage，Tooling 按用户要求排除，未运行 Editor、Cargo、UI automation、PreviewWorld、PIE、save/reopen、fault、scale、soak 或 benchmark，也未查询、轮询、等待或实时跟踪协调器。
+
+### 543. Runtime Plugin Profile / Manifest / Catalog / Provider Resolution / App Export Native Closure 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Runtime profile/build/catalog/manifest/assembly/export 与 App provider/composition 选择集 | **189** | **22,298** | **20,328** | **846,912** | **195 markers** | **0** | current working-tree snapshot |
+| Unreal/Bevy/Fyrox/Godot/Unity Graphics provider/lifecycle references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Runtime199 逐文件复核 `runtime-feature-presets.toml`、`build.rs`、RuntimeProfileDescriptor/availability projection、ProjectPluginManifest defaults/hydration、RuntimePluginCatalog project/feature/extension plan、module assembly/load report、export build plan、App product-host resolution、first-party runtime catalog 与 target Cargo features。当前 profile schema/module/key/duplicate 校验、manifest selection、immutable plan/cache、feature dependency diagnostics、module composition fatal boundary是可保留底座；但 required Sound/Rendering 与 Cargo/provider closure不可证明，runtime catalog 只覆盖30个runtime声明中的15个，unknown/uncompiled selection会静默消失，provider-agnostic availability可在无provider时为Available，App/editor/export/native没有共同snapshot/receipt，`for_profile`与`for_runtime_profile`还走不同manifest入口。新增RT-PC-01..40：P0 `6 Open`，P1 `31 Open/3 Partial/0 Closed`，P2 `12 Open`，32门为`29 Fail/3 Partial/0 Pass`。本轮仅写review/index/coverage，未修改Runtime/App/plugin/Cargo/ABI/Editor或测试，未运行Cargo、Editor、动态DLL、native load、fault、scale、soak或benchmark；Tooling排除，未查询、轮询、等待或实时跟踪协调器。详见[Runtime199](zircon_runtime/199-runtime-plugin-profile-catalog-provider-resolution-current-working-tree-review.md)。
+
+### 544. Editor Plugin Manifest / Provider Catalog / Authoring Contribution / App Admission Closure 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Editor catalog/App admission、product-host、Editor plugin entry/ZUI、core plugin 与 manifest 选择集 | **259** | **24,685** | **22,511** | **893,108** | **176 markers** | **not separately re-counted** | current-working-tree snapshot |
+| Unreal/Bevy/Fyrox/Godot/Unity Graphics editor/plugin references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Editor259 逐文件复核25个editor manifest id、40个editor entry文件（228 Rust、30 ZUI）、first_party_editor_catalog、App editor wrapper/entry runner/product-host、core plugin admission及真实 authoring contribution。AI、Animation Graph、Physics、Sound、Terrain、Timeline、UI Asset、Material、Neural、Navigation、Hybrid GI、Virtual Geometry 等存在可保留的命令/资产/工具包/graph/ZUI contribution；但catalog仅路由Navigation/Neural 2/25，unknown/uncompiled provider静默`continue`，target-editor-host feature closure不统一，runtime/editor parity、generation、admission transaction、reload/shutdown与preview artifact缺失。`first_party_editor_catalog/src/tests.rs:19-30`的source assertion仍要求不存在的`registrations.push(registration)`，形成明确source-test drift。新增ED-PC-01..39：P0 `5 Open`，P1 `30 Open/4 Partial/0 Closed`，P2 `10 Open`，28门为`25 Fail/3 Partial/0 Pass`。本轮仅写review/index/coverage，未修改Editor/Runtime/plugin/Cargo/ABI/ZUI或测试，未运行Cargo、真实Editor、UI automation、动态provider、reload、fault、scale、soak或benchmark；Tooling排除，未查询、轮询、等待或实时跟踪协调器。详见[Editor259](zircon_editor/259-editor-plugin-provider-catalog-current-working-tree-review.md)。
+### 545. Editor Extension / Contribution Store / Toolkit / Reload Lifecycle 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Editor core plugin、extension registry/ContributionStore、toolkit、Host contribution registration、runtime consumer retirement 选择集 | **79** | **17,783** | **16,146** | **626,887** | **173 markers** | **0** | current working-tree snapshot |
+| Unreal/Bevy/Fyrox/Godot/Unity Graphics lifecycle references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Editor260 逐文件复核 catalog admission、catalog/snapshot health、manager state/replacement/publication、extension materialization、EditorExtensionRegistry、ContributionStore snapshot/journal、Document/Asset Toolkit registry、Host contribution register/revoke 与 runtime event consumer retirement。当前 immutable snapshot、按 ticket revoke、save lease、active consumer generation 和生命周期 report 是可保留底座；但 unknown dependency 会被接受，runtime manifest 会被 standalone fallback 伪造，lifecycle failure 不进入 snapshot fault set，materializer 允许 partial registry 伴随 Active entry，Host revoke 在 Store commit 前已退休 views/consumers/tools，manager active projection 又绕过 Store capability filter。新增 ED-EL-01..39：P0 5 Open，P1 30 Open/4 Partial/0 Closed，P2 10 Open，28门为 25 Fail/3 Partial/0 Pass。本轮仅写 review/index/coverage，未修改生产 Rust 或测试，未运行 Cargo、Editor、native reload、UI automation、fault、scale、soak 或 benchmark；Tooling 排除，未查询、轮询、等待或实时跟踪协调器。详见 [Editor260](zircon_editor/260-editor-extension-contribution-store-toolkit-reload-lifecycle-current-working-tree-review.md)。
+
+### 546. Editor Command Registry / Keymap / Menu / Palette / Commandlet / Operation Dispatch 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `zircon_editor/src/core/commands`、commandlet、operation/event/Palette host 与 reflection route 选择集 | **38** | **9,794** | **8,908** | **333,097** | **80 markers** | **0** | current-working-tree snapshot |
+| Unreal/Bevy/Fyrox/Godot/Unity Graphics command/keymap/menu references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Editor261 增量复审 Command Registry、operation factory、Native executor、ContributionStore projection、serialized SDK command、commandlet discovery、remote/CLI dispatch、Keymap、Menu 与 Palette。Editor178 的 3 项 canonical P0 仍保持历史 owner；本轮登记 26 项当前 P1（含部分历史项的现状追踪）、10 项 P2、24 个工程闸门（22 Fail/2 Partial）。当前 registry clone/serde 会丢 executor/factory，扩展按 ticket 顺序投影且无 dependency closure，SDK `command()` 的 no-contract DTO 会在 materializer 末端被拒绝，Palette commit 丢失 catalog generation；此外 receipt、authorization、deadline、session scope、effective shortcut 和 typed diagnostics 均未收敛为同一 snapshot。review-only，Tooling 排除，未运行 Cargo、Editor、UI automation、fault、scale、soak 或 benchmark，也未查询、轮询、等待或实时跟踪协调器。详见 [Editor261](zircon_editor/261-editor-command-registry-keymap-menu-palette-commandlet-operation-current-working-tree-review.md)。
+
+### 547. Runtime UI Surface / Input / Focus / Pointer Capture / IME / Accessibility / Frame Authority 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Runtime UI input/surface/focus/a11y/platform、Dynamic session、Runtime Interface UI 与 App product host 选择集 | **265** | **39,734** | **36,722** | **1,372,129** | **231 markers** | **27** | `0a7463071b66bea4f931585437f59037b7f75f44f736989283e0a427de446263` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics UI/input/a11y references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Runtime200 复核 effect transaction、manager timer/pointer/text state、focus/capture、window pump、Dynamic product surface set、App host consumer、IME/clipboard、AccessKit codec和retained frame publication。当前 write-set snapshot rollback、bounded action/host queue、App IME/clipboard真实接线、surface domain generation与Arc render segment复用是可保留底座；但transaction仍靠full-state clone且default/manager mutation越界，产品owner仍是private Dynamic set而非空壳`UiRuntimeDriver`，timestamp为零、tick/window pump无产品caller，App generic UiAction/UiHost只warning，AccessKit没有per-window adapter/action queue/teardown，a11y/input/render也没有同一pinned publication generation。沿用Runtime11A/77/78/82 canonical owner，不新增P0；focused继承P0 `3 Open/3 Partial/0 Closed`，Runtime77 P1 `29 Open/18 Partial/1 Closed`，12项P2继续有效，28门为`20 Fail/7 Partial/1 Pass`。本轮只写review/index/coverage，Tooling排除，未修改生产代码，未运行Cargo、真实窗口、IME/screen reader、fault、scale、soak或benchmark，也未查询、轮询、等待或实时跟踪协调器。详见 [Runtime200](zircon_runtime/200-runtime-ui-surface-input-focus-pointer-capture-ime-accessibility-frame-authority-current-working-tree-review.md)。
+
+### 548. Editor UI Host / Retained Surface / Native Input / Window / Binding / Frame Authority 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| retained host/window/input/pointer/callback/template/binding/control/editor event closure | **651** | **67,210** | **62,767** | **2,472,319** | **359 markers** | **18 markers** | `995e8668e7bf57b072024a60783927412021c643176aca68371494a75f676f8c` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics UI/input/a11y references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Editor262 逐文件复核 retained host composition root、winit/native window event loop、platform input translation、pointer/focus/IME/capture、callback wiring、template projection、binding router、Editor event receipt、frame/recompute/render submission 与 native floating presenter store。当前已有真实窗口生命周期、独立浮动 `UiHostWindow`、命中索引 patch、局部 dirty fast path、模板 cache 与 Editor event record；但 `RetainedEditorHost`/`HostContractState` 仍聚合过多 authority，callback table 是单槽且可重入覆盖，native route 与 workbench callback 没有统一 typed Reply/receipt，projection 会全量复制/线性查找，structure/geometry/interaction/viewport/hit/a11y 没有共同 frame token，floating presenter 只覆盖壳/chrome/UI Asset，未找到 per-window Scene/Simulate/Game image publication。新增 EUIH-P1-001..042 共 42 项 P1（37 Open/5 Partial）、12 项 P2（10 Open/2 Partial）和 28 个资格门（25 Fail/3 Partial），不新增唯一 P0；Runtime200、Editor253、Editor255、Editor23 的父 owner 继续有效。本轮仅写 review/index/coverage，Tooling 按用户要求排除，未修改生产 Rust/Cargo/ABI/ZUI，未运行 Cargo、真实 winit、多窗口、IME、screen reader、fault、scale、soak 或 benchmark，也未查询、轮询、等待或实时跟踪协调器。详见 [Editor262](zircon_editor/262-editor-ui-host-retained-surface-native-input-window-binding-frame-current-working-tree-review.md)。
+
+### 549. Runtime Text / Font / Document / Shaping / Layout / Raster / Atlas / Render Authority 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Runtime text 核心 | **381** | **96,110** | **87,760** | **3,354,926** | **1,262 markers** | **0** | `24ab9a76bc1fab8275abc53735680186e536cabf9e4baec4017265c8a31a30bd` |
+| Runtime UI text/edit/render closure | **183** | **47,603** | **44,243** | **1,634,731** | **397 markers** | **0** | `8ee703c4be03bea5912e97784cd95893af9052ed3d9cf41e95417b6aa6d3e204` |
+| Scene UI text renderer/Core wiring | **124** | **34,941** | **32,511** | **1,271,767** | **412 markers** | **0** | `e4176491388a816aed60cf8a255e02311b9a0029a972ad02e3e05200f72ed239` |
+| Font asset/source/import closure | **10** | **3,241** | **2,923** | **109,563** | **32 markers** | **0** | `1e004fdfd155f97d5e4ecacea1d6741b80307791101aadaf7a125ff5d53fef02` |
+| Runtime Interface text/render DTO | **38** | **7,998** | **7,296** | **260,330** | **53 markers** | **0** | `f4f8a1aab0c8a593f82a98d2d9e3f627382af17603d3183a6d64be8ccb38edd6` |
+| Dynamic Core integration | **1** | **445** | **424** | **18,287** | **4 markers** | **0** | `6c5bb82d6dd9308012a0fa7c80426209ccb8f5c30fafddafb1442f966d692dbd` |
+| 去重总选择集 | **737** | **190,338** | **175,157** | **6,649,604** | **2,160 markers** | **0** | `3c97437fc594e20c1609b4d6d4d29c0afad1db3a9c809fd40e51f59edb0893b5` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Runtime201 逐文件复核 TextModule/font collection、font asset/source/cook/database/claim、Unicode snapshot、shaping/layout/rich/cache、piece-table document、raster/SDF/native atlas、UI text contract、SceneRenderer和Runtime Interface artifact。当前per-Core collection注入、cooked project font、immutable generation snapshot、Unicode Script_Extensions/Emoji/Joining/line-break、document prepare/commit/lease、rich trust/budget、bounded cache、worker和atlas recovery均为真实底座；但公共/兼容入口仍可绑定process global，TextModule未拥有完整TextRuntimeContext，UI style无法表达italic/stretch/spacing/OpenType/variation，renderer无条件发现system fonts，长文档无compaction，shape/parse缺deadline/cancel，transport artifact缺font/Unicode/document/frame lineage，SDF completion backpressure又退化为泛化Retryable。新增RT-TXT-P1-001..040：P1 `32 Open/8 Partial/0 Closed`，P2 `10 Open/2 Partial/0 Closed`，Gate `20 Fail/10 Partial/0 Pass`；不新增唯一P0，Runtime80/81/82/84/196/200继续作为canonical owner。本轮仅写review/index/coverage，未修改生产Rust/Cargo/ABI/ZUI或测试，未运行Cargo、真实Runtime/Editor/GPU/IME/locale/device-loss/fault/scale/soak/visual golden或benchmark；Tooling排除，未查询、轮询、等待或实时跟踪协调器。详见 [Runtime201](zircon_runtime/201-runtime-text-font-document-shaping-layout-raster-atlas-render-authority-current-working-tree-review.md)。
+
+### 550. Editor Font Asset / Typography / Rich Text Authoring / Preview / Import / Atlas 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Editor UI asset authoring/import | **158** | **36,611** | **33,789** | **1,288,676** | **214 markers** | **58** | `dc98e08c10a884c626ff2fb7549344326003e3e127ee10d34359bea9a1499b8a` |
+| Retained Host text/typography | **41** | **7,415** | **6,695** | **244,253** | **154 markers** | **6** | `c98f197c20905c3c9eb92662a0d802158decb20f26d5dc58e9038a946e66348b` |
+| Font Atlas product surface | **5** | **2,348** | **2,290** | **109,296** | **1 marker** | **0** | `61ad5b0e60190af81c1044416199534db30ff687a93d692b5bf129393a73815b` |
+| Typography contract boundary | **12** | **3,970** | **3,690** | **141,212** | **8 markers** | **0** | `c76d51324648cb5edb0b902d7961f64c1a0a991c078bb539dfd9dc0ef8f41ace` |
+| 去重总选择集 | **216** | **50,344** | **46,464** | **1,783,437** | **377 markers** | **64** | `3379c5e161a7111f97405ca681d3480caf8ae1e500e4bda28c30748138a3760b` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Editor263逐文件复核UI Asset document/session/preview、Retained Host font/layout/raster、Editor typography tokens、Font Atlas workspace/route/feedback、UI authoring插件、`.zui` importer和最小Runtime合同边界。真实基础包括UI Surface preview、Runtime artifact整段preflight、generation-qualified artifact face cache、bounded font/layout cache和Swash color/subpixel raster；但没有Font/FontFace/CompositeFont toolkit、字体import settings、coverage/license/variation/fallback authoring或RichText document，Preview未pin TextRuntimeContext/font/Unicode/locale/device generation，non-default variation会退回Host，glyph raster cache为无界全局HashMap，Font Atlas仍硬编码Inter_UI、4096 glyphs、4 pages、12 missing并用固定queued反馈代替domain receipt。新增ED-TXT-P1-001..036：P1 `30 Open/6 Partial/0 Closed`，P2 `9 Open/1 Partial/0 Closed`，Gate `23 Fail/5 Partial/0 Pass`；不新增唯一P0，Editor145、Runtime201/196/200继续作为canonical owner。本轮只写review/index/coverage，未修改production Rust/Cargo/ABI/tests/UI asset，未运行Cargo、Editor、字体导入、GPU atlas、locale/DPI、fault、scale、soak、视觉golden或benchmark；Tooling排除。详见 [Editor263](zircon_editor/263-editor-font-asset-typography-rich-text-authoring-preview-import-atlas-current-working-tree-review.md)。
+
+### 551. Runtime Localization / I18N / Locale / Culture / Message Format / String Table / Resource Authority 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Localization值路径、UI compiler/artifact/render/a11y/hot reload | **34** | **5,494** | **4,909** | **187,252** | **44 markers** | **5** | `c1ad071ec6c81be876747244634ea748228df2b5b38b9c293f15c5eba6d05e85` |
+| Text/Culture/Font消费底座 | **391** | **97,970** | **89,474** | **3,421,329** | **1,276 markers** | **41** | `f62505f360ad12fb6df1fea49b3330d03e2747f0fa402ae075b4164580fb2c7d` |
+| Project/App/Resource/Plugin/Module/Script边界 | **805** | **89,644** | **81,602** | **3,230,131** | **804 markers** | **104** | `b59aed49c97fdfc5b74740d629e01dca7f5f795ce58def304df4d72d6725d3da` |
+| Product `.zui/.toml` corpus | **516** | **66,403** | **57,855** | **3,549,609** | **0** | **0** | `f89d5404e33fadc9f64b2a72c0cd4cb475511e862a1e267a9203661c6f0f11cc` |
+| 去重总选择集 | **1,745** | **259,294** | **233,677** | **10,382,601** | **2,124 markers** | **150** | `cb98aad7d912f9377dbd6965d421fe633a9af1c8b068ea0d40ffe5b33ee7aef2` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | **21** | **8,752** | **7,321** | **358,132** | **0** | **0** | `3b1e1afc98907bf0209f741b261e63c4d4dc2cdef8d8fe2e08c2325e8aeb6a50` |
+
+Runtime202逐路径复核UI localized ref/collector/key catalog、compiler/package/artifact/cache、tree/render/a11y/hot reload、完整Text/Font文化消费层、Asset/Project/App/Resource/Plugin/Module/Script边界和516份产品语料。ICU BCP 47规范化、language/script/region selector、复合字体、UI dependency report与通用generation/lease是可保留底座；但Runtime仍没有translation value、CultureSnapshot、compiled catalog generation、fallback DAG、message formatter或App/Script入口。compiler继续用空String绕过String schema，compiled tree保留raw TOML，render/a11y只读scalar，`localization_dependencies`没有loader consumer；产品语料有3,394处主要文本属性而`text_key/label_key`均为0。继承P0为`4 Open/1 Partial`，RLI-P1-001..048为`29 Open/19 Partial/0 Closed`，12项P2均Open，48门为`36 Fail/12 Partial/0 Pass`；Runtime83保持canonical owner。本轮仅写review/index/coverage，未修改生产代码，未运行Cargo、Runtime、Editor、locale switch、translated framebuffer、A11y、fault、scale、soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见 [Runtime202](zircon_runtime/202-runtime-localization-i18n-locale-culture-message-format-string-table-resource-authority-current-working-tree-review.md)。
+
+### 552. Editor Localization / String Table / Culture / Gather / Import-Export / Pseudo / Preview 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Editor shell I18N、Command、Settings、Notification、Extension、UI Asset Preview | **129** | **28,675** | **26,184** | **1,024,165** | **218 markers** | **0** | `2f6219570741ee5f6b3811d11aacb3f24f04263c5cffc10fca390cbda7e9c0a3` |
+| Runtime/UI/Project/App邻接合同 | **33** | **4,919** | **4,412** | **174,989** | **30 markers** | **0** | `5458745d8a7c444b0894b4ad5594bf33b8f33b56dd03d3f67f2c494acef6b143` |
+| Product `.zui/.toml` corpus | **516** | **66,403** | **57,855** | **3,549,609** | **0** | **0** | `f89d5404e33fadc9f64b2a72c0cd4cb475511e862a1e267a9203661c6f0f11cc` |
+| Zircon选择集去重总计 | **678** | **99,997** | **88,451** | **4,748,763** | **248 markers** | **0** | `6b8c46a9f04d5c9d2c0a84df5622fea905d3d548b5e006f447d7746a4c46a8ad` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | **34** | **7,572** | **6,254** | **315,807** | **10 markers** | **0** | `30e2264d150f70e29f2aee6d3c138201294616b851e7006202c9ed861fdb667d` |
+
+Editor264逐路径复核Editor I18N service/embedded bundle、Command/Menu/Palette、Settings、Notification、Contribution/Plugin、UI Asset localization report/preview、Runtime/Project/App邻接合同、516份产品语料以及34份参考实现和测试。当前en/zh-CN各532键且集合相等，Command descriptor已删除literal presentation/string menu path，Plugin Command/SettingsPage具备typed key、bundle owner和generation投影，settings fence与bounded locale event/resync是真实底座；但无Target/Table/Archive/Gather/import-export/compiled catalog/pseudo/Dashboard，Plugin bundle不要求English/key parity/signature，View/Drawer/AssetType仍literal，Preview固定`authoring-fallback/en-US/zh-CN`且不进入compile/render/A11y。产品corpus仍0 `text_key/label_key`。继承P0 `4 Open/1 Partial`，P1 `43 Open/17 Partial/0 Closed`，12项P2均Open，32门为`25 Fail/7 Partial/0 Pass`；Editor33与Runtime202保持canonical owner。本轮仅写review/index/coverage，未修改生产代码，未运行Cargo、Editor/Runtime、gather/import/export/cook、locale switch、translated framebuffer、A11y、pseudo/RTL、fault、scale、soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见 [Editor264](zircon_editor/264-editor-localization-string-table-culture-gather-import-export-pseudo-preview-runtime-authority-current-working-tree-review.md)。
+
+### 553. Editor Settings / Preferences / Project Settings / Scope / Schema / Overlay / Persistence / Migration / Restart / Plugin Window 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Settings core | **26** | **6,363** | **5,777** | **217,579** | **54 markers** | **1** | `74e9233431ba9ce6749221ea0c9aeb2b904239481fb9f8897e719188001647dd` |
+| Settings UI / retained host / action / projection closure | **37** | **5,768** | **5,440** | **199,825** | **24 markers** | **0** | `955456d35536492c469eeddd1209cdc1998701c385bca005ec2241c2ed893009` |
+| Composition / plugin / project lifecycle / product adoption closure | **30** | **10,993** | **10,268** | **452,516** | **65 markers** | **0** | `e420f599d8c81ac9375b11cf2833e10f6658cb1a311ef9fbe27393ada9cdbad2` |
+| Runtime Preference / App platform boundary | **22** | **4,629** | **4,211** | **162,272** | **31 markers** | **3** | `f5cff0b9310ab433b93799118e16145bed5ba2dbf71814e613d09f08985a27bc` |
+| Zircon去重源码总集 | **115** | **27,753** | **25,696** | **1,032,192** | **174 markers** | **4** | `12c1b0af16cace83a73907778f983ac41e11a53832b04cd606e7d1cd3e1197c2` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics references | **22** | **11,306** | **9,507** | **474,545** | **15 markers** | **0** | `dd2ad2c06b81142417aa9bb92fdc881a0278d265ff0c2d661f6116f46c2061fd` |
+| 全部证据去重总集 | **137** | **39,059** | **35,203** | **1,506,737** | **189 markers** | **4** | `62e5ce593e89af497cdc2b6d7548cf8cb3781c8b5b821ce624aa860c7a10581d` |
+
+Editor265逐文件复核Settings definition/registry/catalog/snapshot/authority、mutation coordinator、persistence health、I/O/startup、Preferences projection/action/paint/hit/geometry、plugin SettingsPage/ContributionStore、project open/close/document load以及Runtime Preference/App storage边界，并对照Unreal Settings/DeveloperSettings/Config、Godot EditorSettings/ProjectSettings/Dialog、Fyrox Settings plugin、Bevy platform preferences目录和Unity Graphics provider/global settings。当前source preflight、document lane/coalescing、generation query、health/retry、真实入口和9项可编辑builtin是可保留底座；但project open/close仍直接清空authority，worker执行时晚取当前layer而不冻结ticket document，stale/invalid path可`Succeeded`却无物理写入，Editor与Runtime仍是双filesystem authority，plugin page行被阻断且无definition/provider，search/restart/migration/orphan/recovery/multi-process均未闭环。聚焦P0为`1 Open/2 Partial/0 Closed`，P1为`21 Open/15 Partial/2 Closed`，P2为`5 Open/4 Partial/0 Closed`，30门为`16 Fail/8 Partial/6 Pass`；Localization/Theme/Typography由既有canonical报告继续追踪。本轮仅写review/index/coverage，未修改production Rust/Cargo/ABI/ZUI/tests，未运行Cargo、真实Editor、UIA、fault、multi-process、scale、soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见 [Editor265](zircon_editor/265-editor-settings-preferences-project-settings-scope-schema-overlay-persistence-migration-restart-plugin-window-current-working-tree-review.md)。
+
+### 554. Runtime Preference / Config Storage Authority / Durability / Migration / Multi-process / Product Integration 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Runtime Preference contract/lane/backend/platform/App | **46** | **10,310** | **9,425** | **360,576** | **90 markers** | **10** | `bceb0d20fd514cd578e7c496f56892db687fea00a6697b1272427444b7b31194` |
+| ConfigStore/ConfigManager/Foundation/Editor layout consumer | **22** | **3,458** | **3,090** | **113,806** | **35 markers** | **3** | `adc92d52ceb7f821c86e5f553369cac178690e976947319734ba369b5d55d49d` |
+| Editor Settings / Runtime / Config boundary | **40** | **8,095** | **7,350** | **278,252** | **68 markers** | **1** | `2631a8af7ca97ae75ec09e1a935fb5c92d8698036d2660e5796744a9aa7195f7` |
+| WOC Preference consumer / tests | **33** | **6,863** | **6,314** | **212,106** | **84 markers** | **0** | `df56981a241f1bc7627fa4703670adc6cdd14a7975a64592850748ada637944d` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics references | **20** | **21,544** | **18,385** | **811,232** | **0** | **0** | `00e972855ce8891ef79af4e4c94e6410cf4bfbcca4dddc53edd71845cc116f03` |
+
+Runtime203逐文件复核Preference contract/key/error/snapshot/ticket、bounded keyed I/O admission/coalescing/fence/deadline/shutdown、Platform backend/AtomicFile/overlay/adapter/driver/manager/module cleanup、App provider/root bootstrap、Core ConfigStore、Foundation ConfigManager/path/worker/commit fence/recovery、Editor Settings与layout双重消费边界、WOC Stored Settings/Gamepad/Keybind/Inventory effect生产接线，并对照Unreal Config/GameUserSettings、Godot ProjectSettings/EditorSettings、Fyrox typed Settings、Bevy typed composition settings和Unity Graphics global settings/migration。当前worker authority、read-your-write、entry/byte预算、typed lane key、fence、atomic staging、descriptor-time backend注入、Config debounce/atomic recovery均是可保留底座；但HostProvided primitive success仍报告Durable，single-active lane与无界final Drop无法隔离hung I/O，品牌级root无product/principal，裸payload/whole-map config无revision/CAS/watch/跨进程保护，ConfigStore/ConfigManager、Editor SettingsStore和Runtime Preference形成多重持久化权威，WOC仍无生产owner。P0为`6 Open/1 Partial/0 Closed`；Preference P1为`45 Open/13 Partial/0 Closed`，Config P1为`12 Open/4 Partial/0 Closed`；Preference P2为`13 Open/1 Partial`，Config P2为`3 Open`；52门为`41 Fail/11 Partial/0 Pass`。本轮仅写review/index/coverage，未修改production Rust/Cargo/ABI/tests/UI，未运行Cargo、真实App/Editor/WOC、fault、multi-process、security、scale、soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见 [Runtime203](zircon_runtime/203-runtime-preference-config-storage-authority-durability-migration-multiprocess-product-integration-current-working-tree-review.md)。
+
+### 555. Runtime Filesystem / Resource I/O / Path / Atomic Transaction / Recovery / Security 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `zr_resource/src/io` production-like implementation | **27** | **5,534** | **5,121** | **185,642** | **19** | **0** | `2ad1b69353422ea6b205a956ff959082da100c455880b431ff15bbe956608967` |
+| Runtime direct OS-I/O candidates | **105** | candidate scan | candidate scan | candidate scan | n/a | n/a | 55 write files/339 writes; 81 read files/190 reads |
+| Editor direct OS-I/O candidates | **78** | candidate scan | candidate scan | candidate scan | n/a | n/a | 51 write files/292 writes; 54 read files/107 reads |
+| App direct OS-I/O candidates | **17** | candidate scan | candidate scan | candidate scan | n/a | n/a | 14 write files/97 writes; 12 read files/26 reads |
+| Runtime Interface direct OS-I/O candidates | **2** | candidate scan | candidate scan | candidate scan | n/a | n/a | 2 write files/26 writes; 2 read files/4 reads |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics selected references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Runtime204逐文件复核当前`zr_resource` atomic file、platform replace、path identity、durable transaction、journal、owner lock、recovery discovery/validation/replay、Asset/Config/Preference/Shader/UI/Plugin/Editor/Interface消费者和直接OS I/O旁路，并对照Unreal `IPlatformFile`/`IoDispatcher`/PackageName/Pak、Bevy AssetSource/Reader/Writer、Fyrox ResourceIo、Godot FileAccess/DirAccess/ResourceLoader及Unity Graphics AssetDatabase批处理边界。当前旧`ResourceIo`已随zr_resource hard-cut删除；create-new staging、Unix parent sync、Windows native replace、checksummed WAL、rollback/restart recovery、domain recovery policy和fault tests是真实可保留底座。但public io只公开atomic byte write，多文件transaction仍assembly内部，没有FileSystemProvider/AssetSource/MountRegistry/opened root capability/async range scheduler/watch/provider/pak-cooked-remote source；业务仍分裂使用std::fs与局部temp+rename，plain`io::Result`与Windows durability uncertainty矛盾，path check/open存在TOCTOU，metadata/CAS/streaming/cleanup/receipt及产品接线均未闭合。新增唯一P0 `FSIO-P0-001..003` Open，`FSIO-P0-004`继承Runtime99w；P1 `56 Open/5 Partial`，P2 `13 Open/1 Partial`，24门`22 Fail/2 Partial/0 Pass`。Runtime25保留历史40项P1/12项P2架构基线，本篇按当前hard-cut重判不重复累加。本轮仅写review/index/coverage，未修改生产Rust/Cargo/ABI/tests/UI，未运行Cargo、provider/跨进程/故障/跨文件系统/性能/soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime204](zircon_runtime/204-runtime-filesystem-resource-io-path-atomic-transaction-recovery-security-current-working-tree-review.md)。
+
+### 556. Editor Filesystem / Project / Scene / Autosave / Journal / Session I/O 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Editor direct OS-I/O candidate scan | **78** | candidate scan | candidate scan | candidate scan | n/a | n/a | 51 write files/292 writes; 54 read files/107 reads |
+| Editor project/scene/recovery/journal/session selected source | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+| Unreal/Godot/Bevy/Fyrox selected references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Editor266逐文件复核ProjectAuthority、SceneDocument、Autosave、SessionGuard、ActivationLedger、Durable Editing Journal、Extension/AssetSession/Workspace/Layout writers，并以Runtime204的provider/path/receipt边界和Unreal/Bevy/Fyrox/Godot provider参考复核。staging/backup/rollback、scene hard-link/catalog reconcile、autosave sequence/digest/retention、OS lease、checksummed journal可保留；但Editor重复temp/rename/sync/lock/cleanup，Project/Scene无WAL/directory receipt，autosave snapshot/metadata分开publish，session已有Windows durability uncertainty而其他writer仍裸`Ok(())`，journal compaction全量读temp，缺Runtime provider/root capability/mount generation/统一recovery receipt。继承Runtime204 `FSIO-P0-001..004`，不新增唯一P0；新增`ED-FSIO-P1-001..039`（35 Open/4 Partial）、10项P2（9 Open/1 Partial）、20门（18 Fail/2 Partial/0 Pass）。本轮仅写review/index/coverage，未修改生产Rust/Cargo/ABI/tests/UI，未运行Cargo、Editor动态、crash/fault/multi-process/scale/soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Editor266](zircon_editor/266-editor-filesystem-project-scene-autosave-journal-session-io-current-working-tree-review.md)。
+
+### 557. Runtime Resource Lifecycle / Load Ticket / Cache / Residency / Generation / Reload / Cancellation 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Focused Runtime resource lifecycle production manifest | **236** | **46,515** | **42,445** | **1,636,772** | excluded | excluded | `c710ff454a0e5aca18119b11fe1c3ffd08ce8d364c8432e6d25d131e5dd455e5` |
+| Unreal/Bevy/Fyrox/Godot/Unity Graphics references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Runtime205复核`zr_resource` registry/mutation/payload/snapshot/lease/generation/event、Project asset facade/manager/worker/watch/import/pack/artifact和Render semantic residency。单写commit/preflight、typed handle、immutable management/readiness generation、Project generation fence、content chunks/LRU、manifest/block ticket与cancel/owner close是真实底座；但通用`load<T>`仍同步I/O/decode，`AssetWorkerPool`不消费ResourceLocator/project generation/ResourceManager，Render ticket只服务graphics semantic block，尚无覆盖provider/source/artifact/CPU/dependency/GPU/reload/eviction的唯一ResourceLoadAuthority。不新增P0；Runtime188的36项P1重判`22 Open/13 Partial/1 Closed`，14项P2为`9 Open/5 Partial`，12条currentness风险，24门`20 Fail/4 Partial/0 Pass`。本轮仅写review/index/coverage，未修改生产Rust/Cargo/ABI/tests/UI，未运行Cargo或产品动态验证；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime205](zircon_runtime/205-runtime-resource-lifecycle-load-ticket-cache-residency-generation-reload-cancellation-current-working-tree-review.md)。
+
+### 558. Editor Asset Workspace / Catalog / Provider / Preview / Import / Reimport / Generation 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Focused Editor asset workspace production manifest | **145** | **17,932** | **16,281** | **614,403** | excluded | excluded | `72f391aeba670e0d126ea7514921dfc13c033e0b043be49bfa192c55508585d6` |
+| Unreal/Bevy/Fyrox/Godot/Unity Graphics references | selected local slices | not re-counted | not re-counted | not re-counted | n/a | n/a | source paths recorded in report |
+
+Editor267复核Editor asset index/type/source/toolkit、catalog generation/project sync、workspace item/folder/resource projection、Browser paint virtualization、preview cache/scheduler/job、generic/model import、delete/relocate和retained pointer input。Runtime generation winner commit、immutable catalog、64-row chunks、physical-slot virtualization、preview token/currentness、bounded import flight和Runtime-owned durable ticket可保留；但exact type仍退化为ResourceKind，非空Runtime delta仍full rebuild，Activity/Browser共享单selection/query/folder，provider capability按scheme猜测，preview cache无界且直接写最终PNG，API缺通用create/rename/duplicate/reimport/bulk/open/activate，主Browser click仍只派发SelectItem。无新增唯一P0；Editor248的32项P1重判`22 Open/10 Partial/0 Closed`，12项P2为`8 Open/4 Partial`，16条currentness风险，24门`19 Fail/5 Partial/0 Pass`。本轮仅写review/index/coverage，未修改生产Rust/Cargo/ABI/tests/UI，未运行Cargo、Editor、fault、scale、soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Editor267](zircon_editor/267-editor-asset-workspace-catalog-provider-preview-import-reimport-generation-current-working-tree-review.md)。
+
+### 559. Runtime Asset Registry / Project Catalog / Index Persistence / Rebuild / Incremental Query / Watch / Generation 当前工作树
+
+Runtime206冻结`asset/registry`、project catalog/generation、project manager、asset watch、project asset manager的95个生产Rust文件（16,444行、14,965非空行、596,718 bytes，指纹`b6d00897c71cbeb3ca265f2ce4fdd38ce0efe3b506458fa4447ec71e2f5b7532`），逐文件追踪open、full/targeted import、watch worker、registry persistence、rebuild、query和Editor catalog input。UUID/path/AssetId/dependency/referencer/source局部索引、64-shard catalog sequence/delta、watch entry+byte bounded ingress/activation、candidate prepare与journal recovery是可保留底座；但duplicate GUID仍随机remint并直接写`.zmeta`，RecoveryDeferred仍在live project/resource/catalog/watcher/event publication之后才转Err，registry persistence仍是只有`format_version=1`的whole-file pretty JSON，scan未排序且orphan meta静默跳过，incremental仍clone整表并重扫全部meta，query仍无二级索引/compiled filter/cursor/visitor/generation lease/disposition。继承`ASSETREG-P0-001..002`，Runtime88 watch P0不重复；Runtime99w的60项P1重判`53 Open/7 Partial/0 Closed`，16项P2为`12 Open/4 Partial/0 Closed`，24门`22 Fail/2 Partial/0 Pass`。本轮只写review/index/coverage，未修改生产Rust/Cargo/ABI/tests/UI，未运行Cargo、fault/restart/cross-platform/large-corpus/benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime206](zircon_runtime/206-runtime-asset-registry-project-catalog-index-persistence-rebuild-incremental-query-watch-generation-current-working-tree-review.md)。
+
+### 560. Editor Project Startup / Open / Create / Activation / Session / Hub / Focus / Recent / Recovery 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Focused Editor project lifecycle production set | **163** | **16,973** | **15,510** | **620,315** | **100 markers** | **0** | `b24c648ed9b5cb5144acf508356e18673d7c3240998678f57ddcfba25d1501f6` |
+| Unreal/Godot/Fyrox/Bevy references | **13** | **29,487** | **25,337** | **1,065,419** | **19 markers** | **0** | `6f1e93f7269f3c0e148522a2c078e5ce8cef549231649cf80942ee32062f2f34` |
+
+Editor268逐文件复核intent、preflight、create/open、qualification、session guard、activation ledger、runtime/plugin/document/UI effects、Ready/first-present、Hub/focus、recent、close和recovery，并对照Unreal project qualification/auto-load、Godot conversion/recovery、Fyrox child supervision和Bevy plugin finish/cleanup。versioned intent、ProjectIdentity、data-only preflight、lease内revalidation、Safe/Recovery减权、OS lease+持久record、effect ledger、first-present Ready、generation focus及bounded revisioned/CAS/tombstone recent store是可保留底座；但`guard.commit_ready()`仍早于`ledger.commit(Session)`，测试还固定该危险顺序；guard/ledger/runtime/plugin/document/window/Hub没有共同activation receipt；Normal默认批准project-derived code且principal只是provenance；operation无durable dedup/replay；retained host构造后的多个错误出口绕过显式close，Drop只处理autosave/watch；recent仍降级为lossy display path。Editor51/172账目重判P0 `5 Open/0 Partial/0 Closed`，P1 `39 Open/21 Partial/0 Closed`，P2 `15 Open`，40门`18 Fail/18 Partial/4 Pass`。Editor266、Runtime204/206保持I/O与registry owner。本轮仅写review/index/coverage，未修改production Rust/Cargo/ABI/tests/UI，未运行Cargo、Editor/Hub、fault、multi-process、filesystem qualification、scale、soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Editor268](zircon_editor/268-editor-project-startup-open-create-activation-session-recent-recovery-current-working-tree-review.md)。
+
+### 561. Runtime Interface Project Manifest / Admission / Ready / Focus / Recent / BuildSet Correlation 当前工作树
+
+| 范围 | files | lines | bytes | tests | ignored | HEAD-delta / untracked | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Interface project/hub protocol/BuildSet直接合同 | **91** | **6,859** | **233,318** | **82** | **1** | **79 / 0** | `2b6ca1fc0f4f90790a15674162431de09429427e0fbbfc75db6d8cc02b3de7e0` |
+| App/Runtime/Editor/Hub focused consumers | **141** | **24,831** | **908,032** | **282** | **8** | **103 / 10** | `47804023bc9604e9be99d201a27cd55babbafa50392f9bb54c5f5319fb07e30f` |
+| 去重当前源码 | **232** | **31,690** | **1,141,350** | **364** | **9** | **182 / 10** | `057afacf0eedebf4111d41d2c0307eefa8fa8eb50c7a5264482da3ff586a5e51` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | **18** | **17,200** | **640,148** | **19** | **0** | n/a | `56cfbf4f8b1d97df3bf0c38ceba0cc1fc8830e18d9e011a58b37ce6e3abc1539` |
+
+Interface16进一步刷新Interface06/14的manifest/admission/Ready/focus/recent与BuildSet correlation。manifest bytes/container complexity admission、ProjectIdentity/digest、typed launch profile、BuildSet artifact validation、session lifecycle/heartbeat、first-present mailbox、native-owner focus ack和recent revision/CAS/tombstone/durability是真实底座；但Hub仍把summary parse称为Valid并在cap前`fs::read`，principal provenance被Editor文档称为authenticated，session record Ready早于ledger Session commit，Ready fixed-set receipt只被Hub按PID校验，BuildSet/preflight/admission/Ready没有共同request digest，focus publisher仍可创建inbox且malformed claim无回收，recent仍以lossy path为identity且filesystem store业务owner错误位于Interface。两个缺`project_guid`的同crate fixture仍是已登记source integration blocker。审查期间Editor ledger从暂存后删除的`activation_ledger` hard-cut到当前`project_session_effect_ledger`，已按新owner路径重取统计和指纹；Interface06旧56项P1与14项P2保持`20 Open/25 Partial/11 Closed`和`8 Open/6 Partial`，36门保持`14 Fail/14 Partial/8 Pass`；不新增唯一finding，Editor268/51/172继续拥有五项项目生命周期P0，Interface15继续拥有BuildSet认证。本轮只写review/index/coverage，未修改production Rust/Cargo/ABI/tests/UI，未运行Cargo、Hub、Editor、真实双进程、fault、ACL、fuzz、scale、soak或benchmark；全局结构审计两次超时记为unavailable，Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Interface16](zircon_runtime_interface/16-project-manifest-admission-ready-focus-recent-buildset-correlation-current-working-tree-review.md)。
+
+### 562. Hub Engine / BuildSet / Launch Attempt / Child Supervision / Ready / Focus / Recent 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Hub Rust owner source | **101** | **25,654** | **23,400** | **938,354** | **284** | **8** | `395528bad169f1f8636cce81f5dde641ec105780266939106595a93cee4e4c95` |
+| Hub integration tests | **40** | **19,466** | **18,519** | **715,625** | **271** | **1** | `6d8f912a211774136de672e538a1556afba984dc98eaf51fd4208c83c926e550` |
+| Unreal/Godot/Fyrox/Bevy/Unity Graphics references | **17** | **11,936** | **10,422** | **416,788** | **19** | **0** | `087c2da4c6e66dbd9c1eb57916d90e6afb45851a23a55d167048d05baf459a34` |
+
+Hub07逐文件复核Hub Rust owner source与integration tests，并沿Interface16/App/Editor消费者追踪Engine/BuildSet resolution、build、launch attempt、Child、Ready mailbox、focus ack、recent reconcile、queue和产品状态。typed launch intent、App Runtime BuildSet preflight、first-present Ready、PID check、exact focus ack、revision/CAS recent store和64项queue cap是真实底座；但project-bound engine前置检查与实际global settings build command可漂移，exit code 0直接记staged成功，Hub生产源码没有BuildSet resolver/manifest consumer，project/empty launch都丢`Child`，Ready只校验PID，mailbox无cap/claim/scavenger，startup仍以default revision 0复活Hub离线期间Editor recent删除。Hub01-05的323项唯一finding保守重判为`317 Open/5 Partial/1 Closed`，聚焦P0 `2 Open`、P1 `13 Open/4 Partial`、P2 `1 Partial`，28门`22 Fail/1 Partial/5 Pass`。本轮仅写review/index/coverage，未修改production Rust/Cargo/ABI/tests/UI，未运行Cargo、Hub/Editor双进程、fault、ACL、scale、soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Hub07](zircon_hub/07-engine-buildset-launch-attempt-child-supervision-ready-focus-recent-current-working-tree-review.md)。
+
+### 563. Runtime Asset Import / Source Discovery / Importer Recipe / Subasset / Derived Data / Cook / Package / Incremental Build 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Runtime207 asset pipeline production union | **279** | **53,412** | **48,923** | **1,902,103** | **242 attrs** | **47** | `db588199b2db2add0424620d9198f79029c45f0f476893484d128423d214ec41` |
+| Runtime asset test/test-named corpus | **247** | **51,246** | **46,795** | **1,783,997** | **1,034 attrs** | **59** | `3dabca6e54b3fc803f61847c9056f2c9601417986b554b0224efbaa599272777` |
+| Runtime export-pack binary | **6** | **937** | **883** | **33,086** | **4 attrs** | **0** | `03cf4a3da994a6907f5152356176c9004b8816efd9ae7f3333b601df624a21af` |
+| Editor export touchpoints | **52** | **13,205** | **12,012** | **455,921** | **132 attrs** | **16** | `9ab9cdd49c97c15c9223bb7506d354cac062d6553315cbe88d82e41cf7999c69` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | **25** | **19,004** | **16,465** | **731,723** | **40 Rust attrs** | **0** | `71b62fb8a8e3db97cfea59dcd0dbf330c9505648e1e849450b7fdf7c34f946cc` |
+
+Runtime207逐文件复核 importer contract/registry/ingest、source discovery/full/targeted generation、OBJ/MTL/glTF/font auxiliary reads、artifact key/store/chunk、worker admission、VG/SDF cook、pack writer/export handoff，并对照 Unreal immutable DDC build definition/input/output/scheduler/dependency tests、Bevy ProcessedInfo/source-full hash/WAL processor、Godot importer metadata/scan/reimport/UID、Fyrox async loader/reload/graph 与 Unity Graphics importer dependency/subasset/reimport consumer。COW registry、compound membership、局部 snapshot、BLAKE3/zstd/chunk integrity、bounded single-flight 和 pack delta 是可保留底座；但 `.bin`/字体等 auxiliary bytes 仍不进入父 action identity，full generation 不传 source-file snapshots，glTF/font 可直接读取物理路径，`LibraryCacheKey` 仍用 `DefaultHasher` 且缺 function/recipe/target/toolchain，VG/SDF 仍同步嵌在 importer，pack 仍从 raw source manifest 读取并最终持有完整 `Vec<u8>`。Runtime85 的 `ASSET85-P0-001` 继续唯一拥有 source closure P0；48 项 P1 重判 `38 Open/10 Partial/0 Closed`，12 项 P2 重判 `10 Open/2 Partial/0 Closed`，48 道门禁为 `35 Fail/13 Partial/0 Pass`。本轮只修改 review/index/coverage 文档，未运行 Cargo、Editor、真实 import/cook/package、网络 DDC、签名、fault、soak、跨机 determinism 或 benchmark；tooling 按用户要求排除，也未查询、轮询、等待或实时跟踪协调器。详见 [Runtime207](zircon_runtime/207-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-cook-package-incremental-build-worker-determinism-current-working-tree-review.md)。
+
+### 564. Editor Build / Export / Preset / Pipeline / Cook / Pack / Platform Bundle / Publishing 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Editor export/core/wizard/legacy queue/UI production set | **103** | **15,554** | **14,247** | **541,268** | **80 markers** | **16** | `0b9e1d8956c5964bf950b76f1805aff9e9950ada35cbabdd339b6d6896ee7b1f` |
+| Runtime Interface/Runtime/App export handoff set | **49** | **7,913** | **7,205** | **319,384** | **48 markers** | **2** | `b2473c76ee7c93f048a59560c4e6487c4260695bbabb9471cc349bfee1a72502` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | **16** | **12,036** | **10,466** | **488,675** | **0** | **0** | `1f4b4b7f80a4c61e56099e6f782a57870f915e266fc6e4cfda5cbde597734025` |
+
+Editor269逐文件复核Interface export DTO、Editor preset/inventory/pipeline/core stages、wizard plan/execution/job/session/output/UI、legacy export manager/Cargo/job queue、profile/target projection和Runtime/App交接，并对照Unreal BuildCookRun/ProjectParams、Godot platform/preset/plugin、Bevy asset processor/WAL、Fyrox target build/cancel与Unity Graphics build-scoped context/stripper/report。八阶段DTO、拓扑拒绝、同generation重叠digest、强文件身份、进程树取消、完整日志和有界tail是可保留底座；但同一Execute仍可路由到wizard或legacy两套权威，legacy fatal/Cargo失败仍返回Ok并标Exported，wizard core adapter丢nonzero exit使CompileHost可写Passed并在resume时合成exit 0，target platform没有进入core build/layout，Android/iOS/Web scaffold仍显示Ready，`expected_stdout_keys`与produced artifacts未被验证且planned path会作为actual展示。新增`ED-EXPORT-P0-001..005`全部Open，P1 `48 Open/12 Partial/0 Closed`，P2 `14 Open`，48门`40 Fail/7 Partial/1 Pass`。Runtime207继续拥有pack/cook底层；目标是Runtime唯一ExportService、immutable request、typed Stage/Export receipt、qualified platform adapter和Editor/CLI/CI同一入口。本轮只修改review/index/coverage文档，未运行Cargo、Editor、真实export/cook/pack、fault、cross-platform、scale、soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Editor269](zircon_editor/269-editor-build-export-preset-pipeline-cook-pack-platform-bundle-publishing-resume-determinism-current-working-tree-review.md)。
+
+### 565. Runtime Product Build / Export Profile / Build Plan / Platform Host / Cross Compilation / Package / Launch Handoff 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Runtime/App/Interface export product build set | **29** | **5,441** | **4,943** | **227,645** | **16 markers** | **1** | `4fdf22a3814f3e1ce62418448c94056c2f085aa4b151dc0e44fb64a69a33e5f3` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | **28** | **22,362** | **19,514** | **869,553** | **25 markers** | **0** | `52fa7d2c01f10903e55175a1d6a7fc7312a630eb84a43b757bc07ccc067d0c99` |
+
+Runtime208逐文件复核`ExportProfile`/platform policy、App role/config resolution、Runtime `ExportBuildPlan`/Cargo command/materialize/archive/generated files/platform host、Interface stage/artifact/report、ProductComposition/bootstrap，以及 Android/iOS/Web host scaffold；对照Unreal BuildCookRun/ProjectParams/Platform/Gauntlet install-run、Godot platform/preset/PCK、Bevy AssetProcessor/WAL、Fyrox target/cancel/export和Unity Graphics build-scoped context/strip report。Profile/platform只形成角色与`PlatformTarget`元数据，target/triple/SDK/toolchain未进入Cargo，desktop/headless main bootstrap后立即退出，mobile/browser ABI和resource callback是探针，source template只复制项目manifest，materialize/archive非事务且缺包可继续，Interface DTO与Runtime BuildPlan没有统一Runtime service。新增`RT-EXPORT-P0-001..005`全部Open，P1 `44 Open/4 Partial/0 Closed`，P2 `12 Open`，10道资格门`10 Fail`。本轮只修改review/index/coverage文档，未运行Cargo、真实跨平台build/package/install/launch/first-frame、签名、fault、跨机determinism或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime208](zircon_runtime/208-runtime-product-build-export-profile-build-plan-platform-host-cross-compilation-package-launch-handoff-current-working-tree-review.md)。
+
+### 566. App Product Launch Request / CLI / Config Resolution / Provenance / Diagnostics / Exit Semantics 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---|
+| App owner source | **39** | **9,051** | **8,202** | **333,816** | **106** | **0** | `a9a6fa37eebe3422269d0c6d34a589d0e6242c39705031954470c64d5dc4c274` |
+| Focused direct tests | **11** | **3,217** | **2,896** | **110,599** | **111** | **0** | `9ec47d4218e9b6dd2da4e90f4a8c3e754b4df0daa552f1aa1232b9183073740c` |
+| Editor/Runtime direct contracts | **8** | **2,407** | **2,158** | **78,470** | **13** | **0** | `1f877114fca581bc2c9a6e4af1bb87b045a1d057692d843fca63c4926b11616b` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | **21** | **31,629** | **27,121** | **1,103,326** | **71** | **0** | `c9ecf67f2b14f164ed31f6b4030032e67f6e382af6c5a98503d7d6993a1b5096` |
+
+App09逐文件复核两个binary、diagnostic/Editor GUI/Runtime session/commandlet四套parser、`EntryConfig`/role/profile/platform/plugin/provenance resolution、Runtime library/path/preferences/env、failure ledger和进程exit mapping，并对照Unreal bounded/original-filtered command line、CmdLineFile展开、config override/dynamic layer和phased launch，Godot user-arg separator/project settings，Bevy typed AppExit，Fyrox clap与silent fallback反例，以及Unity Graphics build-scoped context。Runtime binary当前绕过Editor/export使用的`ResolvedProductHostConfig`并直接把独立`RuntimeSessionProfile`传给dynamic session；provenance只保存来源enum/bitset，缺候选、winner reason、digest、environment/BuildSet/library identity和replay receipt；semantic startup/runtime/shutdown/forced class在process code层被压成通用失败。新增`APP-LAUNCH-P0-001..003`全部Open，P1 `37 Open/3 Partial/0 Closed`，P2 `10 Open`，16道资格门`14 Fail/2 Partial/0 Pass`。App08继续唯一拥有Winit/window/surface/DLL quiesce和Play child transport，Runtime208继续拥有BuildPlan/platform artifact，不重复计数。本轮只修改review/index/coverage文档，未运行Cargo、binary、真实env/argv matrix、non-UTF-8、fault、crash/restart、replay或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[App09](zircon_app/09-product-launch-request-cli-config-resolution-provenance-diagnostics-exit-semantics-current-working-tree-review.md)。
+
+### 567. Runtime Support Crates / Contracts / Math / Resource / RHI / WGPU 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | unsafe | HEAD / index / dirty | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| `zr_contracts` | 15 | 942 | 823 | 28,720 | 10 | 0 | 0 | 1 / 15 / 15 | `4961e472e3e6293b5f4e1127ddfe5bda4b2d822ce6d1b740eeb8fb3985583f53` |
+| `zr_math` | 14 | 1,488 | 1,306 | 44,264 | 24 | 0 | 0 | 0 / 14 / 14 | `5486cb7de1fc98399bcdb27ae6956f502e4554c57ee235cd619347cfcd963592` |
+| `zr_resource` | 83 | 19,868 | 18,140 | 687,331 | 240 | 10 | 13 | 0 / 83 / 83 | `e672e4914159578727cab37436d73ced80f13702b79d609e33cef284cee876a6` |
+| `zr_rhi` | 39 | 10,849 | 9,787 | 357,052 | 83 | 1 | 0 | 16 / 39 / 35 | `2a6a45ff28663288c265c8c92012e84a154d326807da3c7a769e930f54b4fa42` |
+| `zr_rhi_wgpu` | 153 | 45,207 | 42,094 | 1,626,605 | 404 | 0 | 2 | 63 / 153 / 148 | `d1aa050925b44c3206826149256e82f7c7348fe586e019282df6ba0e53950980` |
+| Zircon union | **304** | **78,354** | **72,150** | **2,743,972** | **761** | **11** | **15** | **80 / 304 / 295** | `be8bbb94fafd66f9c7cbb1e6208c6dc03f91601a7100c7de3d568227c05b16ba` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | **13** | **16,178** | **13,676** | **600,107** | **26** | **1** | n/a | n/a | `40f439ba042b27b0be617f6a6932ea52a93e3cf4034da6e3f48004d4413f6410` |
+
+Runtime209逐文件刷新Runtime153五个support crate及workspace/runtime manifest、Runtime graphics direct consumer：五crate输入已全部进入index，但HEAD只有80/304且295 dirty，clean source仍不可复现；`zr_contracts`生产consumer与Cargo图断链继续Open。Resource management/readiness generation、64 shard projection、显式栈SCC/cycle fail-close，RHI generation handle、WGPU registry/submission/fault/surface与bounded diagnostic readback均是真实进展；但两条readiness RED仍ignored，普通neutral readback仍同步且production unavailable，graphics仍持有生产裸Device和大面积native WGPU资源，UI context clone Device/Queue，native recorder的generation/resource provenance依赖调用者承诺。Resource hot acquire/release继续写锁整个authority，统一load owner/snapshot-fence-resync/durability receipt未形成，math仍f32到f32恒等narrowing和动态space tag。
+
+Runtime153稳定账目重判：P0 `1 Open/1 Partial/0 Closed`，P1 `9 Open/5 Partial/0 Closed`，P2 `4 Open`，24门`15 Fail/9 Partial/0 Pass`；native provenance、GPU测试静默跳过、141个`include_str!`/443个源码literal assertion与ignored RED只作为既有条目收口证据，不新增canonical finding。本轮只修改review/index/coverage文档，没有修改Rust/Cargo/ABI/tests/UI，没有运行Cargo、GPU、device-loss、fault、scale、soak、跨平台durability或动态benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime209](zircon_runtime/209-runtime-support-crates-contracts-math-resource-rhi-wgpu-workspace-boundary-device-lifecycle-product-integration-current-working-tree-review.md)。
+
+### 568. Runtime Random Authority / Stream / Checkpoint / Replay / Consumer / Performance 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | unsafe | HEAD / index / dirty | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| `zr_contracts` random contracts | 13 | 923 | 808 | 28,297 | 10 | 0 | 0 | included below | `Zircon union` |
+| Runtime random framework/kernel/handle + CoreRuntime | 20 | 2,332 | 2,055 | 79,260 | 27 | 1 | 0 | included below | `Zircon union` |
+| AI behavior-tree consumer | 26 | 6,231 | 5,690 | 223,860 | 52 | 18 | 0 | included below | `Zircon union` |
+| Particle CPU/GPU consumer | 44 | 8,847 | 8,058 | 310,053 | 54 | 3 | 5 | included below | `Zircon union` |
+| Zircon union | **103** | **18,333** | **16,611** | **641,470** | **143** | **22** | **5** | **63 / 103 / 70** | `8d9d4518edf2d74519c23a543d6819cd680296949b1beb489f8a97b2c6b6ddf9` |
+| Unreal/Godot/Bevy/Fyrox/Unity Graphics references | **10** | **4,102** | **3,473** | **150,286** | **2** | n/a | n/a | n/a | `e8c2fb9446b5917fbc5279c094f98777158ba69a397db99f5716a9f323c3e2db` |
+
+Runtime210逐文件刷新random contracts/kernel/tests/CoreRuntime owner、AI behavior tree与Particle CPU/GPU，并对App/Host/Interface/Editor执行production负扫描。PCG32 identity、BLAKE3 stable-key、generation key、draw index、single mutable lease、retention cap、canonical order与mixed-era锁序是真实底座；但当前checkpoint v2校验引用了error enum中不存在的`StreamAuthorityGenerationMismatch`，新增`RT-RANDOM-P0-001` Open。Runtime153 source/Cargo两项P0继续由Runtime209记账；Runtime154的9项P1与4项P2均保持Open，24门`17 Fail/7 Partial/0 Pass`。lease Drop仍无条件commit，partial random checkpoint仍可创建CoreRuntime，serde仍先分配无界Vec，AI仍用DefaultHasher，Particle CPU/GPU仍是私有且不兼容算法，四个产品层没有seed/checkpoint/session ABI。目标是`RandomProfile + Runtime-issued capability + staged fixed-step lease + complete bounded checkpoint + consumer hard-cut + product diagnostics`。本轮只修改review/index/coverage文档，未修改Rust/Cargo/ABI/tests/UI，未运行Cargo、replay、GPU parity、fault、soak或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime210](zircon_runtime/210-runtime-random-authority-stream-checkpoint-replay-consumer-performance-current-working-tree-review.md)。
+
+### 569. Runtime Clock / Time Policy / World Fixed Step / Timer / Cadence 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | unsafe | HEAD / index / dirty | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| Zircon clock/time/fixed/timer/cadence + product/adapter/tests | **59** | **14,078** | **12,700** | **497,761** | **122** | **2** | **10** | **32 / 59 / 54** | `a3ea68a1e43d3b606f096ed6ba2e55f1666e54f9bc43769860d5b9eb715c9c36` |
+| Unreal/Bevy/Godot/Fyrox/Unity Graphics references | **19** | **17,688** | **15,405** | **647,189** | **28** | **0** | **4** | n/a | `08ffddccf7822e023402c09520dc540dc6e85f53d3a9a23d6ae7bdcce5d71cdf` |
+
+Runtime211逐文件刷新framework/core/World时间owner、fixed driver/failure receipt、product policy/dynamic session、App cadence、Runtime Interface负面能力面、Physics/Animation/Script/UI timer adapter，并对照Unreal TickTaskManager/TimerManager、Godot MainTimerSync/Timer、Bevy Time/App/Timer、Fyrox executor与Unity Graphics VFX scrub。旧stale test P0已source-closed，duplicate/out-of-order/skip拒绝、逐step clock/debt transaction、typed failure receipt和profile接线是真实进展；但outer sample/admission仍可两锁重排，session/source/reentry identity不完整，每个World仍复制完整fixed budget，World/RNG/effect/physics/script没有共同transaction，replacement继续继承旧debt，discontinuity last-write-wins，custom source倒退与identity saturation仍静默，gameplay Timer缺失，cadence仍`now + interval`。不新增canonical finding；Runtime155 P1为`7 Open/2 Partial/0 Closed`，P2为`3 Open`，30门`16 Fail/9 Partial/5 Pass`。目标是`FrameAdmissionAuthority + ProductTimePolicyDigest/BuildSet + Runtime FixedWorkBudgetController + SimulationStepTransaction + WorldTimerService + TimeTelemetry`。本轮只修改review/index/coverage文档，未修改Rust/Cargo/ABI/tests/UI，未运行Cargo、replay、fault、soak、跨平台determinism或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime211](zircon_runtime/211-runtime-clock-time-policy-world-fixed-step-timer-cadence-current-working-tree-review.md)。
+### 570. Runtime Diagnostics / Metric Store / Profiling Trace / Config Authority / Product Integration 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | unsafe | HEAD / index / dirty | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
+| Zircon diagnostics/profiling/config + Dynamic Session/ABI/Host/App/Editor consumers | **111** | **19,770** | **18,589** | **662,014** | **122** | **9** | **44** | **111 / 111 / 77** | `6912fdbe66334447402ae568ee1b095dfba962a31b35dfa1f41435479203368c` |
+| Unreal/Bevy/Godot/Fyrox/Unity Graphics references | **13** | **8,685** | **7,499** | **344,216** | **1** | n/a | n/a | n/a | `5d6df6e7a0fe9addf3f0a0c4e4076816b49b24006acc6a8f79265734c3d0c1ba` |
+
+Runtime212逐文件刷新MetricStore、render diagnostics publication/query、profiling capture/trace/export、config worker/commit fence、Dynamic Session profile ABI、Host output budget、App startup injection、Editor layout/capability consumers、Animation/Physics settings persistence。当前树的bounded per-series history、静态 render descriptor-like projection、owned string move、Host response byte/item/decode budgets、config generation/debounce/atomic writer/backup recovery和少量异步 capture epoch是真实进展；但MetricStore无descriptor/owner/cardinality/总预算且collector query改变history，snapshot无window/generation/completeness/分页，profiling仍global Mutex并且token无capture/session/thread、独立ring关系可悬空、sync export无staging manifest/fsync、Perfetto pid固定，ConfigStore仍混合startup/transient/user/editor durable值、raw JSON无typed schema/layer/migration、consumer绕过ConfigManager、shutdown无durability gate。旧12项P1按当前所有权拆为17项P1子项且全Open、6项P2全Open，30门`22 Fail / 4 Partial / 4 Pass`；本轮只修改review/index/coverage文档，未修改Rust/Cargo/ABI/tests/UI，未运行Cargo、GPU、fault、multi-process、soak、cross-platform durability或benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime212](zircon_runtime/212-runtime-diagnostics-metric-store-profiling-trace-config-authority-product-integration-current-working-tree-review.md)。
+
+### 571. Runtime Visibility / GPU Scene / Culling / Batching / Instancing / HZB / Virtual Geometry 当前工作树
+
+| 范围 | files | lines | non-empty | bytes | tests | ignored | unsafe | HEAD / index / dirty | fingerprint |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| Runtime visibility/GPU Scene/HZB/mesh submission/history/product consumers | **332** | **66,883** | **61,344** | **2,444,083** | **703** | **39** | **1** | **230 / 330 / 260** | `84023cd283ae126f189dc2bc9224bab299a277324c09d5fe9c78d097035424d1` |
+| Virtual Geometry runtime provider/plugin | **272** | **45,377** | **42,262** | **1,666,156** | **301** | **33** | **0** | **233 / 272 / 100** | `29686dde80f55e82517f881d0b609ab7c2d36ea5c6ca19d1c21a806b7eaddb2f` |
+| Unreal/Unity Graphics/Bevy/Godot/Fyrox references | **19** | **37,019** | **31,709** | **1,578,505** | **1** | **0** | **15 lexical** | n/a | `3af3e58471fcfca5331f841e25bde01fae180a2495e37f99233dedccc6688106` |
+
+Runtime213逐文件目录/符号/call-site/test-marker扫描visibility、RenderScene/GPU Scene、HZB、mesh build/pass、history、submission consumers和VG provider/plugin，并逐行复核关键owner/consumer/shader；对照Unreal GPUScene/InstanceCulling/SceneVisibility/Nanite、Unity GPUResidentDrawer/InstanceCuller、Bevy preprocess/meshlet、Godot scene cull与Fyrox visibility。精确逐view identity、dirty/staging/current-previous GPU Scene、共享skin palette、domain history、真实HZB indirect compaction与bounded readback是可保留底座，旧bounds二次变换已修正；但RenderScene/journal consumer未接产品，CPU visibility仍用transform单位球，uniform grid/COW/full diff/逐view全扫描、visibility前昂贵prepare、one-draw/one-instance与single previous-HZB仍开放，HZB结果不发布统一truth。VG五个graph executor只验证contract，CPU cull/raster/VisBuffer records没有真实GPU authority。Runtime09B 7项P0重判`3 Open/4 Partial/0 Closed`；当前P1 `49 Open/11 Partial/0 Closed`，P2 `12 Open`，32门`25 Fail/5 Partial/2 Pass`。本轮只修改review/index/coverage文档，未运行Cargo、真实GPU/Editor、scale/churn/fault/soak/benchmark；Tooling排除，也未查询、轮询、等待或实时跟踪协调器。详见[Runtime213](zircon_runtime/213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review.md)。

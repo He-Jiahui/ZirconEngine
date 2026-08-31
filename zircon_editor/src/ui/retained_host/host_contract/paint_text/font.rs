@@ -388,10 +388,8 @@ fn fontdb_families_for_request(family: &str) -> Vec<Family<'_>> {
 }
 
 fn is_system_ui_family(family: &str) -> bool {
-    matches!(
-        family.trim().to_ascii_lowercase().as_str(),
-        "system-ui" | "ui-sans-serif"
-    )
+    let family = family.trim();
+    family.eq_ignore_ascii_case("system-ui") || family.eq_ignore_ascii_case("ui-sans-serif")
 }
 
 fn system_ui_fontdb_families() -> Vec<Family<'static>> {
@@ -404,13 +402,21 @@ fn system_ui_fontdb_families() -> Vec<Family<'static>> {
 }
 
 fn generic_font_family(family: &str) -> Option<Family<'static>> {
-    match family.trim().to_ascii_lowercase().as_str() {
-        "sans-serif" => Some(Family::SansSerif),
-        "monospace" | "ui-monospace" => Some(Family::Monospace),
-        "serif" => Some(Family::Serif),
-        "cursive" => Some(Family::Cursive),
-        "fantasy" => Some(Family::Fantasy),
-        _ => None,
+    let family = family.trim();
+    if family.eq_ignore_ascii_case("sans-serif") {
+        Some(Family::SansSerif)
+    } else if family.eq_ignore_ascii_case("monospace")
+        || family.eq_ignore_ascii_case("ui-monospace")
+    {
+        Some(Family::Monospace)
+    } else if family.eq_ignore_ascii_case("serif") {
+        Some(Family::Serif)
+    } else if family.eq_ignore_ascii_case("cursive") {
+        Some(Family::Cursive)
+    } else if family.eq_ignore_ascii_case("fantasy") {
+        Some(Family::Fantasy)
+    } else {
+        None
     }
 }
 
@@ -492,3 +498,7 @@ fn host_text_font_cache_key(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "font/family_match_allocation_tests.rs"]
+mod family_match_allocation_tests;

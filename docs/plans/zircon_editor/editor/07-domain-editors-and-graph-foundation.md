@@ -170,7 +170,7 @@ impl PreviewScene {
 
 - 切片 1.1：`GraphModel` + canvas/node_widget/routing（渲染走 editor_ui 栈）；选择/框选/拖拽/缩放。
 - 切片 1.2：连接校验（value_type 缺省 + 覆写）/复制粘贴（子图序列化为 delta）/对齐；`commands.rs` 接 03（逆 delta=revert）。
-- 切片 1.3：`graph_editors/graph_node_palettes` 表接通物化（06 store）；`validate/compile_operation` 投影为图工具栏命令（08）。
+- 切片 1.3：`graph_node_palettes` descriptor 在 active catalog materialization 时绑定 package owner 与 schema version，随后接通 `graph_editors/graph_node_palettes` 表物化（06 store）；`validate/compile_operation` 投影为图工具栏命令（08）。
 - 测试阶段：`cargo test -p zircon_editor --lib --locked`（夹具 GraphModel：三约束矩阵/校验/delta 往返/粘贴幂等/撤销往返/required 端口悬空诊断）。更新 `docs/zircon_editor/ui/graph.md`。
 
 ### M2 时间轴基座与预览框架
@@ -203,6 +203,7 @@ impl PreviewScene {
 
 | 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
+| 2026-08-24 | M1.3 图 palette provenance 基础 | 进行中 / 生产代码与静态门通过 / Cargo 行为门未执行 | `GraphNodePaletteDescriptor` 新增 schema version 与 effective owner；直接注册显式归属 `editor.extension.direct`，active plugin catalog materialization 覆盖为 package id，generation 重建时 inactive plugin palette 自然退出 catalog。两个注册入口均拒绝空 owner 与 version 0，并返回 `InvalidDescriptorSchemaVersion`；新增 descriptor owner/version 保留与非法 version 测试。`rustfmt --check --config skip_children=true`、`git diff --check`、旧并行 registry/锁/`Result<_, String>` 扫描通过；未运行 Cargo，且 per-node/pin registry、unknown-node migration、06 表物化和动画 `GraphModel` adapter 仍未完成，故 M1.3 保持进行中且不提交。 |
 | 2026-07-18 | Performance failure：UI asset import physical generation cache | Editor07 import 子修复已实现 / parent failure 仍 open | 新 `UiAssetImportTraversal` 让 canonical physical source path 同时拥有单 generation 的成功/失败 read、parse、v2 projection cache key、实际读取目标与 parser mode；logical fragment aliases 逐条保留，physical expansion 去重终止 diamond/cycle，strict hydration 与 lossy refresh 共享 traversal。静态 TDD 4/4、rustfmt/diff check 与旧 visited 扫描通过；Rust tests 因共享 Cargo/source-bound 门未运行，delta projection、typing debounce、1k stress/p95/行为等价仍待完成。详见 [子计划记录](07/2026-07-18-ui-asset-import-physical-cache.md) 与 [open failure](07/failure-2026-07-17-ui-asset-editor-full-projection-and-import-rehydrate.md)。 |
 | 2026-07-18 | Performance failure：sample-grid typed generation hard cut | Editor07 domain 修复已实现 / 下游 batch 与规模验证仍 open | 新 `ui::sample_grid::SampleGridGeneration` 在 attribute projection 阶段一次性生成预格式化 ticks、immutable points 及分离的 static/dynamic content generation；selection/drag 不再改变 static token，range 因同时改变 grid 与 point projection 而失效两个 token。host data 删除 9 个平行 ModelRc/raw 字段，painter 与既有视觉/投影测试整体迁移 typed slices，旧字段扫描为 0。静态合同 5/5、rustfmt/diff check 通过；Cargo 未运行，Render13 dashed/marker bounded batch 与 1/100/10,000 规模证据仍未完成，因此原 failure 保持 open。详见 [子计划记录](07/2026-07-18-sample-grid-generation-hardcut.md) 与 [open failure](07/failure-2026-07-17-sample-grid-command-amplification.md)。 |
 | 2026-07-16 | Editor05 失败修复：viewport `SelectionModel` consumer hard cut | 代码完成 / review 0/0/0 / Coordinator 阻塞已修复，受管验证待执行 | 28 处 Workbench/binding 生产调用与 16 处 controller/test 调用已整体迁移到 `SelectionModel` active-domain API，controller 旧 getter/setter 已删除；非选择命令保持多选，删除保留存活集合，PIE 往返完整双域模型，history 为选择型命令保存有序 before/after snapshot。源码扫描除不同类型的 widget reflector 外为 0，`git diff --check` 与最终独立复审 `P0/P1/P2=0/0/0`；Coordinator01 已以 schema 41 完成 stale owner、绝对 expiry、orphan handoff 与 FIFO 生产回放，并回传 [fixed 已修复：stale-session-pending-cpu-reservation-starvation](07/fixed-2026-07-16-stale-session-pending-cpu-reservation-starvation.md)。当前仅保留 Editor07 current-source managed Cargo 验证门，未将尚未执行的 Rust 测试写成通过。详见 [子计划记录](07/2026-07-16-selection-model-consumer-hard-cut-output-records.md)。 |
@@ -224,5 +225,5 @@ impl PreviewScene {
 
 ### 实现风险 / 技术债
 
-- 图/时间轴基座尚未落地：目标模块布局中的 `zircon_editor/src/ui/graph/`、`ui/timeline/`、`ui/curve/`、`ui/preview_scene/`、`ui/absm_editor/`、`ui/behavior_tree_editor/` 目前均不存在（仅 `ui/animation_editor`、`ui/material_editor`、`ui/asset_editor` 三目录在案），而 `session/graph.rs`、`session/state_machine.rs` 已在 animation_editor 内部各自实现图/状态机逻辑。执行 M1 前需明确：既有 `session/graph.rs` 是并入未来 `ui/graph/` 基座、还是保持编辑器私有——否则「图基座以行为树为第二领域、接入时 `graph/` 零改动」的验收前提无法成立（当前根本没有共享 `graph/`）。
+- `ui/graph/`、`ui/timeline/`、`ui/curve/` 与 `ui/preview_scene/` 已有共享基础。`GraphNodePaletteDescriptor` 已在 active catalog materialization 时绑定 package owner 与 schema version，catalog generation 替换即回收 inactive plugin palette；当前仍缺 animation/state-machine 的 concrete `GraphModel` adapter、per-node/pin descriptor registry 与 unknown-node migration、per-user graph layout document、06 descriptor-table materialization 与 retained-host canvas；`ui/absm_editor/`、`ui/behavior_tree_editor/` 仍未建立。既有 `session/graph.rs` 的语义 mutator 必须迁入统一 transaction/compiler 链，而不能继续作为并行图 authority。
 - `ui/material_editor/` 仍为 `{mod, projection, renderer_data_projection}` 三文件占位，与「非目标：材质图编辑器（表可注册，待 shader/04 材质绑定契约稳定后立案）」一致，无需改动，仅提示映射表中材质图行继续标注为远期。

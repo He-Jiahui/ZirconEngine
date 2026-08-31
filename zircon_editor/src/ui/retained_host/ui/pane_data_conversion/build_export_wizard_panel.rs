@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -44,7 +45,7 @@ pub(super) fn build_export_wizard_panel_nodes(
     )
     .ok()?;
     let profile_name = build_export_wizard_panel_profile_name_for_view_model(data, &view_model);
-    let nodes = retained_projection_template_nodes(&projection, &profile_name);
+    let nodes = retained_projection_template_nodes(projection, &profile_name);
     (!nodes.is_empty()).then_some(nodes)
 }
 
@@ -76,9 +77,9 @@ fn desktop_export_panel_template_path() -> Option<PathBuf> {
 
 fn build_export_wizard_panel_view_model(
     data: &BuildExportPaneViewData,
-) -> ExportWizardPanelViewModel {
-    if let Some(view_model) = data.wizard_view_model.clone() {
-        return view_model;
+) -> Cow<'_, ExportWizardPanelViewModel> {
+    if let Some(view_model) = data.wizard_view_model.as_ref() {
+        return Cow::Borrowed(view_model);
     }
 
     let profile = build_export_wizard_panel_profile_name(data);
@@ -87,7 +88,10 @@ fn build_export_wizard_panel_view_model(
         EXPORT_WIZARD_DEFAULT_OUT,
         format!("No loaded export preset is available for `{profile}`"),
     );
-    ExportWizardPanelViewModel::from_plan(EXPORT_WIZARD_PANEL_JOB_ID, &plan)
+    Cow::Owned(ExportWizardPanelViewModel::from_plan(
+        EXPORT_WIZARD_PANEL_JOB_ID,
+        &plan,
+    ))
 }
 
 fn build_export_wizard_panel_first_target(
@@ -116,33 +120,37 @@ fn build_export_wizard_panel_profile_name_for_view_model(
 }
 
 fn retained_projection_template_nodes(
-    projection: &RetainedUiHostProjection,
+    projection: RetainedUiHostProjection,
     profile_name: &str,
 ) -> Vec<host_contract::TemplatePaneNodeData> {
     projection
         .nodes
-        .iter()
+        .into_iter()
         .filter_map(|node| retained_template_node(node, profile_name))
         .collect()
 }
 
 fn retained_template_node(
-    node: &RetainedUiHostNodeModel,
+    mut node: RetainedUiHostNodeModel,
     profile_name: &str,
 ) -> Option<host_contract::TemplatePaneNodeData> {
-    let control_id = node.control_id.clone()?;
+    let control_id = node.control_id.take()?;
     let text = node
         .text
-        .clone()
+        .take()
         .or_else(|| retained_string_property(&node.properties, "text"))
         .or_else(|| retained_string_property(&node.properties, "label"))
         .unwrap_or_default();
-    let primary_route = node.routes.first();
-    let retained_action_id = primary_route
-        .map(|route| route.action_id.clone())
-        .unwrap_or_default();
-    let binding_id = primary_route
-        .map(|route| route.binding_id.clone())
+    let role = retained_role(&node);
+    let component_role = retained_component_role(&node);
+    let surface_variant = retained_surface_variant(&node);
+    let text_tone = retained_text_tone(&node);
+    let button_variant =
+        retained_string_property(&node.properties, "button_variant").unwrap_or_default();
+    let primary_route = node.routes.into_iter().next();
+    let has_primary_route = primary_route.is_some();
+    let (retained_action_id, binding_id) = primary_route
+        .map(|route| (route.action_id, route.binding_id))
         .unwrap_or_default();
     let action_id = build_export_wizard_panel_action_id(&control_id, profile_name)
         .unwrap_or(retained_action_id);
@@ -151,8 +159,8 @@ fn retained_template_node(
     } else {
         ""
     };
-    let actions = primary_route
-        .map(|_| {
+    let actions = has_primary_route
+        .then(|| {
             vec![host_contract::TemplatePaneActionData {
                 label: SharedString::from(text.clone()),
                 action_id: SharedString::from(action_id.clone()),
@@ -161,21 +169,21 @@ fn retained_template_node(
         .unwrap_or_default();
 
     Some(host_contract::TemplatePaneNodeData {
-        node_id: node.node_id.clone().into(),
+        node_id: node.node_id.into(),
         control_id: control_id.into(),
-        role: retained_role(node).into(),
+        role: role.into(),
         text: text.into(),
-        component_role: retained_component_role(node).into(),
-        value_text: node.value_text.clone().unwrap_or_default().into(),
-        validation_level: node.validation_level.clone().unwrap_or_default().into(),
-        validation_message: node.validation_message.clone().unwrap_or_default().into(),
-        options_text: node.options_text.clone().unwrap_or_default().into(),
-        options: retained_shared_string_list(node.options.clone()),
-        collection_items: retained_shared_string_list(node.collection_items.clone()),
-        menu_items: retained_shared_string_list(node.menu_items.clone()),
+        component_role: component_role.into(),
+        value_text: node.value_text.unwrap_or_default().into(),
+        validation_level: node.validation_level.unwrap_or_default().into(),
+        validation_message: node.validation_message.unwrap_or_default().into(),
+        options_text: node.options_text.unwrap_or_default().into(),
+        options: retained_shared_string_list(node.options),
+        collection_items: retained_shared_string_list(node.collection_items),
+        menu_items: retained_shared_string_list(node.menu_items),
         actions: model_rc(actions),
         accepted_drag_payloads: node.accepted_drag_payloads.join(",").into(),
-        drop_source_summary: node.drop_source_summary.clone().unwrap_or_default().into(),
+        drop_source_summary: node.drop_source_summary.unwrap_or_default().into(),
         checked: node.checked,
         expanded: node.expanded,
         focused: node.focused,
@@ -188,11 +196,9 @@ fn retained_template_node(
         dispatch_kind: dispatch_kind.into(),
         action_id: action_id.into(),
         binding_id: binding_id.into(),
-        surface_variant: retained_surface_variant(node).into(),
-        text_tone: retained_text_tone(node).into(),
-        button_variant: retained_string_property(&node.properties, "button_variant")
-            .unwrap_or_default()
-            .into(),
+        surface_variant: surface_variant.into(),
+        text_tone: text_tone.into(),
+        button_variant: button_variant.into(),
         z_index: node.z_index,
         has_clip_frame: node.clip_frame.is_some(),
         clip_frame: node.clip_frame.map(template_node_frame).unwrap_or_default(),
@@ -300,5 +306,43 @@ fn template_node_frame(frame: UiFrame) -> host_contract::TemplateNodeFrameData {
         y: frame.y,
         width: frame.width,
         height: frame.height,
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+
+    #[test]
+    fn published_wizard_view_model_is_borrowed_without_a_payload_clone() {
+        let plan = ExportWizardPipelinePlan::unavailable(
+            "desktop_windows",
+            EXPORT_WIZARD_DEFAULT_OUT,
+            "fixture unavailable",
+        );
+        let data = BuildExportPaneViewData {
+            wizard_view_model: Some(ExportWizardPanelViewModel::from_plan(
+                EXPORT_WIZARD_PANEL_JOB_ID,
+                &plan,
+            )),
+            ..BuildExportPaneViewData::default()
+        };
+
+        let selected = build_export_wizard_panel_view_model(&data);
+
+        assert!(matches!(&selected, Cow::Borrowed(_)));
+        assert!(std::ptr::eq(
+            selected.as_ref(),
+            data.wizard_view_model
+                .as_ref()
+                .expect("published wizard view model")
+        ));
+    }
+
+    #[test]
+    fn missing_wizard_view_model_constructs_an_owned_fallback() {
+        let selected = build_export_wizard_panel_view_model(&BuildExportPaneViewData::default());
+
+        assert!(matches!(selected, Cow::Owned(_)));
     }
 }

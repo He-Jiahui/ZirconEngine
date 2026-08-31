@@ -303,10 +303,8 @@ impl FromStr for CssLikeDimension {
                 "percent",
             )?));
         }
-        for unit in ["vw", "vh", "vmin", "vmax"] {
-            if value.ends_with(unit) {
-                return Err(CssLikeConstraintError::KnownUnsupportedUnit { unit });
-            }
+        if let Some(unit) = unsupported_viewport_unit(value) {
+            return Err(CssLikeConstraintError::KnownUnsupportedUnit { unit });
         }
         if let Some(px) = value.strip_suffix("px") {
             return Ok(Self::Px(finite_non_negative(
@@ -659,6 +657,17 @@ fn function_arguments<'a>(value: &'a str, function: &str) -> Option<&'a str> {
         .strip_prefix(function)?
         .strip_prefix('(')?
         .strip_suffix(')')
+}
+
+fn unsupported_viewport_unit(value: &str) -> Option<&'static str> {
+    let bytes = value.as_bytes();
+    match bytes.last().copied()? {
+        b'w' if bytes.ends_with(b"vw") => Some("vw"),
+        b'h' if bytes.ends_with(b"vh") => Some("vh"),
+        b'n' if bytes.ends_with(b"vmin") => Some("vmin"),
+        b'x' if bytes.ends_with(b"vmax") => Some("vmax"),
+        _ => None,
+    }
 }
 
 fn canonical_token_name(token_name: &str) -> &str {

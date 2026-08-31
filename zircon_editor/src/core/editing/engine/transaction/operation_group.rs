@@ -76,6 +76,7 @@ impl EditorTransactionEngine {
         merge_mode: MergeMode,
         command: CommandBox,
     ) -> Result<OperationTransactionResult, EditCommandError> {
+        super::scope::ensure_single_gateway_history(history)?;
         let label = label.into();
         let operation_group = operation_group.filter(|group| !group.is_empty());
         if let Some(group) = operation_group {
@@ -320,27 +321,35 @@ mod performance_source_guards {
     use std::any::Any;
 
     use crate::core::editing::engine::{
-        CommandExecutionError, EditCommand, EditContext, SelectionSnapshot,
+        CommandExecutionError, EditCommand, EditContext, EditWorldRoute, SelectionSnapshot,
     };
-    use crate::core::gateway::EditorRuntimeGatewayHandle;
+    use crate::core::play::WorldDomain;
 
     use super::*;
 
-    struct TestContext {
-        gateway: EditorRuntimeGatewayHandle,
-    }
-
-    impl Default for TestContext {
-        fn default() -> Self {
-            Self {
-                gateway: EditorRuntimeGatewayHandle::detached(),
-            }
-        }
-    }
+    #[derive(Default)]
+    struct TestContext;
 
     impl EditContext for TestContext {
-        fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle {
-            &self.gateway
+        fn capture_world_route(
+            &self,
+            world_domain: WorldDomain,
+        ) -> Result<EditWorldRoute, EditCommandError> {
+            Ok(EditWorldRoute::logical(world_domain))
+        }
+
+        fn activate_world_route(
+            &mut self,
+            _route: &EditWorldRoute,
+        ) -> Result<(), EditCommandError> {
+            Ok(())
+        }
+
+        fn retire_world_route(
+            &mut self,
+            _world_domain: WorldDomain,
+        ) -> Result<(), EditCommandError> {
+            Ok(())
         }
 
         fn selection_snapshot(&self) -> SelectionSnapshot {

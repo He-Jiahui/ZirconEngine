@@ -1,12 +1,16 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use zircon_runtime::ui::template::UiCompiledDocument;
 
 use crate::ui::template::EditorTemplateError;
 
+#[cfg(test)]
+#[path = "registry/hash_index_tests.rs"]
+mod hash_index_tests;
+
 #[derive(Default)]
 pub struct EditorTemplateRegistry {
-    documents: BTreeMap<String, UiCompiledDocument>,
+    documents: HashMap<String, UiCompiledDocument>,
 }
 
 impl EditorTemplateRegistry {

@@ -10,16 +10,20 @@ related_code:
   - zircon_editor/src/core/gateway/
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_extension/view_descriptor.rs
+  - zircon_editor/src/core/extension/toolkit/descriptor.rs
+  - zircon_editor/src/core/extension/toolkit/snapshot.rs
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
   - zircon_editor/src/ui/host/command_eval_projection.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
+  - zircon_editor/src/ui/host/editor_manager_layout.rs
   - zircon_editor/src/ui/host/editor_session_state.rs
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/workbench/view/view_descriptor.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
+  - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/assets/ui/editor/keymap/default.keymap.toml
 implementation_files:
@@ -47,11 +51,15 @@ implementation_files:
   - zircon_editor/src/core/commands/key_chord.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_extension/view_descriptor.rs
+  - zircon_editor/src/core/extension/toolkit/descriptor.rs
+  - zircon_editor/src/core/extension/toolkit/snapshot.rs
   - zircon_editor/src/ui/workbench/view/view_descriptor.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/host/command_eval_projection.rs
   - zircon_editor/src/ui/host/editor_session_state.rs
+  - zircon_editor/src/ui/host/editor_manager_layout.rs
   - zircon_editor/src/ui/host/workspace_state.rs
+  - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.md
@@ -88,7 +96,7 @@ doc_type: module-detail
 
 `EditorCommandDescriptor` contains the former command and operation metadata in one record: display text, category, menu path, default chord, structured `when`, keywords, payload schema, remote-call policy, and required capabilities. Its key is `EditorOperationPath`, retained as the validated stable identifier type used by UI bindings and the operation-control DTOs. Undo display metadata belongs to the matching `OperationCommandFactoryRegistration`, next to the factory that creates the undoable command; it is not duplicated on the descriptor.
 
-`EditorCommandMenuProjection` separates menu metadata from its single materialization owner. Ordinary commands use `CommandRegistry`; generated extension-view commands use `ExtensionRegistry`. Both keep a canonical `menu_path` for discovery, but only the selected owner emits a menu row. This prevents the shared registry and the capability-filtered extension projection from rendering the same View command independently, and it keeps an inactive plugin out of Workbench menus without deleting command metadata or weakening invocation permission checks.
+`EditorCommandMenuProjection` separates menu metadata from its single materialization owner. Ordinary commands use `CommandRegistry`; generated extension-view commands use `ExtensionRegistry`. Both keep a canonical `menu_path` for discovery, but only the selected owner emits a menu row. Workbench then merges that command base with capability-filtered extension items/views and the focused `DocumentToolkitDescriptor` menu slice. Contributed rows are stably ordered by priority, path, and operation id; one operation-id set applies command-base precedence and deduplicates every contributed source. A contributed row without a command in the canonical registry is omitted rather than exposed as a permanently disabled action, and displayed shortcuts come only from the effective `EditorKeymap`.
 
 `EditorCommandAction` has two explicit states:
 
@@ -162,11 +170,19 @@ against the typed id and do not repeat operation-path validation at individual w
 
 `WhenClause` replaces the deleted `EditorCommandContext` and `EditorCommandEnablement` types. It supports `Always`, project/history availability, validated `DocumentKind`, typed `SceneModeId`, selection count, `PlayModePredicate` over `PlayStateKind`, named capabilities, and recursive `All`/`Any`/`Not` composition. An inapplicable contextual predicate stays false in headless evaluation even under `Not`, so the absence of a document, scene mode, selection, or interactive play state cannot become a fabricated success.
 
-`CommandEvalCtx` has two explicit modes. Interactive snapshots carry project, undo/redo, focus, scene-mode, selection, play-state, and a deterministic capability set. Headless snapshots carry only capabilities; their stored play state is `Edit` for determinism, but `PlayMode(Edit)` remains inapplicable and false. `ViewDescriptor.document_kind` is now the typed domain owner for scene、Prefab、material、UI asset、animation sequence 与 animation graph；`EditorSessionState.focused_view` 是跨主文档区和浮动窗口的唯一焦点 owner。Chrome 构建只从 `focused_view -> ViewInstance -> ViewDescriptor.document_kind` 投影 `focused_document_kind`，不会从 tab title、显示名、路径后缀或 descriptor id 猜类型。默认布局或仅打开项目时，没有显式焦点就持续保留 `None`；只有原先为 `Some` 的焦点实例关闭或失效时，才回到当前主页面的 active document。`Building` is represented by the core DTO and tests but is not synthesized from the current two-state UI session surface. Remaining authority projections stay routed to their functional owners: [Editor 04 Play state](../../plans/zircon_editor/editor/04/failure-2026-07-12-command-eval-play-state-projection.md) and [Editor 05 scene mode and selection](../../plans/zircon_editor/editor/05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md).
+`CommandEvalCtx` has two explicit modes. Interactive snapshots carry project, undo/redo, focus, scene-mode, selection, play-state, and a deterministic capability set. Headless snapshots carry only capabilities; their stored play state is `Edit` for determinism, but `PlayMode(Edit)` remains inapplicable and false. `ViewDescriptor.document_kind` is now the typed domain owner for scene、Prefab、material、UI asset、animation sequence 与 animation graph；`EditorSessionState.focused_view` 是跨主文档区和浮动窗口的唯一焦点 owner。`FocusView` 即使未改变目标窗口内部的 active tab，也会在跨窗口切换时更新该全局 identity 并发布 presentation/layout change；关闭当前焦点实例后优先选择原宿主内仍有效的 active tab，原宿主消失时才回退到主页面 active document。Chrome 构建只从 `focused_view -> ViewInstance -> ViewDescriptor.document_kind` 投影 `focused_document_kind`，不会从 tab title、显示名、路径后缀或 descriptor id 猜类型。默认布局或仅打开项目时，没有显式焦点就持续保留 `None`。`Building` is represented by the core DTO and tests but is not synthesized from the current two-state UI session surface. Remaining authority projections stay routed to their functional owners: [Editor 04 Play state](../../plans/zircon_editor/editor/04/failure-2026-07-12-command-eval-play-state-projection.md) and [Editor 05 scene mode and selection](../../plans/zircon_editor/editor/05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md).
 
 `EditorContext` owns one `CommandEvalSnapshotHandle`. The host projects `EditorChromeSnapshot` plus the manager capability snapshot into that handle during reflection and retained-host recomputation. The handle publishes an immutable `Arc<CommandEvalCtx>` per semantic generation; palette open/query/window requests clone that Arc instead of cloning the capability strings on every keystroke. Non-hot consumers can still request an explicit owned snapshot. Remote and CLI operation control create headless snapshots from the same capability source. Snapshot locks are released before registry or shell mutation, avoiding a new shell/registry lock-order cycle.
 
 `required_capabilities` remains sorted, duplicate-free discovery metadata. It is not a second permission gate: `effective_when()` derives a capability conjunction around the descriptor's stored `when`, and `is_enabled()` is the shared predicate entry used by menus, palette rows, list filtering, UI invocation, and remote invocation. Repeated builders and deserialization normalize only the metadata vector and never materialize capability clauses back into the serialized descriptor, so repeated evaluation cannot accumulate duplicate predicates.
+
+## Contextual keymap dispatch
+
+`EditorKeymap` owns the immutable preset, typed settings delta, and generated keyboard-signature index; it does not own a second command registry or a stringly-typed binding context. The interactive `EditorManager` reads the shared `CommandEvalCtx` and the sole `EditorCommandRegistry` to select enabled candidates from that index. A single enabled candidate dispatches; no enabled candidate and more than one enabled candidate both remain unhandled. Consequently an accidental collision cannot select the lexicographically first command.
+
+The former chord-only `resolve` and `resolve_keyboard_input` APIs were deleted. Consumers that need to dispatch input must provide the registry-backed enablement predicate to `resolve_keyboard_input_when`; keymap presentation reads bindings or a command's configured chord directly instead of resolving an executable command without context.
+
+Keymap conflict validation is pairwise and contextual. `conflicts_with_when` receives each command's effective predicate and reports a collision only when the two predicates have a satisfiable common interactive context. Focused document kind, scene mode, and play state retain their typed mutually exclusive axes; boolean state and capabilities compose normally, including `All`/`Any`/`Not`. Bindings for disjoint domains can therefore share a chord, while a missing descriptor predicate is conservatively reported as a collision. This check runs when the effective keymap is inspected or changed, not on the keyboard hot path.
 
 Editor-internal remote operation control, editor-command UI bindings, workbench reflection menus, retained-host recomputation, and the command palette all lock the shared handle. Production view-model builders require an explicit registry reference and have no implicit `default_workbench()` fallback, so extension commands are visible on those editor-owned surfaces. The `zircon_app` CLI still uses stale symbols and is tracked as an open Editor 16 handoff in [`failure-2026-07-12-command-registry-hard-cut-cli.md`](../../plans/zircon_editor/editor/16/failure-2026-07-12-command-registry-hard-cut-cli.md); this milestone does not claim that the application CLI gate is established.
 
@@ -174,7 +190,7 @@ Editor-internal remote operation control, editor-command UI bindings, workbench 
 
 The registry and its `MenuBarModel`, `MenuModel`, and `MenuItemModel` products live in `core::commands` and do not import `crate::ui`. Menu items contain typed action/operation data; the workbench event adapter creates `EditorUiBinding` values at the UI boundary. This preserves headless command listing and menu/palette projection without a `core -> ui` dependency.
 
-Built-ins are declared in `defaults.rs`; their previous enablement variants map directly to structured clauses. Menu rows and palette rows are projections of registered descriptors, while `assets/ui/editor/keymap/default.keymap.toml` binds the same typed command identifiers. Real edit-command factories are now owned by `EditorCommandRegistry.operation_factories`; retained and remote invocation create commands through that registry and execute them through the shared transaction engine. Contributed-menu three-source merging and user keymap overlays remain later Plan 08 milestones.
+Built-ins are declared in `defaults.rs`; their previous enablement variants map directly to structured clauses. Menu rows and palette rows are projections of registered descriptors, while `assets/ui/editor/keymap/default.keymap.toml` binds the same typed command identifiers. Real edit-command factories are now owned by `EditorCommandRegistry.operation_factories`; retained and remote invocation create commands through that registry and execute them through the shared transaction engine. The Workbench menu projection merges command, extension, and focused-toolkit sources without introducing another invocation registry.
 
 ## Validation status
 

@@ -1,11 +1,11 @@
 use zircon_editor::core::asset::{
     AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
 };
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 use zircon_editor::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
 };
-use zircon_editor::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
+use zircon_editor::core::editor_extension::EditorExtensionRegistry;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
@@ -63,7 +63,6 @@ impl zircon_editor::EditorPlugin for MaterialEditorPlugin {
                     MATERIAL_EDITOR_VIEW_ID,
                     "Material Editor",
                     "Assets",
-                    "Plugins/Material Editor",
                 )],
             },
         )?;
@@ -139,39 +138,56 @@ fn material_authoring_batch() -> EditorAuthoringContributionBatch {
     let create = operation("material_editor.graph.create");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::operation(open_graph.clone(), "Open Material Graph")
-                .with_menu_path("Plugins/Material Editor/Open Graph")
+            EditorCommandDescriptor::operation(open_graph.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &open_graph,
+                    "plugins",
+                    &["material_editor"],
+                ))
                 .with_payload_schema_id("material_editor.open_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(open_material.clone(), "Open Material")
-                .with_menu_path("Plugins/Material Editor/Open Material")
+            EditorCommandDescriptor::operation(open_material.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &open_material,
+                    "plugins",
+                    &["material_editor"],
+                ))
                 .with_payload_schema_id("material_editor.open_material.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(validate.clone(), "Validate Material Graph")
-                .with_menu_path("Plugins/Material Editor/Validate Graph")
+            EditorCommandDescriptor::operation(validate.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &validate,
+                    "plugins",
+                    &["material_editor"],
+                ))
                 .with_payload_schema_id("material_editor.validate_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(compile.clone(), "Compile Material Graph")
-                .with_menu_path("Plugins/Material Editor/Compile Graph")
+            EditorCommandDescriptor::operation(compile.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &compile,
+                    "plugins",
+                    &["material_editor"],
+                ))
                 .with_payload_schema_id("material_editor.compile_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(preview.clone(), "Preview Material Graph")
-                .with_menu_path("Plugins/Material Editor/Preview Graph")
+            EditorCommandDescriptor::operation(preview.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &preview,
+                    "plugins",
+                    &["material_editor"],
+                ))
                 .with_payload_schema_id("material_editor.preview_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(create.clone(), "Create Material Graph")
-                .with_menu_path("Plugins/Material Editor/Create Graph")
+            EditorCommandDescriptor::operation(create.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &create,
+                    "plugins",
+                    &["material_editor"],
+                ))
                 .with_payload_schema_id("material_editor.create_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
         ],
-        menu_items: vec![
-            menu_item("Plugins/Material Editor/Open Graph", &open_graph),
-            menu_item("Plugins/Material Editor/Open Material", &open_material),
-            menu_item("Plugins/Material Editor/Validate Graph", &validate),
-            menu_item("Plugins/Material Editor/Compile Graph", &compile),
-            menu_item("Plugins/Material Editor/Preview Graph", &preview),
-            menu_item("Plugins/Material Editor/Create Graph", &create),
-        ],
+        menu_items: Vec::new(),
         asset_type_contributions: vec![
             AssetTypeContribution::augment(AssetTypeId::from_resource_kind(
                 ResourceKind::MaterialGraph,
@@ -249,8 +265,4 @@ fn material_node_palette() -> GraphNodePaletteDescriptor {
 
 fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid material operation path")
-}
-
-fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
-    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
 }

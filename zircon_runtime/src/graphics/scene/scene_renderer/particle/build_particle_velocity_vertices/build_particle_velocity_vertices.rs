@@ -8,12 +8,12 @@ use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::particle_velocity_vertex::ParticleVelocityVertex;
 
+const PARTICLE_VELOCITY_VERTICES_PER_SPRITE: usize = 6;
+
 pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_velocity_vertices(
     frame: &ViewportRenderFrame,
 ) -> Vec<ParticleVelocityVertex> {
-    if frame.extract.particles.sprites.is_empty()
-        || frame.extract.particles.previous_sprites.is_empty()
-    {
+    if frame.extract.particles.sprites.is_empty() || frame.previous_particle_sprites().is_empty() {
         return Vec::new();
     }
 
@@ -27,7 +27,7 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_veloc
         .anonymous_stream_ambiguity_entities();
     let mut previous_by_entity =
         BTreeMap::<_, VecDeque<RenderParticlePreviousSpriteSnapshot>>::new();
-    for previous in &frame.extract.particles.previous_sprites {
+    for previous in frame.previous_particle_sprites() {
         if previous.size <= f32::EPSILON {
             continue;
         }
@@ -42,7 +42,9 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_veloc
             .push_back(*previous);
     }
 
-    let mut vertices = Vec::new();
+    let mut vertices = Vec::with_capacity(particle_velocity_vertex_capacity(
+        frame.extract.particles.sprites.len(),
+    ));
     for sprite in &frame.extract.particles.sprites {
         if !camera_layers.intersects(&sprite.render_layer_mask) {
             continue;
@@ -76,6 +78,10 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_veloc
     }
 
     vertices
+}
+
+fn particle_velocity_vertex_capacity(sprite_count: usize) -> usize {
+    sprite_count.saturating_mul(PARTICLE_VELOCITY_VERTICES_PER_SPRITE)
 }
 
 #[derive(Clone, Copy)]
@@ -337,9 +343,11 @@ mod tests {
         let vertices = build_particle_velocity_vertices(&frame);
 
         assert_eq!(vertices.len(), 6);
-        assert!(vertices
-            .iter()
-            .all(|vertex| vertex.current_position[0] > -0.5));
+        assert!(
+            vertices
+                .iter()
+                .all(|vertex| vertex.current_position[0] > -0.5)
+        );
     }
 
     fn particle_frame(
@@ -463,3 +471,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "build_particle_velocity_vertices/capacity_tests.rs"]
+mod capacity_tests;

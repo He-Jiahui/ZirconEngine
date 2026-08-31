@@ -43,7 +43,7 @@ pub(super) fn compose_tokens(
     tokens
 }
 
-pub(super) fn resolve_value_map(
+pub(crate) fn resolve_value_map(
     values: &BTreeMap<String, Value>,
     tokens: &BTreeMap<String, Value>,
     params: &BTreeMap<String, Value>,
@@ -54,7 +54,7 @@ pub(super) fn resolve_value_map(
         .collect()
 }
 
-pub(super) fn resolve_value(
+pub(crate) fn resolve_value(
     value: &Value,
     tokens: &BTreeMap<String, Value>,
     params: &BTreeMap<String, Value>,

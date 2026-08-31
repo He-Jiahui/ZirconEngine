@@ -2,9 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use crate::pack::{
-    ZrPackInputAsset, ZrPackTrimConfig, ZrPackTrimInputAsset, ZrPackTrimPlanner, ZrPackTrimReport,
-};
+use crate::pack::{ZrPackTrimConfig, ZrPackTrimInputAsset, ZrPackTrimPlanner, ZrPackTrimReport};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExportAssetPackManifest {
@@ -29,9 +27,15 @@ pub struct ExportAssetPackEntry {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExportPackInputs {
     pub trim_report: ZrPackTrimReport,
-    pub pack_assets: Vec<ZrPackInputAsset>,
+    pub pack_sources: Vec<ExportPackInputSource>,
     pub diagnostics: Vec<String>,
     pub asset_source_errors: Vec<String>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ExportPackInputSource {
+    pub path: String,
+    pub source: PathBuf,
 }
 
 impl ExportAssetPackManifest {
@@ -61,7 +65,7 @@ impl ExportAssetPackManifest {
                 .push("pack stage stopped because asset dependencies are missing".to_string());
         }
 
-        let mut pack_assets = Vec::new();
+        let mut pack_sources = Vec::new();
         let mut asset_source_errors = Vec::new();
         let mut entries_by_path = HashMap::with_capacity(self.assets.len());
         for entry in &self.assets {
@@ -80,23 +84,15 @@ impl ExportAssetPackManifest {
                 asset_source_errors.push(diagnostic);
                 continue;
             };
-            let source = source_path(manifest_dir, source);
-            let bytes = match std::fs::read(&source) {
-                Ok(bytes) => bytes,
-                Err(error) => {
-                    let diagnostic =
-                        format!("failed to read asset source {}: {error}", source.display());
-                    diagnostics.push(diagnostic.clone());
-                    asset_source_errors.push(diagnostic);
-                    continue;
-                }
-            };
-            pack_assets.push(ZrPackInputAsset::new(path.clone(), bytes));
+            pack_sources.push(ExportPackInputSource {
+                path: path.clone(),
+                source: source_path(manifest_dir, source),
+            });
         }
 
         ExportPackInputs {
             trim_report,
-            pack_assets,
+            pack_sources,
             diagnostics,
             asset_source_errors,
         }

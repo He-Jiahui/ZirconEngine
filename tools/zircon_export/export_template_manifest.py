@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import mmap
 import tomllib
 from pathlib import Path
 from typing import Any, Sequence
@@ -169,7 +170,7 @@ def template_file_manifest(
             continue
 
         try:
-            actual_sha256 = hashlib.sha256(file_path.read_bytes()).hexdigest()
+            actual_sha256 = mapped_file_sha256(file_path)
         except OSError as error:
             diagnostics.append(f"template file {normalized_path} could not be read: {error}")
             continue
@@ -208,6 +209,15 @@ def template_file_manifest(
             }
         )
     return checked_files
+
+
+def mapped_file_sha256(path: Path) -> str:
+    with path.open("rb") as stream:
+        stream.seek(0, 2)
+        if stream.tell() == 0:
+            return hashlib.sha256().hexdigest()
+        with mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as mapped_bytes:
+            return hashlib.sha256(mapped_bytes).hexdigest()
 
 
 def template_bundle_file_path(

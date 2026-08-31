@@ -1,20 +1,11 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::core::framework::{
-    picking::{
-        hovered_hits_for_pointer, resolve_picking_outputs, HitData, HitRecord, PickingDebugFeed,
-        PickingHoverMap, PickingPipelineReport, PointerAction, PointerButton, PointerHits,
-        PointerId, PointerInput, PointerLocation, PointerScrollUnit,
-    },
-    render::RenderViewportHandle,
+use zircon_runtime::core::framework::picking::{
+    hovered_hits_for_pointer, resolve_picking_outputs, HitData, HitRecord, PickingDebugFeed,
+    PickingHoverMap, PickingPipelineReport, PointerHits, PointerId,
 };
 use zircon_runtime_interface::math::Vec2;
-use zircon_runtime_interface::ui::{
-    dispatch::UiPointerEvent,
-    event_ui::UiNodeId,
-    layout::UiPoint,
-    surface::{UiPointerButton, UiPointerEventKind},
-};
+use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiPoint};
 
 use crate::scene::viewport::pointer::{
     precision::{CandidateScore, PrecisionCandidate},
@@ -22,7 +13,6 @@ use crate::scene::viewport::pointer::{
 };
 
 const EDITOR_VIEWPORT_POINTER_ID: PointerId = PointerId::new(1);
-const EDITOR_VIEWPORT_HANDLE: RenderViewportHandle = RenderViewportHandle::new(0);
 const EDITOR_VIEWPORT_CAMERA_ID: u64 = 0;
 const SCORE_TOLERANCE_PX: f32 = 0.5;
 const DEPTH_TIE_BREAKER_SCALE: f32 = 0.000_001;
@@ -34,6 +24,19 @@ pub(in crate::scene::viewport::pointer) fn resolve_runtime_route(
     point: UiPoint,
 ) -> Option<ViewportPointerRoute> {
     let outputs = runtime_pointer_hits_for_candidates(candidates, stacked, point);
+    route_from_outputs(&outputs)
+}
+
+pub(in crate::scene::viewport::pointer) fn resolve_runtime_route_for_candidates(
+    candidates: &[PrecisionCandidate],
+    point: UiPoint,
+) -> Option<ViewportPointerRoute> {
+    let outputs = runtime_pointer_hits_for_candidates_with_renderer_candidates(
+        &BTreeMap::new(),
+        &[],
+        point,
+        candidates,
+    );
     route_from_outputs(&outputs)
 }
 
@@ -116,43 +119,6 @@ pub(in crate::scene::viewport::pointer) fn runtime_debug_feed_for_candidates(
 ) -> PickingDebugFeed {
     let outputs = runtime_pointer_hits_for_candidates(candidates, stacked, point);
     PickingDebugFeed::from_report(&PickingPipelineReport::from_outputs(&outputs))
-}
-
-pub(in crate::scene::viewport::pointer) fn runtime_pointer_input_for_event(
-    event: &UiPointerEvent,
-) -> PointerInput {
-    let location = PointerLocation::new(
-        EDITOR_VIEWPORT_POINTER_ID,
-        EDITOR_VIEWPORT_HANDLE,
-        Vec2::new(event.point.x, event.point.y),
-    );
-    PointerInput::new(location, runtime_pointer_action_for_event(event))
-}
-
-fn runtime_pointer_action_for_event(event: &UiPointerEvent) -> PointerAction {
-    match event.kind {
-        UiPointerEventKind::Down => PointerAction::Press(runtime_button(event.button)),
-        UiPointerEventKind::Up => PointerAction::Release(runtime_button(event.button)),
-        UiPointerEventKind::Move => {
-            // UI pointer events currently provide the absolute cursor only; the
-            // runtime bridge preserves the location and leaves delta synthesis
-            // for a later stateful input collector.
-            PointerAction::Move { delta: Vec2::ZERO }
-        }
-        UiPointerEventKind::Scroll => PointerAction::Scroll {
-            unit: PointerScrollUnit::Pixel,
-            delta: Vec2::new(0.0, event.scroll_delta),
-        },
-        UiPointerEventKind::Cancel => PointerAction::Cancel,
-    }
-}
-
-fn runtime_button(button: Option<UiPointerButton>) -> PointerButton {
-    match button.unwrap_or(UiPointerButton::Primary) {
-        UiPointerButton::Primary => PointerButton::Primary,
-        UiPointerButton::Secondary => PointerButton::Secondary,
-        UiPointerButton::Middle => PointerButton::Middle,
-    }
 }
 
 fn runtime_hit_record(candidate: &PrecisionCandidate, score: CandidateScore) -> HitRecord {

@@ -185,11 +185,27 @@ fn append_app_bar_classes(node: &mut UiTemplateNode, prefix: &str) {
 }
 
 fn append_avatar_classes(node: &mut UiTemplateNode, prefix: &str) {
-    let has_image = string_attribute_any(node, &["src", "srcSet", "image", "source", "media"])
-        .is_some_and(|value| !value.is_empty());
+    let has_image = borrowed_media_attribute_from_attributes(
+        &node.attributes,
+        &["src", "srcSet", "image", "source", "media"],
+    )
+    .is_some();
     if !has_image {
         append_class(&mut node.classes, format!("{prefix}-colorDefault"));
     }
+}
+
+fn borrowed_media_attribute_from_attributes<'a>(
+    attributes: &'a BTreeMap<String, Value>,
+    names: &[&str],
+) -> Option<&'a str> {
+    names.iter().find_map(|name| {
+        attributes
+            .get(*name)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+    })
 }
 
 fn append_card_action_area_classes(node: &mut UiTemplateNode, prefix: &str) {
@@ -767,3 +783,7 @@ fn badge_anchor_origin(owner_attributes: &BTreeMap<String, Value>) -> (String, S
         .unwrap_or_else(|| "right".to_string());
     (vertical, horizontal)
 }
+
+#[cfg(test)]
+#[path = "mui_display_surface_classes/borrowed_media_tests.rs"]
+mod borrowed_media_tests;

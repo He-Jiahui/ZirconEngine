@@ -6,6 +6,7 @@ import argparse
 import binascii
 import json
 import math
+import stat
 import struct
 import sys
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ WORKLOAD_NAMES = frozenset(
 )
 VARIANTS = frozenset({"standard", "bindless"})
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_PNG_STREAM_CHUNK_SIZE = 64 * 1024
 
 
 @dataclass(frozen=True)
@@ -537,7 +539,13 @@ def _validate_artifact_files(
             raise RuntimeError(
                 f"Render measurement artifacts.{field} escapes the artifact root: report={report_path}"
             )
-        if not resolved.is_file() or resolved.stat().st_size == 0:
+        try:
+            artifact_stat = resolved.stat()
+        except OSError as error:
+            raise RuntimeError(
+                f"Render measurement artifacts.{field} is unavailable or empty: artifact={resolved}"
+            ) from error
+        if not stat.S_ISREG(artifact_stat.st_mode) or artifact_stat.st_size == 0:
             raise RuntimeError(
                 f"Render measurement artifacts.{field} is unavailable or empty: artifact={resolved}"
             )
@@ -547,46 +555,80 @@ def _validate_artifact_files(
 
 def _validate_png(path: Path, report_path: Path) -> None:
     try:
-        contents = path.read_bytes()
+        with path.open("rb") as png_file:
+            signature = png_file.read(len(_PNG_SIGNATURE))
+            if signature != _PNG_SIGNATURE:
+                raise RuntimeError(
+                    f"Render measurement PNG has an invalid signature: artifact={path}"
+                )
+            saw_ihdr = False
+            saw_idat = False
+            first_chunk = True
+            while True:
+                header = png_file.read(8)
+                if not header:
+                    raise RuntimeError(
+                        f"Render measurement PNG is missing IEND: artifact={path}"
+                    )
+                if len(header) != 8:
+                    raise RuntimeError(
+                        f"Render measurement PNG is truncated: artifact={path}"
+                    )
+                length, chunk_type = struct.unpack(">I4s", header)
+                expected_crc = binascii.crc32(chunk_type)
+                payload_prefix = bytearray()
+                remaining = length
+                while remaining:
+                    block = png_file.read(min(remaining, _PNG_STREAM_CHUNK_SIZE))
+                    if not block:
+                        raise RuntimeError(
+                            f"Render measurement PNG is truncated: artifact={path}"
+                        )
+                    if len(payload_prefix) < 8:
+                        payload_prefix.extend(block[: 8 - len(payload_prefix)])
+                    expected_crc = binascii.crc32(block, expected_crc)
+                    remaining -= len(block)
+                crc_bytes = png_file.read(4)
+                if len(crc_bytes) != 4:
+                    raise RuntimeError(
+                        f"Render measurement PNG is truncated: artifact={path}"
+                    )
+                actual_crc = struct.unpack(">I", crc_bytes)[0]
+                if actual_crc != expected_crc & 0xFFFFFFFF:
+                    raise RuntimeError(
+                        f"Render measurement PNG has an invalid chunk CRC: artifact={path}"
+                    )
+                if chunk_type == b"IHDR":
+                    if saw_ihdr or not first_chunk or length != 13:
+                        raise RuntimeError(
+                            f"Render measurement PNG has an invalid IHDR chunk: artifact={path}"
+                        )
+                    width, height = struct.unpack(">II", payload_prefix[:8])
+                    if width == 0 or height == 0:
+                        raise RuntimeError(
+                            f"Render measurement PNG has an invalid image size: artifact={path} report={report_path}"
+                        )
+                    saw_ihdr = True
+                elif chunk_type == b"IDAT":
+                    if not saw_ihdr:
+                        raise RuntimeError(
+                            f"Render measurement PNG IDAT precedes IHDR: artifact={path}"
+                        )
+                    saw_idat = True
+                elif chunk_type == b"IEND":
+                    if (
+                        length != 0
+                        or not saw_ihdr
+                        or not saw_idat
+                        or png_file.read(1)
+                    ):
+                        raise RuntimeError(
+                            f"Render measurement PNG has an invalid IEND chunk: artifact={path}"
+                        )
+                    return
+                first_chunk = False
     except OSError as error:
         raise RuntimeError(f"Render measurement PNG is unavailable: artifact={path}") from error
-    if len(contents) < len(_PNG_SIGNATURE) or not contents.startswith(_PNG_SIGNATURE):
-        raise RuntimeError(f"Render measurement PNG has an invalid signature: artifact={path}")
-    offset = len(_PNG_SIGNATURE)
-    saw_ihdr = False
-    saw_idat = False
-    while offset < len(contents):
-        if offset + 12 > len(contents):
-            raise RuntimeError(f"Render measurement PNG is truncated: artifact={path}")
-        length = struct.unpack(">I", contents[offset : offset + 4])[0]
-        chunk_type = contents[offset + 4 : offset + 8]
-        chunk_end = offset + 12 + length
-        if chunk_end > len(contents):
-            raise RuntimeError(f"Render measurement PNG is truncated: artifact={path}")
-        payload = contents[offset + 8 : offset + 8 + length]
-        actual_crc = struct.unpack(">I", contents[offset + 8 + length : chunk_end])[0]
-        expected_crc = binascii.crc32(chunk_type + payload) & 0xFFFFFFFF
-        if actual_crc != expected_crc:
-            raise RuntimeError(f"Render measurement PNG has an invalid chunk CRC: artifact={path}")
-        if chunk_type == b"IHDR":
-            if saw_ihdr or offset != len(_PNG_SIGNATURE) or length != 13:
-                raise RuntimeError(f"Render measurement PNG has an invalid IHDR chunk: artifact={path}")
-            width, height = struct.unpack(">II", payload[:8])
-            if width == 0 or height == 0:
-                raise RuntimeError(
-                    f"Render measurement PNG has an invalid image size: artifact={path} report={report_path}"
-                )
-            saw_ihdr = True
-        elif chunk_type == b"IDAT":
-            if not saw_ihdr:
-                raise RuntimeError(f"Render measurement PNG IDAT precedes IHDR: artifact={path}")
-            saw_idat = True
-        elif chunk_type == b"IEND":
-            if length != 0 or not saw_ihdr or not saw_idat or chunk_end != len(contents):
-                raise RuntimeError(f"Render measurement PNG has an invalid IEND chunk: artifact={path}")
-            return
-        offset = chunk_end
-    raise RuntimeError(f"Render measurement PNG is missing IEND: artifact={path}")
 
 
 def _parse_arguments() -> argparse.Namespace:

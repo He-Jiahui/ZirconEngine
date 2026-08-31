@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
     dispatch::{UiComponentEventReport, UiPointerComponentEvent, UiPointerComponentEventReason},
     event_ui::UiNodeId,
     surface::{UiPointerActivationPhase, UiPointerRoute},
-    template::UiBindingRef,
+    template::{UiBindingRef, UiCompiledBindingHandle},
     tree::{UiTemplateNodeMetadata, UiTreeError},
     widget::UiWidgetBehavior,
 };
@@ -18,6 +18,7 @@ mod popup;
 mod radio;
 mod range;
 mod scrollbar;
+mod semantics;
 mod table;
 mod timers;
 mod toast_timer;
@@ -26,7 +27,7 @@ mod tree_view_reparent;
 mod tree_view_support;
 mod tree_view_virtualization;
 
-pub(super) use range::{range_navigation_action, UiDefaultRangeNavigationAction};
+pub(super) use range::{UiDefaultRangeNavigationAction, range_navigation_action};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct UiDefaultRangePointerActionReport {
@@ -391,25 +392,105 @@ impl UiSurface {
             .as_deref()
             .unwrap_or(node.node_path.0.as_str());
         let component_event_kind = event.kind();
-        for binding in metadata.bindings.iter().filter(|binding| {
-            binding.event == event_kind
-                && binding_targets_component_event(binding, component_event_kind)
-        }) {
-            let mut component_event = UiPointerComponentEvent::new(
-                &self.tree.tree_id,
-                node_id,
-                control_id,
-                binding.id.as_str(),
-                event_kind,
-                event.clone(),
-                reason,
-            );
-            if let Some(template_action) = self.template_action_for_binding(node_id, binding) {
-                component_event = component_event.with_template_action(template_action);
+        if let Some(sources) = self.compiled_binding_event_sources(node_id, event_kind) {
+            for source in sources {
+                if source.component_event != Some(component_event_kind) {
+                    continue;
+                }
+                let Some(binding) = self.compiled_bindings.binding(source.handle) else {
+                    continue;
+                };
+                if binding.event != event_kind {
+                    continue;
+                }
+                let Some(binding_id) = self.compiled_bindings.binding_name(source.handle) else {
+                    continue;
+                };
+                self.push_default_component_event_for_binding(
+                    events,
+                    node_id,
+                    control_id,
+                    binding_id,
+                    event_kind,
+                    &event,
+                    reason,
+                    None,
+                    Some(source.handle),
+                );
             }
-            events.push(component_event);
+        } else {
+            for (source_binding_index, binding) in
+                metadata.bindings.iter().enumerate().filter(|(_, binding)| {
+                    binding.event == event_kind
+                        && binding_targets_component_event(binding, component_event_kind)
+                })
+            {
+                let compiled_binding = self.compiled_binding_handle_for_source(
+                    node_id,
+                    source_binding_index,
+                    binding,
+                    event_kind,
+                );
+                self.push_default_component_event_for_binding(
+                    events,
+                    node_id,
+                    control_id,
+                    binding.id.as_str(),
+                    event_kind,
+                    &event,
+                    reason,
+                    Some(binding),
+                    compiled_binding,
+                );
+            }
         }
         Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn push_default_component_event_for_binding(
+        &self,
+        events: &mut Vec<UiPointerComponentEvent>,
+        node_id: UiNodeId,
+        control_id: &str,
+        binding_id: &str,
+        event_kind: UiEventKind,
+        event: &UiComponentEvent,
+        reason: UiPointerComponentEventReason,
+        binding: Option<&UiBindingRef>,
+        compiled_binding: Option<UiCompiledBindingHandle>,
+    ) {
+        let mut component_event = UiPointerComponentEvent::new(
+            &self.tree.tree_id,
+            node_id,
+            control_id,
+            binding_id,
+            event_kind,
+            event.clone(),
+            reason,
+        );
+        if let Some(compiled_binding) = compiled_binding {
+            component_event = component_event.with_compiled_binding(compiled_binding);
+        }
+        let template_action = if self.compiled_bindings.binding_count() == 0 {
+            binding.and_then(|binding| self.template_action_for_binding(node_id, binding))
+        } else {
+            compiled_binding.and_then(|handle| {
+                let compiled = self.compiled_bindings.binding(handle)?;
+                if !compiled.targets.is_empty() {
+                    return None;
+                }
+                self.template_action_for_compiled_binding_with_overrides(
+                    node_id,
+                    handle,
+                    std::collections::BTreeMap::new(),
+                )
+            })
+        };
+        if let Some(template_action) = template_action {
+            component_event = component_event.with_template_action(template_action);
+        }
+        events.push(component_event);
     }
 
     fn component_event_reports_for_bindings(
@@ -470,16 +551,7 @@ fn is_default_expanded_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
 }
 
 fn default_expanded_component_state(metadata: &UiTemplateNodeMetadata) -> bool {
-    match metadata.widget.behavior {
-        UiWidgetBehavior::Auto => matches!(
-            metadata.component.as_str(),
-            "Group" | "InspectorSection" | "TreeView"
-        ),
-        _ => matches!(
-            metadata.component.as_str(),
-            "Group" | "InspectorSection" | "TreeView"
-        ),
-    }
+    semantics::component_role_is_one_of(metadata, &["group", "inspector-section", "tree-view"])
 }
 
 fn is_default_popup_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
@@ -498,7 +570,12 @@ fn is_default_scrollbar_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
 }
 
 fn widget_behavior(metadata: &UiTemplateNodeMetadata) -> UiWidgetBehavior {
-    metadata.widget.resolved_behavior(&metadata.component)
+    match metadata.widget.behavior {
+        UiWidgetBehavior::Auto => semantics::component_role(metadata)
+            .map(UiWidgetBehavior::infer_from_component_role)
+            .unwrap_or(UiWidgetBehavior::Passive),
+        behavior => behavior,
+    }
 }
 
 fn widget_checked_property(metadata: &UiTemplateNodeMetadata) -> &str {
@@ -542,62 +619,76 @@ fn binding_targets_component_event(
     binding: &UiBindingRef,
     event_kind: UiComponentEventKind,
 ) -> bool {
-    let Some(token) = component_event_kind_token(event_kind) else {
-        return false;
-    };
-    binding.id.contains(token)
-        || binding
-            .route
-            .as_deref()
-            .is_some_and(|route| route.contains(token))
-        || binding.action.as_ref().is_some_and(|action| {
-            action
-                .route
-                .as_deref()
-                .is_some_and(|route| route.contains(token))
-                || action
-                    .action
-                    .as_deref()
-                    .is_some_and(|action| action.contains(token))
-        })
+    binding.component_event == Some(event_kind)
 }
 
-fn component_event_kind_token(event_kind: UiComponentEventKind) -> Option<&'static str> {
-    match event_kind {
-        UiComponentEventKind::ValueChanged => Some("ValueChanged"),
-        UiComponentEventKind::Commit => Some("Commit"),
-        UiComponentEventKind::KeyboardAction => Some("KeyboardAction"),
-        UiComponentEventKind::KeyboardText => Some("KeyboardText"),
-        UiComponentEventKind::TypeaheadExpired => Some("TypeaheadExpired"),
-        UiComponentEventKind::Focus => Some("Focus"),
-        UiComponentEventKind::Hover => Some("Hover"),
-        UiComponentEventKind::Press => Some("Press"),
-        UiComponentEventKind::BeginDrag => Some("BeginDrag"),
-        UiComponentEventKind::DragDelta => Some("DragDelta"),
-        UiComponentEventKind::LargeDragDelta => Some("LargeDragDelta"),
-        UiComponentEventKind::EndDrag => Some("EndDrag"),
-        UiComponentEventKind::DropHover => Some("DropHover"),
-        UiComponentEventKind::ActiveDragTarget => Some("ActiveDragTarget"),
-        UiComponentEventKind::OpenPopup => Some("OpenPopup"),
-        UiComponentEventKind::OpenPopupAt => Some("OpenPopupAt"),
-        UiComponentEventKind::ClosePopup => Some("ClosePopup"),
-        UiComponentEventKind::SelectOption => Some("SelectOption"),
-        UiComponentEventKind::ToggleExpanded => Some("ToggleExpanded"),
-        UiComponentEventKind::AddElement => Some("AddElement"),
-        UiComponentEventKind::SetElement => Some("SetElement"),
-        UiComponentEventKind::RemoveElement => Some("RemoveElement"),
-        UiComponentEventKind::MoveElement => Some("MoveElement"),
-        UiComponentEventKind::AddMapEntry => Some("AddMapEntry"),
-        UiComponentEventKind::SetMapEntry => Some("SetMapEntry"),
-        UiComponentEventKind::RenameMapKey => Some("RenameMapKey"),
-        UiComponentEventKind::RemoveMapEntry => Some("RemoveMapEntry"),
-        UiComponentEventKind::DropReference => Some("DropReference"),
-        UiComponentEventKind::ClearReference => Some("ClearReference"),
-        UiComponentEventKind::LocateReference => Some("LocateReference"),
-        UiComponentEventKind::OpenReference => Some("OpenReference"),
-        UiComponentEventKind::SetVisibleRange => Some("SetVisibleRange"),
-        UiComponentEventKind::SetPage => Some("SetPage"),
-        UiComponentEventKind::SetWorldTransform => Some("SetWorldTransform"),
-        UiComponentEventKind::SetWorldSurface => Some("SetWorldSurface"),
+#[cfg(test)]
+mod typed_component_event_tests {
+    use std::collections::BTreeMap;
+
+    use zircon_runtime_interface::ui::template::UiActionRef;
+
+    use super::*;
+
+    fn binding(component_event: Option<UiComponentEventKind>) -> UiBindingRef {
+        UiBindingRef {
+            component_event,
+            id: "business/OpenPopupAudit".to_string(),
+            event: UiEventKind::Click,
+            mode: Default::default(),
+            route: Some("business.open_popup.audit".to_string()),
+            action: Some(UiActionRef {
+                route: Some("business.open_popup.action".to_string()),
+                action: Some("OpenPopupAudit".to_string()),
+                payload: BTreeMap::new(),
+                payload_missing_policy: Default::default(),
+            }),
+            targets: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn typed_component_event_routing_ignores_string_spelling() {
+        let deceptive = binding(None);
+        assert!(!binding_targets_component_event(
+            &deceptive,
+            UiComponentEventKind::OpenPopup
+        ));
+
+        let mut declared = binding(Some(UiComponentEventKind::OpenPopup));
+        declared.id = "renamed-without-event-token".to_string();
+        declared.route = Some("product.lower_snake.route".to_string());
+        declared.action = None;
+        assert!(binding_targets_component_event(
+            &declared,
+            UiComponentEventKind::OpenPopup
+        ));
+        assert!(!binding_targets_component_event(
+            &declared,
+            UiComponentEventKind::ClosePopup
+        ));
+    }
+
+    #[test]
+    fn typed_component_event_hot_path_eliminates_string_scans() {
+        let bindings = (0..1_000)
+            .map(|index| {
+                let mut binding = binding(None);
+                binding.id = format!("business/OpenPopupAudit/{index}");
+                binding.component_event = (index == 999).then_some(UiComponentEventKind::OpenPopup);
+                binding
+            })
+            .collect::<Vec<_>>();
+
+        let matched = bindings
+            .iter()
+            .filter(|binding| {
+                binding_targets_component_event(binding, UiComponentEventKind::OpenPopup)
+            })
+            .count();
+        assert_eq!(matched, 1);
+        println!(
+            "PERF-RUNTIME74-TYPED-EVENT sample_bindings=1000 legacy_string_field_scans=4000 optimized_enum_comparisons=1000 string_scans_eliminated=4000 matched_bindings={matched}"
+        );
     }
 }

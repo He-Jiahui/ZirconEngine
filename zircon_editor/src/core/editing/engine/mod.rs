@@ -8,7 +8,7 @@ mod transaction;
 pub use crate::core::editing::selection::{SelectionJournal, SelectionSnapshot};
 pub use command::{
     CommandBox, CommandEffect, CommandExecutionError, EditCommand, EditCommandError, EditContext,
-    MergeOutcome,
+    EditWorldRoute, MergeOutcome,
 };
 pub(crate) use events::DetachedTransactionEventSink;
 pub use events::{
@@ -20,8 +20,12 @@ pub use history::{
     TransactionRecord,
 };
 pub use journal::{
-    CommandJournalPayload, CommandJournalUnavailable, TransactionJournal, TransactionJournalError,
-    TransactionJournalReadError, TransactionJournalSchemaError, TRANSACTION_JOURNAL_SCHEMA_VERSION,
+    CommandJournalPayload, CommandJournalUnavailable, DurableJournal, DurableJournalEntry,
+    DurableJournalError, EditCommandCodec, EditCommandCodecRegistry, JournalCodecDecodeError,
+    JournalCodecError, JournalCompactionReport, JournalDocumentKey, JournalDocumentKeyError,
+    JournalReadReport, JournalRecordPreparationError, JournalReplayError, JournalTailFault,
+    JournalWriter, PreparedJournalRecord, TransactionJournal, TransactionJournalError,
+    TransactionJournalReadError, TransactionJournalReplayer, TransactionJournalValidationError,
 };
 pub use routing::resolve_history_context;
 pub(crate) use transaction::ExclusiveTransition;

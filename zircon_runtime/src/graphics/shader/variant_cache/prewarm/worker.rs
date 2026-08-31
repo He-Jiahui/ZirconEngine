@@ -167,7 +167,11 @@ pub(super) fn prewarm_shader_variants_to_disk_inner(
 
         let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
             &request.key,
-            source.include_content_hashes.iter().map(String::as_str),
+            &source.source_hash,
+            &source.include_content_hashes,
+            &source.template_revision,
+            &source.naga_version,
+            &source.wgpu_version,
         );
         if written_disk_hashes.contains(&disk_key.hash) {
             report.record_written_cache_entry(
@@ -178,13 +182,7 @@ pub(super) fn prewarm_shader_variants_to_disk_inner(
             );
             continue;
         }
-        match cache.write(
-            &disk_key,
-            &source.wgsl_source,
-            &source.template_revision,
-            &source.naga_version,
-            &source.wgpu_version,
-        ) {
+        match cache.write(&disk_key, &source.wgsl_source) {
             Ok(_) => {
                 written_disk_hashes.insert(disk_key.hash.clone());
                 report.record_written_cache_entry(

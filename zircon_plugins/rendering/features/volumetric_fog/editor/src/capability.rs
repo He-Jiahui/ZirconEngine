@@ -2,4 +2,3 @@ pub const FEATURE_ID: &str = zircon_plugin_rendering_volumetric_fog_runtime::FEA
 pub const CAPABILITY: &str = zircon_plugin_rendering_volumetric_fog_runtime::EDITOR_CAPABILITY;
 
 pub const EDITOR_CAPABILITIES: &[&str] = &[CAPABILITY];
-

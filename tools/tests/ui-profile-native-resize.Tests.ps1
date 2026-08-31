@@ -1,5 +1,6 @@
 $script:ResizeModule = Join-Path $PSScriptRoot '..\ui-profile-native-resize.ps1'
 $script:CaptureScript = Join-Path $PSScriptRoot '..\ui-profile-capture.ps1'
+$script:CounterEvidenceModule = Join-Path $PSScriptRoot '..\ui-profile-counter-evidence.ps1'
 
 Describe 'UI profile native resize contract' {
     It 'builds a bounded deterministic resize sequence that returns to the original extent' {
@@ -13,6 +14,18 @@ Describe 'UI profile native resize contract' {
         $steps[-1].width | Should Be 1280
         $steps[-1].height | Should Be 720
         (@($steps | Where-Object { $_.width -lt 320 -or $_.height -lt 240 })).Count | Should Be 0
+    }
+
+    It 'counts only requested resize transitions that change the prior extent' {
+        . $script:ResizeModule
+
+        $normal = @(Get-ZirconNativeResizeSequence -Width 1280 -Height 720 -StepCount 8)
+        $clamped = @(Get-ZirconNativeResizeSequence -Width 320 -Height 240 -StepCount 8)
+
+        (Get-ZirconNativeResizeExpectedEventCount `
+                -InitialWidth 1280 -InitialHeight 720 -Sequence $normal) | Should Be 9
+        (Get-ZirconNativeResizeExpectedEventCount `
+                -InitialWidth 320 -InitialHeight 240 -Sequence $clamped) | Should Be 4
     }
 
     It 'derives bounded process CPU evidence from processor and wall-clock samples' {
@@ -61,14 +74,17 @@ Describe 'UI profile native resize contract' {
     It 'registers window resize and requires snapshot reuse evidence' {
         $source = Get-Content -LiteralPath $script:CaptureScript -Raw
         $interactionSource = Get-Content -LiteralPath $script:ResizeModule -Raw
+        $counterEvidenceSource = Get-Content -LiteralPath $script:CounterEvidenceModule -Raw
 
         $source | Should Match '"window_resize"'
         $source | Should Match 'Invoke-ZirconNativeResizeInteraction'
-        $source | Should Match 'ui\.window_resize\.command_snapshot_build_count'
-        $source | Should Match 'ui\.window_resize\.command_snapshot_reuse_count'
-        $source | Should Match 'ui\.window_resize\.surface_reconfigure_count'
+        $source | Should Match 'Test-ZirconWindowResizeCounterGate'
+        $counterEvidenceSource | Should Match 'ui\.window_resize\.command_snapshot_build_count'
+        $counterEvidenceSource | Should Match 'ui\.window_resize\.command_snapshot_reuse_count'
+        $counterEvidenceSource | Should Match 'ui\.window_resize\.surface_reconfigure_count'
         $source | Should Match '-StepCount \$AutoResizeStepCount'
         $source | Should Match '-DelayMs \$AutoResizeDelayMs'
+        $source | Should Match '-AutoResizeStepCount.*\$resizeStepCount'
         $interactionSource | Should Match 'Invoke-PointerClickStorm'
         $interactionSource | Should Match 'processor_time_delta_ms'
         $interactionSource | Should Match 'cpu_system_utilization_percent'

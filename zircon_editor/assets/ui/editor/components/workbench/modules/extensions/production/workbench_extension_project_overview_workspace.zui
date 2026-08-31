@@ -6,13 +6,12 @@ display_name = "Workbench Extension Project Overview Workspace"
 
 [imports]
 widgets = [
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +20,53 @@ root = "project_overview_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.project_overview_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionProjectOverviewWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "project_overview_rail_gap" }, { node = "project_overview_left" }, { node = "project_overview_center" }, { node = "project_overview_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "project_overview_workspace_main" },
+  { node = "project_overview_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.project_overview_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_rail_gap" }, { node = "project_overview_left" }, { node = "project_overview_center" }, { node = "project_overview_right_reserve" }]
+
+[nodes.project_overview_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.project_overview_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionProjectOverviewRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.project_overview_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionProjectOverviewLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "project_overview_title" }, { node = "project_overview_summary_tab" }, { node = "project_overview_targets_tab" }, { node = "project_overview_releases_tab" }, { node = "project_overview_project_row" }, { node = "project_overview_milestone_row" }, { node = "project_overview_risk_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_title" }, { node = "project_overview_left_content" }]
+
+[nodes.project_overview_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionProjectOverviewLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_project_row" }, { node = "project_overview_milestone_row" }, { node = "project_overview_risk_row" }]
 
 [nodes.project_overview_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionProjectOverviewTitle"
 props = { text = "Project Overview" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.project_overview_summary_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionProjectOverviewSummaryTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Summary", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ProjectOverviewSummaryTab", event = "Click", route = "workbench.extension.project_overview.summary" }]
-
-[nodes.project_overview_targets_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionProjectOverviewTargetsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Targets", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ProjectOverviewTargetsTab", event = "Click", route = "workbench.extension.project_overview.targets" }]
-
-[nodes.project_overview_releases_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionProjectOverviewReleasesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Releases", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ProjectOverviewReleasesTab", event = "Click", route = "workbench.extension.project_overview.releases" }]
 
 [nodes.project_overview_project_row]
 component = "WorkbenchListRow"
@@ -98,15 +96,15 @@ events = [{ id = "WorkbenchExtension/ProjectOverviewRiskRow", event = "Click", r
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionProjectOverviewCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "project_overview_center_header" }, { node = "project_overview_status_table" }, { node = "project_overview_output" }]
 
 [nodes.project_overview_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionProjectOverviewCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-children = [{ node = "project_overview_center_title" }, { node = "project_overview_header_fill" }, { node = "project_overview_refresh_button" }, { node = "project_overview_publish_button" }]
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+children = [{ node = "project_overview_center_title" }, { node = "project_overview_header_fill" }]
 
 [nodes.project_overview_center_title]
 component = "WorkbenchSectionTitle"
@@ -119,28 +117,12 @@ component = "Container"
 control_id = "WorkbenchExtensionProjectOverviewHeaderFill"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[nodes.project_overview_refresh_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchExtensionProjectOverviewRefreshButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Refresh", button_variant = "outlined", button_color = "secondary" }
-layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ProjectOverviewRefresh", event = "Click", route = "workbench.extension.project_overview.refresh" }]
-
-[nodes.project_overview_publish_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchExtensionProjectOverviewPublishButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Publish", button_variant = "filled", button_color = "accent", selected = true, checked = true }
-layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ProjectOverviewPublish", event = "Click", route = "workbench.extension.project_overview.publish" }]
-
 [nodes.project_overview_status_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionProjectOverviewStatusTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "project_overview_health_row" }, { node = "project_overview_build_row" }, { node = "project_overview_coverage_row" }, { node = "project_overview_dependency_row" }]
 
 [nodes.project_overview_health_row]
@@ -179,22 +161,36 @@ events = [{ id = "WorkbenchExtension/ProjectOverviewDependencyRow", event = "Cli
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionProjectOverviewOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Overview", value_text = "Healthy   7 tasks   3 build jobs" }
+props = { text = "Overview", value_text = "Healthy   7 tasks   3 build jobs", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ProjectOverviewOutput", event = "Click", route = "workbench.extension.project_overview.output" }]
 
 [nodes.project_overview_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionProjectOverviewRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "project_overview_details_title" }, { node = "project_overview_owner_field" }, { node = "project_overview_channel_dropdown" }, { node = "project_overview_health_dropdown" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_details_title" }, { node = "project_overview_right_content" }]
+
+[nodes.project_overview_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionProjectOverviewRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_overview_owner_field_property_row" }, { node = "project_overview_channel_dropdown_property_row" }, { node = "project_overview_health_dropdown_property_row" }]
 
 [nodes.project_overview_details_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionProjectOverviewDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.project_overview_owner_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionProjectOverviewOwnerFieldPropertyRow"
+props = { text = "Owner" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "project_overview_owner_field", slot = { name = "value" } }]
 
 [nodes.project_overview_owner_field]
 component = "WorkbenchField"
@@ -207,22 +203,36 @@ events = [
   { id = "WorkbenchExtension/ProjectOverviewOwnerCommit", event = "Submit", route = "workbench.extension.project_overview.owner.commit" },
 ]
 
+[nodes.project_overview_channel_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionProjectOverviewChannelDropdownPropertyRow"
+props = { text = "Channel" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "project_overview_channel_dropdown", slot = { name = "value" } }]
+
 [nodes.project_overview_channel_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionProjectOverviewChannelDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Development", value = "Development", options = ["Development", "Release", "Hotfix"] }
+props = { value_text = "Development", value = "Development", options = ["Development", "Release", "Hotfix"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/ProjectOverviewChannelEdit", event = "Change", route = "workbench.extension.project_overview.channel.edit" },
   { id = "WorkbenchExtension/ProjectOverviewChannelCommit", event = "Submit", route = "workbench.extension.project_overview.channel.commit" },
 ]
 
+[nodes.project_overview_health_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionProjectOverviewHealthDropdownPropertyRow"
+props = { text = "Health" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "project_overview_health_dropdown", slot = { name = "value" } }]
+
 [nodes.project_overview_health_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionProjectOverviewHealthDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Healthy", value = "Healthy", options = ["Healthy", "Warning", "Blocked"] }
+props = { value_text = "Healthy", value = "Healthy", options = ["Healthy", "Warning", "Blocked"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/ProjectOverviewHealthEdit", event = "Change", route = "workbench.extension.project_overview.health.edit" },

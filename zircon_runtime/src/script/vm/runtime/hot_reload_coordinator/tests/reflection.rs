@@ -97,9 +97,12 @@ fn vm_state_schema() -> VmStateSchema {
             registration: ReflectTypeRegistration::new(
                 ReflectTypePath::new("gameplay.Component.Health", "Health")
                     .expect("test reflection path should be valid")
-                    .with_plugin_id("gameplay"),
+                    .with_plugin_id("gameplay")
+                    .expect("test plugin id should be valid"),
                 "Health",
-                ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+                ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::from_stable_keys(
+                    "tests.hot-reload-reflection",
+                    "current",
                     "current",
                     "Scalar",
                     ReflectEditorHint::Scalar,
@@ -107,11 +110,10 @@ fn vm_state_schema() -> VmStateSchema {
                 ReflectSerializationStrategy::Value,
             )
             .as_component()
-            .with_plugin_owned(true)
             .with_plugin_id("gameplay")
+            .expect("test plugin id should be valid")
             .with_script_visibility(ReflectScriptVisibility::Public),
             type_hash: 1,
-            renames: Vec::new(),
         }],
     }
 }

@@ -1,18 +1,13 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
+use zircon_runtime::core::framework::animation::compiler::AnimationCompileDiagnostic;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AnimationGraphCompileError {
-    DuplicateParameter { name: String },
-    DuplicateNode { name: String },
-    MissingParameter { name: String },
-    MissingNode { name: String },
-    MissingOutput,
-    DuplicateOutput,
-    UnexpectedOutputNode,
+    SourceDiagnostics(Vec<AnimationCompileDiagnostic>),
     NodeCapacityExceeded,
     ParameterCapacityExceeded,
-    Cycle { name: String },
     InvalidMaskTarget { target: String },
     UnresolvedMaskTarget { target: String },
     AmbiguousMaskTarget { target: String },
@@ -21,22 +16,21 @@ pub enum AnimationGraphCompileError {
 impl Display for AnimationGraphCompileError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::DuplicateParameter { name } => write!(formatter, "duplicate parameter `{name}`"),
-            Self::DuplicateNode { name } => write!(formatter, "duplicate graph node `{name}`"),
-            Self::MissingParameter { name } => write!(formatter, "missing parameter `{name}`"),
-            Self::MissingNode { name } => write!(formatter, "missing graph node `{name}`"),
-            Self::MissingOutput => formatter.write_str("animation graph has no output node"),
-            Self::DuplicateOutput => formatter.write_str("animation graph has multiple outputs"),
-            Self::UnexpectedOutputNode => {
-                formatter.write_str("output node reached the graph data-node compiler")
-            }
+            Self::SourceDiagnostics(diagnostics) => match diagnostics.first() {
+                Some(diagnostic) => write!(
+                    formatter,
+                    "animation graph source rejected by {}: {}",
+                    diagnostic.code(),
+                    diagnostic.message()
+                ),
+                None => formatter.write_str("animation graph source rejected without diagnostics"),
+            },
             Self::NodeCapacityExceeded => {
                 formatter.write_str("animation graph node capacity exceeded")
             }
             Self::ParameterCapacityExceeded => {
                 formatter.write_str("animation graph parameter capacity exceeded")
             }
-            Self::Cycle { name } => write!(formatter, "animation graph cycle reaches `{name}`"),
             Self::InvalidMaskTarget { target } => {
                 write!(formatter, "invalid mask target `{target}`")
             }

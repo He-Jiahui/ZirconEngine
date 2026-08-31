@@ -6,8 +6,9 @@ use crate::core::framework::render::{
     builtin_geometry_source_descriptor, GeometrySourceDescriptor, GeometrySourceId,
     ShaderFeatureBits, ShaderPassType, ShaderPipelinePrewarmState, ShaderQualityTier,
     ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
-    ShaderVariantPrewarmSource, ShadingModelDescriptor, ShadingModelId,
-    GEOMETRY_SOURCE_ID_STATIC_MESH,
+    ShaderVariantPrewarmSource, ShaderVariantPrewarmSourceId, ShadingModelDescriptor,
+    ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH, SHADER_VARIANT_CACHE_NAGA_VERSION,
+    SHADER_VARIANT_CACHE_WGPU_VERSION,
 };
 use crate::graphics::material::ShadingModelIncludeSourceSet;
 use crate::graphics::scene::{
@@ -34,8 +35,6 @@ pub use wgpu_validation::{
     prewarm_shader_variants_with_wgpu_pipeline_validation,
 };
 
-const MESH_SHADER_NAGA_VERSION: &str = "naga-29.0.1";
-const MESH_SHADER_WGPU_VERSION: &str = "wgpu-29.0.1";
 const MESH_SHADER_PLATFORM_TOKEN: &str = "wgpu-runtime";
 const BUILTIN_STANDARD_MATERIAL_SOURCE_LABEL: &str = "builtin://shader/pbr.wgsl";
 const BUILTIN_STANDARD_MATERIAL_PREWARM_PASSES: [ShaderPassType; 6] = [
@@ -315,9 +314,10 @@ fn builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor_wit
             source.wgsl_source,
             source.cache_content_hashes,
             source.template_revision,
-            MESH_SHADER_NAGA_VERSION,
-            MESH_SHADER_WGPU_VERSION,
+            SHADER_VARIANT_CACHE_NAGA_VERSION,
+            SHADER_VARIANT_CACHE_WGPU_VERSION,
         );
+        let source_id = register_prewarm_source(&mut sources, source);
         requests.extend(quality_tiers.iter().copied().map(|quality| {
             let mut key = pipeline_key.shader_variant_key_for_geometry(
                 pass_type,
@@ -328,10 +328,9 @@ fn builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor_wit
             ShaderVariantPrewarmRequest {
                 key,
                 pipeline_state: Some(prewarm_pipeline_state(&pipeline_key)),
-                source_id: source.id.clone(),
+                source_id: source_id.clone(),
             }
         }));
-        sources.push(source);
     }
 
     Ok(ShaderVariantPrewarmManifest::new(sources, requests))
@@ -366,10 +365,11 @@ fn builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
             wgsl_source,
             cache_content_hashes,
             template_revision,
-            MESH_SHADER_NAGA_VERSION,
-            MESH_SHADER_WGPU_VERSION,
+            SHADER_VARIANT_CACHE_NAGA_VERSION,
+            SHADER_VARIANT_CACHE_WGPU_VERSION,
         );
 
+        let source_id = register_prewarm_source(&mut sources, source);
         requests.extend(quality_tiers.iter().copied().map(|quality| {
             let mut key = pipeline_key.shader_variant_key_for_geometry(
                 pass_type,
@@ -380,13 +380,23 @@ fn builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
             ShaderVariantPrewarmRequest {
                 key,
                 pipeline_state: Some(prewarm_pipeline_state(&pipeline_key)),
-                source_id: source.id.clone(),
+                source_id: source_id.clone(),
             }
         }));
-        sources.push(source);
     }
 
     ShaderVariantPrewarmManifest::new(sources, requests)
+}
+
+fn register_prewarm_source(
+    sources: &mut Vec<ShaderVariantPrewarmSource>,
+    source: ShaderVariantPrewarmSource,
+) -> ShaderVariantPrewarmSourceId {
+    let source_id = source.id.clone();
+    if !sources.iter().any(|existing| existing.id == source_id) {
+        sources.push(source);
+    }
+    source_id
 }
 
 fn builtin_standard_material_template_source_for_geometry_and_pass(
@@ -570,10 +580,6 @@ fn prewarm_pipeline_state(key: &PipelineKey) -> ShaderPipelinePrewarmState {
         alpha_blend: key.alpha_blend,
         alpha_cutoff_bits: key.alpha_cutoff_bits,
         unlit: key.unlit,
-        has_base_color_texture: key.has_base_color_texture,
-        has_metallic_roughness_texture: key.has_metallic_roughness_texture,
-        has_occlusion_texture: key.has_occlusion_texture,
-        has_emissive_texture: key.has_emissive_texture,
     }
 }
 

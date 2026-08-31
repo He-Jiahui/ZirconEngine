@@ -117,9 +117,7 @@ fn primary_family_member_index(asset: &FontAsset) -> Option<usize> {
                 return false;
             }
             match asset.family.as_deref() {
-                Some(family) => {
-                    normalized_family_key(member.family.as_str()) == normalized_family_key(family)
-                }
+                Some(family) => normalized_family_matches(member.family.as_str(), family),
                 None => true,
             }
         })
@@ -130,6 +128,10 @@ fn primary_family_member_index(asset: &FontAsset) -> Option<usize> {
                 .position(|member| member.face_index == asset.face_index)
         })
         .or_else(|| (!asset.family_members.is_empty()).then_some(0))
+}
+
+fn normalized_family_matches(left: &str, right: &str) -> bool {
+    left.trim().eq_ignore_ascii_case(right.trim())
 }
 
 fn descriptor_from_font_asset_member(
@@ -180,4 +182,23 @@ fn variation_coords_from_font_asset(coords: &[FontAssetVariationCoord]) -> Varia
 fn variation_tag(tag: &str) -> Option<u32> {
     let bytes: [u8; 4] = tag.as_bytes().try_into().ok()?;
     Some(u32::from_be_bytes(bytes))
+}
+
+#[cfg(test)]
+mod optimization_tests {
+    use super::normalized_family_matches;
+
+    #[test]
+    fn runtime80_batch_primary_family_match_trims_and_folds_ascii_case() {
+        assert!(normalized_family_matches(
+            "  Runtime Sans Regular  ",
+            "runtime sans regular"
+        ));
+    }
+
+    #[test]
+    fn runtime80_batch_primary_family_match_keeps_non_ascii_case_strict() {
+        assert!(normalized_family_matches("Familie Ö", "familie Ö"));
+        assert!(!normalized_family_matches("Familie Ö", "familie ö"));
+    }
 }

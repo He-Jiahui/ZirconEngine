@@ -481,7 +481,6 @@ fn snapshot_fixture(selected_node: Option<UiNodeId>) -> UiSurfaceDebugSnapshot {
             hit_path: zircon_runtime_interface::ui::surface::UiHitPath {
                 target: Some(UiNodeId::new(2)),
                 root_to_leaf: vec![UiNodeId::new(1), UiNodeId::new(2)],
-                bubble_route: vec![UiNodeId::new(2), UiNodeId::new(1)],
                 virtual_pointer: None,
             },
             inspected: 2,

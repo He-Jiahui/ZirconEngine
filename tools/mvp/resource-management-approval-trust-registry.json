@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "registry_kind": "zircon.resource-management-approval-trust-registry",
+  "issuers": [],
+  "revoked_receipt_sha256": []
+}

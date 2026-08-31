@@ -3,14 +3,19 @@ use crate::core::framework::platform::RuntimeTargetMode;
 pub(super) fn validate_runtime_plugin_package_capability_status_target_uniqueness(
     capability: &str,
     target_mode: RuntimeTargetMode,
-    seen: &mut Vec<RuntimeTargetMode>,
+    seen: &mut u8,
     diagnostics: &mut Vec<String>,
 ) {
-    if seen.contains(&target_mode) {
+    let target_mode_bit = match target_mode {
+        RuntimeTargetMode::ClientRuntime => 0b001,
+        RuntimeTargetMode::ServerRuntime => 0b010,
+        RuntimeTargetMode::EditorHost => 0b100,
+    };
+    if *seen & target_mode_bit != 0 {
         diagnostics.push(format!(
             "runtime plugin package manifest capability status `{capability}` target mode {target_mode:?} must be unique"
         ));
     } else {
-        seen.push(target_mode);
+        *seen |= target_mode_bit;
     }
 }

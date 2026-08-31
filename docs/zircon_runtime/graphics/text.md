@@ -2,6 +2,9 @@
 related_code:
   - zircon_runtime/assets/fonts/default.font.toml
   - zircon_runtime/src/graphics/mod.rs
+  - zircon_runtime/src/graphics/text_transport/mod.rs
+  - zircon_runtime/src/graphics/text_transport/conversion.rs
+  - zircon_runtime/src/graphics/text_transport/tests.rs
   - zircon_runtime/Cargo.toml
   - zircon_runtime/src/text/mod.rs
   - zircon_runtime/src/text/language.rs
@@ -238,7 +241,6 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
-  - zircon_runtime/src/ui/text/font_registry.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/render/dialog.rs
@@ -324,6 +326,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs
 implementation_files:
+  - zircon_runtime/src/graphics/text_transport/mod.rs
+  - zircon_runtime/src/graphics/text_transport/conversion.rs
+  - zircon_runtime/src/graphics/text_transport/tests.rs
   - zircon_runtime/src/text/mod.rs
   - zircon_runtime/src/text/language.rs
   - zircon_runtime/src/text/render_state.rs
@@ -527,7 +532,6 @@ implementation_files:
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
-  - zircon_runtime/src/ui/text/font_registry.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/render/dialog.rs
@@ -1391,6 +1395,8 @@ doc_type: module-detail
 
 `zircon_runtime::text` is the runtime implementation owner for shared font, shaping, line breaking, text measurement, and future text layout services. It keeps third-party text stack types inside graphics implementation files while UI, render extraction, editor, and app code consume neutral Zircon DTOs.
 
+`graphics/text_transport/mod.rs` is the structural mount for the non-UI-gated Text/UI DTO boundary. `graphics/text_transport/conversion.rs` is the sole owner of the fourteen current enum, range, frame, and size mappings; `graphics/text_transport/tests.rs` owns round-trip, geometry, and root-layout regression coverage. The public DTO types and the canonical `TextDirection` mapping remain in their existing interface and `text/ui_style.rs` owners.
+
 The 2026-07-06 retained-host tiny swash unhinted follow-up is recorded here because it closes the editor-facing raster quality complaint while the full runtime glyph-atlas cutover remains open. `zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs` now disables swash hinting only for `logical_px <= 10.0`, so 10px/8.5px DengXian labels do not snap thin strokes into uneven integer columns; 13px+ text keeps hinted swash. This remains an editor retained-host raster policy and does not add runtime `FontDatabase` routing, component-local font families, letter spacing, or glyph atlas shortcuts.
 
 `text/font` is the FR-M1/FR-M2/FR-M3/FB-M1 font owner. It provides a crate-private `FontDatabase`, default runtime fallback family data, best-match queries by neutral `FontQuery`, shared `Arc<[u8]>` face bytes, stable variation-instance ids, source-path+face-index deduplicated font-file registration, selected-face metadata ingestion, explicit system font discovery policy, CompositeFont script/range/culture candidate enumeration, cmap-aware candidate filtering, cluster-level fallback resolution data, and injection of registered faces into glyphon `FontSystem`. `descriptors.rs` owns selected-face TTF/fontdb descriptor projection, width-class-to-stretch mapping, fallback family names from source paths, and fontdb source-key conversion; `matching.rs` owns case-insensitive family dedupe plus weight/stretch/style distance helpers shared by database matching and fallback ordering; `asset_registration.rs` owns the `.font.toml` family-member projection and logical asset-face key while reusing the descriptor owner for physical face metadata; `coverage.rs` owns sfnt cmap coverage extraction and permissive Unknown coverage semantics; `fallback.rs` owns script/range/culture-aware fallback candidate order, max-depth policy, last-resort reporting, and missing-glyph diagnostics. The database owner stays focused on storage, indexes, registration orchestration, and matching handoff. The neutral DTOs live under `core/framework/text/font`; implementation details remain crate-private under `text/font`.
@@ -1427,7 +1433,7 @@ SH-M2 script segmentation now has its first runtime data-plane owner. `shaping/s
 
 The 2026-06-29 SH/FB-M2 shaped glyph `font_id` bridge was a temporary post-shape owner: it mapped source/script/codepoints back through the resolver for an internal report. The 2026-07-10 D4 hard cut supersedes and deletes that bridge; current cosmic/native paths use actual `LayoutGlyph.font_id` through `font/backend.rs`. Public `TextShapeRequest`, render DTOs, and UI layout types remain backend-neutral.
 
-Runtime 15 M4 keeps that native prepare report isolated from the screen-space text orchestrator with status `runtime_15_screen_space_ui_text_font_id_report_owner_split_static_passed_cargo_deferred`. `text/native_buffer.rs` resolves the authoritative primary `FontFaceId` from the same normalized family, strong weight, emphasis style, and code-family request used for shaping, then carries only that neutral identity beside the shaped buffer. `scene_renderer/ui/text/font_id_report.rs` is the sole counter owner: it reads actual glyphon `Buffer::layout_runs()` glyph face ids through `FontDatabase`, counts every glyph exactly once, and treats mapped glyphs as fallback when no requested primary resolves. `scene_renderer/ui/text.rs` mounts and calls `accumulate_text_font_id_report(...)` after shaping while retaining backend setup, native/SDF batch routing, asset loading, and prepare-report aggregation. The duplicate `NativeTextFontIdReport` payload and `font_id_report(...)` implementation were hard-cut from `text/native_buffer.rs`.
+Runtime 15 M4 keeps native font-id reporting isolated from the screen-space text orchestrator. The canonical shaped glyph handles are resolved once by `scene_renderer/ui/text/native_glyph_run.rs`; the same result both produces `NativeBitmapAtlasGlyphRun` and feeds `font_id_report.rs` fallback/unmapped counters. The native atlas never receives a source string, glyphon `Buffer`, `TextArea`, or renderer-local shaping input. `text/native_buffer.rs` is removed, and no second font-id lookup or renderer-local fallback report exists.
 
 The current visibility contract keeps that DTO crate-internal. Status `runtime_15_screen_space_ui_text_font_id_report_visibility_sync_static_passed_cargo_deferred` exposes `ScreenSpaceUiTextFontIdReport` and its counters as `pub(crate)` only because render-framework stats consume glyph and unmapped counts; it is not a public runtime or UI-layout contract.
 
@@ -1664,7 +1670,6 @@ The 2026-06-29 editor visual validation gate found two support-only compile issu
 Allowed consumers in this slice:
 
 - `ui/text/layout_engine.rs` asks for text size and line metrics, then delegates wrapping, direction, line-box, ellipsis, overflow-style, range-mapping, and visual-order details to child owners.
-- `ui/text/font_registry.rs` asks the runtime font database for the default fallback family chain.
 - `ui/text/measure_cache.rs` asks for a wrapped width bucket.
 - `ui/text/hit_test.rs` consumes resolved `UiResolvedTextLine.glyph_advances` first and asks for measured grapheme widths only as a stale-layout fallback.
 - `ui/text/shaper.rs` records `SharedTextService` as the active layout backend for Native and SDF render-mode intents.
@@ -2129,7 +2134,7 @@ Validation: scoped rustfmt passed with SHA256 `4C1FC20D031D667F0648C6D3FAE8EF01C
 
 Production native bitmap atlas misses now schedule worker raster requests instead of synchronously borrowing glyphon `SwashCache` on the miss path. `scene_renderer/ui/text.rs` owns the optional `TextRasterWorkerPool` lifecycle for `ScreenSpaceUiTextBackend`; `text/native_bitmap_atlas.rs` drains worker completions at frame start and only consumes cached source images; `text/native_bitmap_atlas/source_cache.rs` owns `CacheKey` pending de-duplication and request construction.
 
-The scheduled request uses the selected `fontdb` face index, copied font bytes, and glyphon `CacheKey` to build `SwashRasterRequest::glyphon_cache_key(...)`, then submits a face-epoch-scoped `TextRasterWorkItem` to the pool. Current-frame native replacement remains fail-closed through the existing missing-raster/handoff path until the worker result is accepted into the source cache on a later frame. The former `page_generation=0` target was removed on 2026-07-17; per-page upload merge remains an independent render-thread optimization, while live editor-window typography QA and full glyphon `TextAtlas` cutover remain open.
+The scheduled request uses the selected `FontDatabase` face index, shared font bytes, variation coordinates, and canonical `GlyphRasterKey` to build `SwashRasterRequest::native_bitmap_atlas_glyph(...)`, then submits a face-epoch-scoped `TextRasterWorkItem` to the pool. Current-frame native replacement remains fail-closed through the missing-raster/transparent-placeholder handoff until the worker result is accepted into the source cache on a later frame. The former `page_generation=0` target remains removed; atlas upload planning is a separate render-thread concern.
 
 Validation: scoped rustfmt check passed with SHA256 `A9F58776A09B5DAC438049683F24BF85764E0FF8E7455952456165C68C158627`; focused `CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --lib native_bitmap_atlas_source_cache_schedules_glyphon_cache_key_worker_request --target-dir target/codex` passed 1/1(7258 filtered) with log `docs/tests/runtime/text/runtime_text_native_atlas_worker_request_lib_test_no_incremental_20260707.log` SHA256 `609DAB916950E0DACF5FDDEBE32426A2454DCE8844229B5DF12D6324DE8445BC`. The broader wrapper failed before this focused test because of an unrelated Cargo incremental cgu object cache error, log SHA256 `8A94A88A4216168A33632131E1D418E6CC24660C90ED8317D9D9967261AAFF81`. Final static checks: scoped diff-check exited 0 with LF/CRLF warnings only, SHA256 `BBCB97E285A1EBDB018484688CE98F98803A9D2EAEE5F74282662BB220ECE3A8`; conflict scan SHA256 `A7A70B507D034585B09441AED8ED16C250976DA21F33F59B1F69974F8DD39466`; target/cargo-target same-stem PNG scan returned 0 with SHA256 `EC2BCB08A6452B3A5CAF4FF6C384B66F9FC60AE01F36273A7061A0B9028FF1F0`. No PNG is expected for this nonvisual worker-request data-plane slice.
 
@@ -2202,6 +2207,24 @@ RT-M1 supports nested BBCode b/i/u/s/color/bgcolor/size/font/code and preserves 
 RT-M2 implements a deliberately small HTML surface: b/i/u/s/span/font/br plus color, font-size, font-weight, font-style, text-decoration and font face/size/color. Named and numeric entities decode once after tokenization; decoded angle brackets are never re-tokenized. Unknown tags and attributes lose markup but keep text, while script handlers, arbitrary CSS such as `url(...)`, and network behavior have no execution path.
 
 RT-M3's parser contract is present: HTML/BBCode images emit a U+FFFC object placeholder carrying `InlineObjectRef::Image`, and HTML/BBCode links carry `LinkRef`, stripped-text hit ranges, underline and link color across nested styles. Resource references accept only controlled engine schemes or normalized relative paths; HTTP, memory resources and root-escape paths are rejected.
+
+The current link contract admits its destination once as `UiRichLinkTarget` and shares the canonical locator through compiled runs, hit testing, input effects, and host requests. HTML `<a title>` and BBCode `[url href=... title=...]` retain optional tooltip metadata as `Arc<str>` through parser quota, compiled residency, and hit projection. This metadata is not itself a surface tooltip ID and does not arm overlay timers; qualified hover/accessibility publication remains a later owner.
+
+Compiled rich resource requirements are exposed as `RichTextDependency`. The current `ImageTexture(ResourceId)` variant is sorted and deduplicated once and explicitly consumed by UI texture streaming. Icon/font/widget/decorator entries are not published until their asset or lease identities are qualified; family strings, bare widget ids, and parser generations are not treated as resources.
+
+Compiled rich cache telemetry follows the cache lifecycle rather than a UI-side cumulative-counter delta.
+The private cache owner takes and resets hit/miss/parse/eviction/admission-bypass/candidate-probe events under
+its mutex while preserving residency gauges. The parser owner adds parser identity and decorator/emoji
+generations to that snapshot; checked overflow emits `telemetry_saturated`. Surface profiling consumes 12
+fixed names without markup or dynamic tenant labels. Explicit project/surface correlation and managed
+profile evidence remain pending.
+
+The compiled rich cache also reports single-flight contention without changing the `OnceLock` algorithm.
+`compile_requests_in_flight` is a current gauge; completed callers that did not execute the initializer add
+wait count, total nanoseconds, and maximum nanoseconds. A call-local initializer marker and RAII gauge guard
+keep attribution inside the cache owner, while already-complete artifacts bypass timing. These fields are
+measurement inputs for a later bounded worker/cancellation decision; they are not evidence that a timeout or
+duplicate-parse route is safe.
 
 The first 03 layout owner now lives in `text/layout/rich.rs`. It projects parser runs into neutral `LayoutItem::{Text,Inline}` and `LaidOutText`, reserves inline advance and size, computes Baseline/Center/Top/Bottom ascent/descent, shifts text origins to the enlarged line baseline, and records the actual emitted item count. Invalid source ranges are dropped without leaving a line range that points past the item store. Current-source validation passes rich text 15/15 and the layout-engine regression group 67/67; the UI-feature production check remains green from the parser milestone.
 
@@ -2296,3 +2319,9 @@ Candidate enumeration is isolated in `text/font/composite_resolve.rs`. The leaf 
 The default package is self-contained for its product proof. `ZirconDefaultComposite-subset.ttc` stores Fira Mono at face 0 and the checked-in `Zircon Noto Sans CJK SC Proof` subset at face 1; the first `zh-Hans` sub-font route selects face 1. The SIL OFL is stored beside the package. Unit tests parse the real TTC and require glyph coverage for `中文排版引擎文本与布局`; the product fixture repeats those preconditions before entering the WGPU renderer, so a host-only font or strategy record cannot satisfy acceptance. Managed GPU job `f320e76017714cfe97b9b52` passed the exact ignored exporter 1/1. The accepted 1080×1840 framebuffer is `docs/tests/runtime/text/runtime_text_composite_font_cjk_product_framebuffer_20260714.png` (353,953 bytes, 2,442 colors, SHA256 `754A7C1CC64D98B50D6FB798F702353C4BABB7EAAA5B722657529B4641BB9C40`); target-root duplicate count is zero and independent review returned Critical 0 / Important 0 / Accept.
 
 The shared Runtime Text database discovers system faces first, then registers the complete checked-in `default.font.toml` manifest under a permanent bootstrap owner. Face 0 also receives a private retained-fallback alias in both the logical matcher and glyphon backend database. Headless measurement, retained-editor fallback, and native shaping therefore resolve the same repository-owned face without a same-named system `Fira Mono` face being shadowed. The GPU UI renderer later attaches the `res://fonts/default.font.toml` owner to those same face-0 and face-1 source identities rather than registering a second TTC copy.
+
+## 2026-08-24 Native Bitmap Atlas Hard Cut
+
+The earlier glyphon-source atlas notes above are historical. The current screen-space native path accepts only canonical shaped glyph output: `native_glyph_run.rs` resolves exact font instances once, projects `GlyphRasterKey` plus placement into `NativeBitmapAtlasGlyphRun`, and the text-owned atlas rasterizes that identity through the bounded Swash worker and `GlyphAtlasSet`. It never receives a source string, glyphon `Buffer`/`TextArea`, renderer `TextAtlas`, or layout run to reshape.
+
+`NativeBitmapAtlasPrepareReport.native_submission_ready` now means the native frame is complete and drawable. When it is not, `native_degradation_reason` and `first_frame_degradation` report the native failure, while the frame uses an explicit transparent placeholder or no visible glyphs; there is no glyphon render fallback. The canonical frame retains painter order as ordered resource segments and preflights all storage bindings before writing uploads. Managed Cargo, an ignored real WGPU framebuffer exporter, GPU measurement, and power evidence remain pending for this current hard cut.

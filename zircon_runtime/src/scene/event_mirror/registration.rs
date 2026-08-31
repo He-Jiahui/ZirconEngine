@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
@@ -151,7 +151,7 @@ pub(crate) struct RuntimeEventMirrorReclaimReport {
 
 pub(crate) struct RuntimeEventMirrorRegistry {
     registrations: BTreeMap<String, RuntimeEventMirrorRegistration>,
-    reader_counts: BTreeMap<String, u32>,
+    reader_counts: HashMap<String, u32>,
     subscription_slots: Vec<RuntimeEventMirrorSubscriptionSlot>,
     free_subscription_slots: Vec<usize>,
     reclaim_queue: Arc<Mutex<RuntimeEventMirrorReclaimQueue>>,
@@ -161,7 +161,7 @@ impl Default for RuntimeEventMirrorRegistry {
     fn default() -> Self {
         Self {
             registrations: BTreeMap::new(),
-            reader_counts: BTreeMap::new(),
+            reader_counts: HashMap::new(),
             subscription_slots: Vec::new(),
             free_subscription_slots: Vec::new(),
             reclaim_queue: Arc::new(Mutex::new(RuntimeEventMirrorReclaimQueue::default())),
@@ -174,7 +174,7 @@ impl Clone for RuntimeEventMirrorRegistry {
         Self {
             registrations: self.registrations.clone(),
             reader_counts: self
-                .reader_counts
+                .registrations
                 .keys()
                 .map(|event_id| (event_id.clone(), 0))
                 .collect(),
@@ -414,10 +414,19 @@ impl RuntimeEventMirrorRegistry {
 
 impl fmt::Debug for RuntimeEventMirrorRegistry {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let reader_counts = self
+            .registrations
+            .keys()
+            .filter_map(|event_id| {
+                self.reader_counts
+                    .get(event_id)
+                    .map(|count| (event_id, count))
+            })
+            .collect::<BTreeMap<_, _>>();
         formatter
             .debug_struct("RuntimeEventMirrorRegistry")
             .field("event_ids", &self.registrations.keys().collect::<Vec<_>>())
-            .field("reader_counts", &self.reader_counts)
+            .field("reader_counts", &reader_counts)
             .field(
                 "live_subscription_count",
                 &lock_runtime_event_mirror_reclaim_queue(&self.reclaim_queue).live_record_budget(),
@@ -431,3 +440,7 @@ impl PartialEq for RuntimeEventMirrorRegistry {
         true
     }
 }
+
+#[cfg(test)]
+#[path = "registration/hash_index_tests.rs"]
+mod hash_index_tests;

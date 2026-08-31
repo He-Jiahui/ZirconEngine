@@ -1,9 +1,11 @@
-use std::{cell::RefCell, sync::Arc};
+use std::{
+    cell::{Cell, RefCell},
+    sync::Arc,
+};
 
 use crate::scene::viewport::{
-    render_packet::{build_render_packet, build_scene_gizmos},
-    HandleOverlayExtract, RenderMeshSnapshot, SceneGizmoOverlayExtract, SceneViewportSettings,
-    ViewportCameraSnapshot,
+    render_packet::build_scene_gizmos, HandleOverlayExtract, RenderMeshSnapshot,
+    SceneGizmoOverlayExtract, SceneViewportSettings, ViewportCameraSnapshot,
 };
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::UVec2;
@@ -16,9 +18,17 @@ struct CachedViewportInteractionExtract {
     extract: Arc<ViewportInteractionExtract>,
 }
 
+#[derive(Clone, Debug)]
+pub(in crate::scene::viewport) enum ViewportInteractionExtractPointerResolution {
+    Ready(Arc<ViewportInteractionExtract>),
+    Stale,
+    Preparing,
+}
+
 #[derive(Clone, Debug, Default)]
 pub(in crate::scene::viewport) struct ViewportInteractionExtractCache {
     cached: RefCell<Option<CachedViewportInteractionExtract>>,
+    pointer_rebuild_requested: Cell<bool>,
 }
 
 impl ViewportInteractionExtractCache {
@@ -35,11 +45,12 @@ impl ViewportInteractionExtractCache {
     ) -> Arc<ViewportInteractionExtract> {
         let key = ViewportInteractionExtractKey::new(scene, selected, settings, camera, viewport);
         if let Some(extract) = self.cached_extract(&key) {
+            self.pointer_rebuild_requested.set(false);
             return extract;
         }
 
         zircon_runtime::profile_counter!("editor", "interaction_extract_cache_miss", 1);
-        self.rebuild(
+        let extract = self.rebuild(
             key,
             scene,
             selected,
@@ -48,7 +59,9 @@ impl ViewportInteractionExtractCache {
             render_meshes,
             build_handles,
             build_additional_gizmos,
-        )
+        );
+        self.pointer_rebuild_requested.set(false);
+        extract
     }
 
     pub(in crate::scene::viewport) fn resolve_for_pointer(
@@ -58,33 +71,26 @@ impl ViewportInteractionExtractCache {
         settings: &SceneViewportSettings,
         camera: &ViewportCameraSnapshot,
         viewport: UVec2,
-        build_handles: impl FnOnce() -> Vec<HandleOverlayExtract>,
-        build_additional_gizmos: impl FnOnce() -> Vec<SceneGizmoOverlayExtract>,
-    ) -> Arc<ViewportInteractionExtract> {
+    ) -> ViewportInteractionExtractPointerResolution {
         let key = ViewportInteractionExtractKey::new(scene, selected, settings, camera, viewport);
         if let Some(extract) = self.cached_extract(&key) {
-            return extract;
+            self.pointer_rebuild_requested.set(false);
+            return ViewportInteractionExtractPointerResolution::Ready(extract);
         }
 
         zircon_runtime::profile_counter!("editor", "interaction_extract_cache_miss", 1);
-        let packet = {
-            zircon_runtime::profile_scope!("editor", "viewport", "pointer_fallback_packet_build");
-            build_render_packet(scene, settings, camera, selected, viewport)
-        };
-        self.rebuild(
-            key,
-            scene,
-            selected,
-            settings,
-            camera,
-            &packet.scene.meshes,
-            build_handles,
-            build_additional_gizmos,
-        )
+        if self.pointer_rebuild_requested.replace(true) {
+            zircon_runtime::profile_counter!("editor", "interaction_extract_pointer_preparing", 1);
+            ViewportInteractionExtractPointerResolution::Preparing
+        } else {
+            zircon_runtime::profile_counter!("editor", "interaction_extract_pointer_stale", 1);
+            ViewportInteractionExtractPointerResolution::Stale
+        }
     }
 
     pub(in crate::scene::viewport) fn invalidate(&self) {
         self.cached.replace(None);
+        self.pointer_rebuild_requested.set(false);
     }
 
     fn cached_extract(

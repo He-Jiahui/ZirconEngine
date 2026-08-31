@@ -4,8 +4,10 @@ use std::cell::Cell;
 use std::time::Instant;
 
 mod counter_batch;
+mod counter_catalog;
 
 pub(crate) use counter_batch::record_current_ui_perf_counter_batch;
+pub(crate) use counter_catalog::UiPerfCounter;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum UiPerfScenario {
@@ -16,141 +18,9 @@ pub(crate) enum UiPerfScenario {
     DrawerResize,
     WindowResize,
     AssetRefresh,
+    SessionHeartbeat,
     ViewportImage,
     ShellContent,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum UiPerfCounter {
-    FrameDurationUs,
-    InputToDamageUs,
-    DamageToSubmitUs,
-    HostInvalidationTransactionCount,
-    HostInvalidationScopeCount,
-    HostInvalidationLegacyDirtyTransactionCount,
-    HostInvalidationFullTargetCount,
-    HostInvalidationShellContentTargetCount,
-    HostInvalidationWorkbenchProjectionTargetCount,
-    HostInvalidationViewPresentationTargetCount,
-    HostInvalidationWindowMetricsTargetCount,
-    HostInvalidationPaintOnlyTargetCount,
-    SlowPathRebuildCount,
-    ScopedPresentationPatchCount,
-    ScopedPresentationFloatingWindowRowsVisited,
-    ScopedPresentationFloatingWindowRowsCloned,
-    ScopedPresentationNativePresenterVisitCount,
-    ScopedPresentationDamageRegionCount,
-    ScopedPresentationProjectionMissingCount,
-    ScopedPresentationPresenterCoverageFallbackCount,
-    RenderPathCount,
-    PresentationRebuildCount,
-    AssetEditorPanePresentationBuildCount,
-    AssetEditorPaneReflectionBuildCount,
-    AssetEditorPanePreviewBuildCount,
-    AssetEditorPaneSourceBuildCount,
-    AssetEditorPaneInspectorBuildCount,
-    AssetEditorPaneStyleBuildCount,
-    AssetEditorPaneThemeBuildCount,
-    AssetEditorPaneCommandAvailabilityBuildCount,
-    FullPaintCount,
-    RegionPaintCount,
-    PaintedPixels,
-    PresentedSurfacePixels,
-    RedrawFullFrame,
-    RedrawRegion,
-    DirtyLayout,
-    DirtyPresentation,
-    DirtyRender,
-    DirtyPaintOnly,
-    ChromeSnapshotCount,
-    WorkbenchModelBuildCount,
-    HierarchyScrollDispatchCount,
-    HierarchySurfaceRebuildCount,
-    HierarchyRowInsertCount,
-    HierarchyDispatcherRebuildCount,
-    HierarchyRouteMapRebuildCount,
-    WelcomeRecentScrollDispatchCount,
-    WelcomeRecentSurfaceRebuildCount,
-    WelcomeRecentAuthorityRebuildCount,
-    WelcomeRecentRowInsertCount,
-    WelcomeRecentGeometryPatchCount,
-    WelcomeRecentDispatcherRebuildCount,
-    WelcomeRecentRouteMapRebuildCount,
-    ShellDragAuthorityRebuildCount,
-    ShellDragNodeInsertCount,
-    ShellDragGeometryPatchCount,
-    ShellDragNodePatchCount,
-    ShellDragDispatcherRebuildCount,
-    ShellDragRouteMapRebuildCount,
-    WorkbenchHitIndexBuildCount,
-    WorkbenchHitIndexQueryCount,
-    PanePopupIndexQueryCount,
-    PanePopupIndexCandidateCount,
-    VisualAssetCacheHitCount,
-    VisualAssetCacheMissCount,
-    VisualAssetCacheCandidateBuildCount,
-    SvgTreeCacheMemoryHitCount,
-    SvgTreeCacheMissCount,
-    WorkbenchPaintIndexQueryCount,
-    WorkbenchPaintIndexCandidateCount,
-    ChromeCommandFullRebuildCount,
-    ChromeCommandPatchCount,
-    PresentationGenerationReadCount,
-    PresentationSnapshotReadCount,
-    TemplateNodeVisitCount,
-    TemplateNodeCloneCount,
-    TemplateNodeDamageRejectCount,
-    FallbackSortCount,
-    ArtifactExportCount,
-    SoftwareFallbackPresentCount,
-    GpuUploadBytes,
-    GpuImageUploadWrites,
-    GpuImageSharedResolves,
-    GpuImageSharedUploadWrites,
-    GpuImageSharedUploadBytes,
-    GpuImageSharedResidentBytes,
-    GpuImageCacheKeyAllocations,
-    GpuImageCachePruneVisits,
-    GpuImageCacheAdmissionRejects,
-    GpuImageInvalidPayloads,
-    GpuImageCacheResidentBytes,
-    GpuDrawCalls,
-    GpuCompiledDrawCalls,
-    GpuRenderPasses,
-    GpuTimestampSupportedPresentCount,
-    GpuTimeUs,
-    GpuProfileLatencyFrames,
-    GpuVisibleCommands,
-    GpuVisibleCommandPayloadBytes,
-    GpuVisibleCommandStyles,
-    GpuVisibleDrawItems,
-    GpuCompiledDrawItems,
-    GpuCommandVisibilityScans,
-    GpuCommandStatsCacheHits,
-    GpuSolidVertices,
-    GpuCompiledSolidVertices,
-    GpuSolidInstances,
-    GpuCompiledSolidInstances,
-    GpuImageVertices,
-    GpuCompiledImageVertices,
-    GpuBatchLayers,
-    GpuCompiledBatchLayers,
-    GpuBatchDependencies,
-    GpuCompiledBatchDependencies,
-    GpuBatchMerges,
-    GpuCompiledBatchMerges,
-    GpuOverlapCandidates,
-    GpuBatchPlanBuilds,
-    GpuBatchPlanCacheHits,
-    GpuVertexBufferCreates,
-    GpuVertexUploadBytes,
-    GpuRetainedCacheCopyBytes,
-    GpuTextShapes,
-    GpuTextRendererBuilds,
-    GpuTextRendererCacheHits,
-    GpuTextPrepareFailures,
-    GpuImagePrepareCommandVisits,
-    GpuImagePrepareCacheHits,
 }
 
 #[cfg(feature = "profiling")]
@@ -317,6 +187,30 @@ macro_rules! counter_name_for_prefix {
             UiPerfCounter::PresentationRebuildCount => {
                 concat!($prefix, ".presentation_rebuild_count")
             }
+            UiPerfCounter::ShellPresentationBuildCount => {
+                concat!($prefix, ".shell_presentation_build_count")
+            }
+            UiPerfCounter::HostSceneBuildCount => {
+                concat!($prefix, ".host_scene_build_count")
+            }
+            UiPerfCounter::PaneProjectionBuildCount => {
+                concat!($prefix, ".pane_projection_build_count")
+            }
+            UiPerfCounter::PresentationStructureGenerationChangeCount => {
+                concat!($prefix, ".presentation_structure_generation_change_count")
+            }
+            UiPerfCounter::TemplateProjectionLayoutMeasureProbeNodeCount => {
+                concat!(
+                    $prefix,
+                    ".template_projection_layout_measure_probe_node_count"
+                )
+            }
+            UiPerfCounter::TemplateProjectionLayoutArrangeProbeNodeCount => {
+                concat!(
+                    $prefix,
+                    ".template_projection_layout_arrange_probe_node_count"
+                )
+            }
             UiPerfCounter::AssetEditorPanePresentationBuildCount => {
                 concat!($prefix, ".asset_editor_pane_presentation_build_count")
             }
@@ -352,6 +246,24 @@ macro_rules! counter_name_for_prefix {
             }
             UiPerfCounter::RedrawFullFrame => concat!($prefix, ".redraw_full_frame"),
             UiPerfCounter::RedrawRegion => concat!($prefix, ".redraw_region"),
+            UiPerfCounter::RedrawDamageRectCount => {
+                concat!($prefix, ".redraw_damage_rect_count")
+            }
+            UiPerfCounter::RedrawDamageSourceRectCount => {
+                concat!($prefix, ".redraw_damage_source_rect_count")
+            }
+            UiPerfCounter::RedrawDamageSimplificationCount => {
+                concat!($prefix, ".redraw_damage_simplification_count")
+            }
+            UiPerfCounter::RedrawDamageRepresentedArea => {
+                concat!($prefix, ".redraw_damage_represented_area")
+            }
+            UiPerfCounter::RedrawDamageBoundingArea => {
+                concat!($prefix, ".redraw_damage_bounding_area")
+            }
+            UiPerfCounter::RedrawDamageBoundingOverdrawArea => {
+                concat!($prefix, ".redraw_damage_bounding_overdraw_area")
+            }
             UiPerfCounter::DirtyLayout => concat!($prefix, ".dirty_layout"),
             UiPerfCounter::DirtyPresentation => concat!($prefix, ".dirty_presentation"),
             UiPerfCounter::DirtyRender => concat!($prefix, ".dirty_render"),
@@ -359,6 +271,81 @@ macro_rules! counter_name_for_prefix {
             UiPerfCounter::ChromeSnapshotCount => concat!($prefix, ".chrome_snapshot_count"),
             UiPerfCounter::WorkbenchModelBuildCount => {
                 concat!($prefix, ".workbench_model_build_count")
+            }
+            UiPerfCounter::AssetPointerSnapshotCloneCount => {
+                concat!($prefix, ".asset_pointer_snapshot_clone_count")
+            }
+            UiPerfCounter::AssetBrowserScrollDispatchCount => {
+                concat!($prefix, ".asset_browser_scroll_dispatch_count")
+            }
+            UiPerfCounter::AssetBrowserLogicalItemCount => {
+                concat!($prefix, ".asset_browser_logical_item_count")
+            }
+            UiPerfCounter::AssetBrowserMaterializedItemCount => {
+                concat!($prefix, ".asset_browser_materialized_item_count")
+            }
+            UiPerfCounter::AssetBrowserMaterializedNodeCount => {
+                concat!($prefix, ".asset_browser_materialized_node_count")
+            }
+            UiPerfCounter::AssetBrowserVisibleItemCount => {
+                concat!($prefix, ".asset_browser_visible_item_count")
+            }
+            UiPerfCounter::AssetBrowserVisibleNodeCount => {
+                concat!($prefix, ".asset_browser_visible_node_count")
+            }
+            UiPerfCounter::AssetBrowserProjectionBuildCount => {
+                concat!($prefix, ".asset_browser_projection_build_count")
+            }
+            UiPerfCounter::AssetBrowserLogicalPaintChunkBuildCount => {
+                concat!($prefix, ".asset_browser_logical_paint_chunk_build_count")
+            }
+            UiPerfCounter::AssetBrowserLogicalPaintChunkReuseCount => {
+                concat!($prefix, ".asset_browser_logical_paint_chunk_reuse_count")
+            }
+            UiPerfCounter::AssetBrowserLogicalPaintItemProjectionCount => {
+                concat!(
+                    $prefix,
+                    ".asset_browser_logical_paint_item_projection_count"
+                )
+            }
+            UiPerfCounter::AssetContentGenerationIdentityParseCount => {
+                concat!($prefix, ".asset_content_generation_identity_parse_count")
+            }
+            UiPerfCounter::AssetContentDescriptorLookupCount => {
+                concat!($prefix, ".asset_content_descriptor_lookup_count")
+            }
+            UiPerfCounter::ConsoleLogicalLineCount => {
+                concat!($prefix, ".console_logical_line_count")
+            }
+            UiPerfCounter::ConsoleMaterializedLineCount => {
+                concat!($prefix, ".console_materialized_line_count")
+            }
+            UiPerfCounter::ConsoleMaterializedNodeCount => {
+                concat!($prefix, ".console_materialized_node_count")
+            }
+            UiPerfCounter::ConsoleVisibleLineCount => {
+                concat!($prefix, ".console_visible_line_count")
+            }
+            UiPerfCounter::ConsoleOverscanLineCount => {
+                concat!($prefix, ".console_overscan_line_count")
+            }
+            UiPerfCounter::ConsoleProjectionClonedNodeCount => {
+                concat!($prefix, ".console_projection_cloned_node_count")
+            }
+            UiPerfCounter::ConsoleProjectionFormattedIdCount => {
+                concat!($prefix, ".console_projection_formatted_id_count")
+            }
+            UiPerfCounter::ConsoleEnteredLineCount => {
+                concat!($prefix, ".console_entered_line_count")
+            }
+            UiPerfCounter::ConsoleExpiredLineCount => {
+                concat!($prefix, ".console_expired_line_count")
+            }
+            UiPerfCounter::ConsoleSlotReboundCount => {
+                concat!($prefix, ".console_slot_rebound_count")
+            }
+            UiPerfCounter::ConsoleProjectionGenerationReuseCount => {
+                concat!($prefix, ".console_projection_generation_reuse_count")
             }
             UiPerfCounter::HierarchyScrollDispatchCount => {
                 concat!($prefix, ".hierarchy_scroll_dispatch_count")
@@ -435,6 +422,24 @@ macro_rules! counter_name_for_prefix {
             UiPerfCounter::VisualAssetCacheCandidateBuildCount => {
                 concat!($prefix, ".visual_asset_cache_candidate_build_count")
             }
+            UiPerfCounter::VisualAssetAsyncEnqueuedCount => {
+                concat!($prefix, ".visual_asset_async_enqueued_count")
+            }
+            UiPerfCounter::VisualAssetAsyncDeduplicatedCount => {
+                concat!($prefix, ".visual_asset_async_deduplicated_count")
+            }
+            UiPerfCounter::VisualAssetAsyncCompletedCount => {
+                concat!($prefix, ".visual_asset_async_completed_count")
+            }
+            UiPerfCounter::VisualAssetAsyncStaleDiscardCount => {
+                concat!($prefix, ".visual_asset_async_stale_discard_count")
+            }
+            UiPerfCounter::VisualAssetAsyncSubmissionRejectedCount => {
+                concat!($prefix, ".visual_asset_async_submission_rejected_count")
+            }
+            UiPerfCounter::VisualAssetAsyncCompletionRedrawCount => {
+                concat!($prefix, ".visual_asset_async_completion_redraw_count")
+            }
             UiPerfCounter::SvgTreeCacheMemoryHitCount => {
                 concat!($prefix, ".svg_tree_cache_memory_hit_count")
             }
@@ -501,6 +506,24 @@ macro_rules! counter_name_for_prefix {
             }
             UiPerfCounter::GpuImageCacheResidentBytes => {
                 concat!($prefix, ".gpu_image_cache_resident_bytes")
+            }
+            UiPerfCounter::GpuImageDeviceAllocationCount => {
+                concat!($prefix, ".gpu_image_device_allocation_count")
+            }
+            UiPerfCounter::GpuImageDeviceAllocationBytes => {
+                concat!($prefix, ".gpu_image_device_allocation_bytes")
+            }
+            UiPerfCounter::GpuImageRegistryEvictedPinnedBytes => {
+                concat!($prefix, ".gpu_image_registry_evicted_pinned_bytes")
+            }
+            UiPerfCounter::GpuImageSurfacePinCount => {
+                concat!($prefix, ".gpu_image_surface_pin_count")
+            }
+            UiPerfCounter::GpuImageInFlightPresentPinCount => {
+                concat!($prefix, ".gpu_image_in_flight_present_pin_count")
+            }
+            UiPerfCounter::GpuImageEvictionCompletionCount => {
+                concat!($prefix, ".gpu_image_eviction_completion_count")
             }
             UiPerfCounter::GpuDrawCalls => concat!($prefix, ".gpu_draw_calls"),
             UiPerfCounter::GpuCompiledDrawCalls => concat!($prefix, ".gpu_compiled_draw_calls"),
@@ -593,6 +616,9 @@ fn counter_name(scenario: UiPerfScenario, counter: UiPerfCounter) -> &'static st
         UiPerfScenario::DrawerResize => counter_name_for_prefix!(counter, "ui.drawer_resize"),
         UiPerfScenario::WindowResize => counter_name_for_prefix!(counter, "ui.window_resize"),
         UiPerfScenario::AssetRefresh => counter_name_for_prefix!(counter, "ui.asset_refresh"),
+        UiPerfScenario::SessionHeartbeat => {
+            counter_name_for_prefix!(counter, "ui.session_heartbeat")
+        }
         UiPerfScenario::ViewportImage => counter_name_for_prefix!(counter, "ui.viewport_image"),
         UiPerfScenario::ShellContent => counter_name_for_prefix!(counter, "ui.shell_content"),
     }
@@ -639,6 +665,35 @@ mod tests {
             counter_name(UiPerfScenario::Startup, UiPerfCounter::GpuImageUploadWrites),
             "ui.startup.gpu_image_upload_writes"
         );
+    }
+
+    #[test]
+    fn window_resize_structure_counters_use_the_active_scenario_prefix() {
+        let cases = [
+            (
+                UiPerfCounter::ShellPresentationBuildCount,
+                "ui.window_resize.shell_presentation_build_count",
+            ),
+            (
+                UiPerfCounter::HostSceneBuildCount,
+                "ui.window_resize.host_scene_build_count",
+            ),
+            (
+                UiPerfCounter::PaneProjectionBuildCount,
+                "ui.window_resize.pane_projection_build_count",
+            ),
+            (
+                UiPerfCounter::PresentationStructureGenerationChangeCount,
+                "ui.window_resize.presentation_structure_generation_change_count",
+            ),
+        ];
+
+        for (counter, expected) in cases {
+            assert_eq!(
+                counter_name(UiPerfScenario::WindowResize, counter),
+                expected
+            );
+        }
     }
 
     #[test]
@@ -881,6 +936,64 @@ mod tests {
             (
                 UiPerfCounter::HierarchyRouteMapRebuildCount,
                 "ui.idle_hover.hierarchy_route_map_rebuild_count",
+            ),
+        ];
+
+        for (counter, expected) in cases {
+            assert_eq!(counter_name(UiPerfScenario::IdleHover, counter), expected);
+        }
+    }
+
+    #[test]
+    fn asset_browser_scale_counters_use_the_scroll_scenario_prefix() {
+        let cases = [
+            (
+                UiPerfCounter::AssetBrowserScrollDispatchCount,
+                "ui.idle_hover.asset_browser_scroll_dispatch_count",
+            ),
+            (
+                UiPerfCounter::AssetBrowserLogicalItemCount,
+                "ui.idle_hover.asset_browser_logical_item_count",
+            ),
+            (
+                UiPerfCounter::AssetBrowserMaterializedItemCount,
+                "ui.idle_hover.asset_browser_materialized_item_count",
+            ),
+            (
+                UiPerfCounter::AssetBrowserMaterializedNodeCount,
+                "ui.idle_hover.asset_browser_materialized_node_count",
+            ),
+            (
+                UiPerfCounter::AssetBrowserVisibleItemCount,
+                "ui.idle_hover.asset_browser_visible_item_count",
+            ),
+            (
+                UiPerfCounter::AssetBrowserVisibleNodeCount,
+                "ui.idle_hover.asset_browser_visible_node_count",
+            ),
+            (
+                UiPerfCounter::AssetBrowserProjectionBuildCount,
+                "ui.idle_hover.asset_browser_projection_build_count",
+            ),
+            (
+                UiPerfCounter::AssetBrowserLogicalPaintChunkBuildCount,
+                "ui.idle_hover.asset_browser_logical_paint_chunk_build_count",
+            ),
+            (
+                UiPerfCounter::AssetBrowserLogicalPaintChunkReuseCount,
+                "ui.idle_hover.asset_browser_logical_paint_chunk_reuse_count",
+            ),
+            (
+                UiPerfCounter::AssetBrowserLogicalPaintItemProjectionCount,
+                "ui.idle_hover.asset_browser_logical_paint_item_projection_count",
+            ),
+            (
+                UiPerfCounter::AssetContentGenerationIdentityParseCount,
+                "ui.idle_hover.asset_content_generation_identity_parse_count",
+            ),
+            (
+                UiPerfCounter::AssetContentDescriptorLookupCount,
+                "ui.idle_hover.asset_content_descriptor_lookup_count",
             ),
         ];
 

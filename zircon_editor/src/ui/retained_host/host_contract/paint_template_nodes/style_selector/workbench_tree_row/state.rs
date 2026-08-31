@@ -1,12 +1,11 @@
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_focus_or_press(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn uses_focus_outline(
     state: UiPainterResolvedState,
 ) -> bool {
     matches!(
         state,
         UiPainterResolvedState::Focused
-            | UiPainterResolvedState::Pressed
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered
     )

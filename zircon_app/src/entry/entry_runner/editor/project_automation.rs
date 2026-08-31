@@ -9,6 +9,7 @@ use zircon_editor::{
     core::{
         commandlet::{AuthoringAutomationCommandletRequest, CommandletHost},
         editor_event::EditorEventRecord,
+        project::ProjectAuthority,
     },
     ui::binding::EditorUiBinding,
 };
@@ -137,15 +138,27 @@ pub(crate) struct EditorProjectAutomationSnapshot {
     pub scene_nodes: Vec<zircon_runtime::scene::NodeRecord>,
 }
 
-/// Runs normal editor bindings against the single `ProjectAuthority` generation opened by the
-/// application composition. It does not interpret a binding as a filesystem mutation or reopen a
-/// second project authority.
+/// Runs normal editor bindings against the generation admitted by the retained host. The
+/// metadata preflight is data-only and never materializes a runtime project before admission.
 pub(crate) fn execute_project_automation(
     project_root: &ResolvedProjectPath,
     request: &EditorProjectAutomationRequest,
 ) -> Result<EditorProjectAutomationReport, Box<dyn Error>> {
     request.validate()?;
 
+    let preflight = ProjectAuthority::default()
+        .preflight_resolved_project(project_root)
+        .map_err(|error| {
+            io::Error::other(format!(
+                "could not preflight project '{}': {}",
+                project_root.display_path().display(),
+                project_root.display_diagnostic(error)
+            ))
+        })?;
+    let summary = preflight.summary();
+    let project_identity = summary.name.clone();
+    let manifest_identity = format!("{}@v{}", summary.name, summary.format_version);
+    let scene_uri = summary.default_scene.clone();
     let composition = EditorApplicationComposition::open_resolved_project(project_root.clone())
         .map_err(|error| {
             io::Error::other(format!(
@@ -154,15 +167,6 @@ pub(crate) fn execute_project_automation(
                 project_root.display_diagnostic(error)
             ))
         })?;
-    let (project_identity, manifest_identity, scene_uri) = {
-        let opened_project = composition.prepared_project();
-        let manifest = opened_project.manifest();
-        (
-            manifest.name.clone(),
-            format!("{}@v{}", manifest.name, manifest.format_version),
-            manifest.default_scene.to_string(),
-        )
-    };
     let retained_result = composition
         .run_retained_host_automation(&request.bindings)
         .map_err(|error| {

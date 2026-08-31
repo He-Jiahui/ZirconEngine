@@ -11,7 +11,7 @@ use self::execution::{
     build_visbuffer64_entries_from_selected_clusters,
     build_visbuffer_debug_marks_from_selected_clusters,
     hardware_rasterization_source_for_execution, selected_cluster_source_for_execution,
-    visbuffer64_source_for_execution,
+    visbuffer64_source_for_execution, ExecutionLookup,
 };
 use self::node_cull::build_node_and_cluster_cull_snapshot;
 use self::page::{
@@ -98,14 +98,15 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
         .visibility_context()
         .virtual_geometry_draw_segments
         .as_slice();
+    let execution_lookup = ExecutionLookup::new(extract);
     let execution = build_execution_snapshot(
-        extract,
+        &execution_lookup,
         draw_segments,
         &resident_page_set,
         &requested_page_set,
     );
     let selected_clusters =
-        build_selected_clusters_from_execution_segments(extract, &execution.segments);
+        build_selected_clusters_from_execution_segments(&execution_lookup, &execution.segments);
     let visbuffer_debug_marks = extract
         .debug
         .visualize_visbuffer

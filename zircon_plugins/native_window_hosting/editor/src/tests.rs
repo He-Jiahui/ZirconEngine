@@ -57,11 +57,9 @@ fn native_window_hosting_registration_eliminates_phantom_authoring_work() {
 fn native_window_hosting_package_manifest_declares_editor_dist_contract() {
     let manifest = package_manifest();
 
-    assert!(
-        manifest
-            .default_packaging
-            .contains(&ExportPackagingStrategy::NativeDynamic)
-    );
+    assert!(manifest
+        .default_packaging
+        .contains(&ExportPackagingStrategy::NativeDynamic));
     let distribution = manifest
         .distribution
         .as_ref()

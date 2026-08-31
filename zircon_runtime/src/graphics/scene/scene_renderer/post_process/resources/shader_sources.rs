@@ -32,8 +32,10 @@ mod tests {
     fn post_process_shader_source_assembles_screen_space_reflection_module() {
         assert!(POST_PROCESS_BASE_SHADER.contains("fn fs_main"));
         assert!(!POST_PROCESS_BASE_SHADER.contains("fn trace_screen_space_reflection"));
-        assert!(POST_PROCESS_SCREEN_SPACE_REFLECTION_SHADER
-            .contains("fn trace_screen_space_reflection"));
+        assert!(
+            POST_PROCESS_SCREEN_SPACE_REFLECTION_SHADER
+                .contains("fn trace_screen_space_reflection")
+        );
         assert!(POST_PROCESS_SHADER.contains("fn fs_main"));
         assert!(POST_PROCESS_SHADER.contains("fn trace_screen_space_reflection"));
         assert!(POST_PROCESS_SHADER.contains("fn resolve_screen_space_reflection_history"));
@@ -52,6 +54,9 @@ mod tests {
     fn upscale_shader_source_declares_filtered_source_sampling() {
         assert!(UPSCALE_SHADER.contains("@binding(0) var source_tex"));
         assert!(UPSCALE_SHADER.contains("@binding(1) var source_sampler"));
+        assert!(UPSCALE_SHADER.contains("@binding(2) var<uniform> params"));
+        assert!(UPSCALE_SHADER.contains("input.clip_position.xy - vec2<f32>(0.5)"));
+        assert!(UPSCALE_SHADER.contains("textureDimensions(source_tex)"));
         assert!(UPSCALE_SHADER.contains("textureSampleLevel(source_tex"));
     }
 

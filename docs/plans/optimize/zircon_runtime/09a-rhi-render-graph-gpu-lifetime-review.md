@@ -8,6 +8,8 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
   - zircon_runtime/src/graphics/runtime/render_framework
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_submission_completion_journal.rs
+  - zircon_runtime/src/core/framework/render/scene_submission_completion.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene
   - zircon_runtime/src/dynamic_api/session
   - zircon_app/src/entry
@@ -23,6 +25,8 @@ plan_sources:
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/RHI/Public/RHICommandList.h
   - dev/UnrealEngine/Engine/Source/Runtime/RHI/Private/RHIResources.cpp
+  - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderCommandFence.h
+  - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Private/RenderCommandFence.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Private/RenderGraphBuilder.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Private/RenderGraphAllocator.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Private/RenderGraphResourcePool.cpp
@@ -44,7 +48,7 @@ reference_engines:
   - dev/Fyrox/fyrox-graphics/src/read_buffer.rs
 doc_type: review-and-refactor-plan
 review_status: review_complete
-implementation_status: pending
+implementation_status: partial_neutral_rhi_batch_upload_registry_lifetime_batched_completion_observation_poll_receipt_bounded_asset_retirement_asset_device_epoch_recovery_bounded_scene_submission_terminal_journal_source_only
 source_recheck_required: true
 ---
 
@@ -142,17 +146,19 @@ Graph handle只有kind-local usize，builder校验只检查index是否小于本b
 
 目标让pass顺序由versioned resource edge、明确side-effect edge和queue capability编译得到，删除全局 `previous -> pass` 与executor-name特判。record可按ready layer并行，submit阶段接收immutable `RhiSubmissionBatch`，其中包含ordered command packets、queue lane、wait/signal ticket、present和completion actions。WGPU backend可以把逻辑lane合法降级到单queue，但必须报告fallback并保持dependency；未来native D3D12/Vulkan backend再映射真实queue。render/RHI执行权接入Performance02 M3和共享affinity executor，删除容量1私有线程模型。
 
-### P0-5：提交权分散，多次物理submit和同步readback绕过统一frame batch
+### P0-5：提交权已部分收口，但typed boundary与统一frame batch仍未闭环
 
-compiled scene虽把graph buffers和IBL writeback合为一次submit，present仍另建bind group/encoder并第二次submit；output target writeback、resource upload、scene clear、UI external copy、retained cache、readback等路径有额外直接submit。normal frame不存在一个可以枚举“本帧全部packet、wait、present、readback、retire”的owner。静态最小submit数已经是2，动态功能会增加，但统计没有统一submission id和cause。
+2026-08-30 current-source复审已取代“present固定第二次submit”和“scene clear独立submit”的旧判断：compiled scene的present copy、history initialization、graph buffers、diagnostic tail和IBL writeback现共享terminal scene packet；frame resource upload先进入WGPU submission queue，当前`WgpuSubmissionService::flush`会把连续upload后的command buffers归入同一次原生submit。纹理resident mip迁移仍存在必须先copy旧mip、再写新mip的`command -> upload`依赖，该路径由`TexturePreUpload`独立ticket表达并形成真实物理边界；环境捕获、hit proxy和启动期system texture属于显式任务/启动边界，文本product framebuffer调用只存在于测试。上述是源码拓扑，不是运行次数结论。
+
+normal frame已有`RenderFrameSubmissionTransaction`枚举pre-scene producer和terminal scene ticket；11.9又把当前唯一已证明必须切开的纹理mip保留路径提升为typed boundary reason，11.10保证hit-proxy只有在diagnostic admission完成后才接纳upload并在terminal submit成功后commit GPU-scene状态，但仍未达到完整`RhiSubmissionCoordinator`：wait/readback/retire packet与其它独立任务尚未统一表达，retained UI与显式capture仍有独立frame/task owner。底层此前虽累计native submit与ticket计数，frame receipt没有同一区间投影，导致无法直接验证普通帧是否一次physical submit；11.8先补齐该观测合同，动态WGPU/RenderDoc基线仍是P0-5下一验收门。
 
 目标只有 `RhiSubmissionCoordinator` 可调用backend submit。所有upload、graph、surface blit、UI composition、readback copy和writeback先形成packet并进入同一frame batch；无法合并必须给typed reason和独立ticket。surface target优先直接成为graph external output，避免无必要offscreen-to-surface blit；确需blit时也并入同batch。每帧报告logical packet、physical backend submit、queue、wait、bytes和reason，验收普通单viewport无readback路径在backend允许时为一次physical submit。
 
-### P0-6：产品readback可无限阻塞，完成轮询没有唯一owner或终态合同
+### P0-6：普通产品readback已统一，显式阻塞与独立设备completion边界仍未完全收口
 
-多个buffer/texture/IBL helper逐调用创建staging/encoder、submit、`wait_indefinitely`、阻塞receiver并复制。texture helper还以u32直接乘宽度和bytes-per-pixel，未先拒绝0 extent或checked overflow。三槽queue虽不无限等待，但request数量和总字节无上限，ticket只有私有u64且wrap，queue持有clone device却允许外部传任意device poll，begin_map不绑定submission ticket，abort不能证明copy是否已submit，callback在poll collect中同步执行，poll error被忽略。
+2026-08-30 current-source复审取代“多个产品helper逐调用无限等待”的旧判断：`read_buffer_*`、`read_texture_*`和旧同步IBL batch在module级均由`#[cfg(test)]`隔离；产品viewport/HDR capture与hit-proxy、IBL/query diagnostics进入generation-qualified bounded diagnostic service。正常scene frame由唯一`poll_frame_submission_completions`推进backend receipt并同步路由scene journal、IBL、typed query和timer/statistics；viewport-pick poll为non-blocking try-lock路径且复用同一fan-out。显式同步capture只在已提交diagnostic未drain时进入30秒deadline循环，每次poll receipt仍经过同一consumer router。当前产品`wait_indefinitely`只剩明确的RenderDoc/Xcode capture stop控制边界。shared-device retained UI不创建第二个timer/readback timeline并经共享`WgpuRenderDevice`提交；standalone native UI保留独立tool device profile，但已硬切到该profile内部唯一`WgpuRenderDevice` submission/completion owner，不再raw submit或由readback queue直接poll。
 
-目标所有readback都经 `ReadbackAdmission` 返回generation-scoped ticket；copy由所属frame batch编码，ticket记录submission、range、byte budget、deadline、consumer和terminal state。一个completion owner每帧poll一次或消费backend callback，把ready result移入bounded completion queue；用户callback在锁外/指定executor运行。限制每帧entries、bytes、单request bytes、in-flight bytes和age；cancel/timeout/device loss/shutdown均exactly once。生产代码禁止 `wait_indefinitely`，仅显式commandlet/test在独立policy下允许有deadline的blocking wrapper。
+剩余目标不是再次迁移已test-only的helper，而是把显式capture的deadline/cancel/consumer executor写入统一typed policy，并用真实device loss/shutdown、surface、diagnostic delivery和task callback验收exactly-one terminal receipt。Standalone UI的ticket-qualified image pin retirement和fault/surface源码终结已完成，仍需真实窗口故障注入验证。普通frame继续禁止blocking wait；唯一completion owner、每帧/单请求/in-flight/result-ring字节与数量预算、submission-qualified map和bounded delivery已存在，后续只按真实fault/scale/profile证据补缺，不能用旧三槽queue描述指导新优化。
 
 ## 5. P1 差距清单
 
@@ -385,6 +391,108 @@ compiled allocation plan直接驱动物理slot；registry统计全域GPU内存�
 - 不新增根crate。`zr_rhi`和`zr_rhi_wgpu`继续作为支持crate/后端叶子，生命周期与产品submission owner仍归 `zircon_runtime`；UI、Editor和App只能持lease/facade，不能成为第四个device owner。
 
 ## 11. 完成定义
+
+### 11.1 2026-08-27 中立 render-asset batch upload 增量
+
+09D M3 定向复审发现，把 semantic asset executor 接到旧 graphics `RenderBackend` 会绕过本计划“renderer/resource 不得拥有 WGPU 对象”的边界，并形成第二套 GPU lifetime owner。该草案已在 source 阶段撤销；当前增量把一票据 batch upload 提升到 `zr_rhi::RenderDevice`，由生产 `WgpuRhiDevice` 在 registry 内解析 generation handle、验证 usage/range、记录全部资源的 submission last-use，再提交给既有 submission service。deterministic backend实现同一 batch、budget 与单 ticket 合同；旧单次 buffer/texture write 退化为单元素 batch adapter，没有新增第二套 queue。
+
+09D 新增 semantic residency artifact 现在只保存 `TextureHandle` / `TextureViewHandle` / `BufferHandle`，该新增路径不导入 `wgpu::`、`zr_rhi_wgpu` 或旧 `RenderBackend`。`RenderAssetResidencyManager` 决定 active/pending/retiring artifact，实际 destroy 仍进入 RHI registry，并按已记录的 last-use ticket 延迟 native release。该增量完成的是 M1/M5/M6/M7 所需的一段公共基础设施，不代表 frame graph version、统一产品 packet、全域 memory profile、completion driver、device-loss exactly-once 或产品 hard cut 已完成。
+
+当前证据只有 scoped rustfmt、源码边界/行预算检查和新增 contract/确定性测试源码；managed Cargo、真实 WGPU、RenderDoc、GPU/RSS/VRAM/功耗及 soak 均未完成。因此 09A 只能标记 partial source-only，不能标记完成，也不能据此给出性能改善或 Unreal 等价结论。
+
+### 11.2 2026-08-27 bounded asset completion consumer 增量
+
+09D 产品接线复审证明当前 `SceneRenderer` 仍是旧 raw WGPU owner，不能在其内部附加 neutral asset manager并同时保留 `ResourceStreamer`。为后续单 owner硬切，本轮给 `RenderDevice` 增加 caller-scratch `append_submission_statuses`：默认实现保留 object-safe兼容，production WGPU 和 deterministic backend均覆盖为一次 submission-state lock内完成一批 ticket查询。该 API 不执行 device poll，也不建立 destructive global completion queue，因此 readback、surface、diagnostics 与 asset consumer不会争抢同一 completion事件。
+
+asset manager使用按完整 device/generation/ticket identity排序的轮转前沿，每 tick只查询显式预算 `K`，并把 tracked总量限制在 RHI terminal-history容量内。稳定帧复用 ticket/status scratch，不创建 per-frame observer对象；复杂度为 `O(K log N + K)`，production submission mutex获取次数为 1。查询失败按 Failed处理而不是推断 Completed，保证 history overflow/device mismatch只能造成新 artifact被丢弃和报告 failure，不能破坏 last-good正确性。
+
+ready artifact retirement 现在也有独立 artifact-count hard limit，默认与 terminal-history容量同源并可由未来产品 profile显式覆盖。新 upload绑定、active reference release batch和terminal publish都在状态突变前检查容量；detached terminal upload容量不足时继续留在 submission-owned retiring map并保持 frontier tracking，不会丢失 GPU handle。维护顺序固定为 receipt验证、按帧预算处理旧 retirement、批量观察 ticket、入队本帧新 retirement，因此旧 backlog先释放槽位，失败 artifact按帧初始快照最多重试一次。队列声明字节进入 report telemetry，但 physical buffer/texture byte admission继续只由 `GpuMemoryBudget` 负责，避免 residency 与 RHI出现两套漂移预算。
+
+`RenderDevice::poll_submissions` 现在返回 `(device id, device generation, poll sequence)` 组成的 `SubmissionPollReceipt`。deterministic 与 production backend 都只在一次完成泵成功后单调发放 receipt；production device fault 路径先取得同一序列的 receipt，再把 unresolved submission、diagnostic 和 surface frame 统一 terminalize。asset manager 在任何 status scratch、批量查询或 retirement 前要求 receipt 与当前 device/generation 匹配且严格前进，foreign/replayed receipt 只产生 typed failure，不修改 manager 状态，也不访问 RHI status 或 destroy。该证据使未来唯一 frame owner 的 `poll -> fan-out completion consumers` 顺序可执行，但公开构造的诊断 DTO 不是安全令牌，也不能证明旧产品路径已只 poll 一次。
+
+同轮结构审计按 `engine-code-structure-convention.md` 的 800 行 review门继续下沉三个完整职责：deterministic device构造进入90行 `device/construction.rs`，根文件由845降至767行；production native-to-neutral capability receipt进入134行 `production/device/capabilities.rs`，根文件为791行；neutral device 的375行公共错误合同硬切到 `device/error.rs`，根文件由887降至515行。production capability/device-ownership测试也迁到98/102行folder-backed owner，`production/tests.rs`为781行。结构测试锁定这些具名owner、禁止错误/capability映射回流并保持相关文件低于800行；没有提高阈值或保留旧函数转发层。
+
+该增量仍没有把产品 scene submission迁到 `WgpuRenderDevice`，也没有替代未来更完整的多 consumer completion journal；它只提供当前单 queue MVP所需且不会阻碍后续 hard cut的 bounded consumer。retirement limit尚未接产品 memory/profile配置，shutdown/device recreate的产品 owner切换、真实 contention/profile数据与 product frame tick仍 pending，因此本节不改变 09A 的 partial source-only性质。
+
+### 11.3 2026-08-27 render-asset device generation recovery 增量
+
+针对 11.2 留下的 receipt stream reset 缺口，本轮先重审 09A device-loss 顺序、09D manager 状态、generation handle、production fault terminalization，并对照 UE `FRenderResource::ReleaseRHIForAllResources` / `InitRHI` 的全局释放后重建责任。结论是不允许新 device 通过放宽 receipt 校验继承旧状态，也不允许每个 upload/draw 调用点自行吞掉 stale handle；必须由 residency owner 在 product device owner 已终止旧 submission 后执行一次显式代际替换事务。
+
+`RenderAssetResidencyManager::recover_device_epoch` 先验证 replacement 不同于 failed、同一 logical device 的 generation 严格递增、全部 live pending/active 与 GPU bound stream 属于 failed，再按稳定 ResourceId 解析当前 catalog/readiness seed并一次性预留 ticket id。任一错误发生在突变前，ticket id、entry、frontier、retirement和receipt均不变。提交后保留 reference count，旧 pending/active各产生原有 typed release，旧 generation 的 active artifact、pending/detached upload、ready retirement、submission frontier和last poll receipt统一失效，每个 live resource得到 replacement `QueuedIo` ticket。GPU state保存 O(1) bound epoch；未显式恢复时 replacement submission/receipt fail-closed，恢复后新 receipt stream从空 cursor重新建立严格单调关系。
+
+恢复为允许 `O(N log N)` / `O(N)` 的冷路径，稳定 tick不新增entry扫描或临时分配。`manager.rs`把 recovery 与批量 ticket issuance分别下沉到246/63行具名 child owner，根文件为747行；Runtime15结构门禁止职责回流。该事务只丢弃上层旧 generation handle引用并量化 abandoned counts/bytes，真实 native object回收仍要求产品 owner drop failed `WgpuRenderDevice` registry；当前没有 product device swap、synthetic/真实 device-loss、managed Cargo、GPU capture或截图证据，不能声称 device-loss闭环完成。
+
+### 11.4 2026-08-30 bounded scene submission terminal journal 增量
+
+针对 Runtime27 AO command-record receipt 不能证明 GPU 已完成的问题，本轮先复审 `SceneRenderer` 两条 frame owner、surface 预轮询路径、`RenderFrameSubmissionTransaction`、RHI terminal history与批量查询合同，再核对 UE `FD3D12FinalizedCommands`、D3D12 submission queue/fence value owner和`FRenderCommandFence` bundling。结论是不允许 AO 或其它 feature 新建第二个 device poller，也不能把当前帧 graph record原地改写为 Completed；当前记录与滞后一帧或多帧的终态必须是两个可按 frame generation/ticket关联的合同。
+
+新增 `SceneSubmissionCompletionJournal` 由 `SceneRenderer` 持有，成功 frame receipt 后只登记scene ticket；正常渲染的 frame-begin 入口通过 `poll_frame_submission_completions` 在同一 `SubmissionPollReceipt` 上先推进该日志，再分发 IBL、typed query和timer结果。surface路径先由该 owner完成一次分发，传给recording路径的 receipt只用于 frame ledger，不会二次消费。显式阻塞capture/readback是有30秒上限的同步边界，允许为已提交诊断工作额外推进timeline，但每次backend poll都必须同步回调同一 `SceneRenderer` fan-out，不能丢弃receipt或建立第二套consumer状态。日志容量直接取 `RenderDeviceProfile::submission_limits().max_unresolved_submissions()`，复用ticket/status scratch；有pending时通过`append_submission_statuses`一次submission-state lock观察整批，无pending时零状态查询。单次推进复杂度为`O(P)`、额外锁次数最多1，内存为`O(max_unresolved_submissions)`且构造后稳定帧不创建observer对象。
+
+公共 `RenderSceneSubmissionCompletionReport` 把`Completed/Failed/Cancelled/DeviceLost`与`ObservationFailed/TrackingFailed`分开，保留frame generation、完整submission ticket及poll receipt，并量化pending/capacity与最近poll observed/terminal数。foreign device/generation、replayed poll和批量结果宽度不一致产生typed error并在任何status查询/queue突变前停止；status history miss按`ObservationFailed`丢弃该observer项，绝不推断Completed。`RenderStats`和11个固定`render.submission.completion.*`诊断路径暴露最近终态与backlog，因此 Runtime27 当前 AO command report可通过generation与GPU终态关联，但AO本身仍不拥有fence。
+
+审查修复进一步覆盖三个曾绕过fan-out的路径：非阻塞readback poll改走frame owner，阻塞RGBA8/RGBA16F capture与diagnostic drain在每次poll后立即路由receipt；submission失败返回前也发布最新completion stats，框架边界保留typed completion error，不再降级为字符串。新增职责一度使pipeline owner达到860行，现已把完整capture/readback职责硬切到148行folder-backed owner，主文件回落到724行。该切片当前有7个journal行为测试及frame/readback source-order、错误发布和11个固定诊断路径测试源码；相关文件精确rustfmt、scoped whitespace/diff与locked metadata通过。受管Cargo仍受既知target复用门阻断，未取得Rust compile、真实WGPU terminal、device-loss、PNG/RDC、GPU profile、锁竞争或功耗数据；旧产品仍直接持有raw WGPU backend，因此09A继续是partial source-only，不计accepted milestone或性能改善。
+
+### 11.5 2026-08-30 demand-compiled scene history physical allocation 增量
+
+针对 Render07 `PERF-MVP-395`，本轮先复审 `SceneFrameHistoryTextures` 的构造、绑定、帧尾复制和 resize 路径，再对照 UE 5.5.4 per-view state 中按语义持有 GTAO/history 的方式。旧实现只要任一历史功能启用，就同时创建 TAA 双缓冲、GI lighting/metadata、SSR、HZB、曝光双缓冲和可选 froxel history；这使 feature-off 的物理资源不为零，也把 viewport-independent 的曝光/froxel 历史错误耦合到 viewport resize。
+
+新增 `SceneFrameHistoryRequirements`，由 compiled pipeline 的实际 writer、temporal资格与 froxel quality 生成；构造只创建 TAA、hybrid GI、SSR、HZB、exposure、volumetric 中被要求的具名 owner。空需求立即释放当前 handle 的物理历史；仅 exposure、仅 volumetric 或仅 HZB 不再录制无附件的 history-clear submission。TAA/GI/SSR只匹配 history extent，HZB只匹配 render extent，固定 froxel quality 与 32-byte exposure ping-pong 不再因 viewport resize 重建。graph binder、history epilogue copy 和 HZB identity consumer均改为显式 optional lease，缺少物理 owner 时 fail closed；无合格 temporal consumer 的 AO history 仍保持删除状态。
+
+静态容量模型按当前格式计算：TAA 双 `Rgba16Float` 为16 bytes/history-pixel，1080p约31.64 MiB、4K约126.56 MiB；GI lighting+metadata同为16 bytes/history-pixel；SSR `Rgba16Float`为8 bytes/history-pixel，1080p约15.82 MiB、4K约63.28 MiB；volumetric `160x90x{48,64,96}` `Rgba16Float`分别约5.27/7.03/10.55 MiB。以上只是关闭对应功能时可避免的容量模型，不是实测VRAM、带宽、帧时或功耗改善。
+
+该切片仍在 requirements 集变化时替换整个 aggregate，并因此重置全部 domain state、扩大 TAA bind-group cache invalidation；尚未实现每个 domain 独立 reconcile/resize/retire。精确 rustfmt、调用点 optional 扫描、owner低于800行、scoped diff与locked metadata通过；受管 Cargo 仍受既知 `cargo_reuse_target_mismatch` 阻断，真实 WGPU、RenderDoc、PNG、GPU timestamp、VRAM、功耗与跨引擎比较均未验证。状态为 `runtime09a_scene_history_demand_compiled_allocation_source_implemented_static_checks_passed_dynamic_validation_pending`，不计 accepted milestone，也不改变09A的partial source-only性质。
+
+### 11.6 2026-08-30 per-domain scene history reconcile 增量
+
+11.5留下的整aggregate替换已继续收敛为固定6域的 `SceneHistoryAllocationChanges`。变化判定明确区分history extent依赖的TAA/GI/SSR、render extent依赖的HZB、quality依赖的volumetric和extent无关的exposure；稳定需求只更新最新extent元数据，不创建WGPU对象或初始化submission。occupied handle现在先在局部构造本次变化域，只有新TAA/GI/SSR clear submission成功后才逐域发布replacement；关闭域直接释放对应owner，未变化域的physical identity和`SceneHistoryDomainStates`保持不变。frame transaction只给变化域写`AllocationChanged`，camera-cut等spatial reason仍作用于其它相关域，feature-disabled reason最终覆盖已关闭域。
+
+TAA bind-group cache invalidation从旧`history_recreated`整包信号收窄到`taa_history_allocation_changed`：SSR/HZB/exposure/volumetric单域启停或resize不再主动清空TAA cache。变化判定为固定`O(6)`、零动态集合；新增源码合同覆盖单域toggle、history/render extent分离、稳定空变化、replacement发布顺序，并加入可用WGPU环境下“启用SSR保持TAA/HZB identity”和“关闭SSR保持exposure且无clear submission”的行为测试源码。
+
+该切片当时仍沿用旧 `RenderBackend::submit_graphics_command_buffers` 执行history clear，尚未迁入统一immutable frame packet/completion-retirement owner；该遗留已由11.7的scene-packet fusion源码切片取代。精确rustfmt、source-contract、owner低于800行、scoped diff与locked metadata通过；受管Cargo、真实WGPU执行、RDC/PNG、VRAM、GPU timestamp和功耗仍pending。状态为 `runtime09a_scene_history_per_domain_reconcile_source_implemented_static_checks_passed_dynamic_validation_pending`，不计accepted milestone或性能改善。
+
+### 11.7 2026-08-30 scene-ticket history initialization fusion 增量
+
+本轮先复审 `SceneFrameHistoryTextures`、`RenderFrameSubmissionTransaction`、`WgpuSubmissionService::flush` 与完整compiled-scene frame owner。结论是把history clear简单改为pre-scene enqueue仍不成立：后续frame resource upload会形成新的upload/command边界，而且任何scene submit前失败都可能留下“物理owner已发布但clear从未执行”的history。UE 5.5.4标准renderer以RDG clear pass进入同一graph/command stream；`LumenInUE5.5.4WithComputeShader`的逐pass `SubmitCommandList()`只作为算法复刻参考，不作为Zircon frame submission ownership样板。
+
+history构造/reconcile现在只返回可选`wgpu::CommandBuffer`，不直接submit或enqueue。compiled scene在frame resource upload进入既有pre-scene ledger后，才把该buffer放到terminal scene packet的command-buffer索引0；scene draw、诊断尾与surface copy继续共享原scene ticket。稳定帧没有初始化buffer，也不执行`Vec::insert`冷路径。旧`RenderFrameSubmissionProducer::HistoryInitialization`已硬切，receipt只保留真实独立ticket生产者。若scene ticket接受前任一步骤失败，frame owner删除本帧当前history handle，下一帧重新创建/clear；若错误是`FrameFailedAfterSceneSubmission`，clear和scene已被同一ticket接受，history保留。
+
+同步处理F16结构债：`render.rs`按foundation、mesh submission preparation、graph-frame preparation、success commit拆为具名owner，主编排器481行；resource binding把SSAO child拆出后153行，scene submit把HZB readback与folder-backed tests拆出后627行，均通过既有严格`<500/<160/<650`守卫，没有放宽预算。精确rustfmt、history scene-packet source contract、旧producer负向扫描、行数预算、scoped diff、尾随空白与locked metadata通过。受管Cargo仍受既知`cargo_reuse_target_mismatch`阻断；真实WGPU native submit批次、PNG/RDC、GPU timestamp、VRAM和功耗均未验证。状态为 `runtime09a_history_initialization_scene_packet_fusion_source_implemented_static_checks_passed_dynamic_validation_pending`，不计accepted milestone或性能改善。
+
+### 11.8 2026-08-30 frame submission interval metrics 增量
+
+P0-5调用图复审确认当前底层`WgpuSubmissionMetricsSnapshot`已有generation-local单调计数，但正常frame receipt只保存逻辑ticket，性能工具无法把同一帧的logical packet、flush ticket、physical backend submit和upload workload关联起来。本轮新增backend-neutral `RenderFrameSubmissionMetrics`：分别发布frame owner接纳的logical packet数、flush实际提交的ticket数、native submit数，以及buffer/texture upload batch、write和payload bytes。`RenderFrameSubmissionReceipt`只持可选值；device/generation owner改变或计数回退时，WGPU `delta_since`返回`None`，不能拼接两个timeline或伪造零值。
+
+compiled与legacy terminal frame owner都在frame completion poll之后、任何scene resource preparation之前采集baseline，并在scene ticket已提交且receipt完成后采集终点；采样不flush、不poll、不wait，也不新增queue work。viewport product与present共享scene ticket时不会增加logical packet数。该统计能让后续真实运行直接回答普通帧的physical submit数，但本轮没有执行WGPU workload，因此不把源码分组规则写成一次submit实测。结构上，新增DTO为93行；原515行且继续增长的receipt owner已把203行测试迁入folder-backed child，该切片落地时production root为370行，11.9继续抽出producer record后current source为334行。
+
+精确rustfmt、双frame owner采样顺序合同、backend无flush/poll合同、physical/logical分离测试源码、物理行预算、尾随空白、scoped diff与`cargo metadata --locked --no-deps`通过。受管Cargo仍受既知`cargo_reuse_target_mismatch`阻断；真实WGPU、RenderDoc、PNG/RDC、GPU/RSS/VRAM/功耗和跨引擎比较均未验证。状态为 `runtime09a_frame_submission_interval_metrics_source_implemented_static_checks_passed_dynamic_validation_pending`，不计accepted milestone或性能改善。
+
+### 11.9 2026-08-30 texture mip preservation typed boundary 增量
+
+在11.8可量化physical submit之后，本轮继续复审`GpuTextureUploadWork`的pre/copy/post顺序。当前`pre_upload_commands`只由resident-mip replacement产生：必须先把旧texture仍驻留的mip复制到replacement，再由queue write上传新mip；WGPU flush明确把`command -> upload`视为真实排序边界。该依赖不能通过把direct submit机械改成enqueue消除，且不应只靠`TexturePreUpload`名称推断原因。
+
+新增backend-neutral `RenderFrameSubmissionBoundaryReason::TextureMipPreservationBeforeUpload`。只有非空pre-upload command ticket通过`record_pre_scene_resource_submission_with_boundary`写入success receipt；copy upload和post-upload ticket保持无reason。producer与reason的合法配对由独立record owner集中校验，错误地把preservation reason标到copy/post producer会在transaction状态变化前返回typed `BoundaryReasonProducerMismatch`，receipt重建时再次fail closed。failure settlement把同一typed reason连同resource id、ticket和terminal status保留，避免失败profile丢失边界解释。reason类型不依赖WGPU；具体纹理variant只有resource streamer生产点赋值一次。该切片不改变submit/enqueue顺序，也不实施跨纹理批处理。
+
+精确rustfmt、唯一production赋值点、`pre command -> boundary receipt -> upload`顺序、错误配对拒绝、success/failure传播与`cargo metadata --locked --no-deps`通过。boundary reason/producer record/receipt root/receipt tests/transaction root/transaction tests/failure receipt/backend/resource streamer为12/90/334/203/174/228/312/380/248行；Runtime09A结构守卫root/child为351/122行，均低于各自预算。受管Cargo仍受既知`cargo_reuse_target_mismatch`阻断；真实WGPU/RenderDoc/profile未运行。只有后续数据证明同帧多个mip replacement导致显著submit成本，才评估“集中收集pre copies -> 一次边界 -> 合并uploads”的frame-level批处理；当前不宣称瓶颈或性能改善。状态为`runtime09a_texture_mip_preservation_typed_boundary_source_implemented_static_checks_passed_dynamic_validation_pending`。
+
+### 11.10 2026-08-30 hit-proxy submission transaction ordering 增量
+
+复审独立hit-proxy task发现其在bounded diagnostic admission和frame prepare之前就把GPU-scene upload接纳到共享submission queue，并立即commit CPU侧GPU-scene状态。若diagnostic预算拒绝或prepare失败，调用会返回，但后续无关submission仍可能flush该孤儿upload；CPU状态还会把未形成terminal hit-proxy packet的准备结果误记为已提交。这是失败事务边界错误，不是需要profile后才能判断的性能微调。
+
+当前顺序硬切为`record hit-proxy -> admit/prepare all diagnostic readbacks -> enqueue GPU-scene upload -> terminal command+diagnostic submit -> commit GPU-scene upload`。所有diagnostic fallible边界发生在upload admission前，`gpu_scene_upload.commit`只位于terminal submit成功路径；draw、readback callback、native submit数量和flush策略均未改变。production中upload enqueue与commit各只有一个调用点，源码回归锁定prepare/enqueue/submit/commit严格顺序。`scene_renderer_hit_proxy.rs`当前516行，低于800行owner预算。
+
+精确rustfmt、事务顺序/唯一调用点静态合同与scoped diff检查通过；locked metadata在同一Runtime09A工作批次通过。受管Cargo仍受既知`cargo_reuse_target_mismatch`阻断，真实WGPU hit-proxy、device-loss、PNG/RDC、profile与功耗未验证。该切片没有给environment capture、retained UI或其它task建立统一receipt，因此P0-5仍开放；状态为`runtime09a_hit_proxy_submission_transaction_order_source_implemented_static_checks_passed_dynamic_validation_pending`。
+
+### 11.11 2026-08-30 product readback/completion current-source reaudit
+
+P0-6重新按当前module gating、调用点和completion routing分类：同步buffer/texture/IBL helper是test-only，产品diagnostic service已具备generation/ticket identity、admission与result-ring预算、submission-qualified map、terminal delivery和30秒显式capture deadline；正常scene与viewport-pick都通过同一completion fan-out。该复审没有把测试readback或RenderDoc stop误算为普通产品frame，也没有把静态调用面写成运行时性能数据。
+
+仍开放的真实边界是standalone native UI的独立device/raw present submit、本地completion timeline，显式capture policy尚未统一表达consumer executor/cancel，以及真实device-loss/shutdown/timeout注入和scale/profile证据未完成。本节只纠正计划输入，不改生产代码、不计accepted milestone；状态为`runtime09a_product_readback_current_source_reaudit_documented_remaining_boundaries_open`。
+
+### 11.12 2026-08-30 standalone UI local submission/completion hard-cut design
+
+切入前复审确认standalone UI不能只把`self.queue.submit`包装为`WgpuRenderDevice`：其本地`GpuReadbackQueue::poll_completed`仍会主动`device.poll`，从而在同一native device上形成中央submission owner与旧readback completion owner并存。共享UI已经复用runtime `Arc<WgpuRenderDevice>`、返回真实ticket且不拥有completion timeline；迁移范围只属于自有device的tool/compatibility profile。
+
+依照UE SlateRHI经`FRHICommandListImmediate`记录、RHI owner finalize/submit、viewport transaction present和deferred cleanup的顺序，新增[`90/2026-08-30-standalone-ui-local-submission-completion-hard-cut-design.md`](90/2026-08-30-standalone-ui-local-submission-completion-hard-cut-design.md)。SUI-0至SUI-3源码迁移已落地：offscreen/standalone共用initial profile factory；所有native UI context必有typed `Arc<WgpuRenderDevice>` owner；standalone raw submit删除并返回真实ticket；local frame在surface acquire前由唯一owner poll，旧readback只收集已轮询结果，产品直接`device.poll`退到test-only；image pin随native packet进入submission service，以ticket为键由现有唯一completion callback或fault terminalization释放，不再创建UI私有完成回调。基础owner/profile合同为11/11，SUI-3合同从0/8转为8/8；精确rustfmt、scoped diff、结构行数和locked metadata通过。SUI-4真实窗口/PNG/RDC/profile仍开放。状态为`runtime90_standalone_ui_sui_0_through_sui_3_source_implemented_static_checks_passed_dynamic_validation_pending`。
 
 - 一个真实产品frame从graph schema/instance经过versioned compile、RHI packet、统一submit、surface present、completion和resource retire形成可追踪闭环。
 - 所有GPU handle、ticket、surface和cache都受device/execution generation保护，device loss和shutdown对在途工作有exactly-one终态。

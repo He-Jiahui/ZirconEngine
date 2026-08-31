@@ -55,6 +55,35 @@ fn batch_plan_sorts_layers_without_encoding_layer_in_the_batch_key() {
 }
 
 #[test]
+fn batch_plan_keeps_already_ordered_paint_elements_in_source_order() {
+    let elements = vec![
+        solid_element(1, 0, 0, None),
+        solid_element(2, 0, 1, None),
+        solid_element(3, 1, 2, None),
+    ];
+
+    let plan = UiBatchPlan::from_paint_elements(&elements);
+
+    assert_eq!(plan.ordered_element_indices, vec![0, 1, 2]);
+    assert_eq!(plan.batches[0].source_indices, vec![0, 1]);
+    assert_eq!(plan.batches[1].source_indices, vec![2]);
+}
+
+#[test]
+fn batch_plan_stably_sorts_unordered_paint_elements_by_source_index_on_ties() {
+    let first = solid_element(1, 1, 0, None);
+    let mut second = solid_element(2, 0, 7, None);
+    second.paint_order = 7;
+    let mut third = solid_element(3, 0, 8, None);
+    third.paint_order = 7;
+
+    let plan = UiBatchPlan::from_paint_elements(&[first, second, third]);
+
+    assert_eq!(plan.ordered_element_indices, vec![1, 2, 0]);
+    assert_eq!(plan.batches[0].source_indices, vec![1, 2]);
+}
+
+#[test]
 fn batch_plan_reuses_equivalent_clip_handles_and_splits_different_states() {
     let shared_scissor = UiClipState {
         mode: UiClipMode::Scissor,

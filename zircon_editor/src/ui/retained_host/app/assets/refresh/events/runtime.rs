@@ -1,11 +1,23 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use zircon_runtime::core::resource::ResourceEventTryRecvError;
 
 use super::{AssetRefreshEvents, RetainedEditorHost};
 
 const MAX_ASSET_REFRESH_EVENTS_PER_STREAM: usize = 256;
 const ASSET_REFRESH_DRAIN_TIME_BUDGET: Duration = Duration::from_millis(2);
 const ASSET_REFRESH_STREAM_TIME_BUDGET: Duration = Duration::from_micros(600);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ResourceEventDrainAction {
+    ReconcileAndContinue,
+    ReconcileAndStop,
+    Stop,
+}
+
+fn asset_refresh_stream_capacity(pending_event_count: usize) -> usize {
+    pending_event_count.min(MAX_ASSET_REFRESH_EVENTS_PER_STREAM)
+}
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::assets::refresh) fn drain_asset_refresh_events(
@@ -17,7 +29,9 @@ impl RetainedEditorHost {
         );
 
         let stream_started = Instant::now();
-        let mut asset_changes = Vec::new();
+        let mut asset_changes = Vec::with_capacity(asset_refresh_stream_capacity(
+            self.asset_change_events.len(),
+        ));
         while can_drain_more(stream_started, asset_changes.len()) {
             let Ok(change) = self.asset_change_events.try_recv() else {
                 break;
@@ -26,7 +40,9 @@ impl RetainedEditorHost {
         }
 
         let stream_started = Instant::now();
-        let mut editor_asset_changes = Vec::new();
+        let mut editor_asset_changes = Vec::with_capacity(asset_refresh_stream_capacity(
+            self.editor_asset_change_events.pending_len(),
+        ));
         let mut editor_delivery_queue_age = Duration::ZERO;
         while can_drain_more(stream_started, editor_asset_changes.len()) {
             let Some(delivery) = self.editor_asset_change_events.try_recv() else {
@@ -37,24 +53,49 @@ impl RetainedEditorHost {
         }
 
         let stream_started = Instant::now();
-        let mut resource_changes = Vec::new();
+        let resource_stream_exhausted =
+            self.asset_refresh_accumulator.resource_sequence_exhausted();
+        let resource_pending_at_start = if resource_stream_exhausted {
+            0
+        } else {
+            self.resource_change_events.len()
+        };
+        let mut resource_changes =
+            Vec::with_capacity(asset_refresh_stream_capacity(resource_pending_at_start));
         let mut resource_generation_lagged = false;
-        while can_drain_more(stream_started, resource_changes.len()) {
+        while !resource_stream_exhausted && can_drain_more(stream_started, resource_changes.len()) {
             match self.resource_change_events.try_recv() {
                 Ok(change) => resource_changes.push(change),
-                Err(zircon_runtime::core::resource::ResourceEventTryRecvError::Lagged(_)) => {
-                    resource_generation_lagged = true;
-                }
-                Err(zircon_runtime::core::resource::ResourceEventTryRecvError::Empty)
-                | Err(zircon_runtime::core::resource::ResourceEventTryRecvError::Disconnected) => {
-                    break;
-                }
+                Err(error) => match resource_event_drain_action(error) {
+                    ResourceEventDrainAction::ReconcileAndContinue => {
+                        resource_generation_lagged = true;
+                    }
+                    ResourceEventDrainAction::ReconcileAndStop => {
+                        if self
+                            .asset_refresh_accumulator
+                            .latch_resource_sequence_exhaustion()
+                        {
+                            resource_generation_lagged = true;
+                            zircon_runtime::profile_counter!(
+                                "editor",
+                                "ui.asset_refresh.resource_sequence_exhausted_count",
+                                1
+                            );
+                        }
+                        break;
+                    }
+                    ResourceEventDrainAction::Stop => break,
+                },
             }
         }
 
         let asset_pending = self.asset_change_events.len();
         let editor_pending = self.editor_asset_change_events.pending_len();
-        let resource_pending = self.resource_change_events.len();
+        let resource_pending = if self.asset_refresh_accumulator.resource_sequence_exhausted() {
+            0
+        } else {
+            self.resource_change_events.len()
+        };
         let queue_age = self.asset_refresh_queue_age.observe(
             Instant::now(),
             asset_pending > 0,
@@ -78,6 +119,7 @@ impl RetainedEditorHost {
                 editor_asset_changes,
                 resource_changes,
                 resource_generation_lagged,
+                active_scene_reload_requested: false,
             },
             asset_pending > 0 || editor_pending > 0 || resource_pending > 0,
         )
@@ -87,6 +129,16 @@ impl RetainedEditorHost {
 fn can_drain_more(stream_started: Instant, drained_count: usize) -> bool {
     drained_count < MAX_ASSET_REFRESH_EVENTS_PER_STREAM
         && stream_started.elapsed() < ASSET_REFRESH_STREAM_TIME_BUDGET
+}
+
+fn resource_event_drain_action(error: ResourceEventTryRecvError) -> ResourceEventDrainAction {
+    match error {
+        ResourceEventTryRecvError::Lagged(_) => ResourceEventDrainAction::ReconcileAndContinue,
+        ResourceEventTryRecvError::SequenceExhausted => ResourceEventDrainAction::ReconcileAndStop,
+        ResourceEventTryRecvError::Empty | ResourceEventTryRecvError::Disconnected => {
+            ResourceEventDrainAction::Stop
+        }
+    }
 }
 
 fn record_drain_metrics(
@@ -149,7 +201,11 @@ fn duration_micros(duration: Duration) -> usize {
 mod tests {
     use std::time::{Duration, Instant};
 
-    use super::{can_drain_more, MAX_ASSET_REFRESH_EVENTS_PER_STREAM};
+    use super::{
+        can_drain_more, resource_event_drain_action, ResourceEventDrainAction,
+        MAX_ASSET_REFRESH_EVENTS_PER_STREAM,
+    };
+    use zircon_runtime::core::resource::{ResourceEventGap, ResourceEventTryRecvError};
 
     #[test]
     fn per_stream_count_budget_is_a_hard_upper_bound() {
@@ -173,4 +229,35 @@ mod tests {
         assert!(!can_drain_more(expired_stream, 0));
         assert!(can_drain_more(next_stream, 0));
     }
+
+    #[test]
+    fn resource_sequence_exhaustion_requests_one_terminal_reconciliation() {
+        assert_eq!(
+            resource_event_drain_action(ResourceEventTryRecvError::SequenceExhausted),
+            ResourceEventDrainAction::ReconcileAndStop
+        );
+    }
+
+    #[test]
+    fn recoverable_lag_continues_but_empty_and_disconnect_stop_without_reconciliation() {
+        assert_eq!(
+            resource_event_drain_action(ResourceEventTryRecvError::Lagged(ResourceEventGap {
+                expected_sequence: 7,
+                oldest_available_sequence: Some(11),
+            })),
+            ResourceEventDrainAction::ReconcileAndContinue
+        );
+        assert_eq!(
+            resource_event_drain_action(ResourceEventTryRecvError::Empty),
+            ResourceEventDrainAction::Stop
+        );
+        assert_eq!(
+            resource_event_drain_action(ResourceEventTryRecvError::Disconnected),
+            ResourceEventDrainAction::Stop
+        );
+    }
 }
+
+#[cfg(test)]
+#[path = "runtime/capacity_tests.rs"]
+mod capacity_tests;

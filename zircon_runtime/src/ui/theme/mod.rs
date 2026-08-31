@@ -32,7 +32,11 @@ impl UiThemeRegistry {
     }
 
     pub fn resolve_token(&self, token: &UiThemeTokenRef) -> Option<UiStyleColor> {
-        let color = match token.as_str() {
+        self.resolve_token_name(token.as_str())
+    }
+
+    fn resolve_token_name(&self, token: &str) -> Option<UiStyleColor> {
+        let color = match token {
             "palette.surface.0" => self.active.palette.surface[0],
             "palette.surface.1" => self.active.palette.surface[1],
             "palette.surface.2" => self.active.palette.surface[2],
@@ -53,7 +57,7 @@ impl UiThemeRegistry {
 
     pub fn resolve_role(&self, role: &str) -> Option<UiStyleColor> {
         let token = normalized_theme_role(role)?;
-        self.resolve_token(&UiThemeTokenRef::new(token))
+        self.resolve_token_name(token)
     }
 
     pub fn resolve_style_color(&self, color: &UiStyleColor) -> UiStyleColor {
@@ -105,3 +109,7 @@ fn theme_fingerprint(document: &UiThemeDocument) -> u64 {
     serialized.hash(&mut hasher);
     hasher.finish()
 }
+
+#[cfg(test)]
+#[path = "borrowed_role_resolution_tests.rs"]
+mod borrowed_role_resolution_tests;

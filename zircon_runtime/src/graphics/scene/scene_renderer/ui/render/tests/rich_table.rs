@@ -9,7 +9,7 @@ fn screen_space_ui_plan_paints_table_cell_background_before_text_and_border_afte
         line_height: 20.0,
         wrap: UiTextWrap::None,
         text_render_mode: UiTextRenderMode::Native,
-        rich_text_format: UiRichTextFormat::BbCode,
+        rich_text_format: UiRichTextFormat::BbCodeV1,
         ..UiResolvedStyle::default()
     };
     let frame = UiFrame::new(10.0, 20.0, 180.0, 80.0);

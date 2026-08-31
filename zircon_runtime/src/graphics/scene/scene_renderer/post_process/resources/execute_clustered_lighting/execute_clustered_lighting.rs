@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use crate::core::framework::render::RenderDirectionalLightSnapshot;
 use crate::core::math::UVec2;
 use bytemuck::Zeroable;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use super::super::super::cluster_params::ClusterParams;
 use super::super::super::clustered_directional_light::ClusteredDirectionalLight;
@@ -14,17 +17,20 @@ impl ScenePostProcessResources {
     pub(crate) fn execute_clustered_lighting(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         viewport_size: UVec2,
         cluster_dimensions: UVec2,
-        cluster_buffer: &wgpu::Buffer,
+        cluster_buffer: wgpu::BufferBinding<'_>,
         lights: &[RenderDirectionalLightSnapshot],
         enabled: bool,
-    ) {
+    ) -> WgpuBufferUploadBatch {
         if !enabled {
-            encoder.clear_buffer(cluster_buffer, 0, None);
-            return;
+            encoder.clear_buffer(
+                cluster_buffer.buffer,
+                cluster_buffer.offset,
+                cluster_buffer.size.map(std::num::NonZeroU64::get),
+            );
+            return WgpuBufferUploadBatch::new();
         }
 
         let mut gpu_lights = [ClusteredDirectionalLight::zeroed(); MAX_DIRECTIONAL_LIGHTS];
@@ -35,14 +41,6 @@ impl ScenePostProcessResources {
                 color_intensity: [light.color.x, light.color.y, light.color.z, light.intensity],
             };
         }
-        if directional_light_count > 0 {
-            queue.write_buffer(
-                &self.light_buffer,
-                0,
-                bytemuck::cast_slice(&gpu_lights[..directional_light_count]),
-            );
-        }
-
         let params = ClusterParams {
             viewport_and_clusters: [
                 viewport_size.x.max(1),
@@ -53,7 +51,32 @@ impl ScenePostProcessResources {
             counts: [directional_light_count as u32, CLUSTER_TILE_SIZE, 0, 0],
             strengths: [0.42, 0.18, 0.0, 0.0],
         };
-        queue.write_buffer(&self.cluster_params_buffer, 0, bytemuck::bytes_of(&params));
+        let lights = bytemuck::cast_slice(&gpu_lights[..directional_light_count]);
+        let params = bytemuck::bytes_of(&params);
+        let mut bytes = Vec::with_capacity(lights.len().saturating_add(params.len()));
+        bytes.extend_from_slice(lights);
+        let params_start = bytes.len();
+        bytes.extend_from_slice(params);
+        let payload: Arc<[u8]> = bytes.into();
+        let mut uploads = WgpuBufferUploadBatch::new();
+        if directional_light_count > 0 {
+            if let Some(upload) = WgpuBufferUpload::new(
+                self.light_buffer.clone(),
+                0,
+                payload.clone(),
+                0..params_start,
+            ) {
+                uploads.push(upload);
+            }
+        }
+        if let Some(upload) = WgpuBufferUpload::new(
+            self.cluster_params_buffer.clone(),
+            0,
+            payload,
+            params_start..params_start.saturating_add(params.len()),
+        ) {
+            uploads.push(upload);
+        }
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-cluster-bind-group"),
@@ -69,7 +92,7 @@ impl ScenePostProcessResources {
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: cluster_buffer.as_entire_binding(),
+                    resource: wgpu::BindingResource::Buffer(cluster_buffer),
                 },
             ],
         });
@@ -85,6 +108,7 @@ impl ScenePostProcessResources {
             cluster_dimensions.y.max(1).div_ceil(CLUSTER_WORKGROUP_SIZE),
             1,
         );
+        uploads
     }
 }
 
@@ -93,6 +117,10 @@ mod tests {
     #[test]
     fn clustered_lighting_avoids_cpu_clear_and_inactive_light_uploads() {
         let source = include_str!("execute_clustered_lighting.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("clustered-lighting production source");
         let cpu_clear = ["vec![0_u8;", " cluster_buffer_bytes]"].concat();
         let legacy_size_argument = ["cluster_buffer_", "bytes: usize"].concat();
         let gpu_clear = ["encoder.clear_", "buffer(cluster_buffer, 0, None)"].concat();
@@ -102,5 +130,10 @@ mod tests {
         assert!(!source.contains(&legacy_size_argument));
         assert!(source.contains(&gpu_clear));
         assert!(source.contains(&active_prefix));
+        assert!(!production.contains("queue.write_buffer"));
+        assert_eq!(production.matches("let payload: Arc<[u8]>").count(), 1);
+        assert!(production.contains("WgpuBufferUploadBatch"));
+        assert!(production.contains("self.light_buffer.clone()"));
+        assert!(production.contains("self.cluster_params_buffer.clone()"));
     }
 }

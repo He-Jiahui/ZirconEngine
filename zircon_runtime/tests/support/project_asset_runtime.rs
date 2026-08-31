@@ -2,10 +2,11 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use zircon_runtime::asset::{ProjectAssetManager, ProjectAssetManagerAccess};
-use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
+use zircon_runtime::core::manager::{RegisteredManagerService, manager_service_handle};
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
+    TaskPool,
 };
 use zircon_runtime::graphics::WgpuRenderFramework;
 
@@ -56,18 +57,22 @@ impl ProjectAssetTestRuntime {
     pub fn access(&self) -> ProjectAssetManagerAccess {
         self.access.clone()
     }
+
+    pub fn worker_pool(&self) -> TaskPool {
+        self._runtime.task_graph().worker_pool().clone()
+    }
 }
 
 pub struct TestWgpuRenderFramework {
-    _asset_runtime: ProjectAssetTestRuntime,
     framework: WgpuRenderFramework,
+    _asset_runtime: ProjectAssetTestRuntime,
 }
 
 impl TestWgpuRenderFramework {
     pub fn new(asset_runtime: ProjectAssetTestRuntime, framework: WgpuRenderFramework) -> Self {
         Self {
-            _asset_runtime: asset_runtime,
             framework,
+            _asset_runtime: asset_runtime,
         }
     }
 }

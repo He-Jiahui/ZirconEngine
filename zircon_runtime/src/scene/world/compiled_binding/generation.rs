@@ -42,8 +42,8 @@ impl SceneBindingGenerations {
     where
         I: IntoIterator<Item = EntityId>,
     {
-        let roots = roots.into_iter().collect::<Vec<_>>();
-        if roots.is_empty() {
+        let mut roots = roots.into_iter().peekable();
+        if roots.peek().is_none() {
             return;
         }
 
@@ -63,8 +63,8 @@ impl SceneBindingGenerations {
     where
         I: IntoIterator<Item = EntityId>,
     {
-        let roots = roots.into_iter().collect::<Vec<_>>();
-        if roots.is_empty() {
+        let mut roots = roots.into_iter().peekable();
+        if roots.peek().is_none() {
             return;
         }
 
@@ -118,3 +118,7 @@ impl PartialEq for SceneBindingGenerations {
         true
     }
 }
+
+#[cfg(test)]
+#[path = "generation/allocation_free_root_advance_tests.rs"]
+mod allocation_free_root_advance_tests;

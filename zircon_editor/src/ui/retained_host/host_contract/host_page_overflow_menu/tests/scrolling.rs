@@ -45,6 +45,52 @@ fn overflow_row_hit_does_not_activate_through_the_scrollbar_gutter() {
 }
 
 #[test]
+fn overflow_row_hit_rejects_the_uniform_row_gap() {
+    let mut presentation = overflow_presentation(240.0, "Hidden tab");
+    presentation
+        .host_scene_data
+        .page_chrome
+        .overflow_hidden_tab_indices = vec![0, 0];
+    let popup = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 180.0,
+        height: menu_popup_outer_padding() + menu_popup_row_stride() * 2.0,
+    };
+    let first = host_page_overflow_row_frame(&presentation, &popup, 0);
+    let gap_y =
+        first.y + MENU_POPUP_ROW_HEIGHT + (menu_popup_row_stride() - MENU_POPUP_ROW_HEIGHT) * 0.5;
+
+    assert!(
+        host_page_overflow_row_hit_in_popup(&presentation, &popup, first.x + 1.0, gap_y,).is_none()
+    );
+}
+
+#[test]
+fn overflow_row_hit_rejects_a_row_only_touching_the_viewport_bottom() {
+    let mut presentation = overflow_presentation(240.0, "Hidden tab");
+    presentation
+        .host_scene_data
+        .page_chrome
+        .overflow_hidden_tab_indices = vec![0, 0];
+    let popup = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 180.0,
+        height: menu_popup_outer_padding() + menu_popup_row_stride(),
+    };
+    let viewport = host_page_overflow_content_viewport_frame(&popup);
+
+    assert!(host_page_overflow_row_hit_in_popup(
+        &presentation,
+        &popup,
+        viewport.x + 1.0,
+        viewport.y + viewport.height,
+    )
+    .is_none());
+}
+
+#[test]
 fn overflow_content_viewport_keeps_its_actual_small_height() {
     let popup = FrameRect {
         x: 0.0,

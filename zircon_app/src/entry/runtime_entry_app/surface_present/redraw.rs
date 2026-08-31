@@ -49,22 +49,21 @@ impl RuntimeEntryApp {
                 }
             }
         }
-        if !self.ensure_fallback_presenter(event_loop) {
+        if !self.ensure_reference_cpu_presenter(event_loop) {
             return;
         }
-        let fallback_result = if let Some(presenter) = self.presenter.as_mut() {
-            zircon_runtime::profile_counter!("app", "runtime_entry.fallback_capture_request", 1_u8);
+        let reference_cpu_result = if let Some(presenter) = self.presenter.as_mut() {
+            let capture_started_at = std::time::Instant::now();
+            zircon_runtime::profile_counter!(
+                "app",
+                "runtime_entry.reference_cpu_presenter.capture_request",
+                1_u8
+            );
             match self
                 .session
                 .capture_frame(self.viewport, self.viewport_size)
             {
-                Ok(frame) => {
-                    zircon_runtime::profile_counter!(
-                        "app",
-                        "runtime_entry.fallback_rgba_bytes",
-                        frame.rgba().len()
-                    );
-                    presenter.present(&frame).map_err(|error| {
+                Ok(frame) => presenter.present(&frame, capture_started_at).map_err(|error| {
                         (
                             format!(
                                 "viewport={:?} size={}x{} frame={}x{}",
@@ -74,29 +73,33 @@ impl RuntimeEntryApp {
                                 frame.width(),
                                 frame.height()
                             ),
-                            format!("fallback presentation failed: {error}"),
+                            format!("reference CPU presentation failed: {error}"),
                             "verify the graphics adapter and window surface, then restart zircon_runtime",
                         )
-                    })
-                }
+                    }),
                 Err(error) => Err((
                     format!(
                         "viewport={:?} size={}x{}",
                         self.viewport, self.viewport_size.width, self.viewport_size.height
                     ),
-                    format!("frame capture failed: {error}"),
+                    format!("reference CPU frame capture failed: {error}"),
                     "verify the graphics adapter and runtime project, then restart zircon_runtime",
                 )),
             }
         } else {
             return;
         };
-        match fallback_result {
+        match reference_cpu_result {
             Ok(()) => {
-                zircon_runtime::profile_counter!("app", "runtime_entry.fallback_cpu_present", 1_u8);
+                zircon_runtime::profile_counter!(
+                    "app",
+                    "runtime_entry.reference_cpu_presenter.presented",
+                    1_u8
+                );
                 self.complete_presented_frame(event_loop);
             }
             Err((context, error, recovery_hint)) => {
+                self.record_reference_cpu_presenter_drop();
                 self.report_fatal_failure("runtime_surface_present", context, error, recovery_hint);
                 event_loop.exit();
             }
@@ -105,6 +108,12 @@ impl RuntimeEntryApp {
 }
 
 impl RuntimeEntryApp {
+    fn record_reference_cpu_presenter_drop(&mut self) {
+        if let Some(presenter) = self.presenter.as_mut() {
+            presenter.record_dropped_frame();
+        }
+    }
+
     fn complete_presented_frame(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_counter!("app", "runtime_entry.presented_frame", 1_u8);
         if let Err(error) = self.capture_first_presented_frame_if_requested() {
@@ -291,9 +300,8 @@ mod tests {
 
         for name in [
             "runtime_entry.native_present",
-            "runtime_entry.fallback_capture_request",
-            "runtime_entry.fallback_rgba_bytes",
-            "runtime_entry.fallback_cpu_present",
+            "runtime_entry.reference_cpu_presenter.capture_request",
+            "runtime_entry.reference_cpu_presenter.presented",
             "runtime_entry.presented_frame",
             "runtime_entry.explicit_frame_capture_request",
             "runtime_entry.explicit_frame_capture_rgba_bytes",

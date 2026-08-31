@@ -10,6 +10,7 @@ use super::{override_f32, override_vec3, texture_slot_reference, MaterialAsset};
 
 const CLEARCOAT_PROPERTY: &str = "clearcoat";
 const CLEARCOAT_ROUGHNESS_PROPERTY: &str = "clearcoat_perceptual_roughness";
+const CLEARCOAT_NORMAL_SCALE_PROPERTY: &str = "clearcoat_normal_scale";
 const ANISOTROPY_STRENGTH_PROPERTY: &str = "anisotropy_strength";
 const ANISOTROPY_ROTATION_PROPERTY: &str = "anisotropy_rotation";
 const SPECULAR_TRANSMISSION_PROPERTY: &str = "specular_transmission";
@@ -18,6 +19,7 @@ const THICKNESS_PROPERTY: &str = "thickness";
 const IOR_PROPERTY: &str = "ior";
 const ATTENUATION_COLOR_PROPERTY: &str = "attenuation_color";
 const ATTENUATION_DISTANCE_PROPERTY: &str = "attenuation_distance";
+const ADVANCED_VALIDATED_PROPERTY_COUNT: usize = 11;
 
 impl MaterialAsset {
     pub fn advanced_pbr_features(&self) -> StandardPbrMaterialFeatures {
@@ -33,6 +35,11 @@ impl MaterialAsset {
                 "clearcoat_normal",
             )
             .or_else(|| texture_slot_reference(&self.texture_slots, "clearcoat_normal_texture")),
+            clearcoat_normal_scale: override_f32(
+                &self.property_values,
+                CLEARCOAT_NORMAL_SCALE_PROPERTY,
+            )
+            .unwrap_or(1.0),
             anisotropy_strength: override_f32(&self.property_values, ANISOTROPY_STRENGTH_PROPERTY)
                 .unwrap_or(0.0),
             anisotropy_rotation: override_f32(&self.property_values, ANISOTROPY_ROTATION_PROPERTY)
@@ -67,6 +74,7 @@ pub(super) fn is_material_owned_property(name: &str) -> bool {
         name,
         CLEARCOAT_PROPERTY
             | CLEARCOAT_ROUGHNESS_PROPERTY
+            | CLEARCOAT_NORMAL_SCALE_PROPERTY
             | ANISOTROPY_STRENGTH_PROPERTY
             | ANISOTROPY_ROTATION_PROPERTY
             | SPECULAR_TRANSMISSION_PROPERTY
@@ -81,7 +89,7 @@ pub(super) fn is_material_owned_property(name: &str) -> bool {
 pub(super) fn validation_errors(
     values: &BTreeMap<String, toml::Value>,
 ) -> Vec<RenderMaterialValidationError> {
-    let mut errors = Vec::new();
+    let mut errors = Vec::with_capacity(values.len().min(ADVANCED_VALIDATED_PROPERTY_COUNT));
     for property in [
         CLEARCOAT_PROPERTY,
         CLEARCOAT_ROUGHNESS_PROPERTY,
@@ -97,6 +105,13 @@ pub(super) fn validation_errors(
             &mut errors,
         );
     }
+    validate_f32(
+        values,
+        CLEARCOAT_NORMAL_SCALE_PROPERTY,
+        "finite number",
+        |_| true,
+        &mut errors,
+    );
     validate_f32(
         values,
         ANISOTROPY_ROTATION_PROPERTY,
@@ -174,5 +189,83 @@ fn type_mismatch(property: &str, expected: &str) -> RenderMaterialValidationErro
         path: format!("overrides.{property}"),
         name: property.to_string(),
         expected: expected.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod optimization_batch_20260830cj_runtime_tests {
+    use std::time::Instant;
+
+    const SAMPLE_PAIRS: usize = 17;
+    const PROPERTY_COUNT: usize = 11;
+
+    #[test]
+    fn optimization_batch_20260830cj_runtime_material_validation_reserves_bounded_error_capacity() {
+        let source = include_str!("advanced_features.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("advanced material implementation");
+
+        assert!(implementation.contains("const ADVANCED_VALIDATED_PROPERTY_COUNT: usize = 11"));
+        assert!(implementation
+            .contains("Vec::with_capacity(values.len().min(ADVANCED_VALIDATED_PROPERTY_COUNT))"));
+    }
+
+    #[test]
+    #[ignore = "managed Windows release performance evidence"]
+    fn optimization_batch_20260830cj_runtime_material_validation_capacity_p95() {
+        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy.push(measure(false));
+                optimized.push(measure(true));
+            } else {
+                optimized.push(measure(true));
+                legacy.push(measure(false));
+            }
+        }
+        let legacy_p95_ns = percentile(&legacy, 95);
+        let optimized_p95_ns = percentile(&optimized, 95);
+        println!(
+            "RUNTIME386_MATERIAL_VALIDATION_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} properties_per_sample={PROPERTY_COUNT} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            csv(&legacy),
+            csv(&optimized)
+        );
+        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
+    }
+
+    fn measure(use_capacity: bool) -> u128 {
+        let started = Instant::now();
+        let mut checksum = 0usize;
+        for _ in 0..8_192 {
+            let mut errors = if use_capacity {
+                Vec::with_capacity(PROPERTY_COUNT)
+            } else {
+                Vec::new()
+            };
+            for property in 0..PROPERTY_COUNT {
+                errors.push(property);
+            }
+            checksum ^= errors.len();
+            std::hint::black_box(errors);
+        }
+        std::hint::black_box(checksum);
+        started.elapsed().as_nanos().max(1)
+    }
+
+    fn percentile(samples: &[u128], p: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        sorted[(sorted.len() * p).div_ceil(100).saturating_sub(1)]
+    }
+
+    fn csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 }

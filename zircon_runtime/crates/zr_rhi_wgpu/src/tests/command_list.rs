@@ -3,13 +3,13 @@ use zr_rhi::{
     BindGroupDesc, BindGroupEntryDesc, BindGroupEntryResource, BindGroupHandle,
     BindGroupLayoutDesc, BindGroupLayoutEntryDesc, BindGroupLayoutHandle, BindingResourceType,
     BufferDesc, BufferHandle, BufferUsage, CommandList, CompareFunction, DepthStencilStateDesc,
-    IndexFormat, PipelineDesc, PipelineHandle, PipelineKind, PipelineLayoutDesc,
-    PipelineLayoutHandle, RasterPipelineStateDesc, RenderClearColor, RenderDevice,
-    RenderPassColorAttachmentDesc, RenderPassColorLoadOp, RenderPassDepthLoadOp,
-    RenderPassDepthStencilAttachmentDesc, RenderPassStoreOp, RenderQueueClass, RhiError,
-    ShaderModuleDesc, ShaderModuleHandle, ShaderStage, TextureDesc, TextureFormat, TextureHandle,
-    TextureUsage, VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat, VertexInputLayoutDesc,
-    VertexStepMode,
+    DiagnosticQueryPlan, DiagnosticQueryPlanError, DiagnosticReadbackBudget, IndexFormat,
+    PipelineDesc, PipelineHandle, PipelineKind, PipelineLayoutDesc, PipelineLayoutHandle,
+    RasterPipelineStateDesc, RenderClearColor, RenderDevice, RenderPassColorAttachmentDesc,
+    RenderPassColorLoadOp, RenderPassDepthLoadOp, RenderPassDepthStencilAttachmentDesc,
+    RenderPassStoreOp, RenderQueueClass, RhiError, ShaderModuleDesc, ShaderModuleHandle,
+    ShaderStage, TextureDesc, TextureFormat, TextureHandle, TextureUsage, VertexAttributeDesc,
+    VertexBufferLayoutDesc, VertexFormat, VertexInputLayoutDesc, VertexStepMode,
 };
 
 fn create_compute_pipeline(
@@ -144,7 +144,7 @@ fn create_uniform_bind_group(
             layout,
             vec![BindGroupEntryDesc::new(
                 0,
-                BindGroupEntryResource::Buffer(buffer),
+                BindGroupEntryResource::Buffer(zr_rhi::BindGroupBufferBinding::whole(buffer)),
             )],
         ))
         .unwrap()
@@ -210,5 +210,6 @@ fn create_raster_vertex_input_layout() -> VertexInputLayoutDesc {
 
 mod basic_commands;
 mod bind_groups;
+mod indirect_commands;
 mod raster_draws;
 mod vertex_index_state;

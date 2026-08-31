@@ -1,7 +1,8 @@
 use core::ops::Range;
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::MeshAsset;
+use crate::asset::ShaderSurfaceSourceContract;
+use crate::asset::pipeline::manager::ProjectAssetManager;
 #[cfg(test)]
 use crate::asset::{
     AssetManagementFamilyIssueBucket, AssetManagementFamilyIssueIndex,
@@ -19,15 +20,13 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    wgsl_include_paths, MaterialPropertyOverrideBlock, RenderCameraTargetGraphImportReport,
-    RenderCameraTargetWritebackReport, RenderColorLookupTextureLayout,
-    RenderMaterialPropertyUniformPayload, RenderMaterialReadinessReport,
-    RenderMaterialReadinessSummary, RenderMeshBounds, RenderMeshSnapshot,
-    RenderShaderDefinitionValue,
+    RenderCameraTargetGraphImportReport, RenderCameraTargetWritebackReport,
+    RenderColorLookupTextureLayout, RenderMaterialReadinessReport, RenderMaterialReadinessSummary,
+    RenderMeshBounds, RenderMeshSnapshot, RenderShaderDefinitionValue, wgsl_include_paths,
 };
 use crate::core::resource::ResourceId;
-use crate::graphics::shader::ShaderTemplateInclude;
 use crate::graphics::GraphicsError;
+use crate::graphics::shader::ShaderTemplateInclude;
 use crate::plugin::ShaderModuleSourceBinding;
 
 mod material_capture;
@@ -36,10 +35,10 @@ mod material_diagnostics;
 
 use super::super::{
     GpuMaterialUniformResource, GpuMeshResource, GpuModelResource, GpuTextureResource,
-    MaterialRuntime, OutputTargetTextureResource,
+    MaterialRuntime, OutputTargetFramePlan, OutputTargetTextureResource,
 };
-use super::resource_streamer_ensure_shader_source::shader_dependency_ids;
 use super::ResourceStreamer;
+use super::resource_streamer_ensure_shader_source::shader_dependency_ids;
 
 fn geometry_seed_for_prepared(
     local_bounds: RenderMeshBounds,
@@ -330,10 +329,16 @@ impl ResourceStreamer {
 
     #[cfg(test)]
     pub(crate) fn asset_management_record_sets(&self) -> AssetManagementRecordSets {
-        self.test_asset_manager()
-            .asset_management_record_sets_with_prepared_materials(
-                self.material_management_record_set(),
-            )
+        let assets = self.test_asset_manager().asset_management_record_sets();
+        AssetManagementRecordSets::from_record_sets(
+            assets.models,
+            assets.meshes,
+            assets.scenes,
+            assets.scene_entities,
+            assets.material_assets,
+            self.material_management_record_set(),
+            assets.shaders,
+        )
     }
 
     #[cfg(test)]
@@ -374,45 +379,69 @@ impl ResourceStreamer {
             .family_issue_view(bucket)
     }
 
+    #[cfg(test)]
     pub(crate) fn material(&self, id: &ResourceId) -> Option<&MaterialRuntime> {
-        self.materials.get(id).map(|prepared| &prepared.runtime)
+        self.latest_prepared_material_bundle(id)
+            .map(|prepared| &prepared.runtime)
     }
 
-    pub(crate) fn material_revision(&self, id: &ResourceId) -> Option<u64> {
+    fn latest_prepared_material_bundle(
+        &self,
+        id: &ResourceId,
+    ) -> Option<&super::super::prepared::PreparedMaterialBundle> {
+        self.materials.get(id).and_then(|prepared| {
+            prepared
+                .staged_candidate
+                .as_ref()
+                .or(prepared.published.as_ref())
+        })
+    }
+
+    pub(crate) fn staged_material_candidate(&self, id: &ResourceId) -> Option<&MaterialRuntime> {
         self.materials
             .get(id)
-            .and_then(|prepared| prepared.revision)
+            .filter(|prepared| !prepared.staged_pipeline_failed)
+            .and_then(|prepared| prepared.staged_candidate.as_ref())
+            .map(|candidate| &candidate.runtime)
     }
 
+    pub(crate) fn has_active_staged_material_candidates(&self) -> bool {
+        !self.active_staged_material_ids.is_empty()
+    }
+
+    pub(crate) fn staged_material_candidate_ids(&self) -> impl Iterator<Item = ResourceId> + '_ {
+        self.active_staged_material_ids.iter().filter_map(|id| {
+            self.materials
+                .get(id)
+                .is_some_and(|prepared| {
+                    !prepared.staged_pipeline_failed && prepared.staged_candidate.is_some()
+                })
+                .then_some(*id)
+        })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn rejected_material_candidate_revision(&self, id: &ResourceId) -> Option<u64> {
+        self.materials
+            .get(id)
+            .and_then(|prepared| prepared.rejected_candidate.as_ref())
+            .and_then(|candidate| candidate.identity.as_ref())
+            .and_then(|identity| identity.revision)
+    }
+
+    #[cfg(test)]
     pub(crate) fn material_uniform(&self, id: &ResourceId) -> Arc<GpuMaterialUniformResource> {
-        self.materials
-            .get(id)
+        self.latest_prepared_material_bundle(id)
             .map(|prepared| prepared.uniform.clone())
             .unwrap_or_else(|| self.fallback_material_uniform.clone())
     }
 
-    pub(crate) fn material_uniform_payload_with_overrides(
-        &self,
-        id: &ResourceId,
-        overrides: &MaterialPropertyOverrideBlock,
-    ) -> Option<RenderMaterialPropertyUniformPayload> {
-        if overrides.is_empty() {
-            return None;
-        }
-        self.materials.get(id).map(|prepared| {
-            prepared
-                .runtime
-                .shader_property_uniform_payload
-                .with_override_block(overrides)
-        })
-    }
-
+    #[cfg(test)]
     pub(crate) fn standard_material_uniform(
         &self,
         id: &ResourceId,
     ) -> Arc<GpuMaterialUniformResource> {
-        self.materials
-            .get(id)
+        self.latest_prepared_material_bundle(id)
             .map(|prepared| prepared.standard_uniform.clone())
             .unwrap_or_else(|| self.fallback_standard_material_uniform.clone())
     }
@@ -421,7 +450,24 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<&RenderMaterialReadinessReport> {
-        self.material(id).map(|material| &material.readiness_report)
+        self.materials.get(id).and_then(|prepared| {
+            prepared
+                .rejected_candidate
+                .as_ref()
+                .map(|candidate| &candidate.readiness_report)
+                .or_else(|| {
+                    prepared
+                        .staged_candidate
+                        .as_ref()
+                        .map(|candidate| &candidate.runtime.readiness_report)
+                })
+                .or_else(|| {
+                    prepared
+                        .published
+                        .as_ref()
+                        .map(|published| &published.runtime.readiness_report)
+                })
+        })
     }
 
     pub(crate) fn material_readiness_summary(
@@ -434,6 +480,15 @@ impl ResourceStreamer {
 
     pub(crate) fn texture(&self, id: Option<ResourceId>) -> Arc<GpuTextureResource> {
         Arc::clone(self.texture_ref(id))
+    }
+
+    pub(crate) fn texture_with_revision(
+        &self,
+        id: ResourceId,
+    ) -> Option<(u64, Arc<GpuTextureResource>)> {
+        self.textures
+            .get(&id)
+            .map(|prepared| (prepared.revision, Arc::clone(&prepared.resource)))
     }
 
     pub(crate) fn texture_ref(&self, id: Option<ResourceId>) -> &Arc<GpuTextureResource> {
@@ -517,8 +572,8 @@ impl ResourceStreamer {
 
     pub(crate) fn shader_uses_material_surface_source(&self, shader_id: &ResourceId) -> bool {
         self.shaders.get(shader_id).is_some_and(|shader| {
-            shader.runtime.kind.participates_in_material_variants()
-                && shader.runtime.source.contains("fn zr_material_surface")
+            shader.runtime.surface_source_contract
+                == Some(ShaderSurfaceSourceContract::MaterialFunction)
         })
     }
 
@@ -526,6 +581,7 @@ impl ResourceStreamer {
         &self,
         shader_id: &ResourceId,
     ) -> Vec<ShaderTemplateInclude> {
+        crate::profile_scope!("render", "shader_pipeline", "module_include_resolution");
         let Ok(asset_manager) = self.asset_manager() else {
             return Vec::new();
         };
@@ -548,6 +604,15 @@ impl ResourceStreamer {
             .cloned()
             .collect::<Vec<_>>();
         modules.extend(project_modules);
+        crate::profile_counter!("render", "shader_module_include_count", modules.len());
+        crate::profile_counter!(
+            "render",
+            "shader_module_include_source_bytes",
+            modules
+                .iter()
+                .map(|module| module.source.len())
+                .sum::<usize>()
+        );
         modules
             .into_iter()
             .map(ShaderTemplateInclude::from_source_binding)
@@ -757,5 +822,29 @@ impl ResourceStreamer {
         &self,
     ) -> RenderCameraTargetGraphImportReport {
         self.last_output_target_graph_import_report
+    }
+
+    pub(in crate::graphics::scene) fn output_target_frame_plan(&self) -> OutputTargetFramePlan {
+        self.last_output_target_frame_plan
+    }
+}
+
+#[cfg(test)]
+mod shader_profile_contract_tests {
+    #[test]
+    fn module_include_resolution_profiles_count_and_source_bytes() {
+        let source = include_str!("resource_streamer_accessors.rs")
+            .split("pub(crate) fn shader_module_include_sources")
+            .nth(1)
+            .and_then(|source| {
+                source
+                    .split("fn required_plugin_shader_module_tokens")
+                    .next()
+            })
+            .expect("module include resolution function");
+
+        assert!(source.contains("\"shader_pipeline\", \"module_include_resolution\""));
+        assert!(source.contains("shader_module_include_count"));
+        assert!(source.contains("shader_module_include_source_bytes"));
     }
 }

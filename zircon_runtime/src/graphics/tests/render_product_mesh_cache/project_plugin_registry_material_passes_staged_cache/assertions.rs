@@ -2,14 +2,14 @@ use std::fs;
 use std::path::Path;
 
 use crate::core::framework::render::{
-    RenderStats, ShaderPassType, ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount,
-    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
-    ShaderVariantRuntimeDimensionCount, ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
-    SHADING_MODEL_ID_STANDARD_PBR,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, RenderStats, SHADING_MODEL_ID_STANDARD_PBR, ShaderPassType,
+    ShaderVariantMissReport, ShaderVariantPrewarmDimensionCount, ShaderVariantPrewarmManifest,
+    ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest, ShaderVariantRuntimeDimensionCount,
+    ShadingModelId,
 };
 
 use super::case::RegistryShaderCase;
-use super::manifest::{raw_wgsl_hash, REGISTRY_MATERIAL_PASS_TYPES};
+use super::manifest::{REGISTRY_MATERIAL_PASS_TYPES, raw_wgsl_hash};
 
 pub(super) fn assert_registry_material_pass_prewarm_written(
     manifest: &ShaderVariantPrewarmManifest,

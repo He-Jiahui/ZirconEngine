@@ -29,6 +29,26 @@ struct SelectedProfileFeatureIds {
     short: HashSet<String>,
 }
 
+impl SelectedProfileFeatureIds {
+    fn from_feature_ids(feature_ids: &[String]) -> Self {
+        let qualified_count = feature_ids
+            .iter()
+            .filter(|feature_id| feature_id.contains('.'))
+            .count();
+        let short_count = feature_ids.len() - qualified_count;
+        let mut qualified = HashSet::with_capacity(qualified_count);
+        let mut short = HashSet::with_capacity(short_count);
+        for feature_id in feature_ids {
+            if feature_id.contains('.') {
+                qualified.insert(feature_id.clone());
+            } else {
+                short.insert(feature_id.clone());
+            }
+        }
+        Self { qualified, short }
+    }
+}
+
 #[cfg(test)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct ExportProfileSelectionProjectionMetrics {
@@ -70,18 +90,9 @@ impl ExportProfileSelectionProjection {
                 .features
                 .iter()
                 .map(|(owner_id, feature_ids)| {
-                    let mut qualified = HashSet::new();
-                    let mut short = HashSet::new();
-                    for feature_id in feature_ids {
-                        if feature_id.contains('.') {
-                            qualified.insert(feature_id.clone());
-                        } else {
-                            short.insert(feature_id.clone());
-                        }
-                    }
                     (
                         owner_id.clone(),
-                        SelectedProfileFeatureIds { qualified, short },
+                        SelectedProfileFeatureIds::from_feature_ids(feature_ids),
                     )
                 })
                 .collect(),
@@ -285,7 +296,26 @@ mod tests {
     use crate::core::framework::platform::RuntimeTargetMode;
     use crate::core::framework::project::{ExportProfile, ExportTargetPlatform, RuntimeProfileId};
 
-    use super::{begin_profile_projection_build_observation, ExportProfileSelectionProjection};
+    use super::{
+        begin_profile_projection_build_observation, ExportProfileSelectionProjection,
+        SelectedProfileFeatureIds,
+    };
+
+    #[test]
+    fn preallocated_profile_feature_indexes_preserve_contract() {
+        let feature_ids = vec![
+            "rendering.forward".to_string(),
+            "deferred.fast".to_string(),
+            "deferred".to_string(),
+        ];
+        let selected = SelectedProfileFeatureIds::from_feature_ids(&feature_ids);
+
+        assert_eq!(selected.qualified.len(), 2);
+        assert!(selected.qualified.contains("rendering.forward"));
+        assert!(selected.qualified.contains("deferred.fast"));
+        assert_eq!(selected.short.len(), 1);
+        assert!(selected.short.contains("deferred"));
+    }
 
     #[test]
     fn profile_selection_projection_build_and_lookup_counts_scale_linearly() {

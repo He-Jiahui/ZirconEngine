@@ -27,7 +27,10 @@ impl Default for UiRenderExtract {
 impl UiRenderExtract {
     pub fn normalized_raster_scale(&self) -> f32 {
         if self.raster_scale.is_finite() && self.raster_scale > 0.0 {
-            self.raster_scale
+            // UI resources must never be rasterized below the physical target. A producer may
+            // still request supersampling (> 1.0), but post-process render scaling is not allowed
+            // to turn text or vector-backed images into a lower-resolution UI layer.
+            self.raster_scale.max(1.0)
         } else {
             default_raster_scale()
         }

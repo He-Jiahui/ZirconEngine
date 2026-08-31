@@ -1,5 +1,5 @@
-use crate::asset::project::ProjectManager;
 use crate::asset::AssetReference;
+use crate::asset::project::ProjectManager;
 use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, ResourceLocator,
     ResourceMarker, ResourceScheme,
@@ -7,8 +7,8 @@ use crate::core::resource::{
 use std::sync::OnceLock;
 
 use super::{
-    SceneProjectError, BUILTIN_CUBE, BUILTIN_DEFAULT_MATERIAL, BUILTIN_MISSING_MATERIAL,
-    BUILTIN_MISSING_MODEL,
+    BUILTIN_CUBE, BUILTIN_DEFAULT_MATERIAL, BUILTIN_MISSING_MATERIAL, BUILTIN_MISSING_MODEL,
+    SceneProjectError,
 };
 pub(super) fn model_handle_for_reference(
     project: &ProjectManager,
@@ -67,7 +67,7 @@ pub(super) fn reference_for_material_handle(
 pub(super) fn reference_for_handle(
     project: &ProjectManager,
     id: ResourceId,
-    label: &str,
+    label: &'static str,
 ) -> Result<AssetReference, SceneProjectError> {
     if let Ok(reference) = project.asset_registry().resolve_reference_by_asset_id(id) {
         return Ok(reference);
@@ -75,9 +75,10 @@ pub(super) fn reference_for_handle(
     if let Some(locator) = builtin_locator_for_id(id) {
         return Ok(AssetReference::from_locator(locator));
     }
-    Err(SceneProjectError::SceneAsset(format!(
-        "missing persistent locator for {label} resource {id}"
-    )))
+    Err(SceneProjectError::UnresolvedResourceHandle {
+        resource_id: id,
+        role: label,
+    })
 }
 
 fn builtin_locators() -> &'static [(ResourceId, ResourceLocator)] {

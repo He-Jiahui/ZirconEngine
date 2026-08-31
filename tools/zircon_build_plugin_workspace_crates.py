@@ -22,9 +22,10 @@ def discover_plugin_workspace_crates(plugins_root: Path) -> tuple[CargoPackage, 
     packages: list[CargoPackage] = []
     for member in members:
         manifest_path = plugins_root / member / "Cargo.toml"
-        if not manifest_path.exists():
+        try:
+            data = _read_toml(manifest_path)
+        except FileNotFoundError:
             continue
-        data = _read_toml(manifest_path)
         package = data.get("package", {})
         name = package.get("name")
         if not name:

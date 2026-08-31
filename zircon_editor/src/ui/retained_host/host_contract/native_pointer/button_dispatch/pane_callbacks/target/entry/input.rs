@@ -9,7 +9,7 @@ use super::super::super::super::super::NativePointerButtonState;
 pub(super) struct PaneButtonDispatchInput<'a> {
     pub(super) ui: &'a UiHostWindow,
     pub(super) presentation: &'a HostWindowPresentationData,
-    pub(super) pointer: PanePointerRoute,
+    pub(super) pointer: PanePointerRoute<'a>,
     pub(super) state: NativePointerButtonState,
     pub(super) button: UiPointerButton,
     pub(super) button_id: i32,

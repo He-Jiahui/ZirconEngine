@@ -53,18 +53,28 @@ impl World {
                         if !affects_post_process && !affects_local_fog {
                             return;
                         }
-                        if let Some(extract) =
-                            self.post_process_volume_extract(entity, volume, volume_mask.clone())
+                        if let Some(mut extract) =
+                            self.post_process_volume_extract(entity, volume, volume_mask)
                         {
                             if affects_local_fog {
                                 let settings = volume
                                     .profile
                                     .volumetric_fog
                                     .expect("local fog participation requires authored settings");
+                                let density = settings.density * extract.clamped_weight();
+                                let fog_layer_mask = if affects_post_process {
+                                    extract.volume_mask.clone()
+                                } else {
+                                    std::mem::replace(
+                                        &mut extract.volume_mask,
+                                        RenderLayerSet::none(),
+                                    )
+                                };
                                 if let Some(fog_volume) = fog_volume_from_extract(
                                     entity,
                                     &extract,
-                                    settings.density * extract.clamped_weight(),
+                                    fog_layer_mask,
+                                    density,
                                     settings.albedo,
                                 ) {
                                     fog_volumes.push((entity, fog_volume));
@@ -130,6 +140,7 @@ impl World {
 fn fog_volume_from_extract(
     entity: crate::scene::EntityId,
     extract: &PostProcessVolumeExtract,
+    layer_mask: RenderLayerSet,
     density: Real,
     albedo: Vec3,
 ) -> Option<FogVolumeData> {
@@ -160,7 +171,7 @@ fn fog_volume_from_extract(
         bounds_max,
         density: density.max(0.0),
         albedo: albedo.max(Vec3::ZERO),
-        layer_mask: extract.volume_mask.clone(),
+        layer_mask,
     })
 }
 
@@ -246,10 +257,12 @@ fn max_component(value: Vec3) -> Real {
 
 #[cfg(test)]
 mod tests {
-    use super::render_layers_for_view;
+    use super::{fog_volume_from_extract, render_layers_for_view};
     use crate::core::framework::render::{
-        CameraRenderDescriptor, RenderLayerSet, RenderViewExtract, ViewportCameraSnapshot,
+        CameraRenderDescriptor, PostProcessVolumeExtract, RenderLayerSet, RenderViewExtract,
+        ViewportCameraSnapshot, VolumeShapeExtract,
     };
+    use crate::core::math::Vec3;
 
     #[test]
     fn render_volumetric_camera_stack_unions_overlay_culling_layers() {
@@ -265,6 +278,26 @@ mod tests {
             render_layers_for_view(&view),
             RenderLayerSet::from_scene_schema_v1_mask(0b0011)
         );
+    }
+
+    #[test]
+    fn fog_volume_from_extract_uses_supplied_layer_mask() {
+        let extract_mask = RenderLayerSet::from_scene_schema_v1_mask(0b0001);
+        let fog_mask = RenderLayerSet::from_scene_schema_v1_mask(0b0010);
+        let extract = PostProcessVolumeExtract::new(
+            true,
+            VolumeShapeExtract::sphere(Vec3::ZERO, 1.0, 0.0),
+            0.0,
+            1.0,
+            extract_mask.clone(),
+            Vec::new(),
+        );
+
+        let fog = fog_volume_from_extract(42, &extract, fog_mask.clone(), 0.5, Vec3::ONE)
+            .expect("finite sphere bounds should yield a fog volume");
+
+        assert_eq!(fog.layer_mask, fog_mask);
+        assert_eq!(extract.volume_mask, extract_mask);
     }
 
     fn camera_descriptor(entity: u64, culling_mask: u32) -> CameraRenderDescriptor {

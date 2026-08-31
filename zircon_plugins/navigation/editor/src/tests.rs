@@ -15,8 +15,8 @@ use zircon_editor::{EditorRuntimeGateway, GatewayError};
 use zircon_plugin_navigation_runtime::NavigationOverlayFrame;
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshBakeReport, NavPathStatus, NavigationAgentDebugState,
-    NavigationGizmoSnapshot, NavigationGizmoTriangle, AREA_JUMP, AREA_WALKABLE,
-    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
+    NavigationGizmoLink, NavigationGizmoSnapshot, NavigationGizmoTriangle, AREA_JUMP,
+    AREA_WALKABLE, NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
     NAV_MESH_OBSTACLE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
     NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
@@ -531,10 +531,20 @@ fn navigation_bake_commands_keep_operation_payload_and_undo_contracts() {
 fn navigation_overlay_command_does_not_impersonate_a_scene_mode() {
     let registration = plugin_registration();
     assert!(registration.extensions.scene_mode_descriptors().is_empty());
-    assert!(registration.extensions.menu_items().iter().any(|item| {
-        item.path() == "View/Debug Overlays/Navigation"
-            && item.operation().as_str() == NAVIGATION_TOGGLE_GIZMOS_OPERATION
-    }));
+    let operation = zircon_editor::core::editor_operation::EditorOperationPath::parse(
+        NAVIGATION_TOGGLE_GIZMOS_OPERATION,
+    )
+    .expect("navigation gizmo operation");
+    assert_eq!(
+        registration
+            .extensions
+            .commands()
+            .command(&operation)
+            .and_then(|command| command.menu_path())
+            .map(|path| path.stable_path()),
+        Some("view/debug_overlays/navigation.debug.toggle_gizmos".to_owned())
+    );
+    assert!(registration.extensions.menu_items().next().is_none());
 }
 
 #[test]
@@ -617,6 +627,65 @@ fn navigation_overlay_contains_area_mesh_agent_path_and_avoidance_vectors() {
     assert!(overlay.lines.len() >= 9, "mesh edges + path + two vectors");
     assert_ne!(overlay.lines[0].color, overlay.lines[3].color);
     assert!(!overlay.pick_shapes.is_empty());
+}
+
+#[test]
+fn navigation_overlay_category_filters_are_independent() {
+    let nav_mesh = NavigationGizmoSnapshot {
+        triangles: vec![NavigationGizmoTriangle {
+            vertices: [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+            area: AREA_WALKABLE,
+            tile: 0,
+        }],
+        off_mesh_links: vec![NavigationGizmoLink {
+            start: [0.0, 0.0, 0.0],
+            end: [2.0, 0.0, 0.0],
+            area: AREA_JUMP,
+            bidirectional: true,
+        }],
+    };
+
+    let default_overlay =
+        build_navigation_overlay(100, &nav_mesh, None, NavigationOverlayOptions::default());
+    assert_eq!(default_overlay.lines.len(), 4);
+    assert_eq!(default_overlay.pick_shapes.len(), 1);
+
+    let mesh_only = build_navigation_overlay(
+        100,
+        &nav_mesh,
+        None,
+        NavigationOverlayOptions {
+            off_mesh_links: false,
+            ..NavigationOverlayOptions::default()
+        },
+    );
+    assert_eq!(mesh_only.lines.len(), 3);
+    assert!(mesh_only.pick_shapes.is_empty());
+
+    let links_only = build_navigation_overlay(
+        100,
+        &nav_mesh,
+        None,
+        NavigationOverlayOptions {
+            nav_mesh_areas: false,
+            ..NavigationOverlayOptions::default()
+        },
+    );
+    assert_eq!(links_only.lines.len(), 1);
+    assert_eq!(links_only.pick_shapes.len(), 1);
+
+    let hidden = build_navigation_overlay(
+        100,
+        &nav_mesh,
+        None,
+        NavigationOverlayOptions {
+            nav_mesh_areas: false,
+            off_mesh_links: false,
+            ..NavigationOverlayOptions::default()
+        },
+    );
+    assert!(hidden.lines.is_empty());
+    assert!(hidden.pick_shapes.is_empty());
 }
 
 #[test]

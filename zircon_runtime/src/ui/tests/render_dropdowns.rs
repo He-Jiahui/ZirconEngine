@@ -2,7 +2,7 @@ use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     design_tokens::EditorTypographyTokens,
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
-    layout::UiFrame,
+    layout::{UiFrame, UiPixelSnappingPolicy},
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiVisualAssetRef},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
@@ -412,6 +412,54 @@ line_height = 12.0
             && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("chevron-down".to_string()))
             && command.frame == UiFrame::new(153.0, 27.0, 10.0, 10.0)
             && command.style.foreground_color.as_deref() == Some("#e1e5e8")
+    }));
+}
+
+#[test]
+fn render_extract_dropdown_defers_fractional_value_geometry_to_paint_policy() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.dropdowns.fractional_geometry",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 240.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/dropdown"))
+                .with_frame(UiFrame::new(12.25, 16.5, 160.5, 32.25))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Dropdown".to_string(),
+                    pixel_snapping: UiPixelSnappingPolicy::SnapToPixel,
+                    attributes: toml::from_str(
+                        r##"
+value_text = "Fractional"
+horizontal_inset = 12.0
+caret_size = 10.0
+caret_right_inset = 9.0
+caret_gap = 3.0
+font_size = 10.0
+line_height = 12.0
+"##,
+                    )
+                    .unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    assert!(surface.render_extract.list.commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Fractional")
+            && command.frame == UiFrame::new(24.25, 26.625, 126.5, 12.0)
+            && command.style.pixel_snapping == UiPixelSnappingPolicy::SnapToPixel
     }));
 }
 

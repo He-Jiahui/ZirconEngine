@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/scene/ecs/query/query_state/mutable.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only_cached.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/state.rs
   - zircon_runtime/src/scene/ecs/query/query_state/stats.rs
   - zircon_runtime/src/scene/ecs/query/query_state/system_param.rs
   - zircon_runtime/src/scene/ecs/query/query_access.rs
@@ -36,6 +37,7 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/query/query_state/mutable.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only_cached.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/state.rs
   - zircon_runtime/src/scene/ecs/query/query_state/stats.rs
   - zircon_runtime/src/scene/ecs/query/query_state/system_param.rs
   - zircon_runtime/src/scene/ecs/query/query_access.rs
@@ -145,7 +147,8 @@ The split follows the local query directory and Bevy's `bevy_ecs::query` precede
 
 ## Owner Files
 
-- `query_state/mod.rs` owns the `QueryState` struct, construction, access descriptors, cache fields, and cache telemetry fields.
+- `query_state/mod.rs` is the structural owner that mounts focused query-state modules and preserves the curated `QueryState` export.
+- `query_state/state.rs` owns the `QueryState` struct, construction, access descriptors, cache fields, cache telemetry fields, and narrow entity projection.
 - `query_state/cache.rs` owns cache rebuilds, cache-slot lookup, cached entity/component-location accessors, and cache metadata accessors.
 - `query_state/cached_direct.rs` owns `CachedQueryData` and `CachedQueryFilter` paths that fetch directly from cached component storage locations.
 - `query_state/read_only.rs` owns uncached non-mutating `QueryData` iteration, `get`, `many`, `contains`, and combination APIs.
@@ -249,6 +252,12 @@ The counters are updated only inside `QueryState::update_cache(...)`, so they ob
 `QueryAccess::conflicts_with(...)` is the boolean scheduling/access compatibility check. It now follows the same split as Bevy's access model: the boolean compatibility path checks read/write intersections directly, while the detailed conflict-list path remains in `conflicting_components_with(...)`.
 
 This avoids allocating a temporary `Vec<ComponentId>` when scheduling code only needs a yes/no answer. The detailed list remains available for diagnostics and tests that need to report the conflicting component IDs.
+
+## System Query Cache Borrowing
+
+`SystemState<QueryState<D, F>>` retains the query cache between runs. Its system-facing `Query` performs cache refresh on demand, so every entry point that can refresh that cache or return an iterator borrowing its archetype plans requires `&mut Query`: `iter`, `iter_combinations`, `single`, `count`, and `is_empty`. The explicit cached iteration helpers already follow the same rule.
+
+This is an intentional hard cut. A live iterator borrows the compiled archetype-plan slice, therefore a second cache refresh must be rejected by Rust's borrow checker instead of relying on the runtime convention that a system happens to own the state. Targeted non-cached helpers such as `get`, `contains`, and `iter_many` remain shared operations because they neither refresh nor lend the structural plan cache.
 
 ## Boundary Rules
 

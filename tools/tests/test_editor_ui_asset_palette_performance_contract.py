@@ -78,8 +78,11 @@ class EditorUiAssetPalettePerformanceContractTests(unittest.TestCase):
             "}",
         )
 
-        self.assertIn("BTreeMap::<&str, usize>", validate)
+        self.assertIn("HashSet::<&str>::with_capacity(children.len())", validate)
         self.assertIn("child.mount.as_deref().unwrap_or_default()", validate)
+        self.assertIn("occupied.insert(slot_name)", validate)
+        self.assertIn("occupied.contains(slot_name.as_str())", validate)
+        self.assertNotIn("BTreeMap::<&str, usize>", validate)
         self.assertNotIn("child.mount.clone()", validate)
 
         self.assertIn(".any(|child|", native_available)

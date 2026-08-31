@@ -68,16 +68,29 @@ impl UiDesignerToolMode {
     }
 
     pub fn parse(value: &str) -> Option<Self> {
-        match value.trim().to_ascii_lowercase().as_str() {
-            "select" => Some(Self::Select),
-            "resize_slot" | "resize-slot" | "resize slot" => Some(Self::ResizeSlot),
-            "preview_interact" | "preview-interact" | "preview interact" => {
+        let value = value.trim();
+        match value.len() {
+            6 if value.eq_ignore_ascii_case("select") => Some(Self::Select),
+            11 if value.eq_ignore_ascii_case("resize_slot")
+                || value.eq_ignore_ascii_case("resize-slot")
+                || value.eq_ignore_ascii_case("resize slot") =>
+            {
+                Some(Self::ResizeSlot)
+            }
+            16 if value.eq_ignore_ascii_case("preview_interact")
+                || value.eq_ignore_ascii_case("preview-interact")
+                || value.eq_ignore_ascii_case("preview interact") =>
+            {
                 Some(Self::PreviewInteract)
             }
             _ => None,
         }
     }
 }
+
+#[cfg(test)]
+#[path = "contract/tool_mode_parse_tests.rs"]
+mod tool_mode_parse_tests;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

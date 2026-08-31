@@ -10,7 +10,9 @@ pub(in crate::ui::retained_host) fn asset_surface_binding_control_id(
 ) -> Option<&'static str> {
     match action_or_control_id {
         "SearchEdited" | "workbench.asset.search.edit" => Some("SearchEdited"),
-        "SetKindFilter" | "workbench.asset.kind_filter.set" => Some("SetKindFilter"),
+        "SetKindFilter" | "AssetSurface/SetKindFilter" | "workbench.asset.kind_filter.set" => {
+            Some("SetKindFilter")
+        }
         "SetViewMode" | "workbench.asset.view_mode.set" => Some("SetViewMode"),
         "SetUtilityTab" | "workbench.asset.utility_tab.set" => Some("SetUtilityTab"),
         "OpenAssetBrowser" | "workbench.asset_browser.open" => Some("OpenAssetBrowser"),

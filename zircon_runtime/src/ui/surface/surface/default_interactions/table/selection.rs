@@ -9,8 +9,6 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::surface::UiSurface;
 
-const TABLE_ROW_COMPONENTS: [&str; 5] =
-    ["TableRow", "DataGridRow", "TableBodyRow", "DataRow", "Row"];
 const TABLE_ROW_ROLES: [&str; 4] = ["table-row", "data-grid-row", "data-row", "row"];
 const TABLE_ROW_ID_PROPERTIES: [&str; 8] = [
     "row_id",
@@ -101,18 +99,12 @@ impl UiSurface {
         let mut row_node_id = None;
         let mut row_index = None;
         let mut blocked = false;
-        let hit_route = if route.stacked.is_empty() {
-            route.bubbled.as_slice()
-        } else {
-            route.stacked.as_slice()
-        };
-
-        for node_id in hit_route {
+        for node_id in route.hit_candidates() {
             let node = self
                 .tree
-                .node(*node_id)
-                .ok_or(UiTreeError::MissingNode(*node_id))?;
-            if !self.node_interaction_enabled(*node_id)? {
+                .node(node_id)
+                .ok_or(UiTreeError::MissingNode(node_id))?;
+            if !self.node_interaction_enabled(node_id)? {
                 blocked = true;
             }
             let Some(metadata) = node.template_metadata.as_ref() else {
@@ -121,7 +113,7 @@ impl UiSurface {
             if is_table_row(metadata) {
                 row_seen = true;
                 row_id = row_id.or_else(|| table_row_id(metadata));
-                row_node_id.get_or_insert(*node_id);
+                row_node_id.get_or_insert(node_id);
                 row_index = row_index.or_else(|| table_row_index(metadata));
                 blocked |= table_row_disabled(metadata);
             }
@@ -216,8 +208,7 @@ impl UiSurface {
 }
 
 pub(super) fn is_table_row(metadata: &UiTemplateNodeMetadata) -> bool {
-    TABLE_ROW_COMPONENTS.contains(&metadata.component.as_str())
-        || super::role_is_one_of(metadata, &TABLE_ROW_ROLES)
+    super::role_is_one_of(metadata, &TABLE_ROW_ROLES)
 }
 
 fn table_row_selection_property(metadata: &UiTemplateNodeMetadata) -> &'static str {

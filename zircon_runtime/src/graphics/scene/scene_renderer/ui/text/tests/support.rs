@@ -230,7 +230,7 @@ impl Drop for RuntimeFontAssetGuard {
 mod tests {
     use std::path::Path;
 
-    use super::{TextFontProject, TEXT_FONT_PROJECT_WORK_DIRECTORY};
+    use super::{TEXT_FONT_PROJECT_WORK_DIRECTORY, TextFontProject};
 
     #[test]
     fn text_font_project_uses_workspace_local_artifact_root() {
@@ -239,13 +239,15 @@ mod tests {
             .parent()
             .expect("zircon_runtime manifest must have a workspace parent");
 
-        assert!(project.root.starts_with(
-            workspace_root
-                .join("docs")
-                .join("tests")
-                .join("runtime")
-                .join("text")
-                .join(TEXT_FONT_PROJECT_WORK_DIRECTORY)
-        ));
+        assert!(
+            project.root.starts_with(
+                workspace_root
+                    .join("docs")
+                    .join("tests")
+                    .join("runtime")
+                    .join("text")
+                    .join(TEXT_FONT_PROJECT_WORK_DIRECTORY)
+            )
+        );
     }
 }

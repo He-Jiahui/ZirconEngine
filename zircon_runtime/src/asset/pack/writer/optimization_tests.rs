@@ -1,7 +1,10 @@
+use std::fs;
 use std::hint::black_box;
+use std::path::PathBuf;
 use std::time::Instant;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use super::{sort_assets_by_path, ZrPackInputAsset, ZrPackWriter};
+use super::{sort_assets_by_path, ZrPackInputAsset, ZrPackWriter, FILE_READ_BUFFER_SIZE};
 
 const ASSET_COUNT: usize = 4_096;
 const SAMPLE_COUNT: usize = 17;
@@ -76,6 +79,37 @@ fn editor15_pack_writer_borrows_input_payloads_for_repeat_writes() {
 }
 
 #[test]
+fn editor15_file_stream_writer_preserves_pack_bytes_and_deduplication() {
+    let root = unique_temp_dir("file-stream-parity");
+    let large_payload = vec![0x5a; FILE_READ_BUFFER_SIZE * 2 + 17];
+    let distinct_payload = b"distinct payload".to_vec();
+    let large_source = root.join("large.bin");
+    let distinct_source = root.join("distinct.bin");
+    let duplicate_source = root.join("duplicate.bin");
+    fs::write(&large_source, &large_payload).expect("write large source");
+    fs::write(&distinct_source, &distinct_payload).expect("write distinct source");
+    fs::write(&duplicate_source, &large_payload).expect("write duplicate source");
+
+    let memory_assets = vec![
+        ZrPackInputAsset::new("assets/c.bin", large_payload.clone()),
+        ZrPackInputAsset::new("assets/a.bin", large_payload),
+        ZrPackInputAsset::new("assets/b.bin", distinct_payload),
+    ];
+    let memory_report = ZrPackWriter::write(memory_assets.iter()).expect("memory write");
+    let file_report = ZrPackWriter::write_files([
+        ("assets/c.bin", duplicate_source.as_path()),
+        ("assets/a.bin", large_source.as_path()),
+        ("assets/b.bin", distinct_source.as_path()),
+    ])
+    .expect("streamed file write");
+
+    assert_eq!(file_report, memory_report);
+    assert_eq!(file_report.deduplicated_assets, ["assets/c.bin"]);
+
+    fs::remove_dir_all(root).expect("remove file stream fixture");
+}
+
+#[test]
 #[ignore = "Windows-native release performance evidence"]
 fn runtime04_pack_writer_unstable_path_sort_bench() {
     let legacy_samples = (0..SAMPLE_COUNT)
@@ -111,4 +145,17 @@ fn runtime04_pack_writer_unstable_path_sort_bench() {
         optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(95),
         "optimized p95 should be at most 95% of legacy p95"
     );
+}
+
+fn unique_temp_dir(label: &str) -> PathBuf {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time after Unix epoch")
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "zircon-pack-writer-{label}-{}-{nanos}",
+        std::process::id()
+    ));
+    fs::create_dir_all(&root).expect("create pack writer fixture");
+    root
 }

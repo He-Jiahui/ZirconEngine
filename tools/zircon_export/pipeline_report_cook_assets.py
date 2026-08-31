@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 from typing import Any
 
+from .file_digest import file_sha256
 from .pipeline_report_cook_assets_manifest_io import (
     cook_assets_is_non_empty_trimmed_string,
     cook_assets_manifest_json,
@@ -47,7 +47,7 @@ def cook_assets_manifest_hash_diagnostics(
         if manifest_path is None:
             continue
         try:
-            actual_sha256 = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+            actual_sha256 = file_sha256(manifest_path)
         except OSError as error:
             diagnostics.append(
                 f"cook_assets report cooked_asset_manifest {manifest_path} "

@@ -3,9 +3,12 @@ use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
 use crate::text::font::{
-    load_text_font_source, resolve_font_handle_batch, shared_font_database_generation,
-    FontDatabase, LoadedTextFontSource, TextDecorationMetrics, TextDecorationMetricsCache,
+    DEFAULT_UI_FONT_ASSET as DEFAULT_FONT_ASSET, FontCollectionService, FontDatabase,
+    TextDecorationMetrics, TextDecorationMetricsCache, resolve_font_handle_batch_for_collection,
+    shared_font_collection_service,
 };
+#[cfg(test)]
+use crate::text::font::{LoadedTextFontSource, load_text_font_source};
 use crate::text::sdf::{SdfBakeParams, SdfGenerationScheduler, SdfGlyphGenerationError};
 use crate::text::{
     FontFaceId, FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight, InstancedFaceId,
@@ -26,7 +29,7 @@ mod source_context;
 
 use atlas_pages::SdfPersistentAtlasCache;
 use dynamic_batch::SdfDynamicGenerationTotals;
-use font_asset_cache::SdfFontAssetFaceCache;
+use font_asset_cache::{SdfFontAssetFaceCache, SdfFontAssetLoadError};
 use glyph_metrics::{fallback_metrics, glyph_metrics};
 use offline_source::{SdfOfflineSourceCache, SdfOfflineSourceCacheReport};
 use prepared_atlas::SdfPreparedAtlasCache;
@@ -39,7 +42,6 @@ pub(crate) use model::{
     SdfGlyphMetrics, SdfRunCpuPreparation, SdfShapedGlyphIdentity, SdfTextRun,
 };
 
-const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
 const FALLBACK_ADVANCE_RATIO: f32 = 0.6;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,6 +51,7 @@ struct SdfShapedFontResolution {
 }
 
 pub(crate) struct SdfFontBakeCache {
+    font_collection: Arc<FontCollectionService>,
     observed_font_generation: u64,
     fonts: HashMap<FontFaceId, fontsdf::Font>,
     glyphs: HashMap<SdfAtlasGlyphKey, RawBakedGlyph>,
@@ -77,8 +80,13 @@ pub(crate) struct SdfFontBakeCache {
 
 impl SdfFontBakeCache {
     pub(crate) fn new() -> Self {
-        let observed_font_generation = shared_font_database_generation();
+        Self::new_with_font_collection(shared_font_collection_service())
+    }
+
+    pub(crate) fn new_with_font_collection(font_collection: Arc<FontCollectionService>) -> Self {
+        let observed_font_generation = font_collection.generation();
         Self {
+            font_collection,
             observed_font_generation,
             fonts: HashMap::new(),
             glyphs: HashMap::new(),
@@ -106,7 +114,7 @@ impl SdfFontBakeCache {
     }
 
     pub(crate) fn invalidate_faces(&mut self) {
-        let generation = shared_font_database_generation();
+        let generation = self.font_collection.generation();
         self.clear_face_derived_caches(generation);
         self.observed_font_generation = generation;
     }
@@ -119,16 +127,12 @@ impl SdfFontBakeCache {
         &mut self,
         text: &T,
         font_database: &mut FontDatabase,
-        asset_manager: &ProjectAssetManager,
+        _asset_manager: &ProjectAssetManager,
     ) -> TextDecorationMetrics {
         self.ensure_current_font_generation();
-        let requested_face =
-            self.resolve_font_asset_face_cached(text.font(), font_database, asset_manager);
-        let default_face = self.resolve_font_asset_face_cached(
-            Some(DEFAULT_FONT_ASSET),
-            font_database,
-            asset_manager,
-        );
+        let requested_face = self.resolve_font_asset_face_cached(text.font(), font_database);
+        let default_face =
+            self.resolve_font_asset_face_cached(Some(DEFAULT_FONT_ASSET), font_database);
         let primary_face = requested_face.or(default_face);
         let primary_metrics = primary_face
             .map(|face| {
@@ -162,7 +166,7 @@ impl SdfFontBakeCache {
         let mut resolved_faces = Vec::new();
         for key in &keys {
             if let Some(face) = self
-                .resolve_faces_for_key_cached(key, font_database, asset_manager)
+                .resolve_faces_for_key_cached(key, font_database)
                 .into_iter()
                 .next()
                 .filter(|face| !resolved_faces.contains(face))
@@ -286,10 +290,10 @@ impl SdfFontBakeCache {
         &mut self,
         key: &SdfAtlasGlyphKey,
         font_database: &mut FontDatabase,
-        asset_manager: &ProjectAssetManager,
+        _asset_manager: &ProjectAssetManager,
     ) -> SdfGlyphMetrics {
         let px = key.bake_params.bake_em_px_f32();
-        for face in self.resolve_faces_for_key_cached(key, font_database, asset_manager) {
+        for face in self.resolve_faces_for_key_cached(key, font_database) {
             if !self.ensure_sdf_font(face, font_database) {
                 continue;
             }
@@ -333,13 +337,12 @@ impl SdfFontBakeCache {
         &mut self,
         key: &SdfAtlasGlyphKey,
         font_database: &mut FontDatabase,
-        asset_manager: &ProjectAssetManager,
     ) -> Vec<FontFaceId> {
         if let Some(faces) = self.face_resolutions.get(key).cloned() {
             self.touch_cached_glyph_key(key.clone());
             return faces;
         }
-        let faces = self.resolve_faces_for_key(key, font_database, asset_manager);
+        let faces = self.resolve_faces_for_key(key, font_database);
         self.face_resolutions.insert(key.clone(), faces.clone());
         self.touch_cached_glyph_key(key.clone());
         self.enforce_baked_glyph_budget(&[]);
@@ -350,17 +353,15 @@ impl SdfFontBakeCache {
         &mut self,
         font_asset: Option<&str>,
         font_database: &mut FontDatabase,
-        asset_manager: &ProjectAssetManager,
     ) -> Option<FontFaceId> {
         self.font_asset_faces
-            .resolve(font_asset, font_database, asset_manager)
+            .resolve(self.observed_font_generation, font_asset, font_database)
     }
 
     fn resolve_faces_for_key(
         &mut self,
         key: &SdfAtlasGlyphKey,
         font_database: &mut FontDatabase,
-        asset_manager: &ProjectAssetManager,
     ) -> Vec<FontFaceId> {
         self.prime_shaped_face_resolutions(std::slice::from_ref(key), font_database);
         if let Some(face) = self
@@ -378,18 +379,14 @@ impl SdfFontBakeCache {
                 .collect();
         }
         let requested_face =
-            self.resolve_font_asset_face_cached(key.font.as_deref(), font_database, asset_manager);
-        let default_face = self.resolve_font_asset_face_cached(
-            Some(DEFAULT_FONT_ASSET),
-            font_database,
-            asset_manager,
-        );
-        let resolved_face = requested_face.or(default_face).map(|primary| {
-            font_database.resolve_fallback_face_for_codepoint(
-                primary,
+            self.resolve_font_asset_face_cached(key.font.as_deref(), font_database);
+        let default_face =
+            self.resolve_font_asset_face_cached(Some(DEFAULT_FONT_ASSET), font_database);
+        let resolved_face = requested_face.or(default_face).and_then(|_| {
+            font_database.resolve_shaping_face_for_request_codepoint(
                 key.glyph,
                 &font_query_for_key(key),
-                None,
+                key.font.as_deref(),
                 key.language.as_deref(),
             )
         });
@@ -436,7 +433,12 @@ impl SdfFontBakeCache {
                 .map(|key| (key.font_id, key.font_instance_id))
                 .collect::<Vec<_>>();
             for (key, (face, instance_id)) in
-                pending.into_iter().zip(resolve_font_handle_batch(&pairs))
+                pending
+                    .into_iter()
+                    .zip(resolve_font_handle_batch_for_collection(
+                        &self.font_collection,
+                        &pairs,
+                    ))
             {
                 let instance_face = instance_id
                     .and_then(|instance| font_database.font_instance(instance))
@@ -466,11 +468,11 @@ impl SdfFontBakeCache {
     }
 
     fn ensure_current_font_generation(&mut self) {
-        self.sync_font_generation(shared_font_database_generation());
+        self.sync_font_generation(self.font_collection.generation());
     }
 
     fn ensure_current_font_generation_scheduled(&mut self, scheduler: &SdfGenerationScheduler) {
-        let generation = shared_font_database_generation();
+        let generation = self.font_collection.generation();
         if self.observed_font_generation != generation {
             self.cancel_async_generation(scheduler);
         }
@@ -537,9 +539,14 @@ pub(crate) fn sdf_scalar_is_invisible_format(scalar: char) -> bool {
 
 fn font_query_for_key(key: &SdfAtlasGlyphKey) -> FontQuery {
     FontQuery {
-        families: vec![FontFamilyName::from(
-            key.font_family.as_deref().unwrap_or_default(),
-        )],
+        families: key
+            .font_family
+            .as_deref()
+            .map(str::trim)
+            .filter(|family| !family.is_empty())
+            .map(FontFamilyName::from)
+            .into_iter()
+            .collect(),
         weight: FontWeight::clamped(key.font_weight),
         style: FontStyle::Normal,
         stretch: FontStretch::NORMAL,
@@ -574,45 +581,59 @@ impl RawBakedGlyph {
     }
 }
 
-fn resolve_font_face(
+#[cfg(test)]
+pub(super) fn resolve_font_face(
     font_asset: Option<&str>,
     font_database: &mut FontDatabase,
     asset_manager: &ProjectAssetManager,
-) -> Option<FontFaceId> {
+) -> Result<FontFaceId, SdfFontAssetLoadError> {
     let asset = font_asset
         .filter(|asset| !asset.trim().is_empty())
         .unwrap_or(DEFAULT_FONT_ASSET);
     if let Some(face) = font_database.font_asset_primary_face(asset) {
-        return Some(face);
+        return Ok(face);
     }
-    let Some(manifest) = load_text_font_source(asset, Some(asset_manager)) else {
-        font_database.remove_font_asset(asset);
-        return None;
+    if asset == DEFAULT_FONT_ASSET {
+        if let Some(face) = font_database.runtime_default_primary_face() {
+            return Ok(face);
+        }
+    }
+    let manifest = match load_text_font_source(asset, Some(asset_manager)) {
+        Ok(manifest) => manifest,
+        Err(error) => {
+            font_database.remove_font_asset(asset);
+            return Err(SdfFontAssetLoadError::Source(error));
+        }
     };
     register_loaded_font_manifest(font_database, asset, &manifest)
 }
 
+#[cfg(test)]
 fn register_loaded_font_manifest(
     font_database: &mut FontDatabase,
     asset_ref: &str,
     manifest: &LoadedTextFontSource,
-) -> Option<FontFaceId> {
-    if let Some(asset) = &manifest.asset {
-        return font_database
-            .replace_font_asset(asset_ref, asset, &manifest.source_path)
-            .ok()
-            .and_then(|report| report.faces.first().copied());
-    }
-
-    font_database
-        .replace_font_source(
+) -> Result<FontFaceId, SdfFontAssetLoadError> {
+    let report = match (&manifest.asset, &manifest.cooked_blob) {
+        (Some(asset), Some(blob)) => {
+            font_database.replace_font_asset_blob(asset_ref, asset, &manifest.source_path, blob)
+        }
+        (Some(asset), None) => {
+            font_database.replace_font_asset(asset_ref, asset, &manifest.source_path)
+        }
+        (None, _) => font_database.replace_font_source(
             asset_ref,
             &manifest.source_path,
             manifest.family.as_deref(),
             manifest.face_index,
-        )
-        .ok()
-        .and_then(|report| report.faces.first().copied())
+        ),
+    }
+    .map_err(SdfFontAssetLoadError::from_database_error)?;
+    report
+        .faces
+        .first()
+        .copied()
+        .ok_or(SdfFontAssetLoadError::NoRegisteredFaces)
 }
 
 fn shaped_glyph_id_for_face(

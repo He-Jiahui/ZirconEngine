@@ -2,14 +2,14 @@ use std::fmt::Write;
 use std::path::{Component, Path, PathBuf};
 
 use sha2::{Digest, Sha256};
-use zircon_runtime::core::framework::render::RenderGpuTimingStatus;
+use zircon_runtime::core::framework::render::{RenderGpuTimingStatus, RenderMeshSubmissionProfile};
 use zircon_runtime::graphics::{SceneRendererGpuPassTiming, SceneRendererGpuTimingReport};
 
 pub(crate) const GPU_TIMING_WARMUP_SAMPLE_COUNT: usize = 5;
 pub(crate) const GPU_TIMING_MEASURED_SAMPLE_COUNT: usize = 31;
 pub(crate) const MAX_GPU_TIMING_RESOLVE_FRAMES: u32 = 128;
 pub(crate) const GPU_TIMING_EVIDENCE_SCHEMA: &str =
-    "zircon_shader_pbr_viewer_gpu_timing_evidence_v2";
+    "zircon_shader_pbr_viewer_gpu_timing_evidence_v3";
 
 pub(crate) fn gpu_timing_report_parent(path: &Path) -> Option<&Path> {
     path.parent()
@@ -125,6 +125,7 @@ pub(crate) struct GpuTimingEvidenceRequest {
     samples: Vec<SceneRendererGpuTimingReport>,
     timestamp_period_ns_bits: Option<u32>,
     pass_names: Option<Vec<String>>,
+    measured_mesh_submission: Option<RenderMeshSubmissionProfile>,
 }
 
 impl GpuTimingEvidenceRequest {
@@ -137,6 +138,7 @@ impl GpuTimingEvidenceRequest {
             samples: Vec::with_capacity(GPU_TIMING_MEASURED_SAMPLE_COUNT),
             timestamp_period_ns_bits: None,
             pass_names: None,
+            measured_mesh_submission: None,
         }
     }
 
@@ -190,7 +192,8 @@ impl GpuTimingEvidenceRequest {
                 "non-consecutive GPU timing generation: expected={expected_generation:?}, actual={generation}"
             ));
         }
-        let (timestamp_period_ns_bits, pass_names) = match validate_report(&report) {
+        let (timestamp_period_ns_bits, pass_names, mesh_submission) = match validate_report(&report)
+        {
             Ok(validated) => validated,
             Err(error) => return GpuTimingEvidenceResolution::Invalid(error),
         };
@@ -211,6 +214,16 @@ impl GpuTimingEvidenceRequest {
                 "GPU pass coverage changed during one evidence distribution".to_owned(),
             );
         }
+        if self.warmup_generations.len() >= GPU_TIMING_WARMUP_SAMPLE_COUNT
+            && self
+                .measured_mesh_submission
+                .as_ref()
+                .is_some_and(|expected| expected != &mesh_submission)
+        {
+            return GpuTimingEvidenceResolution::Invalid(
+                "GPU mesh submission changed during measured timing distribution".to_owned(),
+            );
+        }
         self.timestamp_period_ns_bits = Some(timestamp_period_ns_bits);
         self.pass_names = Some(pass_names);
         self.accepted_last_generation = Some(generation);
@@ -219,6 +232,7 @@ impl GpuTimingEvidenceRequest {
             self.warmup_generations.push(generation);
             return GpuTimingEvidenceResolution::Pending;
         }
+        self.measured_mesh_submission = Some(mesh_submission);
         self.samples.push(report);
         if self.samples.len() < GPU_TIMING_MEASURED_SAMPLE_COUNT {
             return GpuTimingEvidenceResolution::Pending;
@@ -238,7 +252,9 @@ impl GpuTimingEvidenceRequest {
     }
 }
 
-fn validate_report(report: &SceneRendererGpuTimingReport) -> Result<(u32, Vec<String>), String> {
+fn validate_report(
+    report: &SceneRendererGpuTimingReport,
+) -> Result<(u32, Vec<String>, RenderMeshSubmissionProfile), String> {
     let timestamp_period_ns = report.timestamp_period_ns();
     if !timestamp_period_ns.is_finite() || timestamp_period_ns <= 0.0 {
         return Err("GPU timestamp period must be finite and positive".to_owned());
@@ -267,7 +283,14 @@ fn validate_report(report: &SceneRendererGpuTimingReport) -> Result<(u32, Vec<St
         pass_names.push(timing.pass_name().to_owned());
     }
     pass_names.sort_unstable();
-    Ok((report.timestamp_period_ns_bits(), pass_names))
+    let mesh_submission = report.mesh_submission_profile().cloned().ok_or_else(|| {
+        "GPU timing report is missing its matching mesh submission snapshot".to_owned()
+    })?;
+    Ok((
+        report.timestamp_period_ns_bits(),
+        pass_names,
+        mesh_submission,
+    ))
 }
 
 fn valid_pass_name(pass_name: &str) -> bool {
@@ -422,8 +445,38 @@ fn format_measured_distribution(
                 report_pass_gpu_time_us(report, pass_name)
             );
         }
+        let mesh_submission = report
+            .mesh_submission_profile()
+            .expect("validated timing distributions retain a submission snapshot");
+        for (field_name, value) in mesh_submission_evidence_fields(mesh_submission) {
+            let _ = writeln!(output, "sample.{index:03}.mesh.{field_name}={value}");
+        }
     }
     output
+}
+
+fn mesh_submission_evidence_fields(
+    mesh_submission: &RenderMeshSubmissionProfile,
+) -> [(&'static str, u32); 5] {
+    [
+        ("opaque_command_count", mesh_submission.opaque_command_count),
+        (
+            "advanced_pbr_opaque_command_count",
+            mesh_submission.advanced_pbr_opaque_command_count,
+        ),
+        (
+            "cached_command_hit_count",
+            mesh_submission.cached_command_hit_count,
+        ),
+        (
+            "command_rebuild_count",
+            mesh_submission.command_rebuild_count,
+        ),
+        (
+            "dynamic_command_count",
+            mesh_submission.dynamic_command_count,
+        ),
+    ]
 }
 
 fn report_total_gpu_time_us(report: &SceneRendererGpuTimingReport) -> u64 {
@@ -481,12 +534,24 @@ mod tests {
 
     use crate::work_paths::viewer_test_artifact_root;
 
+    fn mesh_submission() -> RenderMeshSubmissionProfile {
+        RenderMeshSubmissionProfile {
+            opaque_command_count: 1,
+            advanced_pbr_opaque_command_count: 0,
+            cached_command_hit_count: 1,
+            command_rebuild_count: 0,
+            dynamic_command_count: 0,
+            ..RenderMeshSubmissionProfile::default()
+        }
+    }
+
     fn report(generation: u64, pass_name: &str, gpu_time_us: u64) -> SceneRendererGpuTimingReport {
         SceneRendererGpuTimingReport::new(
             generation,
             1.0,
             [SceneRendererGpuPassTiming::new(pass_name, gpu_time_us)],
         )
+        .with_mesh_submission_profile(mesh_submission())
     }
 
     fn direct_report(generation: u64, base_gpu_time_us: u64) -> SceneRendererGpuTimingReport {
@@ -500,6 +565,7 @@ mod tests {
                 SceneRendererGpuPassTiming::new("direct_overlays", base_gpu_time_us + 2),
             ],
         )
+        .with_mesh_submission_profile(mesh_submission())
     }
 
     fn measured_distribution(screenshot_generation: u64) -> GpuTimingEvidenceResolution {
@@ -585,6 +651,37 @@ mod tests {
             GpuTimingEvidenceResolution::Invalid(_)
         ));
 
+        let mut mesh_drift = GpuTimingEvidenceRequest::new(7);
+        for generation in 8..=13 {
+            assert_eq!(
+                mesh_drift.observe(
+                    Some(direct_report(generation, generation)),
+                    RenderGpuTimingStatus::Pending,
+                ),
+                GpuTimingEvidenceResolution::Pending
+            );
+        }
+        let changed_mesh_submission = RenderMeshSubmissionProfile {
+            advanced_pbr_opaque_command_count: 1,
+            ..mesh_submission()
+        };
+        let changed_report = SceneRendererGpuTimingReport::new(
+            14,
+            1.0,
+            [
+                SceneRendererGpuPassTiming::new("direct_gpu_scene_upload", 0),
+                SceneRendererGpuPassTiming::new("direct_scene_content", 14),
+                SceneRendererGpuPassTiming::new("direct_output_transfer", 15),
+                SceneRendererGpuPassTiming::new("direct_overlays", 16),
+            ],
+        )
+        .with_mesh_submission_profile(changed_mesh_submission);
+        assert!(matches!(
+            mesh_drift.observe(Some(changed_report), RenderGpuTimingStatus::Pending),
+            GpuTimingEvidenceResolution::Invalid(reason)
+                if reason.contains("mesh submission changed")
+        ));
+
         let mut coverage_drift = GpuTimingEvidenceRequest::new(7);
         assert_eq!(
             coverage_drift.observe(Some(direct_report(8, 8)), RenderGpuTimingStatus::Pending,),
@@ -596,6 +693,20 @@ mod tests {
                 RenderGpuTimingStatus::Pending,
             ),
             GpuTimingEvidenceResolution::Invalid(_)
+        ));
+
+        let mut missing_mesh_submission = GpuTimingEvidenceRequest::new(7);
+        assert!(matches!(
+            missing_mesh_submission.observe(
+                Some(SceneRendererGpuTimingReport::new(
+                    8,
+                    1.0,
+                    [SceneRendererGpuPassTiming::new("direct_scene_content", 8)],
+                )),
+                RenderGpuTimingStatus::Pending,
+            ),
+            GpuTimingEvidenceResolution::Invalid(reason)
+                if reason.contains("missing its matching mesh submission")
         ));
     }
 
@@ -629,7 +740,7 @@ mod tests {
             &resolution,
         );
         assert!(output.starts_with(
-            "schema=zircon_shader_pbr_viewer_gpu_timing_evidence_v2\nstatus=measured\n"
+            "schema=zircon_shader_pbr_viewer_gpu_timing_evidence_v3\nstatus=measured\n"
         ));
         assert!(output.contains("screenshot_frame_generation=7\n"));
         assert!(output.contains("warmup_sample_count=5\n"));
@@ -645,6 +756,8 @@ mod tests {
         assert!(output.contains("sample.000.frame_generation=13\n"));
         assert!(output.contains("sample.030.frame_generation=43\n"));
         assert!(output.contains("sample.030.pass.direct_overlays_us=45\n"));
+        assert!(output.contains("sample.000.mesh.opaque_command_count=1\n"));
+        assert!(output.contains("sample.030.mesh.dynamic_command_count=0\n"));
     }
 
     #[test]

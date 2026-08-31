@@ -19,6 +19,7 @@ fn recorded_commands_preserve_corner_radius_in_chrome_stream() {
             },
             clip_frame: None,
             z_index: 3,
+            source: None,
             kind: HostRecordedPaintKind::Quad {
                 color: [10, 20, 30, 255],
                 corner_radius: 8.0,
@@ -37,6 +38,7 @@ fn recorded_commands_preserve_corner_radius_in_chrome_stream() {
             },
             clip_frame: None,
             z_index: 4,
+            source: None,
             kind: HostRecordedPaintKind::Border {
                 color: [40, 50, 60, 255],
                 width: 2.0,

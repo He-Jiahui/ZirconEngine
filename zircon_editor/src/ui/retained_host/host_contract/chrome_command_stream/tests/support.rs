@@ -70,12 +70,16 @@ pub(in crate::ui::retained_host::host_contract) fn presentation_with_viewport_im
     };
     presentation.host_shell.project_path = "res://project".into();
     presentation.host_shell.status_secondary = "Ready".into();
-    presentation.viewport_image = Some(super::super::super::data::HostViewportImageData {
-        resource_key: "viewport:test-initial".into(),
-        width: 2,
-        height: 2,
-        rgba: Some(vec![255; 16].into()),
-    });
+    presentation
+        .viewport_images
+        .replace_scene(super::super::super::data::HostViewportImageData {
+            resource_key: "viewport:test-initial".into(),
+            width: 2,
+            height: 2,
+            rgba: Some(vec![255; 16].into()),
+            play_frame_identity: None,
+            overlay: None,
+        });
     presentation
 }
 

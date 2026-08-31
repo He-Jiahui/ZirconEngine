@@ -33,7 +33,7 @@ fn toast_state_style_from_palette(
         }
         UiPainterResolvedState::Focused => {
             let mut style = toast_normal_style_from_palette(state, palette);
-            style.border = palette.action;
+            style.border = palette.focus_border;
             style
         }
         UiPainterResolvedState::Open => {
@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn toast_open_and_pressed_states_project_active_colors_from_host_palette() {
         let mut palette = PALETTE;
-        palette.focus_ring = [20, 21, 22, 255];
+        palette.accent = [20, 21, 22, 255];
         palette.surface_pressed = [23, 24, 25, 255];
 
         let toast_palette = workbench_toast_palette_from_host(palette);

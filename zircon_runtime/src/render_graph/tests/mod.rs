@@ -1,8 +1,10 @@
+mod access_metadata;
 mod builder_validation;
 mod compute_dispatch;
 mod culling;
 mod cycles;
 mod external_aliasing;
 mod ordering;
+mod resource_dependencies;
 mod resources;
 mod scaling;

@@ -15,6 +15,9 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn runt
             "overlay-gizmo" if overlay.is_none() => overlay = Some(index),
             _ => {}
         }
+        if postprocess.is_some() && runtime_ui.is_some() && overlay.is_some() {
+            break;
+        }
     }
     let postprocess = postprocess?;
     let runtime_ui = runtime_ui?;
@@ -79,3 +82,7 @@ mod tests {
         assert_eq!(runtime_ui_graph_pass_order(&passes, 0), None);
     }
 }
+
+#[cfg(test)]
+#[path = "ui_stats/early_exit_tests.rs"]
+mod early_exit_tests;

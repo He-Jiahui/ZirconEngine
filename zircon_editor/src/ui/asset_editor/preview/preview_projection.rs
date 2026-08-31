@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
@@ -217,8 +217,8 @@ fn node_component_label(node: &UiNodeDefinition) -> Option<&str> {
         .or_else(|| node.widget_type.as_deref())
 }
 
-fn control_id_index(document: &UiAssetDocument) -> BTreeMap<&str, &UiNodeDefinition> {
-    let mut index = BTreeMap::new();
+fn control_id_index(document: &UiAssetDocument) -> HashMap<&str, &UiNodeDefinition> {
+    let mut index = HashMap::new();
     for node in document.iter_nodes() {
         if let Some(control_id) = node.control_id.as_deref() {
             let _ = index.entry(control_id).or_insert(node);
@@ -226,3 +226,7 @@ fn control_id_index(document: &UiAssetDocument) -> BTreeMap<&str, &UiNodeDefinit
     }
     index
 }
+
+#[cfg(test)]
+#[path = "preview_projection/control_hash_index_tests.rs"]
+mod control_hash_index_tests;

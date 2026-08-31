@@ -10,6 +10,9 @@ use super::super::{
 };
 
 const MAX_BUFFERED_STAGE_OUTPUT_EVENTS_PER_STAGE: usize = 16;
+const EXPORT_STAGE_COUNT: usize = ExportStage::ALL.len();
+
+type BufferedStageOutputCounts = [usize; EXPORT_STAGE_COUNT];
 
 /// Adapts the export wizard runner to the shared editor job contract.
 pub(super) struct ExportWizardEditorJob<R> {
@@ -49,7 +52,7 @@ where
             events,
         } = self;
         let cancel = ExportWizardJobCancelSignal { context: &context };
-        let mut buffered_output_events = Vec::<(ExportStage, usize)>::new();
+        let mut buffered_output_events = BufferedStageOutputCounts::default();
         let mut coalesced_output_events = 0_u64;
         let snapshot = run_export_wizard_job(job_id, &plan, &mut runner, &cancel, &mut |event| {
             report_event_progress(&context, &event);
@@ -92,7 +95,7 @@ where
 fn send_job_event(
     events: &SyncSender<ExportWizardJobEvent>,
     mut event: ExportWizardJobEvent,
-    buffered_output_events: &mut Vec<(ExportStage, usize)>,
+    buffered_output_events: &mut BufferedStageOutputCounts,
     coalesced_output_events: &mut u64,
 ) {
     event.coalesced_output_events = *coalesced_output_events;
@@ -122,20 +125,23 @@ fn send_job_event(
 }
 
 fn stage_output_event_count_mut(
-    buffered_output_events: &mut Vec<(ExportStage, usize)>,
+    buffered_output_events: &mut BufferedStageOutputCounts,
     stage: ExportStage,
 ) -> &mut usize {
-    if let Some(index) = buffered_output_events
-        .iter()
-        .position(|(buffered_stage, _)| *buffered_stage == stage)
-    {
-        return &mut buffered_output_events[index].1;
+    &mut buffered_output_events[export_stage_index(stage)]
+}
+
+const fn export_stage_index(stage: ExportStage) -> usize {
+    match stage {
+        ExportStage::Validate => 0,
+        ExportStage::SourceTemplate => 1,
+        ExportStage::NativeDynamic => 2,
+        ExportStage::CompileHost => 3,
+        ExportStage::CookAssets => 4,
+        ExportStage::Pack => 5,
+        ExportStage::PlatformBundle => 6,
+        ExportStage::Report => 7,
     }
-    buffered_output_events.push((stage, 0));
-    &mut buffered_output_events
-        .last_mut()
-        .expect("stage output event count was just inserted")
-        .1
 }
 
 fn non_terminal_status_name(status: ExportWizardJobStatus) -> &'static str {
@@ -184,6 +190,79 @@ mod tests {
         ExportWizardStageOutputDelta,
     };
     use super::*;
+
+    #[test]
+    fn optimization_batch_20260830er_stage_output_counts_use_fixed_slots() {
+        let source = include_str!("job.rs");
+
+        assert!(source.contains(concat!(
+            "type BufferedStageOutputCounts",
+            " = [usize; EXPORT_STAGE_COUNT];"
+        )));
+        assert!(!source.contains(concat!("Vec::<(ExportStage, usize)>", "::new()")));
+        assert!(!source.contains(concat!(
+            ".position(|(buffered_stage, _)|",
+            " *buffered_stage == stage)"
+        )));
+    }
+
+    #[test]
+    fn optimization_batch_20260830er_stage_output_counts_map_every_stage_to_one_slot() {
+        let mut counts = BufferedStageOutputCounts::default();
+
+        for (index, stage) in ExportStage::ALL.into_iter().enumerate() {
+            *stage_output_event_count_mut(&mut counts, stage) = index + 1;
+        }
+
+        assert_eq!(counts, [1, 2, 3, 4, 5, 6, 7, 8]);
+    }
+
+    #[test]
+    #[ignore = "deterministic performance evidence"]
+    fn optimization_batch_20260830er_stage_output_count_benchmark_evidence() {
+        const EVENT_COUNT: usize = 8_000_000;
+        const SAMPLE_COUNT: usize = 11;
+        const MARKER: &str = "EDITOR550_FIXED_STAGE_OUTPUT_COUNTERS_BENCH_V1";
+
+        fn median(mut samples: Vec<std::time::Duration>) -> std::time::Duration {
+            samples.sort_unstable();
+            samples[samples.len() / 2]
+        }
+
+        let mut linear_samples = Vec::with_capacity(SAMPLE_COUNT);
+        let mut fixed_samples = Vec::with_capacity(SAMPLE_COUNT);
+        for _ in 0..SAMPLE_COUNT {
+            let stage = std::hint::black_box(ExportStage::Report);
+            let mut linear = ExportStage::ALL
+                .into_iter()
+                .map(|stage| (stage, 0_usize))
+                .collect::<Vec<_>>();
+            let started = std::time::Instant::now();
+            for _ in 0..EVENT_COUNT {
+                let count = linear
+                    .iter_mut()
+                    .find(|(candidate, _)| *candidate == stage)
+                    .expect("all export stages are initialized");
+                count.1 = std::hint::black_box(count.1.wrapping_add(1));
+            }
+            linear_samples.push(started.elapsed());
+            std::hint::black_box(linear);
+
+            let mut fixed = BufferedStageOutputCounts::default();
+            let started = std::time::Instant::now();
+            for _ in 0..EVENT_COUNT {
+                let count = stage_output_event_count_mut(&mut fixed, stage);
+                *count = std::hint::black_box(count.wrapping_add(1));
+            }
+            fixed_samples.push(started.elapsed());
+            std::hint::black_box(fixed);
+        }
+
+        let linear = median(linear_samples);
+        let fixed = median(fixed_samples);
+        eprintln!("{MARKER} linear={linear:?} fixed={fixed:?}");
+        assert!(fixed < linear, "fixed={fixed:?}, linear={linear:?}");
+    }
 
     #[test]
     fn output_backpressure_preserves_terminal_event_and_reports_coalesced_count() {

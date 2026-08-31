@@ -2,7 +2,13 @@ use std::fs;
 
 use zircon_runtime::scene::{NodeKind, World};
 
-use super::{PlaySceneSource, PlaySnapshotStore};
+use super::{PlaySceneSource, PlaySceneSourceError, PlaySnapshotStore};
+
+#[test]
+fn world_snapshot_capture_keeps_dynamic_scene_failures_typed() {
+    let _: fn(&World) -> Result<PlaySceneSource, PlaySceneSourceError> =
+        PlaySceneSource::from_world;
+}
 
 fn test_root(name: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!("zircon-editor-play-{name}-{}", std::process::id()))
@@ -14,7 +20,9 @@ fn snapshot_materialization_roundtrips_versioned_scene_and_cleans_owned_root() {
     let _ = fs::remove_dir_all(&root);
     fs::create_dir_all(&root).unwrap();
     let mut world = World::empty();
-    world.spawn_node(NodeKind::Cube);
+    world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let source = PlaySceneSource::from_world(&world).unwrap();
     let store = PlaySnapshotStore::default();
     let mut scene = store.materialize(&root, &source).unwrap();

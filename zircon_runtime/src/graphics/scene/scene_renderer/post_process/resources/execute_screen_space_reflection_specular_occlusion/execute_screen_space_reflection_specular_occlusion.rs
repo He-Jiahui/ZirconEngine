@@ -2,11 +2,12 @@ use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::RenderGraphAttachmentOps;
+use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use super::super::super::scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
 use super::super::execute_post_process::{
-    build_post_process_params, create_bind_group, create_post_process_params_buffer,
+    build_post_process_params, create_bind_group, post_process_params_upload,
 };
 
 impl ScenePostProcessResources {
@@ -14,7 +15,6 @@ impl ScenePostProcessResources {
     pub(crate) fn execute_screen_space_reflection_specular_occlusion(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         cluster_dimensions: UVec2,
         scene_color_origin: [u32; 2],
@@ -31,18 +31,25 @@ impl ScenePostProcessResources {
         depth_of_field_coc_view: &wgpu::TextureView,
         depth_of_field_bokeh_view: &wgpu::TextureView,
         screen_space_reflection_specular_occlusion_view: &wgpu::TextureView,
-        cluster_buffer: &wgpu::Buffer,
+        cluster_buffer: wgpu::BufferBinding<'_>,
         frame: &ViewportRenderFrame,
         features: SceneRuntimeFeatureFlags,
         history_available: bool,
         attachment_ops: RenderGraphAttachmentOps,
-    ) {
+    ) -> WgpuBufferUploadBatch {
+        let render_region = frame
+            .render_region_for_phase(
+                crate::core::framework::render::RenderPipelinePhase::
+                    PostReconstructionScenePostProcess,
+            )
+            .expect("SSR specular occlusion requires post-reconstruction phase");
         let params = build_post_process_params(
-            frame.extract.view.effective_render_size(),
+            render_region.local_size(),
             cluster_dimensions,
-            frame.render_region(),
+            render_region,
             scene_color_origin,
             &frame.extract,
+            frame.post_process(),
             features,
             history_available,
             0,
@@ -50,17 +57,13 @@ impl ScenePostProcessResources {
             0,
             false,
         );
-        let params_buffer = create_post_process_params_buffer(
-            device,
-            queue,
-            "zircon-screen-space-reflection-specular-occlusion-params",
-            &params,
-        );
+        let params_buffer = &self.post_process_pass_parameter_buffers.specular_occlusion;
+        let params_uploads = post_process_params_upload(params_buffer, &params);
 
         let bind_group = create_bind_group(
             self,
             device,
-            &params_buffer,
+            params_buffer,
             scene_color_view,
             scene_depth_view,
             motion_vector_neighbor_max_view,
@@ -85,7 +88,7 @@ impl ScenePostProcessResources {
             &self.effect_lut_texture_view,
             &self.effect_lut_texture_3d_view,
             cluster_buffer,
-            self.default_exposure_buffer(),
+            self.default_exposure_buffer_binding(),
         );
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -104,5 +107,22 @@ impl ScenePostProcessResources {
         pass.set_pipeline(&self.screen_space_reflection_specular_occlusion_pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.draw(0..3, 0..1);
+        params_uploads
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn specular_occlusion_params_are_returned_as_pre_submit_uploads() {
+        let source = include_str!("execute_screen_space_reflection_specular_occlusion.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("specular-occlusion source");
+
+        assert!(!production.contains("queue.write_buffer"));
+        assert!(!production.contains("create_post_process_params_buffer"));
+        assert!(production.contains("post_process_params_upload("));
     }
 }

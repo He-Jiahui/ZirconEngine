@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
+from .file_digest import file_size_and_sha256
 from .native_dynamic_contract import NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS
 from .native_dynamic_templates import toml_string
 from .native_signing import execute_native_dynamic_signing
@@ -98,15 +98,15 @@ def plugin_build_loadable_file_manifest(
         if file_path.suffix.lower() not in NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS:
             continue
         try:
-            payload = file_path.read_bytes()
+            byte_length, sha256 = file_size_and_sha256(file_path)
         except OSError as error:
             diagnostics.append(f"plugin loadable artifact {file_path} could not be read: {error}")
             continue
         entries.append(
             {
                 "path": file_path.relative_to(package_dir).as_posix(),
-                "bytes": len(payload),
-                "sha256": hashlib.sha256(payload).hexdigest(),
+                "bytes": byte_length,
+                "sha256": sha256,
             }
         )
     return entries

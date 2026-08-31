@@ -4,7 +4,10 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::asset::project::ProjectManifest;
-use crate::{core::framework::project::ExportPackagingStrategy, plugin::RuntimePluginCatalog};
+use crate::{
+    core::framework::project::{ExportPackagingStrategy, ExportProfile, ProjectPluginSelection},
+    plugin::RuntimePluginCatalog,
+};
 
 mod feature_selection;
 mod profile;
@@ -112,35 +115,11 @@ impl ExportBuildPlan {
             project_editor_crate_diagnostics(&manifest.plugins, profile.target_mode);
         let (project_target_mode_diagnostics, project_target_mode_fatal_diagnostics) =
             project_target_mode_diagnostics(&manifest.plugins, profile.target_mode);
-        let mut linked_runtime_crate_names = HashSet::new();
-        let mut linked_runtime_package_ids = HashSet::new();
-        let mut linked_runtime_crate_links = enabled_plugins
-            .iter()
-            .filter(|selection| {
-                selection.runtime_crate.is_some()
-                    && !selection.is_runtime_builtin_domain()
-                    && project_plugin_package_id_is_valid(&selection.id)
-                    && project_runtime_crate_override_is_valid(selection.runtime_crate.as_deref())
-                    && selection.packaging != ExportPackagingStrategy::NativeDynamic
-                    && linked_rust_strategy_enabled(&profile)
-            })
-            .map(|selection| selection.runtime_crate_name())
-            .filter(|crate_name| linked_runtime_crate_names.insert(crate_name.clone()))
-            .map(|crate_name| {
-                let path = format!("{}/runtime", plugin_path_for_runtime_crate(&crate_name));
-                ExportLinkedRuntimeCrate::runtime_plugin(crate_name, path)
-            })
-            .collect::<Vec<_>>();
-        for selection in enabled_plugins.iter().filter(|selection| {
-            selection.runtime_crate.is_some()
-                && !selection.is_runtime_builtin_domain()
-                && project_plugin_package_id_is_valid(&selection.id)
-                && project_runtime_crate_override_is_valid(selection.runtime_crate.as_deref())
-                && selection.packaging != ExportPackagingStrategy::NativeDynamic
-                && linked_rust_strategy_enabled(&profile)
-        }) {
-            linked_runtime_package_ids.insert(selection.id.clone());
-        }
+        let LinkedRuntimePluginProjection {
+            crate_names: mut linked_runtime_crate_names,
+            package_ids: mut linked_runtime_package_ids,
+            crate_links: mut linked_runtime_crate_links,
+        } = linked_runtime_plugin_projection(&enabled_plugins, &profile);
         let mut native_dynamic_package_accumulator = NativeDynamicPackageAccumulator::default();
         let feature_report = catalog.feature_dependency_report_for_completed_manifest(
             &completed_plugins,
@@ -481,12 +460,86 @@ fn linked_rust_strategy_enabled(profile: &crate::core::framework::project::Expor
         || profile.uses_strategy(ExportPackagingStrategy::SourceTemplate)
 }
 
+#[derive(Default)]
+struct LinkedRuntimePluginProjection {
+    crate_names: HashSet<String>,
+    package_ids: HashSet<String>,
+    crate_links: Vec<ExportLinkedRuntimeCrate>,
+}
+
+fn linked_runtime_plugin_projection(
+    enabled_plugins: &[&ProjectPluginSelection],
+    profile: &ExportProfile,
+) -> LinkedRuntimePluginProjection {
+    if !linked_rust_strategy_enabled(profile) {
+        return LinkedRuntimePluginProjection::default();
+    }
+
+    let mut crate_names = HashSet::with_capacity(enabled_plugins.len());
+    let mut package_ids = HashSet::with_capacity(enabled_plugins.len());
+    let mut crate_links = Vec::with_capacity(enabled_plugins.len());
+    for &selection in enabled_plugins {
+        if selection.runtime_crate.is_none()
+            || selection.is_runtime_builtin_domain()
+            || !project_plugin_package_id_is_valid(&selection.id)
+            || !project_runtime_crate_override_is_valid(selection.runtime_crate.as_deref())
+            || selection.packaging == ExportPackagingStrategy::NativeDynamic
+        {
+            continue;
+        }
+
+        package_ids.insert(selection.id.clone());
+        let crate_name = selection
+            .runtime_crate
+            .as_deref()
+            .expect("eligible linked runtime plugin must declare a runtime crate");
+        if crate_names.contains(crate_name) {
+            continue;
+        }
+        let crate_name = crate_name.to_string();
+        crate_names.insert(crate_name.clone());
+        let path = format!("{}/runtime", plugin_path_for_runtime_crate(&crate_name));
+        crate_links.push(ExportLinkedRuntimeCrate::runtime_plugin(crate_name, path));
+    }
+
+    LinkedRuntimePluginProjection {
+        crate_names,
+        package_ids,
+        crate_links,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::asset::AssetUri;
     use crate::core::framework::platform::RuntimeTargetMode;
     use crate::core::framework::project::{ExportProfile, ExportTargetPlatform, RuntimeProfileId};
+
+    #[test]
+    fn single_pass_linked_runtime_projection_preserves_contract() {
+        let profile = ExportProfile::new(
+            "client",
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::Windows,
+            RuntimeProfileId::Client2d,
+        )
+        .with_strategy(ExportPackagingStrategy::SourceTemplate);
+        let first = ProjectPluginSelection::runtime_plugin("duplicate-runtime-a", true, false)
+            .with_runtime_crate("zircon_plugin_shared_runtime");
+        let second = ProjectPluginSelection::runtime_plugin("duplicate-runtime-b", true, false)
+            .with_runtime_crate("zircon_plugin_shared_runtime");
+        let projection = linked_runtime_plugin_projection(&[&first, &second], &profile);
+
+        assert_eq!(projection.crate_links.len(), 1);
+        assert_eq!(
+            projection.crate_links[0].crate_name,
+            "zircon_plugin_shared_runtime"
+        );
+        assert_eq!(projection.crate_links[0].path, "shared/runtime");
+        assert!(projection.package_ids.contains("duplicate-runtime-a"));
+        assert!(projection.package_ids.contains("duplicate-runtime-b"));
+    }
 
     #[test]
     fn export_generation_builds_each_manifest_validation_view_once() {

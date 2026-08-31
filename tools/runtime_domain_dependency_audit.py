@@ -605,6 +605,9 @@ def _module_edges(
         original_attributes = source[
             declaration.start("attributes") : declaration.end("attributes")
         ]
+        masked_attributes = code_view[
+            declaration.start("attributes") : declaration.end("attributes")
+        ]
         path_match = PATH_ATTRIBUTE.search(original_attributes)
         target_path = _resolve_module_path(
             source_path,
@@ -619,7 +622,7 @@ def _module_edges(
                         [
                             expression
                             for _start, _end, expression in _cfg_attributes(
-                                _rust_code_view(original_attributes),
+                                masked_attributes,
                                 original_attributes,
                             )
                         ]
@@ -670,14 +673,13 @@ def _test_only_source_paths(
                 pending.append(target)
 
     production_reachable = source_paths - test_reachable
-    changed = True
-    while changed:
-        changed = False
-        for parent in tuple(production_reachable):
-            for target, cfg_test in edges.get(parent, []):
-                if not cfg_test and target not in production_reachable:
-                    production_reachable.add(target)
-                    changed = True
+    production_pending = list(production_reachable)
+    while production_pending:
+        parent = production_pending.pop()
+        for target, cfg_test in edges.get(parent, []):
+            if not cfg_test and target not in production_reachable:
+                production_reachable.add(target)
+                production_pending.append(target)
 
     return test_reachable - production_reachable, sources, code_views
 
@@ -697,6 +699,8 @@ def audit_runtime_domain_dependencies(repo_root: Path) -> dict[str, object]:
 
         source_domain = relative_path.parts[0]
         source = sources[source_path]
+        if "crate::" not in source:
+            continue
         code_view = code_views.get(source_path)
         if code_view is None:
             code_view = _rust_code_view(source)
@@ -716,6 +720,9 @@ def audit_runtime_domain_dependencies(repo_root: Path) -> dict[str, object]:
             zip(source.splitlines(), audit_source.splitlines(), strict=True),
             start=1,
         ):
+            grouped_targets = grouped_targets_by_line.get(line_number, ())
+            if "crate::" not in audit_line and not grouped_targets:
+                continue
             targets = set()
             for match in CRATE_DOMAIN_REFERENCE.finditer(audit_line):
                 target_domain = _canonical_rust_identifier(match.group(1))
@@ -723,7 +730,7 @@ def audit_runtime_domain_dependencies(repo_root: Path) -> dict[str, object]:
                     targets.add(target_domain)
             targets.update(
                 target_domain
-                for target_domain in grouped_targets_by_line.get(line_number, ())
+                for target_domain in grouped_targets
                 if target_domain != source_domain
             )
             for target_domain in targets:

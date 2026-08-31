@@ -119,16 +119,19 @@ class OwnershipTransferService:
             baseline_hashes = self._baseline_hashes(connection, baseline_epoch, normalized)
             attributions = self._attributions(connection, normalized)
             leases = self._live_leases(connection, current_time)
-        entries = tuple(
-            self._preview_path(
-                path,
-                baseline_hashes.get(path.casefold()),
-                attributions.get(path.casefold()),
-                leases,
-                target_session_id,
+        entries_list: list[OwnershipTransferPath] = []
+        for path in normalized:
+            path_key = path.casefold()
+            entries_list.append(
+                self._preview_path(
+                    path,
+                    baseline_hashes.get(path_key),
+                    attributions.get(path_key),
+                    leases,
+                    target_session_id,
+                )
             )
-            for path in normalized
-        )
+        entries = tuple(entries_list)
         fingerprint = self._fingerprint(target_session_id, baseline_epoch, entries)
         preview = OwnershipTransferPreview(
             fingerprint, target_session_id, baseline_epoch, entries
@@ -205,6 +208,7 @@ class OwnershipTransferService:
             )
             now = utc_text()
             for item in requested:
+                path_key = item.path.casefold()
                 connection.execute(
                     """
                     INSERT INTO attributions(
@@ -218,7 +222,7 @@ class OwnershipTransferService:
                         attributed_at=excluded.attributed_at
                     """,
                     (
-                        item.path.casefold(),
+                        path_key,
                         item.path,
                         preview.target_session_id,
                         preview.baseline_epoch,
@@ -235,7 +239,7 @@ class OwnershipTransferService:
                     """,
                     (
                         fingerprint,
-                        item.path.casefold(),
+                        path_key,
                         item.path,
                         preview.target_session_id,
                         item.source_session_id,
@@ -273,10 +277,11 @@ class OwnershipTransferService:
         attributions = self._attributions(connection, paths)
         leases = self._live_leases(connection, current_time)
         for item in requested:
+            path_key = item.path.casefold()
             current = self._preview_path(
                 item.path,
-                baseline_hashes.get(item.path.casefold()),
-                attributions.get(item.path.casefold()),
+                baseline_hashes.get(path_key),
+                attributions.get(path_key),
                 leases,
                 preview.target_session_id,
             )

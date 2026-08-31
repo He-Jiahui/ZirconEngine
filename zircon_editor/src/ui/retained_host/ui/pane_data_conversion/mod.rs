@@ -35,6 +35,8 @@ pub(crate) use self::component_showcase_projection::{
 pub(crate) use self::console_projection::{
     to_host_contract_console_pane_from_host_pane,
     to_host_contract_console_pane_from_host_pane_with_runtime,
+    to_host_contract_console_pane_from_host_pane_with_runtime_and_cache,
+    ConsolePaneProjectionCache,
 };
 pub(crate) use self::generated_bottom_projection::to_host_contract_generated_bottom_pane_from_host_pane;
 pub(crate) use self::hierarchy_projection::to_host_contract_hierarchy_pane_from_host_pane_with_query;
@@ -46,16 +48,19 @@ pub(crate) use self::inspector_projection::{
     to_host_contract_inspector_pane_from_host_pane,
     to_host_contract_inspector_pane_from_host_pane_with_runtime,
 };
-pub(crate) use self::module_plugins::to_host_contract_module_plugins_pane_from_host_pane;
+pub(crate) use self::module_plugins::{
+    to_host_contract_module_plugins_pane_from_host_pane_with_cache,
+    ModulePluginsPaneProjectionCache,
+};
 pub(super) use self::native_template_node_panes::{
     to_host_contract_asset_browser_pane, to_host_contract_assets_activity_pane,
     to_host_contract_project_overview_pane,
 };
 pub(super) use self::pane_component_projection::{
-    projected_command_palette_options, projected_command_palette_structured_options,
-    projected_notification_center_metadata, projected_notification_center_metadata_from_host,
-    projected_notification_center_option_rows, projected_notification_center_value_text,
-    projected_sample_grid_data, projected_timeline_strip_data, projected_weight_heatmap_data,
+    projected_command_palette_option_rows, projected_notification_center_metadata,
+    projected_notification_center_metadata_from_host, projected_notification_center_option_rows,
+    projected_notification_center_value_text, projected_sample_grid_data,
+    projected_settings_window_data, projected_timeline_strip_data, projected_weight_heatmap_data,
     NotificationCenterMetadata,
 };
 pub(super) use self::pane_menu_projection::structured_menu_items;

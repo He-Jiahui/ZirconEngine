@@ -1,6 +1,7 @@
 use std::sync::mpsc;
 
 use wgpu::util::DeviceExt;
+use zircon_runtime::graphics::RenderPassBufferUploadSink;
 
 use super::super::super::super::super::{
     gpu_pending_probe_input::GpuPendingProbeInput,
@@ -15,6 +16,14 @@ use super::super::super::super::super::{
 use super::*;
 
 const HYBRID_GI_STORAGE_BUFFER_BINDING_COUNT: u32 = 9;
+
+struct QueueUploadSink<'a>(&'a wgpu::Queue);
+
+impl RenderPassBufferUploadSink for QueueUploadSink<'_> {
+    fn write_buffer(&mut self, buffer: &wgpu::Buffer, offset: u64, bytes: &[u8]) {
+        self.0.write_buffer(buffer, offset, bytes);
+    }
+}
 
 #[test]
 fn radiance_cache_workgroup_count_covers_each_nonempty_input_range() {
@@ -153,11 +162,12 @@ fn radiance_cache_shader_commits_final_mip_before_screen_probe_consume() {
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-hybrid-gi-radiance-cache-test-encoder"),
     });
+    let mut upload_sink = QueueUploadSink(&queue);
     dispatch_radiance_cache(
         &device,
         &resources,
         &state,
-        &queue,
+        &mut upload_sink,
         &mut encoder,
         &buffers,
         &inputs,
@@ -229,11 +239,12 @@ fn radiance_cache_shader_commits_final_mip_before_screen_probe_consume() {
     let mut stable_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-hybrid-gi-radiance-cache-test-stable-encoder"),
     });
+    let mut stable_upload_sink = QueueUploadSink(&queue);
     dispatch_radiance_cache(
         &device,
         &resources,
         &state,
-        &queue,
+        &mut stable_upload_sink,
         &mut stable_encoder,
         &stable_buffers,
         &stable_inputs,
@@ -296,11 +307,12 @@ fn radiance_cache_shader_commits_final_mip_before_screen_probe_consume() {
     let mut propagated_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-hybrid-gi-radiance-cache-test-propagated-encoder"),
     });
+    let mut propagated_upload_sink = QueueUploadSink(&queue);
     dispatch_radiance_cache(
         &device,
         &resources,
         &state,
-        &queue,
+        &mut propagated_upload_sink,
         &mut propagated_encoder,
         &propagated_buffers,
         &propagated_inputs,
@@ -346,11 +358,12 @@ fn radiance_cache_shader_commits_final_mip_before_screen_probe_consume() {
     let mut stale_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-hybrid-gi-radiance-cache-test-stale-encoder"),
     });
+    let mut stale_upload_sink = QueueUploadSink(&queue);
     dispatch_radiance_cache(
         &device,
         &resources,
         &state,
-        &queue,
+        &mut stale_upload_sink,
         &mut stale_encoder,
         &stale_buffers,
         &stale_inputs,

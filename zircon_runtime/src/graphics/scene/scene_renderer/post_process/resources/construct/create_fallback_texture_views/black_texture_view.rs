@@ -1,5 +1,7 @@
-use super::super::super::super::fallback_texture::create_fallback_texture_view;
+use crate::graphics::backend::SystemTextureGenerationLease;
 
-pub(super) fn black_texture_view(device: &wgpu::Device, queue: &wgpu::Queue) -> wgpu::TextureView {
-    create_fallback_texture_view(device, queue, [0, 0, 0, 255], "zircon-black-fallback")
+pub(super) fn black_texture_view(
+    system_textures: &SystemTextureGenerationLease,
+) -> wgpu::TextureView {
+    system_textures.black_alpha_one_rgba8_view().clone()
 }

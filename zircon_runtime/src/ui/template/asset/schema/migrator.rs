@@ -21,8 +21,7 @@ impl UiAssetSchemaMigrator {
             ));
         };
 
-        let header = parse_asset_header_value(&value)?;
-        reject_unsupported_source_version(&header)?;
+        let header = validate_owned_source_header(parse_asset_header_value(&value)?)?;
         if table.contains_key("nodes") {
             return Self::migrate_flat_asset(value, header);
         }
@@ -94,6 +93,17 @@ fn reject_unsupported_source_version(header: &UiAssetHeader) -> Result<(), UiAss
     Ok(())
 }
 
+fn validate_owned_source_header(header: UiAssetHeader) -> Result<UiAssetHeader, UiAssetError> {
+    if !UiAssetSchemaVersionPolicy::is_supported_source_schema(header.version) {
+        return Err(UiAssetError::UnsupportedSchemaVersion {
+            asset_id: header.id,
+            version: header.version,
+            current: UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
+        });
+    }
+    Ok(header)
+}
+
 fn push_version_bump_step(report: &mut UiAssetMigrationReport, source_version: u32) {
     if UiAssetSchemaVersionPolicy::requires_source_schema_migration(source_version) {
         report.push_step(UiAssetMigrationStep::SourceVersionBumped {
@@ -109,3 +119,7 @@ fn schema_migration_failed(asset_id: &str, error: UiAssetError) -> UiAssetError 
         detail: error.to_string(),
     }
 }
+
+#[cfg(test)]
+#[path = "migrator/owned_header_tests.rs"]
+mod owned_header_tests;

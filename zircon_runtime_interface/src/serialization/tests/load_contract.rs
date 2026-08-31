@@ -3,8 +3,8 @@ use serde_json::{json, Value};
 
 use super::super::text::wire::MAX_TEXT_DOCUMENT_BYTES;
 use super::super::{
-    load_versioned, Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId,
-    VersionedSchema,
+    load_versioned, load_versioned_envelope, load_versioned_legacy_schema_zero, Format, LoadError,
+    MigrateError, MigrationChain, MigrationStep, SchemaId, VersionedSchema,
 };
 use super::FixtureDocument;
 
@@ -24,8 +24,9 @@ fn text_reader_rejects_an_input_larger_than_the_wire_budget_before_parsing() {
 
 #[test]
 fn unwrapped_text_payload_is_recognized_as_v0_and_migrated_in_order() {
-    let loaded = load_versioned::<FixtureDocument>(br#"{"name":"legacy"}"#, Format::Text)
-        .expect("v0 fixture should migrate");
+    let loaded =
+        load_versioned_legacy_schema_zero::<FixtureDocument>(br#"{"name":"legacy"}"#, Format::Text)
+            .expect("v0 fixture should migrate through the explicit legacy policy");
 
     assert_eq!(
         loaded.value,
@@ -35,6 +36,30 @@ fn unwrapped_text_payload_is_recognized_as_v0_and_migrated_in_order() {
         }
     );
     assert_eq!(loaded.migrated_from, Some(0));
+}
+
+#[test]
+fn envelope_only_loader_rejects_unwrapped_text_before_payload_materialization() {
+    let error = load_versioned_envelope::<FixtureDocument>(br#"{"name":"legacy"}"#, Format::Text)
+        .expect_err("envelope-only profiles must not silently interpret text as schema zero");
+
+    assert!(matches!(
+        error,
+        LoadError::MissingTextEnvelope { schema_id }
+            if schema_id == "zircon.tests.fixture-document"
+    ));
+}
+
+#[test]
+fn generic_loader_rejects_unwrapped_text_before_payload_materialization() {
+    let error = load_versioned::<FixtureDocument>(br#"{"name":"legacy"}"#, Format::Text)
+        .expect_err("the generic loader must not infer schema zero");
+
+    assert!(matches!(
+        error,
+        LoadError::MissingTextEnvelope { schema_id }
+            if schema_id == "zircon.tests.fixture-document"
+    ));
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -60,8 +85,11 @@ fn identity_migration(value: Value) -> Result<Value, MigrateError> {
 
 #[test]
 fn migration_chain_gap_reports_the_missing_source_version() {
-    let error = load_versioned::<BrokenChainDocument>(br#"{"value":null}"#, Format::Text)
-        .expect_err("a chain gap must not be skipped");
+    let error = load_versioned_legacy_schema_zero::<BrokenChainDocument>(
+        br#"{"value":null}"#,
+        Format::Text,
+    )
+    .expect_err("a chain gap must not be skipped");
 
     assert!(matches!(
         error,
@@ -158,6 +186,29 @@ fn current_envelope_loads_without_reporting_a_migration() {
 
     assert_eq!(loaded.value.label, "current");
     assert_eq!(loaded.value.count, 7);
+    assert_eq!(loaded.migrated_from, None);
+}
+
+#[test]
+fn envelope_only_loader_accepts_the_current_borrowed_payload_path() {
+    let bytes = serde_json::to_vec(&json!({
+        "$zircon": {
+            "header": {
+                "schema_id": "zircon.tests.fixture-document",
+                "schema_version": 2
+            },
+            "payload": {
+                "label": "strict-current",
+                "count": 11
+            }
+        }
+    }))
+    .unwrap();
+
+    let loaded = load_versioned_envelope::<FixtureDocument>(&bytes, Format::Text).unwrap();
+
+    assert_eq!(loaded.value.label, "strict-current");
+    assert_eq!(loaded.value.count, 11);
     assert_eq!(loaded.migrated_from, None);
 }
 

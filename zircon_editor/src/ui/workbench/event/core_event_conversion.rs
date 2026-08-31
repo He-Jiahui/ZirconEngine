@@ -93,6 +93,12 @@ pub(crate) fn core_layout_command_from_ui(command: LayoutCommand) -> CoreLayoutC
             slot: core_activity_drawer_slot(slot),
             extent,
         },
+        LayoutCommand::SetDrawerRegionExtent { slot, extent } => {
+            CoreLayoutCommand::SetDrawerRegionExtent {
+                slot: core_activity_drawer_slot(slot),
+                extent,
+            }
+        }
         LayoutCommand::ActivateDrawerTab { slot, instance_id } => {
             CoreLayoutCommand::ActivateDrawerTab {
                 slot: core_activity_drawer_slot(slot),
@@ -190,6 +196,12 @@ pub(crate) fn ui_layout_command_from_core(command: &CoreLayoutCommand) -> Layout
             slot: ui_activity_drawer_slot(*slot),
             extent: *extent,
         },
+        CoreLayoutCommand::SetDrawerRegionExtent { slot, extent } => {
+            LayoutCommand::SetDrawerRegionExtent {
+                slot: ui_activity_drawer_slot(*slot),
+                extent: *extent,
+            }
+        }
         CoreLayoutCommand::ActivateDrawerTab { slot, instance_id } => {
             LayoutCommand::ActivateDrawerTab {
                 slot: ui_activity_drawer_slot(*slot),
@@ -228,8 +240,6 @@ fn core_activity_drawer_slot(slot: ActivityDrawerSlot) -> CoreActivityDrawerSlot
         ActivityDrawerSlot::RightTop => CoreActivityDrawerSlot::RightTop,
         ActivityDrawerSlot::RightBottom => CoreActivityDrawerSlot::RightBottom,
         ActivityDrawerSlot::Bottom => CoreActivityDrawerSlot::Bottom,
-        ActivityDrawerSlot::BottomLeft => CoreActivityDrawerSlot::BottomLeft,
-        ActivityDrawerSlot::BottomRight => CoreActivityDrawerSlot::BottomRight,
     }
 }
 
@@ -240,8 +250,6 @@ fn ui_activity_drawer_slot(slot: CoreActivityDrawerSlot) -> ActivityDrawerSlot {
         CoreActivityDrawerSlot::RightTop => ActivityDrawerSlot::RightTop,
         CoreActivityDrawerSlot::RightBottom => ActivityDrawerSlot::RightBottom,
         CoreActivityDrawerSlot::Bottom => ActivityDrawerSlot::Bottom,
-        CoreActivityDrawerSlot::BottomLeft => ActivityDrawerSlot::BottomLeft,
-        CoreActivityDrawerSlot::BottomRight => ActivityDrawerSlot::BottomRight,
     }
 }
 

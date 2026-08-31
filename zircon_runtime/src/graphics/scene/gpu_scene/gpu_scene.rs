@@ -5,22 +5,20 @@ use crate::core::framework::render::GpuLightData;
 use wgpu::util::DeviceExt;
 
 use super::binding::{
-    create_gpu_scene_bind_group, create_gpu_scene_bind_group_layout,
-    GpuSceneVisibleInstanceRemapParams,
+    GpuSceneVisibleInstanceRemapParams, create_gpu_scene_bind_group,
+    create_gpu_scene_bind_group_layout,
 };
 use super::id_allocator::GpuSceneIdAllocator;
 use super::layout::{
-    GpuInstanceData, GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData,
-    GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage, GPU_INSTANCE_DATA_STRIDE,
-    GPU_PRIMITIVE_DATA_STRIDE,
+    GPU_INSTANCE_DATA_STRIDE, GPU_PRIMITIVE_DATA_STRIDE, GpuInstanceData, GpuMorphDelta,
+    GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData, GpuVirtualGeometryClusterWord,
+    GpuVirtualGeometryPage,
 };
-use super::prev_skinned_palette::{
-    GpuSceneSkinnedJointPaletteBuffers, GpuSceneSkinnedJointPaletteState,
-};
+use super::prev_skinned_palette::GpuSceneSkinnedJointPaletteState;
 use super::prev_skinned_source::GpuSceneSkinnedGpuSourceState;
+use super::skinned_palette_arena::GpuSceneSkinnedPaletteArena;
 use super::staging_ring::GpuSceneStagingRing;
 use super::update_queue::GpuSceneUpdateQueue;
-use super::upload::{write_full_pod_buffer, write_upload_ranges};
 
 pub(crate) const GPU_SCENE_INITIAL_PRIMITIVE_CAPACITY: u32 = 64;
 pub(crate) const GPU_SCENE_INITIAL_INSTANCE_CAPACITY: u32 = 64;
@@ -34,6 +32,7 @@ const GPU_SCENE_VIRTUAL_GEOMETRY_FALLBACK_BYTES: u64 = 16;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GpuSceneEntry {
+    pub(crate) stable_instance_key: u64,
     pub(crate) primitive_index: u32,
     pub(crate) first_instance_index: u32,
     pub(crate) instance_count: u32,
@@ -89,26 +88,24 @@ impl GpuSceneUploadReport {
 /// Owns the GPUScene storage buffers and CPU mirrors before frame-path wiring.
 ///
 /// Registration keeps stable primitive/instance indices until explicit
-/// unregister. Uploads use direct queue writes for small merged ranges and a
-/// persistent staging-copy ring for large frames; callers can feed full-frame
-/// extracts every frame without re-uploading unchanged entries.
+/// unregister. Uploads use coordinator-batched range writes for small merged
+/// ranges and a persistent staging-copy ring for large frames; callers can
+/// feed full-frame extracts every frame without re-uploading unchanged entries.
 pub(crate) struct GpuScene {
     pub(super) primitive_buffer: wgpu::Buffer,
     pub(super) instance_buffer: wgpu::Buffer,
     pub(super) light_buffer: wgpu::Buffer,
-    /// Non-skinned draws share fallback palette slots until GS-M2 creates
-    /// per-skinned-draw object groups with real current/previous palettes.
-    fallback_skinned_joint_palette_buffer: Arc<wgpu::Buffer>,
+    pub(super) skinned_palette_arena: GpuSceneSkinnedPaletteArena,
     direct_visible_instance_remap_buffer: wgpu::Buffer,
-    direct_visible_instance_remap_params_buffer: wgpu::Buffer,
-    remapped_visible_instance_remap_params_buffer: wgpu::Buffer,
+    pub(super) direct_visible_instance_remap_params_buffer: wgpu::Buffer,
+    pub(super) remapped_visible_instance_remap_params_buffer: wgpu::Buffer,
     pub(super) morph_deltas_buffer: wgpu::Buffer,
     pub(super) morph_weights_buffer: wgpu::Buffer,
     pub(super) virtual_geometry_pages_buffer: wgpu::Buffer,
     pub(super) virtual_geometry_clusters_buffer: wgpu::Buffer,
     pub(super) morph_payloads_buffer: wgpu::Buffer,
     scene_bind_group_layout: wgpu::BindGroupLayout,
-    scene_bind_group: wgpu::BindGroup,
+    scene_bind_groups: [wgpu::BindGroup; 2],
     pub(super) primitive_shadow: Vec<GpuPrimitiveData>,
     pub(super) instance_shadow: Vec<GpuInstanceData>,
     pub(super) light_shadow: Vec<GpuLightData>,
@@ -120,9 +117,9 @@ pub(crate) struct GpuScene {
     pub(super) primitive_ids: GpuSceneIdAllocator,
     pub(super) instance_ids: GpuSceneIdAllocator,
     pub(super) entries: HashMap<u64, GpuSceneEntry>,
+    pub(super) pending_prev_transform_rolls: HashSet<u64>,
     pub(super) current_skinned_joint_palettes: HashMap<u64, GpuSceneSkinnedJointPaletteState>,
     pub(super) previous_skinned_joint_palettes: HashMap<u64, GpuSceneSkinnedJointPaletteState>,
-    pub(super) skinned_joint_palette_buffers: HashMap<u64, GpuSceneSkinnedJointPaletteBuffers>,
     pub(super) current_skinned_gpu_sources: HashMap<u64, GpuSceneSkinnedGpuSourceState>,
     pub(super) previous_skinned_gpu_sources: HashMap<u64, GpuSceneSkinnedGpuSourceState>,
     pub(super) current_morph_weights: HashMap<u64, Arc<[f32]>>,
@@ -138,16 +135,24 @@ pub(crate) struct GpuScene {
     pub(super) morph_weights_capacity: u32,
     pub(super) virtual_geometry_pages_capacity: u32,
     pub(super) virtual_geometry_clusters_capacity: u32,
+    pub(super) morph_payloads_require_full_upload: bool,
+    pub(super) morph_deltas_require_full_upload: bool,
+    pub(super) morph_weights_require_full_upload: bool,
+    pub(super) virtual_geometry_pages_require_full_upload: bool,
+    pub(super) virtual_geometry_clusters_require_full_upload: bool,
+    pub(super) upload_transaction_owner: Arc<()>,
+    pub(super) morph_preparation_reservation: Arc<std::sync::atomic::AtomicBool>,
+    pub(super) virtual_geometry_preparation_reservation: Arc<std::sync::atomic::AtomicBool>,
     pub(super) force_full_primitive_upload: bool,
     pub(super) force_full_instance_upload: bool,
     pub(super) force_full_light_upload: bool,
-    uploaded_scene_data_counts: Option<[u32; 3]>,
+    pub(super) uploaded_scene_data_counts: Option<[u32; 3]>,
 }
 
 impl GpuScene {
     pub(crate) fn new(
         device: &wgpu::Device,
-        fallback_skinned_joint_palette_buffer: Arc<wgpu::Buffer>,
+        initial_skinned_joint_palette_arena_buffer: Arc<wgpu::Buffer>,
         skinned_joint_palette_min_binding_size: wgpu::BufferSize,
     ) -> Self {
         let primitive_buffer = create_storage_buffer(
@@ -207,27 +212,36 @@ impl GpuScene {
         );
         let scene_bind_group_layout =
             create_gpu_scene_bind_group_layout(device, skinned_joint_palette_min_binding_size);
-        let scene_bind_group = create_gpu_scene_bind_group(
+        let skinned_palette_arena = GpuSceneSkinnedPaletteArena::new(
             device,
-            &scene_bind_group_layout,
-            &primitive_buffer,
-            &instance_buffer,
-            &light_buffer,
-            &fallback_skinned_joint_palette_buffer,
-            &fallback_skinned_joint_palette_buffer,
-            &direct_visible_instance_remap_buffer,
-            &direct_visible_instance_remap_params_buffer,
-            &morph_deltas_buffer,
-            &morph_weights_buffer,
-            &virtual_geometry_pages_buffer,
-            &virtual_geometry_clusters_buffer,
-            &morph_payloads_buffer,
+            initial_skinned_joint_palette_arena_buffer,
+            skinned_joint_palette_min_binding_size,
         );
+        let scene_bind_groups = std::array::from_fn(|current_slot| {
+            let (current_palette, previous_palette) =
+                skinned_palette_arena.buffers_for_current_slot(current_slot);
+            create_gpu_scene_bind_group(
+                device,
+                &scene_bind_group_layout,
+                &primitive_buffer,
+                &instance_buffer,
+                &light_buffer,
+                current_palette,
+                previous_palette,
+                &direct_visible_instance_remap_buffer,
+                &direct_visible_instance_remap_params_buffer,
+                &morph_deltas_buffer,
+                &morph_weights_buffer,
+                &virtual_geometry_pages_buffer,
+                &virtual_geometry_clusters_buffer,
+                &morph_payloads_buffer,
+            )
+        });
         Self {
             primitive_buffer,
             instance_buffer,
             light_buffer,
-            fallback_skinned_joint_palette_buffer,
+            skinned_palette_arena,
             direct_visible_instance_remap_buffer,
             direct_visible_instance_remap_params_buffer,
             remapped_visible_instance_remap_params_buffer,
@@ -237,7 +251,7 @@ impl GpuScene {
             virtual_geometry_clusters_buffer,
             morph_payloads_buffer,
             scene_bind_group_layout,
-            scene_bind_group,
+            scene_bind_groups,
             primitive_shadow: Vec::new(),
             instance_shadow: Vec::new(),
             light_shadow: Vec::new(),
@@ -249,9 +263,9 @@ impl GpuScene {
             primitive_ids: GpuSceneIdAllocator::new(),
             instance_ids: GpuSceneIdAllocator::new(),
             entries: HashMap::new(),
+            pending_prev_transform_rolls: HashSet::new(),
             current_skinned_joint_palettes: HashMap::new(),
             previous_skinned_joint_palettes: HashMap::new(),
-            skinned_joint_palette_buffers: HashMap::new(),
             current_skinned_gpu_sources: HashMap::new(),
             previous_skinned_gpu_sources: HashMap::new(),
             current_morph_weights: HashMap::new(),
@@ -272,6 +286,16 @@ impl GpuScene {
             morph_weights_capacity: 0,
             virtual_geometry_pages_capacity: GPU_SCENE_INITIAL_VIRTUAL_GEOMETRY_CAPACITY,
             virtual_geometry_clusters_capacity: GPU_SCENE_INITIAL_VIRTUAL_GEOMETRY_CAPACITY,
+            morph_payloads_require_full_upload: false,
+            morph_deltas_require_full_upload: false,
+            morph_weights_require_full_upload: false,
+            virtual_geometry_pages_require_full_upload: false,
+            virtual_geometry_clusters_require_full_upload: false,
+            upload_transaction_owner: Arc::new(()),
+            morph_preparation_reservation: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            virtual_geometry_preparation_reservation: Arc::new(std::sync::atomic::AtomicBool::new(
+                false,
+            )),
             force_full_primitive_upload: true,
             force_full_instance_upload: true,
             force_full_light_upload: true,
@@ -306,6 +330,7 @@ impl GpuScene {
         );
 
         let entry = GpuSceneEntry {
+            stable_instance_key,
             primitive_index,
             first_instance_index: instance_span.start,
             instance_count,
@@ -322,17 +347,19 @@ impl GpuScene {
         self.updates
             .mark_instances(entry.first_instance_index, entry.instance_count);
         self.entries.insert(stable_instance_key, entry);
+        self.pending_prev_transform_rolls
+            .insert(stable_instance_key);
         self.refresh_stats(0, self.updates.dirty_entry_count());
         entry
     }
 
     pub(crate) fn unregister(&mut self, stable_instance_key: u64) -> Option<GpuSceneEntry> {
         let entry = self.entries.remove(&stable_instance_key)?;
+        self.pending_prev_transform_rolls
+            .remove(&stable_instance_key);
         self.current_skinned_joint_palettes
             .remove(&stable_instance_key);
         self.previous_skinned_joint_palettes
-            .remove(&stable_instance_key);
-        self.skinned_joint_palette_buffers
             .remove(&stable_instance_key);
         self.current_skinned_gpu_sources
             .remove(&stable_instance_key);
@@ -360,8 +387,6 @@ impl GpuScene {
         self.current_skinned_joint_palettes
             .retain(|key, _| live_keys.contains(key));
         self.previous_skinned_joint_palettes
-            .retain(|key, _| live_keys.contains(key));
-        self.skinned_joint_palette_buffers
             .retain(|key, _| live_keys.contains(key));
         self.current_skinned_gpu_sources
             .retain(|key, _| live_keys.contains(key));
@@ -401,11 +426,15 @@ impl GpuScene {
             "gpu scene writes currently replace the whole instance span"
         );
         let start = entry.first_instance_index as usize;
-        let changed = data.iter().copied().enumerate().any(|(offset, instance)| {
+        let mut changed = false;
+        let mut transform_changed = false;
+        for (offset, instance) in data.iter().copied().enumerate() {
             let mut instance = instance;
             instance.primitive_index = entry.primitive_index;
-            self.instance_shadow[start + offset] != instance
-        });
+            let previous = &self.instance_shadow[start + offset];
+            changed |= *previous != instance;
+            transform_changed |= previous.world_from_local != instance.world_from_local;
+        }
         if !changed {
             return;
         }
@@ -417,7 +446,28 @@ impl GpuScene {
         }
         self.updates
             .mark_instances(entry.first_instance_index, entry.instance_count);
+        if transform_changed {
+            self.pending_prev_transform_rolls
+                .insert(entry.stable_instance_key);
+        }
         self.refresh_stats(0, self.updates.dirty_entry_count());
+    }
+
+    /// Reuses instance-derived metadata while the renderer's current affine
+    /// transform still matches the shadow row. Multi-instance spans have no
+    /// single transform classification and deliberately fall back to recompute.
+    pub(crate) fn instance_flags_for_world_from_local(
+        &self,
+        entry: GpuSceneEntry,
+        world_from_local: &[[f32; 4]; 4],
+    ) -> Option<u32> {
+        if entry.instance_count != 1 {
+            return None;
+        }
+        self.instance_shadow
+            .get(entry.first_instance_index as usize)
+            .filter(|instance| &instance.world_from_local == world_from_local)
+            .map(|instance| instance.flags)
     }
 
     pub(crate) fn write_lights(&mut self, device: &wgpu::Device, lights: &[GpuLightData]) {
@@ -442,93 +492,6 @@ impl GpuScene {
         self.refresh_stats(0, self.updates.dirty_entry_count());
     }
 
-    pub(crate) fn flush_updates(&mut self, queue: &wgpu::Queue) -> GpuSceneUploadReport {
-        self.flush_direct_updates(queue)
-    }
-
-    pub(super) fn flush_direct_updates(&mut self, queue: &wgpu::Queue) -> GpuSceneUploadReport {
-        let dirty_entry_count = self.updates.dirty_entry_count();
-        let mut report = GpuSceneUploadReport::default();
-
-        if self.force_full_primitive_upload {
-            let active_len = self.primitive_ids.high_water() as usize;
-            let uploaded = write_full_pod_buffer(
-                queue,
-                &self.primitive_buffer,
-                &self.primitive_shadow,
-                active_len,
-            );
-            if uploaded > 0 {
-                report.primitive_upload_range_count = 1;
-                report.uploaded_bytes += uploaded;
-            }
-            self.updates.discard_primitive_updates();
-        } else {
-            let ranges = self
-                .updates
-                .drain_primitive_upload_ranges(GPU_PRIMITIVE_DATA_STRIDE as u64);
-            report.primitive_upload_range_count = ranges.len();
-            report.uploaded_bytes += write_upload_ranges(
-                queue,
-                &self.primitive_buffer,
-                &self.primitive_shadow,
-                ranges,
-            );
-        }
-
-        if self.force_full_instance_upload {
-            let active_len = self.instance_ids.high_water() as usize;
-            let uploaded = write_full_pod_buffer(
-                queue,
-                &self.instance_buffer,
-                &self.instance_shadow,
-                active_len,
-            );
-            if uploaded > 0 {
-                report.instance_upload_range_count = 1;
-                report.uploaded_bytes += uploaded;
-            }
-            self.updates.discard_instance_updates();
-        } else {
-            let ranges = self
-                .updates
-                .drain_instance_upload_ranges(GPU_INSTANCE_DATA_STRIDE as u64);
-            report.instance_upload_range_count = ranges.len();
-            report.uploaded_bytes +=
-                write_upload_ranges(queue, &self.instance_buffer, &self.instance_shadow, ranges);
-        }
-
-        if self.force_full_light_upload {
-            let uploaded = write_full_pod_buffer(
-                queue,
-                &self.light_buffer,
-                &self.light_shadow,
-                self.light_shadow.len(),
-            );
-            if uploaded > 0 {
-                report.light_upload_range_count = 1;
-                report.uploaded_bytes += uploaded;
-            }
-            self.updates.discard_light_updates();
-        } else {
-            let ranges = self
-                .updates
-                .drain_light_upload_ranges(GpuLightData::STRIDE as u64);
-            report.light_upload_range_count = ranges.len();
-            report.uploaded_bytes +=
-                write_upload_ranges(queue, &self.light_buffer, &self.light_shadow, ranges);
-        }
-        self.write_scene_data_count_params_if_needed(queue);
-
-        self.force_full_primitive_upload = false;
-        self.force_full_instance_upload = false;
-        self.force_full_light_upload = false;
-        self.primitive_ids.commit_pending_frees();
-        self.instance_ids.commit_pending_frees();
-        self.refresh_stats(report.uploaded_bytes, dirty_entry_count);
-        report
-    }
-
     pub(crate) fn primitive_buffer(&self) -> &wgpu::Buffer {
         &self.primitive_buffer
     }
@@ -546,32 +509,7 @@ impl GpuScene {
     }
 
     pub(crate) fn scene_bind_group(&self) -> &wgpu::BindGroup {
-        &self.scene_bind_group
-    }
-
-    pub(crate) fn create_scene_bind_group_for_palettes(
-        &self,
-        device: &wgpu::Device,
-        skinned_joint_palette_buffer: Option<&wgpu::Buffer>,
-        previous_skinned_joint_palette_buffer: Option<&wgpu::Buffer>,
-    ) -> wgpu::BindGroup {
-        create_gpu_scene_bind_group(
-            device,
-            &self.scene_bind_group_layout,
-            &self.primitive_buffer,
-            &self.instance_buffer,
-            &self.light_buffer,
-            skinned_joint_palette_buffer.unwrap_or(&self.fallback_skinned_joint_palette_buffer),
-            previous_skinned_joint_palette_buffer
-                .unwrap_or(&self.fallback_skinned_joint_palette_buffer),
-            &self.direct_visible_instance_remap_buffer,
-            &self.direct_visible_instance_remap_params_buffer,
-            &self.morph_deltas_buffer,
-            &self.morph_weights_buffer,
-            &self.virtual_geometry_pages_buffer,
-            &self.virtual_geometry_clusters_buffer,
-            &self.morph_payloads_buffer,
-        )
+        &self.scene_bind_groups[self.skinned_palette_arena.staged_slot()]
     }
 
     pub(crate) fn create_scene_bind_group_for_visible_instance_remap(
@@ -585,8 +523,8 @@ impl GpuScene {
             &self.primitive_buffer,
             &self.instance_buffer,
             &self.light_buffer,
-            &self.fallback_skinned_joint_palette_buffer,
-            &self.fallback_skinned_joint_palette_buffer,
+            self.skinned_palette_arena.current_buffer(),
+            self.skinned_palette_arena.previous_buffer(),
             visible_instance_remap_buffer,
             &self.remapped_visible_instance_remap_params_buffer,
             &self.morph_deltas_buffer,
@@ -660,22 +598,27 @@ impl GpuScene {
     }
 
     pub(super) fn rebuild_scene_bind_group(&mut self, device: &wgpu::Device) {
-        self.scene_bind_group = create_gpu_scene_bind_group(
-            device,
-            &self.scene_bind_group_layout,
-            &self.primitive_buffer,
-            &self.instance_buffer,
-            &self.light_buffer,
-            &self.fallback_skinned_joint_palette_buffer,
-            &self.fallback_skinned_joint_palette_buffer,
-            &self.direct_visible_instance_remap_buffer,
-            &self.direct_visible_instance_remap_params_buffer,
-            &self.morph_deltas_buffer,
-            &self.morph_weights_buffer,
-            &self.virtual_geometry_pages_buffer,
-            &self.virtual_geometry_clusters_buffer,
-            &self.morph_payloads_buffer,
-        );
+        self.scene_bind_groups = std::array::from_fn(|current_slot| {
+            let (current_palette, previous_palette) = self
+                .skinned_palette_arena
+                .buffers_for_current_slot(current_slot);
+            create_gpu_scene_bind_group(
+                device,
+                &self.scene_bind_group_layout,
+                &self.primitive_buffer,
+                &self.instance_buffer,
+                &self.light_buffer,
+                current_palette,
+                previous_palette,
+                &self.direct_visible_instance_remap_buffer,
+                &self.direct_visible_instance_remap_params_buffer,
+                &self.morph_deltas_buffer,
+                &self.morph_weights_buffer,
+                &self.virtual_geometry_pages_buffer,
+                &self.virtual_geometry_clusters_buffer,
+                &self.morph_payloads_buffer,
+            )
+        });
     }
 
     fn ensure_shadow_len(&mut self, primitive_high_water: u32, instance_high_water: u32) {
@@ -690,39 +633,6 @@ impl GpuScene {
             self.instance_shadow
                 .resize(instance_len, GpuInstanceData::default());
         }
-    }
-
-    pub(super) fn write_scene_data_count_params_if_needed(&mut self, queue: &wgpu::Queue) {
-        let counts = [
-            u32::try_from(self.light_shadow.len()).expect("gpu scene light count exceeded u32"),
-            u32::try_from(self.virtual_geometry_pages_shadow.len())
-                .expect("gpu scene virtual geometry page count exceeded u32"),
-            u32::try_from(self.virtual_geometry_clusters_shadow.len())
-                .expect("gpu scene virtual geometry cluster count exceeded u32"),
-        ];
-        if self.uploaded_scene_data_counts == Some(counts) {
-            return;
-        }
-
-        queue.write_buffer(
-            &self.direct_visible_instance_remap_params_buffer,
-            0,
-            bytemuck::bytes_of(
-                &GpuSceneVisibleInstanceRemapParams::direct_with_scene_counts(
-                    counts[0], counts[1], counts[2],
-                ),
-            ),
-        );
-        queue.write_buffer(
-            &self.remapped_visible_instance_remap_params_buffer,
-            0,
-            bytemuck::bytes_of(
-                &GpuSceneVisibleInstanceRemapParams::remapped_with_scene_counts(
-                    counts[0], counts[1], counts[2],
-                ),
-            ),
-        );
-        self.uploaded_scene_data_counts = Some(counts);
     }
 
     pub(super) fn refresh_stats(&mut self, uploaded_bytes: u64, dirty_entry_count: usize) {

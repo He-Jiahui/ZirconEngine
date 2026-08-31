@@ -2,8 +2,8 @@ use crate::core::math::UVec2;
 
 use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::{
-    GlyphAtlasBitmapRetryBackpressurePolicy, GlyphAtlasBitmapSource, GlyphAtlasSet,
-    GLYPH_BITMAP_ATLAS_PADDING_PX,
+    GLYPH_BITMAP_ATLAS_PADDING_PX, GlyphAtlasBitmapRetryBackpressurePolicy, GlyphAtlasBitmapSource,
+    GlyphAtlasSet,
 };
 use super::frame_state::{GlyphAtlasBitmapRetryFrameState, GlyphAtlasBitmapRetryFrameStateReport};
 use super::retry::{

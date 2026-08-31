@@ -29,6 +29,7 @@ try:
         stage_engine_assets,
     )
     from .zircon_build_staging_manifest import write_staging_manifest
+    from .zircon_build_runtime_manifest import write_runtime_artifact_manifest
     from .zircon_build_hub import build_hub
     from .zircon_build_font_sdf import bake_font_sdf_manifest
     from .zircon_build_plugin_assets import collect_plugin_asset_roots
@@ -78,6 +79,7 @@ except ImportError:  # pragma: no cover - exercised when run as a script.
         stage_engine_assets,
     )
     from zircon_build_staging_manifest import write_staging_manifest
+    from zircon_build_runtime_manifest import write_runtime_artifact_manifest
     from zircon_build_hub import build_hub
     from zircon_build_font_sdf import bake_font_sdf_manifest
     from zircon_build_plugin_assets import collect_plugin_asset_roots
@@ -629,6 +631,7 @@ def build(config: BuildConfig) -> None:
     if "font-sdf" in config.targets:
         bake_font_sdf_manifest(config, config.font_sdf_manifest)
     if "editor" in config.targets or "runtime" in config.targets:
+        write_runtime_artifact_manifest(config)
         write_staging_manifest(config)
 
 

@@ -1,21 +1,6 @@
 use super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
-    click("ShaderEditorOpen", "workbench.extension.shader_editor.open"),
-    click("LightingBakeOpen", "workbench.extension.lighting_bake.open"),
-    click("PostProcessOpen", "workbench.extension.post_process.open"),
-    click(
-        "ShaderEditorSourceTab",
-        "workbench.extension.shader_editor.source_tab.select",
-    ),
-    click(
-        "ShaderEditorResourcesTab",
-        "workbench.extension.shader_editor.resources_tab.select",
-    ),
-    click(
-        "ShaderEditorIssuesTab",
-        "workbench.extension.shader_editor.issues_tab.select",
-    ),
     click(
         "ShaderEditorSourceRow",
         "workbench.extension.shader_editor.source_row.select",
@@ -45,28 +30,12 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.shader_editor.common_row.select",
     ),
     click(
-        "ShaderEditorOutput",
-        "workbench.extension.shader_editor.output.select",
-    ),
-    click(
         "ShaderEditorPreview",
         "workbench.extension.shader_editor.preview.invoke",
     ),
     click(
         "ShaderEditorCompile",
         "workbench.extension.shader_editor.compile.invoke",
-    ),
-    click(
-        "LightingBakeLevelsTab",
-        "workbench.extension.lighting_bake.levels_tab.select",
-    ),
-    click(
-        "LightingBakeProbesTab",
-        "workbench.extension.lighting_bake.probes_tab.select",
-    ),
-    click(
-        "LightingBakeWarningsTab",
-        "workbench.extension.lighting_bake.warnings_tab.select",
     ),
     click(
         "LightingBakeSceneBakeRow",
@@ -97,28 +66,12 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.lighting_bake.bleed_warning_table_row.select",
     ),
     click(
-        "LightingBakeOutput",
-        "workbench.extension.lighting_bake.output.select",
-    ),
-    click(
         "LightingBakePreview",
         "workbench.extension.lighting_bake.preview.invoke",
     ),
     click(
         "LightingBakeBake",
         "workbench.extension.lighting_bake.bake.invoke",
-    ),
-    click(
-        "PostProcessStackTab",
-        "workbench.extension.post_process.stack_tab.select",
-    ),
-    click(
-        "PostProcessVolumesTab",
-        "workbench.extension.post_process.volumes_tab.select",
-    ),
-    click(
-        "PostProcessWarningsTab",
-        "workbench.extension.post_process.warnings_tab.select",
     ),
     click(
         "PostProcessGlobalStackRow",
@@ -149,29 +102,12 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.post_process.exposure_warning_table_row.select",
     ),
     click(
-        "PostProcessOutput",
-        "workbench.extension.post_process.output.select",
-    ),
-    click(
         "PostProcessPreview",
         "workbench.extension.post_process.preview.invoke",
     ),
     click(
         "PostProcessApply",
         "workbench.extension.post_process.apply.invoke",
-    ),
-    click("DataTableOpen", "workbench.extension.data_table.open"),
-    click(
-        "DataTableRowsTab",
-        "workbench.extension.data_table.rows_tab.select",
-    ),
-    click(
-        "DataTableSchemaTab",
-        "workbench.extension.data_table.schema_tab.select",
-    ),
-    click(
-        "DataTableValidationTab",
-        "workbench.extension.data_table.validation_tab.select",
     ),
     click(
         "DataTableItemsRow",
@@ -202,32 +138,12 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.data_table.debug_row.select",
     ),
     click(
-        "DataTableOutput",
-        "workbench.extension.data_table.output.select",
-    ),
-    click(
         "DataTableValidate",
         "workbench.extension.data_table.validate.invoke",
     ),
     click(
         "DataTableSave",
         "workbench.extension.data_table.save.invoke",
-    ),
-    click(
-        "SourceControlOpen",
-        "workbench.extension.source_control.open",
-    ),
-    click(
-        "SourceControlDiffTab",
-        "workbench.extension.source_control.diff_tab.select",
-    ),
-    click(
-        "SourceControlOwnersTab",
-        "workbench.extension.source_control.owners_tab.select",
-    ),
-    click(
-        "SourceControlSubmitTab",
-        "workbench.extension.source_control.submit_tab.select",
     ),
     click(
         "SourceControlChangelistRow",
@@ -258,29 +174,12 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.source_control.conflict_file_row.select",
     ),
     click(
-        "SourceControlOutput",
-        "workbench.extension.source_control.output.select",
-    ),
-    click(
         "SourceControlValidate",
         "workbench.extension.source_control.validate.invoke",
     ),
     click(
         "SourceControlSubmit",
         "workbench.extension.source_control.submit.invoke",
-    ),
-    click("BuildExportOpen", "workbench.extension.build_export.open"),
-    click(
-        "BuildExportProfilesTab",
-        "workbench.extension.build_export.profiles_tab.select",
-    ),
-    click(
-        "BuildExportQueueTab",
-        "workbench.extension.build_export.queue_tab.select",
-    ),
-    click(
-        "BuildExportSigningTab",
-        "workbench.extension.build_export.signing_tab.select",
     ),
     click(
         "BuildExportShippingRow",
@@ -311,32 +210,12 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.build_export.publish_step_row.select",
     ),
     click(
-        "BuildExportOutput",
-        "workbench.extension.build_export.output.select",
-    ),
-    click(
         "BuildExportValidate",
         "workbench.extension.build_export.validate.invoke",
     ),
     click(
         "BuildExportPackage",
         "workbench.extension.build_export.package.invoke",
-    ),
-    click(
-        "AutomationReportOpen",
-        "workbench.extension.automation_report.open",
-    ),
-    click(
-        "AutomationReportFailuresTab",
-        "workbench.extension.automation_report.failures_tab.select",
-    ),
-    click(
-        "AutomationReportWorkersTab",
-        "workbench.extension.automation_report.workers_tab.select",
-    ),
-    click(
-        "AutomationReportArtifactsTab",
-        "workbench.extension.automation_report.artifacts_tab.select",
     ),
     click(
         "AutomationReportSmokeRow",
@@ -367,32 +246,12 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.automation_report.ui_failure_row.select",
     ),
     click(
-        "AutomationReportOutput",
-        "workbench.extension.automation_report.output.select",
-    ),
-    click(
         "AutomationReportValidate",
         "workbench.extension.automation_report.validate.invoke",
     ),
     click(
         "AutomationReportPublish",
         "workbench.extension.automation_report.publish.invoke",
-    ),
-    click(
-        "ProjectOverviewOpen",
-        "workbench.extension.project_overview.open",
-    ),
-    click(
-        "ProjectOverviewSummaryTab",
-        "workbench.extension.project_overview.summary_tab.select",
-    ),
-    click(
-        "ProjectOverviewTargetsTab",
-        "workbench.extension.project_overview.targets_tab.select",
-    ),
-    click(
-        "ProjectOverviewReleasesTab",
-        "workbench.extension.project_overview.releases_tab.select",
     ),
     click(
         "ProjectOverviewProjectRow",
@@ -423,34 +282,6 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.project_overview.dependency_row.select",
     ),
     click(
-        "ProjectOverviewOutput",
-        "workbench.extension.project_overview.output.select",
-    ),
-    click(
-        "ProjectOverviewRefresh",
-        "workbench.extension.project_overview.refresh.invoke",
-    ),
-    click(
-        "ProjectOverviewPublish",
-        "workbench.extension.project_overview.publish.invoke",
-    ),
-    click(
-        "PluginManagerOpen",
-        "workbench.extension.plugin_manager.open",
-    ),
-    click(
-        "PluginManagerInstalledTab",
-        "workbench.extension.plugin_manager.installed_tab.select",
-    ),
-    click(
-        "PluginManagerDependenciesTab",
-        "workbench.extension.plugin_manager.dependencies_tab.select",
-    ),
-    click(
-        "PluginManagerUpdatesTab",
-        "workbench.extension.plugin_manager.updates_tab.select",
-    ),
-    click(
         "PluginManagerAudioRow",
         "workbench.extension.plugin_manager.audio_row.select",
     ),
@@ -479,10 +310,6 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.plugin_manager.version_warning_table_row.select",
     ),
     click(
-        "PluginManagerOutput",
-        "workbench.extension.plugin_manager.output.select",
-    ),
-    click(
         "PluginManagerHotReload",
         "workbench.extension.plugin_manager.hot_reload.invoke",
     ),
@@ -493,18 +320,6 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "ParticleLibraryOpen",
         "workbench.extension.particle_library.open",
-    ),
-    click(
-        "ParticleLibraryEmittersTab",
-        "workbench.extension.particle_library.emitters_tab.select",
-    ),
-    click(
-        "ParticleLibraryMetadataTab",
-        "workbench.extension.particle_library.metadata_tab.select",
-    ),
-    click(
-        "ParticleLibraryCompileTab",
-        "workbench.extension.particle_library.compile_tab.select",
     ),
     click(
         "ParticleLibrarySparksRow",
@@ -533,10 +348,6 @@ pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "ParticleLibraryArchivedRow",
         "workbench.extension.particle_library.archived_row.select",
-    ),
-    click(
-        "ParticleLibraryOutput",
-        "workbench.extension.particle_library.output.select",
     ),
     click(
         "ParticleLibrarySimulate",

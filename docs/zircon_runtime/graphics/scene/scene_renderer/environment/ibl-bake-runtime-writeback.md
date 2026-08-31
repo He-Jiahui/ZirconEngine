@@ -29,27 +29,31 @@ doc_type: module-detail
 
 ## Purpose
 
-`ibl_bake_runtime_writeback.rs` is the renderer-local closeout bridge for runtime IBL artifact production. It runs after the WGPU bake commands have submitted and before render graph transient backings are released. Its job is to turn materialized graph outputs into validated artifact sections and hand them to the asset-layer runtime cache writer.
+`ibl_bake_runtime_writeback.rs` is the renderer-local closeout bridge for runtime IBL artifact production. Before render graph transient backings are released, it registers materialized graph outputs with the product diagnostic tail. After a successful scene submission, it retains only a CPU pending aggregator and reservation; the next frame's single backend completion poll delivers the sections before the asset-layer runtime cache writer runs.
 
 This keeps ownership split by layer:
 
 - `ibl_bake_graph_plan.rs` owns stable graph resource names and readback roots.
 - `ibl_bake_wgpu_dispatch.rs` writes PMREM, SH9, or IEM outputs into graph resources.
-- `ibl_bake_wgpu_readback.rs` maps those graph resources to backend WGPU readback packets.
-- `ibl_bake_runtime_writeback.rs` decides whether the dispatch report needs runtime compute output and, if so, reads graph sections and calls the asset runtime writeback helper.
+- `ibl_bake_wgpu_readback.rs` maps those graph resources to backend product diagnostic section requests.
+- `ibl_bake_runtime_writeback.rs` decides whether the dispatch report needs runtime compute output, prepares the CPU-only pending aggregation, commits it only after scene submission succeeds, and calls the asset runtime writeback helper after all callbacks terminate.
 - `asset/artifact/ibl_bake_artifact_runtime_dispatch.rs` owns runtime cache hit/miss and second-dispatch `dispatch=0` semantics.
 
 ## Contract
 
-`write_ibl_bake_runtime_cache_from_graph_resources(...)` takes an explicit `IblBakeArtifactRequest`, an `IblBakeArtifactRuntimeDispatchReport`, an `IblBakeArtifactCacheStore`, and the current `RenderGraphExecutionResources`.
+`IblBakeRuntimeGraphWritebackQueue::prepare(...)` takes the backend product diagnostic owner, an explicit `IblBakeArtifactRequest`, an `IblBakeArtifactCacheStore`, the reservation, and current `RenderGraphExecutionResources`. The queue is bounded to four pending artifacts and rejects a duplicate request before registering new GPU copies.
 
 The descriptor is rebuilt from the request. The graph resource shape is not used as the request owner. This preserves the Shader 06 rule that the current frame source cubemap owns bake key, face size, mip count, and required contents.
 
-If `dispatch.requires_runtime_compute()` is false, the function returns the asset-layer skipped readback report without touching graph resources. This avoids false failures on asset-derived or runtime-cache hits where no transient bake resources need to exist.
+If `dispatch.requires_runtime_compute()` is false, `prepare(...)` returns no pending writeback without touching graph resources. This avoids false failures on asset-derived or runtime-cache hits where no transient bake resources need to exist.
 
-If runtime compute is required, the function reads the requested graph outputs through `read_ibl_bake_artifact_wgpu_sections_from_graph_resources(...)` and then calls `write_ibl_bake_artifact_runtime_dispatch_readback(...)`. A current descriptor writes the `.zribl` runtime cache blob. A stale descriptor is skipped by the asset layer.
+If runtime compute is required, `prepare(...)` registers requested graph outputs through `prepare_ibl_bake_artifact_wgpu_readback_from_graph_resources(...)`. `commit_submitted(...)` moves that state into the queue only after the scene ticket exists. At the next frame begin, the backend's sole completion poll first routes all section callbacks; `poll_completed()` then assembles ready sections and calls `write_ibl_bake_artifact_runtime_dispatch_readback(...)`. A current descriptor writes the `.zribl` runtime cache blob. A stale descriptor is skipped by the asset layer. No product writeback method owns `wgpu::Buffer`, `map_async`, `device.poll`, `queue.submit`, or a separate command buffer.
+
+`write_ibl_bake_runtime_cache_from_graph_resources(...)` remains under `#[cfg(test)]` as the synchronous historical fixture path. It is not part of the product completion model.
 
 ## Verification
+
+Current 2026-08-27 source evidence confirms `artifact registration -> output writeback -> diagnostic tail -> query tail -> scene submit`, then `scene submit -> pending ownership commit -> transient retirement`. The following frame performs the sole backend completion poll before `poll_completed()` and typed query collection. The production writeback segment contains no native buffer, map, submit, command-buffer extraction, or device poll. Scoped formatting and diff checks pass; Cargo, real WGPU, PNG, RenderDoc, profiler, and power validation for this cutover remain pending.
 
 The focused tests cover both control paths:
 
@@ -62,4 +66,4 @@ The SH9, PMREM, and IEM tests use the offscreen WGPU backend, a materialized IBL
 
 ## Open Issues
 
-This module closes the renderer-local GPU output to runtime cache writeback bridge for already-scheduled SH9, PMREM, and IEM graph outputs. It does not yet choose the production cache root, inject the IBL bake graph into the product renderer, own a persistent async scheduler queue, wire product consumption from runtime GPU artifacts, produce RenderDoc captures, or close the full Shader 06 screenshot/SSIM/seam and 4K/16K offline bake gates.
+This module closes the renderer-local asynchronous GPU output to runtime cache writeback owner path for already-scheduled SH9, PMREM, and IEM graph outputs. It does not yet choose the production cache root, close product consumption/second-launch `dispatch=0` evidence, produce current-source RenderDoc captures, or close the full Shader 06 screenshot/SSIM/seam, performance/power, and 4K/16K offline bake gates.

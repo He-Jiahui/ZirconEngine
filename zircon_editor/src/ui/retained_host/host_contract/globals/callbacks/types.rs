@@ -9,3 +9,4 @@ pub(super) type Callback5<A, B, C, D, E> = Rc<dyn Fn(A, B, C, D, E)>;
 pub(super) type Callback6<A, B, C, D, E, F> = Rc<dyn Fn(A, B, C, D, E, F)>;
 pub(super) type Callback7<A, B, C, D, E, F, G> = Rc<dyn Fn(A, B, C, D, E, F, G)>;
 pub(super) type Callback8<A, B, C, D, E, F, G, H> = Rc<dyn Fn(A, B, C, D, E, F, G, H)>;
+pub(super) type Callback9<A, B, C, D, E, F, G, H, I> = Rc<dyn Fn(A, B, C, D, E, F, G, H, I)>;

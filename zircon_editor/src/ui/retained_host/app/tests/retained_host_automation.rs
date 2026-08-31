@@ -19,6 +19,31 @@ fn invoke(harness: &ChildWindowHostHarness, binding: EditorUiBinding) {
 }
 
 #[test]
+fn explicit_host_shutdown_retires_the_play_gateway_before_drop() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_runtime_shutdown");
+    let play_instance = harness
+        .host
+        .borrow()
+        .runtime
+        .start_test_play_gateway(
+            crate::core::play::PlayKind::Play,
+            std::sync::Arc::new(crate::core::gateway::DetachedEditorRuntimeGateway),
+        )
+        .expect("the test host should attach a play gateway");
+
+    harness.host.borrow_mut().shutdown_runtime_session();
+
+    assert!(harness.host.borrow().runtime_shutdown_receipt().is_some());
+    assert!(harness
+        .host
+        .borrow()
+        .runtime
+        .gateway_for(crate::core::play::WorldDomain::Play(play_instance))
+        .is_none());
+}
+
+#[test]
 fn automation_selection_uses_hierarchy_callback_and_changes_the_real_selection_model() {
     let _guard = lock_env();
     let harness = ChildWindowHostHarness::new("zircon_retained_automation_selection");
@@ -56,7 +81,10 @@ fn automation_selection_uses_hierarchy_callback_and_changes_the_real_selection_m
     assert_eq!(
         harness.delta_events_since(baseline),
         vec![EditorEvent::Selection(
-            SelectionHostEvent::SelectSceneNode { node_id: selected }
+            SelectionHostEvent::SelectSceneNode {
+                world_domain: crate::core::play::WorldDomain::Edit,
+                node_id: selected,
+            }
         )]
     );
 }

@@ -48,90 +48,122 @@ fn render_frame_extract_filters_lights_by_camera_layers() {
         extract.lighting.ambient_lights[0].color,
         hidden_ambient_color
     );
-    assert!(extract
-        .lighting
-        .directional_lights
-        .iter()
-        .any(|light| light.node_id == visible_directional));
-    assert!(extract
-        .lighting
-        .directional_lights
-        .iter()
-        .all(|light| light.node_id != hidden_directional));
-    assert!(extract
-        .lighting
-        .point_lights
-        .iter()
-        .any(|light| light.node_id == visible_point));
-    assert!(extract
-        .lighting
-        .point_lights
-        .iter()
-        .all(|light| light.node_id != hidden_point));
-    assert!(extract
-        .lighting
-        .rect_lights
-        .iter()
-        .any(|light| light.node_id == visible_rect));
-    assert!(extract
-        .lighting
-        .rect_lights
-        .iter()
-        .all(|light| light.node_id != hidden_rect));
-    assert!(extract
-        .lighting
-        .spot_lights
-        .iter()
-        .any(|light| light.node_id == visible_spot));
-    assert!(extract
-        .lighting
-        .spot_lights
-        .iter()
-        .all(|light| light.node_id != hidden_spot));
+    assert!(
+        extract
+            .lighting
+            .directional_lights
+            .iter()
+            .any(|light| light.node_id == visible_directional)
+    );
+    assert!(
+        extract
+            .lighting
+            .directional_lights
+            .iter()
+            .all(|light| light.node_id != hidden_directional)
+    );
+    assert!(
+        extract
+            .lighting
+            .point_lights
+            .iter()
+            .any(|light| light.node_id == visible_point)
+    );
+    assert!(
+        extract
+            .lighting
+            .point_lights
+            .iter()
+            .all(|light| light.node_id != hidden_point)
+    );
+    assert!(
+        extract
+            .lighting
+            .rect_lights
+            .iter()
+            .any(|light| light.node_id == visible_rect)
+    );
+    assert!(
+        extract
+            .lighting
+            .rect_lights
+            .iter()
+            .all(|light| light.node_id != hidden_rect)
+    );
+    assert!(
+        extract
+            .lighting
+            .spot_lights
+            .iter()
+            .any(|light| light.node_id == visible_spot)
+    );
+    assert!(
+        extract
+            .lighting
+            .spot_lights
+            .iter()
+            .all(|light| light.node_id != hidden_spot)
+    );
 
     let packet = world.build_viewport_render_packet(&SceneViewportExtractRequest::default());
     assert_eq!(packet.scene.ambient_lights.len(), 1);
     assert_eq!(packet.scene.ambient_lights[0].color, visible_ambient_color);
-    assert!(packet
-        .scene
-        .directional_lights
-        .iter()
-        .any(|light| light.node_id == visible_directional));
-    assert!(packet
-        .scene
-        .directional_lights
-        .iter()
-        .all(|light| light.node_id != hidden_directional));
-    assert!(packet
-        .scene
-        .point_lights
-        .iter()
-        .any(|light| light.node_id == visible_point));
-    assert!(packet
-        .scene
-        .point_lights
-        .iter()
-        .all(|light| light.node_id != hidden_point));
-    assert!(packet
-        .scene
-        .rect_lights
-        .iter()
-        .any(|light| light.node_id == visible_rect));
-    assert!(packet
-        .scene
-        .rect_lights
-        .iter()
-        .all(|light| light.node_id != hidden_rect));
-    assert!(packet
-        .scene
-        .spot_lights
-        .iter()
-        .any(|light| light.node_id == visible_spot));
-    assert!(packet
-        .scene
-        .spot_lights
-        .iter()
-        .all(|light| light.node_id != hidden_spot));
+    assert!(
+        packet
+            .scene
+            .directional_lights
+            .iter()
+            .any(|light| light.node_id == visible_directional)
+    );
+    assert!(
+        packet
+            .scene
+            .directional_lights
+            .iter()
+            .all(|light| light.node_id != hidden_directional)
+    );
+    assert!(
+        packet
+            .scene
+            .point_lights
+            .iter()
+            .any(|light| light.node_id == visible_point)
+    );
+    assert!(
+        packet
+            .scene
+            .point_lights
+            .iter()
+            .all(|light| light.node_id != hidden_point)
+    );
+    assert!(
+        packet
+            .scene
+            .rect_lights
+            .iter()
+            .any(|light| light.node_id == visible_rect)
+    );
+    assert!(
+        packet
+            .scene
+            .rect_lights
+            .iter()
+            .all(|light| light.node_id != hidden_rect)
+    );
+    assert!(
+        packet
+            .scene
+            .spot_lights
+            .iter()
+            .any(|light| light.node_id == visible_spot)
+    );
+    assert!(
+        packet
+            .scene
+            .spot_lights
+            .iter()
+            .all(|light| light.node_id != hidden_spot)
+    );
 }
 
 #[test]
@@ -156,56 +188,78 @@ fn explicit_camera_request_layers_override_scene_camera_layers_for_direct_frame_
         },
     ));
 
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .any(|mesh| mesh.node_id == request_visible_mesh));
-    assert!(extract
-        .geometry
-        .meshes
-        .iter()
-        .all(|mesh| mesh.node_id != scene_camera_visible_mesh));
-    assert!(extract
-        .sprites
-        .sprites
-        .iter()
-        .any(|sprite| sprite.entity == request_visible_sprite));
-    assert!(extract
-        .sprites
-        .sprites
-        .iter()
-        .all(|sprite| sprite.entity != scene_camera_visible_sprite));
-    assert!(extract
-        .view
-        .selected_camera_layers()
-        .intersects_scene_schema_v1_mask(0b0100));
-    assert!(extract
-        .visibility
-        .renderable_entities
-        .contains(&request_visible_mesh));
-    assert!(extract
-        .visibility
-        .renderable_entities
-        .contains(&request_visible_sprite));
-    assert!(!extract
-        .visibility
-        .renderable_entities
-        .contains(&scene_camera_visible_mesh));
-    assert!(!extract
-        .visibility
-        .renderable_entities
-        .contains(&scene_camera_visible_sprite));
-    assert!(extract
-        .lighting
-        .directional_lights
-        .iter()
-        .any(|light| light.node_id == request_visible_light));
-    assert!(extract
-        .lighting
-        .directional_lights
-        .iter()
-        .all(|light| light.node_id != scene_camera_visible_light));
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .any(|mesh| mesh.node_id == request_visible_mesh)
+    );
+    assert!(
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .all(|mesh| mesh.node_id != scene_camera_visible_mesh)
+    );
+    assert!(
+        extract
+            .sprites
+            .sprites
+            .iter()
+            .any(|sprite| sprite.entity == request_visible_sprite)
+    );
+    assert!(
+        extract
+            .sprites
+            .sprites
+            .iter()
+            .all(|sprite| sprite.entity != scene_camera_visible_sprite)
+    );
+    assert!(
+        extract
+            .view
+            .selected_camera_layers()
+            .intersects_scene_schema_v1_mask(0b0100)
+    );
+    assert!(
+        extract
+            .visibility
+            .renderable_entities
+            .contains(&request_visible_mesh)
+    );
+    assert!(
+        extract
+            .visibility
+            .renderable_entities
+            .contains(&request_visible_sprite)
+    );
+    assert!(
+        !extract
+            .visibility
+            .renderable_entities
+            .contains(&scene_camera_visible_mesh)
+    );
+    assert!(
+        !extract
+            .visibility
+            .renderable_entities
+            .contains(&scene_camera_visible_sprite)
+    );
+    assert!(
+        extract
+            .lighting
+            .directional_lights
+            .iter()
+            .any(|light| light.node_id == request_visible_light)
+    );
+    assert!(
+        extract
+            .lighting
+            .directional_lights
+            .iter()
+            .all(|light| light.node_id != scene_camera_visible_light)
+    );
 }
 
 #[test]
@@ -273,14 +327,18 @@ fn render_frame_extract_carries_scene_post_process_volumes_for_camera_layers() {
         resolved.effect_stack.tonemap.operator,
         RenderTonemapOperator::Aces
     );
-    assert!(extract
-        .post_process
-        .volumes
-        .iter()
-        .all(|volume| volume.priority != 16.0));
-    assert!(world
-        .get::<PostProcessVolumeComponent>(visible_volume)
-        .is_some());
+    assert!(
+        extract
+            .post_process
+            .volumes
+            .iter()
+            .all(|volume| volume.priority != 16.0)
+    );
+    assert!(
+        world
+            .get::<PostProcessVolumeComponent>(visible_volume)
+            .is_some()
+    );
 }
 
 #[test]
@@ -288,7 +346,9 @@ fn inactive_post_process_volume_hierarchy_is_excluded_from_frame_extract() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);
     world.set_active_camera(camera);
-    let parent = world.spawn_node(NodeKind::Mesh);
+    let parent = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let volume = spawn_post_process_volume_on_layer(
         &mut world,
         0b0010,

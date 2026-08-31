@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/tests/prelude.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/tests/builtin_engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
@@ -45,7 +45,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/window/resolution.rs
   - zircon_runtime/src/core/framework/window/validation.rs
   - zircon_runtime/src/core/framework/window/video_mode_selection.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/runtime_entry_app/config/mod.rs
@@ -131,7 +131,7 @@ The folder-backed module keeps declaration families separated:
 
 `WindowLifecyclePolicy::default()` mirrors Bevy `WindowPlugin::default()`: close requests are honored and the app exits once all windows are closed. Zircon's current runtime-preview host owns only one primary window, so `OnPrimaryClosed` and `OnAllClosed` both mean "exit after the primary close request is applied". `DontExit` is explicit for no-window or service-style host profiles that should keep the runtime session alive after the primary window is gone.
 
-`PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY` is `runtime.window.primary_descriptor`. `zircon_app::entry::EntryConfig` owns the selected `WindowDescriptor` at bootstrap time, and `BuiltinEngineEntry` stores it in `CoreRuntime` config before and after module activation, matching the existing app-owned platform/render config policy. Runtime/editor entries default to the primary descriptor above. Headless entries and runtime profiles that intentionally skip window ownership record `WindowDescriptor::without_primary_window()`, which keeps the descriptor serializable and diagnostic while setting `primary_window = None`, `visible = false`, and `focused = false`.
+`PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY` is `runtime.window.primary_descriptor`. `EntryConfig` carries an optional window request; `resolve()` derives the role/profile policy and produces a private-field `ResolvedProductHostConfig`. `BuiltinEngineEntry` stores only that resolved descriptor before and after activation. Runtime/editor roles default to a primary window, minimal/server profiles derive `without_primary_window()`, and a server request retaining a primary window fails before composition.
 
 `WindowResizeConstraints` serializes unbounded max width/height as `null` and deserializes `null` back to `f32::INFINITY`. This is intentional because the runtime config store uses JSON, and JSON has no native representation for non-finite floats. The conversion keeps the public Rust DTO ergonomic while allowing default window descriptors to round-trip through `CoreHandle::store_config(...)` / `load_config(...)`.
 

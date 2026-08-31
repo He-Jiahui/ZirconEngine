@@ -17,14 +17,14 @@ use zircon_runtime::scene::world::World;
 use crate::backend::builtin::{
     compute_contact_events, compute_trigger_events, integrate_builtin_physics_steps,
 };
-use crate::backend::{PhysicsRuntimeBackend, physics_backend_status, select_runtime_backend};
+use crate::backend::{physics_backend_status, select_runtime_backend, PhysicsRuntimeBackend};
 
-use super::DefaultPhysicsManager;
 use super::clock::configured_step_seconds;
 use super::command_buffer::apply_commands_to_scene;
 use super::poison_recovery::recover_lock;
 use super::query;
 use super::world_sync::{build_world_sync_state, clear_world_state, sanitize_world_sync_state};
+use super::DefaultPhysicsManager;
 
 impl PhysicsManager for DefaultPhysicsManager {
     fn backend_name(&self) -> String {
@@ -82,8 +82,7 @@ impl PhysicsManager for DefaultPhysicsManager {
     }
 
     fn synchronized_world(&self, world: WorldHandle) -> Option<PhysicsWorldSyncState> {
-        recover_lock(&self.synced_worlds)
-            .get(&world)
+        self.synchronized_world_snapshot(world)
             .map(|sync| sync.as_ref().clone())
     }
 
@@ -113,6 +112,13 @@ impl PhysicsManager for DefaultPhysicsManager {
 }
 
 impl DefaultPhysicsManager {
+    pub(crate) fn synchronized_world_snapshot(
+        &self,
+        world: WorldHandle,
+    ) -> Option<Arc<PhysicsWorldSyncState>> {
+        recover_lock(&self.synced_worlds).get(&world).cloned()
+    }
+
     pub(crate) fn tick_scene_world(
         &self,
         world_handle: WorldHandle,

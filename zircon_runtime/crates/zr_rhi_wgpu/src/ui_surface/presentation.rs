@@ -1,7 +1,9 @@
-use zr_rhi::{RhiError, UiSurfaceDrawList, UiSurfacePresentOutcome, UiSurfaceRect};
+use crate::GpuPassTimer;
+use zr_rhi::{RenderDevice, RhiError, UiSurfaceDrawList, UiSurfacePresentOutcome, UiSurfaceRect};
 
 use super::batching::BatchDrawPlan;
-use super::render_pass::{record_draw_ops_to_view, TargetLoad};
+use super::geometry::damage_with_analytic_coverage;
+use super::render_pass::{record_draw_plan_to_view, TargetLoad};
 use super::text::WgpuUiTextPrepareStats;
 use super::{
     WgpuUiSurfacePresentation, WgpuUiSurfaceRenderStats, WgpuUiSurfaceRenderer,
@@ -19,6 +21,7 @@ impl WgpuUiSurfaceRenderer {
         &mut self,
         draw_list: &UiSurfaceDrawList,
     ) -> Result<WgpuUiSurfacePresentation, RhiError> {
+        self.poll_local_completion_timeline()?;
         self.resize_if_needed(draw_list.surface_size)?;
         let Some(surface_texture) = self.acquire_surface_texture()? else {
             return Ok(retryable_surface_presentation(draw_list.surface_size));
@@ -52,7 +55,7 @@ impl WgpuUiSurfaceRenderer {
             .unwrap_or_else(|| draw_list.stats());
         draw_list_stats.surface_size = draw_list.surface_size;
         let draw_plan = resolved_draw_plan.plan;
-        let (image_resource_stats, text_stats) =
+        let (mut image_resource_stats, text_stats) =
             if mode == SurfaceRenderMode::RetainedProjectionCopy {
                 (
                     self.image_cache
@@ -84,20 +87,28 @@ impl WgpuUiSurfaceRenderer {
             };
         let render_stats =
             self.render_draw_list_to_surface(draw_list, &draw_plan, mode, damage, surface_texture)?;
+        let residency = self
+            .image_cache
+            .residency_stats(&self.shared_image_registry);
+        image_resource_stats.cache_resident_bytes = residency.cache_resident_bytes;
+        image_resource_stats.cpu_resident_bytes = residency.cpu_resident_bytes;
+        image_resource_stats.shared_resident_bytes = residency.shared_resident_bytes;
+        image_resource_stats.device_allocation_count = residency.device_allocation_count;
+        image_resource_stats.device_allocation_bytes = residency.device_allocation_bytes;
+        image_resource_stats.registry_evicted_pinned_bytes =
+            residency.registry_evicted_pinned_bytes;
+        image_resource_stats.surface_pin_count = residency.surface_pin_count;
+        image_resource_stats.in_flight_present_pin_count = residency.in_flight_present_pin_count;
+        image_resource_stats.eviction_completion_count = residency.eviction_completion_count;
         if mode != SurfaceRenderMode::RetainedProjectionCopy {
             if let Some(provider) = self.external_images.as_deref() {
-                for source in &draw_plan.image_upload_sources {
-                    if self
-                        .image_cache
-                        .is_resident(&source.resource_key, source.resource_generation)
-                        && provider
-                            .resolve(&source.resource_key, source.resource_generation)
-                            .is_some()
-                    {
-                        // Submission has accepted the product, so future renderer frames may skip
-                        // only this viewport's CPU capture fallback.
-                        provider.confirm_resident(&source.resource_key, source.resource_generation);
-                    }
+                for source_index in self.image_cache.resolved_external_source_indices() {
+                    let Some(source) = draw_plan.image_upload_sources.get(*source_index) else {
+                        continue;
+                    };
+                    // Submission has accepted the product, so future renderer frames may skip
+                    // only this viewport's CPU capture fallback.
+                    provider.confirm_resident(&source.resource_key, source.resource_generation);
                 }
             }
         }
@@ -113,6 +124,7 @@ impl WgpuUiSurfaceRenderer {
         batch_stats.retained_cache_copy_bytes = render_stats.retained_cache_copy_bytes;
         Ok(WgpuUiSurfacePresentation {
             outcome: render_stats.outcome,
+            submission: render_stats.submission,
             draw_list_stats,
             batch_stats,
             text_stats,
@@ -127,6 +139,17 @@ impl WgpuUiSurfaceRenderer {
     fn resize_if_needed(&mut self, size: (u32, u32)) -> Result<(), RhiError> {
         if size != (self.config.width, self.config.height) {
             self.resize(size)?;
+        }
+        Ok(())
+    }
+
+    fn poll_local_completion_timeline(&mut self) -> Result<(), RhiError> {
+        if !self.completion_owner.is_local() {
+            return Ok(());
+        }
+        self.render_device.poll_submissions()?;
+        if let Some(readback_queue) = self.gpu_readback_queue.as_mut() {
+            let _ = readback_queue.collect_completed_after_device_poll();
         }
         Ok(())
     }
@@ -165,12 +188,12 @@ impl WgpuUiSurfaceRenderer {
         damage: Option<UiSurfaceRect>,
         surface_texture: wgpu::SurfaceTexture,
     ) -> Result<WgpuUiSurfaceRenderStats, RhiError> {
-        let completed_timing = {
-            let (gpu_pass_timer, readback_queue) =
-                (&mut self.gpu_pass_timer, &mut self.gpu_readback_queue);
-            gpu_pass_timer
+        let completed_timing = if self.gpu_readback_queue.is_some() {
+            self.gpu_pass_timer
                 .as_mut()
-                .and_then(|timer| timer.try_collect(&self.device, readback_queue))
+                .and_then(GpuPassTimer::try_collect)
+        } else {
+            None
         };
         let gpu_time_us = completed_timing.as_ref().and_then(|result| {
             result
@@ -185,7 +208,8 @@ impl WgpuUiSurfaceRenderer {
                 .min(u64::from(u32::MAX)) as u32
         });
         let mut render_stats = WgpuUiSurfaceRenderStats {
-            gpu_timestamp_supported: self.gpu_pass_timer.is_some(),
+            gpu_timestamp_supported: self.gpu_pass_timer.is_some()
+                && self.gpu_readback_queue.is_some(),
             gpu_time_us,
             gpu_profile_latency_frames,
             ..WgpuUiSurfaceRenderStats::default()
@@ -206,8 +230,10 @@ impl WgpuUiSurfaceRenderer {
         let readback_ready = self.gpu_pass_timer.is_some()
             && self
                 .gpu_readback_queue
-                .prepare_frame(&self.device, self.present_index)
-                .is_ok();
+                .as_mut()
+                .is_some_and(|readback_queue| {
+                    readback_queue.prepare_frame(self.present_index).is_ok()
+                });
         let timestamp_scope = if readback_ready {
             self.gpu_pass_timer.as_mut().and_then(|timer| {
                 timer.begin_frame(self.present_index);
@@ -225,15 +251,17 @@ impl WgpuUiSurfaceRenderer {
                     .expect("full redraw resolves draw buffers")
                     .buffers;
                 if let Some(retained_cache) = &mut self.retained_cache {
-                    render_stats.add_recorded(record_draw_ops_to_view(
+                    render_stats.add_recorded(record_draw_plan_to_view(
                         &mut encoder,
                         retained_cache.view(),
                         TargetLoad::ClearBlack,
                         retained_cache.size(),
                         draw_list.projection_size(),
                         damage,
-                        &draw_plan.ops,
+                        draw_plan,
                         buffers,
+                        &mut self.damage_draw_op_candidates,
+                        &self.damage_clear_pipeline,
                         &self.solid_pipeline,
                         &self.solid_instance_pipeline,
                         &self.image_pipeline,
@@ -258,15 +286,17 @@ impl WgpuUiSurfaceRenderer {
                         RetainedCacheCommit::OrdinaryBaseline
                     });
                 } else {
-                    render_stats.add_recorded(record_draw_ops_to_view(
+                    render_stats.add_recorded(record_draw_plan_to_view(
                         &mut encoder,
                         &target_view,
                         TargetLoad::ClearBlack,
                         draw_list.surface_size,
                         draw_list.projection_size(),
                         damage,
-                        &draw_plan.ops,
+                        draw_plan,
                         buffers,
+                        &mut self.damage_draw_op_candidates,
+                        &self.damage_clear_pipeline,
                         &self.solid_pipeline,
                         &self.solid_instance_pipeline,
                         &self.image_pipeline,
@@ -285,15 +315,17 @@ impl WgpuUiSurfaceRenderer {
                     .as_ref()
                     .expect("damage patch resolves draw buffers")
                     .buffers;
-                render_stats.add_recorded(record_draw_ops_to_view(
+                render_stats.add_recorded(record_draw_plan_to_view(
                     &mut encoder,
                     retained_cache.view(),
                     TargetLoad::Load,
                     draw_list.surface_size,
                     draw_list.projection_size(),
                     damage,
-                    &draw_plan.ops,
+                    draw_plan,
                     buffers,
+                    &mut self.damage_draw_op_candidates,
+                    &self.damage_clear_pipeline,
                     &self.solid_pipeline,
                     &self.solid_instance_pipeline,
                     &self.image_pipeline,
@@ -334,19 +366,22 @@ impl WgpuUiSurfaceRenderer {
             timer.end_pass(&mut encoder, scope);
         }
         if readback_ready {
-            if let Some(timer) = &mut self.gpu_pass_timer {
-                let _ = timer.resolve_and_request(&mut encoder, &mut self.gpu_readback_queue);
-            }
-            if let Err(error) = self
-                .gpu_readback_queue
-                .encode_copies(&mut encoder, self.present_index)
+            if let (Some(timer), Some(readback_queue)) =
+                (&mut self.gpu_pass_timer, &mut self.gpu_readback_queue)
             {
-                self.gpu_readback_queue.abort_frame(self.present_index);
-                return Err(RhiError::SurfaceUnavailable(error.to_string()));
+                let _ = timer.resolve_and_request(&mut encoder, readback_queue);
+                if let Err(error) = readback_queue.encode_copies(&mut encoder, self.present_index) {
+                    readback_queue.abort_frame(self.present_index);
+                    return Err(RhiError::SurfaceUnavailable(error.to_string()));
+                }
             }
         }
         encoder.pop_debug_group();
-        self.queue.submit(Some(encoder.finish()));
+        let image_allocation_pins = (mode != SurfaceRenderMode::RetainedProjectionCopy)
+            .then(|| self.image_cache.pin_prepared_allocations_for_submission())
+            .flatten();
+        let submission =
+            Some(self.submit_present_command_buffer(encoder.finish(), image_allocation_pins)?);
         if let (Some(retained_cache), Some(commit)) =
             (&mut self.retained_cache, retained_cache_commit)
         {
@@ -359,16 +394,16 @@ impl WgpuUiSurfaceRenderer {
                 }
             }
         }
-        if readback_ready
-            && self
-                .gpu_readback_queue
-                .begin_map(self.present_index)
-                .is_err()
-        {
-            self.gpu_readback_queue.abort_frame(self.present_index);
+        if readback_ready {
+            if let Some(readback_queue) = &mut self.gpu_readback_queue {
+                if readback_queue.begin_map(self.present_index).is_err() {
+                    readback_queue.abort_frame(self.present_index);
+                }
+            }
         }
         surface_texture.present();
         Ok(WgpuUiSurfaceRenderStats {
+            submission,
             draw_buffers: resolved_buffers
                 .map(|resolved| resolved.stats)
                 .unwrap_or_default(),
@@ -386,6 +421,7 @@ pub(super) fn retryable_surface_presentation(
 
     WgpuUiSurfacePresentation {
         outcome: UiSurfacePresentOutcome::RetryableNoSubmit,
+        submission: None,
         draw_list_stats,
         batch_stats: Default::default(),
         text_stats: Default::default(),
@@ -435,6 +471,6 @@ pub(super) fn render_damage(
     mode: SurfaceRenderMode,
 ) -> Option<UiSurfaceRect> {
     (mode == SurfaceRenderMode::DamagePatch)
-        .then_some(draw_list.damage)
+        .then(|| damage_with_analytic_coverage(draw_list.damage, draw_list.projection_size()))
         .flatten()
 }

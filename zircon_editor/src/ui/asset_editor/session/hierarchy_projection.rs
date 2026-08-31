@@ -1,6 +1,11 @@
+use std::ops::ControlFlow;
+
 use crate::ui::asset_editor::{UiAssetEditorReflectionModel, UiDesignerSelectionModel};
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
-use zircon_runtime_interface::ui::template::UiAssetDocument;
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiNodeDefinition};
+
+#[cfg(test)]
+mod streaming_traversal_tests;
 
 pub(super) fn selection_summary(selection: &UiDesignerSelectionModel) -> String {
     let primary = selection
@@ -19,41 +24,26 @@ pub(super) fn build_hierarchy_items(
     document: &UiAssetDocument,
     selected: Option<&str>,
 ) -> Vec<String> {
-    fn visit(
-        output: &mut Vec<String>,
-        document: &UiAssetDocument,
-        node_id: &str,
-        depth: usize,
-        selected: Option<&str>,
-    ) {
-        let Some(node) = document.node(node_id) else {
-            return;
-        };
-        let prefix = if selected == Some(node_id) {
+    let mut items = Vec::new();
+    let _ = visit_hierarchy_nodes(document, |_, depth, node| {
+        let prefix = if selected == Some(node.node_id.as_str()) {
             "> "
         } else {
             "  "
         };
         let label = node
             .widget_type
-            .clone()
-            .or_else(|| node.component_ref.clone())
-            .or_else(|| node.component.clone())
-            .unwrap_or_else(|| "Node".to_string());
-        output.push(format!("{prefix}{}{node_id} [{label}]", "  ".repeat(depth)));
-        for child in &node.children {
-            visit(output, document, &child.node.node_id, depth + 1, selected);
-        }
-    }
-
-    let mut items = Vec::new();
-    if let Some(root_id) = document.root_node_id() {
-        visit(&mut items, document, root_id, 0, selected);
-    } else {
-        for component in document.components.values() {
-            visit(&mut items, document, &component.root.node_id, 0, selected);
-        }
-    }
+            .as_deref()
+            .or(node.component_ref.as_deref())
+            .or(node.component.as_deref())
+            .unwrap_or("Node");
+        items.push(format!(
+            "{prefix}{}{} [{label}]",
+            "  ".repeat(depth),
+            node.node_id.as_str()
+        ));
+        ControlFlow::<()>::Continue(())
+    });
     items
 }
 
@@ -91,33 +81,68 @@ pub(super) fn selected_hierarchy_index(
     let Some(primary) = selection.primary_node_id.as_deref() else {
         return -1;
     };
-    hierarchy_node_ids(document)
-        .iter()
-        .position(|id| id == primary)
-        .map(|i| i as i32)
-        .unwrap_or(-1)
+    visit_hierarchy_nodes(document, |index, _, node| {
+        if node.node_id == primary {
+            ControlFlow::Break(index as i32)
+        } else {
+            ControlFlow::Continue(())
+        }
+    })
+    .unwrap_or(-1)
 }
 
-pub(super) fn hierarchy_node_ids(document: &UiAssetDocument) -> Vec<String> {
-    fn visit(output: &mut Vec<String>, document: &UiAssetDocument, node_id: &str) {
-        output.push(node_id.to_string());
-        let Some(node) = document.node(node_id) else {
-            return;
-        };
-        for child in &node.children {
-            visit(output, document, &child.node.node_id);
+pub(super) fn hierarchy_node_id_at(
+    document: &UiAssetDocument,
+    target_index: usize,
+) -> Option<&str> {
+    visit_hierarchy_nodes(document, |index, _, node| {
+        if index == target_index {
+            ControlFlow::Break(node.node_id.as_str())
+        } else {
+            ControlFlow::Continue(())
         }
+    })
+}
+
+fn visit_hierarchy_nodes<'a, Break>(
+    document: &'a UiAssetDocument,
+    mut visitor: impl FnMut(usize, usize, &'a UiNodeDefinition) -> ControlFlow<Break>,
+) -> Option<Break> {
+    fn visit_node<'a, Break>(
+        node: &'a UiNodeDefinition,
+        depth: usize,
+        index: &mut usize,
+        visitor: &mut impl FnMut(usize, usize, &'a UiNodeDefinition) -> ControlFlow<Break>,
+    ) -> ControlFlow<Break> {
+        let current_index = *index;
+        *index = current_index.saturating_add(1);
+        if let ControlFlow::Break(output) = visitor(current_index, depth, node) {
+            return ControlFlow::Break(output);
+        }
+        for child in &node.children {
+            if let ControlFlow::Break(output) =
+                visit_node(&child.node, depth.saturating_add(1), index, visitor)
+            {
+                return ControlFlow::Break(output);
+            }
+        }
+        ControlFlow::Continue(())
     }
 
-    let mut items = Vec::new();
-    if let Some(root_id) = document.root_node_id() {
-        visit(&mut items, document, root_id);
-    } else {
-        for component in document.components.values() {
-            visit(&mut items, document, &component.root.node_id);
+    let mut index = 0;
+    if let Some(root) = document.root.as_ref() {
+        return match visit_node(root, 0, &mut index, &mut visitor) {
+            ControlFlow::Break(output) => Some(output),
+            ControlFlow::Continue(()) => None,
+        };
+    }
+    for component in document.components.values() {
+        if let ControlFlow::Break(output) = visit_node(&component.root, 0, &mut index, &mut visitor)
+        {
+            return Some(output);
         }
     }
-    items
+    None
 }
 
 pub(super) fn selection_for_node(

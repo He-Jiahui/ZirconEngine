@@ -1,6 +1,11 @@
-//! Stable ABI and DTO contracts shared by runtime hosts, editors, and plugins.
+//! Internal FFI and DTO contracts shared by runtime hosts, editors, and plugins.
+//!
+//! The Runtime DLL interface is an internal lockstep boundary under active
+//! hardening. It is not yet a stable external ABI.
 
 pub mod buffer;
+pub mod editor_command_execution;
+mod editor_command_id;
 pub mod editor_contribution;
 pub mod export;
 pub mod handles;
@@ -15,6 +20,7 @@ pub mod project;
 pub mod reflect;
 pub mod resource;
 pub mod runtime_api;
+pub mod runtime_build_set;
 pub mod script_diagnostics;
 pub mod serialization;
 pub mod status;
@@ -25,7 +31,8 @@ pub mod world_sync;
 pub use buffer::{
     ZrByteBufferRef, ZrByteSlice, ZrByteSliceError, ZrFreeBytesFn, ZrOwnedByteBuffer,
     ZrOwnedResultV2, ZrRuntimePayloadLimitV1, ZR_RUNTIME_ACCESSIBILITY_ACTION_REQUEST_LIMIT_V1,
-    ZR_RUNTIME_ACCESSIBILITY_TREE_OUTPUT_LIMIT_V1, ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1,
+    ZR_RUNTIME_ACCESSIBILITY_TREE_OUTPUT_LIMIT_V1, ZR_RUNTIME_CLIPBOARD_RESULT_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_CLIPBOARD_TEXT_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1,
     ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1,
     ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1, ZR_RUNTIME_JSON_MAX_NESTING_DEPTH_V1,
     ZR_RUNTIME_NATIVE_STRING_LIST_MAX_ITEMS_V1, ZR_RUNTIME_NATIVE_STRING_MAX_ENCODED_BYTES_V1,
@@ -34,9 +41,17 @@ pub use buffer::{
     ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROFILE_RESPONSE_OUTPUT_LIMIT_V1,
     ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_SESSION_PROFILE_MAX_ENCODED_BYTES_V1,
     ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1,
-    ZR_RUNTIME_WORLD_INVALIDATION_OUTPUT_LIMIT_V1, ZR_RUNTIME_WORLD_QUERY_OUTPUT_LIMIT_V1,
-    ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1, ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_VIEWPORT_CAMERA_REQUEST_LIMIT_V1, ZR_RUNTIME_WORLD_INVALIDATION_OUTPUT_LIMIT_V1,
+    ZR_RUNTIME_WORLD_QUERY_OUTPUT_LIMIT_V1, ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1,
 };
+pub use editor_command_execution::{
+    EditorCommandExecutionContract, EditorCommandResourceBudget, EditorCommandResourceBudgetError,
+    EditorCommandResultCodecId, EditorCommandResultCodecIdError,
+    MAX_EDITOR_COMMAND_EXECUTION_TIME_MS, MAX_EDITOR_COMMAND_INPUT_BYTES,
+    MAX_EDITOR_COMMAND_OUTPUT_BYTES,
+};
+pub use editor_command_id::{EditorCommandId, EditorCommandIdError};
 pub use editor_contribution::{
     SerializedContributionBatch, SerializedContributionBatchError, SerializedEditorContribution,
     SERIALIZED_EDITOR_CONTRIBUTION_BATCH_SCHEMA_V1,
@@ -48,12 +63,17 @@ pub use handles::{
 #[cfg(windows)]
 pub use hub_protocol::windows_hub_recent_projects_mutex_name;
 pub use hub_protocol::{
-    hub_editor_focus_signal_path, hub_recent_project_path_key, hub_recent_projects_lock_path,
-    hub_recent_projects_path, hub_recent_projects_path_from_home, merge_hub_recent_projects,
-    HubEditorFocusSignalPathError, HubEditorFocusSignalV1, HubEditorLaunchOutcomeV1,
-    HubEditorMailboxV1, HubProtocolVersionV1, HubRecentProjectV1, HubRecentProjectsError,
-    HubRecentProjectsV1, HubSessionToken, HubSessionTokenParseError, HUB_PROTOCOL_VERSION_V1,
-    HUB_RECENT_PROJECT_LIMIT_V1,
+    hub_editor_focus_ack_path, hub_editor_focus_request_directory, hub_editor_focus_signal_path,
+    hub_recent_project_path_key, hub_recent_projects_lock_path, hub_recent_projects_path,
+    hub_recent_projects_path_from_home, merge_hub_recent_projects, HubEditorFocusAckDispositionV1,
+    HubEditorFocusAckV1, HubEditorFocusSignalError, HubEditorFocusSignalPathError,
+    HubEditorFocusSignalV1, HubEditorLaunchOutcomeV1, HubEditorMailboxV1, HubProtocolVersionV1,
+    HubRecentProjectTombstoneV1, HubRecentProjectV1, HubRecentProjectsError, HubRecentProjectsLoad,
+    HubRecentProjectsLoadDisposition, HubRecentProjectsMutation, HubRecentProjectsStore,
+    HubRecentProjectsStoreError, HubRecentProjectsV1, HubRecentProjectsWritePolicy,
+    HubSessionToken, HubSessionTokenParseError, HUB_PROTOCOL_VERSION_V1,
+    HUB_RECENT_PROJECTS_MAX_ENCODED_BYTES_V1, HUB_RECENT_PROJECT_LIMIT_V1,
+    HUB_RECENT_PROJECT_TOMBSTONE_LIMIT_V1,
 };
 pub use manifest::{ZrPluginModuleDescriptorV1, ZrPluginModuleKind, ZrRuntimeTargetMode};
 pub use plugin_api::{
@@ -90,14 +110,18 @@ pub use profiling::{
 };
 pub use runtime_api::ZrRuntimeImeTextRangeV1;
 pub use runtime_api::{
-    ZrHostApiV1, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV7,
+    validate_runtime_api_v8_shape, GatewaySessionIdentity, ZrHostApiV1,
+    ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV8, ZrRuntimeApiV8ShapeError,
     ZrRuntimeBindViewportSurfaceFnV1, ZrRuntimeBindViewportSurfaceRequestV1,
-    ZrRuntimeCaptureAccessibilityTreeFnV2, ZrRuntimeCaptureFrameFnV2, ZrRuntimeCreateSessionFnV3,
-    ZrRuntimeCursorGrabModeV1, ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1,
-    ZrRuntimeCursorPositionV1, ZrRuntimeDrainHostRequestsFnV2, ZrRuntimeDrainPluginEventsFnV2,
-    ZrRuntimeDrainWorldInvalidationsFnV2, ZrRuntimeEntityIdSliceV1, ZrRuntimeEventV1,
+    ZrRuntimeCancelViewportPickFnV1, ZrRuntimeCaptureAccessibilityTreeFnV2,
+    ZrRuntimeCaptureFrameFnV2, ZrRuntimeClipboardHostRequestV1, ZrRuntimeClipboardResultV1,
+    ZrRuntimeCreateSessionFnV3, ZrRuntimeCursorGrabModeV1, ZrRuntimeCursorHostRequestKindV1,
+    ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1, ZrRuntimeDrainHostRequestsFnV2,
+    ZrRuntimeDrainPluginEventsFnV2, ZrRuntimeDrainWorldInvalidationsFnV2,
+    ZrRuntimeEditorTransformError, ZrRuntimeEditorTransformPhaseV1,
+    ZrRuntimeEditorTransformWriteV1, ZrRuntimeEntityIdSliceV1, ZrRuntimeEventV1,
     ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2,
-    ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeGetApiFnV7,
+    ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeGetApiFnV8,
     ZrRuntimeHarvestOperationFnV2, ZrRuntimeHighlightRenderAttributesV1, ZrRuntimeHighlightSetV1,
     ZrRuntimeHostFetchFnV1, ZrRuntimeHostFetchRequestV1, ZrRuntimeHostRequestBatchV1,
     ZrRuntimeHostRequestV1, ZrRuntimeImeCoordinateSpaceV1, ZrRuntimeImeCursorAreaV1,
@@ -107,21 +131,27 @@ pub use runtime_api::{
     ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
     ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
-    ZrRuntimePollOperationFnV2, ZrRuntimePresentViewportFnV1, ZrRuntimeQueryWorldFnV2,
-    ZrRuntimeReleaseAllocationFnV2, ZrRuntimeSessionConfigV3, ZrRuntimeSubmitHighlightSetFnV1,
-    ZrRuntimeSubmitOperationFnV1, ZrRuntimeSubscribePluginEventFnV1, ZrRuntimeTickFrameFnV2,
-    ZrRuntimeTranslatedEventV1, ZrRuntimeUnbindViewportSurfaceFnV1,
-    ZrRuntimeUnsubscribePluginEventFnV1, ZrRuntimeUnwatchWorldFnV1, ZrRuntimeViewportMetricsV1,
-    ZrRuntimeViewportSizeV1, ZrRuntimeWakeSinkV1, ZrRuntimeWatchWorldFnV1,
-    ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
-    ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1,
-    ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1,
-    ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1,
-    ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1, ZR_RUNTIME_EVENT_KIND_IME_V1,
-    ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1,
-    ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1,
-    ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
-    ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
+    ZrRuntimePollOperationFnV2, ZrRuntimePollViewportPickFnV1, ZrRuntimePresentViewportFnV1,
+    ZrRuntimeQueryWorldFnV2, ZrRuntimeReleaseAllocationFnV2, ZrRuntimeRequestViewportPickFnV1,
+    ZrRuntimeSessionConfigV3, ZrRuntimeSubmitHighlightSetFnV1, ZrRuntimeSubmitOperationFnV1,
+    ZrRuntimeSubscribePluginEventFnV1, ZrRuntimeTickFrameFnV2, ZrRuntimeTransformV1,
+    ZrRuntimeTranslatedEventV1, ZrRuntimeUiActionHostRequestV1, ZrRuntimeUiHostRequestKindV1,
+    ZrRuntimeUiHostRequestV1, ZrRuntimeUnbindViewportSurfaceFnV1,
+    ZrRuntimeUnsubscribePluginEventFnV1, ZrRuntimeUnwatchWorldFnV1, ZrRuntimeViewportCameraV1,
+    ZrRuntimeViewportMetricsV1, ZrRuntimeViewportPickDispositionV1, ZrRuntimeViewportPickPurposeV1,
+    ZrRuntimeViewportPickRequestV1, ZrRuntimeViewportPickResultV1, ZrRuntimeViewportPickTicket,
+    ZrRuntimeViewportPixelV1, ZrRuntimeViewportSizeV1, ZrRuntimeWakeSinkV1,
+    ZrRuntimeWatchWorldFnV1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
+    ZR_RUNTIME_EVENT_KIND_CLIPBOARD_RESULT_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1,
+    ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1, ZR_RUNTIME_EVENT_KIND_EDITOR_TRANSFORM_WRITE_V1,
+    ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
+    ZR_RUNTIME_EVENT_KIND_IME_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1,
+    ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1,
+    ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, ZR_RUNTIME_EVENT_KIND_TOUCH_V1,
+    ZR_RUNTIME_EVENT_KIND_VIEWPORT_CAMERA_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
     ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1, ZR_RUNTIME_FETCH_FLAG_STREAMING_V1,
     ZR_RUNTIME_FILE_DRAG_CANCELLED_V1, ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
     ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
@@ -141,7 +171,7 @@ pub use runtime_api::{
     ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_GAMEPAD_BUTTON_START_V1,
     ZR_RUNTIME_GAMEPAD_BUTTON_UNKNOWN_V1, ZR_RUNTIME_GAMEPAD_BUTTON_WEST_V1,
     ZR_RUNTIME_GAMEPAD_BUTTON_Z_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
-    ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1, ZR_RUNTIME_GET_API_SYMBOL_V7,
+    ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1, ZR_RUNTIME_GET_API_SYMBOL_V8,
     ZR_RUNTIME_IME_CURSOR_HIDDEN_V1, ZR_RUNTIME_IME_STATE_COMMIT_V1,
     ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
     ZR_RUNTIME_IME_STATE_DISABLED_V1, ZR_RUNTIME_IME_STATE_ENABLED_V1,
@@ -158,11 +188,15 @@ pub use runtime_api::{
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
     ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZR_RUNTIME_WINDOW_BOOL_FALSE_V1,
+    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_ORTHOGRAPHIC_V1,
+    ZR_RUNTIME_VIEWPORT_CAMERA_PROJECTION_PERSPECTIVE_V1,
+    ZR_RUNTIME_VIEWPORT_PICK_POLICY_INCLUDE_BACKFACES_V1,
+    ZR_RUNTIME_VIEWPORT_PICK_POLICY_INCLUDE_TRANSLUCENT_V1, ZR_RUNTIME_WINDOW_BOOL_FALSE_V1,
     ZR_RUNTIME_WINDOW_BOOL_TRUE_V1, ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
-    ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_SURFACE_RECREATED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
     ZR_RUNTIME_WINDOW_THEME_DARK_V1, ZR_RUNTIME_WINDOW_THEME_LIGHT_V1,
     ZR_RUNTIME_WINDOW_THEME_UNKNOWN_V1,
 };
@@ -170,7 +204,7 @@ pub use script_diagnostics::{ScriptDiagnostic, ScriptDiagnosticSeverity, ScriptS
 pub use status::{ZrStatus, ZrStatusCode};
 pub use version::{
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
-    ZIRCON_RUNTIME_API_VERSION_V7,
+    ZIRCON_RUNTIME_API_VERSION_V8,
 };
 
 #[cfg(test)]

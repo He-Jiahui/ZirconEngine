@@ -89,3 +89,17 @@ Open state: `MVP03 source repair complete; managed upward validation pending`; n
 - The declared managed Render17 exact gate must still rebuild `zircon_app` from a fresh source
   snapshot and run past the previous E0433 boundary. Only its terminal result can determine the
   downstream render outcome or move this canonical handoff to `fixed-*`.
+
+### 2026-08-28 current-source managed replay
+
+- Managed job `09b9495deb684503850deaa5b0bdf774` ran
+  `cargo test -p zircon_app --locked --lib frame_capture_projects_to_the_runtime_entry_root_sibling`
+  in the retained D-drive pool and released normally with no live process PIDs.
+- Cargo rebuilt the current dependency graph and did not reproduce the original
+  `surface_present::frame_capture` E0433. Compilation stopped before the focused test executed on
+  the separately owned `zircon_runtime_host/src/foreign_output/item_count.rs`: its match over
+  `WorldQueryResult` does not yet cover `TransformSnapshot` (E0004).
+- This replay proves the prior artifact-governance and validation-copy closure blockers are no
+  longer the admission boundary, but it is not a focused GREEN. The canonical frame-capture
+  failure remains `open` until the external world-query consumer repair is integrated and the
+  same managed test executes successfully; MVP03 does not absorb or patch that owner here.

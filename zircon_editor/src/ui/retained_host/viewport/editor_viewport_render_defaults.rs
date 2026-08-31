@@ -56,15 +56,27 @@ fn editor_hybrid_gi_profile_override() -> Option<RenderHybridGiProfile> {
 }
 
 fn parse_editor_hybrid_gi_profile(value: &str) -> Option<RenderHybridGiProfile> {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "fully-dynamic" | "fully_dynamic" => Some(RenderHybridGiProfile::FullyDynamic),
-        "indoor-static" | "indoor_static" => Some(RenderHybridGiProfile::IndoorStatic),
-        "open-world" | "open_world" => Some(RenderHybridGiProfile::OpenWorld),
-        "cinematic" => Some(RenderHybridGiProfile::Cinematic),
-        "custom" => Some(RenderHybridGiProfile::Custom),
-        _ => None,
+    let value = value.trim();
+    if value.eq_ignore_ascii_case("fully-dynamic") || value.eq_ignore_ascii_case("fully_dynamic") {
+        Some(RenderHybridGiProfile::FullyDynamic)
+    } else if value.eq_ignore_ascii_case("indoor-static")
+        || value.eq_ignore_ascii_case("indoor_static")
+    {
+        Some(RenderHybridGiProfile::IndoorStatic)
+    } else if value.eq_ignore_ascii_case("open-world") || value.eq_ignore_ascii_case("open_world") {
+        Some(RenderHybridGiProfile::OpenWorld)
+    } else if value.eq_ignore_ascii_case("cinematic") {
+        Some(RenderHybridGiProfile::Cinematic)
+    } else if value.eq_ignore_ascii_case("custom") {
+        Some(RenderHybridGiProfile::Custom)
+    } else {
+        None
     }
 }
+
+#[cfg(test)]
+#[path = "editor_viewport_render_defaults/borrowed_parse_tests.rs"]
+mod borrowed_parse_tests;
 
 #[cfg(test)]
 mod tests {

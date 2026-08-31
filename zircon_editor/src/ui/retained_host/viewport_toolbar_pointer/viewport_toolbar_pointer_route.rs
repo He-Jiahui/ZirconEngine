@@ -8,6 +8,9 @@ pub(crate) enum ViewportToolbarPointerRoute {
         surface_key: String,
         space: String,
     },
+    CyclePivotMode {
+        surface_key: String,
+    },
     SetProjectionMode {
         surface_key: String,
         mode: String,

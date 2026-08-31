@@ -14,7 +14,7 @@ validation_job: 0cc224e1cbb74c0b962706fd30111c49
 validation_log: D:/ZirconBuilds/runtime02-module-order-20260822-231940.stderr.log
 related_code:
   - zircon_runtime/src/core/runtime/modules
-  - zircon_runtime/src/tests/runtime_absorption/module_order.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_order.rs
 tests:
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter module_order -VerboseOutput
   - full-default-feature WPR/xperf module graph evidence
@@ -68,3 +68,10 @@ The UI binding diagnostics are already routed by canonical records, including:
 ## 修复结果与回传
 
 Open state: the original managed job did not execute `module_order`, and no replacement managed test or accepted full-default-feature WPR/xperf receipt is recorded here. This update only restores canonical schema and clarifies owner boundaries; it does not claim Cargo green, profiling acceptance, `fixed-*` return, or completion notification.
+
+## 2026-08-27 module-order owner anchor repair
+
+The never-integrated `tests/runtime_absorption/module_order.rs` leaf is replaced by
+the current `core/runtime/descriptors/module_order.rs` owner, which defines and tests
+module dependency ordering. The original managed filter and pending profiling gate
+remain unchanged; this metadata repair adds no Cargo or WPR evidence.

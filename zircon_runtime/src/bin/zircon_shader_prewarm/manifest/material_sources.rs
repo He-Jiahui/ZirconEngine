@@ -54,7 +54,7 @@ pub(super) fn prewarm_manifest_for_material_source(
     quality_tiers: &[ShaderQualityTier],
     geometry_sources: &[GeometrySourceId],
     geometry_source_descriptors: &BTreeMap<GeometrySourceId, GeometrySourceDescriptor>,
-) -> ShaderVariantPrewarmManifest {
+) -> ShaderPrewarmAssetScanResult<ShaderVariantPrewarmManifest> {
     let pipeline_state = material.pipeline_state;
     let Some(shader_source) = shader_source_index.source_for_material(
         shader_sources,
@@ -87,15 +87,22 @@ pub(super) fn prewarm_manifest_for_material_source(
                 }
                 append_manifest(&mut manifest, builtin_manifest);
             }
-            return manifest;
+            return Ok(manifest);
         }
-        return ShaderVariantPrewarmManifest::empty();
+        return Ok(ShaderVariantPrewarmManifest::empty());
     };
+    if !shader_source.kind.participates_in_material_variants() {
+        return Err(ShaderPrewarmAssetScanError::MaterialShaderKindMismatch {
+            material_path: material.source_path,
+            shader_label: shader_source.stable_label.clone(),
+            actual_kind: shader_source.kind.token(),
+        });
+    }
     let material_layout_hash = shader_source.material_layout_hash;
     let material_option_bits = shader_source
         .material_option_table
         .bits_for_values(&material.material_option_values);
-    prewarm_manifest_for_source_with_dimensions(
+    Ok(prewarm_manifest_for_source_with_dimensions(
         shader_source,
         material.features,
         material.shading_model,
@@ -107,7 +114,7 @@ pub(super) fn prewarm_manifest_for_material_source(
         geometry_source_descriptors,
         material_layout_hash,
         material_option_bits,
-    )
+    ))
 }
 
 fn material_source_from_zmaterial(
@@ -231,10 +238,6 @@ fn material_pipeline_state(material: &MaterialAsset) -> ShaderPipelinePrewarmSta
         alpha_blend: matches!(material.alpha_mode, AlphaMode::Blend),
         alpha_cutoff_bits: material_alpha_cutoff(material).map(f32::to_bits),
         unlit: material.lighting_model().is_unlit(),
-        has_base_color_texture: material.base_color_texture.is_some(),
-        has_metallic_roughness_texture: material.metallic_roughness_texture.is_some(),
-        has_occlusion_texture: material.occlusion_texture.is_some(),
-        has_emissive_texture: material.emissive_texture.is_some(),
     }
 }
 

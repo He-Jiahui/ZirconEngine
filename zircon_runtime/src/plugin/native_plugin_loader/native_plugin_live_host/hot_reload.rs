@@ -54,11 +54,13 @@ impl std::fmt::Display for NativePluginHotReloadError {
                 plugin_id,
                 status_code,
                 diagnostics,
-            } => write!(
-                formatter,
-                "plugin {plugin_id} hot reload failed while restoring runtime state: status {status_code}; {}",
-                diagnostics.join("; ")
-            ),
+            } => {
+                write!(
+                    formatter,
+                    "plugin {plugin_id} hot reload failed while restoring runtime state: status {status_code}; "
+                )?;
+                write_joined_hot_reload_diagnostics(formatter, diagnostics)
+            }
         }
     }
 }
@@ -159,32 +161,49 @@ impl NativePluginHotReloadState {
         self.previous_plugin_disposition = PreviousPluginDisposition::Restored;
     }
 
-    pub(super) fn rollback_error(&mut self, error: String) -> String {
-        format!("{error}; {}", self.rollback_diagnostic())
+    pub(super) fn rollback_error(&mut self, mut error: String) -> String {
+        let rollback = self.rollback_diagnostic();
+        error.reserve_exact(2usize.saturating_add(rollback.len()));
+        error.push_str("; ");
+        error.push_str(&rollback);
+        error
     }
 
     pub(super) fn rollback_diagnostic(&self) -> String {
-        let rollback = match self.previous_plugin_disposition {
+        let (prefix, suffix) = match self.previous_plugin_disposition {
             PreviousPluginDisposition::HeldForRollback | PreviousPluginDisposition::Restored => {
-                format!(
-                    "rolled back to the previously loaded {} native package",
-                    module_kind_label(self.module_kind)
-                )
+                ("rolled back to the previously loaded ", " native package")
             }
-            PreviousPluginDisposition::Unloaded => format!(
-                "rollback unavailable because previous {} native package was already unloaded",
-                module_kind_label(self.module_kind)
+            PreviousPluginDisposition::Unloaded => (
+                "rollback unavailable because previous ",
+                " native package was already unloaded",
             ),
-            PreviousPluginDisposition::NotLoaded => format!(
-                "rollback not needed because no {} native package was previously loaded",
-                module_kind_label(self.module_kind)
+            PreviousPluginDisposition::NotLoaded => (
+                "rollback not needed because no ",
+                " native package was previously loaded",
             ),
         };
-        if self.diagnostics.is_empty() {
-            rollback
-        } else {
-            format!("{rollback}; {}", self.diagnostics.join("; "))
+        let module_kind = module_kind_label(self.module_kind);
+        let diagnostic_bytes = joined_hot_reload_diagnostics_len(&self.diagnostics);
+        let mut rollback = String::with_capacity(
+            prefix
+                .len()
+                .saturating_add(module_kind.len())
+                .saturating_add(suffix.len())
+                .saturating_add(
+                    usize::from(!self.diagnostics.is_empty())
+                        .saturating_mul(2usize.saturating_add(diagnostic_bytes)),
+                ),
+        );
+        rollback.push_str(prefix);
+        rollback.push_str(module_kind);
+        rollback.push_str(suffix);
+        if !self.diagnostics.is_empty() {
+            rollback.push_str("; ");
+            write_joined_hot_reload_diagnostics(&mut rollback, &self.diagnostics)
+                .expect("writing hot reload rollback diagnostic to String cannot fail");
         }
+        rollback
     }
 
     pub(super) fn into_rollback_plugin(self) -> Option<LoadedNativePlugin> {
@@ -244,5 +263,68 @@ fn prefixed_behavior_diagnostics(
             .iter()
             .map(|diagnostic| format!("{label}: {diagnostic}"))
             .collect()
+    }
+}
+
+fn write_joined_hot_reload_diagnostics(
+    output: &mut impl std::fmt::Write,
+    diagnostics: &[String],
+) -> std::fmt::Result {
+    for (index, diagnostic) in diagnostics.iter().enumerate() {
+        if index != 0 {
+            output.write_str("; ")?;
+        }
+        output.write_str(diagnostic)?;
+    }
+    Ok(())
+}
+
+fn joined_hot_reload_diagnostics_len(diagnostics: &[String]) -> usize {
+    diagnostics
+        .iter()
+        .map(String::len)
+        .sum::<usize>()
+        .saturating_add(diagnostics.len().saturating_sub(1).saturating_mul(2))
+}
+
+#[cfg(test)]
+mod diagnostic_formatting_tests {
+    use super::*;
+
+    #[test]
+    fn streaming_hot_reload_diagnostics_preserve_contract() {
+        let error = NativePluginHotReloadError::RestoreRuntimeState {
+            plugin_id: "physics".to_string(),
+            status_code: 17,
+            diagnostics: vec!["first".to_string(), "second".to_string()],
+        };
+        assert_eq!(
+            error.to_string(),
+            "plugin physics hot reload failed while restoring runtime state: status 17; first; second"
+        );
+
+        let empty = NativePluginHotReloadError::RestoreRuntimeState {
+            plugin_id: "physics".to_string(),
+            status_code: 18,
+            diagnostics: Vec::new(),
+        };
+        assert_eq!(
+            empty.to_string(),
+            "plugin physics hot reload failed while restoring runtime state: status 18; "
+        );
+
+        let mut state =
+            NativePluginHotReloadState::new(PluginModuleKind::Runtime, "physics".to_string(), None);
+        state.mark_existing_unloaded(vec!["first".to_string(), "second".to_string()]);
+        let rollback = state.rollback_diagnostic();
+        assert_eq!(
+            rollback,
+            "rollback unavailable because previous runtime native package was already unloaded; first; second"
+        );
+        assert_eq!(rollback.len(), rollback.capacity());
+        assert_eq!(
+            state.rollback_error("reload failed".to_string()),
+            "reload failed; rollback unavailable because previous runtime native package was already unloaded; first; second"
+        );
     }
 }

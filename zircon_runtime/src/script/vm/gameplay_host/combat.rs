@@ -1,4 +1,4 @@
-use crate::core::framework::animation::AnimationParameterValue;
+use crate::core::framework::animation::{AnimationParameterMap, AnimationParameterValue};
 use crate::core::framework::script::{
     ScriptHostCallFrame, ScriptHostError, ScriptHostHotPathMetrics, ScriptHostValue,
 };
@@ -13,6 +13,20 @@ use super::values::{
     expect_bool, expect_entity, expect_float, to_json_string, vec3_to_array, with_string,
 };
 
+fn set_animation_bool_parameter(
+    parameters: &mut AnimationParameterMap,
+    parameter: &str,
+    value: bool,
+) -> bool {
+    let next = AnimationParameterValue::Bool(value);
+    if let Some(current) = parameters.get_mut(parameter) {
+        *current = next;
+        return false;
+    }
+    parameters.insert(parameter.to_owned(), next);
+    true
+}
+
 pub(super) fn set_animation_bool(
     context: &ScriptHostCallFrame<'_>,
 ) -> Result<ScriptHostValue, ScriptHostError> {
@@ -26,10 +40,9 @@ pub(super) fn set_animation_bool(
                 let Some(mut player) = world.animation_state_machine_player(entity).cloned() else {
                     return Ok(false);
                 };
-                ScriptHostHotPathMetrics::record_guest_string_copy(parameter.len());
-                player
-                    .parameters
-                    .insert(parameter.to_owned(), AnimationParameterValue::Bool(value));
+                if set_animation_bool_parameter(&mut player.parameters, parameter, value) {
+                    ScriptHostHotPathMetrics::record_guest_string_copy(parameter.len());
+                }
                 world.set_animation_state_machine_player(entity, Some(player))?;
                 Ok(true)
             });
@@ -166,5 +179,39 @@ impl DamageReport {
             remaining_hp: 0.0,
             position,
         }
+    }
+}
+
+#[cfg(test)]
+mod performance_contract_tests {
+    use crate::core::framework::animation::{AnimationParameterMap, AnimationParameterValue};
+
+    use super::set_animation_bool_parameter;
+
+    #[test]
+    fn animation_bool_parameter_only_copies_a_missing_key() {
+        let mut parameters = AnimationParameterMap::from([(
+            "moving".to_owned(),
+            AnimationParameterValue::Bool(false),
+        )]);
+
+        assert!(!set_animation_bool_parameter(
+            &mut parameters,
+            "moving",
+            true
+        ));
+        assert!(set_animation_bool_parameter(
+            &mut parameters,
+            "grounded",
+            true
+        ));
+        assert_eq!(
+            parameters.get("moving"),
+            Some(&AnimationParameterValue::Bool(true))
+        );
+        assert_eq!(
+            parameters.get("grounded"),
+            Some(&AnimationParameterValue::Bool(true))
+        );
     }
 }

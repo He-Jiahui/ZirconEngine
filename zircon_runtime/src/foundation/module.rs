@@ -4,15 +4,11 @@ use crate::core::framework::foundation::{ConfigManager, EventManager, FOUNDATION
 use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    CoreError, DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDescriptor, ServiceKind,
-    StartupMode,
+    CoreError, InitLevel, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
 };
 use crate::engine_module::{factory, qualified_name, EngineModule};
 
-use super::{ConfigDriver, DefaultConfigManager, DefaultEventManager, EventDriver};
-
-pub const CONFIG_DRIVER_NAME: &str = "FoundationModule.Driver.ConfigDriver";
-pub const EVENT_DRIVER_NAME: &str = "FoundationModule.Driver.EventDriver";
+use super::{DefaultConfigManager, DefaultEventManager};
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(
@@ -20,18 +16,6 @@ pub fn module_descriptor() -> ModuleDescriptor {
         "Built-in runtime foundation services",
     )
     .with_init_level(InitLevel::Kernel)
-    .with_driver(DriverDescriptor::new(
-        qualified_name(FOUNDATION_MODULE_NAME, ServiceKind::Driver, "ConfigDriver"),
-        StartupMode::Immediate,
-        Vec::new(),
-        factory(|_| Ok(Arc::new(ConfigDriver) as ServiceObject)),
-    ))
-    .with_driver(DriverDescriptor::new(
-        qualified_name(FOUNDATION_MODULE_NAME, ServiceKind::Driver, "EventDriver"),
-        StartupMode::Immediate,
-        Vec::new(),
-        factory(|_| Ok(Arc::new(EventDriver) as ServiceObject)),
-    ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(
             FOUNDATION_MODULE_NAME,

@@ -23,7 +23,7 @@ impl EditorState {
         Self::new_with_context(
             world,
             viewport_size,
-            EditorContextBuilder::new(test_job_scheduler()).build(),
+            EditorContextBuilder::new(test_job_scheduler(), test_job_scheduler()).build(),
         )
     }
 
@@ -33,7 +33,7 @@ impl EditorState {
         context: Arc<EditorContext>,
     ) -> Self {
         Self::new_with_world(
-            EditorAuthoringWorld::loaded(context.gateway(), world)
+            EditorAuthoringWorld::loaded(context.authoring_gateway(), world)
                 .expect("editor context must accept an authoring gateway"),
             viewport_size,
             DEFAULT_PROJECT_PATH.to_string(),
@@ -53,7 +53,7 @@ impl EditorState {
         Self::with_default_selection_with_context(
             world,
             viewport_size,
-            EditorContextBuilder::new(test_job_scheduler()).build(),
+            EditorContextBuilder::new(test_job_scheduler(), test_job_scheduler()).build(),
         )
     }
 
@@ -63,6 +63,7 @@ impl EditorState {
         context: Arc<EditorContext>,
     ) -> Self {
         let mut state = Self::new_with_context(world, viewport_size, context);
+        state.bind_scene_document(crate::core::editor_message::DocumentId::new(1));
         state.select_default_node();
         state.sync_selection_state();
         state
@@ -78,7 +79,7 @@ impl EditorState {
             world,
             viewport_size,
             project_path,
-            EditorContextBuilder::new(test_job_scheduler()).build(),
+            EditorContextBuilder::new(test_job_scheduler(), test_job_scheduler()).build(),
         )
     }
 
@@ -89,7 +90,7 @@ impl EditorState {
         context: Arc<EditorContext>,
     ) -> Self {
         let mut state = Self::new_with_world(
-            EditorAuthoringWorld::loaded(context.gateway(), world)
+            EditorAuthoringWorld::loaded(context.authoring_gateway(), world)
                 .expect("editor context must accept an authoring gateway"),
             viewport_size,
             project_path.into(),
@@ -99,6 +100,7 @@ impl EditorState {
             "Ready".to_string(),
             context,
         );
+        state.bind_scene_document(crate::core::editor_message::DocumentId::new(1));
         state.select_default_node();
         state.sync_selection_state();
         state
@@ -109,7 +111,7 @@ impl EditorState {
         Self::welcome_with_context(
             viewport_size,
             welcome,
-            EditorContextBuilder::new(test_job_scheduler()).build(),
+            EditorContextBuilder::new(test_job_scheduler(), test_job_scheduler()).build(),
         )
     }
 
@@ -124,7 +126,7 @@ impl EditorState {
             welcome.status_message.clone()
         };
         Self::new_with_world(
-            EditorAuthoringWorld::unloaded(context.gateway())
+            EditorAuthoringWorld::unloaded(context.authoring_gateway())
                 .expect("editor context must accept a detached authoring gateway"),
             viewport_size,
             String::new(),
@@ -148,11 +150,20 @@ impl EditorState {
     ) -> Self {
         let console_history =
             crate::ui::workbench::state::console_history::EditorConsoleHistory::new(&status_line);
-        let viewport_controller = SceneViewportController::with_settings(
+        let viewport_controller = SceneViewportController::with_settings_and_tools(
             viewport_size,
-            Arc::clone(context.settings()),
-            context.settings_persistence().clone(),
+            Arc::clone(context.settings_mutations()),
+            context.tools().clone(),
+            crate::core::editor_event::ViewInstanceId::new("editor.scene#1"),
         );
+        if project_open {
+            if let Err(error) = context
+                .settings_mutations()
+                .bind_project(Path::new(&project_path))
+            {
+                tracing::error!(%error, "could not bind the project settings mutation owner");
+            }
+        }
         let mut state = Self {
             context,
             world,
@@ -172,22 +183,20 @@ impl EditorState {
             console_history,
             status_task_progress: None,
             bridge_diagnostics: Default::default(),
+            active_scene_document: None,
             scene_entry_projection_cache: Default::default(),
-            gizmo_transaction: None,
+            interactive_transform: None,
             play_session: None,
             #[cfg(test)]
             fail_next_transaction_selection_sync: false,
+            #[cfg(test)]
+            fail_next_inspector_checkpoint_restore: false,
         };
-        if state.project_open {
-            state
-                .viewport_controller
-                .configure_project_settings(Path::new(&state.project_path));
-        }
         state
     }
 
     fn select_default_node(&mut self) {
-        let selection = self.world.try_with_world(|scene| {
+        let selection = self.world.with_world(|scene| {
             scene
                 .nodes()
                 .iter()
@@ -202,10 +211,16 @@ impl EditorState {
                 })
                 .or_else(|| scene.nodes().first().map(|node| node.id))
         });
-        if let Some(Some(selection)) = selection {
-            self.viewport_controller
-                .selection_mut()
-                .select_only_active(selection);
+        match selection {
+            Ok(Some(Some(selection))) => {
+                self.viewport_controller
+                    .selection_mut()
+                    .select_only_active(selection);
+            }
+            Ok(Some(None)) | Ok(None) => {}
+            Err(error) => {
+                self.report_authoring_world_access_failure("default scene selection", &error)
+            }
         }
     }
 }

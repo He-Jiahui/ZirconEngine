@@ -8,14 +8,14 @@ impl RetainedEditorHost {
             };
             self.ui
                 .global::<crate::ui::retained_host::PaneSurfaceHostContext>()
-                .set_viewport_product(product)
+                .set_scene_viewport_product(product)
         } else {
             let Some((viewport, frame)) = self.viewport.poll_captured_frame() else {
                 return;
             };
             self.ui
                 .global::<crate::ui::retained_host::PaneSurfaceHostContext>()
-                .set_viewport_capture(viewport, frame)
+                .set_scene_viewport_capture(viewport, frame)
         };
         zircon_runtime::profile_scope!("editor", "retained_host", "poll_viewport_image");
         if image_updated {

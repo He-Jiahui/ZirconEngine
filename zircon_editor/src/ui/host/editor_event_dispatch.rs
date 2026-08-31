@@ -1,25 +1,81 @@
 use crate::core::commands::{
     EditorCommandDescriptor, EditorCommandDispatchError, EditorCommandRegistry,
 };
-use crate::core::editing::engine::HistoryContextId;
 use crate::core::editor_event::{
-    EditorEvent, EditorEventDispatcher, EditorEventEffect, EditorEventEnvelope,
-    EditorEventListenerControlRequest, EditorEventListenerControlResponse, EditorEventRecord,
-    EditorEventResult, EditorEventSource, EditorEventTransient, EditorOperationEvent, MenuAction,
+    EditorAnimationEvent, EditorEvent, EditorEventDispatcher, EditorEventEffect,
+    EditorEventEnvelope, EditorEventListenerControlRequest, EditorEventListenerControlResponse,
+    EditorEventRecord, EditorEventResult, EditorEventSource, EditorEventTransient,
+    EditorOperationEvent, MenuAction,
 };
 use crate::core::editor_operation::{
-    EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    EditorOperationInvocation, EditorOperationPath, EditorOperationPathError, EditorOperationSource,
 };
 use crate::core::logging::{EditorLogService, LogEntry, LogSeverity, LogSource};
-use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
-use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_event_binding;
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingError, EditorUiBindingPayload};
+use crate::ui::binding_dispatch::editor_event_normalization::{
+    normalize_editor_event_binding, EditorEventNormalizationError,
+};
 use crate::ui::host::EditorHostEventController;
+use crate::ui::host::EditorOperationDispatchError;
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
 use crate::ui::workbench::snapshot::EditorConsoleMessageLevel;
-use serde_json::{Number, Value};
+use serde_json::Value;
+use thiserror::Error;
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventBinding};
 
-use super::editor_event_execution::{event_result_value, execute_event, undo_policy_for_event};
+use super::editor_event_execution::{
+    event_result_value, execute_event, undo_policy_for_event, EditorEventExecutionError,
+};
+
+#[derive(Debug, Error)]
+pub enum EditorEventDispatchError {
+    #[error(transparent)]
+    Execution(#[from] EditorEventExecutionError),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EventRecordPolicy {
+    Durable,
+    NativeCommandObservation,
+}
+
+impl EventRecordPolicy {
+    fn advances_revision(self) -> bool {
+        matches!(self, Self::Durable)
+    }
+
+    fn retain_result_in_journal(self) -> bool {
+        matches!(self, Self::Durable)
+    }
+
+    fn retain_operation_arguments(self) -> bool {
+        matches!(self, Self::Durable)
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum EditorEventBindingDispatchError {
+    #[error(transparent)]
+    UiBinding(#[from] EditorUiBindingError),
+    #[error(transparent)]
+    OperationPath(#[from] EditorOperationPathError),
+    #[error(transparent)]
+    Command(#[from] EditorCommandDispatchError),
+    #[error(transparent)]
+    Normalization(#[from] EditorEventNormalizationError),
+    #[error(transparent)]
+    Operation(#[from] EditorOperationDispatchError),
+    #[error(transparent)]
+    EventDispatch(#[from] EditorEventDispatchError),
+}
+
+#[derive(Debug, Error)]
+pub enum EditorEventDispatcherError {
+    #[error(transparent)]
+    Binding(#[from] EditorEventBindingDispatchError),
+    #[error(transparent)]
+    Event(#[from] EditorEventDispatchError),
+}
 
 impl EditorHostEventController {
     pub fn handle_event_listener_control_request(
@@ -35,8 +91,15 @@ impl EditorHostEventController {
         &self,
         source: EditorEventSource,
         event: EditorEvent,
-    ) -> Result<EditorEventRecord, String> {
-        self.dispatch_normalized_event_with_metadata(source, event, None, None)
+    ) -> Result<EditorEventRecord, EditorEventDispatchError> {
+        self.dispatch_normalized_event_with_metadata(
+            source,
+            event,
+            None,
+            None,
+            None,
+            EventRecordPolicy::Durable,
+        )
     }
 
     pub(crate) fn dispatch_normalized_event_with_operation(
@@ -45,8 +108,33 @@ impl EditorHostEventController {
         event: EditorEvent,
         operation: Option<(EditorOperationPath, String, Value, Option<String>)>,
         binding_path: Option<String>,
-    ) -> Result<EditorEventRecord, String> {
-        self.dispatch_normalized_event_with_metadata(source, event, operation, binding_path)
+    ) -> Result<EditorEventRecord, EditorEventDispatchError> {
+        self.dispatch_normalized_event_with_metadata(
+            source,
+            event,
+            operation,
+            binding_path,
+            None,
+            EventRecordPolicy::Durable,
+        )
+    }
+
+    pub(crate) fn dispatch_normalized_native_result(
+        &self,
+        source: EditorEventSource,
+        event: EditorEvent,
+        operation: Option<(EditorOperationPath, String, Value, Option<String>)>,
+        binding_path: Option<String>,
+        result: EditorEventResult,
+    ) -> Result<EditorEventRecord, EditorEventDispatchError> {
+        self.dispatch_normalized_event_with_metadata(
+            source,
+            event,
+            operation,
+            binding_path,
+            Some(result),
+            EventRecordPolicy::NativeCommandObservation,
+        )
     }
 
     fn dispatch_normalized_event_with_metadata(
@@ -55,8 +143,14 @@ impl EditorHostEventController {
         event: EditorEvent,
         operation: Option<(EditorOperationPath, String, Value, Option<String>)>,
         binding_path: Option<String>,
-    ) -> Result<EditorEventRecord, String> {
-        let stamp = self.context().events().begin_event();
+        result_override: Option<EditorEventResult>,
+        record_policy: EventRecordPolicy,
+    ) -> Result<EditorEventRecord, EditorEventDispatchError> {
+        let stamp = if record_policy.advances_revision() {
+            self.context().events().begin_event()
+        } else {
+            self.context().events().begin_observation()
+        };
         let undo_policy = undo_policy_for_event(&event);
         let registry_operation = if operation.is_none() {
             let operations = self.commands().lock();
@@ -67,6 +161,8 @@ impl EditorHostEventController {
         } else {
             None
         };
+        let i18n = self.context().i18n();
+        let locale = i18n.active_locale();
         let (operation_id, operation_display_name, operation_arguments, operation_group) =
             match operation {
                 Some((operation_id, operation_display_name, arguments, group)) => (
@@ -81,7 +177,7 @@ impl EditorHostEventController {
                         .map(|descriptor| descriptor.id().to_string()),
                     registry_operation
                         .as_ref()
-                        .map(|descriptor| descriptor.display_name().to_string()),
+                        .map(|descriptor| descriptor.localized_label(i18n, &locale).to_string()),
                     None,
                     None,
                 ),
@@ -90,10 +186,11 @@ impl EditorHostEventController {
         let execution = match execute_event(self, &event) {
             Ok(outcome) => outcome,
             Err(error) => {
-                self.shell()
-                    .lock()
-                    .state
-                    .set_status_line_with_level(error.clone(), EditorConsoleMessageLevel::Error);
+                let error_message = error.to_string();
+                self.shell().lock().state.set_status_line_with_level(
+                    error_message.clone(),
+                    EditorConsoleMessageLevel::Error,
+                );
                 let effects = failure_effects_for_event(&event);
                 let record = EditorEventRecord {
                     event_id: stamp.event_id,
@@ -111,13 +208,13 @@ impl EditorHostEventController {
                     undo_policy,
                     before_revision: stamp.before_revision,
                     after_revision: stamp.after_revision,
-                    result: EditorEventResult::failure(error.clone()),
+                    result: EditorEventResult::failure(error_message),
                 };
                 self.refresh_workbench_for_event_record(&record);
                 emit_mvp_authoring_product_trace(self.context().logs(), &record, "failed");
                 emit_failed_event_log(self.context().logs(), &record);
                 self.context().events().record(record);
-                return Err(error);
+                return Err(error.into());
             }
         };
 
@@ -138,43 +235,79 @@ impl EditorHostEventController {
             undo_policy,
             before_revision: stamp.before_revision,
             after_revision: stamp.after_revision,
-            result: EditorEventResult::success(event_result_value(
-                stamp.after_revision,
-                execution.changed(),
-            )),
+            result: result_override.unwrap_or_else(|| {
+                EditorEventResult::success(event_result_value(
+                    stamp.after_revision,
+                    execution.changed(),
+                ))
+            }),
         };
         if execution.changed() {
             self.publish_scene_inspection_publication();
         }
         self.refresh_workbench_for_event_record(&record);
         emit_mvp_authoring_product_trace(self.context().logs(), &record, "completed");
-        self.context().events().record(record.clone());
+        let journal_record = if record_policy.retain_result_in_journal() {
+            record.clone()
+        } else {
+            let mut journal_record = record.clone();
+            journal_record.result = EditorEventResult::default();
+            if !record_policy.retain_operation_arguments() {
+                journal_record.operation_arguments = None;
+            }
+            journal_record
+        };
+        self.context().events().record(journal_record);
         Ok(record)
     }
 
     fn authoring_trace(&self, event: &EditorEvent, changed: bool) -> (Option<u64>, Option<u64>) {
         let transactions = self.context().transactions();
+        let scene_history_context = self.shell().lock().state.active_scene_history_context();
         match event {
             EditorEvent::Inspector(_) if changed => (
-                transactions
-                    .history_status(HistoryContextId::Global)
-                    .ok()
+                scene_history_context
+                    .and_then(|history| transactions.history_status(history).ok())
                     .and_then(|history| history.top.map(|transaction| transaction.raw())),
                 None,
             ),
+            EditorEvent::Animation(event)
+                if changed && animation_event_commits_document_transaction(event) =>
+            {
+                (
+                    self.shell()
+                        .lock()
+                        .manager
+                        .focused_animation_history_status()
+                        .and_then(|history| history.top.map(|transaction| transaction.raw())),
+                    None,
+                )
+            }
             EditorEvent::Operation(EditorOperationEvent::CommandExecuted {
                 transaction_id,
                 ..
             }) => (Some(*transaction_id), None),
+            EditorEvent::Operation(EditorOperationEvent::NativeCommandExecuted { .. }) => {
+                (None, None)
+            }
             EditorEvent::WorkbenchMenu(MenuAction::SaveProject) => (
                 None,
-                transactions
-                    .history_generation_snapshot(HistoryContextId::Global)
-                    .ok(),
+                scene_history_context
+                    .and_then(|history| transactions.history_generation_snapshot(history).ok()),
             ),
             _ => (None, None),
         }
     }
+}
+
+fn animation_event_commits_document_transaction(event: &EditorAnimationEvent) -> bool {
+    !matches!(
+        event,
+        EditorAnimationEvent::ScrubTimeline { .. }
+            | EditorAnimationEvent::SetTimelineRange { .. }
+            | EditorAnimationEvent::SelectTimelineSpan { .. }
+            | EditorAnimationEvent::SetPlayback { .. }
+    )
 }
 
 // Editor-event dispatch is not tied to a retained-host render frame. The log record sequence
@@ -456,20 +589,42 @@ fn operation_arguments_for_record(arguments: Value) -> Option<Value> {
 }
 
 impl EditorEventDispatcher for EditorHostEventController {
+    type Error = EditorEventDispatcherError;
+
     fn dispatch_envelope(
         &self,
         envelope: EditorEventEnvelope,
-    ) -> Result<EditorEventRecord, String> {
+    ) -> Result<EditorEventRecord, Self::Error> {
         self.dispatch_normalized_event(envelope.source, envelope.event)
+            .map_err(EditorEventDispatcherError::from)
     }
 
     fn dispatch_binding(
         &self,
         binding: UiEventBinding,
         source: EditorEventSource,
-    ) -> Result<EditorEventRecord, String> {
-        let binding =
-            EditorUiBinding::from_ui_binding(binding).map_err(|error| error.to_string())?;
+    ) -> Result<EditorEventRecord, Self::Error> {
+        self.dispatch_binding_typed(binding, source)
+            .map_err(EditorEventDispatcherError::from)
+    }
+
+    fn dispatch_event(
+        &self,
+        source: EditorEventSource,
+        event: EditorEvent,
+    ) -> Result<EditorEventRecord, Self::Error> {
+        self.dispatch_normalized_event(source, event)
+            .map_err(EditorEventDispatcherError::from)
+    }
+}
+
+impl EditorHostEventController {
+    pub(crate) fn dispatch_binding_typed(
+        &self,
+        binding: UiEventBinding,
+        source: EditorEventSource,
+    ) -> Result<EditorEventRecord, EditorEventBindingDispatchError> {
+        let binding = EditorUiBinding::from_ui_binding(binding)?;
         if is_material_component_lab_binding(&binding) {
             return Ok(self.record_material_component_lab_feedback(source, &binding));
         }
@@ -484,20 +639,14 @@ impl EditorEventDispatcher for EditorHostEventController {
             let commands = self.commands().lock();
             normalize_editor_event_binding(&binding, &commands, &context)?
         };
-        self.dispatch_normalized_event_with_metadata(
+        Ok(self.dispatch_normalized_event_with_metadata(
             source,
             event,
             None,
             Some(binding.path().native_prefix()),
-        )
-    }
-
-    fn dispatch_event(
-        &self,
-        source: EditorEventSource,
-        event: EditorEvent,
-    ) -> Result<EditorEventRecord, String> {
-        self.dispatch_normalized_event(source, event)
+            None,
+            EventRecordPolicy::Durable,
+        )?)
     }
 }
 
@@ -525,19 +674,18 @@ impl EditorHostEventController {
         &self,
         binding: &EditorUiBinding,
         source: EditorEventSource,
-    ) -> Result<Option<EditorEventRecord>, String> {
+    ) -> Result<Option<EditorEventRecord>, EditorEventBindingDispatchError> {
         match binding.payload() {
             EditorUiBindingPayload::EditorOperation {
                 operation_id,
                 arguments,
             } => {
                 let invocation = operation_invocation(operation_id, arguments)?;
-                self.invoke_operation_with_binding_path(
+                Ok(Some(self.invoke_operation_with_binding_path(
                     operation_source_for_event_source(source),
                     invocation,
                     Some(binding.path().native_prefix()),
-                )
-                .map(Some)
+                )?))
             }
             EditorUiBindingPayload::EditorCommand { command_id } => self
                 .dispatch_editor_command_binding(command_id, source, binding.path().native_prefix())
@@ -551,21 +699,16 @@ impl EditorHostEventController {
         command_id: &str,
         source: EditorEventSource,
         binding_path: String,
-    ) -> Result<EditorEventRecord, String> {
+    ) -> Result<EditorEventRecord, EditorEventBindingDispatchError> {
         let command_id = {
             let commands = self.commands().lock();
-            commands
-                .command(command_id)
-                .map(|command| command.id().clone())
-        }
-        .ok_or_else(|| {
-            EditorCommandDispatchError::UnknownCommand(command_id.to_string()).to_string()
-        })?;
-        self.invoke_operation_with_binding_path(
+            registered_command_path(&commands, command_id)?
+        };
+        Ok(self.invoke_operation_with_binding_path(
             operation_source_for_event_source(source),
             EditorOperationInvocation::new(command_id),
             Some(binding_path),
-        )
+        )?)
     }
 
     fn record_material_component_lab_feedback(
@@ -658,11 +801,20 @@ fn component_lab_preview_node_path(binding: &EditorUiBinding, action_id: &str) -
 fn operation_invocation(
     operation_id: &str,
     arguments: &[UiBindingValue],
-) -> Result<EditorOperationInvocation, String> {
-    let operation_id =
-        EditorOperationPath::parse(operation_id.to_string()).map_err(|error| error.to_string())?;
+) -> Result<EditorOperationInvocation, EditorOperationPathError> {
+    let operation_id = EditorOperationPath::parse(operation_id.to_string())?;
     Ok(EditorOperationInvocation::new(operation_id)
         .with_arguments(ui_binding_arguments_to_json(arguments)))
+}
+
+fn registered_command_path(
+    commands: &EditorCommandRegistry,
+    command_id: &str,
+) -> Result<EditorOperationPath, EditorCommandDispatchError> {
+    commands
+        .command(command_id)
+        .map(|command| command.id().clone())
+        .ok_or_else(|| EditorCommandDispatchError::UnknownCommand(command_id.to_string()))
 }
 
 fn operation_source_for_event_source(source: EditorEventSource) -> EditorOperationSource {
@@ -683,17 +835,35 @@ fn ui_binding_arguments_to_json(arguments: &[UiBindingValue]) -> Value {
 }
 
 fn ui_binding_value_to_json(value: &UiBindingValue) -> Value {
-    match value {
-        UiBindingValue::String(value) => Value::String(value.clone()),
-        UiBindingValue::Unsigned(value) => Value::Number(Number::from(*value)),
-        UiBindingValue::Signed(value) => Value::Number(Number::from(*value)),
-        UiBindingValue::Float(value) => Number::from_f64(*value)
-            .map(Value::Number)
-            .unwrap_or(Value::Null),
-        UiBindingValue::Bool(value) => Value::Bool(*value),
-        UiBindingValue::Null => Value::Null,
-        UiBindingValue::Array(values) => {
-            Value::Array(values.iter().map(ui_binding_value_to_json).collect())
-        }
+    value.to_json_value()
+}
+
+#[cfg(test)]
+mod binding_dispatch_error_tests {
+    use super::{operation_invocation, registered_command_path};
+    use crate::core::commands::{EditorCommandDispatchError, EditorCommandRegistry};
+    use crate::core::editor_operation::EditorOperationPathError;
+
+    #[test]
+    fn operation_binding_preserves_invalid_operation_path() {
+        let error = operation_invocation("not a valid operation", &[])
+            .expect_err("operation id with whitespace must be rejected");
+
+        assert_eq!(
+            error,
+            EditorOperationPathError::InvalidOperationPath("not a valid operation".to_string())
+        );
+    }
+
+    #[test]
+    fn editor_command_binding_preserves_unknown_command() {
+        let error =
+            registered_command_path(&EditorCommandRegistry::default(), "scene.node.missing")
+                .expect_err("unregistered editor command must be rejected");
+
+        assert_eq!(
+            error,
+            EditorCommandDispatchError::UnknownCommand("scene.node.missing".to_string())
+        );
     }
 }

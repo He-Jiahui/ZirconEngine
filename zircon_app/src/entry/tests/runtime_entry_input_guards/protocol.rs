@@ -136,7 +136,13 @@ fn runtime_input_protocol_crosses_through_runtime_interface_events() {
         runtime_app_source.contains("mod host_requests;"),
         "runtime entry app should keep runtime host-request application in a child module"
     );
-    for required in ["mod cursor;", "mod drain;", "mod ime;", "mod routing;"] {
+    for required in [
+        "mod clipboard;",
+        "mod cursor;",
+        "mod drain;",
+        "mod ime;",
+        "mod routing;",
+    ] {
         assert!(
             runtime_host_requests_root_source.contains(required),
             "runtime host-request root should preserve structural wiring `{required}`"

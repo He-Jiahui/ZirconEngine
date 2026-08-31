@@ -8,6 +8,7 @@ mod asset_surface_mode;
 mod asset_type_projection_snapshot;
 mod asset_utility_tab;
 mod asset_view_mode;
+mod asset_workspace_item_generation;
 mod asset_workspace_snapshot;
 
 pub use asset_folder_snapshot::AssetFolderSnapshot;
@@ -20,4 +21,5 @@ pub use asset_surface_mode::AssetSurfaceMode;
 pub use asset_type_projection_snapshot::AssetTypeProjectionSnapshot;
 pub use asset_utility_tab::AssetUtilityTab;
 pub use asset_view_mode::AssetViewMode;
+pub use asset_workspace_item_generation::AssetWorkspaceItemGeneration;
 pub use asset_workspace_snapshot::AssetWorkspaceSnapshot;

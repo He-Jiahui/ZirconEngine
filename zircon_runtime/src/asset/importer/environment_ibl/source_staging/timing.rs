@@ -3,6 +3,9 @@ use std::time::Duration;
 /// Wall-time ownership for one environment source staging attempt.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct EnvironmentIblSourceStagingTiming {
+    pub(in crate::asset::importer::environment_ibl) source_classify: Duration,
+    pub(in crate::asset::importer::environment_ibl) source_identity: Duration,
+    pub(in crate::asset::importer::environment_ibl) cache_probe: Duration,
     pub(in crate::asset::importer::environment_ibl) source_decode: Duration,
     pub(in crate::asset::importer::environment_ibl) cubemap_build: Duration,
     pub(in crate::asset::importer::environment_ibl) equirect_projection: Duration,
@@ -10,10 +13,23 @@ pub struct EnvironmentIblSourceStagingTiming {
     pub(in crate::asset::importer::environment_ibl) pmrem_build: Duration,
     pub(in crate::asset::importer::environment_ibl) sh9_build: Duration,
     pub(in crate::asset::importer::environment_ibl) irradiance_cube_build: Duration,
-    pub(in crate::asset::importer::environment_ibl) bundle_write: Duration,
+    pub(in crate::asset::importer::environment_ibl) bundle_encode: Duration,
+    pub(in crate::asset::importer::environment_ibl) bundle_commit: Duration,
 }
 
 impl EnvironmentIblSourceStagingTiming {
+    pub const fn source_classify(&self) -> Duration {
+        self.source_classify
+    }
+
+    pub const fn source_identity(&self) -> Duration {
+        self.source_identity
+    }
+
+    pub const fn cache_probe(&self) -> Duration {
+        self.cache_probe
+    }
+
     pub const fn source_decode(&self) -> Duration {
         self.source_decode
     }
@@ -43,13 +59,25 @@ impl EnvironmentIblSourceStagingTiming {
     }
 
     pub const fn bundle_write(&self) -> Duration {
-        self.bundle_write
+        self.bundle_encode.saturating_add(self.bundle_commit)
+    }
+
+    pub const fn bundle_encode(&self) -> Duration {
+        self.bundle_encode
+    }
+
+    pub const fn bundle_commit(&self) -> Duration {
+        self.bundle_commit
     }
 
     pub const fn total(&self) -> Duration {
-        self.source_decode
+        self.source_classify
+            .saturating_add(self.source_identity)
+            .saturating_add(self.cache_probe)
+            .saturating_add(self.source_decode)
             .saturating_add(self.cubemap_build)
             .saturating_add(self.irradiance_cube_build)
-            .saturating_add(self.bundle_write)
+            .saturating_add(self.bundle_encode)
+            .saturating_add(self.bundle_commit)
     }
 }

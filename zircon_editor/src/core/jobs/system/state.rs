@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use zircon_runtime::core::runtime::tasks::JobHandle;
 
@@ -13,6 +13,10 @@ use super::pending::{PendingJob, PendingJobQueue};
 use super::pending_task::PendingTask;
 use super::EditorJobAdmissionWindow;
 
+#[cfg(test)]
+#[path = "state/job_record_hash_tests.rs"]
+mod job_record_hash_tests;
+
 // Completed dependencies only need a bounded late-submission history, not runtime handles.
 pub(super) const TERMINAL_RECORD_RETENTION_LIMIT: usize = 256;
 
@@ -22,9 +26,9 @@ pub(super) struct EditorJobSystemState {
     next_admission_reservation: u64,
     next_terminal_order: u64,
     closed: bool,
-    records: BTreeMap<JobId, EditorJobRecord>,
+    records: HashMap<JobId, EditorJobRecord>,
     terminal_records: BTreeSet<(u64, JobId)>,
-    terminal_orders: BTreeMap<JobId, u64>,
+    terminal_orders: HashMap<JobId, u64>,
     evictable_terminal_records: BTreeSet<(u64, JobId)>,
     pending: PendingJobQueue,
     running_by_category: BTreeMap<JobCategory, usize>,

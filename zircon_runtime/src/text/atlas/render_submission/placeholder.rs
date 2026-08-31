@@ -1,5 +1,5 @@
-use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::GlyphAtlasFormat;
+use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::{GlyphAtlasBitmapPlaceholderGlyph, GlyphAtlasBitmapPlaceholderMode};
 
 #[derive(Clone, Copy, Debug, PartialEq)]

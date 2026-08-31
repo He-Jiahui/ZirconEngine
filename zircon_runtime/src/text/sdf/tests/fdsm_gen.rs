@@ -31,10 +31,12 @@ fn text_msdf_dynamic_generation_is_deterministic() {
     assert_eq!(first, second);
     assert_eq!(first.mode, SdfMode::Msdf);
     assert_eq!(first.channels, 4);
-    assert!(first
-        .pixels
-        .chunks_exact(4)
-        .any(|pixel| { pixel[0] != pixel[1] || pixel[1] != pixel[2] }));
+    assert!(
+        first
+            .pixels
+            .chunks_exact(4)
+            .any(|pixel| { pixel[0] != pixel[1] || pixel[1] != pixel[2] })
+    );
 }
 
 #[test]
@@ -149,6 +151,18 @@ fn text_msdf_dynamic_generation_reports_missing_outline() {
         generate_distance_field_glyph(&bytes, 99, space, SdfBakeParams::for_mode(SdfMode::Msdf),),
         Err(SdfGlyphGenerationError::InvalidFaceIndex(99))
     );
+}
+
+#[test]
+fn packaged_runtime_last_resort_notdef_has_a_real_sdf_outline() {
+    let bytes = include_bytes!("../../../../assets/fonts/ZirconDefaultComposite-subset.ttc");
+
+    let glyph = generate_distance_field_glyph(bytes, 0, 0, SdfBakeParams::for_mode(SdfMode::Sdf))
+        .expect("the packaged last-resort notdef glyph must have a rasterizable outline");
+
+    assert!(glyph.size.x > 0);
+    assert!(glyph.size.y > 0);
+    assert!(glyph.pixels.iter().any(|sample| *sample > 127));
 }
 
 #[test]

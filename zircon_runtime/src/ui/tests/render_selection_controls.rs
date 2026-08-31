@@ -11,6 +11,18 @@ use zircon_runtime_interface::ui::{
 #[test]
 fn selection_control_rendering_uses_central_tokens_and_validated_overrides() {
     let source = include_str!("../surface/render/selection_controls.rs");
+    let owner_source = [
+        source,
+        include_str!("../surface/render/selection_controls/checkbox.rs"),
+        include_str!("../surface/render/selection_controls/commands.rs"),
+        include_str!("../surface/render/selection_controls/geometry.rs"),
+        include_str!("../surface/render/selection_controls/metadata.rs"),
+        include_str!("../surface/render/selection_controls/radio.rs"),
+        include_str!("../surface/render/selection_controls/state.rs"),
+        include_str!("../surface/render/selection_controls/style.rs"),
+        include_str!("../surface/render/selection_controls/toggle.rs"),
+    ]
+    .join("\n");
     for needle in [
         "EditorDesignTokens",
         "EditorTypographyTokens",
@@ -20,7 +32,7 @@ fn selection_control_rendering_uses_central_tokens_and_validated_overrides() {
         "value_as_f32",
     ] {
         assert!(
-            source.contains(needle),
+            owner_source.contains(needle),
             "missing selection renderer feature: {needle}"
         );
     }
@@ -30,10 +42,33 @@ fn selection_control_rendering_uses_central_tokens_and_validated_overrides() {
         "const SURFACE_SELECTED",
     ] {
         assert!(
-            !source.contains(legacy),
+            !owner_source.contains(legacy),
             "legacy selection visual remains: {legacy}"
         );
     }
+    let kind = source
+        .find("let Some(kind) = selection_control_kind(metadata)")
+        .expect("selection rendering should classify the component");
+    let state = source
+        .find("let state = SelectionRenderState::resolve")
+        .expect("selection rendering should resolve painter state");
+    assert!(kind < state, "classification should precede state folding");
+    for module in [
+        "mod checkbox;",
+        "mod commands;",
+        "mod geometry;",
+        "mod metadata;",
+        "mod radio;",
+        "mod state;",
+        "mod style;",
+        "mod toggle;",
+    ] {
+        assert!(source.contains(module), "root should mount {module}");
+    }
+    assert!(
+        source.lines().count() <= 90,
+        "selection render root should remain a declarative dispatch owner"
+    );
     assert_eq!(
         EditorTypographyTokens::WORKBENCH_BODY_SIZE
             * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO,

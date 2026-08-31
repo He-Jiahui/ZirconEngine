@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::windows::workbench_host_window::BuildExportPaneViewData;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::RetainedEditorHost;
+use cache::BuildExportBaseLookup;
 
 pub(super) mod cache;
 mod targets;
@@ -13,20 +16,23 @@ impl RetainedEditorHost {
         chrome: &EditorChromeSnapshot,
     ) -> BuildExportPaneViewData {
         let project_path = std::path::Path::new(&chrome.project_path);
-        let cached_base = self
+        let base_lookup = self
             .desktop_export_wizard_sessions
             .projection_cache()
-            .borrow()
-            .cached_base(project_path);
-        let (base_revision, base) = match cached_base {
-            Some((revision, base)) => (Some(revision), base),
-            None => {
-                let base = targets::rebuild_export_targets(self, chrome);
+            .borrow_mut()
+            .lookup_base(project_path);
+        let (base_revision, base) = match base_lookup {
+            BuildExportBaseLookup::Hit {
+                revision,
+                projection,
+            } => (Some(revision), projection),
+            BuildExportBaseLookup::Miss(build_token) => {
+                let base = Arc::new(targets::rebuild_export_targets(self, chrome));
                 let revision = self
                     .desktop_export_wizard_sessions
                     .projection_cache()
                     .borrow_mut()
-                    .store_base(project_path, base.clone());
+                    .store_base(build_token, Arc::clone(&base));
                 (revision, base)
             }
         };
@@ -42,7 +48,7 @@ impl RetainedEditorHost {
             return cached;
         }
 
-        let targets = targets::apply_export_target_overlays(self, &base);
+        let targets = targets::apply_export_target_overlays(self, base.as_ref());
         let wizard_view_model = targets.first().and_then(|target| {
             self.desktop_export_wizard_sessions
                 .view_model(target.preset_name.as_str())

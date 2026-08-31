@@ -41,6 +41,7 @@ mod inspection;
 mod level_system_frame_state;
 mod physics_animation_components;
 mod property_paths;
+mod render_dirty_journal;
 mod render_extract;
 mod render_post_process_extract;
 mod semantics;

@@ -58,6 +58,38 @@ impl AssetThumbnailGridMetrics {
         self.columns
     }
 
+    pub(crate) fn conservative_materialized_item_budget(
+        viewport_height: f32,
+        item_count: usize,
+        overscan_rows: usize,
+    ) -> usize {
+        if item_count == 0 || !viewport_height.is_finite() || viewport_height <= 0.0 {
+            return 0;
+        }
+        let visible_rows = (viewport_height / CARD_MIN_HEIGHT).ceil().max(1.0) as usize;
+        let retained_rows = visible_rows.saturating_add(overscan_rows.saturating_mul(2));
+        item_count.min(retained_rows.saturating_mul(MAX_COLUMNS))
+    }
+
+    pub(crate) fn materialized_item_budget(
+        self,
+        viewport_height: f32,
+        overscan_rows: usize,
+    ) -> usize {
+        if self.item_count == 0
+            || self.columns == 0
+            || !viewport_height.is_finite()
+            || viewport_height <= 0.0
+        {
+            return 0;
+        }
+        let row_stride = self.card_height + GRID_GAP;
+        let visible_rows = (viewport_height / row_stride).ceil().max(1.0) as usize;
+        let retained_rows = visible_rows.saturating_add(overscan_rows.saturating_mul(2));
+        self.item_count
+            .min(retained_rows.saturating_mul(self.columns))
+    }
+
     pub(crate) fn item_frame(self, index: usize) -> Option<UiFrame> {
         if index >= self.item_count || self.columns == 0 {
             return None;
@@ -115,6 +147,19 @@ mod tests {
         assert!(second.x > 140.0);
         assert_eq!(fourth.x, 8.0);
         assert!(fourth.y > 150.0);
+    }
+
+    #[test]
+    fn materialized_budget_uses_the_actual_grid_columns() {
+        let metrics = AssetThumbnailGridMetrics::new(128.0, 10_000);
+
+        assert_eq!(metrics.columns(), 1);
+        assert_eq!(metrics.materialized_item_budget(620.0, 2), 9);
+        assert_eq!(
+            AssetThumbnailGridMetrics::conservative_materialized_item_budget(620.0, 10_000, 2),
+            54,
+            "the pre-layout budget remains a conservative upper bound"
+        );
     }
 
     #[test]

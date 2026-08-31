@@ -48,13 +48,16 @@ pub use froxel::{
 };
 
 pub use planar_filter::{
-    planar_reflection_filter_compute_workload, PLANAR_FILTER_EXECUTOR_ID,
-    PLANAR_REFLECTION_TEXTURE_RESOURCE,
+    PLANAR_FILTER_EXECUTOR_ID, PLANAR_REFLECTION_TEXTURE_RESOURCE,
+    planar_reflection_filter_compute_workload,
 };
 
+pub(in crate::graphics) use subsurface_pass::{
+    SSS_PARAMS_BUFFER_SIZE_BYTES, SSS_PROFILE_TABLE_BUFFER_SIZE_BYTES,
+};
 pub use subsurface_pass::{
+    SSS_RECOMBINE_EXECUTOR_ID, SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
     render_feature_descriptor as subsurface_render_feature_descriptor,
     scatter_compute_workload as subsurface_scatter_compute_workload,
-    setup_compute_workload as subsurface_setup_compute_workload, SSS_RECOMBINE_EXECUTOR_ID,
-    SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
+    setup_compute_workload as subsurface_setup_compute_workload,
 };

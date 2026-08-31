@@ -1,5 +1,4 @@
 mod clear_pending_request;
-mod evict_one;
 mod evict_page;
 mod page_in_slot;
 mod promote_to_resident;

@@ -1,24 +1,5 @@
 use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
-const SHADER_EDITOR_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionShaderSourceTab",
-    "WorkbenchExtensionShaderResourcesTab",
-    "WorkbenchExtensionShaderIssuesTab",
-];
-const SHADER_EDITOR_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.shader_editor.source_tab.select",
-        "WorkbenchExtensionShaderSourceTab",
-    ),
-    action(
-        "workbench.extension.shader_editor.resources_tab.select",
-        "WorkbenchExtensionShaderResourcesTab",
-    ),
-    action(
-        "workbench.extension.shader_editor.issues_tab.select",
-        "WorkbenchExtensionShaderIssuesTab",
-    ),
-];
 const SHADER_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionShaderSourceRow",
     "WorkbenchExtensionShaderIncludeRow",
@@ -27,7 +8,6 @@ const SHADER_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionShaderFragmentRow",
     "WorkbenchExtensionShaderComputeRow",
     "WorkbenchExtensionShaderCommonRow",
-    "WorkbenchExtensionShaderOutputRow",
 ];
 const SHADER_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -58,20 +38,16 @@ const SHADER_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.shader_editor.common_row.select",
         "WorkbenchExtensionShaderCommonRow",
     ),
-    action(
-        "workbench.extension.shader_editor.output.select",
-        "WorkbenchExtensionShaderOutputRow",
-    ),
 ];
 const SHADER_EDITOR_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchRenderShaderEditorButton",
+    "WorkbenchRenderToolsMenu",
     "WorkbenchExtensionShaderPreviewButton",
     "WorkbenchExtensionShaderCompileButton",
 ];
 const SHADER_EDITOR_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.shader_editor.open",
-        "WorkbenchRenderShaderEditorButton",
+        "WorkbenchRenderToolsMenu",
     ),
     action(
         "workbench.extension.shader_editor.preview.invoke",
@@ -94,33 +70,12 @@ const SHADER_EDITOR_FIELD_ACTIONS: &[&str] = &[
 pub(super) const SHADER_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.shader_editor.open",
     "WorkbenchExtensionShaderEditorWorkspace",
-    SHADER_EDITOR_TAB_CONTROLS,
-    SHADER_EDITOR_TAB_ACTIONS,
     SHADER_EDITOR_ROW_CONTROLS,
     SHADER_EDITOR_ROW_ACTIONS,
     SHADER_EDITOR_COMMAND_CONTROLS,
     SHADER_EDITOR_COMMAND_ACTIONS,
     SHADER_EDITOR_FIELD_ACTIONS,
 );
-const LIGHTING_BAKE_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionLightingBakeLevelsTab",
-    "WorkbenchExtensionLightingBakeProbesTab",
-    "WorkbenchExtensionLightingBakeWarningsTab",
-];
-const LIGHTING_BAKE_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.lighting_bake.levels_tab.select",
-        "WorkbenchExtensionLightingBakeLevelsTab",
-    ),
-    action(
-        "workbench.extension.lighting_bake.probes_tab.select",
-        "WorkbenchExtensionLightingBakeProbesTab",
-    ),
-    action(
-        "workbench.extension.lighting_bake.warnings_tab.select",
-        "WorkbenchExtensionLightingBakeWarningsTab",
-    ),
-];
 const LIGHTING_BAKE_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionLightingBakeSceneBakeRow",
     "WorkbenchExtensionLightingBakeInteriorBakeRow",
@@ -129,7 +84,6 @@ const LIGHTING_BAKE_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionLightingBakeLightmapUvTableRow",
     "WorkbenchExtensionLightingBakeProbeGridTableRow",
     "WorkbenchExtensionLightingBakeBleedWarningTableRow",
-    "WorkbenchExtensionLightingBakeOutputRow",
 ];
 const LIGHTING_BAKE_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -160,20 +114,16 @@ const LIGHTING_BAKE_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.lighting_bake.bleed_warning_table_row.select",
         "WorkbenchExtensionLightingBakeBleedWarningTableRow",
     ),
-    action(
-        "workbench.extension.lighting_bake.output.select",
-        "WorkbenchExtensionLightingBakeOutputRow",
-    ),
 ];
 const LIGHTING_BAKE_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchRenderLightingBakeButton",
+    "WorkbenchRenderToolsMenu",
     "WorkbenchExtensionLightingBakePreviewButton",
     "WorkbenchExtensionLightingBakeBakeButton",
 ];
 const LIGHTING_BAKE_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.lighting_bake.open",
-        "WorkbenchRenderLightingBakeButton",
+        "WorkbenchRenderToolsMenu",
     ),
     action(
         "workbench.extension.lighting_bake.preview.invoke",
@@ -196,33 +146,12 @@ const LIGHTING_BAKE_FIELD_ACTIONS: &[&str] = &[
 pub(super) const LIGHTING_BAKE_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.lighting_bake.open",
     "WorkbenchExtensionLightingBakeWorkspace",
-    LIGHTING_BAKE_TAB_CONTROLS,
-    LIGHTING_BAKE_TAB_ACTIONS,
     LIGHTING_BAKE_ROW_CONTROLS,
     LIGHTING_BAKE_ROW_ACTIONS,
     LIGHTING_BAKE_COMMAND_CONTROLS,
     LIGHTING_BAKE_COMMAND_ACTIONS,
     LIGHTING_BAKE_FIELD_ACTIONS,
 );
-const POST_PROCESS_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionPostProcessStackTab",
-    "WorkbenchExtensionPostProcessVolumesTab",
-    "WorkbenchExtensionPostProcessWarningsTab",
-];
-const POST_PROCESS_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.post_process.stack_tab.select",
-        "WorkbenchExtensionPostProcessStackTab",
-    ),
-    action(
-        "workbench.extension.post_process.volumes_tab.select",
-        "WorkbenchExtensionPostProcessVolumesTab",
-    ),
-    action(
-        "workbench.extension.post_process.warnings_tab.select",
-        "WorkbenchExtensionPostProcessWarningsTab",
-    ),
-];
 const POST_PROCESS_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPostProcessGlobalStackRow",
     "WorkbenchExtensionPostProcessCinematicStackRow",
@@ -231,7 +160,6 @@ const POST_PROCESS_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPostProcessTonemapTableRow",
     "WorkbenchExtensionPostProcessLutTableRow",
     "WorkbenchExtensionPostProcessExposureWarningTableRow",
-    "WorkbenchExtensionPostProcessOutputRow",
 ];
 const POST_PROCESS_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -262,20 +190,16 @@ const POST_PROCESS_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.post_process.exposure_warning_table_row.select",
         "WorkbenchExtensionPostProcessExposureWarningTableRow",
     ),
-    action(
-        "workbench.extension.post_process.output.select",
-        "WorkbenchExtensionPostProcessOutputRow",
-    ),
 ];
 const POST_PROCESS_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchRenderPostProcessButton",
+    "WorkbenchRenderToolsMenu",
     "WorkbenchExtensionPostProcessPreviewButton",
     "WorkbenchExtensionPostProcessApplyButton",
 ];
 const POST_PROCESS_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.post_process.open",
-        "WorkbenchRenderPostProcessButton",
+        "WorkbenchRenderToolsMenu",
     ),
     action(
         "workbench.extension.post_process.preview.invoke",
@@ -298,33 +222,12 @@ const POST_PROCESS_FIELD_ACTIONS: &[&str] = &[
 pub(super) const POST_PROCESS_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.post_process.open",
     "WorkbenchExtensionPostProcessWorkspace",
-    POST_PROCESS_TAB_CONTROLS,
-    POST_PROCESS_TAB_ACTIONS,
     POST_PROCESS_ROW_CONTROLS,
     POST_PROCESS_ROW_ACTIONS,
     POST_PROCESS_COMMAND_CONTROLS,
     POST_PROCESS_COMMAND_ACTIONS,
     POST_PROCESS_FIELD_ACTIONS,
 );
-const PARTICLE_LIBRARY_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionParticleLibraryEmittersTab",
-    "WorkbenchExtensionParticleLibraryMetadataTab",
-    "WorkbenchExtensionParticleLibraryCompileTab",
-];
-const PARTICLE_LIBRARY_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.particle_library.emitters_tab.select",
-        "WorkbenchExtensionParticleLibraryEmittersTab",
-    ),
-    action(
-        "workbench.extension.particle_library.metadata_tab.select",
-        "WorkbenchExtensionParticleLibraryMetadataTab",
-    ),
-    action(
-        "workbench.extension.particle_library.compile_tab.select",
-        "WorkbenchExtensionParticleLibraryCompileTab",
-    ),
-];
 const PARTICLE_LIBRARY_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionParticleLibrarySparksRow",
     "WorkbenchExtensionParticleLibraryDustRow",
@@ -333,7 +236,6 @@ const PARTICLE_LIBRARY_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionParticleLibraryCpuDustRow",
     "WorkbenchExtensionParticleLibraryImpactGpuRow",
     "WorkbenchExtensionParticleLibraryArchivedRow",
-    "WorkbenchExtensionParticleLibraryOutputRow",
 ];
 const PARTICLE_LIBRARY_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -363,10 +265,6 @@ const PARTICLE_LIBRARY_ROW_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.particle_library.archived_row.select",
         "WorkbenchExtensionParticleLibraryArchivedRow",
-    ),
-    action(
-        "workbench.extension.particle_library.output.select",
-        "WorkbenchExtensionParticleLibraryOutputRow",
     ),
 ];
 const PARTICLE_LIBRARY_COMMAND_CONTROLS: &[&str] = &[
@@ -400,8 +298,6 @@ const PARTICLE_LIBRARY_FIELD_ACTIONS: &[&str] = &[
 pub(super) const PARTICLE_LIBRARY_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.particle_library.open",
     "WorkbenchExtensionParticleLibraryWorkspace",
-    PARTICLE_LIBRARY_TAB_CONTROLS,
-    PARTICLE_LIBRARY_TAB_ACTIONS,
     PARTICLE_LIBRARY_ROW_CONTROLS,
     PARTICLE_LIBRARY_ROW_ACTIONS,
     PARTICLE_LIBRARY_COMMAND_CONTROLS,

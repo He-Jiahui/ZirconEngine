@@ -1,4 +1,5 @@
 use super::super::super::scene_renderer_core::{SceneEnvironmentBrdfLut, SceneEnvironmentCubemap};
+use crate::graphics::scene::scene_renderer::shadow::ShadowSceneEnvironmentBindingLease;
 
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) struct SceneBindGroupBundle
 {
@@ -14,4 +15,19 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_constru
         SceneEnvironmentBrdfLut,
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) bind_group:
         wgpu::BindGroup,
+}
+
+impl SceneBindGroupBundle {
+    pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) fn shadow_environment_binding_lease(
+        &self,
+    ) -> ShadowSceneEnvironmentBindingLease {
+        ShadowSceneEnvironmentBindingLease::new(
+            self.environment_cubemap.cold_fallback_texture().clone(),
+            self.environment_cubemap.cold_fallback_view().clone(),
+            self.environment_cubemap.sampler().clone(),
+            self.environment_brdf_lut.texture().clone(),
+            self.environment_brdf_lut.view().clone(),
+            self.environment_sh9_buffer.clone(),
+        )
+    }
 }

@@ -10,6 +10,7 @@ pub(super) const EXTRACT_FULL_CLONE_BYTES_DIAGNOSTIC: &str = "extract.full_clone
 pub(super) const EXTRACT_CACHE_HITS_DIAGNOSTIC: &str = "extract.cache_hits";
 pub(super) const EXTRACT_CACHE_MISSES_DIAGNOSTIC: &str = "extract.cache_misses";
 pub(super) const EXTRACT_STATS_PAYLOAD_SCANS_DIAGNOSTIC: &str = "extract.stats_payload_scans";
+const EXTRACT_DIAGNOSTIC_TAGS: [&str; 2] = ["runtime", "extract"];
 
 /// Immutable statistics computed once alongside a cached extract generation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -47,9 +48,9 @@ impl RuntimeFrameExtractStats {
                 RuntimeFrameExtractCacheStatus::Reused => 0,
             },
             output_bytes: summary.output_bytes,
-            // Cache population and cache reuse each perform one deep RenderFrameExtract clone.
-            full_clones: 1,
-            full_clone_bytes: summary.output_bytes,
+            // Cache population and reuse clone only shared scene-domain handles.
+            full_clones: 0,
+            full_clone_bytes: 0,
             cache_hits: match status {
                 RuntimeFrameExtractCacheStatus::Rebuilt => 0,
                 RuntimeFrameExtractCacheStatus::Reused => 1,
@@ -67,55 +68,57 @@ impl RuntimeFrameExtractStats {
 
     pub fn record_diagnostics(&self, runtime: &CoreRuntime) {
         let frame_index = runtime.real_time().frame_index();
-        runtime.record_diagnostic(
-            EXTRACT_REBUILD_CLONES_DIAGNOSTIC,
-            frame_index,
-            self.rebuild_clones as f64,
-            Some("count"),
-            ["runtime", "extract"],
-        );
-        runtime.record_diagnostic(
-            EXTRACT_OUTPUT_BYTES_DIAGNOSTIC,
-            frame_index,
-            self.output_bytes as f64,
-            Some("byte"),
-            ["runtime", "extract"],
-        );
-        runtime.record_diagnostic(
-            EXTRACT_FULL_CLONES_DIAGNOSTIC,
-            frame_index,
-            self.full_clones as f64,
-            Some("count"),
-            ["runtime", "extract"],
-        );
-        runtime.record_diagnostic(
-            EXTRACT_FULL_CLONE_BYTES_DIAGNOSTIC,
-            frame_index,
-            self.full_clone_bytes as f64,
-            Some("byte"),
-            ["runtime", "extract"],
-        );
-        runtime.record_diagnostic(
-            EXTRACT_CACHE_HITS_DIAGNOSTIC,
-            frame_index,
-            self.cache_hits as f64,
-            Some("count"),
-            ["runtime", "extract"],
-        );
-        runtime.record_diagnostic(
-            EXTRACT_CACHE_MISSES_DIAGNOSTIC,
-            frame_index,
-            self.cache_misses as f64,
-            Some("count"),
-            ["runtime", "extract"],
-        );
-        runtime.record_diagnostic(
-            EXTRACT_STATS_PAYLOAD_SCANS_DIAGNOSTIC,
-            frame_index,
-            self.payload_stats_scans as f64,
-            Some("count"),
-            ["runtime", "extract"],
-        );
+        runtime.handle().update_diagnostic_store(|store| {
+            store.record_static(
+                EXTRACT_REBUILD_CLONES_DIAGNOSTIC,
+                frame_index,
+                self.rebuild_clones as f64,
+                Some("count"),
+                &EXTRACT_DIAGNOSTIC_TAGS,
+            );
+            store.record_static(
+                EXTRACT_OUTPUT_BYTES_DIAGNOSTIC,
+                frame_index,
+                self.output_bytes as f64,
+                Some("byte"),
+                &EXTRACT_DIAGNOSTIC_TAGS,
+            );
+            store.record_static(
+                EXTRACT_FULL_CLONES_DIAGNOSTIC,
+                frame_index,
+                self.full_clones as f64,
+                Some("count"),
+                &EXTRACT_DIAGNOSTIC_TAGS,
+            );
+            store.record_static(
+                EXTRACT_FULL_CLONE_BYTES_DIAGNOSTIC,
+                frame_index,
+                self.full_clone_bytes as f64,
+                Some("byte"),
+                &EXTRACT_DIAGNOSTIC_TAGS,
+            );
+            store.record_static(
+                EXTRACT_CACHE_HITS_DIAGNOSTIC,
+                frame_index,
+                self.cache_hits as f64,
+                Some("count"),
+                &EXTRACT_DIAGNOSTIC_TAGS,
+            );
+            store.record_static(
+                EXTRACT_CACHE_MISSES_DIAGNOSTIC,
+                frame_index,
+                self.cache_misses as f64,
+                Some("count"),
+                &EXTRACT_DIAGNOSTIC_TAGS,
+            );
+            store.record_static(
+                EXTRACT_STATS_PAYLOAD_SCANS_DIAGNOSTIC,
+                frame_index,
+                self.payload_stats_scans as f64,
+                Some("count"),
+                &EXTRACT_DIAGNOSTIC_TAGS,
+            );
+        });
     }
 }
 

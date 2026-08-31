@@ -9,11 +9,15 @@ pub(super) fn dispatch_viewport_pane_scroll(
     pointer: &PanePointerRoute,
     delta: f32,
 ) -> Option<NativePointerDispatchResult> {
-    let PanePointerTarget::Viewport(_) = &pointer.target else {
+    if !matches!(
+        &pointer.target,
+        PanePointerTarget::SceneViewport(_) | PanePointerTarget::GameViewport(_)
+    ) {
         return None;
-    };
+    }
     Some(dispatch_viewport_pointer_scroll(
         pane_host,
+        &pointer.target,
         pointer.local_x,
         pointer.local_y,
         delta,

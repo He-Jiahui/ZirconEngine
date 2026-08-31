@@ -6,14 +6,14 @@ use std::{
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::diagnostics::profiling::{
-    export_report, reset_capture, start_capture, stop_capture, test_capture_lock,
-    ProfileCaptureConfig, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
-    PROFILE_TIMELINE_NATIVE_FILE, PROFILE_TIMELINE_PERFETTO_FILE,
+    PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE,
+    PROFILE_TIMELINE_PERFETTO_FILE, ProfileCaptureConfig, export_report, reset_capture,
+    start_capture, stop_capture, test_capture_lock,
 };
 use crate::core::framework::render::{
     RenderBudgetKey, RenderFrameProfile, RenderFramework, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderSubmissionConfig, RenderViewportDescriptor,
-    RenderViewportHandle,
+    RenderViewportHandle, UiRenderSubmission,
 };
 use crate::core::math::UVec2;
 use crate::graphics::runtime::WgpuRenderFramework;
@@ -25,6 +25,7 @@ use crate::ui::{
     dispatch::UiInputManager, platform_input::translate_winit_window_event, surface::UiSurface,
 };
 use zircon_runtime_interface::{
+    ProfileSnapshot,
     ui::{
         dispatch::{UiInputSequence, UiInputTimestamp, UiWindowId},
         event_ui::{UiNodeId, UiNodePath, UiTreeId},
@@ -32,7 +33,6 @@ use zircon_runtime_interface::{
         tree::{UiTemplateNodeMetadata, UiTreeNode},
         window::{UiWindowEventMetadata, UiWindowInputContext},
     },
-    ProfileSnapshot,
 };
 
 use super::support::{
@@ -40,9 +40,9 @@ use super::support::{
     assert_counter_is_zero, assert_span_frame_count, managed_output_root,
 };
 use super::{
-    assert_profile_file, collect_resolved_gpu_profile, native_text_raster_is_settled, test_extract,
-    visible_text_state, FRAME_PROFILES_FILE, GPU_FLUSH_FRAMES, MAX_SAMPLES, MEASURED_FRAMES,
-    REPETITIONS, WARMUP_FRAMES,
+    FRAME_PROFILES_FILE, GPU_FLUSH_FRAMES, MAX_SAMPLES, MEASURED_FRAMES, REPETITIONS,
+    WARMUP_FRAMES, assert_profile_file, collect_resolved_gpu_profile,
+    native_text_raster_is_settled, test_extract, visible_text_state,
 };
 
 const VIEWPORT_SIZE: UVec2 = UVec2::new(960, 360);
@@ -351,7 +351,9 @@ fn submit_current_surface(
         .submit_frame_extract_with_ui(
             viewport,
             test_extract(),
-            Some(surface.render_extract.clone()),
+            Some(UiRenderSubmission::single(std::sync::Arc::new(
+                surface.render_extract.clone(),
+            ))),
         )
         .expect("generation baseline should submit a complete UI extract");
     framework

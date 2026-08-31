@@ -548,20 +548,35 @@ fn parse_style_color(raw: &str) -> Option<UiStyleColor> {
 
 fn parse_hex_color(raw: &str) -> Option<UiRgbaColor> {
     let hex = raw.strip_prefix('#')?;
-    let channel = |range: std::ops::Range<usize>| u8::from_str_radix(&hex[range], 16).ok();
+    let hex = hex.as_bytes();
     match hex.len() {
         6 => Some(UiRgbaColor::from_u8(
-            channel(0..2)?,
-            channel(2..4)?,
-            channel(4..6)?,
+            decode_hex_byte(hex, 0)?,
+            decode_hex_byte(hex, 2)?,
+            decode_hex_byte(hex, 4)?,
             255,
         )),
         8 => Some(UiRgbaColor::from_u8(
-            channel(0..2)?,
-            channel(2..4)?,
-            channel(4..6)?,
-            channel(6..8)?,
+            decode_hex_byte(hex, 0)?,
+            decode_hex_byte(hex, 2)?,
+            decode_hex_byte(hex, 4)?,
+            decode_hex_byte(hex, 6)?,
         )),
+        _ => None,
+    }
+}
+
+fn decode_hex_byte(encoded: &[u8], offset: usize) -> Option<u8> {
+    let high = decode_hex_digit(*encoded.get(offset)?)?;
+    let low = decode_hex_digit(*encoded.get(offset + 1)?)?;
+    Some((high << 4) | low)
+}
+
+fn decode_hex_digit(encoded: u8) -> Option<u8> {
+    match encoded {
+        b'0'..=b'9' => Some(encoded - b'0'),
+        b'a'..=b'f' => Some(encoded - b'a' + 10),
+        b'A'..=b'F' => Some(encoded - b'A' + 10),
         _ => None,
     }
 }
@@ -703,3 +718,7 @@ fn parse_interaction_state(raw: &str) -> Option<ButtonInteractionState> {
     }
     None
 }
+
+#[cfg(test)]
+#[path = "style/direct_hex_color_tests.rs"]
+mod direct_hex_color_tests;

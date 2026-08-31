@@ -19,7 +19,7 @@ use crate::ui::asset_editor::{
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::animation_editor_pane_nodes;
-use crate::ui::layouts::views::asset_browser_pane_nodes;
+use crate::ui::layouts::views::asset_browser_pane_data;
 use crate::ui::layouts::views::assets_activity_pane_data;
 use crate::ui::layouts::views::hierarchy_pane_nodes;
 use crate::ui::layouts::views::inspector_pane_nodes;
@@ -28,11 +28,16 @@ use crate::ui::workbench::event::menu_item_binding;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 mod dock_patch;
+mod geometry;
 
-use dock_patch::{build_bottom_dock, build_left_dock, build_right_dock};
+use dock_patch::{
+    build_bottom_dock, build_left_dock, build_right_dock, rebuild_bottom_dock_geometry,
+    rebuild_left_dock_geometry, rebuild_right_dock_geometry,
+};
 pub(crate) use dock_patch::{
     build_host_dock_surface_patch, HostDockSurfaceId, HostDockSurfacePatch,
 };
+pub(crate) use geometry::build_host_scene_geometry;
 
 const DEFAULT_PRESET_NAME: &str = "rider";
 const MIN_DROP_TARGET_PX: f32 = 92.0;
@@ -224,6 +229,7 @@ pub(crate) fn build_host_scene_data_with_cache(
         region_frame: host_layout.document_region_frame.clone(),
         surface_key: "document".into(),
         header_frame: dock_header_frame(&document_header_nodes),
+        overflow_frame: dock_overflow_frame(&document_header_nodes),
         subtitle_frame: dock_subtitle_frame(&document_header_nodes),
         content_frame: document_content_frame,
         tab_frames: dock_tab_frames(&document_header_nodes, &host_surface_data.document_tabs),
@@ -449,24 +455,15 @@ fn menu_item_action_id(item: &MenuItemModel) -> SharedString {
 }
 
 pub(crate) fn build_native_floating_surface_data(
-    host_surface_data: &HostWindowSurfaceData,
+    host_scene_data: &HostWindowSceneData,
     host_shell: &HostWindowShellData,
-    project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
-    chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
 ) -> HostNativeFloatingWindowSurfaceData {
-    let metrics =
-        surface_metrics_from_chrome_assets(host_shell.native_window_bounds.width.max(0.0));
     HostNativeFloatingWindowSurfaceData {
-        floating_windows: floating_windows_with_pane_shell_layouts(
-            &host_surface_data.floating_windows,
-            metrics.document_header_height_px,
-            project_overview,
-            chrome,
-        ),
+        floating_windows: host_scene_data.floating_layer.floating_windows.clone(),
         native_floating_window_id: host_shell.native_floating_window_id.clone(),
         native_surface_tree_id: host_shell.native_surface_tree_id.clone(),
         native_window_bounds: host_shell.native_window_bounds.clone(),
-        header_height_px: metrics.document_header_height_px,
+        header_height_px: host_scene_data.floating_layer.header_height_px,
     }
 }
 
@@ -618,7 +615,7 @@ fn pane_with_asset_browser_projection(
 
     zircon_runtime::profile_scope!("editor", "retained_host", "scene_pane_asset_browser");
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.native_body.asset_browser.nodes = asset_browser_pane_nodes(asset_browser, size);
+    pane.native_body.asset_browser = asset_browser_pane_data(asset_browser, size);
     pane
 }
 
@@ -671,6 +668,7 @@ fn floating_windows_with_pane_shell_layouts(
                     header_height_px,
                 );
                 window.header_frame = dock_header_frame(&header_nodes);
+                window.overflow_frame = dock_overflow_frame(&header_nodes);
                 window.tab_frames = dock_tab_frames(&header_nodes, &window.tabs);
                 window.header_nodes = header_nodes;
                 let content_height =

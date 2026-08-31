@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use zircon_runtime::asset::pipeline::manager::{ProjectAssetManager, ProjectAssetManagerAccess};
 use zircon_runtime::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use zircon_runtime::core::framework::render::{
     CapturedFrame, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
@@ -11,9 +11,15 @@ use zircon_runtime::core::framework::render::{
     RendererCommon, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
 };
 use zircon_runtime::core::framework::scene::Mobility;
+use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
+};
+use zircon_runtime::core::runtime::ServiceObject;
+use zircon_runtime::core::{
+    CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
+    TaskPool,
 };
 use zircon_runtime::graphics::WgpuRenderFramework;
 
@@ -21,6 +27,59 @@ use super::{
     render_feature_descriptor, render_pass_executor_registration, CONTACT_SHADOW_PIPELINE_LABEL,
     EXECUTOR_ID, FEATURE_NAME, PASS_NAME,
 };
+
+const TEST_ASSET_MODULE_NAME: &str = "ContactShadowProductAssetRuntime";
+const TEST_ASSET_SERVICE_NAME: &str =
+    "ContactShadowProductAssetRuntime.Manager.ProjectAssetManager";
+
+struct ProjectAssetTestRuntime {
+    runtime: CoreRuntime,
+    access: ProjectAssetManagerAccess,
+}
+
+impl ProjectAssetTestRuntime {
+    fn new(manager: Arc<ProjectAssetManager>) -> Self {
+        let runtime = CoreRuntime::new();
+        runtime
+            .register_module(
+                ModuleDescriptor::new(TEST_ASSET_MODULE_NAME, "contact shadow product assets")
+                    .with_manager(ManagerDescriptor::new(
+                        RegistryName::from_parts(
+                            TEST_ASSET_MODULE_NAME,
+                            ServiceKind::Manager,
+                            "ProjectAssetManager",
+                        ),
+                        StartupMode::Immediate,
+                        Vec::new(),
+                        Arc::new(move |_| {
+                            Ok(
+                                Arc::new(RegisteredManagerService::new(Arc::clone(&manager)))
+                                    as ServiceObject,
+                            )
+                        }),
+                    )),
+            )
+            .expect("contact shadow ProjectAssetManager service should register");
+        runtime
+            .activate_module(TEST_ASSET_MODULE_NAME)
+            .expect("contact shadow ProjectAssetManager module should activate");
+        let core = runtime.handle();
+        let handle = manager_service_handle(&core, TEST_ASSET_SERVICE_NAME)
+            .expect("contact shadow ProjectAssetManager handle should resolve");
+        Self {
+            runtime,
+            access: ProjectAssetManagerAccess::new(core, handle),
+        }
+    }
+
+    fn access(&self) -> ProjectAssetManagerAccess {
+        self.access.clone()
+    }
+
+    fn worker_pool(&self) -> TaskPool {
+        self.runtime.task_graph().worker_pool().clone()
+    }
+}
 
 #[test]
 fn contact_shadow_wgpu_product_capture_darkens_screen_space_contact_region() {
@@ -38,16 +97,19 @@ fn contact_shadow_wgpu_product_capture_darkens_screen_space_contact_region() {
         "ContactShadowBlocker",
         [0.34, 0.34, 0.32, 1.0],
     );
+    let asset_runtime = ProjectAssetTestRuntime::new(Arc::clone(&asset_manager));
 
     let contact_shadow_framework = WgpuRenderFramework::new_with_plugin_render_features(
-        asset_manager.clone(),
+        asset_runtime.access(),
         [render_feature_descriptor()],
         [render_pass_executor_registration()],
         Vec::new(),
+        asset_runtime.worker_pool(),
     )
     .expect("contact shadow pluginized WGPU framework");
     let baseline_framework =
-        WgpuRenderFramework::new(asset_manager).expect("baseline WGPU framework");
+        WgpuRenderFramework::new(asset_runtime.access(), asset_runtime.worker_pool())
+            .expect("baseline WGPU framework");
 
     let (contact_frame, contact_stats) = render_contact_shadow_frame(
         &contact_shadow_framework,
@@ -97,16 +159,19 @@ fn contact_shadow_wgpu_product_capture_darkens_multiple_screen_space_contact_reg
         "ContactShadowWideBlocker",
         [0.31, 0.32, 0.30, 1.0],
     );
+    let asset_runtime = ProjectAssetTestRuntime::new(Arc::clone(&asset_manager));
 
     let contact_shadow_framework = WgpuRenderFramework::new_with_plugin_render_features(
-        asset_manager.clone(),
+        asset_runtime.access(),
         [render_feature_descriptor()],
         [render_pass_executor_registration()],
         Vec::new(),
+        asset_runtime.worker_pool(),
     )
     .expect("contact shadow pluginized WGPU framework");
     let baseline_framework =
-        WgpuRenderFramework::new(asset_manager).expect("baseline WGPU framework");
+        WgpuRenderFramework::new(asset_runtime.access(), asset_runtime.worker_pool())
+            .expect("baseline WGPU framework");
 
     let (contact_frame, contact_stats) = render_contact_shadow_frame(
         &contact_shadow_framework,

@@ -19,6 +19,7 @@ related_code:
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
+  - zircon_runtime/src/scene/tests/render_post_process_extract/volumetric_fog.rs
   - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/mod.rs
@@ -125,6 +126,7 @@ tests:
   - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric/tests.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/extract/tests.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
+  - zircon_runtime/src/scene/tests/render_post_process_extract/volumetric_fog.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests.rs

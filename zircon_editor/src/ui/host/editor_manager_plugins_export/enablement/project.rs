@@ -1,4 +1,5 @@
 use zircon_runtime::asset::project::ProjectManifest;
+use zircon_runtime::core::framework::project::ProjectPluginSelection;
 use zircon_runtime::plugin::PluginModuleKind;
 
 use super::super::super::editor_manager::EditorManager;
@@ -32,11 +33,13 @@ impl EditorManager {
             .ok_or_else(|| {
                 format!("plugin {plugin_id} is not registered in builtin plugin catalogs")
             })?;
-        let existing_selection = manifest
+        let existing_index = manifest
             .plugins
             .selections
             .iter()
-            .find(|selection| selection.id == plugin_id)
+            .position(|selection| selection.id == plugin_id);
+        let existing_selection = existing_index
+            .and_then(|index| manifest.plugins.selections.get(index))
             .cloned();
         let mut selection = existing_selection.unwrap_or_else(|| catalog_selection.clone());
         if selection.runtime_crate.is_none() {
@@ -66,7 +69,11 @@ impl EditorManager {
         } else {
             self.set_editor_plugin_enabled_unpublished(plugin_id, enabled)?
         };
-        manifest.plugins.set_enabled(selection.clone());
+        replace_or_push_selection_at(
+            &mut manifest.plugins.selections,
+            existing_index,
+            selection.clone(),
+        );
 
         let mut diagnostics = Vec::new();
         if editor_capabilities.is_empty() {
@@ -85,3 +92,19 @@ impl EditorManager {
         })
     }
 }
+
+fn replace_or_push_selection_at(
+    selections: &mut Vec<ProjectPluginSelection>,
+    existing_index: Option<usize>,
+    selection: ProjectPluginSelection,
+) {
+    if let Some(existing) = existing_index.and_then(|index| selections.get_mut(index)) {
+        *existing = selection;
+    } else {
+        selections.push(selection);
+    }
+}
+
+#[cfg(test)]
+#[path = "project/single_scan_upsert_tests.rs"]
+mod single_scan_upsert_tests;

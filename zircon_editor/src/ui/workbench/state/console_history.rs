@@ -1,33 +1,35 @@
-use std::collections::VecDeque;
 use std::sync::Arc;
 
-use crate::core::editor_event::ConsoleMessageFilter;
+use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
 use crate::ui::workbench::snapshot::{
-    ConsoleOutputLevelCounts, ConsoleOutputSnapshot, EditorConsoleMessageLevel,
+    ConsoleOutputLevelCounts, ConsoleOutputLineDelta, ConsoleOutputLineGeneration,
+    ConsoleOutputLineSnapshot, ConsoleOutputSnapshot, EditorConsoleMessageLevel,
     CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY,
 };
 
 #[derive(Clone)]
 pub(in crate::ui::workbench) struct EditorConsoleHistory {
-    lines: VecDeque<EditorConsoleHistoryLine>,
-    logical_line_count: usize,
+    lines: Arc<ConsoleOutputLineGeneration>,
     output: ConsoleOutputSnapshot,
+    counts: ConsoleOutputLevelCounts,
     filter: ConsoleMessageFilter,
-}
-
-#[derive(Clone)]
-struct EditorConsoleHistoryLine {
-    message: String,
-    level: EditorConsoleMessageLevel,
+    next_source_id: u64,
+    next_visible_slot_id: u64,
+    last_message_line_count: usize,
+    last_message_level: EditorConsoleMessageLevel,
 }
 
 impl EditorConsoleHistory {
     pub(in crate::ui::workbench) fn new(initial_message: &str) -> Self {
         let mut history = Self {
-            lines: VecDeque::with_capacity(CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY),
-            logical_line_count: 0,
+            lines: Arc::new(ConsoleOutputLineGeneration::default()),
             output: ConsoleOutputSnapshot::default(),
+            counts: ConsoleOutputLevelCounts::default(),
             filter: ConsoleMessageFilter::All,
+            next_source_id: 0,
+            next_visible_slot_id: 0,
+            last_message_line_count: 0,
+            last_message_level: EditorConsoleMessageLevel::Info,
         };
         history.push(initial_message);
         history
@@ -42,44 +44,130 @@ impl EditorConsoleHistory {
             return;
         }
         let message = message_tail_with_max_lines(message, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
-        if self
-            .lines
-            .back()
-            .is_some_and(|last| last.message == message && last.level == level)
-        {
+        if self.matches_last_message(message, level) {
             return;
         }
-        self.logical_line_count += logical_line_count(message);
-        self.lines.push_back(EditorConsoleHistoryLine {
-            message: message.to_owned(),
-            level,
-        });
-        self.trim_to_logical_line_capacity();
-        self.rebuild_output();
+
+        let entered_lines = message
+            .split('\n')
+            .map(|text| {
+                let source_id = self.next_source_id;
+                self.next_source_id = self.next_source_id.saturating_add(1);
+                ConsoleOutputLineSnapshot::new(source_id, Arc::from(text), level, None, None)
+            })
+            .collect::<Vec<_>>();
+        let retained_entered_start = entered_lines
+            .len()
+            .saturating_sub(CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
+        let retained_entered = &entered_lines[retained_entered_start..];
+        let previous_lines = Arc::clone(&self.lines);
+        let (next_lines, all_delta) = previous_lines
+            .append_bounded(entered_lines.clone(), CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
+        self.update_counts(&previous_lines, retained_entered, all_delta);
+        self.lines = Arc::new(next_lines);
+        self.last_message_line_count = retained_entered.len();
+        self.last_message_level = level;
+        self.publish_visible_append(retained_entered, all_delta);
     }
 
-    fn trim_to_logical_line_capacity(&mut self) {
-        let mut excess = self
-            .logical_line_count
-            .saturating_sub(CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
-        while excess > 0 {
-            let Some(front) = self.lines.front_mut() else {
-                break;
-            };
-            let front_line_count = logical_line_count(&front.message);
-            if front_line_count <= excess {
-                self.lines.pop_front();
-                self.logical_line_count -= front_line_count;
-                excess -= front_line_count;
-                continue;
-            }
-
-            let retained_start = byte_offset_after_logical_lines(&front.message, excess);
-            front.message.drain(..retained_start);
-            self.logical_line_count -= excess;
-            excess = 0;
+    fn matches_last_message(&self, message: &str, level: EditorConsoleMessageLevel) -> bool {
+        if self.last_message_line_count == 0 || self.last_message_level != level {
+            return false;
         }
-        debug_assert!(self.logical_line_count <= CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
+        let message_line_count = logical_line_count(message);
+        if message_line_count != self.last_message_line_count
+            || message_line_count > self.lines.len()
+        {
+            return false;
+        }
+        let start = self.lines.len() - message_line_count;
+        self.lines
+            .iter()
+            .skip(start)
+            .zip(message.split('\n'))
+            .all(|(line, text)| line.raw_text() == text && line.level() == level)
+    }
+
+    fn update_counts(
+        &mut self,
+        previous_lines: &ConsoleOutputLineGeneration,
+        entered_lines: &[ConsoleOutputLineSnapshot],
+        delta: ConsoleOutputLineDelta,
+    ) {
+        if delta.expired == previous_lines.len() {
+            self.counts = ConsoleOutputLevelCounts::default();
+        } else {
+            for index in 0..delta.expired {
+                if let Some(line) = previous_lines.get(index) {
+                    self.counts.remove_level(line.level());
+                }
+            }
+        }
+        for line in entered_lines {
+            self.counts.add_level(line.level());
+        }
+    }
+
+    fn publish_visible_append(
+        &mut self,
+        retained_entered: &[ConsoleOutputLineSnapshot],
+        all_delta: ConsoleOutputLineDelta,
+    ) {
+        if self.filter == ConsoleMessageFilter::All {
+            self.output = ConsoleOutputSnapshot::from_line_generation(
+                Arc::clone(&self.lines),
+                self.counts,
+                self.filter,
+                ConsoleSourceFilter::All,
+                all_delta,
+            );
+            return;
+        }
+
+        let previous_visible = self.output.line_generation();
+        let first_source_id = self
+            .lines
+            .first()
+            .map(ConsoleOutputLineSnapshot::source_id)
+            .unwrap_or(self.next_source_id);
+        let (trimmed, expired) = previous_visible.trim_before_source_id(first_source_id);
+        let filter = self.filter;
+        let mut next_visible_slot_id = self.next_visible_slot_id;
+        let matching = retained_entered
+            .iter()
+            .filter(|line| message_filter_matches(filter, line.level()))
+            .cloned()
+            .map(|line| {
+                let slot_id = next_visible_slot_id;
+                next_visible_slot_id = next_visible_slot_id.saturating_add(1);
+                line.with_slot_id(slot_id)
+            })
+            .collect::<Vec<_>>();
+        self.next_visible_slot_id = next_visible_slot_id;
+        if expired == 0 && matching.is_empty() {
+            self.output = ConsoleOutputSnapshot::from_line_generation(
+                previous_visible,
+                self.counts,
+                self.filter,
+                ConsoleSourceFilter::All,
+                ConsoleOutputLineDelta::default(),
+            );
+            return;
+        }
+        let (next_visible, append_delta) =
+            trimmed.append_bounded(matching, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
+        let total_expired = expired.saturating_add(append_delta.expired);
+        self.output = ConsoleOutputSnapshot::from_line_generation(
+            Arc::new(next_visible),
+            self.counts,
+            self.filter,
+            ConsoleSourceFilter::All,
+            ConsoleOutputLineDelta {
+                entered: append_delta.entered,
+                expired: total_expired,
+                retained: previous_visible.len().saturating_sub(total_expired),
+            },
+        );
     }
 
     pub(super) fn output(&self) -> ConsoleOutputSnapshot {
@@ -90,8 +178,35 @@ impl EditorConsoleHistory {
         if self.filter == filter {
             return false;
         }
+        let previous_line_count = self.output.logical_line_count();
         self.filter = filter;
-        self.rebuild_output();
+        let visible_lines = if filter == ConsoleMessageFilter::All {
+            self.next_visible_slot_id = self.next_source_id;
+            Arc::clone(&self.lines)
+        } else {
+            let lines = self
+                .lines
+                .iter()
+                .filter(|line| message_filter_matches(filter, line.level()))
+                .cloned()
+                .enumerate()
+                .map(|(slot_id, line)| line.with_slot_id(slot_id as u64))
+                .collect::<Vec<_>>();
+            self.next_visible_slot_id = lines.len() as u64;
+            Arc::new(ConsoleOutputLineGeneration::from_lines(lines))
+        };
+        let entered = visible_lines.len();
+        self.output = ConsoleOutputSnapshot::from_line_generation(
+            visible_lines,
+            self.counts,
+            self.filter,
+            ConsoleSourceFilter::All,
+            ConsoleOutputLineDelta {
+                entered,
+                expired: previous_line_count,
+                retained: 0,
+            },
+        );
         true
     }
 
@@ -99,58 +214,23 @@ impl EditorConsoleHistory {
         if self.lines.is_empty() {
             return false;
         }
-        self.lines.clear();
-        self.logical_line_count = 0;
-        self.output = ConsoleOutputSnapshot::filtered(
-            Arc::from(""),
-            Arc::from([]),
-            ConsoleOutputLevelCounts::default(),
+        let expired = self.output.logical_line_count();
+        self.lines = Arc::new(ConsoleOutputLineGeneration::default());
+        self.counts = ConsoleOutputLevelCounts::default();
+        self.last_message_line_count = 0;
+        self.next_visible_slot_id = 0;
+        self.output = ConsoleOutputSnapshot::from_line_generation(
+            Arc::clone(&self.lines),
+            self.counts,
             self.filter,
+            ConsoleSourceFilter::All,
+            ConsoleOutputLineDelta {
+                entered: 0,
+                expired,
+                retained: 0,
+            },
         );
         true
-    }
-
-    fn rebuild_output(&mut self) {
-        let mut output_len = 0;
-        let mut visible_message_count = 0usize;
-        let mut visible_logical_line_count = 0;
-        let mut counts = ConsoleOutputLevelCounts::default();
-        for line in &self.lines {
-            let logical_line_count = logical_line_count(&line.message);
-            match line.level {
-                EditorConsoleMessageLevel::Info => counts.info += logical_line_count,
-                EditorConsoleMessageLevel::Warning => counts.warning += logical_line_count,
-                EditorConsoleMessageLevel::Error => counts.error += logical_line_count,
-            }
-            if message_filter_matches(self.filter, line.level) {
-                output_len += line.message.len();
-                visible_message_count += 1;
-                visible_logical_line_count += logical_line_count;
-            }
-        }
-        output_len += visible_message_count.saturating_sub(1);
-
-        let mut output = String::with_capacity(output_len);
-        let mut levels = Vec::with_capacity(visible_logical_line_count);
-        let mut has_visible_message = false;
-        for line in &self.lines {
-            let logical_line_count = logical_line_count(&line.message);
-            if !message_filter_matches(self.filter, line.level) {
-                continue;
-            }
-            if has_visible_message {
-                output.push('\n');
-            }
-            has_visible_message = true;
-            output.push_str(&line.message);
-            levels.extend(std::iter::repeat_n(line.level, logical_line_count));
-        }
-        self.output = ConsoleOutputSnapshot::filtered(
-            Arc::from(output),
-            Arc::from(levels),
-            counts,
-            self.filter,
-        );
     }
 }
 

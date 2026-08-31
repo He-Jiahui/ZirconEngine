@@ -1,20 +1,26 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::sync::Arc;
 
 use crate::core::framework::render::{
-    shader_project_namespace_from_name, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
+    SHADER_IMPORT_PROJECT_NAMESPACE_SETTING, shader_project_namespace_from_name,
 };
-use crate::core::resource::{ResourceDiagnostic, ResourceRecord, ResourceRegistryStaging};
+use crate::core::resource::{
+    ResourceDiagnostic, ResourceRecord, ResourceRegistryAssemblyExt, ResourceRegistryStaging,
+};
 
-use crate::asset::importer::stage_environment_ibl_source_with_parallel_executor;
-use crate::asset::project::manager::durable_transaction::{
-    commit_prepared_files, journal_directory, PreparedFileWrite, ProjectFileCommitOutcome,
-    ProjectTransactionFault,
+use crate::asset::importer::{
+    prepare_environment_ibl_source, prepare_environment_ibl_source_with_parallel_executor,
+    prepare_source_cubemap_texture,
 };
+use crate::asset::project::manager::durable_transaction::{
+    PreparedFileWrite, ProjectFileCommitOutcome, ProjectTransactionFault, commit_prepared_files,
+    journal_directory,
+};
+use crate::asset::project::{ProjectPaths, ResolvedProjectPathIdentity};
 use crate::asset::watch::AssetChangeKind;
 use crate::asset::{
-    stage_environment_ibl_source, stage_external_source_cubemap_texture, AssetId,
-    AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
-    ImportedAsset,
+    AssetId, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor,
+    AssetKind, ImportedAsset,
 };
 use crate::core::runtime::tasks::TaskPool;
 
@@ -25,11 +31,14 @@ mod full_generation;
 mod metadata;
 mod projected_inventory;
 mod shader_import_dependencies;
+mod source_plan;
 mod sources;
 mod targeted;
 
 pub(super) use shader_import_dependencies::ShaderImportDependencyIndex;
-pub(crate) use targeted::PreparedTargetedGeneration;
+pub(crate) use source_plan::{ImportSourcePlan, ImportSourceWatchEcho};
+pub(crate) use targeted::refresh_runtime_dependency_closure;
+pub(crate) use targeted::{PreparedProjectImportBatch, PreparedTargetedGeneration};
 
 pub(crate) enum PreparedWatchFileGeneration {
     Targeted(PreparedTargetedWatchChanges),
@@ -247,7 +256,7 @@ impl ProjectManager {
             .collect::<Vec<_>>();
         affected.sort_by(|left, right| left.primary_locator.cmp(&right.primary_locator));
         self.registry = registry.finish();
-        self.asset_registry = asset_registry;
+        self.asset_registry = Arc::new(asset_registry);
         self.shader_import_dependencies = shader_import_dependencies;
         self.catalog_input_generation = catalog_input_generation;
         Ok((
@@ -275,35 +284,75 @@ impl ProjectManager {
     }
 }
 
-fn stage_environment_ibl_import(
+pub(super) fn append_prepared_file_writes(
+    writes: &mut Vec<PreparedFileWrite>,
+    prepared_paths: &mut BTreeMap<ResolvedProjectPathIdentity, usize>,
+    prepared_writes: Vec<PreparedFileWrite>,
+) -> Result<(), AssetImportError> {
+    for prepared_write in prepared_writes {
+        let path_key = ProjectPaths::resolve_identity(prepared_write.path())?;
+        let Some(existing_index) = prepared_paths.get(&path_key).copied() else {
+            prepared_paths.insert(path_key, writes.len());
+            writes.push(prepared_write);
+            continue;
+        };
+        let existing = writes.get(existing_index).ok_or_else(|| {
+            AssetImportError::Parse(
+                "prepared IBL write index escaped its transaction buffer".to_owned(),
+            )
+        })?;
+        if existing.bytes() != prepared_write.bytes() {
+            return Err(AssetImportError::Parse(format!(
+                "conflicting prepared IBL cache writes target {}",
+                prepared_write.path().display()
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn prepare_environment_ibl_import(
     context: &AssetImportContext,
     imported_asset: Option<&ImportedAsset>,
     cache_root: &std::path::Path,
     parallel_executor: Option<&TaskPool>,
-) -> Result<(), AssetImportError> {
+) -> Result<Vec<PreparedFileWrite>, AssetImportError> {
     let staging = match parallel_executor {
-        Some(parallel_executor) => stage_environment_ibl_source_with_parallel_executor(
+        Some(parallel_executor) => prepare_environment_ibl_source_with_parallel_executor(
             context,
             cache_root,
             parallel_executor,
         ),
-        None => stage_environment_ibl_source(context, cache_root),
+        None => prepare_environment_ibl_source(context, cache_root),
     };
-    staging.map_err(|error| {
+    let prepared_staging = staging.map_err(|error| {
         AssetImportError::Parse(format!(
-            "stage environment IBL source {}: {error}",
+            "prepare environment IBL source {}: {error}",
             context.source_path.display()
         ))
     })?;
+    let mut writes = Vec::new();
+    let mut prepared_paths = BTreeMap::new();
+    append_prepared_file_writes(
+        &mut writes,
+        &mut prepared_paths,
+        prepared_staging.into_file_writes(),
+    )?;
     if let Some(ImportedAsset::Texture(texture)) = imported_asset {
-        stage_external_source_cubemap_texture(texture, cache_root).map_err(|error| {
-            AssetImportError::Parse(format!(
-                "stage environment IBL source {}: {error}",
-                context.source_path.display()
-            ))
-        })?;
+        let source_cubemap_staging =
+            prepare_source_cubemap_texture(texture, cache_root).map_err(|error| {
+                AssetImportError::Parse(format!(
+                    "prepare environment IBL source {}: {error}",
+                    context.source_path.display()
+                ))
+            })?;
+        append_prepared_file_writes(
+            &mut writes,
+            &mut prepared_paths,
+            source_cubemap_staging.into_file_writes(),
+        )?;
     }
-    Ok(())
+    Ok(writes)
 }
 
 fn append_shader_import_path_conflict_diagnostics(
@@ -336,5 +385,29 @@ fn append_shader_import_path_conflict_diagnostics(
         )));
     } else {
         seen_import_paths.insert(import_path, root_entry.locator.clone());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    const SOURCE: &str = include_str!("scan_and_import.rs");
+
+    #[test]
+    fn project_import_collects_ibl_writes_without_calling_a_stage_entry_point() {
+        let preparation = SOURCE
+            .split("fn prepare_environment_ibl_import(")
+            .nth(1)
+            .and_then(|source| {
+                source
+                    .split("fn append_shader_import_path_conflict_diagnostics(")
+                    .next()
+            })
+            .expect("project IBL preparation helper must exist");
+
+        assert!(preparation.contains("prepare_environment_ibl_source"));
+        assert!(preparation.contains("prepare_source_cubemap_texture"));
+        assert!(preparation.contains("into_file_writes"));
+        assert!(!preparation.contains("stage_environment_ibl_source("));
+        assert!(!preparation.contains("stage_source_cubemap_texture("));
     }
 }

@@ -5,7 +5,7 @@ use super::super::surface_roles::{
 };
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_template_nodes::template_style_color::{
-    resolved_style_color, typed_button_tone_color,
+    resolved_style_color, typed_button_border_color,
 };
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::ButtonInteractionState;
@@ -34,7 +34,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn border_
         return color;
     }
     if asset_thumbnail_card_uses_selected_border(node) {
-        return PALETTE.accent;
+        return PALETTE.border;
     }
     if asset_thumbnail_name_area_uses_muted_interaction_border(node)
         || asset_preview_uses_muted_interaction_border(node)
@@ -42,23 +42,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn border_
     {
         return PALETTE.border;
     }
-    if matches!(
-        button_interaction_state(node),
-        ButtonInteractionState::Pressed | ButtonInteractionState::Focused
-    ) || node.selected
-        || node.checked
-    {
-        PALETTE.focus_ring
-    } else if let Some(color) = typed_button_tone_color(node) {
+    if button_interaction_state(node) == ButtonInteractionState::Focused {
+        return PALETTE.focus_ring;
+    }
+    if node.selected || node.checked {
+        return PALETTE.border;
+    }
+    if let Some(color) = typed_button_border_color(node) {
         color
+    } else if button_interaction_state(node) == ButtonInteractionState::Pressed {
+        PALETTE.border
     } else if matches!(node.button_variant.as_str(), "primary" | "filled")
         || matches!(node.surface_variant.as_str(), "accent" | "primary")
-        || matches!(
-            button_interaction_state(node),
-            ButtonInteractionState::Hover
-        )
     {
-        PALETTE.focus_ring
+        PALETTE.accent
     } else {
         PALETTE.border
     }

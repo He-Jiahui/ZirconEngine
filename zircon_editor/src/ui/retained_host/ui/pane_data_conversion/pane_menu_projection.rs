@@ -33,7 +33,10 @@ fn structured_menu_item(raw: &str) -> host_contract::TemplatePaneMenuItemData {
 
     host_contract::TemplatePaneMenuItemData {
         raw: raw.into(),
-        action_id: menu_item_action_id(label).into(),
+        action_id: explicit_menu_action_id(flags)
+            .map(str::to_string)
+            .unwrap_or_else(|| menu_item_action_id(label))
+            .into(),
         label: label.into(),
         shortcut: shortcut.into(),
         checked: has_flag(flags, "checked"),
@@ -48,6 +51,16 @@ fn structured_menu_item(raw: &str) -> host_contract::TemplatePaneMenuItemData {
 
 fn menu_item_action_id(label: &str) -> String {
     format!("menu.item.{}", label_to_action_segment(label))
+}
+
+fn explicit_menu_action_id(flags: &str) -> Option<&str> {
+    flags.split(',').find_map(|flag| {
+        let (key, value) = flag.split_once('=')?;
+        key.trim()
+            .eq_ignore_ascii_case("action")
+            .then(|| value.trim())
+            .filter(|value| !value.is_empty())
+    })
 }
 
 fn label_to_action_segment(label: &str) -> String {
@@ -72,4 +85,26 @@ fn has_flag(flags: &str, expected: &str) -> bool {
     flags
         .split(',')
         .any(|flag| flag.trim().eq_ignore_ascii_case(expected))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::structured_menu_item;
+
+    #[test]
+    fn explicit_action_id_is_independent_from_display_label() {
+        let item =
+            structured_menu_item("Open Workspace|action=menu.item.open_project,icon=folder|Ctrl+O");
+
+        assert_eq!(item.action_id, "menu.item.open_project");
+        assert_eq!(item.label, "Open Workspace");
+        assert_eq!(item.shortcut, "Ctrl+O");
+    }
+
+    #[test]
+    fn label_derived_action_id_remains_as_legacy_fallback() {
+        let item = structured_menu_item("Open Project|icon=folder");
+
+        assert_eq!(item.action_id, "menu.item.open_project");
+    }
 }

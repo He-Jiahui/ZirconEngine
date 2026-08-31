@@ -148,9 +148,10 @@ impl WgpuRetainedSurfaceCache {
 
 fn retained_copy_byte_count(format: wgpu::TextureFormat, surface_size: (u32, u32)) -> u64 {
     let bytes_per_pixel = match format {
-        wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Rgba8Unorm => {
-            UI_SURFACE_COPY_BYTES_PER_PIXEL
-        }
+        wgpu::TextureFormat::Bgra8Unorm
+        | wgpu::TextureFormat::Rgba8Unorm
+        | wgpu::TextureFormat::Bgra8UnormSrgb
+        | wgpu::TextureFormat::Rgba8UnormSrgb => UI_SURFACE_COPY_BYTES_PER_PIXEL,
         _ => 0,
     };
     u64::from(surface_size.0.max(1))
@@ -167,10 +168,12 @@ mod tests {
     use super::super::batching::{batch_draw_plan, CompiledUiBatchPlanCache};
     use super::super::image_cache::WgpuUiImageCache;
     use super::super::pipeline::{
-        create_image_bind_group_layout, create_image_pipeline, create_solid_instance_pipeline,
-        create_solid_pipeline,
+        create_damage_clear_pipeline, create_image_bind_group_layout, create_image_pipeline,
+        create_solid_instance_pipeline, create_solid_pipeline,
     };
-    use super::super::render_pass::{record_draw_ops_to_view, TargetLoad, WgpuUiDrawBufferCache};
+    use super::super::render_pass::{
+        record_draw_ops_to_view, record_draw_plan_to_view, TargetLoad, WgpuUiDrawBufferCache,
+    };
     use super::super::text::WgpuUiTextRenderer;
     use super::{retained_copy_byte_count, RetainedSurfaceState, WgpuRetainedSurfaceCache};
 
@@ -190,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn retained_copy_bytes_match_the_supported_byte_surface_formats() {
+    fn retained_copy_bytes_match_all_supported_eight_bit_surface_formats() {
         let surface_size = (5, 3);
 
         assert_eq!(
@@ -199,6 +202,14 @@ mod tests {
         );
         assert_eq!(
             retained_copy_byte_count(wgpu::TextureFormat::Bgra8Unorm, surface_size),
+            60
+        );
+        assert_eq!(
+            retained_copy_byte_count(wgpu::TextureFormat::Rgba8UnormSrgb, surface_size),
+            60
+        );
+        assert_eq!(
+            retained_copy_byte_count(wgpu::TextureFormat::Bgra8UnormSrgb, surface_size),
             60
         );
     }
@@ -327,6 +338,111 @@ mod tests {
         let pixels = read_texture_rgba(&device, &queue, &copied_surface, copied_size)
             .expect("retained cache copy texture must support readback");
         assert_damage_patch_pixels(&pixels, copied_size);
+    }
+
+    #[test]
+    fn retained_cache_empty_damage_patch_clears_removed_pixels() {
+        let Some((device, queue)) = offscreen_test_device() else {
+            eprintln!("skipping retained removal pixel test: no WGPU adapter is available");
+            return;
+        };
+        let image_layout = create_image_bind_group_layout(&device);
+        let cache = WgpuRetainedSurfaceCache::new(&device, TEST_FORMAT, TEST_SIZE);
+        let seed_draw_list = UiSurfaceDrawList::new(
+            TEST_SIZE,
+            None,
+            vec![UiSurfaceCommand {
+                z_index: 0,
+                frame: UiSurfaceRect::new(0.0, 0.0, TEST_SIZE.0 as f32, TEST_SIZE.1 as f32),
+                clip: None,
+                kind: UiSurfaceCommandKind::Quad {
+                    color: [255, 0, 0, 255],
+                    corner_radius: 0.0,
+                },
+            }],
+        );
+        let seed_plan = batch_draw_plan(&seed_draw_list);
+        let mut draw_buffers = WgpuUiDrawBufferCache::default();
+        let seed_buffers = draw_buffers
+            .resolve(&device, &queue, &seed_draw_list, &seed_plan)
+            .buffers;
+        let damage_clear_pipeline = create_damage_clear_pipeline(&device, TEST_FORMAT);
+        let solid_pipeline = create_solid_pipeline(&device, TEST_FORMAT);
+        let solid_instance_pipeline = create_solid_instance_pipeline(&device, TEST_FORMAT);
+        let image_pipeline = create_image_pipeline(&device, TEST_FORMAT, &image_layout);
+        let image_cache = WgpuUiImageCache::default();
+        let mut text = WgpuUiTextRenderer::new(&device, &queue, TEST_FORMAT);
+        let mut seed_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("zircon-ui-retained-removal-test-seed-encoder"),
+        });
+        record_draw_ops_to_view(
+            &mut seed_encoder,
+            cache.view(),
+            TargetLoad::ClearBlack,
+            TEST_SIZE,
+            TEST_SIZE,
+            None,
+            &seed_plan.ops,
+            &seed_buffers,
+            &solid_pipeline,
+            &solid_instance_pipeline,
+            &image_pipeline,
+            &image_cache,
+            &mut text,
+        );
+        queue.submit([seed_encoder.finish()]);
+
+        let damage = UiSurfaceRect::new(0.0, 0.0, 2.0, TEST_SIZE.1 as f32);
+        let removed_draw_list = UiSurfaceDrawList::new(TEST_SIZE, Some(damage), Vec::new());
+        let removed_plan = batch_draw_plan(&removed_draw_list);
+        let removed_buffers = draw_buffers
+            .resolve(&device, &queue, &removed_draw_list, &removed_plan)
+            .buffers;
+        let mut removal_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("zircon-ui-retained-removal-test-patch-encoder"),
+        });
+        let mut damage_draw_op_candidates = Vec::new();
+        let encoded = record_draw_plan_to_view(
+            &mut removal_encoder,
+            cache.view(),
+            TargetLoad::Load,
+            TEST_SIZE,
+            TEST_SIZE,
+            Some(damage),
+            &removed_plan,
+            &removed_buffers,
+            &mut damage_draw_op_candidates,
+            &damage_clear_pipeline,
+            &solid_pipeline,
+            &solid_instance_pipeline,
+            &image_pipeline,
+            &image_cache,
+            &mut text,
+        );
+        queue.submit([removal_encoder.finish()]);
+
+        assert_eq!(encoded.draw_calls, 1);
+        assert_eq!(encoded.damage_clear_draw_count, 1);
+        assert_eq!(encoded.content_draw_calls(), 0);
+        assert_eq!(encoded.visible_draw_item_count, 0);
+        assert_eq!(encoded.render_pass_count, 1);
+        let pixels = read_texture_rgba(&device, &queue, &cache.texture, TEST_SIZE)
+            .expect("retained cache texture must support readback");
+        for y in 0..TEST_SIZE.1 as usize {
+            for x in 0..TEST_SIZE.0 as usize {
+                let offset = (y * TEST_SIZE.0 as usize + x) * 4;
+                let expected = if x < 2 {
+                    [0, 0, 0, 255]
+                } else {
+                    [255, 0, 0, 255]
+                };
+                assert_eq!(
+                    &pixels[offset..offset + 4],
+                    expected.as_slice(),
+                    "removed pixel ({x}, {y}) must be cleared inside damage only"
+                );
+            }
+        }
     }
 
     #[test]

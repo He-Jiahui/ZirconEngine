@@ -16,19 +16,27 @@ use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::{SceneRendererGpuTimingReport, ViewportFrame};
 use zircon_runtime::rhi::RenderNativeSurfaceTarget;
 
-use crate::args::ViewerConfig;
-use crate::background_load::{BackgroundTask, BackgroundTaskPoll};
+use crate::args::{ViewerConfig, ViewerHostMode};
+use crate::background_load::{BackgroundTask, BackgroundTaskPoll, BackgroundTaskShutdown};
 use crate::camera::OrbitCamera;
+use crate::evidence_identity::ReadyFrameEvidenceIdentity;
 use crate::frame_io::{
     error_frame, startup_frame, write_ready_frame_evidence, ReadyFrameEvidenceMetadata,
+    ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE,
+    ENVIRONMENT_ONLY_BASE_PREWARM_NOT_REQUESTED_CACHE_SCOPE,
 };
 use crate::gpu_timing_evidence::{
     format_gpu_timing_evidence, gpu_timing_report_parent, validate_gpu_timing_report_output,
     GpuTimingEvidenceRequest, GpuTimingEvidenceResolution,
 };
+use crate::material_fixture::ViewerMaterialFixture;
 use crate::presenter::{window_size, SoftbufferViewportPresenter};
 use crate::renderdoc::RenderDocBridge;
 use crate::scene::{PbrMirrorScene, PbrMirrorSceneIblLoadReport};
+use crate::terminal_outcome::{
+    TerminalArtifactState, TerminalCleanupState, TerminalErrorCategory, TerminalOutcome,
+    TerminalPhase,
+};
 
 #[path = "base_pipeline_recheck.rs"]
 mod base_pipeline_recheck;
@@ -44,7 +52,10 @@ const DEFAULT_WINDOW_HEIGHT: u32 = 960;
 const MIN_WINDOW_WIDTH: f64 = 480.0;
 const MIN_WINDOW_HEIGHT: f64 = 360.0;
 const LOAD_STATUS_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
+const SCENE_LOADER_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(2);
 const PBR_VIEWER_RENDER_PROFILE: &str = "environment_only_pbr_preview";
+const PBR_VIEWER_HOST_COMPOSITION_ID: &str = "zircon_shader_pbr_viewer_standalone_diagnostic_v1";
+const PBR_VIEWER_SCENE_ID: &str = "single_pbr_mirror_sphere";
 
 pub(crate) struct PbrMirrorViewerApp {
     hdri_path: PathBuf,
@@ -54,9 +65,13 @@ pub(crate) struct PbrMirrorViewerApp {
     work_dir: PathBuf,
     ibl_cache_dir: Option<PathBuf>,
     screenshot_path: Option<PathBuf>,
+    ready_frame_evidence_identity: Option<ReadyFrameEvidenceIdentity>,
     screenshot_written: bool,
     gpu_timing_report_path: Option<PathBuf>,
+    material_fixture: ViewerMaterialFixture,
+    host_mode: ViewerHostMode,
     gpu_timing_request: Option<GpuTimingEvidenceRequest>,
+    gpu_timing_evidence_written: bool,
     renderdoc_capture_once: bool,
     renderdoc_bridge: Option<RenderDocBridge>,
     exit_after_capture: bool,
@@ -82,6 +97,7 @@ pub(crate) struct PbrMirrorViewerApp {
     base_pipeline_recheck_attempt: u32,
     one_shot_base_pipeline_wait_started_at: Option<Instant>,
     ready_title_dirty: bool,
+    terminal_outcome: Option<TerminalOutcome>,
 }
 
 impl PbrMirrorViewerApp {
@@ -89,6 +105,7 @@ impl PbrMirrorViewerApp {
         config: ViewerConfig,
         event_loop_proxy: EventLoopProxy,
         renderdoc_bridge: Option<RenderDocBridge>,
+        ready_frame_evidence_identity: Option<ReadyFrameEvidenceIdentity>,
     ) -> Self {
         Self {
             hdri_path: config.hdri_path,
@@ -97,9 +114,13 @@ impl PbrMirrorViewerApp {
             work_dir: config.work_dir,
             ibl_cache_dir: config.ibl_cache_dir,
             screenshot_path: config.screenshot_path,
+            ready_frame_evidence_identity,
             screenshot_written: false,
             gpu_timing_report_path: config.gpu_timing_report_path,
+            material_fixture: config.material_fixture,
+            host_mode: config.host_mode,
             gpu_timing_request: None,
+            gpu_timing_evidence_written: false,
             renderdoc_capture_once: config.renderdoc_capture_once,
             renderdoc_bridge,
             exit_after_capture: config.exit_after_capture,
@@ -128,6 +149,111 @@ impl PbrMirrorViewerApp {
             base_pipeline_recheck_attempt: 0,
             one_shot_base_pipeline_wait_started_at: None,
             ready_title_dirty: false,
+            terminal_outcome: None,
+        }
+    }
+
+    pub(crate) fn record_event_loop_failure(&mut self, message: String) {
+        self.record_terminal_failure(
+            TerminalPhase::EventLoop,
+            TerminalErrorCategory::EventLoop,
+            message,
+        );
+    }
+
+    pub(crate) fn finish_after_event_loop(&mut self) -> TerminalOutcome {
+        let (cleanup_state, cleanup_error) = match self.scene_loader.take() {
+            None => (TerminalCleanupState::RuntimeOwnersReleased, None),
+            Some(loader) => match loader.cancel_and_join(SCENE_LOADER_SHUTDOWN_TIMEOUT) {
+                BackgroundTaskShutdown::CompletedAndJoined => {
+                    (TerminalCleanupState::BackgroundLoaderCompletedAndJoined, None)
+                }
+                BackgroundTaskShutdown::CancelledAndJoined => {
+                    (TerminalCleanupState::BackgroundLoaderCancelledAndJoined, None)
+                }
+                BackgroundTaskShutdown::TimedOut => (
+                    TerminalCleanupState::BackgroundLoaderShutdownTimedOut,
+                    Some(format!(
+                        "scene loader did not finish within {SCENE_LOADER_SHUTDOWN_TIMEOUT:?} after cancellation"
+                    )),
+                ),
+                BackgroundTaskShutdown::JoinPanicked => (
+                    TerminalCleanupState::BackgroundLoaderJoinPanicked,
+                    Some("scene loader panicked while its thread was joining".to_owned()),
+                ),
+            },
+        };
+        let screenshot_artifact =
+            terminal_artifact_state(self.screenshot_path.is_some(), self.screenshot_written);
+        let gpu_timing_artifact = terminal_artifact_state(
+            self.gpu_timing_report_path.is_some(),
+            self.gpu_timing_evidence_written,
+        );
+        let renderdoc_artifact = terminal_artifact_state(
+            self.renderdoc_capture_once,
+            self.renderdoc_capture_finished && self.renderdoc_bridge.is_some(),
+        );
+        self.scene = None;
+        self.presenter = None;
+        self.window = None;
+        self.renderdoc_bridge = None;
+
+        self.terminal_outcome
+            .take()
+            .unwrap_or_else(TerminalOutcome::cancelled)
+            .with_source_chain(vec![
+                "zircon_shader_pbr_viewer".to_owned(),
+                format!("render_profile:{PBR_VIEWER_RENDER_PROFILE}"),
+                format!("hdri:{}", self.hdri_path.display()),
+            ])
+            .with_artifacts(screenshot_artifact, gpu_timing_artifact, renderdoc_artifact)
+            .with_cleanup(cleanup_state, cleanup_error)
+    }
+
+    fn record_terminal_failure(
+        &mut self,
+        phase: TerminalPhase,
+        category: TerminalErrorCategory,
+        message: impl Into<String>,
+    ) {
+        if self.terminal_outcome.is_none() {
+            self.terminal_outcome = Some(TerminalOutcome::failure(phase, category, message));
+        }
+    }
+
+    fn exit_with_failure(
+        &mut self,
+        event_loop: &dyn ActiveEventLoop,
+        phase: TerminalPhase,
+        category: TerminalErrorCategory,
+        message: impl Into<String>,
+    ) {
+        let message = message.into();
+        self.record_terminal_failure(phase, category, &message);
+        self.request_scene_load_cancellation();
+        eprintln!("PBR viewer terminal failure at {phase:?}: {message}");
+        event_loop.exit();
+    }
+
+    fn exit_with_success(&mut self, event_loop: &dyn ActiveEventLoop) {
+        if self.terminal_outcome.is_none() {
+            self.terminal_outcome = Some(TerminalOutcome::succeeded());
+        }
+        self.request_scene_load_cancellation();
+        event_loop.exit();
+    }
+
+    fn exit_as_cancelled(&mut self, event_loop: &dyn ActiveEventLoop) {
+        if self.terminal_outcome.is_none() {
+            self.terminal_outcome = Some(TerminalOutcome::cancelled());
+        }
+        self.request_scene_load_cancellation();
+        event_loop.exit();
+    }
+
+    fn request_scene_load_cancellation(&self) {
+        if let Some(loader) = self.scene_loader.as_ref() {
+            loader.request_cancel();
         }
     }
 
@@ -151,16 +277,24 @@ impl PbrMirrorViewerApp {
         let window: Arc<dyn Window> = match event_loop.create_window(attributes) {
             Ok(window) => Arc::from(window),
             Err(error) => {
-                eprintln!("failed to create viewer window: {error}");
-                event_loop.exit();
+                self.exit_with_failure(
+                    event_loop,
+                    TerminalPhase::WindowCreation,
+                    TerminalErrorCategory::Platform,
+                    format!("create viewer window: {error}"),
+                );
                 return;
             }
         };
         self.size = window_size(window.as_ref());
         self.window = Some(window);
         if let Err(error) = self.ensure_cpu_presenter() {
-            eprintln!("failed to create viewer presenter: {error}");
-            event_loop.exit();
+            self.exit_with_failure(
+                event_loop,
+                TerminalPhase::PresenterCreation,
+                TerminalErrorCategory::Presentation,
+                format!("create viewer presenter: {error}"),
+            );
             return;
         }
         self.present_startup_frame(event_loop);
@@ -194,19 +328,22 @@ impl PbrMirrorViewerApp {
         let pmrem_face_size = self.pmrem_face_size;
         let work_dir = self.work_dir.clone();
         let ibl_cache_dir = self.ibl_cache_dir.clone();
+        let material_fixture = self.material_fixture;
         let gpu_timing_enabled = self.gpu_timing_report_path.is_some();
         let event_loop_proxy = self.event_loop_proxy.clone();
         let started_at = Instant::now();
         match BackgroundTask::spawn(
             "zircon-pbr-scene-loader",
-            move || {
-                PbrMirrorScene::new(
+            move |cancellation| {
+                PbrMirrorScene::new_with_cancellation(
                     &hdri_path,
                     face_size,
                     pmrem_face_size,
                     &work_dir,
                     ibl_cache_dir.as_deref(),
+                    material_fixture,
                     gpu_timing_enabled,
+                    &cancellation,
                 )
                 .map_err(|error| error.to_string())
             },
@@ -227,31 +364,37 @@ impl PbrMirrorViewerApp {
     }
 
     fn finish_scene_load(&mut self, event_loop: &dyn ActiveEventLoop) {
-        let Some(loader) = self.scene_loader.as_ref() else {
+        let Some(mut loader) = self.scene_loader.take() else {
             return;
         };
         let result = match loader.try_take() {
-            BackgroundTaskPoll::Pending => return,
+            BackgroundTaskPoll::Pending => {
+                self.scene_loader = Some(loader);
+                return;
+            }
             BackgroundTaskPoll::Completed(result) => result,
         };
-        self.scene_loader = None;
         self.last_load_status_refresh_at = None;
 
         match result {
             Ok(scene) => {
                 self.scene = Some(scene);
-                if self.screenshot_path.is_none() {
+                if self.host_mode == ViewerHostMode::NativePresent {
                     match self.bind_scene_viewport_surface() {
                         Ok(()) => {
                             self.direct_present_enabled = true;
                             // The direct surface owns interactive presentation. Retain CPU
-                            // staging only for screenshot export or an explicit fallback.
+                            // staging only for offscreen diagnostic runs.
                             self.presenter = None;
                         }
                         Err(error) => {
-                            eprintln!(
-                                "native viewer surface unavailable; falling back to CPU presentation: {error}"
+                            self.exit_with_failure(
+                                event_loop,
+                                TerminalPhase::FramePresent,
+                                TerminalErrorCategory::Presentation,
+                                format!("bind native viewer viewport surface: {error}"),
                             );
+                            return;
                         }
                     }
                 }
@@ -292,6 +435,11 @@ impl PbrMirrorViewerApp {
     }
 
     fn handle_scene_load_failure(&mut self, event_loop: &dyn ActiveEventLoop, message: String) {
+        self.record_terminal_failure(
+            TerminalPhase::SceneLoad,
+            TerminalErrorCategory::SceneLoad,
+            message.clone(),
+        );
         eprintln!("failed to load PBR HDRI viewer scene: {message}");
         self.load_error = Some(message);
         self.last_load_status_refresh_at = None;
@@ -389,8 +537,12 @@ impl PbrMirrorViewerApp {
         self.size = UVec2::new(size.width.max(1), size.height.max(1));
         if let Some(presenter) = self.presenter.as_mut() {
             if let Err(error) = presenter.resize(self.size) {
-                eprintln!("failed to resize viewer presenter: {error}");
-                event_loop.exit();
+                self.exit_with_failure(
+                    event_loop,
+                    TerminalPhase::FramePresent,
+                    TerminalErrorCategory::Presentation,
+                    format!("resize viewer presenter: {error}"),
+                );
                 return;
             }
         }
@@ -421,8 +573,8 @@ impl PbrMirrorViewerApp {
         let interactive_direct_present_enabled = self.direct_present_enabled;
 
         let capture_requested = self.renderdoc_capture_once && !self.renderdoc_capture_finished;
-        let needs_environment_only_base_pipeline = screenshot_requested || capture_requested;
-        let environment_only_base_pipeline_ready = {
+        let needs_required_material_base_pipeline = screenshot_requested || capture_requested;
+        let required_material_base_pipeline_ready = {
             let Some(scene) = self.scene.as_mut() else {
                 if self.load_error.is_some() {
                     self.present_error_frame(event_loop);
@@ -431,30 +583,42 @@ impl PbrMirrorViewerApp {
                 }
                 return;
             };
-            match scene.environment_only_base_pipeline_ready() {
+            match scene.required_material_base_pipeline_ready() {
                 Ok(true) => true,
                 Ok(false) => {
-                    if let Err(error) = scene.retry_environment_only_base_pipeline_admission() {
-                        eprintln!(
-                            "environment-only PBR Base pipeline admission retry failed: {error}"
+                    if let Err(error) = scene.retry_required_material_base_pipeline_admission() {
+                        self.exit_with_failure(
+                            event_loop,
+                            TerminalPhase::PipelineAdmission,
+                            TerminalErrorCategory::Pipeline,
+                            format!(
+                                "{} PBR Base pipeline admission retry: {error}",
+                                self.material_fixture.cli_value()
+                            ),
                         );
-                        event_loop.exit();
                         return;
                     }
                     false
                 }
                 Err(error) => {
-                    eprintln!("environment-only PBR Base pipeline startup failed: {error}");
-                    event_loop.exit();
+                    self.exit_with_failure(
+                        event_loop,
+                        TerminalPhase::PipelineReadiness,
+                        TerminalErrorCategory::Pipeline,
+                        format!(
+                            "{} PBR Base pipeline startup: {error}",
+                            self.material_fixture.cli_value()
+                        ),
+                    );
                     return;
                 }
             }
         };
         let defer_one_shot_until_base_pipeline_ready =
-            needs_environment_only_base_pipeline && !environment_only_base_pipeline_ready;
+            needs_required_material_base_pipeline && !required_material_base_pipeline_ready;
         let recheck_base_pipeline_after_present =
-            !needs_environment_only_base_pipeline && !environment_only_base_pipeline_ready;
-        let write_screenshot = screenshot_requested && environment_only_base_pipeline_ready;
+            !needs_required_material_base_pipeline && !required_material_base_pipeline_ready;
+        let write_screenshot = screenshot_requested && required_material_base_pipeline_ready;
         let one_shot_base_pipeline_wait_elapsed = write_screenshot
             .then(|| self.one_shot_base_pipeline_wait_elapsed(Instant::now()))
             .unwrap_or_default();
@@ -470,11 +634,16 @@ impl PbrMirrorViewerApp {
         });
         if defer_one_shot_until_base_pipeline_ready {
             if self.one_shot_base_pipeline_wait_has_expired(Instant::now()) {
-                eprintln!(
-                    "environment-only PBR Base pipeline startup timed out after {ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT:?}"
+                self.exit_with_failure(
+                    event_loop,
+                    TerminalPhase::PipelineReadiness,
+                    TerminalErrorCategory::Pipeline,
+                    format!(
+                        "{} PBR Base pipeline startup timed out after {ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT:?}",
+                        self.material_fixture.cli_value()
+                    ),
                 );
                 self.reset_base_pipeline_recheck();
-                event_loop.exit();
                 return;
             }
             let deadline = self
@@ -484,7 +653,7 @@ impl PbrMirrorViewerApp {
             self.schedule_base_pipeline_recheck(event_loop, Some(deadline));
             return;
         }
-        if environment_only_base_pipeline_ready {
+        if required_material_base_pipeline_ready {
             self.reset_base_pipeline_recheck();
         }
         let screenshot_input = write_screenshot.then(|| {
@@ -496,18 +665,23 @@ impl PbrMirrorViewerApp {
         });
         if !self.direct_present_enabled || screenshot_requested {
             if let Err(error) = self.ensure_cpu_presenter() {
-                eprintln!("failed to create CPU presentation fallback: {error}");
-                event_loop.exit();
+                self.exit_with_failure(
+                    event_loop,
+                    TerminalPhase::PresenterCreation,
+                    TerminalErrorCategory::Presentation,
+                    format!("create CPU presenter for offscreen diagnostic: {error}"),
+                );
                 return;
             }
         }
         let gpu_timing_evidence_pending = self.gpu_timing_evidence_pending();
+        let host_mode = self.host_mode;
 
         let scene = self
             .scene
             .as_mut()
             .expect("PBR scene must remain available after startup-state query");
-        let capture_this_frame = capture_requested && environment_only_base_pipeline_ready;
+        let capture_this_frame = capture_requested && required_material_base_pipeline_ready;
         if capture_this_frame {
             println!(
                 "starting graphics debugger capture on {}",
@@ -538,8 +712,12 @@ impl PbrMirrorViewerApp {
                         if let Err(error) =
                             finish_graphics_debugger_capture(scene, self.renderdoc_bridge.as_ref())
                         {
-                            eprintln!("failed to complete graphics debugger capture: {error}");
-                            event_loop.exit();
+                            self.exit_with_failure(
+                                event_loop,
+                                TerminalPhase::RenderDocCapture,
+                                TerminalErrorCategory::Capture,
+                                format!("complete graphics debugger capture: {error}"),
+                            );
                             return;
                         }
                         self.renderdoc_capture_finished = true;
@@ -552,17 +730,21 @@ impl PbrMirrorViewerApp {
                     if let Err(error) =
                         self.resolve_gpu_timing_evidence(gpu_timing_report, gpu_timing_status)
                     {
-                        eprintln!("failed to write PBR viewer GPU timing evidence: {error}");
-                        event_loop.exit();
+                        self.exit_with_failure(
+                            event_loop,
+                            TerminalPhase::GpuTimingWrite,
+                            TerminalErrorCategory::Artifact,
+                            format!("write PBR viewer GPU timing evidence: {error}"),
+                        );
                         return;
                     }
                     if capture_this_frame
                         && self.exit_after_capture
                         && !self.gpu_timing_evidence_pending()
                     {
-                        event_loop.exit();
+                        self.exit_with_success(event_loop);
                     } else if self.exit_after_screenshot() {
-                        event_loop.exit();
+                        self.exit_with_success(event_loop);
                     }
                 }
                 Err(error) => {
@@ -573,15 +755,12 @@ impl PbrMirrorViewerApp {
                             );
                         }
                     }
-                    eprintln!(
-                        "native viewer surface failed; falling back to CPU presentation: {error}"
+                    self.exit_with_failure(
+                        event_loop,
+                        TerminalPhase::FramePresent,
+                        TerminalErrorCategory::Presentation,
+                        format!("native viewer viewport surface failed: {error}"),
                     );
-                    scene.detach_viewport_surface();
-                    self.direct_present_enabled = false;
-                    self.redraw_requested = true;
-                    if let Some(window) = self.window.as_ref() {
-                        window.request_redraw();
-                    }
                 }
             }
             return;
@@ -596,8 +775,12 @@ impl PbrMirrorViewerApp {
                     if let Err(error) =
                         finish_graphics_debugger_capture(scene, self.renderdoc_bridge.as_ref())
                     {
-                        eprintln!("failed to complete graphics debugger capture: {error}");
-                        event_loop.exit();
+                        self.exit_with_failure(
+                            event_loop,
+                            TerminalPhase::RenderDocCapture,
+                            TerminalErrorCategory::Capture,
+                            format!("complete graphics debugger capture: {error}"),
+                        );
                         return;
                     }
                     self.renderdoc_capture_finished = true;
@@ -615,14 +798,44 @@ impl PbrMirrorViewerApp {
                     let ibl_staging_timing = ibl_report.staging_timing();
                     let ibl_staging_output = ibl_report.staging_output();
                     let base_prewarm_report = scene.base_prewarm_report();
+                    let environment_only_base_prewarm_requested = base_prewarm_report.is_some();
+                    let environment_only_base_prewarm_pipeline_ready =
+                        base_prewarm_report.is_some_and(|report| report.pipeline_ready());
+                    let environment_only_base_prewarm_cache_hit =
+                        base_prewarm_report.is_some_and(|report| report.cache_hit());
+                    let environment_only_base_prewarm_shader_source_resolution =
+                        base_prewarm_report
+                            .map_or(Duration::ZERO, |report| report.shader_source_resolution());
+                    let environment_only_base_prewarm_pipeline_creation = base_prewarm_report
+                        .map_or(Duration::ZERO, |report| report.pipeline_creation());
+                    let environment_only_base_prewarm_elapsed =
+                        base_prewarm_report.map_or(Duration::ZERO, |report| report.elapsed());
+                    let material_fixture = scene.material_fixture();
+                    let required_material_base_pipeline_kind =
+                        if material_fixture.requires_generic_forward_pipeline() {
+                            "generic-forward-pbr-ior"
+                        } else {
+                            "environment-only-pbr-base"
+                        };
                     let shader_variant_miss_report = scene.shader_variant_miss_report();
                     let startup_timing = scene.startup_timing();
                     let (hdri_path, requested_source_face_size, requested_pmrem_face_size) =
                         screenshot_input
                             .expect("screenshot frames must retain their HDRI input identity");
+                    let evidence_identity = self
+                        .ready_frame_evidence_identity
+                        .clone()
+                        .expect("screenshot frames must retain a validated evidence identity");
                     Some(ReadyFrameEvidenceMetadata {
                         backend: scene.renderer_backend_name().to_owned(),
+                        evidence_identity,
                         interactive_direct_present_enabled,
+                        host_mode: host_mode.as_str().to_owned(),
+                        host_composition_id: PBR_VIEWER_HOST_COMPOSITION_ID.to_owned(),
+                        scene_id: PBR_VIEWER_SCENE_ID.to_owned(),
+                        capture_target: host_mode.capture_target().to_owned(),
+                        gpu_scene_surface_present_count: host_mode
+                            .gpu_scene_surface_present_count(),
                         hdri_path,
                         requested_source_face_size,
                         requested_pmrem_face_size,
@@ -631,16 +844,25 @@ impl PbrMirrorViewerApp {
                         active_pmrem_face_size: ibl_report.pmrem_face_size(),
                         active_pmrem_mip_count: ibl_report.pmrem_mip_count(),
                         render_profile: PBR_VIEWER_RENDER_PROFILE.to_owned(),
-                        environment_only_base_prewarm_pipeline_ready: base_prewarm_report
-                            .pipeline_ready(),
+                        material_fixture: material_fixture.cli_value().to_owned(),
+                        required_material_base_pipeline_kind: required_material_base_pipeline_kind
+                            .to_owned(),
+                        required_material_base_pipeline_ready_at_capture:
+                            required_material_base_pipeline_ready,
+                        environment_only_base_prewarm_requested,
+                        environment_only_base_prewarm_pipeline_ready,
                         environment_only_base_pipeline_ready_at_capture:
-                            environment_only_base_pipeline_ready,
-                        environment_only_base_prewarm_cache_hit: base_prewarm_report.cache_hit(),
-                        environment_only_base_prewarm_shader_source_resolution: base_prewarm_report
-                            .shader_source_resolution(),
-                        environment_only_base_prewarm_pipeline_creation: base_prewarm_report
-                            .pipeline_creation(),
-                        environment_only_base_prewarm_elapsed: base_prewarm_report.elapsed(),
+                            environment_only_base_prewarm_pipeline_ready,
+                        environment_only_base_prewarm_cache_hit,
+                        environment_only_base_prewarm_cache_scope:
+                            if environment_only_base_prewarm_requested {
+                                ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE.to_owned()
+                            } else {
+                                ENVIRONMENT_ONLY_BASE_PREWARM_NOT_REQUESTED_CACHE_SCOPE.to_owned()
+                            },
+                        environment_only_base_prewarm_shader_source_resolution,
+                        environment_only_base_prewarm_pipeline_creation,
+                        environment_only_base_prewarm_elapsed,
                         camera_yaw_degrees: screenshot_camera.yaw_degrees(),
                         camera_pitch_degrees: screenshot_camera.pitch_degrees(),
                         ibl_bake_algorithm_version: IBL_BAKE_ALGORITHM_VERSION,
@@ -679,6 +901,17 @@ impl PbrMirrorViewerApp {
                             .renderer_initialization(),
                         scene_startup_renderer_backend_initialization: startup_timing
                             .renderer_backend_initialization(),
+                        scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized:
+                            startup_timing
+                                .renderer_environment_brdf_lut_builtin_payload_materialized(),
+                        scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait:
+                            startup_timing
+                                .renderer_environment_brdf_lut_builtin_payload_cache_wait(),
+                        scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization:
+                            startup_timing
+                                .renderer_environment_brdf_lut_builtin_payload_materialization(),
+                        scene_startup_renderer_environment_brdf_lut_texture_upload_submission:
+                            startup_timing.renderer_environment_brdf_lut_texture_upload_submission(),
                         scene_startup_renderer_deferred_initialization: startup_timing
                             .renderer_deferred_initialization(),
                         scene_startup_renderer_deferred_standard_pipeline: startup_timing
@@ -705,8 +938,12 @@ impl PbrMirrorViewerApp {
                     if let Err(error) =
                         self.write_ready_frame_screenshot(&frame, screenshot_metadata.as_ref())
                     {
-                        eprintln!("failed to write PBR viewer screenshot: {error}");
-                        event_loop.exit();
+                        self.exit_with_failure(
+                            event_loop,
+                            TerminalPhase::ScreenshotWrite,
+                            TerminalErrorCategory::Artifact,
+                            format!("write PBR viewer screenshot: {error}"),
+                        );
                         return;
                     }
                     self.begin_gpu_timing_evidence(frame.generation);
@@ -714,8 +951,12 @@ impl PbrMirrorViewerApp {
                 if let Err(error) =
                     self.resolve_gpu_timing_evidence(gpu_timing_report, gpu_timing_status)
                 {
-                    eprintln!("failed to write PBR viewer GPU timing evidence: {error}");
-                    event_loop.exit();
+                    self.exit_with_failure(
+                        event_loop,
+                        TerminalPhase::GpuTimingWrite,
+                        TerminalErrorCategory::Artifact,
+                        format!("write PBR viewer GPU timing evidence: {error}"),
+                    );
                     return;
                 }
                 let screenshot_encode_elapsed =
@@ -726,8 +967,12 @@ impl PbrMirrorViewerApp {
                     .expect("CPU presenter must exist for the CPU render path");
                 let surface_present_started = write_screenshot.then(Instant::now);
                 if let Err(error) = presenter.present(&frame) {
-                    eprintln!("failed to present viewer frame: {error}");
-                    event_loop.exit();
+                    self.exit_with_failure(
+                        event_loop,
+                        TerminalPhase::FramePresent,
+                        TerminalErrorCategory::Presentation,
+                        format!("present viewer frame: {error}"),
+                    );
                     return;
                 }
                 if let (
@@ -758,9 +1003,9 @@ impl PbrMirrorViewerApp {
                     && self.exit_after_capture
                     && !self.gpu_timing_evidence_pending()
                 {
-                    event_loop.exit();
+                    self.exit_with_success(event_loop);
                 } else if self.exit_after_screenshot() {
-                    event_loop.exit();
+                    self.exit_with_success(event_loop);
                 }
             }
             Err(error) => {
@@ -771,8 +1016,12 @@ impl PbrMirrorViewerApp {
                         );
                     }
                 }
-                eprintln!("failed to render viewer frame: {error}");
-                event_loop.exit();
+                self.exit_with_failure(
+                    event_loop,
+                    TerminalPhase::Render,
+                    TerminalErrorCategory::Rendering,
+                    format!("render viewer frame: {error}"),
+                );
             }
         }
     }
@@ -840,6 +1089,7 @@ impl PbrMirrorViewerApp {
         validate_gpu_timing_report_output(screenshot_path, path)?;
         let timing_evidence = format_gpu_timing_evidence(screenshot_path, &resolution)?;
         fs::write(path, timing_evidence).map_err(|error| error.to_string())?;
+        self.gpu_timing_evidence_written = true;
         println!("wrote PBR viewer GPU timing evidence: {}", path.display());
         self.gpu_timing_request = None;
         Ok(true)
@@ -864,8 +1114,12 @@ impl PbrMirrorViewerApp {
             return;
         };
         if let Err(error) = presenter.present(&frame) {
-            eprintln!("failed to present viewer status frame: {error}");
-            event_loop.exit();
+            self.exit_with_failure(
+                event_loop,
+                TerminalPhase::StatusPresent,
+                TerminalErrorCategory::Presentation,
+                format!("present viewer status frame: {error}"),
+            );
         }
     }
 
@@ -931,6 +1185,16 @@ fn request_redraw_transition(redraw_requested: &mut bool) -> bool {
     }
     *redraw_requested = true;
     true
+}
+
+const fn terminal_artifact_state(requested: bool, committed: bool) -> TerminalArtifactState {
+    if !requested {
+        TerminalArtifactState::NotRequested
+    } else if committed {
+        TerminalArtifactState::Committed
+    } else {
+        TerminalArtifactState::NotCommitted
+    }
 }
 
 fn load_status_refresh_is_due(last_refresh_at: Option<Instant>, now: Instant) -> bool {
@@ -1029,7 +1293,9 @@ impl ApplicationHandler for PbrMirrorViewerApp {
         event: WindowEvent,
     ) {
         match event {
-            WindowEvent::CloseRequested | WindowEvent::Destroyed => event_loop.exit(),
+            WindowEvent::CloseRequested | WindowEvent::Destroyed => {
+                self.exit_as_cancelled(event_loop)
+            }
             WindowEvent::SurfaceResized(size) => self.resize(event_loop, size),
             WindowEvent::PointerMoved { position, .. } => self.update_pointer_position(position),
             WindowEvent::PointerButton {

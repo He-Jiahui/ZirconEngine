@@ -22,9 +22,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     if !has_paintable_table_cell_area(rect, metrics) {
         return;
     }
+    let cell_count = cells.len().min(TABLE_COLUMN_COUNT);
+    commands.reserve(cell_count);
     let cell_rects = table_cell_rects(node, rect);
     let row_style = table_row_style(node);
-    for (index, cell) in cells.iter().take(TABLE_COLUMN_COUNT).enumerate() {
+    for (index, cell) in cells.iter().take(cell_count).enumerate() {
         let cell_rect = cell_rects[index].clone();
         if cell_rect.width <= 0.0 || cell_rect.height <= 0.0 {
             continue;
@@ -234,6 +236,56 @@ mod tests {
         assert!(
             !source.contains(&repeated_style_selection),
             "per-cell painting must not repeat row style selection"
+        );
+    }
+
+    #[test]
+    fn optimization_batch_20260830ct_table_cells_reserve_the_exact_command_upper_bound() {
+        let source = include_str!("commands.rs");
+
+        assert!(
+            source.contains("let cell_count = cells.len().min(TABLE_COLUMN_COUNT);"),
+            "table rows should calculate the paintable cell upper bound once"
+        );
+        assert!(
+            source.contains("commands.reserve(cell_count);"),
+            "table rows should reserve command capacity before painting cells"
+        );
+        assert!(
+            source.contains("cells.iter().take(cell_count)"),
+            "iteration should reuse the same bounded cell count"
+        );
+    }
+
+    #[test]
+    #[ignore = "deterministic allocation-growth benchmark"]
+    fn optimization_batch_20260830ct_table_cell_command_capacity_benchmark() {
+        const BATCH_COUNT: usize = 32_768;
+        let mut legacy_growth_events = 0_usize;
+        let mut optimized_growth_events = 0_usize;
+
+        for _ in 0..BATCH_COUNT {
+            let mut legacy = Vec::<usize>::new();
+            for command in 0..TABLE_COLUMN_COUNT {
+                let capacity = legacy.capacity();
+                legacy.push(command);
+                legacy_growth_events += usize::from(legacy.capacity() != capacity);
+            }
+
+            let mut optimized = Vec::<usize>::with_capacity(TABLE_COLUMN_COUNT);
+            for command in 0..TABLE_COLUMN_COUNT {
+                let capacity = optimized.capacity();
+                optimized.push(command);
+                optimized_growth_events += usize::from(optimized.capacity() != capacity);
+            }
+        }
+
+        assert!(legacy_growth_events > 0);
+        assert_eq!(optimized_growth_events, 0);
+        println!(
+            "EDITOR507_TABLE_CELL_COMMAND_CAPACITY_BENCH_V1 batches={BATCH_COUNT} \
+             commands_per_batch={TABLE_COLUMN_COUNT} legacy_growth_events={legacy_growth_events} \
+             optimized_growth_events={optimized_growth_events}"
         );
     }
 

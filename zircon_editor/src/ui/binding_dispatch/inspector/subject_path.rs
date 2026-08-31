@@ -1,6 +1,7 @@
 use zircon_runtime::scene::NodeId;
 
 use super::super::error::EditorBindingDispatchError;
+use crate::core::play::WorldDomain;
 use crate::ui::workbench::state::EditorState;
 
 pub(super) fn resolve_subject_path(
@@ -21,9 +22,16 @@ pub(super) fn resolve_subject_path(
         let node_id = raw.parse::<NodeId>().map_err(|_| {
             EditorBindingDispatchError::InvalidSubjectPath(subject_path.to_string())
         })?;
+        if matches!(
+            state.viewport_controller.selection().active_domain(),
+            WorldDomain::Play(_)
+        ) && state.viewport_controller.selection().active_primary() == Some(node_id)
+        {
+            return Ok(node_id);
+        }
         let exists = state
             .world
-            .try_with_world(|scene| scene.find_node(node_id).is_some())
+            .with_world(|scene| scene.find_node(node_id).is_some())?
             .unwrap_or(false);
         if exists {
             return Ok(node_id);

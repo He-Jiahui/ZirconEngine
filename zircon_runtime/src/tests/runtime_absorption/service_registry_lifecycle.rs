@@ -1,4 +1,4 @@
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::Arc;
 
 use crate::core::runtime::ServiceObject;
@@ -52,11 +52,9 @@ fn failed_service_initialization_does_not_retain_the_runtime_root() {
         .unwrap();
     runtime.activate_module("WeakFailureModule").unwrap();
 
-    assert!(
-        runtime
-            .resolve_manager::<WeakBackReferenceService>(service_name.as_str())
-            .is_err()
-    );
+    assert!(runtime
+        .resolve_manager::<WeakBackReferenceService>(service_name.as_str())
+        .is_err());
     drop(runtime);
 
     assert!(

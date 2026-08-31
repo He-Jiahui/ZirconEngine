@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from bisect import bisect_left
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -61,6 +62,28 @@ def lease_paths_overlap(left_key: str, right_key: str) -> bool:
     )
 
 
+def _lease_path_overlaps_any(
+    path_key: str,
+    sorted_requested_keys: tuple[str, ...],
+    requested_key_set: set[str],
+) -> bool:
+    if path_key in requested_key_set:
+        return True
+    start = 0
+    while True:
+        separator = path_key.find("/", start)
+        if separator < 0:
+            break
+        if path_key[:separator] in requested_key_set:
+            return True
+        start = separator + 1
+    descendant_prefix = path_key + "/"
+    index = bisect_left(sorted_requested_keys, descendant_prefix)
+    return index < len(sorted_requested_keys) and sorted_requested_keys[
+        index
+    ].startswith(descendant_prefix)
+
+
 class LeaseService:
     def __init__(
         self,
@@ -108,6 +131,8 @@ class LeaseService:
         normalized = [normalized_by_key[key] for key in sorted(normalized_by_key)]
         if not normalized:
             raise ValueError("at least one lease path is required")
+        normalized_keys = tuple(item.key for item in normalized)
+        normalized_key_set = set(normalized_keys)
         session = connection.execute(
             "SELECT status FROM sessions WHERE session_id = ?", (session_id,)
         ).fetchone()
@@ -132,7 +157,11 @@ class LeaseService:
                     row["display_path"]
                     for row in rows
                     if row["session_id"] != session_id
-                    and any(lease_paths_overlap(row["path_key"], item.key) for item in normalized)
+                    and _lease_path_overlaps_any(
+                        str(row["path_key"]),
+                        normalized_keys,
+                        normalized_key_set,
+                    )
                 },
                 key=str.casefold,
             )
@@ -141,20 +170,20 @@ class LeaseService:
             return LeaseAcquisition(False, (), conflicts)
         acquired_at = utc_text(current_time)
         expires_at = utc_text(current_time + timedelta(seconds=self.ttl_seconds))
-        for item in normalized:
-            connection.execute(
-                """
-                INSERT INTO leases(
-                    path_key, display_path, session_id, base_hash,
-                    acquired_at, last_heartbeat_at, expires_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(path_key) DO UPDATE SET
-                    display_path = excluded.display_path,
-                    base_hash = COALESCE(leases.base_hash, excluded.base_hash),
-                    last_heartbeat_at = excluded.last_heartbeat_at,
-                    expires_at = excluded.expires_at
-                WHERE leases.session_id = excluded.session_id
-                """,
+        connection.executemany(
+            """
+            INSERT INTO leases(
+                path_key, display_path, session_id, base_hash,
+                acquired_at, last_heartbeat_at, expires_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(path_key) DO UPDATE SET
+                display_path = excluded.display_path,
+                base_hash = COALESCE(leases.base_hash, excluded.base_hash),
+                last_heartbeat_at = excluded.last_heartbeat_at,
+                expires_at = excluded.expires_at
+            WHERE leases.session_id = excluded.session_id
+            """,
+            (
                 (
                     item.key,
                     item.display,
@@ -163,8 +192,10 @@ class LeaseService:
                     acquired_at,
                     acquired_at,
                     expires_at,
-                ),
-            )
+                )
+                for item in normalized
+            ),
+        )
         return LeaseAcquisition(True, tuple(item.display for item in normalized), ())
 
     def heartbeat(self, session_id: str, *, now: datetime | None = None) -> int:

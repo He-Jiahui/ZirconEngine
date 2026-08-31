@@ -2,6 +2,7 @@ import csv
 import hashlib
 import json
 import struct
+import subprocess
 import tempfile
 import unittest
 import zlib
@@ -12,14 +13,59 @@ from tools.zircon_summarize_shader_pbr_profile import (
     _post_stage_hydration_elapsed_ns,
     _write_analysis_output,
     summarize_profile,
+    validate_profile_completion_receipt,
 )
 from tools.zircon_validate_shader_pbr_viewer_evidence import (
+    _CURRENT_IBL_BAKE_ALGORITHM_VERSION,
     ready_frame_evidence_summary,
     validate_current_ready_frame_evidence,
 )
 
 
+_PROFILE_TOOL_PATHS = (
+    "tools/performance-machine-manifest.ps1",
+    "tools/profile-capture-manifest.ps1",
+    "tools/shader-pbr-profile-contract.ps1",
+    "tools/shader-pbr-profile-evidence-identity.ps1",
+    "tools/shader-pbr-profile-publication.ps1",
+    "tools/shader-pbr-profile-runtime-evidence.ps1",
+    "tools/shader-pbr-profile-toolchain.ps1",
+    "tools/write_zircon_shader_pbr_build_provenance.ps1",
+    "tools/zircon_pbr_visual_oracle.py",
+    "tools/zircon_profile_shader_pbr_viewer.ps1",
+    "tools/zircon_shader_pbr_evidence_identity.py",
+    "tools/zircon_shader_pbr_profile_tool_identity.py",
+    "tools/zircon_summarize_shader_pbr_profile.py",
+    "tools/zircon_validate_shader_pbr_gpu_timing_evidence.py",
+    "tools/zircon_validate_shader_pbr_renderdoc_replay.py",
+    "tools/zircon_validate_shader_pbr_viewer_evidence.py",
+)
+
+
 class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
+    def test_completion_receipt_binds_the_entire_profile_root_before_a_consumer_accepts_it(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            receipt_path = self._write_completion_receipt(summary_path)
+
+            receipt = validate_profile_completion_receipt(summary_path, receipt_path)
+            analysis = summarize_profile(
+                summary_path,
+                completion_receipt_path=receipt_path,
+            )
+
+        self.assertEqual("completed", receipt["status"])
+        self.assertEqual(5, analysis["modes"]["cold"]["sample_count"])
+
+    def test_completion_receipt_rejects_a_profile_artifact_changed_after_commit(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            receipt_path = self._write_completion_receipt(summary_path)
+            summary_path.write_text("tampered", encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "completion receipt artifact SHA-256"):
+                validate_profile_completion_receipt(summary_path, receipt_path)
+
     def test_replays_every_ready_frame_in_process(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
@@ -32,6 +78,80 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
 
             self.assertEqual(10, validate_current.call_count)
 
+    def test_replays_each_ready_frame_with_its_bound_display_oracle(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            profile_root = Path(temp_dir) / "profile"
+            summary_path = self._write_profile_summary(profile_root)
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            first_report = summary["modes"]["cold"][0]
+            reference_png = profile_root / "display-oracle-reference.png"
+            reference_png.write_bytes(
+                Path(first_report["artifacts"]["ready_png"]["path"]).read_bytes()
+            )
+            oracle_path = profile_root / "display-oracle.json"
+            oracle_path.write_text(
+                json.dumps(
+                    {
+                        "schema": "zircon_pbr_display_visual_oracle_v1",
+                        "reference_png": reference_png.name,
+                        "reference_png_sha256": hashlib.sha256(
+                            reference_png.read_bytes()
+                        ).hexdigest(),
+                        "expected_metadata": {
+                            "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+                            "material_fixture": "metal-mirror",
+                            "required_material_base_pipeline_kind": "environment-only-pbr-base",
+                            "required_material_base_pipeline_ready_at_capture": "true",
+                            "environment_only_base_prewarm_requested": "true",
+                        },
+                        "comparison": {
+                            "max_mean_abs_error": 0.0,
+                            "max_p99_abs_error": 0,
+                            "exceeding_abs_error": 0,
+                            "max_exceeding_pixel_fraction": 0.0,
+                        },
+                        "semantic_regions": [],
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            oracle_fingerprint = self._fingerprint(oracle_path)
+            manifest_path = Path(summary["profile_manifest"]["path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["capture"] = {"display_visual_oracle": oracle_fingerprint}
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            summary["profile_manifest"] = self._fingerprint(manifest_path)
+            for reports in summary["modes"].values():
+                for report in reports:
+                    report["display_visual_oracle"] = oracle_fingerprint
+                    ready_png = Path(report["artifacts"]["ready_png"]["path"])
+                    ready_validation_path = Path(
+                        report["artifacts"]["ready_validation"]["path"]
+                    )
+                    ready_validation_path.write_text(
+                        json.dumps(
+                            ready_frame_evidence_summary(
+                                validate_current_ready_frame_evidence(
+                                    ready_png,
+                                    expected_backend="wgpu(dx12)",
+                                    visual_oracle_path=oracle_path,
+                                )
+                            ),
+                            sort_keys=True,
+                        ),
+                        encoding="utf-8",
+                    )
+                    report["artifacts"]["ready_validation"] = self._fingerprint(
+                        ready_validation_path
+                    )
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            analysis = summarize_profile(summary_path)
+
+        self.assertEqual("metal-mirror", analysis["material_fixture"])
+        self.assertEqual(oracle_fingerprint, analysis["display_visual_oracle"])
+
     def test_summarizes_five_run_cold_warm_matrix_with_bound_energy_data(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             profile_root = Path(temp_dir) / "profile"
@@ -41,11 +161,339 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
 
             self.assertEqual(5, analysis["modes"]["cold"]["sample_count"])
             self.assertEqual(5, analysis["modes"]["warm"]["sample_count"])
+            self.assertEqual("metal-mirror", analysis["material_fixture"])
             self.assertEqual("renderer_initialization", analysis["modes"]["cold"]["bottleneck"])
             self.assertEqual(15.0, analysis["modes"]["cold"]["energy_meter"]["mean_power_watts"])
             self.assertEqual("meter_instance_sum", analysis["modes"]["cold"]["energy_meter"]["scope"])
         self.assertTrue(analysis["modes"]["cold"]["cpu_sampling"]["attribution_ready"])
         self.assertEqual(10, analysis["modes"]["warm"]["gpu_pass_median_us"]["direct_scene_content"])
+        self.assertEqual(
+            {
+                "advanced_pbr_opaque_command_count": 0,
+                "cached_command_hit_count": 1,
+                "command_rebuild_count": 0,
+                "dynamic_command_count": 0,
+                "opaque_command_count": 1,
+            },
+            analysis["modes"]["warm"]["gpu_mesh_submission"],
+        )
+
+    def test_summarizes_source_bound_shader_pipeline_runtime_spans(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+
+            analysis = summarize_profile(summary_path)
+
+        cold = analysis["modes"]["cold"]["shader_pipeline_cpu"]
+        warm = analysis["modes"]["warm"]["shader_pipeline_cpu"]
+        self.assertEqual("microseconds", cold["unit"])
+        self.assertEqual(
+            "per_run_stage_sum_then_upper_nearest_percentile",
+            cold["aggregation"],
+        )
+        self.assertEqual(
+            "inclusive_per_span; different stages may overlap",
+            cold["duration_semantics"],
+        )
+        self.assertEqual(
+            {
+                "run_sample_count": 5,
+                "run_presence_count": 5,
+                "span_count": 10,
+                "total_duration_us": 1_520,
+                "per_run_duration_us": {
+                    "p50": 304,
+                    "p95": 506,
+                    "p99": 506,
+                    "max": 506,
+                },
+                "per_run_span_count": {
+                    "p50": 2,
+                    "p95": 2,
+                    "p99": 2,
+                    "max": 2,
+                },
+            },
+            cold["stages"]["mesh_source_build"],
+        )
+        self.assertEqual(154, warm["stages"]["mesh_source_build"]["per_run_duration_us"]["p50"])
+        self.assertEqual(5, cold["stages"]["disk_cache_write"]["run_presence_count"])
+
+    def test_rejects_runtime_profile_trace_or_stage_summary_tampering(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            report = summary["modes"]["cold"][0]
+            runtime_profile = report["artifacts"]["runtime_profile"]
+            timeline_path = Path(runtime_profile["artifacts"]["timeline"]["path"])
+            timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
+            timeline["spans"][0]["duration_us"] += 1
+            timeline_path.write_text(json.dumps(timeline), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "runtime_profile_timeline SHA-256"):
+                summarize_profile(summary_path)
+
+            runtime_profile["artifacts"]["timeline"] = self._fingerprint(timeline_path)
+            runtime_profile["shader_pipeline_stage_counts"]["material_requirement_admission"] += 1
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "stage count does not match"):
+                summarize_profile(summary_path)
+
+    def test_rejects_runtime_profile_with_lost_samples(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            report = summary["modes"]["warm"][0]
+            runtime_profile = report["artifacts"]["runtime_profile"]
+            timeline_path = Path(runtime_profile["artifacts"]["timeline"]["path"])
+            timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
+            timeline["recorder_retention"][0]["spans"]["overwritten"] = 1
+            timeline["recorder_retention"][0]["spans"]["written"] += 1
+            timeline_path.write_text(json.dumps(timeline), encoding="utf-8")
+            runtime_profile["artifacts"]["timeline"] = self._fingerprint(timeline_path)
+            runtime_profile["recorder_retention"] = timeline["recorder_retention"]
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "lost spans samples"):
+                summarize_profile(summary_path)
+
+    def test_rejects_profile_tool_changed_after_manifest_capture(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            manifest_path = Path(summary["profile_manifest"]["path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            tool = manifest["repository"]["profile_tool_files"][0]
+            tool_path = Path(manifest["repository"]["root"]) / tool["relative_path"]
+            original = tool_path.read_bytes()
+            replacement = b"X" if original[:1] != b"X" else b"Y"
+            tool_path.write_bytes(replacement + original[1:])
+
+            with self.assertRaisesRegex(RuntimeError, "profile tool SHA-256"):
+                summarize_profile(summary_path)
+
+    def test_rejects_incomplete_profile_tool_closure(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            manifest_path = Path(summary["profile_manifest"]["path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["repository"]["profile_tool_files"].pop()
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            summary["profile_manifest"] = self._fingerprint(manifest_path)
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "exact profile tool closure"):
+                summarize_profile(summary_path)
+
+    def test_rejects_noncanonical_profile_tool_path(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            manifest_path = Path(summary["profile_manifest"]["path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            first_tool = manifest["repository"]["profile_tool_files"][0]
+            first_tool["relative_path"] = first_tool["relative_path"].replace(
+                "tools/", "tools//", 1
+            )
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            summary["profile_manifest"] = self._fingerprint(manifest_path)
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "unsafe profile tool path"):
+                summarize_profile(summary_path)
+
+    def test_summarizes_complete_managed_build_provenance_schema_two(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+
+            analysis = summarize_profile(summary_path)
+
+        self.assertEqual(5, analysis["modes"]["cold"]["sample_count"])
+        self.assertEqual(5, analysis["modes"]["warm"]["sample_count"])
+
+    def test_marks_legacy_capture_unqualified_for_baseline_comparison(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+
+            analysis = summarize_profile(summary_path)
+
+        self.assertFalse(
+            analysis["performance_qualification"]["cross_machine_baseline_eligible"]
+        )
+        self.assertEqual(
+            [
+                "cache_contract_legacy_unqualified",
+                "machine_manifest_unavailable",
+                "coordinator_comparison_receipt_missing",
+            ],
+            analysis["performance_qualification"]["blocking_reasons"],
+        )
+
+    def test_rejects_strict_cold_claim_when_a_cache_layer_is_uncontrolled(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            manifest_path = Path(summary["profile_manifest"]["path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["capture"] = {
+                "cache_layers": {
+                    "engine_cache": {"control_state": "controlled"},
+                    "shader_cache": {"control_state": "uncontrolled"},
+                    "os_file_cache": {"control_state": "uncontrolled"},
+                    "driver_cache": {"control_state": "uncontrolled"},
+                },
+                "strict_cold_eligible": True,
+                "comparison_scope": "process_and_caller_owned_engine_cache",
+            }
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            summary["profile_manifest"] = self._fingerprint(manifest_path)
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "strict cold"):
+                summarize_profile(summary_path)
+
+    def test_rejects_legacy_local_build_provenance_schema(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(
+                Path(temp_dir) / "profile", managed_provenance=False
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "build provenance has an unexpected schema"):
+                summarize_profile(summary_path)
+
+    def test_summarizes_writer_capture_manifest_in_a_temporary_profile_root(self):
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as temp_dir:
+            profile_root = Path(temp_dir) / "profile"
+            binary = self._write_file(profile_root / "zircon_shader_pbr_viewer.exe", b"viewer")
+            hdri = self._write_file(profile_root / "input.hdr", b"hdri")
+            profile_manifest_path = self._export_managed_profile_manifest(
+                profile_root,
+                Path(binary["path"]),
+                Path(hdri["path"]),
+            )
+            summary_path = self._write_profile_summary(
+                profile_root,
+                profile_manifest_path=profile_manifest_path,
+            )
+
+            analysis = summarize_profile(summary_path)
+            profile_manifest = json.loads(profile_manifest_path.read_text(encoding="utf-8"))
+            toolchain_manifest_path = Path(
+                profile_manifest["capture"]["toolchain"]["manifest"]["path"]
+            )
+            toolchain_manifest_path.write_text("tampered toolchain", encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "capture toolchain manifest"):
+                summarize_profile(summary_path)
+
+        self.assertEqual(5, analysis["modes"]["cold"]["sample_count"])
+        self.assertEqual(5, analysis["modes"]["warm"]["sample_count"])
+        self.assertEqual("scoped", analysis["cache_contract"]["status"])
+        self.assertFalse(analysis["cache_contract"]["strict_cold_eligible"])
+        self.assertEqual(
+            "uncontrolled",
+            analysis["cache_contract"]["layers"]["driver_cache"],
+        )
+        self.assertEqual(
+            "dx12",
+            analysis["cache_contract"]["toolchain"]["wgpu_backend"],
+        )
+        self.assertEqual(
+            "wgpu(dx12)",
+            analysis["cache_contract"]["toolchain"]["evidence_backend"],
+        )
+        self.assertIsInstance(
+            analysis["cache_contract"]["machine_manifest"]["all_required_observed"],
+            bool,
+        )
+        self.assertEqual(
+            {
+                "cpu",
+                "gpu",
+                "memory",
+                "bios",
+                "os",
+                "display_modes",
+                "power_policy",
+                "thermal_frequency",
+                "background_load",
+                "virtualization",
+            },
+            set(analysis["cache_contract"]["machine_manifest"]["categories"]),
+        )
+        self.assertFalse(
+            analysis["performance_qualification"]["cross_machine_baseline_eligible"]
+        )
+        self.assertIn(
+            "strict_cold_cache_scope",
+            analysis["performance_qualification"]["blocking_reasons"],
+        )
+        self.assertIn(
+            "coordinator_comparison_receipt_missing",
+            analysis["performance_qualification"]["blocking_reasons"],
+        )
+
+    def test_rejects_a_scoped_run_backend_that_differs_from_its_toolchain(self):
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as temp_dir:
+            profile_root = Path(temp_dir) / "profile"
+            binary = self._write_file(profile_root / "zircon_shader_pbr_viewer.exe", b"viewer")
+            hdri = self._write_file(profile_root / "input.hdr", b"hdri")
+            profile_manifest_path = self._export_managed_profile_manifest(
+                profile_root,
+                Path(binary["path"]),
+                Path(hdri["path"]),
+            )
+            summary_path = self._write_profile_summary(
+                profile_root,
+                profile_manifest_path=profile_manifest_path,
+            )
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            summary["modes"]["cold"][0]["backend"] = "wgpu(vulkan)"
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "run backend does not match its capture toolchain"):
+                summarize_profile(summary_path)
+
+    def test_rejects_a_machine_manifest_with_missing_required_categories(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            profile_root = Path(temp_dir) / "profile"
+            summary_path = self._write_profile_summary(profile_root)
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            profile_manifest_path = Path(summary["profile_manifest"]["path"])
+            profile_manifest = json.loads(profile_manifest_path.read_text(encoding="utf-8"))
+            toolchain_manifest = self._write_file(
+                profile_root / "capture-toolchain.json", b"toolchain"
+            )
+            profile_manifest["capture"] = {
+                "cache_layers": {
+                    "engine_cache": {"control_state": "controlled"},
+                    "shader_cache": {"control_state": "uncontrolled"},
+                    "os_file_cache": {"control_state": "uncontrolled"},
+                    "driver_cache": {"control_state": "uncontrolled"},
+                },
+                "strict_cold_eligible": False,
+                "comparison_scope": "process_and_caller_owned_engine_cache",
+                "toolchain": {
+                    "manifest": toolchain_manifest,
+                    "graphics": {"wgpu_backend": "dx12", "evidence_backend": "wgpu(dx12)"},
+                },
+                "machine_manifest": {
+                    "schema_version": 1,
+                    "manifest_kind": "zircon_performance_machine_snapshot",
+                    "captured_utc": "2026-08-24T00:00:00+00:00",
+                    "required_categories": ["cpu"],
+                    "all_required_observed": True,
+                    "cpu": {"status": "captured"},
+                },
+            }
+            profile_manifest_path.write_text(json.dumps(profile_manifest), encoding="utf-8")
+            summary["profile_manifest"] = self._fingerprint(profile_manifest_path)
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "machine manifest required categories"):
+                summarize_profile(summary_path)
 
     def test_reports_bound_pmrem_layout_and_staging_phase_medians(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -162,14 +610,15 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             profile_root = Path(temp_dir) / "profile"
             summary_path = self._write_profile_summary(profile_root)
             summary = json.loads(summary_path.read_text(encoding="utf-8"))
-            summary["modes"]["cold"][1]["ordinal"] = 1
-            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+            duplicate_summary = json.loads(json.dumps(summary))
+            duplicate_summary["modes"]["cold"][1] = json.loads(
+                json.dumps(duplicate_summary["modes"]["cold"][0])
+            )
+            summary_path.write_text(json.dumps(duplicate_summary), encoding="utf-8")
 
             with self.assertRaisesRegex(RuntimeError, "duplicate measured ordinal"):
                 summarize_profile(summary_path)
 
-            summary = json.loads(summary_path.read_text(encoding="utf-8"))
-            summary["modes"]["cold"][1]["ordinal"] = 2
             summary["modes"]["warm"][0]["ready_sidecar"]["ibl_staging_status"] = "Written"
             summary_path.write_text(json.dumps(summary), encoding="utf-8")
             with self.assertRaisesRegex(RuntimeError, "expected Reused"):
@@ -192,6 +641,22 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             summary_path.write_text(json.dumps(summary), encoding="utf-8")
 
             with self.assertRaisesRegex(RuntimeError, "requested layout does not match"):
+                summarize_profile(summary_path)
+
+    def test_rejects_material_fixture_that_is_not_bound_to_the_profile_manifest(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            manifest_path = Path(summary["profile_manifest"]["path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["input"]["material_fixture"] = "dielectric-ior"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            summary["profile_manifest"] = self._fingerprint(manifest_path)
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                RuntimeError, "material fixture does not match its profile manifest"
+            ):
                 summarize_profile(summary_path)
 
     def test_accepts_automatic_layout_when_bound_sidecars_use_automatic_labels(self):
@@ -305,20 +770,59 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
 
     def test_rejects_build_provenance_that_is_not_bound_to_the_profile_manifest(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            profile_root = Path(temp_dir) / "profile"
+            summary_path = self._write_profile_summary(profile_root)
             summary = json.loads(summary_path.read_text(encoding="utf-8"))
             manifest_path = Path(summary["profile_manifest"]["path"])
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             provenance_path = Path(manifest["build_provenance"]["path"])
             provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
-            provenance["repository"]["git_revision"] = "stale-revision"
+            provenance["repository"]["root"] = str(profile_root / "different-source-repo")
             provenance_path.write_text(json.dumps(provenance), encoding="utf-8")
             manifest["build_provenance"] = self._fingerprint(provenance_path)
             manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
             summary["profile_manifest"] = self._fingerprint(manifest_path)
             summary_path.write_text(json.dumps(summary), encoding="utf-8")
 
-            with self.assertRaisesRegex(RuntimeError, "build provenance Git revision"):
+            with self.assertRaisesRegex(RuntimeError, "build provenance repository root"):
+                summarize_profile(summary_path)
+
+    def test_rejects_managed_artifact_receipt_not_bound_to_validation_ticket(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            manifest_path = Path(summary["profile_manifest"]["path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            provenance_path = Path(manifest["build_provenance"]["path"])
+            provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+            provenance["artifact_receipt"]["source_manifest_hash"] = "b" * 64
+            provenance_path.write_text(json.dumps(provenance), encoding="utf-8")
+            manifest["build_provenance"] = self._fingerprint(provenance_path)
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            summary["profile_manifest"] = self._fingerprint(manifest_path)
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                RuntimeError, "managed artifact receipt source manifest does not match"
+            ):
+                summarize_profile(summary_path)
+
+    def test_rejects_managed_artifact_receipt_with_unapproved_command(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            summary_path = self._write_profile_summary(Path(temp_dir) / "profile")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            manifest_path = Path(summary["profile_manifest"]["path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            provenance_path = Path(manifest["build_provenance"]["path"])
+            provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+            provenance["artifact_receipt"]["command"][0] = "unapproved-tool"
+            provenance_path.write_text(json.dumps(provenance), encoding="utf-8")
+            manifest["build_provenance"] = self._fingerprint(provenance_path)
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            summary["profile_manifest"] = self._fingerprint(manifest_path)
+            summary_path.write_text(json.dumps(summary), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "allow-listed Cargo viewer build"):
                 summarize_profile(summary_path)
 
     def test_rejects_forged_or_nonterminal_source_validation_ticket(self):
@@ -516,66 +1020,140 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             _write_analysis_output(summary_path, allowed_output, serialized)
             self.assertEqual(serialized + "\n", allowed_output.read_text(encoding="utf-8"))
 
-    def _write_profile_summary(self, profile_root: Path, energy_status: str = "captured") -> Path:
+    def _write_profile_summary(
+        self,
+        profile_root: Path,
+        energy_status: str = "captured",
+        managed_provenance: bool = True,
+        profile_manifest_path: Path | None = None,
+    ) -> Path:
         profile_root.mkdir(parents=True, exist_ok=True)
         binary = self._write_file(profile_root / "zircon_shader_pbr_viewer.exe", b"viewer")
         hdri = self._write_file(profile_root / "input.hdr", b"hdri")
-        source_root = profile_root / "source-repo"
-        source = self._write_file(source_root / "critical.rs", b"critical source")
-        receipt_sources = {"critical.rs": source["sha256"]}
-        receipt_manifest_hash = hashlib.sha256(
-            json.dumps(
-                receipt_sources,
-                sort_keys=True,
-                separators=(",", ":"),
-                ensure_ascii=True,
-            ).encode("utf-8")
-        ).hexdigest()
-        build_provenance_contents = {
-            "schema_version": 1,
-            "provenance_kind": "zircon_local_viewer_capture_provenance",
-            "binary": binary,
-            "repository": {
-                "git_revision": "fixture-revision",
-                "source_manifest": {"critical.rs": source["sha256"]},
-            },
-            "source_validation_ticket": {
-                "validation_ticket_id": "a" * 32,
-                "status": "passed",
-                "source_manifest_hash": receipt_manifest_hash,
-                "source_manifest": receipt_sources,
-            },
-        }
-        build_provenance = self._write_file(
-            profile_root / "viewer-build-provenance.json",
-            json.dumps(build_provenance_contents, sort_keys=True).encode(),
-        )
-        manifest_contents = {
-            "schema_version": 1,
-            "profile_kind": "zircon_shader_pbr_viewer_startup",
-            "repository": {
-                "root": str(source_root),
-                "git": {"revision": "fixture-revision"},
-                "critical_source_files": [
+        if profile_manifest_path is None:
+            source_root = profile_root / "source-repo"
+            source = self._write_file(source_root / "critical.rs", b"critical source")
+            receipt_sources = {"critical.rs": source["sha256"]}
+            receipt_manifest_hash = hashlib.sha256(
+                json.dumps(
+                    receipt_sources,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=True,
+                ).encode("utf-8")
+            ).hexdigest()
+            build_provenance_contents = {
+                "schema_version": 2 if managed_provenance else 1,
+                "provenance_kind": (
+                    "zircon_managed_viewer_artifact_provenance"
+                    if managed_provenance
+                    else "zircon_local_viewer_capture_provenance"
+                ),
+                "binary": binary,
+                "repository": (
                     {
-                        "relative_path": "critical.rs",
-                        "sha256": source["sha256"],
-                        "byte_length": source["byte_length"],
+                        "root": str(source_root),
+                        "source_manifest": {"critical.rs": source["sha256"]},
                     }
-                ],
-            },
-            "binary": binary,
-            "build_provenance": build_provenance,
-            "input": {
-                "hdri": hdri,
-                "requested_source_face_size": 64,
-                "requested_pmrem_face_size": 64,
-            },
-        }
-        manifest = self._write_file(
-            profile_root / "profile_manifest.json",
-            json.dumps(manifest_contents, sort_keys=True).encode(),
+                    if managed_provenance
+                    else {
+                        "git_revision": "fixture-revision",
+                        "source_manifest": {"critical.rs": source["sha256"]},
+                    }
+                ),
+                "source_validation_ticket": {
+                    "validation_ticket_id": "a" * 32,
+                    "status": "passed",
+                    "source_manifest_hash": receipt_manifest_hash,
+                    "source_manifest": receipt_sources,
+                },
+            }
+            if managed_provenance:
+                build_provenance_contents["artifact_receipt"] = {
+                    "artifact_receipt_id": "f" * 32,
+                    "status": "passed",
+                    "artifact_kind": "shader-pbr-viewer",
+                    "job_id": "c" * 32,
+                    "run_id": "e" * 32,
+                    "validation_ticket_id": "a" * 32,
+                    "input_manifest_hash": "b" * 64,
+                    "source_manifest_hash": receipt_manifest_hash,
+                    "target_relative_path": "release/zircon_shader_pbr_viewer.exe",
+                    "artifact_path": binary["path"],
+                    "sha256": binary["sha256"],
+                    "byte_length": binary["byte_length"],
+                    "command_sha256": "9" * 64,
+                    "command": [
+                        "cargo",
+                        "build",
+                        "-p",
+                        "zircon_app",
+                        "--bin",
+                        "zircon_shader_pbr_viewer",
+                        "--locked",
+                        "--release",
+                    ],
+                }
+            build_provenance = self._write_file(
+                profile_root / "viewer-build-provenance.json",
+                json.dumps(build_provenance_contents, sort_keys=True).encode(),
+            )
+            profile_tools = []
+            for relative_path in _PROFILE_TOOL_PATHS:
+                tool = self._write_file(
+                    source_root / relative_path,
+                    f"fixture profile tool: {relative_path}\n".encode(),
+                )
+                profile_tools.append(
+                    {
+                        "relative_path": relative_path,
+                        "sha256": tool["sha256"],
+                        "byte_length": tool["byte_length"],
+                    }
+                )
+            manifest_contents = {
+                "schema_version": 1,
+                "profile_kind": "zircon_shader_pbr_viewer_startup",
+                "repository": {
+                    "root": str(source_root),
+                    "git": {"revision": "fixture-revision"},
+                    "critical_source_files": [
+                        {
+                            "relative_path": "critical.rs",
+                            "sha256": source["sha256"],
+                            "byte_length": source["byte_length"],
+                        }
+                    ],
+                    "profile_tool_files": profile_tools,
+                },
+                "binary": binary,
+                "build_provenance": build_provenance,
+                "input": {
+                    "hdri": hdri,
+                    "requested_source_face_size": 64,
+                    "requested_pmrem_face_size": 64,
+                    "material_fixture": "metal-mirror",
+                },
+            }
+            manifest = self._write_file(
+                profile_root / "profile_manifest.json",
+                json.dumps(manifest_contents, sort_keys=True).encode(),
+            )
+        else:
+            manifest = self._fingerprint(profile_manifest_path)
+        identity_manifest = json.loads(Path(str(manifest["path"])).read_text(encoding="utf-8"))
+        identity_provenance = json.loads(
+            Path(str(identity_manifest["build_provenance"]["path"])).read_text(encoding="utf-8")
         )
+        evidence_identity_sources = {
+            "profile_id": "shader-pbr-test-000001",
+            "binary": self._identity_fingerprint(identity_manifest["binary"]),
+            "hdri": self._identity_fingerprint(identity_manifest["input"]["hdri"]),
+            "build_provenance": self._identity_fingerprint(
+                identity_manifest["build_provenance"]
+            ),
+            "source_manifest_sha256": identity_provenance["source_validation_ticket"]["source_manifest_hash"],
+        }
         modes = {"cold": [], "warm": []}
         for mode, staging_status, renderer_ns, ibl_ns in (
             ("cold", "Written", 10_000_000, 2_000_000),
@@ -593,11 +1171,13 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
                         renderer_ns,
                         ibl_ns,
                         energy_status,
+                        evidence_identity_sources,
                     )
                 )
         summary = {
             "schema_version": 1,
             "profile_kind": "zircon_shader_pbr_viewer_startup_matrix",
+            "profile_id": evidence_identity_sources["profile_id"],
             "profile_root": str(profile_root),
             "profile_manifest": manifest,
             "repetitions_per_mode": 5,
@@ -609,6 +1189,82 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
         summary_path.write_text(json.dumps(summary), encoding="utf-8")
         return summary_path
 
+    def _write_completion_receipt(self, summary_path: Path) -> Path:
+        profile_root = summary_path.parent.resolve()
+        artifacts = []
+        for path in sorted(profile_root.rglob("*")):
+            if path.is_file():
+                relative_path = path.relative_to(profile_root).as_posix()
+                fingerprint = self._fingerprint(path)
+                artifacts.append(
+                    {
+                        "relative_path": relative_path,
+                        "sha256": fingerprint["sha256"],
+                        "byte_length": fingerprint["byte_length"],
+                    }
+                )
+        receipt = {
+            "schema_version": 1,
+            "receipt_kind": "zircon_shader_pbr_profile_completion",
+            "status": "completed",
+            "profile_id": "shader-pbr-test-000001",
+            "profile_root": str(profile_root),
+            "completed_utc": "2026-08-25T00:00:00Z",
+            "artifacts": artifacts,
+        }
+        receipt_path = profile_root.parent / "profile-completion.json"
+        receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+        return receipt_path
+
+    @staticmethod
+    def _export_managed_profile_manifest(
+        profile_root: Path,
+        binary_path: Path,
+        hdri_path: Path,
+    ) -> Path:
+        repository_root = Path(__file__).resolve().parents[2]
+        fixture_script = (
+            Path(__file__).resolve().parent
+            / "fixtures"
+            / "export-managed-shader-pbr-profile-manifest.ps1"
+        )
+        result = subprocess.run(
+            [
+                "pwsh",
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(fixture_script),
+                "-RepoRoot",
+                str(repository_root),
+                "-ProfileRoot",
+                str(profile_root),
+                "-ViewerExe",
+                str(binary_path),
+                "-HdriPath",
+                str(hdri_path),
+            ],
+            cwd=repository_root,
+            capture_output=True,
+            check=False,
+            encoding="utf-8",
+            errors="replace",
+            text=True,
+        )
+        if result.returncode != 0:
+            raise AssertionError(
+                "temporary managed writer/capture fixture failed:\n"
+                f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+            )
+        manifest_path = Path(result.stdout.strip())
+        if not manifest_path.is_file():
+            raise AssertionError(
+                f"temporary managed writer/capture fixture did not emit a profile manifest: {result.stdout!r}"
+            )
+        return manifest_path
+
     def _run_report(
         self,
         run_directory: Path,
@@ -618,6 +1274,7 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
         renderer_ns: int,
         ibl_ns: int,
         energy_status: str,
+        evidence_identity_sources: dict[str, object],
     ) -> dict[str, object]:
         ready_png_path = run_directory / "ready.png"
         self._write_rgba_png(
@@ -640,12 +1297,50 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             + irradiance_cube_build_work_items
         )
         source_sample_visits = 37 if staging_status == "Written" else 0
+        profile_id = str(evidence_identity_sources["profile_id"])
+        source_manifest_sha256 = str(evidence_identity_sources["source_manifest_sha256"])
+        evidence_run_id = f"{profile_id}-{mode}-measured-{ordinal:02d}"
+        identity_payload = {
+            "schema": "zircon_shader_pbr_viewer_evidence_identity_v1",
+            "run_id": evidence_run_id,
+            "validation_policy": "zircon_shader_pbr_viewer_ready_frame_v17",
+            "source_manifest_sha256": source_manifest_sha256,
+            "viewer_binary": evidence_identity_sources["binary"],
+            "hdri": evidence_identity_sources["hdri"],
+            "build_provenance": evidence_identity_sources["build_provenance"],
+        }
+        evidence_identity = self._write_file(
+            run_directory / "evidence_identity.json",
+            json.dumps(identity_payload, sort_keys=True).encode(),
+        )
         sidecar_fields = {
-            "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v12",
+            "schema": "zircon_shader_pbr_viewer_ready_frame_evidence_v17",
+            "screenshot_sha256": str(ready_png["sha256"]),
+            "screenshot_byte_length": str(ready_png["byte_length"]),
+            "evidence_identity_schema": "zircon_shader_pbr_viewer_evidence_identity_v1",
+            "evidence_run_id": evidence_run_id,
+            "evidence_validation_policy": "zircon_shader_pbr_viewer_ready_frame_v17",
+            "evidence_identity_path": str(evidence_identity["path"]),
+            "evidence_identity_sha256": str(evidence_identity["sha256"]),
+            "evidence_identity_byte_length": str(evidence_identity["byte_length"]),
+            "viewer_binary_path": str(evidence_identity_sources["binary"]["path"]),
+            "viewer_binary_sha256": str(evidence_identity_sources["binary"]["sha256"]),
+            "viewer_binary_byte_length": str(evidence_identity_sources["binary"]["byte_length"]),
+            "hdri_sha256": str(evidence_identity_sources["hdri"]["sha256"]),
+            "hdri_byte_length": str(evidence_identity_sources["hdri"]["byte_length"]),
+            "build_provenance_path": str(evidence_identity_sources["build_provenance"]["path"]),
+            "build_provenance_sha256": str(evidence_identity_sources["build_provenance"]["sha256"]),
+            "build_provenance_byte_length": str(evidence_identity_sources["build_provenance"]["byte_length"]),
+            "source_manifest_sha256": source_manifest_sha256,
             "screenshot": ready_png_path.name,
             "screenshot_presentation": "cpu_readback",
             "interactive_direct_present_enabled": "false",
-            "backend": "Dx12",
+            "host_mode": "offscreen-diagnostic",
+            "host_composition_id": "zircon_shader_pbr_viewer_standalone_diagnostic_v1",
+            "scene_id": "single_pbr_mirror_sphere",
+            "capture_target": "offscreen-scene-renderer-cpu-readback",
+            "gpu_scene_surface_present_count": "0",
+            "backend": "wgpu(dx12)",
             "hdri_path": "input.hdr",
             "requested_source_face_size": "64",
             "requested_pmrem_face_size": "64",
@@ -654,6 +1349,10 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             "active_pmrem_face_size": "64",
             "active_pmrem_mip_count": "7",
             "render_profile": "environment_only_pbr_preview",
+            "material_fixture": "metal-mirror",
+            "required_material_base_pipeline_kind": "environment-only-pbr-base",
+            "required_material_base_pipeline_ready_at_capture": "true",
+            "environment_only_base_prewarm_requested": "true",
             "environment_only_base_prewarm_cache_hit": "false",
             "environment_only_base_prewarm_cache_scope": "process_local_mesh_pipeline_cache",
             "environment_only_base_prewarm_shader_source_resolution_ns": "0",
@@ -662,7 +1361,7 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             "viewport": "2x2",
             "camera_yaw_degrees": "0",
             "camera_pitch_degrees": "0",
-            "ibl_bake_algorithm_version": "202608090006",
+            "ibl_bake_algorithm_version": _CURRENT_IBL_BAKE_ALGORITHM_VERSION,
             "ibl_staging_status": staging_status,
             "ibl_staging_elapsed_ns": str(staging_elapsed_ns),
             "ibl_total_elapsed_ns": str(staging_elapsed_ns + hydration_elapsed_ns),
@@ -679,6 +1378,10 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             "scene_startup_world_load_ns": "0",
             "scene_startup_renderer_initialization_ns": str(renderer_ns),
             "scene_startup_renderer_backend_initialization_ns": "0",
+            "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized": "true",
+            "scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait_ns": "3",
+            "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization_ns": "2",
+            "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns": "1",
             "scene_startup_renderer_deferred_initialization_ns": str(renderer_ns // 2),
             "scene_startup_renderer_deferred_standard_pipeline_ns": str(renderer_ns // 2),
             "scene_startup_resource_streamer_initialization_ns": "0",
@@ -732,7 +1435,7 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
                 ready_frame_evidence_summary(
                     validate_current_ready_frame_evidence(
                         ready_png_path,
-                        expected_backend="Dx12",
+                        expected_backend="wgpu(dx12)",
                     )
                 ),
                 sort_keys=True,
@@ -742,6 +1445,12 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
         timing = self._write_file(
             run_directory / "gpu_timing.txt",
             _gpu_timing_distribution(screenshot_sha256).encode(),
+        )
+        runtime_profile = self._write_runtime_profile(
+            run_directory,
+            evidence_run_id,
+            mode,
+            ordinal,
         )
         etl = self._write_file(run_directory / "cpu_sampling.etl", b"etl")
         energy_path = run_directory / "energy_meter.csv"
@@ -774,16 +1483,149 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             "role": "measured",
             "ordinal": ordinal,
             "expected_ibl_staging_status": staging_status,
+            "backend": "wgpu(dx12)",
             "ready_sidecar": sidecar_fields,
             "artifacts": {
                 "ready_png": ready_png,
                 "ready_sidecar": sidecar,
+                "evidence_identity": evidence_identity,
                 "ready_validation": ready_validation,
                 "gpu_timing": timing,
+                "runtime_profile": runtime_profile,
                 "cpu_sampling": {"status": "captured", "etl": etl},
                 "energy_meter": energy,
                 "renderdoc_capture": None,
             },
+        }
+
+    def _write_runtime_profile(
+        self,
+        run_directory: Path,
+        session_id: str,
+        mode: str,
+        ordinal: int,
+    ) -> dict[str, object]:
+        stages = (
+            "material_requirement_admission",
+            "mesh_source_build",
+            "module_include_resolution",
+            "template_assembly",
+            "source_hash",
+            "naga_validation",
+            "disk_cache_lookup",
+            "disk_cache_write",
+            "wgpu_pipeline_error_scope_pop",
+        )
+        output_root = run_directory / "runtime-profile"
+        export_root = output_root / session_id
+        spans = []
+        duration_step = 100 if mode == "cold" else 50
+        for stage_index, stage in enumerate(stages):
+            spans.append(
+                {
+                    "id": len(spans) + 1,
+                    "parent_id": None,
+                    "frame_index": None,
+                    "stream": "render",
+                    "category": "shader_pipeline",
+                    "name": stage,
+                    "path": f"shader_pipeline/{stage}",
+                    "start_us": len(spans) * 1_000,
+                    "duration_us": ordinal * duration_step + stage_index,
+                    "depth": 0,
+                }
+            )
+        spans.append(
+            {
+                "id": len(spans) + 1,
+                "parent_id": None,
+                "frame_index": None,
+                "stream": "render",
+                "category": "shader_pipeline",
+                "name": "mesh_source_build",
+                "path": "shader_pipeline/mesh_source_build/repeated",
+                "start_us": len(spans) * 1_000,
+                "duration_us": ordinal,
+                "depth": 0,
+            }
+        )
+        counters = [
+            {
+                "stream": "render",
+                "name": "mesh_shader_source_bytes",
+                "value": 42,
+                "timestamp_us": 1,
+                "frame_index": None,
+            }
+        ]
+        retention = [
+            {
+                "frames": {
+                    "capacity": 4_096,
+                    "written": 0,
+                    "overwritten": 0,
+                    "retained": 0,
+                    "oldest_sequence": None,
+                    "newest_sequence": None,
+                },
+                "spans": {
+                    "capacity": 262_144,
+                    "written": len(spans),
+                    "overwritten": 0,
+                    "retained": len(spans),
+                    "oldest_sequence": 0,
+                    "newest_sequence": len(spans) - 1,
+                },
+                "counters": {
+                    "capacity": 262_144,
+                    "written": len(counters),
+                    "overwritten": 0,
+                    "retained": len(counters),
+                    "oldest_sequence": 0,
+                    "newest_sequence": len(counters) - 1,
+                },
+            }
+        ]
+        timeline = {
+            "session_id": session_id,
+            "output_root": str(output_root),
+            "active": False,
+            "feature_enabled": True,
+            "frame_budget_ms": 16.67,
+            "frames": [],
+            "spans": spans,
+            "counters": counters,
+            "recorder_retention": retention,
+        }
+        timeline_artifact = self._write_file(
+            export_root / "timeline.zrtrace.json",
+            json.dumps(timeline, sort_keys=True).encode(),
+        )
+        artifacts = {
+            "timeline": timeline_artifact,
+            "hotspots": self._write_file(export_root / "hotspots.json", b"{}"),
+            "counter_hotspots": self._write_file(
+                export_root / "counter_hotspots.json", b"{}"
+            ),
+            "summary": self._write_file(export_root / "summary.md", b"# fixture\n"),
+        }
+        stage_counts = {
+            stage: sum(
+                1
+                for span in spans
+                if span["category"] == "shader_pipeline" and span["name"] == stage
+            )
+            for stage in stages
+        }
+        return {
+            "schema": "zircon_shader_pbr_runtime_profile_v1",
+            "session_id": session_id,
+            "output_root": str(output_root),
+            "span_count": len(spans),
+            "counter_count": len(counters),
+            "recorder_retention": retention,
+            "shader_pipeline_stage_counts": stage_counts,
+            "artifacts": artifacts,
         }
 
     @staticmethod
@@ -803,6 +1645,12 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             "path": str(path),
             "sha256": hashlib.sha256(contents).hexdigest(),
             "byte_length": len(contents),
+        }
+
+    @staticmethod
+    def _identity_fingerprint(fingerprint: dict[str, object]) -> dict[str, object]:
+        return {
+            field: fingerprint[field] for field in ("path", "sha256", "byte_length")
         }
 
     @staticmethod
@@ -847,7 +1695,7 @@ def _gpu_timing_distribution(screenshot_sha256: str) -> str:
     }
     pass_names = sorted(pass_values)
     lines = [
-        "schema=zircon_shader_pbr_viewer_gpu_timing_evidence_v2",
+        "schema=zircon_shader_pbr_viewer_gpu_timing_evidence_v3",
         "status=measured",
         "screenshot=ready.png",
         f"screenshot_sha256={screenshot_sha256}",
@@ -886,6 +1734,15 @@ def _gpu_timing_distribution(screenshot_sha256: str) -> str:
             lines.append(
                 f"sample.{index:03}.pass.{pass_name}_us={pass_values[pass_name]}"
             )
+        lines.extend(
+            [
+                f"sample.{index:03}.mesh.opaque_command_count=1",
+                f"sample.{index:03}.mesh.advanced_pbr_opaque_command_count=0",
+                f"sample.{index:03}.mesh.cached_command_hit_count=1",
+                f"sample.{index:03}.mesh.command_rebuild_count=0",
+                f"sample.{index:03}.mesh.dynamic_command_count=0",
+            ]
+        )
     return "\n".join(lines) + "\n"
 
 

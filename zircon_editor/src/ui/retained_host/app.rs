@@ -12,6 +12,9 @@ use zircon_runtime::core::framework::channel::ChannelReceiver;
 use zircon_runtime::core::resource::ResourceEventReceiver;
 use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::{NodeId, Scene, WorldInspectionHierarchyRow};
+use zircon_runtime_interface::hub_protocol::{
+    HubEditorReadyReceiptV1, HubEditorStartupFailureCodeV1,
+};
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceLocator,
@@ -33,17 +36,17 @@ use crate::core::editing::paths::canonical_model_source_path;
 use crate::core::editor_event::EditorViewportEvent;
 use crate::core::gateway::SharedEditorRuntimeGateway;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
-use crate::core::hub_link::{HubEditorHandshake, HubFocusSignalWatch, HubHandshakeError};
+use crate::core::hub_link::{HubEditorHandshake, HubFocusBinding, HubHandshakeError};
 use crate::core::logging::{EditorLogService, LogEntry, LogSeverity, LogSource};
 use crate::core::play::NativePluginBridgeActivation;
 use crate::ui::binding_dispatch::WelcomeHostEvent;
 use crate::ui::host::editor_asset_manager::{EditorAssetChange, EditorAssetChangeSubscription};
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::resource_access::resolve_ready_handle;
-use crate::ui::host::EditorHostEventController;
 use crate::ui::host::{EditorError, EditorManager};
+use crate::ui::host::{EditorHostEventController, EditorRuntimeSessionShutdownReceipt};
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
-use crate::ui::template_runtime::{EditorUiHostRuntime, EditorUiHostRuntimeError};
+use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::v2_design_tokens::install_editor_v2_design_tokens;
 use crate::ui::workbench::autolayout::{
     ResolutionContext, ResolutionScaleMode, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
@@ -67,16 +70,14 @@ use super::asset_pointer::{
 };
 use super::callback_dispatch;
 use super::detail_pointer::{
-    asset_details_scroll_layout, console_content_extent, console_scroll_layout,
+    asset_details_scroll_layout, console_scroll_layout, console_snapshot_content_extent,
     inspector_scroll_layout,
 };
 use super::document_tab_pointer::{
-    build_host_document_tab_pointer_layout_with_workbench_layout_frames,
-    HostDocumentTabPointerBridge,
+    build_host_document_tab_pointer_layout, HostDocumentTabPointerBridge,
 };
 use super::drawer_header_pointer::{
-    build_host_drawer_header_pointer_layout_with_workbench_layout_frames,
-    HostDrawerHeaderPointerBridge,
+    build_host_drawer_header_pointer_layout, HostDrawerHeaderPointerBridge,
 };
 use super::drawer_resize::dispatch_resize_to_group;
 use super::event_bridge::UiHostEventEffects;
@@ -88,13 +89,14 @@ use super::host_page_pointer::{build_host_page_pointer_layout, HostPagePointerBr
 use super::menu_pointer::{HostMenuPointerBridge, HostMenuPointerLayout, HostMenuPointerState};
 use super::scroll_surface_host::ScrollSurfaceHostState;
 use super::shell_pointer::{HostShellPointerBridge, HostShellPointerRoute};
-use super::tab_drag::host_shell_pointer_route_group_key;
+use super::tab_drag::{
+    host_shell_pointer_route_group_key, host_shell_pointer_route_matches_group_key,
+};
 use super::ui::apply_presentation;
 use super::viewport::RetainedViewportController;
 use super::viewport_toolbar_pointer::ViewportToolbarPointerBridge;
 use super::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerLayout,
-    WelcomeRecentPointerState,
 };
 use super::{
     apply_host_appearance_from_tokens, apply_host_paint_scale_factor, FrameRect,
@@ -122,12 +124,14 @@ mod command_palette_actions;
 mod committed_shell_state;
 mod component_showcase_runtime;
 mod detail_scroll_pointer;
+mod document_save;
 mod helpers;
 mod hierarchy_filter;
 mod hierarchy_pointer;
 pub(in crate::ui::retained_host) mod hierarchy_rename;
 mod hierarchy_world_watch;
 mod host_lifecycle;
+mod hub_focus_binding;
 mod inspector;
 mod invalidation;
 mod job_progress;
@@ -139,17 +143,25 @@ mod native_window_close;
 mod native_windows;
 mod pane_payload_visibility;
 mod pane_surface_actions;
+mod play_preview_redraw;
+mod play_viewport_pick;
+mod plugin_template_documents;
 mod pointer_layout;
 mod product_frame_diagnostics;
 mod profiling;
+mod project_close;
+mod project_save;
 mod reference_drop_payload;
 mod runtime_diagnostics_visibility;
 mod runtime_lease;
+mod runtime_shutdown;
 mod scene_picker_actions;
 mod scene_picker_session;
 #[cfg(test)]
 mod scene_picker_session_tests;
+mod settings_window_actions;
 mod showcase_event_inputs;
+mod simulate_camera_sync;
 mod startup;
 #[cfg(test)]
 mod tests;
@@ -165,15 +177,15 @@ mod workbench_context_menu;
 mod workbench_notifications;
 mod workbench_pointer;
 mod workbench_snapshot_access;
+mod workbench_tooltip;
 mod workspace_docking;
 use super::run_config::EditorHostRunConfig;
 use asset_runtime_access::RetainedHostAssetRuntimeAccess;
 pub use automation::{run_retained_host_automation, RetainedHostAutomationResult};
 use callback_wiring::wire_callbacks;
 pub(super) use helpers::{
-    asset_surface_visible, compute_window_menu_popup_height,
-    derive_animation_assets_from_model_source, resolve_callback_source_window_id,
-    shell_region_group_key, stage_model_source, viewport_size_from_frame,
+    asset_surface_visible, compute_window_menu_popup_height, resolve_callback_source_window_id,
+    shell_region_group_key, viewport_size_from_frame,
 };
 use hierarchy_world_watch::HierarchyWorldWatch;
 pub(crate) use invalidation::HostInvalidationMask;
@@ -185,6 +197,7 @@ pub(crate) use native_windows::{
     NativeFloatingWindowTarget,
 };
 use product_frame_diagnostics::{editor_product_frame_diagnostics, emit_product_frame_log};
+use runtime_diagnostics_visibility::RuntimeDiagnosticsRefreshTarget;
 use runtime_lease::RetainedHostRuntimeLease;
 pub(crate) use startup::build_startup_state;
 
@@ -212,17 +225,40 @@ pub fn run_editor_with_config(
     runtime_gateway: SharedEditorRuntimeGateway,
     config: EditorHostRunConfig,
 ) -> Result<(), Box<dyn Error>> {
+    let play_backend = config.play_backend();
     let exit_after_first_presented_frame = config.exit_after_first_presented_frame();
     let startup_scene_uri = config.startup_scene_uri().cloned();
     let startup_layout_preset = config.startup_layout_preset().map(str::to_owned);
     let (
         startup_request,
-        prepared_project,
         first_presented_frame_capture_path,
         editor_plugin_registrations,
+        project_runtime_build_set,
         hub_handshake,
     ) = config.into_parts();
-    let mut hub_startup_reporter = HubStartupReporter::new(hub_handshake);
+    if matches!(
+        startup_request.as_ref(),
+        Some(EditorGuiStartupRequest::Project { .. })
+    ) && project_runtime_build_set.is_none()
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "project startup requires an App-preflighted runtime BuildSet",
+        )
+        .into());
+    }
+    if matches!(
+        startup_request.as_ref(),
+        Some(EditorGuiStartupRequest::Project { .. })
+    ) && play_backend.is_none()
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "project startup requires an App-owned embedded Play backend",
+        )
+        .into());
+    }
+    let hub_startup_reporter = HubStartupReporter::new(hub_handshake);
     let product_frame_evidence_requested = first_presented_frame_capture_path.is_some();
     let ui = UiHostWindow::new().map_err(|error| hub_startup_reporter.report_failure(error))?;
     ui.set_exit_after_first_presented_frame(exit_after_first_presented_frame);
@@ -232,21 +268,27 @@ pub fn run_editor_with_config(
         runtime_gateway,
         ui.clone_strong(),
         startup_request,
-        prepared_project,
+        project_runtime_build_set,
         hub_startup_reporter.session(),
     ) {
         Ok(retained_host) => retained_host,
         Err(error) => {
-            if let Some(process_id) = error
+            if error
                 .downcast_ref::<EditorError>()
                 .and_then(EditorError::hub_focus_forwarded_process_id)
+                .is_some()
             {
-                hub_startup_reporter.report_ready_for_process(process_id)?;
-                return Ok(());
+                return Err(hub_startup_reporter.report_failure_with_code(
+                    HubEditorStartupFailureCodeV1::FocusInboxBinding,
+                    error,
+                ));
             }
             return Err(hub_startup_reporter.report_failure(error));
         }
     };
+    if let Some(play_backend) = play_backend {
+        retained_host.runtime.set_play_backend(play_backend);
+    }
     let settings_snapshot = retained_host.editor_manager.context().settings().snapshot();
     apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
     apply_host_paint_scale_factor(
@@ -293,24 +335,66 @@ pub fn run_editor_with_config(
     });
     host.borrow_mut().self_handle = Some(Rc::downgrade(&host));
 
+    let hub_focus_host = Rc::downgrade(&host);
+    ui.on_native_window_focused(move || {
+        let Some(host) = hub_focus_host.upgrade() else {
+            return;
+        };
+        if let Err(error) = host.borrow().acknowledge_hub_window_focus() {
+            eprintln!(
+                "[zircon_editor] failed to publish owner-confirmed Hub focus acknowledgement: {error}"
+            );
+        }
+    })
+    .map_err(|error| {
+        hub_startup_reporter
+            .report_failure_with_code(HubEditorStartupFailureCodeV1::FocusInboxBinding, error)
+    })?;
+
     host.borrow_mut().refresh_ui();
-    let _hub_focus_watch = host
+    host.borrow_mut()
+        .sync_hub_focus_binding()
+        .map_err(|error| {
+            hub_startup_reporter
+                .report_failure_with_code(HubEditorStartupFailureCodeV1::FocusInboxBinding, error)
+        })?;
+    let hub_focus_target = host
         .borrow()
         .editor_manager
-        .active_project_session_focus_target()
-        .map(|(project_root, instance_id)| {
-            let attention = ui.window().window_attention();
-            HubFocusSignalWatch::start(project_root, instance_id, move || attention.request())
-        })
-        .transpose()
-        .map_err(|error| hub_startup_reporter.report_failure(error))?;
-    if hub_startup_reporter.is_pending() && _hub_focus_watch.is_none() {
+        .active_project_session_focus_target();
+    let hub_ready_receipt = if hub_startup_reporter.is_pending() {
+        hub_focus_target
+            .as_ref()
+            .map(|(_, instance_id, session_generation)| {
+                HubEditorReadyReceiptV1::after_first_present(
+                    std::process::id(),
+                    instance_id,
+                    *session_generation,
+                )
+            })
+            .transpose()
+            .map_err(|error| hub_startup_reporter.report_failure(error))?
+    } else {
+        None
+    };
+    if hub_startup_reporter.is_pending() && !host.borrow().has_hub_focus_binding() {
         let error = std::io::Error::other(
             "Hub launch reached retained host startup without an active project session focus watcher",
         );
-        return Err(hub_startup_reporter.report_failure(error).into());
+        return Err(hub_startup_reporter
+            .report_failure_with_code(HubEditorStartupFailureCodeV1::FocusInboxBinding, error)
+            .into());
     }
-    hub_startup_reporter.report_ready()?;
+    if let Some(receipt) = hub_ready_receipt {
+        let reporter = hub_startup_reporter.clone();
+        ui.on_first_presented(move || match reporter.report_ready(receipt) {
+            Ok(()) => Ok(()),
+            Err(error) => Err(reporter
+                .report_failure_with_code(HubEditorStartupFailureCodeV1::MailboxPublish, error)
+                .to_string()),
+        })
+        .map_err(|error| hub_startup_reporter.report_failure(error))?;
+    }
     if product_frame_evidence_requested {
         let retained_host = host.borrow();
         let diagnostic =
@@ -326,45 +410,97 @@ pub fn run_editor_with_config(
             host_window_diagnostics,
         );
     }
-    let unfinished_editor_jobs = {
+    host.borrow_mut().shutdown_runtime_session();
+    let (final_autosave_requests, final_autosave_preparation_error) = match {
+        let retained_host = host.borrow();
+        retained_host.final_autosave_requests()
+    } {
+        Ok(requests) => (requests, None),
+        Err(error) => (Vec::new(), Some(error)),
+    };
+    let autosave_shutdown = {
         let retained_host = host.borrow();
         retained_host
             .editor_manager
             .context()
             .autosave()
-            .shutdown(std::time::Instant::now() + std::time::Duration::from_secs(5))
+            .shutdown_with_final_autosave(
+                final_autosave_requests,
+                std::time::Instant::now() + std::time::Duration::from_secs(5),
+            )
     };
-    // The runtime project is still available here, so normal editor shutdown can release its
-    // OS-backed admission lease before settings and host state are torn down.
-    let project_close_result = {
+    let settings_mutations = {
         let retained_host = host.borrow();
-        retained_host.editor_manager.close_project()
+        Arc::clone(retained_host.editor_manager.context().settings_mutations())
     };
-    let settings_persistence = {
-        let retained_host = host.borrow();
-        retained_host
-            .editor_manager
-            .context()
-            .settings_persistence()
-            .clone()
-    };
-    let settings_shutdown = match settings_persistence.flush_then_shutdown() {
+    let settings_shutdown = match settings_mutations.flush_then_shutdown() {
         Ok(closeout) => closeout,
         Err(error) => {
-            let guard = settings_persistence.shutdown();
+            let guard = settings_mutations.shutdown();
             drop(guard);
             return Err(error.into());
         }
     };
     let settings_shutdown_result = settings_shutdown.finish();
     if let Some(error) = ui.take_fatal_failure() {
-        return Err(error.into());
+        return Err(hub_startup_reporter
+            .report_failure_with_code(HubEditorStartupFailureCodeV1::HostWindow, error)
+            .into());
     }
-    run_result?;
+    run_result.map_err(|error| {
+        hub_startup_reporter
+            .report_failure_with_code(HubEditorStartupFailureCodeV1::HostWindow, error)
+    })?;
     settings_shutdown_result?;
-    project_close_result?;
-    if !unfinished_editor_jobs.is_empty() {
-        let jobs = unfinished_editor_jobs
+    if let Some(error) = final_autosave_preparation_error {
+        return Err(std::io::Error::other(format!(
+            "failed to prepare final autosave requests: {error}"
+        ))
+        .into());
+    }
+    if !autosave_shutdown.diagnostic_persistence_issues().is_empty() {
+        let issues = autosave_shutdown
+            .diagnostic_persistence_issues()
+            .iter()
+            .map(|issue| {
+                format!(
+                    "{} in {}: {}",
+                    issue.document().as_str(),
+                    issue.project_root().display(),
+                    issue.message()
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(std::io::Error::other(format!(
+            "final autosave diagnostic persistence failed: {issues}"
+        ))
+        .into());
+    }
+    let incomplete_outcomes = autosave_shutdown
+        .outcomes()
+        .iter()
+        .filter(|outcome| outcome.failure_stage().is_some())
+        .map(|outcome| {
+            format!(
+                "{} ({})",
+                outcome.document().as_str(),
+                outcome
+                    .failure_stage()
+                    .expect("filtered autosave outcome has a failure stage")
+            )
+        })
+        .collect::<Vec<_>>();
+    if !incomplete_outcomes.is_empty() {
+        return Err(std::io::Error::other(format!(
+            "final autosave did not reach a saved terminal outcome: {}",
+            incomplete_outcomes.join(", ")
+        ))
+        .into());
+    }
+    if !autosave_shutdown.unfinished_jobs().is_empty() {
+        let jobs = autosave_shutdown
+            .unfinished_jobs()
             .iter()
             .map(|job| format!("{} ({:?})", job.label(), job.category()))
             .collect::<Vec<_>>()
@@ -377,6 +513,14 @@ pub fn run_editor_with_config(
     if let Some(error) = ui.take_first_presented_frame_capture_error() {
         return Err(std::io::Error::other(error).into());
     }
+    // A clean final autosave, settings flush, event-loop exit, and capture
+    // verification are required before this normal path removes the
+    // OS-backed project admission lease.
+    let project_close_result = host
+        .borrow_mut()
+        .commit_project_close()
+        .map_err(std::io::Error::other);
+    project_close_result?;
     Ok(())
 }
 
@@ -384,29 +528,42 @@ pub fn run_editor_with_config(
 ///
 /// A mailbox failure never replaces the startup error: the local error remains authoritative for
 /// the editor process, while the best-effort mailbox outcome prevents Hub from waiting silently.
+#[derive(Clone)]
 struct HubStartupReporter {
-    handshake: Option<HubEditorHandshake>,
+    handshake: Rc<RefCell<Option<HubEditorHandshake>>>,
 }
 
 impl HubStartupReporter {
     fn new(handshake: Option<HubEditorHandshake>) -> Self {
-        Self { handshake }
+        Self {
+            handshake: Rc::new(RefCell::new(handshake)),
+        }
     }
 
     fn is_pending(&self) -> bool {
-        self.handshake.is_some()
+        self.handshake.borrow().is_some()
     }
 
     fn session(&self) -> Option<zircon_runtime_interface::hub_protocol::HubSessionToken> {
-        self.handshake.as_ref().map(HubEditorHandshake::session)
+        self.handshake
+            .borrow()
+            .as_ref()
+            .map(HubEditorHandshake::session)
     }
 
-    fn report_failure<E>(&mut self, error: E) -> E
+    fn report_failure<E>(&self, error: E) -> E
     where
         E: Display,
     {
-        if let Some(handshake) = self.handshake.take() {
-            if let Err(mailbox_error) = handshake.publish_failed(error.to_string()) {
+        self.report_failure_with_code(HubEditorStartupFailureCodeV1::Startup, error)
+    }
+
+    fn report_failure_with_code<E>(&self, code: HubEditorStartupFailureCodeV1, error: E) -> E
+    where
+        E: Display,
+    {
+        if let Some(handshake) = self.handshake.borrow_mut().take() {
+            if let Err(mailbox_error) = handshake.publish_failed(code) {
                 eprintln!(
                     "[zircon_editor] failed to publish Hub startup failure while handling `{error}`: {mailbox_error}"
                 );
@@ -415,15 +572,13 @@ impl HubStartupReporter {
         error
     }
 
-    fn report_ready(&mut self) -> Result<(), HubHandshakeError> {
-        self.report_ready_for_process(std::process::id())
-    }
-
-    fn report_ready_for_process(&mut self, process_id: u32) -> Result<(), HubHandshakeError> {
-        let Some(handshake) = self.handshake.take() else {
+    fn report_ready(&self, receipt: HubEditorReadyReceiptV1) -> Result<(), HubHandshakeError> {
+        let Some(handshake) = self.handshake.borrow().clone() else {
             return Ok(());
         };
-        handshake.publish_ready(process_id)
+        handshake.publish_ready(receipt)?;
+        self.handshake.borrow_mut().take();
+        Ok(())
     }
 }
 
@@ -507,7 +662,10 @@ struct RetainedEditorHost {
     self_handle: Option<Weak<RefCell<RetainedEditorHost>>>,
     runtime_lease: RetainedHostRuntimeLease,
     runtime: EditorHostEventController,
+    runtime_shutdown_receipt: Option<EditorRuntimeSessionShutdownReceipt>,
     editor_manager: Arc<EditorManager>,
+    hub_focus_binding: HubFocusBinding,
+    hub_focus_request_attention: Arc<dyn Fn() + Send + Sync>,
     module_plugin_projection_cache:
         RefCell<module_plugin_projection::ModulePluginPaneProjectionCache>,
     #[cfg(feature = "profiling")]
@@ -524,10 +682,24 @@ struct RetainedEditorHost {
     resource_change_events: ResourceEventReceiver,
     asset_refresh_queue_age: assets::AssetRefreshQueueAgeState,
     asset_refresh_accumulator: assets::AssetRefreshAccumulator,
+    pending_active_scene_reload: Option<assets::PendingActiveSceneReload>,
+    active_scene_reload_admission: Option<assets::ActiveSceneReloadAdmissionState>,
+    active_scene_reload_conflict: Option<assets::ActiveSceneReloadConflict>,
+    active_scene_reload_decision_sequence: u64,
+    pending_model_import: Option<assets::PendingModelImport>,
+    pending_asset_deletion: Option<assets::PendingAssetDeletion>,
+    pending_asset_relocation: Option<assets::PendingAssetRelocation>,
     startup_session: EditorStartupSessionDocument,
     welcome_project_probe: welcome_session::WelcomeProjectProbeState,
     viewport_size: UVec2,
     viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge,
+    play_preview_input_focus_active: bool,
+    play_preview_view_focus_active: bool,
+    play_viewport_pick: play_viewport_pick::PlayViewportPickConsumer,
+    last_simulate_camera: Option<(
+        crate::core::play::PlayInstanceId,
+        zircon_runtime_interface::ZrRuntimeViewportCameraV1,
+    )>,
     builtin_template_runtime: Arc<EditorUiHostRuntime>,
     plugin_template_generation: u64,
     plugin_template_capabilities: Vec<String>,
@@ -535,6 +707,9 @@ struct RetainedEditorHost {
     workbench_window_bridge: callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge,
     host_chrome_projection_cache:
         crate::ui::layouts::windows::workbench_host_window::HostChromeProjectionCache,
+    console_pane_projection_cache: crate::ui::retained_host::ui::ConsolePaneProjectionCache,
+    module_plugins_pane_projection_cache:
+        crate::ui::retained_host::ui::ModulePluginsPaneProjectionCache,
     floating_window_source_bridge: callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge,
     viewport_toolbar_bridge: callback_dispatch::BuiltinViewportToolbarTemplateBridge,
     viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge,
@@ -551,9 +726,8 @@ struct RetainedEditorHost {
     drawer_header_pointer_bridge: HostDrawerHeaderPointerBridge,
     menu_pointer_bridge: HostMenuPointerBridge,
     menu_pointer_state: HostMenuPointerState,
-    menu_pointer_layout: HostMenuPointerLayout,
+    menu_pointer_layout: Arc<HostMenuPointerLayout>,
     welcome_recent_pointer_bridge: WelcomeRecentPointerBridge,
-    welcome_recent_pointer_state: WelcomeRecentPointerState,
     welcome_recent_pointer_size: UiSize,
     hierarchy_pointer_bridge: HierarchyPointerBridge,
     hierarchy_pointer_state: HierarchyPointerState,
@@ -588,12 +762,15 @@ struct RetainedEditorHost {
     )>,
     transient_region_preferred: BTreeMap<ShellRegionId, f32>,
     active_drawer_resize: Option<ActiveDrawerResize>,
+    project_close_coordinator: crate::ui::host::ProjectCloseCoordinator,
     pending_close_prompt: Option<close_prompt::PendingClosePrompt>,
+    pending_document_save_all: bool,
+    queued_document_save_all: bool,
     scene_picker_session: Option<scene_picker_session::ScenePickerSession>,
     invalidation: HostInvalidationRoot,
     pending_ui_perf_scenario: Option<UiPerfScenario>,
     pending_activity_projection_refresh: bool,
-    runtime_diagnostics_visible: bool,
+    runtime_diagnostics_refresh_target: RuntimeDiagnosticsRefreshTarget,
     presentation_dirty: bool,
     layout_dirty: bool,
     window_metrics_dirty: bool,
@@ -603,45 +780,9 @@ struct RetainedEditorHost {
 impl Drop for RetainedEditorHost {
     fn drop(&mut self) {
         self.editor_manager.context().autosave().begin_shutdown();
-        let Some(watch) = self.hierarchy_world_watch.take() else {
-            return;
-        };
-        if watch.belongs_to_gateway_generation(self.runtime.edit_world_gateway_generation()) {
-            let _ = self.runtime.unwatch_edit_world_for_view(watch.token());
-        }
-    }
-}
-
-impl RetainedEditorHost {
-    fn sync_settings_projections(&mut self) {
-        let snapshot = self.editor_manager.context().settings().snapshot();
-        if install_editor_v2_design_tokens(snapshot.as_ref()) {
-            apply_host_appearance_from_tokens(snapshot.design_tokens());
-            self.ui.sync_host_paint_theme();
-            self.mark_presentation_dirty();
-        }
-    }
-
-    fn sync_plugin_template_documents_if_changed(
-        &mut self,
-    ) -> Result<(), EditorUiHostRuntimeError> {
-        let (generation, enabled_capabilities) = self.runtime.plugin_template_revision();
-        if self.plugin_template_generation == generation
-            && self.plugin_template_capabilities == enabled_capabilities
-        {
-            return Ok(());
-        }
-
-        let (generation, enabled_capabilities, templates_by_owner) =
-            self.runtime.enabled_plugin_template_descriptors();
-        self.builtin_template_runtime
-            .sync_plugin_v2_template_descriptor_sets(&templates_by_owner)?;
-
-        // The runtime publishes the complete owner set atomically before this revision advances.
-        self.plugin_template_generation = generation;
-        self.plugin_template_capabilities = enabled_capabilities;
-        self.mark_presentation_dirty();
-        Ok(())
+        // Drop only retires local UI ownership. The explicit session coordinator owns remote
+        // unwatch and preserves its `WorldSyncShutdownReceipt` for diagnostics.
+        self.hierarchy_world_watch.take();
     }
 }
 

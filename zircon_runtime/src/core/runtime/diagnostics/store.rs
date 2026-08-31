@@ -240,11 +240,11 @@ impl DiagnosticSeries {
         });
         self.min = Some(self.min.map_or(value, |current| current.min(value)));
         self.max = Some(self.max.map_or(value, |current| current.max(value)));
-        self.history
-            .push_back(DiagnosticMeasurement { frame_index, value });
-        while self.history.len() > self.history_limit {
+        if self.history.len() == self.history_limit {
             self.history.pop_front();
         }
+        self.history
+            .push_back(DiagnosticMeasurement { frame_index, value });
     }
 
     fn snapshot(&self, path: DiagnosticPath) -> DiagnosticSeriesSnapshot {
@@ -283,7 +283,10 @@ fn push_unique_tags(target: &mut Vec<String>, tags: impl IntoIterator<Item = imp
 
 #[cfg(test)]
 mod tests {
-    use super::DiagnosticStore;
+    use std::collections::VecDeque;
+    use std::time::Instant;
+
+    use super::{DiagnosticMeasurement, DiagnosticSeries, DiagnosticStore};
 
     #[test]
     fn current_snapshot_omits_retained_history_and_tags() {
@@ -355,5 +358,82 @@ mod tests {
         assert_eq!(series.history.len(), 2);
         assert_eq!(series.history[0].frame_index, 2);
         assert_eq!(series.history[1].value, 18.0);
+    }
+
+    #[test]
+    fn optimization_wave_20260824b_runtime03_history_eviction_keeps_bounded_capacity() {
+        const HISTORY_LIMIT: usize = 64;
+        const WRITES: u64 = 4_096;
+
+        let mut series = DiagnosticSeries::new(HISTORY_LIMIT);
+        for frame_index in 0..WRITES {
+            series.record_measurement(frame_index, frame_index as f64);
+        }
+
+        assert_eq!(series.history.len(), HISTORY_LIMIT);
+        assert!(series.history.capacity() <= HISTORY_LIMIT);
+        assert_eq!(series.history.front().unwrap().frame_index, 4_032);
+        assert_eq!(series.history.back().unwrap().frame_index, 4_095);
+    }
+
+    #[test]
+    fn optimization_wave_20260824b_runtime03_history_eviction_source_contract() {
+        let source = include_str!("store.rs");
+        let pop = source
+            .find("if self.history.len() == self.history_limit")
+            .expect("history must check capacity before insertion");
+        let push = source
+            .find("self.history\n            .push_back")
+            .expect("history must append the new measurement");
+
+        assert!(pop < push);
+        assert!(!source.contains("while self.history.len() > self.history_limit"));
+    }
+
+    #[test]
+    #[ignore = "managed release performance evidence"]
+    fn optimization_wave_20260824b_runtime03_history_ring_capacity_evidence() {
+        const SERIES: usize = 4_096;
+        const HISTORY_LIMIT: usize = 64;
+        const WRITES: usize = HISTORY_LIMIT * 2;
+        const MAX_ELAPSED_NS: u128 = 2_000_000_000;
+
+        let mut legacy = VecDeque::new();
+        for frame_index in 0..WRITES {
+            legacy.push_back(DiagnosticMeasurement {
+                frame_index: frame_index as u64,
+                value: frame_index as f64,
+            });
+            while legacy.len() > HISTORY_LIMIT {
+                legacy.pop_front();
+            }
+        }
+        let legacy_capacity_per_series = legacy.capacity();
+
+        let started = Instant::now();
+        let mut optimized_capacity_slots = 0usize;
+        for _ in 0..SERIES {
+            let mut series = DiagnosticSeries::new(HISTORY_LIMIT);
+            for frame_index in 0..WRITES {
+                series.record_measurement(frame_index as u64, frame_index as f64);
+            }
+            optimized_capacity_slots =
+                optimized_capacity_slots.saturating_add(series.history.capacity());
+        }
+        let elapsed_ns = started.elapsed().as_nanos();
+        let legacy_capacity_slots = legacy_capacity_per_series.saturating_mul(SERIES);
+        let capacity_reduction_bps = legacy_capacity_slots
+            .saturating_sub(optimized_capacity_slots)
+            .saturating_mul(10_000)
+            / legacy_capacity_slots;
+
+        println!(
+            "RUNTIME_DIAGNOSTIC_HISTORY_BENCH_V1 series={SERIES} history_limit={HISTORY_LIMIT} writes_per_series={WRITES} legacy_capacity_slots={legacy_capacity_slots} optimized_capacity_slots={optimized_capacity_slots} capacity_reduction_bps={capacity_reduction_bps} elapsed_ns={elapsed_ns} max_elapsed_ns={MAX_ELAPSED_NS}"
+        );
+
+        assert!(legacy_capacity_per_series >= HISTORY_LIMIT * 2);
+        assert!(optimized_capacity_slots <= SERIES * HISTORY_LIMIT);
+        assert!(capacity_reduction_bps >= 5_000);
+        assert!(elapsed_ns <= MAX_ELAPSED_NS);
     }
 }

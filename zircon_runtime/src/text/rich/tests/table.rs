@@ -1,12 +1,16 @@
-use crate::text::{RichTable, RichTextFormat};
+use crate::text::{RichParseResult, RichTable, RichTextFormat};
 
-use super::parser_registry::parse_rich_text;
+use super::parser_registry::parse_rich_text as try_parse_rich_text;
+
+fn parse_rich_text(markup: &str, format: RichTextFormat) -> RichParseResult {
+    try_parse_rich_text(markup, format).expect("test rich source fits parser budgets")
+}
 
 #[test]
 fn text_rich_bbcode_table_emits_row_major_cell_ranges() {
     let parsed = parse_rich_text(
         "[table=2][cell]name[/cell][cell][b]value[/b][/cell][/table]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "namevalue");
@@ -26,7 +30,7 @@ fn text_rich_bbcode_table_emits_row_major_cell_ranges() {
 fn text_rich_bbcode_table_is_a_block_between_surrounding_text() {
     let parsed = parse_rich_text(
         "before[table=2][cell]A[/cell][cell]B[/cell][/table]after",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(parsed.text.as_ref(), "before\nAB\nafter");
@@ -39,7 +43,7 @@ fn text_rich_bbcode_table_is_a_block_between_surrounding_text() {
 fn text_rich_bbcode_table_clamps_hostile_column_count() {
     let parsed = parse_rich_text(
         "[table=999999][cell]safe[/cell][/table]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(parsed.tables[0].columns.len(), 64);
@@ -48,7 +52,7 @@ fn text_rich_bbcode_table_clamps_hostile_column_count() {
 
 #[test]
 fn text_rich_bbcode_cell_outside_table_degrades_to_inner_text() {
-    let parsed = parse_rich_text("a[cell]safe[/cell]b", RichTextFormat::BbCode);
+    let parsed = parse_rich_text("a[cell]safe[/cell]b", RichTextFormat::BbCodeV1);
 
     assert_eq!(parsed.text.as_ref(), "asafeb");
     assert!(parsed.tables.is_empty());
@@ -58,7 +62,7 @@ fn text_rich_bbcode_cell_outside_table_degrades_to_inner_text() {
 fn text_rich_bbcode_table_column_expand_ratio_is_shared_by_column() {
     let parsed = parse_rich_text(
         "[table=2][cell expand=3 shrink=false]wide[/cell][cell]plain[/cell][/table]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert!(parsed.tables[0].columns[0].expand);
@@ -71,7 +75,7 @@ fn text_rich_bbcode_table_column_expand_ratio_is_shared_by_column() {
 fn text_rich_bbcode_table_spans_skip_occupied_slots_and_clamp_to_the_row() {
     let parsed = parse_rich_text(
         "[table=3][cell rowspan=2]A[/cell][cell colspan=9]B[/cell][cell]C[/cell][/table]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(
@@ -84,7 +88,7 @@ fn text_rich_bbcode_table_spans_skip_occupied_slots_and_clamp_to_the_row() {
 fn text_rich_bbcode_table_colspan_stops_before_an_occupied_slot() {
     let parsed = parse_rich_text(
         "[table=3][cell]A[/cell][cell rowspan=2]B[/cell][cell]C[/cell][cell colspan=2]D[/cell][cell]E[/cell][/table]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(
@@ -103,7 +107,7 @@ fn text_rich_bbcode_table_colspan_stops_before_an_occupied_slot() {
 fn text_rich_bbcode_table_span_values_are_bounded_and_invalid_values_default_to_one() {
     let parsed = parse_rich_text(
         "[table=2][cell colspan=0 rowspan=-3]A[/cell][cell colspan=nope rowspan=999999]B[/cell][/table]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     assert_eq!(
@@ -116,7 +120,7 @@ fn text_rich_bbcode_table_span_values_are_bounded_and_invalid_values_default_to_
 fn text_rich_bbcode_spanning_cell_configures_every_covered_column() {
     let parsed = parse_rich_text(
         "[table=3][cell colspan=2 expand=3 shrink=false]wide[/cell][cell]plain[/cell][/table]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     let table = &parsed.tables[0];
@@ -132,7 +136,7 @@ fn text_rich_bbcode_spanning_cell_configures_every_covered_column() {
 fn text_rich_bbcode_table_cell_box_options_parse_without_renderer_semantics() {
     let parsed = parse_rich_text(
         "[table=2][cell border=#73D7FF bg=#12202C,#182F3D padding=8,4,12,6]A[/cell][/table]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     let style = &parsed.tables[0].cells[0].box_style;
@@ -149,7 +153,7 @@ fn text_rich_bbcode_table_cell_box_options_parse_without_renderer_semantics() {
 fn text_rich_bbcode_table_cell_box_options_bound_hostile_values_atomically() {
     let parsed = parse_rich_text(
         "[table=3][cell bg=#123 padding=-3,4,999999,6]bounded[/cell][cell border=invalid bg=#123,#ggg padding=1,2,3]invalid[/cell][cell padding=1,NaN,3,4]nonfinite[/cell][/table]",
-        RichTextFormat::BbCode,
+        RichTextFormat::BbCodeV1,
     );
 
     let bounded = &parsed.tables[0].cells[0].box_style;

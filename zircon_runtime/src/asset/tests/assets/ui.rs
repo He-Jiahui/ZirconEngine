@@ -15,9 +15,11 @@ use zircon_runtime_interface::ui::template::{UiAssetError, UiAssetKind};
 use zircon_runtime_interface::ui::v2::{UiV2AssetError, UiV2AssetKind};
 
 #[test]
-fn ui_resource_reference_collection_borrows_document_uris() {
+fn optimization_batch_20260826b_runtime74_ui_resource_reference_visitor_borrows_document_uris() {
     let collector = include_str!("../../assets/ui/resource_references.rs");
-    assert!(collector.contains("Vec<&str>"));
+    assert!(collector.contains("visit_resource_uris"));
+    assert!(collector.contains("FnMut(&'a str)"));
+    assert!(!collector.contains("Vec<&str>"));
     assert!(!collector.contains("uris.push(uri.to_string())"));
 }
 

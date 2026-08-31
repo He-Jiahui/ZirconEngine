@@ -259,6 +259,244 @@ fn compiled_plan_cache_reuses_the_full_projection_for_versioned_damage() {
 }
 
 #[test]
+fn versioned_damage_cache_preserves_fused_rounded_box_stats() {
+    let frame = UiSurfaceRect::new(8.0, 8.0, 32.0, 24.0);
+    let draw_list = UiSurfaceDrawList::with_generation(
+        (64, 64),
+        Some(UiSurfaceRect::new(6.0, 6.0, 36.0, 28.0)),
+        vec![
+            rounded_quad(0, frame, [32, 40, 52, 224], 8.0),
+            UiSurfaceCommand {
+                z_index: 1,
+                frame,
+                clip: None,
+                kind: UiSurfaceCommandKind::Border {
+                    color: [96, 174, 255, 255],
+                    width: 1.0,
+                    corner_radius: 8.0,
+                },
+            },
+        ],
+        43,
+    );
+    let mut cache = CompiledUiBatchPlanCache::default();
+
+    let first = cache.resolve(&draw_list, false);
+    let cached = cache.resolve(&draw_list, false);
+
+    assert_eq!(first.plan.stats.visible_draw_item_count, 1);
+    assert_eq!(first.plan.stats.draw_calls, 1);
+    for stats in [first.draw_list_stats, cached.draw_list_stats]
+        .into_iter()
+        .flatten()
+    {
+        assert_eq!(stats.visible_command_count, 2);
+        assert_eq!(stats.visible_draw_item_count, 1);
+        assert_eq!(stats.draw_calls, 1);
+    }
+    assert_eq!(cached.batch_plan_build_count, 0);
+    assert_eq!(cached.batch_plan_cache_hit_count, 1);
+}
+
+#[test]
+fn versioned_damage_cache_queries_only_spatial_command_candidates() {
+    let item_count = 10_000_u32;
+    let commands = (0..item_count)
+        .map(|item| {
+            quad(
+                0,
+                UiSurfaceRect::new(0.0, item as f32 * 2.0, 64.0, 1.0),
+                [20, 20, 20, 255],
+            )
+        })
+        .collect();
+    let mut draw_list = UiSurfaceDrawList::with_generation(
+        (64, item_count * 2),
+        Some(UiSurfaceRect::new(0.0, 2_468.0, 64.0, 1.0)),
+        commands,
+        77,
+    );
+    let mut cache = CompiledUiBatchPlanCache::default();
+
+    let first = cache.resolve(&draw_list, false);
+    draw_list.damage = Some(UiSurfaceRect::new(0.0, 17_530.0, 64.0, 1.0));
+    let cached = cache.resolve(&draw_list, false);
+    let first_stats = first.draw_list_stats.expect("initial damage stats");
+    let cached_stats = cached.draw_list_stats.expect("cached damage stats");
+
+    assert_eq!(
+        first_stats.command_visibility_scan_count,
+        u64::from(item_count).saturating_mul(2)
+    );
+    assert_eq!(first_stats.visible_command_count, 1);
+    assert_eq!(cached.batch_plan_build_count, 0);
+    assert_eq!(cached.batch_plan_cache_hit_count, 1);
+    assert_eq!(cached_stats.visible_command_count, 1);
+    assert_eq!(cached_stats.command_visibility_scan_count, 1);
+}
+
+#[test]
+fn compiled_command_damage_query_reuses_candidate_storage() {
+    let item_count = 10_000_u32;
+    let commands = (0..item_count)
+        .map(|item| {
+            quad(
+                0,
+                UiSurfaceRect::new(0.0, item as f32 * 2.0, 64.0, 1.0),
+                [20, 20, 20, 255],
+            )
+        })
+        .collect();
+    let mut draw_list = UiSurfaceDrawList::with_generation(
+        (64, item_count * 2),
+        Some(UiSurfaceRect::new(0.0, 2_468.0, 64.0, 1.0)),
+        commands,
+        82,
+    );
+    let mut cache = CompiledUiBatchPlanCache::default();
+
+    let _ = cache.resolve(&draw_list, false);
+    let _ = cache.resolve(&draw_list, false);
+    let allocation = cache.command_damage_candidates.as_ptr();
+    let capacity = cache.command_damage_candidates.capacity();
+
+    draw_list.damage = Some(UiSurfaceRect::new(0.0, 17_530.0, 64.0, 1.0));
+    let _ = cache.resolve(&draw_list, false);
+
+    assert_eq!(cache.command_damage_candidates.len(), 1);
+    assert_eq!(cache.command_damage_candidates.as_ptr(), allocation);
+    assert_eq!(cache.command_damage_candidates.capacity(), capacity);
+}
+
+#[test]
+fn versioned_damage_cache_indexes_clipped_sparse_source_rows() {
+    let invalid = quad(
+        0,
+        UiSurfaceRect::new(f32::NAN, 0.0, 10.0, 10.0),
+        [10, 10, 10, 255],
+    );
+    let mut clipped_out = quad(
+        1,
+        UiSurfaceRect::new(0.0, 0.0, 40.0, 40.0),
+        [20, 20, 20, 255],
+    );
+    clipped_out.clip = Some(UiSurfaceRect::new(30.0, 30.0, 10.0, 10.0));
+    let visible = quad(2, UiSurfaceRect::new(4.0, 4.0, 8.0, 8.0), [30, 30, 30, 255]);
+    let draw_list = UiSurfaceDrawList::with_generation(
+        (64, 64),
+        Some(UiSurfaceRect::new(0.0, 0.0, 16.0, 16.0)),
+        vec![invalid, clipped_out, visible],
+        78,
+    );
+    let mut cache = CompiledUiBatchPlanCache::default();
+
+    let first = cache.resolve(&draw_list, false);
+    let cached = cache.resolve(&draw_list, false);
+    let first_stats = first.draw_list_stats.expect("initial clipped damage stats");
+    let cached_stats = cached.draw_list_stats.expect("cached clipped damage stats");
+
+    assert_eq!(first_stats.command_visibility_scan_count, 6);
+    assert_eq!(first_stats.visible_command_count, 1);
+    assert_eq!(cached_stats.command_visibility_scan_count, 1);
+    assert_eq!(cached_stats.visible_command_count, 1);
+}
+
+#[test]
+fn compiled_plan_damage_query_prunes_ten_thousand_draw_ops() {
+    let item_count = 10_000_u32;
+    let commands = (0..item_count)
+        .map(|item| {
+            image_with_generation(
+                0,
+                UiSurfaceRect::new(0.0, item as f32 * 2.0, 64.0, 1.0),
+                format!("atlas://damage-row/{item:05}").as_str(),
+                1,
+            )
+        })
+        .collect();
+    let draw_list = UiSurfaceDrawList::with_generation((64, item_count * 2), None, commands, 79);
+    let plan = full_projection_batch_draw_plan(&draw_list);
+
+    let mut candidate_storage = Vec::new();
+    let candidates = plan.draw_ops_intersecting(
+        UiSurfaceRect::new(0.0, 17_530.0, 64.0, 1.0),
+        &mut candidate_storage,
+    );
+
+    assert_eq!(plan.ops.len(), item_count as usize);
+    assert_eq!(candidates.len(), 1);
+    let DrawOp::Image(candidate) = &candidates[0] else {
+        panic!("expected the indexed image draw");
+    };
+    assert_eq!(candidate.resource_key, "atlas://damage-row/08765");
+}
+
+#[test]
+fn compiled_plan_damage_query_preserves_mixed_op_order() {
+    let frame = UiSurfaceRect::new(4.0, 4.0, 20.0, 20.0);
+    let draw_list = UiSurfaceDrawList::with_generation(
+        (64, 64),
+        None,
+        vec![
+            quad(0, frame, [20, 20, 20, 255]),
+            text(1, frame, "middle"),
+            image_with_generation(2, frame, "atlas://front", 1),
+        ],
+        80,
+    );
+    let plan = full_projection_batch_draw_plan(&draw_list);
+
+    let mut candidate_storage = Vec::new();
+    let candidates = plan.draw_ops_intersecting(
+        UiSurfaceRect::new(8.0, 8.0, 4.0, 4.0),
+        &mut candidate_storage,
+    );
+
+    assert_eq!(candidates.len(), 3);
+    assert!(matches!(candidates[0], DrawOp::Solid(_)));
+    assert!(matches!(candidates[1], DrawOp::Text(_)));
+    assert!(matches!(candidates[2], DrawOp::Image(_)));
+}
+
+#[test]
+fn compiled_plan_damage_query_reuses_candidate_storage() {
+    let item_count = 10_000_u32;
+    let commands = (0..item_count)
+        .map(|item| {
+            image_with_generation(
+                0,
+                UiSurfaceRect::new(0.0, item as f32 * 2.0, 64.0, 1.0),
+                format!("atlas://damage-reuse/{item:05}").as_str(),
+                1,
+            )
+        })
+        .collect();
+    let draw_list = UiSurfaceDrawList::with_generation((64, item_count * 2), None, commands, 81);
+    let plan = full_projection_batch_draw_plan(&draw_list);
+    let mut candidate_storage = Vec::new();
+
+    {
+        let candidates = plan.draw_ops_intersecting(
+            UiSurfaceRect::new(0.0, 2_468.0, 64.0, 1.0),
+            &mut candidate_storage,
+        );
+        assert_eq!(candidates.len(), 1);
+    }
+    let allocation = candidate_storage.as_ptr();
+    let capacity = candidate_storage.capacity();
+    {
+        let candidates = plan.draw_ops_intersecting(
+            UiSurfaceRect::new(0.0, 17_530.0, 64.0, 1.0),
+            &mut candidate_storage,
+        );
+        assert_eq!(candidates.len(), 1);
+    }
+
+    assert_eq!(candidate_storage.as_ptr(), allocation);
+    assert_eq!(candidate_storage.capacity(), capacity);
+}
+
+#[test]
 fn unversioned_damage_uses_full_projection_when_the_target_requires_a_full_redraw() {
     let draw_list = UiSurfaceDrawList::new(
         (100, 100),

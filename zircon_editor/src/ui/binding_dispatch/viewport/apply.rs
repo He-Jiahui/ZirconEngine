@@ -19,5 +19,5 @@ pub(crate) fn apply_viewport_command_to_state(
 ) -> Result<ViewportFeedback, EditorBindingDispatchError> {
     state
         .apply_viewport_command(command)
-        .map_err(EditorBindingDispatchError::StateMutation)
+        .map_err(EditorBindingDispatchError::ViewportState)
 }

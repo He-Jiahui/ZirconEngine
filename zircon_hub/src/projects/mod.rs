@@ -31,7 +31,9 @@ pub use package::{package_project, ProjectPackageReport, ProjectPackageRequest};
 pub use recent_project::{now_unix_ms, RecentProject, RECENT_PROJECT_LIMIT};
 pub use recycle_bin::{recycle_delete_project, RecycleDeleteCommand};
 pub use shared_recent_projects::{
-    load_shared_recent_projects, merge_recent_project_entries, reconcile_shared_recent_projects,
-    SharedRecentProjectsError,
+    load_shared_recent_projects, load_shared_recent_projects_snapshot,
+    merge_recent_project_entries, reconcile_shared_recent_projects,
+    reconcile_shared_recent_projects_snapshot, SharedRecentProjectsError,
+    SharedRecentProjectsSnapshot,
 };
 pub use validation::{validate_project_root, ProjectValidation};

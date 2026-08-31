@@ -1,7 +1,7 @@
 use super::super::super::super::super::data::FrameRect;
 use super::super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::super::paint_primitives::{
-    draw_rect_clipped, draw_rounded_border_clipped, draw_rounded_rect_clipped,
+    draw_rect_clipped, draw_rounded_border_clipped, draw_rounded_box_clipped,
 };
 use super::super::super::super::super::paint_text::{
     draw_text_with_size_and_style, measure_runtime_text_width,
@@ -50,23 +50,19 @@ pub(super) fn draw_recent_project_row_surface(
 pub(super) fn draw_recent_project_row_actions(
     frame: &mut HostRgbaFrame,
     open: &FrameRect,
+    safe: &FrameRect,
+    recover: &FrameRect,
     remove: &FrameRect,
     clip: &FrameRect,
     invalid: bool,
 ) {
     let metrics = current_host_metrics();
-    for action in [open, remove] {
-        draw_rounded_rect_clipped(
+    for action in [open, safe, recover, remove] {
+        draw_rounded_box_clipped(
             frame,
             action.clone(),
             Some(clip),
             WELCOME_SURFACE_INSET,
-            metrics.radius_control,
-        );
-        draw_rounded_border_clipped(
-            frame,
-            action.clone(),
-            Some(clip),
             if invalid { WELCOME_WARNING } else { SEPARATOR },
             metrics.border_width,
             metrics.radius_control,
@@ -77,6 +73,19 @@ pub(super) fn draw_recent_project_row_actions(
         open,
         clip,
         "Open",
+        if invalid {
+            WELCOME_MUTED_TEXT
+        } else {
+            WELCOME_TEXT
+        },
+        metrics,
+    );
+    draw_recent_project_action_label(frame, safe, clip, "S", WELCOME_WARNING, metrics);
+    draw_recent_project_action_label(
+        frame,
+        recover,
+        clip,
+        "R",
         if invalid {
             WELCOME_MUTED_TEXT
         } else {
@@ -184,15 +193,21 @@ mod tests {
 
     #[test]
     fn recent_project_actions_use_shared_control_radius_for_fill_and_border() {
-        let mut frame = HostRgbaFrame::recording_only(128, 48);
+        let mut frame = HostRgbaFrame::recording_only(160, 48);
         let open = FrameRect {
             x: 8.0,
             y: 8.0,
             width: 52.0,
             height: 24.0,
         };
+        let recover = FrameRect {
+            x: 100.0,
+            y: 8.0,
+            width: 24.0,
+            height: 24.0,
+        };
         let remove = FrameRect {
-            x: 68.0,
+            x: 132.0,
             y: 8.0,
             width: 24.0,
             height: 24.0,
@@ -200,11 +215,18 @@ mod tests {
         let clip = FrameRect {
             x: 0.0,
             y: 0.0,
-            width: 128.0,
+            width: 160.0,
             height: 48.0,
         };
 
-        draw_recent_project_row_actions(&mut frame, &open, &remove, &clip, false);
+        let safe = FrameRect {
+            x: 68.0,
+            y: 8.0,
+            width: 24.0,
+            height: 24.0,
+        };
+
+        draw_recent_project_row_actions(&mut frame, &open, &safe, &recover, &remove, &clip, false);
 
         let metrics = current_host_metrics();
         let commands = frame.into_recorded_commands();
@@ -217,7 +239,7 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        assert_eq!(surface_commands.len(), 4);
+        assert_eq!(surface_commands.len(), 8);
         for command in surface_commands {
             match &command.kind {
                 HostRecordedPaintKind::Quad { corner_radius, .. } => {
@@ -238,8 +260,8 @@ mod tests {
             .iter()
             .filter(|command| matches!(&command.kind, HostRecordedPaintKind::Text { .. }))
             .collect::<Vec<_>>();
-        assert_eq!(text_commands.len(), 2);
-        for (command, action) in text_commands.iter().zip([&open, &remove]) {
+        assert_eq!(text_commands.len(), 4);
+        for (command, action) in text_commands.iter().zip([&open, &safe, &recover, &remove]) {
             match &command.kind {
                 HostRecordedPaintKind::Text {
                     font_size,
@@ -258,6 +280,14 @@ mod tests {
         }
         assert!(matches!(
             &text_commands[1].kind,
+            HostRecordedPaintKind::Text { text, .. } if text == "S"
+        ));
+        assert!(matches!(
+            &text_commands[2].kind,
+            HostRecordedPaintKind::Text { text, .. } if text == "R"
+        ));
+        assert!(matches!(
+            &text_commands[3].kind,
             HostRecordedPaintKind::Text { text, .. } if text == "×"
         ));
     }

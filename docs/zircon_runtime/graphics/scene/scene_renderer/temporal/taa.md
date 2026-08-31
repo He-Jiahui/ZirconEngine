@@ -21,7 +21,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
@@ -82,7 +82,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
@@ -124,8 +124,8 @@ plan_sources:
   - user: 2026-06-14 implement WGPU render pipeline architecture code and update plan progress
 tests:
   - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::taa_resolve_declares_history_velocity_and_final_composite_input
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::without_history_resources_disables_taa_and_restores_scene_color_input
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::without_history_resources_keeps_scene_velocity_for_motion_blur
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/temporal_history.rs::unavailable_history_disables_taa_and_restores_scene_color_input
+  - zircon_runtime/src/core/framework/render/post_process/stack/tests/temporal_history.rs::unavailable_history_keeps_scene_velocity_for_motion_blur
   - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs::taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective
   - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs::taa_resolve_pass_and_resources_are_absent_when_taa_is_disabled
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::taa_resolve_executor_requires_graph_resources_instead_of_nooping
@@ -152,8 +152,8 @@ tests:
   - zircon_runtime/src/graphics/backend/render_backend/request_device.rs::tests::offscreen_device_limits_cover_renderer_layout_requirements
   - zircon_runtime/src/graphics/backend/render_backend/request_device.rs::tests::offscreen_device_limits_keep_hzb_optional_when_adapter_limit_is_lower
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs::tests::post_process_layout_sampled_texture_count_matches_device_request_limit
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::non_storage_texture_formats_do_not_request_storage_binding
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::storage_texture_formats_request_storage_binding
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::non_storage_texture_formats_do_not_request_storage_binding
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::storage_texture_formats_request_storage_binding
   - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs::tests::light_grid_params_cpu_layout_matches_wgsl_uniform_size
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::render_product_taa_uses_temporal_resolve_seed_frame_when_requested
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::render_product_taa_static_empty_scene_history_stays_stable_after_seed_frame
@@ -213,7 +213,7 @@ This document describes the implemented renderer path. WGPU capability summary n
 - outputs `TAA_OUTPUT = "taa.output.scene-color"` and `TAA_HISTORY_CURRENT = "taa.history.current.scene-color"`;
 - final composite input `TAA_OUTPUT`, with `FinalComposite` depending on `TaaResolve`.
 
-There is no remaining stack-level legacy scene-color history resolve node. `without_history_resources()` disables `TaaResolve`, removes TAA history/output/reactive-mask resources, restores `SCENE_COLOR` as the final composite input, and drops TAA-only `SCENE_VELOCITY` while preserving velocity for motion blur or SSR.
+There is no remaining stack-level legacy scene-color history resolve node or history-stripping clone helper. The descriptor receives `history_available` from the frame contract: when it is false, `TaaResolve` and its history/output/reactive-mask resources are omitted at construction time, `SCENE_COLOR` remains the final composite input, and `SCENE_VELOCITY` is retained only when motion blur, SSR, or another explicit consumer requires it.
 
 `feature_descriptors/temporal.rs` now declares `taa-reactive-mask-clear` with executor id `temporal.taa-reactive-mask-clear`, then `taa-reactive-mask-mesh` with executor id `temporal.taa-reactive-mask-mesh`, then `taa-resolve`. The clear pass writes `TAA_REACTIVE_MASK` as an `R8Unorm` graph texture with clear/store ops. The mesh pass reads `SCENE_DEPTH` and load/stores the same mask so visible transparent mesh can add authored alpha response, and visible opaque/alpha-mask materials with nonzero authored strength can add material response, without erasing the clear value or other future writers. `taa-resolve` reads scene color, depth, scene velocity, previous TAA history, and the reactive mask; it writes current TAA history as an external resource and writes TAA output as a graph texture. `post_process.rs` lists `TAA_OUTPUT` as an optional `post-process` input so the compiler can retain it only for an effective TAA stack.
 

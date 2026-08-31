@@ -1,6 +1,7 @@
 //! Neutral text layout contracts shared by runtime consumers.
 
 mod direction;
+mod font_collection_handle;
 mod font_face_handle;
 mod font_request;
 mod glyph;
@@ -14,9 +15,11 @@ mod render_mode;
 mod shape_request;
 mod shape_result;
 mod shape_run;
+mod vertical_glyph_decision;
 mod writing_mode;
 
 pub use direction::TextDirection;
+pub use font_collection_handle::TextFontCollectionHandle;
 pub use font_face_handle::TextFontFaceHandle;
 pub use font_request::TextFontRequest;
 pub use glyph::TextGlyph;
@@ -30,6 +33,10 @@ pub use render_mode::TextRenderMode;
 pub use shape_request::TextShapeRequest;
 pub use shape_result::TextShapeResult;
 pub use shape_run::TextShapeRun;
+pub use vertical_glyph_decision::{
+    TextVerticalGlyphDecision, TextVerticalGlyphDecisionBasis, TextVerticalGlyphFallbackReason,
+    TextVerticalGlyphFeatureSet, TextVerticalGlyphOrientation, TextVerticalGlyphSubstitution,
+};
 pub use writing_mode::TextWritingMode;
 
 #[cfg(test)]

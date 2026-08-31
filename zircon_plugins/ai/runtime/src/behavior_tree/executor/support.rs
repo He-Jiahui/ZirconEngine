@@ -9,15 +9,30 @@ use super::{
     BehaviorTreeExecution, BehaviorTreeInstanceState, CompiledBehaviorNode, CompiledBehaviorTree,
 };
 
+#[cfg(test)]
+#[path = "support/weighted_random_tests.rs"]
+mod weighted_random_tests;
+
+#[cfg(test)]
+#[path = "support/observer_binding_tests.rs"]
+mod observer_binding_tests;
+
 pub(super) fn bind_reachable_observers(
     instance: &mut BehaviorTreeInstanceState,
     root: &CompiledBehaviorTree,
     registered_trees: &[CompiledBehaviorTree],
     layout: &BlackboardLayout,
 ) -> Result<(), AiManagerError> {
+    if instance.observer_binding_root.as_deref() == Some(root.id())
+        && instance.observer_binding_schema.as_deref() == Some(layout.schema_id())
+    {
+        return Ok(());
+    }
     for tree in super::super::reachable_behavior_trees(root, registered_trees) {
         instance.bind_observers(tree, layout)?;
     }
+    instance.observer_binding_root = Some(root.id().to_string());
+    instance.observer_binding_schema = Some(layout.schema_id().to_string());
     Ok(())
 }
 
@@ -33,11 +48,7 @@ pub(super) fn weighted_random_child(
         .iter()
         .enumerate()
         .map(|(position, child)| {
-            let id_key = format!("weight.{}", tree.node(*child as usize).id());
-            let position_key = format!("weight_{position}");
-            scalar_parameter(node, &[id_key.as_str(), position_key.as_str()])
-                .unwrap_or(1.0)
-                .max(0.0)
+            borrowed_child_weight(node, tree.node(*child as usize).id(), position)
         })
         .collect::<Vec<_>>();
     let total = weights.iter().sum::<f32>();
@@ -56,6 +67,49 @@ pub(super) fn weighted_random_child(
         sample -= weight;
     }
     children[children.len() - 1]
+}
+
+fn borrowed_child_weight(node: &CompiledBehaviorNode, child_id: &str, position: usize) -> f32 {
+    let id_parameter = node
+        .parameters()
+        .iter()
+        .find(|parameter| parameter.key.strip_prefix("weight.") == Some(child_id));
+    if let Some(AiBehaviorNodeParameterValue::Scalar(value)) =
+        id_parameter.map(|parameter| &parameter.value)
+    {
+        return value.max(0.0);
+    }
+
+    let position_parameter = node.parameters().iter().find(|parameter| {
+        parameter
+            .key
+            .strip_prefix("weight_")
+            .is_some_and(|suffix| canonical_index_suffix_matches(suffix, position))
+    });
+    match position_parameter.map(|parameter| &parameter.value) {
+        Some(AiBehaviorNodeParameterValue::Scalar(value)) => value.max(0.0),
+        _ => 1.0,
+    }
+}
+
+fn canonical_index_suffix_matches(suffix: &str, index: usize) -> bool {
+    let bytes = suffix.as_bytes();
+    if index == 0 {
+        return bytes == b"0";
+    }
+    let mut remaining = index;
+    let mut cursor = bytes.len();
+    while remaining != 0 {
+        if cursor == 0 {
+            return false;
+        }
+        cursor -= 1;
+        if bytes[cursor] != b'0' + (remaining % 10) as u8 {
+            return false;
+        }
+        remaining /= 10;
+    }
+    cursor == 0
 }
 
 pub(super) fn parameter<'a>(

@@ -4,6 +4,42 @@ use crate::text::font::shared_font_database_test_read_guard;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+struct MissingFontAssetRun;
+
+impl SdfTextRun for MissingFontAssetRun {
+    fn font(&self) -> Option<&str> {
+        Some("res://fonts/missing-prepared-atlas-report.font.toml")
+    }
+
+    fn font_family(&self) -> Option<&str> {
+        None
+    }
+
+    fn language(&self) -> Option<&str> {
+        None
+    }
+
+    fn font_weight(&self) -> u16 {
+        FontWeight::NORMAL.0
+    }
+
+    fn font_size(&self) -> f32 {
+        16.0
+    }
+
+    fn render_scalars(&self) -> Vec<char> {
+        vec!['A']
+    }
+
+    fn resolved_glyph_advances(&self) -> Option<Vec<f32>> {
+        None
+    }
+
+    fn shaped_glyph(&self, _glyph_index: usize) -> Option<SdfShapedGlyphIdentity> {
+        None
+    }
+}
+
 #[test]
 fn sdf_generation_source_cache_has_explicit_context_and_byte_budgets() {
     let source = include_str!("../source_context.rs");
@@ -46,6 +82,91 @@ fn sdf_font_bake_report_distinguishes_newly_loaded_and_resident_fonts() {
         first.report.resident_font_count
     );
     assert_eq!(second.report.loaded_font_count, 0);
+}
+
+#[test]
+fn sdf_font_asset_failure_report_is_resident_and_generation_scoped() {
+    let _shared_font_database = shared_font_database_test_read_guard();
+    let mut bake = SdfFontBakeCache::new();
+    let mut font_database = FontDatabase::with_default_fallbacks();
+    let asset_manager = ProjectAssetManager::default();
+    let missing = atlas_plan_for_asset('A', "res://fonts/missing-resident-report.font.toml");
+
+    let first = bake.build_atlas_from_slots(
+        missing.atlas_size,
+        &missing.slots,
+        &mut font_database,
+        &asset_manager,
+    );
+    let second = bake.build_atlas_from_slots(
+        missing.atlas_size,
+        &missing.slots,
+        &mut font_database,
+        &asset_manager,
+    );
+
+    assert_eq!(first.report.resident_font_asset_error_count, 1);
+    assert_eq!(
+        first.report.resident_font_asset_no_registered_faces_count,
+        1
+    );
+    assert_eq!(
+        second.report.resident_font_asset_error_count,
+        first.report.resident_font_asset_error_count
+    );
+    assert_eq!(
+        second.report.resident_font_asset_no_registered_faces_count,
+        first.report.resident_font_asset_no_registered_faces_count
+    );
+
+    bake.invalidate_faces();
+    let cleared = SdfAtlasPlan::default();
+    let after_invalidation = bake.build_atlas_from_slots(
+        cleared.atlas_size,
+        &cleared.slots,
+        &mut font_database,
+        &asset_manager,
+    );
+
+    assert_eq!(after_invalidation.report.resident_font_asset_error_count, 0);
+    assert_eq!(
+        after_invalidation
+            .report
+            .resident_font_asset_no_registered_faces_count,
+        0
+    );
+}
+
+#[test]
+fn sdf_prepared_atlas_reuse_refreshes_resident_font_asset_failure_report() {
+    let _shared_font_database = shared_font_database_test_read_guard();
+    let mut bake = SdfFontBakeCache::new();
+    let mut font_database = FontDatabase::with_default_fallbacks();
+    let asset_manager = ProjectAssetManager::default();
+    let empty = SdfAtlasPlan::default();
+
+    let initial = bake.build_atlas_from_slots(
+        empty.atlas_size,
+        &empty.slots,
+        &mut font_database,
+        &asset_manager,
+    );
+    assert_eq!(initial.report.resident_font_asset_error_count, 0);
+
+    let _ = bake.prepare_run_cpu(&MissingFontAssetRun, &mut font_database, &asset_manager);
+    let reused = bake.build_atlas_from_slots(
+        empty.atlas_size,
+        &empty.slots,
+        &mut font_database,
+        &asset_manager,
+    );
+
+    assert_eq!(reused.report.resident_font_asset_error_count, 1);
+    assert_eq!(
+        reused.report.resident_font_asset_no_registered_faces_count,
+        1
+    );
+    assert_eq!(reused.report.compiled_atlas_reuse_count, 1);
 }
 
 #[test]
@@ -119,13 +240,15 @@ fn sdf_font_bake_packs_mixed_formats_and_reuses_mode_keyed_cache() {
         baked_glyph_rect(plan.slots[2].rect, &first.glyphs[2]),
     );
     assert!(sdf.iter().any(|sample| *sample != 0));
-    assert!(msdf
-        .chunks_exact(4)
-        .filter(|sample| sample[0] != 0 || sample[1] != 0 || sample[2] != 0)
-        .all(|sample| sample[3] == u8::MAX));
-    assert!(msdf
-        .chunks_exact(4)
-        .any(|sample| sample[0] != sample[1] || sample[1] != sample[2]));
+    assert!(
+        msdf.chunks_exact(4)
+            .filter(|sample| sample[0] != 0 || sample[1] != 0 || sample[2] != 0)
+            .all(|sample| sample[3] == u8::MAX)
+    );
+    assert!(
+        msdf.chunks_exact(4)
+            .any(|sample| sample[0] != sample[1] || sample[1] != sample[2])
+    );
     assert!(mtsdf.chunks_exact(4).any(|sample| sample[3] != u8::MAX));
     assert!(mtsdf.chunks_exact(4).any(|sample| {
         let mut rgb = [sample[0], sample[1], sample[2]];
@@ -142,11 +265,13 @@ fn sdf_font_bake_packs_mixed_formats_and_reuses_mode_keyed_cache() {
         &second.generation_failures
     ));
     assert!(second.dirty_pages.is_empty());
-    assert!(first
-        .pages
-        .iter()
-        .zip(second.pages.iter())
-        .all(|(first, second)| Arc::ptr_eq(&first.pixels, &second.pixels)));
+    assert!(
+        first
+            .pages
+            .iter()
+            .zip(second.pages.iter())
+            .all(|(first, second)| Arc::ptr_eq(&first.pixels, &second.pixels))
+    );
     assert_eq!(second.generation_failures, first.generation_failures);
     let mut expected_second_report = first.report;
     expected_second_report.loaded_font_count = 0;
@@ -378,9 +503,11 @@ fn sdf_prepared_atlas_refreshes_visible_glyph_recency_before_a_layout_change() {
     );
 
     assert!(bake.glyphs.contains_key(&hot_key));
-    assert!(!bake
-        .glyphs
-        .contains_key(&oldest_filler.expect("oldest filler key")));
+    assert!(
+        !bake
+            .glyphs
+            .contains_key(&oldest_filler.expect("oldest filler key"))
+    );
 }
 
 #[test]
@@ -405,10 +532,12 @@ fn sdf_font_bake_scheduled_generation_falls_back_then_commits_next_frame() {
     );
 
     assert_eq!(first.generation_failures.len(), 2);
-    assert!(first
-        .generation_failures
-        .iter()
-        .all(|failure| failure.error == SdfGlyphGenerationError::GenerationPending));
+    assert!(
+        first
+            .generation_failures
+            .iter()
+            .all(|failure| failure.error == SdfGlyphGenerationError::GenerationPending)
+    );
     assert_eq!(first.report.visible_glyph_count, 0);
     assert_eq!(first.report.generation_failure_count, 2);
     assert_eq!(

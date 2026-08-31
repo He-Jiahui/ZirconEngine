@@ -19,9 +19,32 @@ use crate::core::resource::ResourceId;
 use crate::scene::components::Name;
 use crate::scene::ecs::LifecycleEventKind;
 use crate::scene::{DefaultLevelManager, World};
+use zircon_runtime_interface::world_sync::{WatchKey, WatchRegistration, WorldFact};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct RetiredWorldEvent(u32);
+
+#[test]
+fn replacing_a_level_publishes_the_new_epoch_and_invalidates_existing_watches() {
+    let level = DefaultLevelManager::default().create_level(World::empty(), Default::default());
+    let token = level.watch_world(WatchRegistration::new(WatchKey::WorldStructure));
+    let previous_epoch = level.capture_world_replacement_epoch();
+
+    level.replace_world_and_reset_runtime_state(World::empty());
+
+    let current_epoch = level.capture_world_replacement_epoch();
+    assert_eq!(current_epoch, previous_epoch.checked_add(1).unwrap());
+    assert_eq!(
+        level.drain_world_invalidations(),
+        vec![zircon_runtime_interface::world_sync::InvalidationBatch {
+            generation: level.with_world(World::world_generation),
+            dirty: vec![token],
+            facts: vec![WorldFact::WorldReplaced {
+                replacement_epoch: current_epoch,
+            }],
+        }]
+    );
+}
 
 #[cfg(feature = "animation")]
 fn clip_event_range(entity: u64) -> AnimationClipEventSamplingRange {
@@ -96,10 +119,12 @@ fn level_clip_event_queue_retries_an_unavailable_contract_sample() {
         },
     );
 
-    assert!(level
-        .drain_animation_clip_events(replacement_epoch, &UnavailableClipEventSampler)
-        .expect("current replacement epoch drains the queue")
-        .is_empty());
+    assert!(
+        level
+            .drain_animation_clip_events(replacement_epoch, &UnavailableClipEventSampler)
+            .expect("current replacement epoch drains the queue")
+            .is_empty()
+    );
     assert_eq!(
         level.animation_clip_event_backlog_len(replacement_epoch),
         Some(1)
@@ -237,10 +262,12 @@ fn level_clip_event_queue_bounds_growth_and_ages_tail_by_drain_window() {
         },
     );
 
-    assert!(level
-        .drain_animation_clip_events(replacement_epoch, &UnavailableClipEventSampler)
-        .expect("current replacement epoch drains the bounded queue")
-        .is_empty());
+    assert!(
+        level
+            .drain_animation_clip_events(replacement_epoch, &UnavailableClipEventSampler)
+            .expect("current replacement epoch drains the bounded queue")
+            .is_empty()
+    );
     assert_eq!(
         level.animation_clip_event_backlog_len(replacement_epoch),
         Some(EXPECTED_PENDING_CAPACITY)
@@ -250,10 +277,12 @@ fn level_clip_event_queue_bounds_growth_and_ages_tail_by_drain_window() {
         (EXPECTED_PENDING_CAPACITY, 1, false, 0, 32, 1)
     );
 
-    assert!(level
-        .drain_animation_clip_events(replacement_epoch, &UnavailableClipEventSampler)
-        .expect("current replacement epoch drains the next bounded batch")
-        .is_empty());
+    assert!(
+        level
+            .drain_animation_clip_events(replacement_epoch, &UnavailableClipEventSampler)
+            .expect("current replacement epoch drains the next bounded batch")
+            .is_empty()
+    );
     assert_eq!(
         level.animation_clip_event_drain_metrics(),
         (EXPECTED_PENDING_CAPACITY, 2, false, 0, 32, 0)
@@ -370,10 +399,12 @@ fn over_capacity_clip_event_batches_make_segmented_progress() {
     );
     assert!(level.animation_requires_continuous_frame());
 
-    assert!(level
-        .drain_animation_clip_events(replacement_epoch, &CompleteClipEventSampler)
-        .expect("current replacement epoch drains one bounded window")
-        .is_empty());
+    assert!(
+        level
+            .drain_animation_clip_events(replacement_epoch, &CompleteClipEventSampler)
+            .expect("current replacement epoch drains one bounded window")
+            .is_empty()
+    );
     assert_eq!(
         level.enqueue_animation_clip_event_range_batches(
             replacement_epoch,
@@ -394,7 +425,7 @@ fn level_frame_snapshot_reuses_sealed_pose_handle_until_world_replacement() {
     let level = DefaultLevelManager::default().create_default_level();
     let initial = level.frame_state_snapshot();
     let replacement_epoch = level.capture_world_replacement_epoch();
-    let poses = Arc::new(BTreeMap::from([(17, pose_output())]));
+    let poses = Arc::new(BTreeMap::from([(17, Arc::new(pose_output()))]));
 
     assert!(level.record_animation_pose_snapshot(replacement_epoch, Arc::clone(&poses)));
     let published = level.frame_state_snapshot();
@@ -424,7 +455,7 @@ fn level_frame_snapshot_reuses_sealed_pose_handle_until_world_replacement() {
 fn level_frame_snapshot_rejects_a_pose_payload_from_a_retired_replacement_epoch() {
     let level = DefaultLevelManager::default().create_default_level();
     let retired_epoch = level.capture_world_replacement_epoch();
-    let stale_poses = Arc::new(BTreeMap::from([(17, pose_output())]));
+    let stale_poses = Arc::new(BTreeMap::from([(17, Arc::new(pose_output()))]));
 
     level.replace_world_and_reset_runtime_state(World::empty());
     assert!(!level.record_animation_pose_snapshot(retired_epoch, stale_poses));
@@ -438,14 +469,16 @@ fn ordinary_world_mutation_does_not_retire_animation_publication_epoch() {
     let replacement_epoch = level.capture_world_replacement_epoch();
     let before_mutation = level.world_generation();
     level.with_world_mut(|world| {
-        world.spawn_node(crate::scene::NodeKind::Empty);
+        world
+            .spawn_node(crate::scene::NodeKind::Empty)
+            .expect("test scene spawn should succeed");
     });
     let after_mutation = level.world_generation();
     assert!(after_mutation > before_mutation);
 
     assert!(level.record_animation_pose_snapshot(
         replacement_epoch,
-        Arc::new(BTreeMap::from([(17, pose_output())])),
+        Arc::new(BTreeMap::from([(17, Arc::new(pose_output()))])),
     ));
     assert_eq!(
         level.frame_state_snapshot().world_generation(),
@@ -462,11 +495,15 @@ fn replacement_epoch_rejects_retired_world_and_animation_state_writes() {
     level.replace_world_and_reset_runtime_state(World::empty());
     let current_epoch = level.capture_world_replacement_epoch();
     assert_ne!(current_epoch, retired_epoch);
-    assert!(level
-        .with_world_mut_if_replacement_epoch(retired_epoch, |world| {
-            world.spawn_node(crate::scene::NodeKind::Empty)
-        })
-        .is_none());
+    assert!(
+        level
+            .with_world_mut_if_replacement_epoch(retired_epoch, |world| {
+                world
+                    .spawn_node(crate::scene::NodeKind::Empty)
+                    .expect("test scene spawn should succeed")
+            })
+            .is_none()
+    );
     assert_eq!(
         level.enqueue_animation_clip_event_range_batches(
             retired_epoch,
@@ -480,9 +517,11 @@ fn replacement_epoch_rejects_retired_world_and_animation_state_writes() {
         ),
         AnimationClipEventQueueAdmission::RetiredEpoch,
     );
-    assert!(level
-        .drain_animation_clip_events(retired_epoch, &UnavailableClipEventSampler)
-        .is_none());
+    assert!(
+        level
+            .drain_animation_clip_events(retired_epoch, &UnavailableClipEventSampler)
+            .is_none()
+    );
     assert!(!level.record_animation_playback_times(
         retired_epoch,
         BTreeMap::new(),
@@ -507,9 +546,11 @@ fn transactional_world_replacement_retires_the_same_epoch_contract() {
         retired_epoch,
         "transactional and direct replacements must retire the same producer token"
     );
-    assert!(level
-        .with_world_mut_if_replacement_epoch(retired_epoch, |_| ())
-        .is_none());
+    assert!(
+        level
+            .with_world_mut_if_replacement_epoch(retired_epoch, |_| ())
+            .is_none()
+    );
 }
 
 #[test]
@@ -545,18 +586,24 @@ fn transactional_world_replacement_discards_retired_animation_events() {
         world.update_events::<AnimationClipEvent>();
         world.update_events::<AnimationEventRecord>();
         world.update_events::<RetiredWorldEvent>();
-        assert!(world
-            .events::<AnimationClipEvent>()
-            .expect("clip event channel remains registered")
-            .is_empty());
-        assert!(world
-            .events::<AnimationEventRecord>()
-            .expect("animation event channel remains registered")
-            .is_empty());
-        assert!(world
-            .events::<RetiredWorldEvent>()
-            .expect("unrelated event channel remains registered")
-            .is_empty());
+        assert!(
+            world
+                .events::<AnimationClipEvent>()
+                .expect("clip event channel remains registered")
+                .is_empty()
+        );
+        assert!(
+            world
+                .events::<AnimationEventRecord>()
+                .expect("animation event channel remains registered")
+                .is_empty()
+        );
+        assert!(
+            world
+                .events::<RetiredWorldEvent>()
+                .expect("unrelated event channel remains registered")
+                .is_empty()
+        );
         world.send_event(RetiredWorldEvent(3));
         world.update_events::<RetiredWorldEvent>();
         assert_eq!(
@@ -594,10 +641,12 @@ fn transactional_world_replacement_clears_retained_pose_resources_without_animat
         .expect("current transaction generation replaces the World");
 
     level.with_world(|world| {
-        assert!(world
-            .resource::<SkeletalPoseTargets>()
-            .targets(17)
-            .is_none());
+        assert!(
+            world
+                .resource::<SkeletalPoseTargets>()
+                .targets(17)
+                .is_none()
+        );
         assert!(world.resource::<SimulatedPoseFeed>().targets(17).is_none());
     });
 }
@@ -618,7 +667,9 @@ fn transactional_world_replacement_preserves_staged_lifecycle_callback_events() 
             .clone_for_dynamic_scene_staging(1024 * 1024)
             .expect("bounded World clones into transaction staging")
     });
-    staged.spawn_node(crate::scene::NodeKind::Empty);
+    staged
+        .spawn_node(crate::scene::NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let expected_generation = level.world_generation();
 
     level
@@ -644,7 +695,7 @@ fn level_replace_retires_the_sealed_pose_payload_through_the_public_entry_point(
     let level = DefaultLevelManager::default().create_default_level();
     let replacement_epoch = level.capture_world_replacement_epoch();
     let world_generation = level.world_generation();
-    let poses = Arc::new(BTreeMap::from([(17, pose_output())]));
+    let poses = Arc::new(BTreeMap::from([(17, Arc::new(pose_output()))]));
 
     assert!(level.record_animation_pose_snapshot(replacement_epoch, poses));
     let published = level.frame_state_snapshot();
@@ -709,8 +760,8 @@ fn level_world_replacement_and_pose_publication_share_an_epoch_commit_order() {
         .expect("replacement publishes the retirement frame while holding the World lane");
     assert!(replacement_world_lock < replacement_frame_lock);
     let replacement_epoch_advance = replacement
-        .find("world_replacement_epoch.fetch_add")
-        .expect("replacement retires the previous producer epoch");
+        .find("self.advance_world_replacement_epoch()")
+        .expect("replacement retires the previous producer epoch without allowing wraparound");
     assert!(replacement_epoch_advance < replacement_frame_lock);
 
     let publication_world_lock = publication

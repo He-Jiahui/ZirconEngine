@@ -56,7 +56,6 @@ use metadata::{
 use retained_binding::{
     text_binding_for_metadata, ViewTemplateTextBinding, ViewTemplateTextOverrideSemantics,
 };
-use visual_assets::resolve_visual_assets_for_generation;
 
 #[cfg(test)]
 mod tests;

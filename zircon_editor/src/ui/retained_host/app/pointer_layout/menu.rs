@@ -10,7 +10,7 @@ impl RetainedEditorHost {
         preset_names: &[String],
     ) {
         let outer_shell_frames = self.template_bridge.outer_shell_frames();
-        self.menu_pointer_layout = build_host_menu_pointer_layout(
+        let next_layout = build_host_menu_pointer_layout(
             &model.menu_bar,
             chrome,
             self.shell_size,
@@ -18,11 +18,16 @@ impl RetainedEditorHost {
             self.active_layout_preset.as_deref(),
             Some(&outer_shell_frames),
         );
-        self.menu_pointer_bridge.sync(
-            self.menu_pointer_layout.clone(),
-            self.menu_pointer_state.clone(),
+        if self.menu_pointer_layout.as_ref() != &next_layout {
+            self.menu_pointer_layout = Arc::new(next_layout);
+        }
+        let pointer_changed = self.menu_pointer_bridge.sync_shared(
+            Arc::clone(&self.menu_pointer_layout),
+            &self.menu_pointer_state,
         );
-        self.apply_menu_pointer_state_to_ui();
+        if pointer_changed {
+            self.apply_menu_pointer_state_to_ui();
+        }
     }
 
     pub(in crate::ui::retained_host::app) fn apply_menu_pointer_state_to_ui(&self) {

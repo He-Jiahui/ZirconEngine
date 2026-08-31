@@ -140,12 +140,14 @@ impl StreamCapture {
         self.writer.write_all(&bytes)?;
         self.hasher.update(&bytes);
         self.byte_count = self.byte_count.saturating_add(bytes.len() as u64);
-        for line in self.line_buffer.push(bytes, finalize) {
-            self.dropped_line_count = self
-                .dropped_line_count
-                .saturating_add(push_bounded_output_line(&mut self.tail_lines, line.clone()));
-            emit_output(ExportWizardCommandOutputLine { stream, line });
-        }
+        let dropped_line_count = &mut self.dropped_line_count;
+        let tail_lines = &mut self.tail_lines;
+        self.line_buffer
+            .for_each_line(bytes, finalize, &mut |line| {
+                *dropped_line_count = dropped_line_count
+                    .saturating_add(push_bounded_output_line(tail_lines, line.clone()));
+                emit_output(ExportWizardCommandOutputLine { stream, line });
+            });
         Ok(())
     }
 
@@ -263,13 +265,17 @@ struct IncrementalLineBuffer {
 }
 
 impl IncrementalLineBuffer {
-    fn push(&mut self, mut bytes: Vec<u8>, finalize: bool) -> Vec<String> {
+    fn for_each_line(
+        &mut self,
+        mut bytes: Vec<u8>,
+        finalize: bool,
+        emit_line: &mut impl FnMut(String),
+    ) {
         if self.pending.is_empty() {
             self.pending = bytes;
         } else {
             self.pending.append(&mut bytes);
         }
-        let mut lines = Vec::new();
         let mut line_start = 0;
         for index in self.scan_from.min(self.pending.len())..self.pending.len() {
             let reached_newline = self.pending[index] == b'\n';
@@ -281,7 +287,7 @@ impl IncrementalLineBuffer {
                 };
             if reached_newline || reached_limit {
                 let line_end = if reached_newline { index } else { index + 1 };
-                lines.push(decode_output_line(&self.pending[line_start..line_end]));
+                emit_line(decode_output_line(&self.pending[line_start..line_end]));
                 line_start = index + 1;
             }
         }
@@ -289,10 +295,16 @@ impl IncrementalLineBuffer {
             self.pending.drain(..line_start);
         }
         if finalize && !self.pending.is_empty() {
-            lines.push(decode_output_line(&self.pending));
+            emit_line(decode_output_line(&self.pending));
             self.pending.clear();
         }
         self.scan_from = self.pending.len().saturating_sub(1);
+    }
+
+    #[cfg(test)]
+    fn push(&mut self, bytes: Vec<u8>, finalize: bool) -> Vec<String> {
+        let mut lines = Vec::new();
+        self.for_each_line(bytes, finalize, &mut |line| lines.push(line));
         lines
     }
 }
@@ -311,6 +323,76 @@ mod tests {
         ArtifactDestination, ExportWizardOutputCapture, IncrementalLineBuffer, OutputCapturePaths,
         MAX_CAPTURED_LINE_BYTES,
     };
+
+    #[test]
+    fn optimization_batch_20260830er_incremental_lines_stream_without_a_temporary_vec() {
+        let source = include_str!("output_capture.rs");
+
+        assert!(source.contains(concat!("for_each_line", "(bytes, finalize")));
+        assert!(!source.contains(concat!(
+            "for line in self.line_buffer",
+            ".push(bytes, finalize)"
+        )));
+    }
+
+    #[test]
+    fn optimization_batch_20260830er_incremental_lines_preserve_chunk_order() {
+        let mut buffer = IncrementalLineBuffer::default();
+        let mut lines = Vec::new();
+
+        buffer.for_each_line(b"alpha\nbeta".to_vec(), false, &mut |line| lines.push(line));
+        buffer.for_each_line(b"-tail\ngamma".to_vec(), true, &mut |line| lines.push(line));
+
+        assert_eq!(lines, ["alpha", "beta-tail", "gamma"]);
+    }
+
+    #[test]
+    #[ignore = "deterministic performance evidence"]
+    fn optimization_batch_20260830er_incremental_line_callback_benchmark_evidence() {
+        const CHUNK_COUNT: usize = 1_000_000;
+        const SAMPLE_COUNT: usize = 11;
+        const MARKER: &str = "EDITOR551_CALLBACK_LINE_STREAM_BENCH_V1";
+        const CHUNK: &[u8] = b"alpha\nbeta\ngamma\n";
+
+        fn median(mut samples: Vec<std::time::Duration>) -> std::time::Duration {
+            samples.sort_unstable();
+            samples[samples.len() / 2]
+        }
+
+        let mut collected_samples = Vec::with_capacity(SAMPLE_COUNT);
+        let mut callback_samples = Vec::with_capacity(SAMPLE_COUNT);
+        for _ in 0..SAMPLE_COUNT {
+            let mut buffer = IncrementalLineBuffer::default();
+            let started = std::time::Instant::now();
+            let mut line_bytes = 0_usize;
+            for _ in 0..CHUNK_COUNT {
+                for line in buffer.push(CHUNK.to_vec(), false) {
+                    line_bytes = std::hint::black_box(line_bytes.wrapping_add(line.len()));
+                }
+            }
+            collected_samples.push(started.elapsed());
+            std::hint::black_box(line_bytes);
+
+            let mut buffer = IncrementalLineBuffer::default();
+            let started = std::time::Instant::now();
+            let mut line_bytes = 0_usize;
+            for _ in 0..CHUNK_COUNT {
+                buffer.for_each_line(CHUNK.to_vec(), false, &mut |line| {
+                    line_bytes = std::hint::black_box(line_bytes.wrapping_add(line.len()));
+                });
+            }
+            callback_samples.push(started.elapsed());
+            std::hint::black_box(line_bytes);
+        }
+
+        let collected = median(collected_samples);
+        let callback = median(callback_samples);
+        eprintln!("{MARKER} collected={collected:?} callback={callback:?}");
+        assert!(
+            callback < collected,
+            "callback={callback:?}, collected={collected:?}"
+        );
+    }
 
     #[test]
     fn full_output_is_written_while_only_tail_is_retained() {

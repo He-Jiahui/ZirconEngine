@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -100,23 +102,45 @@ impl ExportBuildPlan {
     }
 
     pub fn effective_fatal_diagnostics(&self) -> Vec<String> {
-        let mut diagnostics = self.fatal_diagnostics.clone();
-        for entry in &self.runtime_plugin_availability.missing_required {
-            let diagnostic = format!(
-                "required runtime plugin {} is unavailable for export profile {}: {}",
-                entry.id, self.profile.name, entry.reason
-            );
-            if !diagnostics.iter().any(|existing| existing == &diagnostic) {
-                diagnostics.push(diagnostic);
-            }
-        }
-        diagnostics
+        merge_unique_diagnostics(
+            self.fatal_diagnostics.clone(),
+            self.runtime_plugin_availability
+                .missing_required
+                .iter()
+                .map(|entry| {
+                    format!(
+                        "required runtime plugin {} is unavailable for export profile {}: {}",
+                        entry.id, self.profile.name, entry.reason
+                    )
+                }),
+        )
     }
 
     pub fn has_fatal_diagnostics(&self) -> bool {
         !self.fatal_diagnostics.is_empty()
             || !self.runtime_plugin_availability.missing_required.is_empty()
     }
+}
+
+fn merge_unique_diagnostics(
+    mut diagnostics: Vec<String>,
+    additions: impl IntoIterator<Item = String>,
+) -> Vec<String> {
+    let mut existing = HashSet::<&str>::with_capacity(diagnostics.len());
+    existing.extend(diagnostics.iter().map(String::as_str));
+    let additions = additions.into_iter();
+    let (minimum_additions, maximum_additions) = additions.size_hint();
+    let addition_capacity = maximum_additions.unwrap_or(minimum_additions);
+    let mut accepted_keys = HashSet::with_capacity(addition_capacity);
+    let mut accepted = Vec::with_capacity(addition_capacity);
+    for diagnostic in additions {
+        if !existing.contains(diagnostic.as_str()) && accepted_keys.insert(diagnostic.clone()) {
+            accepted.push(diagnostic);
+        }
+    }
+    drop(existing);
+    diagnostics.extend(accepted);
+    diagnostics
 }
 
 #[cfg(test)]
@@ -129,3 +153,6 @@ mod tests {
         assert!(!source.contains(&allocating_check));
     }
 }
+
+#[cfg(test)]
+mod effective_fatal_diagnostics_tests;

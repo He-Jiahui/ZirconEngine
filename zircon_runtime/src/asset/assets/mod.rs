@@ -30,20 +30,24 @@ pub use font::{
     FontAssetError, FontAssetFaceMetrics, FontAssetFaceStyle, FontAssetFamilyMember,
     FontAssetLineMetrics, FontAssetMetadata, FontAssetParsedFace, FontAssetRenderStrategy,
     FontAssetResult, FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
-    FontAssetVariationCoord, FontCultureTag, FontFamilyName, FontScript, SubFontRange,
+    FontAssetVariationCoord, FontBlobArtifact, FontCultureTag, FontFamilyName, FontScript,
+    FontScriptTag, SubFontRange,
 };
 #[cfg(feature = "text")]
 pub(crate) use font_source::{
-    decode_font_source, standalone_sfnt_face, DecodedFontSource, FontFaceExtractionError,
+    decode_font_source, font_cmap_range_budget, standalone_sfnt_face,
+    validate_font_metadata_budget, validate_font_source_file_len, DecodedFontSource,
+    FontFaceExtractionError,
 };
 #[cfg(feature = "text")]
-pub use font_source::{FontMetadataParseError, FontSourceDecodeError};
+pub use font_source::{FontMetadataParseError, FontSourceBudgetError, FontSourceDecodeError};
 pub use imported::{asset_kind_for_imported_asset, ImportedAsset};
 pub use material::{
-    validate_wgsl_captures, AlphaMode, MaterialAsset, MaterialAssetManagementRecord,
-    MaterialAssetManagementRecordSet, MaterialAssetManagementRecordSetSummary,
-    MaterialAssetOverview, MaterialTextureSlotValue, ZMaterialDocument, ZMaterialQueueOverride,
-    STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY,
+    default_pbr_shader_reference, validate_wgsl_captures, AlphaMode, MaterialAsset,
+    MaterialAssetManagementRecord, MaterialAssetManagementRecordSet,
+    MaterialAssetManagementRecordSetSummary, MaterialAssetOverview, MaterialTextureSlotValue,
+    ZMaterialDocument, ZMaterialQueueOverride, DEFAULT_PBR_SHADER_URI,
+    STANDARD_MATERIAL_NORMAL_SCALE_PROPERTY, STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY,
 };
 pub(crate) use mesh::{mesh_sdf_source_hash, MESH_SDF_FIXED_METADATA_BYTES};
 pub use mesh::{
@@ -95,7 +99,8 @@ pub use shader::{
     ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderOptionAsset,
     ShaderPipelineLayoutReadiness, ShaderReadinessReport, ShaderRuntimeSourceKind,
     ShaderRuntimeSourceReadiness, ShaderSourceFileAsset, ShaderSourceLanguage,
-    ShaderTextureSlotAsset, ZShaderComputeDocumentV2, ZShaderDocumentV2, ZShaderEntryPointDocument,
+    ShaderSurfaceSourceContract, ShaderSurfaceSourceContractError, ShaderTextureSlotAsset,
+    ZShaderComputeDocumentV2, ZShaderDocumentV2, ZShaderEntryPointDocument,
     ZShaderFullscreenDocumentV2, ZShaderImportDocument, ZShaderIncludeDocumentV2,
     ZShaderOptionDocument, ZShaderSurfaceDocumentV2, ZShaderTextureSlotDocument, ZShaderV2Error,
     ZShaderV2Result,
@@ -105,24 +110,31 @@ pub use sprite_atlas::{
     validate_sprite_atlas_asset, SpriteAtlasAsset, SpriteAtlasEntry, SpriteAtlasPadding,
     SpriteAtlasRect, SpriteAtlasUvRect, SpriteAtlasValidationError,
 };
+pub(crate) use texture::decode_external_source_cubemap_texels;
 pub use texture::{
-    decode_external_source_cubemap, decode_ibl_pmrem_rgba16f_texture,
+    build_decoded_rgba8_texture, decode_external_source_cubemap, decode_ibl_pmrem_rgba16f_texture,
     decode_zcube_source_cubemap_bytes, decode_zcube_source_cubemap_texture,
+    encode_source_cubemap_zcube_rgba16f_mips, encode_source_cubemap_zcube_rgba16f_mips_owned,
     external_source_cubemap_container_info, is_external_source_cubemap_container,
-    is_ibl_pmrem_rgba16f_texture, is_zcube_source_cubemap_texture, texture_asset_from_array_layers,
+    is_ibl_pmrem_rgba16f_texture, is_zcube_source_cubemap_bytes, is_zcube_source_cubemap_texture,
+    normalize_texture_normal_map_convention, texture_asset_from_array_layers,
     texture_asset_from_cube_lut, texture_asset_from_cubemap_faces,
-    texture_asset_from_ibl_bake_artifact_pmrem, texture_asset_from_lightmap_bake_output,
-    texture_asset_from_source_cubemap_zcube, CubeLutParseError, CubemapAsset, CubemapAssetError,
-    CubemapSourceLayout, ExternalSourceCubemapContainerError, ExternalSourceCubemapContainerInfo,
-    ExternalSourceCubemapContainerKind, ExternalSourceCubemapDecodeError, IblPmremTextureError,
-    Texture2DArrayAsset, Texture2DArrayAssetError, TextureArrayLayerSource, TextureArrayLayout,
-    TextureAsset, TextureAssetDescriptor, TextureDescriptorError, TextureDescriptorResult,
-    TexturePayload, TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    TextureUploadSupport, ZcubeSourceCubemap, ZcubeSourceCubemapError, CUBEMAP_FACE_COUNT,
-    EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON, IBL_PMREM_RGBA16F_FORMAT,
-    IBL_PMREM_RGBA16F_GPU_FORMAT, LIGHTMAP_RGBA16F_FORMAT, LIGHTMAP_RGBA16F_GPU_FORMAT,
-    RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, ZCUBE_SOURCE_CUBEMAP_FORMAT,
-    ZCUBE_SOURCE_CUBEMAP_GPU_FORMAT, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,
+    texture_asset_from_encoded_source_cubemap_zcube, texture_asset_from_ibl_bake_artifact_pmrem,
+    texture_asset_from_lightmap_bake_output, texture_asset_from_source_cubemap_zcube,
+    texture_asset_from_source_cubemap_zcube_rgba16f_mips, zcube_source_cubemap_texture_info,
+    CubeLutParseError, CubemapAsset, CubemapAssetError, CubemapSourceLayout,
+    DecodedRgba8TextureBuildError, ExternalSourceCubemapContainerError,
+    ExternalSourceCubemapContainerInfo, ExternalSourceCubemapContainerKind,
+    ExternalSourceCubemapDecodeError, IblPmremTextureError, Texture2DArrayAsset,
+    Texture2DArrayAssetError, TextureArrayLayerSource, TextureArrayLayout, TextureAsset,
+    TextureAssetDescriptor, TextureDescriptorError, TextureDescriptorResult,
+    TextureNormalConventionError, TexturePayload, TextureUploadCompressionFamily,
+    TextureUploadPlan, TextureUploadReadiness, TextureUploadSupport, ZcubeSourceCubemap,
+    ZcubeSourceCubemapError, ZcubeSourceCubemapInfo, CUBEMAP_FACE_COUNT,
+    DECODED_RGBA8_TEXTURE_BUILD_VERSION, EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON,
+    IBL_PMREM_RGBA16F_FORMAT, IBL_PMREM_RGBA16F_GPU_FORMAT, LIGHTMAP_RGBA16F_FORMAT,
+    LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    ZCUBE_SOURCE_CUBEMAP_FORMAT, ZCUBE_SOURCE_CUBEMAP_GPU_FORMAT, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,
 };
 pub use ui::{
     ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiAssetDocumentResult,

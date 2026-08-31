@@ -7,7 +7,9 @@ use zircon_runtime::asset::project::ProjectManager;
 
 use super::budget::{UiAssetWatchBudget, UiAssetWatchPollAllowance};
 use super::diagnostics::{UiAssetWorkspaceWatchDiagnostics, UiAssetWorkspaceWatchPollReport};
-use super::ingress::{UiAssetWatchIngressHandle, UiAssetWatchIngressSnapshot};
+use super::ingress::{
+    UiAssetWatchIngressHandle, UiAssetWatchIngressSnapshot, UiAssetWatchPendingPath,
+};
 use super::path_identity::asset_id_for_watched_path;
 use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
@@ -107,8 +109,7 @@ impl UiAssetWorkspaceWatcher {
         let mut iterator = drained.into_iter();
         while let Some(pending) = iterator.next() {
             if !allowance.try_take() {
-                unprocessed.push(pending);
-                unprocessed.extend(iterator);
+                unprocessed = collect_deferred_paths(pending, iterator);
                 break;
             }
             if let Some(asset_id) = asset_id_for_watched_path(&self.asset_roots, &pending.path) {
@@ -172,3 +173,17 @@ impl UiAssetWorkspaceWatcher {
         self.ingress.record_paths(paths);
     }
 }
+
+fn collect_deferred_paths(
+    first: UiAssetWatchPendingPath,
+    remaining: std::vec::IntoIter<UiAssetWatchPendingPath>,
+) -> Vec<UiAssetWatchPendingPath> {
+    let mut deferred = Vec::with_capacity(remaining.len().saturating_add(1));
+    deferred.push(first);
+    deferred.extend(remaining);
+    deferred
+}
+
+#[cfg(test)]
+#[path = "service/deferred_capacity_tests.rs"]
+mod deferred_capacity_tests;

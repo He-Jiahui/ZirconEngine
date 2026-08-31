@@ -22,7 +22,7 @@ doc_type: module-detail
 
 # Host Chrome Presenter Trait
 
-`presenter/host_chrome_presenter.rs` owns the neutral presenter trait boundary used by native editor windows. The trait exposes resize, present, and diagnostics-snapshot operations without binding callers to the GPU or softbuffer backend.
+`presenter/host_chrome_presenter.rs` owns the neutral presenter trait boundary used by native editor windows. The trait exposes resize, ordinary present, interactive native-resize present, and diagnostics-snapshot operations without binding callers to the GPU or softbuffer backend. The native-resize method has a conservative full-present default; concrete backends may override it only when they preserve a frozen transaction snapshot and force an ordinary fresh present after resize reflow commits.
 
 `presenter/host_chrome_presenter/tests.rs` owns the trait-object regression that proves a boxed backend can receive resize/present calls and merge invalidation diagnostics into refresh diagnostics. Keeping this regression outside the trait file keeps the production boundary declarative while preserving test access to private host-contract types.
 

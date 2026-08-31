@@ -222,10 +222,12 @@ fn export_render17_pfm1_render_graph_cold_warm_wgpu_png() {
             .map(String::as_str)
             .collect::<Vec<_>>(),
     );
-    assert!(profile
-        .passes
-        .iter()
-        .all(|pass| graph_dump.contains(&pass.pass_name)));
+    assert!(
+        profile
+            .passes
+            .iter()
+            .all(|pass| graph_dump.contains(&pass.pass_name))
+    );
     assert_terminal_signal_covers_frame(&frame);
     assert_terminal_signal_has_chromatic_content(
         &frame,
@@ -322,6 +324,62 @@ fn assert_capture_profile_observability(
         "Render17 {phase} evidence must distinguish eligible from executed parallel buckets"
     );
 
+    let mesh_submission = &profile.mesh_submission;
+    assert_eq!(
+        (
+            mesh_submission.draw_count,
+            mesh_submission.command_count,
+            mesh_submission.opaque_command_count,
+            mesh_submission.advanced_pbr_opaque_command_count,
+            mesh_submission.cached_command_hit_count,
+            mesh_submission.command_rebuild_count,
+            mesh_submission.static_command_cache_skipped_draw_count,
+            mesh_submission.static_command_cache_visibility_pruned_draw_count,
+            mesh_submission.indirect_batch_count,
+            mesh_submission.indirect_batched_draw_count,
+            mesh_submission.indirect_fallback_draw_count,
+            mesh_submission.replay_state_change_count,
+            mesh_submission.replay_bind_skip_count,
+        ),
+        (
+            stats.last_mesh_draw_count.min(u32::MAX as usize) as u32,
+            stats.last_mesh_command_count.min(u32::MAX as usize) as u32,
+            stats.last_mesh_opaque_command_count.min(u32::MAX as usize) as u32,
+            stats
+                .last_mesh_advanced_pbr_opaque_command_count
+                .min(u32::MAX as usize) as u32,
+            stats
+                .last_mesh_cached_command_hit_count
+                .min(u32::MAX as usize) as u32,
+            stats.last_mesh_command_rebuild_count.min(u32::MAX as usize) as u32,
+            stats
+                .last_mesh_pre_mesh_draw_static_command_cache_skipped_draw_count
+                .min(u32::MAX as usize) as u32,
+            stats
+                .last_mesh_pre_mesh_draw_static_command_cache_visibility_pruned_draw_count
+                .min(u32::MAX as usize) as u32,
+            stats.last_indirect_batch_count.min(u32::MAX as usize) as u32,
+            stats
+                .last_indirect_batched_draw_count
+                .min(u32::MAX as usize) as u32,
+            stats
+                .last_indirect_fallback_draw_count
+                .min(u32::MAX as usize) as u32,
+            stats
+                .last_mesh_replay_state_change_count
+                .min(u32::MAX as usize) as u32,
+            stats
+                .last_mesh_replay_bind_skip_count
+                .min(u32::MAX as usize) as u32,
+        ),
+        "Render17 {phase} evidence must retain same-frame mesh cache, indirect, and replay metrics"
+    );
+    assert_eq!(
+        mesh_submission.indirect_workspace_uploaded_bytes,
+        stats.last_indirect_workspace_uploaded_byte_count,
+        "Render17 {phase} evidence must retain same-frame indirect workspace upload bytes"
+    );
+
     let recorded_passes = &stats.last_graph_execution_profile_report.pass_profiles;
     assert_eq!(
         profile.passes.len(),
@@ -339,7 +397,7 @@ fn assert_capture_profile_observability(
     }
 }
 
-const RENDER17_CAPTURE_EVIDENCE_SCHEMA_VERSION: u32 = 2;
+const RENDER17_CAPTURE_EVIDENCE_SCHEMA_VERSION: u32 = 3;
 
 #[derive(Serialize)]
 struct Render17CaptureEvidence {
@@ -366,6 +424,10 @@ struct Render17CaptureFrameEvidence {
     readback_bytes: u64,
     transient_texture_pool_created_count: usize,
     transient_texture_pool_reused_count: usize,
+    persistent_texture_pool_request_count: usize,
+    persistent_texture_pool_requested_bytes: u64,
+    persistent_texture_pool_created_count: usize,
+    persistent_texture_pool_reused_count: usize,
     transient_buffer_pool_created_count: usize,
     transient_buffer_pool_reused_count: usize,
     frame_profile: RenderFrameProfile,
@@ -433,6 +495,11 @@ impl Render17CaptureFrameEvidence {
             readback_bytes: stats.last_readback_bytes,
             transient_texture_pool_created_count: transient_pool.texture_created_count,
             transient_texture_pool_reused_count: transient_pool.texture_reused_count,
+            persistent_texture_pool_request_count: transient_pool.persistent_texture_request_count,
+            persistent_texture_pool_requested_bytes: transient_pool
+                .persistent_texture_requested_bytes,
+            persistent_texture_pool_created_count: transient_pool.persistent_texture_created_count,
+            persistent_texture_pool_reused_count: transient_pool.persistent_texture_reused_count,
             transient_buffer_pool_created_count: transient_pool.buffer_created_count,
             transient_buffer_pool_reused_count: transient_pool.buffer_reused_count,
             frame_profile: profile.clone(),

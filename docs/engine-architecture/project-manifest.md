@@ -52,11 +52,13 @@ doc_type: module-detail
 
 `zircon-project.toml` is the shared project-identity authority for runtime, editor launch flow, and Zircon Hub. The runtime owns the complete business document, while `zircon_runtime_interface::project` owns neutral path and summary contracts so Hub can inspect a project without depending on `zircon_runtime`.
 
+Data-only preflight derives `ProjectIdentity = CanonicalDescriptorIdentity + ProjectGuid + ProjectManifestDigest` only from a current v3 document. `CanonicalDescriptorIdentity` carries the physical canonical descriptor path, never a UI display string, and rejects relative or dot-segment paths both at construction and deserialization. Legacy migration candidates keep only their canonical descriptor and migration decision; they have no admission identity.
+
 ## Version Model
 
-Manifest format version 2 is the only format written. `format_version` describes the TOML document structure. `library_version` is a separate business value describing generated asset-library contents; its historical `schema_version` input alias does not change the structural version.
+Manifest format version 3 is the only format written. `format_version` describes the TOML document structure, while the required non-nil `project_guid` is the persistent project identity. `library_version` is a separate business value describing generated asset-library contents.
 
-Readers convert TOML into `serde_json::Value`, determine the source `format_version`, and pass that value through the shared serialization `MigrationChain`. The complete `0..2` chain is validated even when the input is already current. Version 0 is explicitly unsupported, version 1 is migrated by inserting the v2 defaults, and versions newer than 2 are rejected. There is no v1 Rust manifest structure, compatibility module, or alternate migration executor.
+Readers convert TOML into `serde_json::Value`, determine the source `format_version`, and pass that value through the shared serialization `MigrationChain`. The complete `0..3` chain is validated even when the input is already current. Version 0 is explicitly unsupported, v1 adds the v2 structural defaults, v2 is raised to v3 for a data-only migration receipt, and versions newer than 3 are rejected. There is no v1/v2 Rust manifest structure, `schema_version` alias, compatibility module, or alternate migration executor.
 
 The v1 to v2 value migration sets:
 
@@ -65,13 +67,13 @@ The v1 to v2 value migration sets:
 - `asset_roots = ["assets"]` when absent;
 - `settings = null` when absent.
 
-`ProjectManifest::load_with_report` and `ProjectManifestSummary::parse_toml_*` return `Loaded<T>` and report `migrated_from = Some(1)` for real v1 input. Ordinary runtime load projects the migrated current value into `ProjectManifest`. Save clones the current value, forces structural version 2, validates roots, and emits stable pretty TOML.
+The v2 to v3 value migration only raises `format_version`; it never invents a project identity. `ProjectManifestSummary::parse_toml_*` returns `Loaded<T>` and reports `migrated_from = Some(1 | 2)` for legacy input so preflight can present an explicit conversion decision. `ProjectManifest::load_with_report` rejects every migration receipt with `MigrationRequired`; runtime never projects a legacy document into `ProjectManifest`. Save clones a current manifest, preserves its non-nil `project_guid`, forces structural version 3, validates roots, and emits stable pretty TOML.
 
 ## Shared Summary Boundary
 
-`ProjectManifestSummary` contains only `name`, optional `engine_version_req`, textual `default_scene`, and `format_version`. Its parser validates UTF-8, TOML syntax, summary field shapes, library-version shape, safe project-root/settings paths, and `engine_version_req` with `semver::VersionReq`. Invalid requirements retain the original value and `semver::Error` source. Runtime projection and interface parsing use the same repository fixture and are contract-tested for equality.
+`ProjectManifestSummary` contains `name`, optional `engine_version_req`, textual `default_scene`, `format_version`, and optional `project_guid`. The GUID is optional only so old manifests can be identified for explicit migration; a current v3 summary without one is invalid. Its parser validates UTF-8, TOML syntax, summary field shapes, library-version shape, safe project-root/settings paths, and `engine_version_req` with `semver::VersionReq`. Invalid requirements retain the original value and `semver::Error` source. Runtime projection and interface parsing use the same v3 repository fixture and are contract-tested for equality.
 
-Hub project validation now uses this summary parser. Consequently, syntactically valid TOML with a malformed project shape or a future format version is not considered a valid project. Hub project creation writes v2 with an explicit `asset_roots = ["assets"]` declaration.
+Hub project validation now uses this summary parser. Consequently, syntactically valid TOML with a malformed project shape, missing current GUID, or a future format version is not considered a current project. Hub and Editor project creation render v3 with a fresh persisted `project_guid` and an explicit `asset_roots = ["assets"]` declaration.
 
 ## Asset Root Authority
 
@@ -91,8 +93,4 @@ Asset GUID/reference graph work remains owned by Plan10 M2.
 
 ## Test Status
 
-The managed `zircon_runtime_interface` build and full test gate pass with 212 unit tests plus doc-tests. The first run exposed that the interface dependency allow-list had not yet registered `semver`; that current-plan failure was fixed and the complete gate reran green.
-
-Runtime production build completed, but the runtime lib-test target currently stops before Plan10 tests because Render 11 source-cubemap tests call a removed `source_texel` API. Hub production build also passes, while its integration suite stops before the Summary unit tests because a Hub 07 contract still calls retired `HubMessage::legacy`. Both failures are recorded in their owning plans; this document does not claim the Runtime/Hub behavior gates passed.
-
-The listed tests were added or updated as implementation contracts. Per the requested slice cadence, Cargo build and test commands were not run in this slice; milestone testing must execute the Plan10 M1 test matrix.
+The previously recorded interface, Runtime, and Hub command results predate the v3 hard cut and are historical evidence only; they do not validate this contract. The listed tests are implementation contracts. No Cargo build or test command has run for the v3 slice, so a coordinator-managed Windows matrix must rerun the interface, Runtime, Editor, Hub, and template-create paths before this boundary can be accepted.

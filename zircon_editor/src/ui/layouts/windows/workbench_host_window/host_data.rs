@@ -1,6 +1,7 @@
+use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use std::sync::Arc;
 
-use crate::ui::retained_host::primitives::{ModelRc, SharedString};
+use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
 use crate::ui::asset_editor::UiAssetEditorPanePresentation;
 use crate::ui::host::ExportWizardPanelViewModel;
@@ -57,6 +58,7 @@ pub(crate) struct FloatingWindowData {
     pub frame: FrameRect,
     pub header_nodes: ModelRc<ViewTemplateNodeData>,
     pub header_frame: FrameRect,
+    pub overflow_frame: FrameRect,
     pub tab_frames: ModelRc<HostChromeTabData>,
     pub target_group: SharedString,
     pub left_edge_target_group: SharedString,
@@ -149,17 +151,19 @@ pub(crate) struct InspectorPluginComponentPropertyViewData {
 #[derive(Clone, Default)]
 pub(crate) struct ConsolePaneViewData {
     pub nodes: ModelRc<ViewTemplateNodeData>,
-    pub status_text: Arc<str>,
+    pub output: crate::ui::workbench::snapshot::ConsoleOutputSnapshot,
 }
 
 #[derive(Clone, Default)]
 pub(crate) struct AssetsActivityPaneViewData {
     pub nodes: ModelRc<ViewTemplateNodeData>,
+    pub render_source_frame: Option<Arc<UiSurfaceFrame>>,
 }
 
 #[derive(Clone, Default)]
 pub(crate) struct AssetBrowserPaneViewData {
     pub nodes: ModelRc<ViewTemplateNodeData>,
+    pub render_source_frame: Option<Arc<UiSurfaceFrame>>,
 }
 
 #[derive(Clone, Default)]
@@ -495,6 +499,7 @@ pub(crate) struct HostSideDockSurfaceData {
     pub rail_active_control_id: SharedString,
     pub header_nodes: ModelRc<ViewTemplateNodeData>,
     pub header_frame: FrameRect,
+    pub overflow_frame: FrameRect,
     pub content_frame: FrameRect,
     pub tab_frames: ModelRc<HostChromeTabData>,
     pub tabs: ModelRc<TabData>,
@@ -510,6 +515,7 @@ pub(crate) struct HostDocumentDockSurfaceData {
     pub surface_key: SharedString,
     pub header_nodes: ModelRc<ViewTemplateNodeData>,
     pub header_frame: FrameRect,
+    pub overflow_frame: FrameRect,
     pub subtitle_frame: FrameRect,
     pub content_frame: FrameRect,
     pub tab_frames: ModelRc<HostChromeTabData>,
@@ -524,6 +530,7 @@ pub(crate) struct HostBottomDockSurfaceData {
     pub surface_key: SharedString,
     pub header_nodes: ModelRc<ViewTemplateNodeData>,
     pub header_frame: FrameRect,
+    pub overflow_frame: FrameRect,
     pub content_frame: FrameRect,
     pub tab_frames: ModelRc<HostChromeTabData>,
     pub tabs: ModelRc<TabData>,

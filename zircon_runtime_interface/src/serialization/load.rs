@@ -10,18 +10,51 @@ use super::text::read::{inspect_text, TextInput, TextReadError};
 use super::text::wire::MAX_TEXT_DOCUMENT_BYTES;
 use super::{Format, LoadError, Loaded, VersionedSchema};
 
-/// Loads a versioned payload, treating an unwrapped text value as schema version zero.
+/// Loads a versioned payload and rejects text that lacks the reserved `$zircon` envelope.
 pub fn load_versioned<T>(bytes: &[u8], format: Format) -> Result<Loaded<T>, LoadError>
 where
     T: VersionedSchema + DeserializeOwned + 'static,
 {
     match format {
-        Format::Text => load_text_versioned(bytes),
+        Format::Text => load_text_versioned(bytes, UnversionedTextPolicy::Reject),
         Format::Binary => load_binary_versioned(bytes),
     }
 }
 
-fn load_text_versioned<T>(bytes: &[u8]) -> Result<Loaded<T>, LoadError>
+/// Explicit alias for profiles whose public contract requires a text envelope.
+pub fn load_versioned_envelope<T>(bytes: &[u8], format: Format) -> Result<Loaded<T>, LoadError>
+where
+    T: VersionedSchema + DeserializeOwned + 'static,
+{
+    load_versioned(bytes, format)
+}
+
+/// Loads a historical schema-zero text payload when no envelope is present.
+///
+/// Callers must opt into this only for schemas with an owned v0 migration policy.
+pub fn load_versioned_legacy_schema_zero<T>(
+    bytes: &[u8],
+    format: Format,
+) -> Result<Loaded<T>, LoadError>
+where
+    T: VersionedSchema + DeserializeOwned + 'static,
+{
+    match format {
+        Format::Text => load_text_versioned(bytes, UnversionedTextPolicy::AcceptSchemaZero),
+        Format::Binary => load_binary_versioned(bytes),
+    }
+}
+
+#[derive(Clone, Copy)]
+enum UnversionedTextPolicy {
+    AcceptSchemaZero,
+    Reject,
+}
+
+fn load_text_versioned<T>(
+    bytes: &[u8],
+    unversioned_policy: UnversionedTextPolicy,
+) -> Result<Loaded<T>, LoadError>
 where
     T: VersionedSchema + DeserializeOwned + 'static,
 {
@@ -32,7 +65,12 @@ where
         });
     }
     match inspect_text(bytes).map_err(text_read_error)? {
-        TextInput::Unversioned => load_schema_zero_text(bytes),
+        TextInput::Unversioned => match unversioned_policy {
+            UnversionedTextPolicy::AcceptSchemaZero => load_schema_zero_text(bytes),
+            UnversionedTextPolicy::Reject => Err(LoadError::MissingTextEnvelope {
+                schema_id: T::SCHEMA.as_str().to_string(),
+            }),
+        },
         TextInput::Envelope(envelope) => {
             validate_schema::<T>(&envelope.header.schema_id)?;
             validate_source_version::<T>(envelope.header.schema_version)?;

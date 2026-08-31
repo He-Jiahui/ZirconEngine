@@ -16,6 +16,16 @@ impl TextureSamplerCache {
         }
     }
 
+    pub(in crate::graphics::scene::resources) fn new_with_linear_clamp_sampler(
+        sampler: Arc<wgpu::Sampler>,
+    ) -> Self {
+        let mut samplers = HashMap::new();
+        samplers.insert(TextureSamplerKey::LINEAR_CLAMP, sampler);
+        Self {
+            samplers: Mutex::new(samplers),
+        }
+    }
+
     pub(in crate::graphics::scene::resources) fn sampler_for_image(
         &self,
         device: &wgpu::Device,
@@ -59,6 +69,16 @@ struct TextureSamplerKey {
 }
 
 impl TextureSamplerKey {
+    const LINEAR_CLAMP: Self = Self {
+        address_mode_u: address_mode_key(RenderSamplerAddressMode::ClampToEdge),
+        address_mode_v: address_mode_key(RenderSamplerAddressMode::ClampToEdge),
+        address_mode_w: address_mode_key(RenderSamplerAddressMode::ClampToEdge),
+        mag_filter: filter_key(RenderSamplerFilter::Linear),
+        min_filter: filter_key(RenderSamplerFilter::Linear),
+        mipmap_filter: filter_key(RenderSamplerFilter::Linear),
+        anisotropy_clamp: 1,
+    };
+
     fn from_image_descriptor(descriptor: &RenderImageDescriptor, max_anisotropy: u8) -> Self {
         let sampler = &descriptor.sampler;
         Self {
@@ -133,7 +153,7 @@ const fn normalize_anisotropy_cap(max_anisotropy: u8) -> u8 {
     }
 }
 
-fn address_mode_key(mode: RenderSamplerAddressMode) -> u8 {
+const fn address_mode_key(mode: RenderSamplerAddressMode) -> u8 {
     match mode {
         RenderSamplerAddressMode::ClampToEdge => 0,
         RenderSamplerAddressMode::Repeat => 1,
@@ -141,7 +161,7 @@ fn address_mode_key(mode: RenderSamplerAddressMode) -> u8 {
     }
 }
 
-fn filter_key(filter: RenderSamplerFilter) -> u8 {
+const fn filter_key(filter: RenderSamplerFilter) -> u8 {
     match filter {
         RenderSamplerFilter::Nearest => 0,
         RenderSamplerFilter::Linear => 1,
@@ -269,6 +289,14 @@ mod tests {
         assert_eq!(
             TextureSamplerKey::from_image_descriptor(&descriptor, 16),
             TextureSamplerKey::from_image_descriptor(&descriptor, 1)
+        );
+    }
+
+    #[test]
+    fn default_image_descriptor_matches_the_generation_linear_clamp_key() {
+        assert_eq!(
+            TextureSamplerKey::from_image_descriptor(&test_descriptor(), 16),
+            TextureSamplerKey::LINEAR_CLAMP
         );
     }
 }

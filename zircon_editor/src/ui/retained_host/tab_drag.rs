@@ -11,6 +11,7 @@ mod tab_width;
 pub use group::HostDragTargetGroup;
 pub(crate) use group::{
     floating_window_edge_group_key, floating_window_group_key, host_shell_pointer_route_group_key,
+    host_shell_pointer_route_matches_group_key,
 };
 pub(crate) use resolved_drop::{ResolvedHostTabDropRoute, ResolvedHostTabDropTarget};
 pub(crate) use route_resolution::resolve_host_tab_drop_route_with_workbench_layout_frames;

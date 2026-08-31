@@ -8,6 +8,7 @@ use crate::ui::workbench::snapshot::{SceneEntries, SceneInspectionHierarchyFragm
 use super::{
     componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge,
     error::BuiltinHostWindowTemplateBridgeError,
+    scene_hierarchy_projection::SceneHierarchyLogicalRowPatch,
 };
 
 const TREE_ROW_INDENT_STEP: f64 = 20.0;
@@ -18,6 +19,7 @@ const SCENE_SUBTREE_HASH: &str = "scene_subtree_hash";
 pub(crate) enum SceneHierarchyFragmentApply {
     Applied {
         changed_control_ids: Vec<String>,
+        logical_row_patches: Vec<SceneHierarchyLogicalRowPatch>,
         reflowed: bool,
     },
     SelectionResyncRequired,
@@ -32,9 +34,9 @@ impl SceneHierarchyFragmentApply {
     pub(crate) fn updated_rows(&self) -> usize {
         match self {
             Self::Applied {
-                changed_control_ids,
+                logical_row_patches,
                 ..
-            } => changed_control_ids.len(),
+            } => logical_row_patches.len(),
             Self::SelectionResyncRequired | Self::ResyncRequired => 0,
         }
     }
@@ -56,9 +58,23 @@ impl SceneHierarchyFragmentApply {
             Self::SelectionResyncRequired | Self::ResyncRequired => &[],
         }
     }
+
+    pub(crate) fn logical_row_patches(&self) -> &[SceneHierarchyLogicalRowPatch] {
+        match self {
+            Self::Applied {
+                logical_row_patches,
+                ..
+            } => logical_row_patches,
+            Self::SelectionResyncRequired | Self::ResyncRequired => &[],
+        }
+    }
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    pub(crate) fn invalidate_scene_hierarchy_projection(&mut self) {
+        self.scene_hierarchy_projection = Default::default();
+    }
+
     /// Applies an O(Delta) hierarchy patch. Complete rows are accepted only by
     /// `resync_scene_hierarchy`, which is invoked explicitly for a reflow.
     pub(crate) fn apply_scene_hierarchy_fragment(
@@ -116,20 +132,26 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         }
 
         let mut changed_controls = BTreeSet::new();
+        let selection_changed_entities = message
+            .selection()
+            .added_entities()
+            .iter()
+            .copied()
+            .chain(message.selection().removed_entities().iter().copied())
+            .collect::<BTreeSet<_>>();
         for row in changed_rows {
-            let Some(control_id) = self
+            let control_id = self
                 .scene_hierarchy_projection
                 .control_for(row.entity)
-                .map(str::to_string)
-            else {
-                return Ok(SceneHierarchyFragmentApply::ResyncRequired);
-            };
-            self.sync_scene_row(
-                &control_id,
-                row,
-                self.scene_hierarchy_projection.is_selected(row.entity),
-            )?;
-            changed_controls.insert(control_id);
+                .map(str::to_string);
+            if let Some(control_id) = control_id {
+                self.sync_scene_row(
+                    &control_id,
+                    row,
+                    self.scene_hierarchy_projection.is_selected(row.entity),
+                )?;
+                changed_controls.insert(control_id);
+            }
         }
         let selection_applied = selection_already_current
             || self.apply_selection_delta(message, &mut changed_controls)?;
@@ -143,6 +165,26 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         if !selection_already_current {
             self.commit_selection_delta(message);
         }
+        for row in changed_rows {
+            self.scene_hierarchy_projection.patch_row(row);
+        }
+        let changed_row_entities = changed_rows
+            .iter()
+            .map(|row| row.entity)
+            .collect::<BTreeSet<_>>();
+        let mut logical_row_patches = changed_rows
+            .iter()
+            .filter_map(|row| self.scene_hierarchy_projection.logical_content_patch(row))
+            .collect::<Vec<_>>();
+        logical_row_patches.extend(
+            selection_changed_entities
+                .difference(&changed_row_entities)
+                .filter_map(|entity| {
+                    self.scene_hierarchy_projection
+                        .logical_selection_patch(*entity)
+                }),
+        );
+        logical_row_patches.sort_unstable_by_key(SceneHierarchyLogicalRowPatch::row_index);
         self.scene_hierarchy_projection
             .replace_generation(Some(message.generation()));
         self.scene_hierarchy_projection
@@ -150,7 +192,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         zircon_runtime::profile_counter!(
             "editor",
             "scene_inspection_hierarchy_fragment_updated_rows",
-            changed_controls.len()
+            logical_row_patches.len()
         );
         zircon_runtime::profile_counter!(
             "editor",
@@ -159,6 +201,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         );
         Ok(SceneHierarchyFragmentApply::Applied {
             changed_control_ids: changed_controls.into_iter().collect(),
+            logical_row_patches,
             reflowed: false,
         })
     }
@@ -169,26 +212,30 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         changed_controls: &mut BTreeSet<String>,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
         for entity in message.selection().removed_entities() {
-            let Some(control_id) = self
+            if !self.scene_hierarchy_projection.contains_entity(*entity) {
+                return Ok(false);
+            }
+            if let Some(control_id) = self
                 .scene_hierarchy_projection
                 .control_for(*entity)
                 .map(str::to_string)
-            else {
-                return Ok(false);
-            };
-            self.set_selected(&control_id, false)?;
-            changed_controls.insert(control_id);
+            {
+                self.set_selected(&control_id, false)?;
+                changed_controls.insert(control_id);
+            }
         }
         for entity in message.selection().added_entities() {
-            let Some(control_id) = self
+            if !self.scene_hierarchy_projection.contains_entity(*entity) {
+                return Ok(false);
+            }
+            if let Some(control_id) = self
                 .scene_hierarchy_projection
                 .control_for(*entity)
                 .map(str::to_string)
-            else {
-                return Ok(false);
-            };
-            self.set_selected(&control_id, true)?;
-            changed_controls.insert(control_id);
+            {
+                self.set_selected(&control_id, true)?;
+                changed_controls.insert(control_id);
+            }
         }
         Ok(true)
     }
@@ -221,33 +268,32 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .difference(self.scene_hierarchy_projection.selected_entities())
             .copied()
             .collect::<Vec<_>>();
-        let removed_controls = removed_entities
+        if removed_entities
             .iter()
-            .map(|entity| {
-                self.scene_hierarchy_projection
-                    .control_for(*entity)
-                    .map(str::to_string)
-            })
-            .collect::<Option<Vec<_>>>();
-        let added_controls = added_entities
-            .iter()
-            .map(|entity| {
-                self.scene_hierarchy_projection
-                    .control_for(*entity)
-                    .map(str::to_string)
-            })
-            .collect::<Option<Vec<_>>>();
-        let (Some(removed_controls), Some(added_controls)) = (removed_controls, added_controls)
-        else {
+            .chain(&added_entities)
+            .any(|entity| !self.scene_hierarchy_projection.contains_entity(*entity))
+        {
             return Ok(None);
-        };
-        for control_id in removed_controls {
-            self.set_selected(&control_id, false)?;
-            changed_controls.insert(control_id);
         }
-        for control_id in added_controls {
-            self.set_selected(&control_id, true)?;
-            changed_controls.insert(control_id);
+        for entity in removed_entities {
+            if let Some(control_id) = self
+                .scene_hierarchy_projection
+                .control_for(entity)
+                .map(str::to_string)
+            {
+                self.set_selected(&control_id, false)?;
+                changed_controls.insert(control_id);
+            }
+        }
+        for entity in added_entities {
+            if let Some(control_id) = self
+                .scene_hierarchy_projection
+                .control_for(entity)
+                .map(str::to_string)
+            {
+                self.set_selected(&control_id, true)?;
+                changed_controls.insert(control_id);
+            }
         }
         Ok(Some(selected_entities))
     }
@@ -292,14 +338,20 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         selected_entities: &[EntityId],
     ) -> Result<SceneHierarchyFragmentApply, BuiltinHostWindowTemplateBridgeError> {
         zircon_runtime::profile_scope!("editor", "scene_inspection", "selection_overlay_resync");
-        if !selected_entities.iter().all(|entity| {
-            self.scene_hierarchy_projection
-                .control_for(*entity)
-                .is_some()
-        }) {
+        if !selected_entities
+            .iter()
+            .all(|entity| self.scene_hierarchy_projection.contains_entity(*entity))
+        {
             return Ok(SceneHierarchyFragmentApply::ResyncRequired);
         }
         let mut changed_controls = BTreeSet::new();
+        let next_selected_entities = selected_entities.iter().copied().collect::<BTreeSet<_>>();
+        let changed_entities = self
+            .scene_hierarchy_projection
+            .selected_entities()
+            .symmetric_difference(&next_selected_entities)
+            .copied()
+            .collect::<Vec<_>>();
         let Some(selected_entities) =
             self.apply_selection_snapshot(selected_entities, &mut changed_controls)?
         else {
@@ -314,6 +366,13 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .replace_selected_entities(selected_entities);
         self.scene_hierarchy_projection
             .replace_selection_revision(Some(selection_revision));
+        let logical_row_patches = changed_entities
+            .into_iter()
+            .filter_map(|entity| {
+                self.scene_hierarchy_projection
+                    .logical_selection_patch(entity)
+            })
+            .collect();
         zircon_runtime::profile_counter!(
             "editor",
             "scene_inspection_hierarchy_selection_resync_entities",
@@ -321,6 +380,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         );
         Ok(SceneHierarchyFragmentApply::Applied {
             changed_control_ids: changed_controls.into_iter().collect(),
+            logical_row_patches,
             reflowed: false,
         })
     }
@@ -352,13 +412,18 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     fn patch_rows_match_current_projection(&self, rows: &[WorldInspectionHierarchyRow]) -> bool {
         rows.iter().all(|row| {
-            let Some(control_id) = self.scene_hierarchy_projection.control_for(row.entity) else {
-                return false;
-            };
-            self.control_integer(control_id, "scene_node_id") == Some(scene_node_id(row.entity))
-                && self.control_integer(control_id, "tree_depth") == Some(row.depth as i64)
-                && self.control_string(control_id, SCENE_PARENT_ID)
-                    == Some(scene_parent_id(row.parent))
+            self.scene_hierarchy_projection.row_identity_matches(row)
+                && self
+                    .scene_hierarchy_projection
+                    .control_for(row.entity)
+                    .is_none_or(|control_id| {
+                        self.control_integer(control_id, "scene_node_id")
+                            == Some(scene_node_id(row.entity))
+                            && self.control_integer(control_id, "tree_depth")
+                                == Some(row.depth as i64)
+                            && self.control_string(control_id, SCENE_PARENT_ID)
+                                == Some(scene_parent_id(row.parent))
+                    })
         })
     }
 
@@ -371,11 +436,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .added_entities()
             .iter()
             .chain(message.selection().removed_entities())
-            .all(|entity| {
-                self.scene_hierarchy_projection
-                    .control_for(*entity)
-                    .is_some()
-            })
+            .all(|entity| self.scene_hierarchy_projection.contains_entity(*entity))
     }
 
     fn sync_scene_row(

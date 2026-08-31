@@ -21,7 +21,7 @@ pub(super) fn next_menu_popup_stack_level(
     selected_index: usize,
     level: usize,
 ) -> Option<MenuPopupStackLevel> {
-    let branch = items.row_data(selected_index)?;
+    let branch = items.get(selected_index)?;
     if branch.children.row_count() == 0 {
         return None;
     }

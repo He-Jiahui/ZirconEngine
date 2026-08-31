@@ -15,9 +15,9 @@ related_code:
   - zircon_hub/src/process/editor_focus/probe.rs
   - zircon_hub/src/projects/shared_recent_projects.rs
   - zircon_runtime_interface/src/buffer.rs
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
-  - zircon_runtime_interface/src/runtime_api/operation.rs
-  - zircon_runtime_interface/src/runtime_api/highlight_set.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/session/operation.rs
+  - zircon_runtime_interface/src/runtime_api/frame/highlight_set.rs
   - zircon_runtime_host/src/foreign_output/state.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/bounded_json.rs

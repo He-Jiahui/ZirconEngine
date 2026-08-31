@@ -1,7 +1,12 @@
 use super::*;
 
+#[derive(Debug, PartialEq, Eq)]
+struct StartupWorldSentinel(u32);
+
+impl zircon_runtime::scene::ecs::Component for StartupWorldSentinel {}
+
 #[test]
-fn startup_session_defaults_to_component_showcase_without_recent_project() {
+fn startup_session_defaults_to_the_project_chooser_without_recent_project() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_startup_welcome");
     let runtime = editor_runtime_with_config_path(&path);
@@ -12,22 +17,19 @@ fn startup_session_defaults_to_component_showcase_without_recent_project() {
     let session = manager.resolve_startup_session().unwrap();
 
     assert_eq!(session.mode, EditorSessionMode::Welcome);
-    assert_eq!(
-        session.open_builtin_view.as_deref(),
-        Some("editor.ui_component_showcase")
-    );
+    assert!(session.open_builtin_view.is_none());
     assert!(session.project.is_none());
     assert!(session.recent_projects.is_empty());
     assert_eq!(session.draft.project_name, "ZirconProject");
     assert_eq!(session.draft.template, NewProjectTemplate::RenderableEmpty);
-    assert_eq!(session.status_message, "Opened UI Component Showcase");
+    assert_eq!(session.status_message, "Select a project to open.");
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
 }
 
 #[test]
-fn create_project_and_open_persists_recent_project_and_returns_project_session() {
+fn startup_session_keeps_valid_recent_projects_in_the_chooser() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_startup_recent");
     let location = unique_temp_dir("zircon_editor_welcome_recent");
@@ -52,20 +54,15 @@ fn create_project_and_open_persists_recent_project_and_returns_project_session()
     assert_eq!(recent.len(), 1);
     assert_eq!(recent[0].summary.name, "RecentProject");
     assert_eq!(recent[0].validation, RecentProjectValidation::Valid);
-    assert_eq!(default_startup.mode, EditorSessionMode::Project);
-    assert!(default_startup.project.is_some());
+    assert_eq!(default_startup.mode, EditorSessionMode::Welcome);
+    assert!(default_startup.project.is_none());
     assert!(default_startup.open_builtin_view.is_none());
     assert_eq!(default_startup.recent_projects.len(), 1);
     assert_eq!(
         default_startup.recent_projects[0].validation,
         RecentProjectValidation::Valid
     );
-    assert!(default_startup
-        .status_message
-        .contains("Restored recent project"));
-    assert!(default_startup
-        .status_message
-        .contains("RecentProject (scene="));
+    assert_eq!(default_startup.status_message, "Select a project to open.");
     assert!(opened
         .status_message
         .contains("scene=res://scenes/main.scene.toml"));
@@ -95,7 +92,9 @@ fn manifest_recent_path_is_normalized_by_the_shared_registry_owner() {
     let recent = manager.recent_projects_snapshot().unwrap();
     let project_root = project_root.to_string_lossy().into_owned();
 
-    assert_eq!(restored.mode, EditorSessionMode::Project);
+    assert_eq!(restored.mode, EditorSessionMode::Welcome);
+    assert!(restored.project.is_none());
+    assert!(restored.open_builtin_view.is_none());
     assert_eq!(restored.recent_projects.len(), 1);
     assert_eq!(restored.recent_projects[0].path, project_root);
     assert_eq!(recent.len(), 1);
@@ -107,7 +106,7 @@ fn manifest_recent_path_is_normalized_by_the_shared_registry_owner() {
 }
 
 #[test]
-fn explicit_project_open_session_bypasses_component_showcase_builtin_view() {
+fn explicit_project_open_session_returns_a_project_session() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_startup_project_open");
     let project_root = unique_temp_dir("zircon_editor_explicit_project_open");
@@ -128,6 +127,52 @@ fn explicit_project_open_session_bypasses_component_showcase_builtin_view() {
     assert_eq!(
         opened.recent_projects[0].validation,
         RecentProjectValidation::Valid
+    );
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
+}
+
+#[test]
+fn startup_state_consumes_the_project_world_without_clone_policy_loss() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_startup_single_consume");
+    let project_root = unique_temp_dir("zircon_editor_startup_single_consume_project");
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    create_project_with_default_world(&project_root);
+
+    let mut session = manager.open_project_and_remember(&project_root).unwrap();
+    let sentinel_entity = session
+        .project
+        .as_mut()
+        .expect("project session must carry the prepared world")
+        .world
+        .spawn((StartupWorldSentinel(42),))
+        .unwrap();
+
+    let state = crate::ui::retained_host::build_startup_state(
+        manager.as_ref(),
+        &mut session,
+        zircon_runtime_interface::math::UVec2::new(1280, 720),
+    )
+    .unwrap();
+
+    assert!(
+        session.project.is_none(),
+        "the retained startup session must not keep a second project world"
+    );
+    assert_eq!(
+        state.world.expect_with_world(|world| {
+            world
+                .get::<StartupWorldSentinel>(sentinel_entity)
+                .map(|sentinel| sentinel.0)
+        }),
+        Some(42),
+        "startup must move the prepared world instead of rebuilding it through World::clone"
     );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -213,7 +258,10 @@ fn project_open_with_corrupt_workspace_falls_back_to_global_layout_with_diagnost
     config
         .set_value(
             "editor.workbench.default_layout",
-            serde_json::to_value(&custom_layout).unwrap(),
+            crate::ui::workbench::layout_persistence_document::encode_default_layout_value(
+                custom_layout.clone(),
+            )
+            .unwrap(),
         )
         .unwrap();
     let manager = runtime

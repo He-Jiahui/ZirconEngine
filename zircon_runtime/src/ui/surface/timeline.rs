@@ -51,9 +51,6 @@ impl UiDebugTimelineStore {
             self.dropped_frame_count = self.dropped_frame_count.saturating_add(1);
         }
         self.selected_frame = Some(handle);
-        if !self.contains_handle(handle) {
-            self.selected_frame = self.latest_handle();
-        }
         handle
     }
 
@@ -106,9 +103,10 @@ impl UiDebugTimelineStore {
     }
 
     fn contains_handle(&self, handle: UiDebugTimelineFrameHandle) -> bool {
-        self.frames
-            .iter()
-            .any(|entry| entry.summary.handle == handle)
+        let Some((first, last)) = self.frames.front().zip(self.frames.back()) else {
+            return false;
+        };
+        first.summary.handle.0 <= handle.0 && handle.0 <= last.summary.handle.0
     }
 }
 
@@ -138,3 +136,7 @@ fn frame_summary(
         capture_options: options,
     }
 }
+
+#[cfg(test)]
+#[path = "timeline/handle_range_tests.rs"]
+mod handle_range_tests;

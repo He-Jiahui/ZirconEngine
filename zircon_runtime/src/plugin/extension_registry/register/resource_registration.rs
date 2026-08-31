@@ -1,6 +1,7 @@
 use std::any::TypeId;
 use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::Arc;
 
 use crate::plugin::RuntimeExtensionRegistryError;
 use crate::scene::ecs::Resource;
@@ -9,7 +10,29 @@ use crate::scene::World;
 use super::super::owner::PluginModuleId;
 use super::super::RuntimeExtensionRegistry;
 
-type ResourceApplyFn = Arc<dyn Fn(&mut World) + Send + Sync>;
+#[cfg(test)]
+#[path = "resource_registration/poison_recovery_tests.rs"]
+mod poison_recovery_tests;
+
+type ResourceApplyFn = Arc<dyn Fn(&mut World) -> Result<(), ResourceApplyError> + Send + Sync>;
+
+#[derive(Debug)]
+pub(in crate::plugin::extension_registry) struct ResourceApplyError(String);
+
+impl ResourceApplyError {
+    fn factory_panic(payload: Box<dyn std::any::Any + Send>) -> Self {
+        Self(format!(
+            "resource factory panicked: {}",
+            panic_payload_message(payload)
+        ))
+    }
+}
+
+impl fmt::Display for ResourceApplyError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
 
 #[derive(Clone)]
 struct SharedResourceApply {
@@ -25,8 +48,8 @@ impl SharedResourceApply {
         }
     }
 
-    fn apply(&self, world: &mut World) {
-        (self.inner)(world);
+    fn apply(&self, world: &mut World) -> Result<(), ResourceApplyError> {
+        (self.inner)(world)
     }
 }
 
@@ -47,22 +70,23 @@ pub struct ResourceRegistration {
 }
 
 impl ResourceRegistration {
-    fn new<T>(init: impl FnMut() -> T + Send + 'static) -> Self
+    fn new<T>(factory: impl Fn() -> T + Send + Sync + 'static) -> Self
     where
         T: Resource,
     {
+        // A finalized plan can initialize multiple worlds, so its factory must
+        // remain immutable and carry no shared per-world mutation state.
         let type_name = std::any::type_name::<T>();
-        let init = Arc::new(Mutex::new(init));
         Self {
             type_id: TypeId::of::<T>(),
             type_name,
             apply: SharedResourceApply::new(
                 type_name,
                 Arc::new(move |world| {
-                    let mut init = init
-                        .lock()
-                        .expect("plugin resource initializer lock was poisoned");
-                    world.insert_resource((*init)());
+                    let resource = catch_unwind(AssertUnwindSafe(|| factory()))
+                        .map_err(ResourceApplyError::factory_panic)?;
+                    world.insert_resource(resource);
+                    Ok(())
                 }),
             ),
         }
@@ -72,21 +96,36 @@ impl ResourceRegistration {
         self.type_name
     }
 
-    pub(in crate::plugin::extension_registry) fn apply(&self, world: &mut World) {
-        self.apply.apply(world);
+    pub(in crate::plugin::extension_registry) fn apply(
+        &self,
+        world: &mut World,
+    ) -> Result<(), ResourceApplyError> {
+        self.apply.apply(world)
+    }
+}
+
+fn panic_payload_message(payload: Box<dyn std::any::Any + Send>) -> String {
+    if let Some(message) = payload.downcast_ref::<&str>() {
+        (*message).to_owned()
+    } else if let Some(message) = payload.downcast_ref::<String>() {
+        message.clone()
+    } else {
+        "non-string panic payload".to_owned()
     }
 }
 
 impl RuntimeExtensionRegistry {
+    /// Registers a repeatable factory that creates one fresh resource value for
+    /// every world initialized from the extension plan.
     pub fn register_resource<T>(
         &mut self,
         owner: PluginModuleId,
-        init: impl FnMut() -> T + Send + 'static,
+        factory: impl Fn() -> T + Send + Sync + 'static,
     ) -> Result<(), RuntimeExtensionRegistryError>
     where
         T: Resource,
     {
-        let registration = ResourceRegistration::new(init);
+        let registration = ResourceRegistration::new(factory);
         self.register_resource_registration(owner, registration)
     }
 
@@ -95,14 +134,21 @@ impl RuntimeExtensionRegistry {
         owner: PluginModuleId,
         registration: ResourceRegistration,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        if self.plugin_resources.contains_key(&registration.type_id) {
-            return Err(RuntimeExtensionRegistryError::DuplicatePluginResource(
-                registration.type_name().to_string(),
-            ));
+        let module_name = self.plugin_module_name(owner).ok_or_else(|| {
+            RuntimeExtensionRegistryError::InvalidPluginModule(format!(
+                "unknown plugin module owner {}",
+                owner.raw()
+            ))
+        })?;
+        if module_name.strip_suffix(".runtime").is_none() {
+            return Err(RuntimeExtensionRegistryError::InvalidPluginModule(format!(
+                "resource owner `{module_name}` must use the <plugin>.runtime module form"
+            )));
         }
+        let type_name = registration.type_name().to_string();
         self.plugin_resources
             .register(owner, registration.type_id, registration)
-            .expect("plugin resource duplicate was prechecked");
+            .map_err(|_| RuntimeExtensionRegistryError::DuplicatePluginResource(type_name))?;
         Ok(())
     }
 

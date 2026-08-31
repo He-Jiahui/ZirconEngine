@@ -26,6 +26,7 @@ const EXPECTED_RUNTIME_08_SOURCE_FILES: &[&str] = &[
     "src/scene/ecs/component/id.rs",
     "src/scene/ecs/component/marker.rs",
     "src/scene/ecs/component/registry.rs",
+    "src/scene/ecs/component/registry/transferred.rs",
     "src/scene/ecs/entity/mod.rs",
     "src/scene/ecs/entity/despawned.rs",
     "src/scene/ecs/entity/error.rs",
@@ -94,7 +95,7 @@ const EXPECTED_RUNTIME_08_TEST_FILES: &[&str] = &[
 
 #[test]
 fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
-    assert_eq!(EXPECTED_RUNTIME_08_SOURCE_FILES.len(), 75);
+    assert_eq!(EXPECTED_RUNTIME_08_SOURCE_FILES.len(), 77);
     assert_eq!(EXPECTED_RUNTIME_08_TEST_FILES.len(), 10);
     assert_eq!(
         guard_coverage::EXPECTED_RUNTIME_08_BEHAVIOR_TEST_ANCHORS.len(),

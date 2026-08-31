@@ -14,6 +14,7 @@ mod light_buffer;
 mod reflection_probe_buffer;
 mod ssao_params_buffer;
 mod taa_resolve_params_buffer;
+mod upscale_params_buffer;
 mod velocity_camera_params_buffer;
 
 pub(super) use create::create_buffer_bundle;

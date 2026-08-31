@@ -11,7 +11,8 @@ use crate::core::asset::dirty::{
     SaveDirtyViewsRequest,
 };
 use crate::core::editing::engine::{
-    EditCommandError, EditContext, EditorTransactionEngine, HistoryContextId, SelectionSnapshot,
+    EditCommandError, EditContext, EditWorldRoute, EditorTransactionEngine, HistoryContextId,
+    SelectionSnapshot,
 };
 use crate::core::editor_message::{
     DocumentId, EditorMessagePayload, EditorTopic, SharedEditorMessageBus, TOPIC_JOB,
@@ -20,12 +21,12 @@ use crate::core::extension::{
     DocumentAutosavePayload, DocumentToolkit, DocumentToolkitDescriptor, DocumentToolkitRegistry,
     SaveCtx, ToolkitInstanceId, ToolkitLayout, ToolkitSaveFailure,
 };
-use crate::core::gateway::EditorRuntimeGatewayHandle;
 use crate::core::jobs::{
     test_job_system_with_bus, test_job_system_with_limits, EditorJob, EditorJobAdmissionLimits,
     EditorJobLimits, EditorJobSpec, JobCategory, JobContext, JobError, JobEventKind,
     JobEventPumpBudget, JobSubmitError, MutexGroup,
 };
+use crate::core::play::WorldDomain;
 
 #[test]
 fn interactive_save_batch_rejects_before_mutex_or_executor_materialization() {
@@ -580,21 +581,23 @@ impl SaveBatchFixture {
     }
 }
 
-struct FixtureContext {
-    gateway: EditorRuntimeGatewayHandle,
-}
-
-impl Default for FixtureContext {
-    fn default() -> Self {
-        Self {
-            gateway: EditorRuntimeGatewayHandle::detached(),
-        }
-    }
-}
+#[derive(Default)]
+struct FixtureContext;
 
 impl EditContext for FixtureContext {
-    fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle {
-        &self.gateway
+    fn capture_world_route(
+        &self,
+        world_domain: WorldDomain,
+    ) -> Result<EditWorldRoute, EditCommandError> {
+        Ok(EditWorldRoute::logical(world_domain))
+    }
+
+    fn activate_world_route(&mut self, _route: &EditWorldRoute) -> Result<(), EditCommandError> {
+        Ok(())
+    }
+
+    fn retire_world_route(&mut self, _world_domain: WorldDomain) -> Result<(), EditCommandError> {
+        Ok(())
     }
 
     fn selection_snapshot(&self) -> SelectionSnapshot {
@@ -621,6 +624,10 @@ struct FixtureToolkit {
 impl DocumentToolkit<()> for FixtureToolkit {
     fn descriptor(&self) -> &DocumentToolkitDescriptor {
         &self.descriptor
+    }
+
+    fn validate_references(&self, _host: &()) -> Result<(), ToolkitSaveFailure> {
+        Ok(())
     }
 
     fn save(&self, _host: &(), _context: &mut SaveCtx) -> Result<(), ToolkitSaveFailure> {

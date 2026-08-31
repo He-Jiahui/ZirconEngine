@@ -66,9 +66,7 @@ pub(crate) fn drawer_slot_key(slot: ActivityDrawerSlot) -> &'static str {
         ActivityDrawerSlot::LeftBottom => "left_bottom",
         ActivityDrawerSlot::RightTop => "right_top",
         ActivityDrawerSlot::RightBottom => "right_bottom",
-        ActivityDrawerSlot::Bottom
-        | ActivityDrawerSlot::BottomLeft
-        | ActivityDrawerSlot::BottomRight => "bottom",
+        ActivityDrawerSlot::Bottom => "bottom",
     }
 }
 

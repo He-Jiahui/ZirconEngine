@@ -13,6 +13,10 @@ mod frame_axis_index;
 mod generation;
 mod workspace;
 
+#[cfg(test)]
+#[path = "action_evaluator/button_state_single_pass_tests.rs"]
+mod button_state_single_pass_tests;
+
 use consumed_input_index::ConsumedInputIndex;
 use frame_axis_index::FrameAxisIndex;
 use generation::ActionEvaluationGeneration;
@@ -316,18 +320,23 @@ fn evaluate_with_workspace(
 
             let has_buttons = !binding.buttons.is_empty();
             let has_axes = !binding.axes.is_empty();
-            let all_pressed = binding
-                .buttons
-                .iter()
-                .all(|button| frame.buttons.pressed(button));
-            let any_just_pressed = binding
-                .buttons
-                .iter()
-                .any(|button| frame.buttons.just_pressed(button));
-            let any_just_released = binding
-                .buttons
-                .iter()
-                .any(|button| frame.buttons.just_released(button));
+            let mut all_pressed = true;
+            let mut any_just_pressed = false;
+            let mut any_just_released = false;
+            for button in &binding.buttons {
+                if all_pressed {
+                    all_pressed = frame.buttons.pressed(button);
+                }
+                if !any_just_pressed {
+                    any_just_pressed = frame.buttons.just_pressed(button);
+                }
+                if !any_just_released {
+                    any_just_released = frame.buttons.just_released(button);
+                }
+                if !all_pressed && any_just_pressed && any_just_released {
+                    break;
+                }
+            }
 
             if has_axes {
                 if !all_pressed {

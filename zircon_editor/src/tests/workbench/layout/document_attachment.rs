@@ -45,12 +45,9 @@ fn attach_view_to_document_inserts_after_anchor_and_keeps_it_active() {
         )
         .unwrap();
 
-    let MainHostPageLayout::WorkbenchPage {
-        document_workspace, ..
-    } = &layout.main_pages[0]
-    else {
-        panic!("expected workbench page");
-    };
+    let document_workspace = layout
+        .content_workspace_for_page(&MainPageId::workbench())
+        .expect("workbench page should resolve its activity-window content workspace");
     let DocumentNode::Tabs(stack) = document_workspace else {
         panic!("expected tabs root");
     };

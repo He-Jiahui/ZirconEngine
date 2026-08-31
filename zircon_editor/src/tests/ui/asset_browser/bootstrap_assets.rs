@@ -37,21 +37,9 @@ fn asset_browser_bootstrap_layout_self_hosts_shell_sections() {
         "toolbar_search_row",
         "toolbar_search_field",
         "toolbar_kind_primary_row",
-        "toolbar_kind_all_chip",
-        "toolbar_kind_texture_chip",
-        "toolbar_kind_material_chip",
-        "toolbar_kind_scene_chip",
-        "toolbar_kind_model_chip",
-        "toolbar_kind_shader_chip",
+        "toolbar_kind_filter_dropdown",
         "toolbar_view_mode_list_button",
         "toolbar_view_mode_thumb_button",
-        "toolbar_kind_secondary_row",
-        "toolbar_kind_physics_chip",
-        "toolbar_kind_skeleton_chip",
-        "toolbar_kind_clip_chip",
-        "toolbar_kind_sequence_chip",
-        "toolbar_kind_graph_chip",
-        "toolbar_kind_state_chip",
         "import_panel",
         "import_label",
         "import_path_field",
@@ -190,7 +178,7 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     let references_tab = find_node(&nodes, "AssetBrowserReferencesTabButton");
     let metadata_tab = find_node(&nodes, "AssetBrowserMetadataTabButton");
     let plugins_tab = find_node(&nodes, "AssetBrowserPluginsTabButton");
-    let material_chip = find_node(&nodes, "AssetBrowserKindMaterialChip");
+    let kind_filter = find_node(&nodes, "AssetBrowserKindFilterDropdown");
 
     assert_eq!(title.text.to_string(), "Asset Browser");
     assert_eq!(sources_title.text.to_string(), "Sources");
@@ -232,8 +220,17 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         "Drop or paste asset source path"
     );
     assert_eq!(import_path.value_text.to_string(), "");
+    assert_eq!(import_path.dispatch_kind.to_string(), "");
+    assert_eq!(
+        import_path.binding_id.to_string(),
+        "AssetsView/MeshImportPathEdited"
+    );
+    assert_eq!(
+        import_path.edit_action_id.to_string(),
+        "AssetsView/MeshImportPathEdited"
+    );
     assert_eq!(import_button.role.to_string(), "Button");
-    assert_eq!(import_button.button_variant.to_string(), "primary");
+    assert_eq!(import_button.button_variant.to_string(), "filled");
     assert_eq!(import_button.dispatch_kind.to_string(), "asset:browser");
     assert_eq!(
         import_button.binding_id.to_string(),
@@ -304,19 +301,39 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert_eq!(metadata_tab.value_text.to_string(), "metadata");
     assert_eq!(plugins_tab.text.to_string(), "Plugins");
     assert_eq!(plugins_tab.value_text.to_string(), "plugins");
-    assert!(material_chip.selected);
-    assert!(meta_path_panel.selected);
-    assert_eq!(material_chip.surface_variant.to_string(), "inset");
-    assert_eq!(material_chip.dispatch_kind.to_string(), "asset:browser");
+    assert_eq!(kind_filter.role.to_string(), "Dropdown");
+    assert_eq!(kind_filter.component_role.to_string(), "dropdown");
+    assert_eq!(kind_filter.value_text.to_string(), "Materials");
+    assert_eq!(kind_filter.dispatch_kind.to_string(), "asset:browser");
+    assert_eq!(kind_filter.action_id.to_string(), "");
     assert_eq!(
-        material_chip.action_id.to_string(),
-        "workbench.asset.kind_filter.set"
-    );
-    assert_eq!(
-        material_chip.binding_id.to_string(),
+        kind_filter.binding_id.to_string(),
         "AssetSurface/SetKindFilter"
     );
-    assert_eq!(material_chip.value_text.to_string(), "Material");
+    assert_eq!(
+        kind_filter.edit_action_id.to_string(),
+        "AssetSurface/SetKindFilter"
+    );
+    assert!(shared_string_model_values(&kind_filter.options)
+        .iter()
+        .any(|option| option == "Material|label=Materials,selected"));
+    assert!(meta_path_panel.selected);
+    for control_id in [
+        "AssetBrowserKindAllChip",
+        "AssetBrowserKindTextureChip",
+        "AssetBrowserKindMaterialChip",
+        "AssetBrowserKindSceneChip",
+        "AssetBrowserKindModelChip",
+        "AssetBrowserKindShaderChip",
+        "AssetBrowserKindPhysicsChip",
+        "AssetBrowserKindSkeletonChip",
+        "AssetBrowserKindClipChip",
+        "AssetBrowserKindSequenceChip",
+        "AssetBrowserKindGraphChip",
+        "AssetBrowserKindStateChip",
+    ] {
+        assert_control_absent(&nodes, control_id);
+    }
     assert_frame_value(
         "toolbar import panel y",
         import_panel.frame.y,
@@ -390,7 +407,8 @@ fn asset_browser_projection_keeps_only_preview_content_for_preview_tab() {
             "workbench_page_chrome.zui",
             ResourceKind::UiLayout,
             true,
-        )],
+        )]
+        .into(),
         ..AssetWorkspaceSnapshot::default()
     };
     let nodes = collect_projected_nodes(snapshot);
@@ -444,7 +462,8 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
                 "workbench_page_chrome.zui",
                 ResourceKind::UiLayout,
                 true,
-            )],
+            )]
+            .into(),
             selection: AssetSelectionSnapshot {
                 uuid: Some("asset-ui-layout".to_string()),
                 display_name: "workbench_page_chrome.zui".to_string(),
@@ -469,8 +488,7 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
     let search_row = find_node(&nodes, "AssetBrowserToolbarSearchRow");
     let search_field = find_node(&nodes, "SearchEdited");
     let kind_row = find_node(&nodes, "AssetBrowserToolbarKindPrimaryRow");
-    let all_chip = find_node(&nodes, "AssetBrowserKindAllChip");
-    let shader_chip = find_node(&nodes, "AssetBrowserKindShaderChip");
+    let kind_filter = find_node(&nodes, "AssetBrowserKindFilterDropdown");
     let list_button = find_node(&nodes, "AssetBrowserViewModeListButton");
     let thumb_button = find_node(&nodes, "AssetBrowserViewModeThumbButton");
     let locate_button = find_node(&nodes, "LocateSelectedAsset");
@@ -514,17 +532,12 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
     assert!(search_field.frame.width >= 160.0);
     assert_eq!(search_field.frame.y, toolbar.frame.y + 1.0);
     assert!(
-        search_field.frame.x + search_field.frame.width < all_chip.frame.x,
+        search_field.frame.x + search_field.frame.width < kind_filter.frame.x,
         "compact search and kind filter should share one toolbar row without overlap"
     );
     assert_frame_value("compact kind row y", kind_row.frame.y, toolbar.frame.y);
     assert_frame_value("compact kind row height", kind_row.frame.height, 32.0);
-    assert_eq!(all_chip.frame.y, toolbar.frame.y + 1.0);
-    assert_eq!(shader_chip.frame.height, 0.0);
-    assert_eq!(
-        shader_chip.frame.width, 0.0,
-        "short compact toolbar should keep only essential kind chips before view controls"
-    );
+    assert_eq!(kind_filter.frame.y, toolbar.frame.y + 1.0);
     assert_frame_value("compact list button height", list_button.frame.height, 30.0);
     assert_frame_value(
         "compact thumb button height",

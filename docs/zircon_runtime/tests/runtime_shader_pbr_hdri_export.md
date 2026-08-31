@@ -152,6 +152,10 @@ The tiles are written as a 1600x1200 contact sheet at `docs/tests/runtime/shader
 
 ## Interactive Viewer
 
+The viewer lifecycle record was hardened on 2026-08-25: its named background scene loader now retains a `JoinHandle` and cooperative cancellation token. Every terminal path requests cancellation, then the post-event-loop owner performs a bounded join. A timeout or join panic is written as a nonzero terminal teardown failure and is not an accepted viewer run; this statement describes control flow only and is pending managed Windows validation.
+
+The viewer evidence contract now separately identifies `offscreen-diagnostic` and `native-present`. A ready-frame PNG is only emitted in the former and its v14 sidecar declares the standalone diagnostic composition, mirror-sphere scene, CPU-readback target, and zero GPU scene-surface presents. The profiling script passes that mode explicitly and the validator rejects a mode or target mismatch. `packaged-product` is deliberately not implemented by this diagnostic binary; none of these fields claim product composition or native-present evidence.
+
 `zircon_app/src/bin/zircon_shader_pbr_viewer/main.rs` builds a small manual inspection program for the same source-cubemap PBR path. It loads `docs/tests/runtime/shader/assets/polyhaven_lakes_2k.hdr` by default, generates a temporary project containing one perfect-metal mirror PBR sphere, stages the HDRI as source `.zcube` plus PMREM/SH9/IEM `.zribl`, reloads that pair as the render environment, renders through `SceneRenderer`, and presents the result through a `winit`/`softbuffer` window.
 
 The viewer is split by owner instead of living in one binary file: `app.rs` owns winit event handling, `background_load.rs` owns the panic-safe worker/result channel, `camera.rs` owns orbit camera math and render camera descriptors, `presenter.rs` owns the softbuffer CPU-frame presenter, `scene.rs` owns temporary project loading and `SceneRenderer` calls, `project_assets.rs` owns generated scene/model/material assets, `hdri.rs` owns importer staging plus staged environment restore and display exposure, and `args.rs` owns command-line parsing.

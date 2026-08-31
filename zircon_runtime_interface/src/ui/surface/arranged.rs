@@ -7,6 +7,8 @@ use crate::ui::layout::{
 };
 use crate::ui::tree::{UiInputPolicy, UiPointerEvents, UiVisibility};
 
+use super::UiPersistentSequence;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiArrangedSlotSummary {
     pub parent_id: UiNodeId,
@@ -107,11 +109,11 @@ impl UiArrangedNode {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiArrangedTree {
     pub tree_id: UiTreeId,
-    pub roots: Vec<UiNodeId>,
-    pub nodes: Vec<UiArrangedNode>,
-    pub draw_order: Vec<UiNodeId>,
+    pub roots: UiPersistentSequence<UiNodeId>,
+    pub nodes: UiPersistentSequence<UiArrangedNode>,
+    pub draw_order: UiPersistentSequence<UiNodeId>,
     #[serde(default)]
-    pub canvas_layers: Vec<UiCanvasLayerGroup>,
+    pub canvas_layers: UiPersistentSequence<UiCanvasLayerGroup>,
 }
 
 impl UiArrangedTree {

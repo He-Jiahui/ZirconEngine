@@ -721,6 +721,82 @@ not patched here. It must be claimed as a Render01 graph-entry migration after t
 Render01 failure returns; a local wrapper or graph-looking facade around the old direct encoder
 would retain the two-pipeline architecture and is explicitly rejected.
 
+### 2026-08-24 RenderGraph resource and execution re-audit
+
+The current source has made the first execution-packet correction: final graph passes now carry
+stable IDs into an immutable packet and stage iteration can directly address a graph-pass index.
+That eliminates the prior steady-frame pass-name lookup. It does **not** make the stage list a
+compiler schedule. The product renderer still partitions work through hard-coded early, scene,
+post, history, and late functions, while clear, history copy, readback, and writeback remain
+outside the compiled graph. A loop over contiguous equal-stage entries would therefore preserve
+the split execution authority and must not be described as execution batching.
+
+The resource boundary has the same structural constraint. `RenderResourceSchema` now carries
+explicit texture and buffer contracts, including typed external physical descriptors. Its explicit
+format, extent, dimension, mip, sample, usage, size, and fallback contract is already sufficient
+for fixed custom resources such as SSAO. However, the ordinary product path still falls back to
+`texture_desc_for` and `buffer_desc_for`: texture format, size, MSAA, mip count, and usage are
+selected from a resource label, and an unknown buffer defaults to a pixel-count-derived size.
+Generic feature builders and shader-binding lowering can still produce `schema: None`.
+Consequently, replacing every call with one static literal schema would be incorrect: HDR choice,
+view versus render extent, graph MSAA, half/quarter resolution, full mip chains, froxel depth,
+and OIT capacity are compile-input policies rather than fixed constants.
+
+The local Unreal reference separates this correctly. `FRDGBuilder::CreateTexture` receives an
+`FRDGTextureDesc` separately from the debug name, registered external resources retain their
+physical identity, and the builder owns prologue and epilogue passes for transitions and
+extraction. The small local Lumen compute sample is useful only as a warning: it hard-codes D3D12
+bindings, dispatch dimensions, and manual resource barriers inside each pass. Zircon must take its
+resource lifetime and frame-association lesson, but not copy that per-pass state-management model.
+
+Before any resource or batching performance change, the required implementation sequence is:
+
+1. Extend the graph declaration IR with typed texture and buffer allocation policies. A buffer
+   contract must express byte-size policy and usage; texture policies must preserve the current
+   render/view/fixed extent distinction and add the named dynamic policies currently hidden in
+   authoring code. The policy resolves against the validated frame compile input, never against a
+   string heuristic during materialization.
+2. Introduce a built-in `RenderResourceSchemaCatalog` that resolves canonical built-in resource
+   identities before graph authoring. Built-in descriptors and plugin descriptors then carry the
+   resolved typed contract. A plugin-owned transient or typed external resource without a schema
+   must fail compilation. Existing external resources may remain physical imports only when their
+   producer owns and validates the supplied descriptor.
+3. Move every current name match, `contains`, and pixel-count fallback into the catalog migration
+   until it is deleted. The final allocation functions may consume only a resolved schema and
+   frame compile input. Unsupported format/usage combinations must fail device-qualified compile;
+   a WGPU materializer must never silently remove declared usage.
+4. Add compiler-owned prologue and epilogue artifacts for clears, history, readback, and writeback.
+   Only after per-access resource state, queue lane, and transition information exists may the
+   compiler lower the final topological order into immutable contiguous execution batches. Batch
+   boundaries are execution domain, resource transition, and queue synchronization boundaries,
+   not `RenderPassStage` equality.
+
+The first measurement after those correctness gates is a controlled before/after graph compilation
+and steady-frame run. It must report CPU p50/p95/max for compile, packet construction, recording,
+and submit; allocation count and bytes; GPU pass/frame timing; queue waits; and the final PNG/RDC
+identity. No present measurement proves a resource-schema or batching bottleneck, so this section
+authorizes neither a performance claim nor an optimization patch. M0.3 coordinator-managed
+compile recovery remains the admission prerequisite for that measurement.
+
+#### P1-030 compiled execution batch design (2026-08-24)
+
+The current runtime has four separate ownership regions that must become explicit packet artifacts
+before hard-coded stage loops can be removed:
+
+| Region | Current owner | Required compiled artifact | Migration constraint |
+|---|---|---|---|
+| Frame prologue | pool begin, external binding/materialization validation, `scene_clear.record_frame_clear` | prologue resource initialization and transition list | Clear attachment and physical external-resource leases must be declared before the first consumer batch. |
+| Graph body | `execute_compiled_scene_graph_stages` invokes early, lighting, scene, post, and late stage paths | ordered `RenderGraphExecutionBatch` list keyed by queue, execution domain, transition boundary, and parallel-recording eligibility | A batch may contain direct compiled pass indices only; equal `RenderPassStage` is not a batch key. Scene-specific executor context must be supplied by an explicit domain capability, not an out-of-band loop. |
+| Frame epilogue | `copy_history_textures`, timestamp resolve, HZB/viewport and generic readback copy encoding | history/readback epilogue passes with resource leases and completion dependencies | History consumers must retain their producer versions through the epilogue; readback ring admission failure must abort the frame transaction without releasing live allocations early. |
+| Submission epilogue | IBL cache writeback currently appends a command buffer in `submit_compiled_scene_frame` | compiler-visible writeback packet followed by one submission receipt | The writeback command buffer must become an ordered epilogue batch before `queue.submit`, not an untracked append after graph execution. |
+
+Implementation order is deliberately constrained: first introduce compiler IR for prologue/body/epilogue
+operations and explicit execution-domain requirements; then migrate clear and history; then readback
+and IBL writeback; only then delete the hard-coded early/scene/post/late order and have the renderer
+iterate packet batches. Device-qualified queue waits, transition lowering, and completion tickets
+remain prerequisites for multi-queue or allocation-reuse optimization. This plan prevents a cosmetic
+stage-loop rewrite from retaining two scheduling authorities.
+
 ### Current status (2026-08-15)
 
 | Item | Status | Evidence / next gate |
@@ -731,6 +807,7 @@ would retain the two-pipeline architecture and is explicitly rejected.
 | Render17 attachment store-lint dependency correction | Diagnosed, not edited | A later attachment `Load` must retain the prior store; only `Clear` proves overwrite. Render17 UI12 owns the active primary session. |
 | Analytic UI rounded-box AA | Current source implemented; static audit complete | UI12-owned geometry, pipeline, and WGSL now use a fixed six-vertex analytic SDF with `fwidth` coverage, outer-minus-inner border coverage, premultiplied alpha, and original-frame-preserving clipping. Geometry/shader regressions exist; native submission linkage plus managed PNG/RDC evidence remain pending. |
 | SceneRenderer direct frame path | Critical migration identified | Public offscreen and HDR capture paths still bypass the compiled graph through `SceneRendererCore::render_scene`; hard-cut migration to the compiled-scene entry is required before MVP acceptance. |
+| RenderGraph resource/batching architecture | Typed texture/buffer schema foundation implemented (source-only, 2026-08-24) | Compute buffer schemas reach graph authoring and exact transient descriptors. Typed external buffer descriptors now propagate through compiled declarations/lifetimes, runtime-prepare leases, stable backing bindings, and materialization validation; physical buffers may be larger or expose additional usage, but must satisfy the compiled minimum. Legacy descriptor-less report-only imports remain compatible and fail closed when a typed contract is required. Catalog resolution, device-qualified validation, graph prologue/epilogue, true compiler batches, and managed validation remain pending. |
 | WGPU compile, native product run, PNG/RDC, timing/power data | Pending | Requires coordinator-issued managed validation lane and a current-source build. |
 
 No milestone is accepted, committed, or reported to WeCom from this record. That requires the

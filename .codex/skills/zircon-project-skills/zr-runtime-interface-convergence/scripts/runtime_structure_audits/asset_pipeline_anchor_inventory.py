@@ -59,7 +59,7 @@ WATCHER_ANCHORS = (
     "pub debounce: Duration",
     "options.debounce",
     "after(next_wakeup(now, started_at, last_event_at, options))",
-    "Err(error) => on_error(AssetWatchError::from_notify_error(assets_root.clone(), error))",
+    "on_error(AssetWatchError::from_notify_error(",
     "pub struct AssetWatchError",
     "watch_error_subscribers",
     "pub(in crate::asset::pipeline::manager) fn broadcast_watch_error",

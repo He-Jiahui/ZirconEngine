@@ -482,15 +482,12 @@ fn assert_pointer_route_authority(surface: &mut UiSurface, control_id: &str) {
     assert_eq!(surface.hit_test(point), frame_hit);
     assert_eq!(frame_hit.top_hit, Some(node_id));
     assert_eq!(frame_hit.path.target, Some(node_id));
-    assert_eq!(frame_hit.path.bubble_route.first().copied(), Some(node_id));
+    assert_eq!(frame_hit.path.bubble_route().next(), Some(node_id));
 
     let mut dispatcher = UiPointerDispatcher::default();
     dispatcher.register(node_id, UiPointerEventKind::Down, move |context| {
         assert_eq!(context.route.hit_path.target, Some(node_id));
-        assert_eq!(
-            context.route.hit_path.bubble_route.first().copied(),
-            Some(node_id)
-        );
+        assert_eq!(context.route.hit_path.bubble_route().next(), Some(node_id));
         UiPointerDispatchEffect::handled()
     });
     let dispatch = surface

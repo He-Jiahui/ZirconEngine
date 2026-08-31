@@ -41,7 +41,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.mark_presentation_dirty(),
+            Ok(()) => self.mark_presentation_dirty_for_view(&instance_id),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }

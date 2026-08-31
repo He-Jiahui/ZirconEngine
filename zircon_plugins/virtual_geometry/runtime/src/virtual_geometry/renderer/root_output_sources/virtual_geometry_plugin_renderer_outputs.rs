@@ -5,6 +5,7 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryReadbackOutputs,
 };
 use zircon_runtime::graphics::RuntimePrepareCollectorContext;
+use zircon_runtime::rhi::{BufferDesc, BufferUsage};
 
 use super::virtual_geometry_readback_outputs::VirtualGeometryReadbackOutputs;
 
@@ -70,10 +71,15 @@ fn register_prepared_virtual_geometry_feedback_buffer(
                 | wgpu::BufferUsages::COPY_DST
                 | wgpu::BufferUsages::STORAGE,
         });
-    context.register_external_buffer_binding_with_backing(
+    context.register_external_buffer_binding_with_backing_and_physical_desc(
         VIRTUAL_GEOMETRY_FEEDBACK_EXTERNAL_BUFFER,
         VIRTUAL_GEOMETRY_FEEDBACK_BACKING,
         &buffer,
+        BufferDesc::new(
+            VIRTUAL_GEOMETRY_FEEDBACK_EXTERNAL_BUFFER,
+            buffer.size(),
+            BufferUsage::COPY_SRC | BufferUsage::COPY_DST | BufferUsage::STORAGE,
+        ),
     );
 }
 
@@ -152,6 +158,17 @@ mod tests {
         assert_eq!(
             VIRTUAL_GEOMETRY_FEEDBACK_BACKING,
             "virtual-geometry-feedback:runtime-prepare-page-requests"
+        );
+    }
+
+    #[test]
+    fn runtime_prepare_feedback_binding_uses_the_real_wgpu_buffer_contract() {
+        let source = include_str!("virtual_geometry_plugin_renderer_outputs.rs");
+
+        assert!(source.contains("buffer.size()"));
+        assert!(source.contains("register_external_buffer_binding_with_backing_and_physical_desc("));
+        assert!(
+            source.contains("BufferUsage::COPY_SRC | BufferUsage::COPY_DST | BufferUsage::STORAGE")
         );
     }
 }

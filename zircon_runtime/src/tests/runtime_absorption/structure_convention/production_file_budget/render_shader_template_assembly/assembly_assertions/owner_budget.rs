@@ -8,6 +8,7 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
         template_mod,
         assemble,
         module_registry,
+        module_registry_tests,
         material_surface,
         pass_specialization,
         taa_reactive_template,
@@ -16,6 +17,9 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
         template_surface_module_tests,
         template_standard_material_surface_tests,
         variant_cache_prewarm,
+        variant_cache_prewarm_worker,
+        variant_cache_prewarm_tests,
+        variant_cache_prewarm_combined_tests,
         pipeline_key,
         mesh_cache_state,
         mesh_cache_ensure,
@@ -48,6 +52,10 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
             module_registry.as_str(),
         ),
         (
+            "graphics/shader/template/module_registry/tests.rs",
+            module_registry_tests.as_str(),
+        ),
+        (
             "graphics/shader/template/material_surface.rs",
             material_surface.as_str(),
         ),
@@ -75,6 +83,18 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
         (
             "graphics/shader/variant_cache/prewarm.rs",
             variant_cache_prewarm.as_str(),
+        ),
+        (
+            "graphics/shader/variant_cache/prewarm/worker.rs",
+            variant_cache_prewarm_worker.as_str(),
+        ),
+        (
+            "graphics/shader/variant_cache/prewarm/tests.rs",
+            variant_cache_prewarm_tests.as_str(),
+        ),
+        (
+            "graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs",
+            variant_cache_prewarm_combined_tests.as_str(),
         ),
         (
             "graphics/scene/resources/pipeline/pipeline_key.rs",

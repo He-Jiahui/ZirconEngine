@@ -3,7 +3,7 @@
 - Date: 2026-08-21
 - Owner plan: `docs/plans/optimize/zircon_plugins/01-plugin-sdk-package-catalog-distribution-native-abi-review.md`
 - Finding: `P0-01`
-- Status: `validation_pending`
+- Status: `static_validation_complete`; managed release Cargo batch queued
 
 ## Scope
 
@@ -24,12 +24,34 @@
 - `as_ptr()` and `get()` address the same carrier, with zero layout overhead bytes, zero runtime guard branches, and zero runtime allocations.
 - The validation marker is `PERF-MVP-PLUGINS01-SEALED-NATIVE-STATIC`; this safety hard cut introduces no timed hot-path work.
 
+## Current Execution Evidence
+
+- Integration Session: `root-runtime-interface03-activate-link-failure-20260831`;
+  ownership apply `82dfdbab6bc444c582224ab9284307a6`, preview
+  `60a584771a9f495d967af9f6218c852a`, fingerprint
+  `13514f0c9245f53af8b16e987803b8cb341b7af901d4817464325a247fbed13f`.
+- Current source SHA-256:
+  `native.rs=53542171465EF6E35B0D40C9F5216E1B72D53B021DC53AEC3A78D8D06BE3D13A`,
+  `native/tests.rs=329E786B3F61E52AEAD88C33F4986A8B1DC76B98989593D6811D65779D655A26`.
+- Unified deterministic model manifest SHA-256:
+  `17A9DACBE245A8562CD994DCC61423E4061BB1A7F264B281EAC9F9FF4AB85719`.
+  It records blanket `Sync` implementations `1 -> 0`, five audited carrier
+  types, zero layout overhead bytes, zero runtime branches, and zero runtime
+  allocations.
+- Focused source/model/validator contract passed locally `10/10`; managed
+  static ticket `b1ba67ff1d2d43c98abfa21c4b14dee8` is queued.
+- Cross-package Windows release ticket
+  `66d397b6a4454a68b53bb295a5c4fe78` runs the complete SDK lib suite and
+  compile-fail doctests in the same validation copy. Batch validator SHA-256:
+  `AF53E7761854D032FBB683E237AC7887139060A2D2A8C9242AC493CDFF4367AA`.
+
 ## Validation
 
 - Compile-time positive assertions cover descriptor, behavior, entry report, bridge table, and bridge-method arrays.
 - A Rust compile-fail doctest proves `NativePluginStatic<Cell<u32>>` cannot be declared as a static.
 - Source regression rejects restoration of `unsafe impl<T> Sync for NativePluginStatic<T>`.
-- Cargo lib tests, doctests, and marker validation are queued in the multi-task Plugins aggregate; no standalone Cargo run is claimed here.
+- Cargo lib tests, doctests, and marker validation are queued in one multi-task
+  Plugins aggregate; no standalone or duplicate Cargo run is claimed here.
 
 ## Remaining Plan Work
 

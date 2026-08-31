@@ -9,7 +9,9 @@ use super::ibl_bake_graph_plan::{
     IBL_BAKE_IRRADIANCE_CUBE_RESOURCE, IBL_BAKE_IRRADIANCE_SH9_RESOURCE, IBL_BAKE_PMREM_RESOURCE,
 };
 use super::ibl_bake_shader_plan::{
-    ibl_bake_compute_kernel_plans_for_request, IblBakeComputeKernelKind, IblBakeComputeKernelPlan,
+    ibl_bake_compute_kernel_plans_for_request, ibl_bake_irradiance_cube_kernel_plan,
+    ibl_bake_irradiance_sh9_kernel_plan, ibl_bake_pmrem_kernel_plan, IblBakeComputeKernelKind,
+    IblBakeComputeKernelPlan,
 };
 mod realtime_slice;
 
@@ -152,6 +154,32 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_wgpu_command_plan_for
     }
 }
 
+pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_wgpu_command_plan_for_kind(
+    request: &IblBakeArtifactRequest,
+    kind: IblBakeComputeKernelKind,
+) -> Option<IblBakeWgpuCommandPlan> {
+    if !request
+        .required_contents()
+        .contains(required_contents_for_kind(kind))
+    {
+        return None;
+    }
+
+    let descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(request);
+    let kernel = match kind {
+        IblBakeComputeKernelKind::Pmrem { mip_level } if mip_level < request.pmrem_mip_count() => {
+            ibl_bake_pmrem_kernel_plan(request, mip_level)
+        }
+        IblBakeComputeKernelKind::IrradianceSh9 => ibl_bake_irradiance_sh9_kernel_plan(request),
+        IblBakeComputeKernelKind::IrradianceCube => ibl_bake_irradiance_cube_kernel_plan(request),
+        IblBakeComputeKernelKind::Pmrem { .. } => return None,
+    };
+
+    Some(ibl_bake_wgpu_command_plan_for_kernel(
+        request, descriptor, kernel,
+    ))
+}
+
 pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_wgpu_bind_group_layout_entries(
     output_kind: IblBakeWgpuOutputBindingKind,
 ) -> [wgpu::BindGroupLayoutEntry; 4] {
@@ -182,15 +210,31 @@ fn ibl_bake_wgpu_command_plan_for_kernel(
     descriptor: IblBakeArtifactDescriptor,
     kernel: IblBakeComputeKernelPlan,
 ) -> IblBakeWgpuCommandPlan {
+    ibl_bake_wgpu_command_plan_for_kernel_with_readback(request, descriptor, kernel, true)
+}
+
+pub(super) fn ibl_bake_wgpu_command_plan_for_runtime_kernel(
+    request: &IblBakeArtifactRequest,
+    descriptor: IblBakeArtifactDescriptor,
+    kernel: IblBakeComputeKernelPlan,
+) -> IblBakeWgpuCommandPlan {
+    ibl_bake_wgpu_command_plan_for_kernel_with_readback(request, descriptor, kernel, false)
+}
+
+fn ibl_bake_wgpu_command_plan_for_kernel_with_readback(
+    request: &IblBakeArtifactRequest,
+    descriptor: IblBakeArtifactDescriptor,
+    kernel: IblBakeComputeKernelPlan,
+    include_readback: bool,
+) -> IblBakeWgpuCommandPlan {
     let params = params_plan_for_kernel(&kernel);
-    let (bind_group_layout_kind, output, readback_copies) = match kernel.kind {
+    let (bind_group_layout_kind, output) = match kernel.kind {
         IblBakeComputeKernelKind::Pmrem { mip_level } => (
             IblBakeWgpuOutputBindingKind::StorageTexture2DArray,
             IblBakeWgpuOutputPlan::StorageTexture {
                 resource_name: IBL_BAKE_PMREM_RESOURCE,
                 view: ibl_bake_storage_texture_view_plan(mip_level),
             },
-            pmrem_readback_copies(request, descriptor, mip_level),
         ),
         IblBakeComputeKernelKind::IrradianceSh9 => (
             IblBakeWgpuOutputBindingKind::StorageBuffer,
@@ -198,7 +242,6 @@ fn ibl_bake_wgpu_command_plan_for_kernel(
                 resource_name: IBL_BAKE_IRRADIANCE_SH9_RESOURCE,
                 byte_len: IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES as u64,
             },
-            vec![sh9_readback_copy(descriptor)],
         ),
         IblBakeComputeKernelKind::IrradianceCube => (
             IblBakeWgpuOutputBindingKind::StorageTexture2DArray,
@@ -206,9 +249,11 @@ fn ibl_bake_wgpu_command_plan_for_kernel(
                 resource_name: IBL_BAKE_IRRADIANCE_CUBE_RESOURCE,
                 view: ibl_bake_storage_texture_view_plan(0),
             },
-            irradiance_cube_readback_copies(descriptor),
         ),
     };
+    let readback_copies = include_readback
+        .then(|| readback_copies_for_kernel(request, descriptor, kernel.kind))
+        .unwrap_or_default();
 
     IblBakeWgpuCommandPlan {
         kind: kernel.kind,
@@ -221,6 +266,36 @@ fn ibl_bake_wgpu_command_plan_for_kernel(
         output,
         dispatch_groups: fixed_dispatch_groups(&kernel.dispatch.dispatch_extent),
         readback_copies,
+    }
+}
+
+fn required_contents_for_kind(
+    kind: IblBakeComputeKernelKind,
+) -> crate::core::framework::render::IblBakeArtifactContents {
+    match kind {
+        IblBakeComputeKernelKind::Pmrem { .. } => {
+            crate::core::framework::render::IblBakeArtifactContents::PMREM
+        }
+        IblBakeComputeKernelKind::IrradianceSh9 => {
+            crate::core::framework::render::IblBakeArtifactContents::SH9
+        }
+        IblBakeComputeKernelKind::IrradianceCube => {
+            crate::core::framework::render::IblBakeArtifactContents::IEM
+        }
+    }
+}
+
+fn readback_copies_for_kernel(
+    request: &IblBakeArtifactRequest,
+    descriptor: IblBakeArtifactDescriptor,
+    kind: IblBakeComputeKernelKind,
+) -> Vec<IblBakeWgpuReadbackCopyPlan> {
+    match kind {
+        IblBakeComputeKernelKind::Pmrem { mip_level } => {
+            pmrem_readback_copies(request, descriptor, mip_level)
+        }
+        IblBakeComputeKernelKind::IrradianceSh9 => vec![sh9_readback_copy(descriptor)],
+        IblBakeComputeKernelKind::IrradianceCube => irradiance_cube_readback_copies(descriptor),
     }
 }
 

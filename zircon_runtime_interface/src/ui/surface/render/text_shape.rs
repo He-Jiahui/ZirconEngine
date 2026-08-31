@@ -32,7 +32,8 @@ pub struct UiTextPaint {
     #[serde(default)]
     pub text_decorations: UiTextDecorations,
     pub overflow: UiTextOverflow,
-    pub shaped: Option<UiShapedText>,
+    #[serde(default)]
+    pub shaped: UiTextShapeArtifact,
     #[serde(default)]
     pub selection: Option<UiTextSelection>,
     #[serde(default)]
@@ -70,12 +71,33 @@ impl UiTextPaint {
             text_effects: UiTextDistanceFieldEffects::default(),
             text_decorations: UiTextDecorations::default(),
             overflow: shaped.overflow,
-            shaped: Some(shaped),
+            shaped: UiTextShapeArtifact::Canonical(shaped),
             selection: None,
             caret: None,
             composition: None,
             decorations: Vec::new(),
             runs,
+        }
+    }
+}
+
+/// The only render-facing glyph identity accepted by the interface.
+///
+/// Layout geometry alone does not identify a glyph or its font face. Runtime producers therefore
+/// either publish the canonical shaped artifact or explicitly report that it is unavailable.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiTextShapeArtifact {
+    #[default]
+    Unavailable,
+    Canonical(UiShapedText),
+}
+
+impl UiTextShapeArtifact {
+    pub fn canonical(&self) -> Option<&UiShapedText> {
+        match self {
+            Self::Unavailable => None,
+            Self::Canonical(shaped) => Some(shaped),
         }
     }
 }
@@ -249,35 +271,6 @@ pub struct UiShapedText {
     pub lines: Vec<UiShapedTextLine>,
 }
 
-impl UiShapedText {
-    pub fn from_resolved_layout(
-        source_text: impl Into<String>,
-        layout: &UiResolvedTextLayout,
-        render_mode: UiTextRenderMode,
-    ) -> Self {
-        Self {
-            source_text: source_text.into(),
-            source_range: layout.source_range,
-            direction: layout.direction,
-            overflow: layout.overflow,
-            font_size: layout.font_size,
-            line_height: layout.line_height,
-            measured_width: layout.measured_width,
-            measured_height: layout.measured_height,
-            writing_mode: layout.writing_mode,
-            render_mode,
-            font_key: None,
-            atlas_resource: None,
-            ellipsis_range: None,
-            lines: layout
-                .lines
-                .iter()
-                .map(|line| shaped_line_from_resolved(line, layout.writing_mode))
-                .collect(),
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiShapedTextLine {
     pub text: String,
@@ -399,213 +392,6 @@ pub struct UiShapedTextCluster {
     pub direction: UiTextDirection,
 }
 
-fn shaped_line_from_resolved(
-    line: &super::UiResolvedTextLine,
-    writing_mode: UiTextWritingMode,
-) -> UiShapedTextLine {
-    UiShapedTextLine {
-        text: line.text.clone(),
-        frame: line.frame,
-        source_range: line.source_range,
-        visual_range: line.visual_range,
-        measured_width: line.measured_width,
-        baseline: line.baseline,
-        direction: line.direction,
-        ellipsized: line.ellipsized,
-        glyphs: shaped_glyphs_for_line(line, writing_mode),
-        clusters: line
-            .runs
-            .iter()
-            .map(|run| UiShapedTextCluster {
-                kind: run.kind,
-                text: run.text.clone(),
-                source_range: run.source_range,
-                visual_range: run.visual_range,
-                direction: run.direction,
-            })
-            .collect(),
-    }
-}
-
-fn shaped_glyphs_for_line(
-    line: &super::UiResolvedTextLine,
-    writing_mode: UiTextWritingMode,
-) -> Vec<UiShapedGlyph> {
-    let graphemes = line.text.grapheme_indices(true).collect::<Vec<_>>();
-    if graphemes.is_empty() {
-        return Vec::new();
-    }
-
-    let advances = glyph_advances_for_line(line, graphemes.len());
-    if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
-        return shaped_vertical_glyphs_for_line(line, &graphemes, advances);
-    }
-
-    let mut cursor_x = line.frame.x;
-    graphemes
-        .iter()
-        .zip(advances)
-        .map(|((visual_start, grapheme), advance)| {
-            let visual_end = *visual_start + grapheme.len();
-            let visual_frame =
-                UiFrame::new(cursor_x, line.frame.y, advance.max(0.0), line.frame.height);
-            cursor_x += advance.max(0.0);
-            UiShapedGlyph::new(
-                synthetic_glyph_id(grapheme),
-                source_range_for_visual_span(line, *visual_start, visual_end),
-                visual_frame,
-                advance,
-            )
-            .with_cluster_flags(cluster_flags_for_grapheme(grapheme, line.direction))
-        })
-        .collect()
-}
-
-fn shaped_vertical_glyphs_for_line(
-    line: &super::UiResolvedTextLine,
-    graphemes: &[(usize, &str)],
-    advances: Vec<f32>,
-) -> Vec<UiShapedGlyph> {
-    let mut cursor_y = line.frame.y;
-    graphemes
-        .iter()
-        .zip(advances)
-        .map(|((visual_start, grapheme), advance)| {
-            let visual_end = *visual_start + grapheme.len();
-            let advance = advance.max(0.0);
-            let visual_frame = UiFrame::new(line.frame.x, cursor_y, line.frame.width, advance);
-            cursor_y += advance;
-            UiShapedGlyph::new(
-                synthetic_glyph_id(grapheme),
-                source_range_for_visual_span(line, *visual_start, visual_end),
-                visual_frame,
-                advance,
-            )
-            .with_cluster_flags(cluster_flags_for_grapheme(grapheme, line.direction))
-            .with_rotation(vertical_grapheme_rotation(grapheme))
-        })
-        .collect()
-}
-
-fn vertical_grapheme_rotation(grapheme: &str) -> UiShapedGlyphRotation {
-    if grapheme
-        .chars()
-        .all(|ch| ch.is_ascii() && !ch.is_whitespace())
-    {
-        UiShapedGlyphRotation::Cw90
-    } else {
-        UiShapedGlyphRotation::None
-    }
-}
-
-fn glyph_advances_for_line(line: &super::UiResolvedTextLine, grapheme_count: usize) -> Vec<f32> {
-    if line.glyph_advances.len() == grapheme_count {
-        let advances = line
-            .glyph_advances
-            .iter()
-            .map(|advance| sanitized_advance(*advance))
-            .collect::<Vec<_>>();
-        if advances.iter().any(|advance| *advance > 0.0) {
-            return advances;
-        }
-    }
-
-    let fallback_width = if line.measured_width.is_finite() && line.measured_width > 0.0 {
-        line.measured_width
-    } else {
-        line.frame.width.max(0.0)
-    };
-    let fallback_advance = fallback_width / grapheme_count.max(1) as f32;
-    vec![fallback_advance; grapheme_count]
-}
-
-fn sanitized_advance(advance: f32) -> f32 {
-    if advance.is_finite() {
-        advance.max(0.0)
-    } else {
-        0.0
-    }
-}
-
-fn cluster_flags_for_grapheme(
-    grapheme: &str,
-    direction: UiTextDirection,
-) -> UiShapedGlyphClusterFlags {
-    UiShapedGlyphClusterFlags {
-        cluster_start: true,
-        rtl: matches!(direction, UiTextDirection::RightToLeft),
-        whitespace: grapheme.chars().any(char::is_whitespace),
-        space: grapheme.chars().any(|ch| matches!(ch, ' ' | '\u{00a0}')),
-        tab: grapheme.contains('\t'),
-        mandatory_break: grapheme.chars().any(|ch| matches!(ch, '\n' | '\r')),
-        soft_break: false,
-        virtual_glyph: false,
-    }
-}
-
-fn source_range_for_visual_span(
-    line: &super::UiResolvedTextLine,
-    visual_start: usize,
-    visual_end: usize,
-) -> UiTextRange {
-    let mut source_start = usize::MAX;
-    let mut source_end = 0;
-    for run in &line.runs {
-        let overlap_start = visual_start.max(run.visual_range.start);
-        let overlap_end = visual_end.min(run.visual_range.end);
-        if overlap_start >= overlap_end {
-            continue;
-        }
-
-        let local_start = overlap_start.saturating_sub(run.visual_range.start);
-        let local_end = overlap_end.saturating_sub(run.visual_range.start);
-        let mapped = source_range_for_run_visual_span(run, local_start, local_end);
-        source_start = source_start.min(mapped.start);
-        source_end = source_end.max(mapped.end);
-    }
-
-    if source_start == usize::MAX {
-        UiTextRange {
-            start: line.source_range.start,
-            end: line.source_range.start,
-        }
-    } else {
-        UiTextRange {
-            start: source_start,
-            end: source_end.max(source_start),
-        }
-    }
-}
-
-fn source_range_for_run_visual_span(
-    run: &super::UiResolvedTextRun,
-    local_start: usize,
-    local_end: usize,
-) -> UiTextRange {
-    if local_start >= local_end {
-        return UiTextRange {
-            start: run.source_range.start,
-            end: run.source_range.start,
-        };
-    }
-    if run.source_range.end.saturating_sub(run.source_range.start) != run.text.len() {
-        return run.source_range;
-    }
-    UiTextRange {
-        start: run.source_range.start + local_start,
-        end: run.source_range.start + local_end,
-    }
-}
-
-fn synthetic_glyph_id(grapheme: &str) -> u32 {
-    let mut hash = 2_166_136_261_u32;
-    for byte in grapheme.as_bytes() {
-        hash ^= *byte as u32;
-        hash = hash.wrapping_mul(16_777_619);
-    }
-    hash.max(1)
-}
-
 pub(crate) fn text_paint_runs_from_shaped(
     shaped: &UiShapedText,
     color: &Option<String>,
@@ -638,6 +424,109 @@ pub(crate) fn text_paint_runs_from_shaped(
         }
     }
     runs
+}
+
+pub(crate) fn text_paint_runs_from_resolved_layout(
+    layout: &UiResolvedTextLayout,
+    color: &Option<String>,
+    font: &Option<String>,
+    font_family: &Option<String>,
+    font_weight: u16,
+    font_size: f32,
+    line_height: f32,
+) -> Vec<UiTextPaintRun> {
+    let mut runs = Vec::new();
+    for line in &layout.lines {
+        let mut expected_visual_start = line.visual_range.start;
+        let mut has_nonempty_run = false;
+        for run in &line.runs {
+            if run.text.is_empty() {
+                continue;
+            }
+            if run.visual_range.start != expected_visual_start
+                || line.text.get(run.visual_range.start..run.visual_range.end)
+                    != Some(run.text.as_str())
+            {
+                return Vec::new();
+            }
+            has_nonempty_run = true;
+            expected_visual_start = run.visual_range.end;
+            let Some(frame) = resolved_text_run_frame(layout.writing_mode, line, run.visual_range)
+            else {
+                return Vec::new();
+            };
+            runs.push(UiTextPaintRun {
+                kind: run.kind,
+                text: run.text.clone(),
+                source_range: run.source_range,
+                visual_range: run.visual_range,
+                frame,
+                color: color.clone(),
+                font: font.clone(),
+                font_family: font_family.clone(),
+                font_weight,
+                font_size,
+                line_height,
+                style: UiTextRunPaintStyle::from_run_kind(run.kind),
+            });
+        }
+        if has_nonempty_run && expected_visual_start != line.visual_range.end {
+            return Vec::new();
+        }
+    }
+    runs
+}
+
+/// Resolves paint-run bounds only from layout-provided advances. This path deliberately refuses
+/// incomplete advance data rather than synthesizing a width or a glyph artifact.
+fn resolved_text_run_frame(
+    writing_mode: UiTextWritingMode,
+    line: &super::UiResolvedTextLine,
+    visual_range: UiTextRange,
+) -> Option<UiFrame> {
+    let text = line.text.as_str();
+    if visual_range.start > visual_range.end
+        || visual_range.end > text.len()
+        || !text.is_char_boundary(visual_range.start)
+        || !text.is_char_boundary(visual_range.end)
+    {
+        return None;
+    }
+    let visual_start = grapheme_floor(text, visual_range.start);
+    let visual_end = grapheme_ceil(text, visual_range.end);
+    if visual_start >= visual_end {
+        return None;
+    }
+    let grapheme_count = text.graphemes(true).count();
+    if line.glyph_advances.len() != grapheme_count
+        || line
+            .glyph_advances
+            .iter()
+            .any(|advance| !advance.is_finite() || *advance < 0.0)
+    {
+        return None;
+    }
+    let start_index = text[..visual_start].graphemes(true).count();
+    let end_index = text[..visual_end].graphemes(true).count();
+    let leading = line.glyph_advances[..start_index].iter().sum::<f32>();
+    let advance = line.glyph_advances[start_index..end_index]
+        .iter()
+        .sum::<f32>();
+    if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
+        Some(UiFrame::new(
+            line.frame.x,
+            line.frame.y + leading,
+            line.frame.width,
+            advance,
+        ))
+    } else {
+        Some(UiFrame::new(
+            line.frame.x + leading,
+            line.frame.y,
+            advance,
+            line.frame.height,
+        ))
+    }
 }
 
 fn text_run_frame(
@@ -698,6 +587,14 @@ fn line_visual_x(line: &UiShapedTextLine, visual_offset: usize) -> f32 {
     line.frame.x + (line.frame.width.max(0.0) * before_units / total_units)
 }
 
+fn sanitized_advance(advance: f32) -> f32 {
+    if advance.is_finite() {
+        advance.max(0.0)
+    } else {
+        0.0
+    }
+}
+
 fn grapheme_floor(text: &str, offset: usize) -> usize {
     let mut offset = offset.min(text.len());
     while offset > 0 && !text.is_char_boundary(offset) {
@@ -731,3 +628,25 @@ fn grapheme_ceil(text: &str, offset: usize) -> usize {
     }
     offset
 }
+
+#[cfg(test)]
+mod tests {
+    use super::sanitized_advance;
+
+    #[test]
+    fn sanitized_advance_rejects_negative_and_non_finite_geometry() {
+        assert_eq!(sanitized_advance(12.5), 12.5);
+        assert_eq!(sanitized_advance(-4.0), 0.0);
+        assert_eq!(sanitized_advance(f32::NAN), 0.0);
+        assert_eq!(sanitized_advance(f32::INFINITY), 0.0);
+        assert_eq!(sanitized_advance(f32::NEG_INFINITY), 0.0);
+    }
+}
+
+#[cfg(test)]
+#[path = "text_shape/resolved_layout_tests.rs"]
+mod resolved_layout_tests;
+
+#[cfg(all(test, windows))]
+#[path = "text_shape/projection_profile.rs"]
+mod projection_profile;

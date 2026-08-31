@@ -1,11 +1,10 @@
 use std::fmt;
 
-use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
 use crate::scene::LevelSystem;
 use crate::scene::ecs::{
-    SceneSystemClockDomain, SceneSystemMetadata, SystemOrderingConstraint, SystemParamAccess,
-    SystemSetId, SystemStage,
+    SceneSystemMetadata, SceneSystemTickPolicy, SystemOrderingConstraint, SystemParamAccess,
+    SystemSetId, SystemStage, SystemTickContext,
 };
 
 pub type BoxedRuntimeSceneSystem = Box<dyn RuntimeSceneSystem>;
@@ -13,16 +12,20 @@ pub type BoxedRuntimeSceneSystem = Box<dyn RuntimeSceneSystem>;
 pub struct RuntimeSceneSystemContext<'a> {
     pub core: &'a CoreHandle,
     pub level: &'a LevelSystem,
-    pub delta_seconds: Real,
+    tick: SystemTickContext,
 }
 
 impl<'a> RuntimeSceneSystemContext<'a> {
-    pub fn new(core: &'a CoreHandle, level: &'a LevelSystem, delta_seconds: Real) -> Self {
-        Self {
-            core,
-            level,
-            delta_seconds,
-        }
+    pub(crate) fn new(
+        core: &'a CoreHandle,
+        level: &'a LevelSystem,
+        tick: SystemTickContext,
+    ) -> Self {
+        Self { core, level, tick }
+    }
+
+    pub const fn tick(&self) -> SystemTickContext {
+        self.tick
     }
 }
 
@@ -51,8 +54,8 @@ pub trait RuntimeSceneSystem: Send + 'static {
         self.metadata().constraints()
     }
 
-    fn clock_domain(&self) -> SceneSystemClockDomain {
-        self.metadata().clock_domain()
+    fn tick_policy(&self) -> SceneSystemTickPolicy {
+        self.metadata().tick_policy()
     }
 }
 
@@ -102,7 +105,7 @@ impl fmt::Debug for dyn RuntimeSceneSystem {
             .field("id", &self.id())
             .field("stage", &self.stage())
             .field("order", &self.order())
-            .field("clock_domain", &self.clock_domain())
+            .field("tick_policy", &self.tick_policy())
             .field(
                 "conservative_world_access",
                 &self.access().has_conservative_world_access(),

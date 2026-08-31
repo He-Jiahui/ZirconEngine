@@ -24,6 +24,17 @@ class Editor09RuntimeAssetIndexProjectionContract(unittest.TestCase):
         self.assertNotIn("HashMap<AssetUri, AssetRegistryEntry>", source)
         self.assertNotIn("HashMap<AssetUuid, AssetRegistryEntry>", source)
 
+    def test_runtime_project_factory_keeps_the_registry_as_one_shared_generation(self) -> None:
+        manager = self.read("zircon_runtime/src/asset/project/manager/mod.rs")
+        access = self.read("zircon_runtime/src/asset/project/manager/registry_access.rs")
+        index = self.read("zircon_editor/src/core/asset/index.rs")
+
+        self.assertIn("asset_registry: Arc<AssetRegistryIndex>", manager)
+        self.assertIn("fn asset_registry_shared(&self) -> Arc<AssetRegistryIndex>", access)
+        self.assertIn("Arc::clone(&self.asset_registry)", access)
+        self.assertIn("project.asset_registry_shared()", index)
+        self.assertNotIn("Arc::new(project.asset_registry().clone())", index)
+
     def test_row_authoritative_fields_delegate_to_the_runtime_entry(self) -> None:
         source = self.read("zircon_editor/src/core/asset/index.rs")
         for accessor in (

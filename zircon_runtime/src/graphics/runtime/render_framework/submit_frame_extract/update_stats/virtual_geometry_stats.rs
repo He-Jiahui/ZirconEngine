@@ -335,11 +335,12 @@ fn virtual_geometry_execution_stats(
         .iter()
         .copied()
         .collect::<HashSet<_>>();
-    let mut seen_pages = HashSet::new();
-    let mut all_pages = HashSet::new();
+    let draw_segments = &context.visibility_context().virtual_geometry_draw_segments;
+    let mut seen_pages = HashSet::with_capacity(draw_segments.len());
+    let mut all_pages = HashSet::with_capacity(draw_segments.len());
     let mut stats = VirtualGeometryExecutionStats::default();
 
-    for segment in &context.visibility_context().virtual_geometry_draw_segments {
+    for segment in draw_segments {
         if !seen_pages.insert(segment.page_id) {
             stats.repeated_draw_count += 1;
         }
@@ -412,6 +413,10 @@ fn execution_state_for_page(
         RenderVirtualGeometryExecutionState::Missing
     }
 }
+
+#[cfg(test)]
+#[path = "virtual_geometry_stats/capacity_tests.rs"]
+mod capacity_tests;
 
 #[derive(Clone, Copy, Debug, Default)]
 struct NodeAndClusterCullTraversalStats {

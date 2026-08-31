@@ -35,7 +35,7 @@ pub use value_contracts::{
 #[doc(hidden)]
 pub mod __reflect {
     pub use zircon_runtime_interface::reflect::{
-        ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectScriptVisibility,
+        ReflectEditorHint, ReflectError, ReflectFieldId, ReflectFieldInfo, ReflectScriptVisibility,
         ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypeKind, ReflectTypePath,
         ReflectTypeRegistration,
     };

@@ -3,17 +3,19 @@ use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{DisplayMode, OitBufferPlan, OitSettings};
-use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::pipeline::{PipelineAdmission, PipelineAdmissionReason, RenderPassStage};
 use crate::graphics::scene::resources::GpuTextureResource;
 use crate::graphics::scene::scene_renderer::advanced_lighting::oit_buffers::OitFragmentStorePipeline;
 use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshPassPipelineKind,
 };
-use crate::graphics::scene::scene_renderer::sprite::{build_sprite_vertices, SpriteVertex};
+use crate::graphics::scene::scene_renderer::sprite::{SpriteVertex, build_sprite_vertices};
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
 use super::RenderPassGpuExecutionContext;
+
+const OIT_FRAGMENT_STORE_PIPELINE_CONSUMER: &str = "oit_fragment_store";
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -40,8 +42,8 @@ impl RenderPassGpuExecutionContext<'_> {
         &mut self,
         pipeline: &OitFragmentStorePipeline,
         depth_resource_name: &str,
-        layers: &wgpu::Buffer,
-        counts: &wgpu::Buffer,
+        layers: &wgpu::BufferBinding<'_>,
+        counts: &wgpu::BufferBinding<'_>,
         settings: OitSettings,
     ) -> Result<(), String> {
         let depth_view = Self::require_texture_view_by_name(
@@ -57,19 +59,19 @@ impl RenderPassGpuExecutionContext<'_> {
             .streamer
             .ok_or_else(|| "OIT fragment store requires resource streamer context".to_string())?;
         let render_region = self.render_region().local_render_region();
-        let light_grid_params_buffer = Self::optional_buffer_by_name(
+        let light_grid_params_buffer = Self::optional_buffer_binding_by_name(
             &*self.resources,
             self.resource_resolver,
             crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let light_zbins_buffer = Self::optional_buffer_by_name(
+        let light_zbins_buffer = Self::optional_buffer_binding_by_name(
             &*self.resources,
             self.resource_resolver,
             crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_ZBINS,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let light_tile_masks_buffer = Self::optional_buffer_by_name(
+        let light_tile_masks_buffer = Self::optional_buffer_binding_by_name(
             &*self.resources,
             self.resource_resolver,
             crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
@@ -116,11 +118,11 @@ impl RenderPassGpuExecutionContext<'_> {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: layers.as_entire_binding(),
+                    resource: wgpu::BindingResource::Buffer(layers.clone()),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: counts.as_entire_binding(),
+                    resource: wgpu::BindingResource::Buffer(counts.clone()),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
@@ -163,7 +165,7 @@ impl RenderPassGpuExecutionContext<'_> {
         pass.set_bind_group(0, self.scene_bind_group, &[]);
         pass.set_bind_group(1, &forward_bind_group, &[]);
         pass.set_bind_group(4, &oit_bind_group, &[]);
-        let mut unsupported_shader = None;
+        let mut unavailable_pipeline = None;
         let mut replayer = MeshDrawCommandReplayer::default();
         replayer.replay_command_stream(
             &mut pass,
@@ -172,15 +174,35 @@ impl RenderPassGpuExecutionContext<'_> {
                 debug_assert_eq!(command.pipeline_kind, MeshPassPipelineKind::Base);
                 if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id)
                 {
-                    let Some(oit_pipeline) = mesh_pipelines.ensure_oit_pipeline_for_base_variant(
+                    match mesh_pipelines.ensure_oit_pipeline_admission_for_base_variant(
                         self.device,
                         streamer,
                         command.pipeline_variant_id,
-                    ) else {
-                        unsupported_shader = Some(command.pipeline_key().shader_id.clone());
-                        return false;
-                    };
-                    pass.set_pipeline(oit_pipeline);
+                    ) {
+                        PipelineAdmission::Ready(()) => {
+                            mesh_pipelines.record_bound_oit_pipeline(command.pipeline_variant_id);
+                            pass.set_pipeline(
+                                mesh_pipelines.oit_pipeline_for_ready_base_variant(
+                                    command.pipeline_variant_id,
+                                ),
+                            );
+                        }
+                        PipelineAdmission::Deferred(unavailable)
+                        | PipelineAdmission::Failed(unavailable) => {
+                            mesh_pipelines.record_pipeline_fallback_for_command_variant(
+                                command,
+                                command.pipeline_variant_id,
+                                OIT_FRAGMENT_STORE_PIPELINE_CONSUMER,
+                                unavailable,
+                            );
+                            unavailable_pipeline = Some((
+                                command.pipeline_key().shader_id.clone(),
+                                unavailable.reason(),
+                            ));
+                            replayer.invalidate_state_after_external_pipeline();
+                            return false;
+                        }
+                    }
                 }
                 replayer.bind_gpu_scene_if_needed(
                     pass,
@@ -209,9 +231,15 @@ impl RenderPassGpuExecutionContext<'_> {
         }
         drop(pass);
         mesh_draw_lists.replay_stats.record(replay_stats);
-        if let Some(shader_id) = unsupported_shader {
+        if let Some((shader_id, reason)) = unavailable_pipeline {
+            if reason == PipelineAdmissionReason::OitFragmentStoreUnavailable {
+                return Err(format!(
+                    "transparent shader `{shader_id}` does not expose the OIT `fs_oit` contract"
+                ));
+            }
             return Err(format!(
-                "transparent shader `{shader_id}` does not expose the OIT `fs_oit` contract"
+                "transparent shader `{shader_id}` OIT pipeline admission failed: {}",
+                reason.label()
             ));
         }
         Ok(())
@@ -252,4 +280,26 @@ fn create_sprite_vertex_buffer(device: &wgpu::Device, vertices: &[SpriteVertex])
         contents: bytemuck::cast_slice(vertices),
         usage: wgpu::BufferUsages::VERTEX,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn unsupported_mesh_pipeline_invalidates_replay_state_before_skipping_draw() {
+        let source = include_str!("oit.rs");
+        let unsupported = source
+            .find("unsupported_shader = Some(command.pipeline_key().shader_id.clone());")
+            .expect("OIT replay must record the unsupported shader");
+        let invalidate = source[unsupported..]
+            .find("replayer.invalidate_state_after_external_pipeline();")
+            .map(|offset| unsupported + offset)
+            .expect("OIT replay must invalidate a pipeline selection that failed to materialize");
+        let skip = source[invalidate..]
+            .find("return false;")
+            .map(|offset| invalidate + offset)
+            .expect("unsupported OIT commands must remain fail-closed");
+
+        assert!(unsupported < invalidate);
+        assert!(invalidate < skip);
+    }
 }

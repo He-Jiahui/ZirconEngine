@@ -4,6 +4,7 @@ $ErrorActionPreference = 'Stop'
 if ($null -eq ('ZirconMvpAcceptanceNativeFileSystem' -as [type])) {
     Add-Type -TypeDefinition @'
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
@@ -202,6 +203,16 @@ public static class ZirconMvpAcceptanceNativeFileSystem
         return information.FileAttributes;
     }
 
+    private static string FormatIdentity(ByHandleFileInformation information)
+    {
+        var fileIndex = ((ulong)information.FileIndexHigh << 32) | information.FileIndexLow;
+        // File indexes can be recycled after deletion. Bind the handle creation epoch so a
+        // same-name replacement cannot be accepted merely because its index was reused.
+        var creationTime = ((ulong)(uint)information.CreationTime.dwHighDateTime << 32) |
+            (uint)information.CreationTime.dwLowDateTime;
+        return information.VolumeSerialNumber.ToString("X8") + ":" + fileIndex.ToString("X16") + ":" + creationTime.ToString("X16");
+    }
+
     public static string GetIdentity(SafeFileHandle handle)
     {
         ByHandleFileInformation information;
@@ -209,12 +220,251 @@ public static class ZirconMvpAcceptanceNativeFileSystem
         {
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Unable to read handle file identity.");
         }
-        var fileIndex = ((ulong)information.FileIndexHigh << 32) | information.FileIndexLow;
-        // File indexes can be recycled after deletion. Bind the handle creation epoch so a
-        // same-name replacement cannot be accepted merely because its index was reused.
-        var creationTime = ((ulong)(uint)information.CreationTime.dwHighDateTime << 32) |
-            (uint)information.CreationTime.dwLowDateTime;
-        return information.VolumeSerialNumber.ToString("X8") + ":" + fileIndex.ToString("X16") + ":" + creationTime.ToString("X16");
+        return FormatIdentity(information);
+    }
+
+    private static ByHandleFileInformation GetVerifiedIdentityInformation(
+        SafeFileHandle handle,
+        string path)
+    {
+        ByHandleFileInformation information;
+        if (!GetFileInformationByHandle(handle, out information))
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "Unable to read handle file attributes.");
+        }
+        if ((information.FileAttributes & (uint)System.IO.FileAttributes.ReparsePoint) != 0)
+        {
+            throw new InvalidOperationException("Acceptance staging tree contains reparse point '" + path + "'.");
+        }
+        return information;
+    }
+
+    public static string GetVerifiedNonDirectoryIdentity(
+        SafeFileHandle handle,
+        string path,
+        string kind)
+    {
+        var information = GetVerifiedIdentityInformation(handle, path);
+        if ((information.FileAttributes & (uint)System.IO.FileAttributes.Directory) != 0)
+        {
+            throw new InvalidOperationException("Acceptance " + kind + " '" + path + "' is a directory.");
+        }
+        return FormatIdentity(information);
+    }
+
+    public static string GetVerifiedDirectoryIdentity(
+        SafeFileHandle handle,
+        string path,
+        string kind)
+    {
+        var information = GetVerifiedIdentityInformation(handle, path);
+        if ((information.FileAttributes & (uint)System.IO.FileAttributes.Directory) == 0)
+        {
+            throw new InvalidOperationException("Acceptance " + kind + " '" + path + "' is not a directory.");
+        }
+        return FormatIdentity(information);
+    }
+
+    public static string GetCleanupDirectoryIdentity(SafeFileHandle handle, string path)
+    {
+        var information = GetVerifiedIdentityInformation(handle, path);
+        if ((information.FileAttributes & (uint)System.IO.FileAttributes.Directory) == 0)
+        {
+            throw new InvalidOperationException(
+                "Acceptance publication root '" + path + "' changed before its failure cleanup could restore access.");
+        }
+        return FormatIdentity(information);
+    }
+
+    public static void VerifyDirectory(
+        SafeFileHandle handle,
+        string path,
+        string kind)
+    {
+        var information = GetVerifiedIdentityInformation(handle, path);
+        if ((information.FileAttributes & (uint)System.IO.FileAttributes.Directory) == 0)
+        {
+            throw new InvalidOperationException("Acceptance " + kind + " '" + path + "' is not a directory.");
+        }
+    }
+
+    private static SafeFileHandle[] OpenNoFollowDirectoryLeaseCore(
+        string directoryPath,
+        string compatibleWriteLeaseRoot,
+        bool captureTargetIdentity,
+        out string targetIdentity)
+    {
+        targetIdentity = null;
+        var absoluteDirectoryPath = System.IO.Path.GetFullPath(directoryPath);
+        var compatibleRoot = String.IsNullOrWhiteSpace(compatibleWriteLeaseRoot)
+            ? null
+            : System.IO.Path.GetFullPath(compatibleWriteLeaseRoot);
+        var paths = new List<string>();
+        var currentPath = absoluteDirectoryPath;
+        while (!String.IsNullOrWhiteSpace(currentPath))
+        {
+            paths.Add(currentPath);
+            var parent = System.IO.Directory.GetParent(currentPath);
+            if (parent == null)
+            {
+                break;
+            }
+            currentPath = parent.FullName;
+        }
+
+        var handles = new List<SafeFileHandle>();
+        try
+        {
+            for (var index = paths.Count - 1; index >= 0; index--)
+            {
+                var path = paths[index];
+                SafeFileHandle handle = null;
+                try
+                {
+                    handle = compatibleRoot != null &&
+                        path.Equals(compatibleRoot, StringComparison.OrdinalIgnoreCase)
+                        ? OpenNoFollowForHeldStagingRoot(path)
+                        : OpenNoFollowForPublicationParent(path);
+                    if (captureTargetIdentity && index == 0)
+                    {
+                        targetIdentity = GetVerifiedDirectoryIdentity(handle, path, "directory lease path");
+                    }
+                    else
+                    {
+                        VerifyDirectory(handle, path, "directory lease path");
+                    }
+                    handles.Add(handle);
+                    handle = null;
+                }
+                finally
+                {
+                    if (handle != null)
+                    {
+                        handle.Dispose();
+                    }
+                }
+            }
+            return handles.ToArray();
+        }
+        catch
+        {
+            DisposeHandles(handles);
+            throw;
+        }
+    }
+
+    public static SafeFileHandle[] OpenNoFollowDirectoryLease(
+        string directoryPath,
+        string compatibleWriteLeaseRoot)
+    {
+        string ignoredIdentity;
+        return OpenNoFollowDirectoryLeaseCore(
+            directoryPath,
+            compatibleWriteLeaseRoot,
+            false,
+            out ignoredIdentity);
+    }
+
+    public static string GetVerifiedDirectoryIdentityWithLease(
+        string path,
+        string compatibleWriteLeaseRoot)
+    {
+        SafeFileHandle[] directoryLease = null;
+        try
+        {
+            string targetIdentity;
+            directoryLease = OpenNoFollowDirectoryLeaseCore(
+                path,
+                compatibleWriteLeaseRoot,
+                true,
+                out targetIdentity);
+            return targetIdentity;
+        }
+        finally
+        {
+            DisposeHandles(directoryLease);
+        }
+    }
+
+    public static void RemoveFileNoFollow(string path, string expectedIdentity)
+    {
+        var handle = OpenNoFollowForDelete(path);
+        try
+        {
+            var actualIdentity = GetVerifiedNonDirectoryIdentity(handle, path, "file");
+            if (!String.IsNullOrWhiteSpace(expectedIdentity) &&
+                !actualIdentity.Equals(expectedIdentity, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Acceptance file '" + path + "' identity changed before cleanup.");
+            }
+            MarkForDelete(handle);
+        }
+        finally
+        {
+            handle.Dispose();
+        }
+    }
+
+    public static void MoveFileNoFollow(
+        string sourcePath,
+        string destinationPath,
+        string expectedSourceIdentity,
+        string compatibleWriteLeaseRoot)
+    {
+        var absoluteSourcePath = System.IO.Path.GetFullPath(sourcePath);
+        var absoluteDestinationPath = System.IO.Path.GetFullPath(destinationPath);
+        var destinationParentPath = System.IO.Path.GetDirectoryName(absoluteDestinationPath);
+        if (String.IsNullOrWhiteSpace(destinationParentPath))
+        {
+            throw new InvalidOperationException(
+                "Acceptance destination '" + destinationPath + "' has no parent directory.");
+        }
+
+        SafeFileHandle sourceHandle = null;
+        SafeFileHandle[] destinationParentLease = null;
+        SafeFileHandle destinationHandle = null;
+        try
+        {
+            sourceHandle = OpenNoFollowForDelete(absoluteSourcePath);
+            var sourceIdentity = GetVerifiedNonDirectoryIdentity(
+                sourceHandle,
+                absoluteSourcePath,
+                "source");
+            if (!String.IsNullOrWhiteSpace(expectedSourceIdentity) &&
+                !sourceIdentity.Equals(expectedSourceIdentity, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Acceptance source '" + absoluteSourcePath + "' identity changed before publication.");
+            }
+            destinationParentLease = OpenNoFollowDirectoryLease(
+                destinationParentPath,
+                compatibleWriteLeaseRoot);
+            RenameTo(sourceHandle, absoluteDestinationPath);
+            destinationHandle = OpenNoFollowForPublishedTree(absoluteDestinationPath);
+            var destinationIdentity = GetVerifiedNonDirectoryIdentity(
+                destinationHandle,
+                absoluteDestinationPath,
+                "destination");
+            if (!destinationIdentity.Equals(sourceIdentity, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Acceptance destination '" + absoluteDestinationPath +
+                    "' does not identify the renamed source file.");
+            }
+        }
+        finally
+        {
+            if (destinationHandle != null)
+            {
+                destinationHandle.Dispose();
+            }
+            DisposeHandles(destinationParentLease);
+            if (sourceHandle != null)
+            {
+                sourceHandle.Dispose();
+            }
+        }
     }
 
     public static long GetLength(SafeFileHandle handle)
@@ -225,6 +475,56 @@ public static class ZirconMvpAcceptanceNativeFileSystem
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Unable to read handle file length.");
         }
         return ((long)information.FileSizeHigh << 32) | information.FileSizeLow;
+    }
+
+    public static bool ByteSequencesEqual(byte[] expected, byte[] actual)
+    {
+        if (Object.ReferenceEquals(expected, actual))
+        {
+            return true;
+        }
+        if (expected == null || actual == null || expected.Length != actual.Length)
+        {
+            return false;
+        }
+        for (var index = 0; index < expected.Length; index++)
+        {
+            if (expected[index] != actual[index])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static void DisposeHandles(SafeFileHandle[] handles)
+    {
+        if (handles == null)
+        {
+            return;
+        }
+        for (var index = handles.Length - 1; index >= 0; index--)
+        {
+            if (handles[index] != null)
+            {
+                handles[index].Dispose();
+            }
+        }
+    }
+
+    public static void DisposeHandles(List<SafeFileHandle> handles)
+    {
+        if (handles == null)
+        {
+            return;
+        }
+        for (var index = handles.Count - 1; index >= 0; index--)
+        {
+            if (handles[index] != null)
+            {
+                handles[index].Dispose();
+            }
+        }
     }
 
     public static void MarkForDelete(SafeFileHandle handle)
@@ -291,15 +591,7 @@ function Test-MvpAcceptanceNativeByteSequence {
         [Parameter(Mandatory)][byte[]]$Actual
     )
 
-    if ($Expected.Length -ne $Actual.Length) {
-        return $false
-    }
-    for ($index = 0; $index -lt $Expected.Length; $index++) {
-        if ($Expected[$index] -ne $Actual[$index]) {
-            return $false
-        }
-    }
-    return $true
+    return [ZirconMvpAcceptanceNativeFileSystem]::ByteSequencesEqual($Expected, $Actual)
 }
 
 function Assert-MvpAcceptanceNativeSourceAttributes {
@@ -308,7 +600,7 @@ function Assert-MvpAcceptanceNativeSourceAttributes {
         [Parameter(Mandatory)][string]$Path
     )
 
-    if (Test-MvpAcceptanceNativeFileAttribute -Attributes $Attributes -Expected ([System.IO.FileAttributes]::ReparsePoint)) {
+    if ([bool]($Attributes -band [uint32][System.IO.FileAttributes]::ReparsePoint)) {
         throw "Acceptance staging tree contains reparse point '$Path'."
     }
 }
@@ -319,71 +611,15 @@ function Open-MvpAcceptanceNoFollowDirectoryLease {
         [string]$CompatibleWriteLeaseRoot
     )
 
-    $absoluteDirectoryPath = [IO.Path]::GetFullPath($DirectoryPath)
-    $compatibleRoot = if ([string]::IsNullOrWhiteSpace($CompatibleWriteLeaseRoot)) {
-        $null
-    }
-    else {
-        [IO.Path]::GetFullPath($CompatibleWriteLeaseRoot)
-    }
-    $paths = [System.Collections.Generic.List[string]]::new()
-    $currentPath = $absoluteDirectoryPath
-    while (-not [string]::IsNullOrWhiteSpace($currentPath)) {
-        $null = $paths.Add($currentPath)
-        $parent = [IO.Directory]::GetParent($currentPath)
-        if ($null -eq $parent) {
-            break
-        }
-        $currentPath = $parent.FullName
-    }
-
-    $handles = [System.Collections.Generic.List[Microsoft.Win32.SafeHandles.SafeFileHandle]]::new()
-    try {
-        for ($index = $paths.Count - 1; $index -ge 0; $index--) {
-            $path = $paths[$index]
-            $handle = if ($null -ne $compatibleRoot -and
-                $path.Equals($compatibleRoot, [StringComparison]::OrdinalIgnoreCase)) {
-                [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForHeldStagingRoot($path)
-            }
-            else {
-                [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForPublicationParent($path)
-            }
-            try {
-                $attributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($handle)
-                Assert-MvpAcceptanceNativeSourceAttributes -Attributes $attributes -Path $path
-                if (-not (Test-MvpAcceptanceNativeFileAttribute `
-                    -Attributes $attributes `
-                    -Expected ([System.IO.FileAttributes]::Directory))) {
-                    throw "Acceptance directory lease path '$path' is not a directory."
-                }
-                $null = $handles.Add($handle)
-                $handle = $null
-            }
-            finally {
-                if ($null -ne $handle) {
-                    $handle.Dispose()
-                }
-            }
-        }
-        Write-Output -NoEnumerate $handles.ToArray()
-    }
-    catch {
-        for ($index = $handles.Count - 1; $index -ge 0; $index--) {
-            $handles[$index].Dispose()
-        }
-        throw
-    }
+    Write-Output -NoEnumerate ([ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowDirectoryLease(
+        $DirectoryPath,
+        $CompatibleWriteLeaseRoot))
 }
 
 function Close-MvpAcceptanceNoFollowDirectoryLease {
     param([Microsoft.Win32.SafeHandles.SafeFileHandle[]]$Handles)
 
-    if ($null -eq $Handles) {
-        return
-    }
-    for ($index = $Handles.Count - 1; $index -ge 0; $index--) {
-        $Handles[$index].Dispose()
-    }
+    [ZirconMvpAcceptanceNativeFileSystem]::DisposeHandles($Handles)
 }
 
 function Write-MvpAcceptanceNewFileNoFollow {
@@ -405,13 +641,12 @@ function Write-MvpAcceptanceNewFileNoFollow {
     $outputStream = $null
     $sourceHandle = $null
     $inputStream = $null
-    $memoryStream = $null
     try {
         # Retain every ancestor while CreateNew resolves the leaf. A pre-existing leaf is an
         # error rather than a path that can be followed or overwritten.
-        $parentLease = Open-MvpAcceptanceNoFollowDirectoryLease `
-            -DirectoryPath $parentPath `
-            -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
+        $parentLease = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowDirectoryLease(
+            $parentPath,
+            $CompatibleWriteLeaseRoot)
         $outputStream = [IO.File]::Open(
             $absolutePath,
             [IO.FileMode]::CreateNew,
@@ -426,19 +661,28 @@ function Write-MvpAcceptanceNewFileNoFollow {
             & $BeforeReopenHook $absolutePath
         }
         $sourceHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($absolutePath, $true)
-        $attributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($sourceHandle)
-        Assert-MvpAcceptanceNativeSourceAttributes -Attributes $attributes -Path $absolutePath
-        if (Test-MvpAcceptanceNativeFileAttribute `
-            -Attributes $attributes `
-            -Expected ([System.IO.FileAttributes]::Directory)) {
-            throw "Acceptance file '$absolutePath' is a directory."
+        $sourceIdentity = [ZirconMvpAcceptanceNativeFileSystem]::GetVerifiedNonDirectoryIdentity(
+            $sourceHandle,
+            $absolutePath,
+            'file')
+        $sourceLength = [ZirconMvpAcceptanceNativeFileSystem]::GetLength($sourceHandle)
+        if ($sourceLength -ne $ContentBytes.LongLength) {
+            throw "Acceptance file '$absolutePath' content changed before verification."
         }
-        $sourceIdentity = [ZirconMvpAcceptanceNativeFileSystem]::GetIdentity($sourceHandle)
         $inputStream = [IO.FileStream]::new($sourceHandle, [IO.FileAccess]::Read)
         $sourceHandle = $null
-        $memoryStream = [IO.MemoryStream]::new()
-        $inputStream.CopyTo($memoryStream)
-        $writtenBytes = $memoryStream.ToArray()
+        [byte[]]$writtenBytes = [byte[]]::new($ContentBytes.Length)
+        $offset = 0
+        while ($offset -lt $writtenBytes.Length) {
+            $read = $inputStream.Read($writtenBytes, $offset, $writtenBytes.Length - $offset)
+            if ($read -eq 0) {
+                throw "Acceptance file '$absolutePath' content changed before verification."
+            }
+            $offset += $read
+        }
+        if ($inputStream.ReadByte() -ne -1) {
+            throw "Acceptance file '$absolutePath' content changed before verification."
+        }
         if (-not (Test-MvpAcceptanceNativeByteSequence -Expected $ContentBytes -Actual $writtenBytes)) {
             throw "Acceptance file '$absolutePath' content changed before verification."
         }
@@ -453,9 +697,6 @@ function Write-MvpAcceptanceNewFileNoFollow {
         }
     }
     finally {
-        if ($null -ne $memoryStream) {
-            $memoryStream.Dispose()
-        }
         if ($null -ne $inputStream) {
             $inputStream.Dispose()
         }
@@ -466,7 +707,7 @@ function Write-MvpAcceptanceNewFileNoFollow {
             $outputStream.Dispose()
         }
         if ($null -ne $parentLease) {
-            Close-MvpAcceptanceNoFollowDirectoryLease -Handles $parentLease
+            [ZirconMvpAcceptanceNativeFileSystem]::DisposeHandles($parentLease)
         }
     }
 }
@@ -479,66 +720,11 @@ function Move-MvpAcceptanceNewFileNoFollow {
         [string]$CompatibleWriteLeaseRoot
     )
 
-    $absoluteSourcePath = [IO.Path]::GetFullPath($SourcePath)
-    $absoluteDestinationPath = [IO.Path]::GetFullPath($DestinationPath)
-    $destinationParentPath = [IO.Path]::GetDirectoryName($absoluteDestinationPath)
-    if ([string]::IsNullOrWhiteSpace($destinationParentPath)) {
-        throw "Acceptance destination '$DestinationPath' has no parent directory."
-    }
-
-    $sourceHandle = $null
-    $destinationParentLease = $null
-    $destinationHandle = $null
-    try {
-        $sourceHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForDelete(
-            $absoluteSourcePath)
-        $sourceAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($sourceHandle)
-        Assert-MvpAcceptanceNativeSourceAttributes -Attributes $sourceAttributes -Path $absoluteSourcePath
-        if (Test-MvpAcceptanceNativeFileAttribute `
-            -Attributes $sourceAttributes `
-            -Expected ([System.IO.FileAttributes]::Directory)) {
-            throw "Acceptance source '$absoluteSourcePath' is a directory."
-        }
-        $sourceIdentity = [ZirconMvpAcceptanceNativeFileSystem]::GetIdentity($sourceHandle)
-        if (-not [string]::IsNullOrWhiteSpace($ExpectedSourceIdentity) -and
-            $sourceIdentity -ne $ExpectedSourceIdentity) {
-            throw "Acceptance source '$absoluteSourcePath' identity changed before publication."
-        }
-        $destinationParentLease = Open-MvpAcceptanceNoFollowDirectoryLease `
-            -DirectoryPath $destinationParentPath `
-            -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
-
-        # RenameTo does not replace an existing destination. The held source handle and the
-        # destination ancestor lease keep both names from being redirected during the commit.
-        [ZirconMvpAcceptanceNativeFileSystem]::RenameTo($sourceHandle, $absoluteDestinationPath)
-        # The source rename handle still owns DELETE access. Reopen with compatible sharing
-        # while it remains held so the destination identity is verified on Windows.
-        $destinationHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForPublishedTree(
-            $absoluteDestinationPath)
-        $destinationAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($destinationHandle)
-        Assert-MvpAcceptanceNativeSourceAttributes `
-            -Attributes $destinationAttributes `
-            -Path $absoluteDestinationPath
-        if (Test-MvpAcceptanceNativeFileAttribute `
-            -Attributes $destinationAttributes `
-            -Expected ([System.IO.FileAttributes]::Directory)) {
-            throw "Acceptance destination '$absoluteDestinationPath' is a directory."
-        }
-        if ([ZirconMvpAcceptanceNativeFileSystem]::GetIdentity($destinationHandle) -ne $sourceIdentity) {
-            throw "Acceptance destination '$absoluteDestinationPath' does not identify the renamed source file."
-        }
-    }
-    finally {
-        if ($null -ne $destinationHandle) {
-            $destinationHandle.Dispose()
-        }
-        if ($null -ne $destinationParentLease) {
-            Close-MvpAcceptanceNoFollowDirectoryLease -Handles $destinationParentLease
-        }
-        if ($null -ne $sourceHandle) {
-            $sourceHandle.Dispose()
-        }
-    }
+    [ZirconMvpAcceptanceNativeFileSystem]::MoveFileNoFollow(
+        $SourcePath,
+        $DestinationPath,
+        $ExpectedSourceIdentity,
+        $CompatibleWriteLeaseRoot)
 }
 
 function Remove-MvpAcceptanceFileNoFollow {
@@ -547,25 +733,7 @@ function Remove-MvpAcceptanceFileNoFollow {
         [string]$ExpectedIdentity
     )
 
-    $handle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForDelete($Path)
-    try {
-        $attributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($handle)
-        Assert-MvpAcceptanceNativeSourceAttributes -Attributes $attributes -Path $Path
-        if (Test-MvpAcceptanceNativeFileAttribute `
-            -Attributes $attributes `
-            -Expected ([System.IO.FileAttributes]::Directory)) {
-            throw "Acceptance file '$Path' is a directory."
-        }
-        $actualIdentity = [ZirconMvpAcceptanceNativeFileSystem]::GetIdentity($handle)
-        if (-not [string]::IsNullOrWhiteSpace($ExpectedIdentity) -and
-            $actualIdentity -ne $ExpectedIdentity) {
-            throw "Acceptance file '$Path' identity changed before cleanup."
-        }
-        [ZirconMvpAcceptanceNativeFileSystem]::MarkForDelete($handle)
-    }
-    finally {
-        $handle.Dispose()
-    }
+    [ZirconMvpAcceptanceNativeFileSystem]::RemoveFileNoFollow($Path, $ExpectedIdentity)
 }
 
 function Get-MvpAcceptanceNativeDirectoryIdentity {
@@ -574,37 +742,9 @@ function Get-MvpAcceptanceNativeDirectoryIdentity {
         [string]$CompatibleWriteLeaseRoot
     )
 
-    $directoryLease = $null
-    $directoryHandle = $null
-    try {
-        $absolutePath = [IO.Path]::GetFullPath($Path)
-        $directoryLease = Open-MvpAcceptanceNoFollowDirectoryLease `
-            -DirectoryPath $absolutePath `
-            -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
-        $directoryHandle = if (-not [string]::IsNullOrWhiteSpace($CompatibleWriteLeaseRoot) -and
-            $absolutePath.Equals([IO.Path]::GetFullPath($CompatibleWriteLeaseRoot), [StringComparison]::OrdinalIgnoreCase)) {
-            [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForHeldStagingRoot($absolutePath)
-        }
-        else {
-            [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForPublicationParent($absolutePath)
-        }
-        $attributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($directoryHandle)
-        Assert-MvpAcceptanceNativeSourceAttributes -Attributes $attributes -Path $absolutePath
-        if (-not (Test-MvpAcceptanceNativeFileAttribute `
-            -Attributes $attributes `
-            -Expected ([System.IO.FileAttributes]::Directory))) {
-            throw "Acceptance directory '$absolutePath' is not a directory."
-        }
-        return [ZirconMvpAcceptanceNativeFileSystem]::GetIdentity($directoryHandle)
-    }
-    finally {
-        if ($null -ne $directoryHandle) {
-            $directoryHandle.Dispose()
-        }
-        if ($null -ne $directoryLease) {
-            Close-MvpAcceptanceNoFollowDirectoryLease -Handles $directoryLease
-        }
-    }
+    return [ZirconMvpAcceptanceNativeFileSystem]::GetVerifiedDirectoryIdentityWithLease(
+        $Path,
+        $CompatibleWriteLeaseRoot)
 }
 
 function Ensure-MvpAcceptanceDirectoryPathNoFollow {
@@ -614,93 +754,61 @@ function Ensure-MvpAcceptanceDirectoryPathNoFollow {
         [string]$CompatibleWriteLeaseRoot
     )
 
-    if ([IO.Path]::IsPathRooted($RelativePath) -or $RelativePath -match '(^|[\\/])\.\.([\\/]|$)') {
+    $segments = $RelativePath.Split(
+        [char[]]@('\', '/'),
+        [StringSplitOptions]::RemoveEmptyEntries)
+    if ([IO.Path]::IsPathRooted($RelativePath) -or $segments -contains '..') {
         throw "Acceptance directory path '$RelativePath' is unsafe."
     }
 
     $root = [IO.Path]::GetFullPath($RootPath)
-    $rootHandle = $null
     $rootLease = $null
+    $nestedHandles = [System.Collections.Generic.List[Microsoft.Win32.SafeHandles.SafeFileHandle]]::new()
     try {
-        $rootLease = Open-MvpAcceptanceNoFollowDirectoryLease `
-            -DirectoryPath $root `
-            -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
-        $rootHandle = if (-not [string]::IsNullOrWhiteSpace($CompatibleWriteLeaseRoot) -and
-            $root.Equals([IO.Path]::GetFullPath($CompatibleWriteLeaseRoot), [StringComparison]::OrdinalIgnoreCase)) {
-            [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForHeldStagingRoot($root)
-        }
-        else {
-            [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForPublicationParent($root)
-        }
-        $rootAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($rootHandle)
-        Assert-MvpAcceptanceNativeSourceAttributes -Attributes $rootAttributes -Path $root
-        if (-not (Test-MvpAcceptanceNativeFileAttribute `
-            -Attributes $rootAttributes `
-            -Expected ([System.IO.FileAttributes]::Directory))) {
-            throw "Acceptance directory root '$root' is not a directory."
-        }
+        $rootLease = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowDirectoryLease(
+            $root,
+            $CompatibleWriteLeaseRoot)
+        $rootHandle = $rootLease[$rootLease.Count - 1]
+        [ZirconMvpAcceptanceNativeFileSystem]::VerifyDirectory(
+            $rootHandle,
+            $root,
+            'directory root')
 
         $currentPath = $root
-        foreach ($segment in @($RelativePath -split '[\\/]+')) {
+        foreach ($segment in $segments) {
             if ([string]::IsNullOrWhiteSpace($segment) -or $segment -eq '.') {
                 continue
             }
-            $currentLease = $null
-            $currentHandle = $null
             $nextHandle = $null
             try {
-                $currentLease = Open-MvpAcceptanceNoFollowDirectoryLease `
-                    -DirectoryPath $currentPath `
-                    -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
-                $currentHandle = if (-not [string]::IsNullOrWhiteSpace($CompatibleWriteLeaseRoot) -and
-                    $currentPath.Equals([IO.Path]::GetFullPath($CompatibleWriteLeaseRoot), [StringComparison]::OrdinalIgnoreCase)) {
-                    [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForHeldStagingRoot($currentPath)
-                }
-                else {
-                    [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForPublicationParent($currentPath)
-                }
-                $currentAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($currentHandle)
-                Assert-MvpAcceptanceNativeSourceAttributes -Attributes $currentAttributes -Path $currentPath
-                if (-not (Test-MvpAcceptanceNativeFileAttribute `
-                    -Attributes $currentAttributes `
-                    -Expected ([System.IO.FileAttributes]::Directory))) {
-                    throw "Acceptance directory path '$currentPath' is not a directory."
-                }
-
-                $nextPath = Join-Path $currentPath $segment
-                if (-not (Test-Path -LiteralPath $nextPath)) {
-                    [IO.Directory]::CreateDirectory($nextPath) | Out-Null
+                $nextPath = [IO.Path]::Combine($currentPath, $segment)
+                if (-not [IO.Directory]::Exists($nextPath)) {
+                    if ([IO.File]::Exists($nextPath)) {
+                        throw "Acceptance directory path '$nextPath' is not a directory."
+                    }
+                    $null = [IO.Directory]::CreateDirectory($nextPath)
                 }
                 $nextHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForPublicationParent($nextPath)
-                $nextAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($nextHandle)
-                Assert-MvpAcceptanceNativeSourceAttributes -Attributes $nextAttributes -Path $nextPath
-                if (-not (Test-MvpAcceptanceNativeFileAttribute `
-                    -Attributes $nextAttributes `
-                    -Expected ([System.IO.FileAttributes]::Directory))) {
-                    throw "Acceptance directory path '$nextPath' is not a directory."
-                }
+                [ZirconMvpAcceptanceNativeFileSystem]::VerifyDirectory(
+                    $nextHandle,
+                    $nextPath,
+                    'directory path')
+                $null = $nestedHandles.Add($nextHandle)
+                $nextHandle = $null
                 $currentPath = $nextPath
             }
             finally {
                 if ($null -ne $nextHandle) {
                     $nextHandle.Dispose()
                 }
-                if ($null -ne $currentHandle) {
-                    $currentHandle.Dispose()
-                }
-                if ($null -ne $currentLease) {
-                    Close-MvpAcceptanceNoFollowDirectoryLease -Handles $currentLease
-                }
             }
         }
         return $currentPath
     }
     finally {
-        if ($null -ne $rootHandle) {
-            $rootHandle.Dispose()
-        }
+        [ZirconMvpAcceptanceNativeFileSystem]::DisposeHandles($nestedHandles)
         if ($null -ne $rootLease) {
-            Close-MvpAcceptanceNoFollowDirectoryLease -Handles $rootLease
+            [ZirconMvpAcceptanceNativeFileSystem]::DisposeHandles($rootLease)
         }
     }
 }
@@ -714,27 +822,22 @@ function Protect-MvpAcceptanceStagingDirectoryForPublication {
 
     $absolutePath = [IO.Path]::GetFullPath($Path)
     $directoryLease = $null
-    $directoryHandle = $null
     try {
-        $directoryLease = Open-MvpAcceptanceNoFollowDirectoryLease `
-            -DirectoryPath $absolutePath `
-            -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
-        $directoryHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForHeldStagingRoot($absolutePath)
-        $attributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($directoryHandle)
-        Assert-MvpAcceptanceNativeSourceAttributes -Attributes $attributes -Path $absolutePath
-        if (-not (Test-MvpAcceptanceNativeFileAttribute `
-            -Attributes $attributes `
-            -Expected ([System.IO.FileAttributes]::Directory))) {
-            throw "Acceptance publication root '$absolutePath' is not a directory."
-        }
-        $identity = [ZirconMvpAcceptanceNativeFileSystem]::GetIdentity($directoryHandle)
+        $directoryLease = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowDirectoryLease(
+            $absolutePath,
+            $CompatibleWriteLeaseRoot)
+        $directoryHandle = $directoryLease[$directoryLease.Count - 1]
+        $identity = [ZirconMvpAcceptanceNativeFileSystem]::GetVerifiedDirectoryIdentity(
+            $directoryHandle,
+            $absolutePath,
+            'publication root')
         if ($identity -ne $ExpectedIdentity) {
             throw "Acceptance publication root '$absolutePath' no longer identifies the frozen partial tree."
         }
 
         $directory = [IO.DirectoryInfo]::new($absolutePath)
         $accessSections = [Security.AccessControl.AccessControlSections]::Access
-        $security = [IO.FileSystemAclExtensions]::GetAccessControl($directory, $accessSections)
+        $security = Get-Acl -LiteralPath $absolutePath -ErrorAction Stop
         $originalSddl = $security.GetSecurityDescriptorSddlForm($accessSections)
         $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent().User
         if ($null -eq $currentUser) {
@@ -753,7 +856,7 @@ function Protect-MvpAcceptanceStagingDirectoryForPublication {
             [Security.AccessControl.PropagationFlags]::None,
             [Security.AccessControl.AccessControlType]::Deny)
         $security.AddAccessRule($freezeRule) | Out-Null
-        [IO.FileSystemAclExtensions]::SetAccessControl($directory, $security)
+        Set-Acl -LiteralPath $absolutePath -AclObject $security -ErrorAction Stop
         return [pscustomobject]@{
             path = $absolutePath
             identity = $identity
@@ -762,11 +865,8 @@ function Protect-MvpAcceptanceStagingDirectoryForPublication {
         }
     }
     finally {
-        if ($null -ne $directoryHandle) {
-            $directoryHandle.Dispose()
-        }
         if ($null -ne $directoryLease) {
-            Close-MvpAcceptanceNoFollowDirectoryLease -Handles $directoryLease
+            [ZirconMvpAcceptanceNativeFileSystem]::DisposeHandles($directoryLease)
         }
     }
 }
@@ -783,31 +883,25 @@ function Unprotect-MvpAcceptanceStagingDirectoryForPublication {
     }
 
     $directoryLease = $null
-    $directoryHandle = $null
     try {
-        $directoryLease = Open-MvpAcceptanceNoFollowDirectoryLease `
-            -DirectoryPath $absolutePath `
-            -CompatibleWriteLeaseRoot $compatibleWriteLeaseRoot
-        $directoryHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForHeldStagingRoot($absolutePath)
-        $attributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($directoryHandle)
-        Assert-MvpAcceptanceNativeSourceAttributes -Attributes $attributes -Path $absolutePath
-        if (-not (Test-MvpAcceptanceNativeFileAttribute `
-            -Attributes $attributes `
-            -Expected ([System.IO.FileAttributes]::Directory)) -or
-            [ZirconMvpAcceptanceNativeFileSystem]::GetIdentity($directoryHandle) -ne $expectedIdentity) {
+        $directoryLease = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowDirectoryLease(
+            $absolutePath,
+            $compatibleWriteLeaseRoot)
+        $directoryHandle = $directoryLease[$directoryLease.Count - 1]
+        $actualIdentity = [ZirconMvpAcceptanceNativeFileSystem]::GetCleanupDirectoryIdentity(
+            $directoryHandle,
+            $absolutePath)
+        if ($actualIdentity -ne $expectedIdentity) {
             throw "Acceptance publication root '$absolutePath' changed before its failure cleanup could restore access."
         }
         $accessSections = [Security.AccessControl.AccessControlSections]::Access
         $security = [Security.AccessControl.DirectorySecurity]::new()
         $security.SetSecurityDescriptorSddlForm($originalSddl, $accessSections)
-        [IO.FileSystemAclExtensions]::SetAccessControl([IO.DirectoryInfo]::new($absolutePath), $security)
+        Set-Acl -LiteralPath $absolutePath -AclObject $security -ErrorAction Stop
     }
     finally {
-        if ($null -ne $directoryHandle) {
-            $directoryHandle.Dispose()
-        }
         if ($null -ne $directoryLease) {
-            Close-MvpAcceptanceNoFollowDirectoryLease -Handles $directoryLease
+            [ZirconMvpAcceptanceNativeFileSystem]::DisposeHandles($directoryLease)
         }
     }
 }

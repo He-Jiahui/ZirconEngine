@@ -2,6 +2,8 @@
 related_code:
   - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior/exact_dependency_resolution.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior/factory_panics.rs
   - zircon_runtime/src/core/runtime/tests/resolution/structure.rs
   - docs/engine-architecture/core-runtime-service-registry.md
 plan_sources:
@@ -28,11 +30,14 @@ doc_type: milestone-detail
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
 | M3 | Core runtime resolution dependency-cycle test owner split | `runtime_15_resolution_dependency_cycle_test_owner_split_current_source_3_passed` | 2026-07-14 | `behavior.rs` 以结构性 `mod dependency_cycles;` 接入 folder-backed child；四层与五层 resolution cycle 测试完整迁入 `behavior/dependency_cycles.rs`。父 owner 从 821 行降到 709 行，child 为 115 行；12 个 resolution behavior 测试名完整保留。current-source child 行为 2/2、fresh standalone structure guard 1/1。未提高 800 行测试预算，未增加豁免、兼容层或重复实现。 |
+| M3 | Exact dependency cached-key test owner split | `runtime_02_15_resolution_exact_dependency_test_owner_split_static_passed_cargo_deferred` | 2026-08-27 | exact 4/5 dependency initialization 两测原样迁入 `behavior/exact_dependency_resolution.rs`。当前父 owner 631 行 / 10 tests；dependency-cycle、exact-dependency、factory-panic child 为 115/217/258 行及 2/2/4 tests。Python 结构回归 1/1，测试体规范化 SHA-256 等价；Cargo 延后。 |
 
 ## Owner 边界
 
 - `behavior.rs` 保留 lazy resolve、并发 factory、registered identity、失败重试与 exact dependency 初始化行为。
 - `behavior/dependency_cycles.rs` 只承接四层和五层依赖循环的 canonical registry key 回归。
+- `behavior/exact_dependency_resolution.rs` 只承接 exact 4/5 dependency cached-key 初始化回归。
+- `behavior/factory_panics.rs` 保持另一会话新增的 factory panic/lifecycle owner，不并入本切片。
 - 测试名、依赖图、`CoreError::DependencyCycle` 错误断言与运行时公开路径均未改变。
 - 当前未提交的并发 service-resolution 与 stable identity 回归原样保留在父 owner，本切片没有重写或回退它们。
 

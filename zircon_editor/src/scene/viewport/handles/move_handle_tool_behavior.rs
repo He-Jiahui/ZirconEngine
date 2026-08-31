@@ -20,7 +20,7 @@ impl HandleTool for MoveHandleTool {
         ctx: &crate::scene::viewport::handles::handle_build_context::HandleBuildContext<'_>,
     ) -> Option<HandleOverlayExtract> {
         let (selected, basis) = selected_basis(ctx)?;
-        let mut elements = Vec::new();
+        let mut elements = Vec::with_capacity(4);
         push_axis_line(
             &mut elements,
             OverlayAxis::X,
@@ -93,3 +93,7 @@ impl HandleTool for MoveHandleTool {
 
     fn end_drag(&self, _session: HandleDragSession) {}
 }
+
+#[cfg(test)]
+#[path = "move_handle_tool_behavior/single_allocation_overlay_tests.rs"]
+mod single_allocation_overlay_tests;

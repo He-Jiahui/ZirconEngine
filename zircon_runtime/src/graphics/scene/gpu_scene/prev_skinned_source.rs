@@ -152,12 +152,16 @@ mod tests {
         assert_eq!(report.current_source_count, 1);
         assert_eq!(report.previous_source_count, 1);
         assert_eq!(report.removed_previous_source_count, 1);
-        assert!(scene
-            .previous_skinned_gpu_source_state(TEST_STABLE_INSTANCE_KEY)
-            .is_none());
-        assert!(scene
-            .previous_skinned_gpu_source_state(TEST_OTHER_STABLE_INSTANCE_KEY)
-            .is_some());
+        assert!(
+            scene
+                .previous_skinned_gpu_source_state(TEST_STABLE_INSTANCE_KEY)
+                .is_none()
+        );
+        assert!(
+            scene
+                .previous_skinned_gpu_source_state(TEST_OTHER_STABLE_INSTANCE_KEY)
+                .is_some()
+        );
     }
 
     fn test_backend() -> Option<crate::graphics::backend::RenderBackend> {

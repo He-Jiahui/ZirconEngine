@@ -1,0 +1,35 @@
+milestone: A0
+status: validated
+mvp_gate: design-ready
+owner_sessions:
+  - root-designment02-penpot-zui-roundtrip-20260831
+changed_scope:
+  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge
+  - dev/penpot/plugins/apps/zircon-zui-plugin/src/cli.ts
+packages:
+  - zircon-zui-plugin
+feature_profiles:
+  - zui-v2
+interface_boundaries:
+  - .zui v2 source <-> Penpot semantic snapshot
+target_dir: not-applicable
+cargo_profile: development
+storage_mode: reuse
+commands:
+  - pnpm --filter zircon-zui-plugin test
+  - tsc --project tsconfig.plugin.json --noEmit
+  - tsc --project tsconfig.cli.json --noEmit
+  - tsc --project tsconfig.app.json --noEmit
+  - tsc --project tsconfig.spec.json --noEmit
+focused_tests:
+  - zui-document.spec.ts
+  - penpot-projection.spec.ts
+  - penpot-asset.spec.ts
+product_evidence:
+  - 303 current v2 assets and 5516 projected semantic nodes audited
+failures_repaired:
+  - node-less style and theme_tokens profile support
+deferred_external_checks: []
+unlocks:
+  - A1
+  - A2-contract-authoring

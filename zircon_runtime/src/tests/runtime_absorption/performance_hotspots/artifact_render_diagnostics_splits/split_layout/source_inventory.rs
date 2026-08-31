@@ -5,7 +5,7 @@ pub(super) fn assert_artifact_render_diagnostics_source_inventory(sources: &Spli
         "performance hotpath source inventory",
         sources.source_inventory,
         &[
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/artifact_render_diagnostics_splits.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/artifact_render_diagnostics_splits/artifact_cache_payload.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/artifact_render_diagnostics_splits/render_product_diagnostics.rs",

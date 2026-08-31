@@ -1,15 +1,16 @@
 use crate::core::framework::render::{
     ShaderFeatureBits, ShaderPassType, ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest,
 };
-use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
+use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
 
 use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline::{
-    create_depth_prepass_mesh_pipeline, create_gbuffer_mesh_pipeline, create_mesh_pipeline,
-    create_oit_mesh_pipeline, create_shadow_mesh_pipeline, create_taa_reactive_mask_mesh_pipeline,
+    create_depth_prepass_mesh_pipeline, create_gbuffer_mesh_pipeline,
+    create_hit_proxy_mesh_pipeline, create_mesh_pipeline, create_oit_mesh_pipeline,
+    create_shadow_mesh_pipeline, create_taa_reactive_mask_mesh_pipeline,
     create_taa_reactive_material_mask_mesh_pipeline, create_velocity_mesh_pipeline,
 };
-use super::{MeshPipelineCache, MeshPipelineShaderSource};
+use super::{MeshPipelineCache, MeshPipelineShaderSource, PipelineCreationTarget};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RuntimeShaderPipelinePrewarmReport {
@@ -129,6 +130,9 @@ impl MeshPipelineCache {
                 }
             };
             let pipeline_kind = pipeline_kind_from_prewarm_request(request);
+            let pipeline_target = PipelineCreationTarget::MeshPass(pipeline_kind);
+            let source_hash = source.source_hash();
+            self.record_observed_shader_source(pipeline_target, &source_hash);
             let variant_id = self.resolve_variant_for_geometry(
                 pipeline_kind,
                 &pipeline_key,
@@ -142,6 +146,10 @@ impl MeshPipelineCache {
                     &pipeline_key,
                     request.key.geometry_source,
                     request.key.quality,
+                );
+                self.record_observed_shader_source(
+                    PipelineCreationTarget::MeshPass(kind),
+                    &source_hash,
                 );
                 (kind, variant_id)
             });
@@ -160,13 +168,19 @@ impl MeshPipelineCache {
             let oit_source = if requires_oit && !oit_hit {
                 let source = MeshPipelineShaderSource {
                     wgsl_source: source.wgsl_source.clone(),
-                    source_hash: source.source_hash(),
+                    source_hash: source_hash.clone(),
                     cache_content_hashes: source.include_content_hashes.clone(),
                     template_revision: source.template_revision.clone(),
                     segments: Vec::new(),
                 };
                 match source.into_oit_fragment_store_source() {
-                    Some(source) => Some(source),
+                    Some(source) => {
+                        self.record_observed_shader_source(
+                            PipelineCreationTarget::Oit,
+                            &source.source_hash,
+                        );
+                        Some(source)
+                    }
                     None => {
                         report.record_failure(
                             variant_index,
@@ -187,7 +201,7 @@ impl MeshPipelineCache {
                     source: wgpu::ShaderSource::Wgsl(source.wgsl_source.as_str().into()),
                 });
                 let creation_elapsed = creation_started.elapsed();
-                self.record_shader_module_creation(creation_elapsed);
+                self.record_shader_module_creation(pipeline_target, creation_elapsed);
                 Some(shader)
             } else {
                 None
@@ -203,7 +217,7 @@ impl MeshPipelineCache {
                             &pipeline_key,
                         );
                         let creation_elapsed = creation_started.elapsed();
-                        self.record_render_pipeline_creation(creation_elapsed);
+                        self.record_render_pipeline_creation(pipeline_target, creation_elapsed);
                         Some(pipeline)
                     } else {
                         None
@@ -214,7 +228,10 @@ impl MeshPipelineCache {
                             let pipeline =
                                 self.create_prewarmed_pipeline(device, shader, kind, &pipeline_key);
                             let creation_elapsed = creation_started.elapsed();
-                            self.record_render_pipeline_creation(creation_elapsed);
+                            self.record_render_pipeline_creation(
+                                PipelineCreationTarget::MeshPass(kind),
+                                creation_elapsed,
+                            );
                             Some((kind, variant_id, pipeline))
                         } else {
                             None
@@ -240,7 +257,10 @@ impl MeshPipelineCache {
                     source: wgpu::ShaderSource::Wgsl(source.wgsl_source.as_str().into()),
                 });
                 let shader_creation_elapsed = shader_creation_started.elapsed();
-                self.record_shader_module_creation(shader_creation_elapsed);
+                self.record_shader_module_creation(
+                    PipelineCreationTarget::Oit,
+                    shader_creation_elapsed,
+                );
                 let pipeline_creation_started = std::time::Instant::now();
                 let pipeline = create_oit_mesh_pipeline(
                     device,
@@ -250,7 +270,10 @@ impl MeshPipelineCache {
                     self.runtime_pipeline_cache.cache(),
                 );
                 let pipeline_creation_elapsed = pipeline_creation_started.elapsed();
-                self.record_render_pipeline_creation(pipeline_creation_elapsed);
+                self.record_render_pipeline_creation(
+                    PipelineCreationTarget::Oit,
+                    pipeline_creation_elapsed,
+                );
                 Some(pipeline)
             } else {
                 None
@@ -283,6 +306,9 @@ impl MeshPipelineCache {
             MeshPassPipelineKind::GBuffer => self.gbuffer_mesh_pipelines.contains_key(&variant_id),
             MeshPassPipelineKind::DepthPrepass => {
                 self.depth_prepass_mesh_pipelines.contains_key(&variant_id)
+            }
+            MeshPassPipelineKind::HitProxy => {
+                self.hit_proxy_mesh_pipelines.contains_key(&variant_id)
             }
             MeshPassPipelineKind::ShadowDepth | MeshPassPipelineKind::ShadowDepthAlphaMask => {
                 self.shadow_mesh_pipelines.contains_key(&variant_id)
@@ -330,12 +356,20 @@ impl MeshPipelineCache {
                 pipeline_key,
                 pipeline_cache,
             ),
+            MeshPassPipelineKind::HitProxy => create_hit_proxy_mesh_pipeline(
+                device,
+                &self.mesh_pipeline_layout,
+                shader,
+                pipeline_key,
+                pipeline_cache,
+            ),
             MeshPassPipelineKind::ShadowDepth | MeshPassPipelineKind::ShadowDepthAlphaMask => {
                 create_shadow_mesh_pipeline(
                     device,
                     &self.mesh_pipeline_layout,
                     shader,
                     pipeline_kind,
+                    pipeline_key,
                     pipeline_cache,
                 )
             }
@@ -343,7 +377,6 @@ impl MeshPipelineCache {
                 device,
                 &self.mesh_pipeline_layout,
                 shader,
-                wgpu::TextureFormat::Rg16Float,
                 pipeline_key,
                 pipeline_cache,
             ),
@@ -351,7 +384,6 @@ impl MeshPipelineCache {
                 device,
                 &self.mesh_pipeline_layout,
                 shader,
-                wgpu::TextureFormat::R8Unorm,
                 pipeline_key,
                 pipeline_cache,
             ),
@@ -360,7 +392,6 @@ impl MeshPipelineCache {
                     device,
                     &self.mesh_pipeline_layout,
                     shader,
-                    wgpu::TextureFormat::R8Unorm,
                     pipeline_key,
                     pipeline_cache,
                 )
@@ -384,6 +415,9 @@ impl MeshPipelineCache {
             MeshPassPipelineKind::DepthPrepass => {
                 self.depth_prepass_mesh_pipelines
                     .insert(variant_id, pipeline);
+            }
+            MeshPassPipelineKind::HitProxy => {
+                self.hit_proxy_mesh_pipelines.insert(variant_id, pipeline);
             }
             MeshPassPipelineKind::ShadowDepth | MeshPassPipelineKind::ShadowDepthAlphaMask => {
                 self.shadow_mesh_pipelines.insert(variant_id, pipeline);
@@ -430,10 +464,6 @@ pub(super) fn pipeline_key_from_prewarm_request(
         .features
         .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE);
     pipeline_key.unlit = pipeline_state.unlit;
-    pipeline_key.has_base_color_texture = pipeline_state.has_base_color_texture;
-    pipeline_key.has_metallic_roughness_texture = pipeline_state.has_metallic_roughness_texture;
-    pipeline_key.has_occlusion_texture = pipeline_state.has_occlusion_texture;
-    pipeline_key.has_emissive_texture = pipeline_state.has_emissive_texture;
     pipeline_key.pbr_clearcoat = request
         .key
         .features
@@ -461,6 +491,7 @@ pub(super) fn pipeline_kind_from_prewarm_request(
         ShaderPassType::Forward => MeshPassPipelineKind::Base,
         ShaderPassType::GBuffer => MeshPassPipelineKind::GBuffer,
         ShaderPassType::DepthPrepass => MeshPassPipelineKind::DepthPrepass,
+        ShaderPassType::HitProxy => MeshPassPipelineKind::HitProxy,
         ShaderPassType::Shadow if request.key.features.contains(ShaderFeatureBits::ALPHA_TEST) => {
             MeshPassPipelineKind::ShadowDepthAlphaMask
         }
@@ -491,11 +522,7 @@ mod tests {
         expected.alpha_cutoff_bits = Some(0.42_f32.to_bits());
         expected.receive_shadows = false;
         expected.unlit = true;
-        expected.has_base_color_texture = true;
         expected.has_normal_texture = true;
-        expected.has_metallic_roughness_texture = true;
-        expected.has_occlusion_texture = true;
-        expected.has_emissive_texture = true;
         expected.pbr_clearcoat = true;
         expected.pbr_anisotropy = true;
         expected.pbr_transmission = true;
@@ -506,10 +533,6 @@ mod tests {
                 alpha_blend: expected.alpha_blend,
                 alpha_cutoff_bits: expected.alpha_cutoff_bits,
                 unlit: expected.unlit,
-                has_base_color_texture: expected.has_base_color_texture,
-                has_metallic_roughness_texture: expected.has_metallic_roughness_texture,
-                has_occlusion_texture: expected.has_occlusion_texture,
-                has_emissive_texture: expected.has_emissive_texture,
             }),
             // Source-table resolution is outside this key-projection unit test.
             source_id: Default::default(),

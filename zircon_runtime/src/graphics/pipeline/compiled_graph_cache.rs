@@ -1,23 +1,43 @@
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Arc;
 
 use super::declarations::{
-    CompiledRenderPipeline, RenderPipelineAsset, RenderPipelineCompileOptions,
+    AdvancedLightingCompileInputs, CompiledRenderPipeline, RenderPipelineAsset,
+    RenderPipelineCompileOptions,
 };
 use crate::asset::{RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
 use crate::core::framework::render::{
-    CameraRenderType, RenderCapabilitySummary, RenderFrameExtract, RenderPipelineHandle,
-    ShaderQualityTier, ZR_SSS_MAX_PROFILES,
+    AoSourceSettingsKey, CameraRenderType, RenderCapabilitySummary, RenderFrameExtract,
+    RenderPipelineHandle, ShaderQualityTier,
 };
 use crate::core::resource::ResourceId;
 
 const DEFAULT_COMPILED_GRAPH_CACHE_CAPACITY: usize = 16;
+
+/// Frame data required to derive a graph-cache key is incomplete.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RenderGraphCompileInputError {
+    MissingSelectedCamera,
+}
+
+impl fmt::Display for RenderGraphCompileInputError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingSelectedCamera => formatter
+                .write_str("render graph compilation requires a selected camera descriptor"),
+        }
+    }
+}
+
+impl std::error::Error for RenderGraphCompileInputError {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CompiledGraphCacheKey {
     pub pipeline: RenderPipelineHandle,
     pub pipeline_revision: u64,
     pub shader_quality: ShaderQualityTier,
+    pub ambient_occlusion_source: Option<AoSourceSettingsKey>,
     pub frame: RenderGraphCompileFrameFingerprint,
     pub options: RenderPipelineCompileOptions,
     pub capabilities: RenderGraphCompileCapabilityFingerprint,
@@ -31,16 +51,45 @@ impl CompiledGraphCacheKey {
         options: &RenderPipelineCompileOptions,
         capabilities: &RenderCapabilitySummary,
         shader_quality: ShaderQualityTier,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, RenderGraphCompileInputError> {
+        let advanced_lighting_inputs = options.resolved_advanced_lighting_inputs(extract);
+        let options = options
+            .clone()
+            .with_advanced_lighting_inputs(advanced_lighting_inputs.clone());
+        Ok(Self {
             pipeline: pipeline.handle,
             pipeline_revision: pipeline.revision,
             shader_quality,
-            frame: extract_compile_fingerprint(extract, camera_target),
-            options: options.clone(),
+            ambient_occlusion_source: pipeline_requests_ambient_occlusion(pipeline, &options)
+                .then(|| options.resolved_ambient_occlusion_source(extract).into()),
+            frame: extract_compile_fingerprint_with_advanced_lighting_inputs(
+                extract,
+                camera_target,
+                &advanced_lighting_inputs,
+            )?,
+            options,
             capabilities: RenderGraphCompileCapabilityFingerprint::from_capabilities(capabilities),
-        }
+        })
     }
+}
+
+fn pipeline_requests_ambient_occlusion(
+    pipeline: &RenderPipelineAsset,
+    options: &RenderPipelineCompileOptions,
+) -> bool {
+    pipeline.renderer.features.iter().any(|feature| {
+        feature.enabled
+            && options.permits_feature_asset(feature)
+            && feature
+                .quality_gate
+                .is_none_or(|gate| options.permits_feature(gate))
+            && (feature.is_builtin(
+                crate::graphics::feature::BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
+            ) || matches!(
+                feature.feature_name().as_str(),
+                "screen_space_ambient_occlusion" | "ssao"
+            ))
+    })
 }
 
 /// Captures every `RenderFrameExtract` field that can change the compiled
@@ -55,6 +104,13 @@ pub struct RenderGraphCompileFrameFingerprint {
     pub view_height: u32,
     pub render_width: u32,
     pub render_height: u32,
+    pub primary_allocation_width: u32,
+    pub primary_allocation_height: u32,
+    pub secondary_allocation_width: u32,
+    pub secondary_allocation_height: u32,
+    pub display_allocation_width: u32,
+    pub display_allocation_height: u32,
+    pub upscaler: crate::core::framework::render::RenderUpscalerKind,
     pub camera_hdr: bool,
     pub camera_msaa_samples: u32,
     pub has_particle_sprites: bool,
@@ -71,14 +127,29 @@ pub struct RenderGraphCompileFrameFingerprint {
 pub fn extract_compile_fingerprint(
     extract: &RenderFrameExtract,
     camera_target: RenderGraphCompileCameraTargetFingerprint,
-) -> RenderGraphCompileFrameFingerprint {
+) -> Result<RenderGraphCompileFrameFingerprint, RenderGraphCompileInputError> {
+    let advanced_lighting_inputs = AdvancedLightingCompileInputs::from_extract(extract);
+    extract_compile_fingerprint_with_advanced_lighting_inputs(
+        extract,
+        camera_target,
+        &advanced_lighting_inputs,
+    )
+}
+
+fn extract_compile_fingerprint_with_advanced_lighting_inputs(
+    extract: &RenderFrameExtract,
+    camera_target: RenderGraphCompileCameraTargetFingerprint,
+    advanced_lighting_inputs: &AdvancedLightingCompileInputs,
+) -> Result<RenderGraphCompileFrameFingerprint, RenderGraphCompileInputError> {
     let view_size = extract.view.effective_view_size();
     let render_size = extract.view.effective_render_size();
+    let view_family = extract.view.view_family_pipeline();
+    let resolution = view_family.resolution();
     let camera = extract
         .view
         .selected_camera_descriptor()
-        .expect("render frame extract must carry a selected camera descriptor");
-    RenderGraphCompileFrameFingerprint {
+        .ok_or(RenderGraphCompileInputError::MissingSelectedCamera)?;
+    Ok(RenderGraphCompileFrameFingerprint {
         core_pipeline: extract.view.core_pipeline,
         camera_target,
         camera_render_type: camera.render_type,
@@ -87,6 +158,13 @@ pub fn extract_compile_fingerprint(
         view_height: view_size.y,
         render_width: render_size.x,
         render_height: render_size.y,
+        primary_allocation_width: resolution.primary_allocation_extent().x,
+        primary_allocation_height: resolution.primary_allocation_extent().y,
+        secondary_allocation_width: resolution.secondary_allocation_extent().x,
+        secondary_allocation_height: resolution.secondary_allocation_extent().y,
+        display_allocation_width: resolution.display_extent().x,
+        display_allocation_height: resolution.display_extent().y,
+        upscaler: view_family.upscaler(),
         camera_hdr: camera.camera.hdr,
         camera_msaa_samples: camera.camera.msaa_samples,
         has_particle_sprites: !extract.particles.sprites.is_empty(),
@@ -98,21 +176,18 @@ pub fn extract_compile_fingerprint(
             .irradiance_volumes
             .is_empty(),
         is_planar_capture: selected_camera_is_planar_capture(extract),
-        view_uses_active_subsurface_profile: view_uses_active_subsurface_profile(extract),
-        transmission_draw_step_count: extract
-            .lighting
-            .advanced_lighting
-            .transmission_draw_step_count() as u8,
-        requires_transmission_scene_copy: extract
-            .lighting
-            .advanced_lighting
-            .requires_transmission_scene_copy(),
-        requires_late_forward_opaque_pass: extract
-            .lighting
-            .advanced_lighting
-            .material_features
+        view_uses_active_subsurface_profile: view_uses_active_subsurface_profile(
+            advanced_lighting_inputs,
+        ),
+        transmission_draw_step_count: advanced_lighting_inputs.transmission_draw_step_count(extract)
+            as u8,
+        requires_transmission_scene_copy: advanced_lighting_inputs
+            .transmission_scene_copy_step_count(extract)
+            > 0,
+        requires_late_forward_opaque_pass: advanced_lighting_inputs
+            .material_features()
             .requires_late_forward_opaque_pass(),
-    }
+    })
 }
 
 fn selected_camera_is_planar_capture(extract: &RenderFrameExtract) -> bool {
@@ -129,20 +204,18 @@ fn selected_camera_is_planar_capture(extract: &RenderFrameExtract) -> bool {
         .any(|probe| probe.capture_target() == Some(*selected_target))
 }
 
-fn view_uses_active_subsurface_profile(extract: &RenderFrameExtract) -> bool {
+fn view_uses_active_subsurface_profile(inputs: &AdvancedLightingCompileInputs) -> bool {
     let mut active_profile_mask = 0_u32;
-    for profile in &extract.lighting.advanced_lighting.subsurface_profiles {
-        if profile.profile_id < ZR_SSS_MAX_PROFILES as u32 {
+    for profile in inputs.subsurface_profiles() {
+        if profile.profile_id < crate::core::framework::render::ZR_SSS_MAX_PROFILES as u32 {
             active_profile_mask |= 1_u32 << profile.profile_id;
         }
     }
-    extract
-        .lighting
-        .advanced_lighting
-        .subsurface_material_profile_indices
+    inputs
+        .subsurface_material_profile_indices()
         .iter()
         .any(|profile_id| {
-            *profile_id < ZR_SSS_MAX_PROFILES as u32
+            *profile_id < crate::core::framework::render::ZR_SSS_MAX_PROFILES as u32
                 && (active_profile_mask & (1_u32 << profile_id)) != 0
         })
 }
@@ -164,8 +237,7 @@ pub enum RenderGraphCompileCameraTargetFingerprint {
 }
 
 impl RenderGraphCompileCameraTargetFingerprint {
-    #[cfg(test)]
-    fn from_target_and_view_size(
+    pub(crate) fn from_target_and_view_size(
         target: &crate::core::framework::render::RenderCameraTarget,
         view_size: crate::core::math::UVec2,
     ) -> Self {
@@ -201,6 +273,13 @@ impl RenderGraphCompileTextureTargetFormat {
         match self {
             Self::Rgba8Unorm => RGBA8_UNORM_FORMAT,
             Self::Rgba8UnormSrgb => RGBA8_UNORM_SRGB_FORMAT,
+        }
+    }
+
+    pub(crate) const fn as_rhi_format(self) -> crate::rhi::TextureFormat {
+        match self {
+            Self::Rgba8Unorm => crate::rhi::TextureFormat::Rgba8Unorm,
+            Self::Rgba8UnormSrgb => crate::rhi::TextureFormat::Rgba8UnormSrgb,
         }
     }
 

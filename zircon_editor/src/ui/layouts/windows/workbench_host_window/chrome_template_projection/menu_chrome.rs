@@ -21,10 +21,8 @@ pub(super) fn menu_chrome_nodes(
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
     let mut text_overrides = BTreeMap::new();
-    for row in 0..menus.row_count() {
-        if let Some(menu) = menus.row_data(row) {
-            text_overrides.insert(format!("{MENU_SLOT_PREFIX}{row}"), menu.label.to_string());
-        }
+    for (row, menu) in menus.iter().enumerate() {
+        text_overrides.insert(format!("{MENU_SLOT_PREFIX}{row}"), menu.label.to_string());
     }
 
     let Ok(projection) = build_view_template_node_projection(
@@ -60,7 +58,7 @@ pub(super) fn menu_control_frames(
     control_frames(nodes, MENU_SLOT_PREFIX, count)
 }
 
-fn fallback_menu_chrome_nodes(
+pub(super) fn fallback_menu_chrome_nodes(
     menus: &ModelRc<super::super::HostMenuChromeMenuData>,
     width: f32,
     height: f32,
@@ -84,8 +82,8 @@ fn fallback_menu_chrome_nodes(
     let mut x = 8.0;
     for row in 0..slot_count {
         let label = menus
-            .row_data(row)
-            .map(|menu| menu.label)
+            .get(row)
+            .map(|menu| menu.label.clone())
             .unwrap_or_default();
         let slot_width = menu_slot_width(label.as_str());
         nodes.push(ViewTemplateNodeData {
@@ -96,8 +94,9 @@ fn fallback_menu_chrome_nodes(
             text_tone: "default".into(),
             font_size: WORKBENCH_MENU_SLOT_FONT_SIZE,
             font_weight: 500,
-            surface_variant: "".into(),
+            surface_variant: "transparent".into(),
             button_variant: "ghost".into(),
+            corner_radius: fallback_chrome_control_radius(),
             frame: ViewTemplateFrameData {
                 x,
                 y: 2.0,
@@ -142,7 +141,7 @@ fn expand_menu_chrome_slot_nodes(
             continue;
         };
         let label = menus
-            .row_data(row)
+            .get(row)
             .map(|menu| menu.label.to_string())
             .unwrap_or_default();
         node.node_id = format!("{MENU_SLOT_PREFIX}{row}").into();
@@ -163,11 +162,18 @@ fn menu_slot_width(label: &str) -> f32 {
 }
 
 fn menu_slot_gap(templates: &BTreeMap<usize, ViewTemplateNodeData>) -> Option<f32> {
-    let ordered = templates.values().collect::<Vec<_>>();
-    ordered.windows(2).rev().find_map(|pair| {
-        let gap = pair[1].frame.x - (pair[0].frame.x + pair[0].frame.width);
-        (gap > 0.0).then_some(gap)
-    })
+    let mut previous: Option<&ViewTemplateNodeData> = None;
+    let mut last_positive_gap = None;
+    for current in templates.values() {
+        if let Some(previous) = previous {
+            let gap = current.frame.x - (previous.frame.x + previous.frame.width);
+            if gap > 0.0 {
+                last_positive_gap = Some(gap);
+            }
+        }
+        previous = Some(current);
+    }
+    last_positive_gap
 }
 
 #[cfg(test)]
@@ -178,7 +184,7 @@ pub(super) fn menu_popup_nodes(
 ) -> ModelRc<ViewTemplateNodeData> {
     let mut text_overrides = BTreeMap::new();
     for row in 0..items.row_count().min(MENU_POPUP_ITEM_COUNT) {
-        if let Some(item) = items.row_data(row) {
+        if let Some(item) = items.get(row) {
             text_overrides.insert(
                 format!("{MENU_POPUP_ITEM_LABEL_PREFIX}{row}"),
                 item.label.to_string(),
@@ -227,7 +233,7 @@ fn expand_menu_popup_item_nodes(
 
     let row_step = indexed_row_step(&row_templates, MENU_POPUP_ROW_STEP_FALLBACK_PX);
     for item_index in 0..items.row_count() {
-        let Some(item) = items.row_data(item_index) else {
+        let Some(item) = items.get(item_index) else {
             continue;
         };
 

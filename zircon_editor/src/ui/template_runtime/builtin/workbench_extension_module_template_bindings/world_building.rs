@@ -2,22 +2,6 @@ use super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
-        "TerrainEditorOpen",
-        "workbench.extension.terrain_editor.open",
-    ),
-    click(
-        "TerrainEditorSculptTab",
-        "workbench.extension.terrain_editor.sculpt_tab.select",
-    ),
-    click(
-        "TerrainEditorPaintTab",
-        "workbench.extension.terrain_editor.paint_tab.select",
-    ),
-    click(
-        "TerrainEditorStreamingTab",
-        "workbench.extension.terrain_editor.streaming_tab.select",
-    ),
-    click(
         "TerrainEditorLandscapeRow",
         "workbench.extension.terrain_editor.landscape_row.select",
     ),
@@ -44,10 +28,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "TerrainEditorStreamingCellTableRow",
         "workbench.extension.terrain_editor.streaming_cell_table_row.select",
-    ),
-    click(
-        "TerrainEditorOutput",
-        "workbench.extension.terrain_editor.output.select",
     ),
     click(
         "TerrainEditorPreview",
@@ -82,22 +62,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.terrain_editor.strength.commit",
     ),
     click(
-        "FoliageEditorOpen",
-        "workbench.extension.foliage_editor.open",
-    ),
-    click(
-        "FoliageEditorPaintTab",
-        "workbench.extension.foliage_editor.paint_tab.select",
-    ),
-    click(
-        "FoliageEditorEraseTab",
-        "workbench.extension.foliage_editor.erase_tab.select",
-    ),
-    click(
-        "FoliageEditorClustersTab",
-        "workbench.extension.foliage_editor.clusters_tab.select",
-    ),
-    click(
         "FoliageEditorForestRow",
         "workbench.extension.foliage_editor.forest_row.select",
     ),
@@ -124,10 +88,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "FoliageEditorCliff01TableRow",
         "workbench.extension.foliage_editor.cliff_01_table_row.select",
-    ),
-    click(
-        "FoliageEditorOutput",
-        "workbench.extension.foliage_editor.output.select",
     ),
     click(
         "FoliageEditorPreview",
@@ -162,22 +122,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.foliage_editor.radius.commit",
     ),
     click(
-        "LevelStreamingOpen",
-        "workbench.extension.level_streaming.open",
-    ),
-    click(
-        "LevelStreamingCellsTab",
-        "workbench.extension.level_streaming.cells_tab.select",
-    ),
-    click(
-        "LevelStreamingRulesTab",
-        "workbench.extension.level_streaming.rules_tab.select",
-    ),
-    click(
-        "LevelStreamingEventsTab",
-        "workbench.extension.level_streaming.events_tab.select",
-    ),
-    click(
         "LevelStreamingWorldRow",
         "workbench.extension.level_streaming.world_row.select",
     ),
@@ -204,10 +148,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "LevelStreamingCellB12TableRow",
         "workbench.extension.level_streaming.cell_b_12_table_row.select",
-    ),
-    click(
-        "LevelStreamingOutput",
-        "workbench.extension.level_streaming.output.select",
     ),
     click(
         "LevelStreamingPreview",
@@ -241,19 +181,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
         "LevelStreamingDistanceCommit",
         "workbench.extension.level_streaming.distance.commit",
     ),
-    click("LevelVariantOpen", "workbench.extension.level_variant.open"),
-    click(
-        "LevelVariantVariantTab",
-        "workbench.extension.level_variant.variant_tab.select",
-    ),
-    click(
-        "LevelVariantOverridesTab",
-        "workbench.extension.level_variant.overrides_tab.select",
-    ),
-    click(
-        "LevelVariantDiffTab",
-        "workbench.extension.level_variant.diff_tab.select",
-    ),
     click(
         "LevelVariantSetRow",
         "workbench.extension.level_variant.set_row.select",
@@ -281,10 +208,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "LevelVariantDoorLTableRow",
         "workbench.extension.level_variant.door_l_table_row.select",
-    ),
-    click(
-        "LevelVariantOutput",
-        "workbench.extension.level_variant.output.select",
     ),
     click(
         "LevelVariantPreview",
@@ -318,19 +241,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
         "LevelVariantCaptureCommit",
         "workbench.extension.level_variant.capture.commit",
     ),
-    click("PrefabEditorOpen", "workbench.extension.prefab_editor.open"),
-    click(
-        "PrefabEditorHierarchyTab",
-        "workbench.extension.prefab_editor.hierarchy_tab.select",
-    ),
-    click(
-        "PrefabEditorOverridesTab",
-        "workbench.extension.prefab_editor.overrides_tab.select",
-    ),
-    click(
-        "PrefabEditorValidationTab",
-        "workbench.extension.prefab_editor.validation_tab.select",
-    ),
     click(
         "PrefabEditorPrefabRootRow",
         "workbench.extension.prefab_editor.prefab_root_row.select",
@@ -358,10 +268,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "PrefabEditorOverrideTableRow",
         "workbench.extension.prefab_editor.override_table_row.select",
-    ),
-    click(
-        "PrefabEditorOutput",
-        "workbench.extension.prefab_editor.output.select",
     ),
     click(
         "PrefabEditorApply",
@@ -396,22 +302,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.prefab_editor.instance.commit",
     ),
     click(
-        "ScatterEditorOpen",
-        "workbench.extension.scatter_editor.open",
-    ),
-    click(
-        "ScatterEditorRulesTab",
-        "workbench.extension.scatter_editor.rules_tab.select",
-    ),
-    click(
-        "ScatterEditorConstraintsTab",
-        "workbench.extension.scatter_editor.constraints_tab.select",
-    ),
-    click(
-        "ScatterEditorOutputTab",
-        "workbench.extension.scatter_editor.output_tab.select",
-    ),
-    click(
         "ScatterEditorSetRow",
         "workbench.extension.scatter_editor.set_row.select",
     ),
@@ -438,10 +328,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "ScatterEditorCollisionTestTableRow",
         "workbench.extension.scatter_editor.collision_test_table_row.select",
-    ),
-    click(
-        "ScatterEditorOutput",
-        "workbench.extension.scatter_editor.output.select",
     ),
     click(
         "ScatterEditorGenerate",
@@ -475,19 +361,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
         "ScatterEditorDensityCommit",
         "workbench.extension.scatter_editor.density.commit",
     ),
-    click("VolumeEditorOpen", "workbench.extension.volume_editor.open"),
-    click(
-        "VolumeEditorBoundsTab",
-        "workbench.extension.volume_editor.bounds_tab.select",
-    ),
-    click(
-        "VolumeEditorOverlapsTab",
-        "workbench.extension.volume_editor.overlaps_tab.select",
-    ),
-    click(
-        "VolumeEditorEventsTab",
-        "workbench.extension.volume_editor.events_tab.select",
-    ),
     click(
         "VolumeEditorDamageZoneRow",
         "workbench.extension.volume_editor.damage_zone_row.select",
@@ -515,10 +388,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "VolumeEditorOnEnterEventTableRow",
         "workbench.extension.volume_editor.on_enter_event_table_row.select",
-    ),
-    click(
-        "VolumeEditorOutput",
-        "workbench.extension.volume_editor.output.select",
     ),
     click(
         "VolumeEditorInspect",
@@ -553,22 +422,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.volume_editor.priority.commit",
     ),
     click(
-        "WeatherEditorOpen",
-        "workbench.extension.weather_editor.open",
-    ),
-    click(
-        "WeatherEditorLayersTab",
-        "workbench.extension.weather_editor.layers_tab.select",
-    ),
-    click(
-        "WeatherEditorCurvesTab",
-        "workbench.extension.weather_editor.curves_tab.select",
-    ),
-    click(
-        "WeatherEditorTimelineTab",
-        "workbench.extension.weather_editor.timeline_tab.select",
-    ),
-    click(
         "WeatherEditorStormRow",
         "workbench.extension.weather_editor.storm_row.select",
     ),
@@ -595,10 +448,6 @@ pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "WeatherEditorLightningTimelineRow",
         "workbench.extension.weather_editor.lightning_timeline_row.select",
-    ),
-    click(
-        "WeatherEditorOutput",
-        "workbench.extension.weather_editor.output.select",
     ),
     click(
         "WeatherEditorPreview",

@@ -1,9 +1,13 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeSet, HashMap};
 
 use crate::core::framework::scene::EntityId;
 use crate::core::resource::ResourceId;
 
 use super::{CameraRenderDescriptor, CameraRenderType, RenderCameraTarget};
+
+#[cfg(test)]
+#[path = "camera_ordering/hash_target_count_tests.rs"]
+mod hash_target_count_tests;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderCameraOrderInput {
@@ -104,7 +108,7 @@ pub fn sort_render_cameras(
 
     let mut previous_order_target = None;
     let mut ambiguities = BTreeSet::new();
-    let mut target_counts = BTreeMap::new();
+    let mut target_counts = HashMap::new();
 
     for camera in &mut sorted {
         let order_target = (camera.order, camera.target.clone());

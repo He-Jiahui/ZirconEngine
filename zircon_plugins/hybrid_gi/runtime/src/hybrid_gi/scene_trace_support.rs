@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use super::declarations::HybridGiRuntimeTraceRegionSceneData;
 use super::HybridGiRuntimeState;
 
 const ANCESTOR_TRACE_SUPPORT_FALLOFF: f32 = 0.78;
@@ -29,10 +30,12 @@ impl HybridGiRuntimeState {
     }
 
     pub(in crate::hybrid_gi) fn refresh_recent_lineage_trace_support(&mut self) {
+        let scheduled_trace_regions = self.resolve_scheduled_scene_trace_regions();
         let probe_ids = self.probe_scene_data().keys().copied().collect::<Vec<_>>();
         for probe_id in probe_ids {
-            let current_q8 =
-                quantize_support_q8(self.current_lineage_trace_support_score(probe_id));
+            let current_q8 = quantize_support_q8(
+                self.current_lineage_trace_support_score(probe_id, &scheduled_trace_regions),
+            );
             let decayed_recent_q8 = self
                 .recent_lineage_trace_support_q8()
                 .get(&probe_id)
@@ -67,13 +70,16 @@ impl HybridGiRuntimeState {
     }
 
     pub(in crate::hybrid_gi) fn effective_lineage_trace_support_score(&self, probe_id: u32) -> f32 {
-        let trace_support = self.current_lineage_trace_support_score(probe_id).max(
-            self.recent_lineage_trace_support_q8()
-                .get(&probe_id)
-                .copied()
-                .map(dequantize_support_q8)
-                .unwrap_or_default(),
-        );
+        let scheduled_trace_regions = self.resolve_scheduled_scene_trace_regions();
+        let trace_support = self
+            .current_lineage_trace_support_score(probe_id, &scheduled_trace_regions)
+            .max(
+                self.recent_lineage_trace_support_q8()
+                    .get(&probe_id)
+                    .copied()
+                    .map(dequantize_support_q8)
+                    .unwrap_or_default(),
+            );
         let request_support = self.current_requested_lineage_support_score(probe_id).max(
             self.recent_requested_lineage_support_q8()
                 .get(&probe_id)
@@ -85,18 +91,24 @@ impl HybridGiRuntimeState {
     }
 
     pub(in crate::hybrid_gi) fn has_current_lineage_trace_support(&self, probe_id: u32) -> bool {
-        self.current_lineage_trace_support_score(probe_id) > f32::EPSILON
+        let scheduled_trace_regions = self.resolve_scheduled_scene_trace_regions();
+        self.current_lineage_trace_support_score(probe_id, &scheduled_trace_regions) > f32::EPSILON
     }
 
-    fn current_lineage_trace_support_score(&self, probe_id: u32) -> f32 {
+    fn current_lineage_trace_support_score(
+        &self,
+        probe_id: u32,
+        scheduled_trace_regions: &[HybridGiRuntimeTraceRegionSceneData],
+    ) -> f32 {
         let mut total_support = 0.0_f32;
         let mut lineage_weight = 1.0_f32;
         let mut current_probe_id = probe_id;
         let mut visited_probe_ids = BTreeSet::from([probe_id]);
 
         loop {
-            total_support +=
-                self.single_probe_scene_trace_support(current_probe_id) * lineage_weight;
+            total_support += self
+                .single_probe_scene_trace_support(current_probe_id, scheduled_trace_regions)
+                * lineage_weight;
             let Some(parent_probe_id) = self.probe_parent_probes().get(&current_probe_id).copied()
             else {
                 break;
@@ -108,16 +120,20 @@ impl HybridGiRuntimeState {
             current_probe_id = parent_probe_id;
         }
 
-        total_support + self.descendant_trace_support_score(probe_id)
+        total_support + self.descendant_trace_support_score(probe_id, scheduled_trace_regions)
     }
 
-    fn single_probe_scene_trace_support(&self, probe_id: u32) -> f32 {
+    fn single_probe_scene_trace_support(
+        &self,
+        probe_id: u32,
+        scheduled_trace_regions: &[HybridGiRuntimeTraceRegionSceneData],
+    ) -> f32 {
         let Some(probe) = self.probe_scene_data().get(&probe_id) else {
             return 0.0;
         };
 
-        self.scheduled_scene_trace_regions()
-            .into_iter()
+        scheduled_trace_regions
+            .iter()
             .map(|region| {
                 let reach = probe.radius_q().saturating_add(region.radius_q()).max(1) as f32;
                 let max_distance = (reach * 3.0).max(1.0);
@@ -134,22 +150,25 @@ impl HybridGiRuntimeState {
             .sum()
     }
 
-    fn scheduled_scene_trace_regions(
-        &self,
-    ) -> Vec<&super::declarations::HybridGiRuntimeTraceRegionSceneData> {
+    fn resolve_scheduled_scene_trace_regions(&self) -> Vec<HybridGiRuntimeTraceRegionSceneData> {
         self.scheduled_trace_region_ids()
             .iter()
             .filter_map(|region_id| self.trace_region_scene_data().get(region_id))
             .take(MAX_RUNTIME_SCENE_TRACE_REGIONS)
+            .copied()
             .collect()
     }
 
-    fn descendant_trace_support_score(&self, probe_id: u32) -> f32 {
+    fn descendant_trace_support_score(
+        &self,
+        probe_id: u32,
+        scheduled_trace_regions: &[HybridGiRuntimeTraceRegionSceneData],
+    ) -> f32 {
         let mut best_support = 0.0_f32;
 
         for (candidate_probe_id, depth) in self.probe_descendant_ids_with_depth(probe_id) {
             best_support = best_support.max(
-                self.single_probe_scene_trace_support(candidate_probe_id)
+                self.single_probe_scene_trace_support(candidate_probe_id, scheduled_trace_regions)
                     * DESCENDANT_TRACE_SUPPORT_FALLOFF.powi((depth - 1) as i32),
             );
         }
@@ -226,3 +245,7 @@ fn quantize_support_q8(value: f32) -> u16 {
 fn dequantize_support_q8(value: u16) -> f32 {
     value as f32 / 256.0
 }
+
+#[cfg(test)]
+#[path = "scene_trace_support/performance_tests.rs"]
+mod performance_tests;

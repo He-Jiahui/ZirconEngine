@@ -1,17 +1,16 @@
-use std::collections::BTreeSet;
-
 use toml::Value;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId, layout::UiFrame, surface::UiRenderCommand, tree::UiTemplateNodeMetadata,
 };
 
 use super::popup_position::{
-    anchored_popup_frame, has_popup_position_metadata, popup_anchor_frame, popup_layout_bounds,
-    PopupPlacement,
+    PopupPlacement, anchored_popup_frame, has_popup_position_metadata, popup_anchor_frame,
+    popup_layout_bounds,
 };
 use super::popup_rows::{
-    menu_row_height, popup_base_z, push_popup_background, push_popup_row_label,
-    push_popup_row_surface, push_popup_separator, PopupRowPaintState,
+    PopupAttributeIdSet, PopupRowPaintState, menu_row_height, popup_base_z, popup_row_frame,
+    popup_rows_height, push_popup_background, push_popup_row_label, push_popup_row_surface,
+    push_popup_separator,
 };
 
 pub(super) fn popup_menu_render_commands(
@@ -36,9 +35,10 @@ pub(super) fn popup_menu_render_commands(
     if items.is_empty() {
         return Vec::new();
     }
+    let item_count = items.len();
 
     let base_z = popup_base_z(z_index);
-    let Some(row_height) = menu_row_height(frame, items.len()) else {
+    let Some(row_height) = menu_row_height(metadata, frame, item_count) else {
         return Vec::new();
     };
     let popup_frame = menu_popup_frame(
@@ -47,9 +47,9 @@ pub(super) fn popup_menu_render_commands(
         anchor_frame,
         clip_frame,
         row_height,
-        items.len(),
+        item_count,
     );
-    let mut commands = Vec::new();
+    let mut commands = Vec::with_capacity(item_count.saturating_mul(3).saturating_add(3));
     let render_clip = if has_popup_position_metadata(metadata) {
         popup_layout_bounds(frame, clip_frame)
     } else {
@@ -58,6 +58,7 @@ pub(super) fn popup_menu_render_commands(
     push_popup_background(
         &mut commands,
         node_id,
+        metadata,
         popup_frame,
         render_clip,
         base_z,
@@ -65,12 +66,9 @@ pub(super) fn popup_menu_render_commands(
     );
 
     for (row, item) in items.into_iter().enumerate() {
-        let row_frame = UiFrame::new(
-            popup_frame.x,
-            popup_frame.y + row as f32 * row_height,
-            popup_frame.width.max(1.0),
-            row_height,
-        );
+        let Some(row_frame) = popup_row_frame(metadata, popup_frame, item_count, row) else {
+            continue;
+        };
         let row_z = base_z.saturating_add(1 + row as i32);
         if item.separator {
             push_popup_separator(
@@ -140,7 +138,9 @@ fn menu_popup_frame(
         metadata,
         anchor_frame,
         frame.width.max(1.0),
-        (row_height * row_count as f32).max(frame.height),
+        popup_rows_height(metadata, row_count, row_height)
+            .unwrap_or(frame.height)
+            .max(frame.height),
         bounds,
         PopupPlacement::BottomStart,
         4.0,
@@ -156,13 +156,13 @@ fn is_open_context_menu(metadata: &UiTemplateNodeMetadata) -> bool {
         == Some(true)
 }
 
-fn menu_items(metadata: &UiTemplateNodeMetadata) -> Vec<RuntimePopupMenuItem> {
-    let disabled = option_id_set(metadata.attributes.get("disabled_options"));
-    let checked = option_id_set(metadata.attributes.get("checked_options"));
-    let focused = option_id_set(metadata.attributes.get("focused_options"));
-    let hovered = option_id_set(metadata.attributes.get("hovered_options"));
-    let pressed = option_id_set(metadata.attributes.get("pressed_options"));
-    let loading = option_id_set(metadata.attributes.get("loading_options"));
+fn menu_items<'a>(metadata: &'a UiTemplateNodeMetadata) -> Vec<RuntimePopupMenuItem<'a>> {
+    let disabled = PopupAttributeIdSet::new(metadata.attributes.get("disabled_options"));
+    let checked = PopupAttributeIdSet::new(metadata.attributes.get("checked_options"));
+    let focused = PopupAttributeIdSet::new(metadata.attributes.get("focused_options"));
+    let hovered = PopupAttributeIdSet::new(metadata.attributes.get("hovered_options"));
+    let pressed = PopupAttributeIdSet::new(metadata.attributes.get("pressed_options"));
+    let loading = PopupAttributeIdSet::new(metadata.attributes.get("loading_options"));
     let focused_index = usize_attribute(metadata, "focused_index");
     let hovered_id = string_attribute(metadata, "hovered_option_id");
 
@@ -196,7 +196,7 @@ fn menu_items(metadata: &UiTemplateNodeMetadata) -> Vec<RuntimePopupMenuItem> {
         .unwrap_or_default()
 }
 
-fn menu_item(value: &Value) -> Option<RuntimePopupMenuItem> {
+fn menu_item<'a>(value: &'a Value) -> Option<RuntimePopupMenuItem<'a>> {
     match value {
         Value::String(raw) => Some(RuntimePopupMenuItem::from_raw(raw)),
         Value::Table(table) => RuntimePopupMenuItem::from_table(table),
@@ -220,28 +220,9 @@ fn usize_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<usize
     }
 }
 
-fn option_id_set(value: Option<&Value>) -> BTreeSet<String> {
-    option_values(value).into_iter().collect()
-}
-
-fn option_values(value: Option<&Value>) -> Vec<String> {
-    let Some(value) = value else {
-        return Vec::new();
-    };
-    match value {
-        Value::Array(values) => values
-            .iter()
-            .filter_map(Value::as_str)
-            .map(str::to_string)
-            .collect(),
-        Value::String(value) => vec![value.clone()],
-        _ => Vec::new(),
-    }
-}
-
 #[derive(Clone)]
-struct RuntimePopupMenuItem {
-    id: String,
+struct RuntimePopupMenuItem<'a> {
+    id: &'a str,
     label: String,
     separator: bool,
     checked: bool,
@@ -253,11 +234,11 @@ struct RuntimePopupMenuItem {
     danger: bool,
 }
 
-impl RuntimePopupMenuItem {
-    fn from_raw(raw: &str) -> Self {
+impl<'a> RuntimePopupMenuItem<'a> {
+    fn from_raw(raw: &'a str) -> Self {
         if raw.trim() == "---" {
             return Self {
-                id: String::new(),
+                id: "",
                 label: String::new(),
                 separator: true,
                 checked: false,
@@ -271,11 +252,13 @@ impl RuntimePopupMenuItem {
         }
 
         let mut parts = raw.splitn(3, '|');
-        let id = parts.next().unwrap_or_default().trim().to_string();
+        let raw_label = parts.next().unwrap_or_default().trim();
         let flags = parts.next().unwrap_or_default();
+        let id = flag_value(flags, "action").unwrap_or(raw_label);
         let label = flag_value(flags, "label")
             .or_else(|| flag_value(flags, "text"))
-            .unwrap_or_else(|| id.clone());
+            .unwrap_or(raw_label)
+            .to_string();
         Self {
             id,
             label,
@@ -290,22 +273,21 @@ impl RuntimePopupMenuItem {
         }
     }
 
-    fn from_table(table: &toml::map::Map<String, Value>) -> Option<Self> {
+    fn from_table(table: &'a toml::map::Map<String, Value>) -> Option<Self> {
         let id = table
             .get("id")
             .or_else(|| table.get("value"))
             .or_else(|| table.get("label"))
             .or_else(|| table.get("text"))
             .and_then(Value::as_str)?
-            .trim()
-            .to_string();
+            .trim();
         let label = table
             .get("label")
             .or_else(|| table.get("text"))
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|label| !label.is_empty())
-            .unwrap_or(id.as_str())
+            .unwrap_or(id)
             .to_string();
         Some(Self {
             id,
@@ -324,12 +306,12 @@ impl RuntimePopupMenuItem {
     fn apply_attribute_state(
         &mut self,
         row: usize,
-        disabled: &BTreeSet<String>,
-        checked: &BTreeSet<String>,
-        focused: &BTreeSet<String>,
-        hovered: &BTreeSet<String>,
-        pressed: &BTreeSet<String>,
-        loading: &BTreeSet<String>,
+        disabled: &PopupAttributeIdSet<'_>,
+        checked: &PopupAttributeIdSet<'_>,
+        focused: &PopupAttributeIdSet<'_>,
+        hovered: &PopupAttributeIdSet<'_>,
+        pressed: &PopupAttributeIdSet<'_>,
+        loading: &PopupAttributeIdSet<'_>,
         focused_index: Option<usize>,
         hovered_id: Option<&str>,
     ) {
@@ -356,8 +338,8 @@ impl RuntimePopupMenuItem {
         }
     }
 
-    fn matches_set(&self, values: &BTreeSet<String>) -> bool {
-        values.contains(&self.id) || values.contains(&self.label)
+    fn matches_set(&self, values: &PopupAttributeIdSet<'_>) -> bool {
+        values.contains_any(self.id, &self.label)
     }
 
     fn matches_id(&self, value: &str) -> bool {
@@ -386,16 +368,39 @@ fn has_flag(flags: &str, expected: &str) -> bool {
         .any(|flag| flag.trim().eq_ignore_ascii_case(expected))
 }
 
-fn flag_value(flags: &str, expected_key: &str) -> Option<String> {
+fn flag_value<'a>(flags: &'a str, expected_key: &str) -> Option<&'a str> {
     flags.split(',').find_map(|flag| {
         let (key, value) = flag.split_once('=')?;
         key.trim()
             .eq_ignore_ascii_case(expected_key)
-            .then(|| value.trim().to_string())
+            .then(|| value.trim())
             .filter(|value| !value.is_empty())
     })
 }
 
 fn table_bool(value: Option<&Value>) -> bool {
     value.and_then(Value::as_bool).unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RuntimePopupMenuItem;
+
+    #[test]
+    fn raw_item_keeps_explicit_action_id_separate_from_display_label() {
+        let item = RuntimePopupMenuItem::from_raw(
+            "Open Workspace|action=menu.item.open_project,icon=folder",
+        );
+
+        assert_eq!(item.id, "menu.item.open_project");
+        assert_eq!(item.label, "Open Workspace");
+    }
+
+    #[test]
+    fn raw_item_uses_label_as_legacy_id_fallback() {
+        let item = RuntimePopupMenuItem::from_raw("Open Project|icon=folder");
+
+        assert_eq!(item.id, "Open Project");
+        assert_eq!(item.label, "Open Project");
+    }
 }

@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use super::UiBindingValueValidationError;
+
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiBindingParseError {
     #[error("binding is missing event separator ':'")]
@@ -24,4 +26,8 @@ pub enum UiBindingParseError {
     UnterminatedString,
     #[error("invalid escape sequence")]
     InvalidEscape,
+    #[error("invalid binding value constructor `{constructor}`: {reason}")]
+    InvalidValueConstructor { constructor: String, reason: String },
+    #[error(transparent)]
+    InvalidValue(#[from] UiBindingValueValidationError),
 }

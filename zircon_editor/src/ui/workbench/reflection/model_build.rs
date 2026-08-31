@@ -88,7 +88,7 @@ pub fn build_workbench_reflection_model(
 }
 
 fn menu_reflection_items(menus: &[MenuModel]) -> Vec<EditorMenuItemReflectionModel> {
-    let mut reflected = Vec::new();
+    let mut reflected = Vec::with_capacity(menu_reflection_leaf_count(menus));
     for menu in menus {
         let menu_id = menu_id(&menu.label);
         for item in &menu.items {
@@ -96,6 +96,24 @@ fn menu_reflection_items(menus: &[MenuModel]) -> Vec<EditorMenuItemReflectionMod
         }
     }
     reflected
+}
+
+fn menu_reflection_leaf_count(menus: &[MenuModel]) -> usize {
+    menus
+        .iter()
+        .flat_map(|menu| &menu.items)
+        .map(menu_item_reflection_leaf_count)
+        .fold(0usize, usize::saturating_add)
+}
+
+fn menu_item_reflection_leaf_count(item: &MenuItemModel) -> usize {
+    if !item.has_children() {
+        return 1;
+    }
+    item.children
+        .iter()
+        .map(menu_item_reflection_leaf_count)
+        .fold(0usize, usize::saturating_add)
 }
 
 fn append_menu_reflection_item(
@@ -124,3 +142,7 @@ fn append_menu_reflection_item(
         route_id: None,
     });
 }
+
+#[cfg(test)]
+#[path = "model_build/capacity_tests.rs"]
+mod capacity_tests;

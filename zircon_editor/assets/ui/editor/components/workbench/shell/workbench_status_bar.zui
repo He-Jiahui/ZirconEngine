@@ -22,8 +22,9 @@ default_classes = ["workbench-status"]
 [nodes.status_bar]
 component = "HorizontalGroup"
 control_id = "WorkbenchWindowStatusBar"
+pixel_snapping = "snap_to_pixel"
 classes = ["workbench-status"]
-props = { status_right_offset_y = -0.5, status_right_label_color = "$editor.text.secondary", background_color = "$editor.surface.0", hover_background_color = "$editor.surface.hover", pressed_background_color = "$editor.surface.3", selected_background_color = "$editor.surface.selected", disabled_background_color = "$editor.surface.disabled", border_color = "$editor.border", focus_border_color = "$editor.accent", separator_edge = "top", separator_color = "$editor.separator.soft", separator_thickness = "$editor.control.border_width", foreground_color = "$editor.text.secondary", active_foreground_color = "$editor.text.primary", disabled_foreground_color = "$editor.text.disabled", icon_color = "$editor.text.secondary", active_icon_color = "$editor.accent", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_vertical = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small" }
+props = { status_right_offset_y = -0.5, status_right_label_color = "$editor.text.secondary", background_color = "$editor.surface.0", hover_background_color = "$editor.surface.hover", pressed_background_color = "$editor.surface.3", selected_background_color = "$editor.surface.selected", disabled_background_color = "$editor.surface.disabled", border_color = "$editor.border", focus_border_color = "$editor.focus.ring", separator_edge = "top", separator_color = "$editor.separator.soft", separator_thickness = "$editor.control.border_width", foreground_color = "$editor.text.secondary", active_foreground_color = "$editor.text.primary", disabled_foreground_color = "$editor.text.disabled", icon_color = "$editor.text.secondary", active_icon_color = "$editor.accent", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_vertical = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small" }
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
 children = [{ node = "status_ready" }, { node = "status_errors" }, { node = "status_warnings" }, { node = "status_messages" }, { node = "status_task" }, { node = "status_grid" }, { node = "status_snap" }, { node = "status_snap_icon" }, { node = "status_world_icon" }, { node = "status_target_icon" }, { node = "status_zoom" }]
 
@@ -32,7 +33,7 @@ component = "WorkbenchStatusItem"
 control_id = "WorkbenchStatusReady"
 classes = ["workbench-status-item"]
 props = { text = "Ready", component_variant = "semantic_status_signal", text_tone = "primary" }
-layout = { width = { min = 160.0, preferred = 160.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 128.0, preferred = 160.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.status_errors]
 component = "WorkbenchStatusItem"
@@ -94,23 +95,25 @@ layout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed"
 [nodes.status_snap_icon]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchStatusSnapToggle"
-classes = ["workbench-icon-button", "workbench-status-right-icon"]
+classes = ["workbench-icon-button", "workbench-status-right-icon", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/viewport/magnet.svg", label = "Snap", responsive_min_tier = "wide", layout_min_width = "$editor.chrome.status_bar.height", layout_min_height = "$editor.chrome.status_bar.height" }
 layout = { width = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
+events = [{ id = "Workbench/ToggleSnapFromStatus", event = "Click", route = "workbench.status.toggle_snap" }]
 
 [nodes.status_world_icon]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchStatusWorld"
 classes = ["workbench-icon-button", "workbench-status-right-icon"]
-props = { icon = "zircon_editor_shell/viewport/globe.svg", label = "World", responsive_min_tier = "wide", layout_min_width = "$editor.chrome.status_bar.height", layout_min_height = "$editor.chrome.status_bar.height" }
+props = { icon = "zircon_editor_shell/viewport/globe.svg", label = "World", responsive_min_tier = "wide", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, layout_min_width = "$editor.chrome.status_bar.height", layout_min_height = "$editor.chrome.status_bar.height" }
 layout = { width = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
 
 [nodes.status_target_icon]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchStatusTarget"
-classes = ["workbench-icon-button", "workbench-status-right-icon"]
+classes = ["workbench-icon-button", "workbench-status-right-icon", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/viewport/crosshair.svg", label = "Target", responsive_min_tier = "wide", layout_min_width = "$editor.chrome.status_bar.height", layout_min_height = "$editor.chrome.status_bar.height" }
 layout = { width = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
+events = [{ id = "Workbench/FrameSelectionFromStatus", event = "Click", route = "workbench.status.frame_selection" }]
 
 [nodes.status_zoom]
 component = "WorkbenchChip"

@@ -1,12 +1,14 @@
-use std::any::{type_name, Any, TypeId};
+use std::any::{Any, TypeId, type_name};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
+use std::sync::Arc;
 
 use crate::scene::ecs::events::{
     Event, EventCapacityMetrics, EventObserverHandle, EventObserverId, EventPayloadProfile,
-    EventTypeId, Events,
+    EventReaderLease, EventTypeId, Events,
 };
 
+use super::lease::EventReaderLeaseRegistry;
 use super::observer::{ErasedEventObserver, TypedEventObserver};
 
 trait ErasedEventQueue: Any + Send + Sync {
@@ -52,13 +54,13 @@ struct EventChannel {
     type_name: &'static str,
     payload_profile: EventPayloadProfile,
     events: Box<dyn ErasedEventQueue>,
-    reader_count: u32,
+    reader_leases: Arc<EventReaderLeaseRegistry>,
     observers: BTreeMap<EventObserverId, Box<dyn ErasedEventObserver>>,
 }
 
 impl EventChannel {
     fn is_active(&self) -> bool {
-        self.reader_count > 0
+        self.reader_leases.reader_count() > 0
     }
 }
 
@@ -84,36 +86,31 @@ impl EventStore {
             type_name: type_name::<T>(),
             payload_profile: EventPayloadProfile::of::<T>(),
             events: Box::<Events<T>>::default(),
-            reader_count: 0,
+            reader_leases: Arc::new(EventReaderLeaseRegistry::new()),
             observers: BTreeMap::new(),
         });
         self.type_ids.insert(type_id, event_type_id);
         event_type_id
     }
 
-    pub fn register_reader<T: Event>(&mut self) -> EventTypeId {
+    pub fn register_reader<T: Event>(&mut self) -> Option<EventReaderLease> {
         let event_type_id = self.register::<T>();
-        self.connect_reader(event_type_id);
-        event_type_id
+        self.connect_reader(event_type_id)
     }
 
-    pub fn connect_reader(&mut self, event_type_id: EventTypeId) -> bool {
-        let Some(channel) = self.channel_mut(event_type_id) else {
-            return false;
-        };
-        channel.reader_count = channel.reader_count.saturating_add(1);
-        true
+    pub fn connect_reader(&mut self, event_type_id: EventTypeId) -> Option<EventReaderLease> {
+        self.channel(event_type_id)
+            .and_then(|channel| channel.reader_leases.acquire(event_type_id))
     }
 
-    pub fn disconnect_reader(&mut self, event_type_id: EventTypeId) -> bool {
-        let Some(channel) = self.channel_mut(event_type_id) else {
+    pub fn disconnect_reader(&mut self, lease: &mut EventReaderLease) -> bool {
+        let Some(channel) = self.channel(lease.event_type_id()) else {
             return false;
         };
-        if channel.reader_count == 0 {
+        if !lease.belongs_to(&channel.reader_leases) {
             return false;
         }
-        channel.reader_count -= 1;
-        true
+        lease.disconnect()
     }
 
     pub(crate) fn observe<T, F>(&mut self, callback: F) -> Option<EventObserverHandle>
@@ -125,7 +122,9 @@ impl EventStore {
         let observer_raw = self.next_observer_id.max(1);
         let next_observer_id = observer_raw.checked_add(1)?;
         let channel = self.channel_mut(event_type_id)?;
-        channel.reader_count = channel.reader_count.checked_add(1)?;
+        if !channel.reader_leases.connect_untracked() {
+            return None;
+        }
         let observer_id = EventObserverId::new(observer_raw);
         channel.observers.insert(
             observer_id,
@@ -139,12 +138,11 @@ impl EventStore {
         let Some(channel) = self.channel_mut(handle.event_type_id()) else {
             return false;
         };
-        if channel.reader_count == 0 || !channel.observers.contains_key(&handle.observer_id()) {
+        if !channel.observers.contains_key(&handle.observer_id()) {
             return false;
         }
         channel.observers.remove(&handle.observer_id());
-        channel.reader_count -= 1;
-        true
+        channel.reader_leases.disconnect_untracked()
     }
 
     pub fn event_type_id<T: Event>(&self) -> Option<EventTypeId> {
@@ -165,7 +163,7 @@ impl EventStore {
 
     pub fn reader_count(&self, event_type_id: EventTypeId) -> Option<u32> {
         self.channel(event_type_id)
-            .map(|channel| channel.reader_count)
+            .map(|channel| channel.reader_leases.reader_count())
     }
 
     pub fn is_active(&self, event_type_id: EventTypeId) -> bool {

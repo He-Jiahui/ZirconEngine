@@ -52,11 +52,21 @@ impl fmt::Display for AssetTypeRegistryError {
             Self::IncompleteDefinition {
                 asset_type,
                 missing_fields,
-            } => write!(
-                formatter,
-                "asset type `{asset_type}` is incomplete; missing {}",
-                missing_fields.join(", ")
-            ),
+            } => {
+                write!(
+                    formatter,
+                    "asset type `{asset_type}` is incomplete; missing "
+                )?;
+                let mut fields = missing_fields.iter();
+                if let Some(first) = fields.next() {
+                    formatter.write_str(first)?;
+                    for field in fields {
+                        formatter.write_str(", ")?;
+                        formatter.write_str(field)?;
+                    }
+                }
+                Ok(())
+            }
             Self::EmptyRequiredField { asset_type, field } => write!(
                 formatter,
                 "asset type `{asset_type}` required field `{field}` is empty"
@@ -66,3 +76,7 @@ impl fmt::Display for AssetTypeRegistryError {
 }
 
 impl std::error::Error for AssetTypeRegistryError {}
+
+#[cfg(test)]
+#[path = "error/single_pass_missing_fields_tests.rs"]
+mod single_pass_missing_fields_tests;

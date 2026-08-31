@@ -9,6 +9,9 @@ mod prompt_actions;
 
 impl RetainedEditorHost {
     pub(super) fn native_main_window_close_requested(&mut self) -> CloseRequestResponse {
+        if self.document_save_blocks_native_close() {
+            return CloseRequestResponse::KeepWindowShown;
+        }
         self.recompute_if_dirty();
         let instances = self.runtime.current_view_instances();
         let dirty_documents = match self.editor_manager.dirty_document_toolkits() {
@@ -19,12 +22,27 @@ impl RetainedEditorHost {
             }
         };
         let dirty = close_prompt::all_dirty_close_views(&dirty_documents);
-        if !dirty.is_empty() {
+        let dirty_project_scene_generation = match self.dirty_project_scene_generation() {
+            Ok(generation) => generation,
+            Err(error) => {
+                self.set_status_line(error);
+                return CloseRequestResponse::KeepWindowShown;
+            }
+        };
+        if !dirty.is_empty() || dirty_project_scene_generation.is_some() {
             let close_instances = instances
                 .into_iter()
                 .map(|instance| instance.instance_id)
                 .collect();
-            self.begin_close_prompt(ClosePromptTarget::MainWindow, close_instances, dirty);
+            let mut prompt = super::close_prompt::PendingClosePrompt::new(
+                ClosePromptTarget::MainWindow,
+                close_instances,
+                dirty,
+            );
+            if let Some(generation) = dirty_project_scene_generation {
+                prompt = prompt.with_dirty_project_scene(generation);
+            }
+            self.begin_close_prompt_plan(prompt);
             return CloseRequestResponse::KeepWindowShown;
         }
         CloseRequestResponse::HideWindow
@@ -34,6 +52,9 @@ impl RetainedEditorHost {
         &mut self,
         window_id: &MainPageId,
     ) -> CloseRequestResponse {
+        if self.document_save_blocks_native_close() {
+            return CloseRequestResponse::KeepWindowShown;
+        }
         self.recompute_if_dirty();
         let Some(instance_ids) = self.floating_window_close_instance_ids(window_id) else {
             return CloseRequestResponse::KeepWindowShown;
@@ -57,6 +78,18 @@ impl RetainedEditorHost {
         }
 
         self.close_floating_window_without_prompt(window_id, instance_ids)
+    }
+
+    fn document_save_blocks_native_close(&mut self) -> bool {
+        if let Some(owner) = self.editor_manager.dirty_document_save_owner() {
+            self.set_status_line(format!("Close is waiting for {owner} to finish saving."));
+            return true;
+        }
+        if self.queued_document_save_all {
+            self.set_status_line("Close is waiting for queued Save All.".to_string());
+            return true;
+        }
+        false
     }
 }
 

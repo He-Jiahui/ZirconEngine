@@ -221,6 +221,8 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_side_dock(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> host_contract::HostSideDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.panel_width_px,
@@ -238,6 +240,7 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_side_dock(
         rail_active_control_id: dock.rail_active_control_id.clone(),
         header_nodes: to_host_contract_template_nodes(&dock.header_nodes),
         header_frame: to_host_contract_frame_rect(&dock.header_frame),
+        overflow_frame: to_host_contract_frame_rect(&dock.overflow_frame),
         content_frame: to_host_contract_frame_rect(&dock.content_frame),
         tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
         tabs: to_host_contract_tabs(&dock.tabs),
@@ -247,6 +250,8 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_side_dock(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         ),
         rail_width_px: dock.rail_width_px,
         panel_width_px: dock.panel_width_px,
@@ -259,6 +264,8 @@ pub(super) fn to_host_contract_document_dock(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> host_contract::HostDocumentDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.region_frame.width,
@@ -269,6 +276,7 @@ pub(super) fn to_host_contract_document_dock(
         surface_key: dock.surface_key.clone(),
         header_nodes: to_host_contract_template_nodes(&dock.header_nodes),
         header_frame: to_host_contract_frame_rect(&dock.header_frame),
+        overflow_frame: to_host_contract_frame_rect(&dock.overflow_frame),
         subtitle_frame: to_host_contract_frame_rect(&dock.subtitle_frame),
         content_frame: to_host_contract_frame_rect(&dock.content_frame),
         tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
@@ -279,6 +287,8 @@ pub(super) fn to_host_contract_document_dock(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         ),
         header_height_px: dock.header_height_px,
     }
@@ -289,6 +299,8 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_bottom_dock(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> host_contract::HostBottomDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.region_frame.width,
@@ -299,6 +311,7 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_bottom_dock(
         surface_key: dock.surface_key.clone(),
         header_nodes: to_host_contract_template_nodes(&dock.header_nodes),
         header_frame: to_host_contract_frame_rect(&dock.header_frame),
+        overflow_frame: to_host_contract_frame_rect(&dock.overflow_frame),
         content_frame: to_host_contract_frame_rect(&dock.content_frame),
         tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
         tabs: to_host_contract_tabs(&dock.tabs),
@@ -308,6 +321,8 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_bottom_dock(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         ),
         expanded: dock.expanded,
         header_height_px: dock.header_height_px,
@@ -319,6 +334,8 @@ pub(super) fn to_host_contract_floating_layer(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> host_contract::HostFloatingWindowLayerData {
     host_contract::HostFloatingWindowLayerData {
         floating_windows: to_host_contract_floating_windows(
@@ -327,6 +344,8 @@ pub(super) fn to_host_contract_floating_layer(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         ),
         header_height_px: layer.header_height_px,
     }
@@ -336,7 +355,17 @@ pub(super) fn to_host_contract_floating_layer(
 pub(in crate::ui::retained_host::ui) fn to_host_contract_host_scene_data(
     scene: &host_window::HostWindowSceneData,
 ) -> host_contract::HostWindowSceneData {
-    to_host_contract_host_scene_data_with_runtime(scene, None, None, "")
+    let mut console_projection_cache = pane_data_conversion::ConsolePaneProjectionCache::default();
+    let mut module_plugins_projection_cache =
+        pane_data_conversion::ModulePluginsPaneProjectionCache::default();
+    to_host_contract_host_scene_data_with_runtime(
+        scene,
+        None,
+        None,
+        "",
+        &mut console_projection_cache,
+        &mut module_plugins_projection_cache,
+    )
 }
 
 pub(super) fn to_host_contract_host_scene_data_with_runtime(
@@ -344,6 +373,8 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> host_contract::HostWindowSceneData {
     let layout = {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_layout");
@@ -384,6 +415,8 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         )
     };
     let document_dock = {
@@ -393,6 +426,8 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         )
     };
     let right_dock = {
@@ -402,6 +437,8 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         )
     };
     let bottom_dock = {
@@ -411,6 +448,8 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         )
     };
     let floating_layer = {
@@ -420,6 +459,8 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         )
     };
 
@@ -440,11 +481,187 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
     }
 }
 
+pub(in crate::ui::retained_host::ui) fn to_host_contract_host_scene_geometry_with_retained_panes(
+    scene: &host_window::HostWindowSceneData,
+    current: &host_contract::HostWindowSceneData,
+) -> host_contract::HostWindowSceneData {
+    host_contract::HostWindowSceneData {
+        layout: to_host_contract_host_window_layout(&scene.layout),
+        metrics: to_host_contract_metrics(&scene.metrics),
+        orchestration: to_host_contract_orchestration(&scene.orchestration),
+        menu_chrome: to_host_contract_menu_chrome(&scene.menu_chrome),
+        page_chrome: to_host_contract_page_chrome(&scene.page_chrome),
+        status_bar: to_host_contract_status_bar(&scene.status_bar),
+        resize_layer: to_host_contract_resize_layer(&scene.resize_layer),
+        drag_overlay: to_host_contract_drag_overlay(&scene.drag_overlay),
+        left_dock: to_host_contract_side_dock_geometry(
+            &scene.left_dock,
+            current.left_dock.pane.clone(),
+        ),
+        document_dock: to_host_contract_document_dock_geometry(
+            &scene.document_dock,
+            current.document_dock.pane.clone(),
+        ),
+        right_dock: to_host_contract_side_dock_geometry(
+            &scene.right_dock,
+            current.right_dock.pane.clone(),
+        ),
+        bottom_dock: to_host_contract_bottom_dock_geometry(
+            &scene.bottom_dock,
+            current.bottom_dock.pane.clone(),
+        ),
+        floating_layer: to_host_contract_floating_layer_geometry(
+            &scene.floating_layer,
+            &current.floating_layer,
+        ),
+    }
+}
+
+fn to_host_contract_floating_layer_geometry(
+    layer: &host_window::HostFloatingWindowLayerData,
+    current: &host_contract::HostFloatingWindowLayerData,
+) -> host_contract::HostFloatingWindowLayerData {
+    let floating_windows = map_model_rc(&layer.floating_windows, |window| {
+        let retained = current
+            .floating_windows
+            .iter()
+            .find(|candidate| candidate.window_id == window.window_id)
+            .map(|candidate| candidate.active_pane.clone())
+            .unwrap_or_default();
+        host_contract::FloatingWindowData {
+            window_id: window.window_id.clone(),
+            title: window.title.clone(),
+            frame: to_host_contract_frame_rect(&window.frame),
+            header_nodes: to_host_contract_template_nodes(&window.header_nodes),
+            header_frame: to_host_contract_frame_rect(&window.header_frame),
+            overflow_frame: to_host_contract_frame_rect(&window.overflow_frame),
+            tab_frames: map_model_rc(&window.tab_frames, to_host_contract_chrome_tab),
+            target_group: window.target_group.clone(),
+            left_edge_target_group: window.left_edge_target_group.clone(),
+            right_edge_target_group: window.right_edge_target_group.clone(),
+            top_edge_target_group: window.top_edge_target_group.clone(),
+            bottom_edge_target_group: window.bottom_edge_target_group.clone(),
+            focus_target_id: window.focus_target_id.clone(),
+            tabs: to_host_contract_tabs(&window.tabs),
+            active_pane: retained,
+        }
+    });
+    host_contract::HostFloatingWindowLayerData {
+        floating_windows,
+        header_height_px: layer.header_height_px,
+    }
+}
+
+pub(in crate::ui::retained_host::ui) fn to_host_contract_native_floating_surface_geometry_with_retained_panes(
+    surface: &host_window::HostNativeFloatingWindowSurfaceData,
+    current: &host_contract::HostNativeFloatingWindowSurfaceData,
+) -> host_contract::HostNativeFloatingWindowSurfaceData {
+    let floating_windows = map_model_rc(&surface.floating_windows, |window| {
+        let retained = current
+            .floating_windows
+            .iter()
+            .find(|candidate| candidate.window_id == window.window_id)
+            .map(|candidate| candidate.active_pane.clone())
+            .unwrap_or_default();
+        host_contract::FloatingWindowData {
+            window_id: window.window_id.clone(),
+            title: window.title.clone(),
+            frame: to_host_contract_frame_rect(&window.frame),
+            header_nodes: to_host_contract_template_nodes(&window.header_nodes),
+            header_frame: to_host_contract_frame_rect(&window.header_frame),
+            overflow_frame: to_host_contract_frame_rect(&window.overflow_frame),
+            tab_frames: map_model_rc(&window.tab_frames, to_host_contract_chrome_tab),
+            target_group: window.target_group.clone(),
+            left_edge_target_group: window.left_edge_target_group.clone(),
+            right_edge_target_group: window.right_edge_target_group.clone(),
+            top_edge_target_group: window.top_edge_target_group.clone(),
+            bottom_edge_target_group: window.bottom_edge_target_group.clone(),
+            focus_target_id: window.focus_target_id.clone(),
+            tabs: to_host_contract_tabs(&window.tabs),
+            active_pane: retained,
+        }
+    });
+    host_contract::HostNativeFloatingWindowSurfaceData {
+        floating_windows,
+        native_floating_window_id: surface.native_floating_window_id.clone(),
+        native_surface_tree_id: surface.native_surface_tree_id.clone(),
+        native_window_bounds: to_host_contract_frame_rect(&surface.native_window_bounds),
+        header_height_px: surface.header_height_px,
+    }
+}
+
+fn to_host_contract_side_dock_geometry(
+    dock: &host_window::HostSideDockSurfaceData,
+    pane: host_contract::PaneData,
+) -> host_contract::HostSideDockSurfaceData {
+    host_contract::HostSideDockSurfaceData {
+        region_frame: to_host_contract_frame_rect(&dock.region_frame),
+        surface_key: dock.surface_key.clone(),
+        rail_before_panel: dock.rail_before_panel,
+        rail_nodes: to_host_contract_template_nodes(&dock.rail_nodes),
+        rail_button_frames: map_model_rc(
+            &dock.rail_button_frames,
+            to_host_contract_chrome_control_frame,
+        ),
+        rail_active_control_id: dock.rail_active_control_id.clone(),
+        header_nodes: to_host_contract_template_nodes(&dock.header_nodes),
+        header_frame: to_host_contract_frame_rect(&dock.header_frame),
+        overflow_frame: to_host_contract_frame_rect(&dock.overflow_frame),
+        content_frame: to_host_contract_frame_rect(&dock.content_frame),
+        tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
+        tabs: to_host_contract_tabs(&dock.tabs),
+        pane,
+        rail_width_px: dock.rail_width_px,
+        panel_width_px: dock.panel_width_px,
+        panel_header_height_px: dock.panel_header_height_px,
+    }
+}
+
+fn to_host_contract_document_dock_geometry(
+    dock: &host_window::HostDocumentDockSurfaceData,
+    pane: host_contract::PaneData,
+) -> host_contract::HostDocumentDockSurfaceData {
+    host_contract::HostDocumentDockSurfaceData {
+        region_frame: to_host_contract_frame_rect(&dock.region_frame),
+        surface_key: dock.surface_key.clone(),
+        header_nodes: to_host_contract_template_nodes(&dock.header_nodes),
+        header_frame: to_host_contract_frame_rect(&dock.header_frame),
+        overflow_frame: to_host_contract_frame_rect(&dock.overflow_frame),
+        subtitle_frame: to_host_contract_frame_rect(&dock.subtitle_frame),
+        content_frame: to_host_contract_frame_rect(&dock.content_frame),
+        tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
+        tabs: to_host_contract_tabs(&dock.tabs),
+        pane,
+        header_height_px: dock.header_height_px,
+    }
+}
+
+fn to_host_contract_bottom_dock_geometry(
+    dock: &host_window::HostBottomDockSurfaceData,
+    pane: host_contract::PaneData,
+) -> host_contract::HostBottomDockSurfaceData {
+    host_contract::HostBottomDockSurfaceData {
+        region_frame: to_host_contract_frame_rect(&dock.region_frame),
+        surface_key: dock.surface_key.clone(),
+        header_nodes: to_host_contract_template_nodes(&dock.header_nodes),
+        header_frame: to_host_contract_frame_rect(&dock.header_frame),
+        overflow_frame: to_host_contract_frame_rect(&dock.overflow_frame),
+        content_frame: to_host_contract_frame_rect(&dock.content_frame),
+        tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
+        tabs: to_host_contract_tabs(&dock.tabs),
+        pane,
+        expanded: dock.expanded,
+        header_height_px: dock.header_height_px,
+    }
+}
+
 pub(super) fn to_host_contract_native_floating_surface_data_with_runtime(
     surface: &host_window::HostNativeFloatingWindowSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> host_contract::HostNativeFloatingWindowSurfaceData {
     host_contract::HostNativeFloatingWindowSurfaceData {
         floating_windows: to_host_contract_floating_windows(
@@ -453,6 +670,8 @@ pub(super) fn to_host_contract_native_floating_surface_data_with_runtime(
             component_showcase_runtime,
             welcome,
             hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
         ),
         native_floating_window_id: surface.native_floating_window_id.clone(),
         native_surface_tree_id: surface.native_surface_tree_id.clone(),

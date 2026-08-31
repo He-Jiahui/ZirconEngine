@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-use crate::scene::ecs::{ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError};
 use crate::scene::World;
+use crate::scene::ecs::{ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError};
 
 pub struct ParamSet<P>
 where
@@ -28,6 +28,8 @@ pub trait ParamSetParam {
     ) -> Result<Self::State, SystemParamError>;
 
     fn record_performance_diagnostics(world: &mut World, state: &mut Self::State);
+
+    fn retire_state(_world: &mut World, _state: &mut Self::State) {}
 }
 
 impl<P> SystemParam for ParamSet<P>
@@ -59,31 +61,75 @@ where
     fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
         P::record_performance_diagnostics(world, state);
     }
+
+    fn retire_state(world: &mut World, state: &mut Self::State) {
+        P::retire_state(world, state);
+    }
 }
 
 macro_rules! init_param_set_state {
     ($world:ident, $access:ident, $(($param:ident, $state:ident, $candidate:ident)),+ $(,)?) => {{
         let outer_access = $access.clone();
         let mut deferred_command_lane_count = outer_access.deferred_command_lane_count();
-        $(
-            let mut $candidate = outer_access.clone();
-            let $state = {
-                let state = $param::init_state($world, &mut $candidate)?;
-                let candidate_lanes = $candidate
-                    .deferred_command_lane_count()
-                    .saturating_sub(outer_access.deferred_command_lane_count());
-                deferred_command_lane_count = deferred_command_lane_count
-                    .checked_add(candidate_lanes)
-                    .ok_or(SystemParamError::MultipleDeferredCommandParams)?;
-                if deferred_command_lane_count > 1 {
-                    return Err(SystemParamError::MultipleDeferredCommandParams);
-                }
-                $access.merge_param_set_access(&$candidate);
-                state
-            };
-        )+
-        Ok(($($state,)+))
+        init_param_set_state!(
+            @next $world,
+            $access,
+            outer_access,
+            deferred_command_lane_count;
+            ();
+            $(($param, $state, $candidate)),+
+        )
     }};
+    (
+        @next $world:ident,
+        $access:ident,
+        $outer_access:ident,
+        $deferred_command_lane_count:ident;
+        ($(($completed_param:ident, $completed_state:ident)),*);
+        ($param:ident, $state:ident, $candidate:ident)
+        $(, ($remaining_param:ident, $remaining_state:ident, $remaining_candidate:ident))* $(,)?
+    ) => {{
+        let mut $candidate = $outer_access.clone();
+        let mut $state = match $param::init_state($world, &mut $candidate) {
+            Ok(state) => state,
+            Err(error) => {
+                $($completed_param::retire_state($world, &mut $completed_state);)*
+                return Err(error);
+            }
+        };
+        let candidate_lanes = $candidate
+            .deferred_command_lane_count()
+            .saturating_sub($outer_access.deferred_command_lane_count());
+        let Some(next_lane_count) = $deferred_command_lane_count.checked_add(candidate_lanes) else {
+            $param::retire_state($world, &mut $state);
+            $($completed_param::retire_state($world, &mut $completed_state);)*
+            return Err(SystemParamError::MultipleDeferredCommandParams);
+        };
+        if next_lane_count > 1 {
+            $param::retire_state($world, &mut $state);
+            $($completed_param::retire_state($world, &mut $completed_state);)*
+            return Err(SystemParamError::MultipleDeferredCommandParams);
+        }
+        $deferred_command_lane_count = next_lane_count;
+        $access.merge_param_set_access(&$candidate);
+        init_param_set_state!(
+            @next $world,
+            $access,
+            $outer_access,
+            $deferred_command_lane_count;
+            ($(($completed_param, $completed_state),)* ($param, $state));
+            $(($remaining_param, $remaining_state, $remaining_candidate)),*
+        )
+    }};
+    (
+        @next $world:ident,
+        $access:ident,
+        $outer_access:ident,
+        $deferred_command_lane_count:ident;
+        ($(($param:ident, $state:ident)),*);
+    ) => {
+        Ok(($($state,)*))
+    };
 }
 
 impl<A> ParamSetParam for (A,)
@@ -102,6 +148,10 @@ where
 
     fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
         A::record_performance_diagnostics(world, &mut state.0);
+    }
+
+    fn retire_state(world: &mut World, state: &mut Self::State) {
+        A::retire_state(world, &mut state.0);
     }
 }
 
@@ -139,6 +189,11 @@ where
     fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
         A::record_performance_diagnostics(world, &mut state.0);
         B::record_performance_diagnostics(world, &mut state.1);
+    }
+
+    fn retire_state(world: &mut World, state: &mut Self::State) {
+        A::retire_state(world, &mut state.0);
+        B::retire_state(world, &mut state.1);
     }
 }
 
@@ -186,6 +241,12 @@ where
         A::record_performance_diagnostics(world, &mut state.0);
         B::record_performance_diagnostics(world, &mut state.1);
         C::record_performance_diagnostics(world, &mut state.2);
+    }
+
+    fn retire_state(world: &mut World, state: &mut Self::State) {
+        A::retire_state(world, &mut state.0);
+        B::retire_state(world, &mut state.1);
+        C::retire_state(world, &mut state.2);
     }
 }
 
@@ -243,6 +304,13 @@ where
         B::record_performance_diagnostics(world, &mut state.1);
         C::record_performance_diagnostics(world, &mut state.2);
         D::record_performance_diagnostics(world, &mut state.3);
+    }
+
+    fn retire_state(world: &mut World, state: &mut Self::State) {
+        A::retire_state(world, &mut state.0);
+        B::retire_state(world, &mut state.1);
+        C::retire_state(world, &mut state.2);
+        D::retire_state(world, &mut state.3);
     }
 }
 
@@ -310,6 +378,14 @@ where
         C::record_performance_diagnostics(world, &mut state.2);
         D::record_performance_diagnostics(world, &mut state.3);
         E::record_performance_diagnostics(world, &mut state.4);
+    }
+
+    fn retire_state(world: &mut World, state: &mut Self::State) {
+        A::retire_state(world, &mut state.0);
+        B::retire_state(world, &mut state.1);
+        C::retire_state(world, &mut state.2);
+        D::retire_state(world, &mut state.3);
+        E::retire_state(world, &mut state.4);
     }
 }
 
@@ -387,6 +463,15 @@ where
         D::record_performance_diagnostics(world, &mut state.3);
         E::record_performance_diagnostics(world, &mut state.4);
         F::record_performance_diagnostics(world, &mut state.5);
+    }
+
+    fn retire_state(world: &mut World, state: &mut Self::State) {
+        A::retire_state(world, &mut state.0);
+        B::retire_state(world, &mut state.1);
+        C::retire_state(world, &mut state.2);
+        D::retire_state(world, &mut state.3);
+        E::retire_state(world, &mut state.4);
+        F::retire_state(world, &mut state.5);
     }
 }
 
@@ -482,6 +567,16 @@ where
         E::record_performance_diagnostics(world, &mut state.4);
         F::record_performance_diagnostics(world, &mut state.5);
         G::record_performance_diagnostics(world, &mut state.6);
+    }
+
+    fn retire_state(world: &mut World, state: &mut Self::State) {
+        A::retire_state(world, &mut state.0);
+        B::retire_state(world, &mut state.1);
+        C::retire_state(world, &mut state.2);
+        D::retire_state(world, &mut state.3);
+        E::retire_state(world, &mut state.4);
+        F::retire_state(world, &mut state.5);
+        G::retire_state(world, &mut state.6);
     }
 }
 
@@ -588,6 +683,17 @@ where
         F::record_performance_diagnostics(world, &mut state.5);
         G::record_performance_diagnostics(world, &mut state.6);
         H::record_performance_diagnostics(world, &mut state.7);
+    }
+
+    fn retire_state(world: &mut World, state: &mut Self::State) {
+        A::retire_state(world, &mut state.0);
+        B::retire_state(world, &mut state.1);
+        C::retire_state(world, &mut state.2);
+        D::retire_state(world, &mut state.3);
+        E::retire_state(world, &mut state.4);
+        F::retire_state(world, &mut state.5);
+        G::retire_state(world, &mut state.6);
+        H::retire_state(world, &mut state.7);
     }
 }
 

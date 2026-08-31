@@ -57,7 +57,7 @@ pub fn resolve_subsurface_profile_table(
 ) -> SubsurfaceProfileTable {
     let mut slots = [None; ZR_SSS_MAX_PROFILES];
     let mut active_profile_mask = 0_u32;
-    let mut diagnostics = Vec::new();
+    let mut diagnostics = Vec::with_capacity(subsurface_diagnostic_capacity(profiles.len()));
     for profile in profiles {
         let Ok(slot) = usize::try_from(profile.profile_id) else {
             continue;
@@ -102,6 +102,14 @@ pub fn resolve_subsurface_profile_table(
         profiles,
         active_profile_mask,
         diagnostics,
+    }
+}
+
+fn subsurface_diagnostic_capacity(profile_count: usize) -> usize {
+    if profile_count > ZR_SSS_MAX_PROFILES {
+        profile_count
+    } else {
+        0
     }
 }
 
@@ -202,3 +210,7 @@ mod tests {
         assert_eq!(burley_radial_pdf(1.0, Real::NAN), 0.0);
     }
 }
+
+#[cfg(test)]
+#[path = "subsurface/diagnostic_capacity_tests.rs"]
+mod diagnostic_capacity_tests;

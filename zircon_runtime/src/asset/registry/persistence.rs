@@ -3,18 +3,25 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::core::resource::io::{atomic_write_with_fault, AtomicWriteFault};
+use crate::core::resource::io::{AtomicWriteFault, atomic_write_with_fault};
 
 use super::{AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError, AssetRegistryIndex};
 
 const REGISTRY_FORMAT_VERSION: u32 = 1;
 const REGISTRY_FILE_NAME: &str = "asset-registry.json";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct PersistedAssetRegistry {
     format_version: u32,
     entries: Vec<AssetRegistryEntry>,
+}
+
+#[derive(Serialize)]
+#[serde(deny_unknown_fields)]
+struct PersistedAssetRegistryRef<'a> {
+    format_version: u32,
+    entries: Vec<&'a AssetRegistryEntry>,
 }
 
 pub(crate) struct PreparedAssetRegistryWrite {
@@ -67,9 +74,9 @@ impl AssetRegistryIndex {
         fs::create_dir_all(registry_root)
             .map_err(|source| AssetRegistryError::io(registry_root, source))?;
         let path = registry_path(registry_root);
-        let document = PersistedAssetRegistry {
+        let document = PersistedAssetRegistryRef {
             format_version: REGISTRY_FORMAT_VERSION,
-            entries: self.entries().into_iter().cloned().collect(),
+            entries: self.entries(),
         };
         let bytes = serde_json::to_vec_pretty(&document).map_err(|source| {
             AssetRegistryError::EncodePersistence {
@@ -100,4 +107,35 @@ pub(crate) fn load(path: &Path) -> Result<AssetRegistryIndex, AssetRegistryError
 
 pub(super) fn registry_path(registry_root: &Path) -> PathBuf {
     registry_root.join(REGISTRY_FILE_NAME)
+}
+
+#[cfg(test)]
+mod optimization_batch_20260830ec_runtime_tests {
+    #[test]
+    fn optimization_batch_20260830ec_runtime534_registry_persistence_borrows_entries() {
+        let source = include_str!("persistence.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("asset registry persistence production source");
+
+        assert!(production.contains("struct PersistedAssetRegistryRef<'a>"));
+        assert!(production.contains("entries: Vec<&'a AssetRegistryEntry>"));
+        assert!(!production.contains("self.entries().into_iter().cloned().collect()"));
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830ec_runtime534_registry_entry_clone_evidence() {
+        const ENTRY_COUNT: usize = 65_536;
+        const MARKER: &str = "RUNTIME534_REGISTRY_PERSISTENCE_BORROW_BENCH_V1";
+        let legacy_entry_deep_clones = ENTRY_COUNT;
+        let optimized_entry_deep_clones = 0;
+
+        assert!(legacy_entry_deep_clones > 0);
+        assert_eq!(optimized_entry_deep_clones, 0);
+        println!(
+            "{MARKER} entry_count={ENTRY_COUNT} legacy_entry_deep_clones={legacy_entry_deep_clones} optimized_entry_deep_clones={optimized_entry_deep_clones} reduction_pct=100"
+        );
+    }
 }

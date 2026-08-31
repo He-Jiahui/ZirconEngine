@@ -9,18 +9,21 @@ use super::{tagged_slot, unique_temp_root};
 #[test]
 fn runtime_session_archive_restores_slot_from_path_to_empty_world() {
     let mut source = World::empty();
-    let saved_entity = source.spawn_node(crate::scene::NodeKind::Mesh);
+    let saved_entity = source
+        .spawn_node(crate::scene::NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     source
         .rename_node(saved_entity, "Path Restored Mesh")
         .expect("source entity should be named");
-    let archive =
-        RuntimeSessionArchive::from_slots(vec![RuntimeSessionSlot::from_world_with_metadata(
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world_with_metadata(
             "manual",
             &source,
             RuntimeSessionMetadata::default().with_display_name("Manual"),
         )
-        .expect("manual slot should capture")])
-        .expect("archive should validate");
+        .expect("manual slot should capture"),
+    ])
+    .expect("archive should validate");
     let root = unique_temp_root("runtime_session_restore_path_to_world");
     let path = root.join("sessions").join("archive.zrsession.json");
     archive
@@ -44,20 +47,23 @@ fn runtime_session_archive_restores_slot_from_path_to_empty_world() {
 #[test]
 fn runtime_session_archive_restores_slot_from_path_into_level_and_applies_metadata() {
     let mut source = World::empty();
-    let saved_entity = source.spawn_node(crate::scene::NodeKind::Camera);
+    let saved_entity = source
+        .spawn_node(crate::scene::NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     source
         .rename_node(saved_entity, "Path Restored Camera")
         .expect("source entity should be named");
-    let archive =
-        RuntimeSessionArchive::from_slots(vec![RuntimeSessionSlot::from_world_with_metadata(
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world_with_metadata(
             "level",
             &source,
             RuntimeSessionMetadata::default()
                 .with_display_name("Loaded From Path")
                 .with_tag("manual"),
         )
-        .expect("level slot should capture")])
-        .expect("archive should validate");
+        .expect("level slot should capture"),
+    ])
+    .expect("archive should validate");
     let root = unique_temp_root("runtime_session_restore_path_to_level");
     let path = root.join("sessions").join("archive.zrsession.json");
     archive
@@ -67,7 +73,9 @@ fn runtime_session_archive_restores_slot_from_path_into_level_and_applies_metada
     let manager = crate::scene::DefaultLevelManager::default();
     let level = manager.create_default_level();
     let stale_entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(crate::scene::NodeKind::Mesh);
+        let entity = world
+            .spawn_node(crate::scene::NodeKind::Mesh)
+            .expect("test scene spawn should succeed");
         world
             .rename_node(entity, "Stale Mesh")
             .expect("stale entity should be named");
@@ -100,15 +108,16 @@ fn runtime_session_archive_restores_slot_from_path_into_level_and_applies_metada
 #[test]
 fn runtime_session_archive_applies_slot_from_path_to_live_world_and_level() {
     let mut source = World::empty();
-    let source_entity = source.spawn_node(crate::scene::NodeKind::Mesh);
+    let source_entity = source
+        .spawn_node(crate::scene::NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     source
         .rename_node(source_entity, "Path Instanced Mesh")
         .expect("source entity should be named");
-    let archive =
-        RuntimeSessionArchive::from_slots(vec![
-            RuntimeSessionSlot::from_world("prefab", &source).expect("prefab slot should capture")
-        ])
-        .expect("archive should validate");
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world("prefab", &source).expect("prefab slot should capture"),
+    ])
+    .expect("archive should validate");
     let root = unique_temp_root("runtime_session_apply_path");
     let path = root.join("sessions").join("archive.zrsession.json");
     archive
@@ -116,7 +125,9 @@ fn runtime_session_archive_applies_slot_from_path_to_live_world_and_level() {
         .expect("archive should save before apply");
 
     let mut world = World::empty();
-    let existing_world_entity = world.spawn_node(crate::scene::NodeKind::Camera);
+    let existing_world_entity = world
+        .spawn_node(crate::scene::NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     assert_eq!(existing_world_entity, source_entity);
     let world_remap =
         RuntimeSessionArchive::apply_slot_from_path_to_world(&path, "prefab", &mut world)
@@ -135,8 +146,11 @@ fn runtime_session_archive_applies_slot_from_path_to_live_world_and_level() {
 
     let manager = crate::scene::DefaultLevelManager::default();
     let level = manager.create_level(World::empty(), LevelMetadata::default());
-    let existing_level_entity =
-        level.with_world_mut(|world| world.spawn_node(crate::scene::NodeKind::Camera));
+    let existing_level_entity = level.with_world_mut(|world| {
+        world
+            .spawn_node(crate::scene::NodeKind::Camera)
+            .expect("test scene spawn should succeed")
+    });
     assert_eq!(existing_level_entity, source_entity);
     let level_remap = RuntimeSessionArchive::apply_slot_from_path_to_level(&path, "prefab", &level)
         .expect("slot should apply from path into live level");

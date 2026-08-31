@@ -8,7 +8,8 @@ use crate::ui::workbench::view::ViewDescriptor;
 use super::super::region::{build_document_region_state, build_tool_region_state};
 use super::super::right_drawer_should_collapse_for_logical_width;
 use super::super::{
-    ResolutionContext, ResolutionScaleMode, ShellFrame, ShellRegionId, ShellSizePx,
+    LogicalRegionPreferredExtents, ResolutionContext, ResolutionScaleMode, ShellFrame,
+    ShellRegionId, ShellSizePx,
 };
 use super::super::{WorkbenchChromeMetrics, WorkbenchShellGeometry};
 use super::floating_window_frames::build_floating_window_frames;
@@ -119,23 +120,12 @@ pub fn compute_workbench_shell_geometry_with_region_defaults_and_scale_mode(
     );
     let logical_size = resolution.logical_size();
     let size = ShellSizePx::new(logical_size.width.max(1.0), logical_size.height.max(1.0));
-    // Resize capture records host-space pointer deltas and frame extents, while
-    // the solver below owns logical layout units. Convert this transient input
-    // at the same root boundary as the window size to avoid double scaling.
-    let logical_transient_region_preferred = transient_region_preferred.map(|preferred| {
-        preferred
-            .iter()
-            .map(|(region, physical_extent)| (*region, resolution.to_logical(*physical_extent)))
-            .collect::<BTreeMap<_, _>>()
-    });
-    let logical_token_region_preferred = token_region_preferred.map(|preferred| {
-        preferred
-            .iter()
-            .map(|(region, physical_extent)| (*region, resolution.to_logical(*physical_extent)))
-            .collect::<BTreeMap<_, _>>()
-    });
-    let transient_region_preferred = logical_transient_region_preferred.as_ref();
-    let token_region_preferred = logical_token_region_preferred.as_ref();
+    // Resize capture records host-space extents. Borrow both maps and convert only values that the
+    // logical solver actually requests, avoiding two temporary maps per geometry solve.
+    let transient_region_preferred =
+        LogicalRegionPreferredExtents::new(transient_region_preferred, resolution);
+    let token_region_preferred =
+        LogicalRegionPreferredExtents::new(token_region_preferred, resolution);
     let collapse_right_drawer =
         right_drawer_should_collapse_for_logical_width(resolution.logical_width());
 

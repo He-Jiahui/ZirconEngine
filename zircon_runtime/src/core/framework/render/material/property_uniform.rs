@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +10,9 @@ use super::{
     MaterialPropertyOverrideBlock, RenderMaterialDiagnosticSource, RenderMaterialPropertyValue,
     RenderMaterialReadinessDiagnostic,
 };
+
+#[cfg(test)]
+mod override_index_tests;
 
 // CPU-side material property bytes are prepared once during resource streaming
 // so later renderer binding work can upload them without reparsing assets.
@@ -108,33 +111,34 @@ impl RenderMaterialPropertyUniformPayload {
         }
 
         let mut payload = self.clone();
+        let layout = &payload.layout;
+        let bytes = &mut payload.bytes;
+        let unsupported = &mut payload.unsupported;
+        let mut field_indices = HashMap::with_capacity(layout.len());
+        for (index, field) in layout.iter().enumerate() {
+            field_indices.entry(field.name.as_str()).or_insert(index);
+        }
         for (name, value) in overrides.values() {
-            let Some(field) = payload.layout.iter().find(|field| field.name == *name) else {
-                payload
-                    .unsupported
-                    .push(RenderMaterialPropertyUniformUnsupported {
-                        name: name.clone(),
-                        reason: RenderMaterialPropertyUniformUnsupportedReason::UnknownProperty,
-                    });
+            let Some(index) = field_indices.get(name.as_str()).copied() else {
+                unsupported.push(RenderMaterialPropertyUniformUnsupported {
+                    name: name.clone(),
+                    reason: RenderMaterialPropertyUniformUnsupportedReason::UnknownProperty,
+                });
                 continue;
             };
+            let field = &layout[index];
             let Some(kind) = MaterialPropertyKind::parse_token(&field.kind) else {
-                payload
-                    .unsupported
-                    .push(RenderMaterialPropertyUniformUnsupported {
-                        name: name.clone(),
-                        reason: RenderMaterialPropertyUniformUnsupportedReason::UnsupportedType,
-                    });
+                unsupported.push(RenderMaterialPropertyUniformUnsupported {
+                    name: name.clone(),
+                    reason: RenderMaterialPropertyUniformUnsupportedReason::UnsupportedType,
+                });
                 continue;
             };
-            if let Some(reason) = write_field_override_value(&mut payload.bytes, field, kind, value)
-            {
-                payload
-                    .unsupported
-                    .push(RenderMaterialPropertyUniformUnsupported {
-                        name: name.clone(),
-                        reason,
-                    });
+            if let Some(reason) = write_field_override_value(bytes, field, kind, value) {
+                unsupported.push(RenderMaterialPropertyUniformUnsupported {
+                    name: name.clone(),
+                    reason,
+                });
             }
         }
         payload

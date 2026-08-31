@@ -18,14 +18,12 @@ pub(super) fn register(
     register_asset_type(
         registry,
         NAVIGATION_OPEN_NAVMESH_ASSET_OPERATION,
-        "Open NavMesh Asset",
         ResourceKind::NavMesh,
         NAVIGATION_ASSET_VIEW_ID,
     )?;
     register_asset_type(
         registry,
         NAVIGATION_OPEN_SETTINGS_ASSET_OPERATION,
-        "Open Navigation Settings Asset",
         ResourceKind::NavigationSettings,
         NAVIGATION_SETTINGS_ASSET_VIEW_ID,
     )
@@ -34,14 +32,13 @@ pub(super) fn register(
 fn register_asset_type(
     registry: &mut EditorExtensionRegistry,
     operation_path: &str,
-    operation_name: &str,
     resource_kind: ResourceKind,
     view_id: &str,
 ) -> Result<(), EditorExtensionRegistryError> {
     let operation = EditorOperationPath::parse(operation_path)
         .map_err(EditorExtensionRegistryError::OperationPath)?;
     registry.register_command(
-        EditorCommandDescriptor::operation(operation.clone(), operation_name)
+        EditorCommandDescriptor::operation(operation.clone())
             .with_callable_from_remote(false)
             .with_event(EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser)),
     )?;

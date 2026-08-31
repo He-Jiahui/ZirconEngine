@@ -196,9 +196,13 @@ Zircon 当前 FXAA/SMAA 与这些轻量参考仍有显著算法身份差异。�
 
 验收必须包含 300 帧连续 camera pan、moving rigid/skinned/morph/particle/light sequence，并证明 valid-history ratio、reprojection coverage 与 rejection reason，而不是只测静态相等帧。
 
+2026-08-29 源码状态：P0-1 的全帧相等根因已完成 source hard cut。`FrameHistoryValidationKey`不再复制或比较mesh、animation、lighting、post-process、particle、camera transform和world generation；normal motion依赖velocity/depth/reactive/domain metadata。camera cut与velocity不再各自判断：`ViewportCameraSnapshot::supports_temporal_reprojection_from`成为submission history发布和camera velocity的共享合同。已有错误测试已反转，并补world identity、feature topology、projection kind与large camera cut回归。精确格式、源码守卫、diff和locked metadata通过；focused validator在外层等待244秒后无输出超时，没有request id或Cargo/rustc证据。尚无Cargo测试结果、300帧序列、GPU/RenderDoc/PNG、valid-history ratio或性能/功耗数据，故P0-1只记`source_implemented_dynamic_acceptance_pending`，P0-2及本计划整体保持pending。
+
 ### P0-2：单个全局 previous-history bit 误伤所有 temporal consumer
 
 `prepare_history_textures` 以同一个 `previous_history_available` 决定 TAA、volumetric、exposure 等 history validity；resize/recreate 又在同一 `SceneFrameHistoryTextures` owner 中联动。HZB、SSR、SSAO、GI、exposure、volumetric、TAA 的失效原因和允许重投影条件不同，不能共享一个“整帧是否完全相同”的 bool。
+
+2026-08-30 AO history 结构复核：SSAO 的 physical allocation 不再与 history validity 混为一谈。只要 SSAO active，`prepare_history_textures` 会在 pre-scene 阶段创建 SceneLinear primary/render-sized `Rgba8Unorm` AO history，初始化 clear 为 1.0；`SceneFrameHistoryTextures` 单独保存 AO `render_size`，避免 temporal/display history size 在动态分辨率下污染 AO domain。`SceneHistoryDomain::AmbientOcclusion` 只控制本帧是否允许采样，以及 AO 写入成功后是否复制/提交。descriptor 通过 Render-sized exact schema 与 compute sampled access packet 固定物理尺寸，binder 仅发布该 owner 的 texture/view/descriptor。该做法保留 domain-specific invalidation，同时避免为 cold-start 再常驻一张 1x1 或伪造 View descriptor；仍需受管 WGPU/PNG/RDC 与 profile 验证，不能据此宣称算法或性能完成。
 
 必须建立 `TemporalHistoryDomain`/generation table：每个 history 声明 producer、extent space、format/schema、camera key、valid rect、reset reason、last successful frame 与 dependencies。一个 light parameter 改变不应自动删除 camera HZB；一个 exposure curve 改变也不应销毁几何 velocity history。跨 consumer 的共享只能发生在明确 versioned resource 上。
 
@@ -547,7 +551,7 @@ mesh、particle、sprite、transparent compositor、UI surface与custom pass通�
 
 ### 11.2 history bridge 测试固化了错误语义
 
-`render_framework_reports_frame_history_invalidation_when_camera_moves`将camera平移0.25后明确期望 `FrameInputsChanged` 与 `previous_available = false`。这正是P0-1的回归锁。M1必须替换为“camera motion history remains structurally compatible, velocity/cut状态可用”；另加真正camera cut reset测试。
+原`render_framework_reports_frame_history_invalidation_when_camera_moves`将camera平移0.25后明确期望 `FrameInputsChanged` 与 `previous_available = false`，曾是P0-1的错误回归锁。2026-08-29源码已将其替换为`render_framework_keeps_frame_history_available_when_camera_moves`，并新增`render_framework_invalidates_frame_history_on_camera_cut`；动态执行证据仍待受管Cargo lane。
 
 dynamic render-size test期望新history handle是合理的当前baseline，但DRS目标需要区分output-space history固定、provider migration与真正schema change，不能永远只测reallocation。
 
@@ -588,3 +592,15 @@ reactive测试覆盖zero/full authored strength、transparent alpha writer、bin
 13. 独立code review、visual review与performance review均无Critical/Important遗留。
 
 在这些退出条件之前，capability、文档、plugin manifest、release note或Editor不得使用“complete”“production-ready”“TSR-equivalent”或“超过Unreal”描述本组能力。
+
+## 13. 2026-08-29 P0-2 current-source status
+
+M1 的源码/静态部分已进一步收敛：`SceneFrameHistoryTextures` 现在由固定7域状态表拥有generation、valid、last-successful-frame与reset reason；copy只产生write intent，后端返回scene `SubmissionTicket`后才提交TAA/Exposure ping-pong与域状态。TAA、Hybrid GI、AO、SSR、HZB、Volumetric读取已按域分离，Exposure不再跟随camera cut全局reset；无历史帧继续执行seed pass，不再通过clone frame删除全部history资源。
+
+本轮精确`rustfmt --check`、scoped `git diff --check`、`cargo metadata --locked --no-deps`与source guards通过；`copy_history_textures`生产路径的提前flip/set计数为0，whole-frame history strip/clone计数为0，volumetric duplicate-valid计数为0。受管`history_domains_commit`请求在47.5秒内无输出并超时，因此M1只能标记`source_static_complete_dynamic_pending`，不能满足第12节完成条件。per-domain运行时诊断、真实WGPU序列、RenderDoc/PNG、GPU timing、resident bytes、功耗与跨引擎对照仍是公开缺口。结构与测量计划见`docs/plans/performance/01/2026-08-29-temporal-history-domain-architecture-review.md`。
+
+## 14. 2026-08-29 per-domain observability current-source status
+
+M1的诊断基础设施源码已接通：`RenderHistoryDomainsReport`以core只读合同表达history owner是否存在，以及七域各自的valid、generation、last-successful-frame、active reset reason和frame reset reason；scene只在提交票据返回并完成history transaction后发布快照，`RenderGraphExecutionRecord -> RenderStats -> DiagnosticStore`不接触WGPU纹理所有权。每个submitted frame固定产生43个静态路径样本，不做运行时路径字符串构造或动态domain map；active reason表示提交后仍无效的原因，frame reason保留同帧reseed前的reset事件。原因码0表示无reset，1..7依次表示never-produced、previous-frame-unavailable、camera-cut、allocation-changed、feature-disabled、source-unavailable和structural-compatibility-changed。runtime/scene边界通过`RenderFrameHistoryInput`携带上游原因，P0-1相机连续性失败现明确映射为camera-cut，结构兼容键变化单独映射为structural-compatibility-changed。
+
+13个精确Rust文件`rustfmt --check`、scoped `git diff --check`与`cargo metadata --locked --no-deps`通过；focused `history_domains_report`受管请求54.1秒无输出超时。该状态只能标记`observability_source_static_complete_dynamic_pending`：还未形成300帧valid-ratio/reset-rate记录，不能据此宣布结构性瓶颈已经消失，也没有GPU时间、resident bytes、RenderDoc、PNG或功耗证据。

@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
+use zr_rhi_wgpu::WgpuBufferUploadBatch;
+
 use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
 
 use super::{
-    IndirectCompactionBatchMetadata, IndirectCompactionPlan,
     INDIRECT_COMPACTION_METADATA_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
-    INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES,
+    INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES, IndirectCompactionBatchMetadata,
+    IndirectCompactionPlan, PodRangeUploadCommit, PodRangeUploadShadow,
 };
 
 #[derive(Clone)]
@@ -34,7 +36,8 @@ pub(crate) struct MeshIndirectCompactionWorkspace {
     visible_instance_index_capacity_bytes: wgpu::BufferAddress,
     draw_count_capacity_bytes: wgpu::BufferAddress,
     compacted_indirect_args_capacity_bytes: wgpu::BufferAddress,
-    metadata_shadow: Vec<IndirectCompactionBatchMetadata>,
+    metadata_buffer_revision: u64,
+    metadata_shadow: PodRangeUploadShadow<IndirectCompactionBatchMetadata>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -48,12 +51,13 @@ impl MeshIndirectCompactionWorkspace {
     pub(crate) fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         label_prefix: &'static str,
         plan: &IndirectCompactionPlan,
+        uploads: &mut WgpuBufferUploadBatch,
     ) -> (
         MeshIndirectCompactionResources,
         MeshIndirectCompactionPrepareStats,
+        Option<PodRangeUploadCommit>,
     ) {
         let mut stats = MeshIndirectCompactionPrepareStats::default();
         let metadata_buffer_recreated = ensure_buffer_capacity(
@@ -67,14 +71,16 @@ impl MeshIndirectCompactionWorkspace {
             compaction_storage_usage(),
         );
         stats.created_buffer_count += u32::from(metadata_buffer_recreated);
-        let metadata_upload = super::write_changed_pod_ranges(
-            queue,
+        if metadata_buffer_recreated {
+            self.metadata_buffer_revision = self.metadata_buffer_revision.wrapping_add(1).max(1);
+        }
+        let (metadata_upload, metadata_commit) = self.metadata_shadow.prepare(
             self.metadata_buffer
                 .as_ref()
                 .expect("metadata buffer was prepared"),
-            &mut self.metadata_shadow,
+            self.metadata_buffer_revision,
             plan.metadata(),
-            metadata_buffer_recreated,
+            uploads,
         );
         stats.uploaded_byte_count = metadata_upload.byte_count;
         stats.upload_range_count = metadata_upload.range_count;
@@ -156,7 +162,16 @@ impl MeshIndirectCompactionWorkspace {
                 draw_count_capacity: plan.draw_count_count(),
             },
             stats,
+            metadata_commit,
         )
+    }
+
+    pub(crate) fn accepts_metadata_upload(&self, commit: PodRangeUploadCommit) -> bool {
+        self.metadata_shadow.accepts(commit)
+    }
+
+    pub(crate) fn commit_metadata_upload(&mut self, commit: PodRangeUploadCommit) -> bool {
+        self.metadata_shadow.commit(commit)
     }
 }
 

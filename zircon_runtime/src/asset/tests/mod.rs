@@ -4,6 +4,7 @@ mod facade;
 mod formats;
 mod load;
 mod migration;
+mod module_capability_truth;
 mod module_lifecycle;
 mod pack;
 mod pipeline;

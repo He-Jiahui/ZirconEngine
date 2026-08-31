@@ -1,24 +1,27 @@
 use crate::ui::{
-    dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
+    dispatch::{UiInputManager, UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
 };
 use zircon_runtime_interface::ui::{
     binding::{UiBindingSourceKind, UiEventKind},
     component::{UiComponentEvent, UiValue},
     dispatch::{
-        UiClipboardRequestKind, UiDispatchDisposition, UiDispatchHostRequestKind, UiImeInputEvent,
-        UiImeInputEventKind, UiInputEvent, UiInputEventMetadata, UiInputSequence, UiInputTimestamp,
-        UiKeyboardInputEvent, UiKeyboardInputState, UiTextByteRange, UiTextInputEvent,
+        UiClipboardInputEvent, UiClipboardRequest, UiClipboardRequestKind,
+        UiClipboardTransferOutcome, UiDispatchDisposition, UiDispatchHostRequestKind,
+        UiImeInputEvent, UiImeInputEventKind, UiInputEvent, UiInputEventMetadata, UiInputSequence,
+        UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState, UiTextByteRange,
+        UiTextInputEvent,
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     template::UiBindingRef,
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
-    widget::{UiWidgetBehavior, UiWidgetContract},
+    widget::{UiWidgetBehavior, UiWidgetContract, UiWidgetEvent},
 };
 
 mod basic_editing;
 mod clipboard_newline;
+mod retained_document_session;
 mod selection_navigation;
 mod text_ime;
 mod word_shortcuts;
@@ -39,7 +42,7 @@ fn assert_clipboard_request(
     result: &zircon_runtime_interface::ui::dispatch::UiInputDispatchResult,
     kind: UiClipboardRequestKind,
     text: Option<&str>,
-) {
+) -> UiClipboardRequest {
     assert_eq!(result.reply.effects.len(), 1);
     assert_eq!(result.applied_effects.len(), 1);
     assert_eq!(result.host_requests.len(), 1);
@@ -49,6 +52,30 @@ fn assert_clipboard_request(
     assert_eq!(request.kind, kind);
     assert_eq!(request.owner, UiNodeId::new(2));
     assert_eq!(request.text.as_deref(), text);
+    assert!(request.transfer_id.is_valid());
+    request.clone()
+}
+
+fn dispatch_clipboard_completion(
+    surface: &mut UiSurface,
+    request: &UiClipboardRequest,
+    outcome: UiClipboardTransferOutcome,
+) -> zircon_runtime_interface::ui::dispatch::UiInputDispatchResult {
+    surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            UiInputEvent::Clipboard(UiClipboardInputEvent {
+                metadata: UiInputEventMetadata::new(
+                    UiInputTimestamp::from_micros(33),
+                    UiInputSequence::new(6),
+                ),
+                transfer_id: request.transfer_id,
+                owner: request.owner,
+                outcome,
+            }),
+        )
+        .unwrap()
 }
 
 fn dispatch_key(
@@ -121,6 +148,96 @@ fn dispatch_key_with_metadata(
         .unwrap()
 }
 
+fn dispatch_key_with_manager(
+    manager: &mut UiInputManager,
+    surface: &mut UiSurface,
+    logical_key: &str,
+    key_code: u32,
+) -> zircon_runtime_interface::ui::dispatch::UiInputDispatchResult {
+    dispatch_key_with_manager_metadata(
+        manager,
+        surface,
+        logical_key,
+        key_code,
+        |_: &mut UiInputEventMetadata| {},
+    )
+}
+
+fn dispatch_key_with_manager_control(
+    manager: &mut UiInputManager,
+    surface: &mut UiSurface,
+    logical_key: &str,
+    key_code: u32,
+) -> zircon_runtime_interface::ui::dispatch::UiInputDispatchResult {
+    dispatch_key_with_manager_metadata(manager, surface, logical_key, key_code, |metadata| {
+        metadata.modifiers.control = true;
+    })
+}
+
+fn dispatch_key_with_manager_control_shift(
+    manager: &mut UiInputManager,
+    surface: &mut UiSurface,
+    logical_key: &str,
+    key_code: u32,
+) -> zircon_runtime_interface::ui::dispatch::UiInputDispatchResult {
+    dispatch_key_with_manager_metadata(manager, surface, logical_key, key_code, |metadata| {
+        metadata.modifiers.control = true;
+        metadata.modifiers.shift = true;
+    })
+}
+
+fn dispatch_key_with_manager_metadata(
+    manager: &mut UiInputManager,
+    surface: &mut UiSurface,
+    logical_key: &str,
+    key_code: u32,
+    configure: impl FnOnce(&mut UiInputEventMetadata),
+) -> zircon_runtime_interface::ui::dispatch::UiInputDispatchResult {
+    let mut metadata =
+        UiInputEventMetadata::new(UiInputTimestamp::from_micros(30), UiInputSequence::new(3));
+    configure(&mut metadata);
+    manager
+        .dispatch_input_event(
+            surface,
+            UiInputEvent::Keyboard(UiKeyboardInputEvent {
+                metadata,
+                state: UiKeyboardInputState::Pressed,
+                key_code,
+                scan_code: None,
+                physical_key: logical_key.to_string(),
+                logical_key: logical_key.to_string(),
+                text: None,
+            }),
+        )
+        .unwrap()
+}
+
+fn dispatch_key_with_state(
+    surface: &mut UiSurface,
+    logical_key: &str,
+    key_code: u32,
+    state: UiKeyboardInputState,
+) -> zircon_runtime_interface::ui::dispatch::UiInputDispatchResult {
+    surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            UiInputEvent::Keyboard(UiKeyboardInputEvent {
+                metadata: UiInputEventMetadata::new(
+                    UiInputTimestamp::from_micros(30),
+                    UiInputSequence::new(3),
+                ),
+                state,
+                key_code,
+                scan_code: None,
+                physical_key: logical_key.to_string(),
+                logical_key: logical_key.to_string(),
+                text: None,
+            }),
+        )
+        .unwrap()
+}
+
 fn dispatch_text(
     surface: &mut UiSurface,
     text: &str,
@@ -158,6 +275,30 @@ fn dispatch_ime(
                 kind,
                 text: text.to_string(),
                 cursor_range,
+                preedit_clauses: Vec::new(),
+                delete_surrounding: None,
+            }),
+        )
+        .unwrap()
+}
+
+fn dispatch_ime_with_manager(
+    manager: &mut UiInputManager,
+    surface: &mut UiSurface,
+    kind: UiImeInputEventKind,
+    text: &str,
+) -> zircon_runtime_interface::ui::dispatch::UiInputDispatchResult {
+    manager
+        .dispatch_input_event(
+            surface,
+            UiInputEvent::Ime(UiImeInputEvent {
+                metadata: UiInputEventMetadata::new(
+                    UiInputTimestamp::from_micros(32),
+                    UiInputSequence::new(5),
+                ),
+                kind,
+                text: text.to_string(),
+                cursor_range: None,
                 preedit_clauses: Vec::new(),
                 delete_surrounding: None,
             }),
@@ -293,10 +434,20 @@ fn int_attr(surface: &UiSurface, key: &str) -> i64 {
         .unwrap_or_default()
 }
 
+fn text_layout_revision(surface: &UiSurface) -> u64 {
+    surface
+        .tree
+        .node(UiNodeId::new(2))
+        .and_then(|node| node.layout_cache.retained_text_layout_revision())
+        .expect("text layout revision must remain reusable")
+}
+
 fn binding(id: &str, event: UiEventKind) -> UiBindingRef {
     UiBindingRef {
+        component_event: super::typed_component_event_kind_for_test(id),
         id: id.to_string(),
         event,
+        mode: Default::default(),
         route: Some(id.replace('/', ".")),
         action: None,
         targets: Vec::new(),

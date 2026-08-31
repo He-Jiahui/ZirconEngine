@@ -4,7 +4,11 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     let builtin_source = include_str!("../../../mod.rs");
     let registration_mod_source = include_str!("mod.rs");
     let behavior_source = include_str!("behavior.rs");
+    let composition_tests_source = include_str!("composition.rs");
     let assembly_source = include_str!("../../assembly.rs");
+    let composition_source = include_str!("../../composition.rs");
+    let composition_compiler_source = include_str!("../../composition/compiler.rs");
+    let composition_outcome_source = include_str!("../../composition/outcome.rs");
     let availability_source = include_str!("../../availability.rs");
     let core_modules_source = include_str!("../../core_modules.rs");
     let extension_inputs_source = include_str!("../../assembly/extension_inputs.rs");
@@ -27,6 +31,7 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     let target_modules_source = include_str!("../../assembly/target_modules.rs");
 
     assert!(registration_mod_source.contains("mod behavior;"));
+    assert!(registration_mod_source.contains("mod composition;"));
     assert!(registration_mod_source.contains("mod structure;"));
     assert!(!registration_mod_source.contains("#[test]"));
     assert!(
@@ -36,9 +41,12 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
         "runtime_profile_manifest_bootstrap_reports_manifest_optional_provider_availability"
     ));
     assert!(!behavior_source.contains("include_str!"));
+    assert!(composition_tests_source
+        .contains("host_modules_participate_in_the_final_compiled_activation_graph"));
 
     assert!(runtime_modules_source.contains("mod assembly;"));
     assert!(runtime_modules_source.contains("mod availability;"));
+    assert!(runtime_modules_source.contains("mod composition;"));
     assert!(runtime_modules_source.contains("mod core_modules;"));
     assert!(runtime_modules_source.contains("mod ids;"));
     assert!(runtime_modules_source.contains("mod load_report;"));
@@ -58,7 +66,21 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(assembly_source.contains("mod registration_reports;"));
     assert!(assembly_source.contains("mod target_modules;"));
     assert!(assembly_source.contains("use crate::core::framework::platform::RuntimeTargetMode;"));
-    assert!(assembly_source.contains("use super::load_report::RuntimeModuleLoadReport;"));
+    assert!(assembly_source.contains("RuntimeModuleCompositionResult"));
+    assert!(!assembly_source.contains("pub fn builtin_runtime_modules"));
+    assert!(composition_source.contains("RuntimeModuleCompositionCompiler"));
+    assert!(composition_compiler_source.contains("with_host_modules"));
+    assert!(composition_compiler_source.contains("finish_runtime_module_composition"));
+    assert!(composition_outcome_source.contains("pub struct RuntimeModuleCompositionPlan"));
+    assert!(composition_outcome_source.contains("pub struct RuntimeModuleCompositionRejection"));
+    let rejection_source = composition_outcome_source
+        .split("pub struct RuntimeModuleCompositionRejection")
+        .nth(1)
+        .expect("rejection declaration should exist")
+        .split("impl RuntimeModuleCompositionRejection")
+        .next()
+        .expect("rejection fields should exist");
+    assert!(!rejection_source.contains("modules:"));
     assert!(
         availability_source.contains("use crate::core::framework::platform::RuntimeTargetMode;")
     );
@@ -180,8 +202,10 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(load_report_source.contains("mod report;"));
     assert!(!load_report_source.contains("mod missing;"));
     assert!(load_report_source.contains("pub use diagnostics::RuntimeModuleLoadDiagnostic;"));
-    assert!(load_report_source.contains("pub use report::RuntimeModuleLoadReport;"));
-    assert!(load_report_report_source.contains("pub struct RuntimeModuleLoadReport"));
+    assert!(load_report_source
+        .contains("pub(in crate::builtin::runtime_modules) use report::RuntimeModuleLoadReport;"));
+    assert!(load_report_report_source
+        .contains("pub(in crate::builtin::runtime_modules) struct RuntimeModuleLoadReport"));
     assert!(load_report_report_source.contains("diagnostics: Vec<RuntimeModuleLoadDiagnostic>"));
     assert!(!load_report_report_source.contains("pub warnings: Vec<String>"));
     assert!(!load_report_report_source.contains("pub errors: Vec<String>"));
@@ -212,6 +236,9 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(!target_modules_source.contains("use super::super::{RuntimeModuleLoadReport,"));
     assert!(!plugin_module_loader_source.contains("use super::super::RuntimePluginId;"));
     assert!(!load_report_source.contains("pub struct RuntimeModuleLoadReport"));
+    assert!(!runtime_modules_source.contains("RuntimeModuleLoadReport"));
+    assert!(!builtin_source.contains("RuntimeModuleLoadReport"));
+    assert!(!builtin_source.contains("builtin_runtime_modules"));
     assert!(!load_report_source.contains("pub struct RuntimeRequiredPluginMissing"));
     assert!(!load_report_source.contains("effective_errors"));
     assert!(!target_modules_source.contains("required_missing.push"));

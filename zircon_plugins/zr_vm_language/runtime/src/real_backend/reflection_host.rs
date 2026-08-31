@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::script::{
-    ScriptHostArguments, ScriptHostError, ScriptHostHotPathMetrics, ScriptHostValueRef,
+    ScriptHostArguments, ScriptHostError, ScriptHostValueRef,
 };
 use zircon_runtime::script::VmError;
 use zr_vm_rust_binding as zrvm;
@@ -27,11 +27,16 @@ pub(super) fn register_reflection_host_module(
                 let source =
                     ZrVmScriptHostArgumentSource::new(context, "zircon.reflection.resolve")?;
                 let arguments = ScriptHostArguments::new(&source);
-                let type_path = expect_string(&arguments, 0, "zircon.reflection.resolve")?;
-                let member_name = expect_string(&arguments, 1, "zircon.reflection.resolve")?;
-                let token = resolve_reflection
-                    .resolve(&type_path, &member_name)
-                    .map_err(reflection_error)?;
+                let token =
+                    borrow_string(&arguments, 0, "zircon.reflection.resolve", |type_path| {
+                        borrow_string(&arguments, 1, "zircon.reflection.resolve", |member_name| {
+                            resolve_reflection
+                                .resolve(type_path, member_name)
+                                .map(|token| token as i64)
+                                .map_err(reflection_host_error)
+                        })
+                    })
+                    .map_err(|error| zr_error(error.message))?;
                 zrvm::Value::new_int(token as i64)
             })
             .parameter(
@@ -73,10 +78,13 @@ pub(super) fn register_reflection_host_module(
                 let arguments = ScriptHostArguments::new(&source);
                 let token = expect_int(&arguments, 0, "zircon.reflection.write")? as u64;
                 let entity = expect_int(&arguments, 1, "zircon.reflection.write")? as u64;
-                let value_json = expect_string(&arguments, 2, "zircon.reflection.write")?;
-                let changed = write_reflection
-                    .write_json(token, entity, &value_json)
-                    .map_err(reflection_error)?;
+                let changed =
+                    borrow_string(&arguments, 2, "zircon.reflection.write", |value_json| {
+                        write_reflection
+                            .write_json(token, entity, value_json)
+                            .map_err(reflection_host_error)
+                    })
+                    .map_err(|error| zr_error(error.message))?;
                 zrvm::Value::new_bool(changed)
             })
             .parameter(
@@ -94,23 +102,24 @@ pub(super) fn register_reflection_host_module(
     runtime.register_native_module(module).map_err(map_zr_error)
 }
 
-fn expect_string(
+fn borrow_string<T>(
     arguments: &ScriptHostArguments<'_>,
     index: usize,
     function: &str,
-) -> Result<String, zrvm::Error> {
-    arguments
-        .with_argument(index, |value| match value {
-            ScriptHostValueRef::String(value) => {
-                ScriptHostHotPathMetrics::record_guest_string_copy(value.len());
-                Ok(value.to_owned())
-            }
-            value => Err(ScriptHostError::new(format!(
-                "{function} argument {index} expected String, received {:?}",
-                value.kind()
-            ))),
-        })
-        .map_err(|error| zr_error(error.message))
+    visitor: impl FnOnce(&str) -> Result<T, ScriptHostError>,
+) -> Result<T, ScriptHostError> {
+    // The visitor consumes the borrowed view before the argument access returns.
+    arguments.with_argument(index, |value| match value {
+        ScriptHostValueRef::String(value) => visitor(value),
+        value => Err(ScriptHostError::new(format!(
+            "{function} argument {index} expected String, received {:?}",
+            value.kind()
+        ))),
+    })
+}
+
+fn reflection_host_error(error: crate::ReflectionHostError) -> ScriptHostError {
+    ScriptHostError::new(format!("ZrVM reflection host call failed: {error}"))
 }
 
 fn expect_int(

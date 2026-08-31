@@ -1,3 +1,4 @@
+use crate::scene::EntityId;
 use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
     AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
@@ -7,7 +8,6 @@ use crate::scene::components::{
     RenderLayerMask, RigidBodyComponent, SpotLight, Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::Component;
-use crate::scene::EntityId;
 use std::collections::HashMap;
 
 use crate::scene::{SceneResult, World};

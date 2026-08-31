@@ -5,10 +5,10 @@ use crate::core::resource::{MeshMarker, ResourceHandle};
 
 use crate::graphics::types::GraphicsError;
 
-use super::super::prepared::{
-    mesh_sdf_seed_from_primitives, PreparedGeometryDeformation, PreparedMesh,
-};
 use super::super::GpuMeshResource;
+use super::super::prepared::{
+    PreparedGeometryDeformation, PreparedMesh, mesh_sdf_seed_from_primitives,
+};
 use super::ResourceStreamer;
 
 impl ResourceStreamer {

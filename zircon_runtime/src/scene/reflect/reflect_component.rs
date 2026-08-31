@@ -46,14 +46,6 @@ pub struct ReflectComponent {
         zircon_runtime_interface::reflect::ReflectedValue,
         zircon_runtime_interface::reflect::ReflectError,
     >,
-    pub read_fields: fn(
-        &crate::scene::World,
-        crate::scene::EntityId,
-        &str,
-    ) -> Result<
-        Vec<zircon_runtime_interface::reflect::ReflectFieldValue>,
-        zircon_runtime_interface::reflect::ReflectError,
-    >,
     pub write_field: fn(
         &mut crate::scene::World,
         crate::scene::EntityId,
@@ -85,14 +77,6 @@ impl ReflectComponent {
             zircon_runtime_interface::reflect::ReflectedValue,
             zircon_runtime_interface::reflect::ReflectError,
         >,
-        read_fields: fn(
-            &crate::scene::World,
-            crate::scene::EntityId,
-            &str,
-        ) -> Result<
-            Vec<zircon_runtime_interface::reflect::ReflectFieldValue>,
-            zircon_runtime_interface::reflect::ReflectError,
-        >,
         write_field: fn(
             &mut crate::scene::World,
             crate::scene::EntityId,
@@ -110,7 +94,6 @@ impl ReflectComponent {
             type_path: type_path.into(),
             contains,
             read_field,
-            read_fields,
             write_field,
             read_field_by_slot: None,
             write_field_by_slot: None,
@@ -159,17 +142,6 @@ impl ReflectComponent {
         zircon_runtime_interface::reflect::ReflectError,
     > {
         (self.read_field)(world, entity, &self.type_path, field_name)
-    }
-
-    pub fn read_fields(
-        &self,
-        world: &crate::scene::World,
-        entity: crate::scene::EntityId,
-    ) -> Result<
-        Vec<zircon_runtime_interface::reflect::ReflectFieldValue>,
-        zircon_runtime_interface::reflect::ReflectError,
-    > {
-        (self.read_fields)(world, entity, &self.type_path)
     }
 
     pub fn write_field(

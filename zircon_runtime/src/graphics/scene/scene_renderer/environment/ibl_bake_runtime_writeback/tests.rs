@@ -58,6 +58,9 @@ fn runtime_graph_writeback_skips_graph_readback_when_dispatch_not_required() {
         return;
     };
     let resources = RenderGraphExecutionResources::new();
+    let graph = RenderGraphBuilder::new("ibl-writeback-skip")
+        .compile()
+        .unwrap();
     let report = write_ibl_bake_runtime_cache_from_graph_resources(
         &backend.device,
         &backend.queue,
@@ -65,6 +68,7 @@ fn runtime_graph_writeback_skips_graph_readback_when_dispatch_not_required() {
         &request,
         &dispatch,
         &resources,
+        &graph,
     )
     .expect("cache-hit dispatch should skip graph readback");
 
@@ -89,7 +93,7 @@ fn runtime_graph_writeback_reads_sh9_graph_output_and_writes_runtime_cache() {
         .expect("runtime cache miss should require compute");
     assert!(dispatch.requires_runtime_compute());
 
-    let mut resources = dispatch_sh9_graph_output(&backend, &request);
+    let (mut resources, graph) = dispatch_sh9_graph_output(&backend, &request);
     let report = write_ibl_bake_runtime_cache_from_graph_resources(
         &backend.device,
         &backend.queue,
@@ -97,6 +101,7 @@ fn runtime_graph_writeback_reads_sh9_graph_output_and_writes_runtime_cache() {
         &request,
         &dispatch,
         &resources,
+        &graph,
     )
     .expect("SH9 graph output should write runtime cache");
 
@@ -141,7 +146,7 @@ fn runtime_graph_writeback_reads_pmrem_graph_output_and_preserves_readback_seams
     assert!(dispatch.requires_runtime_compute());
     assert_eq!(dispatch.environment_compute_dispatch_count(), 1);
 
-    let mut resources = dispatch_pmrem_graph_output(&backend, &request, &source);
+    let (mut resources, graph) = dispatch_pmrem_graph_output(&backend, &request, &source);
     let report = write_ibl_bake_runtime_cache_from_graph_resources(
         &backend.device,
         &backend.queue,
@@ -149,6 +154,7 @@ fn runtime_graph_writeback_reads_pmrem_graph_output_and_preserves_readback_seams
         &request,
         &dispatch,
         &resources,
+        &graph,
     )
     .expect("PMREM graph output should write runtime cache");
 
@@ -217,7 +223,7 @@ fn runtime_graph_writeback_reads_iem_graph_output_and_preserves_directional_irra
     assert!(dispatch.requires_runtime_compute());
     assert_eq!(dispatch.environment_compute_dispatch_count(), 1);
 
-    let mut resources = dispatch_irradiance_cube_graph_output(&backend, &request, &source);
+    let (mut resources, graph) = dispatch_irradiance_cube_graph_output(&backend, &request, &source);
     let report = write_ibl_bake_runtime_cache_from_graph_resources(
         &backend.device,
         &backend.queue,
@@ -225,6 +231,7 @@ fn runtime_graph_writeback_reads_iem_graph_output_and_preserves_directional_irra
         &request,
         &dispatch,
         &resources,
+        &graph,
     )
     .expect("IEM graph output should write runtime cache");
 
@@ -276,7 +283,10 @@ fn runtime_graph_writeback_reads_iem_graph_output_and_preserves_directional_irra
 fn dispatch_sh9_graph_output(
     backend: &RenderBackend,
     request: &IblBakeArtifactRequest,
-) -> RenderGraphExecutionResources {
+) -> (
+    RenderGraphExecutionResources,
+    crate::render_graph::CompiledRenderGraph,
+) {
     let mut builder = RenderGraphBuilder::new("ibl-bake-runtime-writeback-test");
     append_ibl_bake_artifact_graph_plan(&mut builder, request)
         .expect("IBL bake graph plan should append");
@@ -288,9 +298,14 @@ fn dispatch_sh9_graph_output(
         .expect("SH9 IBL bake pass should exist");
     let mut resources = RenderGraphExecutionResources::new();
     let mut transient_pool = TransientResourcePool::default();
-    transient_pool.begin_frame();
-    resources
-        .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
+    transient_pool.begin_frame(backend.device_profile());
+    (resources, graph)
+        .materialize_transient_resources_with_pool(
+            &backend.device,
+            backend.device_profile(),
+            &graph,
+            &mut transient_pool,
+        )
         .expect("IBL transient outputs should materialize");
     let source_texture = create_source_cubemap_texture(&backend.device);
     resources.import_texture_view(
@@ -370,16 +385,24 @@ fn dispatch_pmrem_graph_output(
     backend: &RenderBackend,
     request: &IblBakeArtifactRequest,
     source: &SourceCubemapMipChain,
-) -> RenderGraphExecutionResources {
+) -> (
+    RenderGraphExecutionResources,
+    crate::render_graph::CompiledRenderGraph,
+) {
     let mut builder = RenderGraphBuilder::new("ibl-bake-runtime-writeback-pmrem-test");
     append_ibl_bake_artifact_graph_plan(&mut builder, request)
         .expect("IBL bake graph plan should append");
     let graph = builder.compile().expect("IBL bake graph should compile");
     let mut resources = RenderGraphExecutionResources::new();
     let mut transient_pool = TransientResourcePool::default();
-    transient_pool.begin_frame();
-    resources
-        .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
+    transient_pool.begin_frame(backend.device_profile());
+    (resources, graph)
+        .materialize_transient_resources_with_pool(
+            &backend.device,
+            backend.device_profile(),
+            &graph,
+            &mut transient_pool,
+        )
         .expect("IBL PMREM transient outputs should materialize");
     let source_texture =
         create_source_cubemap_texture_from_chain(&backend.device, &backend.queue, source);
@@ -468,16 +491,24 @@ fn dispatch_irradiance_cube_graph_output(
     backend: &RenderBackend,
     request: &IblBakeArtifactRequest,
     source: &SourceCubemapMipChain,
-) -> RenderGraphExecutionResources {
+) -> (
+    RenderGraphExecutionResources,
+    crate::render_graph::CompiledRenderGraph,
+) {
     let mut builder = RenderGraphBuilder::new("ibl-bake-runtime-writeback-iem-test");
     append_ibl_bake_artifact_graph_plan(&mut builder, request)
         .expect("IBL bake graph plan should append");
     let graph = builder.compile().expect("IBL bake graph should compile");
     let mut resources = RenderGraphExecutionResources::new();
     let mut transient_pool = TransientResourcePool::default();
-    transient_pool.begin_frame();
-    resources
-        .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
+    transient_pool.begin_frame(backend.device_profile());
+    (resources, graph)
+        .materialize_transient_resources_with_pool(
+            &backend.device,
+            backend.device_profile(),
+            &graph,
+            &mut transient_pool,
+        )
         .expect("IBL IEM transient output should materialize");
     let source_texture =
         create_source_cubemap_texture_from_chain(&backend.device, &backend.queue, source);

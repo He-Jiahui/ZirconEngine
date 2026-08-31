@@ -1,4 +1,5 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::super::paint_geometry::intersect;
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::super::super::visual_assets::HostPaintImagePixels;
 use super::super::geometry::avatar_fallback_child_frame;
@@ -28,10 +29,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_av
             foreground,
             opacity,
         );
-    } else if let Some(icon) = avatar_icon_pixels(node, avatar_rect, foreground) {
-        let icon_rect = avatar_fallback_child_frame(avatar_rect);
-        push_avatar_image(commands, icon, icon_rect, clip, order, opacity);
     } else {
-        push_avatar_fallback_glyph(commands, avatar_rect, clip, order, foreground, opacity);
+        let icon_rect = avatar_fallback_child_frame(avatar_rect);
+        let icon = intersect(&icon_rect, clip).and_then(|damage_frame| {
+            avatar_icon_pixels(node, &icon_rect, foreground, damage_frame)
+        });
+        match icon {
+            Some(icon) => push_avatar_image(commands, icon, icon_rect, clip, order, opacity),
+            None => {
+                push_avatar_fallback_glyph(commands, avatar_rect, clip, order, foreground, opacity)
+            }
+        }
     }
 }

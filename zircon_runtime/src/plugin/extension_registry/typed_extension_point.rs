@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::Hash;
 
@@ -410,8 +411,16 @@ where
     }
 
     pub fn resolve(&self, key: &K) -> Option<ExtensionSlot> {
+        self.resolve_borrowed(key)
+    }
+
+    pub fn resolve_borrowed<Q>(&self, key: &Q) -> Option<ExtensionSlot>
+    where
+        K: Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
         self.sorted_key_indices
-            .binary_search_by(|dense_index| self.keys[*dense_index as usize].cmp(key))
+            .binary_search_by(|dense_index| self.keys[*dense_index as usize].borrow().cmp(key))
             .ok()
             .and_then(|sorted_index| self.sorted_key_indices.get(sorted_index))
             .and_then(|dense_index| self.slots.get(*dense_index as usize))

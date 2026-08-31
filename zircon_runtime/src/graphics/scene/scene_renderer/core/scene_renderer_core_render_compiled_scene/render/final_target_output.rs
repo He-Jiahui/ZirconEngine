@@ -1,115 +1,115 @@
 use std::sync::Arc;
 
-use crate::core::framework::render::RenderCameraTargetGraphImportReport;
-use crate::graphics::scene::resources::{OutputTargetTextureResource, ResourceStreamer};
-use crate::graphics::types::{
-    ViewportRenderFrame, ViewportRenderOutputTarget, ViewportTextureGraphImportStatus,
+use crate::core::framework::render::{
+    RenderCameraTargetGraphImportReport, RenderCameraTargetGraphImportStatus,
+    RenderCameraTargetWritebackReport,
 };
+use crate::graphics::scene::resources::{OutputTargetTextureResource, ResourceStreamer};
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 pub(super) struct FinalTargetOutputSelection {
     pub(super) direct_import: Option<Arc<OutputTargetTextureResource>>,
+    pub(super) writeback: Option<Arc<OutputTargetTextureResource>>,
     pub(super) graph_import_report: Option<RenderCameraTargetGraphImportReport>,
+    writeback_plan: RenderCameraTargetWritebackReport,
 }
 
 impl FinalTargetOutputSelection {
     pub(super) fn imported_resource(&self) -> Option<&OutputTargetTextureResource> {
         self.direct_import.as_deref()
     }
+
+    pub(super) fn output_target_resource(&self) -> Option<&OutputTargetTextureResource> {
+        self.direct_import
+            .as_deref()
+            .or_else(|| self.writeback.as_deref())
+    }
+
+    pub(super) const fn writeback_plan(&self) -> RenderCameraTargetWritebackReport {
+        self.writeback_plan
+    }
 }
 
 pub(super) fn select_final_target_output(
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
-) -> FinalTargetOutputSelection {
-    if !frame
-        .camera_stack_output_policy()
-        .owns_final_target_output()
-    {
-        return FinalTargetOutputSelection {
-            direct_import: None,
-            graph_import_report: suppressed_graph_import_report(frame.output_target()),
-        };
+) -> Result<FinalTargetOutputSelection, GraphicsError> {
+    let frame_plan = streamer.output_target_frame_plan();
+    if frame_plan.target() != frame.output_target() {
+        return Err(GraphicsError::Asset(format!(
+            "prepared output target frame plan {:?} does not match frame target {:?}",
+            frame_plan.target(),
+            frame.output_target()
+        )));
     }
-
+    let graph_import_report = frame_plan.graph_import_report();
+    let writeback_plan = frame_plan.compiled_graph_writeback_plan();
     let Some(texture) = frame.output_target().texture_handle() else {
-        return FinalTargetOutputSelection {
+        return Ok(FinalTargetOutputSelection {
             direct_import: None,
+            writeback: None,
             graph_import_report: None,
-        };
+            writeback_plan,
+        });
     };
-    let Some(prepared) = streamer.output_target_texture_resource(&texture.id()) else {
-        return FinalTargetOutputSelection {
+    if matches!(
+        graph_import_report.status,
+        RenderCameraTargetGraphImportStatus::SuppressedByCameraStack
+            | RenderCameraTargetGraphImportStatus::PendingTargetDescriptor
+            | RenderCameraTargetGraphImportStatus::BlockedFormatMismatch
+    ) {
+        return Ok(FinalTargetOutputSelection {
             direct_import: None,
-            graph_import_report: None,
-        };
-    };
-
-    let plan = frame
-        .output_target()
-        .graph_import_plan(Some(prepared.descriptor().format.as_str()));
-    if plan.status() == ViewportTextureGraphImportStatus::ReadyForDirectImport {
-        return FinalTargetOutputSelection {
+            writeback: None,
+            graph_import_report: Some(graph_import_report),
+            writeback_plan,
+        });
+    }
+    let prepared = streamer
+        .output_target_texture_resource(&texture.id())
+        .ok_or_else(|| {
+            GraphicsError::Asset(format!(
+                "prepared output target frame plan references missing texture {}",
+                texture.id()
+            ))
+        })?;
+    if graph_import_report.status == RenderCameraTargetGraphImportStatus::ReadyForDirectImport {
+        return Ok(FinalTargetOutputSelection {
             direct_import: Some(prepared.clone()),
+            writeback: None,
             graph_import_report: Some(RenderCameraTargetGraphImportReport::direct_imported(
                 prepared.size(),
             )),
-        };
+            writeback_plan,
+        });
     }
-
-    FinalTargetOutputSelection {
-        direct_import: None,
-        graph_import_report: None,
+    if graph_import_report.status
+        == RenderCameraTargetGraphImportStatus::RequiresConversionWriteback
+    {
+        return Ok(FinalTargetOutputSelection {
+            direct_import: None,
+            writeback: Some(prepared.clone()),
+            graph_import_report: Some(graph_import_report),
+            writeback_plan,
+        });
     }
-}
-
-fn suppressed_graph_import_report(
-    target: ViewportRenderOutputTarget,
-) -> Option<RenderCameraTargetGraphImportReport> {
-    match target.size() {
-        Some(size) if target.texture_handle().is_some() => {
-            Some(RenderCameraTargetGraphImportReport::suppressed_by_camera_stack(size))
-        }
-        _ => None,
-    }
+    Err(GraphicsError::Asset(format!(
+        "prepared output target frame plan has unexpected graph import status {:?}",
+        graph_import_report.status
+    )))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::render::RenderCameraTargetGraphImportStatus;
-    use crate::core::math::UVec2;
-    use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
-    use crate::graphics::types::{ViewportRenderOutputTarget, FRAMEWORK_OUTPUT_FORMAT_LABEL};
-
-    use super::suppressed_graph_import_report;
-
     #[test]
-    fn final_target_output_reports_suppressed_texture_children_only() {
-        let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
-            "tests/final-target-output/suppressed-texture",
-        ));
-        let texture_target = ViewportRenderOutputTarget::Texture {
-            handle: texture,
-            size: UVec2::new(96, 54),
-            format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
-        };
+    fn final_target_selection_consumes_the_prepared_frame_plan_without_replanning() {
+        let source = include_str!("final_target_output.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("final target selection test boundary");
 
-        let texture_report =
-            suppressed_graph_import_report(texture_target).expect("texture suppression report");
-        let primary_report =
-            suppressed_graph_import_report(ViewportRenderOutputTarget::PrimarySurface);
-        let headless_report =
-            suppressed_graph_import_report(ViewportRenderOutputTarget::Headless {
-                size: UVec2::new(96, 54),
-            });
-
-        assert_eq!(
-            texture_report.status,
-            RenderCameraTargetGraphImportStatus::SuppressedByCameraStack
-        );
-        assert_eq!(texture_report.target_size, UVec2::new(96, 54));
-        assert_eq!(texture_report.direct_import_count, 0);
-        assert_eq!(texture_report.conversion_writeback_count, 0);
-        assert_eq!(primary_report, None);
-        assert_eq!(headless_report, None);
+        assert!(source.contains("streamer.output_target_frame_plan()"));
+        assert!(!source.contains(".graph_import_plan("));
+        assert!(!source.contains("frame.texture_writeback_plan("));
     }
 }

@@ -12,16 +12,17 @@ pub(super) fn compute_window_min_width(
     metrics: &WorkbenchChromeMetrics,
     shell_logical_width: f32,
 ) -> f32 {
-    let mut widths = Vec::new();
-    if left.visible {
-        widths.push(left.constraints);
-    }
-    widths.push(document.constraints);
-    if right.visible {
-        widths.push(right.constraints);
-    }
-    let separators = widths.len().saturating_sub(1) as f32 * metrics.separator_thickness;
-    let content_min_width = aggregate_row_constraints(&widths).width.resolved().min + separators;
+    let row_constraints = match (left.visible, right.visible) {
+        (true, true) => {
+            aggregate_row_constraints(&[left.constraints, document.constraints, right.constraints])
+        }
+        (true, false) => aggregate_row_constraints(&[left.constraints, document.constraints]),
+        (false, true) => aggregate_row_constraints(&[document.constraints, right.constraints]),
+        (false, false) => aggregate_row_constraints(&[document.constraints]),
+    };
+    let visible_side_count = left.visible as usize + right.visible as usize;
+    let separators = visible_side_count as f32 * metrics.separator_thickness;
+    let content_min_width = row_constraints.width.resolved().min + separators;
     content_min_width.min(window_min_width_limit_for_logical_width(
         shell_logical_width,
     ))
@@ -52,3 +53,7 @@ pub(super) fn compute_window_min_height(
     }
     min_height.min(window_min_height_limit_for_height(shell_height))
 }
+
+#[cfg(test)]
+#[path = "window_minimums/allocation_tests.rs"]
+mod allocation_tests;

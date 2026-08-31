@@ -14,7 +14,7 @@ related_code:
   - zircon_editor/src/core/gateway/in_process.rs
   - zircon_editor/src/core/gateway/session.rs
   - zircon_editor/src/core/gateway/capabilities.rs
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/core/framework/render/overlay.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs

@@ -26,7 +26,7 @@ pub(super) struct SdfPersistentAtlasUpdateReport {
 
 #[derive(Default)]
 pub(super) struct SdfPersistentAtlasCache {
-    pages: BTreeMap<GlyphAtlasPageKey, PersistentAtlasPage>,
+    pages: HashMap<GlyphAtlasPageKey, PersistentAtlasPage>,
     placements: HashMap<SdfAtlasGlyphKey, PersistentAtlasPlacement>,
 }
 
@@ -150,9 +150,8 @@ impl SdfPersistentAtlasCache {
         }
 
         let mut source_offset = 0_usize;
-        let pages = self
-            .pages
-            .iter()
+        let pages = ordered_persistent_pages(&self.pages)
+            .into_iter()
             .map(|(page_key, page)| {
                 let byte_len = page.pixels.len();
                 let bake_page = SdfAtlasBakePage {
@@ -181,6 +180,14 @@ impl SdfPersistentAtlasCache {
             .collect();
         (pages, dirty_pages, report)
     }
+}
+
+fn ordered_persistent_pages(
+    pages: &HashMap<GlyphAtlasPageKey, PersistentAtlasPage>,
+) -> Vec<(&GlyphAtlasPageKey, &PersistentAtlasPage)> {
+    let mut pages = pages.iter().collect::<Vec<_>>();
+    pages.sort_unstable_by_key(|(page_key, _)| **page_key);
+    pages
 }
 
 impl PersistentAtlasPlacement {
@@ -331,3 +338,7 @@ fn union_rect(left: SdfAtlasRect, right: SdfAtlasRect) -> SdfAtlasRect {
         height: bottom_edge.saturating_sub(y),
     }
 }
+
+#[cfg(test)]
+#[path = "atlas_pages/hash_page_tests.rs"]
+mod hash_page_tests;

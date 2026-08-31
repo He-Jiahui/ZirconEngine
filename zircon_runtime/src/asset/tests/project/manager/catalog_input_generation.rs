@@ -3,14 +3,16 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use zircon_runtime_interface::project::RelPath;
+use zircon_runtime_interface::project::{AssetRef, RelPath};
 
 use crate::asset::project::{
     AssetMetaDocument, AssetMetaEntry, AssetSourceUnit, PackageAssetRegistry,
     ProjectCatalogInputGeneration, ProjectCatalogInputRecord, ProjectCatalogInputSource,
     ProjectManager, ProjectManifest, ProjectPaths,
 };
-use crate::asset::{AssetKind, AssetReference, AssetUri, AssetUuid};
+use crate::asset::{
+    AssetKind, AssetReference, AssetUri, AssetUuid, ReferenceRepair, ReferenceRepairKind,
+};
 use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
 
 use super::super::unique_temp_project_root;
@@ -134,6 +136,46 @@ fn project_catalog_input_generation_detects_artifact_reference_payload_changes()
         delta.modified[0].direct_references()[0].locator,
         locator("res://materials/referenced.zmaterial")
     );
+}
+
+#[test]
+fn targeted_catalog_publish_projects_reference_repair_observations() {
+    let root = PathBuf::from("catalog-reference-repair-observations");
+    let manifest = manifest();
+    let packages = PackageAssetRegistry::default();
+    let record = test_record(&root, meta("res://data/catalog.json"), Vec::new());
+    let id = record.resource().id();
+    let previous = ProjectCatalogInputGeneration::from_test_records(
+        &root,
+        manifest.clone(),
+        packages.clone(),
+        [record.clone()],
+    );
+    let repair = path_hint_repair();
+    let source = ProjectCatalogInputSource::new(
+        record.source_path().to_path_buf(),
+        record.meta_path().to_path_buf(),
+        record.meta().clone(),
+        record.source_mtime_unix_ms(),
+        record.direct_references().to_vec(),
+        vec![repair.clone()],
+    );
+
+    let current = ProjectCatalogInputGeneration::publish_targeted(
+        &previous,
+        &root,
+        &manifest,
+        &packages,
+        [record.resource().clone()],
+        std::collections::HashMap::from([(id, source)]),
+        std::iter::empty(),
+    );
+
+    let published = current.record(id).expect("targeted record is published");
+    assert_eq!(published.reference_repairs(), &[repair.clone()]);
+    let delta = current.delta_since(&previous);
+    assert_eq!(delta.modified.len(), 1);
+    assert_eq!(delta.modified[0].reference_repairs(), &[repair]);
 }
 
 #[test]
@@ -316,6 +358,7 @@ fn targeted_catalog_publish_reuses_unchanged_record_identity() {
         changed.meta().clone(),
         changed.source_mtime_unix_ms(),
         changed.direct_references().to_vec(),
+        changed.reference_repairs().to_vec(),
     );
 
     let current = ProjectCatalogInputGeneration::publish_targeted(
@@ -403,6 +446,7 @@ fn targeted_catalog_replacement_is_modified_after_removing_its_previous_record()
         original.meta().clone(),
         original.source_mtime_unix_ms(),
         original.direct_references().to_vec(),
+        original.reference_repairs().to_vec(),
     );
 
     let current = ProjectCatalogInputGeneration::publish_targeted(
@@ -563,7 +607,29 @@ fn source_from_record(record: &ProjectCatalogInputRecord) -> ProjectCatalogInput
         record.meta().clone(),
         record.source_mtime_unix_ms(),
         record.direct_references().to_vec(),
+        record.reference_repairs().to_vec(),
     )
+}
+
+fn path_hint_repair() -> ReferenceRepair {
+    let guid: AssetUuid = "9a111111-2222-4333-8444-555555555555".parse().unwrap();
+    let stale = AssetRef::try_new(
+        guid,
+        RelPath::parse("assets/models/legacy.glb").unwrap(),
+        None,
+    )
+    .unwrap();
+    let resolved = AssetRef::try_new(
+        guid,
+        RelPath::parse("assets/models/current.glb").unwrap(),
+        None,
+    )
+    .unwrap();
+    ReferenceRepair {
+        stale,
+        resolved,
+        kind: ReferenceRepairKind::PathHint,
+    }
 }
 
 fn meta(locator_text: &str) -> AssetMetaDocument {

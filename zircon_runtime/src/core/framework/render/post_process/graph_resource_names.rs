@@ -1,3 +1,5 @@
+use super::super::RenderPipelinePhase;
+
 pub struct PostProcessGraphResourceNames;
 
 impl PostProcessGraphResourceNames {
@@ -18,6 +20,8 @@ impl PostProcessGraphResourceNames {
     pub const GBUFFER_NORMAL: &'static str = "gbuffer-normal";
     pub const GBUFFER_MATERIAL: &'static str = "gbuffer-material";
     pub const GBUFFER_EMISSIVE: &'static str = "gbuffer-emissive";
+    pub const AMBIENT_OCCLUSION_RAW: &'static str = "ambient-occlusion.raw";
+    pub const AMBIENT_OCCLUSION_SPATIAL: &'static str = "ambient-occlusion.spatial";
     pub const AMBIENT_OCCLUSION: &'static str = "ambient-occlusion";
     pub const HISTORY_PREVIOUS_AMBIENT_OCCLUSION: &'static str =
         "history.previous.ambient-occlusion";
@@ -46,6 +50,8 @@ impl PostProcessGraphResourceNames {
     pub const SSS_SCATTERED: &'static str = "sss.scattered";
     pub const SSS_TILE_LIST: &'static str = "sss.tile-list";
     pub const SSS_INDIRECT_ARGS: &'static str = "sss.indirect-args";
+    pub const SSS_PARAMS: &'static str = "sss.params";
+    pub const SSS_PROFILES: &'static str = "sss.profiles";
     pub const HISTORY_PREVIOUS_VOLUMETRIC_SCATTERING: &'static str =
         "history.previous.volumetric.scattering";
     pub const HZB_FURTHEST: &'static str = "hzb-furthest";
@@ -77,8 +83,80 @@ impl PostProcessGraphResourceNames {
         "postprocess.screen-space-reflection.specular-occlusion";
     pub const SCREEN_SPACE_REFLECTION_HISTORY: &'static str =
         "postprocess.screen-space-reflection.history";
-    pub const UPSCALED: &'static str = "postprocess.upscaled";
+    pub const PRIMARY_UPSCALED: &'static str = "postprocess.primary-upscaled";
+    pub const SECONDARY_UPSCALED: &'static str = "postprocess.secondary-upscaled";
     pub const FINAL_COMPOSITED: &'static str = "postprocess.terminal-aa-input";
     pub const FINAL_COLOR: &'static str = "final-color";
     pub const VIEWPORT_OUTPUT: &'static str = "viewport-output";
+
+    /// Returns the ViewFamily phase that owns a view-sized texture's geometry.
+    ///
+    /// Fixed-shape textures such as the colour LUT and volumetric froxel grids return `None`.
+    /// Allocation and execution share this table so a resource cannot use one phase's backing
+    /// extent with another phase's viewport.
+    pub fn view_family_pipeline_phase(name: &str) -> Option<RenderPipelinePhase> {
+        match name {
+            Self::SCENE_COLOR
+            | Self::TRANSMISSION_SCENE_COLOR
+            | Self::SCENE_DEPTH
+            | Self::HALF_RES_TRANSPARENCY_COLOR
+            | Self::HALF_RES_TRANSPARENCY_DEPTH
+            | Self::SHADOW_ATLAS
+            | Self::SCENE_VELOCITY
+            | Self::MOTION_VECTOR_TILE_MAX
+            | Self::MOTION_VECTOR_TILE_MAX_COARSE
+            | Self::MOTION_VECTOR_NEIGHBOR_MAX
+            | Self::GBUFFER_ALBEDO
+            | Self::GBUFFER_NORMAL
+            | Self::GBUFFER_MATERIAL
+            | Self::GBUFFER_EMISSIVE
+            | Self::AMBIENT_OCCLUSION_RAW
+            | Self::AMBIENT_OCCLUSION_SPATIAL
+            | Self::AMBIENT_OCCLUSION
+            | Self::HISTORY_PREVIOUS_AMBIENT_OCCLUSION
+            | Self::CONTACT_SHADOW_OCCLUSION
+            | Self::GLOBAL_ILLUMINATION
+            | Self::HYBRID_GI_LIGHTING
+            | Self::HYBRID_GI_TEMPORAL_METADATA
+            | Self::HISTORY_PREVIOUS_HYBRID_GI
+            | Self::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA
+            | Self::SSS_DIFFUSE
+            | Self::SSS_SPECULAR
+            | Self::SSS_SCATTERED
+            | Self::HISTORY_PREVIOUS_VOLUMETRIC_SCATTERING
+            | Self::HZB_FURTHEST
+            | Self::HISTORY_PREVIOUS_HZB_FURTHEST
+            | Self::TAA_REACTIVE_MASK => Some(RenderPipelinePhase::SceneLinear),
+            Self::DEPTH_OF_FIELD_COC | Self::DEPTH_OF_FIELD_BOKEH | Self::DEPTH_OF_FIELDED => {
+                Some(RenderPipelinePhase::PreReconstructionScenePostProcess)
+            }
+            Self::TAA_HISTORY_PREVIOUS | Self::TAA_HISTORY_CURRENT | Self::TAA_OUTPUT => {
+                Some(RenderPipelinePhase::TemporalReconstruction)
+            }
+            Self::MOTION_BLURRED
+            | Self::BLOOM
+            | Self::SCENE_COMPOSITED
+            | Self::BLURRED
+            | Self::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
+            | Self::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
+            | Self::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
+            | Self::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION
+            | Self::SCREEN_SPACE_REFLECTION_HISTORY => {
+                Some(RenderPipelinePhase::PostReconstructionScenePostProcess)
+            }
+            Self::COLOR_GRADED | Self::EFFECT_STACKED | Self::TONEMAPPED => {
+                Some(RenderPipelinePhase::DisplayMapping)
+            }
+            Self::FINAL_COMPOSITED => Some(RenderPipelinePhase::DisplayPostProcess),
+            Self::PRIMARY_UPSCALED => Some(RenderPipelinePhase::PrimarySpatialUpscale),
+            Self::SECONDARY_UPSCALED => Some(RenderPipelinePhase::SecondarySpatialUpscale),
+            Self::FINAL_COLOR => Some(RenderPipelinePhase::OutputTransform),
+            Self::VIEWPORT_OUTPUT => Some(RenderPipelinePhase::Present),
+            Self::COLOR_LUT
+            | Self::VOLUMETRIC_MEDIA
+            | Self::VOLUMETRIC_SCATTERING
+            | Self::VOLUMETRIC_INTEGRATED => None,
+            _ => None,
+        }
+    }
 }

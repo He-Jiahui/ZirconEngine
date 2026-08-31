@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
@@ -45,9 +47,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ci
     let cache_key = CircularProgressRasterKey::new(size, progress, track, fill);
     let CachedCircularProgressRaster { resource_key, rgba } =
         cached_circular_progress_raster(cache_key).unwrap_or_else(|| {
-            let rgba = circular_progress_pixels(size, progress, track, fill);
+            let rgba: Arc<[u8]> = circular_progress_pixels(size, progress, track, fill).into();
             let resource_key = circular_progress_image_key(size, progress, track, fill);
-            store_circular_progress_raster(cache_key, resource_key.clone(), rgba.clone());
+            store_circular_progress_raster(cache_key, resource_key.clone(), Arc::clone(&rgba));
             CachedCircularProgressRaster { resource_key, rgba }
         });
     commands.push(HostPaintCommand::image_pixels(

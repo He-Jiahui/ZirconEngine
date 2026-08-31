@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use super::super::ChartKind;
 use super::gauge::chart_value;
@@ -86,7 +86,7 @@ impl ChartRasterCacheKey {
 
 struct ChartRasterCacheEntry {
     resource_key: String,
-    rgba: Vec<u8>,
+    rgba: Arc<[u8]>,
     last_used: u64,
 }
 
@@ -99,7 +99,7 @@ struct ChartRasterCache {
 
 pub(super) struct CachedChartRaster {
     pub(super) resource_key: String,
-    pub(super) rgba: Vec<u8>,
+    pub(super) rgba: Arc<[u8]>,
 }
 
 pub(super) fn cached_chart_raster(key: &ChartRasterCacheKey) -> Option<CachedChartRaster> {
@@ -109,7 +109,7 @@ pub(super) fn cached_chart_raster(key: &ChartRasterCacheKey) -> Option<CachedCha
         .get(key)
 }
 
-pub(super) fn store_chart_raster(key: ChartRasterCacheKey, resource_key: String, rgba: Vec<u8>) {
+pub(super) fn store_chart_raster(key: ChartRasterCacheKey, resource_key: String, rgba: Arc<[u8]>) {
     chart_raster_cache()
         .lock()
         .unwrap_or_else(|poison| poison.into_inner())
@@ -128,7 +128,7 @@ impl ChartRasterCache {
         })
     }
 
-    fn insert(&mut self, key: ChartRasterCacheKey, resource_key: String, rgba: Vec<u8>) {
+    fn insert(&mut self, key: ChartRasterCacheKey, resource_key: String, rgba: Arc<[u8]>) {
         self.remove(&key);
         let byte_size = rgba.len();
         if byte_size > MAX_CHART_RASTER_CACHE_BYTES {
@@ -179,6 +179,9 @@ fn chart_raster_cache() -> &'static Mutex<ChartRasterCache> {
 static CHART_RASTER_CACHE: OnceLock<Mutex<ChartRasterCache>> = OnceLock::new();
 
 #[cfg(test)]
+mod arc_pixels_tests;
+
+#[cfg(test)]
 mod tests {
     use super::{ChartRasterCache, ChartRasterCacheKey, MAX_CHART_RASTER_CACHE_ENTRIES};
     use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
@@ -202,12 +205,12 @@ mod tests {
             cache.insert(
                 key(index as u32),
                 format!("chart-{index:03}"),
-                vec![index as u8],
+                vec![index as u8].into(),
             );
         }
         assert!(cache.get(&key(0)).is_some());
 
-        cache.insert(key(u32::MAX), "chart-new".to_string(), vec![0]);
+        cache.insert(key(u32::MAX), "chart-new".to_string(), vec![0].into());
 
         assert_eq!(cache.entries.len(), MAX_CHART_RASTER_CACHE_ENTRIES);
         assert!(cache.get(&key(0)).is_some());

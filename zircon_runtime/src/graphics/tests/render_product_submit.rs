@@ -6,17 +6,17 @@ use crate::asset::{
     ShaderSourceLanguage,
 };
 use crate::core::framework::render::{
-    AdvancedProviderStatus, AdvancedRenderFeature, CorePipelineKind, DisplayMode,
-    FallbackSkyboxKind, GeometryExtract, MaterialPropertyKind, PreviewEnvironmentExtract,
-    ProjectionMode, RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderFrameExtract,
-    RenderFramework, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
-    RenderOverlayExtract, RenderPhase, RenderPipelineHandle, RenderPointLightSnapshot,
-    RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
-    RenderRectLightSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderSpotLightSnapshot, RenderSpriteAnchor, RenderSpriteImageMode, RenderSpriteSnapshot,
-    RenderViewportDescriptor, RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
-    ShaderAssetKind, SolariRuntimeStatus, SpriteExtract, ViewportCameraSnapshot,
-    DEFAULT_RENDER_LAYER_MASK,
+    AdvancedProviderStatus, AdvancedRenderFeature, CorePipelineKind, DEFAULT_RENDER_LAYER_MASK,
+    DisplayMode, FallbackSkyboxKind, GeometryExtract, MaterialPropertyKind,
+    PreviewEnvironmentExtract, ProjectionMode, RenderAmbientLightSnapshot,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract, RenderPhase,
+    RenderPipelineHandle, RenderPointLightSnapshot, RenderProductFeature, RenderProductProfile,
+    RenderProfileBundle, RenderQualityProfile, RenderRectLightSnapshot, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteAnchor, RenderSpriteImageMode,
+    RenderSpriteSnapshot, RenderViewportDescriptor, RenderVirtualGeometryPayloadSource,
+    RenderWorldSnapshotHandle, ShaderAssetKind, SolariRuntimeStatus, SpriteExtract,
+    UiRenderSubmission, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -172,7 +172,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         RenderWorldSnapshotHandle::new(93),
         snapshot_with_projection(ProjectionMode::Perspective),
     );
-    extract.geometry = crate::core::framework::render::GeometryExtract::from_meshes(
+    *extract.geometry = crate::core::framework::render::GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![pbr_mesh_with_missing_material()],
     );
@@ -182,6 +182,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         .push(RenderAmbientLightSnapshot {
             color: Vec3::new(0.04, 0.05, 0.06),
             intensity: 0.25,
+            affects_lightmapped_meshes: true,
             renderer_degraded: false,
             degradation_reason: None,
         });
@@ -297,7 +298,7 @@ fn render_product_submit_material_stats_count_non_blocking_diagnostics() {
         RenderWorldSnapshotHandle::new(95),
         snapshot_with_projection(ProjectionMode::Perspective),
     );
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![RenderMeshSnapshot {
             node_id: 601,
@@ -362,7 +363,7 @@ fn render_product_submit_material_stats_count_material_uniform_diagnostics() {
         RenderWorldSnapshotHandle::new(96),
         snapshot_with_projection(ProjectionMode::Perspective),
     );
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![RenderMeshSnapshot {
             node_id: 602,
@@ -482,7 +483,7 @@ pub(super) fn material_with_import_note() -> MaterialAsset {
         property_values: Default::default(),
         texture_slots: Default::default(),
         validation_diagnostics: vec![
-            "glTF material imported with generated renderer defaults".to_string()
+            "glTF material imported with generated renderer defaults".to_string(),
         ],
     }
 }

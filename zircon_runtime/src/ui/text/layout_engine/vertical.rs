@@ -1,6 +1,7 @@
-use crate::text::layout::{layout_vertical_rl_columns, TextLineMetrics};
 use crate::text::SharedTextLayoutSession;
 use crate::text::VerticalMode;
+use crate::text::layout::{TextLineMetrics, layout_vertical_rl_columns};
+use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextOverflow, UiTextRange,
@@ -12,9 +13,10 @@ use super::ellipsis::{
     ellipsize_line_with_provider, is_ellipsis_overflow, line_overflows_horizontally_with_provider,
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
+use super::layout_result::LayoutWithoutArtifact;
 use super::line_box::{
-    available_wrap_extent, materialize_arabic_tatweels_for_justified_line,
-    resolve_line_widths_with_provider, MIN_TEXT_FONT_SIZE,
+    MIN_TEXT_FONT_SIZE, available_wrap_extent, materialize_arabic_tatweels_for_justified_line,
+    resolve_line_widths_with_provider,
 };
 use super::paragraph_layout;
 use super::visual_order;
@@ -28,20 +30,23 @@ pub(super) fn layout_vertical_text_with_provider(
     font_size: f32,
     metrics: TextLineMetrics,
     provider: &mut SharedTextLayoutSession,
-) -> UiResolvedTextLayout {
+) -> TextLayoutOutcome<LayoutWithoutArtifact> {
     let text = parsed.text();
     let direction = resolve_direction(text, style.text_direction);
-    if let Some(layout) = super::rich_inline_vertical::layout_inline_vertical_text_with_provider(
+    match super::rich_layout_vertical::layout_rich_vertical_text_with_provider(
         parsed, style, frame, clip_frame, font_size, direction, provider,
     ) {
-        return layout;
+        TextShapingOutcome::Ready(Some(layout)) => return TextShapingOutcome::Ready(layout),
+        TextShapingOutcome::Ready(None) => {}
+        TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+        TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
     }
     let mut vertical_provider = provider.vertical_scope(VerticalMode::Mixed);
     let column_advance = metrics.line_height.max(font_size.max(MIN_TEXT_FONT_SIZE));
     let column_width = font_size.max(MIN_TEXT_FONT_SIZE);
     let max_column_height = available_wrap_extent(frame.height);
     let block_layout = paragraph_layout::has_block_layout(parsed);
-    let mut columns = if block_layout {
+    let mut columns = match if block_layout {
         paragraph_layout::wrap_block_paragraphs_with_provider(
             parsed,
             style,
@@ -56,14 +61,22 @@ pub(super) fn layout_vertical_text_with_provider(
             style,
             &mut *vertical_provider,
         )
+    } {
+        TextShapingOutcome::Ready(columns) => columns,
+        TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+        TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
     };
     let paragraph_constraints =
-        paragraph_layout::resolve_paragraph_column_constraints_with_provider(
+        match paragraph_layout::resolve_paragraph_column_constraints_with_provider(
             parsed,
             style,
             frame.height,
             &mut *vertical_provider,
-        );
+        ) {
+            TextShapingOutcome::Ready(constraints) => constraints,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
     let clip = clip_frame.unwrap_or(frame);
     let column_capacity = layout_vertical_rl_columns(
         frame.x,
@@ -89,13 +102,17 @@ pub(super) fn layout_vertical_text_with_provider(
             let last_index = columns.len() - 1;
             let available_height = column_constraints[last_index].max_height;
             let last = &mut columns[last_index];
-            ellipsize_line_with_provider(
+            match ellipsize_line_with_provider(
                 last,
                 available_height,
                 style,
                 style.text_overflow,
                 &mut *vertical_provider,
-            );
+            ) {
+                TextShapingOutcome::Ready(()) => {}
+                TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+            }
         }
     }
     let column_constraints = paragraph_constraints.for_candidates(&columns);
@@ -103,21 +120,30 @@ pub(super) fn layout_vertical_text_with_provider(
         for index in 0..columns.len() {
             let available_height = column_constraints[index].max_height;
             let column = &mut columns[index];
-            if !column.ellipsized
-                && line_overflows_horizontally_with_provider(
-                    column,
-                    available_height,
-                    style,
-                    &mut *vertical_provider,
-                )
-            {
-                ellipsize_line_with_provider(
+            let overflows = match line_overflows_horizontally_with_provider(
+                column,
+                available_height,
+                style,
+                &mut *vertical_provider,
+            ) {
+                TextShapingOutcome::Ready(overflows) => overflows,
+                TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+            };
+            if !column.ellipsized && overflows {
+                match ellipsize_line_with_provider(
                     column,
                     available_height,
                     style,
                     style.text_overflow,
                     &mut *vertical_provider,
-                );
+                ) {
+                    TextShapingOutcome::Ready(()) => {}
+                    TextShapingOutcome::Deferred(error) => {
+                        return TextShapingOutcome::Deferred(error);
+                    }
+                    TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+                }
                 overflow_clipped = true;
             }
         }
@@ -128,45 +154,69 @@ pub(super) fn layout_vertical_text_with_provider(
         let constraints = column_constraints[index];
         let mut column_style = style.clone();
         column_style.text_align = constraints.align;
-        materialize_arabic_tatweels_for_justified_line(
+        match materialize_arabic_tatweels_for_justified_line(
             &mut columns[index],
             &column_style,
             constraints.max_height.max(0.0),
             is_last_column,
             &mut *vertical_provider,
-        );
+        ) {
+            TextShapingOutcome::Ready(()) => {}
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        }
     }
     for column in &mut columns {
-        visual_order::apply_visual_order(column, text, direction);
+        if visual_order::apply_visual_order(column, text, direction).is_err() {
+            return TextShapingOutcome::failed(
+                crate::core::framework::text::TextLayoutError::BidiInvariant,
+            );
+        }
     }
 
-    let measured_columns = columns
-        .iter()
-        .enumerate()
-        .map(|(index, column)| {
-            let is_last_column = index + 1 == columns.len();
-            let constraints = column_constraints[index];
-            let mut column_style = style.clone();
-            column_style.text_align = constraints.align;
-            let (measured_height, glyph_advances, content_height) =
-                resolve_line_widths_with_provider(
-                    column,
-                    &column_style,
-                    constraints.max_height.max(0.0),
-                    is_last_column,
-                    &mut *vertical_provider,
-                );
-            let column_height = if column.text.is_empty() {
-                metrics.line_height
-            } else {
-                content_height
+    let column_count = columns.len();
+    let mut measured_columns = Vec::with_capacity(column_count);
+    for (index, column) in columns.iter().enumerate() {
+        let is_last_column = index + 1 == column_count;
+        let constraints = column_constraints[index];
+        let mut column_style = style.clone();
+        column_style.text_align = constraints.align;
+        let (measured_height, glyph_advances, content_height) =
+            match resolve_line_widths_with_provider(
+                column,
+                &column_style,
+                constraints.max_height.max(0.0),
+                is_last_column,
+                None,
+                &mut *vertical_provider,
+            ) {
+                TextShapingOutcome::Ready(widths) => widths,
+                TextShapingOutcome::Deferred(error) => {
+                    return TextShapingOutcome::Deferred(error);
+                }
+                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
             };
-            (measured_height, glyph_advances, column_height, constraints)
-        })
-        .collect::<Vec<_>>();
+        let alignment_height = if column.text.is_empty() {
+            metrics.line_height
+        } else {
+            content_height
+        };
+        let natural_height = if column.text.is_empty() {
+            metrics.line_height
+        } else {
+            measured_height
+        };
+        measured_columns.push((
+            measured_height,
+            glyph_advances,
+            natural_height,
+            alignment_height,
+            constraints,
+        ));
+    }
     let column_heights = measured_columns
         .iter()
-        .map(|(_, _, column_height, _)| *column_height)
+        .map(|(_, _, natural_height, _, _)| *natural_height)
         .collect::<Vec<_>>();
     let column_layout = layout_vertical_rl_columns(
         frame.x,
@@ -176,26 +226,35 @@ pub(super) fn layout_vertical_text_with_provider(
         column_advance,
         &column_heights,
     );
+    let measured_width = column_layout.measured_width;
+    let measured_height = column_layout.measured_height;
 
     let mut resolved_lines = Vec::new();
-    let mut visible_column_main_extents = Vec::new();
-    for ((column, (measured_height, glyph_advances, column_height, constraints)), column_frame) in
-        columns
-            .iter()
-            .zip(measured_columns)
-            .zip(column_layout.frames)
+    for (
+        (column, (measured_height, glyph_advances, natural_height, alignment_height, constraints)),
+        column_frame,
+    ) in columns
+        .iter()
+        .zip(measured_columns)
+        .zip(column_layout.frames)
     {
+        let placement_frame = UiFrame::new(
+            column_frame.x,
+            frame.y + constraints.inset,
+            column_frame.width,
+            constraints.max_height,
+        );
         let column_frame = UiFrame::new(
             column_frame.x,
-            paragraph_layout::aligned_column_y(frame, column_height, constraints),
+            paragraph_layout::aligned_column_y(frame, alignment_height, constraints),
             column_frame.width,
-            column_frame.height,
+            natural_height,
         );
-        if column_frame.intersection(clip).is_some() {
-            visible_column_main_extents.push(measured_height);
+        if placement_frame.intersection(clip).is_some() {
             resolved_lines.push(UiResolvedTextLine {
                 text: column.text.clone(),
                 frame: column_frame,
+                placement_frame,
                 source_range: column.source_range,
                 visual_range: UiTextRange {
                     start: 0,
@@ -213,32 +272,26 @@ pub(super) fn layout_vertical_text_with_provider(
         }
     }
 
-    let visible_layout = layout_vertical_rl_columns(
-        frame.x,
-        frame.y,
-        frame.width,
-        column_width,
-        column_advance,
-        &visible_column_main_extents,
-    );
-    UiResolvedTextLayout {
-        text_align: style.text_align,
-        wrap: style.wrap,
-        direction,
-        writing_mode: style.text_writing_mode,
-        overflow: style.text_overflow,
-        font_size,
-        line_height: metrics.line_height,
-        measured_width: visible_layout.measured_width,
-        measured_height: visible_layout.measured_height,
-        source_range: UiTextRange {
-            start: 0,
-            end: text.len(),
+    TextShapingOutcome::Ready(LayoutWithoutArtifact::without_retained_fragments(
+        UiResolvedTextLayout {
+            text_align: style.text_align,
+            wrap: style.wrap,
+            direction,
+            writing_mode: style.text_writing_mode,
+            overflow: style.text_overflow,
+            font_size,
+            line_height: metrics.line_height,
+            measured_width,
+            measured_height,
+            source_range: UiTextRange {
+                start: 0,
+                end: text.len(),
+            },
+            lines: resolved_lines,
+            boxes: Vec::new(),
+            overflow_clipped,
+            editable: None,
+            rich_text_artifact: None,
         },
-        lines: resolved_lines,
-        boxes: Vec::new(),
-        overflow_clipped,
-        editable: None,
-        rich_text_artifact: None,
-    }
+    ))
 }

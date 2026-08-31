@@ -450,7 +450,7 @@ fn fixture_path(target_root: &Path, label: &str, sequence: u64) -> PathBuf {
 fn write_migratable_fixture(root: &Path) -> PathBuf {
     fs::write(
         root.join("zircon-project.toml"),
-        "name = \"Commandlet Fixture\"\nformat_version = 2\ndefault_scene = \"res://scenes/main.scene.toml\"\nasset_roots = [\"assets\"]\nlibrary_version = 1\n",
+        "name = \"Commandlet Fixture\"\nformat_version = 3\nproject_guid = \"40ee5b6d-7b23-48be-bddc-209359b7e8d2\"\ndefault_scene = \"res://scenes/main.scene.toml\"\nasset_roots = [\"assets\"]\nlibrary_version = 1\n",
     )
     .unwrap();
     let shader = root.join("assets/shaders/pbr.zshader");

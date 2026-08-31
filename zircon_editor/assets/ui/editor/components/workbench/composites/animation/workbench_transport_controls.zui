@@ -24,6 +24,7 @@ children = [{ node = "record" }, { node = "play" }, { node = "pause" }, { node =
 [nodes.record]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchTransportRecord"
+classes = ["workbench-icon-button", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/animation/playback-record.svg", label = "Record", text = "", button_variant = "text", button_color = "secondary", validation_level = "error", layout_icon_size = 20.0, layout_padding_left = "$editor.density.gap.xsmall", layout_padding_right = "$editor.density.gap.xsmall", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
 layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchExtension/AnimationTransportRecord", event = "Click", route = "workbench.extension.animation_transport.record.toggle" }]
@@ -31,13 +32,15 @@ events = [{ id = "WorkbenchExtension/AnimationTransportRecord", event = "Click",
 [nodes.play]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchTransportPlay"
-props = { icon = "zircon_editor_shell/animation/playback-play.svg", label = "Play", text = "", button_variant = "text", button_color = "secondary", selected = true, layout_icon_size = 20.0, layout_padding_left = "$editor.density.gap.xsmall", layout_padding_right = "$editor.density.gap.xsmall", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
+classes = ["workbench-icon-button", "workbench-quiet-action"]
+props = { icon = "zircon_editor_shell/animation/playback-play.svg", label = "Play", text = "", button_variant = "text", button_color = "secondary", layout_icon_size = 20.0, layout_padding_left = "$editor.density.gap.xsmall", layout_padding_right = "$editor.density.gap.xsmall", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
 layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchExtension/AnimationTransportPlay", event = "Click", route = "workbench.extension.animation_transport.play.invoke" }]
 
 [nodes.pause]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchTransportPause"
+classes = ["workbench-icon-button", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/animation/playback-pause.svg", label = "Pause", text = "", button_variant = "text", button_color = "secondary", layout_icon_size = 20.0, layout_padding_left = "$editor.density.gap.xsmall", layout_padding_right = "$editor.density.gap.xsmall", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
 layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchExtension/AnimationTransportPause", event = "Click", route = "workbench.extension.animation_transport.pause.invoke" }]
@@ -45,6 +48,7 @@ events = [{ id = "WorkbenchExtension/AnimationTransportPause", event = "Click", 
 [nodes.previous]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchTransportPrevious"
+classes = ["workbench-icon-button", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/animation/playback-previous.svg", label = "Previous", text = "", button_variant = "text", button_color = "secondary", layout_icon_size = 20.0, layout_padding_left = "$editor.density.gap.xsmall", layout_padding_right = "$editor.density.gap.xsmall", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
 layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchExtension/AnimationTransportPrevious", event = "Click", route = "workbench.extension.animation_transport.previous.invoke" }]
@@ -52,6 +56,7 @@ events = [{ id = "WorkbenchExtension/AnimationTransportPrevious", event = "Click
 [nodes.next]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchTransportNext"
+classes = ["workbench-icon-button", "workbench-quiet-action"]
 props = { icon = "zircon_editor_shell/animation/playback-next.svg", label = "Next", text = "", button_variant = "text", button_color = "secondary", layout_icon_size = 20.0, layout_padding_left = "$editor.density.gap.xsmall", layout_padding_right = "$editor.density.gap.xsmall", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
 layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchExtension/AnimationTransportNext", event = "Click", route = "workbench.extension.animation_transport.next.invoke" }]
@@ -59,7 +64,8 @@ events = [{ id = "WorkbenchExtension/AnimationTransportNext", event = "Click", r
 [nodes.loop]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchTransportLoop"
-props = { icon = "zircon_editor_shell/animation/playback-loop.svg", label = "Loop", text = "", button_variant = "text", button_color = "secondary", checked = true, layout_icon_size = 20.0, layout_padding_left = "$editor.density.gap.xsmall", layout_padding_right = "$editor.density.gap.xsmall", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
+classes = ["workbench-icon-button", "workbench-quiet-action"]
+props = { icon = "zircon_editor_shell/animation/playback-loop.svg", label = "Loop", text = "", button_variant = "text", button_color = "secondary", layout_icon_size = 20.0, layout_padding_left = "$editor.density.gap.xsmall", layout_padding_right = "$editor.density.gap.xsmall", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
 layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WorkbenchExtension/AnimationTransportLoop", event = "Click", route = "workbench.extension.animation_transport.loop.toggle" }]
 

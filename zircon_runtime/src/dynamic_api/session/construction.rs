@@ -1,22 +1,20 @@
-use std::sync::Arc;
-
-use crate::builtin::RuntimeModuleLoadReport;
 use crate::core::framework::render::{
     RenderProfileBundle, RenderSubmissionConfig, RENDER_PROFILE_CONFIG_KEY,
 };
+use crate::core::framework::time::{ProductTimePolicy, ProductTimePolicyError};
 use crate::core::manager::{input_manager_handle, resolve_manager_service};
 use crate::core::math::{UVec2, Vec2};
-use crate::core::{CoreHandle, CoreRuntime};
+use crate::core::{CoreHandle, CoreRuntime, FrameClockRebaseReceipt, TaskGraphScopeDescriptor};
 use crate::diagnostic_log::{write_log, write_log_lazy};
 use crate::operation::RuntimeOperationService;
-use crate::plugin::{
-    RuntimeExtensionCatalogReport, RuntimeExtensionRegistryError, RuntimePluginRegistrationReport,
-};
+use crate::plugin::{RuntimeExtensionRegistryError, RuntimePluginRegistrationReport};
 use crate::scene::components::NodeKind;
+use crate::text::font_collection_service_for_core;
 
 use super::super::camera_controller::RuntimeCameraController;
 use super::super::runtime_loop::RuntimeRenderBridge;
 use super::project::{project_opened_log, RuntimePreparedProject, RuntimeProjectConfig};
+use super::ui_extract_cache::RuntimeUiExtractCache;
 use super::{
     event_mirror, linked_plugins::LinkedRuntimePluginPlan, merge_builtin_script_scene_systems,
     RuntimeDynamicSession, RuntimeDynamicSessionError, RuntimeDynamicSessionProfile,
@@ -37,6 +35,38 @@ fn store_profile_submission_config(
             step: "store pipelined render profile",
             source,
         })
+}
+
+fn apply_profile_time_policy(
+    runtime: &CoreRuntime,
+    policy: ProductTimePolicy,
+) -> RuntimeDynamicSessionResult<()> {
+    let transaction = policy.time_policy_transaction().map_err(|source| {
+        RuntimeDynamicSessionError::ProductTimePolicy {
+            step: "prepare runtime product time policy",
+            source,
+        }
+    })?;
+    runtime.apply_time_policy(transaction).map_err(|source| {
+        RuntimeDynamicSessionError::ProductTimePolicy {
+            step: "apply runtime product time policy",
+            source: ProductTimePolicyError::TimePolicy(source),
+        }
+    })?;
+    Ok(())
+}
+
+fn activate_registered_modules(runtime: &CoreRuntime) -> RuntimeDynamicSessionResult<()> {
+    runtime
+        .activate_registered_modules()
+        .map_err(|source| RuntimeDynamicSessionError::CoreStep {
+            step: "activate runtime modules",
+            source,
+        })
+}
+
+fn rebase_frame_clock_after_session_activation(runtime: &CoreRuntime) -> FrameClockRebaseReceipt {
+    runtime.rebase_frame_clock()
 }
 
 pub(super) fn build(
@@ -70,72 +100,42 @@ pub(super) fn build(
         project_plugin_manifest,
         profile.target_mode(),
     )?;
-    let has_linked_navigation = linked_plugin_plan.contains_package("navigation");
-    let has_linked_animation = linked_plugin_plan.contains_package("animation");
-    let (mut modules, linked_extensions): (
-        RuntimeModuleLoadReport,
-        Arc<RuntimeExtensionCatalogReport>,
-    ) = linked_plugin_plan.into_parts();
-    let linked_modules = linked_extensions.registry.modules().to_vec();
-    let linked_extension_world_plan = linked_extensions
-        .registry
-        .world_runtime_extension_plan()
-        .map_err(
-            |source| RuntimeDynamicSessionError::RuntimeExtensionRegistryStep {
-                step: "prepare linked plugin extensions for runtime world",
-                source,
-            },
-        )?;
-    let linked_extension_world_plan = merge_builtin_script_scene_systems(
-        &linked_extensions.registry,
-        linked_extension_world_plan,
-    )?;
+    let (modules, runtime_plugin_catalog_snapshot, compiled_project_plugin_plan) =
+        linked_plugin_plan.into_parts();
+    let module_composition_identity = modules.identity().clone();
+    let linked_extensions = compiled_project_plugin_plan.runtime_extensions_handle();
+    let linked_extension_world_plan =
+        merge_builtin_script_scene_systems(&linked_extensions.registry)?;
+    let time_policy = profile.product_time_policy();
     let runtime = {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_core_new");
-        CoreRuntime::new()
+        CoreRuntime::try_new().map_err(|source| {
+            RuntimeDynamicSessionError::EngineTaskGraphInitialization { source }
+        })?
     };
+    let task_graph_scope = runtime
+        .create_task_graph_scope(TaskGraphScopeDescriptor::new("dynamic-session"))
+        .map_err(|source| RuntimeDynamicSessionError::TaskGraphScopeAdmission { source })?;
+    apply_profile_time_policy(&runtime, time_policy)?;
     write_log("runtime_session", "runtime_dynamic_session_core_created");
     let core = runtime.handle();
     store_profile_submission_config(&core, profile)?;
-    if !has_linked_navigation {
-        modules
-            .modules
-            .push(Arc::new(crate::navigation::BuiltinNavigationModule));
-    }
-    if !has_linked_animation {
-        modules
-            .modules
-            .push(Arc::new(crate::animation::AnimationModule));
-    }
-    let fatal_diagnostics = modules.fatal_messages();
-    if !fatal_diagnostics.is_empty() {
-        return Err(RuntimeDynamicSessionError::ModuleDiscovery {
-            message: fatal_diagnostics.join("; "),
-        });
-    }
     write_log_lazy("runtime_session", || {
         format!(
-            "runtime_dynamic_session_modules_discovered count={}",
-            modules.modules.len()
+            "runtime_dynamic_session_modules_discovered count={} composition_hash={}",
+            modules.modules().len(),
+            modules.identity().composition_hash_hex(),
         )
     });
     {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_register_modules");
-        for module in &modules.modules {
+        for descriptor in modules.module_descriptors() {
             runtime
-                .register_module(module.descriptor())
+                .register_module(descriptor.clone())
                 .map_err(|source| RuntimeDynamicSessionError::CoreStep {
                     step: "register runtime module",
                     source,
                 })?;
-        }
-        for module in &linked_modules {
-            runtime.register_module(module.clone()).map_err(|source| {
-                RuntimeDynamicSessionError::CoreStep {
-                    step: "register linked runtime module",
-                    source,
-                }
-            })?;
         }
     }
     write_log(
@@ -144,17 +144,18 @@ pub(super) fn build(
     );
     {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_activate_modules");
-        runtime.activate_registered_modules().map_err(|source| {
-            RuntimeDynamicSessionError::CoreStep {
-                step: "activate runtime modules",
-                source,
-            }
-        })?;
+        activate_registered_modules(&runtime)?;
     }
     write_log(
         "runtime_session",
         "runtime_dynamic_session_modules_activated",
     );
+    let font_collection = font_collection_service_for_core(&core).map_err(|source| {
+        RuntimeDynamicSessionError::CoreStep {
+            step: "resolve runtime text font services",
+            source,
+        }
+    })?;
     let input_manager = {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_resolve_input");
         let handle =
@@ -267,24 +268,27 @@ pub(super) fn build(
         )?;
     write_log("runtime_session", "runtime_dynamic_session_level_ready");
     let scene_asset_reload_queue = match &prepared_project {
-        Some(project) => Some(project.scene_asset_reload_queue(&core).map_err(|source| {
-            RuntimeDynamicSessionError::ProjectStep {
-                step: "create scene asset reload queue",
-                source,
-            }
-        })?),
+        Some(project) => Some(
+            project
+                .scene_asset_reload_queue(&core)
+                .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+                    step: "create scene asset reload queue",
+                    source,
+                })?
+                .with_task_graph_scope(task_graph_scope.clone()),
+        ),
         None => None,
     };
     if scene_asset_reload_queue.is_some() {
         write_log("runtime_session", "runtime_scene_asset_reload_queue_ready");
     }
     let runtime_ui = match &prepared_project {
-        Some(project) => project.load_runtime_ui_surfaces(&core).map_err(|source| {
-            RuntimeDynamicSessionError::ProjectStep {
+        Some(project) => project
+            .load_runtime_ui_surfaces(&core, font_collection.clone())
+            .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
                 step: "load declared project UI roots",
                 source,
-            }
-        })?,
+            })?,
         None => Default::default(),
     };
     let (orbit_target, selected_model_resource_id, selected_material_resource_id) = {
@@ -331,10 +335,16 @@ pub(super) fn build(
     let mut operations = RuntimeOperationService::new();
     crate::navigation::register_navigation_operation_handlers(&mut operations)
         .map_err(|source| RuntimeDynamicSessionError::RuntimeOperationRegistry { source })?;
+    let frame_clock_activation_rebase = rebase_frame_clock_after_session_activation(&runtime);
 
     Ok(RuntimeDynamicSession {
         runtime,
+        task_graph_scope,
         profile,
+        module_composition_identity,
+        time_policy,
+        frame_clock_activation_rebase,
+        last_render_frame_timing: Default::default(),
         diagnostic_log_schedule: profile.diagnostic_log_schedule(),
         render_bridge,
         level,
@@ -346,6 +356,7 @@ pub(super) fn build(
         selected_material_resource_id,
         camera_controller,
         extract_cache: Default::default(),
+        ui_extract_cache: RuntimeUiExtractCache::new_with_font_collection(font_collection),
         cursor: Vec2::ZERO,
         input_manager,
         input_diagnostics: Default::default(),
@@ -358,18 +369,25 @@ pub(super) fn build(
         next_plugin_event_subscription: 1,
         plugin_event_subscriptions: event_mirror::empty_plugin_event_subscriptions(),
         operations,
+        _runtime_plugin_catalog_snapshot: runtime_plugin_catalog_snapshot,
+        _compiled_project_plugin_plan: compiled_project_plugin_plan,
         project_watchers_shutdown: false,
         dynamic_process_log: None,
         runtime_ui,
+        viewport_picks: Default::default(),
+        editor_transform: Default::default(),
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        store_profile_submission_config, CoreRuntime, RenderProfileBundle, RenderSubmissionConfig,
-        RuntimeDynamicSessionProfile, RENDER_PROFILE_CONFIG_KEY,
+        activate_registered_modules, apply_profile_time_policy,
+        rebase_frame_clock_after_session_activation, store_profile_submission_config, CoreRuntime,
+        RenderProfileBundle, RenderSubmissionConfig, RuntimeDynamicSessionProfile,
+        RENDER_PROFILE_CONFIG_KEY,
     };
+    use crate::core::FrameClockFirstTickPolicy;
 
     #[test]
     fn pipelined_runtime_profile_stores_the_render_submission_config_before_activation() {
@@ -385,6 +403,32 @@ mod tests {
         assert_eq!(
             profile.submission_config(),
             RenderSubmissionConfig::pipelined()
+        );
+    }
+
+    #[test]
+    fn construction_commits_the_selected_product_time_policy_before_module_activation() {
+        let runtime = CoreRuntime::new();
+        let policy = RuntimeDynamicSessionProfile::Headless.product_time_policy();
+
+        apply_profile_time_policy(&runtime, policy)
+            .expect("built-in headless policy should apply to a new runtime");
+
+        assert_eq!(runtime.time_policy(), policy.time_policy());
+        assert_eq!(runtime.time_policy_generation(), 1);
+    }
+
+    #[test]
+    fn successful_session_activation_rebases_the_frame_clock() {
+        let runtime = CoreRuntime::new();
+        activate_registered_modules(&runtime).expect("empty module activation should succeed");
+
+        let receipt = rebase_frame_clock_after_session_activation(&runtime);
+
+        assert_eq!(receipt.generation(), 1);
+        assert_eq!(
+            receipt.first_tick_policy(),
+            FrameClockFirstTickPolicy::MeasureFromRebase
         );
     }
 

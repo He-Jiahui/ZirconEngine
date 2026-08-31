@@ -1,14 +1,13 @@
 use zircon_runtime::asset::ProjectAssetManager;
-use zircon_runtime::core::framework::animation::{
-    AnimationParameterMap, AnimationPoseOutput, AnimationPoseSource,
-};
+use zircon_runtime::core::framework::animation::{AnimationPoseOutput, AnimationPoseSource};
 use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::EntityId;
 
 use super::clip_sample::sample_pose_request;
 use super::graph_evaluate::{sample_compiled_graph_clip_event_samples, sample_compiled_graph_pose};
+use super::machine_instance_key::MachineInstanceKey;
 use super::pose_blend::blend_weighted_poses;
-use super::requests::{PendingClipEventSample, PendingPoseSample};
+use super::requests::{PendingClipEventSample, PendingPoseSample, StateMachineParameterProjection};
 use super::AnimationEvaluationPipeline;
 use crate::state_machine::CompiledGraphSamples;
 use crate::CompiledAnimationStateMachine;
@@ -17,7 +16,7 @@ pub(super) fn normalized_graph_time(
     pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,
     graph_samples: CompiledGraphSamples<'_>,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     skeleton_id: zircon_runtime::asset::AssetId,
     time_seconds: Real,
 ) -> Real {
@@ -29,7 +28,8 @@ pub(super) fn normalized_graph_time(
         let Some(graph_id) = asset_manager.resolve_asset_id(&graph_reference.locator) else {
             continue;
         };
-        let Some(graph) = pipeline.evaluate_graph(asset_manager, graph_id, skeleton_id, parameters)
+        let Some(graph) =
+            pipeline.evaluate_graph(asset_manager, graph_id, skeleton_id, parameters.values)
         else {
             continue;
         };
@@ -48,9 +48,10 @@ pub(super) fn normalized_graph_time(
 pub(super) fn normalized_state_time(
     pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,
+    instance: &MachineInstanceKey,
     state_machine: &CompiledAnimationStateMachine,
     state_name: &str,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     skeleton_id: zircon_runtime::asset::AssetId,
     time_seconds: Real,
 ) -> Real {
@@ -64,8 +65,8 @@ pub(super) fn normalized_state_time(
             .map(|duration| (time_seconds.max(0.0) / duration).clamp(0.0, 1.0))
             .unwrap_or(1.0);
     }
-    let samples = state_machine
-        .graph_samples_for_state(state_name, parameters)
+    let samples = pipeline
+        .graph_samples_for_state_with_sampling(instance, state_machine, state_name, parameters)
         .unwrap_or([None, None, None]);
     normalized_graph_time(
         pipeline,
@@ -129,9 +130,10 @@ pub(super) fn sample_state_clip_pose(
 pub(super) fn sample_state_events(
     pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,
+    instance: &MachineInstanceKey,
     state_machine: &CompiledAnimationStateMachine,
     state_name: &str,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     entity: EntityId,
     skeleton_id: zircon_runtime::asset::AssetId,
     from_time_seconds: Real,
@@ -147,8 +149,8 @@ pub(super) fn sample_state_events(
             to_time_seconds,
         );
     }
-    let samples = state_machine
-        .graph_samples_for_state(state_name, parameters)
+    let samples = pipeline
+        .graph_samples_for_state_with_sampling(instance, state_machine, state_name, parameters)
         .unwrap_or([None, None, None]);
     sample_state_graph_clip_events(
         pipeline,
@@ -165,9 +167,10 @@ pub(super) fn sample_state_events(
 pub(super) fn sample_state_pose(
     pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,
+    instance: &MachineInstanceKey,
     state_machine: &CompiledAnimationStateMachine,
     state_name: &str,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     entity: EntityId,
     skeleton_id: zircon_runtime::asset::AssetId,
     time_seconds: Real,
@@ -183,7 +186,12 @@ pub(super) fn sample_state_pose(
             time_seconds,
         );
     }
-    let samples = state_machine.graph_samples_for_state(state_name, parameters)?;
+    let samples = pipeline.graph_samples_for_state_with_sampling(
+        instance,
+        state_machine,
+        state_name,
+        parameters,
+    )?;
     sample_state_graph_pose(
         pipeline,
         asset_manager,
@@ -200,7 +208,7 @@ pub(super) fn sample_state_graph_clip_events(
     pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,
     graph_samples: CompiledGraphSamples<'_>,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     entity: EntityId,
     skeleton_id: zircon_runtime::asset::AssetId,
     from_time_seconds: Real,
@@ -215,7 +223,7 @@ pub(super) fn sample_state_graph_clip_events(
             continue;
         };
         let Some(evaluation) =
-            pipeline.evaluate_graph(asset_manager, graph_id, skeleton_id, parameters)
+            pipeline.evaluate_graph(asset_manager, graph_id, skeleton_id, parameters.values)
         else {
             continue;
         };
@@ -234,7 +242,7 @@ pub(super) fn sample_state_graph_pose(
     pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,
     graph_samples: CompiledGraphSamples<'_>,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     entity: EntityId,
     skeleton_id: zircon_runtime::asset::AssetId,
     time_seconds: Real,
@@ -247,7 +255,7 @@ pub(super) fn sample_state_graph_pose(
         }
         let graph_id = asset_manager.resolve_asset_id(&graph_reference.locator)?;
         let graph_evaluation =
-            pipeline.evaluate_graph(asset_manager, graph_id, skeleton_id, parameters)?;
+            pipeline.evaluate_graph(asset_manager, graph_id, skeleton_id, parameters.values)?;
         let (_, pose) = sample_compiled_graph_pose(
             pipeline.clip_evaluator_mut(),
             asset_manager,

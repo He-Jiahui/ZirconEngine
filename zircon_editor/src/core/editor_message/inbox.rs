@@ -240,7 +240,7 @@ impl EditorMessageInbox {
                 self.dropped = self.dropped.saturating_add(1);
                 return EditorMessageInboxEnqueue::Dropped;
             }
-            let Some(evictions) = self.latest_replacement_evictions_for(
+            let Some(eviction_count) = self.latest_replacement_eviction_count_for(
                 key,
                 previous_sequence,
                 delivery.sequence(),
@@ -251,19 +251,19 @@ impl EditorMessageInbox {
             };
 
             self.remove_latest(key, previous_sequence);
-            for (evicted_key, sequence) in &evictions {
-                self.remove_latest(*evicted_key, *sequence);
+            for _ in 0..eviction_count {
+                self.remove_oldest_latest();
             }
             self.dropped = self
                 .dropped
-                .saturating_add(u64::try_from(evictions.len()).unwrap_or(u64::MAX));
+                .saturating_add(u64::try_from(eviction_count).unwrap_or(u64::MAX));
             let sequence = delivery.sequence();
             self.insert_delivery(delivery);
             self.latest_by_key.insert(key, sequence);
             self.latest_order.insert(sequence, key);
             self.latest_depth = self.latest_depth.saturating_add(1);
             self.coalesced = self.coalesced.saturating_add(1);
-            return if evictions.is_empty() {
+            return if eviction_count == 0 {
                 EditorMessageInboxEnqueue::Coalesced
             } else {
                 EditorMessageInboxEnqueue::CoalescedAfterDrop
@@ -275,25 +275,25 @@ impl EditorMessageInbox {
             return EditorMessageInboxEnqueue::Dropped;
         }
 
-        let Some(evictions) =
-            self.latest_evictions_for(delivery.sequence(), delivery.retained_bytes())
+        let Some(eviction_count) =
+            self.latest_eviction_count_for(delivery.sequence(), delivery.retained_bytes())
         else {
             self.dropped = self.dropped.saturating_add(1);
             return EditorMessageInboxEnqueue::Dropped;
         };
-        for (evicted_key, sequence) in &evictions {
-            self.remove_latest(*evicted_key, *sequence);
+        for _ in 0..eviction_count {
+            self.remove_oldest_latest();
         }
         self.dropped = self
             .dropped
-            .saturating_add(u64::try_from(evictions.len()).unwrap_or(u64::MAX));
+            .saturating_add(u64::try_from(eviction_count).unwrap_or(u64::MAX));
 
         let sequence = delivery.sequence();
         self.insert_delivery(delivery);
         self.latest_by_key.insert(key, sequence);
         self.latest_order.insert(sequence, key);
         self.latest_depth = self.latest_depth.saturating_add(1);
-        if evictions.is_empty() {
+        if eviction_count == 0 {
             EditorMessageInboxEnqueue::Enqueued
         } else {
             EditorMessageInboxEnqueue::EnqueuedAfterDrop
@@ -305,45 +305,45 @@ impl EditorMessageInbox {
             self.dropped = self.dropped.saturating_add(1);
             return EditorMessageInboxEnqueue::Dropped;
         }
-        let Some(evictions) =
-            self.bounded_evictions_for(delivery.sequence(), delivery.retained_bytes())
+        let Some(eviction_count) =
+            self.bounded_eviction_count_for(delivery.sequence(), delivery.retained_bytes())
         else {
             self.dropped = self.dropped.saturating_add(1);
             return EditorMessageInboxEnqueue::Dropped;
         };
-        for sequence in &evictions {
-            self.remove_bounded(*sequence);
+        for _ in 0..eviction_count {
+            self.remove_oldest_bounded();
         }
         self.dropped = self
             .dropped
-            .saturating_add(u64::try_from(evictions.len()).unwrap_or(u64::MAX));
+            .saturating_add(u64::try_from(eviction_count).unwrap_or(u64::MAX));
 
         let sequence = delivery.sequence();
         self.insert_delivery(delivery);
         self.bounded_order.insert(sequence);
         self.bounded_depth = self.bounded_depth.saturating_add(1);
-        if evictions.is_empty() {
+        if eviction_count == 0 {
             EditorMessageInboxEnqueue::Enqueued
         } else {
             EditorMessageInboxEnqueue::EnqueuedAfterDrop
         }
     }
 
-    fn latest_evictions_for(
+    fn latest_eviction_count_for(
         &self,
         incoming_sequence: u64,
         incoming_bytes: usize,
-    ) -> Option<Vec<(EditorMessageCoalescingKey, u64)>> {
+    ) -> Option<usize> {
         let mut retained_bytes = self.retained_bytes;
         let mut latest_depth = self.latest_depth;
-        let mut evictions = Vec::new();
-        for (sequence, key) in &self.latest_order {
+        let mut eviction_count = 0;
+        for sequence in self.latest_order.keys() {
             if latest_depth < self.limits.latest_capacity
                 && retained_bytes
                     .checked_add(incoming_bytes)
                     .is_some_and(|bytes| bytes <= self.limits.retained_bytes_capacity)
             {
-                return Some(evictions);
+                return Some(eviction_count);
             }
             if *sequence >= incoming_sequence {
                 return None;
@@ -351,26 +351,26 @@ impl EditorMessageInbox {
             let delivery = self.deliveries.get(sequence)?;
             retained_bytes = retained_bytes.checked_sub(delivery.retained_bytes())?;
             latest_depth = latest_depth.checked_sub(1)?;
-            evictions.push((*key, *sequence));
+            eviction_count += 1;
         }
         (latest_depth < self.limits.latest_capacity
             && retained_bytes
                 .checked_add(incoming_bytes)
                 .is_some_and(|bytes| bytes <= self.limits.retained_bytes_capacity))
-        .then_some(evictions)
+        .then_some(eviction_count)
     }
 
-    fn latest_replacement_evictions_for(
+    fn latest_replacement_eviction_count_for(
         &self,
         replaced_key: EditorMessageCoalescingKey,
         replaced_sequence: u64,
         incoming_sequence: u64,
         incoming_bytes: usize,
-    ) -> Option<Vec<(EditorMessageCoalescingKey, u64)>> {
+    ) -> Option<usize> {
         let replaced = self.deliveries.get(&replaced_sequence)?;
         let mut retained_bytes = self.retained_bytes.checked_sub(replaced.retained_bytes())?;
         let mut latest_depth = self.latest_depth.checked_sub(1)?;
-        let mut evictions = Vec::new();
+        let mut eviction_count = 0;
         for (sequence, key) in &self.latest_order {
             if (*key, *sequence) == (replaced_key, replaced_sequence) {
                 continue;
@@ -380,7 +380,7 @@ impl EditorMessageInbox {
                     .checked_add(incoming_bytes)
                     .is_some_and(|bytes| bytes <= self.limits.retained_bytes_capacity)
             {
-                return Some(evictions);
+                return Some(eviction_count);
             }
             if *sequence >= incoming_sequence {
                 return None;
@@ -388,30 +388,30 @@ impl EditorMessageInbox {
             let delivery = self.deliveries.get(sequence)?;
             retained_bytes = retained_bytes.checked_sub(delivery.retained_bytes())?;
             latest_depth = latest_depth.checked_sub(1)?;
-            evictions.push((*key, *sequence));
+            eviction_count += 1;
         }
         (latest_depth < self.limits.latest_capacity
             && retained_bytes
                 .checked_add(incoming_bytes)
                 .is_some_and(|bytes| bytes <= self.limits.retained_bytes_capacity))
-        .then_some(evictions)
+        .then_some(eviction_count)
     }
 
-    fn bounded_evictions_for(
+    fn bounded_eviction_count_for(
         &self,
         incoming_sequence: u64,
         incoming_bytes: usize,
-    ) -> Option<Vec<u64>> {
+    ) -> Option<usize> {
         let mut retained_bytes = self.retained_bytes;
         let mut bounded_depth = self.bounded_depth;
-        let mut evictions = Vec::new();
+        let mut eviction_count = 0;
         for sequence in &self.bounded_order {
             if bounded_depth < self.limits.bounded_capacity
                 && retained_bytes
                     .checked_add(incoming_bytes)
                     .is_some_and(|bytes| bytes <= self.limits.retained_bytes_capacity)
             {
-                return Some(evictions);
+                return Some(eviction_count);
             }
             if *sequence >= incoming_sequence {
                 return None;
@@ -419,13 +419,13 @@ impl EditorMessageInbox {
             let delivery = self.deliveries.get(sequence)?;
             retained_bytes = retained_bytes.checked_sub(delivery.retained_bytes())?;
             bounded_depth = bounded_depth.checked_sub(1)?;
-            evictions.push(*sequence);
+            eviction_count += 1;
         }
         (bounded_depth < self.limits.bounded_capacity
             && retained_bytes
                 .checked_add(incoming_bytes)
                 .is_some_and(|bytes| bytes <= self.limits.retained_bytes_capacity))
-        .then_some(evictions)
+        .then_some(eviction_count)
     }
 
     fn insert_delivery(&mut self, delivery: EditorMessageDelivery) {
@@ -446,8 +446,27 @@ impl EditorMessageInbox {
         }
     }
 
-    fn remove_bounded(&mut self, sequence: u64) {
-        self.bounded_order.remove(&sequence);
+    fn remove_oldest_latest(&mut self) {
+        let (sequence, key) = self
+            .latest_order
+            .pop_first()
+            .expect("a planned latest eviction must have an indexed delivery");
+        self.latest_by_key.remove(&key);
+        let delivery = self
+            .deliveries
+            .remove(&sequence)
+            .expect("a planned latest eviction must have a retained delivery");
+        self.retained_bytes = self
+            .retained_bytes
+            .saturating_sub(delivery.retained_bytes());
+        self.latest_depth = self.latest_depth.saturating_sub(1);
+    }
+
+    fn remove_oldest_bounded(&mut self) {
+        let sequence = self
+            .bounded_order
+            .pop_first()
+            .expect("a planned bounded eviction must have an indexed delivery");
         if let Some(delivery) = self.deliveries.remove(&sequence) {
             self.retained_bytes = self
                 .retained_bytes
@@ -467,22 +486,34 @@ impl EditorMessageInbox {
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use crate::core::editor_message::{
         EditorMessage, EditorMessagePayload, EditorMessageProtocol, EditorTopic, FocusMessage,
         SelectionDomain,
     };
+    use crate::core::play::PlayInstanceId;
 
     use super::{EditorMessageDelivery, EditorMessageInbox, EditorMessageInboxLimits};
 
+    const PLANNER_ITERATIONS: usize = 50_000;
+    const SAMPLE_PAIRS: usize = 17;
+
     fn latest_delivery(sequence: u64, revision: u64) -> EditorMessageDelivery {
+        latest_delivery_in_domain(sequence, revision, SelectionDomain::edit_scene())
+    }
+
+    fn latest_delivery_in_domain(
+        sequence: u64,
+        revision: u64,
+        domain: SelectionDomain,
+    ) -> EditorMessageDelivery {
         EditorMessageDelivery::with_sequence(
             EditorMessageProtocol::Publish,
             EditorTopic::parse("editor.inbox.order").expect("valid inbox test topic"),
             EditorMessage::new(EditorMessagePayload::Focus(
-                FocusMessage::SelectionChanged {
-                    domain: SelectionDomain::Scene,
-                    revision,
-                },
+                FocusMessage::SelectionChanged { domain, revision },
             )),
             sequence,
         )
@@ -493,11 +524,63 @@ mod tests {
             EditorMessageProtocol::Publish,
             EditorTopic::parse("editor.inbox.order").expect("valid inbox test topic"),
             EditorMessage::custom(
-                "editor.inbox.order.v1",
+                crate::core::editor_message::EditorMessageSchemaId::editor("inbox.order.v1")
+                    .unwrap(),
                 serde_json::json!({ "revision": revision }),
             ),
             sequence,
         )
+    }
+
+    fn legacy_bounded_evictions_for(
+        inbox: &EditorMessageInbox,
+        incoming_sequence: u64,
+        incoming_bytes: usize,
+    ) -> Option<Vec<u64>> {
+        let mut retained_bytes = inbox.retained_bytes;
+        let mut bounded_depth = inbox.bounded_depth;
+        let mut evictions = Vec::new();
+        for sequence in &inbox.bounded_order {
+            if bounded_depth < inbox.limits.bounded_capacity
+                && retained_bytes
+                    .checked_add(incoming_bytes)
+                    .is_some_and(|bytes| bytes <= inbox.limits.retained_bytes_capacity)
+            {
+                return Some(evictions);
+            }
+            if *sequence >= incoming_sequence {
+                return None;
+            }
+            let delivery = inbox.deliveries.get(sequence)?;
+            retained_bytes = retained_bytes.checked_sub(delivery.retained_bytes())?;
+            bounded_depth = bounded_depth.checked_sub(1)?;
+            evictions.push(*sequence);
+        }
+        (bounded_depth < inbox.limits.bounded_capacity
+            && retained_bytes
+                .checked_add(incoming_bytes)
+                .is_some_and(|bytes| bytes <= inbox.limits.retained_bytes_capacity))
+        .then_some(evictions)
+    }
+
+    fn full_bounded_inbox(capacity: usize) -> EditorMessageInbox {
+        let mut inbox = EditorMessageInbox::new(EditorMessageInboxLimits::new(1, capacity, 1));
+        for sequence in 0..u64::try_from(capacity).unwrap() {
+            inbox.enqueue(bounded_delivery(sequence, sequence));
+        }
+        inbox
+    }
+
+    fn elapsed_micros(run: impl FnOnce()) -> u128 {
+        let started = Instant::now();
+        run();
+        started.elapsed().as_micros()
+    }
+
+    fn nearest_rank_p95(samples: &mut [u128]) -> u128 {
+        samples.sort_unstable();
+        let rank = (samples.len() * 95).div_ceil(100);
+        samples[rank.saturating_sub(1)]
     }
 
     #[test]
@@ -513,11 +596,49 @@ mod tests {
             deliveries[0].message(),
             &EditorMessage::new(EditorMessagePayload::Focus(
                 FocusMessage::SelectionChanged {
-                    domain: SelectionDomain::Scene,
+                    domain: SelectionDomain::edit_scene(),
                     revision: 2,
                 },
             ))
         );
+    }
+
+    #[test]
+    fn latest_selection_delivery_is_partitioned_by_play_instance() {
+        let mut inbox = EditorMessageInbox::new(EditorMessageInboxLimits::default());
+        let first = PlayInstanceId::for_test(1);
+        let second = PlayInstanceId::for_test(2);
+
+        inbox.enqueue(latest_delivery_in_domain(
+            1,
+            1,
+            SelectionDomain::edit_scene(),
+        ));
+        inbox.enqueue(latest_delivery_in_domain(
+            2,
+            1,
+            SelectionDomain::play_scene(first),
+        ));
+        inbox.enqueue(latest_delivery_in_domain(
+            3,
+            1,
+            SelectionDomain::play_scene(second),
+        ));
+        inbox.enqueue(latest_delivery_in_domain(
+            4,
+            2,
+            SelectionDomain::play_scene(first),
+        ));
+
+        assert_eq!(
+            inbox
+                .deliveries()
+                .iter()
+                .map(EditorMessageDelivery::sequence)
+                .collect::<Vec<_>>(),
+            [1, 3, 4]
+        );
+        assert_eq!(inbox.stats(4).coalesced(), 1);
     }
 
     #[test]
@@ -529,5 +650,123 @@ mod tests {
         let deliveries = inbox.deliveries();
         assert_eq!(deliveries.len(), 1);
         assert_eq!(deliveries[0].sequence(), 2);
+    }
+
+    #[test]
+    fn optimization_batch_20260826d_editor48_inbox_eviction_plans_store_only_counts() {
+        let source = include_str!("inbox.rs")
+            .split_once("#[cfg(test)]\nmod tests")
+            .unwrap()
+            .0;
+
+        assert!(source.contains("fn bounded_eviction_count_for("));
+        assert!(source.contains("fn latest_eviction_count_for("));
+        assert!(source.contains("fn latest_replacement_eviction_count_for("));
+        assert!(source.contains("bounded_order.pop_first()"));
+        assert!(source.contains("latest_order.pop_first()"));
+        assert!(!source.contains("let mut evictions = Vec::new()"));
+    }
+
+    #[test]
+    fn optimization_batch_20260826d_editor48_inbox_rolling_eviction_preserves_order_and_stats() {
+        let mut inbox = EditorMessageInbox::new(EditorMessageInboxLimits::new(1, 8, 1));
+        for sequence in 0..64 {
+            inbox.enqueue(bounded_delivery(sequence, sequence));
+        }
+
+        assert_eq!(
+            inbox
+                .deliveries()
+                .iter()
+                .map(EditorMessageDelivery::sequence)
+                .collect::<Vec<_>>(),
+            (56..64).collect::<Vec<_>>()
+        );
+        let stats = inbox.stats(64);
+        assert_eq!(stats.depth(), 8);
+        assert_eq!(stats.bounded_depth(), 8);
+        assert_eq!(stats.dropped(), 56);
+    }
+
+    #[test]
+    #[ignore = "release performance evidence for the managed validation coordinator"]
+    fn optimization_batch_20260826d_editor48_inbox_eviction_plan_performance_evidence() {
+        let inbox = full_bounded_inbox(1_024);
+        let incoming = bounded_delivery(1_024, 1_024);
+        let incoming_bytes = incoming.retained_bytes();
+
+        assert_eq!(
+            legacy_bounded_evictions_for(&inbox, incoming.sequence(), incoming_bytes)
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            inbox
+                .bounded_eviction_count_for(incoming.sequence(), incoming_bytes)
+                .unwrap(),
+            1
+        );
+
+        let measure_legacy = || {
+            elapsed_micros(|| {
+                for _ in 0..PLANNER_ITERATIONS {
+                    black_box(
+                        legacy_bounded_evictions_for(
+                            black_box(&inbox),
+                            incoming.sequence(),
+                            incoming_bytes,
+                        )
+                        .unwrap(),
+                    );
+                }
+            })
+        };
+        let measure_optimized = || {
+            elapsed_micros(|| {
+                for _ in 0..PLANNER_ITERATIONS {
+                    black_box(
+                        inbox
+                            .bounded_eviction_count_for(incoming.sequence(), incoming_bytes)
+                            .unwrap(),
+                    );
+                }
+            })
+        };
+        for _ in 0..3 {
+            black_box(measure_legacy());
+            black_box(measure_optimized());
+        }
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample_index in 0..SAMPLE_PAIRS {
+            if sample_index % 2 == 0 {
+                legacy_samples.push(measure_legacy());
+                optimized_samples.push(measure_optimized());
+            } else {
+                optimized_samples.push(measure_optimized());
+                legacy_samples.push(measure_legacy());
+            }
+        }
+
+        let legacy_p95 = nearest_rank_p95(&mut legacy_samples);
+        let optimized_p95 = nearest_rank_p95(&mut optimized_samples);
+        println!(
+            "EDITOR48_INBOX_EVICTION_COUNT_PLAN_BENCH_V1 sample_pairs={} planner_iterations={} retained_deliveries={} evictions_per_plan=1 legacy_temporary_plan_allocations={} optimized_temporary_plan_allocations=0 legacy_copied_sequences={} optimized_copied_sequences=0 legacy_p95_us={} optimized_p95_us={} legacy_samples_us={:?} optimized_samples_us={:?}",
+            SAMPLE_PAIRS,
+            PLANNER_ITERATIONS,
+            inbox.deliveries.len(),
+            PLANNER_ITERATIONS,
+            PLANNER_ITERATIONS,
+            legacy_p95,
+            optimized_p95,
+            legacy_samples,
+            optimized_samples,
+        );
+        assert!(
+            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(70),
+            "count-only eviction planning p95 must be at least 30% below allocating sequence plans: legacy={legacy_p95}us optimized={optimized_p95}us"
+        );
     }
 }

@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
+use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorTypographyTokens};
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use crate::ui::retained_host::{
@@ -11,8 +11,8 @@ use crate::ui::retained_host::{
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{
     build_view_template_node_projection, build_view_template_node_projection_with_patches,
-    compose_view_template_node_model, load_preview_image, ViewTemplateFrameData,
-    ViewTemplateNodeData, ViewTemplateNodePatch,
+    compose_view_template_node_model, ViewTemplateFrameData, ViewTemplateNodeData,
+    ViewTemplateNodePatch,
 };
 use crate::ui::workbench::page_tabs::{
     main_page_project_path_width, main_page_tab_preferred_width_from_title_width_with_close,
@@ -58,6 +58,7 @@ const PAGE_TAB_CLOSE_ICON: &str = "close-outline";
 const DOCK_TAB_PREFIX: &str = "DockTab";
 const DOCK_TAB_CLOSE_PREFIX: &str = "DockTabClose";
 const DOCK_TAB_CLOSE_ICON: &str = "close-outline";
+pub(super) const DOCK_TAB_OVERFLOW_CONTROL_ID: &str = "DockTabOverflow";
 const ACTIVITY_RAIL_BUTTON_PREFIX: &str = "ActivityRailButton";
 const ACTIVITY_RAIL_BUTTON_ICON_PREFIX: &str = "ActivityRailButtonIcon";
 const ACTIVITY_RAIL_STENCIL_COUNT: usize = 2;
@@ -76,6 +77,10 @@ const MENU_TOP_BAR_HEIGHT_PX: f32 = 24.0;
 const PAGE_BAR_HEIGHT_PX: f32 = 32.0;
 const DOCK_HEADER_HEIGHT_PX: f32 = 31.0;
 const CHROME_TAB_HEIGHT_INSET_PX: f32 = 4.0;
+
+fn fallback_chrome_control_radius() -> f32 {
+    EditorControlTokens::workbench_dense().small_radius
+}
 
 #[derive(Clone)]
 struct ChromeTabCompositionGeneration {
@@ -192,7 +197,9 @@ pub(super) fn page_chrome_nodes(
         PAGE_TAB_PREFIX,
         tabs,
     );
-    if tab_chrome_needs_fallback(&nodes, PAGE_BAR_CONTROL_ID, PAGE_TAB_PREFIX, tabs) {
+    if tab_chrome_needs_fallback(&nodes, PAGE_BAR_CONTROL_ID, PAGE_TAB_PREFIX, tabs)
+        || !page_chrome_stencil_matches_dynamic_layout(&nodes, tabs, width)
+    {
         return fallback_page_chrome_nodes(tabs, project_path, width, height);
     }
     nodes
@@ -217,8 +224,9 @@ pub(super) fn page_overflow_hidden_tab_indices(
     nodes: &ModelRc<ViewTemplateNodeData>,
     tabs: &ModelRc<TabData>,
 ) -> Vec<usize> {
+    let frame_index = ControlFrameIndex::from_nodes(nodes);
     (0..tabs.row_count())
-        .filter(|row| !has_control_frame(nodes, &format!("{PAGE_TAB_PREFIX}{row}")))
+        .filter(|row| !frame_index.has_positive_width(&format!("{PAGE_TAB_PREFIX}{row}")))
         .collect()
 }
 
@@ -351,6 +359,10 @@ pub(super) fn dock_tab_frames(
     dock_header::dock_tab_frames(nodes, tabs)
 }
 
+pub(super) fn dock_overflow_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {
+    dock_header::dock_overflow_frame(nodes)
+}
+
 pub(super) fn status_bar_nodes(
     status_primary: &SharedString,
     status_secondary: &SharedString,
@@ -400,7 +412,7 @@ fn tab_template_nodes(
                 node_survives_filters(node, &filters) && node_survives_tab_close_filter(node, tabs)
             });
             for node in nodes {
-                *node = tab_node_with_state(node.clone(), slot_prefix, tabs);
+                *node = tab_node_with_state(std::mem::take(node), slot_prefix, tabs);
             }
         },
     )
@@ -418,7 +430,7 @@ fn fallback_page_chrome_nodes(
     let has_overflow = visible_tab_indices.len() < tabs.row_count();
     let close_count = visible_tab_indices
         .iter()
-        .filter(|row| tabs.row_data(**row).is_some_and(|tab| tab.closeable))
+        .filter(|row| tabs.get(**row).is_some_and(|tab| tab.closeable))
         .count();
     let mut nodes =
         Vec::with_capacity(visible_tab_indices.len() + close_count + usize::from(has_overflow) + 2);
@@ -446,16 +458,16 @@ fn fallback_page_chrome_nodes(
         max_tab_right
     };
     for row in visible_tab_indices.iter().copied() {
-        let Some(tab) = tabs.row_data(row) else {
+        let Some(tab) = tabs.get(row) else {
             continue;
         };
-        let tab_width = page_tab_width(&tab);
+        let tab_width = page_tab_width(tab);
         let draw_width = tab_width
             .min((tab_right_limit - x).max(MAIN_PAGE_TAB_MIN_WIDTH))
             .clamp(MAIN_PAGE_TAB_MIN_WIDTH, MAIN_PAGE_TAB_MAX_WIDTH);
         let text_tone = if tab.active { "default" } else { "subtle" };
         let font_weight = if tab.active { 600 } else { 400 };
-        let icon_name = chrome_tab_icon_name(&tab);
+        let icon_name = chrome_tab_icon_name(tab);
         let tab_frame = ViewTemplateFrameData {
             x,
             y: page_bar_y + CHROME_TAB_HEIGHT_INSET_PX,
@@ -470,8 +482,9 @@ fn fallback_page_chrome_nodes(
             text_tone: text_tone.into(),
             font_size: MAIN_PAGE_TAB_TITLE_FONT_SIZE,
             font_weight,
-            surface_variant: if tab.active { "inset" } else { "" }.into(),
+            surface_variant: if tab.active { "inset" } else { "transparent" }.into(),
             button_variant: "ghost".into(),
+            corner_radius: fallback_chrome_control_radius(),
             selected: tab.active,
             focused: false,
             frame: tab_frame.clone(),
@@ -497,7 +510,9 @@ fn fallback_page_chrome_nodes(
             text_tone: "subtle".into(),
             font_size: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
             font_weight: 600,
+            surface_variant: "transparent".into(),
             button_variant: "ghost".into(),
+            corner_radius: fallback_chrome_control_radius(),
             frame: ViewTemplateFrameData {
                 x: x.min(
                     (max_tab_right - MAIN_PAGE_TAB_OVERFLOW_WIDTH)
@@ -554,7 +569,7 @@ fn visible_page_tab_indices(tabs: &ModelRc<TabData>, width: f32) -> Vec<usize> {
         if visible.len() >= visible_cap {
             break;
         }
-        let Some(tab) = tabs.row_data(row) else {
+        let Some(tab) = tabs.get(row) else {
             continue;
         };
         let remaining_after_row = tab_count.saturating_sub(row + 1);
@@ -563,7 +578,7 @@ fn visible_page_tab_indices(tabs: &ModelRc<TabData>, width: f32) -> Vec<usize> {
         } else {
             0.0
         };
-        let tab_width = page_tab_width(&tab);
+        let tab_width = page_tab_width(tab);
         if !visible.is_empty() && x + tab_width + overflow_reserve > max_tab_right {
             break;
         }
@@ -591,7 +606,23 @@ fn page_tab_width(tab: &TabData) -> f32 {
 }
 
 fn active_tab_row(tabs: &ModelRc<TabData>) -> Option<usize> {
-    (0..tabs.row_count()).find(|row| tabs.row_data(*row).is_some_and(|tab| tab.active))
+    tabs.iter().position(|tab| tab.active)
+}
+
+fn page_chrome_stencil_matches_dynamic_layout(
+    nodes: &ModelRc<ViewTemplateNodeData>,
+    tabs: &ModelRc<TabData>,
+    width: f32,
+) -> bool {
+    let expected_visible_tabs = visible_page_tab_indices(tabs, width);
+    let frame_index = ControlFrameIndex::from_nodes(nodes);
+    let projected_visible_tabs = (0..tabs.row_count())
+        .filter(|row| frame_index.has_positive_width(&format!("{PAGE_TAB_PREFIX}{row}")))
+        .collect::<Vec<_>>();
+    let expected_overflow = expected_visible_tabs.len() < tabs.row_count();
+
+    projected_visible_tabs == expected_visible_tabs
+        && frame_index.has_positive_width("PageTabOverflow") == expected_overflow
 }
 
 fn fallback_dock_header_nodes(
@@ -609,8 +640,26 @@ fn tab_chrome_needs_fallback(
     tab_prefix: &str,
     tabs: &ModelRc<TabData>,
 ) -> bool {
-    control_frame(nodes, bar_control_id).height <= 0.0
-        || (tabs.row_count() > 0 && control_frame(nodes, &format!("{tab_prefix}0")).width <= 0.0)
+    let frame_index = ControlFrameIndex::from_nodes(nodes);
+    let bar_frame = frame_index.frame(bar_control_id);
+    if !valid_frame_rect(&bar_frame) {
+        return true;
+    }
+
+    (0..tabs.row_count()).any(|row| {
+        let control_id = format!("{tab_prefix}{row}");
+        !frame_index.has_positive_width(&control_id)
+            || !frame_within_horizontal_bounds(&frame_index.frame(&control_id), &bar_frame)
+    })
+}
+
+fn frame_within_horizontal_bounds(frame: &FrameRect, bounds: &FrameRect) -> bool {
+    const EDGE_EPSILON: f32 = 0.01;
+
+    valid_frame_rect(frame)
+        && valid_frame_rect(bounds)
+        && frame.x + EDGE_EPSILON >= bounds.x
+        && frame.x + frame.width <= bounds.x + bounds.width + EDGE_EPSILON
 }
 
 #[cfg(test)]
@@ -634,10 +683,8 @@ fn raw_template_nodes(
 
 fn tab_text_overrides(prefix: &str, tabs: &ModelRc<TabData>) -> BTreeMap<String, String> {
     let mut overrides = BTreeMap::new();
-    for row in 0..tabs.row_count() {
-        if let Some(tab) = tabs.row_data(row) {
-            overrides.insert(format!("{prefix}{row}"), tab.title.to_string());
-        }
+    for (row, tab) in tabs.iter().enumerate() {
+        overrides.insert(format!("{prefix}{row}"), tab.title.to_string());
     }
     overrides
 }
@@ -655,14 +702,18 @@ fn tab_node_with_state(
     tabs: &ModelRc<TabData>,
 ) -> ViewTemplateNodeData {
     if let Some(row) = slot_index(node.control_id.as_str(), prefix) {
-        if let Some(tab) = tabs.row_data(row) {
-            let icon_name = chrome_tab_icon_name(&tab);
+        if let Some(tab) = tabs.get(row) {
+            let icon_name = chrome_tab_icon_name(tab);
             apply_template_icon(&mut node, &icon_name);
             node.selected = tab.active;
-        }
-        if tabs.row_data(row).is_some_and(|tab| tab.active) {
-            node.text_tone = "default".into();
-            node.font_weight = 600;
+            node.surface_variant = if tab.active { "inset" } else { "transparent" }.into();
+            if tab.active {
+                node.text_tone = "default".into();
+                node.font_weight = 600;
+            } else {
+                node.text_tone = "subtle".into();
+                node.font_weight = 400;
+            }
         } else {
             node.text_tone = "subtle".into();
             node.font_weight = 400;
@@ -688,9 +739,8 @@ fn tab_node_with_state(
 fn apply_template_icon(node: &mut ViewTemplateNodeData, icon_name: &str) {
     node.icon_name = icon_name.into();
     node.media_source = format!("icons/ionicons/{icon_name}.svg").into();
-    node.preview_image = load_preview_image("", icon_name);
-    let preview_size = node.preview_image.size();
-    node.has_preview_image = preview_size.width > 0 && preview_size.height > 0;
+    node.preview_image = Default::default();
+    node.has_preview_image = true;
 }
 
 fn node_survives_filters(node: &ViewTemplateNodeData, filters: &[SlotFilter]) -> bool {
@@ -708,7 +758,7 @@ fn node_survives_tab_close_filter(node: &ViewTemplateNodeData, tabs: &ModelRc<Ta
     let Some(row) = row else {
         return true;
     };
-    tabs.row_data(row).is_some_and(|tab| tab.closeable)
+    tabs.get(row).is_some_and(|tab| tab.closeable)
 }
 
 fn slot_index(control_id: &str, prefix: &str) -> Option<usize> {
@@ -746,12 +796,13 @@ fn control_frames(
     prefix: &str,
     count: usize,
 ) -> ModelRc<HostChromeControlFrameData> {
+    let frame_index = ControlFrameIndex::from_nodes(nodes);
     model_rc(
         (0..count)
             .map(|row| {
                 let control_id = format!("{prefix}{row}");
                 HostChromeControlFrameData {
-                    frame: control_frame(nodes, &control_id),
+                    frame: frame_index.frame(&control_id),
                     control_id: control_id.into(),
                 }
             })
@@ -765,57 +816,97 @@ fn tab_frames(
     close_prefix: Option<&str>,
     tabs: &ModelRc<TabData>,
 ) -> ModelRc<HostChromeTabData> {
+    let frame_index = ControlFrameIndex::from_nodes(nodes);
     model_rc(
-        (0..tabs.row_count())
-            .filter_map(|row| {
-                let tab = tabs.row_data(row)?;
+        tabs.iter()
+            .enumerate()
+            .map(|(row, tab)| {
                 let control_id = format!("{prefix}{row}");
                 let close_frame = close_prefix
-                    .map(|prefix| control_frame(nodes, &format!("{prefix}{row}")))
+                    .map(|prefix| frame_index.frame(&format!("{prefix}{row}")))
                     .unwrap_or_default();
-                Some(HostChromeTabData {
-                    frame: control_frame(nodes, &control_id),
+                HostChromeTabData {
+                    frame: frame_index.frame(&control_id),
                     close_frame,
                     control_id: control_id.into(),
-                    tab,
-                })
+                    tab: tab.clone(),
+                }
             })
             .collect(),
     )
 }
 
 fn control_frame(nodes: &ModelRc<ViewTemplateNodeData>, control_id: &str) -> FrameRect {
-    (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
+    nodes
+        .iter()
         .filter(|node| node.control_id.as_str() == control_id)
-        .map(|node| frame_rect(&node))
-        .filter(|frame| {
-            frame.x.is_finite()
-                && frame.y.is_finite()
-                && frame.width.is_finite()
-                && frame.height.is_finite()
-                && frame.width > 0.0
-                && frame.height > 0.0
-        })
-        .reduce(|merged, frame| {
-            let left = merged.x.min(frame.x);
-            let top = merged.y.min(frame.y);
-            let right = (merged.x + merged.width).max(frame.x + frame.width);
-            let bottom = (merged.y + merged.height).max(frame.y + frame.height);
-            FrameRect {
-                x: left,
-                y: top,
-                width: right - left,
-                height: bottom - top,
-            }
+        .map(frame_rect)
+        .filter(valid_frame_rect)
+        .reduce(|mut merged, frame| {
+            union_frame_rect(&mut merged, &frame);
+            merged
         })
         .unwrap_or_default()
 }
 
-fn has_control_frame(nodes: &ModelRc<ViewTemplateNodeData>, control_id: &str) -> bool {
-    (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
-        .any(|node| node.control_id.as_str() == control_id && node.frame.width > 0.0)
+struct ControlFrameIndex<'a> {
+    frames: BTreeMap<&'a str, FrameRect>,
+    positive_width_controls: BTreeSet<&'a str>,
+}
+
+impl<'a> ControlFrameIndex<'a> {
+    fn from_nodes(nodes: &'a ModelRc<ViewTemplateNodeData>) -> Self {
+        let mut index = Self {
+            frames: BTreeMap::new(),
+            positive_width_controls: BTreeSet::new(),
+        };
+        for node in nodes.iter() {
+            let control_id = node.control_id.as_str();
+            if node.frame.width > 0.0 {
+                index.positive_width_controls.insert(control_id);
+            }
+            let frame = frame_rect(node);
+            if !valid_frame_rect(&frame) {
+                continue;
+            }
+            index
+                .frames
+                .entry(control_id)
+                .and_modify(|merged| union_frame_rect(merged, &frame))
+                .or_insert(frame);
+        }
+        index
+    }
+
+    fn frame(&self, control_id: &str) -> FrameRect {
+        self.frames.get(control_id).cloned().unwrap_or_default()
+    }
+
+    fn has_positive_width(&self, control_id: &str) -> bool {
+        self.positive_width_controls.contains(control_id)
+    }
+}
+
+fn valid_frame_rect(frame: &FrameRect) -> bool {
+    frame.x.is_finite()
+        && frame.y.is_finite()
+        && frame.width.is_finite()
+        && frame.height.is_finite()
+        && frame.width > 0.0
+        && frame.height > 0.0
+}
+
+fn union_frame_rect(merged: &mut FrameRect, frame: &FrameRect) {
+    let left = merged.x.min(frame.x);
+    let top = merged.y.min(frame.y);
+    let right = (merged.x + merged.width).max(frame.x + frame.width);
+    let bottom = (merged.y + merged.height).max(frame.y + frame.height);
+    *merged = FrameRect {
+        x: left,
+        y: top,
+        width: right - left,
+        height: bottom - top,
+    };
 }
 
 fn frame_rect(node: &ViewTemplateNodeData) -> FrameRect {

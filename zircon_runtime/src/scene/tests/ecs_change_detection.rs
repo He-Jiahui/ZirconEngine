@@ -2,9 +2,9 @@ use crate::core::diagnostics::{DiagnosticStore, DiagnosticStoreSnapshot};
 use crate::scene::components::Name;
 use crate::scene::ecs::{
     ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, Changed, Component, ComponentTicks,
-    Mut, QueryState, RemovedComponentsParam, ResMutParam, ResParam, Resource, StorageType,
-    SystemState, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC,
-    ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, Mut, QueryState, RemovedComponentsParam,
+    ResMutParam, ResParam, Resource, StorageType, SystemState,
 };
 use crate::scene::{EntityId, World};
 
@@ -53,7 +53,7 @@ fn changed_filter_includes_newly_added_components() {
     type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
     let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
 
-    let changed = system.run(&mut world, |query| {
+    let changed = system.run(&mut world, |mut query| {
         query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
     });
 
@@ -181,25 +181,25 @@ fn mut_query_marks_table_components_only_after_mutable_access() {
     let mut mutable = SystemState::<MutableHealth>::new(&mut world).unwrap();
 
     assert_eq!(
-        changed.run(&mut world, |query| {
+        changed.run(&mut world, |mut query| {
             query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
         }),
         vec![entity]
     );
-    assert!(changed.run(&mut world, |query| query.iter().next().is_none()));
+    assert!(changed.run(&mut world, |mut query| query.iter().next().is_none()));
 
     mutable.run(&mut world, |mut query| {
         let health = query.get_mut(entity).unwrap();
         assert_eq!(health.0, 10);
     });
-    assert!(changed.run(&mut world, |query| query.iter().next().is_none()));
+    assert!(changed.run(&mut world, |mut query| query.iter().next().is_none()));
 
     mutable.run(&mut world, |mut query| {
         let mut health = query.get_mut(entity).unwrap();
         health.0 += 1;
     });
     assert_eq!(
-        changed.run(&mut world, |query| {
+        changed.run(&mut world, |mut query| {
             query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
         }),
         vec![entity]
@@ -273,7 +273,7 @@ fn cached_mut_query_fetch_does_not_mark_changed_until_the_wrapper_is_mutated() {
     let mut cached_mutable = CachedMutableHealth::new(&mut world);
 
     assert_eq!(
-        changed.run(&mut world, |query| {
+        changed.run(&mut world, |mut query| {
             query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
         }),
         vec![entity]
@@ -285,14 +285,14 @@ fn cached_mut_query_fetch_does_not_mark_changed_until_the_wrapper_is_mutated() {
         assert_eq!(health.0, 10);
     }
     assert_eq!(cached_mutable.cache_rebuilds(), 1);
-    assert!(changed.run(&mut world, |query| query.iter().next().is_none()));
+    assert!(changed.run(&mut world, |mut query| query.iter().next().is_none()));
 
     {
         let mut health = cached_mutable.get_mut(&mut world, entity).unwrap();
         health.0 += 1;
     }
     assert_eq!(
-        changed.run(&mut world, |query| {
+        changed.run(&mut world, |mut query| {
             query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
         }),
         vec![entity]
@@ -404,9 +404,11 @@ fn removed_components_tracks_recursive_despawn() {
 
     type RemovedHealth = RemovedComponentsParam<Health>;
     let mut system = SystemState::<RemovedHealth>::new(&mut world).unwrap();
-    assert!(system
-        .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
-        .is_empty());
+    assert!(
+        system
+            .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
+            .is_empty()
+    );
 
     let _batch = world.remove_entity_recursive(parent).unwrap();
 
@@ -423,9 +425,11 @@ fn component_removal_emits_removal_record_in_same_frame() {
 
     type RemovedHealth = RemovedComponentsParam<Health>;
     let mut system = SystemState::<RemovedHealth>::new(&mut world).unwrap();
-    assert!(system
-        .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
-        .is_empty());
+    assert!(
+        system
+            .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
+            .is_empty()
+    );
 
     assert_eq!(world.remove::<Health>(entity).unwrap(), Some(Health(5)));
 
@@ -434,22 +438,22 @@ fn component_removal_emits_removal_record_in_same_frame() {
 }
 
 #[test]
-fn removed_component_reader_sizes_unread_entity_results() {
+fn removed_component_reader_uses_bounded_queue_and_incremental_cursor() {
     let removal_source = include_str!("../ecs/removal.rs");
 
     assert!(removal_source.contains("let mut names = Vec::with_capacity(self.type_names.len());"));
     assert!(removal_source.contains("for name in self.type_names.values()"));
     assert!(removal_source.contains("names.push(name.as_str());"));
     assert!(!removal_source.contains("map(String::as_str)"));
-    assert!(removal_source.contains("let Some(events) = self.events.get(&TypeId::of::<T>()) else"));
-    assert!(removal_source.contains("return &[];"));
-    assert!(removal_source.contains("events.as_slice()"));
-    assert!(!removal_source.contains(".map(Vec::as_slice)"));
-    assert!(removal_source.contains("let unread = &all[start..];"));
-    assert!(removal_source.contains("Vec::with_capacity(unread.len())"));
-    assert!(removal_source.contains("for event in unread"));
-    assert!(removal_source.contains("entities.push(event.entity());"));
-    assert!(!removal_source.contains("all[start..].iter().map(|event| event.entity()).collect()"));
+    assert!(removal_source.contains("entries: VecDeque<RemovedComponentEntry>"));
+    assert!(removal_source.contains("pub struct RemovedComponentRetention"));
+    assert!(removal_source.contains("pub struct RemovedComponentWriteReceipt"));
+    assert!(removal_source.contains("pub struct RemovedComponentReadIter"));
+    assert!(
+        removal_source.contains("self.reader.next_sequence = entry.sequence.saturating_add(1);")
+    );
+    assert!(!removal_source.contains("Vec<RemovedComponentEvent>"));
+    assert!(!removal_source.contains("-> Vec<EntityId>"));
 }
 
 #[test]
@@ -516,8 +520,10 @@ fn resource_store_hot_paths_use_direct_branches() {
     assert!(!get_source.contains(".and_then(|stored| stored.value.downcast_ref::<T>())"));
     assert!(!get_mut_source.contains(".and_then(|stored| stored.value.downcast_mut::<T>())"));
     assert!(!ticked_get_mut_source.contains("set_changed"));
-    assert!(!ticked_get_mut_source
-        .contains("stored.value.downcast_mut::<T>().map(|value| (value, ticks))"));
+    assert!(
+        !ticked_get_mut_source
+            .contains("stored.value.downcast_mut::<T>().map(|value| (value, ticks))")
+    );
     assert!(!remove_source.contains(".and_then(|stored| stored.value.downcast::<T>().ok())"));
     assert!(!remove_source.contains(".map(|boxed| *boxed)"));
     assert!(!ticks_source.contains(".map(|stored| stored.ticks)"));

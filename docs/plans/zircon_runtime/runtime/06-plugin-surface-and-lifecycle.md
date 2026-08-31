@@ -4,10 +4,21 @@ related_code:
   - zircon_runtime/src/plugin/native.rs
   - zircon_runtime/src/plugin/native_plugin_loader
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access/authority.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access/error.rs
+  - tools/tests/test_runtime_native_system_access_owner_structure.py
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - zircon_runtime/src/plugin/runtime_plugin
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/plugin/runtime_profile
+  - zircon_runtime/src/plugin/package_manifest/constructors.rs
+  - zircon_runtime/src/plugin/package_manifest/constructors/module.rs
+  - zircon_runtime/src/plugin/package_manifest/constructors/package.rs
+  - tools/tests/test_runtime_plugin_manifest_constructor_owner_structure.py
+  - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
+  - zircon_runtime/src/plugin/extension_registry/register/system_registration/tests.rs
+  - tools/tests/test_runtime_plugin_system_registration_test_structure.py
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
@@ -27,11 +38,14 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_surface_lifecycle_markdown.py
   - dev/Fyrox/fyrox-impl/src/plugin/mod.rs
   - dev/Fyrox/fyrox-impl/src/plugin/dylib.rs
+  - dev/UnrealEngine/Engine/Source/Runtime/Projects/Public/Interfaces/IPluginManager.h
+  - dev/UnrealEngine/Engine/Source/Runtime/Projects/Private/PluginManager.cpp
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
+  - docs/plans/optimize/zircon_runtime/11/2026-08-27-native-plugin-discovery-authority-research.md
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
 status: in_progress
-last_refined: 2026-07-31
+last_refined: 2026-08-27
 ---
 
 # 06 插件公开面与生命周期收束
@@ -43,14 +57,17 @@ last_refined: 2026-07-31
 - **2026-07-31 second-review ABI/public-surface correction（authoritative）**：上段 2026-07-31 简化成“entry/descriptor V3、behavior/host V4”的二分描述已被本条取代。精确矩阵是 descriptor/entry ABI V3、随 entry descriptor 交给插件的 `NativePluginHostFunctionTableV3` 仍为 first-party 当前合同、behavior callback table V4、runtime-interface host API 当前面为 `ZrHostApiV4`；`NativeHostApiV3RegistrationScope` 是待删除的旧 adapter public surface。V4 registration policy/scope 归独立 `native-host-api-adapter-public-debt` owner，不再误归 bridge-method。当前静态事实为 expected_source_file_count = 17、native root 0/0、native namespace 74/74、分类组 6/6、未分类 0/0、App 8/8、`risks = []`；root hard-cut scanner 已覆盖 direct loader、`native::{...}`、`self::native::*` 与 crate-qualified native re-export 语法。
 - **Native public-surface renderer split（2026-06-21）**：`native_plugin_public_surface_markdown.py` 已承接 `render_native_plugin_public_surface_markdown(...)`；`native_plugin_public_surface.py` 保持 400 行 native public-surface scan / symbol classification / M4 gate owner，Markdown owner 为 63 行。Direct probe 当前报告 root re-export 0、native namespace re-export 64、symbol decision groups 5、migration debt 0、unclassified root/namespace symbol counts 0/0、root/native public re-export locations 0/1、M4 gate `classified-and-clear`、risks 0、rendered output 12 lines。该切片不关闭 Runtime 06；script VM / native plugin / app / plugin workspace Cargo-native gates 仍 pending。
 - **Native hot-update/replay public-surface audit sync（2026-07-01）**：`NativePluginRuntimeDeltaHotUpdateReport`、`NativePluginRuntimeDeltaHotUpdateRequest`、`NativePluginRuntimeRegistrationReplayReport` 与 `NativePluginRuntimeRegistrationSystemReplay` 已归入既有 native live-host runtime public-surface group，未新增 `zircon_runtime::plugin` root re-export、compat module 或旧路径 shim。当前审计锚点：`root_reexport_count = 0`、`native_namespace_reexport_count = 64`、native root re-export 0/0、native namespace re-export 64/64、M4 gate `classified-and-clear`、debt groups 0/0、native namespace symbol groups 5/5、unclassified native root symbols 0/0、unclassified native namespace symbols 0/0、root public native re-export locations 0/0、public native namespace re-export locations 1/1、native loader test files 4/4、native test namespace import files 3/3、native test root import leaks 0/0、`last_refined = 2026-07-01`、`mirror_docs_guard_present = true`、`risks = []`；验证锚为 standalone plugin_surface_lifecycle 3/3，Cargo/native validation lane 仍 deferred。
-- **Native host FFI panic guard（2026-06-22）**：承接 `engine-code-review-findings-2026-06.md` F1 与 `engine-code-structure-convention.md` E7，新增 `native_plugin_loader/ffi_panic_guard.rs`，`host_api_adapter.rs` 的 9 个 `ZrHostApiV3` 回调和 `host_callbacks.rs` 的 4 个 private native host callbacks 均在 `extern "C"` 边界内捕获 panic 并映射为状态码。静态 guard 扫描确认 13/13 callback 路由到 guard；focused Cargo 仍因 core-min 编译 1200s timeout 保持 pending。
+- **Native host FFI panic guard（2026-08-29 current source）**：承接 `engine-code-review-findings-2026-06.md` F1 与 `engine-code-structure-convention.md` E7，`native_plugin_loader/ffi_panic_guard.rs` 现在通过一个 generic kernel 统一守护 10 个 public host API callback、4 个 private host-function-table callback 与 1 个 `NativePluginOutputSinkV4.write` callback。静态 current-source guard 确认 15/15 callback 在 `extern "C"` 边界内捕获 panic 并映射 typed status；focused Cargo 仍因受管通道阻塞保持 pending。
 - **F8 RuntimePluginDescriptor public-field convergence（2026-06-22）**：`RuntimePluginDescriptor` 的 15 个声明字段已从 public 字段硬切为私有字段，并新增 `descriptor/access.rs` 承接 15 个只读访问器。builtin catalog augmentation、registration validation 与 plugin extension 测试调用点改走 accessor；状态锚为 `runtime_plugin_descriptor_public_field_convergence_coremin_check_passed`。`review_f8_runtime_plugin_descriptor_fields_are_private_with_accessors` 锁定 `RuntimePluginDescriptor private fields 15/15`、访问器签名与文档状态；RuntimePluginDescriptor public-field convergence complete。broader Runtime 06 cargo/native gates 仍 pending。
 - **F8 RuntimePluginDescriptor public constructor retired（2026-06-22）**：旧 `RuntimePluginDescriptor::new(...).with_*` 公开构造面已硬切退役，`descriptor/builder/construction.rs` retired，`descriptor/builder/fluent.rs` retired；`RuntimePluginDescriptorBuilder` 直接组装私有字段，builtin catalog 子树改为传递 `BuiltinCatalogDescriptorBuilder` 并在 catalog root 统一 `build()`，`zircon_plugins/plugin_sdk` 的 `RuntimePluginDeclaration` 改为持有 `RuntimePluginDescriptorBuilder`。状态锚为 `runtime_plugin_descriptor_public_constructor_retired_coremin_check_passed`，守卫为 `review_f8_runtime_plugin_descriptor_public_constructor_is_retired`；RuntimePluginDescriptor::new retired。
 - **Runtime 15 F8 RuntimePluginDescriptor status mirror cleanup（2026-06-27）**：`runtime_15_runtime_plugin_descriptor_status_mirror_cleanup_static_passed_cargo_deferred` 已把 Runtime 06/index、review findings、结构规范、package-manifest docs 与 status-output 期望同步到当前完成态。新增 `review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_pending`，锁定 RuntimePluginDescriptor private fields 15/15、RuntimePluginDescriptor public-field convergence complete 与 RuntimePluginDescriptor::new retired 不再被旧待办文字覆盖；2026-06-28 `f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred` 进一步把 F8 顶表状态列同步为 `convention + Runtime 04 + Runtime 06 + Runtime 15 / review closed`。不改 RuntimePluginDescriptor 行为。
-- **ABI 策略当前态**：descriptor/entry 当前版为 V3，`NativePluginHostFunctionTableV3` 是该 entry 合同的当前 plugin-to-host callback table；behavior callback 当前版为 V4，runtime-interface host API 当前版为 `ZrHostApiV4`。V1/V2 entry/descriptor loader implementation files 0/0，unknown descriptor version 明确拒绝；`NativeHostApiV3RegistrationScope`、V2 byte-slice/buffer/callback-status 物理类型及 V3 alias 是仍待硬切的旧 public surface，禁止以 compatibility 名义冻结。
+- **ABI 策略此前状态（2026-07-31）**：descriptor/entry 当前版为 V3，`NativePluginHostFunctionTableV3` 是该 entry 合同的当前 plugin-to-host callback table；behavior callback 当前版为 V4，runtime-interface host API 当前版为 `ZrHostApiV4`。V1/V2 entry/descriptor loader implementation files 0/0，unknown descriptor version 明确拒绝；`NativeHostApiV3RegistrationScope`、V2 byte-slice/buffer/callback-status 物理类型及 V3 alias 当时仍是待硬切旧 public surface。
+- **2026-08-24 M3.1 ABI hard cut（静态完成，Cargo 待验证）**：native loader、plugin SDK、dynamic fixture、editor-contribution fixture 与 glTF importer 已删除 V2 descriptor/entry、callback DTO、V3-to-V2 alias 和 `abi_v2_only` fixture feature。当前 byte transport 是唯一物理 `NativePluginByteSliceV3` / `NativePluginOwnedByteBufferV3` / `NativePluginCallbackStatusV3`，并由 V4 behavior callback 直接使用；`NativeHostApiV3RegistrationScope` 已删除，V4 registration policy/scope 是唯一公开 registration owner。`plugin_surface_lifecycle_boundary` 的 V1/V2、alias、fixture-feature、retired-host-scope 和 export-plan 指标均为零；`abi_unknown_version` 继续经 V3 descriptor 的 version field 覆盖明确拒绝。该静态结果不关闭 Cargo/native 验证线，且不吸收现存 native public-surface 分类与根导出 drift。
+- **2026-08-24 M3.1 verification state**：`plugin::native::discovery` 现在独占 11 个发现/加载命令，`plugin::native::host` 独占 `NativePluginHostHandle` / `NativePluginHostWeakHandle`；所有应用、编辑器和运行时调用点已硬切到这两个子命名空间，`plugin` 根不再保留测试专用 loader forwarder。`plugin_surface_lifecycle_boundary` 当前静态锚点为 `expected_source_file_count = 20`、`expected_doc_file_count = 5`、`root_reexport_count = 0`、`native_namespace_reexport_count = 68`、native root re-export 0/0、native namespace re-export 68/68、native namespace symbol groups 6/6、app NativePlugin current call-site files: 7、`risks = []`。受影响路径的 `git diff --check` 已通过，V2 hard-cut pattern scan 为 0 matches；直接 leaf `rustfmt` 写入被 Windows mapped-file lock 拒绝，且完整受管 Cargo/native lane 尚未取得 terminal evidence。因此本切片不能声称格式或动态加载验收完成，也不得提交或上报为 accepted milestone。
+- **2026-08-27 discovery execution-owner correction**：composition-order 审计确认 native discovery/load 可以发生在 Core compose 之前，`NativePluginHostHandle` 才是单个 product generation 的动态库 owner；Unreal 的 `IPluginManager::Get()` 同样按进程延迟构造并在进程退出销毁。因此 `DISCOVERY_AUTHORITY: OnceLock<_>` 的 process lifetime 是有意架构，不能注入首个 Runtime 的弱 `Io` route。源码已增加显式 root-resolution、非阻塞 refresh ticket 与 immutable last-good snapshot 公共合同，UI 提交/读取不做路径解析、目录遍历、manifest read 或动态库加载。Editor12 四条请求路径迁移与 managed Cargo 仍 pending；`TaskPools::process_default()` 会提前物化完整三域池的预算风险先按 `docs/plans/optimize/zircon_runtime/11/2026-08-27-native-plugin-discovery-authority-research.md` 测量，再决定 application execution owner 或 dedicated Io owner，不做无数据的线程拓扑替换。
 - **ZrVM 生命周期 owner 当前态（2026-07-14）**：真实实现已硬切到 `zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs`；`call_entry_lifecycle_export`、`activate` / `deactivate` / `saveState` / `restoreState` 和空参数 marshalling 由插件 crate 独占。Runtime06 只保留跨工作区生命周期清单，不恢复 Runtime 内旧 backend、re-export 或 shim。
 - **热重载**：runtime/editor 入口归 `native_plugin_loader/native_plugin_live_host/lifecycle.rs`，bridge-lifecycle 变体归 `bridge_lifecycle.rs`，delta/export-root 变体归 `hot_update_application.rs`；所有路径共享 `NativePluginHotReloadState` 回滚语义。计划不再钉易漂移行号，执行时以函数名和 owner 文件核验。
-- **下游调用面**：`zircon_app/src` 引用 `NativePlugin*` 当前共 8 文件（app NativePlugin current call-site files: 8）：7 个生产文件 `lib.rs`、`prelude.rs`、`entry/mod.rs`、`entry/export_bootstrap.rs`、`entry/entry_runner/mod.rs`、`entry/entry_runner/bootstrap.rs`、`entry/tests/profile_bootstrap.rs`，以及 1 个测试文件 `entry/entry_runner/editor/tests/gui_startup.rs`。8 个文件均属于 M2 namespace 硬切迁移面；任何新增调用点必须进入同一审计清单。
+- **下游调用面**：`zircon_app/src` 引用 `NativePlugin*` 当前共 7 文件（app NativePlugin current call-site files: 7）：6 个生产文件 `lib.rs`、`prelude.rs`、`entry/mod.rs`、`entry/export_bootstrap.rs`、`entry/entry_runner/mod.rs`、`entry/entry_runner/bootstrap.rs`，以及 1 个测试文件 `entry/entry_runner/editor/tests/gui_startup.rs`。7 个文件均属于 M2 namespace 硬切迁移面；任何新增调用点必须进入同一审计清单。
 - Fyrox 锚点（每点一行）：`Plugin`（静态）/`DynamicPlugin`（dylib）双 trait + `PluginContainer` — `dev/Fyrox/fyrox-impl/src/plugin/mod.rs`；热重载"序列化状态→unload→重载→恢复" — `dev/Fyrox/fyrox-impl/src/plugin/dylib.rs`。
 
 补充参考锚点（2026-06-13 实测核验，实现型切片动工前先读——index 公约 §7.9）：
@@ -175,10 +192,10 @@ last_refined: 2026-07-31
 
 ### M3 ABI 版本策略定稿
 
-#### 切片 3.1 V1/V2 全量硬切（entry/descriptor 已完成，V2 byte DTO/alias 待删除）
+#### 切片 3.1 V1/V2 全量硬切（源码完成，受管验证待执行）
 
 - 目标文件：`plugin/native_plugin_loader/`（V1/V2 描述符/EntryReport/协商分支所在文件，执行时枚举：Grep `AbiV1|AbiV2|_V1|_V2`，path `zircon_runtime/src/plugin/native_plugin_loader`）；`zircon_plugins/native_dynamic_fixture/native/src/lib.rs`（夹具同步改造）。
-- 改动形态：V1/V2 entry/descriptor、EntryReport、旧 symbol/version 与 loader fallback 已直接删除，夹具保持“当前 V3 descriptor 成功 + 未知版本被拒”。`NativePluginHostFunctionTableV3` 属于当前 descriptor/entry callback 合同，不是待删的 V3 host-API adapter；剩余切片必须把三个 V2 byte DTO 迁成唯一 V3 物理类型并删除 alias，同时删除 `NativeHostApiV3RegistrationScope`，只保留 V4 behavior callback 与 `ZrHostApiV4` registration owner。发现仓外旧插件依赖只形成升级阻断记录，不得恢复旧类型、alias、shim 或双版本协商。
+- 改动形态：V1/V2 entry/descriptor、EntryReport、旧 symbol/version、loader fallback、V2 byte DTO、V3-to-V2 alias、`abi_v2_only` fixture feature 与 `NativeHostApiV3RegistrationScope` 已直接删除。夹具保持“当前 V3 descriptor 成功 + 未知版本被拒”；`NativePluginHostFunctionTableV3` 属于当前 descriptor/entry callback 合同，而不是 host-API adapter。唯一保留的注册 owner 是 V4 registration policy/scope，唯一 byte transport 是 V3 物理 DTO，V4 behavior callback 直接使用该 transport。仓外旧插件必须升级，不得恢复旧类型、alias、shim 或双版本协商。
 - 调用方迁移：夹具 1 文件 + loader 内协商分支；枚举命令同上。
 - 验收：`native_plugin_loader_rejects_unknown_abi_version_with_explicit_report`、`native_plugin_loader_accepts_current_v3_descriptor`（loader 测试树）。
 - DoD：生产 Rust 中 V1/V2 entry/descriptor、V2 byte DTO 和 `NativeHostApiV3RegistrationScope` 旧 public symbols 0 命中（failure 文档历史证据除外）；V3 descriptor/entry + host-function-table、V4 behavior + runtime-interface host-API 矩阵文档化；插件 workspace 全量 check 通过。
@@ -212,11 +229,41 @@ last_refined: 2026-07-31
 - 2026-07-22 native callback stable-owner public-surface 同步：`NativePluginCallbackDiagnostics`、`NativePluginLiveHostDiagnostics` 归入 behavior/report 诊断组，`NativePluginLoadProjection` 归入 loader/discovery 组，`ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH` 归入 ABI contract 组；仍只经 `zircon_runtime::plugin::native` 暴露。当前审计锚点为 `root_reexport_count = 0`、`native_namespace_reexport_count = 68`、native root re-export 0/0、native namespace re-export 68/68、M4 gate `classified-and-clear`、debt groups 0/0、native namespace symbol groups 5/5、unclassified native root symbols 0/0、unclassified native namespace symbols 0/0、root public native re-export locations 0/0、public native namespace re-export locations 1/1、app NativePlugin current call-site files: 7、native loader V1/V2 implementation files 0/0、`zircon_plugins` V1/V2 usage files 0/0、export_build_plan V1/V2 usage 0/0、unknown ABI rejection、hot reload failure injection、native loader test files 4/4、native test namespace import files 3/3、native test root import leaks 0/0、fallback lifecycle failure tests 4/4、`runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed`、`runtime_06_native_loader_tests_use_isolated_plugin_native_namespace`、`mirror_docs_guard_present = true`、`risks = []`、`runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts`。该记录只同步公开面分类与镜像，不提前关闭 Runtime 06 的 Cargo/native 验证线。
 - 2026-07-22 native SDK callback panic guard性能交接：Plugin SDK原先每callback交换process-global panic hook并分配空hook；静态修复已改为直接`catch_unwind`并保留panic status。Runtime06负责并发callback、hook sentinel与native loader动态回归，Runtime10共同确认宿主侧guard一致；见PERF-MVP-491与`06/failure-2026-07-22-native-sdk-callback-global-panic-hook.md`。
 - 2026-07-22 extension/system性能补充：PERF-MVP-532确认`SystemRegistration`与`RuntimeSceneSystemRegistration`把唯一FnMut存在`Arc<Mutex<S>>`，所有World实例每次run共享锁；Runtime06联动Plugins01/Runtime11改为generation-owned per-World factory/state并定义reload/unload quiescence。PERF-MVP-533同时要求owner→slots与compiled world extension plan同代发布，避免每World复制全registration/closure；扩充既有`world-runtime-extension-callback-lock` failure共同验收。
+- 2026-08-27 Runtime06/15 system-registration test-owner split：`extension_registry/register/system_registration.rs` 末尾的 3 个 per-World private-state/concurrency tests 已原样迁入 folder-backed `system_registration/tests.rs`，父/child 从单文件 825 行收敛为 676/149 行；当前 production `CallbackSceneSystem::retire` 生命周期补丁保持 1/1。HEAD 测试体与新 child whitespace-normalized 等价，聚焦结构守卫 exact 1/1、rustfmt 与 diff check 通过。该切片只关闭内联测试/file-budget 债；PERF-MVP-532/533 的 generation-owned per-World factory/state、同代 compiled plan 与 reload/unload quiescence 仍显式开放，受管 Cargo 未执行。
 - 2026-07-22 catalog mutation/project plan补充：Runtime06联动Plugins01按PERF-MVP-537把discover/register/feature/reload变更装入一个candidate transaction，成功只发布一代、失败保持last-good；按538让World/host消费`Arc<CompiledProjectPluginPlan>`与同代frozen extension handles，禁止每请求重做manifest completion/dependency resolution/registry merge。reload/unload必须保留旧代quiescence，短commit不得在主线程执行全catalog build。
 - 2026-07-22 native callback generation补充：原global loaded-table长锁修复保留；PERF-MVP-541要求per-plugin stable callback acquire/drop也不获取Mutex，reload/unload以epoch transition关闭新lease并等待/拒绝旧代，diagnostics off近零、on时sharded/sampled。PERF-MVP-543把typed plugin identity、parsed registration/binding/method table与callback owner同代发布，避免lookup格式化key和单slot clone整manifest；见Plugins01新callback failure。
 - 2026-07-22 native host context补充：PERF-MVP-544的capability probe零分配止损已落地；Runtime06联动Plugins01按545把现有ArcSwap flat slot Vec升级为chunked generational slab，避免scope批量创建O(H²)目录clone，并让bridge call只pin一个context generation后dense method dispatch。stale/reuse/wrap/drop/in-flight与callback library quiescence合同不得放宽。
 - 2026-07-22 export plan generation补充：PERF-MVP-546已让export借用cached builtin catalog并复用已补全manifest，删除一次catalog rows深clone与一次completion；Runtime06仍须按538发布catalog generation + canonical project fingerprint对应的`Arc<CompiledProjectPluginPlan>`，供runtime World、Plugins09 export与Editor12共同借用。不得把本轮单caller快路扩展成多个consumer私有cache；stable请求plan build/manifest completion必须为0。
 - 2026-07-31 V4 public-surface inventory 前向修复：V3/V4 registration scopes 归入独立 host-API adapter owner，bridge-method owner 不再吸收跨域 host API；当前审计为 expected_source_file_count = 17、`native_namespace_reexport_count = 74`、native namespace re-export 74/74、native namespace symbol groups 6/6、unclassified native namespace symbols 0/0、app NativePlugin current call-site files: 8、`risks = []`。root scanner 的三类替代 re-export 负例与 focused inventory 3/3 已纳入；Rust mirror 仍保留旧快照，V3 host adapter/V2 DTO hard cut 与 managed Cargo 仍 pending。
+- 2026-08-28 plugin manifest constructor owner split：状态
+  `runtime_06_15_plugin_manifest_constructor_owner_split_static_passed_cargo_deferred`。原 497 行
+  `package_manifest/constructors.rs` 同时实现 package descriptor 与 module descriptor 两个层级；
+  现硬切为 4 行接线 root、169 行 `constructors/module.rs` 和 331 行
+  `constructors/package.rs`。Unreal `FPluginDescriptor` 组合独立 `FModuleDescriptor` 的 Projects
+  边界为主参考；Zircon 类型、固有方法与调用路径不变，不新增 builder、DTO 或兼容 facade。
+  RED 先以旧 root 497 行失败，迁移后两个完整 `impl` 与两个默认值 helper 相对 `HEAD` 的
+  whitespace-normalized SHA-256 4/4 等价。结构/status、rustfmt 与 scoped diff check 通过后才记
+  静态完成；Cargo/plugin 产品验证仍延后，不关闭 Runtime06/15 milestone，也不触发 commit/企微。
+- 2026-08-28 native system-access owner split：状态
+  `runtime_06_15_native_system_access_owner_split_static_passed_cargo_profile_deferred`。510 行
+  `registration_manifest/system_access.rs` 中的 capability/ownership 授权与三阶段 typed error 已
+  分别迁入 89 行 `system_access/authority.rs` 和 123 行 `system_access/error.rs`；318 行 root
+  继续拥有 access declaration/plan、manifest parse、确定性排序、World compile 与既有两项行为
+  测试。Unreal Projects 的 descriptor admission 与实际 module loading 分层为主边界参考，Bevy
+  `SystemParamAccess` 作为 ECS 冲突解析交叉检查。12 个移动块相对 `HEAD` 的规范化 SHA-256
+  12/12 等价；worker-safe capability、plugin-owned ID、foreign grant、`write:world` exclusivity、
+  stable-id 校验、排序和 resolve 算法均未改变。Cargo/native product/profile 仍延后，不关闭
+  Runtime06/15 milestone，也不触发 commit/企微。
+- 2026-08-29 F1 output-sink FFI closure：状态
+  `runtime_06_15_native_output_sink_ffi_guard_owner_split_static_passed_cargo_deferred`。
+  `NativePluginOutputSinkV4.write` 已进入统一 panic kernel，caught panic 会 terminalize host-owned
+  sink 并让 command report 保留 `ZIRCON_NATIVE_PLUGIN_STATUS_PANIC`，foreign callback 不能通过
+  忽略 writer status 发布 partial payload。output bytes、byte budget、allocation rejection 与 FFI
+  writer 已硬切到唯一 102 行 `behavior_calls/output_sink.rs`；编排 root 从 783 行收敛到 687 行，
+  没有 alias、wrapper facade 或第二套 sink policy。Rust 1.94.1 rustfmt、scoped diff check、
+  直接包含当前 production guard/sink 的编译 harness 6/6 与 current-source F1 守卫 1/1 通过；
+  受管 Cargo、并发 hook sentinel 和真实 native loader 产品
+  验收仍 open，因此不关闭 Runtime06/15 milestone，也不触发 commit/企微。
 
 ## Code Review findings disposition (2026-07-31)
 
@@ -226,7 +273,7 @@ last_refined: 2026-07-31
 - [x] V3/V4 host API registration policy/scope 归入独立 host-API adapter owner，不再误归 bridge-method。
 - [x] source inventory 17/17 进入风险聚合与 focused 回归，消除 17/expected14 仍 `risks=[]` 的 false-green。
 - [x] root hard-cut scanner 覆盖 `native::{...}`、`self::native::*` 与 crate-qualified native re-export 替代语法。
-- [ ] V2 byte-slice/buffer/callback-status 物理类型与 V3 alias 仍是实际旧 API 债。由于总目标明确“不再兼容旧架构”，本计划拒绝把它们改写成可长期保留的规范类型；必须等 Runtime source quiet window 在源码中硬切为唯一 V3 类型后才可勾选。
+- [x] 2026-08-24：V2 byte-slice/buffer/callback-status 物理类型、V3-to-V2 alias、V2 descriptor/entry fallback 和 `NativeHostApiV3RegistrationScope` 已在 Runtime、SDK、fixtures 与 consumers 中硬切为零。静态结构审计已确认该切片；Cargo/native 验证仍待受管通道执行。
 - [x] 将热重载核验从漂移行号改为 lifecycle/bridge/delta 三个稳定 owner 路径。
 - [x] 将 App 调用面更新为 7 个生产文件 + `gui_startup.rs` 1 个测试文件，共 8/8。
 
@@ -240,4 +287,30 @@ last_refined: 2026-07-31
 - 当前未关闭门禁锚：`runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation`；在 Rust mirror、native plugin、App 与 plugin workspace 的 managed current-source 验证全部通过前保持可见。
 - [x] M2 测试阶段已加入 world-runtime-extension callback 重入与跨 World 并发 focused gate。
 - [x] M3 测试阶段已加入 plugin SDK/native host panic guard、process-global hook sentinel 与并发 callback focused gate。
-- [ ] 以上新增执行锚以及 Rust mirror 74/8 更新仍需 managed current-source 证据；在此之前 Runtime 06 保持 `in_progress`。
+- [ ] 以上新增执行锚以及 Rust mirror 68/7 更新仍需 managed current-source 证据；在此之前 Runtime 06 保持 `in_progress`。
+
+## 2026-08-28 Runtime Profile Availability Owner Split
+
+状态：`runtime_06_15_plugin_availability_evaluation_selection_owner_split_static_passed_cargo_deferred`。
+
+`plugin/runtime_profile/availability_projection.rs` 从 636 行收束为 291 行 provider membership
+与 projection construction owner；availability category/reason evaluation 迁入 282 行
+`availability_projection/evaluation.rs`，profile/manifest selection 去重与 required merge 迁入
+91 行 `availability_projection/selection.rs`。父模块继续导出同一 generation/report/metrics 合同，
+不新增 provider registry、availability cache、DTO 或兼容 facade。
+
+Unreal `IPluginManager`/`FPluginStatus` 与 `FPluginReferenceDescriptor` 分离 provider 状态和项目
+选择/target 规则作为主参考。五个 selection 定义/函数与九个 evaluation 方法/函数相对
+`HEAD` 的规范化 SHA-256 为 14/14 等价；target、maturity、linked/native membership、missing
+provider 判定顺序和 first-position/required merge 算法均未改变。结构守卫通过后仅记静态
+完成；Cargo/plugin 产品验证延后，不关闭 Runtime06/15 milestone。
+
+## 2026-08-30 World Extension Resource Factory Failure Boundary
+
+Runtime15 在 Runtime06 的 world-extension registration 入口补齐了 resource
+factory 的窄 panic 边界：只捕获资源值生成阶段，尚未写入 `World` 时将 panic
+映射为带 `resource:<type>` key 的 `WorldRuntimeExtensionError`；失败 World 不
+留下半初始化资源，后续 World 可重试同一 immutable `Fn() + Send + Sync`
+factory。该策略不吞任意 scene callback，也不引入第二套缓存或锁。源码与静态
+回归已完成，Runtime06/15 managed Cargo、reload/quiescence、性能与功耗证据仍
+待协调器准入，故本记录不关闭 Runtime06。

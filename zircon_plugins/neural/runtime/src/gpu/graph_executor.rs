@@ -1,6 +1,12 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
+mod parameters;
+mod resource_aliases;
+
+use parameters::{elementwise_parameters, gemm_parameters};
+use resource_aliases::ResourceAliases;
+
 use zircon_runtime::graphics::{ComputePassDescriptor, ComputeShaderSource, RenderPassStage};
 use zircon_runtime::render_graph::{
     BindingSchemaEntry, ComputeBindingKind, PassFlags, QueueLane, RenderGraphComputeDispatchExtent,
@@ -117,8 +123,8 @@ impl NnGraphExecutor {
             return Err(NnGraphBuildError::UnsupportedDataType(NnDataType::F16));
         }
 
-        let mut resource_aliases = BTreeMap::new();
-        let mut plans = Vec::new();
+        let mut resource_aliases = ResourceAliases::new(model.tensors.len());
+        let mut plans = Vec::with_capacity(model.ops.len());
         for (op_index, op) in model.ops.iter().enumerate() {
             if op.code == NnOpCode::Reshape {
                 fold_reshape(op, &mut resource_aliases, model, io)?;
@@ -129,16 +135,17 @@ impl NnGraphExecutor {
             }
             let output = only_output(op)?;
             let parameter_resource = format!("nn.params.{op_index}");
-            let mut bindings = vec![BindingSchemaEntry::new(
+            let mut bindings = Vec::with_capacity(op.inputs.len() + 2);
+            bindings.push(BindingSchemaEntry::new(
                 0,
                 parameter_resource.clone(),
                 ComputeBindingKind::UniformBuffer,
-            )];
+            ));
             for (input_index, tensor) in op.inputs.iter().enumerate() {
                 let descriptor = tensor_descriptor(model, *tensor)?;
                 let mut binding = BindingSchemaEntry::new(
                     input_index as u32 + 1,
-                    resource_for(*tensor, descriptor.kind, &resource_aliases, io)?,
+                    resource_for(*tensor, model, &resource_aliases, io)?,
                     ComputeBindingKind::StorageBufferRead,
                 );
                 if descriptor.kind == NnTensorKind::Weight {
@@ -147,8 +154,7 @@ impl NnGraphExecutor {
                 bindings.push(binding);
             }
             let output_descriptor = tensor_descriptor(model, output)?;
-            let output_resource =
-                resource_for(output, output_descriptor.kind, &resource_aliases, io)?;
+            let output_resource = resource_for(output, model, &resource_aliases, io)?;
             bindings.push(BindingSchemaEntry::new(
                 bindings.len() as u32,
                 output_resource.clone(),
@@ -158,11 +164,11 @@ impl NnGraphExecutor {
             let (workgroup_size, dispatch, parameter_bytes) = dispatch_and_parameters(model, op)?;
             let shader = shader_for(op.code).ok_or(NnGraphBuildError::UnsupportedOp(op.code))?;
             let pass_name = format!("nn.{}.{}", op_name(op.code), op_index);
-            let transient_outputs = (output_descriptor.kind == NnTensorKind::Intermediate)
-                .then_some(output_resource)
-                .into_iter()
-                .collect();
-            resource_aliases.insert(output, bindings.last().unwrap().resource.clone());
+            let transient_outputs = if output_descriptor.kind == NnTensorKind::Intermediate {
+                vec![output_resource]
+            } else {
+                Vec::new()
+            };
             plans.push(NnGraphPassPlan {
                 descriptor: ComputePassDescriptor::new(
                     pass_name.clone(),
@@ -186,7 +192,7 @@ impl NnGraphExecutor {
 
 fn fold_reshape(
     op: &NnOp,
-    aliases: &mut BTreeMap<u16, String>,
+    aliases: &mut ResourceAliases,
     model: &NnModelAsset,
     io: &NnGraphIo,
 ) -> Result<(), NnGraphBuildError> {
@@ -198,9 +204,11 @@ fn fold_reshape(
         });
     }
     let source = op.inputs[0];
-    let descriptor = tensor_descriptor(model, source)?;
-    let resource = resource_for(source, descriptor.kind, aliases, io)?;
-    aliases.insert(op.outputs[0], resource);
+    resource_for(source, model, aliases, io)?;
+    let output = op.outputs[0];
+    if !aliases.alias(output, source) {
+        return Err(NnGraphBuildError::MissingTensor(output));
+    }
     Ok(())
 }
 
@@ -228,14 +236,12 @@ fn tensor_descriptor(
 
 fn resource_for(
     tensor: u16,
-    kind: NnTensorKind,
-    aliases: &BTreeMap<u16, String>,
+    model: &NnModelAsset,
+    aliases: &ResourceAliases,
     io: &NnGraphIo,
 ) -> Result<String, NnGraphBuildError> {
-    if let Some(resource) = aliases.get(&tensor) {
-        return Ok(resource.clone());
-    }
-    match kind {
+    let tensor = aliases.resolve(tensor);
+    match tensor_descriptor(model, tensor)?.kind {
         NnTensorKind::Input => io
             .inputs
             .get(&tensor)
@@ -664,13 +670,7 @@ fn gemm_dispatch(
     if weight.shape[2] != k || output.shape[2] != m || output.shape[3] != n {
         return Err(NnGraphBuildError::InvalidShape(op.code));
     }
-    let mut parameters = Vec::with_capacity(24);
-    for value in [m, n, k, 0] {
-        parameters.extend_from_slice(&value.to_le_bytes());
-    }
-    parameters.extend_from_slice(&attrs.alpha.to_le_bytes());
-    parameters.extend_from_slice(&attrs.beta.to_le_bytes());
-    parameters.resize(32, 0);
+    let parameters = gemm_parameters(m, n, k, attrs.alpha, attrs.beta);
     let groups = [
         n.div_ceil(GEMM_WORKGROUP_EDGE),
         m.div_ceil(GEMM_WORKGROUP_EDGE),
@@ -699,11 +699,7 @@ fn elementwise_dispatch(
             1,
             1,
         ]),
-        {
-            let mut parameters = elements.to_le_bytes().to_vec();
-            parameters.resize(16, 0);
-            parameters
-        },
+        elementwise_parameters(elements),
     ))
 }
 

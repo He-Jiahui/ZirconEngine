@@ -1,12 +1,16 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use zircon_runtime_interface::hub_protocol::{HubEditorLaunchOutcomeV1, HubSessionToken};
+use zircon_runtime_interface::hub_protocol::{
+    HubEditorLaunchOutcomeV1, HubEditorReadyReceiptV1, HubEditorStartupFailureCodeV1,
+    HubSessionToken,
+};
 
 use crate::engines::{active_source_engine, validate_source_engine, SourceEngineValidation};
 use crate::error::HubError;
 use crate::process::editor_focus::{
-    probe_project_editor_session, publish_project_editor_focus_signal, ProjectEditorSessionProbe,
+    probe_project_editor_session, publish_project_editor_focus_signal,
+    wait_for_project_editor_focus_ack, ProjectEditorSessionProbe,
 };
 use crate::process::{
     editor_handshake::wait_for_editor_handshake, launch_editor, preferred_editor_executable,
@@ -51,7 +55,7 @@ pub(in crate::tauri_app) struct PendingEditorLaunch {
 enum EditorLaunchPreparedCommand {
     FocusExistingProject {
         project_path: PathBuf,
-        record: zircon_runtime_interface::project::session_lock::ProjectSessionLockRecordV1,
+        record: zircon_runtime_interface::project::session_lock::ProjectSessionAdmissionRecordV1,
         focus_session: HubSessionToken,
     },
     Project {
@@ -73,7 +77,9 @@ impl BackgroundTask for PendingEditorLaunch {
                 record,
                 focus_session,
             } => {
-                publish_project_editor_focus_signal(project_path, record, *focus_session)?;
+                let request =
+                    publish_project_editor_focus_signal(project_path, record, *focus_session)?;
+                wait_for_project_editor_focus_ack(project_path, &request)?;
                 return Ok(EditorLaunchReport {
                     process_id: record.process_id(),
                     outcome: EditorLaunchOutcome::FocusedExisting,
@@ -83,11 +89,11 @@ impl BackgroundTask for PendingEditorLaunch {
                 command,
                 handshake_session,
             } => {
-                let _child = launch_editor(command)?;
+                let child = launch_editor(command)?;
                 let project_path = self.project_path.as_deref().ok_or_else(|| {
                     HubError::message("project editor launch is missing its handshake project path")
                 })?;
-                wait_for_project_editor_ready(project_path, *handshake_session)?
+                wait_for_project_editor_ready(project_path, *handshake_session, child.id())?
             }
             EditorLaunchPreparedCommand::Empty { executable } => {
                 Command::new(executable).spawn()?.id()
@@ -113,15 +119,6 @@ impl PendingEditorLaunch {
 }
 
 impl HubRuntimeSession {
-    pub(super) fn open_selected_project_or_editor(&mut self) -> Result<(), HubError> {
-        let pending_launch = match self.prepare_editor_launch() {
-            Ok(pending_launch) => pending_launch,
-            Err(_) => return Ok(()),
-        };
-        let result = pending_launch.run();
-        self.complete_editor_launch(pending_launch, result)
-    }
-
     pub(in crate::tauri_app) fn prepare_background_editor_launch(
         &mut self,
     ) -> Result<Option<PendingEditorLaunch>, HubError> {
@@ -221,20 +218,36 @@ impl HubRuntimeSession {
                 return Err(HubError::status(detail, Some(recovery)));
             }
         };
-        if let ProjectEditorSessionProbe::Active(record) = active_session {
-            return Ok(PendingEditorLaunch {
-                target: recent_project_display_name(&project),
-                command: EditorLaunchPreparedCommand::FocusExistingProject {
-                    project_path: project_path.clone(),
-                    record,
-                    focus_session: HubSessionToken::new(),
-                },
-                project_path: Some(project_path),
-                remember_project: true,
-                recovery_on_launch_failure: HubMessage::new(HubMessageId::Process(
-                    ProcessMessageId::VerifyEditorAndProjectPath,
-                )),
-            });
+        match active_session {
+            ProjectEditorSessionProbe::Ready(record) => {
+                return Ok(PendingEditorLaunch {
+                    target: recent_project_display_name(&project),
+                    command: EditorLaunchPreparedCommand::FocusExistingProject {
+                        project_path: project_path.clone(),
+                        record,
+                        focus_session: HubSessionToken::new(),
+                    },
+                    project_path: Some(project_path),
+                    remember_project: true,
+                    recovery_on_launch_failure: HubMessage::new(HubMessageId::Process(
+                        ProcessMessageId::VerifyEditorAndProjectPath,
+                    )),
+                });
+            }
+            ProjectEditorSessionProbe::Pending(record) => {
+                return Err(HubError::message(format!(
+                    "project editor instance {} is still completing admission ({})",
+                    record.process_id(),
+                    record.lifecycle().as_str(),
+                )));
+            }
+            ProjectEditorSessionProbe::RecoveryRequired(record) => {
+                return Err(HubError::message(format!(
+                    "project editor instance {} requires recovery before another editor can open the project",
+                    record.process_id(),
+                )));
+            }
+            ProjectEditorSessionProbe::Inactive => {}
         }
         self.activate_project_engine_for_path(&project_path);
         self.validate_active_source_engine_for_editor_launch(&display_name)?;
@@ -254,10 +267,8 @@ impl HubRuntimeSession {
         let handshake_session = HubSessionToken::new();
         let command = EditorLaunchCommand::from_preferred_engine(
             self.staged_engine_dir(),
-            EditorLaunchRequest::OpenProject {
-                project_path: project_path.clone(),
-            },
-        )
+            EditorLaunchRequest::open_project(project_path.clone())?,
+        )?
         .with_hub_handshake(handshake_session);
         Ok(PendingEditorLaunch {
             target: recent_project_display_name(&project),
@@ -534,32 +545,52 @@ impl HubRuntimeSession {
 fn wait_for_project_editor_ready(
     project_path: &Path,
     handshake_session: HubSessionToken,
+    child_process_id: u32,
 ) -> Result<u32, HubError> {
     validate_project_editor_handshake(
-        project_path,
+        child_process_id,
         wait_for_editor_handshake(project_path, handshake_session)?,
     )
 }
 
 fn validate_project_editor_handshake(
-    project_path: &Path,
+    child_process_id: u32,
     mailbox: zircon_runtime_interface::hub_protocol::HubEditorMailboxV1,
 ) -> Result<u32, HubError> {
     match mailbox.outcome {
-        HubEditorLaunchOutcomeV1::Ready { pid, project } => {
-            if project_paths_match(project_path, &project) {
-                Ok(pid)
-            } else {
-                Err(HubError::message(format!(
-                    "editor Hub handshake project mismatch: requested `{}`, received `{}`",
-                    project_path.display(),
-                    project.display(),
-                )))
-            }
+        HubEditorLaunchOutcomeV1::Ready { receipt } => {
+            validate_ready_child_receipt(child_process_id, &receipt)?;
+            Ok(receipt.editor_process_id())
         }
-        HubEditorLaunchOutcomeV1::Failed { reason } => Err(HubError::message(format!(
-            "editor reported startup failure through the Hub handshake: {reason}"
+        HubEditorLaunchOutcomeV1::Failed { code } => Err(HubError::message(format!(
+            "editor reported startup failure category through the Hub handshake: {}",
+            startup_failure_code_label(code)
         ))),
+    }
+}
+
+fn validate_ready_child_receipt(
+    child_process_id: u32,
+    receipt: &HubEditorReadyReceiptV1,
+) -> Result<(), HubError> {
+    if receipt.editor_process_id() == child_process_id {
+        Ok(())
+    } else {
+        Err(HubError::message(
+            "editor Hub Ready receipt is not bound to the Hub-supervised child process",
+        ))
+    }
+}
+
+fn startup_failure_code_label(code: HubEditorStartupFailureCodeV1) -> &'static str {
+    match code {
+        HubEditorStartupFailureCodeV1::Startup => "startup",
+        HubEditorStartupFailureCodeV1::ProjectActivation => "project_activation",
+        HubEditorStartupFailureCodeV1::FocusInboxBinding => "focus_inbox_binding",
+        HubEditorStartupFailureCodeV1::NativeWindow => "native_window",
+        HubEditorStartupFailureCodeV1::FirstPresent => "first_present",
+        HubEditorStartupFailureCodeV1::HostWindow => "host_window",
+        HubEditorStartupFailureCodeV1::MailboxPublish => "mailbox_publish",
     }
 }
 
@@ -584,7 +615,9 @@ mod tests {
     use crate::state::{
         HubActionKind, HubActionStatus, HubMessage, HubMessageId, ProcessMessageId,
     };
-    use zircon_runtime_interface::hub_protocol::HubEditorMailboxV1;
+    use zircon_runtime_interface::hub_protocol::{
+        HubEditorMailboxV1, HubEditorReadyReceiptV1, HubEditorStartupFailureCodeV1, HubSessionToken,
+    };
 
     use super::super::HubRuntimeSession;
     use super::{
@@ -593,37 +626,49 @@ mod tests {
     };
 
     #[test]
-    fn editor_handshake_accepts_ready_for_the_requested_project_only() {
+    fn editor_handshake_accepts_a_ready_receipt_bound_to_the_supervised_child() {
+        let session = HubSessionToken::new();
         assert_eq!(
             validate_project_editor_handshake(
-                Path::new("E:/Projects/Game"),
-                HubEditorMailboxV1::ready(913, "e:/projects/game/"),
+                913,
+                HubEditorMailboxV1::ready(
+                    session,
+                    HubEditorReadyReceiptV1::after_first_present(913, "913-42", 1)
+                        .expect("ready receipt"),
+                ),
             )
             .expect("matching ready mailbox"),
             913
         );
 
         let mismatch = validate_project_editor_handshake(
-            Path::new("E:/Projects/Game"),
-            HubEditorMailboxV1::ready(913, "E:/Projects/Other"),
+            913,
+            HubEditorMailboxV1::ready(
+                session,
+                HubEditorReadyReceiptV1::after_first_present(914, "914-42", 1)
+                    .expect("ready receipt"),
+            ),
         )
-        .expect_err("mismatched ready mailbox");
+        .expect_err("a different child process must not be reported ready");
         assert!(mismatch
             .to_string()
-            .contains("editor Hub handshake project mismatch"));
+            .contains("not bound to the Hub-supervised child"));
     }
 
     #[test]
     fn editor_handshake_surfaces_the_editor_terminal_failure() {
         let error = validate_project_editor_handshake(
-            Path::new("E:/Projects/Game"),
-            HubEditorMailboxV1::failed("project lock is held"),
+            913,
+            HubEditorMailboxV1::failed(
+                HubSessionToken::new(),
+                HubEditorStartupFailureCodeV1::ProjectActivation,
+            ),
         )
         .expect_err("editor reported failure");
 
         assert_eq!(
             error.to_string(),
-            "editor reported startup failure through the Hub handshake: project lock is held"
+            "editor reported startup failure category through the Hub handshake: project_activation"
         );
     }
 

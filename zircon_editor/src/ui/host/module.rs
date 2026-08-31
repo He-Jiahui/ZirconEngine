@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use zircon_runtime::asset::{project_asset_manager_handle, ASSET_MODULE_NAME};
+use zircon_runtime::asset::ASSET_MODULE_NAME;
 use zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME;
 use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
 use zircon_runtime::core::manager::RegisteredManagerService;
@@ -20,6 +20,8 @@ use crate::ui::host::editor_asset_manager::{
     DefaultEditorAssetManager as EditorAssetManagerService, EditorAssetManager,
 };
 use crate::ui::host::{EditorKeymapService, EditorManager};
+
+use super::runtime_services::EditorProjectAssetRuntimeAccess;
 
 pub const EDITOR_MODULE_NAME: &str = "EditorModule";
 pub const EDITOR_HOST_DRIVER_NAME: &str = "EditorModule.Driver.EditorHostDriver";
@@ -81,12 +83,12 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ],
         factory(|core| {
             let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
-            let project_assets = project_asset_manager_handle(&core)?;
+            let project_assets = EditorProjectAssetRuntimeAccess::new(&core)?;
             let editor_manager = core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
             let manager = Arc::new(EditorAssetManagerService::with_runtime_project_manager(
-                core.clone(),
                 project_assets,
                 editor_manager.context().jobs().clone(),
+                editor_manager.context().logs_handle(),
             ));
             Ok(
                 Arc::new(RegisteredManagerService::<dyn EditorAssetManager>::new(

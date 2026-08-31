@@ -4,13 +4,19 @@ use crate::ui::retained_host::primitives::{ModelRc, VecModel};
 
 use super::super::super::data::{HostPaneInteractionStateData, TemplatePaneNodeData};
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn template_hover_targets_node(
+    node: &TemplatePaneNodeData,
+    interaction: &HostPaneInteractionStateData,
+) -> bool {
+    !interaction.hovered_template_control_id.is_empty()
+        && node.control_id.as_str() == interaction.hovered_template_control_id.as_str()
+}
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_template_hover_to_node(
     node: &mut TemplatePaneNodeData,
     interaction: &HostPaneInteractionStateData,
 ) {
-    if interaction.hovered_template_control_id.is_empty()
-        || node.control_id.as_str() != interaction.hovered_template_control_id.as_str()
-    {
+    if !template_hover_targets_node(node, interaction) {
         return;
     }
 

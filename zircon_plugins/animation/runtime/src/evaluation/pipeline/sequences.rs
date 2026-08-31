@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use zircon_runtime::animation::{
     apply_compiled_sequence_to_world, compile_sequence_for_world, CompiledAnimationSequence,
@@ -9,6 +9,10 @@ use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::LevelSystem;
 
 use super::AnimationEvaluationPipeline;
+
+#[cfg(test)]
+#[path = "sequences/performance_tests.rs"]
+mod optimization_batch_20260830cq_tests;
 
 #[derive(Debug)]
 pub(super) struct CachedCompiledSequence {
@@ -35,10 +39,8 @@ pub(super) fn apply_loaded_sequences(
             let mut sequence_cache = world
                 .resource_mut::<AnimationEvaluationPipeline>()
                 .take_sequence_cache();
-            let requested_assets = loaded_sequences
-                .iter()
-                .map(|sample| sample.asset_id)
-                .collect::<BTreeSet<_>>();
+            let requested_assets =
+                sorted_requested_assets(loaded_sequences.iter().map(|sample| sample.asset_id));
 
             for sample in loaded_sequences {
                 // Without an asset revision, this frame has no durable proof that a
@@ -74,10 +76,22 @@ pub(super) fn apply_loaded_sequences(
                 );
             }
 
-            sequence_cache.retain(|asset_id, _| requested_assets.contains(asset_id));
+            sequence_cache
+                .retain(|asset_id, _| requested_asset_is_current(&requested_assets, asset_id));
             world
                 .resource_mut::<AnimationEvaluationPipeline>()
                 .restore_sequence_cache(sequence_cache);
         })
         .is_some()
+}
+
+fn sorted_requested_assets(assets: impl IntoIterator<Item = AssetId>) -> Vec<AssetId> {
+    let mut assets = assets.into_iter().collect::<Vec<_>>();
+    assets.sort_unstable();
+    assets.dedup();
+    assets
+}
+
+fn requested_asset_is_current(requested_assets: &[AssetId], asset_id: &AssetId) -> bool {
+    requested_assets.binary_search(asset_id).is_ok()
 }

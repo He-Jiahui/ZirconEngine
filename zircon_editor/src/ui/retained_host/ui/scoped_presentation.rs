@@ -1,5 +1,5 @@
 use std::cell::Cell;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::asset_editor::UiAssetEditorPanePresentation;
 use crate::ui::layouts::common::model_rc;
@@ -221,12 +221,14 @@ fn patch_floating_windows(
     ui_asset: &UiAssetEditorPaneData,
     patch: &mut PanePresentationPatch,
 ) {
-    let mut changed = false;
-    let mut patched_windows = Vec::with_capacity(windows.row_count());
     patch.floating_window_rows_visited += windows.row_count();
-    patch.floating_window_rows_cloned += windows.row_count();
-    for window in windows.iter() {
+    let mut row_patches = BTreeMap::new();
+    for (row, window) in windows.iter().enumerate() {
+        if !pane_is_ui_asset_instance(&window.active_pane, instance_id) {
+            continue;
+        }
         let mut window = window.clone();
+        patch.floating_window_rows_cloned += 1;
         let content_frame =
             floating_pane_content_frame(&window.frame, &window.header_frame, header_height_px);
         if patch_ui_asset_pane(
@@ -236,12 +238,11 @@ fn patch_floating_windows(
             ui_asset,
         ) {
             patch.damage.push(content_frame);
-            changed = true;
+            row_patches.insert(row, window);
         }
-        patched_windows.push(window);
     }
-    if changed {
-        *windows = model_rc(patched_windows);
+    if !row_patches.is_empty() {
+        *windows = windows.with_row_patches(row_patches);
     }
 }
 
@@ -408,12 +409,17 @@ mod tests {
     }
 
     #[test]
-    fn floating_patch_counts_each_cloned_row_even_when_the_instance_is_absent() {
+    fn floating_patch_does_not_clone_rows_when_the_instance_is_absent() {
         let mut presentation = HostWindowPresentationData::default();
         presentation.host_scene_data.floating_layer.floating_windows = model_rc(vec![
             FloatingWindowData::default(),
             FloatingWindowData::default(),
         ]);
+        let previous = presentation
+            .host_scene_data
+            .floating_layer
+            .floating_windows
+            .clone();
         let ui_asset = to_host_contract_ui_asset_pane(
             UiAssetEditorPanePresentation::default(),
             "ui-asset-editor#absent",
@@ -427,7 +433,53 @@ mod tests {
 
         assert!(patch.damage.is_empty());
         assert_eq!(patch.floating_window_rows_visited, 2);
-        assert_eq!(patch.floating_window_rows_cloned, 2);
+        assert_eq!(patch.floating_window_rows_cloned, 0);
+        assert!(previous
+            .shares_values_with(&presentation.host_scene_data.floating_layer.floating_windows));
+    }
+
+    #[test]
+    fn floating_patch_clones_only_the_matching_row_and_reuses_other_storage() {
+        let mut presentation = HostWindowPresentationData::default();
+        presentation.host_scene_data.floating_layer.floating_windows = model_rc(vec![
+            FloatingWindowData {
+                active_pane: PaneData {
+                    id: "ui-asset-editor#target".into(),
+                    kind: "UiAssetEditor".into(),
+                    ..PaneData::default()
+                },
+                ..FloatingWindowData::default()
+            },
+            FloatingWindowData {
+                active_pane: PaneData {
+                    id: "ui-asset-editor#other".into(),
+                    kind: "UiAssetEditor".into(),
+                    ..PaneData::default()
+                },
+                ..FloatingWindowData::default()
+            },
+        ]);
+        let previous = presentation
+            .host_scene_data
+            .floating_layer
+            .floating_windows
+            .clone();
+        let ui_asset = to_host_contract_ui_asset_pane(
+            UiAssetEditorPanePresentation::default(),
+            "ui-asset-editor#target",
+        );
+
+        let patch = patch_ui_asset_pane_in_presentation(
+            &mut presentation,
+            "ui-asset-editor#target",
+            &ui_asset,
+        );
+        let current = &presentation.host_scene_data.floating_layer.floating_windows;
+
+        assert_eq!(patch.floating_window_rows_visited, 2);
+        assert_eq!(patch.floating_window_rows_cloned, 1);
+        assert!(!previous.shares_row_with(current, 0));
+        assert!(previous.shares_row_with(current, 1));
     }
 
     #[test]

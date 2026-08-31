@@ -1,9 +1,11 @@
 use std::collections::BTreeSet;
 
 use crate::core::framework::render::{
-    IblBakeArtifactRequest, PostProcessStackDescriptor, ShaderQualityTier,
+    AoSourceSettingsKey, IblBakeArtifactRequest, PostProcessStackDescriptor, ShaderQualityTier,
 };
 use crate::graphics::feature::{BuiltinRenderFeature, RenderFeatureCapabilityRequirement};
+
+use super::AdvancedLightingCompileInputs;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RenderPipelineCompileOptions {
@@ -17,6 +19,8 @@ pub struct RenderPipelineCompileOptions {
     pub half_resolution_transparency_depth_sigma: u16,
     pub graph_msaa_sample_count: Option<u32>,
     pub shader_quality: ShaderQualityTier,
+    pub ambient_occlusion_source: Option<AoSourceSettingsKey>,
     pub post_process_stack: Option<PostProcessStackDescriptor>,
     pub environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
+    pub(crate) advanced_lighting_inputs: Option<AdvancedLightingCompileInputs>,
 }

@@ -16,6 +16,7 @@ fn runtime_crate_root_public_surface_stays_curated() {
         "animation",
         "asset",
         "scene",
+        "text",
         "ui",
         "graphics",
         "render_graph",
@@ -24,11 +25,20 @@ fn runtime_crate_root_public_surface_stays_curated() {
         "foundation",
         "input",
         "navigation",
+        "operation",
         "platform",
         "plugin",
         "script",
     ];
     assert_eq!(public_modules.as_slice(), &expected_modules);
+    assert!(
+        !LIB_RS.contains("pub mod runtime_diagnostics;"),
+        "runtime diagnostics collection is not a public runtime root module"
+    );
+    assert!(
+        LIB_RS.contains("mod runtime_diagnostics;"),
+        "runtime diagnostics collection must remain a feature-independent private runtime support module"
+    );
     assert!(
         !LIB_RS.contains("rhi_wgpu"),
         "the physical zr_rhi_wgpu crate must not retain a runtime crate-root module"

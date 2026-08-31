@@ -3,6 +3,7 @@ mod handle_basis;
 mod handle_build_context;
 mod handle_drag_context;
 mod handle_drag_session;
+mod handle_drag_session_interactive_transform;
 mod handle_drag_session_node_id;
 mod handle_drag_session_tool;
 mod handle_pick_context;
@@ -20,6 +21,7 @@ mod scale_handle_tool_behavior;
 mod transform_handle_drag_session;
 mod transform_handle_kind;
 
+pub(crate) use handle_build_context::HandleSelection;
 pub(crate) use handle_drag_session::HandleDragSession;
 pub(crate) use handle_tool_registry::HandleToolRegistry;
 pub use transform_handle_kind::TransformHandleKind;

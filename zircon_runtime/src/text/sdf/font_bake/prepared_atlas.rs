@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::core::math::UVec2;
 use crate::text::sdf::{SdfGenerationSchedulerDiagnostics, SdfGlyphGenerationError};
 
+use super::font_asset_cache::SdfFontAssetCacheReport;
 use super::{SdfAtlasBake, SdfAtlasBakeReport, SdfAtlasSlot};
 
 pub(super) struct SdfPreparedAtlasCache {
@@ -33,6 +34,7 @@ impl SdfPreparedAtlasCache {
         atlas_size: UVec2,
         slots: &[SdfAtlasSlot],
         scheduler: SdfGenerationSchedulerDiagnostics,
+        font_asset_cache_report: SdfFontAssetCacheReport,
     ) -> Option<SdfAtlasBake> {
         let cached = self.bake.as_ref()?;
         if self.atlas_size != atlas_size
@@ -47,7 +49,7 @@ impl SdfPreparedAtlasCache {
 
         let mut reused = cached.clone();
         reused.dirty_pages = Arc::clone(&self.clean_dirty_pages);
-        reused.report = stable_reuse_report(cached.report, scheduler);
+        reused.report = stable_reuse_report(cached.report, scheduler, font_asset_cache_report);
         Some(reused)
     }
 
@@ -75,8 +77,12 @@ fn generation_requires_retry(error: SdfGlyphGenerationError) -> bool {
 fn stable_reuse_report(
     mut report: SdfAtlasBakeReport,
     scheduler: SdfGenerationSchedulerDiagnostics,
+    font_asset_cache_report: SdfFontAssetCacheReport,
 ) -> SdfAtlasBakeReport {
     report.loaded_font_count = 0;
+    report.resident_font_asset_error_count = font_asset_cache_report.resident_error_count;
+    report.resident_font_asset_no_registered_faces_count =
+        font_asset_cache_report.resident_no_registered_faces_count;
     report.offline_manifest_parse_count = 0;
     report.offline_artifact_stat_count = 0;
     report.offline_artifact_read_count = 0;

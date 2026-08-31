@@ -1,24 +1,5 @@
 use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
-const LOBBY_EDITOR_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionLobbyEditorFlowTab",
-    "WorkbenchExtensionLobbyEditorSlotsTab",
-    "WorkbenchExtensionLobbyEditorTelemetryTab",
-];
-const LOBBY_EDITOR_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.lobby_editor.flow_tab.select",
-        "WorkbenchExtensionLobbyEditorFlowTab",
-    ),
-    action(
-        "workbench.extension.lobby_editor.slots_tab.select",
-        "WorkbenchExtensionLobbyEditorSlotsTab",
-    ),
-    action(
-        "workbench.extension.lobby_editor.telemetry_tab.select",
-        "WorkbenchExtensionLobbyEditorTelemetryTab",
-    ),
-];
 const LOBBY_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionLobbyEditorDefaultLobbyRow",
     "WorkbenchExtensionLobbyEditorLeaderSlotRow",
@@ -27,7 +8,6 @@ const LOBBY_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionLobbyEditorGuest01TableRow",
     "WorkbenchExtensionLobbyEditorGuest02TableRow",
     "WorkbenchExtensionLobbyEditorCrossplayRuleTableRow",
-    "WorkbenchExtensionLobbyEditorOutputRow",
 ];
 const LOBBY_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -58,20 +38,16 @@ const LOBBY_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.lobby_editor.crossplay_rule_table_row.select",
         "WorkbenchExtensionLobbyEditorCrossplayRuleTableRow",
     ),
-    action(
-        "workbench.extension.lobby_editor.output.select",
-        "WorkbenchExtensionLobbyEditorOutputRow",
-    ),
 ];
 const LOBBY_EDITOR_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsLobbyEditorButton",
+    "WorkbenchAssetsGameplayToolsMenu",
     "WorkbenchExtensionLobbyEditorSimulateLobbyButton",
     "WorkbenchExtensionLobbyEditorValidateLobbyButton",
 ];
 const LOBBY_EDITOR_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.lobby_editor.open",
-        "WorkbenchAssetsLobbyEditorButton",
+        "WorkbenchAssetsGameplayToolsMenu",
     ),
     action(
         "workbench.extension.lobby_editor.simulate_lobby.invoke",
@@ -94,8 +70,6 @@ const LOBBY_EDITOR_FIELD_ACTIONS: &[&str] = &[
 pub(super) const LOBBY_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.lobby_editor.open",
     "WorkbenchExtensionLobbyEditorWorkspace",
-    LOBBY_EDITOR_TAB_CONTROLS,
-    LOBBY_EDITOR_TAB_ACTIONS,
     LOBBY_EDITOR_ROW_CONTROLS,
     LOBBY_EDITOR_ROW_ACTIONS,
     LOBBY_EDITOR_COMMAND_CONTROLS,
@@ -103,25 +77,6 @@ pub(super) const LOBBY_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     LOBBY_EDITOR_FIELD_ACTIONS,
 );
 
-const MATCHMAKING_EDITOR_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionMatchmakingEditorQueuesTab",
-    "WorkbenchExtensionMatchmakingEditorRulesTab",
-    "WorkbenchExtensionMatchmakingEditorTelemetryTab",
-];
-const MATCHMAKING_EDITOR_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.matchmaking_editor.queues_tab.select",
-        "WorkbenchExtensionMatchmakingEditorQueuesTab",
-    ),
-    action(
-        "workbench.extension.matchmaking_editor.rules_tab.select",
-        "WorkbenchExtensionMatchmakingEditorRulesTab",
-    ),
-    action(
-        "workbench.extension.matchmaking_editor.telemetry_tab.select",
-        "WorkbenchExtensionMatchmakingEditorTelemetryTab",
-    ),
-];
 const MATCHMAKING_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionMatchmakingEditorPlaylistRankedRow",
     "WorkbenchExtensionMatchmakingEditorQueueSoloRow",
@@ -130,7 +85,6 @@ const MATCHMAKING_EDITOR_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionMatchmakingEditorGoldBucketTableRow",
     "WorkbenchExtensionMatchmakingEditorDiamondBucketTableRow",
     "WorkbenchExtensionMatchmakingEditorBackfillTableRow",
-    "WorkbenchExtensionMatchmakingEditorOutputRow",
 ];
 const MATCHMAKING_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -161,20 +115,16 @@ const MATCHMAKING_EDITOR_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.matchmaking_editor.backfill_table_row.select",
         "WorkbenchExtensionMatchmakingEditorBackfillTableRow",
     ),
-    action(
-        "workbench.extension.matchmaking_editor.output.select",
-        "WorkbenchExtensionMatchmakingEditorOutputRow",
-    ),
 ];
 const MATCHMAKING_EDITOR_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsMatchmakingEditorButton",
+    "WorkbenchAssetsGameplayToolsMenu",
     "WorkbenchExtensionMatchmakingEditorSimulateMatchButton",
     "WorkbenchExtensionMatchmakingEditorValidateRulesButton",
 ];
 const MATCHMAKING_EDITOR_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.matchmaking_editor.open",
-        "WorkbenchAssetsMatchmakingEditorButton",
+        "WorkbenchAssetsGameplayToolsMenu",
     ),
     action(
         "workbench.extension.matchmaking_editor.simulate_match.invoke",
@@ -197,8 +147,6 @@ const MATCHMAKING_EDITOR_FIELD_ACTIONS: &[&str] = &[
 pub(super) const MATCHMAKING_EDITOR_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.matchmaking_editor.open",
     "WorkbenchExtensionMatchmakingEditorWorkspace",
-    MATCHMAKING_EDITOR_TAB_CONTROLS,
-    MATCHMAKING_EDITOR_TAB_ACTIONS,
     MATCHMAKING_EDITOR_ROW_CONTROLS,
     MATCHMAKING_EDITOR_ROW_ACTIONS,
     MATCHMAKING_EDITOR_COMMAND_CONTROLS,

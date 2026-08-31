@@ -4,7 +4,7 @@ use super::inventory::{
 };
 
 pub(super) fn assert_runtime_03_sources_and_anchors(runtime_root: &std::path::Path) {
-    assert_eq!(EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS.len(), 13);
+    assert_eq!(EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS.len(), 14);
     assert_expected_files_exist(runtime_root);
     assert_system_stage_contract();
     assert_dynamic_session_time_handoff();
@@ -50,15 +50,15 @@ fn assert_dynamic_session_time_handoff() {
     assert_eq!(
         session.matches(".tick_time(").count(),
         1,
-        "dynamic session should keep RuntimeTimeAdvance as the single tick_time handoff"
+        "dynamic session should keep FrameTimeSnapshot as the single tick_time handoff"
     );
     assert!(
         session.contains("fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()>"),
         "dynamic session should keep the typed tick_frame result signature"
     );
     assert!(
-        session_profile.contains("DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME: u32 = 8"),
-        "dynamic session profile should keep the documented fixed-step cap"
+        session_profile.contains("fn product_time_policy(self) -> ProductTimePolicy"),
+        "dynamic session profile should own the versioned product time-policy selection"
     );
 }
 
@@ -116,6 +116,7 @@ fn assert_behavior_test_anchors() {
     let behavior_test_sources = [
         include_str!("../../../scene/tests/ecs_schedule.rs"),
         include_str!("../../../scene/tests/ecs_schedule/fixed_update.rs"),
+        include_str!("../../../scene/tests/ecs_schedule/world_time_controller.rs"),
         include_str!("../../../scene/tests/ecs_schedule/parallel_executor.rs"),
         include_str!("../../../scene/tests/ecs_schedule_parallel_executor_structure.rs"),
         include_str!("../../../dynamic_api/tests/session_profiles.rs"),

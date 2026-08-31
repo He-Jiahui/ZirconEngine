@@ -90,6 +90,49 @@ fn icon_atlas_accepts_external_icon_assets_without_svg_parse() {
 }
 
 #[test]
+fn icon_atlas_never_rasterizes_below_native_dpi_but_preserves_supersampling() {
+    let asset = UiIconAsset {
+        semantic_id: "icons/scale-floor".to_string(),
+        default_size: 16.0,
+        source: UiIconSource {
+            kind: UiIconSourceKind::Svg,
+            text: Some(RUN_ICON_SVG.to_string()),
+            uri: None,
+        },
+    };
+
+    let plan = UiIconAtlasBuilder::new()
+        .build_plan([
+            UiIconRasterRequest {
+                icon_id: "icons/undersampled".to_string(),
+                asset: asset.clone(),
+                dpi_scale: 0.75,
+            },
+            UiIconRasterRequest {
+                icon_id: "icons/supersampled".to_string(),
+                asset,
+                dpi_scale: 1.5,
+            },
+        ])
+        .unwrap();
+
+    assert_eq!(
+        plan.slots
+            .iter()
+            .find(|slot| slot.icon_id == "icons/undersampled")
+            .map(|slot| slot.pixel_size),
+        Some(16)
+    );
+    assert_eq!(
+        plan.slots
+            .iter()
+            .find(|slot| slot.icon_id == "icons/supersampled")
+            .map(|slot| slot.pixel_size),
+        Some(24)
+    );
+}
+
+#[test]
 fn editor_default_icon_pack_parses_and_enters_atlas_plan() {
     let icons = [
         (

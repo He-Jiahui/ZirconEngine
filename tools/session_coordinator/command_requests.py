@@ -447,53 +447,47 @@ class CommandRequestJournal:
         changed = 0
         with self.database.transaction() as connection:
             remaining = batch_size
-            expired_ephemeral = tuple(
-                str(row["request_id"])
-                for row in connection.execute(
-                    """
-                    SELECT request_id FROM command_requests
-                    WHERE retention_class='ephemeral'
-                      AND status IN ('completed', 'failed')
-                      AND completed_at IS NOT NULL AND completed_at<?
+            changed += connection.execute(
+                """
+                DELETE FROM command_requests
+                WHERE request_id IN (
+                    SELECT candidate.request_id FROM command_requests AS candidate
+                    WHERE candidate.retention_class='ephemeral'
+                      AND candidate.status IN ('completed', 'failed')
+                      AND candidate.completed_at IS NOT NULL
+                      AND candidate.completed_at<?
                       AND NOT EXISTS (
                           SELECT 1 FROM cargo_start_requests AS start
-                          WHERE start.request_id=command_requests.request_id
+                          WHERE start.request_id=candidate.request_id
                       )
-                    ORDER BY completed_at, request_id
+                    ORDER BY candidate.completed_at, candidate.request_id
                     LIMIT ?
-                    """,
-                    (ephemeral_cutoff, remaining),
                 )
-            )
-            for request_id in expired_ephemeral:
-                changed += connection.execute(
-                    "DELETE FROM command_requests WHERE request_id=?", (request_id,)
-                ).rowcount
+                """,
+                (ephemeral_cutoff, remaining),
+            ).rowcount
             remaining = batch_size - changed
 
             if remaining:
-                overflow = tuple(
-                    str(row["request_id"])
-                    for row in connection.execute(
-                        """
-                        SELECT request_id FROM command_requests
-                        WHERE retention_class='ephemeral'
-                          AND status IN ('completed', 'failed')
-                          AND completed_at IS NOT NULL
+                changed += connection.execute(
+                    """
+                    DELETE FROM command_requests
+                    WHERE request_id IN (
+                        SELECT candidate.request_id
+                        FROM command_requests AS candidate
+                        WHERE candidate.retention_class='ephemeral'
+                          AND candidate.status IN ('completed', 'failed')
+                          AND candidate.completed_at IS NOT NULL
                           AND NOT EXISTS (
                               SELECT 1 FROM cargo_start_requests AS start
-                              WHERE start.request_id=command_requests.request_id
+                              WHERE start.request_id=candidate.request_id
                           )
-                        ORDER BY completed_at DESC, request_id DESC
+                        ORDER BY candidate.completed_at DESC, candidate.request_id DESC
                         LIMIT ? OFFSET ?
-                        """,
-                        (remaining, max_ephemeral),
                     )
-                )
-                for request_id in overflow:
-                    changed += connection.execute(
-                        "DELETE FROM command_requests WHERE request_id=?", (request_id,)
-                    ).rowcount
+                    """,
+                    (remaining, max_ephemeral),
+                ).rowcount
                 remaining = batch_size - changed
 
             compacted_at = utc_text(current)

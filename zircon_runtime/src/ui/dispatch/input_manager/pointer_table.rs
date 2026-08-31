@@ -79,9 +79,21 @@ impl UiActivePointerTable {
         }
     }
 
-    pub fn set_hovered_path(&mut self, pointer_id: UiPointerId, hovered: Vec<UiNodeId>) {
+    pub fn set_hovered_path(&mut self, pointer_id: UiPointerId, hovered: impl AsRef<[UiNodeId]>) {
+        let hovered = hovered.as_ref();
+        self.set_hovered_path_iter(pointer_id, hovered.iter().copied());
+    }
+
+    pub fn set_hovered_path_iter(
+        &mut self,
+        pointer_id: UiPointerId,
+        hovered: impl Iterator<Item = UiNodeId> + Clone,
+    ) {
         if let Some(entry) = self.entry_mut(pointer_id) {
-            entry.hovered = hovered;
+            if !entry.hovered.iter().copied().eq(hovered.clone()) {
+                entry.hovered.clear();
+                entry.hovered.extend(hovered);
+            }
         }
     }
 
@@ -228,3 +240,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "pointer_table/hovered_path_tests.rs"]
+mod hovered_path_tests;

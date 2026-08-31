@@ -116,10 +116,10 @@ The final incremental independent review reports `Critical 0 / Important 0 / Min
 ## Ready-Frame Evidence Gate
 
 The next current-source DX12 screenshot must be emitted with its matching
-`.png.txt` v9 sidecar and checked before it is copied into this directory:
+`.png.txt` current-schema sidecar and checked before it is copied into this directory:
 
 ```powershell
-python tools/zircon_validate_shader_pbr_viewer_evidence.py <ready.png> --expected-backend Dx12 --require-direct-present
+python tools/zircon_validate_shader_pbr_viewer_evidence.py <ready.png> --expected-backend 'wgpu(dx12)' --require-direct-present
 ```
 
 The gate validates the bounded encoded PNG checksum/RGBA dimensions/visible-pixel

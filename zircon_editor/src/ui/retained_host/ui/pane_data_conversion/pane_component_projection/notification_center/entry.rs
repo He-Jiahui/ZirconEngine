@@ -11,7 +11,7 @@ pub(super) struct NotificationProjectionEntry {
 impl NotificationProjectionEntry {
     pub(super) fn new(id: String) -> Self {
         Self {
-            title: id.clone(),
+            title: String::new(),
             id,
             message: String::new(),
             tone: "info".to_string(),

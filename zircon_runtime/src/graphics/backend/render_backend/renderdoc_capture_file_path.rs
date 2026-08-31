@@ -22,7 +22,7 @@ fn configure_if_renderdoc_is_injected(_path_template: &Path) -> Result<bool, Gra
 
 #[cfg(windows)]
 fn configure_if_renderdoc_is_injected(path_template: &Path) -> Result<bool, GraphicsError> {
-    use std::ffi::{c_char, c_void, CString};
+    use std::ffi::{CString, c_char, c_void};
 
     use libloading::os::windows::Library;
 

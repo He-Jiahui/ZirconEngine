@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseControlEvent, parseSnapshot, parseWorkflowDetail } from "../api/validation";
+import { parseCodexSessions, parseControlEvent, parseFailureProjection, parseGitProjection, parseSnapshot, parseWorkflowDetail } from "../api/validation";
 
 test("runtime contracts reject incomplete snapshots", () => assert.throws(() => parseSnapshot({ eventCursor: 1 })));
 test("runtime contracts parse text-only events", () => assert.equal(parseControlEvent("7", '{"type":"session.updated","payload":{},"createdAt":"now"}').id, 7));
@@ -147,6 +147,17 @@ test("runtime contracts accept the legacy projection during a rolling daemon upg
   assert.equal(parseSnapshot(snapshot).service.sessionTtlSeconds, 600);
 });
 
+test("runtime contracts validate deferred page projections independently", () => {
+  const snapshot = validSnapshot();
+  const failure = { node_id: 1, lifecycle_key: "life", artifact_path: "failure.md", kind: "failure", status: "open", created_at: "now", resolved_at: null, summary_slug: "summary", origin_plan: "origin", fixing_plan: "fixer", origin_child_dir: "01", fixing_child_dir: "02", priority: 1, imported_at: "now" };
+  const finalize = { request_id: "f", session_id: "s", message: "milestone", paths: ["a.rs"], categories: { code: ["a.rs"] }, untracked: [], validation: [["cargo", "test"]], maintenance: 0, status: "previewed", commit_sha: null, error_text: null, created_at: "now", completed_at: null };
+  snapshot.failures.nodes = [failure];
+  snapshot.git.finalizeRequests = [finalize];
+  assert.equal(parseFailureProjection(snapshot.failures).nodes[0]?.node_id, 1);
+  assert.equal(parseGitProjection(snapshot.git).finalizeRequests[0]?.request_id, "f");
+  assert.equal(parseCodexSessions(validCodexProjection()).rows[0]?.threadId, "thread-12345678901234567890");
+});
+
 test("Codex Session contracts accept only bounded exact text projections", () => {
   const snapshot = validSnapshot();
   (snapshot as Record<string, unknown>).codexSessions = validCodexProjection();
@@ -224,7 +235,8 @@ function validCodexProjection() {
     total: 1, truncated: false,
     stateCounts: { active: 1, idle: 0, archived: 0, unavailable: 0 },
     sourceCounts: { active: 1, archived: 0, missing: 0 },
-    queueDepth: 0, lastSuccessfulAt: "2026-07-13T00:01:01Z", lastTerminalCode: "succeeded",
+    queueDepth: 0,
+    lastSuccessfulAt: "2026-07-13T00:01:01Z", lastTerminalCode: "succeeded",
     lastRun: { runId: "run-one", trigger: "hook", status: "succeeded", scannedCount: 1, changedCount: 1, diagnosticCount: 0, unavailableCount: 0, durationMs: 2, errorCode: null, createdAt: "2026-07-13T00:01:00Z", completedAt: "2026-07-13T00:01:01Z" },
   };
 }

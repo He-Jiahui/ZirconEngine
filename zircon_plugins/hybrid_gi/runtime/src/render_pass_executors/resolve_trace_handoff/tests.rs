@@ -29,6 +29,21 @@ const NORMAL_REJECTION_PRODUCT_REPORT: &str =
     "plan18_hybrid_gi_normal_aware_temporal_rejection_wgpu_20260711.txt";
 
 #[test]
+fn resolve_publishes_global_illumination_history_only_after_encoding_succeeds() {
+    let source = include_str!("../resolve_trace_handoff.rs");
+    let encode = source
+        .find("encode_resolve_trace_handoff(")
+        .expect("resolve encoding call");
+    let receipt = source[encode..]
+        .find("record_frame_history_write(FrameHistorySlot::GlobalIllumination)")
+        .map(|offset| encode + offset)
+        .expect("global-illumination history receipt");
+
+    assert!(encode < receipt);
+    assert!(source[encode..receipt].contains(")?;"));
+}
+
+#[test]
 fn resolve_shader_consumes_trace_depth_source_packet() {
     let source = include_str!("../../hybrid_gi/renderer/shaders/resolve_trace_depth_source.wgsl");
 

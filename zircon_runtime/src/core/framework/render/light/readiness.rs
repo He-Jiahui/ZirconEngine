@@ -85,12 +85,14 @@ mod tests {
             RenderAmbientLightSnapshot {
                 color: Vec3::ONE,
                 intensity: 1.0,
+                affects_lightmapped_meshes: true,
                 renderer_degraded: false,
                 degradation_reason: None,
             },
             RenderAmbientLightSnapshot {
                 color: Vec3::ZERO,
                 intensity: 0.0,
+                affects_lightmapped_meshes: true,
                 renderer_degraded: true,
                 degradation_reason: Some("ambient fallback only".to_string()),
             },

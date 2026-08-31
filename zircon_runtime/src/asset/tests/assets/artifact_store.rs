@@ -62,7 +62,7 @@ fn artifact_store_streams_compressed_bytes_into_final_payload() {
     assert!(source.contains("atomic_write(&artifact_path"));
     assert!(source.contains("file.metadata()?.len() != expected_bytes"));
     assert!(source.contains("revision: metadata.revision"));
-    assert!(source.contains("ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 5"));
+    assert!(source.contains("ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 6"));
     assert!(source.contains("ARTIFACT_MANIFEST_MAX_BYTES: usize = 4 * 1024 * 1024"));
     assert!(source.contains(
         "payload.extend_from_slice(&bytes);\n    if payload.len() > ARTIFACT_MANIFEST_MAX_BYTES"
@@ -85,7 +85,7 @@ fn artifact_store_streams_compressed_bytes_into_final_payload() {
 
 fn assert_binary_artifact_payload(paths: &ProjectPaths, artifact_uri: &AssetUri) {
     let payload = fs::read(paths.asset_artifact_root().join(artifact_uri.path())).unwrap();
-    assert!(payload.starts_with(b"ZRARTM05"));
+    assert!(payload.starts_with(b"ZRARTM06"));
     assert!(paths.asset_artifact_root().join("chunks").is_dir());
 }
 
@@ -115,7 +115,7 @@ fn artifact_store_manifest_records_resource_revision() {
     let payload = fs::read(paths.asset_artifact_root().join(artifact_uri.path())).unwrap();
     let manifest: ArtifactManifestFixture = bincode::deserialize(&payload[8..]).unwrap();
 
-    assert_eq!(manifest.schema_version, 5);
+    assert_eq!(manifest.schema_version, 6);
     assert_eq!(manifest.revision, record.revision);
 
     record.revision = 48;
@@ -181,6 +181,39 @@ fn artifact_store_rejects_v4_manifest_magic_after_model_payload_shape_change() {
     fs::write(manifest_path, payload).unwrap();
 
     assert!(store.read(&paths, &artifact_uri).is_err());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn artifact_store_rejects_v5_manifest_magic_before_deserializing_changed_payloads() {
+    let root = unique_temp_project_root("artifact_store_rejects_v5_font_payload_wire");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+    let asset = ImportedAsset::Data(DataAsset {
+        uri: AssetUri::parse("res://data/legacy-font-payload.json").unwrap(),
+        format: DataAssetFormat::Json,
+        text: "{\"legacy\":false}".to_string(),
+        canonical_json: serde_json::json!({"legacy": false}),
+    });
+    let record = ResourceRecord::new(
+        AssetId::new(),
+        AssetKind::Data,
+        AssetUri::parse("res://data/legacy-font-payload.json").unwrap(),
+    );
+    let store = ArtifactStore::default();
+    let artifact_uri = store.write(&paths, &record, &asset).unwrap();
+    let manifest_path = paths.asset_artifact_root().join(artifact_uri.path());
+    let mut payload = fs::read(&manifest_path).unwrap();
+    payload[..8].copy_from_slice(b"ZRARTM05");
+    fs::write(manifest_path, payload).unwrap();
+
+    assert!(matches!(
+        store.read(&paths, &artifact_uri),
+        Err(AssetImportError::Parse(message)) if message.contains("unsupported artifact manifest format")
+    ));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -332,7 +365,7 @@ fn artifact_store_rejects_oversized_manifest_before_deserialization() {
     let artifact_uri = AssetUri::parse("lib://data/oversized.zasset").unwrap();
     let manifest_path = paths.asset_artifact_root().join(artifact_uri.path());
     fs::create_dir_all(manifest_path.parent().unwrap()).unwrap();
-    let mut payload = b"ZRARTM05".to_vec();
+    let mut payload = b"ZRARTM06".to_vec();
     payload.resize(4 * 1024 * 1024 + 1, 0);
     fs::write(manifest_path, payload).unwrap();
 
@@ -353,7 +386,7 @@ fn artifact_store_manifest_budget_covers_maximum_chunk_inventory() {
     let chunk_count = compressed_bound_bytes.div_ceil(chunk_bytes) as usize;
     let chunk_hash = blake3::hash(b"chunk").to_hex().to_string();
     let manifest = ArtifactManifestFixture {
-        schema_version: 5,
+        schema_version: 6,
         kind: AssetKind::Data,
         revision: 0,
         content_hash: chunk_hash.clone(),
@@ -366,7 +399,7 @@ fn artifact_store_manifest_budget_covers_maximum_chunk_inventory() {
             })
             .collect(),
     };
-    let manifest_bytes = bincode::serialize(&manifest).unwrap().len() + b"ZRARTM05".len();
+    let manifest_bytes = bincode::serialize(&manifest).unwrap().len() + b"ZRARTM06".len();
 
     assert!(
         manifest_bytes <= 4 * 1024 * 1024,
@@ -384,7 +417,7 @@ fn artifact_store_rejects_zero_length_manifest_payloads_before_chunk_io() {
     let artifact_uri = AssetUri::parse("lib://data/zero-length.zasset").unwrap();
     let chunk_hash = blake3::hash(b"x").to_hex().to_string();
     let manifest = ArtifactManifestFixture {
-        schema_version: 5,
+        schema_version: 6,
         kind: AssetKind::Data,
         revision: 0,
         content_hash: chunk_hash.clone(),
@@ -395,7 +428,7 @@ fn artifact_store_rejects_zero_length_manifest_payloads_before_chunk_io() {
             compressed_bytes: 1,
         }],
     };
-    let mut payload = b"ZRARTM05".to_vec();
+    let mut payload = b"ZRARTM06".to_vec();
     payload.extend_from_slice(&bincode::serialize(&manifest).unwrap());
     let manifest_path = paths.asset_artifact_root().join(artifact_uri.path());
     fs::create_dir_all(manifest_path.parent().unwrap()).unwrap();
@@ -419,7 +452,7 @@ fn artifact_store_rejects_manifest_raw_payloads_over_the_runtime_budget() {
     let artifact_uri = AssetUri::parse("lib://data/raw-budget.zasset").unwrap();
     let chunk_hash = blake3::hash(b"x").to_hex().to_string();
     let manifest = ArtifactManifestFixture {
-        schema_version: 5,
+        schema_version: 6,
         kind: AssetKind::Data,
         revision: 0,
         content_hash: chunk_hash.clone(),
@@ -430,7 +463,7 @@ fn artifact_store_rejects_manifest_raw_payloads_over_the_runtime_budget() {
             compressed_bytes: 1,
         }],
     };
-    let mut payload = b"ZRARTM05".to_vec();
+    let mut payload = b"ZRARTM06".to_vec();
     payload.extend_from_slice(&bincode::serialize(&manifest).unwrap());
     let manifest_path = paths.asset_artifact_root().join(artifact_uri.path());
     fs::create_dir_all(manifest_path.parent().unwrap()).unwrap();
@@ -454,7 +487,7 @@ fn artifact_store_rejects_manifest_compressed_payloads_over_the_zstd_bound_befor
     let artifact_uri = AssetUri::parse("lib://data/compressed-budget.zasset").unwrap();
     let chunk_hash = blake3::hash(b"x").to_hex().to_string();
     let manifest = ArtifactManifestFixture {
-        schema_version: 5,
+        schema_version: 6,
         kind: AssetKind::Data,
         revision: 0,
         content_hash: chunk_hash.clone(),
@@ -465,7 +498,7 @@ fn artifact_store_rejects_manifest_compressed_payloads_over_the_zstd_bound_befor
             compressed_bytes: 65,
         }],
     };
-    let mut payload = b"ZRARTM05".to_vec();
+    let mut payload = b"ZRARTM06".to_vec();
     payload.extend_from_slice(&bincode::serialize(&manifest).unwrap());
     let manifest_path = paths.asset_artifact_root().join(artifact_uri.path());
     fs::create_dir_all(manifest_path.parent().unwrap()).unwrap();
@@ -526,7 +559,7 @@ fn artifact_store_verifies_final_manifest_chunk_after_payload_deserializes() {
         content_hash: final_chunk_hash,
         compressed_bytes: empty_frame.len() as u32,
     });
-    let mut rewritten = b"ZRARTM05".to_vec();
+    let mut rewritten = b"ZRARTM06".to_vec();
     rewritten.extend_from_slice(&bincode::serialize(&manifest).unwrap());
     fs::write(&manifest_path, rewritten).unwrap();
 
@@ -588,7 +621,7 @@ fn artifact_store_rejects_manifest_chunk_ids_that_escape_the_chunk_root() {
         .unwrap();
     let artifact_uri = AssetUri::parse("lib://data/malicious.zasset").unwrap();
     let manifest = ArtifactManifestFixture {
-        schema_version: 5,
+        schema_version: 6,
         kind: AssetKind::Data,
         revision: 0,
         content_hash: blake3::hash(b"manifest-content").to_hex().to_string(),
@@ -599,7 +632,7 @@ fn artifact_store_rejects_manifest_chunk_ids_that_escape_the_chunk_root() {
             compressed_bytes: 1,
         }],
     };
-    let mut payload = b"ZRARTM05".to_vec();
+    let mut payload = b"ZRARTM06".to_vec();
     payload.extend_from_slice(&bincode::serialize(&manifest).unwrap());
     let manifest_path = paths.asset_artifact_root().join(artifact_uri.path());
     fs::create_dir_all(manifest_path.parent().unwrap()).unwrap();

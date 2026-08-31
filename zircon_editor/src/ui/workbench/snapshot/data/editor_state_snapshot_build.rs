@@ -1,4 +1,3 @@
-use crate::core::editing::engine::HistoryContextId;
 use crate::core::extension::{
     FieldEditorContainer, FieldEditorInstance, InspectTarget, InspectTargetType,
     InspectorCustomizationChain, InspectorField,
@@ -6,7 +5,7 @@ use crate::core::extension::{
 use crate::ui::workbench::state::EditorState;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
-use zircon_runtime::scene::{NodeId, Scene};
+use zircon_runtime::scene::{default_render_layer_mask, NodeId, Scene};
 use zircon_runtime_interface::reflect::{
     ReflectFieldValue, ReflectFieldsRequest, ReflectObjectAddress, ReflectTypeRegistration,
     ReflectedValue,
@@ -34,41 +33,52 @@ impl EditorState {
         let selection = self.viewport_controller.selection();
         let selected = selection.active_primary();
         let selected_items = selection.active_items().iter().copied().collect::<Vec<_>>();
-        let (scene_entries, inspector) = self
-            .world
-            .try_with_world(|scene| {
-                let hierarchy = scene.inspection_artifact();
-                let selected = selected.filter(|entity| hierarchy.hierarchy_row(*entity).is_some());
-                let selected_items = selected_items
-                    .iter()
-                    .copied()
-                    .filter(|entity| hierarchy.hierarchy_row(*entity).is_some())
-                    .collect::<BTreeSet<_>>();
-                let inspector = selected.map(|id| InspectorSnapshot {
+        let (scene_entries, inspector) = match self.world.with_world(|scene| {
+            let hierarchy = scene.inspection_artifact();
+            let selected = selected.filter(|entity| hierarchy.hierarchy_row(*entity).is_some());
+            let selected_items = selected_items
+                .iter()
+                .copied()
+                .filter(|entity| hierarchy.hierarchy_row(*entity).is_some())
+                .collect::<BTreeSet<_>>();
+            let inspector = selected.map(|id| InspectorSnapshot {
+                id,
+                name: self.name_field.clone(),
+                parent: self.parent_field.clone(),
+                translation: self.transform_fields.clone(),
+                scale: self.scale_fields.clone(),
+                render_layer_mask: scene
+                    .render_layer_mask(id)
+                    .unwrap_or_else(default_render_layer_mask),
+                plugin_components: inspector_plugin_components(
+                    scene,
                     id,
-                    name: self.name_field.clone(),
-                    parent: self.parent_field.clone(),
-                    translation: self.transform_fields.clone(),
-                    scale: self.scale_fields.clone(),
-                    plugin_components: inspector_plugin_components(
-                        scene,
-                        id,
-                        &self.inspector_dynamic_fields,
-                        inspector_customizations,
-                        field_editors,
-                    ),
-                });
-                let scene_entries = self
-                    .scene_entry_projection_cache
-                    .project(&hierarchy, &selected_items);
+                    &self.inspector_dynamic_fields,
+                    inspector_customizations,
+                    field_editors,
+                ),
+            });
+            let scene_entries = self
+                .scene_entry_projection_cache
+                .project(&hierarchy, &selected_items);
 
-                (scene_entries, inspector)
-            })
-            .unwrap_or_else(|| (SceneEntries::default(), None));
-        let (asset_activity, asset_browser) = self.asset_workspace.build_surface_snapshots();
+            (scene_entries, inspector)
+        }) {
+            Ok(Some(snapshot)) => snapshot,
+            Ok(None) => (SceneEntries::default(), None),
+            Err(error) => {
+                self.report_authoring_world_access_failure("workbench snapshot", &error);
+                (SceneEntries::default(), None)
+            }
+        };
+        let (asset_activity, mut asset_browser) = self.asset_workspace.build_surface_snapshots();
+        asset_browser
+            .mesh_import_path
+            .clone_from(&self.mesh_import_path);
 
-        let history = (!self.is_playing())
-            .then(|| self.transactions().history_status(HistoryContextId::Global))
+        let history = self
+            .active_scene_history_context()
+            .map(|history| self.transactions().history_status(history))
             .and_then(Result::ok);
         EditorDataSnapshot {
             scene_entries,
@@ -235,10 +245,11 @@ fn inspector_plugin_component_reflected_properties(
         .filter_map(|field| {
             let value = fields
                 .iter()
-                .find(|candidate| candidate.field_name == field.name)?;
+                .find(|candidate| candidate.field_id == field.id)?;
             Some(inspector_plugin_component_property_from_reflected_field(
                 component_id,
                 value,
+                &field.name,
                 &field.display_name,
                 &field.value_type_path,
                 field.editable,
@@ -314,13 +325,14 @@ fn inspector_plugin_component_json_properties(
 fn inspector_plugin_component_property_from_reflected_field(
     component_id: &str,
     field: &ReflectFieldValue,
+    field_name: &str,
     display_name: &str,
     value_type_path: &str,
     editable: bool,
     draft_fields: &BTreeMap<String, String>,
     field_editors: &FieldEditorContainer,
 ) -> InspectorPluginComponentPropertySnapshot {
-    let field_id = format!("{component_id}.{}", field.field_name);
+    let field_id = format!("{component_id}.{field_name}");
     let value = reflected_value_label(&field.value);
     let label = property_label(display_name);
     let value = draft_fields.get(&field_id).cloned().unwrap_or(value);
@@ -335,7 +347,7 @@ fn inspector_plugin_component_property_from_reflected_field(
             field_editors,
         ),
         field_id: field_id.clone(),
-        name: field.field_name.clone(),
+        name: field_name.to_string(),
         label,
         value,
         value_kind: value_type_path.to_string(),

@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use crate::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
 use crate::plugin::{
-    RuntimePluginAvailabilityReport, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
-    RuntimeProfileDescriptor,
+    CompiledProjectPluginPlan, RuntimePluginAvailabilityReport, RuntimePluginDescriptor,
+    RuntimePluginRegistrationReport, RuntimeProfileDescriptor,
 };
 
 #[cfg(test)]
@@ -33,6 +33,30 @@ pub(super) fn runtime_profile_manifest_availability<'a>(
         manifest,
         registrations,
     )
+}
+
+pub(super) fn runtime_profile_compiled_plan_availability(
+    profile: &RuntimeProfileDescriptor,
+    plan: &CompiledProjectPluginPlan,
+) -> RuntimePluginAvailabilityReport {
+    let descriptors = runtime_plugin_descriptors();
+    profile.availability_report_for_manifest_with_providers(
+        descriptors.iter(),
+        plan.completed_manifest(),
+        plan.linked_provider_package_ids(),
+        plan.native_dynamic_provider_package_ids(),
+    )
+}
+
+pub(super) fn target_compiled_plan_availability(
+    plan: &CompiledProjectPluginPlan,
+) -> RuntimePluginAvailabilityReport {
+    let profile = RuntimeProfileDescriptor::new(
+        runtime_profile_id_for_target_availability(plan.target_mode()),
+        "compiled project plugin plan module selection",
+        plan.target_mode(),
+    );
+    runtime_profile_compiled_plan_availability(&profile, plan)
 }
 
 pub(super) fn target_manifest_availability(

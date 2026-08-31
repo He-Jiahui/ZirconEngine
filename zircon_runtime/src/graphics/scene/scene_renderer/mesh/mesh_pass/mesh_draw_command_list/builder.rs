@@ -1,8 +1,9 @@
-use std::collections::HashSet;
+use std::sync::Arc;
 
-use rayon::prelude::*;
-
-use crate::core::framework::render::{RenderMeshStaticState, RenderPhase, ShaderQualityTier};
+use crate::core::framework::render::{
+    RenderMeshStaticState, RenderPhase, RenderViewportPickPolicy, ShaderQualityTier,
+};
+use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::TaskPool;
 
 use super::super::super::mesh_draw::MeshDrawQueuePhase;
@@ -17,11 +18,18 @@ use super::super::mesh_pass_processor::{
     MeshPassCommandSpec, MeshPassProcessor,
 };
 use super::super::processors::{
-    DepthPrepassProcessor, OpaqueBasePassProcessor, ShadowPassProcessor,
+    DepthPrepassProcessor, HitProxyPassProcessor, OpaqueBasePassProcessor, ShadowPassProcessor,
     TaaReactiveMaskPassProcessor, TransparentPassProcessor, VelocityPassProcessor,
 };
-use super::super::{MeshDrawCommand, MeshPipelineVariantId};
+use super::super::{MeshDrawCommand, MeshDrawCommandPayload, MeshPipelineVariantId};
 use super::{MeshDrawCommandList, MeshPassCommandBuffers};
+
+mod parallel_admission;
+#[cfg(test)]
+mod profiling_contract_tests;
+
+pub(super) use parallel_admission::should_prepare_batches_in_parallel;
+use parallel_admission::ParallelPreparationMode;
 
 pub(crate) fn build_mesh_pass_command_buffers<R>(
     draws: &[MeshDraw],
@@ -40,6 +48,46 @@ where
     )
 }
 
+/// Builds only the opaque command streams consumed by environment capture, avoiding variant
+/// resolution for transparent, transmission, shadow, velocity, and temporal passes.
+pub(crate) fn build_environment_capture_command_buffers<R>(
+    draws: &[MeshDraw],
+    variant_resolver: &mut R,
+    shader_quality: ShaderQualityTier,
+) -> MeshPassCommandBuffers
+where
+    R: MeshPipelineVariantResolver + ?Sized,
+{
+    build_environment_capture_command_buffers_from_batches(
+        draws
+            .iter()
+            .enumerate()
+            .map(|(draw_index, draw)| draw.mesh_pass_batch_ref(draw_index as u64, draw_index)),
+        variant_resolver,
+        shader_quality,
+    )
+}
+
+pub(crate) fn build_hit_proxy_command_list<R>(
+    draws: &[MeshDraw],
+    variant_resolver: &mut R,
+    policy: RenderViewportPickPolicy,
+    shader_quality: ShaderQualityTier,
+) -> MeshDrawCommandList
+where
+    R: MeshPipelineVariantResolver + ?Sized,
+{
+    let mut processor = HitProxyPassProcessor::new(policy);
+    let mut commands = MeshDrawCommandList::new();
+    let mut context = MeshPassBuildContext::new(variant_resolver, shader_quality);
+    for (draw_index, draw) in draws.iter().enumerate() {
+        let batch = draw.mesh_pass_batch_ref(draw_index as u64, draw_index);
+        processor.add_mesh_batch(&batch, &mut context, &mut commands);
+    }
+    commands.sort();
+    commands
+}
+
 pub(crate) fn build_mesh_pass_command_buffers_cached<R>(
     draws: &[MeshDraw],
     variant_resolver: &mut R,
@@ -50,7 +98,7 @@ pub(crate) fn build_mesh_pass_command_buffers_cached<R>(
 where
     R: MeshPipelineVariantResolver + ?Sized,
 {
-    build_mesh_pass_command_buffers_from_batches_cached(
+    build_mesh_pass_command_buffers_from_ordered_batches_cached(
         draws
             .iter()
             .enumerate()
@@ -97,6 +145,28 @@ where
     build_mesh_pass_command_buffers_from_batches_uncached(batches, variant_resolver, shader_quality)
 }
 
+pub(super) fn build_environment_capture_command_buffers_from_batches<R>(
+    batches: impl IntoIterator<Item = MeshBatchRef>,
+    variant_resolver: &mut R,
+    shader_quality: ShaderQualityTier,
+) -> MeshPassCommandBuffers
+where
+    R: MeshPipelineVariantResolver + ?Sized,
+{
+    let mut opaque_base = OpaqueBasePassProcessor;
+    let mut commands = MeshDrawCommandList::new();
+    let mut build_context = MeshPassBuildContext::new(variant_resolver, shader_quality);
+    let mut cache_stats = MeshDrawCommandCacheStats::default();
+
+    for batch in batches {
+        let command_start = commands.commands().len();
+        opaque_base.add_mesh_batch(&batch, &mut build_context, &mut commands);
+        record_dynamic_commands_since(&commands, command_start, &mut cache_stats);
+    }
+
+    MeshPassCommandBuffers::from_command_list(commands, cache_stats)
+}
+
 fn build_mesh_pass_command_buffers_from_batches_uncached<R>(
     batches: impl IntoIterator<Item = MeshBatchRef>,
     variant_resolver: &mut R,
@@ -105,25 +175,12 @@ fn build_mesh_pass_command_buffers_from_batches_uncached<R>(
 where
     R: MeshPipelineVariantResolver + ?Sized,
 {
-    let mut depth_prepass = DepthPrepassProcessor;
-    let mut opaque_base = OpaqueBasePassProcessor;
-    let mut transparent = TransparentPassProcessor;
-    let mut shadow = ShadowPassProcessor;
-    let mut velocity = VelocityPassProcessor;
-    let mut taa_reactive_mask = TaaReactiveMaskPassProcessor;
     let mut commands = MeshDrawCommandList::new();
     let mut build_context = MeshPassBuildContext::new(variant_resolver, shader_quality);
     let mut cache_stats = MeshDrawCommandCacheStats::default();
 
     for batch in batches {
-        let command_start = commands.commands().len();
-        depth_prepass.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        shadow.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        opaque_base.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        transparent.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        velocity.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        taa_reactive_mask.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        record_dynamic_commands_since(&commands, command_start, &mut cache_stats);
+        add_uncached_batch_commands(&batch, &mut build_context, &mut commands, &mut cache_stats);
     }
 
     MeshPassCommandBuffers::from_command_list(commands, cache_stats)
@@ -139,39 +196,60 @@ pub(super) fn build_mesh_pass_command_buffers_from_batches_cached<R>(
 where
     R: MeshPipelineVariantResolver + ?Sized,
 {
-    let mut depth_prepass = DepthPrepassProcessor;
-    let mut opaque_base = OpaqueBasePassProcessor;
-    let mut transparent = TransparentPassProcessor;
-    let mut shadow = ShadowPassProcessor;
-    let mut velocity = VelocityPassProcessor;
-    let mut taa_reactive_mask = TaaReactiveMaskPassProcessor;
+    let batches = collect_batches_in_source_order(batches);
+    build_mesh_pass_command_buffers_from_ordered_batches_cached(
+        batches,
+        variant_resolver,
+        command_cache,
+        generation,
+        shader_quality,
+    )
+}
+
+fn build_mesh_pass_command_buffers_from_ordered_batches_cached<R>(
+    batches: impl IntoIterator<Item = MeshBatchRef>,
+    variant_resolver: &mut R,
+    command_cache: &mut CachedMeshDrawCommands,
+    generation: u64,
+    shader_quality: ShaderQualityTier,
+) -> MeshPassCommandBuffers
+where
+    R: MeshPipelineVariantResolver + ?Sized,
+{
+    crate::profile_scope!("render", "mesh_commands", "prepare_cached_serial");
     let mut commands = MeshDrawCommandList::new();
     let mut build_context = MeshPassBuildContext::new(variant_resolver, shader_quality);
     let mut cache_stats = MeshDrawCommandCacheStats::default();
 
-    for batch in batches {
-        if add_cached_static_batch(
-            &batch,
-            &mut build_context,
-            command_cache,
-            generation,
-            &mut commands,
-            &mut cache_stats,
-        ) {
-            continue;
-        }
+    {
+        crate::profile_scope!("render", "mesh_commands", "serial_prepare_and_project");
+        for batch in batches {
+            if add_cached_static_batch(
+                &batch,
+                &mut build_context,
+                command_cache,
+                generation,
+                shader_quality,
+                &mut commands,
+                &mut cache_stats,
+            ) {
+                continue;
+            }
 
-        let command_start = commands.commands().len();
-        depth_prepass.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        shadow.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        opaque_base.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        transparent.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        velocity.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        taa_reactive_mask.add_mesh_batch(&batch, &mut build_context, &mut commands);
-        record_dynamic_commands_since(&commands, command_start, &mut cache_stats);
+            add_uncached_batch_commands(
+                &batch,
+                &mut build_context,
+                &mut commands,
+                &mut cache_stats,
+            );
+        }
     }
 
-    MeshPassCommandBuffers::from_command_list(commands, cache_stats)
+    record_preparation_result_profile(&commands, &cache_stats);
+    {
+        crate::profile_scope!("render", "mesh_commands", "seal_phase_buffers");
+        MeshPassCommandBuffers::from_command_list(commands, cache_stats)
+    }
 }
 
 pub(super) fn build_mesh_pass_command_buffers_from_batches_cached_parallel<R>(
@@ -185,10 +263,30 @@ pub(super) fn build_mesh_pass_command_buffers_from_batches_cached_parallel<R>(
 where
     R: MeshPipelineVariantResolver + ?Sized,
 {
-    let mut batches = batches.into_iter().collect::<Vec<_>>();
-    batches.sort_by_key(|batch| batch.source_draw_index);
-    if task_pool.parallelism() <= 1 || batches.len() < 2 || has_duplicate_cache_keys(&batches) {
-        return build_mesh_pass_command_buffers_from_batches_cached(
+    crate::profile_scope!("render", "mesh_commands", "prepare_cached_dispatch");
+    let batches = collect_batches_in_source_order(batches);
+    let preparation_mode = {
+        crate::profile_scope!("render", "mesh_commands", "parallel_admission");
+        ParallelPreparationMode::select(&batches, shader_quality, task_pool)
+    };
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    crate::core::diagnostics::profiling::record_counter_batch(
+        "render",
+        &[
+            ("mesh_commands.batch_count", batches.len() as f64),
+            ("mesh_commands.worker_count", task_pool.parallelism() as f64),
+            (
+                "mesh_commands.parallel_enabled",
+                u8::from(preparation_mode.is_parallel()) as f64,
+            ),
+            (
+                "mesh_commands.dispatch_reason_code",
+                preparation_mode.profile_code() as f64,
+            ),
+        ],
+    );
+    if !preparation_mode.is_parallel() {
+        return build_mesh_pass_command_buffers_from_ordered_batches_cached(
             batches,
             variant_resolver,
             command_cache,
@@ -197,37 +295,82 @@ where
         );
     }
 
-    let plans = batches
-        .into_iter()
-        .map(|batch| {
-            prepare_batch_plan(
-                batch,
-                variant_resolver,
-                command_cache,
-                generation,
-                shader_quality,
-            )
-        })
-        .collect::<Vec<_>>();
-    let chunks = task_pool.install(|| {
-        plans
-            .into_par_iter()
-            .map(build_prepared_batch_chunk)
+    let plans = {
+        crate::profile_scope!("render", "mesh_commands", "owner_transaction");
+        batches
+            .into_iter()
+            .map(|batch| {
+                prepare_batch_plan(
+                    batch,
+                    variant_resolver,
+                    command_cache,
+                    generation,
+                    shader_quality,
+                )
+            })
             .collect::<Vec<_>>()
-    });
+    };
+    let chunks = {
+        crate::profile_scope!("render", "mesh_commands", "worker_projection_wait");
+        task_pool.parallel_map_ordered(plans, build_prepared_batch_chunk)
+    };
 
     let mut commands = MeshDrawCommandList::new();
     let mut cache_stats = MeshDrawCommandCacheStats::default();
-    for chunk in chunks {
-        for store in chunk.cache_stores {
-            command_cache.store(store.key, &store.state, store.command, generation);
+    {
+        crate::profile_scope!("render", "mesh_commands", "ordered_merge");
+        for chunk in chunks {
+            for store in chunk.cache_stores {
+                command_cache.store(store.key, &store.state, store.payload, generation);
+            }
+            for command in chunk.commands {
+                commands.push(command);
+            }
+            cache_stats.accumulate(chunk.cache_stats);
         }
-        for command in chunk.commands {
-            commands.push(command);
-        }
-        cache_stats.accumulate(chunk.cache_stats);
     }
-    MeshPassCommandBuffers::from_command_list(commands, cache_stats)
+    record_preparation_result_profile(&commands, &cache_stats);
+    {
+        crate::profile_scope!("render", "mesh_commands", "seal_phase_buffers");
+        MeshPassCommandBuffers::from_command_list(commands, cache_stats)
+    }
+}
+
+fn record_preparation_result_profile(
+    commands: &MeshDrawCommandList,
+    cache_stats: &MeshDrawCommandCacheStats,
+) {
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    crate::core::diagnostics::profiling::record_counter_batch(
+        "render",
+        &[
+            (
+                "mesh_commands.cache_hit_count",
+                cache_stats.cached_command_hit_count as f64,
+            ),
+            (
+                "mesh_commands.cache_miss_count",
+                cache_stats.cache_miss_count as f64,
+            ),
+            (
+                "mesh_commands.command_rebuild_count",
+                cache_stats.command_rebuild_count as f64,
+            ),
+            (
+                "mesh_commands.command_count",
+                commands.commands().len() as f64,
+            ),
+        ],
+    );
+}
+
+fn collect_batches_in_source_order(
+    batches: impl IntoIterator<Item = MeshBatchRef>,
+) -> Vec<MeshBatchRef> {
+    crate::profile_scope!("render", "mesh_commands", "normalize_source_order");
+    let mut batches = batches.into_iter().collect::<Vec<_>>();
+    batches.sort_by_key(|batch| batch.source_draw_index);
+    batches
 }
 
 fn prepare_batch_plan<R>(
@@ -324,13 +467,13 @@ fn prepare_cached_phase<R>(
     if !CachedMeshDrawCommands::is_cacheable_batch_phase(&plan.batch, phase) {
         return;
     }
-    let Some(key) = CachedMeshDrawKey::from_batch_phase(&plan.batch, phase) else {
+    let Some(key) = CachedMeshDrawKey::from_batch_phase(&plan.batch, phase, shader_quality) else {
         return;
     };
     match command_cache.lookup_status(&key, &plan.batch.static_state, generation) {
-        CachedMeshDrawLookup::Hit(command) => {
+        CachedMeshDrawLookup::Hit(payload) => {
             plan.cache_stats.cached_command_hit_count += 1;
-            plan.commands.push(PreparedCommand::Cached(command));
+            plan.commands.push(PreparedCommand::Cached(payload));
             return;
         }
         CachedMeshDrawLookup::Miss => plan.cache_stats.cache_miss_count += 1,
@@ -390,7 +533,9 @@ fn build_prepared_batch_chunk(plan: PreparedBatchPlan) -> PreparedBatchChunk {
     let mut cache_stores = Vec::new();
     for prepared in plan.commands {
         match prepared {
-            PreparedCommand::Cached(command) => commands.push(command),
+            PreparedCommand::Cached(payload) => {
+                commands.push(plan.batch.project_cached_command(payload));
+            }
             PreparedCommand::Build {
                 spec,
                 variant_id,
@@ -399,13 +544,17 @@ fn build_prepared_batch_chunk(plan: PreparedBatchPlan) -> PreparedBatchChunk {
                 let command = plan
                     .batch
                     .command(spec.phase, spec.pipeline_kind, variant_id);
-                if let Some(key) = cache_key {
+                let command = if let Some(key) = cache_key {
+                    let (command, payload) = command.into_shared_payload();
                     cache_stores.push(PreparedCacheStore {
                         key,
                         state: plan.batch.static_state,
-                        command: command.clone(),
+                        payload,
                     });
-                }
+                    command
+                } else {
+                    command
+                };
                 commands.push(command);
             }
         }
@@ -415,28 +564,6 @@ fn build_prepared_batch_chunk(plan: PreparedBatchPlan) -> PreparedBatchChunk {
         cache_stores,
         cache_stats: plan.cache_stats,
     }
-}
-
-fn has_duplicate_cache_keys(batches: &[MeshBatchRef]) -> bool {
-    let mut keys = HashSet::new();
-    for batch in batches {
-        for phase in [
-            RenderPhase::Prepass,
-            RenderPhase::Shadow,
-            RenderPhase::Opaque3d,
-            RenderPhase::AlphaMask3d,
-        ] {
-            if !CachedMeshDrawCommands::is_cacheable_batch_phase(batch, phase) {
-                continue;
-            }
-            if let Some(key) = CachedMeshDrawKey::from_batch_phase(batch, phase) {
-                if !keys.insert(key) {
-                    return true;
-                }
-            }
-        }
-    }
-    false
 }
 
 struct PreparedBatchPlan {
@@ -456,7 +583,7 @@ impl PreparedBatchPlan {
 }
 
 enum PreparedCommand {
-    Cached(MeshDrawCommand),
+    Cached(Arc<MeshDrawCommandPayload>),
     Build {
         spec: MeshPassCommandSpec,
         variant_id: MeshPipelineVariantId,
@@ -473,7 +600,7 @@ struct PreparedBatchChunk {
 struct PreparedCacheStore {
     key: CachedMeshDrawKey,
     state: RenderMeshStaticState,
-    command: MeshDrawCommand,
+    payload: Arc<MeshDrawCommandPayload>,
 }
 
 fn add_cached_static_batch<R>(
@@ -481,6 +608,7 @@ fn add_cached_static_batch<R>(
     build_context: &mut MeshPassBuildContext<'_, R>,
     command_cache: &mut CachedMeshDrawCommands,
     generation: u64,
+    shader_quality: ShaderQualityTier,
     commands: &mut MeshDrawCommandList,
     cache_stats: &mut MeshDrawCommandCacheStats,
 ) -> bool
@@ -503,6 +631,7 @@ where
             build_context,
             command_cache,
             generation,
+            shader_quality,
             commands,
             cache_stats,
             |batch, context, out| DepthPrepassProcessor.add_mesh_batch(batch, context, out),
@@ -515,6 +644,7 @@ where
             build_context,
             command_cache,
             generation,
+            shader_quality,
             commands,
             cache_stats,
             |batch, context, out| ShadowPassProcessor.add_mesh_batch(batch, context, out),
@@ -528,6 +658,7 @@ where
                 build_context,
                 command_cache,
                 generation,
+                shader_quality,
                 commands,
                 cache_stats,
                 |batch, context, out| OpaqueBasePassProcessor.add_mesh_batch(batch, context, out),
@@ -540,6 +671,7 @@ where
                 build_context,
                 command_cache,
                 generation,
+                shader_quality,
                 commands,
                 cache_stats,
                 |batch, context, out| OpaqueBasePassProcessor.add_mesh_batch(batch, context, out),
@@ -567,6 +699,7 @@ fn add_cached_or_rebuilt_phase<R>(
     build_context: &mut MeshPassBuildContext<'_, R>,
     command_cache: &mut CachedMeshDrawCommands,
     generation: u64,
+    shader_quality: ShaderQualityTier,
     commands: &mut MeshDrawCommandList,
     cache_stats: &mut MeshDrawCommandCacheStats,
     add_batch: impl FnOnce(&MeshBatchRef, &mut MeshPassBuildContext<'_, R>, &mut MeshDrawCommandList),
@@ -576,13 +709,13 @@ fn add_cached_or_rebuilt_phase<R>(
     if !CachedMeshDrawCommands::is_cacheable_batch_phase(batch, phase) {
         return;
     }
-    let Some(key) = CachedMeshDrawKey::from_batch_phase(batch, phase) else {
+    let Some(key) = CachedMeshDrawKey::from_batch_phase(batch, phase, shader_quality) else {
         return;
     };
     match command_cache.lookup_status(&key, &batch.static_state, generation) {
-        CachedMeshDrawLookup::Hit(command) => {
+        CachedMeshDrawLookup::Hit(payload) => {
             cache_stats.cached_command_hit_count += 1;
-            commands.push(command);
+            commands.push(batch.project_cached_command(payload));
             return;
         }
         CachedMeshDrawLookup::Miss => {
@@ -599,7 +732,8 @@ fn add_cached_or_rebuilt_phase<R>(
         if command.phase != phase {
             continue;
         }
-        command_cache.store(key, &batch.static_state, command.clone(), generation);
+        let (command, payload) = command.into_shared_payload();
+        command_cache.store(key, &batch.static_state, payload, generation);
         cache_stats.command_rebuild_count += 1;
         commands.push(command);
     }
@@ -616,6 +750,24 @@ fn add_uncached_postprocess_phase<R>(
 {
     let command_start = commands.commands().len();
     add_batch(batch, build_context, commands);
+    record_dynamic_commands_since(commands, command_start, cache_stats);
+}
+
+fn add_uncached_batch_commands<R>(
+    batch: &MeshBatchRef,
+    build_context: &mut MeshPassBuildContext<'_, R>,
+    commands: &mut MeshDrawCommandList,
+    cache_stats: &mut MeshDrawCommandCacheStats,
+) where
+    R: MeshPipelineVariantResolver + ?Sized,
+{
+    let command_start = commands.commands().len();
+    DepthPrepassProcessor.add_mesh_batch(batch, build_context, commands);
+    ShadowPassProcessor.add_mesh_batch(batch, build_context, commands);
+    OpaqueBasePassProcessor.add_mesh_batch(batch, build_context, commands);
+    TransparentPassProcessor.add_mesh_batch(batch, build_context, commands);
+    VelocityPassProcessor.add_mesh_batch(batch, build_context, commands);
+    TaaReactiveMaskPassProcessor.add_mesh_batch(batch, build_context, commands);
     record_dynamic_commands_since(commands, command_start, cache_stats);
 }
 

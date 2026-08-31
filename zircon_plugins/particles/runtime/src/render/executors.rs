@@ -44,7 +44,12 @@ impl ExpectedResource {
     }
 }
 
-const SIDE_EFFECT_COMPUTE_FLAGS: PassFlags = PassFlags {
+const GRAPH_DEPENDENT_COMPUTE_FLAGS: PassFlags = PassFlags {
+    allow_culling: true,
+    has_side_effects: false,
+};
+
+const EXTERNAL_READBACK_COMPUTE_FLAGS: PassFlags = PassFlags {
     allow_culling: true,
     has_side_effects: true,
 };
@@ -150,7 +155,7 @@ const SPAWN_UPDATE_CONTRACT: RenderPassExecutorContract = RenderPassExecutorCont
     pass_name: "particle-gpu-spawn-update",
     executor_id: "particle.gpu.spawn-update",
     declared_queue: QueueLane::AsyncCompute,
-    flags: SIDE_EFFECT_COMPUTE_FLAGS,
+    flags: GRAPH_DEPENDENT_COMPUTE_FLAGS,
     resources: SPAWN_UPDATE_RESOURCES,
 };
 
@@ -158,7 +163,7 @@ const COMPACT_CONTRACT: RenderPassExecutorContract = RenderPassExecutorContract 
     pass_name: "particle-gpu-compact-alive",
     executor_id: "particle.gpu.compact-alive",
     declared_queue: QueueLane::AsyncCompute,
-    flags: SIDE_EFFECT_COMPUTE_FLAGS,
+    flags: GRAPH_DEPENDENT_COMPUTE_FLAGS,
     resources: COMPACT_RESOURCES,
 };
 
@@ -166,7 +171,7 @@ const INDIRECT_CONTRACT: RenderPassExecutorContract = RenderPassExecutorContract
     pass_name: "particle-gpu-build-indirect-args",
     executor_id: "particle.gpu.indirect-args",
     declared_queue: QueueLane::AsyncCompute,
-    flags: SIDE_EFFECT_COMPUTE_FLAGS,
+    flags: EXTERNAL_READBACK_COMPUTE_FLAGS,
     resources: INDIRECT_RESOURCES,
 };
 
@@ -262,7 +267,7 @@ fn particle_transparent_executor(
 }
 
 fn record_particle_gpu_transparent(
-    draw: ParticleGpuTransparentDrawContext<'_, '_>,
+    mut draw: ParticleGpuTransparentDrawContext<'_, '_>,
     runtime_owner: &ParticleGpuRuntimeOwnerHandle,
 ) -> Result<bool, String> {
     let mut owner = runtime_owner.lock().map_err(|error| error.to_string())?;
@@ -271,7 +276,7 @@ fn record_particle_gpu_transparent(
             draw.device,
             draw.scene_bind_group_layout,
             ParticleGpuTransparentRenderConfig::new(draw.target_format, draw.depth_format),
-            draw.queue,
+            &mut draw.buffer_uploads,
             draw.encoder,
             draw.color_view,
             draw.depth_view,
@@ -295,15 +300,16 @@ fn emit_particle_gpu_readback(context: &mut RenderPassExecutionContext<'_>) {
     }
     let gpu_frame = particles.gpu_frame.clone();
     let sprite_count = particles.sprites.len() as u32;
+    let outputs = &mut gpu.plugin_outputs_mut().particles;
     if let Some(gpu_frame) = gpu_frame {
-        gpu.plugin_outputs.particles.alive_count = gpu_frame.alive_count;
-        gpu.plugin_outputs.particles.spawned_total = gpu_frame.spawned_total;
-        gpu.plugin_outputs.particles.per_emitter_spawned = gpu_frame.per_emitter_spawned;
-        gpu.plugin_outputs.particles.indirect_draw_args = gpu_frame.indirect_draw_args;
+        outputs.alive_count = gpu_frame.alive_count;
+        outputs.spawned_total = gpu_frame.spawned_total;
+        outputs.per_emitter_spawned = gpu_frame.per_emitter_spawned;
+        outputs.indirect_draw_args = gpu_frame.indirect_draw_args;
     } else {
-        gpu.plugin_outputs.particles.alive_count = sprite_count;
-        gpu.plugin_outputs.particles.spawned_total = sprite_count;
-        gpu.plugin_outputs.particles.indirect_draw_args = [6, sprite_count, 0, 0];
+        outputs.alive_count = sprite_count;
+        outputs.spawned_total = sprite_count;
+        outputs.indirect_draw_args = [6, sprite_count, 0, 0];
     }
 }
 
@@ -326,7 +332,10 @@ fn validate_context(
     if context.declared_queue != contract.declared_queue {
         return Err(format!(
             "particle executor `{}` declared queue mismatch for pass `{}`: expected `{:?}`, got `{:?}`",
-            contract.executor_id, context.pass_name, contract.declared_queue, context.declared_queue
+            contract.executor_id,
+            context.pass_name,
+            contract.declared_queue,
+            context.declared_queue
         ));
     }
     if !queue_is_compatible(context.queue, contract.declared_queue) {

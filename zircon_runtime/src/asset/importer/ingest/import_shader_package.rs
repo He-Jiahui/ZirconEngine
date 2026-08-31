@@ -4,17 +4,17 @@ use std::path::{Path, PathBuf};
 use super::import_shader::shader_entry_points;
 use super::validate_wgsl::validate_wgsl;
 use crate::asset::assets::{
-    generate_material_artifact, validate_wgsl_captures, DataAsset, DataAssetFormat, ImportedAsset,
-    ShaderAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset, ShaderOptionAsset,
-    ShaderSourceFileAsset, ShaderSourceLanguage, ZShaderDocumentV2, ZShaderV2Error,
+    DataAsset, DataAssetFormat, ImportedAsset, ShaderAsset, ShaderEntryPointAsset,
+    ShaderImportRedirectAsset, ShaderOptionAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
+    ZShaderDocumentV2, ZShaderV2Error, generate_material_artifact, validate_wgsl_captures,
 };
 use crate::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetUri, ImportedAssetEntry,
 };
 use crate::core::framework::render::{
-    derive_shader_import_path, is_builtin_shader_module_token, is_generated_shader_module_token,
-    strip_wgsl_include_directives, wgsl_include_paths, ShaderAssetKind, ShaderImportPathDerivation,
-    ShaderImportPathDerivationError, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
+    SHADER_IMPORT_PROJECT_NAMESPACE_SETTING, ShaderAssetKind, ShaderImportPathDerivation,
+    ShaderImportPathDerivationError, derive_shader_import_path, is_builtin_shader_module_token,
+    is_generated_shader_module_token, strip_wgsl_include_directives, wgsl_include_paths,
 };
 use crate::core::resource::{ResourceDiagnostic, ResourceDiagnosticSeverity, ResourceKind};
 
@@ -542,17 +542,25 @@ fn included_file_uri(root_uri: &AssetUri, relative: &Path) -> Result<AssetUri, A
 }
 
 fn normalized_relative_path(path: &Path) -> String {
-    path.components()
-        .map(|component| component.as_os_str().to_string_lossy())
-        .collect::<Vec<_>>()
-        .join("/")
+    let mut normalized = String::with_capacity(path.as_os_str().len());
+    for component in path.components() {
+        if !normalized.is_empty() {
+            normalized.push('/');
+        }
+        normalized.push_str(&component.as_os_str().to_string_lossy());
+    }
+    normalized
 }
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::path::{Path, PathBuf};
+    use std::time::Instant;
+
     use super::{
-        append_shader_module_diagnostics, document_import_path, ShaderImportPathDerivationError,
-        ShaderImportRedirectAsset, ZShaderDocumentV2,
+        ShaderImportPathDerivationError, ShaderImportRedirectAsset, ZShaderDocumentV2,
+        append_shader_module_diagnostics, document_import_path, normalized_relative_path,
     };
     use crate::asset::AssetUri;
 
@@ -576,9 +584,11 @@ wgsl_files = ["surface.wgsl"]
             &[],
         );
 
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("project::math")));
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains("project::math"))
+        );
     }
 
     #[test]
@@ -627,12 +637,16 @@ wgsl_files = ["bad.wgsl"]
             &[] as &[ShaderImportRedirectAsset],
         );
 
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("@group binding")));
-        assert!(diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("entry point annotation")));
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains("@group binding"))
+        );
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains("entry point annotation"))
+        );
     }
 
     #[test]
@@ -656,5 +670,92 @@ import_path = "self::material"
                 namespace: "self".to_string()
             }
         );
+    }
+
+    const SAMPLE_PAIRS: usize = 21;
+    const PATHS_PER_SAMPLE: usize = 8_192;
+
+    #[test]
+    fn normalized_relative_path_preserves_component_order_and_forward_slashes() {
+        let path = PathBuf::from("shaders")
+            .join("lighting")
+            .join("surface.wgsl");
+
+        assert_eq!(
+            normalized_relative_path(&path),
+            "shaders/lighting/surface.wgsl"
+        );
+    }
+
+    #[test]
+    #[ignore = "release-only performance contract"]
+    fn benchmark_single_allocation_shader_relative_path_normalization() {
+        let path = benchmark_path();
+        let mut legacy_raw = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_raw = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair_index in 0..SAMPLE_PAIRS {
+            if pair_index % 2 == 0 {
+                legacy_raw.push(measure_paths(&path, legacy_normalized_relative_path));
+                optimized_raw.push(measure_paths(&path, normalized_relative_path));
+            } else {
+                optimized_raw.push(measure_paths(&path, normalized_relative_path));
+                legacy_raw.push(measure_paths(&path, legacy_normalized_relative_path));
+            }
+        }
+
+        let legacy_p95_ns = nearest_rank(&legacy_raw, 95);
+        let optimized_p95_ns = nearest_rank(&optimized_raw, 95);
+        let improvement_percent = legacy_p95_ns
+            .saturating_sub(optimized_p95_ns)
+            .saturating_mul(100)
+            / legacy_p95_ns.max(1);
+        assert!(
+            optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(85),
+            "single-allocation relative path normalization must improve P95 by at least 15%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
+        );
+        println!(
+            "PERF_RESULT task=plugins07_single_allocation_shader_relative_path sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank path_components=64 paths_per_sample={PATHS_PER_SAMPLE} legacy_allocations_per_path=2 optimized_allocations_per_path=1 legacy_component_vec_allocations_per_sample={PATHS_PER_SAMPLE} optimized_component_vec_allocations_per_sample=0 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
+            raw_samples(&legacy_raw),
+            raw_samples(&optimized_raw)
+        );
+    }
+
+    fn legacy_normalized_relative_path(path: &Path) -> String {
+        path.components()
+            .map(|component| component.as_os_str().to_string_lossy())
+            .collect::<Vec<_>>()
+            .join("/")
+    }
+
+    fn benchmark_path() -> PathBuf {
+        let mut path = PathBuf::new();
+        for index in 0..64 {
+            path.push(format!("shader_component_{index:02}"));
+        }
+        path
+    }
+
+    fn measure_paths(path: &Path, normalize: fn(&Path) -> String) -> u64 {
+        let started = Instant::now();
+        for _ in 0..PATHS_PER_SAMPLE {
+            black_box(normalize(black_box(path)));
+        }
+        u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX)
+    }
+
+    fn nearest_rank(samples: &[u64], percentile: usize) -> u64 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = sorted.len().saturating_mul(percentile).div_ceil(100);
+        sorted[rank.saturating_sub(1)]
+    }
+
+    fn raw_samples(samples: &[u64]) -> String {
+        let values = samples
+            .iter()
+            .map(u64::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        format!("[{values}]")
     }
 }

@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::super::super::super::super::super::super::{
-    path_transfer, RuntimeSessionArchive, RuntimeSessionArchiveError,
-    RuntimeSessionArchiveManifest, RuntimeSessionSlotSelector,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
+    RuntimeSessionSlotSelector, path_transfer,
 };
 
 impl RuntimeSessionArchive {

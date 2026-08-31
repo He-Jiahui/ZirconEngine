@@ -94,19 +94,19 @@ When active shared compiler lanes make the full eight-platform matrix too intrus
 - the single-platform selector is rejected unless `-RunExportPlatformContract` is also set, so a focused export-platform request cannot be silently ignored;
 - the CLI dry-run entry point also rejects the single-platform selector when the export contract stage switch is omitted;
 - the CLI dry-run entry point emits only the selected single-platform command and environment value when `-ExportContractPlatform` is used;
-- the CLI dry-run entry point can render selected export-platform commands without requiring Cargo discovery or target-directory cleanup checks;
-- the CLI dry-run entry point defaults to `target/manual-check` without claiming a shared target slot when `-TargetDir` is omitted;
+- the CLI dry-run entry point can render selected export-platform commands without requiring Cargo discovery, storage admission checks, or coordinator writes;
+- the CLI dry-run entry point locally projects the same compatibility-keyed `cargo-targets` pool without claiming a shared target slot when `-TargetDir` is omitted;
 - the CLI dry-run entry point does not inherit `CARGO_TARGET_DIR` when `-TargetDir` is omitted;
 - the CLI dry-run entry point still honors an explicit `-TargetDir` as a manual display override;
 - the CLI dry-run entry point rejects unknown export-platform names with the complete expected-platform list;
 - the validator documentation index states that selector-stage switch requirements are rejected rather than silently ignored;
-- the validator documentation index states that dry-run command rendering does not require Cargo discovery, target-directory cleanup checks, or shared target slot claims;
+- the validator documentation index states that dry-run command rendering does not require Cargo discovery, storage admission checks, coordinator writes, or shared target slot claims;
 - the export contract workflow keeps the same trigger, fail-fast, checkout, Rust toolchain, and cache scaffolding as the main CI shape;
 - the export contract workflow stays centered on one matrix-driven focused test job and does not duplicate broad workspace or plugin workspace build/test commands;
 - the export contract CI job installs the same Linux runtime dependency package set as the main CI workflow;
 - `PlatformTarget::as_str()` and `ExportTargetPlatform::as_str()` stay aligned with the same eight platform tokens;
 - the runtime export policy test's `ZR_EXPORT_CONTRACT_PLATFORM` parser stays aligned with the same eight platform tokens;
-- generated headless server packages keep the `target-server` Cargo feature, a binary `src/main.rs` headless entry point, `EntryProfile::Headless`, and no mobile/browser `platform/*` shell or generated runtime library export;
+- generated headless server packages keep the `target-server` Cargo feature, a binary `src/main.rs` headless entry point, and no mobile/browser `platform/*` shell or generated runtime library export; `zircon_app` derives `ProductRoleRequest::Server` from the generated `ExportProfile` instead of accepting a second generated `EntryProfile` authority;
 - platform capability matrix source files remain free of `panic!`, `todo!`, and `unimplemented!` placeholder control flow;
 - server/headless capability matrix paths keep explicit window, synthetic input, physical gamepad unavailable, and headless event-loop declarations.
 

@@ -39,6 +39,7 @@ const fn play_state_from_mode(play_mode: PlayModeKind) -> PlayStateKind {
         PlayModeKind::Edit => PlayStateKind::Edit,
         PlayModeKind::Building => PlayStateKind::Building,
         PlayModeKind::Playing => PlayStateKind::Playing,
+        PlayModeKind::CleanupFailed => PlayStateKind::CleanupFailed,
     }
 }
 

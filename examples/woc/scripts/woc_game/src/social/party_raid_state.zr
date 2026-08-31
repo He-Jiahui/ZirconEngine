@@ -1,8 +1,9 @@
 // Focused M6 party/raid source-contract projection from current source commit
-// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. It is deliberately not imported
-// by main.zr or world/state.zr until the Plugins08 mutable cross-module ABI is
-// reliable. Members stay in join order; raid groups are normalized after member
-// removal exactly like PartyMachine.
+// 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a. The ready-check expiry helper is
+// also imported by world/state.zr; the remaining PartyRaidState fixture stays
+// isolated until the Plugins08 mutable cross-module ABI is reliable. Members
+// stay in join order; raid groups are normalized after member removal exactly
+// like PartyMachine.
 var container = %import("zr.container");
 
 class PartyRaidState {
@@ -350,6 +351,116 @@ pub promote(state: PartyRaidState, actor: int, target: int): bool {
     return true;
 }
 
+readyCheckRowsAreAligned(
+    partyIds: container.Array<uint>,
+    initiatorIds: container.Array<uint>,
+    endsAtMicros: container.Array<uint>,
+    responses: container.Array<uint>
+): bool {
+    return initiatorIds.length == partyIds.length &&
+        endsAtMicros.length == partyIds.length &&
+        responses.length == partyIds.length;
+}
+
+clearReadyCheckSweepRow(
+    index: int,
+    partyIds: container.Array<uint>,
+    initiatorIds: container.Array<uint>,
+    endsAtMicros: container.Array<uint>,
+    responses: container.Array<uint>
+): void {
+    partyIds[index] = <uint>0;
+    initiatorIds[index] = <uint>0;
+    endsAtMicros[index] = <uint>0;
+    responses[index] = <uint>0;
+}
+
+// Completion is handled when a response or member removal mutates the ready
+// check. The fixed-tick path only expires rows whose shared deadline elapsed.
+pub expireRows(
+    nowMicros: uint,
+    readyCheckIds: container.Array<uint>,
+    initiatorIds: container.Array<uint>,
+    endsAtMicros: container.Array<uint>,
+    responses: container.Array<uint>
+): int {
+    if (!readyCheckRowsAreAligned(
+            readyCheckIds, initiatorIds, endsAtMicros, responses
+        )) {
+        throw "woc ready-check sweep rows are not aligned";
+    }
+    var expired = 0;
+    var index = 0;
+    while (index < readyCheckIds.length) {
+        if (<uint>readyCheckIds[index] != <uint>0 &&
+            <uint>endsAtMicros[index] <= nowMicros) {
+            clearReadyCheckSweepRow(
+                index, readyCheckIds, initiatorIds, endsAtMicros, responses
+            );
+            expired = expired + 1;
+        }
+        index = index + 1;
+    }
+    return expired;
+}
+
+readyCheckSweepContractTest(): int {
+    var mixedPartyIds = new container.Array<uint>();
+    var initiatorIds = new container.Array<uint>();
+    var endsAtMicros = new container.Array<uint>();
+    var responses = new container.Array<uint>();
+    var partyValues = new container.Array<uint>();
+    partyValues.add(<uint>1);
+    partyValues.add(<uint>0);
+    partyValues.add(<uint>2);
+    partyValues.add(<uint>1);
+    partyValues.add(<uint>2);
+    var initiatorValues = new container.Array<uint>();
+    initiatorValues.add(<uint>10);
+    initiatorValues.add(<uint>0);
+    initiatorValues.add(<uint>20);
+    initiatorValues.add(<uint>10);
+    initiatorValues.add(<uint>20);
+    var deadlineValues = new container.Array<uint>();
+    deadlineValues.add(<uint>10);
+    deadlineValues.add(<uint>0);
+    deadlineValues.add(<uint>11);
+    deadlineValues.add(<uint>10);
+    deadlineValues.add(<uint>11);
+    var responseValues = new container.Array<uint>();
+    responseValues.add(<uint>1);
+    responseValues.add(<uint>0);
+    responseValues.add(<uint>0);
+    responseValues.add(<uint>2);
+    responseValues.add(<uint>1);
+    var index = 0;
+    while (index < partyValues.length) {
+        mixedPartyIds.add(<uint>partyValues[index]);
+        initiatorIds.add(<uint>initiatorValues[index]);
+        endsAtMicros.add(<uint>deadlineValues[index]);
+        responses.add(<uint>responseValues[index]);
+        index = index + 1;
+    }
+    var expiredRows = expireRows(
+        <uint>10, mixedPartyIds, initiatorIds, endsAtMicros, responses
+    );
+    if (expiredRows != 2 || <uint>mixedPartyIds[0] != <uint>0 ||
+        <uint>mixedPartyIds[3] != <uint>0) {
+        return -1;
+    }
+    // The future row remains fully intact.
+    if (<uint>mixedPartyIds[2] != <uint>2 || <uint>initiatorIds[2] != <uint>20 ||
+        <uint>endsAtMicros[2] != <uint>11 || <uint>responses[2] != <uint>0) {
+        return -2;
+    }
+    // An empty row stays canonical rather than being counted as expired.
+    if (<uint>mixedPartyIds[1] != <uint>0 || <uint>initiatorIds[1] != <uint>0 ||
+        <uint>endsAtMicros[1] != <uint>0 || <uint>responses[1] != <uint>0) {
+        return -3;
+    }
+    return 1;
+}
+
 pub scenarioTest(): int {
     var state = new PartyRaidState();
     var player = 2;
@@ -487,5 +598,7 @@ pub contractTest(): int {
     if (result != 1) { return -200 + result; }
     result = currentHeadCommandTest();
     if (result != 1) { return -300 + result; }
+    result = readyCheckSweepContractTest();
+    if (result != 1) { return -400 + result; }
     return 1;
 }

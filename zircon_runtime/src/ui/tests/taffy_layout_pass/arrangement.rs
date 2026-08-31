@@ -87,6 +87,41 @@ fn taffy_layout_pass_accepts_template_metadata_from_v2_assets() {
 }
 
 #[test]
+fn standalone_layout_reuses_one_operation_session_across_text_leaves() {
+    let mut tree = tree_with_root(130, UiContainerKind::BlockBox);
+    for (node_id, text) in [
+        (131, "First label"),
+        (132, "Second label"),
+        (133, "Third label"),
+    ] {
+        insert_child(
+            &mut tree,
+            130,
+            node(node_id).with_template_metadata(metadata_with_attributes(
+                "Label",
+                &format!(
+                    r#"
+text = "{text}"
+font_size = 12.0
+line_height = 15.0
+"#
+                ),
+            )),
+        );
+    }
+
+    let constructions_before = crate::text::current_thread_text_layout_session_construction_count();
+    compute_layout_tree(&mut tree, UiSize::new(240.0, 80.0)).expect("layout should compute");
+    let constructions_after = crate::text::current_thread_text_layout_session_construction_count();
+
+    assert_eq!(
+        constructions_after.saturating_sub(constructions_before),
+        1,
+        "one standalone tree layout owns one operation-local text session, not one per leaf"
+    );
+}
+
+#[test]
 fn taffy_layout_pass_uses_measured_text_and_image_desired_sizes() {
     let mut tree = tree_with_root(
         150,

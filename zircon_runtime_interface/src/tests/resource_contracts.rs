@@ -1,6 +1,6 @@
 use crate::resource::{
     AssetReference, AssetUuid, ResourceId, ResourceKind, ResourceLocator, ResourceLocatorError,
-    ResourceRecord, ResourceScheme,
+    ResourceRecord, ResourceScheme, STABLE_UUID_ALGORITHM_VERSION,
 };
 
 #[test]
@@ -20,6 +20,19 @@ fn resource_contract_exposes_stable_identity_and_status_records() {
     assert_eq!(record.source_hash, "source-hash");
     assert_eq!(record.importer_version, 2);
     assert_eq!(record.dependency_ids, vec![dependency_id]);
+}
+
+#[test]
+fn stable_resource_identity_contract_is_versioned_and_domain_separated() {
+    assert_eq!(STABLE_UUID_ALGORITHM_VERSION, 1);
+
+    let label = "res://materials/hero.zmaterial";
+    let asset_uuid = AssetUuid::from_stable_label(label);
+    let resource_id = ResourceId::from_stable_label(label);
+
+    assert_eq!(asset_uuid, AssetUuid::from_stable_label(label));
+    assert_eq!(resource_id, ResourceId::from_stable_label(label));
+    assert_ne!(asset_uuid.to_string(), resource_id.to_string());
 }
 
 #[test]

@@ -1,8 +1,8 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::core::framework::render::{
-    render_mesh_stable_instance_key, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryInstance, ViewportCameraSnapshot,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryInstance,
+    ViewportCameraSnapshot, render_mesh_stable_instance_key,
 };
 
 use super::super::super::declarations::{
@@ -157,12 +157,8 @@ pub(crate) fn build_virtual_geometry_plan(
             .filter(|page_id| !visible_page_set.contains(page_id))
             .filter(|page_id| !requested_page_set.contains(page_id))
             .collect::<Vec<_>>();
-        let hot_resident_pages = resident_pages
-            .iter()
-            .copied()
-            .filter(|page_id| !visible_page_set.contains(page_id))
-            .filter(|page_id| !evictable_pages.contains(page_id))
-            .collect::<Vec<_>>();
+        let hot_resident_pages =
+            hot_resident_pages(&resident_pages, &visible_page_set, &evictable_pages);
         let history_visible_cluster_ids = virtual_geometry_visible_clusters
             .iter()
             .map(|cluster| cluster.cluster_id)
@@ -328,12 +324,8 @@ pub(crate) fn build_virtual_geometry_plan(
         .filter(|page_id| !merge_back_child_hold_protected_pages.contains(page_id))
         .filter(|page_id| !requested_lineage_hold_protected_pages.contains(page_id))
         .collect::<Vec<_>>();
-    let hot_resident_pages = resident_pages
-        .iter()
-        .copied()
-        .filter(|page_id| !visible_page_set.contains(page_id))
-        .filter(|page_id| !evictable_pages.contains(page_id))
-        .collect::<Vec<_>>();
+    let hot_resident_pages =
+        hot_resident_pages(&resident_pages, &visible_page_set, &evictable_pages);
 
     let page_upload_plan = VisibilityVirtualGeometryPageUploadPlan {
         resident_pages,
@@ -588,8 +580,9 @@ fn prioritized_requested_pages(
     }
 
     let mut requested_pages = Vec::with_capacity(budget);
+    let mut requested_page_ids = HashSet::with_capacity(budget);
     for page_id in cascade_requests.into_iter().chain(ranked_requests) {
-        if requested_pages.contains(&page_id) {
+        if !requested_page_ids.insert(page_id) {
             continue;
         }
         requested_pages.push(page_id);
@@ -598,6 +591,20 @@ fn prioritized_requested_pages(
         }
     }
     requested_pages
+}
+
+fn hot_resident_pages(
+    resident_pages: &[u32],
+    visible_page_set: &BTreeSet<u32>,
+    evictable_pages: &[u32],
+) -> Vec<u32> {
+    let evictable_page_set = evictable_pages.iter().copied().collect::<HashSet<_>>();
+    resident_pages
+        .iter()
+        .copied()
+        .filter(|page_id| !visible_page_set.contains(page_id))
+        .filter(|page_id| !evictable_page_set.contains(page_id))
+        .collect()
 }
 
 fn requested_page_reaches_visible_frontier(
@@ -787,3 +794,6 @@ fn highest_nonresident_ancestor_page_before_visible(
 
     None
 }
+
+#[cfg(test)]
+mod hash_membership_tests;

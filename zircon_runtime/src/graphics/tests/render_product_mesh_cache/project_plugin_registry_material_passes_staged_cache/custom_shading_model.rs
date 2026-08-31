@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use crate::asset::{ProjectAssetManager, ShaderAsset, ShaderSourceLanguage};
 use crate::core::framework::render::{
-    CapturedFrame, GBufferChannelMask, RenderMaterialLightingModel, ShaderAssetKind,
-    ShadingModelDescriptor, ShadingModelId, SHADING_MODEL_PLUGIN_ID_START,
+    CapturedFrame, GBufferChannelMask, RenderMaterialLightingModel, SHADING_MODEL_PLUGIN_ID_START,
+    ShaderAssetKind, ShadingModelDescriptor, ShadingModelId,
 };
 use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
 use crate::dynamic_api::prewarm_shader_variants_with_wgpu_pipeline_validation;
@@ -17,9 +17,9 @@ use super::assertions::{
 };
 use super::case::registry_shader_cases;
 use super::fixture::{
+    RegistryMaterialPassPluginShadingModel,
     submit_registry_material_passes_with_plugin_shading_model,
     submit_registry_material_passes_with_plugin_shading_model_capture,
-    RegistryMaterialPassPluginShadingModel,
 };
 use super::manifest::{
     registry_material_pass_product_prewarm_manifest_with_plugin_shading_models,
@@ -72,8 +72,8 @@ fn shade_deferred_toon(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>,
 "#;
 
 #[test]
-fn render_product_custom_shading_model_registry_material_passes_use_staged_prewarm_without_compile_miss(
-) {
+fn render_product_custom_shading_model_registry_material_passes_use_staged_prewarm_without_compile_miss()
+ {
     let cache_roots = shader_cache_test_roots(
         "zircon_product_custom_shading_model_registry_material_passes_staged_prewarm",
     );

@@ -45,7 +45,7 @@ pub(super) fn collect_template_node_controls(
         }
         push_named_profile_frame(
             out,
-            format!("template.{surface}.{}", node.control_id).as_str(),
+            format!("template.{surface}.{}", node.control_id),
             "template_control",
             surface,
             effective_frame,

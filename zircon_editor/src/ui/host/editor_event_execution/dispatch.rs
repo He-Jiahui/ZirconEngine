@@ -3,6 +3,7 @@ use crate::core::editor_event::{
 };
 use crate::ui::host::EditorHostEventController;
 
+use super::error::EditorEventExecutionError;
 use super::execution_outcome::ExecutionOutcome;
 use super::{
     animation_event::execute_animation_event, asset_event::execute_asset_event,
@@ -14,23 +15,49 @@ use super::{
 pub(crate) fn execute_event(
     controller: &EditorHostEventController,
     event: &EditorEvent,
-) -> Result<ExecutionOutcome, String> {
+) -> Result<ExecutionOutcome, EditorEventExecutionError> {
     let mut shell = controller.shell().lock();
     match event {
-        EditorEvent::WorkbenchMenu(action) => execute_menu_action(controller, &mut shell, action),
-        EditorEvent::Layout(command) => execute_layout_command(&mut shell, command),
-        EditorEvent::Selection(event) => execute_selection(&mut shell, event),
-        EditorEvent::Hierarchy(event) => execute_hierarchy_event(&mut shell, event),
-        EditorEvent::Asset(event) => execute_asset_event(controller, &mut shell, event),
-        EditorEvent::Draft(event) => execute_draft_event(&mut shell, event),
-        EditorEvent::Animation(event) => execute_animation_event(&mut shell, event),
-        EditorEvent::Inspector(event) => execute_inspector_event(&mut shell, event),
-        EditorEvent::Viewport(event) => execute_viewport_event(controller, &mut shell, event),
+        EditorEvent::WorkbenchMenu(action) => execute_menu_action(controller, &mut shell, action)
+            .map_err(EditorEventExecutionError::from),
+        EditorEvent::Layout(command) => execute_layout_command(&mut shell, command)
+            .map_err(|source| EditorEventExecutionError::Layout { source }),
+        EditorEvent::Selection(event) => execute_selection(&mut shell, event)
+            .map_err(|source| EditorEventExecutionError::Selection { source }),
+        EditorEvent::Hierarchy(event) => execute_hierarchy_event(&mut shell, event)
+            .map_err(|source| EditorEventExecutionError::Hierarchy { source }),
+        EditorEvent::Asset(event) => execute_asset_event(controller, &mut shell, event)
+            .map_err(EditorEventExecutionError::from),
+        EditorEvent::Draft(event) => execute_draft_event(&mut shell, event)
+            .map_err(|source| EditorEventExecutionError::Draft { source }),
+        EditorEvent::Animation(event) => execute_animation_event(&mut shell, event)
+            .map_err(|source| EditorEventExecutionError::Animation { source }),
+        EditorEvent::Inspector(event) => execute_inspector_event(&mut shell, event)
+            .map_err(|source| EditorEventExecutionError::Inspector { source }),
+        EditorEvent::Viewport(event) => execute_viewport_event(controller, &mut shell, event)
+            .map_err(|source| EditorEventExecutionError::Viewport { source }),
         EditorEvent::Operation(event) => match event {
-            EditorOperationEvent::ControlFailure { error, .. } => Err(error.clone()),
+            EditorOperationEvent::ControlFailure {
+                operation_id,
+                error,
+            } => Err(EditorEventExecutionError::RecordedOperationControlFailure {
+                operation_id: operation_id.clone(),
+                message: error.clone(),
+            }),
             EditorOperationEvent::CommandExecuted { .. } => Ok(ExecutionOutcome {
                 changed: true,
                 effects: vec![EditorEventEffect::PresentationChanged],
+            }),
+            EditorOperationEvent::NativeCommandExecuted { .. } => Ok(ExecutionOutcome {
+                changed: false,
+                effects: vec![EditorEventEffect::PresentationChanged],
+            }),
+            EditorOperationEvent::EditQueued { .. } => Ok(ExecutionOutcome {
+                changed: false,
+                effects: vec![
+                    EditorEventEffect::PresentationChanged,
+                    EditorEventEffect::ReflectionChanged,
+                ],
             }),
         },
         EditorEvent::Transient(update) => {
@@ -38,6 +65,9 @@ pub(crate) fn execute_event(
             let effects = match update {
                 EditorEventTransient::OpenCommandPalette => {
                     vec![EditorEventEffect::CommandPaletteOpenRequested]
+                }
+                EditorEventTransient::OpenSettingsWindow => {
+                    vec![EditorEventEffect::SettingsWindowOpenRequested]
                 }
                 _ => vec![
                     EditorEventEffect::PresentationChanged,

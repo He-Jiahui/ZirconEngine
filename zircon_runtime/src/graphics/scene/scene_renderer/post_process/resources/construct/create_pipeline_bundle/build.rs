@@ -1,5 +1,5 @@
 use crate::graphics::scene::scene_renderer::{
-    post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT, SCENE_COLOR_HDR_FORMAT,
+    SCENE_COLOR_HDR_FORMAT, post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
 };
 
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
@@ -193,7 +193,7 @@ const fn bloom_target_format() -> wgpu::TextureFormat {
 
 #[cfg(test)]
 mod tests {
-    use super::{bloom_target_format, POST_PROCESS_INTERMEDIATE_HDR_FORMAT};
+    use super::{POST_PROCESS_INTERMEDIATE_HDR_FORMAT, bloom_target_format};
 
     #[test]
     fn bloom_pipeline_targets_intermediate_hdr_resource_format() {

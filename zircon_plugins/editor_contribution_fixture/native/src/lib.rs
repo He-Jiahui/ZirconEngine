@@ -1,7 +1,7 @@
 //! Native editor fixture for the versioned serialized contribution ABI.
 
 use zircon_plugin_sdk::native::{
-    self, callback_status, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
+    self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
     NativePluginOutputSinkV4, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 
@@ -42,7 +42,11 @@ const MISSING_HOST_DIAGNOSTICS: &[u8] =
     b"editor contribution fixture requires a compatible native editor host\0";
 const EDITOR_COMMAND_MANIFEST_TEXT: &str = concat!(
     r#"schema = "zircon.native.command-manifest/4"
-commands = []
+[[commands]]
+name = "editor.contribution_fixture.open"
+slot = 0
+payload_schema = "zircon.editor.arguments-json/1"
+max_output_bytes = 4096
 "#,
     "\0"
 );
@@ -67,15 +71,30 @@ const EDITOR_CONTRIBUTION_BATCH_TEXT: &str = concat!(
     },
     {
       "kind": "menu",
-      "path": "Tools/Editor Contribution Fixture",
-      "schema": "zircon.editor.menu/1",
-      "command_id": "editor.contribution_fixture.open"
+      "id": "editor_contribution_fixture.menu.open",
+      "schema": "zircon.editor.menu/2",
+      "command_id": "editor.contribution_fixture.open",
+      "root_id": "tools",
+      "root_label_key": "menu.tools.label",
+      "group_ids": ["editor_contribution_fixture"],
+      "group_label_keys": ["menu.tools.editor_contribution_fixture.label"],
+      "leaf_label_key": "command.editor.contribution_fixture.open.label"
     },
     {
       "kind": "command",
       "id": "editor.contribution_fixture.open",
-      "schema": "zircon.editor.command/1",
-      "display_name": "Open Contribution Fixture"
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "editor_contribution_fixture",
+      "label_key": "command.editor.contribution_fixture.open.label",
+      "description_key": "command.editor.contribution_fixture.open.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 65536,
+          "max_output_bytes": 4096,
+          "max_execution_time_ms": 5000
+        }
+      }
     },
     {
       "kind": "asset_type",
@@ -88,18 +107,50 @@ const EDITOR_CONTRIBUTION_BATCH_TEXT: &str = concat!(
       "thumbnail_icon": "puzzle-piece"
     },
     {
+      "kind": "localization_bundle",
+      "id": "editor_contribution_fixture",
+      "schema": "zircon.editor.localization-bundle/1",
+      "locales": {
+        "en": {
+          "plugin.editor_contribution_fixture.settings.label": "Contribution Fixture",
+          "plugin.editor_contribution_fixture.settings.description": "Settings for the editor contribution fixture",
+          "plugin.editor_contribution_fixture.category.plugins": "Plugins",
+          "plugin.editor_contribution_fixture.category.sdk": "SDK",
+          "menu.tools.label": "Tools",
+          "menu.tools.editor_contribution_fixture.label": "Editor Contribution Fixture",
+          "command.editor.contribution_fixture.open.label": "Open Contribution Fixture",
+          "command.editor.contribution_fixture.open.description": "Open the editor contribution fixture"
+        },
+        "zh-CN": {
+          "plugin.editor_contribution_fixture.settings.label": "编辑器贡献夹具",
+          "plugin.editor_contribution_fixture.settings.description": "编辑器贡献夹具设置",
+          "plugin.editor_contribution_fixture.category.plugins": "插件",
+          "plugin.editor_contribution_fixture.category.sdk": "SDK",
+          "menu.tools.label": "工具",
+          "menu.tools.editor_contribution_fixture.label": "编辑器贡献夹具",
+          "command.editor.contribution_fixture.open.label": "打开编辑器贡献夹具",
+          "command.editor.contribution_fixture.open.description": "打开编辑器贡献夹具"
+        }
+      }
+    },
+    {
       "kind": "settings_page",
-      "id": "editor_contribution_fixture.settings",
-      "schema": "zircon.editor.settings-page/1",
-      "display_name": "Contribution Fixture",
-      "category_path": "Plugins/SDK"
+      "id": "plugin.editor_contribution_fixture.settings",
+      "schema": "zircon.editor.settings-page/2",
+      "label_key": "plugin.editor_contribution_fixture.settings.label",
+      "description_key": "plugin.editor_contribution_fixture.settings.description",
+      "category_keys": [
+        "plugin.editor_contribution_fixture.category.plugins",
+        "plugin.editor_contribution_fixture.category.sdk"
+      ]
     }
   ]
 }"#,
     "\0"
 );
 const EDITOR_CONTRIBUTION_BATCH: &[u8] = EDITOR_CONTRIBUTION_BATCH_TEXT.as_bytes();
-const STATUS_COMMAND_DENIED: &[u8] = b"editor contribution fixture has no commands\0";
+const STATUS_COMMAND_COMPLETED: &[u8] = b"editor contribution fixture command completed\0";
+const STATUS_COMMAND_DENIED: &[u8] = b"editor contribution fixture command slot is unknown\0";
 const STATUS_UNLOADED: &[u8] = b"editor contribution fixture unloaded\0";
 
 zircon_plugin_sdk::native_dist_editor_plugin_v3! {
@@ -133,13 +184,20 @@ zircon_plugin_sdk::native_dist_editor_plugin_v3! {
 }
 
 unsafe extern "C" fn editor_contribution_fixture_invoke_command(
-    _command_slot: u32,
-    _payload: NativePluginByteSliceV2,
-    _output: NativePluginOutputSinkV4,
-) -> NativePluginCallbackStatusV2 {
-    callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, STATUS_COMMAND_DENIED)
+    command_slot: u32,
+    _payload: NativePluginByteSliceV3,
+    output: NativePluginOutputSinkV4,
+) -> NativePluginCallbackStatusV3 {
+    if command_slot != 0 {
+        return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, STATUS_COMMAND_DENIED);
+    }
+    let output_status = unsafe { output.write(br#"{"opened":true}"#) };
+    if output_status.code != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
+        return output_status;
+    }
+    callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, STATUS_COMMAND_COMPLETED)
 }
 
-unsafe extern "C" fn editor_contribution_fixture_unload() -> NativePluginCallbackStatusV2 {
+unsafe extern "C" fn editor_contribution_fixture_unload() -> NativePluginCallbackStatusV3 {
     callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, STATUS_UNLOADED)
 }

@@ -64,7 +64,7 @@ fn pane_presentation_keeps_shell_and_body_split_without_erasing_payload_type() {
     );
     match presentation.body.payload {
         PanePayload::ConsoleV1(payload) => {
-            assert_eq!(payload.status_text.as_ref(), "Console ready")
+            assert_eq!(payload.output.as_ref(), "Console ready")
         }
         unexpected => panic!("expected console payload, found {unexpected:?}"),
     }

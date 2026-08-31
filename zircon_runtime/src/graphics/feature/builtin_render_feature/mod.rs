@@ -5,7 +5,7 @@ mod requires_explicit_opt_in;
 #[cfg(test)]
 pub(crate) use advanced_slots::descriptor_only_advanced_slots;
 pub(crate) use advanced_slots::{
-    descriptor_only_advanced_slot, descriptor_only_advanced_slot_requires_capability_opt_in,
-    AdvancedBuiltinFeatureSlot,
+    AdvancedBuiltinFeatureSlot, descriptor_only_advanced_slot,
+    descriptor_only_advanced_slot_requires_capability_opt_in,
 };
 pub use builtin_render_feature::BuiltinRenderFeature;

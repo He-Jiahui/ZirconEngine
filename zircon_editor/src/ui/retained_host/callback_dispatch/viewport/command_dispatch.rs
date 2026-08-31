@@ -55,6 +55,7 @@ pub(crate) fn viewport_event_from_command(command: ViewportCommand) -> EditorVie
         ViewportCommand::SetTransformSpace(space) => {
             EditorViewportEvent::SetTransformSpace { space }
         }
+        ViewportCommand::SetPivotMode(mode) => EditorViewportEvent::SetPivotMode { mode },
         ViewportCommand::SetProjectionMode(mode) => EditorViewportEvent::SetProjectionMode { mode },
         ViewportCommand::AlignView(orientation) => EditorViewportEvent::AlignView { orientation },
         ViewportCommand::SetDisplayMode(mode) => EditorViewportEvent::SetDisplayMode { mode },

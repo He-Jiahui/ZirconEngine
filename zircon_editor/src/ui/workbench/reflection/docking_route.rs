@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::name_mapping::binding_view_id;
-use super::route_registration::register_stub_route;
+use super::route_registration::register_binding_route;
 
 pub(super) fn register_docking_route(
     service: &mut EditorUiControlService,
@@ -29,7 +29,7 @@ pub(super) fn register_docking_route(
         path.event_kind,
         EditorUiBindingPayload::dock_command(default_command.clone()),
     );
-    Some(register_stub_route(service, registration_binding))
+    Some(register_binding_route(service, registration_binding))
 }
 
 fn default_dock_command(

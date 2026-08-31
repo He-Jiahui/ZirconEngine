@@ -4,10 +4,17 @@ import hashlib
 import json
 import os
 import platform
+import stat
 from pathlib import Path
 from typing import Callable, Mapping
 
 from .cargo_jobs import CargoCompatibility, CargoJobService, CargoLaneKind
+from .cargo_command_policy import (
+    cargo_config_file_arguments,
+    cargo_target_argument,
+    cargo_toolchain_selector,
+    is_direct_cargo_command,
+)
 from .cargo_runner import CargoJobRunner
 from .database import Database
 from .models import CoordinatorError
@@ -20,6 +27,11 @@ _RETRYABLE_ADMISSION_ERRORS = frozenset(
         "cargo_reuse_pool_busy",
         "cargo_process_tree_alive",
         "cargo_lane_cleanup_reserved",
+        "cargo_cpu_burst_occupied",
+        "cargo_cpu_burst_resource_denied",
+        "cargo_cpu_burst_admission_stale",
+        "cargo_cpu_session_reservation_pending",
+        "cargo_start_rollover_pending",
     }
 )
 
@@ -38,6 +50,8 @@ class ValidationCopyCargoExecution:
         | None = None,
         source_manifest_lookup: Callable[[str, str], Mapping[str, str] | None]
         | None = None,
+        toolchain_lookup: Callable[[str, str], Mapping[str, object] | None]
+        | None = None,
     ) -> None:
         self.database = database
         self.cargo_jobs = cargo_jobs
@@ -55,6 +69,17 @@ class ValidationCopyCargoExecution:
             # Existing state-machine tests inject reservation state without a DB.
             # The real service never replaces only this half of the durable lookup.
             self.source_manifest_lookup = lambda _session_id, _run_id: None
+        if toolchain_lookup is not None:
+            self.toolchain_lookup = toolchain_lookup
+        elif reservation_lookup is None:
+            self.toolchain_lookup = self._validation_toolchain
+        else:
+            self.toolchain_lookup = lambda _session_id, _run_id: None
+        self.runtime_toolchain_identity = (
+            cargo_runner.toolchain_identity
+            if isinstance(cargo_runner, CargoJobRunner)
+            else None
+        )
 
     def advance(
         self,
@@ -67,6 +92,7 @@ class ValidationCopyCargoExecution:
         validation_run_id: str,
     ) -> dict[str, object]:
         source_manifest = self.source_manifest_lookup(session_id, validation_run_id)
+        toolchain = self.toolchain_lookup(session_id, validation_run_id)
         if not source_manifest and self._source_manifest_required:
             raise CoordinatorError(
                 "validation_copy_cargo_source_manifest_missing",
@@ -74,23 +100,34 @@ class ValidationCopyCargoExecution:
             )
         compatibility = self._compatibility(
             copy_job_id=copy_job_id,
+            source_root=source_root,
             input_manifest_hash=input_manifest_hash,
             source_manifest=source_manifest,
             command=command,
             validation_run_id=validation_run_id,
+            toolchain=toolchain,
         )
         reservation = self.reservation_lookup(session_id, copy_job_id)
         if reservation is None or (
             not reservation.get("jobId")
             and str(reservation.get("status") or "") != "pending"
         ):
-            reservation = self.cargo_jobs.reserve_cpu(
-                session_id,
-                compatibility=compatibility,
-                command=command,
-                ttl_seconds=900,
-                burst_eligible=False,
-            )
+            try:
+                reservation = self.cargo_jobs.reserve_cpu(
+                    session_id,
+                    compatibility=compatibility,
+                    command=command,
+                    ttl_seconds=900,
+                )
+            except CoordinatorError as error:
+                if error.code not in _RETRYABLE_ADMISSION_ERRORS:
+                    raise
+                details = error.details if isinstance(error.details, Mapping) else {}
+                return self._progress(
+                    "waiting",
+                    reservation_id=str(details.get("reservationId") or ""),
+                    blocker=error.code,
+                )
         reservation_id = str(reservation.get("reservationId") or "")
         if not reservation_id:
             raise CoordinatorError(
@@ -102,11 +139,10 @@ class ValidationCopyCargoExecution:
             if self.preflight is not None:
                 self.preflight()
             try:
-                job = self.cargo_jobs.acquire(
-                    session_id,
-                    CargoLaneKind.WORKSPACE,
-                    compatibility=compatibility,
-                    expected_cpu_reservation_id=reservation_id,
+                job = self.cargo_jobs.consume_cpu_reservation(
+                    reservation_id,
+                    session_id=session_id,
+                    lane_kind=CargoLaneKind.WORKSPACE,
                 )
             except CoordinatorError as error:
                 if error.code not in _RETRYABLE_ADMISSION_ERRORS:
@@ -120,12 +156,31 @@ class ValidationCopyCargoExecution:
 
         job_status = self._status_value(job.status)
         if job_status == "leased":
-            run = self.cargo_runner.start(
-                session_id=session_id,
-                job_id=cargo_job_id,
-                command=command,
-                working_directory=source_root,
-            )
+            if (
+                self._input_manifest_hash_for_source_root(source_root)
+                != compatibility.source_copy_manifest_hash
+            ):
+                raise CoordinatorError(
+                    "validation_copy_cargo_manifest_stale",
+                    "Materialized Cargo inputs changed after their immutable identity was recorded",
+                    details={"copyJobId": copy_job_id},
+                )
+            try:
+                run = self.cargo_runner.start(
+                    session_id=session_id,
+                    job_id=cargo_job_id,
+                    command=command,
+                    working_directory=source_root,
+                )
+            except CoordinatorError as error:
+                if error.code not in _RETRYABLE_ADMISSION_ERRORS:
+                    raise
+                return self._progress(
+                    "waiting",
+                    reservation_id=reservation_id,
+                    cargo_job_id=cargo_job_id,
+                    blocker=error.code,
+                )
             return self._progress(
                 "running",
                 reservation_id=reservation_id,
@@ -221,14 +276,130 @@ class ValidationCopyCargoExecution:
             )
         return manifest
 
+    def _validation_toolchain(
+        self, session_id: str, validation_run_id: str
+    ) -> Mapping[str, object] | None:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT toolchain_json FROM validation_tickets "
+                "WHERE ticket_id=? AND session_id=?",
+                (validation_run_id, session_id),
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            toolchain = json.loads(str(row["toolchain_json"]))
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                "validation_copy_cargo_toolchain_invalid",
+                "Validation ticket toolchain identity is not valid JSON",
+            ) from error
+        if not isinstance(toolchain, dict) or not toolchain:
+            raise CoordinatorError(
+                "validation_copy_cargo_toolchain_invalid",
+                "Validation ticket toolchain identity must be a non-empty object",
+            )
+        return toolchain
+
     @staticmethod
+    def _input_manifest_hash_for_source_root(source_root: Path) -> str:
+        resolved_source = source_root.resolve()
+        job_root = resolved_source.parent
+        target_root = job_root / "target"
+        if resolved_source != job_root / "source":
+            raise CoordinatorError(
+                "validation_copy_cargo_source_root_invalid",
+                "Managed Cargo source root does not match the validation-copy layout",
+            )
+        entries: dict[str, str] = {}
+        pending = [job_root]
+        while pending:
+            directory = pending.pop()
+            try:
+                children = tuple(os.scandir(directory))
+            except OSError as error:
+                raise CoordinatorError(
+                    "validation_copy_cargo_manifest_unavailable",
+                    "Materialized Cargo inputs could not be inspected",
+                    details={"path": str(directory)},
+                ) from error
+            for child in children:
+                path = Path(child.path)
+                if path == target_root:
+                    continue
+                relative = path.relative_to(job_root).as_posix()
+                try:
+                    current = child.stat(follow_symlinks=False)
+                except OSError as error:
+                    raise CoordinatorError(
+                        "validation_copy_cargo_manifest_unavailable",
+                        "Materialized Cargo input changed while it was inspected",
+                        details={"path": relative},
+                    ) from error
+                is_junction = bool(
+                    getattr(path, "is_junction", lambda: False)()
+                )
+                if child.is_symlink() or is_junction:
+                    raise CoordinatorError(
+                        "validation_copy_manifest_symlink_forbidden",
+                        "Validation inputs cannot contain filesystem links",
+                        details={"path": relative},
+                    )
+                if stat.S_ISDIR(current.st_mode):
+                    pending.append(path)
+                    continue
+                if not stat.S_ISREG(current.st_mode):
+                    continue
+                try:
+                    content = path.read_bytes()
+                    refreshed = child.stat(follow_symlinks=False)
+                except OSError as error:
+                    raise CoordinatorError(
+                        "validation_copy_cargo_manifest_unavailable",
+                        "Materialized Cargo input changed while it was hashed",
+                        details={"path": relative},
+                    ) from error
+                before = (
+                    current.st_dev,
+                    current.st_ino,
+                    current.st_size,
+                    current.st_mtime_ns,
+                    current.st_ctime_ns,
+                )
+                after = (
+                    refreshed.st_dev,
+                    refreshed.st_ino,
+                    refreshed.st_size,
+                    refreshed.st_mtime_ns,
+                    refreshed.st_ctime_ns,
+                )
+                if before != after:
+                    raise CoordinatorError(
+                        "validation_copy_cargo_manifest_unavailable",
+                        "Materialized Cargo input changed while it was hashed",
+                        details={"path": relative},
+                    )
+                entries[relative] = hashlib.sha256(content).hexdigest()
+        payload = [
+            {"path": path, "sha256": entries[path]}
+            for path in sorted(entries, key=str.casefold)
+        ]
+        return hashlib.sha256(
+            json.dumps(
+                payload, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+        ).hexdigest()
+
     def _compatibility(
+        self,
         *,
         copy_job_id: str,
+        source_root: Path,
         input_manifest_hash: str | None,
         source_manifest: Mapping[str, str] | None,
         command: tuple[str, ...],
         validation_run_id: str,
+        toolchain: Mapping[str, object] | None = None,
     ) -> CargoCompatibility:
         digest = str(input_manifest_hash or "").strip()
         if len(digest) != 64 or any(character not in "0123456789abcdefABCDEF" for character in digest):
@@ -236,25 +407,119 @@ class ValidationCopyCargoExecution:
                 "validation_copy_cargo_manifest_invalid",
                 "Managed Cargo execution requires the immutable copy manifest identity",
             )
-        command_payload = json.dumps(command, separators=(",", ":"), ensure_ascii=True)
         build_config = json.dumps(
             {
-                "command_sha256": hashlib.sha256(command_payload.encode("utf-8")).hexdigest(),
-                "validation_run_id": validation_run_id,
+                "debug": 0,
+                "incremental": False,
+                "policy": "managed-validation-v2",
+                "cargoConfigFiles": ValidationCopyCargoExecution._config_identity(
+                    source_root, command
+                ),
             },
             sort_keys=True,
             separators=(",", ":"),
         )
         return CargoCompatibility(
             platform="windows" if os.name == "nt" else "wsl",
-            toolchain="managed-validation-copy",
-            target_architecture=platform.machine() or "unknown",
+            toolchain=ValidationCopyCargoExecution._toolchain_identity(
+                source_root,
+                command,
+                toolchain,
+                runtime_identity=(
+                    self.runtime_toolchain_identity(command, source_root)
+                    if self.runtime_toolchain_identity is not None
+                    else None
+                ),
+            ),
+            target_architecture=(
+                cargo_target_argument(command) or platform.machine() or "unknown"
+            ),
             workspace="validation-copy",
             build_config=build_config,
             source_manifest=source_manifest,
             source_copy_job_id=copy_job_id,
             source_copy_manifest_hash=digest,
         )
+
+    @staticmethod
+    def _toolchain_identity(
+        source_root: Path,
+        command: tuple[str, ...],
+        declared: Mapping[str, object] | None = None,
+        runtime_identity: str | None = None,
+    ) -> str:
+        selector = cargo_toolchain_selector(command)
+        if selector is not None:
+            payload: dict[str, object] = {
+                "selector": selector,
+                "declared": dict(declared or {}),
+                "runtime": runtime_identity,
+            }
+        elif not is_direct_cargo_command(command):
+            payload = {
+                "declared": dict(declared or {}),
+                "legacyOpaqueCommandSha256": hashlib.sha256(
+                    json.dumps(
+                        command, separators=(",", ":"), ensure_ascii=True
+                    ).encode("utf-8")
+                ).hexdigest(),
+                "runtime": runtime_identity,
+            }
+        else:
+            files: dict[str, str] = {}
+            for name in ("rust-toolchain.toml", "rust-toolchain"):
+                path = source_root / name
+                try:
+                    content = path.read_bytes()
+                except FileNotFoundError:
+                    continue
+                except OSError as error:
+                    raise CoordinatorError(
+                        "validation_copy_cargo_toolchain_unavailable",
+                        "Pinned Rust toolchain identity could not be read",
+                        details={"path": str(path)},
+                    ) from error
+                files[name] = hashlib.sha256(content).hexdigest()
+            payload = {
+                "selector": "workspace-default",
+                "declared": dict(declared or {}),
+                "toolchainFiles": files,
+                "runtime": runtime_identity,
+            }
+        return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+    @staticmethod
+    def _config_identity(
+        source_root: Path, command: tuple[str, ...]
+    ) -> dict[str, str]:
+        candidates = [".cargo/config", ".cargo/config.toml"]
+        candidates.extend(cargo_config_file_arguments(command))
+        identities: dict[str, str] = {}
+        for value in candidates:
+            candidate = Path(value)
+            if not candidate.is_absolute():
+                candidate = source_root / candidate
+            candidate = candidate.resolve(strict=False)
+            try:
+                relative = candidate.relative_to(source_root.resolve()).as_posix()
+            except ValueError as error:
+                raise CoordinatorError(
+                    "validation_copy_cargo_config_unsealed",
+                    "Cargo config path escaped the immutable validation source",
+                    details={"path": value},
+                ) from error
+            try:
+                content = candidate.read_bytes()
+            except FileNotFoundError:
+                continue
+            except OSError as error:
+                raise CoordinatorError(
+                    "validation_copy_cargo_config_unavailable",
+                    "Cargo config identity could not be read",
+                    details={"path": str(candidate)},
+                ) from error
+            identities[relative] = hashlib.sha256(content).hexdigest()
+        return dict(sorted(identities.items(), key=lambda item: item[0].casefold()))
 
     @staticmethod
     def _status_value(status: object) -> str:

@@ -9,6 +9,7 @@ mod builder;
 mod tests;
 
 pub(crate) use builder::{
+    build_environment_capture_command_buffers, build_hit_proxy_command_list,
     build_mesh_pass_command_buffers, build_mesh_pass_command_buffers_cached,
     build_mesh_pass_command_buffers_cached_parallel,
 };

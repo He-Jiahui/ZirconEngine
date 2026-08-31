@@ -35,7 +35,7 @@ impl RuntimeExtensionRegistry {
                 descriptor.name,
             ));
         }
-        let owner = self.intern_plugin_module(format!("{}.runtime", descriptor.name))?;
+        let owner = self.intern_runtime_owner(&descriptor.name)?;
         self.modules
             .register(owner, descriptor.name.clone(), descriptor)
             .expect("module duplicate was prechecked");

@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "lobby_editor_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.lobby_editor_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionLobbyEditorWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "lobby_editor_rail_gap" }, { node = "lobby_editor_left" }, { node = "lobby_editor_center" }, { node = "lobby_editor_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "lobby_editor_workspace_main" },
+  { node = "lobby_editor_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.lobby_editor_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "lobby_editor_rail_gap" }, { node = "lobby_editor_left" }, { node = "lobby_editor_center" }, { node = "lobby_editor_right_reserve" }]
+
+[nodes.lobby_editor_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.lobby_editor_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionLobbyEditorRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.lobby_editor_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLobbyEditorLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "lobby_editor_title" }, { node = "lobby_editor_flow_tab" }, { node = "lobby_editor_slots_tab" }, { node = "lobby_editor_telemetry_tab" }, { node = "lobby_editor_default_lobby_row" }, { node = "lobby_editor_leader_slot_row" }, { node = "lobby_editor_region_auto_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "lobby_editor_title" }, { node = "lobby_editor_left_content" }]
+
+[nodes.lobby_editor_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionLobbyEditorLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "lobby_editor_default_lobby_row" }, { node = "lobby_editor_leader_slot_row" }, { node = "lobby_editor_region_auto_row" }]
 
 [nodes.lobby_editor_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionLobbyEditorTitle"
 props = { text = "Lobby Editor" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.lobby_editor_flow_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionLobbyEditorFlowTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Lobby Flow", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LobbyEditorFlowTab", event = "Click", route = "workbench.extension.lobby_editor.flow" }]
-
-[nodes.lobby_editor_slots_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionLobbyEditorSlotsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Slots", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LobbyEditorSlotsTab", event = "Click", route = "workbench.extension.lobby_editor.slots" }]
-
-[nodes.lobby_editor_telemetry_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionLobbyEditorTelemetryTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Telemetry", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LobbyEditorTelemetryTab", event = "Click", route = "workbench.extension.lobby_editor.telemetry" }]
 
 [nodes.lobby_editor_default_lobby_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/LobbyEditorRegionAutoRow", event = "Click",
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLobbyEditorCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "lobby_editor_center_header" }, { node = "lobby_editor_slot_table" }, { node = "lobby_editor_output" }]
 
 [nodes.lobby_editor_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionLobbyEditorCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "lobby_editor_center_title" }, { node = "lobby_editor_header_fill" }, { node = "lobby_editor_simulate_button" }, { node = "lobby_editor_validate_button" }]
 
 [nodes.lobby_editor_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionLobbyEditorSimulateLobbyButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Simulate Lobby", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Simulate Lobby", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 122.0, preferred = 122.0, max = 136.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LobbyEditorSimulateLobby", event = "Click", route = "workbench.extension.lobby_editor.simulate_lobby" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/LobbyEditorSimulateLobby", event = "Click",
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionLobbyEditorValidateLobbyButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Validate", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Validate", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 92.0, preferred = 92.0, max = 104.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/LobbyEditorValidateLobby", event = "Click", route = "workbench.extension.lobby_editor.validate_lobby" }]
 
 [nodes.lobby_editor_slot_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionLobbyEditorSlotTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "lobby_editor_leader_slot_table_row" }, { node = "lobby_editor_guest_01_table_row" }, { node = "lobby_editor_guest_02_table_row" }, { node = "lobby_editor_crossplay_rule_table_row" }]
 
 [nodes.lobby_editor_leader_slot_table_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/LobbyEditorCrossplayRuleTableRow", event = 
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionLobbyEditorOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Lobby Output", value_text = "8 slots   4 players   1 warning" }
+props = { text = "Lobby Output", value_text = "8 slots   4 players   1 warning", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LobbyEditorOutput", event = "Click", route = "workbench.extension.lobby_editor.output" }]
 
 [nodes.lobby_editor_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionLobbyEditorRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "lobby_editor_details_title" }, { node = "lobby_editor_template_dropdown" }, { node = "lobby_editor_region_dropdown" }, { node = "lobby_editor_max_players_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "lobby_editor_details_title" }, { node = "lobby_editor_right_content" }]
+
+[nodes.lobby_editor_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionLobbyEditorRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "lobby_editor_template_dropdown_property_row" }, { node = "lobby_editor_region_dropdown_property_row" }, { node = "lobby_editor_max_players_field_property_row" }]
 
 [nodes.lobby_editor_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,27 +202,48 @@ control_id = "WorkbenchExtensionLobbyEditorDetailsTitle"
 props = { text = "Lobby Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.lobby_editor_template_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionLobbyEditorTemplateDropdownPropertyRow"
+props = { text = "Template" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "lobby_editor_template_dropdown", slot = { name = "value" } }]
+
 [nodes.lobby_editor_template_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionLobbyEditorTemplateDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Lobby_Default", value = "Lobby_Default", options = ["Lobby_Default", "Duo_Lobby", "Squad_Lobby", "Custom_Lobby"] }
+props = { value_text = "Lobby_Default", value = "Lobby_Default", options = ["Lobby_Default", "Duo_Lobby", "Squad_Lobby", "Custom_Lobby"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/LobbyEditorTemplateEdit", event = "Change", route = "workbench.extension.lobby_editor.template.edit" },
   { id = "WorkbenchExtension/LobbyEditorTemplateCommit", event = "Submit", route = "workbench.extension.lobby_editor.template.commit" },
 ]
 
+[nodes.lobby_editor_region_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionLobbyEditorRegionDropdownPropertyRow"
+props = { text = "Region" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "lobby_editor_region_dropdown", slot = { name = "value" } }]
+
 [nodes.lobby_editor_region_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionLobbyEditorRegionDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Auto", value = "Auto", options = ["Auto", "US-East", "EU-West", "Asia"] }
+props = { value_text = "Auto", value = "Auto", options = ["Auto", "US-East", "EU-West", "Asia"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/LobbyEditorRegionEdit", event = "Change", route = "workbench.extension.lobby_editor.region.edit" },
   { id = "WorkbenchExtension/LobbyEditorRegionCommit", event = "Submit", route = "workbench.extension.lobby_editor.region.commit" },
 ]
+
+[nodes.lobby_editor_max_players_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionLobbyEditorMaxPlayersFieldPropertyRow"
+props = { text = "Max Players" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "lobby_editor_max_players_field", slot = { name = "value" } }]
 
 [nodes.lobby_editor_max_players_field]
 component = "WorkbenchField"

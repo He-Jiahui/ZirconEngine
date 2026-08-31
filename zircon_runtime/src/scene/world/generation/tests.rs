@@ -9,10 +9,14 @@ fn world_generation_advances_only_for_successful_structural_mutations() {
     let mut world = World::empty();
     assert_eq!(world.world_generation(), 0);
 
-    let root = world.spawn_node(NodeKind::Empty);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     assert_eq!(world.world_generation(), 1);
 
-    let child = world.spawn_node(NodeKind::Empty);
+    let child = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     assert_eq!(world.world_generation(), 2);
 
     assert!(!world.set_parent_checked(child, None).unwrap());
@@ -51,7 +55,9 @@ fn explicit_entity_spawn_advances_generation_exactly_once() {
 #[test]
 fn imported_node_record_spawn_advances_generation_exactly_once() {
     let mut source = World::empty();
-    let source_entity = source.spawn_node(NodeKind::Empty);
+    let source_entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let record = source.node_record(source_entity).unwrap();
     let mut target = World::empty();
 
@@ -81,7 +87,9 @@ fn fixed_presence_rebuild_marks_derived_state_before_lifecycle_callbacks() {
         });
     }
 
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
     assert_eq!(world.world_generation(), 1);
     assert_eq!(
@@ -109,13 +117,17 @@ fn fixed_presence_rebuild_marks_derived_state_before_lifecycle_callbacks() {
 #[test]
 fn rejected_imported_node_record_does_not_mutate_or_advance_generation() {
     let mut world = World::empty();
-    let parent = world.spawn_node(NodeKind::Empty);
+    let parent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_mobility(parent, Mobility::Dynamic).unwrap();
     let before = world.clone();
     let generation = world.world_generation();
 
     let mut source = World::empty();
-    let entity = source.spawn_node(NodeKind::Empty);
+    let entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mut record = source.node_record(entity).unwrap();
     record.id = parent + 1;
     record.parent = Some(parent);
@@ -130,7 +142,9 @@ fn rejected_imported_node_record_does_not_mutate_or_advance_generation() {
 #[test]
 fn exhausted_imported_entity_id_is_rejected_before_world_mutation() {
     let mut source = World::empty();
-    let source_entity = source.spawn_node(NodeKind::Empty);
+    let source_entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mut record = source.node_record(source_entity).unwrap();
     record.id = u64::MAX;
 
@@ -149,14 +163,20 @@ fn exhausted_imported_entity_id_is_rejected_before_world_mutation() {
 #[test]
 fn rejected_imported_node_record_batch_is_atomic() {
     let mut world = World::empty();
-    let parent = world.spawn_node(NodeKind::Empty);
+    let parent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_mobility(parent, Mobility::Dynamic).unwrap();
     let before = world.clone();
     let generation = world.world_generation();
 
     let mut source = World::empty();
-    let first = source.spawn_node(NodeKind::Empty);
-    let second = source.spawn_node(NodeKind::Empty);
+    let first = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let second = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mut first_record = source.node_record(first).unwrap();
     first_record.id = parent + 1;
     let mut invalid_record = source.node_record(second).unwrap();
@@ -164,9 +184,11 @@ fn rejected_imported_node_record_batch_is_atomic() {
     invalid_record.parent = Some(parent);
     invalid_record.mobility = Mobility::Static;
 
-    assert!(world
-        .insert_node_records(&[first_record, invalid_record])
-        .is_err());
+    assert!(
+        world
+            .insert_node_records(&[first_record, invalid_record])
+            .is_err()
+    );
     assert_eq!(world, before);
     assert_eq!(world.world_generation(), generation);
 }
@@ -174,7 +196,9 @@ fn rejected_imported_node_record_batch_is_atomic() {
 #[test]
 fn component_replacement_advances_the_query_generation_revision() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let before_rename = world.world_generation();
 
     assert!(world.rename_node(entity, "Renamed").unwrap());
@@ -188,7 +212,9 @@ fn component_replacement_advances_the_query_generation_revision() {
 #[test]
 fn failed_mutable_component_lookup_does_not_advance_generation() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let generation = world.world_generation();
 
     assert!(world.get_mut::<Name>(entity + 1).is_none());
@@ -198,7 +224,9 @@ fn failed_mutable_component_lookup_does_not_advance_generation() {
 #[test]
 fn world_generation_is_runtime_state_not_persisted_scene_data() {
     let mut world = World::empty();
-    world.spawn_node(NodeKind::Empty);
+    world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     assert_eq!(world.world_generation(), 1);
 
     let encoded = serde_json::to_value(&world).unwrap();
@@ -211,7 +239,9 @@ fn world_generation_is_runtime_state_not_persisted_scene_data() {
 #[test]
 fn lifecycle_visibility_revision_is_runtime_state_rebuilt_once_per_world_reconstruction() {
     let mut world = World::empty();
-    world.spawn_node(NodeKind::Empty);
+    world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let source_revision = world.lifecycle_visibility_revision();
 
     let cloned = world.clone();

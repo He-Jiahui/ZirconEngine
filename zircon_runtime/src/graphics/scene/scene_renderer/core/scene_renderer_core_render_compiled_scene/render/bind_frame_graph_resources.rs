@@ -1,9 +1,12 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
+use crate::graphics::OUTPUT_TARGET_TEXTURE_RESOURCE_NAME;
 use crate::graphics::backend::OffscreenTarget;
+use crate::graphics::scene::resources::OutputTargetTextureResource;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderGraphImportedFinalTarget,
 };
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
+use crate::graphics::types::GraphicsError;
 use crate::render_graph::{CompiledRenderGraph, RenderGraphResourceKind};
 use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
 
@@ -14,8 +17,9 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     target: &mut OffscreenTarget,
     scene_light_data_buffer: &wgpu::Buffer,
     imported_final_target: Option<RenderGraphImportedFinalTarget<'_>>,
+    output_target_resource: Option<&OutputTargetTextureResource>,
     shadow_atlas_resources: Option<&ShadowAtlasResources>,
-) {
+) -> Result<(), GraphicsError> {
     let retained_texture_count = target.retained_frame_texture_count();
     debug_assert!(
         retained_texture_count == OffscreenTarget::RETAINED_FRAME_TEXTURE_COUNT
@@ -45,8 +49,9 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         &target.depth_view,
         target.depth_identity,
     );
-    bind_live_scene_velocity(device, graph, resources, target);
+    bind_live_scene_velocity(device, graph, resources, target)?;
     bind_live_final_target_aliases(graph, resources, target, imported_final_target);
+    bind_live_output_target(graph, resources, output_target_resource)?;
     bind_live_frame_target_texture(
         graph,
         resources,
@@ -71,11 +76,22 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
         &target.gbuffer_emissive_view,
     );
-    bind_live_frame_target_texture(
+    bind_live_frame_target_physical_texture(
         graph,
         resources,
         PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+        &target.ambient_occlusion,
         &target.ambient_occlusion_view,
+        TextureDesc::new(
+            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+            target.render_size.x,
+            target.render_size.y,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::RENDER_ATTACHMENT
+                | TextureUsage::SAMPLED
+                | TextureUsage::STORAGE
+                | TextureUsage::COPY_SRC,
+        ),
     );
     bind_live_frame_target_buffer(
         graph,
@@ -97,6 +113,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             shadow_atlas_resources.atlas_view(),
         );
     }
+    Ok(())
 }
 
 fn bind_live_final_target_aliases(
@@ -109,12 +126,52 @@ fn bind_live_final_target_aliases(
         if !graph_has_live_resource(graph, alias) {
             continue;
         }
-        if let Some(imported_final_target) = imported_final_target {
-            resources.import_borrowed_texture_view(alias, imported_final_target.view);
+        if let Some(imported_final_target) = imported_final_target.as_ref() {
+            let mut desc = imported_final_target.desc.clone();
+            desc.label = Some(alias.to_string());
+            resources.import_borrowed_texture(
+                alias,
+                imported_final_target.texture,
+                imported_final_target.view,
+                desc,
+            );
         } else {
-            resources.import_texture_alias(alias, &target.final_color);
+            resources.import_borrowed_texture(
+                alias,
+                &target.final_color,
+                &target.final_color_view,
+                TextureDesc::new(
+                    alias,
+                    target.size.x,
+                    target.size.y,
+                    TextureFormat::Rgba8UnormSrgb,
+                    TextureUsage::RENDER_ATTACHMENT
+                        | TextureUsage::SAMPLED
+                        | TextureUsage::COPY_SRC,
+                ),
+            );
         }
     }
+}
+
+fn bind_live_output_target(
+    graph: &CompiledRenderGraph,
+    resources: &mut RenderGraphExecutionResources,
+    output_target_resource: Option<&OutputTargetTextureResource>,
+) -> Result<(), GraphicsError> {
+    if !graph_has_live_resource(graph, OUTPUT_TARGET_TEXTURE_RESOURCE_NAME) {
+        return Ok(());
+    }
+    let Some(output_target_resource) = output_target_resource else {
+        return Ok(());
+    };
+    resources.import_borrowed_texture(
+        OUTPUT_TARGET_TEXTURE_RESOURCE_NAME,
+        output_target_resource.texture(),
+        output_target_resource.view(),
+        output_target_resource.graph_texture_desc(OUTPUT_TARGET_TEXTURE_RESOURCE_NAME)?,
+    );
+    Ok(())
 }
 
 fn bind_live_frame_target_texture(
@@ -145,15 +202,18 @@ fn bind_live_scene_velocity(
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
     target: &mut OffscreenTarget,
-) {
+) -> Result<(), GraphicsError> {
     let logical_name = PostProcessGraphResourceNames::SCENE_VELOCITY;
     if !graph_has_live_resource(graph, logical_name) {
-        return;
+        return Ok(());
     }
     target.ensure_scene_velocity(device);
-    let (texture, view, identity) = target
-        .scene_velocity()
-        .expect("live scene-velocity graph resource must retain an offscreen backing");
+    let (texture, view, identity) =
+        target
+            .scene_velocity()
+            .ok_or(GraphicsError::MissingFrameGraphResourceBacking {
+                resource: logical_name,
+            })?;
     bind_live_frame_target_owned_texture(
         graph,
         resources,
@@ -169,6 +229,7 @@ fn bind_live_scene_velocity(
             TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
         ),
     );
+    Ok(())
 }
 
 fn bind_live_frame_target_owned_texture(
@@ -181,8 +242,26 @@ fn bind_live_frame_target_owned_texture(
     desc: TextureDesc,
 ) {
     if graph_has_live_resource(graph, logical_name) {
+        resources.import_borrowed_texture_with_identity(
+            logical_name,
+            texture,
+            view,
+            desc,
+            identity,
+        );
+    }
+}
+
+fn bind_live_frame_target_physical_texture(
+    graph: &CompiledRenderGraph,
+    resources: &mut RenderGraphExecutionResources,
+    logical_name: &'static str,
+    texture: &wgpu::Texture,
+    view: &wgpu::TextureView,
+    desc: TextureDesc,
+) {
+    if graph_has_live_resource(graph, logical_name) {
         resources.import_borrowed_texture(logical_name, texture, view, desc);
-        resources.import_borrowed_texture_view_with_identity(logical_name, view, identity);
     }
 }
 
@@ -231,6 +310,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn live_scene_velocity_missing_backing_is_fallible() {
+        let source = include_str!("bind_frame_graph_resources.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap_or(source);
+
+        assert!(production.contains("GraphicsError::MissingFrameGraphResourceBacking"));
+        assert!(!production.contains(".expect("));
+    }
+
+    #[test]
     fn frame_binder_imports_only_live_compiled_frame_resources() {
         let backend = RenderBackend::new_offscreen().unwrap();
         let mut target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
@@ -251,10 +339,17 @@ mod tests {
             &scene_light_data,
             None,
             None,
-        );
+            None,
+        )
+        .expect("live frame resources should bind");
 
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_COLOR));
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::AMBIENT_OCCLUSION));
+        let ambient_occlusion_desc = resources
+            .physical_texture_desc(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
+            .expect("the schema-backed SSAO external must retain its physical descriptor");
+        assert_eq!(ambient_occlusion_desc.format, TextureFormat::Rgba8Unorm);
+        assert!(ambient_occlusion_desc.usage.contains(TextureUsage::STORAGE));
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::FINAL_COLOR));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::LIGHT_LIST));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::SCENE_LIGHT_DATA));
@@ -293,7 +388,9 @@ mod tests {
             &cluster_buffer,
             None,
             None,
-        );
+            None,
+        )
+        .expect("live scene targets should bind");
 
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_COLOR));
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH));
@@ -361,7 +458,9 @@ mod tests {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         });
         let imported_view = imported.create_view(&wgpu::TextureViewDescriptor::default());
@@ -376,16 +475,30 @@ mod tests {
             &mut target,
             &cluster_buffer,
             Some(RenderGraphImportedFinalTarget {
+                texture: &imported,
                 view: &imported_view,
+                desc: TextureDesc::new(
+                    "zircon-test-imported-final-target",
+                    16,
+                    16,
+                    TextureFormat::Rgba8UnormSrgb,
+                    TextureUsage::RENDER_ATTACHMENT
+                        | TextureUsage::SAMPLED
+                        | TextureUsage::COPY_SRC,
+                ),
             }),
             None,
-        );
+            None,
+        )
+        .expect("imported final aliases should bind");
 
         for &resource in FINAL_TARGET_ALIASES {
             assert!(
                 resources.has_texture_view(resource),
                 "`{resource}` should bind to the imported final target when live"
             );
+            assert!(resources.physical_texture(resource).is_some());
+            assert!(resources.physical_texture_desc(resource).is_some());
         }
         let report = resources.resource_report();
         assert!(
@@ -410,7 +523,9 @@ mod tests {
             &cluster_buffer,
             None,
             None,
-        );
+            None,
+        )
+        .expect("advanced transient frame resources should bind");
 
         for resource in ADVANCED_POST_PROCESS_TRANSIENTS {
             assert!(
@@ -420,9 +535,14 @@ mod tests {
         }
 
         let mut transient_pool = TransientResourcePool::default();
-        transient_pool.begin_frame();
+        transient_pool.begin_frame(backend.device_profile());
         resources
-            .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
+            .materialize_transient_resources_with_pool(
+                &backend.device,
+                backend.device_profile(),
+                &graph,
+                &mut transient_pool,
+            )
             .expect("advanced post-process transient graph resources should materialize");
 
         for resource in ADVANCED_POST_PROCESS_TRANSIENTS {
@@ -435,23 +555,23 @@ mod tests {
 
     fn live_frame_resource_graph() -> CompiledRenderGraph {
         let mut builder = RenderGraphBuilder::new("live-frame-resource-binding");
-        let scene_color = builder.import_external_resource_with_binding(
+        let scene_color = builder.import_present_external_resource_with_binding(
             PostProcessGraphResourceNames::SCENE_COLOR,
             RenderGraphExternalResourceBinding::report_only_texture(),
         );
-        let ambient_occlusion = builder.import_external_resource_with_binding(
+        let ambient_occlusion = builder.import_present_external_resource_with_binding(
             PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
             RenderGraphExternalResourceBinding::report_only_texture(),
         );
-        let final_color = builder.import_external_resource_with_binding(
+        let final_color = builder.import_present_external_resource_with_binding(
             PostProcessGraphResourceNames::FINAL_COLOR,
             RenderGraphExternalResourceBinding::report_only_texture(),
         );
-        let light_list = builder.import_external_resource_with_binding(
+        let light_list = builder.import_present_external_resource_with_binding(
             PostProcessGraphResourceNames::LIGHT_LIST,
             RenderGraphExternalResourceBinding::report_only_buffer(),
         );
-        let scene_light_data = builder.import_external_resource_with_binding(
+        let scene_light_data = builder.import_present_external_resource_with_binding(
             PostProcessGraphResourceNames::SCENE_LIGHT_DATA,
             RenderGraphExternalResourceBinding::required_buffer(),
         );
@@ -466,15 +586,15 @@ mod tests {
 
     fn live_scene_target_graph() -> CompiledRenderGraph {
         let mut builder = RenderGraphBuilder::new("live-scene-target-binding");
-        let scene_color = builder.import_external_resource_with_binding(
+        let scene_color = builder.import_present_external_resource_with_binding(
             PostProcessGraphResourceNames::SCENE_COLOR,
             RenderGraphExternalResourceBinding::report_only_texture(),
         );
-        let scene_depth = builder.import_external_resource_with_binding(
+        let scene_depth = builder.import_present_external_resource_with_binding(
             PostProcessGraphResourceNames::SCENE_DEPTH,
             RenderGraphExternalResourceBinding::report_only_texture(),
         );
-        let scene_velocity = builder.import_external_resource_with_binding(
+        let scene_velocity = builder.import_present_external_resource_with_binding(
             PostProcessGraphResourceNames::SCENE_VELOCITY,
             RenderGraphExternalResourceBinding::report_only_texture(),
         );
@@ -489,7 +609,7 @@ mod tests {
         let mut builder = RenderGraphBuilder::new("final-alias-binding");
         let pass = side_effect_pass(&mut builder, "final-alias-use");
         for &alias in FINAL_TARGET_ALIASES {
-            let external = builder.import_external_resource_with_binding(
+            let external = builder.import_present_external_resource_with_binding(
                 alias,
                 RenderGraphExternalResourceBinding::report_only_texture(),
             );
@@ -500,7 +620,8 @@ mod tests {
 
     fn advanced_transient_graph() -> CompiledRenderGraph {
         let mut builder = RenderGraphBuilder::new("advanced-transient-binding");
-        let output = builder.import_external_resource(PostProcessGraphResourceNames::FINAL_COLOR);
+        let output =
+            builder.import_present_external_resource(PostProcessGraphResourceNames::FINAL_COLOR);
         let pass = side_effect_pass(&mut builder, "advanced-transient-use");
         for resource in ADVANCED_POST_PROCESS_TRANSIENTS {
             let texture = builder.create_texture(crate::rhi::TextureDesc::new(

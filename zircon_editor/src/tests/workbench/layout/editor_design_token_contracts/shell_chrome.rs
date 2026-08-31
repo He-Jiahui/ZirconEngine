@@ -146,7 +146,7 @@ fn activity_rail_uses_shared_component_spacing() {
         &[
             "$editor.density.gap.medium",
             "$editor.chrome.activity_rail.width",
-            "$editor.control.height.large",
+            "$editor.control.height.compact",
         ],
     )]);
     assert!(

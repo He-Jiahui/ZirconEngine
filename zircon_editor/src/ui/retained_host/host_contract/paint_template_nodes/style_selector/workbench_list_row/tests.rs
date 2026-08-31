@@ -66,6 +66,8 @@ fn pressed_unmarked_list_row_keeps_pressed_surface_distinct_from_selection() {
     assert_eq!(style.state, UiPainterResolvedState::Pressed);
     assert_eq!(style.background, Some(PALETTE.surface_pressed));
     assert_ne!(style.background, Some(PALETTE.surface_selected));
+    assert_eq!(style.border, None);
+    assert_eq!(style.border_width, 0.0);
 }
 
 #[test]
@@ -114,6 +116,7 @@ fn list_row_palette_projects_surface_text_and_focus_roles_from_host_palette() {
     host.surface_pressed = [5, 6, 7, 255];
     host.surface_hover = [20, 21, 22, 255];
     host.focus_ring = [30, 31, 32, 255];
+    host.accent = [35, 36, 37, 255];
     host.text = [40, 41, 42, 255];
     host.text_muted = [50, 51, 52, 255];
     host.text_disabled = [60, 61, 62, 255];
@@ -124,7 +127,7 @@ fn list_row_palette_projects_surface_text_and_focus_roles_from_host_palette() {
     assert_eq!(palette.pressed_surface, [5, 6, 7, 255]);
     assert_eq!(palette.hot_surface, [20, 21, 22, 255]);
     assert_eq!(palette.focus_border, [30, 31, 32, 255]);
-    assert_eq!(palette.marked_adornment, [30, 31, 32, 255]);
+    assert_eq!(palette.marked_adornment, [35, 36, 37, 255]);
     assert_eq!(palette.text, [40, 41, 42, 255]);
     assert_eq!(palette.text_muted, [50, 51, 52, 255]);
     assert_eq!(palette.text_disabled, [60, 61, 62, 255]);

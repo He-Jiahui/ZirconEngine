@@ -1,7 +1,7 @@
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformSpace, ViewOrientation,
 };
 use zircon_runtime_interface::ui::{binding::UiBindingCall, binding::UiBindingValue};
 
@@ -52,6 +52,8 @@ impl ViewportCommand {
                     UiBindingValue::string(super::transform_space::symbol(*space)),
                 )
             }
+            Self::SetPivotMode(mode) => UiBindingCall::new("ViewportCommand.SetPivotMode")
+                .with_argument(UiBindingValue::string(super::pivot_mode::symbol(*mode))),
             Self::SetProjectionMode(mode) => {
                 UiBindingCall::new("ViewportCommand.SetProjectionMode").with_argument(
                     UiBindingValue::string(super::projection_mode::symbol(*mode)),
@@ -137,6 +139,9 @@ impl ViewportCommand {
             "ViewportCommand.SetTransformSpace" => Self::SetTransformSpace(parse_transform_space(
                 &required_string_argument(&call, 0, "ViewportCommand.SetTransformSpace")?,
             )?),
+            "ViewportCommand.SetPivotMode" => Self::SetPivotMode(parse_pivot_mode(
+                &required_string_argument(&call, 0, "ViewportCommand.SetPivotMode")?,
+            )?),
             "ViewportCommand.SetProjectionMode" => Self::SetProjectionMode(parse_projection_mode(
                 &required_string_argument(&call, 0, "ViewportCommand.SetProjectionMode")?,
             )?),
@@ -216,6 +221,11 @@ fn parse_transform_space(symbol: &str) -> Result<TransformSpace, EditorUiBinding
         .ok_or_else(|| invalid_enum_argument("ViewportCommand.SetTransformSpace", symbol))
 }
 
+fn parse_pivot_mode(symbol: &str) -> Result<PivotMode, EditorUiBindingError> {
+    super::pivot_mode::parse_symbol(symbol)
+        .ok_or_else(|| invalid_enum_argument("ViewportCommand.SetPivotMode", symbol))
+}
+
 fn parse_projection_mode(symbol: &str) -> Result<ProjectionMode, EditorUiBindingError> {
     super::projection_mode::parse_symbol(symbol)
         .ok_or_else(|| invalid_enum_argument("ViewportCommand.SetProjectionMode", symbol))
@@ -261,6 +271,16 @@ mod tests {
     #[test]
     fn cancel_interaction_round_trips_through_the_viewport_codec() {
         let command = ViewportCommand::CancelInteraction;
+
+        assert_eq!(
+            ViewportCommand::from_call(command.to_call()).unwrap(),
+            Some(command)
+        );
+    }
+
+    #[test]
+    fn pivot_mode_round_trips_through_the_viewport_codec() {
+        let command = ViewportCommand::SetPivotMode(PivotMode::Primary);
 
         assert_eq!(
             ViewportCommand::from_call(command.to_call()).unwrap(),

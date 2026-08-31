@@ -97,7 +97,9 @@ fn failed_tick_does_not_publish_or_retain_animation_frame_demand() {
 fn session_with_active_sequence() -> (RuntimeDynamicSession, EntityId) {
     let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
     let entity = session.level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_animation_sequence_player(
                 entity,

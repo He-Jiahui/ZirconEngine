@@ -1,4 +1,5 @@
 use std::fmt;
+use std::sync::Arc;
 
 use crate::core::StartupMode;
 
@@ -8,7 +9,7 @@ use super::{DependencySpec, RegistryName, ServiceFactory};
 pub struct DriverDescriptor {
     pub name: RegistryName,
     pub startup_mode: StartupMode,
-    pub dependencies: Vec<DependencySpec>,
+    pub dependencies: Arc<[DependencySpec]>,
     pub factory: ServiceFactory,
 }
 
@@ -22,7 +23,7 @@ impl DriverDescriptor {
         Self {
             name,
             startup_mode,
-            dependencies,
+            dependencies: dependencies.into(),
             factory,
         }
     }

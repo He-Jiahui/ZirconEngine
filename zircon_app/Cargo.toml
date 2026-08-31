@@ -44,7 +44,7 @@ graphics = ["text", "zircon_runtime/graphics"]
 navigation = ["zircon_runtime/navigation"]
 script = ["diagnostic-log", "zircon_runtime/script"]
 text = ["zircon_runtime/text"]
-ui = ["graphics", "zircon_runtime/ui"]
+ui = ["graphics", "first-party-ui-document-importer", "zircon_runtime/ui"]
 first-party-runtime-plugins = [
     "dep:zircon_first_party_runtime_catalog",
     "zircon_first_party_runtime_catalog/base-runtime-plugins",
@@ -56,6 +56,10 @@ first-party-advanced-render-runtime-plugins = [
 first-party-navigation-runtime-plugin = [
     "dep:zircon_first_party_runtime_catalog",
     "zircon_first_party_runtime_catalog/navigation-runtime-plugin",
+]
+first-party-ui-document-importer = [
+    "dep:zircon_first_party_runtime_catalog",
+    "zircon_first_party_runtime_catalog/ui-document-importer",
 ]
 first-party-editor-catalog = [
     "dep:zircon_editor",
@@ -168,3 +172,11 @@ zircon_first_party_runtime_catalog = { path = "../zircon_plugins/first_party_run
 zircon_runtime = { path = "../zircon_runtime", default-features = false }
 zircon_runtime_host.workspace = true
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_DataExchange",
+    "Win32_System_Memory",
+    "Win32_System_Ole",
+] }

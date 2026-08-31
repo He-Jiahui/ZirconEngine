@@ -41,7 +41,7 @@ fn runtime_15_morph_payload_projection_is_wired() {
             "upload_morph_payloads",
             "collect_morph_payload_rows",
             "Arc::as_ptr",
-            "upload_morph_buffers",
+            "prepare_morph_buffers",
             "morph_payload_projection_keeps_active_position_deltas_and_weights",
             "morph_payload_collection_deduplicates_shared_draw_payloads",
         ],
@@ -52,8 +52,8 @@ fn runtime_15_morph_payload_projection_is_wired() {
         &[
             "mod morph_payload_upload;",
             "upload_morph_payloads",
-            "let morph_upload_report = upload_morph_payloads(device, queue, gpu_scene, &mut pending_draws);",
-            ".with_additional_uploaded_bytes(morph_upload_report.uploaded_bytes)",
+            "let morph_upload = upload_morph_payloads(device, gpu_scene, &mut pending_draws);",
+            "append_morph_upload(morph_upload)",
         ],
     );
     assert_contains_all(

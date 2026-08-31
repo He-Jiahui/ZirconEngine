@@ -3,8 +3,8 @@ use zircon_runtime::core::framework::net::{
     ReliableDatagramReceiveStatus,
 };
 
-use super::assembly::InboundFragmentAssembly;
 use super::NetReliableUdpRuntimeManager;
+use super::assembly::InboundFragmentAssembly;
 
 impl NetReliableUdpRuntimeManager {
     pub(in crate::manager) fn receive_packet_impl(
@@ -45,11 +45,11 @@ impl NetReliableUdpRuntimeManager {
 
         let sequence = packet.sequence;
         let channel = packet.channel.clone();
-        let status = state
+        let assembly = state
             .inbound_fragments
             .entry(sequence)
-            .or_insert_with(|| InboundFragmentAssembly::new(&packet))
-            .insert(&packet);
+            .or_insert_with(|| InboundFragmentAssembly::new(&packet));
+        let status = assembly.insert(packet);
         match status {
             ReliableDatagramReceiveStatus::AcceptedFragment => {
                 state.stats.received_packets += 1;

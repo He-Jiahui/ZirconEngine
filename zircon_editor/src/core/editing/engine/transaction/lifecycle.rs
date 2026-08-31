@@ -14,6 +14,24 @@ impl EditorTransactionEngine {
         Ok(())
     }
 
+    pub(super) fn with_active_context_mut<T: 'static, R>(
+        &self,
+        scope: TransactionId,
+        inspect: impl FnOnce(&mut T) -> R,
+    ) -> Result<Option<R>, EditCommandError> {
+        self.start_operation("inspect active transaction context")?;
+        let (mut context, active) = match self.take_top_scope(scope) {
+            Ok(parts) => parts,
+            Err(error) => {
+                self.clear_operation();
+                return Err(error);
+            }
+        };
+        let result = context.as_any_mut().downcast_mut::<T>().map(inspect);
+        self.restore_active(context, active, false);
+        Ok(result)
+    }
+
     pub(crate) fn begin_exclusive_transition(
         &self,
         operation: &'static str,
@@ -170,6 +188,7 @@ impl EditorTransactionEngine {
             id: active.id,
             label: active.label.clone(),
             timestamp_frame: active.timestamp_frame,
+            route: active.route,
             significant: active
                 .commands
                 .iter()
@@ -212,30 +231,41 @@ impl EditorTransactionEngine {
 
     pub(super) fn cancel(&self, scope: TransactionId) -> Result<(), EditCommandError> {
         self.start_operation("cancel transaction")?;
-        let (mut context, mut frames) = {
+        let mut context = {
             let mut state = self.lock_state();
-            let Some(position) = state.active.iter().position(|active| active.id == scope) else {
+            if !state.active.iter().any(|active| active.id == scope) {
                 self.clear_operation_locked(&mut state);
                 return Err(EditCommandError::ScopeClosed);
-            };
-            let context = Self::take_context_from(&mut state)?;
-            let frames = state.active.drain(position..).collect::<Vec<_>>();
-            (context, frames)
+            }
+            Self::take_context_from(&mut state)?
         };
 
         let mut event = None;
-        while let Some(mut frame) = frames.pop() {
+        loop {
+            let mut frame = {
+                let mut state = self.lock_state();
+                let Some(frame) = state.active.pop() else {
+                    state.context = Some(context);
+                    state.faulted = true;
+                    self.clear_operation_locked(&mut state);
+                    return Err(EditCommandError::InvariantViolation {
+                        invariant: "nested cancellation must retain its target scope",
+                    });
+                };
+                frame
+            };
+            let reached_scope = frame.id == scope;
             match Self::cancel_frame(&mut frame, context.as_mut()) {
                 Ok(()) => {
                     if frame.root {
                         event = Some(Self::canceled_event(&frame));
                     }
+                    if reached_scope {
+                        break;
+                    }
                 }
                 Err(error) => {
                     let mut state = self.lock_state();
-                    for retained in frames {
-                        state.active.push(retained);
-                    }
                     state.active.push(frame);
                     state.context = Some(context);
                     state.faulted = true;

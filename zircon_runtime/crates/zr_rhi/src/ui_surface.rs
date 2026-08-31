@@ -10,7 +10,7 @@ pub use compact_styles::{
 use image_resources::compact_image_resources;
 pub use image_resources::{UiSurfaceImageResource, UiSurfaceImageResourceTable};
 
-use crate::RenderNativeSurfaceTarget;
+use crate::{RenderNativeSurfaceTarget, SubmissionTicket};
 
 use super::RhiError;
 
@@ -402,6 +402,7 @@ impl UiSurfaceDrawList {
     pub fn stats(&self) -> UiSurfacePresentStats {
         let mut stats = UiSurfacePresentStatsAccumulator::new(self);
         for command in &self.commands {
+            stats.record_command_visit();
             if !self.command_visible_with_damage(command, self.damage) {
                 continue;
             }
@@ -416,7 +417,17 @@ impl UiSurfaceDrawList {
         command: &UiSurfaceCommand,
         damage: Option<UiSurfaceRect>,
     ) -> bool {
-        command_effective_rect(command, self, damage).is_some()
+        self.command_effective_rect_with_damage(command, damage)
+            .is_some()
+    }
+
+    #[doc(hidden)]
+    pub fn command_effective_rect_with_damage(
+        &self,
+        command: &UiSurfaceCommand,
+        damage: Option<UiSurfaceRect>,
+    ) -> Option<UiSurfaceRect> {
+        command_effective_rect(command, self, damage)
     }
 }
 
@@ -456,10 +467,19 @@ impl<'a> UiSurfacePresentStatsAccumulator<'a> {
             recorded_style_handles: BTreeSet::new(),
             stats: UiSurfacePresentStats {
                 surface_size: draw_list.surface_size,
-                command_visibility_scan_count: 1,
                 ..UiSurfacePresentStats::default()
             },
         }
+    }
+
+    pub fn record_command_visit(&mut self) {
+        self.stats.command_visibility_scan_count =
+            self.stats.command_visibility_scan_count.saturating_add(1);
+    }
+
+    pub fn record_draw_item_fusion(&mut self) {
+        self.stats.visible_draw_item_count = self.stats.visible_draw_item_count.saturating_sub(1);
+        self.stats.draw_calls = self.stats.draw_calls.saturating_sub(1);
     }
 
     pub fn record_visible(
@@ -595,6 +615,10 @@ impl UiSurfacePresentOutcome {
 #[non_exhaustive]
 pub struct UiSurfacePresentStats {
     pub outcome: UiSurfacePresentOutcome,
+    /// Generation-qualified identity for native work submitted by the presenter.
+    ///
+    /// Headless, retryable, and standalone compatibility paths may not have a neutral ticket.
+    pub submission: Option<SubmissionTicket>,
     pub surface_size: (u32, u32),
     pub draw_calls: u64,
     /// Draw ops in the full compiled plan before native damage-scissor culling.
@@ -609,7 +633,7 @@ pub struct UiSurfacePresentStats {
     pub visible_draw_item_count: u64,
     /// Draw items in the full compiled plan before native damage-scissor culling.
     pub compiled_visible_draw_item_count: u64,
-    /// Command rows visited while deriving the current visible statistics.
+    /// Command visibility predicates evaluated while deriving the current statistics.
     pub command_visibility_scan_count: u64,
     /// Reuses a versioned full-projection statistics snapshot instead of rescanning commands.
     pub command_stats_cache_hit_count: u64,
@@ -669,8 +693,20 @@ pub struct UiSurfacePresentStats {
     pub image_shared_upload_write_count: u64,
     /// Bytes written while publishing new device-shared image products.
     pub image_shared_upload_bytes: u64,
-    /// Texture bytes retained by the device-shared image registry after this present.
+    /// Texture bytes discoverable through the device-shared image registry after this present.
     pub image_shared_resident_bytes: u64,
+    /// Live physical image allocations owned by the device-scoped UI image ledger.
+    pub image_device_allocation_count: u64,
+    /// Unique physical texture bytes still alive across all UI surfaces and submitted work.
+    pub image_device_allocation_bytes: u64,
+    /// Physical bytes evicted from registry lookup but pinned by a surface or submitted work.
+    pub image_registry_evicted_pinned_bytes: u64,
+    /// Allocation references retained by surface caches and prepared dependency sets.
+    pub image_surface_pin_count: u64,
+    /// Submitted UI frames retaining an allocation-set reference until GPU completion.
+    pub image_in_flight_present_pin_count: u64,
+    /// Physical allocations released after their final registry/surface/GPU pin dropped.
+    pub image_eviction_completion_count: u64,
     /// Owned image-cache keys allocated for insertion or admission-time eviction planning.
     pub image_cache_key_allocation_count: u64,
     /// Image-cache entries visited by bounded admission-time LRU planning.
@@ -679,9 +715,9 @@ pub struct UiSurfacePresentStats {
     pub image_cache_admission_reject_count: u64,
     /// Supplied image payloads rejected before texture creation or upload.
     pub image_invalid_payload_count: u64,
-    /// Resident RGBA texture bytes after the current present.
+    /// Logical texture bytes referenced by this presenter's image cache.
     pub image_cache_resident_bytes: u64,
-    /// CPU decoded RGBA bytes retained by the bounded native image cache.
+    /// CPU decoded RGBA bytes retained by the presenter cache; zero for registry-owned images.
     pub image_cache_cpu_resident_bytes: u64,
     pub image_count: u64,
     pub clip_count: u64,

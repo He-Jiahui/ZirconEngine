@@ -24,7 +24,7 @@ impl RetainedEditorHost {
                     .delete_ui_asset_editor_selected_layout_semantic(instance_id)
                     .map(|_| ())
                 {
-                    Ok(()) => self.mark_presentation_dirty(),
+                    Ok(()) => self.mark_presentation_dirty_for_view(instance_id),
                     Err(error) => self.set_status_line(error.to_string()),
                 }
             }

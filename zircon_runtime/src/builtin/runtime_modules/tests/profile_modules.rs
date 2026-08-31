@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use crate::builtin::{
     runtime_modules_for_runtime_profile, runtime_modules_for_target, BuiltinRuntimeModuleId,
-    RuntimeModuleLoadDiagnostic,
 };
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
@@ -72,24 +71,28 @@ fn builtin_profiles_own_unique_typed_module_membership() {
 #[test]
 fn builtin_profile_assembly_matches_declared_members_and_closes_dependencies() {
     for profile in RuntimeProfileDescriptor::builtin_profiles() {
-        let report = runtime_modules_for_runtime_profile(profile.id);
-        let core_diagnostics = report
-            .diagnostics()
-            .iter()
-            .filter(|diagnostic| matches!(diagnostic, RuntimeModuleLoadDiagnostic::Core(_)))
-            .collect::<Vec<_>>();
-        assert!(
-            core_diagnostics.is_empty(),
-            "profile {:?} produced core diagnostics: {core_diagnostics:?}",
-            profile.id
-        );
+        let report = match runtime_modules_for_runtime_profile(profile.id) {
+            Ok(report) => report,
+            Err(rejection) => {
+                assert!(
+                    !rejection.diagnostics().iter().any(|diagnostic| matches!(
+                        diagnostic,
+                        crate::builtin::RuntimeModuleLoadDiagnostic::Core(_)
+                    )),
+                    "profile {:?} must not fail final module/service graph validation: {}",
+                    profile.id,
+                    rejection
+                );
+                continue;
+            }
+        };
 
         let module_names = report
-            .modules
+            .modules()
             .iter()
             .map(|module| module.module_name())
             .collect::<HashSet<_>>();
-        for module in &report.modules {
+        for module in report.modules() {
             for dependency in module.descriptor().module_dependencies {
                 assert!(
                     module_names.contains(dependency.module_name.as_str()),
@@ -102,7 +105,7 @@ fn builtin_profile_assembly_matches_declared_members_and_closes_dependencies() {
         }
 
         let actual_builtin_modules = report
-            .modules
+            .modules()
             .iter()
             .filter_map(|module| BuiltinRuntimeModuleId::for_module_name(module.module_name()))
             .collect::<BTreeSet<_>>();
@@ -131,7 +134,9 @@ fn profile_selection_completes_builtin_dependency_closure_from_one_candidate_reg
         RuntimeTargetMode::ServerRuntime,
         Some(&ProjectPluginManifest::default()),
     )
-    .modules;
+    .expect("server candidates should compile")
+    .modules()
+    .to_vec();
 
     let selection =
         super::super::assembly::profile_selection::select_runtime_profile_builtin_module_descriptors(

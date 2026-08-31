@@ -1,11 +1,15 @@
+use std::sync::Arc;
+
 use super::{
-    CapturedFrame, CapturedHdrFrame, GraphicsDebuggerStatus, RenderFrameExtract,
+    CapturedFrame, CapturedHdrFrame, EnvironmentRuntimeSnapshot, GraphicsDebuggerStatus,
+    RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureRequest,
+    RenderEnvironmentCaptureSourcePayload, RenderEnvironmentCaptureStatus, RenderFrameExtract,
     RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
-    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle, RenderViewportProduct,
-    RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
-    RenderVisibleSpatialQuerySnapshot,
+    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle,
+    RenderViewportPickRequest, RenderViewportPickResult, RenderViewportPickTicket,
+    RenderViewportProduct, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
+    RenderVisibleSpatialQuerySnapshot, SceneViewportRenderPacket, UiRenderSubmission,
 };
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
 use zr_rhi::{UiSurfaceDescriptor, UiSurfacePresenter};
 
 pub trait RenderFramework: Send + Sync {
@@ -26,7 +30,7 @@ pub trait RenderFramework: Send + Sync {
         &self,
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
-        ui: Option<UiRenderExtract>,
+        ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError>;
 
     fn set_submission_config(
@@ -73,7 +77,7 @@ pub trait RenderFramework: Send + Sync {
         &self,
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
-        _ui: Option<UiRenderExtract>,
+        _ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError> {
         self.present_frame_extract(viewport, extract)
     }
@@ -88,6 +92,14 @@ pub trait RenderFramework: Send + Sync {
 
     fn query_stats(&self) -> Result<RenderStats, RenderFrameworkError>;
 
+    fn query_environment_runtime_snapshot(
+        &self,
+    ) -> Result<EnvironmentRuntimeSnapshot, RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "environment runtime snapshot".to_string(),
+        })
+    }
+
     fn query_visible_spatial_snapshot(
         &self,
         _viewport: RenderViewportHandle,
@@ -100,6 +112,13 @@ pub trait RenderFramework: Send + Sync {
     fn query_virtual_geometry_debug_snapshot(
         &self,
     ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError>;
+
+    fn query_virtual_geometry_debug_snapshot_available(
+        &self,
+    ) -> Result<bool, RenderFrameworkError> {
+        self.query_virtual_geometry_debug_snapshot()
+            .map(|snapshot| snapshot.is_some())
+    }
 
     fn request_graphics_debugger_capture(
         &self,
@@ -129,6 +148,47 @@ pub trait RenderFramework: Send + Sync {
         })
     }
 
+    /// Enqueues a GPU-resident environment capture without blocking the caller.
+    fn request_environment_capture(
+        &self,
+        _scene: SceneViewportRenderPacket,
+        _request: RenderEnvironmentCaptureRequest,
+    ) -> Result<RenderEnvironmentCaptureHandle, RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "environment cubemap capture".to_string(),
+        })
+    }
+
+    /// Polls environment capture state without waiting for GPU work.
+    fn poll_environment_capture(
+        &self,
+        _handle: RenderEnvironmentCaptureHandle,
+    ) -> Result<RenderEnvironmentCaptureStatus, RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "environment cubemap capture".to_string(),
+        })
+    }
+
+    /// Cancels a queued environment capture request.
+    fn cancel_environment_capture(
+        &self,
+        _handle: RenderEnvironmentCaptureHandle,
+    ) -> Result<(), RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "environment cubemap capture".to_string(),
+        })
+    }
+
+    /// Moves one already-completed source payload to its persistence owner.
+    fn take_environment_capture_source_payload(
+        &self,
+        _handle: RenderEnvironmentCaptureHandle,
+    ) -> Result<Option<RenderEnvironmentCaptureSourcePayload>, RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "environment cubemap source payload".to_string(),
+        })
+    }
+
     fn capture_frame_if_newer(
         &self,
         viewport: RenderViewportHandle,
@@ -155,6 +215,35 @@ pub trait RenderFramework: Send + Sync {
         _last_generation: Option<u64>,
     ) -> Result<Option<RenderViewportProduct>, RenderFrameworkError> {
         Ok(None)
+    }
+
+    /// Enqueues one exact hit query against an already-produced viewport generation.
+    fn request_viewport_pick(
+        &self,
+        _request: RenderViewportPickRequest,
+    ) -> Result<RenderViewportPickTicket, RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "viewport identity picking".to_string(),
+        })
+    }
+
+    /// Polls without waiting for GPU work. `None` means the ticket remains pending.
+    fn poll_viewport_pick(
+        &self,
+        _ticket: RenderViewportPickTicket,
+    ) -> Result<Option<RenderViewportPickResult>, RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "viewport identity picking".to_string(),
+        })
+    }
+
+    fn cancel_viewport_pick(
+        &self,
+        _ticket: RenderViewportPickTicket,
+    ) -> Result<(), RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "viewport identity picking".to_string(),
+        })
     }
 
     /// Creates a native UI presenter that can directly sample products from this backend.

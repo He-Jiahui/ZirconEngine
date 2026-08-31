@@ -99,10 +99,12 @@ fn render_text_atlas_replayable_shadow_caps_regions_even_across_retained_slots()
     }
 
     assert!(dirty_page.regions().len() <= 8);
-    assert!(dirty_page
-        .regions()
-        .iter()
-        .any(|region| region.x == 0 && region.width > 1));
+    assert!(
+        dirty_page
+            .regions()
+            .iter()
+            .any(|region| region.x == 0 && region.width > 1)
+    );
 }
 
 #[test]

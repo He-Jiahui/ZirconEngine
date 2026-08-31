@@ -8,12 +8,13 @@ use super::ZrVmRegistration;
 /// Owns every raw-pointer-backed ZrVM object that belongs to one plugin instance.
 ///
 /// All access and destruction are serialized by the process-wide ZrVM lock. The
-/// explicit drop order is session, native registrations, then runtime because
-/// each earlier object may retain pointers into the following owner.
+/// explicit drop order is transient values, session, native registrations, then
+/// runtime because each earlier object may retain pointers into the following owner.
 pub(super) struct ZrVmRuntimeOwner {
     session: Option<zrvm::ProjectSession>,
     registrations: Option<Vec<ZrVmRegistration>>,
     runtime: Option<zrvm::Runtime>,
+    lowered_arguments: Vec<zrvm::Value>,
 }
 
 // SAFETY: the contained binding types wrap process-global C runtime pointers.
@@ -34,7 +35,25 @@ impl ZrVmRuntimeOwner {
             session: Some(session),
             registrations: Some(registrations),
             runtime: Some(runtime),
+            lowered_arguments: Vec::new(),
         }
+    }
+
+    pub(super) fn take_lowered_arguments(
+        &mut self,
+        _guard: &MutexGuard<'static, ()>,
+    ) -> Vec<zrvm::Value> {
+        std::mem::take(&mut self.lowered_arguments)
+    }
+
+    pub(super) fn recycle_lowered_arguments(
+        &mut self,
+        _guard: &MutexGuard<'static, ()>,
+        mut lowered_arguments: Vec<zrvm::Value>,
+    ) {
+        lowered_arguments.clear();
+        debug_assert!(self.lowered_arguments.is_empty());
+        self.lowered_arguments = lowered_arguments;
     }
 
     pub(super) fn call_module_export(
@@ -66,6 +85,7 @@ impl ZrVmRuntimeOwner {
 impl Drop for ZrVmRuntimeOwner {
     fn drop(&mut self) {
         let _guard = acquire_zr_vm_lock();
+        self.lowered_arguments.clear();
         drop(self.session.take());
         drop(self.registrations.take());
         drop(self.runtime.take());

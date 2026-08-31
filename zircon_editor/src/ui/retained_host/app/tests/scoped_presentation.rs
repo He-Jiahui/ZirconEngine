@@ -18,6 +18,37 @@ props = { text = "Ready" }
 "#;
 
 #[test]
+fn active_drawer_pane_presentation_uses_shell_content_without_a_full_rebuild() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_scoped_drawer_presentation");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::LeftTop, "editor.hierarchy#1");
+    let slow_path_rebuilds_before = harness
+        .host
+        .borrow()
+        .invalidation
+        .diagnostics_snapshot()
+        .slow_path_rebuild_count;
+
+    {
+        let mut host = harness.host.borrow_mut();
+        assert!(host.mark_presentation_dirty_for_pane("editor.hierarchy#1"));
+        host.recompute_if_dirty();
+    }
+
+    assert_eq!(
+        harness
+            .host
+            .borrow()
+            .invalidation
+            .diagnostics_snapshot()
+            .slow_path_rebuild_count,
+        slow_path_rebuilds_before,
+        "a known active drawer pane must use the shell-content fast path"
+    );
+}
+
+#[test]
 fn ui_asset_mode_action_patches_the_presented_view_without_a_full_shell_rebuild() {
     let _guard = lock_env();
     let harness = ChildWindowHostHarness::new("zircon_retained_scoped_presentation");

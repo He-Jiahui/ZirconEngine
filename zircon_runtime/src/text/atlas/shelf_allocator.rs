@@ -38,15 +38,22 @@ impl GlyphAtlasShelfAllocator {
         let mut cursor_x = self.cursor_x;
         let mut cursor_y = self.cursor_y;
         let mut shelf_height = self.shelf_height;
-        if cursor_x > 0 && cursor_x.saturating_add(size.x) > self.page_size.x {
+        if cursor_x > 0
+            && cursor_x
+                .checked_add(size.x)
+                .is_none_or(|right| right > self.page_size.x)
+        {
             cursor_x = 0;
             cursor_y = cursor_y
-                .saturating_add(self.shelf_height)
-                .saturating_add(self.padding_px);
+                .checked_add(self.shelf_height)
+                .and_then(|next_y| next_y.checked_add(self.padding_px))?;
             shelf_height = 0;
         }
 
-        if cursor_y.saturating_add(size.y) > self.page_size.y {
+        if cursor_y
+            .checked_add(size.y)
+            .is_none_or(|bottom| bottom > self.page_size.y)
+        {
             return None;
         }
 
@@ -57,8 +64,9 @@ impl GlyphAtlasShelfAllocator {
             height: size.y,
         };
         self.cursor_x = cursor_x
-            .saturating_add(size.x)
-            .saturating_add(self.padding_px);
+            .checked_add(size.x)
+            .and_then(|next_x| next_x.checked_add(self.padding_px))
+            .unwrap_or(u32::MAX);
         self.cursor_y = cursor_y;
         self.shelf_height = shelf_height.max(size.y);
 
@@ -122,6 +130,15 @@ mod tests {
         let after_failure = allocator.allocate(UVec2::new(20, 16)).unwrap();
 
         assert_eq!(after_failure.rect, atlas_rect(34, 0, 20, 16));
+    }
+
+    #[test]
+    fn render_text_atlas_shelf_rejects_vertical_coordinate_overflow() {
+        let page_key = GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0);
+        let mut allocator = GlyphAtlasShelfAllocator::new(page_key, UVec2::new(4, u32::MAX), 0);
+
+        assert!(allocator.allocate(UVec2::new(4, u32::MAX)).is_some());
+        assert_eq!(allocator.allocate(UVec2::new(1, 1)), None);
     }
 
     fn atlas_rect(x: u32, y: u32, width: u32, height: u32) -> GlyphAtlasRect {

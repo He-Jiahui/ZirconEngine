@@ -3,7 +3,7 @@ use super::super::super::paint_theme::PALETTE;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const ICON_TINT: [u8; 4] =
     PALETTE.text;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const ICON_TINT_ACTIVE: [u8;
-    4] = PALETTE.focus_ring;
+    4] = PALETTE.accent;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const ICON_TINT_DISABLED:
     [u8; 4] = PALETTE.text_disabled;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const ICON_TINT_ERROR: [u8;

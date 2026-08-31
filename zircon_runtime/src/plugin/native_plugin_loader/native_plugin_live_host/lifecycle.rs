@@ -367,17 +367,12 @@ impl NativePluginLiveHost {
             }
         }
         let Some(plugin) = reloaded else {
-            let discovered = report
-                .discovered()
-                .iter()
-                .map(|candidate| candidate.plugin_id.as_str())
-                .collect::<Vec<_>>()
-                .join(", ");
-            let discovery_hint = if discovered.is_empty() {
-                "no native plugin manifests were discovered".to_string()
-            } else {
-                format!("discovered native plugins: {discovered}")
-            };
+            let discovery_hint = native_plugin_discovery_hint(
+                report
+                    .discovered()
+                    .iter()
+                    .map(|candidate| candidate.plugin_id.as_str()),
+            );
             let diagnostic_hint = if diagnostics.is_empty() {
                 discovery_hint
             } else {
@@ -574,6 +569,35 @@ impl NativePluginLiveHost {
         })
     }
 }
+
+fn native_plugin_discovery_hint<'a>(plugin_ids: impl Iterator<Item = &'a str> + Clone) -> String {
+    const PREFIX: &str = "discovered native plugins: ";
+    const SEPARATOR: &str = ", ";
+
+    let mut plugin_ids = plugin_ids.peekable();
+    if plugin_ids.peek().is_none() {
+        return "no native plugin manifests were discovered".to_string();
+    }
+    let plugin_count = plugin_ids.clone().count();
+    let capacity = PREFIX.len()
+        + plugin_ids.clone().map(str::len).sum::<usize>()
+        + plugin_count
+            .saturating_sub(1)
+            .saturating_mul(SEPARATOR.len());
+    let mut hint = String::with_capacity(capacity);
+    hint.push_str(PREFIX);
+    for (index, plugin_id) in plugin_ids.enumerate() {
+        if index != 0 {
+            hint.push_str(SEPARATOR);
+        }
+        hint.push_str(plugin_id);
+    }
+    hint
+}
+
+#[cfg(test)]
+#[path = "lifecycle/discovery_hint_tests.rs"]
+mod discovery_hint_tests;
 
 // A retained generation may resume callback admission only after its saved state restores.
 fn rollback_unloaded_existing_runtime_snapshot(

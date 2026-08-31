@@ -16,8 +16,11 @@ class EditorNativeTemplateHoverPerformanceContractTests(unittest.TestCase):
 
         clone_start = source.index("let options: Vec<_>")
         preflight = source[:clone_start]
-        self.assertIn("interaction.hovered_template_control_id.is_empty()", preflight)
-        self.assertIn("node.control_id.as_str() !=", preflight)
+        predicate = source.split("fn template_hover_targets_node", 1)[1]
+        predicate = predicate.split("fn apply_template_hover_to_node", 1)[0]
+        self.assertIn("interaction.hovered_template_control_id.is_empty()", predicate)
+        self.assertIn("node.control_id.as_str() ==", predicate)
+        self.assertIn("if !template_hover_targets_node(node, interaction)", preflight)
         self.assertIn("return;", preflight)
 
     def test_presentation_snapshot_does_not_materialize_hover_into_models(self) -> None:

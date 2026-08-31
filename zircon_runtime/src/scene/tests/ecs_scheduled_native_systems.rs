@@ -91,7 +91,7 @@ fn scheduled_native_system_uses_added_and_changed_windows() {
                 "gameplay.changed-health",
                 SystemStage::Update,
                 0,
-                move |query: Query<'_, (EntityId, &'static Health), Changed<Health>>| {
+                move |mut query: Query<'_, (EntityId, &'static Health), Changed<Health>>| {
                     observed
                         .lock()
                         .unwrap()
@@ -108,7 +108,7 @@ fn scheduled_native_system_uses_added_and_changed_windows() {
                 "gameplay.added-health",
                 SystemStage::Update,
                 1,
-                move |query: Query<'_, (EntityId, &'static Health), Added<Health>>| {
+                move |mut query: Query<'_, (EntityId, &'static Health), Added<Health>>| {
                     observed
                         .lock()
                         .unwrap()
@@ -218,7 +218,7 @@ fn scheduled_native_commands_flush_before_later_ordered_systems() {
             0,
             {
                 let observed = observed.clone();
-                move |(mut commands, query): (Commands<'_>, Query<'_, (), With<Marker>>)| {
+                move |(mut commands, mut query): (Commands<'_>, Query<'_, (), With<Marker>>)| {
                     observed.lock().unwrap().push(!query.is_empty());
                     commands.entity(entity).insert((Marker,));
                     observed.lock().unwrap().push(!query.is_empty());
@@ -234,7 +234,7 @@ fn scheduled_native_commands_flush_before_later_ordered_systems() {
                 "gameplay.observe-marker",
                 SystemStage::Update,
                 1,
-                move |query: Query<'_, (), With<Marker>>| {
+                move |mut query: Query<'_, (), With<Marker>>| {
                     observed.lock().unwrap().push(!query.is_empty());
                 },
             )
@@ -413,6 +413,15 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
             .contains("native_steps_by_stage: [Vec<ScheduledSceneStep>; SystemStage::COUNT]")
     );
     assert!(schedule_source.contains("let systems = registry.systems();"));
+    assert!(!schedule_source.contains("let runtime_systems: Vec<_>"));
+    assert!(!schedule_source.contains("registry.runtime_systems().iter().collect()"));
+    assert!(!schedule_source.contains("same_stage_by_id"));
+    assert!(schedule_source.contains("let all_nodes = PlanNodes::new(registry);"));
+    assert!(schedule_source.contains("registry: &'a SceneSystemRegistry"));
+    assert!(
+        schedule_source
+            .contains("runtime_systems: impl Iterator<Item = &'registry BoxedRuntimeSceneSystem>")
+    );
     assert!(schedule_source.contains("let mut stage_order = Vec::with_capacity(stages.len());"));
     assert!(schedule_source.contains("for stage in stages.iter().copied()"));
     assert!(schedule_source.contains("stage_order.push(stage);"));
@@ -443,32 +452,26 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(schedule_owner_source.contains("self.refresh_executor_plan()?;"));
     assert!(schedule_owner_source.contains("self.executor_plan_dirty = true;"));
     assert!(schedule_owner_source.contains("taken_native_system_ids: Vec<String>"));
-    assert!(schedule_owner_source.contains("taken_runtime_system_ids: Vec<String>"));
+    assert!(schedule_owner_source.contains("taken_runtime_system_count: usize"));
     assert!(
         schedule_owner_source
             .contains("self.taken_native_system_ids.push(system.id().to_string());")
     );
-    assert!(
-        schedule_owner_source
-            .contains("self.taken_runtime_system_ids.push(system.id().to_string());")
-    );
+    assert!(schedule_owner_source.contains("self.taken_runtime_system_count += 1;"));
     assert!(schedule_owner_source.contains("let system_id = system.id();"));
     assert!(
         schedule_owner_source
             .contains("remove_taken_system_id(&mut self.taken_native_system_ids, system_id);")
     );
-    assert!(
-        schedule_owner_source
-            .contains("remove_taken_system_id(&mut self.taken_runtime_system_ids, system_id);")
-    );
+    assert!(schedule_owner_source.contains("self.taken_runtime_system_count -= 1;"));
     assert!(schedule_owner_source.contains("taken_native_system_ids: Vec::new()"));
-    assert!(schedule_owner_source.contains("taken_runtime_system_ids: Vec::new()"));
+    assert!(schedule_owner_source.contains("taken_runtime_system_count: 0"));
     assert!(schedule_owner_source.contains("taken_system_id_exists("));
     assert!(
         schedule_owner_source
             .contains("fn taken_system_id_exists(taken_system_ids: &[String], id: &str)")
     );
-    assert!(schedule_owner_source.contains("fn remove_taken_system_id("));
+    assert!(!schedule_owner_source.contains("fn remove_taken_system_id("));
     assert!(schedule_owner_source.contains("for taken_id in taken_system_ids"));
     assert!(schedule_owner_source.contains("if taken_id.as_str() == id"));
     assert!(schedule_owner_source.contains("let mut index = 0_usize;"));
@@ -478,9 +481,6 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(schedule_owner_source.contains("taken_system_ids.swap_remove(index);"));
     assert!(!schedule_owner_source.contains(".any(|taken_id| taken_id.as_str() == id)"));
     assert!(!schedule_owner_source.contains(".position(|taken_id| taken_id.as_str() == id)"));
-    assert!(schedule_owner_source.contains(
-        "Taken ids are a membership guard only; restore order is already owned by the registry."
-    ));
     assert!(schedule_owner_source.contains("impl<'de> Deserialize<'de> for Schedule"));
     assert!(schedule_owner_source.contains("impl Clone for Schedule"));
     let default_stage_order_body = schedule_owner_source
@@ -523,27 +523,62 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(registry_source.contains("let native_step_counts ="));
     assert!(
         registry_source
-            .contains("native_step_counts_by_stage(&self.native_systems, &self.runtime_systems);")
+            .contains("native_step_counts_by_stage(&self.native_systems, self.runtime_systems())")
     );
     assert!(
         registry_source
             .contains("let mut by_stage = native_step_groups_with_capacity(&native_step_counts);")
     );
     assert!(registry_source.contains("fn native_step_counts_by_stage("));
-    assert!(registry_source.contains("runtime_systems: &[BoxedRuntimeSceneSystem]"));
+    assert_eq!(
+        registry_source
+            .matches("runtime_systems: RuntimeSystems<'_>")
+            .count(),
+        2,
+        "step counting and conflict-graph sizing must consume slots without a temporary Vec"
+    );
+    assert!(!registry_source.contains("let runtime_systems: Vec<_>"));
     assert!(registry_source.contains("let step_count = if system.has_deferred_commands() {"));
     assert!(registry_source.contains("counts[system.stage().rank()] += step_count;"));
-    assert!(registry_source.contains("for system in runtime_systems"));
+    assert_eq!(
+        registry_source
+            .matches("for system in self.runtime_systems()")
+            .count(),
+        2,
+        "stage-plan and conflict-graph construction must iterate stable slots directly"
+    );
     assert!(registry_source.contains("fn native_step_groups_with_capacity("));
     assert!(registry_source.contains("Vec::with_capacity(native_step_counts[stage_index])"));
     assert!(!registry_source.contains("fn empty_native_step_groups("));
     assert!(!registry_source.contains("std::array::from_fn(|_| Vec::new())"));
     assert!(registry_source.contains("insert_system_sorted(&mut self.systems, descriptor);"));
+    assert!(registry_source.contains("runtime_systems: RuntimeSystemSlots"));
+    assert!(registry_source.contains("self.runtime_systems.take(id)"));
+    assert!(registry_source.contains("self.runtime_systems.restore(system)"));
+    let runtime_slots_source = include_str!("../ecs/scene_system_registry/runtime_system_slots.rs");
+    assert!(runtime_slots_source.contains("slots: Vec<RuntimeSystemSlot>"));
+    assert!(runtime_slots_source.contains("indices: HashMap<String, usize>"));
+    let runtime_take_body = runtime_slots_source
+        .split("pub(super) fn take(")
+        .nth(1)
+        .and_then(|text| text.split("pub(super) fn remove(").next())
+        .expect("read RuntimeSystemSlots::take body");
+    assert!(runtime_take_body.contains("self.indices.get(id)"));
+    assert!(runtime_take_body.contains("self.slots.get_mut(index)?.system.take()"));
+    assert!(!runtime_take_body.contains("self.slots.remove("));
+    let runtime_restore_body = runtime_slots_source
+        .split("pub(super) fn restore(")
+        .nth(1)
+        .and_then(|text| text.split("pub(super) fn insert(").next())
+        .expect("read RuntimeSystemSlots::restore body");
+    assert!(runtime_restore_body.contains("self.indices"));
+    assert!(runtime_restore_body.contains("slot.system = Some(system)"));
+    assert!(!runtime_slots_source.contains("insert_runtime_system_sorted("));
     assert_eq!(
         registry_source
             .matches("insert_native_system_sorted(&mut self.native_systems, system);")
             .count(),
-        3,
+        4,
         "native registration variants and restore must share ordered insertion"
     );
     assert!(registry_source.contains("fn insert_system_sorted("));
@@ -605,7 +640,7 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(
         registry_source.contains("let node_count = native_conflict_graph_node_count_for_stage(")
     );
-    assert!(registry_source.contains("&self.runtime_systems,\n            stage,"));
+    assert!(!registry_source.contains(".runtime_systems().iter().collect()"));
     assert!(registry_source.contains("let mut nodes = Vec::with_capacity(node_count);"));
     assert!(registry_source.contains("nodes.push(ScheduleConflictNode::new("));
     assert!(registry_source.contains("nodes.push(ScheduleConflictNode::barrier("));

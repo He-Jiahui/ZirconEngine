@@ -1,8 +1,11 @@
+use crate::core::framework::render::RenderParticleSpriteSnapshot;
 use crate::core::math::Vec4;
 
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::particle_vertex::ParticleVertex;
+
+const PARTICLE_VERTICES_PER_SPRITE: usize = 6;
 
 pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_vertices(
     frame: &ViewportRenderFrame,
@@ -12,16 +15,30 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_verti
     let right = camera.right();
     let up = camera.up();
     let camera_layers = frame.extract.view.selected_camera_layers();
-    let mut vertices = Vec::new();
-
-    for sprite in &frame.extract.particles.sprites {
+    let is_renderable = |sprite: &RenderParticleSpriteSnapshot| {
         if !camera_layers.intersects(&sprite.render_layer_mask) {
-            continue;
+            return false;
         }
         if sprite.depth_test != depth_test {
-            continue;
+            return false;
         }
         if sprite.size <= f32::EPSILON || sprite.color.w <= f32::EPSILON {
+            return false;
+        }
+        true
+    };
+    let vertex_capacity = frame
+        .extract
+        .particles
+        .sprites
+        .iter()
+        .filter(|sprite| is_renderable(sprite))
+        .count()
+        .saturating_mul(PARTICLE_VERTICES_PER_SPRITE);
+    let mut vertices = Vec::with_capacity(vertex_capacity);
+
+    for sprite in &frame.extract.particles.sprites {
+        if !is_renderable(sprite) {
             continue;
         }
         let aspect_ratio = sprite.aspect_ratio.max(f32::EPSILON);
@@ -69,7 +86,7 @@ mod tests {
     use super::build_particle_vertices;
 
     #[test]
-    fn particle_vertices_split_depth_tested_and_overlay_sprites() {
+    fn runtime99d_batch_exact_particle_vertex_capacity_preserves_depth_and_overlay() {
         let frame = particle_frame(vec![
             particle_sprite(7, Vec3::new(-0.25, 0.0, -2.5), true),
             particle_sprite(8, Vec3::new(0.25, 0.0, -2.5), false),
@@ -80,12 +97,14 @@ mod tests {
 
         assert_eq!(depth_tested.len(), 6);
         assert_eq!(overlay.len(), 6);
+        assert_eq!(depth_tested.capacity(), depth_tested.len());
+        assert_eq!(overlay.capacity(), overlay.len());
         assert!(depth_tested.iter().all(|vertex| vertex.position[0] < 0.5));
         assert!(overlay.iter().all(|vertex| vertex.position[0] > -0.5));
     }
 
     #[test]
-    fn particle_vertices_filter_sprites_by_selected_camera_layers() {
+    fn runtime99d_batch_exact_particle_vertex_capacity_preserves_layer_filter() {
         let mut hidden = particle_sprite(7, Vec3::new(-0.25, 0.0, -2.5), true);
         hidden.render_layer_mask = RenderLayerSet::layer(1);
         let mut visible = particle_sprite(8, Vec3::new(0.25, 0.0, -2.5), true);

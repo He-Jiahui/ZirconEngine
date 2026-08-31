@@ -71,7 +71,7 @@ fn runtime_15_runtime_07_owner_budget_large_file_gate_is_child_owner() {
         "mirror-docs source-inventory child owns Runtime 07 audit input",
         &mirror_docs_source_inventory,
         &[
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "owner_budget/large_file_gate.rs",
             "owner_budget/mirror_docs.rs",
             "owner_budget/virtual_geometry_debug_snapshot.rs",

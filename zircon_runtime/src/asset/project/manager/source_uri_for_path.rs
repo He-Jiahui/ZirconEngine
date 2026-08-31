@@ -67,11 +67,7 @@ impl ProjectManager {
                 path: path.to_path_buf(),
             }
         })?;
-        let relative = relative
-            .components()
-            .map(|component| component.as_os_str().to_string_lossy())
-            .collect::<Vec<_>>()
-            .join("/");
+        let relative = relative_uri_path(relative);
         Ok(AssetUri::parse(&format!("res://{relative}"))?)
     }
 
@@ -88,16 +84,27 @@ impl ProjectManager {
                 package_assets_root.display()
             ))
         })?;
-        let relative = relative
-            .components()
-            .map(|component| component.as_os_str().to_string_lossy())
-            .collect::<Vec<_>>()
-            .join("/");
+        let relative = relative_uri_path(relative);
         Ok(AssetUri::parse(&format!(
             "package://{package_id}/{relative}"
         ))?)
     }
 }
+
+fn relative_uri_path(path: &Path) -> String {
+    let mut relative = String::with_capacity(path.as_os_str().len());
+    for (index, component) in path.components().enumerate() {
+        if index != 0 {
+            relative.push('/');
+        }
+        relative.push_str(&component.as_os_str().to_string_lossy());
+    }
+    relative
+}
+
+#[cfg(test)]
+#[path = "source_uri_for_path/direct_join_tests.rs"]
+mod direct_join_tests;
 
 #[cfg(test)]
 mod tests {

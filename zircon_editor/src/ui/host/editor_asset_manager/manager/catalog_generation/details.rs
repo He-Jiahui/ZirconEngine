@@ -1,20 +1,21 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use zircon_runtime::asset::registry::AssetRegistryIndex;
 use zircon_runtime::asset::{AssetReference, AssetUri, AssetUuid};
 
 use super::super::preview_refresh::display_name_for_locator::display_name_for_locator;
 use super::record::record_to_view;
 use crate::ui::host::editor_asset_manager::{
     AssetCatalogRecord, EditorAssetDetailsGeneration, EditorAssetReferenceRecord,
-    EditorAssetSubassetRecord, ReferenceGraph,
+    EditorAssetSubassetRecord,
 };
 
 pub(super) fn build_details_generation(
     record: &AssetCatalogRecord,
     catalog_by_uuid: &HashMap<AssetUuid, AssetCatalogRecord>,
     uuid_by_locator: &HashMap<AssetUri, AssetUuid>,
-    reference_graph: &ReferenceGraph,
+    runtime_registry: &AssetRegistryIndex,
 ) -> Arc<EditorAssetDetailsGeneration> {
     let mut direct_references = record
         .direct_references
@@ -23,8 +24,8 @@ pub(super) fn build_details_generation(
         .collect::<Vec<_>>();
     direct_references.sort_by(reference_order);
 
-    let mut referenced_by = reference_graph
-        .incoming(record.asset_uuid)
+    let mut referenced_by = runtime_registry
+        .get_referencers_by_uuid(record.asset_uuid)
         .into_iter()
         .filter_map(|source_uuid| catalog_by_uuid.get(&source_uuid))
         .map(|source| EditorAssetReferenceRecord {

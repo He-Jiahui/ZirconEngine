@@ -29,6 +29,7 @@ fn workbench_template_surface_patches_single_interaction_node_and_matches_full_p
     let primary_id = template
         .control_node_id(EditorWorkbenchTemplateControlIds::PRIMARY_BUTTON)
         .expect("primary button node");
+    template.mark_host_projection_committed();
 
     template
         .surface
@@ -38,11 +39,21 @@ fn workbench_template_surface_patches_single_interaction_node_and_matches_full_p
             UiValue::Bool(true),
         ))
         .expect("hover mutation");
+    let frames_extract_count = template.frames_extract_count();
+    let frames_extract_skip_count = template.frames_extract_skip_count();
     template
         .refresh_after_state_change(&runtime)
         .expect("incremental projection refresh");
 
+    assert_eq!(template.frames_extract_count(), frames_extract_count);
+    assert_eq!(
+        template.frames_extract_skip_count(),
+        frames_extract_skip_count + 1
+    );
     assert_eq!(template.last_host_projection_patch_count(), 1);
+    assert!(template
+        .pending_host_projection_geometry_patch_indices()
+        .is_none());
     assert_eq!(template.host_projection_full_rebuild_count(), 1);
     assert_eq!(
         template.host_projection,
@@ -96,6 +107,7 @@ fn workbench_template_surface_patches_resize_geometry_without_rebuilding_node_se
     let metrics = EditorWorkbenchReferenceMetrics::default();
     let mut template =
         build_editor_workbench_template_surface(&runtime, metrics).expect("template surface");
+    template.mark_host_projection_committed();
 
     template
         .recompute_layout(
@@ -106,6 +118,13 @@ fn workbench_template_surface_patches_resize_geometry_without_rebuilding_node_se
 
     assert_eq!(template.last_host_projection_semantic_patch_count(), 0);
     assert!(template.last_host_projection_geometry_patch_count() > 1_000);
+    assert_eq!(
+        template
+            .pending_host_projection_geometry_patch_indices()
+            .expect("resize should expose an exact geometry-only workset")
+            .len(),
+        template.last_host_projection_geometry_patch_count()
+    );
     assert_eq!(template.host_projection_full_rebuild_count(), 1);
     assert_eq!(
         template.host_projection,

@@ -113,12 +113,29 @@ pub struct ScriptCallTable {
 
 impl ScriptCallTable {
     pub(crate) fn from_entries(generation: u64, entries: Vec<ScriptCallSite>) -> Self {
-        let mut by_name = HashMap::<Arc<str>, HashMap<Arc<str>, ScriptCallSiteId>>::new();
-        for entry in &entries {
-            by_name
-                .entry(Arc::clone(&entry.module_name))
-                .or_default()
-                .insert(Arc::clone(&entry.function_name), entry.id());
+        let module_count = entries
+            .windows(2)
+            .filter(|pair| pair[0].module_name != pair[1].module_name)
+            .count()
+            + usize::from(!entries.is_empty());
+        let mut by_name = HashMap::with_capacity(module_count);
+        let mut group_start = 0;
+        while group_start < entries.len() {
+            let mut group_end = group_start + 1;
+            while group_end < entries.len()
+                && entries[group_start].module_name == entries[group_end].module_name
+            {
+                group_end += 1;
+            }
+
+            let function_count = group_end - group_start;
+            let functions = by_name
+                .entry(Arc::clone(&entries[group_start].module_name))
+                .or_insert_with(|| HashMap::with_capacity(function_count));
+            for entry in &entries[group_start..group_end] {
+                functions.insert(Arc::clone(&entry.function_name), entry.id());
+            }
+            group_start = group_end;
         }
         Self {
             generation,
@@ -223,4 +240,36 @@ fn validate_call_capabilities(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::framework::script::ScriptHostValueKind;
+
+    fn test_site(id: u32, module_name: &str, function_name: &str) -> ScriptCallSite {
+        let callback: HostExportCallback = Arc::new(|_| Ok(ScriptHostValue::Null));
+        ScriptCallSite::new(
+            ScriptCallSiteId(id),
+            Arc::from(module_name),
+            ScriptHostFunctionDescriptor::new(function_name, 0, 0, ScriptHostValueKind::Null),
+            callback,
+        )
+    }
+
+    #[test]
+    fn from_entries_preserves_non_contiguous_module_groups() {
+        let table = ScriptCallTable::from_entries(
+            7,
+            vec![
+                test_site(0, "runtime.time", "now"),
+                test_site(1, "runtime.input", "poll"),
+                test_site(2, "runtime.time", "delta"),
+            ],
+        );
+
+        assert!(table.resolve("runtime.time", "now").is_some());
+        assert!(table.resolve("runtime.input", "poll").is_some());
+        assert!(table.resolve("runtime.time", "delta").is_some());
+    }
 }

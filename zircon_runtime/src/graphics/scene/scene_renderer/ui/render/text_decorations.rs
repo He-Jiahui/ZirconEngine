@@ -1,9 +1,12 @@
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiRenderCommand, UiTextDecorations, UiTextRange, UiTextWritingMode,
+    UiPaintElement, UiPaintPayload, UiRenderCommand, UiTextDecorations, UiTextPaintDecorationKind,
+    UiTextRange, UiTextWritingMode,
 };
 
-use super::color::parse_hex_color;
+use super::ScreenSpaceUiVertex;
+use super::color::{parse_color, parse_hex_color};
+use super::geometry::{push_border, push_rect};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiTextDecorations {
@@ -55,6 +58,57 @@ pub(super) fn resolved_text_decoration_baseline(
     baseline.is_finite().then_some(baseline)
 }
 
+pub(super) fn push_text_decoration_vertices(
+    paint_elements: &[UiPaintElement],
+    command_opacity: f32,
+    viewport: UiFrame,
+    vertices: &mut Vec<ScreenSpaceUiVertex>,
+    before_text: bool,
+) {
+    for element in paint_elements {
+        let UiPaintPayload::Text { text } = &element.payload else {
+            continue;
+        };
+        for decoration in &text.decorations {
+            let decoration_before_text = matches!(
+                decoration.kind,
+                UiTextPaintDecorationKind::Selection
+                    | UiTextPaintDecorationKind::CompositionHighlight
+                    | UiTextPaintDecorationKind::TableCellBackground
+            );
+            if decoration_before_text != before_text {
+                continue;
+            }
+            let Some(frame) = viewport.intersection(decoration.frame) else {
+                continue;
+            };
+            let color = parse_color(
+                Some(decoration.color.as_str()),
+                text_decoration_fallback_color(decoration.kind),
+                command_opacity,
+            )
+            .unwrap_or_else(|| text_decoration_fallback_color(decoration.kind));
+            if matches!(decoration.kind, UiTextPaintDecorationKind::TableCellBorder) {
+                push_border(vertices, frame, decoration.thickness, color, viewport);
+            } else {
+                push_rect(vertices, frame, color, viewport);
+            }
+        }
+    }
+}
+
+fn text_decoration_fallback_color(kind: UiTextPaintDecorationKind) -> [f32; 4] {
+    match kind {
+        UiTextPaintDecorationKind::Selection => [0.30, 0.54, 1.0, 0.40],
+        UiTextPaintDecorationKind::CompositionHighlight => [0.30, 0.54, 1.0, 0.14],
+        UiTextPaintDecorationKind::CompositionUnderline => [0.30, 0.54, 1.0, 1.0],
+        UiTextPaintDecorationKind::Caret => [0.91, 0.93, 0.97, 1.0],
+        UiTextPaintDecorationKind::Outline => [0.91, 0.93, 0.97, 1.0],
+        UiTextPaintDecorationKind::TableCellBackground => [0.0, 0.0, 0.0, 0.0],
+        UiTextPaintDecorationKind::TableCellBorder => [0.91, 0.93, 0.97, 1.0],
+    }
+}
+
 fn resolved_decoration_color(authored: Option<&str>, fallback: [f32; 4], opacity: f32) -> [f32; 4] {
     authored
         .and_then(|color| parse_hex_color(color, opacity))
@@ -99,6 +153,7 @@ mod tests {
             text_layout: Some(UiResolvedTextLayout {
                 lines: vec![UiResolvedTextLine {
                     text: "A".to_string(),
+                    placement_frame: UiFrame::default(),
                     frame: UiFrame::new(8.0, 12.0, 40.0, 24.0),
                     source_range: UiTextRange { start: 0, end: 1 },
                     visual_range: UiTextRange { start: 0, end: 1 },

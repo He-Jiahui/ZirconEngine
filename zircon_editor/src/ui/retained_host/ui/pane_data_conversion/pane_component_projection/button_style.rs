@@ -6,8 +6,14 @@ pub(super) fn button_style_values_with_aliases<'a>(
 ) -> Cow<'a, BTreeMap<String, toml::Value>> {
     let progress_aliases = is_progress_component_role(component_role);
     let progress_state_override = progress_aliases && attribute_is_true(attributes, "disabled");
-    let progress_track_source = progress_track_color_source(attributes);
-    let progress_fill_source = progress_fill_color_source(attributes);
+    let (progress_track_source, progress_fill_source) = if progress_aliases {
+        (
+            progress_track_color_source(attributes),
+            progress_fill_color_source(attributes),
+        )
+    } else {
+        (None, None)
+    };
     let needs_alias = [
         ("focus_border_color", "border_color"),
         ("thumb_outline_color", "border_color"),
@@ -329,3 +335,7 @@ mod performance_tests {
         ));
     }
 }
+
+#[cfg(test)]
+#[path = "button_style/deferred_progress_tests.rs"]
+mod deferred_progress_tests;

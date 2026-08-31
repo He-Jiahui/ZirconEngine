@@ -1,5 +1,5 @@
-use std::ffi::{CStr, CString, c_char, c_void};
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::ffi::{c_char, c_void, CStr, CString};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use serde::{Deserialize, Serialize};
 pub use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
@@ -64,22 +64,22 @@ pub struct NativePluginHostFunctionTableV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-pub struct NativePluginByteSliceV2 {
+pub struct NativePluginByteSliceV3 {
     pub data: *const u8,
     pub len: usize,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-pub struct NativePluginOwnedByteBufferV2 {
+pub struct NativePluginOwnedByteBufferV3 {
     pub data: *mut u8,
     pub len: usize,
     pub capacity: usize,
     pub owner_token: u64,
-    pub free: Option<NativePluginFreeBytesFnV2>,
+    pub free: Option<NativePluginFreeBytesFnV3>,
 }
 
-impl NativePluginOwnedByteBufferV2 {
+impl NativePluginOwnedByteBufferV3 {
     pub const fn empty() -> Self {
         Self {
             data: std::ptr::null_mut(),
@@ -93,7 +93,7 @@ impl NativePluginOwnedByteBufferV2 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-pub struct NativePluginCallbackStatusV2 {
+pub struct NativePluginCallbackStatusV3 {
     pub code: u32,
     pub diagnostics: *const c_char,
 }
@@ -113,7 +113,7 @@ impl NativePluginOutputSinkV4 {
     ///
     /// The sink must be the unmodified value supplied by the host for the active callback. Its
     /// context and writer are valid only for that callback's duration.
-    pub unsafe fn write(self, bytes: &[u8]) -> NativePluginCallbackStatusV2 {
+    pub unsafe fn write(self, bytes: &[u8]) -> NativePluginCallbackStatusV3 {
         if bytes.len() > self.max_output_bytes {
             return callback_status(
                 ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
@@ -129,7 +129,7 @@ impl NativePluginOutputSinkV4 {
         unsafe {
             write(
                 self.context,
-                NativePluginByteSliceV2 {
+                NativePluginByteSliceV3 {
                     data: bytes.as_ptr(),
                     len: bytes.len(),
                 },
@@ -180,26 +180,26 @@ pub struct NativePluginBridgeMethodCallV3 {
     pub user_data: u64,
 }
 
-pub type NativePluginFreeBytesFnV2 =
-    unsafe extern "C" fn(NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
+pub type NativePluginFreeBytesFnV3 =
+    unsafe extern "C" fn(NativePluginOwnedByteBufferV3) -> NativePluginCallbackStatusV3;
 pub type NativePluginOutputWriteFnV4 =
-    unsafe extern "C" fn(*mut c_void, NativePluginByteSliceV2) -> NativePluginCallbackStatusV2;
+    unsafe extern "C" fn(*mut c_void, NativePluginByteSliceV3) -> NativePluginCallbackStatusV3;
 pub type NativePluginInvokeCommandFnV4 = unsafe extern "C" fn(
     u32,
-    NativePluginByteSliceV2,
+    NativePluginByteSliceV3,
     NativePluginOutputSinkV4,
-) -> NativePluginCallbackStatusV2;
-pub type NativePluginSaveStateFnV2 =
-    unsafe extern "C" fn(*mut NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
-pub type NativePluginRestoreStateFnV2 =
-    unsafe extern "C" fn(NativePluginByteSliceV2) -> NativePluginCallbackStatusV2;
-pub type NativePluginUnloadFnV2 = unsafe extern "C" fn() -> NativePluginCallbackStatusV2;
-pub type NativePluginByteSliceV3 = NativePluginByteSliceV2;
-pub type NativePluginOwnedByteBufferV3 = NativePluginOwnedByteBufferV2;
-pub type NativePluginCallbackStatusV3 = NativePluginCallbackStatusV2;
-pub type NativePluginSaveStateFnV3 = NativePluginSaveStateFnV2;
-pub type NativePluginRestoreStateFnV3 = NativePluginRestoreStateFnV2;
-pub type NativePluginUnloadFnV3 = NativePluginUnloadFnV2;
+) -> NativePluginCallbackStatusV3;
+pub type NativePluginSaveStateFnV3 =
+    unsafe extern "C" fn(*mut NativePluginOwnedByteBufferV3) -> NativePluginCallbackStatusV3;
+pub type NativePluginRestoreStateFnV3 =
+    unsafe extern "C" fn(NativePluginByteSliceV3) -> NativePluginCallbackStatusV3;
+pub type NativePluginUnloadFnV3 = unsafe extern "C" fn() -> NativePluginCallbackStatusV3;
+pub type NativePluginByteSliceV3 = NativePluginByteSliceV3;
+pub type NativePluginOwnedByteBufferV3 = NativePluginOwnedByteBufferV3;
+pub type NativePluginCallbackStatusV3 = NativePluginCallbackStatusV3;
+pub type NativePluginSaveStateFnV3 = NativePluginSaveStateFnV3;
+pub type NativePluginRestoreStateFnV3 = NativePluginRestoreStateFnV3;
+pub type NativePluginUnloadFnV3 = NativePluginUnloadFnV3;
 pub type NativePluginBridgeMethodFnV3 =
     unsafe extern "C" fn(NativePluginBridgeMethodCallV3) -> ZrStatus;
 pub type NativePluginHostHasCapabilityFnV3 =
@@ -412,9 +412,21 @@ impl NativePluginEntryPointV3 {
         &self,
         host_functions: *const NativePluginHostFunctionTableV3,
     ) -> *const NativePluginEntryReportV3 {
-        if host_supports_all_capabilities_v3(host_functions, self.required_capabilities)
-            && !host_supports_any_capability_v3(host_functions, self.denied_capabilities)
-        {
+        let has_capability_constraints =
+            !self.required_capabilities.is_empty() || !self.denied_capabilities.is_empty();
+        let host_is_compatible =
+            has_capability_constraints && host_functions_v3_are_compatible(host_functions);
+        let supports_required = self.required_capabilities.is_empty()
+            || (host_is_compatible
+                && self.required_capabilities.iter().all(|capability| {
+                    host_supports_capability_with_compatible_host_v3(host_functions, capability)
+                }));
+        let supports_denied = supports_required
+            && host_is_compatible
+            && self.denied_capabilities.iter().any(|capability| {
+                host_supports_capability_with_compatible_host_v3(host_functions, capability)
+            });
+        if supports_required && !supports_denied {
             if let Some(on_host_ready) = self.on_host_ready {
                 on_host_ready(host_functions);
             }
@@ -425,25 +437,25 @@ impl NativePluginEntryPointV3 {
     }
 }
 
-pub fn callback_status(code: u32, diagnostics: &'static [u8]) -> NativePluginCallbackStatusV2 {
-    NativePluginCallbackStatusV2 {
+pub fn callback_status(code: u32, diagnostics: &'static [u8]) -> NativePluginCallbackStatusV3 {
+    NativePluginCallbackStatusV3 {
         code,
         diagnostics: diagnostics.as_ptr().cast(),
     }
 }
 
-pub fn owned_bytes(mut bytes: Vec<u8>) -> NativePluginOwnedByteBufferV2 {
+pub fn owned_bytes(mut bytes: Vec<u8>) -> NativePluginOwnedByteBufferV3 {
     let data = bytes.as_mut_ptr();
     let len = bytes.len();
     let capacity = bytes.capacity();
     let owner_token = owner_token(data, len, capacity);
     std::mem::forget(bytes);
-    NativePluginOwnedByteBufferV2 {
+    NativePluginOwnedByteBufferV3 {
         data,
         len,
         capacity,
         owner_token,
-        free: Some(free_owned_bytes_v2),
+        free: Some(free_owned_bytes_v3),
     }
 }
 
@@ -495,9 +507,9 @@ pub fn registration_manifest_v3_schema_is_current(
     manifest.schema.trim() == NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3_TEXT
 }
 
-pub unsafe extern "C" fn free_owned_bytes_v2(
-    buffer: NativePluginOwnedByteBufferV2,
-) -> NativePluginCallbackStatusV2 {
+pub unsafe extern "C" fn free_owned_bytes_v3(
+    buffer: NativePluginOwnedByteBufferV3,
+) -> NativePluginCallbackStatusV3 {
     // The descriptor can cross an FFI boundary. Validate its shape before constructing a Vec.
     if buffer.data.is_null() {
         return if buffer.len == 0 && buffer.capacity == 0 {
@@ -528,7 +540,7 @@ pub unsafe extern "C" fn free_owned_bytes_v2(
     callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, NATIVE_EMPTY_CSTR)
 }
 
-pub unsafe fn bytes_from_slice<'a>(slice: NativePluginByteSliceV2) -> &'a [u8] {
+pub unsafe fn bytes_from_slice<'a>(slice: NativePluginByteSliceV3) -> &'a [u8] {
     if slice.data.is_null() || slice.len == 0 {
         &[]
     } else {
@@ -539,9 +551,9 @@ pub unsafe fn bytes_from_slice<'a>(slice: NativePluginByteSliceV2) -> &'a [u8] {
 pub fn catch_native_callback_panic<F>(
     panic_diagnostics: &'static [u8],
     callback: F,
-) -> NativePluginCallbackStatusV2
+) -> NativePluginCallbackStatusV3
 where
-    F: FnOnce() -> NativePluginCallbackStatusV2,
+    F: FnOnce() -> NativePluginCallbackStatusV3,
 {
     let result = catch_unwind(AssertUnwindSafe(callback));
     match result {
@@ -554,23 +566,39 @@ pub fn host_supports_all_capabilities_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capabilities: &[&str],
 ) -> bool {
-    capabilities
-        .iter()
-        .all(|capability| host_supports_capability_v3(host_functions, capability))
+    if capabilities.is_empty() {
+        return true;
+    }
+    if !host_functions_v3_are_compatible(host_functions) {
+        return false;
+    }
+    capabilities.iter().all(|capability| {
+        host_supports_capability_with_compatible_host_v3(host_functions, capability)
+    })
 }
 
 pub fn host_supports_any_capability_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capabilities: &[&str],
 ) -> bool {
-    capabilities
-        .iter()
-        .any(|capability| host_supports_capability_v3(host_functions, capability))
+    if capabilities.is_empty() || !host_functions_v3_are_compatible(host_functions) {
+        return false;
+    }
+    capabilities.iter().any(|capability| {
+        host_supports_capability_with_compatible_host_v3(host_functions, capability)
+    })
 }
 
 pub fn host_supports_capability_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capability: &str,
+) -> bool {
+    host_functions_v3_are_compatible(host_functions)
+        && host_supports_capability_with_compatible_host_v3(host_functions, capability)
+}
+
+fn host_functions_v3_are_compatible(
+    host_functions: *const NativePluginHostFunctionTableV3,
 ) -> bool {
     if host_functions.is_null() {
         return false;
@@ -586,6 +614,14 @@ pub fn host_supports_capability_v3(
     {
         return false;
     }
+    true
+}
+
+fn host_supports_capability_with_compatible_host_v3(
+    host_functions: *const NativePluginHostFunctionTableV3,
+    capability: &str,
+) -> bool {
+    let host_functions = unsafe { &*host_functions };
     if let Some(host_has_capability) = host_functions.host_has_capability {
         let Ok(capability) = CString::new(capability) else {
             return false;
@@ -617,8 +653,8 @@ fn owner_token(data: *mut u8, len: usize, capacity: usize) -> u64 {
 macro_rules! export_native_plugin_descriptor_v3 {
     ($descriptor:expr) => {
         #[no_mangle]
-        pub extern "C" fn zircon_native_plugin_descriptor_v3()
-        -> *const $crate::native::NativePluginAbiV3 {
+        pub extern "C" fn zircon_native_plugin_descriptor_v3(
+        ) -> *const $crate::native::NativePluginAbiV3 {
             ($descriptor).as_ptr()
         }
     };

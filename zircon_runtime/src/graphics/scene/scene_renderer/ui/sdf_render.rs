@@ -7,7 +7,9 @@ use crate::text::sdf::{
 use super::render::ScreenSpaceUiTextBatch;
 use super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 use super::sdf_atlas::{SdfAtlasAllocationFailureReason, SdfAtlasCacheReport, SdfAtlasPlan};
-use super::sdf_upload::{sdf_atlas_upload_report, SdfAtlasUploadMode, SdfAtlasUploadReport};
+use super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadReport, sdf_atlas_upload_report};
+use super::text::ScreenSpaceUiTextFrameProductGeneration;
+use zr_rhi_wgpu::{WgpuBufferUploadBatch, WgpuTextureUploadBatch};
 
 mod artifact_vertices;
 mod atlas_resources;
@@ -20,10 +22,11 @@ mod vertices;
 
 use self::atlas_resources::DistanceFieldAtlasResources;
 use self::compiled_frame::PreparedSdfFrameInputs;
-use self::decorations::build_text_decoration_vertices;
+use self::decorations::build_text_decoration_vertices_iter;
 use self::material::{SdfTextMaterialDrawPlan, SdfTextMaterialResources};
-use self::vertex_buffer::{write_sdf_vertex_buffer, SdfVertexBufferWriteReport};
-use self::vertices::{build_sdf_vertex_plan, ScreenSpaceUiSdfVertex};
+pub(super) use self::shaped_advances::resolved_horizontal_shaped_glyph_advances;
+use self::vertex_buffer::{SdfVertexBufferWriteReport, write_sdf_vertex_buffer};
+use self::vertices::{ScreenSpaceUiSdfVertex, build_sdf_vertex_plan_iter};
 
 const SDF_TEXT_SHADER: &str = include_str!("shaders/zr_text_sdf.wgsl");
 
@@ -58,6 +61,7 @@ pub(super) struct ScreenSpaceUiSdfPrepareReport {
     pub(super) bake: SdfAtlasBakeReport,
     pub(super) atlas_upload_byte_len: usize,
     pub(super) atlas_upload_full_texture: bool,
+    pub(super) atlas_upload_preparation_failed: bool,
     pub(super) atlas_upload: SdfAtlasUploadReport,
     pub(super) vertex_count: u32,
     pub(super) vertex_buffer_capacity_byte_len: usize,
@@ -273,10 +277,10 @@ impl ScreenSpaceUiSdfRenderer {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         viewport_size: UVec2,
         texts: &[ScreenSpaceUiTextBatch],
         sdf_cpu_runs: &[SdfRunCpuPreparation],
@@ -286,7 +290,92 @@ impl ScreenSpaceUiSdfRenderer {
         atlas_bake: &SdfAtlasBake,
         atlas_cache: SdfAtlasCacheReport,
         cpu_plan_reused: bool,
+        buffer_uploads: &mut WgpuBufferUploadBatch,
+        texture_uploads: &mut WgpuTextureUploadBatch,
+        force_full_upload: bool,
     ) {
+        self.prepare_with_retained_text_iter(
+            device,
+            viewport_size,
+            texts.iter(),
+            texts.len(),
+            sdf_cpu_runs,
+            native_decoration_texts.iter(),
+            native_decoration_metrics,
+            atlas_plan,
+            atlas_bake,
+            atlas_cache,
+            cpu_plan_reused,
+            None,
+            buffer_uploads,
+            texture_uploads,
+            force_full_upload,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn prepare_retained_segments<'a, SdfSegments, NativeSegments>(
+        &mut self,
+        device: &wgpu::Device,
+        viewport_size: UVec2,
+        sdf_segments: SdfSegments,
+        sdf_text_batch_count: usize,
+        sdf_cpu_runs: &[SdfRunCpuPreparation],
+        native_segments: NativeSegments,
+        native_decoration_metrics: &[TextDecorationMetrics],
+        atlas_plan: &SdfAtlasPlan,
+        atlas_bake: &SdfAtlasBake,
+        atlas_cache: SdfAtlasCacheReport,
+        cpu_plan_reused: bool,
+        retained_generation: ScreenSpaceUiTextFrameProductGeneration,
+        buffer_uploads: &mut WgpuBufferUploadBatch,
+        texture_uploads: &mut WgpuTextureUploadBatch,
+        force_full_upload: bool,
+    ) where
+        SdfSegments: Clone + Iterator<Item = &'a [ScreenSpaceUiTextBatch]>,
+        NativeSegments: Clone + Iterator<Item = &'a [ScreenSpaceUiTextBatch]>,
+    {
+        self.prepare_with_retained_text_iter(
+            device,
+            viewport_size,
+            sdf_segments.flat_map(|texts| texts.iter()),
+            sdf_text_batch_count,
+            sdf_cpu_runs,
+            native_segments.flat_map(|texts| texts.iter()),
+            native_decoration_metrics,
+            atlas_plan,
+            atlas_bake,
+            atlas_cache,
+            cpu_plan_reused,
+            Some(retained_generation),
+            buffer_uploads,
+            texture_uploads,
+            force_full_upload,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_with_retained_text_iter<'a, Texts, NativeTexts>(
+        &mut self,
+        device: &wgpu::Device,
+        viewport_size: UVec2,
+        texts: Texts,
+        text_batch_count: usize,
+        sdf_cpu_runs: &[SdfRunCpuPreparation],
+        native_decoration_texts: NativeTexts,
+        native_decoration_metrics: &[TextDecorationMetrics],
+        atlas_plan: &SdfAtlasPlan,
+        atlas_bake: &SdfAtlasBake,
+        atlas_cache: SdfAtlasCacheReport,
+        cpu_plan_reused: bool,
+        retained_generation: Option<ScreenSpaceUiTextFrameProductGeneration>,
+        buffer_uploads: &mut WgpuBufferUploadBatch,
+        texture_uploads: &mut WgpuTextureUploadBatch,
+        force_full_upload: bool,
+    ) where
+        Texts: Clone + Iterator<Item = &'a ScreenSpaceUiTextBatch>,
+        NativeTexts: Clone + Iterator<Item = &'a ScreenSpaceUiTextBatch>,
+    {
         crate::profile_scope!("runtime", "ui_text.sdf_prepare", "sdf_renderer_prepare");
         let (atlas_page_count, msdf_atlas_page_count) =
             DistanceFieldAtlasResources::page_counts(atlas_plan);
@@ -308,27 +397,34 @@ impl ScreenSpaceUiSdfRenderer {
 
         let mut atlas_cache = atlas_cache;
         super::sdf_upload::merge_sdf_bake_dirty_pages(&mut atlas_cache, &atlas_bake.dirty_pages);
+        let force_full_atlas_upload = atlas_resized || force_full_upload;
         let mut atlas_upload = sdf_atlas_upload_report(
             atlas_plan,
             atlas_cache,
-            atlas_resized,
+            force_full_atlas_upload,
             atlas_bake.report.atlas_byte_len,
-            atlas_resized,
+            force_full_atlas_upload,
         );
         atlas_upload.dirty_slot_count = atlas_upload
             .dirty_slot_count
             .max(atlas_bake.report.atlas_page_write_count);
-        self.atlas
-            .write(queue, atlas_plan, &atlas_bake.pages, &atlas_upload);
+        let atlas_upload_preparation_failed = !self.atlas.prepare_uploads(
+            atlas_plan,
+            &atlas_bake.pages,
+            &atlas_upload,
+            texture_uploads,
+        );
 
-        let vertex_plan_reused = !atlas_resized
+        let vertex_plan_reused = !force_full_upload
+            && !atlas_resized
             && atlas_upload.mode == SdfAtlasUploadMode::None
-            && self.compiled_frame.matches(
+            && self.compiled_frame.matches_iter(
                 viewport_size,
-                texts,
+                texts.clone(),
                 sdf_cpu_runs,
-                native_decoration_texts,
+                native_decoration_texts.clone(),
                 native_decoration_metrics,
+                retained_generation,
             );
         let (vertex_buffer_write, decoration_vertex_count) = if vertex_plan_reused {
             (
@@ -341,62 +437,70 @@ impl ScreenSpaceUiSdfRenderer {
             )
         } else {
             self.vertices.clear();
-            build_text_decoration_vertices(
+            build_text_decoration_vertices_iter(
                 &mut self.vertices,
-                native_decoration_texts,
+                native_decoration_texts.clone(),
                 native_decoration_metrics.iter().copied(),
                 viewport_size,
             );
-            build_text_decoration_vertices(
+            build_text_decoration_vertices_iter(
                 &mut self.vertices,
-                texts,
+                texts.clone(),
                 sdf_cpu_runs.iter().map(|run| run.decoration_metrics),
                 viewport_size,
             );
             let decoration_vertex_count = self.vertices.len() as u32;
-            build_sdf_vertex_plan(
+            build_sdf_vertex_plan_iter(
                 &mut self.vertices,
                 &mut self.text_ranges,
-                texts,
+                texts.clone(),
+                text_batch_count,
                 atlas_plan,
                 atlas_bake,
                 sdf_cpu_runs,
                 viewport_size,
             );
-            self.draw_plan.rebuild(
-                texts,
+            self.draw_plan.rebuild_iter(
+                texts.clone(),
                 atlas_plan.atlas_size,
                 decoration_vertex_count,
                 &self.text_ranges,
             );
-            self.material
-                .prepare(device, queue, &self.draw_plan.materials);
+            self.material.prepare(
+                device,
+                &self.draw_plan.materials,
+                buffer_uploads,
+                force_full_upload,
+            );
             self.vertex_count = self.vertices.len() as u32;
             let vertex_buffer_write = write_sdf_vertex_buffer(
                 device,
-                queue,
                 &mut self.vertex_buffer,
                 &mut self.vertex_buffer_capacity_bytes,
                 &mut self.vertex_buffer_payload_hash,
                 &self.vertices,
+                buffer_uploads,
+                force_full_upload,
             );
-            self.compiled_frame.replace(
+            self.compiled_frame.replace_iter(
                 viewport_size,
                 texts,
                 sdf_cpu_runs,
                 native_decoration_texts,
                 native_decoration_metrics,
+                retained_generation,
             );
             (vertex_buffer_write, decoration_vertex_count)
         };
         self.last_report = sdf_prepare_report(
-            texts.len(),
+            text_batch_count,
             atlas_plan,
             atlas_resized,
             atlas_page_count,
             msdf_atlas_page_count,
             atlas_bake.report,
             atlas_upload,
+            atlas_upload_preparation_failed,
             self.vertex_count,
             vertex_buffer_write,
             cpu_plan_reused,
@@ -437,6 +541,7 @@ fn sdf_prepare_report(
     msdf_atlas_page_count: u32,
     bake: SdfAtlasBakeReport,
     atlas_upload: SdfAtlasUploadReport,
+    atlas_upload_preparation_failed: bool,
     vertex_count: u32,
     vertex_buffer_write: SdfVertexBufferWriteReport,
     cpu_plan_reused: bool,
@@ -483,6 +588,7 @@ fn sdf_prepare_report(
         bake,
         atlas_upload_byte_len: atlas_upload.byte_len,
         atlas_upload_full_texture: atlas_upload.full_texture,
+        atlas_upload_preparation_failed,
         atlas_upload,
         vertex_count,
         vertex_buffer_capacity_byte_len: vertex_buffer_write.capacity_byte_len,

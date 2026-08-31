@@ -10,6 +10,10 @@ use super::{
 };
 use crate::plugin::PluginShaderModuleSource;
 
+#[cfg(test)]
+#[path = "projection/capacity_tests.rs"]
+mod capacity_tests;
+
 pub struct NativePluginLoadProjection {
     package_manifests: Vec<PluginPackageManifest>,
     shader_module_candidates_by_plugin: HashMap<String, NativePluginCandidate>,
@@ -145,10 +149,11 @@ fn project_diagnostics(
     report: &NativePluginLoadReport,
     stats: &mut ProjectionBuildStats,
 ) -> DiagnosticProjection {
-    let mut diagnostics_by_plugin = HashMap::<String, PluginDiagnostics>::new();
+    let mut diagnostics_by_plugin =
+        HashMap::<String, PluginDiagnostics>::with_capacity(report.loaded.len());
     let mut descriptor_diagnostics = Vec::new();
     let mut entry_diagnostics = Vec::new();
-    let mut loaded_plugins = HashMap::new();
+    let mut loaded_plugins = HashMap::with_capacity(report.loaded.len());
     for message in &report.diagnostics {
         stats.raw_diagnostics_scanned += 1;
         for plugin_id in mentioned_plugin_ids(message) {

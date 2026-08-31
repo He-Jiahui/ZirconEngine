@@ -1,22 +1,37 @@
 use std::collections::BTreeMap;
 
 use crate::reflect::{
-    ReflectEditorHint, ReflectEnumOption, ReflectError, ReflectFieldInfo, ReflectFieldValue,
-    ReflectFieldsRequest, ReflectFieldsResponse, ReflectNumericRange, ReflectObjectAddress,
-    ReflectReadRequest, ReflectReadResponse, ReflectSchemaFilter, ReflectSchemaRequest,
-    ReflectSchemaResponse, ReflectScriptVisibility, ReflectSerializationStrategy, ReflectTypeInfo,
-    ReflectTypeKind, ReflectTypePath, ReflectTypeRegistration, ReflectWriteRequest,
-    ReflectWriteResponse, ReflectedValue,
+    ReflectEditorHint, ReflectEnumOption, ReflectError, ReflectFieldId, ReflectFieldIdParseError,
+    ReflectFieldInfo, ReflectFieldValue, ReflectFieldsRequest, ReflectFieldsResponse,
+    ReflectNumericRange, ReflectNumericRangeError, ReflectObjectAddress, ReflectReadRequest,
+    ReflectReadResponse, ReflectSchemaCatalog, ReflectSchemaCatalogEntry, ReflectSchemaFilter,
+    ReflectSchemaRequest, ReflectSchemaResponse, ReflectScriptVisibility,
+    ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypeKind, ReflectTypePath,
+    ReflectTypeRegistration, ReflectTypeRole, ReflectWriteRequest, ReflectWriteResponse,
+    ReflectedValue, MAX_REFLECT_TYPE_PATH_BYTES, REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION,
 };
 
 fn sample_registration() -> ReflectTypeRegistration {
     let fields = vec![
-        ReflectFieldInfo::new("alpha", "f32", ReflectEditorHint::Scalar).with_numeric_range(
-            ReflectNumericRange::new(Some(0.0), Some(1.0), Some(0.1), Some(2)),
+        ReflectFieldInfo::from_stable_keys(
+            "zircon.Sample",
+            "alpha",
+            "alpha",
+            "f32",
+            ReflectEditorHint::Scalar,
+        )
+        .with_numeric_range(
+            ReflectNumericRange::new(Some(0.0), Some(1.0), Some(0.1), Some(2)).unwrap(),
         ),
-        ReflectFieldInfo::new("name", "alloc::string::String", ReflectEditorHint::String)
-            .with_default_value(ReflectedValue::String("default".to_string()))
-            .with_documentation("Displayed sample name"),
+        ReflectFieldInfo::from_stable_keys(
+            "zircon.Sample",
+            "name",
+            "name",
+            "alloc::string::String",
+            ReflectEditorHint::String,
+        )
+        .with_default_value(ReflectedValue::String("default".to_string()))
+        .with_documentation("Displayed sample name"),
     ];
 
     ReflectTypeRegistration::new(
@@ -37,11 +52,11 @@ where
 }
 
 #[test]
-fn type_registration_serializes_with_ordered_fields() {
+fn type_registration_serializes_canonical_role_and_owner() {
     let mut registration = sample_registration()
-        .with_plugin_owned(true)
-        .with_plugin_id("sample.plugin");
-    registration.type_path = registration.type_path.with_module_path("zircon");
+        .with_plugin_id("sample.plugin")
+        .unwrap();
+    registration.type_path = registration.type_path.with_module_path("zircon").unwrap();
     let serialized = serde_json::to_value(&registration).unwrap();
     let fields = serialized
         .pointer("/type_info/fields")
@@ -50,17 +65,31 @@ fn type_registration_serializes_with_ordered_fields() {
 
     assert_eq!(fields[0]["name"], "alpha");
     assert_eq!(fields[1]["name"], "name");
-    assert_eq!(serialized["plugin_owned"], true);
+    assert_eq!(serialized["role"], "component");
+    assert!(serialized.get("is_component").is_none());
+    assert!(serialized.get("is_resource").is_none());
+    assert!(serialized.get("plugin_owned").is_none());
     assert_eq!(serialized["serializable"], true);
     assert_eq!(serialized["editor_visible"], true);
     assert_eq!(serialized["remote_visible"], true);
-    assert_eq!(serialized["plugin_id"], "sample.plugin");
+    assert!(serialized.get("plugin_id").is_none());
     assert_eq!(serialized["type_path"]["plugin_id"], "sample.plugin");
-    assert_eq!(registration.plugin_id.as_deref(), Some("sample.plugin"));
-    assert_eq!(
-        registration.type_path.plugin_id.as_deref(),
-        Some("sample.plugin")
-    );
+    assert_eq!(registration.role, ReflectTypeRole::Component);
+    assert!(registration.is_plugin_owned());
+    assert_eq!(registration.type_path.plugin_id(), Some("sample.plugin"));
+    for (field, value) in [
+        ("plugin_id", serde_json::json!("sample.plugin")),
+        ("plugin_owned", serde_json::json!(true)),
+        ("is_component", serde_json::json!(true)),
+        ("is_resource", serde_json::json!(false)),
+    ] {
+        let mut retired_wire = serialized.clone();
+        retired_wire
+            .as_object_mut()
+            .unwrap()
+            .insert(field.to_string(), value);
+        assert!(serde_json::from_value::<ReflectTypeRegistration>(retired_wire).is_err());
+    }
     assert_eq!(
         round_trip::<ReflectTypeRegistration>(&registration),
         registration
@@ -131,9 +160,17 @@ fn reflected_value_tagged_json_roundtrips_all_supported_shapes() {
 fn reflect_contract_dtos_use_expected_json_shapes() {
     let component = ReflectObjectAddress::component(42, "zircon::Name").unwrap();
     let resource = ReflectObjectAddress::resource("zircon::FrameCounter").unwrap();
-    let field = ReflectFieldValue::new("translation", ReflectedValue::Vec3([1.0, 2.0, 3.0]));
-    let updated_field =
-        ReflectFieldValue::new("translation", ReflectedValue::Vec3([4.0, 5.0, 6.0]));
+    let translation_id = ReflectFieldId::from_stable_keys("zircon.Transform", "translation");
+    let field = ReflectFieldValue::new(
+        translation_id,
+        "translation",
+        ReflectedValue::Vec3([1.0, 2.0, 3.0]),
+    );
+    let updated_field = ReflectFieldValue::new(
+        translation_id,
+        "translation",
+        ReflectedValue::Vec3([4.0, 5.0, 6.0]),
+    );
 
     assert_eq!(
         serde_json::to_value(ReflectedValue::Enum("Dynamic".to_string())).unwrap(),
@@ -166,16 +203,17 @@ fn reflect_contract_dtos_use_expected_json_shapes() {
         serde_json::json!({
             "address": { "kind": "Component", "entity": 42, "type_path": "zircon::Name" },
             "fields": [{
+                "field_id": translation_id.to_string(),
                 "field_name": "translation",
                 "value": { "kind": "Vec3", "value": [1.0, 2.0, 3.0] }
             }]
         })
     );
     assert_eq!(
-        serde_json::to_value(ReflectReadRequest::new(component.clone(), "translation")).unwrap(),
+        serde_json::to_value(ReflectReadRequest::new(component.clone(), translation_id)).unwrap(),
         serde_json::json!({
             "address": { "kind": "Component", "entity": 42, "type_path": "zircon::Name" },
-            "field_name": "translation"
+            "field_id": translation_id.to_string()
         })
     );
     assert_eq!(
@@ -183,6 +221,7 @@ fn reflect_contract_dtos_use_expected_json_shapes() {
         serde_json::json!({
             "address": { "kind": "Component", "entity": 42, "type_path": "zircon::Name" },
             "field": {
+                "field_id": translation_id.to_string(),
                 "field_name": "translation",
                 "value": { "kind": "Vec3", "value": [1.0, 2.0, 3.0] }
             }
@@ -191,13 +230,13 @@ fn reflect_contract_dtos_use_expected_json_shapes() {
     assert_eq!(
         serde_json::to_value(ReflectWriteRequest::new(
             component.clone(),
-            "translation",
+            translation_id,
             ReflectedValue::Vec3([4.0, 5.0, 6.0]),
         ))
         .unwrap(),
         serde_json::json!({
             "address": { "kind": "Component", "entity": 42, "type_path": "zircon::Name" },
-            "field_name": "translation",
+            "field_id": translation_id.to_string(),
             "value": { "kind": "Vec3", "value": [4.0, 5.0, 6.0] }
         })
     );
@@ -206,6 +245,7 @@ fn reflect_contract_dtos_use_expected_json_shapes() {
         serde_json::json!({
             "address": { "kind": "Component", "entity": 42, "type_path": "zircon::Name" },
             "field": {
+                "field_id": translation_id.to_string(),
                 "field_name": "translation",
                 "value": { "kind": "Vec3", "value": [4.0, 5.0, 6.0] }
             },
@@ -227,25 +267,67 @@ fn reflect_contract_dtos_use_expected_json_shapes() {
 }
 
 #[test]
+fn reflected_field_value_rejects_legacy_name_only_wire() {
+    assert!(
+        serde_json::from_value::<ReflectFieldValue>(serde_json::json!({
+            "field_name": "translation",
+            "value": { "kind": "Vec3", "value": [1.0, 2.0, 3.0] }
+        }))
+        .is_err()
+    );
+}
+
+#[test]
+fn stable_id_read_write_requests_reject_legacy_field_name_wire() {
+    let address = serde_json::json!({
+        "kind": "Component",
+        "entity": 42,
+        "type_path": "zircon::Name"
+    });
+    let read = serde_json::json!({
+        "address": address,
+        "field_name": "translation"
+    });
+    let write = serde_json::json!({
+        "address": {
+            "kind": "Component",
+            "entity": 42,
+            "type_path": "zircon::Name"
+        },
+        "field_name": "translation",
+        "value": { "kind": "Vec3", "value": [1.0, 2.0, 3.0] }
+    });
+
+    assert!(serde_json::from_value::<ReflectReadRequest>(read).is_err());
+    assert!(serde_json::from_value::<ReflectWriteRequest>(write).is_err());
+}
+
+#[test]
 fn field_metadata_preserves_editability_defaults_and_docs() {
-    let field = ReflectFieldInfo::new("body_type", "RigidBodyType", ReflectEditorHint::Enum)
-        .with_display_name("Body Type")
-        .with_default_value(ReflectedValue::String("Dynamic".to_string()))
-        .with_numeric_range(ReflectNumericRange::new(
-            Some(0.0),
-            Some(10.0),
-            Some(0.5),
-            Some(1),
-        ))
-        .with_enum_options(vec![
-            ReflectEnumOption::new("Dynamic", "Dynamic Body"),
-            ReflectEnumOption::new("Static", "Static Body").with_documentation("Does not move"),
-        ])
-        .with_editable(false)
-        .with_serializable(true)
-        .with_editor_visible(true)
-        .with_documentation("Physics body type");
-    let json = serde_json::to_value(ReflectFieldInfo::new(
+    let field = ReflectFieldInfo::from_stable_keys(
+        "zircon.RigidBody",
+        "body-type",
+        "body_type",
+        "RigidBodyType",
+        ReflectEditorHint::Enum,
+    )
+    .with_aliases(vec!["body_kind".to_string()])
+    .with_display_name("Body Type")
+    .with_default_value(ReflectedValue::String("Dynamic".to_string()))
+    .with_numeric_range(
+        ReflectNumericRange::new(Some(0.0), Some(10.0), Some(0.5), Some(1)).unwrap(),
+    )
+    .with_enum_options(vec![
+        ReflectEnumOption::new("Dynamic", "Dynamic Body"),
+        ReflectEnumOption::new("Static", "Static Body").with_documentation("Does not move"),
+    ])
+    .with_editable(false)
+    .with_serializable(true)
+    .with_editor_visible(true)
+    .with_documentation("Physics body type");
+    let json = serde_json::to_value(ReflectFieldInfo::from_stable_keys(
+        "zircon.Visibility",
+        "visible",
         "visible",
         "bool",
         ReflectEditorHint::Bool,
@@ -254,6 +336,8 @@ fn field_metadata_preserves_editability_defaults_and_docs() {
     let round_trip = round_trip::<ReflectFieldInfo>(&field);
 
     assert_eq!(round_trip.display_name, "Body Type");
+    assert_eq!(round_trip.id, field.id);
+    assert_eq!(round_trip.aliases, vec!["body_kind".to_string()]);
     assert_eq!(round_trip.value_type_path, "RigidBodyType");
     assert_eq!(round_trip.editor_hint, ReflectEditorHint::Enum);
     assert_eq!(
@@ -264,7 +348,7 @@ fn field_metadata_preserves_editability_defaults_and_docs() {
         round_trip.documentation.as_deref(),
         Some("Physics body type")
     );
-    assert_eq!(round_trip.numeric_range.unwrap().step, Some(0.5));
+    assert_eq!(round_trip.numeric_range.unwrap().step(), Some(0.5));
     assert_eq!(
         round_trip.enum_options[1].documentation.as_deref(),
         Some("Does not move")
@@ -276,33 +360,112 @@ fn field_metadata_preserves_editability_defaults_and_docs() {
 }
 
 #[test]
+fn reflect_field_ids_are_deterministic_canonical_and_non_nil() {
+    let id = ReflectFieldId::from_stable_keys("zircon.Transform", "translation");
+    assert_eq!(
+        id,
+        ReflectFieldId::from_stable_keys("zircon.Transform", "translation")
+    );
+    assert_ne!(
+        id,
+        ReflectFieldId::from_stable_keys("zircon.Transform", "rotation")
+    );
+    assert_eq!(id.to_string().parse::<ReflectFieldId>().unwrap(), id);
+    assert_eq!(round_trip(&id), id);
+    assert_eq!(
+        "00000000-0000-0000-0000-000000000000"
+            .parse::<ReflectFieldId>()
+            .unwrap_err(),
+        ReflectFieldIdParseError::Nil
+    );
+}
+
+#[test]
+fn numeric_range_rejects_invalid_constructor_and_wire_states() {
+    assert_eq!(
+        ReflectNumericRange::new(Some(f32::NAN), None, None, None),
+        Err(ReflectNumericRangeError::NonFiniteMin)
+    );
+    assert_eq!(
+        ReflectNumericRange::new(None, Some(f32::INFINITY), None, None),
+        Err(ReflectNumericRangeError::NonFiniteMax)
+    );
+    assert_eq!(
+        ReflectNumericRange::new(None, None, Some(f32::NEG_INFINITY), None),
+        Err(ReflectNumericRangeError::NonFiniteStep)
+    );
+    assert_eq!(
+        ReflectNumericRange::new(Some(2.0), Some(1.0), None, None),
+        Err(ReflectNumericRangeError::Inverted { min: 2.0, max: 1.0 })
+    );
+    assert_eq!(
+        ReflectNumericRange::new(None, None, Some(0.0), None),
+        Err(ReflectNumericRangeError::NonPositiveStep { step: 0.0 })
+    );
+    assert_eq!(
+        ReflectNumericRange::new(None, None, Some(-0.5), None),
+        Err(ReflectNumericRangeError::NonPositiveStep { step: -0.5 })
+    );
+    assert!(
+        serde_json::from_value::<ReflectNumericRange>(serde_json::json!({
+            "min": 4.0,
+            "max": 3.0,
+            "step": 0.1,
+            "precision": 2
+        }))
+        .is_err()
+    );
+}
+
+#[test]
 fn reflect_object_address_schema_and_read_write_dtos_roundtrip() {
     let component = ReflectObjectAddress::component(42, "zircon::Name").unwrap();
     let resource = ReflectObjectAddress::resource("zircon::FrameCounter").unwrap();
-    let field = ReflectFieldValue::new("translation", ReflectedValue::Vec3([1.0, 2.0, 3.0]));
+    let translation_id = ReflectFieldId::from_stable_keys("zircon.Transform", "translation");
+    let field = ReflectFieldValue::new(
+        translation_id,
+        "translation",
+        ReflectedValue::Vec3([1.0, 2.0, 3.0]),
+    );
     let fields_request = ReflectFieldsRequest::new(component.clone());
     let fields_response = ReflectFieldsResponse::new(component.clone(), vec![field.clone()]);
-    let read_request = ReflectReadRequest::new(component.clone(), "translation");
+    let read_request = ReflectReadRequest::new(component.clone(), translation_id);
     let read_response = ReflectReadResponse::new(component.clone(), field.clone());
     let write_request = ReflectWriteRequest::new(
         component.clone(),
-        "translation",
+        translation_id,
         ReflectedValue::Vec3([4.0, 5.0, 6.0]),
     );
     let write_response = ReflectWriteResponse::new(
         component.clone(),
-        ReflectFieldValue::new("translation", ReflectedValue::Vec3([4.0, 5.0, 6.0])),
+        ReflectFieldValue::new(
+            translation_id,
+            "translation",
+            ReflectedValue::Vec3([4.0, 5.0, 6.0]),
+        ),
         true,
     );
     let schema_filter = ReflectSchemaFilter::remote_visible();
     let schema_request = ReflectSchemaRequest::new(schema_filter.clone());
-    let schema_response = ReflectSchemaResponse::new(vec![sample_registration()]);
+    let schema_catalog =
+        ReflectSchemaCatalog::try_new(vec![ReflectSchemaCatalogEntry::new(sample_registration())])
+            .unwrap();
+    let schema_response =
+        ReflectSchemaResponse::new(schema_catalog.fingerprint(), vec![sample_registration()]);
 
     assert!(matches!(component, ReflectObjectAddress::Component { .. }));
     assert_eq!(component.type_path(), "zircon::Name");
     assert_eq!(resource.type_path(), "zircon::FrameCounter");
     assert!(schema_filter.remote_visible);
     assert!(schema_filter.include_components);
+    assert_eq!(
+        schema_response.catalog_algorithm_version,
+        REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION
+    );
+    assert_eq!(
+        schema_response.catalog_fingerprint,
+        schema_catalog.fingerprint()
+    );
     assert!(ReflectSchemaFilter::editor_visible().editor_visible);
     assert!(ReflectSchemaRequest::remote_visible().filter.remote_visible);
     assert!(ReflectSchemaRequest::editor_visible().filter.editor_visible);
@@ -439,4 +602,89 @@ fn type_paths_and_type_kinds_use_approved_json_contract() {
     assert_eq!(tuple_struct, "tuple_struct");
     assert_eq!(opaque.kind, ReflectTypeKind::Opaque);
     assert_eq!(json_type.kind, ReflectTypeKind::Json);
+}
+
+#[test]
+fn reflect_type_path_uses_one_validated_constructor_and_wire_grammar() {
+    let rust_path = ReflectTypePath::new("zircon::scene::Name", "Name")
+        .unwrap()
+        .with_module_path("zircon::scene")
+        .unwrap()
+        .with_plugin_id("sample.plugin")
+        .unwrap();
+    let vm_path = ReflectTypePath::new("gameplay.Component.Health", "Health").unwrap();
+    let third_party_vm_path =
+        ReflectTypePath::new("third-party.Component.Health", "Health").unwrap();
+
+    assert_eq!(rust_path.type_path(), "zircon::scene::Name");
+    assert_eq!(rust_path.short_type_path(), "Name");
+    assert_eq!(rust_path.module_path(), Some("zircon::scene"));
+    assert_eq!(rust_path.plugin_id(), Some("sample.plugin"));
+    assert_eq!(round_trip::<ReflectTypePath>(&rust_path), rust_path);
+    assert_eq!(round_trip::<ReflectTypePath>(&vm_path), vm_path);
+    assert_eq!(
+        round_trip::<ReflectTypePath>(&third_party_vm_path),
+        third_party_vm_path
+    );
+    assert!(matches!(
+        ReflectTypePath::new("zircon::scene.Name", "Name"),
+        Err(ReflectError::InvalidTypePath { .. })
+    ));
+    assert!(matches!(
+        ReflectTypePath::new("zircon::scene::Name", "SceneName"),
+        Err(ReflectError::InvalidTypePath { .. })
+    ));
+    assert!(matches!(
+        ReflectTypePath::new("zircon::scene::Vec<Name>", "Vec<Name>"),
+        Err(ReflectError::InvalidTypePath { .. })
+    ));
+    assert!(matches!(
+        ReflectTypePath::new("third-party.Component.Health-Value", "Health-Value"),
+        Err(ReflectError::InvalidTypePath { .. })
+    ));
+    assert!(ReflectTypePath::new("a".repeat(MAX_REFLECT_TYPE_PATH_BYTES + 1), "a").is_err());
+    assert!(ReflectTypePath::new("zircon::Name", "Name")
+        .unwrap()
+        .with_module_path("zircon::other")
+        .is_err());
+    assert!(ReflectTypePath::new("zircon::Name", "Name")
+        .unwrap()
+        .with_plugin_id(" sample.plugin")
+        .is_err());
+    assert!(ReflectTypePath::new("zircon::Name", "Name")
+        .unwrap()
+        .with_plugin_id("Sample.Plugin")
+        .is_err());
+
+    for invalid in [
+        serde_json::json!({
+            "type_path": " ",
+            "short_type_path": "Name"
+        }),
+        serde_json::json!({
+            "type_path": "zircon::scene.Name",
+            "short_type_path": "Name"
+        }),
+        serde_json::json!({
+            "type_path": "zircon::scene::Name",
+            "short_type_path": "SceneName"
+        }),
+        serde_json::json!({
+            "type_path": "zircon::scene::Name",
+            "short_type_path": "Name",
+            "module_path": "zircon::other"
+        }),
+        serde_json::json!({
+            "type_path": "zircon::scene::Name",
+            "short_type_path": "Name",
+            "plugin_id": "sample plugin"
+        }),
+        serde_json::json!({
+            "type_path": "zircon::scene::Name",
+            "short_type_path": "Name",
+            "unexpected": true
+        }),
+    ] {
+        assert!(serde_json::from_value::<ReflectTypePath>(invalid).is_err());
+    }
 }

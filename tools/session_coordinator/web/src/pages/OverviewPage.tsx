@@ -1,74 +1,95 @@
-import { Grid, Stack, Typography } from "@mui/material";
+import { Box, Button, Chip, Grid, Stack, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
 import type { ControlSnapshot, ExperienceProjection, SessionProjection } from "../api/contracts";
+import { controlClient } from "../api/client";
 import { HubPanel } from "../theme";
+import { DashboardKpi, type DashboardTone } from "../components/dashboard/DashboardKpi";
+import { StageRail, type StageRailItem } from "../components/dashboard/StageRail";
+import { SignalBar } from "../components/dashboard/SignalBar";
+import { ActiveTaskTable, AnalyticsDurationChart, AnalyticsFlow, AnalyticsLineChart, AnalyticsSchedule, FailureDonut, ModuleShareChart, PatchStatusChart, PlanProgressChart, RecentWorkflowList, formatDuration } from "../components/dashboard/AnalyticsCharts";
+import { buildAnalytics } from "../components/dashboard/analyticsModel";
+import { ValidationReportSummary } from "../components/dashboard/ValidationReportSummary";
+import { useOverviewReportData } from "../components/dashboard/useOverviewReportData";
 
-export function OverviewPage({ snapshot }: { snapshot: ControlSnapshot }) {
-  const metrics = overviewMetrics(snapshot);
-  const blockers = resourceBlockers(snapshot);
-  const admission = admissionSummary(snapshot);
-  const baseline = workspaceBaselineSummary(snapshot);
-  const cleanup = cleanupDebtSummary(snapshot);
-  const intervention = interventionGuidance(snapshot);
-  const board = workBoard(snapshot);
-  const flowHealth = validationFlowHealth(snapshot);
-  const syncHealth = syncHealthSummary(snapshot);
-  const continuations = continuationGuidance(snapshot);
-  const continuationCoverage = continuationCoverageSummary(snapshot);
-  const cpuBurst = snapshot.validation?.cpuBurst ?? { capacity: 1, active: 0, eligiblePending: 0 };
-  return <Stack spacing={2}>
-    <Grid container spacing={2}>{metrics.map(([label, value]) => <Grid key={label} size={{ xs: 12, sm: 6, lg: 3 }}><HubPanel title={label}><Typography variant="h4">{value}</Typography></HubPanel></Grid>)}</Grid>
-    <Grid container spacing={2}>{board.map((lane) => <Grid key={lane.key} size={{ xs: 12, md: 6, lg: 3 }}><HubPanel title={`${lane.title} · ${lane.total}`}><Stack spacing={1}>
-      {lane.cards.length === 0 ? <Typography color="text.secondary">{lane.emptyText}</Typography> : lane.cards.map((card) => <Stack key={card.id} spacing={0.25} sx={{ borderLeft: 2, borderColor: "primary.main", pl: 1 }}><Typography variant="body2">{card.title}</Typography><Typography variant="caption" color="text.secondary">{card.detail}</Typography></Stack>)}
-      {lane.overflowCount > 0 ? <Typography variant="caption" color="text.secondary">另有 {lane.overflowCount} 项，转到详情页查看。</Typography> : null}
-    </Stack></HubPanel></Grid>)}</Grid>
-    <HubPanel title="介入方式">
-      <Stack spacing={0.5}>
-        {intervention.next === null ? <Typography>没有开放 Failure；不需要额外介入。</Typography> : <>
-          <Typography>{intervention.failureCount} 个 Failure 归属 {intervention.planCount} 个责任计划；人工介入一次只拉取一个责任计划，避免跨模块 WIP。</Typography>
-          <Typography>建议先处理：{intervention.next.summary}</Typography>
-          <Typography variant="caption" color="text.secondary">{intervention.next.fixingPlan}</Typography>
-        </>}
-        {intervention.waitingSessionCount > 0 || intervention.pendingReservationCount > 0 ? <Typography variant="caption" color="text.secondary">验证等待 {intervention.waitingSessionCount} 个 Session，CPU 队列 {intervention.pendingReservationCount}{intervention.nextReservation ? `；下一个 ${intervention.nextReservation.sessionId}（#${intervention.nextReservation.queuePosition} · ${intervention.nextReservation.executionMode === "warm" ? "热缓存" : "隔离突发"}）` : ""}。验证等待不阻塞代码工作。</Typography> : null}
-        {continuationCoverage ? <Typography variant="caption" color="text.secondary">{continuationCoverage}</Typography> : null}
+export function OverviewPage({ snapshot, refreshKey = 0, onNavigate }: { snapshot: ControlSnapshot; refreshKey?: number; onNavigate?: (path: string) => void }) {
+  const [continuationRows, setContinuationRows] = useState(snapshot.experience?.continuations ?? []);
+  const { validationHistory, failureHistory, auditEvents, validationHistoryError } = useOverviewReportData();
+  useEffect(() => {
+    const controller = new AbortController();
+    setContinuationRows(snapshot.experience?.continuations ?? []);
+    controlClient.continuations(controller.signal).then((projection) => setContinuationRows(projection.continuations)).catch(() => undefined);
+    return () => controller.abort();
+  }, [refreshKey, snapshot.experience?.continuations]);
+  const visibleSnapshot: ControlSnapshot = {
+    ...snapshot,
+    experience: {
+      ...(snapshot.experience ?? { sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 }, blockers: [], continuations: [] }),
+      continuations: continuationRows,
+    },
+  };
+  const metrics = overviewMetrics(visibleSnapshot);
+  const blockers = resourceBlockers(visibleSnapshot);
+  const admission = admissionSummary(visibleSnapshot);
+  const baseline = workspaceBaselineSummary(visibleSnapshot);
+  const cleanup = cleanupDebtSummary(visibleSnapshot);
+  const intervention = interventionGuidance(visibleSnapshot);
+  const board = workBoard(visibleSnapshot);
+  const flowHealth = validationFlowHealth(visibleSnapshot);
+  const syncHealth = syncHealthSummary(visibleSnapshot);
+  const continuations = continuationGuidance(visibleSnapshot);
+  const continuationCoverage = continuationCoverageSummary(visibleSnapshot);
+  const cpuBurst = visibleSnapshot.validation?.cpuBurst ?? { capacity: 1, active: 0, eligiblePending: 0 };
+  const analytics = buildAnalytics(visibleSnapshot, { validationHistory, failureHistory, audit: auditEvents.length ? auditEvents : visibleSnapshot.audit });
+  const currentCargoTargets = visibleSnapshot.validation?.currentCargoTargets ?? [];
+  const cargoReservations = visibleSnapshot.validation?.cargoReservations ?? [];
+  const finalizeRequests = visibleSnapshot.git?.finalizeRequests ?? [];
+  const activeCount = currentCargoTargets.filter((item) => ["leased", "running"].includes(item.status)).length;
+  const pendingCount = cargoReservations.filter((item) => item.status === "pending").length;
+  const completedCount = currentCargoTargets.filter((item) => ["succeeded"].includes(item.status)).length;
+  const stageItems: StageRailItem[] = [
+    { label: "计划提交", state: metrics[0][1] ? "done" : "queued", detail: `${metrics[0][1]} 个工作流已登记` },
+    { label: "验证队列", state: pendingCount ? "queued" : activeCount ? "active" : "done", detail: `${pendingCount} 项等待 · ${activeCount} 项占用通道` },
+    { label: "执行验证", state: activeCount ? "active" : completedCount ? "done" : "queued", detail: `${activeCount} 运行中 · ${completedCount} 已完成` },
+    { label: "Failure 审核", state: intervention.failureCount ? "blocked" : "done", detail: intervention.failureCount ? `${intervention.failureCount} 项待逐项审核` : "没有开放 Failure" },
+    { label: "里程碑提交", state: finalizeRequests.some((request) => request.status === "committed") ? "done" : "queued", detail: `${finalizeRequests.length} 个提交请求` },
+  ];
+  const metricDetails: Record<string, string> = { "工作流": "已登记的执行流水线", "活动会话": "仍在写入或等待的 Session", Failure: intervention.failureCount ? "需要进入失败链处理" : "没有开放项", "运行验证": activeCount ? "正在占用验证通道" : "当前没有运行作业", "同步状态": syncHealth.detail, "资源阻塞": blockers.length ? "只影响验证资源" : "没有独占资源等待" };
+  const metricTone = (label: string, value: string | number): DashboardTone => label === "Failure" && Number(value) > 0 ? "danger" : label === "资源阻塞" && Number(value) > 0 ? "warning" : label === "同步状态" && value === "安静" ? "success" : label === "运行验证" && Number(value) > 0 ? "info" : "neutral";
+  const openPage = (path: string) => {
+    if (onNavigate) { onNavigate(path); return; }
+    window.history.pushState({}, "", path);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  };
+  return <Stack spacing={2} className="dashboard-page">
+    <Box className="dashboard-band">
+      <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ alignItems: { md: "center" } }}>
+        <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}><Typography variant="overline" color="primary.main">COORDINATOR / CONTROL CENTER</Typography><Typography variant="h4">执行看板</Typography><Typography variant="body2" color="text.secondary">把计划、验证通道、Failure 链和里程碑提交放在同一条可追踪路径上。</Typography></Stack>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: { sm: "center" }, flexWrap: "wrap" }}><Stack direction="row" spacing={1}><Chip size="small" color={visibleSnapshot.service?.mode === "read_write" ? "success" : "warning"} label={visibleSnapshot.service?.mode === "read_write" ? "写入正常" : visibleSnapshot.service?.mode ?? "模式未知"} /><Chip size="small" variant="outlined" label={`${visibleSnapshot.sessions.filter((session) => session.status === "active").length} 个活跃 Session`} /></Stack><Stack direction={{ xs: "column", sm: "row" }} spacing={0.75}><Button size="small" variant="contained" onClick={() => openPage("/ui/validation")}>进入验证队列</Button><Button size="small" variant="outlined" onClick={() => openPage("/ui/failures")}>查看失败链</Button><Button size="small" variant="outlined" onClick={() => openPage("/ui/git")}>里程碑提交</Button></Stack></Stack>
       </Stack>
-    </HubPanel>
-    <HubPanel title={admission.title}>
-      <Typography>{admission.detail}</Typography>
-      <Typography variant="caption" color="text.secondary">{sessionLivenessSummary(snapshot)}</Typography>
-    </HubPanel>
-    <HubPanel title={baseline.title}>
-      <Typography>{baseline.detail}</Typography>
-    </HubPanel>
-    <HubPanel title={cleanup.title}>
-      <Typography>{cleanup.detail}</Typography>
-    </HubPanel>
-    <HubPanel title="协调器同步">
-      <Typography>{syncHealth.detail}</Typography>
-    </HubPanel>
-    <HubPanel title="验证流速 · 仅影响独占资源">
-      {flowHealth.length === 0 ? <Typography>没有活动验证槽；新的受管验证可立即申请。</Typography> : <Stack spacing={0.5}>
-        {flowHealth.map((lane) => <Typography key={lane.laneScope}>{validationFlowSummary(lane)}</Typography>)}
-      </Stack>}
-      <Typography>CPU 突发 WIP：{cpuBurst.active}/{cpuBurst.capacity} · 可隔离检查 {cpuBurst.eligiblePending}</Typography>
-      <Typography variant="caption" color="text.secondary">无 target-dir 的 cargo check 或定向 cargo test --lib 会自动申请隔离突发候选；资源不足时保持热缓存 FIFO。</Typography>
-      <Typography variant="caption" color="text.secondary">热缓存队列与隔离突发只限制验证资源；不会关闭 Session 准入或暂停文件工作。</Typography>
-    </HubPanel>
-    <HubPanel title="当前资源等待 · 仅影响独占验证">
-      {blockers.length === 0 ? <Typography>没有独占资源等待；其他 Session 可继续运行。</Typography> : <Stack spacing={1}>{blockers.map((blocker) => <Typography key={`${blocker.kind}:${blocker.ownerSessionId}:${blocker.createdAt}`}>{resourceBlockerSummary(blocker)}</Typography>)}</Stack>}
-    </HubPanel>
-    <HubPanel title="局部等待时的续作">
-      {continuations.length === 0 ? <Typography>没有可推荐的同计划续作；先处理介入方式的建议项或其它未冲突代码，完成后优先回到主任务。</Typography> : <Stack spacing={1}>{continuations.map((continuation) => <Stack key={continuation.sessionId} spacing={0.25} sx={{ borderLeft: 2, borderColor: "primary.main", pl: 1 }}>
-        <Typography>不要等待：{continuationWaitInstruction(continuation.waitKind)}，{continuation.kind === "unowned_failure" ? "拉取无人负责的代码 Failure" : "先做"} {continuation.milestone} · {continuation.title}</Typography>
-        {continuation.kind === "unowned_failure" ? <Typography variant="caption" color="text.secondary">{continuation.targetPlanPath}</Typography> : null}
-        <Typography variant="caption" color="text.secondary">{continuation.kind === "unowned_failure" ? "每个 Session 一次只拉取一个责任计划；先领取作用域，不占用其它 Session 或验证 FIFO；完成后优先回到主任务。" : "先领取作用域；完成后优先回到主任务，不扩散为跨计划 WIP。"}</Typography>
-      </Stack>)}</Stack>}
-    </HubPanel>
+    </Box>
+    <ValidationReportSummary report={analytics.validationReport} loadError={validationHistoryError} />
+    <HubPanel title="构建 → 验证 → 审核 → 提交"><StageRail stages={stageItems} ariaLabel="构建验证提交阶段" /></HubPanel>
+    <Grid container spacing={2}><Grid size={{ xs: 12, lg: 7 }}><HubPanel title="24 小时任务趋势"><AnalyticsLineChart buckets={analytics.buckets} /><Typography variant="caption" color="text.secondary">{analytics.coverage.hasTimeSeries ? `已加载 ${analytics.coverage.historyTickets} 个验证 ticket；折线按开始、完成和失败时间聚合。` : "当前历史窗口没有足够的时间样本，图表会随验证事件进入后自动增长。"}</Typography></HubPanel></Grid><Grid size={{ xs: 12, lg: 5 }}><HubPanel title="当前 Failure 占比"><FailureDonut open={analytics.failure.open} fixed={analytics.failure.fixed} ratio={analytics.failure.ratio} loading={!analytics.failure.historyReady} /><Typography variant="caption" color="text.secondary">{!analytics.failure.historyReady ? "Failure 历史仍在采样；不会把未加载状态显示为零。" : analytics.failure.averageResolutionSeconds === null ? "尚无可计算的闭合链路耗时。" : `已闭合 ${analytics.failure.resolvedCount} 条链路，平均处理 ${formatDuration(analytics.failure.averageResolutionSeconds)}。`}</Typography></HubPanel></Grid></Grid>
+    <Box className="dashboard-kpi-grid">{metrics.map(([label, value]) => <DashboardKpi key={label} label={label} value={value} detail={metricDetails[label] ?? ""} tone={metricTone(label, value)} />)}</Box>
+    <Grid container spacing={2}><Grid size={{ xs: 12, md: 6 }}><HubPanel title="流程处理耗时 · Top 8"><AnalyticsDurationChart rows={analytics.durations} /></HubPanel></Grid><Grid size={{ xs: 12, md: 6 }}><HubPanel title="24 小时任务时间轴"><AnalyticsSchedule slots={analytics.schedule} /></HubPanel></Grid></Grid>
+    <Grid container spacing={2}><Grid size={{ xs: 12, md: 5 }}><HubPanel title="验证任务流转"><AnalyticsFlow rows={analytics.flow} /></HubPanel></Grid><Grid size={{ xs: 12, md: 7 }}><HubPanel title="模块目录占比"><ModuleShareChart rows={analytics.modules} /><Typography variant="caption" color="text.secondary">按计划路径的前两级目录归类，Failure 和验证 ticket 会共同计入对应模块。</Typography></HubPanel></Grid></Grid>
+    <Grid container spacing={2}><Grid size={{ xs: 12, md: 6 }}><HubPanel title="Failure 链补丁状态"><PatchStatusChart rows={analytics.patches} /><Typography variant="caption" color="text.secondary">展示补丁从排队、应用到已应用/需 Rebase/失败的生命周期，便于核对失败链修复是否真正落盘。</Typography></HubPanel></Grid><Grid size={{ xs: 12, md: 6 }}><HubPanel title="数据覆盖"><Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}><Chip size="small" variant="outlined" label={`${analytics.coverage.historyTickets} 条验证历史`} /><Chip size="small" variant="outlined" label={`${analytics.coverage.historyChains} 条 Failure 链`} /><Chip size="small" variant="outlined" label={`${analytics.coverage.auditEvents} 条事件`} /><Chip size="small" color={analytics.coverage.hasTimeSeries ? "success" : "warning"} label={analytics.coverage.hasTimeSeries ? "时间序列已采样" : "等待时间样本"} /></Stack><Typography variant="caption" color="text.secondary">历史报表按最近加载窗口计算；当前快照用于补足正在运行的任务和资源占用。</Typography></HubPanel></Grid></Grid>
+    <Grid container spacing={2}><Grid size={{ xs: 12, lg: 7 }}><HubPanel title="计划完成 / Todo / Failure"><PlanProgressChart rows={analytics.plans} /></HubPanel></Grid><Grid size={{ xs: 12, lg: 5 }}><HubPanel title="当前 CPU / 验证任务"><ActiveTaskTable rows={analytics.activeTasks} /></HubPanel></Grid></Grid>
+    <HubPanel title={`最近流程 · ${analytics.inProgressWorkflowCount} 个处理中 · ${analytics.queuedWorkflowCount} 个已登记`}><RecentWorkflowList rows={analytics.recentWorkflows} /></HubPanel>
+    <Grid container spacing={2}>
+      <Grid size={{ xs: 12, lg: 7 }}><HubPanel title="工作分布 · 只显示下一步动作"><Grid container spacing={1.25}>{board.map((lane) => <Grid key={lane.key} size={{ xs: 12, sm: 6 }}><Box className="dashboard-flow-node"><Stack direction="row" spacing={1} sx={{ alignItems: "baseline", mb: 1 }}><Typography variant="subtitle2" sx={{ flex: 1 }}>{lane.title}</Typography><Typography variant="h6">{lane.total}</Typography></Stack>{lane.cards.slice(0, 3).map((card) => <Stack key={card.id} spacing={0.2} sx={{ borderLeft: 3, borderColor: lane.key === "intervention" ? "error.main" : lane.key === "waiting" ? "warning.main" : "primary.main", pl: 1, mb: 1 }}><Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>{card.title}</Typography><Typography variant="caption" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>{card.detail}</Typography></Stack>)}{lane.cards.length === 0 && <Typography variant="caption" color="text.secondary">{lane.emptyText}</Typography>}{lane.overflowCount > 0 && <Typography variant="caption" color="text.secondary">另有 {lane.overflowCount} 项，转到详情页查看。</Typography>}</Box></Grid>)}</Grid></HubPanel></Grid>
+      <Grid size={{ xs: 12, lg: 5 }}><HubPanel title="介入优先级"><Stack spacing={1.5}>{intervention.next === null ? <Typography>没有开放 Failure；不需要额外介入。</Typography> : <><Stack spacing={0.25}><Typography variant="caption" color="text.secondary">下一项责任计划</Typography><Typography variant="body1" sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{intervention.next.fixingPlan}</Typography><Typography variant="body2">{intervention.next.summary}</Typography></Stack><SignalBar label="开放 Failure" value={intervention.failureCount} total={Math.max(intervention.failureCount, intervention.planCount)} detail={`${intervention.planCount} 个责任计划，逐计划收敛 WIP`} tone="error.main" /></>}{intervention.waitingSessionCount > 0 || intervention.pendingReservationCount > 0 ? <Typography variant="caption" color="text.secondary">验证等待 {intervention.waitingSessionCount} 个 Session，CPU 队列 {intervention.pendingReservationCount}{intervention.nextReservation ? `；下一个 ${intervention.nextReservation.sessionId}（#${intervention.nextReservation.queuePosition} · ${intervention.nextReservation.executionMode === "warm" ? "热缓存" : "隔离突发"}）` : ""}。验证等待不阻塞代码工作。</Typography> : null}{continuationCoverage && <Typography variant="caption" color="text.secondary">{continuationCoverage}</Typography>}</Stack></HubPanel></Grid>
+    </Grid>
+    <Grid container spacing={2}><Grid size={{ xs: 12, md: 6 }}><HubPanel title={admission.title}><Typography>{admission.detail}</Typography><Typography variant="caption" color="text.secondary">{sessionLivenessSummary(visibleSnapshot)}</Typography></HubPanel></Grid><Grid size={{ xs: 12, md: 6 }}><HubPanel title="运行环境信号"><Stack spacing={1}><SignalBar label="验证流速" value={activeCount} total={Math.max(activeCount + pendingCount, 1)} detail={flowHealth.map(validationFlowSummary).join("；") || "没有活动验证槽；新的受管验证可立即申请。"} /><Typography variant="caption" color="text.secondary">CPU 突发 WIP：{cpuBurst.active}/{cpuBurst.capacity} · 可隔离检查 {cpuBurst.eligiblePending}</Typography><Typography variant="caption" color="text.secondary">无 target-dir 的 cargo check 或定向 cargo test --lib 会自动申请隔离突发候选；资源不足时保持热缓存 FIFO。</Typography></Stack></HubPanel></Grid></Grid>
+    <Grid container spacing={2}><Grid size={{ xs: 12, md: 4 }}><HubPanel title={baseline.title}><Typography>{baseline.detail}</Typography></HubPanel></Grid><Grid size={{ xs: 12, md: 4 }}><HubPanel title={cleanup.title}><Typography>{cleanup.detail}</Typography></HubPanel></Grid><Grid size={{ xs: 12, md: 4 }}><HubPanel title="协调器同步"><Typography>{syncHealth.detail}</Typography></HubPanel></Grid></Grid>
+    <HubPanel title="当前资源等待 · 仅影响独占验证">{blockers.length === 0 ? <Typography>没有独占资源等待；其他 Session 可继续运行。</Typography> : <Stack spacing={1}>{blockers.map((blocker) => <Typography key={`${blocker.kind}:${blocker.ownerSessionId}:${blocker.createdAt}`}>{resourceBlockerSummary(blocker)}</Typography>)}</Stack>}</HubPanel>
+    <HubPanel title="局部等待时的续作">{continuations.length === 0 ? <Typography>没有可推荐的同计划续作；先处理介入方式的建议项或其它未冲突代码，完成后优先回到主任务。</Typography> : <Stack spacing={1}>{continuations.map((continuation) => <Stack key={continuation.sessionId} spacing={0.25} sx={{ borderLeft: 2, borderColor: "primary.main", pl: 1 }}><Typography>不要等待：{continuationWaitInstruction(continuation.waitKind)}，{continuation.kind === "unowned_failure" ? "拉取无人负责的代码 Failure" : "先做"} {continuation.milestone} · {continuation.title}</Typography>{continuation.kind === "unowned_failure" ? <Typography variant="caption" color="text.secondary">{continuation.targetPlanPath}</Typography> : null}<Typography variant="caption" color="text.secondary">{continuation.kind === "unowned_failure" ? "每个 Session 一次只拉取一个责任计划；先领取作用域，不占用其它 Session 或验证 FIFO；完成后优先回到主任务。" : "先领取作用域；完成后优先回到主任务，不扩散为跨计划 WIP。"}</Typography></Stack>)}</Stack>}</HubPanel>
   </Stack>;
 }
 
 export function overviewMetrics(snapshot: ControlSnapshot) {
   const projection = experience(snapshot);
-  return [["工作流", snapshot.workflows.length], ["活动会话", snapshot.sessions.filter((item) => item.status === "active").length], ["Failure", snapshot.failures.nodes.length], ["运行验证", snapshot.validation.currentCargoTargets.filter((item) => item.status === "running").length], ["同步状态", syncHealthSummary(snapshot).headline], ["资源阻塞", resourceBlockers(snapshot).length]] as const;
+  return [["工作流", snapshot.workflows.length], ["活动会话", snapshot.sessions.filter((item) => item.status === "active").length], ["Failure", interventionGuidance(snapshot).failureCount], ["运行验证", snapshot.validation.currentCargoTargets.filter((item) => item.status === "running").length], ["同步状态", syncHealthSummary(snapshot).headline], ["资源阻塞", resourceBlockers(snapshot).length]] as const;
 }
 
 export interface SyncHealthSummary {
@@ -406,6 +427,20 @@ function sessionLane(
 }
 
 function failureLane(snapshot: ControlSnapshot): WorkBoardLane {
+  if (snapshot.failures.nodes.length === 0) {
+    const intervention = interventionGuidance(snapshot);
+    const cards = intervention.next ? [{
+      id: `failure-plan:${intervention.next.fixingPlan}`,
+      title: intervention.next.fixingPlan,
+      detail: `${intervention.failureCount} 个开放 Failure · ${intervention.next.summary}`,
+    }] : [];
+    const lane = boundedLane("intervention", "需介入", "没有未关闭的 Failure。", cards);
+    return {
+      ...lane,
+      total: intervention.planCount,
+      overflowCount: Math.max(intervention.planCount - cards.length, 0),
+    };
+  }
   const plans = new Map<string, { count: number; priority: number; createdAt: string; summary: string }>();
   for (const failure of snapshot.failures.nodes) {
     if (failure.status !== "open") continue;

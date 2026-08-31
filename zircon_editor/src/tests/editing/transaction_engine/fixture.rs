@@ -3,17 +3,17 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::core::editing::engine::{
-    CommandExecutionError, EditCommand, EditCommandError, EditContext, MergeOutcome,
-    SelectionSnapshot,
+    CommandExecutionError, EditCommand, EditCommandError, EditContext, EditWorldRoute,
+    MergeOutcome, SelectionSnapshot,
 };
-use crate::core::gateway::EditorRuntimeGatewayHandle;
+use crate::core::play::WorldDomain;
 
 pub(super) struct FixtureContext {
     pub(super) value: i32,
     pub(super) selection: u64,
     pub(super) trace: Vec<&'static str>,
     pub(super) fail_selection_restore: Option<u64>,
-    pub(super) gateway: EditorRuntimeGatewayHandle,
+    pub(super) world_domain: WorldDomain,
 }
 
 impl Default for FixtureContext {
@@ -23,14 +23,26 @@ impl Default for FixtureContext {
             selection: 0,
             trace: Vec::new(),
             fail_selection_restore: None,
-            gateway: EditorRuntimeGatewayHandle::detached(),
+            world_domain: WorldDomain::Edit,
         }
     }
 }
 
 impl EditContext for FixtureContext {
-    fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle {
-        &self.gateway
+    fn capture_world_route(
+        &self,
+        world_domain: WorldDomain,
+    ) -> Result<EditWorldRoute, EditCommandError> {
+        Ok(EditWorldRoute::logical(world_domain))
+    }
+
+    fn activate_world_route(&mut self, route: &EditWorldRoute) -> Result<(), EditCommandError> {
+        self.world_domain = route.world_domain();
+        Ok(())
+    }
+
+    fn retire_world_route(&mut self, _world_domain: WorldDomain) -> Result<(), EditCommandError> {
+        Ok(())
     }
 
     fn selection_snapshot(&self) -> SelectionSnapshot {

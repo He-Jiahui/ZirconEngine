@@ -108,26 +108,25 @@ pub(super) fn parse_container(
             vertical_gap: parse_f32(table.get("vertical_gap")).unwrap_or(0.0),
             item_min_width: parse_f32(table.get("item_min_width")).unwrap_or(0.0),
         }),
-        "FlowBox" | "FlexBox" => UiContainerKind::WrapBox(UiWrapBoxConfig {
-            horizontal_gap: parse_f32(table.get("horizontal_gap"))
-                .or_else(|| parse_f32(table.get("gap")))
-                .unwrap_or(0.0),
-            vertical_gap: parse_f32(table.get("vertical_gap"))
-                .or_else(|| parse_f32(table.get("gap")))
-                .unwrap_or(0.0),
-            item_min_width: parse_f32(table.get("item_min_width")).unwrap_or(0.0),
-        }),
-        "GridBox" | "GridGroup" => UiContainerKind::GridBox(UiGridBoxConfig {
-            columns: parse_usize(table.get("columns"), node_path, "container.columns")?
-                .unwrap_or(1),
-            rows: parse_usize(table.get("rows"), node_path, "container.rows")?.unwrap_or(1),
-            column_gap: parse_f32(table.get("column_gap"))
-                .or_else(|| parse_f32(table.get("gap")))
-                .unwrap_or(0.0),
-            row_gap: parse_f32(table.get("row_gap"))
-                .or_else(|| parse_f32(table.get("gap")))
-                .unwrap_or(0.0),
-        }),
+        "FlowBox" | "FlexBox" => {
+            let (horizontal_gap, vertical_gap) =
+                parse_axis_gaps(table, "horizontal_gap", "vertical_gap");
+            UiContainerKind::WrapBox(UiWrapBoxConfig {
+                horizontal_gap,
+                vertical_gap,
+                item_min_width: parse_f32(table.get("item_min_width")).unwrap_or(0.0),
+            })
+        }
+        "GridBox" | "GridGroup" => {
+            let (column_gap, row_gap) = parse_axis_gaps(table, "column_gap", "row_gap");
+            UiContainerKind::GridBox(UiGridBoxConfig {
+                columns: parse_usize(table.get("columns"), node_path, "container.columns")?
+                    .unwrap_or(1),
+                rows: parse_usize(table.get("rows"), node_path, "container.rows")?.unwrap_or(1),
+                column_gap,
+                row_gap,
+            })
+        }
         "Masonry" | "MasonryBox" => UiContainerKind::MasonryBox(UiMasonryBoxConfig {
             columns: parse_usize(table.get("columns"), node_path, "container.columns")?
                 .unwrap_or(UiMasonryBoxConfig::default().columns)
@@ -144,6 +143,21 @@ pub(super) fn parse_container(
             });
         }
     }))
+}
+
+fn parse_axis_gaps(
+    table: &toml::map::Map<String, Value>,
+    first_key: &str,
+    second_key: &str,
+) -> (f32, f32) {
+    let first = parse_f32(table.get(first_key));
+    let second = parse_f32(table.get(second_key));
+    let shared = if first.is_none() || second.is_none() {
+        parse_f32(table.get("gap")).unwrap_or(0.0)
+    } else {
+        0.0
+    };
+    (first.unwrap_or(shared), second.unwrap_or(shared))
 }
 
 fn parse_virtualization(
@@ -438,6 +452,127 @@ optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
             optimized_p95_ns.saturating_mul(4) <= legacy_p95_ns,
             "bounded admission must reduce malicious-track P95 by at least 75%: \
 legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
+        );
+    }
+
+    #[test]
+    fn optimization_batch_em_container_gaps_share_fallback_lookup() {
+        let source = include_str!("parsers.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("layout parser production source");
+
+        assert_eq!(production.matches("parse_axis_gaps(table,").count(), 2);
+        let helper = production
+            .split("fn parse_axis_gaps(")
+            .nth(1)
+            .expect("shared container gap parser");
+        assert_eq!(helper.matches("table.get(\"gap\")").count(), 1);
+    }
+
+    #[test]
+    #[ignore = "release-only shared container gap lookup benchmark"]
+    fn optimization_batch_em_shared_container_gap_lookup_release_benchmark_evidence() {
+        const SAMPLE_PAIRS: usize = 17;
+        const PARSES_PER_SAMPLE: usize = 32_768;
+
+        fn legacy(table: &toml::map::Map<String, Value>) -> (f32, f32) {
+            let horizontal = parse_f32(table.get("horizontal_gap"))
+                .or_else(|| parse_f32(table.get("gap")))
+                .unwrap_or(0.0);
+            let vertical = parse_f32(table.get("vertical_gap"))
+                .or_else(|| parse_f32(table.get("gap")))
+                .unwrap_or(0.0);
+            (horizontal, vertical)
+        }
+
+        fn measure_legacy(table: &toml::map::Map<String, Value>) -> u128 {
+            let started = Instant::now();
+            let mut checksum = 0.0_f32;
+            for _ in 0..PARSES_PER_SAMPLE {
+                let gaps = black_box(legacy(black_box(table)));
+                checksum += gaps.0 + gaps.1;
+            }
+            black_box(checksum);
+            started.elapsed().as_nanos().max(1)
+        }
+
+        fn measure_optimized(table: &toml::map::Map<String, Value>) -> u128 {
+            let started = Instant::now();
+            let mut checksum = 0.0_f32;
+            for _ in 0..PARSES_PER_SAMPLE {
+                let gaps = black_box(parse_axis_gaps(
+                    black_box(table),
+                    "horizontal_gap",
+                    "vertical_gap",
+                ));
+                checksum += gaps.0 + gaps.1;
+            }
+            black_box(checksum);
+            started.elapsed().as_nanos().max(1)
+        }
+
+        fn percentile(samples: &[u128], percentile: usize) -> u128 {
+            let mut sorted = samples.to_vec();
+            sorted.sort_unstable();
+            let rank = (sorted.len() * percentile).div_ceil(100);
+            sorted[rank.saturating_sub(1)]
+        }
+
+        fn raw(samples: &[u128]) -> String {
+            samples
+                .iter()
+                .map(u128::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        }
+
+        let mut table = toml::map::Map::new();
+        for index in 0..512 {
+            table.insert(format!("layout_filler_{index:04}"), Value::Integer(index));
+        }
+        table.insert("gap".to_string(), Value::Float(7.5));
+        assert_eq!(
+            legacy(&table),
+            parse_axis_gaps(&table, "horizontal_gap", "vertical_gap")
+        );
+        for _ in 0..4 {
+            black_box(measure_legacy(&table));
+            black_box(measure_optimized(&table));
+        }
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample in 0..SAMPLE_PAIRS {
+            if sample % 2 == 0 {
+                legacy_samples.push(measure_legacy(&table));
+                optimized_samples.push(measure_optimized(&table));
+            } else {
+                optimized_samples.push(measure_optimized(&table));
+                legacy_samples.push(measure_legacy(&table));
+            }
+        }
+
+        let legacy_p50_ns = percentile(&legacy_samples, 50);
+        let optimized_p50_ns = percentile(&optimized_samples, 50);
+        let legacy_p95_ns = percentile(&legacy_samples, 95);
+        let optimized_p95_ns = percentile(&optimized_samples, 95);
+        println!(
+            "RUNTIME447_SHARED_CONTAINER_GAP_LOOKUP_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
+             parses_per_sample={PARSES_PER_SAMPLE} table_entries={} \
+             pair_order=alternating_legacy_even legacy_shared_gap_lookups_per_parse=2 \
+             optimized_shared_gap_lookups_per_parse=1 legacy_p50_ns={legacy_p50_ns} \
+             optimized_p50_ns={optimized_p50_ns} legacy_p95_ns={legacy_p95_ns} \
+             optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            table.len(),
+            raw(&legacy_samples),
+            raw(&optimized_samples),
+        );
+
+        assert!(
+            optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(85),
+            "shared container gap lookup must reduce P95 by at least 15%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
         );
     }
 }

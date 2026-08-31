@@ -1,7 +1,9 @@
 // Final pane DTO mapping consumes the presentation domain artifacts.
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
-use super::super::super::presentation::UiAssetEditorPanePresentation;
+use super::super::super::{
+    presentation::UiAssetEditorPanePresentation, UiAssetEditorReflectionModel,
+};
 use super::super::{
     hierarchy_projection::{build_hierarchy_items, selected_hierarchy_index, selection_summary},
     style_inspection::pseudo_state_active,
@@ -9,11 +11,37 @@ use super::super::{
 };
 use super::inspector::UiAssetInspectorPaneData;
 
+#[cfg(test)]
+#[path = "pane/owned_reflection_move_tests.rs"]
+mod owned_reflection_move_tests;
+
+struct OwnedPaneReflectionFields {
+    asset_id: String,
+    external_conflict_summary: String,
+    stale_import_items: Vec<String>,
+    emergency_summary: String,
+    style_class_items: Vec<String>,
+    last_error: String,
+}
+
+fn take_owned_pane_reflection_fields(
+    reflection: &mut UiAssetEditorReflectionModel,
+) -> OwnedPaneReflectionFields {
+    OwnedPaneReflectionFields {
+        asset_id: std::mem::take(&mut reflection.route.asset_id),
+        external_conflict_summary: std::mem::take(&mut reflection.external_conflict_summary),
+        stale_import_items: std::mem::take(&mut reflection.stale_import_items),
+        emergency_summary: std::mem::take(&mut reflection.emergency_summary),
+        style_class_items: std::mem::take(&mut reflection.style_inspector.classes),
+        last_error: reflection.last_error.take().unwrap_or_default(),
+    }
+}
+
 impl UiAssetEditorSession {
     pub fn pane_presentation(&self) -> UiAssetEditorPanePresentation {
         zircon_runtime::profile_scope!("editor", "asset_editor.presentation", "pane_presentation",);
         record_current_ui_perf_counter(UiPerfCounter::AssetEditorPanePresentationBuildCount, 1.0);
-        let reflection = self.reflection_pane_presentation();
+        let mut reflection = self.reflection_pane_presentation();
         let preview = self.preview_pane_presentation();
         let palette_entries = self.palette_catalog.entries();
         let source = self.source_pane_presentation();
@@ -48,6 +76,16 @@ impl UiAssetEditorSession {
             promote_document_id: inspector_promote_document_id,
             can_edit_promote_draft: inspector_can_edit_promote_draft,
         } = inspector;
+        let can_save = reflection.source_dirty && reflection.last_error.is_none();
+        let style_state_hover = pseudo_state_active(&reflection.style_inspector, "hover");
+        let style_state_focus = pseudo_state_active(&reflection.style_inspector, "focus");
+        let style_state_pressed = pseudo_state_active(&reflection.style_inspector, "pressed");
+        let style_state_disabled = pseudo_state_active(&reflection.style_inspector, "disabled");
+        let style_state_selected = pseudo_state_active(&reflection.style_inspector, "selected");
+        let selected_node_id = reflection.selection.primary_node_id.as_deref();
+        let selection_summary = selection_summary(&reflection.selection);
+        let hierarchy_items = build_hierarchy_items(&self.last_valid_document, selected_node_id);
+        let owned_reflection = take_owned_pane_reflection_fields(&mut reflection);
         UiAssetEditorPanePresentation {
             nodes: Vec::new(),
             center_column_node: Default::default(),
@@ -55,21 +93,21 @@ impl UiAssetEditorSession {
             designer_canvas_panel_node: Default::default(),
             inspector_panel_node: Default::default(),
             stylesheet_panel_node: Default::default(),
-            asset_id: reflection.route.asset_id.clone(),
+            asset_id: owned_reflection.asset_id,
             mode: format!("{:?}", reflection.route.mode),
             source_dirty: reflection.source_dirty,
             has_external_conflict: reflection.has_external_conflict,
-            external_conflict_summary: reflection.external_conflict_summary.clone(),
-            stale_import_items: reflection.stale_import_items.clone(),
+            external_conflict_summary: owned_reflection.external_conflict_summary,
+            stale_import_items: owned_reflection.stale_import_items,
             can_reload_from_disk: reflection.can_reload_from_disk,
             can_keep_local_and_save: reflection.can_keep_local_and_save,
             can_save_local_copy: reflection.can_save_local_copy,
             can_open_diff_snapshot: reflection.can_open_diff_snapshot,
-            can_save: reflection.source_dirty && reflection.last_error.is_none(),
+            can_save,
             can_undo: reflection.can_undo,
             can_redo: reflection.can_redo,
             shell_state: reflection.shell_state.label().to_string(),
-            emergency_summary: reflection.emergency_summary.clone(),
+            emergency_summary: owned_reflection.emergency_summary,
             can_emergency_reload: reflection.can_emergency_reload,
             can_emergency_revert: reflection.can_emergency_revert,
             can_emergency_open_asset_browser: reflection.can_emergency_open_asset_browser,
@@ -93,12 +131,12 @@ impl UiAssetEditorSession {
             can_designer_select: reflection.can_designer_select,
             can_designer_resize_slot: reflection.can_designer_resize_slot,
             can_designer_preview_interact: reflection.can_designer_preview_interact,
-            style_state_hover: pseudo_state_active(&reflection.style_inspector, "hover"),
-            style_state_focus: pseudo_state_active(&reflection.style_inspector, "focus"),
-            style_state_pressed: pseudo_state_active(&reflection.style_inspector, "pressed"),
-            style_state_disabled: pseudo_state_active(&reflection.style_inspector, "disabled"),
-            style_state_selected: pseudo_state_active(&reflection.style_inspector, "selected"),
-            style_class_items: reflection.style_inspector.classes.clone(),
+            style_state_hover,
+            style_state_focus,
+            style_state_pressed,
+            style_state_disabled,
+            style_state_selected,
+            style_class_items: owned_reflection.style_class_items,
             style_rule_items: style.rule_items,
             style_rule_selected_index: style.rule_selected_index,
             style_selected_rule_id: style.selected_rule_id,
@@ -147,8 +185,8 @@ impl UiAssetEditorSession {
             theme_promote_display_name: theme.promote_display_name,
             theme_can_edit_promote_draft: theme.can_edit_promote_draft,
             theme_can_prune_duplicate_local_overrides: theme.can_prune_duplicate_local_overrides,
-            last_error: reflection.last_error.clone().unwrap_or_default(),
-            selection_summary: selection_summary(&reflection.selection),
+            last_error: owned_reflection.last_error,
+            selection_summary,
             source_text: self.source_buffer.text().to_string(),
             preview_preset: reflection.route.preview_preset.label().to_string(),
             source_selected_block_label: source.selected_block_label,
@@ -344,10 +382,7 @@ impl UiAssetEditorSession {
                 .iter()
                 .map(|entry| entry.label.clone())
                 .collect(),
-            hierarchy_items: build_hierarchy_items(
-                &self.last_valid_document,
-                reflection.selection.primary_node_id.as_deref(),
-            ),
+            hierarchy_items,
             inspector_items,
             stylesheet_items: style.stylesheet_items,
             preview_items: preview.items,

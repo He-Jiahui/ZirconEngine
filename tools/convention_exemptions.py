@@ -28,6 +28,7 @@ def audit_rust_exemptions(
     known_rule_ids = set(rule_report["rule_ids"])
     must_rule_ids = set(rule_report["must_rule_ids"])
     member_roots, workspace_violations = _workspace_member_roots(repo_root)
+    member_by_root = {member_root: member for member, member_root in member_roots}
     enforced_members = sorted(RUST_EXEMPTION_ENFORCED_MEMBERS)
     enforced_member_set = set(enforced_members)
     allow_counts: Counter[str] = Counter()
@@ -81,7 +82,7 @@ def audit_rust_exemptions(
 
     scoped_allow_attribute_count = 0
     for source in sorted(allow_candidate_files):
-        member = _owning_workspace_member(source, member_roots)
+        member = _owning_workspace_member(source, member_by_root)
         relative_path = source.relative_to(repo_root).as_posix()
         try:
             contents = source.read_text(encoding="utf-8-sig")
@@ -345,6 +346,7 @@ def _workspace_allow_candidate_sources(
 ) -> tuple[set[Path], str]:
     if not member_roots:
         return set(), "none"
+    member_root_set = {root for _, root in member_roots}
     pathspecs = tuple(
         pathspec
         for member, _ in member_roots
@@ -385,9 +387,11 @@ def _workspace_allow_candidate_sources(
             if raw_path
             for candidate in [(repo_root / raw_path).resolve()]
             if candidate.is_file()
-            and any(
-                candidate == member_root or member_root in candidate.parents
-                for _, member_root in member_roots
+            and (
+                candidate in member_root_set
+                or any(
+                    parent in member_root_set for parent in candidate.parents
+                )
             )
         }
         return sources, "git-grep"
@@ -448,11 +452,13 @@ def _member_rust_sources(member_root: Path) -> set[Path]:
 
 
 def _owning_workspace_member(
-    source: Path, member_roots: list[tuple[str, Path]]
+    source: Path, member_by_root: dict[Path, str]
 ) -> str:
-    owners = [
-        (len(member_root.parts), member)
-        for member, member_root in member_roots
-        if source == member_root or member_root in source.parents
-    ]
-    return max(owners)[1]
+    member = member_by_root.get(source)
+    if member is not None:
+        return member
+    for parent in source.parents:
+        member = member_by_root.get(parent)
+        if member is not None:
+            return member
+    raise ValueError(f"source has no owning workspace member: {source}")

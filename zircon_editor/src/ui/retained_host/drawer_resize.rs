@@ -70,20 +70,11 @@ pub(crate) fn apply_resize_to_group(
     target_group: &str,
     extent: f32,
 ) -> Result<bool, String> {
-    let slots = group_slots(target_group)
+    let slot = group_slot(target_group)
         .ok_or_else(|| format!("Unsupported drawer resize target {target_group}"))?;
-
-    let mut changed = false;
-    for slot in slots {
-        changed |= editor_manager
-            .apply_layout_command(LayoutCommand::SetDrawerExtent {
-                slot: *slot,
-                extent,
-            })
-            .map_err(|error| error.to_string())?;
-    }
-
-    Ok(changed)
+    editor_manager
+        .apply_layout_command(LayoutCommand::SetDrawerRegionExtent { slot, extent })
+        .map_err(|error| error.to_string())
 }
 
 pub(crate) fn dispatch_resize_to_group(
@@ -91,36 +82,19 @@ pub(crate) fn dispatch_resize_to_group(
     target_group: &str,
     extent: f32,
 ) -> Result<UiHostEventEffects, String> {
-    let slots = group_slots(target_group)
+    let slot = group_slot(target_group)
         .ok_or_else(|| format!("Unsupported drawer resize target {target_group}"))?;
-
-    let mut combined = UiHostEventEffects::default();
-    for slot in slots {
-        let effects = callback_dispatch::dispatch_layout_command(
-            runtime,
-            LayoutCommand::SetDrawerExtent {
-                slot: *slot,
-                extent,
-            },
-        )?;
-        combined.merge_dirty_domains(effects.dirty_domains());
-        combined.sync_asset_workspace |= effects.sync_asset_workspace;
-        combined.refresh_asset_details |= effects.refresh_asset_details;
-        combined.refresh_visible_asset_previews |= effects.refresh_visible_asset_previews;
-        combined.reset_active_layout_preset |= effects.reset_active_layout_preset;
-    }
-
-    Ok(combined)
+    callback_dispatch::dispatch_layout_command(
+        runtime,
+        LayoutCommand::SetDrawerRegionExtent { slot, extent },
+    )
 }
 
-fn group_slots(target_group: &str) -> Option<&'static [ActivityDrawerSlot]> {
+fn group_slot(target_group: &str) -> Option<ActivityDrawerSlot> {
     match target_group {
-        "left" => Some(&[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom]),
-        "right" => Some(&[
-            ActivityDrawerSlot::RightTop,
-            ActivityDrawerSlot::RightBottom,
-        ]),
-        "bottom" => Some(&[ActivityDrawerSlot::Bottom]),
+        "left" => Some(ActivityDrawerSlot::LeftTop),
+        "right" => Some(ActivityDrawerSlot::RightTop),
+        "bottom" => Some(ActivityDrawerSlot::Bottom),
         _ => None,
     }
 }

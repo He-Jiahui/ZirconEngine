@@ -131,6 +131,59 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
 }
 
 #[test]
+fn editor_manager_promotes_to_a_suffixed_widget_without_overwriting_the_existing_target() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_promote_widget_existing_target");
+    let project_root = unique_temp_dir("zircon_editor_asset_promote_widget_existing_target_project");
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    create_project_with_default_world(&project_root);
+
+    let layout_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("layouts")
+        .join("editor.zui");
+    let existing_widget_path = project_root
+        .join("assets")
+        .join("ui")
+        .join("widgets")
+        .join("save_button.zui");
+    fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
+    fs::create_dir_all(existing_widget_path.parent().unwrap()).unwrap();
+    write_ui_asset(&layout_path, STYLE_UI_LAYOUT_ASSET);
+    fs::write(&existing_widget_path, "pre-existing widget source").unwrap();
+
+    manager.open_project(&project_root).unwrap();
+    let instance_id = manager
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
+        .expect("ui asset editor should open from project asset id");
+    manager
+        .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
+        .expect("select button");
+    assert!(manager
+        .extract_ui_asset_editor_selected_node_to_component(&instance_id)
+        .expect("extract selected node to local component"));
+
+    assert!(manager
+        .promote_ui_asset_editor_selected_component_to_external_widget(&instance_id)
+        .expect("promote selected component to a suffixed external widget"));
+
+    let allocated_widget_path = existing_widget_path.with_file_name("save_button_1.zui");
+    assert_eq!(
+        fs::read_to_string(&existing_widget_path).unwrap(),
+        "pre-existing widget source"
+    );
+    assert!(allocated_widget_path.is_file());
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
+}
+
+#[test]
 fn editor_manager_uses_custom_promote_widget_draft_values() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_promote_widget_custom");

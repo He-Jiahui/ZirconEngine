@@ -15,6 +15,10 @@ fn primary_release_inside_pressed_target_marks_click_target_and_clears_press_sta
     assert_eq!(down.target, Some(UiNodeId::new(2)));
     assert_eq!(down.pressed, Some(UiNodeId::new(2)));
     assert_eq!(down.click_target, None);
+    assert!(matches!(
+        &down.routing_path,
+        zircon_runtime_interface::ui::surface::UiPointerRoutingPath::HitPath
+    ));
     assert_eq!(surface.focus.pressed, Some(UiNodeId::new(2)));
 
     let up = surface
@@ -72,6 +76,14 @@ fn captured_release_uses_hit_path_not_capture_target_for_click_target() {
 
     assert_eq!(up.target, Some(UiNodeId::new(2)));
     assert_eq!(up.hit_path.target, None);
+    assert!(matches!(
+        &up.routing_path,
+        zircon_runtime_interface::ui::surface::UiPointerRoutingPath::ExplicitRootToLeaf(_)
+    ));
+    assert_eq!(
+        up.bubble_route().collect::<Vec<_>>(),
+        vec![UiNodeId::new(2), UiNodeId::new(1)]
+    );
     assert_eq!(up.click_target, None);
     assert!(!up.release_inside_pressed);
     assert_eq!(surface.focus.captured, None);

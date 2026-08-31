@@ -68,6 +68,103 @@ pub struct RenderPassPipelineStatistics {
     pub compute_shader_invocations: u64,
 }
 
+/// Native resource creation observed while recording one render-graph pass.
+///
+/// These counters identify pass-time allocation and pipeline compilation pressure. They are work
+/// counts, not elapsed-time or proof that a particular cache would improve performance.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenderPassNativeResourceCreateMetrics {
+    pub buffer_count: u32,
+    pub bind_group_count: u32,
+    pub bind_group_layout_count: u32,
+    pub shader_module_count: u32,
+    pub pipeline_layout_count: u32,
+    pub compute_pipeline_count: u32,
+    pub render_pipeline_count: u32,
+}
+
+impl RenderPassNativeResourceCreateMetrics {
+    pub const fn new(
+        buffer_count: u32,
+        bind_group_count: u32,
+        bind_group_layout_count: u32,
+        shader_module_count: u32,
+        pipeline_layout_count: u32,
+        compute_pipeline_count: u32,
+        render_pipeline_count: u32,
+    ) -> Self {
+        Self {
+            buffer_count,
+            bind_group_count,
+            bind_group_layout_count,
+            shader_module_count,
+            pipeline_layout_count,
+            compute_pipeline_count,
+            render_pipeline_count,
+        }
+    }
+
+    pub const fn total_count(self) -> u32 {
+        self.buffer_count
+            .saturating_add(self.bind_group_count)
+            .saturating_add(self.bind_group_layout_count)
+            .saturating_add(self.shader_module_count)
+            .saturating_add(self.pipeline_layout_count)
+            .saturating_add(self.compute_pipeline_count)
+            .saturating_add(self.render_pipeline_count)
+    }
+
+    pub const fn saturating_add(self, other: Self) -> Self {
+        Self {
+            buffer_count: self.buffer_count.saturating_add(other.buffer_count),
+            bind_group_count: self.bind_group_count.saturating_add(other.bind_group_count),
+            bind_group_layout_count: self
+                .bind_group_layout_count
+                .saturating_add(other.bind_group_layout_count),
+            shader_module_count: self
+                .shader_module_count
+                .saturating_add(other.shader_module_count),
+            pipeline_layout_count: self
+                .pipeline_layout_count
+                .saturating_add(other.pipeline_layout_count),
+            compute_pipeline_count: self
+                .compute_pipeline_count
+                .saturating_add(other.compute_pipeline_count),
+            render_pipeline_count: self
+                .render_pipeline_count
+                .saturating_add(other.render_pipeline_count),
+        }
+    }
+
+    pub(crate) fn record_buffer(&mut self) {
+        self.buffer_count = self.buffer_count.saturating_add(1);
+    }
+
+    pub(crate) fn record_bind_group(&mut self) {
+        self.bind_group_count = self.bind_group_count.saturating_add(1);
+    }
+
+    pub(crate) fn record_bind_group_layout(&mut self) {
+        self.bind_group_layout_count = self.bind_group_layout_count.saturating_add(1);
+    }
+
+    pub(crate) fn record_shader_module(&mut self) {
+        self.shader_module_count = self.shader_module_count.saturating_add(1);
+    }
+
+    pub(crate) fn record_pipeline_layout(&mut self) {
+        self.pipeline_layout_count = self.pipeline_layout_count.saturating_add(1);
+    }
+
+    pub(crate) fn record_compute_pipeline(&mut self) {
+        self.compute_pipeline_count = self.compute_pipeline_count.saturating_add(1);
+    }
+
+    pub(crate) fn record_render_pipeline(&mut self) {
+        self.render_pipeline_count = self.render_pipeline_count.saturating_add(1);
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderPassProfileEntry {
     pub pass_name: String,
@@ -83,6 +180,8 @@ pub struct RenderPassProfileEntry {
     pub state_change_count: u32,
     pub upload_bytes: u64,
     pub dispatch_count: u32,
+    #[serde(default)]
+    pub native_resource_creates: RenderPassNativeResourceCreateMetrics,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,6 +190,32 @@ pub struct RenderSubsystemProfileEntry {
     pub gpu_time_us: Option<u64>,
     pub budget_us: u64,
     pub over_budget: bool,
+}
+
+/// Frame-qualified mesh submission counters used to correlate cache and indirect work with timing.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenderMeshSubmissionProfile {
+    pub draw_count: u32,
+    pub command_count: u32,
+    /// Commands routed through the ordinary deferred-opaque queue.
+    #[serde(default)]
+    pub opaque_command_count: u32,
+    /// Opaque commands routed through the late Forward advanced-PBR queue.
+    #[serde(default)]
+    pub advanced_pbr_opaque_command_count: u32,
+    pub cached_command_hit_count: u32,
+    pub command_rebuild_count: u32,
+    pub dynamic_command_count: u32,
+    pub static_command_cache_skipped_draw_count: u32,
+    pub static_command_cache_visibility_pruned_draw_count: u32,
+    pub indirect_batch_count: u32,
+    pub indirect_batched_draw_count: u32,
+    pub indirect_fallback_draw_count: u32,
+    pub indirect_workspace_uploaded_bytes: u64,
+    pub replay_state_change_count: u32,
+    pub replay_bind_skip_count: u32,
+    pub material_bind_group_set_count: u32,
+    pub material_bind_group_skip_count: u32,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -111,6 +236,8 @@ pub struct RenderFrameProfile {
     pub profile_latency_frames: u32,
     pub passes: Vec<RenderPassProfileEntry>,
     pub subsystems: Vec<RenderSubsystemProfileEntry>,
+    #[serde(default)]
+    pub mesh_submission: RenderMeshSubmissionProfile,
     pub transient_texture_peak_bytes: u64,
     pub transient_buffer_peak_bytes: u64,
     pub staging_total_bytes: u64,
@@ -174,7 +301,7 @@ impl RenderFrameBudget {
 mod tests {
     use super::{
         RenderBudgetKey, RenderFrameBudget, RenderFrameProfile, RenderGpuTimingStatus,
-        RenderPassProfileEntry,
+        RenderMeshSubmissionProfile, RenderPassProfileEntry,
     };
 
     #[test]
@@ -207,6 +334,57 @@ mod tests {
     }
 
     #[test]
+    fn legacy_frame_profile_json_defaults_missing_mesh_submission_metrics() {
+        let profile = RenderFrameProfile {
+            mesh_submission: RenderMeshSubmissionProfile {
+                command_count: 9,
+                cached_command_hit_count: 5,
+                ..RenderMeshSubmissionProfile::default()
+            },
+            ..RenderFrameProfile::default()
+        };
+        let mut legacy = serde_json::to_value(profile).expect("frame profile serializes");
+        legacy
+            .as_object_mut()
+            .expect("frame profile is a JSON object")
+            .remove("mesh_submission");
+
+        let decoded: RenderFrameProfile =
+            serde_json::from_value(legacy).expect("legacy frame profile remains readable");
+
+        assert_eq!(
+            decoded.mesh_submission,
+            RenderMeshSubmissionProfile::default()
+        );
+    }
+
+    #[test]
+    fn mesh_submission_profile_json_defaults_missing_opaque_phase_counts() {
+        let profile = RenderFrameProfile {
+            mesh_submission: RenderMeshSubmissionProfile {
+                opaque_command_count: 2,
+                advanced_pbr_opaque_command_count: 1,
+                ..RenderMeshSubmissionProfile::default()
+            },
+            ..RenderFrameProfile::default()
+        };
+        let mut serialized = serde_json::to_value(profile).expect("frame profile serializes");
+        let mesh_submission = serialized
+            .as_object_mut()
+            .and_then(|profile| profile.get_mut("mesh_submission"))
+            .and_then(serde_json::Value::as_object_mut)
+            .expect("serialized frame profile contains mesh submission metrics");
+        mesh_submission.remove("opaque_command_count");
+        mesh_submission.remove("advanced_pbr_opaque_command_count");
+
+        let decoded: RenderFrameProfile =
+            serde_json::from_value(serialized).expect("legacy frame profile remains readable");
+
+        assert_eq!(decoded.mesh_submission.opaque_command_count, 0);
+        assert_eq!(decoded.mesh_submission.advanced_pbr_opaque_command_count, 0);
+    }
+
+    #[test]
     fn legacy_pass_profile_json_defaults_missing_cpu_time() {
         let entry = RenderPassProfileEntry {
             pass_name: "opaque".to_owned(),
@@ -220,17 +398,39 @@ mod tests {
             state_change_count: 0,
             upload_bytes: 0,
             dispatch_count: 0,
+            native_resource_creates: RenderPassNativeResourceCreateMetrics::new(
+                1, 2, 3, 4, 5, 6, 7,
+            ),
         };
         let mut legacy = serde_json::to_value(entry).expect("pass profile serializes");
-        legacy
+        let legacy = legacy
             .as_object_mut()
-            .expect("pass profile is a JSON object")
-            .remove("cpu_elapsed_micros");
+            .expect("pass profile is a JSON object");
+        legacy.remove("cpu_elapsed_micros");
+        legacy.remove("native_resource_creates");
 
         let decoded: RenderPassProfileEntry =
             serde_json::from_value(legacy).expect("legacy pass profile remains readable");
 
         assert_eq!(decoded.cpu_elapsed_micros, 0);
+        assert_eq!(
+            decoded.native_resource_creates,
+            RenderPassNativeResourceCreateMetrics::default()
+        );
+    }
+
+    #[test]
+    fn native_resource_create_metrics_keep_categories_and_saturating_total() {
+        let metrics = RenderPassNativeResourceCreateMetrics::new(1, 2, 3, 4, 5, 6, u32::MAX);
+
+        assert_eq!(metrics.buffer_count, 1);
+        assert_eq!(metrics.bind_group_count, 2);
+        assert_eq!(metrics.bind_group_layout_count, 3);
+        assert_eq!(metrics.shader_module_count, 4);
+        assert_eq!(metrics.pipeline_layout_count, 5);
+        assert_eq!(metrics.compute_pipeline_count, 6);
+        assert_eq!(metrics.render_pipeline_count, u32::MAX);
+        assert_eq!(metrics.total_count(), u32::MAX);
     }
 
     #[test]

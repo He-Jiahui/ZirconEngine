@@ -2,10 +2,14 @@ use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventK
 use zircon_runtime_interface::ui::binding::{UiBindingCall, UiBindingValue};
 
 pub(super) fn material_lab_template_bindings() -> Vec<(String, EditorUiBinding)> {
-    let mut bindings = MATERIAL_LAB_BINDING_SPECS
-        .iter()
-        .map(|spec| material_lab_binding_entry(spec.binding_id, spec.event_kind))
-        .collect::<Vec<_>>();
+    let mut bindings = Vec::with_capacity(
+        MATERIAL_LAB_BINDING_SPECS.len() + MATERIAL_LAB_STRUCTURAL_CHILD_BINDING_SPECS.len(),
+    );
+    bindings.extend(
+        MATERIAL_LAB_BINDING_SPECS
+            .iter()
+            .map(|spec| material_lab_binding_entry(spec.binding_id, spec.event_kind)),
+    );
     bindings.extend(
         MATERIAL_LAB_STRUCTURAL_CHILD_BINDING_SPECS
             .iter()
@@ -194,3 +198,7 @@ fn material_lab_control_id(binding_id: &str) -> String {
         .map(|component| format!("MaterialLab{component}"))
         .unwrap_or_else(|| "MaterialLabPrototype".to_string())
 }
+
+#[cfg(test)]
+#[path = "material_lab_template_bindings/single_allocation_registry_tests.rs"]
+mod single_allocation_registry_tests;

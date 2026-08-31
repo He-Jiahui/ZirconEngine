@@ -5,6 +5,7 @@ use super::{PlatformDriver, PlatformManager};
 use crate::core::framework::foundation::FOUNDATION_MODULE_NAME;
 use crate::core::framework::platform::{PreferenceStorage, PLATFORM_MODULE_NAME};
 use crate::core::manager::RegisteredManagerService;
+use crate::core::runtime::modules::TASKS_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
 use crate::core::{CoreError, CoreResult, ModuleContext, ModuleLifecycle};
 use crate::engine_module::{
@@ -60,11 +61,17 @@ pub fn module_descriptor() -> ModuleDescriptor {
     .with_lifecycle(Arc::new(PlatformModuleLifecycle))
     .with_init_level(InitLevel::Services)
     .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
+    .with_module_dependency(ModuleDependencySpec::named(TASKS_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(PLATFORM_MODULE_NAME, ServiceKind::Driver, "PlatformDriver"),
         StartupMode::Immediate,
         Vec::new(),
-        factory(|_| Ok(Arc::new(PlatformDriver::default()) as _)),
+        factory(|core| {
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            Ok(Arc::new(PlatformDriver::with_io_task_pool(
+                core.task_graph().worker_pool().clone(),
+            )) as _)
+        }),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(

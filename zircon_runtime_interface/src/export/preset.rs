@@ -3,11 +3,10 @@ use std::error::Error;
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::project::{AssetRef, RelPath};
 use crate::serialization::{
-    load_versioned, Format, LoadError, MigrationChain, SchemaId, VersionedSchema,
+    load_versioned_envelope, Format, LoadError, MigrationChain, SchemaId, VersionedSchema,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -164,24 +163,8 @@ impl Error for ExportPresetValidationError {}
 /// Presets are a hard-cutover format: unlike the generic versioned loader, this
 /// entry point never accepts an unwrapped version-zero payload.
 pub fn load_export_preset(bytes: &[u8]) -> Result<ExportPreset, ExportPresetLoadError> {
-    let document = serde_json::from_slice::<StrictPresetDocument>(bytes)
-        .map_err(ExportPresetLoadError::Envelope)?;
-    let StrictPresetEnvelope {
-        header,
-        payload: _validated_payload,
-    } = document.envelope;
-    if header.schema_id != ExportPreset::SCHEMA.as_str() {
-        return Err(ExportPresetLoadError::Schema {
-            actual: header.schema_id,
-        });
-    }
-    if header.schema_version != ExportPreset::VERSION {
-        return Err(ExportPresetLoadError::Version {
-            actual: header.schema_version,
-        });
-    }
-    let loaded = load_versioned::<ExportPreset>(bytes, Format::Text)
-        .map_err(ExportPresetLoadError::Payload)?;
+    let loaded = load_versioned_envelope::<ExportPreset>(bytes, Format::Text)
+        .map_err(classify_export_preset_load_error)?;
     loaded
         .value
         .validate()
@@ -189,30 +172,21 @@ pub fn load_export_preset(bytes: &[u8]) -> Result<ExportPreset, ExportPresetLoad
     Ok(loaded.value)
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct StrictPresetDocument {
-    #[serde(rename = "$zircon")]
-    envelope: StrictPresetEnvelope,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct StrictPresetEnvelope {
-    header: StrictPresetHeader,
-    payload: Value,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct StrictPresetHeader {
-    schema_id: String,
-    schema_version: u32,
+fn classify_export_preset_load_error(error: LoadError) -> ExportPresetLoadError {
+    match error {
+        LoadError::SchemaMismatch { found, .. } => ExportPresetLoadError::Schema { actual: found },
+        LoadError::FutureVersion { found, .. } => ExportPresetLoadError::Version { actual: found },
+        error @ (LoadError::MalformedText { .. }
+        | LoadError::InvalidEnvelope { .. }
+        | LoadError::MissingTextEnvelope { .. }
+        | LoadError::TextDocumentTooLarge { .. }) => ExportPresetLoadError::Envelope(error),
+        error => ExportPresetLoadError::Payload(error),
+    }
 }
 
 #[derive(Debug)]
 pub enum ExportPresetLoadError {
-    Envelope(serde_json::Error),
+    Envelope(LoadError),
     Schema { actual: String },
     Version { actual: u32 },
     Payload(LoadError),

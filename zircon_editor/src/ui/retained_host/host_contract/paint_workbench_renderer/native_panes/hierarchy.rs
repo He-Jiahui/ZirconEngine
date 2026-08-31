@@ -5,7 +5,7 @@ use crate::ui::retained_host::app::hierarchy_rename::{
     hierarchy_inline_rename_target_id, HIERARCHY_INLINE_RENAME_CONTROL_ID,
 };
 use crate::ui::retained_host::hierarchy_pointer::{
-    current_hierarchy_row_metrics, hierarchy_row_metrics_from_host_metrics, HierarchyRowMetrics,
+    hierarchy_row_metrics_from_host_metrics, HierarchyRowMetrics,
 };
 
 pub(super) use viewport::hierarchy_viewport_frame;
@@ -20,36 +20,36 @@ use row::draw_hierarchy_row;
 pub(in crate::ui::retained_host::host_contract) fn draw_hierarchy_rows(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
-    body: &FrameRect,
+    viewport: &FrameRect,
     clip: &FrameRect,
     interaction: &HostPaneInteractionStateData,
     text_input_focus: Option<&HostTextInputFocusData>,
+    row_metrics: HierarchyRowMetrics,
 ) -> bool {
     let node_count = pane.hierarchy.hierarchy_nodes.row_count();
     if node_count == 0 {
         return false;
     }
-    let viewport = hierarchy_viewport_frame(pane, body);
-    let Some(row_clip) = intersect(&viewport, clip) else {
+    let Some(row_clip) = intersect(viewport, clip) else {
         return false;
     };
     let scroll_px = interaction.hierarchy_scroll_px.max(0.0);
-    let row_metrics = current_hierarchy_row_metrics();
 
     for index in
-        visible_hierarchy_row_range(&viewport, &row_clip, scroll_px, node_count, row_metrics)
+        visible_hierarchy_row_range(viewport, &row_clip, scroll_px, node_count, row_metrics)
     {
-        let Some(node) = pane.hierarchy.hierarchy_nodes.row_data(index) else {
+        let Some(node) = pane.hierarchy.hierarchy_nodes.get(index) else {
             continue;
         };
-        let inline_rename_value = inline_hierarchy_rename_value(&node, text_input_focus);
+        let inline_rename_value = inline_hierarchy_rename_value(node, text_input_focus);
         draw_hierarchy_row(
             frame,
-            &viewport,
+            viewport,
             &row_clip,
             index,
             scroll_px,
-            &node,
+            row_metrics,
+            node,
             interaction,
             inline_rename_value,
         );

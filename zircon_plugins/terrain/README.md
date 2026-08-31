@@ -20,3 +20,9 @@ payload schema ids.
 
 Default import extensions are `raw`, `r16`, and `png`. Runtime export should
 link this package only when selected by the project/plugin profile.
+
+Heightfield admission parses those extensions into a typed source format once,
+checks the platform-safe sample count, and publishes a canonical extension in
+the import plan. The heightfield request deliberately rejects `LayerStack`;
+layer stacks require a separate request carrying layer, channel, format, and
+endianness semantics instead of reusing a heightfield sample plan.

@@ -1,22 +1,14 @@
-use zircon_runtime_interface::ui::{
-    dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
-};
-
 use super::host_document_tab_pointer_bridge::HostDocumentTabPointerBridge;
 use super::host_document_tab_pointer_dispatch::HostDocumentTabPointerDispatch;
 
 impl HostDocumentTabPointerBridge {
     pub(crate) fn handle_close_click(
-        &mut self,
+        &self,
         surface_key: &str,
         item_index: usize,
-        tab_x: f32,
-        tab_width: f32,
-        point: UiPoint,
     ) -> Result<HostDocumentTabPointerDispatch, String> {
-        self.update_measured_frame(surface_key, item_index, tab_x, tab_width)?;
-        let point = self.global_point(surface_key, point)?;
-        let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
-        Ok(HostDocumentTabPointerDispatch { route })
+        zircon_runtime::profile_counter!("editor", "ui.document_tab.native_close_receipt_count", 1);
+        let route = self.route_for_receipt(surface_key, item_index, true)?;
+        Ok(HostDocumentTabPointerDispatch { route: Some(route) })
     }
 }

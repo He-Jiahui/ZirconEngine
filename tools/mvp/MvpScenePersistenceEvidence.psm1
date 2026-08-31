@@ -49,6 +49,45 @@ function Assert-MvpSceneVector {
     }
 }
 
+function Assert-MvpSceneParentGraph {
+    param(
+        [Parameter(Mandatory)][System.Collections.IDictionary]$ParentsByNode,
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    foreach ($entry in $ParentsByNode.GetEnumerator()) {
+        if ($entry.Value -ne 0 -and -not $ParentsByNode.ContainsKey($entry.Value)) {
+            throw "$Label scene node '$($entry.Key)' references missing parent '$($entry.Value)'."
+        }
+    }
+
+    $visitState = @{}
+    $path = [Collections.Generic.List[UInt64]]::new($ParentsByNode.Count)
+    foreach ($nodeId in $ParentsByNode.Keys) {
+        if ($visitState[$nodeId] -eq 2) {
+            continue
+        }
+
+        $path.Clear()
+        [UInt64]$currentNodeId = $nodeId
+        while ($currentNodeId -ne 0) {
+            $state = $visitState[$currentNodeId]
+            if ($state -eq 1) {
+                throw "$Label scene_nodes contains a parent cycle involving node '$currentNodeId'."
+            }
+            if ($state -eq 2) {
+                break
+            }
+            $visitState[$currentNodeId] = 1
+            $path.Add($currentNodeId)
+            $currentNodeId = $ParentsByNode[$currentNodeId]
+        }
+        foreach ($pathNodeId in $path) {
+            $visitState[$pathNodeId] = 2
+        }
+    }
+}
+
 function Assert-MvpAutomationSceneSnapshot {
     param(
         [Parameter(Mandatory)]$Snapshot,
@@ -65,17 +104,17 @@ function Assert-MvpAutomationSceneSnapshot {
         throw "$Label scene_nodes count '$($sceneNodes.Count)' differs from scene_entry_count '$SceneEntryCount'."
     }
 
-    $nodeIds = [Collections.Generic.HashSet[UInt64]]::new()
-    $nodeEvidence = [Collections.Generic.List[object]]::new()
+    $parentsByNode = @{}
     $selectedNodeFound = $false
     foreach ($node in $sceneNodes) {
         $nodeId = ConvertTo-MvpSceneUInt64 `
             -Value (Get-MvpSceneRequiredProperty -Value $node -Name 'id' -Label "$Label scene node") `
             -Name 'id' `
             -Label "$Label scene node"
-        if ($nodeId -eq 0 -or -not $nodeIds.Add($nodeId)) {
+        if ($nodeId -eq 0 -or $parentsByNode.ContainsKey($nodeId)) {
             throw "$Label scene_nodes contains zero or duplicate node id '$nodeId'."
         }
+        $parentsByNode[$nodeId] = [UInt64]0
         $nodeName = [string](Get-MvpSceneRequiredProperty -Value $node -Name 'name' -Label "$Label scene node $nodeId")
         $null = Get-MvpSceneRequiredProperty -Value $node -Name 'kind' -Label "$Label scene node $nodeId"
         foreach ($componentName in @('camera', 'mesh', 'directional_light')) {
@@ -95,23 +134,25 @@ function Assert-MvpAutomationSceneSnapshot {
         if ($null -eq $parentProperty) {
             throw "$Label scene node $nodeId is missing 'parent'."
         }
-        $parentId = $null
+        [UInt64]$parentId = 0
         if ($null -ne $parentProperty.Value) {
             $parentId = ConvertTo-MvpSceneUInt64 -Value $parentProperty.Value -Name 'parent' -Label "$Label scene node $nodeId"
             if ($parentId -eq $nodeId) {
                 throw "$Label scene node $nodeId cannot parent itself."
             }
         }
+        $parentsByNode[$nodeId] = $parentId
 
         $transform = Get-MvpSceneRequiredProperty -Value $node -Name 'transform' -Label "$Label scene node $nodeId"
         $translation = @(Get-MvpSceneRequiredProperty -Value $transform -Name 'translation' -Label "$Label scene node $nodeId transform")
+        $scale = @(Get-MvpSceneRequiredProperty -Value $transform -Name 'scale' -Label "$Label scene node $nodeId transform")
         Assert-MvpSceneVector -Value $translation -ExpectedCount 3 -Label "$Label scene node $nodeId translation"
         Assert-MvpSceneVector `
             -Value (Get-MvpSceneRequiredProperty -Value $transform -Name 'rotation' -Label "$Label scene node $nodeId transform") `
             -ExpectedCount 4 `
             -Label "$Label scene node $nodeId rotation"
         Assert-MvpSceneVector `
-            -Value (Get-MvpSceneRequiredProperty -Value $transform -Name 'scale' -Label "$Label scene node $nodeId transform") `
+            -Value $scale `
             -ExpectedCount 3 `
             -Label "$Label scene node $nodeId scale"
 
@@ -124,7 +165,6 @@ function Assert-MvpAutomationSceneSnapshot {
                     throw "$Label selected scene node translation differs from inspector_translation."
                 }
             }
-            $scale = @(Get-MvpSceneRequiredProperty -Value $transform -Name 'scale' -Label "$Label scene node $nodeId transform")
             for ($axis = 0; $axis -lt 3; $axis++) {
                 if ([double]$scale[$axis] -ne [double]$InspectorScale[$axis]) {
                     throw "$Label selected scene node scale differs from inspector_scale."
@@ -132,32 +172,12 @@ function Assert-MvpAutomationSceneSnapshot {
             }
             $selectedNodeFound = $true
         }
-        $nodeEvidence.Add([pscustomobject]@{ id = $nodeId; parent = $parentId })
     }
 
     if (-not $selectedNodeFound) {
         throw "$Label scene_nodes does not contain selected node '$SelectedNodeId'."
     }
-    foreach ($entry in $nodeEvidence) {
-        if ($null -ne $entry.parent -and -not $nodeIds.Contains([UInt64]$entry.parent)) {
-            throw "$Label scene node '$($entry.id)' references missing parent '$($entry.parent)'."
-        }
-    }
-
-    $parentsByNode = @{}
-    foreach ($entry in $nodeEvidence) {
-        $parentsByNode[[UInt64]$entry.id] = $entry.parent
-    }
-    foreach ($entry in $nodeEvidence) {
-        $visited = [Collections.Generic.HashSet[UInt64]]::new()
-        [UInt64]$currentNodeId = $entry.id
-        while ($null -ne $parentsByNode[$currentNodeId]) {
-            if (-not $visited.Add($currentNodeId)) {
-                throw "$Label scene_nodes contains a parent cycle involving node '$currentNodeId'."
-            }
-            $currentNodeId = [UInt64]$parentsByNode[$currentNodeId]
-        }
-    }
+    Assert-MvpSceneParentGraph -ParentsByNode $parentsByNode -Label $Label
 }
 
 function Assert-MvpSceneSnapshotMatch {
@@ -180,22 +200,36 @@ function Assert-MvpExpectedAuthoringSceneDelta {
         [Parameter(Mandatory)]$AuthoringSnapshot
     )
 
-    $baselineNodes = ConvertTo-Json -InputObject $BaselineSnapshot.scene_nodes -Depth 64 | ConvertFrom-Json
+    $baselineNodes = $BaselineSnapshot.scene_nodes
     $authoringNodes = ConvertTo-Json -InputObject $AuthoringSnapshot.scene_nodes -Depth 64 | ConvertFrom-Json
     $selectedNodeId = [UInt64]$AuthoringSnapshot.selected_node_id
-    $baselineSelected = @($baselineNodes | Where-Object { [UInt64]$_.id -eq $selectedNodeId })
-    $authoringSelected = @($authoringNodes | Where-Object { [UInt64]$_.id -eq $selectedNodeId })
-    if ($baselineSelected.Count -ne 1 -or $authoringSelected.Count -ne 1) {
+    $baselineSelected = $null
+    $authoringSelected = $null
+    $baselineSelectedCount = 0
+    $authoringSelectedCount = 0
+    foreach ($node in $baselineNodes) {
+        if ([UInt64]$node.id -eq $selectedNodeId) {
+            $baselineSelected = $node
+            $baselineSelectedCount++
+        }
+    }
+    foreach ($node in $authoringNodes) {
+        if ([UInt64]$node.id -eq $selectedNodeId) {
+            $authoringSelected = $node
+            $authoringSelectedCount++
+        }
+    }
+    if ($baselineSelectedCount -ne 1 -or $authoringSelectedCount -ne 1) {
         throw 'Authoring scene delta cannot resolve the selected node in both snapshots.'
     }
-    if ([double]$baselineSelected[0].transform.translation[0] -ne 0.0 -or
-        [double]$authoringSelected[0].transform.translation[0] -ne 42.0 -or
-        [double]$baselineSelected[0].transform.scale[0] -ne 1.0 -or
-        [double]$authoringSelected[0].transform.scale[0] -ne 1.25) {
+    if ([double]$baselineSelected.transform.translation[0] -ne 0.0 -or
+        [double]$authoringSelected.transform.translation[0] -ne 42.0 -or
+        [double]$baselineSelected.transform.scale[0] -ne 1.0 -or
+        [double]$authoringSelected.transform.scale[0] -ne 1.25) {
         throw 'Authoring scene delta must change the selected Cube X translation from 0 to 42 and scale from 1 to 1.25.'
     }
-    $authoringSelected[0].transform.translation[0] = $baselineSelected[0].transform.translation[0]
-    $authoringSelected[0].transform.scale[0] = $baselineSelected[0].transform.scale[0]
+    $authoringSelected.transform.translation[0] = $baselineSelected.transform.translation[0]
+    $authoringSelected.transform.scale[0] = $baselineSelected.transform.scale[0]
     $baseline = ConvertTo-Json -InputObject $baselineNodes -Depth 64 -Compress
     $authoring = ConvertTo-Json -InputObject $authoringNodes -Depth 64 -Compress
     if ($authoring -ne $baseline) {

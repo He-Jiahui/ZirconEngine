@@ -34,7 +34,8 @@ pub use physics::{
     SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
 };
 pub use post_process::{
-    SceneBloomSettingsAsset, SceneChromaticAberrationSettingsAsset, SceneColorGradingSettingsAsset,
+    SceneAmbientOcclusionSettingsAsset, SceneAoQualityTierAsset, SceneBloomSettingsAsset,
+    SceneChromaticAberrationSettingsAsset, SceneColorGradingSettingsAsset,
     SceneDitherSettingsAsset, SceneFilmGrainSettingsAsset, SceneFogSettingsAsset,
     ScenePostProcessEffectStackAsset, ScenePostProcessSettingsAsset, ScenePostProcessVolumeAsset,
     ScenePostProcessVolumeProfileAsset, SceneTonemapOperatorAsset, SceneTonemapSettingsAsset,

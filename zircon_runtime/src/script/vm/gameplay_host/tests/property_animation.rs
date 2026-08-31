@@ -4,7 +4,9 @@ use super::*;
 fn gameplay_host_script_property_match_and_heal_update_bindings() {
     let core = CoreRuntime::new();
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -174,7 +176,9 @@ fn gameplay_host_script_property_match_and_heal_update_bindings() {
 fn gameplay_host_sets_animation_bool_and_world_hud_bar_for_scripted_gameplay() {
     let core = CoreRuntime::new();
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .update_transform(
             entity,

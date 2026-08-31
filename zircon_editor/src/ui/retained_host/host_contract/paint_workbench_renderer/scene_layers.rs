@@ -22,6 +22,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_host_scene(
     dock_layer::draw_dock_layers(frame, presentation);
     resize::draw_resize_layer(frame, presentation);
     dock_layer::draw_floating_layer(frame, presentation);
+    overlay::draw_host_dock_overflow_menu(frame, presentation);
     overlay::draw_host_page_overflow_menu(frame, presentation);
     overlay::draw_menu_and_prompt_layers(frame, presentation);
     chrome::draw_status_bar_template_nodes(frame, root, presentation);

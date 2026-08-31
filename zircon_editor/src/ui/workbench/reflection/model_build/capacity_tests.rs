@@ -1,0 +1,122 @@
+use std::hint::black_box;
+use std::time::Instant;
+
+use super::{menu_reflection_items, menu_reflection_leaf_count};
+use crate::core::commands::{MenuItemModel, MenuModel};
+
+const SAMPLE_PAIRS: usize = 21;
+const BUILDS_PER_SAMPLE: usize = 128;
+const LEAVES_PER_BUILD: usize = 4_096;
+
+#[test]
+fn optimization_batch_20260826fq_editor158_capacity_preserves_nested_menu_leaf_order() {
+    let menus = vec![MenuModel {
+        label: "File".to_string(),
+        items: vec![
+            leaf("Open"),
+            MenuItemModel::branch(
+                "Recent",
+                vec![
+                    leaf("First"),
+                    MenuItemModel::branch("More", vec![leaf("Second")]),
+                ],
+            ),
+            leaf("Exit"),
+        ],
+    }];
+
+    let reflected = menu_reflection_items(&menus);
+
+    assert_eq!(menu_reflection_leaf_count(&menus), 4);
+    assert_eq!(reflected.len(), 4);
+    assert!(reflected.capacity() >= 4);
+    assert_eq!(
+        reflected
+            .iter()
+            .map(|item| item.label.as_str())
+            .collect::<Vec<_>>(),
+        ["Open", "First", "Second", "Exit"]
+    );
+}
+
+#[test]
+fn optimization_batch_20260826fq_editor158_menu_reflection_reserves_exact_leaf_count() {
+    let source = include_str!("../model_build.rs");
+    assert!(source.contains("Vec::with_capacity(menu_reflection_leaf_count(menus))"));
+    assert!(source.contains("fn menu_item_reflection_leaf_count("));
+    assert!(!source.contains("let mut reflected = Vec::new();"));
+}
+
+#[test]
+#[ignore = "managed Windows release performance evidence"]
+fn optimization_batch_20260826fq_editor158_menu_reflection_leaf_capacity_bench() {
+    let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    for pair in 0..SAMPLE_PAIRS {
+        if pair % 2 == 0 {
+            legacy_samples.push(measure(false));
+            optimized_samples.push(measure(true));
+        } else {
+            optimized_samples.push(measure(true));
+            legacy_samples.push(measure(false));
+        }
+    }
+    let legacy_p50_ns = percentile(&legacy_samples, 50);
+    let optimized_p50_ns = percentile(&optimized_samples, 50);
+    let legacy_p95_ns = percentile(&legacy_samples, 95);
+    let optimized_p95_ns = percentile(&optimized_samples, 95);
+    println!(
+        "EDITOR158_MENU_REFLECTION_LEAF_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
+builds_per_sample={BUILDS_PER_SAMPLE} leaves_per_build={LEAVES_PER_BUILD} \
+legacy_reservations_per_build=0 optimized_reservations_per_build=1 \
+legacy_p50_ns={legacy_p50_ns} optimized_p50_ns={optimized_p50_ns} \
+legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} \
+legacy_raw_ns={} optimized_raw_ns={}",
+        sample_csv(&legacy_samples),
+        sample_csv(&optimized_samples),
+    );
+    assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
+}
+
+fn leaf(label: &str) -> MenuItemModel {
+    MenuItemModel::leaf(label, None, None, None, true)
+}
+
+#[derive(Clone, Copy)]
+struct ReflectionFixture([usize; 5]);
+
+fn measure(reserve: bool) -> u128 {
+    let started = Instant::now();
+    let mut checksum = 0usize;
+    for build in 0..BUILDS_PER_SAMPLE {
+        let mut reflected = if reserve {
+            Vec::with_capacity(LEAVES_PER_BUILD)
+        } else {
+            Vec::new()
+        };
+        for leaf in 0..LEAVES_PER_BUILD {
+            reflected.push(ReflectionFixture([black_box(build ^ leaf); 5]));
+        }
+        checksum ^= black_box(
+            reflected.len() ^ reflected.capacity() ^ reflected[LEAVES_PER_BUILD - 1].0[0],
+        );
+        black_box(&reflected);
+    }
+    black_box(checksum);
+    started.elapsed().as_nanos().max(1)
+}
+
+fn percentile(samples: &[u128], percentile: usize) -> u128 {
+    let mut sorted = samples.to_vec();
+    sorted.sort_unstable();
+    let rank = (sorted.len() * percentile).div_ceil(100);
+    sorted[rank.saturating_sub(1)]
+}
+
+fn sample_csv(samples: &[u128]) -> String {
+    samples
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
+}

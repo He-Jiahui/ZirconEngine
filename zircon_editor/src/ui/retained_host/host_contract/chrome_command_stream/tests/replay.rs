@@ -1,6 +1,7 @@
 use super::super::{
     build_chrome_command_stream, paint_chrome_command_stream_to_frame,
-    repaint_chrome_command_stream_region, ChromeCommandKind,
+    repaint_chrome_command_stream_region, ChromeCommandKind, ChromeCommandLayer,
+    ChromeCommandStream,
 };
 use super::support::{
     first_pixel_difference, pixel, presentation_with_root_overlay_image,
@@ -12,6 +13,59 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, HostClosePromptDa
 use crate::ui::retained_host::host_contract::paint_workbench::{
     paint_host_frame, repaint_host_frame_region,
 };
+
+fn rounded_fill_stream(border_width: Option<f32>) -> ChromeCommandStream {
+    let frame = FrameRect {
+        x: 1.0,
+        y: 1.0,
+        width: 8.0,
+        height: 8.0,
+    };
+    let mut stream = ChromeCommandStream::full_rebuild((10, 10));
+    stream.push_quad(
+        ChromeCommandLayer::Static,
+        0,
+        frame.clone(),
+        None,
+        [255; 4],
+        4.0,
+    );
+    if let Some(width) = border_width {
+        stream.push_border(
+            ChromeCommandLayer::Static,
+            1,
+            frame,
+            None,
+            [255; 4],
+            width,
+            4.0,
+        );
+    }
+    stream
+}
+
+#[test]
+fn rounded_fill_and_border_replay_preserves_one_outer_coverage() {
+    let fill = paint_chrome_command_stream_to_frame(10, 10, &rounded_fill_stream(None));
+    let combined = paint_chrome_command_stream_to_frame(10, 10, &rounded_fill_stream(Some(1.5)));
+
+    assert_eq!(combined.as_bytes(), fill.as_bytes());
+}
+
+#[test]
+fn invalid_border_width_does_not_consume_the_replayed_fill() {
+    let fill = paint_chrome_command_stream_to_frame(10, 10, &rounded_fill_stream(None));
+
+    for width in [0.0, -0.5, f32::NAN, f32::INFINITY] {
+        let replayed =
+            paint_chrome_command_stream_to_frame(10, 10, &rounded_fill_stream(Some(width)));
+        assert_eq!(
+            replayed.as_bytes(),
+            fill.as_bytes(),
+            "invalid border width {width:?} must leave the fill intact"
+        );
+    }
+}
 
 #[test]
 fn command_stream_executor_repaints_close_prompt_without_legacy_painter() {
@@ -128,17 +182,21 @@ fn patch_command_stream_matches_legacy_region_repaint_pixels() {
     let mut legacy = paint_host_frame(200, 200, &presentation);
     let mut replayed = paint_host_frame(200, 200, &presentation);
 
-    presentation.viewport_image = Some(super::super::super::data::HostViewportImageData {
-        resource_key: "viewport:test-patch".into(),
-        width: 2,
-        height: 2,
-        rgba: Some(
-            vec![
-                255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 0, 255,
-            ]
-            .into(),
-        ),
-    });
+    presentation
+        .viewport_images
+        .replace_scene(super::super::super::data::HostViewportImageData {
+            resource_key: "viewport:test-patch".into(),
+            width: 2,
+            height: 2,
+            rgba: Some(
+                vec![
+                    255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 0, 255,
+                ]
+                .into(),
+            ),
+            play_frame_identity: None,
+            overlay: None,
+        });
     let stream = build_chrome_command_stream(&presentation, (200, 200), Some(&damage), true);
 
     let legacy_damage = repaint_host_frame_region(&mut legacy, &presentation, &damage)

@@ -3,6 +3,7 @@ related_code:
   - zircon_runtime_interface/Cargo.toml
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime_interface/src/serialization/mod.rs
+  - zircon_runtime_interface/src/serialization/budget.rs
   - zircon_runtime_interface/src/serialization/schema_id.rs
   - zircon_runtime_interface/src/serialization/payload_header.rs
   - zircon_runtime_interface/src/serialization/versioned_schema.rs
@@ -18,6 +19,7 @@ implementation_files:
   - zircon_runtime_interface/Cargo.toml
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime_interface/src/serialization/mod.rs
+  - zircon_runtime_interface/src/serialization/budget.rs
   - zircon_runtime_interface/src/serialization/schema_id.rs
   - zircon_runtime_interface/src/serialization/payload_header.rs
   - zircon_runtime_interface/src/serialization/versioned_schema.rs
@@ -27,6 +29,10 @@ implementation_files:
   - zircon_runtime_interface/src/serialization/text/envelope.rs
   - zircon_runtime_interface/src/serialization/text/wire.rs
   - zircon_runtime_interface/src/serialization/text/canonical.rs
+  - zircon_runtime_interface/src/serialization/text/canonical_spool.rs
+  - zircon_runtime_interface/src/serialization/text/canonical_writer.rs
+  - zircon_runtime_interface/src/serialization/text/canonical_writer/json_string.rs
+  - zircon_runtime_interface/src/serialization/text/canonical_writer/output.rs
   - zircon_runtime_interface/src/serialization/binary/mod.rs
   - zircon_runtime_interface/src/serialization/binary/envelope.rs
   - zircon_runtime_interface/src/serialization/binary/wire.rs
@@ -77,9 +83,9 @@ doc_type: module-detail
 
 ## Contract
 
-Each persisted type implements `VersionedSchema` with a stable `SchemaId`, current `VERSION`, and an explicit static `MigrationChain<Self>`. A `MigrationStep` advances exactly one version and transforms `serde_json::Value`; old Rust DTO definitions are not retained. `Loaded<T>` reports the final value and the original migrated version so an owner can issue a one-time resave notification.
+Each persisted type implements `VersionedSchema` with a stable `SchemaId`, current `VERSION`, and an explicit static `MigrationChain<Self>`. `SchemaId` uses one portable wire grammar: 1-128 ASCII bytes, at least two dot-separated namespace segments, each segment starting with a lowercase letter and continuing with lowercase letters, digits, or interior hyphens. `SchemaId::new` validates static literals in const evaluation, while owned parsing and serde deserialization reuse the same validator and return `SchemaIdError`. A `MigrationStep` advances exactly one version and transforms `serde_json::Value`; old Rust DTO definitions are not retained. `Loaded<T>` reports the final value and the original migrated version so an owner can issue a one-time resave notification.
 
-Text payloads reserve one top-level `$zircon` magic member whose value contains `PayloadHeader { schema_id, schema_version }` plus `payload`. A text value without `$zircon` is version zero and must traverse every required migration step; its business schema may therefore own fields named `header` and `payload` without ambiguity. Once `$zircon` is present, document, envelope, and header all reject unknown fields. Schema mismatch, versions newer than the reader, malformed text/envelopes, payload decode failures, or invalid migration tables return distinct typed errors instead of silently guessing.
+Text payloads reserve one top-level `$zircon` magic member whose value contains `PayloadHeader { schema_id, schema_version }` plus `payload`. `load_versioned` and its semantic alias `load_versioned_envelope` reject text without `$zircon` with `LoadError::MissingTextEnvelope` before payload materialization. Only `load_versioned_legacy_schema_zero` may interpret unwrapped text as schema version zero, so a caller must identify an owned historical schema and explicitly opt into its migration chain. Dynamic scenes and reflected JSON are the current production legacy owners; Editor settings, workspaces, layout presets, and export presets are hard-cut envelope formats. A business schema may own fields named `header` and `payload` without ambiguity. Once `$zircon` is present, document, envelope, and header all reject unknown fields. Schema mismatch, versions newer than the reader, malformed text/envelopes, payload decode failures, or invalid migration tables return distinct typed errors instead of silently guessing.
 
 Every load validates the complete migration table before payload decoding, including current-version payloads that require no migration. A schema at version `N` must declare exactly one step for each source version in the ordered range `0..N`; missing, duplicate, out-of-order, and extra steps are rejected. A failing step is wrapped with schema id, source version, and the original typed cause.
 
@@ -91,6 +97,12 @@ M1.2 adds the canonical text writer. It serializes the same `$zircon` envelope u
 
 The Text wire now applies a symmetric 64 MiB whole-document ceiling. `load_versioned(..., Format::Text)` rejects oversized bytes with `LoadError::TextDocumentTooLarge` before envelope probing or payload parsing. The canonical writer bounds scalar JSON writes and accumulated compound fragments while constructing output, then accounts for the required trailing newline; it returns `WriteError::TextDocumentTooLarge` instead of emitting a document that the same reader rejects. This is a hard current-wire contract, not a compatibility fallback or consumer-local policy.
 
+`load_export_preset` consumes the envelope-only entry directly. Its previous `StrictPresetDocument<serde_json::Value>` preflight and second generic load were removed; the shared borrowed-envelope probe now performs header admission and the current payload decodes once into `ExportPreset`. Unknown document/envelope/header/payload fields still fail closed, and schema/future-version errors retain their public export error classes.
+
+Canonical object ordering also has independent runtime resource ceilings: nesting depth is at most 128, one object retains at most 16,384 entries, one attempt creates at most 8,191 spill files, and cumulative spool work per write attempt is at most 512 MiB. The file ceiling is the explicit integer bound implied by `512 MiB / (64 KiB + 1)` and remains independently enforced if scratch accounting changes. These failures return `CanonicalTextWriteError::ResourceLimitExceeded`, or `WriteError::TextResourceLimitExceeded` through the versioned writer, with the resource name and exact `max`/`found` values. `write_canonical_text_to` additionally requires a caller-owned `SerializationBudget`; it has no unbounded or default production mode. Runtime-owned archive formats may choose a ceiling above the 64 MiB versioned-text wire limit, but the encoder enforces that ceiling before writing the overflowing chunk and returns `CanonicalTextWriteError::OutputTooLarge`.
+
+Object values up to 64 KiB stay in memory. Larger values spill into one private attempt directory, close their writer as soon as value serialization finishes, and reopen only while copying canonical output; small-field maps therefore create no spool files and large retained values do not keep one open handle per object entry. Before the first value file is created, the attempt directory receives one `attempt.journal` containing fixed `ZIRCON_CANONICAL_SPOOL_ATTEMPT` magic, format version, owner PID, and attempt id. Journal initialization failure rolls back the directory, and normal completion removes the journal, value files, and attempt directory. `ZIRCON_CANONICAL_SPOOL_ROOT` selects the base directory when a host needs scratch data on a controlled volume; otherwise the platform temporary directory is used. Cross-process stale-attempt sweeping remains a runtime persistence-service responsibility: the encoder has neither exclusive-root admission nor a reliable process-instance liveness authority and therefore never deletes foreign attempts by TTL or PID inference.
+
 The binary wire begins with the fixed eight-byte `ZRPAYLD\0` magic and a little-endian `u16` wire version. The body is bincode 1.3 with varint integers, little-endian scalars, bounded decode, and trailing-byte rejection explicitly selected in `binary/wire.rs`; no library default is part of the compatibility contract. The body field order is permanently `PayloadHeader` followed by `BinaryValue`. Decode reads and validates the header first, so a future schema version is rejected before any untrusted payload value stream is deserialized.
 
 `BinaryValue` is a flat, self-describing node stream rather than a recursive Serde enum. The fixed v1 variant order distinguishes null, boolean, signed `i64`, unsigned `u64`, finite `f64`, string, array header, object header, and object key. There is no separate decimal variant: JSON's canonical numeric domain is represented only by `i64`/`u64`/finite `f64`, which keeps every production wire path reachable and deterministic. Object keys are canonicalized before encoding; duplicate keys and non-finite malicious numbers are rejected during decode rather than normalized silently. The writer performs a format-independent Serde traversal before JSON conversion and rejects `NaN`/positive infinity/negative infinity with `WriteError::NonFiniteFloat`, preventing `serde_json` from silently turning them into `null` for either Text or Binary output.
@@ -101,7 +113,7 @@ Direct `bincode<T>` was rejected because an old binary shape could not be recons
 
 ## Structure And Error Discipline
 
-The root `serialization/mod.rs` contains only child declarations and selected exports. Schema id, header, schema trait, and loaded result each have one declaration owner. Text wire identity/document/envelope live under `text/`. Binary prefix, envelope, encoding, decoding, value declaration, and value conversions each have a narrow owner under `binary/`. Migration step/chain/error/validation/execution live under `migration/`; loading, format, and typed load/write errors remain separate. Behavior tests are folder-backed under `serialization/tests/`. Production loading contains no `unwrap`, panic fallback, schema alias, compatibility reader, implicit migration skip, or table-order fallback.
+The root `serialization/mod.rs` contains only child declarations and selected exports. Schema id, header, schema trait, loaded result, and serialization budget each have one declaration owner. Text wire identity/document/envelope live under `text/`. Binary prefix, envelope, encoding, decoding, value declaration, and value conversions each have a narrow owner under `binary/`. Migration step/chain/error/validation/execution live under `migration/`; loading, format, and typed load/write errors remain separate. Behavior tests are folder-backed under `serialization/tests/`. Production loading contains no `unwrap`, panic fallback, schema alias, implicit legacy admission, implicit migration skip, or table-order fallback.
 
 ## Current Validation
 

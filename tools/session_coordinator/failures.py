@@ -59,7 +59,11 @@ def failure_artifact_snapshot(repo_root: str | Path) -> list[dict[str, str]]:
     plans_root = (root / "docs" / "plans").resolve()
     if not plans_root.is_dir() or not plans_root.is_relative_to(root):
         return []
-    paths = {path.resolve() for path in plans_root.rglob("*.md") if path.is_file() and _is_failure_artifact(path)}
+    paths = {
+        path.resolve()
+        for path in plans_root.rglob("*.md")
+        if _is_failure_artifact(path) and path.is_file()
+    }
     artifacts: list[dict[str, str]] = []
     for path in sorted(paths, key=lambda item: str(item).casefold()):
         if not path.is_relative_to(plans_root):
@@ -69,10 +73,15 @@ def failure_artifact_snapshot(repo_root: str | Path) -> list[dict[str, str]]:
         artifacts.append(
             {
                 "path": path.relative_to(root).as_posix(),
-                "hash": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "hash": _sha256_file(path),
             }
         )
     return artifacts
+
+
+def _sha256_file(path: Path) -> str:
+    with path.open("rb") as handle:
+        return hashlib.file_digest(handle, "sha256").hexdigest()
 
 
 @dataclass(frozen=True, slots=True)

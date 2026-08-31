@@ -10,10 +10,11 @@ const EXPECTED_QUERY_STATE_MODULES: &[&str] = &[
     "mutable",
     "read_only",
     "read_only_cached",
+    "state",
     "stats",
     "system_param",
 ];
-const QUERY_STATE_ROOT_NON_EMPTY_LINE_BUDGET: usize = 180;
+const QUERY_STATE_ROOT_NON_EMPTY_LINE_BUDGET: usize = 32;
 const QUERY_STATE_OWNER_LINE_BUDGET: usize = 450;
 
 mod archetype_access;

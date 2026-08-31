@@ -14,7 +14,7 @@ pub(super) fn test_state() -> EditorState {
 }
 
 pub(super) fn cube_id(state: &EditorState) -> NodeId {
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         scene
             .nodes()
             .iter()
@@ -25,7 +25,7 @@ pub(super) fn cube_id(state: &EditorState) -> NodeId {
 }
 
 pub(super) fn cube_and_camera(state: &EditorState) -> (NodeId, NodeId) {
-    state.world.with_world(|scene| {
+    state.world.expect_with_world(|scene| {
         let cube = scene
             .nodes()
             .iter()

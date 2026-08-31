@@ -2,6 +2,7 @@ pub(crate) const ACTIVITY_CONTENT_PANEL_CONTROL_ID: &str = "AssetsActivityConten
 pub(crate) const ACTIVITY_CONTENT_EMPTY_CONTROL_ID: &str = "AssetsActivityContentEmptyText";
 pub(crate) const ACTIVITY_CONTENT_FOLDER_PREFIX: &str = "AssetsActivityContentFolder";
 pub(crate) const ACTIVITY_CONTENT_ITEM_PREFIX: &str = "AssetsActivityContentItem";
+pub(crate) const ACTIVITY_TREE_ROW_CONTROL_ID: &str = "AssetsActivityTreeRowPanel";
 pub(crate) const BROWSER_CONTENT_TABLE_CONTROL_ID: &str = "AssetBrowserAssetTablePanel";
 pub(crate) const BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID: &str = "AssetBrowserThumbGridPanel";
 pub(crate) const BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID: &str = "WorkbenchAssetBrowserTableHeader";

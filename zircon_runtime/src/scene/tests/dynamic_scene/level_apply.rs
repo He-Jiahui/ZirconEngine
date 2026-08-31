@@ -3,7 +3,9 @@ use super::*;
 #[test]
 fn runtime_session_archive_restores_slot_into_level_and_resets_runtime_state() {
     let mut source = World::empty();
-    let saved_entity = source.spawn_node(NodeKind::Mesh);
+    let saved_entity = source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     source
         .rename_node(saved_entity, "Restored Mesh")
         .expect("source entity should be named");
@@ -19,7 +21,9 @@ fn runtime_session_archive_restores_slot_into_level_and_resets_runtime_state() {
     let manager = DefaultLevelManager::default();
     let level = manager.create_default_level();
     let stale_entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Camera);
+        let entity = world
+            .spawn_node(NodeKind::Camera)
+            .expect("test scene spawn should succeed");
         world
             .rename_node(entity, "Stale Camera")
             .expect("stale entity should be named");
@@ -63,7 +67,9 @@ fn runtime_session_archive_restores_slot_into_level_and_resets_runtime_state() {
 #[test]
 fn runtime_session_archive_applies_slot_to_live_level_with_entity_remap() {
     let mut source = World::empty();
-    let saved_entity = source.spawn_node(NodeKind::Mesh);
+    let saved_entity = source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     source
         .rename_node(saved_entity, "Instanced Mesh")
         .expect("source entity should be named");
@@ -73,7 +79,9 @@ fn runtime_session_archive_applies_slot_to_live_level_with_entity_remap() {
     let manager = DefaultLevelManager::default();
     let level = manager.create_level(World::empty(), Default::default());
     let existing_entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Camera);
+        let entity = world
+            .spawn_node(NodeKind::Camera)
+            .expect("test scene spawn should succeed");
         world
             .rename_node(entity, "Live Camera")
             .expect("existing entity should be named");

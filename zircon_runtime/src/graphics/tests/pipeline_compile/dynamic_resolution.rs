@@ -1,10 +1,11 @@
 use super::*;
 use crate::core::framework::render::{
-    builtin_geometry_source_descriptor, ShaderFeatureBits, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, RenderResolutionPolicy, RenderUpscalerKind,
+    RenderViewFamilyPipeline, ShaderFeatureBits, builtin_geometry_source_descriptor,
 };
 use crate::graphics::shader::{
-    assemble_deferred_gbuffer_shader_template, standard_material_surface_source_for_features,
-    DeferredGBufferShaderTemplateRequest,
+    DeferredGBufferShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
+    standard_material_surface_source_for_features,
 };
 
 fn deferred_gbuffer_test_shader() -> String {
@@ -34,6 +35,10 @@ fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
         include_str!("../../scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl"),
         "\n",
         include_str!("../../scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
+        "\n",
+        include_str!("../../shader/includes/zr_pbr_common.wgsl"),
+        "\n",
+        include_str!("../../shader/wgsl/zr_procedural_sky.wgsl"),
         "\n",
         include_str!("../../shader/wgsl/zr_environment_core.wgsl"),
         "\n",
@@ -113,7 +118,7 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
     assert_eq!(extract.view.effective_view_size(), UVec2::new(320, 240));
     assert_eq!(extract.view.effective_render_size(), UVec2::new(160, 120));
 
-    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
         &extract.post_process.bloom,
         &extract.post_process.color_grading,
         extract.post_process.exposure,
@@ -122,6 +127,7 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
         false,
         &AntiAliasSettings::off(),
         true,
+        false,
     );
     let compiled = RenderPipelineAsset::default_forward_plus()
         .compile_with_options(
@@ -152,7 +158,8 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
         && desc.format == TextureFormat::Depth32Float
     ));
 
-    let upscaled = graph_resource_lifetime(&compiled, PostProcessGraphResourceNames::UPSCALED);
+    let upscaled =
+        graph_resource_lifetime(&compiled, PostProcessGraphResourceNames::PRIMARY_UPSCALED);
     assert!(matches!(
         &upscaled.desc,
         RenderGraphResourceDesc::Texture(desc)
@@ -166,14 +173,14 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
         .graph()
         .passes()
         .iter()
-        .find(|pass| pass.name == "upscale")
+        .find(|pass| pass.name == "primary-upscale")
         .expect("dynamic resolution should compile the explicit upscale pass");
     assert!(upscale_pass.resources.iter().any(|resource| {
         resource.name == PostProcessGraphResourceNames::TONEMAPPED
             && resource.access == RenderGraphResourceAccessKind::Read
     }));
     assert!(upscale_pass.resources.iter().any(|resource| {
-        resource.name == PostProcessGraphResourceNames::UPSCALED
+        resource.name == PostProcessGraphResourceNames::PRIMARY_UPSCALED
             && resource.access == RenderGraphResourceAccessKind::Write
     }));
 
@@ -184,7 +191,7 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
         .find(|pass| pass.name == "output-transfer")
         .expect("dynamic resolution should still compile output transfer");
     assert!(output_transfer.resources.iter().any(|resource| {
-        resource.name == PostProcessGraphResourceNames::UPSCALED
+        resource.name == PostProcessGraphResourceNames::PRIMARY_UPSCALED
             && resource.access == RenderGraphResourceAccessKind::Read
     }));
 
@@ -194,12 +201,105 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
 }
 
 #[test]
+fn dual_spatial_upscale_compiles_primary_to_secondary_to_output_resource_chain() {
+    let mut extract = test_extract();
+    let display_extent = UVec2::new(320, 240);
+    extract.apply_viewport_size(display_extent);
+    extract
+        .view
+        .apply_view_family_pipeline(RenderViewFamilyPipeline::resolve(
+            display_extent,
+            RenderResolutionPolicy::with_scales(0.5, 0.5),
+            RenderUpscalerKind::Spatial,
+        ));
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
+        &extract.post_process.bloom,
+        &extract.post_process.color_grading,
+        extract.post_process.exposure,
+        &extract.post_process.effect_stack,
+        false,
+        false,
+        &AntiAliasSettings::off(),
+        true,
+        true,
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
+        .expect("dual spatial upscale graph should compile");
+
+    let primary = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "primary-upscale")
+        .expect("primary upscale pass");
+    assert!(primary.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::TONEMAPPED
+            && resource.access == RenderGraphResourceAccessKind::Read
+    }));
+    assert!(primary.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::PRIMARY_UPSCALED
+            && resource.access == RenderGraphResourceAccessKind::Write
+    }));
+
+    let secondary = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "secondary-upscale")
+        .expect("secondary upscale pass");
+    assert!(secondary.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::PRIMARY_UPSCALED
+            && resource.access == RenderGraphResourceAccessKind::Read
+    }));
+    assert!(secondary.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::SECONDARY_UPSCALED
+            && resource.access == RenderGraphResourceAccessKind::Write
+    }));
+
+    let output_transfer = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "output-transfer")
+        .expect("output transfer pass");
+    assert!(output_transfer.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::SECONDARY_UPSCALED
+            && resource.access == RenderGraphResourceAccessKind::Read
+    }));
+
+    let pass_names = compiled
+        .graph()
+        .passes()
+        .iter()
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+    let primary_index = pass_names
+        .iter()
+        .position(|name| *name == "primary-upscale")
+        .unwrap();
+    let secondary_index = pass_names
+        .iter()
+        .position(|name| *name == "secondary-upscale")
+        .unwrap();
+    let output_index = pass_names
+        .iter()
+        .position(|name| *name == "output-transfer")
+        .unwrap();
+    assert!(primary_index < secondary_index);
+    assert!(secondary_index < output_index);
+}
+
+#[test]
 fn dynamic_resolution_keeps_terminal_anti_alias_input_at_viewport_size() {
     let mut extract = test_extract();
     extract.view.camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.5);
     extract.apply_viewport_size(UVec2::new(320, 240));
 
-    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
         &extract.post_process.bloom,
         &extract.post_process.color_grading,
         extract.post_process.exposure,
@@ -208,6 +308,7 @@ fn dynamic_resolution_keeps_terminal_anti_alias_input_at_viewport_size() {
         false,
         &AntiAliasSettings::fxaa(),
         true,
+        false,
     );
     let compiled = RenderPipelineAsset::default_forward_plus()
         .compile_with_options(
@@ -260,7 +361,7 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
     let compiled = pipeline.compile(&orthographic_extract()).unwrap();
 
     assert_eq!(
-        compiled.stages,
+        compiled_execution_stage_order(&compiled),
         vec![
             RenderPassStage::Opaque2d,
             RenderPassStage::AlphaMask2d,
@@ -269,6 +370,7 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
             RenderPassStage::Ui,
             RenderPassStage::Overlay,
             RenderPassStage::Debug,
+            RenderPassStage::Present,
         ]
     );
     assert_eq!(
@@ -318,6 +420,7 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
             ("output-transfer", Some("post.output-transfer")),
             ("runtime-ui", Some("ui.screen-space")),
             ("overlay-gizmo", Some("overlay.gizmo")),
+            ("surface-present", Some("frame.surface-present")),
         ]
     );
     assert_eq!(

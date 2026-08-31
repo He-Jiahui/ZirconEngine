@@ -11,6 +11,7 @@ pub struct StatusBarModel {
     pub message_text: String,
     pub grid_text: String,
     pub snap_text: String,
+    pub snap_enabled: bool,
     pub zoom_text: String,
     pub task_progress: Option<StatusTaskProgressSnapshot>,
 }
@@ -26,6 +27,7 @@ impl Default for StatusBarModel {
             message_text: "0 Messages".to_string(),
             grid_text: "Grid: Off".to_string(),
             snap_text: "Snap: Off".to_string(),
+            snap_enabled: false,
             zoom_text: "100%".to_string(),
             task_progress: None,
         }
@@ -51,6 +53,10 @@ impl StatusBarModel {
             },
             grid_text: status_grid_text(&chrome.scene_viewport_settings),
             snap_text: status_snap_text(&chrome.scene_viewport_settings),
+            snap_enabled: matches!(
+                chrome.scene_viewport_settings.grid_mode,
+                GridMode::VisibleAndSnap
+            ),
             zoom_text: "100%".to_string(),
             task_progress,
         }

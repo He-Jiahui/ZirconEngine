@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "accessibility_audit_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.accessibility_audit_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionAccessibilityAuditWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "accessibility_audit_rail_gap" }, { node = "accessibility_audit_left" }, { node = "accessibility_audit_center" }, { node = "accessibility_audit_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "accessibility_audit_workspace_main" },
+  { node = "accessibility_audit_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.accessibility_audit_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "accessibility_audit_rail_gap" }, { node = "accessibility_audit_left" }, { node = "accessibility_audit_center" }, { node = "accessibility_audit_right_reserve" }]
+
+[nodes.accessibility_audit_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.accessibility_audit_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionAccessibilityAuditRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.accessibility_audit_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionAccessibilityAuditLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "accessibility_audit_title" }, { node = "accessibility_audit_issues_tab" }, { node = "accessibility_audit_rules_tab" }, { node = "accessibility_audit_fixes_tab" }, { node = "accessibility_audit_gameplay_hud_row" }, { node = "accessibility_audit_contrast_issue_row" }, { node = "accessibility_audit_focus_issue_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "accessibility_audit_title" }, { node = "accessibility_audit_left_content" }]
+
+[nodes.accessibility_audit_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionAccessibilityAuditLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "accessibility_audit_gameplay_hud_row" }, { node = "accessibility_audit_contrast_issue_row" }, { node = "accessibility_audit_focus_issue_row" }]
 
 [nodes.accessibility_audit_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionAccessibilityAuditTitle"
 props = { text = "Accessibility Audit" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.accessibility_audit_issues_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionAccessibilityAuditIssuesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Issues", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/AccessibilityAuditIssuesTab", event = "Click", route = "workbench.extension.accessibility_audit.issues" }]
-
-[nodes.accessibility_audit_rules_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionAccessibilityAuditRulesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Rules", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/AccessibilityAuditRulesTab", event = "Click", route = "workbench.extension.accessibility_audit.rules" }]
-
-[nodes.accessibility_audit_fixes_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionAccessibilityAuditFixesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Fixes", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/AccessibilityAuditFixesTab", event = "Click", route = "workbench.extension.accessibility_audit.fixes" }]
 
 [nodes.accessibility_audit_gameplay_hud_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/AccessibilityAuditFocusIssueRow", event = "
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionAccessibilityAuditCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "accessibility_audit_center_header" }, { node = "accessibility_audit_table" }, { node = "accessibility_audit_output" }]
 
 [nodes.accessibility_audit_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionAccessibilityAuditCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "accessibility_audit_center_title" }, { node = "accessibility_audit_header_fill" }, { node = "accessibility_audit_audit_button" }, { node = "accessibility_audit_preview_fix_button" }]
 
 [nodes.accessibility_audit_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionAccessibilityAuditAuditScreenButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Audit Screen", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Audit Screen", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 106.0, preferred = 106.0, max = 116.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/AccessibilityAuditAuditScreen", event = "Click", route = "workbench.extension.accessibility_audit.audit_screen" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/AccessibilityAuditAuditScreen", event = "Cl
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionAccessibilityAuditPreviewFixButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Preview Fix", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Preview Fix", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 104.0, preferred = 104.0, max = 114.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/AccessibilityAuditPreviewFix", event = "Click", route = "workbench.extension.accessibility_audit.preview_fix" }]
 
 [nodes.accessibility_audit_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionAccessibilityAuditTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "accessibility_audit_contrast_table_row" }, { node = "accessibility_audit_focus_table_row" }, { node = "accessibility_audit_target_table_row" }, { node = "accessibility_audit_motion_table_row" }]
 
 [nodes.accessibility_audit_contrast_table_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/AccessibilityAuditMotionTableRow", event = 
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionAccessibilityAuditOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Accessibility Audit", value_text = "9 issues   1 critical   42 pass" }
+props = { text = "Accessibility Audit", value_text = "9 issues   1 critical   42 pass", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/AccessibilityAuditOutput", event = "Click", route = "workbench.extension.accessibility_audit.output" }]
 
 [nodes.accessibility_audit_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionAccessibilityAuditRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "accessibility_audit_details_title" }, { node = "accessibility_audit_screen_dropdown" }, { node = "accessibility_audit_rule_set_dropdown" }, { node = "accessibility_audit_breakpoint_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "accessibility_audit_details_title" }, { node = "accessibility_audit_right_content" }]
+
+[nodes.accessibility_audit_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionAccessibilityAuditRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "accessibility_audit_screen_dropdown_property_row" }, { node = "accessibility_audit_rule_set_dropdown_property_row" }, { node = "accessibility_audit_breakpoint_field_property_row" }]
 
 [nodes.accessibility_audit_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,27 +202,48 @@ control_id = "WorkbenchExtensionAccessibilityAuditDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.accessibility_audit_screen_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionAccessibilityAuditScreenDropdownPropertyRow"
+props = { text = "Screen" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "accessibility_audit_screen_dropdown", slot = { name = "value" } }]
+
 [nodes.accessibility_audit_screen_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionAccessibilityAuditScreenDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Gameplay_HUD", value = "Gameplay_HUD", options = ["Gameplay_HUD", "Pause_Menu", "Rule_Set_A"] }
+props = { value_text = "Gameplay_HUD", value = "Gameplay_HUD", options = ["Gameplay_HUD", "Pause_Menu", "Rule_Set_A"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/AccessibilityAuditScreenEdit", event = "Change", route = "workbench.extension.accessibility_audit.screen.edit" },
   { id = "WorkbenchExtension/AccessibilityAuditScreenCommit", event = "Submit", route = "workbench.extension.accessibility_audit.screen.commit" },
 ]
 
+[nodes.accessibility_audit_rule_set_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionAccessibilityAuditRuleSetDropdownPropertyRow"
+props = { text = "Rule Set" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "accessibility_audit_rule_set_dropdown", slot = { name = "value" } }]
+
 [nodes.accessibility_audit_rule_set_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionAccessibilityAuditRuleSetDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "WCAG AA", value = "WCAG AA", options = ["WCAG AA", "WCAG AAA", "Console Safe"] }
+props = { value_text = "WCAG AA", value = "WCAG AA", options = ["WCAG AA", "WCAG AAA", "Console Safe"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/AccessibilityAuditRuleSetEdit", event = "Change", route = "workbench.extension.accessibility_audit.rule_set.edit" },
   { id = "WorkbenchExtension/AccessibilityAuditRuleSetCommit", event = "Submit", route = "workbench.extension.accessibility_audit.rule_set.commit" },
 ]
+
+[nodes.accessibility_audit_breakpoint_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionAccessibilityAuditBreakpointFieldPropertyRow"
+props = { text = "Breakpoint" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "accessibility_audit_breakpoint_field", slot = { name = "value" } }]
 
 [nodes.accessibility_audit_breakpoint_field]
 component = "WorkbenchField"

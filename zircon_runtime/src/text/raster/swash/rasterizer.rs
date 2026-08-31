@@ -1,13 +1,13 @@
-use super::bitmap::GlyphBitmap;
+use super::bitmap::{GlyphBitmap, GlyphColorBitmapAlphaMode};
 use super::error::SwashRasterError;
 use super::request::SwashRasterRequest;
 use crate::core::math::{UVec2, Vec2};
+use swash::FontRef;
 use swash::scale::{
+    Render, ScaleContext, Source as SwashSource,
     image::{Content as SwashImageContent, Image as SwashImage},
-    Render, ScaleContext,
 };
 use swash::zeno::Vector as SwashVector;
-use swash::FontRef;
 use swash::{Setting as SwashSetting, Tag as SwashTag};
 
 pub(crate) struct SwashRasterizer {
@@ -190,6 +190,7 @@ pub(super) fn glyph_bitmap_from_swash_image(
     px_size: f32,
 ) -> Result<GlyphBitmap, SwashRasterError> {
     let content = SwashRasterImageContent::from(image.content);
+    let source = image.source;
     let size = UVec2::new(image.placement.width, image.placement.height);
     let bearing = Vec2::new(image.placement.left as f32, image.placement.top as f32);
 
@@ -197,10 +198,24 @@ pub(super) fn glyph_bitmap_from_swash_image(
         SwashRasterImageContent::Mask => {
             GlyphBitmap::alpha_mask(size, bearing, px_size, image.data)
         }
-        SwashRasterImageContent::Color => GlyphBitmap::color(size, bearing, px_size, image.data),
+        SwashRasterImageContent::Color => GlyphBitmap::color_with_alpha_mode(
+            size,
+            bearing,
+            px_size,
+            image.data,
+            swash_color_bitmap_alpha_mode(source),
+        ),
         SwashRasterImageContent::SubpixelMask => {
             GlyphBitmap::subpixel_mask(size, bearing, px_size, image.data)
         }
     }
     .map_err(SwashRasterError::InvalidGlyphBitmap)
+}
+
+fn swash_color_bitmap_alpha_mode(source: SwashSource) -> GlyphColorBitmapAlphaMode {
+    match source {
+        // Swash composites COLR layers into premultiplied RGBA; embedded bitmaps decode straight.
+        SwashSource::ColorOutline(_) => GlyphColorBitmapAlphaMode::Premultiplied,
+        _ => GlyphColorBitmapAlphaMode::Straight,
+    }
 }

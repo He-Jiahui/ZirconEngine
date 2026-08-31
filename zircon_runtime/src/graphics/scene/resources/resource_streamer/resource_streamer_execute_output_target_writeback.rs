@@ -1,31 +1,117 @@
-use crate::core::framework::render::RenderCameraTargetWritebackReport;
+use crate::core::framework::render::{
+    RenderCameraTargetWritebackReport, RenderCameraTargetWritebackStatus,
+};
 use crate::core::math::UVec2;
 use crate::core::resource::ResourceId;
 use crate::graphics::debug_markers::{
-    insert_marker, RENDERDOC_MARKER_TEXTURE_WRITEBACK,
-    RENDERDOC_MARKER_TEXTURE_WRITEBACK_CONVERSION,
+    RENDERDOC_MARKER_TEXTURE_WRITEBACK, RENDERDOC_MARKER_TEXTURE_WRITEBACK_CONVERSION,
+    insert_marker,
 };
 use crate::graphics::types::{
-    GraphicsError, ViewportRenderFrame, ViewportTextureGraphImportStatus,
-    ViewportTextureWritebackPlan, ViewportTextureWritebackStatus,
+    GraphicsError, ViewportRenderFrame, ViewportTextureWritebackPlan,
+    ViewportTextureWritebackStatus,
 };
 use std::sync::Arc;
 
+use super::super::OutputTargetFramePlan;
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
-    pub(crate) fn execute_output_target_writeback(
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn encode_planned_output_target_writeback(
+        &self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        plan: RenderCameraTargetWritebackReport,
+        source_texture: &wgpu::Texture,
+        source_view: &wgpu::TextureView,
+        source_size: UVec2,
+        destination_texture: &wgpu::Texture,
+        destination_view: &wgpu::TextureView,
+        destination_size: UVec2,
+    ) -> Result<RenderCameraTargetWritebackReport, GraphicsError> {
+        match plan.status {
+            RenderCameraTargetWritebackStatus::ReadyForCopy => {
+                let extent = output_target_writeback_extent_for_size(
+                    plan.target_size,
+                    source_size,
+                    destination_size,
+                )?;
+                insert_marker(encoder, RENDERDOC_MARKER_TEXTURE_WRITEBACK);
+                encoder.copy_texture_to_texture(
+                    source_texture.as_image_copy(),
+                    destination_texture.as_image_copy(),
+                    extent,
+                );
+                Ok(RenderCameraTargetWritebackReport::copied(destination_size))
+            }
+            RenderCameraTargetWritebackStatus::ReadyForConversion => {
+                output_target_writeback_extent_for_size(
+                    plan.target_size,
+                    source_size,
+                    destination_size,
+                )?;
+                insert_marker(encoder, RENDERDOC_MARKER_TEXTURE_WRITEBACK_CONVERSION);
+                self.output_target_writeback_converter
+                    .encode_linear_rgba_conversion(device, encoder, source_view, destination_view);
+                Ok(RenderCameraTargetWritebackReport::converted(
+                    destination_size,
+                ))
+            }
+            _ => Ok(plan),
+        }
+    }
+
+    pub(crate) fn set_output_target_writeback_report(
+        &mut self,
+        report: RenderCameraTargetWritebackReport,
+    ) {
+        self.last_output_target_writeback_report = report;
+    }
+
+    /// Encodes output-target work into the caller-owned frame submission.
+    ///
+    /// The scene core retains sole submission ownership so this transfer
+    /// remains ordered with final-color readback and does not add a queue
+    /// submit after the frame packet.
+    pub(crate) fn encode_output_target_writeback(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
         frame: &ViewportRenderFrame,
         source_texture: &wgpu::Texture,
         source_view: &wgpu::TextureView,
         source_size: UVec2,
     ) -> Result<(), GraphicsError> {
+        let plan = self.output_target_frame_plan();
+        debug_assert_eq!(plan.target(), frame.output_target());
+        self.encode_output_target_writeback_with_frame_plan(
+            device,
+            encoder,
+            plan,
+            source_texture,
+            source_view,
+            source_size,
+        )
+    }
+
+    /// Encodes the resolved frame plan into the caller-owned command packet.
+    ///
+    /// The caller must pass the plan captured immediately after
+    /// `ensure_scene_resources`. This keeps direct rendering on the same
+    /// immutable target decision as the compiled graph path.
+    pub(crate) fn encode_output_target_writeback_with_frame_plan(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        plan: OutputTargetFramePlan,
+        source_texture: &wgpu::Texture,
+        source_view: &wgpu::TextureView,
+        source_size: UVec2,
+    ) -> Result<(), GraphicsError> {
         self.last_output_target_writeback_report =
-            RenderCameraTargetWritebackReport::not_requested(frame.output_target().kind());
-        let Some(texture_id) = output_target_texture_id(frame) else {
+            RenderCameraTargetWritebackReport::not_requested(plan.target().kind());
+        let Some(texture_id) = plan.target().texture_handle().map(|texture| texture.id()) else {
             return Ok(());
         };
         let prepared_resource = self
@@ -33,48 +119,19 @@ impl ResourceStreamer {
             .get(&texture_id)
             .map(|prepared| Arc::clone(prepared.resource()))
             .ok_or_else(|| missing_prepared_output_target(texture_id))?;
-        let plan =
-            frame.texture_writeback_plan(Some(prepared_resource.descriptor().format.as_str()));
-        self.last_output_target_writeback_report = output_target_writeback_report_for_plan(&plan);
-        match plan.status() {
-            ViewportTextureWritebackStatus::ReadyForSrgbCopy => {
-                let extent =
-                    output_target_writeback_extent(&plan, source_size, prepared_resource.size())?;
-                let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("zircon-output-target-writeback-encoder"),
-                });
-                insert_marker(&mut encoder, RENDERDOC_MARKER_TEXTURE_WRITEBACK);
-                encoder.copy_texture_to_texture(
-                    source_texture.as_image_copy(),
-                    prepared_resource.texture().as_image_copy(),
-                    extent,
-                );
-                queue.submit([encoder.finish()]);
-                self.last_output_target_writeback_report =
-                    RenderCameraTargetWritebackReport::copied(prepared_resource.size());
-            }
-            ViewportTextureWritebackStatus::ReadyForConversion => {
-                output_target_writeback_extent(&plan, source_size, prepared_resource.size())?;
-                let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("zircon-output-target-linear-conversion-encoder"),
-                });
-                insert_marker(&mut encoder, RENDERDOC_MARKER_TEXTURE_WRITEBACK_CONVERSION);
-                self.output_target_writeback_converter
-                    .encode_linear_rgba_conversion(
-                        device,
-                        &mut encoder,
-                        source_view,
-                        prepared_resource.view(),
-                    );
-                queue.submit([encoder.finish()]);
-                self.last_output_target_writeback_report =
-                    RenderCameraTargetWritebackReport::converted(prepared_resource.size());
-            }
-            ViewportTextureWritebackStatus::NotRequested
-            | ViewportTextureWritebackStatus::PendingTargetDescriptor
-            | ViewportTextureWritebackStatus::BlockedFormatMismatch
-            | ViewportTextureWritebackStatus::BlockedPreparedFormatMismatch => {}
-        }
+        let report = plan.direct_submission_writeback_plan();
+        self.last_output_target_writeback_report = report;
+        self.last_output_target_writeback_report = self.encode_planned_output_target_writeback(
+            device,
+            encoder,
+            report,
+            source_texture,
+            source_view,
+            source_size,
+            prepared_resource.texture(),
+            prepared_resource.view(),
+            prepared_resource.size(),
+        )?;
         Ok(())
     }
 
@@ -96,10 +153,10 @@ impl ResourceStreamer {
                 RenderCameraTargetWritebackReport::not_requested(frame.output_target().kind());
             return;
         };
-        let plan = frame
-            .output_target()
-            .graph_import_plan(Some(prepared_resource.descriptor().format.as_str()));
-        if plan.status() == ViewportTextureGraphImportStatus::ReadyForDirectImport {
+        let plan = self.output_target_frame_plan();
+        if plan.graph_import_report().status
+            == crate::core::framework::render::RenderCameraTargetGraphImportStatus::ReadyForDirectImport
+        {
             self.last_output_target_writeback_report =
                 RenderCameraTargetWritebackReport::skipped_direct_import(prepared_resource.size());
         } else {
@@ -176,6 +233,14 @@ fn output_target_writeback_extent(
             "output target writeback copy requires a resolved target extent".to_string(),
         ));
     };
+    output_target_writeback_extent_for_size(plan_size, source_size, destination_size)
+}
+
+fn output_target_writeback_extent_for_size(
+    plan_size: UVec2,
+    source_size: UVec2,
+    destination_size: UVec2,
+) -> Result<wgpu::Extent3d, GraphicsError> {
     if plan_size != source_size {
         return Err(GraphicsError::Asset(format!(
             "output target writeback source extent {}x{} does not match target extent {}x{}",
@@ -209,8 +274,8 @@ mod tests {
     use crate::core::math::UVec2;
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
     use crate::graphics::types::{
-        ViewportRenderOutputTarget, ViewportTextureWritebackStatus, FRAMEWORK_OUTPUT_FORMAT_LABEL,
-        LINEAR_OUTPUT_FORMAT_LABEL,
+        FRAMEWORK_OUTPUT_FORMAT_LABEL, LINEAR_OUTPUT_FORMAT_LABEL, ViewportRenderOutputTarget,
+        ViewportTextureWritebackStatus,
     };
 
     use super::{
@@ -249,6 +314,33 @@ mod tests {
         assert!(should_execute_output_target_writeback(&conversion));
         assert!(!should_execute_output_target_writeback(&blocked));
         assert!(!should_execute_output_target_writeback(&non_texture));
+    }
+
+    #[test]
+    fn output_target_writeback_only_encodes_into_its_caller_frame_packet() {
+        let source = include_str!("resource_streamer_execute_output_target_writeback.rs");
+        let production = source
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("writeback source must retain its test-module boundary");
+
+        assert!(production.contains("fn encode_output_target_writeback"));
+        assert!(production.contains("encoder.copy_texture_to_texture"));
+        assert!(production.contains("encode_linear_rgba_conversion"));
+        assert!(!production.contains("wgpu::Queue"));
+        assert!(!production.contains("queue.submit"));
+    }
+
+    #[test]
+    fn direct_writeback_consumes_the_direct_submission_branch_of_the_frame_plan() {
+        let source = include_str!("resource_streamer_execute_output_target_writeback.rs");
+        let production = source
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("writeback source must retain its test-module boundary");
+
+        assert!(production.contains("let report = plan.direct_submission_writeback_plan();"));
+        assert!(!production.contains("let report = plan.compiled_graph_writeback_plan();"));
     }
 
     #[test]

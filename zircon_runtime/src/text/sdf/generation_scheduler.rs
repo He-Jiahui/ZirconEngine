@@ -31,7 +31,18 @@ pub(crate) struct SdfGenerationSchedulerOptions {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct SdfGenerationBudgetSnapshot {
+    pub(crate) max_in_flight_batches: usize,
+    pub(crate) max_glyphs_per_batch: usize,
+    pub(crate) max_in_flight_glyphs: usize,
+    pub(crate) source_byte_budget: usize,
+    pub(crate) completion_queue_depth: usize,
+    pub(crate) completion_byte_budget: usize,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct SdfGenerationSchedulerDiagnostics {
+    pub(crate) budget: SdfGenerationBudgetSnapshot,
     pub(crate) in_flight_batch_count: usize,
     pub(crate) in_flight_glyph_count: usize,
     pub(crate) in_flight_source_byte_count: usize,
@@ -155,6 +166,17 @@ impl SdfGenerationSchedulerOptions {
     pub(crate) fn with_completion_byte_budget(mut self, value: usize) -> Self {
         self.completion_byte_budget = value.max(1);
         self
+    }
+
+    pub(crate) const fn budget_snapshot(self) -> SdfGenerationBudgetSnapshot {
+        SdfGenerationBudgetSnapshot {
+            max_in_flight_batches: self.max_in_flight_batches,
+            max_glyphs_per_batch: self.max_glyphs_per_batch,
+            max_in_flight_glyphs: self.max_in_flight_glyphs,
+            source_byte_budget: self.source_byte_budget,
+            completion_queue_depth: self.completion_queue_depth,
+            completion_byte_budget: self.completion_byte_budget,
+        }
     }
 }
 
@@ -319,6 +341,7 @@ impl SdfGenerationScheduler {
     pub(crate) fn diagnostics(&self, frame_index: u64) -> SdfGenerationSchedulerDiagnostics {
         let state = lock_state(&self.state);
         let mut diagnostics = state.diagnostics;
+        diagnostics.budget = self.options.budget_snapshot();
         diagnostics.in_flight_batch_count = state.in_flight.len();
         diagnostics.in_flight_glyph_count = state.in_flight_glyph_count;
         diagnostics.in_flight_source_byte_count = state.in_flight_source_byte_count;
@@ -589,8 +612,10 @@ mod tests {
             )
             .expect("reused work id must be admitted");
 
-        assert!(!lock_state(&scheduler.state)
-            .worker_panic_ids
-            .contains(&work_id));
+        assert!(
+            !lock_state(&scheduler.state)
+                .worker_panic_ids
+                .contains(&work_id)
+        );
     }
 }

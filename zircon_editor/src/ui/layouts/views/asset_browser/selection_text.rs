@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetSelectionSnapshot, AssetWorkspaceSnapshot,
 };
@@ -13,24 +15,30 @@ pub(super) fn selected_folder(snapshot: &AssetWorkspaceSnapshot) -> Option<&Asse
 
 pub(super) fn selected_folder_breadcrumb(snapshot: &AssetWorkspaceSnapshot) -> Option<String> {
     let selected = selected_folder(snapshot)?;
-    let folders = snapshot
+    let mut folders = HashMap::<&str, &AssetFolderSnapshot>::with_capacity(
+        snapshot.folder_tree.len() + snapshot.visible_folders.len(),
+    );
+    for folder in snapshot
         .folder_tree
         .iter()
         .chain(snapshot.visible_folders.iter())
-        .collect::<Vec<_>>();
-    let mut segments = vec![selected.display_name.clone()];
+    {
+        folders.entry(folder.folder_id.as_str()).or_insert(folder);
+    }
+
+    let mut segments: Vec<&str> = vec![selected.display_name.as_str()];
+    let mut visited = HashSet::<&str>::new();
+    visited.insert(selected.folder_id.as_str());
     let mut parent_id = selected.parent_folder_id.as_deref();
 
-    for _ in 0..folders.len() {
-        let Some(parent) = parent_id.and_then(|id| {
-            folders
-                .iter()
-                .copied()
-                .find(|folder| folder.folder_id == id)
-        }) else {
+    while let Some(id) = parent_id {
+        if !visited.insert(id) {
+            break;
+        }
+        let Some(parent) = folders.get(id).copied() else {
             break;
         };
-        segments.push(parent.display_name.clone());
+        segments.push(parent.display_name.as_str());
         parent_id = parent.parent_folder_id.as_deref();
     }
     segments.reverse();
@@ -42,11 +50,17 @@ pub(super) fn selected_folder_breadcrumb(snapshot: &AssetWorkspaceSnapshot) -> O
 }
 
 pub(super) fn selected_asset(snapshot: &AssetWorkspaceSnapshot) -> Option<&AssetItemSnapshot> {
-    let selected_uuid = snapshot.selected_asset_uuid.as_deref();
-    snapshot
-        .visible_assets
-        .iter()
-        .find(|asset| selected_uuid == Some(asset.uuid.as_str()) || asset.selected)
+    let selected_uuid_index = snapshot
+        .selected_asset_uuid
+        .as_deref()
+        .and_then(|uuid| snapshot.visible_assets.selected_index(uuid));
+    let selected_flag_index = snapshot.visible_assets.selected_indices().first().copied();
+    let selected_index = match (selected_uuid_index, selected_flag_index) {
+        (Some(uuid_index), Some(flag_index)) => Some(uuid_index.min(flag_index)),
+        (Some(index), None) | (None, Some(index)) => Some(index),
+        (None, None) => None,
+    }?;
+    snapshot.visible_assets.get(selected_index)
 }
 
 pub(super) fn has_asset_selection(snapshot: &AssetWorkspaceSnapshot) -> bool {
@@ -246,5 +260,32 @@ mod tests {
         let breadcrumb = selected_folder_breadcrumb(&snapshot).expect("selected folder path");
         assert!(breadcrumb.ends_with(" / 1 assets"));
         assert!(breadcrumb.len() < 64);
+    }
+
+    #[test]
+    fn selected_folder_breadcrumb_preserves_selection_and_parent_source_priority() {
+        let snapshot = AssetWorkspaceSnapshot {
+            selected_folder_id: Some("res://models/props".to_string()),
+            folder_tree: vec![
+                folder("res://", None, "Content", 12),
+                folder("res://models", Some("res://"), "Tree Models", 8),
+                folder("res://models/props", Some("res://models"), "Tree Props", 5),
+            ],
+            visible_folders: vec![
+                folder("res://models", Some("res://"), "Visible Models", 8),
+                folder(
+                    "res://models/props",
+                    Some("res://models"),
+                    "Visible Props",
+                    7,
+                ),
+            ],
+            ..AssetWorkspaceSnapshot::default()
+        };
+
+        assert_eq!(
+            selected_folder_breadcrumb(&snapshot).as_deref(),
+            Some("Content / Tree Models / Visible Props / 7 assets")
+        );
     }
 }

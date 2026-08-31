@@ -7,8 +7,9 @@ use std::time::Instant;
 use crate::core::runtime::{
     BoundedKeyedIoCancelAuthority, BoundedKeyedIoCancelError, BoundedKeyedIoLane,
     BoundedKeyedIoLimits, BoundedKeyedIoTerminal, BoundedKeyedIoTicket, BoundedKeyedIoWaitResult,
-    BoundedKeyedIoWorkDeadline, JobScheduler, TaskPool, TaskPools,
+    BoundedKeyedIoWorkDeadline, JobScheduler, TaskPool,
 };
+use crate::core::{CoreHandle, CoreWeak};
 use crate::script::VmError;
 
 use super::{
@@ -16,6 +17,8 @@ use super::{
 };
 
 const MAX_PENDING_DISCOVERY_REQUESTS: usize = 4;
+const DISCOVERY_RUNTIME_OWNER_UNAVAILABLE: &str =
+    "VM plugin discovery runtime task owner is unavailable";
 
 type DiscoveryResult = Result<Vec<DiscoveredVmPluginPackage>, VmError>;
 type SharedDiscoveryResult = Arc<Mutex<Option<DiscoveryResult>>>;
@@ -136,46 +139,84 @@ impl Drop for VmPluginDiscoveryRequest {
 
 pub(crate) struct VmPluginDiscoveryWorker {
     limits: VmPluginDiscoveryLimits,
-    lane: BoundedKeyedIoLane,
-    io_pool: TaskPool,
+    backend: VmPluginDiscoveryBackend,
     next_generation: AtomicU64,
     retained_bytes_per_request: usize,
 }
 
-impl VmPluginDiscoveryWorker {
-    pub(crate) fn new(limits: VmPluginDiscoveryLimits) -> Self {
-        let io_pool = TaskPools::process_default().io().clone();
-        Self::with_io_pool(limits, io_pool, JobScheduler::process_io())
-    }
+enum VmPluginDiscoveryBackend {
+    Runtime {
+        lane: BoundedKeyedIoLane,
+        worker_pool: TaskPool,
+        runtime_owner: CoreWeak,
+    },
+    Unavailable,
+}
 
-    pub(crate) fn with_io_pool(
-        limits: VmPluginDiscoveryLimits,
-        io_pool: TaskPool,
-        scheduler: JobScheduler,
-    ) -> Self {
+impl VmPluginDiscoveryWorker {
+    pub(crate) fn with_runtime(limits: VmPluginDiscoveryLimits, runtime: &CoreHandle) -> Self {
+        let worker_pool = runtime.task_graph().worker_pool().clone();
+        let scheduler = JobScheduler::from_pool(worker_pool.clone());
         let retained_bytes_per_request = limits
             .max_total_manifest_bytes
             .saturating_add(limits.max_total_path_bytes);
         Self {
             limits,
-            lane: BoundedKeyedIoLane::new(
-                BoundedKeyedIoLimits::new(
-                    MAX_PENDING_DISCOVERY_REQUESTS,
-                    retained_bytes_per_request.saturating_mul(MAX_PENDING_DISCOVERY_REQUESTS),
+            backend: VmPluginDiscoveryBackend::Runtime {
+                lane: BoundedKeyedIoLane::new(
+                    BoundedKeyedIoLimits::new(
+                        MAX_PENDING_DISCOVERY_REQUESTS,
+                        retained_bytes_per_request.saturating_mul(MAX_PENDING_DISCOVERY_REQUESTS),
+                    ),
+                    scheduler,
                 ),
-                scheduler,
-            ),
-            io_pool,
+                worker_pool,
+                runtime_owner: runtime.downgrade(),
+            },
+            next_generation: AtomicU64::new(0),
+            retained_bytes_per_request,
+        }
+    }
+
+    pub(crate) fn unavailable(limits: VmPluginDiscoveryLimits) -> Self {
+        let retained_bytes_per_request = limits
+            .max_total_manifest_bytes
+            .saturating_add(limits.max_total_path_bytes);
+        Self {
+            limits,
+            backend: VmPluginDiscoveryBackend::Unavailable,
             next_generation: AtomicU64::new(0),
             retained_bytes_per_request,
         }
     }
 
     pub(crate) fn is_current_io_worker(&self) -> bool {
-        self.io_pool.is_current_worker()
+        match &self.backend {
+            VmPluginDiscoveryBackend::Runtime { worker_pool, .. } => {
+                worker_pool.is_current_worker()
+            }
+            VmPluginDiscoveryBackend::Unavailable => false,
+        }
     }
 
     pub(crate) fn submit(&self, root: PathBuf) -> Result<VmPluginDiscoveryRequest, VmError> {
+        let (lane, runtime_admission_lease) = match &self.backend {
+            VmPluginDiscoveryBackend::Runtime {
+                lane,
+                runtime_owner,
+                ..
+            } => {
+                let runtime_lease = runtime_owner.upgrade().ok_or_else(|| {
+                    VmError::Operation(DISCOVERY_RUNTIME_OWNER_UNAVAILABLE.to_string())
+                })?;
+                (lane, runtime_lease)
+            }
+            VmPluginDiscoveryBackend::Unavailable => {
+                return Err(VmError::Operation(
+                    DISCOVERY_RUNTIME_OWNER_UNAVAILABLE.to_string(),
+                ));
+            }
+        };
         let generation = self
             .next_generation
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
@@ -198,8 +239,7 @@ impl VmPluginDiscoveryWorker {
         let cancellation = Arc::new(AtomicBool::new(false));
         let worker_cancellation = Arc::clone(&cancellation);
         let limits = self.limits;
-        let admission = self
-            .lane
+        let admission = lane
             .try_admit(
                 key,
                 generation,
@@ -219,6 +259,7 @@ impl VmPluginDiscoveryWorker {
             })?;
         let cancel_authority = admission.cancel_authority();
         let ticket = admission.activate();
+        drop(runtime_admission_lease);
         Ok(VmPluginDiscoveryRequest {
             ticket,
             cancel_authority,
@@ -229,24 +270,26 @@ impl VmPluginDiscoveryWorker {
     }
 }
 
-impl Default for VmPluginDiscoveryWorker {
-    fn default() -> Self {
-        Self::new(VmPluginDiscoveryLimits::default())
-    }
-}
-
 impl fmt::Debug for VmPluginDiscoveryWorker {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("VmPluginDiscoveryWorker")
-            .field("limits", &self.limits)
-            .field("diagnostics", &self.lane.diagnostics())
-            .finish()
+        let mut debug = formatter.debug_struct("VmPluginDiscoveryWorker");
+        debug.field("limits", &self.limits);
+        match &self.backend {
+            VmPluginDiscoveryBackend::Runtime { lane, .. } => {
+                debug.field("diagnostics", &lane.diagnostics());
+            }
+            VmPluginDiscoveryBackend::Unavailable => {
+                debug.field("backend", &"unavailable");
+            }
+        }
+        debug.finish()
     }
 }
 
 impl Drop for VmPluginDiscoveryWorker {
     fn drop(&mut self) {
-        drop(self.lane.shutdown());
+        if let VmPluginDiscoveryBackend::Runtime { lane, .. } = &self.backend {
+            drop(lane.shutdown());
+        }
     }
 }

@@ -14,7 +14,10 @@ mod workbench;
 
 #[cfg(test)]
 pub(crate) use asset::{dispatch_asset_item_selection, dispatch_asset_search};
-pub(crate) use asset::{dispatch_builtin_asset_surface_control, dispatch_mesh_import_path_edit};
+pub(crate) use asset::{
+    dispatch_asset_relocation, dispatch_builtin_asset_surface_control,
+    dispatch_mesh_import_path_edit,
+};
 pub(crate) use constants::PANE_SURFACE_CONTROL_ID;
 pub(crate) use hierarchy::{
     dispatch_hierarchy_rename, dispatch_hierarchy_reparent, dispatch_hierarchy_selection,
@@ -36,8 +39,8 @@ pub(crate) use shared_pointer::{
     dispatch_shared_asset_reference_pointer_click, dispatch_shared_asset_tree_pointer_click,
     dispatch_shared_document_tab_close_pointer_click, dispatch_shared_document_tab_pointer_click,
     dispatch_shared_drawer_header_pointer_click, dispatch_shared_hierarchy_pointer_click,
-    dispatch_shared_host_page_overflow_pointer_click, dispatch_shared_host_page_pointer_click,
-    dispatch_shared_menu_pointer_click, dispatch_shared_viewport_toolbar_pointer_click,
+    dispatch_shared_host_page_pointer_click, dispatch_shared_menu_pointer_click,
+    dispatch_shared_viewport_toolbar_pointer_click,
     dispatch_shared_viewport_toolbar_pointer_click_at_point,
     dispatch_shared_welcome_recent_pointer_click,
 };
@@ -52,8 +55,10 @@ pub(crate) use template_bridge::{
     BuiltinInspectorSurfaceTemplateBridge, BuiltinPaneSurfaceTemplateBridge,
     BuiltinViewportToolbarTemplateBridge, BuiltinWelcomeSurfaceTemplateBridge,
     BuiltinWorkbenchWindowLayoutFrames, BuiltinWorkbenchWindowTemplateSurfaceBridge,
-    WorkbenchCommandPaletteOpenState, WORKBENCH_CONTEXT_MENU_CONTROL_ID,
-    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, WORKBENCH_TOAST_CONTROL_ID,
+    WorkbenchCommandPaletteOpenState, WorkbenchSettingsEditorKind, WorkbenchSettingsOpenState,
+    WorkbenchSettingsWindowRevision, WORKBENCH_CONTEXT_MENU_CONTROL_ID,
+    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, WORKBENCH_SETTINGS_WINDOW_CONTROL_ID,
+    WORKBENCH_TOAST_CONTROL_ID,
 };
 pub(crate) use viewport::dispatch_builtin_viewport_toolbar_control;
 #[cfg(test)]
@@ -75,6 +80,7 @@ pub(crate) use workbench::{
     dispatch_componentized_workbench_option_selected,
     dispatch_componentized_workbench_pointer_event,
     dispatch_componentized_workbench_popup_cancelled,
+    dispatch_componentized_workbench_render_layer_mask_commit,
     dispatch_componentized_workbench_surface_control_edited,
     dispatch_componentized_workbench_transform_axis_commit,
     dispatch_host_menu_action_with_template_fallback, dispatch_menu_action,

@@ -3,34 +3,28 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::asset::project::ProjectManager;
-use zircon_runtime::asset::AssetUri;
-use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
-use zircon_runtime::core::CoreRuntime;
-use zircon_runtime::foundation::{
-    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
-};
-use zircon_runtime::scene::DefaultLevelManager;
-use zircon_runtime_interface::math::UVec2;
-use zircon_runtime_interface::resource::ResourceKind;
-
-use crate::core::asset::{AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId};
-use crate::core::commands::EditorCommandDescriptor;
-use crate::core::editor_extension::EditorExtensionRegistry;
-use crate::core::editor_operation::EditorOperationPath;
 use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
-use crate::ui::host::editor_asset_manager::{
-    editor_asset_manager_handle, EditorAssetCatalogGeneration,
-};
-use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorHostEventController;
 use crate::ui::host::EditorManager;
+use crate::ui::host::editor_asset_manager::{
+    EditorAssetCatalogGeneration, editor_asset_manager_handle,
+};
+use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::{
     EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY, EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
     EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING, EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
     EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
 };
 use crate::ui::workbench::state::EditorState;
+use zircon_runtime::asset::AssetUri;
+use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
+use zircon_runtime::foundation::{
+    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+};
+use zircon_runtime::scene::DefaultLevelManager;
+use zircon_runtime_interface::math::UVec2;
 
 pub(crate) fn env_lock() -> &'static crate::tests::support::TestEnvironmentLock {
     crate::tests::support::env_lock()
@@ -125,6 +119,7 @@ impl EventRuntimeHarness {
             .unwrap();
         core.activate_module(SCENE_MODULE_NAME).unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
+        crate::tests::support::configure_editor_test_runtime_build_set(&core);
 
         std::env::remove_var("ZIRCON_CONFIG_PATH");
 
@@ -192,87 +187,6 @@ impl EventRuntimeHarness {
         .catalog_snapshot();
         self.runtime.sync_asset_catalog(Arc::clone(&catalog));
         catalog
-    }
-
-    /// Installs the same typed toolkit contributions exposed by the Timeline Sequence and
-    /// Animation Graph editor plugins, using the normal capability-gated registry path.
-    pub(crate) fn register_animation_asset_toolkits(&self) {
-        const TIMELINE_CAPABILITY: &str = "editor.extension.timeline_sequence_authoring";
-        const GRAPH_CAPABILITY: &str = "editor.extension.animation_graph_authoring";
-
-        let manager = self
-            .core
-            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
-            .expect("animation registry fixture should resolve EditorManager");
-        manager
-            .set_editor_capabilities_enabled(
-                &[
-                    TIMELINE_CAPABILITY.to_string(),
-                    GRAPH_CAPABILITY.to_string(),
-                ],
-                true,
-            )
-            .expect("animation registry fixture capabilities should enable");
-
-        let timeline_open = EditorOperationPath::parse("timeline_sequence.authoring.open").unwrap();
-        let mut timeline = EditorExtensionRegistry::default();
-        timeline
-            .register_command(EditorCommandDescriptor::operation(
-                timeline_open.clone(),
-                "Open Timeline Sequence",
-            ))
-            .unwrap();
-        timeline
-            .register_asset_type_contribution(
-                AssetTypeContribution::augment(AssetTypeId::from_resource_kind(
-                    ResourceKind::AnimationSequence,
-                ))
-                .with_toolkit(
-                    AssetToolkitDescriptor::new("editor.animation_sequence", timeline_open)
-                        .with_required_capabilities([TIMELINE_CAPABILITY]),
-                ),
-            )
-            .unwrap();
-        self.runtime
-            .register_editor_extension_with_required_capabilities(
-                timeline.into_contribution_batch().unwrap(),
-                vec![TIMELINE_CAPABILITY.to_string()],
-            )
-            .expect("timeline sequence registry fixture should register");
-
-        let graph_open =
-            EditorOperationPath::parse("animation_graph.authoring.open_graph").unwrap();
-        let state_machine_open =
-            EditorOperationPath::parse("animation_graph.authoring.open_state_machine").unwrap();
-        let mut graph = EditorExtensionRegistry::default();
-        for (operation, label) in [
-            (graph_open.clone(), "Open Animation Graph"),
-            (state_machine_open.clone(), "Open Animation State Machine"),
-        ] {
-            graph
-                .register_command(EditorCommandDescriptor::operation(operation, label))
-                .unwrap();
-        }
-        for (kind, operation) in [
-            (ResourceKind::AnimationGraph, graph_open),
-            (ResourceKind::AnimationStateMachine, state_machine_open),
-        ] {
-            graph
-                .register_asset_type_contribution(
-                    AssetTypeContribution::augment(AssetTypeId::from_resource_kind(kind))
-                        .with_toolkit(
-                            AssetToolkitDescriptor::new("editor.animation_graph", operation)
-                                .with_required_capabilities([GRAPH_CAPABILITY]),
-                        ),
-                )
-                .unwrap();
-        }
-        self.runtime
-            .register_editor_extension_with_required_capabilities(
-                graph.into_contribution_batch().unwrap(),
-                vec![GRAPH_CAPABILITY.to_string()],
-            )
-            .expect("animation graph registry fixture should register");
     }
 }
 

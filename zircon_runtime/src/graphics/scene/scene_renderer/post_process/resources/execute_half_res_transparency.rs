@@ -3,6 +3,7 @@ use crate::graphics::scene::scene_renderer::attachment_ops::{
 };
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use super::super::scene_post_process_resources::ScenePostProcessResources;
 
@@ -56,7 +57,6 @@ impl ScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer) fn execute_half_resolution_transparency_composite(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         half_color_view: &wgpu::TextureView,
         half_depth_view: &wgpu::TextureView,
@@ -65,13 +65,13 @@ impl ScenePostProcessResources {
         render_region: ViewportRenderRegion,
         attachment_ops: RenderGraphAttachmentOps,
         depth_sigma: u16,
-    ) {
+    ) -> WgpuBufferUploadBatch {
         let params = [f32::from(depth_sigma), 0.0, 0.0, 0.0];
-        queue.write_buffer(
-            &self.half_res_transparency_params_buffer,
+        let params_uploads = WgpuBufferUploadBatch::from(WgpuBufferUpload::from_bytes(
+            self.half_res_transparency_params_buffer.clone(),
             0,
             bytemuck::cast_slice(&params),
-        );
+        ));
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-halfres-transparency-composite-bind-group"),
             layout: &self.half_res_transparency_composite_bind_group_layout,
@@ -108,11 +108,12 @@ impl ScenePostProcessResources {
             multiview_mask: None,
         });
         if !render_region.apply_physical_to_render_pass(&mut pass) {
-            return;
+            return WgpuBufferUploadBatch::new();
         }
         pass.set_pipeline(&self.half_res_transparency_composite_pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.draw(0..3, 0..1);
+        params_uploads
     }
 }
 
@@ -124,7 +125,9 @@ mod tests {
 
         assert!(source.contains("half_res_transparency_depth_downsample_pipeline"));
         assert!(source.contains("half_res_transparency_composite_pipeline"));
-        assert!(source.contains("queue.write_buffer("));
+        assert!(!source.contains("queue.write_buffer("));
+        assert!(source.contains("WgpuBufferUpload::from_bytes("));
+        assert!(source.contains("WgpuBufferUploadBatch"));
         assert!(source.contains("binding: 4"));
         assert!(!source.contains("create_render_pipeline"));
     }

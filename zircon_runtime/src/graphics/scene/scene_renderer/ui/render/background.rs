@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiRenderCommandKind};
 
@@ -7,39 +9,40 @@ const BACKGROUND_COVERAGE_EPSILON: f32 = 0.01;
 
 #[derive(Default)]
 pub(super) struct ScreenSpaceUiBackgroundTracker {
-    order: u64,
-    candidates: Vec<ScreenSpaceUiOpaqueBackground>,
-    blockers: Vec<ScreenSpaceUiBackgroundBlocker>,
+    effects: Vec<ScreenSpaceUiBackgroundEffect>,
+    query_count: Cell<usize>,
+    effect_visit_count: Cell<usize>,
+    max_effect_visit_count: Cell<usize>,
 }
 
-#[derive(Clone, Copy)]
-struct ScreenSpaceUiOpaqueBackground {
-    order: u64,
-    frame: UiFrame,
-    color: [f32; 4],
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct ScreenSpaceUiBackgroundTrackerStats {
+    pub(super) query_count: usize,
+    pub(super) effect_visit_count: usize,
+    pub(super) max_effect_visit_count: usize,
 }
 
-#[derive(Clone, Copy)]
-struct ScreenSpaceUiBackgroundBlocker {
-    order: u64,
-    frame: UiFrame,
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) enum ScreenSpaceUiBackgroundEffect {
+    OpaqueBackground { frame: UiFrame, color: [f32; 4] },
+    Blocker { frame: UiFrame },
 }
 
 impl ScreenSpaceUiBackgroundTracker {
     pub(super) fn with_framebuffer_background(viewport: UiFrame, color: Option<[f32; 4]>) -> Self {
         let mut tracker = Self::default();
         if let Some(color) = color {
-            tracker.candidates.push(ScreenSpaceUiOpaqueBackground {
-                order: 0,
-                frame: viewport,
-                color,
-            });
+            tracker
+                .effects
+                .push(ScreenSpaceUiBackgroundEffect::OpaqueBackground {
+                    frame: viewport,
+                    color,
+                });
         }
         tracker
     }
 
     pub(super) fn observe_command(&mut self, command: &UiRenderCommand, viewport: UiFrame) {
-        self.order = self.order.saturating_add(1);
         if command.opacity <= 0.0 {
             return;
         }
@@ -48,19 +51,14 @@ impl ScreenSpaceUiBackgroundTracker {
             return;
         };
         if let Some((frame, color)) = command_opaque_fill_background(command, frame) {
-            self.candidates.push(ScreenSpaceUiOpaqueBackground {
-                order: self.order,
-                frame,
-                color,
-            });
+            self.effects
+                .push(ScreenSpaceUiBackgroundEffect::OpaqueBackground { frame, color });
             return;
         }
 
         if command_blocks_inherited_background(command) {
-            self.blockers.push(ScreenSpaceUiBackgroundBlocker {
-                order: self.order,
-                frame,
-            });
+            self.effects
+                .push(ScreenSpaceUiBackgroundEffect::Blocker { frame });
         }
     }
 
@@ -70,23 +68,75 @@ impl ScreenSpaceUiBackgroundTracker {
         clip_frame: Option<UiFrame>,
         viewport: UiFrame,
     ) -> Option<[f32; 4]> {
-        let frame = command_visible_frame(frame, clip_frame, viewport)?;
-        let latest_blocker_order = self
-            .blockers
-            .iter()
-            .filter(|blocker| frames_intersect(blocker.frame, frame))
-            .map(|blocker| blocker.order)
-            .max();
-        self.candidates
-            .iter()
-            .rev()
-            .find(|background| {
-                frame_covers(background.frame, frame)
-                    && latest_blocker_order
-                        .map(|blocker_order| background.order > blocker_order)
-                        .unwrap_or(true)
-            })
-            .map(|background| background.color)
+        let (color, visit_count) =
+            self.color_for_frame_and_visit_count(frame, clip_frame, viewport);
+        self.query_count
+            .set(self.query_count.get().saturating_add(1));
+        self.effect_visit_count
+            .set(self.effect_visit_count.get().saturating_add(visit_count));
+        self.max_effect_visit_count
+            .set(self.max_effect_visit_count.get().max(visit_count));
+        color
+    }
+
+    fn color_for_frame_and_visit_count(
+        &self,
+        frame: UiFrame,
+        clip_frame: Option<UiFrame>,
+        viewport: UiFrame,
+    ) -> (Option<[f32; 4]>, usize) {
+        let Some(frame) = command_visible_frame(frame, clip_frame, viewport) else {
+            return (None, 0);
+        };
+        let mut visit_count = 0;
+        for effect in self.effects.iter().rev() {
+            visit_count += 1;
+            match effect {
+                ScreenSpaceUiBackgroundEffect::OpaqueBackground {
+                    frame: background_frame,
+                    color,
+                } if frame_covers(*background_frame, frame) => {
+                    return (Some(*color), visit_count);
+                }
+                ScreenSpaceUiBackgroundEffect::Blocker {
+                    frame: blocker_frame,
+                } if frames_intersect(*blocker_frame, frame) => {
+                    return (None, visit_count);
+                }
+                _ => {}
+            }
+        }
+        (None, visit_count)
+    }
+
+    #[cfg(test)]
+    pub(super) fn color_for_frame_with_visit_count(
+        &self,
+        frame: UiFrame,
+        clip_frame: Option<UiFrame>,
+        viewport: UiFrame,
+    ) -> (Option<[f32; 4]>, usize) {
+        self.color_for_frame_and_visit_count(frame, clip_frame, viewport)
+    }
+
+    pub(super) fn stats(&self) -> ScreenSpaceUiBackgroundTrackerStats {
+        ScreenSpaceUiBackgroundTrackerStats {
+            query_count: self.query_count.get(),
+            effect_visit_count: self.effect_visit_count.get(),
+            max_effect_visit_count: self.max_effect_visit_count.get(),
+        }
+    }
+
+    pub(super) fn effect_count(&self) -> usize {
+        self.effects.len()
+    }
+
+    pub(super) fn effects_since(&self, start: usize) -> &[ScreenSpaceUiBackgroundEffect] {
+        self.effects.get(start..).unwrap_or_default()
+    }
+
+    pub(super) fn replay_effects(&mut self, effects: &[ScreenSpaceUiBackgroundEffect]) {
+        self.effects.extend_from_slice(effects);
     }
 }
 

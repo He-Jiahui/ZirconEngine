@@ -163,12 +163,10 @@ mod tests {
         assert_eq!(report.counters[1].count, 2);
         assert_eq!(report.counters[1].frame_count, 2);
         assert_eq!(report.counters[1].latest, 2.0);
-        assert!(
-            report
-                .hints
-                .iter()
-                .any(|hint| hint.contains("runtime/counter:asset.worker.frame_completed"))
-        );
+        assert!(report
+            .hints
+            .iter()
+            .any(|hint| hint.contains("runtime/counter:asset.worker.frame_completed")));
     }
 
     fn counter(

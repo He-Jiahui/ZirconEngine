@@ -118,6 +118,20 @@ last_refined: 2026-08-15
 - [ ] current-source 产品可运行，测量工具链不再被 stale binary 或 compile failure 阻断。
 - [ ] 只冻结事实基线，不在 M0 宣称性能已接近其他引擎。
 
+### 2026-08-27 Runtime11 source slice
+
+`tasks/task_graph/EngineTaskGraph` 已在源码层取代 Core 的三个物理
+Compute/AsyncCompute/Io pool，每个 CoreRuntime 只创建一个精确 1/2/N 预算的共享
+worker set；默认 scheduler 与已迁移 runtime/app/editor consumers 共用该 owner，旧
+Core pool selector 和 execution public 类型未保留兼容层。dynamic session 现在先排空
+session scope，再执行 module cleanup，最后关闭并 join TaskGraph。
+
+这只完成下方“一个全局 worker budget 和共享 worker set”的基础 owner 部分，尚未满足
+该条目的完整验收：affinity/priority、named executor、统一 quota/admission、keyed-I/O
+异 key 并行、全部 private/process pool 删除、1/2/N 和 1/1k/100k 动态矩阵及
+F0/F2/F4 WPR/RSS/功耗均未完成。因此 M1 所有 checkbox 保持未勾选，当前证据记录在
+`docs/plans/optimize/zircon_runtime/11/2026-08-27-engine-task-graph-shared-worker-owner.md`。
+
 ## 5. M1 Core/TaskGraph/Module 生命周期硬切
 
 ### 实现切片
@@ -263,6 +277,151 @@ last_refined: 2026-08-15
 | MVP00/F0/F2/F4/F5 | current-source product build/run 与同机功能、性能、功耗终验 |
 
 跨 owner 问题以 failure handoff 链接本计划及对应源码报告；本计划保持总架构和横向数据权威，各编号计划拥有具体实现。
+
+### 2026-08-31 framework and asset closure integration
+
+The framework budget/profile scope and `zircon_runtime/src/asset/assets/**`
+scope remain pending under the existing hard-cut gates. Framework work feeds the
+single `DeviceProfile`/`RendererResidencyGeneration`, device-epoch pressure,
+camera-child profile and query-owned terminal publication required by M3/M6.
+Asset work feeds immutable `AssetPayloadGeneration`, bounded decode/assembly
+proposals and generation-qualified artifact publication required by M1/M2/M6.
+The detailed static evidence, exact scope hashes and unresolved current-source
+validation gates are recorded in
+[`01/2026-08-31-framework-budget-and-assets-closure.md`](01/2026-08-31-framework-budget-and-assets-closure.md).
+No module is accepted until managed Cargo and current-source F0/F2/F4 profiling
+produce source-bound evidence; no production code was changed in this closure.
+
+### 2026-08-31 runtime event consumer closure integration
+
+The retained editor play-session event stream remains pending under the existing
+app/runtime/editor ownership split. Editor01/12/14 and Runtime06/10/11 must
+carry one eligibility/provider/session generation, an end-to-end delivery lease
+that reserves decoded/object and callback capacity before producer commit,
+task-graph callback affinity/deadlines, and an atomic subscription reconcile.
+Plugins01 owns the stable provider ABI and terminal event outcomes. Detailed
+current-source evidence is in
+[`01/2026-08-31-runtime-event-consumer-closure.md`](01/2026-08-31-runtime-event-consumer-closure.md).
+The closure is pending; no production code changed and no dynamic acceptance is
+claimed.
+
+### 2026-08-31 editor gateway closure integration
+
+The gateway remains a shared editor/runtime transport owner beneath the
+retained Play and world-sync paths. Editor01/02/04/12/14, Runtime06/10/11 and
+Plugins01 must converge it on one `GatewaySessionGeneration`, one pre-FFI
+request/output proposal, and terminal child routes for watches, subscriptions,
+capture, surface, operations and picks. In-process world callbacks require an
+explicit lock scope and affinity/deadline owner; capabilities and lease loads
+must be generation-qualified. Detailed source evidence is in
+[`01/2026-08-31-editor-gateway-closure.md`](01/2026-08-31-editor-gateway-closure.md).
+The closure remains pending and adds no production or dynamic acceptance.
+
+### 2026-08-31 editor message closure integration
+
+The editor message bus remains a shared transport beneath retained-host UI,
+runtime-event and gateway paths. Editor01/09/12/14, Runtime06/10/11 and
+Plugins01 must converge it on one session-qualified message generation, bounded
+UI-delta/inbox cursors, exact owned-byte admission and terminal delivery leases
+for callbacks and cross-queue bridges. The local Unreal messaging router uses a
+dedicated thread and synchronization-event wait, while Slate fast invalidation
+explicitly uses TaskGraph; this is retained as architectural evidence rather
+than a Zircon ABI prescription. Detailed current-source evidence is in
+[`01/2026-08-31-editor-message-closure.md`](01/2026-08-31-editor-message-closure.md).
+The closure remains pending; no production or dynamic acceptance is claimed.
+
+### 2026-08-31 editor event closure integration
+
+The editor event service remains the event/journal/listener owner beneath the
+message bus, retained host and gateway. Editor01/09/12/14, Runtime06/10/11 and
+Plugins01 must converge it on one session-qualified event generation, a shared
+record/encoded owner, cursor-based bounded pages, scheduled listener fan-out and
+terminal delivery leases across every bridge. Unreal's dedicated messaging
+router thread and synchronization-event wait are retained as evidence for
+separate scheduling; they do not prescribe the Zircon ABI. Detailed evidence
+is in [`01/2026-08-31-editor-event-closure.md`](01/2026-08-31-editor-event-closure.md).
+The closure remains pending; no production or dynamic acceptance is claimed.
+
+### 2026-08-31 editor jobs closure integration
+
+The editor job surface remains a facade concern, not a second scheduler. The
+current implementation has useful finite quotas, indexed pending/terminal
+retention, keyed latest-work merging and a bounded event journal, but still
+owns scheduling policy, promotion and lifecycle state in front of Runtime11.
+Editor01/02/09/12/14 and Runtime06/10/11 must converge it on one
+`EditorTaskGeneration`, one end-to-end payload/result/lifecycle delivery lease,
+named affinity/deadline execution and one terminal receipt. Completion publishes
+a compact receipt and coalesced wake; it must not run observer callbacks or
+recursively promote from a Runtime worker. Named editor/UI consumers own bounded
+callback and snapshot pages, while product callers cannot use an unqualified
+blocking wait. Detailed current-source evidence and the exact 58-file manifest
+are in [`01/2026-08-31-editor-jobs-closure.md`](01/2026-08-31-editor-jobs-closure.md).
+The local Unreal TaskGraph references named threads, priorities and prerequisite
+triggering only as ownership evidence; its indefinite waits are not adopted.
+The closure remains pending; no production or dynamic acceptance is claimed.
+
+### 2026-08-31 editor asset closure integration
+
+The editor asset owners remain a single source/save/import/catalog chain beneath
+the shared Runtime asset registry and TaskGraph. The current 53-file scope has
+useful dirty cursors, import single-flight, topology preflight, typed refactor
+tickets and staged type-registry batches, but direct save/watch/import/index and
+preview paths can still form parallel generations. Editor03/09/14, Runtime04/11,
+Plugins12 and the retained asset UI must converge on one
+`AssetOperationProposal`, immutable `AssetPayloadGeneration` and terminal
+receipt: source/dependency/artifact/result/message capacity is admitted before
+work, main/UI only compares and publishes, and stale/panic/cancel/backpressure
+cannot publish a partial catalog. The local Unreal AssetRegistry gatherer and
+PackageAutoSaver support maintained dirty indexes, staged background work and
+phase-qualified save accounting; their thresholds and ABI are not copied.
+Detailed evidence and the current manifest are in
+[`01/2026-08-31-editor-asset-closure.md`](01/2026-08-31-editor-asset-closure.md).
+The closure remains pending; no production or dynamic acceptance is claimed.
+
+### 2026-08-31 runtime text and UI layout closure integration
+
+The current text/document and UI-layout reviews refine M2/M4/M6 without adding
+a second owner. Text09 and EditorUI03 must converge editable Strings, piece
+storage, undo/IME/events, layout rows and glyph artifacts on one immutable
+`TextContentGeneration -> TextLayoutGeneration` chain. Edit and layout proposals
+pre-admit piece/line/index/cell/glyph candidate peaks; stable cache consumers
+share Arc-backed rows and visible views materialize from retained line models.
+Detailed evidence is in
+[`01/2026-08-31-runtime-text-document-layout-closure.md`](01/2026-08-31-runtime-text-document-layout-closure.md).
+
+EditorUI02/08 must retain the current indexed slots, local arranged/hit/render/
+navigation patches and materialized fixed-list route, while moving Taffy to one
+retained surface graph, making generic virtualization count-bounded and gating
+engine-selection diagnostics. The accepted `UiSurfaceLayoutGeneration` owns
+topology, responsive, Taffy, arranged and downstream patch identities.
+Detailed evidence is in
+[`01/2026-08-31-runtime-ui-layout-closure.md`](01/2026-08-31-runtime-ui-layout-closure.md).
+The former blanket incremental full-tree, slot full-scan and materialized-list
+full-child claims are closed in current source and must not be retained as open
+architecture facts. Both closures remain pending: current Cargo fails on 214
+broad foreign integration errors, no focused Rust tests execute and no F4/WPR/
+pixel acceptance exists. No production source was changed.
+
+### 2026-08-31 runtime UI input and dispatch closure integration
+
+EditorUI08, Text09 and Runtime10/11 must preserve cached routes, inline visited
+nodes, bounded text updates, checked number-field revisions and Arc drag
+payloads while converging input on one accepted `UiInputSurfaceGeneration`.
+Each event is pre-admitted by count, bytes and deadline; pure validation plus a
+narrow mutation journal replaces full tree/style/input/component/navigation
+rollback clones. Focused editing publishes a per-node
+`EditableTextLayoutGeneration`; caret/IME geometry is updated by the accepted
+layout path and input dispatch never rebuilds the whole surface render extract.
+
+The shared scheduler owns one bounded timer generation rather than four
+retain-scanned maps, and clipboard/IME/component host work uses one terminal
+request lease. Diagnostics `Disabled/Counters/Sampled/Full` applies at every
+producer: Disabled owns no event clone, route/step row, label or note. Detailed
+evidence and the current 118-file manifest are in
+[`01/2026-08-31-runtime-ui-input-dispatch-closure.md`](01/2026-08-31-runtime-ui-input-dispatch-closure.md).
+The closure remains pending: the current crate has 214 broad foreign
+integration errors, no focused Rust tests execute and no F4/WPR acceptance is
+claimed. No production source was changed.
 
 ## 12. 完成定义
 

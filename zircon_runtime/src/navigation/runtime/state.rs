@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 use std::sync::Arc;
 
 use crate::core::framework::navigation::{
@@ -114,20 +114,21 @@ impl BuiltinNavigationState {
         area_mask: u64,
         stopping_distance: Real,
     ) -> Option<Vec3> {
-        let matches_request = self.repath_routes.get(&entity).is_some_and(|route| {
-            route.destination == destination
-                && route.agent_type == agent_type
-                && route.area_mask == area_mask
-        });
-        if !matches_request {
-            self.repath_routes.remove(&entity);
+        let mut route_entry = match self.repath_routes.entry(entity) {
+            Entry::Occupied(entry) => entry,
+            Entry::Vacant(_) => return None,
+        };
+        if {
+            let route = route_entry.get();
+            route.destination != destination
+                || route.agent_type != agent_type
+                || route.area_mask != area_mask
+        } {
+            route_entry.remove();
             return None;
         }
 
-        let route = self
-            .repath_routes
-            .get_mut(&entity)
-            .expect("matching repath route must remain present");
+        let route = route_entry.get_mut();
         while route.next_waypoint < route.waypoints.len()
             && distance_xz(current, route.waypoints[route.next_waypoint])
                 <= stopping_distance.max(0.0)
@@ -137,7 +138,7 @@ impl BuiltinNavigationState {
         if let Some(target) = route.waypoints.get(route.next_waypoint).copied() {
             return Some(target);
         }
-        self.repath_routes.remove(&entity);
+        route_entry.remove();
         None
     }
 
@@ -245,3 +246,7 @@ struct RuntimeRepathRoute {
     waypoints: Vec<Vec3>,
     next_waypoint: usize,
 }
+
+#[cfg(test)]
+#[path = "state/repath_entry_tests.rs"]
+mod repath_entry_tests;

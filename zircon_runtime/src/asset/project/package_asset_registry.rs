@@ -1,4 +1,5 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet, hash_map::RandomState};
+use std::hash::BuildHasher;
 use std::path::{Component, Path, PathBuf};
 
 use crate::asset::AssetImportError;
@@ -35,6 +36,8 @@ impl PackageAssetRegistry {
                 }
             })?;
         let mut resolved = Vec::with_capacity(asset_roots.len());
+        let resolved_path_hasher = RandomState::new();
+        let mut resolved_path_hashes = HashSet::with_capacity(asset_roots.len());
         for relative in asset_roots {
             let root = relative.join_to(&canonical_project_root);
             if !root.starts_with(&canonical_project_root) {
@@ -56,7 +59,8 @@ impl PackageAssetRegistry {
                     asset_root: canonical_asset_root,
                 });
             }
-            if resolved.contains(&canonical_asset_root) {
+            let path_hash = resolved_path_hasher.hash_one(&canonical_asset_root);
+            if !resolved_path_hashes.insert(path_hash) && resolved.contains(&canonical_asset_root) {
                 return Err(AssetImportError::DuplicateProjectAssetRoot {
                     root: canonical_asset_root,
                 });

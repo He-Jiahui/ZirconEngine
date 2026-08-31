@@ -27,7 +27,7 @@ status: static_complete_dynamic_pending
 
 ## PERF-MVP-262：结果虚拟化不等于工作虚拟化
 
-`virtualized_list_only_materializes_visible_window`创建6行并断言窗口外frame保持default，证明最终arranged结果正确；它没有证明布局只访问可见行。产品`arrange_scrollable_children`仍先对全部children执行`child_positions`，随后全量enumerate；每个offscreen child调用`hide_subtree_layout`递归清零。measure阶段也先递归测量所有children。固定extent单步scroll因此仍随总行数增长，测试名不能作为复杂度验收。
+历史测试`virtualized_list_only_materializes_visible_window`创建6行并断言窗口外frame保持default，证明最终arranged结果正确；它没有证明布局只访问可见行。该旧名现已retired并hard cut为`retained_virtual_list_only_arranges_visible_window`。产品`arrange_scrollable_children`仍先对全部children执行`child_positions`，随后全量enumerate；每个offscreen child调用`hide_subtree_layout`递归清零。measure阶段也先递归测量所有children。固定extent单步scroll因此仍随总行数增长，新测试名也只可作为geometry验收，不能作为实例数或复杂度验收。
 
 ## 保留的语义门禁
 

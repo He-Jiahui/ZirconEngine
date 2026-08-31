@@ -1,21 +1,21 @@
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
 use crate::core::hub_link::HubEditorHandshake;
+use crate::core::play::SharedPlayBackend;
 use crate::core::plugin::EditorPluginRegistrationReport;
-use zircon_runtime::asset::{
-    project::{ProjectManager, ResolvedProjectPath},
-    AssetUri,
-};
+use zircon_runtime::asset::{project::ResolvedProjectPath, AssetUri};
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct EditorHostRunConfig {
     startup_request: Option<EditorGuiStartupRequest>,
-    startup_project: Option<ProjectManager>,
+    project_runtime_build_set: Option<ZrRuntimeBuildSetId>,
     startup_scene_uri: Option<AssetUri>,
     startup_layout_preset: Option<String>,
     exit_after_first_presented_frame: bool,
     first_presented_frame_capture_path: Option<ResolvedProjectPath>,
     editor_plugin_registrations: Vec<EditorPluginRegistrationReport>,
     hub_handshake: Option<HubEditorHandshake>,
+    play_backend: Option<SharedPlayBackend>,
 }
 
 impl EditorHostRunConfig {
@@ -28,9 +28,9 @@ impl EditorHostRunConfig {
         self
     }
 
-    /// Transfers a project generation prepared by the application entry into the host.
-    pub fn with_prepared_project(mut self, project: Option<ProjectManager>) -> Self {
-        self.startup_project = project;
+    /// Transfers the App-validated runtime BuildSet into Editor admission.
+    pub fn with_project_runtime_build_set(mut self, build_set_id: ZrRuntimeBuildSetId) -> Self {
+        self.project_runtime_build_set = Some(build_set_id);
         self
     }
 
@@ -65,6 +65,12 @@ impl EditorHostRunConfig {
         self
     }
 
+    /// Installs the App-composed backend that owns Play runtime session creation and retirement.
+    pub fn with_play_backend(mut self, backend: SharedPlayBackend) -> Self {
+        self.play_backend = Some(backend);
+        self
+    }
+
     /// Requests a terminal Hub mailbox outcome once the retained host reaches its startup gate.
     ///
     /// The application composition root uses this to transfer its verified Hub session into the
@@ -80,6 +86,10 @@ impl EditorHostRunConfig {
 
     pub fn startup_request(&self) -> Option<&EditorGuiStartupRequest> {
         self.startup_request.as_ref()
+    }
+
+    pub fn project_runtime_build_set(&self) -> Option<&ZrRuntimeBuildSetId> {
+        self.project_runtime_build_set.as_ref()
     }
 
     pub fn exit_after_first_presented_frame(&self) -> bool {
@@ -104,22 +114,52 @@ impl EditorHostRunConfig {
         self.editor_plugin_registrations.len()
     }
 
+    pub(crate) fn play_backend(&self) -> Option<SharedPlayBackend> {
+        self.play_backend.clone()
+    }
+
     pub(crate) fn into_parts(
         self,
     ) -> (
         Option<EditorGuiStartupRequest>,
-        Option<ProjectManager>,
         Option<ResolvedProjectPath>,
         Vec<EditorPluginRegistrationReport>,
+        Option<ZrRuntimeBuildSetId>,
         Option<HubEditorHandshake>,
     ) {
         (
             self.startup_request,
-            self.startup_project,
             self.first_presented_frame_capture_path,
             self.editor_plugin_registrations,
+            self.project_runtime_build_set,
             self.hub_handshake,
         )
+    }
+}
+
+impl std::fmt::Debug for EditorHostRunConfig {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("EditorHostRunConfig")
+            .field("startup_request", &self.startup_request)
+            .field("project_runtime_build_set", &self.project_runtime_build_set)
+            .field("startup_scene_uri", &self.startup_scene_uri)
+            .field("startup_layout_preset", &self.startup_layout_preset)
+            .field(
+                "exit_after_first_presented_frame",
+                &self.exit_after_first_presented_frame,
+            )
+            .field(
+                "first_presented_frame_capture_path",
+                &self.first_presented_frame_capture_path,
+            )
+            .field(
+                "editor_plugin_registration_count",
+                &self.editor_plugin_registrations.len(),
+            )
+            .field("hub_handshake", &self.hub_handshake)
+            .field("play_backend_configured", &self.play_backend.is_some())
+            .finish()
     }
 }
 
@@ -224,7 +264,7 @@ mod tests {
             config.first_presented_frame_capture_path(),
             Some(&resolved_path)
         );
-        let (_, _, capture_path, _, _) = config.into_parts();
+        let (_, capture_path, _, _, _) = config.into_parts();
         assert_eq!(capture_path, Some(resolved_path));
     }
 
@@ -243,7 +283,7 @@ mod tests {
         let config = EditorHostRunConfig::new().with_editor_plugin_registrations([registration]);
 
         assert_eq!(config.editor_plugin_registration_count(), 1);
-        let (_, _, _, registrations, _) = config.into_parts();
+        let (_, _, registrations, _, _) = config.into_parts();
         assert_eq!(registrations.len(), 1);
         assert_eq!(registrations[0].package_manifest.id, "tests.composed");
     }
@@ -271,10 +311,56 @@ mod tests {
     }
 
     #[test]
-    fn prepared_project_startup_does_not_reopen_a_path() {
-        let startup_source = include_str!("../host/editor_host_startup.rs");
+    fn editor_host_run_config_carries_the_preflighted_runtime_build_set() {
+        let build_set = zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId::parse(
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        )
+        .expect("fixture BuildSet id must be valid");
+        let config = EditorHostRunConfig::new().with_project_runtime_build_set(build_set.clone());
 
-        assert!(startup_source.contains("prepared_project"));
-        assert!(startup_source.contains("open_prepared_project_and_remember"));
+        assert_eq!(config.project_runtime_build_set(), Some(&build_set));
+    }
+
+    #[test]
+    fn editor_host_run_config_carries_the_app_owned_play_backend() {
+        let config = EditorHostRunConfig::new()
+            .with_play_backend(std::sync::Arc::new(crate::core::play::NoopPlayBackend));
+
+        assert!(config.play_backend().is_some());
+    }
+
+    #[test]
+    fn host_config_cannot_bypass_project_admission() {
+        let config_source = include_str!("run_config.rs");
+        let product_config_source = config_source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production config source must precede its tests");
+        let startup_source = include_str!("../host/editor_host_startup.rs");
+        let host_construction_source = include_str!("app/host_lifecycle/startup/with_viewport.rs");
+
+        assert!(!product_config_source.contains("with_prepared_project"));
+        assert!(!startup_source.contains("open_with_prepared_project"));
+        assert!(startup_source.contains("execute_project_launch_intent"));
+        assert!(host_construction_source.contains("configure_project_runtime_build_set"));
+    }
+
+    #[test]
+    fn project_intents_require_a_preflighted_build_set_before_host_construction() {
+        let host_source = include_str!("app.rs");
+        let automation_source = include_str!("app/automation.rs");
+        let build_set_gate = host_source
+            .find("project startup requires an App-preflighted runtime BuildSet")
+            .expect("project startup must reject a missing BuildSet");
+        let host_construction = host_source
+            .find("RetainedEditorHost::new(")
+            .expect("retained host construction must remain explicit");
+
+        assert!(build_set_gate < host_construction);
+        assert!(
+            automation_source
+                .contains("project startup requires an App-preflighted runtime BuildSet"),
+            "non-windowed project automation must reject a missing BuildSet too"
+        );
     }
 }

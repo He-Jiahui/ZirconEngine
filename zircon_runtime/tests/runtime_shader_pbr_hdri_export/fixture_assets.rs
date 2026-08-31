@@ -98,7 +98,7 @@ pub(super) fn write_ambientcg_metal_texture_assets(
         &source_dir.join(fixture.metalness),
         &metallic_roughness_path,
     );
-    write_linear_texture_meta(
+    write_normal_texture_meta(
         &texture_dir.join(fixture.normal_gl),
         &ambientcg_metal_texture_uri(fixture, fixture.normal_gl),
         &format!(
@@ -106,7 +106,7 @@ pub(super) fn write_ambientcg_metal_texture_assets(
             fixture.label_slug
         ),
     );
-    write_linear_texture_meta(
+    write_data_texture_meta(
         &metallic_roughness_path,
         &ambientcg_metal_texture_uri(fixture, fixture.metallic_roughness),
         &format!(
@@ -156,18 +156,53 @@ fn pack_metallic_roughness_texture(roughness_path: &Path, metalness_path: &Path,
         .expect("write packed metallic-roughness texture");
 }
 
-fn write_linear_texture_meta(path: &Path, uri: &str, label: &str) {
+fn write_normal_texture_meta(path: &Path, uri: &str, label: &str) {
+    write_texture_meta(path, uri, label, normal_import_settings());
+}
+
+fn normal_import_settings() -> toml::Table {
+    let mut import_settings = linear_rgba8_import_settings();
+    import_settings.insert(
+        "usage_hint".to_string(),
+        toml::Value::String("normal".to_string()),
+    );
+    import_settings.insert(
+        "normal_convention".to_string(),
+        toml::Value::String("dx".to_string()),
+    );
+    import_settings
+}
+
+fn write_data_texture_meta(path: &Path, uri: &str, label: &str) {
+    write_texture_meta(path, uri, label, data_import_settings());
+}
+
+fn data_import_settings() -> toml::Table {
+    let mut import_settings = linear_rgba8_import_settings();
+    import_settings.insert(
+        "usage_hint".to_string(),
+        toml::Value::String("data".to_string()),
+    );
+    import_settings
+}
+
+fn linear_rgba8_import_settings() -> toml::Table {
+    let mut import_settings = toml::Table::new();
+    import_settings.insert(
+        "texture_format".to_string(),
+        toml::Value::String(RGBA8_UNORM_FORMAT.to_string()),
+    );
+    import_settings.insert("is_srgb".to_string(), toml::Value::Boolean(false));
+    import_settings
+}
+
+fn write_texture_meta(path: &Path, uri: &str, label: &str, import_settings: toml::Table) {
     let mut meta = AssetMetaDocument::new(
         AssetUuid::from_stable_label(label),
         AssetUri::parse(uri).unwrap(),
         AssetKind::Texture,
     );
-    meta.import_settings.insert(
-        "texture_format".to_string(),
-        toml::Value::String(RGBA8_UNORM_FORMAT.to_string()),
-    );
-    meta.import_settings
-        .insert("is_srgb".to_string(), toml::Value::Boolean(false));
+    meta.import_settings = import_settings;
     meta.save(test_meta_path_for_source(path)).unwrap();
 }
 
@@ -177,4 +212,106 @@ fn test_meta_path_for_source(path: &Path) -> PathBuf {
         .and_then(|name| name.to_str())
         .unwrap_or("asset");
     path.with_file_name(format!("{file_name}.zmeta"))
+}
+
+#[cfg(test)]
+mod texture_metadata_tests {
+    use super::*;
+    use zircon_runtime::asset::{
+        TextureAsset, TextureUploadCompressionFamily, TextureUploadReadiness, TextureUploadSupport,
+    };
+    use zircon_runtime::core::framework::render::{
+        TextureCompressionTarget, TextureMipFilter, TextureMipPolicy, TextureNormalConvention,
+        TextureUsageHint,
+    };
+
+    #[test]
+    fn ambientcg_fixture_uses_normal_and_data_import_metadata() {
+        let normal = normal_import_settings();
+        let data = data_import_settings();
+
+        assert_eq!(
+            normal.get("texture_format").and_then(toml::Value::as_str),
+            Some(RGBA8_UNORM_FORMAT)
+        );
+        assert_eq!(
+            normal.get("is_srgb").and_then(toml::Value::as_bool),
+            Some(false)
+        );
+        assert_eq!(
+            normal.get("usage_hint").and_then(toml::Value::as_str),
+            Some("normal")
+        );
+        assert_eq!(
+            normal
+                .get("normal_convention")
+                .and_then(toml::Value::as_str),
+            Some("dx")
+        );
+        assert_eq!(
+            data.get("usage_hint").and_then(toml::Value::as_str),
+            Some("data")
+        );
+        assert!(!data.contains_key("normal_convention"));
+
+        let normal_texture = TextureAsset::new_rgba8(
+            AssetUri::parse("res://textures/ambientcg/normal.png").unwrap(),
+            1,
+            1,
+            vec![128, 128, 255, 255],
+        )
+        .apply_import_settings(&normal)
+        .expect("normal fixture settings must build a texture descriptor");
+        let normal_descriptor = normal_texture.texture_descriptor();
+        assert_eq!(
+            normal_descriptor.metadata.usage_hint,
+            TextureUsageHint::Normal
+        );
+        assert_eq!(
+            normal_descriptor.metadata.normal_convention,
+            TextureNormalConvention::TangentSpaceDx
+        );
+        assert_eq!(
+            normal_descriptor.metadata.mip_policy,
+            TextureMipPolicy::GenerateOffline
+        );
+        assert_eq!(normal_descriptor.metadata.mip_filter, TextureMipFilter::Box);
+        assert_eq!(
+            normal_descriptor.metadata.compression,
+            TextureCompressionTarget::Bc5
+        );
+        assert_raw_rgba8_upload_is_ready(&normal_texture, "normal");
+
+        let data_texture = TextureAsset::new_rgba8(
+            AssetUri::parse("res://textures/ambientcg/metallic_roughness.png").unwrap(),
+            1,
+            1,
+            vec![255, 64, 32, 255],
+        )
+        .apply_import_settings(&data)
+        .expect("data fixture settings must build a texture descriptor");
+        let data_descriptor = data_texture.texture_descriptor();
+        assert_eq!(data_descriptor.metadata.usage_hint, TextureUsageHint::Data);
+        assert_eq!(
+            data_descriptor.metadata.normal_convention,
+            TextureNormalConvention::None
+        );
+        assert_eq!(
+            data_descriptor.metadata.compression,
+            TextureCompressionTarget::Bc7
+        );
+        assert_raw_rgba8_upload_is_ready(&data_texture, "metallic-roughness");
+    }
+
+    fn assert_raw_rgba8_upload_is_ready(texture: &TextureAsset, label: &str) {
+        let TextureUploadReadiness::Ready { plan } =
+            texture.upload_readiness(TextureUploadSupport::uncompressed_only())
+        else {
+            panic!("{label} fixture texture must remain upload-ready as raw rgba8");
+        };
+        assert_eq!(
+            plan.compression,
+            TextureUploadCompressionFamily::Uncompressed
+        );
+    }
 }

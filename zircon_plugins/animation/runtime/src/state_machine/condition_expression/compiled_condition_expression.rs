@@ -24,6 +24,6 @@ impl CompiledConditionExpression {
             .iter()
             .map(|name| parameters.get(name))
             .collect::<Vec<_>>();
-        self.program.evaluate(&values)
+        self.program.evaluate(values.as_slice())
     }
 }

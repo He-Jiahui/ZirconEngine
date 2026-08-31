@@ -1,11 +1,11 @@
 use crate::text::atlas::{
-    glyph_atlas_upload_command, GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec,
-    GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasUploadCommand,
+    GlyphAtlasUploadMode, glyph_atlas_upload_command,
 };
 use crate::text::sdf::{SdfAtlasBakeDirtyPage, SdfAtlasRect};
 
 use super::sdf_atlas::{
-    distance_field_atlas_page_keys, SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan,
+    SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan, distance_field_atlas_page_keys,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -40,21 +40,34 @@ pub(super) fn merge_sdf_bake_dirty_pages(
     atlas_cache: &mut SdfAtlasCacheReport,
     bake_dirty_pages: &[SdfAtlasBakeDirtyPage],
 ) {
-    for bake_page in bake_dirty_pages {
-        if let Some(cache_page) = atlas_cache
+    // RUNTIME132_SDF_DIRTY_PAGE_BINARY_MERGE_BENCH_V1
+    if !atlas_cache
+        .dirty_pages
+        .windows(2)
+        .all(|pair| pair[0].page_key <= pair[1].page_key)
+    {
+        atlas_cache
             .dirty_pages
-            .iter_mut()
-            .find(|cache_page| cache_page.page_key == bake_page.page_key)
+            .sort_unstable_by_key(|page| page.page_key);
+    }
+    for bake_page in bake_dirty_pages {
+        match atlas_cache
+            .dirty_pages
+            .binary_search_by_key(&bake_page.page_key, |page| page.page_key)
         {
-            cache_page.dirty_rect = union_rect(cache_page.dirty_rect, bake_page.dirty_rect);
-        } else {
-            atlas_cache.dirty_pages.push(SdfAtlasDirtyPageReport {
-                page_key: bake_page.page_key,
-                dirty_rect: bake_page.dirty_rect,
-            });
+            Ok(index) => {
+                let cache_page = &mut atlas_cache.dirty_pages[index];
+                cache_page.dirty_rect = union_rect(cache_page.dirty_rect, bake_page.dirty_rect);
+            }
+            Err(index) => atlas_cache.dirty_pages.insert(
+                index,
+                SdfAtlasDirtyPageReport {
+                    page_key: bake_page.page_key,
+                    dirty_rect: bake_page.dirty_rect,
+                },
+            ),
         }
     }
-    atlas_cache.dirty_pages.sort_by_key(|page| page.page_key);
     atlas_cache.dirty_rect = atlas_cache
         .dirty_pages
         .iter()
@@ -130,27 +143,51 @@ pub(super) fn sdf_atlas_upload_commands(
     let Some(source_pages) = sdf_atlas_source_pages(atlas_plan, source_byte_len) else {
         return Vec::new();
     };
-    upload
-        .dirty_pages
-        .iter()
-        .filter_map(|dirty_page| {
-            let source_page_index = source_pages
-                .binary_search_by_key(&dirty_page.page_key, |(page, _, _)| page.key)
-                .ok()?;
-            let (page, source_offset, page_source_byte_len) =
-                source_pages.get(source_page_index)?;
-            let mut command = glyph_atlas_upload_command(
-                page,
-                mode,
-                Some(dirty_page.dirty_rect.into()),
-                *page_source_byte_len,
-            )?;
-            command.source_offset = command
-                .source_offset
-                .checked_add(u64::try_from(*source_offset).ok()?)?;
-            Some(command)
-        })
-        .collect()
+    if !source_pages
+        .windows(2)
+        .all(|pair| pair[0].0.key < pair[1].0.key)
+        || !upload
+            .dirty_pages
+            .windows(2)
+            .all(|pair| pair[0].page_key < pair[1].page_key)
+    {
+        return Vec::new();
+    }
+
+    let mut commands = Vec::with_capacity(upload.dirty_pages.len());
+    let mut source_page_index = 0_usize;
+    for dirty_page in &upload.dirty_pages {
+        while source_pages
+            .get(source_page_index)
+            .is_some_and(|(page, _, _)| page.key < dirty_page.page_key)
+        {
+            source_page_index = source_page_index.saturating_add(1);
+        }
+        let Some((page, source_offset, page_source_byte_len)) = source_pages.get(source_page_index)
+        else {
+            return Vec::new();
+        };
+        if page.key != dirty_page.page_key {
+            return Vec::new();
+        }
+        let Some(mut command) = glyph_atlas_upload_command(
+            page,
+            mode,
+            Some(dirty_page.dirty_rect.into()),
+            *page_source_byte_len,
+        ) else {
+            return Vec::new();
+        };
+        let Some(source_offset) = u64::try_from(*source_offset).ok() else {
+            return Vec::new();
+        };
+        let Some(command_source_offset) = command.source_offset.checked_add(source_offset) else {
+            return Vec::new();
+        };
+        command.source_offset = command_source_offset;
+        commands.push(command);
+    }
+    commands
 }
 
 fn sdf_atlas_source_pages(
@@ -261,3 +298,7 @@ fn union_rect(left: SdfAtlasRect, right: SdfAtlasRect) -> SdfAtlasRect {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "sdf_upload/merge_index_tests.rs"]
+mod merge_index_tests;

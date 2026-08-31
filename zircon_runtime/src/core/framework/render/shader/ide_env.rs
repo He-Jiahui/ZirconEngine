@@ -186,10 +186,14 @@ pub fn shader_ide_preview_segments_relative_path(
 }
 
 pub fn shader_ide_relative_path_string(path: &std::path::Path) -> String {
-    path.components()
-        .map(|component| component.as_os_str().to_string_lossy())
-        .collect::<Vec<_>>()
-        .join("/")
+    let mut relative_path = String::with_capacity(path.as_os_str().len());
+    for (index, component) in path.components().enumerate() {
+        if index != 0 {
+            relative_path.push('/');
+        }
+        relative_path.push_str(&component.as_os_str().to_string_lossy());
+    }
+    relative_path
 }
 
 fn sanitize_shader_ide_builtin_file_name(value: &str) -> String {
@@ -237,6 +241,10 @@ fn sanitize_shader_ide_path_segment(value: &str) -> String {
     }
     output
 }
+
+#[cfg(test)]
+#[path = "ide_env/path_join_tests.rs"]
+mod path_join_tests;
 
 #[cfg(test)]
 mod tests {

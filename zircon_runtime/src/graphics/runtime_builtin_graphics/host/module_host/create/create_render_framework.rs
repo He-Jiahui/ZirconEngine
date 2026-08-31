@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use crate::core::CoreHandle;
 use crate::core::framework::render::{
     GeometrySourceDescriptor, RenderFramework, ShadingModelDescriptor,
 };
-use crate::core::CoreHandle;
 use crate::graphics::{GraphicsError, WgpuRenderFramework};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
@@ -11,8 +11,9 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::PluginShaderModuleSource;
+use crate::text::font_collection_service_for_core;
 
-use crate::asset::{project_asset_manager_handle, ProjectAssetManagerAccess};
+use crate::asset::{ProjectAssetManagerAccess, project_asset_manager_handle};
 
 pub fn create_render_framework_with_render_features(
     core: &CoreHandle,
@@ -33,6 +34,8 @@ pub fn create_render_framework_with_render_features(
         project_asset_manager_handle(core)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?,
     );
+    let font_collection = font_collection_service_for_core(core)
+        .map_err(|error| GraphicsError::RuntimeService(error.to_string()))?;
     Ok(Arc::new(
         WgpuRenderFramework::new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
             asset_manager,
@@ -45,7 +48,8 @@ pub fn create_render_framework_with_render_features(
             plugin_geometry_sources,
             plugin_shading_models,
             plugin_shader_module_sources,
-            core.task_pools().compute().clone(),
+            core.task_graph().worker_pool().clone(),
+            font_collection,
         )?,
     ))
 }

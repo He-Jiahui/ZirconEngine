@@ -10,27 +10,29 @@ impl RetainedEditorHost {
         ) {
             self.console_scroll_surface.set_size(size);
         }
-        self.sync_console_pointer_layout(chrome.console_output.as_ref());
+        self.sync_console_pointer_layout(&chrome.console_output);
         self.sync_inspector_pointer_layout();
         self.sync_browser_asset_details_pointer_layout(&chrome.asset_browser);
     }
 
     pub(in crate::ui::retained_host::app) fn sync_console_pointer_layout(
         &mut self,
-        status_line: &str,
+        output: &crate::ui::workbench::snapshot::ConsoleOutputSnapshot,
     ) {
         if !self.console_scroll_surface.has_size() {
-            self.apply_console_pointer_state_to_ui();
             return;
         }
 
         let size = self.console_scroll_surface.size();
-        self.console_scroll_surface
+        if self
+            .console_scroll_surface
             .sync_following_tail(console_scroll_layout(
                 size,
-                console_content_extent(status_line),
-            ));
-        self.apply_console_pointer_state_to_ui();
+                console_snapshot_content_extent(output),
+            ))
+        {
+            self.apply_console_pointer_state_to_ui();
+        }
     }
 
     pub(in crate::ui::retained_host::app) fn apply_console_pointer_state_to_ui(&self) {
@@ -40,14 +42,14 @@ impl RetainedEditorHost {
 
     pub(in crate::ui::retained_host::app) fn sync_inspector_pointer_layout(&mut self) {
         if !self.inspector_scroll_surface.has_size() {
-            self.apply_inspector_pointer_state_to_ui();
             return;
         }
 
-        self.inspector_scroll_surface.sync(inspector_scroll_layout(
+        if self.inspector_scroll_surface.sync(inspector_scroll_layout(
             self.inspector_scroll_surface.size(),
-        ));
-        self.apply_inspector_pointer_state_to_ui();
+        )) {
+            self.apply_inspector_pointer_state_to_ui();
+        }
     }
 
     pub(in crate::ui::retained_host::app) fn apply_inspector_pointer_state_to_ui(&self) {
@@ -60,16 +62,18 @@ impl RetainedEditorHost {
         snapshot: &crate::ui::workbench::snapshot::AssetWorkspaceSnapshot,
     ) {
         if !self.browser_asset_details_scroll_surface.has_size() {
-            self.apply_browser_asset_details_pointer_state_to_ui();
             return;
         }
 
-        self.browser_asset_details_scroll_surface
+        if self
+            .browser_asset_details_scroll_surface
             .sync(asset_details_scroll_layout(
                 self.browser_asset_details_scroll_surface.size(),
                 &snapshot.selection,
-            ));
-        self.apply_browser_asset_details_pointer_state_to_ui();
+            ))
+        {
+            self.apply_browser_asset_details_pointer_state_to_ui();
+        }
     }
 
     pub(in crate::ui::retained_host::app) fn apply_browser_asset_details_pointer_state_to_ui(

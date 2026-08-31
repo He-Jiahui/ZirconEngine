@@ -1,14 +1,17 @@
 use super::*;
 use crate::text::font::shared::force_publish_shared_font_database;
 use crate::text::font::{
-    shared_font_database_snapshot, shared_font_database_test_read_guard,
-    shared_font_database_test_serial_guard,
+    FontDatabase, font_handle_resolver_snapshot, shared_font_collection_service,
+    shared_font_collection_snapshot, shared_font_database_snapshot,
+    shared_font_database_test_read_guard, shared_font_database_test_serial_guard,
 };
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
+
+const TEST_COLLECTION: TextFontCollectionHandle = TextFontCollectionHandle::new(101);
 
 #[test]
 fn generation_change_invalidates_old_slots_without_reinterpreting_backend_ids() {
-    let mut registry = FontHandleRegistry::default();
+    let mut registry = FontHandleRegistry::new(TEST_COLLECTION);
     let backend_face = FontFaceId(u64::from(u32::MAX) + 41);
     let first = registry
         .register_unique_pairs(&[(Some(backend_face), None)], 9)
@@ -50,8 +53,29 @@ fn shared_database_reload_rejects_pre_reload_handle() {
 }
 
 #[test]
+fn retained_resolver_snapshot_keeps_an_in_flight_generation_resolvable() {
+    let _shared_font_database = shared_font_database_test_serial_guard();
+    let font_collection = shared_font_collection_snapshot();
+    let backend_pair = (Some(FontFaceId(1_103)), Some(InstancedFaceId(1_107)));
+    let handles = register_font_handle_batch_for_collection(
+        font_collection.service(),
+        &[backend_pair],
+        font_collection.generation(),
+    );
+    let resolver = font_handle_resolver_snapshot(&font_collection);
+    let (_, database) = shared_font_database_snapshot();
+
+    assert!(force_publish_shared_font_database(&database) > font_collection.generation());
+    assert_eq!(resolve_font_handle_batch(&handles), vec![(None, None)]);
+    assert_eq!(
+        resolve_font_handle_batch_from_snapshot(&resolver, &handles),
+        vec![backend_pair]
+    );
+}
+
+#[test]
 fn stale_projection_cannot_roll_registry_generation_back() {
-    let mut registry = FontHandleRegistry::default();
+    let mut registry = FontHandleRegistry::new(TEST_COLLECTION);
     let current = registry
         .register_unique_pairs(&[(Some(FontFaceId(7)), None)], 12)
         .into_iter()
@@ -69,7 +93,7 @@ fn stale_projection_cannot_roll_registry_generation_back() {
 
 #[test]
 fn registry_resolution_rejects_a_generation_change_after_its_initial_probe() {
-    let mut registry = FontHandleRegistry::default();
+    let mut registry = FontHandleRegistry::new(TEST_COLLECTION);
     let handle = registry
         .register_unique_pairs(&[(Some(FontFaceId(31)), None)], 7)
         .into_iter()
@@ -78,7 +102,13 @@ fn registry_resolution_rejects_a_generation_change_after_its_initial_probe() {
         .expect("current generation handle");
     let snapshot = FontHandleRegistrySnapshot::from(&registry);
 
-    assert!(!snapshot_matches_font_database_generation(&snapshot, 7, 8));
+    assert!(!snapshot_matches_font_database_generation(
+        &snapshot,
+        TEST_COLLECTION,
+        7,
+        TEST_COLLECTION,
+        8
+    ));
     assert_eq!(snapshot.resolve_face(handle), Some(FontFaceId(31)));
 }
 
@@ -101,9 +131,9 @@ fn mixed_generation_font_handle_pair_is_rejected_atomically() {
     let (generation, _database) = shared_font_database_snapshot();
     let registered =
         register_font_handles(Some(FontFaceId(31)), Some(InstancedFaceId(37)), generation);
-    let stale_instance = registered
-        .1
-        .map(|handle| TextFontFaceHandle::new(handle.index, generation.wrapping_add(1)));
+    let stale_instance = registered.1.map(|handle| {
+        TextFontFaceHandle::new(handle.collection, handle.index, generation.wrapping_add(1))
+    });
     let before = font_handle_registry_report();
 
     let resolved = resolve_font_handles(registered.0, stale_instance);
@@ -120,7 +150,10 @@ fn mixed_generation_font_handle_pair_is_rejected_atomically() {
 fn font_handle_registry_recovers_after_writer_lock_poisoning() {
     let _shared_font_database = shared_font_database_test_serial_guard();
     let poison_result = catch_unwind(AssertUnwindSafe(|| {
-        let _registry = registry()
+        let font_collection = shared_font_collection_service();
+        let _registry = font_collection
+            .handle_registry()
+            .registry
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         panic!("poison font handle registry for recovery coverage");
@@ -133,6 +166,38 @@ fn font_handle_registry_recovers_after_writer_lock_poisoning() {
         .expect("poison recovery must still register a face");
 
     assert_eq!(resolve_font_face_handle(handle), Some(backend_face));
+}
+
+#[test]
+fn independently_owned_font_collections_cannot_resolve_each_others_handles() {
+    let first_collection = FontCollectionService::from_database(FontDatabase::default());
+    let second_collection = FontCollectionService::from_database(FontDatabase::default());
+    let backend_pair = (Some(FontFaceId(4_101)), Some(InstancedFaceId(4_103)));
+    let generation = first_collection.generation();
+
+    assert_eq!(generation, second_collection.generation());
+    let first =
+        register_font_handle_batch_for_collection(&first_collection, &[backend_pair], generation);
+    let second =
+        register_font_handle_batch_for_collection(&second_collection, &[backend_pair], generation);
+
+    assert_ne!(first, second);
+    assert_eq!(
+        resolve_font_handle_batch_for_collection(&first_collection, &first),
+        vec![backend_pair]
+    );
+    assert_eq!(
+        resolve_font_handle_batch_for_collection(&second_collection, &second),
+        vec![backend_pair]
+    );
+    assert_eq!(
+        resolve_font_handle_batch_for_collection(&first_collection, &second),
+        vec![(None, None)]
+    );
+    assert_eq!(
+        resolve_font_handle_batch_for_collection(&second_collection, &first),
+        vec![(None, None)]
+    );
 }
 
 #[test]

@@ -24,6 +24,8 @@ fn asset_content_pointer_down_arms_active_asset_drag_payload() {
         96.0,
         0.0,
         0.0,
+        0.0,
+        0.0,
     );
     assert!(
         harness.host.borrow().active_asset_drag_payload.is_none(),
@@ -36,6 +38,8 @@ fn asset_content_pointer_down_arms_active_asset_drag_payload() {
         1,
         96.0,
         96.0,
+        0.0,
+        0.0,
         0.0,
         0.0,
     );
@@ -56,6 +60,8 @@ fn asset_content_pointer_down_arms_active_asset_drag_payload() {
         1,
         96.0,
         96.0,
+        0.0,
+        0.0,
         0.0,
         0.0,
     );
@@ -87,6 +93,8 @@ fn asset_reference_pointer_down_arms_active_asset_drag_payload() {
         "browser".into(),
         96.0,
         96.0,
+        0.0,
+        0.0,
         0.0,
         0.0,
     );
@@ -196,6 +204,8 @@ fn asset_browser_pointer_drop_applies_real_payload_to_showcase_asset_field() {
         96.0,
         0.0,
         0.0,
+        0.0,
+        0.0,
     );
 
     {
@@ -268,6 +278,8 @@ fn asset_content_pointer_unknown_surface_clears_active_asset_drag_payload() {
         96.0,
         0.0,
         0.0,
+        0.0,
+        0.0,
     );
     assert!(harness.host.borrow().active_asset_drag_payload.is_some());
 
@@ -277,6 +289,8 @@ fn asset_content_pointer_unknown_surface_clears_active_asset_drag_payload() {
         1,
         96.0,
         96.0,
+        0.0,
+        0.0,
         0.0,
         0.0,
     );

@@ -4,6 +4,7 @@ use super::super::super::*;
 use crate::core::{CoreError, CoreResult, ModuleContext, ModuleLifecycle};
 
 mod activation;
+mod batch_transaction;
 mod deactivation;
 mod module_lifecycle;
 mod reactivation;

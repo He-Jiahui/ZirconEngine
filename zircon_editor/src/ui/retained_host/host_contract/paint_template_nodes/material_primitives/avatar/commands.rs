@@ -2,6 +2,7 @@ mod content;
 mod surface;
 
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::geometry::{avatar_corner_radius, avatar_frame};
 use super::identity::is_avatar_node;
@@ -30,9 +31,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_av
     {
         return true;
     }
+    let Some(damage_frame) = intersect(&avatar_rect, clip) else {
+        return true;
+    };
 
     let corner_radius = avatar_corner_radius(node, &avatar_rect);
-    let avatar_image = avatar_image_pixels(node, &avatar_rect, corner_radius);
+    let avatar_image = avatar_image_pixels(node, &avatar_rect, corner_radius, damage_frame);
     let background = avatar_background_color(node, avatar_image.is_none());
     let foreground = avatar_foreground_color(node);
 

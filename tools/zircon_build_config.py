@@ -66,11 +66,11 @@ class BuildConfig:
 
     def feature_arg_for_target(self, target_feature: str) -> str:
         features = [target_feature]
-        features.extend(
-            feature
-            for feature in self.runtime_features
-            if feature not in TARGET_FEATURES and feature not in features
-        )
+        feature_set = {target_feature}
+        for feature in self.runtime_features:
+            if feature not in TARGET_FEATURES and feature not in feature_set:
+                features.append(feature)
+                feature_set.add(feature)
         return " ".join(features)
 
     @property

@@ -22,6 +22,8 @@ use crate::graphics::{
 use crate::plugin::PluginShaderModuleSource;
 #[cfg(feature = "script")]
 use crate::script;
+#[cfg(feature = "text")]
+use crate::text;
 use crate::{asset, foundation, input, platform, scene};
 
 use crate::core::framework::platform::RuntimeTargetMode;
@@ -91,6 +93,10 @@ pub(super) fn runtime_core_module_candidates_for_target_with_render_features(
         )),
         Arc::new(scene::SceneModule),
     ];
+    #[cfg(feature = "text")]
+    if target != RuntimeTargetMode::ServerRuntime {
+        modules.push(Arc::new(text::TextModule));
+    }
     if target != RuntimeTargetMode::ServerRuntime {
         modules.push(Arc::new(
             graphics::GraphicsModule::with_render_extensions_and_runtime_providers(
@@ -132,6 +138,10 @@ pub(super) fn runtime_core_module_candidates_for_target_with_render_features(
         )),
         Arc::new(scene::SceneModule),
     ];
+    #[cfg(feature = "text")]
+    if target != RuntimeTargetMode::ServerRuntime {
+        modules.push(Arc::new(text::TextModule));
+    }
     #[cfg(feature = "script")]
     if target != RuntimeTargetMode::ServerRuntime {
         modules.push(Arc::new(script::ScriptModule));

@@ -1,7 +1,3 @@
-use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
-use zircon_runtime_interface::ui::event_ui::UiTreeId;
-
-use crate::ui::retained_host::route_intent::EditorRouteIntentMap;
 use crate::ui::retained_host::welcome_recent_geometry::current_welcome_recent_layout_metrics;
 
 use super::welcome_recent_pointer_bridge::WelcomeRecentPointerBridge;
@@ -10,17 +6,10 @@ use super::welcome_recent_pointer_state::WelcomeRecentPointerState;
 
 impl WelcomeRecentPointerBridge {
     pub(crate) fn new() -> Self {
-        let mut bridge = Self {
+        Self {
             layout: WelcomeRecentPointerLayout::default(),
             state: WelcomeRecentPointerState::default(),
             layout_metrics: current_welcome_recent_layout_metrics(),
-            surface: UiSurface::new(UiTreeId::new("zircon.editor.welcome.recent_pointer")),
-            dispatcher: UiPointerDispatcher::default(),
-            route_intents: EditorRouteIntentMap::default(),
-            #[cfg(test)]
-            surface_authority_generation: 0,
-        };
-        bridge.rebuild_surface();
-        bridge
+        }
     }
 }

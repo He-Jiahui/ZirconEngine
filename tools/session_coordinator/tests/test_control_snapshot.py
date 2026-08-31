@@ -1191,7 +1191,17 @@ class ControlSnapshotTests(unittest.TestCase):
                 WorkflowProjectionService(),
                 lambda _connection: {
                     "status": "ok",
-                    "codexSync": {"queueDepth": 7, "lastErrorCode": None},
+                    "codexSync": {
+                        "queueDepth": 7,
+                        "spoolOverflow": {
+                            "markerStatus": "valid",
+                            "firstDetectedAt": "2026-07-13T00:00:00+00:00",
+                            "lastDetectedAt": "2026-07-13T00:01:00+00:00",
+                            "maxPending": 3,
+                            "pendingCount": 3,
+                        },
+                        "lastErrorCode": None,
+                    },
                 },
             )
 
@@ -1204,6 +1214,7 @@ class ControlSnapshotTests(unittest.TestCase):
             self.assertEqual(1, projection["stateCounts"]["active"])
             self.assertEqual(1004, projection["stateCounts"]["archived"])
             self.assertEqual(7, projection["queueDepth"])
+            self.assertEqual("valid", projection["spoolOverflow"]["markerStatus"])
             self.assertEqual("run-latest", projection["lastRun"]["runId"])
             serialized = json.dumps(projection)
             self.assertNotIn("rollout", serialized.casefold())

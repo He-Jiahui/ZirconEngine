@@ -1,0 +1,56 @@
+[asset]
+kind = "view"
+id = "res://ui/editor/product_binding_fixture.zui"
+version = 2
+display_name = "Product Binding Fixture"
+
+[imports]
+widgets = []
+styles = ["res://ui/theme/editor_base.zui"]
+
+[root]
+node = "fixture_root"
+
+[components.ProductBindingRow]
+root = "binding_row_root"
+default_classes = ["material-control", "material-button"]
+
+[components.ProductBindingRow.params.initial_label]
+type = "string"
+default = "Ready"
+
+[components.ProductBindingRow.params.applied_label]
+type = "string"
+default = "Applied"
+
+[components.ProductBindingRow.params.enabled]
+type = "bool"
+default = true
+
+[nodes.binding_row_root]
+component = "Button"
+control_id = "ProductBindingRowDefault"
+props = { text = "$param.initial_label", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "ProductBindingFixture/Commit", event = "Click", component_event = "Commit", route = "product.binding_fixture.commit", action = { route = "product.binding_fixture.commit", payload = { label = "=param.applied_label" } }, targets = [{ target = { kind = "prop", name = "text" }, expression = "param.applied_label" }, { target = { kind = "enabled" }, expression = "param.enabled" }] },
+]
+
+[nodes.primary_binding_row]
+component = "ProductBindingRow"
+control_id = "ProductBindingFixturePrimary"
+params = { initial_label = "Primary ready", applied_label = "Primary applied", enabled = true }
+
+[nodes.secondary_binding_row]
+component = "ProductBindingRow"
+control_id = "ProductBindingFixtureSecondary"
+params = { initial_label = "Secondary ready", applied_label = "Secondary applied", enabled = false }
+
+[nodes.fixture_root]
+component = "VerticalGroup"
+control_id = "ProductBindingFixtureRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 8.0 } }
+children = [
+  { node = "primary_binding_row" },
+  { node = "secondary_binding_row" },
+]

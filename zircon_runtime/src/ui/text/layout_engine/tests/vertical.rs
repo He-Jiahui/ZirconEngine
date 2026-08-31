@@ -25,8 +25,10 @@ fn vertical_rl_wraps_columns_on_frame_height() {
     assert!(layout.lines[0].frame.x > layout.lines[1].frame.x);
     assert_eq!(layout.lines[0].frame.y, layout.lines[1].frame.y);
     assert!(layout.lines[0].frame.height > layout.lines[0].frame.width);
-    assert!(layout
-        .lines
-        .iter()
-        .all(|line| { (line.baseline - line.frame.width * 0.5).abs() <= f32::EPSILON }));
+    assert!(
+        layout
+            .lines
+            .iter()
+            .all(|line| { (line.baseline - line.frame.width * 0.5).abs() <= f32::EPSILON })
+    );
 }

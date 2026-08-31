@@ -10,6 +10,7 @@ mod material_ui_component_design_matrix;
 mod mui_web_parity_inventory;
 mod project_overview_tokens;
 mod root_surfaces;
+mod runtime_service_access_cutover;
 mod runtime_ui_golden;
 mod slint_material_retained_editor_m3_controls;
 mod slint_material_retained_editor_migration;

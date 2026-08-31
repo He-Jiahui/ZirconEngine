@@ -17,8 +17,17 @@ impl UiEventManager {
     }
 
     pub(crate) fn broadcast(&self, notification: UiNotification) {
-        for sender in self.subscriptions.values() {
+        let mut senders = self.subscriptions.values();
+        let Some(final_sender) = senders.next_back() else {
+            return;
+        };
+        for sender in senders {
             let _ = sender.send(notification.clone());
         }
+        let _ = final_sender.send(notification);
     }
 }
+
+#[cfg(test)]
+#[path = "subscription/owned_notification_fanout_tests.rs"]
+mod owned_notification_fanout_tests;

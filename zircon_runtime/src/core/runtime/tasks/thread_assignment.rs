@@ -7,17 +7,32 @@ pub struct TaskPoolThreadAssignmentPolicy {
 
 impl TaskPoolThreadAssignmentPolicy {
     pub fn thread_count(self, remaining_threads: usize, total_threads: usize) -> usize {
+        let desired_threads = self.desired_threads(total_threads);
+        if remaining_threads == 0 {
+            return 0;
+        }
+        let min_threads = self.minimum_threads().min(remaining_threads);
+        let max_threads = self.maximum_threads().min(remaining_threads);
+        desired_threads
+            .min(remaining_threads)
+            .clamp(min_threads, max_threads)
+    }
+
+    pub(super) fn minimum_threads(self) -> usize {
+        self.min_threads.max(1)
+    }
+
+    pub(super) fn maximum_threads(self) -> usize {
+        self.max_threads.max(self.minimum_threads())
+    }
+
+    pub(super) fn desired_threads(self, total_threads: usize) -> usize {
         assert!(
             self.percent.is_finite() && self.percent >= 0.0,
             "task pool thread percent must be finite and non-negative"
         );
-        let min_threads = self.min_threads.max(1);
-        let max_threads = self.max_threads.max(min_threads);
         let proportion = total_threads as f32 * self.percent;
-        let desired = proportion.round() as usize;
-        desired
-            .min(remaining_threads)
-            .clamp(min_threads, max_threads)
+        proportion.round() as usize
     }
 }
 
@@ -55,6 +70,9 @@ impl Default for TaskPoolOptions {
 }
 
 impl TaskPoolOptions {
+    /// Requests a physical worker budget shared by the three pool assignment policies.
+    ///
+    /// The resolved total is raised when their combined minimums require more workers.
     pub fn with_num_threads(thread_count: usize) -> Self {
         let thread_count = thread_count.max(1);
         Self {

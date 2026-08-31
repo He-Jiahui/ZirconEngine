@@ -163,7 +163,7 @@ fn sdf_atlas_owner_rebuilds_for_text_owned_glyph_identity() {
 #[test]
 fn sdf_atlas_owner_rebuilds_for_refreshed_text_owned_glyph_line() {
     let mut atlas = ScreenSpaceUiSdfAtlas::new();
-    let (original, refreshed) = refreshed_artifact_text_batch();
+    let (original, refreshed) = republished_artifact_text_batch();
 
     atlas.prepare(std::slice::from_ref(&original));
     let first_generation = atlas.generation;

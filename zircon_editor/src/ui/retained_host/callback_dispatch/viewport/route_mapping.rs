@@ -1,5 +1,7 @@
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventKind};
 
+use crate::scene::viewport::PivotMode;
+
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects, viewport_toolbar_pointer::ViewportToolbarPointerRoute,
@@ -17,7 +19,6 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
     bridge: &BuiltinViewportToolbarTemplateBridge,
     route: &ViewportToolbarPointerRoute,
 ) -> Result<UiHostEventEffects, String> {
-    let settings = runtime.chrome_snapshot().scene_viewport_settings;
     let (control_id, event_kind, arguments) = match route {
         ViewportToolbarPointerRoute::ActivateSceneMode { mode, .. } => (
             "ActivateSceneMode",
@@ -29,6 +30,18 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             UiEventKind::Change,
             vec![UiBindingValue::string(space)],
         ),
+        ViewportToolbarPointerRoute::CyclePivotMode { .. } => {
+            let settings = runtime.scene_viewport_settings();
+            let next = match settings.pivot_mode {
+                PivotMode::Primary => "Centroid",
+                PivotMode::Centroid => "Primary",
+            };
+            (
+                "SetPivotMode",
+                UiEventKind::Change,
+                vec![UiBindingValue::string(next)],
+            )
+        }
         ViewportToolbarPointerRoute::SetProjectionMode { mode, .. } => (
             "SetProjectionMode",
             UiEventKind::Change,
@@ -39,56 +52,80 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
             UiEventKind::Change,
             vec![UiBindingValue::string(orientation)],
         ),
-        ViewportToolbarPointerRoute::CycleDisplayMode { .. } => (
-            "SetDisplayMode",
-            UiEventKind::Change,
-            vec![UiBindingValue::string(next_display_mode_name(
-                settings.display_mode,
-            ))],
-        ),
-        ViewportToolbarPointerRoute::CycleGridMode { .. } => (
-            "SetGridMode",
-            UiEventKind::Change,
-            vec![UiBindingValue::string(next_grid_mode_name(
-                settings.grid_mode,
-            ))],
-        ),
-        ViewportToolbarPointerRoute::CycleTranslateSnap { .. } => (
-            "SetTranslateSnap",
-            UiEventKind::Change,
-            vec![UiBindingValue::Float(
-                next_translate_snap(settings.translate_step) as f64,
-            )],
-        ),
-        ViewportToolbarPointerRoute::CycleRotateSnapDegrees { .. } => (
-            "SetRotateSnapDegrees",
-            UiEventKind::Change,
-            vec![UiBindingValue::Float(
-                next_rotate_snap_degrees(settings.rotate_step_deg) as f64,
-            )],
-        ),
-        ViewportToolbarPointerRoute::CycleScaleSnap { .. } => (
-            "SetScaleSnap",
-            UiEventKind::Change,
-            vec![UiBindingValue::Float(
-                next_scale_snap(settings.scale_step) as f64
-            )],
-        ),
-        ViewportToolbarPointerRoute::TogglePreviewLighting { .. } => (
-            "SetPreviewLighting",
-            UiEventKind::Change,
-            vec![UiBindingValue::Bool(!settings.preview_lighting)],
-        ),
-        ViewportToolbarPointerRoute::TogglePreviewSkybox { .. } => (
-            "SetPreviewSkybox",
-            UiEventKind::Change,
-            vec![UiBindingValue::Bool(!settings.preview_skybox)],
-        ),
-        ViewportToolbarPointerRoute::ToggleGizmosEnabled { .. } => (
-            "SetGizmosEnabled",
-            UiEventKind::Change,
-            vec![UiBindingValue::Bool(!settings.gizmos_enabled)],
-        ),
+        ViewportToolbarPointerRoute::CycleDisplayMode { .. } => {
+            let settings = runtime.scene_viewport_settings();
+            (
+                "SetDisplayMode",
+                UiEventKind::Change,
+                vec![UiBindingValue::string(next_display_mode_name(
+                    settings.display_mode,
+                ))],
+            )
+        }
+        ViewportToolbarPointerRoute::CycleGridMode { .. } => {
+            let settings = runtime.scene_viewport_settings();
+            (
+                "SetGridMode",
+                UiEventKind::Change,
+                vec![UiBindingValue::string(next_grid_mode_name(
+                    settings.grid_mode,
+                ))],
+            )
+        }
+        ViewportToolbarPointerRoute::CycleTranslateSnap { .. } => {
+            let settings = runtime.scene_viewport_settings();
+            (
+                "SetTranslateSnap",
+                UiEventKind::Change,
+                vec![UiBindingValue::Float(
+                    next_translate_snap(settings.translate_step) as f64,
+                )],
+            )
+        }
+        ViewportToolbarPointerRoute::CycleRotateSnapDegrees { .. } => {
+            let settings = runtime.scene_viewport_settings();
+            (
+                "SetRotateSnapDegrees",
+                UiEventKind::Change,
+                vec![UiBindingValue::Float(
+                    next_rotate_snap_degrees(settings.rotate_step_deg) as f64,
+                )],
+            )
+        }
+        ViewportToolbarPointerRoute::CycleScaleSnap { .. } => {
+            let settings = runtime.scene_viewport_settings();
+            (
+                "SetScaleSnap",
+                UiEventKind::Change,
+                vec![UiBindingValue::Float(
+                    next_scale_snap(settings.scale_step) as f64
+                )],
+            )
+        }
+        ViewportToolbarPointerRoute::TogglePreviewLighting { .. } => {
+            let settings = runtime.scene_viewport_settings();
+            (
+                "SetPreviewLighting",
+                UiEventKind::Change,
+                vec![UiBindingValue::Bool(!settings.preview_lighting)],
+            )
+        }
+        ViewportToolbarPointerRoute::TogglePreviewSkybox { .. } => {
+            let settings = runtime.scene_viewport_settings();
+            (
+                "SetPreviewSkybox",
+                UiEventKind::Change,
+                vec![UiBindingValue::Bool(!settings.preview_skybox)],
+            )
+        }
+        ViewportToolbarPointerRoute::ToggleGizmosEnabled { .. } => {
+            let settings = runtime.scene_viewport_settings();
+            (
+                "SetGizmosEnabled",
+                UiEventKind::Change,
+                vec![UiBindingValue::Bool(!settings.gizmos_enabled)],
+            )
+        }
         ViewportToolbarPointerRoute::FrameSelection { .. } => {
             ("FrameSelection", UiEventKind::Click, Vec::new())
         }

@@ -36,9 +36,34 @@ pub fn component_state_value_update(
     dirty: UiDirtyFlags,
     status: UiBindingUpdateStatus,
 ) -> UiBindingUpdate {
+    component_state_value_update_with_source_kind(
+        node_id,
+        property,
+        UiBindingSourceKind::RuntimeState,
+        previous,
+        value,
+        dirty,
+        status,
+    )
+}
+
+pub fn component_state_value_update_with_source_kind(
+    node_id: UiNodeId,
+    property: impl Into<String>,
+    source_kind: UiBindingSourceKind,
+    previous: Option<UiValue>,
+    value: UiValue,
+    dirty: UiDirtyFlags,
+    status: UiBindingUpdateStatus,
+) -> UiBindingUpdate {
     let property = property.into();
     update_with_status(
-        UiBindingSource::runtime_state(node_id, property.clone()),
+        UiBindingSource {
+            kind: source_kind,
+            node_id: Some(node_id),
+            property: Some(property.clone()),
+            path: None,
+        },
         UiBindingTarget::component_state_value(node_id, property),
         previous,
         value,
@@ -144,21 +169,32 @@ pub fn binding_update_report(updates: Vec<UiBindingUpdate>) -> UiBindingUpdateRe
     UiBindingUpdateReport::from_updates(updates)
 }
 
+pub(crate) const fn reflected_property_source_kind(
+    source: UiReflectedPropertySource,
+) -> UiBindingSourceKind {
+    match source {
+        UiReflectedPropertySource::Authored
+        | UiReflectedPropertySource::DescriptorDefault
+        | UiReflectedPropertySource::InferredDefault => UiBindingSourceKind::RetainedAttribute,
+        UiReflectedPropertySource::RuntimeState | UiReflectedPropertySource::SystemState => {
+            UiBindingSourceKind::RuntimeState
+        }
+        UiReflectedPropertySource::Binding => UiBindingSourceKind::ComponentEvent,
+    }
+}
+
 fn reflected_property_source(
     source: UiReflectedPropertySource,
     node_id: UiNodeId,
     property: String,
 ) -> UiBindingSource {
-    match source {
-        UiReflectedPropertySource::Authored
-        | UiReflectedPropertySource::DescriptorDefault
-        | UiReflectedPropertySource::InferredDefault => {
+    match reflected_property_source_kind(source) {
+        UiBindingSourceKind::RetainedAttribute => {
             UiBindingSource::retained_attribute(node_id, property)
         }
-        UiReflectedPropertySource::RuntimeState | UiReflectedPropertySource::SystemState => {
-            UiBindingSource::runtime_state(node_id, property)
-        }
-        UiReflectedPropertySource::Binding => UiBindingSource::component_event(node_id, property),
+        UiBindingSourceKind::RuntimeState => UiBindingSource::runtime_state(node_id, property),
+        UiBindingSourceKind::ComponentEvent => UiBindingSource::component_event(node_id, property),
+        _ => unreachable!("reflected property sources map to retained, runtime, or binding state"),
     }
 }
 

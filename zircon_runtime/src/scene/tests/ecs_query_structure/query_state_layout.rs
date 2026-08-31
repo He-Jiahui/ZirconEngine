@@ -27,6 +27,14 @@ fn query_state_stays_folder_backed_by_query_owner() {
         root.lines().filter(|line| !line.trim().is_empty()).count()
             <= QUERY_STATE_ROOT_NON_EMPTY_LINE_BUDGET
     );
+    assert!(root.contains("mod state;"));
+    assert!(root.contains("pub use state::QueryState;"));
+    for forbidden in ["pub struct QueryState", "impl<D, F> QueryState"] {
+        assert!(
+            !root.contains(forbidden),
+            "QueryState root retained `{forbidden}`"
+        );
+    }
     for module in EXPECTED_QUERY_STATE_MODULES {
         let path = owner_root.join(format!("{module}.rs"));
         assert!(
@@ -41,12 +49,12 @@ fn query_state_stays_folder_backed_by_query_owner() {
 #[test]
 fn query_state_cache_retains_only_compiled_archetype_plans_and_scalar_counts() {
     let owner_root = manifest_dir().join("src/scene/ecs/query/query_state");
-    let root = read_source(&owner_root.join("mod.rs"));
+    let state = read_source(&owner_root.join("state.rs"));
     let plan = read_source(&owner_root.join("archetype_plan.rs"));
 
-    assert!(root.contains("cached_archetype_plans: Vec<CachedArchetypePlan>"));
-    assert!(root.contains("cached_archetype_generation: u64"));
-    assert!(root.contains("cached_entity_count: usize"));
+    assert!(state.contains("cached_archetype_plans: Vec<CachedArchetypePlan>"));
+    assert!(state.contains("cached_archetype_generation: u64"));
+    assert!(state.contains("cached_entity_count: usize"));
     for forbidden in [
         "cached_entities:",
         "cached_entity_indices:",
@@ -56,7 +64,7 @@ fn query_state_cache_retains_only_compiled_archetype_plans_and_scalar_counts() {
         "cached_revision:",
     ] {
         assert!(
-            !root.contains(forbidden),
+            !state.contains(forbidden),
             "QueryState retained `{forbidden}`"
         );
     }

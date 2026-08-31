@@ -125,7 +125,7 @@ where
     }
 
     pub fn iter(&self) -> MessageReadIter<'_, T> {
-        MessageReadIter::new(self.messages.iter(), 0)
+        MessageReadIter::untracked(self.messages.iter())
     }
 
     pub fn len(&self) -> usize {

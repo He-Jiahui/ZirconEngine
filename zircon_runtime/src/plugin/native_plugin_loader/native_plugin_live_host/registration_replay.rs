@@ -14,8 +14,7 @@ use crate::scene::ecs::{SystemRef, SystemStage};
 use super::super::behavior_validation::ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3;
 use super::super::host_callbacks::granted_capabilities_for_entry;
 use super::super::registration_manifest::{
-    NativePluginRegistrationManifest, NativePluginRegistrationManifestError,
-    NativePluginRegistrationSystem, NativeSystemAccessAuthority, NativeSystemAccessAuthorityError,
+    NativePluginRegistrationManifest, NativePluginRegistrationSystem, NativeSystemAccessAuthority,
     NativeSystemAccessPlan,
 };
 use super::super::LoadedNativePlugin;
@@ -27,6 +26,10 @@ use super::reports::{
 };
 use super::runtime_behavior::runtime_plugins;
 use super::NativePluginLiveHost;
+
+mod error;
+
+pub(super) use error::NativePluginRegistrationReplayError;
 
 pub(super) type NativePluginRegistrationReplayResult<T> =
     std::result::Result<T, NativePluginRegistrationReplayError>;
@@ -125,180 +128,6 @@ impl std::fmt::Debug for NativePluginRegistrationReplayGeneration {
     }
 }
 
-#[derive(Debug)]
-pub(super) enum NativePluginRegistrationReplayError {
-    LiveHostLock(NativePluginLiveHostLoadingError),
-    RuntimePluginNotLoaded {
-        plugin_id: String,
-    },
-    UnsupportedManifestSchema {
-        plugin_id: String,
-        actual: String,
-        expected: &'static str,
-    },
-    MissingRegistrationManifest {
-        plugin_id: String,
-    },
-    InvalidRegistrationManifest {
-        plugin_id: String,
-        source: NativePluginRegistrationManifestError,
-    },
-    InvalidRegistrationSystem {
-        plugin_id: String,
-        system_id: String,
-        source: NativePluginRegistrationManifestError,
-    },
-    BridgeMethodSlot {
-        plugin_id: String,
-        system_id: String,
-        bridge_interface: String,
-        bridge_method: String,
-        source: String,
-    },
-    UnknownBridgeInterface {
-        plugin_id: String,
-        system_id: String,
-        bridge_interface: String,
-    },
-    BridgeCallScope {
-        plugin_id: String,
-        source: String,
-    },
-    RegistryInternPluginModule {
-        plugin_id: String,
-        system_id: String,
-        module: String,
-        source: RuntimeExtensionRegistryError,
-    },
-    RegistryInternSystemSet {
-        plugin_id: String,
-        system_id: String,
-        set_name: String,
-        source: RuntimeExtensionRegistryError,
-    },
-    RegisterNativeSystem {
-        plugin_id: String,
-        system_id: String,
-        source: RuntimeExtensionRegistryError,
-    },
-    InvalidSystemAccessAuthority {
-        plugin_id: String,
-        system_id: String,
-        source: NativeSystemAccessAuthorityError,
-    },
-}
-
-impl std::fmt::Display for NativePluginRegistrationReplayError {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::LiveHostLock(source) => write!(formatter, "{source}"),
-            Self::RuntimePluginNotLoaded { plugin_id } => write!(
-                formatter,
-                "plugin {plugin_id} is not loaded in the runtime live host; run Hot Reload after building its native dynamic package"
-            ),
-            Self::UnsupportedManifestSchema {
-                plugin_id,
-                actual,
-                expected,
-            } => write!(
-                formatter,
-                "runtime plugin {plugin_id} registration manifest schema `{actual}` is unsupported; expected {expected}"
-            ),
-            Self::MissingRegistrationManifest { plugin_id } => write!(
-                formatter,
-                "runtime plugin {plugin_id} has no registration manifest to replay"
-            ),
-            Self::InvalidRegistrationManifest { plugin_id, source } => {
-                write!(formatter, "runtime plugin {plugin_id} {source}")
-            }
-            Self::InvalidRegistrationSystem {
-                plugin_id,
-                system_id,
-                source,
-            } => write!(
-                formatter,
-                "runtime plugin {plugin_id} registration system `{system_id}` {source}"
-            ),
-            Self::BridgeMethodSlot {
-                plugin_id,
-                system_id,
-                bridge_interface,
-                bridge_method,
-                source,
-            } => write!(
-                formatter,
-                "runtime plugin {plugin_id} registration system `{system_id}` failed to resolve bridge method `{bridge_interface}.{bridge_method}`: {source}"
-            ),
-            Self::UnknownBridgeInterface {
-                plugin_id,
-                system_id,
-                bridge_interface,
-            } => write!(
-                formatter,
-                "runtime plugin {plugin_id} registration system `{system_id}` references unknown bridge interface `{bridge_interface}`"
-            ),
-            Self::BridgeCallScope { plugin_id, source } => write!(
-                formatter,
-                "runtime plugin {plugin_id} failed to build native registration replay bridge call scope: {source}"
-            ),
-            Self::RegistryInternPluginModule {
-                plugin_id,
-                system_id,
-                module,
-                source,
-            } => write!(
-                formatter,
-                "runtime plugin {plugin_id} failed to intern native registration manifest system `{system_id}` module `{module}`: {source}"
-            ),
-            Self::RegistryInternSystemSet {
-                plugin_id,
-                system_id,
-                set_name,
-                source,
-            } => write!(
-                formatter,
-                "runtime plugin {plugin_id} failed to intern native registration manifest system `{system_id}` set `{set_name}`: {source}"
-            ),
-            Self::RegisterNativeSystem {
-                plugin_id,
-                system_id,
-                source,
-            } => write!(
-                formatter,
-                "runtime plugin {plugin_id} failed to register native registration manifest system `{system_id}`: {source}"
-            ),
-            Self::InvalidSystemAccessAuthority {
-                plugin_id,
-                system_id,
-                source,
-            } => write!(
-                formatter,
-                "runtime plugin {plugin_id} registration system `{system_id}` access was denied: {source}"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for NativePluginRegistrationReplayError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::LiveHostLock(source) => Some(source),
-            Self::InvalidRegistrationManifest { source, .. }
-            | Self::InvalidRegistrationSystem { source, .. } => Some(source),
-            Self::RegistryInternPluginModule { source, .. }
-            | Self::RegistryInternSystemSet { source, .. }
-            | Self::RegisterNativeSystem { source, .. } => Some(source),
-            Self::InvalidSystemAccessAuthority { source, .. } => Some(source),
-            Self::RuntimePluginNotLoaded { .. }
-            | Self::UnsupportedManifestSchema { .. }
-            | Self::MissingRegistrationManifest { .. }
-            | Self::BridgeMethodSlot { .. }
-            | Self::UnknownBridgeInterface { .. }
-            | Self::BridgeCallScope { .. } => None,
-        }
-    }
-}
-
 impl NativePluginLiveHost {
     #[cfg(test)]
     pub(super) fn install_registration_replay_source_test_gate(
@@ -342,9 +171,9 @@ impl NativePluginLiveHost {
                 }
             }
         }
-        report.diagnostics.sort();
+        report.diagnostics.sort_unstable();
         report.diagnostics.dedup();
-        report.skipped_plugin_ids.sort();
+        report.skipped_plugin_ids.sort_unstable();
         report.skipped_plugin_ids.dedup();
         Ok(report)
     }
@@ -371,6 +200,16 @@ impl NativePluginLiveHost {
         let generation =
             self.runtime_registration_replay_generation_result(plugin_id, lifecycle)?;
         let manifest = &generation.manifest;
+        if manifest.systems.len() != generation.prepared_systems.len() {
+            return Err(NativePluginRegistrationReplayError::BridgeCallScope {
+                plugin_id: plugin_id.to_string(),
+                source: format!(
+                    "registration manifest system count {} does not match prepared system count {}",
+                    manifest.systems.len(),
+                    generation.prepared_systems.len(),
+                ),
+            });
+        }
         let known_component_ids = generation
             .component_type_ids
             .iter()
@@ -395,11 +234,12 @@ impl NativePluginLiveHost {
         if manifest.systems.is_empty() {
             return Ok(report);
         }
-        let replay_context = generation
-            .replay_context
-            .as_deref()
-            .expect("non-empty registration manifest must retain a replay context");
-        debug_assert_eq!(manifest.systems.len(), generation.prepared_systems.len());
+        let replay_context = generation.replay_context.as_deref().ok_or_else(|| {
+            NativePluginRegistrationReplayError::BridgeCallScope {
+                plugin_id: plugin_id.to_string(),
+                source: "non-empty registration manifest has no replay bridge context".to_string(),
+            }
+        })?;
         for (system, prepared) in manifest.systems.iter().zip(&generation.prepared_systems) {
             let system_report = self.replay_runtime_registration_system(
                 registry,
@@ -722,7 +562,7 @@ impl NativePluginLiveHost {
                     .map(|component| component.type_id.clone()),
             );
         }
-        component_type_ids.sort();
+        component_type_ids.sort_unstable();
         component_type_ids.dedup();
         Ok(RuntimeRegistrationManifestSource {
             text,
@@ -949,3 +789,7 @@ fn runtime_module_name(plugin_id: &str, module: &str) -> String {
         format!("{plugin_id}.{module}")
     }
 }
+
+#[cfg(test)]
+#[path = "registration_replay/optimization_tests.rs"]
+mod optimization_tests;

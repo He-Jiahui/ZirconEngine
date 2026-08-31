@@ -1,27 +1,28 @@
 use std::collections::BTreeSet;
+use std::fmt::Write as _;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use crate::asset::AssetUri;
 use crate::asset::assets::{ImportedAsset, ShaderAsset};
 use crate::asset::project::ProjectManager;
-use crate::asset::AssetUri;
 use crate::core::framework::render::{
+    GENERATED_MATERIAL_MODULE_IMPORT_PATH, RenderShaderDefinitionValue, SHADER_IDE_ENV_CACHE_DIR,
+    SHADER_IDE_MODULE_MAP_FILE, ShaderAssetKind, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
+    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewVariant,
     shader_ide_generated_material_stub_relative_path, shader_ide_module_stub_relative_path,
     shader_ide_preview_relative_path, shader_ide_preview_segments_relative_path,
     shader_ide_relative_path_string, strip_wgsl_include_directives, wgsl_include_paths,
-    RenderShaderDefinitionValue, ShaderAssetKind, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
-    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewVariant,
-    GENERATED_MATERIAL_MODULE_IMPORT_PATH, SHADER_IDE_ENV_CACHE_DIR, SHADER_IDE_MODULE_MAP_FILE,
 };
 use crate::core::resource::{ResourceKind, ResourceRecord, ResourceState};
 
 use super::ide_preview::{assemble_shader_ide_surface_preview_with_index, shader_include_index};
 use super::{
-    builtin_shader_ide_module_sources, parse_shader_ide_wgsl_module,
-    validate_shader_ide_wgsl_module, ShaderIdeSurfacePreview,
+    ShaderIdeSurfacePreview, builtin_shader_ide_module_sources, parse_shader_ide_wgsl_module,
+    validate_shader_ide_wgsl_module,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -296,9 +297,22 @@ fn shader_stubs(shader: &ShaderAsset) -> Vec<ShaderIdeStub> {
 }
 
 fn shader_stub_source_header(import_path: &str, source_uri: Option<&AssetUri>) -> String {
-    let mut header = format!("// Zircon shader IDE stub: {import_path}\n");
+    const STUB_PREFIX: &str = "// Zircon shader IDE stub: ";
+    const SOURCE_PREFIX: &str = "// Source asset: ";
+    const MAX_SCHEME_PREFIX: &str = "package://";
+
+    let source_line_capacity = source_uri.map_or(0, |source_uri| {
+        SOURCE_PREFIX.len()
+            + MAX_SCHEME_PREFIX.len()
+            + source_uri.path().len()
+            + source_uri.label().map_or(0, |label| label.len() + 1)
+            + 1
+    });
+    let mut header =
+        String::with_capacity(STUB_PREFIX.len() + import_path.len() + 1 + source_line_capacity + 1);
+    writeln!(header, "{STUB_PREFIX}{import_path}").expect("writing to a string cannot fail");
     if let Some(source_uri) = source_uri {
-        header.push_str(&format!("// Source asset: {source_uri}\n"));
+        writeln!(header, "{SOURCE_PREFIX}{source_uri}").expect("writing to a string cannot fail");
     }
     header.push('\n');
     header
@@ -679,6 +693,10 @@ fn remove_stale_shader_ide_files_in_dir(
     }
     Ok(removed)
 }
+
+#[cfg(test)]
+#[path = "ide_env_generation/single_buffer_stub_header_tests.rs"]
+mod single_buffer_stub_header_tests;
 
 #[cfg(test)]
 mod tests;

@@ -326,10 +326,10 @@ pub(crate) fn reconcile_preview_mock_state(
         document.contains_node(node_id) && preview_mock_node_has_entries(document, node_id)
     });
 
-    let entries = preview_mock_entries(document, selection, state);
-    state.selected_property = selected_entry_index(&entries, state.selected_property.as_deref())
-        .and_then(|index| entries.get(index).map(|entry| entry.key.clone()));
-    let nested_entries = selected_preview_mock_entry(document, selection, state)
+    let selected_entry = selected_preview_mock_entry(document, selection, state);
+    state.selected_property = selected_entry.as_ref().map(|(_, entry)| entry.key.clone());
+    let nested_entries = selected_entry
+        .as_ref()
         .map(|(_, entry)| preview_mock_nested_entries(&entry.effective_value))
         .unwrap_or_default();
     state.selected_nested_key =
@@ -448,8 +448,7 @@ pub(crate) fn set_selected_preview_mock_nested_value(
     let Some((node_id, entry)) = selected_preview_mock_entry(document, selection, state) else {
         return Ok(false);
     };
-    let Some(nested_entry) = selected_preview_mock_nested_entry_state(document, selection, state)
-    else {
+    let Some(nested_entry) = selected_preview_mock_nested_entry_state(&entry, state) else {
         return Ok(false);
     };
     let next_nested = parse_preview_mock_value(nested_entry.kind, value).ok_or_else(|| {
@@ -459,7 +458,7 @@ pub(crate) fn set_selected_preview_mock_nested_value(
             nested_entry.kind.label()
         )
     })?;
-    let mut next_value = entry.effective_value.clone();
+    let mut next_value = entry.effective_value;
     mutate_preview_mock_nested_value(&mut next_value, &nested_entry.key, Some(next_nested))?;
     Ok(set_preview_mock_override_value(
         document, selection, state, &node_id, &entry.key, next_value,
@@ -479,13 +478,13 @@ pub(crate) fn upsert_selected_preview_mock_nested_entry(
     if !entry.kind.supports_nested_entries() {
         return Ok(false);
     }
-    let mut next_value = entry.effective_value.clone();
     let normalized_key = normalize_nested_entry_key(&entry.effective_value, key)?;
     let next_nested_value = preview_mock_nested_entries(&entry.effective_value)
         .into_iter()
         .find(|existing| existing.key == normalized_key)
         .and_then(|existing| parse_preview_mock_value(existing.kind, value_literal))
         .unwrap_or_else(|| parse_preview_mock_loose_value(value_literal));
+    let mut next_value = entry.effective_value;
     mutate_preview_mock_nested_value(&mut next_value, &normalized_key, Some(next_nested_value))?;
     Ok(set_preview_mock_override_value(
         document, selection, state, &node_id, &entry.key, next_value,
@@ -509,7 +508,7 @@ pub(crate) fn apply_selected_preview_mock_suggestion(
         return Ok(None);
     };
 
-    let mut next_value = entry.effective_value.clone();
+    let mut next_value = entry.effective_value;
     mutate_preview_mock_nested_value(
         &mut next_value,
         &suggestion.resolved_key,
@@ -531,11 +530,10 @@ pub(crate) fn delete_selected_preview_mock_nested_entry(
     let Some((node_id, entry)) = selected_preview_mock_entry(document, selection, state) else {
         return Ok(false);
     };
-    let Some(nested_entry) = selected_preview_mock_nested_entry_state(document, selection, state)
-    else {
+    let Some(nested_entry) = selected_preview_mock_nested_entry_state(&entry, state) else {
         return Ok(false);
     };
-    let mut next_value = entry.effective_value.clone();
+    let mut next_value = entry.effective_value;
     mutate_preview_mock_nested_value(&mut next_value, &nested_entry.key, None)?;
     Ok(set_preview_mock_override_value(
         document, selection, state, &node_id, &entry.key, next_value,
@@ -547,17 +545,7 @@ pub(crate) fn clear_selected_preview_mock_value(
     selection: &UiDesignerSelectionModel,
     state: &mut UiAssetPreviewMockState,
 ) -> bool {
-    let Some(node_id) =
-        preview_mock_subject_node_id(document, selection, state).map(str::to_string)
-    else {
-        return false;
-    };
-    let entries = preview_mock_entries(document, selection, state);
-    let Some(selected_index) = selected_entry_index(&entries, state.selected_property.as_deref())
-    else {
-        return false;
-    };
-    let Some(entry) = entries.get(selected_index) else {
+    let Some((node_id, entry)) = selected_preview_mock_entry(document, selection, state) else {
         return false;
     };
     let Some(overrides) = state.overrides.get_mut(&node_id) else {

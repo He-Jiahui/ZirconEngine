@@ -1,10 +1,12 @@
+use std::fmt;
+
 use zircon_runtime::diagnostic_log::{
     diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
 };
 
-use super::super::super::super::data::HostWindowPresentationData;
+use super::super::super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::backbuffer::RepaintOutcome;
-use super::super::diagnostics::{frame_summary, presentation_summary};
+use super::super::diagnostics::presentation_summary;
 use super::super::SoftbufferHostPresenter;
 
 pub(super) fn write_verbose_present_log(
@@ -30,11 +32,7 @@ pub(super) fn write_verbose_present_log(
             presenter.diagnostics.present_count,
             size.0,
             size.1,
-            outcome
-                .damage
-                .as_ref()
-                .map(frame_summary)
-                .unwrap_or_else(|| "full".to_string()),
+            PresentDamage(outcome.damage.as_ref()),
             outcome.painted_pixels,
             presenter.diagnostics.full_paint_count,
             presenter.diagnostics.region_paint_count,
@@ -45,3 +43,22 @@ pub(super) fn write_verbose_present_log(
     presenter.last_logged_size = Some(size);
     presenter.last_logged_presentation = Some(summary);
 }
+
+struct PresentDamage<'a>(Option<&'a FrameRect>);
+
+impl fmt::Display for PresentDamage<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Some(frame) => write!(
+                formatter,
+                "{:.1},{:.1},{:.1},{:.1}",
+                frame.x, frame.y, frame.width, frame.height
+            ),
+            None => formatter.write_str("full"),
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "log/damage_summary_tests.rs"]
+mod damage_summary_tests;

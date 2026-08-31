@@ -66,6 +66,23 @@ fn shader_prewarm_merge_manifest_reports_typed_schema_error() {
     }
     assert_eq!(
         error.to_string(),
-        "shader prewarm manifest schema 3 is not supported; expected 2"
+        "shader prewarm manifest schema 4 is not supported; expected 3"
     );
+}
+
+#[test]
+fn shader_prewarm_merge_manifest_rejects_v2_source_identity_schema() {
+    let mut stale_manifest = ShaderVariantPrewarmManifest::empty();
+    stale_manifest.schema_version = 2;
+
+    let error = merge_manifests(stale_manifest, ShaderVariantPrewarmManifest::empty())
+        .expect_err("v2 source identities included provenance labels and must not be reused");
+
+    assert!(matches!(
+        error,
+        ShaderPrewarmManifestError::UnsupportedSchema {
+            actual: 2,
+            expected: 3
+        }
+    ));
 }

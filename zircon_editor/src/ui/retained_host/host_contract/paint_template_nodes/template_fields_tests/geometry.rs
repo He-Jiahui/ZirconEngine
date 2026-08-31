@@ -1,19 +1,20 @@
-use super::super::super::super::data::FrameRect;
-use super::super::geometry::{field_surface_radius, pixel_aligned_rect};
+use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::geometry::{field_paint_rect, field_surface_radius};
 
 #[test]
-fn workbench_field_alignment_does_not_expand_declared_bounds() {
-    let rect = pixel_aligned_rect(&FrameRect {
+fn workbench_field_preserves_fractional_declared_bounds() {
+    let declared = FrameRect {
         x: 12.3,
         y: 8.4,
         width: 67.2,
         height: 30.5,
-    });
+    };
+    let rect = field_paint_rect(&TemplatePaneNodeData::default(), &declared);
 
-    assert_eq!(rect.x, 13.0);
-    assert_eq!(rect.y, 9.0);
-    assert_eq!(rect.width, 66.0);
-    assert_eq!(rect.height, 29.0);
+    assert_eq!(rect.x, 12.3);
+    assert_eq!(rect.y, 8.4);
+    assert_eq!(rect.width, 67.2);
+    assert_eq!(rect.height, 30.5);
 }
 
 #[test]

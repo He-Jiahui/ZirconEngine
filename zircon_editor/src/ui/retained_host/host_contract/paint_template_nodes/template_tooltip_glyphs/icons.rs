@@ -1,6 +1,9 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
+use super::super::template_icon_assets::push_icon_asset_pixels;
 use super::super::template_tooltips::layout::frame_is_within;
+
+const TOOLTIP_INFO_ASSET: &str = "zircon_editor_shell/status/info.svg";
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tooltip_info_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -29,46 +32,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     if !frame_is_within(rect, &icon) {
         return;
     }
-    commands.push(HostPaintCommand::quad(
-        icon.clone(),
-        Some(clip.clone()),
+    push_icon_asset_pixels(
+        commands,
+        TOOLTIP_INFO_ASSET,
+        &icon,
+        clip,
         order,
-        None,
         Some(color),
-        1.0,
-        icon_size * 0.5,
         opacity,
-    ));
-
-    let stem_width = icon_size * 0.12;
-    commands.push(HostPaintCommand::quad(
-        FrameRect {
-            x: icon.x + (icon.width - stem_width) * 0.5,
-            y: icon.y + icon.height * 0.45,
-            width: stem_width,
-            height: icon.height * 0.33,
-        },
-        Some(clip.clone()),
-        order + 1,
-        Some(color),
-        None,
-        0.0,
-        1.0,
-        opacity,
-    ));
-    commands.push(HostPaintCommand::quad(
-        FrameRect {
-            x: icon.x + (icon.width - stem_width) * 0.5,
-            y: icon.y + icon.height * 0.25,
-            width: stem_width,
-            height: stem_width,
-        },
-        Some(clip.clone()),
-        order + 1,
-        Some(color),
-        None,
-        0.0,
-        stem_width * 0.5,
-        opacity,
-    ));
+    );
 }

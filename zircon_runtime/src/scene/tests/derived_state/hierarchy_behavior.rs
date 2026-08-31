@@ -1,5 +1,5 @@
 use super::*;
-use crate::scene::components::{ActiveInHierarchy, WorldMatrix};
+use crate::scene::components::{ActiveInHierarchy, Hierarchy, WorldMatrix};
 
 #[test]
 fn imported_records_validate_missing_parents_and_preserve_out_of_order_links() {
@@ -68,8 +68,12 @@ fn componentless_root_updates_the_hierarchy_index_before_derived_propagation() {
 #[test]
 fn hierarchy_cycle_rejection_preserves_existing_parent_state() {
     let mut world = World::new();
-    let parent = world.spawn_node(NodeKind::Cube);
-    let child = world.spawn_node(NodeKind::Mesh);
+    let parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(child, Some(parent)).unwrap();
     world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
     assert!(!world.has_pending_scene_systems());
@@ -83,11 +87,269 @@ fn hierarchy_cycle_rejection_preserves_existing_parent_state() {
 }
 
 #[test]
+fn raw_hierarchy_cycle_repair_republishes_all_corrected_derived_rows() {
+    let mut world = World::new();
+    let first = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let second = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    world
+        .update_transform(first, Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)))
+        .unwrap();
+    world
+        .update_transform(
+            second,
+            Transform::from_translation(Vec3::new(10.0, 0.0, 0.0)),
+        )
+        .unwrap();
+    assert!(world.set_active_self(second, false).unwrap());
+    world.set_parent_checked(first, Some(second)).unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+    assert_eq!(
+        world.world_transform(first).unwrap().translation,
+        Vec3::new(11.0, 0.0, 0.0)
+    );
+
+    world.reset_ecs_frame_performance_diagnostics();
+    world.get_mut::<Hierarchy>(second).unwrap().parent = Some(first);
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    assert_eq!(world.find_node(first).unwrap().parent, None);
+    assert_eq!(world.find_node(second).unwrap().parent, Some(first));
+    assert_eq!(
+        world.world_transform(first).unwrap().translation,
+        Vec3::new(1.0, 0.0, 0.0)
+    );
+    assert_eq!(
+        world.world_transform(second).unwrap().translation,
+        Vec3::new(11.0, 0.0, 0.0)
+    );
+    assert_eq!(world.active_in_hierarchy(first), Some(true));
+    assert_eq!(world.active_in_hierarchy(second), Some(false));
+    assert_eq!(
+        world
+            .nodes()
+            .iter()
+            .find(|node| node.id == first)
+            .unwrap()
+            .parent,
+        None
+    );
+    assert_eq!(
+        world
+            .nodes()
+            .iter()
+            .find(|node| node.id == second)
+            .unwrap()
+            .parent,
+        Some(first)
+    );
+
+    let diagnostics = world.ecs_frame_performance_diagnostics().derived_state;
+    assert_eq!(diagnostics.active_propagation_entities, 2);
+    assert_eq!(diagnostics.world_matrix_propagation_entities, 2);
+    assert_eq!(diagnostics.node_cache_rebuilt_entities, 2);
+}
+
+#[test]
+fn raw_three_node_cycle_repair_breaks_the_first_stable_edge_only() {
+    let mut world = World::new();
+    let first = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let second = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let third = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    world.set_parent_checked(first, Some(second)).unwrap();
+    world.set_parent_checked(second, Some(third)).unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    world.get_mut::<Hierarchy>(third).unwrap().parent = Some(first);
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    assert_eq!(world.find_node(first).unwrap().parent, None);
+    assert_eq!(world.find_node(second).unwrap().parent, Some(third));
+    assert_eq!(world.find_node(third).unwrap().parent, Some(first));
+}
+
+#[test]
+fn raw_self_cycle_repair_preserves_an_earlier_descendant_attachment() {
+    let mut world = World::empty();
+    let descendant = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let cycle_owner = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    world
+        .update_transform(
+            descendant,
+            Transform::from_translation(Vec3::new(4.0, 0.0, 0.0)),
+        )
+        .unwrap();
+    world
+        .update_transform(
+            cycle_owner,
+            Transform::from_translation(Vec3::new(3.0, 0.0, 0.0)),
+        )
+        .unwrap();
+    world
+        .set_parent_checked(descendant, Some(cycle_owner))
+        .unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    world.get_mut::<Hierarchy>(cycle_owner).unwrap().parent = Some(cycle_owner);
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    assert_eq!(world.find_node(cycle_owner).unwrap().parent, None);
+    assert_eq!(
+        world.find_node(descendant).unwrap().parent,
+        Some(cycle_owner)
+    );
+    assert_eq!(
+        world.world_transform(descendant).unwrap().translation,
+        Vec3::new(7.0, 0.0, 0.0)
+    );
+    assert_eq!(
+        world
+            .nodes()
+            .iter()
+            .find(|node| node.id == descendant)
+            .unwrap()
+            .parent,
+        Some(cycle_owner)
+    );
+}
+
+#[test]
+fn deserialized_world_rebuilds_node_cache_before_incremental_reparent_projection() {
+    let mut world = World::new();
+    let parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    world
+        .update_transform(
+            parent,
+            Transform::from_translation(Vec3::new(3.0, 0.0, 0.0)),
+        )
+        .unwrap();
+    world
+        .update_transform(child, Transform::from_translation(Vec3::new(4.0, 0.0, 0.0)))
+        .unwrap();
+    assert!(world.set_active_self(parent, false).unwrap());
+    world.set_parent_checked(child, Some(parent)).unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    let serialized = serde_json::to_string(&world).unwrap();
+    let mut restored: World = serde_json::from_str(&serialized).unwrap();
+    restored.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+    assert_eq!(
+        restored.world_transform(child).unwrap().translation,
+        Vec3::new(7.0, 0.0, 0.0)
+    );
+    assert_eq!(restored.active_in_hierarchy(child), Some(false));
+
+    restored.reset_ecs_frame_performance_diagnostics();
+    restored.set_parent_checked(child, None).unwrap();
+    restored.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    assert_eq!(
+        restored.world_transform(child).unwrap().translation,
+        Vec3::new(4.0, 0.0, 0.0)
+    );
+    assert_eq!(restored.active_in_hierarchy(child), Some(true));
+    assert_eq!(
+        restored
+            .nodes()
+            .iter()
+            .find(|node| node.id == child)
+            .unwrap()
+            .parent,
+        None
+    );
+
+    let diagnostics = restored.ecs_frame_performance_diagnostics().derived_state;
+    assert_eq!(diagnostics.hierarchy_parent_snapshot_entities, 0);
+    assert_eq!(diagnostics.hierarchy_validity_entities, 0);
+    assert_eq!(diagnostics.hierarchy_topology_rebuild_entities, 0);
+    assert_eq!(diagnostics.active_propagation_entities, 1);
+    assert_eq!(diagnostics.world_matrix_propagation_entities, 1);
+    assert_eq!(diagnostics.node_cache_rebuilt_entities, 1);
+}
+
+#[test]
+fn checked_reparent_and_removal_preserve_stable_subtree_order() {
+    let mut world = World::empty();
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let first = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let second = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let unrelated_root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    world.set_parent_checked(first, Some(root)).unwrap();
+    world.set_parent_checked(second, Some(root)).unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+
+    assert_eq!(
+        world
+            .subtree_records(root)
+            .into_iter()
+            .map(|record| record.id)
+            .collect::<Vec<_>>(),
+        vec![root, first, second]
+    );
+
+    world.set_parent_checked(first, None).unwrap();
+    world.set_parent_checked(first, Some(root)).unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+    assert_eq!(
+        world
+            .subtree_records(root)
+            .into_iter()
+            .map(|record| record.id)
+            .collect::<Vec<_>>(),
+        vec![root, first, second]
+    );
+
+    world.remove_entity(first).unwrap();
+    world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
+    assert_eq!(
+        world
+            .subtree_records(root)
+            .into_iter()
+            .map(|record| record.id)
+            .collect::<Vec<_>>(),
+        vec![root, second]
+    );
+    assert_eq!(world.subtree_records(unrelated_root)[0].id, unrelated_root);
+}
+
+#[test]
 fn active_hierarchy_propagates_inactive_and_reactivated_ancestors() {
     let mut world = World::new();
-    let root = world.spawn_node(NodeKind::Cube);
-    let middle = world.spawn_node(NodeKind::Cube);
-    let leaf = world.spawn_node(NodeKind::Mesh);
+    let root = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let middle = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let leaf = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(middle, Some(root)).unwrap();
     world.set_parent_checked(leaf, Some(middle)).unwrap();
     world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
@@ -136,11 +398,13 @@ fn post_update_propagates_large_hierarchy_transform_and_active_state() {
     let mut world = World::new();
     let mut entities = Vec::with_capacity(LARGE_HIERARCHY_NODE_COUNT);
     for index in 0..LARGE_HIERARCHY_NODE_COUNT {
-        let entity = world.spawn_node(if index + 1 == LARGE_HIERARCHY_NODE_COUNT {
-            NodeKind::Mesh
-        } else {
-            NodeKind::Cube
-        });
+        let entity = world
+            .spawn_node(if index + 1 == LARGE_HIERARCHY_NODE_COUNT {
+                NodeKind::Mesh
+            } else {
+                NodeKind::Cube
+            })
+            .expect("test scene spawn should succeed");
         world
             .update_transform(
                 entity,
@@ -175,8 +439,12 @@ fn post_update_propagates_large_hierarchy_transform_and_active_state() {
 #[test]
 fn mobility_changes_refresh_visibility_buckets_without_transform_rebuild() {
     let mut world = World::new();
-    let parent = world.spawn_node(NodeKind::Cube);
-    let mesh = world.spawn_node(NodeKind::Mesh);
+    let parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let mesh = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
 
     assert!(world.set_mobility(mesh, Mobility::Static).unwrap());

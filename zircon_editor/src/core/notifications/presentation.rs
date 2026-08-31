@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -36,6 +37,7 @@ pub struct LocalizedDecisionNotification {
     source: NotificationSource,
     title: Arc<str>,
     message: Arc<str>,
+    display_subject: Option<Arc<str>>,
     options: Vec<LocalizedDecisionOption>,
     default_option: Option<DecisionOptionId>,
     cancel_option: Option<DecisionOptionId>,
@@ -65,6 +67,11 @@ impl LocalizedDecisionNotification {
 
     pub fn message(&self) -> &str {
         &self.message
+    }
+
+    /// Bounded, non-localized operator context supplied by the Decision producer.
+    pub fn display_subject(&self) -> Option<&str> {
+        self.display_subject.as_deref()
     }
 
     pub fn options(&self) -> &[LocalizedDecisionOption] {
@@ -172,6 +179,7 @@ pub fn present_decision(
         source: notification.source().clone(),
         title: i18n.translate_for_locale(&locale, notification.title_key()),
         message: format_decision_message(i18n, &locale, notification),
+        display_subject: notification.display_subject().map(Arc::from),
         options: notification
             .options()
             .iter()
@@ -191,13 +199,50 @@ fn format_decision_message(
     locale: &EditorLocale,
     notification: &super::DecisionNotification,
 ) -> Arc<str> {
-    let mut message = i18n
-        .translate_for_locale(locale, notification.message_key())
-        .to_string();
-    for (name, value) in notification.message_arguments() {
-        message = message.replace(&format!("{{{name}}}"), &value.to_string());
+    format_decision_message_template(
+        i18n.translate_for_locale(locale, notification.message_key()),
+        |name| {
+            notification
+                .message_arguments()
+                .find_map(|(argument_name, value)| (argument_name == name).then_some(value))
+        },
+    )
+}
+
+fn format_decision_message_template(
+    template: Arc<str>,
+    mut argument_value: impl FnMut(&str) -> Option<u64>,
+) -> Arc<str> {
+    let mut output = None::<String>;
+    let mut copied_until = 0;
+    let mut scan_from = 0;
+    while let Some(relative_open) = template[scan_from..].find('{') {
+        let open = scan_from + relative_open;
+        let name_start = open + 1;
+        let Some(relative_close) = template[name_start..].find('}') else {
+            break;
+        };
+        let close = name_start + relative_close;
+        let name = &template[name_start..close];
+        if let Some(value) = argument_value(name) {
+            let output = output
+                .get_or_insert_with(|| String::with_capacity(template.len().saturating_add(20)));
+            output.push_str(&template[copied_until..open]);
+            write!(output, "{value}").expect("writing to String cannot fail");
+            copied_until = close + 1;
+            scan_from = close + 1;
+        } else {
+            // An unknown outer brace may still contain a known placeholder, as in
+            // `{{count}}`; keep looking from the byte after this opening brace.
+            scan_from = name_start;
+        }
     }
-    Arc::from(message)
+
+    let Some(mut output) = output else {
+        return template;
+    };
+    output.push_str(&template[copied_until..]);
+    Arc::from(output)
 }
 
 /// Resolves toast text without changing expiry, severity, or notification identity.
@@ -239,4 +284,86 @@ fn captured_locale(i18n: &EditorI18nService) -> EditorLocale {
     #[cfg(test)]
     i18n.run_after_locale_capture_hook();
     locale
+}
+
+#[cfg(test)]
+mod tests {
+    use std::hint::black_box;
+    use std::sync::Arc;
+    use std::time::Instant;
+
+    use super::format_decision_message_template;
+
+    #[test]
+    fn decision_message_template_reuses_unmodified_translation_storage() {
+        let without_arguments: Arc<str> = Arc::from("No pending work.");
+        let projected = format_decision_message_template(Arc::clone(&without_arguments), |_| None);
+        assert!(Arc::ptr_eq(&without_arguments, &projected));
+
+        let without_matching_placeholder: Arc<str> = Arc::from("Keep {unknown} intact.");
+        let projected =
+            format_decision_message_template(Arc::clone(&without_matching_placeholder), |name| {
+                (name == "pending_count").then_some(2)
+            });
+        assert!(Arc::ptr_eq(&without_matching_placeholder, &projected));
+    }
+
+    #[test]
+    fn decision_message_template_formats_repeated_values_and_preserves_unknown_placeholders() {
+        let projected = format_decision_message_template(
+            Arc::from("{count} queued, {count} total; keep {unknown}; nested {{count}}."),
+            |name| (name == "count").then_some(42),
+        );
+
+        assert_eq!(
+            projected.as_ref(),
+            "42 queued, 42 total; keep {unknown}; nested {42}."
+        );
+    }
+
+    #[test]
+    #[ignore = "managed release performance evidence"]
+    fn optimization_wave_20260825_editor10_message_template_evidence() {
+        const PROJECTIONS: usize = 100_000;
+        const ARGUMENT_COUNT: usize = 8;
+        const MAX_ELAPSED_NS: u128 = 3_000_000_000;
+        const ARGUMENTS: [(&str, u64); ARGUMENT_COUNT] = [
+            ("one", 1),
+            ("two", 2),
+            ("three", 3),
+            ("four", 4),
+            ("five", 5),
+            ("six", 6),
+            ("seven", 7),
+            ("eight", 8),
+        ];
+
+        let template: Arc<str> =
+            Arc::from("{one}/{two}/{three}/{four}/{five}/{six}/{seven}/{eight}: {unknown}");
+        let started = Instant::now();
+        for _ in 0..PROJECTIONS {
+            black_box(format_decision_message_template(
+                Arc::clone(&template),
+                |name| {
+                    ARGUMENTS.iter().find_map(|(argument_name, value)| {
+                        (*argument_name == name).then_some(*value)
+                    })
+                },
+            ));
+        }
+        let elapsed_ns = started.elapsed().as_nanos();
+        let legacy_full_template_passes = PROJECTIONS * ARGUMENT_COUNT;
+        let optimized_template_passes = PROJECTIONS;
+        let pass_reduction_bps = legacy_full_template_passes
+            .saturating_sub(optimized_template_passes)
+            .saturating_mul(10_000)
+            / legacy_full_template_passes;
+
+        println!(
+            "EDITOR_DECISION_MESSAGE_FORMAT_BENCH_V1 projections={PROJECTIONS} arguments={ARGUMENT_COUNT} legacy_full_template_passes={legacy_full_template_passes} optimized_template_passes={optimized_template_passes} pass_reduction_bps={pass_reduction_bps} elapsed_ns={elapsed_ns} max_elapsed_ns={MAX_ELAPSED_NS}"
+        );
+
+        assert_eq!(pass_reduction_bps, 8_750);
+        assert!(elapsed_ns <= MAX_ELAPSED_NS);
+    }
 }

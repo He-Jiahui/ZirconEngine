@@ -1,10 +1,11 @@
 use std::sync::OnceLock;
 
-use crate::core::framework::render::{
+use crate::core::framework::render::PostProcessGraphResourceNames;
+use crate::graphics::shader::invocation::{
     ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef, FullscreenPassBuilder,
-    FullscreenPassPlan, FullscreenShaderRef, PostProcessGraphResourceNames,
-    RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind, ShaderDispatchExtent,
-    ShaderResourceAccess, ShaderResourceDescriptor, ShaderResourceKind,
+    FullscreenPassPlan, FullscreenShaderRef, RenderShaderEntryPointDescriptor, RenderShaderStage,
+    ShaderAssetKind, ShaderDispatchExtent, ShaderResourceAccess, ShaderResourceDescriptor,
+    ShaderResourceKind,
 };
 
 pub(crate) const HZB_BUILD_PIPELINE_LABEL: &str = "zircon-hzb-build-pipeline";
@@ -121,9 +122,9 @@ fn resource(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        ShaderDispatchExtent, ShaderResourceAccess, ShaderResourceKind,
         COMPUTE_SHADER_PARAMS_BINDING, FULLSCREEN_PASS_INPUT_GROUP,
-        FULLSCREEN_TRIANGLE_VERTEX_ENTRY,
+        FULLSCREEN_TRIANGLE_VERTEX_ENTRY, ShaderDispatchExtent, ShaderResourceAccess,
+        ShaderResourceKind,
     };
 
     use super::*;
@@ -182,7 +183,7 @@ mod tests {
         assert_eq!(
             plan.parameters.get(MOTION_VECTOR_TILE_SPAN_PARAMETER),
             Some(
-                &crate::core::framework::render::ShaderParameterValue::Vec4 {
+                &crate::graphics::shader::invocation::ShaderParameterValue::Vec4 {
                     value: [2.0, 2.0, 0.0, 0.0],
                 }
             )

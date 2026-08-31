@@ -1,5 +1,5 @@
-use crate::scene::components::{CameraComponent, MeshRenderer, Mobility, RenderLayerMask};
 use crate::scene::World;
+use crate::scene::components::{CameraComponent, MeshRenderer, Mobility, RenderLayerMask};
 
 #[test]
 fn persistent_scene_render_components_use_generic_storage_across_clone_serde_and_records() {

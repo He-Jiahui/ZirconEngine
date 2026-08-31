@@ -319,6 +319,85 @@ fn ui_layout_engine_selection_report_tracks_taffy_tree_build_stats() {
 }
 
 #[test]
+fn ui_layout_engine_selection_report_replacement_matches_full_recompute() {
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
+    let zircon = UiLayoutEngineCapability::zircon();
+    let initial = UiLayoutEngineSelection::select(
+        &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex),
+        &taffy,
+        &zircon,
+    )
+    .with_node_id(crate::ui::event_ui::UiNodeId::new(17));
+    let replacement = UiLayoutEngineSelection::select(
+        &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
+        &taffy,
+        &zircon,
+    )
+    .with_node_id(crate::ui::event_ui::UiNodeId::new(17));
+
+    let mut incrementally_replaced = UiLayoutEngineSelectionReport::from_selections(vec![initial]);
+    assert!(incrementally_replaced.replace_selection_at(0, replacement.clone()));
+
+    let fully_recomputed = UiLayoutEngineSelectionReport::from_selections(vec![replacement]);
+    assert_eq!(incrementally_replaced, fully_recomputed);
+}
+
+#[test]
+fn ui_layout_engine_selection_report_clone_retains_the_previous_segmented_snapshot() {
+    let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
+    let zircon = UiLayoutEngineCapability::zircon();
+    let selections = (0..129)
+        .map(|index| {
+            UiLayoutEngineSelection::select(
+                &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex),
+                &taffy,
+                &zircon,
+            )
+            .with_node_id(crate::ui::event_ui::UiNodeId::new(index + 1))
+        })
+        .collect();
+    let mut current = UiLayoutEngineSelectionReport::from_selections(selections);
+    let published = current.clone();
+    let replacement = UiLayoutEngineSelection::select(
+        &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
+        &taffy,
+        &zircon,
+    )
+    .with_node_id(crate::ui::event_ui::UiNodeId::new(65));
+
+    let cow_stats = current
+        .replace_selection_at_with_cow_stats(64, replacement)
+        .expect("the retained route index should remain valid");
+
+    assert_eq!(published.selections.segment_count(), 3);
+    assert_eq!(current.selections.segment_count(), 3);
+    assert_eq!(cow_stats.cloned_item_count, 64);
+    assert_eq!(cow_stats.cloned_segment_count, 1);
+    assert_eq!(
+        cow_stats.cloned_directory_node_count,
+        current.selections.directory_depth() as usize
+    );
+    assert_eq!(
+        published.selections[64].request.family,
+        UiLayoutEngineFamily::Flex
+    );
+    assert_eq!(
+        current.selections[64].request.family,
+        UiLayoutEngineFamily::Overlay
+    );
+    assert_eq!(published.selections[63], current.selections[63]);
+    assert_eq!(published.selections[65], current.selections[65]);
+    assert_eq!(published.request_count, current.request_count);
+    assert_eq!(
+        serde_json::to_value(&current).unwrap()["selections"]
+            .as_array()
+            .unwrap()
+            .len(),
+        129
+    );
+}
+
+#[test]
 fn ui_layout_engine_selection_report_counts_unsupported_routes_separately() {
     let preferred = UiLayoutEngineCapability {
         backend: UiLayoutEngineBackend::Taffy,

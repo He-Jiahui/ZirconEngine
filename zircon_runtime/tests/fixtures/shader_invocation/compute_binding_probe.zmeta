@@ -1,0 +1,27 @@
+format_version = 7
+uuid = "60f7b2a1-1149-4c80-8c91-6ddcbe0a2a10"
+url = "res://shader_invocation/compute_binding_probe"
+asset_kind = "Shader"
+unit = "compound"
+included_files = [
+    "res://shader_invocation/compute_binding_probe/compute_binding_probe.zshader",
+    "res://shader_invocation/compute_binding_probe/compute_binding_probe.wgsl",
+]
+importer_id = "zircon.builtin.shader.zshader_package"
+preview_state = "ready"
+importer_version = 1
+
+[[entries]]
+uuid = "60f7b2a1-1149-4c80-8c91-6ddcbe0a2a10"
+url = "res://shader_invocation/compute_binding_probe"
+asset_kind = "Shader"
+
+[[entries]]
+uuid = "b85a0bd2-3fa9-4b51-9808-4dce9a69dd51"
+url = "res://shader_invocation/compute_binding_probe#zshader:compute_binding_probe.zshader"
+asset_kind = "Data"
+
+[[entries]]
+uuid = "74a691c7-6ddb-4f39-a3d5-287d52b50941"
+url = "res://shader_invocation/compute_binding_probe#wgsl:compute_binding_probe.wgsl"
+asset_kind = "Data"

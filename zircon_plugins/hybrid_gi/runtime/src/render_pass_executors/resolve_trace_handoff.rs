@@ -1,7 +1,9 @@
 use bytemuck::{Pod, Zeroable};
-use wgpu::util::DeviceExt;
 use zircon_runtime::core::framework::render::RenderHybridGiDebugView;
-use zircon_runtime::graphics::{RenderPassExecutionContext, RenderPassGpuExecutionContext};
+use zircon_runtime::graphics::{
+    FrameHistorySlot, RenderPassExecutionContext, RenderPassGpuNativeContext,
+    RenderPassGpuResourceFactory,
+};
 use zircon_runtime::render_graph::RenderGraphResourceAccessKind;
 use zircon_runtime::rhi::TextureFormat;
 
@@ -61,12 +63,10 @@ pub(super) fn record_resolve_trace_handoff(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     let gpu = context.require_gpu()?;
-    let hybrid_gi_trace_buffer = gpu
-        .require_buffer(
-            HYBRID_GI_TRACE_RESOURCE,
-            RenderGraphResourceAccessKind::Read,
-        )?
-        .clone();
+    let hybrid_gi_trace_buffer = gpu.require_buffer_binding(
+        HYBRID_GI_TRACE_RESOURCE,
+        RenderGraphResourceAccessKind::Read,
+    )?;
     let scene_velocity_view = gpu
         .require_texture_view(SCENE_VELOCITY_RESOURCE, RenderGraphResourceAccessKind::Read)?
         .clone();
@@ -125,16 +125,15 @@ pub(super) fn record_resolve_trace_handoff(
         gpu.hybrid_gi_history_available(),
         debug_view,
     );
-    let params_buffer = gpu
-        .device
-        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("zircon-hybrid-gi-temporal-resolve-params"),
-            contents: bytemuck::bytes_of(&params),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
+    let mut native = gpu.native_context();
+    let params_buffer = native.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("zircon-hybrid-gi-temporal-resolve-params"),
+        contents: bytemuck::bytes_of(&params),
+        usage: wgpu::BufferUsages::UNIFORM,
+    });
     encode_resolve_trace_handoff(
-        gpu,
-        &hybrid_gi_trace_buffer,
+        &mut native,
+        hybrid_gi_trace_buffer,
         &scene_velocity_view,
         &history_view,
         &temporal_metadata_history_view,
@@ -144,12 +143,15 @@ pub(super) fn record_resolve_trace_handoff(
         lighting_format,
         temporal_metadata_format,
         lighting_sample_count,
-    )
+    )?;
+    drop(native);
+    gpu.record_frame_history_write(FrameHistorySlot::GlobalIllumination);
+    Ok(())
 }
 
 fn encode_resolve_trace_handoff(
-    gpu: &mut RenderPassGpuExecutionContext<'_>,
-    hybrid_gi_trace_buffer: &wgpu::Buffer,
+    native: &mut RenderPassGpuNativeContext<'_, '_>,
+    hybrid_gi_trace_buffer: wgpu::BufferBinding<'_>,
     scene_velocity_view: &wgpu::TextureView,
     history_view: &wgpu::TextureView,
     temporal_metadata_history_view: &wgpu::TextureView,
@@ -160,16 +162,16 @@ fn encode_resolve_trace_handoff(
     temporal_metadata_format: wgpu::TextureFormat,
     lighting_sample_count: u32,
 ) -> Result<(), String> {
-    let bind_group_layout = create_resolve_trace_bind_group_layout(gpu.device);
+    let bind_group_layout = create_resolve_trace_bind_group_layout(native);
     let pipeline = create_resolve_trace_pipeline(
-        gpu.device,
+        native,
         &bind_group_layout,
         lighting_format,
         temporal_metadata_format,
         lighting_sample_count,
     );
     let bind_group = create_resolve_trace_bind_group(
-        gpu.device,
+        native,
         &bind_group_layout,
         hybrid_gi_trace_buffer,
         scene_velocity_view,
@@ -177,17 +179,19 @@ fn encode_resolve_trace_handoff(
         temporal_metadata_history_view,
         params_buffer,
     );
-    let mut pass = gpu.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some("HybridGiResolveTraceDepthSourcePass"),
-        color_attachments: &[
-            Some(resolve_color_attachment(lighting_view)),
-            Some(resolve_color_attachment(temporal_metadata_view)),
-        ],
-        depth_stencil_attachment: None,
-        timestamp_writes: None,
-        occlusion_query_set: None,
-        multiview_mask: None,
-    });
+    let mut pass = native
+        .encoder
+        .begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("HybridGiResolveTraceDepthSourcePass"),
+            color_attachments: &[
+                Some(resolve_color_attachment(lighting_view)),
+                Some(resolve_color_attachment(temporal_metadata_view)),
+            ],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+            multiview_mask: None,
+        });
     pass.set_pipeline(&pipeline);
     pass.set_bind_group(0, &bind_group, &[]);
     pass.draw(0..3, 0..1);
@@ -206,8 +210,10 @@ fn resolve_color_attachment(view: &wgpu::TextureView) -> wgpu::RenderPassColorAt
     }
 }
 
-fn create_resolve_trace_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+fn create_resolve_trace_bind_group_layout(
+    factory: &impl RenderPassGpuResourceFactory,
+) -> wgpu::BindGroupLayout {
+    factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-hybrid-gi-resolve-trace-bind-group-layout"),
         entries: &[
             wgpu::BindGroupLayoutEntry {
@@ -251,24 +257,24 @@ fn texture_layout_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
 }
 
 fn create_resolve_trace_pipeline(
-    device: &wgpu::Device,
+    factory: &impl RenderPassGpuResourceFactory,
     bind_group_layout: &wgpu::BindGroupLayout,
     lighting_format: wgpu::TextureFormat,
     temporal_metadata_format: wgpu::TextureFormat,
     lighting_sample_count: u32,
 ) -> wgpu::RenderPipeline {
-    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+    let shader_module = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("zircon-hybrid-gi-resolve-trace-shader"),
         source: wgpu::ShaderSource::Wgsl(
             include_str!("../hybrid_gi/renderer/shaders/resolve_trace_depth_source.wgsl").into(),
         ),
     });
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+    let pipeline_layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("zircon-hybrid-gi-resolve-trace-pipeline-layout"),
         bind_group_layouts: &[Some(bind_group_layout)],
         immediate_size: 0,
     });
-    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+    factory.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(HYBRID_GI_RESOLVE_TRACE_PIPELINE_LABEL),
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
@@ -306,21 +312,21 @@ fn resolve_color_target(format: wgpu::TextureFormat) -> wgpu::ColorTargetState {
 }
 
 fn create_resolve_trace_bind_group(
-    device: &wgpu::Device,
+    factory: &impl RenderPassGpuResourceFactory,
     bind_group_layout: &wgpu::BindGroupLayout,
-    hybrid_gi_trace_buffer: &wgpu::Buffer,
+    hybrid_gi_trace_buffer: wgpu::BufferBinding<'_>,
     scene_velocity_view: &wgpu::TextureView,
     history_view: &wgpu::TextureView,
     temporal_metadata_history_view: &wgpu::TextureView,
     params_buffer: &wgpu::Buffer,
 ) -> wgpu::BindGroup {
-    device.create_bind_group(&wgpu::BindGroupDescriptor {
+    factory.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-hybrid-gi-resolve-trace-bind-group"),
         layout: bind_group_layout,
         entries: &[
             wgpu::BindGroupEntry {
                 binding: 0,
-                resource: hybrid_gi_trace_buffer.as_entire_binding(),
+                resource: wgpu::BindingResource::Buffer(hybrid_gi_trace_buffer),
             },
             wgpu::BindGroupEntry {
                 binding: 1,

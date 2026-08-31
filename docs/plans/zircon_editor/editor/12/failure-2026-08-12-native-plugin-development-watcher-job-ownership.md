@@ -63,16 +63,40 @@ ticket, cancellation, shutdown, or diagnostic ownership, and `Drop` can wait for
   Runtime11 blocking-I/O stream owner.
 - Do not preserve a compatibility facade that keeps both the old watcher thread and the canonical job lifecycle.
 
+## 2026-08-29 current-source architecture recheck
+
+- Current `development_watch.rs` still owns a `sync_channel(1)`, an `AtomicBool`, a named
+  `std::thread::JoinHandle`, a 350 ms blocking debounce loop, and a synchronous `Drop::join`.
+  The only concurrent drift in that file is the already-applied native-plugin module path hard cut;
+  this repair preserves that current blob instead of replaying the historical file.
+- The current `EditorJobSystem` already owns bounded admission, cancellation, mutex groups, ticket
+  completion, shutdown, progress, and event diagnostics. Adding another watcher worker would leave
+  two scheduling authorities and keep UI teardown coupled to a foreign thread.
+- Unreal's `IDirectoryWatcher` exposes change callbacks plus an editor-driven `Tick`; `HotReload.cpp`
+  records changed binaries in the watcher callback and performs the reload decision from the hot
+  reload ticker. The relevant architectural rule is that the watcher publishes change facts while
+  the editor scheduler owns execution and teardown.
+- Zircon will therefore keep exactly one latest-change timestamp and at most one canonical job
+  ticket per watched plugin. Retained Host tick consumes a due timestamp after the debounce window,
+  submits one background `EditorJob` in the global native-plugin reload mutex group, and polls its
+  ticket without blocking. Changes arriving while a job is pending or running overwrite the single
+  timestamp and schedule at most one later reload.
+- Watch removal drops the OS watcher and cancels the current ticket token without waiting. There is
+  no retained-host join, private channel, private executor, delayed worker sleep, or compatibility
+  path. The weak native-host handle remains the terminal host-disappearance guard.
+
 ## 修复结果与回传
 
-Open state: `Editor12 plugin watcher ownership repair is required; no migration, Cargo validation, or fixed return
-is claimed.`
+Open state: `source hard cut complete / static contracts green / managed Rust and product evidence pending`.
+The private watcher worker has been removed from current source. The handoff remains `open` until the immutable
+managed Rust gate and independent review are recorded; no `fixed-*` return is claimed yet.
 
 ## 产出记录与时间
 
 | 时间 | 状态 | 完成项目 | 证据 |
 |---|---|---|---|
 | 2026-08-12 | `open / Editor14-forward-handoff-recorded` | Complete production-source audit identified the native plugin development watcher as a raw-worker owner after the profile writer repair. | `development_watch.rs:59-135`; this record is the canonical Editor12 fixing artifact. No source mutation or validation is claimed. |
+| 2026-08-29 | `source_complete / static_green / managed_validation_pending` | Hard-cut `sync_channel(1)`, `AtomicBool`, private `JoinHandle`, blocking debounce worker, and `Drop::join`. Exact artifact events now overwrite one timestamp and signal the Host wake edge; retained tick merges the 350 ms due time with the project heartbeat, submits one background Compile ticket through `EditorJobSystem`, polls completion, and cancels without waiting. Native reload jobs share one global mutex group and keep the weak-host terminal guard. | Current-source owner scan: `EditorJobSystem=1`, `JobTicket<String>=1`, `changed_at` slot=1, ticket slot=1; production `std::thread`/`JoinHandle`/`sync_channel`/`RecvTimeoutError`/`.join()` all zero. Constructor inventory 2/2 and backend impl inventory 3/3 migrated; scoped rustfmt and diff whitespace pass. Managed Cargo/product and independent review remain pending, so this Failure stays open. |
 
 ## 2026-08-27 module-root ownership anchor repair
 

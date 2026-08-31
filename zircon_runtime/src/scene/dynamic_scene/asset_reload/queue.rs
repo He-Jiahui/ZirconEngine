@@ -12,7 +12,7 @@ use crate::{
         facade::AssetEventPoll, project::ProjectManager,
     },
     core::{
-        JobScheduler,
+        JobScheduler, TaskGraphScope,
         framework::channel::{ChannelReceiver, ChannelWakeCallback},
         resource::ResourceManager,
     },
@@ -62,6 +62,7 @@ pub struct DynamicSceneAssetReloadQueue {
     resource_manager: ResourceManager,
     events: AssetEventReceiver<SceneAsset>,
     runtime_frame_wake_token: Option<ChannelReceiver<()>>,
+    task_graph_scope: Option<TaskGraphScope>,
     carried_event: Option<AssetEventPoll<SceneAsset>>,
     reconciliation: Option<DynamicSceneAssetReloadReconciliation>,
     pending: HashMap<AssetId, DynamicSceneAssetReloadTask>,
@@ -128,6 +129,7 @@ impl DynamicSceneAssetReloadQueue {
             resource_manager,
             events,
             runtime_frame_wake_token: None,
+            task_graph_scope: None,
             carried_event: None,
             reconciliation: None,
             pending: HashMap::new(),
@@ -170,6 +172,11 @@ impl DynamicSceneAssetReloadQueue {
             asset_manager.resource_manager(),
             limits,
         )
+    }
+
+    pub(crate) fn with_task_graph_scope(mut self, task_graph_scope: TaskGraphScope) -> Self {
+        self.task_graph_scope = Some(task_graph_scope);
+        self
     }
 
     pub(crate) fn install_runtime_frame_wake(&mut self, wake: ChannelWakeCallback) {

@@ -21,8 +21,10 @@ mod tests {
         assert!(OIT_DRAW_SHADER_SOURCE.contains("pack4x8unorm"));
         assert!(OIT_DRAW_SHADER_SOURCE.contains("bitcast<u32>(position.z)"));
         assert!(OIT_DRAW_SHADER_SOURCE.contains("physical_pixel - origin"));
-        assert!(OIT_DRAW_SHADER_SOURCE
-            .contains("@group(4) @binding(0) var<storage, read_write> oit_layers"));
+        assert!(
+            OIT_DRAW_SHADER_SOURCE
+                .contains("@group(4) @binding(0) var<storage, read_write> oit_layers")
+        );
         assert!(!OIT_DRAW_SHADER_SOURCE.contains("@group(3)"));
     }
 
@@ -38,7 +40,8 @@ mod tests {
     fn oit_fragment_store_clears_only_the_atomic_count_buffer() {
         let source = include_str!("executors.rs");
 
-        assert!(source.contains("clear_buffer(&counts, 0, None)"));
+        assert!(source.contains("clear_buffer(\n            counts.buffer,"));
+        assert!(source.contains("counts.size.map(std::num::NonZeroU64::get)"));
         assert!(!source.contains("clear_buffer(&layers, 0, None)"));
     }
 }

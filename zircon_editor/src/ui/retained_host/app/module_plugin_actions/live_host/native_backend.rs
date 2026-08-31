@@ -3,27 +3,44 @@ use std::collections::BTreeMap;
 #[cfg(debug_assertions)]
 use std::sync::Mutex;
 
+use zircon_runtime::core::framework::channel::ChannelWakeCallback;
 #[cfg(debug_assertions)]
-use zircon_runtime::plugin::native::discover_native_plugins;
-use zircon_runtime::plugin::native::NativePluginHostHandle;
+use zircon_runtime::plugin::native::discovery::discover_native_plugins;
+use zircon_runtime::plugin::native::host::NativePluginHostHandle;
+
+use crate::core::jobs::EditorJobSystem;
 
 #[cfg(debug_assertions)]
 use super::development_watch::{DevelopmentPluginWatch, DevelopmentPluginWatchKey};
 use super::types::{
-    ModulePluginLiveHostBackend, ModulePluginLiveHostCommand, ModulePluginLiveHostOutcome,
-    ModulePluginLiveHostRequest,
+    ModulePluginDevelopmentWatchPoll, ModulePluginLiveHostBackend, ModulePluginLiveHostCommand,
+    ModulePluginLiveHostOutcome, ModulePluginLiveHostRequest,
 };
 
 pub(in crate::ui::retained_host::app) struct NativePluginDevelopmentLiveHostBackend {
     live_host: NativePluginHostHandle,
     #[cfg(debug_assertions)]
+    editor_jobs: EditorJobSystem,
+    #[cfg(debug_assertions)]
+    wake_host: ChannelWakeCallback,
+    #[cfg(debug_assertions)]
     development_watches: Mutex<BTreeMap<DevelopmentPluginWatchKey, DevelopmentPluginWatch>>,
 }
 
 impl NativePluginDevelopmentLiveHostBackend {
-    pub(in crate::ui::retained_host::app) fn new(live_host: NativePluginHostHandle) -> Self {
+    pub(in crate::ui::retained_host::app) fn new(
+        live_host: NativePluginHostHandle,
+        editor_jobs: EditorJobSystem,
+        wake_host: ChannelWakeCallback,
+    ) -> Self {
+        #[cfg(not(debug_assertions))]
+        let _ = (editor_jobs, wake_host);
         Self {
             live_host,
+            #[cfg(debug_assertions)]
+            editor_jobs,
+            #[cfg(debug_assertions)]
+            wake_host,
             #[cfg(debug_assertions)]
             development_watches: Mutex::new(BTreeMap::new()),
         }
@@ -44,7 +61,12 @@ impl NativePluginDevelopmentLiveHostBackend {
         if watches.contains_key(&key) {
             return Ok(false);
         }
-        let watch = DevelopmentPluginWatch::start(&self.live_host, key.clone())?;
+        let watch = DevelopmentPluginWatch::start(
+            &self.live_host,
+            self.editor_jobs.clone(),
+            self.wake_host.clone(),
+            key.clone(),
+        )?;
         replace_development_watch(&mut watches, key, watch);
         Ok(true)
     }
@@ -152,6 +174,34 @@ impl ModulePluginLiveHostBackend for NativePluginDevelopmentLiveHostBackend {
             command: request.command,
             diagnostics: outcome.diagnostics,
         })
+    }
+
+    fn poll_development_watches(&self) -> ModulePluginDevelopmentWatchPoll {
+        #[cfg(debug_assertions)]
+        {
+            let now = std::time::Instant::now();
+            let mut watches = match self.development_watches.lock() {
+                Ok(watches) => watches,
+                Err(_) => {
+                    let mut poll = ModulePluginDevelopmentWatchPoll::default();
+                    poll.push_diagnostic(
+                        "native plugin development watch registry is poisoned".to_string(),
+                    );
+                    return poll;
+                }
+            };
+            let mut aggregate = ModulePluginDevelopmentWatchPoll::default();
+            for watch in watches.values_mut() {
+                let poll = watch.poll(now);
+                if let Some(diagnostic) = poll.diagnostic {
+                    aggregate.push_diagnostic(diagnostic);
+                }
+                aggregate.include_deadline(poll.next_deadline);
+            }
+            return aggregate;
+        }
+        #[cfg(not(debug_assertions))]
+        ModulePluginDevelopmentWatchPoll::default()
     }
 }
 

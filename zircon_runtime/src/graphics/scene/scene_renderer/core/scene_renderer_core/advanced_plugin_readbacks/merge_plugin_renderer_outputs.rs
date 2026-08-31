@@ -29,23 +29,23 @@ fn merge_virtual_geometry_outputs(
     }
 
     let RenderVirtualGeometryReadbackOutputs {
-        page_table_entries,
-        completed_page_assignments,
-        page_replacements,
-        selected_clusters,
-        visbuffer64_entries,
-        hardware_rasterization_records,
+        mut page_table_entries,
+        mut completed_page_assignments,
+        mut page_replacements,
+        mut selected_clusters,
+        mut visbuffer64_entries,
+        mut hardware_rasterization_records,
         node_cluster_cull,
     } = incoming;
 
-    base.page_table_entries.extend(page_table_entries);
+    base.page_table_entries.append(&mut page_table_entries);
     base.completed_page_assignments
-        .extend(completed_page_assignments);
-    base.page_replacements.extend(page_replacements);
-    base.selected_clusters.extend(selected_clusters);
-    base.visbuffer64_entries.extend(visbuffer64_entries);
+        .append(&mut completed_page_assignments);
+    base.page_replacements.append(&mut page_replacements);
+    base.selected_clusters.append(&mut selected_clusters);
+    base.visbuffer64_entries.append(&mut visbuffer64_entries);
     base.hardware_rasterization_records
-        .extend(hardware_rasterization_records);
+        .append(&mut hardware_rasterization_records);
     append_virtual_geometry_node_cluster_cull(&mut base.node_cluster_cull, node_cluster_cull);
 }
 
@@ -54,19 +54,19 @@ fn append_virtual_geometry_node_cluster_cull(
     incoming: RenderVirtualGeometryNodeClusterCullReadbackOutputs,
 ) {
     let RenderVirtualGeometryNodeClusterCullReadbackOutputs {
-        traversal_records,
-        child_work_items,
-        cluster_work_items,
-        launch_worklist_snapshots,
-        page_request_ids,
+        mut traversal_records,
+        mut child_work_items,
+        mut cluster_work_items,
+        mut launch_worklist_snapshots,
+        mut page_request_ids,
     } = incoming;
 
-    base.traversal_records.extend(traversal_records);
-    base.child_work_items.extend(child_work_items);
-    base.cluster_work_items.extend(cluster_work_items);
+    base.traversal_records.append(&mut traversal_records);
+    base.child_work_items.append(&mut child_work_items);
+    base.cluster_work_items.append(&mut cluster_work_items);
     base.launch_worklist_snapshots
-        .extend(launch_worklist_snapshots);
-    base.page_request_ids.extend(page_request_ids);
+        .append(&mut launch_worklist_snapshots);
+    base.page_request_ids.append(&mut page_request_ids);
 }
 
 fn merge_hybrid_gi_outputs(
@@ -79,22 +79,23 @@ fn merge_hybrid_gi_outputs(
     }
 
     let RenderHybridGiReadbackOutputs {
-        cache_entries,
-        completed_probe_ids,
-        completed_trace_region_ids,
-        probe_irradiance_rgb,
-        probe_rt_lighting_rgb,
+        mut cache_entries,
+        mut completed_probe_ids,
+        mut completed_trace_region_ids,
+        mut probe_irradiance_rgb,
+        mut probe_rt_lighting_rgb,
         radiance_cache_gpu_stage_dispatch_counts,
         global_sdf_stats,
         scene_prepare,
     } = incoming;
 
-    base.cache_entries.extend(cache_entries);
-    base.completed_probe_ids.extend(completed_probe_ids);
+    base.cache_entries.append(&mut cache_entries);
+    base.completed_probe_ids.append(&mut completed_probe_ids);
     base.completed_trace_region_ids
-        .extend(completed_trace_region_ids);
-    base.probe_irradiance_rgb.extend(probe_irradiance_rgb);
-    base.probe_rt_lighting_rgb.extend(probe_rt_lighting_rgb);
+        .append(&mut completed_trace_region_ids);
+    base.probe_irradiance_rgb.append(&mut probe_irradiance_rgb);
+    base.probe_rt_lighting_rgb
+        .append(&mut probe_rt_lighting_rgb);
     for (base_count, incoming_count) in base
         .radiance_cache_gpu_stage_dispatch_counts
         .iter_mut()
@@ -113,49 +114,52 @@ fn append_hybrid_gi_scene_prepare(
     incoming: RenderHybridGiScenePrepareReadbackOutputs,
 ) {
     let RenderHybridGiScenePrepareReadbackOutputs {
-        occupied_atlas_slots,
-        occupied_capture_slots,
-        atlas_samples,
-        capture_samples,
-        surface_cache_depth_samples,
-        surface_cache_pages,
-        voxel_clipmaps,
-        voxel_clipmap_ids,
-        voxel_samples,
-        voxel_occupancy,
-        voxel_occupancy_masks,
-        voxel_cells,
-        voxel_cell_samples,
-        voxel_cell_dominant_nodes,
-        voxel_cell_dominant_samples,
-        probe_trace_tiles,
-        probe_trace_diagnostics,
+        mut occupied_atlas_slots,
+        mut occupied_capture_slots,
+        mut atlas_samples,
+        mut capture_samples,
+        mut surface_cache_depth_samples,
+        mut surface_cache_pages,
+        mut voxel_clipmaps,
+        mut voxel_clipmap_ids,
+        mut voxel_samples,
+        mut voxel_occupancy,
+        mut voxel_occupancy_masks,
+        mut voxel_cells,
+        mut voxel_cell_samples,
+        mut voxel_cell_dominant_nodes,
+        mut voxel_cell_dominant_samples,
+        mut probe_trace_tiles,
+        mut probe_trace_diagnostics,
         probe_trace_dispatch,
         texture_width,
         texture_height,
         texture_layers,
     } = incoming;
 
-    base.occupied_atlas_slots.extend(occupied_atlas_slots);
-    base.occupied_capture_slots.extend(occupied_capture_slots);
-    base.atlas_samples.extend(atlas_samples);
-    base.capture_samples.extend(capture_samples);
+    base.occupied_atlas_slots.append(&mut occupied_atlas_slots);
+    base.occupied_capture_slots
+        .append(&mut occupied_capture_slots);
+    base.atlas_samples.append(&mut atlas_samples);
+    base.capture_samples.append(&mut capture_samples);
     base.surface_cache_depth_samples
-        .extend(surface_cache_depth_samples);
-    base.surface_cache_pages.extend(surface_cache_pages);
-    base.voxel_clipmaps.extend(voxel_clipmaps);
-    base.voxel_clipmap_ids.extend(voxel_clipmap_ids);
-    base.voxel_samples.extend(voxel_samples);
-    base.voxel_occupancy.extend(voxel_occupancy);
-    base.voxel_occupancy_masks.extend(voxel_occupancy_masks);
-    base.voxel_cells.extend(voxel_cells);
-    base.voxel_cell_samples.extend(voxel_cell_samples);
+        .append(&mut surface_cache_depth_samples);
+    base.surface_cache_pages.append(&mut surface_cache_pages);
+    base.voxel_clipmaps.append(&mut voxel_clipmaps);
+    base.voxel_clipmap_ids.append(&mut voxel_clipmap_ids);
+    base.voxel_samples.append(&mut voxel_samples);
+    base.voxel_occupancy.append(&mut voxel_occupancy);
+    base.voxel_occupancy_masks
+        .append(&mut voxel_occupancy_masks);
+    base.voxel_cells.append(&mut voxel_cells);
+    base.voxel_cell_samples.append(&mut voxel_cell_samples);
     base.voxel_cell_dominant_nodes
-        .extend(voxel_cell_dominant_nodes);
+        .append(&mut voxel_cell_dominant_nodes);
     base.voxel_cell_dominant_samples
-        .extend(voxel_cell_dominant_samples);
-    base.probe_trace_tiles.extend(probe_trace_tiles);
-    base.probe_trace_diagnostics.extend(probe_trace_diagnostics);
+        .append(&mut voxel_cell_dominant_samples);
+    base.probe_trace_tiles.append(&mut probe_trace_tiles);
+    base.probe_trace_diagnostics
+        .append(&mut probe_trace_diagnostics);
     base.probe_trace_dispatch = [
         base.probe_trace_dispatch[0].max(probe_trace_dispatch[0]),
         base.probe_trace_dispatch[1].max(probe_trace_dispatch[1]),
@@ -168,6 +172,9 @@ fn append_hybrid_gi_scene_prepare(
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use super::merge_plugin_renderer_outputs;
     use crate::core::framework::render::{
         RenderHybridGiCacheEntryRecord, RenderHybridGiGlobalSdfStats,
@@ -333,5 +340,88 @@ mod tests {
 
         assert_eq!(base.particles.alive_count, 5);
         assert_eq!(base.particles.spawned_total, 5);
+    }
+
+    #[test]
+    fn optimization_batch_dp_plugin_readback_merge_uses_owned_append_paths() {
+        let source = include_str!("merge_plugin_renderer_outputs.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("plugin readback merge production source");
+        assert!(!production.contains(".extend("));
+        assert!(production.matches(".append(&mut").count() >= 25);
+    }
+
+    #[test]
+    #[ignore = "release-only alternating p95 performance gate"]
+    fn optimization_batch_dp_plugin_readback_owned_append_p95() {
+        const SAMPLE_PAIRS: usize = 17;
+        const MERGES_PER_SAMPLE: usize = 4_096;
+        const VALUES_PER_MERGE: usize = 1_024;
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample_index in 0..SAMPLE_PAIRS {
+            if sample_index % 2 == 0 {
+                legacy_samples.push(measure_owned_merge(
+                    MERGES_PER_SAMPLE,
+                    VALUES_PER_MERGE,
+                    false,
+                ));
+                optimized_samples.push(measure_owned_merge(
+                    MERGES_PER_SAMPLE,
+                    VALUES_PER_MERGE,
+                    true,
+                ));
+            } else {
+                optimized_samples.push(measure_owned_merge(
+                    MERGES_PER_SAMPLE,
+                    VALUES_PER_MERGE,
+                    true,
+                ));
+                legacy_samples.push(measure_owned_merge(
+                    MERGES_PER_SAMPLE,
+                    VALUES_PER_MERGE,
+                    false,
+                ));
+            }
+        }
+
+        let legacy_p95 = p95(&mut legacy_samples);
+        let optimized_p95 = p95(&mut optimized_samples);
+        println!(
+            "RUNTIME424_PLUGIN_READBACK_OWNED_APPEND_BENCH_V1 merges_per_sample={MERGES_PER_SAMPLE} values_per_merge={VALUES_PER_MERGE} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} ratio={:.4}",
+            optimized_p95 as f64 / legacy_p95.max(1) as f64
+        );
+        assert!(
+            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(70),
+            "plugin readback owned append p95 {optimized_p95}ns exceeded 70% of legacy {legacy_p95}ns"
+        );
+    }
+
+    fn measure_owned_merge(merge_count: usize, values_per_merge: usize, append: bool) -> u128 {
+        let started_at = Instant::now();
+        let mut checksum = 0_usize;
+        for merge_index in 0..merge_count {
+            let mut base = Vec::new();
+            let mut incoming = (0..values_per_merge)
+                .map(|value| value ^ merge_index)
+                .collect::<Vec<_>>();
+            if append {
+                base.append(&mut incoming);
+            } else {
+                base.extend(incoming);
+            }
+            checksum = checksum.wrapping_add(base.len() ^ base.capacity());
+            black_box(&base);
+        }
+        black_box(checksum);
+        started_at.elapsed().as_nanos()
+    }
+
+    fn p95(samples: &mut [u128]) -> u128 {
+        samples.sort_unstable();
+        samples[(samples.len() * 95).div_ceil(100).saturating_sub(1)]
     }
 }

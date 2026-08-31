@@ -56,15 +56,12 @@ pub(in crate::ui::retained_host::host_contract) fn build_chrome_command_stream_w
     let mut extraction =
         extract_chrome_commands(presentation, surface_size, damage, include_image_bytes);
     icon_atlas::pack_editor_icons_into_atlas(&mut extraction.commands);
-    let mut stream = if let Some(damage) = extraction.clipped_damage.clone() {
-        ChromeCommandStream::patch(surface_size, damage.clone())
-    } else {
-        ChromeCommandStream::full_rebuild(surface_size)
-    };
-    if let Some(damage) = extraction.clipped_damage {
-        stream.push_clip(ChromeCommandLayer::Dynamic, 0, damage);
-    }
-    stream.extend_commands(extraction.commands);
+    let mut stream = ChromeCommandStream::from_extracted_commands(
+        surface_size,
+        extraction.clipped_damage,
+        extraction.commands,
+        extraction.render_sources,
+    );
     stream.compact_image_resources_with_residency(is_resident);
     stream
 }

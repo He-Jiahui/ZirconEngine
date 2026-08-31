@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_app/Cargo.toml
+  - zircon_app/src/lib.rs
   - zircon_app/src/plugins/mod.rs
   - zircon_app/src/plugins/builder.rs
   - zircon_app/src/plugins/groups.rs
@@ -11,7 +12,7 @@ related_code:
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/builtin_modules.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/Cargo.toml
@@ -20,6 +21,7 @@ related_code:
   - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
   - zircon_app/src/entry/tests/builtin_engine_entry.rs
+  - zircon_app/src/entry/tests/product_host_config.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
@@ -48,6 +50,7 @@ related_code:
   - zircon_runtime/src/input/mod.rs
 implementation_files:
   - zircon_app/Cargo.toml
+  - zircon_app/src/lib.rs
   - zircon_app/src/plugins/mod.rs
   - zircon_app/src/plugins/builder.rs
   - zircon_app/src/plugins/groups.rs
@@ -56,7 +59,7 @@ implementation_files:
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/builtin_modules.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
@@ -87,6 +90,7 @@ plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
+  - docs/plans/optimize/zircon_app/01-product-host-bootstrap-loop-dynamic-runtime-shutdown-review.md
   - user: 2026-05-08 implement ZirconEngine Bevy completion roadmap M1 app composition layer
   - user: 2026-05-16 continue Bevy-style default log diagnostics and dev profile completion
   - user: 2026-05-16 continue Bevy-style platform/window/input default composition completion
@@ -103,6 +107,7 @@ tests:
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/tests/mod.rs
   - zircon_app/src/entry/tests/builtin_engine_entry.rs
+  - zircon_app/src/entry/tests/product_host_config.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - cargo test -p zircon_app --locked profile_bootstrap
   - cargo test -p zircon_app --locked --offline --jobs 1 profile_bootstrap -- --nocapture --test-threads=1
@@ -156,7 +161,7 @@ Frameworks 03 makes App composition follow the same compile-time domain vocabula
 
 ## Bootstrap Flow
 
-`BuiltinEngineEntry` still asks `builtin_modules_for_config*` to resolve project manifests, linked runtime plugin reports, native plugin reports, target mode, and optional editor module insertion. It then overlays those resolved modules onto the public built-in group for the entry profile. Existing modules replace matching group entries with `set`; extension modules that are not part of the default group are appended.
+`ProductCompositionRequest` resolves `EntryConfig` once into an immutable `ResolvedProductHostConfig` before provider lookup or module compilation, then delegates descriptor compilation to the crate-private `BuiltinEngineEntry`. `ProductRoleDescriptor` is the App-owned target-rule catalog for entry kind, runner, linkage, platform/window/input/render requirements, shutdown policy, and platform-neutral artifact target. It deliberately does not declare a second App-owned runtime-module baseline: the runtime profile, `RuntimeModuleCompositionCompiler`, and composition receipt remain the only module-set authority. Server and commandlet rules accept a desktop OS target or the explicit headless target while `ServerRuntime` selects the headless backend topology; they forbid physical window and render ownership but keep input optional because Runtime owns a `SyntheticOnly` input backend and retains `InputModule` for synthetic state. `DesktopClient` keeps host capabilities optional so the Runtime-owned `Minimal` profile remains a valid windowless utility configuration; Editor requires its retained window, input, and render hosts. The descriptor also does not prove that an artifact was built: exact files, hashes, and runtime ABI remain owned by build receipts and the Runtime BuildSet manifest. The resolved role descriptor, platform target, runtime/export profile, manifest, render/window policy, and provenance are then passed to the runtime-owned `RuntimeModuleCompositionCompiler`; App only contributes host modules such as Editor and development diagnostics.
 
 - `Runtime` and `Editor` profiles start from `DefaultPlugins`.
 - `RuntimeProfileId::Minimal` starts from `MinimalPlugins` even though it still maps to the runtime entry run mode.
@@ -165,7 +170,7 @@ Frameworks 03 makes App composition follow the same compile-time domain vocabula
 
 For every group, modules returned by project manifests, linked runtime plugin registrations, native plugin reports, and optional editor insertion replace matching entries or append when absent. Minimal membership is already fixed by `RuntimeProfileDescriptor::builtin_modules`; App does not filter a wider client baseline or discard unmatched modules after Runtime selection.
 
-Frameworks 02 moves final ordering out of the app group layer. `PluginGroupBuilder` still records the selected membership for diagnostics and replacement policy, but `BuiltinEngineEntry` hands the full descriptor set to the runtime kernel before activation. The runtime sorts by `ModuleDescriptor::init_level` and declared module dependencies, so app profiles no longer preserve a manual "list order is startup order" contract. Ordering errors stay fatal through `RuntimeModuleLoadReport`; the app must reject them instead of falling back to legacy group order.
+Frameworks 02 moves final ordering out of the app group layer. `PluginGroupBuilder` still records the selected membership for diagnostics and replacement policy, but the crate-private entry compiler hands the full descriptor set to the runtime kernel before activation. The runtime sorts by `ModuleDescriptor::init_level` and declared module dependencies, so app profiles no longer preserve a manual "list order is startup order" contract. Ordering errors stay fatal through `RuntimeModuleLoadReport`; the app must reject them instead of falling back to legacy group order.
 
 Disabled group entries are not hidden ordering anchors. `add_before(...)` and `add_after(...)` return `PluginGroupError::DisabledAnchor` when the named anchor is disabled; the caller must enable that module or express the required relation through enabled modules' descriptor dependencies. This keeps profile membership and activation authority aligned and prevents Bevy-style disabled-anchor behavior from becoming a second ordering truth.
 
@@ -181,21 +186,21 @@ Frameworks 02 M3 removes the former test-only RuntimePlugin lifecycle dispatcher
 
 Plugin packages declare metadata once through `zircon_plugin_sdk::declare_plugin!`. The resulting runtime-independent `PluginDeclaration` projects runtime-provided capability roles into `RuntimePluginDescriptor`, and projects runtime/editor roles into ABI v3 registration manifests for native packages. Checked-in `plugin.toml` files remain generated declaration snapshots for distribution; the retired `native_plugin_manifest_v3!` path is deleted rather than retained as a second metadata authority.
 
-`BuiltinEngineEntry::module_selection_report()` exposes the selected entry profile, run mode, optional runtime profile, target mode, plugin group name, platform capability diagnostics, selected window descriptor, and module descriptor counts. The report is read-only diagnostics for tooling and tests; it does not become a second bootstrap path or bypass runtime descriptor registration. `EntryModuleSelectionReport::diagnostic_lines()` and `format_diagnostics()` render the same data into stable text lines so profile/module choices can be captured in logs, CLI output, or test artifacts without reaching into the plugin builder internals. `EntryRunner::module_selection_report(...)` and `EntryRunner::module_selection_diagnostics(...)` expose the same report at the runner boundary before `CoreRuntime` bootstrap, so tools can explain a profile's module composition without registering or activating services.
+`ProductCompositionRequest::module_selection_report()` exposes the selected entry profile, run mode, optional runtime profile, target mode, resolved platform target, plugin group name, product artifact delivery state, product capability policy, platform capability diagnostics, selected window descriptor, runtime composition identity, warnings, and module descriptor counts. The report is read-only diagnostics for tooling and tests; it does not become a build receipt, a second bootstrap path, or a bypass around runtime descriptor registration. `EntryModuleSelectionReport::diagnostic_lines()` and `format_diagnostics()` render the same data into stable text lines so profile/module choices can be captured in logs, CLI output, or test artifacts without reaching into the plugin builder internals. `module_selection_report()` and `module_selection_diagnostics()` execute the same preparation path as `compose()` but stop before `CoreRuntime` activation.
 
-The provider-aware runner diagnostics mirror the provider-aware bootstrap surface: first-party, linked runtime-plugin, and linked runtime-plugin-plus-feature registration variants all construct the same `BuiltinEngineEntry` variant that their bootstrap sibling would use, but stop at the immutable report. This closes the diagnostic gap where a tool could previously inspect the base profile while the real startup path would also include linked first-party, embedded, native, or feature registration modules.
+Provider choice is carried by one request rather than parallel runner methods. A default request delegates first-party discovery to the crate-private entry catalog path; explicit plugin/feature builders replace catalog discovery for generated linked reports, and native export discovery appends its reports before the same module compile. The resulting `ProductComposition` retains the report, compiled plan, lifecycle state, Core, and optional native host together. Its Core borrow is crate-private, so public callers cannot clone Core out and release the native/plugin owners first.
 
 The editor-host live validation reran the provider-aware bootstrap build on 2026-05-25 with `cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation`; it passed with existing warning noise only.
 
-Bootstrap also stores `PlatformConfig` under `PLATFORM_CONFIG_KEY` before activation. Runtime/editor entries use the current host target and compiled platform feature snapshot, headless entries store a headless target/features selection, and `RuntimeProfileId::Minimal` stores the config as disabled because the minimal group deliberately excludes `PlatformModule`. The formatted entry diagnostics include the same platform capability lines as `zircon_runtime::platform`, including `platform.monitor_inventory`, `platform.window_events`, `platform.window_lifecycle`, `platform.window_metrics`, `platform.ime`, `platform.keyboard_events`, `platform.cursor_boundary`, `platform.cursor_options`, `platform.mouse_buttons`, `platform.mouse_wheel`, `platform.touch_events`, `platform.pointer_position`, `platform.raw_mouse_motion`, `platform.gamepad_events`, and `platform.gamepad_rumble`, so app tools can see whether the selected profile has winit monitor handles/window events/lifecycle events/window metrics/IME/keyboard events/cursor boundary/cursor-options control/mouse-button states/mouse-wheel units/touch events/pointer position/raw motion/gamepad event polling/gamepad rumble events, future browser host paths, or no physical monitor/window/metrics/text-input/keyboard-event/pointer-boundary/cursor-options/mouse-button/mouse-wheel/touch-event/pointer-position/device-motion/gamepad-event/rumble backend.
+Bootstrap also stores `PlatformConfig` under `PLATFORM_CONFIG_KEY` before activation. Non-export runtime/editor entries default to the current host target and compiled platform feature snapshot; a native server export preserves its Windows/Linux/macOS target while `ServerRuntime` selects headless backends, and an entry without an export receipt defaults Server to the explicit headless target/features selection. `RuntimeProfileId::Minimal` stores the config as disabled because the minimal group deliberately excludes `PlatformModule`. The formatted entry diagnostics include the same platform capability lines as `zircon_runtime::platform`, including `platform.monitor_inventory`, `platform.window_events`, `platform.window_lifecycle`, `platform.window_metrics`, `platform.ime`, `platform.keyboard_events`, `platform.cursor_boundary`, `platform.cursor_options`, `platform.mouse_buttons`, `platform.mouse_wheel`, `platform.touch_events`, `platform.pointer_position`, `platform.raw_mouse_motion`, `platform.gamepad_events`, and `platform.gamepad_rumble`, so app tools can see whether the selected profile has winit monitor handles/window events/lifecycle events/window metrics/IME/keyboard events/cursor boundary/cursor-options control/mouse-button states/mouse-wheel units/touch events/pointer position/raw motion/gamepad event polling/gamepad rumble events, future browser host paths, or no physical monitor/window/metrics/text-input/keyboard-event/pointer-boundary/cursor-options/mouse-button/mouse-wheel/touch-event/pointer-position/device-motion/gamepad-event/rumble backend.
 
 The same diagnostics also include `platform.gesture_events`, which keeps Bevy-style gesture event support visible even before Zircon has a gesture runtime ABI or winit forwarding path. App tooling can distinguish the default `input-gestures` feature gate from future macOS/iOS winit gesture hosts, browser gesture hosts, and headless/server unavailable topology without entering UI gesture-recognition ownership.
 
-Bootstrap stores `RenderProfileBundle` under `RENDER_PROFILE_CONFIG_KEY` with the same before/after activation policy. Runtime/editor entries default to `DefaultRender`, headless entries default to `Headless`, and callers can override the bundle through `EntryConfig::with_render_profile(...)`.
+Bootstrap stores the resolved `RenderProfileBundle` under `RENDER_PROFILE_CONFIG_KEY` with the same before/after activation policy. Runtime/editor roles default to `DefaultRender`, server defaults to `Headless`, and callers can request an override through `EntryConfig::with_render_profile(...)`; role-level required/forbidden render contradictions fail with typed capability errors during resolution.
 
-Bootstrap also stores the selected primary-window `WindowDescriptor` under `PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY` (`runtime.window.primary_descriptor`) with the same before/after activation policy. Runtime/editor entries default to the standard visible 1280x720 primary window, callers can override it through `EntryConfig::with_window_descriptor(...)`, and headless/minimal/server-target profiles record `WindowDescriptor::without_primary_window()` so diagnostics can state that no app-owned primary window should be created.
+Bootstrap also stores the resolved primary-window `WindowDescriptor` under `PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY` (`runtime.window.primary_descriptor`) with the same before/after activation policy. Runtime/editor roles default to the standard visible 1280x720 primary window; minimal/server profiles derive `WindowDescriptor::without_primary_window()`, and role-level required/forbidden window contradictions fail before module compilation.
 
-`EntryModuleSelectionReport::diagnostic_lines()` now includes the selected window descriptor beside platform diagnostics. The stable window lines report primary-window identity or `none`, title, present/window mode, position, physical/logical size, scale-factor policy, resize constraints, and visible/resizable/decorated/focused booleans. This remains read-only bootstrap diagnostics; real OS window creation is still owned by the runtime-preview app host and its `WindowDescriptor` to winit `WindowAttributes` conversion.
+`EntryModuleSelectionReport::diagnostic_lines()` includes the product role descriptor, artifact target/delivery status, config provenance, selected window descriptor, and platform diagnostics. `Runnable`, `Preview`, `ConfigurationOnly`, and `Unavailable` describe current App ownership without promoting a Cargo feature or planned target name into proof of a built product. Single-authority fields report one `ProductConfigSource`; the resolved plugin manifest reports a `ProductConfigSourceSet` because runtime-profile defaults and entry/export overlays may both contribute. Export platform provenance is retained independently from target mode. Editor subsystem selection and runtime-sandbox policy have separate provenance rows. The stable window lines report primary-window identity or `none`, title, present/window mode, position, physical/logical size, scale-factor policy, resize constraints, and visible/resizable/decorated/focused booleans. This remains read-only bootstrap diagnostics; real OS window creation is still owned by the runtime-preview app host and its `WindowDescriptor` to winit `WindowAttributes` conversion.
 
 ## Bevy Reference Alignment
 
@@ -209,17 +214,17 @@ Zircon intentionally maps that model onto module descriptors instead of Bevy `Pl
 
 ## Runtime Profile Provider Wiring
 
-`EntryConfig::for_runtime_profile(RuntimeProfileId)` maps the runtime profile contract into the app host shape. `client_2d`, `client_3d`, and `minimal` map to `EntryProfile::Runtime`; `editor` and `dev` map to `EntryProfile::Editor`; `server` maps to `EntryProfile::Headless`. The helper sets `target_mode` from `RuntimeProfileDescriptor` and projects the profile's deterministic `ProjectPluginManifest` into the entry config. `BuiltinEngineEntry` then chooses the concrete group preset, so `minimal` receives the minimal core loop instead of the full runtime default stack.
+`EntryConfig::for_runtime_profile(RuntimeProfileId)` creates a role request: `client_2d`, `client_3d`, and `minimal` map to `DesktopClient`; `editor` and `dev` map to `EditorHost`; `server` maps to `Server`. `resolve()` validates the descriptor target, projects its deterministic `ProjectPluginManifest`, and records runtime-profile provenance. `BuiltinEngineEntry` then consumes that resolved identity, so `minimal` receives the minimal core loop instead of the full runtime default stack.
 
 The runtime-preview binary has a second, narrower profile surface for dynamic cdylib sessions: `--runtime-session-profile <runtime|editor|dev|minimal|headless>` or `--runtime-session-profile=dev`. That argument is not a `PluginGroup` resolver and does not install app-side modules. It is parsed after diagnostic log startup arguments and forwarded as `ZrRuntimeSessionConfigV1.profile` so the loaded `zircon_runtime` library can select session policy internally. `-h` and `--help` list this distinction before dynamic loading, including the available session profiles and process log controls. `RuntimeProfileId::Dev` selecting `DevPlugins` remains the app bootstrap composition path; `--runtime-session-profile dev` is the dynamic runtime preview policy path. Both converge on dev diagnostics, but ownership stays split: app composition chooses module descriptors, while the runtime cdylib owns clocks, diagnostics, and diagnostic-store log cadence.
 
 `first_party_runtime_plugin_registrations_for_config` is the M2 app-owned linked provider. It inspects the enabled plugin selections for the entry target, deduplicates runtime plugin ids, and calls first-party `zircon_plugins/*/runtime::plugin_registration()` functions for the crates compiled into `zircon_app`. The default provider feature is `first-party-runtime-plugins`, which covers the non-native profile-provider set: `sound`, `rendering`, `texture`, `animation`, `net`, and `particles`. `navigation` is behind `first-party-navigation-runtime-plugin` because it builds the Recast/Detour native C++ bridge.
 
-The advanced render provider feature is intentionally separate: `first-party-advanced-render-runtime-plugins` links the `virtual_geometry`, `hybrid_gi`, and `solari` runtime provider crates. `first_party_runtime_plugin_registrations_for_config(...)` first builds the config's project manifest, then adds transient render-provider selections from `EntryConfig::render_profile` when the selected bundle contains `RenderProductFeature::VirtualGeometry`, `RenderProductFeature::HybridGlobalIllumination`, or `RenderProductFeature::Solari`. `DefaultRender` therefore does not link advanced providers, `AdvancedRender` can collect VG/HGI, and `SolariExperimental` can collect the Solari provider contract. Existing explicit manifest selections win; the render-profile helper only appends missing target-scoped selections before the normal provider-aware bootstrap path runs.
+The advanced render provider feature is intentionally separate: `first-party-advanced-render-runtime-plugins` links the `virtual_geometry`, `hybrid_gi`, and `solari` runtime provider crates. `first_party_runtime_plugin_registrations_for_config(...)` accepts only `ResolvedProductHostConfig`, then adds transient render-provider selections from its resolved render bundle when it contains `VirtualGeometry`, `HybridGlobalIllumination`, or `Solari`. `DefaultRender` therefore does not link advanced providers, while explicit manifest selections remain authoritative.
 
-`BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations` and `EntryRunner::bootstrap_with_first_party_runtime_plugin_registrations` feed those reports into the existing provider-aware bootstrap path. The matching runner diagnostics method feeds the same reports into `BuiltinEngineEntry` without bootstrapping, so command-line tools, tests, and dev diagnostics can show the real first-party/runtime-provider module set before `CoreRuntime` registration. This keeps the dependency direction explicit: `zircon_app` may link `zircon_plugins`, but `zircon_runtime` receives only `RuntimePluginRegistrationReport` values and never imports plugin implementation crates.
+`ProductCompositionRequest::new(...)` uses the first-party catalog by default, while its explicit registration builders are the generated/export boundary. Report-only and full composition calls share the same private preparation transaction, so command-line tools, tests, and dev diagnostics inspect the exact provider selection that Core would consume. This keeps the dependency direction explicit: `zircon_app` may link `zircon_plugins`, but `zircon_runtime` receives only `RuntimePluginRegistrationReport` values and never imports plugin implementation crates.
 
-The editor-host live build uses the same provider-aware profile boundary. `zircon_runtime/src/lib.rs` exposes the manifest-specific runtime-profile module helper APIs from the crate root, and `builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(...)` preserves the optional project manifest while deriving a profile fallback manifest for the runtime resolver. The feature dependency report therefore still sees the caller manifest when one exists, while the module resolver stays profile-aware instead of falling back to target-only defaults.
+The editor-host live build uses the same provider-aware boundary. `EntryConfig::resolve()` merges the optional project manifest with the runtime-profile baseline once; the first-party catalogs and `builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(...)` both consume that immutable result, so feature dependency checks and module composition cannot diverge by constructing separate fallback manifests.
 
 ## Validation Coverage
 

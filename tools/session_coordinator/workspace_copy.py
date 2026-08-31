@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
 import shutil
 import subprocess
 import tarfile
@@ -10,38 +11,83 @@ import threading
 import uuid
 from contextlib import nullcontext
 from dataclasses import dataclass, field, replace
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Callable, ContextManager, Mapping
 
-from .baselines import hash_file
 from .benchmark_validation_grants import (
     benchmark_child_environment,
     benchmark_run_environment,
     require_benchmark_launch_grant,
 )
 from .cargo_jobs import overlapping_cleanup_reservation, target_identity
+from .cargo_command_policy import (
+    inline_cargo_config_key,
+    is_direct_cargo_command,
+    rewrite_cargo_source_path_arguments,
+    validate_cargo_storage_arguments,
+    validate_inline_cargo_config,
+)
 from .database import Database
 from .models import CoordinatorError, utc_text
+from .portable_paths import normalize_portable_relative_path, portable_path_key
 from .processes import (
     confirm_kill_on_close_job_terminated,
     popen_process_creation_time,
+    process_creation_time,
     process_is_alive,
     terminate_process_tree,
 )
+from .snapshots import ObjectStore
 from .windows_job_process import (
     close_process_job,
     create_atomic_kill_on_close_process,
     resume_popen_process,
     terminate_and_close_process_job,
 )
+from .trusted_tools import trusted_git_command
 from .validation_copies import CargoInputClosurePlanner, ExternalGitSource
+from .validation_copy_external import (
+    external_archive_pathspecs,
+    extract_external_archive,
+)
 from .validation_copy_cargo import ValidationCopyCargoExecution
+from .pinned_cargo_planner import (
+    PinnedCargoInputClosurePlanner,
+    PinnedCargoPlannerView,
+)
 from .workspace_copy_terminal import (
     ValidationCopyTerminalLifecycle,
     ValidationRunEvidence,
 )
 
-_ARCHIVE_PATH_ARGUMENT_LIMIT = 512
+_ARCHIVE_COMMAND_CHAR_LIMIT = 24_000
+
+
+def _archive_member_destination(
+    root: Path,
+    member_name: str,
+    *,
+    error_code: str,
+    seen_paths: dict[str, str] | None = None,
+) -> Path:
+    normalized = normalize_portable_relative_path(
+        member_name,
+        code=error_code,
+        message="Archive member is not a safe portable extraction path",
+    )
+    if seen_paths is not None:
+        key = portable_path_key(normalized)
+        previous = seen_paths.get(key)
+        if previous is not None:
+            raise CoordinatorError(
+                error_code,
+                "Archive contains paths that collide on the managed filesystem",
+                details={"firstPath": previous, "secondPath": normalized},
+            )
+        seen_paths[key] = normalized
+    return root.joinpath(*PurePosixPath(normalized).parts)
+
+
 def _is_managed_validation_root(root: Path) -> bool:
     return root.name.casefold() == "cargo-targets" and root.parent == Path(root.anchor)
 
@@ -110,6 +156,7 @@ class WorkspaceCopyService:
         target_roots: tuple[str | Path, ...],
         mutation_gate: Callable[[], ContextManager[None]] | None = None,
         cargo_materialization_preflight: Callable[[], None] | None = None,
+        object_store: ObjectStore | None = None,
     ):
         self.database = database
         self.repo_root = Path(repo_root).resolve()
@@ -130,10 +177,13 @@ class WorkspaceCopyService:
         self._running_process_jobs: dict[str, int] = {}
         self._materialization_lock = threading.Lock()
         self._active_materialization_jobs: set[str] = set()
-        self._materialization_worker_id = uuid.uuid4().hex
+        self._materialization_worker_id = (
+            f"v2:{os.getpid()}:{process_creation_time(os.getpid())}:{uuid.uuid4().hex}"
+        )
         self._cleanup_lock = threading.Lock()
         self._mutation_gate = mutation_gate
         self._cargo_materialization_preflight = cargo_materialization_preflight
+        self._object_store = object_store
         self._cargo_execution: ValidationCopyCargoExecution | None = None
         self._completion_hook: Callable[[str], None] | None = None
         self._terminal = ValidationCopyTerminalLifecycle(database, mutation_gate)
@@ -146,6 +196,18 @@ class WorkspaceCopyService:
     ) -> None:
         """Configure a worker-only admission check for durable Cargo copies."""
         self._cargo_materialization_preflight = preflight
+
+    def _run_cargo_materialization_preflight(self) -> None:
+        preflight = self._cargo_materialization_preflight
+        if preflight is None:
+            return
+        try:
+            preflight()
+            return
+        except CoordinatorError as error:
+            if error.code != "unmanaged_artifacts_detected":
+                raise
+        preflight()
 
     def set_cargo_execution(
         self, execution: ValidationCopyCargoExecution | None
@@ -251,6 +313,7 @@ class WorkspaceCopyService:
         include_paths: tuple[str, ...] | list[str],
         external_sources: tuple[dict[str, object], ...]
         | list[dict[str, object]] = (),
+        baseline_commit: str | None = None,
     ) -> WorkspaceCopyRecord:
         self._require_session(session_id)
         manifest = tuple(
@@ -297,7 +360,7 @@ class WorkspaceCopyService:
                 )
             mount_keys.add(mount_key)
         external_payloads = tuple(source.to_payload() for source in pinned_sources)
-        head_commit = self._git_text("rev-parse", "HEAD")
+        head_commit = self._requested_baseline_commit(baseline_commit)
         with self.database.transaction() as connection:
             self._require_cleanup_available(connection, job_root)
             connection.execute(
@@ -337,11 +400,13 @@ class WorkspaceCopyService:
         include_paths: tuple[str, ...] | list[str],
         external_sources: tuple[dict[str, object], ...]
         | list[dict[str, object]] = (),
+        baseline_commit: str | None = None,
     ) -> WorkspaceCopyRecord:
         record = self.plan(
             session_id,
             include_paths=include_paths,
             external_sources=external_sources,
+            baseline_commit=baseline_commit,
         )
         self._begin_materialization(record.job_id)
         return self._materialize_record(record)
@@ -353,6 +418,7 @@ class WorkspaceCopyService:
         include_paths: tuple[str, ...] | list[str],
         external_sources: tuple[dict[str, object], ...]
         | list[dict[str, object]] = (),
+        baseline_commit: str | None = None,
     ) -> WorkspaceCopyRecord:
         """Reserve a copy job immediately and materialize it off the request thread.
 
@@ -364,6 +430,7 @@ class WorkspaceCopyService:
             session_id,
             include_paths=include_paths,
             external_sources=external_sources,
+            baseline_commit=baseline_commit,
         )
         self._require_untracked_overlay_attribution(record)
         self._begin_materialization(record.job_id)
@@ -412,25 +479,44 @@ class WorkspaceCopyService:
             return
 
     def _materialize_record(
-        self, record: WorkspaceCopyRecord, *, worker_id: str | None = None
+        self,
+        record: WorkspaceCopyRecord,
+        *,
+        worker_id: str | None = None,
+        sealed_overlay_manifest: Mapping[str, str | None] | None = None,
     ) -> WorkspaceCopyRecord:
         stage = "prepare"
         try:
             self._validate_job_root(record.job_root)
             record.source_root.mkdir(parents=True, exist_ok=False)
             record.target_root.mkdir(parents=True, exist_ok=False)
-            attribution = self._session_attributions(record.session_id)
+            attribution = (
+                self._session_attributions(record.session_id)
+                if sealed_overlay_manifest is None
+                else {
+                    path.casefold(): object_hash
+                    for path, object_hash in sealed_overlay_manifest.items()
+                }
+            )
             stage = "baseline_archive"
-            self._extract_baseline_manifest(record, attribution)
+            input_entries = self._extract_baseline_manifest(record, attribution)
             overlays = tuple(
                 path for path in record.manifest if path.casefold() in attribution
             )
-            stage = "owned_overlay"
-            self._overlay_attributed_sources(record.source_root, overlays, attribution)
+            stage = (
+                "sealed_overlay"
+                if sealed_overlay_manifest is not None
+                else "owned_overlay"
+            )
+            input_entries.update(
+                self._overlay_sealed_sources(record, sealed_overlay_manifest)
+                if sealed_overlay_manifest is not None
+                else self._overlay_attributed_sources(record, overlays, attribution)
+            )
             stage = "external_archive"
-            self._extract_external_sources(record)
+            input_entries.update(self._extract_external_sources(record))
             stage = "manifest_hash"
-            input_manifest_hash = self._input_manifest_hash(record)
+            input_manifest_hash = self._input_manifest_hash_from_entries(input_entries)
             self._complete_materialization(
                 record.job_id, input_manifest_hash, worker_id=worker_id
             )
@@ -462,6 +548,8 @@ class WorkspaceCopyService:
         *,
         dependency_roots: tuple[str, ...] | list[str],
         overlay_paths: tuple[str, ...] | list[str],
+        sealed_overlay_manifest: Mapping[str, str | None] | None = None,
+        baseline_commit: str | None = None,
     ) -> WorkspaceCopyRecord:
         """Materialize declared template dependencies and Session-owned overlays.
 
@@ -475,11 +563,17 @@ class WorkspaceCopyService:
                 session_id,
                 dependency_roots=dependency_roots,
                 overlay_paths=overlay_paths,
+                sealed_overlay_manifest=sealed_overlay_manifest,
+                baseline_commit=baseline_commit,
             )
         )
         self._begin_materialization(record.job_id)
         return self._materialize_validation_record(
-            record, normalized_roots, normalized_overlays, attribution
+            record,
+            normalized_roots,
+            normalized_overlays,
+            attribution,
+            sealed_overlay_manifest,
         )
 
     def materialize_validation_async(
@@ -488,6 +582,8 @@ class WorkspaceCopyService:
         *,
         dependency_roots: tuple[str, ...] | list[str],
         overlay_paths: tuple[str, ...] | list[str],
+        sealed_overlay_manifest: Mapping[str, str | None] | None = None,
+        baseline_commit: str | None = None,
     ) -> WorkspaceCopyRecord:
         """Durably reserve a dependency-scoped validation copy before archive I/O."""
         record, normalized_roots, normalized_overlays, attribution = (
@@ -495,12 +591,20 @@ class WorkspaceCopyService:
                 session_id,
                 dependency_roots=dependency_roots,
                 overlay_paths=overlay_paths,
+                sealed_overlay_manifest=sealed_overlay_manifest,
+                baseline_commit=baseline_commit,
             )
         )
         self._begin_materialization(record.job_id)
         worker = threading.Thread(
             target=self._materialize_validation_async_worker,
-            args=(record, normalized_roots, normalized_overlays, attribution),
+            args=(
+                record,
+                normalized_roots,
+                normalized_overlays,
+                attribution,
+                sealed_overlay_manifest,
+            ),
             name=f"zircon-validation-materialize-{record.job_id[:12]}",
             daemon=True,
         )
@@ -516,17 +620,41 @@ class WorkspaceCopyService:
             record.external_sources,
         )
 
+    def require_overlay_ownership(
+        self,
+        session_id: str,
+        overlay_paths: tuple[str, ...] | list[str],
+    ) -> tuple[str, ...]:
+        """Normalize overlay paths and require current Session attribution."""
+        normalized = tuple(
+            sorted({self._normalize(path) for path in overlay_paths}, key=str.casefold)
+        )
+        attribution = self._session_attributions(session_id)
+        unowned = sorted(
+            (path for path in normalized if path.casefold() not in attribution),
+            key=str.casefold,
+        )
+        if unowned:
+            raise CoordinatorError(
+                "validation_copy_overlay_not_owned",
+                "Validation overlay paths require current Session attribution",
+                details={"paths": unowned},
+            )
+        return normalized
+
     def _plan_validation_materialization(
         self,
         session_id: str,
         *,
         dependency_roots: tuple[str, ...] | list[str],
         overlay_paths: tuple[str, ...] | list[str],
+        sealed_overlay_manifest: Mapping[str, str | None] | None = None,
+        baseline_commit: str | None = None,
     ) -> tuple[
         WorkspaceCopyRecord,
         tuple[str, ...],
         tuple[str, ...],
-        dict[str, str | None],
+        dict[str, str | None] | None,
     ]:
         normalized_roots = tuple(
             sorted({self._normalize(path) for path in dependency_roots}, key=str.casefold)
@@ -536,33 +664,30 @@ class WorkspaceCopyService:
                 "validation_copy_dependency_roots_empty",
                 "Validation template must declare source dependencies",
             )
-        dependency_paths = tuple(
-            path
-            for path in self._git_text("ls-files", "--", *normalized_roots).splitlines()
-            if path
-        )
+        pinned_commit = self._requested_baseline_commit(baseline_commit)
+        dependency_paths = self._baseline_paths(pinned_commit, normalized_roots)
         if not dependency_paths:
             raise CoordinatorError(
                 "validation_copy_dependencies_missing",
                 "Validation template dependencies are absent from the pinned baseline",
             )
-        normalized_overlays = tuple(
-            sorted({self._normalize(path) for path in overlay_paths}, key=str.casefold)
+        sealed = (
+            self._sealed_overlay_manifest(overlay_paths, sealed_overlay_manifest)
+            if sealed_overlay_manifest is not None
+            else None
         )
-        attribution = self._session_attributions(session_id)
-        unowned = sorted(
-            (path for path in normalized_overlays if path.casefold() not in attribution),
-            key=str.casefold,
+        normalized_overlays = (
+            tuple(sealed)
+            if sealed is not None
+            else self.require_overlay_ownership(session_id, overlay_paths)
         )
-        if unowned:
-            raise CoordinatorError(
-                "validation_copy_overlay_not_owned",
-                "Validation overlay paths must be current Session-owned sources",
-                details={"paths": unowned},
-            )
+        attribution = (
+            None if sealed is not None else self._session_attributions(session_id)
+        )
         record = self.plan(
             session_id,
             include_paths=tuple(sorted(set(dependency_paths) | set(normalized_overlays))),
+            baseline_commit=pinned_commit,
         )
         return record, normalized_roots, normalized_overlays, attribution
 
@@ -571,11 +696,16 @@ class WorkspaceCopyService:
         record: WorkspaceCopyRecord,
         dependency_roots: tuple[str, ...],
         overlay_paths: tuple[str, ...],
-        attribution: dict[str, str | None],
+        attribution: dict[str, str | None] | None,
+        sealed_overlay_manifest: Mapping[str, str | None] | None,
     ) -> None:
         try:
             self._materialize_validation_record(
-                record, dependency_roots, overlay_paths, attribution
+                record,
+                dependency_roots,
+                overlay_paths,
+                attribution,
+                sealed_overlay_manifest,
             )
         except BaseException:
             return
@@ -585,17 +715,24 @@ class WorkspaceCopyService:
         record: WorkspaceCopyRecord,
         dependency_roots: tuple[str, ...],
         overlay_paths: tuple[str, ...],
-        attribution: dict[str, str | None],
+        attribution: dict[str, str | None] | None,
+        sealed_overlay_manifest: Mapping[str, str | None] | None,
     ) -> WorkspaceCopyRecord:
         try:
             self._validate_job_root(record.job_root)
             record.source_root.mkdir(parents=True, exist_ok=False)
             record.target_root.mkdir(parents=True, exist_ok=False)
-            self._extract_baseline_dependencies(record, dependency_roots)
-            self._overlay_attributed_sources(
-                record.source_root, overlay_paths, attribution
+            input_entries = self._extract_baseline_dependencies(record, dependency_roots)
+            input_entries.update(
+                self._overlay_sealed_sources(record, sealed_overlay_manifest)
+                if sealed_overlay_manifest is not None
+                else self._overlay_attributed_sources(
+                    record,
+                    overlay_paths,
+                    attribution if attribution is not None else {},
+                )
             )
-            input_manifest_hash = self._input_manifest_hash(record)
+            input_manifest_hash = self._input_manifest_hash_from_entries(input_entries)
             self._complete_materialization(record.job_id, input_manifest_hash)
         except BaseException as error:
             self._fail_materialization(
@@ -626,33 +763,174 @@ class WorkspaceCopyService:
         | list[dict[str, object]] = (),
         metadata_runner=None,
         discover_external_sources: bool = False,
+        baseline_commit: str | None = None,
     ) -> WorkspaceCopyRecord:
+        command_tuple = tuple(str(part) for part in command if str(part))
+        if not command_tuple:
+            raise CoordinatorError(
+                "validation_copy_cargo_command_empty",
+                "Cargo validation copy requires a command",
+            )
+        pinned_commit = self._requested_baseline_commit(baseline_commit)
         descriptors = tuple(
             ExternalGitSource.from_payload(payload) for payload in external_sources
         )
-        closure = CargoInputClosurePlanner(
-            self.repo_root, metadata_runner=metadata_runner
-        ).plan(
-            command,
-            external_sources=descriptors,
-            discover_external_sources=discover_external_sources,
-            overlay_paths=tuple(self._normalize(path) for path in overlay_paths),
+        normalized_overlays = self.require_overlay_ownership(
+            session_id, overlay_paths
         )
-        paths = tuple(
-            sorted(
-                set(closure.repository_paths)
-                | {self._normalize(path) for path in overlay_paths},
-                key=str.casefold,
+        request_json = json.dumps(
+            {
+                "command": command_tuple,
+                "overlayPaths": normalized_overlays,
+                "overlayManifest": None,
+                "externalSources": [
+                    source.to_payload() for source in descriptors
+                ],
+                "discoverExternalSources": bool(discover_external_sources),
+                "baselineCommit": pinned_commit,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        record = self._plan_cargo_materialization(session_id, request_json)
+        if not self._reserve_local_materialization(record.job_id):
+            raise CoordinatorError(
+                "validation_copy_materialization_busy",
+                "Cargo validation copy is already materializing",
             )
+        try:
+            request = self._claim_cargo_materialization(record.job_id)
+            if request is None:
+                raise CoordinatorError(
+                    "validation_copy_materialization_state_lost",
+                    "Cargo validation copy could not enter closure planning",
+                )
+            self._materialize_cargo_request(
+                record.job_id,
+                request,
+                metadata_runner=metadata_runner,
+            )
+        finally:
+            self._release_local_materialization(record.job_id)
+        return self.status(session_id, record.job_id)
+
+    def _plan_cargo_closure_pinned(
+        self,
+        *,
+        command: tuple[str, ...],
+        descriptors: tuple[ExternalGitSource, ...],
+        discover_external_sources: bool,
+        overlays: tuple[str, ...],
+        baseline_commit: str,
+        metadata_runner=None,
+        sealed_overlay_manifest: Mapping[str, str | None] | None = None,
+        planner_parent: Path | None = None,
+    ):
+        """Plan Cargo inputs from an immutable topology view.
+
+        Cargo metadata is sensitive to manifests and build-script topology.  The
+        live checkout can advance while a ticket waits in the FIFO, so metadata
+        must run against the same commit and sealed overlay bytes that will later
+        be archived into the validation copy.
+        """
+        if not baseline_commit:
+            raise CoordinatorError(
+                "validation_copy_baseline_missing",
+                "Pinned Cargo closure planning requires a baseline commit",
+            )
+        if metadata_runner is not None:
+            # Test/embedding metadata is already an immutable caller-provided
+            # object.  Keep the historical planner injection semantics while
+            # the production path below performs real metadata in the view.
+            return CargoInputClosurePlanner(
+                self.repo_root, metadata_runner=metadata_runner
+            ).plan(
+                command,
+                external_sources=descriptors,
+                discover_external_sources=discover_external_sources,
+                external_archive_loader=(
+                    self._object_store.get if self._object_store is not None else None
+                ),
+                overlay_paths=overlays,
+                baseline_commit=baseline_commit,
+            )
+        overlay_files = self._cargo_planner_overlay_files(
+            overlays,
+            sealed_overlay_manifest=sealed_overlay_manifest,
         )
-        return self.materialize(
-            session_id,
-            include_paths=paths,
-            external_sources=tuple(
-                source.to_payload()
-                for source in closure.external_sources
-            ),
-        )
+        # A planner view is intentionally ephemeral and contains manifests/config
+        # plus target topology, not the full source tree. Production workers pass
+        # their already-registered job root so artifact governance can see the
+        # temporary directory for the entire metadata operation.
+        owns_planner_parent = planner_parent is None
+        if planner_parent is None:
+            root = max(
+                self.target_roots,
+                key=lambda value: shutil.disk_usage(value.anchor or value.parent).free,
+            )
+            verify_root = self._managed_verify_root(root)
+            verify_root.mkdir(parents=True, exist_ok=True)
+            planner_parent = verify_root / f".cargo-planner-{uuid.uuid4().hex}"
+            planner_parent.mkdir(parents=True, exist_ok=False)
+        else:
+            planner_parent = Path(planner_parent).resolve()
+            self._validate_job_root(planner_parent)
+            planner_parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with PinnedCargoPlannerView(
+                self.repo_root,
+                planner_parent,
+                baseline_commit=baseline_commit,
+                overlay_files=overlay_files,
+                external_sources=descriptors,
+                discover_external_sources=discover_external_sources,
+            ) as view:
+                return PinnedCargoInputClosurePlanner(
+                    view,
+                ).plan_pinned(
+                    command,
+                    external_sources=descriptors,
+                    discover_external_sources=discover_external_sources,
+                    overlay_paths=overlays,
+                    baseline_commit=baseline_commit,
+                )
+        finally:
+            if owns_planner_parent:
+                shutil.rmtree(planner_parent, ignore_errors=False)
+
+    def _cargo_planner_overlay_files(
+        self,
+        overlays: tuple[str, ...],
+        *,
+        sealed_overlay_manifest: Mapping[str, str | None] | None,
+    ) -> dict[str, bytes | None]:
+        if sealed_overlay_manifest is not None:
+            if self._object_store is None:
+                raise CoordinatorError(
+                    "validation_copy_source_store_unavailable",
+                    "Sealed Cargo planner overlays require the coordinator object store",
+                )
+            sealed = self._sealed_overlay_manifest(
+                overlays, sealed_overlay_manifest
+            )
+            return {
+                path: (
+                    None
+                    if object_hash is None
+                    else self._object_store.get(object_hash)
+                )
+                for path, object_hash in sealed.items()
+            }
+
+        result: dict[str, bytes | None] = {}
+        for path in overlays:
+            source = self.repo_root / path
+            # Ownership was checked before this helper.  The materializer later
+            # rechecks the attributed hash; reading current bytes here preserves
+            # the existing typed stale-attribution failure while ensuring Cargo
+            # never consults any other live-worktree path.
+            result[path] = source.read_bytes() if source.is_file() else None
+        return result
 
     def materialize_cargo_async(
         self,
@@ -664,6 +942,8 @@ class WorkspaceCopyService:
         | list[dict[str, object]] = (),
         metadata_runner=None,
         discover_external_sources: bool = False,
+        sealed_overlay_manifest: Mapping[str, str | None] | None = None,
+        baseline_commit: str | None = None,
     ) -> WorkspaceCopyRecord:
         """Durably accept a Cargo copy before its closure is planned or copied.
 
@@ -679,6 +959,11 @@ class WorkspaceCopyService:
                 "validation_copy_cargo_command_empty",
                 "Cargo validation copy requires a command",
             )
+        pinned_commit = (
+            self._requested_baseline_commit(baseline_commit)
+            if baseline_commit is not None
+            else None
+        )
         # Persist raw request strings.  Path normalization resolves against the
         # workspace, so it belongs to the claimed worker along with ownership
         # validation rather than the bounded acknowledgement path.
@@ -688,8 +973,14 @@ class WorkspaceCopyService:
                 {
                     "command": command_tuple,
                     "overlayPaths": overlays,
+                    "overlayManifest": (
+                        dict(sealed_overlay_manifest)
+                        if sealed_overlay_manifest is not None
+                        else None
+                    ),
                     "externalSources": list(external_sources),
                     "discoverExternalSources": bool(discover_external_sources),
+                    "baselineCommit": pinned_commit,
                 },
                 sort_keys=True,
                 separators=(",", ":"),
@@ -843,10 +1134,19 @@ class WorkspaceCopyService:
     ) -> None:
         stage = "artifact_governance"
         try:
-            if self._cargo_materialization_preflight is not None:
-                self._cargo_materialization_preflight()
+            self._run_cargo_materialization_preflight()
             stage = "root_preparation"
-            row = self._prepare_cargo_materialization_root(job_id)
+            raw_baseline_commit = request.get("baselineCommit")
+            if raw_baseline_commit is not None and not isinstance(
+                raw_baseline_commit, str
+            ):
+                raise CoordinatorError(
+                    "validation_copy_cargo_request_invalid",
+                    "Cargo baseline commit must be a full Git object ID",
+                )
+            row = self._prepare_cargo_materialization_root(
+                job_id, baseline_commit=raw_baseline_commit
+            )
             stage = "closure_planning"
             command = tuple(str(part) for part in request.get("command") or () if str(part))
             raw_external = request.get("externalSources")
@@ -880,17 +1180,37 @@ class WorkspaceCopyService:
                     "validation_copy_cargo_request_invalid",
                     "Cargo overlay paths must contain strings",
                 )
-            overlays = tuple(self._normalize(path) for path in raw_overlays)
-            closure = CargoInputClosurePlanner(
-                self.repo_root, metadata_runner=metadata_runner
-            ).plan(
-                command,
-                external_sources=descriptors,
-                discover_external_sources=bool(request.get("discoverExternalSources")),
-                overlay_paths=overlays,
+            raw_overlay_manifest = request.get("overlayManifest")
+            if raw_overlay_manifest is None:
+                sealed_overlay_manifest = None
+                stage = "overlay_ownership"
+                overlays = self.require_overlay_ownership(
+                    str(row["session_id"]), raw_overlays
+                )
+            else:
+                if not isinstance(raw_overlay_manifest, Mapping):
+                    raise CoordinatorError(
+                        "validation_copy_cargo_request_invalid",
+                        "Cargo sealed overlay manifest must be an object",
+                    )
+                stage = "sealed_overlay"
+                sealed_overlay_manifest = self._sealed_overlay_manifest(
+                    raw_overlays, raw_overlay_manifest
+                )
+                overlays = tuple(sealed_overlay_manifest)
+            stage = "closure_planning"
+            closure = self._plan_cargo_closure_pinned(
+                command=command,
+                descriptors=descriptors,
+                discover_external_sources=bool(
+                    request.get("discoverExternalSources")
+                ),
+                overlays=overlays,
+                baseline_commit=str(row["head_commit"]),
+                metadata_runner=metadata_runner,
+                sealed_overlay_manifest=sealed_overlay_manifest,
+                planner_parent=Path(str(row["job_root"])),
             )
-            stage = "overlay_ownership"
-            self._require_cargo_overlay_attribution(str(row["session_id"]), overlays)
             paths = tuple(
                 sorted(set(closure.repository_paths) | set(overlays), key=str.casefold)
             )
@@ -900,8 +1220,19 @@ class WorkspaceCopyService:
                 paths,
                 tuple(source.to_payload() for source in closure.external_sources),
             )
-            self._require_untracked_overlay_attribution(record)
-            self._materialize_record(record, worker_id=self._materialization_worker_id)
+            self._require_untracked_overlay_attribution(
+                record,
+                sealed_overlay_paths=(
+                    tuple(sealed_overlay_manifest)
+                    if sealed_overlay_manifest is not None
+                    else ()
+                ),
+            )
+            self._materialize_record(
+                record,
+                worker_id=self._materialization_worker_id,
+                sealed_overlay_manifest=sealed_overlay_manifest,
+            )
         except BaseException as error:
             self._fail_materialization(
                 job_id,
@@ -911,8 +1242,10 @@ class WorkspaceCopyService:
             )
             raise
 
-    def _prepare_cargo_materialization_root(self, job_id: str):
-        """Select a verified target and pin HEAD after a worker owns the request."""
+    def _prepare_cargo_materialization_root(
+        self, job_id: str, *, baseline_commit: str | None = None
+    ):
+        """Select a verified target and persist the request's pinned baseline."""
         root = max(
             self.target_roots,
             key=lambda value: shutil.disk_usage(value.anchor or value.parent).free,
@@ -925,7 +1258,7 @@ class WorkspaceCopyService:
             )
         source_root = job_root / "source"
         target_root = job_root / "target"
-        head_commit = self._git_text("rev-parse", "HEAD")
+        head_commit = self._requested_baseline_commit(baseline_commit)
         gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
         with gate, self.database.transaction() as connection:
             self._require_cleanup_available(connection, job_root)
@@ -956,21 +1289,24 @@ class WorkspaceCopyService:
             ).fetchone()
         if row is None:
             raise CoordinatorError("validation_copy_not_found", "Unknown validation-copy job")
-        return row
-
-    def _require_cargo_overlay_attribution(
-        self, session_id: str, overlays: tuple[str, ...]
-    ) -> None:
-        attribution = self._session_attributions(session_id)
-        unowned = sorted(
-            (path for path in overlays if path.casefold() not in attribution), key=str.casefold
-        )
-        if unowned:
+        try:
+            # Register the job row before creating its directory. Artifact
+            # governance can therefore treat the planner view as managed even
+            # when an audit races this worker.
+            job_root.mkdir(parents=True, exist_ok=False)
+        except FileExistsError as error:
             raise CoordinatorError(
-                "validation_copy_overlay_not_owned",
-                "Cargo validation overlay paths require current Session attribution",
-                details={"paths": unowned},
-            )
+                "validation_copy_verify_root_exists",
+                "Cargo validation job root already exists before materialization",
+                details={"jobRoot": str(job_root)},
+            ) from error
+        except OSError as error:
+            raise CoordinatorError(
+                "validation_copy_verify_root_create_failed",
+                "Cargo validation job root could not be created",
+                details={"jobRoot": str(job_root), "errorType": type(error).__name__},
+            ) from error
+        return row
 
     def _persist_cargo_closure(
         self,
@@ -1507,12 +1843,13 @@ class WorkspaceCopyService:
                 "stdoutTail": existing.stdout,
                 "stderrTail": existing.stderr,
             }
+        execution_command = self._cargo_command_for_materialized_copy(row, command)
         progress = self._cargo_execution.advance(
             session_id=session_id,
             copy_job_id=str(row["job_id"]),
             source_root=Path(str(row["source_root"])).resolve(),
             input_manifest_hash=row["input_manifest_hash"],
-            command=command,
+            command=execution_command,
             validation_run_id=run_id,
         )
         result = {"jobId": str(row["job_id"]), "runId": run_id, **progress}
@@ -1535,6 +1872,95 @@ class WorkspaceCopyService:
             "stdoutTail": evidence.stdout,
             "stderrTail": evidence.stderr,
         }
+
+    def _cargo_command_for_materialized_copy(
+        self, row, command: tuple[str, ...]
+    ) -> tuple[str, ...]:
+        if not is_direct_cargo_command(command):
+            opaque = " ".join(command).casefold()
+            unsafe = (
+                "--manifest-path",
+                "--config",
+                "--target-dir",
+                "--build-dir",
+            )
+            if any(argument in opaque for argument in unsafe):
+                raise CoordinatorError(
+                    "validation_copy_cargo_command_opaque",
+                    "Legacy shell-wrapped Cargo commands cannot carry source or storage path overrides",
+                )
+            return command
+
+        validate_cargo_storage_arguments(command)
+        job_root = Path(str(row["job_root"])).resolve()
+        source_root = Path(str(row["source_root"])).resolve()
+        try:
+            raw_sources = json.loads(str(row["external_sources_json"] or "[]"))
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                "validation_copy_external_source_invalid",
+                "Validation copy external source descriptors are not valid JSON",
+            ) from error
+        if not isinstance(raw_sources, list):
+            raise CoordinatorError(
+                "validation_copy_external_source_invalid",
+                "Validation copy external source descriptors must be an array",
+            )
+        external_sources = tuple(
+            ExternalGitSource.from_payload(payload)
+            for payload in raw_sources
+            if isinstance(payload, Mapping)
+        )
+        if len(external_sources) != len(raw_sources):
+            raise CoordinatorError(
+                "validation_copy_external_source_invalid",
+                "Validation copy external source descriptors must be objects",
+            )
+        mappings = [(self.repo_root, source_root)]
+        mappings.extend(
+            (source.repo_root, (job_root / source.mount_path).resolve())
+            for source in external_sources
+        )
+        physical_roots = tuple(physical for _logical, physical in mappings)
+
+        def rewrite(option: str, value: str) -> str:
+            if option == "--config" and inline_cargo_config_key(value) is not None:
+                validate_inline_cargo_config(value)
+                return value
+            candidate = Path(value)
+            if candidate.is_absolute():
+                normalized = candidate.resolve(strict=False)
+                for physical in physical_roots:
+                    if normalized == physical or normalized.is_relative_to(physical):
+                        return str(normalized)
+                for logical, physical in mappings:
+                    if normalized == logical or normalized.is_relative_to(logical):
+                        return str(physical / normalized.relative_to(logical))
+                raise CoordinatorError(
+                    "validation_copy_cargo_source_path_unpinned",
+                    "Cargo source path is outside every pinned validation repository",
+                    details={"option": option, "path": value},
+                )
+            relative = PurePosixPath(value.replace("\\", "/"))
+            if (
+                not relative.parts
+                or any(part in {"", ".", ".."} or ":" in part for part in relative.parts)
+            ):
+                raise CoordinatorError(
+                    "validation_copy_cargo_source_path_unpinned",
+                    "Cargo source path must be a normalized path inside the validation copy",
+                    details={"option": option, "path": value},
+                )
+            resolved = source_root.joinpath(*relative.parts).resolve(strict=False)
+            if not resolved.is_relative_to(source_root):
+                raise CoordinatorError(
+                    "validation_copy_cargo_source_path_unpinned",
+                    "Cargo source path escaped the validation copy",
+                    details={"option": option, "path": value},
+                )
+            return relative.as_posix()
+
+        return rewrite_cargo_source_path_arguments(command, rewrite)
 
     def terminate_interrupted_benchmark(
         self,
@@ -1761,27 +2187,104 @@ class WorkspaceCopyService:
                     )
             return self._remove_pending_cleanup(candidate)
 
+    def cleanup_terminal_ticket_copy(self, ticket_id: str, job_id: str) -> bool:
+        """Remove a terminal ticket's linked source copy when all Cargo use is proven done."""
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """SELECT copy.session_id, copy.job_root
+                   FROM validation_copies copy
+                   JOIN validation_tickets ticket ON ticket.ticket_id=?
+                   WHERE copy.job_id=?
+                     AND copy.status IN ('planned', 'materialized', 'failed')
+                     AND ticket.status IN ('passed', 'failed', 'snapshot_stale')
+                     AND ticket.session_id=copy.session_id
+                     AND EXISTS(
+                         SELECT 1 FROM validation_ticket_events event
+                         WHERE event.ticket_id=ticket.ticket_id
+                           AND event.event_type='validation.ticket_copy_linked'
+                           AND json_extract(event.payload_json, '$.jobId')=copy.job_id
+                     )""",
+                (ticket_id, job_id),
+            ).fetchone()
+        if row is None:
+            return False
+        try:
+            self.cleanup(str(row["session_id"]), str(row["job_root"]))
+        except Exception:
+            return False
+        return True
+
     @staticmethod
     def _require_cleanup_unreferenced(connection, row) -> None:
-        referenced = connection.execute(
-            """SELECT 'job' AS kind, job_id AS reference_id
-               FROM cargo_jobs WHERE source_copy_job_id=?
-               UNION ALL
-               SELECT 'reservation' AS kind, reservation_id AS reference_id
-               FROM cargo_lane_reservations WHERE source_copy_job_id=?
-               LIMIT 1""",
-            (row["job_id"], row["job_id"]),
-        ).fetchone()
-        if referenced is not None:
+        def reject(kind: str, reference_id: str) -> None:
             raise CoordinatorError(
                 "validation_copy_referenced",
                 "Validation copy is still referenced by durable Cargo evidence",
                 details={
                     "jobId": row["job_id"],
-                    "referenceKind": referenced["kind"],
-                    "referenceId": referenced["reference_id"],
+                    "referenceKind": kind,
+                    "referenceId": reference_id,
                 },
             )
+
+        active_ticket = connection.execute(
+            """SELECT ticket.ticket_id
+               FROM validation_tickets ticket
+               WHERE ticket.status NOT IN ('passed', 'failed', 'snapshot_stale')
+                 AND (
+                     EXISTS(
+                         SELECT 1 FROM validation_copy_runs run
+                         WHERE run.job_id=? AND run.run_id=ticket.ticket_id
+                     )
+                     OR EXISTS(
+                         SELECT 1 FROM validation_ticket_events event
+                         WHERE event.ticket_id=ticket.ticket_id
+                           AND event.event_type='validation.ticket_copy_linked'
+                           AND json_extract(event.payload_json, '$.jobId')=?
+                     )
+                 )
+               LIMIT 1""",
+            (row["job_id"], row["job_id"]),
+        ).fetchone()
+        if active_ticket is not None:
+            reject("ticket", str(active_ticket["ticket_id"]))
+
+        cargo_runs = connection.execute(
+            """SELECT run.run_id
+               FROM cargo_job_runs run
+               JOIN cargo_jobs job ON job.job_id=run.job_id
+               WHERE job.source_copy_job_id=?
+                 AND run.status NOT IN ('completed', 'launch_failed')
+               LIMIT 1""",
+            (row["job_id"],),
+        ).fetchone()
+        if cargo_runs is not None:
+            reject("cargo_run", str(cargo_runs["run_id"]))
+
+        reservation = connection.execute(
+            """SELECT reservation_id
+               FROM cargo_lane_reservations
+               WHERE source_copy_job_id=? AND status NOT IN ('released', 'expired')
+               LIMIT 1""",
+            (row["job_id"],),
+        ).fetchone()
+        if reservation is not None:
+            reject("reservation", str(reservation["reservation_id"]))
+
+        cargo_jobs = connection.execute(
+            """SELECT job_id, status, process_tree_live_pids_json
+               FROM cargo_jobs WHERE source_copy_job_id=?""",
+            (row["job_id"],),
+        ).fetchall()
+        for cargo_job in cargo_jobs:
+            try:
+                live_pids = json.loads(
+                    str(cargo_job["process_tree_live_pids_json"])
+                )
+            except (TypeError, ValueError, json.JSONDecodeError):
+                live_pids = None
+            if cargo_job["status"] != "released" or live_pids != []:
+                reject("job", str(cargo_job["job_id"]))
 
     def recover_interrupted_jobs(
         self, *, process_alive=process_is_alive, startup: bool = True
@@ -1836,6 +2339,7 @@ class WorkspaceCopyService:
                 continue
             recovered_cleanup += 1
         recovered_cleanup += self._recover_missing_copy_roots()
+        recovered_cleanup += self._recover_terminal_ticket_copies()
         if startup:
             self._recover_interrupted_cargo_materializations()
             with self.database.connect() as connection:
@@ -1862,6 +2366,83 @@ class WorkspaceCopyService:
                 recovered_cleanup += 1
         return recovered_running, recovered_cleanup
 
+    def _recover_terminal_ticket_copies(self, *, batch_size: int = 4) -> int:
+        if batch_size < 1:
+            raise ValueError("batch_size must be positive")
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """SELECT copy.job_id, MIN(ticket.ticket_id) AS ticket_id,
+                          copy.created_at
+                   FROM validation_copies copy
+                   JOIN validation_ticket_events event
+                     ON event.event_type='validation.ticket_copy_linked'
+                    AND json_extract(event.payload_json, '$.jobId')=copy.job_id
+                   JOIN validation_tickets ticket ON ticket.ticket_id=event.ticket_id
+                    WHERE copy.status IN ('planned', 'materialized', 'failed')
+                      AND ticket.status IN ('passed', 'failed', 'snapshot_stale')
+                      AND ticket.session_id=copy.session_id
+                      AND NOT EXISTS(
+                          SELECT 1 FROM validation_tickets active_ticket
+                          WHERE active_ticket.status NOT IN (
+                              'passed', 'failed', 'snapshot_stale'
+                          )
+                            AND (
+                                EXISTS(
+                                    SELECT 1 FROM validation_copy_runs run
+                                    WHERE run.job_id=copy.job_id
+                                      AND run.run_id=active_ticket.ticket_id
+                                )
+                                OR EXISTS(
+                                    SELECT 1 FROM validation_ticket_events active_event
+                                    WHERE active_event.ticket_id=active_ticket.ticket_id
+                                      AND active_event.event_type='validation.ticket_copy_linked'
+                                      AND json_extract(
+                                          active_event.payload_json, '$.jobId'
+                                      )=copy.job_id
+                                )
+                            )
+                      )
+                      AND NOT EXISTS(
+                          SELECT 1 FROM cargo_job_runs run
+                          JOIN cargo_jobs job ON job.job_id=run.job_id
+                          WHERE job.source_copy_job_id=copy.job_id
+                            AND run.status NOT IN ('completed', 'launch_failed')
+                      )
+                      AND NOT EXISTS(
+                          SELECT 1 FROM cargo_lane_reservations reservation
+                          WHERE reservation.source_copy_job_id=copy.job_id
+                            AND reservation.status NOT IN ('released', 'expired')
+                      )
+                      AND NOT EXISTS(
+                          SELECT 1 FROM cargo_jobs job
+                          WHERE job.source_copy_job_id=copy.job_id
+                            AND (
+                                job.status <> 'released'
+                                OR CASE
+                                    WHEN json_valid(job.process_tree_live_pids_json)
+                                    THEN (
+                                        json_type(job.process_tree_live_pids_json) <> 'array'
+                                        OR json_array_length(
+                                            job.process_tree_live_pids_json
+                                        ) <> 0
+                                    )
+                                    ELSE 1
+                                END
+                            )
+                      )
+                    GROUP BY copy.job_id, copy.created_at
+                    ORDER BY copy.created_at, copy.job_id
+                    LIMIT ?""",
+                (batch_size,),
+            ).fetchall()
+        recovered = 0
+        for row in rows:
+            if self.cleanup_terminal_ticket_copy(
+                str(row["ticket_id"]), str(row["job_id"])
+            ):
+                recovered += 1
+        return recovered
+
     def _recover_missing_copy_roots(self) -> int:
         return self._terminal.recover_missing_roots(
             validate_cleanup_root=self._validate_cleanup_root,
@@ -1870,35 +2451,71 @@ class WorkspaceCopyService:
         )
 
     def _recover_interrupted_cargo_materializations(self) -> None:
-        """Restart only durable Cargo requests that no local worker currently owns.
-
-        The copy filesystem is not transactional, so a successor removes an
-        interrupted partial job root before re-claiming the same durable job id.  The
-        database compare-and-set in ``_claim_cargo_materialization`` ensures that
-        exactly one worker owns any attempt; a second recovery pass observes that
-        claim and does nothing.
-        """
+        """Atomically take over dead owners before removing partial copy state."""
         with self.database.connect() as connection:
             rows = connection.execute(
                 """
-                SELECT job_id, job_root, materialization_phase
+                SELECT job_id, job_root, materialization_phase,
+                       materialization_worker_id, materialization_attempt
                 FROM validation_copies
                 WHERE status='planned' AND materialization_kind='cargo'
-                  AND materialization_phase IN ('accepted', 'closure_planning', 'materializing')
+                  AND materialization_phase IN (
+                      'accepted', 'closure_planning', 'materializing', 'recovery_cleanup'
+                  )
                 """
             ).fetchall()
         for row in rows:
             job_id = str(row["job_id"])
             if self._materialization_is_local(job_id):
                 continue
+            previous_phase = str(row["materialization_phase"])
+            previous_worker = row["materialization_worker_id"]
+            attempt = int(row["materialization_attempt"] or 0)
+            if previous_worker and self._materialization_owner_is_live(
+                str(previous_worker)
+            ):
+                continue
             candidate = Path(str(row["job_root"])).resolve()
+            claimed = False
             try:
                 self._validate_cleanup_root(candidate)
+                claim_gate = (
+                    self._mutation_gate()
+                    if self._mutation_gate is not None
+                    else nullcontext()
+                )
+                with claim_gate, self.database.transaction() as connection:
+                    cursor = connection.execute(
+                        """
+                        UPDATE validation_copies
+                        SET materialization_phase='recovery_cleanup',
+                            materialization_started_at=?, materialization_worker_id=?
+                        WHERE job_id=? AND status='planned' AND materialization_kind='cargo'
+                          AND materialization_phase=?
+                          AND materialization_worker_id IS ?
+                          AND materialization_attempt=?
+                        """,
+                        (
+                            utc_text(),
+                            self._materialization_worker_id,
+                            job_id,
+                            previous_phase,
+                            previous_worker,
+                            attempt,
+                        ),
+                    )
+                if cursor.rowcount != 1:
+                    continue
+                claimed = True
                 with self._cleanup_lock:
                     if candidate.exists():
                         shutil.rmtree(candidate)
-                gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
-                with gate, self.database.transaction() as connection:
+                reset_gate = (
+                    self._mutation_gate()
+                    if self._mutation_gate is not None
+                    else nullcontext()
+                )
+                with reset_gate, self.database.transaction() as connection:
                     cursor = connection.execute(
                         """
                         UPDATE validation_copies
@@ -1908,16 +2525,63 @@ class WorkspaceCopyService:
                             error_code=NULL, error_stage=NULL, error_path=NULL,
                             error_details_json='{}'
                         WHERE job_id=? AND status='planned' AND materialization_kind='cargo'
-                          AND materialization_phase IN ('accepted', 'closure_planning', 'materializing')
+                          AND materialization_phase='recovery_cleanup'
+                          AND materialization_worker_id=?
+                          AND materialization_attempt=?
                         """,
-                        (job_id,),
+                        (job_id, self._materialization_worker_id, attempt),
                     )
-                if cursor.rowcount == 1:
-                    self._spawn_cargo_materialization_worker(job_id)
+                if cursor.rowcount != 1:
+                    continue
+                self._spawn_cargo_materialization_worker(job_id)
             except Exception:
-                # Keep the durable row visible for the next recovery pass.  A failed
-                # cleanup cannot safely be treated as a fresh worker claim.
+                if claimed:
+                    try:
+                        gate = (
+                            self._mutation_gate()
+                            if self._mutation_gate is not None
+                            else nullcontext()
+                        )
+                        with gate, self.database.transaction() as connection:
+                            connection.execute(
+                                """
+                                UPDATE validation_copies
+                                SET materialization_phase=?, materialization_worker_id=?,
+                                    materialization_started_at=NULL
+                                WHERE job_id=? AND status='planned'
+                                  AND materialization_phase='recovery_cleanup'
+                                  AND materialization_worker_id=?
+                                  AND materialization_attempt=?
+                                """,
+                                (
+                                    previous_phase,
+                                    previous_worker,
+                                    job_id,
+                                    self._materialization_worker_id,
+                                    attempt,
+                                ),
+                            )
+                    except Exception:
+                        pass
                 continue
+
+    @staticmethod
+    def _materialization_owner_is_live(worker_id: str) -> bool:
+        parts = worker_id.split(":", 3)
+        if len(parts) != 4 or parts[0] != "v2":
+            return False
+        try:
+            pid = int(parts[1])
+        except ValueError:
+            return False
+        if not process_is_alive(pid):
+            return False
+        try:
+            return process_creation_time(pid) == parts[2]
+        except OSError:
+            # Failure to query a live process is not proof that its ownership
+            # lease is abandoned.
+            return True
 
     def _cleanup_terminal_copy(self, session_id: str, job_root: Path) -> None:
         """Preserve completed validation evidence while deferring failed deletion."""
@@ -1968,8 +2632,14 @@ class WorkspaceCopyService:
             ).fetchall()
         return {row["path_key"]: row["content_hash"] for row in rows}
 
-    def _require_untracked_overlay_attribution(self, record: WorkspaceCopyRecord) -> None:
+    def _require_untracked_overlay_attribution(
+        self,
+        record: WorkspaceCopyRecord,
+        *,
+        sealed_overlay_paths: tuple[str, ...] = (),
+    ) -> None:
         attribution = self._session_attributions(record.session_id)
+        attribution.update({path.casefold(): None for path in sealed_overlay_paths})
         baseline_paths = self._baseline_tracked_paths(record.job_id)
         missing_from_baseline = [
             path
@@ -2002,7 +2672,8 @@ class WorkspaceCopyService:
         materialization_phase = row["materialization_phase"]
         if status == "planned" and (
             row["materialization_started_at"] is not None
-            or materialization_phase in {"accepted", "closure_planning", "materializing"}
+            or materialization_phase
+            in {"accepted", "closure_planning", "materializing", "recovery_cleanup"}
         ):
             status = "materializing"
         error_details = json.loads(str(row["error_details_json"] or "{}"))
@@ -2150,33 +2821,40 @@ class WorkspaceCopyService:
 
     def _extract_baseline_manifest(
         self, record: WorkspaceCopyRecord, attribution: dict[str, str | None]
-    ) -> None:
+    ) -> dict[str, str]:
         """Extract the pinned baseline in one archive stream, not one Git process per file."""
         baseline_paths = {
             path for path in record.manifest if path.casefold() not in attribution
         }
         if not baseline_paths:
-            return
+            return {}
         # Keep small targeted copies cheap without crossing Windows command-line
         # limits for the all-tracked-file manifest.
-        archive_paths = (
-            ("--", *sorted(baseline_paths, key=str.casefold))
-            if len(baseline_paths) <= _ARCHIVE_PATH_ARGUMENT_LIMIT
-            else ()
+        head_commit = self._head_commit(record.job_id)
+        targeted_command = trusted_git_command(
+            self.repo_root,
+            "archive",
+            "--format=tar",
+            head_commit,
+            "--",
+            *sorted(baseline_paths, key=str.casefold),
+        )
+        archive_command = (
+            targeted_command
+            if len(subprocess.list2cmdline(targeted_command))
+            <= _ARCHIVE_COMMAND_CHAR_LIMIT
+            else trusted_git_command(
+                self.repo_root, "archive", "--format=tar", head_commit
+            )
         )
         process = subprocess.Popen(
-            [
-                "git",
-                "archive",
-                "--format=tar",
-                self._head_commit(record.job_id),
-                *archive_paths,
-            ],
+            archive_command,
             cwd=self.repo_root,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
         extracted: set[str] = set()
+        input_entries: dict[str, str] = {}
         stderr = b""
         try:
             if process.stdout is None:
@@ -2189,17 +2867,16 @@ class WorkspaceCopyService:
                     path = member.name.replace("\\", "/")
                     if path not in baseline_paths or not (member.isfile() or member.issym()):
                         continue
-                    destination = (record.source_root / path).resolve()
-                    if not destination.is_relative_to(record.source_root):
-                        raise CoordinatorError(
-                            "validation_copy_dependency_archive_escape",
-                            "Pinned baseline archive escaped the validation source root",
-                        )
+                    destination = _archive_member_destination(
+                        record.source_root,
+                        path,
+                        error_code="validation_copy_dependency_archive_escape",
+                    )
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     if member.issym():
                         # Match `git show <tree>:<path>` without materializing a
                         # filesystem link that could escape the validation root.
-                        destination.write_text(member.linkname, encoding="utf-8")
+                        content = member.linkname.encode("utf-8")
                     else:
                         source = archive.extractfile(member)
                         if source is None:
@@ -2208,7 +2885,11 @@ class WorkspaceCopyService:
                                 "Pinned baseline archive contains an unreadable file",
                             )
                         with source:
-                            destination.write_bytes(source.read())
+                            content = source.read()
+                    destination.write_bytes(content)
+                    input_entries[
+                        destination.relative_to(record.job_root).as_posix()
+                    ] = hashlib.sha256(content).hexdigest()
                     extracted.add(path)
         except BaseException:
             if process.poll() is None:
@@ -2233,19 +2914,20 @@ class WorkspaceCopyService:
                 f"Untracked validation path is not owned by Session {record.session_id}: {missing[0]}",
                 details={"paths": missing},
             )
+        return input_entries
 
     def _extract_baseline_dependencies(
         self, record: WorkspaceCopyRecord, dependency_roots: tuple[str, ...]
-    ) -> None:
+    ) -> dict[str, str]:
         result = subprocess.run(
-            [
-                "git",
+            trusted_git_command(
+                self.repo_root,
                 "archive",
                 "--format=tar",
                 self._head_commit(record.job_id),
                 "--",
                 *dependency_roots,
-            ],
+            ),
             cwd=self.repo_root,
             check=False,
             capture_output=True,
@@ -2255,14 +2937,16 @@ class WorkspaceCopyService:
                 "validation_copy_dependency_archive_failed",
                 "Could not materialize validation template dependencies from the pinned baseline",
             )
+        input_entries: dict[str, str] = {}
         with tarfile.open(fileobj=io.BytesIO(result.stdout), mode="r:") as archive:
+            seen_paths: dict[str, str] = {}
             for member in archive.getmembers():
-                destination = (record.source_root / member.name).resolve()
-                if not destination.is_relative_to(record.source_root):
-                    raise CoordinatorError(
-                        "validation_copy_dependency_archive_escape",
-                        "Validation template dependency archive escaped its source root",
-                    )
+                destination = _archive_member_destination(
+                    record.source_root,
+                    member.name,
+                    error_code="validation_copy_dependency_archive_escape",
+                    seen_paths=seen_paths,
+                )
                 if not member.isfile():
                     continue
                 source = archive.extractfile(member)
@@ -2272,9 +2956,15 @@ class WorkspaceCopyService:
                         "Validation template dependency archive contains an unreadable file",
                     )
                 destination.parent.mkdir(parents=True, exist_ok=True)
-                destination.write_bytes(source.read())
+                content = source.read()
+                destination.write_bytes(content)
+                input_entries[
+                    destination.relative_to(record.job_root).as_posix()
+                ] = hashlib.sha256(content).hexdigest()
+        return input_entries
 
-    def _extract_external_sources(self, record: WorkspaceCopyRecord) -> None:
+    def _extract_external_sources(self, record: WorkspaceCopyRecord) -> dict[str, str]:
+        input_entries: dict[str, str] = {}
         for payload in record.external_sources:
             source = ExternalGitSource.from_payload(payload).pinned()
             mount = (record.job_root / source.mount_path).resolve()
@@ -2284,15 +2974,35 @@ class WorkspaceCopyService:
                     "External Git archive escaped the validation job root",
                     details={"path": source.mount_path},
                 )
+            if source.archive_hash is not None:
+                if self._object_store is None:
+                    raise CoordinatorError(
+                        "validation_copy_source_store_unavailable",
+                        "Sealed external archives require the coordinator object store",
+                    )
+                content = self._object_store.get(source.archive_hash)
+                if len(content) != source.archive_byte_count:
+                    raise CoordinatorError(
+                        "validation_copy_external_archive_invalid",
+                        "Sealed external archive byte count does not match its descriptor",
+                        details={"path": source.mount_path},
+                    )
+                extracted = extract_external_archive(content, mount)
+                input_entries.update(
+                    {
+                        (Path(source.mount_path) / relative).as_posix(): digest
+                        for relative, digest in extracted.items()
+                    }
+                )
+                continue
+            archive_command = trusted_git_command(
+                source.repo_root, "archive", "--format=tar", source.commit
+            )
+            pathspecs = external_archive_pathspecs(source)
+            if pathspecs:
+                archive_command.extend(("--", *pathspecs))
             result = subprocess.run(
-                [
-                    "git",
-                    "archive",
-                    "--format=tar",
-                    source.commit,
-                    "--",
-                    *source.include_roots,
-                ],
+                archive_command,
                 cwd=source.repo_root,
                 check=False,
                 capture_output=True,
@@ -2307,29 +3017,34 @@ class WorkspaceCopyService:
                     },
                 )
             with tarfile.open(fileobj=io.BytesIO(result.stdout), mode="r:") as archive:
+                seen_paths: dict[str, str] = {}
                 for member in archive.getmembers():
-                    destination = (mount / member.name).resolve()
-                    if not destination.is_relative_to(mount):
-                        raise CoordinatorError(
-                            "validation_copy_external_archive_escape",
-                            "External Git archive member escaped its managed mount",
-                            details={"path": member.name},
-                        )
+                    destination = _archive_member_destination(
+                        mount,
+                        member.name,
+                        error_code="validation_copy_external_archive_escape",
+                        seen_paths=seen_paths,
+                    )
                     if not (member.isfile() or member.issym()):
                         continue
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     if member.issym():
-                        destination.write_text(member.linkname, encoding="utf-8")
-                        continue
-                    stream = archive.extractfile(member)
-                    if stream is None:
-                        raise CoordinatorError(
-                            "validation_copy_external_archive_invalid",
-                            "External Git archive contains an unreadable file",
-                            details={"path": member.name},
-                        )
-                    with stream:
-                        destination.write_bytes(stream.read())
+                        content = member.linkname.encode("utf-8")
+                    else:
+                        stream = archive.extractfile(member)
+                        if stream is None:
+                            raise CoordinatorError(
+                                "validation_copy_external_archive_invalid",
+                                "External Git archive contains an unreadable file",
+                                details={"path": member.name},
+                            )
+                        with stream:
+                            content = stream.read()
+                    destination.write_bytes(content)
+                    input_entries[
+                        destination.relative_to(record.job_root).as_posix()
+                    ] = hashlib.sha256(content).hexdigest()
+        return input_entries
 
     @staticmethod
     def _input_manifest_hash(record: WorkspaceCopyRecord) -> str:
@@ -2339,22 +3054,40 @@ class WorkspaceCopyService:
 
     @staticmethod
     def _input_manifest_hash_for_roots(job_root: Path, target_root: Path) -> str:
-        entries: list[dict[str, str]] = []
+        entries: dict[str, str] = {}
         resolved_job_root = job_root.resolve()
         resolved_target_root = target_root.resolve()
+        try:
+            target_relative = resolved_target_root.relative_to(resolved_job_root)
+        except ValueError as error:
+            raise CoordinatorError(
+                "validation_copy_verify_escape",
+                "Validation target is outside its managed job root",
+            ) from error
         for path in resolved_job_root.rglob("*"):
-            resolved = path.resolve()
-            if not path.is_file() or resolved.is_relative_to(resolved_target_root):
+            relative = path.relative_to(resolved_job_root)
+            if relative == target_relative or target_relative in relative.parents:
                 continue
-            entries.append(
-                {
-                    "path": path.relative_to(resolved_job_root).as_posix(),
-                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                }
-            )
+            if path.is_symlink():
+                raise CoordinatorError(
+                    "validation_copy_manifest_symlink_forbidden",
+                    "Validation inputs cannot contain filesystem links",
+                    details={"path": relative.as_posix()},
+                )
+            if not path.is_file():
+                continue
+            entries[relative.as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+        return WorkspaceCopyService._input_manifest_hash_from_entries(entries)
+
+    @staticmethod
+    def _input_manifest_hash_from_entries(entries: Mapping[str, str]) -> str:
+        payload = [
+            {"path": path, "sha256": entries[path]}
+            for path in sorted(entries, key=str.casefold)
+        ]
         return hashlib.sha256(
             json.dumps(
-                sorted(entries, key=lambda item: item["path"].casefold()),
+                payload,
                 sort_keys=True,
                 separators=(",", ":"),
             ).encode("utf-8")
@@ -2362,13 +3095,14 @@ class WorkspaceCopyService:
 
     def _overlay_attributed_sources(
         self,
-        source_root: Path,
+        record: WorkspaceCopyRecord,
         overlay_paths: tuple[str, ...],
         attribution: dict[str, str | None],
-    ) -> None:
+    ) -> dict[str, str]:
+        input_entries: dict[str, str] = {}
         for path in overlay_paths:
             source = self.repo_root / path
-            destination = source_root / path
+            destination = record.source_root / path
             expected_hash = attribution[path.casefold()]
             if expected_hash is None:
                 if source.exists():
@@ -2386,14 +3120,158 @@ class WorkspaceCopyService:
                     f"Owned validation source is missing: {path}",
                     details={"path": path},
                 )
-            if hash_file(source) != expected_hash:
+            content = source.read_bytes()
+            actual_hash = hashlib.sha256(content).hexdigest()
+            if actual_hash != expected_hash:
                 raise CoordinatorError(
                     "validation_copy_attribution_stale",
                     f"Owned source changed after attribution: {path}",
                     details={"path": path},
                 )
             destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(source.read_bytes())
+            destination.write_bytes(content)
+            input_entries[
+                destination.relative_to(record.job_root).as_posix()
+            ] = actual_hash
+        return input_entries
+
+    def _sealed_overlay_manifest(
+        self,
+        overlay_paths: tuple[str, ...] | list[str],
+        manifest: Mapping[str, object],
+    ) -> dict[str, str | None]:
+        declared: dict[str, str] = {}
+        for raw_path in overlay_paths:
+            if not isinstance(raw_path, str):
+                raise CoordinatorError(
+                    "validation_copy_sealed_manifest_invalid",
+                    "Sealed overlay paths must contain strings",
+                )
+            path = self._normalize_sealed_path(raw_path)
+            key = path.casefold()
+            if key in declared and declared[key] != path:
+                raise CoordinatorError(
+                    "validation_copy_sealed_manifest_invalid",
+                    "Sealed overlay paths must be unique",
+                    details={"path": path},
+                )
+            declared[key] = path
+
+        sealed: dict[str, tuple[str, str | None]] = {}
+        for raw_path, raw_hash in manifest.items():
+            if not isinstance(raw_path, str):
+                raise CoordinatorError(
+                    "validation_copy_sealed_manifest_invalid",
+                    "Sealed overlay manifest paths must be strings",
+                )
+            path = self._normalize_sealed_path(raw_path)
+            if raw_hash is None:
+                object_hash = None
+            elif (
+                isinstance(raw_hash, str)
+                and len(raw_hash) == 64
+                and all(
+                    character in "0123456789abcdef"
+                    for character in raw_hash.casefold()
+                )
+            ):
+                object_hash = raw_hash.casefold()
+            else:
+                raise CoordinatorError(
+                    "validation_copy_sealed_manifest_invalid",
+                    "Sealed overlay values must be SHA-256 or null tombstones",
+                    details={"path": path},
+                )
+            key = path.casefold()
+            if key in sealed:
+                raise CoordinatorError(
+                    "validation_copy_sealed_manifest_invalid",
+                    "Sealed overlay manifest paths must be unique",
+                    details={"path": path},
+                )
+            sealed[key] = (path, object_hash)
+
+        if set(declared) != set(sealed):
+            mismatched = sorted(
+                {
+                    *(declared[key] for key in set(declared) - set(sealed)),
+                    *(sealed[key][0] for key in set(sealed) - set(declared)),
+                },
+                key=str.casefold,
+            )
+            raise CoordinatorError(
+                "validation_copy_sealed_manifest_mismatch",
+                "Sealed overlay paths must match the immutable source manifest",
+                details={"paths": mismatched},
+            )
+        return {
+            path: object_hash
+            for path, object_hash in sorted(
+                sealed.values(), key=lambda item: item[0].casefold()
+            )
+        }
+
+    @staticmethod
+    def _normalize_sealed_path(value: str) -> str:
+        path = normalize_portable_relative_path(
+            value,
+            code="validation_copy_sealed_manifest_invalid",
+            message="Sealed overlay path is unsafe on managed Windows copies",
+        )
+        folded = path.casefold()
+        if folded == ".git" or folded.startswith(".git/"):
+            raise CoordinatorError(
+                "validation_copy_git_forbidden", ".git cannot enter validation copies"
+            )
+        if folded == "target" or folded.startswith("target/"):
+            raise CoordinatorError(
+                "validation_copy_target_forbidden",
+                "Build output cannot enter validation copies",
+            )
+        if folded == ".codex/state" or folded.startswith(".codex/state/"):
+            raise CoordinatorError(
+                "validation_copy_state_forbidden",
+                "Coordinator state cannot enter validation copies",
+            )
+        return path
+
+    def _overlay_sealed_sources(
+        self,
+        record: WorkspaceCopyRecord,
+        manifest: Mapping[str, str | None],
+    ) -> dict[str, str]:
+        if self._object_store is None:
+            raise CoordinatorError(
+                "validation_copy_source_store_unavailable",
+                "Sealed validation sources require the coordinator object store",
+            )
+        sealed = self._sealed_overlay_manifest(tuple(manifest), manifest)
+        input_entries: dict[str, str] = {}
+        for path, object_hash in sealed.items():
+            destination = record.source_root.joinpath(*PurePosixPath(path).parts)
+            if object_hash is None:
+                if os.path.lexists(destination):
+                    if destination.is_dir() and not destination.is_symlink():
+                        raise CoordinatorError(
+                            "validation_copy_sealed_tombstone_invalid",
+                            "Sealed source tombstone refers to a directory",
+                            details={"path": path},
+                        )
+                    destination.unlink()
+                continue
+            content = self._object_store.get(object_hash)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if destination.is_symlink():
+                raise CoordinatorError(
+                    "validation_copy_manifest_symlink_forbidden",
+                    "Validation inputs cannot contain filesystem links",
+                    details={"path": path},
+                )
+            destination.write_bytes(content)
+            input_entries[
+                destination.relative_to(record.job_root).as_posix()
+            ] = object_hash
+        return input_entries
 
     def _head_commit(self, job_id: str) -> str:
         with self.database.connect() as connection:
@@ -2412,7 +3290,7 @@ class WorkspaceCopyService:
         if row is None:
             raise CoordinatorError("validation_copy_not_found", f"Unknown validation-copy job: {job_id}")
         result = subprocess.run(
-            ["git", "show", f"{row['head_commit']}:{path}"],
+                trusted_git_command(self.repo_root, "show", f"{row['head_commit']}:{path}"),
             cwd=self.repo_root,
             check=False,
             capture_output=True,
@@ -2421,7 +3299,7 @@ class WorkspaceCopyService:
 
     def _baseline_tracked_paths(self, job_id: str) -> set[str]:
         result = subprocess.run(
-            ["git", "ls-tree", "-r", "--name-only", "-z", self._head_commit(job_id)],
+            trusted_git_command(self.repo_root, "ls-tree", "-r", "--name-only", "-z", self._head_commit(job_id)),
             cwd=self.repo_root,
             check=False,
             capture_output=True,
@@ -2438,9 +3316,60 @@ class WorkspaceCopyService:
             if path
         }
 
+    def _baseline_paths(
+        self, baseline_commit: str, roots: tuple[str, ...]
+    ) -> tuple[str, ...]:
+        command = [
+            "git",
+            "ls-tree",
+            "-r",
+            "--name-only",
+            "-z",
+            baseline_commit,
+        ]
+        if roots:
+            command.extend(("--", *roots))
+        result = subprocess.run(
+            command,
+            cwd=self.repo_root,
+            check=False,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            raise CoordinatorError(
+                "validation_copy_baseline_tree_failed",
+                "Could not inspect the requested validation baseline tree",
+                details={
+                    "stderr": result.stderr.decode("utf-8", errors="replace")[-4096:]
+                },
+            )
+        return tuple(
+            sorted(
+                (
+                    path.decode("utf-8", errors="surrogateescape")
+                    for path in result.stdout.split(b"\0")
+                    if path
+                ),
+                key=str.casefold,
+            )
+        )
+
+    def _requested_baseline_commit(self, baseline_commit: str | None) -> str:
+        if baseline_commit is None:
+            return self._git_text("rev-parse", "HEAD")
+        normalized = baseline_commit.strip().lower()
+        if len(normalized) not in {40, 64} or any(
+            character not in "0123456789abcdef" for character in normalized
+        ):
+            raise CoordinatorError(
+                "validation_copy_baseline_invalid",
+                "Validation baseline must be a full Git object ID",
+            )
+        return normalized
+
     def _current_tracked_paths(self) -> set[str]:
         result = subprocess.run(
-            ["git", "ls-files", "-z"],
+            trusted_git_command(self.repo_root, "ls-files", "-z"),
             cwd=self.repo_root,
             check=False,
             capture_output=True,
@@ -2479,7 +3408,7 @@ class WorkspaceCopyService:
 
     def _git_text(self, *arguments: str) -> str:
         result = subprocess.run(
-            ["git", *arguments],
+            trusted_git_command(self.repo_root, *arguments),
             cwd=self.repo_root,
             check=True,
             capture_output=True,

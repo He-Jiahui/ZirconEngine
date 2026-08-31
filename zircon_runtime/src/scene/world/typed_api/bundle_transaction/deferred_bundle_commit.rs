@@ -4,8 +4,8 @@ use crate::scene::ecs::StorageType;
 use zircon_runtime_interface::world_sync::WorldFact;
 
 use super::{
-    BundleInsertionTransaction, PendingBundleEffect, PendingBundlePublication,
-    PendingDeferredRemoval, TableBundlePublication, MAX_BUNDLE_COMPONENT_TYPES,
+    BundleInsertionTransaction, MAX_BUNDLE_COMPONENT_TYPES, PendingBundleEffect,
+    PendingBundlePublication, PendingDeferredRemoval, TableBundlePublication,
 };
 
 impl BundleInsertionTransaction<'_> {

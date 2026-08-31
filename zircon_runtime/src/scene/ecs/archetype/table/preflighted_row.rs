@@ -1,6 +1,6 @@
-use std::collections::{btree_map::Entry, BTreeMap};
+use std::collections::{BTreeMap, btree_map::Entry};
 
-use crate::scene::ecs::{storage::StoredComponent, ComponentId, ComponentTicks};
+use crate::scene::ecs::{ComponentId, ComponentTicks, storage::StoredComponent};
 
 use super::ArchetypeTableError;
 

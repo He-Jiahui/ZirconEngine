@@ -453,7 +453,7 @@ fn vm_payload_validation_indexes_retained_components_before_registration_checks(
             && validation.contains("for registration in registrations")
             && validation.contains("payloads_by_type.get(type_path)")
             && !validation.contains(
-                "for registration in registrations {\n            let type_path = registration.type_path.type_path.as_str();\n            for components in self.dynamic_components.values()"
+                "for registration in registrations {\n            let type_path = registration.type_path.type_path();\n            for components in self.dynamic_components.values()"
             ),
         "VM catalog validation must index retained payloads once instead of rescanning every entity map for every registration"
     );

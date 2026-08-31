@@ -1,24 +1,5 @@
 use super::super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
-const CONSOLE_DIAGNOSTICS_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionConsoleDiagnosticsLiveLogTab",
-    "WorkbenchExtensionConsoleDiagnosticsCountersTab",
-    "WorkbenchExtensionConsoleDiagnosticsReportTab",
-];
-const CONSOLE_DIAGNOSTICS_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.console_diagnostics.live_log_tab.select",
-        "WorkbenchExtensionConsoleDiagnosticsLiveLogTab",
-    ),
-    action(
-        "workbench.extension.console_diagnostics.counters_tab.select",
-        "WorkbenchExtensionConsoleDiagnosticsCountersTab",
-    ),
-    action(
-        "workbench.extension.console_diagnostics.report_tab.select",
-        "WorkbenchExtensionConsoleDiagnosticsReportTab",
-    ),
-];
 const CONSOLE_DIAGNOSTICS_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionConsoleDiagnosticsSessionRow",
     "WorkbenchExtensionConsoleDiagnosticsRendererRow",
@@ -27,7 +8,6 @@ const CONSOLE_DIAGNOSTICS_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionConsoleDiagnosticsInfoTableRow",
     "WorkbenchExtensionConsoleDiagnosticsGameplayTableRow",
     "WorkbenchExtensionConsoleDiagnosticsErrorTableRow",
-    "WorkbenchExtensionConsoleDiagnosticsOutputRow",
 ];
 const CONSOLE_DIAGNOSTICS_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -58,20 +38,16 @@ const CONSOLE_DIAGNOSTICS_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.console_diagnostics.error_table_row.select",
         "WorkbenchExtensionConsoleDiagnosticsErrorTableRow",
     ),
-    action(
-        "workbench.extension.console_diagnostics.output.select",
-        "WorkbenchExtensionConsoleDiagnosticsOutputRow",
-    ),
 ];
 const CONSOLE_DIAGNOSTICS_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchHudConsoleDiagnosticsButton",
+    "WorkbenchHudToolsMenu",
     "WorkbenchExtensionConsoleDiagnosticsFilterConsoleButton",
     "WorkbenchExtensionConsoleDiagnosticsClearConsoleButton",
 ];
 const CONSOLE_DIAGNOSTICS_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.console_diagnostics.open",
-        "WorkbenchHudConsoleDiagnosticsButton",
+        "WorkbenchHudToolsMenu",
     ),
     action(
         "workbench.extension.console_diagnostics.filter_console.invoke",
@@ -94,8 +70,6 @@ const CONSOLE_DIAGNOSTICS_FIELD_ACTIONS: &[&str] = &[
 pub(in super::super) const CONSOLE_DIAGNOSTICS_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.console_diagnostics.open",
     "WorkbenchExtensionConsoleDiagnosticsWorkspace",
-    CONSOLE_DIAGNOSTICS_TAB_CONTROLS,
-    CONSOLE_DIAGNOSTICS_TAB_ACTIONS,
     CONSOLE_DIAGNOSTICS_ROW_CONTROLS,
     CONSOLE_DIAGNOSTICS_ROW_ACTIONS,
     CONSOLE_DIAGNOSTICS_COMMAND_CONTROLS,
@@ -103,25 +77,6 @@ pub(in super::super) const CONSOLE_DIAGNOSTICS_NAVIGATION_SPEC: ExtensionNavigat
     CONSOLE_DIAGNOSTICS_FIELD_ACTIONS,
 );
 
-const RUNTIME_DIAGNOSTICS_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionRuntimeDiagnosticsWatchTab",
-    "WorkbenchExtensionRuntimeDiagnosticsEventsTab",
-    "WorkbenchExtensionRuntimeDiagnosticsConsoleTab",
-];
-const RUNTIME_DIAGNOSTICS_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.runtime_diagnostics.watch_tab.select",
-        "WorkbenchExtensionRuntimeDiagnosticsWatchTab",
-    ),
-    action(
-        "workbench.extension.runtime_diagnostics.events_tab.select",
-        "WorkbenchExtensionRuntimeDiagnosticsEventsTab",
-    ),
-    action(
-        "workbench.extension.runtime_diagnostics.console_tab.select",
-        "WorkbenchExtensionRuntimeDiagnosticsConsoleTab",
-    ),
-];
 const RUNTIME_DIAGNOSTICS_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionRuntimeDiagnosticsSessionPlayerRow",
     "WorkbenchExtensionRuntimeDiagnosticsWorldRuntimeRow",
@@ -130,7 +85,6 @@ const RUNTIME_DIAGNOSTICS_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionRuntimeDiagnosticsAiGuardStateTableRow",
     "WorkbenchExtensionRuntimeDiagnosticsWorldTimeTableRow",
     "WorkbenchExtensionRuntimeDiagnosticsWeaponTargetTableRow",
-    "WorkbenchExtensionRuntimeDiagnosticsOutputRow",
 ];
 const RUNTIME_DIAGNOSTICS_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -161,20 +115,16 @@ const RUNTIME_DIAGNOSTICS_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.runtime_diagnostics.weapon_target_table_row.select",
         "WorkbenchExtensionRuntimeDiagnosticsWeaponTargetTableRow",
     ),
-    action(
-        "workbench.extension.runtime_diagnostics.output.select",
-        "WorkbenchExtensionRuntimeDiagnosticsOutputRow",
-    ),
 ];
 const RUNTIME_DIAGNOSTICS_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchHudRuntimeDiagnosticsButton",
+    "WorkbenchHudToolsMenu",
     "WorkbenchExtensionRuntimeDiagnosticsCaptureSnapshotButton",
     "WorkbenchExtensionRuntimeDiagnosticsExportReportButton",
 ];
 const RUNTIME_DIAGNOSTICS_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.runtime_diagnostics.open",
-        "WorkbenchHudRuntimeDiagnosticsButton",
+        "WorkbenchHudToolsMenu",
     ),
     action(
         "workbench.extension.runtime_diagnostics.capture_snapshot.invoke",
@@ -197,8 +147,6 @@ const RUNTIME_DIAGNOSTICS_FIELD_ACTIONS: &[&str] = &[
 pub(in super::super) const RUNTIME_DIAGNOSTICS_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.runtime_diagnostics.open",
     "WorkbenchExtensionRuntimeDiagnosticsWorkspace",
-    RUNTIME_DIAGNOSTICS_TAB_CONTROLS,
-    RUNTIME_DIAGNOSTICS_TAB_ACTIONS,
     RUNTIME_DIAGNOSTICS_ROW_CONTROLS,
     RUNTIME_DIAGNOSTICS_ROW_ACTIONS,
     RUNTIME_DIAGNOSTICS_COMMAND_CONTROLS,
@@ -206,25 +154,6 @@ pub(in super::super) const RUNTIME_DIAGNOSTICS_NAVIGATION_SPEC: ExtensionNavigat
     RUNTIME_DIAGNOSTICS_FIELD_ACTIONS,
 );
 
-const PERFORMANCE_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionPerformanceFrameCaptureTab",
-    "WorkbenchExtensionPerformanceCpuLaneTab",
-    "WorkbenchExtensionPerformanceGpuLaneTab",
-];
-const PERFORMANCE_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.performance.frame_capture_tab.select",
-        "WorkbenchExtensionPerformanceFrameCaptureTab",
-    ),
-    action(
-        "workbench.extension.performance.cpu_lane_tab.select",
-        "WorkbenchExtensionPerformanceCpuLaneTab",
-    ),
-    action(
-        "workbench.extension.performance.gpu_lane_tab.select",
-        "WorkbenchExtensionPerformanceGpuLaneTab",
-    ),
-];
 const PERFORMANCE_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPerformanceCaptureRow",
     "WorkbenchExtensionPerformanceCpuGameThreadRow",
@@ -233,7 +162,6 @@ const PERFORMANCE_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionPerformanceRenderThreadTableRow",
     "WorkbenchExtensionPerformanceGpuLightingTableRow",
     "WorkbenchExtensionPerformanceTextureUploadTableRow",
-    "WorkbenchExtensionPerformanceOutputRow",
 ];
 const PERFORMANCE_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -264,20 +192,16 @@ const PERFORMANCE_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.performance.texture_upload_table_row.select",
         "WorkbenchExtensionPerformanceTextureUploadTableRow",
     ),
-    action(
-        "workbench.extension.performance.output.select",
-        "WorkbenchExtensionPerformanceOutputRow",
-    ),
 ];
 const PERFORMANCE_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchHudPerformanceButton",
+    "WorkbenchHudToolsMenu",
     "WorkbenchExtensionPerformanceCaptureFrameButton",
     "WorkbenchExtensionPerformanceFilterSamplesButton",
 ];
 const PERFORMANCE_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.performance.open",
-        "WorkbenchHudPerformanceButton",
+        "WorkbenchHudToolsMenu",
     ),
     action(
         "workbench.extension.performance.capture_frame.invoke",
@@ -300,8 +224,6 @@ const PERFORMANCE_FIELD_ACTIONS: &[&str] = &[
 pub(in super::super) const PERFORMANCE_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.performance.open",
     "WorkbenchExtensionPerformanceWorkspace",
-    PERFORMANCE_TAB_CONTROLS,
-    PERFORMANCE_TAB_ACTIONS,
     PERFORMANCE_ROW_CONTROLS,
     PERFORMANCE_ROW_ACTIONS,
     PERFORMANCE_COMMAND_CONTROLS,
@@ -309,25 +231,6 @@ pub(in super::super) const PERFORMANCE_NAVIGATION_SPEC: ExtensionNavigationSpec 
     PERFORMANCE_FIELD_ACTIONS,
 );
 
-const TELEMETRY_DASHBOARD_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionTelemetryDashboardMetricsTab",
-    "WorkbenchExtensionTelemetryDashboardSegmentsTab",
-    "WorkbenchExtensionTelemetryDashboardRawEventsTab",
-];
-const TELEMETRY_DASHBOARD_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.telemetry_dashboard.metrics_tab.select",
-        "WorkbenchExtensionTelemetryDashboardMetricsTab",
-    ),
-    action(
-        "workbench.extension.telemetry_dashboard.segments_tab.select",
-        "WorkbenchExtensionTelemetryDashboardSegmentsTab",
-    ),
-    action(
-        "workbench.extension.telemetry_dashboard.raw_events_tab.select",
-        "WorkbenchExtensionTelemetryDashboardRawEventsTab",
-    ),
-];
 const TELEMETRY_DASHBOARD_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionTelemetryDashboardRetentionQueryRow",
     "WorkbenchExtensionTelemetryDashboardNewUsersSegmentRow",
@@ -336,7 +239,6 @@ const TELEMETRY_DASHBOARD_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionTelemetryDashboardFpsP95TableRow",
     "WorkbenchExtensionTelemetryDashboardCrashRateTableRow",
     "WorkbenchExtensionTelemetryDashboardQueueWaitTableRow",
-    "WorkbenchExtensionTelemetryDashboardOutputRow",
 ];
 const TELEMETRY_DASHBOARD_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -367,20 +269,16 @@ const TELEMETRY_DASHBOARD_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.telemetry_dashboard.queue_wait_table_row.select",
         "WorkbenchExtensionTelemetryDashboardQueueWaitTableRow",
     ),
-    action(
-        "workbench.extension.telemetry_dashboard.output.select",
-        "WorkbenchExtensionTelemetryDashboardOutputRow",
-    ),
 ];
 const TELEMETRY_DASHBOARD_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchHudTelemetryDashboardButton",
+    "WorkbenchHudToolsMenu",
     "WorkbenchExtensionTelemetryDashboardFilterTelemetryButton",
     "WorkbenchExtensionTelemetryDashboardRunQueryButton",
 ];
 const TELEMETRY_DASHBOARD_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.telemetry_dashboard.open",
-        "WorkbenchHudTelemetryDashboardButton",
+        "WorkbenchHudToolsMenu",
     ),
     action(
         "workbench.extension.telemetry_dashboard.filter_telemetry.invoke",
@@ -403,8 +301,6 @@ const TELEMETRY_DASHBOARD_FIELD_ACTIONS: &[&str] = &[
 pub(in super::super) const TELEMETRY_DASHBOARD_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.telemetry_dashboard.open",
     "WorkbenchExtensionTelemetryDashboardWorkspace",
-    TELEMETRY_DASHBOARD_TAB_CONTROLS,
-    TELEMETRY_DASHBOARD_TAB_ACTIONS,
     TELEMETRY_DASHBOARD_ROW_CONTROLS,
     TELEMETRY_DASHBOARD_ROW_ACTIONS,
     TELEMETRY_DASHBOARD_COMMAND_CONTROLS,

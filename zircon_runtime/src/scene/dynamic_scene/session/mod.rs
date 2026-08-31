@@ -40,16 +40,20 @@ mod target_path;
 mod validation;
 
 pub use archive::{
-    RuntimeSessionArchive, RuntimeSessionArchivePayload, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
+    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION, RuntimeSessionArchive, RuntimeSessionArchivePayload,
 };
 pub use artifact::{
-    RuntimeSessionArchiveArtifact, RuntimeSessionArchiveArtifactDiagnostics,
-    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchiveArtifact,
+    RuntimeSessionArchiveArtifactDiagnostics,
 };
 pub use error::RuntimeSessionArchiveError;
 pub use io::{
-    RuntimeSessionArchiveWriteSubmission, RuntimeSessionArchiveWriter,
-    RuntimeSessionArchiveWriterLimits, RuntimeSessionArchiveWriterSubmitError,
+    RuntimeSessionArchiveReadArtifact, RuntimeSessionArchiveReadOutcome,
+    RuntimeSessionArchiveReadSubmission, RuntimeSessionArchiveReader,
+    RuntimeSessionArchiveReaderDiagnostics, RuntimeSessionArchiveReaderLimits,
+    RuntimeSessionArchiveReaderSubmitError, RuntimeSessionArchiveWriteSubmission,
+    RuntimeSessionArchiveWriter, RuntimeSessionArchiveWriterLimits,
+    RuntimeSessionArchiveWriterSubmitError,
 };
 pub use manifest::{RuntimeSessionArchiveManifest, RuntimeSessionSlotSummary};
 pub use merge::{

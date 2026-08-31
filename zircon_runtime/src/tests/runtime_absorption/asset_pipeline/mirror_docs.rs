@@ -42,7 +42,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../../../asset/tests/assets/artifact_store/lazy_residency.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_components.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_script.rs"),
-        include_str!("../../../core/resource/tests.rs"),
+        include_str!("../../../../crates/zr_resource/src/tests.rs"),
         include_str!("../asset_surface.rs"),
         include_str!("../asset_surface/facade_query.rs"),
         include_str!("../asset_worker_policy.rs"),
@@ -67,7 +67,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../../../asset/tests/assets/artifact_store/lazy_residency.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_components.rs"),
         include_str!("../../../asset/tests/assets/artifact_store/scene_script.rs"),
-        include_str!("../../../core/resource/tests.rs"),
+        include_str!("../../../../crates/zr_resource/src/tests.rs"),
         include_str!("../../../asset/facade/load_state.rs"),
     ]
     .join("\n");

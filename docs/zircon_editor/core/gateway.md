@@ -19,6 +19,8 @@ related_code:
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/entry_runner/editor.rs
+  - zircon_app/src/entry/entry_runner/editor/play_session_factory.rs
+  - zircon_editor/src/core/play/embedded_backend
   - zircon_app/src/entry/entry_runner/editor/tests/runtime_loading.rs
   - zircon_runtime/src/core/runtime/handle/core_handle.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -75,6 +77,8 @@ Every `ZrOwnedResultV2` returned by the session table is wrapped immediately. Th
 `EditorRuntimeGatewayHandle` is the stable, replaceable gateway reference. Its owner publishes an immutable `{generation, gateway, capabilities}` record through `ArcSwap`. Tick, event, capture, viewport-surface, world access, subscription, and operation calls hold an atomic generation guard for the duration of the call; they do not enter a shared `RwLock` or clone the transport Arc. Replacement is the only serialized control-plane path. It builds the next capability snapshot before publishing, keeps the previous generation alive until all in-flight guards retire, and recovers the writer mutex after a failed snapshot construction without replacing the last valid generation.
 
 The app-side `RuntimeSession` remains the general client/runtime lifecycle owner, but no longer implements the editor gateway trait. Editor startup builds a `SessionGateway` from its validated normalized API table and capability projection. This is a hard cut: there is one editor ABI transport implementation, with no compatibility trait implementation left on `RuntimeSession`.
+
+Embedded Play keeps create/destroy authority on the same App side. `AppPlaySessionFactory` loads only from a cloned `RuntimeLibraryPreflight` whose BuildSet is revalidated immediately before loading, creates a separate runtime-profile session from the project root and serialized scene path, and returns Editor an opaque `PlaySessionLease`. After consumers retire and the identity-qualified stable route detaches, lease retirement drops its gateway, proves unique session ownership with `Arc::try_unwrap`, and calls retryable `RuntimeSession::try_destroy`. A failed destroy retains the valid handle and loaded library for the next attempt; `Drop` remains the fatal last-resort guard against unloading dynamic code after an unproven teardown.
 
 ## Borrowed Callback Contract
 

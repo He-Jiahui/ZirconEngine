@@ -2,7 +2,7 @@ use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use super::super::*;
@@ -13,12 +13,34 @@ use crate::core::framework::platform::{
     PreferenceTicketWaitResult, PreferenceWorkDeadline,
 };
 use crate::core::manager::{
-    PLATFORM_MANAGER_NAME, platform_preference_storage_handle, resolve_manager_service,
+    platform_preference_storage_handle, resolve_manager_service, PLATFORM_MANAGER_NAME,
 };
 use crate::core::{CoreError, CoreRuntime};
 use crate::foundation as foundation_runtime;
+use crate::platform::test_support::{
+    platform_driver, platform_manager, platform_manager_with_backend, TestPlatformManager,
+};
 
 static NEXT_TEMP_ROOT: AtomicU64 = AtomicU64::new(1);
+
+#[test]
+fn platform_module_driver_uses_the_activating_runtime_io_owner() {
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(foundation_runtime::module_descriptor())
+        .unwrap();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
+    runtime
+        .activate_module(crate::core::framework::platform::PLATFORM_MODULE_NAME)
+        .unwrap();
+
+    let driver = runtime
+        .resolve_driver::<PlatformDriver>(PLATFORM_DRIVER_NAME)
+        .unwrap();
+
+    assert!(driver.preference_persistence_uses_task_pool(runtime.task_graph().worker_pool()));
+}
 
 #[test]
 fn platform_preference_storage_keys_require_non_empty_bounded_namespaces_and_keys() {
@@ -42,7 +64,7 @@ fn platform_preference_storage_keys_require_non_empty_bounded_namespaces_and_key
 
 #[test]
 fn platform_preference_storage_unavailable_backend_never_falls_back_to_process_memory() {
-    let storage = PlatformManager::new(Arc::new(PlatformDriver::default()));
+    let storage = platform_manager();
     let key = PreferenceKey::new("woc.input", "keybinds").unwrap();
     let submission = storage
         .submit_write(
@@ -142,7 +164,7 @@ fn platform_preference_storage_module_cleanup_is_bounded_and_preserves_services_
 fn platform_preference_storage_backend_installation_is_one_shot() {
     let first_root = fresh_temp_root("one-shot-first");
     let second_root = fresh_temp_root("one-shot-second");
-    let driver = PlatformDriver::default();
+    let driver = platform_driver();
 
     driver
         .install_preference_storage_backend(Arc::new(AtomicFilePreferenceStorageBackend::new(
@@ -314,24 +336,20 @@ fn platform_preference_storage_injected_backend_updates_capability_report() {
         features: PlatformFeatureSelection::bevy_default_platform(),
     };
 
-    let report = manager.capability_report(&config);
+    let report = manager.planning_capability_report(&config);
     assert_eq!(
         report.persistent_preferences,
         CapabilityStatus::Supported(PreferenceStorageBackendKind::AtomicFile)
     );
-    assert!(
-        report
-            .diagnostic_lines()
-            .contains(&"platform.persistent_preferences=supported:atomic_file".to_owned())
-    );
+    assert!(report
+        .diagnostic_lines()
+        .contains(&"platform.persistent_preferences=supported:atomic_file".to_owned()));
 
     let _ = fs::remove_dir_all(root);
 }
 
-fn manager_with_backend(backend: Arc<dyn PreferenceStorageBackend>) -> PlatformManager {
-    let driver = Arc::new(PlatformDriver::default());
-    driver.install_preference_storage_backend(backend).unwrap();
-    PlatformManager::new(driver)
+fn manager_with_backend(backend: Arc<dyn PreferenceStorageBackend>) -> TestPlatformManager {
+    platform_manager_with_backend(backend)
 }
 
 fn submit_write(storage: &dyn PreferenceStorage, key: PreferenceKey, value: &[u8]) {

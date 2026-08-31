@@ -482,31 +482,36 @@ fn runtime_profile_module_loading_uses_linked_required_provider_reports() {
             [&sound, &rendering],
         );
 
-    let fatal_messages = report.fatal_messages();
     #[cfg(feature = "ui")]
-    assert!(fatal_messages.is_empty(), "{fatal_messages:?}");
+    let report = report.expect("all required profile providers should compile");
+    #[cfg(not(feature = "ui"))]
+    let report = report.expect_err("missing required UI provider must reject composition");
     #[cfg(not(feature = "ui"))]
     {
+        let fatal_messages = report.fatal_messages();
         assert_eq!(report.required_missing().len(), 1);
         assert_eq!(report.required_missing()[0].runtime_id, RuntimePluginId::Ui);
         assert_eq!(fatal_messages.len(), 1);
         assert!(fatal_messages[0].contains("required runtime plugin Ui"));
     }
     assert!(!report
-        .required_missing()
+        .runtime_plugin_availability()
+        .missing_required
         .iter()
         .any(|missing| missing.runtime_id == RuntimePluginId::Sound));
     assert!(!report
-        .required_missing()
+        .runtime_plugin_availability()
+        .missing_required
         .iter()
         .any(|missing| missing.runtime_id == RuntimePluginId::Rendering));
 }
 
 #[test]
 fn minimal_runtime_profile_module_loading_does_not_inherit_legacy_target_defaults() {
-    let report = crate::builtin::runtime_modules_for_runtime_profile(RuntimeProfileId::Minimal);
+    let report = crate::builtin::runtime_modules_for_runtime_profile(RuntimeProfileId::Minimal)
+        .expect("minimal runtime profile should compile");
     let module_names = report
-        .modules
+        .modules()
         .iter()
         .map(|module| module.module_name())
         .collect::<Vec<_>>();
@@ -525,7 +530,8 @@ fn minimal_runtime_profile_module_loading_does_not_inherit_legacy_target_default
 
 #[test]
 fn runtime_profile_module_loading_keeps_missing_required_providers_fatal() {
-    let report = crate::builtin::runtime_modules_for_runtime_profile(RuntimeProfileId::Client2d);
+    let report = crate::builtin::runtime_modules_for_runtime_profile(RuntimeProfileId::Client2d)
+        .expect_err("missing required providers must reject composition");
 
     assert!(report
         .required_missing()

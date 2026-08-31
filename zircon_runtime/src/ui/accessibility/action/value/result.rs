@@ -1,16 +1,19 @@
 use zircon_runtime_interface::ui::{
-    accessibility::{UiA11yRole, UiAccessibilityActionStatus, UiAccessibilityNode},
+    accessibility::UiAccessibilityActionStatus,
     component::{UiComponentEvent, UiValue},
-    dispatch::{UiComponentEventReport, UiInputDispatchResult},
+    dispatch::{UiComponentEventReport, UiInputDispatchResult, UiTextInputConstraintReceipt},
     event_ui::UiNodeId,
     tree::UiTreeError,
 };
 
-use crate::ui::surface::{UiPropertyMutationReport, UiPropertyMutationStatus, UiSurface};
+use crate::ui::surface::{
+    UiPropertyMutationReport, UiPropertyMutationStatus, UiSurface, UiTextComponentEventKind,
+};
+use crate::ui::{dispatch::UiTextDocumentSession, text::CommittedTextEditIntent};
 
 use super::super::{
     result::{append_binding_report_diagnostic, finish_handled, finish_unhandled},
-    text_state::sync_text_input_set_value_edit_metadata,
+    text_state::{collapsed_text_state, commit_accessibility_text_edit},
 };
 use super::text::TextInputSetValueRejection;
 
@@ -41,37 +44,97 @@ pub(super) fn finish_text_input_set_value_rejection(
     )
 }
 
+pub(super) fn finish_text_input_set_value(
+    surface: &mut UiSurface,
+    text_documents: Option<&mut UiTextDocumentSession>,
+    target: UiNodeId,
+    value_property: String,
+    text: String,
+    committed_edit: Option<CommittedTextEditIntent>,
+    text_constraint_note: Option<&'static str>,
+    text_constraint_receipt: Option<UiTextInputConstraintReceipt>,
+    mut result: UiInputDispatchResult,
+) -> UiInputDispatchResult {
+    append_text_constraint_receipt(&mut result, text_constraint_note, text_constraint_receipt);
+    let collapse_offset = text.len();
+    let state = match collapsed_text_state(surface, target, text, collapse_offset) {
+        Ok(state) => state,
+        Err(error) => {
+            return finish_unhandled(
+                result,
+                Some(target),
+                UiAccessibilityActionStatus::Rejected,
+                error.diagnostic_code(),
+                error.reason(),
+            );
+        }
+    };
+    let value_changed = match commit_accessibility_text_edit(
+        surface,
+        text_documents,
+        target,
+        value_property.as_str(),
+        &state,
+        committed_edit,
+        &mut result,
+    ) {
+        Ok(value_changed) => value_changed,
+        Err(error) => {
+            return finish_unhandled(
+                result,
+                Some(target),
+                UiAccessibilityActionStatus::Rejected,
+                error.diagnostic_code(),
+                error.reason(),
+            );
+        }
+    };
+
+    let mut result = finish_handled(result, target, "accessibility.set_value");
+    result.diagnostics.notes.push(format!(
+        "accessibility_property_{}:{value_property}",
+        if value_changed {
+            "changed"
+        } else {
+            "unchanged"
+        }
+    ));
+    if value_changed {
+        let event = surface.text_component_event(
+            target,
+            value_property,
+            state.text,
+            UiTextComponentEventKind::Change,
+        );
+        result.component_events.push(UiComponentEventReport {
+            target,
+            event,
+            delivered: true,
+            drag: None,
+            template_action: None,
+        });
+    }
+    surface.redact_secure_text_result(target, &mut result);
+    result
+}
+
 pub(super) fn finish_set_value_mutation(
     surface: &mut UiSurface,
     target: UiNodeId,
-    snapshot_node: &UiAccessibilityNode,
     value: UiValue,
     text_constraint_note: Option<&'static str>,
+    text_constraint_receipt: Option<UiTextInputConstraintReceipt>,
     result: UiInputDispatchResult,
     report: Result<UiPropertyMutationReport, UiTreeError>,
 ) -> UiInputDispatchResult {
+    let mut result = result;
+    append_text_constraint_receipt(&mut result, text_constraint_note, text_constraint_receipt);
     match report {
         Ok(report) if matches!(report.status, UiPropertyMutationStatus::Accepted) => {
-            finish_accepted_set_value(
-                surface,
-                target,
-                snapshot_node,
-                value,
-                text_constraint_note,
-                result,
-                report,
-            )
+            finish_accepted_set_value(surface, target, value, result, report)
         }
         Ok(report) if matches!(report.status, UiPropertyMutationStatus::Unchanged) => {
-            finish_unchanged_set_value(
-                surface,
-                target,
-                snapshot_node,
-                &value,
-                text_constraint_note,
-                result,
-                report,
-            )
+            finish_unchanged_set_value(surface, target, result, report)
         }
         Ok(report) => finish_unhandled(
             result,
@@ -96,58 +159,53 @@ pub(super) fn finish_set_value_mutation(
 fn finish_accepted_set_value(
     surface: &mut UiSurface,
     target: UiNodeId,
-    snapshot_node: &UiAccessibilityNode,
     value: UiValue,
-    text_constraint_note: Option<&'static str>,
     result: UiInputDispatchResult,
     report: UiPropertyMutationReport,
 ) -> UiInputDispatchResult {
     let mut result = finish_handled(result, target, "accessibility.set_value");
-    append_text_constraint_note(&mut result, text_constraint_note);
     result.diagnostics.notes.push(format!(
         "accessibility_property_changed:{}:{:?}",
         report.property, report.invalidation.dirty
     ));
     append_binding_report_diagnostic(&mut result, &report);
-    if snapshot_node.role == UiA11yRole::TextInput {
-        sync_text_input_set_value_edit_metadata(surface, target, &value, &mut result);
-    }
+    let event = UiComponentEvent::ValueChanged {
+        property: report.property.clone(),
+        value,
+    };
     result.component_events.push(UiComponentEventReport {
         target,
-        event: UiComponentEvent::ValueChanged {
-            property: report.property,
-            value,
-        },
+        event,
         delivered: true,
         drag: None,
         template_action: None,
     });
+    surface.redact_secure_text_result(target, &mut result);
     result
 }
 
 fn finish_unchanged_set_value(
     surface: &mut UiSurface,
     target: UiNodeId,
-    snapshot_node: &UiAccessibilityNode,
-    value: &UiValue,
-    text_constraint_note: Option<&'static str>,
     result: UiInputDispatchResult,
     report: UiPropertyMutationReport,
 ) -> UiInputDispatchResult {
     let mut result = finish_handled(result, target, "accessibility.set_value");
-    append_text_constraint_note(&mut result, text_constraint_note);
     result.diagnostics.notes.push(format!(
         "accessibility_property_unchanged:{}",
         report.property
     ));
     append_binding_report_diagnostic(&mut result, &report);
-    if snapshot_node.role == UiA11yRole::TextInput {
-        sync_text_input_set_value_edit_metadata(surface, target, value, &mut result);
-    }
+    surface.redact_secure_text_result(target, &mut result);
     result
 }
 
-fn append_text_constraint_note(result: &mut UiInputDispatchResult, note: Option<&'static str>) {
+fn append_text_constraint_receipt(
+    result: &mut UiInputDispatchResult,
+    note: Option<&'static str>,
+    receipt: Option<UiTextInputConstraintReceipt>,
+) {
+    result.diagnostics.text_constraint = receipt;
     if let Some(note) = note {
         result.diagnostics.notes.push(note.to_string());
     }

@@ -29,9 +29,6 @@ pub(crate) fn builtin_hybrid_layout_for_subsystems(
 }
 
 fn remove_view_from_layout(layout: &mut WorkbenchLayout, instance_id: &ViewInstanceId) {
-    for drawer in layout.drawers.values_mut() {
-        remove_view_from_drawer(drawer, instance_id);
-    }
     for window in layout.activity_windows.values_mut() {
         for drawer in window.activity_drawers.values_mut() {
             remove_view_from_drawer(drawer, instance_id);

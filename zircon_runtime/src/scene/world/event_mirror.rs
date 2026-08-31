@@ -86,17 +86,17 @@ impl World {
         let Some(mut record) = self.event_mirrors.take_subscription(handle) else {
             return Ok(false);
         };
-        let event_id = record.event_id().to_string();
         let registration = self
             .event_mirrors
-            .get(&event_id)
+            .get(record.event_id())
             .cloned()
             .expect("live runtime event mirror record retains its registration");
+        let event_id = registration_event_id(&registration);
         if !record.disconnect(self) {
             self.event_mirrors.restore_subscription(handle, record);
             return Ok(false);
         }
-        let reader_count = match self.event_mirrors.decrement_reader(&event_id) {
+        let reader_count = match self.event_mirrors.decrement_reader(event_id) {
             Ok(reader_count) => reader_count,
             Err(error) => {
                 let reconnected = record.connect(self);
@@ -106,7 +106,7 @@ impl World {
             }
         };
         if let Err(error) = registration.notify_reader_count(self, reader_count) {
-            let rollback_count = match self.event_mirrors.increment_reader(&event_id) {
+            let rollback_count = match self.event_mirrors.increment_reader(event_id) {
                 Ok(rollback_count) => rollback_count,
                 Err(rollback_error) => {
                     let reconnected = record.connect(self);
@@ -285,6 +285,14 @@ impl World {
         }
     }
 }
+
+fn registration_event_id(registration: &RuntimeEventMirrorRegistration) -> &str {
+    registration.descriptor().event_id.as_str()
+}
+
+#[cfg(test)]
+#[path = "event_mirror/borrowed_unsubscribe_id_tests.rs"]
+mod borrowed_unsubscribe_id_tests;
 
 impl Drop for World {
     fn drop(&mut self) {

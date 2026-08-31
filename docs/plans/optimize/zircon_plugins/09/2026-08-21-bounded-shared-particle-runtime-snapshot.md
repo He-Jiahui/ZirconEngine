@@ -3,7 +3,7 @@
 - Date: 2026-08-21
 - Owner: `optimize-plugins09-particle-snapshot-r1-01a00797-20260821`
 - Source plan: `docs/plans/optimize/zircon_plugins/09-first-party-particle-vfx-source-runtime-editor-dist-catalog-simulation-render-product-integration-review.md`, PVFX-P1-033
-- Status: implementation complete; combined managed validation pending
+- Status: implementation and focused static validation complete; managed release batch queued
 
 ## Problem
 
@@ -47,6 +47,25 @@ are still cloned identically by both branches.
 Exact Windows P50/P95 values remain pending the combined coordinator batch and
 must be written here before integration acceptance.
 
+## Current Execution Evidence
+
+- Integration Session: `root-runtime-interface03-activate-link-failure-20260831`;
+  ownership apply `82dfdbab6bc444c582224ab9284307a6`, fingerprint
+  `13514f0c9245f53af8b16e987803b8cb341b7af901d4817464325a247fbed13f`.
+- Current source SHA-256:
+  `service.rs=C120026B4985FBC47CB7CED1E16B3605637554FBE14F11248FD30B0E40E99ED2`,
+  `tests/snapshot.rs=9AF68C2E096185FBEAD893DA1EFE1EDEFBC6267091D3BA311EC3BF8BC18C2387`.
+- Unified deterministic model manifest SHA-256:
+  `17A9DACBE245A8562CD994DCC61423E4061BB1A7F264B281EAC9F9FF4AB85719`.
+  For 128 clones of 4,096 sprites and 256 diagnostics it records large
+  payload element clones `557,056 -> 0`, with 256 shared-handle clones,
+  256-entry retention, and 64-entry pages.
+- Focused source/model/validator contract passed locally `10/10`; managed
+  static ticket `b1ba67ff1d2d43c98abfa21c4b14dee8` is queued.
+- Exact ignored Windows release benchmark runs inside cross-package batch
+  ticket `66d397b6a4454a68b53bb295a5c4fe78`. Its 21 alternating sample pairs are
+  the only accepted source for pending P50/P95 values.
+
 The pinned Plugins09 child validator is
 `zircon-validation-plugins09-particle-snapshot.ps1` at SHA-256
 `DEA35FC7689F8D05DD8542191FCCB29ADADC9B7A16C359F837B28D3B2D0F940A`.
@@ -67,9 +86,9 @@ It is aggregated with fourteen existing plugin tasks by
 - `particle_snapshot_shared_clone_release_benchmark` emits 21 alternating raw
   sample pairs, recomputable nearest-rank P50/P95 values, and exact payload clone
   counts.
-- Exact-file Rustfmt, scoped diff checks, Cargo regressions, and release timing
-  are required in one managed multi-task Windows validation copy. No per-task
-  Cargo invocation is used.
+- Exact-file Rustfmt and scoped diff checks are green. Cargo regressions and
+  release timing are queued in one managed multi-task Windows validation copy;
+  no synchronous wait or duplicate validation is used.
 
 ## Remaining Scope
 

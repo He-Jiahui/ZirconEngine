@@ -8,10 +8,14 @@ use super::super::pane_payload::{PanePayload, RuntimeDiagnosticsPanePayload};
 use super::super::pane_presentation::PanePayloadBuildContext;
 
 pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
-    let diagnostics = context
-        .runtime_diagnostics
-        .cloned()
-        .unwrap_or_else(RuntimeDiagnosticsSnapshot::default);
+    let default_diagnostics;
+    let diagnostics = match context.runtime_diagnostics {
+        Some(diagnostics) => diagnostics,
+        None => {
+            default_diagnostics = RuntimeDiagnosticsSnapshot::default();
+            &default_diagnostics
+        }
+    };
     let active_ui_debug_snapshot = context.active_ui_debug_snapshot;
     let (reflector, overlay_primitives) = active_ui_debug_snapshot
         .map(|snapshot| {
@@ -26,11 +30,11 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
     let reflector_nodes = reflector.nodes.into_iter().map(|node| node.label).collect();
 
     PanePayload::RuntimeDiagnosticsV1(RuntimeDiagnosticsPanePayload {
-        summary: summary(&diagnostics),
-        render_status: render_status(&diagnostics),
-        physics_status: physics_status(&diagnostics),
-        animation_status: animation_status(&diagnostics),
-        detail_items: detail_items(&diagnostics),
+        summary: summary(diagnostics),
+        render_status: render_status(diagnostics),
+        physics_status: physics_status(diagnostics),
+        animation_status: animation_status(diagnostics),
+        detail_items: detail_items(diagnostics),
         ui_debug_reflector_summary: reflector.summary.title,
         ui_debug_reflector_nodes: reflector_nodes,
         ui_debug_reflector_details: reflector.details,

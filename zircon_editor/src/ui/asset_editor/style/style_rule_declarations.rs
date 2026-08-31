@@ -116,20 +116,36 @@ fn collect_map_entries(
     prefix: &str,
     values: &BTreeMap<String, Value>,
 ) {
+    if values.is_empty() {
+        return;
+    }
+    let mut path = prefix.to_string();
     for (key, value) in values {
-        collect_value_entries(output, &format!("{prefix}.{key}"), value);
+        let prefix_len = path.len();
+        path.push('.');
+        path.push_str(key);
+        collect_value_entries(output, &mut path, value);
+        path.truncate(prefix_len);
     }
 }
 
-fn collect_value_entries(output: &mut Vec<UiStyleRuleDeclarationEntry>, path: &str, value: &Value) {
+fn collect_value_entries(
+    output: &mut Vec<UiStyleRuleDeclarationEntry>,
+    path: &mut String,
+    value: &Value,
+) {
     match value {
         Value::Table(table) if !table.is_empty() => {
             for (key, child) in table {
-                collect_value_entries(output, &format!("{path}.{key}"), child);
+                let prefix_len = path.len();
+                path.push('.');
+                path.push_str(key);
+                collect_value_entries(output, path, child);
+                path.truncate(prefix_len);
             }
         }
         _ => output.push(UiStyleRuleDeclarationEntry {
-            path: path.to_string(),
+            path: path.clone(),
             literal: value.to_string(),
         }),
     }
@@ -218,3 +234,7 @@ fn remove_from_table(values: &mut Map<String, Value>, segments: &[String]) -> bo
     }
     removed
 }
+
+#[cfg(test)]
+#[path = "style_rule_declarations/path_buffer_tests.rs"]
+mod path_buffer_tests;

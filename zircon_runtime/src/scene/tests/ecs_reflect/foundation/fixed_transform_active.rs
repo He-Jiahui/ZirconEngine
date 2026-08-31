@@ -3,7 +3,9 @@ use super::*;
 #[test]
 fn active_self_reflection_write_marks_active_dirty_state() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.flush_pending_scene_systems();
     assert!(!world.has_pending_scene_systems());
     assert_eq!(world.active_in_hierarchy(entity), Some(true));
@@ -11,7 +13,7 @@ fn active_self_reflection_write_marks_active_dirty_state() {
     let response = world
         .reflect_write(ReflectWriteRequest::new(
             fixed_component_address(entity, "ActiveSelf"),
-            "value",
+            reflected_field_id("zircon_runtime::scene::components::ActiveSelf", "value"),
             ReflectedValue::Bool(false),
         ))
         .expect("active state should be writable");
@@ -25,14 +27,19 @@ fn active_self_reflection_write_marks_active_dirty_state() {
 #[test]
 fn local_transform_reflection_write_marks_transform_dirty_state() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.flush_pending_scene_systems();
     assert!(!world.has_pending_scene_systems());
 
     let response = world
         .reflect_write(ReflectWriteRequest::new(
             fixed_component_address(entity, "LocalTransform"),
-            "translation",
+            reflected_field_id(
+                "zircon_runtime::scene::components::LocalTransform",
+                "translation",
+            ),
             ReflectedValue::Vec3([5.0, 6.0, 7.0]),
         ))
         .expect("local transform translation should be writable");
@@ -55,7 +62,7 @@ fn local_transform_reflection_write_marks_transform_dirty_state() {
     let scale_response = world
         .reflect_write(ReflectWriteRequest::new(
             fixed_component_address(entity, "LocalTransform"),
-            "scale",
+            reflected_field_id("zircon_runtime::scene::components::LocalTransform", "scale"),
             ReflectedValue::Vec3([2.0, 3.0, 4.0]),
         ))
         .expect("local transform scale should be writable");
@@ -70,7 +77,7 @@ fn local_transform_reflection_write_marks_transform_dirty_state() {
     let no_op_scale = world
         .reflect_write(ReflectWriteRequest::new(
             fixed_component_address(entity, "LocalTransform"),
-            "scale",
+            reflected_field_id("zircon_runtime::scene::components::LocalTransform", "scale"),
             ReflectedValue::Vec3([2.0, 3.0, 4.0]),
         ))
         .expect("same local transform scale should be accepted as unchanged");
@@ -79,7 +86,10 @@ fn local_transform_reflection_write_marks_transform_dirty_state() {
     assert!(matches!(
         world.reflect_write(ReflectWriteRequest::new(
             fixed_component_address(entity, "LocalTransform"),
-            "translation",
+            reflected_field_id(
+                "zircon_runtime::scene::components::LocalTransform",
+                "translation",
+            ),
             ReflectedValue::Vec3([f32::NAN, 0.0, 0.0]),
         )),
         Err(ReflectError::TypeMismatch { expected, .. }) if expected == "finite Vec3"
@@ -90,7 +100,9 @@ fn local_transform_reflection_write_marks_transform_dirty_state() {
 #[test]
 fn local_transform_rotation_is_readable_but_not_writable_in_m8() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .insert(
             entity,
@@ -103,10 +115,23 @@ fn local_transform_rotation_is_readable_but_not_writable_in_m8() {
 
     assert_eq!(
         world
-            .reflect_read(ReflectReadRequest::new(address.clone(), "rotation"))
+            .reflect_read(ReflectReadRequest::new(
+                address.clone(),
+                reflected_field_id(
+                    "zircon_runtime::scene::components::LocalTransform",
+                    "rotation",
+                ),
+            ))
             .expect("rotation should be readable")
             .field,
-        ReflectFieldValue::new("rotation", ReflectedValue::Vec4([0.0, 0.0, 0.0, 1.0]))
+        ReflectFieldValue::new(
+            reflected_field_id(
+                "zircon_runtime::scene::components::LocalTransform",
+                "rotation",
+            ),
+            "rotation",
+            ReflectedValue::Vec4([0.0, 0.0, 0.0, 1.0]),
+        )
     );
     assert!(
         !world
@@ -123,7 +148,10 @@ fn local_transform_rotation_is_readable_but_not_writable_in_m8() {
         world
             .reflect_write(ReflectWriteRequest::new(
                 address,
-                "rotation",
+                reflected_field_id(
+                    "zircon_runtime::scene::components::LocalTransform",
+                    "rotation",
+                ),
                 ReflectedValue::Vec4([0.0, 0.0, 0.0, 1.0]),
             ))
             .expect_err("rotation writes are deferred until a later milestone"),

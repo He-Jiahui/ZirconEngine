@@ -2,24 +2,27 @@ use std::path::{Path, PathBuf};
 
 use zircon_runtime::asset::project::ProjectPaths;
 
-use crate::core::editing::engine::{HistoryContextId, HistorySaveMarkOutcome};
+use crate::core::editing::engine::HistorySaveMarkOutcome;
 use crate::core::editing::intent::EditorIntent;
 use crate::core::editor_event::{EditorEventEffect, MenuAction};
 use crate::core::logging::{EditorLogService, LogEntry, LogSeverity, LogSource};
-use crate::core::play::{PlayKind, PlaySceneSource, PlayStartRequest};
-use crate::ui::host::EditorHostEventController;
+use crate::core::play::{
+    PlayKind, PlayModeKind, PlaySceneSource, PlayStartRequest, PlayTransitionCause, WorldDomain,
+};
+use crate::ui::host::{EditorHostEventController, RuntimeEventConsumerShutdownDisposition};
 use crate::ui::workbench::layout::LayoutCommand;
 use crate::ui::workbench::project::project_root_path;
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
 use super::super::project_access::percent_encode_diagnostic_token;
-use super::common::{open_view, scene_effects, scene_intent_event};
+use super::common::{effects_when, open_view, scene_effects, scene_intent_event};
+use super::error::MenuActionExecutionError;
 use super::execution_outcome::ExecutionOutcome;
 pub(super) fn execute_menu_action(
     controller: &EditorHostEventController,
     shell: &mut WorkbenchShellStateData,
     action: &MenuAction,
-) -> Result<ExecutionOutcome, String> {
+) -> Result<ExecutionOutcome, MenuActionExecutionError> {
     match action {
         MenuAction::OpenProject => {
             shell
@@ -52,18 +55,28 @@ pub(super) fn execute_menu_action(
         }),
         MenuAction::SaveProject => {
             let path = PathBuf::from(shell.state.snapshot().project_path);
+            let history_context = shell.state.scene_history_context()?;
             let transactions = shell.state.transactions();
-            let pre_save_dirty = transactions
-                .is_dirty(HistoryContextId::Global)
-                .map_err(|error| error.to_string())?;
+            let pre_save_dirty = transactions.is_dirty(history_context).map_err(|source| {
+                MenuActionExecutionError::Transaction {
+                    phase: "query dirtiness",
+                    source,
+                }
+            })?;
             let pre_save_dirty_generation = transactions
-                .history_generation_snapshot(HistoryContextId::Global)
-                .map_err(|error| error.to_string())?;
+                .history_generation_snapshot(history_context)
+                .map_err(|source| MenuActionExecutionError::Transaction {
+                    phase: "query generation",
+                    source,
+                })?;
             let save_token = shell
                 .state
                 .transactions()
-                .capture_save_token(HistoryContextId::Global)
-                .map_err(|error| error.to_string())?;
+                .capture_save_token(history_context)
+                .map_err(|source| MenuActionExecutionError::Transaction {
+                    phase: "capture save token",
+                    source,
+                })?;
             let save_token_generation = save_token.generation();
             emit_project_save_log(
                 controller.context().logs(),
@@ -75,40 +88,50 @@ pub(super) fn execute_menu_action(
                     save_token_generation,
                 ),
             );
-            let scene = match shell.state.project_scene() {
+            let scene = match shell
+                .state
+                .project_scene()
+                .map_err(crate::ui::workbench::state::EditorStateOperationError::from)?
+            {
                 Some(scene) => scene,
                 None => {
-                    let error = "No project open";
                     emit_project_save_log(
                         controller.context().logs(),
                         LogSeverity::Error,
-                        project_save_failed_diagnostic(&path, "resolve_scene", error),
+                        project_save_failed_diagnostic(
+                            &path,
+                            "resolve_scene",
+                            &MenuActionExecutionError::NoProjectOpen,
+                        ),
                     );
-                    return Err(error.to_string());
+                    return Err(MenuActionExecutionError::NoProjectOpen);
                 }
             };
-            if let Err(error) = shell.manager.save_project(&path, &scene) {
+            if let Err(source) = shell.manager.save_active_scene(&path, &scene) {
                 emit_project_save_log(
                     controller.context().logs(),
                     LogSeverity::Error,
-                    project_save_failed_diagnostic(&path, "persist", &error),
+                    project_save_failed_diagnostic(&path, "persist", &source),
                 );
-                return Err(error.to_string());
+                return Err(source.into());
             }
-            let save_mark =
-                match transactions.mark_saved_if_unchanged(HistoryContextId::Global, save_token) {
-                    Ok(outcome) => outcome,
-                    Err(error) => {
-                        emit_project_save_log(
-                            controller.context().logs(),
-                            LogSeverity::Error,
-                            project_save_failed_diagnostic(&path, "mark_saved", &error),
-                        );
-                        return Err(error.to_string());
-                    }
-                };
+            let save_mark = match transactions.mark_saved_if_unchanged(history_context, save_token)
+            {
+                Ok(outcome) => outcome,
+                Err(source) => {
+                    emit_project_save_log(
+                        controller.context().logs(),
+                        LogSeverity::Error,
+                        project_save_failed_diagnostic(&path, "mark_saved", &source),
+                    );
+                    return Err(MenuActionExecutionError::Transaction {
+                        phase: "mark saved",
+                        source,
+                    });
+                }
+            };
             let persisted_generation = transactions
-                .history_generation_snapshot(HistoryContextId::Global)
+                .history_generation_snapshot(history_context)
                 .ok();
             emit_project_save_log(
                 controller.context().logs(),
@@ -135,6 +158,14 @@ pub(super) fn execute_menu_action(
                 ],
             })
         }
+        MenuAction::SaveAllDocuments => Ok(ExecutionOutcome {
+            changed: false,
+            effects: vec![
+                EditorEventEffect::DocumentSaveAllRequested,
+                EditorEventEffect::PresentationChanged,
+                EditorEventEffect::ReflectionChanged,
+            ],
+        }),
         MenuAction::CloseProject => Ok(ExecutionOutcome {
             changed: false,
             effects: vec![
@@ -144,10 +175,7 @@ pub(super) fn execute_menu_action(
             ],
         }),
         MenuAction::SaveLayout => {
-            shell
-                .manager
-                .save_global_default_layout()
-                .map_err(|error| error.to_string())?;
+            shell.manager.save_global_default_layout()?;
             shell.state.set_status_line("Saved global default layout");
             Ok(ExecutionOutcome {
                 changed: false,
@@ -160,8 +188,7 @@ pub(super) fn execute_menu_action(
         MenuAction::ResetLayout => {
             let changed = shell
                 .manager
-                .apply_layout_command(LayoutCommand::ResetToDefault)
-                .map_err(|error| error.to_string())?;
+                .apply_layout_command(LayoutCommand::ResetToDefault)?;
             shell.state.set_status_line("Reset layout");
             Ok(ExecutionOutcome {
                 changed,
@@ -175,19 +202,26 @@ pub(super) fn execute_menu_action(
         MenuAction::ClearConsole => {
             let cleared_logs = controller.context().logs().clear();
             let cleared_legacy_output = shell.state.clear_console_history();
+            let changed = cleared_logs != 0 || cleared_legacy_output;
             Ok(ExecutionOutcome {
-                changed: cleared_logs != 0 || cleared_legacy_output,
-                effects: vec![EditorEventEffect::PresentationChanged],
+                changed,
+                effects: effects_when(changed, [EditorEventEffect::PresentationChanged]),
             })
         }
-        MenuAction::SetConsoleMessageFilter(filter) => Ok(ExecutionOutcome {
-            changed: shell.set_console_message_filter(*filter),
-            effects: vec![EditorEventEffect::PresentationChanged],
-        }),
-        MenuAction::SetConsoleSourceFilter(filter) => Ok(ExecutionOutcome {
-            changed: shell.set_console_source_filter(*filter),
-            effects: vec![EditorEventEffect::PresentationChanged],
-        }),
+        MenuAction::SetConsoleMessageFilter(filter) => {
+            let changed = shell.set_console_message_filter(*filter);
+            Ok(ExecutionOutcome {
+                changed,
+                effects: effects_when(changed, [EditorEventEffect::PresentationChanged]),
+            })
+        }
+        MenuAction::SetConsoleSourceFilter(filter) => {
+            let changed = shell.set_console_source_filter(*filter);
+            Ok(ExecutionOutcome {
+                changed,
+                effects: effects_when(changed, [EditorEventEffect::PresentationChanged]),
+            })
+        }
         MenuAction::SelectPlayMode(kind) => {
             let changed = controller.play_sessions().set_preferred_kind(*kind);
             let label = match kind {
@@ -207,11 +241,12 @@ pub(super) fn execute_menu_action(
         }
         MenuAction::EnterPlayMode => {
             let project_root = project_root_path(&shell.state.snapshot().project_path).ok();
-            let scene_source = shell
+            let scene = shell
                 .state
                 .project_scene()
-                .ok_or_else(|| "Cannot enter play without an open scene".to_string())
-                .and_then(|scene| PlaySceneSource::from_world(&scene))?;
+                .map_err(crate::ui::workbench::state::EditorStateOperationError::from)?
+                .ok_or(MenuActionExecutionError::NoProjectOpen)?;
+            let scene_source = PlaySceneSource::from_world(&scene)?;
             let changed = shell.state.enter_play_mode()?;
             if changed {
                 let play_kind = controller.play_sessions().preferred_kind();
@@ -220,6 +255,11 @@ pub(super) fn execute_menu_action(
                         .with_scene_source(scene_source),
                 ) {
                     Ok(transition) => {
+                        if let Some(WorldDomain::Play(instance)) =
+                            controller.play_sessions().attached_world_domain()
+                        {
+                            shell.state.activate_play_selection_domain(instance);
+                        }
                         let backend_attachable = transition.backend_attachable;
                         let backend_diagnostics = transition.backend_diagnostics;
                         controller.log_play_backend_diagnostics(&backend_diagnostics);
@@ -229,38 +269,76 @@ pub(super) fn execute_menu_action(
                             .state
                             .sync_bridge_diagnostics_matrix(report.bridge_diagnostics.as_ref());
                         if backend_attachable {
-                            if let Err(error) = controller.begin_runtime_event_consumers() {
+                            if let Err(source) = controller.begin_runtime_event_consumers() {
                                 if controller.runtime_event_consumer_session_active() {
                                     shell.state.set_status_line(format!(
-                                        "Runtime event consumer startup cleanup failed; play mode remains active for retry: {error}"
+                                        "Runtime event consumer startup cleanup failed; play mode remains active for retry: {source}"
                                     ));
-                                    return Err(format!(
-                                        "Failed to bind runtime plugin event consumers; runtime remains active so Exit Play can retry cleanup: {error}"
-                                    ));
+                                    return Err(MenuActionExecutionError::RuntimeConsumerStart {
+                                        source,
+                                    });
                                 }
                                 if let Err(stop_error) = controller.play_sessions().request_stop() {
                                     shell.state.set_status_line(format!(
                                         "Runtime event consumer startup and play session cleanup failed; play mode remains active for retry: {stop_error}"
                                     ));
-                                    return Err(format!(
-                                        "Failed to bind runtime plugin event consumers: {error}; failed to stop play session, runtime remains active: {stop_error}"
-                                    ));
+                                    return Err(
+                                        MenuActionExecutionError::RuntimeConsumerStartStopFailed {
+                                            source,
+                                            stop: stop_error,
+                                        },
+                                    );
                                 }
+                                if let Err(detach) = controller.detach_terminal_play_gateway() {
+                                    return Err(MenuActionExecutionError::RuntimeConsumerStartGatewayDetachFailed {
+                                        source,
+                                        detach,
+                                    });
+                                }
+                                let retirement = match controller
+                                    .play_sessions()
+                                    .retire_terminal_backend()
+                                {
+                                    Ok(retirement) => retirement,
+                                    Err(stop) => {
+                                        return Err(
+                                            MenuActionExecutionError::RuntimeConsumerStartStopFailed {
+                                                source,
+                                                stop,
+                                            },
+                                        );
+                                    }
+                                };
+                                controller
+                                    .log_play_backend_diagnostics(&retirement.backend_diagnostics);
                                 if let Err(exit_error) = shell.state.exit_play_mode() {
                                     shell.state.set_status_line(format!(
                                         "Runtime event consumer startup failed after play session stopped; editor state remains in play mode for retry: {exit_error}"
                                     ));
-                                    return Err(format!(
-                                        "Failed to bind runtime plugin event consumers: {error}; play session stopped but failed to restore editor state: {exit_error}"
-                                    ));
+                                    return Err(
+                                        MenuActionExecutionError::RuntimeConsumerStartRestoreStateFailed {
+                                            source,
+                                            restore: exit_error,
+                                        },
+                                    );
                                 }
                                 shell.state.sync_bridge_diagnostics_matrix(None);
-                                return Err(format!(
-                                    "Failed to bind runtime plugin event consumers: {error}"
-                                ));
+                                return Err(MenuActionExecutionError::RuntimeConsumerStart {
+                                    source,
+                                });
                             }
                         }
-                        if !is_clean {
+                        let preview_focus_error =
+                            if backend_attachable && play_kind == PlayKind::Play {
+                                shell.focus_play_preview_view().err()
+                            } else {
+                                None
+                            };
+                        if let Some(error) = preview_focus_error {
+                            shell.state.set_status_line(format!(
+                                "Entered play mode, but the Game view could not be focused: {error}"
+                            ));
+                        } else if !is_clean {
                             shell.state.set_status_line(format!(
                                 "Entered play mode; native runtime diagnostics: {}",
                                 report.diagnostics.join("; ")
@@ -272,17 +350,29 @@ pub(super) fn execute_menu_action(
                             ));
                         }
                     }
-                    Err(error) => {
+                    Err(source) => {
+                        if controller.play_sessions().mode().has_active_runtime() {
+                            if let Some(WorldDomain::Play(instance)) =
+                                controller.play_sessions().attached_world_domain()
+                            {
+                                shell.state.activate_play_selection_domain(instance);
+                            }
+                            shell.state.set_status_line(format!(
+                                "Play session startup did not complete, but its runtime is still active for stop retry: {source}"
+                            ));
+                            return Err(MenuActionExecutionError::PlayStart { source });
+                        }
                         if let Err(exit_error) = shell.state.exit_play_mode() {
                             shell.state.set_status_line(format!(
                                 "Play session startup failed; editor state remains in play mode for retry: {exit_error}"
                             ));
-                            return Err(format!(
-                                "Failed to enter play session: {error}; backend startup failed but editor state could not be restored: {exit_error}"
-                            ));
+                            return Err(MenuActionExecutionError::PlayStartRestoreStateFailed {
+                                source,
+                                restore: exit_error,
+                            });
                         }
                         shell.state.sync_bridge_diagnostics_matrix(None);
-                        return Err(format!("Failed to enter play session: {error}"));
+                        return Err(MenuActionExecutionError::PlayStart { source });
                     }
                 }
             }
@@ -292,51 +382,111 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::ExitPlayMode => {
-            if controller.runtime_event_consumer_session_active() {
-                if let Err(error) = controller.end_runtime_event_consumers() {
-                    shell.state.set_status_line(format!(
-                        "Runtime event consumer cleanup failed; play mode remains active for retry: {error}"
-                    ));
-                    return Err(format!(
-                        "Failed to clean up runtime event consumers; runtime remains active for retry: {error}"
-                    ));
+            let remote_consumer_cleanup_failure = match controller
+                .shutdown_runtime_event_consumers()
+            {
+                RuntimeEventConsumerShutdownDisposition::NotActive
+                | RuntimeEventConsumerShutdownDisposition::Retired => None,
+                RuntimeEventConsumerShutdownDisposition::RetiredWithCleanupFailure { error } => {
+                    Some(error.to_string())
                 }
-            }
-            let transition = controller.play_sessions().request_stop().map_err(|error| {
-                shell.state.set_status_line(format!(
-                    "Play session cleanup failed; play mode remains active for retry: {error}"
-                ));
-                format!("Failed to stop play session; runtime remains active: {error}")
-            })?;
-            let changed = shell.state.exit_play_mode()?;
-            controller
-                .publish_pending_edit_decision(transition.pending_edit_prompt.as_ref())
-                .map_err(|error| {
-                    format!("failed to publish pending play-edit decision: {error}")
+                RuntimeEventConsumerShutdownDisposition::RetirementDeferred { error } => {
+                    shell.state.set_status_line(format!(
+                            "Runtime event consumer retirement is deferred; play mode remains active for retry: {error}"
+                        ));
+                    return Err(MenuActionExecutionError::RuntimeConsumerStop { source: error });
+                }
+            };
+            let transition = controller
+                .play_sessions()
+                .request_stop()
+                .map_err(|source| {
+                    shell.state.set_status_line(format!(
+                        "Play session cleanup failed; play mode remains active for retry: {source}"
+                    ));
+                    MenuActionExecutionError::PlayStop { source }
                 })?;
-            if changed {
-                let report = transition.activation;
-                let is_clean = report.is_clean();
-                shell
-                    .state
-                    .sync_bridge_diagnostics_matrix(report.bridge_diagnostics.as_ref());
-                if !is_clean {
+            controller
+                .detach_terminal_play_gateway()
+                .map_err(|source| MenuActionExecutionError::PlayGatewayDetach { source })?;
+            let retirement = controller
+                .play_sessions()
+                .retire_terminal_backend()
+                .map_err(|source| MenuActionExecutionError::PlayStop { source })?;
+            controller.log_play_backend_diagnostics(&retirement.backend_diagnostics);
+            let changed = shell.state.exit_play_mode().map_err(|source| {
+                shell.state.sync_bridge_diagnostics_matrix(None);
+                shell.state.set_status_line(format!(
+                    "Play session stopped, but editor state remains in play mode for retry: {source}"
+                ));
+                MenuActionExecutionError::PlayStopRestoreStateFailed { source }
+            })?;
+            let preview_restore_error = shell.restore_pre_play_view().err();
+            controller.reconcile_pending_play_decision_from_controller()?;
+            let report = transition.activation;
+            let is_clean = report.is_clean();
+            shell
+                .state
+                .sync_bridge_diagnostics_matrix(report.bridge_diagnostics.as_ref());
+            let remote_cleanup_suffix = remote_consumer_cleanup_failure
+                .as_deref()
+                .map(|error| format!("; runtime event subscription cleanup is pending: {error}"))
+                .unwrap_or_default();
+            let terminal_transition =
+                if matches!(retirement.cause, PlayTransitionCause::CleanupFailed { .. }) {
+                    &retirement
+                } else {
+                    &transition
+                };
+            match &terminal_transition.cause {
+                PlayTransitionCause::CleanupFailed { failure } => {
                     shell.state.set_status_line(format!(
-                        "Exited play mode; native runtime diagnostics: {}",
-                        report.diagnostics.join("; ")
+                        "Runtime preview stopped, but cleanup is pending: {failure}{remote_cleanup_suffix}"
                     ));
                 }
+                _ if changed && !is_clean => {
+                    shell.state.set_status_line(format!(
+                        "Exited play mode; native runtime diagnostics: {}{remote_cleanup_suffix}",
+                        report.diagnostics.join("; "),
+                    ));
+                }
+                _ if changed => {
+                    if let Some(error) = remote_consumer_cleanup_failure {
+                        shell.state.set_status_line(format!(
+                            "Exited play mode; runtime event subscription cleanup is pending: {error}"
+                        ));
+                    }
+                }
+                _ if transition.changed && transition.mode == PlayModeKind::Edit => {
+                    shell
+                        .state
+                        .set_status_line("Runtime preview cleanup completed");
+                }
+                _ => {}
+            }
+            if let Some(error) = preview_restore_error {
+                shell.state.set_status_line(format!(
+                    "Exited play mode, but the previous editor view could not be restored: {error}"
+                ));
             }
             Ok(ExecutionOutcome {
                 changed,
                 effects: scene_effects(),
             })
         }
-        MenuAction::Undo => scene_intent_event(shell, EditorIntent::Undo),
-        MenuAction::Redo => scene_intent_event(shell, EditorIntent::Redo),
-        MenuAction::CreateNode(kind) => {
-            scene_intent_event(shell, EditorIntent::CreateNode(kind.clone()))
+        MenuAction::KeepPlayChanges => {
+            let changed = shell.state.keep_play_changes()?;
+            Ok(ExecutionOutcome {
+                changed,
+                effects: scene_effects(),
+            })
         }
+        MenuAction::Undo => replay_focused_history_or_scene(shell, true),
+        MenuAction::Redo => replay_focused_history_or_scene(shell, false),
+        MenuAction::CreateNode(kind) => Ok(scene_intent_event(
+            shell,
+            EditorIntent::CreateNode(kind.clone()),
+        )?),
         MenuAction::DeleteSelected => {
             let changed = shell.state.delete_selected()?;
             Ok(ExecutionOutcome {
@@ -344,12 +494,61 @@ pub(super) fn execute_menu_action(
                 effects: scene_effects(),
             })
         }
-        MenuAction::OpenView(descriptor_id) => open_view(
+        MenuAction::OpenView(descriptor_id) => Ok(open_view(
             shell,
             descriptor_id.0.as_str(),
             &format!("Opened view {}", descriptor_id.0),
-        ),
+        )?),
     }
+}
+
+fn replay_focused_history_or_scene(
+    shell: &mut WorkbenchShellStateData,
+    undo: bool,
+) -> Result<ExecutionOutcome, MenuActionExecutionError> {
+    // Play mode freezes both scene and document authoring. Preserve the shared guard before
+    // resolving a document-specific history context.
+    if shell.state.is_playing() {
+        return Ok(scene_intent_event(
+            shell,
+            if undo {
+                EditorIntent::Undo
+            } else {
+                EditorIntent::Redo
+            },
+        )?);
+    }
+    let Some(changed) = shell
+        .manager
+        .replay_focused_animation_document_history(undo)?
+    else {
+        return Ok(scene_intent_event(
+            shell,
+            if undo {
+                EditorIntent::Undo
+            } else {
+                EditorIntent::Redo
+            },
+        )?);
+    };
+    shell.state.set_status_line(if changed {
+        if undo {
+            "Undo"
+        } else {
+            "Redo"
+        }
+    } else if undo {
+        "Nothing to undo"
+    } else {
+        "Nothing to redo"
+    });
+    Ok(ExecutionOutcome {
+        changed,
+        effects: vec![
+            crate::core::editor_event::EditorEventEffect::PresentationChanged,
+            crate::core::editor_event::EditorEventEffect::ReflectionChanged,
+        ],
+    })
 }
 
 // Saving runs outside a retained-host render-frame callback, so no frame is available to record.

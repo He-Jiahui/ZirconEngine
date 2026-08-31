@@ -1,4 +1,11 @@
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::{Mutex, OnceLock},
+};
+
 use thiserror::Error;
+
+const SVG_DOCUMENT_CACHE_CAPACITY: usize = 512;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiSvgIconDocument {
@@ -46,6 +53,71 @@ pub fn parse_ui_svg_icon(source: &str) -> Result<UiSvgIconDocument, UiSvgIconPar
         return Err(UiSvgIconParseError::MissingSupportedElements);
     }
     Ok(UiSvgIconDocument { viewport, elements })
+}
+
+pub(crate) fn parse_ui_svg_icon_cached(
+    source: &str,
+) -> Result<UiSvgIconDocument, UiSvgIconParseError> {
+    if let Some(document) = svg_document_cache()
+        .lock()
+        .expect("svg document cache mutex must not be poisoned")
+        .get(source)
+    {
+        crate::profile_counter!("runtime", "ui.icon_atlas.svg_document_cache_hit_count", 1);
+        return Ok(document);
+    }
+
+    let document = parse_ui_svg_icon(source)?;
+    svg_document_cache()
+        .lock()
+        .expect("svg document cache mutex must not be poisoned")
+        .insert(source, document.clone());
+    crate::profile_counter!("runtime", "ui.icon_atlas.svg_document_cache_miss_count", 1);
+    Ok(document)
+}
+
+fn svg_document_cache() -> &'static Mutex<SvgDocumentCache> {
+    static CACHE: OnceLock<Mutex<SvgDocumentCache>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(SvgDocumentCache::default()))
+}
+
+#[derive(Default)]
+struct SvgDocumentCache {
+    documents: HashMap<String, UiSvgIconDocument>,
+    lru: VecDeque<String>,
+}
+
+impl SvgDocumentCache {
+    fn get(&mut self, source: &str) -> Option<UiSvgIconDocument> {
+        let document = self.documents.get(source)?.clone();
+        self.touch(source);
+        Some(document)
+    }
+
+    fn insert(&mut self, source: &str, document: UiSvgIconDocument) {
+        if self
+            .documents
+            .insert(source.to_string(), document)
+            .is_some()
+        {
+            self.touch(source);
+            return;
+        }
+        self.lru.push_back(source.to_string());
+        while self.documents.len() > SVG_DOCUMENT_CACHE_CAPACITY {
+            let Some(evicted_source) = self.lru.pop_front() else {
+                break;
+            };
+            self.documents.remove(&evicted_source);
+        }
+    }
+
+    fn touch(&mut self, source: &str) {
+        if let Some(position) = self.lru.iter().position(|cached| cached == source) {
+            self.lru.remove(position);
+        }
+        self.lru.push_back(source.to_string());
+    }
 }
 
 fn find_svg_tag(source: &str) -> Option<&str> {
@@ -113,12 +185,18 @@ fn attribute<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
 }
 
 fn parse_view_box(raw: &str) -> Option<(f32, f32, f32, f32)> {
-    let values = raw
+    let mut values = [0.0_f32; 4];
+    let mut slot_count = 0;
+    for value in raw
         .split(|character: char| character.is_ascii_whitespace() || character == ',')
         .filter(|value| !value.is_empty())
         .filter_map(|value| value.parse::<f32>().ok())
-        .collect::<Vec<_>>();
-    (values.len() == 4).then(|| (values[0], values[1], values[2], values[3]))
+    {
+        let slot = values.get_mut(slot_count)?;
+        *slot = value;
+        slot_count += 1;
+    }
+    (slot_count == values.len()).then(|| (values[0], values[1], values[2], values[3]))
 }
 
 fn parse_svg_number(attribute: &'static str, raw: &str) -> Result<f32, UiSvgIconParseError> {
@@ -138,3 +216,7 @@ fn parse_svg_number(attribute: &'static str, raw: &str) -> Result<f32, UiSvgIcon
     }
     Ok(value)
 }
+
+#[cfg(test)]
+#[path = "svg/fixed_view_box_tests.rs"]
+mod fixed_view_box_tests;

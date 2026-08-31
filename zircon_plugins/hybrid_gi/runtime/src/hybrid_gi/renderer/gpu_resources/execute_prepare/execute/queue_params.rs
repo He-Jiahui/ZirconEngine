@@ -1,6 +1,7 @@
 use zircon_runtime::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderPointLightSnapshot, RenderSpotLightSnapshot,
 };
+use zircon_runtime::graphics::RenderPassBufferUploadSink;
 
 use crate::hybrid_gi::types::HybridGiPrepareFrame;
 
@@ -11,7 +12,7 @@ use super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
 
 pub(super) fn queue_params(
     resources: &HybridGiGpuResources,
-    queue: &wgpu::Queue,
+    buffer_uploads: &mut dyn RenderPassBufferUploadSink,
     prepare: &HybridGiPrepareFrame,
     inputs: &HybridGiPrepareExecutionInputs,
     directional_lights: &[RenderDirectionalLightSnapshot],
@@ -35,5 +36,5 @@ pub(super) fn queue_params(
         scene_light_strength_q: scene_light_seed.strength_q,
         _padding1: 0,
     };
-    queue.write_buffer(&resources.params_buffer, 0, bytemuck::bytes_of(&params));
+    buffer_uploads.write_buffer(&resources.params_buffer, 0, bytemuck::bytes_of(&params));
 }

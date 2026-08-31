@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "policy_kind": "zircon.mvp-artifact-storage-policy",
+  "platform": "windows",
+  "default_root_id": "windows-local-e",
+  "roots": [
+    {
+      "root_id": "windows-local-d",
+      "display_path": "D:\\ZirconBuilds",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "root_id": "windows-local-e",
+      "display_path": "E:\\ZirconBuilds",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "root_id": "windows-local-f",
+      "display_path": "F:\\ZirconBuilds",
+      "capability_class": "windows-local-artifact"
+    }
+  ],
+  "namespaces": [
+    {
+      "namespace_id": "mvp-product-inputs",
+      "leaf_prefix": "mvp-product-inputs-",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "namespace_id": "render-extract-profiling-inputs",
+      "leaf_prefix": "mvp-product-inputs-profile-",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "namespace_id": "resource-management-projects",
+      "leaf_prefix": "mvp-resource-management-project-",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "namespace_id": "resource-management-baselines",
+      "leaf_prefix": "mvp-resource-management-baseline-",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "namespace_id": "resource-management-reports",
+      "leaf_prefix": "mvp-resource-management-report-",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "namespace_id": "resource-management-comparisons",
+      "leaf_prefix": "mvp-resource-management-comparison-",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "namespace_id": "render-extract-scale-projects",
+      "leaf_prefix": "mvp-render-extract-scale-project-",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "namespace_id": "render-extract-baselines",
+      "leaf_prefix": "mvp-render-extract-baseline-",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "namespace_id": "mvp-staging-runs",
+      "leaf_prefix": "mvp-f0-",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "namespace_id": "mvp-acceptance-evidence",
+      "leaf_prefix": "mvp-f5-evidence-",
+      "capability_class": "windows-local-artifact"
+    },
+    {
+      "namespace_id": "mvp-test-fixtures",
+      "leaf_prefix": "mvp-test-fixtures-",
+      "capability_class": "windows-local-artifact"
+    }
+  ]
+}

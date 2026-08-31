@@ -1,17 +1,20 @@
 use serde_json::json;
 use zircon_runtime_interface::reflect::{
-    ReflectFieldValue, ReflectFieldsRequest, ReflectObjectAddress, ReflectReadRequest,
-    ReflectReadResponse, ReflectSchemaRequest, ReflectSchemaResponse, ReflectWriteRequest,
-    ReflectWriteResponse, ReflectedValue,
+    ReflectError, ReflectFieldId, ReflectFieldValue, ReflectFieldsRequest, ReflectObjectAddress,
+    ReflectReadRequest, ReflectReadResponse, ReflectSchemaRequest, ReflectSchemaResponse,
+    ReflectWriteRequest, ReflectWriteResponse, ReflectedValue,
 };
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
+use crate::scene::reflect::RUNTIME_REFLECT_VALUE_BUDGET;
 use crate::scene::{components::ActiveSelf, components::Name, NodeKind, World};
 
 #[test]
 fn inspector_style_field_list_uses_world_reflection_facade() {
     let mut world = world_with_cloud_layer_descriptor();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .insert(entity, Name("Inspector Mesh".to_string()))
         .expect("name setup should use normal world mutation");
@@ -33,6 +36,7 @@ fn inspector_style_field_list_uses_world_reflection_facade() {
     assert_eq!(
         name_fields,
         vec![ReflectFieldValue::new(
+            ReflectFieldId::from_stable_keys("zircon_runtime::scene::components::Name", "value"),
             "value",
             ReflectedValue::String("Inspector Mesh".to_string()),
         )]
@@ -47,7 +51,14 @@ fn inspector_style_field_list_uses_world_reflection_facade() {
         .fields;
     assert_eq!(
         active_fields,
-        vec![ReflectFieldValue::new("value", ReflectedValue::Bool(false))]
+        vec![ReflectFieldValue::new(
+            ReflectFieldId::from_stable_keys(
+                "zircon_runtime::scene::components::ActiveSelf",
+                "value",
+            ),
+            "value",
+            ReflectedValue::Bool(false),
+        )]
     );
 
     let dynamic_fields = world
@@ -57,8 +68,13 @@ fn inspector_style_field_list_uses_world_reflection_facade() {
     assert_eq!(
         dynamic_fields,
         vec![
-            ReflectFieldValue::new("coverage", ReflectedValue::Scalar(0.35)),
             ReflectFieldValue::new(
+                cloud_layer_field_id("coverage"),
+                "coverage",
+                ReflectedValue::Scalar(0.35),
+            ),
+            ReflectFieldValue::new(
+                cloud_layer_field_id("label"),
                 "label",
                 ReflectedValue::String("inspector cloud".to_string()),
             ),
@@ -69,7 +85,9 @@ fn inspector_style_field_list_uses_world_reflection_facade() {
 #[test]
 fn remote_style_schema_read_request_response_serializes_without_runtime_handles() {
     let mut world = world_with_cloud_layer_descriptor();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -110,7 +128,10 @@ fn remote_style_schema_read_request_response_serializes_without_runtime_handles(
     assert_eq!(decoded_schema, schema);
 
     let read_request = roundtrip_dto(
-        &ReflectReadRequest::new(cloud_layer_address(entity), "coverage"),
+        &ReflectReadRequest::new(
+            cloud_layer_address(entity),
+            cloud_layer_field_id("coverage"),
+        ),
         "read request should serialize",
         "read request should deserialize",
     );
@@ -124,7 +145,11 @@ fn remote_style_schema_read_request_response_serializes_without_runtime_handles(
         .expect("remote read should use reflection facade");
     assert_eq!(
         read.field,
-        ReflectFieldValue::new("coverage", ReflectedValue::Scalar(0.65))
+        ReflectFieldValue::new(
+            cloud_layer_field_id("coverage"),
+            "coverage",
+            ReflectedValue::Scalar(0.65),
+        )
     );
 
     let read_json = serde_json::to_string(&read).expect("read DTO should serialize");
@@ -145,16 +170,15 @@ fn schema_list_projection_pre_sizes_registration_output() {
 
     assert!(
         list_reflect_types.contains("let mut registrations = Vec::with_capacity(1);")
-            && list_reflect_types
-                .contains("registrations.push(registration.registration.clone());")
-            && list_reflect_types.contains("let registry_entries = world.type_registry().iter();")
+            && list_reflect_types.contains("registrations.push(registration.clone());")
+            && list_reflect_types.contains("let registry_entries = schema_catalog.registrations();")
             && list_reflect_types.contains("Vec::with_capacity(registry_entries.size_hint().0)")
             && list_reflect_types.contains("for registration in registry_entries")
-            && list_reflect_types
-                .contains("if schema_filter_matches(&registration.registration, &filter)")
-            && !list_reflect_types.contains("vec![registration.registration.clone()]")
+            && list_reflect_types.contains("if schema_filter_matches(registration, &filter)")
+            && list_reflect_types.contains("schema_catalog.fingerprint()")
+            && !list_reflect_types.contains("runtime_registration(type_path)")
             && !list_reflect_types.contains(".collect()"),
-        "WorldReflection schema listing must pre-size focused and registry-wide registration output instead of collecting from a filter/map chain"
+        "WorldReflection schema listing must project one catalog snapshot/fingerprint and pre-size filtered output"
     );
 }
 
@@ -212,7 +236,7 @@ fn component_adapter_lookup_borrows_for_read_paths_and_clones_only_for_write() {
 }
 
 #[test]
-fn reflection_write_reuses_the_resolved_adapter_for_readback() {
+fn reflection_write_returns_the_accepted_request_without_post_write_readback() {
     let source = include_str!("../../reflect/world_reflection.rs");
     let reflect_write = source
         .split("pub fn reflect_write")
@@ -221,19 +245,28 @@ fn reflection_write_reuses_the_resolved_adapter_for_readback() {
         .expect("read WorldReflection reflect_write body");
 
     assert!(
-        reflect_write.contains("let (changed, value) = match &request.address")
-            && reflect_write.contains("adapter.write_field(")
-            && reflect_write.contains("adapter.read_field(world, *entity, &request.field_name)?")
-            && reflect_write.contains("adapter.read_field(world, &request.field_name)?")
+        reflect_write
+            .contains("validate_reflected_value(type_path, &field_name, &request.value)?;")
+            && reflect_write.contains("let accepted_field =")
+            && reflect_write
+                .contains("field_access(world, type_path, request.field_id, true)?;")
+            && reflect_write.contains("adapter.write_field_by_slot(")
+            && !reflect_write.contains("request.field_name")
+            && !reflect_write.contains(".find(|field| field.name ==")
+            && !reflect_write.contains("adapter.write_field(")
+            && !reflect_write.contains("adapter.read_field(world, *entity, &request.field_name)?")
+            && !reflect_write.contains("adapter.read_field(world, &request.field_name)?")
             && !reflect_write.contains("read_reflected_field(world, &request.address"),
-        "reflection writes must reuse the already-resolved adapter for response readback instead of querying the type registry a second time"
+        "reflection writes must return the accepted request field after publication without invoking a second read adapter"
     );
 }
 
 #[test]
 fn remote_style_write_request_serializes_and_mutates_through_facade() {
     let mut world = world_with_cloud_layer_descriptor();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -243,7 +276,11 @@ fn remote_style_write_request_serializes_and_mutates_through_facade() {
         .expect("dynamic component should attach");
     let address = cloud_layer_address(entity);
 
-    let write = ReflectWriteRequest::new(address.clone(), "coverage", ReflectedValue::Scalar(0.8));
+    let write = ReflectWriteRequest::new(
+        address.clone(),
+        cloud_layer_field_id("coverage"),
+        ReflectedValue::Scalar(0.8),
+    );
     let decoded_write = roundtrip_dto(
         &write,
         "write request should serialize",
@@ -260,7 +297,11 @@ fn remote_style_write_request_serializes_and_mutates_through_facade() {
     assert!(response.changed);
     assert_eq!(
         response.field,
-        ReflectFieldValue::new("coverage", ReflectedValue::Scalar(0.8))
+        ReflectFieldValue::new(
+            cloud_layer_field_id("coverage"),
+            "coverage",
+            ReflectedValue::Scalar(0.8),
+        )
     );
     let response_json = serde_json::to_string(&response).expect("write response should serialize");
     assert_runtime_handles_absent(&response_json);
@@ -269,11 +310,84 @@ fn remote_style_write_request_serializes_and_mutates_through_facade() {
     assert_eq!(decoded_response, response);
 
     let read_back = world
-        .reflect_read(ReflectReadRequest::new(address, "coverage"))
+        .reflect_read(ReflectReadRequest::new(
+            address,
+            cloud_layer_field_id("coverage"),
+        ))
         .expect("readback should observe the reflected write");
     assert_eq!(
         read_back.field,
-        ReflectFieldValue::new("coverage", ReflectedValue::Scalar(0.8))
+        ReflectFieldValue::new(
+            cloud_layer_field_id("coverage"),
+            "coverage",
+            ReflectedValue::Scalar(0.8),
+        )
+    );
+}
+
+#[test]
+fn reflection_value_budget_rejects_inbound_before_mutation_and_outbound_before_publication() {
+    let mut world = world_with_cloud_layer_descriptor();
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    world
+        .set_dynamic_component(
+            entity,
+            CLOUD_LAYER_TYPE_PATH,
+            json!({ "coverage": 0.25, "label": "stable" }),
+        )
+        .expect("dynamic component should attach");
+    let address = cloud_layer_address(entity);
+    let error = world
+        .reflect_write(ReflectWriteRequest::new(
+            address.clone(),
+            cloud_layer_field_id("coverage"),
+            ReflectedValue::Scalar(f32::NAN),
+        ))
+        .expect_err("non-finite editor write must fail before mutation");
+    assert!(matches!(
+        error,
+        ReflectError::InvalidValue {
+            ref type_path,
+            ref field_name,
+            ..
+        } if type_path == CLOUD_LAYER_TYPE_PATH && field_name == "coverage"
+    ));
+    assert_eq!(
+        world
+            .reflect_read(ReflectReadRequest::new(
+                address.clone(),
+                cloud_layer_field_id("coverage"),
+            ))
+            .expect("rejected write must preserve the old value")
+            .field
+            .value,
+        ReflectedValue::Scalar(0.25)
+    );
+
+    let over_budget = "x".repeat(RUNTIME_REFLECT_VALUE_BUDGET.max_string_bytes() + 1);
+    let error = world
+        .set_dynamic_component(
+            entity,
+            CLOUD_LAYER_TYPE_PATH,
+            json!({ "coverage": 0.25, "label": over_budget }),
+        )
+        .expect_err("dynamic component admission must reject over-budget field values");
+    assert!(matches!(
+        error,
+        crate::scene::SceneError::Reflect(ReflectError::InvalidValue { .. })
+    ));
+    assert_eq!(
+        world
+            .reflect_read(ReflectReadRequest::new(
+                address,
+                cloud_layer_field_id("label"),
+            ))
+            .expect("rejected dynamic payload must preserve the old value")
+            .field
+            .value,
+        ReflectedValue::String("stable".to_string())
     );
 }
 
@@ -301,11 +415,15 @@ fn cloud_layer_address(entity: u64) -> ReflectObjectAddress {
     component_address(entity, CLOUD_LAYER_TYPE_PATH)
 }
 
+fn cloud_layer_field_id(field_key: &str) -> ReflectFieldId {
+    ReflectFieldId::from_stable_keys(CLOUD_LAYER_TYPE_PATH, field_key)
+}
+
 fn contains_cloud_layer(schema: &ReflectSchemaResponse) -> bool {
     schema
         .registrations
         .iter()
-        .any(|registration| registration.type_path.type_path == CLOUD_LAYER_TYPE_PATH)
+        .any(|registration| registration.type_path.type_path() == CLOUD_LAYER_TYPE_PATH)
 }
 
 fn roundtrip_dto<T>(value: &T, serialize_context: &str, deserialize_context: &str) -> T

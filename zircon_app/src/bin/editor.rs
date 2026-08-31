@@ -9,13 +9,13 @@ fn main() -> std::process::ExitCode {
     write_log("editor_app", editor_process_teardown_diagnostic(&result));
     let process_log_shutdown_completed =
         shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT);
-    editor_process_exit_code(result, process_log_shutdown_completed)
+    editor_process_exit_code(result, process_log_shutdown_completed).into()
 }
 
 fn editor_process_exit_code<E: std::fmt::Display>(
     result: Result<u8, E>,
     process_log_shutdown_completed: bool,
-) -> std::process::ExitCode {
+) -> zircon_app::ProductProcessExitCode {
     if !process_log_shutdown_completed {
         eprintln!(
             "editor startup diagnostic: component=diagnostic_log requested=process-log-shutdown cause=log flush timed out or an output failed recovery=inspect the process log output and retry zircon_editor"
@@ -23,11 +23,13 @@ fn editor_process_exit_code<E: std::fmt::Display>(
     }
 
     match result {
-        Ok(exit_code) if process_log_shutdown_completed => std::process::ExitCode::from(exit_code),
-        Ok(_) => std::process::ExitCode::FAILURE,
+        Ok(exit_code) if process_log_shutdown_completed => {
+            zircon_app::ProductProcessExitCode::from_code(exit_code)
+        }
+        Ok(_) => zircon_app::ProductProcessExitCode::failure(),
         Err(error) => {
             eprintln!("{error}");
-            std::process::ExitCode::FAILURE
+            zircon_app::ProductProcessExitCode::failure()
         }
     }
 }
@@ -48,16 +50,16 @@ mod tests {
     #[test]
     fn completed_process_log_shutdown_preserves_the_editor_exit_code() {
         assert_eq!(
-            editor_process_exit_code(Ok::<u8, std::io::Error>(7), true),
-            std::process::ExitCode::from(7)
+            editor_process_exit_code(Ok::<u8, std::io::Error>(7), true).code(),
+            7
         );
     }
 
     #[test]
     fn process_log_shutdown_failure_overrides_a_successful_editor_exit() {
         assert_eq!(
-            editor_process_exit_code(Ok::<u8, std::io::Error>(0), false),
-            std::process::ExitCode::FAILURE
+            editor_process_exit_code(Ok::<u8, std::io::Error>(0), false).code(),
+            1
         );
     }
 

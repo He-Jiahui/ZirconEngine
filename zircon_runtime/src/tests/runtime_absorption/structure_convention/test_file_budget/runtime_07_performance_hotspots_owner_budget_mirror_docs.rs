@@ -62,7 +62,7 @@ fn runtime_15_runtime_07_owner_budget_mirror_docs_is_child_owner() {
         &[
             "fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts",
             "performance_hotpath_boundary",
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "expected_test_file_count = 91",
             "large_file_m1_gate_status = classified-and-clear",
             "owner_budget/large_file_gate.rs",
@@ -76,7 +76,7 @@ fn runtime_15_runtime_07_owner_budget_mirror_docs_is_child_owner() {
         "Runtime 07 performance source inventory tracks owner-budget child owners",
         &source_inventory,
         &[
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget/large_file_gate.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget/virtual_geometry_debug_snapshot.rs",

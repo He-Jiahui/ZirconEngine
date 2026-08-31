@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use super::JobCategory;
+use super::{EditorJobEventJournalLimits, JobCategory};
 
 const DEFAULT_THUMBNAIL_LIMIT: usize = 2;
 const DEFAULT_EXPORT_LIMIT: usize = 1;
@@ -100,6 +100,7 @@ impl EditorJobAdmissionSnapshot {
 pub struct EditorJobLimits {
     limits: BTreeMap<JobCategory, usize>,
     admission: EditorJobAdmissionLimits,
+    event_journal: EditorJobEventJournalLimits,
 }
 
 impl EditorJobLimits {
@@ -121,6 +122,7 @@ impl EditorJobLimits {
         Self {
             limits,
             admission: EditorJobAdmissionLimits::default(),
+            event_journal: EditorJobEventJournalLimits::default(),
         }
     }
 
@@ -134,6 +136,11 @@ impl EditorJobLimits {
         self
     }
 
+    pub fn with_event_journal_limits(mut self, event_journal: EditorJobEventJournalLimits) -> Self {
+        self.event_journal = event_journal;
+        self
+    }
+
     pub fn limit(&self, category: JobCategory) -> usize {
         self.limits
             .get(&category)
@@ -143,6 +150,10 @@ impl EditorJobLimits {
 
     pub(super) const fn admission_limits(&self) -> EditorJobAdmissionLimits {
         self.admission
+    }
+
+    pub(super) const fn event_journal_limits(&self) -> EditorJobEventJournalLimits {
+        self.event_journal
     }
 }
 

@@ -2,8 +2,11 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 use zircon_runtime_interface::ui::{
-    binding::UiEventKind, dispatch::UiTemplateActionInvocation, event_ui::UiRouteId,
-    layout::UiFrame, template::UiActionRef,
+    binding::UiEventKind,
+    dispatch::UiTemplateActionInvocation,
+    event_ui::{UiNodeId, UiRouteId},
+    layout::UiFrame,
+    template::UiActionRef,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -19,6 +22,8 @@ pub struct RetainedUiHostBindingProjection {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RetainedUiHostNodeProjection {
     pub node_id: String,
+    pub surface_node_id: Option<UiNodeId>,
+    pub has_workbench_icon_tooltip: bool,
     pub parent_id: Option<String>,
     pub component: String,
     pub control_id: Option<String>,

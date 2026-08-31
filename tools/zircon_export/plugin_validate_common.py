@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+import os
+from pathlib import Path
+from typing import Any, Iterator
 
 from .plugin_package_identity import feature_provider_package_id
 
@@ -18,6 +20,24 @@ PLUGIN_VALIDATE_DEFAULT_PACKAGING = (
     "library_embed",
     "native_dynamic",
 )
+
+
+def plugin_manifest_relative_key(plugin_root: Path, manifest_path: Path) -> str:
+    root = os.path.normcase(os.path.abspath(plugin_root))
+    manifest = os.path.normcase(os.path.abspath(manifest_path))
+    try:
+        return os.path.relpath(manifest, root)
+    except ValueError:
+        return manifest
+
+
+def plugin_other_manifest_paths(
+    plugin_root: Path, current_manifest_path: Path
+) -> Iterator[Path]:
+    current_key = plugin_manifest_relative_key(plugin_root, current_manifest_path)
+    for manifest_path in sorted(plugin_root.rglob("plugin.toml")):
+        if plugin_manifest_relative_key(plugin_root, manifest_path) != current_key:
+            yield manifest_path
 
 
 def plugin_validate_manifest_target_id(

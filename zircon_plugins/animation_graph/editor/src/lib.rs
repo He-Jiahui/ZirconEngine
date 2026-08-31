@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 mod capability;
 mod extension_ids;
@@ -16,9 +16,9 @@ pub use extension_ids::{
     ANIMATION_GRAPH_DRAWER_ID, ANIMATION_GRAPH_TEMPLATE_ID, ANIMATION_GRAPH_VIEW_ID,
 };
 pub use plugin::{
+    ANIMATION_GRAPH_DIST_CRATE_NAME, ANIMATION_GRAPH_DIST_EDITOR_ENTRY, AnimationGraphEditorPlugin,
     animation_graph_dist_module_manifest, editor_capabilities, editor_plugin,
-    editor_plugin_descriptor, package_manifest, plugin_registration, AnimationGraphEditorPlugin,
-    ANIMATION_GRAPH_DIST_CRATE_NAME, ANIMATION_GRAPH_DIST_EDITOR_ENTRY,
+    editor_plugin_descriptor, package_manifest, plugin_registration,
 };
 use zircon_runtime::core::framework::animation::{
     AnimationConditionOperatorAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
@@ -27,15 +27,20 @@ use zircon_runtime::core::framework::animation::{
 
 pub fn validate_animation_graph_asset(graph: &AnimationGraphAsset) -> Vec<String> {
     let mut diagnostics = Vec::new();
-    let mut node_ids = BTreeSet::new();
-    let mut output_count = 0;
+    let index = AnimationGraphIndex::build(graph, &mut diagnostics);
+    validate_animation_graph_with_index(graph, &index, diagnostics)
+}
 
+fn validate_animation_graph_with_index(
+    graph: &AnimationGraphAsset,
+    index: &AnimationGraphIndex<'_>,
+    mut diagnostics: Vec<String>,
+) -> Vec<String> {
     for node in &graph.nodes {
         match node {
             AnimationGraphNodeAsset::Clip {
                 id, playback_speed, ..
             } => {
-                validate_node_id(id, "clip", &mut node_ids, &mut diagnostics);
                 if *playback_speed <= 0.0 {
                     diagnostics.push(format!(
                         "animation graph clip `{id}` playback speed must be greater than zero"
@@ -43,7 +48,6 @@ pub fn validate_animation_graph_asset(graph: &AnimationGraphAsset) -> Vec<String
                 }
             }
             AnimationGraphNodeAsset::Blend { id, inputs, .. } => {
-                validate_node_id(id, "blend", &mut node_ids, &mut diagnostics);
                 if inputs.is_empty() {
                     diagnostics.push(format!(
                         "animation graph blend `{id}` must have at least one input"
@@ -53,7 +57,6 @@ pub fn validate_animation_graph_asset(graph: &AnimationGraphAsset) -> Vec<String
             AnimationGraphNodeAsset::Additive {
                 id, base, additive, ..
             } => {
-                validate_node_id(id, "additive", &mut node_ids, &mut diagnostics);
                 if base.trim().is_empty() || additive.trim().is_empty() {
                     diagnostics.push(format!(
                         "animation graph additive `{id}` must have base and additive inputs"
@@ -65,30 +68,29 @@ pub fn validate_animation_graph_asset(graph: &AnimationGraphAsset) -> Vec<String
                 input,
                 target_ids,
             } => {
-                validate_node_id(id, "mask", &mut node_ids, &mut diagnostics);
                 if input.trim().is_empty() || target_ids.is_empty() {
                     diagnostics.push(format!(
                         "animation graph mask `{id}` must have an input and at least one target"
                     ));
                 }
             }
-            AnimationGraphNodeAsset::Output { .. } => {
-                output_count += 1;
-            }
+            AnimationGraphNodeAsset::Output { .. } => {}
         }
     }
 
-    match output_count {
+    match index.output_count {
         0 => diagnostics.push("animation graph has no output node".to_string()),
         1 => {}
         _ => diagnostics.push("animation graph must contain exactly one output node".to_string()),
     }
 
+    let mut has_missing_reference = false;
     for node in &graph.nodes {
         match node {
             AnimationGraphNodeAsset::Blend { id, inputs, .. } => {
                 for input in inputs {
-                    if !node_ids.contains(input.as_str()) {
+                    if !index.contains(input) {
+                        has_missing_reference = true;
                         diagnostics.push(format!(
                             "animation graph blend `{id}` references missing input `{input}`"
                         ));
@@ -99,7 +101,8 @@ pub fn validate_animation_graph_asset(graph: &AnimationGraphAsset) -> Vec<String
                 id, base, additive, ..
             } => {
                 for input in [base, additive] {
-                    if !node_ids.contains(input.as_str()) {
+                    if !index.contains(input) {
+                        has_missing_reference = true;
                         diagnostics.push(format!(
                             "animation graph additive `{id}` references missing input `{input}`"
                         ));
@@ -107,14 +110,16 @@ pub fn validate_animation_graph_asset(graph: &AnimationGraphAsset) -> Vec<String
                 }
             }
             AnimationGraphNodeAsset::Mask { id, input, .. } => {
-                if !node_ids.contains(input.as_str()) {
+                if !index.contains(input) {
+                    has_missing_reference = true;
                     diagnostics.push(format!(
                         "animation graph mask `{id}` references missing input `{input}`"
                     ));
                 }
             }
             AnimationGraphNodeAsset::Output { source } => {
-                if !node_ids.contains(source.as_str()) {
+                if !index.contains(source) {
+                    has_missing_reference = true;
                     diagnostics.push(format!(
                         "animation graph output references missing source `{source}`"
                     ));
@@ -124,25 +129,160 @@ pub fn validate_animation_graph_asset(graph: &AnimationGraphAsset) -> Vec<String
         }
     }
 
+    if !index.topology_ambiguous && !has_missing_reference && index.contains_cycle(graph) {
+        diagnostics.push("animation graph contains a cyclic node dependency".to_string());
+    }
+
     diagnostics.sort();
     diagnostics.dedup();
     diagnostics
 }
 
 pub fn compile_animation_graph(graph: &AnimationGraphAsset) -> Result<String, Vec<String>> {
-    let diagnostics = validate_animation_graph_asset(graph);
+    let mut diagnostics = Vec::new();
+    let index = AnimationGraphIndex::build(graph, &mut diagnostics);
+    let diagnostics = validate_animation_graph_with_index(graph, &index, diagnostics);
     if !diagnostics.is_empty() {
         return Err(diagnostics);
     }
-    let output_source = graph
-        .nodes
-        .iter()
-        .find_map(|node| match node {
-            AnimationGraphNodeAsset::Output { source } => Some(source.clone()),
-            _ => None,
-        })
-        .expect("validated animation graph has output");
-    Ok(output_source)
+    Ok(index
+        .output_source
+        .expect("validated animation graph has output")
+        .to_string())
+}
+
+struct AnimationGraphIndex<'a> {
+    node_indices: BTreeMap<&'a str, usize>,
+    output_source: Option<&'a str>,
+    output_count: usize,
+    topology_ambiguous: bool,
+}
+
+impl<'a> AnimationGraphIndex<'a> {
+    fn build(graph: &'a AnimationGraphAsset, diagnostics: &mut Vec<String>) -> Self {
+        let mut node_indices = BTreeMap::new();
+        let mut output_source = None;
+        let mut output_count = 0;
+        let mut topology_ambiguous = false;
+
+        for node in &graph.nodes {
+            let Some((id, kind)) = animation_graph_node_identity(node) else {
+                output_count += 1;
+                if output_source.is_none() {
+                    let AnimationGraphNodeAsset::Output { source } = node else {
+                        unreachable!("only output nodes omit an identity")
+                    };
+                    output_source = Some(source.as_str());
+                }
+                continue;
+            };
+            if id.trim().is_empty() {
+                topology_ambiguous = true;
+                diagnostics.push(format!("animation graph {kind} node id must not be empty"));
+                continue;
+            }
+            let next_index = node_indices.len();
+            match node_indices.entry(id) {
+                std::collections::btree_map::Entry::Vacant(entry) => {
+                    entry.insert(next_index);
+                }
+                std::collections::btree_map::Entry::Occupied(_) => {
+                    topology_ambiguous = true;
+                    diagnostics.push(format!("animation graph has duplicate node `{id}`"));
+                }
+            }
+        }
+
+        Self {
+            node_indices,
+            output_source,
+            output_count,
+            topology_ambiguous,
+        }
+    }
+
+    fn contains(&self, node_id: &str) -> bool {
+        self.node_indices.contains_key(node_id)
+    }
+
+    fn contains_cycle(&self, graph: &AnimationGraphAsset) -> bool {
+        let mut incoming_counts = vec![0_usize; self.node_indices.len()];
+        let mut dependents = vec![Vec::new(); self.node_indices.len()];
+
+        for node in &graph.nodes {
+            let Some((node_id, _)) = animation_graph_node_identity(node) else {
+                continue;
+            };
+            let Some(&node_index) = self.node_indices.get(node_id) else {
+                continue;
+            };
+            match node {
+                AnimationGraphNodeAsset::Blend { inputs, .. } => {
+                    for input in inputs {
+                        self.add_dependency(
+                            input,
+                            node_index,
+                            &mut incoming_counts,
+                            &mut dependents,
+                        );
+                    }
+                }
+                AnimationGraphNodeAsset::Additive { base, additive, .. } => {
+                    for input in [base, additive] {
+                        self.add_dependency(
+                            input,
+                            node_index,
+                            &mut incoming_counts,
+                            &mut dependents,
+                        );
+                    }
+                }
+                AnimationGraphNodeAsset::Mask { input, .. } => {
+                    self.add_dependency(input, node_index, &mut incoming_counts, &mut dependents)
+                }
+                AnimationGraphNodeAsset::Clip { .. } | AnimationGraphNodeAsset::Output { .. } => {}
+            }
+        }
+
+        let mut ready = incoming_counts
+            .iter()
+            .enumerate()
+            .filter_map(|(index, incoming)| (*incoming == 0).then_some(index))
+            .collect::<VecDeque<_>>();
+        let mut visited = 0;
+        while let Some(node_index) = ready.pop_front() {
+            visited += 1;
+            for &dependent in &dependents[node_index] {
+                incoming_counts[dependent] -= 1;
+                if incoming_counts[dependent] == 0 {
+                    ready.push_back(dependent);
+                }
+            }
+        }
+        visited != self.node_indices.len()
+    }
+
+    fn add_dependency(
+        &self,
+        dependency_id: &str,
+        dependent_index: usize,
+        incoming_counts: &mut [usize],
+        dependents: &mut [Vec<usize>],
+    ) {
+        let dependency_index = self.node_indices[dependency_id];
+        dependents[dependency_index].push(dependent_index);
+        incoming_counts[dependent_index] += 1;
+    }
+}
+
+fn animation_graph_node_identity(node: &AnimationGraphNodeAsset) -> Option<(&str, &'static str)> {
+    match node {
+        AnimationGraphNodeAsset::Clip { id, .. } => Some((id, "clip")),
+        AnimationGraphNodeAsset::Blend { id, .. } => Some((id, "blend")),
+        AnimationGraphNodeAsset::Additive { id, .. } => Some((id, "additive")),
+        AnimationGraphNodeAsset::Mask { id, .. } => Some((id, "mask")),
+        AnimationGraphNodeAsset::Output { .. } => None,
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -230,17 +370,4 @@ pub fn compile_animation_state_machine(
         state_count: machine.states.len(),
         transition_count: machine.transitions.len(),
     })
-}
-
-fn validate_node_id<'a>(
-    id: &'a str,
-    kind: &str,
-    node_ids: &mut BTreeSet<&'a str>,
-    diagnostics: &mut Vec<String>,
-) {
-    if id.trim().is_empty() {
-        diagnostics.push(format!("animation graph {kind} node id must not be empty"));
-    } else if !node_ids.insert(id) {
-        diagnostics.push(format!("animation graph has duplicate node `{id}`"));
-    }
 }

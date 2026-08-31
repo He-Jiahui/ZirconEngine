@@ -1,5 +1,6 @@
 //! Shared binary envelope for animation resource schemas.
 
+use bincode::Options;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
@@ -7,6 +8,12 @@ use super::error::{AnimationAssetError, AnimationAssetResult};
 
 const ANIMATION_BINARY_MAGIC: [u8; 8] = *b"ZRANIM01";
 const ANIMATION_BINARY_VERSION: u32 = 1;
+const KIBIBYTE: usize = 1024;
+const MEBIBYTE: usize = KIBIBYTE * KIBIBYTE;
+// Animation authoring schemas are compact binary metadata. Keep an input cap aligned with the
+// existing untrusted-font source policy while preventing malformed vector lengths from consuming
+// an unbounded amount of memory during bincode deserialization or version fallback attempts.
+const ANIMATION_BINARY_MAX_DECODE_BYTES: usize = 64 * MEBIBYTE;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -71,6 +78,7 @@ pub(super) fn decode_binary_asset<T>(
 where
     T: DeserializeOwned,
 {
+    validate_binary_input_size(kind, bytes)?;
     match decode_binary_document_asset(kind, bytes) {
         Ok(payload) => Ok(payload),
         Err(document_error) => decode_binary_stream_asset(kind, bytes).map_err(|stream_error| {
@@ -94,6 +102,7 @@ where
 {
     match decode_binary_asset(kind, bytes) {
         Ok(payload) => Ok(payload),
+        Err(error @ AnimationAssetError::InputTooLarge { .. }) => Err(error),
         Err(primary_error) => {
             let v1_payload = decode_binary_asset::<V1>(kind, bytes)
                 .and_then(|payload| payload.try_into().map_err(Into::into))
@@ -122,6 +131,7 @@ where
 {
     match decode_binary_asset(kind, bytes) {
         Ok(payload) => Ok(payload),
+        Err(error @ AnimationAssetError::InputTooLarge { .. }) => Err(error),
         Err(current_error) => match decode_binary_asset::<V3>(kind, bytes)
             .and_then(|payload| payload.try_into().map_err(Into::into))
         {
@@ -153,8 +163,12 @@ fn decode_binary_document_asset<T>(
 where
     T: DeserializeOwned,
 {
-    let document: AnimationBinaryDocument<T> =
-        bincode::deserialize(bytes).map_err(|source| AnimationAssetError::DocumentDeserialize {
+    let document: AnimationBinaryDocument<T> = bincode::DefaultOptions::new()
+        .with_fixint_encoding()
+        .allow_trailing_bytes()
+        .with_limit(ANIMATION_BINARY_MAX_DECODE_BYTES as u64)
+        .deserialize(bytes)
+        .map_err(|source| AnimationAssetError::DocumentDeserialize {
             kind: kind.as_str(),
             source,
         })?;
@@ -170,21 +184,47 @@ where
     T: DeserializeOwned,
 {
     let mut cursor = std::io::Cursor::new(bytes);
-    let header: AnimationBinaryHeader =
-        bincode::deserialize_from(&mut cursor).map_err(|source| {
-            AnimationAssetError::StreamHeaderDeserialize {
-                kind: kind.as_str(),
-                source,
-            }
+    let header: AnimationBinaryHeader = bincode::DefaultOptions::new()
+        .with_fixint_encoding()
+        .allow_trailing_bytes()
+        .with_limit(ANIMATION_BINARY_MAX_DECODE_BYTES as u64)
+        .deserialize_from(&mut cursor)
+        .map_err(|source| AnimationAssetError::StreamHeaderDeserialize {
+            kind: kind.as_str(),
+            source,
         })?;
     validate_binary_header(kind, header.magic, header.version, header.kind)?;
 
-    bincode::deserialize_from(&mut cursor).map_err(|source| {
-        AnimationAssetError::StreamPayloadDeserialize {
+    bincode::DefaultOptions::new()
+        .with_fixint_encoding()
+        .allow_trailing_bytes()
+        .with_limit(ANIMATION_BINARY_MAX_DECODE_BYTES as u64)
+        .deserialize_from(&mut cursor)
+        .map_err(|source| AnimationAssetError::StreamPayloadDeserialize {
             kind: kind.as_str(),
             source,
-        }
-    })
+        })
+}
+
+fn validate_binary_input_size(
+    kind: AnimationBinaryAssetKind,
+    bytes: &[u8],
+) -> AnimationAssetResult<()> {
+    validate_binary_input_len(kind, bytes.len())
+}
+
+fn validate_binary_input_len(
+    kind: AnimationBinaryAssetKind,
+    actual_bytes: usize,
+) -> AnimationAssetResult<()> {
+    if actual_bytes > ANIMATION_BINARY_MAX_DECODE_BYTES {
+        return Err(AnimationAssetError::InputTooLarge {
+            kind: kind.as_str(),
+            actual_bytes: actual_bytes as u64,
+            limit_bytes: ANIMATION_BINARY_MAX_DECODE_BYTES as u64,
+        });
+    }
+    Ok(())
 }
 
 fn validate_binary_header(
@@ -206,4 +246,43 @@ fn validate_binary_header(
         });
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        decode_binary_asset, encode_binary_asset, validate_binary_input_len,
+        AnimationBinaryAssetKind, ANIMATION_BINARY_MAX_DECODE_BYTES,
+    };
+    use crate::core::framework::animation::AnimationAssetError;
+
+    #[test]
+    fn animation_binary_rejects_oversized_input_before_deserialization() {
+        let error = validate_binary_input_len(
+            AnimationBinaryAssetKind::Graph,
+            ANIMATION_BINARY_MAX_DECODE_BYTES + 1,
+        )
+        .expect_err("oversized input must be rejected before deserialize");
+
+        assert!(matches!(
+            error,
+            AnimationAssetError::InputTooLarge {
+                kind: "graph",
+                actual_bytes,
+                limit_bytes,
+            } if actual_bytes == limit_bytes + 1
+        ));
+    }
+
+    #[test]
+    fn animation_binary_budgeting_preserves_legacy_trailing_byte_decoding() {
+        let mut bytes = encode_binary_asset(AnimationBinaryAssetKind::Graph, &7_u8)
+            .expect("fixture serialization succeeds");
+        bytes.push(0);
+
+        let decoded = decode_binary_asset::<u8>(AnimationBinaryAssetKind::Graph, &bytes)
+            .expect("legacy trailing bytes remain accepted");
+
+        assert_eq!(decoded, 7);
+    }
 }

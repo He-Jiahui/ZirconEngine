@@ -1,12 +1,13 @@
 use std::{
-    collections::{BTreeMap, BTreeSet, btree_map},
+    cell::RefCell,
+    collections::{btree_map, BTreeMap, BTreeSet},
     ops::{Deref, Index, IndexMut},
 };
 
 use serde::{Deserialize, Serialize};
 
 use crate::ui::event_ui::{UiNodeId, UiTreeId};
-use crate::ui::layout::UiSlot;
+use crate::ui::layout::{UiSlot, UiSlotKind};
 
 use super::{UiTreeError, UiTreeNode};
 
@@ -18,7 +19,15 @@ pub struct UiTree {
     /// Parent-owned placement records for each retained parent-child edge.
     /// Older serialized trees omit this field, so deserialization defaults it empty.
     #[serde(default)]
-    pub slots: Vec<UiSlot>,
+    slots: Vec<UiSlot>,
+    /// Runtime edge authority rebuilt once after deserializing the flat compatibility payload.
+    #[serde(skip)]
+    layout_slot_authority: RefCell<UiLayoutSlotAuthority>,
+    /// Runtime-only generation for parent-child and slot-order topology.
+    #[serde(skip)]
+    pub(crate) layout_order_generation: u64,
+    #[serde(skip)]
+    pub(crate) pending_layout_order_parent_ids: BTreeSet<UiNodeId>,
 }
 
 impl UiTree {
@@ -28,6 +37,9 @@ impl UiTree {
             roots: Vec::new(),
             nodes: UiTreeNodes::default(),
             slots: Vec::new(),
+            layout_slot_authority: RefCell::default(),
+            layout_order_generation: 0,
+            pending_layout_order_parent_ids: BTreeSet::new(),
         }
     }
 
@@ -36,7 +48,6 @@ impl UiTree {
             return;
         }
         node.parent = None;
-        node.paint_order = self.nodes.allocate_paint_order();
         mark_structure_dirty(&mut node);
         self.roots.push(node.node_id);
         self.nodes.insert(node.node_id, node);
@@ -53,7 +64,7 @@ impl UiTree {
         if !self.nodes.contains_key(&parent_id) {
             return Err(UiTreeError::MissingParent(parent_id));
         }
-        let paint_order = self.nodes.allocate_paint_order();
+        self.mark_layout_order_changed(parent_id);
         let parent = self
             .nodes
             .get_mut_preserving_paint_order(&parent_id)
@@ -61,7 +72,6 @@ impl UiTree {
         mark_structure_dirty(parent);
         parent.children.push(node.node_id);
         node.parent = Some(parent_id);
-        node.paint_order = paint_order;
         mark_structure_dirty(&mut node);
         self.nodes.insert(node.node_id, node);
         Ok(())
@@ -71,16 +81,269 @@ impl UiTree {
         self.nodes.get(&node_id)
     }
 
+    /// Runtime identity for one live node allocation inside this tree instance.
+    ///
+    /// The value stays stable across property, layout, and sibling topology changes. Removing and
+    /// reinserting the same `UiNodeId` assigns a new value, so retained-node consumers can reject
+    /// stale compare-and-swap keys without invalidating unrelated owners.
+    pub fn node_incarnation(&self, node_id: UiNodeId) -> Option<u64> {
+        self.nodes.get(&node_id).map(|node| node.paint_order)
+    }
+
     pub fn node_mut(&mut self, node_id: UiNodeId) -> Option<&mut UiTreeNode> {
         self.nodes.get_mut(&node_id)
+    }
+
+    pub fn layout_order_generation(&self) -> u64 {
+        self.layout_order_generation
+    }
+
+    pub fn pending_layout_order_parent_ids(&self) -> &BTreeSet<UiNodeId> {
+        &self.pending_layout_order_parent_ids
+    }
+
+    pub fn layout_slots(&self) -> &[UiSlot] {
+        &self.slots
+    }
+
+    pub fn layout_slot(&self, slot_index: usize) -> Option<&UiSlot> {
+        self.slots.get(slot_index)
+    }
+
+    pub fn first_layout_slot_index_for_edge(
+        &self,
+        parent_id: UiNodeId,
+        child_id: UiNodeId,
+    ) -> Option<usize> {
+        self.ensure_layout_slot_authority();
+        self.layout_slot_authority
+            .borrow()
+            .first_index(parent_id, child_id)
+    }
+
+    pub fn layout_slot_index_for_edge_kind(
+        &self,
+        parent_id: UiNodeId,
+        child_id: UiNodeId,
+        kind: UiSlotKind,
+    ) -> Option<usize> {
+        self.ensure_layout_slot_authority();
+        self.layout_slot_authority
+            .borrow()
+            .index_for_kind(&self.slots, parent_id, child_id, kind)
+    }
+
+    pub fn push_layout_slot(&mut self, slot: UiSlot) {
+        let parent_id = slot.parent_id;
+        let slot_index = self.slots.len();
+        self.slots.push(slot);
+        self.layout_slot_authority
+            .get_mut()
+            .insert_if_initialized(&self.slots, slot_index);
+        self.mark_layout_order_changed(parent_id);
+    }
+
+    pub fn replace_layout_slots(&mut self, slots: Vec<UiSlot>) {
+        let parent_ids = self
+            .slots
+            .iter()
+            .chain(&slots)
+            .map(|slot| slot.parent_id)
+            .collect::<BTreeSet<_>>();
+        self.slots = slots;
+        self.layout_slot_authority.get_mut().rebuild(&self.slots);
+        for parent_id in parent_ids {
+            self.mark_layout_order_changed(parent_id);
+        }
+    }
+
+    pub fn retain_layout_slots(&mut self, mut retain: impl FnMut(&UiSlot) -> bool) {
+        let mut removed_parent_ids = BTreeSet::new();
+        let previous_slot_count = self.slots.len();
+        self.slots.retain(|slot| {
+            let retained = retain(slot);
+            if !retained {
+                removed_parent_ids.insert(slot.parent_id);
+            }
+            retained
+        });
+        if self.slots.len() != previous_slot_count
+            && self.layout_slot_authority.get_mut().initialized
+        {
+            self.layout_slot_authority.get_mut().rebuild(&self.slots);
+        }
+        for parent_id in removed_parent_ids {
+            self.mark_layout_order_changed(parent_id);
+        }
+    }
+
+    pub fn mutate_layout_slot(
+        &mut self,
+        slot_index: usize,
+        mutate: impl FnOnce(&mut UiSlot),
+    ) -> Option<()> {
+        let previous = self.slots.get(slot_index)?.clone();
+        mutate(
+            self.slots
+                .get_mut(slot_index)
+                .expect("validated layout slot"),
+        );
+        let current = self
+            .slots
+            .get(slot_index)
+            .expect("mutated layout slot remains present");
+        if previous.parent_id != current.parent_id || previous.child_id != current.child_id {
+            self.layout_slot_authority.get_mut().rebind_if_initialized(
+                &self.slots,
+                slot_index,
+                (previous.parent_id, previous.child_id),
+            );
+        }
+        let order_changed = layout_order_slot_changed(&previous, current);
+        let current_parent_id = current.parent_id;
+        if order_changed {
+            self.mark_layout_order_changed(previous.parent_id);
+            if current_parent_id != previous.parent_id {
+                self.mark_layout_order_changed(current_parent_id);
+            }
+        }
+        Some(())
+    }
+
+    pub fn mark_layout_order_changed(&mut self, parent_id: UiNodeId) {
+        self.layout_order_generation = next_layout_order_generation(self.layout_order_generation);
+        self.pending_layout_order_parent_ids.insert(parent_id);
+        self.nodes.mark_layout_dirty_source(parent_id);
     }
 
     pub fn pending_mutation_node_ids(&self) -> &BTreeSet<UiNodeId> {
         self.nodes.pending_mutation_node_ids()
     }
 
+    pub fn pending_layout_source_node_ids(&self) -> &BTreeSet<UiNodeId> {
+        self.nodes.pending_layout_source_node_ids()
+    }
+
     pub fn clear_pending_mutation_node_ids(&mut self) {
         self.nodes.clear_pending_mutation_node_ids();
+        self.pending_layout_order_parent_ids.clear();
+    }
+
+    fn ensure_layout_slot_authority(&self) {
+        let needs_rebuild = {
+            let authority = self.layout_slot_authority.borrow();
+            !authority.initialized || authority.slot_count != self.slots.len()
+        };
+        if needs_rebuild {
+            self.layout_slot_authority.borrow_mut().rebuild(&self.slots);
+        }
+    }
+
+    #[cfg(test)]
+    fn layout_slot_authority_rebuild_count(&self) -> usize {
+        self.layout_slot_authority.borrow().rebuild_count
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct UiLayoutSlotAuthority {
+    initialized: bool,
+    slot_count: usize,
+    indices_by_edge: BTreeMap<(UiNodeId, UiNodeId), Vec<usize>>,
+    #[cfg(test)]
+    rebuild_count: usize,
+}
+
+impl UiLayoutSlotAuthority {
+    fn rebuild(&mut self, slots: &[UiSlot]) {
+        self.indices_by_edge.clear();
+        for (slot_index, slot) in slots.iter().enumerate() {
+            self.indices_by_edge
+                .entry((slot.parent_id, slot.child_id))
+                .or_default()
+                .push(slot_index);
+        }
+        self.slot_count = slots.len();
+        self.initialized = true;
+        #[cfg(test)]
+        {
+            self.rebuild_count = self.rebuild_count.saturating_add(1);
+        }
+    }
+
+    fn insert_if_initialized(&mut self, slots: &[UiSlot], slot_index: usize) {
+        if !self.initialized {
+            return;
+        }
+        let slot = &slots[slot_index];
+        let indices = self
+            .indices_by_edge
+            .entry((slot.parent_id, slot.child_id))
+            .or_default();
+        let insert_at = indices
+            .binary_search(&slot_index)
+            .unwrap_or_else(|index| index);
+        indices.insert(insert_at, slot_index);
+        self.slot_count = slots.len();
+    }
+
+    fn rebind_if_initialized(
+        &mut self,
+        slots: &[UiSlot],
+        slot_index: usize,
+        previous_edge: (UiNodeId, UiNodeId),
+    ) {
+        if !self.initialized {
+            return;
+        }
+        if let Some(indices) = self.indices_by_edge.get_mut(&previous_edge) {
+            indices.retain(|index| *index != slot_index);
+            if indices.is_empty() {
+                self.indices_by_edge.remove(&previous_edge);
+            }
+        }
+        let slot = &slots[slot_index];
+        self.indices_by_edge
+            .entry((slot.parent_id, slot.child_id))
+            .or_default()
+            .push(slot_index);
+    }
+
+    fn first_index(&self, parent_id: UiNodeId, child_id: UiNodeId) -> Option<usize> {
+        self.indices_by_edge
+            .get(&(parent_id, child_id))?
+            .first()
+            .copied()
+    }
+
+    fn index_for_kind(
+        &self,
+        slots: &[UiSlot],
+        parent_id: UiNodeId,
+        child_id: UiNodeId,
+        kind: UiSlotKind,
+    ) -> Option<usize> {
+        self.indices_by_edge
+            .get(&(parent_id, child_id))?
+            .iter()
+            .copied()
+            .find(|slot_index| slots[*slot_index].kind == kind)
+    }
+}
+
+fn layout_order_slot_changed(previous: &UiSlot, current: &UiSlot) -> bool {
+    previous.parent_id != current.parent_id
+        || previous.child_id != current.child_id
+        || previous.kind != current.kind
+        || previous.order != current.order
+}
+
+fn next_layout_order_generation(current: u64) -> u64 {
+    let next = current.wrapping_add(1);
+    if next == 0 {
+        1
+    } else {
+        next
     }
 }
 
@@ -94,6 +357,8 @@ pub struct UiTreeNodes {
     nodes: BTreeMap<UiNodeId, UiTreeNode>,
     #[serde(skip)]
     mutation_node_ids: BTreeSet<UiNodeId>,
+    #[serde(skip)]
+    layout_source_node_ids: BTreeSet<UiNodeId>,
     #[serde(skip)]
     paint_order_cursor: PaintOrderCursor,
     #[cfg(test)]
@@ -110,21 +375,27 @@ impl UiTreeNodes {
         self.nodes.get_mut(node_id)
     }
 
-    pub fn insert(&mut self, node_id: UiNodeId, node: UiTreeNode) -> Option<UiTreeNode> {
+    pub fn mark_layout_dirty_source(&mut self, node_id: UiNodeId) {
+        if self.nodes.contains_key(&node_id) {
+            self.mutation_node_ids.insert(node_id);
+            self.layout_source_node_ids.insert(node_id);
+            if let Some(node) = self.nodes.get_mut(&node_id) {
+                node.layout_cache.invalidate_measure();
+            }
+        }
+    }
+
+    pub fn insert(&mut self, node_id: UiNodeId, mut node: UiTreeNode) -> Option<UiTreeNode> {
         self.mutation_node_ids.insert(node_id);
-        self.paint_order_cursor.observe(node.paint_order);
+        // Keep allocation identity and paint order on the same monotonic insertion serial.
+        node.paint_order = self.allocate_paint_order();
         self.nodes.insert(node_id, node)
     }
 
     pub fn remove(&mut self, node_id: &UiNodeId) -> Option<UiTreeNode> {
         self.mutation_node_ids.insert(*node_id);
+        self.layout_source_node_ids.remove(node_id);
         self.nodes.remove(node_id)
-    }
-
-    pub fn entry(&mut self, node_id: UiNodeId) -> btree_map::Entry<'_, UiNodeId, UiTreeNode> {
-        self.mutation_node_ids.insert(node_id);
-        self.paint_order_cursor.invalidate();
-        self.nodes.entry(node_id)
     }
 
     pub fn iter_mut(&mut self) -> btree_map::IterMut<'_, UiNodeId, UiTreeNode> {
@@ -148,15 +419,20 @@ impl UiTreeNodes {
     pub fn clear(&mut self) {
         self.track_all_nodes();
         self.nodes.clear();
-        self.paint_order_cursor.reset();
+        self.layout_source_node_ids.clear();
     }
 
     pub fn pending_mutation_node_ids(&self) -> &BTreeSet<UiNodeId> {
         &self.mutation_node_ids
     }
 
+    pub fn pending_layout_source_node_ids(&self) -> &BTreeSet<UiNodeId> {
+        &self.layout_source_node_ids
+    }
+
     pub fn clear_pending_mutation_node_ids(&mut self) {
         self.mutation_node_ids.clear();
+        self.layout_source_node_ids.clear();
     }
 
     fn track_all_nodes(&mut self) {
@@ -194,6 +470,7 @@ impl Default for UiTreeNodes {
         Self {
             nodes: BTreeMap::new(),
             mutation_node_ids: BTreeSet::new(),
+            layout_source_node_ids: BTreeSet::new(),
             paint_order_cursor: PaintOrderCursor::new(),
             #[cfg(test)]
             paint_order_cursor_rebuild_node_visits: 0,
@@ -238,6 +515,7 @@ impl From<BTreeMap<UiNodeId, UiTreeNode>> for UiTreeNodes {
         Self {
             nodes,
             mutation_node_ids: BTreeSet::new(),
+            layout_source_node_ids: BTreeSet::new(),
             paint_order_cursor,
             #[cfg(test)]
             paint_order_cursor_rebuild_node_visits: 0,
@@ -295,10 +573,6 @@ impl PaintOrderCursor {
         next
     }
 
-    fn observe(&mut self, paint_order: u64) {
-        self.next = self.next.max(paint_order.saturating_add(1));
-    }
-
     fn rebuild(&mut self, paint_orders: impl Iterator<Item = u64>) {
         let observed_next = paint_orders
             .max()
@@ -309,11 +583,6 @@ impl PaintOrderCursor {
 
     fn invalidate(&mut self) {
         self.valid = false;
-    }
-
-    fn reset(&mut self) {
-        self.next = 0;
-        self.valid = true;
     }
 }
 
@@ -335,14 +604,15 @@ fn mark_structure_dirty(node: &mut UiTreeNode) {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, BTreeSet};
     use std::hint::black_box;
     use std::time::Instant;
 
     use serde_json;
 
-    use super::{UiTree, mark_structure_dirty};
+    use super::{mark_structure_dirty, UiTree};
     use crate::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};
+    use crate::ui::layout::{UiSlot, UiSlotKind};
     use crate::ui::tree::UiTreeNode;
 
     #[test]
@@ -385,6 +655,162 @@ mod tests {
             CHILD_COUNT
         );
         assert_eq!(tree.nodes.paint_order_cursor_rebuild_node_visits(), 0);
+    }
+
+    #[test]
+    fn child_structure_changes_invalidate_the_parent_measurement_cache() {
+        let root_id = UiNodeId::new(0);
+        let mut tree = UiTree::new(UiTreeId::new("layout-cache.structure"));
+        tree.insert_root(node(0));
+        tree.node_mut(root_id)
+            .expect("root")
+            .layout_cache
+            .complete_measure();
+        tree.clear_pending_mutation_node_ids();
+
+        tree.insert_child(root_id, node(1)).expect("child");
+
+        assert!(!tree.node(root_id).expect("root").layout_cache.measure_valid);
+    }
+
+    #[test]
+    fn layout_order_generation_ignores_non_order_slot_mutations() {
+        let root_id = UiNodeId::new(0);
+        let child_id = UiNodeId::new(1);
+        let mut tree = UiTree::new(UiTreeId::new("layout-order.generation"));
+        tree.insert_root(node(0));
+        tree.insert_child(root_id, node(1)).expect("child");
+        tree.push_layout_slot(UiSlot::new(root_id, child_id, UiSlotKind::Free));
+        tree.clear_pending_mutation_node_ids();
+        let stable_generation = tree.layout_order_generation();
+
+        tree.mutate_layout_slot(0, |slot| slot.z_order = 7)
+            .expect("mutate non-order slot field");
+
+        assert_eq!(tree.layout_order_generation(), stable_generation);
+        assert!(tree.pending_layout_order_parent_ids().is_empty());
+
+        tree.mutate_layout_slot(0, |slot| slot.order = 2)
+            .expect("mutate slot order");
+
+        assert_ne!(tree.layout_order_generation(), stable_generation);
+        assert_eq!(
+            tree.pending_layout_order_parent_ids(),
+            &BTreeSet::from([root_id])
+        );
+    }
+
+    #[test]
+    fn deserialized_layout_slot_authority_rebuilds_once_and_keeps_missing_edges_authoritative() {
+        let parent_id = UiNodeId::new(0);
+        let child_id = UiNodeId::new(1);
+        let mut original = UiTree::new(UiTreeId::new("layout-slot.deserialize"));
+        original.insert_root(node(0));
+        original.insert_child(parent_id, node(1)).expect("child");
+        original.push_layout_slot(UiSlot::new(parent_id, child_id, UiSlotKind::Linear));
+        let serialized = serde_json::to_vec(&original).expect("serialize UI tree");
+        let restored: UiTree = serde_json::from_slice(&serialized).expect("deserialize UI tree");
+
+        assert_eq!(restored.layout_slot_authority_rebuild_count(), 0);
+        assert_eq!(
+            restored.layout_slot_index_for_edge_kind(parent_id, child_id, UiSlotKind::Linear),
+            Some(0)
+        );
+        assert_eq!(restored.layout_slot_authority_rebuild_count(), 1);
+        for missing_child in 2..=1_000 {
+            assert_eq!(
+                restored.layout_slot_index_for_edge_kind(
+                    parent_id,
+                    UiNodeId::new(missing_child),
+                    UiSlotKind::Linear,
+                ),
+                None
+            );
+        }
+        assert_eq!(restored.layout_slot_authority_rebuild_count(), 1);
+    }
+
+    #[test]
+    fn same_cardinality_slot_rebind_updates_the_edge_authority_without_rebuilding() {
+        let parent_id = UiNodeId::new(0);
+        let first_child_id = UiNodeId::new(1);
+        let next_child_id = UiNodeId::new(2);
+        let mut tree = UiTree::new(UiTreeId::new("layout-slot.rebind"));
+        tree.push_layout_slot(UiSlot::new(parent_id, first_child_id, UiSlotKind::Linear));
+        assert_eq!(
+            tree.layout_slot_index_for_edge_kind(parent_id, first_child_id, UiSlotKind::Linear,),
+            Some(0)
+        );
+        assert_eq!(tree.layout_slot_authority_rebuild_count(), 1);
+
+        tree.mutate_layout_slot(0, |slot| slot.child_id = next_child_id)
+            .expect("rebind slot");
+
+        assert_eq!(
+            tree.layout_slot_index_for_edge_kind(parent_id, first_child_id, UiSlotKind::Linear,),
+            None
+        );
+        assert_eq!(
+            tree.layout_slot_index_for_edge_kind(parent_id, next_child_id, UiSlotKind::Linear),
+            Some(0)
+        );
+        assert_eq!(tree.layout_slot_authority_rebuild_count(), 1);
+    }
+
+    #[test]
+    fn slot_rebind_preserves_flat_slot_precedence_on_an_existing_edge() {
+        let parent_id = UiNodeId::new(0);
+        let first_child_id = UiNodeId::new(1);
+        let next_child_id = UiNodeId::new(2);
+        let mut tree = UiTree::new(UiTreeId::new("layout-slot.rebind-order"));
+        tree.push_layout_slot(UiSlot::new(parent_id, first_child_id, UiSlotKind::Linear));
+        tree.push_layout_slot(UiSlot::new(parent_id, next_child_id, UiSlotKind::Linear));
+        assert_eq!(
+            tree.first_layout_slot_index_for_edge(parent_id, next_child_id),
+            Some(1)
+        );
+
+        tree.mutate_layout_slot(0, |slot| slot.child_id = next_child_id)
+            .expect("rebind slot");
+
+        assert_eq!(
+            tree.first_layout_slot_index_for_edge(parent_id, next_child_id),
+            Some(0)
+        );
+        assert_eq!(tree.layout_slot_authority_rebuild_count(), 1);
+    }
+
+    #[test]
+    fn bulk_slot_retention_reindexes_once_and_removes_the_retired_edge() {
+        let parent_id = UiNodeId::new(0);
+        let retained_child_id = UiNodeId::new(1);
+        let removed_child_id = UiNodeId::new(2);
+        let mut tree = UiTree::new(UiTreeId::new("layout-slot.retain"));
+        tree.push_layout_slot(UiSlot::new(
+            parent_id,
+            retained_child_id,
+            UiSlotKind::Linear,
+        ));
+        tree.push_layout_slot(UiSlot::new(parent_id, removed_child_id, UiSlotKind::Linear));
+        assert_eq!(
+            tree.layout_slot_index_for_edge_kind(parent_id, removed_child_id, UiSlotKind::Linear,),
+            Some(1)
+        );
+
+        tree.retain_layout_slots(|slot| slot.child_id != removed_child_id);
+
+        assert_eq!(tree.layout_slot_authority_rebuild_count(), 2);
+        assert_eq!(
+            tree.layout_slot_index_for_edge_kind(parent_id, retained_child_id, UiSlotKind::Linear,),
+            Some(0)
+        );
+        assert_eq!(
+            tree.layout_slot_index_for_edge_kind(parent_id, removed_child_id, UiSlotKind::Linear,),
+            None
+        );
+
+        tree.retain_layout_slots(|_| true);
+        assert_eq!(tree.layout_slot_authority_rebuild_count(), 2);
     }
 
     #[test]
@@ -449,6 +875,19 @@ mod tests {
 
         assert_eq!(tree.node(UiNodeId::new(2)).unwrap().paint_order, 2);
         assert_eq!(tree.nodes.paint_order_cursor_rebuild_node_visits(), 1);
+    }
+
+    #[test]
+    fn clearing_nodes_does_not_reuse_a_retired_node_incarnation() {
+        let mut tree = UiTree::new(UiTreeId::new("node-incarnation.clear"));
+        tree.insert_root(node(0));
+        let retired = tree.node_incarnation(UiNodeId::new(0)).unwrap();
+
+        tree.roots.clear();
+        tree.nodes.clear();
+        tree.insert_root(node(0));
+
+        assert!(tree.node_incarnation(UiNodeId::new(0)).unwrap() > retired);
     }
 
     #[test]

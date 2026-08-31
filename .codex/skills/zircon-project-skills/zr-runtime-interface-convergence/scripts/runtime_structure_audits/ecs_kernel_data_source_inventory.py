@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-EXPECTED_SOURCE_FILE_COUNT = 75
+EXPECTED_SOURCE_FILE_COUNT = 77
 EXPECTED_TEST_FILE_COUNT = 10
 
 RUNTIME_08_SOURCE_FILES = (
@@ -22,12 +22,14 @@ RUNTIME_08_SOURCE_FILES = (
     "zircon_runtime/src/scene/ecs/storage/component_storage/entry.rs",
     "zircon_runtime/src/scene/ecs/storage/component_storage/location.rs",
     "zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs",
+    "zircon_runtime/src/scene/ecs/storage/component_storage/sparse/locator.rs",
     "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
     "zircon_runtime/src/scene/ecs/storage/component_storage/component_results.rs",
     "zircon_runtime/src/scene/ecs/component/mod.rs",
     "zircon_runtime/src/scene/ecs/component/id.rs",
     "zircon_runtime/src/scene/ecs/component/marker.rs",
     "zircon_runtime/src/scene/ecs/component/registry.rs",
+    "zircon_runtime/src/scene/ecs/component/registry/transferred.rs",
     "zircon_runtime/src/scene/ecs/entity/mod.rs",
     "zircon_runtime/src/scene/ecs/entity/despawned.rs",
     "zircon_runtime/src/scene/ecs/entity/error.rs",

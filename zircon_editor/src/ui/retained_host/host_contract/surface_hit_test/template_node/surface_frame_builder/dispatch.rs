@@ -15,6 +15,10 @@ pub(in super::super) fn is_dispatchable(node: &TemplatePaneNodeData) -> bool {
             || family == Some(TemplateComponentFamily::TextInput))
 }
 
+pub(in super::super) fn accepts_pointer_move(node: &TemplatePaneNodeData) -> bool {
+    is_dispatchable(node) || (node.surface_node_id.is_some() && node.has_workbench_icon_tooltip)
+}
+
 pub(super) fn template_component(node: &TemplatePaneNodeData) -> String {
     if node.component_role.is_empty() {
         template_component_family(node)

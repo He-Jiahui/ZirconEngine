@@ -1,28 +1,110 @@
 use std::collections::HashMap;
+use std::io;
+use std::path::PathBuf;
 
-use super::super::font_assets::{ensure_font_asset_record, UiFontAssetCacheStatus};
+use super::super::font_assets::{
+    EnsuredUiFontAsset, UiFontAssetCache, UiFontAssetCacheStatus, UiFontAssetLoadError,
+    ensure_font_asset_record as ensure_font_asset_record_with_claims, font_asset_cache_report,
+};
 use super::super::*;
 use super::support::{RuntimeFontAssetGuard, TextFontProject};
+use crate::asset::assets::FontSourceBudgetError;
 use crate::asset::{AssetManager, AssetUri, ProjectAssetManager};
 use crate::core::resource::{ResourceId, ResourceKind, ResourceRecord, ResourceState};
+use crate::text::font::FontDatabaseError;
+use crate::text::font::{
+    FontCollectionService, FontLoadError, FontLoadIoFailure, RuntimeFontAssetClaimScope,
+    RuntimeFontAssetClaimUpdateReport,
+};
 
 const TEST_RASTER_WORKER_COUNT: usize = 1;
 
+fn test_text_render_state() -> TextRenderState {
+    TextRenderState::new_with_font_collection(
+        TEST_RASTER_WORKER_COUNT,
+        FontCollectionService::new(),
+    )
+}
+
+struct TestFontAssetClaims {
+    active: Vec<std::sync::Arc<str>>,
+    scope: RuntimeFontAssetClaimScope,
+}
+
+impl TestFontAssetClaims {
+    fn new(text_state: &TextRenderState) -> Self {
+        Self {
+            active: Vec::new(),
+            scope: text_state
+                .font_collection()
+                .runtime_font_asset_claim_scope(),
+        }
+    }
+
+    fn ensure<'a>(
+        &mut self,
+        text_state: &mut TextRenderState,
+        font_assets: &'a mut UiFontAssetCache,
+        asset_manager: &ProjectAssetManager,
+        asset_ref: &str,
+    ) -> EnsuredUiFontAsset<'a> {
+        ensure_font_asset_record_with_claims(
+            text_state,
+            font_assets,
+            asset_manager,
+            asset_ref,
+            &mut self.active,
+            &mut self.scope,
+        )
+    }
+
+    fn release(&mut self, asset_ref: &str) -> RuntimeFontAssetClaimUpdateReport {
+        self.active.retain(|active| active.as_ref() != asset_ref);
+        self.scope.replace_shared_claims(&self.active)
+    }
+}
+
+#[test]
+fn text_font_asset_registration_maps_source_read_failure_to_stable_io_cause() {
+    let mapped = UiFontAssetLoadError::from_database_error(FontDatabaseError::ReadFailed {
+        path: PathBuf::from("missing.ttf"),
+        source: io::Error::from(io::ErrorKind::NotFound),
+    });
+
+    assert_eq!(
+        mapped,
+        UiFontAssetLoadError::SourceReadFailed(FontLoadIoFailure::NotFound)
+    );
+}
+
+#[test]
+fn text_font_asset_registration_preserves_source_budget_failure() {
+    let source = FontSourceBudgetError::SourceBytes {
+        limit_bytes: 64,
+        actual_bytes: 65,
+    };
+    let mapped = UiFontAssetLoadError::from_database_error(FontDatabaseError::SourceBudget {
+        path: PathBuf::from("oversized.ttf"),
+        source,
+    });
+
+    assert_eq!(mapped, UiFontAssetLoadError::SourceBudgetExceeded(source));
+}
+
 #[test]
 fn text_font_asset_missing_record_is_cached_for_the_current_resource_revision() {
-    let mut text_state = TextRenderState::new(TEST_RASTER_WORKER_COUNT);
+    let mut text_state = test_text_render_state();
+    let mut claims = TestFontAssetClaims::new(&text_state);
     let mut font_assets = HashMap::new();
     let asset_manager = ProjectAssetManager::default();
     let missing = "res://fonts/late-project-font.font.toml";
 
-    let first =
-        ensure_font_asset_record(&mut text_state, &mut font_assets, &asset_manager, missing);
+    let first = claims.ensure(&mut text_state, &mut font_assets, &asset_manager, missing);
     assert_eq!(first.status, UiFontAssetCacheStatus::Missing);
     assert!(!first.cache_hit);
     assert!(first.record.is_none());
 
-    let second =
-        ensure_font_asset_record(&mut text_state, &mut font_assets, &asset_manager, missing);
+    let second = claims.ensure(&mut text_state, &mut font_assets, &asset_manager, missing);
     assert_eq!(second.status, UiFontAssetCacheStatus::Missing);
     assert!(second.cache_hit);
     assert!(second.record.is_none());
@@ -42,40 +124,37 @@ fn text_font_asset_cache_path_has_no_production_panic_fallbacks() {
 #[test]
 fn text_font_asset_cache_uses_one_entry_lookup_authority() {
     let source = include_str!("../font_assets.rs");
-    let ensure = source
-        .split_once("pub(super) fn ensure_font_asset_record")
-        .map(|(_, ensure)| ensure)
-        .expect("font asset cache owner should remain discoverable");
+    let refresh = source
+        .split_once("pub(super) fn refresh_font_asset_records")
+        .and_then(|(_, refresh)| refresh.split_once("#[cfg(test)]"))
+        .map(|(refresh, _)| refresh)
+        .expect("batch font asset cache owner should remain discoverable");
 
-    assert_eq!(ensure.matches("font_assets.entry(").count(), 1);
-    assert!(!ensure.contains("font_assets.get("));
+    assert!(refresh.contains("font_assets\n                .get("));
+    assert!(!refresh.contains("font_assets.entry("));
 }
 
 #[test]
-fn native_family_resolution_only_reads_the_prepared_font_cache() {
+fn native_text_prepare_uses_prepared_glyph_runs_without_a_layout_backend() {
     let source = include_str!("../../text.rs");
-    let family_resolver = source
-        .split_once("fn resolve_family_name(")
-        .and_then(|(_, suffix)| suffix.split_once("fn text_bounds("))
-        .map(|(resolver, _)| resolver)
-        .expect("native family resolver source should remain discoverable");
+    assert!(source.contains("native_bitmap_atlas_glyph_runs"));
+    assert!(!source.contains("TextArea"));
+    assert!(!source.contains("TextRenderer"));
+    assert!(!source.contains("TextAtlas"));
+    assert!(!source.contains("layout_runs()"));
 
-    assert!(family_resolver.contains("loaded_asset()"));
-    assert!(!family_resolver.contains("ensure_font_asset_record"));
-    assert!(!family_resolver.contains("resource_cache_identity"));
-
-    let batch_resolver = include_str!("../resolved_batches.rs");
+    let segment_cache = include_str!("../segment_cache.rs");
     assert!(
-        batch_resolver.contains("text.style.code.then_some(super::DEFAULT_FONT_ASSET)"),
+        segment_cache.contains("if text.style.code"),
         "code-style native text must refresh its derived default-font dependency"
     );
 }
 
 #[test]
 fn text_font_asset_error_record_recovers_when_resource_state_changes_at_same_revision() {
-    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
     let fixture = RuntimeFontAssetGuard::new("zircon-ui-text-font-error-recovery");
-    let mut text_state = TextRenderState::new(TEST_RASTER_WORKER_COUNT);
+    let mut text_state = test_text_render_state();
+    let mut claims = TestFontAssetClaims::new(&text_state);
     let mut font_assets = HashMap::new();
     let asset_manager = ProjectAssetManager::default();
     let asset_ref = fixture.asset_ref.as_str();
@@ -87,17 +166,32 @@ fn text_font_asset_error_record_recovers_when_resource_state_changes_at_same_rev
     let ready_revision = ready_record.revision;
     resources.register_record(ready_record.clone()).unwrap();
 
-    let first =
-        ensure_font_asset_record(&mut text_state, &mut font_assets, &asset_manager, asset_ref);
+    let first = claims.ensure(&mut text_state, &mut font_assets, &asset_manager, asset_ref);
     assert_eq!(first.status, UiFontAssetCacheStatus::Error);
     assert!(!first.cache_hit);
     assert!(first.record.is_none());
+    assert!(matches!(
+        first.failure,
+        Some(UiFontAssetLoadError::Source(
+            FontLoadError::ManifestReadFailed(FontLoadIoFailure::NotFound)
+        ))
+    ));
+    let error_report = font_asset_cache_report(&font_assets);
+    assert_eq!(error_report.error_count, 1);
+    assert_eq!(error_report.source_not_found_count, 1);
+    assert_eq!(error_report.ready_count, 0);
+    assert_eq!(error_report.missing_count, 0);
 
-    let second =
-        ensure_font_asset_record(&mut text_state, &mut font_assets, &asset_manager, asset_ref);
+    let second = claims.ensure(&mut text_state, &mut font_assets, &asset_manager, asset_ref);
     assert_eq!(second.status, UiFontAssetCacheStatus::Error);
     assert!(second.cache_hit);
     assert!(second.record.is_none());
+    assert!(matches!(
+        second.failure,
+        Some(UiFontAssetLoadError::Source(
+            FontLoadError::ManifestReadFailed(FontLoadIoFailure::NotFound)
+        ))
+    ));
     assert_eq!(font_assets.len(), 1);
 
     let ready_asset = fixture.write();
@@ -114,31 +208,34 @@ fn text_font_asset_error_record_recovers_when_resource_state_changes_at_same_rev
         ready_revision,
         "transient state recovery should not require a metadata revision change"
     );
-    let recovered =
-        ensure_font_asset_record(&mut text_state, &mut font_assets, &asset_manager, asset_ref);
+    let recovered = claims.ensure(&mut text_state, &mut font_assets, &asset_manager, asset_ref);
     assert_eq!(recovered.status, UiFontAssetCacheStatus::Ready);
     assert!(!recovered.cache_hit);
     assert!(recovered.record.is_some());
     assert!(recovered.loaded);
+    assert!(recovered.failure.is_none());
+    let ready_report = font_asset_cache_report(&font_assets);
+    assert_eq!(ready_report.ready_count, 1);
+    assert_eq!(ready_report.error_count, 0);
 
-    let cleanup = text_state.remove_font_asset(asset_ref);
-    assert!(cleanup.database_changed);
-    assert!(cleanup.asset_mapping_changed);
+    let cleanup = claims.release(asset_ref);
+    assert!(cleanup.font_inputs_changed);
+    assert!(text_state.refresh_font_collection());
 }
 
 #[test]
 fn text_default_font_revision_refreshes_family_and_composite_projection() {
-    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
     let project = TextFontProject::new("zircon-ui-text-default-font-refresh");
     project.write_default_font_asset(Some("First UI Family"), Some("First Composite Family"));
-    let mut text_state = TextRenderState::new(TEST_RASTER_WORKER_COUNT);
+    let mut text_state = test_text_render_state();
+    let mut claims = TestFontAssetClaims::new(&text_state);
     let mut font_assets = HashMap::new();
     let asset_manager = ProjectAssetManager::default();
     asset_manager
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("first default font revision should publish");
 
-    let first = ensure_font_asset_record(
+    let first = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -161,7 +258,7 @@ fn text_default_font_revision_refreshes_family_and_composite_projection() {
     asset_manager
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("second default font revision should publish");
-    let second = ensure_font_asset_record(
+    let second = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -185,7 +282,7 @@ fn text_default_font_revision_refreshes_family_and_composite_projection() {
     asset_manager
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("family-less default font revision should publish");
-    let cleared = ensure_font_asset_record(
+    let cleared = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -207,7 +304,7 @@ fn text_default_font_revision_refreshes_family_and_composite_projection() {
     asset_manager
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("default font removal revision should publish");
-    let removed = ensure_font_asset_record(
+    let removed = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -218,7 +315,8 @@ fn text_default_font_revision_refreshes_family_and_composite_projection() {
     assert!(removed.faces_changed);
     assert_eq!(
         text_state.font_database().default_ui_family_for_test(),
-        None
+        Some("Fira Mono"),
+        "removing the project default must restore the packaged Runtime family"
     );
     assert_eq!(
         text_state.font_database().project_composite_font_for_test(),
@@ -228,16 +326,16 @@ fn text_default_font_revision_refreshes_family_and_composite_projection() {
 
 #[test]
 fn text_font_asset_negative_cache_recovers_after_project_revision_is_published() {
-    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
     let project = TextFontProject::new("zircon-ui-text-font-negative-recovery");
-    let mut text_state = TextRenderState::new(TEST_RASTER_WORKER_COUNT);
+    let mut text_state = test_text_render_state();
+    let mut claims = TestFontAssetClaims::new(&text_state);
     let mut font_assets = HashMap::new();
     let asset_manager = ProjectAssetManager::default();
     asset_manager
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("empty project should open");
 
-    let missing = ensure_font_asset_record(
+    let missing = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -251,7 +349,7 @@ fn text_font_asset_negative_cache_recovers_after_project_revision_is_published()
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("project font revision should publish");
 
-    let recovered = ensure_font_asset_record(
+    let recovered = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -263,7 +361,7 @@ fn text_font_asset_negative_cache_recovers_after_project_revision_is_published()
     assert!(recovered.loaded);
     assert!(recovered.faces_changed);
 
-    let cached = ensure_font_asset_record(
+    let cached = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -274,17 +372,17 @@ fn text_font_asset_negative_cache_recovers_after_project_revision_is_published()
     assert!(cached.record.is_some());
     assert!(!cached.loaded);
     assert!(!cached.faces_changed);
-    let cleanup = text_state.remove_font_asset(TextFontProject::FONT_REF);
-    assert!(cleanup.asset_mapping_changed);
+    let cleanup = claims.release(TextFontProject::FONT_REF);
+    assert!(cleanup.font_inputs_changed);
+    assert!(text_state.refresh_font_collection());
 }
 
 #[test]
 fn text_font_asset_ready_to_missing_retires_faces_and_publishes_generation() {
-    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
     let project = TextFontProject::new("zircon-ui-text-font-ready-to-missing");
     project.write_font_asset();
-    let mut text_state = TextRenderState::new(TEST_RASTER_WORKER_COUNT);
-    let _ = text_state.remove_font_asset(TextFontProject::FONT_REF);
+    let mut text_state = test_text_render_state();
+    let mut claims = TestFontAssetClaims::new(&text_state);
     let initial_face_count = text_state.face_count();
     let mut font_assets = HashMap::new();
     let asset_manager = ProjectAssetManager::default();
@@ -292,7 +390,7 @@ fn text_font_asset_ready_to_missing_retires_faces_and_publishes_generation() {
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("font project should open");
 
-    let ready = ensure_font_asset_record(
+    let ready = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -301,13 +399,13 @@ fn text_font_asset_ready_to_missing_retires_faces_and_publishes_generation() {
     assert_eq!(ready.status, UiFontAssetCacheStatus::Ready);
     assert!(ready.faces_changed);
     assert_eq!(text_state.face_count(), initial_face_count + 1);
-    let ready_generation = crate::text::font::shared_font_database_generation();
+    let ready_generation = text_state.font_collection_revision().generation();
 
     project.remove_font_asset();
     asset_manager
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("font removal revision should publish");
-    let missing = ensure_font_asset_record(
+    let missing = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -321,12 +419,12 @@ fn text_font_asset_ready_to_missing_retires_faces_and_publishes_generation() {
     assert!(missing.faces_changed);
     assert_eq!(text_state.face_count(), initial_face_count);
     assert_eq!(
-        crate::text::font::shared_font_database_generation(),
+        text_state.font_collection_revision().generation(),
         ready_generation + 1,
         "retiring the last owner must publish exactly one database generation"
     );
 
-    let cached = ensure_font_asset_record(
+    let cached = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -339,11 +437,11 @@ fn text_font_asset_ready_to_missing_retires_faces_and_publishes_generation() {
 
 #[test]
 fn text_font_asset_shared_face_owner_mapping_changes_trigger_invalidation() {
-    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
     let project = TextFontProject::new("zircon-ui-text-font-shared-owner-mapping");
     project.write_shared_font_source();
     project.write_shared_font_manifest("shared-second");
-    let mut text_state = TextRenderState::new(TEST_RASTER_WORKER_COUNT);
+    let mut text_state = test_text_render_state();
+    let mut claims = TestFontAssetClaims::new(&text_state);
     let initial_face_count = text_state.face_count();
     let mut font_assets = HashMap::new();
     let asset_manager = ProjectAssetManager::default();
@@ -351,7 +449,7 @@ fn text_font_asset_shared_face_owner_mapping_changes_trigger_invalidation() {
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("shared font project should open");
 
-    let missing_first = ensure_font_asset_record(
+    let missing_first = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -360,7 +458,7 @@ fn text_font_asset_shared_face_owner_mapping_changes_trigger_invalidation() {
     assert_eq!(missing_first.status, UiFontAssetCacheStatus::Missing);
     assert!(!missing_first.faces_changed);
 
-    let ready_second = ensure_font_asset_record(
+    let ready_second = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -378,7 +476,7 @@ fn text_font_asset_shared_face_owner_mapping_changes_trigger_invalidation() {
     asset_manager
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("first shared owner revision should publish");
-    let ready_first = ensure_font_asset_record(
+    let ready_first = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -396,7 +494,7 @@ fn text_font_asset_shared_face_owner_mapping_changes_trigger_invalidation() {
     asset_manager
         .open_project(project.root.to_string_lossy().as_ref())
         .expect("first shared owner removal should publish");
-    let missing_first = ensure_font_asset_record(
+    let missing_first = claims.ensure(
         &mut text_state,
         &mut font_assets,
         &asset_manager,
@@ -410,9 +508,9 @@ fn text_font_asset_shared_face_owner_mapping_changes_trigger_invalidation() {
         "the remaining asset owner must keep the shared face active"
     );
 
-    let removed_second = text_state.remove_font_asset(TextFontProject::SHARED_SECOND_REF);
-    assert!(removed_second.database_changed);
-    assert!(removed_second.asset_mapping_changed);
+    let removed_second = claims.release(TextFontProject::SHARED_SECOND_REF);
+    assert!(removed_second.font_inputs_changed);
+    assert!(text_state.refresh_font_collection());
     assert_eq!(
         text_state.face_count(),
         initial_face_count,

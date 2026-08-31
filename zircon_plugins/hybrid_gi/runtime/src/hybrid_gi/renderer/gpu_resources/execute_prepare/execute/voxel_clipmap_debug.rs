@@ -293,7 +293,9 @@ fn scene_voxel_clipmap_cell_dominant_entries(
 mod tests {
     use std::sync::Arc;
 
-    use super::super::material_capture_source::HybridGiMaterialCaptureSeed;
+    use super::super::material_capture_source::{
+        HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureTextureKey,
+    };
     use zircon_runtime::core::framework::render::{
         RenderDirectionalLightSnapshot, RenderMeshSnapshot, RenderPointLightSnapshot,
         RenderSpotLightSnapshot,
@@ -311,7 +313,11 @@ mod tests {
             None
         }
 
-        fn sample_texture_rgba(&self, _id: Option<ResourceId>, _uv: [f32; 2]) -> Option<Vec4> {
+        fn sample_texture_rgba(
+            &self,
+            _texture: Option<HybridGiMaterialCaptureTextureKey>,
+            _uv: [f32; 2],
+        ) -> Option<Vec4> {
             None
         }
     }

@@ -12,8 +12,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -22,54 +22,53 @@ root = "save_data_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.save_data_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionSaveDataWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "save_data_rail_gap" }, { node = "save_data_left" }, { node = "save_data_center" }, { node = "save_data_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "save_data_workspace_main" },
+  { node = "save_data_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.save_data_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "save_data_rail_gap" }, { node = "save_data_left" }, { node = "save_data_center" }, { node = "save_data_right_reserve" }]
+
+[nodes.save_data_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.save_data_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionSaveDataRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.save_data_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionSaveDataLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "save_data_title" }, { node = "save_data_slots_tab" }, { node = "save_data_migration_tab" }, { node = "save_data_validation_tab" }, { node = "save_data_autosave_row" }, { node = "save_data_manual_row" }, { node = "save_data_cloud_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "save_data_title" }, { node = "save_data_left_content" }]
+
+[nodes.save_data_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionSaveDataLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "save_data_autosave_row" }, { node = "save_data_manual_row" }, { node = "save_data_cloud_row" }]
 
 [nodes.save_data_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionSaveDataTitle"
 props = { text = "Save Data" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.save_data_slots_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionSaveDataSlotsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Slots", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/SaveDataSlotsTab", event = "Click", route = "workbench.extension.save_data.slots" }]
-
-[nodes.save_data_migration_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionSaveDataMigrationTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Migration", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/SaveDataMigrationTab", event = "Click", route = "workbench.extension.save_data.migration" }]
-
-[nodes.save_data_validation_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionSaveDataValidationTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Validation", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/SaveDataValidationTab", event = "Click", route = "workbench.extension.save_data.validation" }]
 
 [nodes.save_data_autosave_row]
 component = "WorkbenchListRow"
@@ -99,14 +98,14 @@ events = [{ id = "WorkbenchExtension/SaveDataCloudRow", event = "Click", route =
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionSaveDataCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "save_data_center_header" }, { node = "save_data_diff" }, { node = "save_data_output" }]
 
 [nodes.save_data_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionSaveDataCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "save_data_center_title" }, { node = "save_data_header_fill" }, { node = "save_data_save_slot_button" }, { node = "save_data_load_slot_button" }]
 
 [nodes.save_data_center_title]
@@ -124,7 +123,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionSaveDataSaveSlotButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Save Slot", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Save Slot", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 92.0, preferred = 92.0, max = 104.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/SaveDataSaveSlot", event = "Click", route = "workbench.extension.save_data.save_slot" }]
 
@@ -132,16 +131,16 @@ events = [{ id = "WorkbenchExtension/SaveDataSaveSlot", event = "Click", route =
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionSaveDataLoadSlotButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Load Slot", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Load Slot", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 92.0, preferred = 92.0, max = 104.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/SaveDataLoadSlot", event = "Click", route = "workbench.extension.save_data.load_slot" }]
 
 [nodes.save_data_diff]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionSaveDataDiff"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "save_data_player_state_row" }, { node = "save_data_inventory_row" }, { node = "save_data_quest_log_row" }, { node = "save_data_debug_slot_row" }]
 
 [nodes.save_data_player_state_row]
@@ -180,16 +179,23 @@ events = [{ id = "WorkbenchExtension/SaveDataDebugSlotRow", event = "Click", rou
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionSaveDataOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Validation", value_text = "6 slots   2 migrations   1 warning" }
+props = { text = "Validation", value_text = "6 slots   2 migrations   1 warning", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/SaveDataOutput", event = "Click", route = "workbench.extension.save_data.output" }]
 
 [nodes.save_data_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionSaveDataRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "save_data_details_title" }, { node = "save_data_schema_dropdown" }, { node = "save_data_slot_dropdown" }, { node = "save_data_compression_field" }, { node = "save_data_cloud_sync_row" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "save_data_details_title" }, { node = "save_data_right_content" }]
+
+[nodes.save_data_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionSaveDataRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "save_data_schema_dropdown_property_row" }, { node = "save_data_slot_dropdown_property_row" }, { node = "save_data_compression_field_property_row" }, { node = "save_data_cloud_sync_row" }]
 
 [nodes.save_data_details_title]
 component = "WorkbenchSectionTitle"
@@ -197,27 +203,48 @@ control_id = "WorkbenchExtensionSaveDataDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.save_data_schema_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionSaveDataSchemaDropdownPropertyRow"
+props = { text = "Schema" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "save_data_schema_dropdown", slot = { name = "value" } }]
+
 [nodes.save_data_schema_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionSaveDataSchemaDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "SaveData v4", value = "SaveData v4", options = ["SaveData v4", "SaveData v3", "Legacy Debug"] }
+props = { value_text = "SaveData v4", value = "SaveData v4", options = ["SaveData v4", "SaveData v3", "Legacy Debug"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/SaveDataSchemaEdit", event = "Change", route = "workbench.extension.save_data.schema.edit" },
   { id = "WorkbenchExtension/SaveDataSchemaCommit", event = "Submit", route = "workbench.extension.save_data.schema.commit" },
 ]
 
+[nodes.save_data_slot_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionSaveDataSlotDropdownPropertyRow"
+props = { text = "Slot" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "save_data_slot_dropdown", slot = { name = "value" } }]
+
 [nodes.save_data_slot_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionSaveDataSlotDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "AutoSave_01", value = "AutoSave_01", options = ["AutoSave_01", "Manual_03", "Cloud_02"] }
+props = { value_text = "AutoSave_01", value = "AutoSave_01", options = ["AutoSave_01", "Manual_03", "Cloud_02"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/SaveDataSlotEdit", event = "Change", route = "workbench.extension.save_data.slot.edit" },
   { id = "WorkbenchExtension/SaveDataSlotCommit", event = "Submit", route = "workbench.extension.save_data.slot.commit" },
 ]
+
+[nodes.save_data_compression_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionSaveDataCompressionFieldPropertyRow"
+props = { text = "Compression" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "save_data_compression_field", slot = { name = "value" } }]
 
 [nodes.save_data_compression_field]
 component = "WorkbenchField"

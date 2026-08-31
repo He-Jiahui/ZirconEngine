@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    RenderBloomSettings, RenderColorGradingSettings, RenderExposureMode, RenderExposureSettings,
-    RenderPostProcessEffectStackSettings,
+    AoQualityTier, AoSourceSettings, RenderBloomSettings, RenderColorGradingSettings,
+    RenderExposureMode, RenderExposureSettings, RenderPostProcessEffectStackSettings,
 };
 use crate::core::math::Vec3;
 
@@ -121,6 +121,64 @@ fn render_volume_component_descriptor_applies_authored_values() {
     assert_eq!(settings.effect_stack.vignette.intensity, 0.25);
     assert_eq!(settings.effect_stack.vignette.smoothness, 0.75);
     assert_eq!(settings.effect_stack.vignette.roundness, 0.9);
+}
+
+#[test]
+fn render_volume_component_resolves_ambient_occlusion_as_physical_settings() {
+    let mut settings = RenderResolvedPostProcessSettings::new(
+        RenderBloomSettings::default(),
+        RenderExposureSettings::default(),
+        RenderColorGradingSettings::default(),
+        RenderPostProcessEffectStackSettings::default(),
+    );
+    let descriptor = BUILTIN_POST_PROCESS_VOLUME_COMPONENTS
+        .iter()
+        .find(|descriptor| descriptor.component_id == "post.ambient-occlusion")
+        .copied()
+        .unwrap();
+
+    descriptor
+        .apply_values(
+            &mut settings,
+            &[
+                VolumeParamValue::Float(0.7),
+                VolumeParamValue::Float(2.0),
+                VolumeParamValue::Float(0.3),
+                VolumeParamValue::Float(0.04),
+                VolumeParamValue::Float(1.25),
+                VolumeParamValue::Enum(AoQualityTier::Ultra.stable_id()),
+                VolumeParamValue::Bool(false),
+                VolumeParamValue::Bool(false),
+            ],
+        )
+        .unwrap();
+
+    assert_eq!(
+        settings.ambient_occlusion,
+        AoSourceSettings {
+            intensity: 0.7,
+            radius_meters: 2.0,
+            thickness_meters: 0.3,
+            depth_bias_meters: 0.04,
+            falloff_start_meters: 1.25,
+            quality: AoQualityTier::Ultra,
+            half_resolution: false,
+            temporal: false,
+        }
+    );
+    assert_eq!(
+        descriptor.read_values(&settings),
+        vec![
+            VolumeParamValue::Float(0.7),
+            VolumeParamValue::Float(2.0),
+            VolumeParamValue::Float(0.3),
+            VolumeParamValue::Float(0.04),
+            VolumeParamValue::Float(1.25),
+            VolumeParamValue::Enum(AoQualityTier::Ultra.stable_id()),
+            VolumeParamValue::Bool(false),
+            VolumeParamValue::Bool(false),
+        ]
+    );
 }
 
 #[test]

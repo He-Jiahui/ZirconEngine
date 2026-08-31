@@ -142,8 +142,12 @@ fn gameplay_scene_transition_is_capability_gated_and_replaces_the_pending_reques
 fn gameplay_pose_exports_update_entity_transform() {
     let core = CoreRuntime::new();
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
-    let target = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let target = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .update_transform(
             target,

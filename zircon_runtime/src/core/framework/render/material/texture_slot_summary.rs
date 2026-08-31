@@ -59,12 +59,25 @@ pub enum RenderMaterialTextureDimension {
 
 impl RenderMaterialTextureDimension {
     pub fn from_shader_kind(kind: &str) -> Self {
-        match kind.trim().to_ascii_lowercase().as_str() {
-            "texture_2d_array" | "texture2darray" | "2d_array" => Self::D2Array,
-            "texture_cube_array" | "texturecubearray" | "cube_array" => Self::CubeArray,
-            "texture_cube" | "texturecube" | "cubemap" | "cube" => Self::Cube,
-            "texture_3d" | "texture3d" | "3d" => Self::D3,
-            "texture_1d" | "texture1d" | "1d" => Self::D1,
+        // RUNTIME131_TEXTURE_DIMENSION_ZERO_ALLOCATION_MATCH_BENCH_V1
+        let kind = kind.trim();
+        match kind.len() {
+            16 if kind.eq_ignore_ascii_case("texture_2d_array") => Self::D2Array,
+            14 if kind.eq_ignore_ascii_case("texture2darray") => Self::D2Array,
+            8 if kind.eq_ignore_ascii_case("2d_array") => Self::D2Array,
+            18 if kind.eq_ignore_ascii_case("texture_cube_array") => Self::CubeArray,
+            16 if kind.eq_ignore_ascii_case("texturecubearray") => Self::CubeArray,
+            10 if kind.eq_ignore_ascii_case("cube_array") => Self::CubeArray,
+            12 if kind.eq_ignore_ascii_case("texture_cube") => Self::Cube,
+            11 if kind.eq_ignore_ascii_case("texturecube") => Self::Cube,
+            7 if kind.eq_ignore_ascii_case("cubemap") => Self::Cube,
+            4 if kind.eq_ignore_ascii_case("cube") => Self::Cube,
+            10 if kind.eq_ignore_ascii_case("texture_3d") => Self::D3,
+            9 if kind.eq_ignore_ascii_case("texture3d") => Self::D3,
+            2 if kind.eq_ignore_ascii_case("3d") => Self::D3,
+            10 if kind.eq_ignore_ascii_case("texture_1d") => Self::D1,
+            9 if kind.eq_ignore_ascii_case("texture1d") => Self::D1,
+            2 if kind.eq_ignore_ascii_case("1d") => Self::D1,
             _ => Self::D2,
         }
     }
@@ -353,3 +366,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "texture_slot_summary/dimension_kind_tests.rs"]
+mod dimension_kind_tests;

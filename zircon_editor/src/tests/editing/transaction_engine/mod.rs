@@ -1,10 +1,14 @@
 mod dirty_batch;
+mod document_journal_coordinator;
+mod durable_journal;
 mod events;
 mod exclusive_transition;
 mod fixture;
 mod history;
 mod journal;
+mod journal_codec;
 mod journal_scene_commands;
+mod journal_scene_replay;
 mod locking;
 mod operation_group;
 mod recovery;

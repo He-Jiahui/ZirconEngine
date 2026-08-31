@@ -6,7 +6,7 @@ use zircon_runtime::core::framework::animation::{
 };
 use zircon_runtime::core::math::Real;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) struct GraphNodeSlot(u32);
 
 impl GraphNodeSlot {
@@ -65,6 +65,7 @@ pub struct CompiledAnimationGraph {
     pub(super) parameters: Box<[CompiledParameter]>,
     pub(super) nodes: Box<[CompiledGraphNode]>,
     pub(super) output: GraphNodeSlot,
+    pub(super) evaluation_order: Box<[GraphNodeSlot]>,
 }
 
 impl CompiledAnimationGraph {

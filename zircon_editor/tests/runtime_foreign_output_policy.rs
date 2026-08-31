@@ -6,9 +6,11 @@ use zircon_editor::core::gateway::{
 };
 use zircon_runtime_host::foreign_output::{RuntimeForeignOutputKind, RuntimeForeignOutputState};
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeApiV7, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV2, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
-    ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
+    GatewaySessionIdentity, ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeApiV8,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportPickRequestV1, ZrRuntimeViewportPickResultV1, ZrRuntimeViewportPickTicket,
+    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2,
 };
 
 static PRESENT_CALLS: AtomicUsize = AtomicUsize::new(0);
@@ -72,10 +74,36 @@ unsafe extern "C" fn capture_test_frame(
     ZrStatus::ok()
 }
 
-fn test_api() -> ZrRuntimeApiV7 {
-    let mut api = ZrRuntimeApiV7::empty();
+unsafe extern "C" fn request_test_viewport_pick(
+    _session: ZrRuntimeSessionHandle,
+    _request: ZrRuntimeViewportPickRequestV1,
+    _out_ticket: *mut ZrRuntimeViewportPickTicket,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn poll_test_viewport_pick(
+    _session: ZrRuntimeSessionHandle,
+    _ticket: ZrRuntimeViewportPickTicket,
+    _out_result: *mut ZrRuntimeViewportPickResultV1,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn cancel_test_viewport_pick(
+    _session: ZrRuntimeSessionHandle,
+    _ticket: ZrRuntimeViewportPickTicket,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+fn test_api() -> ZrRuntimeApiV8 {
+    let mut api = ZrRuntimeApiV8::empty();
     api.release_allocation = Some(release_test_allocation);
     api.present_viewport = Some(record_present);
+    api.request_viewport_pick = Some(request_test_viewport_pick);
+    api.poll_viewport_pick = Some(poll_test_viewport_pick);
+    api.cancel_viewport_pick = Some(cancel_test_viewport_pick);
     api
 }
 
@@ -84,10 +112,11 @@ fn injected_foreign_output_fuse_blocks_gateway_before_runtime_dispatch() {
     PRESENT_CALLS.store(0, Ordering::SeqCst);
     let foreign_output = Arc::new(RuntimeForeignOutputState::default());
     let gateway = unsafe {
-        SessionGateway::new(
+        SessionGateway::new_with_identity(
             Arc::new(()),
             test_api(),
             ZrRuntimeSessionHandle::new(27),
+            GatewaySessionIdentity::new(27, ZrRuntimeSessionHandle::new(27), 1, None),
             RuntimeCapabilities::editor_default(),
             foreign_output.clone(),
         )
@@ -119,28 +148,29 @@ fn injected_foreign_output_fuse_blocks_gateway_before_runtime_dispatch() {
 }
 
 #[test]
-fn v7_owned_frame_uses_exactly_once_allocation_release() {
+fn v8_owned_frame_uses_exactly_once_allocation_release() {
     RELEASE_CALLS.store(0, Ordering::SeqCst);
     OWNER_OBSERVED_RELEASE_CALLS.store(usize::MAX, Ordering::SeqCst);
     let mut api = test_api();
     api.capture_frame = Some(capture_test_frame);
     let gateway = unsafe {
-        SessionGateway::new(
+        SessionGateway::new_with_identity(
             Arc::new(ReleaseOrderOwner),
             api,
             ZrRuntimeSessionHandle::new(27),
+            GatewaySessionIdentity::new(27, ZrRuntimeSessionHandle::new(27), 1, None),
             RuntimeCapabilities::editor_default(),
             Arc::new(RuntimeForeignOutputState::default()),
         )
     }
-    .expect("valid V7 gateway");
+    .expect("valid V8 gateway");
 
     let frame = gateway
         .capture_frame(
             ZrRuntimeViewportHandle::new(1),
             ZrRuntimeViewportSizeV1::new(1, 1),
         )
-        .expect("capture V7 runtime-owned frame");
+        .expect("capture V8 runtime-owned frame");
     assert_eq!(frame.generation(), 31);
     assert_eq!(frame.rgba(), FRAME_RGBA.as_slice());
     assert_eq!(RELEASE_CALLS.load(Ordering::SeqCst), 0);
@@ -150,7 +180,7 @@ fn v7_owned_frame_uses_exactly_once_allocation_release() {
         usize::MAX
     );
 
-    frame.release().expect("release V7 runtime allocation");
+    frame.release().expect("release V8 runtime allocation");
     assert_eq!(RELEASE_CALLS.load(Ordering::SeqCst), 1);
     assert_eq!(OWNER_OBSERVED_RELEASE_CALLS.load(Ordering::SeqCst), 1);
 
@@ -159,21 +189,22 @@ fn v7_owned_frame_uses_exactly_once_allocation_release() {
     let mut api = test_api();
     api.capture_frame = Some(capture_test_frame);
     let gateway = unsafe {
-        SessionGateway::new(
+        SessionGateway::new_with_identity(
             Arc::new(ReleaseOrderOwner),
             api,
             ZrRuntimeSessionHandle::new(28),
+            GatewaySessionIdentity::new(28, ZrRuntimeSessionHandle::new(28), 1, None),
             RuntimeCapabilities::editor_default(),
             Arc::new(RuntimeForeignOutputState::default()),
         )
     }
-    .expect("valid V7 gateway");
+    .expect("valid V8 gateway");
     let frame = gateway
         .capture_frame(
             ZrRuntimeViewportHandle::new(1),
             ZrRuntimeViewportSizeV1::new(1, 1),
         )
-        .expect("capture V7 runtime-owned frame for drop release");
+        .expect("capture V8 runtime-owned frame for drop release");
     drop(gateway);
     drop(frame);
     assert_eq!(RELEASE_CALLS.load(Ordering::SeqCst), 1);

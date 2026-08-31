@@ -11,7 +11,7 @@ use super::{layout_text, test_style};
 #[test]
 fn text_rich_bbcode_indent_reduces_wrap_extent_and_insets_logical_start() {
     let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let frame = UiFrame::new(10.0, 0.0, 56.0, 120.0);
 
     let plain = layout_text("abcdefghij", &style, frame, None);
@@ -19,16 +19,18 @@ fn text_rich_bbcode_indent_reduces_wrap_extent_and_insets_logical_start() {
 
     assert!(indented.lines.len() > plain.lines.len());
     assert!(indented.lines[0].frame.x > frame.x);
-    assert!(indented
-        .lines
-        .iter()
-        .all(|line| line.frame.right() <= frame.right() + 0.01));
+    assert!(
+        indented
+            .lines
+            .iter()
+            .all(|line| line.frame.right() <= frame.right() + 0.01)
+    );
 }
 
 #[test]
 fn text_rich_bbcode_list_wraps_continuation_with_hanging_prefix_indent() {
     let mut style = test_style(UiTextWrap::WordSmart, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let frame = UiFrame::new(0.0, 0.0, 74.0, 160.0);
 
     let layout = layout_text(
@@ -41,16 +43,18 @@ fn text_rich_bbcode_list_wraps_continuation_with_hanging_prefix_indent() {
     assert!(layout.lines.len() >= 2);
     assert!(layout.lines[0].text.starts_with("• "));
     assert!(layout.lines[1].frame.x > layout.lines[0].frame.x);
-    assert!(layout
-        .lines
-        .iter()
-        .all(|line| line.frame.right() <= frame.right() + 0.01));
+    assert!(
+        layout
+            .lines
+            .iter()
+            .all(|line| line.frame.right() <= frame.right() + 0.01)
+    );
 }
 
 #[test]
 fn text_rich_bbcode_nested_list_adds_one_measured_indent_level() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
 
     let layout = layout_text(
         "[ul][li]outer[ul][li]inner[/li][/ul][/li][/ul]",
@@ -66,7 +70,7 @@ fn text_rich_bbcode_nested_list_adds_one_measured_indent_level() {
 #[test]
 fn text_rich_bbcode_nested_list_hanging_indent_uses_the_inner_prefix() {
     let mut style = test_style(UiTextWrap::WordSmart, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let frame = UiFrame::new(0.0, 0.0, 180.0, 220.0);
     let layout_with = |inner_bullet: &str| {
         layout_text(
@@ -100,7 +104,7 @@ fn text_rich_bbcode_nested_list_hanging_indent_uses_the_inner_prefix() {
 #[test]
 fn text_rich_bbcode_paragraph_aligns_inside_its_inset_content_frame() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     style.text_align = UiTextAlign::Left;
     let frame = UiFrame::new(10.0, 0.0, 160.0, 40.0);
 
@@ -119,7 +123,7 @@ fn text_rich_bbcode_paragraph_aligns_inside_its_inset_content_frame() {
 #[test]
 fn text_rich_bbcode_rtl_indent_insets_the_logical_start_edge() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     style.text_direction = UiTextDirection::RightToLeft;
     style.text_align = UiTextAlign::Start;
     let frame = UiFrame::new(10.0, 0.0, 180.0, 40.0);
@@ -134,7 +138,7 @@ fn text_rich_bbcode_rtl_indent_insets_the_logical_start_edge() {
 #[test]
 fn text_rich_bbcode_deep_indent_saturates_inside_the_frame() {
     let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     let markup = format!("{}x{}", "[indent]".repeat(48), "[/indent]".repeat(48));
     let frame = UiFrame::new(0.0, 0.0, 120.0, 80.0);
 
@@ -148,7 +152,7 @@ fn text_rich_bbcode_deep_indent_saturates_inside_the_frame() {
 #[test]
 fn text_rich_bbcode_vertical_first_indent_offsets_only_the_first_column() {
     let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     style.text_writing_mode = UiTextWritingMode::VerticalRl;
     let frame = UiFrame::new(10.0, 20.0, 120.0, 52.0);
 
@@ -163,23 +167,25 @@ fn text_rich_bbcode_vertical_first_indent_offsets_only_the_first_column() {
 #[test]
 fn text_rich_bbcode_vertical_nested_indent_offsets_every_column() {
     let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     style.text_writing_mode = UiTextWritingMode::VerticalRl;
     let frame = UiFrame::new(10.0, 20.0, 120.0, 52.0);
 
     let layout = layout_text("[indent]甲乙丙丁戊己庚辛[/indent]", &style, frame, None);
 
     assert!(layout.lines.len() >= 2);
-    assert!(layout
-        .lines
-        .iter()
-        .all(|line| line.frame.y > frame.y + 0.01));
+    assert!(
+        layout
+            .lines
+            .iter()
+            .all(|line| line.frame.y > frame.y + 0.01)
+    );
 }
 
 #[test]
 fn text_rich_bbcode_vertical_paragraph_alignment_uses_the_inline_axis() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     style.text_writing_mode = UiTextWritingMode::VerticalRl;
     let frame = UiFrame::new(10.0, 20.0, 120.0, 120.0);
 

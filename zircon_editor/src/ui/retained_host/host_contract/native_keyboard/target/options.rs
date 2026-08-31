@@ -1,5 +1,6 @@
 use super::model::{PopupKeyboardRow, PopupKeyboardTarget};
 use super::selection::popup_keyboard_target_from_rows;
+use crate::ui::retained_host::asset_control_ids::asset_dispatch_source;
 use crate::ui::retained_host::host_contract::data::{
     FrameRect, HostPaneInteractionStateData, TemplatePaneNodeData,
 };
@@ -59,7 +60,21 @@ pub(in crate::ui::retained_host::host_contract) fn option_popup_keyboard_target(
         .collect();
     let popup_frame = template_option_popup_frame_within(node, &control_frame, row_count, bounds)
         .unwrap_or_else(|| control_frame);
-    popup_keyboard_target_from_rows(node, "workbench_option", rows, popup_frame, interaction)
+    popup_keyboard_target_from_rows(
+        node,
+        option_popup_dispatch_kind(node),
+        rows,
+        popup_frame,
+        interaction,
+    )
+}
+
+fn option_popup_dispatch_kind(node: &TemplatePaneNodeData) -> &str {
+    if asset_dispatch_source(node.dispatch_kind.as_str()).is_some() {
+        node.dispatch_kind.as_str()
+    } else {
+        "workbench_option"
+    }
 }
 
 fn option_keyboard_row_frame_within(
@@ -73,5 +88,25 @@ fn option_keyboard_row_frame_within(
         template_option_row_frame_within(node, control_frame, row_count, row, bounds)
     } else {
         dropdown_option_row_frame_within(control_frame, row_count, row, bounds)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn asset_dropdown_keeps_its_dispatch_source_for_keyboard_selection() {
+        let mut node = TemplatePaneNodeData::default();
+        node.dispatch_kind = "asset:browser".into();
+
+        assert_eq!(option_popup_dispatch_kind(&node), "asset:browser");
+    }
+
+    #[test]
+    fn ordinary_dropdown_keeps_the_workbench_option_dispatch() {
+        let node = TemplatePaneNodeData::default();
+
+        assert_eq!(option_popup_dispatch_kind(&node), "workbench_option");
     }
 }

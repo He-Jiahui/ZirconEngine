@@ -895,10 +895,10 @@ pub(super) fn hot_reload_payload_fixture_lock() -> std::sync::MutexGuard<'static
 }
 
 pub(super) unsafe extern "C" fn hot_reload_save_state(
-    output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV2,
-) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV3,
+) -> super::super::abi_declarations::NativePluginCallbackStatusV3 {
     if !output.is_null() {
-        *output = super::super::abi_declarations::NativePluginOwnedByteBufferV2 {
+        *output = super::super::abi_declarations::NativePluginOwnedByteBufferV3 {
             data: HOT_RELOAD_STATE_BYTES.as_ptr() as *mut u8,
             len: HOT_RELOAD_STATE_BYTES.len(),
             capacity: HOT_RELOAD_STATE_BYTES.len(),
@@ -906,24 +906,24 @@ pub(super) unsafe extern "C" fn hot_reload_save_state(
             free: None,
         };
     }
-    super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    super::super::abi_declarations::NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
     }
 }
 
 pub(super) unsafe extern "C" fn hot_reload_save_state_failure(
-    _output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV2,
-) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
-    super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    _output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV3,
+) -> super::super::abi_declarations::NativePluginCallbackStatusV3 {
+    super::super::abi_declarations::NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
         diagnostics: c"save failed during hot reload".as_ptr(),
     }
 }
 
 pub(super) unsafe extern "C" fn hot_reload_restore_state(
-    state: super::super::abi_declarations::NativePluginByteSliceV2,
-) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    state: super::super::abi_declarations::NativePluginByteSliceV3,
+) -> super::super::abi_declarations::NativePluginCallbackStatusV3 {
     let payload = if state.data.is_null() || state.len == 0 {
         Vec::new()
     } else {
@@ -933,15 +933,15 @@ pub(super) unsafe extern "C" fn hot_reload_restore_state(
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
         .push(payload);
-    super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    super::super::abi_declarations::NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
     }
 }
 
 pub(super) unsafe extern "C" fn hot_reload_restore_state_failure(
-    state: super::super::abi_declarations::NativePluginByteSliceV2,
-) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    state: super::super::abi_declarations::NativePluginByteSliceV3,
+) -> super::super::abi_declarations::NativePluginCallbackStatusV3 {
     let payload = if state.data.is_null() || state.len == 0 {
         Vec::new()
     } else {
@@ -951,7 +951,7 @@ pub(super) unsafe extern "C" fn hot_reload_restore_state_failure(
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
         .push(payload);
-    super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    super::super::abi_declarations::NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
         diagnostics: c"restore failed during hot reload".as_ptr(),
     }
@@ -959,11 +959,11 @@ pub(super) unsafe extern "C" fn hot_reload_restore_state_failure(
 
 unsafe extern "C" fn interior_nul_probe_invoke_command(
     _command_slot: u32,
-    _payload: super::super::abi_declarations::NativePluginByteSliceV2,
+    _payload: super::super::abi_declarations::NativePluginByteSliceV3,
     _output: super::super::abi_declarations::NativePluginOutputSinkV4,
-) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
+) -> super::super::abi_declarations::NativePluginCallbackStatusV3 {
     INTERIOR_NUL_INVOKE_COUNT.fetch_add(1, Ordering::SeqCst);
-    super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    super::super::abi_declarations::NativePluginCallbackStatusV3 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
     }

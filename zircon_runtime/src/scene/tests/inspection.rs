@@ -5,7 +5,7 @@ use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::scene::{NodeKind, World};
 
 use super::authoring_boundary::{
-    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
+    SERIALIZED_AUTHORING_TOKENS, assert_text_excludes_authoring_tokens,
 };
 
 const CLOUD_LAYER_TYPE_PATH: &str = "weather.Component.CloudLayer";
@@ -13,13 +13,17 @@ const NAME_TYPE_PATH: &str = "zircon_runtime::scene::components::Name";
 const MESH_RENDERER_TYPE_PATH: &str = "zircon_runtime::scene::components::MeshRenderer";
 
 #[test]
-fn world_inspection_builds_hierarchy_and_reflected_fields() {
+fn world_inspection_artifacts_build_hierarchy_and_reflected_fields() {
     let mut world = World::empty();
     world
         .register_component_type(cloud_layer_descriptor())
         .expect("dynamic descriptor should register");
-    let parent = world.spawn_node(NodeKind::Mesh);
-    let child = world.spawn_node(NodeKind::Mesh);
+    let parent = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .rename_node(parent, "Weather Root")
         .expect("parent should be named");
@@ -37,20 +41,20 @@ fn world_inspection_builds_hierarchy_and_reflected_fields() {
         )
         .expect("dynamic component should attach");
 
-    let inspection = world.inspect_world(Some(child));
+    let hierarchy = world.inspection_artifact();
+    let fields = world
+        .inspection_fields_artifact(child)
+        .expect("existing node should project reflected fields");
 
-    assert_eq!(inspection.focused_entity, Some(child));
-    assert_eq!(inspection.hierarchy_rows.len(), 2);
-    assert_eq!(inspection.hierarchy_rows[0].entity, parent);
-    assert_eq!(inspection.hierarchy_rows[0].depth, 0);
-    assert!(inspection.hierarchy_rows[0].has_children);
-    assert!(!inspection.hierarchy_rows[0].focused);
-    assert_eq!(inspection.hierarchy_rows[1].entity, child);
-    assert_eq!(inspection.hierarchy_rows[1].depth, 1);
-    assert!(inspection.hierarchy_rows[1].focused);
+    assert_eq!(hierarchy.hierarchy_rows().len(), 2);
+    assert_eq!(hierarchy.hierarchy_rows()[0].entity, parent);
+    assert_eq!(hierarchy.hierarchy_rows()[0].depth, 0);
+    assert!(hierarchy.hierarchy_rows()[0].has_children);
+    assert_eq!(hierarchy.hierarchy_rows()[1].entity, child);
+    assert_eq!(hierarchy.hierarchy_rows()[1].depth, 1);
 
-    let name = inspection
-        .fields
+    let name = fields
+        .fields()
         .iter()
         .find(|field| field.component_type_path == NAME_TYPE_PATH && field.field_name == "value")
         .expect("fixed Name field should be reflected into inspection");
@@ -58,8 +62,8 @@ fn world_inspection_builds_hierarchy_and_reflected_fields() {
     assert!(name.writable);
     assert!(!name.plugin_owned);
 
-    let mesh_model = inspection
-        .fields
+    let mesh_model = fields
+        .fields()
         .iter()
         .find(|field| {
             field.component_type_path == MESH_RENDERER_TYPE_PATH && field.field_name == "model"
@@ -69,8 +73,8 @@ fn world_inspection_builds_hierarchy_and_reflected_fields() {
     assert!(!mesh_model.writable);
     assert!(!mesh_model.plugin_owned);
 
-    let mesh_order = inspection
-        .fields
+    let mesh_order = fields
+        .fields()
         .iter()
         .find(|field| {
             field.component_type_path == MESH_RENDERER_TYPE_PATH
@@ -81,8 +85,8 @@ fn world_inspection_builds_hierarchy_and_reflected_fields() {
     assert!(mesh_order.writable);
     assert!(!mesh_order.plugin_owned);
 
-    let mesh_render_queue = inspection
-        .fields
+    let mesh_render_queue = fields
+        .fields()
         .iter()
         .find(|field| {
             field.component_type_path == MESH_RENDERER_TYPE_PATH
@@ -93,8 +97,8 @@ fn world_inspection_builds_hierarchy_and_reflected_fields() {
     assert!(mesh_render_queue.writable);
     assert!(!mesh_render_queue.plugin_owned);
 
-    let mesh_material_queue = inspection
-        .fields
+    let mesh_material_queue = fields
+        .fields()
         .iter()
         .find(|field| {
             field.component_type_path == MESH_RENDERER_TYPE_PATH
@@ -105,8 +109,8 @@ fn world_inspection_builds_hierarchy_and_reflected_fields() {
     assert!(mesh_material_queue.writable);
     assert!(!mesh_material_queue.plugin_owned);
 
-    let mesh_depth_bias = inspection
-        .fields
+    let mesh_depth_bias = fields
+        .fields()
         .iter()
         .find(|field| {
             field.component_type_path == MESH_RENDERER_TYPE_PATH && field.field_name == "depth_bias"
@@ -116,8 +120,8 @@ fn world_inspection_builds_hierarchy_and_reflected_fields() {
     assert!(mesh_depth_bias.writable);
     assert!(!mesh_depth_bias.plugin_owned);
 
-    let coverage = inspection
-        .fields
+    let coverage = fields
+        .fields()
         .iter()
         .find(|field| {
             field.component_type_path == CLOUD_LAYER_TYPE_PATH && field.field_name == "coverage"
@@ -129,8 +133,8 @@ fn world_inspection_builds_hierarchy_and_reflected_fields() {
     assert!(coverage.writable);
     assert!(coverage.plugin_owned);
 
-    let label = inspection
-        .fields
+    let label = fields
+        .fields()
         .iter()
         .find(|field| {
             field.component_type_path == CLOUD_LAYER_TYPE_PATH && field.field_name == "label"
@@ -145,28 +149,32 @@ fn world_inspection_builds_hierarchy_and_reflected_fields() {
 }
 
 #[test]
-fn world_inspection_filters_missing_focus_without_storing_authoring_state() {
+fn world_inspection_artifacts_reject_missing_entity_fields_without_authoring_state() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
 
-    let inspection = world.inspect_world(Some(entity + 100));
+    let hierarchy = world.inspection_artifact();
 
-    assert_eq!(inspection.focused_entity, None);
-    assert_eq!(inspection.hierarchy_rows.len(), 1);
-    assert!(inspection.fields.is_empty());
+    assert_eq!(hierarchy.hierarchy_rows().len(), 1);
+    assert!(world.inspection_fields_artifact(entity + 100).is_none());
     assert!(world.contains_entity(entity));
 }
 
 #[test]
-fn world_inspection_serialization_excludes_editor_authoring_tokens() {
+fn world_inspection_hierarchy_serialization_excludes_editor_authoring_tokens() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .rename_node(entity, "Runtime Mesh")
         .expect("entity should be named");
 
-    let inspection = world.inspect_world(Some(entity));
-    let serialized = serde_json::to_string(&inspection).expect("inspection should serialize");
+    let inspection = world.inspection_artifact();
+    let serialized = serde_json::to_string(inspection.hierarchy_rows())
+        .expect("inspection hierarchy should serialize");
 
     assert_text_excludes_authoring_tokens(
         "world inspection serialization",

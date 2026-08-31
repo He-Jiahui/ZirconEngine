@@ -120,7 +120,7 @@ fn system_query_iter_combinations_uses_run_window_filters() {
 
     world.get_mut::<Health>(first).unwrap().0 += 1;
     world.get_mut::<Health>(third).unwrap().0 += 1;
-    let changed = system.run(&mut world, |query| {
+    let changed = system.run(&mut world, |mut query| {
         query
             .iter_combinations::<2>()
             .map(|items| items.map(|(entity, health)| (entity, health.0)))
@@ -210,8 +210,10 @@ fn read_only_combination_candidates_use_single_scan() {
 
     assert!(constructor.contains("let mut matched_entities = Vec::new();"));
     assert!(constructor.contains("for entity in entities.iter().copied()"));
-    assert!(constructor
-        .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)"));
+    assert!(
+        constructor
+            .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)")
+    );
     assert!(constructor.contains("matched_entities.push(entity);"));
     assert!(constructor.contains("if matched_entities.len() < K"));
     assert!(!source.contains("fn read_only_combination_candidate_count"));

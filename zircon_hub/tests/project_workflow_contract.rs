@@ -548,7 +548,8 @@ fn project_selection_detail_and_source_context_refresh_before_view_model() {
             "pub fn scope(&self) -> HubScope",
             "HubScope::resolve(",
             "pub fn filtered_recent_projects(&self) -> Vec<RecentProject>",
-            "self.project_filter.includes(project)",
+            "filtered_recent_projects_with_availability",
+            "self.project_filter.includes(project, availability)",
             "project_matches_query(project, &query)",
         ],
     );

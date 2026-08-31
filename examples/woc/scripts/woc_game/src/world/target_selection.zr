@@ -44,22 +44,6 @@ pub class CandidateSet {
     }
 }
 
-class EnemyOrder {
-    pub var ids: container.Array<uint>;
-    pub var near: container.Array<bool>;
-    pub var tiers: container.Array<int>;
-    pub var distances: container.Array<float>;
-    pub var primaryCount: int;
-
-    pub @constructor() {
-        this.ids = new container.Array<uint>();
-        this.near = new container.Array<bool>();
-        this.tiers = new container.Array<int>();
-        this.distances = new container.Array<float>();
-        this.primaryCount = 0;
-    }
-}
-
 pub tabVisible(dx: float, dz: float, facing: float, marker: int): bool {
     if (marker != 1) {
         throw "target selection visibility marker is invalid";
@@ -143,11 +127,61 @@ pub nearestFriendly(candidates: CandidateSet, currentId: uint): uint {
     return bestId;
 }
 
-enemyOrder(candidates: CandidateSet, facing: float): EnemyOrder {
+tabCandidateBefore(
+    leftNear: bool,
+    leftTier: int,
+    leftDistance: float,
+    leftId: uint,
+    rightNear: bool,
+    rightTier: int,
+    rightDistance: float,
+    rightId: uint
+): bool {
+    return (leftNear && !rightNear) ||
+        (leftNear == rightNear && leftTier < rightTier) ||
+        (leftNear == rightNear && leftTier == rightTier &&
+            leftDistance < rightDistance) ||
+        (leftNear == rightNear && leftTier == rightTier &&
+            leftDistance == rightDistance && leftId < rightId);
+}
+
+pub tabEnemy(candidates: CandidateSet, currentId: uint, facing: float): uint {
     validateCandidates(candidates);
     var math = %import("zr.zircon.math");
-    var order = new EnemyOrder();
+    var currentFound = false;
+    var currentNear = false;
+    var currentTier = 0;
+    var currentDistance = 0.0;
     var index = 0;
+    while (index < candidates.enemyIds.length) {
+        if (<uint>candidates.enemyIds[index] == currentId) {
+            var currentDx = <float>candidates.enemyDx[index];
+            var currentDz = <float>candidates.enemyDz[index];
+            var currentDistanceSquared = currentDx * currentDx + currentDz * currentDz;
+            if (currentDistanceSquared <= 1600.0) {
+                var currentEngaged = <bool>candidates.enemyEngaged[index];
+                currentDistance = math.sqrt(currentDistanceSquared);
+                var currentVisible = tabVisible(currentDx, currentDz, facing, 1);
+                currentNear = tabNear(currentEngaged, currentVisible, currentDistance, 1);
+                currentTier = tabTier(currentEngaged, currentVisible, 1);
+                currentFound = true;
+                break;
+            }
+        }
+        index = index + 1;
+    }
+
+    var wrapFound = false;
+    var wrapId = currentId;
+    var wrapNear = false;
+    var wrapTier = 0;
+    var wrapDistance = 0.0;
+    var successorFound = false;
+    var successorId = currentId;
+    var successorNear = false;
+    var successorTier = 0;
+    var successorDistance = 0.0;
+    index = 0;
     while (index < candidates.enemyIds.length) {
         var dx = <float>candidates.enemyDx[index];
         var dz = <float>candidates.enemyDz[index];
@@ -159,115 +193,95 @@ enemyOrder(candidates: CandidateSet, facing: float): EnemyOrder {
             var visible = tabVisible(dx, dz, facing, 1);
             var near = tabNear(engaged, visible, distance, 1);
             var tier = tabTier(engaged, visible, 1);
-            var insert = order.ids.length;
-            order.ids.add(id);
-            order.near.add(near);
-            order.tiers.add(tier);
-            order.distances.add(distance);
-            while (insert > 0) {
-                var previous = insert - 1;
-                var previousNear = <bool>order.near[previous];
-                var previousTier = <int>order.tiers[previous];
-                var previousDistance = <float>order.distances[previous];
-                var previousId = <uint>order.ids[previous];
-                var before = (near && !previousNear) ||
-                    (near == previousNear && tier < previousTier) ||
-                    (near == previousNear && tier == previousTier &&
-                        distance < previousDistance) ||
-                    (near == previousNear && tier == previousTier &&
-                        distance == previousDistance && id < previousId);
-                if (!before) {
-                    break;
-                }
-                order.ids[insert] = previousId;
-                order.near[insert] = previousNear;
-                order.tiers[insert] = previousTier;
-                order.distances[insert] = previousDistance;
-                insert = previous;
+            var eligible = !currentFound || !currentNear || near;
+            if (eligible && (!wrapFound || tabCandidateBefore(
+                near, tier, distance, id,
+                wrapNear, wrapTier, wrapDistance, wrapId
+            ))) {
+                wrapFound = true;
+                wrapId = id;
+                wrapNear = near;
+                wrapTier = tier;
+                wrapDistance = distance;
             }
-            order.ids[insert] = id;
-            order.near[insert] = near;
-            order.tiers[insert] = tier;
-            order.distances[insert] = distance;
-            if (near) {
-                order.primaryCount = order.primaryCount + 1;
+            var afterCurrent = currentFound && eligible && tabCandidateBefore(
+                currentNear, currentTier, currentDistance, currentId,
+                near, tier, distance, id
+            );
+            if (afterCurrent && (!successorFound || tabCandidateBefore(
+                near, tier, distance, id,
+                successorNear, successorTier, successorDistance, successorId
+            ))) {
+                successorFound = true;
+                successorId = id;
+                successorNear = near;
+                successorTier = tier;
+                successorDistance = distance;
             }
         }
         index = index + 1;
     }
-    return order;
-}
-
-pub tabEnemy(candidates: CandidateSet, currentId: uint, facing: float): uint {
-    var order = enemyOrder(candidates, facing);
-    if (order.ids.length == 0) {
-        return currentId;
-    }
-    var currentIndex = -1;
-    var index = 0;
-    while (index < order.ids.length) {
-        if (<uint>order.ids[index] == currentId) {
-            currentIndex = index;
-            break;
-        }
-        index = index + 1;
-    }
-    if (currentIndex < 0) {
-        return <uint>order.ids[0];
-    }
-    if (currentIndex < order.primaryCount) {
-        var nextPrimary = currentIndex + 1;
-        if (nextPrimary >= order.primaryCount) {
-            nextPrimary = 0;
-        }
-        return <uint>order.ids[nextPrimary];
-    }
-    var next = currentIndex + 1;
-    return next < order.ids.length ? <uint>order.ids[next] : <uint>order.ids[0];
+    if (successorFound) { return successorId; }
+    return wrapFound ? wrapId : currentId;
 }
 
 pub friendlyCycle(candidates: CandidateSet, currentId: uint): uint {
     validateCandidates(candidates);
-    var ids = new container.Array<uint>();
-    var distances = new container.Array<float>();
+    var currentCandidateIndex = -1;
+    var currentDistanceSquared = 0.0;
     var index = 0;
+    while (index < candidates.friendlyIds.length) {
+        if (<uint>candidates.friendlyIds[index] == currentId) {
+            var currentDx = <float>candidates.friendlyDx[index];
+            var currentDz = <float>candidates.friendlyDz[index];
+            var candidateDistanceSquared = currentDx * currentDx + currentDz * currentDz;
+            if (candidateDistanceSquared <= 1600.0) {
+                currentCandidateIndex = index;
+                currentDistanceSquared = candidateDistanceSquared;
+                break;
+            }
+        }
+        index = index + 1;
+    }
+
+    var wrapFound = false;
+    var wrapId = currentId;
+    var wrapDistanceSquared = 0.0;
+    var successorFound = false;
+    var successorId = currentId;
+    var successorDistanceSquared = 0.0;
+    var successorCandidateIndex = -1;
+    index = 0;
     while (index < candidates.friendlyIds.length) {
         var dx = <float>candidates.friendlyDx[index];
         var dz = <float>candidates.friendlyDz[index];
         var distanceSquared = dx * dx + dz * dz;
         if (distanceSquared <= 1600.0) {
             var id = <uint>candidates.friendlyIds[index];
-            var insert = ids.length;
-            ids.add(id);
-            distances.add(distanceSquared);
-            // Equal distances retain candidate traversal order, matching stable JS sort.
-            while (insert > 0 && distanceSquared < <float>distances[insert - 1]) {
-                ids[insert] = <uint>ids[insert - 1];
-                distances[insert] = <float>distances[insert - 1];
-                insert = insert - 1;
+            var candidateIndex = index;
+            if (!wrapFound || distanceSquared < wrapDistanceSquared) {
+                wrapFound = true;
+                wrapId = id;
+                wrapDistanceSquared = distanceSquared;
             }
-            ids[insert] = id;
-            distances[insert] = distanceSquared;
+            var afterCurrent = currentCandidateIndex >= 0 &&
+                (distanceSquared > currentDistanceSquared ||
+                    (distanceSquared == currentDistanceSquared &&
+                        candidateIndex > currentCandidateIndex));
+            if (afterCurrent && (!successorFound ||
+                distanceSquared < successorDistanceSquared ||
+                (distanceSquared == successorDistanceSquared &&
+                    candidateIndex < successorCandidateIndex))) {
+                successorFound = true;
+                successorId = id;
+                successorDistanceSquared = distanceSquared;
+                successorCandidateIndex = candidateIndex;
+            }
         }
         index = index + 1;
     }
-    if (ids.length == 0) {
-        return currentId;
-    }
-    var currentIndex = -1;
-    index = 0;
-    while (index < ids.length) {
-        if (<uint>ids[index] == currentId) {
-            currentIndex = index;
-            break;
-        }
-        index = index + 1;
-    }
-    var next = currentIndex + 1;
-    if (next >= ids.length) {
-        next = 0;
-    }
-    return <uint>ids[next];
+    if (successorFound) { return successorId; }
+    return wrapFound ? wrapId : currentId;
 }
 
 pub contractTest(): int {
@@ -320,5 +334,30 @@ pub contractTest(): int {
     var outside = new CandidateSet();
     outside.addEnemy(<uint>1, 0.0, 40.000001, true);
     if (tabEnemy(outside, <uint>77, 0.0) != <uint>77) { return -18; }
+
+    var linearEnemyTie = new CandidateSet();
+    linearEnemyTie.addEnemy(<uint>30, 0.0, 10.0, true);
+    linearEnemyTie.addEnemy(<uint>10, 0.0, 10.0, true);
+    linearEnemyTie.addEnemy(<uint>20, 0.0, 10.0, true);
+    if (tabEnemy(linearEnemyTie, <uint>0, 0.0) != <uint>10) { return -19; }
+    if (tabEnemy(linearEnemyTie, <uint>10, 0.0) != <uint>20) { return -20; }
+    if (tabEnemy(linearEnemyTie, <uint>30, 0.0) != <uint>10) { return -21; }
+
+    var linearEnemyFallback = new CandidateSet();
+    linearEnemyFallback.addEnemy(<uint>3, 0.0, 5.0, true);
+    linearEnemyFallback.addEnemy(<uint>1, 0.0, 10.0, false);
+    linearEnemyFallback.addEnemy(<uint>2, 0.0, -5.0, true);
+    if (tabEnemy(linearEnemyFallback, <uint>1, 0.0) != <uint>3) { return -22; }
+    if (tabEnemy(linearEnemyFallback, <uint>3, 0.0) != <uint>1) { return -23; }
+    if (tabEnemy(linearEnemyFallback, <uint>2, 0.0) != <uint>3) { return -24; }
+
+    var linearFriendlyTie = new CandidateSet();
+    linearFriendlyTie.addFriendly(<uint>30, 3.0, 4.0);
+    linearFriendlyTie.addFriendly(<uint>10, -3.0, -4.0);
+    linearFriendlyTie.addFriendly(<uint>20, 0.0, 10.0);
+    if (friendlyCycle(linearFriendlyTie, <uint>0) != <uint>30) { return -25; }
+    if (friendlyCycle(linearFriendlyTie, <uint>30) != <uint>10) { return -26; }
+    if (friendlyCycle(linearFriendlyTie, <uint>10) != <uint>20) { return -27; }
+    if (friendlyCycle(linearFriendlyTie, <uint>20) != <uint>30) { return -28; }
     return 1;
 }

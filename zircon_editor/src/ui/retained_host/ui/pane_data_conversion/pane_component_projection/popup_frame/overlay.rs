@@ -2,8 +2,6 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 
-use super::super::super::pane_value_conversion::value_as_string;
-
 pub(super) fn is_anchor_positioned_overlay(component_role: &str) -> bool {
     matches!(
         component_role,
@@ -23,8 +21,13 @@ pub(super) fn uses_popper_placement(
     attributes: &BTreeMap<String, Value>,
 ) -> bool {
     matches!(component_role, "popper" | "tooltip")
-        || attributes
-            .get("placement")
-            .and_then(value_as_string)
-            .is_some_and(|placement| placement.contains('-'))
+        || borrowed_popup_placement(attributes).is_some_and(|placement| placement.contains('-'))
 }
+
+fn borrowed_popup_placement(attributes: &BTreeMap<String, Value>) -> Option<&str> {
+    attributes.get("placement").and_then(Value::as_str)
+}
+
+#[cfg(test)]
+#[path = "overlay/borrowed_placement_tests.rs"]
+mod borrowed_placement_tests;

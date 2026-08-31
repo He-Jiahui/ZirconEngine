@@ -4,9 +4,11 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::shared::{
-    icon_command, number_attribute, quad_command, row_label, string_attribute, text_command,
-    CollectionRowVisual, RowRenderState,
+    CollectionRowVisual, RowRenderState, icon_command, number_attribute, quad_command, row_label,
+    string_attribute, text_command,
 };
+
+const MAX_TREE_ROW_BASE_COMMANDS: usize = 6;
 
 pub(super) fn tree_row_commands(
     node_id: UiNodeId,
@@ -18,7 +20,8 @@ pub(super) fn tree_row_commands(
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let visual = CollectionRowVisual::resolve(metadata);
-    let mut commands = Vec::new();
+    let depth = depth(metadata);
+    let mut commands = Vec::with_capacity(tree_row_command_capacity(depth));
     if let Some(background) = background(&visual, state) {
         commands.push(quad_command(
             node_id,
@@ -33,7 +36,7 @@ pub(super) fn tree_row_commands(
             opacity,
         ));
     }
-    for level in 0..depth(metadata) {
+    for level in 0..depth {
         commands.push(quad_command(
             node_id,
             UiFrame::new(
@@ -55,7 +58,7 @@ pub(super) fn tree_row_commands(
             opacity * 0.78,
         ));
     }
-    let disclosure = disclosure_rect(metadata, frame, &visual);
+    let disclosure = disclosure_rect(metadata, frame, &visual, depth);
     commands.push(icon_command(
         node_id,
         disclosure,
@@ -207,14 +210,19 @@ fn depth(metadata: &UiTemplateNodeMetadata) -> usize {
         .max(0.0) as usize
 }
 
+fn tree_row_command_capacity(depth: usize) -> usize {
+    depth.saturating_add(MAX_TREE_ROW_BASE_COMMANDS)
+}
+
 fn disclosure_rect(
     metadata: &UiTemplateNodeMetadata,
     frame: UiFrame,
     visual: &CollectionRowVisual,
+    depth: usize,
 ) -> UiFrame {
     let indent = number_attribute(metadata, "tree_indent_px")
         .filter(|indent| indent.is_finite() && *indent > 0.0)
-        .unwrap_or_else(|| depth(metadata) as f32 * visual.tree_indent);
+        .unwrap_or_else(|| depth as f32 * visual.tree_indent);
     UiFrame::new(
         frame.x + visual.inline_inset + indent,
         frame.y + (frame.height - visual.action_size).max(0.0) * 0.5,
@@ -254,3 +262,7 @@ fn contains_ascii_case(value: &str, needle: &str) -> bool {
         .windows(needle.len())
         .any(|window| window.eq_ignore_ascii_case(needle.as_bytes()))
 }
+
+#[cfg(test)]
+#[path = "tree/capacity_tests.rs"]
+mod capacity_tests;

@@ -263,7 +263,6 @@ mod tests {
             display_name: display_name.to_string(),
             kind: "Empty".to_string(),
             subtree_hash: index as u64,
-            focused: false,
             active_in_hierarchy: true,
             has_children: false,
         }

@@ -53,10 +53,19 @@ pub(super) fn root_class_policy_label(policy: UiRootClassPolicy) -> &'static str
 }
 
 fn parse_root_class_policy(value: &str) -> Option<UiRootClassPolicy> {
-    let normalized = value.trim().to_ascii_lowercase().replace('-', "_");
-    match normalized.as_str() {
-        "append_only" | "appendonly" => Some(UiRootClassPolicy::AppendOnly),
-        "closed" => Some(UiRootClassPolicy::Closed),
-        _ => None,
+    let value = value.trim();
+    if value.eq_ignore_ascii_case("append_only")
+        || value.eq_ignore_ascii_case("append-only")
+        || value.eq_ignore_ascii_case("appendonly")
+    {
+        Some(UiRootClassPolicy::AppendOnly)
+    } else if value.eq_ignore_ascii_case("closed") {
+        Some(UiRootClassPolicy::Closed)
+    } else {
+        None
     }
 }
+
+#[cfg(test)]
+#[path = "root_class_policy_state/borrowed_parse_tests.rs"]
+mod borrowed_parse_tests;

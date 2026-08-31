@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Component, Path, PathBuf};
@@ -43,7 +43,8 @@ impl NativePackageInventory {
         }
 
         let mut package_dirs = BTreeMap::new();
-        let mut unresolved_package_ids = selected_package_ids.clone();
+        let mut unresolved_package_ids =
+            selected_package_ids.iter().copied().collect::<HashSet<_>>();
         for package_id in &selected_package_ids {
             let Some(package_dir) = direct_child_package_dir(plugin_root, package_id) else {
                 continue;
@@ -61,7 +62,7 @@ impl NativePackageInventory {
             return Self::finish(plugin_root, package_dirs);
         }
 
-        let mut resolved_package_dirs = package_dirs.values().cloned().collect::<BTreeSet<_>>();
+        let mut resolved_package_dirs = package_dirs.values().cloned().collect::<HashSet<_>>();
         let mut stack = vec![plugin_root.to_path_buf()];
         'search: while let Some(current) = stack.pop() {
             let mut entries = fs::read_dir(&current)?.collect::<Result<Vec<_>, _>>()?;
@@ -311,6 +312,43 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(relative_paths, ["assets/settings.json", "native/audio.dll"]);
+
+        fs::remove_dir_all(root).expect("test root should be removable");
+    }
+
+    #[test]
+    fn hash_resolution_sets_preserve_lexical_fallback_order() {
+        let root = temporary_test_root();
+        let lexical_first = root.join("a").join("audio");
+        let lexical_last = root.join("z").join("audio");
+        write_plugin_manifest(&lexical_first, "audio");
+        write_plugin_manifest(&lexical_last, "audio");
+
+        let inventory = NativePackageInventory::build(&root, &["audio".to_owned()])
+            .expect("nested selection should resolve");
+
+        assert_eq!(
+            inventory.package_dir("audio"),
+            Some(lexical_first.as_path())
+        );
+
+        fs::remove_dir_all(root).expect("test root should be removable");
+    }
+
+    #[test]
+    fn hash_resolution_sets_deduplicate_selected_package_ids() {
+        let root = temporary_test_root();
+        let direct_audio = root.join("audio");
+        write_plugin_manifest(&direct_audio, "audio");
+
+        let inventory = NativePackageInventory::build(
+            &root,
+            &["audio".to_owned(), "audio".to_owned(), "audio".to_owned()],
+        )
+        .expect("duplicate selections should resolve once");
+
+        assert_eq!(inventory.package_dirs.len(), 1);
+        assert_eq!(inventory.package_dir("audio"), Some(direct_audio.as_path()));
 
         fs::remove_dir_all(root).expect("test root should be removable");
     }

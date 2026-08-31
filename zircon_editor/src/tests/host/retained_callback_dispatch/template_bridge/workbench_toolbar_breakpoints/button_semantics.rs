@@ -3,6 +3,7 @@ use zircon_runtime_interface::ui::style::{ButtonColor, UiStyleColor};
 
 const STARSHIP_SECONDARY_SURFACE: [u8; 4] = [29, 35, 40, 255];
 const STARSHIP_PRIMARY_SURFACE: [u8; 4] = [18, 57, 65, 255];
+const TRANSPARENT: [u8; 4] = [0, 0, 0, 0];
 
 #[test]
 fn toolbar_command_buttons_resolve_shared_starship_semantics() {
@@ -16,18 +17,23 @@ fn toolbar_command_buttons_resolve_shared_starship_semantics() {
     ))
     .expect("full workbench should build");
 
-    for control_id in [
-        "WorkbenchModuleSave",
-        "WorkbenchModuleBrowse",
-        "WorkbenchModuleDiff",
-        "WorkbenchModuleSimulate",
-    ] {
+    for control_id in ["WorkbenchModuleDiff", "WorkbenchModuleSimulate"] {
         let node = workbench_window_node(&bridge, control_id);
         assert_eq!(node.button_variant.as_str(), "outlined");
         assert_eq!(
             style_color_u8(node.button_style.element.background_color.as_ref()),
             Some(STARSHIP_SECONDARY_SURFACE),
             "{control_id} should use the shared secondary button surface"
+        );
+    }
+
+    for control_id in ["WorkbenchModuleSave", "WorkbenchModuleBrowse"] {
+        let node = workbench_window_node(&bridge, control_id);
+        assert_eq!(node.button_variant.as_str(), "text");
+        assert_eq!(
+            style_color_u8(node.button_style.element.background_color.as_ref()),
+            Some(TRANSPARENT),
+            "{control_id} should remain a quiet icon action"
         );
     }
 

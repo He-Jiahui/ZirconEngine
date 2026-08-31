@@ -15,13 +15,14 @@ use crate::ui::workbench::snapshot::{
 };
 use crate::ui::workbench::view::ViewDescriptorId;
 
-use super::common::{asset_effects, open_view, parse_asset_kind_filter};
+use super::common::{asset_effects, asset_mutation_effects, open_view, parse_asset_kind_filter};
+use super::error::AssetEventExecutionError;
 use super::execution_outcome::ExecutionOutcome;
 pub(super) fn execute_asset_event(
     controller: &EditorHostEventController,
     shell: &mut WorkbenchShellStateData,
     event: &EditorAssetEvent,
-) -> Result<ExecutionOutcome, String> {
+) -> Result<ExecutionOutcome, AssetEventExecutionError> {
     match event {
         EditorAssetEvent::OpenAsset { asset_locator } => {
             let asset_locator = match AssetUri::parse(asset_locator) {
@@ -39,10 +40,11 @@ pub(super) fn execute_asset_event(
                     .set_status_line(format!("Asset type is not indexed for {asset_locator}"));
                 return Ok(asset_effects(false, false, false));
             };
-            let registry =
-                enabled_asset_types_for_shell(shell).map_err(|error| error.to_string())?;
+            let registry = enabled_asset_types_for_shell(shell)?;
             let Some(definition) = registry.get(&asset_type) else {
-                return Err(format!("asset type `{asset_type}` is not registered"));
+                return Err(AssetEventExecutionError::UnregisteredAssetType {
+                    asset_type: asset_type.clone(),
+                });
             };
             if let Some(toolkit) = definition.toolkit() {
                 let operation = {
@@ -54,12 +56,10 @@ pub(super) fn execute_asset_event(
                 }
                 .ok_or_else(|| {
                     EditorCommandRegistryError::MissingCommand(toolkit.open_operation().clone())
-                        .to_string()
                 })?;
                 let context =
                     controller.command_eval_ctx_for_source(&EditorOperationSource::UiBinding);
-                EditorCommandRegistry::ensure_enabled(&operation, &context)
-                    .map_err(|error| error.to_string())?;
+                EditorCommandRegistry::ensure_enabled(&operation, &context)?;
                 return open_asset_document_view(
                     shell,
                     toolkit.view_id(),
@@ -74,29 +74,29 @@ pub(super) fn execute_asset_event(
             Ok(asset_effects(false, false, false))
         }
         EditorAssetEvent::SelectFolder { folder_id } => {
-            shell.state.select_asset_folder(folder_id.clone());
-            Ok(asset_effects(true, false, true))
+            let changed = shell.state.select_asset_folder(folder_id.clone());
+            Ok(asset_mutation_effects(changed, false, true))
         }
         EditorAssetEvent::SelectItem { asset_uuid } => {
-            shell.state.select_asset(Some(asset_uuid.clone()));
-            Ok(asset_effects(true, true, true))
+            let changed = shell.state.select_asset(Some(asset_uuid.clone()));
+            Ok(asset_mutation_effects(changed, true, true))
         }
         EditorAssetEvent::ActivateReference { asset_uuid } => {
-            shell.state.navigate_to_asset(asset_uuid);
-            Ok(asset_effects(true, true, true))
+            let changed = shell.state.navigate_to_asset(asset_uuid);
+            Ok(asset_mutation_effects(changed, true, true))
         }
         EditorAssetEvent::SetSearchQuery { query } => {
-            shell.state.set_asset_search_query(query.clone());
-            Ok(asset_effects(true, false, true))
+            let changed = shell.state.set_asset_search_query(query.clone());
+            Ok(asset_mutation_effects(changed, false, true))
         }
         EditorAssetEvent::SetKindFilter { kind } => {
-            shell
+            let changed = shell
                 .state
                 .set_asset_kind_filter(parse_asset_kind_filter(kind.as_deref())?);
-            Ok(asset_effects(true, false, true))
+            Ok(asset_mutation_effects(changed, false, true))
         }
         EditorAssetEvent::SetViewMode { surface, view_mode } => {
-            match (surface, view_mode) {
+            let changed = match (surface, view_mode) {
                 (EditorAssetSurface::Activity, EditorAssetViewMode::List) => shell
                     .state
                     .set_asset_activity_view_mode(SnapshotAssetViewMode::List),
@@ -109,8 +109,8 @@ pub(super) fn execute_asset_event(
                 (EditorAssetSurface::Browser, EditorAssetViewMode::Thumbnail) => shell
                     .state
                     .set_asset_browser_view_mode(SnapshotAssetViewMode::Thumbnail),
-            }
-            Ok(asset_effects(true, false, true))
+            };
+            Ok(asset_mutation_effects(changed, false, true))
         }
         EditorAssetEvent::SetUtilityTab { surface, tab } => {
             let tab = match tab {
@@ -119,11 +119,49 @@ pub(super) fn execute_asset_event(
                 EditorAssetUtilityTab::Metadata => SnapshotAssetUtilityTab::Metadata,
                 EditorAssetUtilityTab::Plugins => SnapshotAssetUtilityTab::Plugins,
             };
-            match surface {
+            let changed = match surface {
                 EditorAssetSurface::Activity => shell.state.set_asset_activity_tab(tab),
                 EditorAssetSurface::Browser => shell.state.set_asset_browser_tab(tab),
-            }
-            Ok(asset_effects(true, false, true))
+            };
+            Ok(asset_mutation_effects(changed, false, true))
+        }
+        EditorAssetEvent::RelocateAsset {
+            asset_uuid,
+            target_locator,
+        } => {
+            let target = AssetUri::parse(target_locator).map_err(|source| {
+                AssetEventExecutionError::InvalidRelocationTarget {
+                    target_locator: target_locator.clone(),
+                    source,
+                }
+            })?;
+            asset_uuid
+                .parse::<zircon_runtime::asset::AssetUuid>()
+                .map_err(|source| AssetEventExecutionError::InvalidAssetUuid {
+                    asset_uuid: asset_uuid.clone(),
+                    source: source.to_string(),
+                })?;
+            Ok(ExecutionOutcome {
+                changed: false,
+                effects: vec![EditorEventEffect::AssetRelocationRequested {
+                    asset_uuid: asset_uuid.clone(),
+                    target_locator: target.to_string(),
+                }],
+            })
+        }
+        EditorAssetEvent::DeleteAsset { asset_uuid } => {
+            asset_uuid
+                .parse::<zircon_runtime::asset::AssetUuid>()
+                .map_err(|source| AssetEventExecutionError::InvalidAssetUuid {
+                    asset_uuid: asset_uuid.clone(),
+                    source: source.to_string(),
+                })?;
+            Ok(ExecutionOutcome {
+                changed: false,
+                effects: vec![EditorEventEffect::AssetDeletionRequested {
+                    asset_uuid: asset_uuid.clone(),
+                }],
+            })
         }
         EditorAssetEvent::OpenAssetBrowser => {
             let mut outcome = open_view(shell, "editor.asset_browser", "Opened asset browser")?;
@@ -152,26 +190,20 @@ fn open_asset_document_view(
     route: AssetToolkitOpenRoute,
     fallback_title: &str,
     status_prefix: &str,
-) -> Result<ExecutionOutcome, String> {
+) -> Result<ExecutionOutcome, AssetEventExecutionError> {
     let asset_locator = route.asset_locator().to_string();
-    let payload = serde_json::to_value(&route).map_err(|error| error.to_string())?;
+    let payload = serde_json::to_value(&route)
+        .map_err(|source| AssetEventExecutionError::RouteSerialization { source })?;
     let instance_id = shell
         .manager
-        .open_view(ViewDescriptorId::new(descriptor_id), None)
-        .map_err(|error| error.to_string())?;
-    shell
-        .manager
-        .update_view_instance_metadata(
-            &instance_id,
-            Some(asset_document_title(route.asset_locator(), fallback_title)),
-            Some(false),
-            Some(payload),
-        )
-        .map_err(|error| error.to_string())?;
-    let focused = shell
-        .manager
-        .focus_view(&instance_id)
-        .map_err(|error| error.to_string())?;
+        .open_view(ViewDescriptorId::new(descriptor_id), None)?;
+    shell.manager.update_view_instance_metadata(
+        &instance_id,
+        Some(asset_document_title(route.asset_locator(), fallback_title)),
+        Some(false),
+        Some(payload),
+    )?;
+    let focused = shell.manager.focus_view(&instance_id)?;
     shell
         .state
         .set_status_line(format!("{status_prefix} {asset_locator}"));

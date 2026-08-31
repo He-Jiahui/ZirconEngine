@@ -1,16 +1,16 @@
 use zircon_plugin_sdk::ImporterRuntimeManifestBuilder;
 use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind, FunctionAssetImporter};
+use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportTargetPlatform;
-use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
     PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
 
 use crate::{
-    import_wgsl, IMPORTER_CAPABILITY, PLUGIN_ID, RUNTIME_CRATE_NAME,
-    SHADER_WGSL_IMPORTER_DECLARATION,
+    IMPORTER_CAPABILITY, PLUGIN_ID, RUNTIME_CRATE_NAME, SHADER_WGSL_IMPORTER_DECLARATION,
+    import_wgsl,
 };
 
 pub const SHADER_WGSL_IMPORTER_DIST_CRATE_NAME: &str = "zircon_plugin_shader_wgsl_importer_dist";

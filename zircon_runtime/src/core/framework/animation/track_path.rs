@@ -18,6 +18,11 @@ impl AnimationTrackPath {
 
     pub fn parse(raw: &str) -> Result<Self, AnimationTrackPathError> {
         let (entity_path, property_path) = raw.split_once(':').ok_or(AnimationTrackPathError)?;
+        if canonical_entity_path(entity_path) && canonical_component_property_path(property_path) {
+            return Ok(Self {
+                raw: raw.to_owned(),
+            });
+        }
         let entity_path = EntityPath::parse(entity_path).map_err(|_| AnimationTrackPathError)?;
         let property_path =
             ComponentPropertyPath::parse(property_path).map_err(|_| AnimationTrackPathError)?;
@@ -48,8 +53,34 @@ impl AnimationTrackPath {
     }
 }
 
+fn canonical_entity_path(path: &str) -> bool {
+    path.split('/').all(canonical_path_segment)
+}
+
+fn canonical_component_property_path(path: &str) -> bool {
+    let mut segments = path.split('.');
+    let Some(component) = segments.next() else {
+        return false;
+    };
+    if !canonical_path_segment(component) {
+        return false;
+    }
+    let Some(first_property) = segments.next() else {
+        return false;
+    };
+    canonical_path_segment(first_property) && segments.all(canonical_path_segment)
+}
+
+fn canonical_path_segment(segment: &str) -> bool {
+    !segment.is_empty() && segment.trim() == segment
+}
+
 impl std::fmt::Display for AnimationTrackPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.raw)
     }
 }
+
+#[cfg(test)]
+#[path = "track_path/canonical_parse_tests.rs"]
+mod canonical_parse_tests;

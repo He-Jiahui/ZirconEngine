@@ -12,8 +12,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 [components.WorkbenchExtensionPostProcessWorkspace]
@@ -21,54 +21,53 @@ root = "post_process_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.post_process_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionPostProcessWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "post_process_rail_gap" }, { node = "post_process_left" }, { node = "post_process_center" }, { node = "post_process_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "post_process_workspace_main" },
+  { node = "post_process_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.post_process_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_rail_gap" }, { node = "post_process_left" }, { node = "post_process_center" }, { node = "post_process_right_reserve" }]
+
+[nodes.post_process_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.post_process_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionPostProcessRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.post_process_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPostProcessLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "post_process_title" }, { node = "post_process_stack_tab" }, { node = "post_process_volumes_tab" }, { node = "post_process_warnings_tab" }, { node = "post_process_global_row" }, { node = "post_process_cinematic_row" }, { node = "post_process_volume_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_title" }, { node = "post_process_left_content" }]
+
+[nodes.post_process_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPostProcessLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_global_row" }, { node = "post_process_cinematic_row" }, { node = "post_process_volume_row" }]
 
 [nodes.post_process_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionPostProcessTitle"
 props = { text = "Post Process" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.post_process_stack_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPostProcessStackTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Stack", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PostProcessStackTab", event = "Click", route = "workbench.extension.post_process.stack" }]
-
-[nodes.post_process_volumes_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPostProcessVolumesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Volumes", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PostProcessVolumesTab", event = "Click", route = "workbench.extension.post_process.volumes" }]
-
-[nodes.post_process_warnings_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPostProcessWarningsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Warnings", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PostProcessWarningsTab", event = "Click", route = "workbench.extension.post_process.warnings" }]
 
 [nodes.post_process_global_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/PostProcessVolumeBlendRow", event = "Click"
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPostProcessCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "post_process_center_header" }, { node = "post_process_pass_table" }, { node = "post_process_output" }]
 
 [nodes.post_process_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionPostProcessCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "post_process_center_title" }, { node = "post_process_header_fill" }, { node = "post_process_preview_button" }, { node = "post_process_apply_button" }]
 
 [nodes.post_process_center_title]
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/PostProcessPreview", event = "Click", route
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionPostProcessApplyButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Apply", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Apply", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PostProcessApply", event = "Click", route = "workbench.extension.post_process.apply" }]
 
 [nodes.post_process_pass_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionPostProcessPassTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "post_process_bloom_row" }, { node = "post_process_tonemap_row" }, { node = "post_process_lut_row" }, { node = "post_process_exposure_warning_row" }]
 
 [nodes.post_process_bloom_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/PostProcessExposureWarningTableRow", event 
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionPostProcessOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Post Process", value_text = "Preview ready   1 warning   stack active" }
+props = { text = "Post Process", value_text = "Preview ready   1 warning   stack active", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PostProcessOutput", event = "Click", route = "workbench.extension.post_process.output" }]
 
 [nodes.post_process_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPostProcessRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "post_process_details_title" }, { node = "post_process_profile_dropdown" }, { node = "post_process_volume_field" }, { node = "post_process_blend_dropdown" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_details_title" }, { node = "post_process_right_content" }]
+
+[nodes.post_process_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPostProcessRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "post_process_profile_dropdown_property_row" }, { node = "post_process_volume_field_property_row" }, { node = "post_process_blend_dropdown_property_row" }]
 
 [nodes.post_process_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,16 +202,30 @@ control_id = "WorkbenchExtensionPostProcessDetailsTitle"
 props = { text = "Stack Settings" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.post_process_profile_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPostProcessProfileDropdownPropertyRow"
+props = { text = "Profile" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "post_process_profile_dropdown", slot = { name = "value" } }]
+
 [nodes.post_process_profile_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionPostProcessProfileDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Profile: Cinematic", value = "cinematic", options = ["gameplay", "cinematic", "debug"] }
+props = { value_text = "Cinematic", value = "cinematic", options = ["gameplay|label=Gameplay", "cinematic|label=Cinematic", "debug|label=Debug"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PostProcessProfileEdit", event = "Change", route = "workbench.extension.post_process.profile.edit" },
   { id = "WorkbenchExtension/PostProcessProfileCommit", event = "Submit", route = "workbench.extension.post_process.profile.commit" },
 ]
+
+[nodes.post_process_volume_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPostProcessVolumeFieldPropertyRow"
+props = { text = "Volume" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "post_process_volume_field", slot = { name = "value" } }]
 
 [nodes.post_process_volume_field]
 component = "WorkbenchField"
@@ -218,11 +238,18 @@ events = [
   { id = "WorkbenchExtension/PostProcessVolumeCommit", event = "Submit", route = "workbench.extension.post_process.volume.commit" },
 ]
 
+[nodes.post_process_blend_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPostProcessBlendDropdownPropertyRow"
+props = { text = "Blend" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "post_process_blend_dropdown", slot = { name = "value" } }]
+
 [nodes.post_process_blend_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionPostProcessBlendDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Blend: Weighted", value = "weighted", options = ["override", "weighted", "additive"] }
+props = { value_text = "Weighted", value = "weighted", options = ["override|label=Override", "weighted|label=Weighted", "additive|label=Additive"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PostProcessBlendEdit", event = "Change", route = "workbench.extension.post_process.blend.edit" },

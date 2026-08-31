@@ -1,5 +1,6 @@
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
+use crate::ui::retained_host::host_contract::data::WelcomePaneLayoutData;
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, HostControlMetrics,
 };
@@ -23,6 +24,8 @@ pub(crate) struct WelcomeRecentLayoutMetrics {
     row_action_gap: f32,
     row_action_height: f32,
     open_action_width: f32,
+    safe_action_width: f32,
+    recover_action_width: f32,
     remove_action_width: f32,
 }
 
@@ -31,6 +34,8 @@ pub(crate) struct WelcomeRecentRowGeometry {
     pub row: UiFrame,
     pub text: UiFrame,
     pub open: UiFrame,
+    pub safe: UiFrame,
+    pub recover: UiFrame,
     pub remove: UiFrame,
 }
 
@@ -67,12 +72,32 @@ pub(crate) fn welcome_recent_layout_metrics_from_host(
         row_action_gap: metrics.gap_s.max(0.0),
         row_action_height,
         open_action_width: (metrics.control_large_height + metrics.gap_s).max(0.0),
+        safe_action_width: row_action_height,
+        recover_action_width: row_action_height,
         remove_action_width: row_action_height,
     }
 }
 
 pub(crate) fn welcome_recent_viewport(pane_size: UiSize) -> UiFrame {
     welcome_recent_viewport_with_metrics(pane_size, current_welcome_recent_layout_metrics())
+}
+
+pub(crate) fn welcome_recent_viewport_for_layout(
+    layout: &WelcomePaneLayoutData,
+    pane_size: UiSize,
+) -> UiFrame {
+    match layout.recent_list_panel.as_ref().filter(|frame| {
+        frame.x.is_finite()
+            && frame.y.is_finite()
+            && frame.width.is_finite()
+            && frame.height.is_finite()
+            && frame.width > 0.0
+            && frame.height > 0.0
+    }) {
+        Some(frame) => UiFrame::new(frame.x, frame.y, frame.width, frame.height),
+        None if layout.has_nodes => UiFrame::new(0.0, 0.0, 0.0, 0.0),
+        None => welcome_recent_viewport(pane_size),
+    }
 }
 
 pub(crate) fn welcome_recent_viewport_with_metrics(
@@ -137,11 +162,29 @@ pub(crate) fn welcome_recent_row_geometry_with_metrics(
         remove_width,
         metrics.row_action_height.min(row.height.max(0.0)),
     );
+    let recover_width = metrics
+        .recover_action_width
+        .min((remove.x - metrics.row_action_gap - row.x).max(0.0));
+    let recover = UiFrame::new(
+        (remove.x - metrics.row_action_gap - recover_width).max(row.x),
+        action_y,
+        recover_width,
+        metrics.row_action_height.min(row.height.max(0.0)),
+    );
+    let safe_width = metrics
+        .safe_action_width
+        .min((recover.x - metrics.row_action_gap - row.x).max(0.0));
+    let safe = UiFrame::new(
+        (recover.x - metrics.row_action_gap - safe_width).max(row.x),
+        action_y,
+        safe_width,
+        metrics.row_action_height.min(row.height.max(0.0)),
+    );
     let open_width = metrics
         .open_action_width
-        .min((remove.x - metrics.row_action_gap - row.x).max(0.0));
+        .min((safe.x - metrics.row_action_gap - row.x).max(0.0));
     let open = UiFrame::new(
-        (remove.x - metrics.row_action_gap - open_width).max(row.x),
+        (safe.x - metrics.row_action_gap - open_width).max(row.x),
         action_y,
         open_width,
         metrics.row_action_height.min(row.height.max(0.0)),
@@ -154,6 +197,8 @@ pub(crate) fn welcome_recent_row_geometry_with_metrics(
         row,
         text,
         open,
+        safe,
+        recover,
         remove,
     }
 }
@@ -200,9 +245,48 @@ pub(crate) fn welcome_recent_visible_row_count_with_metrics(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ui::retained_host::host_contract::data::FrameRect;
     use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
     const EPSILON: f32 = 0.01;
+
+    #[test]
+    fn welcome_recent_viewport_prefers_the_projected_list_frame() {
+        let projected = FrameRect {
+            x: 37.0,
+            y: 91.0,
+            width: 184.0,
+            height: 308.0,
+        };
+        let layout = WelcomePaneLayoutData {
+            recent_list_panel: Some(projected.clone()),
+            ..WelcomePaneLayoutData::default()
+        };
+
+        assert_eq!(
+            welcome_recent_viewport_for_layout(&layout, UiSize::new(640.0, 520.0)),
+            UiFrame::new(projected.x, projected.y, projected.width, projected.height)
+        );
+        assert_ne!(
+            welcome_recent_viewport_for_layout(&layout, UiSize::new(640.0, 520.0)),
+            welcome_recent_viewport(UiSize::new(640.0, 520.0))
+        );
+    }
+
+    #[test]
+    fn welcome_recent_viewport_does_not_resurrect_a_collapsed_authoritative_panel() {
+        let current = WelcomePaneLayoutData {
+            has_nodes: true,
+            ..WelcomePaneLayoutData::default()
+        };
+        let legacy = WelcomePaneLayoutData::default();
+
+        assert_eq!(
+            welcome_recent_viewport_for_layout(&current, UiSize::new(640.0, 520.0)),
+            UiFrame::new(0.0, 0.0, 0.0, 0.0)
+        );
+        assert!(welcome_recent_viewport_for_layout(&legacy, UiSize::new(640.0, 520.0)).width > 0.0);
+    }
 
     #[test]
     fn welcome_recent_geometry_keeps_compact_rows_and_actions_inside_responsive_columns() {
@@ -212,6 +296,8 @@ mod tests {
         assert_close(metrics.row_height, 54.0);
         assert_close(metrics.row_action_height, 24.0);
         assert_close(metrics.open_action_width, 52.0);
+        assert_close(metrics.safe_action_width, 24.0);
+        assert_close(metrics.recover_action_width, 24.0);
         for (pane_width, expected_recent_width) in [(560.0, 244.0), (640.0, 320.0), (900.0, 320.0)]
         {
             let viewport =
@@ -224,13 +310,29 @@ mod tests {
             assert_close(second.row.y - first.row.y, 62.0);
             assert!(first.text.x >= first.row.x);
             assert!(first.text.right() <= first.open.x);
-            assert!(first.open.right() <= first.remove.x);
+            assert!(first.open.right() <= first.safe.x);
+            assert!(first.safe.right() <= first.recover.x);
+            assert!(first.recover.right() <= first.remove.x);
             assert!(first.remove.right() <= first.row.right());
-            for action in [first.open, first.remove] {
+            for action in [first.open, first.safe, first.recover, first.remove] {
                 assert!(action.y >= first.row.y);
                 assert!(action.bottom() <= first.row.bottom());
             }
         }
+    }
+
+    #[test]
+    fn welcome_recent_geometry_reserves_a_recovery_action_between_open_and_remove() {
+        let metrics = welcome_recent_layout_metrics_from_host(METRICS);
+        let viewport = welcome_recent_viewport_with_metrics(UiSize::new(640.0, 520.0), metrics);
+        let row = welcome_recent_row_geometry_with_metrics(viewport, 0, 0.0, metrics);
+
+        assert!(row.text.right() <= row.open.x);
+        assert!(row.open.right() <= row.safe.x);
+        assert!(row.safe.right() <= row.recover.x);
+        assert!(row.recover.right() <= row.remove.x);
+        assert!(row.remove.right() <= row.row.right());
+        assert_close(row.recover.width, metrics.row_action_height);
     }
 
     #[test]
@@ -281,13 +383,17 @@ mod tests {
         assert_close(metrics.row_height, 43.0);
         assert_close(metrics.row_action_height, 21.0);
         assert_close(metrics.open_action_width, 43.0);
+        assert_close(metrics.safe_action_width, 21.0);
+        assert_close(metrics.recover_action_width, 21.0);
         assert_close(row.row.y, viewport.y + 6.0 + 43.0 + 6.0 - 2.0);
         assert_close(
             welcome_recent_content_height_with_metrics(2, metrics),
             104.0,
         );
         assert!(row.text.right() <= row.open.x);
-        assert!(row.open.right() <= row.remove.x);
+        assert!(row.open.right() <= row.safe.x);
+        assert!(row.safe.right() <= row.recover.x);
+        assert!(row.recover.right() <= row.remove.x);
     }
 
     #[test]
@@ -302,9 +408,13 @@ mod tests {
 
         assert_eq!(row.row.width, 0.0);
         assert_eq!(row.open.x, row.row.x);
+        assert_eq!(row.safe.x, row.row.x);
+        assert_eq!(row.recover.x, row.row.x);
         assert_eq!(row.remove.x, row.row.x);
         assert_eq!(row.text.x, row.row.x);
         assert_eq!(row.open.width, 0.0);
+        assert_eq!(row.safe.width, 0.0);
+        assert_eq!(row.recover.width, 0.0);
         assert_eq!(row.remove.width, 0.0);
         assert_eq!(row.text.width, 0.0);
     }

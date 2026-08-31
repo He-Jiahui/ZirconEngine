@@ -78,6 +78,8 @@ source_recheck_required: true
 
 Session Coordinator 已经不是一组简单脚本，而是一套独立的本机控制系统。本轮覆盖 `tools/session_coordinator` 的 306 个 tracked 文件、106,498 physical lines、5,429,337 bytes，其中 106 个生产 Python 文件为 55,498 行，102 个测试文件为 43,943 行并声明 1,175 个 `unittest` 方法；再加 Session Tray 与安装入口后，审查范围为 333 个 tracked 文件、116,080 text lines、6,008,898 bytes。数据库已到 schema 65，包含 Session、计划 WIP、路径租约、Cargo lane、validation copy/ticket、integration candidate、artifact receipt、workflow、Codex sync、supervision、control action 和审计事件。路径租约的 canonicalization/ancestor conflict、artifact 删除前的 filesystem identity reservation、bounded output tail、benchmark Job Object、integration candidate 的 temporary index/commit-tree 构造，以及 Tray 的恢复断路器都比“临时实现”成熟，应保留并升格为共享基础设施。
 
+- 失败交接（`open / Hub03 修复中`）：[Hub shared recent-project loader test import drift](../../zircon_hub/03/failure-2026-08-27-shared-recent-project-load-import.md)
+
 但当前控制面没有可信安全边界。普通 HTTP handler 的 `_authorized()` 恒为 `True`，control HTTP 又把每个请求标成 `runtime_authorized=True`；router 因而把任意本机请求映射成 `maintainer`。runtime descriptor 明确写空 token，测试还固化了“浏览器无需 bearer/cookie 并得到 maintainer”。同一个无认证 `/command` 接口没有 Host/Origin、body 上限、Content-Type 或线程准入限制，却能提交任意 validation command；ordinary validation 随后直接 `Popen(command_tuple)`。浏览器简单请求、被攻陷的本机低权限进程或 DNS rebinding 链可以越过已经实现的 cookie、CSRF、elevation、role 与 action confirmation 体系，进入本机命令执行。
 
 验证和提交的证明链也未闭合。`validation.record_result` 允许调用方把 queued/materializing/running ticket 直接写成 passed，未要求 worker identity、run ID、process receipt 或 command exit evidence；integration candidate 只检查 ticket 同 Session 且 passed，不证明 ticket 的 source manifest、command 和 candidate blob OID 相同。另一条 milestone finalize 路径先覆盖共享 `.git/index`，再在实时工作树根运行 validation commands，既不能证明被测试的字节就是将提交的 tree，也可能在长验证期间覆盖外部 Git staging，最后用旧 index snapshot 抹掉用户新暂存内容。

@@ -1,20 +1,19 @@
-use crate::ui::retained_host::primitives::SharedString;
-
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::frame_geometry::contains_point;
 use super::super::super::super::paint_geometry::frame_from_template;
 use super::super::super::super::template_popup_layout::{
     template_option_popup_frame_within, template_option_row_frame_within,
 };
-use super::hit::{template_popup_row_hit, TemplatePopupRowHit};
+use super::super::TemplateNodePointerMoveKind;
+use super::hit::TemplatePopupRowTarget;
 use super::{next_uniform_popup_row_at_boundary, uniform_popup_row_at_y};
 
-pub(super) fn hit_test_template_option_rows(
-    node: &TemplatePaneNodeData,
+pub(super) fn hit_test_template_option_row_target<'a>(
+    node: &'a TemplatePaneNodeData,
     origin: &FrameRect,
     x: f32,
     y: f32,
-) -> Option<TemplatePopupRowHit> {
+) -> Option<TemplatePopupRowTarget<'a>> {
     let row_count = node.structured_options.row_count();
     if row_count == 0 {
         return None;
@@ -54,23 +53,22 @@ pub(super) fn hit_test_template_option_rows(
                 candidate,
                 origin,
             )?;
-            return Some(TemplatePopupRowHit::Hit(template_popup_row_hit(
-                node,
-                row_frame,
-                "workbench_option",
-                action_id.clone(),
-                option.id.clone(),
-            )));
+            return Some(TemplatePopupRowTarget::Hit {
+                kind: TemplateNodePointerMoveKind::Option,
+                action_id,
+                value_text: option.id.as_str(),
+                frame: row_frame,
+            });
         }
-        return Some(TemplatePopupRowHit::Blocked);
+        return Some(TemplatePopupRowTarget::Blocked);
     }
     None
 }
 
-fn option_action_id(node: &TemplatePaneNodeData) -> SharedString {
+fn option_action_id(node: &TemplatePaneNodeData) -> &str {
     if node.edit_action_id.is_empty() {
-        node.action_id.clone()
+        node.action_id.as_str()
     } else {
-        node.edit_action_id.clone()
+        node.edit_action_id.as_str()
     }
 }

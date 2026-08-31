@@ -38,18 +38,18 @@ pub(in crate::scene::components::scene) fn write_mass_properties_mode(
     value: ReflectedValue,
 ) -> Result<bool, ReflectError> {
     let value = expect_enum(value, "mass_properties_mode")?;
-    let next = match normalized_enum_name(&value).as_str() {
-        "explicit" => PhysicsMassProperties::Explicit {
+    let next = if normalized_enum_name_matches(&value, "explicit") {
+        PhysicsMassProperties::Explicit {
             inertia_tensor: None,
-        },
-        "autofromshape" => PhysicsMassProperties::AutoFromShape { density: 1.0 },
-        _ => {
-            return Err(type_mismatch(
-                "mass_properties_mode",
-                "Explicit or AutoFromShape Enum",
-                "Enum",
-            ));
         }
+    } else if normalized_enum_name_matches(&value, "autofromshape") {
+        PhysicsMassProperties::AutoFromShape { density: 1.0 }
+    } else {
+        return Err(type_mismatch(
+            "mass_properties_mode",
+            "Explicit or AutoFromShape Enum",
+            "Enum",
+        ));
     };
     replace_if_changed(&mut component.mass_properties, next)
 }
@@ -106,16 +106,16 @@ pub(in crate::scene::components::scene) fn write_ccd_mode(
     value: ReflectedValue,
 ) -> Result<bool, ReflectError> {
     let value = expect_enum(value, "ccd_mode")?;
-    let next = match normalized_enum_name(&value).as_str() {
-        "disabled" => PhysicsCcdMode::Disabled,
-        "linearcast" => PhysicsCcdMode::LinearCast,
-        _ => {
-            return Err(type_mismatch(
-                "ccd_mode",
-                "Disabled or LinearCast Enum",
-                "Enum",
-            ));
-        }
+    let next = if normalized_enum_name_matches(&value, "disabled") {
+        PhysicsCcdMode::Disabled
+    } else if normalized_enum_name_matches(&value, "linearcast") {
+        PhysicsCcdMode::LinearCast
+    } else {
+        return Err(type_mismatch(
+            "ccd_mode",
+            "Disabled or LinearCast Enum",
+            "Enum",
+        ));
     };
     replace_if_changed(&mut component.ccd_mode, next)
 }
@@ -137,10 +137,12 @@ pub(in crate::scene::components::scene) fn write_sleep_policy(
     value: ReflectedValue,
 ) -> Result<bool, ReflectError> {
     let value = expect_enum(value, "sleep_policy")?;
-    let next = match normalized_enum_name(&value).as_str() {
-        "allow" => PhysicsSleepPolicy::Allow,
-        "never" => PhysicsSleepPolicy::Never,
-        _ => return Err(type_mismatch("sleep_policy", "Allow or Never Enum", "Enum")),
+    let next = if normalized_enum_name_matches(&value, "allow") {
+        PhysicsSleepPolicy::Allow
+    } else if normalized_enum_name_matches(&value, "never") {
+        PhysicsSleepPolicy::Never
+    } else {
+        return Err(type_mismatch("sleep_policy", "Allow or Never Enum", "Enum"));
     };
     replace_if_changed(&mut component.sleep_policy, next)
 }
@@ -172,15 +174,17 @@ fn expect_enum(value: ReflectedValue, field_name: &str) -> Result<String, Reflec
     }
 }
 
-fn normalized_enum_name(value: &str) -> String {
-    let mut normalized = String::with_capacity(value.len());
-    for character in value.chars() {
-        if character.is_ascii_alphanumeric() {
-            normalized.push(character.to_ascii_lowercase());
-        }
-    }
-    normalized
+fn normalized_enum_name_matches(value: &str, expected: &str) -> bool {
+    value
+        .bytes()
+        .filter(u8::is_ascii_alphanumeric)
+        .map(|byte| byte.to_ascii_lowercase())
+        .eq(expected.bytes())
 }
+
+#[cfg(test)]
+#[path = "rigid_body/borrowed_enum_tests.rs"]
+mod borrowed_enum_tests;
 
 fn replace_if_changed<T>(current: &mut T, next: T) -> Result<bool, ReflectError>
 where

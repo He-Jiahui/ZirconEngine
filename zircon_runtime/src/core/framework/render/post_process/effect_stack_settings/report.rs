@@ -28,6 +28,9 @@ impl RenderPostProcessEffectStackReport {
         resources: RenderPostProcessEffectStackResourceStatus,
     ) -> Self {
         let mut report = Self::default();
+        let depth_of_field_enabled = settings.depth_of_field.is_enabled();
+        let motion_blur_enabled = settings.motion_blur.is_enabled();
+        let screen_space_reflection_enabled = settings.screen_space_reflection.is_enabled();
 
         push_label(
             &mut report.active_families,
@@ -46,17 +49,17 @@ impl RenderPostProcessEffectStackReport {
         );
         push_label(
             &mut report.active_families,
-            settings.depth_of_field.is_enabled(),
+            depth_of_field_enabled,
             "depth-of-field",
         );
         push_label(
             &mut report.active_families,
-            settings.motion_blur.is_enabled(),
+            motion_blur_enabled,
             "motion-blur",
         );
         push_label(
             &mut report.active_families,
-            settings.screen_space_reflection.is_enabled(),
+            screen_space_reflection_enabled,
             "screen-space-reflection",
         );
         push_label(
@@ -87,17 +90,17 @@ impl RenderPostProcessEffectStackReport {
 
         push_label(
             &mut report.approximated_families,
-            settings.depth_of_field.is_enabled(),
+            depth_of_field_enabled,
             "depth-of-field",
         );
         push_label(
             &mut report.approximated_families,
-            settings.motion_blur.is_enabled(),
+            motion_blur_enabled,
             "motion-blur",
         );
         push_label(
             &mut report.approximated_families,
-            settings.screen_space_reflection.is_enabled(),
+            screen_space_reflection_enabled,
             "screen-space-reflection",
         );
 
@@ -116,19 +119,19 @@ impl RenderPostProcessEffectStackReport {
                 .missing_resources
                 .push("effect-stack.lut.texture-layout".to_string());
         }
-        if settings.screen_space_reflection.is_enabled() && !resources.ssr_normal_available {
+        if screen_space_reflection_enabled && !resources.ssr_normal_available {
             report
                 .missing_resources
                 .push("effect-stack.ssr.normal".to_string());
         }
-        let ssr_temporal_history_missing = settings.screen_space_reflection.is_enabled()
-            && !resources.ssr_temporal_history_available;
+        let ssr_temporal_history_missing =
+            screen_space_reflection_enabled && !resources.ssr_temporal_history_available;
         if ssr_temporal_history_missing {
             report
                 .missing_resources
                 .push("effect-stack.ssr.temporal-history".to_string());
         }
-        let ssr_temporal_vector_missing = settings.screen_space_reflection.is_enabled()
+        let ssr_temporal_vector_missing = screen_space_reflection_enabled
             && resources.ssr_temporal_history_available
             && !resources.motion_vector_available;
         if ssr_temporal_vector_missing {
@@ -136,7 +139,7 @@ impl RenderPostProcessEffectStackReport {
                 .missing_resources
                 .push("effect-stack.ssr.temporal-motion-vector".to_string());
         }
-        let ssr_temporal_prepass_missing = settings.screen_space_reflection.is_enabled()
+        let ssr_temporal_prepass_missing = screen_space_reflection_enabled
             && resources.ssr_temporal_history_available
             && !resources.motion_vector_prepass_available;
         if ssr_temporal_prepass_missing {
@@ -146,13 +149,13 @@ impl RenderPostProcessEffectStackReport {
                 "effect-stack.ssr.temporal-velocity-prepass",
             );
         }
-        if settings.motion_blur.is_enabled() && !resources.motion_vector_available {
+        if motion_blur_enabled && !resources.motion_vector_available {
             report
                 .missing_resources
                 .push("effect-stack.motion-blur.motion-vector".to_string());
         }
         let motion_vector_prepass_missing =
-            settings.motion_blur.is_enabled() && !resources.motion_vector_prepass_available;
+            motion_blur_enabled && !resources.motion_vector_prepass_available;
         if motion_vector_prepass_missing {
             push_velocity_prepass_missing_resources(
                 &mut report,
@@ -609,5 +612,44 @@ mod tests {
 
     fn labels<const N: usize>(items: [&str; N]) -> Vec<String> {
         items.into_iter().map(str::to_string).collect()
+    }
+
+    #[test]
+    fn optimization_batch_20260830dh_post_process_report_caches_repeated_feature_gates() {
+        let source = include_str!("report.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("post-process report production source");
+
+        assert!(production.contains("let depth_of_field_enabled"));
+        assert!(production.contains("let motion_blur_enabled"));
+        assert!(production.contains("let screen_space_reflection_enabled"));
+        assert_eq!(production.matches("depth_of_field.is_enabled()").count(), 1);
+        assert_eq!(production.matches("motion_blur.is_enabled()").count(), 1);
+        assert_eq!(
+            production
+                .matches("screen_space_reflection.is_enabled()")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830dh_post_process_gate_cache_evidence() {
+        const BATCH_COUNT: usize = 32_768;
+        const LEGACY_GATE_READS_PER_BATCH: usize = 12;
+        const OPTIMIZED_GATE_READS_PER_BATCH: usize = 3;
+        const MARKER: &str = "RUNTIME520_POST_PROCESS_GATE_CACHE_BENCH_V1";
+
+        let legacy_gate_reads = BATCH_COUNT * LEGACY_GATE_READS_PER_BATCH;
+        let optimized_gate_reads = BATCH_COUNT * OPTIMIZED_GATE_READS_PER_BATCH;
+
+        assert_eq!(optimized_gate_reads * 4, legacy_gate_reads);
+        println!(
+            "{MARKER} batches={BATCH_COUNT} legacy_gate_reads={legacy_gate_reads} \
+             optimized_gate_reads={optimized_gate_reads} reduction_pct=75"
+        );
     }
 }

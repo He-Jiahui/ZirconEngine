@@ -34,7 +34,7 @@ impl<'de> Deserialize<'de> for RandomServiceCheckpoint {
 }
 
 impl RandomServiceCheckpoint {
-    pub const FORMAT_VERSION: u16 = 1;
+    pub const FORMAT_VERSION: u16 = 2;
 
     pub fn try_new(
         service: RandomServiceState,
@@ -76,6 +76,15 @@ impl RandomServiceCheckpoint {
         }
 
         for (index, stream) in streams.iter().copied().enumerate() {
+            if stream.master_seed_generation() != service.master_seed_generation() {
+                return Err(
+                    RandomServiceCheckpointError::StreamAuthorityGenerationMismatch {
+                        index,
+                        service_generation: service.master_seed_generation(),
+                        stream_generation: stream.master_seed_generation(),
+                    },
+                );
+            }
             if stream.state().algorithm() != service.algorithm() {
                 return Err(RandomServiceCheckpointError::StreamAlgorithmMismatch {
                     index,

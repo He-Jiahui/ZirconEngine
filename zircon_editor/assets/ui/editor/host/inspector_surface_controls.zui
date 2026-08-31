@@ -19,35 +19,35 @@ component = "InputField"
 control_id = "NameField"
 props = { label = "Name", value = "", placeholder = "Name", value_text = "", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-events = [{ id = "InspectorView/NameField", event = "Change", route = "workbench.draft.set_inspector_field" }]
+events = [{ id = "InspectorView/NameField", event = "Change", route = "workbench.inspector.field.name.change" }]
 
 [nodes.parent]
 component = "InputField"
 control_id = "ParentField"
 props = { label = "Parent", value = "", placeholder = "Parent", value_text = "", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-events = [{ id = "InspectorView/ParentField", event = "Change", route = "workbench.draft.set_inspector_field" }]
+events = [{ id = "InspectorView/ParentField", event = "Change", route = "workbench.inspector.field.parent.change" }]
 
 [nodes.position_x]
 component = "NumberField"
 control_id = "PositionXField"
 props = { label = "X", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_clickable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-events = [{ id = "InspectorView/PositionXField", event = "Change", route = "workbench.draft.set_inspector_field" }]
+events = [{ id = "InspectorView/PositionXField", event = "Change", route = "workbench.inspector.field.translation_x.change" }]
 
 [nodes.position_y]
 component = "NumberField"
 control_id = "PositionYField"
 props = { label = "Y", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_clickable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-events = [{ id = "InspectorView/PositionYField", event = "Change", route = "workbench.draft.set_inspector_field" }]
+events = [{ id = "InspectorView/PositionYField", event = "Change", route = "workbench.inspector.field.translation_y.change" }]
 
 [nodes.position_z]
 component = "NumberField"
 control_id = "PositionZField"
 props = { label = "Z", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_clickable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-events = [{ id = "InspectorView/PositionZField", event = "Change", route = "workbench.draft.set_inspector_field" }]
+events = [{ id = "InspectorView/PositionZField", event = "Change", route = "workbench.inspector.field.translation_z.change" }]
 
 [nodes.actions]
 component = "HorizontalGroup"

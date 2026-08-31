@@ -5,10 +5,17 @@ pub(in crate::plugin::runtime_plugin::package_validation::coordinates) fn valida
     value: &str,
     diagnostics: &mut Vec<String>,
 ) {
-    if value.trim().is_empty() || value.trim() != value || !is_lowercase_runtime_plugin_token(value)
+    let trimmed = value.trim();
+    if trimmed.is_empty()
+        || trimmed.len() != value.len()
+        || !is_lowercase_runtime_plugin_token(value)
     {
         diagnostics.push(format!(
             "runtime plugin package manifest {field_name} `{value}` must be a non-empty lowercase coordinate segment"
         ));
     }
 }
+
+#[cfg(test)]
+#[path = "segment/single_trim_tests.rs"]
+mod single_trim_tests;

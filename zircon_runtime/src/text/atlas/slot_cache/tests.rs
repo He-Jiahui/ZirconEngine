@@ -1,8 +1,8 @@
 use super::*;
+use crate::text::InstancedFaceId;
 use crate::text::atlas::{
     GlyphAtlasFormat, GlyphHintingMode, GlyphSmoothingMode, SyntheticGlyphStyle,
 };
-use crate::text::InstancedFaceId;
 
 #[test]
 fn render_text_atlas_slot_cache_invalidates_allocator_and_slots_by_page() {

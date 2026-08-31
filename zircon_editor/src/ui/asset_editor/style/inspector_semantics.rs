@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::iter::Peekable;
 
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use toml::{map::Map, Value};
@@ -300,14 +301,14 @@ pub(crate) fn set_selected_layout_semantic_value(
     match next {
         Some(value) => {
             let layout = node.layout.get_or_insert_with(Default::default);
-            set_path_value(layout, &split_path(path), value);
+            set_path_value(layout, path, value);
             true
         }
         None => {
             let Some(layout) = node.layout.as_mut() else {
                 return false;
             };
-            let removed = remove_path_value(layout, &split_path(path));
+            let removed = remove_path_value(layout, path);
             if removed && layout.is_empty() {
                 node.layout = None;
             }
@@ -327,7 +328,7 @@ pub(crate) fn delete_selected_layout_semantic(
     let Some(layout) = node.layout.as_mut() else {
         return false;
     };
-    let removed = remove_path_value(layout, &split_path(path));
+    let removed = remove_path_value(layout, path);
     if removed && layout.is_empty() {
         node.layout = None;
     }
@@ -419,23 +420,21 @@ fn set_value_in_map(values: &mut BTreeMap<String, Value>, path: &str, literal: &
 
     match next {
         Some(value) => {
-            set_path_value(values, &split_path(path), value);
+            set_path_value(values, path, value);
             true
         }
-        None => remove_path_value(values, &split_path(path)),
+        None => remove_path_value(values, path),
     }
 }
 
 fn remove_value_in_map(values: &mut BTreeMap<String, Value>, path: &str) -> bool {
-    remove_path_value(values, &split_path(path))
+    remove_path_value(values, path)
 }
 
-fn split_path(path: &str) -> Vec<String> {
+fn path_segments(path: &str) -> impl Iterator<Item = &str> {
     path.split('.')
         .map(str::trim)
         .filter(|segment| !segment.is_empty())
-        .map(str::to_string)
-        .collect()
 }
 
 fn value_map_literal(values: &BTreeMap<String, Value>, path: &str) -> Option<String> {
@@ -454,10 +453,7 @@ fn value_map_string_literal(values: &BTreeMap<String, Value>, path: &str) -> Opt
 }
 
 fn value_map_value<'a>(values: &'a BTreeMap<String, Value>, path: &str) -> Option<&'a Value> {
-    let mut segments = path
-        .split('.')
-        .map(str::trim)
-        .filter(|segment| !segment.is_empty());
+    let mut segments = path_segments(path);
     let mut value = values.get(segments.next()?)?;
     for segment in segments {
         let Value::Table(table) = value else {
@@ -468,17 +464,18 @@ fn value_map_value<'a>(values: &'a BTreeMap<String, Value>, path: &str) -> Optio
     Some(value)
 }
 
-fn set_path_value(values: &mut BTreeMap<String, Value>, path: &[String], value: Value) {
-    let Some((first, rest)) = path.split_first() else {
+fn set_path_value(values: &mut BTreeMap<String, Value>, path: &str, value: Value) {
+    let mut segments = path_segments(path).peekable();
+    let Some(first) = segments.next() else {
         return;
     };
-    if rest.is_empty() {
-        let _ = values.insert(first.clone(), value);
+    if segments.peek().is_none() {
+        let _ = values.insert(first.to_string(), value);
         return;
     }
 
     let entry = values
-        .entry(first.clone())
+        .entry(first.to_string())
         .or_insert_with(|| Value::Table(Map::new()));
     if !matches!(entry, Value::Table(_)) {
         *entry = Value::Table(Map::new());
@@ -486,20 +483,26 @@ fn set_path_value(values: &mut BTreeMap<String, Value>, path: &[String], value: 
     let Value::Table(table) = entry else {
         unreachable!("entry should be a table before recursion");
     };
-    set_table_path_value(table, rest, value);
+    set_table_path_value(table, &mut segments, value);
 }
 
-fn set_table_path_value(values: &mut Map<String, Value>, path: &[String], value: Value) {
-    let Some((first, rest)) = path.split_first() else {
+fn set_table_path_value<'a, I>(
+    values: &mut Map<String, Value>,
+    segments: &mut Peekable<I>,
+    value: Value,
+) where
+    I: Iterator<Item = &'a str>,
+{
+    let Some(first) = segments.next() else {
         return;
     };
-    if rest.is_empty() {
-        let _ = values.insert(first.clone(), value);
+    if segments.peek().is_none() {
+        let _ = values.insert(first.to_string(), value);
         return;
     }
 
     let entry = values
-        .entry(first.clone())
+        .entry(first.to_string())
         .or_insert_with(|| Value::Table(Map::new()));
     if !matches!(entry, Value::Table(_)) {
         *entry = Value::Table(Map::new());
@@ -507,14 +510,15 @@ fn set_table_path_value(values: &mut Map<String, Value>, path: &[String], value:
     let Value::Table(table) = entry else {
         unreachable!("entry should be a table before recursion");
     };
-    set_table_path_value(table, rest, value);
+    set_table_path_value(table, segments, value);
 }
 
-fn remove_path_value(values: &mut BTreeMap<String, Value>, path: &[String]) -> bool {
-    let Some((first, rest)) = path.split_first() else {
+fn remove_path_value(values: &mut BTreeMap<String, Value>, path: &str) -> bool {
+    let mut segments = path_segments(path).peekable();
+    let Some(first) = segments.next() else {
         return false;
     };
-    if rest.is_empty() {
+    if segments.peek().is_none() {
         return values.remove(first).is_some();
     }
 
@@ -524,18 +528,24 @@ fn remove_path_value(values: &mut BTreeMap<String, Value>, path: &[String]) -> b
     let Value::Table(table) = entry else {
         return false;
     };
-    let removed = remove_table_path_value(table, rest);
+    let removed = remove_table_path_value(table, &mut segments);
     if removed && table.is_empty() {
         let _ = values.remove(first);
     }
     removed
 }
 
-fn remove_table_path_value(values: &mut Map<String, Value>, path: &[String]) -> bool {
-    let Some((first, rest)) = path.split_first() else {
+fn remove_table_path_value<'a, I>(
+    values: &mut Map<String, Value>,
+    segments: &mut Peekable<I>,
+) -> bool
+where
+    I: Iterator<Item = &'a str>,
+{
+    let Some(first) = segments.next() else {
         return false;
     };
-    if rest.is_empty() {
+    if segments.peek().is_none() {
         return values.remove(first).is_some();
     }
 
@@ -545,7 +555,7 @@ fn remove_table_path_value(values: &mut Map<String, Value>, path: &[String]) -> 
     let Value::Table(table) = entry else {
         return false;
     };
-    let removed = remove_table_path_value(table, rest);
+    let removed = remove_table_path_value(table, segments);
     if removed && table.is_empty() {
         let _ = values.remove(first);
     }
@@ -601,3 +611,7 @@ fn selected_child_mount_mut<'a>(
         .as_deref()
         .and_then(|node_id| document.child_mount_mut(node_id))
 }
+
+#[cfg(test)]
+#[path = "inspector_semantics/streaming_path_tests.rs"]
+mod streaming_path_tests;

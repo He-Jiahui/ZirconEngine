@@ -6,13 +6,11 @@ use crate::core::asset::import_flow::state::{
 };
 
 #[test]
-fn admission_waiter_observes_original_fast_failure() {
+fn unadmitted_shared_flight_returns_pending_without_waiting() {
     let jobs = test_job_system();
     let backend = Arc::new(RecordingBackend::default());
-    backend.fail.store(true, Ordering::SeqCst);
     let index = index_for("res://textures/admission-race.png");
     let entered = Arc::new((Mutex::new(false), Condvar::new()));
-    let observer_entered = Arc::new((Mutex::new(false), Condvar::new()));
     let released = Arc::new((Mutex::new(false), Condvar::new()));
     let hook_once = Arc::new(AtomicBool::new(false));
     let hook = {
@@ -39,23 +37,10 @@ fn admission_waiter_observes_original_fast_failure() {
             }
         }) as Arc<dyn Fn() + Send + Sync>
     };
-    let observer_hook = {
-        let observer_entered = Arc::clone(&observer_entered);
-        Arc::new(move || {
-            let (entered, changed) = &*observer_entered;
-            *entered
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner()) = true;
-            changed.notify_all();
-        }) as Arc<dyn Fn() + Send + Sync>
-    };
     let flow = EditorAssetImportFlow::with_backend(jobs, backend.clone(), index)
-        .with_before_job_submit(hook)
-        .with_before_wait_admission(observer_hook);
-    let request = EditorAssetImportRequest::new(
-        uri("res://textures/admission-race.png"),
-        EditorAssetImportReason::Watch,
-    );
+        .with_before_job_submit(hook);
+    let target = uri("res://textures/admission-race.png");
+    let request = EditorAssetImportRequest::new(target.clone(), EditorAssetImportReason::Watch);
     let first_flow = flow.clone();
     let first_request = request.clone();
     let first = thread::spawn(move || first_flow.submit(first_request).unwrap());
@@ -71,18 +56,17 @@ fn admission_waiter_observes_original_fast_failure() {
     }
     drop(has_entered);
 
-    let second_flow = flow.clone();
-    let second = thread::spawn(move || second_flow.submit(request).unwrap());
-    let (observer_lock, observer_changed) = &*observer_entered;
-    let mut observer_is_waiting = observer_lock
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    while !*observer_is_waiting {
-        observer_is_waiting = observer_changed
-            .wait(observer_is_waiting)
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-    }
-    drop(observer_is_waiting);
+    let pending = flow
+        .submit(EditorAssetImportRequest::new(
+            target.clone(),
+            EditorAssetImportReason::Manual,
+        ))
+        .unwrap_err();
+    assert!(matches!(
+        pending,
+        EditorAssetImportSubmitError::AdmissionPending { uri } if uri == target
+    ));
+
     let (released_lock, released_changed) = &*released;
     *released_lock
         .lock()
@@ -90,10 +74,14 @@ fn admission_waiter_observes_original_fast_failure() {
     released_changed.notify_all();
 
     let first = first.join().unwrap();
-    let second = second.join().unwrap();
-    assert_eq!(first.id(), second.id());
-    assert!(matches!(first.wait(), Err(JobError::Failed(_))));
-    assert!(matches!(second.wait(), Err(JobError::Failed(_))));
+    let result = first.wait().unwrap();
+    assert_eq!(
+        result.reasons(),
+        vec![
+            EditorAssetImportReason::Watch,
+            EditorAssetImportReason::Manual,
+        ]
+    );
     assert_eq!(
         backend
             .calls
@@ -102,6 +90,101 @@ fn admission_waiter_observes_original_fast_failure() {
             .len(),
         1
     );
+}
+
+#[test]
+fn uuid_lifecycle_transition_returns_pending_without_waiting() {
+    let jobs = test_job_system();
+    let backend = Arc::new(RecordingBackend::default());
+    let old_uri = uri("res://textures/lifecycle-old.png");
+    let new_uri = uri("res://textures/lifecycle-new.png");
+    let index = index_for(&old_uri.to_string());
+    let entered = Arc::new((Mutex::new(false), Condvar::new()));
+    let released = Arc::new((Mutex::new(false), Condvar::new()));
+    let hook_once = Arc::new(AtomicBool::new(false));
+    let hook = {
+        let entered = Arc::clone(&entered);
+        let released = Arc::clone(&released);
+        let hook_once = Arc::clone(&hook_once);
+        Arc::new(move || {
+            if hook_once.swap(true, Ordering::SeqCst) {
+                return;
+            }
+            let (entered_lock, entered_changed) = &*entered;
+            *entered_lock
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()) = true;
+            entered_changed.notify_all();
+            let (released_lock, released_changed) = &*released;
+            let mut released = released_lock
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            while !*released {
+                released = released_changed
+                    .wait(released)
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+            }
+        }) as Arc<dyn Fn() + Send + Sync>
+    };
+    let flow = EditorAssetImportFlow::with_backend(jobs, backend.clone(), Arc::clone(&index))
+        .with_before_generation_validate(hook);
+    let first_flow = flow.clone();
+    let first = thread::spawn(move || {
+        first_flow.submit(EditorAssetImportRequest::new(
+            old_uri,
+            EditorAssetImportReason::Watch,
+        ))
+    });
+
+    let (entered_lock, entered_changed) = &*entered;
+    let mut has_entered = entered_lock
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    while !*has_entered {
+        has_entered = entered_changed
+            .wait(has_entered)
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+    }
+    drop(has_entered);
+
+    let replacement = AssetRegistryIndex::from_entries([AssetRegistryEntry::new(
+        uuid("asset"),
+        new_uri.clone(),
+        AssetKind::Texture,
+        "new-digest",
+    )])
+    .unwrap();
+    index
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .replace_runtime_registry(Arc::new(replacement));
+
+    let pending = flow
+        .submit(EditorAssetImportRequest::new(
+            new_uri.clone(),
+            EditorAssetImportReason::Manual,
+        ))
+        .unwrap_err();
+    assert!(matches!(
+        pending,
+        EditorAssetImportSubmitError::UuidLifecycleTransitionPending { uri } if uri == new_uri
+    ));
+
+    let (released_lock, released_changed) = &*released;
+    *released_lock
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner()) = true;
+    released_changed.notify_all();
+
+    assert!(matches!(
+        first.join().unwrap(),
+        Err(EditorAssetImportSubmitError::AssetNotIndexed { .. })
+    ));
+    assert!(backend
+        .calls
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .is_empty());
 }
 
 #[test]
@@ -152,6 +235,53 @@ fn registry_generation_change_retries_before_job_submission() {
         1
     );
     assert_eq!(import_state(&index, &target), EditorAssetImportState::Stale);
+}
+
+#[test]
+fn repeated_registry_revalidation_returns_superseded_without_job_submission() {
+    let jobs = test_job_system();
+    let backend = Arc::new(RecordingBackend::default());
+    let target = uri("res://textures/revalidate-forever.png");
+    let index = index_for(&target.to_string());
+    let revision = Arc::new(AtomicUsize::new(0));
+    let hook = {
+        let index = Arc::clone(&index);
+        let revision = Arc::clone(&revision);
+        let target = target.clone();
+        Arc::new(move || {
+            let revision = revision.fetch_add(1, Ordering::SeqCst);
+            let registry = AssetRegistryIndex::from_entries([AssetRegistryEntry::new(
+                uuid("asset"),
+                target.clone(),
+                AssetKind::Texture,
+                format!("digest-{revision}"),
+            )])
+            .unwrap();
+            index
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .replace_runtime_registry(Arc::new(registry));
+        }) as Arc<dyn Fn() + Send + Sync>
+    };
+    let flow = EditorAssetImportFlow::with_backend(jobs, backend.clone(), index)
+        .with_before_generation_validate(hook);
+
+    let error = flow
+        .submit(EditorAssetImportRequest::new(
+            target.clone(),
+            EditorAssetImportReason::DigestMismatch,
+        ))
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        EditorAssetImportSubmitError::RegistryGenerationSuperseded { uri } if uri == target
+    ));
+    assert!(backend
+        .calls
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .is_empty());
 }
 
 #[test]

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::layout::UiPixelSnappingPolicy;
 use crate::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
 use super::{
@@ -10,6 +11,9 @@ use super::{
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiResolvedStyle {
+    /// Paint-only device-pixel alignment. Text/layout cache keys intentionally
+    /// derive only from their relevant fields and do not consume this policy.
+    pub pixel_snapping: UiPixelSnappingPolicy,
     pub background_color: Option<String>,
     pub foreground_color: Option<String>,
     pub border_color: Option<String>,
@@ -72,6 +76,7 @@ impl UiResolvedStyle {
 impl Default for UiResolvedStyle {
     fn default() -> Self {
         Self {
+            pixel_snapping: UiPixelSnappingPolicy::Inherit,
             background_color: None,
             foreground_color: None,
             border_color: None,

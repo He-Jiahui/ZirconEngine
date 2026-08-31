@@ -17,6 +17,10 @@ use super::contract::{
 use super::ticket::{NativePluginDiscoveryRefreshTerminal, NativePluginDiscoveryRefreshTicket};
 use super::work::NativePluginDiscoveryRefreshWork;
 
+#[cfg(test)]
+#[path = "service/pending_work_move_tests.rs"]
+mod pending_work_move_tests;
+
 thread_local! {
     static NATIVE_PLUGIN_DISCOVERY_IO_LANE: Cell<bool> = const { Cell::new(false) };
 }
@@ -107,7 +111,7 @@ struct ActiveRefresh {
     generation: u64,
     ticket: NativePluginDiscoveryRefreshTicket,
     input: NativePluginDiscoveryRefreshInput,
-    work: NativePluginDiscoveryRefreshWork,
+    work: Option<NativePluginDiscoveryRefreshWork>,
 }
 
 struct PendingRefresh {
@@ -116,6 +120,13 @@ struct PendingRefresh {
     input: NativePluginDiscoveryRefreshInput,
     work: NativePluginDiscoveryRefreshWork,
     base_snapshot: Option<Arc<NativePluginDiscoverySnapshot>>,
+}
+
+fn take_active_refresh_work(
+    work: &mut Option<NativePluginDiscoveryRefreshWork>,
+) -> NativePluginDiscoveryRefreshWork {
+    work.take()
+        .expect("active refresh work is available until the first pending generation")
 }
 
 impl fmt::Debug for NativePluginDiscoveryRefreshService {
@@ -239,11 +250,11 @@ impl NativePluginDiscoveryRefreshService {
                         pending.ticket.clone()
                     } else {
                         let (active_ticket, active_generation, active_work) = {
-                            let active = root_state.active.as_ref().expect("active refresh");
+                            let active = root_state.active.as_mut().expect("active refresh");
                             (
                                 active.ticket.clone(),
                                 active.generation,
-                                active.work.clone(),
+                                take_active_refresh_work(&mut active.work),
                             )
                         };
                         let mut pending_work = active_work;
@@ -277,7 +288,7 @@ impl NativePluginDiscoveryRefreshService {
                         generation,
                         ticket: ticket.clone(),
                         input: input.clone(),
-                        work: work.clone(),
+                        work: Some(work.clone()),
                     });
                     launch = Some((root, generation, ticket.clone(), input, work, base_snapshot));
                     ticket
@@ -622,7 +633,7 @@ fn complete_generation(
                         generation: pending.generation,
                         ticket: pending.ticket.clone(),
                         input: pending.input.clone(),
-                        work: pending.work.clone(),
+                        work: Some(pending.work.clone()),
                     });
                     Some((
                         root.clone(),

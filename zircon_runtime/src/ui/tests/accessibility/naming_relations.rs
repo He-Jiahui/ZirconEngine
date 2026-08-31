@@ -1,6 +1,147 @@
 use super::*;
 
 #[test]
+fn rich_text_name_uses_compiled_visible_text_instead_of_source_markup() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/rich-label"))
+                .with_frame(UiFrame::new(4.0, 4.0, 160.0, 24.0))
+                .with_template_metadata(metadata(
+                    "Text",
+                    "text = '<b>Visible</b> label'\nrich_text_format = 'html_subset_v1'",
+                )),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let snapshot = surface.accessibility_snapshot();
+    assert_eq!(
+        snapshot.node(id(2)).unwrap().name.as_deref(),
+        Some("Visible label")
+    );
+}
+
+#[test]
+fn labelled_by_rich_text_uses_the_target_compiled_visible_text() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/rich-label"))
+                .with_frame(UiFrame::new(4.0, 4.0, 160.0, 24.0))
+                .with_template_metadata(metadata(
+                    "Text",
+                    "text = '[b]Rich[/b] relation'\nrich_text_format = 'bbcode_v1'",
+                )),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(3), UiNodePath::new("root/input"))
+                .with_frame(UiFrame::new(4.0, 32.0, 160.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "TextField".to_string(),
+                    a11y: UiAccessibilityContract {
+                        labelled_by: Some("2".to_string()),
+                        ..UiAccessibilityContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let snapshot = surface.accessibility_snapshot();
+    assert_eq!(
+        snapshot.node(id(3)).unwrap().name.as_deref(),
+        Some("Rich relation")
+    );
+}
+
+#[test]
+fn stale_rich_text_artifact_does_not_fall_back_to_source_markup() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/rich-label"))
+                .with_frame(UiFrame::new(4.0, 4.0, 160.0, 24.0))
+                .with_template_metadata(metadata(
+                    "Text",
+                    "text = '<b>Before</b>'\nrich_text_format = 'html_subset_v1'",
+                )),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface
+        .tree
+        .nodes
+        .get_mut(&id(2))
+        .and_then(|node| node.template_metadata.as_mut())
+        .expect("rich label metadata")
+        .attributes
+        .insert(
+            "text".to_string(),
+            toml::Value::String("<b>After</b>".to_string()),
+        );
+
+    let snapshot = surface.accessibility_snapshot();
+    assert_eq!(snapshot.node(id(2)).unwrap().name, None);
+}
+
+#[test]
+fn hidden_rich_relation_target_uses_surface_text_owner_without_render_command() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/hidden-rich-label"))
+                .with_frame(UiFrame::new(4.0, 4.0, 160.0, 24.0))
+                .with_visibility(UiVisibility::Hidden)
+                .with_template_metadata(metadata(
+                    "Text",
+                    "text = '<b>Hidden</b> relation'\nrich_text_format = 'html_subset_v1'",
+                )),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(3), UiNodePath::new("root/input"))
+                .with_frame(UiFrame::new(4.0, 32.0, 160.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "TextField".to_string(),
+                    a11y: UiAccessibilityContract {
+                        labelled_by: Some("2".to_string()),
+                        ..UiAccessibilityContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    assert!(surface.current_render_commands_for_node(id(2)).is_none());
+    let snapshot = surface.accessibility_snapshot();
+    assert_eq!(
+        snapshot.node(id(3)).unwrap().name.as_deref(),
+        Some("Hidden relation")
+    );
+    assert!(snapshot.node(id(2)).unwrap().state.hidden);
+}
+
+#[test]
 fn name_priority_uses_explicit_labelled_by_text_alt_then_tooltip() {
     let mut surface = root_surface();
     surface

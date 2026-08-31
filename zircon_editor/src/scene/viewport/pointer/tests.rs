@@ -1,10 +1,7 @@
-use std::{cell::Cell, collections::BTreeMap};
+use std::{cell::Cell, collections::BTreeMap, sync::Arc};
 
 use zircon_runtime::{
-    core::framework::picking::{
-        HitTarget, PickingAxis, PickingDebugMetricKind, PointerAction, PointerButton, PointerId,
-        PointerScrollUnit,
-    },
+    core::framework::picking::{HitTarget, PickingAxis, PickingDebugMetricKind},
     core::framework::render::{SceneGizmoKind, SceneGizmoOverlayExtract},
     scene::Scene,
     ui::surface::UiSurface,
@@ -16,12 +13,13 @@ use zircon_runtime_interface::{
         event_ui::{UiNodeId, UiNodePath, UiTreeId},
         layout::{UiFrame, UiPoint},
         surface::UiPointerEventKind,
-        tree::{UiInputPolicy, UiTreeNode},
+        tree::{UiInputPolicy, UiTreeError, UiTreeNode},
     },
 };
 
 use crate::scene::viewport::{
-    GizmoAxis, SceneViewportSettings, ViewportCameraSnapshot, ViewportInteractionExtractCache,
+    render_packet::build_render_packet, GizmoAxis, SceneViewportSettings, ViewportCameraSnapshot,
+    ViewportInteractionExtractCache, ViewportInteractionExtractPointerResolution,
 };
 
 use super::{
@@ -33,7 +31,7 @@ use super::{
     },
     overlay_router::ViewportOverlayPointerRouter,
     precision::{PrecisionCandidate, PrecisionShape, SharedResolutionState},
-    runtime_picking_adapter::{resolve_runtime_route, runtime_pointer_input_for_event},
+    runtime_picking_adapter::resolve_runtime_route,
     viewport_pointer_route::ViewportPointerRoute,
 };
 
@@ -84,9 +82,7 @@ fn overlay_router_debug_feed_reports_runtime_picking_route_at_point() {
     seed_debug_feed_router(&mut router);
 
     let point = UiPoint::new(50.0, 50.0);
-    let feed = router
-        .debug_feed_at(point)
-        .expect("debug feed should be readable");
+    let feed = router.debug_feed_at(point);
     let row = feed
         .pointers
         .first()
@@ -110,28 +106,59 @@ fn overlay_router_debug_feed_reports_runtime_picking_route_at_point() {
         })
     );
     assert_eq!(dispatch.picking_debug_feed, Some(feed));
-    let runtime_input = dispatch
-        .runtime_input
-        .expect("dispatch should carry the runtime pointer input");
-    assert_eq!(runtime_input.pointer(), PointerId::new(1));
-    assert_eq!(runtime_input.location.position, Vec2::new(50.0, 50.0));
+}
+
+#[test]
+fn viewport_pointer_surface_errors_remain_typed() {
+    let mut router = ViewportOverlayPointerRouter::new();
+    let removed = router.surface.tree.nodes.remove(&ROOT_NODE_ID);
+    assert!(
+        removed.is_some(),
+        "test fixture must remove the retained root"
+    );
+
+    let error = router
+        .handle_move(UiPoint::new(50.0, 50.0))
+        .expect_err("a retained root missing from the tree must fail routing");
+
+    assert_eq!(error, UiTreeError::MissingNode(ROOT_NODE_ID));
+}
+
+#[test]
+fn poisoned_shared_resolution_state_recovers_without_dropping_pointer_route() {
+    let mut router = ViewportOverlayPointerRouter::new();
+    seed_debug_feed_router(&mut router);
+
+    let shared = Arc::clone(&router.shared);
+    let poisoned = std::thread::spawn(move || {
+        let _state = shared
+            .lock()
+            .expect("test fixture should acquire the shared state");
+        panic!("test fixture poisons the shared resolution state");
+    })
+    .join();
+    assert!(poisoned.is_err());
+
+    let dispatch = router
+        .handle_move(UiPoint::new(50.0, 50.0))
+        .expect("the pointer router must recover its shared state after a poisoned lock");
     assert_eq!(
-        runtime_input.action,
-        PointerAction::Move { delta: Vec2::ZERO }
+        dispatch.route,
+        Some(ViewportPointerRoute::HandleAxis {
+            owner: 7,
+            axis: GizmoAxis::X,
+        })
     );
 }
 
 #[test]
-fn overlay_router_dispatch_maps_release_and_scroll_through_runtime_pointer_input() {
+fn overlay_router_dispatch_keeps_route_and_debug_feed_for_release_and_scroll() {
     let mut router = ViewportOverlayPointerRouter::new();
     seed_debug_feed_router(&mut router);
 
-    let down = router
+    router
         .handle_down(UiPoint::new(50.0, 50.0))
-        .expect("down should dispatch")
-        .runtime_input
-        .expect("down dispatch should carry runtime input");
-    assert_eq!(down.action, PointerAction::Press(PointerButton::Primary));
+        .expect("down should dispatch");
 
     let up = router
         .handle_up(UiPoint::new(50.0, 50.0))
@@ -149,13 +176,6 @@ fn overlay_router_dispatch_maps_release_and_scroll_through_runtime_pointer_input
             .and_then(|feed| feed.metric(PickingDebugMetricKind::HoveredHits)),
         Some(1)
     );
-    assert_eq!(
-        up.runtime_input
-            .expect("up dispatch should carry runtime input")
-            .action,
-        PointerAction::Release(PointerButton::Primary)
-    );
-
     let scroll = router
         .handle_scroll(UiPoint::new(50.0, 50.0), -8.0)
         .expect("scroll should dispatch");
@@ -173,25 +193,19 @@ fn overlay_router_dispatch_maps_release_and_scroll_through_runtime_pointer_input
             .and_then(|feed| feed.metric(PickingDebugMetricKind::HoveredHits)),
         Some(1)
     );
-    assert_eq!(
-        scroll
-            .runtime_input
-            .expect("scroll dispatch should carry runtime input")
-            .action,
-        PointerAction::Scroll {
-            unit: PointerScrollUnit::Pixel,
-            delta: Vec2::new(0.0, -8.0),
-        }
-    );
 }
 
 #[test]
-fn runtime_pointer_adapter_maps_cancel_to_runtime_pointer_action() {
-    let cancel_event = UiPointerEvent::new(UiPointerEventKind::Cancel, UiPoint::new(50.0, 50.0));
-    assert_eq!(
-        runtime_pointer_input_for_event(&cancel_event).action,
-        PointerAction::Cancel
-    );
+fn viewport_pointer_dispatch_does_not_expose_synthetic_runtime_input() {
+    let dispatch = include_str!("viewport_pointer_dispatch.rs");
+    let adapter = include_str!("runtime_picking_adapter.rs");
+    let event = include_str!("overlay_router/viewport_overlay_pointer_router_event.rs");
+
+    assert!(!dispatch.contains("PointerInput"));
+    assert!(!dispatch.contains("runtime_input"));
+    assert!(!adapter.contains("EDITOR_VIEWPORT_HANDLE"));
+    assert!(!adapter.contains("runtime_pointer_input_for_event"));
+    assert!(!event.contains("runtime_pointer_input_for_event"));
 }
 
 #[test]
@@ -205,12 +219,14 @@ fn stable_scene_sync_skips_candidate_and_handle_rebuilds() {
     let cache = ViewportInteractionExtractCache::default();
     let mut router = ViewportOverlayPointerRouter::new();
 
-    let first = cache.resolve_for_pointer(
+    let packet = build_render_packet(&scene, &settings, &camera, None, viewport);
+    let first = cache.resolve_from_render_packet(
         &scene,
         None,
         &settings,
         &camera,
         viewport,
+        &packet.scene.meshes,
         || {
             handle_builds.set(handle_builds.get() + 1);
             Vec::new()
@@ -222,25 +238,45 @@ fn stable_scene_sync_skips_candidate_and_handle_rebuilds() {
     );
     assert!(first.scene_gizmos().iter().any(|gizmo| gizmo.owner == 808));
     assert!(router.sync_scene(&camera, viewport, scene.world_generation(), first));
-    let second = cache.resolve_for_pointer(
+    let second = cache.resolve_for_pointer(&scene, None, &settings, &camera, viewport);
+    let ViewportInteractionExtractPointerResolution::Ready(second) = second else {
+        panic!("render publication must make the extract available to pointer routing");
+    };
+    assert!(!router.sync_scene(&camera, viewport, scene.world_generation(), second));
+
+    assert_eq!(handle_builds.get(), 1);
+    assert_eq!(additional_gizmo_builds.get(), 1);
+}
+
+#[test]
+fn clearing_scene_removes_the_previous_pointer_product_before_next_render_publication() {
+    let scene = Scene::new();
+    let settings = SceneViewportSettings::default();
+    let camera = ViewportCameraSnapshot::default();
+    let viewport = zircon_runtime_interface::math::UVec2::new(1280, 720);
+    let cache = ViewportInteractionExtractCache::default();
+    let mut router = ViewportOverlayPointerRouter::new();
+    let packet = build_render_packet(&scene, &settings, &camera, None, viewport);
+    let extract = cache.resolve_from_render_packet(
         &scene,
         None,
         &settings,
         &camera,
         viewport,
-        || {
-            handle_builds.set(handle_builds.get() + 1);
-            Vec::new()
-        },
-        || {
-            additional_gizmo_builds.set(additional_gizmo_builds.get() + 1);
-            vec![empty_scene_gizmo(808)]
-        },
+        &packet.scene.meshes,
+        Vec::new,
+        Vec::new,
     );
-    assert!(!router.sync_scene(&camera, viewport, scene.world_generation(), second));
 
-    assert_eq!(handle_builds.get(), 1);
-    assert_eq!(additional_gizmo_builds.get(), 1);
+    assert!(router.sync_scene(&camera, viewport, scene.world_generation(), extract));
+    assert!(router.clear_scene());
+    assert_eq!(
+        router
+            .handle_move(UiPoint::new(50.0, 50.0))
+            .expect("the empty pointer surface must remain dispatchable")
+            .route,
+        None
+    );
 }
 
 fn empty_scene_gizmo(owner: u64) -> SceneGizmoOverlayExtract {

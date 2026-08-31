@@ -6,21 +6,23 @@ use crate::graphics::feature::COMPUTE_GENERIC_EXECUTOR_ID;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::shader::template::{ShaderModuleRegistry, ShaderTemplateInclude};
 use crate::render_graph::{
+    CompiledRenderGraphComputeDispatchAccess, CompiledRenderGraphComputeDispatchAccessPacket,
     ComputeBindingKind, RenderGraphComputeDispatchExtent, RenderGraphComputePassMetadata,
-    RenderGraphComputeShaderSource, RenderGraphComputeWorkload, RenderGraphResourceAccessKind,
+    RenderGraphComputeShaderSource, RenderGraphComputeWorkload, RenderGraphResourceKind,
+    RenderGraphVersionedAccessKey,
 };
 
 use super::compute_pipeline_cache::ComputePipelineCache;
-use super::{RenderPassExecutionContext, RenderPassExecutor, RenderPassGpuExecutionContext};
+use super::{
+    RenderGraphComputeDispatchRecord, RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassGpuExecutionContext, RenderPassGpuResourceFactory,
+};
 
 mod binding_resolver;
 mod buffer_binding;
-mod per_pixel_extent;
 mod texture_view;
 
-use binding_resolver::{resolve_bindings, ResolvedComputeBinding};
-use per_pixel_extent::per_pixel_target_extent;
-use texture_view::resolve_compute_texture_view;
+use binding_resolver::{ResolvedComputeBinding, resolve_bindings};
 
 pub(super) fn generic_compute_executor() -> Arc<dyn RenderPassExecutor> {
     Arc::new(GenericComputeExecutor::default())
@@ -46,13 +48,19 @@ impl RenderPassExecutor for GenericComputeExecutor {
                 pass_name
             )
         })?;
-        let per_pixel_access = per_pixel_resource_access(context, workload);
+        let binding_access_packet = context.compute_binding_access_packet().ok_or_else(|| {
+            format!(
+                "compute executor `{COMPUTE_GENERIC_EXECUTOR_ID}` for pass `{}` requires a compiler binding access packet",
+                pass_name
+            )
+        })?;
+        let dispatch_access_packet = context.compute_dispatch_access_packet();
         let context_streamer = context.resource_streamer();
         let gpu = context.require_gpu()?;
         let streamer = context_streamer.or_else(|| gpu.resource_streamer());
-        let bindings = resolve_bindings(gpu, metadata)?;
+        let bindings = resolve_bindings(gpu, metadata, binding_access_packet)?;
         let shader = resolved_wgsl_source(&pass_name, streamer, metadata)?;
-        let dispatch = resolve_dispatch(gpu, metadata, workload, per_pixel_access)?;
+        let dispatch = resolve_dispatch(gpu, workload, dispatch_access_packet)?;
         let storage_write_resources = storage_write_resources(metadata);
 
         let mut pipeline_cache = self
@@ -63,19 +71,22 @@ impl RenderPassExecutor for GenericComputeExecutor {
             .iter()
             .map(|binding| binding.layout.clone())
             .collect::<Vec<_>>();
-        let (pipeline, bind_group_layout) = pipeline_cache.get_or_create(
+        let resolved_pipeline = pipeline_cache.resolve(
             gpu.device,
+            gpu,
             gpu.scene_bind_group_layout(),
             &shader.label,
             shader.source.as_ref(),
             &metadata.entry_point,
             workload.workgroup_size,
             &binding_layouts,
+            &workload.pipeline_fallback_policy,
+            gpu.resources.device_epoch(),
         )?;
         drop(pipeline_cache);
-        let bind_group = gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let bind_group = gpu.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some(&shader.label),
-            layout: &bind_group_layout,
+            layout: &resolved_pipeline.bind_group_layout,
             entries: &bindings
                 .iter()
                 .map(ResolvedComputeBinding::bind_group_entry)
@@ -87,7 +98,7 @@ impl RenderPassExecutor for GenericComputeExecutor {
                 label: Some(&shader.label),
                 timestamp_writes: None,
             });
-        compute_pass.set_pipeline(&pipeline);
+        compute_pass.set_pipeline(&resolved_pipeline.pipeline);
         compute_pass.set_bind_group(0, gpu.scene_bind_group, &[]);
         compute_pass.set_bind_group(1, &bind_group, &[]);
         match &dispatch {
@@ -100,23 +111,27 @@ impl RenderPassExecutor for GenericComputeExecutor {
         }
         drop(compute_pass);
 
-        match dispatch {
-            ComputeDispatch::Direct(groups) => gpu.record_compute_dispatch(
+        let dispatch_record = match dispatch {
+            ComputeDispatch::Direct(groups) => RenderGraphComputeDispatchRecord::new(
                 &pass_name,
                 COMPUTE_GENERIC_EXECUTOR_ID,
                 &shader.label,
                 workload.workgroup_size,
                 groups,
-                storage_write_resources,
+                storage_write_resources.resources,
             ),
-            ComputeDispatch::Indirect { .. } => gpu.record_indirect_compute_dispatch(
+            ComputeDispatch::Indirect { .. } => RenderGraphComputeDispatchRecord::new(
                 &pass_name,
                 COMPUTE_GENERIC_EXECUTOR_ID,
                 &shader.label,
                 workload.workgroup_size,
-                storage_write_resources,
-            ),
+                [0, 1, 1],
+                storage_write_resources.resources,
+            )
+            .with_gpu_indirect_dispatch_groups(),
         }
+        .with_pipeline_resolution(resolved_pipeline.resolution);
+        gpu.push_compute_dispatch_record(dispatch_record);
         Ok(())
     }
 }
@@ -202,21 +217,6 @@ fn expand_wgsl_modules<'a>(
     Ok(Cow::Owned(expanded))
 }
 
-fn per_pixel_resource_access(
-    context: &RenderPassExecutionContext<'_>,
-    workload: &RenderGraphComputeWorkload,
-) -> Option<RenderGraphResourceAccessKind> {
-    let RenderGraphComputeDispatchExtent::PerPixel { target, .. } = &workload.dispatch_extent
-    else {
-        return None;
-    };
-    if context.declares_resource_name_access(target, RenderGraphResourceAccessKind::Write) {
-        Some(RenderGraphResourceAccessKind::Write)
-    } else {
-        Some(RenderGraphResourceAccessKind::Read)
-    }
-}
-
 enum ComputeDispatch {
     Direct([u32; 3]),
     Indirect { buffer: wgpu::Buffer, offset: u64 },
@@ -224,34 +224,78 @@ enum ComputeDispatch {
 
 fn resolve_dispatch(
     gpu: &RenderPassGpuExecutionContext<'_>,
-    metadata: &RenderGraphComputePassMetadata,
     workload: &RenderGraphComputeWorkload,
-    per_pixel_access: Option<RenderGraphResourceAccessKind>,
+    dispatch_access_packet: Option<&CompiledRenderGraphComputeDispatchAccessPacket>,
 ) -> Result<ComputeDispatch, String> {
     match &workload.dispatch_extent {
         RenderGraphComputeDispatchExtent::Fixed(groups) => {
             direct_dispatch(workload, *groups, &gpu.device.limits())
         }
-        RenderGraphComputeDispatchExtent::FromBuffer { buffer, offset } => {
+        RenderGraphComputeDispatchExtent::FromBuffer { .. } => {
+            let packet = require_dispatch_access_packet(workload, dispatch_access_packet)?;
+            let CompiledRenderGraphComputeDispatchAccess::Indirect { access, offset } =
+                packet.dispatch
+            else {
+                return Err(dispatch_packet_kind_mismatch(workload, "indirect buffer"));
+            };
             Ok(ComputeDispatch::Indirect {
-                buffer: gpu
-                    .require_buffer(buffer, RenderGraphResourceAccessKind::Read)?
-                    .clone(),
-                offset: *offset,
+                buffer: resolve_dispatch_buffer(gpu, access)?,
+                offset,
             })
         }
-        RenderGraphComputeDispatchExtent::PerPixel { target, local_size } => {
-            let access = per_pixel_access.unwrap_or(RenderGraphResourceAccessKind::Read);
-            let extent = gpu.require_texture_desc(target, access)?;
-            per_pixel_dispatch(
-                workload,
-                per_pixel_target_extent(metadata, target, &extent)?,
-                *local_size,
-                &gpu.device.limits(),
-            )
+        RenderGraphComputeDispatchExtent::PerPixel { .. } => {
+            let packet = require_dispatch_access_packet(workload, dispatch_access_packet)?;
+            let CompiledRenderGraphComputeDispatchAccess::PerPixel {
+                target_extent,
+                local_size,
+                ..
+            } = packet.dispatch
+            else {
+                return Err(dispatch_packet_kind_mismatch(workload, "per-pixel texture"));
+            };
+            per_pixel_dispatch(workload, target_extent, local_size, &gpu.device.limits())
         }
         unsupported_extent => Err(format!(
             "compute executor `{COMPUTE_GENERIC_EXECUTOR_ID}` does not support dispatch extent {unsupported_extent:?}"
+        )),
+    }
+}
+
+fn require_dispatch_access_packet<'a>(
+    workload: &RenderGraphComputeWorkload,
+    packet: Option<&'a CompiledRenderGraphComputeDispatchAccessPacket>,
+) -> Result<&'a CompiledRenderGraphComputeDispatchAccessPacket, String> {
+    packet.ok_or_else(|| {
+        format!(
+            "compute pipeline `{}` dynamic dispatch requires a compiler dispatch access packet",
+            workload.pipeline_label
+        )
+    })
+}
+
+fn dispatch_packet_kind_mismatch(workload: &RenderGraphComputeWorkload, expected: &str) -> String {
+    format!(
+        "compute pipeline `{}` compiler dispatch access packet does not select an {expected}",
+        workload.pipeline_label
+    )
+}
+
+fn resolve_dispatch_buffer(
+    gpu: &RenderPassGpuExecutionContext<'_>,
+    access: RenderGraphVersionedAccessKey,
+) -> Result<wgpu::Buffer, String> {
+    match access.resource.kind() {
+        RenderGraphResourceKind::TransientBuffer => gpu
+            .resources
+            .transient_buffer_binding_for_access(access.access_id)
+            .map(|(buffer, _)| buffer.clone()),
+        RenderGraphResourceKind::External => gpu
+            .resources
+            .external_buffer_binding_for_access(access.access_id)
+            .map(|(buffer, _)| buffer.clone()),
+        RenderGraphResourceKind::TransientTexture => Err(format!(
+            "compute dynamic dispatch access {:?} resolves to a transient texture, not a buffer",
+            access.access_id
         )),
     }
 }
@@ -290,19 +334,22 @@ fn direct_dispatch(
     Ok(ComputeDispatch::Direct(groups))
 }
 
-fn storage_write_resources(metadata: &RenderGraphComputePassMetadata) -> Vec<String> {
-    metadata
-        .bindings
-        .iter()
-        .filter(|binding| {
-            matches!(
-                binding.kind,
-                ComputeBindingKind::StorageBufferReadWrite
-                    | ComputeBindingKind::StorageTextureWrite
-            )
-        })
-        .map(|binding| binding.resource.clone())
-        .collect()
+struct StorageWriteResources {
+    resources: Vec<String>,
+}
+
+fn storage_write_resources(metadata: &RenderGraphComputePassMetadata) -> StorageWriteResources {
+    let mut resources = Vec::new();
+    for binding in &metadata.bindings {
+        if !matches!(
+            binding.kind,
+            ComputeBindingKind::StorageBufferReadWrite | ComputeBindingKind::StorageTextureWrite
+        ) {
+            continue;
+        }
+        resources.push(binding.resource.clone());
+    }
+    StorageWriteResources { resources }
 }
 
 #[cfg(test)]
@@ -311,28 +358,83 @@ mod tests {
 
     use crate::asset::ProjectAssetManager;
     use crate::core::framework::render::{
-        RenderFrameExtract, RenderPluginRendererOutputs, RenderWorldSnapshotHandle,
+        PostProcessGraphResourceNames, RenderFrameExtract, RenderPluginRendererOutputs,
+        RenderWorldSnapshotHandle,
     };
     use crate::core::math::UVec2;
-    use crate::graphics::backend::{read_buffer_bytes, BufferByteReadback, RenderBackend};
+    use crate::graphics::ViewportRenderFrame;
+    use crate::graphics::backend::{BufferByteReadback, RenderBackend, read_buffer_bytes};
     use crate::graphics::scene::scene_renderer::graph_execution::{
         RenderGraphExecutionResources, RenderPassExecutorId, RenderPassExecutorRegistry,
     };
     use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
-    use crate::graphics::ViewportRenderFrame;
     use crate::render_graph::{
-        BindingSchemaEntry, ComputeBindingKind, PassFlags, QueueLane, RenderGraphBuilder,
-        RenderGraphComputePassMetadata, RenderGraphComputeShaderSource, RenderGraphComputeWorkload,
-        RenderGraphExternalResourceBinding,
+        BindingSchemaEntry, ComputeBindingKind, PassFlags, QueueLane, RenderGraphBufferRange,
+        RenderGraphBuilder, RenderGraphComputePassMetadata, RenderGraphComputeShaderSource,
+        RenderGraphComputeWorkload, RenderGraphExternalResourceBinding,
+        RenderGraphResourceAccessIntent, RenderGraphResourceAccessRange, RenderGraphShaderStages,
     };
+    use crate::rhi::{BufferDesc, BufferUsage};
     use crate::scene::world::World;
     use zircon_runtime_interface::resource::{AssetReference, ResourceLocator};
 
     use super::{
-        direct_dispatch, expand_wgsl_modules, per_pixel_dispatch, resolved_wgsl_source,
-        ComputeDispatch, RenderPassExecutionContext, RenderPassGpuExecutionContext,
-        COMPUTE_GENERIC_EXECUTOR_ID,
+        COMPUTE_GENERIC_EXECUTOR_ID, ComputeDispatch, RenderPassExecutionContext,
+        RenderPassGpuExecutionContext, direct_dispatch, expand_wgsl_modules, per_pixel_dispatch,
+        resolved_wgsl_source, storage_write_resources,
     };
+
+    #[test]
+    fn generic_compute_native_resource_creates_use_the_pass_factory() {
+        let executor = include_str!("generic_compute_executor.rs");
+        let production = executor
+            .split_once("#[cfg(test)]")
+            .map(|(source, _)| source)
+            .expect("generic compute production source must precede tests");
+        let cache = include_str!("compute_pipeline_cache.rs");
+
+        assert!(production.contains("RenderPassGpuResourceFactory"));
+        assert!(
+            production
+                .contains("pipeline_cache.resolve(\n            gpu.device,\n            gpu,")
+        );
+        assert!(production.contains("gpu.create_bind_group(&wgpu::BindGroupDescriptor"));
+        assert!(!production.contains("gpu.device.create_bind_group"));
+        assert!(cache.contains("resource_factory: &impl RenderPassGpuResourceFactory"));
+        for create in [
+            "resource_factory.create_bind_group_layout",
+            "resource_factory.create_pipeline_layout",
+            "resource_factory.create_shader_module",
+            "resource_factory.create_compute_pipeline",
+        ] {
+            assert!(cache.contains(create), "missing factory route `{create}`");
+        }
+    }
+
+    #[test]
+    fn storage_write_scan_reports_outputs_without_inventing_history_ownership() {
+        let metadata = RenderGraphComputePassMetadata::new(
+            RenderGraphComputeShaderSource::wgsl("ssao", "@compute fn cs_main() {}"),
+            "cs_main",
+            vec![BindingSchemaEntry::new(
+                0,
+                PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+                ComputeBindingKind::StorageTextureWrite,
+            )],
+        );
+
+        let writes = storage_write_resources(&metadata);
+
+        assert_eq!(
+            writes.resources,
+            vec![PostProcessGraphResourceNames::AMBIENT_OCCLUSION.to_string()]
+        );
+        let production = include_str!("generic_compute_executor.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("generic compute executor source");
+        assert!(!production.contains("FrameHistorySlot::AmbientOcclusion"));
+    }
 
     #[test]
     fn generic_compute_expands_project_shader_modules_before_pipeline_creation() {
@@ -412,7 +514,7 @@ mod tests {
             return;
         };
         let mut graph_builder = RenderGraphBuilder::new("generic-compute-dispatch");
-        let output = graph_builder.import_external_resource_with_binding(
+        let output = graph_builder.import_present_external_resource_with_binding(
             "output",
             RenderGraphExternalResourceBinding::required_buffer(),
         );
@@ -470,6 +572,9 @@ mod tests {
             mapped_at_creation: false,
         });
         resources.insert_buffer("output", output_buffer.clone());
+        resources
+            .materialize_external_access_bindings(&graph)
+            .expect("external generic-compute leases should be materialized before encoding");
         let mut encoder = backend
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -523,6 +628,7 @@ mod tests {
             .with_resource_resolver(&graph, pass.id)
             .with_compute_workload(pass.compute_workload.as_ref())
             .with_compute_pass_metadata(pass.compute_pass_metadata.as_ref())
+            .with_compute_binding_access_packet(graph.compute_binding_access_packet(pass.id))
             .with_gpu(gpu);
 
         RenderPassExecutorRegistry::with_builtin_noop_executors()
@@ -561,11 +667,16 @@ mod tests {
             return;
         };
         let mut graph_builder = RenderGraphBuilder::new("generic-compute-indirect-dispatch");
-        let dispatch_args = graph_builder.import_external_resource_with_binding(
+        let dispatch_args = graph_builder.import_present_external_buffer_with_binding(
             "dispatch-args",
+            BufferDesc::new(
+                "dispatch-args",
+                12,
+                BufferUsage::STORAGE | BufferUsage::INDIRECT | BufferUsage::COPY_DST,
+            ),
             RenderGraphExternalResourceBinding::required_buffer(),
         );
-        let output = graph_builder.import_external_resource_with_binding(
+        let output = graph_builder.import_present_external_resource_with_binding(
             "indirect-output",
             RenderGraphExternalResourceBinding::required_buffer(),
         );
@@ -574,7 +685,16 @@ mod tests {
             QueueLane::AsyncCompute,
             Some(COMPUTE_GENERIC_EXECUTOR_ID),
         );
-        graph_builder.read_external(pass_id, dispatch_args).unwrap();
+        graph_builder
+            .read_external_with_access(
+                pass_id,
+                dispatch_args,
+                RenderGraphResourceAccessRange::Buffer(RenderGraphBufferRange::new(0, Some(12))),
+                RenderGraphResourceAccessIntent::storage_buffer_read(
+                    RenderGraphShaderStages::COMPUTE,
+                ),
+            )
+            .unwrap();
         graph_builder.read_external(pass_id, output).unwrap();
         graph_builder.write_external(pass_id, output).unwrap();
         graph_builder
@@ -639,13 +759,13 @@ mod tests {
         });
         backend
             .queue
-            .write_buffer(&indirect_buffer, 0, &1_u32.to_ne_bytes());
+            .write_buffer(&indirect_buffer, 0, &1_u32.to_le_bytes());
         backend
             .queue
-            .write_buffer(&indirect_buffer, 4, &1_u32.to_ne_bytes());
+            .write_buffer(&indirect_buffer, 4, &1_u32.to_le_bytes());
         backend
             .queue
-            .write_buffer(&indirect_buffer, 8, &1_u32.to_ne_bytes());
+            .write_buffer(&indirect_buffer, 8, &1_u32.to_le_bytes());
         resources.insert_buffer("dispatch-args", indirect_buffer);
         let output_buffer = backend.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("generic-compute-indirect-output"),
@@ -654,6 +774,9 @@ mod tests {
             mapped_at_creation: false,
         });
         resources.insert_buffer("indirect-output", output_buffer.clone());
+        resources
+            .materialize_external_access_bindings(&graph)
+            .expect("external generic-compute leases should be materialized before encoding");
         let mut encoder = backend
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -707,6 +830,8 @@ mod tests {
             .with_resource_resolver(&graph, pass.id)
             .with_compute_workload(pass.compute_workload.as_ref())
             .with_compute_pass_metadata(pass.compute_pass_metadata.as_ref())
+            .with_compute_binding_access_packet(graph.compute_binding_access_packet(pass.id))
+            .with_compute_dispatch_access_packet(graph.compute_dispatch_access_packet(pass.id))
             .with_gpu(gpu);
 
         RenderPassExecutorRegistry::with_builtin_noop_executors()

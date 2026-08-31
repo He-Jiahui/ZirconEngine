@@ -43,6 +43,10 @@ fn path_opacity(source: &str) -> Option<String> {
 }
 
 fn parse_js_double_quoted_value(source: &str, start: usize) -> Option<(String, usize)> {
+    if let Some(value) = unescaped_js_double_quoted_value(source, start) {
+        return Some(value);
+    }
+
     let bytes = source.as_bytes();
     let mut out = String::new();
     let mut index = start;
@@ -68,3 +72,14 @@ fn parse_js_double_quoted_value(source: &str, start: usize) -> Option<(String, u
     }
     None
 }
+
+fn unescaped_js_double_quoted_value(source: &str, start: usize) -> Option<(String, usize)> {
+    let tail = source.get(start..)?;
+    let value_end = tail.find(|ch| ch == '"' || ch == '\\')?;
+    (tail.as_bytes()[value_end] == b'"')
+        .then(|| (tail[..value_end].to_owned(), start + value_end + 1))
+}
+
+#[cfg(test)]
+#[path = "parser/fast_path_tests.rs"]
+mod fast_path_tests;

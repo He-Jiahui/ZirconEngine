@@ -18,7 +18,7 @@ pub(super) fn push_shaped_text_commands(
     opacity: f32,
     color: [u8; 4],
 ) -> bool {
-    let Some(shaped) = text.shaped.as_ref() else {
+    let Some(shaped) = text.shaped.canonical() else {
         return false;
     };
 

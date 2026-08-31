@@ -10,13 +10,15 @@ def materialized_package_relative_artifacts(
     plugins_dir: Path,
 ) -> dict[str, list[str]]:
     package_artifacts: dict[str, list[str]] = {}
+    plugins_root: Path | None = None
     for package in materialized_packages:
         package_id = str(package["package_id"])
         destination = Path(str(package["destination"])).expanduser()
         try:
-            relative_destination = destination.resolve().relative_to(
-                plugins_dir.resolve(),
-            )
+            destination_resolved = destination.resolve()
+            if plugins_root is None:
+                plugins_root = plugins_dir.resolve()
+            relative_destination = destination_resolved.relative_to(plugins_root)
         except (OSError, ValueError):
             continue
         package_prefix = f"plugins/{relative_destination.as_posix().rstrip('/')}/"

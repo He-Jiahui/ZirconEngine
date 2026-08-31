@@ -14,6 +14,12 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/activation/blocked_unload.rs
   - zircon_runtime/src/core/runtime/handle/activation/unload_mutation.rs
   - zircon_runtime/src/core/runtime/handle/resolution.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/activation.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/activation/contention.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior/exact_dependency_resolution.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior/factory_panics.rs
   - zircon_runtime/src/core/runtime/handle/events.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/state/module_entry.rs
@@ -121,3 +127,15 @@ The runtime bus keeps topic membership separate from per-subscriber queues and p
 ## Validation Owners
 
 Runtime-core behavior and structure are covered by the mounted suites under `core/runtime/tests/`. Cross-layer lifetime coverage lives in `runtime_absorption/service_registry_lifecycle.rs`, `runtime_absorption/service_registry_ownership.rs` and the Editor manager lifecycle suite. Current acceptance status and managed Cargo evidence belong to Runtime02/Frameworks02 plan records, not this module document.
+
+Resolution behavior tests are folder-backed by domain: the 631-line root keeps shared fixtures and
+10 general behaviors, while dependency cycles, exact 4/5 dependency initialization and factory panic
+lifecycle behavior live in 115/217/258-line children. The exact-dependency move preserved the two test
+bodies byte-for-byte after whitespace normalization and did not change resolution behavior. Status:
+`runtime_02_15_resolution_exact_dependency_test_owner_split_static_passed_cargo_deferred`.
+
+Activation behavior keeps transaction/lifecycle fixtures and 11 general tests in the 756-line parent.
+The deterministic 7-joiner gate, release-only 21-sample benchmark and their private sampling helpers
+live in the 132-line `activation/contention.rs` child. The physical move retained the existing 750 ms
+contract but did not generate new performance evidence. Status:
+`runtime_02_15_activation_contention_test_owner_split_static_passed_cargo_profile_deferred`.

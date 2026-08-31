@@ -4,12 +4,15 @@ use std::sync::Arc;
 use crate::core::math::UVec2;
 
 use super::page_residency::{
-    apply_page_residency_decision, page_rebuild_residency_decision, page_residency_decision,
     GlyphAtlasPageReservation, GlyphAtlasPageResidencyDecision, GlyphAtlasResidentPage,
+    apply_page_residency_decision, page_rebuild_residency_decision, page_residency_decision,
 };
 #[cfg(test)]
 use super::page_shadow::GlyphAtlasBitmapPageShadowPatch;
-use super::page_shadow::{GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapPageShadowStore};
+use super::page_shadow::{
+    GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapPageShadowReport,
+    GlyphAtlasBitmapPageShadowStore,
+};
 use super::slot_cache::{GlyphAtlasPersistentSlot, GlyphAtlasSlotCache};
 use super::{GlyphAtlasAllocation, GlyphRasterKey};
 
@@ -192,6 +195,10 @@ impl GlyphAtlasSet {
         })
     }
 
+    pub(crate) fn bitmap_page_shadow_report(&self) -> GlyphAtlasBitmapPageShadowReport {
+        self.bitmap_page_shadow.report()
+    }
+
     pub(crate) fn page(
         &self,
         format: GlyphAtlasFormat,
@@ -279,6 +286,13 @@ impl GlyphAtlasSet {
 
     pub(crate) fn bitmap_page_shadow_bytes(&self, page: &GlyphAtlasPageSpec) -> Option<&[u8]> {
         self.bitmap_page_shadow.bytes_for_page(page)
+    }
+
+    pub(crate) fn bitmap_page_shadow_pages(&self) -> impl Iterator<Item = &GlyphAtlasPageSpec> {
+        self.pages
+            .iter()
+            .map(GlyphAtlasResidentPage::spec)
+            .filter(|page| self.bitmap_page_shadow_bytes(page).is_some())
     }
 
     pub(crate) fn has_bitmap_page_shadow(&self, page_key: GlyphAtlasPageKey) -> bool {
@@ -520,7 +534,7 @@ mod tests {
                 height: 2,
             },
             bytes_per_row: 2,
-            bytes: vec![0x7F; 4],
+            bytes: vec![0x7F; 4].into(),
         };
         let mut failed = GlyphAtlasBitmapPageShadowCommit::default();
         failed.zero_initialized_pages.insert(page.key);

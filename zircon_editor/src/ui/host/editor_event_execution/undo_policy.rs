@@ -5,6 +5,7 @@ pub(crate) fn undo_policy_for_event(event: &EditorEvent) -> EditorEventUndoPolic
         EditorEvent::WorkbenchMenu(
             MenuAction::CreateNode(_)
             | MenuAction::DeleteSelected
+            | MenuAction::KeepPlayChanges
             | MenuAction::Undo
             | MenuAction::Redo,
         )
@@ -19,6 +20,7 @@ pub(crate) fn undo_policy_for_event(event: &EditorEvent) -> EditorEventUndoPolic
             | MenuAction::OpenScene
             | MenuAction::CreateScene
             | MenuAction::SaveProject
+            | MenuAction::SaveAllDocuments
             | MenuAction::CloseProject
             | MenuAction::SaveLayout
             | MenuAction::ResetLayout

@@ -72,17 +72,8 @@ function New-BuildSetSubmoduleFixtureRepository {
 Describe 'MVP product BuildSet' {
     It 'encodes BuildSet SHA-256 values through CLR uppercase hex conversion' {
         $module = Get-Module -Name MvpBuildSet -ErrorAction Stop
-        $bytes = [byte[]]@(0x00, 0x0F, 0x10, 0x7F, 0x80, 0xF0, 0xFF)
-
-        $encoded = & $module {
-            param([byte[]]$Value)
-
-            ConvertTo-MvpBuildSetUpperHex -Bytes $Value
-        } $bytes
-
-        $encoded | Should Be '000F107F80F0FF'
         $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
-        $moduleSource | Should Match '\[BitConverter\]::ToString\(\$Bytes\)\.Replace\(''\-'', ''''\)'
+        $moduleSource | Should Match '\[BitConverter\]::ToString\('
         $moduleSource | Should Not Match 'ForEach-Object \{ \$_.ToString\(''X2''\) \}'
         $identityStart = $moduleSource.IndexOf('function Get-MvpBuildSetId')
         $identitySource = $moduleSource.Substring(
@@ -333,6 +324,23 @@ Describe 'MVP product BuildSet' {
             Should Throw 'unknown property'
     }
 
+    It 'rejects a non-canonical backslash manifest path before filesystem access' {
+        $sourceRoot = New-BuildSetFixtureRepository -Name 'canonical-path-source'
+        $buildSet = New-MvpProductBuildSet `
+            -RepositoryRoot $sourceRoot `
+            -BuildSetRoot (Join-Path $TestDrive 'canonical-path-build-set')
+        $manifest = Get-Content -LiteralPath $buildSet.manifest_path -Raw | ConvertFrom-Json
+        $sourceEntry = @($manifest.files | Where-Object { $_.relative_path -eq 'src/lib.rs' })[0]
+        $sourceEntry.relative_path = 'src\lib.rs'
+        [IO.File]::WriteAllText(
+            $buildSet.manifest_path,
+            ($manifest | ConvertTo-Json -Depth 8),
+            [Text.UTF8Encoding]::new($false))
+
+        { Assert-MvpProductBuildSet -ManifestPath $buildSet.manifest_path } |
+            Should Throw 'unsafe relative path'
+    }
+
     It 'rejects a snapshot root replaced by a directory junction' {
         $sourceRoot = New-BuildSetFixtureRepository -Name 'junction-source'
         $buildSet = New-MvpProductBuildSet `
@@ -404,7 +412,7 @@ Describe 'MVP BuildSet index allocation contracts' {
         $sourcePolicyStart = $moduleSource.IndexOf('function Assert-MvpBuildSetSourceIndexModePolicy')
         $sourcePolicySource = $moduleSource.Substring(
             $sourcePolicyStart,
-            $moduleSource.IndexOf('function Resolve-MvpBuildSetChildPathNormalized') - $sourcePolicyStart)
+            $moduleSource.IndexOf('function Assert-MvpBuildSetExactProperties') - $sourcePolicyStart)
 
         $moduleSource | Should Match '\$script:MvpBuildSetLineSeparators = \[string\[\]\]@\("`r`n", "`n"\)'
         $moduleSource | Should Match '\$script:MvpBuildSetNulSeparator = \[char\[\]\]@\(\[char\]0\)'
@@ -420,7 +428,119 @@ Describe 'MVP BuildSet index allocation contracts' {
         $sourcePolicySource | Should Match '\.Split\(\s*\$script:MvpBuildSetNulSeparator,\s*\[StringSplitOptions\]::RemoveEmptyEntries\)'
         $sourcePolicySource | Should Match '\$indexBuffer = \$null'
         $sourcePolicySource | Should Match '\$indexCapture = \$null'
+        $sourcePolicySource | Should Match 'if \(\$metadata\[0\] -eq ''120000'' -or\s+\$metadata\[0\] -eq ''160000''\) \{\s+\$relativePath = \$entry\.Substring\(\$separator \+ 1\)\.Replace'
         $sourcePolicySource | Should Not Match '\.Split\(\[char\]0\)|\$entry\.Length -eq 0'
+    }
+
+    It 'consumes canonical tracked Git paths without a no-op separator scan' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $trackedStart = $moduleSource.IndexOf('function Get-MvpBuildSetTrackedFiles')
+        $trackedSource = $moduleSource.Substring(
+            $trackedStart,
+            $moduleSource.IndexOf('function Get-MvpBuildSetId') - $trackedStart)
+
+        $trackedSource | Should Match '(?m)^\s+\$relativePath = \$entry\.Substring\(\$separator \+ 1\)$'
+        $trackedSource | Should Not Match '\$entry\.Substring\(\$separator \+ 1\)\.Replace'
+    }
+
+    It 'indexes typed single-value Git results without pipeline construction' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $publisherStart = $moduleSource.IndexOf('function New-MvpProductBuildSet')
+        $publisherSource = $moduleSource.Substring(
+            $publisherStart,
+            $moduleSource.IndexOf('function Assert-MvpProductBuildSet') - $publisherStart)
+
+        $publisherSource | Should Match '\[string\[\]\]\$reportedRootLines = Invoke-MvpBuildSetGit'
+        $publisherSource | Should Match '\$reportedRoot = \[string\]\$reportedRootLines\[0\]'
+        $publisherSource | Should Match '\[string\[\]\]\$revisionLines = Invoke-MvpBuildSetGit'
+        $publisherSource | Should Match '(?m)^\s+\$revision = \[string\]\$revisionLines\[0\]$'
+        $publisherSource | Should Not Match 'Select-Object -First 1|\$reportedRoot\.Trim\(\)|\$revisionLines\[0\]\.Trim\(\)'
+    }
+
+    It 'resolves fixed publication children without provider cmdlets' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $publisherStart = $moduleSource.IndexOf('function New-MvpProductBuildSet')
+        $publisherSource = $moduleSource.Substring(
+            $publisherStart,
+            $moduleSource.IndexOf('function Assert-MvpProductBuildSet') - $publisherStart)
+
+        $publisherSource | Should Match '\$snapshotRoot = \[IO\.Path\]::Combine\(\$finalRoot, ''source''\)'
+        $publisherSource | Should Match '\$overlayPath = \[IO\.Path\]::Combine\(\$finalRoot, ''tracked-dirty-overlay\.patch''\)'
+        $publisherSource | Should Match '\$manifestPath = \[IO\.Path\]::Combine\(\$finalRoot, ''build-set\.json''\)'
+        $publisherSource | Should Match '\$pendingManifestPath = \[IO\.Path\]::Combine\(\$finalRoot, ''build-set-pending\.json''\)'
+        $publisherSource | Should Not Match 'Join-Path \$finalRoot'
+    }
+
+    It 'resolves the publication parent without a provider pipeline' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $publisherStart = $moduleSource.IndexOf('function New-MvpProductBuildSet')
+        $publisherSource = $moduleSource.Substring(
+            $publisherStart,
+            $moduleSource.IndexOf('function Assert-MvpProductBuildSet') - $publisherStart)
+
+        $publisherSource | Should Match '\$parent = \[IO\.Path\]::GetDirectoryName\(\$finalRoot\)'
+        $publisherSource | Should Not Match 'Split-Path -Parent \$finalRoot'
+    }
+
+    It 'discards successful Git output before line projection for no-output commands' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $gitStart = $moduleSource.IndexOf('function Invoke-MvpBuildSetGit')
+        $gitSource = $moduleSource.Substring(
+            $gitStart,
+            $moduleSource.IndexOf('function Invoke-MvpBuildSetGitBytes') - $gitStart)
+        $publisherStart = $moduleSource.IndexOf('function New-MvpProductBuildSet')
+        $publisherSource = $moduleSource.Substring(
+            $publisherStart,
+            $moduleSource.IndexOf('function Assert-MvpProductBuildSet') - $publisherStart)
+
+        $gitSource | Should Match '\[switch\]\$DiscardOutput'
+        $gitSource | Should Match 'if \(\$DiscardOutput\) \{\s*return\s*\}\s*return \$stdoutTask\.Result\.Split\('
+        @([regex]::Matches($publisherSource, '-DiscardOutput')).Count | Should Be 4
+    }
+
+    It 'caches the resolved Git executable path across publication calls' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $publisherStart = $moduleSource.IndexOf('function New-MvpProductBuildSet')
+        $publisherSource = $moduleSource.Substring(
+            $publisherStart,
+            $moduleSource.IndexOf('function Assert-MvpProductBuildSet') - $publisherStart)
+
+        $publisherSource | Should Match '\$gitPath = \[string\]\$git\.Source'
+        @([regex]::Matches($publisherSource, '\$git\.Source')).Count | Should Be 1
+        @([regex]::Matches($publisherSource, '-GitPath \$gitPath')).Count | Should Be 8
+    }
+
+    It 'discards CLR directory results without Out-Null pipelines' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $publisherStart = $moduleSource.IndexOf('function New-MvpProductBuildSet')
+        $publisherSource = $moduleSource.Substring(
+            $publisherStart,
+            $moduleSource.IndexOf('function Assert-MvpProductBuildSet') - $publisherStart)
+
+        @([regex]::Matches($publisherSource, '\$null = \[IO\.Directory\]::CreateDirectory\(')).Count | Should Be 2
+        $publisherSource | Should Not Match '\[IO\.Directory\]::CreateDirectory\([^\r\n]+\) \| Out-Null'
+    }
+
+    It 'serializes one manifest object without a pipeline' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $writerStart = $moduleSource.IndexOf('function Write-MvpBuildSetJson')
+        $writerSource = $moduleSource.Substring(
+            $writerStart,
+            $moduleSource.IndexOf('function Write-MvpBuildSetIncompleteReceipt') - $writerStart)
+
+        $writerSource | Should Match 'ConvertTo-Json -InputObject \$Value -Depth 12'
+        $writerSource | Should Not Match '\$Value \| ConvertTo-Json'
+    }
+
+    It 'resolves the incomplete receipt child without a provider cmdlet' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $incompleteStart = $moduleSource.IndexOf('function Write-MvpBuildSetIncompleteReceipt')
+        $incompleteSource = $moduleSource.Substring(
+            $incompleteStart,
+            $moduleSource.IndexOf('function Assert-MvpBuildSetInventory') - $incompleteStart)
+
+        $incompleteSource | Should Match '\$path = \[IO\.Path\]::Combine\(\$BuildSetRoot, ''build-set-incomplete\.json''\)'
+        $incompleteSource | Should Not Match 'Join-Path \$BuildSetRoot'
     }
 
     It 'reuses one UTF8 encoder across BuildSet identity and persistence paths' {
@@ -434,7 +554,7 @@ Describe 'MVP BuildSet index allocation contracts' {
         $moduleSource | Should Match 'ReadAllText\(\$resolvedManifestPath, \$script:MvpBuildSetUtf8\)'
     }
 
-    It 'reuses one normalized snapshot root across per-file child resolution' {
+    It 'reuses one normalized snapshot root and resolves hot-path children inline' {
         $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
         $trackedStart = $moduleSource.IndexOf('function Get-MvpBuildSetTrackedFiles')
         $trackedSource = $moduleSource.Substring(
@@ -443,13 +563,18 @@ Describe 'MVP BuildSet index allocation contracts' {
         $validatorStart = $moduleSource.IndexOf('function Assert-MvpProductBuildSet')
         $validatorSource = $moduleSource.Substring($validatorStart)
 
-        $moduleSource | Should Match 'function Resolve-MvpBuildSetChildPathNormalized'
+        $moduleSource | Should Not Match 'function Resolve-MvpBuildSetChildPath(?:Normalized)?'
         foreach ($source in @($trackedSource, $validatorSource)) {
             $source | Should Match '\$snapshotRootPrefix = \$(?:normalized)?SnapshotRoot \+ \[IO\.Path\]::DirectorySeparatorChar'
-            $source | Should Match 'Resolve-MvpBuildSetChildPathNormalized\s+`'
-            $source | Should Match '-RootPrefix \$snapshotRootPrefix'
-            $source | Should Not Match 'Resolve-MvpBuildSetChildPath\s+-Root'
+            $source | Should Match '\$path = \[IO\.Path\]::Combine\(\$(?:normalized)?SnapshotRoot, \$platformRelativePath\)'
+            $source | Should Match '\.StartsWith\(\$snapshotRootPrefix, \[StringComparison\]::OrdinalIgnoreCase\)'
+            $source | Should Not Match 'Resolve-MvpBuildSetChildPath(?:Normalized)?\s+`?\s*-'
+            $source | Should Not Match '\$path = \[IO\.Path\]::GetFullPath\(\s*\[IO\.Path\]::Combine\('
         }
+        $trackedSource | Should Match '\$script:MvpBuildSetUnsafeRelativePathPattern\.IsMatch\(\$relativePath\)'
+        $validatorSource | Should Match '\$relativePath\.IndexOf\(\[char\]92\) -ge 0'
+        $validatorSource | Should Match '\$script:MvpBuildSetUnsafeRelativePathPattern\.IsMatch\(\$relativePath\)'
+        $validatorSource | Should Not Match '\$normalizedRelativePath'
     }
 
     It 'derives traversal-relative paths while reusing directory metadata' {
@@ -488,7 +613,7 @@ Describe 'MVP BuildSet index allocation contracts' {
         $assertionSource | Should Not Match 'Where-Object|ForEach-Object'
     }
 
-    It 'reuses frozen exact-property name arrays for manifest and file entries' {
+    It 'reuses frozen manifest property names and validates file entries inline' {
         $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
         $validatorStart = $moduleSource.IndexOf('function Assert-MvpProductBuildSet')
         $validatorSource = $moduleSource.Substring(
@@ -496,51 +621,36 @@ Describe 'MVP BuildSet index allocation contracts' {
             $moduleSource.IndexOf('Export-ModuleMember') - $validatorStart)
 
         $moduleSource | Should Match '\$script:MvpBuildSetManifestPropertyNames = \[string\[\]\]\s*@\('
-        $moduleSource | Should Match '\$script:MvpBuildSetFileEntryPropertyNames = \[string\[\]\]@\('
         $validatorSource | Should Match '-ExpectedNames \$script:MvpBuildSetManifestPropertyNames'
-        $validatorSource | Should Match '-ExpectedNames \$script:MvpBuildSetFileEntryPropertyNames'
+        $validatorSource | Should Match '\$filePropertyCount = 0'
+        $validatorSource | Should Match 'foreach \(\$property in \$file\.PSObject\.Properties\)'
+        $validatorSource | Should Match '\$propertyName -cne ''relative_path'''
+        $validatorSource | Should Match '\$propertyName -cne ''sha256'''
+        $validatorSource | Should Match '\$propertyName -cne ''byte_length'''
+        $validatorSource | Should Match '\$filePropertyCount -ne 3'
+        $moduleSource | Should Not Match '\$script:MvpBuildSetFileEntryPropertyNames'
+        $validatorSource | Should Not Match 'Assert-MvpBuildSetExactProperties\s+`\s+-Value \$file'
         $validatorSource | Should Not Match '-ExpectedNames @\('
     }
 
     It 'admits relative paths without allocating segment split pipelines' {
-        $module = Get-Module -Name MvpBuildSet -ErrorAction Stop
-        $normalizedRoot = 'C:\fixture-root'
-        $rootPrefix = "$normalizedRoot\"
-        $safe = & $module {
-            param($Root, $Prefix)
-            Resolve-MvpBuildSetChildPathNormalized `
-                -NormalizedRoot $Root `
-                -RootPrefix $Prefix `
-                -RelativePath 'src/lib.rs'
-        } $normalizedRoot $rootPrefix
-        $unsafePaths = @('src//lib.rs', 'src/./lib.rs', 'src/../lib.rs', 'src/lib.rs/')
-        $rejected = 0
-        foreach ($unsafePath in $unsafePaths) {
-            try {
-                & $module {
-                    param($Root, $Prefix, $RelativePath)
-                    Resolve-MvpBuildSetChildPathNormalized `
-                        -NormalizedRoot $Root `
-                        -RootPrefix $Prefix `
-                        -RelativePath $RelativePath
-                } $normalizedRoot $rootPrefix $unsafePath
-            }
-            catch {
-                $rejected++
-            }
-        }
         $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
-        $resolverStart = $moduleSource.IndexOf('function Resolve-MvpBuildSetChildPathNormalized')
-        $resolverSource = $moduleSource.Substring(
-            $resolverStart,
-            $moduleSource.IndexOf('function Resolve-MvpBuildSetChildPath {') - $resolverStart)
+        $trackedStart = $moduleSource.IndexOf('function Get-MvpBuildSetTrackedFiles')
+        $trackedSource = $moduleSource.Substring(
+            $trackedStart,
+            $moduleSource.IndexOf('function Get-MvpBuildSetId') - $trackedStart)
+        $validatorStart = $moduleSource.IndexOf('function Assert-MvpProductBuildSet')
+        $validatorSource = $moduleSource.Substring(
+            $validatorStart,
+            $moduleSource.IndexOf('Export-ModuleMember') - $validatorStart)
 
-        $safe | Should Be 'C:\fixture-root\src\lib.rs'
-        $rejected | Should Be $unsafePaths.Count
         $moduleSource | Should Match '\$script:MvpBuildSetUnsafeRelativePathPattern = \[Text\.RegularExpressions\.Regex\]::new'
-        $resolverSource | Should Match '\$normalizedRelativePath = \$RelativePath\.Replace'
-        $resolverSource | Should Match '\$script:MvpBuildSetUnsafeRelativePathPattern\.IsMatch\(\$normalizedRelativePath\)'
-        $resolverSource | Should Not Match '\.Split\(''\/''\)|Where-Object'
+        foreach ($source in @($trackedSource, $validatorSource)) {
+            $source | Should Match '\$script:MvpBuildSetUnsafeRelativePathPattern\.IsMatch\(\$relativePath\)'
+            $source | Should Match '\$platformRelativePath = \$relativePath\.Replace'
+            $source | Should Not Match '\.Split\(''\/''\)|Where-Object|Resolve-MvpBuildSetChildPath'
+        }
+        $validatorSource | Should Match '\$relativePath\.IndexOf\(\[char\]92\) -ge 0'
     }
 
     It 'compares sorted inventory without full expected projections or join strings' {
@@ -595,23 +705,27 @@ Describe 'MVP BuildSet index allocation contracts' {
 
     It 'streams identity segments without temporary length arrays or direct transform calls' {
         $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
-        $hexStart = $moduleSource.IndexOf('function ConvertTo-MvpBuildSetUpperHex')
-        $hexSource = $moduleSource.Substring(
-            $hexStart,
-            $moduleSource.IndexOf('function Get-MvpBuildSetFileSha256') - $hexStart)
         $identityStart = $moduleSource.IndexOf('function Get-MvpBuildSetId')
         $identitySource = $moduleSource.Substring(
             $identityStart,
             $moduleSource.IndexOf('function Write-MvpBuildSetJson') - $identityStart)
+        $publisherStart = $moduleSource.IndexOf('function New-MvpProductBuildSet')
+        $publisherSource = $moduleSource.Substring(
+            $publisherStart,
+            $moduleSource.IndexOf('function Assert-MvpProductBuildSet') - $publisherStart)
 
         $identitySource | Should Match '\[Security\.Cryptography\.CryptoStream\]::new\(\s*\[IO\.Stream\]::Null'
         $identitySource | Should Match '\[IO\.BinaryWriter\]::new\(\$cryptoStream, \$encoding, \$true\)'
         $identitySource | Should Match '\$writer\.Write\(\[int64\]\$bytes\.LongLength\)'
         $identitySource | Should Match '\$writer\.Write\(\$bytes\)'
         $identitySource | Should Not Match 'BitConverter\]::GetBytes|TransformBlock|TransformFinalBlock'
-        $hexSource | Should Match '\[BitConverter\]::ToString\(\$Bytes\)\.Replace\(''-'', ''''\)'
-        $hexSource | Should Not Match '\[char\[\]\]::new|foreach \(\$byte in \$Bytes\)'
-        $moduleSource | Should Not Match '\$script:MvpBuildSetUpperHexDigits|function Get-MvpBuildSetBytesSha256'
+        $identitySource | Should Match '\[BitConverter\]::ToString\(\$hasher\.Hash\)\.Replace\(''-'', ''''\)'
+        $publisherSource | Should Match '\$overlayStream = \[IO\.File\]::OpenRead\(\$overlayPath\)'
+        $publisherSource | Should Match '\$overlayHasData = \$overlayStream\.Length -gt 0'
+        $publisherSource | Should Match '\$overlayHasher\.ComputeHash\(\$overlayStream\)'
+        $publisherSource | Should Match '\$overlayStream\.Dispose\(\)'
+        $publisherSource | Should Not Match '\[IO\.FileInfo\]::new\(\$overlayPath\)|Get-MvpBuildSetFileSha256'
+        $moduleSource | Should Not Match '\$script:MvpBuildSetUpperHexDigits|function Get-MvpBuildSetBytesSha256|function ConvertTo-MvpBuildSetUpperHex|function Get-MvpBuildSetFileSha256'
     }
 
     It 'writes the three file identity segments without an inner vector loop' {
@@ -752,6 +866,22 @@ Describe 'MVP BuildSet index allocation contracts' {
         $validatorSource | Should Not Match 'files = @\(\$files\)'
     }
 
+    It 'caches manifest file identity fields across validation checks' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $validatorStart = $moduleSource.IndexOf('function Assert-MvpProductBuildSet')
+        $validatorSource = $moduleSource.Substring(
+            $validatorStart,
+            $moduleSource.IndexOf('Export-ModuleMember') - $validatorStart)
+
+        $validatorSource | Should Match '\$expectedSha256 = \[string\]\$file\.sha256'
+        $validatorSource | Should Match '\$expectedByteLength = \$file\.byte_length'
+        $validatorSource | Should Match '\$expectedSha256 -notmatch'
+        $validatorSource | Should Match '\[int64\]\$expectedByteLength -ne \[int64\]\$item\.Length'
+        $validatorSource | Should Match '\$expectedSha256 -ne \$actualSha256'
+        @([regex]::Matches($validatorSource, '\$file\.sha256')).Count | Should Be 1
+        @([regex]::Matches($validatorSource, '\$file\.byte_length')).Count | Should Be 1
+    }
+
     It 'checks LFS materialization and hashes each tracked file through one stream' {
         $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
         $trackedStart = $moduleSource.IndexOf('function Get-MvpBuildSetTrackedFiles')
@@ -760,12 +890,41 @@ Describe 'MVP BuildSet index allocation contracts' {
             $moduleSource.IndexOf('function Get-MvpBuildSetId') - $trackedStart)
 
         @([regex]::Matches($trackedSource, '\[byte\[\]\]::new\(128\)')).Count | Should Be 1
-        $trackedSource | Should Match '\$contentStream = \[IO\.File\]::OpenRead\(\$path\)'
-        $trackedSource | Should Match '\$contentStream\.Read\(\s*\$materializedFilePrefixBuffer'
+        $trackedSource | Should Match '\$contentStream = \$item\.OpenRead\(\)'
+        $trackedSource | Should Match '\$contentStream\.Read\(\s*\$materializedFilePrefixBuffer,\s*0,\s*\$materializedFilePrefixBufferLength\)'
         $trackedSource | Should Match '\$contentStream\.Position = 0'
         $trackedSource | Should Match '\$contentHasher\.ComputeHash\(\$contentStream\)'
+        $trackedSource | Should Not Match '\[Math\]::Min\(|\$contentStream\.Length'
         $trackedSource | Should Not Match 'Assert-MvpBuildSetMaterializedFile|Get-MvpBuildSetFileSha256 -Path \$path'
         $moduleSource | Should Not Match 'function Assert-MvpBuildSetMaterializedFile'
+    }
+
+    It 'reuses LFS prefix length and ASCII decoding across tracked files' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $trackedStart = $moduleSource.IndexOf('function Get-MvpBuildSetTrackedFiles')
+        $trackedSource = $moduleSource.Substring(
+            $trackedStart,
+            $moduleSource.IndexOf('function Get-MvpBuildSetId') - $trackedStart)
+        $fileLoopStart = $trackedSource.IndexOf('foreach ($relativePath in $paths)')
+        $fileLoopSource = $trackedSource.Substring($fileLoopStart)
+
+        $trackedSource | Should Match '\$materializedFilePrefixBufferLength = \[int\]\$materializedFilePrefixBuffer\.Length'
+        $trackedSource | Should Match '\$materializedFilePrefixEncoding = \[Text\.Encoding\]::ASCII'
+        $fileLoopSource | Should Match '\$materializedFilePrefixEncoding\.GetString\('
+        $fileLoopSource | Should Not Match '\[Text\.Encoding\]::ASCII|\.LongLength'
+    }
+
+    It 'guards LFS text decoding with one cached prefix byte' {
+        $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
+        $trackedStart = $moduleSource.IndexOf('function Get-MvpBuildSetTrackedFiles')
+        $trackedSource = $moduleSource.Substring(
+            $trackedStart,
+            $moduleSource.IndexOf('function Get-MvpBuildSetId') - $trackedStart)
+        $fileLoopStart = $trackedSource.IndexOf('foreach ($relativePath in $paths)')
+        $fileLoopSource = $trackedSource.Substring($fileLoopStart)
+
+        $trackedSource | Should Match '\$materializedFileLfsFirstByte = \[byte\]118'
+        $fileLoopSource | Should Match 'if \(\$read -gt 0 -and\s*\$materializedFilePrefixBuffer\[0\] -eq \$materializedFileLfsFirstByte\) \{\s*\$text = \$materializedFilePrefixEncoding\.GetString\('
     }
 
     It 'reads tracked and verified file metadata from one FileInfo instance per path' {
@@ -782,16 +941,13 @@ Describe 'MVP BuildSet index allocation contracts' {
         foreach ($source in @($trackedSource, $validatorSource)) {
             $source | Should Match '\$item = \[IO\.FileInfo\]::new\(\$path\)'
             $source | Should Match '\$item\.Exists'
-            $source | Should Not Match '\[IO\.File\]::Exists\(\$path\)|Get-Item -LiteralPath \$path'
+            $source | Should Match '\$contentStream = \$item\.OpenRead\(\)'
+            $source | Should Not Match '\[IO\.File\]::Exists\(\$path\)|\[IO\.File\]::OpenRead\(\$path\)|Get-Item -LiteralPath \$path'
         }
     }
 
     It 'hashes tracked and verified file batches inline with one SHA256 instance' {
         $moduleSource = Get-Content -LiteralPath $buildSetModule -Raw
-        $helperStart = $moduleSource.IndexOf('function Get-MvpBuildSetFileSha256')
-        $helperSource = $moduleSource.Substring(
-            $helperStart,
-            $moduleSource.IndexOf('function Invoke-MvpBuildSetGit') - $helperStart)
         $trackedStart = $moduleSource.IndexOf('function Get-MvpBuildSetTrackedFiles')
         $trackedSource = $moduleSource.Substring(
             $trackedStart,
@@ -801,12 +957,12 @@ Describe 'MVP BuildSet index allocation contracts' {
             $validatorStart,
             $moduleSource.IndexOf('Export-ModuleMember') - $validatorStart)
 
-        $helperSource | Should Not Match '\[Security\.Cryptography\.HashAlgorithm\]\$Hasher'
         foreach ($source in @($trackedSource, $validatorSource)) {
             @([regex]::Matches($source, '\[Security\.Cryptography\.SHA256\]::Create\(\)')).Count | Should Be 1
             $source | Should Match '\$contentHasher\.ComputeHash\(\$contentStream\)'
+            $source | Should Match '\[BitConverter\]::ToString\(\s*\$contentHasher\.ComputeHash\(\$contentStream\)\)\.Replace\(''-'', ''''\)'
             $source | Should Match '\$contentHasher\.Dispose\(\)'
-            $source | Should Not Match 'Get-MvpBuildSetFileSha256 -Path \$path'
+            $source | Should Not Match 'Get-MvpBuildSetFileSha256 -Path \$path|ConvertTo-MvpBuildSetUpperHex'
         }
     }
 

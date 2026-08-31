@@ -1,7 +1,7 @@
+use crate::scene::World;
 use crate::scene::ecs::{
     ArchetypeIndexPerformanceStats, QueryDataAccess, QueryFilter, StorageType,
 };
-use crate::scene::World;
 
 use super::{CachedArchetypePlan, QueryComponentBinding, QueryState};
 
@@ -37,11 +37,11 @@ where
                 return;
             }
 
-            let compiled_new_plans = new_matches
-                .into_iter()
-                .map(|archetype| self.compile_archetype_plan(world, archetype))
-                .collect::<Vec<_>>();
-            self.cached_archetype_plans.extend(compiled_new_plans);
+            self.cached_archetype_plans.reserve(new_matches.len());
+            for archetype in new_matches {
+                let compiled_plan = self.compile_archetype_plan(world, archetype);
+                self.cached_archetype_plans.push(compiled_plan);
+            }
             self.refresh_plan_memberships(world);
             self.cache_misses = self.cache_misses.saturating_add(1);
             self.cache_rebuilds = self.cache_rebuilds.saturating_add(1);
@@ -54,12 +54,13 @@ where
             index_stats_before,
             world.query_archetype_index_performance_stats(),
         );
-        let compiled_plans = matched_archetypes
-            .iter()
-            .copied()
-            .map(|archetype| self.compile_archetype_plan(world, archetype))
-            .collect::<Vec<_>>();
-        self.cached_archetype_plans = compiled_plans;
+        self.cached_archetype_plans.clear();
+        self.cached_archetype_plans
+            .reserve(matched_archetypes.len());
+        for archetype in matched_archetypes.iter().copied() {
+            let compiled_plan = self.compile_archetype_plan(world, archetype);
+            self.cached_archetype_plans.push(compiled_plan);
+        }
         let candidate_count = world.matching_query_archetype_entity_count(&matched_archetypes);
         self.cached_archetype_generation = archetype_generation;
         self.cached_entity_count = candidate_count;

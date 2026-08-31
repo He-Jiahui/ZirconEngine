@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::runtime_state::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
@@ -15,6 +17,12 @@ impl VirtualGeometryRuntimeState {
 
     pub(in crate::virtual_geometry) fn resident_page_ids(&self) -> impl Iterator<Item = u32> + '_ {
         self.resident_slots.keys().copied()
+    }
+
+    pub(in crate::virtual_geometry) fn resident_page_id_index(&self) -> HashSet<u32> {
+        let mut resident_page_ids = HashSet::with_capacity(self.resident_page_count());
+        resident_page_ids.extend(self.resident_page_ids());
+        resident_page_ids
     }
 
     pub(in crate::virtual_geometry) fn resident_page_slots(
@@ -40,3 +48,6 @@ impl VirtualGeometryRuntimeState {
         self.resident_slots.remove(&page_id)
     }
 }
+
+#[cfg(test)]
+mod performance_tests;

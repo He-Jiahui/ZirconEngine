@@ -56,20 +56,20 @@ impl UiAssetDependencyGeneration {
         if self.dependencies_by_instance.get(&instance_id) == Some(&next) {
             return false;
         }
-        if let Some(previous) = self
+        let previous = self
             .dependencies_by_instance
-            .insert(instance_id.clone(), next.clone())
-        {
-            for dependency in previous {
-                remove_reverse_edge(&mut self.importers_by_asset_id, &dependency, &instance_id);
-            }
+            .remove(&instance_id)
+            .unwrap_or_default();
+        for dependency in removed_dependency_ids(&previous, &next) {
+            remove_reverse_edge(&mut self.importers_by_asset_id, dependency, &instance_id);
         }
-        for dependency in next {
+        for dependency in added_dependency_ids(&previous, &next) {
             self.importers_by_asset_id
-                .entry(dependency)
+                .entry(dependency.clone())
                 .or_default()
                 .insert(instance_id.clone());
         }
+        self.dependencies_by_instance.insert(instance_id, next);
         self.bump_generation();
         true
     }
@@ -135,6 +135,20 @@ impl UiAssetDependencyGeneration {
     fn bump_generation(&mut self) {
         self.generation = self.generation.saturating_add(1);
     }
+}
+
+pub(super) fn removed_dependency_ids<'a>(
+    previous: &'a BTreeSet<String>,
+    next: &'a BTreeSet<String>,
+) -> impl Iterator<Item = &'a String> {
+    previous.difference(next)
+}
+
+pub(super) fn added_dependency_ids<'a>(
+    previous: &'a BTreeSet<String>,
+    next: &'a BTreeSet<String>,
+) -> impl Iterator<Item = &'a String> {
+    next.difference(previous)
 }
 
 fn remove_reverse_edge(

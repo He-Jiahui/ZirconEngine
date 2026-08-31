@@ -78,10 +78,15 @@ fn editor_context_jobs_reuse_the_runtime_owned_scheduler() {
         &manifest_dir.join("src/core/jobs/system/mod.rs"),
         "editor job system",
     );
+    let settings_persistence = read_source(
+        &manifest_dir.join("src/core/settings/persistence.rs"),
+        "editor settings persistence",
+    );
 
     assert!(
-        builder.contains("pub fn new(scheduler: JobScheduler)"),
-        "EditorContextBuilder must require the runtime scheduler explicitly"
+        builder
+            .contains("pub fn new(scheduler: JobScheduler, settings_io_scheduler: JobScheduler)"),
+        "EditorContextBuilder must require compute and settings I/O schedulers explicitly"
     );
     assert!(
         manager.contains("core.scheduler().clone()"),
@@ -91,6 +96,14 @@ fn editor_context_jobs_reuse_the_runtime_owned_scheduler() {
         !jobs.contains("JobScheduler::default()")
             && !jobs.contains("impl Default for EditorJobSystem"),
         "EditorJobSystem must not hide a worker pool behind default construction"
+    );
+    assert!(
+        manager.contains("JobScheduler::from_pool(core.task_graph().worker_pool().clone())"),
+        "EditorManager must derive settings persistence from the Core task graph worker owner"
+    );
+    assert!(
+        !settings_persistence.contains("JobScheduler::process_io()"),
+        "settings persistence must not hide the process-default I/O owner"
     );
 }
 

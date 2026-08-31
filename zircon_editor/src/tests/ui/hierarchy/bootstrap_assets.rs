@@ -55,6 +55,22 @@ fn hierarchy_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert_eq!(header.role.to_string(), "Panel");
     assert_eq!(header.text.to_string(), "Hierarchy");
 
+    let search = nodes
+        .iter()
+        .find(|node| node.control_id == "HierarchySearchQuery")
+        .expect("hierarchy search input node");
+    assert_eq!(search.role.to_string(), "InputField");
+    assert_eq!(search.component_role.to_string(), "input-field");
+    assert_eq!(search.value_text.to_string(), "");
+    assert_eq!(
+        search.edit_action_id.to_string(),
+        "Workbench/SceneSearchEdit"
+    );
+    assert_eq!(
+        search.commit_action_id.to_string(),
+        "Workbench/SceneSearchCommit"
+    );
+
     let list_panel = nodes
         .iter()
         .find(|node| node.control_id == "HierarchyListPanel");

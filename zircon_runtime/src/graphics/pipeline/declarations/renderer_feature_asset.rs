@@ -77,11 +77,19 @@ impl RendererFeatureAsset {
     }
 
     pub fn requires_capability(&self, requirement: RenderFeatureCapabilityRequirement) -> bool {
-        self.capability_requirements.contains(&requirement)
-            || self
+        if self.capability_requirements.contains(&requirement) {
+            return true;
+        }
+        if let Some(descriptor) = self.descriptor_override.as_ref() {
+            return descriptor.capability_requirements.contains(&requirement);
+        }
+        match &self.feature {
+            RendererFeatureSource::Builtin(feature) => (*feature)
                 .descriptor()
                 .capability_requirements
-                .contains(&requirement)
+                .contains(&requirement),
+            RendererFeatureSource::Plugin(_) => false,
+        }
     }
 
     pub fn with_enabled(mut self, enabled: bool) -> Self {
@@ -155,3 +163,7 @@ impl RendererFeatureAsset {
         self
     }
 }
+
+#[cfg(test)]
+#[path = "renderer_feature_asset/borrowed_capability_tests.rs"]
+mod borrowed_capability_tests;

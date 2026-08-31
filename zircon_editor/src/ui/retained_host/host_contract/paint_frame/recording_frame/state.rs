@@ -1,4 +1,4 @@
-use super::super::recording::{HostPaintRecording, HostRecordedPaintCommand};
+use super::super::recording::{HostPaintRecording, HostRecordedFrame, HostRecordedPaintCommand};
 use super::super::HostRgbaFrame;
 
 impl HostRgbaFrame {
@@ -17,6 +17,14 @@ impl HostRgbaFrame {
     ) -> Vec<HostRecordedPaintCommand> {
         self.recording
             .map(HostPaintRecording::into_commands)
+            .unwrap_or_default()
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn into_recorded_frame(
+        self,
+    ) -> HostRecordedFrame {
+        self.recording
+            .map(HostPaintRecording::into_frame)
             .unwrap_or_default()
     }
 }

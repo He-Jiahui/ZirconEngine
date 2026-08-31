@@ -131,10 +131,90 @@ PLATFORM_BUNDLE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_OBJECT_ARRAY_FIELDS = (
     PLATFORM_BUNDLE_TEMPLATE_REPORT_OBJECT_ARRAY_FIELDS
 )
 
+
+def template_report_string_array_projection(
+    label: str,
+    template: dict[str, Any],
+) -> tuple[list[str], list[str], list[str], list[str], bool]:
+    diagnostics = template.get("diagnostics")
+    compatible_profiles = template.get("compatible_profiles")
+    diagnostics_schema: list[str] = []
+    compatible_schema: list[str] = []
+    compatible_trimmed: list[str] = []
+    diagnostics_trimmed: list[str] = []
+    unique: list[str] = []
+    has_non_empty_diagnostic = False
+
+    for field, values in (
+        ("diagnostics", diagnostics),
+        ("compatible_profiles", compatible_profiles),
+    ):
+        if values is None:
+            continue
+        if not isinstance(values, list):
+            target = diagnostics_schema if field == "diagnostics" else compatible_schema
+            target.append(f"{label}.{field} must be a string array")
+            continue
+
+        all_strings = True
+        seen: set[str] = set()
+        duplicate_values: list[str] = []
+        has_blank = False
+        field_trimmed: list[str] = []
+        for index, value in enumerate(values):
+            if not isinstance(value, str):
+                all_strings = False
+                target = diagnostics_schema if field == "diagnostics" else compatible_schema
+                target.append(f"{label}.{field}[{index}] must be a string")
+                continue
+            stripped = value.strip()
+            if field == "diagnostics" and stripped:
+                has_non_empty_diagnostic = True
+            if not stripped:
+                has_blank = True
+                continue
+            if stripped != value:
+                field_trimmed.append(
+                    f"{label}.{field}[{index}] must be a non-empty trimmed string"
+                )
+                continue
+            if field == "compatible_profiles":
+                if value in seen:
+                    duplicate_values.append(value)
+                seen.add(value)
+
+        if field == "diagnostics" and all_strings and has_blank:
+            diagnostics_schema.append(f"{label}.{field} must not contain blank entries")
+        if all_strings:
+            if field == "compatible_profiles":
+                compatible_trimmed.extend(field_trimmed)
+            else:
+                diagnostics_trimmed.extend(field_trimmed)
+            if field == "compatible_profiles":
+                unique.extend(
+                    f"{label}.{field} duplicate entry {value}"
+                    for value in duplicate_values
+                )
+
+    return (
+        diagnostics_schema,
+        compatible_schema,
+        compatible_trimmed + diagnostics_trimmed,
+        unique,
+        has_non_empty_diagnostic,
+    )
+
 def platform_bundle_template_report_schema_diagnostics(
     template: dict[str, Any],
     label: str = "PlatformBundle report template",
 ) -> list[str]:
+    (
+        string_array_schema,
+        compatible_profiles_schema,
+        string_array_trimmed,
+        compatible_profiles_unique,
+        has_non_empty_diagnostic,
+    ) = template_report_string_array_projection(label, template)
     diagnostics = table_unknown_field_diagnostics(
         label,
         template,
@@ -201,30 +281,14 @@ def platform_bundle_template_report_schema_diagnostics(
     )
     diagnostics.extend(template_report_required_fatal_field_diagnostics(label, template))
     diagnostics.extend(template_report_required_success_evidence_diagnostics(label, template))
-    diagnostics.extend(
-        table_string_array_schema_diagnostics(
-            label,
-            template,
-            PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_ARRAY_FIELDS,
-        )
-    )
-    diagnostics.extend(template_report_compatible_profiles_schema_diagnostics(label, template))
-    diagnostics.extend(
-        table_string_array_entries_trimmed_non_empty_diagnostics(
-            label,
-            template,
-            ("compatible_profiles", "diagnostics"),
-        )
-    )
-    diagnostics.extend(
-        table_unique_string_array_entries_schema_diagnostics(
-            label,
-            template,
-            ("compatible_profiles",),
-        )
-    )
-    diagnostics.extend(template_report_fatal_diagnostics_diagnostics(label, template))
-    diagnostics.extend(template_report_non_fatal_diagnostics_diagnostics(label, template))
+    diagnostics.extend(string_array_schema)
+    diagnostics.extend(compatible_profiles_schema)
+    diagnostics.extend(string_array_trimmed)
+    diagnostics.extend(compatible_profiles_unique)
+    if template.get("fatal") is True and not has_non_empty_diagnostic:
+        diagnostics.append(f"{label} fatal report must include diagnostics")
+    if template.get("fatal") is False and has_non_empty_diagnostic:
+        diagnostics.append(f"{label} non-fatal report must not include diagnostics")
     diagnostics.extend(template_report_profile_membership_diagnostics(label, template))
     diagnostics.extend(
         table_object_schema_diagnostics(

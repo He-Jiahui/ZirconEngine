@@ -10,24 +10,47 @@ use zircon_runtime_interface::ui::{
 
 #[test]
 fn button_rendering_resolves_variant_once_without_joining_lowercase_text() {
-    let source = include_str!("../surface/render/buttons.rs");
+    let root_source = include_str!("../surface/render/buttons.rs");
+    let owner_source = concat!(
+        include_str!("../surface/render/buttons.rs"),
+        include_str!("../surface/render/buttons/button.rs"),
+        include_str!("../surface/render/buttons/commands.rs"),
+        include_str!("../surface/render/buttons/icon_button.rs"),
+        include_str!("../surface/render/buttons/metadata.rs"),
+        include_str!("../surface/render/buttons/state.rs"),
+        include_str!("../surface/render/buttons/style.rs"),
+    );
 
     assert_eq!(
-        source.matches("button_kind(metadata)").count(),
+        owner_source.matches("button_kind(metadata)").count(),
         1,
         "button kind should be resolved once into render state"
     );
     assert!(
-        !source.contains(".join(\" \")") && !source.contains("to_ascii_lowercase"),
+        !owner_source.contains(".join(\" \")") && !owner_source.contains("to_ascii_lowercase"),
         "button kind classification should not allocate joined lowercase strings"
     );
-    assert!(source.contains("EditorDesignTokens"));
-    assert!(source.contains("EditorTypographyTokens"));
-    assert!(source.contains("style_overrides"));
-    assert!(source.contains("parse_css_color"));
-    assert!(source.contains("value_as_f32"));
-    assert!(!source.contains("const PRIMARY_SURFACE"));
-    assert!(!source.contains("const DEFAULT_FONT_SIZE"));
+    for child in [
+        "mod button;",
+        "mod commands;",
+        "mod icon_button;",
+        "mod metadata;",
+        "mod state;",
+        "mod style;",
+    ] {
+        assert!(root_source.contains(child), "missing button owner {child}");
+    }
+    assert!(
+        root_source.lines().count() <= 80,
+        "button routing owner should stay compact"
+    );
+    assert!(owner_source.contains("EditorDesignTokens"));
+    assert!(owner_source.contains("EditorTypographyTokens"));
+    assert!(owner_source.contains("style_overrides"));
+    assert!(owner_source.contains("parse_css_color"));
+    assert!(owner_source.contains("value_as_f32"));
+    assert!(!owner_source.contains("const PRIMARY_SURFACE"));
+    assert!(!owner_source.contains("const DEFAULT_FONT_SIZE"));
 }
 
 #[test]

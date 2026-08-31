@@ -7,7 +7,7 @@ use super::selector::RuntimeSessionSlotSelector;
 impl RuntimeSessionSlotSelector {
     pub fn slot_id(slot_id: impl Into<String>) -> Self {
         Self::SlotId {
-            slot_id: slot_id.into().trim().to_string(),
+            slot_id: normalize_selector_value(slot_id),
         }
     }
 
@@ -21,13 +21,13 @@ impl RuntimeSessionSlotSelector {
 
     pub fn latest_updated_with_tag(tag: impl Into<String>) -> Self {
         Self::LatestUpdatedWithTag {
-            tag: tag.into().trim().to_string(),
+            tag: normalize_selector_value(tag),
         }
     }
 
     pub fn oldest_updated_with_tag(tag: impl Into<String>) -> Self {
         Self::OldestUpdatedWithTag {
-            tag: tag.into().trim().to_string(),
+            tag: normalize_selector_value(tag),
         }
     }
 
@@ -103,3 +103,19 @@ impl RuntimeSessionSlotSelector {
         }
     }
 }
+
+fn normalize_selector_value(value: impl Into<String>) -> String {
+    let mut value = value.into();
+    let trimmed_end = value.trim_end().len();
+    value.truncate(trimmed_end);
+
+    let trimmed_start = value.len() - value.trim_start().len();
+    if trimmed_start != 0 {
+        value.drain(..trimmed_start);
+    }
+    value
+}
+
+#[cfg(test)]
+#[path = "resolve/in_place_tests.rs"]
+mod in_place_tests;

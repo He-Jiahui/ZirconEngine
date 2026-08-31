@@ -16,8 +16,18 @@ pub(super) fn push_brush_paint_commands(
     z_index: i32,
     opacity: f32,
 ) {
-    if let Some(image_brush) = brushes.fill.as_ref().and_then(image_brush_resource) {
-        push_image_resource_command(output, image_brush, frame, clip_frame, z_index, opacity);
+    if let Some((image_brush, physical_pixel_size)) =
+        brushes.fill.as_ref().and_then(image_brush_resource)
+    {
+        push_image_resource_command(
+            output,
+            image_brush,
+            physical_pixel_size,
+            frame,
+            clip_frame,
+            z_index,
+            opacity,
+        );
         return;
     }
 

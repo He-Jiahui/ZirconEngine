@@ -3,13 +3,13 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use super::{
-    encode_record, SessionGuardError, SessionLockDurability, SessionLockRecord,
-    SESSION_LOCK_FILE_NAME,
+    ProjectSessionAdmissionRecordV1, SESSION_LOCK_FILE_NAME, SessionGuardError,
+    SessionLockDurability, encode_record,
 };
 
 pub(super) fn create_lock(
     path: &Path,
-    record: &SessionLockRecord,
+    record: &ProjectSessionAdmissionRecordV1,
 ) -> Result<SessionLockDurability, SessionGuardError> {
     let temporary_path = stage_lock(path, record)?;
     match fs::hard_link(&temporary_path, path) {
@@ -37,7 +37,7 @@ pub(super) fn create_lock(
 
 pub(super) fn replace_lock(
     path: &Path,
-    record: &SessionLockRecord,
+    record: &ProjectSessionAdmissionRecordV1,
 ) -> Result<SessionLockDurability, SessionGuardError> {
     let temporary_path = stage_lock(path, record)?;
     if let Err(source) = atomic_replace_existing(&temporary_path, path) {
@@ -60,7 +60,10 @@ pub(super) fn remove_lock(path: &Path) -> Result<SessionLockDurability, SessionG
     Ok(durability_after_publish(path))
 }
 
-fn stage_lock(path: &Path, record: &SessionLockRecord) -> Result<PathBuf, SessionGuardError> {
+fn stage_lock(
+    path: &Path,
+    record: &ProjectSessionAdmissionRecordV1,
+) -> Result<PathBuf, SessionGuardError> {
     let directory = path
         .parent()
         .expect("session lock is always below the project .zircon directory");
@@ -93,7 +96,7 @@ fn stage_lock(path: &Path, record: &SessionLockRecord) -> Result<PathBuf, Sessio
 fn write_record(
     file: &mut fs::File,
     path: &Path,
-    record: &SessionLockRecord,
+    record: &ProjectSessionAdmissionRecordV1,
 ) -> Result<(), SessionGuardError> {
     file.write_all(encode_record(record).as_bytes())
         .and_then(|()| file.sync_all())

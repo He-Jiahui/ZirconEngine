@@ -7,12 +7,9 @@ use zircon_runtime_interface::ui::{
     component::UiValue, dispatch::UiTemplateActionInvocation, event_ui::UiNodeId,
 };
 
-use super::super::{
-    pane_payload_projection::{
-        append_hybrid_slot_anchor_projection, inject_pane_projection_attributes, project_pane_body,
-        template_v2_component_patch_attributes,
-    },
-    projection::project_v2_document,
+use super::super::pane_payload_projection::{
+    append_hybrid_slot_anchor_projection, inject_pane_projection_attributes,
+    template_v2_component_patch_attributes,
 };
 use super::{EditorUiHostRuntime, EditorUiHostRuntimeError};
 
@@ -21,22 +18,10 @@ impl EditorUiHostRuntime {
         &self,
         body: &PaneBodyPresentation,
     ) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
-        if let Some(document) = self.v2_document(&body.document_id) {
-            let mut projection = project_v2_document(
-                &body.document_id,
-                document.compiled.as_ref(),
-                &self.template_adapter,
-            )?;
-            inject_pane_projection_attributes(&mut projection.root, body);
-            append_hybrid_slot_anchor_projection(&mut projection.root, body);
-            return Ok(projection);
-        }
-        project_pane_body(
-            &self.template_service,
-            &self.template_registry,
-            &self.template_adapter,
-            body,
-        )
+        let mut projection = self.project_document_cached(&body.document_id)?;
+        let pane_attributes = inject_pane_projection_attributes(&mut projection.root, body);
+        append_hybrid_slot_anchor_projection(&mut projection.root, body, pane_attributes);
+        Ok(projection)
     }
 
     pub(crate) fn apply_pane_component_patches_to_surface(
@@ -88,7 +73,7 @@ impl EditorUiHostRuntime {
                     node.control_id.as_deref(),
                     node.attributes.clone(),
                     action_source,
-                    control_attributes.clone(),
+                    BTreeMap::new(),
                 );
             }
         }
@@ -189,24 +174,38 @@ pub(super) fn apply_template_control_attributes_to_host_model(
     host_model: &mut RetainedUiHostModel,
     control_attributes: &BTreeMap<String, BTreeMap<String, toml::Value>>,
 ) -> Result<(), EditorUiHostRuntimeError> {
+    let mut control_node_indices = BTreeMap::<String, Vec<usize>>::new();
+    for (index, node) in host_model.nodes.iter().enumerate() {
+        let Some(control_id) = node.control_id.as_deref() else {
+            continue;
+        };
+        control_node_indices
+            .entry(control_id.to_string())
+            .or_default()
+            .push(index);
+    }
+
     for (control_id, attributes) in control_attributes {
-        let mut matching_nodes = host_model
-            .nodes
-            .iter_mut()
-            .filter(|node| node.control_id.as_deref() == Some(control_id.as_str()));
-        let Some(node) = matching_nodes.next() else {
-            return Err(EditorUiHostRuntimeError::MissingRetainedControl {
-                document_id: document_id.to_string(),
-                control_id: control_id.clone(),
+        let matching_node_indices = control_node_indices
+            .get(control_id)
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        let [node_index] = matching_node_indices else {
+            return Err(if matching_node_indices.is_empty() {
+                EditorUiHostRuntimeError::MissingRetainedControl {
+                    document_id: document_id.to_string(),
+                    control_id: control_id.clone(),
+                }
+            } else {
+                EditorUiHostRuntimeError::DuplicateRetainedControl {
+                    document_id: document_id.to_string(),
+                    control_id: control_id.clone(),
+                }
             });
         };
-        if matching_nodes.next().is_some() {
-            return Err(EditorUiHostRuntimeError::DuplicateRetainedControl {
-                document_id: document_id.to_string(),
-                control_id: control_id.clone(),
-            });
-        }
-        node.attributes.extend(attributes.clone());
+        host_model.nodes[*node_index]
+            .attributes
+            .extend(attributes.clone());
     }
     Ok(())
 }
@@ -216,18 +215,27 @@ pub(super) fn apply_template_control_attributes_to_surface(
     surface: &mut UiSurface,
     control_attributes: &BTreeMap<String, BTreeMap<String, toml::Value>>,
 ) -> Result<(), EditorUiHostRuntimeError> {
+    let mut control_node_ids = BTreeMap::<String, Vec<UiNodeId>>::new();
+    for (node_id, node) in &surface.tree.nodes {
+        let Some(control_id) = node
+            .template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.control_id.as_deref())
+        else {
+            continue;
+        };
+        control_node_ids
+            .entry(control_id.to_string())
+            .or_default()
+            .push(*node_id);
+    }
+
     for (control_id, attributes) in control_attributes {
-        let matching_node_ids = surface
-            .tree
-            .nodes
-            .iter()
-            .filter_map(|(node_id, node)| {
-                (node.template_metadata.as_ref()?.control_id.as_deref()
-                    == Some(control_id.as_str()))
-                .then_some(*node_id)
-            })
-            .collect::<Vec<_>>();
-        let [node_id] = matching_node_ids.as_slice() else {
+        let matching_node_ids = control_node_ids
+            .get(control_id)
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        let [node_id] = matching_node_ids else {
             return Err(if matching_node_ids.is_empty() {
                 EditorUiHostRuntimeError::MissingTemplateSurfaceControl {
                     document_id: document_id.to_string(),

@@ -18,7 +18,7 @@ impl ViewportInteractionExtract {
         Self {
             handles: handles.into(),
             scene_gizmos: scene_gizmos.into(),
-            render_meshes: render_meshes.to_vec().into(),
+            render_meshes: cloned_arc_slice(render_meshes),
         }
     }
 
@@ -34,3 +34,11 @@ impl ViewportInteractionExtract {
         &self.render_meshes
     }
 }
+
+fn cloned_arc_slice<T: Clone>(source: &[T]) -> Arc<[T]> {
+    Arc::from(source)
+}
+
+#[cfg(test)]
+#[path = "extract/direct_arc_slice_tests.rs"]
+mod direct_arc_slice_tests;

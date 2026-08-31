@@ -21,6 +21,10 @@ impl UiRuntimeSelectorMatchExt for UiSelector {
             return false;
         }
 
+        if self.segments.len() == 1 {
+            return matches_segment(&self.segments[0], &path[path.len() - 1]);
+        }
+
         let mut path_index = path.len() - 1;
         let mut selector_index = self.segments.len() - 1;
 
@@ -65,7 +69,17 @@ impl UiRuntimeSelectorMatchExt for UiSelector {
 }
 
 fn matches_segment(segment: &UiSelectorSegment, node: &UiSelectorMatchNode<'_>) -> bool {
-    segment.tokens.iter().all(|token| match token {
+    if segment.tokens.len() == 1 {
+        return matches_token(&segment.tokens[0], node);
+    }
+    segment
+        .tokens
+        .iter()
+        .all(|token| matches_token(token, node))
+}
+
+fn matches_token(token: &UiSelectorToken, node: &UiSelectorMatchNode<'_>) -> bool {
+    match token {
         UiSelectorToken::Type(component) => node.component == component.as_str(),
         UiSelectorToken::Class(class_name) => node
             .classes
@@ -75,5 +89,9 @@ fn matches_segment(segment: &UiSelectorSegment, node: &UiSelectorMatchNode<'_>) 
         UiSelectorToken::State(state) => node.states.iter().any(|value| value == state),
         UiSelectorToken::Part(_) => false,
         UiSelectorToken::Host => node.is_host,
-    })
+    }
 }
+
+#[cfg(test)]
+#[path = "style/single_match_tests.rs"]
+mod single_match_tests;

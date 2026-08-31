@@ -53,7 +53,7 @@ pub(crate) fn project_host_text_preferences(tokens: &EditorDesignTokens) -> Host
 }
 
 fn project_typography_tokens(tokens: &EditorTypographyTokens) -> HostTextPreferences {
-    let defaults = EditorTypographyTokens::workbench_default();
+    let (ui_weight, strong_weight, code_weight) = project_font_weights(tokens);
     HostTextPreferences {
         ui_family: normalized_family_or_default(
             tokens.ui_family.as_str(),
@@ -69,15 +69,34 @@ fn project_typography_tokens(tokens: &EditorTypographyTokens) -> HostTextPrefere
         ),
         utility_tab_text_role: host_utility_tab_text_role_for_tokens(tokens.utility_tab_text_role),
         smoothing: host_text_smoothing_for_tokens(tokens.font_smoothing),
-        ui_weight: valid_font_weight_or(tokens.body_weight, defaults.body_weight),
-        strong_weight: valid_font_weight_or(tokens.strong_weight, defaults.strong_weight),
-        code_weight: valid_font_weight_or(tokens.code_weight, defaults.code_weight),
+        ui_weight,
+        strong_weight,
+        code_weight,
     }
 }
 
+fn project_font_weights(tokens: &EditorTypographyTokens) -> (u16, u16, u16) {
+    if valid_font_weight(tokens.body_weight)
+        && valid_font_weight(tokens.strong_weight)
+        && valid_font_weight(tokens.code_weight)
+    {
+        return (tokens.body_weight, tokens.strong_weight, tokens.code_weight);
+    }
+
+    let defaults = EditorTypographyTokens::workbench_default();
+    (
+        valid_font_weight_or(tokens.body_weight, defaults.body_weight),
+        valid_font_weight_or(tokens.strong_weight, defaults.strong_weight),
+        valid_font_weight_or(tokens.code_weight, defaults.code_weight),
+    )
+}
+
+fn valid_font_weight(value: u16) -> bool {
+    (1..=1000).contains(&value)
+}
+
 fn valid_font_weight_or(value: u16, fallback: u16) -> u16 {
-    (1..=1000)
-        .contains(&value)
+    valid_font_weight(value)
         .then_some(value)
         .unwrap_or(fallback)
 }
@@ -179,3 +198,7 @@ mod tests {
         assert_eq!(preferences.code_weight, 1_000);
     }
 }
+
+#[cfg(test)]
+#[path = "typography/lazy_default_weights_tests.rs"]
+mod lazy_default_weights_tests;

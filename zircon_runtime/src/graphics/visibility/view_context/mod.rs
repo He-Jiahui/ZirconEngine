@@ -1,6 +1,10 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeSet, HashMap};
 
 mod build_views;
+
+#[cfg(test)]
+#[path = "hash_relevance_tests.rs"]
+mod hash_relevance_tests;
 
 use crate::core::framework::render::{PrimitiveRelevance, RenderLayerSet, ViewportCameraSnapshot};
 use crate::core::framework::scene::EntityId;
@@ -27,10 +31,8 @@ impl FrameVisibility {
         primitive_relevance: &[VisibilityRelevanceEntry],
         visible_stable_instance_keys: &BTreeSet<u64>,
     ) -> Self {
-        let relevance_by_stable_instance_key = primitive_relevance
-            .iter()
-            .map(|entry| (entry.stable_instance_key, entry.relevance))
-            .collect::<BTreeMap<_, _>>();
+        let relevance_by_stable_instance_key =
+            relevance_by_stable_instance_key(primitive_relevance);
         let entities = bvh_instances
             .iter()
             .map(|instance| instance.entity)
@@ -135,6 +137,15 @@ impl FrameVisibility {
             .filter_map(|index| self.stable_instance_keys.get(*index as usize).copied())
             .collect()
     }
+}
+
+fn relevance_by_stable_instance_key(
+    entries: &[VisibilityRelevanceEntry],
+) -> HashMap<u64, PrimitiveRelevance> {
+    entries
+        .iter()
+        .map(|entry| (entry.stable_instance_key, entry.relevance))
+        .collect::<HashMap<_, _>>()
 }
 
 #[derive(Clone, Debug, PartialEq)]

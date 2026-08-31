@@ -1,22 +1,29 @@
 use super::super::super::super::super::super::data::TemplatePaneNodeData;
-use super::super::super::super::component_variant_contains;
 
 pub(super) fn divider_text_align(node: &TemplatePaneNodeData) -> DividerTextAlign {
-    if component_variant_contains(node, "textAlignRight")
-        || component_variant_contains(node, "right")
-        || matches!(node.text_align.as_str(), "right" | "end")
-    {
+    divider_text_align_for_variant(&node.component_variant, &node.text_align)
+}
+
+fn divider_text_align_for_variant(component_variant: &str, text_align: &str) -> DividerTextAlign {
+    let mut has_right = false;
+    let mut has_left = false;
+    for part in component_variant.split(|character: char| {
+        character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
+    }) {
+        has_right |=
+            part.eq_ignore_ascii_case("textAlignRight") || part.eq_ignore_ascii_case("right");
+        has_left |= part.eq_ignore_ascii_case("textAlignLeft") || part.eq_ignore_ascii_case("left");
+    }
+    if has_right || matches!(text_align, "right" | "end") {
         DividerTextAlign::Right
-    } else if component_variant_contains(node, "textAlignLeft")
-        || component_variant_contains(node, "left")
-        || matches!(node.text_align.as_str(), "left" | "start")
-    {
+    } else if has_left || matches!(text_align, "left" | "start") {
         DividerTextAlign::Left
     } else {
         DividerTextAlign::Center
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum DividerTextAlign {
     Left,
     Center,
@@ -34,3 +41,7 @@ pub(super) fn divider_text_align_ratio(align: DividerTextAlign) -> f32 {
         DividerTextAlign::Right => DIVIDER_TEXT_ALIGN_RIGHT_RATIO,
     }
 }
+
+#[cfg(test)]
+#[path = "align/single_scan_variant_tests.rs"]
+mod single_scan_variant_tests;

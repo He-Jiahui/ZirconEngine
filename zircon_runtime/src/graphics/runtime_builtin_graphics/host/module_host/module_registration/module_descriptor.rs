@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::core::framework::platform::PLATFORM_MODULE_NAME;
 use crate::core::framework::render::{
-    GeometrySourceDescriptor, RenderFramework, RenderingManager, ShadingModelDescriptor,
-    GRAPHICS_MODULE_NAME,
+    GRAPHICS_MODULE_NAME, GeometrySourceDescriptor, RenderFramework, RenderingManager,
+    ShadingModelDescriptor,
 };
 use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::manager::RegisteredManagerService;
@@ -19,6 +19,7 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::PluginShaderModuleSource;
+use crate::text::TEXT_MODULE_NAME;
 
 use super::super::create::create_render_framework_with_render_features;
 use super::super::driver::WgpuDriver;
@@ -79,6 +80,7 @@ pub fn module_descriptor_with_render_features(
     .with_module_dependency(ModuleDependencySpec::named(PLATFORM_MODULE_NAME))
     .with_module_dependency(ModuleDependencySpec::named(ASSET_MODULE_NAME))
     .with_module_dependency(ModuleDependencySpec::named(SCENE_MODULE_NAME))
+    .with_module_dependency(ModuleDependencySpec::named(TEXT_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(GRAPHICS_MODULE_NAME, ServiceKind::Driver, "WgpuDriver"),
         StartupMode::Immediate,
@@ -92,11 +94,14 @@ pub fn module_descriptor_with_render_features(
             "RenderFramework",
         ),
         StartupMode::Lazy,
-        vec![dependency_on(
-            ASSET_MODULE_NAME,
-            ServiceKind::Manager,
-            "ProjectAssetManager",
-        )],
+        vec![
+            dependency_on(
+                ASSET_MODULE_NAME,
+                ServiceKind::Manager,
+                "ProjectAssetManager",
+            ),
+            dependency_on(TEXT_MODULE_NAME, ServiceKind::Manager, "FontServices"),
+        ],
         factory({
             let render_features = Arc::clone(&render_features);
             let plugin_geometry_sources = Arc::clone(&plugin_geometry_sources);
@@ -148,4 +153,33 @@ pub fn module_descriptor_with_render_features(
             )
         }),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::GRAPHICS_MODULE_NAME;
+    use crate::text::TEXT_MODULE_NAME;
+
+    use super::module_descriptor;
+
+    #[test]
+    fn graphics_render_framework_depends_on_core_owned_text_font_services() {
+        let descriptor = module_descriptor();
+
+        assert!(
+            descriptor
+                .module_dependencies
+                .iter()
+                .any(|dependency| dependency.module_name == TEXT_MODULE_NAME)
+        );
+        let render_framework = descriptor
+            .managers
+            .iter()
+            .find(|manager| manager.name.to_string() == "GraphicsModule.Manager.RenderFramework")
+            .expect("graphics render framework manager");
+        assert!(render_framework.dependencies.iter().any(|dependency| {
+            dependency.name.to_string() == "TextModule.Manager.FontServices"
+        }));
+        assert_eq!(descriptor.name, GRAPHICS_MODULE_NAME);
+    }
 }

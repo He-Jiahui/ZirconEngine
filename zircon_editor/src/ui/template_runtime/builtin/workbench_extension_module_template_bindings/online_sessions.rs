@@ -1,19 +1,6 @@
 use super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(super) const ONLINE_SESSIONS_BINDINGS: &[ExtensionBindingSpec] = &[
-    click("LobbyEditorOpen", "workbench.extension.lobby_editor.open"),
-    click(
-        "LobbyEditorFlowTab",
-        "workbench.extension.lobby_editor.flow_tab.select",
-    ),
-    click(
-        "LobbyEditorSlotsTab",
-        "workbench.extension.lobby_editor.slots_tab.select",
-    ),
-    click(
-        "LobbyEditorTelemetryTab",
-        "workbench.extension.lobby_editor.telemetry_tab.select",
-    ),
     click(
         "LobbyEditorDefaultLobbyRow",
         "workbench.extension.lobby_editor.default_lobby_row.select",
@@ -41,10 +28,6 @@ pub(super) const ONLINE_SESSIONS_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "LobbyEditorCrossplayRuleTableRow",
         "workbench.extension.lobby_editor.crossplay_rule_table_row.select",
-    ),
-    click(
-        "LobbyEditorOutput",
-        "workbench.extension.lobby_editor.output.select",
     ),
     click(
         "LobbyEditorSimulateLobby",
@@ -79,22 +62,6 @@ pub(super) const ONLINE_SESSIONS_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.lobby_editor.max_players.commit",
     ),
     click(
-        "MatchmakingEditorOpen",
-        "workbench.extension.matchmaking_editor.open",
-    ),
-    click(
-        "MatchmakingEditorQueuesTab",
-        "workbench.extension.matchmaking_editor.queues_tab.select",
-    ),
-    click(
-        "MatchmakingEditorRulesTab",
-        "workbench.extension.matchmaking_editor.rules_tab.select",
-    ),
-    click(
-        "MatchmakingEditorTelemetryTab",
-        "workbench.extension.matchmaking_editor.telemetry_tab.select",
-    ),
-    click(
         "MatchmakingEditorPlaylistRankedRow",
         "workbench.extension.matchmaking_editor.playlist_ranked_row.select",
     ),
@@ -121,10 +88,6 @@ pub(super) const ONLINE_SESSIONS_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "MatchmakingEditorBackfillTableRow",
         "workbench.extension.matchmaking_editor.backfill_table_row.select",
-    ),
-    click(
-        "MatchmakingEditorOutput",
-        "workbench.extension.matchmaking_editor.output.select",
     ),
     click(
         "MatchmakingEditorSimulateMatch",

@@ -8,9 +8,9 @@ use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
 
 use super::super::mesh_pipeline::{
-    create_depth_prepass_mesh_pipeline, create_gbuffer_mesh_pipeline, create_mesh_pipeline,
-    create_shadow_mesh_pipeline, create_taa_reactive_mask_mesh_pipeline,
-    create_velocity_mesh_pipeline,
+    create_depth_prepass_mesh_pipeline, create_gbuffer_mesh_pipeline,
+    create_hit_proxy_mesh_pipeline, create_mesh_pipeline, create_shadow_mesh_pipeline,
+    create_taa_reactive_mask_mesh_pipeline, create_velocity_mesh_pipeline,
 };
 use super::create_forward_shadow_receiver_layout;
 use super::prewarm_manifest::{
@@ -82,24 +82,22 @@ fn create_validation_pipeline(
             pipeline_layout,
             shader,
             pipeline_kind_from_prewarm_request(request),
-            None,
-        ),
-        ShaderPassType::Velocity => create_velocity_mesh_pipeline(
-            device,
-            pipeline_layout,
-            shader,
-            wgpu::TextureFormat::Rg16Float,
             pipeline_key,
             None,
         ),
+        ShaderPassType::Velocity => {
+            create_velocity_mesh_pipeline(device, pipeline_layout, shader, pipeline_key, None)
+        }
         ShaderPassType::TaaReactiveMask => create_taa_reactive_mask_mesh_pipeline(
             device,
             pipeline_layout,
             shader,
-            wgpu::TextureFormat::R8Unorm,
             pipeline_key,
             None,
         ),
+        ShaderPassType::HitProxy => {
+            create_hit_proxy_mesh_pipeline(device, pipeline_layout, shader, pipeline_key, None)
+        }
     }
 }
 
@@ -187,8 +185,8 @@ fn material_sampler_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
 #[cfg(all(test, feature = "dynamic-api"))]
 mod tests {
     use crate::core::framework::render::{
-        ShaderFeatureBits, ShaderQualityTier, ShaderVariantPrewarmSource,
-        SHADING_MODEL_ID_BLINN_PHONG,
+        SHADING_MODEL_ID_BLINN_PHONG, ShaderFeatureBits, ShaderQualityTier,
+        ShaderVariantPrewarmSource,
     };
     use crate::dynamic_api::builtin_standard_material_shader_prewarm_manifest_for_geometry;
     use crate::graphics::backend::RenderBackend;

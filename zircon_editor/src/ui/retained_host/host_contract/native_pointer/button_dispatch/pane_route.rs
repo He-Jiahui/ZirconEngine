@@ -1,4 +1,6 @@
-use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
+use crate::ui::retained_host::host_contract::data::{
+    FrameRect, HostPaneInteractionStateData, HostWindowPresentationData,
+};
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use zircon_runtime_interface::ui::dispatch::UiInputModifiers;
@@ -11,6 +13,7 @@ use super::pane_callbacks::dispatch_pane_button;
 pub(super) fn dispatch_pane_route_button(
     ui: &UiHostWindow,
     presentation: &HostWindowPresentationData,
+    interaction: &HostPaneInteractionStateData,
     state: NativePointerButtonState,
     button: UiPointerButton,
     button_id: i32,
@@ -19,7 +22,7 @@ pub(super) fn dispatch_pane_route_button(
     y: f32,
     cleared_text_input_frame: Option<FrameRect>,
 ) -> Option<NativePointerDispatchResult> {
-    route_pointer_to_pane(presentation, x, y).map(|pointer| {
+    route_pointer_to_pane(presentation, interaction, x, y).map(|pointer| {
         dispatch_pane_button(
             ui,
             presentation,

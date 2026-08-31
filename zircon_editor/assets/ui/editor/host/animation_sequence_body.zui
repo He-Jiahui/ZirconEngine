@@ -18,7 +18,7 @@ children = [{ node = "header" }, { node = "timeline_slot", slot = { name = "anim
 component = "HorizontalGroup"
 control_id = "AnimationEditorHeaderPanel"
 layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
-children = [{ node = "mode" }, { node = "path" }, { node = "status" }, { node = "scrub" }]
+children = [{ node = "mode" }, { node = "path" }, { node = "status" }]
 
 [nodes.mode]
 component = "Text"
@@ -37,13 +37,6 @@ component = "Text"
 control_id = "AnimationEditorHeaderStatusRow"
 props = { text = "Ready" }
 layout = { width = { min = 120.0, preferred = 120.0, max = 180.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.scrub]
-component = "IconButton"
-control_id = "ScrubTimeline"
-props = { label = "Scrub Timeline", icon = "editor_pages/animation_timeline/transport/timeline-play.svg", icon_placement = "leading" }
-layout = { width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AnimationSequencePaneBody/ScrubTimeline", event = "Click", route = "workbench.animation.scrub_timeline" }]
 
 [nodes.timeline_slot]
 component = "Container"

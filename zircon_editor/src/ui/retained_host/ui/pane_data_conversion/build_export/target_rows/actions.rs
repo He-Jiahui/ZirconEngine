@@ -2,8 +2,9 @@ use crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewDat
 use crate::ui::retained_host as host_contract;
 
 use super::metrics::{
-    BUILD_EXPORT_BUTTON_GAP, BUILD_EXPORT_BUTTON_HEIGHT, BUILD_EXPORT_PRIMARY_BUTTON_WIDTH,
-    BUILD_EXPORT_ROW_HEIGHT, BUILD_EXPORT_ROW_PADDING, BUILD_EXPORT_SECONDARY_BUTTON_WIDTH,
+    BUILD_EXPORT_ACTION_COUNT, BUILD_EXPORT_BUTTON_GAP, BUILD_EXPORT_BUTTON_HEIGHT,
+    BUILD_EXPORT_PRIMARY_BUTTON_WIDTH, BUILD_EXPORT_ROW_HEIGHT, BUILD_EXPORT_ROW_PADDING,
+    BUILD_EXPORT_SECONDARY_BUTTON_WIDTH,
 };
 use super::node::build_export_node;
 
@@ -17,7 +18,7 @@ pub(super) struct BuildExportRowAction {
 
 pub(super) fn build_export_row_actions(
     target: &BuildExportTargetViewData,
-) -> Vec<BuildExportRowAction> {
+) -> [BuildExportRowAction; BUILD_EXPORT_ACTION_COUNT] {
     let export_busy = matches!(
         target.status.as_str(),
         "Queued" | "Running" | "Cancel requested"
@@ -34,7 +35,7 @@ pub(super) fn build_export_row_actions(
         )
     };
 
-    vec![
+    [
         BuildExportRowAction {
             label: primary_label,
             action_id: primary_action_id,

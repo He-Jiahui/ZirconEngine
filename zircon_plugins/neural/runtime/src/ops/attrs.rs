@@ -63,6 +63,23 @@ pub enum NnOpAttrsError {
 }
 
 impl NnOpAttrs {
+    pub(crate) fn validate_for(&self, code: NnOpCode) -> Result<(), NnOpAttrsError> {
+        let matches = match self {
+            Self::None => expects_no_attrs(code),
+            Self::Gemm(_) => code == NnOpCode::Gemm,
+            Self::Conv2d(_) => matches!(code, NnOpCode::Conv2d | NnOpCode::DepthwiseConv2d),
+            Self::Pool2d(_) => matches!(code, NnOpCode::MaxPool2d | NnOpCode::AvgPool2d),
+            Self::BatchNorm { .. } => code == NnOpCode::BatchNorm,
+            Self::LayerNorm { .. } => code == NnOpCode::LayerNorm,
+            Self::Upsample2d { .. } => code == NnOpCode::Upsample2d,
+        };
+        if matches {
+            Ok(())
+        } else {
+            Err(NnOpAttrsError::UnexpectedAttrsForOp { code })
+        }
+    }
+
     pub(crate) fn encode(&self, code: NnOpCode) -> Result<Vec<u8>, NnOpAttrsError> {
         match (code, self) {
             (NnOpCode::Gemm, Self::Gemm(attrs)) => {
@@ -198,3 +215,6 @@ fn decode_epsilon(bytes: &[u8]) -> Result<f32, NnOpAttrsError> {
     expect_size(bytes, 4)?;
     Ok(read_f32(bytes, 0))
 }
+
+#[cfg(test)]
+mod performance_tests;

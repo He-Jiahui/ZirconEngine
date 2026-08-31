@@ -118,6 +118,14 @@ multiSelect = true
 "#
     ))
     .expect("tree attributes should parse");
+    tree_attributes.insert(
+        "component_role".to_string(),
+        toml::Value::String(if material {
+            "mui-x-tree-view".to_string()
+        } else {
+            "tree-view".to_string()
+        }),
+    );
 
     if material {
         tree_attributes.remove("selected_items");
@@ -162,8 +170,13 @@ multiSelect = true
                 .with_template_metadata(UiTemplateNodeMetadata {
                     component: "TreeItem".to_string(),
                     control_id: Some(format!("{item_id}Row")),
-                    attributes: toml::from_str(&format!(r#"itemId = "{item_id}""#))
-                        .expect("tree item attributes should parse"),
+                    attributes: toml::from_str(&format!(
+                        r#"
+itemId = "{item_id}"
+component_role = "tree-item"
+"#
+                    ))
+                    .expect("tree item attributes should parse"),
                     ..Default::default()
                 }),
             )
@@ -229,6 +242,14 @@ scrollTop = 0.0
 "#
     ))
     .expect("virtualized tree attributes should parse");
+    tree_attributes.insert(
+        "component_role".to_string(),
+        toml::Value::String(if material {
+            "mui-x-tree-view".to_string()
+        } else {
+            "tree-view".to_string()
+        }),
+    );
 
     if material {
         tree_attributes.remove("selected_items");
@@ -284,8 +305,13 @@ scrollTop = 0.0
                 .with_template_metadata(UiTemplateNodeMetadata {
                     component: "TreeItem".to_string(),
                     control_id: Some(format!("{item_id}Row")),
-                    attributes: toml::from_str(&format!(r#"itemId = "{item_id}""#))
-                        .expect("tree item attributes should parse"),
+                    attributes: toml::from_str(&format!(
+                        r#"
+itemId = "{item_id}"
+component_role = "tree-item"
+"#
+                    ))
+                    .expect("tree item attributes should parse"),
                     ..Default::default()
                 }),
             )

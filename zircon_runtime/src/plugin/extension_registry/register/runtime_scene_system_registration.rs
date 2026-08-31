@@ -5,12 +5,12 @@ use crate::core::CoreError;
 use crate::plugin::RuntimeExtensionRegistryError;
 use crate::scene::ecs::{
     BoxedRuntimeSceneSystem, FunctionRuntimeSceneSystem, RuntimeSceneSystemContext,
-    SceneSystemClockDomain, SceneSystemMetadata, SystemOrderingConstraint, SystemRef, SystemSetId,
+    SceneSystemMetadata, SceneSystemTickPolicy, SystemOrderingConstraint, SystemRef, SystemSetId,
     SystemStage,
 };
 
-use super::super::RuntimeExtensionRegistry;
 use super::super::owner::PluginModuleId;
+use super::super::RuntimeExtensionRegistry;
 use super::system_registration::validate_plugin_system_id;
 
 type RuntimeSceneSystemBuildFn = Arc<dyn Fn() -> BoxedRuntimeSceneSystem + Send + Sync>;
@@ -50,7 +50,7 @@ pub struct RuntimeSceneSystemRegistration {
     pub sets: Vec<SystemSetId>,
     pub constraints: Vec<SystemOrderingConstraint>,
     pub order: i32,
-    pub clock_domain: SceneSystemClockDomain,
+    pub tick_policy: SceneSystemTickPolicy,
     build: SharedRuntimeSceneSystemBuild,
 }
 
@@ -69,7 +69,7 @@ pub struct RuntimeSceneSystemRegistrationBuilder<'registry, S> {
     sets: Vec<SystemSetId>,
     constraints: Vec<SystemOrderingConstraint>,
     order: i32,
-    clock_domain: SceneSystemClockDomain,
+    tick_policy: SceneSystemTickPolicy,
 }
 
 impl<'registry, S> RuntimeSceneSystemRegistrationBuilder<'registry, S>
@@ -92,7 +92,7 @@ where
             sets: Vec::new(),
             constraints: Vec::new(),
             order: 0,
-            clock_domain: SceneSystemClockDomain::Virtual,
+            tick_policy: SceneSystemTickPolicy::for_stage(stage),
         }
     }
 
@@ -106,8 +106,8 @@ where
         self
     }
 
-    pub fn with_clock_domain(mut self, clock_domain: SceneSystemClockDomain) -> Self {
-        self.clock_domain = clock_domain;
+    pub fn with_tick_policy(mut self, tick_policy: SceneSystemTickPolicy) -> Self {
+        self.tick_policy = tick_policy;
         self
     }
 
@@ -124,10 +124,10 @@ where
     }
 
     pub fn register(self) -> Result<(), RuntimeExtensionRegistryError> {
-        if self.stage.is_fixed_loop() && self.clock_domain == SceneSystemClockDomain::Real {
+        if !self.tick_policy.is_valid_for_stage(self.stage) {
             return Err(RuntimeExtensionRegistryError::InvalidPluginSystem(format!(
-                "{} cannot use {:?} clock domain in fixed-loop stage {:?}",
-                self.id, self.clock_domain, self.stage
+                "{} has invalid tick policy {:?} for stage {:?}",
+                self.id, self.tick_policy, self.stage
             )));
         }
         let id = self.id;
@@ -135,12 +135,12 @@ where
         let order = self.order;
         let sets = self.sets;
         let constraints = self.constraints;
-        let clock_domain = self.clock_domain;
+        let tick_policy = self.tick_policy;
         let system_factory = self.system_factory;
         let metadata = SceneSystemMetadata::new(id.clone(), stage, order)
             .with_sets(sets.clone())
             .with_constraints(constraints.clone())
-            .with_clock_domain(clock_domain);
+            .with_tick_policy(tick_policy);
         let build = SharedRuntimeSceneSystemBuild::new(
             id.clone(),
             Arc::new(move || {
@@ -160,7 +160,7 @@ where
                 sets,
                 constraints,
                 order,
-                clock_domain,
+                tick_policy,
                 build,
             },
         )
@@ -212,13 +212,15 @@ impl RuntimeExtensionRegistry {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
 
     use super::*;
-    use crate::core::CoreRuntime;
     use crate::core::framework::scene::SCENE_MODULE_NAME;
-    use crate::scene::ecs::RuntimeSceneSystemContext;
+    use crate::core::CoreRuntime;
+    use crate::scene::ecs::{RuntimeSceneSystemContext, SystemTickContext};
     use crate::scene::{create_default_level, module_descriptor};
 
     #[test]
@@ -261,14 +263,30 @@ mod tests {
             .run(RuntimeSceneSystemContext::new(
                 &runtime.handle(),
                 &level,
-                0.0,
+                SystemTickContext::new(
+                    SystemStage::Update,
+                    level.world_time().virtual_time().clock_domain_stamp(),
+                    0,
+                    None,
+                    Duration::ZERO,
+                    Duration::ZERO,
+                    level.world_generation(),
+                ),
             ))
             .unwrap();
         second
             .run(RuntimeSceneSystemContext::new(
                 &runtime.handle(),
                 &level,
-                0.0,
+                SystemTickContext::new(
+                    SystemStage::Update,
+                    level.world_time().virtual_time().clock_domain_stamp(),
+                    0,
+                    None,
+                    Duration::ZERO,
+                    Duration::ZERO,
+                    level.world_generation(),
+                ),
             ))
             .unwrap();
 

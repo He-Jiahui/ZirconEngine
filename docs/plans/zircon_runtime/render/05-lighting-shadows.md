@@ -108,6 +108,18 @@ plan_sources:
 - `shadow_map_renderer.rs` 有方向光级联与点光基础,但级联划分/稳定化(texel snapping)/级联过渡未成体系,无 atlas 管理,多光源阴影互斥。
 - 无 per-light 阴影参数面(bias/normal bias/分辨率档位)契约。
 
+### 2026-08-29 P0-3 light-grid projection correctness
+
+`light_grid_builder.rs` 现在通过 `ViewProjectionMatrixPair::projection_from_camera` 直接消费
+canonical `ortho_size` half-height；perspective
+sphere 跨近平面时不再按中心 `clip.w` 丢弃，相机内覆盖全 tile，其余跨近平面球从 near-plane
+产生保守 screen rect；完全位于相机后的球仍按深度范围剔除。新增 orthographic、camera-inside、
+behind-center near-crossing、fully-behind regression。RED 夹具确认旧正交 Y scale `0.2` 与
+camera-inside 空 mask；修复后 E 盘 rustc 隔离 harness 断言 4/4 通过，实际生产文件编译、
+scoped rustfmt 与 `git diff --check` 通过；实际生产模块隔离测试 5/5 通过。已读锚点：`dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/LightGridInjection.cpp`、
+`dev/UnrealEngine/Engine/Shaders/Private/LightGridInjection.usf`。Cargo/WGPU/product/性能数据仍
+pending。状态：`runtime_render05_light_grid_projection_correctness_isolated_tests_passed_managed_validation_pending`。
+
 ## 参考代码
 
 | 文件 | 应重点阅读 |

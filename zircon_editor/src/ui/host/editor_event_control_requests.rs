@@ -4,7 +4,7 @@ use crate::core::editor_operation::{
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::host::EditorHostEventController;
-use serde_json::{Number, Value};
+use serde_json::Value;
 use zircon_runtime_interface::ui::{
     binding::{UiBindingValue, UiEventBinding},
     event_ui::{
@@ -178,7 +178,7 @@ impl EditorHostEventController {
                 }
             };
             return match self.invoke_operation_with_binding_path(
-                EditorOperationSource::UiBinding,
+                EditorOperationSource::Remote,
                 invocation,
                 Some(binding.path().native_prefix()),
             ) {
@@ -207,7 +207,7 @@ impl EditorHostEventController {
                 route_id,
                 binding: Some(ui_binding),
                 value: None,
-                error: Some(UiInvocationError::HandlerFailed(error)),
+                error: Some(UiInvocationError::HandlerFailed(error.to_string())),
             },
         }
     }
@@ -221,17 +221,5 @@ fn ui_binding_arguments_to_json(arguments: &[UiBindingValue]) -> Value {
 }
 
 fn ui_binding_value_to_json(value: &UiBindingValue) -> Value {
-    match value {
-        UiBindingValue::String(value) => Value::String(value.clone()),
-        UiBindingValue::Unsigned(value) => Value::Number(Number::from(*value)),
-        UiBindingValue::Signed(value) => Value::Number(Number::from(*value)),
-        UiBindingValue::Float(value) => Number::from_f64(*value)
-            .map(Value::Number)
-            .unwrap_or(Value::Null),
-        UiBindingValue::Bool(value) => Value::Bool(*value),
-        UiBindingValue::Null => Value::Null,
-        UiBindingValue::Array(values) => {
-            Value::Array(values.iter().map(ui_binding_value_to_json).collect())
-        }
-    }
+    value.to_json_value()
 }

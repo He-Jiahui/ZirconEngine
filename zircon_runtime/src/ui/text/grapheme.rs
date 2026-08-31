@@ -25,50 +25,35 @@ pub(crate) fn next_grapheme_boundary(text: &str, offset: usize) -> Option<usize>
         .find(|end| *end > offset)
 }
 
-pub(crate) fn previous_word_boundary(text: &str, offset: usize) -> Option<usize> {
+/// Floors an external byte offset to a user-perceived character boundary.
+///
+/// UI state may enter through component metadata, platform IME, accessibility, or pointer input.
+/// Those consumers share this conversion so no selection, composition, or replacement range can
+/// start inside a combining sequence or an emoji ZWJ cluster.
+pub(crate) fn clamp_grapheme_boundary(text: &str, offset: usize) -> usize {
     let offset = clamp_utf8_boundary(text, offset);
-    let mut previous_word_start = None;
-    for (start, segment) in text.split_word_bound_indices() {
-        let end = start + segment.len();
-        if end > offset {
-            if start < offset && is_word_segment(segment) {
-                return Some(start);
-            }
-            break;
-        }
-        if is_word_segment(segment) {
-            previous_word_start = Some(start);
-        }
+    if offset == 0 || offset == text.len() {
+        return offset;
     }
-    previous_word_start
+    grapheme_indices(text)
+        .map(|(index, _)| index)
+        .take_while(|index| *index <= offset)
+        .last()
+        .unwrap_or(0)
+}
+
+pub(crate) fn previous_word_boundary(text: &str, offset: usize) -> Option<usize> {
+    crate::text::WordBoundaryMap::new(text).previous_word_start(offset)
 }
 
 pub(crate) fn next_word_boundary(text: &str, offset: usize) -> Option<usize> {
-    let offset = clamp_utf8_boundary(text, offset);
-    for (start, segment) in text.split_word_bound_indices() {
-        let end = start + segment.len();
-        if end <= offset {
-            continue;
-        }
-        if is_word_segment(segment) {
-            return Some(end);
-        }
-    }
-    None
+    crate::text::WordBoundaryMap::new(text).next_word_end(offset)
 }
 
 pub(crate) fn word_range_at(text: &str, offset: usize) -> Option<(usize, usize)> {
-    let offset = clamp_utf8_boundary(text, offset);
-    for (start, segment) in text.split_word_bound_indices() {
-        let end = start + segment.len();
-        if start > offset {
-            return None;
-        }
-        if start <= offset && offset <= end && is_word_segment(segment) {
-            return Some((start, end));
-        }
-    }
-    None
+    crate::text::WordBoundaryMap::new(text)
+        .word_range_at(offset)
+        .map(|range| (range.start, range.end))
 }
 
 pub(crate) fn line_start_boundary(text: &str, offset: usize) -> usize {
@@ -159,10 +144,6 @@ fn line_boundary_for_grapheme_column(
         .map(|(index, grapheme)| line_start + index + grapheme.len())
         .nth(column - 1)
         .unwrap_or(line_end)
-}
-
-fn is_word_segment(segment: &str) -> bool {
-    segment.chars().any(|character| character.is_alphanumeric())
 }
 
 #[cfg(test)]

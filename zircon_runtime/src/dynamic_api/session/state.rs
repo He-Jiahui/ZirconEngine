@@ -5,24 +5,28 @@ use zircon_runtime_interface::world_sync::{
     AssetReloadFrameApplyReportDto, InvalidationBatch, WorldFact,
 };
 use zircon_runtime_interface::{
-    ui::accessibility::UiAccessibilityTreeSnapshot, RuntimeInputDiagnosticsSnapshot,
-    ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeFrameRequestV1, ZrRuntimeHostRequestBatchV1,
-    ZrRuntimeHostRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    RuntimeInputDiagnosticsSnapshot, ZIRCON_RUNTIME_ABI_VERSION_V1,
     ZR_RUNTIME_ACCESSIBILITY_TREE_OUTPUT_LIMIT_V1, ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1,
+    ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeFrameRequestV1, ZrRuntimeHostRequestBatchV1,
+    ZrRuntimeHostRequestV1, ui::accessibility::UiAccessibilityTreeSnapshot,
 };
 
+use crate::builtin::RuntimeModuleCompositionIdentity;
 use crate::core::framework::channel::ChannelWakeCallback;
 use crate::core::framework::input::{InputEvent, InputManager};
-use crate::core::framework::render::RenderViewportSurfaceDescriptor;
-use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
+use crate::core::framework::render::{RenderFrameTiming, RenderViewportSurfaceDescriptor};
+use crate::core::framework::time::ProductTimePolicy;
+use crate::core::manager::{ManagerServiceHandle, resolve_manager_service};
 use crate::core::math::{UVec2, Vec2};
-use crate::core::CoreRuntime;
+use crate::core::{CoreRuntime, FrameClockRebaseReceipt, TaskGraphScope};
 use crate::diagnostic_log::{
-    write_diagnostic_store_current_snapshot, write_log, write_log_lazy, DiagnosticStoreLogSchedule,
-    DynamicProcessLogLease,
+    DiagnosticStoreLogSchedule, DynamicProcessLogLease, write_diagnostic_store_current_snapshot,
+    write_log, write_log_lazy,
 };
 use crate::operation::RuntimeOperationService;
-use crate::plugin::RuntimePluginRegistrationReport;
+use crate::plugin::{
+    CompiledProjectPluginPlan, RuntimePluginCatalogSnapshot, RuntimePluginRegistrationReport,
+};
 use crate::runtime_diagnostics::collect_runtime_diagnostic_current_store;
 use crate::scene::{
     DynamicSceneAssetReloadFrameApplyReport, DynamicSceneAssetReloadQueue, LevelSystem,
@@ -30,12 +34,13 @@ use crate::scene::{
 
 use super::super::bounded_json::BoundedJsonError;
 use super::super::camera_controller::RuntimeCameraController;
-use super::super::frame::{encode_frame, encode_host_request_batch, EncodedRuntimeFrame};
+use super::super::frame::{EncodedRuntimeFrame, encode_frame, encode_host_request_page};
 use super::super::runtime_loop::RuntimeRenderBridge;
 use super::construction;
 use super::event_mirror;
 use super::host_requests::{
-    runtime_cursor_host_request, runtime_gamepad_rumble_request, runtime_ime_host_request,
+    runtime_clipboard_host_request, runtime_cursor_host_request, runtime_gamepad_rumble_request,
+    runtime_ime_host_request,
 };
 use super::preview::{dynamic_preview_accessibility_snapshot, empty_captured_frame};
 use super::profile::RuntimeDynamicSessionProfile;
@@ -43,10 +48,12 @@ use super::project::RuntimeProjectConfig;
 use super::registry::RuntimeFrameDemand;
 use super::runtime_ui::RuntimeUiSurfaceSet;
 use super::scene_asset_reload_diagnostics::record_scene_asset_reload_frame_report;
-use super::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult, DEFAULT_VIEWPORT};
+use super::ui_extract_cache::RuntimeUiExtractCache;
+use super::{DEFAULT_VIEWPORT, RuntimeDynamicSessionError, RuntimeDynamicSessionResult};
 
 const DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE: &str = "runtime_diagnostics";
 const DYNAMIC_SESSION_DESTROY_DRAIN_TIMEOUT: Duration = Duration::ZERO;
+const DYNAMIC_SESSION_TASK_GRAPH_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Default)]
 pub(super) struct RuntimeInputDiagnostics {
@@ -97,7 +104,12 @@ impl RuntimeInputDiagnostics {
 
 pub(super) struct RuntimeDynamicSession {
     pub(super) runtime: CoreRuntime,
+    pub(super) task_graph_scope: TaskGraphScope,
     pub(super) profile: RuntimeDynamicSessionProfile,
+    pub(super) module_composition_identity: RuntimeModuleCompositionIdentity,
+    pub(super) time_policy: ProductTimePolicy,
+    pub(super) frame_clock_activation_rebase: FrameClockRebaseReceipt,
+    pub(super) last_render_frame_timing: RenderFrameTiming,
     pub(super) diagnostic_log_schedule: DiagnosticStoreLogSchedule,
     pub(super) render_bridge: Option<RuntimeRenderBridge>,
     pub(super) level: LevelSystem,
@@ -109,6 +121,7 @@ pub(super) struct RuntimeDynamicSession {
     pub(super) selected_material_resource_id: Option<String>,
     pub(super) camera_controller: RuntimeCameraController,
     pub(super) extract_cache: super::extract_cache::RuntimeFrameExtractCache,
+    pub(super) ui_extract_cache: RuntimeUiExtractCache,
     pub(super) cursor: Vec2,
     pub(super) input_manager: ManagerServiceHandle<dyn InputManager>,
     pub(super) input_diagnostics: RuntimeInputDiagnostics,
@@ -122,9 +135,15 @@ pub(super) struct RuntimeDynamicSession {
     pub(super) plugin_event_subscriptions:
         std::collections::HashMap<u64, event_mirror::RuntimePluginEventSubscriptionState>,
     pub(super) operations: RuntimeOperationService,
+    /// Pins the selected plugin generation until session shutdown completes.
+    pub(super) _runtime_plugin_catalog_snapshot: Arc<RuntimePluginCatalogSnapshot>,
+    /// Pins the project projection derived from the same catalog generation.
+    pub(super) _compiled_project_plugin_plan: Arc<CompiledProjectPluginPlan>,
     pub(super) project_watchers_shutdown: bool,
     pub(super) dynamic_process_log: Option<DynamicProcessLogLease>,
     pub(super) runtime_ui: RuntimeUiSurfaceSet,
+    pub(super) viewport_picks: super::viewport_pick::RuntimeViewportPickStore,
+    pub(super) editor_transform: super::editor_transform::RuntimeEditorTransformState,
 }
 
 impl Drop for RuntimeDynamicSession {
@@ -164,9 +183,23 @@ impl RuntimeDynamicSession {
             }
             self.project_watchers_shutdown = true;
         }
+        self.task_graph_scope.close_admission();
+        if !self
+            .task_graph_scope
+            .wait_until_quiescent(DYNAMIC_SESSION_TASK_GRAPH_DRAIN_TIMEOUT)
+        {
+            return false;
+        }
         if self
             .runtime
             .shutdown_registered_modules_with_drain_timeout(DYNAMIC_SESSION_DESTROY_DRAIN_TIMEOUT)
+            .is_err()
+        {
+            return false;
+        }
+        if self
+            .runtime
+            .shutdown_task_graph(DYNAMIC_SESSION_TASK_GRAPH_DRAIN_TIMEOUT)
             .is_err()
         {
             return false;
@@ -202,17 +235,18 @@ impl RuntimeDynamicSession {
         let advance = {
             crate::profile_scope!("runtime", "frame", "runtime_frame_time_update");
             self.runtime
-                .tick_time(self.profile.max_fixed_steps_per_frame())
+                .tick_time(self.time_policy.max_fixed_steps_per_frame())
         };
+        self.last_render_frame_timing = RenderFrameTiming::new(
+            advance.outer_frame_index(),
+            advance.raw_real_delta().as_secs_f32(),
+        );
         self.tick_scene_asset_reload();
         {
             crate::profile_scope!("runtime", "frame", "runtime_frame_update");
             self.level
                 .tick(&self.runtime.handle(), advance)
-                .map_err(|source| RuntimeDynamicSessionError::CoreStep {
-                    step: "tick loaded level",
-                    source,
-                })?;
+                .map_err(|source| RuntimeDynamicSessionError::LevelTick { source })?;
         }
         {
             crate::profile_scope!("runtime", "frame", "runtime_operation_owner_apply");
@@ -227,7 +261,7 @@ impl RuntimeDynamicSession {
                 source,
             })?
             .begin_frame();
-        if self.diagnostic_log_schedule.tick(advance.real_delta()) {
+        if self.diagnostic_log_schedule.tick(advance.raw_real_delta()) {
             let snapshot = collect_runtime_diagnostic_current_store(&self.runtime.handle());
             write_diagnostic_store_current_snapshot(
                 DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE,
@@ -295,6 +329,11 @@ impl RuntimeDynamicSession {
             .pending_host_request_output
             .as_ref()
             .expect("pending host request output was initialized");
+        crate::profile_counter!(
+            "runtime",
+            "host_request.pending_rows",
+            pending.requests.len()
+        );
         let page_limit = pending
             .requests
             .len()
@@ -304,6 +343,8 @@ impl RuntimeDynamicSession {
         } else {
             encode_largest_host_request_prefix(pending, page_limit)?
         };
+        crate::profile_counter!("runtime", "host_request.page_rows", commit_count);
+        crate::profile_counter!("runtime", "host_request.encoded_bytes", bytes.len());
         self.host_request_output_commit_count = commit_count;
         self.host_request_output_in_flight = true;
         Ok(bytes)
@@ -333,34 +374,105 @@ impl RuntimeDynamicSession {
 
     fn collect_host_requests(&mut self) -> ZrRuntimeHostRequestBatchV1 {
         let input_manager = match self.resolve_input_manager() {
-            Ok(input_manager) => input_manager,
+            Ok(input_manager) => Some(input_manager),
             Err(error) => {
                 write_log_lazy("runtime_session", || {
                     format!("runtime_input_manager_stale error={error}")
                 });
-                return ZrRuntimeHostRequestBatchV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+                None
             }
         };
-        let requests = input_manager
-            .drain_ime_host_requests()
+        let mut ime_requests = Vec::new();
+        self.runtime_ui
+            .drain_ime_host_requests_into(&mut ime_requests);
+        crate::profile_counter!(
+            "runtime",
+            "host_request.runtime_ui_ime_rows",
+            ime_requests.len()
+        );
+        if let Some(input_manager) = &input_manager {
+            let core_ime_requests = input_manager.drain_ime_host_requests();
+            crate::profile_counter!(
+                "runtime",
+                "host_request.core_ime_rows",
+                core_ime_requests.len()
+            );
+            ime_requests.extend(core_ime_requests);
+        } else {
+            crate::profile_counter!("runtime", "host_request.core_ime_rows", 0);
+        }
+        let mut requests = ime_requests
             .into_iter()
             .map(|request| runtime_ime_host_request(request, DEFAULT_VIEWPORT))
             .map(ZrRuntimeHostRequestV1::ime)
-            .chain(
-                input_manager
-                    .drain_gamepad_rumble_requests()
+            .collect::<Vec<_>>();
+        let mut clipboard_requests = Vec::new();
+        self.runtime_ui
+            .drain_clipboard_host_requests_into(&mut clipboard_requests);
+        crate::profile_counter!(
+            "runtime",
+            "host_request.runtime_ui_clipboard_rows",
+            clipboard_requests.len()
+        );
+        requests.extend(
+            clipboard_requests
+                .into_iter()
+                .map(|(target_surface, request)| {
+                    ZrRuntimeHostRequestV1::clipboard(runtime_clipboard_host_request(
+                        request,
+                        target_surface,
+                        DEFAULT_VIEWPORT,
+                    ))
+                }),
+        );
+        let mut action_requests = Vec::new();
+        self.runtime_ui
+            .drain_action_host_requests_into(&mut action_requests);
+        crate::profile_counter!(
+            "runtime",
+            "host_request.runtime_ui_action_rows",
+            action_requests.len()
+        );
+        requests.extend(
+            action_requests
+                .into_iter()
+                .map(ZrRuntimeHostRequestV1::ui_action),
+        );
+        let mut ui_host_requests = Vec::new();
+        self.runtime_ui
+            .drain_ui_host_requests_into(&mut ui_host_requests);
+        crate::profile_counter!(
+            "runtime",
+            "host_request.runtime_ui_host_rows",
+            ui_host_requests.len()
+        );
+        requests.extend(
+            ui_host_requests
+                .into_iter()
+                .map(ZrRuntimeHostRequestV1::ui_host),
+        );
+        if let Some(input_manager) = input_manager {
+            let rumble_requests = input_manager.drain_gamepad_rumble_requests();
+            crate::profile_counter!("runtime", "host_request.rumble_rows", rumble_requests.len());
+            requests.extend(
+                rumble_requests
                     .into_iter()
                     .map(runtime_gamepad_rumble_request)
                     .map(ZrRuntimeHostRequestV1::gamepad_rumble),
-            )
-            .chain(
-                input_manager
-                    .drain_cursor_host_requests()
+            );
+            let cursor_requests = input_manager.drain_cursor_host_requests();
+            crate::profile_counter!("runtime", "host_request.cursor_rows", cursor_requests.len());
+            requests.extend(
+                cursor_requests
                     .into_iter()
                     .map(runtime_cursor_host_request)
                     .map(ZrRuntimeHostRequestV1::cursor),
-            )
-            .collect();
+            );
+        } else {
+            crate::profile_counter!("runtime", "host_request.rumble_rows", 0);
+            crate::profile_counter!("runtime", "host_request.cursor_rows", 0);
+        }
+        crate::profile_counter!("runtime", "host_request.batch_rows", requests.len());
         ZrRuntimeHostRequestBatchV1::new(ZIRCON_RUNTIME_ABI_VERSION_V1, requests)
     }
 
@@ -416,7 +528,7 @@ impl RuntimeDynamicSession {
         let requested = UVec2::new(request.size.width.max(1), request.size.height.max(1));
         self.resize_viewport(requested);
         let extract = self.current_extract();
-        let ui = self.current_ui_extract()?;
+        let ui = self.current_ui_submission()?;
         let frame = if let Some(render_bridge) = &mut self.render_bridge {
             render_bridge
                 .submit_extract_with_ui(extract, self.camera_controller.viewport_size(), ui)
@@ -466,7 +578,7 @@ impl RuntimeDynamicSession {
         let requested = UVec2::new(request.size.width.max(1), request.size.height.max(1));
         self.resize_viewport(requested);
         let extract = self.current_extract();
-        let ui = self.current_ui_extract()?;
+        let ui = self.current_ui_submission()?;
         let Some(render_bridge) = &mut self.render_bridge else {
             return Ok(());
         };
@@ -502,10 +614,8 @@ fn encode_largest_host_request_prefix(
     let started = Instant::now();
     let encode = |count: usize| -> Result<Vec<u8>, BoundedJsonError> {
         check_host_request_encoding_deadline(started)?;
-        let bytes = encode_host_request_batch(&ZrRuntimeHostRequestBatchV1::new(
-            pending.abi_version,
-            pending.requests[..count].to_vec(),
-        ))?;
+        crate::profile_counter!("runtime", "host_request.page_encode_attempt", 1);
+        let bytes = encode_host_request_page(pending.abi_version, &pending.requests[..count])?;
         check_host_request_encoding_deadline(started)?;
         Ok(bytes)
     };
@@ -587,8 +697,8 @@ mod tests {
 
     use super::super::profile::RuntimeDynamicSessionProfile;
     use super::{
-        asset_reload_frame_demand, asset_reload_world_fact, RuntimeDynamicSession,
-        RuntimeInputDiagnostics,
+        RuntimeDynamicSession, RuntimeInputDiagnostics, asset_reload_frame_demand,
+        asset_reload_world_fact,
     };
 
     #[test]
@@ -610,13 +720,23 @@ mod tests {
         );
 
         assert!(session.shutdown_before_library_unload());
-        assert!(handle
-            .inner
-            .modules
-            .lock()
-            .expect("test module registry")
-            .values()
-            .all(|entry| entry.lifecycle == LifecycleState::Unloaded));
+        assert!(
+            handle
+                .inner
+                .modules
+                .lock()
+                .expect("test module registry")
+                .values()
+                .all(|entry| entry.lifecycle == LifecycleState::Unloaded)
+        );
+    }
+
+    #[test]
+    fn dynamic_session_records_the_activation_frame_clock_rebase_receipt() {
+        let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+            .expect("headless dynamic session");
+
+        assert_eq!(session.frame_clock_activation_rebase.generation(), 1);
     }
 
     #[test]

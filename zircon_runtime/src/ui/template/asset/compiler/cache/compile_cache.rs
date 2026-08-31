@@ -1,10 +1,13 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, HashSet};
 
 use crate::ui::template::{UiCompiledDocument, UiInvalidationGraph};
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetHeader, UiAssetKind, UiCompileCacheKey, UiInvalidationReport,
     UiInvalidationSnapshot,
 };
+
+#[cfg(test)]
+mod hash_eviction_tests;
 
 #[derive(Clone, Debug, Default)]
 pub struct UiAssetCompileCache {
@@ -44,10 +47,7 @@ impl UiAssetCompileCache {
         &mut self,
         asset_ids: impl IntoIterator<Item = &'a str>,
     ) -> UiAssetCompileCacheEvictionReport {
-        let asset_ids = asset_ids
-            .into_iter()
-            .map(str::to_string)
-            .collect::<BTreeSet<_>>();
+        let asset_ids = asset_ids.into_iter().collect::<HashSet<_>>();
         if asset_ids.is_empty() {
             return UiAssetCompileCacheEvictionReport::default();
         }
@@ -59,7 +59,7 @@ impl UiAssetCompileCache {
             .iter()
             .filter_map(|(key, compiled)| {
                 asset_ids
-                    .contains(&compiled.asset.id)
+                    .contains(compiled.asset.id.as_str())
                     .then_some(key.clone())
             })
             .collect::<Vec<_>>();

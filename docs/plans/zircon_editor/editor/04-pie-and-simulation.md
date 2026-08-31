@@ -6,7 +6,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport/runtime_backend.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/profile.rs
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/plugin/native.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
@@ -203,7 +203,7 @@ attach 模型天然外推到「远程 attach 已发布游戏」（Unity developm
 #### 双域模型
 
 ```rust
-pub enum WorldDomain { Edit, Play }   // core/play/live_link.rs；02 泵、watch_map、SelectionModel、03 routing 共用词汇
+pub enum WorldDomain { Edit, Play(PlayInstanceId) }   // core/play/live_link.rs；02 泵、watch_map、SelectionModel、03 routing 共用词汇
 ```
 
 - **数据源双通道**：`EditorContext.gateway` 恒为 edit 域；play 域 gateway = **当前 attached 实例**的 gateway（`PlaySessionController::play_gateway()`，无 attach 恒 `None`；本期即 P2 的 `SessionGateway` 实例）。02 契约面（query/watch/unwatch/drain_invalidations）对两域**同一 trait 同一语义**——这是 02「契约测试双实现复跑」的直接收益。
@@ -221,7 +221,7 @@ pub enum WorldDomain { Edit, Play }   // core/play/live_link.rs；02 泵、watch
 
 - **03 routing 前插一档（会签件）**：`HistoryContextId` 增 `PlaySession(PlayInstanceId)` 变体（一开始就按实例参数化，多实例接口免改契约）；判定序第 0 步——目标实体属 play 域 → `PlaySession(attached 实例 id)`。命令 `apply` 经 play gateway 下发（帧边界应用，00 §4 线程模型不变），命令实现与 edit 域**同一族**（05 场景命令域无感，`EditContext` 注入哪个 gateway 就作用哪个世界）。
 - **volatile 历史生命周期（按实例）**：`PlaySession(id)` 历史随该实例首笔 play 域事务而建、**随该实例停止**整栈 `finalize` 清空；detach/attach 切换不清空（切回可继续 undo）；**无 `saved_top` 概念**——play 域永不产生文档脏态，不触发标题星号/关闭拦截/autosave（03 `is_dirty` 对 `PlaySession` 恒 false）。Play 期间 Ctrl+Z 焦点在 PIE 视口/play 域面板时路由到当前 attached 实例的 `PlaySession` 历史（Unity 亦如此）。
-- **跨域守卫**：play 域实体禁入 edit 域历史、edit 域实体禁入 `PlaySession`——03 风险节「`ContainsPieObjects` 等价（04 会签）」在此落定：routing 按 domain 硬分流 + 显式守卫单测，跨域混合事务返回 `EditCommandError::InvariantViolation`。
+- **跨域守卫**：play 域实体禁入 edit 域历史、edit 域实体禁入 `PlaySession`——03 风险节「`ContainsPieObjects` 等价（04 会签）」在此落定：routing 按 domain 硬分流 + 显式守卫单测，跨域混合事务返回专用 `EditCommandError::CrossWorldHistory`，不再把可判别的调用错误折叠为泛化 invariant 文本。
 - **`PlayEditPolicy` 分级表**（`edit_policy.rs`，Playing 期间生效）：
 
 | 编辑目标 | Playing 期间行为 |
@@ -271,7 +271,7 @@ PIE 视口拖 gizmo → 05 工具（play 域）→ TransactionScope(PlaySession)
 
 - 切片 2.1：runtime 侧 `load_world_payload`（会签落地；`cargo test -p zircon_runtime --lib --locked` 注入往返测试）。
 - 切片 2.2：`EmbeddedSessionPlayBackend` + PIE 视口文档（bind/tick/capture/present 链）；销毁与零污染三点 hash 断言。
-- 切片 2.3：Simulate 档（输入不转发 + `RuntimeCameraController` 编辑相机注入）。
+- 切片 2.3：Simulate 档（输入不转发 + `RuntimeCameraController` 编辑相机注入）。状态：`source complete / static contracts green / managed Cargo and product evidence pending`；采用有界 viewport-camera 事件与 render-extract presentation override，不修改玩法 ECS，相机未变化与隐藏 Scene 均有跳过计量。
 - 测试阶段：`cargo test -p zircon_runtime --lib --locked` + `cargo test -p zircon_editor --lib --locked`；验收：启停 10 轮 session 计数归零；编辑世界 hash 不变；authoring token 守卫不回归（PIE 载荷走 11 契约不含 authoring 词）。
 
 ### M3 PIE 域实时同步（Unity 对齐读半程）
@@ -281,16 +281,19 @@ PIE 视口拖 gizmo → 05 工具（play 域）→ TransactionScope(PlaySession)
 - 切片 3.1：`live_link.rs`（play gateway 暴露 + attach/detach 编排）；02 泵双源 drain + `InvalidationBatch` 域标注 + `watch_map` 键域化；02 契约测试对副会话复跑。
 - 切片 3.2：hierarchy Playing 切 play 域（运行标记/着色/退出切回）+ 行级 diff 跟随 spawn/despawn + 重建最小间隔节流（设置项挂 17）。
 - 切片 3.3：inspector play 域值级节奏拉取（默认每 UI 帧、可降频，`generation_hint` 短路）；SelectionModel 双域 + PIE 视口拾取（05 拾取通道域参数化）+ 停止时选中锚映射。
+- 2026-08-26 当前状态：切片 3.1 的 Edit/Play 独立 pump/watch 与 origin retirement、切片 3.2 的 identity-qualified runtime hierarchy reflow/sparse patch，以及切片 3.3 的 100 ms generation-hint 只读 Inspector、`PlayInstanceId` 分区 SelectionModel 和 world-qualified `Focus` 消息/retention key 已源码落地并通过相关静态合同 57/57。旧匿名 selection `WorldDomain` 与单位 `SelectionDomain::Scene` 已删除，Play 路由/选择/hierarchy/Inspector/Focus 共用 core 单一 world identity。现有失效 payload 仍只有 component type 粒度；副 session 也尚未跨边界输出 renderer picking product，因此 page/cursor/cancel、entity-exact invalidation、PIE 拾取、受管 Cargo/产品运行与性能功耗证据仍 open；M3 尚不标记验收完成，详见[子记录](04/2026-08-26-play-domain-startup-hardcut.md)。
 - 测试阶段：`cargo test -p zircon_editor --lib --locked`；验收：P2 运行持续 spawn 夹具场景（每帧 spawn 若干实体），hierarchy 行数实时跟随且节流生效（重建频率 ≤ 设置间隔，计数器断言）；停止后 hierarchy 回 edit 域且行集与 Play 前一致；watch attach/detach 与 session 销毁生命周期矩阵（02 矩阵对 play 域复跑）；泵每帧对每 gateway 至多一次 drain 断言。
 
 ### M4 运行时编辑（Live Edit 写半程）与多实例接口
 
 前置：03 M2（场景命令族纯化迁移）就绪。
 
+当前进度（2026-08-27）：4.1 的实例化 history identity、world-first routing、volatile dirty/persistence 规则、双 gateway `CoreEditContext`、精确 `TransactionRecord` route、Play 内核 undo/redo 与 detach 前实例级 discard/Edit-route 恢复已 source complete / static green。4.2 的 Play Inspector、Ctrl+Z/Redo 与通用 operation edit-policy 产品入口也已 source complete / static green：Inspector 在 pinned Play context 捕获并只写批次字段，历史按 active Play selection 精确选实例；operation registration 构造时必须显式携 generic `EditOperationTarget`，没有 workspace 默认值或事后 setter，dispatch 在 factory capture 前完成 ApplyNow/queue/locked 路由，旧 Play-owned target 不保留。4.3 Keep Changes 已完成单实体产品命令、identity-qualified 新鲜 typed query、`writable && serializable` 字段过滤、Hierarchy 排除、运行期新实体拒绝及单笔 authoring document transaction；同时删除退出 Play 时整场覆盖作者 world 的旧恢复路径，确保显式回写不丢失。Gizmo 仍因副 session 无 renderer picking/editor overlay contract 而关闭，不能复用 authoring hit 冒充 Play entity。Windows Cargo 本轮被共享 `zircon_runtime` 56 errors/123 warnings 阻断，`zircon_editor` library target 未进入可归因检查；受管行为、真实产品与零污染矩阵未完成，因此不声明 4.1/4.2/4.3 验收闭环。
+
 - 切片 4.1：03 `HistoryContextId::PlaySession` 会签落地——routing 第 0 步域分流 + volatile 历史生命周期（Playing 建、停止整栈 finalize 清空、`is_dirty` 恒 false）+ 跨域守卫（03 风险节「`ContainsPieObjects` 等价」在此闭环）。
 - 切片 4.2：`edit_policy.rs` 分级表实装（play 域放行 / 被运行文档锁定 / 其余 pending——M1 全量拒绝逻辑收窄为第二、三档）；PIE 视口 gizmo 与 play 域 inspector 编辑走 `PlaySession` 事务（05 工具与 `EditContext` 域参数化）；Play 期间 Ctrl+Z 焦点路由。
-- 切片 4.3：「保留运行时更改」显式命令（单实体，运行时 spawn 实体拒绝提示，产 edit 域可撤销事务）；多实例接口化——`Vec<PlayInstance>` + `attach(id)/detach`（单焦点不变量、按实例历史隔离、detach 不清/停止清入单测），UI 不实装。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`；验收矩阵——play 域编辑→undo→redo 往返；停止后 play 历史零残留 + 零污染**第四点**（含 live edit 整轮后 edit 域 hash 不变）；跨域混合事务 `InvariantViolation` 单测；分级表三档行为逐档断言；回写命令产生 edit 域可撤销事务且值与运行世界抓取一致；gameplay 覆写下 undo 目标已消失 → `TargetMissing` 不中断（通知降级）断言。证据记状态节。
+- 切片 4.3：「保留运行时更改」显式命令已完成 source/static 闭环（单实体，运行时 spawn 实体拒绝提示，产 edit 域可撤销事务）；多实例接口化仍为后续——`Vec<PlayInstance>` + `attach(id)/detach`（单焦点不变量、按实例历史隔离、detach 不清/停止清入单测），UI 不实装。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`；验收矩阵——play 域编辑→undo→redo 往返；停止后 play 历史零残留 + 零污染**第四点**（含 live edit 整轮后 edit 域 hash 不变）；跨域混合事务 `CrossWorldHistory` 单测；分级表三档行为逐档断言；回写命令产生 edit 域可撤销事务且值与运行世界抓取一致；gameplay 覆写下 undo 目标已消失 → `TargetMissing` 不中断（通知降级）断言。证据记状态节。
 
 ## 风险与开放问题
 
@@ -310,6 +313,9 @@ PIE 视口拖 gizmo → 05 工具（play 域）→ TransactionScope(PlaySession)
 
 | 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
+| 2026-08-26 | M3 Play hierarchy、只读 Inspector 与实例化 selection 读半程 | source complete static green / managed validation pending | 双域 pump/watch、Play-only identity-qualified hierarchy query、topology reflow/同 topology sparse patch、失败 pending retry、terminal retirement/Edit authoritative reflow 已落地；focused `InspectionFields`、interface-owned field DTO、`EntityMissing`、producer bounds 与 100 ms generation-hint 只读 Inspector 已接入。Selection 删除匿名 Play enum，统一 `core::play::WorldDomain::Play(PlayInstanceId)`，per-instance map 隔离 selection，真实 attach/tick 后切域，zero id decode 拒绝；`Focus` scene/object 消息与 Latest key 同样按具体 world identity 隔离。相关静态回归 57/57；Rust 行为测试已写未执行。paging/cancel、entity-exact invalidation、副 session renderer picking 输出与 PIE 拾取、M4 live edit、Cargo/产品/性能功耗仍 open；详见[子记录](04/2026-08-26-play-domain-startup-hardcut.md)。 |
+| 2026-08-26 | M2 App-owned embedded Play session、Game frame/基础输入与 SIE 编辑视角 | source complete static green / native surface deferred / managed validation pending | App 以重校验的同一 BuildSet 创建独立 `runtime` profile session，Editor 只持 factory/opaque lease；start report 携真实 gateway 并自动 attach，terminal 顺序硬切为 consumer -> stop -> identity detach -> lease retire。Game 输入仅经 Play 白名单进入副 session，focus loss 清 runtime input。SIE 保留 Scene focus/editor input，以 4 KiB 有界事件按变化同步编辑相机；runtime 仅覆盖 render extract 主相机视图，不修改玩法 ECS。host 使用 authoring Scene / SIE Scene override / Game 三槽，按 Play/Simulate 与 pane 可见性捕获，隐藏跳过且 terminal 清帧。相关静态回归 26/26 与 scoped format/source contract 通过；Rust 行为测试已写未执行，真实 session/framebuffer/input、十轮泄漏/零污染、Cargo、性能/功耗仍 open。详见[子记录](04/2026-08-26-play-domain-startup-hardcut.md)。 |
+| 2026-08-26 | M2 前置：Play domain startup/terminal lifecycle hard cut | source complete static green / M2 session pending | retained host 不再把 projectless editor-profile runtime gateway 冒充 play world；无 gateway backend 默认 non-attachable；normal stop、consumer-start compensation、crash 与 project/host shutdown 共享 active-mode refusal + identity-qualified terminal detach。Editor04 Python 16/16、scoped rustfmt/diff/source scan 通过。App session factory、DTO payload、PIE viewport、two-phase destroy、Cargo/产品证据仍 open；详见[子记录](04/2026-08-26-play-domain-startup-hardcut.md)。 |
 | 2026-07-18 | M1.2 `ProcessPlayBackend`、版本化快照与监控 | 内核源码完成 / runtime consumer open | `PlayBackend` typed start/stop/poll、activation→backend 与逆序 cleanup、start rollback、terminal crash cause、不可 attach 能力位、有界 1,024 行 stdout/stderr 泵、kill+wait、`.zircon/play/<instance>` 原子快照与 RAII 清理已落地；menu 从当前 World 生成 Plan11 DynamicScene，retained tick 即使无消费者也 poll backend。Python TDD RED 4 error→GREEN 4/4，原 controller 契约 4/4；Rust 行为矩阵已落盘并 rustfmt。`runtime_preview` 尚拒绝联合 flags，已回传 [Editor16 failure](16/failure-2026-07-18-runtime-preview-play-scene-report-args.md)，故 Process backend 未装配为默认且不声明 Cargo/产品门。详见[子记录](04/2026-07-18-process-play-backend-m1.md)。 |
 | 2026-07-18 | M1.1 `PlaySessionController` 三态权威与 plugin activation 语义硬切 | 源码完成 / 待受管编译复审 | `Edit/Building/Playing` 迁移表、`play_after_build`、build success/failure、stop/no-op/invalid transition 已落地；现 `PluginBridgeActivation` 只声明 native plugin 活性语义，旧 `EditorRuntimePlayModeBackend`/`EditorPlayBridge`/`bridge.rs` 无兼容别名硬删除。菜单走 controller transition API，CommandEval 直接投影 controller `Building/Playing`。Python TDD 为 RED（3 fail+1 error）→GREEN 4/4，Rust迁移/activation测试已落盘并rustfmt；Cargo/独立review尚受 Coordinator01 full-input snapshot failure 阻断，P1/P2/live-link仍未完成。详见[本子计划](04/2026-07-18-play-session-controller-m1.md)。 |
 | 2026-07-12 | Editor08 M1.2 失败移交：`CommandEvalCtx` Building/Play 权威投影 | 源码已修 / open待验证 | 原始失败是 Chrome 仅能投影 `Edit/Playing` 且没有 Building 权威；2026-07-18 M1.1 已改为直接读取 `PlaySessionController::mode()` 并覆盖 Building。受管Cargo/独立review/lifecycle return尚未完成，故 [failure 交接](04/failure-2026-07-12-command-eval-play-state-projection.md) 仍保持open，不声明fixed。 |

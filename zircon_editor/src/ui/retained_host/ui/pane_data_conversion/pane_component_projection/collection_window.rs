@@ -1,9 +1,12 @@
-pub(super) fn visible_collection_items<T>(
-    items: Vec<T>,
+pub(super) fn collect_visible_collection_items<I>(
+    items: I,
     visible_start: i32,
     visible_count: i32,
     overscan: i32,
-) -> Vec<T> {
+) -> Vec<I::Item>
+where
+    I: IntoIterator,
+{
     if visible_count <= 0 {
         return Vec::new();
     }

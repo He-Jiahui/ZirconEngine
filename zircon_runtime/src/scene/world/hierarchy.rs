@@ -101,7 +101,7 @@ impl World {
             entity: child,
             new_parent: parent,
         });
-        self.insert(child, Hierarchy { parent })?;
+        self.insert_checked_hierarchy(child, Hierarchy { parent })?;
         self.record_world_fact(WorldFact::Reparented {
             entity: child,
             new_parent: parent,
@@ -197,10 +197,14 @@ mod tests {
     ) -> (World, EntityId, Vec<EntityId>) {
         assert!(entity_count > direct_child_count);
         let mut world = World::empty();
-        let parent = world.spawn_node(NodeKind::Empty);
+        let parent = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         let mut direct_children = Vec::with_capacity(direct_child_count);
         for index in 1..entity_count {
-            let entity = world.spawn_node(NodeKind::Empty);
+            let entity = world
+                .spawn_node(NodeKind::Empty)
+                .expect("test scene spawn should succeed");
             if index <= direct_child_count {
                 world.set_parent_checked(entity, Some(parent)).unwrap();
                 direct_children.push(entity);

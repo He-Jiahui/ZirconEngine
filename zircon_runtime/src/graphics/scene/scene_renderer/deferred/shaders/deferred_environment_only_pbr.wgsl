@@ -3,6 +3,7 @@ struct SceneUniform {
     view_proj_unjittered: mat4x4<f32>,
     inverse_view_proj: mat4x4<f32>,
     ambient_color: vec4<f32>,
+    lightmapped_ambient_color: vec4<f32>,
     previous_view_proj_unjittered: mat4x4<f32>,
     motion_params: vec4<f32>,
     jitter_params: vec4<f32>,
@@ -44,27 +45,11 @@ fn reconstruct_world_position(coord: vec2<i32>, depth: f32) -> vec3<f32> {
 }
 
 fn normalize_or_zero(value: vec3<f32>) -> vec3<f32> {
-    let value_length = length(value);
-    if (value_length <= EPSILON) {
-        return vec3<f32>(0.0);
-    }
-    return value / value_length;
+    return zr_pbr_common_normalize_or_zero(value);
 }
 
-fn scene_view_dir_ws(world_position: vec3<f32>) -> vec3<f32> {
-    let camera_direction_weight = clamp(scene.camera_view_direction.w, 0.0, 1.0);
-    if (camera_direction_weight <= 0.0) {
-        return normalize_or_zero(scene.camera_world_position.xyz - world_position);
-    }
-    if (camera_direction_weight >= 1.0) {
-        return normalize_or_zero(scene.camera_view_direction.xyz);
-    }
-    let perspective_view_dir = normalize_or_zero(scene.camera_world_position.xyz - world_position);
-    return normalize_or_zero(mix(
-        perspective_view_dir,
-        scene.camera_view_direction.xyz,
-        camera_direction_weight,
-    ));
+fn deferred_ambient_color(lightmapped: bool) -> vec3<f32> {
+    return select(scene.ambient_color.rgb, scene.lightmapped_ambient_color.rgb, lightmapped);
 }
 
 fn shade_deferred_environment_only_pbr(
@@ -72,7 +57,7 @@ fn shade_deferred_environment_only_pbr(
     albedo: vec4<f32>,
     material: vec4<f32>,
     normal: vec3<f32>,
-    emissive: vec3<f32>,
+    emissive: vec4<f32>,
 ) -> vec4<f32> {
     let metallic = clamp(material.r, 0.0, 1.0);
     let roughness = clamp(
@@ -83,23 +68,28 @@ fn shade_deferred_environment_only_pbr(
     let occlusion = clamp(max(material.b, 0.0), 0.0, 1.0);
     let depth = clamp(textureLoad(scene_depth_tex, coord, 0), 0.0, 1.0);
     let world_position = reconstruct_world_position(coord, depth);
-    let view_dir = scene_view_dir_ws(world_position);
-    let diffuse_color = albedo.rgb;
-    let ambient = scene.ambient_color.rgb * occlusion;
-    let environment_lights = zr_environment_pbr_indirect(
+    let view_dir = zr_pbr_view_direction_ws(world_position);
+    let diffuse_color = zr_pbr_base_color(albedo.rgb);
+    let lightmapped = emissive.a > 0.5;
+    let ambient = deferred_ambient_color(lightmapped) * occlusion;
+    let environment_lights = zr_environment_pbr_indirect_with_dielectric_f0_normalized(
         world_position,
         normal,
         view_dir,
         roughness,
         metallic,
         diffuse_color,
-        albedo.rgb,
+        diffuse_color,
+        vec3<f32>(0.04),
         occlusion,
         true,
     );
-    let color = diffuse_color * (1.0 - metallic) * ambient
+    let diffuse_energy = vec3<f32>(zr_surface_metallic_diffuse_energy_scale(metallic));
+    let color = diffuse_color
+        * diffuse_energy
+        * ambient
         + environment_lights
-        + max(emissive, vec3<f32>(0.0));
+        + max(emissive.rgb, vec3<f32>(0.0));
     return vec4<f32>(color, albedo.a);
 }
 
@@ -113,6 +103,6 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     let encoded_normal = textureLoad(normal_tex, coord, 0).xyz;
     let normal = normalize_or_zero(encoded_normal * 2.0 - vec3<f32>(1.0));
     let material = textureLoad(gbuffer_material_tex, coord, 0);
-    let emissive = textureLoad(gbuffer_emissive_tex, coord, 0).rgb;
+    let emissive = textureLoad(gbuffer_emissive_tex, coord, 0);
     return shade_deferred_environment_only_pbr(coord, albedo, material, normal, emissive);
 }

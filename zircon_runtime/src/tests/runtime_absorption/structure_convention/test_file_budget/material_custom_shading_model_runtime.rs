@@ -215,7 +215,7 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
             "with_runtime_shading_model_sources",
             "with_shading_model_forward_include_sources",
             "with_shading_model_gbuffer_include_sources",
-            "ensure_gbuffer_pipeline_for_variant(device, streamer, gbuffer_variant_id)",
+            "ensure_gbuffer_pipeline_admission_for_variant",
             "record_gbuffer_geometry(",
             "streamer: &ResourceStreamer",
             "with_deferred_renderer(deferred, streamer, mesh_draw_lists)",

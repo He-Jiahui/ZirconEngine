@@ -19,6 +19,7 @@ pub enum RenderPassStage {
     Overlay,
     Debug,
     Ui,
+    Present,
 }
 
 impl RenderPassStage {
@@ -40,7 +41,10 @@ impl RenderPassStage {
         Self::Overlay,
         Self::Debug,
         Self::Ui,
+        Self::Present,
     ];
+
+    pub(crate) const COUNT: usize = Self::ALL.len();
 
     pub const RENDERER_DATA_AUTHORING_STAGES: &[Self] = &[
         Self::DepthPrepass,
@@ -80,6 +84,7 @@ impl RenderPassStage {
             Self::Overlay => 14,
             Self::Debug => 15,
             Self::Ui => 16,
+            Self::Present => 17,
         }
     }
 
@@ -99,7 +104,7 @@ impl RenderPassStage {
                 RenderBudgetKey::Transparent
             }
             Self::PostProcess => RenderBudgetKey::PostProcess,
-            Self::Ui | Self::Overlay | Self::Debug => RenderBudgetKey::Ui,
+            Self::Ui | Self::Overlay | Self::Debug | Self::Present => RenderBudgetKey::Ui,
         }
     }
 
@@ -122,6 +127,7 @@ impl RenderPassStage {
             Self::Ui => "Ui",
             Self::Overlay => "Overlay",
             Self::Debug => "Debug",
+            Self::Present => "Present",
         }
     }
 
@@ -176,6 +182,10 @@ mod tests {
     fn render_pass_stages_keep_ui_after_overlay_and_debug() {
         assert!(RenderPassStage::Overlay < RenderPassStage::Debug);
         assert!(RenderPassStage::Debug < RenderPassStage::Ui);
+        assert!(RenderPassStage::Ui < RenderPassStage::Present);
+        assert!(
+            !RenderPassStage::RENDERER_DATA_AUTHORING_STAGES.contains(&RenderPassStage::Present)
+        );
 
         assert_eq!(
             &RenderPassStage::RENDERER_DATA_AUTHORING_STAGES

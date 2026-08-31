@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
+use crate::ui::{
+    dispatch::UiPointerDispatcher,
+    surface::{UiSurface, UiSurfaceNodePool},
+};
 use zircon_runtime_interface::ui::{
     dispatch::{UiDragSessionId, UiPointerEvent, UiPointerId},
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
@@ -13,7 +16,7 @@ use zircon_runtime_interface::ui::{
 fn surface_node_pool_detach_filters_slots_once_for_the_entire_subtree() {
     let source = include_str!("../surface/node_pool.rs");
     let retain = source
-        .find("tree.slots")
+        .find("tree.retain_layout_slots")
         .expect("node-pool detach should remove detached slots");
     let recycle_loop = source
         .find("for node_id in node_ids.iter().copied().rev()")
@@ -101,6 +104,12 @@ fn surface_node_pool_reuses_detached_template_node_and_resets_transient_state() 
     let detach_report = surface.detach_subtree_to_pool(child_id()).unwrap();
 
     assert_eq!(detach_report.recycled_count, 1);
+    assert_eq!(detach_report.resident_node_count, 1);
+    assert_eq!(detach_report.resident_bucket_count, 1);
+    assert_eq!(
+        detach_report.max_resident_node_count,
+        UiSurfaceNodePool::max_resident_node_count()
+    );
     assert!(surface.tree.node(child_id()).is_none());
     assert_eq!(surface.focus.focused, None);
     assert_eq!(surface.focus.captured, None);
@@ -117,6 +126,8 @@ fn surface_node_pool_reuses_detached_template_node_and_resets_transient_state() 
         .unwrap();
 
     assert_eq!(reuse_report.reused_count, 1);
+    assert_eq!(reuse_report.resident_node_count, 0);
+    assert_eq!(reuse_report.resident_bucket_count, 0);
     let child = surface
         .tree
         .node(child_id())
@@ -176,6 +187,60 @@ fn surface_node_pool_counts_created_nodes_only_when_no_matching_recycled_node_ex
     assert_eq!(resize_report.control_pool_discarded_count, 0);
 }
 
+#[test]
+fn surface_node_pool_bounds_dynamic_identities_and_reports_capacity_rejection() {
+    let mut surface = pooled_surface();
+    for bucket in 0..UiSurfaceNodePool::max_bucket_count() {
+        for replica in 0..UiSurfaceNodePool::max_nodes_per_bucket() {
+            assert!(surface.node_pool.recycle(pool_node(bucket, replica)));
+        }
+    }
+
+    assert_eq!(
+        surface.node_pool.resident_node_count(),
+        UiSurfaceNodePool::max_resident_node_count()
+    );
+    assert_eq!(
+        surface.node_pool.resident_bucket_count(),
+        UiSurfaceNodePool::max_bucket_count()
+    );
+
+    let report = surface.detach_subtree_to_pool(child_id()).unwrap();
+    assert_eq!(report.recycled_count, 0);
+    assert_eq!(report.discarded_count, 1);
+    assert_eq!(report.capacity_rejected_count, 1);
+    assert_eq!(
+        report.resident_node_count,
+        UiSurfaceNodePool::max_resident_node_count()
+    );
+    assert_eq!(
+        report.resident_bucket_count,
+        UiSurfaceNodePool::max_bucket_count()
+    );
+}
+
+#[test]
+fn surface_node_pool_explicit_trim_releases_detached_reuse_storage() {
+    let mut surface = pooled_surface();
+    for bucket in 0..UiSurfaceNodePool::max_bucket_count() {
+        for replica in 0..UiSurfaceNodePool::max_nodes_per_bucket() {
+            assert!(surface.node_pool.recycle(pool_node(bucket, replica)));
+        }
+    }
+
+    let report = surface.trim_retained_node_pool();
+    assert_eq!(
+        report.trimmed_node_count,
+        UiSurfaceNodePool::max_resident_node_count()
+    );
+    assert_eq!(
+        report.trimmed_bucket_count,
+        UiSurfaceNodePool::max_bucket_count()
+    );
+    assert_eq!(report.resident_node_count, 0);
+    assert_eq!(report.resident_bucket_count, 0);
+}
+
 fn pooled_surface() -> UiSurface {
     let mut surface = root_surface();
     surface.tree.insert_child(root_id(), child_node()).unwrap();
@@ -225,6 +290,19 @@ fn child_node() -> UiTreeNode {
             bindings: Vec::new(),
             ..Default::default()
         })
+}
+
+fn pool_node(bucket: usize, replica: usize) -> UiTreeNode {
+    let mut node = child_node();
+    node.node_id = UiNodeId::new(
+        (10_000 + bucket * UiSurfaceNodePool::max_nodes_per_bucket() + replica) as u64,
+    );
+    node.node_path = UiNodePath::new(format!("pool/{bucket}"));
+    node.template_metadata
+        .as_mut()
+        .expect("pooled fixture must retain template metadata")
+        .control_id = Some(format!("pool.{bucket}"));
+    node
 }
 
 fn root_id() -> UiNodeId {

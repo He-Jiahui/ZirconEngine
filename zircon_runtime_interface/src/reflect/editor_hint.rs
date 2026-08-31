@@ -19,30 +19,6 @@ pub enum ReflectEditorHint {
     Json,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ReflectNumericRange {
-    pub min: Option<f32>,
-    pub max: Option<f32>,
-    pub step: Option<f32>,
-    pub precision: Option<u8>,
-}
-
-impl ReflectNumericRange {
-    pub fn new(
-        min: Option<f32>,
-        max: Option<f32>,
-        step: Option<f32>,
-        precision: Option<u8>,
-    ) -> Self {
-        Self {
-            min,
-            max,
-            step,
-            precision,
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReflectEnumOption {
     pub value: String,

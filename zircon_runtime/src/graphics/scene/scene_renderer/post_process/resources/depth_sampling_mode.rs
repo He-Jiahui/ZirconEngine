@@ -46,8 +46,9 @@ impl PostProcessDepthSamplingMode {
     pub(in crate::graphics::scene::scene_renderer::post_process) fn for_backend_name(
         backend_name: &str,
     ) -> Self {
-        let normalized_backend_name = backend_name.to_ascii_lowercase();
-        if normalized_backend_name.contains("gl") || normalized_backend_name.contains("angle") {
+        if contains_ascii_case_insensitive(backend_name, "gl")
+            || contains_ascii_case_insensitive(backend_name, "angle")
+        {
             Self::ViewportDepthFallback
         } else {
             Self::RawDepthTexture
@@ -141,6 +142,14 @@ impl PostProcessDepthSamplingMode {
     }
 }
 
+fn contains_ascii_case_insensitive(value: &str, expected: &str) -> bool {
+    !expected.is_empty()
+        && value
+            .as_bytes()
+            .windows(expected.len())
+            .any(|window| window.eq_ignore_ascii_case(expected.as_bytes()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::shader_sources::POST_PROCESS_SHADER;
@@ -191,8 +200,11 @@ mod tests {
 
         naga::front::wgsl::parse_str(&shader_source)
             .expect("raw-depth post-process shader must parse");
-        assert!(shader_source
-            .contains("return clamp(textureLoad(scene_depth_tex, physical_coord, 0), 0.0, 1.0);"));
+        assert!(
+            shader_source.contains(
+                "return clamp(textureLoad(scene_depth_tex, physical_coord, 0), 0.0, 1.0);"
+            )
+        );
         assert!(!shader_source.contains("textureSample(scene_depth_tex"));
     }
 
@@ -257,3 +269,7 @@ mod tests {
         assert!(shader_source.contains("return clamp((vec2<f32>(clamped)"));
     }
 }
+
+#[cfg(test)]
+#[path = "depth_sampling_mode/backend_name_tests.rs"]
+mod backend_name_tests;

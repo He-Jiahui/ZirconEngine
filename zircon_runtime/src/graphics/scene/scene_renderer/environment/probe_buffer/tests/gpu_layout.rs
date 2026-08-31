@@ -22,6 +22,30 @@ fn render_probe_gpu_layout_is_96_bytes_with_documented_offsets() {
 }
 
 #[test]
+fn render_probe_header_uses_reserved_word_for_camera_layer_mask() {
+    let header =
+        super::super::gpu_layout::GpuReflectionProbeHeader::with_probe_count_and_camera_layer_mask(
+            3,
+            0x8000_0005,
+        );
+
+    assert_eq!(
+        size_of::<super::super::gpu_layout::GpuReflectionProbeHeader>(),
+        16
+    );
+    assert_eq!(header.probe_count, 3);
+    assert_eq!(header.camera_layer_mask, 0x8000_0005);
+}
+
+#[test]
+fn legacy_render_probe_header_constructor_keeps_all_layers_visible() {
+    let header = super::super::gpu_layout::GpuReflectionProbeHeader::with_probe_count(3);
+
+    assert_eq!(header.probe_count, 3);
+    assert_eq!(header.camera_layer_mask, u32::MAX);
+}
+
+#[test]
 fn planar_reflection_gpu_layout_is_176_bytes_with_documented_offsets() {
     assert_eq!(size_of::<GpuPlanarReflection>(), 176);
     assert_eq!(offset_of!(GpuPlanarReflection, clip_from_world), 0);

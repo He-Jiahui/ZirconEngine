@@ -2,10 +2,17 @@ use crate::plugin::{PluginPackageKind, PluginPackageManifest};
 
 use super::feature_definitions::FeatureDefinition;
 
+fn package_feature_definition_capacity(package_manifest: &PluginPackageManifest) -> usize {
+    package_manifest
+        .optional_features
+        .len()
+        .saturating_add(package_manifest.feature_extensions.len())
+}
+
 pub(super) fn package_feature_definitions(
     package_manifest: &PluginPackageManifest,
 ) -> Vec<FeatureDefinition> {
-    let mut definitions = Vec::new();
+    let mut definitions = Vec::with_capacity(package_feature_definition_capacity(package_manifest));
     for feature in &package_manifest.optional_features {
         let provider_package_id = if package_manifest.package_kind
             == PluginPackageKind::FeatureExtension
@@ -72,3 +79,7 @@ mod tests {
         assert_eq!(definitions[0].provider_package_id, "sound");
     }
 }
+
+#[cfg(test)]
+#[path = "package_feature_definitions/capacity_tests.rs"]
+mod capacity_tests;

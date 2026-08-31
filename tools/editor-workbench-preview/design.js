@@ -3497,7 +3497,7 @@ function contentSpecConfig(content) {
       rules: [
         "Right-top is reserved for object/document hierarchy, skeleton, or UI tree.",
         "Rows expose visibility/lock/active state without large controls.",
-        "Selection uses the shared teal row state.",
+        "Selection uses the shared blue row state.",
         "Search remains compact and does not resize the row list.",
       ],
       metrics: [["Width", "300-380 px"], ["Row", "28-32 px"], ["Actions", "Icon-only"]],
@@ -3731,7 +3731,7 @@ function settingsForm() {
   const form = el("div", "settings-form");
   form.append(
     fieldRow("Theme", "Workbench Dark"),
-    fieldRow("Accent", "Teal"),
+    fieldRow("Accent", "Blue"),
     fieldRow("Panel Radius", "12 px"),
     fieldRow("Open last project", "On"),
     fieldRow("Compact bottom drawer", "Auto"),
@@ -3774,7 +3774,7 @@ function floatingWindowConfig(name) {
           ]),
           floatingSection("Modern Dark Theme", [
             ["Surface tone", "Near black"],
-            ["Accent color", "Teal"],
+            ["Accent color", "Blue"],
             ["Button style", "Flat rounded"],
             ["Panel radius", "10 px"],
             ["Reduce gradients", "On"],
@@ -5256,9 +5256,9 @@ function additionalEditorConfig(kind) {
     "theme-token": {
       toolbar: ["Theme Tokens", "Preview", "Contrast", "Validate", "Export"],
       layout: "table-editor",
-      tableRows: [["Token", "Value", "Role", "State", ""], ["surface.root", "#111416", "Surface", "Active", ""], ["surface.panel", "#1b1f23", "Panel", "Active", ""], ["accent.teal", "#3cc7d6", "Accent", "Active", ""], ["radius.control", "10px", "Shape", "Active", ""]],
+      tableRows: [["Token", "Value", "Role", "State", ""], ["surface.root", "#151515", "Surface", "Active", ""], ["surface.panel", "#242424", "Panel", "Active", ""], ["accent.blue", "#60aeff", "Accent", "Active", ""], ["radius.control", "8px", "Shape", "Active", ""]],
       panelTitle: "Token Preview",
-      panelRows: [["Set", "workbench-strict"], ["Contrast", "AA"], ["Accent", "Teal"], ["Gradients", "Reduced"]],
+      panelRows: [["Set", "workbench-strict"], ["Contrast", "AA"], ["Accent", "Blue"], ["Gradients", "Reduced"]],
       leftTop: { title: "Token Sets", tabs: ["Sets", "Scopes"], body: () => navList(["workbench-strict", "ios-flat-dark", "diagnostics", "asset-review", "high-contrast"], 0) },
       rightTop: { title: "Components", tabs: ["Controls", "Surfaces"], body: () => renderMiniDataGrid([["Component", "Token", "State", "Check", ""], ["Button", "accent", "Active", "Pass", ""], ["Field", "panel-2", "Focus", "Pass", ""], ["Drawer", "panel", "Open", "Pass", ""]]) },
       rightBottom: { title: "Token Detail", tabs: ["Token", "Usage"], body: () => renderAdditionalDetail("theme-token-detail") },
@@ -6927,7 +6927,7 @@ function additionalEditorConfig(kind) {
     "theme-variant-preview": {
       toolbar: ["Theme Preview", "Variant", "Contrast", "Apply", "Export"],
       layout: "table-editor",
-      tableRows: [["Token", "Value", "Usage", "State", ""], ["surface.base", "#111416", "Panels", "OK", ""], ["accent.teal", "#3cc7d6", "Active", "OK", ""], ["text.primary", "#f4f8fb", "Text", "OK", ""], ["warning", "#f2c94c", "Alerts", "AA", ""]],
+      tableRows: [["Token", "Value", "Usage", "State", ""], ["surface.base", "#151515", "Panels", "OK", ""], ["accent.blue", "#60aeff", "Active", "OK", ""], ["text.primary", "#e8e8e8", "Text", "OK", ""], ["warning", "#dcac50", "Alerts", "AA", ""]],
       panelTitle: "Theme Summary",
       panelRows: [["Theme", "Workbench Dark"], ["Contrast", "AA"], ["Tokens", "84"], ["Warnings", "0"]],
       leftTop: { title: "Themes", tabs: ["Themes", "Variants"], body: () => navList(["Workbench Dark", "Workbench Light", "High Contrast", "Console Dim", "Review"], 0) },
@@ -7230,7 +7230,7 @@ function additionalDetailConfig(kind) {
     "log-analysis-detail": ["Log Detail", "Texture fallback warning", [["Channel", "Assets"], ["Hits", "2"], ["Owner", "Importer"]], "Create Task"],
     "automation-report-detail": ["Report Failure", "viewport_resize smoke", [["Suite", "Editor"], ["Artifacts", "3"], ["Owner", "UI Host"]], "Open Artifact"],
     "layout-manager-detail": ["Layout Detail", "default-workbench", [["Zones", "5"], ["Splits", "2"], ["Dirty", "No"]], "Apply Layout"],
-    "theme-token-detail": ["Token Detail", "accent.teal", [["Value", "#3cc7d6"], ["Usage", "Active"], ["Contrast", "AA"]], "Preview Token"],
+    "theme-token-detail": ["Token Detail", "accent.blue", [["Value", "#60aeff"], ["Usage", "Active"], ["Contrast", "AA"]], "Preview Token"],
     "command-center-detail": ["Command Detail", "Toggle Console", [["Shortcut", "Alt+4"], ["Context", "Workbench"], ["Conflicts", "0"]], "Edit Binding"],
     "module-graph-detail": ["Module Detail", "zircon_runtime", [["Modules", "18"], ["Cycles", "0"], ["Warnings", "2"]], "Open Boundary"],
     "asset-validation-detail": ["Repair Detail", "T_Grid_01 compression", [["Severity", "Warning"], ["Fix", "Auto"], ["Rule", "Texture"]], "Repair Asset"],
@@ -7367,7 +7367,7 @@ function additionalDetailConfig(kind) {
     "montage-debugger-detail": ["Montage Detail", "Attack_A section", [["Blend", "0.18"], ["Weight", "0.84"], ["Events", "14"]], "Trace Section"],
     "widget-tree-detail": ["Widget Detail", "HealthBar", [["Type", "Progress"], ["Depth", "2"], ["State", "Visible"]], "Highlight"],
     "layout-constraint-detail": ["Constraint Detail", "Min Width", [["Target", "InventoryPanel"], ["Value", "320"], ["State", "OK"]], "Inspect Solve"],
-    "theme-variant-detail": ["Token Detail", "accent.teal", [["Value", "#3cc7d6"], ["Usage", "Active"], ["Contrast", "AA"]], "Preview Token"],
+    "theme-variant-detail": ["Token Detail", "accent.blue", [["Value", "#60aeff"], ["Usage", "Active"], ["Contrast", "AA"]], "Preview Token"],
     "localization-preview-detail": ["String Detail", "ui.inventory", [["Locale", "zh-CN"], ["Overflow", "No"], ["State", "OK"]], "Open Usage"],
     "focus-navigation-detail": ["Focus Detail", "SlotGrid", [["Routes", "4"], ["Dead Ends", "0"], ["Loops", "1"]], "Trace Route"],
     "input-glyph-detail": ["Glyph Detail", "Confirm / Xbox A", [["Prompts", "64"], ["Missing", "0"], ["Locales", "8"]], "Preview Glyph"],
@@ -8380,7 +8380,7 @@ function renderAlerts() {
   const wrap = el("div", "control-stack");
   [["Info Alert", "info"], ["Success Alert", "green"], ["Warning Alert", "yellow"], ["Error Alert", "red"]].forEach(([label, tone]) => {
     const row = el("div", "field");
-    row.style.borderColor = tone === "red" ? "rgba(235,106,93,.5)" : tone === "yellow" ? "rgba(226,179,72,.5)" : "rgba(53,199,208,.45)";
+    row.style.borderColor = tone === "red" ? "rgba(235,96,92,.5)" : tone === "yellow" ? "rgba(220,172,80,.5)" : "rgba(96,174,255,.45)";
     row.textContent = label;
     wrap.append(row);
   });
@@ -8450,7 +8450,7 @@ function renderConsole() {
   const toolbar = el("div", "console-toolbar");
   toolbar.style.gap = "8px";
   toolbar.style.padding = "6px 10px";
-  toolbar.style.background = "#151a1e";
+    toolbar.style.background = "#242424";
   toolbar.style.borderBottom = "1px solid var(--line)";
   toolbar.append(button("Clear", "secondary-btn"), selectBtn("All"), selectBtn("Warnings"), field("Filter console..."), button("Open Detail", "primary-btn"));
   root.append(toolbar, renderLogList());
@@ -8732,7 +8732,7 @@ function renderWelcomeDetail() {
 }
 
 function renderMaterialLog() {
-  return tabbedLog(["Component States", "Token Audit", "Visual Diff"], ["Button hover token resolved", "Data grid selection uses teal active row", "Chart surface uses panel fill"]);
+  return tabbedLog(["Component States", "Token Audit", "Visual Diff"], ["Button hover token resolved", "Data grid selection uses blue active row", "Chart surface uses panel fill"]);
 }
 
 function renderUiAssetDiagnostics() {
@@ -8844,7 +8844,7 @@ function renderGizmoSpec() {
   spec.append(fieldRow("X Axis", "red handle"));
   spec.append(fieldRow("Y Axis", "green handle"));
   spec.append(fieldRow("Z Axis", "blue handle"));
-  spec.append(fieldRow("Bounds", "teal outline"));
+  spec.append(fieldRow("Bounds", "blue outline"));
   return spec;
 }
 

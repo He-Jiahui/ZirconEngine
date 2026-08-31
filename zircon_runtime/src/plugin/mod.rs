@@ -40,16 +40,20 @@ pub use package_manifest::{
 };
 pub use plugin_maturity::PluginMaturity;
 pub use runtime_plugin::{
-    CapabilityView, RuntimeExtensionCatalogReport, RuntimePlugin, RuntimePluginBridgeDependent,
+    CapabilityView, CompiledProjectPluginPlan, PluginCatalogGeneration,
+    RuntimeExtensionCatalogReport, RuntimePlugin, RuntimePluginBridgeDependent,
     RuntimePluginBridgeDisableBlocker, RuntimePluginBridgeLifecycleBlock,
     RuntimePluginBridgeLifecycleError, RuntimePluginBridgeLifecycleEvent,
     RuntimePluginBridgeLifecycleOutcome, RuntimePluginBridgeLifecycleReport,
-    RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
+    RuntimePluginBridgeLifecycleState, RuntimePluginCatalog, RuntimePluginCatalogAuthority,
+    RuntimePluginCatalogCandidate, RuntimePluginCatalogPreparationError,
+    RuntimePluginCatalogPreparedGeneration, RuntimePluginCatalogProjectPlanCacheMetrics,
     RuntimePluginCatalogProjectPlanMetrics, RuntimePluginCatalogProjectionMetrics,
-    RuntimePluginCatalogUpdate, RuntimePluginCatalogUpdateMetrics,
-    RuntimePluginCatalogUpdateOutcome, RuntimePluginDescriptor, RuntimePluginDescriptorBuilder,
-    RuntimePluginFeature, RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
-    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+    RuntimePluginCatalogPublicationError, RuntimePluginCatalogSnapshot, RuntimePluginCatalogUpdate,
+    RuntimePluginCatalogUpdateMetrics, RuntimePluginCatalogUpdateOutcome, RuntimePluginDescriptor,
+    RuntimePluginDescriptorBuilder, RuntimePluginFeature, RuntimePluginFeatureBlock,
+    RuntimePluginFeatureDependencyReport, RuntimePluginFeatureRegistrationReport,
+    RuntimePluginModuleProposal, RuntimePluginRegistrationReport,
 };
 pub use runtime_profile::{
     RuntimePluginAvailabilityCategory, RuntimePluginAvailabilityEntry,
@@ -58,6 +62,3 @@ pub use runtime_profile::{
     RuntimeProfileFeaturePreset, RuntimeProfilePluginSelection, RUNTIME_PROFILE_FEATURE_PRESETS,
 };
 pub use ui_component_descriptor::UiComponentDescriptor;
-
-#[cfg(test)]
-pub(crate) use native_plugin_loader::NativePluginLoader;

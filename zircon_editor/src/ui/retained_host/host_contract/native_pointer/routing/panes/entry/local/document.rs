@@ -5,13 +5,13 @@ use super::super::super::super::PanePointerRoute;
 use super::super::super::mode::PaneRouteMode;
 use super::super::super::pane::pane_route_from_pane;
 
-pub(super) fn route_document_dock_pane(
-    dock: &HostDocumentDockSurfaceData,
+pub(super) fn route_document_dock_pane<'a>(
+    dock: &'a HostDocumentDockSurfaceData,
     x: f32,
     y: f32,
     mode: PaneRouteMode,
     console_scroll_px: f32,
-) -> Option<PanePointerRoute> {
+) -> Option<PanePointerRoute<'a>> {
     let content = translated(
         &dock.content_frame,
         dock.region_frame.x,

@@ -45,3 +45,14 @@ Runtime lifecycle 改动引入了新的 collection 中间值，却未在首次�
 ## 修复结果与回传
 
 Open state: `UI12 在无有效文件租约后仅补齐 collection 类型；待当前源码 Editor 构建验证后回传 Runtime Core 01`。
+
+2026-08-28 forward validation evidence: the explicit
+`running_dependents: Vec<String>` repair is integrated in commit
+`7a20f921bb97ed428ae248cbcaf3c2fac5442ddf`. Coordinator-managed job
+`ac756551ded64736884a3f41ba2281aa` passed artifact governance and started the
+declared Editor build, but Cargo stopped while loading the workspace because
+`zircon_runtime/crates/zr_resource/Cargo.toml` is absent. The wrapper released
+the job with exit `1` after Cargo reported exit `101`; compilation never
+reached `activation.rs`. The unrelated current worktree diff in that file is
+not part of this failure. No current-source compile pass or fixed return is
+claimed.

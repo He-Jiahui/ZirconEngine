@@ -1,5 +1,5 @@
 use super::*;
-use crate::text::raster::{raster_path_for, GlyphRasterPath};
+use crate::text::raster::{GlyphRasterPath, raster_path_for};
 use crate::text::sdf::SdfMode;
 
 const BITMAP_SIDE_SIZE: f32 = 23.5;
@@ -114,10 +114,12 @@ fn text_paragraph_parity_vertical_rl() {
             layout_for_mode(text, frame, &base_style, UiTextRenderMode::Native);
         assert!(native_layout.lines.len() > 1);
         assert_eq!(native_layout.writing_mode, UiTextWritingMode::VerticalRl);
-        assert!(native_layout
-            .lines
-            .windows(2)
-            .all(|columns| columns[0].frame.x > columns[1].frame.x));
+        assert!(
+            native_layout
+                .lines
+                .windows(2)
+                .all(|columns| columns[0].frame.x > columns[1].frame.x)
+        );
 
         for (distance_mode, expected_sdf_mode) in [
             (UiTextRenderMode::Sdf, SdfMode::Sdf),

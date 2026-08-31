@@ -1,4 +1,4 @@
-use super::{average_channel_in_region, centered_quad_transform, resource_handle, RenderFixture};
+use super::{RenderFixture, average_channel_in_region, centered_quad_transform, resource_handle};
 use crate::asset::assets::AlphaMode;
 use crate::core::framework::render::{
     CorePipelineKind, GeometryExtract, GeometryPhaseInput, RenderFramework, RenderLayerSet,
@@ -8,7 +8,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec4};
 use crate::core::resource::TextureMarker;
-use crate::scene::components::{default_render_layer_mask, Mobility};
+use crate::scene::components::{Mobility, default_render_layer_mask};
 
 #[test]
 fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() {
@@ -56,7 +56,7 @@ fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() 
         material_alpha_mode: RenderMaterialAlphaMode::Blend,
     };
     let mut extract = fixture.frame_extract(Vec::new(), Vec::new(), |_| {});
-    extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
+    *extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
         CorePipelineKind::Core3d,
         vec![mesh],
         vec![GeometryPhaseInput::new(
@@ -66,7 +66,7 @@ fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() 
             1.0,
         )],
     );
-    extract.sprites = SpriteExtract::from_sprites_and_phase_inputs(
+    *extract.sprites = SpriteExtract::from_sprites_and_phase_inputs(
         CorePipelineKind::Core3d,
         vec![sprite],
         vec![SpritePhaseExtractInput::new(
@@ -108,9 +108,11 @@ fn transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key() 
             .with_anti_alias(false),
     );
     let stats = server.query_stats().unwrap();
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"mesh.transparent".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"mesh.transparent".to_string())
+    );
 
     let sample_origin = UVec2::new(
         fixture.viewport_size.x / 2 - 12,
@@ -173,7 +175,7 @@ fn transparent3d_product_treats_world_space_ui_sprite_as_transparent_member() {
         material_alpha_mode: RenderMaterialAlphaMode::Blend,
     };
     let mut extract = fixture.frame_extract(Vec::new(), Vec::new(), |_| {});
-    extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
+    *extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
         CorePipelineKind::Core3d,
         vec![mesh],
         vec![GeometryPhaseInput::new(
@@ -183,7 +185,7 @@ fn transparent3d_product_treats_world_space_ui_sprite_as_transparent_member() {
             1.0,
         )],
     );
-    extract.sprites = SpriteExtract::from_sprites_and_phase_inputs(
+    *extract.sprites = SpriteExtract::from_sprites_and_phase_inputs(
         CorePipelineKind::Core3d,
         vec![world_space_ui_panel],
         vec![
@@ -227,9 +229,11 @@ fn transparent3d_product_treats_world_space_ui_sprite_as_transparent_member() {
             .with_anti_alias(false),
     );
     let stats = server.query_stats().unwrap();
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"mesh.transparent".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"mesh.transparent".to_string())
+    );
 
     let sample_origin = UVec2::new(
         fixture.viewport_size.x / 2 - 12,

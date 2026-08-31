@@ -14,7 +14,10 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
     let rendering_tests =
         read_runtime_src("graphics/scene/scene_renderer/ui/text/tests/rendering.rs");
     let test_support = read_runtime_src("graphics/scene/scene_renderer/ui/text/tests/support.rs");
-    let native_buffer = read_runtime_src("text/native_buffer.rs");
+    let native_glyph_run =
+        read_runtime_src("graphics/scene/scene_renderer/ui/text/native_glyph_run.rs");
+    let native_bitmap_atlas = read_runtime_src("text/native_bitmap_atlas.rs");
+    let native_bitmap_handoff = read_runtime_src("text/native_bitmap_atlas/handoff.rs");
     let render_state = read_runtime_src("text/render_state.rs");
     let native_bitmap_atlas_tests = read_runtime_src("text/native_bitmap_atlas/tests.rs");
     let native_bitmap_source_cache_tests =
@@ -27,19 +30,65 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
         &parent,
         &[
             "mod font_id_report;",
+            "mod native_glyph_run;",
             "mod resolved_batches;",
             "mod sdf_fallback;",
             "pub(super) struct ScreenSpaceUiTextSystem",
             "use self::resolved_batches::resolve_text_batches;",
-            "fn native_text_area_placement(",
-            "fn native_text_align(",
+            "use self::native_glyph_run::native_bitmap_atlas_glyph_runs;",
+            "struct ScreenSpaceUiTextBackend;",
             "#[cfg(test)]\nmod tests;",
         ],
     );
     assert_contains_all(
+        "screen-space UI text native glyph-run owner projects canonical shaped glyphs",
+        &native_glyph_run,
+        &[
+            "pub(in crate::graphics::scene::scene_renderer::ui) fn native_bitmap_atlas_glyph_runs(",
+            "pub(in crate::graphics::scene::scene_renderer::ui) struct NativeBitmapAtlasGlyphRunProjection",
+            "resolve_font_handle_batch(",
+            "GlyphRasterKey::from_request(",
+            "glyph_artifact_line",
+            "text.text_decoration_baseline",
+        ],
+    );
+    for forbidden_legacy_input in [
+        "TextArea",
+        "TextRenderer",
+        "TextAtlas",
+        "layout_runs()",
+        "shape_native_buffer",
+    ] {
+        assert!(
+            !parent.contains(forbidden_legacy_input),
+            "screen-space UI text must not restore legacy native input `{forbidden_legacy_input}`"
+        );
+    }
+    assert_contains_all(
+        "native bitmap atlas reports its own readiness and degradation state",
+        &native_bitmap_handoff,
+        &[
+            "NativeBitmapAtlasDegradationReason",
+            "NativeBitmapAtlasHandoff::Degraded",
+            "report.native_submission_ready",
+        ],
+    );
+    for forbidden_legacy_handoff in [
+        "GlyphonFallback",
+        "replaces_glyphon",
+        "glyphon_fallback_reason",
+        "native_bitmap_atlas_glyphon_fallback_reason_for_report",
+    ] {
+        assert!(
+            !native_bitmap_atlas.contains(forbidden_legacy_handoff)
+                && !native_bitmap_handoff.contains(forbidden_legacy_handoff),
+            "native bitmap atlas must not restore legacy handoff `{forbidden_legacy_handoff}`"
+        );
+    }
+    assert_contains_all(
         "screen-space UI text resolved-batches child owns batch resolution",
         &resolved_batches,
-        &["pub(super) fn resolve_text_batches("],
+        &["pub(super) fn resolve_text_batches_after_font_dependencies("],
     );
 
     assert_contains_all(
@@ -59,9 +108,7 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
         "fn auto_text_mode_uses_font_asset_default_when_present(",
         "fn explicit_text_mode_overrides_font_asset_default(",
         "fn auto_text_mode_falls_back_to_native_without_font_asset_default(",
-        "fn native_text_align_maps_start_end_through_text_direction(",
-        "fn native_text_area_placement_snaps_fractional_origin_to_device_pixels(",
-        "fn native_text_area_placement_drops_non_finite_origin_values(",
+        "fn native_text_backend_accepts_only_prepared_glyph_runs(",
     ] {
         assert!(
             !parent.contains(moved_test),
@@ -91,7 +138,7 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
         "screen-space UI text folder-backed owners keep private helper coverage",
         &rendering_tests,
         &[
-            "native_text_area_placement(",
+            "native_text_backend_accepts_only_prepared_glyph_runs(",
             "text_batch(\"Normal\", UiTextRenderMode::Native)",
         ],
     );
@@ -122,11 +169,6 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
         ],
     );
     assert_contains_all(
-        "text CPU preparation owns native attrs regression coverage",
-        &native_buffer,
-        &["fn native_attrs_are_owned_by_text_cpu_preparation("],
-    );
-    assert_contains_all(
         "text render state owns bitmap atlas frame index regression coverage",
         &render_state,
         &[
@@ -154,9 +196,9 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
         ],
     );
     for moved_test in [
-        "fn native_bitmap_atlas_source_cache_schedules_glyphon_cache_key_worker_request(",
-        "fn native_bitmap_atlas_source_cache_defers_full_worker_queue_without_pending_work(",
-        "fn native_bitmap_atlas_source_cache_reuses_font_bytes_until_face_invalidation(",
+        "fn native_bitmap_atlas_source_cache_requests_exact_instance_once_per_glyph(",
+        "fn native_bitmap_atlas_source_cache_reports_backpressure_without_marking_work_pending(",
+        "fn native_bitmap_atlas_source_cache_reloads_font_bytes_after_face_invalidation(",
     ] {
         assert!(
             !native_bitmap_source_cache_tests.contains(moved_test),

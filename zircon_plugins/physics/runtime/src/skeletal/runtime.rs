@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::physics::{
@@ -212,7 +212,8 @@ pub(crate) fn write_simulated_pose_feed(
 ) {
     feed.clear();
     let interpolation_alpha = sanitize_weight(interpolation_alpha);
-    let bone_world_by_path = collect_synced_bone_world_by_path(sync, ragdolls);
+    let bodies_by_entity = index_synced_bodies(sync);
+    let bone_world_by_path = collect_synced_bone_world_by_path(sync, ragdolls, &bodies_by_entity);
     let mut rows_by_skeleton =
         BTreeMap::<EntityId, BTreeMap<String, Option<SkeletalPoseTarget>>>::new();
 
@@ -223,7 +224,9 @@ pub(crate) fn write_simulated_pose_feed(
         let Some(state) = ragdolls.state(binding.skeleton_entity) else {
             continue;
         };
-        let Some(body) = resolve_joint_body(sync, joint.entity, joint.connected_entity) else {
+        let Some(body) =
+            resolve_joint_body(&bodies_by_entity, joint.entity, joint.connected_entity)
+        else {
             continue;
         };
         let Some(skeleton_world) = world.world_transform(binding.skeleton_entity) else {
@@ -352,28 +355,60 @@ fn resolve_unique_target<'a>(
 }
 
 fn resolve_joint_body<'a>(
-    sync: &'a PhysicsWorldSyncState,
+    bodies_by_entity: &HashMap<EntityId, Option<&'a PhysicsBodySyncState>>,
     joint_entity: EntityId,
     connected_entity: Option<EntityId>,
 ) -> Option<&'a PhysicsBodySyncState> {
-    sync.bodies
-        .iter()
-        .find(|body| body.entity == joint_entity)
+    bodies_by_entity
+        .get(&joint_entity)
+        .copied()
+        .flatten()
         .or_else(|| {
-            connected_entity
-                .and_then(|entity| sync.bodies.iter().find(|body| body.entity == entity))
+            connected_entity.and_then(|entity| bodies_by_entity.get(&entity).copied().flatten())
         })
+}
+
+fn index_synced_bodies<'a>(
+    sync: &'a PhysicsWorldSyncState,
+) -> HashMap<EntityId, Option<&'a PhysicsBodySyncState>> {
+    let requested_body_count = sync
+        .joints
+        .iter()
+        .filter(|joint| joint.skeleton_binding.is_some())
+        .map(|joint| 1 + usize::from(joint.connected_entity.is_some()))
+        .sum();
+    if requested_body_count == 0 {
+        return HashMap::new();
+    }
+
+    let mut bodies_by_entity = HashMap::with_capacity(requested_body_count);
+    for joint in &sync.joints {
+        if joint.skeleton_binding.is_none() {
+            continue;
+        }
+        bodies_by_entity.entry(joint.entity).or_insert(None);
+        if let Some(entity) = joint.connected_entity {
+            bodies_by_entity.entry(entity).or_insert(None);
+        }
+    }
+    for body in &sync.bodies {
+        if let Some(slot) = bodies_by_entity.get_mut(&body.entity) {
+            slot.get_or_insert(body);
+        }
+    }
+    bodies_by_entity
 }
 
 fn collect_synced_bone_world_by_path(
     sync: &PhysicsWorldSyncState,
     ragdolls: &RagdollRuntime,
+    bodies_by_entity: &HashMap<EntityId, Option<&PhysicsBodySyncState>>,
 ) -> BTreeMap<(EntityId, String), Transform> {
     sync.joints
         .iter()
         .filter_map(|joint| {
             let binding = joint.skeleton_binding.as_ref()?;
-            let body = resolve_joint_body(sync, joint.entity, joint.connected_entity)?;
+            let body = resolve_joint_body(bodies_by_entity, joint.entity, joint.connected_entity)?;
             let state = ragdolls.state(binding.skeleton_entity)?;
             let bone_world = state
                 .body_offsets

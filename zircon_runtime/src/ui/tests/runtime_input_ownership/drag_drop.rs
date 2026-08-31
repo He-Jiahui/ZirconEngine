@@ -27,7 +27,7 @@ fn drag_drop_lifecycle_tracks_shared_state_and_cleans_capture_on_end() {
     assert_eq!(drag.source, UiNodeId::new(2));
     assert_eq!(drag.target, UiNodeId::new(2));
     assert_eq!(drag.point, Some(UiPoint::new(14.0, 18.0)));
-    assert_eq!(drag.payload, Some(payload.clone()));
+    assert_eq!(drag.payload.as_deref(), Some(&payload));
 
     let update = surface.apply_dispatch_reply(
         keyboard_event(),
@@ -44,7 +44,7 @@ fn drag_drop_lifecycle_tracks_shared_state_and_cleans_capture_on_end() {
     let drag = surface.input.drag_drop.as_ref().expect("updated drag");
     assert_eq!(drag.target, UiNodeId::new(3));
     assert_eq!(drag.point, Some(UiPoint::new(44.0, 68.0)));
-    assert_eq!(drag.payload, Some(payload));
+    assert_eq!(drag.payload.as_deref(), Some(&payload));
 
     let accept = surface.apply_dispatch_reply(
         keyboard_event(),

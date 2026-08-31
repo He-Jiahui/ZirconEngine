@@ -1,4 +1,4 @@
-use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::data::{FrameRect, HostTextInputFocusData, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_alerts::push_alert_commands;
 use super::super::super::template_axis_labels::push_axis_label_commands;
@@ -14,6 +14,7 @@ use super::super::super::template_list_rows::push_list_row_commands;
 use super::super::super::template_notification_center::push_notification_center_commands;
 use super::super::super::template_sample_grid::push_sample_grid_commands;
 use super::super::super::template_section_titles::push_section_title_commands;
+use super::super::super::template_settings_window::push_settings_window_commands;
 use super::super::super::template_sliders::push_slider_commands;
 use super::super::super::template_status_controls::push_status_control_commands;
 use super::super::super::template_table_rows::push_table_row_commands;
@@ -28,6 +29,7 @@ pub(super) fn push_secondary_specialized_template_node_commands(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
     node_clip: &FrameRect,
+    text_input_focus: Option<&HostTextInputFocusData>,
     order: i32,
     opacity: f32,
 ) -> bool {
@@ -51,6 +53,15 @@ pub(super) fn push_secondary_specialized_template_node_commands(
         || push_dialog_commands(commands, node, rect, node_clip, order, opacity)
         || push_command_palette_commands(commands, node, rect, node_clip, order, opacity)
         || push_notification_center_commands(commands, node, rect, node_clip, order, opacity)
+        || push_settings_window_commands(
+            commands,
+            node,
+            rect,
+            node_clip,
+            text_input_focus,
+            order,
+            opacity,
+        )
         || push_drag_overlay_commands(commands, node, rect, node_clip, order, opacity)
         || push_tooltip_commands(commands, node, rect, node_clip, order, opacity)
 }

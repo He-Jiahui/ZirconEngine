@@ -17,13 +17,7 @@ pub(super) fn dispatch_asset_content_target(
         return false;
     };
     dispatch_asset_content_button(
-        pane_host,
-        pointer,
-        mode.clone(),
-        state,
-        button,
-        host_kind,
-        button_id,
+        pane_host, pointer, *mode, state, button, host_kind, button_id,
     );
     true
 }

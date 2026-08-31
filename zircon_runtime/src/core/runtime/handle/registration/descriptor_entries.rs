@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use crate::core::CoreError;
 use crate::core::{ServiceKind, StartupMode};
 
@@ -18,13 +16,9 @@ pub(super) fn prepare_service_entry(
     startup_mode: StartupMode,
     dependencies: &[DependencySpec],
     factory: ServiceEntryFactory,
-    pending_keys: &mut HashSet<RegistryName>,
     pending_services: &mut Vec<(RegistryName, ServiceEntry)>,
 ) -> Result<(), CoreError> {
     validate_service_descriptor(owner_module, kind, &name, dependencies)?;
-    if !pending_keys.insert(name.clone()) {
-        return Err(CoreError::DuplicateService(name.to_string()));
-    }
     pending_services.push((name, service_entry(startup_mode, dependencies, factory)));
     Ok(())
 }

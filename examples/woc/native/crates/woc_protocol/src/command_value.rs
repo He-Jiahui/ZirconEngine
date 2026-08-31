@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{btree_map::Entry, BTreeMap};
 
 use crate::ProtocolError;
 
@@ -27,8 +27,15 @@ impl CommandValue {
     ) -> Result<Self, ProtocolError> {
         let mut values = BTreeMap::new();
         for (key, value) in entries {
-            if values.insert(key.clone(), value).is_some() {
-                return Err(ProtocolError::DuplicateCommandObjectKey { key });
+            match values.entry(key) {
+                Entry::Vacant(vacant) => {
+                    vacant.insert(value);
+                }
+                Entry::Occupied(occupied) => {
+                    return Err(ProtocolError::DuplicateCommandObjectKey {
+                        key: occupied.key().clone(),
+                    });
+                }
             }
         }
         Ok(Self::Object(values))
@@ -235,8 +242,15 @@ impl<'a> Reader<'a> {
                 for _ in 0..length {
                     let key = self.read_string()?;
                     let value = self.read_value(depth + 1)?;
-                    if values.insert(key.clone(), value).is_some() {
-                        return Err(ProtocolError::DuplicateCommandObjectKey { key });
+                    match values.entry(key) {
+                        Entry::Vacant(vacant) => {
+                            vacant.insert(value);
+                        }
+                        Entry::Occupied(occupied) => {
+                            return Err(ProtocolError::DuplicateCommandObjectKey {
+                                key: occupied.key().clone(),
+                            });
+                        }
                     }
                 }
                 Ok(CommandValue::Object(values))

@@ -23,7 +23,8 @@ fn selection_control_uses_shared_selector_for_pressed_checked_border() {
         UiPainterResolvedState::Pressed
     );
     assert_eq!(checkbox_background(&node), CHECKBOX_CHECKED_FILL);
-    assert_eq!(checkbox_border_color(&node), PALETTE.focus_ring);
+    assert_eq!(checkbox_border_color(&node), PALETTE.accent);
+    assert_ne!(checkbox_border_color(&node), PALETTE.focus_ring);
 }
 
 #[test]

@@ -132,8 +132,12 @@ impl RenderMaterialManagementOverview {
         &self,
         query: RenderMaterialManagementQuery,
     ) -> RenderMaterialManagementQueryResult {
-        query.apply_to_overview_records(self.records.clone())
+        query.apply_to_overview_records(iter_cloned_values(&self.records))
     }
+}
+
+fn iter_cloned_values<T: Clone>(source: &[T]) -> impl Iterator<Item = T> + '_ {
+    source.iter().cloned()
 }
 
 impl RenderMaterialManagementOverviewRecord {
@@ -145,3 +149,7 @@ impl RenderMaterialManagementOverviewRecord {
         self.summary.is_ready
     }
 }
+
+#[cfg(test)]
+#[path = "overview/streaming_query_tests.rs"]
+mod streaming_query_tests;

@@ -2,7 +2,9 @@ use super::super::super::benchmark_harness::{
     BenchmarkMeasurement, BenchmarkRunMetadata, BenchmarkWorkerCompletionGate,
     BenchmarkWorkerStartGate,
 };
-use super::runtime_behavior::{callback_test_behavior, successful_runtime_command};
+use super::runtime_behavior::{
+    callback_test_behavior, native_live_host_test_plugin_with_behavior, successful_runtime_command,
+};
 use super::*;
 use crate::plugin::native_plugin_loader::loaded_native_plugin::{
     NativePluginCallbackLeaseError, NativePluginLifecycleTransitionError,
@@ -123,6 +125,95 @@ fn native_callback_snapshot_without_behavior_reports_missing_before_transition_a
     assert_eq!(plugin.callback_diagnostics().active_callbacks, 0);
 
     plugin.cancel_lifecycle_transition();
+}
+
+#[test]
+fn native_editor_command_binding_admits_declared_command_and_retains_generation_owner() {
+    let plugin = editor_plugin_with_behavior(callback_test_behavior(successful_runtime_command));
+    let binding = plugin
+        .bind_editor_command("probe")
+        .expect("declared editor command should produce an executable binding");
+
+    assert_eq!(binding.plugin_id(), "physics-editor");
+    assert_eq!(binding.command_name(), "probe");
+    assert_eq!(binding.payload_schema_id(), "bytes");
+    assert_eq!(binding.max_output_bytes(), 0);
+    drop(plugin);
+    let report = binding.invoke(b"payload");
+    assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+}
+
+#[test]
+fn native_editor_command_binding_rejects_undeclared_command_at_admission() {
+    let plugin = editor_plugin_with_behavior(callback_test_behavior(successful_runtime_command));
+    let error = plugin
+        .bind_editor_command("missing")
+        .expect_err("undeclared editor command must not produce a binding");
+
+    assert!(matches!(
+        error,
+        crate::plugin::native_plugin_loader::NativePluginEditorCommandBindingError::UndeclaredCommand {
+            plugin_id,
+            command_name,
+        } if plugin_id == "physics-editor" && command_name == "missing"
+    ));
+}
+
+#[test]
+fn native_editor_command_binding_rejects_missing_callback_at_admission() {
+    let mut behavior = callback_test_behavior(successful_runtime_command);
+    behavior.invoke_command = None;
+    let plugin = editor_plugin_with_behavior(behavior);
+    let error = plugin
+        .bind_editor_command("probe")
+        .expect_err("editor command without callback must not produce a binding");
+
+    assert!(matches!(
+        error,
+        crate::plugin::native_plugin_loader::NativePluginEditorCommandBindingError::MissingInvokeCommandCallback {
+            plugin_id,
+        } if plugin_id == "physics-editor"
+    ));
+}
+
+#[test]
+fn native_editor_command_binding_rejects_missing_editor_behavior_at_admission() {
+    let plugin = native_live_host_test_plugin("physics-editor", PluginModuleKind::Editor);
+    let error = plugin
+        .bind_editor_command("probe")
+        .expect_err("editor plugin without behavior must not produce a binding");
+
+    assert!(matches!(
+        error,
+        crate::plugin::native_plugin_loader::NativePluginEditorCommandBindingError::MissingEditorBehavior {
+            plugin_id,
+        } if plugin_id == "physics-editor"
+    ));
+}
+
+#[test]
+fn native_editor_command_binding_fails_closed_during_lifecycle_transition() {
+    let plugin = editor_plugin_with_behavior(callback_test_behavior(successful_runtime_command));
+    let binding = plugin
+        .bind_editor_command("probe")
+        .expect("declared editor command should produce an executable binding");
+
+    plugin
+        .begin_lifecycle_transition()
+        .expect("passive binding owner should not count as an active callback");
+    let report = binding.invoke(b"payload");
+    assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("lifecycle transition is active")));
+    plugin.cancel_lifecycle_transition();
+}
+
+fn editor_plugin_with_behavior(behavior: NativePluginBehavior) -> LoadedNativePlugin {
+    let mut plugin = native_live_host_test_plugin_with_behavior("physics-editor", behavior);
+    plugin.editor_entry_report = plugin.runtime_entry_report.take();
+    plugin
 }
 
 #[test]

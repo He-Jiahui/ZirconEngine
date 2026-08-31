@@ -6,12 +6,12 @@ use crate::core::framework::render::ShaderAssetKind;
 use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::gpu_scene::GpuScene;
-use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
+use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
 
 use super::super::super::lighting_bind_group_layout::create_lighting_bind_group_layout;
 use super::super::DeferredLightingPipelineCache;
-use super::{toon_shading_model_descriptor, CUSTOM_TOON_DEFERRED_INCLUDE};
+use super::{CUSTOM_TOON_DEFERRED_INCLUDE, toon_shading_model_descriptor};
 
 const CUSTOM_TOON_FORWARD_INCLUDE: &str = r#"
 fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
@@ -100,8 +100,8 @@ fn custom_shading_model_deferred_lighting_pipelines_create_with_project_include_
 }
 
 #[test]
-fn environment_only_pbr_pipeline_defers_startup_pso_and_creates_on_demand_without_direct_light_layout_entries(
-) {
+fn environment_only_pbr_pipeline_defers_startup_pso_and_creates_on_demand_without_direct_light_layout_entries()
+ {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
     let asset_manager = ProjectAssetManager::default();
     let scene_layout = scene_bind_group_layout(&backend.device);

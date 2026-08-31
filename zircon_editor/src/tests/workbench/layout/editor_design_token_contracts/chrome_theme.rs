@@ -15,6 +15,7 @@ const ROOT_WORKBENCH_SHELL: &str =
 const WORKBENCH_STRICT_THEME: &str =
     include_str!("../../../../../assets/ui/theme/editor_workbench_strict.zui");
 const EDITOR_TOKENS: &str = include_str!("../../../../../assets/ui/editor/theme/editor_tokens.zui");
+const WORKBENCH_COMPONENT_DRAWER: &str = workbench_asset!("shell/workbench_component_drawer.zui");
 
 #[test]
 fn root_workbench_chrome_uses_shared_metrics_and_control_tokens() {
@@ -65,8 +66,8 @@ fn root_workbench_chrome_uses_shared_metrics_and_control_tokens() {
         WORKBENCH_STRICT_THEME
             .matches("radius = \"$editor.control.radius.small\"")
             .count()
-            >= 3,
-        "field state variants must share the small-radius token"
+            >= 1,
+        "compact details must retain the small-radius token"
     );
     assert!(
         WORKBENCH_STRICT_THEME.contains("radius = \"$editor.control.radius.pill\""),
@@ -161,7 +162,6 @@ fn strict_theme_raw_colors_are_confined_to_viewport_and_axis_visuals() {
 #[test]
 fn interactive_workbench_states_share_the_control_border_token() {
     for selector in [
-        ".workbench-hover",
         ".workbench-tab:hovered",
         ".workbench-slider:hovered",
         ".workbench-tree-item:hovered",
@@ -183,7 +183,6 @@ fn interactive_workbench_states_share_the_control_border_token() {
         ".workbench-segmented-control:pressed",
         ".workbench-control-button:pressed",
         ".workbench-tabs",
-        ".workbench-tab-active",
         ".workbench-tab:checked",
         ".workbench-tab:selected",
         ".workbench-tree-item:selected",
@@ -251,7 +250,7 @@ fn workbench_family_recipes_share_semantic_surface_and_shape_roles() {
         (
             ".workbench-panel-header",
             "$workbench_panel_raised",
-            "0.0",
+            "$editor.control.radius.small",
             "$editor.control.border_width",
         ),
         (
@@ -263,13 +262,13 @@ fn workbench_family_recipes_share_semantic_surface_and_shape_roles() {
         (
             ".workbench-field",
             "$workbench_field",
-            "$editor.control.radius.small",
+            "$editor.control.radius.control",
             "$editor.control.border_width",
         ),
         (
             ".workbench-popup-menu",
             "$editor.popup",
-            "$editor.control.radius.control",
+            "$editor.control.radius.panel",
             "$editor.control.border_width",
         ),
     ] {
@@ -303,6 +302,75 @@ fn workbench_family_recipes_share_semantic_surface_and_shape_roles() {
             && !panel_header.contains("$editor.control.height.compact"),
         "panel header height must not drift through generic control metrics"
     );
+    assert!(
+        panel_header.contains("corner_radius = \"$editor.control.radius.small\""),
+        "panel header component must keep the same small-radius token as its stylesheet recipe"
+    );
+
+    let section_title = workbench_asset!("primitives/chrome/workbench_section_title.zui");
+    assert!(
+        strict_theme_rule(".workbench-section-title")
+            .contains("radius = \"$editor.control.radius.small\""),
+        "section titles must use the shared small-radius token"
+    );
+    assert!(
+        !section_title.contains("corner_radius = 0.0"),
+        "section title component must not reintroduce a square-corner override"
+    );
+}
+
+#[test]
+fn selection_open_and_press_recipes_do_not_borrow_the_focus_outline() {
+    for selector in [
+        ".workbench-icon-button:selected",
+        ".workbench-rail-button:selected",
+        ".workbench-tab:checked",
+        ".workbench-tab:selected",
+        ".workbench-tree-item:selected",
+        ".workbench-list-row:selected",
+        ".workbench-table-row:selected",
+        ".workbench-segmented-control:selected",
+        ".workbench-control-button:selected",
+    ] {
+        let rule = strict_theme_rule(selector);
+        assert!(
+            rule.contains("background_color = \"$workbench_selected\""),
+            "{selector} must express persistent selection with the neutral selection surface"
+        );
+        assert!(
+            rule.contains("border_color = \"$workbench_border\""),
+            "{selector} must retain the low-emphasis control border"
+        );
+        assert!(
+            !rule.contains("border_color = \"$workbench_accent\"")
+                && !rule.contains("border_color = \"$editor.focus.ring\""),
+            "{selector} must not render a full accent/focus outline"
+        );
+    }
+
+    for selector in [
+        ".workbench-icon-button:pressed",
+        ".workbench-toolbar-button:pressed",
+        ".workbench-rail-button:pressed",
+        ".workbench-tab:pressed",
+        ".workbench-tree-item:pressed",
+        ".workbench-list-row:pressed",
+        ".workbench-table-row:pressed",
+        ".workbench-segmented-control:pressed",
+        ".workbench-control-button:pressed",
+        ".workbench-dropdown:popup_open",
+    ] {
+        let rule = strict_theme_rule(selector);
+        assert!(
+            rule.contains("border_color = \"$workbench_border\""),
+            "{selector} must use fill/foreground feedback without borrowing the focus outline"
+        );
+        assert!(
+            !rule.contains("border_color = \"$workbench_accent\"")
+                && !rule.contains("border_color = \"$editor.focus.ring\""),
+            "{selector} must reserve full accent outlines for focus-visible and validation"
+        );
+    }
 }
 
 #[test]
@@ -346,6 +414,64 @@ fn focus_visible_rules_are_border_only_overlays_after_primary_state_rules() {
         !WORKBENCH_STRICT_THEME.contains(":focused\""),
         "strict theme must not style pointer/programmatic focus as keyboard-visible focus"
     );
+    assert!(
+        !WORKBENCH_STRICT_THEME.contains(".workbench-focused"),
+        "strict theme must not keep a private class that bypasses retained focus-visible state"
+    );
+
+    let (_, focused_input) = WORKBENCH_COMPONENT_DRAWER
+        .split_once("[nodes.input_focused]")
+        .expect("component drawer must retain its focused-input state fixture");
+    let focused_input = focused_input
+        .split("\n[nodes.")
+        .next()
+        .expect("focused-input fixture must have a bounded node declaration");
+    assert!(
+        focused_input.contains("focus_visible = true"),
+        "the focused-input fixture must use the standard retained focus-visible state"
+    );
+    assert!(
+        !focused_input.contains("workbench-focused") && !focused_input.contains("focused = true"),
+        "the focused-input fixture must not fake keyboard focus with a class or generic focus"
+    );
+}
+
+#[test]
+fn component_drawer_disabled_samples_use_retained_disabled_state() {
+    assert!(
+        !WORKBENCH_STRICT_THEME.contains("selector = \".workbench-disabled\""),
+        "strict theme must not bypass retained disabled state with a private class"
+    );
+    let disabled_tree_rule = strict_theme_rule(".workbench-tree-item:disabled");
+    for semantic_role in [
+        "foreground_color = \"$workbench_text_dim\"",
+        "background_color = \"$workbench_inset\"",
+        "border_color = \"$workbench_border_soft\"",
+    ] {
+        assert!(
+            disabled_tree_rule.contains(semantic_role),
+            "disabled tree rows must retain {semantic_role}"
+        );
+    }
+
+    for node_name in ["input_disabled", "list_disabled"] {
+        let marker = format!("[nodes.{node_name}]");
+        let (_, node) = WORKBENCH_COMPONENT_DRAWER
+            .split_once(&marker)
+            .unwrap_or_else(|| panic!("component drawer must retain {node_name}"));
+        let node = node
+            .split("\n[nodes.")
+            .next()
+            .expect("component drawer node declaration must be bounded");
+        assert!(
+            node.contains("disabled = true"),
+            "{node_name} must declare the standard disabled state"
+        );
+        assert!(
+            !node.contains("workbench-disabled"),
+            "{node_name} must not duplicate disabled state with a private class"
+        );
+    }
 }
 
 pub(super) fn strict_theme_rule(selector: &str) -> &str {

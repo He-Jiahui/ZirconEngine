@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::super::{
-    load_versioned, Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId,
-    VersionedSchema,
+    load_versioned_legacy_schema_zero, Format, LoadError, MigrateError, MigrationChain,
+    MigrationStep, SchemaId, VersionedSchema,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -27,7 +27,8 @@ fn fail_migration(_value: Value) -> Result<Value, MigrateError> {
 
 #[test]
 fn migration_step_failure_preserves_schema_version_and_source() {
-    let error = load_versioned::<FailingStepDocument>(b"{}", Format::Text).unwrap_err();
+    let error =
+        load_versioned_legacy_schema_zero::<FailingStepDocument>(b"{}", Format::Text).unwrap_err();
 
     assert!(matches!(
         error,

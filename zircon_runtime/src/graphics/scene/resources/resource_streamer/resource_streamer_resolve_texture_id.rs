@@ -151,9 +151,8 @@ impl ResourceStreamer {
             }
         };
 
-        let actual_dimension = RenderMaterialTextureDimension::from_image_descriptor(
-            &texture.render_image_descriptor(),
-        );
+        let descriptor = texture.render_image_descriptor();
+        let actual_dimension = RenderMaterialTextureDimension::from_image_descriptor(&descriptor);
         if actual_dimension != expected_dimension {
             return ResolvedTextureReference {
                 id: None,
@@ -204,7 +203,10 @@ impl ResourceStreamer {
             };
         }
 
-        if let Some(reason) = texture.upload_readiness(support).unsupported_reason() {
+        if let Some(reason) = texture
+            .upload_readiness_with_descriptor(&descriptor, support)
+            .unsupported_reason()
+        {
             return ResolvedTextureReference {
                 id: None,
                 validation_error: Some(RenderMaterialValidationError::TextureNotUploadReady {

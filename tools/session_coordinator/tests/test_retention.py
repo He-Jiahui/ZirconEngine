@@ -121,6 +121,54 @@ class RetentionTests(unittest.TestCase):
         self.assertNotIn(snapshot_id, plan.snapshot_ids)
         self.assertTrue(preview[0].would_change)
 
+    def test_active_validation_ticket_retains_old_completed_session_snapshot(self) -> None:
+        snapshot_id, object_hash = self._snapshot("completed", "queued source")
+        ticket_id = "ticket-retained"
+        self.sessions.set_status("completed", SessionStatus.COMPLETED)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE sessions SET completed_at=? WHERE session_id='completed'",
+                ((NOW - timedelta(days=20)).isoformat(),),
+            )
+            connection.execute(
+                "UPDATE snapshots SET created_at=?, purpose=? WHERE snapshot_id=?",
+                (
+                    (NOW - timedelta(days=20)).isoformat(),
+                    f"validation-ticket-source:{ticket_id}",
+                    snapshot_id,
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO validation_tickets(
+                    ticket_id, session_id, plan_path, status, dedupe_key,
+                    source_manifest_hash, source_manifest_json, command_json,
+                    toolchain_json, coverage_json, created_at, updated_at
+                ) VALUES (?, 'completed', 'docs/plans/tooling/01.md', 'queued',
+                          'dedupe', ?, ?, '["cargo","check"]', '{}', '{}', ?, ?)
+                """,
+                (
+                    ticket_id,
+                    "a" * 64,
+                    '{"completed.txt":"' + object_hash + '"}',
+                    NOW.isoformat(),
+                    NOW.isoformat(),
+                ),
+            )
+
+        active_plan = self.retention.plan(now=NOW)
+        self.assertNotIn(snapshot_id, active_plan.snapshot_ids)
+        self.assertNotIn(object_hash, active_plan.object_hashes)
+
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_tickets SET status='failed' WHERE ticket_id=?",
+                (ticket_id,),
+            )
+        terminal_plan = self.retention.plan(now=NOW)
+        self.assertIn(snapshot_id, terminal_plan.snapshot_ids)
+        self.assertIn(object_hash, terminal_plan.object_hashes)
+
     def test_failed_gc_plan_can_be_replanned_after_quarantine_recovery(self) -> None:
         snapshot_id, object_hash = self._snapshot("expired", "retryable")
         self.sessions.set_status("expired", SessionStatus.COMPLETED)

@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::scene::ecs::{
-    component::TableColumnLayout, storage::StoredComponent, ChangeTick, ComponentId, ComponentTicks,
-};
 use crate::scene::EntityId;
+use crate::scene::ecs::{
+    ChangeTick, ComponentId, ComponentTicks, component::TableColumnLayout, storage::StoredComponent,
+};
 
 use super::id::ArchetypeId;
 use super::signature::ArchetypeSignature;

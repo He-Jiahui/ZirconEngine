@@ -1,9 +1,11 @@
 use crate::core::framework::render::{
-    source_cubemap_face_mip_offset, source_cubemap_mip_size, SourceCubemapEnvironment,
-    SourceCubemapIrradianceCube, SourceCubemapUploadKey, SourceCubemapUploadMip,
+    SourceCubemapEnvironment, SourceCubemapIrradianceCube, SourceCubemapUploadKey,
+    SourceCubemapUploadMip, source_cubemap_mip_size,
 };
+use crate::graphics::backend::SystemTextureGenerationLease;
+use crate::graphics::types::GraphicsError;
+use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
-use super::half_float::push_f16_le_bytes;
 use super::SceneEnvironmentBrdfLut;
 use upload_batch::CubemapUploadStagingArena;
 
@@ -22,8 +24,41 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneEnvironmentCube
     pmrem_face_size: u32,
     pmrem_mip_count: u32,
     irradiance_face_size: u32,
-    upload_key: SourceCubemapUploadKey,
+    upload_state: CubemapUploadState,
     upload_staging: CubemapUploadStagingArena,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct CubemapUploadState {
+    committed: SourceCubemapUploadKey,
+    pending: Option<SourceCubemapUploadKey>,
+}
+
+impl CubemapUploadState {
+    fn new(committed: SourceCubemapUploadKey) -> Self {
+        Self {
+            committed,
+            pending: None,
+        }
+    }
+
+    fn committed(self) -> SourceCubemapUploadKey {
+        self.committed
+    }
+
+    fn record(&mut self, upload_key: SourceCubemapUploadKey) {
+        self.pending = Some(upload_key);
+    }
+
+    fn discard(&mut self) {
+        self.pending = None;
+    }
+
+    fn commit(&mut self) {
+        if let Some(upload_key) = self.pending.take() {
+            self.committed = upload_key;
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -51,47 +86,25 @@ fn cubemap_upload_changes(
 
 impl SceneEnvironmentCubemap {
     pub(in crate::graphics::scene::scene_renderer::core) fn fallback(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        system_textures: &SystemTextureGenerationLease,
     ) -> Self {
-        let source_texture = create_texture(device, 1, 1, "zircon-scene-environment-source-cube");
-        let source_view = create_view(
-            &source_texture,
-            1,
-            "zircon-scene-environment-source-cube-view",
-        );
-        let specular_texture =
-            create_texture(device, 1, 1, "zircon-scene-environment-specular-pmrem-cube");
-        let specular_view = create_view(
-            &specular_texture,
-            1,
-            "zircon-scene-environment-specular-pmrem-cube-view",
-        );
-        let irradiance_texture =
-            create_texture(device, 1, 1, "zircon-scene-environment-irradiance-cube");
-        let irradiance_view = create_view(
-            &irradiance_texture,
-            1,
-            "zircon-scene-environment-irradiance-cube-view",
-        );
-        let sampler = create_sampler(device);
-        upload_single_rgba16_cubemap(queue, &source_texture, [0.0, 0.0, 0.0, 1.0]);
-        upload_single_rgba16_cubemap(queue, &specular_texture, [0.0, 0.0, 0.0, 1.0]);
-        upload_single_rgba16_cubemap(queue, &irradiance_texture, [0.0, 0.0, 0.0, 1.0]);
+        let fallback_texture = system_textures.black_cube_texture().clone();
+        let fallback_view = system_textures.black_cube_view().clone();
+        let sampler = system_textures.linear_clamp_sampler().clone();
         Self {
-            source_texture,
-            source_view,
-            specular_texture,
-            specular_view,
-            irradiance_texture,
-            irradiance_view,
+            source_texture: fallback_texture.clone(),
+            source_view: fallback_view.clone(),
+            specular_texture: fallback_texture.clone(),
+            specular_view: fallback_view.clone(),
+            irradiance_texture: fallback_texture,
+            irradiance_view: fallback_view,
             sampler,
             source_face_size: 1,
             source_mip_count: 1,
             pmrem_face_size: 1,
             pmrem_mip_count: 1,
             irradiance_face_size: 1,
-            upload_key: SourceCubemapUploadKey::default(),
+            upload_state: CubemapUploadState::default(),
             upload_staging: CubemapUploadStagingArena::default(),
         }
     }
@@ -208,12 +221,30 @@ impl SceneEnvironmentCubemap {
         &self.source_view
     }
 
+    pub(in crate::graphics::scene::scene_renderer::core) fn cold_fallback_texture(
+        &self,
+    ) -> &wgpu::Texture {
+        &self.source_texture
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn cold_fallback_view(
+        &self,
+    ) -> &wgpu::TextureView {
+        &self.source_view
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn sampler(&self) -> &wgpu::Sampler {
+        &self.sampler
+    }
+
     pub(in crate::graphics::scene::scene_renderer::core) fn ensure_uploaded(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
         environment: &SourceCubemapEnvironment,
-    ) -> bool {
+        frame_uploads: &mut WgpuBufferUploadBatch,
+    ) -> Result<bool, GraphicsError> {
+        self.upload_state.discard();
         let source_face_size = environment.mip_chain.source_face_size();
         let source_mip_count = environment.mip_chain.source_mip_count();
         let pmrem_face_size = environment.mip_chain.pmrem_face_size();
@@ -227,106 +258,124 @@ impl SceneEnvironmentCubemap {
             || self.pmrem_face_size != pmrem_face_size
             || self.pmrem_mip_count != pmrem_mip_count
             || self.irradiance_face_size != irradiance_face_size;
+
+        let upload_key = environment.texture_upload_key();
+        let changes =
+            cubemap_upload_changes(self.upload_state.committed(), upload_key, requires_rebind);
+        if !changes.source && !changes.specular && !changes.irradiance {
+            return Ok(false);
+        }
+
+        let prepared_upload = environment.prepared_upload_artifact().ok_or_else(|| {
+            GraphicsError::Asset(
+                "source cubemap reached render submission without a current upload artifact"
+                    .to_owned(),
+            )
+        })?;
+        let source_mips = changes
+            .source
+            .then(|| prepared_upload.source_mips())
+            .filter(|mips| cubemap_upload_mips_match(mips, source_face_size, source_mip_count));
+        let pmrem_mips = changes
+            .specular
+            .then(|| prepared_upload.pmrem_mips())
+            .filter(|mips| cubemap_upload_mips_match(mips, pmrem_face_size, pmrem_mip_count));
+        let irradiance_mip = changes
+            .irradiance
+            .then(|| prepared_upload.irradiance_mip())
+            .filter(|mip| mip.face_size() == irradiance_face_size);
+
+        if changes.source && source_mips.is_none() {
+            return Err(GraphicsError::Asset(
+                "source cubemap upload artifact has an invalid source mip layout".to_owned(),
+            ));
+        }
+        if changes.specular && pmrem_mips.is_none() {
+            return Err(GraphicsError::Asset(
+                "source cubemap upload artifact has an invalid PMREM mip layout".to_owned(),
+            ));
+        }
+        if changes.irradiance && irradiance_mip.is_none() {
+            return Err(GraphicsError::Asset(
+                "source cubemap upload artifact has an invalid irradiance mip layout".to_owned(),
+            ));
+        }
+
         if requires_rebind {
-            self.source_texture = create_texture(
+            let source_texture = create_texture(
                 device,
                 source_face_size,
                 source_mip_count,
                 "zircon-scene-environment-source-cube",
             );
-            self.source_view = create_view(
-                &self.source_texture,
+            let source_view = create_view(
+                &source_texture,
                 source_mip_count,
                 "zircon-scene-environment-source-cube-view",
             );
-            self.specular_texture = create_texture(
+            let specular_texture = create_texture(
                 device,
                 pmrem_face_size,
                 pmrem_mip_count,
                 "zircon-scene-environment-specular-pmrem-cube",
             );
-            self.specular_view = create_view(
-                &self.specular_texture,
+            let specular_view = create_view(
+                &specular_texture,
                 pmrem_mip_count,
                 "zircon-scene-environment-specular-pmrem-cube-view",
             );
-            self.irradiance_texture = create_texture(
+            let irradiance_texture = create_texture(
                 device,
                 irradiance_face_size,
                 1,
                 "zircon-scene-environment-irradiance-cube",
             );
-            self.irradiance_view = create_view(
-                &self.irradiance_texture,
+            let irradiance_view = create_view(
+                &irradiance_texture,
                 1,
                 "zircon-scene-environment-irradiance-cube-view",
             );
-            self.sampler = create_sampler(device);
+            let prepared_uploads = [
+                source_mips.map(|mips| (&source_texture, mips)),
+                pmrem_mips.map(|mips| (&specular_texture, mips)),
+                irradiance_mip.map(|mip| (&irradiance_texture, std::slice::from_ref(mip))),
+            ];
+            self.upload_staging
+                .encode(device, encoder, &prepared_uploads, frame_uploads)
+                .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+
+            self.source_texture = source_texture;
+            self.source_view = source_view;
+            self.specular_texture = specular_texture;
+            self.specular_view = specular_view;
+            self.irradiance_texture = irradiance_texture;
+            self.irradiance_view = irradiance_view;
             self.source_face_size = source_face_size;
             self.source_mip_count = source_mip_count;
             self.pmrem_face_size = pmrem_face_size;
             self.pmrem_mip_count = pmrem_mip_count;
             self.irradiance_face_size = irradiance_face_size;
-            self.upload_key = SourceCubemapUploadKey::default();
+            self.upload_state = CubemapUploadState::default();
+        } else {
+            let prepared_uploads = [
+                source_mips.map(|mips| (&self.source_texture, mips)),
+                pmrem_mips.map(|mips| (&self.specular_texture, mips)),
+                irradiance_mip.map(|mip| (&self.irradiance_texture, std::slice::from_ref(mip))),
+            ];
+            self.upload_staging
+                .encode(device, encoder, &prepared_uploads, frame_uploads)
+                .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         }
+        self.upload_state.record(upload_key);
+        Ok(requires_rebind)
+    }
 
-        let upload_key = environment.texture_upload_key();
-        let changes = cubemap_upload_changes(self.upload_key, upload_key, requires_rebind);
-        if !changes.source && !changes.specular && !changes.irradiance {
-            return false;
-        }
+    pub(in crate::graphics::scene::scene_renderer::core) fn discard_pending_upload(&mut self) {
+        self.upload_state.discard();
+    }
 
-        let prepared_upload = environment.prepared_upload_artifact();
-        let source_mips = changes
-            .source
-            .then(|| prepared_upload.map(|artifact| artifact.source_mips()))
-            .flatten()
-            .filter(|mips| cubemap_upload_mips_match(mips, source_face_size, source_mip_count));
-        let pmrem_mips = changes
-            .specular
-            .then(|| prepared_upload.map(|artifact| artifact.pmrem_mips()))
-            .flatten()
-            .filter(|mips| cubemap_upload_mips_match(mips, pmrem_face_size, pmrem_mip_count));
-        let irradiance_mip = changes
-            .irradiance
-            .then(|| prepared_upload.and_then(|artifact| artifact.irradiance_mip()))
-            .flatten()
-            .filter(|mip| mip.face_size() == irradiance_face_size);
-
-        let prepared_uploads = [
-            source_mips.map(|mips| (&self.source_texture, mips)),
-            pmrem_mips.map(|mips| (&self.specular_texture, mips)),
-            irradiance_mip.map(|mip| (&self.irradiance_texture, std::slice::from_ref(mip))),
-        ];
-        let staged_prepared_uploads = self.upload_staging.upload(device, queue, &prepared_uploads);
-
-        if changes.source && (source_mips.is_none() || !staged_prepared_uploads) {
-            upload_cubemap_texels(
-                queue,
-                &self.source_texture,
-                source_face_size,
-                source_mip_count,
-                environment.mip_chain.source_texels(),
-            );
-        }
-        if changes.specular && (pmrem_mips.is_none() || !staged_prepared_uploads) {
-            upload_cubemap_texels(
-                queue,
-                &self.specular_texture,
-                pmrem_face_size,
-                pmrem_mip_count,
-                environment.mip_chain.pmrem_texels(),
-            );
-        }
-        if changes.irradiance && (irradiance_mip.is_none() || !staged_prepared_uploads) {
-            if let Some(irradiance_cube) = environment.irradiance_cube() {
-                upload_irradiance_cube_texels(queue, &self.irradiance_texture, irradiance_cube);
-            } else {
-                upload_single_rgba16_cubemap(queue, &self.irradiance_texture, [0.0, 0.0, 0.0, 1.0]);
-            }
-        }
-        self.upload_key = upload_key;
-        requires_rebind
+    pub(in crate::graphics::scene::scene_renderer::core) fn commit_pending_upload(&mut self) {
+        self.upload_state.commit();
     }
 }
 
@@ -368,46 +417,6 @@ fn create_view(texture: &wgpu::Texture, mip_count: u32, label: &'static str) -> 
     })
 }
 
-fn create_sampler(device: &wgpu::Device) -> wgpu::Sampler {
-    device.create_sampler(&wgpu::SamplerDescriptor {
-        label: Some("zircon-scene-environment-source-cube-sampler"),
-        mag_filter: wgpu::FilterMode::Linear,
-        min_filter: wgpu::FilterMode::Linear,
-        mipmap_filter: wgpu::MipmapFilterMode::Linear,
-        address_mode_u: wgpu::AddressMode::ClampToEdge,
-        address_mode_v: wgpu::AddressMode::ClampToEdge,
-        address_mode_w: wgpu::AddressMode::ClampToEdge,
-        ..Default::default()
-    })
-}
-
-fn upload_single_rgba16_cubemap(queue: &wgpu::Queue, texture: &wgpu::Texture, texel: [f32; 4]) {
-    let texel_bytes = rgba16float_texels(&[texel]);
-    let mut byte_data = Vec::with_capacity(texel_bytes.len() * 6);
-    for _ in 0..6 {
-        byte_data.extend_from_slice(&texel_bytes);
-    }
-    queue.write_texture(
-        wgpu::TexelCopyTextureInfo {
-            texture,
-            mip_level: 0,
-            origin: wgpu::Origin3d::ZERO,
-            aspect: wgpu::TextureAspect::All,
-        },
-        &byte_data,
-        wgpu::TexelCopyBufferLayout {
-            offset: 0,
-            bytes_per_row: Some(8),
-            rows_per_image: Some(1),
-        },
-        wgpu::Extent3d {
-            width: 1,
-            height: 1,
-            depth_or_array_layers: 6,
-        },
-    );
-}
-
 fn cubemap_upload_mips_match(
     mips: &[SourceCubemapUploadMip],
     face_size: u32,
@@ -420,125 +429,51 @@ fn cubemap_upload_mips_match(
         })
 }
 
-fn upload_cubemap_texels(
-    queue: &wgpu::Queue,
-    texture: &wgpu::Texture,
-    face_size: u32,
-    mip_count: u32,
-    texels: &[[f32; 4]],
-) {
-    let max_face_bytes = face_size.max(1) as usize * face_size.max(1) as usize * 8;
-    let mut byte_data = Vec::with_capacity(max_face_bytes);
-    for face_index in 0..6 {
-        let face = crate::core::framework::render::CubemapFace::from_index(face_index)
-            .expect("source cubemap face index must be in range");
-        for mip in 0..mip_count {
-            let mip_size = source_cubemap_mip_size(face_size, mip);
-            let offset = source_cubemap_face_mip_offset(face_size, mip_count, face, mip);
-            let texel_len = mip_size as usize * mip_size as usize;
-            byte_data.clear();
-            encode_rgba16float_texels_into(&mut byte_data, &texels[offset..offset + texel_len]);
-            queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture,
-                    mip_level: mip,
-                    origin: wgpu::Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: face_index as u32,
-                    },
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &byte_data,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(8 * mip_size),
-                    rows_per_image: Some(mip_size),
-                },
-                wgpu::Extent3d {
-                    width: mip_size,
-                    height: mip_size,
-                    depth_or_array_layers: 1,
-                },
-            );
-        }
-    }
-}
-
-fn upload_irradiance_cube_texels(
-    queue: &wgpu::Queue,
-    texture: &wgpu::Texture,
-    irradiance_cube: &SourceCubemapIrradianceCube,
-) {
-    let face_size = irradiance_cube.face_size();
-    let mut byte_data = Vec::with_capacity(face_size as usize * face_size as usize * 8);
-    for face_index in 0..6 {
-        let face = crate::core::framework::render::CubemapFace::from_index(face_index)
-            .expect("source irradiance cubemap face index must be in range");
-        byte_data.clear();
-        for y in 0..face_size {
-            for x in 0..face_size {
-                let texel = irradiance_cube.texel(face, x, y);
-                for channel in [texel[0], texel[1], texel[2], 1.0] {
-                    push_f16_le_bytes(&mut byte_data, channel);
-                }
-            }
-        }
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: 0,
-                    y: 0,
-                    z: face_index as u32,
-                },
-                aspect: wgpu::TextureAspect::All,
-            },
-            &byte_data,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(8 * face_size),
-                rows_per_image: Some(face_size),
-            },
-            wgpu::Extent3d {
-                width: face_size,
-                height: face_size,
-                depth_or_array_layers: 1,
-            },
-        );
-    }
-}
-
-fn rgba16float_texels(texels: &[[f32; 4]]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(texels.len() * 8);
-    encode_rgba16float_texels_into(&mut bytes, texels);
-    bytes
-}
-
-fn encode_rgba16float_texels_into(bytes: &mut Vec<u8>, texels: &[[f32; 4]]) {
-    for texel in texels {
-        for channel in texel {
-            push_f16_le_bytes(bytes, *channel);
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn cubemap_upload_reuses_chain_and_irradiance_encoding_scratch() {
+    fn dynamic_cubemap_upload_has_no_queue_or_render_thread_texel_fallback() {
         let source = include_str!("environment_cubemap.rs");
         let product = source
             .split("#[cfg(test)]")
             .next()
             .expect("product source precedes tests");
+        let dynamic_upload = product
+            .split("fn ensure_uploaded(")
+            .nth(1)
+            .and_then(|source| source.split("fn discard_pending_upload").next())
+            .expect("dynamic upload owner must remain bounded");
 
-        assert!(product.contains("encode_rgba16float_texels_into("));
-        assert!(!product.contains("rgba16float_texels(&texels[offset.."));
-        assert!(product.matches("byte_data.clear();").count() >= 2);
+        assert!(!dynamic_upload.contains("queue:"));
+        assert!(!dynamic_upload.contains("queue.write_buffer("));
+        assert!(!dynamic_upload.contains("queue.write_texture("));
+        assert!(!dynamic_upload.contains("source_texels()"));
+        assert!(!dynamic_upload.contains("pmrem_texels()"));
+        assert!(!dynamic_upload.contains("upload_cubemap_texels("));
+        assert!(!dynamic_upload.contains("create_sampler(device)"));
+        assert!(!dynamic_upload.contains("self.sampler ="));
+    }
+
+    #[test]
+    fn fallback_slots_share_one_generation_owned_black_cube_and_sampler() {
+        let source = include_str!("environment_cubemap.rs");
+        let fallback = source
+            .split("fn fallback(")
+            .nth(1)
+            .and_then(|source| source.split("fn texture_layout_entry").next())
+            .expect("fallback construction must remain bounded");
+
+        assert_eq!(fallback.matches("create_texture(").count(), 0);
+        assert_eq!(fallback.matches("create_view(").count(), 0);
+        assert_eq!(fallback.matches("create_sampler(").count(), 0);
+        assert_eq!(fallback.matches("write_texture(").count(), 0);
+        assert!(fallback.contains("system_textures.black_cube_texture().clone()"));
+        assert!(fallback.contains("system_textures.black_cube_view().clone()"));
+        assert!(fallback.contains("system_textures.linear_clamp_sampler().clone()"));
+        assert_eq!(fallback.matches("fallback_texture.clone()").count(), 2);
+        assert_eq!(fallback.matches("fallback_view.clone()").count(), 2);
     }
 
     #[test]
@@ -596,6 +531,22 @@ mod tests {
     }
 
     #[test]
+    fn cubemap_upload_key_advances_only_after_frame_submission() {
+        let previous = upload_key(1, [1; 4], [2; 4], [3; 4]);
+        let next = upload_key(2, [4; 4], [5; 4], [6; 4]);
+        let mut state = CubemapUploadState::new(previous);
+
+        state.record(next);
+        assert_eq!(state.committed(), previous);
+        state.discard();
+        assert_eq!(state.committed(), previous);
+
+        state.record(next);
+        state.commit();
+        assert_eq!(state.committed(), next);
+    }
+
+    #[test]
     fn prepared_cubemap_upload_batches_all_faces_for_each_mip() {
         let source = include_str!("environment_cubemap.rs");
         let product = source
@@ -604,8 +555,39 @@ mod tests {
             .expect("product source precedes tests");
 
         assert!(product.contains("CubemapUploadStagingArena"));
-        assert!(product.contains("staged_prepared_uploads"));
-        assert!(product.contains(".upload(device, queue, &prepared_uploads)"));
+        assert!(product.contains(".encode(device, encoder, &prepared_uploads, frame_uploads)"));
+        assert!(product.contains("self.upload_state.record(upload_key);"));
+        assert!(!product.contains("self.upload_key = upload_key;"));
+    }
+
+    #[test]
+    fn cubemap_upload_validates_before_rebind_and_records_after_staging() {
+        let source = include_str!("environment_cubemap.rs");
+        let dynamic_upload = source
+            .split("fn ensure_uploaded(")
+            .nth(1)
+            .and_then(|source| source.split("fn discard_pending_upload").next())
+            .expect("dynamic upload owner must remain bounded");
+        let validate = dynamic_upload
+            .find("environment.prepared_upload_artifact()")
+            .expect("artifact must be validated");
+        let rebind = dynamic_upload
+            .find("if requires_rebind")
+            .expect("resource replacement must remain explicit");
+        let stage = dynamic_upload
+            .find(".encode(device, encoder, &prepared_uploads, frame_uploads)")
+            .expect("staging must enter the caller frame upload batch");
+        let publish = dynamic_upload
+            .find("self.source_texture = source_texture")
+            .expect("new cubemap resources must publish explicitly");
+        let record = dynamic_upload
+            .find("self.upload_state.record(upload_key)")
+            .expect("pending upload identity must be recorded");
+
+        assert!(validate < rebind);
+        assert!(rebind < stage);
+        assert!(stage < publish);
+        assert!(publish < record);
     }
 
     fn upload_key(

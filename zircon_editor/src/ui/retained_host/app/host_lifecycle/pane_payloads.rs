@@ -1,28 +1,16 @@
 use std::collections::BTreeMap;
 
 use super::super::*;
-use crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot;
 use crate::ui::layouts::windows::workbench_host_window::{
     find_tab_snapshot, BuildExportPaneViewData, ModulePluginsPaneViewData,
 };
+use crate::ui::retained_host::app::committed_shell_state::HostLifecyclePanePayloads;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::ViewInstanceId;
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 mod editor_panes;
 mod workbench_panes;
-
-pub(super) struct HostLifecyclePanePayloads {
-    pub(super) preset_names: Vec<String>,
-    pub(super) ui_asset_panes:
-        BTreeMap<String, crate::ui::asset_editor::UiAssetEditorPanePresentation>,
-    pub(super) animation_panes:
-        BTreeMap<String, crate::ui::animation_editor::AnimationEditorPanePresentation>,
-    pub(super) runtime_diagnostics: RuntimeDiagnosticsSnapshot,
-    pub(super) module_plugins: ModulePluginsPaneViewData,
-    pub(super) build_export: BuildExportPaneViewData,
-    pub(super) template_v2_data: BTreeMap<String, EditorUiTemplatePaneDataSnapshot>,
-}
 
 impl RetainedEditorHost {
     pub(super) fn collect_shell_content_pane_payloads(
@@ -163,7 +151,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "collect_runtime_diagnostics"
             );
-            self.collect_runtime_diagnostics_payload(model)
+            self.collect_runtime_diagnostics_payload()
         };
         let module_plugins = {
             zircon_runtime::profile_scope!(

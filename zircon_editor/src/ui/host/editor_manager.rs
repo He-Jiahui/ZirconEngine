@@ -1,21 +1,29 @@
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
+use std::time::{Duration, Instant};
 
+use super::editor_error::EditorError;
+use super::editor_save_batch::EditorDirtySaveCoordinator;
 use super::editor_ui_host::EditorUiHost;
+use super::project_recovery_decision::ProjectRecoveryDecisionService;
+use super::project_session_transition::ProjectSessionTransitionGate;
 use super::runtime_services::EditorHostRuntimeServices;
 use crate::core::commands::{EditorCommandPaletteMru, EditorKeymap};
 use crate::core::context::{EditorContext, EditorContextBuilder};
 use crate::core::document::DocumentLifecycleAuthority;
 use crate::core::editor_operation::EditorOperationPath;
+use crate::core::logging::RuntimeTaskDiagnosticLogBridge;
 use crate::core::plugin::{EditorPluginLifecycleMessageBridge, EditorPluginManager};
-use crate::core::recovery::SessionGuard;
+use crate::core::recovery::{DocumentJournalCoordinator, SessionGuard};
 use crate::core::settings::{EditorKeymapOverrides, SettingsSnapshot};
 use crate::ui::host::editor_manager_plugins_export::{
     EditorPluginStatusReport, ProjectPluginStatusSnapshot,
 };
 use zircon_runtime::asset::{project::ProjectManifest, AssetUri};
+use zircon_runtime::core::runtime::tasks::JobScheduler;
 use zircon_runtime::core::{CoreError, CoreHandle};
 use zircon_runtime::plugin::RuntimePluginCatalog;
 use zircon_runtime_interface::hub_protocol::HubSessionToken;
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 use zircon_runtime_interface::ui::dispatch::UiKeyboardInputEvent;
 
 /// A manager-local derived cache, keyed by the authority's immutable override payload.
@@ -49,6 +57,57 @@ fn default_workbench_keymap() -> &'static EditorKeymap {
     DEFAULT.get_or_init(EditorKeymap::default_workbench)
 }
 
+// The retained host ticks at display cadence; project-session I/O must not inherit that rate.
+pub(super) const PROJECT_SESSION_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+
+/// Manager-owned lifecycle state for the persisted project-session heartbeat.
+///
+/// A failed refresh is terminal for the running session. Continuing to rewrite the lock after an
+/// ownership or durability failure would make a degraded session look healthy to recovery.
+#[derive(Debug, Default)]
+pub(super) enum ProjectSessionHeartbeatState {
+    #[default]
+    Inactive,
+    Active {
+        next_refresh: Instant,
+    },
+    Degraded,
+}
+
+impl ProjectSessionHeartbeatState {
+    pub(super) fn activate(&mut self, now: Instant) {
+        *self = Self::Active {
+            next_refresh: now + PROJECT_SESSION_HEARTBEAT_INTERVAL,
+        };
+    }
+
+    pub(super) fn clear(&mut self) {
+        *self = Self::Inactive;
+    }
+
+    pub(super) fn is_due(&self, now: Instant) -> bool {
+        matches!(self, Self::Active { next_refresh } if now >= *next_refresh)
+    }
+
+    pub(super) fn next_refresh(&self) -> Option<Instant> {
+        match self {
+            Self::Active { next_refresh } => Some(*next_refresh),
+            Self::Inactive | Self::Degraded => None,
+        }
+    }
+
+    pub(super) fn mark_refreshed(&mut self, now: Instant) {
+        debug_assert!(matches!(self, Self::Active { .. }));
+        *self = Self::Active {
+            next_refresh: now + PROJECT_SESSION_HEARTBEAT_INTERVAL,
+        };
+    }
+
+    pub(super) fn mark_degraded(&mut self) {
+        *self = Self::Degraded;
+    }
+}
+
 /// The dynamic module service for the current authority-derived keymap.
 ///
 /// It preserves the module's named manager boundary without retaining a startup snapshot after
@@ -77,7 +136,11 @@ impl EditorKeymapService {
         projection.keymap.clone()
     }
 
-    pub fn resolve_keyboard_input(&self, keyboard: &UiKeyboardInputEvent) -> Option<String> {
+    pub fn resolve_keyboard_input_when(
+        &self,
+        keyboard: &UiKeyboardInputEvent,
+        is_enabled: impl FnMut(&str) -> bool,
+    ) -> Option<String> {
         let snapshot = self.settings.snapshot();
         let mut projection = self
             .projection
@@ -86,7 +149,7 @@ impl EditorKeymapService {
         projection.refresh_if_changed(snapshot.as_ref());
         projection
             .keymap
-            .resolve_keyboard_input(keyboard)
+            .resolve_keyboard_input_when(keyboard, is_enabled)
             .map(str::to_owned)
     }
 }
@@ -94,45 +157,59 @@ impl EditorKeymapService {
 pub struct EditorManager {
     pub(super) host: EditorUiHost,
     context: Arc<EditorContext>,
+    pub(super) runtime_task_diagnostics: Mutex<RuntimeTaskDiagnosticLogBridge>,
     pub(super) document_lifecycle: DocumentLifecycleAuthority,
     keymap: Arc<EditorKeymapService>,
     plugin_manager: EditorPluginManager,
     plugin_lifecycle_messages: EditorPluginLifecycleMessageBridge,
     builtin_plugin_status: Mutex<Arc<ProjectPluginStatusSnapshot>>,
     project_plugin_status: Mutex<Option<Arc<ProjectPluginStatusSnapshot>>>,
+    /// Serializes complete project activation and close transactions for this manager.
+    pub(super) project_session_transition: ProjectSessionTransitionGate,
     /// The OS-backed admission lease for the active runtime project generation.
     pub(super) project_session_guard: Mutex<Option<SessionGuard>>,
+    /// Manager-local monotonic schedule for the persisted project-session heartbeat.
+    pub(super) project_session_heartbeat: Mutex<ProjectSessionHeartbeatState>,
+    /// One project-scoped durable-journal identity authority for all active scene documents.
+    pub(super) document_journal: Mutex<Option<Arc<DocumentJournalCoordinator>>>,
+    /// Recovery decisions and background execution for the active project session.
+    pub(super) project_recovery: ProjectRecoveryDecisionService,
     /// One Hub launch token consumed only by the first project admission attempt of this host.
     pub(super) hub_launch_session: Mutex<Option<HubSessionToken>>,
+    /// App-authenticated BuildSet identity consumed by project admission.
+    pub(super) project_runtime_build_set: Mutex<Option<ZrRuntimeBuildSetId>>,
     capability_updates: Mutex<()>,
-}
-
-impl Drop for EditorManager {
-    fn drop(&mut self) {
-        // `run_editor_with_config` releases this lease explicitly. This covers construction and
-        // other early-error paths where Rust cannot propagate a shutdown error from `Drop`.
-        let guard_slot = self
-            .project_session_guard
-            .get_mut()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(guard) = guard_slot.as_mut() {
-            let _ = guard.release();
-        }
-    }
+    pub(super) dirty_save: Mutex<EditorDirtySaveCoordinator>,
 }
 
 impl EditorManager {
+    pub(super) fn begin_project_session_transition(
+        &self,
+    ) -> Result<MutexGuard<'_, ()>, EditorError> {
+        self.project_session_transition.enter().map_err(|_| {
+            EditorError::Project(
+                "project session lifecycle is quarantined after a prior transition panic"
+                    .to_string(),
+            )
+        })
+    }
+
     pub(in crate::ui::host) fn plugin_manager(&self) -> &EditorPluginManager {
         &self.plugin_manager
     }
 
     pub fn new(core: &CoreHandle) -> Result<Self, CoreError> {
         let scheduler = core.scheduler().clone();
-        let context = EditorContextBuilder::new(scheduler).build();
+        let settings_io_scheduler =
+            JobScheduler::from_pool(core.task_graph().worker_pool().clone());
+        let runtime_task_diagnostics =
+            RuntimeTaskDiagnosticLogBridge::new(scheduler.task_diagnostic_source());
+        let context = EditorContextBuilder::new(scheduler, settings_io_scheduler).build();
         let runtime_services = EditorHostRuntimeServices::new(core);
         let host = EditorUiHost::bootstrap(
             runtime_services,
             context.jobs().clone(),
+            Arc::clone(context.transactions()),
             context.logs_handle(),
             context.dirty_documents().clone(),
             Arc::clone(context.settings()),
@@ -154,9 +231,11 @@ impl EditorManager {
                     error.to_string(),
                 )
             })?;
+        let dirty_save = EditorDirtySaveCoordinator::new(context.jobs().clone());
         let manager = Self {
             host,
             context,
+            runtime_task_diagnostics: Mutex::new(runtime_task_diagnostics),
             document_lifecycle: DocumentLifecycleAuthority::default(),
             keymap,
             plugin_manager,
@@ -165,9 +244,15 @@ impl EditorManager {
                 EditorPluginStatusReport::default(),
             ))),
             project_plugin_status: Mutex::new(None),
+            project_session_transition: ProjectSessionTransitionGate::default(),
             project_session_guard: Mutex::new(None),
+            project_session_heartbeat: Mutex::new(ProjectSessionHeartbeatState::default()),
+            document_journal: Mutex::new(None),
+            project_recovery: ProjectRecoveryDecisionService::default(),
             hub_launch_session: Mutex::new(None),
+            project_runtime_build_set: Mutex::new(None),
             capability_updates: Mutex::new(()),
+            dirty_save: Mutex::new(dirty_save),
         };
         manager.refresh_builtin_plugin_status();
         Ok(manager)
@@ -195,7 +280,15 @@ impl EditorManager {
     }
 
     pub(crate) fn resolve_keyboard_input(&self, keyboard: &UiKeyboardInputEvent) -> Option<String> {
-        self.keymap.resolve_keyboard_input(keyboard)
+        let context = self.context();
+        let command_eval = context.command_eval().shared_snapshot();
+        let commands = context.commands().lock();
+        self.keymap
+            .resolve_keyboard_input_when(keyboard, |command_id| {
+                commands
+                    .command(command_id)
+                    .is_some_and(|descriptor| descriptor.is_enabled(command_eval.as_ref()))
+            })
     }
 
     pub(crate) fn command_palette_mru(&self) -> EditorCommandPaletteMru {
@@ -208,9 +301,9 @@ impl EditorManager {
 
     pub(crate) fn record_command_palette_usage(&self, command: EditorOperationPath) {
         self.context
-            .settings()
+            .settings_mutations()
             .record_command_palette_usage(command)
-            .expect("the command-palette MRU authority accepts built-in Session usage");
+            .expect("the command-palette MRU coordinator accepts built-in Session usage");
     }
 
     pub(crate) fn lock_editor_capability_updates(&self) -> MutexGuard<'_, ()> {
@@ -363,5 +456,17 @@ mod tests {
                 .to_string(),
             "Alt+O"
         );
+    }
+
+    #[test]
+    fn manager_keyboard_dispatch_uses_the_contextual_keymap_resolver() {
+        let source = include_str!("editor_manager.rs");
+        let shared_snapshot = ["shared_", "snapshot()"].concat();
+        let contextual_resolver = ["resolve_keyboard_", "input_when(keyboard"].concat();
+        let chord_only_resolver = ["self.keymap.", "resolve_keyboard_input(keyboard)"].concat();
+
+        assert!(source.contains(&shared_snapshot));
+        assert!(source.contains(&contextual_resolver));
+        assert!(!source.contains(&chord_only_resolver));
     }
 }

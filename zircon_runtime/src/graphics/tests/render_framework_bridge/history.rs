@@ -28,9 +28,11 @@ fn render_framework_records_temporal_history_after_compatible_history_exists() {
         Some(FrameHistoryInvalidationReason::NoPreviousFrame)
     );
     assert!(!first_stats.last_frame_history_status.previous_available);
-    assert!(!first_stats
-        .last_post_process_graph_executed_nodes
-        .contains(&"taa-resolve".to_string()));
+    assert!(
+        !first_stats
+            .last_post_process_graph_executed_nodes
+            .contains(&"taa-resolve".to_string())
+    );
 
     server
         .submit_frame_extract(viewport, test_extract())
@@ -41,9 +43,11 @@ fn render_framework_records_temporal_history_after_compatible_history_exists() {
         second_stats.last_frame_history_status.invalidation_reason,
         None
     );
-    assert!(!second_stats
-        .last_post_process_graph_executed_nodes
-        .contains(&"taa-resolve".to_string()));
+    assert!(
+        !second_stats
+            .last_post_process_graph_executed_nodes
+            .contains(&"taa-resolve".to_string())
+    );
 }
 
 #[test]
@@ -58,7 +62,9 @@ fn render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts() {
         .submit_frame_extract_with_ui(
             viewport,
             test_extract(),
-            Some(test_ui_extract("Editor HUD")),
+            Some(UiRenderSubmission::single(Arc::new(test_ui_extract(
+                "Editor HUD",
+            )))),
         )
         .unwrap();
     let stats = server.query_stats().unwrap();
@@ -66,9 +72,11 @@ fn render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts() {
     assert_eq!(stats.last_ui_command_count, 1);
     assert_eq!(stats.last_ui_quad_count, 1);
     assert_eq!(stats.last_ui_text_payload_count, 1);
-    assert!(stats
-        .last_graph_executed_executor_ids
-        .contains(&"ui.screen-space".to_string()));
+    assert!(
+        stats
+            .last_graph_executed_executor_ids
+            .contains(&"ui.screen-space".to_string())
+    );
     assert_eq!(stats.last_ui_graph_executed_pass_count, 1);
     assert_eq!(stats.last_ui_target_size, Some(UVec2::new(320, 240)));
     assert_eq!(
@@ -105,7 +113,7 @@ fn render_framework_reuses_frame_history_handle_for_compatible_submissions() {
 }
 
 #[test]
-fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
+fn render_framework_keeps_frame_history_available_when_camera_moves() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
@@ -135,35 +143,72 @@ fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
         Some(FrameHistoryHandle::new(1))
     );
     assert!(compatible.last_frame_history_status.previous_available);
-    assert!(!compatible
-        .last_post_process_graph_executed_nodes
-        .contains(&"taa-resolve".to_string()));
+    assert!(
+        !compatible
+            .last_post_process_graph_executed_nodes
+            .contains(&"taa-resolve".to_string())
+    );
 
     let mut moved_camera = test_extract();
     moved_camera.view.camera.transform = Transform::from_translation(Vec3::new(0.25, 0.0, 0.0));
     server.submit_frame_extract(viewport, moved_camera).unwrap();
-    let invalidated = server.query_stats().unwrap();
+    let moved = server.query_stats().unwrap();
 
+    assert_eq!(moved.last_frame_history, Some(FrameHistoryHandle::new(1)));
     assert_eq!(
-        invalidated.last_frame_history,
+        moved.last_frame_history_status.current,
         Some(FrameHistoryHandle::new(1))
     );
     assert_eq!(
-        invalidated.last_frame_history_status.current,
+        moved.last_frame_history_status.previous,
         Some(FrameHistoryHandle::new(1))
     );
-    assert_eq!(
-        invalidated.last_frame_history_status.previous,
-        Some(FrameHistoryHandle::new(1))
+    assert!(moved.last_frame_history_status.previous_available);
+    assert_eq!(moved.last_frame_history_status.invalidation_reason, None);
+    assert!(
+        !moved
+            .last_post_process_graph_executed_nodes
+            .contains(&"taa-resolve".to_string())
     );
-    assert!(!invalidated.last_frame_history_status.previous_available);
+}
+
+#[test]
+fn render_framework_invalidates_frame_history_on_camera_cut() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("history-camera-cut")
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_temporal_history(true)
+                .with_bloom(false)
+                .with_color_grading(false),
+        )
+        .unwrap();
+
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+
+    let mut camera_cut = test_extract();
+    camera_cut.view.camera.transform = Transform::from_translation(Vec3::new(100.0, 0.0, 0.0));
+    server.submit_frame_extract(viewport, camera_cut).unwrap();
+    let cut = server.query_stats().unwrap();
+
+    assert_eq!(cut.last_frame_history, Some(FrameHistoryHandle::new(1)));
+    assert!(!cut.last_frame_history_status.previous_available);
     assert_eq!(
-        invalidated.last_frame_history_status.invalidation_reason,
-        Some(FrameHistoryInvalidationReason::FrameInputsChanged)
+        cut.last_frame_history_status.invalidation_reason,
+        Some(FrameHistoryInvalidationReason::CameraCut)
     );
-    assert!(!invalidated
-        .last_post_process_graph_executed_nodes
-        .contains(&"taa-resolve".to_string()));
 }
 
 #[test]
@@ -228,7 +273,9 @@ fn render_framework_invalidates_history_when_dynamic_render_size_changes() {
         invalidated.last_frame_history_status.invalidation_reason,
         Some(FrameHistoryInvalidationReason::RenderSizeChanged)
     );
-    assert!(!invalidated
-        .last_post_process_graph_executed_nodes
-        .contains(&"taa-resolve".to_string()));
+    assert!(
+        !invalidated
+            .last_post_process_graph_executed_nodes
+            .contains(&"taa-resolve".to_string())
+    );
 }

@@ -40,6 +40,16 @@ pub fn dispatch_asset_binding(
             surface: parse_asset_surface(surface)?,
             tab: parse_asset_utility_tab(tab)?,
         }),
+        AssetCommand::RelocateAsset {
+            asset_uuid,
+            target_locator,
+        } => Ok(AssetHostEvent::RelocateAsset {
+            asset_uuid: asset_uuid.clone(),
+            target_locator: target_locator.clone(),
+        }),
+        AssetCommand::DeleteAsset { asset_uuid } => Ok(AssetHostEvent::DeleteAsset {
+            asset_uuid: asset_uuid.clone(),
+        }),
         AssetCommand::OpenAssetBrowser => Ok(AssetHostEvent::OpenAssetBrowser),
         AssetCommand::LocateSelectedAsset => Ok(AssetHostEvent::LocateSelectedAsset),
         AssetCommand::ImportModel => Ok(AssetHostEvent::ImportModel),

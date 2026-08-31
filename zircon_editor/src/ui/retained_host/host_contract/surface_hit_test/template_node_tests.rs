@@ -1,7 +1,10 @@
 use std::rc::Rc;
 
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge;
-use crate::ui::retained_host::console_output::{ConsoleOutputPaintMetadata, ConsoleOutputViewport};
+use crate::ui::retained_host::console_output::{
+    ConsoleOutputLogicalLine, ConsoleOutputPaintMetadata, ConsoleOutputViewport,
+    CONSOLE_OUTPUT_OVERSCAN_LINES,
+};
 use crate::ui::retained_host::host_contract::data::{
     ConsolePaneData, FrameRect, HostWindowPresentationData, PaneData, TemplateNodeFrameData,
     TemplatePaneCollectionRowData, TemplatePaneMenuItemData, TemplatePaneNodeData,
@@ -19,8 +22,10 @@ use super::surface_frame_builder::{
     reset_template_surface_frame_build_count, template_surface_frame_build_count,
 };
 use super::{
-    hit_test_pane_template_node, hit_test_workbench_window_template_node_with_index,
-    rebuild_pane_template_hit_artifacts, HostWorkbenchHitIndex, TemplateNodePointerHit,
+    hit_test_pane_template_node,
+    hit_test_workbench_window_template_node_for_pointer_move_with_index,
+    hit_test_workbench_window_template_node_with_index, rebuild_pane_template_hit_artifacts,
+    HostWorkbenchHitIndex, TemplateNodePointerHit, TemplateNodePointerMoveKind,
 };
 
 #[test]
@@ -78,6 +83,150 @@ fn hit_test_workbench_window_template_node(
 }
 
 #[test]
+fn workbench_pointer_move_hit_borrows_generation_owned_node_and_popup_strings() {
+    let node_presentation = HostWindowPresentationData {
+        workbench_window_nodes: model(vec![TemplatePaneNodeData {
+            node_id: "button".into(),
+            control_id: "WorkbenchButton".into(),
+            role: "Button".into(),
+            frame: TemplateNodeFrameData {
+                x: 10.0,
+                y: 20.0,
+                width: 120.0,
+                height: 32.0,
+            },
+            ..TemplatePaneNodeData::default()
+        }]),
+        ..HostWindowPresentationData::default()
+    };
+    let node_index = HostWorkbenchHitIndex::from_presentation(&node_presentation);
+    let node = node_presentation.workbench_window_nodes.get(0).unwrap();
+    let node_hit = hit_test_workbench_window_template_node_for_pointer_move_with_index(
+        &node_presentation,
+        &node_index,
+        24.0,
+        30.0,
+    )
+    .expect("button should produce a pointer-move hit");
+    assert_eq!(node_hit.kind, TemplateNodePointerMoveKind::Node);
+    assert!(std::ptr::eq(node_hit.control_id, node.control_id.as_str()));
+    let node_owned = hit_test_workbench_window_template_node_with_index(
+        &node_presentation,
+        &node_index,
+        24.0,
+        30.0,
+    )
+    .expect("button should retain the owned press hit");
+    assert_eq!(node_hit.control_id, node_owned.control_id.as_str());
+    assert_eq!(node_hit.frame, node_owned.frame);
+
+    let menu_presentation = HostWindowPresentationData {
+        workbench_window_nodes: model(vec![TemplatePaneNodeData {
+            node_id: "menu".into(),
+            control_id: "WorkbenchPopupMenu".into(),
+            role: "Menu".into(),
+            component_role: "menu".into(),
+            popup_open: true,
+            frame: TemplateNodeFrameData {
+                x: 10.0,
+                y: 20.0,
+                width: 140.0,
+                height: 120.0,
+            },
+            structured_menu_items: model(vec![TemplatePaneMenuItemData {
+                action_id: "menu.item.delete".into(),
+                label: "Delete".into(),
+                ..TemplatePaneMenuItemData::default()
+            }]),
+            ..TemplatePaneNodeData::default()
+        }]),
+        ..HostWindowPresentationData::default()
+    };
+    let menu_index = HostWorkbenchHitIndex::from_presentation(&menu_presentation);
+    let menu_node = menu_presentation.workbench_window_nodes.get(0).unwrap();
+    let menu_item = menu_node.structured_menu_items.get(0).unwrap();
+    let menu_hit = hit_test_workbench_window_template_node_for_pointer_move_with_index(
+        &menu_presentation,
+        &menu_index,
+        24.0,
+        30.0,
+    )
+    .expect("menu row should produce a pointer-move hit");
+    assert_eq!(menu_hit.kind, TemplateNodePointerMoveKind::MenuItem);
+    assert!(std::ptr::eq(
+        menu_hit.control_id,
+        menu_node.control_id.as_str()
+    ));
+    assert!(std::ptr::eq(
+        menu_hit.action_id,
+        menu_item.action_id.as_str()
+    ));
+    assert!(std::ptr::eq(menu_hit.value_text, menu_item.label.as_str()));
+    let menu_owned = hit_test_workbench_window_template_node_with_index(
+        &menu_presentation,
+        &menu_index,
+        24.0,
+        30.0,
+    )
+    .expect("menu row should retain the owned press hit");
+    assert_eq!(menu_hit.control_id, menu_owned.control_id.as_str());
+    assert_eq!(menu_hit.action_id, menu_owned.action_id.as_str());
+    assert_eq!(menu_hit.value_text, menu_owned.value_text.as_str());
+    assert_eq!(menu_hit.frame, menu_owned.frame);
+
+    let option_presentation = HostWindowPresentationData {
+        workbench_window_nodes: model(vec![TemplatePaneNodeData {
+            node_id: "dropdown".into(),
+            control_id: "WorkbenchInputDropdown".into(),
+            role: "Dropdown".into(),
+            component_role: "dropdown".into(),
+            edit_action_id: "component_lab.input_dropdown.select".into(),
+            popup_open: true,
+            frame: TemplateNodeFrameData {
+                x: 10.0,
+                y: 20.0,
+                width: 120.0,
+                height: 32.0,
+            },
+            structured_options: model(vec![
+                option("dropdown", false),
+                option("option_a", false),
+                option("option_b", true),
+            ]),
+            ..TemplatePaneNodeData::default()
+        }]),
+        ..HostWindowPresentationData::default()
+    };
+    let option_index = HostWorkbenchHitIndex::from_presentation(&option_presentation);
+    let option_node = option_presentation.workbench_window_nodes.get(0).unwrap();
+    let option = option_node.structured_options.get(1).unwrap();
+    let option_hit = hit_test_workbench_window_template_node_for_pointer_move_with_index(
+        &option_presentation,
+        &option_index,
+        24.0,
+        96.0,
+    )
+    .expect("option row should produce a pointer-move hit");
+    assert_eq!(option_hit.kind, TemplateNodePointerMoveKind::Option);
+    assert!(std::ptr::eq(
+        option_hit.action_id,
+        option_node.edit_action_id.as_str()
+    ));
+    assert!(std::ptr::eq(option_hit.value_text, option.id.as_str()));
+    let option_owned = hit_test_workbench_window_template_node_with_index(
+        &option_presentation,
+        &option_index,
+        24.0,
+        96.0,
+    )
+    .expect("option row should retain the owned press hit");
+    assert_eq!(option_hit.control_id, option_owned.control_id.as_str());
+    assert_eq!(option_hit.action_id, option_owned.action_id.as_str());
+    assert_eq!(option_hit.value_text, option_owned.value_text.as_str());
+    assert_eq!(option_hit.frame, option_owned.frame);
+}
+
+#[test]
 fn console_pane_hit_test_uses_scrolled_line_geometry() {
     let metadata = ConsoleOutputPaintMetadata::new(
         ConsoleOutputViewport {
@@ -117,7 +266,7 @@ fn console_pane_hit_test_uses_scrolled_line_geometry() {
         kind: "Console".into(),
         console: ConsolePaneData {
             nodes,
-            status_text: "three activity rows".into(),
+            output: "three activity rows".into(),
         },
         ..PaneData::default()
     };
@@ -141,6 +290,99 @@ fn console_pane_hit_test_uses_scrolled_line_geometry() {
     let header = hit_test_pane_template_node(&pane, &body, 120.0, 65.0, 18.0)
         .expect("non-log controls outside the output viewport must remain dispatchable");
     assert_eq!(header.control_id.as_str(), "ConsoleSourceAll");
+}
+
+#[test]
+fn console_pane_hit_test_resolves_action_from_the_virtualized_logical_generation() {
+    let logical_lines = (0..8_000)
+        .map(|index| {
+            ConsoleOutputLogicalLine::new(format!("line-{index:04}"), "accent".into())
+                .with_severity("[Info]".into(), "secondary".into())
+                .with_action(
+                    "activity_log_jump".into(),
+                    format!("workbench.activity_log.jump.{index}"),
+                )
+        })
+        .collect();
+    let metadata = ConsoleOutputPaintMetadata::new_virtualized(
+        ConsoleOutputViewport {
+            x: 8.0,
+            y: 40.0,
+            width: 240.0,
+            height: 36.0,
+        },
+        40.0,
+        1,
+        logical_lines,
+        2,
+        CONSOLE_OUTPUT_OVERSCAN_LINES,
+    )
+    .expect("virtualized console output metadata");
+    let mut projected_nodes = vec![TemplatePaneNodeData {
+        node_id: "source-filter".into(),
+        control_id: "ConsoleSourceAll".into(),
+        role: "Button".into(),
+        action_id: "workbench.console.source.all".into(),
+        frame: TemplateNodeFrameData {
+            x: 8.0,
+            y: 8.0,
+            width: 120.0,
+            height: 20.0,
+        },
+        ..TemplatePaneNodeData::default()
+    }];
+    for slot in 0..metadata.materialized_line_count() {
+        let y = 40.0 + slot as f32 * 18.0;
+        projected_nodes.push(TemplatePaneNodeData {
+            node_id: format!("ConsoleOutputSeverity{slot:04}"),
+            control_id: format!("ConsoleOutputSeverity{slot:04}"),
+            frame: TemplateNodeFrameData {
+                x: 8.0,
+                y,
+                width: 64.0,
+                height: 18.0,
+            },
+            ..TemplatePaneNodeData::default()
+        });
+        projected_nodes.push(TemplatePaneNodeData {
+            node_id: format!("ConsoleOutputLine{slot:04}"),
+            control_id: format!("ConsoleOutputLine{slot:04}"),
+            role: "Button".into(),
+            frame: TemplateNodeFrameData {
+                x: 72.0,
+                y,
+                width: 176.0,
+                height: 18.0,
+            },
+            ..TemplatePaneNodeData::default()
+        });
+    }
+    let pane = PaneData {
+        id: "editor.console#1".into(),
+        kind: "Console".into(),
+        console: ConsolePaneData {
+            nodes: ModelRc::with_metadata(projected_nodes, metadata),
+            output: "virtualized activity rows".into(),
+        },
+        ..PaneData::default()
+    };
+    let body = FrameRect {
+        x: 100.0,
+        y: 50.0,
+        width: 260.0,
+        height: 100.0,
+    };
+
+    let first = hit_test_pane_template_node(&pane, &body, 200.0, 99.0, 1_800.0)
+        .expect("logical row 100 through its ring slot");
+    assert_eq!(first.control_id.as_str(), "ConsoleOutputLine0002");
+    assert_eq!(first.action_id.as_str(), "workbench.activity_log.jump.100");
+    assert_eq!(first.frame.y, 90.0);
+
+    let next = hit_test_pane_template_node(&pane, &body, 200.0, 99.0, 1_818.0)
+        .expect("logical row 101 after one-line scroll");
+    assert_eq!(next.control_id.as_str(), "ConsoleOutputLine0003");
+    assert_eq!(next.action_id.as_str(), "workbench.activity_log.jump.101");
 }
 
 #[test]
@@ -184,7 +426,7 @@ fn console_popup_rows_take_priority_over_scrolled_log_rows() {
         kind: "Console".into(),
         console: ConsolePaneData {
             nodes,
-            status_text: "one activity row".into(),
+            output: "one activity row".into(),
         },
         ..PaneData::default()
     };

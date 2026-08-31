@@ -142,6 +142,16 @@ in-memory document, preserve it after edits and saves, and request reimport usin
 than reverse-mapping a source path. UI asset restore accepts this generic typed route or its current
 domain route, but no longer accepts the old generic `path` fallback.
 
+The built-in registry owns the production routes for the currently supported animation documents:
+`animation.sequence` opens `editor.animation_sequence` through
+`timeline_sequence.authoring.open`; `animation.graph` and `animation.state_machine` open
+`editor.animation_graph` through their distinct graph and state-machine operations. These are
+default command-registry operations with no test-only extension capability. Plugin contributions
+may extend the schema and palette, but are not required to make these three built-in asset types
+openable. `animation.skeleton` and `animation.clip` do not declare a toolkit until their read-only
+or authoring behavior is implemented; the registry must continue to report that absence rather
+than route them to an unrelated editor.
+
 ## Source authority and mutation guard
 
 `AssetSourceAuthority` is the typed editor projection of a validated `ResourceLocator`. It maps
@@ -167,11 +177,52 @@ Missing or malformed arguments, an unknown type, or an unsupported scheme all fa
 is no suffix inference, URI string prefix exception, compatibility alias or second writable-state
 truth.
 
+Delete admission has the same split: Runtime `AssetMutationDeletePreflight` owns stable UUID,
+subasset, and direct-referencer topology from the active registry snapshot; Editor
+`AssetDeletePreflight` only applies `AssetSourceWritePolicy`. Editor does not retain a registry
+copy or traverse referencers itself. The result is a confirmation view, not a filesystem command;
+the later Runtime mutation transaction revalidates it after acquiring its commit generation.
+
+Asset rename and move use the same ownership rule. `EditorAssetManager` exposes only
+`submit_project_source_relocation`, which validates the UUID, admits an interactive editor job,
+and delegates the durable transaction to Runtime `ProjectAssetManager::relocate_project_source`.
+Runtime remains the sole owner of source/meta/registry writes, referencer remapping, resource
+renames, generation publication, and durability. The retained host polls the ticket on its normal
+tick and refreshes the editor catalog only after a successful committed result. UI callbacks never
+run the filesystem transaction while holding Workbench state. Project close cancels queued work
+and waits for an already-running transaction to reach a terminal state before retiring Runtime.
+
 ## Project generation consumption
 
 Editor asset consumers resolve paths and reference views against the Runtime asset manager's active project generation. Project open transfers the `ProjectAuthority`-validated manager through `open_prepared_project`; document load/save, workspace watcher, UI asset external promotion and undo/redo side effects use an explicit generation snapshot. Hot locator resolution instead calls manager-owned `current_project_source_path`, which resolves under the authoritative project read lock from the Runtime manager's `(scheme, path)` source index without cloning the complete `ProjectManager` or probing project roots for every asset. The retired root-path helpers that reopened or cloned a manager only to recover its root are deleted.
 
 Layout preset names are derived from `current_project_asset_uris`, a lightweight locator projection of the same authoritative registry, and never enumerate or parse preset files during normal projection. Explicit preset save writes once and requests a Runtime import refresh. That refresh is currently full-project; the transactional targeted form remains open in Runtime04 and must preserve atomic sidecar/artifact/registry publication, dependency edges, duplicate GUID ownership and compound topology. Preset save/load errors retain `SceneProjectError` as the typed `EditorError` source. Editor does not add a second path cache to hide the Runtime gap.
+
+## Runtime watcher projection
+
+Runtime commits a project generation before it broadcasts an `AssetChange`. The retained host forwards
+that batch to `EditorAssetManager::project_runtime_asset_changes` before requesting the ordinary
+Runtime catalog refresh. The manager converts it only into `EditorAssetIndex` transient state and
+an immutable `AssetStateChanged` row projection; it does not parse sources, own metadata, or build
+a second registry. A candidate Runtime catalog inherits valid transient state before its rows are
+projected, while the final index replacement moves any state observed during the build atomically.
+This preserves stale/dirty visibility across watcher and refresh races without weakening Runtime
+registry authority.
+
+## Compound model import boundary
+
+Retained-host model ingress submits `EditorAssetManager::submit_model_import` and retains only
+the returned editor job ticket. The Runtime `AssetManager` owns external-source planning, model
+and default-material preparation, one durable project transaction, resource publication, and the
+`ProjectImportReceipt`; the host creates a mesh only after that receipt completes on its normal
+tick. Receipt consumption first records the committed import on the `Import` log channel, then
+refreshes the Runtime-authoritative editor catalog before resolving the ready model resource. The
+host does not copy model files, call `import_asset`, construct a registry batch, or wait inside a
+UI callback. Project close cancels and drops a pending ticket before Runtime project closure; once
+Runtime returns a receipt, a later cancellation cannot reclassify that durable transaction as
+cancelled. Runtime records content-addressed watcher echoes for transaction-written model sources
+so its own file notifications do not open a second transaction; later OBJ material sidecar edits
+are redirected to their model root for reimport.
 
 ## Hard-cut boundary
 

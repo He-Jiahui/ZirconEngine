@@ -1,10 +1,11 @@
+use crate::text::SharedTextLayoutSession;
 use crate::text::layout::{
-    corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
+    GraphemeAdvanceIndex, corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
     line_text_fits_with_provider as shared_line_text_fits_with_provider,
     should_wrap_before_accumulated, trim_leading_wrap_spaces,
-    word_smart_line_break_chunks_with_provider, GraphemeAdvanceIndex,
+    word_smart_line_break_chunks_with_provider,
 };
-use crate::text::SharedTextLayoutSession;
+use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextRange, UiTextRunKind, UiTextWrap,
 };
@@ -12,8 +13,8 @@ use zircon_runtime_interface::ui::surface::{
 use super::super::grapheme::leading_grapheme_continuation_len;
 use super::super::rich_text::UiTextSourceRun;
 use super::candidate_line::{
-    append_segment, push_current_line, push_wrapped_line, trim_word_break_trailing_spaces,
-    CandidateLine, PendingBreakSuffix,
+    CandidateLine, PendingBreakSuffix, append_segment, push_current_line, push_wrapped_line,
+    trim_word_break_trailing_spaces,
 };
 use super::direction::resolve_direction;
 use crate::text::text_style;
@@ -24,7 +25,7 @@ pub(super) fn wrap_source_runs_with_provider(
     max_width: f32,
     style: &UiResolvedStyle,
     provider: &mut SharedTextLayoutSession,
-) -> Vec<CandidateLine> {
+) -> TextLayoutOutcome<Vec<CandidateLine>> {
     wrap_source_runs_with_line_widths_provider(runs, wrap, max_width, max_width, style, provider)
 }
 
@@ -35,7 +36,7 @@ pub(super) fn wrap_source_runs_with_line_widths_provider(
     continuation_width: f32,
     style: &UiResolvedStyle,
     provider: &mut SharedTextLayoutSession,
-) -> Vec<CandidateLine> {
+) -> TextLayoutOutcome<Vec<CandidateLine>> {
     wrap_source_fragments_with_line_widths_provider(
         |visit| {
             for run in runs {
@@ -65,7 +66,7 @@ pub(super) fn wrap_source_run_range_with_line_widths_provider(
     continuation_width: f32,
     style: &UiResolvedStyle,
     provider: &mut SharedTextLayoutSession,
-) -> Vec<CandidateLine> {
+) -> TextLayoutOutcome<Vec<CandidateLine>> {
     while *run_cursor < runs.len() && runs[*run_cursor].source_range.end <= range.start {
         *run_cursor = (*run_cursor).saturating_add(1);
     }
@@ -109,12 +110,16 @@ fn wrap_source_fragments_with_line_widths_provider(
     continuation_width: f32,
     style: &UiResolvedStyle,
     provider: &mut SharedTextLayoutSession,
-) -> Vec<CandidateLine> {
+) -> TextLayoutOutcome<Vec<CandidateLine>> {
     let mut lines = Vec::new();
     let mut current = CandidateLine::empty();
     let mut current_advance = 0.0_f32;
 
+    let mut failure = None;
     segments(&mut |kind, text, range, hard_break| {
+        if failure.is_some() {
+            return;
+        }
         if hard_break {
             push_current_line(&mut lines, &mut current);
             current_advance = 0.0;
@@ -122,7 +127,7 @@ fn wrap_source_fragments_with_line_widths_provider(
         }
         match wrap {
             UiTextWrap::None => append_segment(&mut current, kind, text, range),
-            UiTextWrap::Word => append_word_wrapped_segment(
+            UiTextWrap::Word => match append_word_wrapped_segment(
                 &mut lines,
                 &mut current,
                 kind,
@@ -134,8 +139,13 @@ fn wrap_source_fragments_with_line_widths_provider(
                 provider,
                 &mut current_advance,
                 false,
-            ),
-            UiTextWrap::WordSmart => append_word_wrapped_segment(
+            ) {
+                TextShapingOutcome::Ready(()) => {}
+                TextShapingOutcome::Deferred(error) | TextShapingOutcome::Failed(error) => {
+                    failure = Some(error);
+                }
+            },
+            UiTextWrap::WordSmart => match append_word_wrapped_segment(
                 &mut lines,
                 &mut current,
                 kind,
@@ -147,8 +157,13 @@ fn wrap_source_fragments_with_line_widths_provider(
                 provider,
                 &mut current_advance,
                 true,
-            ),
-            UiTextWrap::Glyph => append_glyph_wrapped_segment(
+            ) {
+                TextShapingOutcome::Ready(()) => {}
+                TextShapingOutcome::Deferred(error) | TextShapingOutcome::Failed(error) => {
+                    failure = Some(error);
+                }
+            },
+            UiTextWrap::Glyph => match append_glyph_wrapped_segment(
                 &mut lines,
                 &mut current,
                 kind,
@@ -159,15 +174,24 @@ fn wrap_source_fragments_with_line_widths_provider(
                 style,
                 provider,
                 &mut current_advance,
-            ),
+            ) {
+                TextShapingOutcome::Ready(()) => {}
+                TextShapingOutcome::Deferred(error) | TextShapingOutcome::Failed(error) => {
+                    failure = Some(error);
+                }
+            },
         }
     });
+
+    if let Some(error) = failure {
+        return TextShapingOutcome::from_shape_result(Err(error));
+    }
 
     push_current_line(&mut lines, &mut current);
     if lines.is_empty() {
         lines.push(CandidateLine::empty());
     }
-    lines
+    TextShapingOutcome::Ready(lines)
 }
 
 #[derive(Clone)]
@@ -231,15 +255,23 @@ fn append_word_wrapped_segment(
     provider: &mut SharedTextLayoutSession,
     current_advance: &mut f32,
     word_smart: bool,
-) {
+) -> TextLayoutOutcome<()> {
     let neutral_style = text_style(style);
-    let chunks = if word_smart {
+    let chunks = match if word_smart {
         word_smart_line_break_chunks_with_provider(text, &neutral_style, provider)
     } else {
         line_break_chunks_with_provider(text, &neutral_style, provider)
+    } {
+        TextShapingOutcome::Ready(chunks) => chunks,
+        TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+        TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
     };
     let advance_index =
-        GraphemeAdvanceIndex::measured_with_provider(text, &neutral_style, provider);
+        match GraphemeAdvanceIndex::measured_with_provider(text, &neutral_style, provider) {
+            TextShapingOutcome::Ready(index) => index,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
     let direction = resolve_direction(text, style.text_direction).into();
     let mut segment_line_start = None;
     for chunk in chunks {
@@ -272,9 +304,13 @@ fn append_word_wrapped_segment(
             word_source_range.start.saturating_sub(range.start),
             word_source_range.end.saturating_sub(range.start),
         );
-        let break_suffix = chunk.break_suffix.map(|suffix| suffix.text);
-        let candidate_advance = segment_line_start.map_or(
-            finite_non_negative(*current_advance) + finite_non_negative(word_advance),
+        let break_suffix = chunk.break_suffix.map(|suffix| suffix.marker_text());
+        let candidate_advance = match segment_line_start.map_or_else(
+            || {
+                TextShapingOutcome::Ready(
+                    finite_non_negative(*current_advance) + finite_non_negative(word_advance),
+                )
+            },
             |line_start| {
                 advance_index.corrected_advance_with_provider(
                     text,
@@ -286,7 +322,11 @@ fn append_word_wrapped_segment(
                     provider,
                 )
             },
-        );
+        ) {
+            TextShapingOutcome::Ready(advance) => advance,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
         let should_wrap = should_wrap_before_accumulated(
             current.text.is_empty(),
             0.0,
@@ -312,7 +352,7 @@ fn append_word_wrapped_segment(
             line_advance = None;
         }
         if line_advance.is_none() {
-            line_advance = segment_line_start.map(|line_start| {
+            line_advance = match segment_line_start.map(|line_start| {
                 advance_index.corrected_advance_with_provider(
                     text,
                     line_start,
@@ -322,7 +362,16 @@ fn append_word_wrapped_segment(
                     break_suffix,
                     provider,
                 )
-            });
+            }) {
+                Some(TextShapingOutcome::Ready(advance)) => Some(advance),
+                Some(TextShapingOutcome::Deferred(error)) => {
+                    return TextShapingOutcome::Deferred(error);
+                }
+                Some(TextShapingOutcome::Failed(error)) => {
+                    return TextShapingOutcome::Failed(error);
+                }
+                None => None,
+            };
         }
         let max_width = current_line_width(lines, first_line_width, continuation_width);
         if chunk.should_fallback_to_glyph_wrap_with_advance(
@@ -330,7 +379,7 @@ fn append_word_wrapped_segment(
             line_advance.unwrap_or(word_advance),
             max_width,
         ) {
-            append_glyph_wrapped_segment(
+            match append_glyph_wrapped_segment(
                 lines,
                 current,
                 kind,
@@ -341,23 +390,31 @@ fn append_word_wrapped_segment(
                 style,
                 provider,
                 current_advance,
-            );
+            ) {
+                TextShapingOutcome::Ready(()) => {}
+                TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+            }
             segment_line_start = None;
         } else {
             append_segment(current, kind, word_text, word_source_range);
             *current_advance = line_advance.unwrap_or_else(|| {
                 finite_non_negative(*current_advance) + finite_non_negative(word_advance)
             });
-            current.pending_break_suffix = chunk.break_suffix.map(|suffix| PendingBreakSuffix {
-                kind,
-                text: suffix.text,
-                source_range: UiTextRange {
-                    start: range.start + suffix.source_range.start,
-                    end: range.start + suffix.source_range.end,
-                },
-            });
+            current.pending_break_suffix = match chunk.break_suffix {
+                Some(decision) => {
+                    let Some(decision) = decision.rebased(range.start) else {
+                        return TextShapingOutcome::failed(
+                            crate::core::framework::text::TextLayoutError::LayoutFailed,
+                        );
+                    };
+                    Some(PendingBreakSuffix { kind, decision })
+                }
+                None => None,
+            };
         }
     }
+    TextShapingOutcome::Ready(())
 }
 
 fn finite_non_negative(value: f32) -> f32 {
@@ -379,16 +436,25 @@ fn append_glyph_wrapped_segment(
     style: &UiResolvedStyle,
     provider: &mut SharedTextLayoutSession,
     current_advance: &mut f32,
-) {
+) -> TextLayoutOutcome<()> {
     let neutral_style = text_style(style);
     let advance_index =
-        GraphemeAdvanceIndex::measured_with_provider(text, &neutral_style, provider);
+        match GraphemeAdvanceIndex::measured_with_provider(text, &neutral_style, provider) {
+            TextShapingOutcome::Ready(index) => index,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
     let continuation_len = append_leading_grapheme_continuation(current, kind, text, range);
     *current_advance += advance_index.advance(0, continuation_len);
-    if current.text.is_empty() && continuation_len == 0 {
-        let first_max_width = current_line_width(lines, first_line_width, continuation_width);
+    if continuation_len == 0 {
+        let first_line_max_width = current_line_width(lines, first_line_width, continuation_width);
+        let first_max_width = if current.text.is_empty() {
+            first_line_max_width
+        } else {
+            finite_non_negative(first_line_max_width - *current_advance)
+        };
         let direction = resolve_direction(text, style.text_direction).into();
-        let ranges = corrected_glyph_ranges_with_provider(
+        let mut ranges = match corrected_glyph_ranges_with_provider(
             text,
             &advance_index,
             &neutral_style,
@@ -396,32 +462,61 @@ fn append_glyph_wrapped_segment(
             first_max_width,
             continuation_width,
             provider,
-        );
-        for (index, (start, end)) in ranges.into_iter().enumerate() {
-            if index > 0 {
-                push_wrapped_line(lines, current);
-            }
-            for metric in advance_index.metrics_in_range(start, end) {
-                let Some(grapheme) = text.get(metric.source_start..metric.source_end) else {
-                    continue;
-                };
-                append_segment(
-                    current,
-                    kind,
-                    grapheme,
-                    UiTextRange {
-                        start: range.start + metric.source_start,
-                        end: range.start + metric.source_end,
-                    },
-                );
-            }
-            *current_advance = advance_index.advance(start, end);
+        ) {
+            TextShapingOutcome::Ready(ranges) => ranges,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
+
+        let first_range_advance = ranges
+            .first()
+            .map_or(0.0, |&(start, end)| advance_index.advance(start, end));
+        if should_wrap_before_accumulated(
+            current.text.is_empty(),
+            *current_advance,
+            first_range_advance,
+            first_line_max_width,
+        ) {
+            push_wrapped_line(lines, current);
+            *current_advance = 0.0;
+            let next_line_width = current_line_width(lines, first_line_width, continuation_width);
+            ranges = match corrected_glyph_ranges_with_provider(
+                text,
+                &advance_index,
+                &neutral_style,
+                direction,
+                next_line_width,
+                continuation_width,
+                provider,
+            ) {
+                TextShapingOutcome::Ready(ranges) => ranges,
+                TextShapingOutcome::Deferred(error) => {
+                    return TextShapingOutcome::Deferred(error);
+                }
+                TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+            };
         }
-        return;
+        match append_corrected_glyph_ranges(
+            lines,
+            current,
+            kind,
+            text,
+            range,
+            &advance_index,
+            ranges,
+            current_advance,
+        ) {
+            TextShapingOutcome::Ready(()) => {}
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        }
+        return TextShapingOutcome::Ready(());
     }
     for metric in advance_index.metrics_in_range(continuation_len, text.len()) {
         let Some(grapheme) = text.get(metric.source_start..metric.source_end) else {
-            continue;
+            return TextShapingOutcome::failed(
+                crate::core::framework::text::TextLayoutError::LayoutFailed,
+            );
         };
         let max_width = current_line_width(lines, first_line_width, continuation_width);
         if should_wrap_before_accumulated(
@@ -444,6 +539,44 @@ fn append_glyph_wrapped_segment(
         );
         *current_advance += metric.advance;
     }
+    TextShapingOutcome::Ready(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn append_corrected_glyph_ranges(
+    lines: &mut Vec<CandidateLine>,
+    current: &mut CandidateLine,
+    kind: UiTextRunKind,
+    text: &str,
+    range: UiTextRange,
+    advance_index: &GraphemeAdvanceIndex,
+    ranges: Vec<(usize, usize)>,
+    current_advance: &mut f32,
+) -> TextLayoutOutcome<()> {
+    for (range_index, (start, end)) in ranges.into_iter().enumerate() {
+        if range_index > 0 {
+            push_wrapped_line(lines, current);
+            *current_advance = 0.0;
+        }
+        for metric in advance_index.metrics_in_range(start, end) {
+            let Some(grapheme) = text.get(metric.source_start..metric.source_end) else {
+                return TextShapingOutcome::failed(
+                    crate::core::framework::text::TextLayoutError::LayoutFailed,
+                );
+            };
+            append_segment(
+                current,
+                kind,
+                grapheme,
+                UiTextRange {
+                    start: range.start + metric.source_start,
+                    end: range.start + metric.source_end,
+                },
+            );
+        }
+        *current_advance += advance_index.advance(start, end);
+    }
+    TextShapingOutcome::Ready(())
 }
 
 fn current_line_width(
@@ -486,7 +619,7 @@ pub(super) fn line_text_fits_with_provider(
     max_width: f32,
     style: &UiResolvedStyle,
     provider: &mut SharedTextLayoutSession,
-) -> bool {
+) -> TextLayoutOutcome<bool> {
     shared_line_text_fits_with_provider(text, max_width, &text_style(style), provider)
 }
 

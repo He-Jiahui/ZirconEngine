@@ -11,6 +11,7 @@ use super::typed_api::{BundleInsertionTransaction, DeferredBundleTransactionArti
 /// before this barrier publishes its first final row.
 pub(crate) struct DeferredStructuralBatch {
     segments: Vec<DeferredStructuralSegment>,
+    errors: Vec<(usize, DeferredCommandError)>,
     next_sequence: usize,
 }
 
@@ -30,6 +31,7 @@ impl DeferredStructuralBatch {
     pub(crate) fn new() -> Self {
         Self {
             segments: Vec::new(),
+            errors: Vec::new(),
             next_sequence: 0,
         }
     }
@@ -39,7 +41,10 @@ impl DeferredStructuralBatch {
         world: &mut World,
         metadata: DeferredStructuralMetadata,
     ) {
-        let sequence = self.next_sequence();
+        let Some(sequence) = self.next_sequence() else {
+            self.record_sequence_exhaustion(world, &metadata);
+            return;
+        };
         self.segment_mut(world, &metadata, sequence)
             .stage_empty_spawn(metadata, sequence);
     }
@@ -52,7 +57,10 @@ impl DeferredStructuralBatch {
     ) where
         B: Bundle,
     {
-        let sequence = self.next_sequence();
+        let Some(sequence) = self.next_sequence() else {
+            self.record_sequence_exhaustion(world, &metadata);
+            return;
+        };
         self.segment_mut(world, &metadata, sequence)
             .stage_bundle(world, metadata, bundle, sequence);
     }
@@ -64,7 +72,10 @@ impl DeferredStructuralBatch {
     ) where
         T: crate::scene::ecs::Component,
     {
-        let sequence = self.next_sequence();
+        let Some(sequence) = self.next_sequence() else {
+            self.record_sequence_exhaustion(world, &metadata);
+            return;
+        };
         self.segment_mut(world, &metadata, sequence)
             .stage_remove::<T>(world, metadata, sequence);
     }
@@ -74,7 +85,10 @@ impl DeferredStructuralBatch {
         world: &mut World,
         metadata: DeferredStructuralMetadata,
     ) {
-        let sequence = self.next_sequence();
+        let Some(sequence) = self.next_sequence() else {
+            self.record_sequence_exhaustion(world, &metadata);
+            return;
+        };
         self.segment_mut(world, &metadata, sequence)
             .stage_despawn(metadata, sequence);
     }
@@ -111,13 +125,23 @@ impl DeferredStructuralBatch {
         self.take_errors()
     }
 
-    fn next_sequence(&mut self) -> usize {
+    fn next_sequence(&mut self) -> Option<usize> {
         let sequence = self.next_sequence;
-        self.next_sequence = self
-            .next_sequence
-            .checked_add(1)
-            .expect("deferred structural command sequence exhausted");
-        sequence
+        self.next_sequence = sequence.checked_add(1)?;
+        Some(sequence)
+    }
+
+    fn record_sequence_exhaustion(&mut self, world: &World, metadata: &DeferredStructuralMetadata) {
+        // `usize::MAX` is a terminal sort key: all admitted commands remain
+        // before the rejected overflow entries without reusing a sequence.
+        self.errors.push((
+            usize::MAX,
+            DeferredCommandError::new(
+                metadata.operation(),
+                world.deferred_command_target(metadata.target()),
+                SceneError::DeferredCommandSequenceExhausted,
+            ),
+        ));
     }
 
     fn segment_mut(
@@ -140,17 +164,20 @@ impl DeferredStructuralBatch {
     }
 
     fn has_errors(&self) -> bool {
-        self.segments
-            .iter()
-            .any(|segment| !segment.errors.is_empty())
+        !self.errors.is_empty()
+            || self
+                .segments
+                .iter()
+                .any(|segment| !segment.errors.is_empty())
     }
 
     fn take_errors(&mut self) -> Vec<DeferredCommandError> {
-        let mut errors = self
-            .segments
-            .iter_mut()
-            .flat_map(|segment| segment.errors.drain(..))
-            .collect::<Vec<_>>();
+        let mut errors = std::mem::take(&mut self.errors);
+        errors.extend(
+            self.segments
+                .iter_mut()
+                .flat_map(|segment| segment.errors.drain(..)),
+        );
         errors.sort_by_key(|(sequence, _)| *sequence);
         errors.into_iter().map(|(_, error)| error).collect()
     }
@@ -392,5 +419,37 @@ impl DeferredStructuralSegment {
                 world.begin_deferred_bundle_insertion(entity)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::scene::ecs::{DeferredStructuralKind, DeferredStructuralMetadata};
+
+    #[test]
+    fn sequence_exhaustion_is_reported_without_publishing_the_barrier() {
+        let mut world = World::empty();
+        let mut batch = DeferredStructuralBatch::new();
+        batch.next_sequence = usize::MAX;
+
+        batch.stage_despawn(
+            &mut world,
+            DeferredStructuralMetadata::new(
+                DeferredEntityRef::existing(7),
+                DeferredStructuralKind::Despawn,
+                DeferredCommandOperation::Despawn,
+            ),
+        );
+
+        let errors = batch.finish(&mut world);
+        assert!(!world.contains_entity(7));
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].operation(), DeferredCommandOperation::Despawn);
+        assert_eq!(errors[0].target(), &DeferredCommandTarget::resolved(7));
+        assert_eq!(
+            errors[0].error(),
+            &SceneError::DeferredCommandSequenceExhausted
+        );
     }
 }

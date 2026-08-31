@@ -1,5 +1,9 @@
 use super::*;
 
+fn payload_field_name(field: UiActionPayloadFieldName) -> String {
+    field.schema_name().to_string()
+}
+
 pub(super) fn binding_payload_suggestions(
     binding: &UiBindingRef,
     selected_payload_key: Option<&str>,
@@ -25,60 +29,87 @@ pub(super) fn binding_root_payload_suggestions(binding: &UiBindingRef) -> Vec<(S
         | UiEventKind::Press
         | UiEventKind::Release
         | UiEventKind::Submit => vec![
-            ("confirm".to_string(), Value::Boolean(true)),
-            ("channel".to_string(), Value::String("toolbar".to_string())),
             (
-                "source".to_string(),
+                payload_field_name(UiActionPayloadFieldName::Confirm),
+                Value::Boolean(true),
+            ),
+            (
+                payload_field_name(UiActionPayloadFieldName::Channel),
+                Value::String("toolbar".to_string()),
+            ),
+            (
+                payload_field_name(UiActionPayloadFieldName::Source),
                 Value::String(event_source_tag(binding.event)),
             ),
         ],
         UiEventKind::Change => vec![
-            ("value".to_string(), Value::String("preview".to_string())),
-            ("committed".to_string(), Value::Boolean(true)),
             (
-                "source".to_string(),
+                payload_field_name(UiActionPayloadFieldName::Value),
+                Value::String("preview".to_string()),
+            ),
+            (
+                payload_field_name(UiActionPayloadFieldName::Committed),
+                Value::Boolean(true),
+            ),
+            (
+                payload_field_name(UiActionPayloadFieldName::Source),
                 Value::String(event_source_tag(binding.event)),
             ),
         ],
         UiEventKind::Toggle => vec![
-            ("checked".to_string(), Value::Boolean(true)),
             (
-                "source".to_string(),
+                payload_field_name(UiActionPayloadFieldName::Checked),
+                Value::Boolean(true),
+            ),
+            (
+                payload_field_name(UiActionPayloadFieldName::Source),
                 Value::String(event_source_tag(binding.event)),
             ),
         ],
         UiEventKind::Scroll => vec![
-            ("axis".to_string(), Value::String("vertical".to_string())),
-            ("delta".to_string(), Value::Integer(1)),
             (
-                "source".to_string(),
+                payload_field_name(UiActionPayloadFieldName::Axis),
+                Value::String("vertical".to_string()),
+            ),
+            (
+                payload_field_name(UiActionPayloadFieldName::Delta),
+                Value::Integer(1),
+            ),
+            (
+                payload_field_name(UiActionPayloadFieldName::Source),
                 Value::String(event_source_tag(binding.event)),
             ),
         ],
         UiEventKind::DragBegin | UiEventKind::DragUpdate | UiEventKind::DragEnd => vec![
-            ("axis".to_string(), Value::String("x".to_string())),
-            ("delta".to_string(), Value::Integer(0)),
             (
-                "source".to_string(),
+                payload_field_name(UiActionPayloadFieldName::Axis),
+                Value::String("x".to_string()),
+            ),
+            (
+                payload_field_name(UiActionPayloadFieldName::Delta),
+                Value::Integer(0),
+            ),
+            (
+                payload_field_name(UiActionPayloadFieldName::Source),
                 Value::String(event_source_tag(binding.event)),
             ),
         ],
         UiEventKind::Drop => vec![
             (
-                "payload_kind".to_string(),
+                payload_field_name(UiActionPayloadFieldName::PayloadKind),
                 Value::String("asset".to_string()),
             ),
             (
-                "reference".to_string(),
+                payload_field_name(UiActionPayloadFieldName::Reference),
                 Value::String("res://textures/grid.albedo.png".to_string()),
             ),
             (
-                "source".to_string(),
+                payload_field_name(UiActionPayloadFieldName::Source),
                 Value::String(event_source_tag(binding.event)),
             ),
         ],
         _ => vec![(
-            "source".to_string(),
+            payload_field_name(UiActionPayloadFieldName::Source),
             Value::String(event_source_tag(binding.event)),
         )],
     }
@@ -90,9 +121,12 @@ pub(super) fn binding_schema_payload_entries(binding: &UiBindingRef) -> Vec<(Str
         let action_target = action_target.to_ascii_lowercase();
         if action_target.contains("project.save") {
             return vec![
-                ("confirm".to_string(), Value::Boolean(true)),
                 (
-                    "source".to_string(),
+                    payload_field_name(UiActionPayloadFieldName::Confirm),
+                    Value::Boolean(true),
+                ),
+                (
+                    payload_field_name(UiActionPayloadFieldName::Source),
                     Value::String(event_source_tag(binding.event)),
                 ),
             ];
@@ -111,19 +145,25 @@ pub(super) fn binding_target_payload_suggestions(
             if route_key.contains("selection.changed") {
                 return Some(vec![
                     (
-                        "primary".to_string(),
+                        payload_field_name(UiActionPayloadFieldName::Primary),
                         Value::String("SelectedNode".to_string()),
                     ),
                     (
-                        "selection_ids".to_string(),
+                        payload_field_name(UiActionPayloadFieldName::SelectionIds),
                         Value::Array(vec![Value::String("SelectedNode".to_string())]),
                     ),
                     (
-                        "context".to_string(),
+                        payload_field_name(UiActionPayloadFieldName::Context),
                         toml::Value::Table(
                             [
-                                ("additive".to_string(), Value::Boolean(false)),
-                                ("source".to_string(), Value::String("hierarchy".to_string())),
+                                (
+                                    payload_field_name(UiActionPayloadFieldName::Additive),
+                                    Value::Boolean(false),
+                                ),
+                                (
+                                    payload_field_name(UiActionPayloadFieldName::Source),
+                                    Value::String("hierarchy".to_string()),
+                                ),
                             ]
                             .into_iter()
                             .collect(),
@@ -133,21 +173,30 @@ pub(super) fn binding_target_payload_suggestions(
             }
             if route_key.contains("form.valuechanged") {
                 return Some(vec![
-                    ("value".to_string(), Value::String("preview".to_string())),
-                    ("committed".to_string(), Value::Boolean(true)),
                     (
-                        "fields".to_string(),
+                        payload_field_name(UiActionPayloadFieldName::Value),
+                        Value::String("preview".to_string()),
+                    ),
+                    (
+                        payload_field_name(UiActionPayloadFieldName::Committed),
+                        Value::Boolean(true),
+                    ),
+                    (
+                        payload_field_name(UiActionPayloadFieldName::Fields),
                         Value::Array(vec![Value::String("title".to_string())]),
                     ),
                     (
-                        "context".to_string(),
+                        payload_field_name(UiActionPayloadFieldName::Context),
                         toml::Value::Table(
                             [
                                 (
-                                    "source".to_string(),
+                                    payload_field_name(UiActionPayloadFieldName::Source),
                                     Value::String(event_source_tag(binding.event)),
                                 ),
-                                ("subject".to_string(), Value::String("field".to_string())),
+                                (
+                                    payload_field_name(UiActionPayloadFieldName::Subject),
+                                    Value::String("field".to_string()),
+                                ),
                             ]
                             .into_iter()
                             .collect(),
@@ -161,18 +210,24 @@ pub(super) fn binding_target_payload_suggestions(
             let action_target = action_target.to_ascii_lowercase();
             if action_target.contains("visibility.toggle") {
                 return Some(vec![
-                    ("checked".to_string(), Value::Boolean(true)),
                     (
-                        "selection_ids".to_string(),
+                        payload_field_name(UiActionPayloadFieldName::Checked),
+                        Value::Boolean(true),
+                    ),
+                    (
+                        payload_field_name(UiActionPayloadFieldName::SelectionIds),
                         Value::Array(vec![Value::String("SelectedNode".to_string())]),
                     ),
                     (
-                        "context".to_string(),
+                        payload_field_name(UiActionPayloadFieldName::Context),
                         toml::Value::Table(
                             [
-                                ("scope".to_string(), Value::String("selection".to_string())),
                                 (
-                                    "source".to_string(),
+                                    payload_field_name(UiActionPayloadFieldName::Scope),
+                                    Value::String("selection".to_string()),
+                                ),
+                                (
+                                    payload_field_name(UiActionPayloadFieldName::Source),
                                     Value::String(event_source_tag(binding.event)),
                                 ),
                             ]
@@ -399,7 +454,7 @@ pub(super) fn selected_payload_key_for_binding(
 }
 
 pub(super) fn selected_payload_key_from_entries(
-    payload: &[(String, Value)],
+    payload: &[(String, &Value)],
     current: Option<&str>,
 ) -> Option<String> {
     if payload.is_empty() {
@@ -530,13 +585,13 @@ pub(super) fn parse_relative_collection_payload_path(
     Some((normalized.clone(), parse_value_path(&normalized)?))
 }
 
-pub(super) fn collect_binding_payload_item_entries(
-    value: &Value,
+pub(super) fn collect_binding_payload_item_entries<'a>(
+    value: &'a Value,
     prefix: Option<&str>,
-    entries: &mut Vec<(String, Value)>,
+    entries: &mut Vec<(String, &'a Value)>,
 ) {
     if let Some(prefix) = prefix {
-        entries.push((prefix.to_string(), value.clone()));
+        entries.push((prefix.to_string(), value));
     }
     match value {
         Value::Array(items) => {
@@ -583,6 +638,7 @@ pub(super) fn apply_binding_action_state(
                     route: target,
                     action: None,
                     payload,
+                    payload_missing_policy: Default::default(),
                 });
             }
         }
@@ -595,6 +651,7 @@ pub(super) fn apply_binding_action_state(
                     route: None,
                     action: target,
                     payload,
+                    payload_missing_policy: Default::default(),
                 });
             }
         }
@@ -607,6 +664,7 @@ pub(super) fn ensure_binding_action_for_payload(binding: &mut UiBindingRef) -> &
             route: binding.route.clone(),
             action: None,
             payload: BTreeMap::new(),
+            payload_missing_policy: Default::default(),
         });
     }
     binding
@@ -636,14 +694,24 @@ pub(super) fn normalized_binding_id(value: &str, default_id: &str) -> String {
     }
 }
 
-pub(super) fn normalized_binding_target(value: &str) -> Option<String> {
+pub(super) fn normalized_binding_target(
+    value: &str,
+    kind: UiBindingSchemaNameKind,
+) -> Option<String> {
     let trimmed = value.trim();
-    (!trimmed.is_empty()).then(|| trimmed.to_string())
+    kind.validate(trimmed).ok().map(|()| trimmed.to_string())
 }
 
 pub(super) fn normalized_payload_key(value: &str) -> Option<String> {
     let trimmed = value.trim();
-    (!trimmed.is_empty()).then(|| trimmed.to_string())
+    let path = parse_value_path(trimmed)?;
+    path.iter()
+        .filter_map(|segment| match segment {
+            UiAssetTomlPathSegment::Key(key) => Some(key.as_str()),
+            UiAssetTomlPathSegment::Index(_) => None,
+        })
+        .all(|key| UiBindingSchemaNameKind::PayloadField.validate(key).is_ok())
+        .then(|| trimmed.to_string())
 }
 
 pub(super) fn format_binding_item(binding: &UiBindingRef) -> String {
@@ -684,8 +752,10 @@ mod tests {
 
     fn route_binding(route: &str) -> UiBindingRef {
         UiBindingRef {
+            component_event: None,
             id: "Button/onClick".to_string(),
             event: UiEventKind::Click,
+            mode: Default::default(),
             route: Some(route.to_string()),
             action: None,
             targets: Vec::new(),
@@ -748,5 +818,26 @@ mod tests {
                 ),
             ]
         );
+    }
+
+    #[test]
+    fn editor_normalization_uses_the_shared_binding_name_schema() {
+        assert_eq!(
+            normalized_binding_target(" workbench.asset.open ", UiBindingSchemaNameKind::Route),
+            Some("workbench.asset.open".to_string())
+        );
+        assert_eq!(
+            normalized_binding_target("workbench..open", UiBindingSchemaNameKind::Route),
+            None
+        );
+        assert_eq!(
+            normalized_binding_target("view/console", UiBindingSchemaNameKind::Action),
+            None
+        );
+        assert_eq!(
+            normalized_payload_key("context.source"),
+            Some("context.source".to_string())
+        );
+        assert_eq!(normalized_payload_key("context.not valid"), None);
     }
 }

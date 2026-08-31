@@ -54,8 +54,8 @@ use frame_assertions::{
 };
 use scene_fixtures::{
     write_pbr_matrix_material, write_pbr_matrix_scene, write_single_pbr_material,
-    write_single_pbr_sphere_scene_with_camera_view, write_uv_sphere_model,
-    SinglePbrSphereCameraView,
+    write_single_pbr_material_with_standard_inputs, write_single_pbr_sphere_scene_with_camera_view,
+    write_uv_sphere_model, SinglePbrSphereCameraView,
 };
 use sphere_reflection::render_single_pbr_sphere_frame_with_environment;
 
@@ -76,6 +76,8 @@ const PBR_TEXTURED_HDRI_METAL025_OUTPUT_NAME: &str =
     "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal025_texture_maps_20260707.png";
 const PBR_TEXTURED_HDRI_METAL029_OUTPUT_NAME: &str =
     "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal029_texture_maps_20260707.png";
+const PBR_TEXTURED_HDRI_STANDARD_INPUTS_OUTPUT_NAME: &str =
+    "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_standard_inputs_20260824.png";
 const POLYHAVEN_LAKES_1K_HDRI_ASSET: &str = "polyhaven_lakes_1k.hdr";
 const POLYHAVEN_LAKES_2K_HDRI_ASSET: &str = "polyhaven_lakes_2k.hdr";
 const LEGACY_EQUIRECT_SAMPLE_COLUMNS: u32 = 16;
@@ -87,6 +89,10 @@ const PMREM_MIP_DIAGNOSTIC_TILE_SIZE: u32 = 96;
 const SHADER_TEST_OUTPUT_DIR_OVERRIDE_ENV: &str = "ZIRCON_SHADER_TEST_OUTPUT_DIR";
 const PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME_OVERRIDE_ENV: &str =
     "ZIRCON_PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME";
+const PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV: &str = "ZIRCON_PBR_TEXTURED_HDRI_OUTPUT_NAME";
+const HDRI_EXPORT_RENDERDOC_CAPTURE_ENV: &str = "ZR_RENDERDOC_CAPTURE_PBR_HDRI_EXPORT";
+const PBR_TEXTURED_HDRI_OUTPUT_NAME_PREFIX: &str =
+    "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_";
 
 #[test]
 fn shader_hdri_export_submits_and_captures_through_the_framework() {
@@ -99,6 +105,41 @@ fn shader_hdri_export_submits_and_captures_through_the_framework() {
     assert!(source.contains(concat!("capture_", "frame(viewport)")));
     assert!(!source.contains(concat!("SceneRenderer", "::new")));
     assert!(!source.contains(concat!("render_scene_color", "_hdr")));
+}
+
+#[test]
+fn shader_hdri_export_has_an_explicit_opt_in_renderdoc_frame_capture() {
+    let source = include_str!("runtime_shader_pbr_hdri_export.rs");
+
+    assert!(source.contains(HDRI_EXPORT_RENDERDOC_CAPTURE_ENV));
+    assert!(source.contains(concat!("request_graphics_debugger_", "capture(viewport)")));
+    assert!(source.contains(concat!("query_graphics_debugger_", "status()")));
+    assert!(source.contains("HDRI RenderDoc capture must complete in its requested frame"));
+}
+
+#[test]
+fn shader_hdri_export_covers_prepared_static_cubemap_upload_in_a_captured_compiled_frame() {
+    let source = include_str!("runtime_shader_pbr_hdri_export.rs");
+    let metal009_export = source
+        .split_once(
+            "\nfn export_runtime_shader_pbr_real_hdri_textured_material_png_with_metal009()",
+        )
+        .and_then(|(_, source)| {
+            source.split_once(
+                "\nfn export_runtime_shader_pbr_real_hdri_textured_material_png_with_fixture",
+            )
+        })
+        .map(|(body, _)| body)
+        .expect("Metal009 HDRI export body");
+    let compiled_submit = source
+        .split_once("\nfn submit_frame_extract_and_capture(")
+        .map(|(_, body)| body)
+        .expect("compiled HDRI submission helper");
+
+    assert!(metal009_export.contains("EnvironmentExtract::source_cubemap("));
+    assert!(metal009_export.contains("polyhaven_lakes_source_cubemap_environment("));
+    assert!(compiled_submit.contains(".submit_frame_extract("));
+    assert!(source.contains(HDRI_EXPORT_RENDERDOC_CAPTURE_ENV));
 }
 
 #[test]
@@ -136,6 +177,18 @@ fn export_runtime_shader_pbr_real_hdri_textured_material_png() {
 }
 
 #[test]
+#[ignore = "manual real HDRI Standard-PBR texture transform, normal-scale, and IOR export"]
+fn export_runtime_shader_pbr_real_hdri_standard_inputs_png() {
+    std::thread::Builder::new()
+        .name("runtime_shader_pbr_hdri_standard_inputs_export".to_string())
+        .stack_size(128 * 1024 * 1024)
+        .spawn(export_runtime_shader_pbr_real_hdri_standard_inputs_png_inner)
+        .expect("spawn large-stack Standard-PBR inputs HDRI export test")
+        .join()
+        .expect("Standard-PBR inputs HDRI export test thread should not panic");
+}
+
+#[test]
 #[ignore = "manual ambientCG Metal008/025/029 material export for runtime PBR real HDRI validation"]
 fn export_runtime_shader_pbr_real_hdri_ambientcg_metal008_025_029_png() {
     std::thread::Builder::new()
@@ -157,6 +210,47 @@ fn export_runtime_shader_pbr_real_hdri_1k_pmrem_mip_diagnostic_png_inner() {
 
 fn export_runtime_shader_pbr_real_hdri_textured_material_png_inner() {
     export_runtime_shader_pbr_real_hdri_textured_material_png_with_metal009();
+}
+
+fn export_runtime_shader_pbr_real_hdri_standard_inputs_png_inner() {
+    let environment = EnvironmentExtract::source_cubemap(
+        polyhaven_lakes_source_cubemap_environment(POLYHAVEN_LAKES_2K_HDRI_ASSET, 3),
+    );
+    let frame = render_single_pbr_sphere_frame_with_environment(
+        environment,
+        "GraphicsPbrRealHdriStandardInputs",
+        |paths| {
+            write_ambientcg_metal009_texture_assets(paths);
+            write_single_pbr_material_with_standard_inputs(
+                paths
+                    .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+                    .join("materials")
+                    .join("single_metal_sphere.zmaterial"),
+                "AmbientCG Metal009 Standard PBR Inputs",
+                [1.0, 1.0, 1.0, 1.0],
+                0.0,
+                1.0,
+                Some(&ambientcg_metal009_texture_uri(AMBIENTCG_METAL009_COLOR)),
+                Some(&ambientcg_metal009_texture_uri(
+                    AMBIENTCG_METAL009_NORMAL_GL,
+                )),
+                Some(&ambientcg_metal009_texture_uri(
+                    AMBIENTCG_METAL009_METALLIC_ROUGHNESS,
+                )),
+            );
+        },
+    );
+    let output =
+        runtime_shader_pbr_real_hdri_output_path(PBR_TEXTURED_HDRI_STANDARD_INPUTS_OUTPUT_NAME);
+
+    save_viewport_frame_png(
+        &frame,
+        &output,
+        "real HDRI Standard-PBR material-input screenshot",
+    );
+    assert_shader_test_output_path(&output);
+    assert_single_sphere_reflects_environment(&frame, "Standard-PBR input sphere");
+    assert_textured_material_has_surface_variation(&frame);
 }
 
 fn export_runtime_shader_pbr_real_hdri_ambientcg_metal008_025_029_png_inner() {
@@ -200,7 +294,11 @@ fn export_runtime_shader_pbr_real_hdri_textured_material_png_with_metal009() {
             );
         },
     );
-    let output = runtime_shader_pbr_real_hdri_output_path(PBR_TEXTURED_HDRI_OUTPUT_NAME);
+    let output_name = pbr_textured_hdri_output_name_from_override(
+        std::env::var(PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV).ok(),
+    )
+    .unwrap_or_else(|error| panic!("invalid real HDRI textured material output name: {error}"));
+    let output = runtime_shader_pbr_real_hdri_output_path(&output_name);
 
     save_viewport_frame_png(
         &frame,
@@ -336,7 +434,11 @@ fn render_project_with_environment<T>(
         PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);
     snapshot.overlays = RenderOverlayExtract::default();
 
-    let framework = WgpuRenderFramework::new(asset_access).unwrap();
+    let framework = WgpuRenderFramework::new(
+        asset_access,
+        asset_runtime.task_graph().worker_pool().clone(),
+    )
+    .unwrap();
     let viewport = framework
         .create_viewport(
             RenderViewportDescriptor::new(output_size).with_label("shader06.pbr-hdri-export"),
@@ -358,12 +460,32 @@ fn submit_frame_extract_and_capture(
     viewport: RenderViewportHandle,
     snapshot: RenderSceneSnapshot,
 ) -> ViewportFrame {
+    let capture_requested = std::env::var_os(HDRI_EXPORT_RENDERDOC_CAPTURE_ENV).is_some();
+    if capture_requested {
+        framework
+            .request_graphics_debugger_capture(viewport)
+            .expect("request RenderDoc capture for real HDRI PBR export");
+    }
+
     framework
         .submit_frame_extract(
             viewport,
             RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(0), snapshot),
         )
         .expect("submit compiled Shader06 product frame");
+    if capture_requested {
+        let capture_status = framework
+            .query_graphics_debugger_status()
+            .expect("query real HDRI PBR RenderDoc capture status");
+        assert!(
+            !capture_status.capture_pending,
+            "HDRI RenderDoc capture must complete in its requested frame"
+        );
+        assert_eq!(
+            capture_status.last_error, None,
+            "HDRI RenderDoc capture must complete without a debugger error"
+        );
+    }
     let captured = framework
         .capture_frame(viewport)
         .expect("capture compiled Shader06 product frame")
@@ -383,10 +505,22 @@ fn save_viewport_frame_png(
     output: &Path,
     context: &str,
 ) {
-    ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba.clone())
-        .expect("rendered real HDRI PBR frame should match output image dimensions")
-        .save_with_format(output, ImageFormat::Png)
+    let image = ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba.clone())
+        .expect("rendered real HDRI PBR frame should match output image dimensions");
+    let mut output_file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(output)
+        .unwrap_or_else(|error| panic!("claim immutable {context} path: {error}"));
+    image::DynamicImage::ImageRgba8(image)
+        .write_to(&mut output_file, ImageFormat::Png)
         .unwrap_or_else(|error| panic!("write {context}: {error}"));
+    output_file
+        .flush()
+        .unwrap_or_else(|error| panic!("flush {context}: {error}"));
+    output_file
+        .sync_all()
+        .unwrap_or_else(|error| panic!("sync {context}: {error}"));
 }
 
 fn polyhaven_lakes_source_cubemap_environment(
@@ -711,6 +845,52 @@ fn pmrem_mip_diagnostic_output_path() -> PathBuf {
     let output_name = pmrem_mip_diagnostic_output_name_from_override(override_name)
         .unwrap_or_else(|error| panic!("invalid PMREM mip diagnostic output name: {error}"));
     runtime_shader_pbr_real_hdri_output_path(&output_name)
+}
+
+fn pbr_textured_hdri_output_name_from_override(
+    override_name: Option<String>,
+) -> Result<String, String> {
+    let output_name = override_name.unwrap_or_else(|| PBR_TEXTURED_HDRI_OUTPUT_NAME.to_owned());
+    if output_name.is_empty()
+        || output_name.contains('/')
+        || output_name.contains('\\')
+        || !output_name.starts_with(PBR_TEXTURED_HDRI_OUTPUT_NAME_PREFIX)
+        || !output_name.ends_with(".png")
+    {
+        return Err(format!(
+            "{PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV} must be an immutable real HDRI textured material PNG file name: {output_name}"
+        ));
+    }
+    Ok(output_name)
+}
+
+#[test]
+fn pbr_textured_hdri_output_name_requires_a_new_shader_archive_png() {
+    assert_eq!(
+        pbr_textured_hdri_output_name_from_override(None)
+            .expect("the legacy textured HDRI output name remains readable"),
+        PBR_TEXTURED_HDRI_OUTPUT_NAME
+    );
+    assert_eq!(
+        pbr_textured_hdri_output_name_from_override(Some(
+            "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_20260823.png"
+                .to_owned(),
+        ))
+        .expect("a date-suffixed textured HDRI evidence file is valid"),
+        "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_20260823.png"
+    );
+    assert!(pbr_textured_hdri_output_name_from_override(Some(
+        "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_20260823.jpg"
+            .to_owned(),
+    ))
+    .expect_err("non-PNG outputs must be rejected")
+    .contains(PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV));
+    assert!(pbr_textured_hdri_output_name_from_override(Some(
+        "..\\runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_20260823.png"
+            .to_owned(),
+    ))
+    .expect_err("path-bearing output names must be rejected")
+    .contains(PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV));
 }
 
 #[test]

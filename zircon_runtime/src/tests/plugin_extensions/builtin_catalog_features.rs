@@ -22,11 +22,9 @@ fn builtin_net_content_download_dependency_report_blocks_without_http_feature() 
         .find(|block| block.feature_id == "net.content_download")
         .expect("content download should be blocked without net.http");
 
-    assert!(
-        content_download_block
-            .missing_capabilities
-            .contains(&"runtime.feature.net.http".to_string())
-    );
+    assert!(content_download_block
+        .missing_capabilities
+        .contains(&"runtime.feature.net.http".to_string()));
 
     let completed = catalog.complete_project_manifest(&manifest, RuntimeTargetMode::ClientRuntime);
     let net = completed
@@ -34,16 +32,14 @@ fn builtin_net_content_download_dependency_report_blocks_without_http_feature() 
         .iter()
         .find(|selection| selection.id == "net")
         .expect("net selection should be completed");
-    assert!(
-        net.features
-            .iter()
-            .any(|feature| feature.id == "net.content_download" && feature.enabled)
-    );
-    assert!(
-        net.features
-            .iter()
-            .any(|feature| feature.id == "net.http" && !feature.enabled)
-    );
+    assert!(net
+        .features
+        .iter()
+        .any(|feature| feature.id == "net.content_download" && feature.enabled));
+    assert!(net
+        .features
+        .iter()
+        .any(|feature| feature.id == "net.http" && !feature.enabled));
 }
 
 #[test]
@@ -130,12 +126,12 @@ fn builtin_sound_optional_features_declare_editor_capabilities() {
 fn rendering_vfx_graph_dependency_report_blocks_without_implicit_feature_enablement() {
     let catalog = RuntimePluginCatalog::builtin();
     let manifest = ProjectPluginManifest {
-        selections: vec![
-            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Rendering, true, false)
-                .with_feature(
-                    ProjectPluginFeatureSelection::new("rendering.vfx_graph").enabled(true),
-                ),
-        ],
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Rendering,
+            true,
+            false,
+        )
+        .with_feature(ProjectPluginFeatureSelection::new("rendering.vfx_graph").enabled(true))],
     };
 
     let blocked = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::ClientRuntime);
@@ -146,16 +142,12 @@ fn rendering_vfx_graph_dependency_report_blocks_without_implicit_feature_enablem
         .expect("vfx graph should be blocked without particles and shader graph");
 
     assert!(vfx_block.missing_plugins.contains(&"particles".to_string()));
-    assert!(
-        vfx_block
-            .missing_capabilities
-            .contains(&"runtime.plugin.particles".to_string())
-    );
-    assert!(
-        vfx_block
-            .missing_capabilities
-            .contains(&"runtime.feature.rendering.shader_graph".to_string())
-    );
+    assert!(vfx_block
+        .missing_capabilities
+        .contains(&"runtime.plugin.particles".to_string()));
+    assert!(vfx_block
+        .missing_capabilities
+        .contains(&"runtime.feature.rendering.shader_graph".to_string()));
 
     let completed = catalog.complete_project_manifest(&manifest, RuntimeTargetMode::ClientRuntime);
     let rendering = completed
@@ -163,24 +155,18 @@ fn rendering_vfx_graph_dependency_report_blocks_without_implicit_feature_enablem
         .iter()
         .find(|selection| selection.id == "rendering")
         .expect("rendering selection should be completed");
-    assert!(
-        rendering
-            .features
-            .iter()
-            .any(|feature| feature.id == "rendering.vfx_graph" && feature.enabled)
-    );
-    assert!(
-        rendering
-            .features
-            .iter()
-            .any(|feature| feature.id == "rendering.shader_graph" && !feature.enabled)
-    );
-    assert!(
-        completed
-            .selections
-            .iter()
-            .any(|selection| selection.id == "particles" && !selection.enabled)
-    );
+    assert!(rendering
+        .features
+        .iter()
+        .any(|feature| feature.id == "rendering.vfx_graph" && feature.enabled));
+    assert!(rendering
+        .features
+        .iter()
+        .any(|feature| feature.id == "rendering.shader_graph" && !feature.enabled));
+    assert!(completed
+        .selections
+        .iter()
+        .any(|selection| selection.id == "particles" && !selection.enabled));
 }
 
 #[test]
@@ -219,23 +205,23 @@ fn builtin_rendering_metadata_only_features_remain_provider_missing_after_depend
         .expect("metadata-only VFX graph should remain blocked");
     assert!(vfx_graph.provider_missing);
     assert!(vfx_graph.missing_plugins.is_empty());
-    assert!(
-        vfx_graph
-            .missing_capabilities
-            .contains(&"runtime.feature.rendering.shader_graph".to_string())
-    );
+    assert!(vfx_graph
+        .missing_capabilities
+        .contains(&"runtime.feature.rendering.shader_graph".to_string()));
 }
 
 #[test]
 fn rendering_features_are_blocked_on_server_target() {
     let catalog = RuntimePluginCatalog::builtin();
     let manifest = ProjectPluginManifest {
-        selections: vec![
-            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Rendering, true, false)
-                .with_feature(
-                    ProjectPluginFeatureSelection::new("rendering.contact_shadow").enabled(true),
-                ),
-        ],
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Rendering,
+            true,
+            false,
+        )
+        .with_feature(
+            ProjectPluginFeatureSelection::new("rendering.contact_shadow").enabled(true),
+        )],
     };
 
     let report = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::ServerRuntime);

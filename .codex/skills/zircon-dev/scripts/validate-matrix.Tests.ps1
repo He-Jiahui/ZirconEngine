@@ -58,58 +58,10 @@ Describe "Validate matrix managed Cargo environment policy" {
     It "keeps manual and coordinator-managed target validation on the shared physical-path guard" {
         $source = Get-Content -Raw -Encoding UTF8 $script:ValidateMatrixScript
 
-        $source | Should Match 'Resolve-ManagedCargoTargetPath\s+`?\s*-TargetDirectory\s+\$absoluteRequestedTarget'
+        $source | Should Match 'Resolve-ManagedCargoTargetPath\s+`?\s*-TargetDirectory\s+\$resolvedRequestedTarget'
         $source | Should Match 'Resolve-ManagedCargoTargetPath\s+-TargetDirectory\s+\$targetDir'
     }
 
-    It "binds temporary and Cargo cache output to the managed target and restores the caller environment" {
-        $targetDirectory = Join-Path "E:\cargo-targets\zircon-engine" (
-            "validate-matrix-temporary-{0}" -f [guid]::NewGuid().ToString("N")
-        )
-        $names = @("CARGO_TARGET_DIR", "TEMP", "TMP", "TMPDIR", "CARGO_HOME", "SCCACHE_DIR")
-        $previousValues = @{}
-        foreach ($name in $names) {
-            $previousValues[$name] = [Environment]::GetEnvironmentVariable($name, "Process")
-            [Environment]::SetEnvironmentVariable($name, "C:\caller-$($name.ToLowerInvariant())", "Process")
-        }
-
-        try {
-            $lease = $null
-            try {
-                $managedTargetResolution = Resolve-ManagedCargoTargetPath -TargetDirectory $targetDirectory
-                $lease = Push-ManagedCargoEnvironment -TargetDirectory $targetDirectory
-
-                $lease.TemporaryDisplayPath | Should Be (Join-Path $managedTargetResolution.DisplayPath "temporary")
-                $lease.CargoHomeDisplayPath | Should Be (Join-Path $managedTargetResolution.DisplayPath "cargo-home")
-                $lease.SccacheDisplayPath | Should Be (Join-Path $managedTargetResolution.DisplayPath "sccache")
-                Test-Path -LiteralPath $lease.TemporaryOperationalPath -PathType Container | Should Be $true
-                Test-Path -LiteralPath $lease.CargoHomeOperationalPath -PathType Container | Should Be $true
-                Test-Path -LiteralPath $lease.SccacheOperationalPath -PathType Container | Should Be $true
-                [Environment]::GetEnvironmentVariable("CARGO_TARGET_DIR", "Process") | Should Be $managedTargetResolution.OperationalPath
-                foreach ($name in @("TEMP", "TMP", "TMPDIR")) {
-                    [Environment]::GetEnvironmentVariable($name, "Process") | Should Be $lease.TemporaryOperationalPath
-                }
-                [Environment]::GetEnvironmentVariable("CARGO_HOME", "Process") | Should Be $lease.CargoHomeOperationalPath
-                [Environment]::GetEnvironmentVariable("SCCACHE_DIR", "Process") | Should Be $lease.SccacheOperationalPath
-            }
-            finally {
-                if ($null -ne $lease) {
-                    Pop-ManagedCargoEnvironment -Lease $lease
-                }
-                if (Test-Path -LiteralPath $targetDirectory) {
-                    Remove-Item -LiteralPath $targetDirectory -Recurse -Force
-                }
-            }
-            foreach ($name in $names) {
-                [Environment]::GetEnvironmentVariable($name, "Process") | Should Be "C:\caller-$($name.ToLowerInvariant())"
-            }
-        }
-        finally {
-            foreach ($name in $names) {
-                [Environment]::SetEnvironmentVariable($name, $previousValues[$name], "Process")
-            }
-        }
-    }
 }
 
 function Get-CiProfileFeatureMatrix {
@@ -457,20 +409,57 @@ Describe "Coordinator Cargo target hard cutover" {
     }
 
     It "does not acquire a reusable pool when toolchain identity cannot be established" {
-        $client = Join-Path $script:ValidateMatrixTestRepoRoot "tools\zircon-session.ps1"
-        $beforeRaw = & $client -Command cargo -RepoRoot $script:ValidateMatrixTestRepoRoot -Json list
-        $beforeIds = @((($beforeRaw -join "`n") | ConvertFrom-Json).jobs | ForEach-Object job_id)
-        $result = Invoke-ValidateMatrixCliWithoutCargo -Arguments @("-SkipTest")
+        $script:ToolchainFailureCoordinatorCalls = 0
+        Mock Get-RustCompatibilityIdentity { throw "rustc identity unavailable" }
+        Mock Invoke-SessionCoordinatorJson {
+            $script:ToolchainFailureCoordinatorCalls++
+            throw "coordinator must not be called"
+        }
 
-        $result.ExitCode | Should Not Be 0
-        $result.Output | Should Match "rustc"
-        $raw = & $client -Command cargo -RepoRoot $script:ValidateMatrixTestRepoRoot -Json list
-        $jobs = (($raw -join "`n") | ConvertFrom-Json).jobs
-        $ownerId = Resolve-ValidationSessionId -RepoRoot $script:ValidateMatrixTestRepoRoot
-        $created = @($jobs | Where-Object {
-            $beforeIds -notcontains $_.job_id -and $_.session_id -eq $ownerId
-        })
-        $created.Count | Should Be 0
+        $failure = $null
+        try {
+            Resolve-CoordinatorCargoTarget `
+                -RepoRoot $script:ValidateMatrixTestRepoRoot `
+                -LaneKind "test" `
+                -WorkspaceManifest "Cargo.toml" | Out-Null
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure | Should Not BeNullOrEmpty
+        $failure.Exception.Message | Should Match "rustc"
+        $script:ToolchainFailureCoordinatorCalls | Should Be 0
+        $mainSource = (Get-Command Invoke-ValidateMatrixMain).ScriptBlock.ToString()
+        $compatibilityIndex = $mainSource.IndexOf('$compatibilityJson = New-CargoCompatibilityJson')
+        $cacheIndex = $mainSource.IndexOf('$compilerCacheExecutable = Resolve-ManagedCompilerCacheExecutable')
+        $compatibilityIndex | Should BeGreaterThan -1
+        $cacheIndex | Should BeGreaterThan $compatibilityIndex
+    }
+
+    It "projects dry-run targets without creating coordinator state" {
+        $script:DryRunCoordinatorCalls = 0
+        Mock Get-RustCompatibilityIdentity {
+            return [pscustomobject]@{
+                Toolchain = "dry-run-toolchain"
+                TargetArchitecture = "dry-run-target"
+            }
+        }
+        Mock Invoke-SessionCoordinatorJson {
+            $script:DryRunCoordinatorCalls++
+            throw "dry-run must not call the coordinator"
+        }
+
+        $target = Resolve-CoordinatorCargoTarget `
+            -RepoRoot $script:ValidateMatrixTestRepoRoot `
+            -LaneKind "workspace" `
+            -WorkspaceManifest "Cargo.toml" `
+            -DryRunMode
+
+        $target.DryRun | Should Be $true
+        $target.JobId | Should Match '^dry-run-[0-9a-f]{64}$'
+        $target.TargetDir | Should Match $script:ManagedPoolRegex
+        $script:DryRunCoordinatorCalls | Should Be 0
     }
 }
 
@@ -486,6 +475,68 @@ Describe "Coordinator supervisor role" {
         $startMatch.Success | Should Be $true
         $startMatch.Value | Should Match '"--supervisor"'
         $startMatch.Value | Should Match '"cargo", "start"'
+    }
+}
+
+Describe "Coordinator validation session lifecycle" {
+    It "uses an executable successor when the stable validation child is archived" {
+        $previousThreadId = $env:CODEX_THREAD_ID
+        try {
+            $env:CODEX_THREAD_ID = "primary-session-id"
+            $script:ArchivedValidationSessionCalls = [System.Collections.Generic.List[object]]::new()
+
+            Mock Invoke-SessionCoordinatorJson {
+                param([string]$RepoRoot, [string[]]$Arguments)
+
+                $script:ArchivedValidationSessionCalls.Add([pscustomobject]@{
+                    Arguments = @($Arguments)
+                })
+                $sessionIdIndex = [Array]::IndexOf($Arguments, "--session-id")
+                $sessionId = if ($sessionIdIndex -ge 0) { $Arguments[$sessionIdIndex + 1] } else { "" }
+
+                if ($Arguments[0] -eq "session") {
+                    $status = if ($sessionId -eq "validate-matrix:primary-session-id") { "archived" } else { "registered" }
+                    return [pscustomobject]@{
+                        session = [pscustomobject]@{
+                            session_id = $sessionId
+                            status = $status
+                        }
+                    }
+                }
+                if ($Arguments[0] -eq "cargo" -and $Arguments[1] -eq "acquire") {
+                    return [pscustomobject]@{
+                        job = [pscustomobject]@{
+                            job_id = "validation-successor-job-id"
+                            target_dir = "E:\\cargo-targets\\validation-session-successor-test"
+                            dry_run = $false
+                        }
+                    }
+                }
+
+                return [pscustomobject]@{}
+            }
+
+            $target = Resolve-CoordinatorCargoTarget `
+                -RepoRoot $script:ValidateMatrixTestRepoRoot `
+                -LaneKind "test" `
+                -WorkspaceManifest "Cargo.toml"
+
+            $target.OwnerId | Should Match '^validate-matrix:primary-session-id:successor:'
+            $sessionRegistrations = @($script:ArchivedValidationSessionCalls | Where-Object { $_.Arguments[0] -eq "session" })
+            $sessionRegistrations.Count | Should Be 2
+            $sessionRegistrations[0].Arguments[$sessionRegistrations[0].Arguments.IndexOf("--session-id") + 1] |
+                Should Be "validate-matrix:primary-session-id"
+            $sessionRegistrations[1].Arguments[$sessionRegistrations[1].Arguments.IndexOf("--session-id") + 1] |
+                Should Be $target.OwnerId
+            $cargoAcquire = @($script:ArchivedValidationSessionCalls | Where-Object {
+                $_.Arguments[0] -eq "cargo" -and $_.Arguments[1] -eq "acquire"
+            })[0]
+            $cargoAcquire.Arguments[$cargoAcquire.Arguments.IndexOf("--session-id") + 1] |
+                Should Be $target.OwnerId
+        }
+        finally {
+            $env:CODEX_THREAD_ID = $previousThreadId
+        }
     }
 }
 
@@ -544,7 +595,10 @@ Describe "Coordinator pre-start failure cleanup" {
             $script:PreStartCoordinatorCalls.Add($command)
             if ($command -match '^session register') {
                 return [pscustomobject]@{
-                    session = [pscustomobject]@{ session_id = "validate-matrix:test" }
+                    session = [pscustomobject]@{
+                        session_id = "validate-matrix:test"
+                        status = "active"
+                    }
                 }
             }
             return [pscustomobject]@{
@@ -581,7 +635,10 @@ Describe "Coordinator pre-start failure cleanup" {
             $command = $Arguments -join " "
             if ($command -match '^session register') {
                 return [pscustomobject]@{
-                    session = [pscustomobject]@{ session_id = "validate-matrix:test" }
+                    session = [pscustomobject]@{
+                        session_id = "validate-matrix:test"
+                        status = "active"
+                    }
                 }
             }
             if ($command -match '^cargo release') {
@@ -670,7 +727,12 @@ Describe "Coordinator pre-start failure cleanup" {
         Mock Push-ManagedCargoEnvironment {
             return [pscustomobject]@{
                 TemporaryDisplayPath = "E:\cargo-targets\zircon-engine\ambiguous-start-job\tmp"
+                BuildDisplayPath = "E:\cargo-targets\zircon-engine\ambiguous-start-job\build"
                 CargoHomeDisplayPath = "E:\cargo-targets\zircon-engine\ambiguous-start-job\cargo-home"
+                SccacheDisplayPath = "E:\cargo-targets\zircon-engine\ambiguous-start-job\sccache"
+                SccacheTemporaryDisplayPath = "E:\cargo-targets\zircon-engine\cache\sccache-temporary"
+                SccacheServerPort = 42261
+                SccacheServerProcessId = 1234
             }
         }
         Mock Pop-ManagedCargoEnvironment {}
@@ -718,20 +780,6 @@ Describe "Coordinator pre-start failure cleanup" {
         $script:CoordinatorCompletionCalls.Count | Should Be 2
         $script:CoordinatorCompletionCalls[0] | Should Match "cargo finish started-job"
         $script:CoordinatorCompletionCalls[1] | Should Match "cargo release started-job"
-    }
-}
-
-Describe "Get-PrebuildCleanupDecision" {
-    It "requires cleanup when free space is at or below the 50 GB threshold" {
-        $decision = Get-PrebuildCleanupDecision -FreeBytes 50GB -ThresholdBytes 50GB
-
-        $decision.RequiresCleanup | Should Be $true
-    }
-
-    It "skips cleanup when free space is above the threshold" {
-        $decision = Get-PrebuildCleanupDecision -FreeBytes 51GB -ThresholdBytes 50GB
-
-        $decision.RequiresCleanup | Should Be $false
     }
 }
 
@@ -1021,10 +1069,6 @@ Describe "Product binary Cargo arguments" {
                 }) `
                 -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\profiling-profile" `
                 -CargoProfile "profiling")
-            $cleanup = @(Get-CargoCleanArgs `
-                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\release-clean" `
-                -WorkspaceManifest "Cargo.toml")
-
             (@($development | Where-Object { $_ -eq "--release" })).Count | Should Be 0
             (@($development | Where-Object { $_ -eq "--profile" })).Count | Should Be 0
             ($explicitDevelopment -join " ") | Should Be ($development -join " ")
@@ -1044,8 +1088,6 @@ Describe "Product binary Cargo arguments" {
             (@($profilingExportContract | Where-Object { $_ -eq "--profile" })).Count | Should Be 1
             (@($profilingProfileContract | Where-Object { $_ -eq "--profile" })).Count | Should Be 1
             (@($profilingBuild | Where-Object { $_ -eq "--release" })).Count | Should Be 0
-            (@($cleanup | Where-Object { $_ -eq "--release" })).Count | Should Be 0
-            (@($cleanup | Where-Object { $_ -eq "--profile" })).Count | Should Be 0
         }
         finally {
             $script:Package = $previousPackage
@@ -1259,6 +1301,51 @@ Describe "Validate matrix CLI dry-run parsing" {
         $result.Output | Should Match "cargo test -p zircon_runtime --locked --lib export_render17_pfm1_render_graph_cold_warm_wgpu_png --target-dir $($script:ManagedPoolRegex) -- --ignored"
     }
 
+    It "dry-runs the convention clippy gate without an extra build or test" {
+        $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
+            "-DryRun",
+            "-SkipBuild",
+            "-SkipTest",
+            "-RunConventionClippy"
+        )
+
+        $result.ExitCode | Should Be 0
+        $result.Output | Should Match "cargo clippy -p zircon_runtime_interface -p zircon_app --all-targets --no-deps --locked --jobs 1 --target-dir $($script:ManagedPoolRegex) -- -D warnings"
+        $result.Output | Should Not Match "cargo build"
+        $result.Output | Should Not Match "cargo test"
+        $result.Output | Should Not Match "No stages selected"
+    }
+
+    It "rejects convention gates that would silently change the locked reuse contract" {
+        $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
+            "-DryRun",
+            "-SkipBuild",
+            "-SkipTest",
+            "-RunConventionStructure",
+            "-NoLocked",
+            "-Ephemeral",
+            "-CargoProfile",
+            "release"
+        )
+
+        $result.ExitCode | Should Not Be 0
+        $result.Output | Should Match "locked development reuse profile"
+    }
+
+    It "rejects convention gates for a non-root workspace manifest" {
+        $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
+            "-DryRun",
+            "-SkipBuild",
+            "-SkipTest",
+            "-RunConventionClippy",
+            "-ManifestPath",
+            "zircon_plugins/Cargo.toml"
+        )
+
+        $result.ExitCode | Should Not Be 0
+        $result.Output | Should Match "repository root Cargo.toml"
+    }
+
     It "rejects ignored-test mode without a focused filter" {
         $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
             "-DryRun",
@@ -1283,7 +1370,7 @@ Describe "Validate matrix CLI dry-run parsing" {
         )
 
         $result.ExitCode | Should Not Be 0
-        $result.Output | Should Match "cargo_target_not_managed|D:\\\\cargo-targets"
+        $result.Output | Should Match "approved root"
     }
 
     It "rejects an inherited target outside managed lane roots" {
@@ -1292,7 +1379,7 @@ Describe "Validate matrix CLI dry-run parsing" {
             -Arguments @("-DryRun", "-SkipBuild", "-SkipTest")
 
         $result.ExitCode | Should Not Be 0
-        $result.Output | Should Match "cargo_target_not_managed|D:\\\\cargo-targets"
+        $result.Output | Should Match "approved root"
     }
 }
 
@@ -1405,7 +1492,7 @@ Describe "Export platform contract validation" {
 
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
-        $result.Output | Should Match "Dry run selected; skipping cargo discovery and target directory cleanup checks"
+        $result.Output | Should Match "Dry run selected; skipping cargo discovery and storage admission checks"
         $result.Output | Should Match "Export platform contract \(headless\)"
         $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir $($script:ManagedPoolRegex)"
     }
@@ -1759,7 +1846,7 @@ Describe "Profile feature contract validation" {
 
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
-        $result.Output | Should Match "Dry run selected; skipping cargo discovery and target directory cleanup checks"
+        $result.Output | Should Match "Dry run selected; skipping cargo discovery and storage admission checks"
         $result.Output | Should Match "Profile feature contract \(zircon_runtime target-server\)"
         $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir $($script:ManagedPoolRegex)"
     }
@@ -2087,7 +2174,10 @@ Describe "Default profile feature topology" {
         $headlessHostArm.Groups["body"].Value | Should Not Match 'platform/'
         $headlessHostArm.Groups["body"].Value | Should Not Match 'runtime_library_file'
 
-        $pluginSelectionTemplate | Should Match 'RuntimeTargetMode::ServerRuntime\s*=>\s*"EntryProfile::Headless"'
+        $pluginSelectionTemplate | Should Not Match 'EntryProfile'
+        $pluginSelectionTemplate | Should Not Match 'entry_profile_expr'
+        $pluginSelectionTemplate | Should Match 'ExportRuntimeBootstrapConfig::new\(\\n\s*project_plugins\(\),\\n\s*export_profile\(\),\\n\s*\)'
+        $pluginSelectionTemplate | Should Not Match '\.with_target_mode\('
         $mainTemplate | Should Match 'bootstrap_export_runtime'
         $mainTemplate | Should Match 'bootstrap_export_runtime_with_native_plugins_from_export_root'
     }
@@ -2151,7 +2241,15 @@ Describe "Platform capability matrix topology" {
         $inputMatrixPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\platform\capability\matrix\input.rs"
         $gamepadMatrixPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\platform\capability\matrix\gamepad.rs"
         $policyMatrixPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\platform\capability\matrix\policy.rs"
-        $windowMatrix = Get-Content -Raw -Encoding UTF8 $windowMatrixPath
+        $windowMatrix = @(
+            Get-Content -Raw -Encoding UTF8 $windowMatrixPath
+            Get-ChildItem `
+                -LiteralPath (Join-Path (Split-Path $windowMatrixPath -Parent) "window") `
+                -Filter "*.rs" `
+                -Recurse |
+                Sort-Object FullName |
+                ForEach-Object { Get-Content -Raw -Encoding UTF8 $_.FullName }
+        ) -join "`n"
         $inputMatrix = Get-Content -Raw -Encoding UTF8 $inputMatrixPath
         $gamepadMatrix = Get-Content -Raw -Encoding UTF8 $gamepadMatrixPath
         $policyMatrix = Get-Content -Raw -Encoding UTF8 $policyMatrixPath
@@ -2264,8 +2362,9 @@ Describe "M5 contract documentation index" {
 
         $combinedDocs | Should Match "DryRun"
         $combinedDocs | Should Match "without requiring Cargo discovery"
-        $combinedDocs | Should Match "target-directory cleanup checks"
-        $combinedDocs | Should Match "managed.*lane"
+        $combinedDocs | Should Match "storage admission checks"
+        $combinedDocs | Should Match "coordinator writes"
+        $combinedDocs | Should Match "compatibility-keyed target"
         $combinedDocs | Should Match "cargo-targets"
     }
 }

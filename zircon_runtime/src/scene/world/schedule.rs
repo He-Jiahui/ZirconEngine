@@ -69,7 +69,17 @@ impl World {
         system: BoxedSceneSystem,
     ) -> Result<(), ScheduleError> {
         let mut schedule = std::mem::take(&mut self.schedule);
-        let result = schedule.register_boxed_native_system(system);
+        let result = schedule.register_boxed_native_system(self, system);
+        self.schedule = schedule;
+        result
+    }
+
+    /// Permanently removes a native system after it has reached the schedule's
+    /// quiescent boundary. A running worker system reports `SystemInFlight`
+    /// instead of releasing World-bound parameter state concurrently.
+    pub fn unregister_native_system(&mut self, id: &str) -> Result<bool, ScheduleError> {
+        let mut schedule = std::mem::take(&mut self.schedule);
+        let result = schedule.unregister_native_system(self, id);
         self.schedule = schedule;
         result
     }

@@ -9,6 +9,7 @@ pub(super) fn dispatch_pane_body_route(
     dispatch_pane_route_button(
         input.ui,
         input.presentation.structure(),
+        input.presentation.pane_interaction_state(),
         input.state,
         input.button,
         input.button_id,

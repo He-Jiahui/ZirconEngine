@@ -25,6 +25,8 @@ fn welcome_surface_controls_use_generic_rust_callbacks_and_toml_controls() {
         "CreateProject",
         "OpenExistingProject",
         "OpenRecentProject",
+        "SafeRecentProject",
+        "RecoverRecentProject",
         "RemoveRecentProject",
     ] {
         assert!(

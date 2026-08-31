@@ -5,9 +5,9 @@ mod statistics;
 mod synchronize;
 
 pub(in crate::hybrid_gi) use declarations::{
-    GLOBAL_SDF_CLIPMAP_COUNT, GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT, GLOBAL_SDF_PAGES_PER_EDGE,
     HybridGiGlobalSdfClipmapBounds, HybridGiGlobalSdfPageBuildRequest, HybridGiGlobalSdfPageKey,
-    HybridGiGlobalSdfSceneState,
+    HybridGiGlobalSdfSceneState, GLOBAL_SDF_CLIPMAP_COUNT, GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT,
+    GLOBAL_SDF_PAGES_PER_EDGE,
 };
 pub(in crate::hybrid_gi) use influence::GLOBAL_SDF_MAX_PAGE_CANDIDATES;
 

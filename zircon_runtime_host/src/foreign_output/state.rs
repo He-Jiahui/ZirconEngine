@@ -17,6 +17,10 @@ use super::{
     RuntimeForeignOutputError, RuntimeForeignOutputMetricsSnapshot, RuntimeOwnedOutputReleaser,
 };
 
+mod diagnostic;
+
+use diagnostic::render_diagnostic_line;
+
 pub struct RuntimeForeignOutputState {
     acceptance_gate: Mutex<()>,
     protocol_failed: AtomicBool,
@@ -224,30 +228,7 @@ impl RuntimeForeignOutputState {
     }
 
     pub fn diagnostic_line(&self) -> Option<String> {
-        let metrics = self.metrics();
-        if !metrics.has_activity() {
-            return None;
-        }
-        let mut fields = vec![
-            format!("protocol_failed={}", metrics.protocol_failed),
-            format!("protocol_failures={}", metrics.protocol_failures),
-            format!("blocked_session_calls={}", metrics.blocked_session_calls),
-        ];
-        for kind in RuntimeForeignOutputKind::ALL {
-            let counters = metrics.for_kind(kind);
-            fields.push(format!(
-                "{}.accepted_payloads={} {}.accepted_bytes={} {}.rejected_payloads={} {}.rejected_bytes={} {}.call_failures={} {}.blocked_calls={} {}.total_decode_ns={} {}.max_decode_ns={}",
-                kind.label(), counters.accepted_payloads,
-                kind.label(), counters.accepted_bytes,
-                kind.label(), counters.rejected_payloads,
-                kind.label(), counters.rejected_bytes,
-                kind.label(), counters.call_failures,
-                kind.label(), counters.blocked_calls,
-                kind.label(), counters.total_decode_nanoseconds,
-                kind.label(), counters.max_decode_nanoseconds,
-            ));
-        }
-        Some(fields.join(" "))
+        render_diagnostic_line(self.metrics())
     }
 
     fn reject_and_release<T>(

@@ -1,8 +1,8 @@
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
-use crate::asset::assets::standalone_sfnt_face;
 use crate::asset::FontAssetFaceMetrics;
+use crate::asset::assets::standalone_sfnt_face;
 use crate::text::FontFaceId;
 
 use super::{FontDatabase, FontDatabaseError, StoredFontSource};
@@ -174,7 +174,7 @@ impl FontDatabase {
 /// Keeping them in the fallback cache key preserves sequence identity while
 /// excluding them from face coverage avoids rejecting a font that can shape
 /// the sequence through GSUB or a Unicode variation subtable.
-fn codepoint_requires_font_coverage(codepoint: char) -> bool {
+pub(in crate::text::font) fn codepoint_requires_font_coverage(codepoint: char) -> bool {
     !matches!(
         codepoint,
         '\u{200C}'

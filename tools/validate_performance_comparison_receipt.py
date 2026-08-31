@@ -477,11 +477,12 @@ def _validate_comparison(
 
     baseline_samples = _validate_samples(comparison["baseline_samples"], "comparison.baseline_samples")
     candidate_samples = _validate_samples(comparison["candidate_samples"], "comparison.candidate_samples")
-    _validate_samples_against_report(baseline_samples, baseline, metric, "baseline")
-    _validate_samples_against_report(candidate_samples, candidate, metric, "candidate")
-
-    baseline_statistics = _statistics(baseline_samples)
-    candidate_statistics = _statistics(candidate_samples)
+    baseline_statistics = _validate_samples_against_report(
+        baseline_samples, baseline, metric, "baseline"
+    )
+    candidate_statistics = _validate_samples_against_report(
+        candidate_samples, candidate, metric, "candidate"
+    )
     baseline_median = baseline_statistics["median"]
     candidate_median = candidate_statistics["median"]
     median_ratio = (candidate_median - baseline_median) / baseline_median
@@ -517,7 +518,7 @@ def _validate_samples(value: Any, label: str) -> list[float]:
 
 def _validate_samples_against_report(
     samples: list[float], report: Mapping[str, Any], metric: str, label: str
-) -> None:
+) -> dict[str, float]:
     observations = _require_object(report.get("observations"), f"{label} report.observations")
     valid_frame_count = observations.get("valid_frame_count")
     if isinstance(valid_frame_count, bool) or not isinstance(valid_frame_count, int):
@@ -534,6 +535,7 @@ def _validate_samples_against_report(
             raise RuntimeError(
                 f"Performance comparison {label} samples do not match report {metric}.{field}"
             )
+    return actual_statistics
 
 
 def _statistics(samples: list[float]) -> dict[str, float]:
@@ -635,13 +637,15 @@ def _bootstrap_ratio_interval(
     }
     seed = int.from_bytes(hashlib.sha256(_canonical_payload(seed_document)).digest(), "big")
     random_generator = random.Random(seed)
+    baseline_groups, baseline_values = _ordered_sample_groups(baseline_samples)
+    candidate_groups, candidate_values = _ordered_sample_groups(candidate_samples)
     ratios = []
     for _ in range(_BOOTSTRAP_RESAMPLE_COUNT):
         baseline_value = _resampled_statistic(
-            baseline_samples, random_generator, statistic
+            baseline_samples, baseline_groups, baseline_values, random_generator, statistic
         )
         candidate_value = _resampled_statistic(
-            candidate_samples, random_generator, statistic
+            candidate_samples, candidate_groups, candidate_values, random_generator, statistic
         )
         ratios.append((candidate_value - baseline_value) / baseline_value)
     tail_probability = (1.0 - level) / 2.0
@@ -652,12 +656,39 @@ def _bootstrap_ratio_interval(
 
 
 def _resampled_statistic(
-    samples: list[float], random_generator: random.Random, statistic: str
+    samples: list[float],
+    sample_groups: list[int],
+    ordered_values: list[float],
+    random_generator: random.Random,
+    statistic: str,
 ) -> float:
-    resampled = [
-        samples[random_generator.randrange(len(samples))] for _ in range(len(samples))
-    ]
-    return _statistics(resampled)[statistic]
+    count = len(samples)
+    sample_counts = [0] * len(ordered_values)
+    for _ in range(count):
+        sample_counts[sample_groups[random_generator.randrange(count)]] += 1
+    if statistic == "median":
+        midpoint = count // 2
+        ranks = (midpoint,) if count % 2 else (midpoint - 1, midpoint)
+    else:
+        ranks = (math.ceil(count * 0.95) - 1,)
+
+    values: list[float] = []
+    cumulative_count = 0
+    rank_index = 0
+    for value, value_count in zip(ordered_values, sample_counts, strict=True):
+        cumulative_count += value_count
+        while rank_index < len(ranks) and cumulative_count > ranks[rank_index]:
+            values.append(value)
+            rank_index += 1
+        if rank_index == len(ranks):
+            break
+    return values[0] if len(values) == 1 else (values[0] + values[1]) / 2.0
+
+
+def _ordered_sample_groups(samples: list[float]) -> tuple[list[int], list[float]]:
+    ordered_values = sorted(set(samples))
+    groups_by_value = {value: index for index, value in enumerate(ordered_values)}
+    return [groups_by_value[value] for value in samples], ordered_values
 
 
 def _percentile(samples: list[float], probability: float) -> float:

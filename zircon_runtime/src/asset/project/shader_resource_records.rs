@@ -129,7 +129,7 @@ fn deduplicate_shader_resource_records(
         records_by_id.insert(record.id, record);
     }
     let mut records = records_by_id.into_values().collect::<Vec<_>>();
-    records.sort_by(|left, right| {
+    records.sort_unstable_by(|left, right| {
         left.primary_locator
             .cmp(&right.primary_locator)
             .then_with(|| left.id.cmp(&right.id))
@@ -251,3 +251,7 @@ fn non_zero_revision_from_hash(hash: blake3::Hash) -> u64 {
         revision
     }
 }
+
+#[cfg(test)]
+#[path = "shader_resource_records/optimization_tests.rs"]
+mod optimization_tests;

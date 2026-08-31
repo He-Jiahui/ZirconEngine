@@ -163,4 +163,40 @@ fn welcome_command_binding_roundtrips_through_native_binding() {
         EditorUiBinding::parse_native_binding(&open_recent_binding.native_binding()).unwrap(),
         open_recent_binding
     );
+
+    let recover_recent_binding = EditorUiBinding::new(
+        "WelcomeSurface",
+        "RecoverRecentProject",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::welcome_command(WelcomeCommand::RecoverRecentProject {
+            path: "E:/Projects/Sandbox".to_string(),
+        }),
+    );
+
+    assert_eq!(
+        recover_recent_binding.native_binding(),
+        r#"WelcomeSurface/RecoverRecentProject:onClick(WelcomeCommand.RecoverRecentProject("E:/Projects/Sandbox"))"#
+    );
+    assert_eq!(
+        EditorUiBinding::parse_native_binding(&recover_recent_binding.native_binding()).unwrap(),
+        recover_recent_binding
+    );
+
+    let safe_recent_binding = EditorUiBinding::new(
+        "WelcomeSurface",
+        "SafeRecentProject",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::welcome_command(WelcomeCommand::SafeRecentProject {
+            path: "E:/Projects/Sandbox".to_string(),
+        }),
+    );
+
+    assert_eq!(
+        safe_recent_binding.native_binding(),
+        r#"WelcomeSurface/SafeRecentProject:onClick(WelcomeCommand.SafeRecentProject("E:/Projects/Sandbox"))"#
+    );
+    assert_eq!(
+        EditorUiBinding::parse_native_binding(&safe_recent_binding.native_binding()).unwrap(),
+        safe_recent_binding
+    );
 }

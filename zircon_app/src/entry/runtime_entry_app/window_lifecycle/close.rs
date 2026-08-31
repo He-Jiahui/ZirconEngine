@@ -14,10 +14,12 @@ impl RuntimeEntryApp {
             return;
         }
         if self.window_lifecycle_policy.should_close_on_request() {
-            self.close_primary_window_after_request();
-            if self
-                .window_lifecycle_policy
-                .should_exit_after_primary_close()
+            let surface_release = self.application_lifecycle.destroy_surfaces();
+            let teardown_failed = !self.finish_surface_release(surface_release);
+            if teardown_failed
+                || self
+                    .window_lifecycle_policy
+                    .should_exit_after_primary_close()
             {
                 event_loop.exit();
             }

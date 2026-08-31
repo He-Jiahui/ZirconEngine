@@ -94,8 +94,10 @@ fn ecs_typed_api_compile_owners_keep_internal_types_in_their_lowest_visible_doma
     assert!(
         diagnostics.contains("pub(in super::super) struct CompiledScenePropertyAccessDiagnostics")
     );
-    assert!(compiled_binding
-        .contains("pub(super) use diagnostics::CompiledScenePropertyAccessDiagnostics;"));
+    assert!(
+        compiled_binding
+            .contains("pub(super) use diagnostics::CompiledScenePropertyAccessDiagnostics;")
+    );
     assert!(!diagnostics.contains("pub(crate) struct CompiledScenePropertyAccessDiagnostics"));
 }
 

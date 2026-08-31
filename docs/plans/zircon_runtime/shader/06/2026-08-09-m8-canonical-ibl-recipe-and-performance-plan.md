@@ -148,8 +148,87 @@ canonical persisted behavior. A future GPU recipe must either produce the same
 contract within declared per-section error bounds or receive a distinct recipe
 identity and artifact invalidation. M8 advances the algorithm version to
 `2026_08_09_0006` because the runtime GPU IEM now samples its declared source
-mip rather than mip zero. The preceding final-storage allocation refactor
-remains output-equivalent and was correctly left at `2026_08_02_0005`.
+mip rather than mip zero; the 2026-08-24 UE PMREM mapping repair then advances
+it to `2026_08_24_0007`; the 2026-08-26 low-roughness PMREM PDF repair advances
+the current identity to `2026_08_26_0008`. The preceding final-storage
+allocation refactor remains output-equivalent and was correctly left at
+`2026_08_02_0005`.
+
+### 2026-08-24 PMREM Roughness-LOD Correctness Repair Plan
+
+The current source re-audit found that the CPU recipe, GPU bake parameters,
+and sampling WGSL agree with each other but expand Unreal's
+`ComputeReflectionCaptureMipFromRoughness` incorrectly by one mip. They use
+`max_mip - roughest_mip_offset + scale * log2(r)`, while Unreal's declared
+`level_from_1x1 = roughest_mip_offset - scale * log2(r)` followed by
+`mip = max_mip - 1 - level_from_1x1` requires
+`max_mip - 1 - roughest_mip_offset + scale * log2(r)`. With an eight-mip
+PMREM, `roughness=1` therefore selects mip 6 today but must select mip 5;
+the current output is one mip too blurred across the non-clamped range.
+
+This is a correctness repair, not a sampling-budget optimization. It must
+change `IblBakeRecipe`'s forward and inverse maps, the PMREM sampling WGSL,
+and their source-contract tests together. The runtime GPU bake already gets
+each mip roughness through the framework recipe, so it follows that corrected
+source rather than carrying a duplicate formula. Because the content assigned
+to every filtered mip changes, the recipe version must advance from
+`2026_08_09_0006` to `2026_08_24_0007`; old `.zribl` artifacts must be
+rejected and rebuilt rather than sampled using a new LOD contract.
+
+The fixed `128x8` recipe retains eight mips and eight dispatches. Its static
+CPU value-evaluation count increases from 1,214,208 to 1,416,960
+(+202,752, about 16.7%) because the 64-sample tier begins at the 32-face mip
+rather than the 16-face mip and the 128-sample tier begins at the 4-face mip
+rather than the 2-face mip. This is
+an algorithmic accounting result, not elapsed-time or energy evidence. The
+next managed Windows profile must measure cold bake wall time, worker
+utilization, GPU bake timestamps, and image/error deltas before any sample
+budget or resolution change is considered.
+
+The local reflection-probe route was re-audited with this repair. Capture
+builds a standard `SourceCubemap` from the six rendered faces, derives the
+normal `IblBakeArtifactRequest`, and writes it through
+`IblSourceCubemapStagingStore`; consumption decodes the resulting `.zribl`
+PMREM through the ordinary texture-asset path. At sampling time,
+`zr_environment_probe_color` invokes the same
+`zr_environment_mip_from_roughness` helper as global environment and planar
+reflection. There is therefore no probe-specific roughness formula or artifact
+identity to update: recipe version `2026_08_24_0007` invalidates this route as
+well. The separate 09F1 findings around synchronous six-face capture/readback
+and per-fragment probe selection are structural performance work; they remain
+outside this correctness repair until their Windows profile and architecture
+plan are accepted.
+
+### 2026-08-26 PMREM Low-Roughness PDF Correctness Repair
+
+The follow-up review inspected Unreal's complete
+`ReflectionEnvironmentShaders.usf::FilterCS` call site. It rejected removing
+`E.y *= 0.995`: Unreal applies that scale before `ImportanceSampleGGX` and also
+uses the same texel solid-angle factor `2`, `D/4` light-direction PDF, and
+roughness-above-0.99 cosine branch as Zircon. Zircon's centered Hammersley
+azimuth remains a documented CPU/GPU finite-sample sequence choice rather than
+an exact Unreal sequence claim.
+
+The actual mismatch is inside the PDF's `distribution_ggx`. Both Zircon paths
+floored `PI * d * d` to `1e-6`, even though the canonical positive roughness
+and bounded `NoH` make the GGX denominator valid. For the default 128x8 layout,
+mip1 roughness is `0.0992126`; at `NoH=1`, Unreal D_GGX is `3285.3633` while
+the old floor returns `96.8873`. Across its 32 Hammersley samples, 27 D values
+change. With a 256 source face, old PDF source LOD is on average `1.3430` mips
+higher and the center sample is `2.1676` mips higher, prematurely blurring the
+first filtered PMREM mip.
+
+CPU and GPU now evaluate the mathematically equivalent positive form
+`d = (1 - NoH^2) + NoH^2 * a^2`, which avoids both subtraction cancellation
+and the full-denominator floor. Sample budgets, Hammersley rules, PDF LOD,
+output ABI, and graph dispatch structure are otherwise unchanged. Because the
+persisted PMREM changes, the recipe advances from `2026_08_24_0007` to
+`2026_08_26_0008`, and the viewer evidence validator advances with it. Old
+`.zribl` artifacts and sidecars cannot satisfy current-source acceptance.
+
+The formula and LOD deltas above are deterministic source-level measurements,
+not elapsed-time, framebuffer, or power evidence. Managed CPU/GPU parity,
+image, timing, RenderDoc, and energy gates remain open.
 
 ## Milestones
 
@@ -161,6 +240,14 @@ remains output-equivalent and was correctly left at `2026_08_02_0005`.
   writes and reads reject GPU-provenance blobs; cold runtime-cache hits
   rehydrate the source environment before suppressing graph bake; and the
   `2026_08_09_0006` algorithm version invalidates the prior GPU mip-zero cache.
+- Implemented, managed verification pending: the 2026-08-24 UE PMREM
+  roughness-LOD repair advances the framework recipe to `2026_08_24_0007`,
+  invalidating all prior PMREM artifacts rather than allowing the new sampler
+  to consume prefiltered mips produced with the former one-mip offset.
+- Implemented, managed verification pending: the 2026-08-26 low-roughness
+  PMREM PDF repair removes the full D_GGX denominator floor from CPU/GPU,
+  advances the current recipe to `2026_08_26_0008`, and invalidates prior
+  prefiltered radiance artifacts/evidence.
 - Implemented, managed verification pending: `.zribl` format v4 inserts a
   32-byte BLAKE3 payload checksum after its header and rejects corruption before
   payload hydration. The second review forward-fixed the runtime-cache
@@ -429,6 +516,22 @@ remains output-equivalent and was correctly left at `2026_08_02_0005`.
   absolute error `0.01624132`; the Rust regression gates those values at
   `0.003` mean and `0.02` maximum. The quantitative PBR test now samples the
   actual rectangular runtime LUT rather than a square test-only surrogate.
+- 2026-08-24 current-source lifecycle audit: `SceneEnvironmentBrdfLut::new`
+  creates a device-local 128x32 RG16F texture, then obtains its 16 KiB upload
+  payload from a process-wide `OnceLock`. The first caller synchronously runs
+  the 524,288 CPU integration iterations and half-float encoding; later
+  renderers reuse only the immutable byte payload and still perform their own
+  device upload. The current GPU timestamp path starts after this work, while
+  `SceneRendererStartupReport` reports only aggregate core initialization, so
+  neither can attribute the cold CPU integration. Do not change the LUT
+  algorithm, resolution, sample count, or delivery path on aggregate startup
+  time alone. Implemented, validation pending: the dedicated startup phase now
+  records cold-build state, cache wait, CPU integration/encoding, and per-device
+  upload submission in the core report and Ready sidecar v13; v2-v12 remain
+  readable as legacy evidence. Collect Windows CPU/WPR evidence before deciding
+  whether a versioned builtin/cook artifact with device-loss recovery is
+  justified. That structural candidate belongs with the shared
+  EnvironmentPbrRecipe/artifact owner rather than a Shader06-only static blob.
 - Completed startup-attribution infrastructure: Ready schema v12 reports
   renderer-lifetime shader/pipeline creation counts and CPU times plus
   successful async Base admission queue wait. The EnvironmentOnly Base PSO now
@@ -573,12 +676,12 @@ not the historical DX12 PSO bottleneck. cmft's `imageIrradianceFilterSh` builds 
 harmonic reconstruction, an `O(source samples + output texels * coefficients)`
 approximation rather than Zircon's direct convolution. Zircon already carries
 SH9, but it must not substitute that approximation for the persisted direct
-IEM until M8.2 records CPU/GPU IEM RGB and seam error. Ready-frame evidence
-schema v12 retains the historical `source_sample_visits` key for the direct IEM
+IEM until M8.2 records CPU/GPU IEM RGB and seam error. Current Ready-frame evidence
+schema v14 retains the historical `source_sample_visits` key for the direct IEM
 candidate-iteration count alongside its wall time; it is zero when IEM was not
 built or the staged artifact was reused. A future actual-read profiler must be
 kept separate so it does not add atomics to the canonical bake loop. First
-collect that v12 throughput on the target machine; only then evaluate an
+collect that v14 throughput on the target machine; only then evaluate an
 output-equivalent source-sample table or an explicitly versioned, measured SH
 approximation.
 
@@ -788,6 +891,74 @@ historical executable and treating it as acceptance. Energy or watts data is
 also absent; CPU sample time and GPU timestamps do not establish power parity
 with Unreal or Unity. M8 will report power only if the capture platform exposes
 an energy counter with an explicit unit and sampling interval.
+
+### 2026-08-25 Material-Fixture PSO Admission Closure
+
+The current Ready-frame schema is v16. Earlier v12--v15 references above are
+historical attribution/identity milestones, not the schema required for a new
+managed capture. V16 retains their provenance and startup fields and adds the
+selected material fixture, the Base PSO actually required by that fixture, its
+capture-time ready state, and whether the environment-only Base prewarm was
+requested.
+
+`metal-mirror` keeps the established `environment-only-pbr-base` admission.
+`dielectric-ior` (`ior = 2.0`, metallic `0`, roughness `0.08`) is deliberately
+an isolated viewer project and uses `generic-forward-pbr-ior` instead. Its
+prewarm key is structurally identical to its generated static material key:
+the built-in PBR source, empty material layout/options, opaque single-sided
+state, no texture features, `receive_shadows = false`, and the non-default IOR
+routing bit. The registry removes that routing bit from PSO identity but uses
+it to exclude `ENVIRONMENT_ONLY_PBR`; the result is the generic Forward
+receiver PSO, not a second IOR shader permutation. The IOR scene does not
+request the specialized environment-only prewarm, avoiding an unused shader
+assembly and PSO creation at startup.
+
+The evidence validator rejects a dielectric sidecar that reports the
+environment-only PSO, claims that unused prewarm, or reports nonzero prewarm
+timing. This is a source-level correctness and startup-work-elimination
+closure only. The managed profile runner now accepts the same closed fixture
+set, passes it to every cache-seed, cold, warm, and optional RenderDoc viewer
+command, records the v16 material/PSO fields in each run report, and binds the
+fixture in the profile manifest. A v16 display oracle must additionally bind
+the fixture's complete PSO admission/prewarm provenance. When supplied, the
+runner records one resolved oracle fingerprint in the manifest, top-level
+summary, and every run; the summarizer rejects a mismatch and replays Ready
+evidence with that same manifest-bound oracle. A valid IOR sample therefore
+cannot be silently mixed with a mirror sample, approved by a mirror oracle, or
+lose its visual baseline during profile aggregation. No Cargo/WGPU execution,
+current executable, DX12 timing, Windows Performance Recorder trace,
+screenshot, RenderDoc replay, energy, or power measurement was produced, so it
+neither changes the M8 managed validation requirement nor supplies a
+performance result.
+
+### 2026-08-25 Fixture-Bound Viewer Project Cache Closure
+
+The viewer asset-root reuse predicate now verifies both the six generated
+files and the deserialized `.zmaterial` semantic contract for the requested
+`ViewerMaterialFixture`. It validates the built-in PBR source, material name,
+base color, metallic/roughness values, opaque/no-texture/no-parent contract,
+lighting/shadow overrides, and the presence or absence of the authored IOR
+input. A complete file tree from an earlier generated-material contract is
+therefore treated as stale and atomically replaced; it cannot be selected just
+because all filenames exist. The publication fallback preserves the existing
+immutable-tree rule only when the competing tree matches the same fixture.
+
+This check runs once during viewer project startup, before opening the runtime
+project. Its fixed file-presence portion is six `is_file` checks and its
+semantic portion is one small material-source read and project-document parse;
+there is no per-frame, per-draw, shader, or PSO-path work. Parsing the source
+rather than trusting timestamps or a parallel cache marker deliberately makes
+fixture/material changes self-validating. The existing startup report's
+`project_assets` phase is the measurement boundary: the required managed
+five-cold/five-warm matrix must report its impact before a sidecar hash or a
+weaker reuse predicate is considered.
+
+Focused source tests cover malformed complete trees, fixture replacement, and
+the losing concurrent publisher. Static source guards, the new module's
+`rustfmt --check`, and scoped diff integrity pass. Cargo, WGPU, DX12, WPR,
+screenshot, RenderDoc, power, and benchmark commands were not run, so this is
+implementation closure inside M8 and does not alter its
+`implementation_complete_pending_managed_validation` status.
 
 ## References Reviewed
 

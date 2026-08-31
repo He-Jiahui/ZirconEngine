@@ -28,6 +28,7 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
         include_str!("../../handle/registration/entry.rs"),
         include_str!("../../handle/registration/service_lists/mod.rs"),
         include_str!("../../handle/registration/service_lists/multi.rs"),
+        include_str!("../../handle/registration/service_lists/selection.rs"),
         include_str!("../../handle/registration/service_lists/shutdown.rs"),
         include_str!("../../handle/registration/service_lists/specialized.rs"),
         include_str!("../../handle/registration/service_lists/types.rs"),
@@ -206,11 +207,16 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(resolution_source.contains("stack.reserve(RESOLUTION_STACK_FRAME_CAPACITY)"));
     assert!(resolution_source
         .contains("self.resolve_registered_service_inner(dependency_name, None, stack)?"));
-    assert!(resolution_source.contains("if result.is_err() && claimed_initialization"));
-    assert!(
-        resolution_source.contains("self.reset_initializing_service(service_key, current_thread)")
-    );
+    assert!(resolution_source.contains("struct ServiceInitializationClaim<'a>"));
+    assert!(resolution_source.contains("impl Drop for ServiceInitializationClaim<'_>"));
+    assert!(resolution_source.contains("panic::catch_unwind(AssertUnwindSafe"));
+    assert!(resolution_source.contains("CoreError::ServiceFactoryPanicked"));
+    assert!(!resolution_source.contains("claimed_initialization"));
     assert!(resolution_source.contains("fn reset_initializing_service("));
+    assert!(resolution_source.contains("expected_index: u32"));
+    assert!(resolution_source.contains("expected_generation: u32"));
+    assert!(resolution_source.contains("entry.index == expected_index"));
+    assert!(resolution_source.contains("entry.generation == expected_generation"));
     assert!(resolution_source.contains("initialization_owner: thread::ThreadId"));
     assert!(resolution_source.contains("entry.lifecycle == LifecycleState::Initializing"));
     assert!(resolution_source.contains("entry.initialization_owner == Some(initialization_owner)"));

@@ -27,14 +27,14 @@ pub use vm::{
     VmPluginSlotState, VmReflectionCatalog, VmReflectionError, VmReflectionRegistrySnapshot,
     VmReflectionSchema, VmReflectionSchemaInstaller, VmReflectionWorldAccess,
     VmReflectionWorldOperation, VmRpcHandlerRegistration, VmScriptBehaviorBridge, VmStateBlob,
-    VmStateFieldRename, VmStateMigrationError, VmStateObject, VmStateSchema, VmStateTypeIdentity,
+    VmStateFieldValue, VmStateMigrationError, VmStateObject, VmStateSchema, VmStateTypeIdentity,
     VmStateTypeSchema, VmSystemRegistration, VmSystemStage, ZrVmExecutionMode,
     ZrVmPluginProjectSource, BRIDGE_HOST_CAPABILITY, BRIDGE_HOST_MODULE,
     DEFAULT_VM_GC_MAX_MICROS_PER_FRAME, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME,
     SCRIPT_SCENE_FIXED_UPDATE_SYSTEM, SCRIPT_SCENE_RUNTIME_SYSTEM_SET, SCRIPT_SCENE_UPDATE_SYSTEM,
     VM_BT_NODE_CAPABILITY, VM_EDITOR_OPERATION_CAPABILITY, VM_GC_DIAGNOSTICS_HISTORY_CAPACITY,
     VM_HOST_INTERFACE_MODULE, VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
-    VM_REFLECTION_WORLD_EXTENSION_NAME, VM_RPC_HANDLER_CAPABILITY, VM_STATE_SCHEMA_VERSION_V2,
+    VM_REFLECTION_WORLD_EXTENSION_NAME, VM_RPC_HANDLER_CAPABILITY, VM_STATE_SCHEMA_VERSION_V3,
     VM_SYSTEM_CAPABILITY,
 };
 pub(crate) use vm::{with_script_runtime_call_context, ScriptRuntimeCallContext};

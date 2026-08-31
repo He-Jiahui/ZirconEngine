@@ -678,6 +678,56 @@ class ArtifactGovernanceTests(unittest.TestCase):
 
         self.assertEqual("unmanaged_artifacts_detected", rejected.exception.code)
 
+    def test_shared_cargo_cache_and_active_job_scratch_are_managed(self) -> None:
+        job = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.CHECK,
+            requested_target=self.cargo_root / "zircon-engine" / "pool" / "active",
+        )
+        cache_root = self.cargo_root / "zircon-engine" / "cache"
+        (cache_root / "cargo-home").mkdir(parents=True)
+        (cache_root / "sccache").mkdir()
+        scratch_root = self.cargo_root / "zircon-engine" / "scratch"
+        (scratch_root / job.job_id / "temporary").mkdir(parents=True)
+        stale = scratch_root / "stale-job"
+        stale.mkdir()
+
+        candidates = self.governance.scan()
+
+        self.assertEqual([str(stale.resolve())], [item.path for item in candidates])
+
+    def test_shared_cargo_caches_are_managed_under_every_allowed_root(self) -> None:
+        for root in (self.cargo_root, self.targets_root, self.builds_root):
+            cache_root = root / "zircon-engine" / "cache"
+            (cache_root / "cargo-home").mkdir(parents=True)
+            (cache_root / "sccache").mkdir()
+            server_temporary = cache_root / "sccache-temporary"
+            server_temporary.mkdir()
+            (server_temporary / "server-binding-v1.json").write_text(
+                "{}", encoding="utf-8"
+            )
+
+        candidates = self.governance.scan()
+
+        self.assertEqual((), candidates)
+
+    def test_empty_shared_cargo_scratch_roots_are_managed_containers(self) -> None:
+        for root in (self.cargo_root, self.targets_root, self.builds_root):
+            (root / "zircon-engine" / "scratch").mkdir(parents=True)
+
+        candidates = self.governance.scan()
+
+        self.assertEqual((), candidates)
+
+    def test_shared_cargo_scratch_unknown_children_remain_unmanaged(self) -> None:
+        scratch_root = self.cargo_root / "zircon-engine" / "scratch"
+        stale = scratch_root / "stale-job"
+        stale.mkdir(parents=True)
+
+        candidates = self.governance.scan()
+
+        self.assertEqual([str(stale.resolve())], [item.path for item in candidates])
+
     def test_require_clean_recovers_missing_artifact_reservations_online(self) -> None:
         missing = tuple(
             self.builds_root / f"mvp-test-fixtures-{pid}"

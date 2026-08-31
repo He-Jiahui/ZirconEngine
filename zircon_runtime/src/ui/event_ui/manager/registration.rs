@@ -16,7 +16,11 @@ impl UiEventManager {
         self.register_route_entry(binding, Some(Arc::new(handler)))
     }
 
-    pub fn register_route_stub(&mut self, binding: UiEventBinding) -> UiRouteId {
+    /// Registers a route whose typed binding is executed by an owning host dispatcher.
+    ///
+    /// The runtime manager intentionally stores no handler for this route. Callers that do not
+    /// own a host dispatcher must use `register_route` instead.
+    pub fn register_binding_route(&mut self, binding: UiEventBinding) -> UiRouteId {
         self.register_route_entry(binding, None)
     }
 

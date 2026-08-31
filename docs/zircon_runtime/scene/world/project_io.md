@@ -53,7 +53,7 @@ doc_type: module-detail
 
 `zircon_runtime::scene::world::project_io` owns project-file and scene-asset roundtrip behavior for `World`. It loads authored `SceneAsset` data through `ProjectManager`, reconstructs runtime components and resource handles, serializes a `World` back to project JSON or `SceneAsset`, and repairs derived runtime state after loading.
 
-The 2026-08-11 project I/O owner split keeps the public `World` API unchanged while placing scene-asset conversion and project-document I/O in separate implementation modules. `project_io.rs` is project_io root wiring; `scene_asset.rs` is the scene-asset conversion owner; `document.rs` owns JSON document encoding, decoding, and post-load normalization. Callers continue to use `World::load_scene_from_uri`, `World::from_scene_asset`, `World::to_scene_asset`, `World::save_scene_to_project`, `World::save_project_to_path`, and `World::load_project_from_path`. The existing narrow helpers remain in `project_io/{camera,document,physics,post_process,references,scene_asset,script,transform}.rs`.
+The 2026-08-11 project I/O owner split keeps the public `World` API unchanged while placing scene-asset conversion and project-document I/O in separate implementation modules. `project_io.rs` is project_io root wiring; `scene_asset.rs` is the scene-asset conversion owner; `document.rs` owns JSON document encoding, decoding, and post-load normalization. Callers continue to use `World::load_scene_from_uri`, `World::from_scene_asset`, `World::to_scene_asset`, `World::save_scene_to_project`, `World::save_project_to_path`, and `World::load_project_from_path`. The existing narrow helpers remain in `project_io/{camera,document,physics,prefab,post_process,references,scene_asset,script,transform}.rs`.
 
 ## Related Files
 
@@ -67,6 +67,7 @@ The child modules each own one conversion family:
 - `camera.rs` converts camera targets, viewport rectangles, explicit Core2d/Core3d identity, and `CameraComponent` values.
 - `post_process.rs` converts render post-process settings, volumes, profiles, tonemap, vignette, grain, dither, chromatic aberration, and fog DTOs.
 - `physics.rs` converts collider shapes.
+- `prefab.rs` decodes the retained `PrefabInstanceAsset` sidecar used by scene-asset roundtrips.
 - `script.rs` decodes the stored `script.bindings` dynamic component payload.
 - `transform.rs` converts `TransformAsset` and runtime transforms.
 
@@ -76,7 +77,7 @@ Loading starts from either a `ResourceLocator` or a `SceneAsset`. The project ma
 
 `World::from_scene_asset` uses the asset-preserving post-load path: it rebuilds schedules, registries, typed component presence, derived state, and default per-entity maps without injecting a fallback camera or directional light. This keeps sparse assets such as script-only entities and transform-only hierarchies stable across `SceneAsset -> World -> SceneAsset` roundtrips. Project-document loading still uses the default-repair path so older serialized `World` files with no camera or light can regain runtime defaults.
 
-Saving walks runtime node records and component maps, converts runtime components back into scene asset DTOs, serializes script bindings from the dynamic component map, and returns structured `SceneProjectError::SceneAsset` errors when a persistent resource locator is missing. No editor-only authoring state is serialized here.
+Saving walks runtime node records and component maps, converts runtime components back into scene asset DTOs, serializes script bindings and retained prefab-instance metadata from the dynamic component map, and returns structured `SceneProjectError::SceneAsset` errors when a persistent resource locator is missing. No editor-only authoring state is serialized here.
 
 Camera conversion preserves `core_pipeline` independently from `projection_mode` in both directions. Missing scene fields default to `Core3d`; explicit sprite-camera `Core2d` survives `SceneCameraAsset -> CameraComponent -> SceneCameraAsset`. This prevents orthographic 3D/PBR cameras from silently entering the Core2d schedule after project load or artifact-cache restore.
 
@@ -98,6 +99,8 @@ Camera texture targets require a persistent locator on export. When none exists,
 
 Script bindings remain JSON-decoded from the dynamic component store under `script.bindings`. Invalid binding payloads are reported as scene asset errors tied to the entity id.
 
+`PrefabInstanceAsset` has no runtime ECS expansion owner yet. To prevent a loaded and re-saved scene from silently deleting an instance source, local transform, or property overrides, `World::from_scene_asset` stores its complete serialized value in the internal `zircon.prefab.instance` dynamic-component sidecar and `World::to_scene_asset` decodes exactly that sidecar back to the asset DTO. This is preservation only: it does not load a prefab asset, spawn its child entities, apply overrides, or expose a second prefab truth. A malformed retained payload is a typed scene-asset save error rather than a lossy fallback.
+
 Project-document and scene-asset normalization rebuild the next entity allocation cursor with checked arithmetic before mutating schedules, derived registries, or default nodes. Project normalization precomputes whether a default camera and directional light are missing, reserves both IDs, and requires the post-default cursor to remain allocatable before it creates either node. A persisted `u64::MAX` entity, or a state whose restored/default-node allocation would reach the reserved maximum, returns `SceneProjectError::ProjectNormalization { path, source: SceneError::EntityIdExhausted }` for path-based project loads instead of panicking in debug builds, wrapping the cursor to zero in release builds, or returning a world with a reserved next cursor. Scene-asset normalization retains the typed `SceneError::EntityIdExhausted` source at its non-document boundary.
 
 Project-document loading also preflights every persisted component map before rebuilding typed component projections. A local transform map is checked first so invalid transform data returns its typed `SceneError` (for example, `ZeroScaleTransform`) rather than reaching an internal projection panic. A structurally valid component whose entity is absent from the serialized entity list returns `SceneError::MissingEntity { operation: "load persisted component", .. }`. Direct `World` deserialization rejects the same orphaned-component state as a parse error, so no public deserialization route can construct an invalid projection.
@@ -107,6 +110,8 @@ Project-document loading also preflights every persisted component map before re
 `runtime_07_project_io_folder_split_keeps_entry_and_converter_owners` locks the project_io folder split. It verifies root wiring, scene-asset conversion ownership, document I/O ownership, the existing helper modules, and the absence of conversion or document behavior from the root file.
 
 Runtime 05 scene-asset closeout now pins the asset-preserving normalizer through `scene_assets_keep_script_only_entities_as_empty_nodes`: script-only entities remain `NodeKind::Empty`, keep `script.bindings`, and no longer gain default camera/light records during `SceneAsset` roundtrip. The same test also calls `World::to_render_extract()` so sparse asset worlds keep a safe render-extract path without persisting fallback camera/light nodes. Dynamic session single-entity fixtures use explicit `World::empty()` levels when they are testing remap collisions rather than default-level bootstrap contents.
+
+`scene_assets_preserve_prefab_instance_metadata_through_world_roundtrip` keeps a prefab source, local transform, and nested JSON property override through `SceneAsset -> World -> SceneAsset`; `formal_scene_writer_reader_preserves_prefab_instance_metadata` separately protects the project TOML reader/writer path.
 
 `scene_asset_load_uses_asset_preserving_normalizer_source_guard` adds source-level coverage for the same contract: `World::from_scene_asset` must call `normalize_scene_asset_after_load`, scene-asset normalization must pass `ensure_default_nodes = false`, project-document normalization must pass `true`, and default camera/light spawning must stay gated behind `ensure_default_nodes`.
 

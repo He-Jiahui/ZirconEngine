@@ -230,13 +230,17 @@ impl AnimationRuntimeStatus {
     }
 
     pub fn sanitized_snapshot(&self) -> Self {
-        let mut snapshot = self.clone();
-        snapshot.players = self
-            .players
-            .iter()
-            .map(AnimationPlayerRuntimeStatus::sanitized_snapshot)
-            .collect();
-        snapshot
+        Self {
+            world: self.world,
+            players: self
+                .players
+                .iter()
+                .map(AnimationPlayerRuntimeStatus::sanitized_snapshot)
+                .collect(),
+            rigs: self.rigs.clone(),
+            last_tick: self.last_tick.clone(),
+            diagnostics: self.diagnostics.clone(),
+        }
     }
 }
 
@@ -283,3 +287,7 @@ fn normalize_real(value: Real) -> Real {
         0.0
     }
 }
+
+#[cfg(test)]
+#[path = "runtime_status/single_pass_snapshot_tests.rs"]
+mod single_pass_snapshot_tests;

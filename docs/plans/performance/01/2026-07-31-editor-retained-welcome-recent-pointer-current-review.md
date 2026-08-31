@@ -15,10 +15,16 @@ tests:
   - current-source managed Windows Cargo pending
   - recent-row move/scroll counters and WPR/Tracy trace pending
 doc_type: implementation-evidence
-status: static_complete_dynamic_pending
+status: superseded_by_2026_08_23_current_source_review
 ---
 
 # Editor retained welcome-recent pointer current review (2026-07-31)
+
+> Superseded by
+> `2026-08-23-editor-retained-welcome-recent-typed-item-receipt-hard-cutover-architecture-review.md`.
+> Current source has two mirror nodes, no scroll rebuild and O(1) arithmetic row hit; the N-row
+> rebuild findings below are historical. The click-time O(N) path projection and unchanged setter
+> findings were revalidated and addressed by M0.
 
 ## Scope
 

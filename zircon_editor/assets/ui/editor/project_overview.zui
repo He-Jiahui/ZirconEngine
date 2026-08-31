@@ -5,7 +5,8 @@ version = 2
 display_name = "Project Overview"
 
 [imports]
-styles = ["res://ui/theme/editor_base.zui", "res://ui/editor/theme/editor_tokens.zui"]
+widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"]
+styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]
 node = "project_overview_root"
@@ -29,7 +30,7 @@ layout = { width = { min = "$editor.density.gap.large", preferred = "$editor.den
 [nodes.project_overview_root]
 component = "VerticalBox"
 control_id = "ProjectOverviewRoot"
-classes = ["editor-shell", "editor-pane"]
+classes = ["workbench-shell-root"]
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "top_space" }, { node = "content_row" }, { node = "bottom_space" }]
 
@@ -41,31 +42,8 @@ children = [{ node = "left_space" }, { node = "outer_panel" }, { node = "right_s
 [nodes.outer_panel]
 component = "VerticalBox"
 control_id = "ProjectOverviewOuterPanel"
-classes = ["panel"]
-props = { surface_variant = "panel", radius = "$editor.control.radius.panel", border_width = "$editor.control.border_width" }
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "outer_top_space" }, { node = "content_inset_row" }, { node = "outer_bottom_space" }]
-
-[nodes.outer_top_space]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" } }
-
-[nodes.outer_bottom_space]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" } }
-
-[nodes.content_inset_left]
-component = "Space"
-layout = { width = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.content_inset_right]
-component = "Space"
-layout = { width = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.content_inset_row]
-component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "content_inset_left" }, { node = "content_stack" }, { node = "content_inset_right" }]
+children = [{ node = "content_stack" }]
 
 [nodes.header_title_row]
 component = "HorizontalBox"
@@ -98,9 +76,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.ga
 [nodes.details_panel]
 component = "VerticalBox"
 control_id = "ProjectOverviewDetailsPanel"
-classes = ["inset"]
-props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 130.0, preferred = 130.0, max = 130.0, stretch = "Fixed" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 144.0, preferred = 144.0, max = 144.0, stretch = "Fixed" } }
 children = [{ node = "details_top_space" }, { node = "details_title" }, { node = "details_default_scene_row" }, { node = "details_assets_root_row" }, { node = "details_library_row" }, { node = "details_bottom_space" }]
 
 [nodes.details_top_space]
@@ -171,9 +147,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.ga
 [nodes.catalog_panel]
 component = "VerticalBox"
 control_id = "ProjectOverviewCatalogPanel"
-classes = ["inset"]
-props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 126.0, preferred = 126.0, max = 126.0, stretch = "Fixed" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" } }
 children = [{ node = "catalog_top_space" }, { node = "catalog_label" }, { node = "catalog_summary_value" }, { node = "catalog_open_assets_button" }, { node = "catalog_open_browser_button" }, { node = "catalog_bottom_space" }]
 
 [nodes.catalog_top_space]
@@ -196,24 +170,22 @@ props = { text = "", overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
 
 [nodes.catalog_open_assets_button]
-component = "Button"
+component = "WorkbenchButton"
 control_id = "OpenAssetsView"
-classes = ["primary"]
-props = { label = "Open Assets", dispatch_kind = "surface", action_id = "workbench.view.open.editor.assets", button_variant = "primary" }
+classes = ["workbench-control-button", "workbench-primary-button"]
+props = { text = "Open Assets", dispatch_kind = "surface", action_id = "workbench.view.open.editor.assets", button_variant = "filled", button_color = "accent" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.catalog_open_browser_button]
-component = "Button"
+component = "WorkbenchButton"
 control_id = "OpenAssetBrowser"
-classes = ["secondary"]
-props = { label = "Asset Browser", dispatch_kind = "asset", button_variant = "secondary" }
+classes = ["workbench-control-button"]
+props = { text = "Asset Browser", dispatch_kind = "asset", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
-[nodes.bottom_fill]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-
 [nodes.content_stack]
-component = "VerticalBox"
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header_title_row" }, { node = "header_path_row" }, { node = "header_details_gap" }, { node = "details_panel" }, { node = "details_catalog_gap" }, { node = "catalog_panel" }, { node = "bottom_fill" }]
+component = "ScrollableBox"
+control_id = "ProjectOverviewContentScroll"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header_title_row" }, { node = "header_path_row" }, { node = "header_details_gap" }, { node = "details_panel" }, { node = "details_catalog_gap" }, { node = "catalog_panel" }]

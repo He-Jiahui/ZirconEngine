@@ -2,9 +2,10 @@ use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 
 use crate::core::framework::render::RenderCapabilitySummary;
+use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
-use zr_rhi_wgpu::{GpuReadbackQueue, ReadbackError};
+use crate::graphics::types::GraphicsError;
 
 use super::{
     IndirectCompactionPlan, IndirectDrawBatch, MeshDrawCommand, MeshIndirectCompactionResources,
@@ -66,6 +67,13 @@ impl<'a> MeshDrawCommandStream<'a> {
 
     pub(crate) fn indirect(self) -> Option<&'a MeshIndirectDrawExecution> {
         self.indirect
+    }
+
+    pub(crate) const fn without_indirect(self) -> Self {
+        Self {
+            commands: self.commands,
+            indirect: None,
+        }
     }
 
     pub(crate) fn is_empty(self) -> bool {
@@ -194,23 +202,21 @@ impl MeshIndirectDrawExecution {
 
     pub(crate) fn request_args_readback(
         &self,
-        queue: &mut GpuReadbackQueue,
-        label: &'static str,
-    ) -> Result<MeshIndirectArgsReadback, ReadbackError> {
+        backend: &RenderBackend,
+    ) -> Result<MeshIndirectArgsReadback, GraphicsError> {
         let byte_size = self.args_readback_byte_size();
         let args = SharedReadbackBytes::default();
-        args.request(queue, label, self.replay_args_buffer(), byte_size)?;
+        args.request(backend, self.replay_args_buffer(), byte_size)?;
 
         let draw_count_count = self.compaction_resources.draw_count_capacity();
         let draw_count_byte_size = self.compaction_resources.draw_count_buffer_byte_size();
         let draw_counts = (self.compaction_ready_for_replay()
             && draw_count_count > 0
             && draw_count_byte_size > 0)
-            .then(|| -> Result<_, ReadbackError> {
+            .then(|| -> Result<_, GraphicsError> {
                 let readback = SharedReadbackBytes::default();
                 readback.request(
-                    queue,
-                    label,
+                    backend,
                     self.compaction_resources.draw_count_buffer(),
                     draw_count_byte_size,
                 )?;
@@ -303,26 +309,29 @@ impl MeshIndirectArgsReadback {
 impl SharedReadbackBytes {
     fn request(
         &self,
-        queue: &mut GpuReadbackQueue,
-        name: impl Into<String>,
+        backend: &RenderBackend,
         source: &wgpu::Buffer,
         byte_size: u64,
-    ) -> Result<(), ReadbackError> {
+    ) -> Result<(), GraphicsError> {
         let result = Arc::clone(&self.result);
-        queue.request_readback_external(
-            name,
+        let admitted = backend.enqueue_product_diagnostic_buffer(
             source,
-            0..byte_size,
+            0,
+            byte_size,
             Box::new(move |readback| {
                 *result
                     .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(
-                    readback
-                        .map(<[u8]>::to_vec)
-                        .map_err(|error| error.to_string()),
-                );
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(readback);
             }),
         )?;
+        if !admitted {
+            *self
+                .result
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(Err(
+                "product diagnostic readback admission was rejected".to_string(),
+            ));
+        }
         Ok(())
     }
 
@@ -488,13 +497,12 @@ impl MeshPassIndirectDrawExecutions {
 
     pub(crate) fn request_hzb_occlusion_args_readbacks(
         &self,
-        queue: &mut GpuReadbackQueue,
-        label: &'static str,
-    ) -> Result<Vec<MeshIndirectArgsReadback>, ReadbackError> {
+        backend: &RenderBackend,
+    ) -> Result<Vec<MeshIndirectArgsReadback>, GraphicsError> {
         self.hzb_occlusion_executions()
             .into_iter()
             .flatten()
-            .map(|execution| execution.request_args_readback(queue, label))
+            .map(|execution| execution.request_args_readback(backend))
             .collect()
     }
 
@@ -524,7 +532,7 @@ impl MeshPassIndirectDrawExecutions {
 
 #[cfg(test)]
 mod tests {
-    use super::{MeshIndirectArgsSnapshot, INDEXED_INDIRECT_ARGS_STRIDE_BYTES};
+    use super::{INDEXED_INDIRECT_ARGS_STRIDE_BYTES, MeshIndirectArgsSnapshot};
     use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
@@ -562,14 +570,15 @@ mod tests {
     }
 
     #[test]
-    fn mesh_indirect_draw_execution_routes_readback_through_the_shared_queue() {
+    fn mesh_indirect_draw_execution_routes_readback_through_the_product_diagnostic_batch() {
         let source = include_str!("indirect_draw_execution.rs");
 
-        assert!(source.contains("request_readback_external"));
+        assert!(source.contains("backend.enqueue_product_diagnostic_buffer"));
         assert!(source.contains("self.replay_args_buffer()"));
         assert!(source.contains("self.compaction_resources.draw_count_buffer()"));
         assert!(source.contains("SharedReadbackBytes"));
         assert!(source.contains("decode_indexed_indirect_args"));
+        assert!(!source.contains("request_readback_external"));
         assert!(!source.contains("map_async"));
     }
 

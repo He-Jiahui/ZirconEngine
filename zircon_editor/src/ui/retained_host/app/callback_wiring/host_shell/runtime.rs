@@ -12,6 +12,28 @@ pub(super) fn wire_host_shell_runtime_callbacks(
     });
 
     let weak = Rc::downgrade(host);
+    host_shell.on_interactive_frame_requested(move || {
+        if let Some(host) = weak.upgrade() {
+            host.borrow_mut().commit_interactive_frame_update();
+        }
+    });
+
+    let weak = Rc::downgrade(host);
+    host_shell.on_workbench_pointer_input(move |pointer, tooltip_target| {
+        if let Some(host) = weak.upgrade() {
+            host.borrow_mut()
+                .observe_workbench_pointer_input(pointer, tooltip_target);
+        }
+    });
+
+    let weak = Rc::downgrade(host);
+    host_shell.on_workbench_input_activity(move || {
+        if let Some(host) = weak.upgrade() {
+            host.borrow_mut().dismiss_workbench_tooltip();
+        }
+    });
+
+    let weak = Rc::downgrade(host);
     host_shell.on_unhandled_keyboard_input(move |keyboard| {
         if let Some(host) = weak.upgrade() {
             host.borrow_mut()
@@ -22,7 +44,17 @@ pub(super) fn wire_host_shell_runtime_callbacks(
     let weak = Rc::downgrade(host);
     host_shell.on_native_window_focus_lost(move || {
         if let Some(host) = weak.upgrade() {
-            host.borrow_mut().cancel_viewport_interaction();
+            let mut host = host.borrow_mut();
+            host.dismiss_workbench_tooltip();
+            host.native_window_focus_lost();
+            host.cancel_viewport_interaction();
+        }
+    });
+
+    let weak = Rc::downgrade(host);
+    host_shell.on_asset_deletion_blocker_closed(move || {
+        if let Some(host) = weak.upgrade() {
+            host.borrow().dismiss_asset_deletion_blocker();
         }
     });
 

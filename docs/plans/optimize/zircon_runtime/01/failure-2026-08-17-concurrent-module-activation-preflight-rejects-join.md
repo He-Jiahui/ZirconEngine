@@ -47,4 +47,14 @@ tests:
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `source_recovered_managed_validation_pending`; current `HEAD` already admits
+`Initializing` during activation-closure preflight and then delegates same-module serialization
+to `LifecycleCoordinator`. This removes the stale source diagnosis that a valid join is rejected
+before coordinator admission. The focused managed Windows regression still has to run against a
+fresh current-source manifest before this failure can return as fixed.
+
+## 产出记录与时间
+
+| 时间 | 状态 | 完成项目与证据 |
+| --- | --- | --- |
+| 2026-08-24 CST | `source_recovered_managed_validation_pending` | Current-source re-review verified that `validate_module_activation_states` accepts `LifecycleState::Initializing`, and `activate_module_with_ready_timeout` subsequently calls `run_module_lifecycle_transition` for every closure member. `HEAD` commit `08094b9b9` (2026-08-22) already contains that admission behavior; `concurrent_activation_shares_one_build_transaction` remains present in the canonical activation behavior tree. No Cargo command ran in this review, so no runtime pass or fixed return is claimed. |

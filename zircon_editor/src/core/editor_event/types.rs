@@ -1,7 +1,7 @@
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformSpace, ViewOrientation,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -96,6 +96,13 @@ pub enum EditorAssetEvent {
         surface: EditorAssetSurface,
         tab: EditorAssetUtilityTab,
     },
+    RelocateAsset {
+        asset_uuid: String,
+        target_locator: String,
+    },
+    DeleteAsset {
+        asset_uuid: String,
+    },
     OpenAssetBrowser,
     LocateSelectedAsset,
     ImportModel,
@@ -129,6 +136,16 @@ pub enum EditorOperationEvent {
         operation_id: String,
         transaction_id: u64,
         group_open: bool,
+    },
+    NativeCommandExecuted {
+        operation_id: String,
+        status_code: u32,
+    },
+    EditQueued {
+        operation_id: String,
+        pending_edit_id: u64,
+        coalesced: bool,
+        evicted_pending_edit_ids: Vec<u64>,
     },
 }
 
@@ -263,6 +280,9 @@ pub enum EditorViewportEvent {
     SetTransformSpace {
         space: TransformSpace,
     },
+    SetPivotMode {
+        mode: PivotMode,
+    },
     SetProjectionMode {
         mode: ProjectionMode,
     },
@@ -305,6 +325,7 @@ impl EditorViewportEvent {
             self,
             Self::ActivateSceneMode { .. }
                 | Self::SetTransformSpace { .. }
+                | Self::SetPivotMode { .. }
                 | Self::SetProjectionMode { .. }
                 | Self::AlignView { .. }
                 | Self::SetDisplayMode { .. }
@@ -329,6 +350,7 @@ pub enum EditorEventTransient {
     BeginViewDrag { instance_id: String },
     EndViewDrag,
     OpenCommandPalette,
+    OpenSettingsWindow,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -367,11 +389,20 @@ pub enum EditorEventEffect {
     PresentWelcomeRequested,
     ProjectOpenRequested,
     ProjectSaveRequested,
+    DocumentSaveAllRequested,
     ProjectCloseRequested,
     AssetDetailsRefreshRequested,
     AssetPreviewRefreshRequested,
     ImportModelRequested,
+    AssetRelocationRequested {
+        asset_uuid: String,
+        target_locator: String,
+    },
+    AssetDeletionRequested {
+        asset_uuid: String,
+    },
     CommandPaletteOpenRequested,
+    SettingsWindowOpenRequested,
     OpenScenePickerRequested,
     CreateScenePickerRequested,
 }

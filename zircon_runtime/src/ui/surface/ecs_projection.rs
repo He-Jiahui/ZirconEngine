@@ -10,7 +10,7 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
 };
 
-use super::{ui_surface_effective_disabled, UiSurface};
+use super::{UiSurface, ui_surface_effective_disabled};
 
 impl UiSurface {
     pub fn ui_ecs_projection(&self) -> UiEcsProjectionSnapshot {
@@ -60,15 +60,14 @@ impl UiSurface {
         &self,
         previous: &UiEcsProjectionSnapshot,
     ) -> UiEcsProjectionScheduleMask {
-        self.ui_ecs_projection_delta_from(previous).schedule_mask()
+        self.ui_ecs_projection_delta_from(previous).schedule_mask
     }
 
     pub fn ui_ecs_schedule_impacts_from(
         &self,
         previous: &UiEcsProjectionSnapshot,
     ) -> Vec<UiEcsProjectionScheduleImpact> {
-        self.ui_ecs_projection_delta_from(previous)
-            .schedule_impacts()
+        self.ui_ecs_projection_delta_from(previous).schedule_impacts
     }
 
     pub fn ui_ecs_dirty_domain_impacts_from(
@@ -76,7 +75,7 @@ impl UiSurface {
         previous: &UiEcsProjectionSnapshot,
     ) -> Vec<UiEcsDirtyDomainImpact> {
         self.ui_ecs_projection_delta_from(previous)
-            .dirty_domain_impacts()
+            .dirty_domain_impacts
     }
 
     pub fn ui_ecs_component_structure_change_node_ids_from(

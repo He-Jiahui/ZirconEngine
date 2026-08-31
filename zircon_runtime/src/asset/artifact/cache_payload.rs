@@ -10,7 +10,9 @@ use crate::core::framework::animation::{
     AnimationStateMachineAsset,
 };
 use crate::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
-use crate::core::framework::render::TextureMetadataDiagnosticSeverity;
+use crate::core::framework::render::{
+    TextureMetadataDiagnostic, TextureMetadataDiagnosticSeverity,
+};
 use crate::core::framework::scene::physics::PhysicsMaterialMetadata;
 
 mod font;
@@ -238,21 +240,53 @@ fn validate_artifact_cache_texture_metadata(
     texture: &TextureAsset,
 ) -> Result<(), AssetImportError> {
     let uri = texture.uri.to_string();
-    let errors = texture
-        .texture_descriptor()
-        .validate_metadata(&uri)
-        .into_iter()
-        .filter(|diagnostic| diagnostic.severity == TextureMetadataDiagnosticSeverity::Error)
-        .map(|diagnostic| diagnostic.message)
-        .collect::<Vec<_>>();
-    if errors.is_empty() {
-        Ok(())
-    } else {
-        Err(AssetImportError::Parse(format!(
-            "validate cached texture metadata {uri}: {}",
-            errors.join("; ")
-        )))
+    let diagnostics = texture.texture_descriptor().validate_metadata(&uri);
+    let Some(message) = format_cached_texture_metadata_errors(&uri, &diagnostics) else {
+        return Ok(());
+    };
+    Err(AssetImportError::Parse(message))
+}
+
+fn format_cached_texture_metadata_errors(
+    uri: &str,
+    diagnostics: &[TextureMetadataDiagnostic],
+) -> Option<String> {
+    const PREFIX: &str = "validate cached texture metadata ";
+    const SEPARATOR: &str = "; ";
+
+    let mut error_count = 0usize;
+    let mut error_bytes = 0usize;
+    for diagnostic in diagnostics {
+        if diagnostic.severity == TextureMetadataDiagnosticSeverity::Error {
+            error_count += 1;
+            error_bytes += diagnostic.message.len();
+        }
     }
+    if error_count == 0 {
+        return None;
+    }
+
+    let message_capacity = PREFIX.len()
+        + uri.len()
+        + 2
+        + error_bytes
+        + SEPARATOR.len() * error_count.saturating_sub(1);
+    let mut message = String::with_capacity(message_capacity);
+    message.push_str(PREFIX);
+    message.push_str(uri);
+    message.push_str(": ");
+    let mut first = true;
+    for diagnostic in diagnostics {
+        if diagnostic.severity != TextureMetadataDiagnosticSeverity::Error {
+            continue;
+        }
+        if !first {
+            message.push_str(SEPARATOR);
+        }
+        message.push_str(&diagnostic.message);
+        first = false;
+    }
+    Some(message)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -357,3 +391,7 @@ impl From<ArtifactCachePhysicsMaterialAsset> for PhysicsMaterialAsset {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "cache_payload/metadata_error_buffer_tests.rs"]
+mod metadata_error_buffer_tests;

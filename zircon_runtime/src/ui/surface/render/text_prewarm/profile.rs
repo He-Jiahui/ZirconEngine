@@ -1,8 +1,10 @@
-use crate::text::cache::ShapedRunCacheReport;
-use crate::text::font::{font_handle_registry_report, FontHandleRegistryReport};
-use crate::text::parallel::shape_pool::TextParallelShapeBatchReport;
 use crate::text::CompiledRichTextCacheReport;
+use crate::text::cache::ShapedRunCacheReport;
+use crate::text::font::{FontHandleRegistryReport, font_handle_registry_report};
+use crate::text::parallel::shape_pool::TextParallelShapeBatchReport;
 use crate::ui::text::UiTextMeasureCache;
+
+mod session;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct ShapedRunCacheDelta {
@@ -205,6 +207,37 @@ pub(super) fn record_text_prewarm_profile(report: TextParallelShapeBatchReport) 
     crate::profile_counter!("runtime", "ui_text.prewarm.inserted", report.inserted_count);
     crate::profile_counter!(
         "runtime",
+        "ui_text.prewarm.invalid_requests",
+        report.invalid_request_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.prewarm.generation_deferred",
+        report.generation_deferred_count
+    );
+    crate::profile_counter!("runtime", "ui_text.prewarm.failed", report.failed_count);
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.prewarm.work_budget_inline_requests",
+        report.shaping_work.inline_request_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.prewarm.work_budget_oversized_synchronous_requests",
+        report.shaping_work.oversized_synchronous_request_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.prewarm.synchronous_input_bytes",
+        report.shaping_work.synchronous_input_bytes
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.prewarm.max_synchronous_input_bytes",
+        report.shaping_work.max_synchronous_input_bytes
+    );
+    crate::profile_counter!(
+        "runtime",
         "ui_text.prewarm.caller_wait_nanos",
         report.caller_wait_nanos
     );
@@ -222,6 +255,31 @@ pub(in crate::ui::surface::render) fn record_compiled_rich_text_cache_profile(
     report: CompiledRichTextCacheReport,
 ) {
     for (name, value) in [
+        ("ui_text.rich_cache.parser_identity", report.parser_identity),
+        (
+            "ui_text.rich_cache.decorator_generation",
+            report.decorator_generation,
+        ),
+        (
+            "ui_text.rich_cache.emoji_generation",
+            report.emoji_generation,
+        ),
+        (
+            "ui_text.rich_cache.compile_requests_in_flight",
+            report.compile_requests_in_flight as u64,
+        ),
+        (
+            "ui_text.rich_cache.single_flight_waits",
+            report.single_flight_wait_count,
+        ),
+        (
+            "ui_text.rich_cache.single_flight_wait_nanos",
+            report.single_flight_wait_nanos,
+        ),
+        (
+            "ui_text.rich_cache.single_flight_wait_max_nanos",
+            report.single_flight_wait_max_nanos,
+        ),
         ("ui_text.rich_cache.hits", report.hit_count),
         ("ui_text.rich_cache.misses", report.miss_count),
         ("ui_text.rich_cache.parses", report.parse_count),
@@ -242,6 +300,10 @@ pub(in crate::ui::surface::render) fn record_compiled_rich_text_cache_profile(
             "ui_text.rich_cache.resident_bytes",
             report.resident_bytes as u64,
         ),
+        (
+            "ui_text.rich_cache.counter_saturated",
+            report.telemetry_saturated as u64,
+        ),
     ] {
         crate::profile_counter!("runtime", name, value);
     }
@@ -252,12 +314,16 @@ pub(super) fn record_text_layout_resolve_profile(
     shaped_run_cache_before: ShapedRunCacheReport,
     uncached_document_resolve_count: usize,
 ) {
+    let measure = text_measure_cache.frame_measure_report();
     let layout = text_measure_cache.frame_layout_report();
     let dedup = text_measure_cache.frame_layout_dedup_report();
     let shape_cache = ShapedRunCacheDelta::between(
         shaped_run_cache_before,
         text_measure_cache.frame_shaped_run_report(),
     );
+    let shape_work = text_measure_cache.frame_shaping_work_report();
+    let diagnostics = text_measure_cache.frame_layout_session_diagnostics();
+    let hard_lines = text_measure_cache.hard_line_index_report();
     crate::profile_counter!(
         "runtime",
         "ui_text.layout_resolve.cache_hits",
@@ -290,6 +356,56 @@ pub(super) fn record_text_layout_resolve_profile(
     );
     crate::profile_counter!(
         "runtime",
+        "ui_text.layout_resolve.cache_dto_source_resident_bytes",
+        layout.estimated_bytes
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.layout_resolve.cache_dto_source_peak_bytes",
+        layout.peak_estimated_bytes
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.measure.cache_dto_source_resident_bytes",
+        measure.estimated_bytes
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.measure.cache_dto_source_peak_bytes",
+        measure.peak_estimated_bytes
+    );
+    crate::profile_counter!(
+        "runtime",
+        "text.runtime_budget.hard_line_cache_entries",
+        hard_lines.budget.max_entries
+    );
+    crate::profile_counter!(
+        "runtime",
+        "text.runtime_budget.hard_line_cache_bytes",
+        hard_lines.budget.max_bytes
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.hard_line_cache.resident_entries",
+        hard_lines.entry_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.hard_line_cache.resident_bytes",
+        hard_lines.estimated_bytes
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.hard_line_cache.evictions_total",
+        hard_lines.evicted_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.hard_line_cache.oversized_bypass_total",
+        hard_lines.oversized_bypass_count
+    );
+    crate::profile_counter!(
+        "runtime",
         "ui_text.layout_resolve.frame_dedup_hits",
         dedup.hit_count
     );
@@ -313,6 +429,27 @@ pub(super) fn record_text_layout_resolve_profile(
         "ui_text.layout_resolve.shape_cache_misses",
         shape_cache.miss_count
     );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.shape_work.inline_requests",
+        shape_work.inline_request_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.shape_work.oversized_synchronous_requests",
+        shape_work.oversized_synchronous_request_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.shape_work.synchronous_input_bytes",
+        shape_work.synchronous_input_bytes
+    );
+    crate::profile_counter!(
+        "runtime",
+        "ui_text.shape_work.max_synchronous_input_bytes",
+        shape_work.max_synchronous_input_bytes
+    );
+    session::record_text_layout_session_profile(diagnostics);
     crate::profile_counter!(
         "runtime",
         "ui_text.layout_resolve.shape_cache_lookup_candidates",
@@ -348,16 +485,16 @@ pub(super) fn record_text_layout_resolve_profile(
 #[cfg(test)]
 mod tests {
     use super::{
-        record_compiled_rich_text_cache_profile, record_font_handle_registry_profile,
         CompiledRichTextCacheReport, FontHandleRegistryDelta, FontHandleRegistryReport,
-        ShapedRunCacheDelta, ShapedRunCacheReport,
+        ShapedRunCacheDelta, ShapedRunCacheReport, record_compiled_rich_text_cache_profile,
+        record_font_handle_registry_profile, record_text_layout_resolve_profile,
     };
     use crate::core::runtime::diagnostics::profiling::{
-        reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig,
+        ProfileCaptureConfig, reset_capture, snapshot, start_capture, test_capture_lock,
     };
     use crate::ui::text::UiTextMeasureCache;
 
-    use super::super::{prewarm_render_command_text, PendingOwnerTextLayouts};
+    use super::super::{PendingOwnerTextLayouts, prewarm_render_command_text};
 
     #[test]
     fn empty_render_command_prewarm_records_fixed_zero_counters() {
@@ -381,6 +518,9 @@ mod tests {
             "ui_text.prewarm.batch_duplicates",
             "ui_text.prewarm.shaped",
             "ui_text.prewarm.inserted",
+            "ui_text.prewarm.invalid_requests",
+            "ui_text.prewarm.generation_deferred",
+            "ui_text.prewarm.failed",
             "ui_text.prewarm.caller_wait_nanos",
         ] {
             let counter = profile
@@ -433,6 +573,49 @@ mod tests {
                 evicted_count: 14,
             }
         );
+    }
+
+    #[test]
+    fn text_layout_profile_projects_the_effective_hard_line_budget() {
+        let _capture_guard = test_capture_lock();
+        let mut config = ProfileCaptureConfig::default();
+        config.session_id = "ui-text-hard-line-budget-profile".to_string();
+        config.max_counters = 128;
+        start_capture(config);
+
+        let mut cache = UiTextMeasureCache::default();
+        cache.begin_frame();
+        record_text_layout_resolve_profile(&cache, ShapedRunCacheReport::default(), 0);
+        let profile = snapshot();
+        reset_capture();
+
+        for (name, value) in [
+            ("text.runtime_budget.hard_line_cache_entries", 16.0),
+            (
+                "text.runtime_budget.hard_line_cache_bytes",
+                (32 * 1024 * 1024) as f64,
+            ),
+            ("ui_text.hard_line_cache.resident_entries", 0.0),
+            ("ui_text.hard_line_cache.resident_bytes", 0.0),
+            ("ui_text.session.layout_fallbacks", 0.0),
+            ("ui_text.session.shaping_failure_requests", 0.0),
+            ("ui_text.session.backend_direct_runs", 0.0),
+            ("ui_text.session.backend_alternate_runs", 0.0),
+            ("ui_text.session.backend_hybrid_runs", 0.0),
+            ("ui_text.session.shaping_attempts", 0.0),
+            ("ui_text.session.font_resolution.primary_text_requests", 0.0),
+            (
+                "ui_text.session.font_resolution.decision_coverage_calls",
+                0.0,
+            ),
+        ] {
+            let counter = profile
+                .counters
+                .iter()
+                .find(|counter| counter.stream == "runtime" && counter.name == name)
+                .unwrap_or_else(|| panic!("hard-line budget counter missing: {name}"));
+            assert_eq!(counter.value, value);
+        }
     }
 
     #[test]
@@ -502,6 +685,13 @@ mod tests {
         {
             crate::profile_frame!("runtime", "ui_text.compiled_rich_cache_profile");
             record_compiled_rich_text_cache_profile(CompiledRichTextCacheReport {
+                parser_identity: 29,
+                decorator_generation: 31,
+                emoji_generation: 37,
+                compile_requests_in_flight: 41,
+                single_flight_wait_count: 43,
+                single_flight_wait_nanos: 47,
+                single_flight_wait_max_nanos: 53,
                 hit_count: 3,
                 miss_count: 5,
                 parse_count: 7,
@@ -510,6 +700,7 @@ mod tests {
                 candidate_probe_count: 17,
                 resident_entries: 19,
                 resident_bytes: 23,
+                telemetry_saturated: true,
                 ..CompiledRichTextCacheReport::default()
             });
         }
@@ -517,6 +708,13 @@ mod tests {
         reset_capture();
 
         for (name, value) in [
+            ("ui_text.rich_cache.parser_identity", 29.0),
+            ("ui_text.rich_cache.decorator_generation", 31.0),
+            ("ui_text.rich_cache.emoji_generation", 37.0),
+            ("ui_text.rich_cache.compile_requests_in_flight", 41.0),
+            ("ui_text.rich_cache.single_flight_waits", 43.0),
+            ("ui_text.rich_cache.single_flight_wait_nanos", 47.0),
+            ("ui_text.rich_cache.single_flight_wait_max_nanos", 53.0),
             ("ui_text.rich_cache.hits", 3.0),
             ("ui_text.rich_cache.misses", 5.0),
             ("ui_text.rich_cache.parses", 7.0),
@@ -525,6 +723,7 @@ mod tests {
             ("ui_text.rich_cache.lookup_candidates", 17.0),
             ("ui_text.rich_cache.resident_entries", 19.0),
             ("ui_text.rich_cache.resident_bytes", 23.0),
+            ("ui_text.rich_cache.counter_saturated", 1.0),
         ] {
             let samples = profile
                 .counters
@@ -535,6 +734,6 @@ mod tests {
             assert_eq!(samples[0].value, value, "unexpected counter value: {name}");
             assert_eq!(samples[0].frame_index, Some(0));
         }
-        assert_eq!(profile.counters.len(), 8);
+        assert_eq!(profile.counters.len(), 16);
     }
 }

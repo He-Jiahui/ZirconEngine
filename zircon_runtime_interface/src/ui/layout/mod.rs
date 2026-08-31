@@ -20,8 +20,8 @@ pub use engine::{
     UiLayoutEngineSelectionReport, UiLayoutEngineSupport, UiLayoutEngineTaffyTreeBuildStats,
 };
 pub use geometry::{
-    Anchor, Pivot, Position, UiFrame, UiGeometry, UiLayoutTransform, UiPixelSnapping, UiPoint,
-    UiRenderTransform, UiSize,
+    Anchor, Pivot, Position, UiFrame, UiGeometry, UiLayoutTransform, UiPixelSnapping,
+    UiPixelSnappingPolicy, UiPoint, UiRenderTransform, UiSize,
 };
 pub use linear_sizing::{UiLinearSlotSizeRule, UiLinearSlotSizing};
 pub use metrics::{UiFlowDirection, UiLayoutMetrics};

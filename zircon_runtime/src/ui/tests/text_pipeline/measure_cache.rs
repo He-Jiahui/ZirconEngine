@@ -1,8 +1,11 @@
-use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
+use crate::core::{
+    framework::text::TextLayoutError,
+    runtime::tasks::{TaskPool, TaskPoolDescriptor},
+};
 use crate::text::layout::measure_line_width;
+use crate::text::shaping::TextShapingOutcome;
 use crate::ui::text::{
     UiTextLayoutRequest, UiTextMeasureCache, UiTextShapePrewarmRequest, UiTextViewport,
-    UiWidthBucket,
 };
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
@@ -27,6 +30,11 @@ fn ui_text_hot_paths_borrow_existing_text_and_advances() {
     assert!(
         measure_cache.contains("let resolved_text: Arc<str> = Arc::from(resolved_text.as_ref());"),
         "layout caches should share one resolved source allocation after the frame-cache miss"
+    );
+    assert!(
+        !measure_cache.contains("UiWidthBucket")
+            && !measure_cache.contains("measure_line_width(\"n\","),
+        "cache-key construction must use request geometry and must not shape an auxiliary width sample"
     );
     assert!(
         wrapping.contains("struct TextSegment<'a>") && wrapping.contains("text: &'a str"),
@@ -56,7 +64,42 @@ fn text_measure_cache_hits_same_layout_request() {
     assert_eq!(cache.frame_shape_count(), 1);
     assert_eq!(cache.frame_layout_dedup_report().miss_count, 1);
     assert_eq!(cache.frame_layout_dedup_report().hit_count, 1);
-    assert!(UiWidthBucket::from_request(&request).value() >= 1);
+}
+
+#[test]
+fn failed_shape_is_neither_cached_nor_published_as_empty_geometry() {
+    let style = UiResolvedStyle {
+        font_size: 0.0,
+        line_height: 12.0,
+        ..UiResolvedStyle::default()
+    };
+    let request = UiTextLayoutRequest::new(
+        "must not become a cached empty run",
+        &style,
+        UiFrame::new(0.0, 0.0, 180.0, 24.0),
+        None,
+    );
+    let mut cache = UiTextMeasureCache::default();
+
+    assert!(matches!(
+        cache.resolve_or_shape_outcome(&request),
+        TextShapingOutcome::Failed(failure)
+            if failure.error() == &TextLayoutError::InvalidFontSize
+    ));
+    assert_eq!(cache.frame_layout_report().entry_count, 0);
+    assert_eq!(cache.frame_layout_dedup_report().entry_count, 0);
+
+    let published = cache.resolve_or_shape(&request);
+    assert!(published.layout.lines.is_empty());
+    assert!(published.layout.rich_text_artifact.is_none());
+    assert!(published.layout.overflow_clipped);
+    assert_eq!(cache.frame_layout_report().entry_count, 0);
+    assert_eq!(cache.frame_layout_dedup_report().entry_count, 0);
+
+    assert_eq!(cache.measure_text_size(request.text, &style).width, 0.0);
+    assert_eq!(cache.measure_text_size(request.text, &style).height, 0.0);
+    assert_eq!(cache.frame_measure_report().entry_count, 0);
+    assert_eq!(cache.frame_measure_dedup_report().entry_count, 0);
 }
 
 #[test]
@@ -532,6 +575,42 @@ fn render_perf_text_parallel_shape_pool_prewarms_ui_measure_cache() {
 }
 
 #[test]
+fn text_prewarm_frame_report_accumulates_invalid_requests() {
+    let invalid_style = UiResolvedStyle {
+        font_size: 0.0,
+        ..UiResolvedStyle::default()
+    };
+    let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(1));
+    let mut cache = UiTextMeasureCache::default();
+
+    cache.begin_frame();
+    let first = cache.prewarm_horizontal_paragraphs(
+        &pool,
+        &[UiTextShapePrewarmRequest::horizontal(
+            "first invalid request",
+            invalid_style.clone(),
+        )],
+        1,
+    );
+    let second = cache.prewarm_horizontal_paragraphs(
+        &pool,
+        &[UiTextShapePrewarmRequest::horizontal(
+            "second invalid request",
+            invalid_style,
+        )],
+        1,
+    );
+    let frame = cache.frame_shape_prewarm_report();
+
+    assert_eq!(first.invalid_request_count, 1);
+    assert_eq!(second.invalid_request_count, 1);
+    assert_eq!(frame.requested_count, 2);
+    assert_eq!(frame.invalid_request_count, 2);
+    assert_eq!(frame.inserted_count, 0);
+    assert_eq!(frame.failed_count, 0);
+}
+
+#[test]
 fn text_prewarm_reuses_each_physical_paragraph_during_layout() {
     let style = UiResolvedStyle {
         font_size: 10.0,
@@ -640,7 +719,7 @@ fn text_measure_cache_reshapes_when_frame_origin_changes() {
 }
 
 #[test]
-fn text_measure_cache_reshapes_when_wrap_bucket_changes() {
+fn text_measure_cache_reshapes_when_wrap_extent_changes() {
     let style = UiResolvedStyle {
         font_size: 10.0,
         line_height: 12.0,
@@ -648,9 +727,15 @@ fn text_measure_cache_reshapes_when_wrap_bucket_changes() {
         ..UiResolvedStyle::default()
     };
     let neutral_style = crate::text::text_style(&style);
-    let alpha_width = measure_line_width("Alpha", &neutral_style);
-    let beta_width = measure_line_width("Beta", &neutral_style);
-    let full_width = measure_line_width("Alpha Beta", &neutral_style);
+    let alpha_width = measure_line_width("Alpha", &neutral_style)
+        .into_result()
+        .expect("measure Alpha width");
+    let beta_width = measure_line_width("Beta", &neutral_style)
+        .into_result()
+        .expect("measure Beta width");
+    let full_width = measure_line_width("Alpha Beta", &neutral_style)
+        .into_result()
+        .expect("measure complete width");
     let narrow_width = alpha_width.max(beta_width) + 0.5;
     let wide_width = full_width + 0.5;
     assert!(

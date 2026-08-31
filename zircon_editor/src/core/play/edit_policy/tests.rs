@@ -1,3 +1,4 @@
+use crate::core::editing::operation::EditOperationTarget;
 use crate::core::editor_message::DocumentId;
 
 use super::*;
@@ -10,21 +11,21 @@ fn playing_policy_applies_locks_and_queues_by_target() {
     policy.begin_play(Some(running_document));
 
     assert_eq!(
-        policy.evaluate(PlayEditTarget::PlayDomain),
+        policy.evaluate(EditOperationTarget::PlayDomain),
         PlayEditDecision::ApplyNow
     );
     assert_eq!(
-        policy.evaluate(PlayEditTarget::EditDocument(running_document)),
+        policy.evaluate(EditOperationTarget::EditDocument(running_document)),
         PlayEditDecision::RunningDocumentLocked {
             document: running_document
         }
     );
     assert_eq!(
-        policy.evaluate(PlayEditTarget::EditDocument(other_document)),
+        policy.evaluate(EditOperationTarget::EditDocument(other_document)),
         PlayEditDecision::QueueUntilPlayStops
     );
     assert_eq!(
-        policy.evaluate(PlayEditTarget::EditWorkspace),
+        policy.evaluate(EditOperationTarget::EditWorkspace),
         PlayEditDecision::QueueUntilPlayStops
     );
 }
@@ -34,15 +35,15 @@ fn edit_mode_applies_edit_targets_and_rejects_missing_play_domain() {
     let policy = PlayEditPolicy::default();
 
     assert_eq!(
-        policy.evaluate(PlayEditTarget::EditDocument(DocumentId::new(1))),
+        policy.evaluate(EditOperationTarget::EditDocument(DocumentId::new(1))),
         PlayEditDecision::ApplyNow
     );
     assert_eq!(
-        policy.evaluate(PlayEditTarget::EditWorkspace),
+        policy.evaluate(EditOperationTarget::EditWorkspace),
         PlayEditDecision::ApplyNow
     );
     assert_eq!(
-        policy.evaluate(PlayEditTarget::PlayDomain),
+        policy.evaluate(EditOperationTarget::PlayDomain),
         PlayEditDecision::PlayDomainUnavailable
     );
 }

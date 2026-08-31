@@ -1,3 +1,4 @@
+use winit::event_loop::ActiveEventLoop;
 use zircon_runtime::diagnostic_log::write_warn;
 use zircon_runtime_interface::{
     ZrRuntimeHostRequestV1, ZrRuntimeImeHostRequestV1, ZrRuntimeViewportHandle,
@@ -5,15 +6,17 @@ use zircon_runtime_interface::{
 };
 
 use super::super::RuntimeEntryApp;
+use super::clipboard::apply_runtime_clipboard_host_request;
 use super::cursor::apply_runtime_cursor_host_request;
 use super::ime::apply_runtime_ime_host_request;
+use super::ui_action::report_unhandled_runtime_ui_action;
+use super::ui_host_request::report_unhandled_runtime_ui_host_request;
 
 pub(super) fn apply_runtime_host_request(
     app: &mut RuntimeEntryApp,
+    event_loop: &dyn ActiveEventLoop,
     request: ZrRuntimeHostRequestV1,
 ) {
-    #[cfg(feature = "gamepad-gilrs")]
-    super::super::gamepad::clear_finished_rumble_effects(app.gamepad_rumble_effects.as_mut());
     let result = match request {
         ZrRuntimeHostRequestV1::Ime(request) => {
             if !ime_request_targets_viewport(&request, app.viewport) {
@@ -40,6 +43,37 @@ pub(super) fn apply_runtime_host_request(
                 return;
             };
             apply_runtime_cursor_host_request(window.as_ref(), request)
+        }
+        ZrRuntimeHostRequestV1::Clipboard(request) => {
+            apply_runtime_clipboard_host_request(app, event_loop, request)
+        }
+        ZrRuntimeHostRequestV1::UiAction(request) => {
+            if request.target_viewport != app.viewport {
+                write_warn(
+                    "runtime_ui_action",
+                    format!(
+                        "runtime_ui_action_target_viewport_rejected target={:?} host={:?}",
+                        request.target_viewport, app.viewport
+                    ),
+                );
+                return;
+            }
+            report_unhandled_runtime_ui_action(app, request);
+            Ok(())
+        }
+        ZrRuntimeHostRequestV1::UiHost(request) => {
+            if request.target_viewport != app.viewport {
+                write_warn(
+                    "runtime_ui_host_request",
+                    format!(
+                        "runtime_ui_host_request_target_viewport_rejected target={:?} host={:?}",
+                        request.target_viewport, app.viewport
+                    ),
+                );
+                return;
+            }
+            report_unhandled_runtime_ui_host_request(app, request);
+            Ok(())
         }
     };
     if let Err(error) = result {

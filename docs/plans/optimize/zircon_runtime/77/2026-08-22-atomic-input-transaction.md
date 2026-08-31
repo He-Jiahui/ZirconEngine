@@ -6,7 +6,7 @@ Status: validation_pending
 Files: ["docs/plans/optimize/zircon_runtime/77/2026-08-22-atomic-input-transaction.md","docs/zircon_runtime/ui/surface/input.md","zircon_runtime/src/ui/surface/input/effect.rs","zircon_runtime/src/ui/surface/input/effect/transaction.rs","zircon_runtime/src/ui/tests/runtime_input_ownership.rs","zircon_runtime/src/ui/tests/runtime_input_ownership/transaction.rs"]
 
 - Date: 2026-08-22
-- Owner: `optimize-runtime77-atomic-input-transaction-m0-r1-be5a281c-20260822`
+- Owner: `optimize-runtime77-atomic-input-review-fix-r2-bee4c707-20260822`
 - Source item: `RUII-P0-001`
 - Acceptance gates: `RUII-GATE-007` and `RUII-GATE-008`
 - Delivery state: implementation complete; grouped coordinator validation pending
@@ -27,23 +27,26 @@ requests, and component events beside the rejected tail.
   domain set, and records the base invalidation generation before effect application.
 - Multi-effect replies and single drag/drop or popup composites capture only the domains they can
   write: tree/runtime-style/invalidation/dirty ids, focus, input, component state, and navigation.
+  Every non-empty atomic reply captures input because any successful effect drains deferred
+  focus/input-method lifecycle work, including otherwise read-only host effects.
 - A rejected effect restores the captured domains before the caller regains access to `UiSurface`.
   Prefix applied effects, host requests, and component events are removed and every uncommitted
   effect is reported as transaction-aborted with the original failing reason retained.
 - Successful atomic replies record the base generation and effect count in diagnostics. Aborted
   replies record the base generation and failing effect index.
-- Ordinary single effects remain outside the snapshot path. Their target validation and mutation
-  behavior is unchanged, and no retained UI tree or input-state clone is performed.
+- Ordinary single effects admit an empty snapshot with zero captured domains. Their target
+  validation and mutation behavior is unchanged, and no retained UI tree or input-state clone is
+  performed.
 
 ## Deterministic Performance Evidence
 
 The performance contract for this correctness slice is structural rather than a timing claim:
 
-- ordinary single-effect replies: zero transaction snapshots and zero retained-tree clones;
+- ordinary single-effect replies: zero captured surface domains and zero retained-tree/input clones;
 - multi-effect replies whose write set contains only focus/capture input state: tree cloning occurs
   only when a focus effect can indirectly mutate tree style/dirty state;
-- read-only multi-effect replies capture no surface domain even though their result projection is
-  still transaction-wide;
+- read-only multi-effect replies capture input only so deferred focus/input-method lifecycle work
+  can be restored; they do not clone tree, focus, component state, or navigation;
 - the source-level validator locks the conditional `atomic.then_some(write_set)` admission and the
   focused test locks the absence of an `input_transaction=` diagnostic on the ordinary single
   capture path.
@@ -59,7 +62,11 @@ timing targets remain owned by the later P1 performance tasks.
 - `input_transaction_drag_composite_failure_restores_all_mutated_domains` injects an active drag
   whose source has disappeared. The old reducer clears the session/capture before dirty marking
   rejects the missing source; the transaction restores the complete pre-effect state.
-- `input_transaction_single_effect_hot_path_skips_atomic_snapshot` locks the common-path admission
+- `input_transaction_read_only_failure_restores_deferred_input_lifecycle` locks rollback of the
+  implicit input write performed after every successful effect.
+- `input_transaction_popup_prefix_restores_surface_and_route_trace` locks popup-stack rollback and
+  verifies the post-abort route trace is projected from restored surface state.
+- `input_transaction_single_effect_hot_path_captures_no_domains` locks the common-path admission
   rule without relying on unstable wall-clock timing.
 - `rustfmt +1.94.1` and scoped `git diff --check` completed for the owned Rust changes.
 - Focused Cargo tests and grouped external validation are pending. No Cargo pass is claimed.

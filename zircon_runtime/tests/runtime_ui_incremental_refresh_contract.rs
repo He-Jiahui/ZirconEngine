@@ -444,9 +444,9 @@ columns = 12
         .push(UiSlot::new(root_id, old_child_id, UiSlotKind::Free));
     surface.compute_layout(root_size()).unwrap();
     surface.clear_dirty_flags();
-    assert_eq!(surface.tree.slots[0].kind, UiSlotKind::Grid);
+    assert_eq!(surface.tree.layout_slots()[0].kind, UiSlotKind::Grid);
     assert_eq!(
-        surface.tree.slots[0]
+        surface.tree.layout_slots()[0]
             .grid_placement
             .expect("initial responsive placement should exist")
             .column_span,
@@ -466,11 +466,11 @@ columns = 12
     let report = surface.rebuild_dirty(root_size()).unwrap();
 
     assert!(report.layout_recomputed);
-    assert_eq!(surface.tree.slots.len(), 1);
-    assert_eq!(surface.tree.slots[0].child_id, new_child_id);
-    assert_eq!(surface.tree.slots[0].kind, UiSlotKind::Grid);
+    assert_eq!(surface.tree.layout_slots().len(), 1);
+    assert_eq!(surface.tree.layout_slots()[0].child_id, new_child_id);
+    assert_eq!(surface.tree.layout_slots()[0].kind, UiSlotKind::Grid);
     assert_eq!(
-        surface.tree.slots[0]
+        surface.tree.layout_slots()[0]
             .grid_placement
             .expect("replacement responsive placement should exist")
             .column_span,
@@ -593,7 +593,7 @@ fn surface_frame_publication_reuses_stable_arc_and_preserves_old_generation() {
 }
 
 #[test]
-fn surface_frame_hit_test_uses_cached_policy_and_route_without_arranged_lookups() {
+fn surface_frame_hit_test_uses_shared_route_authority_without_arranged_lookups() {
     let mut surface = pointer_surface("runtime.ui.cached_hit");
     surface.rebuild();
 
@@ -604,16 +604,26 @@ fn surface_frame_hit_test_uses_cached_policy_and_route_without_arranged_lookups(
         .iter()
         .find(|entry| entry.node_id == child_id(0))
         .expect("button should be cached in the hit grid");
-    assert_eq!(entry.effective_input_policy, Some(UiInputPolicy::Receive));
-    assert_eq!(entry.bubble_route, vec![child_id(0), UiNodeId::new(1)]);
+    let route = frame
+        .hit_grid
+        .route_nodes
+        .get(entry.route_node_index as usize)
+        .expect("button should reference the shared route authority");
+    assert_eq!(route.effective_input_policy, UiInputPolicy::Receive);
+    assert_eq!(route.node_id, child_id(0));
 
-    Arc::make_mut(&mut frame).arranged_tree.nodes.clear();
+    Arc::make_mut(&mut Arc::make_mut(&mut frame).arranged_tree)
+        .nodes
+        .clear();
     let hit = hit_test_surface_frame(&frame, UiPoint::new(20.0, 20.0));
 
     assert_eq!(hit.top_hit, Some(child_id(0)));
     assert_eq!(hit.stacked, vec![child_id(0)]);
     assert_eq!(hit.path.root_to_leaf, vec![UiNodeId::new(1), child_id(0)]);
-    assert_eq!(hit.path.bubble_route, vec![child_id(0), UiNodeId::new(1)]);
+    assert_eq!(
+        hit.path.bubble_route().collect::<Vec<_>>(),
+        vec![child_id(0), UiNodeId::new(1)]
+    );
     assert_eq!(
         hit.top_entry(&frame.hit_grid)
             .and_then(|entry| entry.control_id.as_deref()),
@@ -622,33 +632,20 @@ fn surface_frame_hit_test_uses_cached_policy_and_route_without_arranged_lookups(
 }
 
 #[test]
-fn legacy_hit_grid_without_cached_fields_falls_back_to_arranged_tree() {
+fn hit_grid_without_route_authority_is_rejected() {
     let mut surface = pointer_surface("runtime.ui.legacy_hit");
     surface.rebuild();
 
     let frame = surface.surface_frame();
     let mut serialized = serde_json::to_value(&frame).expect("surface frame should serialize");
-    for entry in serialized["hit_grid"]["entries"]
-        .as_array_mut()
-        .expect("hit entries should serialize as an array")
-    {
-        let entry = entry
-            .as_object_mut()
-            .expect("hit entry should serialize as an object");
-        entry.remove("effective_input_policy");
-        entry.remove("bubble_route");
-    }
-    let legacy_frame =
-        serde_json::from_value(serialized).expect("legacy surface frame should deserialize");
+    serialized["hit_grid"]
+        .as_object_mut()
+        .expect("hit grid should serialize as an object")
+        .remove("route_nodes");
 
-    let hit = hit_test_surface_frame(&legacy_frame, UiPoint::new(20.0, 20.0));
-
-    assert_eq!(hit.top_hit, Some(child_id(0)));
-    assert_eq!(hit.path.bubble_route, vec![child_id(0), UiNodeId::new(1)]);
-    assert_eq!(
-        hit.top_entry(&legacy_frame.hit_grid)
-            .and_then(|entry| entry.control_id.as_deref()),
-        Some("cached.button")
+    assert!(
+        serde_json::from_value::<zircon_runtime_interface::ui::surface::UiSurfaceFrame>(serialized)
+            .is_err()
     );
 }
 

@@ -4,9 +4,15 @@ use super::super::pane_payload::{
 use super::super::pane_presentation::PanePayloadBuildContext;
 
 pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
-    let data = context.module_plugins.cloned().unwrap_or_default();
-    let plugins = (0..data.plugins.row_count())
-        .filter_map(|row| data.plugins.row_data(row))
+    let Some(data) = context.module_plugins else {
+        return PanePayload::ModulePluginsV1(ModulePluginsPanePayload {
+            diagnostics: String::new(),
+            plugins: Vec::new(),
+        });
+    };
+    let plugins = data
+        .plugins
+        .iter()
         .map(|plugin| ModulePluginStatusPayload {
             plugin_id: plugin.plugin_id.to_string(),
             display_name: plugin.display_name.to_string(),

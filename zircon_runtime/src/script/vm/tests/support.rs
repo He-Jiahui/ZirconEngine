@@ -138,8 +138,9 @@ impl VmBackendFamily for RecordingVmBackendFamily {
         }
     }
 
-    fn selectors(&self) -> Vec<String> {
-        vec!["recording:capture".to_string(), "capture".to_string()]
+    fn visit_selectors(&self, visitor: &mut dyn FnMut(&str)) {
+        visitor("recording:capture");
+        visitor("capture");
     }
 }
 

@@ -1,9 +1,4 @@
-use zircon_plugin_animation_runtime::{DefaultAnimationManager, LookAtJob, TwoBoneIkJob};
-use zircon_runtime::core::framework::animation::{
-    AnimationIkCommand, AnimationIkCommandError, AnimationLookAtCommand, AnimationManager,
-    AnimationTargetId,
-};
-use zircon_runtime::core::framework::scene::WorldHandle;
+use zircon_plugin_animation_runtime::{LookAtJob, TwoBoneIkJob};
 use zircon_runtime::core::math::{Quat, Vec3};
 
 #[test]
@@ -35,41 +30,4 @@ fn look_at_clamps_to_limit() {
     let solved = job.solve_rotation(Quat::IDENTITY).unwrap();
     let angle = solved.angle_between(Quat::IDENTITY).to_degrees();
     assert!((angle - 30.0).abs() <= 1.0e-4);
-}
-
-#[test]
-fn manager_ik_commands_are_validated_and_drained_per_world() {
-    let manager = DefaultAnimationManager::default();
-    let world = WorldHandle::new(7);
-    let other_world = WorldHandle::new(8);
-    let bone = AnimationTargetId::from_segments(["Root", "Head"]);
-    let command = AnimationIkCommand::LookAt(AnimationLookAtCommand {
-        world,
-        entity: 41,
-        bone,
-        target: Vec3::Y,
-        axis: Vec3::X,
-        clamp_degrees: 35.0,
-        weight: 0.75,
-    });
-
-    manager.queue_ik_command(3, command.clone()).unwrap();
-
-    assert!(manager.drain_ik_commands(other_world, 3).is_empty());
-    assert_eq!(manager.drain_ik_commands(world, 3), vec![command]);
-    assert!(manager.drain_ik_commands(world, 3).is_empty());
-
-    let invalid = AnimationIkCommand::LookAt(AnimationLookAtCommand {
-        world,
-        entity: 41,
-        bone,
-        target: Vec3::Y,
-        axis: Vec3::ZERO,
-        clamp_degrees: 35.0,
-        weight: 1.0,
-    });
-    assert_eq!(
-        manager.queue_ik_command(3, invalid),
-        Err(AnimationIkCommandError::DegenerateAxis { world, entity: 41 })
-    );
 }

@@ -42,6 +42,30 @@ class CpuBurstTests(unittest.TestCase):
         self.assertEqual("burst", selection.mode)
         self.assertEqual("allowed", selection.reason)
 
+    def test_toolchain_qualified_library_test_is_burst_eligible(self) -> None:
+        selection = select_cpu_burst(
+            CpuBurstRequest(
+                reservation_id="reservation-toolchain-library-test",
+                lane_scope="cpu",
+                burst_eligible=True,
+                command=(
+                    "cargo",
+                    "+1.94.1",
+                    "test",
+                    "--release",
+                    "-p",
+                    "zircon_runtime",
+                    "--lib",
+                    "optimization_batch",
+                ),
+                target_dir=None,
+            ),
+            BurstDecision(True, "allowed"),
+        )
+
+        self.assertEqual("burst", selection.mode)
+        self.assertEqual("allowed", selection.reason)
+
     def test_test_and_explicit_target_stay_in_the_warm_lane(self) -> None:
         test_selection = select_cpu_burst(
             CpuBurstRequest(

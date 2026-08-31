@@ -54,9 +54,9 @@ impl PluginFeatureBundleBuilder {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        for capability in capabilities {
-            self = self.with_capability(capability);
-        }
+        self.feature
+            .capabilities
+            .extend(capabilities.into_iter().map(Into::into));
         self
     }
 
@@ -124,5 +124,27 @@ impl PluginFeatureBundleBuilder {
 
     pub fn build(self) -> PluginFeatureBundleManifest {
         self.feature
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PluginFeatureBundleBuilder;
+
+    #[test]
+    fn capability_batch_appends_after_existing_in_input_order() {
+        let manifest = PluginFeatureBundleBuilder::new("feature", "Feature", "owner")
+            .with_capability("runtime.existing")
+            .with_capabilities(["runtime.batch.first", "runtime.batch.second"])
+            .build();
+
+        assert_eq!(
+            manifest.capabilities,
+            [
+                "runtime.existing",
+                "runtime.batch.first",
+                "runtime.batch.second",
+            ]
+        );
     }
 }

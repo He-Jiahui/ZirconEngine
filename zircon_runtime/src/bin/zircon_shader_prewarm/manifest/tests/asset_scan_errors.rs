@@ -83,6 +83,54 @@ fn shader_prewarm_asset_root_scan_reports_typed_zmaterial_parse_error() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[test]
+fn shader_prewarm_asset_root_scan_rejects_material_bound_to_raw_wgsl_module() {
+    let root = unique_root("zircon_shader_prewarm_material_module_kind");
+    fs::create_dir_all(root.join("shaders")).unwrap();
+    fs::create_dir_all(root.join("materials")).unwrap();
+    fs::write(root.join("shaders/example.wgsl"), "fn example() {}\n").unwrap();
+    fs::write(
+        root.join("shaders/example.wgsl.zmeta"),
+        r#"format_version = 7
+uuid = "00000000-0000-0000-0000-000000000061"
+url = "res://shaders/example"
+asset_kind = "Shader"
+unit = "single"
+source_digest = "raw-module-kind"
+"#,
+    )
+    .unwrap();
+    let material_path = root.join("materials/example.zmaterial");
+    fs::write(
+        &material_path,
+        r#"version = 2
+name = "Example"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000061"
+url = "res://shaders/example"
+"#,
+    )
+    .unwrap();
+
+    let error = asset_root_manifest(&root).unwrap_err();
+
+    match error {
+        ShaderPrewarmAssetScanError::MaterialShaderKindMismatch {
+            material_path: actual_material_path,
+            shader_label,
+            actual_kind,
+        } => {
+            assert_eq!(actual_material_path, material_path);
+            assert_eq!(shader_label, "res://shaders/example");
+            assert_eq!(actual_kind, "module");
+        }
+        other => panic!("expected typed material shader kind mismatch, got {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
 fn unique_root(prefix: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!("{prefix}_{}", std::process::id()))
 }

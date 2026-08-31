@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::core::framework::render::CastShadowsMode;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshBatchRef, MeshBindHandle, MeshDrawArgs, MeshGeometryHandle,
 };
@@ -27,6 +28,7 @@ impl MeshDraw {
         )
         .with_static_state(self.static_state())
         .with_casts_shadow(self.casts_shadow())
+        .with_shadow_two_sided(self.cast_shadows == CastShadowsMode::TwoSided)
         .with_disabled_passes(self.disabled_passes)
         .with_taa_reactive_mask_strength(self.taa_reactive_mask_strength)
         .with_half_resolution_transparency(self.half_resolution_transparency)
@@ -36,23 +38,10 @@ impl MeshDraw {
             self.shadow_view_visible,
         )
         .with_previous_velocity_transform(self.has_previous_velocity_transform)
-        .with_material(MeshBindHandle::new(
-            ref_id(&self.material_bind_group),
-            self.material_bind_group.clone(),
-        ))
+        .with_material(MeshBindHandle::new(self.material_bind_group.clone()))
         .with_standard_material(MeshBindHandle::new(
-            ref_id(&self.standard_material_bind_group),
             self.standard_material_bind_group.clone(),
         ));
-
-        let batch = if let Some(gpu_scene_bind_group) = &self.gpu_scene_bind_group {
-            batch.with_gpu_scene_bind_group(MeshBindHandle::new(
-                ref_id(gpu_scene_bind_group),
-                gpu_scene_bind_group.clone(),
-            ))
-        } else {
-            batch
-        };
 
         if let Some((first_instance_index, instance_count)) = self.gpu_scene_instance_span {
             let batch = batch.with_gpu_scene_instance_span(first_instance_index, instance_count);
@@ -80,10 +69,6 @@ impl MeshDraw {
             MeshDrawArgs::direct_indexed(self.first_index, self.draw_index_count)
         }
     }
-}
-
-fn ref_id<T>(value: &T) -> u64 {
-    value as *const T as usize as u64
 }
 
 fn arc_id<T>(value: &Arc<T>) -> u64 {

@@ -12,12 +12,13 @@ impl RetainedEditorHost {
         &self,
         entries: &SceneEntries,
     ) -> Option<SceneEntries> {
-        (!self.hierarchy_filter_query.trim().is_empty()).then(|| {
-            entries.with_hierarchy_rows(hierarchy_entries_matching_query(
-                entries,
-                &self.hierarchy_filter_query,
-            ))
-        })
+        zircon_runtime::profile_scope!("editor", "hierarchy", "filter_projection");
+        let query = self.hierarchy_filter_query.trim();
+        if query.is_empty() {
+            record_hierarchy_filter_metrics(entries.len(), entries.len(), 0, entries.len());
+            return None;
+        }
+        Some(entries.with_hierarchy_rows(hierarchy_entries_matching_query(entries, query)))
     }
 
     pub(super) fn set_hierarchy_filter_query(&mut self, query: &str) {
@@ -35,7 +36,6 @@ fn hierarchy_entries_matching_query(
     entries: &[WorldInspectionHierarchyRow],
     query: &str,
 ) -> Vec<WorldInspectionHierarchyRow> {
-    zircon_runtime::profile_scope!("editor", "hierarchy", "filter_projection");
     let query = query.trim();
     if query.is_empty() {
         return entries.to_vec();
@@ -44,25 +44,71 @@ fn hierarchy_entries_matching_query(
     let query = query.to_lowercase();
     let mut included = vec![false; entries.len()];
     let parent_indices = hierarchy_parent_indices(entries);
+    let mut name_match_count = 0;
 
     for (index, entry) in entries.iter().enumerate() {
-        included[index] = hierarchy_name_matches_query(&entry.display_name, &query);
+        let name_matches_query = hierarchy_name_matches_query(&entry.display_name, &query);
+        included[index] = name_matches_query;
+        name_match_count += usize::from(name_matches_query);
     }
 
     // A single reverse pass preserves every matching entry's ancestry in O(N).
+    let mut ancestor_link_count = 0;
     for index in (0..entries.len()).rev() {
         if included[index] {
             if let Some(parent_index) = parent_indices[index] {
-                included[parent_index] = true;
+                if !included[parent_index] {
+                    included[parent_index] = true;
+                    ancestor_link_count += 1;
+                }
             }
         }
     }
 
-    entries
+    let filtered_entries = entries
         .iter()
         .zip(included)
         .filter_map(|(entry, included)| included.then(|| entry.clone()))
-        .collect()
+        .collect::<Vec<_>>();
+
+    record_hierarchy_filter_metrics(
+        entries.len(),
+        name_match_count,
+        ancestor_link_count,
+        filtered_entries.len(),
+    );
+
+    filtered_entries
+}
+
+fn record_hierarchy_filter_metrics(
+    source_row_count: usize,
+    name_match_count: usize,
+    ancestor_link_count: usize,
+    visible_row_count: usize,
+) {
+    // Aggregate once per projection so telemetry does not perturb the row traversal it measures.
+    zircon_runtime::profile_counter!("editor", "hierarchy_filter_projection_invocation_count", 1);
+    zircon_runtime::profile_counter!(
+        "editor",
+        "hierarchy_filter_source_row_count",
+        source_row_count
+    );
+    zircon_runtime::profile_counter!(
+        "editor",
+        "hierarchy_filter_name_match_count",
+        name_match_count
+    );
+    zircon_runtime::profile_counter!(
+        "editor",
+        "hierarchy_filter_ancestor_link_count",
+        ancestor_link_count
+    );
+    zircon_runtime::profile_counter!(
+        "editor",
+        "hierarchy_filter_visible_row_count",
+        visible_row_count
+    );
 }
 
 fn hierarchy_parent_indices(entries: &[WorldInspectionHierarchyRow]) -> Vec<Option<usize>> {
@@ -114,7 +160,6 @@ mod tests {
             display_name: name.to_string(),
             kind: "Entity".to_string(),
             subtree_hash: 0,
-            focused: false,
             active_in_hierarchy: true,
             has_children: false,
         }
@@ -177,6 +222,65 @@ mod tests {
 
         assert!(
             production.contains("profile_scope!(\"editor\", \"hierarchy\", \"filter_projection\")")
+        );
+    }
+
+    #[test]
+    fn hierarchy_filter_profiles_the_work_needed_for_scale_attribution() {
+        let source = include_str!("hierarchy_filter.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap();
+
+        for counter in [
+            "hierarchy_filter_projection_invocation_count",
+            "hierarchy_filter_source_row_count",
+            "hierarchy_filter_name_match_count",
+            "hierarchy_filter_ancestor_link_count",
+            "hierarchy_filter_visible_row_count",
+        ] {
+            assert!(
+                production.contains(&format!("\"{counter}\"")),
+                "hierarchy filter profiling must emit {counter}"
+            );
+        }
+    }
+
+    #[test]
+    fn hierarchy_filter_records_blank_query_as_full_visibility() {
+        let source = include_str!("hierarchy_filter.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap();
+        let wrapper = production
+            .split("pub(super) fn filtered_hierarchy_entries")
+            .nth(1)
+            .and_then(|source| {
+                source
+                    .split("pub(super) fn set_hierarchy_filter_query")
+                    .next()
+            })
+            .expect("filtered hierarchy entries wrapper");
+        let projection = production
+            .split("fn hierarchy_entries_matching_query")
+            .nth(1)
+            .and_then(|source| source.split("fn record_hierarchy_filter_metrics").next())
+            .expect("hierarchy projection helper");
+
+        assert!(
+            wrapper.contains("profile_scope!(\"editor\", \"hierarchy\", \"filter_projection\")"),
+            "the product wrapper must own the filter-projection span"
+        );
+        assert!(
+            wrapper.contains(
+                "record_hierarchy_filter_metrics(entries.len(), entries.len(), 0, entries.len());"
+            ),
+            "blank hierarchy queries must report full visibility instead of omitting trace counters"
+        );
+        assert!(
+            wrapper.contains("return None;"),
+            "blank hierarchy queries must retain the no-materialization result"
+        );
+        assert!(
+            !projection
+                .contains("profile_scope!(\"editor\", \"hierarchy\", \"filter_projection\")"),
+            "the algorithm helper must not create a duplicate projection span"
         );
     }
 

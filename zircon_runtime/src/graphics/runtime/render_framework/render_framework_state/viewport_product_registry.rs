@@ -2,9 +2,13 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use crate::core::framework::render::{RenderViewportHandle, RenderViewportProduct};
-use crate::graphics::ViewportFrameTextureHandle;
-use zr_rhi_wgpu::{WgpuUiExternalImage, WgpuUiSurfaceContext, WgpuUiSurfaceExternalImageProvider};
+use crate::core::framework::render::{
+    RenderFrameSubmissionReceipt, RenderViewportHandle, RenderViewportProduct,
+};
+use crate::graphics::GraphicsError;
+use zr_rhi_wgpu::{
+    WgpuUiExternalImage, WgpuUiExternalImageCopyReceipt, WgpuUiSurfaceExternalImageProvider,
+};
 
 /// Bounded owner for runtime products exported to same-device retained UI presenters.
 ///
@@ -41,24 +45,20 @@ impl ViewportProductRegistry {
     pub(in crate::graphics::runtime::render_framework) fn publish(
         &self,
         viewport: RenderViewportHandle,
-        texture: ViewportFrameTextureHandle,
-        ui_context: &WgpuUiSurfaceContext,
-    ) -> RenderViewportProduct {
-        debug_assert!(
-            texture.usage.contains(wgpu::TextureUsages::COPY_SRC),
-            "renderer products must be copy sources before retained UI export"
-        );
+        copy: WgpuUiExternalImageCopyReceipt,
+        scene_receipt: &RenderFrameSubmissionReceipt,
+    ) -> Result<(), GraphicsError> {
         let descriptor =
-            RenderViewportProduct::new(viewport, texture.width, texture.height, texture.generation);
-        // This must be a new GPU texture. The scene renderer reuses its final-color target on the
-        // next frame and may also serve another viewport of the same size.
-        let image = ui_context.copy_texture_for_external_image(
-            &texture.texture,
-            texture.width,
-            texture.height,
-            texture.format,
-            texture.generation,
-        );
+            RenderViewportProduct::new(viewport, copy.width(), copy.height(), copy.generation());
+        let product_submission = copy.submission();
+        scene_receipt
+            .validate_viewport_product_publication(copy.generation(), product_submission)
+            .map_err(|source| GraphicsError::FrameProductPublicationFailed {
+                receipt: scene_receipt.clone(),
+                product_submission: Some(product_submission),
+                source: Box::new(source.into()),
+            })?;
+        let image = copy.into_image();
         let mut products = self
             .products
             .lock()
@@ -89,7 +89,7 @@ impl ViewportProductRegistry {
         if let Some(expired) = expired_key {
             products.by_resource_key.remove(&expired);
         }
-        descriptor
+        Ok(())
     }
 
     pub(in crate::graphics::runtime::render_framework) fn poll_if_newer(
@@ -331,7 +331,14 @@ mod tests {
     fn product_registry_exports_independent_gpu_snapshots() {
         let source = include_str!("viewport_product_registry.rs");
 
-        assert!(source.contains("copy_texture_for_external_image"));
+        assert!(!source.contains("copy_texture_for_external_image"));
+        assert!(!source.contains("WgpuUiSurfaceContext"));
+        assert!(source.contains("copy: WgpuUiExternalImageCopyReceipt"));
+        assert!(source.contains("copy.submission()"));
+        assert!(source.contains(
+            "validate_viewport_product_publication(copy.generation(), product_submission)"
+        ));
+        assert!(source.contains("FrameProductPublicationFailed"));
         assert!(source.contains("image: WgpuUiExternalImage"));
         assert!(!source.contains("texture: texture,"));
         assert!(source.contains("products.by_viewport.clear()"));

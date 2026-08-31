@@ -10,6 +10,8 @@ use crate::core::runtime::modules::{
     DIAGNOSTICS_CORE_MODULE_NAME, FRAME_COUNT_MODULE_NAME, LOG_MODULE_NAME, TASKS_MODULE_NAME,
     TIME_MODULE_NAME,
 };
+#[cfg(feature = "text")]
+use crate::text::TEXT_MODULE_NAME;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -24,6 +26,8 @@ pub enum BuiltinRuntimeModuleId {
     Input,
     Asset,
     Scene,
+    #[cfg(feature = "text")]
+    Text,
     #[cfg(feature = "graphics")]
     Graphics,
     #[cfg(feature = "script")]
@@ -43,6 +47,8 @@ impl BuiltinRuntimeModuleId {
             Self::Input => INPUT_MODULE_NAME,
             Self::Asset => ASSET_MODULE_NAME,
             Self::Scene => SCENE_MODULE_NAME,
+            #[cfg(feature = "text")]
+            Self::Text => TEXT_MODULE_NAME,
             #[cfg(feature = "graphics")]
             Self::Graphics => GRAPHICS_MODULE_NAME,
             #[cfg(feature = "script")]
@@ -62,6 +68,8 @@ impl BuiltinRuntimeModuleId {
             INPUT_MODULE_NAME => Some(Self::Input),
             ASSET_MODULE_NAME => Some(Self::Asset),
             SCENE_MODULE_NAME => Some(Self::Scene),
+            #[cfg(feature = "text")]
+            TEXT_MODULE_NAME => Some(Self::Text),
             #[cfg(feature = "graphics")]
             GRAPHICS_MODULE_NAME => Some(Self::Graphics),
             #[cfg(feature = "script")]

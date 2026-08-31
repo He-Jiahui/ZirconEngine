@@ -29,7 +29,7 @@ reference_engines:
   - dev/Graphics
 doc_type: review-and-refactor-plan
 review_status: review_complete
-implementation_status: pending
+implementation_status: in_progress
 source_recheck_required: true
 ---
 
@@ -396,3 +396,16 @@ Mode/overlay插件只得到capability facade：immutable document/selection/came
 - [Plugin12](../../zircon_plugins/12-plugin-dx-and-structure-framework.md) 拥有第一方插件结构与Prefab Tools package方向；本文以当前源码证明descriptor/toolkit已注册但factory/importer/authoring语义未安装，并给出Prefab Graph/Instance的完成定义。
 - [Optimize Editor02](02-document-transaction-save-autosave-recovery-review.md) 已拥有统一dirty/save/close/recovery authority；P0-01/P0-02要求Scene route成为该authority的participant，而不是另建scene专用prompt。
 - 本文只关闭scene/prefab/selection/mode/gizmo/picking首轮静态审查。Content import/reimport、Inspector/property authoring、Editor plugin UX其余部分、Play viewport/runtime bridge与large-project workflow仍需后续独立报告。
+
+## 产出记录与时间
+
+### 2026-08-24 · M0/M1 Scene 文档安全切片（实现中）
+
+- 状态：`in_progress`。本记录只确认已落地的源码切片；尚未完成 coordinator-managed Cargo 验证、真实 Editor 产品链验收、里程碑提交或企微同步。
+- 已完成 P0-01 的 source identity 贯通：保存从 `DocumentLifecycleAuthority` 的 active scene identity 取得 URI，已删除将当前 world 隐式写入 manifest default scene 的路径；active scene 变更后旧 identity 不会发布 Saved 事件。
+- 已完成 P0-02 的防丢失底线：Scene open/create 在替换 authoring world、history 与 selection 前执行 dirty admission，dirty history 会拒绝切换而不会隐式 discard。统一 Save/Discard/Cancel close coordinator 仍属 Optimize Editor02 的未完成工作，不能将本项标记为已验收。
+- 已完成 P0-03 的 lossless sidecar：`SceneEntityAsset.prefab_instance` 在 World load/save 间以保留动态组件存储，覆盖 prefab source、local transform 与 JSON overrides；新回归同时覆盖场景在运行时组件扩展安装后的保存，防止真实 editor authoring-level 构造链路丢失 sidecar。该切片明确不实例化 prefab、解析 source 或执行 overrides。
+- 已完成 M0 Prefab capability truth：Prefab Tools 已移除没有 operation factory/backend 的 Create/Open/Apply/Revert/Break command、mutation menu、asset toolkit 与 creation template；只读 view/drawer/inspector surface保留。会清空 instance overrides 的 placeholder helper 与公开 API 已硬切删除，真实 Prefab Graph/Instance transaction 到位前不允许任何"apply/revert/break"实现伪造成功。
+- 已完成 P1-03 的 route prepare/commit：lifecycle identity reservation 在 authoring world 安装前完成，安装成功后只执行不可失败的 lifecycle commit，避免“返回 activation 失败但 world 已替换”。
+- 已完成 P1-04 的第一层硬切：`EditorAuthoringWorld` 已删除 `try_* -> Option` 表面，读访问返回 `Result<Option<T>, AuthoringWorldAccessError>`，未加载仍是唯一的 `Ok(None)`；gateway session、capability、runtime、protocol、reentrant 与 generation failure 均有结构化投影。作者世界绑定安装 generation，gateway replacement 在受替换锁保护的 callback 前拒绝为 `StaleGeneration`。写访问保留 callback 已执行后的 error receipt，gizmo/play restore 会将其作为失败并走补偿；命令、save/play/inspector 写路径向上返回 typed error，render/inspection/snapshot 只降级其 projection 且按故障签名限流记录 diagnostics。完整 per-document `SceneDocumentSessionRegistry` 与跨进程重连 incident/recovery 仍属 M1 后续，不能把本项标记为已验收。
+- 静态证据：对本切片 Rust 文件执行 `rustfmt --edition 2024 --emit stdout` 成功，`git diff --check` 成功（仅 Git 行尾提示）；未运行 Cargo、性能基准或真实 Editor。

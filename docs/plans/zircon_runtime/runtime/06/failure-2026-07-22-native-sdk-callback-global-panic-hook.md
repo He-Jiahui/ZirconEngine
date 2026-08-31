@@ -12,6 +12,7 @@ related_code:
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls/output_sink.rs
 tests:
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --features native --locked -- --nocapture
   - cargo test -p zircon_runtime --lib native_plugin --locked -- --nocapture
@@ -56,3 +57,27 @@ SDK把“防止panic跨FFI”与“静默默认panic输出”混为一体。前�
 ## 修复结果与回传
 
 Open state: `静态修复已落地，等待受管Cargo、并发hook sentinel与native loader产品验收`; no dynamic pass is claimed.
+
+## 2026-08-29 host output callback closure
+
+- F1 current-source 复核发现 `NativePluginOutputSinkV4.write` 指向的
+  `behavior_calls/output_sink.rs::write_host_output_v4` 是宿主暴露给 native plugin 的第五类 private
+  host callback，但旧 F1 guard 只覆盖 host function table 的四个 callback，并且仍读取
+  已拆分前的 `host_api_adapter.rs` façade。output writer 因此没有进入 panic guard，结构
+  guard 也可能 false-green。
+- `ffi_panic_guard.rs` 现只保留一个 generic `catch_unwind` kernel，并分别投影
+  `ZrStatus`、`u32` 与 `NativePluginCallbackStatusV3`。正常路径不交换 process-global
+  panic hook、不建立全局锁，也不分配临时 hook；output sink panic 返回静态 diagnostics
+  与 `ZIRCON_NATIVE_PLUGIN_STATUS_PANIC`。
+- `behavior_calls/output_sink.rs` 现是 output bytes、null-slice、checked length、host byte
+  budget、`try_reserve` 与薄 FFI wrapper 的唯一 owner。捕获 panic 后同时标记 host-owned sink
+  terminal；command report 优先保留 PANIC typed status，因此 foreign callback 即使忽略
+  writer 返回值并返回 OK，也不能发布部分 payload 或把 panic 降级为普通成功。
+- F1 source guard 直接读取 `bridge_scope`、`ecs_registration`、`host_callbacks` 与
+  `behavior_calls/output_sink` 当前 owners，新增 `register_system_v2` 和 output sink 覆盖，并删除五份
+  未参与断言的 declaration-only 文档编译输入。
+- Windows Rust 1.94.1 独立 harness 在 `E:` 直接包含 current production guard/sink 源码并执行：
+  正常写入、预算拒绝、null context 与三种 panic projection 共 `6/6` GREEN；F1
+  current-source callback guard 在 owner hard cut 后复跑 `1/1` GREEN；编排 root/child 为
+  687/102 行。该证据不替代本记录声明的受管 Cargo、
+  1/8/64-thread sentinel 与真实 native loader 产品验收，failure 继续保持 `open`。

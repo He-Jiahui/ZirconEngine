@@ -2,22 +2,28 @@ use std::collections::VecDeque;
 
 use thiserror::Error;
 
+#[cfg(test)]
+use crate::asset::artifact::IblBakeArtifactRuntimeDispatchReadbackReport;
 use crate::asset::artifact::{
     write_ibl_bake_artifact_runtime_dispatch_readback, IblBakeArtifactCacheStore,
-    IblBakeArtifactRuntimeDispatchError, IblBakeArtifactRuntimeDispatchReadbackReport,
-    IblBakeArtifactRuntimeDispatchReport,
+    IblBakeArtifactRuntimeDispatchError, IblBakeArtifactRuntimeDispatchReport,
 };
-use crate::core::framework::render::{
-    IblBakeArtifactDescriptor, IblBakeArtifactReadbackSections, IblBakeArtifactRequest,
-};
+#[cfg(test)]
+use crate::core::framework::render::IblBakeArtifactReadbackSections;
+use crate::core::framework::render::{IblBakeArtifactDescriptor, IblBakeArtifactRequest};
 use crate::graphics::backend::IblBakeArtifactWgpuPendingReadback;
+use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
 use crate::graphics::types::GraphicsError;
 use crate::graphics::EnvironmentIblBakeReservation;
+use crate::render_graph::CompiledRenderGraph;
 
+use super::environment_capture_gpu_target::EnvironmentCaptureGpuTarget;
+#[cfg(test)]
+use super::ibl_bake_wgpu_readback::read_ibl_bake_artifact_wgpu_sections_from_graph_resources;
 use super::ibl_bake_wgpu_readback::{
+    prepare_ibl_bake_artifact_wgpu_readback_from_capture_target,
     prepare_ibl_bake_artifact_wgpu_readback_from_graph_resources,
-    read_ibl_bake_artifact_wgpu_sections_from_graph_resources,
 };
 
 const MAX_PENDING_IBL_BAKE_RUNTIME_WRITEBACKS: usize = 4;
@@ -30,11 +36,12 @@ pub(in crate::graphics::scene::scene_renderer) struct IblBakeRuntimeGraphWriteba
 impl IblBakeRuntimeGraphWritebackQueue {
     pub(in crate::graphics::scene::scene_renderer) fn prepare(
         &self,
-        device: &wgpu::Device,
+        backend: &RenderBackend,
         store: IblBakeArtifactCacheStore,
         request: IblBakeArtifactRequest,
         reservation: EnvironmentIblBakeReservation,
         resources: &RenderGraphExecutionResources,
+        graph: &CompiledRenderGraph,
     ) -> Result<Option<PreparedIblBakeRuntimeGraphWriteback>, IblBakeRuntimeGraphWritebackError>
     {
         if self
@@ -56,7 +63,7 @@ impl IblBakeRuntimeGraphWritebackQueue {
         }
         let descriptor = current_descriptor_for_request(&request);
         let readback = prepare_ibl_bake_artifact_wgpu_readback_from_graph_resources(
-            device, descriptor, resources,
+            backend, descriptor, resources, graph,
         )
         .map_err(IblBakeRuntimeGraphWritebackError::Readback)?;
         Ok(Some(PreparedIblBakeRuntimeGraphWriteback {
@@ -64,39 +71,64 @@ impl IblBakeRuntimeGraphWritebackQueue {
             request,
             dispatch,
             readback,
-            _reservation: reservation,
+            _reservation: Some(reservation),
+            allow_readback_failure: false,
+        }))
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn prepare_from_capture_target(
+        &self,
+        backend: &RenderBackend,
+        store: IblBakeArtifactCacheStore,
+        request: IblBakeArtifactRequest,
+        target: &EnvironmentCaptureGpuTarget,
+    ) -> Result<Option<PreparedIblBakeRuntimeGraphWriteback>, IblBakeRuntimeGraphWritebackError>
+    {
+        if self
+            .pending
+            .iter()
+            .any(|pending| pending.request == request)
+            || self.pending.len() >= MAX_PENDING_IBL_BAKE_RUNTIME_WRITEBACKS
+        {
+            return Ok(None);
+        }
+        let dispatch = crate::asset::artifact::resolve_ibl_bake_artifact_runtime_dispatch(
+            &store,
+            &request,
+            &[],
+        )
+        .map_err(IblBakeRuntimeGraphWritebackError::RuntimeDispatch)?;
+        if !dispatch.requires_runtime_compute() {
+            return Ok(None);
+        }
+        let descriptor = current_descriptor_for_request(&request);
+        let readback = prepare_ibl_bake_artifact_wgpu_readback_from_capture_target(
+            backend, descriptor, target,
+        )
+        .map_err(IblBakeRuntimeGraphWritebackError::Readback)?;
+        Ok(Some(PreparedIblBakeRuntimeGraphWriteback {
+            store,
+            request,
+            dispatch,
+            readback,
+            _reservation: None,
+            allow_readback_failure: true,
         }))
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn commit_submitted(
         &mut self,
-        mut prepared: PreparedIblBakeRuntimeGraphWriteback,
+        prepared: PreparedIblBakeRuntimeGraphWriteback,
     ) {
-        prepared.readback.begin_map();
         self.pending.push_back(prepared);
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn poll_completed(
         &mut self,
-        device: &wgpu::Device,
     ) -> Result<(), IblBakeRuntimeGraphWritebackError> {
-        if let Err(error) = device.poll(wgpu::PollType::Poll) {
-            // Device-poll failure makes every queued readback unrecoverable. Releasing their
-            // reservations lets a recovered device author a fresh IBL graph on the next frame.
-            self.pending.clear();
-            return Err(IblBakeRuntimeGraphWritebackError::Readback(
-                GraphicsError::BufferMap(error.to_string()),
-            ));
-        }
         let mut index = 0;
         while index < self.pending.len() {
-            let ready = match self.pending[index].readback.poll_ready() {
-                Ok(ready) => ready,
-                Err(error) => {
-                    self.pending.remove(index);
-                    return Err(IblBakeRuntimeGraphWritebackError::Readback(error));
-                }
-            };
+            let ready = self.pending[index].readback.poll_ready();
             if !ready {
                 index += 1;
                 continue;
@@ -104,17 +136,22 @@ impl IblBakeRuntimeGraphWritebackQueue {
             let Some(pending) = self.pending.remove(index) else {
                 break;
             };
-            let readback = pending
-                .readback
-                .finish()
-                .map_err(IblBakeRuntimeGraphWritebackError::Readback)?;
-            write_ibl_bake_artifact_runtime_dispatch_readback(
+            let readback = match pending.readback.finish() {
+                Ok(readback) => readback,
+                Err(_) if pending.allow_readback_failure => continue,
+                Err(error) => return Err(IblBakeRuntimeGraphWritebackError::Readback(error)),
+            };
+            if let Err(error) = write_ibl_bake_artifact_runtime_dispatch_readback(
                 &pending.store,
                 &pending.request,
                 &pending.dispatch,
                 readback,
-            )
-            .map_err(IblBakeRuntimeGraphWritebackError::RuntimeDispatch)?;
+            ) {
+                if pending.allow_readback_failure {
+                    continue;
+                }
+                return Err(IblBakeRuntimeGraphWritebackError::RuntimeDispatch(error));
+            }
         }
         Ok(())
     }
@@ -125,17 +162,11 @@ pub(in crate::graphics::scene::scene_renderer) struct PreparedIblBakeRuntimeGrap
     request: IblBakeArtifactRequest,
     dispatch: IblBakeArtifactRuntimeDispatchReport,
     readback: IblBakeArtifactWgpuPendingReadback,
-    _reservation: EnvironmentIblBakeReservation,
+    _reservation: Option<EnvironmentIblBakeReservation>,
+    allow_readback_failure: bool,
 }
 
-impl PreparedIblBakeRuntimeGraphWriteback {
-    pub(in crate::graphics::scene::scene_renderer) fn take_command_buffer(
-        &mut self,
-    ) -> Option<wgpu::CommandBuffer> {
-        self.readback.take_command_buffer()
-    }
-}
-
+#[cfg(test)]
 pub(in crate::graphics::scene::scene_renderer) fn write_ibl_bake_runtime_cache_from_graph_resources(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -143,11 +174,12 @@ pub(in crate::graphics::scene::scene_renderer) fn write_ibl_bake_runtime_cache_f
     request: &IblBakeArtifactRequest,
     dispatch: &IblBakeArtifactRuntimeDispatchReport,
     resources: &RenderGraphExecutionResources,
+    graph: &CompiledRenderGraph,
 ) -> Result<IblBakeArtifactRuntimeDispatchReadbackReport, IblBakeRuntimeGraphWritebackError> {
     let descriptor = current_descriptor_for_request(request);
     let readback = if dispatch.requires_runtime_compute() {
         read_ibl_bake_artifact_wgpu_sections_from_graph_resources(
-            device, queue, descriptor, resources,
+            device, queue, descriptor, resources, graph,
         )
         .map_err(IblBakeRuntimeGraphWritebackError::Readback)?
     } else {
@@ -168,6 +200,52 @@ pub(in crate::graphics::scene::scene_renderer) enum IblBakeRuntimeGraphWriteback
     Readback(GraphicsError),
     #[error("write IBL bake runtime dispatch readback: {0}")]
     RuntimeDispatch(IblBakeArtifactRuntimeDispatchError),
+}
+
+#[cfg(test)]
+mod source_contract_tests {
+    #[test]
+    fn production_writeback_is_cpu_only_after_the_backend_completion_poll() {
+        let source = include_str!("ibl_bake_runtime_writeback.rs");
+        let production = source
+            .split_once("#[cfg(test)]\npub(in crate::graphics::scene::scene_renderer) fn write_ibl")
+            .map(|(production, _)| production)
+            .expect("runtime writeback must retain a test-only synchronous helper boundary");
+
+        assert!(production.contains("readback.poll_ready()"));
+        assert!(!production.contains("wgpu::Buffer"));
+        assert!(!production.contains("map_async("));
+        assert!(!production.contains("device.poll("));
+        assert!(!production.contains("queue.submit("));
+        assert!(!production.contains("take_command_buffer("));
+    }
+
+    #[test]
+    fn capture_writeback_reuses_bounded_poll_owner_without_graph_resource_access() {
+        let source = include_str!("ibl_bake_runtime_writeback.rs");
+        let capture = source
+            .split_once("prepare_from_capture_target(")
+            .and_then(|(_, tail)| {
+                tail.split_once(
+                    "pub(in crate::graphics::scene::scene_renderer) fn commit_submitted",
+                )
+            })
+            .map(|(capture, _)| capture)
+            .expect("capture writeback preparation must remain an explicit owner");
+
+        assert!(capture.contains("prepare_ibl_bake_artifact_wgpu_readback_from_capture_target"));
+        assert!(capture.contains("self.pending.len() >= MAX_PENDING_IBL_BAKE_RUNTIME_WRITEBACKS"));
+        assert!(capture.contains("allow_readback_failure: true"));
+        assert!(!capture.contains("RenderGraphExecutionResources"));
+        assert!(!capture.contains("owned_texture("));
+
+        let completion = source
+            .split_once("pub(in crate::graphics::scene::scene_renderer) fn poll_completed")
+            .map(|(_, tail)| tail)
+            .expect("runtime writeback must retain one bounded completion owner");
+        assert!(completion.contains("Err(_) if pending.allow_readback_failure => continue"));
+        assert!(completion.contains("if pending.allow_readback_failure"));
+    }
 }
 
 #[cfg(test)]

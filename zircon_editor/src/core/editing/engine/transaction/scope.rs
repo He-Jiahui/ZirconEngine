@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use super::{
-    ActiveTransaction, DocumentId, EditCommand, EditCommandError, EditContext,
+    ActiveTransaction, CommandBox, DocumentId, EditCommand, EditCommandError, EditContext,
     EditorTransactionEngine, HistoryContextId, MergeMode, OperationGroupReservation,
     SelectionSnapshot, TransactionId,
 };
@@ -38,36 +38,55 @@ impl EditorTransactionEngine {
     ) -> Result<TransactionId, EditCommandError> {
         self.start_operation("begin transaction")?;
         let mut context = self.take_context()?;
-        let selection_before = context.selection_snapshot();
-        let mut state = self.lock_state();
-        let operation_group_allows_begin = match state.operation_group.as_ref() {
-            Some(active) => active.allows_begin(history, operation_group_reservation),
-            None => operation_group_reservation.is_none(),
-        };
-        if !operation_group_allows_begin {
-            let error = match state.operation_group.as_ref() {
-                Some(active) => EditCommandError::EngineBusy {
-                    active: active.operation(),
-                    requested: "begin transaction",
-                },
-                None => EditCommandError::InvariantViolation {
-                    invariant: "operation group begin requires its live reservation",
-                },
+        let inherited_route = {
+            let mut state = self.lock_state();
+            let operation_group_allows_begin = match state.operation_group.as_ref() {
+                Some(active) => active.allows_begin(history, operation_group_reservation),
+                None => operation_group_reservation.is_none(),
             };
-            state.context = Some(context);
-            self.clear_operation_locked(&mut state);
-            return Err(error);
-        }
-        if let Some(active_history) = state.active.last().map(|active| active.history) {
-            if active_history != history {
+            if !operation_group_allows_begin {
+                let error = match state.operation_group.as_ref() {
+                    Some(active) => EditCommandError::EngineBusy {
+                        active: active.operation(),
+                        requested: "begin transaction",
+                    },
+                    None => EditCommandError::InvariantViolation {
+                        invariant: "operation group begin requires its live reservation",
+                    },
+                };
                 state.context = Some(context);
                 self.clear_operation_locked(&mut state);
-                return Err(EditCommandError::CrossContextNested {
-                    active: active_history,
-                    requested: history,
-                });
+                return Err(error);
             }
+            if let Some(active) = state.active.last() {
+                if active.history != history {
+                    let active_history = active.history;
+                    state.context = Some(context);
+                    self.clear_operation_locked(&mut state);
+                    return Err(EditCommandError::CrossContextNested {
+                        active: active_history,
+                        requested: history,
+                    });
+                }
+            }
+            state.active.last().map(|active| active.route.clone())
+        };
+        let route = match inherited_route {
+            Some(route) => route,
+            None => match context.capture_world_route(history.world_domain()) {
+                Ok(route) => route,
+                Err(error) => {
+                    self.finish_operation(context, false);
+                    return Err(error);
+                }
+            },
+        };
+        if let Err(error) = context.activate_world_route(&route) {
+            self.finish_operation(context, false);
+            return Err(error);
         }
+        let selection_before = context.selection_snapshot();
+        let mut state = self.lock_state();
         let id = match Self::next_transaction_id(&mut state) {
             Ok(id) => id,
             Err(error) => {
@@ -91,6 +110,7 @@ impl EditorTransactionEngine {
             commands: Vec::new(),
             participants,
             selection_before,
+            route,
             merge_mode: MergeMode::Disable,
             root,
         });
@@ -130,8 +150,27 @@ impl EditorTransactionEngine {
 }
 
 impl TransactionScope<'_> {
+    /// Inspects the context only after this scope has pinned and activated its world route.
+    pub(crate) fn with_context_mut<T: 'static, R>(
+        &mut self,
+        inspect: impl FnOnce(&mut T) -> R,
+    ) -> Result<Option<R>, EditCommandError> {
+        if self.closed {
+            return Err(EditCommandError::ScopeClosed);
+        }
+        let result = self.engine.with_active_context_mut(self.id, inspect);
+        if result.is_err() {
+            self.closed = !self.engine.has_active_scope(self.id);
+        }
+        result
+    }
+
     pub fn push(&mut self, command: impl EditCommand + 'static) -> Result<(), EditCommandError> {
-        let result = self.engine.push(self.id, Box::new(command));
+        self.push_boxed(Box::new(command))
+    }
+
+    pub fn push_boxed(&mut self, command: CommandBox) -> Result<(), EditCommandError> {
+        let result = self.engine.push(self.id, command);
         if result.is_err() {
             self.closed = !self.engine.has_active_scope(self.id);
         }

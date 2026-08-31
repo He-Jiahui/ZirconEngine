@@ -1,6 +1,6 @@
 use zircon_runtime_interface::resource::{AssetReference, ResourceLocator};
 
-use crate::core::framework::render::{
+use crate::graphics::shader::invocation::{
     ComputeDispatchBuilder, ComputeKernelRef, RenderShaderEntryPointDescriptor, RenderShaderStage,
     ShaderAssetKind, ShaderDispatchExtent, ShaderResourceAccess, ShaderResourceDescriptor,
     ShaderResourceKind,
@@ -8,12 +8,159 @@ use crate::core::framework::render::{
 use crate::render_graph::{
     PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
     RenderGraphAttachmentStoreOp, RenderGraphBuilder, RenderGraphComputeDispatchExtent,
-    RenderGraphComputeWorkload, RenderGraphDumpResourceDesc, RenderGraphError, RenderGraphResource,
-    RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
+    RenderGraphComputeWorkload, RenderGraphDumpResourceDesc, RenderGraphError,
+    RenderGraphExternalResourceBinding, RenderGraphResource, RenderGraphResourceAccessKind,
+    RenderGraphResourceDesc, RenderGraphResourceKind,
 };
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
 
 mod transient_aliasing;
+
+#[test]
+fn graph_rejects_live_texture_storage_size_overflow() {
+    let mut builder = RenderGraphBuilder::new("texture-storage-size-overflow");
+    let oversized = builder.create_texture(TextureDesc::new(
+        "oversized-color",
+        u32::MAX,
+        u32::MAX,
+        TextureFormat::Rgba8Unorm,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let output = builder.import_present_external_resource("viewport-output");
+    let produce = builder.add_pass("produce", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+
+    builder.write_texture(produce, oversized).unwrap();
+    builder.read_texture(present, oversized).unwrap();
+    builder.write_external(present, output).unwrap();
+
+    let error = match builder.compile() {
+        Ok(_) => panic!("overflowing texture storage size must fail graph compilation"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        error,
+        RenderGraphError::TextureStorageSizeOverflow {
+            resource: "oversized-color".to_owned(),
+        }
+    );
+}
+
+#[test]
+fn graph_rejects_transient_reservation_total_overflow() {
+    let mut builder = RenderGraphBuilder::new("transient-reservation-total-overflow");
+    let first = builder.create_texture(TextureDesc::new(
+        "first-large-color",
+        u32::MAX,
+        u32::MAX,
+        TextureFormat::R8Unorm,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let second = builder.create_texture(TextureDesc::new(
+        "second-large-color",
+        u32::MAX,
+        u32::MAX,
+        TextureFormat::R8Unorm,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED | TextureUsage::COPY_DST,
+    ));
+    let first_output = builder.import_present_external_resource("first-output");
+    let second_output = builder.import_present_external_resource("second-output");
+    let first_produce = builder.add_pass("first-produce", QueueLane::Graphics);
+    let first_present = builder.add_pass("first-present", QueueLane::Graphics);
+    let second_produce = builder.add_pass("second-produce", QueueLane::Graphics);
+    let second_present = builder.add_pass("second-present", QueueLane::Graphics);
+
+    builder.write_texture(first_produce, first).unwrap();
+    builder.read_texture(first_present, first).unwrap();
+    builder.write_external(first_present, first_output).unwrap();
+    builder.write_texture(second_produce, second).unwrap();
+    builder.read_texture(second_present, second).unwrap();
+    builder
+        .write_external(second_present, second_output)
+        .unwrap();
+
+    let error = match builder.compile() {
+        Ok(_) => panic!("overflowing transient reservation total must fail graph compilation"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        error,
+        RenderGraphError::TransientAllocationBytesOverflow {
+            kind: RenderGraphResourceKind::TransientTexture,
+        }
+    );
+}
+
+#[test]
+fn graph_rejects_a_schema_backed_external_texture_with_a_buffer_binding() {
+    let mut builder = RenderGraphBuilder::new("external-texture-binding-type");
+    let output = builder.import_present_external_texture_with_binding(
+        "plugin.compute-output",
+        TextureDesc::new(
+            "plugin.compute-output",
+            16,
+            8,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::SAMPLED | TextureUsage::STORAGE,
+        ),
+        RenderGraphExternalResourceBinding::report_only_buffer(),
+    );
+    let pass = builder.add_pass("plugin-compute", QueueLane::AsyncCompute);
+    builder.write_storage_external(pass, output).unwrap();
+
+    assert!(matches!(
+        builder.compile(),
+        Err(RenderGraphError::ExternalTextureBindingTypeMismatch { resource })
+            if resource == "plugin.compute-output"
+    ));
+}
+
+#[test]
+fn graph_tracks_a_schema_backed_external_buffer_physical_contract() {
+    let expected = BufferDesc::new(
+        "plugin.compute-input",
+        256,
+        BufferUsage::UNIFORM | BufferUsage::COPY_DST,
+    );
+    let mut builder = RenderGraphBuilder::new("external-buffer-physical-contract");
+    let input = builder.import_present_external_buffer_with_binding(
+        "plugin.compute-input",
+        expected.clone(),
+        RenderGraphExternalResourceBinding::required_buffer(),
+    );
+    let pass = builder.add_pass("plugin-compute", QueueLane::AsyncCompute);
+    builder.read_external(pass, input).unwrap();
+    builder
+        .set_pass_flags(
+            pass,
+            PassFlags {
+                allow_culling: false,
+                has_side_effects: true,
+            },
+        )
+        .unwrap();
+
+    let graph = builder.compile().expect("typed external buffer compiles");
+    let lifetime = graph
+        .resource_lifetime_by_name("plugin.compute-input")
+        .expect("typed external buffer lifetime");
+    assert!(matches!(&lifetime.desc, RenderGraphResourceDesc::External));
+    assert_eq!(lifetime.external_buffer_desc.as_ref(), Some(&expected));
+
+    let mut mismatch = RenderGraphBuilder::new("external-buffer-binding-type");
+    let output = mismatch.import_present_external_buffer_with_binding(
+        "plugin.compute-output",
+        expected,
+        RenderGraphExternalResourceBinding::report_only_texture(),
+    );
+    let pass = mismatch.add_pass("plugin-compute", QueueLane::AsyncCompute);
+    mismatch.write_external(pass, output).unwrap();
+    assert!(matches!(
+        mismatch.compile(),
+        Err(RenderGraphError::ExternalBufferBindingTypeMismatch { resource })
+            if resource == "plugin.compute-output"
+    ));
+}
 
 #[test]
 fn render_graph_rejects_handles_from_a_different_builder_generation() {
@@ -31,7 +178,7 @@ fn render_graph_rejects_handles_from_a_different_builder_generation() {
         16,
         BufferUsage::STORAGE | BufferUsage::COPY_DST,
     ));
-    let foreign_external = source.import_external_resource("foreign-external");
+    let foreign_external = source.import_present_external_resource("foreign-external");
 
     let mut destination = RenderGraphBuilder::new("destination");
     let local_pass = destination.add_pass("destination-pass", QueueLane::Graphics);
@@ -87,7 +234,7 @@ fn graph_tracks_transient_lifetimes_and_resource_edges() {
         TextureFormat::Depth32Float,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let backbuffer = builder.import_external_resource("backbuffer");
+    let backbuffer = builder.import_present_external_resource("backbuffer");
 
     let prepass = builder.add_pass("depth-prepass", QueueLane::Graphics);
     let opaque = builder.add_pass("opaque", QueueLane::Graphics);
@@ -221,7 +368,7 @@ fn graph_records_attachment_clear_load_store_ops() {
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
 
     let clear = builder.add_pass("clear-scene", QueueLane::Graphics);
     let composite = builder.add_pass("composite", QueueLane::Graphics);
@@ -279,8 +426,8 @@ fn graph_records_storage_writes_without_attachment_ops() {
         TextureFormat::Rgba8Unorm,
         TextureUsage::SAMPLED | TextureUsage::STORAGE,
     ));
-    let storage_external = builder.import_external_resource("cluster-output");
-    let output = builder.import_external_resource("viewport-output");
+    let storage_external = builder.import_present_external_resource("cluster-output");
+    let output = builder.import_present_external_resource("viewport-output");
 
     let ssao = builder.add_pass("ssao-evaluate", QueueLane::AsyncCompute);
     let compose = builder.add_pass("compose", QueueLane::Graphics);
@@ -326,7 +473,7 @@ fn graph_records_storage_writes_without_attachment_ops() {
 }
 
 #[test]
-fn graph_preserves_sparse_texture_reservations_without_dense_transient_slot() {
+fn graph_rejects_sparse_texture_reservations_without_a_residency_provider() {
     let mut builder = RenderGraphBuilder::new("sparse-texture-reservation");
     let virtual_pages = builder.create_texture(
         TextureDesc::new(
@@ -339,7 +486,7 @@ fn graph_preserves_sparse_texture_reservations_without_dense_transient_slot() {
         .with_mip_levels(10)
         .with_sparse_residency(),
     );
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
 
     let page_update = builder.add_pass("terrain-page-update", QueueLane::AsyncCompute);
     let sample = builder.add_pass("terrain-sample", QueueLane::Graphics);
@@ -349,22 +496,40 @@ fn graph_preserves_sparse_texture_reservations_without_dense_transient_slot() {
     builder.read_texture(sample, virtual_pages).unwrap();
     builder.write_external(sample, output).unwrap();
 
-    let graph = builder.compile().unwrap();
-    let lifetime = graph
-        .resource_lifetimes()
-        .iter()
-        .find(|lifetime| lifetime.name == "virtual-terrain-pages")
-        .unwrap();
-
-    assert!(lifetime.is_sparse_reserved_texture());
     assert!(matches!(
-        &lifetime.desc,
-        RenderGraphResourceDesc::Texture(desc) if desc.is_sparse_reserved()
+        builder.compile(),
+        Err(RenderGraphError::SparseTextureUnsupported { resource })
+            if resource == "virtual-terrain-pages"
     ));
-    assert_eq!(graph.stats().sparse_texture_lifetime_count, 1);
-    let allocation_plan = graph.transient_allocation_plan();
-    assert_eq!(allocation_plan.texture_slot_count, 0);
-    assert_eq!(allocation_plan.sparse_texture_slot_count, 1);
+}
+
+#[test]
+fn graph_rejects_storage_usage_for_an_unsupported_texture_format() {
+    let mut builder = RenderGraphBuilder::new("unsupported-storage-format");
+    let output = builder.create_texture(TextureDesc::new(
+        "plugin-output",
+        32,
+        32,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::SAMPLED | TextureUsage::STORAGE | TextureUsage::COPY_DST,
+    ));
+    let pass = builder.add_pass("plugin-compute", QueueLane::AsyncCompute);
+    builder
+        .set_pass_flags(
+            pass,
+            PassFlags {
+                allow_culling: true,
+                has_side_effects: true,
+            },
+        )
+        .unwrap();
+    builder.write_storage_texture(pass, output).unwrap();
+
+    assert!(matches!(
+        builder.compile(),
+        Err(RenderGraphError::TextureStorageUsageUnsupported { resource, format })
+            if resource == "plugin-output" && format == TextureFormat::Rgba8UnormSrgb
+    ));
 }
 
 #[test]
@@ -566,7 +731,7 @@ fn graph_rejects_duplicate_resource_names() {
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT,
     ));
-    builder.import_external_resource("scene-color");
+    builder.import_present_external_resource("scene-color");
 
     let error = builder.compile().unwrap_err();
     assert!(matches!(
@@ -623,8 +788,8 @@ fn graph_infers_resource_hazard_edges_and_keeps_readers_live_before_overwrite() 
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let output = builder.import_external_resource("viewport-output");
-    let sample_output = builder.import_external_resource("sample-output");
+    let output = builder.import_present_external_resource("viewport-output");
+    let sample_output = builder.import_present_external_resource("sample-output");
     let seed = builder.add_pass("seed", QueueLane::Graphics);
     let sample = builder.add_pass("sample", QueueLane::Graphics);
     let overwrite = builder.add_pass("overwrite", QueueLane::Graphics);
@@ -668,7 +833,7 @@ fn graph_culls_unused_resource_writer_but_keeps_external_output_chain() {
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let backbuffer = builder.import_external_resource("backbuffer");
+    let backbuffer = builder.import_present_external_resource("backbuffer");
 
     let unused_pass = builder.add_pass("unused-pass", QueueLane::Graphics);
     let opaque = builder.add_pass("opaque", QueueLane::Graphics);
@@ -743,7 +908,7 @@ fn render_graph_dump_lists_pass_order_resources_and_culled() {
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
 
     let unused_pass = builder.add_pass("unused-pass", QueueLane::Graphics);
     let opaque = builder.add_pass("opaque", QueueLane::Graphics);
@@ -778,6 +943,12 @@ fn render_graph_dump_lists_pass_order_resources_and_culled() {
     assert_eq!(
         opaque_row.resources[0].access,
         RenderGraphResourceAccessKind::Write
+    );
+    assert_eq!(
+        opaque_row.resources[0].access_id,
+        graph
+            .access_id_at(opaque, 0)
+            .expect("opaque write has a stable access identity")
     );
 
     let color_row = dump
@@ -827,7 +998,7 @@ fn graph_culling_keeps_manual_dependencies_of_live_passes() {
     let mut builder = RenderGraphBuilder::new("frame");
     let setup_scratch =
         builder.create_buffer(BufferDesc::new("setup-scratch", 16, BufferUsage::STORAGE));
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
 
     let setup = builder.add_pass("manual-setup", QueueLane::Graphics);
     let present = builder.add_pass("present", QueueLane::Graphics);
@@ -856,7 +1027,7 @@ fn graph_culling_drops_clear_overwritten_resource_version() {
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
 
     let stale = builder.add_pass("stale-lighting", QueueLane::Graphics);
     let replacement = builder.add_pass("replacement-lighting", QueueLane::Graphics);
@@ -935,7 +1106,7 @@ fn graph_culling_keeps_loaded_resource_version_producer() {
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
 
     let producer = builder.add_pass("opaque", QueueLane::Graphics);
     let load = builder.add_pass("transparent", QueueLane::Graphics);
@@ -957,7 +1128,7 @@ fn graph_culling_keeps_loaded_resource_version_producer() {
 #[test]
 fn graph_culling_keeps_external_load_producer() {
     let mut builder = RenderGraphBuilder::new("external-load-version-culling");
-    let output = builder.import_external_resource("viewport-output");
+    let output = builder.import_present_external_resource("viewport-output");
 
     let base = builder.add_pass("opaque", QueueLane::Graphics);
     let overlay = builder.add_pass("overlay", QueueLane::Graphics);

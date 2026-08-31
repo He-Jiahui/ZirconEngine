@@ -15,11 +15,11 @@ pub use capability::{
     RUNTIME_CRATE_NAME, SHADER_WGSL_IMPORTER_DECLARATION,
 };
 pub use plugin::{
-    SHADER_WGSL_IMPORTER_DIST_CRATE_NAME, SHADER_WGSL_IMPORTER_DIST_RUNTIME_ENTRY,
-    ShaderWgslImporterRuntimePlugin, asset_importer_descriptors, dist_module_manifest,
-    module_descriptor, package_manifest, plugin_registration, runtime_capabilities,
-    runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor, runtime_selection,
-    supported_platforms, supported_targets,
+    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
+    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
+    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
+    ShaderWgslImporterRuntimePlugin, SHADER_WGSL_IMPORTER_DIST_CRATE_NAME,
+    SHADER_WGSL_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
@@ -35,20 +35,13 @@ pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, A
     validator
         .validate(&module)
         .map_err(|error| AssetImportError::ShaderValidation(format!("{}: {error}", context.uri)))?;
-    let entry_points = module
-        .entry_points
-        .iter()
-        .map(|entry| ShaderEntryPointAsset {
-            name: entry.name.clone(),
-            stage: format!("{:?}", entry.stage).to_ascii_lowercase(),
-        })
-        .collect();
+    let entry_points = shader_entry_points(module);
     let source = source.to_owned();
     Ok(AssetImportOutcome::new(
         context.uri.clone(),
         ImportedAsset::Shader(ShaderAsset {
             uri: context.uri.clone(),
-            kind: ShaderAssetKind::Surface,
+            kind: ShaderAssetKind::Module,
             source_language: ShaderSourceLanguage::Wgsl,
             source: source.clone(),
             wgsl_source: source,
@@ -76,6 +69,31 @@ pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, A
     ))
 }
 
+fn shader_entry_points(module: naga::Module) -> Vec<ShaderEntryPointAsset> {
+    module
+        .entry_points
+        .into_iter()
+        .map(|entry| ShaderEntryPointAsset {
+            name: entry.name,
+            stage: shader_stage_name(&entry.stage).to_owned(),
+        })
+        .collect()
+}
+
+fn shader_stage_name(stage: &naga::ShaderStage) -> &'static str {
+    match stage {
+        naga::ShaderStage::Vertex => "vertex",
+        naga::ShaderStage::Task => "task",
+        naga::ShaderStage::Mesh => "mesh",
+        naga::ShaderStage::Fragment => "fragment",
+        naga::ShaderStage::Compute => "compute",
+        naga::ShaderStage::RayGeneration => "raygeneration",
+        naga::ShaderStage::Miss => "miss",
+        naga::ShaderStage::AnyHit => "anyhit",
+        naga::ShaderStage::ClosestHit => "closesthit",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,17 +104,13 @@ mod tests {
         let manifest = package_manifest();
 
         assert_eq!(manifest.id, PLUGIN_ID);
-        assert!(
-            manifest
-                .capabilities
-                .contains(&RUNTIME_CAPABILITY.to_string())
-        );
-        assert!(
-            manifest
-                .asset_importers
-                .iter()
-                .any(|importer| importer.source_extensions.contains(&"wgsl".to_string()))
-        );
+        assert!(manifest
+            .capabilities
+            .contains(&RUNTIME_CAPABILITY.to_string()));
+        assert!(manifest
+            .asset_importers
+            .iter()
+            .any(|importer| importer.source_extensions.contains(&"wgsl".to_string())));
     }
 
     #[test]
@@ -141,11 +155,9 @@ mod tests {
             .as_ref()
             .expect("WGSL importer package exposes dist metadata");
 
-        assert!(
-            manifest
-                .default_packaging
-                .contains(&ExportPackagingStrategy::NativeDynamic)
-        );
+        assert!(manifest
+            .default_packaging
+            .contains(&ExportPackagingStrategy::NativeDynamic));
         assert_eq!(distribution.forms, vec!["dist"]);
         assert_eq!(
             distribution.default_packaging,
@@ -171,11 +183,9 @@ mod tests {
             zircon_runtime::plugin::PluginModuleKind::Native
         );
         assert_eq!(dist_module.crate_name, SHADER_WGSL_IMPORTER_DIST_CRATE_NAME);
-        assert!(
-            dist_module
-                .capabilities
-                .contains(&IMPORTER_CAPABILITY.to_string())
-        );
+        assert!(dist_module
+            .capabilities
+            .contains(&IMPORTER_CAPABILITY.to_string()));
     }
 
     #[test]
@@ -183,21 +193,17 @@ mod tests {
         let report = plugin_registration();
 
         assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(
-            report
-                .extensions
-                .modules()
-                .iter()
-                .any(|module| module.name == MODULE_NAME)
-        );
-        assert!(
-            report
-                .extensions
-                .asset_importers()
-                .descriptors()
-                .iter()
-                .any(|importer| importer.id == "shader_wgsl_importer.wgsl")
-        );
+        assert!(report
+            .extensions
+            .modules()
+            .iter()
+            .any(|module| module.name == MODULE_NAME));
+        assert!(report
+            .extensions
+            .asset_importers()
+            .descriptors()
+            .iter()
+            .any(|importer| importer.id == "shader_wgsl_importer.wgsl"));
     }
 
     #[test]
@@ -220,6 +226,7 @@ mod tests {
 
         match imported {
             zircon_runtime::asset::ImportedAsset::Shader(shader) => {
+                assert_eq!(shader.kind, ShaderAssetKind::Module);
                 assert_eq!(shader.source_language, ShaderSourceLanguage::Wgsl);
                 assert_eq!(shader.entry_points.len(), 2);
                 assert!(shader.wgsl_source.contains("vs_main"));
@@ -240,6 +247,196 @@ mod tests {
         let error = import_wgsl(&context).unwrap_err();
 
         assert!(error.to_string().contains("res://shaders/broken.wgsl"));
+    }
+
+    #[test]
+    fn plugins07_wgsl_hotpath_static_stage_names_preserve_all_naga_stages() {
+        assert_eq!(shader_stage_name(&naga::ShaderStage::Vertex), "vertex");
+        assert_eq!(shader_stage_name(&naga::ShaderStage::Task), "task");
+        assert_eq!(shader_stage_name(&naga::ShaderStage::Mesh), "mesh");
+        assert_eq!(shader_stage_name(&naga::ShaderStage::Fragment), "fragment");
+        assert_eq!(shader_stage_name(&naga::ShaderStage::Compute), "compute");
+        assert_eq!(
+            shader_stage_name(&naga::ShaderStage::RayGeneration),
+            "raygeneration"
+        );
+        assert_eq!(shader_stage_name(&naga::ShaderStage::Miss), "miss");
+        assert_eq!(shader_stage_name(&naga::ShaderStage::AnyHit), "anyhit");
+        assert_eq!(
+            shader_stage_name(&naga::ShaderStage::ClosestHit),
+            "closesthit"
+        );
+    }
+
+    #[test]
+    fn plugins07_wgsl_hotpath_entry_point_names_and_stages_preserve_source_order() {
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "main.wgsl".into(),
+            zircon_runtime::asset::AssetUri::parse("res://shaders/main.wgsl").unwrap(),
+            valid_wgsl().as_bytes().to_vec(),
+            Default::default(),
+        );
+
+        let outcome = import_wgsl(&context).unwrap();
+        let ImportedAsset::Shader(shader) = &outcome.root_entry().unwrap().asset else {
+            panic!("expected WGSL shader asset");
+        };
+
+        assert_eq!(shader.kind, ShaderAssetKind::Module);
+        assert_eq!(shader.entry_points.len(), 2);
+        assert_eq!(shader.entry_points[0].name, "vs_main");
+        assert_eq!(shader.entry_points[0].stage, "vertex");
+        assert_eq!(shader.entry_points[1].name, "fs_main");
+        assert_eq!(shader.entry_points[1].stage, "fragment");
+    }
+
+    #[test]
+    #[ignore = "release performance gate; run through the Plugins07 coordinator validator"]
+    fn plugins07_wgsl_hotpath_release_static_stage_name_p95_gate() {
+        use std::hint::black_box;
+        use std::time::Instant;
+
+        const SAMPLE_PAIRS: usize = 21;
+        const STAGE_NAMES: usize = 262_144;
+        const THRESHOLD_PERCENT: u128 = 20;
+        let stages = [
+            naga::ShaderStage::Vertex,
+            naga::ShaderStage::Task,
+            naga::ShaderStage::Mesh,
+            naga::ShaderStage::Fragment,
+            naga::ShaderStage::Compute,
+            naga::ShaderStage::RayGeneration,
+            naga::ShaderStage::Miss,
+            naga::ShaderStage::AnyHit,
+            naga::ShaderStage::ClosestHit,
+        ];
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            let legacy = || {
+                let started = Instant::now();
+                let mut bytes = 0_usize;
+                for index in 0..STAGE_NAMES {
+                    let stage = black_box(&stages[index % stages.len()]);
+                    let name = format!("{stage:?}").to_ascii_lowercase();
+                    bytes += black_box(name.as_str()).len();
+                }
+                black_box(bytes);
+                started.elapsed().as_nanos()
+            };
+            let optimized = || {
+                let started = Instant::now();
+                let mut bytes = 0_usize;
+                for index in 0..STAGE_NAMES {
+                    let stage = black_box(&stages[index % stages.len()]);
+                    let name = shader_stage_name(stage).to_owned();
+                    bytes += black_box(name.as_str()).len();
+                }
+                black_box(bytes);
+                started.elapsed().as_nanos()
+            };
+            if pair % 2 == 0 {
+                legacy_samples.push(legacy());
+                optimized_samples.push(optimized());
+            } else {
+                optimized_samples.push(optimized());
+                legacy_samples.push(legacy());
+            }
+        }
+
+        emit_plugins07_performance_gate(
+            "plugins07_wgsl_static_stage_name",
+            &legacy_samples,
+            &optimized_samples,
+            THRESHOLD_PERCENT,
+            &format!(
+                "stage_names_per_sample={STAGE_NAMES} legacy_stage_string_allocations_per_sample={} optimized_stage_string_allocations_per_sample={STAGE_NAMES}",
+                STAGE_NAMES * 2
+            ),
+        );
+    }
+
+    #[test]
+    #[ignore = "release performance gate; run through the Plugins07 coordinator validator"]
+    fn plugins07_wgsl_hotpath_release_move_entry_point_names_p95_gate() {
+        const SAMPLE_PAIRS: usize = 21;
+        const ENTRY_POINTS: usize = 8_192;
+        const NAME_BYTES: usize = 128;
+        const THRESHOLD_PERCENT: u128 = 60;
+        let names = vec!["x".repeat(NAME_BYTES); ENTRY_POINTS];
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            let legacy = || measure_entry_name_clones(&names);
+            let optimized = || measure_entry_name_moves(&names);
+            if pair % 2 == 0 {
+                legacy_samples.push(legacy());
+                optimized_samples.push(optimized());
+            } else {
+                optimized_samples.push(optimized());
+                legacy_samples.push(legacy());
+            }
+        }
+
+        emit_plugins07_performance_gate(
+            "plugins07_wgsl_move_entry_point_names",
+            &legacy_samples,
+            &optimized_samples,
+            THRESHOLD_PERCENT,
+            &format!(
+                "entry_points_per_sample={ENTRY_POINTS} name_bytes={NAME_BYTES} legacy_name_clones_per_sample={ENTRY_POINTS} optimized_name_clones_per_sample=0"
+            ),
+        );
+    }
+
+    fn measure_entry_name_clones(names: &[String]) -> u128 {
+        use std::hint::black_box;
+        use std::time::Instant;
+
+        let started = Instant::now();
+        let mut bytes = 0_usize;
+        for name in names {
+            let projected = black_box(name).clone();
+            bytes += black_box(projected).len();
+        }
+        black_box(bytes);
+        started.elapsed().as_nanos()
+    }
+
+    fn measure_entry_name_moves(names: &[String]) -> u128 {
+        use std::hint::black_box;
+        use std::time::Instant;
+
+        let names = names.to_vec();
+        let started = Instant::now();
+        let mut bytes = 0_usize;
+        for name in names {
+            bytes += black_box(name).len();
+        }
+        black_box(bytes);
+        started.elapsed().as_nanos()
+    }
+
+    fn emit_plugins07_performance_gate(
+        task: &str,
+        legacy_samples: &[u128],
+        optimized_samples: &[u128],
+        threshold_percent: u128,
+        workload: &str,
+    ) {
+        let legacy_p95 = nearest_rank_percentile(legacy_samples, 95);
+        let optimized_p95 = nearest_rank_percentile(optimized_samples, 95);
+        let improvement_percent =
+            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
+        println!(
+            "PERF_RESULT {task} sample_pairs=21 order=alternating_legacy_first_even {workload} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={threshold_percent}",
+            join_samples(legacy_samples),
+            join_samples(optimized_samples),
+        );
+        assert!(
+            improvement_percent >= threshold_percent,
+            "{task} must improve P95 by at least {threshold_percent}% (legacy={legacy_p95}ns optimized={optimized_p95}ns improvement={improvement_percent}%)"
+        );
     }
 
     #[test]

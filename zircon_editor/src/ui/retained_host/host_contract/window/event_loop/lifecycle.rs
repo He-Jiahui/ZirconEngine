@@ -68,6 +68,7 @@ impl UiHostWindowEventLoop {
         event_loop: &dyn ActiveEventLoop,
     ) {
         // All scopes from the preceding event/present callback have dropped at this boundary.
+        self.flush_pending_idle_pointer_move();
         self.restart_profile_measurement_if_ready();
         if self.host.state.borrow().exit_requested {
             event_loop.exit();
@@ -75,6 +76,24 @@ impl UiHostWindowEventLoop {
         }
         let now = Instant::now();
         self.try_upgrade_to_runtime_presenter(event_loop, now);
+        if self.host.take_visual_asset_completion_wake() {
+            if let Some(completion) =
+                crate::ui::retained_host::host_contract::take_visual_asset_completion()
+            {
+                crate::ui::retained_host::ui_perf::record_ui_perf_counter(
+                    completion.scenario,
+                    crate::ui::retained_host::ui_perf::UiPerfCounter::VisualAssetAsyncCompletionRedrawCount,
+                    1.0,
+                );
+                let redraw = match completion.damage_frame {
+                    Some(damage_frame) => {
+                        HostRedrawRequest::region_for_scenario(completion.scenario, damage_frame)
+                    }
+                    None => HostRedrawRequest::full_frame_for_scenario(completion.scenario, false),
+                };
+                self.host.queue_external_redraw(redraw);
+            }
+        }
         if self.host.take_background_event_wake() {
             self.host.request_maintenance_frame_update();
         }
@@ -86,11 +105,16 @@ impl UiHostWindowEventLoop {
             }
         }
         self.drain_external_redraw_request();
-        self.schedule_due_resize_reflow(event_loop);
         self.schedule_due_surface_present_retry(now);
         let runtime_frame_due = self.host.take_due_runtime_frame_wake(now);
         let maintenance_frame_due = self.host.take_due_maintenance_frame_wake(now);
-        if runtime_frame_due || maintenance_frame_due {
+        let input_timer_frame_due = self.host.take_due_input_timer_frame_wake(now);
+        let lifecycle_frame_due = self.host.take_due_lifecycle_frame_wake(now);
+        if runtime_frame_due
+            || maintenance_frame_due
+            || input_timer_frame_due
+            || lifecycle_frame_due
+        {
             // Materialize the wake through the regular external-redraw bridge so
             // redraw_requested_impl observes a pending frame update.
             self.drain_external_redraw_request();
@@ -100,10 +124,13 @@ impl UiHostWindowEventLoop {
             earliest_wake_deadline(
                 self.host.maintenance_frame_wake_deadline(),
                 earliest_wake_deadline(
-                    self.pending_resize_reflow_deadline,
+                    self.host.input_timer_frame_wake_deadline(),
                     earliest_wake_deadline(
-                        self.pending_surface_present_retry_deadline,
-                        self.runtime_presenter_upgrade_poll_deadline,
+                        self.host.lifecycle_frame_wake_deadline(),
+                        earliest_wake_deadline(
+                            self.pending_surface_present_retry_deadline,
+                            self.runtime_presenter_upgrade_poll_deadline,
+                        ),
                     ),
                 ),
             ),
@@ -116,28 +143,6 @@ impl UiHostWindowEventLoop {
     fn schedule_due_surface_present_retry(&mut self, now: Instant) {
         let retry = self.take_due_surface_present_retry(now);
         if self.queue_redraw(retry) {
-            if let Some(window) = self.window.as_ref() {
-                window.request_redraw();
-            }
-        }
-    }
-
-    fn schedule_due_resize_reflow(&mut self, event_loop: &dyn ActiveEventLoop) {
-        let Some(deadline) = self.pending_resize_reflow_deadline else {
-            return;
-        };
-        if Instant::now() < deadline {
-            return;
-        }
-        self.pending_resize_reflow_deadline = None;
-        if !self.apply_pending_presenter_resize(event_loop) {
-            return;
-        }
-        self.host.commit_native_resize_reflow();
-        if self.queue_redraw(HostRedrawRequest::full_frame_for_scenario(
-            UiPerfScenario::WindowResize,
-            true,
-        )) {
             if let Some(window) = self.window.as_ref() {
                 window.request_redraw();
             }
@@ -394,54 +399,15 @@ mod tests {
     }
 
     #[test]
-    fn resize_reflow_deadline_wakes_before_a_later_runtime_frame() {
-        let now = Instant::now();
-        let resize = now + Duration::from_millis(80);
-        let runtime = now + Duration::from_secs(1);
-
-        assert_eq!(
-            earliest_wake_deadline(Some(runtime), Some(resize)),
-            Some(resize)
-        );
-        assert_eq!(earliest_wake_deadline(None, Some(resize)), Some(resize));
-    }
-
-    #[test]
     fn surface_retry_deadline_participates_in_the_native_wait_policy() {
         let now = Instant::now();
         let surface_retry = now + Duration::from_millis(8);
-        let resize = now + Duration::from_millis(80);
         let runtime = now + Duration::from_secs(1);
 
         assert_eq!(
-            earliest_wake_deadline(
-                Some(runtime),
-                earliest_wake_deadline(Some(resize), Some(surface_retry)),
-            ),
+            earliest_wake_deadline(Some(runtime), Some(surface_retry)),
             Some(surface_retry)
         );
-    }
-
-    #[test]
-    fn due_resize_reconfigures_the_latest_surface_before_committing_reflow() {
-        let source = include_str!("lifecycle.rs");
-        let function = source
-            .split("fn schedule_due_resize_reflow")
-            .nth(1)
-            .and_then(|body| body.split("fn try_upgrade_to_runtime_presenter").next())
-            .expect("resize reflow scheduler");
-        let configure = function
-            .find("self.apply_pending_presenter_resize(event_loop)")
-            .expect("due resize must apply any latest unpresented physical size");
-        let commit = function
-            .find("self.host.commit_native_resize_reflow();")
-            .expect("due resize must commit deferred metrics");
-        let redraw = function
-            .find("HostRedrawRequest::full_frame_for_scenario")
-            .expect("due resize should request one frame update");
-
-        assert!(configure < commit);
-        assert!(commit < redraw);
     }
 
     #[test]

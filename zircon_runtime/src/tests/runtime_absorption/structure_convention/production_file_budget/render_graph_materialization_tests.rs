@@ -116,8 +116,23 @@ fn runtime_15_render_graph_materialization_requires_transient_pool() {
     let transient_pool = read_runtime_src(
         "graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs",
     );
-    let execution_resources = read_runtime_src(
-        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs",
+    let execution_resource_root = read_runtime_src(
+        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs",
+    );
+    let execution_resource_binding = read_runtime_src(
+        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/binding.rs",
+    );
+    let execution_resource_lifecycle = read_runtime_src(
+        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lifecycle.rs",
+    );
+    let execution_resource_lookup = read_runtime_src(
+        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lookup.rs",
+    );
+    let execution_resource_reporting = read_runtime_src(
+        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/reporting.rs",
+    );
+    let execution_resource_texture_views = read_runtime_src(
+        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/texture_views.rs",
     );
     let resource_resolver = read_runtime_src(
         "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/resource_resolver.rs",
@@ -149,18 +164,61 @@ fn runtime_15_render_graph_materialization_requires_transient_pool() {
     }
 
     assert!(
-        !execution_resources.contains("fn materialize_transient_resources(\n"),
+        !execution_resource_lifecycle.contains("fn materialize_transient_resources(\n"),
         "RenderGraphExecutionResources must not expose a test-only unpooled materialization entry point"
     );
     assert_contains_all(
         "RenderGraph execution resources keep the mandatory pool entry point",
-        &execution_resources,
+        &execution_resource_lifecycle,
         &[
             "fn materialize_transient_resources_with_pool(",
             "pool: &mut TransientResourcePool,",
-            "super::materialization::materialize_transient_resources(self, device, graph, pool)",
+            "super::super::materialization::materialize_transient_resources(self, device, graph, pool)",
         ],
     );
+    assert_contains_all(
+        "RenderGraph execution resources root is a declaration-only facade",
+        &execution_resource_root,
+        &[
+            "mod binding;",
+            "mod lifecycle;",
+            "mod lookup;",
+            "mod reporting;",
+            "mod texture_views;",
+            "pub struct RenderGraphExecutionResources",
+        ],
+    );
+    for (path, source) in [
+        (
+            "graph_execution/render_graph_execution_resources/mod.rs",
+            execution_resource_root.as_str(),
+        ),
+        (
+            "graph_execution/render_graph_execution_resources/binding.rs",
+            execution_resource_binding.as_str(),
+        ),
+        (
+            "graph_execution/render_graph_execution_resources/lifecycle.rs",
+            execution_resource_lifecycle.as_str(),
+        ),
+        (
+            "graph_execution/render_graph_execution_resources/lookup.rs",
+            execution_resource_lookup.as_str(),
+        ),
+        (
+            "graph_execution/render_graph_execution_resources/reporting.rs",
+            execution_resource_reporting.as_str(),
+        ),
+        (
+            "graph_execution/render_graph_execution_resources/texture_views.rs",
+            execution_resource_texture_views.as_str(),
+        ),
+    ] {
+        assert!(
+            source.lines().count() < 800,
+            "{path} must remain below the R1.4 owner budget after the resource-table hard cut"
+        );
+    }
     assert!(
         !transient_materialization.contains("collect::<BTreeMap<_, _>>()"),
         "texture and buffer materialization must not rebuild duplicate per-frame lifetime indexes"
@@ -189,7 +247,8 @@ fn runtime_15_render_graph_materialization_requires_transient_pool() {
             "resource_declaration_indices_by_name: HashMap<String, usize>",
             "pass_indices: HashMap<RenderPassId, usize>",
             "pass_resource_access_indices:",
-            "pub struct CompiledRenderGraphTransientAllocation {\n    pub resource: RenderGraphResource,",
+            "pub struct CompiledRenderGraphTransientAllocation {\n    /// Collision-free compiler-local identity",
+            "pub allocation_id: CompiledRenderGraphTransientAllocationId",
             "self.resource_lifetime_indices",
             ".get(&resource)",
             "self.resource_declaration_indices",

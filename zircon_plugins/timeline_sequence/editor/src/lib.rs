@@ -15,9 +15,9 @@ pub use extension_ids::{
     TIMELINE_SEQUENCE_DRAWER_ID, TIMELINE_SEQUENCE_TEMPLATE_ID, TIMELINE_SEQUENCE_VIEW_ID,
 };
 pub use plugin::{
-    editor_capabilities, editor_plugin, editor_plugin_descriptor, package_manifest,
-    plugin_registration, timeline_sequence_dist_module_manifest, TimelineSequenceEditorPlugin,
     TIMELINE_SEQUENCE_DIST_CRATE_NAME, TIMELINE_SEQUENCE_DIST_EDITOR_ENTRY,
+    TimelineSequenceEditorPlugin, editor_capabilities, editor_plugin, editor_plugin_descriptor,
+    package_manifest, plugin_registration, timeline_sequence_dist_module_manifest,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -37,18 +37,23 @@ pub struct TimelineKeyframeMoveRequest {
 
 pub fn validate_timeline_sequence(sequence: &AnimationSequenceAsset) -> Vec<String> {
     let mut diagnostics = Vec::new();
-    if sequence.duration_seconds <= 0.0 {
-        diagnostics.push("timeline duration must be greater than zero".to_string());
+    if !sequence.duration_seconds.is_finite() || sequence.duration_seconds <= 0.0 {
+        diagnostics.push("timeline duration must be finite and greater than zero".to_string());
     }
-    if sequence.frames_per_second <= 0.0 {
-        diagnostics.push("timeline frame rate must be greater than zero".to_string());
+    if !sequence.frames_per_second.is_finite() || sequence.frames_per_second <= 0.0 {
+        diagnostics.push("timeline frame rate must be finite and greater than zero".to_string());
     }
 
     for binding in &sequence.bindings {
         for track in &binding.tracks {
             let mut previous_time = None;
             for key in &track.channel.keys {
-                if key.time_seconds < 0.0 || key.time_seconds > sequence.duration_seconds {
+                if !key.time_seconds.is_finite() {
+                    diagnostics.push(format!(
+                        "keyframe time on `{}` must be finite",
+                        track.property_path
+                    ));
+                } else if key.time_seconds < 0.0 || key.time_seconds > sequence.duration_seconds {
                     diagnostics.push(format!(
                         "keyframe `{}` on `{}` is outside timeline range 0..{}",
                         key.time_seconds, track.property_path, sequence.duration_seconds
@@ -77,13 +82,16 @@ pub fn move_timeline_keyframe(
     request: &TimelineKeyframeMoveRequest,
 ) -> Result<(), Vec<String>> {
     let mut diagnostics = Vec::new();
-    if request.new_time_seconds < 0.0 || request.new_time_seconds > sequence.duration_seconds {
+    if !request.new_time_seconds.is_finite() {
+        diagnostics.push("timeline keyframe move target must be finite".to_string());
+    } else if request.new_time_seconds < 0.0 || request.new_time_seconds > sequence.duration_seconds
+    {
         diagnostics.push(format!(
             "timeline keyframe move target `{}` is outside timeline range 0..{}",
             request.new_time_seconds, sequence.duration_seconds
         ));
     }
-    let Some(binding) = sequence.bindings.get_mut(request.binding_index) else {
+    let Some(binding) = sequence.bindings.get(request.binding_index) else {
         diagnostics.push(format!(
             "timeline binding index {} is outside {} bindings",
             request.binding_index,
@@ -91,7 +99,7 @@ pub fn move_timeline_keyframe(
         ));
         return Err(diagnostics);
     };
-    let Some(track) = binding.tracks.get_mut(request.track_index) else {
+    let Some(track) = binding.tracks.get(request.track_index) else {
         diagnostics.push(format!(
             "timeline track index {} is outside {} tracks",
             request.track_index,
@@ -99,7 +107,7 @@ pub fn move_timeline_keyframe(
         ));
         return Err(diagnostics);
     };
-    let Some(key) = track.channel.keys.get_mut(request.key_index) else {
+    let Some(key) = track.channel.keys.get(request.key_index) else {
         diagnostics.push(format!(
             "timeline keyframe index {} is outside {} keys",
             request.key_index,
@@ -110,18 +118,30 @@ pub fn move_timeline_keyframe(
     if !diagnostics.is_empty() {
         return Err(diagnostics);
     }
-
-    key.time_seconds = request.new_time_seconds;
-    track
-        .channel
-        .keys
-        .sort_by(|left, right| left.time_seconds.total_cmp(&right.time_seconds));
+    let original_time_seconds = key.time_seconds;
     let diagnostics = validate_timeline_sequence(sequence);
-    if diagnostics.is_empty() {
-        Ok(())
-    } else {
-        Err(diagnostics)
+    if !diagnostics.is_empty() {
+        return Err(diagnostics);
     }
+
+    let keys = &mut sequence.bindings[request.binding_index].tracks[request.track_index]
+        .channel
+        .keys;
+    if request.new_time_seconds > original_time_seconds {
+        let insertion_offset = keys[(request.key_index + 1)..]
+            .partition_point(|candidate| candidate.time_seconds < request.new_time_seconds);
+        let insertion_index = request.key_index + insertion_offset;
+        keys[request.key_index].time_seconds = request.new_time_seconds;
+        keys[request.key_index..=insertion_index].rotate_left(1);
+    } else if request.new_time_seconds < original_time_seconds {
+        let insertion_index = keys[..request.key_index]
+            .partition_point(|candidate| candidate.time_seconds <= request.new_time_seconds);
+        keys[request.key_index].time_seconds = request.new_time_seconds;
+        keys[insertion_index..=request.key_index].rotate_right(1);
+    } else {
+        keys[request.key_index].time_seconds = request.new_time_seconds;
+    }
+    Ok(())
 }
 
 pub fn sorted_timeline_track_paths(sequence: &AnimationSequenceAsset) -> Vec<String> {

@@ -1328,6 +1328,41 @@ class CargoJobTests(unittest.TestCase):
         self.assertNotEqual(first.target_dir, second.target_dir)
         self.assertEqual("retained", self.service.get(first.job_id).cleanup_policy.value)
 
+    def test_source_copy_identity_does_not_fragment_the_compile_pool(self) -> None:
+        base = self.compatibility()
+        first_compatibility = CargoCompatibility(
+            platform=base.platform,
+            toolchain=base.toolchain,
+            target_architecture=base.target_architecture,
+            workspace=base.workspace,
+            build_config=base.build_config,
+            source_manifest={"Cargo.toml": "a" * 64},
+            source_copy_job_id="copy-a",
+            source_copy_manifest_hash="b" * 64,
+        )
+        second_compatibility = CargoCompatibility(
+            platform=base.platform,
+            toolchain=base.toolchain,
+            target_architecture=base.target_architecture,
+            workspace=base.workspace,
+            build_config=base.build_config,
+            source_manifest={"Cargo.toml": "c" * 64},
+            source_copy_job_id="copy-b",
+            source_copy_manifest_hash="d" * 64,
+        )
+        first = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=first_compatibility
+        )
+        self.service.release(first.job_id, session_id="session-a")
+
+        second = self.service.acquire(
+            "session-b", CargoLaneKind.TEST, compatibility=second_compatibility
+        )
+
+        self.assertEqual(first.reuse_key, second.reuse_key)
+        self.assertEqual(first.target_dir, second.target_dir)
+        self.assertNotEqual(first.compatibility_json, second.compatibility_json)
+
     def test_windows_and_wsl_never_share_a_pool(self) -> None:
         windows = self.service.acquire(
             "session-a",
@@ -1462,6 +1497,32 @@ class CargoJobTests(unittest.TestCase):
 
         self.assertEqual((), orphaned)
         self.assertEqual(CargoJobStatus.LEASED, self.service.get(job.job_id).status)
+
+    def test_dead_prestart_owner_is_recovered_after_two_durable_empty_observations(
+        self,
+    ) -> None:
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.CHECK, owner_pid=9999
+        )
+        observed_at = datetime.now(UTC) + timedelta(minutes=1)
+
+        first = self.service.reconcile_orphans(
+            now=observed_at,
+            leased_timeout_seconds=300,
+        )
+        second = self.service.reconcile_orphans(
+            now=observed_at + timedelta(seconds=1),
+            leased_timeout_seconds=300,
+        )
+
+        self.assertEqual((), first)
+        self.assertEqual((job.job_id,), tuple(item.job_id for item in second))
+        self.assertEqual(CargoJobStatus.ORPHANED, self.service.get(job.job_id).status)
+        with self.database.connect() as connection:
+            run_count = connection.execute(
+                "SELECT COUNT(*) FROM cargo_job_runs WHERE job_id=?", (job.job_id,)
+            ).fetchone()[0]
+        self.assertEqual(0, run_count)
 
     def test_running_finish_and_release_preserve_job_audit(self) -> None:
         job = self.service.acquire("session-a", CargoLaneKind.WORKSPACE)

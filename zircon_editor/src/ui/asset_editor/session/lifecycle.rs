@@ -830,10 +830,22 @@ impl UiAssetEditorSession {
         self.serialize_document_for_current_schema(&self.last_valid_document)
     }
 
-    pub fn save_to_canonical_source(&mut self) -> Result<String, UiAssetEditorSessionError> {
-        let canonical = self.canonical_source()?;
-        self.source_buffer.replace(canonical.clone());
+    pub(crate) fn source_revision(&self) -> u64 {
+        self.source_buffer.revision()
+    }
+
+    /// Commits the canonical source to the editor buffer only after its durable write succeeds.
+    /// A concurrent local edit keeps the newer buffer dirty instead of falsely acknowledging it.
+    pub(crate) fn mark_canonical_source_persisted(
+        &mut self,
+        expected_revision: u64,
+        canonical: String,
+    ) -> bool {
+        if self.source_buffer.revision() != expected_revision {
+            return false;
+        }
+        self.source_buffer.replace(canonical);
         self.source_buffer.mark_saved();
-        Ok(canonical)
+        true
     }
 }

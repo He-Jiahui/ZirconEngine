@@ -59,25 +59,25 @@ doc_type: module-detail
 
 # Softbuffer Presenter
 
-`presenter/softbuffer.rs` owns the fallback native presenter state and the `HostChromePresenter` trait bridge. It keeps the `softbuffer::Context`/`Surface`, reusable `HostRgbaFrame` backbuffer, refresh diagnostics, and logging cache, while delegating lifecycle, present orchestration, and repaint mechanics to folder-backed child modules.
+`presenter/softbuffer.rs` owns the fallback native presenter state and the `HostChromePresenter` trait bridge. It keeps the `softbuffer::Context`/`Surface`, reusable `HostRgbaFrame` backbuffer, frozen native-resize raster snapshot, refresh diagnostics, and logging cache, while delegating lifecycle, present orchestration, and repaint mechanics to folder-backed child modules.
 
 This backend is intentionally a fallback path. Normal native windows should use `GpuChromePresenter`; softbuffer remains the CPU-compatible presenter for fallback, tests, snapshots, and platform recovery. It must consume the same neutral chrome command stream as GPU presentation instead of owning a separate draw model.
 
 ## Child Modules
 
-`softbuffer/lifecycle.rs` owns presenter creation and resize reset behavior. It creates the softbuffer context/surface, clamps and applies surface size, clears stale backbuffers after resize, and resets overlay text when the pixel surface changes.
+`softbuffer/lifecycle.rs` owns presenter creation and size-changing resize reset behavior. It creates the softbuffer context/surface, clamps and applies surface size, captures an existing backbuffer when reconfiguration starts an interactive resize transaction, discards later scaled backbuffers without replacing that source, and resets overlay text when the pixel surface changes.
 
-`softbuffer/present.rs` owns present orchestration. It samples the current window size, plans diagnostics, builds the neutral `ChromeCommandStream`, records perf counters, asks the backbuffer module to repaint, updates presenter diagnostics, and delegates the final side-effect families to child owners.
+`softbuffer/present.rs` owns both present paths. Ordinary presentation clears any native-resize snapshot, plans diagnostics, builds the neutral `ChromeCommandStream`, and repaints the reusable backbuffer. Interactive native resize always follows one acquisition order: reuse an existing transaction snapshot, otherwise capture the current backbuffer even when surface size is unchanged, otherwise build exactly one fallback snapshot. It then scales that source directly into the current softbuffer surface without rebuilding commands or CPU scene raster. The next ordinary present therefore performs the final fresh full paint.
 
 `present/log.rs` owns verbose present diagnostics, duplicate-log suppression, and present-summary cache updates. `present/submit.rs` owns the softbuffer handoff: selecting the repainted backbuffer, copying RGBA bytes into the platform buffer, sending `pre_present_notify`, and choosing full present versus damage present.
 
-`softbuffer/backbuffer.rs` owns reusable-frame repaint policy. It decides whether regional repaint is valid for the current surface, applies command-stream region replay when possible, falls back to full command-stream frame paint, and reports the resulting painted-pixel counts.
+`softbuffer/backbuffer.rs` owns reusable-frame repaint policy and the first-snapshot capture invariant. It decides whether regional repaint is valid for the current surface, applies command-stream region replay when possible, falls back to full command-stream frame paint, and reports the resulting painted-pixel counts.
 
 `softbuffer/diagnostics.rs` is the diagnostics module entry. `diagnostics/planned_present.rs` decides whether requested damage can remain regional and records full/region paint counters. `planned_present/model.rs` owns the `PlannedPresent` result and cloned-presentation debug overlay update, while `planned_present/outcome.rs` owns repaint-outcome accounting for full versus region paint. `diagnostics/overlay.rs` expands damage for same-frame refresh overlay text changes. `diagnostics/counters.rs` records chrome command stream patch/full counters. `diagnostics/summary.rs` builds verbose diagnostic frame and presentation summaries.
 
-`softbuffer/surface_io.rs` is now the structural platform-buffer I/O entry. `surface_io/copy.rs` owns RGBA-to-softbuffer pixel copy, `surface_io/damage.rs` owns damage-to-pixel bounds, damage pixel counting, and softbuffer damage rect conversion, and `surface_io/size.rs` owns current window size clamping plus softbuffer resize.
+`softbuffer/surface_io.rs` is the structural platform-buffer I/O entry. `surface_io/copy.rs` owns ordinary RGBA copy plus direct native-resize raster scaling; the latter computes each axis quotient/remainder once and uses only addition/comparison inside the pixel loop. `surface_io/damage.rs` owns damage-to-pixel bounds, damage pixel counting, and softbuffer damage rect conversion, and `surface_io/size.rs` owns current window size clamping plus softbuffer resize.
 
-`softbuffer/tests.rs` owns the existing softbuffer copy, damage rect, overlay expansion, and diagnostics planning regressions that previously lived inline in the root presenter file.
+`softbuffer/tests.rs` owns softbuffer copy/scaling, first-snapshot retention, native-resize product wiring, damage rect, overlay expansion, and diagnostics planning regressions.
 
 The parent file therefore stays focused on presenter state and trait-facing delegation. New present sequencing belongs in `present.rs`; new resize/setup behavior belongs in `lifecycle.rs`; new repaint policy belongs in `backbuffer.rs`; new damage planning or overlay accounting belongs in `diagnostics.rs`; new platform copy/resize rules belong in `surface_io.rs`.
 

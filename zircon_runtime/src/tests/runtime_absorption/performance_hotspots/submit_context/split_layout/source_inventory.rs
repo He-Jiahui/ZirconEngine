@@ -5,7 +5,7 @@ pub(super) fn assert_submit_context_source_inventory(sources: &SplitLayoutSource
         "performance hotpath source inventory",
         sources.source_inventory,
         &[
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/submit_context.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/submit_context/camera_loop_sharing.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/submit_context/feedback_sidebands.rs",

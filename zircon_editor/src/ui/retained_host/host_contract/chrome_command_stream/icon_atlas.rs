@@ -12,12 +12,18 @@ const RGBA_BYTES_PER_PIXEL: usize = 4;
 const MAX_ICON_ATLAS_PAGES: usize = 64;
 const MAX_ICON_ATLAS_BYTES: usize = 64 * 1024 * 1024;
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct IconSourceKey {
-    resource_key: String,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct IconSourceVersion {
     generation: u64,
     width: u32,
     height: u32,
+}
+
+#[derive(Clone, Copy)]
+struct IconSource<'a> {
+    resource_key: &'a str,
+    version: IconSourceVersion,
+    rgba: &'a Arc<[u8]>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -58,7 +64,7 @@ impl IconAtlasPage {
 #[derive(Default)]
 struct EditorIconAtlas {
     pages: Vec<IconAtlasPage>,
-    slots: BTreeMap<IconSourceKey, IconAtlasSlot>,
+    slots: BTreeMap<String, BTreeMap<IconSourceVersion, IconAtlasSlot>>,
     resident_bytes: usize,
     access_clock: u64,
 }
@@ -81,35 +87,54 @@ impl EditorIconAtlas {
     fn pack(&mut self, commands: &mut [ChromeCommand]) {
         let access = self.next_access();
         let mut active_pages = BTreeSet::new();
-        for key in commands
-            .iter()
-            .filter_map(icon_source_from_command)
-            .map(|item| item.0)
-        {
-            let Some(slot) = self.slots.get(&key).copied() else {
+        let mut pending = BTreeMap::<String, BTreeMap<IconSourceVersion, Arc<[u8]>>>::new();
+        for command in commands.iter() {
+            let Some(source) = icon_source_from_command(command) else {
                 continue;
             };
-            if let Some(page) = self.pages.get_mut(slot.page_index) {
-                page.last_used = access;
-                active_pages.insert(slot.page_index);
+            if let Some(slot) = self.slot(source.resource_key, source.version) {
+                if let Some(page) = self.pages.get_mut(slot.page_index) {
+                    page.last_used = access;
+                    active_pages.insert(slot.page_index);
+                }
+                continue;
+            }
+            if let Some(versions) = pending.get_mut(source.resource_key) {
+                versions
+                    .entry(source.version)
+                    .or_insert_with(|| Arc::clone(source.rgba));
+            } else {
+                pending.insert(
+                    source.resource_key.to_owned(),
+                    BTreeMap::from([(source.version, Arc::clone(source.rgba))]),
+                );
             }
         }
-        let pending = commands
-            .iter()
-            .filter_map(icon_source_from_command)
-            .filter(|(key, _)| !self.slots.contains_key(key))
-            .collect::<BTreeMap<_, _>>();
-        let page_edge = preferred_page_edge(pending.keys());
+        let page_edge = preferred_page_edge(pending.values().flat_map(BTreeMap::keys));
         let mut changed_pages = BTreeSet::new();
-        for (key, rgba) in pending {
-            let Some(slot) = self.allocate(key.width, key.height, page_edge, access, &active_pages)
-            else {
-                continue;
-            };
-            self.write_slot(slot, rgba.as_ref());
-            changed_pages.insert(slot.page_index);
-            active_pages.insert(slot.page_index);
-            self.slots.insert(key, slot);
+        for (resource_key, versions) in pending {
+            let mut admitted_slots = BTreeMap::new();
+            for (version, rgba) in versions {
+                let Some(slot) = self.allocate(
+                    version.width,
+                    version.height,
+                    page_edge,
+                    access,
+                    &active_pages,
+                ) else {
+                    continue;
+                };
+                self.write_slot(slot, rgba.as_ref());
+                changed_pages.insert(slot.page_index);
+                active_pages.insert(slot.page_index);
+                admitted_slots.insert(version, slot);
+            }
+            if !admitted_slots.is_empty() {
+                self.slots
+                    .entry(resource_key)
+                    .or_default()
+                    .append(&mut admitted_slots);
+            }
         }
         for page_index in changed_pages {
             if let Some(page) = self.pages.get_mut(page_index) {
@@ -122,13 +147,12 @@ impl EditorIconAtlas {
             let ChromeCommandKind::Image { payload } = &mut command.kind else {
                 continue;
             };
-            let key = IconSourceKey {
-                resource_key: payload.resource_key.clone(),
+            let version = IconSourceVersion {
                 generation: payload.resource_generation,
                 width: payload.width,
                 height: payload.height,
             };
-            let Some(slot) = self.slots.get(&key).copied() else {
+            let Some(slot) = self.slot(payload.resource_key.as_str(), version) else {
                 continue;
             };
             let page = &self.pages[slot.page_index];
@@ -190,7 +214,14 @@ impl EditorIconAtlas {
     }
 
     fn remove_page_slots(&mut self, page_index: usize) {
-        self.slots.retain(|_, slot| slot.page_index != page_index);
+        self.slots.retain(|_, versions| {
+            versions.retain(|_, slot| slot.page_index != page_index);
+            !versions.is_empty()
+        });
+    }
+
+    fn slot(&self, resource_key: &str, version: IconSourceVersion) -> Option<IconAtlasSlot> {
+        self.slots.get(resource_key)?.get(&version).copied()
     }
 
     fn next_access(&mut self) -> u64 {
@@ -281,7 +312,7 @@ impl IconAtlasSlot {
     }
 }
 
-fn icon_source_from_command(command: &ChromeCommand) -> Option<(IconSourceKey, Arc<[u8]>)> {
+fn icon_source_from_command(command: &ChromeCommand) -> Option<IconSource<'_>> {
     let ChromeCommandKind::Image { payload } = &command.kind else {
         return None;
     };
@@ -296,15 +327,15 @@ fn icon_source_from_command(command: &ChromeCommand) -> Option<(IconSourceKey, A
     {
         return None;
     }
-    Some((
-        IconSourceKey {
-            resource_key: payload.resource_key.clone(),
+    Some(IconSource {
+        resource_key: payload.resource_key.as_str(),
+        version: IconSourceVersion {
             generation: payload.resource_generation,
             width: payload.width,
             height: payload.height,
         },
-        Arc::clone(rgba),
-    ))
+        rgba,
+    })
 }
 
 fn is_editor_icon_key(resource_key: &str) -> bool {
@@ -314,10 +345,10 @@ fn is_editor_icon_key(resource_key: &str) -> bool {
         || resource_key.starts_with("missing-icon:")
 }
 
-fn preferred_page_edge<'a>(keys: impl Iterator<Item = &'a IconSourceKey>) -> u32 {
-    let (area, max_extent) = keys.fold((0_u64, MIN_ICON_ATLAS_PAGE_EDGE), |state, key| {
-        let width = key.width.saturating_add(ICON_ATLAS_PADDING * 2);
-        let height = key.height.saturating_add(ICON_ATLAS_PADDING * 2);
+fn preferred_page_edge<'a>(versions: impl Iterator<Item = &'a IconSourceVersion>) -> u32 {
+    let (area, max_extent) = versions.fold((0_u64, MIN_ICON_ATLAS_PAGE_EDGE), |state, version| {
+        let width = version.width.saturating_add(ICON_ATLAS_PADDING * 2);
+        let height = version.height.saturating_add(ICON_ATLAS_PADDING * 2);
         (
             state.0.saturating_add(u64::from(width) * u64::from(height)),
             state.1.max(width).max(height),
@@ -445,10 +476,7 @@ mod tests {
 
         assert_eq!(atlas.pages.len(), MAX_ICON_ATLAS_PAGES);
         assert!(atlas.resident_bytes <= MAX_ICON_ATLAS_BYTES);
-        assert!(!atlas
-            .slots
-            .keys()
-            .any(|key| key.resource_key == "icon:bounded-0"));
+        assert!(!atlas.slots.contains_key("icon:bounded-0"));
 
         let mut latest = vec![icon(
             &format!("icon:bounded-{MAX_ICON_ATLAS_PAGES}"),
@@ -481,6 +509,7 @@ mod tests {
                 height: 2.0,
             },
             clip: None,
+            source: None,
             kind: ChromeCommandKind::Image {
                 payload: ChromeImagePayload {
                     resource_key: resource_key.to_string(),

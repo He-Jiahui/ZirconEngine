@@ -168,7 +168,9 @@ fn axis_field_value(
     if field_control_id == edited_control_id {
         return edited_value.to_string();
     }
-    control_string(bridge, field_control_id, "value").unwrap_or_default()
+    bridge
+        .control_string(field_control_id, "value")
+        .unwrap_or_default()
 }
 
 fn format_axis_row_value(x: &str, y: &str, z: &str) -> String {
@@ -196,21 +198,6 @@ fn parse_finite_axis_scalar(value: &str, axis_label: &str) -> Result<f32, String
             "Inspector transform {axis_label} value `{scalar}` must be a finite number"
         ))
     }
-}
-
-fn control_string(
-    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
-    control_id: &str,
-    property: &str,
-) -> Option<String> {
-    bridge.surface().tree.nodes.values().find_map(|node| {
-        node.template_metadata
-            .as_ref()
-            .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
-            .and_then(|metadata| metadata.attributes.get(property))
-            .and_then(toml::Value::as_str)
-            .map(str::to_string)
-    })
 }
 
 #[cfg(test)]

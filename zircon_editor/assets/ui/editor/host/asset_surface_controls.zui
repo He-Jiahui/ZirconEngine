@@ -82,8 +82,8 @@ events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "workben
 [nodes.kind_filter]
 component = "ComboBox"
 control_id = "SetKindFilter"
-props = { label = "Kind", value = "all", value_text = "all", options = ["all", "scene", "mesh", "material", "ui"], surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_focusable = true }
-layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { label = "Kind", value = "All", value_text = "All Types", options = ["All|label=All Types", "Texture|label=Textures", "Material|label=Materials", "Scene|label=Scenes", "Model|label=Models", "Mesh|label=Meshes", "Shader|label=Shaders", "PhysicsMaterial|label=Physics Materials", "AnimationSkeleton|label=Animation Skeletons", "AnimationClip|label=Animation Clips", "AnimationSequence|label=Animation Sequences", "AnimationGraph|label=Animation Graphs", "AnimationStateMachine|label=Animation State Machines", "UiLayout|label=UI Layouts", "UiWidget|label=UI Widgets", "UiStyle|label=UI Styles"], surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_focusable = true }
+layout = { width = { min = 124.0, preferred = 168.0, max = 220.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbench.asset.set_kind_filter" }]
 
 [nodes.view_mode]

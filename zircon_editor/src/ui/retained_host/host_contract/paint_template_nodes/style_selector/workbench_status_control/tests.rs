@@ -40,7 +40,9 @@ fn status_control_palette_projects_from_host_appearance_tokens() {
     tokens.palette.surface_hover = UiRgbaColor::from_u8(18, 19, 20, 255);
     tokens.palette.surface_selected = UiRgbaColor::from_u8(28, 29, 30, 255);
     tokens.palette.border_disabled = UiRgbaColor::from_u8(38, 39, 40, 255);
+    tokens.palette.border = UiRgbaColor::from_u8(43, 44, 45, 255);
     tokens.palette.focus_ring = UiRgbaColor::from_u8(48, 49, 50, 255);
+    tokens.palette.accent = UiRgbaColor::from_u8(53, 54, 55, 255);
     tokens.palette.text_primary = UiRgbaColor::from_u8(58, 59, 60, 255);
     tokens.palette.text_secondary = UiRgbaColor::from_u8(68, 69, 70, 255);
     tokens.palette.text_disabled = UiRgbaColor::from_u8(78, 79, 80, 255);
@@ -55,7 +57,9 @@ fn status_control_palette_projects_from_host_appearance_tokens() {
     assert_eq!(palette.surface_hover, [18, 19, 20, 255]);
     assert_eq!(palette.surface_selected, [28, 29, 30, 255]);
     assert_eq!(palette.border_disabled, [38, 39, 40, 255]);
+    assert_eq!(palette.border, [43, 44, 45, 255]);
     assert_eq!(palette.focus_ring, [48, 49, 50, 255]);
+    assert_eq!(palette.accent, [53, 54, 55, 255]);
     assert_eq!(palette.text, [58, 59, 60, 255]);
     assert_eq!(palette.text_muted, [68, 69, 70, 255]);
     assert_eq!(palette.text_disabled, [78, 79, 80, 255]);
@@ -65,4 +69,46 @@ fn status_control_palette_projects_from_host_appearance_tokens() {
     assert_eq!(palette.icon_color, palette.text_muted);
     assert_eq!(palette.icon_muted, palette.text_disabled);
     assert_eq!(palette.no_errors_fill, palette.success);
+}
+
+#[test]
+fn status_selection_uses_local_surface_and_accent_without_focus_outline() {
+    let selected = TemplatePaneNodeData {
+        selected: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let chip = select_workbench_status_chip_style(&selected);
+    assert_eq!(chip.state, UiPainterResolvedState::Selected);
+    assert_eq!(chip.background, PALETTE.surface_selected);
+    assert_eq!(chip.border, PALETTE.border);
+    assert_ne!(chip.border, PALETTE.focus_ring);
+
+    let icon = select_workbench_status_icon_button_style(&selected);
+    assert_eq!(icon.state, UiPainterResolvedState::Selected);
+    assert_eq!(icon.background, PALETTE.surface_selected);
+    assert_eq!(icon.border, PALETTE.border);
+    assert_eq!(icon.glyph, PALETTE.accent);
+    assert_ne!(icon.border, PALETTE.focus_ring);
+}
+
+#[test]
+fn status_focus_and_drop_target_keep_the_dedicated_focus_outline() {
+    let focused = TemplatePaneNodeData {
+        focused: true,
+        ..TemplatePaneNodeData::default()
+    };
+    let drop_target = TemplatePaneNodeData {
+        drop_hovered: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    assert_eq!(
+        select_workbench_status_chip_style(&focused).border,
+        PALETTE.focus_ring
+    );
+    assert_eq!(
+        select_workbench_status_icon_button_style(&drop_target).border,
+        PALETTE.focus_ring
+    );
 }

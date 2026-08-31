@@ -1,6 +1,8 @@
 use super::super::super::super::paint_theme::{HostMaterialPalette, PALETTE};
 use super::super::palette::timeline_palette_from_host;
-use super::support::{changed_pixels, paint_timeline_strip, pixel_at};
+use super::super::push_timeline_strip_commands;
+use super::support::{changed_pixels, paint_timeline_strip, pixel_at, timeline_strip_node};
+use crate::ui::retained_host::host_contract::data::FrameRect;
 
 #[test]
 fn timeline_strip_palette_projects_from_shared_host_palette() {
@@ -54,4 +56,52 @@ fn timeline_strip_runtime_text_and_geometry_scale_with_available_frame() {
         "expected Runtime Text pixels in compact strip"
     );
     assert!(changed_pixels(&wide, [0, 0, 0, 255]) > changed_pixels(&compact, [0, 0, 0, 255]));
+}
+
+#[test]
+fn timeline_keys_emit_one_cached_anti_aliased_image_per_layer() {
+    let node = timeline_strip_node(420.0, 150.0);
+    let frame = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 420.0,
+        height: 150.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_timeline_strip_commands(
+        &mut commands,
+        &node,
+        &frame,
+        &frame,
+        0,
+        1.0,
+    ));
+
+    let diamond_images = commands
+        .iter()
+        .filter(|command| (9..=11).contains(&command.z_index))
+        .map(|command| {
+            assert_eq!(command.background_color, None);
+            command
+                .image_pixels
+                .as_ref()
+                .expect("timeline diamond layers should be cached pixel images")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(diamond_images.len(), 5);
+    assert_eq!(
+        diamond_images
+            .iter()
+            .map(|image| (image.width, image.height))
+            .collect::<Vec<_>>(),
+        vec![(7, 7), (7, 7), (3, 3), (9, 9), (3, 3)]
+    );
+    assert!(diamond_images.iter().all(|image| image
+        .resource_key
+        .starts_with("icon-raster:analytic-diamond:")));
+    assert!(diamond_images.iter().all(|image| image
+        .rgba
+        .chunks_exact(4)
+        .any(|pixel| (1..=254).contains(&pixel[3]))));
 }

@@ -46,7 +46,7 @@ impl Deref for NativeHostBridgeCallContextPin {
     fn deref(&self) -> &Self::Target {
         match self.context.as_ref() {
             NativeHostApiV3Context::BridgeCall(context) => context,
-            NativeHostApiV3Context::Registration(_) | NativeHostApiV3Context::RegistrationV4(_) => {
+            NativeHostApiV3Context::RegistrationV4(_) => {
                 unreachable!("bridge call context pin must retain a bridge context")
             }
         }
@@ -351,9 +351,7 @@ impl NativeHostBridgeCallScope {
     pub fn method_count(&self) -> usize {
         match context_snapshot(self.handle.raw()).as_deref() {
             Some(NativeHostApiV3Context::BridgeCall(context)) => context.methods.len(),
-            Some(NativeHostApiV3Context::Registration(_))
-            | Some(NativeHostApiV3Context::RegistrationV4(_))
-            | None => 0,
+            Some(NativeHostApiV3Context::RegistrationV4(_)) | None => 0,
         }
     }
 
@@ -386,7 +384,7 @@ pub(super) fn bridge_context_for(
     }
     let context = context_snapshot(handle.raw()).ok_or(ZrStatusCode::NotFound)?;
     match context.as_ref() {
-        NativeHostApiV3Context::Registration(_) | NativeHostApiV3Context::RegistrationV4(_) => {
+        NativeHostApiV3Context::RegistrationV4(_) => {
             return Err(ZrStatusCode::UnsupportedVersion);
         }
         NativeHostApiV3Context::BridgeCall(_) => {}

@@ -1,16 +1,18 @@
 mod metrics;
 mod row;
 
+use std::cell::OnceCell;
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::PixelRect;
 use super::super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
-use super::super::font::{HostTextFontFace, HostTextFontSnapshot};
-use super::super::raster::{rasterize_cached_glyph, rasterize_cached_runtime_artifact_glyph};
+use super::super::font::{host_font_snapshot_for_face, HostTextFontFace, HostTextFontSnapshot};
+use super::super::raster::{rasterize_cached_host_glyph, rasterize_cached_runtime_artifact_glyph};
 use super::layout::RuntimeTextGlyph;
 use super::placement::retained_glyph_placement_for_smoothing;
-use metrics::{logical_raster_extent, TEXT_RASTER_SUPERSAMPLE};
+use metrics::logical_raster_extent;
 use row::draw_glyph_row;
 
 pub(super) fn draw_layout_glyphs(
@@ -23,11 +25,13 @@ pub(super) fn draw_layout_glyphs(
     style: UiTextRunPaintStyle,
 ) {
     let smoothing = current_host_text_preferences().smoothing;
+    let host_font = OnceCell::new();
     for glyph in glyphs {
         draw_layout_glyph(
             frame,
             clip,
             font_face,
+            &host_font,
             glyph,
             artifact_raster_fonts,
             color,
@@ -41,6 +45,7 @@ fn draw_layout_glyph(
     frame: &mut HostRgbaFrame,
     clip: &PixelRect,
     font_face: HostTextFontFace,
+    host_font: &OnceCell<HostTextFontSnapshot>,
     glyph: &RuntimeTextGlyph,
     artifact_raster_fonts: &[HostTextFontSnapshot],
     color: [u8; 4],
@@ -61,17 +66,18 @@ fn draw_layout_glyph(
                 font,
                 glyph.glyph_index,
                 glyph.px,
-                TEXT_RASTER_SUPERSAMPLE,
                 origin_placement.subpixel_offset,
+                smoothing,
             )
         })
         .unwrap_or_else(|| {
-            rasterize_cached_glyph(
+            rasterize_cached_host_glyph(
                 font_face,
+                host_font.get_or_init(|| host_font_snapshot_for_face(font_face)),
                 glyph.glyph_index,
                 glyph.px,
-                TEXT_RASTER_SUPERSAMPLE,
                 origin_placement.subpixel_offset,
+                smoothing,
             )
         });
     let metrics = &raster.metrics;
@@ -80,8 +86,8 @@ fn draw_layout_glyph(
         return;
     }
     let logical_width =
-        logical_raster_extent(metrics.width, raster.raster_scale, raster.sample_offset_x);
-    let logical_height = logical_raster_extent(metrics.height, raster.raster_scale, 0.0);
+        logical_raster_extent(metrics.width, raster.sample_scale, raster.sample_offset_x);
+    let logical_height = logical_raster_extent(metrics.height, raster.sample_scale, 0.0);
     if logical_width == 0 || logical_height == 0 {
         return;
     }
@@ -118,7 +124,7 @@ fn draw_layout_glyph(
             y,
             color,
             style,
-            raster.raster_scale,
+            raster.sample_scale,
             raster.sample_offset_x,
         );
     }

@@ -1,22 +1,20 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use glyphon::cosmic_text::SubpixelBin;
-use glyphon::{CacheKey, FontSystem, SwashContent};
+use glyphon::SwashContent;
 
-use crate::text::atlas::{GlyphAtlasFormat, GlyphRasterKey};
+use crate::text::atlas::{GlyphAtlasFormat, GlyphRasterKey, GlyphSmoothingMode};
 use crate::text::font::FontDatabase;
 use crate::text::parallel::raster_pool::{
     TextRasterCompletionDrain, TextRasterWorkId, TextRasterWorkItem, TextRasterWorkResult,
     TextRasterWorkerPool, TextRasterWorkerRequestError,
 };
 use crate::text::raster::{GlyphBitmap, SwashRasterRequest};
-
-use super::raster_key::native_bitmap_atlas_raster_key;
-use super::source_image::native_bitmap_atlas_format;
+use crate::text::{FontFaceId, InstancedFaceId, VariationCoords};
 
 mod lru;
 mod report;
+mod worker;
 
 use lru::{NativeBitmapAtlasSourceCacheEntry, NativeBitmapAtlasSourceLru};
 pub(crate) use report::NativeBitmapAtlasSourceCacheFrameReport;
@@ -26,6 +24,44 @@ const DEFAULT_NATIVE_BITMAP_ATLAS_SOURCE_CACHE_MAX_BYTES: usize = 8 * 1024 * 102
 const FIRST_NATIVE_BITMAP_ATLAS_WORK_ID: u64 = 1;
 const FIRST_NATIVE_BITMAP_ATLAS_RASTER_FONT_ID: u64 = 1;
 pub(crate) const NATIVE_BITMAP_ATLAS_MAX_RASTER_REQUESTS_PER_FRAME: usize = 256;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct NativeBitmapAtlasReadinessGeneration(u64);
+
+impl NativeBitmapAtlasReadinessGeneration {
+    fn next(current: Self) -> Self {
+        Self(current.0.saturating_add(1).max(1))
+    }
+
+    pub(crate) fn value(self) -> u64 {
+        self.0
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct NativeBitmapAtlasReadinessChangeReceipt {
+    generation: NativeBitmapAtlasReadinessGeneration,
+    full_invalidation: bool,
+    changed_keys: HashSet<GlyphRasterKey>,
+}
+
+impl NativeBitmapAtlasReadinessChangeReceipt {
+    pub(crate) fn generation(&self) -> NativeBitmapAtlasReadinessGeneration {
+        self.generation
+    }
+
+    pub(crate) fn full_invalidation(&self) -> bool {
+        self.full_invalidation
+    }
+
+    pub(crate) fn changed_keys(&self) -> &HashSet<GlyphRasterKey> {
+        &self.changed_keys
+    }
+
+    pub(crate) fn changed_key_count(&self) -> usize {
+        self.changed_keys().len()
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum NativeBitmapAtlasWorkerRequestStatus {
@@ -52,17 +88,24 @@ pub(crate) struct NativeBitmapAtlasSourceCache {
     max_byte_count: usize,
     resident_byte_count: usize,
     face_epoch: u64,
-    entries: HashMap<CacheKey, NativeBitmapAtlasSourceCacheEntry>,
+    readiness_generation: NativeBitmapAtlasReadinessGeneration,
+    pending_readiness_full_invalidation: bool,
+    pending_readiness_changed_keys: HashSet<GlyphRasterKey>,
+    // The text-owned glyph identity, rather than a renderer layout cache key, owns residency.
+    entries: HashMap<GlyphRasterKey, NativeBitmapAtlasSourceCacheEntry>,
     lru: NativeBitmapAtlasSourceLru,
-    cache_keys_by_raster_key: HashMap<GlyphRasterKey, CacheKey>,
+    // A raster can select a color bitmap after the request was issued as an alpha glyph. Keep a
+    // direct reverse lookup from its actual persistent atlas key to the text-owned request key.
+    cache_keys_by_raster_key: HashMap<GlyphRasterKey, GlyphRasterKey>,
     budget_evicted_raster_keys: Vec<GlyphRasterKey>,
-    pending_worker_cache_keys: HashMap<TextRasterWorkId, CacheKey>,
-    pending_worker_work_ids: HashMap<CacheKey, TextRasterWorkId>,
-    // Reset together with face_epoch so an epoch only copies each backend font once.
-    raster_font_bytes_by_backend: HashMap<glyphon::fontdb::ID, Arc<[u8]>>,
+    pending_worker_cache_keys: HashMap<TextRasterWorkId, GlyphRasterKey>,
+    pending_worker_work_ids: HashMap<GlyphRasterKey, TextRasterWorkId>,
+    // Font bytes are shared by all variation instances of the same face for this epoch.
+    raster_font_bytes_by_face: HashMap<FontFaceId, Arc<[u8]>>,
+    raster_variations_by_instance: HashMap<InstancedFaceId, Arc<VariationCoords>>,
     raster_font_resident_byte_count: usize,
-    // A stable ID lets each worker's Swash ScaleContext reuse parsed face state safely.
-    raster_font_identity_by_backend: HashMap<glyphon::fontdb::ID, u64>,
+    // A worker-local Swash context can safely reuse parsed face state for a stable source face.
+    raster_font_identity_by_face: HashMap<FontFaceId, u64>,
     next_raster_font_id: u64,
     next_worker_id: u64,
     pending_face_invalidated_count: usize,
@@ -91,15 +134,19 @@ impl NativeBitmapAtlasSourceCache {
             max_byte_count,
             resident_byte_count: 0,
             face_epoch: 0,
+            readiness_generation: NativeBitmapAtlasReadinessGeneration::default(),
+            pending_readiness_full_invalidation: false,
+            pending_readiness_changed_keys: HashSet::new(),
             entries: HashMap::new(),
             lru: NativeBitmapAtlasSourceLru::default(),
             cache_keys_by_raster_key: HashMap::new(),
             budget_evicted_raster_keys: Vec::new(),
             pending_worker_cache_keys: HashMap::new(),
             pending_worker_work_ids: HashMap::new(),
-            raster_font_bytes_by_backend: HashMap::new(),
+            raster_font_bytes_by_face: HashMap::new(),
+            raster_variations_by_instance: HashMap::new(),
             raster_font_resident_byte_count: 0,
-            raster_font_identity_by_backend: HashMap::new(),
+            raster_font_identity_by_face: HashMap::new(),
             next_raster_font_id: FIRST_NATIVE_BITMAP_ATLAS_RASTER_FONT_ID,
             next_worker_id: FIRST_NATIVE_BITMAP_ATLAS_WORK_ID,
             pending_face_invalidated_count: 0,
@@ -110,12 +157,10 @@ impl NativeBitmapAtlasSourceCache {
     }
 
     pub(crate) fn begin_frame(&mut self) {
-        let invalidated_count = self.pending_face_invalidated_count;
-        self.pending_face_invalidated_count = 0;
-        let cancelled_count = self.pending_worker_cancelled_count;
-        self.pending_worker_cancelled_count = 0;
-        let linked_raster_invalidation_count = self.pending_linked_raster_invalidation_count;
-        self.pending_linked_raster_invalidation_count = 0;
+        let invalidated_count = std::mem::take(&mut self.pending_face_invalidated_count);
+        let cancelled_count = std::mem::take(&mut self.pending_worker_cancelled_count);
+        let linked_raster_invalidation_count =
+            std::mem::take(&mut self.pending_linked_raster_invalidation_count);
         self.frame_report = NativeBitmapAtlasSourceCacheFrameReport {
             capacity: self.capacity,
             max_byte_count: self.max_byte_count,
@@ -138,13 +183,25 @@ impl NativeBitmapAtlasSourceCache {
             persistent_raster_key_count: self.cache_keys_by_raster_key.len(),
             pending_worker_count: self.pending_worker_cache_keys.len(),
             worker_raster_font_resident_byte_count: self.raster_font_resident_byte_count,
-            worker_raster_font_entry_count: self.raster_font_bytes_by_backend.len(),
+            worker_raster_font_entry_count: self.raster_font_bytes_by_face.len(),
             ..self.frame_report
         }
     }
 
     pub(crate) fn face_epoch(&self) -> u64 {
         self.face_epoch
+    }
+
+    pub(crate) fn readiness_generation(&self) -> NativeBitmapAtlasReadinessGeneration {
+        self.readiness_generation
+    }
+
+    pub(crate) fn take_readiness_changes(&mut self) -> NativeBitmapAtlasReadinessChangeReceipt {
+        NativeBitmapAtlasReadinessChangeReceipt {
+            generation: self.readiness_generation(),
+            full_invalidation: std::mem::take(&mut self.pending_readiness_full_invalidation),
+            changed_keys: std::mem::take(&mut self.pending_readiness_changed_keys),
+        }
     }
 
     pub(crate) fn idle_frame_report(&mut self) -> NativeBitmapAtlasSourceCacheFrameReport {
@@ -167,11 +224,13 @@ impl NativeBitmapAtlasSourceCache {
         self.cache_keys_by_raster_key.clear();
         self.budget_evicted_raster_keys.clear();
         self.cancel_pending_worker_requests(worker_pool);
-        self.raster_font_bytes_by_backend.clear();
+        self.raster_font_bytes_by_face.clear();
+        self.raster_variations_by_instance.clear();
         self.raster_font_resident_byte_count = 0;
-        self.raster_font_identity_by_backend.clear();
+        self.raster_font_identity_by_face.clear();
         self.next_raster_font_id = FIRST_NATIVE_BITMAP_ATLAS_RASTER_FONT_ID;
         self.face_epoch = self.face_epoch.saturating_add(1);
+        self.record_full_readiness_invalidation();
         self.pending_face_invalidated_count = self
             .pending_face_invalidated_count
             .saturating_add(invalidated_count);
@@ -180,9 +239,8 @@ impl NativeBitmapAtlasSourceCache {
     pub(crate) fn register_worker_request(
         &mut self,
         work_id: TextRasterWorkId,
-        cache_key: CacheKey,
+        cache_key: GlyphRasterKey,
     ) {
-        let cache_key = native_bitmap_atlas_stable_raster_cache_key(cache_key);
         if let Some(previous_cache_key) = self.pending_worker_cache_keys.insert(work_id, cache_key)
         {
             self.pending_worker_work_ids.remove(&previous_cache_key);
@@ -194,9 +252,8 @@ impl NativeBitmapAtlasSourceCache {
 
     pub(crate) fn cached_image(
         &mut self,
-        cache_key: CacheKey,
+        cache_key: GlyphRasterKey,
     ) -> Option<NativeBitmapAtlasCachedGlyphImage> {
-        let cache_key = native_bitmap_atlas_stable_raster_cache_key(cache_key);
         if let Some(image) = self.touch_entry(cache_key) {
             self.frame_report.hit_count = self.frame_report.hit_count.saturating_add(1);
             return Some(image);
@@ -208,10 +265,9 @@ impl NativeBitmapAtlasSourceCache {
 
     pub(crate) fn bind_persistent_raster_key(
         &mut self,
-        cache_key: CacheKey,
+        cache_key: GlyphRasterKey,
         raster_key: GlyphRasterKey,
     ) -> bool {
-        let cache_key = native_bitmap_atlas_stable_raster_cache_key(cache_key);
         let Some(previous_raster_key) = self.entries.get(&cache_key).map(|entry| entry.raster_key)
         else {
             return false;
@@ -222,17 +278,21 @@ impl NativeBitmapAtlasSourceCache {
         if let Some(previous_raster_key) = previous_raster_key {
             self.cache_keys_by_raster_key.remove(&previous_raster_key);
         }
-        if let Some(previous_cache_key) = self
+        let displaced_cache_key = self
             .cache_keys_by_raster_key
             .insert(raster_key, cache_key)
-            .filter(|previous_cache_key| *previous_cache_key != cache_key)
-        {
+            .filter(|previous_cache_key| *previous_cache_key != cache_key);
+        if let Some(previous_cache_key) = displaced_cache_key {
             if let Some(previous_entry) = self.entries.get_mut(&previous_cache_key) {
                 previous_entry.raster_key = None;
             }
         }
         if let Some(entry) = self.entries.get_mut(&cache_key) {
             entry.raster_key = Some(raster_key);
+        }
+        self.record_readiness_change(cache_key);
+        if let Some(displaced_cache_key) = displaced_cache_key {
+            self.record_readiness_change(displaced_cache_key);
         }
         true
     }
@@ -264,11 +324,15 @@ impl NativeBitmapAtlasSourceCache {
 
     pub(crate) fn approximate_cached_image(
         &mut self,
-        cache_key: CacheKey,
+        cache_key: GlyphRasterKey,
     ) -> Option<NativeBitmapAtlasCachedGlyphImage> {
-        let cache_key = native_bitmap_atlas_stable_raster_cache_key(cache_key);
-        for y_bin in approximate_vertical_bin_candidates(cache_key.y_bin) {
-            let candidate_key = CacheKey { y_bin, ..cache_key };
+        for vertical_subpixel_bin in
+            approximate_vertical_bin_candidates(cache_key.vertical_subpixel_bin)
+        {
+            let candidate_key = GlyphRasterKey {
+                vertical_subpixel_bin,
+                ..cache_key
+            };
             self.frame_report.approximate_probe_count =
                 self.frame_report.approximate_probe_count.saturating_add(1);
             if let Some(image) = self.touch_entry(candidate_key) {
@@ -281,221 +345,11 @@ impl NativeBitmapAtlasSourceCache {
         None
     }
 
-    pub(crate) fn request_worker_image(
+    fn insert(
         &mut self,
-        font_system: &mut FontSystem,
-        font_database: &FontDatabase,
-        worker_pool: Option<&TextRasterWorkerPool>,
-        face_epoch: u64,
-        cache_key: CacheKey,
-    ) -> NativeBitmapAtlasWorkerRequestStatus {
-        let cache_key = native_bitmap_atlas_stable_raster_cache_key(cache_key);
-        if self.entries.contains_key(&cache_key) {
-            return NativeBitmapAtlasWorkerRequestStatus::Unavailable;
-        }
-        if self.pending_worker_work_ids.contains_key(&cache_key) {
-            self.frame_report.worker_request_pending_count = self
-                .frame_report
-                .worker_request_pending_count
-                .saturating_add(1);
-            return NativeBitmapAtlasWorkerRequestStatus::Pending;
-        }
-
-        let Some(worker_pool) = worker_pool else {
-            self.frame_report.worker_request_unavailable_count = self
-                .frame_report
-                .worker_request_unavailable_count
-                .saturating_add(1);
-            return NativeBitmapAtlasWorkerRequestStatus::Unavailable;
-        };
-
-        if self.frame_report.worker_request_submitted_count
-            >= NATIVE_BITMAP_ATLAS_MAX_RASTER_REQUESTS_PER_FRAME
-        {
-            self.frame_report.worker_request_deferred_count = self
-                .frame_report
-                .worker_request_deferred_count
-                .saturating_add(1);
-            return NativeBitmapAtlasWorkerRequestStatus::DeferredByFrameBudget;
-        }
-
-        let Some(face_index) = font_system
-            .db()
-            .face(cache_key.font_id)
-            .map(|face| face.index as usize)
-        else {
-            self.frame_report.worker_request_font_missing_count = self
-                .frame_report
-                .worker_request_font_missing_count
-                .saturating_add(1);
-            return NativeBitmapAtlasWorkerRequestStatus::Unavailable;
-        };
-        let Some(font) = font_system.get_font(cache_key.font_id, cache_key.font_weight) else {
-            self.frame_report.worker_request_font_missing_count = self
-                .frame_report
-                .worker_request_font_missing_count
-                .saturating_add(1);
-            return NativeBitmapAtlasWorkerRequestStatus::Unavailable;
-        };
-
-        let font_bytes = match self.raster_font_bytes_by_backend.get(&cache_key.font_id) {
-            Some(bytes) => Arc::clone(bytes),
-            None => {
-                let bytes = Arc::<[u8]>::from(font.data());
-                self.frame_report.worker_request_font_copied_byte_count = self
-                    .frame_report
-                    .worker_request_font_copied_byte_count
-                    .saturating_add(bytes.len());
-                self.raster_font_bytes_by_backend
-                    .insert(cache_key.font_id, Arc::clone(&bytes));
-                self.raster_font_resident_byte_count = self
-                    .raster_font_resident_byte_count
-                    .saturating_add(bytes.len());
-                bytes
-            }
-        };
-
-        let work_id = self.next_worker_id();
-        let request = SwashRasterRequest::glyphon_cache_key(face_index, cache_key)
-            .with_font_identity(self.raster_font_identity(cache_key.font_id, face_epoch));
-        let request = font_database
-            .font_face_id(cache_key.font_id)
-            .and_then(|face| {
-                font_database
-                    .effective_instance_variations_shared(face, None, cache_key.font_weight.0)
-                    .ok()
-            })
-            .map(|variations| request.clone().with_variations(variations))
-            .unwrap_or(request);
-        let work = TextRasterWorkItem::new(work_id, face_epoch, font_bytes, request);
-
-        match worker_pool.try_request(work) {
-            Ok(()) => {}
-            Err(TextRasterWorkerRequestError::QueueFull(_)) => {
-                self.frame_report.worker_request_backpressured_count = self
-                    .frame_report
-                    .worker_request_backpressured_count
-                    .saturating_add(1);
-                return NativeBitmapAtlasWorkerRequestStatus::DeferredByWorkerBackpressure;
-            }
-            Err(TextRasterWorkerRequestError::QueueBytesFull(_)) => {
-                self.frame_report.worker_request_backpressured_count = self
-                    .frame_report
-                    .worker_request_backpressured_count
-                    .saturating_add(1);
-                return NativeBitmapAtlasWorkerRequestStatus::DeferredByWorkerBackpressure;
-            }
-            Err(
-                TextRasterWorkerRequestError::ChannelClosed(_)
-                | TextRasterWorkerRequestError::DuplicateInFlight(_),
-            ) => {
-                self.frame_report.worker_request_failed_count = self
-                    .frame_report
-                    .worker_request_failed_count
-                    .saturating_add(1);
-                return NativeBitmapAtlasWorkerRequestStatus::Unavailable;
-            }
-        }
-
-        self.pending_worker_cache_keys.insert(work_id, cache_key);
-        self.pending_worker_work_ids.insert(cache_key, work_id);
-        self.frame_report.worker_request_submitted_count = self
-            .frame_report
-            .worker_request_submitted_count
-            .saturating_add(1);
-        NativeBitmapAtlasWorkerRequestStatus::Submitted(work_id)
-    }
-
-    pub(crate) fn apply_worker_completion_drain(
-        &mut self,
-        font_database: &FontDatabase,
-        drain: TextRasterCompletionDrain,
-    ) -> NativeBitmapAtlasSourceCacheFrameReport {
-        let TextRasterCompletionDrain {
-            accepted,
-            face_invalidated_ids,
-            face_invalidated_count,
-            drained_bytes,
-            byte_budget_deferred_count,
-            oversized_accepted_count,
-        } = drain;
-
-        self.frame_report.worker_completion_drained_byte_count = self
-            .frame_report
-            .worker_completion_drained_byte_count
-            .saturating_add(drained_bytes);
-        self.frame_report
-            .worker_completion_byte_budget_deferred_count = self
-            .frame_report
-            .worker_completion_byte_budget_deferred_count
-            .saturating_add(byte_budget_deferred_count);
-        self.frame_report.worker_completion_oversized_accepted_count = self
-            .frame_report
-            .worker_completion_oversized_accepted_count
-            .saturating_add(oversized_accepted_count);
-        self.frame_report.worker_completion_face_invalidated_count = self
-            .frame_report
-            .worker_completion_face_invalidated_count
-            .saturating_add(face_invalidated_count);
-
-        for work_id in face_invalidated_ids {
-            self.remove_pending_worker_request(work_id);
-        }
-        for result in accepted {
-            self.apply_worker_result(font_database, result);
-        }
-
-        self.frame_report()
-    }
-
-    fn apply_worker_result(&mut self, font_database: &FontDatabase, result: TextRasterWorkResult) {
-        let Some(cache_key) = self.remove_pending_worker_request(result.id) else {
-            self.frame_report.worker_completion_unknown_count = self
-                .frame_report
-                .worker_completion_unknown_count
-                .saturating_add(1);
-            return;
-        };
-
-        let Ok(bitmap) = result.result else {
-            self.frame_report.worker_completion_failed_count = self
-                .frame_report
-                .worker_completion_failed_count
-                .saturating_add(1);
-            return;
-        };
-
-        let Some(image) = cached_glyph_image_from_worker_bitmap(bitmap) else {
-            self.frame_report.worker_completion_invalid_bitmap_count = self
-                .frame_report
-                .worker_completion_invalid_bitmap_count
-                .saturating_add(1);
-            return;
-        };
-
-        let raster_key = native_bitmap_atlas_raster_key(
-            font_database,
-            cache_key,
-            native_bitmap_atlas_format(image.content),
-        );
-        let image_byte_count = image.bytes.len();
-        if self.insert(cache_key, image) {
-            self.frame_report.worker_completion_insert_count = self
-                .frame_report
-                .worker_completion_insert_count
-                .saturating_add(1);
-            self.frame_report.worker_completion_applied_byte_count = self
-                .frame_report
-                .worker_completion_applied_byte_count
-                .saturating_add(image_byte_count);
-            if let Some(raster_key) = raster_key {
-                let _ = self.bind_persistent_raster_key(cache_key, raster_key);
-            }
-        }
-    }
-
-    fn insert(&mut self, cache_key: CacheKey, image: NativeBitmapAtlasCachedGlyphImage) -> bool {
-        let cache_key = native_bitmap_atlas_stable_raster_cache_key(cache_key);
+        cache_key: GlyphRasterKey,
+        image: NativeBitmapAtlasCachedGlyphImage,
+    ) -> bool {
         let image_byte_count = image.bytes.len();
         if self.capacity == 0 || self.max_byte_count == 0 || image_byte_count > self.max_byte_count
         {
@@ -509,8 +363,9 @@ impl NativeBitmapAtlasSourceCache {
         self.record_lru_repair(repaired);
         if let Some(existing) = existing {
             self.remove_raster_key_binding(cache_key, existing.raster_key);
-            let existing_byte_count = existing.image.bytes.len();
-            self.resident_byte_count = self.resident_byte_count.saturating_sub(existing_byte_count);
+            self.resident_byte_count = self
+                .resident_byte_count
+                .saturating_sub(existing.image.bytes.len());
         }
         while self.entries.len() >= self.capacity
             || self.resident_byte_count.saturating_add(image_byte_count) > self.max_byte_count
@@ -529,35 +384,39 @@ impl NativeBitmapAtlasSourceCache {
         self.record_lru_repair(repaired);
         self.resident_byte_count = self.resident_byte_count.saturating_add(image_byte_count);
         self.frame_report.insert_count = self.frame_report.insert_count.saturating_add(1);
+        self.record_readiness_change(cache_key);
         true
     }
 
     fn evict_least_recently_used(&mut self) -> bool {
         let (entry, repaired) = self.lru.pop_least_recent(&mut self.entries);
         self.record_lru_repair(repaired);
-        if let Some(entry) = entry {
-            if let Some(raster_key) = entry.raster_key {
-                self.cache_keys_by_raster_key.remove(&raster_key);
-                self.budget_evicted_raster_keys.push(raster_key);
-                self.frame_report.budget_linked_eviction_count = self
-                    .frame_report
-                    .budget_linked_eviction_count
-                    .saturating_add(1);
-            }
-            let byte_count = entry.image.bytes.len();
-            self.resident_byte_count = self.resident_byte_count.saturating_sub(byte_count);
-            self.frame_report.evicted_count = self.frame_report.evicted_count.saturating_add(1);
-            self.frame_report.evicted_byte_count = self
+        let Some((cache_key, entry)) = entry else {
+            return false;
+        };
+        if let Some(raster_key) = entry.raster_key {
+            self.cache_keys_by_raster_key.remove(&raster_key);
+            self.budget_evicted_raster_keys.push(raster_key);
+            self.frame_report.budget_linked_eviction_count = self
                 .frame_report
-                .evicted_byte_count
-                .saturating_add(byte_count);
-            true
-        } else {
-            false
+                .budget_linked_eviction_count
+                .saturating_add(1);
         }
+        let byte_count = entry.image.bytes.len();
+        self.resident_byte_count = self.resident_byte_count.saturating_sub(byte_count);
+        self.frame_report.evicted_count = self.frame_report.evicted_count.saturating_add(1);
+        self.frame_report.evicted_byte_count = self
+            .frame_report
+            .evicted_byte_count
+            .saturating_add(byte_count);
+        self.record_readiness_change(cache_key);
+        true
     }
 
-    fn touch_entry(&mut self, cache_key: CacheKey) -> Option<NativeBitmapAtlasCachedGlyphImage> {
+    fn touch_entry(
+        &mut self,
+        cache_key: GlyphRasterKey,
+    ) -> Option<NativeBitmapAtlasCachedGlyphImage> {
         let (image, repaired) = self.lru.touch(&mut self.entries, cache_key);
         self.record_lru_repair(repaired);
         if image.is_some() {
@@ -588,6 +447,7 @@ impl NativeBitmapAtlasSourceCache {
                 .frame_report
                 .evicted_byte_count
                 .saturating_add(entry.image.bytes.len());
+            self.record_readiness_change(cache_key);
             invalidated_count = invalidated_count.saturating_add(1);
         }
         invalidated_count
@@ -595,7 +455,7 @@ impl NativeBitmapAtlasSourceCache {
 
     fn remove_raster_key_binding(
         &mut self,
-        cache_key: CacheKey,
+        cache_key: GlyphRasterKey,
         raster_key: Option<GlyphRasterKey>,
     ) {
         if let Some(raster_key) = raster_key {
@@ -612,51 +472,63 @@ impl NativeBitmapAtlasSourceCache {
         }
     }
 
-    fn cancel_pending_worker_requests(&mut self, worker_pool: Option<&TextRasterWorkerPool>) {
-        let cancelled_count = worker_pool
-            .map(|worker_pool| {
-                self.pending_worker_cache_keys
-                    .keys()
-                    .filter(|work_id| worker_pool.cancel(**work_id))
-                    .count()
-            })
-            .unwrap_or(0);
-        self.pending_worker_cache_keys.clear();
-        self.pending_worker_work_ids.clear();
-        self.pending_worker_cancelled_count = self
-            .pending_worker_cancelled_count
-            .saturating_add(cancelled_count);
+    fn advance_readiness_generation(&mut self) {
+        self.readiness_generation =
+            NativeBitmapAtlasReadinessGeneration::next(self.readiness_generation);
     }
 
-    fn remove_pending_worker_request(&mut self, work_id: TextRasterWorkId) -> Option<CacheKey> {
-        let cache_key = self.pending_worker_cache_keys.remove(&work_id)?;
-        self.pending_worker_work_ids.remove(&cache_key);
-        Some(cache_key)
+    fn record_readiness_change(&mut self, cache_key: GlyphRasterKey) {
+        self.advance_readiness_generation();
+        if self.pending_readiness_full_invalidation {
+            return;
+        }
+        self.pending_readiness_changed_keys.extend([
+            GlyphRasterKey {
+                vertical_subpixel_bin: 0,
+                ..cache_key
+            },
+            GlyphRasterKey {
+                vertical_subpixel_bin: 1,
+                ..cache_key
+            },
+            GlyphRasterKey {
+                vertical_subpixel_bin: 2,
+                ..cache_key
+            },
+            GlyphRasterKey {
+                vertical_subpixel_bin: 3,
+                ..cache_key
+            },
+        ]);
     }
 
-    fn next_worker_id(&mut self) -> TextRasterWorkId {
-        let work_id = self.next_worker_id;
-        self.next_worker_id = self
-            .next_worker_id
-            .saturating_add(1)
-            .max(FIRST_NATIVE_BITMAP_ATLAS_WORK_ID);
-        TextRasterWorkId::new(work_id)
+    fn record_full_readiness_invalidation(&mut self) {
+        self.advance_readiness_generation();
+        self.pending_readiness_full_invalidation = true;
+        self.pending_readiness_changed_keys.clear();
     }
+}
 
-    fn raster_font_identity(&mut self, font_id: glyphon::fontdb::ID, face_epoch: u64) -> [u64; 2] {
-        let next_raster_font_id = &mut self.next_raster_font_id;
-        let raster_font_id = *self
-            .raster_font_identity_by_backend
-            .entry(font_id)
-            .or_insert_with(|| {
-                let raster_font_id = *next_raster_font_id;
-                *next_raster_font_id = next_raster_font_id
-                    .saturating_add(1)
-                    .max(FIRST_NATIVE_BITMAP_ATLAS_RASTER_FONT_ID);
-                raster_font_id
-            });
-        [face_epoch, raster_font_id]
-    }
+pub(super) fn native_bitmap_atlas_raster_key_for_content(
+    request_key: GlyphRasterKey,
+    content: SwashContent,
+) -> Option<GlyphRasterKey> {
+    let format = match content {
+        SwashContent::Mask => GlyphAtlasFormat::AlphaMask,
+        SwashContent::Color => GlyphAtlasFormat::Color,
+        SwashContent::SubpixelMask => GlyphAtlasFormat::SubpixelMask,
+    };
+    let smoothing = match format {
+        GlyphAtlasFormat::AlphaMask => GlyphSmoothingMode::Grayscale,
+        GlyphAtlasFormat::Color => GlyphSmoothingMode::None,
+        GlyphAtlasFormat::SubpixelMask => GlyphSmoothingMode::Subpixel,
+        GlyphAtlasFormat::Sdf | GlyphAtlasFormat::Msdf => return None,
+    };
+    Some(GlyphRasterKey {
+        format,
+        smoothing,
+        ..request_key
+    })
 }
 
 fn cached_glyph_image_from_worker_bitmap(
@@ -682,12 +554,12 @@ fn swash_content_for_atlas_format(format: GlyphAtlasFormat) -> Option<SwashConte
     }
 }
 
-fn approximate_vertical_bin_candidates(requested: SubpixelBin) -> [SubpixelBin; 3] {
-    match requested {
-        SubpixelBin::Zero => [SubpixelBin::One, SubpixelBin::Two, SubpixelBin::Three],
-        SubpixelBin::One => [SubpixelBin::Zero, SubpixelBin::Two, SubpixelBin::Three],
-        SubpixelBin::Two => [SubpixelBin::One, SubpixelBin::Three, SubpixelBin::Zero],
-        SubpixelBin::Three => [SubpixelBin::Two, SubpixelBin::One, SubpixelBin::Zero],
+fn approximate_vertical_bin_candidates(requested: u8) -> [u8; 3] {
+    match requested.min(3) {
+        0 => [1, 2, 3],
+        1 => [0, 2, 3],
+        2 => [1, 3, 0],
+        _ => [2, 1, 0],
     }
 }
 
@@ -702,20 +574,15 @@ fn worker_bitmap_bearing_to_i16(value: f32) -> Option<i16> {
     Some(rounded as i16)
 }
 
-pub(super) fn native_bitmap_atlas_stable_raster_cache_key(mut cache_key: CacheKey) -> CacheKey {
-    cache_key.x_bin = SubpixelBin::Zero;
-    cache_key
-}
-
 #[cfg(test)]
 impl NativeBitmapAtlasSourceCache {
-    pub(crate) fn corrupt_lru_tail_for_test(&mut self, cache_key: CacheKey) {
+    pub(crate) fn corrupt_lru_tail_for_test(&mut self, cache_key: GlyphRasterKey) {
         self.lru.corrupt_tail_for_test(cache_key);
     }
 
     pub(crate) fn insert_test_image(
         &mut self,
-        cache_key: CacheKey,
+        cache_key: GlyphRasterKey,
         image: NativeBitmapAtlasCachedGlyphImage,
     ) {
         self.insert(cache_key, image);
@@ -723,9 +590,8 @@ impl NativeBitmapAtlasSourceCache {
 
     pub(crate) fn cached_test_image(
         &mut self,
-        cache_key: CacheKey,
+        cache_key: GlyphRasterKey,
     ) -> Option<NativeBitmapAtlasCachedGlyphImage> {
-        let cache_key = native_bitmap_atlas_stable_raster_cache_key(cache_key);
         self.touch_entry(cache_key)
     }
 }

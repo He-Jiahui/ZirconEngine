@@ -12,6 +12,10 @@ use zircon_runtime_interface::ui::{
 
 use super::slot::UiLayoutSlotIndex;
 
+mod candidates;
+
+pub(super) use candidates::MuiResponsiveCandidates;
+
 const MUI_DEFAULT_SPACING_UNIT: f32 = 8.0;
 
 // Mirrors Material UI's default breakpoint keys so authored responsive props
@@ -36,45 +40,21 @@ pub(super) fn apply_mui_responsive_layout(
     apply_responsive_grid_slots(tree, viewport, &candidates.implicit_grid_parent_ids)
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
-struct MuiResponsiveCandidates {
-    media_query_node_ids: Vec<UiNodeId>,
-    visibility_node_ids: Vec<UiNodeId>,
-    container_node_ids: Vec<UiNodeId>,
-    implicit_grid_parent_ids: BTreeSet<UiNodeId>,
-}
-
-impl MuiResponsiveCandidates {
-    fn for_tree(tree: &UiTree) -> Self {
-        let mut candidates = Self::default();
-        for (node_id, node) in &tree.nodes {
-            let Some(metadata) = node.template_metadata.as_ref() else {
-                continue;
-            };
-            let attributes = &metadata.attributes;
-            if metadata.component == "UseMediaQuery" {
-                candidates.media_query_node_ids.push(*node_id);
-            }
-            if attributes.contains_key("display")
-                || attributes.contains_key("visibility")
-                || attributes.contains_key("visible")
-            {
-                candidates.visibility_node_ids.push(*node_id);
-            }
-            if matches!(metadata.component.as_str(), "Grid" | "Stack" | "Masonry")
-                && !has_explicit_layout_container(attributes)
-            {
-                candidates.container_node_ids.push(*node_id);
-            }
-            if metadata.component == "Grid"
-                && bool_attribute(attributes, "container")
-                && !has_explicit_layout_container(attributes)
-            {
-                candidates.implicit_grid_parent_ids.insert(*node_id);
-            }
-        }
-        candidates
+pub(super) fn apply_mui_responsive_layout_indexed(
+    tree: &mut UiTree,
+    root_size: UiSize,
+    slot_index: &UiLayoutSlotIndex,
+) -> Result<(), UiTreeError> {
+    let viewport = MuiResponsiveViewport::from_root_size(root_size);
+    if !slot_index.responsive_layout_may_change(root_size.width) {
+        return Ok(());
     }
+    slot_index.with_responsive_candidates(|candidates| {
+        apply_use_media_query_matches(tree, viewport, &candidates.media_query_node_ids)?;
+        apply_responsive_visibility(tree, viewport, &candidates.visibility_node_ids)?;
+        apply_responsive_containers(tree, viewport, &candidates.container_node_ids)?;
+        apply_responsive_grid_slots(tree, viewport, &candidates.implicit_grid_parent_ids)
+    })
 }
 
 pub(super) fn apply_mui_responsive_layout_for_nodes(
@@ -88,7 +68,7 @@ pub(super) fn apply_mui_responsive_layout_for_nodes(
         .iter()
         .copied()
         .filter(|node_id| tree.node(*node_id).is_some())
-        .collect::<Vec<_>>();
+        .collect::<BTreeSet<_>>();
     let mut grid_item_ids = node_ids.iter().copied().collect::<BTreeSet<_>>();
     for node_id in &node_ids {
         let Some(node) = tree.node(*node_id) else {
@@ -113,7 +93,7 @@ pub(super) fn apply_mui_responsive_layout_for_nodes(
         let Some(slot_index) = slot_index.first_index_for_edge(tree, parent_id, child_id) else {
             return apply_mui_responsive_layout(tree, root_size);
         };
-        let Some(slot) = tree.slots.get(slot_index) else {
+        let Some(slot) = tree.layout_slot(slot_index) else {
             return apply_mui_responsive_layout(tree, root_size);
         };
         if slot.child_id != child_id || slot.parent_id != parent_id {
@@ -127,21 +107,28 @@ pub(super) fn apply_mui_responsive_layout_for_nodes(
 fn apply_use_media_query_matches(
     tree: &mut UiTree,
     viewport: MuiResponsiveViewport,
-    node_ids: &[UiNodeId],
+    node_ids: &BTreeSet<UiNodeId>,
 ) -> Result<(), UiTreeError> {
     for node_id in node_ids.iter().copied() {
         let Some(next_matches) = use_media_query_match_for_node(tree, node_id, viewport)? else {
             continue;
         };
+        if tree
+            .node(node_id)
+            .and_then(|node| node.template_metadata.as_ref())
+            .and_then(|metadata| metadata.attributes.get("matches"))
+            .and_then(Value::as_bool)
+            == Some(next_matches)
+        {
+            continue;
+        }
+        tree.nodes.mark_layout_dirty_source(node_id);
         let node = tree
             .node_mut(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
         let Some(metadata) = node.template_metadata.as_mut() else {
             continue;
         };
-        if metadata.attributes.get("matches").and_then(Value::as_bool) == Some(next_matches) {
-            continue;
-        }
         metadata
             .attributes
             .insert("matches".to_string(), Value::Boolean(next_matches));
@@ -154,19 +141,22 @@ fn apply_use_media_query_matches(
 fn apply_responsive_visibility(
     tree: &mut UiTree,
     viewport: MuiResponsiveViewport,
-    node_ids: &[UiNodeId],
+    node_ids: &BTreeSet<UiNodeId>,
 ) -> Result<(), UiTreeError> {
     for node_id in node_ids.iter().copied() {
         let Some(next) = responsive_visibility_for_node(tree, node_id, viewport)? else {
             continue;
         };
+        if tree.node(node_id).is_some_and(|node| {
+            node.visibility == next.visibility
+                && node.state_flags.visible == next.state_visible_flag
+        }) {
+            continue;
+        }
+        tree.nodes.mark_layout_dirty_source(node_id);
         let node = tree
             .node_mut(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        if node.visibility == next.visibility && node.state_flags.visible == next.state_visible_flag
-        {
-            continue;
-        }
         let previous_effective = node.visibility.effective(node.state_flags.visible);
         let next_effective = next.visibility.effective(next.state_visible_flag);
         node.visibility = next.visibility;
@@ -183,19 +173,24 @@ fn apply_responsive_visibility(
 fn apply_responsive_containers(
     tree: &mut UiTree,
     viewport: MuiResponsiveViewport,
-    node_ids: &[UiNodeId],
+    node_ids: &BTreeSet<UiNodeId>,
 ) -> Result<(), UiTreeError> {
     for node_id in node_ids.iter().copied() {
         let Some(container) = responsive_container_for_node(tree, node_id, viewport)? else {
             continue;
         };
+        if tree
+            .node(node_id)
+            .is_some_and(|node| node.container == container)
+        {
+            continue;
+        }
+        tree.nodes.mark_layout_dirty_source(node_id);
         let node = tree
             .node_mut(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        if node.container != container {
-            node.container = container;
-            mark_node_layout_dirty(node);
-        }
+        node.container = container;
+        mark_node_layout_dirty(node);
     }
     Ok(())
 }
@@ -205,10 +200,12 @@ fn apply_responsive_grid_slots(
     viewport: MuiResponsiveViewport,
     implicit_grid_parent_ids: &BTreeSet<UiNodeId>,
 ) -> Result<(), UiTreeError> {
-    for index in 0..tree.slots.len() {
+    if implicit_grid_parent_ids.is_empty() {
+        return Ok(());
+    }
+    for index in 0..tree.layout_slots().len() {
         if !tree
-            .slots
-            .get(index)
+            .layout_slot(index)
             .is_some_and(|slot| implicit_grid_parent_ids.contains(&slot.parent_id))
         {
             continue;
@@ -223,7 +220,7 @@ fn apply_responsive_grid_slot(
     viewport: MuiResponsiveViewport,
     slot_index: usize,
 ) -> Result<(), UiTreeError> {
-    let Some(slot) = tree.slots.get(slot_index) else {
+    let Some(slot) = tree.layout_slot(slot_index) else {
         return Ok(());
     };
     let (parent_id, child_id) = (slot.parent_id, slot.child_id);
@@ -234,10 +231,14 @@ fn apply_responsive_grid_slot(
         return Ok(());
     }
     let placement = responsive_grid_item_placement(tree, child_id, viewport)?;
-    let slot = &mut tree.slots[slot_index];
-    if slot.kind != UiSlotKind::Grid || slot.grid_placement != placement {
-        slot.kind = UiSlotKind::Grid;
-        slot.grid_placement = placement;
+    let slot_requires_update = tree
+        .layout_slot(slot_index)
+        .is_some_and(|slot| slot.kind != UiSlotKind::Grid || slot.grid_placement != placement);
+    if slot_requires_update {
+        let _ = tree.mutate_layout_slot(slot_index, |slot| {
+            slot.kind = UiSlotKind::Grid;
+            slot.grid_placement = placement;
+        });
         mark_pair_layout_dirty(tree, parent_id, child_id);
     }
     Ok(())
@@ -708,6 +709,8 @@ fn normalized_token(value: &str) -> String {
 }
 
 fn mark_pair_layout_dirty(tree: &mut UiTree, parent_id: UiNodeId, child_id: UiNodeId) {
+    tree.nodes.mark_layout_dirty_source(parent_id);
+    tree.nodes.mark_layout_dirty_source(child_id);
     if let Some(parent) = tree.node_mut(parent_id) {
         mark_node_layout_dirty(parent);
     }
@@ -717,6 +720,7 @@ fn mark_pair_layout_dirty(tree: &mut UiTree, parent_id: UiNodeId, child_id: UiNo
 }
 
 fn mark_node_layout_dirty(node: &mut zircon_runtime_interface::ui::tree::UiTreeNode) {
+    node.layout_cache.invalidate_measure();
     node.dirty.layout = true;
     node.dirty.hit_test = true;
     node.dirty.render = true;
@@ -730,6 +734,9 @@ fn mark_node_visibility_dirty(
     node: &mut zircon_runtime_interface::ui::tree::UiTreeNode,
     layout_changed: bool,
 ) {
+    if layout_changed {
+        node.layout_cache.invalidate_measure();
+    }
     node.dirty.layout |= layout_changed;
     node.dirty.hit_test = true;
     node.dirty.render = true;
@@ -745,10 +752,11 @@ mod tests {
     use toml::Value;
     use zircon_runtime_interface::ui::{
         event_ui::{UiNodeId, UiNodePath},
+        layout::UiSize,
         tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode},
     };
 
-    use super::MuiResponsiveCandidates;
+    use super::{apply_mui_responsive_layout, MuiResponsiveCandidates};
 
     fn node(id: u64, component: &str, attributes: &[(&str, Value)]) -> UiTreeNode {
         UiTreeNode::new(UiNodeId::new(id), UiNodePath::new(format!("root/{id}")))
@@ -785,13 +793,69 @@ mod tests {
 
         let candidates = MuiResponsiveCandidates::for_tree(&tree);
 
-        assert_eq!(candidates.media_query_node_ids, vec![UiNodeId::new(2)]);
-        assert_eq!(candidates.visibility_node_ids, vec![UiNodeId::new(3)]);
-        assert_eq!(candidates.container_node_ids, vec![UiNodeId::new(4)]);
+        assert_eq!(
+            candidates.media_query_node_ids,
+            [UiNodeId::new(2)].into_iter().collect()
+        );
+        assert_eq!(
+            candidates.visibility_node_ids,
+            [UiNodeId::new(3)].into_iter().collect()
+        );
+        assert_eq!(
+            candidates.container_node_ids,
+            [UiNodeId::new(4)].into_iter().collect()
+        );
         assert_eq!(
             candidates.implicit_grid_parent_ids,
             [UiNodeId::new(4)].into_iter().collect()
         );
+    }
+
+    #[test]
+    fn candidate_patch_tracks_same_cardinality_metadata_changes() {
+        let node_id = UiNodeId::new(1);
+        let mut tree = UiTree::default();
+        tree.nodes.insert(node_id, node(1, "Button", &[]));
+        let mut candidates = MuiResponsiveCandidates::for_tree(&tree);
+        assert!(candidates.media_query_node_ids.is_empty());
+
+        tree.nodes.insert(
+            node_id,
+            node(
+                1,
+                "UseMediaQuery",
+                &[("query", Value::String("(min-width: 600px)".into()))],
+            ),
+        );
+        candidates.patch_nodes(&tree, &[node_id].into_iter().collect());
+
+        assert_eq!(
+            candidates.media_query_node_ids,
+            [node_id].into_iter().collect()
+        );
+    }
+
+    #[test]
+    fn unchanged_responsive_values_do_not_create_mutation_candidates() {
+        let node_id = UiNodeId::new(1);
+        let mut tree = UiTree::default();
+        tree.nodes.insert(
+            node_id,
+            node(
+                1,
+                "UseMediaQuery",
+                &[
+                    ("query", Value::String("(min-width: 600px)".into())),
+                    ("matches", Value::Boolean(true)),
+                ],
+            ),
+        );
+        tree.clear_pending_mutation_node_ids();
+
+        apply_mui_responsive_layout(&mut tree, UiSize::new(800.0, 600.0))
+            .expect("stable responsive pass");
+
+        assert!(tree.pending_mutation_node_ids().is_empty());
     }
 }
 

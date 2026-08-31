@@ -4,7 +4,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::Vec3;
 use crate::graphics::{
-    runtime_provider::RuntimeProviderPrepareInput, VisibilityHybridGiUpdatePlan,
+    VisibilityHybridGiUpdatePlan, runtime_provider::RuntimeProviderPrepareInput,
 };
 
 pub struct HybridGiRuntimePrepareInput<'a> {

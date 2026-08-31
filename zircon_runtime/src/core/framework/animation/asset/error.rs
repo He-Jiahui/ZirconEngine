@@ -8,6 +8,14 @@ pub type AnimationAssetResult<T> = std::result::Result<T, AnimationAssetError>;
 
 #[derive(Debug, Error)]
 pub enum AnimationAssetError {
+    #[error(
+        "animation {kind} binary input is {actual_bytes} bytes, exceeding the {limit_bytes}-byte decode budget"
+    )]
+    InputTooLarge {
+        kind: &'static str,
+        actual_bytes: u64,
+        limit_bytes: u64,
+    },
     #[error("animation {kind} binary serialization failed: {source}")]
     Serialize {
         kind: &'static str,
@@ -83,4 +91,60 @@ pub enum AnimationAssetError {
     UnknownChannelValueTag { tag: u8 },
     #[error("unknown animation graph node tag {tag}")]
     UnknownGraphNodeTag { tag: u8 },
+}
+
+impl AnimationAssetError {
+    /// Returns the binary envelope kind mismatch retained by a schema fallback chain.
+    pub fn binary_kind_mismatch(&self) -> Option<(&'static str, &'static str)> {
+        match self {
+            Self::KindMismatch { expected, actual } => Some((expected, actual)),
+            Self::DocumentAndStreamDecode {
+                document, stream, ..
+            } => document
+                .binary_kind_mismatch()
+                .or_else(|| stream.binary_kind_mismatch()),
+            Self::CurrentAndV1PayloadDecode { current, v1, .. } => current
+                .binary_kind_mismatch()
+                .or_else(|| v1.binary_kind_mismatch()),
+            Self::CurrentV3V2AndV1PayloadDecode {
+                current,
+                v3,
+                v2,
+                v1,
+                ..
+            } => current
+                .binary_kind_mismatch()
+                .or_else(|| v3.binary_kind_mismatch())
+                .or_else(|| v2.binary_kind_mismatch())
+                .or_else(|| v1.binary_kind_mismatch()),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AnimationAssetError;
+
+    #[test]
+    fn binary_kind_mismatch_survives_document_and_schema_fallback_errors() {
+        let error = AnimationAssetError::CurrentAndV1PayloadDecode {
+            kind: "sequence",
+            current: Box::new(AnimationAssetError::DocumentAndStreamDecode {
+                kind: "sequence",
+                document: Box::new(AnimationAssetError::KindMismatch {
+                    expected: "sequence",
+                    actual: "graph",
+                }),
+                stream: Box::new(AnimationAssetError::InvalidMagic),
+            }),
+            v1: Box::new(AnimationAssetError::InvalidMagic),
+        };
+
+        assert_eq!(error.binary_kind_mismatch(), Some(("sequence", "graph")));
+        assert_eq!(
+            AnimationAssetError::InvalidMagic.binary_kind_mismatch(),
+            None
+        );
+    }
 }

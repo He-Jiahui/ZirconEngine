@@ -5,6 +5,8 @@ related_code:
   - zircon_editor/src/core/plugin/manager/project_selection.rs
   - zircon_editor/src/core/plugin/catalog_snapshot.rs
   - zircon_editor/src/core/plugin/catalog_store.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/native_backend.rs
   - zircon_editor/src/core/plugin/phases.rs
   - zircon_editor/src/core/plugin/sdk/lifecycle.rs
 implementation_files:
@@ -17,6 +19,8 @@ implementation_files:
   - zircon_editor/src/core/plugin/manager/lifecycle_replacement.rs
   - zircon_editor/src/core/plugin/catalog_snapshot.rs
   - zircon_editor/src/core/plugin/catalog_store.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/native_backend.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/12-plugin-management.md
   - docs/plans/zircon_editor/editor/12/failure-2026-07-17-editor-plugin-catalog-rebuild-and-deep-copy.md
@@ -109,6 +113,27 @@ External event sources remain outside this module: play-mode transitions belong
 to the play-mode owner, scene changes to the document-message owner, and asset
 changes to the asset-index owner. The retained host must not synthesize these
 events from rendering refreshes or filesystem reads.
+
+## Native Development Reload
+
+Debug native-plugin artifact watches are change producers, not schedulers. A
+watch retains one latest-change timestamp and one optional `EditorJobSystem`
+ticket; it has no private thread, channel, executor, or shutdown join. The
+filesystem callback filters the exact loaded artifact, replaces the timestamp,
+and signals the Host's coalescing background wake callback.
+
+Retained Host tick merges the watch's 350 ms debounce deadline with the active
+project-session heartbeat deadline. Once due, it submits one background Compile
+job through the context-owned `EditorJobSystem`. Native reload jobs share the
+`native_plugin_reload` mutex group, so different watches cannot run native host
+mutation concurrently. Changes received while a ticket is pending or running
+remain one timestamp and can schedule at most one successor job.
+
+Removing a watch first unregisters the filesystem callback, then cancels the
+ticket token and the pending job id without waiting. The job uses a weak native
+host handle and checks cancellation before entering the host operation. Job
+admission, completion, failure, progress, and editor shutdown therefore remain
+owned by the same scheduler as other editor background work.
 
 ## Constraints
 

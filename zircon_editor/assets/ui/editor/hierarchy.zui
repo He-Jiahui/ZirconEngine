@@ -7,34 +7,32 @@ version = 2
 display_name = "Hierarchy"
 
 [imports]
-styles = ["res://ui/theme/editor_base.zui"]
+widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput"]
+styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]
 node = "hierarchy_root"
 
-[nodes.top_space]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
-
-[nodes.left_space]
-component = "Space"
-layout = { width = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
 [nodes.header_panel]
 component = "Overlay"
 control_id = "HierarchyHeaderPanel"
-props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
+props = { text = "Hierarchy", surface_variant = "transparent", radius = 0.0, border_width = 0.0, text_tone = "default", text_align = "left", font_weight = "$editor.typography.strong.weight", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", overflow = "elide" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.header_list_gap]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
 
 [nodes.search_field]
-component = "TextField"
+component = "WorkbenchSearchInput"
 control_id = "HierarchySearchQuery"
-props = { value = "", placeholder = "Search hierarchy", edit_action_id = "HierarchySearchQuery", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.small" }
+props = { query = "", placeholder = "Search hierarchy" }
+widget = { value_property = "query" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [
+  { id = "Workbench/SceneSearchEdit", event = "Change", component_event = "ValueChanged", route = "workbench.hierarchy.search.edit" },
+  { id = "Workbench/SceneSearchCommit", event = "Submit", component_event = "Commit", route = "workbench.hierarchy.search.commit" },
+]
 
 [nodes.search_row]
 component = "HorizontalBox"
@@ -42,9 +40,22 @@ control_id = "HierarchySearchRow"
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 children = [{ node = "search_field" }]
 
+[nodes.search_left_inset]
+component = "Space"
+layout = { width = { min = "$editor.density.gap.medium", preferred = "$editor.density.gap.medium", max = "$editor.density.gap.medium", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.search_right_inset]
+component = "Space"
+layout = { width = { min = "$editor.density.gap.medium", preferred = "$editor.density.gap.medium", max = "$editor.density.gap.medium", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.search_inset_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+children = [{ node = "search_left_inset" }, { node = "search_row" }, { node = "search_right_inset" }]
+
 [nodes.search_list_gap]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
 
 [nodes.empty_state_message]
 component = "Label"
@@ -55,32 +66,13 @@ layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position
 [nodes.list_panel]
 component = "Overlay"
 control_id = "HierarchyListPanel"
-props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", overflow = "elide" }
+props = { surface_variant = "transparent", radius = 0.0, border_width = 0.0, overflow = "elide" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "empty_state_message" }]
-
-[nodes.content_panel]
-component = "VerticalBox"
-control_id = "HierarchyContentPanel"
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header_panel" }, { node = "header_list_gap" }, { node = "search_row" }, { node = "search_list_gap" }, { node = "list_panel" }]
-
-[nodes.right_space]
-component = "Space"
-layout = { width = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.content_row]
-component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "left_space" }, { node = "content_panel" }, { node = "right_space" }]
-
-[nodes.bottom_space]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
 
 [nodes.hierarchy_root]
 component = "VerticalBox"
 control_id = "HierarchyRoot"
-classes = ["editor-shell"]
+classes = ["workbench-shell-root"]
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "top_space" }, { node = "content_row" }, { node = "bottom_space" }]
+children = [{ node = "header_panel" }, { node = "header_list_gap" }, { node = "search_inset_row" }, { node = "search_list_gap" }, { node = "list_panel" }]

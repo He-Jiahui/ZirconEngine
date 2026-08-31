@@ -1,8 +1,8 @@
 use super::super::cubemap_projection::cubemap_side_space_direction;
+use super::sampling::{mip_texel, sample_cubemap_linear_at_mip};
 use super::{
-    average_last_mip_faces, mip_texel, sample_cubemap_linear_at_mip,
-    source_cubemap_face_mip_offset, source_cubemap_face_mip_outputs, source_cubemap_mip_size,
-    CubemapFaceMipOutput,
+    average_last_mip_faces, source_cubemap_face_mip_offset, source_cubemap_face_mip_outputs,
+    source_cubemap_mip_size, CubemapFaceMipOutput,
 };
 use crate::core::framework::render::environment::{
     cubemap_texel_direction, cubemap_texel_solid_angle, CubemapFace,

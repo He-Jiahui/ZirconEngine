@@ -70,7 +70,10 @@ impl GpuReflectionProbe {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Pod, Zeroable)]
 pub(super) struct GpuReflectionProbeHeader {
     pub(super) probe_count: u32,
-    _padding: [u32; 3],
+    /// Legacy scene-schema camera mask used while object reflection-mask input
+    /// is not yet part of the GPU scene ABI. The remaining words stay reserved.
+    pub(super) camera_layer_mask: u32,
+    _padding: [u32; 2],
 }
 
 #[repr(C, align(16))]
@@ -92,9 +95,18 @@ impl Default for GpuPlanarReflection {
 
 impl GpuReflectionProbeHeader {
     pub(super) const fn with_probe_count(probe_count: u32) -> Self {
+        // Preserve the pre-layer-mask constructor's visibility for legacy callers.
+        Self::with_probe_count_and_camera_layer_mask(probe_count, u32::MAX)
+    }
+
+    pub(super) const fn with_probe_count_and_camera_layer_mask(
+        probe_count: u32,
+        camera_layer_mask: u32,
+    ) -> Self {
         Self {
             probe_count,
-            _padding: [0; 3],
+            camera_layer_mask,
+            _padding: [0; 2],
         }
     }
 }

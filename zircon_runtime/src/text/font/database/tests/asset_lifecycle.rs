@@ -74,9 +74,11 @@ fn text_font_database_same_path_revision_replaces_face_and_removes_stale_indexes
     assert!(removed.asset_mapping_changed);
     assert_eq!(removed.retired_faces, vec![second_face]);
     assert_eq!(database.face_count(), 0);
-    assert!(database
-        .match_face(&FontQuery::single_family("Reloadable Sans"))
-        .is_none());
+    assert!(
+        database
+            .match_face(&FontQuery::single_family("Reloadable Sans"))
+            .is_none()
+    );
 
     let repeated = database.remove_font_asset(asset_ref);
     assert!(!repeated.database_changed);
@@ -88,7 +90,7 @@ fn text_font_database_same_path_revision_replaces_face_and_removes_stale_indexes
 }
 
 #[test]
-fn text_font_database_shared_face_tracks_owner_mapping_without_render_input_change() {
+fn text_font_database_shared_face_owner_mapping_is_a_render_input() {
     let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
     let mut database = FontDatabase::default();
     let first_owner = "res://fonts/shared-first.font.toml";
@@ -103,7 +105,7 @@ fn text_font_database_shared_face_tracks_owner_mapping_without_render_input_chan
 
     assert!(first.database_changed);
     assert!(first.asset_mapping_changed);
-    assert!(!second.database_changed);
+    assert!(second.database_changed);
     assert!(second.asset_mapping_changed);
     assert_eq!(database.face_count(), 1);
     assert_eq!(
@@ -118,7 +120,7 @@ fn text_font_database_shared_face_tracks_owner_mapping_without_render_input_chan
     );
 
     let first_removed = database.remove_font_asset(first_owner);
-    assert!(!first_removed.database_changed);
+    assert!(first_removed.database_changed);
     assert!(first_removed.asset_mapping_changed);
     assert!(first_removed.retired_faces.is_empty());
     assert_eq!(database.face_count(), 1);
@@ -171,9 +173,11 @@ fn text_font_database_removing_final_owner_removes_private_family_alias() {
 
     database.remove_font_asset(owner);
 
-    assert!(database
-        .match_face(&FontQuery::single_family(alias.as_str()))
-        .is_none());
+    assert!(
+        database
+            .match_face(&FontQuery::single_family(alias.as_str()))
+            .is_none()
+    );
     assert!(
         database
             .backend_database_snapshot()
@@ -215,10 +219,12 @@ fn text_font_database_removing_asset_fallback_invalidates_shared_face_render_inp
 
     assert!(registered.database_changed);
     assert_eq!(database.face_count(), 1);
-    assert!(database
-        .fallback_families()
-        .iter()
-        .any(|family| family.as_str() == "Asset Fallback"));
+    assert!(
+        database
+            .fallback_families()
+            .iter()
+            .any(|family| family.as_str() == "Asset Fallback")
+    );
 
     let removed = database.remove_font_asset(fallback_owner);
 
@@ -226,10 +232,56 @@ fn text_font_database_removing_asset_fallback_invalidates_shared_face_render_inp
     assert!(removed.asset_mapping_changed);
     assert!(removed.retired_faces.is_empty());
     assert_eq!(database.face_count(), 1);
-    assert!(!database
-        .fallback_families()
-        .iter()
-        .any(|family| family.as_str() == "Asset Fallback"));
+    assert!(
+        !database
+            .fallback_families()
+            .iter()
+            .any(|family| family.as_str() == "Asset Fallback")
+    );
+}
+
+#[test]
+fn text_font_database_registers_cooked_blob_without_a_source_file() {
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
+    let blob = crate::asset::FontBlobArtifact::from_decoded_bytes(
+        crate::asset::FontAssetSourceFormat::Sfnt,
+        std::fs::read(source).expect("cooked font fixture should read"),
+    );
+    let asset = FontAsset {
+        source: "removed-at-runtime.ttf".to_string(),
+        family: Some("Cooked Asset Sans".to_string()),
+        render_mode: None,
+        face_index: 0,
+        family_members: Vec::new(),
+        variable_instances: Vec::new(),
+        fallback_families: Vec::new(),
+        composite_font: None,
+        render_strategy: FontAssetRenderStrategy::default(),
+        metadata: None,
+    };
+    let mut database = FontDatabase::default();
+
+    let registered = database
+        .replace_font_asset_blob(
+            "res://fonts/cooked.font.toml",
+            &asset,
+            Path::new("cooked-font://res/fonts/cooked.font.toml"),
+            &blob,
+        )
+        .expect("cooked payload should register without reopening its source path");
+    let face = registered.faces[0];
+
+    assert_eq!(database.face_count(), 1);
+    assert_eq!(
+        database
+            .match_face(&FontQuery::single_family("Cooked Asset Sans"))
+            .map(|matched| matched.face),
+        Some(face)
+    );
+    assert!(Arc::ptr_eq(
+        &blob.shared_bytes(),
+        &database.face_bytes(face).expect("registered face bytes")
+    ));
 }
 
 #[test]

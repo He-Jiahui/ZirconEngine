@@ -3,12 +3,14 @@ use crate::core::framework::render::RenderLayerSet;
 
 #[test]
 fn time_framework_tracks_real_virtual_and_fixed_clocks() {
-    let mut real = Time::<Real>::default();
+    let mut real = Time::<MonotonicReal>::default();
     real.advance_by(Duration::from_millis(16));
 
     assert_eq!(real.delta(), Duration::from_millis(16));
     assert_eq!(real.elapsed(), Duration::from_millis(16));
     assert_eq!(real.frame_index(), 1);
+    assert_eq!(real.clock_domain_stamp().id(), ClockDomainId::MonotonicReal);
+    assert_eq!(real.clock_domain_stamp().unit(), ClockDomainUnit::Duration);
 
     let mut virtual_time = Time::<Virtual>::default();
     virtual_time.advance_from_real_delta(Duration::from_millis(500));
@@ -49,6 +51,38 @@ fn time_framework_tracks_real_virtual_and_fixed_clocks() {
 }
 
 #[test]
+fn clock_domain_registry_exposes_versioned_duration_domains_without_allocation() {
+    let registry = ClockDomainRegistry::builtin();
+
+    assert_eq!(registry.version(), ClockDomainRegistry::VERSION);
+    assert_eq!(std::mem::size_of::<ClockDomainRegistry>(), 0);
+    assert_eq!(
+        registry.descriptor(ClockDomainId::WorldVirtual).unit(),
+        ClockDomainUnit::Duration
+    );
+    assert_eq!(
+        registry.descriptor(ClockDomainId::WallUtc).unit(),
+        ClockDomainUnit::UnixTimestamp
+    );
+    assert_eq!(
+        Time::<Fixed>::default().clock_domain_stamp().id(),
+        ClockDomainId::WorldFixed
+    );
+}
+
+#[test]
+fn virtual_time_saturates_extreme_finite_speed_before_duration_scaling() {
+    let mut virtual_time = Time::<Virtual>::default();
+    virtual_time.set_relative_speed_f64(f64::MAX);
+
+    virtual_time.advance_from_real_delta(Duration::from_secs(1));
+
+    assert_eq!(virtual_time.delta(), virtual_time.max_delta());
+    assert_eq!(virtual_time.elapsed(), virtual_time.max_delta());
+    assert_eq!(virtual_time.effective_speed_f64(), f64::MAX);
+}
+
+#[test]
 fn fixed_step_drain_batches_large_catch_up_plans() {
     let mut fixed = Time::<Fixed>::from_duration(Duration::from_nanos(1));
     fixed.accumulate_overstep(Duration::from_millis(1));
@@ -64,75 +98,10 @@ fn fixed_step_drain_batches_large_catch_up_plans() {
 }
 
 #[test]
-fn task_framework_contracts_describe_pools_status_and_poll_budget() {
-    let compute = TaskPoolDescriptor::compute().with_worker_threads(0);
-    let async_compute = TaskPoolDescriptor::async_compute().with_thread_name("async-streaming");
-    let io = TaskPoolDescriptor::io();
-    let handle = AsyncTaskHandle::new(42);
-    let descriptor = AsyncTaskDescriptor::new(handle, TaskPoolKind::AsyncCompute, "mesh-import")
-        .with_cancellation_policy(TaskCancellationPolicy::DetachOnDrop);
-
-    assert_eq!(compute.kind, TaskPoolKind::Compute);
-    assert_eq!(compute.worker_threads, Some(1));
-    assert_eq!(async_compute.kind, TaskPoolKind::AsyncCompute);
-    assert_eq!(async_compute.thread_name, "async-streaming");
-    assert_eq!(io.thread_name, TaskPoolKind::Io.default_thread_name());
-    assert_eq!(descriptor.handle.raw(), 42);
-    assert_eq!(descriptor.pool, TaskPoolKind::AsyncCompute);
-    assert_eq!(
-        descriptor.cancellation_policy,
-        TaskCancellationPolicy::DetachOnDrop
-    );
-
-    let mut status = AsyncTaskStatus::pending(handle);
-    assert_eq!(status.state, AsyncTaskState::Pending);
-    assert!(!status.is_terminal());
-
-    status.mark_running();
-    status.record_poll();
-    status.record_poll();
-    assert_eq!(status.state, AsyncTaskState::Running);
-    assert_eq!(status.poll_count, 2);
-
-    status.mark_failed("importer returned no artifact");
-    assert_eq!(status.state, AsyncTaskState::Failed);
-    assert!(status.is_terminal());
-    assert_eq!(
-        status.failure_message.as_deref(),
-        Some("importer returned no artifact")
-    );
-
-    let budget = TaskPollBudget::default();
-    assert_eq!(
-        budget.remaining_after(40),
-        Some(DEFAULT_MAIN_THREAD_POLLS_PER_FRAME - 40)
-    );
-    assert!(budget.is_exhausted_after(DEFAULT_MAIN_THREAD_POLLS_PER_FRAME));
-    assert!(!TaskPollBudget::unlimited().is_exhausted_after(u32::MAX));
-}
-
-#[test]
 fn task_framework_root_stays_structural_after_folder_split() {
     let tasks_mod = include_str!("../tasks/mod.rs");
 
-    for required in [
-        "mod async_task_descriptor;",
-        "mod async_task_handle;",
-        "mod async_task_state;",
-        "mod async_task_status;",
-        "mod task_cancellation_policy;",
-        "mod task_poll_budget;",
-        "mod task_pool_descriptor;",
-        "mod task_pool_kind;",
-        "AsyncTaskDescriptor",
-        "AsyncTaskHandle",
-        "AsyncTaskState",
-        "AsyncTaskStatus",
-        "TaskCancellationPolicy",
-        "TaskPollBudget",
-        "TaskPoolDescriptor",
-        "TaskPoolKind",
-    ] {
+    for required in ["mod parallel_slice_executor;", "ParallelSliceExecutor"] {
         assert!(
             tasks_mod.contains(required),
             "tasks framework root should keep structural export `{required}`"
@@ -140,13 +109,10 @@ fn task_framework_root_stays_structural_after_folder_split() {
     }
 
     for forbidden in [
-        "pub struct AsyncTaskDescriptor",
-        "pub struct AsyncTaskStatus",
-        "pub struct TaskPoolDescriptor",
-        "pub enum AsyncTaskState",
-        "pub enum TaskPoolKind",
-        "impl AsyncTaskStatus",
-        "impl TaskPoolDescriptor",
+        "TaskDescriptor",
+        "TaskStatus",
+        "TaskPoolDescriptor",
+        "TaskPoolKind",
     ] {
         assert!(
             !tasks_mod.contains(forbidden),
@@ -161,13 +127,15 @@ fn time_framework_root_stays_structural_after_folder_split() {
 
     for required in [
         "mod clock;",
+        "mod domain;",
         "mod fixed;",
         "mod fixed_step_plan;",
-        "mod real;",
+        "mod monotonic_real;",
         "mod virtual_clock;",
+        "ClockDomainRegistry",
         "FixedStepPlan",
         "Fixed",
-        "Real",
+        "MonotonicReal",
         "Time",
         "Virtual",
     ] {
@@ -414,6 +382,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
             ambient_lights: vec![RenderAmbientLightSnapshot {
                 color: Vec3::new(0.05, 0.06, 0.07),
                 intensity: 0.2,
+                affects_lightmapped_meshes: true,
                 renderer_degraded: true,
                 degradation_reason: Some(
                     "ambient light renderer path is deferred after M5A".to_string(),
@@ -506,6 +475,7 @@ fn render_product_pbr_lighting_extract_carries_ambient_and_rect_degradation_cont
         .push(RenderAmbientLightSnapshot {
             color: Vec3::new(0.1, 0.2, 0.3),
             intensity: 0.4,
+            affects_lightmapped_meshes: true,
             renderer_degraded: true,
             degradation_reason: Some(
                 "ambient light renderer path is deferred after M5A".to_string(),

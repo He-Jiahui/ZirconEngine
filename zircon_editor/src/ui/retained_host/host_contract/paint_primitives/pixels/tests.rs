@@ -1,4 +1,5 @@
-use super::geometry::clamp_to_ordered_range;
+use super::geometry::{clamp_to_ordered_range, rounded_rect_pixel_coverage};
+use super::span::write_pixel_with_coverage;
 use super::{fill_rounded_border_pixels, fill_rounded_pixel_rect};
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
@@ -33,6 +34,41 @@ fn rounded_fill_supersamples_fractional_corner_coverage() {
     assert_eq!(left_edge, right_edge, "corner coverage must stay symmetric");
     assert_eq!(pixel(&frame, 3, 3), [255, 255, 255, 255]);
     assert_eq!(pixel(&frame, 0, 0), [0, 0, 0, 255]);
+}
+
+#[test]
+fn rounded_fill_resolves_edge_coverage_at_eight_by_eight_precision() {
+    let rect = FrameRect {
+        x: 1.05,
+        y: 1.05,
+        width: 9.4,
+        height: 8.7,
+    };
+
+    let coverage = rounded_rect_pixel_coverage(2, 1, &rect, 3.35);
+
+    assert_eq!(coverage, 22.0 / 64.0);
+    assert_ne!(
+        (coverage * 16.0).fract(),
+        0.0,
+        "edge coverage must not collapse to the former four-by-four sample steps"
+    );
+}
+
+#[test]
+fn rounded_coverage_blends_half_white_over_black_in_linear_light() {
+    let mut frame = HostRgbaFrame::filled(1, 1, [0, 0, 0, 255]);
+
+    write_pixel_with_coverage(&mut frame, 0, 0, [255, 255, 255, 255], 0.5);
+
+    let resolved = pixel(&frame, 0, 0);
+    assert!(
+        (187..=189).contains(&resolved[0]),
+        "half coverage must encode near sRGB 188, got {resolved:?}"
+    );
+    assert_eq!(resolved[0], resolved[1]);
+    assert_eq!(resolved[1], resolved[2]);
+    assert_eq!(resolved[3], 255);
 }
 
 #[test]

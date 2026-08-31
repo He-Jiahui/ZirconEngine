@@ -13,7 +13,7 @@ use crate::graphics::shader::{
 use super::{
     builtin_fallback_shader_prewarm_manifest, builtin_standard_material_shader_prewarm_manifest,
     builtin_standard_material_shader_prewarm_manifest_for_geometry, prewarm_shader_variants,
-    prewarm_shader_variants_with_execution_budget,
+    prewarm_shader_variants_with_execution_budget, register_prewarm_source,
 };
 
 fn source_for<'a>(
@@ -23,6 +23,26 @@ fn source_for<'a>(
     manifest
         .source_for(request)
         .expect("prewarm manifest source for request")
+}
+
+#[test]
+fn prewarm_source_registry_deduplicates_content_across_provenance_labels() {
+    let source = ShaderVariantPrewarmSource::new(
+        "builtin://shader/pbr.wgsl",
+        "fn main() {}",
+        vec!["include-a".to_string()],
+        "template-r1",
+        "naga-r1",
+        "wgpu-r1",
+    );
+    let renamed = source.with_source_label("res://renamed/pbr.wgsl");
+    let mut sources = Vec::new();
+
+    let first_id = register_prewarm_source(&mut sources, source);
+    let second_id = register_prewarm_source(&mut sources, renamed);
+
+    assert_eq!(first_id, second_id);
+    assert_eq!(sources.len(), 1);
 }
 
 #[test]
@@ -301,7 +321,11 @@ fn builtin_standard_material_prewarm_writes_restart_hits_and_wgpu_modules() {
         let source = source_for(&manifest, request);
         let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
             &request.key,
-            source.include_content_hashes.iter().map(String::as_str),
+            &source.source_hash,
+            &source.include_content_hashes,
+            &source.template_revision,
+            &source.naga_version,
+            &source.wgpu_version,
         );
         let entry = match restarted_cache.lookup(&disk_key) {
             ShaderVariantCacheDiskLookup::Hit(entry) => entry,

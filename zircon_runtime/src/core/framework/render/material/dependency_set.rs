@@ -25,7 +25,15 @@ impl RenderMaterialDependencySet {
     pub fn all_references(&self) -> Vec<AssetReference> {
         let mut references = Vec::with_capacity(1 + self.textures.len());
         references.push(self.shader.clone());
-        references.extend(self.textures.clone());
+        extend_cloned_values(&mut references, &self.textures);
         references
     }
 }
+
+fn extend_cloned_values<T: Clone>(target: &mut Vec<T>, source: &[T]) {
+    target.extend_from_slice(source);
+}
+
+#[cfg(test)]
+#[path = "dependency_set/streaming_reference_tests.rs"]
+mod streaming_reference_tests;

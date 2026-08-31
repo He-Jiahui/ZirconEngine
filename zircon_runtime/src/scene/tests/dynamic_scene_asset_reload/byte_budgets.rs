@@ -8,7 +8,7 @@ use crate::scene::PreparedDynamicSceneSpawn;
 fn dynamic_scene_asset_reload_event_bytes_are_cumulative_within_one_tick() {
     let fixture = SceneReloadFixture::new("asset_reload_cumulative_event_bytes");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let shader_id = ResourceId::from_stable_label("cumulative event budget shader");
     let shader_uri = ResourceLocator::parse(
         "res://shaders/cumulative-event-budget-with-a-long-locator-name.wgsl",
@@ -92,7 +92,7 @@ fn dynamic_scene_asset_reload_ready_bytes_are_cumulative_within_one_tick() {
     let ready_budget = first_bytes.max(second_bytes);
     let resources = ResourceManager::new();
     let events = Assets::<SceneAsset>::new(resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let limits = DynamicSceneAssetReloadLimits {
         max_active_tasks: 2,
         max_schedules_per_tick: 2,
@@ -186,7 +186,7 @@ fn dynamic_scene_asset_reload_target_commits_share_one_cumulative_byte_budget() 
         .saturating_add(second_prepared.estimated_bytes());
     let resources = ResourceManager::new();
     let events = Assets::<SceneAsset>::new(resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let limits = DynamicSceneAssetReloadLimits {
         max_active_tasks: 2,
         max_schedules_per_tick: 2,
@@ -254,7 +254,7 @@ fn dynamic_scene_asset_reload_target_commits_share_one_cumulative_byte_budget() 
 fn dynamic_scene_asset_reload_target_stage_reconciles_to_actual_snapshot_bytes() {
     let fixture = SceneReloadFixture::new("asset_reload_actual_target_stage_bytes");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let limits = DynamicSceneAssetReloadLimits::default();
     let level = DefaultLevelManager::default().create_level(World::empty(), Default::default());
     let prepared =

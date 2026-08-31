@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 
@@ -8,7 +9,7 @@ use super::menu_item_spec::MenuItemSpec;
 use crate::ui::retained_host::route_intent::EditorRouteIntentMap;
 
 pub(crate) struct HostMenuPointerBridge {
-    pub(in crate::ui::retained_host::menu_pointer) layout: HostMenuPointerLayout,
+    pub(in crate::ui::retained_host::menu_pointer) layout: Arc<HostMenuPointerLayout>,
     pub(in crate::ui::retained_host::menu_pointer) state: HostMenuPointerState,
     pub(in crate::ui::retained_host::menu_pointer) surface: UiSurface,
     pub(in crate::ui::retained_host::menu_pointer) dispatcher: UiPointerDispatcher,

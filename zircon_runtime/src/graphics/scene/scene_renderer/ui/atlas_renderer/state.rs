@@ -1,21 +1,8 @@
 use crate::core::math::UVec2;
 use crate::text::atlas::render_gpu_plan::{GlyphAtlasGpuDrawCommand, GlyphAtlasGpuPipelineKey};
-use crate::text::atlas::{
-    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapRenderSubmissionPlan,
-    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat, GlyphAtlasStorageFormat,
-};
+use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
 
 use super::resources::GlyphAtlasBitmapAtlasResources;
-
-pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapRendererStorageSubmission<
-    'a,
-> {
-    pub(super) submission: &'a GlyphAtlasBitmapRenderSubmissionPlan,
-    pub(super) source_bytes: Vec<GlyphAtlasBitmapUploadSourceBytes<'a>>,
-    pub(super) atlas_layer_count: u32,
-    pub(super) atlas_format: GlyphAtlasFormat,
-    pub(super) face_validity: GlyphAtlasBitmapFaceValidity,
-}
 
 pub(super) struct GlyphAtlasBitmapRendererAtlasResource {
     pub(super) atlas_format: GlyphAtlasFormat,
@@ -23,7 +10,6 @@ pub(super) struct GlyphAtlasBitmapRendererAtlasResource {
 }
 
 pub(super) struct GlyphAtlasBitmapRendererDrawPass {
-    pub(super) atlas_format: GlyphAtlasFormat,
     pub(super) instance_buffer: Option<wgpu::Buffer>,
     pub(super) instance_buffer_capacity_bytes: u64,
     pub(super) instance_buffer_payload_hash: Option<[u8; 32]>,
@@ -44,7 +30,11 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapRender
     /// Cross-UI prepare reporting projects one glyph-atlas instance per visible glyph.
     pub(in crate::graphics::scene::scene_renderer::ui) storage_pass_visible_glyph_count: usize,
     pub(super) mixed_atlas_storage_format: bool,
-    pub(super) atlas_resized: bool,
+    /// Unique atlas resources held by the canonical frame plan.
+    pub(super) storage_resource_count: usize,
+    /// Format transitions required to replay draw commands in painter order.
+    pub(super) ordered_draw_segment_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) atlas_resized: bool,
     pub(super) vertex_count: usize,
     pub(super) vertex_buffer_byte_len: usize,
     pub(super) instance_buffer_capacity_byte_len: usize,
@@ -53,7 +43,7 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapRender
     pub(in crate::graphics::scene::scene_renderer::ui) draw_command_count: usize,
     pub(super) pipeline_count: usize,
     pub(super) requires_background_composite: bool,
-    pub(super) upload_plan_build_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) upload_plan_build_count: usize,
     pub(super) upload_plan_skip_count: usize,
     pub(in crate::graphics::scene::scene_renderer::ui) upload_request_count: usize,
     pub(in crate::graphics::scene::scene_renderer::ui) upload_requeued_count: usize,
@@ -75,6 +65,8 @@ impl Default for GlyphAtlasBitmapRendererPrepareReport {
             storage_pass_count: 0,
             storage_pass_visible_glyph_count: 0,
             mixed_atlas_storage_format: false,
+            storage_resource_count: 0,
+            ordered_draw_segment_count: 0,
             atlas_resized: false,
             vertex_count: 0,
             vertex_buffer_byte_len: 0,
@@ -98,39 +90,6 @@ impl Default for GlyphAtlasBitmapRendererPrepareReport {
     }
 }
 
-impl<'a> GlyphAtlasBitmapRendererStorageSubmission<'a> {
-    pub(in crate::graphics::scene::scene_renderer::ui) fn new(
-        submission: &'a GlyphAtlasBitmapRenderSubmissionPlan,
-        source_bytes: Vec<GlyphAtlasBitmapUploadSourceBytes<'a>>,
-        atlas_layer_count: u32,
-        atlas_format: GlyphAtlasFormat,
-    ) -> Self {
-        Self::new_with_face_validity(
-            submission,
-            source_bytes,
-            atlas_layer_count,
-            atlas_format,
-            GlyphAtlasBitmapFaceValidity::Valid,
-        )
-    }
-
-    pub(in crate::graphics::scene::scene_renderer::ui) fn new_with_face_validity(
-        submission: &'a GlyphAtlasBitmapRenderSubmissionPlan,
-        source_bytes: Vec<GlyphAtlasBitmapUploadSourceBytes<'a>>,
-        atlas_layer_count: u32,
-        atlas_format: GlyphAtlasFormat,
-        face_validity: GlyphAtlasBitmapFaceValidity,
-    ) -> Self {
-        Self {
-            submission,
-            source_bytes,
-            atlas_layer_count,
-            atlas_format,
-            face_validity,
-        }
-    }
-}
-
 impl GlyphAtlasBitmapRendererAtlasResource {
     pub(super) fn new(
         atlas_format: GlyphAtlasFormat,
@@ -144,9 +103,8 @@ impl GlyphAtlasBitmapRendererAtlasResource {
 }
 
 impl GlyphAtlasBitmapRendererDrawPass {
-    pub(super) fn new(atlas_format: GlyphAtlasFormat) -> Self {
+    pub(super) fn new() -> Self {
         Self {
-            atlas_format,
             instance_buffer: None,
             instance_buffer_capacity_bytes: 0,
             instance_buffer_payload_hash: None,

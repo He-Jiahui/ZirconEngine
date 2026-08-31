@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
 use super::super::super::super::visual_assets::HostPaintImagePixels;
@@ -6,7 +6,7 @@ use super::super::super::super::visual_assets::HostPaintImagePixels;
 const MAX_AVATAR_MASK_CACHE_ENTRIES: usize = 64;
 const MAX_AVATAR_MASK_CACHE_BYTES: usize = 16 * 1024 * 1024;
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub(super) struct AvatarMaskCacheKey {
     resource_key: String,
     width: u32,
@@ -33,7 +33,7 @@ struct AvatarMaskCacheEntry {
 
 #[derive(Default)]
 struct AvatarMaskCache {
-    entries: BTreeMap<AvatarMaskCacheKey, AvatarMaskCacheEntry>,
+    entries: HashMap<AvatarMaskCacheKey, AvatarMaskCacheEntry>,
     resident_bytes: usize,
     access_clock: u64,
 }
@@ -108,6 +108,9 @@ impl AvatarMaskCache {
 }
 
 static AVATAR_MASK_CACHE: OnceLock<Mutex<AvatarMaskCache>> = OnceLock::new();
+
+#[cfg(test)]
+mod hash_index_tests;
 
 #[cfg(test)]
 mod tests {

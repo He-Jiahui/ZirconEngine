@@ -2,7 +2,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use woc_contract_codegen::{
-    generate_projections, load_contract_manifest, verify_projection, ContractError, ProjectionError,
+    generate_projections, load_contract_manifest, verify_projection, write_projection,
+    ContractError, ProjectionError, ProjectionWriteOutcome,
 };
 
 fn project_root() -> PathBuf {
@@ -37,6 +38,42 @@ fn stale_projection_is_rejected() {
     let error = verify_projection(&path, "current\n").expect_err("stale bytes must fail");
     assert!(matches!(error, ProjectionError::Drift { .. }));
     fs::remove_file(path).expect("stale fixture must be removed");
+}
+
+#[test]
+fn unchanged_projection_is_not_rewritten() {
+    let path = temporary_file("write-if-changed.rs");
+    let _ = fs::remove_file(&path);
+
+    assert_eq!(
+        write_projection(&path, "first\n").expect("first projection must be written"),
+        ProjectionWriteOutcome::Written
+    );
+    let first_modified = fs::metadata(&path)
+        .expect("first projection metadata must be readable")
+        .modified()
+        .expect("first projection modification time must be readable");
+    assert_eq!(
+        write_projection(&path, "first\n").expect("unchanged projection must be accepted"),
+        ProjectionWriteOutcome::Unchanged
+    );
+    assert_eq!(
+        fs::metadata(&path)
+            .expect("unchanged projection metadata must be readable")
+            .modified()
+            .expect("unchanged projection modification time must be readable"),
+        first_modified
+    );
+    assert_eq!(
+        write_projection(&path, "second\n").expect("changed projection must be written"),
+        ProjectionWriteOutcome::Written
+    );
+    assert_eq!(
+        fs::read_to_string(&path).expect("changed projection must be readable"),
+        "second\n"
+    );
+
+    fs::remove_file(path).expect("projection fixture must be removed");
 }
 
 #[test]

@@ -11,10 +11,7 @@ pub(super) fn union_host_page_tab_damage(
     // Page activation can update selected tab chrome; keep menu/title chrome out.
     damage = union_visible_frame(damage, page_chrome.tab_row_frame.clone());
     damage = union_visible_frame(damage, page_chrome.project_path_frame.clone());
-    for row in 0..page_chrome.tab_frames.row_count() {
-        let Some(tab) = page_chrome.tab_frames.row_data(row) else {
-            continue;
-        };
+    for tab in page_chrome.tab_frames.iter() {
         damage = union_visible_frame(damage, tab.frame.clone());
         damage = union_visible_frame(damage, tab.close_frame.clone());
     }

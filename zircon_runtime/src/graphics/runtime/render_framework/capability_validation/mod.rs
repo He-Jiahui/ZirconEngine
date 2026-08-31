@@ -75,7 +75,10 @@ trait RenderQualityProfileCapabilityRequirements {
 
 impl RenderQualityProfileCapabilityRequirements for RenderQualityProfile {
     fn capability_requirements(&self) -> Vec<RenderFeatureCapabilityRequirement> {
-        let mut requirements = Vec::new();
+        let mut requirements = Vec::with_capacity(quality_profile_capability_capacity(
+            self.features.anti_alias,
+            self.features.solari,
+        ));
         if self.features.anti_alias {
             requirements.push(RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias);
         }
@@ -91,6 +94,15 @@ impl RenderQualityProfileCapabilityRequirements for RenderQualityProfile {
         }
         requirements
     }
+}
+
+fn quality_profile_capability_capacity(anti_alias: bool, solari: bool) -> usize {
+    usize::from(anti_alias)
+        + if solari {
+            SolariCapabilityRequirement::ALL.len()
+        } else {
+            0
+        }
 }
 
 fn push_unique_requirement(
@@ -386,3 +398,7 @@ mod tests {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "profile_capacity_tests.rs"]
+mod profile_capacity_tests;

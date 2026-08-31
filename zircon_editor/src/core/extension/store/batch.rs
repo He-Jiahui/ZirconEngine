@@ -3,6 +3,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use crate::core::asset::{AssetTypeContribution, AssetTypeId};
+use crate::core::commands::NativePluginEditorCommandBinding;
 use crate::core::commands::{EditorCommandDescriptor, EditorCommandRegistryError};
 use crate::core::editing::operation::OperationCommandFactoryRegistration;
 use crate::core::editor_authoring_extension::{
@@ -16,7 +17,9 @@ use crate::core::editor_extension::{
 };
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::extension::{FieldEditorDefinition, InspectorCustomization};
+use crate::core::i18n::EditorLocalizationBundle;
 use crate::core::settings::SettingsPageDescriptor;
+use crate::core::tools::ToolResourceKindDeclaration;
 use crate::scene::modes::SceneModeRegistration;
 
 #[derive(Clone, Default)]
@@ -31,6 +34,7 @@ pub struct ContributionBatch {
         BTreeMap<String, Arc<dyn EditorUiTemplatePaneDataSource>>,
     pub(super) asset_importers: BTreeMap<String, AssetImporterDescriptor>,
     pub(super) asset_type_contributions: BTreeMap<AssetTypeId, AssetTypeContribution>,
+    pub(super) localization_bundles: BTreeMap<String, EditorLocalizationBundle>,
     pub(super) settings_pages: BTreeMap<String, SettingsPageDescriptor>,
     pub(super) scene_modes: BTreeMap<String, SceneModeRegistration>,
     pub(super) viewport_overlay_providers: BTreeMap<String, ViewportOverlayProviderRegistration>,
@@ -38,9 +42,12 @@ pub struct ContributionBatch {
     pub(super) graph_node_palettes: BTreeMap<String, GraphNodePaletteDescriptor>,
     pub(super) timeline_editors: BTreeMap<AssetTypeId, TimelineEditorDescriptor>,
     pub(super) timeline_track_types: BTreeMap<String, TimelineTrackDescriptor>,
+    pub(super) tool_resource_kinds: BTreeMap<String, ToolResourceKindDeclaration>,
     pub(super) commands: BTreeMap<EditorOperationPath, EditorCommandDescriptor>,
     pub(super) operation_factories:
         BTreeMap<EditorOperationPath, OperationCommandFactoryRegistration>,
+    pub(super) native_command_bindings:
+        BTreeMap<EditorOperationPath, NativePluginEditorCommandBinding>,
     pub(super) required_capabilities: Vec<String>,
 }
 
@@ -66,6 +73,7 @@ impl fmt::Debug for ContributionBatch {
                 "asset_type_contributions",
                 &self.asset_type_contributions.len(),
             )
+            .field("localization_bundles", &self.localization_bundles.len())
             .field("settings_pages", &self.settings_pages.len())
             .field("scene_modes", &self.scene_modes.len())
             .field(
@@ -76,8 +84,13 @@ impl fmt::Debug for ContributionBatch {
             .field("graph_node_palettes", &self.graph_node_palettes.len())
             .field("timeline_editors", &self.timeline_editors.len())
             .field("timeline_track_types", &self.timeline_track_types.len())
+            .field("tool_resource_kinds", &self.tool_resource_kinds.len())
             .field("commands", &self.commands.len())
             .field("operation_factories", &self.operation_factories.len())
+            .field(
+                "native_command_bindings",
+                &self.native_command_bindings.len(),
+            )
             .field("required_capabilities", &self.required_capabilities)
             .finish()
     }
@@ -97,6 +110,20 @@ impl ContributionBatch {
 
     pub fn required_capabilities(&self) -> &[String] {
         &self.required_capabilities
+    }
+
+    pub(crate) fn with_native_command_bindings(
+        mut self,
+        bindings: BTreeMap<EditorOperationPath, NativePluginEditorCommandBinding>,
+    ) -> Self {
+        self.native_command_bindings = bindings;
+        self
+    }
+
+    pub(crate) fn native_command_bindings(
+        &self,
+    ) -> impl Iterator<Item = (&EditorOperationPath, &NativePluginEditorCommandBinding)> {
+        self.native_command_bindings.iter()
     }
 
     pub(crate) fn bind_matching_ui_templates_to_views(&mut self) {
@@ -145,22 +172,29 @@ impl ContributionBatch {
         &mut self,
         descriptor: EditorMenuItemDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
-        let mut segment_count = 0;
-        let valid = descriptor.path().split('/').all(|segment| {
-            segment_count += 1;
-            !segment.trim().is_empty() && segment.trim() == segment
-        });
-        if !valid || segment_count < 2 {
-            return Err(EditorExtensionRegistryError::InvalidMenuPath(
-                descriptor.path().to_owned(),
-            ));
-        }
         insert_unique(
             &mut self.menu_items,
             descriptor.path().to_owned(),
             descriptor,
             "menu item",
         )
+    }
+
+    pub fn register_tool_resource_kind(
+        &mut self,
+        declaration: ToolResourceKindDeclaration,
+    ) -> Result<(), EditorExtensionRegistryError> {
+        let kind = declaration.kind().as_str().to_owned();
+        insert_unique(
+            &mut self.tool_resource_kinds,
+            kind,
+            declaration,
+            "tool resource kind",
+        )
+    }
+
+    pub(crate) fn tool_resource_kinds(&self) -> impl Iterator<Item = &ToolResourceKindDeclaration> {
+        self.tool_resource_kinds.values()
     }
 
     pub fn register_inspector_customization(
@@ -324,10 +358,24 @@ impl ContributionBatch {
         descriptor: SettingsPageDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
         validate_id("settings page", descriptor.id())?;
-        if !descriptor.is_valid_category_path() {
-            return Err(EditorExtensionRegistryError::InvalidContributionId {
-                kind: "settings page category",
-                id: descriptor.category_path().to_owned(),
+        let Some(bundle) = self
+            .localization_bundles
+            .get(descriptor.localization_bundle_id())
+        else {
+            return Err(EditorExtensionRegistryError::MissingLocalizationBundle {
+                page_id: descriptor.id().to_owned(),
+                bundle_id: descriptor.localization_bundle_id().to_owned(),
+            });
+        };
+        if let Some(key) = descriptor
+            .localization_keys()
+            .find(|key| !bundle.contains_key(key))
+            .map(str::to_owned)
+        {
+            return Err(EditorExtensionRegistryError::UnknownLocalizationKey {
+                page_id: descriptor.id().to_owned(),
+                bundle_id: descriptor.localization_bundle_id().to_owned(),
+                key,
             });
         }
         insert_unique(
@@ -335,6 +383,18 @@ impl ContributionBatch {
             descriptor.id().to_owned(),
             descriptor,
             "settings page",
+        )
+    }
+
+    pub fn register_localization_bundle(
+        &mut self,
+        bundle: EditorLocalizationBundle,
+    ) -> Result<(), EditorExtensionRegistryError> {
+        insert_unique(
+            &mut self.localization_bundles,
+            bundle.id().to_owned(),
+            bundle,
+            "localization bundle",
         )
     }
 
@@ -387,6 +447,16 @@ impl ContributionBatch {
         descriptor: GraphNodePaletteDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
         validate_id("graph node palette", descriptor.id())?;
+        validate_id("graph node palette owner", descriptor.owner_id())?;
+        if descriptor.schema_version() == 0 {
+            return Err(
+                EditorExtensionRegistryError::InvalidDescriptorSchemaVersion {
+                    kind: "graph node palette",
+                    id: descriptor.id().to_owned(),
+                    version: descriptor.schema_version(),
+                },
+            );
+        }
         if descriptor.nodes().is_empty() {
             return Err(EditorExtensionRegistryError::View(format!(
                 "editor graph node palette `{}` must declare at least one node",
@@ -524,6 +594,10 @@ impl ContributionBatch {
 
     pub fn settings_pages(&self) -> impl Iterator<Item = &SettingsPageDescriptor> {
         self.settings_pages.values()
+    }
+
+    pub fn localization_bundles(&self) -> impl Iterator<Item = &EditorLocalizationBundle> {
+        self.localization_bundles.values()
     }
 
     pub fn scene_mode_descriptors(&self) -> impl Iterator<Item = &SceneModeDescriptor> {

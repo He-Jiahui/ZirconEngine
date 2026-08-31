@@ -1,6 +1,6 @@
 use super::welcome_recent_pointer_action::WelcomeRecentPointerAction;
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub(crate) struct WelcomeRecentPointerState {
     pub hovered_item_index: Option<usize>,
     pub hovered_action: Option<WelcomeRecentPointerAction>,

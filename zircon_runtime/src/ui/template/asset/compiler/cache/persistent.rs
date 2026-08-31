@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::template::{
-    UiAssetFingerprint, UiCompileCacheKey, UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+    UiAssetFingerprint, UiCompileCacheKey, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION, UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
 };
 
 use super::super::package::UiRuntimeCompiledAssetArtifact;
@@ -45,7 +45,7 @@ impl UiCompiledArtifactKey {
         Self::from_compile_cache_key_with_versions(
             asset_id,
             cache_key,
-            UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+            UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
             UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
         )
     }
@@ -69,7 +69,7 @@ impl UiCompiledArtifactKey {
         Self::from_compile_cache_key_with_versions(
             header.asset.id.clone(),
             &header.compile_cache_key,
-            UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+            UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
             header.compiler_schema_version,
         )
     }
@@ -315,7 +315,7 @@ fn artifact_matches_key(
     artifact: &UiRuntimeCompiledAssetArtifact,
 ) -> bool {
     let header = &artifact.report.header;
-    key.schema_version == UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION
+    key.schema_version == UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION
         && header.asset.id == key.asset_id
         && header.compiler_schema_version == key.compiler_version
         && header.package_schema_version == UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION

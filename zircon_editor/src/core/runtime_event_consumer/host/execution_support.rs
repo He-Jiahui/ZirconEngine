@@ -1,16 +1,27 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::Duration;
+use std::{panic::catch_unwind, panic::AssertUnwindSafe};
 
-use zircon_runtime_interface::{
-    ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle,
-};
+use zircon_runtime_interface::ZrRuntimePluginEventDeliveryV1;
 
-use crate::core::gateway::EditorRuntimeGateway;
+use crate::core::gateway::GatewayOrigin;
 
 use super::{
-    ActiveConsumerSnapshot, EditorRuntimeEventConsumerError, EXECUTION_IDLE, EXECUTION_LIFECYCLE,
+    ActiveConsumerSnapshot, EditorRuntimeEventConsumerCallbackPhase,
+    EditorRuntimeEventConsumerError, QualifiedSubscription, EXECUTION_IDLE, EXECUTION_LIFECYCLE,
     EXECUTION_PUMP,
 };
+
+pub(super) fn invoke_consumer_callback<T>(
+    consumer_id: &str,
+    phase: EditorRuntimeEventConsumerCallbackPhase,
+    delivery_sequence: Option<u64>,
+    callback: impl FnOnce() -> T,
+) -> Result<T, EditorRuntimeEventConsumerError> {
+    catch_unwind(AssertUnwindSafe(callback)).map_err(|_| {
+        EditorRuntimeEventConsumerError::callback_panicked(consumer_id, phase, delivery_sequence)
+    })
+}
 
 pub(super) fn p95_duration(samples: &mut [Duration]) -> Duration {
     if samples.is_empty() {
@@ -88,7 +99,7 @@ pub(super) fn validate_delivery(
             actual: delivery.play_session_id,
         });
     }
-    if delivery.subscription != snapshot.subscription {
+    if delivery.subscription != snapshot.subscription.raw() {
         return Err(EditorRuntimeEventConsumerError::ForeignSubscription {
             consumer_id: snapshot.consumer_id.clone(),
         });
@@ -117,11 +128,21 @@ pub(super) fn validate_delivery(
 }
 
 pub(super) fn unsubscribe_consumer(
-    gateway: &dyn EditorRuntimeGateway,
+    origin: &GatewayOrigin,
     consumer_id: &str,
-    subscription: ZrRuntimePluginEventSubscriptionHandle,
+    subscription: &QualifiedSubscription,
 ) -> Result<(), EditorRuntimeEventConsumerError> {
-    match gateway.unsubscribe_plugin_event(subscription) {
+    if !subscription.belongs_to(origin) {
+        return Err(EditorRuntimeEventConsumerError::Gateway {
+            consumer_id: consumer_id.to_string(),
+            message: "plugin event subscription belongs to a different gateway identity"
+                .to_string(),
+        });
+    }
+    match origin
+        .gateway()
+        .unsubscribe_plugin_event(subscription.raw())
+    {
         Ok(true) => Ok(()),
         Ok(false) => Err(EditorRuntimeEventConsumerError::Gateway {
             consumer_id: consumer_id.to_string(),

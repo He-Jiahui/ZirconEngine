@@ -277,22 +277,34 @@ class TopologyImporter:
         now = utc_text()
         additions = [item for item in topology.milestones if item.node_id not in existing]
         for item in additions:
-            node_id = f"{run_id}:{item.node_id}"
-            connection.execute(
-                """INSERT INTO workflow_nodes(
-                       node_id, run_id, node_key, kind, title, stage, state,
-                       owner_session_id, created_at, updated_at
-                   ) VALUES (?, ?, ?, 'milestone', ?, 'milestone', 'pending', ?, ?, ?)""",
-                (node_id, run_id, item.node_id, item.title, session_id, now, now),
-            )
-            existing[item.node_id] = node_id
-        for item in additions:
-            for dependency in item.depends_on:
-                connection.execute(
-                    """INSERT INTO workflow_edges(run_id, from_node_id, to_node_id, edge_kind)
-                       VALUES (?, ?, ?, 'depends_on')""",
-                    (run_id, existing[dependency], existing[item.node_id]),
+            existing[item.node_id] = f"{run_id}:{item.node_id}"
+        connection.executemany(
+            """INSERT INTO workflow_nodes(
+                   node_id, run_id, node_key, kind, title, stage, state,
+                   owner_session_id, created_at, updated_at
+               ) VALUES (?, ?, ?, 'milestone', ?, 'milestone', 'pending', ?, ?, ?)""",
+            (
+                (
+                    existing[item.node_id],
+                    run_id,
+                    item.node_id,
+                    item.title,
+                    session_id,
+                    now,
+                    now,
                 )
+                for item in additions
+            ),
+        )
+        connection.executemany(
+            """INSERT INTO workflow_edges(run_id, from_node_id, to_node_id, edge_kind)
+               VALUES (?, ?, ?, 'depends_on')""",
+            (
+                (run_id, existing[dependency], existing[item.node_id])
+                for item in additions
+                for dependency in item.depends_on
+            ),
+        )
         connection.execute(
             """UPDATE workflow_runs
                SET topology_hash=?, current_topology_version_id=?, updated_at=?
@@ -310,25 +322,35 @@ class TopologyImporter:
         now = utc_text()
         node_ids: dict[str, str] = {}
         for item in topology.milestones:
-            node_id = f"{run_id}:{item.node_id}"
-            node_ids[item.node_id] = node_id
-            connection.execute(
-                """INSERT INTO workflow_nodes(
-                       node_id, run_id, node_key, kind, title, stage, state,
-                       owner_session_id, created_at, updated_at
-                   ) VALUES (?, ?, ?, 'milestone', ?, 'milestone', 'pending', ?, ?, ?)""",
-                (node_id, run_id, item.node_id, item.title, session_id, now, now),
-            )
+            node_ids[item.node_id] = f"{run_id}:{item.node_id}"
         for item in topology.slices:
-            node_id = f"{run_id}:{item.node_id}"
-            node_ids[item.node_id] = node_id
-            connection.execute(
-                """INSERT INTO workflow_nodes(
-                       node_id, run_id, node_key, kind, title, stage, state,
-                       owner_session_id, created_at, updated_at
-                   ) VALUES (?, ?, ?, 'slice', ?, ?, 'pending', ?, ?, ?)""",
+            node_ids[item.node_id] = f"{run_id}:{item.node_id}"
+        connection.executemany(
+            """INSERT INTO workflow_nodes(
+                   node_id, run_id, node_key, kind, title, stage, state,
+                   owner_session_id, created_at, updated_at
+               ) VALUES (?, ?, ?, 'milestone', ?, 'milestone', 'pending', ?, ?, ?)""",
+            (
                 (
-                    node_id,
+                    node_ids[item.node_id],
+                    run_id,
+                    item.node_id,
+                    item.title,
+                    session_id,
+                    now,
+                    now,
+                )
+                for item in topology.milestones
+            ),
+        )
+        connection.executemany(
+            """INSERT INTO workflow_nodes(
+                   node_id, run_id, node_key, kind, title, stage, state,
+                   owner_session_id, created_at, updated_at
+               ) VALUES (?, ?, ?, 'slice', ?, ?, 'pending', ?, ?, ?)""",
+            (
+                (
+                    node_ids[item.node_id],
                     run_id,
                     item.node_id,
                     item.title,
@@ -336,23 +358,29 @@ class TopologyImporter:
                     session_id,
                     now,
                     now,
-                ),
-            )
-        for item in topology.milestones:
-            for dependency in item.depends_on:
-                connection.execute(
-                    """INSERT INTO workflow_edges(
-                           run_id, from_node_id, to_node_id, edge_kind
-                       ) VALUES (?, ?, ?, 'depends_on')""",
-                    (run_id, node_ids[dependency], node_ids[item.node_id]),
                 )
-        for item in topology.slices:
-            connection.execute(
-                """INSERT INTO workflow_edges(
-                       run_id, from_node_id, to_node_id, edge_kind
-                   ) VALUES (?, ?, ?, 'depends_on')""",
-                (run_id, node_ids[item.node_id], node_ids[item.milestone_id or ""]),
-            )
+                for item in topology.slices
+            ),
+        )
+        connection.executemany(
+            """INSERT INTO workflow_edges(
+                   run_id, from_node_id, to_node_id, edge_kind
+               ) VALUES (?, ?, ?, 'depends_on')""",
+            (
+                (run_id, node_ids[dependency], node_ids[item.node_id])
+                for item in topology.milestones
+                for dependency in item.depends_on
+            ),
+        )
+        connection.executemany(
+            """INSERT INTO workflow_edges(
+                   run_id, from_node_id, to_node_id, edge_kind
+               ) VALUES (?, ?, ?, 'depends_on')""",
+            (
+                (run_id, node_ids[item.node_id], node_ids[item.milestone_id or ""])
+                for item in topology.slices
+            ),
+        )
         connection.execute(
             """UPDATE workflow_runs
                SET topology_hash=?, current_topology_version_id=(

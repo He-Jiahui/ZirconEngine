@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    CameraRenderDescriptor, RenderCameraTarget, RenderLayerSet, ViewProjectionMatrixPair,
-    ViewportCameraSnapshot,
+    CameraRenderDescriptor, CameraRenderType, RenderCameraClear, RenderCameraTarget,
+    RenderLayerSet, ViewProjectionMatrixPair, ViewportCameraSnapshot,
 };
 use crate::core::math::{perspective, Mat4, Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
@@ -75,6 +75,11 @@ fn render_planar_camera_derivation_targets_texture_and_applies_oblique_clip() {
         },
     );
     main.render_order = 7;
+    main.render_type = CameraRenderType::Overlay;
+    main.stack = vec![11, 12, 13];
+    main.clear = RenderCameraClear::DepthOnly;
+    main.clear_depth = false;
+    main.volume_mask = RenderLayerSet::layer(5);
     let layer_mask = RenderLayerSet::layer(3);
     let target = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
         "runtime://planar/probe-91",
@@ -95,8 +100,14 @@ fn render_planar_camera_derivation_targets_texture_and_applies_oblique_clip() {
         .expect("valid planar probe should derive a reflection camera");
 
     assert_eq!(reflected.render_order, 6);
+    assert_eq!(reflected.entity, None);
+    assert_eq!(reflected.render_type, CameraRenderType::Overlay);
+    assert!(reflected.stack.is_empty());
     assert_eq!(reflected.target, RenderCameraTarget::Texture(target));
+    assert_eq!(reflected.clear, RenderCameraClear::DepthOnly);
+    assert!(!reflected.clear_depth);
     assert_eq!(reflected.culling_mask, layer_mask);
+    assert_eq!(reflected.volume_mask, RenderLayerSet::layer(5));
     assert_near(reflected.camera.transform.translation.y, -3.0);
     assert!(reflected.camera.projection_override.is_some());
 

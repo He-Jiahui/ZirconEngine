@@ -6,6 +6,10 @@ use zircon_runtime::scene::{EntityId, LevelSystem};
 
 use super::AnimationEvaluationPipeline;
 
+#[cfg(test)]
+#[path = "pose_apply/performance_tests.rs"]
+mod optimization_batch_20260830cp_tests;
+
 pub(super) fn apply_pose_transforms_to_scene_nodes(
     level: &LevelSystem,
     replacement_epoch: u64,
@@ -39,7 +43,7 @@ fn node_pose_transform_updates(
     pipeline: &AnimationEvaluationPipeline,
     poses: &BTreeMap<EntityId, AnimationPoseOutput>,
 ) -> Vec<(EntityId, Transform)> {
-    let mut updates = Vec::new();
+    let mut updates = Vec::with_capacity(pose_update_capacity(poses.values()));
 
     for (root, pose) in poses {
         for bone in &pose.bones {
@@ -50,6 +54,12 @@ fn node_pose_transform_updates(
     }
 
     updates
+}
+
+fn pose_update_capacity<'a>(poses: impl IntoIterator<Item = &'a AnimationPoseOutput>) -> usize {
+    poses
+        .into_iter()
+        .fold(0, |count, pose| count.saturating_add(pose.bones.len()))
 }
 
 #[cfg(test)]

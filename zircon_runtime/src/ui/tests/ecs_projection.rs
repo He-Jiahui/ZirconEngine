@@ -92,22 +92,33 @@ fn ui_ecs_projection_uses_runtime_effective_disabled_gate() {
 }
 
 #[test]
-fn surface_frame_and_debug_snapshot_carry_ui_ecs_projection() {
+fn surface_debug_snapshot_builds_current_ecs_projection_on_demand() {
     let mut surface = projection_surface(false);
     surface.rebuild();
 
     let frame = surface.surface_frame();
+    let frame_snapshot = crate::ui::surface::debug_surface_frame(&frame);
     let snapshot = surface.debug_snapshot();
 
-    assert_eq!(frame.ecs_projection, surface.ui_ecs_projection());
-    assert_eq!(snapshot.ecs_projection, frame.ecs_projection);
+    assert_eq!(frame_snapshot.ecs_projection, Default::default());
+    assert_eq!(&snapshot.ecs_projection, &surface.ui_ecs_projection());
     assert_eq!(snapshot.ecs_projection.totals.node_count, 2);
     assert_eq!(
         snapshot.ecs_projection.schedule_mask,
         snapshot.ecs_projection.schedule_mask()
     );
-    assert!(frame.ecs_projection.derived_fields_are_fresh());
     assert!(snapshot.ecs_projection.derived_fields_are_fresh());
+
+    surface.focus.focused = Some(UiNodeId::new(2));
+    let focused_snapshot = surface.debug_snapshot();
+    assert!(
+        focused_snapshot
+            .ecs_projection
+            .node(UiNodeId::new(2))
+            .expect("focused child projection")
+            .interaction
+            .focused
+    );
 }
 
 #[test]

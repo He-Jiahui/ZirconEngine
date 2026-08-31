@@ -11,37 +11,84 @@ fn render_shader_template_assembles_standard_material_surface_source() {
         4
     );
     assert!(!surface_source.source.contains("textureSample("));
-    assert!(surface_source
-        .source
-        .contains("scene.camera_world_position.w"));
+    assert!(
+        surface_source
+            .source
+            .contains("scene.camera_world_position.w")
+    );
     assert!(surface_source.source.contains(
         "mix(1.0, occlusion_sample, clamp(standard_material_properties.data0.z, 0.0, 1.0))"
     ));
-    assert!(!surface_source
-        .source
-        .contains("standard_material_properties.data0.z * occlusion_sample"));
+    assert!(
+        !surface_source
+            .source
+            .contains("standard_material_properties.data0.z * occlusion_sample")
+    );
+    assert!(surface_source.source.contains(
+        "surface.roughness = clamp(standard_material_properties.data0.y * metallic_roughness.g, ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS, 1.0);"
+    ));
+    assert!(surface_source.source.contains("data12: vec4<f32>,"));
+    for row in [
+        "data13: vec4<f32>,",
+        "data14: vec4<f32>,",
+        "data15: vec4<f32>,",
+    ] {
+        assert!(surface_source.source.contains(row));
+    }
+    for required in [
+        "let scaled = uv * transform.xy;",
+        "scaled.x * rotation_sin_cos.x - scaled.y * rotation_sin_cos.y",
+        "scaled.x * rotation_sin_cos.y + scaled.y * rotation_sin_cos.x",
+        "standard_material_properties.data13.xy",
+        "standard_material_properties.data13.zw",
+        "standard_material_properties.data14.xy",
+        "standard_material_properties.data14.zw",
+        "standard_material_properties.data15.xy",
+    ] {
+        assert!(surface_source.source.contains(required));
+    }
+    assert!(
+        !surface_source
+            .source
+            .contains("select(1.0, standard_material_properties.data0.y"),
+        "an explicit glTF roughnessFactor=0 must reach the Standard PBR minimum instead of defaulting to 1.0"
+    );
 
-    assert!(surface_source
-        .features
-        .contains(ShaderFeatureBits::ALPHA_TEST));
-    assert!(surface_source
-        .features
-        .contains(ShaderFeatureBits::RECEIVE_SHADOWS));
-    assert!(surface_source
-        .features
-        .contains(ShaderFeatureBits::DOUBLE_SIDED));
-    assert!(!surface_source
-        .features
-        .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
-    assert!(!surface_source
-        .features
-        .contains(ShaderFeatureBits::PBR_CLEARCOAT));
-    assert!(!surface_source
-        .features
-        .contains(ShaderFeatureBits::PBR_ANISOTROPY));
-    assert!(!surface_source
-        .features
-        .contains(ShaderFeatureBits::PBR_TRANSMISSION));
+    assert!(
+        surface_source
+            .features
+            .contains(ShaderFeatureBits::ALPHA_TEST)
+    );
+    assert!(
+        surface_source
+            .features
+            .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
+    );
+    assert!(
+        surface_source
+            .features
+            .contains(ShaderFeatureBits::DOUBLE_SIDED)
+    );
+    assert!(
+        !surface_source
+            .features
+            .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE)
+    );
+    assert!(
+        !surface_source
+            .features
+            .contains(ShaderFeatureBits::PBR_CLEARCOAT)
+    );
+    assert!(
+        !surface_source
+            .features
+            .contains(ShaderFeatureBits::PBR_ANISOTROPY)
+    );
+    assert!(
+        !surface_source
+            .features
+            .contains(ShaderFeatureBits::PBR_TRANSMISSION)
+    );
 
     let assembly = assemble_material_shader_template(
         MaterialShaderTemplateRequest::new(
@@ -55,66 +102,104 @@ fn render_shader_template_assembles_standard_material_surface_source() {
     .expect("standard material template assembly");
 
     assert!(assembly.wgsl_source.contains("fn zr_material_surface("));
-    assert!(!assembly
-        .wgsl_source
-        .contains("fn standard_material_surface("));
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(2) @binding(0) var<uniform> standard_material_properties"));
-    assert!(assembly
-        .wgsl_source
-        .contains("standard_material_metallic_roughness_tex"));
-    assert!(assembly
-        .wgsl_source
-        .contains("ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn standard_material_sampled_normal"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn standard_material_alpha_cutoff() -> f32"));
-    assert!(assembly
-        .wgsl_source
-        .contains("let uniform_cutoff = clamp(standard_material_properties.data8.z, 0.0, 1.0);"));
-    assert!(assembly
-        .wgsl_source
-        .contains("surface.alpha_cutoff = standard_material_alpha_cutoff();"));
-    assert!(assembly
-        .wgsl_source
-        .contains("surface.unlit = standard_material_properties.data0.w;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("surface.shading_model_id = standard_material_shading_model_id();"));
-    assert!(assembly
-        .wgsl_source
-        .contains("zr_apply_alpha_clip(surface);"));
-    assert!(assembly
-        .wgsl_source
-        .contains("// include: zr_scene_runtime.wgsl"));
-    assert!(assembly
-        .wgsl_source
-        .contains("// include: zr_gpu_scene.wgsl"));
+    assert!(
+        !assembly
+            .wgsl_source
+            .contains("fn standard_material_surface(")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(2) @binding(0) var<uniform> standard_material_properties")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("standard_material_metallic_roughness_tex")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn standard_material_sampled_normal")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn standard_material_alpha_cutoff() -> f32")
+    );
+    assert!(
+        assembly.wgsl_source.contains(
+            "let uniform_cutoff = clamp(standard_material_properties.data8.z, 0.0, 1.0);"
+        )
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("surface.alpha_cutoff = standard_material_alpha_cutoff();")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("surface.unlit = standard_material_properties.data0.w;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("surface.shading_model_id = standard_material_shading_model_id();")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("zr_apply_alpha_clip(surface);")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("// include: zr_scene_runtime.wgsl")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("// include: zr_gpu_scene.wgsl")
+    );
     assert_include_token!(assembly, "zr_environment.wgsl");
     assert_include_token!(assembly, "zr_light_grid.wgsl");
     assert_include_token!(assembly, "zr_shadow.wgsl");
-    assert!(assembly
-        .wgsl_source
-        .contains("sky_horizon_color: vec4<f32>"));
-    assert!(assembly
-        .wgsl_source
-        .contains("environment_params: vec4<f32>"));
-    assert!(assembly
-        .wgsl_source
-        .contains("environment_sample_params: vec4<f32>"));
-    assert!(assembly
-        .wgsl_source
-        .contains("camera_world_position: vec4<f32>"));
-    assert!(assembly
-        .wgsl_source
-        .contains("camera_view_direction: vec4<f32>"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("sky_horizon_color: vec4<f32>")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("environment_params: vec4<f32>")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("environment_sample_params: vec4<f32>")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("camera_world_position: vec4<f32>")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("camera_view_direction: vec4<f32>")
+    );
     let scene_uniform = assembly
         .wgsl_source
         .split("struct SceneUniform {")
@@ -122,175 +207,287 @@ fn render_shader_template_assembles_standard_material_surface_source() {
         .and_then(|tail| tail.split("};").next())
         .expect("standard material shader should declare SceneUniform");
     assert!(!scene_uniform.contains("environment_sh9"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn zr_environment_has_irradiance_cube"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(0) @binding(2) var zr_environment_sampler: sampler;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(0) @binding(3) var zr_environment_brdf_lut: texture_2d<f32>;"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_environment_has_irradiance_cube")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(0) @binding(2) var zr_environment_sampler: sampler;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(0) @binding(3) var zr_environment_brdf_lut: texture_2d<f32>;")
+    );
     assert!(assembly.wgsl_source.contains(
         "@group(0) @binding(4) var zr_environment_specular_pmrem_cube: texture_cube<f32>;"
     ));
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(0) @binding(6) var<uniform> zr_environment_sh9: ZrEnvironmentSh9;"));
+    assert!(
+        assembly.wgsl_source.contains(
+            "@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;"
+        )
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(0) @binding(6) var<uniform> zr_environment_sh9: ZrEnvironmentSh9;")
+    );
     assert!(assembly.wgsl_source.contains("textureSampleLevel("));
-    assert!(assembly
-        .wgsl_source
-        .contains("zr_environment_specular_pmrem_cube"));
-    assert!(assembly
-        .wgsl_source
-        .contains("zr_environment_irradiance_cube"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn zr_environment_mip_from_roughness"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("zr_environment_specular_pmrem_cube")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("zr_environment_irradiance_cube")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_environment_mip_from_roughness")
+    );
     assert!(assembly.wgsl_source.contains("fn zr_environment_sh9_eval"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn zr_environment_irradiance_cube_color"));
-    assert!(assembly
-        .wgsl_source
-        .contains("if (zr_environment_has_irradiance_cube()) {"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn zr_environment_env_brdf_lut"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn zr_environment_env_brdf_approx"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn zr_environment_pbr_indirect"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(1) @binding(20) var<uniform> zr_light_grid_params"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(1) @binding(8) var zr_shadow_atlas: texture_depth_2d"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_environment_irradiance_cube_color")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("if (zr_environment_has_irradiance_cube()) {")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_environment_env_brdf_lut")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_environment_env_brdf_approx")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_environment_pbr_indirect")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(1) @binding(20) var<uniform> zr_light_grid_params")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(1) @binding(8) var zr_shadow_atlas: texture_depth_2d")
+    );
     assert!(assembly.wgsl_source.contains("fn zr_build_vertex_output("));
-    assert!(assembly
-        .wgsl_source
-        .contains("let position_ws = world_from_local * vec4<f32>(position_os, 1.0);"));
-    assert!(assembly
-        .wgsl_source
-        .contains("output.position_ws = position_ws.xyz;"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("let position_ws = world_from_local * vec4<f32>(position_os, 1.0);")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("output.position_ws = position_ws.xyz;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_gpu_scene_normal_to_world_direction(")
+    );
     assert!(assembly.wgsl_source.contains(
+        "output.normal_ws = zr_normalize_or_zero(zr_gpu_scene_normal_to_world_direction(world_from_local, instance_flags, normal_os));"
+    ));
+    assert!(assembly.wgsl_source.contains(
+        "output.tangent_ws = zr_normalize_or_zero(zr_gpu_scene_tangent_to_world_direction(world_from_local, instance_flags, tangent_os.xyz));"
+    ));
+    assert!(assembly.wgsl_source.contains(
+        "output.tangent_handedness = select(-1.0, 1.0, tangent_os.w >= 0.0) * zr_gpu_scene_tangent_handedness_scale(instance_flags);"
+    ));
+    assert!(!assembly.wgsl_source.contains(
         "output.normal_ws = zr_normalize_or_zero((world_from_local * vec4<f32>(normal_os, 0.0)).xyz);"
     ));
-    assert!(assembly.wgsl_source.contains(
-        "output.tangent_ws = zr_normalize_or_zero((world_from_local * vec4<f32>(tangent_os.xyz, 0.0)).xyz);"
-    ));
-    assert!(assembly
-        .wgsl_source
-        .contains("output.tangent_handedness = select(-1.0, 1.0, tangent_os.w >= 0.0);"));
-    assert!(assembly
-        .wgsl_source
-        .contains("output.tint = zr_gpu_scene_tint(instance_index);"));
-    assert!(assembly
-        .wgsl_source
-        .contains("output.shadow_params = zr_gpu_scene_shadow_params(instance_index);"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("output.tint = zr_gpu_scene_tint(instance_index);")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("output.shadow_params = zr_gpu_scene_shadow_params(instance_index);")
+    );
     assert!(assembly.wgsl_source.contains("input.tangent_handedness"));
     assert!(assembly.wgsl_source.contains("input.tint * input.color"));
     assert!(assembly.wgsl_source.contains("struct ZrShadingContext"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn zr_build_shading_context(input: ZrVertexOutput) -> ZrShadingContext"));
-    assert!(assembly
-        .wgsl_source
-        .contains("shade_forward(surface, zr_build_shading_context(input))"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_build_shading_context(input: ZrVertexOutput) -> ZrShadingContext")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("shade_forward(surface, zr_build_shading_context(input))")
+    );
     assert!(assembly.wgsl_source.contains(
         "fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32>"
     ));
-    assert!(assembly
-        .wgsl_source
-        .contains("ZR_FEATURE_RECEIVE_SHADOWS && ctx.shadow_params.z > 0.5"));
-    assert!(assembly
-        .wgsl_source
-        .contains("zr_gpu_light_shadow_visibility(light, light_type, ctx.position_ws, view_z)"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("surface.shading_model_id == ZR_SHADING_MODEL_UNLIT_ID"));
-    assert!(assembly
-        .wgsl_source
-        .contains("surface.shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn zr_standard_pbr_shade_blinn_phong_light_vector"));
-    assert!(assembly
-        .wgsl_source
-        .contains("let environment_lights = zr_environment_pbr_indirect_normalized("));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn zr_scene_view_dir_ws(position_ws: vec3<f32>) -> vec3<f32>"));
-    assert!(assembly
-        .wgsl_source
-        .contains("let view_dir_ws = zr_scene_view_dir_ws(ctx.position_ws);"));
-    assert!(!assembly
-        .wgsl_source
-        .contains("surface.normal_ws,\n        vec3<f32>(0.0, 0.0, 1.0),"));
-    assert!(assembly
-        .wgsl_source
-        .contains("surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("ZR_FEATURE_RECEIVE_SHADOWS && ctx.shadow_params.z > 0.5")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("zr_gpu_light_shadow_visibility(light, light_type, ctx.position_ws, view_z)")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("surface.shading_model_id == ZR_SHADING_MODEL_UNLIT_ID")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("surface.shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_standard_pbr_shade_blinn_phong_light_vector")
+    );
+    assert!(assembly.wgsl_source.contains(
+        "zr_environment_pbr_components_with_dielectric_f0_and_specular_normal_normalized("
+    ));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("environment_components.diffuse * reflected_diffuse_weight")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("environment_components.specular * clearcoat_base_energy")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_pbr_view_direction_ws(world_position: vec3<f32>) -> vec3<f32>")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("let view_dir_ws = zr_pbr_view_direction_ws(ctx.position_ws);")
+    );
+    assert!(
+        !assembly
+            .wgsl_source
+            .contains("surface.normal_ws,\n        vec3<f32>(0.0, 0.0, 1.0),")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID")
+    );
     assert!(assembly.wgsl_source.contains("@location(2) uv0: vec2<f32>"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@location(3) joints: vec4<u32>"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@location(4) weights: vec4<f32>"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@location(5) tangent: vec4<f32>"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@location(6) color: vec4<f32>"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@location(3) joints: vec4<u32>")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@location(4) weights: vec4<f32>")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@location(5) tangent: vec4<f32>")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@location(6) color: vec4<f32>")
+    );
     assert!(assembly.wgsl_source.contains("@location(7) uv1: vec2<f32>"));
     assert!(assembly.wgsl_source.contains("@location(3) uv1: vec2<f32>"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@location(4) tangent_ws: vec3<f32>"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@location(4) tangent_ws: vec3<f32>")
+    );
     assert!(assembly.wgsl_source.contains("input.uv1"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fetch_tangent(v, instance_index)"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_ALPHA_TEST: bool = true;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_RECEIVE_SHADOWS: bool = true;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_DOUBLE_SIDED: bool = true;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = false;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_PBR_CLEARCOAT: bool = false;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_PBR_ANISOTROPY: bool = false;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_PBR_TRANSMISSION: bool = false;"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fetch_tangent(v, instance_index)")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_ALPHA_TEST: bool = true;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_RECEIVE_SHADOWS: bool = true;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_DOUBLE_SIDED: bool = true;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = false;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_PBR_CLEARCOAT: bool = false;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_PBR_ANISOTROPY: bool = false;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_PBR_TRANSMISSION: bool = false;")
+    );
 }
 
 #[test]
@@ -298,22 +495,35 @@ fn render_shader_template_projects_advanced_pbr_features() {
     let mut material = standard_material_descriptor();
     material.advanced_features = StandardPbrMaterialFeatures {
         clearcoat: 0.8,
+        clearcoat_normal_scale: 0.35,
         anisotropy_strength: 0.6,
         specular_transmission: 0.7,
         ..Default::default()
     };
+    material.clearcoat_normal_texture_transform = RenderMaterialTextureTransform {
+        scale: [0.5, 0.75],
+        offset: [0.1, 0.2],
+        rotation: 0.4,
+    };
+    material.clearcoat_normal_texture_uv_channel = 1;
 
     let surface_source = standard_material_surface_source(&material);
 
-    assert!(surface_source
-        .features
-        .contains(ShaderFeatureBits::PBR_CLEARCOAT));
-    assert!(surface_source
-        .features
-        .contains(ShaderFeatureBits::PBR_ANISOTROPY));
-    assert!(surface_source
-        .features
-        .contains(ShaderFeatureBits::PBR_TRANSMISSION));
+    assert!(
+        surface_source
+            .features
+            .contains(ShaderFeatureBits::PBR_CLEARCOAT)
+    );
+    assert!(
+        surface_source
+            .features
+            .contains(ShaderFeatureBits::PBR_ANISOTROPY)
+    );
+    assert!(
+        surface_source
+            .features
+            .contains(ShaderFeatureBits::PBR_TRANSMISSION)
+    );
 
     let assembly = assemble_material_shader_template(
         MaterialShaderTemplateRequest::new(
@@ -326,22 +536,28 @@ fn render_shader_template_projects_advanced_pbr_features() {
     )
     .expect("advanced Standard PBR template assembly");
 
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_PBR_CLEARCOAT: bool = true;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_PBR_ANISOTROPY: bool = true;"));
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_PBR_TRANSMISSION: bool = true;"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_PBR_CLEARCOAT: bool = true;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_PBR_ANISOTROPY: bool = true;")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_PBR_TRANSMISSION: bool = true;")
+    );
     for projection in [
         "surface.clearcoat = select(0.0, clamp(standard_material_properties.data9.x",
         "surface.anisotropy_rotation = select(0.0, standard_material_properties.data9.w",
         "surface.specular_transmission = select(0.0, clamp(standard_material_properties.data10.x",
         "surface.ior = select(1.5, max(standard_material_properties.data10.w",
         "surface.attenuation_color = select(vec3<f32>(1.0), clamp(standard_material_properties.data11.rgb",
-        "surface.attenuation_distance = select(1.0e30, max(standard_material_properties.data11.w",
+        "surface.attenuation_distance = select(ZR_PBR_NO_ATTENUATION_DISTANCE, max(standard_material_properties.data11.w",
     ] {
         assert!(
             assembly.wgsl_source.contains(projection),
@@ -349,42 +565,77 @@ fn render_shader_template_projects_advanced_pbr_features() {
         );
     }
     assert_include_token!(assembly, "zr_pbr_extras.wgsl");
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(2) @binding(11) var standard_material_clearcoat_normal_tex"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(2) @binding(12) var standard_material_clearcoat_normal_sampler"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn standard_material_sampled_clearcoat_normal("));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(2) @binding(11) var standard_material_clearcoat_normal_tex")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(2) @binding(12) var standard_material_clearcoat_normal_sampler")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn standard_material_sampled_clearcoat_normal(")
+    );
     assert!(assembly.wgsl_source.contains(
-        "let surface_frame = standard_material_tangent_frame(input, surface.normal_ws);"
+        "let surface_frame = standard_material_anisotropy_frame(input, surface.normal_ws);"
     ));
-    assert!(assembly
-        .wgsl_source
-        .contains("let normal_uv = standard_material_transform_uv_channel("));
-    assert!(assembly
-        .wgsl_source
-        .contains("surface.normal_ws = standard_material_sampled_normal(input);"));
     assert!(assembly.wgsl_source.contains(
-        "surface.clearcoat_normal_ws = standard_material_sampled_clearcoat_normal(input, normal_uv);"
+        "let standard_material_uv_mask = u32(round(clamp(standard_material_properties.data7.x"
     ));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("surface.normal_ws = standard_material_sampled_normal(input);")
+    );
+    assert!(assembly.wgsl_source.contains(
+        "surface.clearcoat_normal_ws = standard_material_sampled_clearcoat_normal(input, clearcoat_normal_uv);"
+    ));
+    for clearcoat_projection in [
+        "let clearcoat_normal_uv = standard_material_transform_uv_channel(",
+        "standard_material_properties.data7.yz",
+        "standard_material_properties.data7.w",
+        "standard_material_properties.data1.w",
+        "standard_material_properties.data12.w",
+        "standard_material_properties.data15.z",
+        "standard_material_uv_mask",
+        "5u",
+        "sampled_normal.xy * standard_material_properties.data12.z",
+    ] {
+        assert!(assembly.wgsl_source.contains(clearcoat_projection));
+    }
     assert!(assembly.wgsl_source.contains("fn zr_aniso_ggx"));
     assert!(assembly.wgsl_source.contains("fn zr_clearcoat_lobe"));
     assert!(assembly.wgsl_source.contains("fn zr_transmission_btdf"));
-    assert!(assembly
-        .wgsl_source
-        .contains("@group(1) @binding(31) var zr_transmission_scene_color"));
-    assert!(assembly
-        .wgsl_source
-        .contains("fn zr_pbr_screen_space_transmission"));
-    assert!(assembly
-        .wgsl_source
-        .contains("let transmission_source = select("));
-    assert!(assembly.wgsl_source.contains("environment_lighting,"));
-    assert!(assembly.wgsl_source.contains("scene_color_sample.rgb,"));
-    assert!(assembly.wgsl_source.contains("scene_color_sample.a > 0.0,"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(1) @binding(31) var zr_transmission_scene_color")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("@group(1) @binding(38) var<uniform> zr_transmission_scene_color_params")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn zr_pbr_screen_space_transmission")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("if (zr_transmission_scene_color_params.available != 0u)")
+    );
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("transmission_frame.environment_direction")
+    );
+    assert!(!assembly.wgsl_source.contains("scene_color_sample.a > 0.0"));
     validate_material_shader_template_wgsl(&assembly.wgsl_source)
         .expect("advanced Standard PBR WGSL should validate");
 }
@@ -398,9 +649,11 @@ fn render_shader_template_marks_standard_material_normal_texture_feature() {
     ));
     let surface_source = standard_material_surface_source(&material);
 
-    assert!(surface_source
-        .features
-        .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
+    assert!(
+        surface_source
+            .features
+            .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE)
+    );
 
     let assembly = assemble_material_shader_template(
         MaterialShaderTemplateRequest::new(
@@ -413,19 +666,23 @@ fn render_shader_template_marks_standard_material_normal_texture_feature() {
     )
     .expect("standard material template assembly with normal map");
 
-    assert!(assembly
-        .wgsl_source
-        .contains("const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = true;"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = true;")
+    );
     assert_include_token!(assembly, "zr_normal.wgsl");
     for required in [
         "@group(2) @binding(3) var standard_material_normal_tex",
         "@group(2) @binding(4) var standard_material_normal_sampler",
         "struct StandardMaterialTangentFrame",
-        "fn standard_material_tangent_frame(",
+        "fn standard_material_mikktspace_frame(",
         "fn standard_material_tangent_normal(",
-        "fn zr_reconstruct_bc5_normal(",
-        "ZR_NORMAL_CONVENTION_DX",
+        "fn zr_reconstruct_bc5_normal(encoded_xy: vec2<f32>)",
         "let normal_uv = standard_material_transform_uv_channel(",
+        "standard_material_uv_mask",
+        "1u",
+        "sampled_normal.xy * standard_material_properties.data12.x",
         "surface.normal_ws = standard_material_sampled_normal(input, normal_uv);",
     ] {
         assert!(
@@ -433,15 +690,18 @@ fn render_shader_template_marks_standard_material_normal_texture_feature() {
             "normal-mapped Standard PBR must retain `{required}`"
         );
     }
-    assert!(assembly
-        .wgsl_source
-        .contains("let frame = standard_material_tangent_frame(input, input.normal_ws);"));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("let frame = standard_material_mikktspace_frame(input);")
+    );
     assert!(
         !assembly
             .wgsl_source
-            .contains("let geometric_normal = standard_material_normalize_or_fallback("),
-        "normal-mapped Standard PBR must normalize the interpolated geometric normal only in its tangent-frame helper"
+            .contains("input.tangent_ws - input.normal_ws * dot("),
+        "normal-mapped Standard PBR must preserve the interpolated MikkTSpace basis"
     );
+    assert!(!assembly.wgsl_source.contains("ZR_NORMAL_CONVENTION_"));
     validate_material_shader_template_wgsl(&assembly.wgsl_source)
         .expect("normal-mapped Standard PBR WGSL should validate");
 }
@@ -486,13 +746,14 @@ fn render_shader_template_omits_clearcoat_normal_source_without_feature() {
         "@group(2) @binding(11) var standard_material_clearcoat_normal_tex",
         "@group(2) @binding(12) var standard_material_clearcoat_normal_sampler",
         "struct StandardMaterialTangentFrame",
-        "fn standard_material_tangent_frame(",
+        "fn standard_material_mikktspace_frame(",
+        "fn standard_material_anisotropy_frame(",
         "fn standard_material_tangent_normal(",
         "fn standard_material_sampled_clearcoat_normal(",
         "if (ZR_FEATURE_PBR_CLEARCOAT) {",
-        "let normal_uv = standard_material_transform_uv_channel(",
+        "let clearcoat_normal_uv = standard_material_transform_uv_channel(",
         "surface.normal_ws = standard_material_sampled_normal(input, normal_uv);",
-        "surface.clearcoat_normal_ws = standard_material_sampled_clearcoat_normal(input, normal_uv);",
+        "surface.clearcoat_normal_ws = standard_material_sampled_clearcoat_normal(input, clearcoat_normal_uv);",
     ] {
         assert!(
             !assembly.wgsl_source.contains(unreachable),
@@ -539,7 +800,7 @@ fn render_shader_template_omits_tangent_frame_without_anisotropy_feature() {
         "the non-anisotropic surface must retain stable tangent defaults"
     );
     for unreachable in [
-        "let surface_frame = standard_material_tangent_frame(input, surface.normal_ws);",
+        "let surface_frame = standard_material_anisotropy_frame(input, surface.normal_ws);",
         "if (ZR_FEATURE_PBR_ANISOTROPY) {",
     ] {
         assert!(
@@ -554,15 +815,21 @@ fn render_shader_template_validates_anisotropy_only_surface_specialization() {
     let mut material = standard_material_descriptor();
     material.advanced_features.anisotropy_strength = 0.6;
     let surface_source = standard_material_surface_source(&material);
-    assert!(surface_source
-        .features
-        .contains(ShaderFeatureBits::PBR_ANISOTROPY));
-    assert!(!surface_source
-        .features
-        .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
-    assert!(!surface_source
-        .features
-        .contains(ShaderFeatureBits::PBR_CLEARCOAT));
+    assert!(
+        surface_source
+            .features
+            .contains(ShaderFeatureBits::PBR_ANISOTROPY)
+    );
+    assert!(
+        !surface_source
+            .features
+            .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE)
+    );
+    assert!(
+        !surface_source
+            .features
+            .contains(ShaderFeatureBits::PBR_CLEARCOAT)
+    );
 
     let assembly = assemble_material_shader_template(
         MaterialShaderTemplateRequest::new(
@@ -577,8 +844,8 @@ fn render_shader_template_validates_anisotropy_only_surface_specialization() {
 
     for required in [
         "struct StandardMaterialTangentFrame",
-        "fn standard_material_tangent_frame(",
-        "let surface_frame = standard_material_tangent_frame(input, surface.normal_ws);",
+        "fn standard_material_anisotropy_frame(",
+        "let surface_frame = standard_material_anisotropy_frame(input, surface.normal_ws);",
     ] {
         assert!(
             assembly.wgsl_source.contains(required),
@@ -590,6 +857,7 @@ fn render_shader_template_validates_anisotropy_only_surface_specialization() {
         "@group(2) @binding(4) var standard_material_normal_sampler",
         "@group(2) @binding(11) var standard_material_clearcoat_normal_tex",
         "@group(2) @binding(12) var standard_material_clearcoat_normal_sampler",
+        "fn standard_material_mikktspace_frame(",
         "fn standard_material_tangent_normal(",
         "let normal_uv = standard_material_transform_uv_channel(",
     ] {

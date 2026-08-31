@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import json
+import os
 import re
 import stat
 import subprocess
@@ -71,7 +72,58 @@ class ConventionCommand:
     argv: tuple[str, ...]
 
 
-def convention_commands() -> list[ConventionCommand]:
+def _managed_validator_command(gate: str) -> tuple[str, ...]:
+    switch = {
+        "structure": "-RunConventionStructure",
+        "clippy": "-RunConventionClippy",
+    }[gate]
+    return (
+        "rustup",
+        "run",
+        "1.94.1",
+        "pwsh",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        ".codex/skills/zircon-dev/scripts/validate-matrix.ps1",
+        "-SkipBuild",
+        "-SkipTest",
+        switch,
+    )
+
+
+def _managed_cargo_environment_active() -> bool:
+    def parts(name: str) -> tuple[str, ...]:
+        raw = os.environ.get(name, "")
+        if raw.startswith("\\\\?\\"):
+            raw = raw[4:]
+        return tuple(part.casefold() for part in PureWindowsPath(raw).parts)
+
+    target = parts("CARGO_TARGET_DIR")
+    temporary = parts("TEMP")
+    cache = parts("SCCACHE_DIR")
+    if len(target) < 4 or not re.fullmatch(r"[d-f]:\\", target[0]):
+        return False
+    storage = target[:3]
+    return (
+        storage[1] in {"cargo-targets", "targets", "zirconbuilds"}
+        and storage[2] == "zircon-engine"
+        and len(temporary) >= 6
+        and temporary[:3] == storage
+        and temporary[3] == "scratch"
+        and temporary[-1] == "temporary"
+        and cache == (*storage, "cache", "sccache")
+        and os.environ.get("CARGO_INCREMENTAL") == "0"
+        and os.environ.get("SCCACHE_CLIENT_SIDE") == "1"
+    )
+
+
+def _requires_managed_cargo_delegation() -> bool:
+    return os.name == "nt" and not _managed_cargo_environment_active()
+
+
+def convention_commands(*, managed_cargo: bool = False) -> list[ConventionCommand]:
     return [
         ConventionCommand(
             "layering",
@@ -85,7 +137,9 @@ def convention_commands() -> list[ConventionCommand]:
         ),
         ConventionCommand(
             "structure",
-            (
+            _managed_validator_command("structure")
+            if managed_cargo
+            else (
                 "cargo",
                 "+1.94.1",
                 "test",
@@ -101,7 +155,9 @@ def convention_commands() -> list[ConventionCommand]:
         ConventionCommand("fmt", ("cargo", "+1.94.1", "fmt", "--all", "--check")),
         ConventionCommand(
             "clippy",
-            (
+            _managed_validator_command("clippy")
+            if managed_cargo
+            else (
                 "cargo",
                 "+1.94.1",
                 "clippy",
@@ -390,28 +446,27 @@ def audit_rust_exemptions(repo_root: Path) -> dict[str, object]:
 
 
 def _front_matter_path_fields(document: Path) -> dict[str, list[str]] | None:
-    lines = document.read_text(encoding="utf-8-sig").splitlines()
-    if not lines or lines[0].strip() != "---":
-        return None
-    try:
-        end = next(index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---")
-    except StopIteration:
-        return None
+    with document.open("r", encoding="utf-8-sig") as stream:
+        first_line = next(stream, None)
+        if first_line is None or first_line.strip() != "---":
+            return None
 
-    fields = {field: [] for field in FRONT_MATTER_LIST_FIELDS}
-    active_field: str | None = None
-    for line in lines[1:end]:
-        if line and not line[0].isspace():
-            key, separator, _ = line.partition(":")
-            active_field = key if separator and key in fields else None
-            continue
-        stripped = line.strip()
-        if active_field is None or not stripped.startswith("- "):
-            continue
-        value = stripped[2:].strip().strip("'\"").strip("`")
-        if value:
-            fields[active_field].append(value)
-    return fields
+        fields = {field: [] for field in FRONT_MATTER_LIST_FIELDS}
+        active_field: str | None = None
+        for line in stream:
+            if line.strip() == "---":
+                return fields
+            if line and not line[0].isspace():
+                key, separator, _ = line.partition(":")
+                active_field = key if separator and key in fields else None
+                continue
+            stripped = line.strip()
+            if active_field is None or not stripped.startswith("- "):
+                continue
+            value = stripped[2:].strip().strip("'\"").strip("`")
+            if value:
+                fields[active_field].append(value)
+    return None
 
 
 def _test_reference_paths(entry: str) -> list[str]:
@@ -542,7 +597,9 @@ def run_conventions(
             report["passed"] = False
 
     command_reports: list[dict[str, object]] = []
-    for command in convention_commands():
+    for command in convention_commands(
+        managed_cargo=_requires_managed_cargo_delegation()
+    ):
         if command.name not in selected_set:
             continue
         command_report: dict[str, object] = {

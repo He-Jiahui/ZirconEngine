@@ -7,6 +7,7 @@ mod child_window_tabs;
 mod close_prompt;
 mod command_palette;
 mod componentized_workbench;
+mod document_save;
 mod drag_sources;
 mod floating_window_projection;
 mod menu_pointer;

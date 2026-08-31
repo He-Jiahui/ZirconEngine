@@ -55,6 +55,28 @@ pub class DungeonResetClaim {
     }
 }
 
+pub class DungeonResetLock {
+    pub var dungeonId: string;
+    pub var availableAt: int;
+    pub var claimId: int;
+
+    pub @constructor(dungeonId: string, availableAt: int, claimId: int) {
+        this.dungeonId = dungeonId;
+        this.availableAt = availableAt;
+        this.claimId = claimId;
+    }
+}
+
+pub class DungeonResetLockBucket {
+    pub var ownerKey: int;
+    pub var locks: container.Array<DungeonResetLock>;
+
+    pub @constructor(ownerKey: int) {
+        this.ownerKey = ownerKey;
+        this.locks = new container.Array<DungeonResetLock>();
+    }
+}
+
 pub class DungeonResetState {
     pub var now: int;
     pub var actorId: int;
@@ -63,10 +85,7 @@ pub class DungeonResetState {
     pub var selectedDifficulty: int;
     pub var owners: container.Array<DungeonResetOwner>;
     pub var claims: container.Array<DungeonResetClaim>;
-    pub var lockOwnerKeys: container.Array<int>;
-    pub var lockDungeonIds: container.Array<string>;
-    pub var lockAvailableAt: container.Array<int>;
-    pub var lockClaimIds: container.Array<int>;
+    pub var lockBuckets: container.Array<DungeonResetLockBucket>;
     pub var nextClaimId: int;
     pub var lastError: int;
     pub var replacements: int;
@@ -79,10 +98,7 @@ pub class DungeonResetState {
         this.selectedDifficulty = NORMAL;
         this.owners = new container.Array<DungeonResetOwner>();
         this.claims = new container.Array<DungeonResetClaim>();
-        this.lockOwnerKeys = new container.Array<int>();
-        this.lockDungeonIds = new container.Array<string>();
-        this.lockAvailableAt = new container.Array<int>();
-        this.lockClaimIds = new container.Array<int>();
+        this.lockBuckets = new container.Array<DungeonResetLockBucket>();
         this.nextClaimId = 1000;
         this.lastError = 0;
         this.replacements = 0;
@@ -147,27 +163,67 @@ pub effectiveClaimDifficulty(state: DungeonResetState, claim: DungeonResetClaim)
     return state.selectedDifficulty == HEROIC && claim.supportsHeroic ? HEROIC : NORMAL;
 }
 
-removeResetLockAt(state: DungeonResetState, index: int): void {
-    state.lockOwnerKeys.removeAt(index);
-    state.lockDungeonIds.removeAt(index);
-    state.lockAvailableAt.removeAt(index);
-    state.lockClaimIds.removeAt(index);
+findResetLockBucketIndex(state: DungeonResetState, ownerKeyValue: int): int {
+    var low = 0;
+    var high = state.lockBuckets.length;
+    while (low < high) {
+        var middle = <int>(low + (high - low) / 2);
+        var middleOwnerKey = (<DungeonResetLockBucket>state.lockBuckets[middle]).ownerKey;
+        if (middleOwnerKey < ownerKeyValue) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    if (low < state.lockBuckets.length &&
+        (<DungeonResetLockBucket>state.lockBuckets[low]).ownerKey == ownerKeyValue) {
+        return low;
+    }
+    return -low - 1;
 }
 
-activeResetLockIndex(state: DungeonResetState, ownerKeyValue: int, dungeonId: string): int {
+insertResetLockBucket(
+    state: DungeonResetState,
+    index: int,
+    bucket: DungeonResetLockBucket
+): void {
+    state.lockBuckets.add(bucket);
+    var moveIndex = state.lockBuckets.length - 1;
+    while (moveIndex > index) {
+        state.lockBuckets[moveIndex] = state.lockBuckets[moveIndex - 1];
+        moveIndex = moveIndex - 1;
+    }
+    state.lockBuckets[index] = bucket;
+}
+
+findResetLockIndex(bucket: DungeonResetLockBucket, dungeonId: string): int {
     var index = 0;
-    while (index < state.lockOwnerKeys.length) {
-        if (<int>state.lockOwnerKeys[index] == ownerKeyValue &&
-            <string>state.lockDungeonIds[index] == dungeonId) {
-            if (<int>state.lockAvailableAt[index] <= state.now) {
-                removeResetLockAt(state, index);
-                return -1;
-            }
+    while (index < bucket.locks.length) {
+        if ((<DungeonResetLock>bucket.locks[index]).dungeonId == dungeonId) {
             return index;
         }
         index = index + 1;
     }
     return -1;
+}
+
+activeResetLock(
+    state: DungeonResetState,
+    ownerKeyValue: int,
+    dungeonId: string
+): DungeonResetLock {
+    var bucketIndex = findResetLockBucketIndex(state, ownerKeyValue);
+    if (bucketIndex < 0) { return null; }
+    var bucket = <DungeonResetLockBucket>state.lockBuckets[bucketIndex];
+    var lockIndex = findResetLockIndex(bucket, dungeonId);
+    if (lockIndex < 0) { return null; }
+    var lock = <DungeonResetLock>bucket.locks[lockIndex];
+    if (lock.availableAt <= state.now) {
+        bucket.locks.removeAt(lockIndex);
+        if (bucket.locks.length == 0) { state.lockBuckets.removeAt(bucketIndex); }
+        return null;
+    }
+    return lock;
 }
 
 setResetLock(
@@ -177,27 +233,33 @@ setResetLock(
     availableAt: int,
     claimId: int
 ): void {
-    var index = activeResetLockIndex(state, ownerKeyValue, dungeonId);
-    if (index >= 0) {
-        state.lockAvailableAt[index] = availableAt;
-        state.lockClaimIds[index] = claimId;
+    var lock = activeResetLock(state, ownerKeyValue, dungeonId);
+    if (lock != null) {
+        lock.availableAt = availableAt;
+        lock.claimId = claimId;
         return;
     }
-    state.lockOwnerKeys.add(ownerKeyValue);
-    state.lockDungeonIds.add(dungeonId);
-    state.lockAvailableAt.add(availableAt);
-    state.lockClaimIds.add(claimId);
+    var bucketIndex = findResetLockBucketIndex(state, ownerKeyValue);
+    if (bucketIndex < 0) {
+        bucketIndex = -bucketIndex - 1;
+        var bucket = new DungeonResetLockBucket(ownerKeyValue);
+        insertResetLockBucket(state, bucketIndex, bucket);
+        bucket.locks.add(new DungeonResetLock(dungeonId, availableAt, claimId));
+        return;
+    }
+    var bucket = <DungeonResetLockBucket>state.lockBuckets[bucketIndex];
+    bucket.locks.add(new DungeonResetLock(dungeonId, availableAt, claimId));
 }
 
 pub resetLockClaimId(state: DungeonResetState, ownerId: int, dungeonId: string): int {
     var ownerIndex = findOwnerIndex(state, ownerId);
     if (ownerIndex < 0) { return 0; }
-    var index = activeResetLockIndex(
+    var lock = activeResetLock(
         state,
         ownerKey(<DungeonResetOwner>state.owners[ownerIndex]),
         dungeonId
     );
-    return index < 0 ? 0 : <int>state.lockClaimIds[index];
+    return lock == null ? 0 : lock.claimId;
 }
 
 pub inheritResetLocks(state: DungeonResetState, joiningOwnerId: int): void {
@@ -214,16 +276,16 @@ pub inheritResetLocks(state: DungeonResetState, joiningOwnerId: int): void {
             while (ownerIndex < state.owners.length) {
                 var owner = <DungeonResetOwner>state.owners[ownerIndex];
                 if (owner.partyMember && owner.id != joiningOwnerId) {
-                    var otherLock = activeResetLockIndex(state, ownerKey(owner), claim.dungeonId);
-                    if (otherLock >= 0 && <int>state.lockAvailableAt[otherLock] > candidateAt) {
-                        candidateAt = <int>state.lockAvailableAt[otherLock];
-                        candidateClaimId = <int>state.lockClaimIds[otherLock];
+                    var otherLock = activeResetLock(state, ownerKey(owner), claim.dungeonId);
+                    if (otherLock != null && otherLock.availableAt > candidateAt) {
+                        candidateAt = otherLock.availableAt;
+                        candidateClaimId = otherLock.claimId;
                     }
                 }
                 ownerIndex = ownerIndex + 1;
             }
-            var existing = activeResetLockIndex(state, joiningKey, claim.dungeonId);
-            var existingAt = existing < 0 ? 0 : <int>state.lockAvailableAt[existing];
+            var existing = activeResetLock(state, joiningKey, claim.dungeonId);
+            var existingAt = existing == null ? 0 : existing.availableAt;
             if (candidateAt > existingAt) {
                 setResetLock(state, joiningKey, claim.dungeonId, candidateAt, candidateClaimId);
             }
@@ -270,11 +332,11 @@ pub resetOwnedInstances(state: DungeonResetState): int {
         while (ownerIndex < ownerIds.length) {
             var id = <int>ownerIds[ownerIndex];
             var foundOwner = findOwnerIndex(state, id);
-            if (foundOwner >= 0 && activeResetLockIndex(
+            if (foundOwner >= 0 && activeResetLock(
                 state,
                 ownerKey(<DungeonResetOwner>state.owners[foundOwner]),
                 candidate.dungeonId
-            ) >= 0) {
+            ) != null) {
                 state.lastError = -4;
                 return -4;
             }
@@ -346,14 +408,13 @@ pub enterResetClaim(state: DungeonResetState, dungeonId: string, claimId: int): 
     while (index < ownerIds.length) {
         var ownerIndex = findOwnerIndex(state, <int>ownerIds[index]);
         if (ownerIndex >= 0) {
-            var lockIndex = activeResetLockIndex(
+            var lock = activeResetLock(
                 state,
                 ownerKey(<DungeonResetOwner>state.owners[ownerIndex]),
                 dungeonId
             );
-            if (lockIndex >= 0) {
-                var lockedClaimId = <int>state.lockClaimIds[lockIndex];
-                if (lockedClaimId != claimId) { return -11; }
+            if (lock != null) {
+                if (lock.claimId != claimId) { return -11; }
             }
         }
         index = index + 1;
@@ -439,5 +500,29 @@ pub contractTest(): int {
     addResetOwner(follower, new DungeonResetOwner(2, 2, true));
     addResetClaim(follower, new DungeonResetClaim(60, "hollow_crypt", 1, NORMAL, true));
     if (resetOwnedInstances(follower) != -1) { return -11; }
+
+    var indexedLocks = new DungeonResetState();
+    setResetLock(indexedLocks, 30, "hollow_crypt", 10, 300);
+    setResetLock(indexedLocks, 10, "hollow_crypt", 10, 100);
+    setResetLock(indexedLocks, 20, "hollow_crypt", 10, 200);
+    // Binary insertion must retain owner order regardless of arrival order.
+    if (indexedLocks.lockBuckets.length != 3 ||
+        (<DungeonResetLockBucket>indexedLocks.lockBuckets[0]).ownerKey != 10 ||
+        (<DungeonResetLockBucket>indexedLocks.lockBuckets[1]).ownerKey != 20 ||
+        (<DungeonResetLockBucket>indexedLocks.lockBuckets[2]).ownerKey != 30) {
+        return -13;
+    }
+    setResetLock(indexedLocks, 20, "hollow_crypt", 12, 201);
+    var updatedLock = activeResetLock(indexedLocks, 20, "hollow_crypt");
+    // An updated lock stays in the same keyed row.
+    if (updatedLock == null || updatedLock.claimId != 201 || updatedLock.availableAt != 12) {
+        return -14;
+    }
+    indexedLocks.now = 12;
+    // An expired lock removes its row and now-empty owner bucket in place.
+    if (activeResetLock(indexedLocks, 20, "hollow_crypt") != null ||
+        indexedLocks.lockBuckets.length != 2) {
+        return -15;
+    }
     return 1;
 }

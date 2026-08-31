@@ -8,7 +8,15 @@ IDENTITY = DECISION.parent / "identity"
 PLAY_PENDING_DECISION = (
     ROOT / "zircon_editor" / "src" / "ui" / "host" / "play_pending_decision"
 )
-JOBS_SYSTEM = ROOT / "zircon_editor" / "src" / "core" / "jobs" / "system" / "mod.rs"
+JOBS_PROGRESS_OBSERVER = (
+    ROOT
+    / "zircon_editor"
+    / "src"
+    / "core"
+    / "jobs"
+    / "system"
+    / "progress_observer.rs"
+)
 NOTIFICATION_SERVICE = (
     ROOT / "zircon_editor" / "src" / "core" / "notifications" / "service.rs"
 )
@@ -118,7 +126,10 @@ class DecisionNotificationCenterContractTests(unittest.TestCase):
 
     def test_play_adapter_preserves_one_live_decision_until_receipt_consumption(self) -> None:
         adapter = (PLAY_PENDING_DECISION / "adapter.rs").read_text(encoding="utf-8")
-        tests = (PLAY_PENDING_DECISION / "tests.rs").read_text(encoding="utf-8")
+        tests = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted((PLAY_PENDING_DECISION / "tests").rglob("*.rs"))
+        )
 
         self.assertIn("completed_receipt_tickets", adapter)
         self.assertIn("snapshot.resolved().is_none()", adapter)
@@ -142,7 +153,7 @@ class DecisionNotificationCenterContractTests(unittest.TestCase):
         )
 
     def test_job_progress_callbacks_use_one_ordered_lifecycle_dispatch(self) -> None:
-        system = JOBS_SYSTEM.read_text(encoding="utf-8")
+        system = JOBS_PROGRESS_OBSERVER.read_text(encoding="utf-8")
         service = NOTIFICATION_SERVICE.read_text(encoding="utf-8")
 
         self.assertIn("ProgressObserverDispatch", system)

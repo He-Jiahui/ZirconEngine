@@ -1,5 +1,6 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::render_commands::HostPaintCommand;
+use super::super::super::super::style_selector::focus_visible_for_node;
 use super::super::super::layout::command_palette_metrics;
 use super::super::super::palette::WorkbenchCommandPalettePalette;
 
@@ -17,7 +18,8 @@ pub(super) fn push_command_palette_search_surface(
     palette: &WorkbenchCommandPalettePalette,
 ) {
     let metrics = command_palette_metrics();
-    let style = command_palette_search_surface_style(palette, &metrics, node.focused);
+    let style =
+        command_palette_search_surface_style(palette, &metrics, focus_visible_for_node(node));
     commands.push(HostPaintCommand::quad(
         search_rect.clone(),
         Some(clip.clone()),

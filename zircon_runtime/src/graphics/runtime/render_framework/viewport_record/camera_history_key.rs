@@ -6,6 +6,8 @@ use crate::core::framework::render::{
 };
 use crate::core::framework::scene::EntityId;
 
+const INLINE_HISTORY_LAYER_CAPACITY: usize = 4;
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(in crate::graphics::runtime::render_framework) struct ViewportCameraHistoryKey {
     entity: Option<EntityId>,
@@ -34,14 +36,28 @@ impl ViewportCameraHistoryKey {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-struct ViewportCameraHistoryLayerKey {
-    layers: Arc<[RenderLayer]>,
+enum ViewportCameraHistoryLayerKey {
+    Inline {
+        layers: [RenderLayer; INLINE_HISTORY_LAYER_CAPACITY],
+        len: u8,
+    },
+    Shared(Arc<[RenderLayer]>),
 }
 
 impl From<&RenderLayerSet> for ViewportCameraHistoryLayerKey {
     fn from(value: &RenderLayerSet) -> Self {
-        Self {
-            layers: value.iter().collect(),
+        let mut layers = [0; INLINE_HISTORY_LAYER_CAPACITY];
+        let mut len = 0;
+        for layer in value.iter() {
+            if len == INLINE_HISTORY_LAYER_CAPACITY {
+                return Self::Shared(value.iter().collect());
+            }
+            layers[len] = layer;
+            len += 1;
+        }
+        Self::Inline {
+            layers,
+            len: len as u8,
         }
     }
 }
@@ -80,7 +96,7 @@ mod tests {
     use crate::core::framework::scene::EntityId;
     use crate::core::math::UVec2;
 
-    use super::ViewportCameraHistoryKey;
+    use super::{ViewportCameraHistoryKey, ViewportCameraHistoryLayerKey};
 
     #[test]
     fn camera_history_key_distinguishes_same_entity_viewport_regions() {
@@ -138,22 +154,41 @@ mod tests {
     }
 
     #[test]
-    fn camera_history_key_clones_share_layer_storage() {
+    fn camera_history_key_common_layers_are_inline() {
         let mut camera = descriptor(19);
         camera.culling_mask = RenderLayerSet::from_layers([0, 40, 80]);
-        camera.volume_mask = RenderLayerSet::from_layers([1, 41, 81]);
         let key = ViewportCameraHistoryKey::from_camera(&camera);
 
+        assert!(matches!(
+            key.culling_layers,
+            ViewportCameraHistoryLayerKey::Inline {
+                layers: [0, 40, 80, 0],
+                len: 3,
+            }
+        ));
+    }
+
+    #[test]
+    fn camera_history_key_wide_clones_share_layer_storage() {
+        let mut camera = descriptor(23);
+        camera.culling_mask = RenderLayerSet::from_layers([0, 40, 80, 120, 160]);
+        camera.volume_mask = RenderLayerSet::from_layers([1, 41, 81, 121, 161]);
+        let key = ViewportCameraHistoryKey::from_camera(&camera);
         let cloned = key.clone();
 
-        assert!(Arc::ptr_eq(
-            &key.culling_layers.layers,
-            &cloned.culling_layers.layers
-        ));
-        assert!(Arc::ptr_eq(
-            &key.volume_layers.layers,
-            &cloned.volume_layers.layers
-        ));
+        for (source, copy) in [
+            (&key.culling_layers, &cloned.culling_layers),
+            (&key.volume_layers, &cloned.volume_layers),
+        ] {
+            let (
+                ViewportCameraHistoryLayerKey::Shared(source),
+                ViewportCameraHistoryLayerKey::Shared(copy),
+            ) = (source, copy)
+            else {
+                panic!("more than four layers must use shared fallback storage");
+            };
+            assert!(Arc::ptr_eq(source, copy));
+        }
     }
 
     fn descriptor(entity: EntityId) -> CameraRenderDescriptor {

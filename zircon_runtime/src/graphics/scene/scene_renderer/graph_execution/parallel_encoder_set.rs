@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use rayon::prelude::*;
-
-use crate::core::TaskPool;
+use crate::core::runtime::tasks::{TaskPool, parallel_map_indices};
 use crate::render_graph::CompiledRenderGraph;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -224,7 +222,7 @@ where
     T: Send,
     F: Fn(&EncoderBucket) -> T + Send + Sync,
 {
-    pool.install(|| buckets.par_iter().map(record_bucket).collect())
+    parallel_map_indices(pool, buckets.len(), |index| record_bucket(&buckets[index]))
 }
 
 #[cfg(test)]
@@ -232,7 +230,7 @@ mod tests {
     use crate::core::{TaskPool, TaskPoolDescriptor};
     use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder};
 
-    use super::{record_buckets_ordered, ParallelEncoderSet};
+    use super::{ParallelEncoderSet, record_buckets_ordered};
 
     #[test]
     fn parallel_encoder_partition_respects_topology_layers_and_skips_culled_passes() {

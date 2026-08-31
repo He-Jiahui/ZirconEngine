@@ -1,5 +1,5 @@
 use crate::text::{
-    RichTableCellBoxStyle, RichTableCellPadding, RichTableColumn, MAX_RICH_TABLE_ROW_SPAN,
+    MAX_RICH_TABLE_ROW_SPAN, RichTableCellBoxStyle, RichTableCellPadding, RichTableColumn,
 };
 
 use super::super::bbcode::{attribute_value, parse_hex_color};
@@ -24,7 +24,8 @@ pub(super) fn parse_cell_attributes(
     CellAttributes {
         column_span: parse_span(
             attribute_value(attributes, "colspan"),
-            u16::try_from(column_count.max(1)).unwrap_or(u16::MAX),
+            u16::try_from(column_count.max(1))
+                .expect("table construction bounds the compact column count"),
         ),
         row_span: parse_span(
             attribute_value(attributes, "rowspan"),
@@ -116,7 +117,10 @@ fn parse_span(value: Option<&str>, maximum: u16) -> u16 {
     value
         .and_then(|value| value.trim().parse::<u64>().ok())
         .filter(|value| *value > 0)
-        .map(|value| value.min(u64::from(maximum.max(DEFAULT_CELL_SPAN))) as u16)
+        .map(|value| {
+            u16::try_from(value.min(u64::from(maximum.max(DEFAULT_CELL_SPAN))))
+                .expect("span is clamped to its compact representation")
+        })
         .unwrap_or(DEFAULT_CELL_SPAN)
 }
 

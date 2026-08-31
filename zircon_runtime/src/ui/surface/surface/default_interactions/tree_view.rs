@@ -390,7 +390,7 @@ impl UiSurface {
             return Ok(None);
         };
         let node_ids = tree_node_ids_for_property(owner_metadata, property);
-        let Some(source_index) = node_ids.iter().position(|id| id == &hit.option_id) else {
+        let Some(source_index) = node_ids.iter().position(|id| *id == hit.option_id) else {
             return Ok(None);
         };
         Ok(Some(UiDefaultTreeViewReorderStart {
@@ -434,11 +434,11 @@ impl UiSurface {
             return Ok(None);
         }
         let node_ids = tree_node_ids_for_property(owner_metadata, property);
-        let Some(current_source_index) = node_ids.iter().position(|id| id == &token.option_id)
+        let Some(current_source_index) = node_ids.iter().position(|id| *id == token.option_id)
         else {
             return Ok(None);
         };
-        let Some(target_index) = node_ids.iter().position(|id| id == &hit.option_id) else {
+        let Some(target_index) = node_ids.iter().position(|id| *id == hit.option_id) else {
             return Ok(None);
         };
         let from = current_source_index;
@@ -535,7 +535,7 @@ impl UiSurface {
         }
 
         let node_ids = tree_node_ids(owner_metadata);
-        let Some(target_index) = node_ids.iter().position(|id| id == &hit.option_id) else {
+        let Some(target_index) = node_ids.iter().position(|id| *id == hit.option_id) else {
             return Ok(None);
         };
 
@@ -616,7 +616,7 @@ impl UiSurface {
         }
 
         let node_ids = tree_node_ids(owner_metadata);
-        let Some(target_index) = node_ids.iter().position(|id| id == &hit.option_id) else {
+        let Some(target_index) = node_ids.iter().position(|id| *id == hit.option_id) else {
             return Ok(None);
         };
         let editing_text = tree_node_label(owner_metadata, &hit.option_id)
@@ -640,17 +640,12 @@ impl UiSurface {
     fn tree_view_hit(&self, route: &UiPointerRoute) -> Result<Option<TreeViewHit>, UiTreeError> {
         let mut option_id = None;
         let mut blocked = false;
-        let hit_route = if route.stacked.is_empty() {
-            route.bubbled.as_slice()
-        } else {
-            route.stacked.as_slice()
-        };
-        for node_id in hit_route {
+        for node_id in route.hit_candidates() {
             let node = self
                 .tree
-                .node(*node_id)
-                .ok_or(UiTreeError::MissingNode(*node_id))?;
-            if !self.node_interaction_enabled(*node_id)? {
+                .node(node_id)
+                .ok_or(UiTreeError::MissingNode(node_id))?;
+            if !self.node_interaction_enabled(node_id)? {
                 blocked = true;
             }
             let Some(metadata) = node.template_metadata.as_ref() else {
@@ -669,7 +664,7 @@ impl UiSurface {
                     return Ok(None);
                 }
                 return Ok(option_id.map(|option_id| TreeViewHit {
-                    owner_id: *node_id,
+                    owner_id: node_id,
                     option_id,
                 }));
             }

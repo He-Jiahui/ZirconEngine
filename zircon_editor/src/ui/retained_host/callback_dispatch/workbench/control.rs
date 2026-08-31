@@ -1,11 +1,4 @@
-use std::time::Duration;
-
-use crate::core::editor_operation::EditorOperationSource;
-use crate::core::notifications::{
-    NotificationId, NotificationSource, ToastNotification, ToastSeverity,
-};
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, SelectionCommand};
-use crate::ui::host::play_pending_decision::PlayPendingEditDecisionOutcome;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
@@ -109,20 +102,32 @@ pub(crate) fn dispatch_componentized_workbench_transform_axis_commit(
     Some(dispatch_editor_binding(runtime, binding))
 }
 
+pub(crate) fn dispatch_componentized_workbench_render_layer_mask_commit(
+    runtime: &EditorHostEventController,
+    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    control_id: &str,
+    binding_id: &str,
+    value: &str,
+) -> Option<Result<UiHostEventEffects, String>> {
+    let binding = match bridge.render_layer_mask_commit_binding(control_id, binding_id, value) {
+        Ok(Some(binding)) => binding,
+        Ok(None) => return None,
+        Err(error) => return Some(Err(error)),
+    };
+    Some(dispatch_editor_binding(runtime, binding))
+}
+
 pub(crate) fn dispatch_componentized_workbench_option_selected(
     runtime: &EditorHostEventController,
     bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
     control_id: &str,
     option_id: &str,
 ) -> Result<UiHostEventEffects, String> {
-    if bridge.is_pending_play_decision_option(control_id, option_id) {
-        let outcome = runtime.resolve_pending_play_decision(option_id)?;
-        let mut effects = UiHostEventEffects::default();
-        if let Some(notification) = toast_for_pending_play_decision(&outcome) {
-            effects.toast_notifications.push(notification);
-        }
-        effects.request_presentation();
-        return Ok(effects);
+    if bridge.is_pending_activity_decision_option(control_id, option_id) {
+        runtime
+            .resolve_activity_decision(option_id)
+            .map_err(|error| error.to_string())?;
+        return Ok(UiHostEventEffects::default());
     }
     let selected = bridge
         .select_dropdown_option(control_id, option_id)
@@ -142,65 +147,6 @@ pub(crate) fn dispatch_componentized_workbench_option_selected(
     Ok(effects)
 }
 
-fn toast_for_pending_play_decision(
-    outcome: &PlayPendingEditDecisionOutcome,
-) -> Option<ToastNotification> {
-    match outcome {
-        PlayPendingEditDecisionOutcome::Applied { failures, .. } if failures.is_empty() => {
-            activity_toast(
-                "editor.play.pending_edits.applied",
-                ToastSeverity::Success,
-                "editor.notification.pending_edits_applied.title",
-                "editor.notification.pending_edits_applied.message",
-                Duration::from_millis(3_500),
-            )
-        }
-        PlayPendingEditDecisionOutcome::Applied { failures, .. } => {
-            let diagnostics = failures
-                .iter()
-                .map(|failure| {
-                    format!(
-                        "pending edit intent {:?} failed: {}",
-                        failure.intent(),
-                        failure.error()
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join("; ");
-            activity_toast(
-                "editor.play.pending_edits.apply_failed",
-                ToastSeverity::Error,
-                "editor.notification.pending_edits_failed.title",
-                ToastNotification::bounded_message(
-                    &diagnostics,
-                    "Queued edits could not be applied.",
-                ),
-                Duration::from_secs(7),
-            )
-        }
-        PlayPendingEditDecisionOutcome::Discarded { .. } => activity_toast(
-            "editor.play.pending_edits.discarded",
-            ToastSeverity::Info,
-            "editor.notification.pending_edits_discarded.title",
-            "editor.notification.pending_edits_discarded.message",
-            Duration::from_millis(3_500),
-        ),
-        PlayPendingEditDecisionOutcome::AlreadyResolved { .. } => None,
-    }
-}
-
-fn activity_toast(
-    id: &str,
-    severity: ToastSeverity,
-    title_key: &str,
-    message_key: impl Into<String>,
-    lifetime: Duration,
-) -> Option<ToastNotification> {
-    let id = NotificationId::parse(id).ok()?;
-    let source = NotificationSource::builtin("editor.play").ok()?;
-    ToastNotification::new(id, source, severity, title_key, message_key, lifetime).ok()
-}
-
 pub(crate) fn dispatch_componentized_workbench_surface_control_edited(
     bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
     control_id: &str,
@@ -208,10 +154,22 @@ pub(crate) fn dispatch_componentized_workbench_surface_control_edited(
     value: &str,
 ) -> Option<Result<UiHostEventEffects, String>> {
     let edited = match bridge
-        .edit_inspector_component_property(control_id, binding_id, value)
+        .edit_inspector_filter(control_id, binding_id, value)
+        .and_then(|edited| match edited {
+            Some(edited) => Ok(Some(edited)),
+            None => bridge.edit_inspector_component_property(control_id, binding_id, value),
+        })
         .and_then(|edited| match edited {
             Some(edited) => Ok(Some(edited)),
             None => bridge.edit_inspector_transform_axis(control_id, binding_id, value),
+        })
+        .and_then(|edited| match edited {
+            Some(edited) => Ok(Some(edited)),
+            None => bridge.edit_inspector_render_layer_mask(control_id, binding_id, value),
+        })
+        .and_then(|edited| match edited {
+            Some(edited) => Ok(Some(edited)),
+            None => bridge.edit_component_lab_field(control_id, binding_id, value),
         })
         .and_then(|edited| match edited {
             Some(edited) => Ok(Some(edited)),
@@ -261,10 +219,16 @@ pub(crate) fn dispatch_componentized_workbench_menu_item_selected(
                 request.target_folder(),
             ) {
                 Ok(record) => apply_record_effects(&mut effects, &record),
-                Err(error) => return Some(Err(error)),
+                Err(error) => return Some(Err(error.to_string())),
             }
         }
         if let Some(binding) = bridge.main_menu_item_binding(control_id, action_id) {
+            match dispatch_editor_binding(runtime, binding) {
+                Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
+                Err(error) => return Some(Err(error)),
+            }
+        }
+        if let Some(binding) = bridge.context_menu_item_binding(control_id, action_id) {
             match dispatch_editor_binding(runtime, binding) {
                 Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
                 Err(error) => return Some(Err(error)),
@@ -286,6 +250,38 @@ pub(crate) fn dispatch_componentized_workbench_menu_item_selected(
             }
         }
         match bridge.dispatch_workbench_module_overflow_menu_item_state(control_id, action_id) {
+            Ok(Some(binding)) => match dispatch_editor_binding(runtime, binding) {
+                Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
+                Err(error) => return Some(Err(error)),
+            },
+            Ok(None) => {}
+            Err(error) => return Some(Err(error.to_string())),
+        }
+        match bridge.dispatch_workbench_asset_editor_menu_item_state(control_id, action_id) {
+            Ok(Some(binding)) => match dispatch_editor_binding(runtime, binding) {
+                Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
+                Err(error) => return Some(Err(error)),
+            },
+            Ok(None) => {}
+            Err(error) => return Some(Err(error.to_string())),
+        }
+        match bridge.dispatch_workbench_ability_editor_menu_item_state(control_id, action_id) {
+            Ok(Some(binding)) => match dispatch_editor_binding(runtime, binding) {
+                Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
+                Err(error) => return Some(Err(error)),
+            },
+            Ok(None) => {}
+            Err(error) => return Some(Err(error.to_string())),
+        }
+        match bridge.dispatch_workbench_render_editor_menu_item_state(control_id, action_id) {
+            Ok(Some(binding)) => match dispatch_editor_binding(runtime, binding) {
+                Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
+                Err(error) => return Some(Err(error)),
+            },
+            Ok(None) => {}
+            Err(error) => return Some(Err(error.to_string())),
+        }
+        match bridge.dispatch_workbench_hud_editor_menu_item_state(control_id, action_id) {
             Ok(Some(binding)) => match dispatch_editor_binding(runtime, binding) {
                 Ok(binding_effects) => merge_effects(&mut effects, binding_effects),
                 Err(error) => return Some(Err(error)),

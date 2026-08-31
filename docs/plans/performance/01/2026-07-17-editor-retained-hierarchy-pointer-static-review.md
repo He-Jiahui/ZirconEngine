@@ -12,10 +12,16 @@ tests:
   - existing hierarchy bridge and retained-host pointer integration suites
   - current-source Windows focused Cargo and 10k-scene-row scroll/move storm pending
 doc_type: implementation-evidence
-status: static_complete_dynamic_pending
+status: superseded_by_2026-08-23_current_source_review
 ---
 
 # Editor Retained Hierarchy Pointer 逐文件性能静态审查（2026-07-17）
+
+> Superseded on 2026-08-23 by
+> `2026-08-23-editor-retained-hierarchy-typed-row-receipt-hard-cutover-architecture-review.md`.
+> Current source no longer rebuilds logical rows on scroll: it uses O(1) arithmetic row routing and
+> O(V) visible-row paint. The O(N) findings below describe the 2026-07-17 source generation and must
+> not be used as current acceptance evidence.
 
 ## 范围与覆盖
 

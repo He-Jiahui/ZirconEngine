@@ -16,14 +16,19 @@ pub(super) fn job_pane_diagnostics(snapshot: &DesktopExportJobSnapshot) -> Strin
             "cancel requested; backend result will be ignored when it returns"
         }
     };
-    let mut lines = vec![
-        format!("Output: {}", snapshot.output_root.display()),
-        format!("Progress: {phase}"),
-    ];
-    if let Some(progress) = &snapshot.progress {
-        lines.push(progress_pane_diagnostic(progress));
+    match snapshot.progress.as_ref() {
+        Some(progress) => format!(
+            "Output: {}\nProgress: {phase}\nStage: {}% {} - {}",
+            snapshot.output_root.display(),
+            progress.percent,
+            progress.stage,
+            progress.message
+        ),
+        None => format!(
+            "Output: {}\nProgress: {phase}",
+            snapshot.output_root.display()
+        ),
     }
-    lines.join("\n")
 }
 
 pub(super) fn progress_pane_diagnostic(progress: &DesktopExportProgressSnapshot) -> String {
@@ -32,3 +37,7 @@ pub(super) fn progress_pane_diagnostic(progress: &DesktopExportProgressSnapshot)
         progress.percent, progress.stage, progress.message
     )
 }
+
+#[cfg(test)]
+#[path = "status/direct_format_tests.rs"]
+mod direct_format_tests;

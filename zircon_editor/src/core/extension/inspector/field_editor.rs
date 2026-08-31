@@ -26,6 +26,18 @@ const ASSET_REFERENCE_MARKERS: [&str; 21] = [
     "video",
     "world",
 ];
+const NUMBER_FIELD_TYPE_ALIASES: &[&str] = &[
+    "i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128", "usize", "f32",
+    "f64", "number",
+];
+const BUILTIN_FIELD_TYPE_ALIASES: &[&str] = &[
+    "bool",
+    "boolean",
+    "color",
+    "enum",
+    "asset_reference",
+    "curve",
+];
 
 /// Stable field-editor families understood by retained and reflected inspector surfaces.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -227,68 +239,51 @@ impl FieldEditorContainer {
 }
 
 fn normalize_field_type_name(type_name: &str) -> &str {
-    let lower = type_name.to_ascii_lowercase();
-    if matches!(
-        lower.as_str(),
-        "i8" | "i16"
-            | "i32"
-            | "i64"
-            | "i128"
-            | "isize"
-            | "u8"
-            | "u16"
-            | "u32"
-            | "u64"
-            | "u128"
-            | "usize"
-            | "f32"
-            | "f64"
-            | "number"
-    ) {
+    if NUMBER_FIELD_TYPE_ALIASES
+        .iter()
+        .any(|alias| type_name.eq_ignore_ascii_case(alias))
+    {
         return "number";
     }
-    if lower == "bool" || lower == "boolean" {
+    if type_name.eq_ignore_ascii_case("bool") || type_name.eq_ignore_ascii_case("boolean") {
         return "bool";
     }
-    if lower.ends_with("color") || lower == "color" {
+    if ends_with_ignore_ascii_case(type_name, "color") {
         return "color";
     }
-    if lower.ends_with("enum") || lower == "enum" {
+    if ends_with_ignore_ascii_case(type_name, "enum") {
         return "enum";
     }
-    if lower.contains("asset") || lower.ends_with("resource") {
+    if contains_ignore_ascii_case(type_name, "asset")
+        || ends_with_ignore_ascii_case(type_name, "resource")
+    {
         return "asset_reference";
     }
-    if lower.ends_with("curve") || lower == "curve" {
+    if ends_with_ignore_ascii_case(type_name, "curve") {
         return "curve";
     }
     type_name
 }
 
 fn is_builtin_field_editor_alias(type_name: &str) -> bool {
-    matches!(
-        type_name.to_ascii_lowercase().as_str(),
-        "i8" | "i16"
-            | "i32"
-            | "i64"
-            | "i128"
-            | "isize"
-            | "u8"
-            | "u16"
-            | "u32"
-            | "u64"
-            | "u128"
-            | "usize"
-            | "f32"
-            | "f64"
-            | "number"
-            | "bool"
-            | "boolean"
-            | "color"
-            | "enum"
-            | "asset_reference"
-            | "curve"
-    )
+    NUMBER_FIELD_TYPE_ALIASES
+        .iter()
+        .chain(BUILTIN_FIELD_TYPE_ALIASES)
+        .any(|alias| type_name.eq_ignore_ascii_case(alias))
+}
+
+fn ends_with_ignore_ascii_case(value: &str, suffix: &str) -> bool {
+    value
+        .as_bytes()
+        .get(value.len().saturating_sub(suffix.len())..)
+        .is_some_and(|tail| tail.eq_ignore_ascii_case(suffix.as_bytes()))
+}
+
+fn contains_ignore_ascii_case(value: &str, needle: &str) -> bool {
+    value
+        .as_bytes()
+        .windows(needle.len())
+        .any(|window| window.eq_ignore_ascii_case(needle.as_bytes()))
 }
 
 fn is_qualified_field_type_name(type_name: &str) -> bool {
@@ -317,4 +312,29 @@ fn asset_reference_editor(_init: FieldEditorInit) -> FieldEditorInstance {
 
 fn curve_placeholder_editor(_init: FieldEditorInit) -> FieldEditorInstance {
     FieldEditorInstance::new(FieldEditorKind::CurvePlaceholder)
+}
+
+#[cfg(test)]
+mod performance_contract_tests {
+    use super::*;
+
+    #[test]
+    fn field_type_normalization_borrows_ascii_aliases_and_preserves_qualified_types() {
+        for (type_name, expected) in [
+            ("I64", "number"),
+            ("BoOlEaN", "bool"),
+            ("LinearCOLOR", "color"),
+            ("EditorENUM", "enum"),
+            ("TextureASSET", "asset_reference"),
+            ("GpuRESOURCE", "asset_reference"),
+            ("AnimationCURVE", "curve"),
+            ("OpaqueCustomRecord", "OpaqueCustomRecord"),
+        ] {
+            assert_eq!(normalize_field_type_name(type_name), expected);
+        }
+
+        let editors = FieldEditorContainer::builtin();
+        assert!(editors.definition("Plugin.TextureAsset").is_none());
+        assert!(editors.definition("plugin::LinearColor").is_none());
+    }
 }

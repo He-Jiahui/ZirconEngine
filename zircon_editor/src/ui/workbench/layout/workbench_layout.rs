@@ -1,29 +1,21 @@
-use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ui::workbench::autolayout::PaneConstraintOverride;
-use crate::ui::workbench::autolayout::ShellRegionId;
-use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
+use crate::ui::workbench::view::ViewDescriptorId;
 
 use super::{
     ActivityDrawerLayout, ActivityDrawerSlot, ActivityWindowHostMode, ActivityWindowId,
-    ActivityWindowLayout, FloatingWindowLayout, MainHostPageLayout, MainPageId,
+    ActivityWindowLayout, DocumentNode, FloatingWindowLayout, MainHostPageLayout, MainPageId,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct WorkbenchLayout {
     pub active_main_page: MainPageId,
     pub main_pages: Vec<MainHostPageLayout>,
-    pub drawers: BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
-    #[serde(default)]
     pub activity_windows: BTreeMap<ActivityWindowId, ActivityWindowLayout>,
     pub floating_windows: Vec<FloatingWindowLayout>,
-    #[serde(default)]
-    pub region_overrides: BTreeMap<ShellRegionId, PaneConstraintOverride>,
-    #[serde(default)]
-    pub view_overrides: BTreeMap<ViewInstanceId, PaneConstraintOverride>,
 }
 
 impl Default for WorkbenchLayout {
@@ -35,58 +27,80 @@ impl Default for WorkbenchLayout {
                 id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
                 activity_window: ActivityWindowId::workbench(),
-                document_workspace: super::DocumentNode::default(),
             }],
-            drawers: drawers.clone(),
-            activity_windows: default_activity_windows_with_drawers(drawers),
+            activity_windows: default_activity_windows(drawers),
             floating_windows: Vec::new(),
-            region_overrides: BTreeMap::new(),
-            view_overrides: BTreeMap::new(),
         }
     }
 }
 
 impl WorkbenchLayout {
-    pub fn activity_windows(&self) -> Cow<'_, BTreeMap<ActivityWindowId, ActivityWindowLayout>> {
-        if self.activity_windows.is_empty() {
-            Cow::Owned(default_activity_windows_with_drawers(self.drawers.clone()))
-        } else if self.activity_windows.values().all(|window| {
-            window
-                .activity_drawers
-                .iter()
-                .all(|(slot, drawer)| slot.canonical() == *slot && drawer.slot == *slot)
-        }) {
-            Cow::Borrowed(&self.activity_windows)
-        } else {
-            let mut windows = self.activity_windows.clone();
-            for window in windows.values_mut() {
-                window.activity_drawers =
-                    canonical_activity_drawers(std::mem::take(&mut window.activity_drawers));
-            }
-            Cow::Owned(windows)
-        }
+    pub fn activity_windows(&self) -> &BTreeMap<ActivityWindowId, ActivityWindowLayout> {
+        &self.activity_windows
+    }
+
+    pub fn content_workspace_for_page(&self, page_id: &MainPageId) -> Option<&DocumentNode> {
+        let window_id = self
+            .main_pages
+            .iter()
+            .find(|page| page.id() == page_id)?
+            .activity_window_id()?;
+        self.activity_windows
+            .get(window_id)
+            .map(|window| &window.content_workspace)
+    }
+
+    pub fn content_workspace_for_page_mut(
+        &mut self,
+        page_id: &MainPageId,
+    ) -> Option<&mut DocumentNode> {
+        let window_id = self
+            .main_pages
+            .iter()
+            .find(|page| page.id() == page_id)?
+            .activity_window_id()?
+            .clone();
+        self.activity_windows
+            .get_mut(&window_id)
+            .map(|window| &mut window.content_workspace)
+    }
+
+    pub(crate) fn ensure_workbench_content_workspace(&mut self) -> &mut DocumentNode {
+        let window_id = self
+            .main_pages
+            .iter()
+            .find_map(|page| page.activity_window_id().cloned())
+            .unwrap_or_else(|| {
+                let window_id = ActivityWindowId::workbench();
+                self.main_pages.insert(
+                    0,
+                    MainHostPageLayout::WorkbenchPage {
+                        id: MainPageId::workbench(),
+                        title: "Workbench".to_string(),
+                        activity_window: window_id.clone(),
+                    },
+                );
+                window_id
+            });
+        &mut self
+            .activity_windows
+            .entry(window_id.clone())
+            .or_insert_with(|| default_activity_window(window_id, default_drawers()))
+            .content_workspace
     }
 
     pub fn active_activity_window_drawers(
         &self,
-    ) -> BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout> {
-        let Some(active_window_id) = self.active_activity_window_id() else {
-            return BTreeMap::new();
-        };
-        self.activity_windows()
-            .get(&active_window_id)
-            .map(|window| window.activity_drawers.clone())
-            .unwrap_or_default()
-    }
+    ) -> &BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout> {
+        static EMPTY_ACTIVITY_DRAWERS: BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout> =
+            BTreeMap::new();
 
-    pub(crate) fn sync_legacy_drawers_from_active_activity_window(&mut self) {
-        self.drawers = self.active_activity_window_drawers();
+        self.active_activity_window()
+            .map(|window| &window.activity_drawers)
+            .unwrap_or(&EMPTY_ACTIVITY_DRAWERS)
     }
 
     pub fn default_activity_window_mut(&mut self) -> Option<&mut ActivityWindowLayout> {
-        if self.activity_windows.is_empty() {
-            self.activity_windows = default_activity_windows_with_drawers(self.drawers.clone());
-        }
         self.activity_windows
             .get_mut(&ActivityWindowId::workbench())
     }
@@ -98,11 +112,13 @@ impl WorkbenchLayout {
             .and_then(|page| page.activity_window_id().cloned())
     }
 
+    pub fn active_activity_window(&self) -> Option<&ActivityWindowLayout> {
+        let window_id = self.active_activity_window_id()?;
+        self.activity_windows.get(&window_id)
+    }
+
     pub fn active_activity_window_mut(&mut self) -> Option<&mut ActivityWindowLayout> {
         let window_id = self.active_activity_window_id()?;
-        if self.activity_windows.is_empty() && window_id == ActivityWindowId::workbench() {
-            self.activity_windows = default_activity_windows_with_drawers(self.drawers.clone());
-        }
         self.activity_windows.get_mut(&window_id)
     }
 
@@ -121,82 +137,30 @@ fn default_drawers() -> BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout> {
         .collect()
 }
 
-fn default_activity_windows_with_drawers(
-    drawers: BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
-) -> BTreeMap<ActivityWindowId, ActivityWindowLayout> {
-    activity_windows_from_legacy_drawers(drawers)
-}
-
-pub(crate) fn activity_windows_from_legacy_drawers(
+fn default_activity_windows(
     drawers: BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
 ) -> BTreeMap<ActivityWindowId, ActivityWindowLayout> {
     let window_id = ActivityWindowId::workbench();
-    let drawers = canonical_activity_drawers(drawers);
     [(
         window_id.clone(),
-        ActivityWindowLayout {
-            window_id,
-            descriptor_id: ViewDescriptorId::new("editor.workbench_window"),
-            host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
-            activity_drawers: drawers,
-            content_workspace: super::DocumentNode::default(),
-            menu_overflow_mode: Default::default(),
-            region_overrides: BTreeMap::new(),
-            view_overrides: BTreeMap::new(),
-        },
+        default_activity_window(window_id, drawers),
     )]
     .into_iter()
     .collect()
 }
 
-pub(crate) fn canonical_activity_drawers(
+fn default_activity_window(
+    window_id: ActivityWindowId,
     drawers: BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
-) -> BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout> {
-    let mut canonical = BTreeMap::new();
-    for (slot, mut drawer) in drawers {
-        let slot = slot.canonical();
-        drawer.slot = slot;
-        if let Some(existing) = canonical.get_mut(&slot) {
-            merge_drawer_layout(existing, drawer);
-        } else {
-            canonical.insert(slot, drawer);
-        }
-    }
-    canonical
-}
-
-fn merge_drawer_layout(existing: &mut ActivityDrawerLayout, incoming: ActivityDrawerLayout) {
-    for tab in incoming.tab_stack.tabs {
-        if !existing.tab_stack.tabs.contains(&tab) {
-            existing.tab_stack.tabs.push(tab);
-        }
-    }
-
-    if existing.active_view.is_none() && incoming.active_view.is_some() {
-        existing.active_view = incoming.active_view.clone();
-        existing.tab_stack.active_tab = incoming
-            .tab_stack
-            .active_tab
-            .or_else(|| existing.active_view.clone());
-        existing.mode = incoming.mode;
-        existing.extent = incoming.extent;
-    }
-    existing.visible |= incoming.visible;
-}
-
-#[cfg(test)]
-mod performance_tests {
-    use std::borrow::Cow;
-
-    use super::WorkbenchLayout;
-
-    #[test]
-    fn canonical_activity_windows_are_borrowed() {
-        let layout = WorkbenchLayout::default();
-        assert!(matches!(layout.activity_windows(), Cow::Borrowed(_)));
-
-        let mut legacy = layout.clone();
-        legacy.activity_windows.clear();
-        assert!(matches!(legacy.activity_windows(), Cow::Owned(_)));
+) -> ActivityWindowLayout {
+    ActivityWindowLayout {
+        window_id,
+        descriptor_id: ViewDescriptorId::new("editor.workbench_window"),
+        host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
+        activity_drawers: drawers,
+        content_workspace: DocumentNode::default(),
+        menu_overflow_mode: Default::default(),
+        region_overrides: BTreeMap::new(),
+        view_overrides: BTreeMap::new(),
     }
 }

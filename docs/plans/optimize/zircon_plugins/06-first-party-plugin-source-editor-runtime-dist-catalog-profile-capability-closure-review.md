@@ -20,7 +20,7 @@ related_code:
   - zircon_plugins/ui_asset_authoring
   - zircon_plugins/virtual_geometry
   - zircon_app/Cargo.toml
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/first_party_editor_plugins.rs
   - zircon_app/src/entry/entry_runner/editor.rs
@@ -125,7 +125,7 @@ editor缺失列表是：AI、Animation、Animation Graph、Desktop Export、Edit
 | Server | builtin core；未来project可选择server plugin | `target-server`不链接任何first-party catalog | project source selection需要额外手工feature或generated provider |
 | Generated export | selection生成linked provider function pointers | 不依赖hand-written catalog覆盖 | 路径可保留，但必须与其余形态共享resolution receipt |
 
-`EntryConfig::new(profile)`不会自动设置`RuntimeProfileId`或profile manifest；只有`for_runtime_profile/with_runtime_profile`才生成default selections。Editor GUI startup使用`EntryConfig::new(Editor)`后再覆盖project manifest，因此内建Editor profile的default plugin真值与项目启动真值又是两条路径。render profile overlay只能补Virtual Geometry/Hybrid GI/Solari，不能补Sound/Rendering/Texture baseline。
+2026-08-27后`EntryConfig`只记录产品请求，`resolve()`一次生成`ResolvedProductHostConfig`并合并runtime-profile manifest、显式project selection与render overlay；Editor provider投影和module composition复用同一结果。`EntryConfig::new(Editor)`仍不等同于显式`RuntimeProfileId::Editor`，因此Editor角色baseline与profile catalog的最终统一继续由本计划负责，不能因App配置权威收敛而提前关闭。
 
 ### 2.4 Selection Resolution 实际语义
 

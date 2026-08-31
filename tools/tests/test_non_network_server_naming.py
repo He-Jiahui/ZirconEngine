@@ -17,6 +17,18 @@ from runtime_structure_audits.non_network_server_naming import (  # noqa: E402
 
 
 class NonNetworkServerNamingTests(unittest.TestCase):
+    def test_headless_time_policy_owners_do_not_reintroduce_server_naming(self) -> None:
+        sources = [
+            REPO_ROOT / "zircon_runtime/src/core/framework/time/product_policy.rs",
+            REPO_ROOT / "zircon_runtime/src/core/runtime/time/product_policy.rs",
+            REPO_ROOT / "zircon_runtime/src/dynamic_api/session/profile.rs",
+        ]
+
+        report = non_network_server_references(REPO_ROOT, sources)
+
+        self.assertEqual([], report["unclassified_locations"])
+        self.assertEqual([], report["non_network_server_migration_debt"])
+
     def test_test_owned_sources_are_reported_but_not_migration_debt(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -57,7 +69,7 @@ class NonNetworkServerNamingTests(unittest.TestCase):
                 "zircon_runtime/src/bin/zircon_export_validate/run.rs": (
                     'let profile = OsString::from("server");\n'
                 ),
-                "zircon_runtime/src/platform/capability/matrix/mod.rs": (
+                "zircon_runtime/src/platform/capability/matrix/build_report.rs": (
                     'let message = "server or headless runtime requires a backend";\n'
                 ),
             }
@@ -87,7 +99,7 @@ class NonNetworkServerNamingTests(unittest.TestCase):
                 "zircon_runtime/src/bin/zircon_export_validate/run.rs": (
                     'let render_server = OsString::from("server");\n'
                 ),
-                "zircon_runtime/src/platform/capability/matrix/mod.rs": (
+                "zircon_runtime/src/platform/capability/matrix/build_report.rs": (
                     'let render_server = "server or headless runtime";\n'
                 ),
                 "zircon_editor/src/ui/retained_host/app/module_plugin_projection/"

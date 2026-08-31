@@ -5,6 +5,7 @@ use zircon_runtime_interface::ui::{
 
 #[derive(Clone, Copy, Debug)]
 pub(super) enum PopupPlacement {
+    Center,
     TopStart,
     Top,
     TopEnd,
@@ -33,6 +34,10 @@ impl PopupPlacement {
             .filter(|part| !part.is_empty());
         let side = parts.next()?;
         let align = parts.next();
+        if side.eq_ignore_ascii_case("center") {
+            return align.is_none().then_some(Self::Center);
+        }
+
         let default_align = default.align();
         let align = align.unwrap_or(default_align.as_str());
         if side.eq_ignore_ascii_case("top") {
@@ -50,6 +55,7 @@ impl PopupPlacement {
 
     fn side(self) -> PopupSide {
         match self {
+            Self::Center => PopupSide::Center,
             Self::TopStart | Self::Top | Self::TopEnd => PopupSide::Top,
             Self::BottomStart | Self::Bottom | Self::BottomEnd => PopupSide::Bottom,
             Self::LeftStart | Self::Left | Self::LeftEnd => PopupSide::Left,
@@ -59,6 +65,7 @@ impl PopupPlacement {
 
     fn align(self) -> PopupAlign {
         match self {
+            Self::Center => PopupAlign::Center,
             Self::TopStart | Self::BottomStart | Self::LeftStart | Self::RightStart => {
                 PopupAlign::Start
             }
@@ -69,6 +76,7 @@ impl PopupPlacement {
 
     fn flipped(self) -> Self {
         match self {
+            Self::Center => Self::Center,
             Self::TopStart => Self::BottomStart,
             Self::Top => Self::Bottom,
             Self::TopEnd => Self::BottomEnd,
@@ -86,6 +94,7 @@ impl PopupPlacement {
 
     fn anchor_origin(self) -> (HorizontalOrigin, VerticalOrigin) {
         match self.side() {
+            PopupSide::Center => (HorizontalOrigin::Center, VerticalOrigin::Center),
             PopupSide::Top => (horizontal_origin(self.align()), VerticalOrigin::Top),
             PopupSide::Bottom => (horizontal_origin(self.align()), VerticalOrigin::Bottom),
             PopupSide::Left => (HorizontalOrigin::Left, vertical_origin(self.align())),
@@ -95,6 +104,7 @@ impl PopupPlacement {
 
     fn transform_origin(self) -> (HorizontalOrigin, VerticalOrigin) {
         match self.side() {
+            PopupSide::Center => (HorizontalOrigin::Center, VerticalOrigin::Center),
             PopupSide::Top => (horizontal_origin(self.align()), VerticalOrigin::Bottom),
             PopupSide::Bottom => (horizontal_origin(self.align()), VerticalOrigin::Top),
             PopupSide::Left => (HorizontalOrigin::Right, vertical_origin(self.align())),
@@ -105,6 +115,7 @@ impl PopupPlacement {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum PopupSide {
+    Center,
     Top,
     Bottom,
     Left,
@@ -178,7 +189,7 @@ pub(super) fn popup_anchor_frame(
     metadata: &UiTemplateNodeMetadata,
     fallback_frame: UiFrame,
 ) -> UiFrame {
-    if matches!(&metadata.widget.popup_anchor, UiPopupAnchor::Control { .. }) {
+    if !matches!(&metadata.widget.popup_anchor, UiPopupAnchor::None) {
         return fallback_frame;
     }
     let Some(x) = number_attribute(metadata, "popup_anchor_x") else {
@@ -198,6 +209,35 @@ pub(super) fn popup_anchor_frame(
     } else {
         fallback_frame
     }
+}
+
+pub(super) fn resolve_anchored_popup_geometry(
+    metadata: &UiTemplateNodeMetadata,
+    owner_frame: UiFrame,
+    resolved_anchor_frame: Option<UiFrame>,
+    clip_frame: Option<UiFrame>,
+    default_placement: PopupPlacement,
+    placement_gap: f32,
+) -> (UiFrame, Option<UiFrame>) {
+    if !has_popup_position_metadata(metadata) {
+        return (owner_frame, clip_frame);
+    }
+    let Some(resolved_anchor_frame) = resolved_anchor_frame else {
+        return (owner_frame, clip_frame);
+    };
+    let bounds = popup_layout_bounds(owner_frame, clip_frame);
+    let anchor_frame = popup_anchor_frame(metadata, resolved_anchor_frame);
+    let frame = anchored_popup_frame(
+        metadata,
+        anchor_frame,
+        owner_frame.width,
+        owner_frame.height,
+        bounds,
+        default_placement,
+        placement_gap,
+    )
+    .unwrap_or(owner_frame);
+    (frame, bounds)
 }
 
 pub(super) fn anchored_popup_frame(
@@ -287,6 +327,7 @@ fn placement_candidate(
     let mut x = anchor_x - transform_x + offset_x;
     let mut y = anchor_y - transform_y + offset_y;
     match placement.side() {
+        PopupSide::Center => {}
         PopupSide::Top => y -= placement_gap,
         PopupSide::Bottom => y += placement_gap,
         PopupSide::Left => x -= placement_gap,
@@ -297,6 +338,7 @@ fn placement_candidate(
 
 fn overflows_primary_axis(frame: UiFrame, side: PopupSide, bounds: UiFrame) -> bool {
     match side {
+        PopupSide::Center => false,
         PopupSide::Top => frame.y < bounds.y,
         PopupSide::Bottom => frame.bottom() > bounds.bottom(),
         PopupSide::Left => frame.x < bounds.x,
@@ -306,6 +348,7 @@ fn overflows_primary_axis(frame: UiFrame, side: PopupSide, bounds: UiFrame) -> b
 
 fn fits_primary_axis(frame: UiFrame, side: PopupSide, bounds: UiFrame) -> bool {
     match side {
+        PopupSide::Center => true,
         PopupSide::Top => frame.y >= bounds.y,
         PopupSide::Bottom => frame.bottom() <= bounds.bottom(),
         PopupSide::Left => frame.x >= bounds.x,
@@ -453,9 +496,10 @@ fn valid_bounds(frame: &UiFrame) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use toml::Value;
     use zircon_runtime_interface::ui::{layout::UiFrame, tree::UiTemplateNodeMetadata};
 
-    use super::{anchored_popup_frame, PopupPlacement};
+    use super::{PopupPlacement, anchored_popup_frame};
 
     #[test]
     fn popup_flips_from_trigger_frame_before_clamping() {
@@ -488,5 +532,27 @@ mod tests {
         .expect("valid popup geometry");
 
         assert_eq!(frame, bounds);
+    }
+
+    #[test]
+    fn center_placement_uses_the_surface_center() {
+        let bounds = UiFrame::new(10.0, 20.0, 800.0, 600.0);
+        let mut metadata = UiTemplateNodeMetadata::default();
+        metadata
+            .attributes
+            .insert("placement".to_string(), Value::String("center".to_string()));
+
+        let frame = anchored_popup_frame(
+            &metadata,
+            bounds,
+            400.0,
+            200.0,
+            Some(bounds),
+            PopupPlacement::Top,
+            0.0,
+        )
+        .expect("valid centered popup geometry");
+
+        assert_eq!(frame, UiFrame::new(210.0, 220.0, 400.0, 200.0));
     }
 }

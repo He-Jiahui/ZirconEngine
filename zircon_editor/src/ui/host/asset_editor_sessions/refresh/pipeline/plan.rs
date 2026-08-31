@@ -9,7 +9,7 @@ use crate::ui::host::editor_ui_host::EditorUiHost;
 use crate::ui::host::project_access::normalize_ui_asset_asset_id;
 use crate::ui::workbench::view::ViewInstanceId;
 
-use super::super::super::ui_asset_source_hash;
+use super::super::super::{ui_asset_source_digest, UiAssetSourceDigest};
 use super::queue::UiAssetRefreshRequest;
 
 pub(in crate::ui::host::asset_editor_sessions) struct UiAssetRefreshPlan {
@@ -42,14 +42,14 @@ pub(super) struct UiAssetDirectRefreshPlan {
     pub(super) asset_id: String,
     pub(super) source_path: PathBuf,
     pub(super) route: UiAssetEditorRoute,
-    pub(super) disk_source_hash: u64,
-    pub(super) source_fingerprint: u64,
+    pub(super) disk_source_digest: UiAssetSourceDigest,
+    pub(super) source_fingerprint: UiAssetSourceDigest,
     pub(super) source_dirty: bool,
 }
 
 pub(super) struct UiAssetImportRefreshPlan {
     pub(super) instance_id: ViewInstanceId,
-    pub(super) source_fingerprint: u64,
+    pub(super) source_fingerprint: UiAssetSourceDigest,
     pub(super) widget_refs: Vec<String>,
     pub(super) style_refs: Vec<String>,
 }
@@ -75,8 +75,10 @@ impl EditorUiHost {
                         .to_string(),
                     source_path: entry.source_path.clone(),
                     route: entry.session.route().clone(),
-                    disk_source_hash: entry.disk_source_hash,
-                    source_fingerprint: ui_asset_source_hash(entry.session.source_buffer().text()),
+                    disk_source_digest: entry.disk_source_digest,
+                    source_fingerprint: ui_asset_source_digest(
+                        entry.session.source_buffer().text(),
+                    ),
                     source_dirty: entry.session.source_buffer().is_dirty(),
                 })
             })
@@ -89,7 +91,9 @@ impl EditorUiHost {
                 let (widget_refs, style_refs) = entry.session.import_references();
                 Some(UiAssetImportRefreshPlan {
                     instance_id: instance_id.clone(),
-                    source_fingerprint: ui_asset_source_hash(entry.session.source_buffer().text()),
+                    source_fingerprint: ui_asset_source_digest(
+                        entry.session.source_buffer().text(),
+                    ),
                     widget_refs,
                     style_refs,
                 })

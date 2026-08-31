@@ -7,8 +7,9 @@ use zircon_runtime::ui::{
 };
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiDispatchEffect, UiInputDispatchResult, UiInputEvent, UiInputEventMetadata,
-        UiInputSequence, UiInputTimestamp, UiPointerEvent, UiPointerId, UiPointerInputEvent,
+        UiDispatchEffect, UiInputDiagnosticsMode, UiInputDispatchResult, UiInputEvent,
+        UiInputEventMetadata, UiInputSequence, UiInputTimestamp, UiPointerEvent, UiPointerId,
+        UiPointerInputEvent,
     },
     event_ui::UiNodeId,
     layout::UiPoint,
@@ -263,6 +264,10 @@ impl HostShellPointerBridge {
             .and_then(resize_group_from_shell_route)
     }
 
+    pub(crate) fn cancel_resize(&mut self) {
+        let _ = self.resize_surface.release_pointer_capture();
+    }
+
     pub(crate) fn finish_resize(&mut self, point: UiPoint) -> Option<HostResizeTargetGroup> {
         self.dispatch_resize_event(
             UiPointerEvent::new(UiPointerEventKind::Up, point)
@@ -274,7 +279,12 @@ impl HostShellPointerBridge {
     fn dispatch_drag_event(&mut self, event: UiPointerEvent) -> Option<UiInputDispatchResult> {
         let event = self.pointer_input_event(event);
         self.drag_surface
-            .dispatch_input_event(&self.drag_dispatcher, &self.navigation_dispatcher, event)
+            .dispatch_input_event_with_diagnostics_mode(
+                &self.drag_dispatcher,
+                &self.navigation_dispatcher,
+                event,
+                UiInputDiagnosticsMode::Summary,
+            )
             .ok()
     }
 
@@ -282,7 +292,12 @@ impl HostShellPointerBridge {
         let event = self.pointer_input_event(event);
         let dispatch = self
             .resize_surface
-            .dispatch_input_event(&self.resize_dispatcher, &self.navigation_dispatcher, event)
+            .dispatch_input_event_with_diagnostics_mode(
+                &self.resize_dispatcher,
+                &self.navigation_dispatcher,
+                event,
+                UiInputDiagnosticsMode::Summary,
+            )
             .ok()?;
         shell_pointer_route_from_input_result(&self.resize_route_intents, &dispatch)
     }
@@ -308,7 +323,12 @@ fn shell_pointer_route_from_input_result(
 ) -> Option<HostShellPointerRoute> {
     shell_pointer_reply_effect_target(result)
         .or(result.reply.handler)
-        .or(result.diagnostics.route_target)
+        .or_else(|| {
+            result
+                .pointer_routing
+                .as_ref()
+                .and_then(|routing| routing.route_target)
+        })
         .and_then(|node_id| intents.shell_pointer_route_for_node(node_id))
 }
 

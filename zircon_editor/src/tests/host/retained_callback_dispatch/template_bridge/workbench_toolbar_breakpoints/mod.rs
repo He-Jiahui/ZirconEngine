@@ -71,7 +71,7 @@ fn compact_workbench_toolbar_separates_command_and_module_tab_rows() {
         .control_frame("WorkbenchModuleTabs")
         .expect("compact toolbar should expose module tabs");
 
-    assert_frame_value("split toolbar height", toolbar.height, 72.0);
+    assert_frame_value("split toolbar height", toolbar.height, 66.0);
     assert_frame_value(
         "module commands share command row",
         command_group.y,
@@ -225,18 +225,18 @@ fn ultra_toolbar_density_restores_after_resize() {
         .recompute_layout(UiSize::new(1260.0, 720.0))
         .expect("resized workbench should recompute");
 
-    for (control_id, label, width) in [
-        ("WorkbenchModuleSave", "Save", 72.0),
-        ("WorkbenchModuleBrowse", "Browse", 92.0),
-        ("WorkbenchModuleCompile", "Compile", 104.0),
+    for (control_id, label, width, icon_only) in [
+        ("WorkbenchModuleSave", "Save", 34.0, true),
+        ("WorkbenchModuleBrowse", "Browse", 34.0, true),
+        ("WorkbenchModuleCompile", "Compile", 104.0, false),
     ] {
         assert_eq!(
             control_string(&bridge, control_id, "text").as_deref(),
-            Some(label)
+            Some(if icon_only { "" } else { label })
         );
         assert_eq!(
             control_string(&bridge, control_id, "icon_placement").as_deref(),
-            Some("leading")
+            Some(if icon_only { "icon_only" } else { "leading" })
         );
         assert_frame_value(
             "restored module command width",
@@ -300,16 +300,16 @@ fn ultra_toolbar_main_menu_keeps_hidden_file_commands_reachable() {
     );
 
     for (action_id, expected_command) in [
-        ("menu.item.open_project", "workbench.project.open"),
-        ("menu.item.save_project", "workbench.project.save"),
+        ("menu.item.open_project", "file.project.open"),
+        ("menu.item.save_project", "file.project.save"),
     ] {
         let binding = bridge
             .main_menu_item_binding("WorkbenchToolbarMainMenu", action_id)
             .unwrap_or_else(|| panic!("the main menu should retain {expected_command}"));
         assert!(matches!(
             binding.payload(),
-            EditorUiBindingPayload::MenuAction { action_id }
-                if action_id == expected_command
+            EditorUiBindingPayload::EditorCommand { command_id }
+                if command_id == expected_command
         ));
     }
 }
@@ -402,8 +402,8 @@ fn mvp_run_and_layout_controls_remain_reachable_across_all_layout_tiers() {
             .unwrap_or_else(|| panic!("{width}px Play should expose a binding"));
         assert!(matches!(
             play_binding.payload(),
-            EditorUiBindingPayload::MenuAction { action_id }
-                if action_id == "workbench.play_mode.enter"
+            EditorUiBindingPayload::EditorCommand { command_id }
+                if command_id == "runtime.play_mode.enter"
         ));
     }
 }
@@ -639,7 +639,7 @@ fn full_workbench_secondary_module_commands_keep_readable_width() {
     assert_frame_value(
         "full module command group width",
         command_group.width,
-        388.0,
+        292.0,
     );
     assert!(
         diff.width >= 54.0,
@@ -672,7 +672,7 @@ fn compact_workbench_toolbar_uses_slate_command_density() {
     let toolbar_frame = bridge
         .control_frame("WorkbenchWindowTopToolbarRegion")
         .expect("compact workbench should expose the top toolbar region");
-    assert_frame_value("toolbar height", toolbar_frame.height, 72.0);
+    assert_frame_value("toolbar height", toolbar_frame.height, 66.0);
 
     for control_id in COMPACT_CORE_MODULE_TABS {
         let frame = bridge
@@ -690,8 +690,8 @@ fn compact_workbench_toolbar_uses_slate_command_density() {
     let module_commands = bridge
         .control_frame("WorkbenchModuleCommands")
         .expect("compact toolbar should expose primary module commands");
-    assert_frame_value("module command group width", module_commands.width, 276.0);
-    assert_frame_value("module command group height", module_commands.height, 36.0);
+    assert_frame_value("module command group width", module_commands.width, 180.0);
+    assert_frame_value("module command group height", module_commands.height, 34.0);
 
     let save = bridge
         .control_frame("WorkbenchModuleSave")
@@ -702,9 +702,9 @@ fn compact_workbench_toolbar_uses_slate_command_density() {
     let compile = bridge
         .control_frame("WorkbenchModuleCompile")
         .expect("compile command should remain visible");
-    assert_frame_value("save command width", save.width, 72.0);
+    assert_frame_value("save command width", save.width, 34.0);
     assert_frame_value("save command height", save.height, 30.0);
-    assert_frame_value("browse command width", browse.width, 92.0);
+    assert_frame_value("browse command width", browse.width, 34.0);
     assert_frame_value("browse command height", browse.height, 30.0);
     assert_frame_value("compile command width", compile.width, 104.0);
     assert_frame_value("compile command height", compile.height, 30.0);
@@ -719,26 +719,28 @@ fn compact_workbench_toolbar_uses_slate_command_density() {
         .dispatch_control_state("WorkbenchModuleMore", UiEventKind::Click)
         .expect("module overflow should dispatch")
         .expect("module overflow should expose a binding");
-    let menu = bridge
+    let menu = rendered_control_frame(&bridge, "WorkbenchModuleOverflowMenu");
+    let arranged_menu = bridge
         .control_frame("WorkbenchModuleOverflowMenu")
         .expect("module overflow menu should open below the compact toolbar");
     assert_frame_value("module overflow menu y", menu.y, toolbar_frame.bottom());
     assert_frame_value(
         "module overflow menu x follows more button",
         menu.x,
-        clamped_toolbar_menu_x(module_more.x, menu.width, COMPACT_WORKBENCH_WIDTH as f32),
+        module_more.x,
     );
     assert_frame_value(
-        "module overflow popup anchor x",
-        control_float(&bridge, "WorkbenchModuleOverflowMenu", "popup_anchor_x")
-            .expect("module overflow popup should store anchor x") as f32,
-        menu.x,
+        "module overflow rendered width",
+        menu.width,
+        arranged_menu.width,
     );
-    assert_frame_value(
-        "module overflow popup anchor y",
-        control_float(&bridge, "WorkbenchModuleOverflowMenu", "popup_anchor_y")
-            .expect("module overflow popup should store anchor y") as f32,
-        menu.y,
+    assert_eq!(
+        control_float(&bridge, "WorkbenchModuleOverflowMenu", "popup_anchor_x"),
+        None
+    );
+    assert_eq!(
+        control_float(&bridge, "WorkbenchModuleOverflowMenu", "popup_anchor_y"),
+        None
     );
 }
 
@@ -1041,13 +1043,35 @@ fn assert_frame_value(label: &str, actual: f32, expected: f32) {
     );
 }
 
-fn clamped_toolbar_menu_x(authored_x: f32, menu_width: f32, root_width: f32) -> f32 {
-    const EDGE_MARGIN: f32 = 8.0;
-    let min_x = EDGE_MARGIN.min(root_width * 0.5);
-    let max_x = root_width - min_x - menu_width;
-    if max_x >= min_x {
-        authored_x.clamp(min_x, max_x)
-    } else {
-        0.0_f32.max(root_width - menu_width)
-    }
+fn rendered_control_frame(
+    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    control_id: &str,
+) -> UiFrame {
+    let node_id = bridge
+        .surface()
+        .tree
+        .nodes
+        .values()
+        .find_map(|node| {
+            node.template_metadata
+                .as_ref()
+                .and_then(|metadata| metadata.control_id.as_deref())
+                .filter(|candidate| *candidate == control_id)
+                .map(|_| node.node_id)
+        })
+        .unwrap_or_else(|| panic!("{control_id} should resolve to one runtime node"));
+    bridge
+        .surface()
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .filter(|command| command.node_id == node_id)
+        .map(|command| command.frame)
+        .max_by(|left, right| {
+            let left_area = left.width.max(0.0) * left.height.max(0.0);
+            let right_area = right.width.max(0.0) * right.height.max(0.0);
+            left_area.total_cmp(&right_area)
+        })
+        .unwrap_or_else(|| panic!("{control_id} should emit popup render commands"))
 }

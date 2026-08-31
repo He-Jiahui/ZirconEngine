@@ -67,8 +67,9 @@ impl NativePluginDiscoveryRefreshWork {
                             .expect("notification order must reference an action");
                         match action {
                             NativePluginDiscoveryManifestAction::Refresh => {
-                                current_order.retain(|current| current != &path);
-                                current_actions.remove(&path);
+                                if current_actions.remove(&path).is_some() {
+                                    current_order.retain(|current| current != &path);
+                                }
                             }
                             NativePluginDiscoveryManifestAction::Remove => {
                                 // A later directory removal makes every earlier manifest refresh
@@ -101,6 +102,7 @@ fn is_path_within(path: &std::path::Path, ancestor: &std::path::Path) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
     use std::path::PathBuf;
 
     use super::{NativePluginDiscoveryManifestAction, NativePluginDiscoveryRefreshWork};
@@ -177,5 +179,46 @@ mod tests {
             work.manifest_paths_in_notification_order(),
             Some([package].as_slice())
         );
+    }
+
+    #[test]
+    fn unique_refreshes_append_without_rescanning_existing_order() {
+        let weather = PathBuf::from("plugins/weather/plugin.toml");
+        let climate = PathBuf::from("plugins/climate/plugin.toml");
+        let ocean = PathBuf::from("plugins/ocean/plugin.toml");
+        let mut work = NativePluginDiscoveryRefreshWork::refresh_manifest(weather.clone());
+
+        work.merge(NativePluginDiscoveryRefreshWork::refresh_manifest(
+            climate.clone(),
+        ));
+        work.merge(NativePluginDiscoveryRefreshWork::refresh_manifest(
+            ocean.clone(),
+        ));
+
+        assert_eq!(
+            work.manifest_paths_in_notification_order(),
+            Some([weather, climate, ocean].as_slice())
+        );
+        assert_eq!(work.manifest_actions().map(BTreeMap::len), Some(3));
+    }
+
+    #[test]
+    fn duplicate_refresh_moves_path_to_latest_notification_position() {
+        let weather = PathBuf::from("plugins/weather/plugin.toml");
+        let climate = PathBuf::from("plugins/climate/plugin.toml");
+        let mut work = NativePluginDiscoveryRefreshWork::refresh_manifest(weather.clone());
+
+        work.merge(NativePluginDiscoveryRefreshWork::refresh_manifest(
+            climate.clone(),
+        ));
+        work.merge(NativePluginDiscoveryRefreshWork::refresh_manifest(
+            weather.clone(),
+        ));
+
+        assert_eq!(
+            work.manifest_paths_in_notification_order(),
+            Some([climate, weather].as_slice())
+        );
+        assert_eq!(work.manifest_actions().map(BTreeMap::len), Some(2));
     }
 }

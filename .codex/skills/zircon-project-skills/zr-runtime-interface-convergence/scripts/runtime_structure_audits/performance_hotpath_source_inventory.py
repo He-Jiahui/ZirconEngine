@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 EXPECTED_SOURCE_FILE_COUNT = 46
-EXPECTED_TEST_FILE_COUNT = 91
 LARGE_FILE_HOTSPOT_THRESHOLD = 1000
 EXPECTED_LARGE_FILE_OWNER_CLASSES = (
     "editor-retained-host",

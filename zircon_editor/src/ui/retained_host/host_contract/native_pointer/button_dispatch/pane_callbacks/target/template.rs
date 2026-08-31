@@ -19,10 +19,13 @@ pub(super) fn dispatch_template_pane_target_button(
     let PanePointerTarget::TemplateNode(hit) = &pointer.target else {
         return None;
     };
+    if state != NativePointerButtonState::Pressed || button != UiPointerButton::Primary {
+        return None;
+    }
     dispatch_template_node_button(
         ui,
         pane_host,
-        hit.clone(),
+        hit.to_owned_hit(),
         state,
         button,
         cleared_text_input_frame,

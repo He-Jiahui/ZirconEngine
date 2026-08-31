@@ -112,8 +112,8 @@ fn fixture_identity(mode: SdfMode) -> SdfOfflineArtifactIdentity {
     SdfOfflineArtifactIdentity {
         asset_guid: TEST_ASSET_GUID.to_string(),
         face_index: 1,
-        variation_hash: [0x11; 32],
-        source_hash: [0x22; 32],
+        variation_hash: [0x11; 32].into(),
+        source_hash: [0x22; 32].into(),
         params: SdfBakeParams::for_mode(mode),
     }
 }

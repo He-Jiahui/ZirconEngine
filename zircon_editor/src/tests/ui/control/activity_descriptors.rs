@@ -30,7 +30,7 @@ fn editor_ui_control_service_registers_activity_descriptors() {
 }
 
 #[test]
-fn activity_drawer_slot_preference_exposes_single_bottom_dock_and_migrates_legacy_bottom_slots() {
+fn activity_drawer_slot_preference_exposes_only_the_single_bottom_dock() {
     let descriptor = ActivityViewDescriptor::new("editor.console", "Console", "terminal")
         .with_default_drawer(ActivityDrawerSlotPreference::Bottom);
 
@@ -40,12 +40,10 @@ fn activity_drawer_slot_preference_exposes_single_bottom_dock_and_migrates_legac
         "external activity descriptors should expose one Bottom drawer position"
     );
 
-    for legacy in [r#""BottomLeft""#, r#""BottomRight""#] {
-        let decoded: ActivityDrawerSlotPreference = serde_json::from_str(legacy).unwrap();
-        assert_eq!(
-            decoded,
-            ActivityDrawerSlotPreference::Bottom,
-            "legacy serialized bottom drawer slots should migrate to Bottom"
+    for retired in [r#""BottomLeft""#, r#""BottomRight""#] {
+        assert!(
+            serde_json::from_str::<ActivityDrawerSlotPreference>(retired).is_err(),
+            "retired bottom drawer slots must be rejected"
         );
     }
 }

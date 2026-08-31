@@ -466,24 +466,24 @@ Manager façade 已硬切到 runtime 内部的 versioned service identity，不�
 
 ### Not Promoted: `zircon_ui` Binding / Reflection / Template Protocols
 
-这轮我也重新扫了 `zircon_ui::binding::{UiBindingValue, UiBindingCall, UiEventKind, UiEventPath}`、`zircon_ui::event_ui::{UiControlRequest, UiControlResponse, UiReflectionSnapshot, UiNodeDescriptor, UiPropertyDescriptor}` 与 `zircon_ui::template::{UiTemplateLoader, UiDocumentCompiler}` 这组高频 surface。
+这轮我也重新扫了 `zircon_runtime::ui::binding::{UiBindingValue, UiBindingCall, UiEventKind, UiEventPath}`、`zircon_runtime::ui::event_ui::{UiControlRequest, UiControlResponse, UiReflectionSnapshot, UiNodeDescriptor, UiPropertyDescriptor}` 与 `zircon_runtime::ui::template::UiDocumentCompiler` 这组高频 surface。
 
 它们在 editor/editor_ui 里消费面很大，但当前证据还不足以把它们升级成“明显错包”，原因是：
 
-- [zircon_ui/src/binding/mod.rs](../../zircon_ui/src/binding/mod.rs) 与 [zircon_ui/src/event_ui/mod.rs](../../zircon_ui/src/event_ui/mod.rs) 自己就拥有 binding parser、event manager、reflection store 和 invocation 协议
-- [zircon_ui/src/template/mod.rs](../../zircon_ui/src/template/mod.rs) 自己拥有 template loader、validator、asset loader、document compiler 和 surface builder
-- `zircon_ui` crate 内部测试直接覆盖这组能力：[zircon_ui/src/tests/binding.rs](../../zircon_ui/src/tests/binding.rs)、[zircon_ui/src/tests/event_manager.rs](../../zircon_ui/src/tests/event_manager.rs)、[zircon_ui/src/tests/template.rs](../../zircon_ui/src/tests/template.rs)、[zircon_runtime/src/ui/tests/asset.rs](../../zircon_runtime/src/ui/tests/asset.rs)
+- [zircon_runtime/src/ui/binding/mod.rs](../../zircon_runtime/src/ui/binding/mod.rs) 与 [zircon_runtime/src/ui/event_ui/mod.rs](../../zircon_runtime/src/ui/event_ui/mod.rs) 自己就拥有 binding parser、event manager、reflection store 和 invocation 协议
+- [zircon_runtime/src/ui/template/mod.rs](../../zircon_runtime/src/ui/template/mod.rs) 只公开 asset loader、`UiDocumentCompiler`、compiled document 和 surface builder；旧 simple loader/validator/pipeline 已硬切删除
+- runtime UI 内部测试直接覆盖这组能力：[zircon_runtime/src/ui/tests/binding.rs](../../zircon_runtime/src/ui/tests/binding.rs)、[zircon_runtime/src/ui/tests/event_manager.rs](../../zircon_runtime/src/ui/tests/event_manager.rs)、[zircon_runtime/src/ui/tests/template.rs](../../zircon_runtime/src/ui/tests/template.rs)、[zircon_runtime/src/ui/tests/asset.rs](../../zircon_runtime/src/ui/tests/asset.rs)
 
-也就是说，虽然 editor 是这组协议的重度调用方，但权威实现和验证目前仍然在 `zircon_ui` 子系统内部。这更像“UI runtime/authoring 共用协议”而不是“editor-only 语义误挂在 runtime crate”。因此这轮先不升级它，继续留在 watchlist。
+也就是说，虽然 editor 是这组协议的重度调用方，但权威实现和验证目前仍然在 `zircon_runtime::ui` 子系统内部。这更像“UI runtime/authoring 共用协议”而不是“editor-only 语义误挂在 runtime crate”。因此这轮先不升级它，继续留在 watchlist。
 
-这轮再把 watchlist 收窄到 historical template fixture conversion 后，结论已经从“继续保留 adapter surface”更新为“formal public surface 不保留 adapter”：
+Runtime74 又把 watchlist 收窄到单一 template compiler authority，结论从“测试仍保留旧 fixture 输入”更新为“旧 source compiler 与 DTO 全部硬切”：
 
-- [zircon_runtime/src/ui/template/document.rs](../../zircon_runtime/src/ui/template/document.rs) 里的 `UiTemplateDocument` 仍服务 shared template fixture/test coverage；production editor/runtime path 已经固定到 tree-shaped `UiAssetDocument`
+- [zircon_runtime_interface/src/ui/template/document.rs](../../zircon_runtime_interface/src/ui/template/document.rs) 只保留 compiled tree 所需的 `UiBindingRef` / `UiTemplateNode`；`UiTemplateDocument` 已删除
 - [zircon_editor/src/ui/template/registry.rs](../../zircon_editor/src/ui/template/registry.rs) 生产态只托管 compiled asset documents，不再托管 legacy template document authority
 - [zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs](../../zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs) 生产态只接受 tree `UiAssetDocument` source，不再以 `UiTemplateLoader` fallback 解析旧模板输入
-- historical template / flat fixture conversion 只保留在 runtime test support 与 editor test support，用来把旧测试夹具转成 canonical tree TOML
+- runtime template 测试只反序列化已展开的 compiled node fixture，并显式拒绝未解析 template/slot；不再提供旧 source fixture conversion
 
-因此 `UiTemplateDocument` / `UiTemplateLoader` 当前只是 shared fixture/test support 输入面，不再构成 production owner 迁移候选或 formal public adapter surface。
+因此当前唯一 source authority 是 `UiAssetLoader -> UiDocumentCompiler -> UiCompiledDocument`；`UiTemplateDocument`、`UiTemplateLoader`、`UiTemplateValidator` 和 `UiTemplateRuntimePipeline` 均不再存在。
 
 ### Keep In `zircon_manager`
 
@@ -556,14 +556,14 @@ Manager façade 已硬切到 runtime 内部的 versioned service identity，不�
 26. `zircon_scene` 根级对 `WorldHandle` / `LevelSummary` 的 framework-owned re-export 已删除；crate 内部统一改成直接依赖 `zircon_framework::scene`
 27. `zircon_asset` 根级只保留 asset 语义 alias；`AssetMetadata` / `AssetRegistry` / `AssetUriError` / `AssetUriScheme` 已从 root 移除，未接线的 `src/registry/**` 与 `src/uri.rs` 也已删除
 28. `zircon_asset` 的 project public API 已收束到 `zircon_asset::project::{ProjectManager, ProjectManifest, ProjectPaths}`；workspace 调用点不再从 asset root 平铺取这组三元组
-29. `zircon_runtime::ui` root 不再平铺 `UiTemplateDocument` / `UiTemplateLoader`；historical template fixture conversion 只保留在 runtime/editor test support，production editor/runtime path 统一走 tree `UiAssetDocument`
+29. `zircon_runtime::ui` root 不再平铺 `UiTemplateDocument` / `UiTemplateLoader`，这两个旧 source 输入已连同 test fixture conversion 一起删除；production editor/runtime path 统一走 tree `UiAssetDocument`
 30. `zircon_asset` 的 watch public API 也已收束到 `zircon_asset::watch::{AssetChange, AssetChangeKind, AssetWatchEvent, AssetWatcher}`；asset root 不再继续平铺 watch 子域
-31. `zircon_ui` root 不再平铺 compiler/layout/surface specialist surface；`UiCompiledDocument` / `UiDocumentCompiler` / `UiStyleResolver` 统一走 `zircon_ui::template::*`，`compute_layout_tree` / `compute_virtual_list_window` / `solve_axis_constraints` 统一走 `zircon_ui::layout::*`，`UiRenderExtract` / `UiRenderCommand*` / `UiResolvedStyle` / `UiVisualAssetRef` 统一走 `zircon_ui::surface::*`
+31. `zircon_runtime::ui` root 不再平铺 compiler/layout/surface specialist surface；`UiCompiledDocument` / `UiDocumentCompiler` / `UiStyleResolver` 统一走 `zircon_runtime::ui::template::*`，`compute_layout_tree` / `compute_virtual_list_window` / `solve_axis_constraints` 统一走 `zircon_runtime::ui::layout::*`，`UiRenderExtract` / `UiRenderCommand*` / `UiResolvedStyle` / `UiVisualAssetRef` 统一走 `zircon_runtime::ui::surface::*`
 32. `zircon_runtime::ui` root 继续把 template asset component-schema / reflection surface 收回 `zircon_runtime::ui::template::{UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema, UiStyleScope}`；editor `ui_asset` core 与 runtime asset compiler 调用点不再从 root 取这组 schema 类型
 33. template asset selector/parser DTO surface 已继续收口到 `zircon_runtime_interface::ui::template::{UiSelector, UiSelectorToken}`；selector stylesheet 的 parse/match model 现在由 runtime behavior 直接消费 interface DTO，`zircon_runtime::ui::template` 不再经 namespace re-export 保留这组 parser model
-34. `zircon_ui` root 继续把 template document/binding model 收回 `zircon_ui::template::{UiActionRef, UiBindingRef, UiComponentTemplate, UiSlotTemplate}`；`zircon_editor` 的 binding inspector / command / document diff / template adapter 现在显式从 template namespace 取这组类型，`zircon_ui` 自己的 tree metadata 与 asset document 也不再经 crate root 绕行
+34. template binding model 收回 `zircon_runtime_interface::ui::template::{UiActionRef, UiBindingRef}`；旧 `UiComponentTemplate` / `UiSlotTemplate` 已随第二编译 authority 删除，`zircon_editor` 的 binding inspector / command / document diff 显式从 interface template namespace 取共享 DTO
 35. `zircon_runtime::{asset,ui}` 吸收层入口也已回到 namespace-first 结构：runtime asset 只保留 `project` / `watch` namespace，runtime ui 只保留 `layout` / `surface` / `template` / `tree` namespace，不再在吸收层重新扁平化这些子域 surface；上述 template component-schema / reflection / selector-parser / binding-model surface 也不会在 runtime ui root 重新出现
-36. `zircon_ui` root 不再平铺 binding / event-ui specialist surface；`UiBindingValue` / `UiBindingCall` / `UiEventKind` / `UiEventPath` 统一走 `zircon_ui::binding::*`，`UiControlRequest` / `UiControlResponse` / `UiReflectionSnapshot` / `UiNodeDescriptor` / `UiPropertyDescriptor` / `UiRouteId` / `UiTreeId` 统一走 `zircon_ui::event_ui::*`，`zircon_runtime::ui` 也只保留 `binding` / `event_ui` namespace 而不再重新拍平这两簇 DTO
+36. `zircon_runtime::ui` root 不再平铺 binding / event-ui specialist surface；共享 DTO 统一走 `zircon_runtime_interface::ui::{binding,event_ui}::*`，runtime 行为统一走 `zircon_runtime::ui::{binding,event_ui}::*`，吸收层不再重新拍平这两簇 surface
 
 这样 `zircon_manager` 继续保留 façade record/trait 本身，但不再重复拥有 asset/editor 展示语义，也不再错误持有输入子系统、资源子系统或 scene 子系统的专属协议模型。
 
@@ -602,9 +602,9 @@ graphics public owner cutover 在入口侧已经继续收口：
 
 1. 继续审计 runtime graphics 内部较深的 helper/public surface，确认 graphics owner cutover 在入口之外也没有遗留 root-surface 泄漏；`GraphicsModule` 本身已经稳定由 `zircon_runtime::graphics` 与 `zircon_runtime::builtin::builtin_runtime_modules()` 持有。
 2. `RenderingBackendInfo` 目前已有充分 keep 证据；后续只需在 `RenderingManager` façade 真正删除或出现第二实现时再重开审计。
-3. 继续细分 `zircon_runtime::ui` watchlist；当前 production path 已经固定 tree authority，下一步若要再升级，先要证明 `UiTemplateDocument` / `UiTemplateLoader` 已经脱离 runtime 自己的 validator/instance/surface fixture coverage。
+3. `UiTemplateDocument` / `UiTemplateLoader` 的 watchlist 项已由 Runtime74 RTB-P1-001 硬切关闭；后续 UI 边界工作转向 compiled binding typed id、endpoint 和 generation 合同。
 4. 持续扫 live `docs/` 中对旧 asset/scene owner 的残留描述；当前仓库没有 `docs/source/` 目录，因此文档清扫目标以总览型文档为准。
-5. `zircon_asset` 根级 raw-resource foreign re-export、project flatten 与 watch flatten 已完成，`zircon_runtime::{asset,ui}` 也已经回到 namespace-first surface；在 binding / event_ui 这两簇收口闭环后，下一批更合理的非热区候选转向 `zircon_ui` 其它仍高扇出的 root surface，以及 repo 内仍假定 runtime world 会生成 editor overlay 的残留测试/文档。
+5. `zircon_asset` 根级 raw-resource foreign re-export、project flatten 与 watch flatten 已完成，`zircon_runtime::{asset,ui}` 也已经回到 namespace-first surface；在 binding / event_ui 这两簇收口闭环后，下一批更合理的非热区候选转向 `zircon_runtime::ui` 其它仍高扇出的 root surface，以及 repo 内仍假定 runtime world 会生成 editor overlay 的残留测试/文档。
 6. 在不碰 `zircon_editor` / `zircon_graphics` 热区的前提下，继续找新的“证据充分”候选；除这条 root-surface 泄漏外，本轮还没有发现新的高证据错包。
 
 ## Validation
@@ -680,7 +680,7 @@ graphics public owner cutover 在入口侧已经继续收口：
 - `WorldHandle` / `LevelSummary` 已完成 scene 协议层收口：`zircon_scene_protocol` 成为唯一 owner，`zircon_manager` 不再 re-export scene handle/summary
 - `RenderingBackendInfo` 当前应保留在 `zircon_manager`：它有实际 graphics 实现、模块注册和 bootstrap 消费，当前定位是 compat façade contract
 - `zircon_runtime::ui` binding / reflection / template protocols 当前仍停留在 watchlist，因为 runtime UI 自身仍是这组协议的实现和测试 owner；historical fixture conversion 不属于 production public surface
-- `zircon_runtime::ui` 的 root-surface 收口已扩展到 compiler/layout/template-runtime/tree specialist surface：workspace 调用点统一经 `zircon_runtime::ui::template::{UiTemplateDocument, UiTemplateLoader, UiCompiledDocument, UiDocumentCompiler, UiStyleResolver, UiTemplateBuildError, UiTemplateError, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder, UiTemplateValidator, UiTemplateInstance, UiTemplateNode}`、`zircon_runtime::ui::layout::{compute_layout_tree, compute_virtual_list_window, solve_axis_constraints}` 与 `zircon_runtime::ui::tree::{UiTemplateNodeMetadata, UiTreeError, UiDirtyFlags, UiLayoutCache, UiHitTestIndex, UiHitTestResult}` 访问，而不是继续依赖 root flat exports
+- `zircon_runtime::ui` 的 root-surface 收口已扩展到 compiler/layout/template-runtime/tree specialist surface：workspace 调用点统一经 `zircon_runtime::ui::template::{UiAssetLoader, UiCompiledDocument, UiDocumentCompiler, UiStyleResolver, UiTemplateBuildError, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder, UiTemplateInstance}`、`zircon_runtime::ui::layout::{compute_layout_tree, compute_virtual_list_window, solve_axis_constraints}` 与 `zircon_runtime::ui::tree::{UiTemplateNodeMetadata, UiTreeError, UiDirtyFlags, UiLayoutCache, UiHitTestIndex, UiHitTestResult}` 访问；compiled tree DTO `UiTemplateNode` 由 `zircon_runtime_interface::ui::template` 持有
 - `zircon_ui` 的 root-surface 收口也已经覆盖 binding / event_ui specialist：workspace 调用点统一经 `zircon_ui::binding::*` 与 `zircon_ui::event_ui::*` 访问，`zircon_runtime::ui` 只保留 `binding` / `event_ui` namespace，不再在吸收层根入口重新拍平这两簇协议 DTO
 - `zircon_asset` 根级 raw `zircon_resource` foreign re-export 已进入收口实现：raw `Resource*` surface 应回到 `zircon_resource`，asset crate 根只保留 asset-named 语义 alias；其中 `AssetReference` 这类仍有消费证据的 asset 别名不在删除范围
 - `zircon_asset` 的 project/watch public API 都已从“候选”转为“已落地”：`ProjectManager` / `ProjectManifest` / `ProjectPaths` / `AssetMetaDocument` / `PreviewState` 现在只经 `zircon_asset::project::*` 暴露，`AssetChange` / `AssetChangeKind` / `AssetWatchEvent` / `AssetWatcher` 现在只经 `zircon_asset::watch::*` 暴露

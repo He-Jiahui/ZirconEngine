@@ -6,14 +6,16 @@ related_code:
   - zircon_runtime/src/runtime_diagnostics/mod.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/dispatch.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/measurement.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/capability.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/history.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/virtual_geometry.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/virtual_geometry/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/hybrid_gi.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/advanced_provider.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/solari.rs
@@ -40,7 +42,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
@@ -79,14 +81,16 @@ implementation_files:
   - zircon_runtime/src/runtime_diagnostics/mod.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/dispatch.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/measurement.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/capability.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/history.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/virtual_geometry.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/virtual_geometry/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/hybrid_gi.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/advanced_provider.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/solari.rs
@@ -112,7 +116,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
@@ -196,7 +200,7 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_preserves_renderer_stage_metadata
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_counts_renderer_stage_order_violations
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_preserves_history_copy_report
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::materialization_creates_dense_transients_and_skips_sparse_reservations
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_creates_dense_transients_and_skips_sparse_reservations
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_fails_unbound_required_external_buffer
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_rejects_stale_texture_binding_outside_live_lifetimes
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_rejects_stale_buffer_binding_outside_live_lifetimes
@@ -316,7 +320,7 @@ That narrower bridge is still the correct consumer boundary. Runtime diagnostics
 
 Runtime 07 `render_product_diagnostics_owner_split_static_passed_cargo_deferred` keeps the render product bridge folder-backed. `render_stats_store/product.rs` is now only the product-family dispatcher, while `render_stats_store/product/{camera,visibility,hzb,light_grid,effect_stack,material,light,mesh_queue,gpu_scene,sprite,ui}.rs` own concrete diagnostic projections; the status-table shorthand is `render_stats_store/product/{camera,mesh_queue,gpu_scene}.rs`. The guard `runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backed` records this as a structure slice with `expected_source_file_count = 38`, `hotspot_guard_anchor_count = 25`, `doc_anchor_count = 29`, `large_file_hotspot_count = 39`, and `runtime-other = 15`; package-level Runtime 07 Cargo validation remains deferred with the broader extract/ecs_query/profiling/FPS gates.
 
-The 2026-06-17 editor UI popup-row adornment validation exposed a product-family import boundary issue before the editor crate was checked. Because concrete product diagnostic modules live under `render_stats_store/product/`, their `super::record_*` helper imports resolve through `product.rs`; that dispatcher now imports `record_bool`, `record_bytes`, and `record_count` from `render_stats_store.rs` so child modules can continue using the local parent as the shared helper owner. `cargo fmt -p zircon_runtime -p zircon_editor`, `cargo fmt -p zircon_runtime --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never` passed after the support fix, with only existing warning noise.
+Concrete product diagnostic modules live under `render_stats_store/product/`, so their `super::record_*` helper imports resolve through `product.rs`. The product dispatcher imports those names from the render-stats parent, while `render_stats_store/mod.rs` exposes private bindings owned by `render_stats_store/measurement.rs`. This keeps count, byte, microsecond, and bool conversion in one static-metadata owner without putting behavior back into either dispatcher.
 
 Motion-vector object diagnostics are draw-eligibility evidence, not a public draw list. GPUScene records the shader-visible previous transform by rolling current instance transforms after successful submissions; `build_mesh_draws` then marks motion-vector-eligible mesh draws as having or missing previous object transforms. `DiagnosticStore` mirrors those aggregate counts as `render.mesh.queue.{previous,missing}_motion_vector_transform_draw_count`, so tooling can distinguish first-frame/new-object gaps from a broken graph executor without accessing WGPU buffers or per-draw renderer internals.
 
@@ -332,7 +336,7 @@ Compiled graph cache diagnostics are submission compile evidence, not GPU execut
 
 Graph execution resource diagnostics are binding-count evidence, not renderer object exposure. `RenderGraphExecutionResources::resource_report()` counts texture views, external texture views, renderer-owned dense transient textures, buffers, and total bound resources after frame target import, optional history import, and transient materialization. `RenderGraphExecutionRecord` carries that neutral `RenderGraphExecutionResourceReport` into `RenderStats.last_graph_execution_resource_report`, and `DiagnosticStore` mirrors it as `render.graph.execution.texture_view_count`, `external_texture_view_count`, `owned_texture_count`, `buffer_count`, and `bound_resource_count`. These rows prove the frame registry had concrete bindings available for graph executors; they do not expose WGPU handles, allocator residency, sparse page tables, or pass timing.
 
-Runtime 15 M4 core runtime render-stats graph execution-resources owner split is recorded as `runtime_15_render_stats_graph_execution_resources_owner_split_static_passed_cargo_timeout_no_result`. `core/runtime/diagnostics/render_stats_store/graph.rs` remains the graph diagnostics dispatcher and keeps coverage, stage, materialization, alias, profile, and post-process graph rows, while `core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs` now owns the execution resource binding-count rows plus transient-pool creation/reuse/retained/budget/eviction rows. The structure guard `runtime_15_render_stats_graph_execution_resources_are_child_owner` keeps those resource rows out of the parent and keeps both owners under the 800-line production-file budget.
+Runtime 15 M4 core runtime render-stats graph execution-resources owner split is recorded as `runtime_15_render_stats_graph_execution_resources_owner_split_static_passed_cargo_timeout_no_result`. `core/runtime/diagnostics/render_stats_store/graph/mod.rs` is the graph diagnostics dispatcher; execution coverage/stage/alias/profile, frame, materialization, post-process, and execution-resource rows live in focused children below it. `graph/execution_resources.rs` owns the execution resource binding-count rows plus transient-pool creation/reuse/retained/budget/eviction rows. The structure guard `runtime_15_render_stats_graph_execution_resources_are_child_owner` keeps those resource rows out of the parent and keeps the owners under the production-file budget.
 
 Graph materialization diagnostics are live-lifetime completeness evidence. `RenderGraphExecutionResources::validate_materialized_graph_resources(...)` compares compiled graph lifetimes against the execution resource table after transient materialization and before executor dispatch. Typed texture and buffer misses are hard execution errors; sparse texture reservations are counted without dense backing; external lifetimes are counted as required/bound/missing report rows and carry a `RenderGraphExternalResourceBinding` that decides whether a miss is report-only or fatal. Required external misses fail the submit before diagnostics publish a successful-frame row, while report-only externals continue to expose imported frame-target/history evidence without making those resources mandatory. The same audit rejects logical texture or buffer bindings already present in the execution table when their names are absent from the compiled live lifetime set, so culled frame/history/plugin/fallback resources cannot survive as stale pre-bound rows. HZB occlusion now binds its required executor-owned external buffers before this audit, so its phase-local indirect/compaction/replay/stats names can contribute bound external evidence instead of only missing rows. `RenderStats.last_graph_materialization_report` mirrors required, bound, missing, missing typed, texture, buffer, external, stale binding, and sparse reservation counts under `render.graph.materialization.*` when validation succeeds.
 

@@ -555,7 +555,53 @@ Event、Message和RemovedComponent统一使用generation channel、entry/byte/ag
 ## 14. 当前状态
 
 - Runtime60 review：`review_complete`。
-- production/tests/Cargo/ABI实现：`pending`，本轮零改动。
+- production/tests/Cargo/ABI实现：`partial`；`RECS-P1-10` 已有源码与回归，Cargo/ABI 仍 pending。
 - 新增唯一P0：2；P1：72；P2：18；验收门禁：40。
 - source recheck：required；进入实现前必须重算四组fingerprint、open failure和first-party caller。
 - 全引擎review goal仍为`in_progress`；Runtime60只是ECS kernel纵切面，不表示zircon_runtime或整个引擎审查完成。
+
+## 15. 2026-08-28 RECS-P1-10 前向实施记录
+
+状态：`runtime_08_15_archetype_topology_equality_receipt_static_passed_cargo_deferred`。
+
+动工前已重读 `ArchetypeIndex`、`ArchetypeRecord`、`World` derive caller 与局部测试 owner，并
+对照 Unreal Mass `FMassArchetypeHandle` 的 data identity、`FMassArchetypeVersionedHandle` 的
+identity + version，以及 Bevy world-local `ArchetypeId`、`ArchetypeGeneration` 和无容器恒真
+equality 的 `Archetypes`。当前缺陷属于 correctness/receipt，不属于无 profile 禁止实施的性能
+调参；本切片未改 query、storage mutation、schedule 或 frame loop 算法。
+
+`ArchetypeIndex::PartialEq` 现委托给 borrowed `ArchetypeTopologySnapshot`，比较 `by_signature`、
+`by_component`、ordered record ID/signature/entity rows，排除 performance counters 与
+`membership_generation` 历史。该比较零额外分配，复杂度为 O(index entries + archetype records
++ entity rows)，只在显式 equality/`World` comparison 时发生。三项 Rust 回归与 focused source
+guard 已落盘；Cargo、Miri、产品 scene、CPU/allocation/RSS/power profile 尚未执行，因此只关闭
+`RECS-P1-10` 的源码实现项，不关闭 Runtime60、G01-G40、性能资格或 managed milestone。
+
+Runtime08 aggregate audit 的 source count 口径已由陈旧 75 修正为 inventory 76，但该门仍因
+dual storage getter、component-storage sibling import、generational entity 与 observer bucket
+四组共享脏 owner 锚漂移失败；它们不属于 `RECS-P1-10`，本切片按并发避让规则保持 open。
+
+## 16. 2026-08-28 RECS-P1-11 前向实施记录
+
+状态：`runtime_08_60_sparse_component_locator_algorithm_source_passed_diagnostics_cargo_product_profile_deferred`。
+
+动工前完整复核 `SparseComponentStorage`、全部 `ComponentStorage` caller、entity allocator 与
+Runtime08 columnar failure，并将 Unreal `TChunkedArray`/`TSparseArray` 的 chunk + shrink 生命周期
+作为主参考；Bevy 连续 `SparseArray` 明确承认稀疏高 key 额外内存，只作为负面对照。独立 release
+模型先比较连续 Vec、全 radix、全 hash 与 hybrid，报告见
+`60/2026-08-28-sparse-component-locator-pages.md`，生产改动在报告和 source-contract RED 之后开始。
+
+分页算法已硬切为 256-slot packed pages、零起始 flat prefix、一个 page-aligned offset window 与
+其余范围的 identity-hash 页；`BTreeSet` 提供 ordered range absorption。两个 flat span 以每个 live
+locator 1,024 slots 为提升界，低密度时先 trim/rebase，仍低于 1/2,048 才降级。最高合法 entity
+index 只分配 2 KiB window；最后一个 location 删除释放空 locator。
+4,000,000 高水位内存 `96,000,024 -> 2,048 B`，连续 262,144 rows locator modeled allocation
+`6,291,456 -> 2,097,152 B`。最终三轮 dense P50 为改善 10.3439% 到回退 4.2631%，partial
+最差回退 28.0677%；高位聚簇 mixed/hit 分别改善 6.4199%-15.0733% / 7.2077%-13.7094%，
+双 span 回退 4.3081%-16.1994%。原 HashMap 分支回退
+203.3120%-446.0091%，radix/open-row 也未过线，故采用 offset window；真正第三离散簇仍是
+memory-first、待产品 profile 证明为冷路径的 overflow。interactive P95 不冒充产品尾延迟。
+source/status contract 3/3 与真实 owner Rust harness 16/16 通过，其中包括双 span absorption、
+trim/rebase、跨表示删除 compaction、真正离散 demotion 与 20,000 mixed-operation reference model。生产 locator-byte diagnostics 尚未聚合到共享 `ComponentStorage` owner，且
+Cargo、百万 counters/RSS slope、真实产品 scene P95、WPR wakeups/CPU/power 仍 pending；因此
+`RECS-P1-11` 只完成分页算法，不关闭整项或 G06。

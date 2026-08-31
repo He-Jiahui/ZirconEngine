@@ -3,6 +3,20 @@ use zircon_runtime_interface::reflect::{ReflectError, ReflectFieldInfo};
 
 use super::*;
 
+fn schema_field(
+    name: &str,
+    value_type_path: &str,
+    editor_hint: ReflectEditorHint,
+) -> ReflectFieldInfo {
+    ReflectFieldInfo::from_stable_keys(
+        "tests.vm-schema-invariant",
+        name,
+        name,
+        value_type_path,
+        editor_hint,
+    )
+}
+
 #[test]
 fn public_property_writes_preserve_complete_vm_component_schema() {
     const TYPE_PATH: &str = "gameplay.Component.PublicPropertyState";
@@ -11,15 +25,17 @@ fn public_property_writes_preserve_complete_vm_component_schema() {
         "PublicPropertyState",
         ReflectScriptVisibility::Public,
         vec![
-            ReflectFieldInfo::new("enabled", "Bool", ReflectEditorHint::Bool),
-            ReflectFieldInfo::new("label", "String", ReflectEditorHint::String),
+            schema_field("enabled", "Bool", ReflectEditorHint::Bool),
+            schema_field("label", "String", ReflectEditorHint::String),
         ],
     );
     let mut world = World::empty();
     world
         .register_vm_type(registration, VmTypeBacking::DynamicComponent)
         .expect("VM property state should register");
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let enabled_path = ComponentPropertyPath::new(TYPE_PATH, vec!["enabled".to_string()])
         .expect("VM property path should build");
 
@@ -86,7 +102,9 @@ fn zero_field_vm_components_accept_only_empty_objects() {
             VmTypeBacking::DynamicComponent,
         )
         .expect("empty VM component schema should register");
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
     assert!(matches!(
         world
@@ -116,14 +134,16 @@ fn vm_entity_and_resource_wrappers_reject_lossy_extra_keys() {
                 "Links",
                 ReflectScriptVisibility::Public,
                 vec![
-                    ReflectFieldInfo::new("target", "Entity", ReflectEditorHint::Entity),
-                    ReflectFieldInfo::new("asset", "Resource", ReflectEditorHint::Resource),
+                    schema_field("target", "Entity", ReflectEditorHint::Entity),
+                    schema_field("asset", "Resource", ReflectEditorHint::Resource),
                 ],
             ),
             VmTypeBacking::DynamicComponent,
         )
         .expect("VM link schema should register");
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
     assert!(matches!(
         world
@@ -173,11 +193,7 @@ fn vm_registration_rejects_malformed_declared_value_type_grammar() {
             "gameplay.Component.Malformed",
             "Malformed",
             ReflectScriptVisibility::Public,
-            vec![ReflectFieldInfo::new(
-                "value",
-                malformed,
-                ReflectEditorHint::None,
-            )],
+            vec![schema_field("value", malformed, ReflectEditorHint::None)],
         );
 
         assert!(
@@ -197,7 +213,7 @@ fn vm_registration_rejects_malformed_declared_value_type_grammar() {
                 "gameplay.Component.Nested",
                 "Nested",
                 ReflectScriptVisibility::Public,
-                vec![ReflectFieldInfo::new(
+                vec![schema_field(
                     "value",
                     "List<Map<String, List<Scalar>>>",
                     ReflectEditorHint::None,
@@ -218,7 +234,7 @@ fn nested_type_mismatches_report_canonical_declared_grammar() {
                 TYPE_PATH,
                 "NestedMismatch",
                 ReflectScriptVisibility::Public,
-                vec![ReflectFieldInfo::new(
+                vec![schema_field(
                     "values",
                     "List<Map<String, Scalar>>",
                     ReflectEditorHint::None,
@@ -227,7 +243,9 @@ fn nested_type_mismatches_report_canonical_declared_grammar() {
             VmTypeBacking::DynamicComponent,
         )
         .expect("nested VM schema should register");
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
 
     let error = world
         .set_dynamic_component(entity, TYPE_PATH, serde_json::json!({ "values": [1] }))
@@ -247,8 +265,10 @@ fn vm_registration_revalidates_canonical_dto_text_and_plugin_prefix() {
         ReflectScriptVisibility::Public,
         vec![scalar_field("current")],
     );
-    wrong_prefix.type_path.plugin_id = Some("gameplay".to_string());
-    wrong_prefix.plugin_id = Some("gameplay".to_string());
+    wrong_prefix.type_path = wrong_prefix
+        .type_path
+        .with_plugin_id("gameplay")
+        .expect("test plugin id should be valid");
     assert!(matches!(
         World::empty()
             .register_vm_type(wrong_prefix, VmTypeBacking::DynamicComponent)
@@ -285,15 +305,14 @@ fn public_non_component_state_types_are_not_projected_as_vm_components() {
         ReflectScriptVisibility::Public,
         vec![scalar_field("volume")],
     );
-    resource.is_component = false;
-    resource.is_resource = true;
+    resource = resource.as_resource();
 
     let projected = VmReflectionSchema::from_state_schema(&state_schema(vec![component, resource]))
         .expect("public non-component VM state types should be ignored by component projection");
 
     assert_eq!(projected.registrations().len(), 1);
     assert_eq!(
-        projected.registrations()[0].type_path.type_path,
+        projected.registrations()[0].type_path.type_path(),
         "gameplay.Component.Health"
     );
 }
@@ -318,7 +337,9 @@ fn candidate_schema_revalidates_retained_live_vm_payloads_before_publish() {
         )
         .expect("initial scalar schema should publish");
     level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(entity, TYPE_PATH, serde_json::json!({ "current": 5.0 }))
             .expect("live scalar payload should attach");
@@ -333,11 +354,7 @@ fn candidate_schema_revalidates_retained_live_vm_payloads_before_publish() {
                 TYPE_PATH,
                 "Health",
                 ReflectScriptVisibility::Public,
-                vec![ReflectFieldInfo::new(
-                    "current",
-                    "String",
-                    ReflectEditorHint::String,
-                )],
+                vec![schema_field("current", "String", ReflectEditorHint::String)],
             )]),
         )
         .expect_err("a candidate cannot invalidate retained live payloads");
@@ -387,11 +404,7 @@ fn equal_generation_cannot_replace_a_different_schema() {
                 "gameplay.Component.Health",
                 "Health",
                 ReflectScriptVisibility::Public,
-                vec![ReflectFieldInfo::new(
-                    "current",
-                    "String",
-                    ReflectEditorHint::String,
-                )],
+                vec![schema_field("current", "String", ReflectEditorHint::String)],
             )]),
         )
         .expect_err("equal generations must be immutable");

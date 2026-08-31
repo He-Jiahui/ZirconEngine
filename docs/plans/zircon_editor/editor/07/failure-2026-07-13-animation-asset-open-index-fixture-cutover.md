@@ -7,6 +7,7 @@ origin_plan: docs/plans/zircon_editor/editor/09-editor-asset-management.md
 fixing_plan: docs/plans/zircon_editor/editor/07-domain-editors-and-graph-foundation.md
 origin_child_dir: docs/plans/zircon_editor/editor/09
 fixing_child_dir: docs/plans/zircon_editor/editor/07
+plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/tests/editor_event/animation_runtime/
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs

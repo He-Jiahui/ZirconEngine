@@ -19,13 +19,23 @@ pub(crate) fn is_valid_input_owner(surface: &UiSurface, node_id: UiNodeId) -> bo
         let Some(node) = surface.tree.nodes.get(&id) else {
             return false;
         };
-        if ui_surface_node_disabled(surface, id, node, node.template_metadata.as_ref()) {
-            return false;
-        }
-        if !node.is_render_visible() {
+        if !input_owner_node_is_valid(surface, id, node) {
             return false;
         }
         current = node.parent;
     }
     true
 }
+
+fn input_owner_node_is_valid(
+    surface: &UiSurface,
+    node_id: UiNodeId,
+    node: &zircon_runtime_interface::ui::tree::UiTreeNode,
+) -> bool {
+    node.is_render_visible()
+        && !ui_surface_node_disabled(surface, node_id, node, node.template_metadata.as_ref())
+}
+
+#[cfg(test)]
+#[path = "validation/visibility_first_tests.rs"]
+mod visibility_first_tests;

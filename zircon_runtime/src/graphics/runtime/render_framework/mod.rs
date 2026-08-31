@@ -6,9 +6,12 @@ mod compile_options_for_profile;
 mod compiled_feature_names;
 mod create_viewport;
 mod destroy_viewport;
+mod environment_capture_scheduler;
+mod environment_capture_submission;
 mod frame_profiler;
 mod graphics_debugger_capture;
 mod pipelined;
+mod query_environment_runtime_snapshot;
 mod query_stats;
 mod query_virtual_geometry_debug_snapshot;
 mod query_visible_spatial_snapshot;
@@ -22,11 +25,13 @@ mod set_pipeline_asset;
 mod set_quality_profile;
 mod submit_frame_extract;
 mod submit_runtime_frame;
+mod viewport_pick;
 mod viewport_record;
 mod viewport_surface;
 mod wgpu_render_framework;
 mod wgpu_render_framework_construction;
 
+pub(in crate::graphics) use environment_capture_scheduler::EnvironmentCaptureWorkItem;
 #[cfg(test)]
 pub(crate) use graphics_debugger_capture::renderdoc_capture_next_from_value;
 pub use wgpu_render_framework::WgpuRenderFramework;

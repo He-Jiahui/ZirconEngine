@@ -22,6 +22,21 @@ fn rgba8_wgpu_format_uses_upload_plan_format() {
 }
 
 #[test]
+fn asset_texture_uploads_are_enqueued_as_shared_payload_batches() {
+    let implementation = include_str!("../gpu_texture_resource_from_asset.rs");
+    let compressed = include_str!("../gpu_texture_resource_from_asset/compressed_mip_upload.rs");
+
+    assert!(implementation.contains("WgpuTextureUploadBatch"));
+    assert!(implementation.contains("Arc<[u8]>"));
+    assert!(compressed.contains("WgpuTextureUpload"));
+    assert!(compressed.contains("Arc<[u8]>"));
+    assert!(!implementation.contains("queue.write_texture("));
+    assert!(!implementation.contains("queue.submit("));
+    assert!(!compressed.contains("queue.write_texture("));
+    assert!(!compressed.contains("queue.submit("));
+}
+
+#[test]
 fn rgba8_mip_uploads_pack_levels_and_layers_in_payload_order() {
     assert_eq!(
         rgba8_mip_uploads(4, 2, 4, 1).collect::<Vec<_>>(),

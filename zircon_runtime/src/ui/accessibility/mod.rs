@@ -7,6 +7,7 @@ mod budget;
 mod diagnostics;
 mod extract;
 mod name;
+mod semantic_text;
 
 #[cfg(feature = "accessibility-accesskit")]
 pub(crate) mod accesskit;

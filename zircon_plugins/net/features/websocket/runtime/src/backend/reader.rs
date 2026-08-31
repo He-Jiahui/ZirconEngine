@@ -59,10 +59,11 @@ async fn read_stream<S>(
         match message {
             Ok(message) => {
                 let frame = message_to_frame(message);
+                let closing = matches!(frame, NetWebSocketFrame::Close(_));
                 let mut queue = inbound
                     .lock()
                     .expect("net WebSocket inbound mutex poisoned");
-                queue.push_back(frame.clone());
+                queue.push_back(frame);
                 let queued_frames = queue.len();
                 drop(queue);
                 events.lock().expect("net events mutex poisoned").push_back(
@@ -71,7 +72,7 @@ async fn read_stream<S>(
                         queued_frames,
                     },
                 );
-                if matches!(frame, NetWebSocketFrame::Close(_)) {
+                if closing {
                     *state.lock().expect("net WebSocket state mutex poisoned") =
                         NetConnectionState::Closed;
                     events.lock().expect("net events mutex poisoned").push_back(

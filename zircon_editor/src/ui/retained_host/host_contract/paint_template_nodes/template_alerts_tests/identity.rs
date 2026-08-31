@@ -44,3 +44,15 @@ fn generic_alert_tone_uses_declared_severity_not_message_words() {
         Some(WorkbenchAlertKind::Inline(AlertTone::Info))
     );
 }
+
+#[test]
+fn mixed_case_alert_severity_preserves_tone() {
+    assert_eq!(
+        workbench_alert_kind(&alert_node(
+            "WorkbenchImportAlert",
+            "Import requires attention",
+            "WaRnInG"
+        )),
+        Some(WorkbenchAlertKind::Inline(AlertTone::Warning))
+    );
+}

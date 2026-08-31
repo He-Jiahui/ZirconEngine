@@ -15,8 +15,8 @@ use super::registry::{
     RuntimeAllocationKind,
 };
 use super::status::{
-    error_status, invalid_argument, invalid_or_limit_payload, not_found, output_payload_status,
-    unsupported_version,
+    error_status, invalid_argument, invalid_or_limit_payload, limit_exceeded, not_found,
+    output_payload_status, unsupported_version,
 };
 
 pub(crate) unsafe fn submit_operation(
@@ -35,28 +35,32 @@ pub(crate) unsafe fn submit_operation(
         limit.max_encoded_bytes = limit
             .max_encoded_bytes
             .min(runtime.operations.max_retained_bytes());
-        let request = match unsafe {
-            bounded_json::decode::<ZrRuntimeOperationSubmitRequestV1>(
-                request_json,
-                limit,
-                |request| bounded_json::json_value_item_count(&request.payload).saturating_add(2),
-            )
-        } {
-            Ok(request) => request,
-            Err(error) => {
-                return invalid_or_limit_payload(
-                    &error,
-                    b"invalid runtime operation request",
-                    b"runtime operation request exceeds limit",
-                );
+        match runtime
+            .operations
+            .submit_with_raw_admission(request_json.len(), || unsafe {
+                bounded_json::decode::<ZrRuntimeOperationSubmitRequestV1>(
+                    request_json,
+                    limit,
+                    |request| {
+                        bounded_json::json_value_item_count(&request.payload).saturating_add(2)
+                    },
+                )
+            }) {
+            Err(error) => invalid_or_limit_payload(
+                &error,
+                b"invalid runtime operation request",
+                b"runtime operation request exceeds limit",
+            ),
+            Ok(Err(RuntimeOperationServiceError::RetainedBytesCapacityReached { maximum }))
+                if request_json.len() > maximum =>
+            {
+                limit_exceeded(b"runtime operation request exceeds limit")
             }
-        };
-        match runtime.operations.submit(request) {
-            Ok(handle) => {
+            Ok(Err(error)) => operation_error_status(error),
+            Ok(Ok(handle)) => {
                 unsafe { ptr::write(out_handle, handle) };
                 ZrStatus::ok()
             }
-            Err(error) => operation_error_status(error),
         }
     })
 }

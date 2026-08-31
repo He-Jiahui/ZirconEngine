@@ -7,7 +7,6 @@ use super::super::identity::is_table_header;
 use super::super::layers::action_icon_order;
 use super::super::style::table_row_style;
 use super::geometry::{table_action_button_rect, table_action_icon_rect};
-use super::glyphs::{push_table_gear, push_table_kebab};
 use super::metrics::table_action_metrics;
 use super::palette::{table_action_palette, WorkbenchTableActionPalette};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
@@ -38,23 +37,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         if intersect(&action_rect, clip).is_none() {
             return;
         }
-        if push_icon_asset_pixels(
+        push_icon_asset_pixels(
             commands,
             TABLE_HEADER_ACTION_ICON,
             &action_rect,
             clip,
             action_icon_order(order),
             Some(action_color),
-            opacity,
-        ) {
-            return;
-        }
-        push_table_gear(
-            commands,
-            &action_rect,
-            clip,
-            action_icon_order(order),
-            action_color,
             opacity,
         );
     } else {
@@ -68,23 +57,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         if intersect(&action_rect, clip).is_none() {
             return;
         }
-        if push_icon_asset_pixels(
+        push_icon_asset_pixels(
             commands,
             TABLE_ROW_ACTION_ICON,
             &action_rect,
             clip,
             action_icon_order(order),
             Some(action_color),
-            opacity,
-        ) {
-            return;
-        }
-        push_table_kebab(
-            commands,
-            &action_rect,
-            clip,
-            action_icon_order(order),
-            action_color,
             opacity,
         );
     }

@@ -1,8 +1,8 @@
+use crate::scene::World;
 use crate::scene::dynamic_scene::{
     DynamicScene, EntityRemap, ScenePatchPreviewComponentType, ScenePatchPreviewEntityRemap,
     ScenePatchPreviewReport, ScenePatchPreviewResource,
 };
-use crate::scene::World;
 
 pub(super) fn build_preview_report(
     scene: &DynamicScene,

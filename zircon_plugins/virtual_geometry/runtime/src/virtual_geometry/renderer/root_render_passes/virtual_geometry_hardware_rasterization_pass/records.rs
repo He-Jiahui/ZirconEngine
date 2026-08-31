@@ -4,6 +4,7 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometrySelectedClusterSource,
 };
 
+use super::super::packed_words::collect_fixed_packed_words;
 use super::super::virtual_geometry_executed_cluster_selection_pass::VirtualGeometryExecutedClusterSelectionPassOutput;
 
 pub(super) fn collect_execution_hardware_rasterization_records(
@@ -71,10 +72,10 @@ fn build_hardware_rasterization_record(
 pub(super) fn pack_hardware_rasterization_records(
     records: &[RenderVirtualGeometryHardwareRasterizationRecord],
 ) -> Vec<u32> {
-    records
-        .iter()
-        .flat_map(|record| record.packed_words())
-        .collect()
+    collect_fixed_packed_words(
+        records,
+        RenderVirtualGeometryHardwareRasterizationRecord::packed_words,
+    )
 }
 
 #[cfg(test)]

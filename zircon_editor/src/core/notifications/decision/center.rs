@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, VecDeque};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::core::notifications::NotificationId;
 
@@ -69,6 +69,7 @@ pub struct DecisionNotificationCenter {
 #[derive(Debug)]
 struct DecisionCenterState {
     entries: BTreeMap<NotificationId, DecisionEntry>,
+    pending_order: VecDeque<NotificationId>,
     receipts: VecDeque<DecisionReceipt>,
     pending_count: usize,
     next_ticket_incarnation: u64,
@@ -95,6 +96,7 @@ impl DecisionNotificationCenter {
             config,
             state: Mutex::new(DecisionCenterState {
                 entries: BTreeMap::new(),
+                pending_order: VecDeque::new(),
                 receipts: VecDeque::new(),
                 pending_count: 0,
                 next_ticket_incarnation: 1,
@@ -146,16 +148,24 @@ impl DecisionNotificationCenter {
                 resolved: None,
             },
         );
+        state.pending_order.push_back(notification.id().clone());
         state.pending_count += 1;
         Ok(ticket)
     }
 
+    /// Returns unresolved Decisions in publication order.
+    ///
+    /// Consumers present one complete Decision at a time, so identifier sorting must not decide
+    /// which operator action blocks the next one.
     pub fn pending_snapshot(&self) -> Vec<DecisionNotificationSnapshot> {
-        self.state
+        let state = self
+            .state
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .entries
-            .values()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state
+            .pending_order
+            .iter()
+            .filter_map(|notification_id| state.entries.get(notification_id))
             .filter(|entry| entry.resolved.is_none())
             .map(|entry| {
                 DecisionNotificationSnapshot::new(
@@ -165,6 +175,15 @@ impl DecisionNotificationCenter {
                 )
             })
             .collect()
+    }
+
+    /// Returns the exact unresolved Decision count without cloning the pending presentation
+    /// snapshot. Producers use this as a backpressure change signal before retrying publication.
+    pub fn pending_count(&self) -> usize {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .pending_count
     }
 
     pub fn snapshot(&self) -> Vec<DecisionNotificationSnapshot> {
@@ -244,6 +263,9 @@ impl DecisionNotificationCenter {
         };
         entry.resolved = Some(receipt.clone());
         state.pending_count = state.pending_count.saturating_sub(1);
+        state
+            .pending_order
+            .retain(|pending_id| pending_id != notification_id);
         state.receipts.push_back(receipt.clone());
         while state.receipts.len() > self.config.receipt_capacity {
             let Some(evicted) = state.receipts.pop_front() else {
@@ -325,6 +347,16 @@ impl DecisionNotificationCenter {
                     resume_cursor: DecisionReceiptCursor::before(self.instance_id, oldest),
                 });
             }
+        }
+        if state
+            .receipts
+            .back()
+            .is_none_or(|receipt| cursor.value() >= receipt.sequence().value())
+        {
+            return Ok(DecisionReceiptBatch {
+                receipts: Vec::new(),
+                next_cursor: cursor,
+            });
         }
         let receipts = state
             .receipts

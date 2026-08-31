@@ -37,7 +37,7 @@ reference_engines:
   - dev/godot/core/os/thread.cpp
 doc_type: review-and-refactor-plan
 review_status: review_complete
-implementation_status: pending
+implementation_status: partial_p0_01_p0_02_p0_03_foundation_p0_04_p1_01_profile_transaction_static_implementation_complete_pending_managed_validation
 source_recheck_required: true
 ---
 
@@ -140,6 +140,16 @@ managed runner 在唯一 run directory 中要求恰好一个 `.rdc`，replay val
 
 必须引入 app-owned `TerminalOutcome`，在 event loop 退出后由 `main` 映射到稳定非零 exit code；同时原子写出结构化 terminal record，包含 phase、error category、source chain、artifact commit state 和 cleanup outcome。测试至少覆盖 scene failure、PSO timeout、render failure、write failure、capture failure 与 user cancel 六类退出码。
 
+#### 2026-08-25 静态实施记录：PBR-P0-01
+
+状态：`implementation_complete_pending_managed_validation`。`main` 现在保留应用对象直到 `run_app` 返回，并把 app-owned `TerminalOutcome` 转成进程退出码；RenderDoc preload 和 EventLoop 创建的早期失败也在已验证的非 C: work root 下原子写出同一 schema。`TerminalOutcome` 有 3 个终态（`succeeded`、`failed`、`cancelled`）、10 个失败类别，失败码稳定映射为 11--20，用户取消为 130，成功为 0。它记录 phase、错误类别/消息、viewer/HDRI source chain、screenshot/GPU timing/RenderDoc 三项 artifact commit state，以及主资源释放、loader 完成/取消后 join、超时和 join panic 五种 cleanup state。
+
+窗口创建、presenter、scene load、Base PSO admission/readiness/timeout、render、screenshot、GPU timing、RenderDoc capture 与 status/frame present 的致命路径都先记录失败再请求 event-loop exit；正常 one-shot 完成与用户关闭分别写入 success/cancel。P0-02 后 native surface bind 或 render 失败直接成为 `FramePresent/Presentation` terminal failure，不能再降级到 CPU presenter；要求 RenderDoc 产物但未获得可验证 `.rdc` 时则在 terminal record 中标为 `not_committed`。
+
+`terminal_outcome.rs` 的单元测试覆盖所有失败类别的非零码、cancel 与 success/failure 的区分、主失败不被 cleanup failure 覆盖，以及 JSON 原子替换后保留 source/artifact/cleanup 字段。`app_tests.rs` 锁定所有 `event_loop.exit()` 只能落在三条 outcome owner 路径或已先写入 scene-load failure 的单独路径；`main.rs` 锁定两条 app 创建前的失败路径包含 source chain。`rustfmt --check` 与 scoped `git diff --check` 已通过；Rust tests、真实 process exit、WGPU/窗口/RenderDoc、截图及性能/功耗采样均未执行，等待 coordinator-managed Windows receipt。
+
+PBR-P0-02、PBR-P0-04 的静态实现见本节后续记录。PBR-P0-03 的 display-oracle 基础设施已开始实施，但版本化 corpus、current baseline 和线性 HDR oracle 尚未具备；Phase 0 artifact transaction 亦仍待实施，因此整个计划仅为部分 P0 静态实现完成。
+
 ### PBR-P0-02 · 离屏诊断证据被放在可误认成产品/native 能力的位置
 
 `finish_scene_load()` 仅在 `screenshot_path.is_none()` 时绑定 native viewport surface。managed measured run 与 RenderDoc run 都设置 screenshot，因此两者固定走 scene offscreen render、CPU readback；capture 也包围这条离屏路径。viewer 同时绕过 `zircon_app` 产品 composition、dynamic runtime session、plugin/catalog 和产品 scene，只注册最小 Core module 并使用 environment-only preview。
@@ -147,6 +157,20 @@ managed runner 在唯一 run directory 中要求恰好一个 `.rdc`，replay val
 sidecar 写出 `screenshot_presentation=cpu_readback` 是诚实基础，但没有 machine-enforced capability taxonomy，也没有阻止上层文档把它升级为 native/product/complete renderer evidence。
 
 必须把 runner 分成至少 `OffscreenDiagnostic`、`NativePresent`、`PackagedProduct` 三个不可隐式降级的 host mode。每个 artifact manifest 写入 mode、composition fingerprint、renderer profile、surface/present count、scene ID 和 capture target；验收器拒绝 capability 不匹配。native mode surface 失败必须失败，不能静默 CPU fallback 后继续获得 native 标签。
+
+#### 2026-08-25 PBR-P0-02 实施设计：viewer capability contract，不伪装产品宿主
+
+当前 `zircon_shader_pbr_viewer` 是独立的诊断 binary，不含 `zircon_app` 产品 composition、catalog、plugin/session 或 product scene。因此它只实现 `offscreen-diagnostic` 和 `native-present` 两种强类型 mode；`packaged-product` 仍由产品入口承担，viewer 必须拒绝而不是给同一 mirror-sphere 路径贴上产品标签。mode 在参数解析时收敛：离屏模式必须请求 screenshot，native 模式禁止 screenshot/GPU-timing readback。保留省略 mode 的旧 CLI 兼容性时，解析器只可根据 screenshot 是否存在推导出二者之一，随后在 `ViewerConfig` 固化，渲染过程不得再改写其能力。
+
+ready sidecar 将升级 schema 并声明 host mode、静态 viewer composition ID、固定 mirror-sphere scene ID、capture target 与 GPU scene-surface present count。受管 profiling 脚本显式传递 `offscreen-diagnostic`，Python validator 的 current-schema gate 要求该五元组精确匹配 CPU readback evidence；旧 schema 仅作为历史读取兼容。native mode 的 viewport-surface failure 直接走 terminal failure，不能把 native run 降级到 CPU presenter 后继续。该切片只改变运行能力标签和失败路径，不增加 shader、IBL bake 或 frame hot-loop 算法；没有新的性能、功耗或 GPU 时间声明。
+
+#### 2026-08-25 静态实施记录：PBR-P0-02
+
+状态：`implementation_complete_pending_managed_validation`。`ViewerConfig` 已收敛 `ViewerHostMode::{OffscreenDiagnostic, NativePresent}`。显式的 `packaged-product` 被该 standalone diagnostic binary 拒绝；省略 mode 时，旧 CLI 仅由 screenshot 是否存在解析成一个固定 mode，之后 app 不再根据 surface 失败或 presenter 状态改写它。离屏 mode 要求 screenshot，native mode 拒绝 screenshot/GPU timing readback；native viewport surface 失败直接成为 `FramePresent/Presentation` terminal failure。
+
+ready-frame schema 从 v13 升至 v14，新增 `host_mode`、`host_composition_id`、`scene_id`、`capture_target` 和 `gpu_scene_surface_present_count`。当前 screenshot evidence 必须是 `offscreen-diagnostic`、`zircon_shader_pbr_viewer_standalone_diagnostic_v1`、`single_pbr_mirror_sphere`、`offscreen-scene-renderer-cpu-readback` 与 count 0；current Python validator 拒绝其他组合。profile script 显式传递 mode 和 validator expectation，v2--v13 仍只允许 legacy inspection，不是 current acceptance。
+
+Rust format、scoped diff、Python AST 和 source contracts 已静态通过；Cargo/Python unit execution、WGPU/窗口、当前 PNG、RenderDoc replay、CPU/GPU timing、energy 和 power 未执行，等待 coordinator-managed Windows receipt。`PackagedProduct` runner、完整 composition fingerprint、artifact transaction 与 P0-03 的完整 scene corpus/linear-HDR oracle 仍未实现，故不关闭 P0/Shader 06 milestone。
 
 ### PBR-P0-03 · 图像 gate 只验证“有颜色”，错误画面仍可通过
 
@@ -156,11 +180,45 @@ ready validator 的像素正确性门槛是至少两个 distinct colors 和至�
 
 必须建立版本化 scene + camera + HDR source + linear reference + display reference 套件。比较层至少提供 exact semantic probes、HDR-relative error、perceptual image metric、局部/全局阈值、平台/vendor policy、diff/heatmap 和批准流程；reference 更新必须是显式 review artifact。single mirror sphere 只保留为 smoke case，不能作为 PBR acceptance case。
 
+#### 2026-08-25 PBR-P0-03 实施设计：display oracle 先与 provenance 绑定
+
+在 renderer 提供可比较的线性 HDR readback 前，先建立窄的 display-output oracle，不伪造 HDR 或跨设备感知等价。`tools/zircon_pbr_visual_oracle.py` 接受一个版本化 JSON manifest；manifest 绑定同目录 reference PNG 的 SHA-256、非空 provenance 字段、全局 RGB mean-absolute-error/p99/error-pixel-fraction 阈值，以及命名的语义矩形区域。PNG 解码、CRC、尺寸、RGBA8 格式和像素预算由该模块单一负责；ready validator 将已解码 candidate 传给 oracle，避免同一 PNG 的第二次读取/解压。误差比较以一次 RGB 扫描和 256 桶直方图求 p99，不为整帧分配误差数组。
+
+`tools/zircon_validate_shader_pbr_viewer_evidence.py --display-visual-oracle <manifest>` 仅在明确提供 manifest 时启用 gate，并在 JSON summary 回写 oracle/reference SHA、比较像素数、全局误差和语义区域误差。manifest 的 expected metadata 必须与 ready sidecar 匹配，因此离屏 CPU readback、scene、backend 或 host capability 不能与另一条基线混用。`tools/zircon_profile_shader_pbr_viewer.ps1 -DisplayVisualOracle <manifest>` 复用同一受控路径检查，将该 manifest 转发至 cold/warm/RenderDoc 的 ready validator，并在每次 run report 与 profile summary 写入 SHA-256 指纹。reference PNG 与 manifest 必须由受管 Windows run 后一同批准并置于 `docs/tests/runtime/shader` 的受控 oracle 目录；现有带日期的 PNG 仅是历史证据，不能倒灌为 current baseline。
+
+#### 2026-08-25 静态实施记录：PBR-P0-03 foundation
+
+状态：`partial_implementation_complete_pending_managed_validation`。已新增 display oracle 的纯函数测试，覆盖 provenance 不匹配、全局误差拒绝、语义区域与 ready-frame JSON summary；主 validator 已复用抽出的 PNG decoder，避免两份解析器漂移。Python AST、scoped diff 和 source-contract 静态检查通过；Python unit execution、managed viewer output、reference approval、RenderDoc、HDR readback、GPU timing、性能及功耗测量均未执行。
+
+这一 foundation 不关闭 PBR-P0-03：single mirror sphere 仍只可作 smoke case；缺少的版本化 feature corpus、固定 camera/environment settle、linear HDR-relative comparison、perceptual metric、vendor/backend policy、heatmap/diff artifact 与 review/transaction approval 继续作为后续的独立合同。profile runner 只能在受管 baseline manifest 已批准后显式传入 `--display-visual-oracle`，不得默认选取仓库中的历史 PNG。
+
+#### 2026-08-25 静态修复记录：current evidence recipe/schema propagation
+
+状态：`implementation_complete_pending_managed_validation`。运行时 canonical IBL recipe 已因 PMREM roughness-to-mip 合同升级至 `2026_08_24_0007`，但 current evidence validator 仍接受旧的 `202608090006`，profile summarizer 也仍将 v13 视为 current schema；这会使新 viewer 的 ready evidence 被错误拒绝，或让 summary 与 producer 发生 schema 漂移。本次将 validator 的 current recipe 设为 `202608240007`，将 summarizer current schema 收敛到 v14，并让 viewer 的 Rust sidecar fixture 从 runtime `IBL_BAKE_ALGORITHM_VERSION` 导出值，避免测试重复维护 recipe literal。
+
+2026-08-26 follow-up：Shader06 的低粗糙度 PMREM D_GGX/PDF 修复把 canonical recipe 推进到 `2026_08_26_0008`；viewer current validator 同步要求 `202608260008`。上一段的 v7/`202608240007` 是 roughness-LOD 修复时点的历史身份，不再是当前源码验收身份。该同步只防止旧 PMREM/sidecar 冒充 current-source evidence，不代表新的 WGPU、截图、RenderDoc、性能或功耗验收已经完成。
+
+v2--v13 仍只允许显式 `--allow-legacy-schema` inspection；测试分别覆盖不完整 v13 的字段拒绝和完整 v13 的兼容读取，默认 current path 仅接受完整 v14 capability/BRDF-LUT/provenance。Python AST、Rust formatter、runtime-to-validator source contract 和 scoped diff 将在本次编辑后重新静态检查。未运行 Python unit、Cargo、WGPU、RenderDoc 或生成截图，因此没有产生动态正确性、性能、功耗或验收结论。
+
 ### PBR-P0-04 · 后台 scene 构建线程被 detach，退出时不可取消、不可 join
 
 `BackgroundTask<T>` 只保存 mpsc receiver；`thread::spawn` 返回的 `JoinHandle` 被立即丢弃。任务没有 cancellation token、deadline、progress、join 或 Drop 协议。用户在 HDRI decode、project staging、asset import/cache、renderer/device 初始化期间关闭窗口时，app 可退出而后台线程仍在执行；进程终止会截断尚未提交的磁盘/GPU 工作，也无法报告 teardown 是否完成。
 
 必须由 runner/task service 持有 join handle 和 cancellation token，scene build 各阶段检查取消，退出按 stop-admission -> cancel -> bounded join -> artifact rollback/quarantine -> renderer/core drop 执行。若 deadline 后仍不能停止，terminal record 必须为 teardown failure；不得以退出码 0 或只有 stderr 结束。
+
+#### 2026-08-25 PBR-P0-04 实施设计：专属 loader owner，不滥用 I/O lane
+
+当前 `BackgroundTask` 是唯一 consumer，且其任务会创建 `CoreRuntime`/WGPU renderer 再把 typed `PbrMirrorScene` 移交给 event thread。`BoundedKeyedIoLane` 的合同是有 key 的 `FnOnce() -> Result<(), Failure>` I/O work、fence 和 retained-byte admission，不能承载这个 typed renderer payload；`JobScheduler` 现有 handle 也没有取消已运行 scene construction 的合同。因此不把 viewer 偷塞进这两个不匹配的 owner。仍保留专属具名 loader，改用 runtime 的 named-thread creation wrapper，并由 `BackgroundTask` 持有 `JoinHandle`、`Arc<AtomicBool>` cancellation token 和 completion receiver。
+
+取消语义采用 Zircon `DynamicSceneSpawnTask` 的已验证模式：开始前、每一个 scene bootstrap phase 后以及 publication 前检查 token；取消后丢弃未发布 scene，不让它进入 app。Unreal `FAsyncTask` 的 `Cancel`/`TryAbandonTask` 同样只安全撤销未开始工作，运行中工作必须 cooperative；Godot 的 worker pool 先停止 admission、让 worker 到安全点再 `wait_to_finish`。因此本设计明确不承诺强杀正在进行的 HDR decode/IBL bake。event-loop callback 只 request cancel，`main` 在 loop 返回后执行一次有界 drain；正常完成必须 join，deadline 到达则写 `task_shutdown` terminal failure 和 `background_loader_shutdown_timed_out` cleanup state，随后由非零进程退出阻止 artifact 接受。
+
+#### 2026-08-25 静态实施记录：PBR-P0-04
+
+状态：`implementation_complete_pending_managed_validation`。`BackgroundTask` 现由 runtime 的 named-thread wrapper 创建并持有 `JoinHandle`，任务和 `PbrMirrorScene::new_with_cancellation` 共享 `Arc<AtomicBool>` token。worker 在执行前和 publication 前检查 token；scene 在 HDRI preflight 前后、project assets、runtime bootstrap、project open、world load、renderer bootstrap 与 IBL restore 后检查 token。因此取消不会把已取消的 typed scene 发布到 event-loop owner。
+
+所有 terminal owner 先 request cancellation；`run_app` 返回后 `finish_after_event_loop` 对 loader 执行一次 2 秒 bounded join，再按结果记录 `completed_and_joined`、`cancelled_and_joined`、`shutdown_timed_out` 或 `join_panicked`。后两者把原本 success/cancel 终态提升为 `task_shutdown` 的非零失败；若已有 scene/render 等主失败，主 phase/category/code 保持不变，额外 teardown 信息进入 `cleanup_error`。`try_take` 也在把结果交给 event loop 前 join worker，避免成功或 scene-load error 路径遗留 handle。
+
+首轮取消检查点为 HDRI preflight 前后、project assets、runtime bootstrap、project open、world load、renderer bootstrap 和 IBL restore 边界。它先解决 handle ownership、取消传播、publication 抑制和终态真实性；内部 decoder/PMREM 的细粒度 cancellation、artifact rollback/quarantine 和 shared runner service 仍需在 Phase 0 artifact transaction/asset worker 重构中完成。超时不是 worker 已停止的证明，故只产生拒收用的失败 record，不能作为 artifact acceptance。实施前的静态调查确认该路径不在 frame hot loop；steady-state render CPU/GPU work 不增加，唯一新控制操作是 scene-load stage boundary 的 atomic acquire load。没有运行测量前不对该成本、功耗或 shutdown latency 作数值声明。
 
 ## 6. P1：缺失的工程合同
 
@@ -187,7 +245,7 @@ ready validator 的像素正确性门槛是至少两个 distinct colors 和至�
 | PBR-P1-12 | renderer/device 在后台 loader thread 创建后移动到 event thread；当前 desktop 路径可编译，但没有 backend/platform thread-affinity capability 或失败策略。 | device/queue ownership 明确属于 render service；后台只做 CPU/import 工作，或由平台 capability 证明可跨线程；Web/mobile/Metal 单独 gate。 |
 | PBR-P1-13 | binary `required-features = ["target-client"]`，因此工具带入 dynamic API、animation、graphics、nav、script、UI、desktop platform/input 等完整 client bundle。 | 独立 `render-evidence` feature/product role，仅引入真实依赖；packaged-product mode 再显式选择完整 client。 |
 | PBR-P1-14 | artifact/work path 在 binary 中硬拒绝 C:，fallback 硬编码 `D:/ZirconEngineArtifacts`，RenderDoc 示例也绑定 D:；这是某实验机策略，不是引擎能力。 | storage policy 下沉到 harness/config；工具只校验可写空间、路径隔离和容量，支持任意合法 volume/container/CI workspace。 |
-| PBR-P1-15 | interactive native surface 创建失败时打印一行后自动退到 CPU presentation；没有结构化 capability downgrade，自动 gate 也不覆盖此分支。 | mode 决定 downgrade policy；diagnostic 可降级但 manifest 标红，native acceptance 必须 fail closed。 |
+| PBR-P1-15 | P0-02 已令 standalone viewer 的 native surface bind/render failure fail closed；但 broader diagnostic/product mode 仍没有统一的结构化 downgrade/recovery policy，也没有 native/product integration coverage。 | mode 决定 downgrade policy；diagnostic 可降级但 manifest 标红，native acceptance 必须 fail closed。 |
 | PBR-P1-16 | surface/device loss、outdated/suboptimal、resize/minimize、DPI/HDR/color profile 不形成恢复状态机；render/presenter error 多数直接退出。 | 与 RHI owner 对齐的 recoverable/fatal error taxonomy、surface generation、device recreation、color/output metadata 和注入测试。 |
 
 ### 6.3 Scene 与 renderer 代表性
@@ -214,6 +272,40 @@ ready validator 的像素正确性门槛是至少两个 distinct colors 和至�
 | ID | 当前差距 | 需要重构的合同 |
 |---|---|---|
 | PBR-P1-26 | 126 个 test attribute、0 ignored，但没有真实 EventLoop/window/SceneRenderer/WGPU/RenderDoc 集成测试；同时 `docs/tests/runtime/shader` 跟踪 624,277,393 bytes，其中 17 个 RDC 占 461,326,034 bytes，`.gitattributes` 未配置 LFS。 | 分层 CI：纯函数、headless GPU、native present、RenderDoc lab、packaged product；大 capture 迁移到内容寻址 artifact store，仅在 Git 保留小型 golden、哈希 manifest、批准记录与 retention/currentness index。 |
+
+#### 2026-08-25 PBR-P1-01 实施设计：profile completion receipt 作为唯一提交点
+
+`shader-pbr-profile-publication.ps1` 已经把一次 profile 写入
+`profile-captures/.staging/<profile-id>`，并在该 root 外以 create-new 写入
+completion receipt。下一步不新建第二套 artifact store：将该 receipt 收敛为
+profile transaction 的唯一提交 marker。
+
+1. receipt 必须严格绑定 summary 所在的 staging root、stable profile id、`completed`
+   状态和本次 root 下的完整 regular-file 闭包；每一项只允许安全相对路径、SHA-256
+   和字节数，重复、漏项、额外项、符号链接或 root escape 都拒绝。
+2. receipt 只在 profile summary、每个 run report、ready/timing/replay validation、可选
+   WPR/energy/RenderDoc 和 analysis 都已写完并通过 producer-side checks 后创建；receipt
+   之后不得再向 staging root 写 artifact。crash、kill 或任何前序错误只能留下没有
+   completed receipt 的 staging root（或 immutable incomplete receipt），不得被
+   consumer 当作完成 profile。
+3. 复用的 Python summarizer 增加显式 completion-receipt gate。capture 自身在提交前运行
+   summarizer 是 producer-side validation；后续任何需要把 profile 当作已完成证据的
+   consumer 必须传入 receipt 并重放 root 闭包/hash。这样不制造 report/receipt 循环依赖，
+   同时避免把尚未存在的 receipt 作为 capture 中间步骤的输入。
+4. 此 transaction 覆盖 profile runner 控制的 PNG、sidecar、GPU timing、validation、run
+   report、WPR/energy/RDC/replay、summary 与 analysis。viewer 进程内的 terminal outcome
+   仍由 app 原子写入，属于该 runner 的输入 artifact；跨 host 的统一 `RenderEvidenceRunner`
+   与 app 内 artifact transaction 仍是后续 Phase 0 工作，不能宣称本小步已完成全部 P1-01。
+
+当前静态实现让 publication 扫描 artifact 时拒绝 reparse point，并新增
+`Assert-ZirconShaderPbrProfileCompletion` 对 create-new receipt 的 schema、allocated root、稳定
+顺序、完整文件闭包、SHA-256 和字节数逐项重放。capture 写出 receipt 后立即调用该 verifier；
+此后若错误发生，不再写入会污染已提交闭包的 incomplete receipt。Python summarizer 新增显式
+`--completion-receipt` gate，供后续 consumer 在读取 profile 前重放同一闭包。PowerShell parser、
+Python AST/import、source contract 和 scoped diff 已静态通过；未运行 Pester、Python unit、viewer、
+Cargo、WGPU、RenderDoc 或生成任何当前截图。该记录只将 P1-01 的 profile transaction foundation
+标为 static implementation complete，完整 `RenderEvidenceRunner`、app-owned transaction、stale-run
+scavenger 和受管动态验证仍未完成。
 
 P1-26 的重点不是“删除所有历史证据”。17 个 RDC 和 107 个 PNG 对回溯有价值，但把数百 MiB 二进制直接永久放在源码历史里会放大 clone、diff、CI cache 和审查成本，又没有 current-source 状态机。迁移必须先生成不可变 SHA manifest、保留 owner/日期/tool version/源 fingerprint 和可恢复位置，再按保留策略处理 Git 历史；不得直接破坏用户证据。
 

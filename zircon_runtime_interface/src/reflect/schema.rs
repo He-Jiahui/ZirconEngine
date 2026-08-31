@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use super::ReflectTypeRegistration;
+use super::{
+    ReflectSchemaFingerprint, ReflectTypeRegistration, REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReflectSchemaFilter {
@@ -67,11 +69,20 @@ impl ReflectSchemaRequest {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ReflectSchemaResponse {
+    pub catalog_algorithm_version: u32,
+    pub catalog_fingerprint: ReflectSchemaFingerprint,
     pub registrations: Vec<ReflectTypeRegistration>,
 }
 
 impl ReflectSchemaResponse {
-    pub fn new(registrations: Vec<ReflectTypeRegistration>) -> Self {
-        Self { registrations }
+    pub fn new(
+        catalog_fingerprint: ReflectSchemaFingerprint,
+        registrations: Vec<ReflectTypeRegistration>,
+    ) -> Self {
+        Self {
+            catalog_algorithm_version: REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION,
+            catalog_fingerprint,
+            registrations,
+        }
     }
 }

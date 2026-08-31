@@ -105,13 +105,13 @@ impl NativePluginLiveHost {
             ));
         }
 
-        manifest_plugin_ids.sort();
+        manifest_plugin_ids.sort_unstable();
         manifest_plugin_ids.dedup();
-        runtime_plugin_ids.sort();
+        runtime_plugin_ids.sort_unstable();
         runtime_plugin_ids.dedup();
-        skipped_plugin_ids.sort();
+        skipped_plugin_ids.sort_unstable();
         skipped_plugin_ids.dedup();
-        loaded_plugin_ids.sort();
+        loaded_plugin_ids.sort_unstable();
         loaded_plugin_ids.dedup();
         outcomes.sort_by(|left, right| left.plugin_id.cmp(&right.plugin_id));
         diagnostics = sorted_unique_diagnostics(diagnostics);

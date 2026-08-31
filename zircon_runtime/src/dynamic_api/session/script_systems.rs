@@ -1,31 +1,48 @@
 use crate::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
 use crate::scene::WorldRuntimeExtensionPlan;
-use crate::script::{ScriptSceneRuntimeSystem, SCRIPT_SCENE_RUNTIME_SYSTEM_SET};
+use crate::script::{
+    ScriptSceneRuntimeSystem, SCRIPT_SCENE_FIXED_UPDATE_SYSTEM, SCRIPT_SCENE_RUNTIME_SYSTEM_SET,
+    SCRIPT_SCENE_UPDATE_SYSTEM,
+};
 
 use super::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult};
 
 pub(super) fn merge_builtin_script_scene_systems(
     linked_registry: &RuntimeExtensionRegistry,
-    _linked_plan: WorldRuntimeExtensionPlan,
 ) -> RuntimeDynamicSessionResult<WorldRuntimeExtensionPlan> {
+    let mut linked_owns_fixed_update = false;
+    let mut linked_owns_update = false;
+    for (_, registration) in linked_registry.plugin_runtime_systems() {
+        match registration.id.as_str() {
+            SCRIPT_SCENE_FIXED_UPDATE_SYSTEM => linked_owns_fixed_update = true,
+            SCRIPT_SCENE_UPDATE_SYSTEM => linked_owns_update = true,
+            _ => {}
+        }
+        if linked_owns_fixed_update && linked_owns_update {
+            return linked_registry
+                .world_runtime_extension_plan()
+                .map_err(register_builtin_error);
+        }
+    }
+
     let mut merged = linked_registry.clone();
     let owner = merged
         .intern_plugin_module("zr_vm_language.runtime")
         .map_err(register_builtin_error)?;
+    let system_set = merged
+        .intern_system_set(SCRIPT_SCENE_RUNTIME_SYSTEM_SET)
+        .map_err(register_builtin_error)?;
 
-    for system in [
-        ScriptSceneRuntimeSystem::fixed_update(),
-        ScriptSceneRuntimeSystem::update(),
+    for (system, linked_owns_system) in [
+        (
+            ScriptSceneRuntimeSystem::fixed_update(),
+            linked_owns_fixed_update,
+        ),
+        (ScriptSceneRuntimeSystem::update(), linked_owns_update),
     ] {
-        let id = system.id();
-        let linked_owns_system = merged
-            .plugin_runtime_systems()
-            .any(|(_, registration)| registration.id == id);
         if !linked_owns_system {
+            let id = system.id();
             let stage = system.stage();
-            let system_set = merged
-                .intern_system_set(SCRIPT_SCENE_RUNTIME_SYSTEM_SET)
-                .map_err(register_builtin_error)?;
             merged
                 .register_runtime_scene_system(owner, id, stage, move || {
                     let system = system.clone();
@@ -77,9 +94,7 @@ mod tests {
             )
             .register()
             .unwrap();
-        let linked_plan = linked.world_runtime_extension_plan().unwrap();
-
-        let merged = merge_builtin_script_scene_systems(&linked, linked_plan).unwrap();
+        let merged = merge_builtin_script_scene_systems(&linked).unwrap();
         let mut world = World::empty();
         merged.apply_to_world(&mut world).unwrap();
 
@@ -115,9 +130,7 @@ mod tests {
             .in_set(script_set)
             .register()
             .unwrap();
-        let linked_plan = linked.world_runtime_extension_plan().unwrap();
-
-        let merged = merge_builtin_script_scene_systems(&linked, linked_plan).unwrap();
+        let merged = merge_builtin_script_scene_systems(&linked).unwrap();
         let mut world = World::empty();
         merged.apply_to_world(&mut world).unwrap();
         let runtime_systems = world.schedule().system_registry().runtime_systems();
@@ -130,6 +143,41 @@ mod tests {
             assert_eq!(system.sets(), &[script_set]);
             assert!(!system.sets().contains(&unrelated_set));
         }
+    }
+
+    #[test]
+    fn full_linked_script_runtime_override_preserves_both_registered_phases() {
+        let mut linked = RuntimeExtensionRegistry::default();
+        let owner = linked
+            .intern_plugin_module("zr_vm_language.runtime")
+            .unwrap();
+        let script_set = linked
+            .intern_system_set(SCRIPT_SCENE_RUNTIME_SYSTEM_SET)
+            .unwrap();
+        for (id, stage) in [
+            (SCRIPT_SCENE_FIXED_UPDATE_SYSTEM, SystemStage::FixedUpdate),
+            (SCRIPT_SCENE_UPDATE_SYSTEM, SystemStage::Update),
+        ] {
+            linked
+                .register_runtime_scene_system(owner, id, stage, || |_| Ok(()))
+                .in_set(script_set)
+                .register()
+                .unwrap();
+        }
+
+        let merged = merge_builtin_script_scene_systems(&linked).unwrap();
+        let mut world = World::empty();
+        merged.apply_to_world(&mut world).unwrap();
+
+        assert_eq!(merged.registration_count(), 2);
+        assert_eq!(
+            runtime_system_ids(&world, SystemStage::FixedUpdate),
+            vec![SCRIPT_SCENE_FIXED_UPDATE_SYSTEM]
+        );
+        assert_eq!(
+            runtime_system_ids(&world, SystemStage::Update),
+            vec![SCRIPT_SCENE_UPDATE_SYSTEM]
+        );
     }
 
     fn runtime_system_ids(world: &World, stage: SystemStage) -> Vec<String> {

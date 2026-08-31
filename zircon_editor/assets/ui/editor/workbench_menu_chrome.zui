@@ -8,7 +8,7 @@ display_name = "workbench menu chrome"
 
 [imports]
 widgets = []
-styles = ["res://ui/theme/editor_base.zui"]
+styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]
 node = "workbench_menu_chrome_root"
@@ -16,13 +16,14 @@ node = "workbench_menu_chrome_root"
 [nodes.workbench_menu_chrome_root]
 component = "VerticalBox"
 control_id = "WorkbenchMenuBarRoot"
-classes = ["menu-chrome", "editor-shell"]
+classes = ["menu-chrome", "editor-shell", "workbench-shell-root"]
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "workbench_menu_top_bar" }, { node = "workbench_menu_separator" }, { node = "workbench_menu_fill" }]
 
 [nodes.workbench_menu_top_bar]
 component = "VerticalBox"
 control_id = "WorkbenchMenuTopBar"
+classes = ["workbench-topbar"]
 props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 children = [{ node = "workbench_menu_top_inset" }, { node = "workbench_menu_slots_row" }]
@@ -46,12 +47,13 @@ children = [{ node = "workbench_menu_leading_space" }, { node = "workbench_menu_
 
 [nodes.workbench_menu_slots_group]
 component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "workbench_menu_slot_0" }, { node = "workbench_menu_slot_1" }, { node = "workbench_menu_slot_2" }, { node = "workbench_menu_slot_3" }, { node = "workbench_menu_slot_4" }, { node = "workbench_menu_slot_5" }, { node = "workbench_menu_slot_6" }, { node = "workbench_menu_trailing_fill" }]
 
 [nodes.workbench_menu_separator]
 component = "Space"
 control_id = "WorkbenchMenuSeparator"
+classes = ["workbench-divider"]
 props = { surface_variant = "inset", radius = 0.0, border_width = 0.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
 
@@ -62,41 +64,48 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.workbench_menu_slot_0]
 component = "Label"
 control_id = "MenuSlot0"
-props = { text = "File", text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+classes = ["workbench-tab"]
+props = { text = "File", surface_variant = "transparent", radius = "$editor.control.radius.small", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
 layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.workbench_menu_slot_1]
 component = "Label"
 control_id = "MenuSlot1"
-props = { text = "Edit", text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+classes = ["workbench-tab"]
+props = { text = "Edit", surface_variant = "transparent", radius = "$editor.control.radius.small", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
 layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.workbench_menu_slot_2]
 component = "Label"
 control_id = "MenuSlot2"
-props = { text = "Selection", text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+classes = ["workbench-tab"]
+props = { text = "Selection", surface_variant = "transparent", radius = "$editor.control.radius.small", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
 layout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.workbench_menu_slot_3]
 component = "Label"
 control_id = "MenuSlot3"
-props = { text = "Play", text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+classes = ["workbench-tab"]
+props = { text = "Play", surface_variant = "transparent", radius = "$editor.control.radius.small", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
 layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.workbench_menu_slot_4]
 component = "Label"
 control_id = "MenuSlot4"
-props = { text = "View", text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+classes = ["workbench-tab"]
+props = { text = "View", surface_variant = "transparent", radius = "$editor.control.radius.small", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
 layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.workbench_menu_slot_5]
 component = "Label"
 control_id = "MenuSlot5"
-props = { text = "Window", text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+classes = ["workbench-tab"]
+props = { text = "Window", surface_variant = "transparent", radius = "$editor.control.radius.small", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
 layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.workbench_menu_slot_6]
 component = "Label"
 control_id = "MenuSlot6"
-props = { text = "Help", text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+classes = ["workbench-tab"]
+props = { text = "Help", surface_variant = "transparent", radius = "$editor.control.radius.small", text_tone = "subtle", font_size = "$editor.typography.body.size", text_align = "center", overflow = "elide" }
 layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }

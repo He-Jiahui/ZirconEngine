@@ -6,6 +6,7 @@ import os
 import threading
 import uuid
 from collections.abc import Callable, Iterable
+from contextlib import AbstractContextManager, nullcontext
 from datetime import datetime, timedelta, timezone
 from sqlite3 import Connection
 
@@ -179,6 +180,15 @@ class SupervisionService:
             session_id.strip() for session_id in scoped_ids if session_id.strip()
         )
         self._transition_lock = threading.RLock()
+        self._cargo_start_transition: Callable[[], AbstractContextManager[None]] = (
+            nullcontext
+        )
+
+    def set_cargo_start_transition(
+        self, transition: Callable[[], AbstractContextManager[None]]
+    ) -> None:
+        """Serialize rollover arming with the managed process-launch interval."""
+        self._cargo_start_transition = transition
 
     def initialize(
         self,
@@ -349,6 +359,33 @@ class SupervisionService:
                 details={"operation": operation},
             )
         self._require_mutation_allowed(connection, operation)
+
+    def require_cargo_start_allowed_in_connection(
+        self, connection: Connection, operation: str
+    ) -> None:
+        """Fence new Cargo starts after this daemon commits its rollover handoff."""
+        intent = connection.execute(
+            """
+            SELECT intent_id, action_id FROM service_lifecycle_intents
+            WHERE repository_key=? AND source_daemon_instance_id=?
+              AND kind='service.rollover' AND status='awaiting_restart'
+            ORDER BY updated_at DESC, intent_id DESC
+            LIMIT 1
+            """,
+            (self.repository_key, self.daemon_instance_id),
+        ).fetchone()
+        if intent is None:
+            return
+        raise CoordinatorError(
+            "cargo_start_rollover_pending",
+            "The current daemon has committed its rollover handoff; Cargo start is deferred to the successor",
+            details={
+                "operation": operation,
+                "intentId": intent["intent_id"],
+                "actionId": intent["action_id"],
+                "daemonInstanceId": self.daemon_instance_id,
+            },
+        )
 
     def _require_mutation_allowed(self, connection: Connection, operation: str) -> str:
         operation_name, separator, session_id = operation.partition("@")
@@ -1281,7 +1318,11 @@ class SupervisionService:
         their exact reservation and FIFO state, but they have no accepted Cargo
         process identity and therefore cannot defer the handoff.
         """
-        with self._transition_lock, self.database.transaction() as connection:
+        with (
+            self._cargo_start_transition(),
+            self._transition_lock,
+            self.database.transaction() as connection,
+        ):
             intent = connection.execute(
                 """
                 SELECT intent_id, status, kind, result_json
@@ -1328,7 +1369,26 @@ class SupervisionService:
                             "liveProcessPids": pids,
                         }
                     )
-            if live_jobs:
+            pending_starts = [
+                {
+                    "requestId": row["request_id"],
+                    "reservationId": row["reservation_id"],
+                    "jobId": row["job_id"],
+                    "sessionId": row["session_id"],
+                    "acknowledgedAt": row["acknowledged_at"],
+                    "deadlineAt": row["deadline_at"],
+                }
+                for row in connection.execute(
+                    """
+                    SELECT request_id, reservation_id, job_id, session_id,
+                           acknowledged_at, deadline_at
+                    FROM cargo_start_requests
+                    WHERE status='start_pending'
+                    ORDER BY acknowledged_at, request_id
+                    """
+                )
+            ]
+            if live_jobs or pending_starts:
                 result = {
                     "intentId": intent_id,
                     "state": "healthy",
@@ -1336,11 +1396,13 @@ class SupervisionService:
                     "successorPending": False,
                     "waitingForCargo": True,
                     "liveCargo": live_jobs,
+                    "pendingCargoStarts": pending_starts,
                 }
                 previous_result = json.loads(intent["result_json"] or "{}")
                 if (
                     previous_result.get("waitingForCargo")
                     and previous_result.get("liveCargo") == live_jobs
+                    and previous_result.get("pendingCargoStarts") == pending_starts
                 ):
                     # 保持准入开放时，相同 Cargo 等待不能无限刷审计流。
                     return previous_result
@@ -1362,6 +1424,7 @@ class SupervisionService:
                                 "actionId": action_id,
                                 "intentId": intent_id,
                                 "jobs": live_jobs,
+                                "pendingStarts": pending_starts,
                                 "requestedBy": actor,
                             },
                             sort_keys=True,

@@ -1,4 +1,6 @@
-use crate::core::framework::render::{FrameHistoryHandle, FrameHistoryStatus};
+use crate::core::framework::render::{
+    FrameHistoryHandle, FrameHistoryStatus, RenderFrameworkError,
+};
 
 use crate::graphics::runtime::ViewportFrameHistory;
 
@@ -10,11 +12,14 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
     context: &FrameSubmissionContext,
     generation: u64,
     allocated_history: Option<FrameHistoryHandle>,
-) -> (
-    Option<FrameHistoryHandle>,
-    FrameHistoryHandle,
-    FrameHistoryStatus,
-) {
+) -> Result<
+    (
+        Option<FrameHistoryHandle>,
+        FrameHistoryHandle,
+        FrameHistoryStatus,
+    ),
+    RenderFrameworkError,
+> {
     let camera_history_key = context.camera_history_key();
     let previous_handle = record
         .history(camera_history_key)
@@ -49,7 +54,11 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
             );
             handle
         }
-        (None, None) => unreachable!("rotation is required when no history exists"),
+        (None, None) => {
+            return Err(RenderFrameworkError::InvalidSubmissionState {
+                state: "history rotation is missing for the submitted camera",
+            });
+        }
     };
 
     let previous_available = previous_handle.is_some()
@@ -69,5 +78,20 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
         context.render_size(),
     );
 
-    (previous_handle, history_handle, history_status)
+    Ok((previous_handle, history_handle, history_status))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn missing_history_rotation_fails_with_a_typed_framework_error() {
+        let production = include_str!("record_history.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("history record production boundary");
+
+        assert!(production.contains("RenderFrameworkError::InvalidSubmissionState"));
+        assert!(!production.contains("unreachable!"));
+        assert!(!production.contains("panic!"));
+    }
 }

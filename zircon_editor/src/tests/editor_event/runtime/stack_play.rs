@@ -323,6 +323,49 @@ fn operation_execution_trace_records_its_transaction_identity() {
 }
 
 #[test]
+fn native_command_execution_is_an_observation_and_does_not_retain_result_payload() {
+    use crate::core::editor_event::{EditorEventResult, EditorOperationEvent};
+    use crate::core::editor_operation::EditorOperationPath;
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_native_command_observation");
+
+    let operation_id = EditorOperationPath::parse("fixture.editor.command").unwrap();
+    let record = runtime
+        .runtime
+        .dispatch_normalized_native_result(
+            EditorEventSource::RetainedHost,
+            EditorEvent::Operation(EditorOperationEvent::NativeCommandExecuted {
+                operation_id: operation_id.to_string(),
+                status_code: 0,
+            }),
+            Some((
+                operation_id,
+                "Fixture command".to_string(),
+                serde_json::json!({}),
+                None,
+            )),
+            None,
+            EditorEventResult::success(serde_json::json!({"opened": true})),
+        )
+        .expect("native command observation should dispatch");
+
+    assert_eq!(
+        record.result.value,
+        Some(serde_json::json!({"opened": true}))
+    );
+    assert_eq!(record.before_revision, record.after_revision);
+    assert_eq!(runtime.runtime.journal().records().len(), 1);
+    let journal_record = &runtime.runtime.journal().records()[0];
+    assert_eq!(
+        journal_record.before_revision,
+        journal_record.after_revision
+    );
+    assert_eq!(journal_record.operation_arguments, None);
+    assert_eq!(journal_record.result, EditorEventResult::default());
+}
+
+#[test]
 fn operation_control_request_can_record_cli_source() {
     use crate::core::editor_operation::{
         EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,

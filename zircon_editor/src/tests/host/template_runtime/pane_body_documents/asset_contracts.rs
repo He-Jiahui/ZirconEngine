@@ -143,33 +143,13 @@ fn builtin_pane_body_bindings_stay_in_expected_command_namespaces() {
             "EditorOperation",
         ),
         (
-            "res://ui/editor/host/inspector_body.zui",
-            "InspectorPaneBody/ApplyDraft",
-            "DraftCommand",
-        ),
-        (
             "res://ui/editor/host/hierarchy_body.zui",
             "HierarchyPaneBody/SelectRoot",
             "SelectionCommand",
         ),
         (
-            "res://ui/editor/host/animation_sequence_body.zui",
-            "AnimationSequencePaneBody/ScrubTimeline",
-            "AnimationCommand",
-        ),
-        (
-            "res://ui/editor/host/animation_graph_body.zui",
-            "AnimationGraphPaneBody/AddNode",
-            "AnimationCommand",
-        ),
-        (
             "res://ui/editor/host/runtime_diagnostics_body.zui",
             "RuntimeDiagnosticsPaneBody/FocusDiagnostics",
-            "DockCommand",
-        ),
-        (
-            "res://ui/editor/host/performance_timeline_body.zui",
-            "PerformanceTimelinePaneBody/RefreshSnapshot",
             "DockCommand",
         ),
         (
@@ -203,5 +183,25 @@ fn builtin_pane_body_bindings_stay_in_expected_command_namespaces() {
             ),
         };
         assert_eq!(actual_namespace, expected_namespace);
+    }
+
+    for (document_id, binding_id) in [
+        (
+            "res://ui/editor/host/animation_sequence_body.zui",
+            "AnimationSequencePaneBody/ScrubTimeline",
+        ),
+        (
+            "res://ui/editor/host/animation_graph_body.zui",
+            "AnimationGraphPaneBody/AddNode",
+        ),
+    ] {
+        let projection = runtime.project_document(document_id).unwrap();
+        assert!(
+            projection
+                .bindings
+                .iter()
+                .all(|binding| binding.binding_id != binding_id),
+            "unsupported animation pane action `{binding_id}` must not be projected"
+        );
     }
 }

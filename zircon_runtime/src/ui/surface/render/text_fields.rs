@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::{
     style::{UiPainterFamily, UiPainterResolvedState, UiRgbaColor},
     surface::{
         UiEditableTextState, UiRenderCommand, UiRenderCommandKind, UiResolvedStyle,
-        UiResolvedTextLayout,
+        UiResolvedTextLayout, UiRichTextFormat, UiTextDirection,
     },
     tree::UiTemplateNodeMetadata,
     widget::UiWidgetBehavior,
@@ -17,7 +17,11 @@ use zircon_runtime_interface::ui::{
 
 use super::extract::resolve_text_layout_with_cache;
 use super::painter_state::UiRenderPainterStateSource;
-use crate::ui::text::{UiPreeditSpan, UiTextLayoutRequest, UiTextMeasureCache};
+use crate::ui::secure_text_policy::secure_text_policy;
+use crate::ui::text::{
+    UiPreeditSpan, UiSecureTextPresentation, UiTextLayoutRequest, UiTextMeasureCache,
+    apply_secure_text_presentation,
+};
 
 #[derive(Clone, Copy, Debug)]
 struct TextFieldVisual {
@@ -162,7 +166,7 @@ pub(super) fn text_field_render_commands(
     base_style: &UiResolvedStyle,
     visible_text: Option<&str>,
     editable: Option<&UiEditableTextState>,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> Vec<UiRenderCommand> {
     let Some(metadata) = metadata else {
         return Vec::new();
@@ -245,10 +249,7 @@ impl TextFieldRenderState {
 }
 
 fn is_text_field(metadata: &UiTemplateNodeMetadata) -> bool {
-    matches!(
-        metadata.component.as_str(),
-        "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField" | "SearchField"
-    ) || metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::TextInput
+    metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::TextInput
 }
 
 fn surface_command(
@@ -294,23 +295,73 @@ fn text_command(
     base_style: &UiResolvedStyle,
     visible_text: &str,
     editable: Option<&UiEditableTextState>,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> UiRenderCommand {
     let text_frame = text_frame(frame, visual);
     let text_clip = clip_frame
         .and_then(|clip| clip.intersection(text_frame))
         .unwrap_or(text_frame);
-    let mut style = text_style(metadata, state, visual, base_style, visible_text);
-    let mut layout = resolve_text_field_layout(
-        visible_text,
-        &style,
-        text_frame,
-        text_clip,
-        editable,
-        text_measure_cache,
-    );
+    let source_is_placeholder = is_placeholder_text(metadata, visible_text);
+    let secure_requested = !source_is_placeholder && secure_text_policy(metadata).is_secure();
+    let secure_source = secure_requested
+        .then(|| secure_text_source(visible_text, editable))
+        .flatten()
+        .filter(|text| !text.is_empty());
+    let secure_presentation = (secure_requested && supports_secure_text_field_mvp(metadata))
+        .then_some(secure_source)
+        .flatten()
+        .map(|source| UiSecureTextPresentation::new(source, base_style.text_direction.into()));
+    let rendered_text = if secure_requested {
+        secure_presentation
+            .as_ref()
+            .and_then(|result| result.as_ref().ok())
+            .map_or_else(
+                || UiSecureTextPresentation::mask_display_text(secure_source.unwrap_or_default()),
+                |presentation| presentation.display_text().to_string(),
+            )
+    } else {
+        visible_text.to_string()
+    };
+    let mut style = text_style(metadata, state, visual, base_style, &rendered_text);
+    // Password text is a plain-text presentation owner. Rich parsing can only reinterpret the
+    // display mask, but it would bypass the presentation glyph-artifact route and its explicit
+    // source-range map.
+    if secure_requested {
+        style.rich_text_format = UiRichTextFormat::Plain;
+    }
+    let (mut layout, render_editable) = if !secure_requested {
+        (
+            resolve_text_field_layout(
+                visible_text,
+                &style,
+                text_frame,
+                text_clip,
+                editable,
+                text_measure_cache,
+            ),
+            editable.cloned(),
+        )
+    } else {
+        match secure_presentation {
+            Some(Ok(presentation)) => {
+                let layout = resolve_secure_text_field_layout(
+                    &presentation,
+                    &style,
+                    text_frame,
+                    text_clip,
+                    text_measure_cache,
+                );
+                let editable = editable.map(|state| presentation.render_editable_state(state));
+                (layout, editable)
+            }
+            Some(Err(_)) | None => (
+                secure_text_layout_failure(&style),
+                editable.map(|state| secure_render_editable_state(state, rendered_text.as_str())),
+            ),
+        }
+    };
     if state.focused() && !state.unavailable() {
-        layout.editable = editable.cloned();
+        layout.editable = render_editable;
     }
     style = style.with_painter_state(state.family, state.visual_state);
     UiRenderCommand {
@@ -321,9 +372,90 @@ fn text_command(
         z_index,
         style,
         text_layout: Some(layout),
-        text: Some(visible_text.to_string()),
+        text: Some(rendered_text),
         image: None,
         opacity,
+    }
+}
+
+fn resolve_secure_text_field_layout(
+    presentation: &UiSecureTextPresentation,
+    style: &UiResolvedStyle,
+    text_frame: UiFrame,
+    text_clip: UiFrame,
+    text_measure_cache: &mut UiTextMeasureCache,
+) -> UiResolvedTextLayout {
+    let mut layout_style = style.clone();
+    if matches!(layout_style.text_direction, UiTextDirection::Auto) {
+        if let Some(line) = presentation.lines().first() {
+            layout_style.text_direction = line.bidi.resolved_base_direction.into();
+        }
+    }
+    let request = UiTextLayoutRequest::new(
+        presentation.display_text(),
+        &layout_style,
+        text_frame,
+        Some(text_clip),
+    );
+    let mut layout = resolve_text_layout_with_cache(&request, text_measure_cache).layout;
+    if apply_secure_text_presentation(&mut layout, presentation).is_ok() {
+        return layout;
+    }
+    secure_text_layout_failure(&layout_style)
+}
+
+fn secure_text_layout_failure(style: &UiResolvedStyle) -> UiResolvedTextLayout {
+    UiResolvedTextLayout {
+        text_align: style.text_align,
+        wrap: style.wrap,
+        direction: style.text_direction,
+        writing_mode: style.text_writing_mode,
+        overflow: style.text_overflow,
+        font_size: style.font_size,
+        line_height: style.line_height,
+        measured_width: 0.0,
+        measured_height: 0.0,
+        source_range: Default::default(),
+        lines: Vec::new(),
+        boxes: Vec::new(),
+        overflow_clipped: true,
+        editable: None,
+        rich_text_artifact: None,
+    }
+}
+
+/// Secure IME normally leaves `visible_text` and committed state identical. If an upstream
+/// caller temporarily exposes a non-empty visible preedit while the committed state is empty,
+/// mask that text too rather than allowing the render path to fall back to raw presentation.
+fn secure_text_source<'a>(
+    visible_text: &'a str,
+    editable: Option<&'a UiEditableTextState>,
+) -> Option<&'a str> {
+    editable
+        .map(|state| state.text.as_str())
+        .filter(|text| !text.is_empty())
+        .or_else(|| (!visible_text.is_empty()).then_some(visible_text))
+}
+
+fn secure_render_editable_state(
+    source: &UiEditableTextState,
+    display_text: &str,
+) -> UiEditableTextState {
+    let source_len = source.text.len();
+    let mut caret = source.caret.clone();
+    caret.offset = caret.offset.min(source_len);
+    let selection = source.selection.as_ref().map(|selection| {
+        let mut selection = selection.clone();
+        selection.anchor = selection.anchor.min(source_len);
+        selection.focus = selection.focus.min(source_len);
+        selection
+    });
+    UiEditableTextState {
+        text: display_text.to_string(),
+        caret,
+        selection,
+        composition: None,
+        read_only: source.read_only,
     }
 }
 
@@ -333,7 +465,7 @@ fn resolve_text_field_layout(
     text_frame: UiFrame,
     text_clip: UiFrame,
     editable: Option<&UiEditableTextState>,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> UiResolvedTextLayout {
     let request = UiTextLayoutRequest::new(visible_text, style, text_frame, Some(text_clip));
     let Some(composition) = editable.and_then(|editable| editable.composition.as_ref()) else {
@@ -425,6 +557,20 @@ fn is_placeholder_text(metadata: &UiTemplateNodeMetadata, visible_text: &str) ->
             .unwrap_or_default()
             .is_empty()
     })
+}
+
+/// The first secure presentation cut intentionally owns only the established single-line input
+/// family. Unsupported secure text controls still publish a masked command and empty layout;
+/// they must never fall through to the ordinary multi-line text route with raw content.
+fn supports_secure_text_field_mvp(metadata: &UiTemplateNodeMetadata) -> bool {
+    matches!(
+        metadata.component.as_str(),
+        "InputField" | "TextField" | "LineEdit" | "NumberField" | "SearchField"
+    ) && !metadata
+        .attributes
+        .get("multiline")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
 }
 
 fn metric_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {

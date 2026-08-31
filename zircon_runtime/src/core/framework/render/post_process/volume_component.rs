@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    RenderBloomSettings, RenderColorGradingSettings, RenderExposureMode, RenderExposureSettings,
-    VOLUMETRIC_FOG_VOLUME_COMPONENT,
+    AoQualityTier, AoSourceSettings, RenderBloomSettings, RenderColorGradingSettings,
+    RenderExposureMode, RenderExposureSettings, VOLUMETRIC_FOG_VOLUME_COMPONENT,
 };
 use crate::core::math::Vec3;
 
@@ -20,7 +20,7 @@ pub use self::params::{
     VolumeParamSchema, VolumeParamType, VolumeParamValue,
 };
 
-use self::params::{enum_param, float_param, uint_param, vec3_param};
+use self::params::{bool_param, enum_param, float_param, uint_param, vec3_param};
 
 pub type VolumeComponentReadFn =
     fn(settings: &RenderResolvedPostProcessSettings) -> Vec<VolumeParamValue>;
@@ -29,6 +29,8 @@ pub type VolumeComponentApplyFn = fn(
     component_id: &'static str,
     values: &[VolumeParamValue],
 ) -> Result<(), VolumeComponentApplyError>;
+
+const BUILTIN_VOLUME_PARAM_INLINE_CAPACITY: usize = 9;
 
 #[derive(Clone, Copy, Debug)]
 pub struct VolumeComponentDescriptor {
@@ -68,8 +70,16 @@ impl VolumeComponentDescriptor {
         self,
         settings: &mut RenderResolvedPostProcessSettings,
     ) -> Result<(), VolumeComponentApplyError> {
-        let values = self.default_values();
-        self.apply_values(settings, &values)
+        if self.params.len() <= BUILTIN_VOLUME_PARAM_INLINE_CAPACITY {
+            let mut values = [VolumeParamValue::Float(0.0); BUILTIN_VOLUME_PARAM_INLINE_CAPACITY];
+            for (value, param) in values.iter_mut().zip(self.params) {
+                *value = param.default;
+            }
+            self.apply_values(settings, &values[..self.params.len()])
+        } else {
+            let values = self.default_values();
+            self.apply_values(settings, &values)
+        }
     }
 
     pub fn apply_values(
@@ -111,6 +121,17 @@ const BLOOM_PARAMS: [VolumeParamSchema; 3] = [
     float_param("threshold", 1.0),
     float_param("intensity", 0.0),
     float_param("radius", 0.0),
+];
+
+const AMBIENT_OCCLUSION_PARAMS: [VolumeParamSchema; 8] = [
+    float_param("intensity", 1.0),
+    float_param("radius_meters", 1.0),
+    float_param("thickness_meters", 0.15),
+    float_param("depth_bias_meters", 0.02),
+    float_param("falloff_start_meters", 0.5),
+    enum_param("quality", AoQualityTier::High as u32),
+    bool_param("half_resolution", false),
+    bool_param("temporal", false),
 ];
 
 const DEPTH_OF_FIELD_PARAMS: [VolumeParamSchema; 7] = [
@@ -195,8 +216,14 @@ const COLOR_LOOKUP_PARAMS: [VolumeParamSchema; 3] = [
 
 const BLUR_PARAMS: [VolumeParamSchema; 1] = [float_param("radius", 0.0)];
 
-const BUILTIN_POST_PROCESS_VOLUME_COMPONENTS_ARRAY: [VolumeComponentDescriptor; 15] = [
+const BUILTIN_POST_PROCESS_VOLUME_COMPONENTS_ARRAY: [VolumeComponentDescriptor; 16] = [
     VOLUMETRIC_FOG_VOLUME_COMPONENT,
+    VolumeComponentDescriptor::new(
+        "post.ambient-occlusion",
+        &AMBIENT_OCCLUSION_PARAMS,
+        read_ambient_occlusion,
+        apply_ambient_occlusion,
+    ),
     VolumeComponentDescriptor::new(
         "post.depth-of-field",
         &DEPTH_OF_FIELD_PARAMS,
@@ -257,6 +284,20 @@ const BUILTIN_POST_PROCESS_VOLUME_COMPONENTS_ARRAY: [VolumeComponentDescriptor; 
     ),
     VolumeComponentDescriptor::new("post.blur", &BLUR_PARAMS, read_blur, apply_blur),
 ];
+
+fn read_ambient_occlusion(settings: &RenderResolvedPostProcessSettings) -> Vec<VolumeParamValue> {
+    let value = settings.ambient_occlusion;
+    vec![
+        VolumeParamValue::Float(value.intensity),
+        VolumeParamValue::Float(value.radius_meters),
+        VolumeParamValue::Float(value.thickness_meters),
+        VolumeParamValue::Float(value.depth_bias_meters),
+        VolumeParamValue::Float(value.falloff_start_meters),
+        VolumeParamValue::Enum(value.quality.stable_id()),
+        VolumeParamValue::Bool(value.half_resolution),
+        VolumeParamValue::Bool(value.temporal),
+    ]
+}
 
 fn read_bloom(settings: &RenderResolvedPostProcessSettings) -> Vec<VolumeParamValue> {
     vec![
@@ -454,6 +495,25 @@ fn apply_exposure(
     Ok(())
 }
 
+fn apply_ambient_occlusion(
+    settings: &mut RenderResolvedPostProcessSettings,
+    component_id: &'static str,
+    values: &[VolumeParamValue],
+) -> Result<(), VolumeComponentApplyError> {
+    settings.ambient_occlusion = AoSourceSettings {
+        intensity: values[0].float(component_id, "intensity")?,
+        radius_meters: values[1].float(component_id, "radius_meters")?,
+        thickness_meters: values[2].float(component_id, "thickness_meters")?,
+        depth_bias_meters: values[3].float(component_id, "depth_bias_meters")?,
+        falloff_start_meters: values[4].float(component_id, "falloff_start_meters")?,
+        quality: AoQualityTier::from_stable_id(values[5].enum_id(component_id, "quality")?)
+            .unwrap_or_default(),
+        half_resolution: values[6].bool(component_id, "half_resolution")?,
+        temporal: values[7].bool(component_id, "temporal")?,
+    };
+    Ok(())
+}
+
 fn apply_screen_space_reflection(
     settings: &mut RenderResolvedPostProcessSettings,
     component_id: &'static str,
@@ -642,3 +702,77 @@ fn color_lookup_layout_ids(layout: RenderColorLookupTextureLayout) -> (u32, u32)
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod inline_default_tests {
+    use super::*;
+
+    const LONG_PLUGIN_PARAMS: [VolumeParamSchema; 12] = [
+        float_param("value-0", 0.0),
+        float_param("value-1", 1.0),
+        float_param("value-2", 2.0),
+        float_param("value-3", 3.0),
+        float_param("value-4", 4.0),
+        float_param("value-5", 5.0),
+        float_param("value-6", 6.0),
+        float_param("value-7", 7.0),
+        float_param("value-8", 8.0),
+        float_param("value-9", 9.0),
+        float_param("value-10", 10.0),
+        float_param("value-11", 11.0),
+    ];
+
+    fn read_long_plugin_defaults(
+        _settings: &RenderResolvedPostProcessSettings,
+    ) -> Vec<VolumeParamValue> {
+        LONG_PLUGIN_PARAMS
+            .iter()
+            .map(|param| param.default)
+            .collect()
+    }
+
+    fn apply_long_plugin_defaults(
+        _settings: &mut RenderResolvedPostProcessSettings,
+        component_id: &'static str,
+        values: &[VolumeParamValue],
+    ) -> Result<(), VolumeComponentApplyError> {
+        assert_eq!(component_id, "post.test-long-plugin");
+        assert_eq!(values.len(), LONG_PLUGIN_PARAMS.len());
+        for (value, param) in values.iter().zip(LONG_PLUGIN_PARAMS) {
+            assert_eq!(*value, param.default);
+        }
+        Ok(())
+    }
+
+    fn default_settings() -> RenderResolvedPostProcessSettings {
+        RenderResolvedPostProcessSettings::new(
+            RenderBloomSettings::default(),
+            RenderExposureSettings::default(),
+            RenderColorGradingSettings::default(),
+            crate::core::framework::render::RenderPostProcessEffectStackSettings::default(),
+        )
+    }
+
+    #[test]
+    fn render_volume_component_builtin_defaults_fit_inline_capacity() {
+        let largest_builtin = BUILTIN_POST_PROCESS_VOLUME_COMPONENTS
+            .iter()
+            .map(|descriptor| descriptor.params.len())
+            .max()
+            .unwrap();
+
+        assert_eq!(largest_builtin, BUILTIN_VOLUME_PARAM_INLINE_CAPACITY);
+    }
+
+    #[test]
+    fn render_volume_component_long_plugin_defaults_use_complete_fallback() {
+        let descriptor = VolumeComponentDescriptor::new(
+            "post.test-long-plugin",
+            &LONG_PLUGIN_PARAMS,
+            read_long_plugin_defaults,
+            apply_long_plugin_defaults,
+        );
+
+        descriptor.apply_defaults(&mut default_settings()).unwrap();
+    }
+}

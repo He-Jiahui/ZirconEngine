@@ -1,7 +1,10 @@
-use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::{
+    platform::RuntimeTargetMode,
+    time::{ProductTimePolicy, ProductTimeProfile},
+};
+use crate::core::runtime::ProductTimePolicies;
 use crate::diagnostic_log::{DiagnosticStoreLogSchedule, DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT};
 
-const DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME: u32 = 8;
 const RUNTIME_SESSION_PROFILE_RUNTIME: &[u8] = b"runtime";
 const RUNTIME_SESSION_PROFILE_RUNTIME_PIPELINED: &[u8] = b"runtime-pipelined";
 const RUNTIME_SESSION_PROFILE_EDITOR: &[u8] = b"editor";
@@ -32,8 +35,14 @@ impl RuntimeDynamicSessionProfile {
         }
     }
 
-    pub(super) fn max_fixed_steps_per_frame(self) -> u32 {
-        DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME
+    pub(super) fn product_time_policy(self) -> ProductTimePolicy {
+        let profile = match self {
+            Self::Runtime | Self::RuntimePipelined | Self::Dev => ProductTimeProfile::Client,
+            Self::Editor => ProductTimeProfile::Editor,
+            Self::Minimal => ProductTimeProfile::Test,
+            Self::Headless => ProductTimeProfile::Headless,
+        };
+        ProductTimePolicies::for_profile(profile)
     }
 
     pub(super) fn diagnostic_log_schedule(self) -> DiagnosticStoreLogSchedule {
@@ -70,8 +79,11 @@ impl RuntimeDynamicSessionProfile {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::RuntimeDynamicSessionProfile;
     use crate::core::framework::platform::RuntimeTargetMode;
+    use crate::core::framework::time::ProductTimeProfile;
 
     #[test]
     fn pipelined_runtime_profile_selects_client_render_bridge_and_pipeline() {
@@ -82,5 +94,52 @@ mod tests {
         assert!(profile.uses_render_bridge());
         assert!(profile.pipelined_render());
         assert_eq!(profile.target_mode(), RuntimeTargetMode::ClientRuntime);
+    }
+
+    #[test]
+    fn runtime_session_profiles_select_versioned_product_time_policies() {
+        for (profile, expected_product_profile, expected_budget) in [
+            (
+                RuntimeDynamicSessionProfile::Runtime,
+                ProductTimeProfile::Client,
+                8,
+            ),
+            (
+                RuntimeDynamicSessionProfile::RuntimePipelined,
+                ProductTimeProfile::Client,
+                8,
+            ),
+            (
+                RuntimeDynamicSessionProfile::Editor,
+                ProductTimeProfile::Editor,
+                4,
+            ),
+            (
+                RuntimeDynamicSessionProfile::Dev,
+                ProductTimeProfile::Client,
+                8,
+            ),
+            (
+                RuntimeDynamicSessionProfile::Minimal,
+                ProductTimeProfile::Test,
+                1,
+            ),
+            (
+                RuntimeDynamicSessionProfile::Headless,
+                ProductTimeProfile::Headless,
+                16,
+            ),
+        ] {
+            let policy = profile.product_time_policy();
+            assert_eq!(policy.profile(), expected_product_profile);
+            assert_eq!(policy.max_fixed_steps_per_frame(), expected_budget);
+            assert_eq!(
+                policy.time_policy().fixed_timestep(),
+                Duration::from_micros(15_625)
+            );
+            policy
+                .validate()
+                .expect("session profile must select a valid time policy");
+        }
     }
 }

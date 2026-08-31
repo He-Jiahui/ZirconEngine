@@ -10,7 +10,7 @@ mod scope;
 mod tracy;
 mod ui_hotspot;
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 #[cfg(feature = "profiling")]
 use std::{env, path::PathBuf};
@@ -38,7 +38,8 @@ pub use zircon_runtime_interface::{
 pub use crate::{profile_counter, profile_dynamic_scope, profile_frame, profile_scope};
 
 static GLOBAL_RECORDER: OnceLock<Mutex<ProfileRecorder>> = OnceLock::new();
-static CAPTURE_ACTIVE: AtomicBool = AtomicBool::new(false);
+const CAPTURE_ACTIVE_BIT: u64 = 1;
+static CAPTURE_STATE: AtomicU64 = AtomicU64::new(0);
 
 pub fn feature_enabled() -> bool {
     cfg!(feature = "profiling")
@@ -48,8 +49,11 @@ pub fn start_capture(config: ProfileCaptureConfig) -> ProfileRecorderStatus {
     if !feature_enabled() {
         return ProfileRecorderStatus::disabled();
     }
-    let status = lock_recorder().start_capture(config);
-    CAPTURE_ACTIVE.store(status.active, Ordering::Release);
+    let mut recorder = lock_recorder();
+    let status = recorder.start_capture(config);
+    if status.active {
+        advance_capture_epoch(true);
+    }
     status
 }
 
@@ -57,8 +61,9 @@ pub fn stop_capture() -> ProfileRecorderStatus {
     if !feature_enabled() {
         return ProfileRecorderStatus::disabled();
     }
-    let status = lock_recorder().stop_capture();
-    CAPTURE_ACTIVE.store(false, Ordering::Release);
+    let mut recorder = lock_recorder();
+    let status = recorder.stop_capture();
+    CAPTURE_STATE.fetch_and(!CAPTURE_ACTIVE_BIT, Ordering::AcqRel);
     status
 }
 
@@ -66,15 +71,51 @@ pub fn reset_capture() -> ProfileRecorderStatus {
     if !feature_enabled() {
         return ProfileRecorderStatus::disabled();
     }
-    let status = lock_recorder().reset();
-    CAPTURE_ACTIVE.store(false, Ordering::Release);
+    let mut recorder = lock_recorder();
+    let status = recorder.reset();
+    // Reset invalidates asynchronous work recorded by the preceding capture.
+    advance_capture_epoch(false);
     status
 }
 
 /// Cheap macro-facing hint that avoids touching the global recorder while idle.
 #[doc(hidden)]
 pub fn capture_active() -> bool {
-    feature_enabled() && CAPTURE_ACTIVE.load(Ordering::Acquire)
+    feature_enabled() && capture_state_is_active(CAPTURE_STATE.load(Ordering::Acquire))
+}
+
+/// Returns the current capture epoch for async producers, if a capture is live.
+/// A completion from an older epoch must be discarded instead of contaminating
+/// a later profiling session.
+pub(crate) fn capture_epoch() -> Option<u64> {
+    if !feature_enabled() {
+        return None;
+    }
+    let state = CAPTURE_STATE.load(Ordering::Acquire);
+    capture_state_is_active(state).then_some(capture_state_epoch(state))
+}
+
+/// Returns the epoch that may still accept a previously recorded async result.
+/// Stopping seals the current epoch for completion; reset and start advance it.
+pub(crate) fn capture_epoch_for_completion() -> Option<u64> {
+    feature_enabled().then(|| capture_state_epoch(CAPTURE_STATE.load(Ordering::Acquire)))
+}
+
+fn advance_capture_epoch(active: bool) {
+    CAPTURE_STATE
+        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |state| {
+            let next_epoch = capture_state_epoch(state).wrapping_add(1);
+            Some((next_epoch << 1) | u64::from(active))
+        })
+        .expect("capture state update is infallible");
+}
+
+const fn capture_state_epoch(state: u64) -> u64 {
+    state >> 1
+}
+
+const fn capture_state_is_active(state: u64) -> bool {
+    state & CAPTURE_ACTIVE_BIT != 0
 }
 
 pub fn snapshot() -> ProfileSnapshot {
@@ -131,6 +172,9 @@ pub fn control(request: ProfileControlRequest) -> ProfileControlResponse {
         ProfileControlCommand::RuntimeDiagnosticsSnapshot => {
             ProfileControlResponse::error("runtime diagnostics snapshot requires dynamic session")
         }
+        ProfileControlCommand::RuntimeModuleCompositionReceipt => ProfileControlResponse::error(
+            "runtime module composition receipt requires dynamic session",
+        ),
         ProfileControlCommand::ExportReport => match export_report() {
             Ok(report) => {
                 let mut response = ProfileControlResponse::ok("profile report exported");
@@ -303,10 +347,10 @@ pub(crate) fn test_capture_lock() -> MutexGuard<'static, ()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{record_counter_batch, snapshot, test_capture_lock, with_recorder};
-
-    #[cfg(feature = "profiling")]
-    use super::{reset_capture, start_capture, ProfileCaptureConfig};
+    use super::{
+        capture_epoch, capture_epoch_for_completion, record_counter_batch, reset_capture, snapshot,
+        start_capture, stop_capture, test_capture_lock, with_recorder, ProfileCaptureConfig,
+    };
 
     #[test]
     fn profile_recorder_accessors_recover_poisoned_global_lock() {
@@ -323,6 +367,34 @@ mod tests {
         let status = with_recorder(|recorder| recorder.reset());
         assert_eq!(status.message, "profile capture reset");
         assert!(!snapshot().active);
+    }
+
+    #[test]
+    fn asynchronous_producers_can_reject_reports_from_an_older_capture_epoch() {
+        let _guard = test_capture_lock();
+        reset_capture();
+        assert_eq!(capture_epoch(), None);
+
+        let first_status = start_capture(ProfileCaptureConfig::default());
+        if !first_status.active {
+            assert_eq!(capture_epoch(), None);
+            return;
+        }
+        let first_epoch = capture_epoch().expect("active capture must expose an epoch");
+        stop_capture();
+        assert_eq!(capture_epoch(), None);
+        assert_eq!(capture_epoch_for_completion(), Some(first_epoch));
+
+        reset_capture();
+        assert_eq!(capture_epoch(), None);
+        assert_ne!(capture_epoch_for_completion(), Some(first_epoch));
+
+        let second_status = start_capture(ProfileCaptureConfig::default());
+        assert!(second_status.active);
+        let second_epoch = capture_epoch().expect("restarted capture must expose an epoch");
+        reset_capture();
+
+        assert!(second_epoch > first_epoch);
     }
 
     #[cfg(feature = "profiling")]

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::ai::{
@@ -16,6 +16,8 @@ pub const AI_HEARING_PENDING_EVENT_CAPACITY: usize = 1_024;
 pub const AI_HEARING_PENDING_EVENT_MAX_AGE_SECONDS: Real = 5.0;
 pub const AI_HEARING_INGEST_EVENT_LIMIT: usize = 1_024;
 
+type Receiver = (EntityId, Vec3, Real, Real);
+
 #[derive(Clone, Debug)]
 struct PendingHearingEvent {
     event: AiHearingStimulusEvent,
@@ -26,6 +28,7 @@ struct PendingHearingEvent {
 #[derive(Debug, Default)]
 pub struct HearingStimulusAdapter {
     pending: VecDeque<PendingHearingEvent>,
+    receiver_index: HashMap<EntityId, Receiver>,
     dropped_events: u64,
     expired_events: u64,
 }
@@ -79,12 +82,9 @@ impl HearingStimulusAdapter {
     pub(crate) fn enqueue(
         &mut self,
         events: impl IntoIterator<Item = AiHearingStimulusEvent>,
-        receivers: &[(EntityId, Vec3, Real, Real)],
+        receivers: &[Receiver],
     ) {
-        let receiver_ids = receivers
-            .iter()
-            .map(|receiver| receiver.0)
-            .collect::<Arc<[_]>>();
+        let mut receiver_ids = None;
         let mut events = events.into_iter();
         for event in events.by_ref().take(AI_HEARING_INGEST_EVENT_LIMIT) {
             if !event.age_seconds.is_finite()
@@ -98,9 +98,15 @@ impl HearingStimulusAdapter {
                 self.pending.pop_front();
                 self.dropped_events += 1;
             }
+            let receiver_ids = receiver_ids.get_or_insert_with(|| {
+                receivers
+                    .iter()
+                    .map(|receiver| receiver.0)
+                    .collect::<Arc<[_]>>()
+            });
             self.pending.push_back(PendingHearingEvent {
                 event,
-                receiver_ids: Arc::clone(&receiver_ids),
+                receiver_ids: Arc::clone(receiver_ids),
                 next_receiver: 0,
             });
         }
@@ -111,17 +117,22 @@ impl HearingStimulusAdapter {
 
     pub(crate) fn process_budgeted(
         &mut self,
-        receivers: &[(EntityId, Vec3, Real, Real)],
+        receivers: &[Receiver],
         pair_limit: usize,
         mut try_consume: impl FnMut() -> bool,
         mut on_stimulus: impl FnMut(EntityId, AiPerceptionStimulus),
     ) -> HearingAdapterReport {
         let mut report = HearingAdapterReport::default();
-        let receivers = receivers
-            .iter()
-            .copied()
-            .map(|receiver| (receiver.0, receiver))
-            .collect::<BTreeMap<_, _>>();
+        if pair_limit == 0 || self.pending.is_empty() {
+            return report;
+        }
+        self.receiver_index.clear();
+        self.receiver_index.extend(
+            receivers
+                .iter()
+                .copied()
+                .map(|receiver| (receiver.0, receiver)),
+        );
         while report.processed_pairs < pair_limit {
             let Some(mut pending) = self.pending.pop_front() else {
                 break;
@@ -131,7 +142,7 @@ impl HearingStimulusAdapter {
             {
                 let receiver_id = pending.receiver_ids[pending.next_receiver];
                 pending.next_receiver += 1;
-                let Some(receiver) = receivers.get(&receiver_id).copied() else {
+                let Some(receiver) = self.receiver_index.get(&receiver_id).copied() else {
                     continue;
                 };
                 if !try_consume() {
@@ -232,3 +243,6 @@ fn effective_radius(receiver_radius: Real, event_radius: Option<Real>) -> Option
         None => Some(receiver_radius),
     }
 }
+
+#[cfg(test)]
+mod allocation_tests;

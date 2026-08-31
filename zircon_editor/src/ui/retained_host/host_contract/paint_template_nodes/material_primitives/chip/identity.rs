@@ -13,10 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_chip
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_chip_slot_node(
     node: &TemplatePaneNodeData,
 ) -> bool {
-    component_variant_contains(node, "muiChipSlot")
-        || component_variant_contains(node, "ChipSlot")
-        || component_variant_contains(node, "chipSlot")
-        || component_variant_token_starts_with(node, "chipSlot")
+    chip_slot_variant(&node.component_variant)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_is_small(
@@ -51,14 +48,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_ha
     component_variant_contains(node, "hasIcon") || component_variant_contains(node, "chipSlotIcon")
 }
 
-fn component_variant_token_starts_with(node: &TemplatePaneNodeData, expected_prefix: &str) -> bool {
-    node.component_variant
-        .as_str()
+fn chip_slot_variant(component_variant: &str) -> bool {
+    component_variant
         .split(|character: char| {
             character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
         })
         .any(|part| {
-            part.get(..expected_prefix.len())
-                .is_some_and(|prefix| prefix.eq_ignore_ascii_case(expected_prefix))
+            part.eq_ignore_ascii_case("muiChipSlot")
+                || part
+                    .get(.."chipSlot".len())
+                    .is_some_and(|prefix| prefix.eq_ignore_ascii_case("chipSlot"))
         })
 }
+
+#[cfg(test)]
+#[path = "identity/single_scan_slot_tests.rs"]
+mod single_scan_slot_tests;

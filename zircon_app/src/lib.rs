@@ -4,13 +4,13 @@ mod entry;
 pub mod plugins;
 pub mod prelude;
 #[cfg(feature = "platform-window")]
-mod runtime_presenter;
+mod reference_cpu_presenter;
 
 #[cfg(feature = "target-editor-host")]
 pub use entry::EditorApplicationComposition;
 pub use entry::{
     bootstrap_export_runtime, bootstrap_export_runtime_with_native_plugins_from_export_root,
-    bootstrap_export_runtime_with_report, discover_export_root, ExportRuntimeBootstrapConfig,
+    discover_export_root, ExportRuntimeBootstrapConfig,
     ExportRuntimePluginFeatureRegistrationProvider, ExportRuntimePluginRegistrationProvider,
 };
 pub use entry::{
@@ -19,11 +19,15 @@ pub use entry::{
     first_party_runtime_plugin_registrations_for_runtime_profile,
 };
 pub use entry::{
-    BuiltinEngineEntry, EngineEntry, EntryModuleSelection, EntryModuleSelectionReport, EntryRunMode,
+    EntryConfig, EntryProfile, EntryRunner, ProductArtifactDeliveryStatus, ProductArtifactKind,
+    ProductArtifactManifest, ProductCapabilityRequirement, ProductComposition,
+    ProductCompositionRequest, ProductConfigSource, ProductConfigSourceSet, ProductEntryKind,
+    ProductExitClass, ProductHostCapabilityPolicy, ProductHostConfigError,
+    ProductHostConfigProvenance, ProductPlatformClass, ProductProcessExitCode,
+    ProductRoleDescriptor, ProductRoleRequest, ProductRunnerKind, ProductRuntimeLinkage,
+    ProductShutdownPolicy, ResolvedProductHostConfig,
 };
-pub use entry::{
-    EntryConfig, EntryProfile, EntryRunner, EntryRuntimeBootstrap, NativePluginRuntimeBootstrap,
-};
+pub use entry::{EntryModuleSelection, EntryModuleSelectionReport, EntryRunMode};
 pub use plugins::{
     DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup, PluginGroupBuilder,
     PluginGroupError, ResolvedPluginGroup,

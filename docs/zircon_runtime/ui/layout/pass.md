@@ -330,7 +330,7 @@ The invalidation timing is:
 - Viewport and data/content changes flow through the layout pass. `layout/pass/arrange.rs` recomputes the plan after measurement has produced content size and after the parent frame has produced viewport extent, then writes `layout_cache.virtual_window`.
 - Virtualized scroll containers mark `visible_range` when the planned window, viewport extent, or content extent changes. Non-virtualized containers keep a full child window and do not use `visible_range` for ordinary scroll movement.
 
-The behavior anchors are `virtualized_list_only_materializes_visible_window`, `scroll_offset_invalidates_virtualization_window`, and `non_virtualized_scroll_offset_keeps_full_window_dirty_domain` in `scroll_virtualization.rs`. The tests are wired into `ui/tests/mod.rs`; full layout/UI filters remain deferred by the implementation-first request.
+The behavior anchors are `retained_virtual_list_only_arranges_visible_window`, `scroll_offset_invalidates_virtualization_window`, and `non_virtualized_scroll_offset_keeps_full_window_dirty_domain` in `scroll_virtualization.rs`. The first anchor proves geometry windowing only, not bounded instance materialization. The tests are wired into `ui/tests/mod.rs`; full layout/UI filters remain deferred by the implementation-first request.
 
 ## Slot Inventory
 

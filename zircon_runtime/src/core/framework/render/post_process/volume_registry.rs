@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 use crate::core::framework::render::{
     RenderBloomSettings, RenderColorGradingSettings, RenderExposureSettings,
@@ -13,6 +13,7 @@ use super::volume_component::{
 #[derive(Clone, Debug, Default)]
 pub struct VolumeComponentRegistry {
     descriptors: Vec<VolumeComponentDescriptor>,
+    descriptor_indices: HashMap<&'static str, usize>,
 }
 
 impl VolumeComponentRegistry {
@@ -41,15 +42,17 @@ impl VolumeComponentRegistry {
     ) -> Result<(), VolumeRegistryError> {
         validate_descriptor(descriptor)?;
         if self
-            .descriptors
-            .iter()
-            .any(|registered| registered.component_id == descriptor.component_id)
+            .descriptor_indices
+            .contains_key(descriptor.component_id)
         {
             return Err(VolumeRegistryError::DuplicateComponentId {
                 component_id: descriptor.component_id.to_string(),
             });
         }
 
+        let descriptor_index = self.descriptors.len();
+        self.descriptor_indices
+            .insert(descriptor.component_id, descriptor_index);
         self.descriptors.push(descriptor);
         Ok(())
     }
@@ -67,13 +70,13 @@ impl VolumeComponentRegistry {
     }
 
     pub fn contains(&self, component_id: &str) -> bool {
-        self.get(component_id).is_some()
+        self.descriptor_indices.contains_key(component_id)
     }
 
     pub fn get(&self, component_id: &str) -> Option<&VolumeComponentDescriptor> {
-        self.descriptors
-            .iter()
-            .find(|descriptor| descriptor.component_id == component_id)
+        self.descriptor_indices
+            .get(component_id)
+            .and_then(|descriptor_index| self.descriptors.get(*descriptor_index))
     }
 
     pub fn default_resolved_post_process_settings(
@@ -170,6 +173,7 @@ mod tests {
         let registry = VolumeComponentRegistry::with_builtin_post_process_components();
         let expected_ids = [
             "lighting.volumetric-fog",
+            "post.ambient-occlusion",
             "post.depth-of-field",
             "post.motion-blur",
             "post.bloom",
@@ -206,6 +210,10 @@ mod tests {
 
         assert_eq!(settings.bloom, RenderBloomSettings::default());
         assert_eq!(
+            settings.ambient_occlusion,
+            crate::core::framework::render::AoSourceSettings::default()
+        );
+        assert_eq!(
             settings.color_grading,
             RenderColorGradingSettings::default()
         );
@@ -230,6 +238,43 @@ mod tests {
             Err(VolumeRegistryError::DuplicateComponentId {
                 component_id: "post.depth-of-field".to_string(),
             })
+        );
+        assert_eq!(registry.len(), 1);
+        assert_eq!(
+            registry
+                .get("post.depth-of-field")
+                .map(|descriptor| descriptor.component_id),
+            Some("post.depth-of-field")
+        );
+    }
+
+    #[test]
+    fn render_volume_registry_index_preserves_registration_order() {
+        let bloom = BUILTIN_POST_PROCESS_VOLUME_COMPONENTS
+            .iter()
+            .find(|descriptor| descriptor.component_id == "post.bloom")
+            .copied()
+            .expect("bloom must remain a built-in volume component");
+        let depth_of_field = BUILTIN_POST_PROCESS_VOLUME_COMPONENTS
+            .iter()
+            .find(|descriptor| descriptor.component_id == "post.depth-of-field")
+            .copied()
+            .expect("depth-of-field must remain a built-in volume component");
+        let mut registry = VolumeComponentRegistry::new();
+        registry.register(bloom).unwrap();
+        registry.register(depth_of_field).unwrap();
+
+        let component_ids = registry
+            .iter()
+            .map(|descriptor| descriptor.component_id)
+            .collect::<Vec<_>>();
+
+        assert_eq!(component_ids, ["post.bloom", "post.depth-of-field"]);
+        assert_eq!(
+            registry
+                .get("post.depth-of-field")
+                .map(|descriptor| descriptor.component_id),
+            Some("post.depth-of-field")
         );
     }
 

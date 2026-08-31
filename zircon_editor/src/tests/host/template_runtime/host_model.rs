@@ -577,6 +577,8 @@ fn retained_host_node(
 ) -> RetainedUiHostNodeProjection {
     RetainedUiHostNodeProjection {
         node_id: control_id.to_string(),
+        surface_node_id: None,
+        has_workbench_icon_tooltip: false,
         parent_id: None,
         component: component.to_string(),
         control_id: Some(control_id.to_string()),

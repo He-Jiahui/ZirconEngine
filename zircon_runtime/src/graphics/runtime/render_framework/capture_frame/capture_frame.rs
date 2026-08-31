@@ -122,7 +122,10 @@ pub(in crate::graphics::runtime::render_framework) fn poll_captured_frame_if_new
         Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
         Err(TryLockError::WouldBlock) => return Ok(None),
     };
-    state.renderer.poll_readback_completions();
+    state
+        .renderer
+        .poll_readback_completions()
+        .map_err(render_framework_backend_error)?;
     let record =
         state
             .viewports

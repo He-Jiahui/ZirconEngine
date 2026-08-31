@@ -60,7 +60,7 @@ text = "{text}"
 font_size = 10.0
 line_height = 12.0
 wrap = "None"
-rich_text_format = "markdown"
+rich_text_format = "markdown_inline_v1"
 "#
         ))
         .expect("rich text metadata should parse"),

@@ -2,6 +2,9 @@ use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventError, UiComponentState, UiValue,
 };
 
+#[cfg(test)]
+mod borrowed_confirm_action_tests;
+
 pub(super) fn open_popup(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
@@ -122,11 +125,13 @@ fn action_id_from_commit(
     match value {
         UiValue::String(action_id) | UiValue::Enum(action_id) => action_id.clone(),
         UiValue::Bool(true) if property == "confirmed" => {
-            string_setting(state, descriptor, "confirm_action_id")
+            string_setting_ref(state, descriptor, "confirm_action_id")
+                .map(str::to_owned)
                 .unwrap_or_else(|| "confirm".to_string())
         }
         UiValue::Bool(false) if property == "confirmed" => {
-            string_setting(state, descriptor, "cancel_action_id")
+            string_setting_ref(state, descriptor, "cancel_action_id")
+                .map(str::to_owned)
                 .unwrap_or_else(|| "cancel".to_string())
         }
         _ => property.to_string(),
@@ -138,8 +143,8 @@ fn is_confirm_action(
     descriptor: &UiComponentDescriptor,
     action_id: &str,
 ) -> bool {
-    let confirm_action = string_setting(state, descriptor, "confirm_action_id")
-        .unwrap_or_else(|| "confirm".to_string());
+    let confirm_action =
+        string_setting_ref(state, descriptor, "confirm_action_id").unwrap_or("confirm");
     action_id == confirm_action || action_id == "confirm"
 }
 
@@ -168,26 +173,26 @@ fn bool_setting(
         .unwrap_or(default_value)
 }
 
-fn string_setting(
-    state: &UiComponentState,
-    descriptor: &UiComponentDescriptor,
+fn string_setting_ref<'a>(
+    state: &'a UiComponentState,
+    descriptor: &'a UiComponentDescriptor,
     property: &str,
-) -> Option<String> {
+) -> Option<&'a str> {
     state
         .values
         .get(property)
-        .and_then(string_value)
+        .and_then(string_value_ref)
         .or_else(|| {
             descriptor
                 .prop(property)
                 .and_then(|schema| schema.default_value.as_ref())
-                .and_then(string_value)
+                .and_then(string_value_ref)
         })
 }
 
-fn string_value(value: &UiValue) -> Option<String> {
+fn string_value_ref(value: &UiValue) -> Option<&str> {
     match value {
-        UiValue::String(value) | UiValue::Enum(value) => Some(value.clone()),
+        UiValue::String(value) | UiValue::Enum(value) => Some(value.as_str()),
         _ => None,
     }
 }

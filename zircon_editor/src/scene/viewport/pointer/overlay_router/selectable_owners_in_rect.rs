@@ -45,7 +45,7 @@ impl ViewportOverlayPointerRouter {
 
 fn pick_shape_intersects_rect(
     shape: &OverlayPickShape,
-    projection: &ViewportProjectionContext<'_>,
+    projection: &ViewportProjectionContext,
     min: Vec2,
     max: Vec2,
 ) -> bool {

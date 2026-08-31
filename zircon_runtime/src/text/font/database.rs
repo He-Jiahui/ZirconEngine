@@ -3,9 +3,11 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use glyphon::{fontdb, FontSystem};
+use glyphon::{FontSystem, fontdb};
 
-use crate::asset::assets::decode_font_source;
+use crate::asset::assets::{
+    decode_font_source, validate_font_metadata_budget, validate_font_source_file_len,
+};
 use crate::text::{
     CompositeFontDescriptor, FontFaceDescriptor, FontFaceId, FontFamilyName, FontMatch,
     InstancedFaceId, VariationCoords,
@@ -21,7 +23,7 @@ use super::face_metadata::FontFaceMetadata;
 use super::fallback::MissingGlyphLog;
 use super::fallback_cache::{CompositeFontIdentity, FallbackCaches};
 use super::instance::{EffectiveInstanceCache, FontInstanceRegistry};
-use super::matching::{font_family_identity, FontFamilyIdentity};
+use super::matching::{FontFamilyIdentity, font_family_identity};
 
 mod asset_lifecycle;
 mod error;
@@ -32,6 +34,7 @@ mod instances;
 mod system_fonts;
 
 pub(crate) use error::FontDatabaseError;
+pub(in crate::text::font) use face_access::codepoint_requires_font_coverage;
 use face_matching::FaceMatchCache;
 pub(crate) use fallback_queries::FontShapingFaceResolver;
 pub(crate) use system_fonts::SystemFontPolicy;
@@ -91,11 +94,17 @@ pub(crate) struct FontDatabase {
     asset_source_index: HashMap<FontAssetSourceKey, FontFaceId>,
     asset_source_owners: HashMap<FontAssetSourceKey, HashSet<String>>,
     asset_owners: HashMap<String, FontAssetOwnerState>,
+    asset_composite_indexes: HashMap<String, (CompositeFontIdentity, Arc<CompositeFontIndex>)>,
     fallback_base_families: Vec<FontFamilyName>,
     fallback_families: Vec<FontFamilyName>,
+    runtime_default_primary_face: Option<FontFaceId>,
+    runtime_last_resort_face: Option<FontFaceId>,
+    runtime_default_composite_font: Option<CompositeFontDescriptor>,
+    runtime_default_composite_index: Option<(CompositeFontIdentity, Arc<CompositeFontIndex>)>,
     project_composite_font: Option<CompositeFontDescriptor>,
     project_composite_index: Option<(CompositeFontIdentity, Arc<CompositeFontIndex>)>,
-    default_ui_family: Option<String>,
+    runtime_default_ui_family: Option<String>,
+    project_default_ui_family: Option<String>,
     // `fontdb::Database::load_system_fonts` appends a fresh catalog on every call.
     // Keep discovery process-local and idempotent for cloned renderer databases.
     system_fonts_discovered: bool,
@@ -113,7 +122,9 @@ pub(crate) struct FontDatabase {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct FontAssetOwnerState {
     sources: Vec<FontAssetSourceKey>,
+    faces: Arc<[FontFaceId]>,
     fallback_families: Vec<FontFamilyName>,
+    composite_font: Option<CompositeFontDescriptor>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -135,11 +146,17 @@ impl Default for FontDatabase {
             asset_source_index: HashMap::new(),
             asset_source_owners: HashMap::new(),
             asset_owners: HashMap::new(),
+            asset_composite_indexes: HashMap::new(),
             fallback_base_families: Vec::new(),
             fallback_families: Vec::new(),
+            runtime_default_primary_face: None,
+            runtime_last_resort_face: None,
+            runtime_default_composite_font: None,
+            runtime_default_composite_index: None,
             project_composite_font: None,
             project_composite_index: None,
-            default_ui_family: None,
+            runtime_default_ui_family: None,
+            project_default_ui_family: None,
             system_fonts_discovered: false,
             backend_database: fontdb::Database::new(),
             backend_faces: BackendFaceMap::default(),
@@ -164,6 +181,36 @@ impl FontDatabase {
 
     pub(crate) fn face_count(&self) -> usize {
         self.active_face_count
+    }
+
+    pub(in crate::text::font) fn set_runtime_default_primary_face(
+        &mut self,
+        face: FontFaceId,
+    ) -> bool {
+        if self.runtime_default_primary_face == Some(face) {
+            return false;
+        }
+        self.runtime_default_primary_face = Some(face);
+        self.detach_matching_and_fallback_caches();
+        true
+    }
+
+    pub(in crate::text) const fn runtime_default_primary_face(&self) -> Option<FontFaceId> {
+        self.runtime_default_primary_face
+    }
+
+    pub(in crate::text::font) fn set_runtime_last_resort_face(&mut self, face: FontFaceId) -> bool {
+        if self.runtime_last_resort_face == Some(face) {
+            return false;
+        }
+        self.runtime_last_resort_face = Some(face);
+        self.detach_matching_and_fallback_caches();
+        true
+    }
+
+    pub(crate) fn runtime_last_resort_face(&self) -> Option<FontFaceId> {
+        self.runtime_last_resort_face
+            .filter(|face| self.face(*face).is_some())
     }
 
     pub(crate) fn fallback_families(&self) -> &[FontFamilyName] {
@@ -200,12 +247,20 @@ impl FontDatabase {
         if self.project_composite_font == composite {
             return false;
         }
-        self.fallback_caches = FallbackCaches::default();
-        let composite_index = composite
-            .as_ref()
-            .map(|descriptor| self.fallback_caches.composite_index(descriptor));
         self.project_composite_font = composite;
-        self.project_composite_index = composite_index;
+        self.rebuild_fallback_caches_and_composite_indexes();
+        true
+    }
+
+    pub(in crate::text::font) fn set_runtime_default_composite_font(
+        &mut self,
+        composite: Option<CompositeFontDescriptor>,
+    ) -> bool {
+        if self.runtime_default_composite_font == composite {
+            return false;
+        }
+        self.runtime_default_composite_font = composite;
+        self.rebuild_fallback_caches_and_composite_indexes();
         true
     }
 
@@ -227,33 +282,63 @@ impl FontDatabase {
     }
 
     pub(crate) fn set_default_ui_family(&mut self, family: &str) -> bool {
-        if self.default_ui_family.as_deref() == Some(family) {
+        if self.project_default_ui_family.as_deref() == Some(family) {
             return false;
         }
-        self.default_ui_family = Some(family.to_string());
-        self.backend_database
-            .set_sans_serif_family(family.to_string());
-        self.backend_database
-            .set_monospace_family(family.to_string());
+        self.project_default_ui_family = Some(family.to_string());
+        self.apply_effective_default_ui_family();
+        self.detach_matching_and_fallback_caches();
         true
     }
 
     pub(crate) fn clear_default_ui_family(&mut self) -> bool {
-        if self.default_ui_family.is_none() {
+        if self.project_default_ui_family.is_none() {
             return false;
         }
-        self.default_ui_family = None;
+        self.project_default_ui_family = None;
+        self.apply_effective_default_ui_family();
+        self.detach_matching_and_fallback_caches();
+        true
+    }
+
+    pub(in crate::text::font) fn set_runtime_default_ui_family(&mut self, family: &str) -> bool {
+        if self.runtime_default_ui_family.as_deref() == Some(family) {
+            return false;
+        }
+        self.runtime_default_ui_family = Some(family.to_string());
+        self.apply_effective_default_ui_family();
+        self.detach_matching_and_fallback_caches();
+        true
+    }
+
+    fn effective_default_ui_family(&self) -> Option<&str> {
+        self.project_default_ui_family
+            .as_deref()
+            .or(self.runtime_default_ui_family.as_deref())
+    }
+
+    fn apply_effective_default_ui_family(&mut self) {
+        let family = self.effective_default_ui_family().map(str::to_owned);
+        if let Some(family) = family {
+            self.backend_database.set_sans_serif_family(family.clone());
+            self.backend_database.set_monospace_family(family);
+            return;
+        }
         let defaults = fontdb::Database::new();
         self.backend_database
             .set_sans_serif_family(defaults.family_name(&fontdb::Family::SansSerif).to_string());
         self.backend_database
             .set_monospace_family(defaults.family_name(&fontdb::Family::Monospace).to_string());
-        true
     }
 
     #[cfg(test)]
     pub(crate) fn default_ui_family_for_test(&self) -> Option<&str> {
-        self.default_ui_family.as_deref()
+        self.effective_default_ui_family()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn project_default_ui_family_for_test(&self) -> Option<&str> {
+        self.project_default_ui_family.as_deref()
     }
 
     #[cfg(test)]
@@ -487,11 +572,31 @@ impl FontDatabase {
 
     fn detach_matching_and_fallback_caches(&mut self) {
         self.face_match_cache = Arc::new(Mutex::new(FaceMatchCache::default()));
+        self.rebuild_fallback_caches_and_composite_indexes();
+    }
+
+    fn rebuild_fallback_caches_and_composite_indexes(&mut self) {
         self.fallback_caches = FallbackCaches::default();
+        self.runtime_default_composite_index = self
+            .runtime_default_composite_font
+            .as_ref()
+            .map(|descriptor| self.fallback_caches.composite_index(descriptor));
         self.project_composite_index = self
             .project_composite_font
             .as_ref()
             .map(|descriptor| self.fallback_caches.composite_index(descriptor));
+        self.asset_composite_indexes = self
+            .asset_owners
+            .iter()
+            .filter_map(|(owner, state)| {
+                state.composite_font.as_ref().map(|descriptor| {
+                    (
+                        owner.clone(),
+                        self.fallback_caches.composite_index(descriptor),
+                    )
+                })
+            })
+            .collect();
     }
 
     #[cfg(test)]
@@ -537,16 +642,41 @@ pub(super) fn canonical_source_key(source_path: &Path) -> PathBuf {
 }
 
 fn read_decoded_font_source(source_path: &Path) -> Result<Vec<u8>, FontDatabaseError> {
+    let source_size = std::fs::metadata(source_path)
+        .map_err(|source| FontDatabaseError::ReadFailed {
+            path: source_path.to_path_buf(),
+            source,
+        })?
+        .len();
+    validate_font_source_file_len(source_size).map_err(|source| {
+        FontDatabaseError::SourceBudget {
+            path: source_path.to_path_buf(),
+            source,
+        }
+    })?;
     let bytes = std::fs::read(source_path).map_err(|source| FontDatabaseError::ReadFailed {
         path: source_path.to_path_buf(),
         source,
     })?;
-    decode_font_source(bytes)
-        .map(|source| source.into_bytes())
-        .map_err(|source| FontDatabaseError::SourceDecode {
+    let source = decode_font_source(bytes).map_err(|source| match source {
+        crate::asset::assets::FontSourceDecodeError::Budget(source) => {
+            FontDatabaseError::SourceBudget {
+                path: source_path.to_path_buf(),
+                source,
+            }
+        }
+        source => FontDatabaseError::SourceDecode {
             path: source_path.to_path_buf(),
             source,
-        })
+        },
+    })?;
+    validate_font_metadata_budget(source.bytes()).map_err(|source| {
+        FontDatabaseError::SourceBudget {
+            path: source_path.to_path_buf(),
+            source,
+        }
+    })?;
+    Ok(source.into_bytes())
 }
 
 mod equivalence;

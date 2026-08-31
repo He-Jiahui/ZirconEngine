@@ -52,6 +52,8 @@ related_code:
   - zircon_runtime/src/ui/surface/input/text_keyboard/payload.rs
   - zircon_runtime/src/ui/surface/input/text_pointer.rs
   - zircon_runtime/src/ui/surface/popup_stack.rs
+  - zircon_runtime/src/ui/tests/widget_menu_behavior.rs
+  - zircon_runtime/src/ui/tests/widget_menu_behavior/control_anchored_overlays.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
   - zircon_runtime/src/ui/dispatch/input_manager/routing.rs
   - zircon_runtime/src/ui/dispatch/input_manager/timers.rs
@@ -610,7 +612,7 @@ doc_type: module-detail
 
 ## Module Shape
 
-`effect/transaction.rs` seals each reply effect list and derives its write domains before application. Replies with multiple effects, plus single drag/drop and popup composites, capture only the surface domains they can mutate. If any effect is rejected, the transaction restores those domains before returning and replaces prefix applied/host/component records with transaction-wide rejections. Ordinary single effects stay on the non-snapshot path, so the common one-effect capture/focus/host request flow does not clone the retained UI tree.
+`effect/transaction.rs` seals each reply effect list and derives its write domains before application. Replies with multiple effects, plus single drag/drop and popup composites, capture only the surface domains they can mutate; every non-empty atomic reply also captures input state because any successful effect drains deferred focus/IME lifecycle work. If any effect is rejected, the transaction restores those domains before returning and replaces prefix applied/host/component records with transaction-wide rejections. Ordinary single effects admit an empty snapshot with zero captured domains, so the common one-effect capture/focus/host request flow clones neither retained UI tree nor input state.
 
 `mod.rs` is structural. It exposes `UiSurfaceInputState` publicly through `zircon_runtime::ui::surface` and keeps `apply_dispatch_reply(...)` plus `dispatch_input_event(...)` crate-private implementation details called by `UiSurface` methods.
 
@@ -1418,3 +1420,10 @@ Editor Layout 05.S2 support repair evidence from 2026-06-23:
 - Verification: `cargo test -p zircon_editor --lib page_layout_templates --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-editor-0623-clean-2309 --message-format short --color never -- --test-threads=1 --nocapture` passed 4/4 after this repair plus the default-interaction timer import repair, with existing warning noise.
 
 The original M2 scope deliberately did not implement M6 text layout, caret, selection, shaping, or editor-native keyboard/IME translation. Current M4/M6 slices have since added retained caret/selection mutation for focused TextInput keyboard, text, and IME routes; shaping/layout geometry and editor-native keyboard/IME translation still consume this shared input state and result contract instead of adding host-owned focus, capture, or IME semantics.
+
+Widget menu behavior tests are now folder-backed by responsibility. The 625-line parent owns shared
+surface fixtures and 11 general activation/dismissal behaviors; the 239-line
+`widget_menu_behavior/control_anchored_overlays.rs` child owns 5 rendered-overlay, frame hit authority,
+incremental input-policy and trigger-focus behaviors. The move did not change the popup or dispatch
+implementation. Status:
+`runtime_09_15_widget_menu_control_anchored_test_owner_split_static_passed_cargo_deferred`.

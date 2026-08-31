@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use crate::scene::viewport::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
 };
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
+use zircon_runtime::core::framework::render::UiRenderSubmission;
 
 pub(super) struct TestRenderFramework;
 
@@ -33,7 +35,7 @@ impl RenderFramework for TestRenderFramework {
         &self,
         _viewport: RenderViewportHandle,
         _extract: RenderFrameExtract,
-        _ui: Option<UiRenderExtract>,
+        _ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError> {
         Ok(())
     }

@@ -3,6 +3,7 @@ $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingProjection.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingTreeManifest.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceSnapshotAdmission.psm1') -Force -ErrorAction Stop
 
 if ($null -eq (Get-Variable -Name MvpAcceptanceStagingWriteLeases -Scope Script -ErrorAction SilentlyContinue)) {
     $script:MvpAcceptanceStagingWriteLeases =
@@ -292,31 +293,16 @@ function Open-MvpAcceptanceStagingTreeManifestEntryLeases {
         [Parameter(Mandatory)][string]$SnapshotRoot,
         [Parameter(Mandatory)][System.Collections.Generic.List[Microsoft.Win32.SafeHandles.SafeFileHandle]]$EntryHandles,
         [Parameter(Mandatory)][System.Collections.Generic.HashSet[string]]$PrelockedPaths,
+        [Parameter(Mandatory)][object[]]$ManifestEntries,
+        [Parameter(Mandatory)]$Admission,
         [scriptblock]$BeforeOpenTreeManifestEntryHook
     )
 
-    $treeManifestPath = Get-MvpAcceptanceStagingTreeManifestPath -StagingRoot $SnapshotRoot
-    $treeManifestHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($treeManifestPath, $true)
-    try {
-        $treeManifestAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($treeManifestHandle)
-        Assert-MvpAcceptanceNativeSourceAttributes -Attributes $treeManifestAttributes -Path $treeManifestPath
-        if (Test-MvpAcceptanceNativeFileAttribute `
-            -Attributes $treeManifestAttributes `
-            -Expected ([System.IO.FileAttributes]::Directory)) {
-            throw "Acceptance staging tree manifest '$treeManifestPath' is not a file."
-        }
-        $null = $EntryHandles.Add($treeManifestHandle)
-        $treeManifestHandle = $null
-        $null = $PrelockedPaths.Add($treeManifestPath)
-    }
-    finally {
-        if ($null -ne $treeManifestHandle) {
-            $treeManifestHandle.Dispose()
-        }
-    }
-
     $leasedEntries = [System.Collections.Generic.List[object]]::new()
-    foreach ($entry in Read-MvpAcceptanceStagingTreeManifest -StagingRoot $SnapshotRoot) {
+    foreach ($entry in $ManifestEntries) {
+        Assert-MvpAcceptanceSnapshotAdmissionActive `
+            -Admission $Admission `
+            -Phase 'entry-lease'
         if ($null -ne $BeforeOpenTreeManifestEntryHook) {
             & $BeforeOpenTreeManifestEntryHook $entry.path
         }
@@ -403,14 +389,22 @@ function Assert-MvpAcceptanceStagingTreeManifestCopyContract {
 function Assert-MvpAcceptanceStagingSnapshotLeaseTreeManifestMembership {
     param([Parameter(Mandatory)]$Lease)
 
-    if ($null -eq $Lease.tree_manifest_expected_children -or $null -eq $Lease.marker_paths) {
+    if ($null -eq $Lease.tree_manifest_expected_children -or
+        $null -eq $Lease.marker_paths -or
+        $null -eq $Lease.admission) {
         throw 'Acceptance staging snapshot lease is missing its tree-manifest membership contract.'
     }
+    Assert-MvpAcceptanceSnapshotAdmissionActive `
+        -Admission $Lease.admission `
+        -Phase 'post-copy-membership'
     $markerPaths = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($markerPath in @($Lease.marker_paths)) {
         $null = $markerPaths.Add([IO.Path]::GetFullPath($markerPath))
     }
     foreach ($directoryPath in $Lease.tree_manifest_expected_children.Keys) {
+        Assert-MvpAcceptanceSnapshotAdmissionActive `
+            -Admission $Lease.admission `
+            -Phase 'post-copy-membership'
         $actualChildren = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
         foreach ($child in @(Get-ChildItem -LiteralPath $directoryPath -Force -ErrorAction Stop)) {
             $childPath = [IO.Path]::GetFullPath($child.FullName)
@@ -511,7 +505,56 @@ function Open-MvpAcceptanceStagingSnapshotLease {
         # expected node before it starts a recursive census. A walk of an arbitrary mutable tree
         # could otherwise lose an unknown descendant before that descendant is ever opened.
         $prelockedPaths = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+        $admissionLimits = Get-MvpAcceptanceSnapshotAdmissionDefaultLimits
+        $admissionStartedAtUtc = [DateTimeOffset]::UtcNow
+        $treeManifestPath = Get-MvpAcceptanceStagingTreeManifestPath -StagingRoot $absoluteSnapshotRoot
+        $treeManifestHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($treeManifestPath, $true)
+        try {
+            $treeManifestAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($treeManifestHandle)
+            Assert-MvpAcceptanceNativeSourceAttributes `
+                -Attributes $treeManifestAttributes `
+                -Path $treeManifestPath
+            if (Test-MvpAcceptanceNativeFileAttribute `
+                -Attributes $treeManifestAttributes `
+                -Expected ([System.IO.FileAttributes]::Directory)) {
+                throw "Acceptance staging tree manifest '$treeManifestPath' is not a file."
+            }
+            $treeManifestSizeBytes = [Int64]([ZirconMvpAcceptanceNativeFileSystem]::GetLength($treeManifestHandle))
+            if ($treeManifestSizeBytes -gt $admissionLimits.maximum_manifest_bytes) {
+                throw "Acceptance staging tree manifest exceeds the manifest-byte budget of $($admissionLimits.maximum_manifest_bytes)."
+            }
+            $null = $entryHandles.Add($treeManifestHandle)
+            $treeManifestHandle = $null
+            $null = $prelockedPaths.Add($treeManifestPath)
+        }
+        finally {
+            if ($null -ne $treeManifestHandle) {
+                $treeManifestHandle.Dispose()
+            }
+        }
+
+        $manifestEntries = @(Read-MvpAcceptanceStagingTreeManifest `
+            -StagingRoot $absoluteSnapshotRoot `
+            -MaximumManifestBytes $admissionLimits.maximum_manifest_bytes `
+            -MaximumEntryCount $admissionLimits.maximum_entry_count)
+        $admission = New-MvpAcceptanceSnapshotAdmission `
+            -Entries $manifestEntries `
+            -RootPath $absoluteSnapshotRoot `
+            -ManifestSizeBytes $treeManifestSizeBytes `
+            -MaximumManifestBytes $admissionLimits.maximum_manifest_bytes `
+            -MaximumEntryCount $admissionLimits.maximum_entry_count `
+            -MaximumTotalFileBytes $admissionLimits.maximum_total_file_bytes `
+            -MaximumDepth $admissionLimits.maximum_depth `
+            -MaximumDurationSeconds $admissionLimits.maximum_duration_seconds `
+            -StartedAtUtc $admissionStartedAtUtc
+        Assert-MvpAcceptanceSnapshotAdmissionActive `
+            -Admission $admission `
+            -Phase 'manifest-admission'
+
         foreach ($relativePath in @('staging-manifest.json', 'startup-summary.json')) {
+            Assert-MvpAcceptanceSnapshotAdmissionActive `
+                -Admission $admission `
+                -Phase 'metadata-lease'
             $path = Join-Path $absoluteSnapshotRoot $relativePath
             $entryHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($path, $false)
             try {
@@ -532,13 +575,15 @@ function Open-MvpAcceptanceStagingSnapshotLease {
                 }
             }
         }
-        $manifestEntries = @(Open-MvpAcceptanceStagingTreeManifestEntryLeases `
+        $leasedEntries = @(Open-MvpAcceptanceStagingTreeManifestEntryLeases `
             -SnapshotRoot $absoluteSnapshotRoot `
             -EntryHandles $entryHandles `
             -PrelockedPaths $prelockedPaths `
+            -ManifestEntries $manifestEntries `
+            -Admission $admission `
             -BeforeOpenTreeManifestEntryHook $BeforeOpenTreeManifestEntryHook)
         Assert-MvpAcceptanceStagingTreeManifestCopyContract `
-            -Entries $manifestEntries `
+            -Entries $leasedEntries `
             -AllowEvidencePackageEntries:$AllowEvidencePackageEntries
 
         # The manifest leases pin the complete published tree before this census verifies its
@@ -554,9 +599,11 @@ function Open-MvpAcceptanceStagingSnapshotLease {
         $expectedChildrenByDirectory.Add(
             $absoluteSnapshotRoot,
             [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase))
-        $treeManifestPath = Get-MvpAcceptanceStagingTreeManifestPath -StagingRoot $absoluteSnapshotRoot
         $null = $expectedChildrenByDirectory[$absoluteSnapshotRoot].Add($treeManifestPath)
-        foreach ($entry in $manifestEntries) {
+        foreach ($entry in $leasedEntries) {
+            Assert-MvpAcceptanceSnapshotAdmissionActive `
+                -Admission $admission `
+                -Phase 'membership-map'
             $parentPath = [IO.Directory]::GetParent($entry.path).FullName
             if (-not $expectedChildrenByDirectory.ContainsKey($parentPath)) {
                 $expectedChildrenByDirectory.Add(
@@ -575,6 +622,9 @@ function Open-MvpAcceptanceStagingSnapshotLease {
         }
 
         foreach ($directoryEntry in $censusDirectories) {
+            Assert-MvpAcceptanceSnapshotAdmissionActive `
+                -Admission $admission `
+                -Phase 'directory-census'
             $ownsDirectoryHandle = $true
             $directoryHandle = if ($null -ne $registeredWriteLease -and
                 $directoryEntry.path.Equals($absoluteSnapshotRoot, [StringComparison]::OrdinalIgnoreCase)) {
@@ -619,7 +669,10 @@ function Open-MvpAcceptanceStagingSnapshotLease {
         # Every manifest entry remains held from discovery through copying. Verify its identity
         # before marking; because the handle withholds delete sharing, the namespace cannot be
         # rebound between census and marker creation.
-        foreach ($expectedEntry in $manifestEntries) {
+        foreach ($expectedEntry in $leasedEntries) {
+            Assert-MvpAcceptanceSnapshotAdmissionActive `
+                -Admission $admission `
+                -Phase 'entry-marker'
             $childMarkerStream = $null
             try {
                 $entryHandle = $expectedEntry.handle
@@ -655,6 +708,9 @@ function Open-MvpAcceptanceStagingSnapshotLease {
         # all original paths are pinned, require every directory's immediate membership to match
         # the recorded source tree before returning a usable snapshot lease.
         foreach ($directoryPath in $expectedChildrenByDirectory.Keys) {
+            Assert-MvpAcceptanceSnapshotAdmissionActive `
+                -Admission $admission `
+                -Phase 'membership-recheck'
             $actualChildren = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
             foreach ($child in @(Get-ChildItem -LiteralPath $directoryPath -Force -ErrorAction Stop)) {
                 $childPath = [IO.Path]::GetFullPath($child.FullName)
@@ -673,6 +729,7 @@ function Open-MvpAcceptanceStagingSnapshotLease {
             root_identity = $ExpectedRootIdentity
             held_staging_write_lease = $StagingWriteLease
             parent_lease = $parentLease
+            admission = $admission
             tree_manifest_expected_children = $expectedChildrenByDirectory
             entry_handles = $entryHandles.ToArray()
             marker_streams = $markerStreams.ToArray()
@@ -980,11 +1037,16 @@ function Copy-MvpAcceptanceStagingTree {
         [scriptblock]$AfterCopyChildHook,
         [scriptblock]$BeforeOpenDestinationChildHook,
         [Parameter(Mandatory)]$ExpectedChildrenByDirectory,
+        [Parameter(Mandatory)]$Admission,
+        [Parameter(Mandatory)][byte[]]$CopyBuffer,
         [AllowNull()][System.Collections.Generic.HashSet[string]]$ExcludedSourcePaths,
         $Projection,
         $DestinationWriteLease
     )
 
+    Assert-MvpAcceptanceSnapshotAdmissionActive `
+        -Admission $Admission `
+        -Phase 'copy-entry'
     if ($null -eq $SourceHandle) {
         $SourceHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($SourcePath, $true)
     }
@@ -1065,6 +1127,9 @@ function Copy-MvpAcceptanceStagingTree {
                 throw "Acceptance staging tree manifest does not declare source directory '$SourcePath'."
             }
             foreach ($childPath in @($ExpectedChildrenByDirectory[$SourcePath] | Sort-Object)) {
+                Assert-MvpAcceptanceSnapshotAdmissionActive `
+                    -Admission $Admission `
+                    -Phase 'copy-entry'
                 if ($null -ne $ExcludedSourcePaths -and $ExcludedSourcePaths.Contains($childPath)) {
                     continue
                 }
@@ -1086,6 +1151,8 @@ function Copy-MvpAcceptanceStagingTree {
                         -AfterCopyChildHook $AfterCopyChildHook `
                         -BeforeOpenDestinationChildHook $BeforeOpenDestinationChildHook `
                         -ExpectedChildrenByDirectory $ExpectedChildrenByDirectory `
+                        -Admission $Admission `
+                        -CopyBuffer $CopyBuffer `
                         -ExcludedSourcePaths $ExcludedSourcePaths `
                         -Projection $Projection `
                         -DestinationWriteLease $DestinationWriteLease
@@ -1112,7 +1179,15 @@ function Copy-MvpAcceptanceStagingTree {
                 [System.IO.FileAccess]::Write,
                 [System.IO.FileShare]::None)
             try {
-                $sourceStream.CopyTo($destinationStream)
+                while (($bytesRead = $sourceStream.Read($CopyBuffer, 0, $CopyBuffer.Length)) -gt 0) {
+                    Assert-MvpAcceptanceSnapshotAdmissionActive `
+                        -Admission $Admission `
+                        -Phase 'copy-stream'
+                    $destinationStream.Write($CopyBuffer, 0, $bytesRead)
+                }
+                Assert-MvpAcceptanceSnapshotAdmissionActive `
+                    -Admission $Admission `
+                    -Phase 'copy-stream'
             }
             finally {
                 $destinationStream.Dispose()
@@ -1151,6 +1226,7 @@ function Copy-MvpAcceptanceStagingItems {
     $sourceRootLease = $null
     $sourceRootHandle = $null
     $projection = New-MvpAcceptanceStagingProjection -Root $DestinationRoot
+    $copyBuffer = [byte[]]::new(1048576)
     $excludedPaths = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($path in @($ExcludedSourcePaths)) {
         if (-not [string]::IsNullOrWhiteSpace($path)) {
@@ -1161,9 +1237,14 @@ function Copy-MvpAcceptanceStagingItems {
         $leaseRootPath = [IO.Path]::GetFullPath([string]$SourceSnapshotLease.root_path)
         $sourceRootPath = [IO.Path]::GetFullPath($SourceRoot)
         if (-not $leaseRootPath.Equals($sourceRootPath, [StringComparison]::OrdinalIgnoreCase) -or
-            $null -eq $SourceSnapshotLease.tree_manifest_expected_children) {
+            $null -eq $SourceSnapshotLease.tree_manifest_expected_children -or
+            $null -eq $SourceSnapshotLease.PSObject.Properties['admission'] -or
+            $null -eq $SourceSnapshotLease.admission) {
             throw 'Acceptance staging copy requires the matching source snapshot lease and tree-manifest membership.'
         }
+        Assert-MvpAcceptanceSnapshotAdmissionActive `
+            -Admission $SourceSnapshotLease.admission `
+            -Phase 'copy-root'
         $expectedChildrenByDirectory = $SourceSnapshotLease.tree_manifest_expected_children
         $sourceRootLease = Open-MvpAcceptanceNoFollowDirectoryLease -DirectoryPath $SourceRoot
         $sourceRootHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($SourceRoot, $false)
@@ -1178,6 +1259,9 @@ function Copy-MvpAcceptanceStagingItems {
             throw "Acceptance staging tree manifest does not declare source root '$resolvedSourceRoot'."
         }
         foreach ($relativePath in Get-MvpAcceptanceStagingItems) {
+            Assert-MvpAcceptanceSnapshotAdmissionActive `
+                -Admission $SourceSnapshotLease.admission `
+                -Phase 'copy-entry'
             $sourcePath = Join-Path $resolvedSourceRoot $relativePath
             if ($excludedPaths.Contains([IO.Path]::GetFullPath($sourcePath))) {
                 continue
@@ -1195,6 +1279,8 @@ function Copy-MvpAcceptanceStagingItems {
                 -AfterCopyChildHook $AfterCopyChildHook `
                 -BeforeOpenDestinationChildHook $BeforeOpenDestinationChildHook `
                 -ExpectedChildrenByDirectory $expectedChildrenByDirectory `
+                -Admission $SourceSnapshotLease.admission `
+                -CopyBuffer $copyBuffer `
                 -ExcludedSourcePaths $excludedPaths `
                 -Projection $projection `
                 -DestinationWriteLease $DestinationWriteLease
@@ -1231,7 +1317,7 @@ function New-MvpAcceptanceStagingSnapshot {
 
     # Preserve a fully qualified caller entry so the no-follow native checks can reject a root junction.
     # Relative roots intentionally retain PowerShell's current-location semantics.
-    $absoluteStagingRoot = if ([System.IO.Path]::IsPathFullyQualified($StagingRoot)) {
+    $absoluteStagingRoot = if ([System.IO.Path]::IsPathRooted($StagingRoot)) {
         [System.IO.Path]::GetFullPath($StagingRoot)
     }
     else {
@@ -1343,16 +1429,18 @@ function New-MvpAcceptanceStagingSnapshot {
         if ($null -ne $partialWriteLease) {
             Close-MvpAcceptanceStagingWriteLease -Lease $partialWriteLease
         }
-        if (-not $partialPublished -and -not [string]::IsNullOrWhiteSpace($partialIdentity)) {
-            $null = Remove-MvpAcceptanceStagingTree `
-                -Path $partialRoot `
-                -ExpectedRootIdentity $partialIdentity
-        }
         if ($null -ne $sourceSnapshotLease) {
             Close-MvpAcceptanceStagingSnapshotLease -Lease $sourceSnapshotLease
         }
         if ($null -ne $sourceRootLease) {
             Close-MvpAcceptanceNoFollowDirectoryLease -Handles $sourceRootLease
+        }
+        # Source leases retain the fixture parent with delete sharing withheld. Release them
+        # before removing a failed partial sibling so cleanup cannot mask the original failure.
+        if (-not $partialPublished -and -not [string]::IsNullOrWhiteSpace($partialIdentity)) {
+            $null = Remove-MvpAcceptanceStagingTree `
+                -Path $partialRoot `
+                -ExpectedRootIdentity $partialIdentity
         }
     }
     if ($PassThru) {

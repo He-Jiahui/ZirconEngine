@@ -80,8 +80,11 @@ impl PreparedProjectArtifactRead {
 
 fn split_labeled_uri(uri: &AssetUri) -> Option<(AssetUri, String)> {
     let label = uri.label()?.to_string();
-    let source_text = uri.to_string().split_once('#')?.0.to_string();
-    AssetUri::parse(&source_text)
+    AssetUri::new(uri.scheme(), uri.path(), None)
         .ok()
         .map(|source_uri| (source_uri, label))
 }
+
+#[cfg(test)]
+#[path = "artifact_access/direct_rebuild_tests.rs"]
+mod direct_rebuild_tests;

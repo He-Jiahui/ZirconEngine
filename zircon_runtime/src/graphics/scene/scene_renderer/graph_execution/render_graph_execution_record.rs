@@ -1,11 +1,13 @@
 use crate::core::framework::render::PostProcessPassGraph;
 use crate::core::framework::render::{
-    MotionVectorCameraStatus, RenderBudgetKey, RenderColorLutReadbackReport,
-    RenderExposureReadbackReport, RenderGraphExecutionAliasReport,
-    RenderGraphExecutionProfileReport, RenderGraphExecutionResourceReport,
-    RenderGraphMaterializationReport, RenderGraphParallelRecordingReport,
-    RenderGraphPassProfileMetrics, RenderGraphPassProfileRecord, RenderGraphStageExecutionReport,
-    RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
+    MotionVectorCameraStatus, RenderAmbientOcclusionExecutionReport, RenderBudgetKey,
+    RenderColorLutReadbackReport, RenderExposureReadbackReport, RenderGraphExecutionAliasReport,
+    RenderGraphExecutionBatchReport, RenderGraphExecutionProfileReport,
+    RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
+    RenderGraphParallelRecordingReport, RenderGraphPassProfileMetrics,
+    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderHistoryCopyReport,
+    RenderHistoryDomainsReport, RenderPassNativeResourceCreateMetrics,
+    RenderSceneVelocityReadbackReport,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::LightGridStats;
@@ -15,9 +17,16 @@ use crate::render_graph::{
     RenderGraphResourceAccessKind, RenderPassId,
 };
 
+mod ambient_occlusion;
+#[cfg(test)]
+#[path = "render_graph_execution_record/ambient_occlusion_tests.rs"]
+mod ambient_occlusion_tests;
 mod compute_workload;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+#[path = "render_graph_execution_record/workload_scan_tests.rs"]
+mod workload_scan_tests;
 
 pub use self::compute_workload::{
     RenderGraphComputeDispatchRecord, RenderGraphComputeWorkloadAuditRecord,
@@ -72,8 +81,10 @@ pub struct RenderGraphExecutionRecord {
     materialization_report: RenderGraphMaterializationReport,
     resource_alias_report: RenderGraphExecutionAliasReport,
     pass_profile_records: Vec<RenderGraphPassProfileRecord>,
+    execution_batch_report: RenderGraphExecutionBatchReport,
     parallel_recording_report: RenderGraphParallelRecordingReport,
     history_copy_report: RenderHistoryCopyReport,
+    history_domains_report: RenderHistoryDomainsReport,
     scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
     #[cfg(test)]
     scene_velocity_readback_rg16_float_bytes: Option<Vec<u8>>,
@@ -81,9 +92,45 @@ pub struct RenderGraphExecutionRecord {
     color_lut_readback_report: RenderColorLutReadbackReport,
     hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
     light_grid_report: Option<RenderGraphLightGridReport>,
+    ambient_occlusion_execution_report: RenderAmbientOcclusionExecutionReport,
     taa_reactive_mask_encoded_pass_count: usize,
     taa_reactive_mask_encoded_write_bytes: u64,
     taa_resolve_bind_group_create_count: usize,
+}
+
+enum ComputeWorkloadDispatchAuditInput<'a> {
+    FirstMatch(&'a RenderGraphComputeDispatchRecord),
+    Missing,
+    Unexpected(&'a RenderGraphComputeDispatchRecord),
+}
+
+fn visit_compute_workload_dispatches<'a>(
+    pass_name: &str,
+    executor_id: &str,
+    dispatches: &'a [RenderGraphComputeDispatchRecord],
+    mut visit: impl FnMut(ComputeWorkloadDispatchAuditInput<'a>),
+) {
+    let mut first_matching_dispatch_index = None;
+    for (index, dispatch) in dispatches.iter().enumerate() {
+        if dispatch.pass_name != pass_name || dispatch.executor_id != executor_id {
+            continue;
+        }
+        if first_matching_dispatch_index.is_none() {
+            first_matching_dispatch_index = Some(index);
+            visit(ComputeWorkloadDispatchAuditInput::FirstMatch(dispatch));
+        } else {
+            visit(ComputeWorkloadDispatchAuditInput::Unexpected(dispatch));
+        }
+    }
+    if first_matching_dispatch_index.is_none() {
+        visit(ComputeWorkloadDispatchAuditInput::Missing);
+    }
+    for dispatch in dispatches
+        .iter()
+        .filter(|dispatch| dispatch.pass_name != pass_name || dispatch.executor_id != executor_id)
+    {
+        visit(ComputeWorkloadDispatchAuditInput::Unexpected(dispatch));
+    }
 }
 
 impl RenderGraphExecutionRecord {
@@ -261,6 +308,28 @@ impl RenderGraphExecutionRecord {
         render_metrics: RenderGraphPassProfileMetrics,
         compute_dispatches: &[RenderGraphComputeDispatchRecord],
     ) {
+        self.push_pass_profile_with_budget_key_native_resources_and_compute_dispatches(
+            pass_name,
+            executor_id,
+            budget_key,
+            cpu_elapsed_micros,
+            render_metrics,
+            RenderPassNativeResourceCreateMetrics::default(),
+            compute_dispatches,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn push_pass_profile_with_budget_key_native_resources_and_compute_dispatches(
+        &mut self,
+        pass_name: impl Into<String>,
+        executor_id: impl Into<String>,
+        budget_key: RenderBudgetKey,
+        cpu_elapsed_micros: u64,
+        render_metrics: RenderGraphPassProfileMetrics,
+        native_resource_creates: RenderPassNativeResourceCreateMetrics,
+        compute_dispatches: &[RenderGraphComputeDispatchRecord],
+    ) {
         let (dispatch_count, upload_bytes) = compute_dispatches.iter().fold(
             (0_u32, 0_u64),
             |(dispatch_count, upload_bytes), dispatch| {
@@ -274,6 +343,7 @@ impl RenderGraphExecutionRecord {
             RenderGraphPassProfileRecord::new(pass_name, executor_id, cpu_elapsed_micros)
                 .with_budget_key(budget_key)
                 .with_render_metrics(render_metrics)
+                .with_native_resource_creates(native_resource_creates)
                 .with_compute_metrics(dispatch_count, upload_bytes),
         );
     }
@@ -289,6 +359,10 @@ impl RenderGraphExecutionRecord {
             .saturating_add(bucket_count);
     }
 
+    pub fn set_execution_batch_report(&mut self, report: RenderGraphExecutionBatchReport) {
+        self.execution_batch_report = report;
+    }
+
     pub fn record_parallel_recording_execution(&mut self, bucket_count: usize) {
         self.parallel_recording_report.executed_stage_count = self
             .parallel_recording_report
@@ -302,6 +376,10 @@ impl RenderGraphExecutionRecord {
 
     pub fn set_history_copy_report(&mut self, report: RenderHistoryCopyReport) {
         self.history_copy_report = report;
+    }
+
+    pub fn set_history_domains_report(&mut self, report: RenderHistoryDomainsReport) {
+        self.history_domains_report = report;
     }
 
     #[cfg(test)]
@@ -363,50 +441,31 @@ impl RenderGraphExecutionRecord {
         dispatches: &[RenderGraphComputeDispatchRecord],
     ) {
         if let Some(planned) = planned_workload {
-            let first_matching_dispatch_index = dispatches.iter().position(|dispatch| {
-                dispatch.pass_name == pass_name && dispatch.executor_id == executor_id
+            visit_compute_workload_dispatches(pass_name, executor_id, dispatches, |input| {
+                let audit = match input {
+                    ComputeWorkloadDispatchAuditInput::FirstMatch(dispatch) => {
+                        RenderGraphComputeWorkloadAuditRecord::matched_or_mismatched(
+                            pass_name,
+                            executor_id,
+                            planned,
+                            dispatch_context,
+                            dispatch,
+                        )
+                    }
+                    ComputeWorkloadDispatchAuditInput::Missing => {
+                        RenderGraphComputeWorkloadAuditRecord::missing_dispatch(
+                            pass_name,
+                            executor_id,
+                            planned,
+                            dispatch_context,
+                        )
+                    }
+                    ComputeWorkloadDispatchAuditInput::Unexpected(dispatch) => {
+                        RenderGraphComputeWorkloadAuditRecord::unexpected_dispatch(dispatch)
+                    }
+                };
+                self.compute_workload_audit.push(audit);
             });
-            if let Some(index) = first_matching_dispatch_index {
-                self.compute_workload_audit.push(
-                    RenderGraphComputeWorkloadAuditRecord::matched_or_mismatched(
-                        pass_name,
-                        executor_id,
-                        planned,
-                        dispatch_context,
-                        &dispatches[index],
-                    ),
-                );
-            } else {
-                self.compute_workload_audit.push(
-                    RenderGraphComputeWorkloadAuditRecord::missing_dispatch(
-                        pass_name,
-                        executor_id,
-                        planned,
-                        dispatch_context,
-                    ),
-                );
-            }
-            for unexpected in dispatches
-                .iter()
-                .enumerate()
-                .filter_map(|(index, dispatch)| {
-                    (Some(index) != first_matching_dispatch_index
-                        && dispatch.pass_name == pass_name
-                        && dispatch.executor_id == executor_id)
-                        .then_some(dispatch)
-                })
-            {
-                self.compute_workload_audit.push(
-                    RenderGraphComputeWorkloadAuditRecord::unexpected_dispatch(unexpected),
-                );
-            }
-            for unexpected in dispatches.iter().filter(|dispatch| {
-                dispatch.pass_name != pass_name || dispatch.executor_id != executor_id
-            }) {
-                self.compute_workload_audit.push(
-                    RenderGraphComputeWorkloadAuditRecord::unexpected_dispatch(unexpected),
-                );
-            }
             return;
         }
 
@@ -465,6 +524,10 @@ impl RenderGraphExecutionRecord {
         self.parallel_recording_report
     }
 
+    pub fn execution_batch_report(&self) -> RenderGraphExecutionBatchReport {
+        self.execution_batch_report
+    }
+
     pub fn stage_execution_report(&self) -> RenderGraphStageExecutionReport {
         let mut seen_stages = [false; RenderPassStage::ALL.len()];
         let mut staged_pass_count = 0;
@@ -508,6 +571,10 @@ impl RenderGraphExecutionRecord {
 
     pub fn history_copy_report(&self) -> RenderHistoryCopyReport {
         self.history_copy_report
+    }
+
+    pub fn history_domains_report(&self) -> RenderHistoryDomainsReport {
+        self.history_domains_report
     }
 
     pub fn scene_velocity_readback_report(&self) -> RenderSceneVelocityReadbackReport {

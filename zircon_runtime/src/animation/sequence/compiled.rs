@@ -73,15 +73,16 @@ pub fn compile_sequence_for_world(
         };
 
         for (track_index, track) in binding.tracks.iter().enumerate() {
-            let track_path =
-                AnimationTrackPath::new(binding.entity_path.clone(), track.property_path.clone());
             let Some(writer) = world.compile_scene_property_writer_for_entity(
                 entity,
                 &canonical_entity_path,
                 &track.property_path,
             )?
             else {
-                compiled.missing_tracks.push(track_path);
+                compiled.missing_tracks.push(AnimationTrackPath::new(
+                    binding.entity_path.clone(),
+                    track.property_path.clone(),
+                ));
                 continue;
             };
             compiled.tracks.push(CompiledAnimationSequenceTrack {

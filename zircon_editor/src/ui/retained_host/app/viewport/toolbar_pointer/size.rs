@@ -43,9 +43,7 @@ impl RetainedEditorHost {
                         ActivityDrawerSlot::RightTop | ActivityDrawerSlot::RightBottom => {
                             ShellRegionId::Right
                         }
-                        ActivityDrawerSlot::Bottom
-                        | ActivityDrawerSlot::BottomLeft
-                        | ActivityDrawerSlot::BottomRight => ShellRegionId::Bottom,
+                        ActivityDrawerSlot::Bottom => ShellRegionId::Bottom,
                     };
                     workbench_layout_frames
                         .drawer_content_frame(region)

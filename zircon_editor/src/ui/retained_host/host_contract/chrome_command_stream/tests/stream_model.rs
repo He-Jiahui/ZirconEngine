@@ -1,3 +1,14 @@
+use std::sync::Arc;
+
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiTreeId},
+    layout::UiFrame,
+    surface::{
+        UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderFrameCommandRef,
+        UiRenderFrameExtract, UiRenderList, UiResolvedStyle, UiSurfaceFrame,
+    },
+};
+
 use super::super::{
     build_chrome_command_stream, ChromeCommandKind, ChromeCommandLayer, ChromeCommandStream,
     ChromeImagePayload, ChromeImageUvRect,
@@ -7,6 +18,100 @@ use super::support::{
     stream_has_quad_color, LEGACY_CENTER_BAND, LEGACY_DOCUMENT_PANEL, LEGACY_VIEWPORT_PANEL,
 };
 use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::paint_frame::{
+    HostRenderCommandSource, HostRenderSourceTable,
+};
+
+#[test]
+fn extracted_command_vector_is_adopted_without_reallocation() {
+    let damage = FrameRect {
+        x: 2.0,
+        y: 4.0,
+        width: 8.0,
+        height: 16.0,
+    };
+    let mut commands = Vec::with_capacity(1);
+    commands.push(super::super::ChromeCommand {
+        layer: ChromeCommandLayer::Dynamic,
+        z_index: 0,
+        frame: damage.clone(),
+        clip: Some(damage.clone()),
+        source: None,
+        kind: ChromeCommandKind::Clip,
+    });
+    let commands_ptr = commands.as_ptr();
+
+    let stream = ChromeCommandStream::from_extracted_commands(
+        (64, 64),
+        Some(damage),
+        commands,
+        Default::default(),
+    );
+
+    assert_eq!(stream.commands().as_ptr(), commands_ptr);
+    assert!(matches!(stream.commands()[0].kind, ChromeCommandKind::Clip));
+    assert!(!stream.is_full_rebuild());
+}
+
+#[test]
+fn extracted_command_source_resolves_through_the_stream_surface_table() {
+    let source_node_id = UiNodeId::new(31);
+    let source_frame = Arc::new(UiSurfaceFrame {
+        render_extract: Arc::new(UiRenderFrameExtract::from_extract(&UiRenderExtract {
+            tree_id: UiTreeId::new("editor.chrome.source"),
+            list: UiRenderList {
+                commands: vec![UiRenderCommand {
+                    node_id: source_node_id,
+                    kind: UiRenderCommandKind::Quad,
+                    frame: UiFrame::new(0.0, 0.0, 4.0, 4.0),
+                    clip_frame: None,
+                    z_index: 0,
+                    style: UiResolvedStyle::default(),
+                    text_layout: None,
+                    text: None,
+                    image: None,
+                    opacity: 1.0,
+                }],
+            },
+            raster_scale: 1.0,
+        })),
+        ..UiSurfaceFrame::default()
+    });
+    let mut render_sources = HostRenderSourceTable::default();
+    let surface_key = render_sources
+        .register(&source_frame)
+        .expect("source surface key");
+    let command_ref = UiRenderFrameCommandRef::new(source_node_id, 0);
+    let stream = ChromeCommandStream::from_extracted_commands(
+        (64, 64),
+        None,
+        vec![super::super::ChromeCommand {
+            layer: ChromeCommandLayer::Dynamic,
+            z_index: 0,
+            frame: FrameRect::default(),
+            clip: None,
+            source: Some(HostRenderCommandSource {
+                surface_key,
+                command_ref,
+                fragment_index: 4,
+            }),
+            kind: ChromeCommandKind::Clip,
+        }],
+        render_sources,
+    );
+
+    let (resolved_frame, resolved_command, resolved_fragment) =
+        stream.resolve_command_source(0).expect("resolved source");
+    assert!(Arc::ptr_eq(resolved_frame, &source_frame));
+    assert_eq!(resolved_command, command_ref);
+    assert_eq!(resolved_fragment, 4);
+    let (resolved_frame, runtime_command, resolved_fragment) = stream
+        .resolve_runtime_command_source(0)
+        .expect("resolved runtime command source");
+    assert!(Arc::ptr_eq(resolved_frame, &source_frame));
+    assert_eq!(runtime_command.node_id, source_node_id);
+    assert_eq!(resolved_fragment, 4);
+}
 
 #[test]
 fn full_command_stream_records_full_ui_draw_list() {

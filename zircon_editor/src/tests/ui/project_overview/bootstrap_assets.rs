@@ -73,7 +73,7 @@ fn project_overview_projection_maps_bootstrap_asset_into_template_nodes() {
     );
     assert_eq!(open_assets.role.to_string(), "Button");
     assert_eq!(open_assets.text.to_string(), "Open Assets");
-    assert_eq!(open_assets.button_variant.to_string(), "primary");
+    assert_eq!(open_assets.button_variant.to_string(), "filled");
     assert_eq!(open_assets.value_text.to_string(), "");
     assert_eq!(open_assets.dispatch_kind.to_string(), "surface");
     assert_eq!(
@@ -94,7 +94,7 @@ fn project_overview_projection_maps_bootstrap_asset_into_template_nodes() {
     );
     assert_eq!(open_browser.role.to_string(), "Button");
     assert_eq!(open_browser.text.to_string(), "Asset Browser");
-    assert_eq!(open_browser.button_variant.to_string(), "secondary");
+    assert_eq!(open_browser.button_variant.to_string(), "outlined");
     assert_eq!(open_browser.value_text.to_string(), "");
     assert_eq!(open_browser.dispatch_kind.to_string(), "asset");
 }

@@ -36,7 +36,7 @@ pub(crate) fn shell_content_target(
     scope: &HostShellContentScope,
     model: &WorkbenchViewModel,
 ) -> Option<ShellContentTarget> {
-    let slot = scope.slot.canonical();
+    let slot = scope.slot;
     let dock = dock_for_drawer_slot(slot);
     let slots: &[ActivityDrawerSlot] = match dock {
         HostDockSurfaceId::Left => &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
@@ -47,7 +47,7 @@ pub(crate) fn shell_content_target(
         HostDockSurfaceId::Bottom => &[ActivityDrawerSlot::Bottom],
     };
     let selection = host_window::side_pane_selection(model, slots)?;
-    if selection.stack.slot.canonical() != slot
+    if selection.stack.slot != slot
         || selection.tab.instance_id != scope.instance_id
         || selection.stack.active_tab.as_ref() != Some(&scope.instance_id)
     {
@@ -61,12 +61,10 @@ pub(crate) fn shell_content_target(
 }
 
 fn dock_for_drawer_slot(slot: ActivityDrawerSlot) -> HostDockSurfaceId {
-    match slot.canonical() {
+    match slot {
         ActivityDrawerSlot::LeftTop | ActivityDrawerSlot::LeftBottom => HostDockSurfaceId::Left,
         ActivityDrawerSlot::RightTop | ActivityDrawerSlot::RightBottom => HostDockSurfaceId::Right,
-        ActivityDrawerSlot::Bottom
-        | ActivityDrawerSlot::BottomLeft
-        | ActivityDrawerSlot::BottomRight => HostDockSurfaceId::Bottom,
+        ActivityDrawerSlot::Bottom => HostDockSurfaceId::Bottom,
     }
 }
 
@@ -95,6 +93,8 @@ pub(crate) fn patch_shell_content_presentation_from_state(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     hierarchy_filter_query: &str,
     chrome_projection_cache: &mut host_window::HostChromeProjectionCache,
+    console_projection_cache: &mut super::pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut super::pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> bool {
     zircon_runtime::profile_scope!(
         "editor",
@@ -192,6 +192,8 @@ pub(crate) fn patch_shell_content_presentation_from_state(
         component_showcase_runtime,
         Some(&welcome),
         hierarchy_filter_query,
+        console_projection_cache,
+        module_plugins_projection_cache,
     );
     let commit_context = shell_content_commit_context(&current_generation, target.dock);
     drop(current_generation);
@@ -235,6 +237,8 @@ pub(super) fn patch_shell_content_presentation(
     chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut super::pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut super::pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> bool {
     zircon_runtime::profile_scope!(
         "editor",
@@ -272,6 +276,8 @@ pub(super) fn patch_shell_content_presentation(
         component_showcase_runtime,
         Some(&presentation.welcome),
         hierarchy_filter_query,
+        console_projection_cache,
+        module_plugins_projection_cache,
     );
     let commit_context = shell_content_commit_context(&current_generation, target);
     drop(current_generation);
@@ -381,6 +387,8 @@ fn convert_patch(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&crate::ui::layouts::views::WelcomePresentation>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut super::pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut super::pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> (FrameRect, ConvertedDockPatch) {
     match patch {
         HostDockSurfacePatch::Left(dock) => {
@@ -389,6 +397,8 @@ fn convert_patch(
                 component_showcase_runtime,
                 welcome,
                 hierarchy_filter_query,
+                console_projection_cache,
+                module_plugins_projection_cache,
             );
             (
                 converted.region_frame.clone(),
@@ -401,6 +411,8 @@ fn convert_patch(
                 component_showcase_runtime,
                 welcome,
                 hierarchy_filter_query,
+                console_projection_cache,
+                module_plugins_projection_cache,
             );
             (
                 converted.region_frame.clone(),
@@ -413,6 +425,8 @@ fn convert_patch(
                 component_showcase_runtime,
                 welcome,
                 hierarchy_filter_query,
+                console_projection_cache,
+                module_plugins_projection_cache,
             );
             (
                 converted.region_frame.clone(),

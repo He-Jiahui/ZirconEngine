@@ -12,6 +12,15 @@ _WRITTEN_VARIANT_SOURCE_LABELS_MISSING_SOURCE_PROVENANCE = (
 
 
 class ReportedWrittenVariant:
+    __slots__ = (
+        "cache_hash",
+        "canonical_string",
+        "source_label",
+        "template_revision",
+        "naga_version",
+        "wgpu_version",
+    )
+
     def __init__(
         self,
         *,
@@ -77,24 +86,27 @@ def reported_written_variants(
                 "shader prewarm report contains invalid written cache variant "
                 f"entry at index {index}"
             )
-        required = (
-            "cache_hash",
-            "canonical_string",
-            "template_revision",
-            "naga_version",
-            "wgpu_version",
-        )
-        missing = [
-            field
-            for field in required
-            if not isinstance(raw_variant.get(field), str) or not raw_variant.get(field)
-        ]
+        cache_hash = raw_variant.get("cache_hash")
+        canonical_string = raw_variant.get("canonical_string")
+        template_revision = raw_variant.get("template_revision")
+        naga_version = raw_variant.get("naga_version")
+        wgpu_version = raw_variant.get("wgpu_version")
+        missing: list[str] = []
+        if not isinstance(cache_hash, str) or not cache_hash:
+            missing.append("cache_hash")
+        if not isinstance(canonical_string, str) or not canonical_string:
+            missing.append("canonical_string")
+        if not isinstance(template_revision, str) or not template_revision:
+            missing.append("template_revision")
+        if not isinstance(naga_version, str) or not naga_version:
+            missing.append("naga_version")
+        if not isinstance(wgpu_version, str) or not wgpu_version:
+            missing.append("wgpu_version")
         if missing:
             raise RuntimeError(
                 "shader prewarm report contains invalid written cache variant "
                 f"entry at index {index}: missing {', '.join(missing)}"
             )
-        cache_hash = str(raw_variant["cache_hash"])
         validate_cache_hash_shape(
             cache_hash,
             source=f"written_variants[{index}].cache_hash",
@@ -110,11 +122,11 @@ def reported_written_variants(
         variants.append(
             ReportedWrittenVariant(
                 cache_hash=cache_hash,
-                canonical_string=str(raw_variant["canonical_string"]),
+                canonical_string=canonical_string,
                 source_label=source_label if isinstance(source_label, str) else None,
-                template_revision=str(raw_variant["template_revision"]),
-                naga_version=str(raw_variant["naga_version"]),
-                wgpu_version=str(raw_variant["wgpu_version"]),
+                template_revision=template_revision,
+                naga_version=naga_version,
+                wgpu_version=wgpu_version,
             )
         )
     validate_unique_written_variant_identity(variants)

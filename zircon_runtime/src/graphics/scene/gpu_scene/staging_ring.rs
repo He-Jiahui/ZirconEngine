@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use bytemuck::Pod;
+use zr_rhi_wgpu::WgpuBufferUpload;
 
 pub(crate) const GPU_SCENE_STAGING_COPY_THRESHOLD_BYTES: u64 = 256 * 1024;
 
@@ -87,24 +90,26 @@ impl GpuSceneStagingRing {
         byte_len
     }
 
-    pub(super) fn submit(
+    /// Encodes staging-buffer copies and returns the queue write that must be
+    /// accepted before the command buffer using those copies is submitted.
+    pub(super) fn encode_upload(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         primitive_buffer: &wgpu::Buffer,
         instance_buffer: &wgpu::Buffer,
         light_buffer: &wgpu::Buffer,
-    ) {
+    ) -> Option<WgpuBufferUpload> {
         if self.copies.is_empty() {
-            return;
+            return None;
         }
 
         let required_bytes = u64::try_from(self.bytes.len())
             .expect("gpu scene staging upload byte length exceeds u64");
         self.ensure_capacity(device, required_bytes);
-        let staging_buffer = &self.slots[self.next_slot];
-        queue.write_buffer(staging_buffer, 0, &self.bytes);
+        let staging_buffer = self.slots[self.next_slot].clone();
+        let payload_len = self.bytes.len();
+        let payload: Arc<[u8]> = Arc::from(std::mem::take(&mut self.bytes));
         for copy in &self.copies {
             let destination = match copy.destination {
                 GpuSceneStagingDestination::Primitive => primitive_buffer,
@@ -112,7 +117,7 @@ impl GpuSceneStagingRing {
                 GpuSceneStagingDestination::Light => light_buffer,
             };
             encoder.copy_buffer_to_buffer(
-                staging_buffer,
+                &staging_buffer,
                 copy.source_offset,
                 destination,
                 copy.destination_offset,
@@ -120,6 +125,10 @@ impl GpuSceneStagingRing {
             );
         }
         self.next_slot = (self.next_slot + 1) % GPU_SCENE_STAGING_RING_SLOT_COUNT;
+        Some(
+            WgpuBufferUpload::new(staging_buffer, 0, payload, 0..payload_len)
+                .expect("gpu scene staging payload must match its complete source range"),
+        )
     }
 
     fn ensure_capacity(&mut self, device: &wgpu::Device, required_bytes: u64) {
@@ -151,7 +160,7 @@ impl GpuSceneStagingRing {
 #[cfg(test)]
 mod tests {
     use super::{
-        GpuSceneStagingDestination, GpuSceneStagingRing, GPU_SCENE_STAGING_COPY_THRESHOLD_BYTES,
+        GPU_SCENE_STAGING_COPY_THRESHOLD_BYTES, GpuSceneStagingDestination, GpuSceneStagingRing,
     };
 
     #[test]

@@ -1,5 +1,5 @@
-use crate::core::diagnostics::DiagnosticStore;
 use crate::core::CoreHandle;
+use crate::core::diagnostics::DiagnosticStore;
 
 pub const ECS_BUNDLE_TRANSACTION_COUNT_DIAGNOSTIC: &str = "scene.ecs.bundle_transactions.committed";
 pub const ECS_BUNDLE_FINAL_ARCHETYPE_TRANSITIONS_DIAGNOSTIC: &str =

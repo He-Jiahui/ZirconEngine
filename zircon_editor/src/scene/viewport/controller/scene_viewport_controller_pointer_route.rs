@@ -1,39 +1,57 @@
-use crate::scene::viewport::GizmoAxis;
-use crate::scene::viewport::ViewportCameraSnapshot;
+use crate::scene::viewport::{
+    GizmoAxis, ViewportCameraSnapshot, ViewportInteractionExtractPointerResolution,
+};
 use zircon_runtime::scene::Scene;
-use zircon_runtime_interface::math::Vec2;
-use zircon_runtime_interface::ui::layout::UiPoint;
+use zircon_runtime_interface::{
+    math::Vec2,
+    ui::{layout::UiPoint, tree::UiTreeError},
+};
 
-use crate::scene::viewport::pointer::ViewportPointerRoute;
+use crate::scene::viewport::pointer::{ViewportPointerDispatch, ViewportPointerRoute};
 
 use super::SceneViewportController;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::scene::viewport::controller) enum PointerBridgeProductState {
+    Current,
+    Stale,
+    Preparing,
+}
 
 impl SceneViewportController {
     pub(in crate::scene::viewport::controller) fn sync_pointer_bridge(
         &mut self,
         scene: &Scene,
-    ) -> ViewportCameraSnapshot {
+    ) -> (ViewportCameraSnapshot, PointerBridgeProductState) {
         let camera = self.current_camera(scene);
         let selected = self.projected_selected_node(scene);
-        let handles = &self.handles;
         let settings = &self.state.settings;
-        let handle_kind = self.active_transform_handle();
         let interaction_extract = self.interaction_extract.resolve_for_pointer(
             scene,
             selected,
             settings,
             &camera,
             self.state.viewport.size,
-            || handles.build_overlays(scene, selected, settings, handle_kind, &camera),
-            || self.viewport_overlay_gizmos(scene, selected),
         );
-        self.pointer_bridge.sync_scene(
-            &camera,
-            self.state.viewport.size,
-            scene.world_generation(),
-            interaction_extract,
-        );
-        camera
+        match interaction_extract {
+            ViewportInteractionExtractPointerResolution::Ready(interaction_extract) => {
+                self.pointer_bridge.sync_scene(
+                    &camera,
+                    self.state.viewport.size,
+                    scene.world_generation(),
+                    interaction_extract,
+                );
+                (camera, PointerBridgeProductState::Current)
+            }
+            ViewportInteractionExtractPointerResolution::Stale => {
+                self.pointer_bridge.clear_scene();
+                (camera, PointerBridgeProductState::Stale)
+            }
+            ViewportInteractionExtractPointerResolution::Preparing => {
+                self.pointer_bridge.clear_scene();
+                (camera, PointerBridgeProductState::Preparing)
+            }
+        }
     }
 
     pub(crate) fn sync_renderer_visible_spatial_snapshot(
@@ -43,14 +61,16 @@ impl SceneViewportController {
             zircon_runtime::core::framework::render::RenderVisibleSpatialQuerySnapshot,
         >,
     ) -> bool {
-        self.sync_pointer_bridge(scene);
+        let (_, product_state) = self.sync_pointer_bridge(scene);
+        if product_state != PointerBridgeProductState::Current {
+            return false;
+        }
         self.pointer_bridge
             .sync_renderer_visible_spatial_snapshot(scene.world_generation(), snapshot)
     }
 
     pub(crate) fn clear_renderer_visible_spatial_snapshot(&mut self) {
-        self.pointer_bridge
-            .sync_renderer_visible_spatial_snapshot(0, None);
+        self.pointer_bridge.clear_scene();
     }
 
     pub(in crate::scene::viewport::controller) fn route_at_cursor(
@@ -58,16 +78,21 @@ impl SceneViewportController {
         scene: &Scene,
         cursor: Vec2,
         press: bool,
-    ) -> Option<ViewportPointerRoute> {
-        let _camera = self.sync_pointer_bridge(scene);
+    ) -> Result<(Option<ViewportPointerRoute>, PointerBridgeProductState), UiTreeError> {
+        let (_camera, product_state) = self.sync_pointer_bridge(scene);
+        match product_state {
+            PointerBridgeProductState::Current => {}
+            PointerBridgeProductState::Stale | PointerBridgeProductState::Preparing => {
+                return Ok((None, product_state));
+            }
+        }
         let point = UiPoint::new(cursor.x, cursor.y);
         let dispatch = if press {
             self.pointer_bridge.handle_down(point)
         } else {
             self.pointer_bridge.handle_move(point)
-        }
-        .ok()?;
-        dispatch.route
+        };
+        current_pointer_route(dispatch)
     }
 
     pub(in crate::scene::viewport::controller) fn set_hover_route(
@@ -93,6 +118,28 @@ impl SceneViewportController {
     }
 }
 
+fn current_pointer_route(
+    dispatch: Result<ViewportPointerDispatch, UiTreeError>,
+) -> Result<(Option<ViewportPointerRoute>, PointerBridgeProductState), UiTreeError> {
+    let dispatch = dispatch?;
+    Ok((dispatch.route, PointerBridgeProductState::Current))
+}
+
 pub(in crate::scene::viewport::controller) fn route_owner(route: &ViewportPointerRoute) -> u64 {
     route.target().owner()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::current_pointer_route;
+    use zircon_runtime_interface::ui::{event_ui::UiNodeId, tree::UiTreeError};
+
+    #[test]
+    fn current_pointer_route_preserves_the_ui_tree_error() {
+        let expected = UiTreeError::MissingNode(UiNodeId::new(901));
+
+        let result = current_pointer_route(Err(expected.clone()));
+
+        assert_eq!(result.unwrap_err(), expected);
+    }
 }

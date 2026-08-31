@@ -7,73 +7,86 @@ version = 2
 display_name = "Inspector"
 
 [imports]
-styles = ["res://ui/theme/editor_base.zui"]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
+]
+styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]
 node = "inspector_root"
 
-[nodes.top_space]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
-
-[nodes.left_space]
-component = "Space"
-layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
 [nodes.header_panel]
 component = "Overlay"
 control_id = "InspectorHeaderPanel"
-props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
+props = { text = "Inspector", surface_variant = "transparent", radius = 0.0, border_width = 0.0, text_tone = "default", font_weight = "$editor.typography.strong.weight", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", overflow = "elide" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.header_name_gap]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
 
 [nodes.name_row]
-component = "Overlay"
+component = "WorkbenchPropertyEditorRow"
 control_id = "InspectorNameRow"
-props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", text_tone = "muted", overflow = "elide" }
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+props = { text = "Name" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+children = [{ node = "name_value", slot = { name = "value" } }]
 
-[nodes.name_parent_gap]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+[nodes.name_value]
+component = "WorkbenchField"
+control_id = "InspectorNameValue"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "-", editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.parent_row]
-component = "Overlay"
+component = "WorkbenchPropertyEditorRow"
 control_id = "InspectorParentRow"
-props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", text_tone = "muted", overflow = "elide" }
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+props = { text = "Parent" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+children = [{ node = "parent_value", slot = { name = "value" } }]
 
-[nodes.parent_position_gap]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+[nodes.parent_value]
+component = "WorkbenchField"
+control_id = "InspectorParentValue"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "-", editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.position_row]
-component = "Overlay"
+component = "WorkbenchPropertyEditorRow"
 control_id = "InspectorPositionRow"
-props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", text_tone = "muted", overflow = "elide" }
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+props = { text = "Position" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+children = [{ node = "position_value", slot = { name = "value" } }]
 
-[nodes.position_separator_gap]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+[nodes.position_value]
+component = "WorkbenchField"
+control_id = "InspectorPositionValue"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "-", editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.separator_row]
 component = "Space"
 control_id = "InspectorSeparatorRow"
+classes = ["workbench-divider"]
 layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
 
-[nodes.separator_actions_gap]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
-
 [nodes.actions_row]
-component = "Overlay"
+component = "WorkbenchPropertyEditorRow"
 control_id = "InspectorActionsRow"
-props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", text_tone = "muted", overflow = "elide" }
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+props = { text = "Components" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+children = [{ node = "components_value", slot = { name = "value" } }]
+
+[nodes.components_value]
+component = "WorkbenchField"
+control_id = "InspectorComponentsValue"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "-", editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.empty_state_message]
 component = "Label"
@@ -84,32 +97,29 @@ layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position
 [nodes.bottom_fill]
 component = "Overlay"
 control_id = "InspectorEmptyState"
-props = { surface_variant = "frame_only", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+props = { surface_variant = "transparent", radius = 0.0, border_width = 0.0 }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "empty_state_message" }]
 
-[nodes.content_panel]
-component = "VerticalBox"
-control_id = "InspectorContentPanel"
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header_panel" }, { node = "header_name_gap" }, { node = "name_row" }, { node = "name_parent_gap" }, { node = "parent_row" }, { node = "parent_position_gap" }, { node = "position_row" }, { node = "position_separator_gap" }, { node = "separator_row" }, { node = "separator_actions_gap" }, { node = "actions_row" }, { node = "bottom_fill" }]
+[nodes.inspector_scroll_body]
+component = "ScrollableBox"
+control_id = "InspectorScrollBody"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "name_row" }, { node = "parent_row" }, { node = "position_row" }, { node = "separator_row" }, { node = "actions_row" }]
 
-[nodes.right_space]
-component = "Space"
-layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.content_row]
-component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "left_space" }, { node = "content_panel" }, { node = "right_space" }]
-
-[nodes.bottom_space]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+[nodes.body_overlay]
+component = "Overlay"
+control_id = "InspectorBodyOverlay"
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "inspector_scroll_body" },
+  { node = "bottom_fill", slot = { layout = { alignment = { horizontal = "Fill", vertical = "Fill" }, z_order = 10 } } },
+]
 
 [nodes.inspector_root]
 component = "VerticalBox"
 control_id = "InspectorRoot"
-classes = ["editor-shell"]
+classes = ["workbench-shell-root"]
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "top_space" }, { node = "content_row" }, { node = "bottom_space" }]
+children = [{ node = "header_panel" }, { node = "header_name_gap" }, { node = "body_overlay" }]

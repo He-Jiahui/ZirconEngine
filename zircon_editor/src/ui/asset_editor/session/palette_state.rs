@@ -279,7 +279,7 @@ impl UiAssetEditorSession {
         };
         let selection = selection_for_node(&document, &node_id);
         self.apply_document_edit_with_tree_edit_and_selection(
-            document.clone(),
+            document,
             UiAssetEditorTreeEdit::InsertPaletteItem {
                 node_id,
                 parent_node_id: selection.parent_node_id.clone(),
@@ -327,7 +327,7 @@ impl UiAssetEditorSession {
         };
         let selection = selection_for_node(&document, &node_id);
         self.apply_document_edit_with_tree_edit_and_selection(
-            document.clone(),
+            document,
             UiAssetEditorTreeEdit::ReparentNode {
                 node_id,
                 parent_node_id: selection.parent_node_id.clone(),
@@ -635,3 +635,7 @@ props = { text = "Imported" }
         ));
     }
 }
+
+#[cfg(test)]
+#[path = "palette_state/owned_document_move_tests.rs"]
+mod owned_document_move_tests;

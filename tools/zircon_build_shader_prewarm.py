@@ -297,103 +297,109 @@ def build_shader_prewarm_command(config) -> list[str]:
 
 def validate_shader_prewarm_command_contract(config, command: Sequence[str]) -> None:
     command = tuple(str(value) for value in command)
-    _require_command_flag(command, "--builtin-fallback", "builtin fallback")
-    _require_command_flag(command, "--pretty", "pretty report output")
-    _require_flag_values(command, "--project-root", (config.engine_root,), "project root")
+    command_flags = _command_flag_index(command)
+    _require_command_flag(command_flags, "--builtin-fallback", "builtin fallback")
+    _require_command_flag(command_flags, "--pretty", "pretty report output")
     _require_flag_values(
-        command,
+        command_flags,
+        "--project-root",
+        (config.engine_root,),
+        "project root",
+    )
+    _require_flag_values(
+        command_flags,
         "--cache-dir",
         (config.shader_prewarm_cache_root,),
         "staged cache root",
     )
     _require_flag_values(
-        command,
+        command_flags,
         "--report",
         (config.shader_prewarm_report_path,),
         "prewarm report path",
     )
     if getattr(config, "validate_wgpu_shaders", False):
         _require_command_flag(
-            command,
+            command_flags,
             "--validate-wgpu-modules",
             "WGPU module validation",
         )
     else:
         _forbid_command_flag(
-            command,
+            command_flags,
             "--validate-wgpu-modules",
             "WGPU module validation",
         )
     if getattr(config, "validate_wgpu_pipelines", False):
         _require_command_flag(
-            command,
+            command_flags,
             "--validate-wgpu-pipelines",
             "WGPU render pipeline validation",
         )
     else:
         _forbid_command_flag(
-            command,
+            command_flags,
             "--validate-wgpu-pipelines",
             "WGPU render pipeline validation",
         )
     _require_flag_values(
-        command,
+        command_flags,
         "--asset-root",
         shader_asset_root_paths_for_prewarm(config),
         "shader asset roots",
     )
     _require_flag_values(
-        command,
+        command_flags,
         "--quality-tier",
         config.shader_quality_tiers,
         "shader quality tiers",
     )
     _require_flag_values(
-        command,
+        command_flags,
         "--geometry-source",
         config.shader_geometry_sources,
         "shader geometry sources",
     )
     _require_flag_values(
-        command,
+        command_flags,
         "--geometry-source-id",
         config.shader_geometry_source_ids,
         "explicit shader geometry source ids",
     )
     _require_flag_values(
-        command,
+        command_flags,
         "--shading-model-id",
         config.shader_shading_model_ids,
         "explicit shader shading model ids",
     )
     _require_flag_values(
-        command,
+        command_flags,
         "--shader-permutation-registry",
         shader_permutation_registry_paths_for_prewarm(config),
         "shader permutation registries",
     )
     if config.shader_resource_registry:
         _require_flag_values(
-            command,
+            command_flags,
             "--resource-registry",
             (config.shader_resource_registry,),
             "shader resource registry input",
         )
         _require_flag_values(
-            command,
+            command_flags,
             "--export-resource-registry",
             (),
             "shader resource registry export",
         )
     else:
         _require_flag_values(
-            command,
+            command_flags,
             "--resource-registry",
             (),
             "shader resource registry input",
         )
         _require_flag_values(
-            command,
+            command_flags,
             "--export-resource-registry",
             (config.shader_prewarm_resource_registry_path,),
             "shader resource registry export",
@@ -566,27 +572,39 @@ def _combined_plugin_id_specs(config, field: str) -> tuple[str, ...]:
     return _unique_in_order(tuple(values))
 
 
-def _require_command_flag(command: Sequence[str], flag: str, label: str) -> None:
-    if flag not in command:
+def _require_command_flag(
+    command_flags: Mapping[str, tuple[str, ...] | None],
+    flag: str,
+    label: str,
+) -> None:
+    if flag not in command_flags:
         raise RuntimeError(
             f"shader prewarm command missing {label} flag: {flag}"
         )
 
 
-def _forbid_command_flag(command: Sequence[str], flag: str, label: str) -> None:
-    if flag in command:
+def _forbid_command_flag(
+    command_flags: Mapping[str, tuple[str, ...] | None],
+    flag: str,
+    label: str,
+) -> None:
+    if flag in command_flags:
         raise RuntimeError(
             f"shader prewarm command unexpectedly enabled {label}: {flag}"
         )
 
 
 def _require_flag_values(
-    command: Sequence[str],
+    command_flags: Mapping[str, tuple[str, ...] | None],
     flag: str,
     expected: Sequence[object],
     label: str,
 ) -> None:
-    actual_values = _command_flag_values(command, flag)
+    actual_values = command_flags.get(flag, ())
+    if actual_values is None:
+        raise RuntimeError(
+            f"shader prewarm command flag {flag} is missing a value"
+        )
     expected_values = tuple(str(value) for value in expected)
     if actual_values != expected_values:
         raise RuntimeError(
@@ -596,16 +614,32 @@ def _require_flag_values(
 
 
 def _command_flag_values(command: Sequence[str], flag: str) -> tuple[str, ...]:
-    values: list[str] = []
+    values = _command_flag_index(command).get(flag, ())
+    if values is None:
+        raise RuntimeError(
+            f"shader prewarm command flag {flag} is missing a value"
+        )
+    return values
+
+
+def _command_flag_index(
+    command: Sequence[str],
+) -> dict[str, tuple[str, ...] | None]:
+    values_by_flag: dict[str, list[str]] = {}
+    missing_value_flags: set[str] = set()
     for index, value in enumerate(command):
-        if value != flag:
+        if not value.startswith("--"):
             continue
         if index + 1 >= len(command):
-            raise RuntimeError(
-                f"shader prewarm command flag {flag} is missing a value"
-            )
-        values.append(str(command[index + 1]))
-    return tuple(values)
+            missing_value_flags.add(value)
+            continue
+        values_by_flag.setdefault(value, []).append(str(command[index + 1]))
+    command_flags: dict[str, tuple[str, ...] | None] = {
+        flag: tuple(values) for flag, values in values_by_flag.items()
+    }
+    for flag in missing_value_flags:
+        command_flags[flag] = None
+    return command_flags
 
 
 def _unique_in_order(values: Sequence[str]) -> tuple[str, ...]:

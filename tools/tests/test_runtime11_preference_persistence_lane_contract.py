@@ -320,7 +320,15 @@ class Runtime11PreferencePersistenceLaneContractTests(unittest.TestCase):
         self.assertNotIn("impl Default for PlatformManager", read(MANAGER_SOURCE))
 
     def test_consumer_contract_is_hard_cut_to_submission_snapshot_and_fence(self) -> None:
-        source = read(STORAGE_CONTRACT)
+        source = "\n".join(
+            [
+                read(STORAGE_CONTRACT),
+                *(
+                    read(path)
+                    for path in sorted(STORAGE_CONTRACT.with_suffix("").glob("*.rs"))
+                ),
+            ]
+        )
         for retired_signature in (
             "fn read(&self, key: &PreferenceKey) -> Result<Option<Vec<u8>>",
             "fn write(&self, key: &PreferenceKey, value: &[u8]) -> Result<(),",
@@ -426,6 +434,7 @@ class Runtime11PreferencePersistenceLaneContractTests(unittest.TestCase):
             "preferences/persistence/work.rs",
             "preferences/unavailable.rs",
             "service_types/driver.rs",
+            "test_support.rs",
             "tests/preferences.rs",
         }
         primitive_call_allowlist = {"preferences/persistence/work.rs"}

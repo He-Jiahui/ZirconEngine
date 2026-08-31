@@ -1,10 +1,11 @@
 use crate::graphics::scene::resources::{GpuMeshVertex, PipelineKey};
 
+pub(crate) const MESH_VELOCITY_TARGET_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rg16Float;
+
 pub(in crate::graphics::scene::scene_renderer::mesh) fn create_velocity_mesh_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,
     shader: &wgpu::ShaderModule,
-    target_format: wgpu::TextureFormat,
     key: &PipelineKey,
     pipeline_cache: Option<&wgpu::PipelineCache>,
 ) -> wgpu::RenderPipeline {
@@ -21,6 +22,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_velocity_mesh_pip
             ],
         },
         primitive: wgpu::PrimitiveState {
+            front_face: super::mesh_front_face(key),
             cull_mode: (!key.double_sided).then_some(wgpu::Face::Back),
             ..Default::default()
         },
@@ -37,7 +39,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_velocity_mesh_pip
             entry_point: Some("fs_main"),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             targets: &[Some(wgpu::ColorTargetState {
-                format: target_format,
+                format: MESH_VELOCITY_TARGET_FORMAT,
                 blend: Some(wgpu::BlendState::REPLACE),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
@@ -54,8 +56,8 @@ mod tests {
     use super::super::test_support::create_standard_mesh_pipeline_layout;
     use super::create_velocity_mesh_pipeline;
     use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
-    use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::resources::GpuMeshVertex;
+    use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::mesh_pipeline_velocity_template_source_for_geometry;
 
     #[test]
@@ -81,9 +83,11 @@ mod tests {
         .expect("velocity template source should assemble");
 
         assert!(source.wgsl_source.contains("struct ZrVelocityVertexInput"));
-        assert!(source
-            .wgsl_source
-            .contains("@location(8) previous_position"));
+        assert!(
+            source
+                .wgsl_source
+                .contains("@location(8) previous_position")
+        );
         assert!(source.wgsl_source.contains("fn vs_main("));
         assert!(source.wgsl_source.contains("fn fs_main("));
     }
@@ -107,14 +111,8 @@ mod tests {
         let pipeline_layout = create_standard_mesh_pipeline_layout(device, "velocity");
 
         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
-        let _pipeline = create_velocity_mesh_pipeline(
-            device,
-            &pipeline_layout,
-            &shader,
-            wgpu::TextureFormat::Rg16Float,
-            &key,
-            None,
-        );
+        let _pipeline =
+            create_velocity_mesh_pipeline(device, &pipeline_layout, &shader, &key, None);
         let error = pollster::block_on(error_scope.pop());
 
         assert!(

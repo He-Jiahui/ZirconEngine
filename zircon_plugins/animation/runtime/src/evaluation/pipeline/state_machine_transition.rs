@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use zircon_runtime::asset::ProjectAssetManager;
-use zircon_runtime::core::framework::animation::{
-    AnimationParameterMap, AnimationStateTransitionEvaluation,
-};
+use zircon_runtime::core::framework::animation::AnimationStateTransitionEvaluation;
 use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::AnimationStateTransitionRuntime;
 
-use super::AnimationEvaluationPipeline;
+use super::machine_instance_key::MachineInstanceKey;
+use super::requests::StateMachineParameterProjection;
 use super::state_graph_sample::normalized_state_time;
+use super::AnimationEvaluationPipeline;
 use crate::{CompiledAnimationStateMachine, TransitionRequest, TransitionRuntime};
 
 pub(super) struct InterruptionCandidate {
@@ -54,8 +54,9 @@ pub(super) fn begin_state_machine_transition(
 pub(super) fn select_interruption_candidate(
     pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,
+    instance: &MachineInstanceKey,
     state_machine: &CompiledAnimationStateMachine,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     skeleton_id: zircon_runtime::asset::AssetId,
     active: &AnimationStateTransitionRuntime,
 ) -> Option<InterruptionCandidate> {
@@ -75,7 +76,12 @@ pub(super) fn select_interruption_candidate(
         if !active_runtime.can_interrupt_from(requested_from) {
             continue;
         }
-        let evaluated = state_machine.evaluate(Some(state_name), parameters);
+        let evaluated = pipeline.evaluate_compiled_state_machine_with_sampling(
+            instance,
+            state_machine,
+            Some(state_name),
+            parameters,
+        );
         let Some(requested) = evaluated.transition().cloned() else {
             continue;
         };
@@ -88,6 +94,7 @@ pub(super) fn select_interruption_candidate(
         let normalized_time = normalized_state_time(
             pipeline,
             asset_manager,
+            instance,
             state_machine,
             state_name,
             parameters,

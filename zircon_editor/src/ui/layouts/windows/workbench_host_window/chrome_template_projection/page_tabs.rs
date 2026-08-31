@@ -19,7 +19,9 @@ pub(super) fn close_node(row: usize, frame: ViewTemplateFrameData) -> ViewTempla
         role: "IconButton".into(),
         text_tone: "muted".into(),
         font_size: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
+        surface_variant: "transparent".into(),
         button_variant: "ghost".into(),
+        corner_radius: fallback_chrome_control_radius(),
         value_number: 14.0,
         frame,
         ..ViewTemplateNodeData::default()

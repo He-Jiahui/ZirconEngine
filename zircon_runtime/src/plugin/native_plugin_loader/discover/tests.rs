@@ -6,7 +6,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::super::collect_manifests::MAX_DISCOVERY_DEPTH;
 use super::super::discovery_refresh::{
-    NativePluginDiscoveryManifestAction, NativePluginDiscoveryRefreshWork,
+    NativePluginDiscoveryManifestAction, NativePluginDiscoveryRefreshTerminal,
+    NativePluginDiscoveryRefreshWork,
 };
 use super::super::NativePluginLoader;
 
@@ -37,6 +38,79 @@ fn cold_discovery_publishes_the_authority_snapshot() {
     assert_eq!(
         NativePluginLoader.discovery_generation(root.path()),
         Some(1)
+    );
+}
+
+#[test]
+fn nonblocking_refresh_ticket_publishes_one_generation_bound_snapshot() {
+    let root = TempDiscoveryRoot::new("nonblocking-publication");
+    root.write_manifest("weather", "weather");
+    let root_identity = NativePluginLoader.resolve_discovery_root(root.path());
+
+    assert!(NativePluginLoader
+        .latest_discovery_snapshot(&root_identity)
+        .is_none());
+    let ticket = NativePluginLoader.request_discovery_refresh(&root_identity);
+    let terminal = ticket.wait_terminal();
+    let NativePluginDiscoveryRefreshTerminal::Published(published) = terminal else {
+        panic!("refresh should publish, received {terminal:?}");
+    };
+    let latest = NativePluginLoader
+        .latest_discovery_snapshot(&root_identity)
+        .expect("terminal publication should become the last-good snapshot");
+
+    assert_eq!(ticket.generation(), published.generation());
+    assert_eq!(latest.generation(), published.generation());
+    assert!(Arc::ptr_eq(&latest, &published));
+    assert_eq!(
+        latest
+            .candidates()
+            .iter()
+            .map(|candidate| candidate.plugin_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["weather"]
+    );
+}
+
+#[test]
+fn latest_snapshot_query_does_not_schedule_a_cold_root_refresh() {
+    let root = TempDiscoveryRoot::new("cold-snapshot-query");
+    root.write_manifest("weather", "weather");
+    let root_identity = NativePluginLoader.resolve_discovery_root(root.path());
+
+    assert!(NativePluginLoader
+        .latest_discovery_snapshot(&root_identity)
+        .is_none());
+    assert_eq!(NativePluginLoader.discovery_generation(root.path()), None);
+}
+
+#[test]
+fn refresh_request_facade_contains_no_wait_or_dynamic_library_load() {
+    let source = include_str!("../discover.rs");
+    let request = source
+        .split("pub fn request_discovery_refresh")
+        .nth(1)
+        .and_then(|tail| tail.split("pub fn latest_discovery_snapshot").next())
+        .expect("request facade should precede the latest-snapshot query");
+
+    assert!(!request.contains("wait_terminal"));
+    assert!(!request.contains("NativePluginLoadReport"));
+    assert!(!request.contains("load_candidates"));
+    assert!(!request.contains("root_identity"));
+    assert!(!request.contains("canonicalize"));
+}
+
+#[test]
+fn async_authority_admission_reclaims_terminal_ticket_entries() {
+    let authority = include_str!("authority.rs");
+    let ticket_admission = authority
+        .split("fn ticket_for")
+        .nth(1)
+        .and_then(|tail| tail.split("fn clear_terminal_ticket").next())
+        .expect("ticket admission should precede synchronous terminal cleanup");
+
+    assert!(
+        ticket_admission.contains("in_flight.retain(|_, existing| !existing.ticket.is_complete())")
     );
 }
 
@@ -190,7 +264,7 @@ fn manifest_notifications_refresh_the_same_authority_generation() {
     fs::remove_dir_all(weather.parent().expect("package root")).expect("remove package root");
     let removed = NativePluginLoader
         .remove_discovered_path(root.path(), weather.parent().expect("package root"));
-    assert!(removed.discovered.is_empty());
+    assert!(removed.discovered().is_empty());
     assert_eq!(
         NativePluginLoader.discovery_generation(root.path()),
         Some(first_generation + 2)

@@ -9,6 +9,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
     corner_radius: f32,
+    damage_frame: FrameRect,
 ) -> Option<HostPaintImagePixels> {
     if !node.has_preview_image && node.media_source.is_empty() {
         return None;
@@ -22,6 +23,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_
         target_height,
         None,
         true,
+        Some(damage_frame),
     )?;
     let mask_radius = rounded_alpha_mask_radius(&image, corner_radius, rect);
     let cache_key = AvatarMaskCacheKey::new(&image, mask_radius);

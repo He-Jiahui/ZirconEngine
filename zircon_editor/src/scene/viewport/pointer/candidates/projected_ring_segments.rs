@@ -2,11 +2,11 @@ use zircon_runtime_interface::math::{Vec2, Vec3};
 
 use crate::scene::viewport::projection::ViewportProjectionContext;
 
-pub(in crate::scene::viewport::pointer) fn projected_ring_segments(
+pub(in crate::scene::viewport) fn projected_ring_segments(
     center: Vec3,
     normal: Vec3,
     radius: f32,
-    projection: &ViewportProjectionContext<'_>,
+    projection: &ViewportProjectionContext,
 ) -> Vec<(Vec2, Vec2)> {
     let normal = normal.normalize_or_zero();
     if normal.length_squared() <= f32::EPSILON {

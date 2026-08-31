@@ -17,7 +17,9 @@ related_code:
   - tools/session_coordinator/control_plane/http.py
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
+  - tools/session_coordinator/control_plane/history.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/failures.py
   - tools/session_coordinator/run-control-validation.ps1
   - tools/session_coordinator/control_plane/assets.py
   - tools/session_coordinator/control_plane/artifact_downloads.py
@@ -67,7 +69,9 @@ implementation_files:
   - tools/session_coordinator/control_plane/http.py
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
+  - tools/session_coordinator/control_plane/history.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/failures.py
   - tools/session_coordinator/run-control-validation.ps1
   - tools/session_coordinator/control_plane/assets.py
   - tools/session_coordinator/control_plane/artifact_downloads.py
@@ -116,8 +120,11 @@ tests:
   - tools/session_coordinator/tests/test_control_auth.py
   - tools/session_coordinator/tests/test_control_events.py
   - tools/session_coordinator/tests/test_control_http.py
+  - tools/session_coordinator/tests/test_control_history.py
+  - tools/session_coordinator/tests/test_control_lazy_projections.py
   - tools/session_coordinator/tests/test_control_security.py
   - tools/session_coordinator/tests/test_control_snapshot.py
+  - tools/session_coordinator/tests/test_failures.py
   - tools/session_coordinator/tests/test_control_assets.py
   - tools/session_coordinator/tests/test_artifact_downloads.py
   - tools/session_coordinator/tests/test_action_catalog.py
@@ -139,6 +146,7 @@ tests:
   - tools/session_coordinator/web/src/__tests__/contracts.test.ts
   - tools/session_coordinator/web/src/__tests__/events.test.ts
   - tools/session_coordinator/web/src/__tests__/failureGraph.test.ts
+  - tools/session_coordinator/web/src/__tests__/historyContracts.test.ts
   - tools/session_coordinator/web/src/__tests__/graphLayout.test.ts
   - tools/session_coordinator/web/src/__tests__/navigation.test.ts
   - tools/session_coordinator/web/src/__tests__/reducer.test.ts
@@ -152,7 +160,7 @@ doc_type: operator-guide
 
 M1 adds the loopback-only control facade, M2 adds the production read console, M3 adds the closed controlled-action protocol, M4 adds workflow topology and milestone management, and M5 adds Windows tray supervision plus controlled service lifecycle. The coordinator remains the only mutation authority; the browser and tray cannot supply arbitrary shell commands, Git/Cargo arguments, SQL, repository paths, webhook content, or generic command kinds.
 
-The console is the Jenkins-like observation surface for Workflow/Node/Attempt state, Session ownership, Failure graph, file leases, delayed patches, Cargo validation, Git finalize evidence, artifacts, logs, and audit history. The tray is only a verified local supervisor: it renders the same supervision state, opens the console through a one-time Observer ticket, and invokes lifecycle operations through the same preview/confirm action protocol.
+The console is the Jenkins-like observation surface for Workflow/Node/Attempt state, Session ownership, Failure graph, file leases, delayed patches, Cargo validation, Git finalize evidence, artifacts, logs, and audit history. The validation route also shows FIFO lane position, elapsed execution time, output health, the current four-stage validation flow, and a per-ticket execution timeline, and can immediately advance the next queued validation ticket. Failure review exposes each chain's immutable added and fixed lifecycle events, including their distinct original and returned artifact paths, so operators can inspect failures one at a time. The tray is only a verified local supervisor: it renders the same supervision state, can establish an Observer session for controlled actions, and invokes lifecycle operations through the same preview/confirm action protocol.
 
 The facade is versioned under `/control/v1`. Existing coordinator commands and authenticated legacy routes remain available and unchanged.
 
@@ -196,23 +204,22 @@ Maintainers may use the closed `codex.sessions.reconcile` action through the nor
 
 The Sessions route renders two intentionally separate panels. The business Session panel remains the authority for plan state, leases, validation and commits. The Codex source panel is read-only presence: it shows a shortened thread ID, closed state and source-location labels, last lifecycle event/activity/sync timestamps, safe origin/CLI metadata, exact business binding and sanitized diagnostic code. It never receives a rollout path, raw revision, prompt, message, goal, tool input or environment value.
 
-The server returns at most 1,000 Codex rows, active-first and then newest-activity-first, plus total/truncation, state/source counts, pending queue depth and last reconciliation status. Browser contracts validate every nested field and enum before updating state. A legacy daemon snapshot without `codexSessions` is normalized to an empty panel during rolling upgrade; unexpected fields and oversized diagnostics fail closed.
+The summary snapshot carries only Codex counts, queue depth and last reconciliation status. Opening the Sessions route loads up to 1,000 Codex rows from `GET /control/v1/codex-sessions`, active-first and then newest-activity-first. Browser contracts validate every nested field and enum before updating state. A legacy daemon snapshot without `codexSessions` is normalized to an empty panel during rolling upgrade; unexpected fields and oversized diagnostics fail closed.
 
 Action Activity is identity-scoped to the current daemon, actor, browser session and bound Session. The page restores the newest bounded records after refresh, resumes polling `executing` actions from `sessionStorage`, and renders actor, reason, result and sanitized error evidence. Read-only, identity-mismatch and fatal-integrity states disable mutation controls while preserving this audit view.
 
 ## Opening the Local Control Surface
 
-Start or verify the coordinator first, then request a short-lived Observer bootstrap:
+Start or verify the coordinator, then open the local console:
 
 ```powershell
 .\tools\zircon-session.ps1 start -Json
-.\tools\zircon-session.ps1 ui ticket --role observer -Json
 .\tools\zircon-session.ps1 ui open
 ```
 
-`ui open` asks the daemon for a one-time ticket and opens the loopback URL. The ticket expires after 30 seconds, is stored only as a digest, can be consumed once and is bound to the current daemon instance. Successful consumption creates an eight-hour `HttpOnly`, `SameSite=Strict` cookie scoped to `/control`; ordinary output does not print the ticket.
+The production console at `/ui/` and its bounded observation endpoints need no web ticket or Cookie; opening the loopback URL directly is equivalent for read-only use. `ui open` also establishes an eight-hour `HttpOnly`, `SameSite=Strict` Observer Cookie for the optional controlled-action page. Its one-time bootstrap ticket expires after 30 seconds, is stored only as a digest, and is bound to the current daemon instance; ordinary output does not print it.
 
-After authentication the daemon serves the production console at `/ui/`. Deep links below `/ui/` use the console shell, while `/control/v1/*` never falls back to HTML. The page starts as Observer even when the daemon runs on `main`; mutation controls remain disabled until a short-lived, Session-bound elevation is consumed.
+The daemon serves the production console at `/ui/` without authentication. Deep links below `/ui/` use the console shell, while `/control/v1/*` never falls back to HTML. Anonymous loopback readers have the fixed Observer role even when the daemon runs on `main`; the validation page additionally exposes one direct, allowlisted queue-start operation without a Cookie. Other mutation controls remain disabled until a short-lived, Session-bound elevation is consumed through an Observer Cookie.
 
 For terminal inspection without a browser:
 
@@ -220,34 +227,31 @@ For terminal inspection without a browser:
 .\tools\zircon-session.ps1 control snapshot -Json
 ```
 
-## Read-Only Endpoints
+## Console and Control Endpoints
 
 - `POST /control/v1/bootstrap-tickets` issues an Observer ticket through the existing bearer-authenticated local client.
 - `GET /ui/bootstrap/{ticket}` consumes a ticket, installs the control cookie and redirects to a credential-free URL.
-- `GET /control/v1/meta` reports API and daemon-instance metadata.
-- `GET /control/v1/snapshot` returns the bounded coherent dashboard snapshot.
-- `GET /control/v1/workflows/{run-id}` returns a workflow projection with its current accepted attempt and immutable attempt history.
-- `GET /control/v1/logs?limit={count}&before={event-id}` returns a bounded audit range for virtualized log paging.
-- `GET /control/v1/events/stream` streams ordered Server-Sent Events from `Last-Event-ID` or the `cursor` query parameter and rejects capacity overflow instead of silently adding unbounded clients.
-- `GET /control/v1/artifacts/{opaque-id}` downloads coordinator-owned evidence. The database mapping, not a browser path, selects the file; resolved files must remain below the workflow artifact root. Single byte ranges are supported and bounded.
+- `GET /control/v1/meta`, `GET /control/v1/auth/session`, `GET /control/v1/actions/catalog`, `GET /control/v1/snapshot`, `GET /control/v1/failures/history?limit={count}`, `GET /control/v1/validation`, `GET /control/v1/validation/history?limit={count}`, `GET /control/v1/continuations`, `GET /control/v1/workflows/{run-id}`, `GET /control/v1/logs?limit={count}&before={event-id}`, `GET /control/v1/events/stream`, and `GET /control/v1/artifacts/{opaque-id}` are anonymous loopback observation endpoints. They retain exact Host/read-Origin validation; the database mapping, not a browser path, selects any downloaded artifact, which remains bounded below the workflow artifact root. History limits are between 1 and 200; validation history returns at most the newest 64 structured events per ticket and excludes raw diagnostic text.
+- `POST /control/v1/validation/queue/start` accepts exactly `sessionId`, `template`, `runId`, and `milestoneId` from the same-origin loopback validation page. It needs no Cookie or CSRF token, but only accepts the server catalog's allowlisted validation templates and still executes the existing typed preview, fingerprint, duplicate-inflight, audit, FIFO-reservation, and workspace-copy path. It cannot carry a shell command, path, Cargo argument, or generic Action kind.
+- `POST /control/v1/validation/queue/continue` accepts only an empty JSON object from the same-origin loopback validation page. It needs no Cookie or CSRF token and serializes one scheduler tick with scheduled maintenance. A tick advances every already-active immutable validation and atomically claims the oldest `queued` tickets until the two-slot bound is full; the browser cannot select a Session, command, path, template, or queue position. Cargo execution remains independently bounded by the warm/burst reservation budget.
 - `POST /control/v1/elevation-grants` is runtime-authenticated and issues one-use elevated grants; Maintainer also requires the separate maintenance capability.
 - `POST /control/v1/auth/elevate` consumes a grant with the existing Observer cookie and returns the one in-memory CSRF token.
-- `GET /control/v1/actions/catalog` and `GET /control/v1/actions/{action-id}` expose the closed catalog and sanitized status.
+- `GET /control/v1/actions/{action-id}` exposes a sanitized action status only to the requesting authenticated browser identity.
 - `POST /control/v1/actions/preview`, `POST /control/v1/actions/{action-id}/confirm`, and `POST /control/v1/actions/{action-id}/cancel` implement the two-phase mutation protocol.
 
 Every JSON response uses the v1 envelope and carries a correlation identifier. Unexpected internal exceptions are logged server-side and returned as sanitized error contracts.
 
 ## Browser Trust Boundary
 
-The server listens only on `127.0.0.1`. Browser-facing requests must use an exact loopback `Host`; requests with a non-loopback Host fail closed. Every M3 mutation requires an elevated role, the `HttpOnly` control cookie, an exact loopback Origin and the current `X-CSRF-Token`. Elevation rotates the CSRF token and expires after 15 minutes; daemon restart invalidates the cookie/grant instance binding.
+The server listens only on `127.0.0.1`. Browser-facing requests must use an exact loopback `Host`; requests with a non-loopback Host fail closed. Anonymous observation reads also require a valid same-origin loopback signal. Every M3 mutation except the exact validation queue-start endpoint requires an elevated role, the `HttpOnly` control cookie, an exact loopback Origin and the current `X-CSRF-Token`. Queue-start retains the exact loopback Origin and its typed server-side validation contract. Elevation rotates the CSRF token and expires after 15 minutes; daemon restart invalidates the cookie/grant instance binding.
 
-The production HTML response intentionally does not emit a Content Security Policy. MUI uses Emotion to inject runtime `<style>` elements, and a static `style-src 'self'` policy blocks those component styles and reduces the console to unstyled text. The loopback-only Host/Origin boundary, authenticated browser session, CSRF checks, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, Permissions Policy, MIME sniffing protection, and hashed-asset cache policy remain enabled. The same-origin referrer is required by the browser-read origin check; cross-origin navigation still receives no referrer.
+The production HTML response intentionally does not emit a Content Security Policy. MUI uses Emotion to inject runtime `<style>` elements, and a static `style-src 'self'` policy blocks those component styles and reduces the console to unstyled text. The loopback-only Host/Origin boundary, authenticated mutation session, CSRF checks, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, Permissions Policy, MIME sniffing protection, and hashed-asset cache policy remain enabled. The same-origin referrer is required by the browser-read origin check; cross-origin navigation still receives no referrer.
 
 No bearer token, maintenance capability, ticket value, cookie value or Enterprise WeChat endpoint belongs in Git, API payloads, dashboard logs or screenshots.
 
 ## Permission Issuance
 
-Observer is automatic. Operator and Committer grants are issued only through the bearer-authenticated local CLI/tray path; Maintainer additionally requires the separate process-local maintenance capability. A grant is stored as a digest, expires after 60 seconds and can be consumed once.
+Loopback observation is automatic. Operator and Committer grants are issued only through the bearer-authenticated local CLI/tray path; Maintainer additionally requires the separate process-local maintenance capability. A grant is stored as a digest, expires after 60 seconds and can be consumed once. Run `ui open` before consuming a browser elevation grant so the controlled-action page has its Observer Cookie.
 
 ```powershell
 .\tools\zircon-session.ps1 control elevate `
@@ -261,12 +265,14 @@ Paste only the returned one-time grant into the console's **受控操作** page.
 
 ## Action Lifecycle and Audit
 
-All mutations use `Preview -> Confirm -> Execute`:
+All mutations except local validation queue-start use `Preview -> Confirm -> Execute`:
 
 1. Preview validates the closed typed parameters, role and Session binding, then stores Action ID, risk, impact, warnings, confirmation-phrase hash, expiry and a state fingerprint.
 2. Confirm requires the exact phrase and a non-empty reason. Under the daemon's shared mutation gate it recomputes HEAD, index, baseline, target hashes, leases, Failure Markdown/graph, delayed patches, validation copies, plan hash, Cargo jobs, Session status and daemon identity.
 3. A mismatch records `state_changed` and performs no side effect. The UI creates a new preview, shows the added/removed impact and fingerprint change, and never retries the mutation automatically.
 4. A match writes an immutable approval row and keeps the shared mutation gate through the typed side effect. Patch, Failure and validation actions execute against the exact resource set pinned by preview; success or sanitized failure is recorded in both `action_requests` and the event audit.
+
+The generic direct queue-start control creates that same validation preview and immediately confirms it inside the coordinator with the fixed local-console reason. The validation page's primary continuation control instead advances the coordinator-owned validation-ticket worker. It is intentionally limited to the worker's sealed FIFO tickets; its ticket state, copy/run links, worker evidence, and queue order remain coordinator-owned.
 
 Yellow actions cover Session heartbeat/activation, Session-write-scope lease claim, own-lease release, own delayed-patch processing, allowlisted validation templates/cancel, Failure refresh, topology refresh and drain preview. Drain preview intentionally has no lifecycle executor before M5. Validation source and command are server-derived; browser paths and argv are not accepted. Validation start registers the child process while holding the mutation gate and completes asynchronously, so cancellation and other control operations remain available while the command runs.
 
@@ -274,13 +280,13 @@ Useful stable denial codes include `action_kind_unknown`, `action_parameters_inv
 
 ## Snapshot and Event Consistency
 
-Snapshot assembly uses one deferred SQLite read transaction. The snapshot cursor and all panels therefore describe one database view. Consumers apply only events after that cursor. The logical replay window retains the latest 4,096 event positions independently of longer audit retention. If a requested cursor is stale or ahead of the database, the server instructs the client to refresh its snapshot instead of guessing at missing state. Each connection reads at most 256 events per batch, has a five-second socket-write deadline, and occupies one of eight explicit client slots.
+The default snapshot assembly uses one deferred SQLite read transaction for the live overview: service state, workflow/session summaries, collaboration, validation and bounded intervention guidance. Failure graph nodes, Git finalize evidence, Codex source rows and audit events are intentionally omitted from that first response. Their pages load `GET /control/v1/failures`, `GET /control/v1/git`, `GET /control/v1/codex-sessions`, or the existing paged `GET /control/v1/logs` endpoint only when opened, then refresh that page after a newer overview cursor arrives. Consumers apply only events after the overview cursor. The logical replay window retains the latest 4,096 event positions independently of longer audit retention. If a requested cursor is stale or ahead of the database, the server instructs the client to refresh its overview instead of guessing at missing state. Each connection reads at most 256 events per batch, has a five-second socket-write deadline, and occupies one of eight explicit client slots.
 
 Workflow lists are projections over coordinator-owned data. M1 creates one stable control-center workflow per Session and a Goal node whose fallback state follows the typed Session lifecycle. Session changes and their workflow projection commit in the same SQLite writer transaction, including maintenance-driven stale/archive transitions. Attempts are database-enforced immutable; a newer accepted attempt becomes current while earlier attempts remain inspectable, and later heartbeats cannot overwrite that accepted state.
 
 ## Recovery
 
-Every daemon process started through `tools/zircon-session.ps1` redirects stdout and stderr before Python imports the coordinator package. Logs live outside Git below `%LOCALAPPDATA%/Zircon Session Coordinator/daemon-log/<repository-key>/`; `latest.json` records only the repository key, PID, start time and the two local log paths. Each repository retains the ten newest stdout logs and ten newest stderr logs. This captures import, migration and unhandled-process failures that cannot reach SQLite supervision events, while bounding disk growth and keeping runtime tokens, webhook configuration and command-line capabilities out of launch metadata.
+Every daemon process started through `tools/zircon-session.ps1` redirects stdout and stderr before Python imports the coordinator package. Logs live outside Git below `%LOCALAPPDATA%/Zircon Session Coordinator/daemon-log/<repository-key>/` by default; tests and automation may set `ZIRCON_COORDINATOR_DAEMON_LOG_ROOT` to an alternate root, and the repository-key child remains mandatory. `latest.json` records only the repository key, PID, start time and the two local log paths. Each repository retains the ten newest stdout logs and ten newest stderr logs. This captures import, migration and unhandled-process failures that cannot reach SQLite supervision events, while bounding disk growth and keeping runtime tokens, webhook configuration and command-line capabilities out of launch metadata.
 
 The repository key is the same SHA-256 identity used by the daemon, tray and startup registration, so similarly named repositories never share launch logs. A failed log-root or metadata write aborts that launch visibly instead of silently starting an unobservable daemon. Existing running processes are not restarted merely to rotate logs; the policy applies on their next manual, startup or recovery launch.
 
@@ -331,7 +337,9 @@ The daemon keeps only one authoritative idle directory per compatibility key. Sc
 
 The **验证** page projects this lifecycle without gaining cleanup authority. Its summary counts unique reusable compatibility keys plus ephemeral, pending-cleanup and failed-cleanup job records from the current bounded snapshot. The Cargo table exposes Session ownership, retention policy, compatibility identity, reuse source, cleanup state and sanitized cleanup error. These values are not a disk scan and the browser cannot delete a target or change its policy; every physical cleanup remains a coordinator-owned, path-validated operation.
 
-Control-plane payloads are bounded independently of the SQLite file size. A baseline emits `baseline.degraded` only when it transitions from healthy to degraded; the event stores the total path count plus a bounded sample instead of every changed path. Every snapshot, log-range and SSE boundary replaces any legacy event payload above 16 KiB with a size/reason marker, and schema v24 compacts those historical oversized payloads during a controlled service upgrade. Schema v25 then checkpoints WAL and performs the one-time physical SQLite compaction before the service opens HTTP; it writes the v25 marker only after VACUUM succeeds, so an exception, crash or power loss leaves the upgrade retryable. Snapshot collaboration/validation projections expose byte counts and status summaries for baseline manifests, delayed-Patch object maps and validation-copy manifests rather than sending their internal content to the browser. The Git milestone projection also selects only browser-owned finalize columns at the SQL boundary: the internal binary `index_snapshot` used for atomic rollback is never read merely to build a dashboard response. This keeps the console responsive and prevents a large shared-main worktree or finalize history from turning audit state into an unbounded response.
+Control-plane payloads are bounded independently of the SQLite file size. A baseline emits `baseline.degraded` only when it transitions from healthy to degraded; the event stores the total path count plus a bounded sample instead of every changed path. Every snapshot, log-range and SSE boundary replaces any legacy event payload above 16 KiB with a size/reason marker, and schema v24 compacts those historical oversized payloads during a controlled service upgrade. Schema v25 then checkpoints WAL and performs the one-time physical SQLite compaction before the service opens HTTP; it writes the v25 marker only after VACUUM succeeds, so an exception, crash or power loss leaves the upgrade retryable. Summary collaboration/validation projections expose byte counts and status summaries for baseline manifests, delayed-Patch object maps and validation-copy manifests rather than sending their internal content to the browser. Validation detail, continuation recommendations, validation history and Failure lifecycle history are loaded only when their owning route needs them; none is added to the first snapshot. The Git detail projection also selects only browser-owned finalize columns at the SQL boundary: the internal binary `index_snapshot` used for atomic rollback is never read merely to build a dashboard response. Keeping high-cardinality detail out of the first snapshot prevents a large shared-main worktree or finalize history from turning a reconnect into a multi-megabyte transfer.
+
+Scheduled maintenance also retires obsolete manifest payloads incrementally. A record must be terminal for at least one hour; the newest baseline, every baseline referenced by a non-terminal Session, and every non-terminal validation copy remain protected. One maintenance tick archives and read-back verifies at most 128 records and normally 128 MiB before clearing those exact payloads in one transaction; a single oversized record is handled alone so it cannot permanently starve the queue. Incremental batches deliberately create no full SQLite backup and do not run `VACUUM`, so routine queue advancement stays bounded. When physical disk space must be reclaimed, use `governance retention-compact --batch-id <batch-id>` during a no-build maintenance window; the next maintenance tick performs integrity checks, checkpoints the WAL, compacts the database, verifies it again, and removes any manual-retention backup only after success. The manual `governance retention-preview` / `retention-apply` path remains available for reviewed bulk retirement and retains its full backup until verified compaction.
 
 ## M6 Load and Soak Acceptance
 

@@ -2,7 +2,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::support::{collect_zui_document_files, editor_asset_root, load_zui_document};
 
-const WORKBENCH_STYLESHEET: &str = "ui/theme/editor_workbench_strict.zui";
+const WORKBENCH_STYLESHEETS: &[&str] = &[
+    "ui/theme/editor_workbench_strict.zui",
+    "ui/theme/editor_workbench_spatial.zui",
+];
 const SUPPORTED_WORKBENCH_SELECTOR_STATES: &[&str] = &[
     "checked",
     "disabled",
@@ -12,63 +15,53 @@ const SUPPORTED_WORKBENCH_SELECTOR_STATES: &[&str] = &[
     "pressed",
     "selected",
 ];
-const FROZEN_UNREACHABLE_SELECTORS: &[&str] = &[
-    ".workbench-accent-label",
-    ".workbench-active",
-    ".workbench-hover",
-    ".workbench-selected",
-    ".workbench-status-warning",
-    ".workbench-tab-active",
-];
-
 #[test]
-fn workbench_strict_selectors_are_unique_and_have_an_authored_class_source() {
+fn workbench_theme_selectors_are_unique_and_have_an_authored_class_source() {
     let asset_root = editor_asset_root();
-    let stylesheet_path = asset_root.join(WORKBENCH_STYLESHEET);
-    let stylesheet = load_zui_document(&stylesheet_path);
     let authored_classes = collect_authored_classes();
-    let frozen_unreachable = FROZEN_UNREACHABLE_SELECTORS
-        .iter()
-        .copied()
-        .collect::<BTreeSet<_>>();
-    let mut selector_counts = BTreeMap::new();
-    let mut unreachable = BTreeSet::new();
-    let mut offenders = Vec::new();
 
-    for sheet in &stylesheet.stylesheets {
-        for rule in &sheet.rules {
-            *selector_counts
-                .entry(rule.selector.as_str())
-                .or_insert(0usize) += 1;
-            let Some(base_class) = selector_base_class(&rule.selector) else {
-                offenders.push(format!(
-                    "selector `{}` is outside the governed `.class[:state]` vocabulary",
-                    rule.selector
-                ));
-                continue;
-            };
-            if !authored_classes.contains(base_class) {
-                unreachable.insert(rule.selector.as_str());
+    for stylesheet_locator in WORKBENCH_STYLESHEETS {
+        let stylesheet_path = asset_root.join(stylesheet_locator);
+        let stylesheet = load_zui_document(&stylesheet_path);
+        let mut selector_counts = BTreeMap::new();
+        let mut unreachable = BTreeSet::new();
+        let mut offenders = Vec::new();
+
+        for sheet in &stylesheet.stylesheets {
+            for rule in &sheet.rules {
+                *selector_counts
+                    .entry(rule.selector.as_str())
+                    .or_insert(0usize) += 1;
+                let Some(base_class) = selector_base_class(&rule.selector) else {
+                    offenders.push(format!(
+                        "selector `{}` is outside the governed `.class[:state]` vocabulary",
+                        rule.selector
+                    ));
+                    continue;
+                };
+                if !authored_classes.contains(base_class) {
+                    unreachable.insert(rule.selector.as_str());
+                }
             }
         }
-    }
 
-    for (selector, count) in selector_counts {
-        if count > 1 {
-            offenders.push(format!(
-                "selector `{selector}` is declared {count} times; merge the duplicate state recipe"
-            ));
+        for (selector, count) in selector_counts {
+            if count > 1 {
+                offenders.push(format!(
+                    "selector `{selector}` is declared {count} times; merge the duplicate state recipe"
+                ));
+            }
         }
-    }
 
-    assert_eq!(
-        unreachable, frozen_unreachable,
-        "the strict stylesheet unreachable-selector inventory changed; delete stale frozen debt after its owner milestone commits, and never add a new selector without a node class or component default_classes source"
-    );
-    assert!(
-        offenders.is_empty(),
-        "strict Workbench selectors must stay unique and use the governed selector vocabulary: {offenders:#?}"
-    );
+        assert!(
+            unreachable.is_empty(),
+            "{stylesheet_locator} selectors need a node class or component default_classes source: {unreachable:#?}"
+        );
+        assert!(
+            offenders.is_empty(),
+            "{stylesheet_locator} selectors must stay unique and use the governed selector vocabulary: {offenders:#?}"
+        );
+    }
 }
 
 #[test]

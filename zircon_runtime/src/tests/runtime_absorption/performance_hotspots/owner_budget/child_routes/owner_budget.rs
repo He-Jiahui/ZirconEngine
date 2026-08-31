@@ -71,7 +71,7 @@ pub(super) fn assert_owner_budget_routes(sources: &OwnerBudgetSources) {
         "owner-budget mirror docs support children",
         &mirror_docs_children,
         &[
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "owner_budget/mirror_docs/split_layout.rs",
             "runtime_15_runtime_07_owner_budget_mirror_docs_guard_folder_backed_split",
             "runtime_15_runtime_07_owner_budget_sources_guard_folder_backed_split",

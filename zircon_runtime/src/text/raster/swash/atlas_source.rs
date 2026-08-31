@@ -1,5 +1,5 @@
-use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::GlyphAtlasBitmapSource;
+use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 
 use super::bitmap::GlyphBitmap;
 

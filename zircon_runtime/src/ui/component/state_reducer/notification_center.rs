@@ -332,10 +332,12 @@ fn visible_notification_entries(
     let visible_limit = int_setting(state, descriptor, VISIBLE_LIMIT)
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or(usize::MAX);
-    notification_entries(state, descriptor)
-        .into_iter()
-        .take(visible_limit)
-        .collect()
+    let Some(notifications) = value_setting(state, descriptor, NOTIFICATIONS) else {
+        return Vec::new();
+    };
+    let mut entries = Vec::with_capacity(visible_limit.min(notification_root_len(notifications)));
+    collect_visible_notification_entries(notifications, 0, visible_limit, &mut entries);
+    entries
 }
 
 fn notification_entries(
@@ -348,21 +350,49 @@ fn notification_entries(
 }
 
 fn notification_entry_list(value: &UiValue, start_index: i64) -> Vec<NotificationEntry> {
+    let mut entries = Vec::with_capacity(notification_root_len(value));
+    collect_visible_notification_entries(value, start_index, usize::MAX, &mut entries);
+    entries
+}
+
+fn collect_visible_notification_entries(
+    value: &UiValue,
+    start_index: i64,
+    visible_limit: usize,
+    entries: &mut Vec<NotificationEntry>,
+) {
+    if entries.len() >= visible_limit {
+        return;
+    }
     match value {
-        UiValue::Array(values) => values
-            .iter()
-            .enumerate()
-            .flat_map(|(offset, value)| notification_entry_list(value, start_index + offset as i64))
-            .collect(),
-        UiValue::String(value) | UiValue::Enum(value) => {
-            notification_entry_from_string(value, start_index)
-                .into_iter()
-                .collect()
+        UiValue::Array(values) => {
+            for (offset, value) in values.iter().enumerate() {
+                collect_visible_notification_entries(
+                    value,
+                    start_index + offset as i64,
+                    visible_limit,
+                    entries,
+                );
+                if entries.len() >= visible_limit {
+                    break;
+                }
+            }
         }
-        UiValue::Map(values) => notification_entry_from_map(values, start_index)
-            .into_iter()
-            .collect(),
-        _ => Vec::new(),
+        UiValue::String(value) | UiValue::Enum(value) => {
+            entries.extend(notification_entry_from_string(value, start_index));
+        }
+        UiValue::Map(values) => {
+            entries.extend(notification_entry_from_map(values, start_index));
+        }
+        _ => {}
+    }
+}
+
+fn notification_root_len(value: &UiValue) -> usize {
+    match value {
+        UiValue::Array(values) => values.len(),
+        UiValue::String(_) | UiValue::Enum(_) | UiValue::Map(_) => 1,
+        _ => 0,
     }
 }
 
@@ -513,5 +543,35 @@ fn string_bool(value: &str) -> Option<bool> {
         "true" | "1" | "yes" => Some(true),
         "false" | "0" | "no" => Some(false),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use zircon_runtime_interface::ui::component::UiValue;
+
+    use super::collect_visible_notification_entries;
+
+    #[test]
+    fn visible_entries_skip_invalid_values_without_changing_logical_indexes() {
+        let notifications = UiValue::Array(vec![
+            UiValue::String(String::new()),
+            UiValue::String("first".to_string()),
+            UiValue::Array(vec![
+                UiValue::String("second".to_string()),
+                UiValue::String("third".to_string()),
+            ]),
+        ]);
+        let mut entries = Vec::new();
+
+        collect_visible_notification_entries(&notifications, 0, 2, &mut entries);
+
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| (entry.id.as_str(), entry.index))
+                .collect::<Vec<_>>(),
+            vec![("first", 1), ("second", 2)]
+        );
     }
 }

@@ -1,6 +1,6 @@
 use zircon_plugin_animation_runtime::{
-    AnimationStateMachineCompileError, CompiledAnimationStateMachine, CompiledConditionExpression,
-    ConditionExpression,
+    compile_animation_state_machine_runtime, AnimationStateMachineCompileError,
+    CompiledAnimationStateMachine, CompiledConditionExpression, ConditionExpression,
 };
 use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::animation::{
@@ -14,7 +14,7 @@ use zircon_runtime::core::framework::animation::{AnimationParameterMap, Animatio
 #[test]
 fn compiled_state_machine_keeps_dense_states_after_source_mutation() {
     let mut source = machine();
-    let compiled = CompiledAnimationStateMachine::compile(&source).unwrap();
+    let compiled = compile_animation_state_machine_runtime(&source).unwrap();
     source.entry_state = "Missing".into();
     source.states[0].name = "Renamed".into();
     source.transitions[0].to_state = "Missing".into();
@@ -38,16 +38,16 @@ fn compiled_state_machine_keeps_dense_states_after_source_mutation() {
 fn compiled_state_machine_rejects_duplicate_and_missing_states() {
     let mut duplicate = machine();
     duplicate.states[1].name = "Idle".into();
-    assert!(matches!(
-        CompiledAnimationStateMachine::compile(&duplicate),
-        Err(AnimationStateMachineCompileError::DuplicateState { .. })
-    ));
+    assert_source_diagnostic(
+        compile_animation_state_machine_runtime(&duplicate),
+        "ZR-ANIM-COMP-STATE-002",
+    );
     let mut missing = machine();
     missing.transitions[0].to_state = "Missing".into();
-    assert!(matches!(
-        CompiledAnimationStateMachine::compile(&missing),
-        Err(AnimationStateMachineCompileError::MissingState { .. })
-    ));
+    assert_source_diagnostic(
+        compile_animation_state_machine_runtime(&missing),
+        "ZR-ANIM-COMP-STATE-004",
+    );
 }
 
 #[test]
@@ -113,7 +113,7 @@ fn compiled_blend_space_state_resolves_dense_graph_weights_after_source_mutation
             },
         ],
     });
-    let compiled = CompiledAnimationStateMachine::compile(&source).unwrap();
+    let compiled = compile_animation_state_machine_runtime(&source).unwrap();
     source.states[0].kind = AnimationStateKindAsset::GraphRef {
         graph: graph("mutated"),
     };
@@ -141,7 +141,7 @@ fn compiled_clip_state_retains_dense_reference_after_source_mutation() {
     source.states[0].kind = AnimationStateKindAsset::Clip {
         clip: graph("idle-clip"),
     };
-    let compiled = CompiledAnimationStateMachine::compile(&source).unwrap();
+    let compiled = compile_animation_state_machine_runtime(&source).unwrap();
     source.states[0].kind = AnimationStateKindAsset::GraphRef {
         graph: graph("mutated"),
     };
@@ -161,7 +161,7 @@ fn compiled_sub_machine_state_retains_dense_reference_after_source_mutation() {
     source.states[0].kind = AnimationStateKindAsset::SubMachine {
         state_machine: graph("nested-machine"),
     };
-    let compiled = CompiledAnimationStateMachine::compile(&source).unwrap();
+    let compiled = compile_animation_state_machine_runtime(&source).unwrap();
     source.states[0].kind = AnimationStateKindAsset::GraphRef {
         graph: graph("mutated"),
     };
@@ -221,4 +221,16 @@ fn condition(
         operator,
         value,
     }
+}
+
+fn assert_source_diagnostic(
+    result: Result<CompiledAnimationStateMachine, AnimationStateMachineCompileError>,
+    code: &str,
+) {
+    let Err(AnimationStateMachineCompileError::SourceDiagnostics(diagnostics)) = result else {
+        panic!("expected framework source diagnostics");
+    };
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.code() == code));
 }

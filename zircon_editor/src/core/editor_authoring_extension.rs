@@ -167,6 +167,10 @@ impl GraphNodeDescriptor {
 pub struct GraphNodePaletteDescriptor {
     id: String,
     asset_type: AssetTypeId,
+    #[serde(default = "default_graph_palette_owner_id")]
+    owner_id: String,
+    #[serde(default = "default_graph_palette_schema_version")]
+    schema_version: u32,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     nodes: Vec<GraphNodeDescriptor>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -178,6 +182,8 @@ impl GraphNodePaletteDescriptor {
         Self {
             id: id.into(),
             asset_type,
+            owner_id: default_graph_palette_owner_id(),
+            schema_version: default_graph_palette_schema_version(),
             nodes: Vec::new(),
             required_capabilities: Vec::new(),
         }
@@ -185,6 +191,16 @@ impl GraphNodePaletteDescriptor {
 
     pub fn with_node(mut self, node: GraphNodeDescriptor) -> Self {
         self.nodes.push(node);
+        self
+    }
+
+    pub fn with_schema_version(mut self, schema_version: u32) -> Self {
+        self.schema_version = schema_version;
+        self
+    }
+
+    pub(crate) fn with_owner_id(mut self, owner_id: impl Into<String>) -> Self {
+        self.owner_id = owner_id.into();
         self
     }
 
@@ -205,6 +221,14 @@ impl GraphNodePaletteDescriptor {
         &self.asset_type
     }
 
+    pub fn owner_id(&self) -> &str {
+        &self.owner_id
+    }
+
+    pub fn schema_version(&self) -> u32 {
+        self.schema_version
+    }
+
     pub fn nodes(&self) -> &[GraphNodeDescriptor] {
         &self.nodes
     }
@@ -212,6 +236,14 @@ impl GraphNodePaletteDescriptor {
     pub fn required_capabilities(&self) -> &[String] {
         &self.required_capabilities
     }
+}
+
+fn default_graph_palette_owner_id() -> String {
+    "editor.extension.direct".to_owned()
+}
+
+const fn default_graph_palette_schema_version() -> u32 {
+    1
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

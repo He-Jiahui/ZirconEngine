@@ -4,12 +4,11 @@ use super::super::super::template_segmented_control_geometry::{
     segment_radius, segment_rect, segmented_body_rect,
 };
 use super::super::labels::{push_segment_label, push_segmented_group_label};
-use super::super::options::{option_is_selected, selected_segment_value};
+use super::super::options::{option_is_selected, segmented_options, selected_segment_value};
 use super::super::style::segmented_control_style;
 use super::divider::push_segment_divider;
 use super::selected::push_selected_segment;
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
-use crate::ui::retained_host::primitives::SharedString;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_segmented_control(
     commands: &mut Vec<HostPaintCommand>,
@@ -18,7 +17,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     clip: &FrameRect,
     order: i32,
     opacity: f32,
-    options: &[SharedString],
+    option_count: usize,
 ) {
     push_segmented_group_label(commands, node, rect, clip, order + 3, opacity);
     let body_rect = segmented_body_rect(node, rect);
@@ -38,15 +37,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     ));
 
     let selected = selected_segment_value(node);
-    for (index, option) in options.iter().enumerate() {
-        let segment = segment_rect(&body_rect, index, options.len());
+    for (index, option) in segmented_options(node).enumerate() {
+        let segment = segment_rect(&body_rect, index, option_count);
         if intersect(&segment, clip).is_none() {
             continue;
         }
         if index > 0 {
             push_segment_divider(commands, &segment, clip, order + 1, opacity);
         }
-        let is_selected = option_is_selected(option.as_str(), selected);
+        let is_selected = option_is_selected(option, selected);
         if is_selected {
             push_selected_segment(commands, node, &segment, clip, order + 2, opacity);
         }

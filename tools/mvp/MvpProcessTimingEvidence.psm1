@@ -1,20 +1,6 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function Get-MvpProcessTimingProperty {
-    param(
-        [Parameter(Mandatory)]$Evidence,
-        [Parameter(Mandatory)][string]$Name,
-        [Parameter(Mandatory)][string]$Label
-    )
-
-    $property = $Evidence.PSObject.Properties[$Name]
-    if ($null -eq $property -or $null -eq $property.Value) {
-        throw "$Label is missing '$Name'."
-    }
-    return $property.Value
-}
-
 function ConvertFrom-MvpProcessTimestamp {
     param(
         [Parameter(Mandatory)]$Value,
@@ -49,12 +35,22 @@ function Get-MvpProcessTimingWindow {
         [Parameter(Mandatory)][string]$Label
     )
 
+    $properties = $Evidence.PSObject.Properties
+    $startedAtProperty = $properties['started_at_utc']
+    if ($null -eq $startedAtProperty -or $null -eq $startedAtProperty.Value) {
+        throw "$Label is missing 'started_at_utc'."
+    }
     $startedAt = ConvertFrom-MvpProcessTimestamp `
-        -Value (Get-MvpProcessTimingProperty -Evidence $Evidence -Name 'started_at_utc' -Label $Label) `
+        -Value $startedAtProperty.Value `
         -Name 'started_at_utc' `
         -Label $Label
+
+    $endedAtProperty = $properties['ended_at_utc']
+    if ($null -eq $endedAtProperty -or $null -eq $endedAtProperty.Value) {
+        throw "$Label is missing 'ended_at_utc'."
+    }
     $endedAt = ConvertFrom-MvpProcessTimestamp `
-        -Value (Get-MvpProcessTimingProperty -Evidence $Evidence -Name 'ended_at_utc' -Label $Label) `
+        -Value $endedAtProperty.Value `
         -Name 'ended_at_utc' `
         -Label $Label
     if ($endedAt -lt $startedAt) {
@@ -62,7 +58,11 @@ function Get-MvpProcessTimingWindow {
     }
 
     $exitCode = 0
-    $rawExitCode = Get-MvpProcessTimingProperty -Evidence $Evidence -Name 'exit_code' -Label $Label
+    $exitCodeProperty = $properties['exit_code']
+    if ($null -eq $exitCodeProperty -or $null -eq $exitCodeProperty.Value) {
+        throw "$Label is missing 'exit_code'."
+    }
+    $rawExitCode = $exitCodeProperty.Value
     if (-not [int]::TryParse([string]$rawExitCode, [ref]$exitCode)) {
         throw "$Label has non-integer exit_code '$rawExitCode'."
     }
@@ -98,20 +98,46 @@ function ConvertTo-MvpCanonicalProcessTimingWindow {
     return $window
 }
 
+function Get-MvpF5ProductProcessIndex {
+    param(
+        [Parameter(Mandatory)]$ProductRuns
+    )
+
+    $entries = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::OrdinalIgnoreCase)
+    $counts = [Collections.Generic.Dictionary[string, int]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($process in $ProductRuns) {
+        $productName = [string]$process.product
+        $attemptNumber = [int]$process.attempt
+        $key = $productName + "`0" + $attemptNumber
+        [int]$count = 0
+        if ($counts.TryGetValue($key, [ref]$count)) {
+            $counts[$key] = $count + 1
+        }
+        else {
+            $counts.Add($key, 1)
+            $entries.Add($key, $process)
+        }
+    }
+    return [pscustomobject]@{
+        entries = $entries
+        counts = $counts
+    }
+}
+
 function Get-MvpF5ProductProcess {
     param(
-        [Parameter(Mandatory)]$ProductRuns,
+        [Parameter(Mandatory)]$ProductIndex,
         [Parameter(Mandatory)][string]$Product,
         [Parameter(Mandatory)][int]$Attempt
     )
 
-    $matches = @($ProductRuns | Where-Object {
-        [string]$_.product -eq $Product -and [int]$_.attempt -eq $Attempt
-    })
-    if ($matches.Count -ne 1) {
-        throw "F5 process timeline requires exactly one $Product product attempt $Attempt; found $($matches.Count)."
+    $key = "$Product`0$Attempt"
+    [int]$count = 0
+    $null = $ProductIndex.counts.TryGetValue($key, [ref]$count)
+    if ($count -ne 1) {
+        throw "F5 process timeline requires exactly one $Product product attempt $Attempt; found $count."
     }
-    return $matches[0]
+    return $ProductIndex.entries[$key]
 }
 
 function Assert-MvpF5ProcessTimingEvidence {
@@ -132,29 +158,43 @@ function Assert-MvpF5ProcessTimingEvidence {
         throw "F5 process timeline requires exactly two reopen automation processes; found $($reopens.Count)."
     }
 
-    $timeline = @(
-        [pscustomobject]@{ label = 'F5 project creation process'; evidence = $ProjectCreation },
-        [pscustomobject]@{ label = 'F5 baseline automation process'; evidence = $BaselineAutomation },
-        [pscustomobject]@{ label = 'F5 runtime product attempt 1'; evidence = Get-MvpF5ProductProcess -ProductRuns $products -Product 'runtime' -Attempt 1 },
-        [pscustomobject]@{ label = 'F5 runtime product attempt 2'; evidence = Get-MvpF5ProductProcess -ProductRuns $products -Product 'runtime' -Attempt 2 },
-        [pscustomobject]@{ label = 'F5 authoring automation process'; evidence = $AuthoringAutomation },
-        [pscustomobject]@{ label = 'F5 reopen automation process 1'; evidence = $reopens[0] },
-        [pscustomobject]@{ label = 'F5 editor product attempt 1'; evidence = Get-MvpF5ProductProcess -ProductRuns $products -Product 'editor' -Attempt 1 },
-        [pscustomobject]@{ label = 'F5 reopen automation process 2'; evidence = $reopens[1] },
-        [pscustomobject]@{ label = 'F5 editor product attempt 2'; evidence = Get-MvpF5ProductProcess -ProductRuns $products -Product 'editor' -Attempt 2 },
-        [pscustomobject]@{ label = 'F5 runtime product attempt 3'; evidence = Get-MvpF5ProductProcess -ProductRuns $products -Product 'runtime' -Attempt 3 }
+    $productIndex = Get-MvpF5ProductProcessIndex -ProductRuns $products
+    $timelineEvidence = @(
+        $ProjectCreation,
+        $BaselineAutomation,
+        (Get-MvpF5ProductProcess -ProductIndex $productIndex -Product 'runtime' -Attempt 1),
+        (Get-MvpF5ProductProcess -ProductIndex $productIndex -Product 'runtime' -Attempt 2),
+        $AuthoringAutomation,
+        $reopens[0],
+        (Get-MvpF5ProductProcess -ProductIndex $productIndex -Product 'editor' -Attempt 1),
+        $reopens[1],
+        (Get-MvpF5ProductProcess -ProductIndex $productIndex -Product 'editor' -Attempt 2),
+        (Get-MvpF5ProductProcess -ProductIndex $productIndex -Product 'runtime' -Attempt 3)
+    )
+    $timelineLabels = [string[]]@(
+        'F5 project creation process',
+        'F5 baseline automation process',
+        'F5 runtime product attempt 1',
+        'F5 runtime product attempt 2',
+        'F5 authoring automation process',
+        'F5 reopen automation process 1',
+        'F5 editor product attempt 1',
+        'F5 reopen automation process 2',
+        'F5 editor product attempt 2',
+        'F5 runtime product attempt 3'
     )
     $previousWindow = $null
     $previousLabel = $null
-    foreach ($process in $timeline) {
+    for ($index = 0; $index -lt $timelineEvidence.Count; $index++) {
+        $processLabel = $timelineLabels[$index]
         $window = ConvertTo-MvpCanonicalProcessTimingWindow `
-            -Evidence $process.evidence `
-            -Label $process.label
+            -Evidence $timelineEvidence[$index] `
+            -Label $processLabel
         if ($null -ne $previousWindow -and $window.started_at -lt $previousWindow.ended_at) {
-            throw "$($process.label) overlaps or precedes completed prior process '$previousLabel'."
+            throw "$processLabel overlaps or precedes completed prior process '$previousLabel'."
         }
         $previousWindow = $window
-        $previousLabel = $process.label
+        $previousLabel = $processLabel
     }
 }
 

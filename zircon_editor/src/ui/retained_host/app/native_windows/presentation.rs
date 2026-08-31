@@ -17,20 +17,7 @@ pub(crate) fn configure_native_floating_window_presentation(
     let generation = ui.get_host_presentation_generation();
     if !native_floating_presentation_matches(generation.structure(), target, &bounds) {
         ui.update_host_presentation(|host_presentation| {
-            host_presentation.host_shell.native_floating_window_mode = true;
-            host_presentation.host_shell.native_floating_window_id = target.window_id.0.clone();
-            host_presentation.host_shell.native_surface_tree_id = target.surface_tree_id.0.clone();
-            host_presentation.host_shell.native_window_title = target.title.clone();
-            host_presentation.host_shell.native_window_bounds = bounds.clone();
-            host_presentation
-                .native_floating_surface_data
-                .native_floating_window_id = target.window_id.0.clone();
-            host_presentation
-                .native_floating_surface_data
-                .native_surface_tree_id = target.surface_tree_id.0.clone();
-            host_presentation
-                .native_floating_surface_data
-                .native_window_bounds = bounds.clone();
+            apply_native_floating_presentation_data(host_presentation, target, &bounds);
         });
     }
 
@@ -48,6 +35,38 @@ pub(crate) fn configure_native_floating_window_presentation(
     if ui.window().size() != size {
         ui.window().set_size(size);
     }
+}
+
+fn apply_native_floating_presentation_data(
+    presentation: &mut HostWindowPresentationData,
+    target: &NativeFloatingWindowTarget,
+    bounds: &FrameRect,
+) {
+    presentation.host_shell.native_floating_window_mode = true;
+    presentation
+        .host_shell
+        .native_floating_window_id
+        .clone_from(&target.window_id.0);
+    presentation
+        .host_shell
+        .native_surface_tree_id
+        .clone_from(&target.surface_tree_id.0);
+    presentation
+        .host_shell
+        .native_window_title
+        .clone_from(&target.title);
+    presentation.host_shell.native_window_bounds = bounds.clone();
+    presentation
+        .native_floating_surface_data
+        .native_floating_window_id
+        .clone_from(&target.window_id.0);
+    presentation
+        .native_floating_surface_data
+        .native_surface_tree_id
+        .clone_from(&target.surface_tree_id.0);
+    presentation
+        .native_floating_surface_data
+        .native_window_bounds = bounds.clone();
 }
 
 fn native_floating_presentation_matches(
@@ -120,3 +139,7 @@ mod tests {
         ));
     }
 }
+
+#[cfg(test)]
+#[path = "presentation/reused_string_tests.rs"]
+mod reused_string_tests;

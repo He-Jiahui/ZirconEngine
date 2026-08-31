@@ -351,7 +351,6 @@ fn workbench_scene_tab_restores_scene_workspace_and_hides_module_workspaces() {
         EditorUiBindingPayload::MenuAction { action_id }
             if action_id == "workbench.module.scene.select"
     ));
-
     assert!(control_bool(&bridge, "WorkbenchModuleScene", "selected"));
     assert_eq!(
         control_visibility(&bridge, "WorkbenchSceneWorkspace"),
@@ -396,6 +395,16 @@ fn workbench_module_commands_update_status_and_module_output_rows() {
         EditorUiBindingPayload::MenuAction { action_id }
             if action_id == "workbench.module.ability.playtest.invoke"
     ));
+    assert!(!control_bool(
+        &bridge,
+        "WorkbenchAbilityPlaytestButton",
+        "selected"
+    ));
+    assert!(!control_bool(
+        &bridge,
+        "WorkbenchAbilityPlaytestButton",
+        "checked"
+    ));
     assert_eq!(
         control_string(&bridge, "WorkbenchStatusReady", "text").as_deref(),
         Some("Ability playtest queued")
@@ -406,7 +415,7 @@ fn workbench_module_commands_update_status_and_module_output_rows() {
     );
     assert_eq!(
         control_string(&bridge, "WorkbenchAbilityOutputRow", "value_text").as_deref(),
-        Some("Playtest queued   predicted activation   GA_DashAttack")
+        Some("Playtest queued   activation phase   GA_DashAttack")
     );
     assert_eq!(
         bridge
@@ -415,7 +424,7 @@ fn workbench_module_commands_update_status_and_module_output_rows() {
             .expect("ability output row projection after command")
             .value_text
             .as_deref(),
-        Some("Playtest queued   predicted activation   GA_DashAttack")
+        Some("Playtest queued   activation phase   GA_DashAttack")
     );
 
     bridge
@@ -427,13 +436,28 @@ fn workbench_module_commands_update_status_and_module_output_rows() {
         .unwrap()
         .expect("render compile button should expose a preview binding");
 
+    assert!(!control_bool(
+        &bridge,
+        "WorkbenchRenderCompileButton",
+        "selected"
+    ));
+    assert!(!control_bool(
+        &bridge,
+        "WorkbenchRenderCompileButton",
+        "checked"
+    ));
+
     assert_eq!(
         control_string(&bridge, "WorkbenchStatusReady", "text").as_deref(),
         Some("Render graph compiled")
     );
     assert_eq!(
         control_string(&bridge, "WorkbenchRenderCaptureRow", "value_text").as_deref(),
-        Some("Windows DX12   30 fps   GPU 6.24 ms   compiled")
+        Some("Windows DX12   frame 1234   Frame Start compiled")
+    );
+    assert_eq!(
+        control_string(&bridge, "WorkbenchRenderCenterTitle", "text").as_deref(),
+        Some("MainPipeline.rp / Lighting Pass")
     );
 
     bridge
@@ -454,6 +478,129 @@ fn workbench_module_commands_update_status_and_module_output_rows() {
         control_string(&bridge, "WorkbenchAssetsOutputRow", "text").as_deref(),
         Some("Browse: focused Content/Environment/Forest")
     );
+}
+
+#[test]
+fn workbench_extension_commands_are_momentary_but_keep_feedback() {
+    let _guard = env_lock().lock().unwrap_or_else(|error| error.into_inner());
+
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge
+        .dispatch_control_state("WorkbenchModuleRender", UiEventKind::Click)
+        .unwrap()
+        .expect("render module tab should expose a preview binding");
+    bridge
+        .dispatch_control_state("WorkbenchRenderTools", UiEventKind::Click)
+        .unwrap()
+        .expect("render tools opener should expose a preview binding");
+    bridge
+        .dispatch_workbench_render_editor_menu_item_state(
+            "WorkbenchRenderToolsMenu",
+            "menu.item.render.shader_editor",
+        )
+        .unwrap()
+        .expect("shader editor menu item should expose a preview binding");
+
+    assert!(!control_bool(
+        &bridge,
+        "WorkbenchExtensionShaderCompileButton",
+        "selected"
+    ));
+    assert!(!control_bool(
+        &bridge,
+        "WorkbenchExtensionShaderCompileButton",
+        "checked"
+    ));
+    assert!(bridge
+        .select_dropdown_option("WorkbenchExtensionShaderTargetDropdown", "spirv")
+        .unwrap());
+    assert_eq!(
+        bridge
+            .edit_workbench_module_field(
+                "WorkbenchExtensionShaderEntryField",
+                "WorkbenchExtension/ShaderEditorEntryEdit",
+                "fs_custom",
+            )
+            .unwrap(),
+        Some(true)
+    );
+    assert!(bridge
+        .select_dropdown_option("WorkbenchExtensionShaderLiveCompileDropdown", "manual")
+        .unwrap());
+
+    assert!(matches!(
+        bridge
+            .dispatch_control_state(
+                "WorkbenchExtensionShaderCompileButton",
+                UiEventKind::Click,
+            )
+            .unwrap()
+            .expect("shader compile button should expose a preview binding")
+            .payload(),
+        EditorUiBindingPayload::MenuAction { action_id }
+            if action_id == "workbench.extension.shader_editor.compile.invoke"
+    ));
+    assert!(!control_bool(
+        &bridge,
+        "WorkbenchExtensionShaderCompileButton",
+        "selected"
+    ));
+    assert!(!control_bool(
+        &bridge,
+        "WorkbenchExtensionShaderCompileButton",
+        "checked"
+    ));
+    assert_eq!(
+        control_string(&bridge, "WorkbenchStatusReady", "text").as_deref(),
+        Some("Shader compile queued")
+    );
+    assert_eq!(
+        control_string(&bridge, "WorkbenchExtensionShaderOutputRow", "value_text").as_deref(),
+        Some("Inputs: spirv | fs_custom | Manual")
+    );
+}
+
+#[test]
+fn row_selection_is_exclusive_within_its_layout_parent() {
+    let _guard = env_lock().lock().unwrap_or_else(|error| error.into_inner());
+
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    assert!(control_bool(
+        &bridge,
+        "WorkbenchExtensionAnimationCompressionLocomotionRow",
+        "selected"
+    ));
+    assert!(control_bool(
+        &bridge,
+        "WorkbenchExtensionAnimationCompressionRunClipTableRow",
+        "selected"
+    ));
+
+    bridge
+        .dispatch_control_state(
+            "WorkbenchExtensionAnimationCompressionAttackClipTableRow",
+            UiEventKind::Click,
+        )
+        .unwrap()
+        .expect("animation compression table row should expose a preview binding");
+
+    assert!(control_bool(
+        &bridge,
+        "WorkbenchExtensionAnimationCompressionLocomotionRow",
+        "selected"
+    ));
+    assert!(!control_bool(
+        &bridge,
+        "WorkbenchExtensionAnimationCompressionRunClipTableRow",
+        "selected"
+    ));
+    assert!(control_bool(
+        &bridge,
+        "WorkbenchExtensionAnimationCompressionAttackClipTableRow",
+        "selected"
+    ));
 }
 
 #[test]
@@ -619,7 +766,7 @@ fn workbench_module_dropdowns_open_select_and_close_with_shared_dropdown_path() 
     );
     assert_eq!(
         control_string(&bridge, "WorkbenchMaterialDomainDropdown", "value_text").as_deref(),
-        Some("post_process")
+        Some("Post Process")
     );
     assert_eq!(
         bridge
@@ -628,7 +775,7 @@ fn workbench_module_dropdowns_open_select_and_close_with_shared_dropdown_path() 
             .expect("material domain dropdown projection after selection")
             .value_text
             .as_deref(),
-        Some("post_process")
+        Some("Post Process")
     );
     assert!(!control_bool(
         &bridge,

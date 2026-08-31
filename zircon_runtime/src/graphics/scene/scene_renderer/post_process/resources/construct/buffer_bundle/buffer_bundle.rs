@@ -1,5 +1,7 @@
 pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) struct BufferBundle
 {
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) post_process_pass_parameter_buffers:
+        crate::graphics::scene::scene_renderer::post_process::resources::post_process_pass_parameter_buffers::PostProcessPassParameterBuffers,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) bloom_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) ssao_params_buffer:
@@ -21,6 +23,10 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::construc
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) default_exposure_histogram_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) taa_resolve_params_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) primary_upscale_params_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) secondary_upscale_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) velocity_camera_params_buffer:
         wgpu::Buffer,

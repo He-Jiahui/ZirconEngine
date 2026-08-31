@@ -14,6 +14,37 @@ use super::pane_template_runtime;
 use super::pane_value_conversion::{value_as_bool, value_as_string};
 use super::template_node_projection::project_node_vec;
 
+struct InspectorProjectionIdentity {
+    name: String,
+    parent: String,
+    x: String,
+    y: String,
+    z: String,
+    delete_enabled: bool,
+}
+
+fn into_inspector_projection_identity(
+    fields: InspectorVisualFields,
+) -> InspectorProjectionIdentity {
+    let InspectorVisualFields {
+        name,
+        parent,
+        x,
+        y,
+        z,
+        delete_enabled,
+        ..
+    } = fields;
+    InspectorProjectionIdentity {
+        name,
+        parent,
+        x,
+        y,
+        z,
+        delete_enabled,
+    }
+}
+
 fn to_host_contract_inspector_pane(
     data: &InspectorPaneViewData,
     content_size: PaneContentSize,
@@ -117,11 +148,11 @@ fn inspector_template_projection(
         .unwrap_or(payload.delete_enabled);
     let fields = InspectorVisualFields {
         info: data.info.to_string(),
-        name: inspector_name.clone(),
-        parent: inspector_parent.clone(),
-        x: inspector_x.clone(),
-        y: inspector_y.clone(),
-        z: inspector_z.clone(),
+        name: inspector_name,
+        parent: inspector_parent,
+        x: inspector_x,
+        y: inspector_y,
+        z: inspector_z,
         delete_enabled,
         plugin_components: payload
             .plugin_components
@@ -154,15 +185,20 @@ fn inspector_template_projection(
         .collect::<Vec<_>>();
     let inspector_nodes = inspector_field_nodes(&fields, &nodes, content_size);
     nodes.extend(inspector_nodes);
+    let identity = into_inspector_projection_identity(fields);
 
     Some(host_contract::InspectorPaneData {
         nodes: model_rc(nodes),
         info: data.info.clone(),
-        inspector_name: inspector_name.into(),
-        inspector_parent: inspector_parent.into(),
-        inspector_x: inspector_x.into(),
-        inspector_y: inspector_y.into(),
-        inspector_z: inspector_z.into(),
-        delete_enabled,
+        inspector_name: identity.name.into(),
+        inspector_parent: identity.parent.into(),
+        inspector_x: identity.x.into(),
+        inspector_y: identity.y.into(),
+        inspector_z: identity.z.into(),
+        delete_enabled: identity.delete_enabled,
     })
 }
+
+#[cfg(test)]
+#[path = "inspector_projection/owned_identity_tests.rs"]
+mod owned_identity_tests;

@@ -2,82 +2,246 @@ use std::fmt::Display;
 use std::path::Path;
 use std::sync::Arc;
 
-use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{AssetManager, AssetUri};
-use zircon_runtime::plugin::native::load_discovered_native_editor_plugins;
+use zircon_runtime::core::framework::project::ProjectPluginManifest;
+use zircon_runtime::plugin::native::discovery::load_discovered_native_editor_plugins;
 
 use crate::core::document::{
-    AuthoringSceneInstaller, SceneAssetCatalog, SceneDocumentRoute, SceneDocumentRouteError,
+    ActiveSceneDocumentIdentity, AuthoringSceneInstaller, SceneAssetCatalog,
+    SceneDocumentActivationBindingError, SceneDocumentRoute, SceneDocumentRouteError,
     SceneDocumentRouteResult, ScenePickerTicket,
 };
 use crate::core::editing::authoring_world::AuthoringWorldSeed;
 use crate::core::editor_message::{
-    DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic, SharedEditorMessageBus,
+    DocumentId, DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic,
+    SharedEditorMessageBus,
 };
 use crate::core::project::{SceneCreateRequest, SceneOpenRequest};
+use crate::core::recovery::{
+    DocumentJournalCoordinator, DocumentJournalCoordinatorError, ProjectSessionEffect,
+};
 use crate::ui::workbench::project::EditorProjectDocument;
 use crate::ui::workbench::startup::EditorStartupSessionDocument;
 
 use super::editor_asset_manager::EditorAssetManager;
 use super::editor_error::EditorError;
 use super::editor_manager::EditorManager;
+use super::project_session_close::{
+    ProjectCloseCommit, ProjectCloseError, ProjectCloseOperation, ProjectCloseReceipt,
+};
 
 impl EditorManager {
+    pub fn project_reference_diagnostics(
+        &self,
+    ) -> Result<zircon_runtime::asset::project::ProjectReferenceDiagnosticsSnapshot, EditorError>
+    {
+        Ok(self
+            .host
+            .current_project_snapshot()?
+            .map(|project| project.reference_diagnostics())
+            .unwrap_or_default())
+    }
+
+    pub(crate) fn active_scene_identity(
+        &self,
+        project_root: &Path,
+    ) -> Option<ActiveSceneDocumentIdentity> {
+        self.document_lifecycle.active_scene_identity(project_root)
+    }
+
+    pub(crate) fn active_scene_identity_for_session(&self) -> Option<ActiveSceneDocumentIdentity> {
+        self.document_lifecycle.active_scene_identity_for_session()
+    }
+
     pub fn open_project(
         &self,
         path: impl AsRef<Path>,
     ) -> Result<EditorProjectDocument, EditorError> {
-        self.open_project_document(path)
+        let intent = self.local_open_project_intent(path.as_ref())?;
+        let preflight = self.preflight_existing_project_launch(&intent, path.as_ref())?;
+        let admission = self.session_admission_request(&intent)?;
+        self.open_project_document_with_admission(preflight, &admission)
     }
 
-    pub fn close_project(&self) -> Result<Option<std::path::PathBuf>, EditorError> {
-        let closed_root = self.host.close_project()?;
-        let session_release = self.release_project_session_guard();
-        if closed_root.is_some() {
-            self.context().logs().disable_rolling_file();
-            self.context().settings().clear_project_layer();
-        }
+    pub(crate) fn begin_project_close(&self) -> Result<Option<ProjectCloseOperation>, EditorError> {
+        let _transition = self.begin_project_session_transition()?;
+        self.ensure_project_recovery_is_settled()?;
+        self.begin_project_close_operation()
+            .map_err(|error| EditorError::Project(error.to_string()))
+    }
+
+    pub(crate) fn commit_project_close(
+        &self,
+        operation: &ProjectCloseOperation,
+    ) -> Result<ProjectCloseCommit, ProjectCloseError> {
+        let _transition = self.begin_project_session_transition().map_err(|error| {
+            self.require_project_close_recovery(
+                operation,
+                ProjectSessionEffect::ProjectPlugins,
+                error.to_string(),
+            )
+        })?;
+
+        self.prepare_project_close_effect(operation, ProjectSessionEffect::ProjectPlugins)?;
         self.clear_project_plugin_status();
-        let registration_cleanup = if closed_root.is_some() {
-            self.plugin_manager()
-                .clear_project_registration_reports()
-                .map(|_| ())
+        let plugin_receipt = self
+            .plugin_manager()
+            .clear_project_registration_reports()
+            .map_err(|error| {
+                self.require_project_close_recovery(
+                    operation,
+                    ProjectSessionEffect::ProjectPlugins,
+                    format!(
+                        "project-native editor registrations cannot be cleared during close: {error}"
+                    ),
+                )
+            })?;
+        if !plugin_receipt.is_terminal() {
+            return Err(self.require_project_close_recovery(
+                operation,
+                ProjectSessionEffect::ProjectPlugins,
+                format!(
+                    "project-native editor registrations remain after manager generation {} / catalog generation {}: {:?}",
+                    plugin_receipt.manager_generation(),
+                    plugin_receipt.catalog_generation(),
+                    plugin_receipt.remaining_project_package_ids(),
+                ),
+            ));
+        }
+        self.commit_project_close_effect(operation, ProjectSessionEffect::ProjectPlugins)?;
+
+        self.prepare_project_close_effect(operation, ProjectSessionEffect::Runtime)?;
+        let runtime_receipt =
+            self.host
+                .close_project(operation.project_root())
                 .map_err(|error| {
-                    EditorError::Project(format!(
-                        "project-native editor registrations cannot be cleared after close: {error}"
-                    ))
-                })
-        } else {
-            Ok(())
-        };
+                    self.require_project_close_recovery(
+                        operation,
+                        ProjectSessionEffect::Runtime,
+                        format!("runtime project close failed: {error}"),
+                    )
+                })?;
+        self.commit_project_close_effect(operation, ProjectSessionEffect::Runtime)?;
+        let closed_root = runtime_receipt.into_closed_root();
+
+        let terminal_root =
+            project_close_terminal_root(closed_root.as_deref(), Some(operation.project_root()));
+        self.prepare_project_close_effect(operation, ProjectSessionEffect::Documents)?;
+        self.clear_document_journal();
         publish_committed_project_close(
             self.context().bus(),
             &self.document_lifecycle,
-            closed_root.as_deref(),
+            terminal_root,
         );
-        registration_cleanup?;
-        session_release?;
-        Ok(closed_root)
+        self.commit_project_close_effect(operation, ProjectSessionEffect::Documents)?;
+
+        self.prepare_project_close_effect(operation, ProjectSessionEffect::Diagnostics)?;
+        self.context().logs().disable_rolling_file();
+        self.context().settings().clear_project_layer();
+        let receipt =
+            self.commit_project_close_effect(operation, ProjectSessionEffect::Diagnostics)?;
+        Ok(ProjectCloseCommit::new(closed_root, receipt))
     }
 
-    pub(crate) fn open_prepared_project_and_remember(
+    pub(crate) fn finalize_project_close(
         &self,
-        project: ProjectManager,
-    ) -> Result<crate::ui::workbench::startup::EditorStartupSessionDocument, EditorError> {
-        self.open_prepared_project_and_remember_with_session(project)
+        operation: &ProjectCloseOperation,
+    ) -> Result<ProjectCloseReceipt, ProjectCloseError> {
+        let _transition = self.begin_project_session_transition().map_err(|error| {
+            self.require_project_close_recovery(
+                operation,
+                ProjectSessionEffect::Session,
+                error.to_string(),
+            )
+        })?;
+        let receipt = self.finish_project_close_ledger(operation)?;
+        self.release_project_close_guard(operation)?;
+        let _ = self.cleanup_closed_project_session_ledger(operation);
+        Ok(receipt)
     }
 
-    pub(crate) fn save_project(
+    pub(crate) fn save_active_scene(
         &self,
         path: impl AsRef<Path>,
         world: &zircon_runtime::scene::Scene,
     ) -> Result<(), EditorError> {
-        let project_root = self.host.save_project(path, world)?;
+        let project_root = ProjectAuthority::default().resolve_existing_project_root(&path)?;
+        let active_scene = self
+            .document_lifecycle
+            .active_scene_identity(&project_root)
+            .ok_or_else(|| {
+                EditorError::Project(
+                    "cannot save without an active project scene document".to_string(),
+                )
+            })?;
+        let scene_uri = AssetUri::parse(active_scene.scene_uri()).map_err(|error| {
+            EditorError::Project(format!(
+                "active scene document {} has an invalid source URI: {error}",
+                active_scene.document().value()
+            ))
+        })?;
+        self.host
+            .save_active_scene(&project_root, &scene_uri, world)?;
         self.publish_document_messages(
             self.document_lifecycle
-                .save_active_project_session(&project_root),
+                .save_scene_identity_if_active(&active_scene),
         );
         Ok(())
+    }
+
+    /// Publishes the manifest-selected startup scene as the first document of an already-open
+    /// project session. Later picker routes replace this identity through the same lifecycle.
+    pub(crate) fn activate_startup_scene_document(
+        &self,
+        project_root: &Path,
+        scene_uri: &AssetUri,
+    ) -> Result<DocumentId, EditorError> {
+        let project = self.host.current_project_snapshot()?.ok_or_else(|| {
+            EditorError::Project(
+                "cannot activate a startup scene without an active project generation".to_string(),
+            )
+        })?;
+        if project.paths().root() != project_root {
+            return Err(EditorError::Project(
+                "startup scene belongs to a project generation that is no longer active"
+                    .to_string(),
+            ));
+        }
+        let session = self
+            .document_lifecycle
+            .project_session(project_root)
+            .ok_or_else(|| {
+                EditorError::Project(
+                    "cannot activate a startup scene without an active project session".to_string(),
+                )
+            })?;
+        let source_path = project.source_path_for_uri(scene_uri).map_err(|error| {
+            EditorError::Project(format!(
+                "cannot resolve startup scene journal source {scene_uri}: {error}"
+            ))
+        })?;
+        let journal = self.document_journal()?;
+        let activation = self
+            .document_lifecycle
+            .activate_scene_with_binding(
+                session,
+                project_root,
+                &scene_uri.to_string(),
+                |document| journal.bind_project_document(document, &source_path),
+            )
+            .map_err(|error| match error {
+                SceneDocumentActivationBindingError::Lifecycle(error) => {
+                    EditorError::Project(error.to_string())
+                }
+                SceneDocumentActivationBindingError::Binding(error) => {
+                    EditorError::DocumentJournal { source: error }
+                }
+            })?;
+        let document = activation.document;
+        self.release_closed_document_journals(&activation.messages, journal.as_ref());
+        self.publish_document_messages(activation.messages);
+        Ok(document)
     }
 
     /// Submits a picker-selected project scene through the authority-owned document route.
@@ -134,49 +298,6 @@ impl EditorManager {
         self.host.prepare_authoring_world(scene)
     }
 
-    pub(crate) fn publish_document_startup_session(
-        &self,
-        session: &EditorStartupSessionDocument,
-    ) -> Result<(), EditorError> {
-        let Some(document) = session.project.as_ref() else {
-            return Ok(());
-        };
-        self.configure_project_diagnostics(&document.root_path)?;
-        self.apply_project_plugin_manifest_or_close(&document.root_path, &document.manifest)?;
-        let activation = self
-            .document_lifecycle
-            .begin_project_session(&document.root_path);
-        self.publish_document_messages(activation.messages);
-        Ok(())
-    }
-
-    fn apply_project_plugin_manifest_or_close(
-        &self,
-        project_root: &Path,
-        manifest: &ProjectManifest,
-    ) -> Result<(), EditorError> {
-        if let Err(plugin_error) = self.apply_project_plugin_manifest(project_root, manifest) {
-            self.clear_project_plugin_status();
-            let cleared = self.plugin_manager().clear_project_registration_reports();
-            let close_result = self.host.close_project();
-            if close_result.is_ok() {
-                self.context().logs().disable_rolling_file();
-            }
-            return match (close_result, cleared) {
-                (Ok(_), Ok(_)) => Err(plugin_error),
-                (Err(close_error), _) => Err(EditorError::Project(format!(
-                    "project plugin manifest synchronization failed: {plugin_error}; \
-                     additionally failed to roll back the opened project: {close_error}"
-                ))),
-                (Ok(_), Err(clear_error)) => Err(EditorError::Project(format!(
-                    "project plugin manifest synchronization failed: {plugin_error}; \
-                     additionally failed to clear project-native registrations: {clear_error}"
-                ))),
-            };
-        }
-        Ok(())
-    }
-
     pub(super) fn configure_project_diagnostics(
         &self,
         project_root: &Path,
@@ -196,16 +317,30 @@ impl EditorManager {
         &self,
         project_root: &Path,
         manifest: &ProjectManifest,
+        approved_project_plugins: &ProjectPluginManifest,
+        allows_native_extensions: bool,
     ) -> Result<(), EditorError> {
-        let native_report =
-            load_discovered_native_editor_plugins(self.plugin_directory(project_root));
-        let completed =
-            self.complete_project_plugin_manifest_with_native_report(manifest, &native_report);
-        let native_reports = self
-            .selected_native_editor_plugin_registration_reports_from_load_report(
+        let mut approved_manifest = manifest.clone();
+        approved_manifest.plugins = approved_project_plugins.clone();
+        let (completed, native_reports) = if allows_native_extensions {
+            let native_report =
+                load_discovered_native_editor_plugins(self.plugin_directory(project_root));
+            let completed = self.complete_project_plugin_manifest_with_native_report(
+                &approved_manifest,
                 &native_report,
-                &completed.plugins,
             );
+            let native_reports = self
+                .selected_native_editor_plugin_registration_reports_from_load_report(
+                    &native_report,
+                    &completed.plugins,
+                );
+            (completed, native_reports)
+        } else {
+            (
+                self.complete_project_plugin_manifest(&approved_manifest),
+                Vec::new(),
+            )
+        };
         self.plugin_manager()
             .publish_project_registration_reports(native_reports)
             .map_err(|error| {
@@ -220,9 +355,7 @@ impl EditorManager {
                     "project plugin manifest cannot be applied to the editor plugin manager: {error}"
                 ))
             })?;
-        self.publish_project_plugin_status(
-            self.native_plugin_status_report_from_load_report(&completed, &native_report),
-        );
+        self.publish_project_plugin_status(self.plugin_status_report(&completed));
         Ok(())
     }
 
@@ -231,6 +364,60 @@ impl EditorManager {
         messages: impl IntoIterator<Item = DocumentMessage>,
     ) {
         publish_document_messages(self.context().bus(), messages);
+    }
+
+    pub(super) fn initialize_document_journal(
+        &self,
+        project_root: &Path,
+    ) -> Result<(), EditorError> {
+        let mut slot = self
+            .document_journal
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        match slot.as_ref() {
+            None => {
+                *slot = Some(Arc::new(DocumentJournalCoordinator::new(project_root)));
+                Ok(())
+            }
+            Some(existing) if existing.project_root() == project_root => Ok(()),
+            Some(existing) => Err(DocumentJournalCoordinatorError::ProjectRootConflict {
+                existing_root: existing.project_root().to_path_buf(),
+                requested_root: project_root.to_path_buf(),
+            }
+            .into()),
+        }
+    }
+
+    pub(super) fn clear_document_journal(&self) {
+        self.document_journal
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+    }
+
+    fn document_journal(&self) -> Result<Arc<DocumentJournalCoordinator>, EditorError> {
+        self.document_journal
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+            .ok_or_else(|| {
+                EditorError::Project(
+                    "scene document routing requires an active project journal authority"
+                        .to_string(),
+                )
+            })
+    }
+
+    fn release_closed_document_journals(
+        &self,
+        messages: &[DocumentMessage],
+        journal: &DocumentJournalCoordinator,
+    ) {
+        for message in messages {
+            if let DocumentMessage::Closed { doc } = message {
+                journal.unbind_document(*doc);
+            }
+        }
     }
 
     fn route_project_scene<Installer, Route>(
@@ -258,9 +445,11 @@ impl EditorManager {
                     .to_string(),
             ));
         }
+        let journal = self.document_journal()?;
         let result = route(SceneDocumentRoute::new(
             &project,
             &self.document_lifecycle,
+            journal.as_ref(),
             ticket,
         ))
         .map_err(|error| EditorError::Project(error.to_string()))?;
@@ -268,6 +457,27 @@ impl EditorManager {
             self.publish_document_messages(activation.activation.messages.clone());
         }
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod recovery_close_contract_tests {
+    #[test]
+    fn close_refuses_to_clear_a_session_while_recovery_work_is_active() {
+        let source = include_str!("editor_manager_project.rs");
+        let close = source
+            .find("pub(crate) fn begin_project_close")
+            .expect("project close owner should exist");
+        let recovery_gate = source[close..]
+            .find("self.ensure_project_recovery_is_settled()?;")
+            .map(|offset| close + offset)
+            .expect("project close should check recovery state");
+        let begin_close = source[close..]
+            .find("self.begin_project_close_operation()")
+            .map(|offset| close + offset)
+            .expect("project close should begin the durable close phase");
+
+        assert!(recovery_gate < begin_close);
     }
 }
 
@@ -387,10 +597,18 @@ fn publish_committed_project_close(
     }
 }
 
+fn project_close_terminal_root<'a>(
+    closed_root: Option<&'a Path>,
+    retained_guard_root: Option<&'a Path>,
+) -> Option<&'a Path> {
+    closed_root.or(retained_guard_root)
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
+    use super::super::editor_error::EditorError;
     use crate::core::document::DocumentLifecycleAuthority;
     use crate::core::editor_message::{
         DocumentId, DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic,
@@ -398,8 +616,8 @@ mod tests {
     };
 
     use super::{
-        project_diagnostics_configuration_message, publish_committed_project_close,
-        publish_document_messages,
+        project_close_terminal_root, project_diagnostics_configuration_message,
+        publish_committed_project_close, publish_document_messages,
     };
 
     #[cfg(windows)]
@@ -515,5 +733,62 @@ mod tests {
                 }
             ))]
         );
+    }
+
+    #[test]
+    fn project_close_consumes_a_capability_and_quiesces_plugins_before_runtime() {
+        let source = include_str!("editor_manager_project.rs");
+        let close_start = source
+            .find("pub(crate) fn commit_project_close")
+            .expect("project close entry point");
+        let close_end = source[close_start..]
+            .find("pub(crate) fn save_active_scene")
+            .map(|offset| close_start + offset)
+            .expect("project close boundary");
+        let close = &source[close_start..close_end];
+        let plugin_close = close
+            .find("clear_project_registration_reports()")
+            .expect("plugin teardown");
+        let runtime_close = close
+            .find(".close_project(operation.project_root())")
+            .expect("runtime project teardown");
+
+        assert!(close.contains("operation: &ProjectCloseOperation"));
+        assert!(plugin_close < runtime_close);
+        assert!(close.contains("require_project_close_recovery"));
+        assert!(!close.contains("release_project_close_guard"));
+
+        let finalize = source
+            .find("pub(crate) fn finalize_project_close")
+            .expect("final close owner");
+        assert!(source[finalize..].contains("self.release_project_close_guard(operation)?"));
+    }
+
+    #[test]
+    fn project_close_retry_uses_the_retained_guard_root_after_host_close_has_committed() {
+        let retained_root = Path::new("C:/projects/retained-close");
+
+        assert_eq!(
+            project_close_terminal_root(None, Some(retained_root)),
+            Some(retained_root)
+        );
+    }
+
+    #[test]
+    fn active_scene_save_routing_uses_lifecycle_identity_without_a_manifest_default_fallback() {
+        let source = include_str!("editor_manager_project.rs");
+        let save_start = source
+            .find("pub(crate) fn save_active_scene(")
+            .expect("active-scene save entry point");
+        let save_end = source[save_start..]
+            .find("/// Publishes the manifest-selected startup scene")
+            .map(|offset| save_start + offset)
+            .expect("startup-scene boundary after active-scene save entry point");
+        let save = &source[save_start..save_end];
+
+        assert!(save.contains(".active_scene_identity(&project_root)"));
+        assert!(save.contains(".save_active_scene(&project_root, &scene_uri, world)?"));
+        assert!(save.contains(".save_scene_identity_if_active(&active_scene)"));
+        assert!(!save.contains("manifest().default_scene"));
     }
 }

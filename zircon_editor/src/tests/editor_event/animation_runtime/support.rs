@@ -20,7 +20,6 @@ pub(super) fn open_indexed_animation_asset(
     locator: &str,
     write_asset: impl FnOnce(&Path),
 ) -> String {
-    harness.register_animation_asset_toolkits();
     let catalog = harness.open_project_with_assets(prefix, |project| {
         write_asset(&project.source_path(locator));
     });

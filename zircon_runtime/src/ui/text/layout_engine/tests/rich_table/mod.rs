@@ -12,7 +12,7 @@ mod vertical_rl;
 
 fn vertical_table(markup: &str, frame: UiFrame) -> UiResolvedTextLayout {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
     style.text_writing_mode = UiTextWritingMode::VerticalRl;
     layout_text(markup, &style, frame, None)
 }

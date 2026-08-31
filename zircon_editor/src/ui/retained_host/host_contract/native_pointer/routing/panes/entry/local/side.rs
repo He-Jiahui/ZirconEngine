@@ -5,13 +5,13 @@ use super::super::super::super::PanePointerRoute;
 use super::super::super::mode::PaneRouteMode;
 use super::super::super::pane::pane_route_from_pane;
 
-pub(super) fn route_side_dock_pane(
-    dock: &HostSideDockSurfaceData,
+pub(super) fn route_side_dock_pane<'a>(
+    dock: &'a HostSideDockSurfaceData,
     x: f32,
     y: f32,
     mode: PaneRouteMode,
     console_scroll_px: f32,
-) -> Option<PanePointerRoute> {
+) -> Option<PanePointerRoute<'a>> {
     let content = side_dock_content_frame(dock);
     pane_route_from_pane(
         &dock.pane,

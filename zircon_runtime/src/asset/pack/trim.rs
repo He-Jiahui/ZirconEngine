@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{btree_map::Entry, BTreeMap, BTreeSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
 
@@ -159,14 +159,14 @@ impl ZrPackTrimPlanner {
             trimmed_assets.push(ZrPackTrimmedAsset::new(path.clone(), reason));
         }
 
-        missing_dependencies.sort_by(|left, right| {
+        missing_dependencies.sort_unstable_by(|left, right| {
             left.owner
                 .cmp(&right.owner)
                 .then(left.dependency.cmp(&right.dependency))
         });
-        duplicate_assets.sort();
+        duplicate_assets.sort_unstable();
         duplicate_assets.dedup();
-        diagnostics.sort();
+        diagnostics.sort_unstable();
 
         ZrPackTrimReport {
             included_assets,
@@ -189,12 +189,15 @@ fn collect_assets(
     let mut duplicate_assets = Vec::new();
     let mut diagnostics = Vec::new();
     for asset in assets {
-        if asset_map.contains_key(&asset.path) {
-            diagnostics.push(format!("asset {} is duplicated in trim input", asset.path));
-            duplicate_assets.push(asset.path);
-            continue;
+        match asset_map.entry(asset.path.clone()) {
+            Entry::Occupied(_) => {
+                diagnostics.push(format!("asset {} is duplicated in trim input", asset.path));
+                duplicate_assets.push(asset.path);
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(asset);
+            }
         }
-        asset_map.insert(asset.path.clone(), asset);
     }
 
     (asset_map, duplicate_assets, diagnostics)
@@ -265,3 +268,7 @@ fn trim_reason(
         _ => ZrPackTrimReason::Unreferenced,
     }
 }
+
+#[cfg(test)]
+#[path = "trim/optimization_tests.rs"]
+mod optimization_tests;

@@ -21,9 +21,6 @@ impl Default for EntitySlot {
     }
 }
 
-pub(super) fn next_generation(generation: u32) -> u32 {
-    match generation.checked_add(1) {
-        Some(next_generation) => next_generation,
-        None => FIRST_GENERATION,
-    }
+pub(super) fn next_generation(generation: u32) -> Option<u32> {
+    generation.checked_add(1)
 }

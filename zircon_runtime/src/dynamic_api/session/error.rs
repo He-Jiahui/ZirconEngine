@@ -5,12 +5,13 @@ use zircon_runtime_interface::project::{RelPath, RelPathError};
 
 use crate::asset::AssetImportError;
 use crate::asset::project::ProjectPaths;
-use crate::core::CoreError;
 use crate::core::framework::navigation::NavigationError;
 use crate::core::framework::render::RenderFrameworkError;
+use crate::core::framework::time::ProductTimePolicyError;
+use crate::core::{CoreError, EngineTaskGraphInitError, TaskGraphAdmissionError};
 use crate::operation::RuntimeOperationServiceError;
 use crate::plugin::RuntimeExtensionRegistryError;
-use crate::scene::DynamicSceneError;
+use crate::scene::{DynamicSceneError, LevelTickError};
 use crate::script::VmError;
 use thiserror::Error;
 use zircon_runtime_interface::ui::tree::UiTreeError;
@@ -24,6 +25,16 @@ pub enum RuntimeDynamicSessionError {
     UnknownProfile { profile: String },
     #[error("runtime session handle space exhausted")]
     SessionHandleSpaceExhausted,
+    #[error("initialize runtime execution: {source}")]
+    EngineTaskGraphInitialization {
+        #[source]
+        source: EngineTaskGraphInitError,
+    },
+    #[error("create runtime session execution scope: {source}")]
+    TaskGraphScopeAdmission {
+        #[source]
+        source: TaskGraphAdmissionError,
+    },
     #[error("runtime module discovery failed: {message}")]
     ModuleDiscovery { message: String },
     #[error("{step}: {source}")]
@@ -31,6 +42,17 @@ pub enum RuntimeDynamicSessionError {
         step: &'static str,
         #[source]
         source: CoreError,
+    },
+    #[error("tick loaded level: {source}")]
+    LevelTick {
+        #[source]
+        source: LevelTickError,
+    },
+    #[error("{step}: {source}")]
+    ProductTimePolicy {
+        step: &'static str,
+        #[source]
+        source: ProductTimePolicyError,
     },
     #[error("{step}: {source}")]
     ProjectStep {

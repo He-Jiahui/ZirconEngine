@@ -11,7 +11,10 @@ use crate::graphics::{
 };
 #[cfg(feature = "graphics")]
 use crate::plugin::PluginShaderModuleSource;
-use crate::plugin::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
+use crate::plugin::{
+    RuntimeExtensionRegistry, RuntimePluginFeatureRegistrationReport,
+    RuntimePluginRegistrationReport,
+};
 
 use super::extension_inputs::{
     extension_inputs_from_extension_registries, RuntimeModuleExtensionInputs,
@@ -172,6 +175,14 @@ pub(super) fn registration_inputs_for_plugin_reports(
             .map(|registration| &registration.extensions),
     );
     RuntimeModuleRegistrationInputs::from_extension_inputs(extension_inputs)
+}
+
+pub(super) fn registration_inputs_for_extension_registry(
+    registry: &RuntimeExtensionRegistry,
+) -> RuntimeModuleRegistrationInputs {
+    RuntimeModuleRegistrationInputs::from_extension_inputs(
+        extension_inputs_from_extension_registries([registry]),
+    )
 }
 
 pub(super) fn registration_inputs_for_plugin_and_feature_reports(

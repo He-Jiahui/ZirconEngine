@@ -163,9 +163,8 @@ fn run_media_inject(
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-volumetric-media-inject-test-encoder"),
     });
-    let dispatch = pipeline
-        .encode(device, &mut encoder, &view, request)
-        .unwrap();
+    let mut recording = (device, &mut encoder);
+    let dispatch = pipeline.encode(&mut recording, &view, request).unwrap();
     encoder.copy_texture_to_buffer(
         texture.as_image_copy(),
         wgpu::TexelCopyBufferInfo {

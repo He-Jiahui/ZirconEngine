@@ -10,7 +10,7 @@ use zircon_runtime_interface::ui::{
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     focus::{UiFocusChangeReason, UiFocusVisibleReason, UiFocusedInputKind},
-    layout::UiFrame,
+    layout::{UiFrame, UiSize},
     navigation::{
         UiDirectionalNavigation, UiDirectionalNavigationTarget, UiNavigationBoundary,
         UiNavigationContract, UiNavigationGroup, UiNavigationGroupId, UiTabIndex,

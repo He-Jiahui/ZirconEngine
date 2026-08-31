@@ -1,14 +1,20 @@
-use crate::scene::ecs::{
-    EventReaderParam, EventWriterParam, Message, MessageReaderParam, MessageRetention,
-    MessageWriterParam, SystemStage, SystemState,
-};
 use crate::scene::World;
+use crate::scene::ecs::{
+    EventReaderParam, EventWriterParam, FunctionSceneSystem, Message, MessageReaderParam,
+    MessageRetention, MessageWriterParam, ParamSet, ResParam, Resource, SceneSystemMetadata,
+    ScheduleError, SystemOrderingConstraint, SystemRef, SystemStage, SystemState,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 struct FrameEvent(u32);
 
 #[derive(Debug, PartialEq, Eq)]
 struct IdleEvent;
+
+#[derive(Debug, PartialEq, Eq)]
+struct MissingRetirementResource;
+
+impl Resource for MissingRetirementResource {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct RetainedMessage(u32);
@@ -56,6 +62,130 @@ fn events_require_explicit_update_and_keep_next_queue_hidden() {
         events.iter().map(|event| event.0).collect::<Vec<_>>()
     });
     assert_eq!(next_generation, vec![2]);
+}
+
+#[test]
+fn system_state_retirement_releases_event_reader_lease_once() {
+    let mut world = World::empty();
+    let mut reader = SystemState::<EventReaderParam<FrameEvent>>::new(&mut world).unwrap();
+    let event_type_id = world.event_type_id::<FrameEvent>().unwrap();
+
+    assert_eq!(world.event_reader_count(event_type_id), Some(1));
+    reader.retire(&mut world);
+    assert_eq!(world.event_reader_count(event_type_id), Some(0));
+
+    reader.rebind(&mut world).unwrap();
+    assert_eq!(world.event_reader_count(event_type_id), Some(1));
+
+    reader.retire(&mut world);
+    assert_eq!(world.event_reader_count(event_type_id), Some(0));
+}
+
+#[test]
+fn dropped_system_state_releases_event_reader_lease() {
+    let mut world = World::empty();
+    let event_type_id;
+    {
+        let _reader = SystemState::<EventReaderParam<FrameEvent>>::new(&mut world).unwrap();
+        event_type_id = world.event_type_id::<FrameEvent>().unwrap();
+        assert_eq!(world.event_reader_count(event_type_id), Some(1));
+    }
+
+    assert_eq!(world.event_reader_count(event_type_id), Some(0));
+}
+
+#[test]
+fn failed_tuple_system_param_initialization_releases_event_reader_lease() {
+    let mut world = World::empty();
+
+    let error = match SystemState::<(
+        EventReaderParam<FrameEvent>,
+        ResParam<MissingRetirementResource>,
+    )>::new(&mut world)
+    {
+        Err(error) => error,
+        Ok(_) => panic!("missing resource must reject system parameter initialization"),
+    };
+    assert!(
+        error
+            .to_string()
+            .contains(std::any::type_name::<MissingRetirementResource>())
+    );
+
+    let event_type_id = world.event_type_id::<FrameEvent>().unwrap();
+    assert_eq!(world.event_reader_count(event_type_id), Some(0));
+}
+
+#[test]
+fn failed_param_set_initialization_releases_event_reader_lease() {
+    let mut world = World::empty();
+
+    let error = match SystemState::<
+        ParamSet<(
+            EventReaderParam<FrameEvent>,
+            ResParam<MissingRetirementResource>,
+        )>,
+    >::new(&mut world)
+    {
+        Err(error) => error,
+        Ok(_) => panic!("missing resource must reject parameter-set initialization"),
+    };
+    assert!(
+        error
+            .to_string()
+            .contains(std::any::type_name::<MissingRetirementResource>())
+    );
+
+    let event_type_id = world.event_type_id::<FrameEvent>().unwrap();
+    assert_eq!(world.event_reader_count(event_type_id), Some(0));
+}
+
+#[test]
+fn failed_native_registration_retires_event_reader_lease() {
+    let mut world = World::empty();
+    let system = FunctionSceneSystem::<EventReaderParam<FrameEvent>, _>::new(
+        SceneSystemMetadata::new("gameplay.event-reader-rollback", SystemStage::Update, 0)
+            .with_constraint(SystemOrderingConstraint::After(SystemRef::System(
+                "zircon.scene.events_update_all".to_string(),
+            ))),
+        &mut world,
+        |_| {},
+    )
+    .unwrap();
+    let event_type_id = world.event_type_id::<FrameEvent>().unwrap();
+
+    assert!(matches!(
+        world.register_boxed_native_system(Box::new(system)),
+        Err(ScheduleError::CrossStageConstraint { .. })
+    ));
+    assert_eq!(world.event_reader_count(event_type_id), Some(0));
+}
+
+#[test]
+fn unregister_native_system_retires_event_reader_lease() {
+    let mut world = World::empty();
+    world
+        .register_native_system::<EventReaderParam<FrameEvent>, _>(
+            "gameplay.event-reader-retirement",
+            SystemStage::Update,
+            0,
+            |_| {},
+        )
+        .unwrap();
+    let event_type_id = world.event_type_id::<FrameEvent>().unwrap();
+
+    assert_eq!(world.event_reader_count(event_type_id), Some(1));
+    assert!(
+        world
+            .unregister_native_system("gameplay.event-reader-retirement")
+            .unwrap()
+    );
+    assert_eq!(world.event_reader_count(event_type_id), Some(0));
+    assert!(
+        !world
+            .unregister_native_system("gameplay.event-reader-retirement")
+            .unwrap()
+    );
 }
 
 #[test]
@@ -167,14 +297,15 @@ fn event_subscription_source_keeps_dormant_reader_boundaries() {
     assert!(!new_dormant.contains("connect_reader"));
 
     let connect = event_store_section(source, "pub fn connect", "pub fn disconnect");
-    assert!(connect.contains("self.is_connected() || !store.connect_reader(self.event_type_id)"));
+    assert!(connect.contains("let Some(reader_lease) = store.connect_reader(self.event_type_id)"));
+    assert!(connect.contains("self.reader_lease = Some(reader_lease);"));
     assert!(connect.contains(".clear(store.events_by_id::<T>(self.event_type_id))"));
     assert!(connect.contains("self.status = EventSubscriptionStatus::Connected"));
 
     let disconnect = event_store_section(source, "pub fn disconnect", "pub fn read<'events>");
-    assert!(
-        disconnect.contains("!self.is_connected() || !store.disconnect_reader(self.event_type_id)")
-    );
+    assert!(disconnect.contains("let Some(mut reader_lease) = self.reader_lease.take()"));
+    assert!(disconnect.contains("store.disconnect_reader(&mut reader_lease)"));
+    assert!(disconnect.contains("self.reader_lease = Some(reader_lease);"));
     assert!(disconnect.contains("self.cursor.clear(None);"));
     assert!(disconnect.contains("self.status = EventSubscriptionStatus::Dormant"));
 
@@ -260,6 +391,33 @@ fn messages_are_retained_until_explicit_clear_independent_of_event_updates() {
             .collect::<Vec<_>>()
     });
     assert_eq!(after_clear, vec![(2, 3)]);
+}
+
+#[test]
+fn message_reader_does_not_acknowledge_unconsumed_iterator_tail() {
+    let mut world = World::empty();
+    let mut reader = SystemState::<MessageReaderParam<RetainedMessage>>::new(&mut world).unwrap();
+
+    world.send_message(RetainedMessage(1));
+    world.send_message(RetainedMessage(2));
+    world.send_message(RetainedMessage(3));
+
+    let first_page = reader.run(&mut world, |mut messages| {
+        messages
+            .read()
+            .take(1)
+            .map(|(id, message)| (id.id(), message.0))
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(first_page, vec![(0, 1)]);
+
+    let remaining = reader.run(&mut world, |mut messages| {
+        messages
+            .read()
+            .map(|(id, message)| (id.id(), message.0))
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(remaining, vec![(1, 2), (2, 3)]);
 }
 
 #[test]

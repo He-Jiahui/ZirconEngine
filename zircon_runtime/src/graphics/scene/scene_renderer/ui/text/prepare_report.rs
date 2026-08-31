@@ -1,17 +1,20 @@
+use super::ScreenSpaceUiNativePrepareReport;
+use super::font_assets::UiFontAssetCacheReport;
 use super::font_id_report::ScreenSpaceUiTextFontIdReport;
 use super::resolved_batches::{AutoTextRasterRouteFrameReport, ResolvedScreenSpaceUiTextBatches};
 use super::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
-use super::ScreenSpaceUiNativePrepareReport;
 use crate::graphics::scene::scene_renderer::ui::atlas_renderer::GlyphAtlasBitmapRendererPrepareReport;
-use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
+use crate::graphics::scene::scene_renderer::ui::render::{
+    ScreenSpaceUiResolvedGlyphArtifactRouteReport, ScreenSpaceUiTextBatch,
+};
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasCacheReport;
 use crate::graphics::scene::scene_renderer::ui::sdf_render::ScreenSpaceUiSdfPrepareReport;
+use crate::text::TextLayoutFallbackReport;
 use crate::text::font::MissingGlyphDiagnosticsReport;
 use crate::text::native_bitmap_atlas::{
-    native_bitmap_atlas_handoff_for_report, NativeBitmapAtlasHandoff,
-    NativeBitmapAtlasPrepareReport,
+    NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport,
+    native_bitmap_atlas_handoff_for_report,
 };
-use crate::text::TextLayoutFallbackReport;
 
 #[cfg(feature = "profiling")]
 mod profile;
@@ -23,10 +26,14 @@ pub(crate) struct ScreenSpaceUiTextPrepareReport {
     pub(super) input_auto_text_batch_count: usize,
     pub(super) input_native_text_batch_count: usize,
     pub(super) input_sdf_text_batch_count: usize,
+    pub(crate) resolved_glyph_artifact_routes: ScreenSpaceUiResolvedGlyphArtifactRouteReport,
     pub(super) resolved_native_text_batch_count: usize,
     pub(super) resolved_sdf_text_batch_count: usize,
+    pub(crate) renderer_batch_residency: ScreenSpaceUiTextBatchResidencyReport,
+    pub(crate) post_layout_stale_artifact_batch_rejection_count: usize,
     pub(super) auto_route: AutoTextRasterRouteFrameReport,
     pub(super) sdf_fallback: ScreenSpaceUiTextSdfFallbackReport,
+    pub(crate) font_assets: UiFontAssetCacheReport,
     pub(crate) native_font_ids: ScreenSpaceUiTextFontIdReport,
     pub(super) missing_glyphs: MissingGlyphDiagnosticsReport,
     pub(crate) layout_fallbacks: TextLayoutFallbackReport,
@@ -36,6 +43,61 @@ pub(crate) struct ScreenSpaceUiTextPrepareReport {
     pub(super) sdf_atlas: SdfAtlasCacheReport,
     pub(crate) sdf_generation: ScreenSpaceUiTextSdfGenerationReport,
     pub(super) sdf_renderer: ScreenSpaceUiSdfPrepareReport,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct ScreenSpaceUiTextBatchResidencyReport {
+    pub(crate) materialized_batch_count: usize,
+    pub(crate) text_byte_count: usize,
+    pub(crate) glyph_advance_byte_count: usize,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct ScreenSpaceUiResolvedTextReport {
+    native_text_batch_count: usize,
+    sdf_text_batch_count: usize,
+    batch_residency: ScreenSpaceUiTextBatchResidencyReport,
+    post_layout_stale_artifact_batch_rejection_count: usize,
+    layout_fallbacks: TextLayoutFallbackReport,
+}
+
+impl ScreenSpaceUiResolvedTextReport {
+    pub(super) fn from_resolved_texts(texts: &ResolvedScreenSpaceUiTextBatches) -> Self {
+        Self {
+            native_text_batch_count: texts.native_texts().len(),
+            sdf_text_batch_count: texts.sdf_texts().len(),
+            batch_residency: text_batch_residency_report(texts.native_texts(), texts.sdf_texts()),
+            post_layout_stale_artifact_batch_rejection_count: texts
+                .post_layout_stale_artifact_batch_rejection_count(),
+            layout_fallbacks: texts.layout_fallback_report(),
+        }
+    }
+
+    pub(super) fn merge(&mut self, segment: Self) {
+        self.native_text_batch_count = self
+            .native_text_batch_count
+            .saturating_add(segment.native_text_batch_count);
+        self.sdf_text_batch_count = self
+            .sdf_text_batch_count
+            .saturating_add(segment.sdf_text_batch_count);
+        self.batch_residency.merge(segment.batch_residency);
+        self.post_layout_stale_artifact_batch_rejection_count = self
+            .post_layout_stale_artifact_batch_rejection_count
+            .saturating_add(segment.post_layout_stale_artifact_batch_rejection_count);
+        merge_layout_fallback_report(&mut self.layout_fallbacks, segment.layout_fallbacks);
+    }
+}
+
+impl ScreenSpaceUiTextBatchResidencyReport {
+    fn merge(&mut self, segment: Self) {
+        self.materialized_batch_count = self
+            .materialized_batch_count
+            .saturating_add(segment.materialized_batch_count);
+        self.text_byte_count = self.text_byte_count.saturating_add(segment.text_byte_count);
+        self.glyph_advance_byte_count = self
+            .glyph_advance_byte_count
+            .saturating_add(segment.glyph_advance_byte_count);
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -85,6 +147,10 @@ pub(crate) struct ScreenSpaceUiTextRasterUploadReport {
     pub(super) atlas_slot_cache_miss_count: usize,
     pub(super) atlas_slot_cache_insert_count: usize,
     pub(super) atlas_resident_page_byte_len: usize,
+    pub(super) atlas_page_shadow_resident_page_count: usize,
+    pub(super) atlas_page_shadow_resident_byte_count: usize,
+    pub(super) atlas_page_shadow_max_byte_count: usize,
+    pub(super) atlas_page_shadow_budget_rejection_count: u64,
     pub(super) worker_request_submitted_count: usize,
     /// Outstanding native raster work after the frame completion drain.
     ///
@@ -133,12 +199,13 @@ pub(crate) struct ScreenSpaceUiTextRasterUploadReport {
 }
 
 pub(super) fn text_prepare_report(
-    auto_texts: &[ScreenSpaceUiTextBatch],
-    native_texts: &[ScreenSpaceUiTextBatch],
-    sdf_texts: &[ScreenSpaceUiTextBatch],
-    resolved_texts: &ResolvedScreenSpaceUiTextBatches,
+    input_batch_counts: [usize; 3],
+    auto_route: AutoTextRasterRouteFrameReport,
+    resolved_glyph_artifact_routes: ScreenSpaceUiResolvedGlyphArtifactRouteReport,
+    resolved_texts: ScreenSpaceUiResolvedTextReport,
     sdf_fallback: ScreenSpaceUiTextSdfFallbackReport,
     native_prepare: ScreenSpaceUiNativePrepareReport,
+    font_assets: UiFontAssetCacheReport,
     missing_glyphs: MissingGlyphDiagnosticsReport,
     bitmap_atlas_renderer: GlyphAtlasBitmapRendererPrepareReport,
     sdf_atlas: SdfAtlasCacheReport,
@@ -155,16 +222,21 @@ pub(super) fn text_prepare_report(
         failure_count: sdf_renderer.bake.generation_failure_count,
     };
     ScreenSpaceUiTextPrepareReport {
-        input_auto_text_batch_count: auto_texts.len(),
-        input_native_text_batch_count: native_texts.len(),
-        input_sdf_text_batch_count: sdf_texts.len(),
-        resolved_native_text_batch_count: resolved_texts.native_texts().len(),
-        resolved_sdf_text_batch_count: resolved_texts.sdf_texts().len(),
-        auto_route: resolved_texts.auto_route_report(),
+        input_auto_text_batch_count: input_batch_counts[0],
+        input_native_text_batch_count: input_batch_counts[1],
+        input_sdf_text_batch_count: input_batch_counts[2],
+        resolved_glyph_artifact_routes,
+        resolved_native_text_batch_count: resolved_texts.native_text_batch_count,
+        resolved_sdf_text_batch_count: resolved_texts.sdf_text_batch_count,
+        renderer_batch_residency: resolved_texts.batch_residency,
+        post_layout_stale_artifact_batch_rejection_count: resolved_texts
+            .post_layout_stale_artifact_batch_rejection_count,
+        auto_route,
         sdf_fallback,
+        font_assets,
         native_font_ids: native_prepare.font_ids,
         missing_glyphs,
-        layout_fallbacks: resolved_texts.layout_fallback_report(),
+        layout_fallbacks: resolved_texts.layout_fallbacks,
         raster_upload,
         native_bitmap_atlas: native_prepare.bitmap_atlas,
         bitmap_atlas_renderer,
@@ -172,6 +244,54 @@ pub(super) fn text_prepare_report(
         sdf_generation,
         sdf_renderer,
     }
+}
+
+fn text_batch_residency_report(
+    native_texts: &[ScreenSpaceUiTextBatch],
+    sdf_texts: &[ScreenSpaceUiTextBatch],
+) -> ScreenSpaceUiTextBatchResidencyReport {
+    let mut report = ScreenSpaceUiTextBatchResidencyReport::default();
+    for batch in native_texts.iter().chain(sdf_texts) {
+        report.materialized_batch_count = report.materialized_batch_count.saturating_add(1);
+        report.text_byte_count = report.text_byte_count.saturating_add(batch.text.len());
+        report.glyph_advance_byte_count = report.glyph_advance_byte_count.saturating_add(
+            batch
+                .glyph_advances
+                .len()
+                .saturating_mul(std::mem::size_of::<f32>()),
+        );
+    }
+    report
+}
+
+fn merge_layout_fallback_report(
+    frame: &mut TextLayoutFallbackReport,
+    segment: TextLayoutFallbackReport,
+) {
+    debug_assert_eq!(
+        frame.unicode_data_generation,
+        segment.unicode_data_generation
+    );
+    debug_assert_eq!(
+        frame.unicode_data_fingerprint,
+        segment.unicode_data_fingerprint
+    );
+    frame.fallback_count = frame.fallback_count.saturating_add(segment.fallback_count);
+    frame.generation_deferred_count = frame
+        .generation_deferred_count
+        .saturating_add(segment.generation_deferred_count);
+    frame.invalid_font_size_count = frame
+        .invalid_font_size_count
+        .saturating_add(segment.invalid_font_size_count);
+    frame.invalid_language_count = frame
+        .invalid_language_count
+        .saturating_add(segment.invalid_language_count);
+    frame.bidi_invariant_count = frame
+        .bidi_invariant_count
+        .saturating_add(segment.bidi_invariant_count);
+    frame.other_error_count = frame
+        .other_error_count
+        .saturating_add(segment.other_error_count);
 }
 
 pub(super) fn text_raster_upload_report(
@@ -224,6 +344,22 @@ pub(super) fn text_raster_upload_report(
         atlas_slot_cache_miss_count: native_bitmap_atlas.submission.slot_cache_miss_count,
         atlas_slot_cache_insert_count: native_bitmap_atlas.submission.slot_cache_insert_count,
         atlas_resident_page_byte_len: native_bitmap_atlas.submission.resident_page_byte_len,
+        atlas_page_shadow_resident_page_count: native_bitmap_atlas
+            .submission
+            .bitmap_page_shadow
+            .resident_page_count,
+        atlas_page_shadow_resident_byte_count: native_bitmap_atlas
+            .submission
+            .bitmap_page_shadow
+            .resident_byte_count,
+        atlas_page_shadow_max_byte_count: native_bitmap_atlas
+            .submission
+            .bitmap_page_shadow
+            .max_byte_count,
+        atlas_page_shadow_budget_rejection_count: native_bitmap_atlas
+            .submission
+            .bitmap_page_shadow
+            .budget_rejection_count,
         worker_request_submitted_count: native_bitmap_atlas
             .source_cache
             .worker_request_submitted_count,
@@ -316,5 +452,49 @@ pub(super) fn text_raster_upload_report(
         renderer_upload_requeued_count: bitmap_atlas_renderer.upload_requeued_count,
         renderer_upload_failure_count: bitmap_atlas_renderer.upload_failure_count,
         renderer_upload_ready_to_write_texture: bitmap_atlas_renderer.upload_ready_to_write_texture,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolved_text_report_merges_segment_counts_and_payload_sizes() {
+        let mut frame = ScreenSpaceUiResolvedTextReport {
+            native_text_batch_count: 2,
+            sdf_text_batch_count: 1,
+            batch_residency: ScreenSpaceUiTextBatchResidencyReport {
+                materialized_batch_count: 3,
+                text_byte_count: 12,
+                glyph_advance_byte_count: 8,
+            },
+            post_layout_stale_artifact_batch_rejection_count: 1,
+            layout_fallbacks: TextLayoutFallbackReport::default(),
+        };
+        let mut segment_fallbacks = TextLayoutFallbackReport::default();
+        segment_fallbacks.fallback_count = 2;
+        segment_fallbacks.invalid_language_count = 1;
+
+        frame.merge(ScreenSpaceUiResolvedTextReport {
+            native_text_batch_count: 1,
+            sdf_text_batch_count: 4,
+            batch_residency: ScreenSpaceUiTextBatchResidencyReport {
+                materialized_batch_count: 5,
+                text_byte_count: 20,
+                glyph_advance_byte_count: 16,
+            },
+            post_layout_stale_artifact_batch_rejection_count: 3,
+            layout_fallbacks: segment_fallbacks,
+        });
+
+        assert_eq!(frame.native_text_batch_count, 3);
+        assert_eq!(frame.sdf_text_batch_count, 5);
+        assert_eq!(frame.batch_residency.materialized_batch_count, 8);
+        assert_eq!(frame.batch_residency.text_byte_count, 32);
+        assert_eq!(frame.batch_residency.glyph_advance_byte_count, 24);
+        assert_eq!(frame.post_layout_stale_artifact_batch_rejection_count, 4);
+        assert_eq!(frame.layout_fallbacks.fallback_count, 2);
+        assert_eq!(frame.layout_fallbacks.invalid_language_count, 1);
     }
 }

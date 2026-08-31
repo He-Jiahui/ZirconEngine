@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use zircon_runtime::core::framework::render::RenderVisibleSpatialQuerySnapshot;
 
-use crate::scene::viewport::pointer::precision::RendererVisibleSpatialPickSource;
+use crate::scene::viewport::pointer::precision::{
+    lock_shared_resolution_state, RendererVisibleSpatialPickSource,
+};
 
 use super::ViewportOverlayPointerRouter;
 
@@ -49,35 +51,66 @@ impl ViewportOverlayPointerRouter {
                     .is_some_and(|world| snapshot.identity().world.raw() == world)
             })
             .cloned();
-        if let Ok(mut shared) = self.shared.lock() {
-            let source = snapshot.map(|snapshot| {
-                shared
-                    .renderer_visible_spatial_pick_source
-                    .as_ref()
-                    .map(|current| {
-                        current.with_snapshot(
-                            snapshot.clone(),
-                            self.layout.camera.clone(),
-                            self.layout.viewport,
-                        )
-                    })
-                    .unwrap_or_else(|| {
-                        RendererVisibleSpatialPickSource::new(
-                            snapshot,
-                            &self.renderable_candidates,
-                            self.layout.camera.clone(),
-                            self.layout.viewport,
-                        )
-                    })
-            });
-            let source_changed =
-                source.is_some() != shared.renderer_visible_spatial_pick_source.is_some();
-            shared.renderer_visible_spatial_pick_source = source;
+        let mut shared = lock_shared_resolution_state(self.shared.as_ref());
+        let (source, source_changed, source_reused) = match snapshot {
+            Some(snapshot) => match shared.renderer_visible_spatial_pick_source.as_ref() {
+                Some(current)
+                    if current.is_current_for(
+                        &snapshot,
+                        &self.layout.camera,
+                        self.layout.viewport,
+                    ) =>
+                {
+                    (Some(current.clone()), false, true)
+                }
+                Some(current) => (
+                    Some(current.with_snapshot(
+                        snapshot,
+                        self.layout.camera.clone(),
+                        self.layout.viewport,
+                    )),
+                    true,
+                    false,
+                ),
+                None => (
+                    Some(RendererVisibleSpatialPickSource::new(
+                        snapshot,
+                        &self.renderable_candidates,
+                        self.layout.camera.clone(),
+                        self.layout.viewport,
+                    )),
+                    true,
+                    false,
+                ),
+            },
+            None => (
+                None,
+                shared.renderer_visible_spatial_pick_source.is_some(),
+                false,
+            ),
+        };
+        let projection_context_build_count = if source_changed && source.is_some() {
+            1_usize
+        } else {
+            0
+        };
+        let source_reuse_count = if source_reused { 1_usize } else { 0 };
+        zircon_runtime::profile_counter!(
+            "editor",
+            "viewport.pointer.visible_spatial_projection_context_build_count",
+            projection_context_build_count,
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "viewport.pointer.visible_spatial_source_reuse_count",
+            source_reuse_count,
+        );
+        shared.renderer_visible_spatial_pick_source = source;
+        if source_changed {
             shared.last_route = None;
             shared.last_debug_feed = None;
-            return source_changed;
         }
-        false
+        source_changed
     }
 
     fn has_renderer_visible_spatial_snapshot(&self) -> bool {
@@ -102,5 +135,24 @@ mod tests {
         assert!(source.contains("current.with_snapshot"));
         let scene_sync = include_str!("viewport_overlay_pointer_router_sync.rs");
         assert!(scene_sync.contains("self.renderer_visible_spatial_snapshot = None;"));
+    }
+
+    #[test]
+    fn unchanged_renderer_generation_reuses_its_projection_source() {
+        let source = include_str!("viewport_overlay_pointer_router_visible_spatial_query.rs")
+            .split_once("#[cfg(test)]")
+            .map_or(
+                include_str!("viewport_overlay_pointer_router_visible_spatial_query.rs"),
+                |(production, _)| production,
+            );
+
+        assert!(source.contains("current.is_current_for"));
+        assert!(source.contains("current.clone()"));
+        assert!(source.contains("visible_spatial_source_reuse_count"));
+        assert!(source.contains("visible_spatial_projection_context_build_count"));
+        assert!(source.contains("let (source, source_changed, source_reused)"));
+        assert!(source.contains("if source_changed && source.is_some()"));
+        assert!(source.contains("current.with_snapshot"));
+        assert!(source.contains("if source_changed {"));
     }
 }

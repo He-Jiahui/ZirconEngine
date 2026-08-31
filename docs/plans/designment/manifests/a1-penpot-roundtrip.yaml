@@ -1,0 +1,44 @@
+milestone: A1
+status: external-check-deferred
+mvp_gate: design-ready
+owner_sessions:
+  - root-designment02-penpot-zui-roundtrip-20260831
+changed_scope:
+  - dev/penpot/plugins/apps/zircon-zui-plugin
+  - dev/penpot/plugins/angular.json
+  - dev/penpot/plugins/package.json
+  - dev/penpot/plugins/pnpm-lock.yaml
+packages:
+  - zircon-zui-plugin
+feature_profiles:
+  - penpot-plugin-api-v2
+interface_boundaries:
+  - Penpot plugin UI <-> plugin host
+  - semantic boards <-> reversible ZUI metadata
+target_dir: not-applicable
+cargo_profile: development
+storage_mode: reuse
+commands:
+  - eslint .
+  - prettier --check angular.json package.json apps/zircon-zui-plugin
+  - tsc --noEmit for app, CLI, plugin, and spec targets
+  - vitest run
+  - build-plugin.mjs --plugin=zircon-zui-plugin
+  - ng build zircon-zui-plugin
+  - HTTP probe manifest.json and assets/plugin.js
+  - Chrome iframe visual probe at 420x520 and 320x520
+focused_tests:
+  - 12 parser, projection, reconcile, and bridge asset unit tests
+  - responsive plugin panel metrics
+product_evidence:
+  - evidence/screenshots/a1-zui-plugin-420.png
+  - evidence/screenshots/a1-zui-plugin-320.png
+failures_repaired:
+  - Angular Node runtime selection
+  - warning visual state and narrow-width layout
+  - projection module ownership split
+  - semantic component metadata consistency guard
+deferred_external_checks:
+  - Real Penpot canvas import/edit/export requires a running local Penpot instance
+unlocks:
+  - A2-contract-validation

@@ -1,10 +1,17 @@
 use std::fmt;
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
 
+mod generation;
+
+pub(crate) use generation::{
+    ConsoleOutputLineDelta, ConsoleOutputLineGeneration, ConsoleOutputLineSnapshot,
+};
+
 pub(crate) const CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY: usize = 256;
+pub(crate) const ACTIVITY_LOG_JUMP_ACTION_PREFIX: &str = "workbench.activity_log.jump.";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum EditorConsoleMessageLevel {
@@ -26,43 +33,66 @@ impl ConsoleOutputLevelCounts {
         self.info + self.warning + self.error
     }
 
-    fn from_levels(levels: &[EditorConsoleMessageLevel]) -> Self {
+    pub(crate) fn add_level(&mut self, level: EditorConsoleMessageLevel) {
+        match level {
+            EditorConsoleMessageLevel::Info => self.info += 1,
+            EditorConsoleMessageLevel::Warning => self.warning += 1,
+            EditorConsoleMessageLevel::Error => self.error += 1,
+        }
+    }
+
+    pub(crate) fn remove_level(&mut self, level: EditorConsoleMessageLevel) {
+        let count = match level {
+            EditorConsoleMessageLevel::Info => &mut self.info,
+            EditorConsoleMessageLevel::Warning => &mut self.warning,
+            EditorConsoleMessageLevel::Error => &mut self.error,
+        };
+        *count = count.saturating_sub(1);
+    }
+
+    pub(crate) fn from_lines(lines: &ConsoleOutputLineGeneration) -> Self {
         let mut counts = Self::default();
-        for level in levels {
-            match level {
-                EditorConsoleMessageLevel::Info => counts.info += 1,
-                EditorConsoleMessageLevel::Warning => counts.warning += 1,
-                EditorConsoleMessageLevel::Error => counts.error += 1,
-            }
+        for line in lines.iter() {
+            counts.add_level(line.level());
         }
         counts
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct ConsoleOutputSnapshot {
-    text: Arc<str>,
-    levels: Arc<[EditorConsoleMessageLevel]>,
+#[derive(Debug)]
+struct ConsoleOutputSnapshotData {
+    lines: Arc<ConsoleOutputLineGeneration>,
     counts: ConsoleOutputLevelCounts,
     filter: ConsoleMessageFilter,
     source_filter: ConsoleSourceFilter,
-    jump_sequences: Arc<[Option<u64>]>,
+    line_delta: ConsoleOutputLineDelta,
+    flat_text: OnceLock<Arc<str>>,
+    levels: OnceLock<Arc<[EditorConsoleMessageLevel]>>,
+    jump_sequences: OnceLock<Arc<[Option<u64>]>>,
+}
+
+#[derive(Clone)]
+pub struct ConsoleOutputSnapshot {
+    data: Arc<ConsoleOutputSnapshotData>,
 }
 
 impl ConsoleOutputSnapshot {
     pub(crate) fn new(text: Arc<str>, levels: Arc<[EditorConsoleMessageLevel]>) -> Self {
         debug_assert!(text_and_levels_align(text.as_ref(), levels.as_ref()));
-        let (text, levels) = bounded_output(text, levels);
-        let counts = ConsoleOutputLevelCounts::from_levels(levels.as_ref());
-        let jump_sequences = Arc::from(vec![None; levels.len()]);
-        Self {
-            text,
-            levels,
+        let lines = generation_from_flat_parts(text.as_ref(), levels.as_ref(), &[]);
+        let counts = ConsoleOutputLevelCounts::from_lines(&lines);
+        let entered = lines.len();
+        Self::from_line_generation(
+            Arc::new(lines),
             counts,
-            filter: ConsoleMessageFilter::All,
-            source_filter: ConsoleSourceFilter::All,
-            jump_sequences,
-        }
+            ConsoleMessageFilter::All,
+            ConsoleSourceFilter::All,
+            ConsoleOutputLineDelta {
+                entered,
+                expired: 0,
+                retained: 0,
+            },
+        )
     }
 
     pub(crate) fn filtered(
@@ -72,16 +102,19 @@ impl ConsoleOutputSnapshot {
         filter: ConsoleMessageFilter,
     ) -> Self {
         debug_assert!(text_and_levels_align(text.as_ref(), levels.as_ref()));
-        let (text, levels) = bounded_output(text, levels);
-        let jump_sequences = Arc::from(vec![None; levels.len()]);
-        Self {
-            text,
-            levels,
+        let lines = generation_from_flat_parts(text.as_ref(), levels.as_ref(), &[]);
+        let entered = lines.len();
+        Self::from_line_generation(
+            Arc::new(lines),
             counts,
             filter,
-            source_filter: ConsoleSourceFilter::All,
-            jump_sequences,
-        }
+            ConsoleSourceFilter::All,
+            ConsoleOutputLineDelta {
+                entered,
+                expired: 0,
+                retained: 0,
+            },
+        )
     }
 
     pub(crate) fn activity(
@@ -93,58 +126,202 @@ impl ConsoleOutputSnapshot {
     ) -> Self {
         debug_assert!(text_and_levels_align(text.as_ref(), levels.as_ref()));
         debug_assert_eq!(levels.len(), jump_sequences.len());
-        let (text, levels, jump_sequences) = bounded_activity_output(text, levels, jump_sequences);
-        let counts = ConsoleOutputLevelCounts::from_levels(levels.as_ref());
-        Self {
-            text,
-            levels,
+        let lines =
+            generation_from_flat_parts(text.as_ref(), levels.as_ref(), jump_sequences.as_ref());
+        let counts = ConsoleOutputLevelCounts::from_lines(&lines);
+        let entered = lines.len();
+        Self::from_line_generation(
+            Arc::new(lines),
             counts,
             filter,
             source_filter,
-            jump_sequences,
+            ConsoleOutputLineDelta {
+                entered,
+                expired: 0,
+                retained: 0,
+            },
+        )
+    }
+
+    pub(crate) fn from_line_generation(
+        lines: Arc<ConsoleOutputLineGeneration>,
+        counts: ConsoleOutputLevelCounts,
+        filter: ConsoleMessageFilter,
+        source_filter: ConsoleSourceFilter,
+        line_delta: ConsoleOutputLineDelta,
+    ) -> Self {
+        Self {
+            data: Arc::new(ConsoleOutputSnapshotData {
+                lines,
+                counts,
+                filter,
+                source_filter,
+                line_delta,
+                flat_text: OnceLock::new(),
+                levels: OnceLock::new(),
+                jump_sequences: OnceLock::new(),
+            }),
         }
     }
 
     pub fn levels(&self) -> &[EditorConsoleMessageLevel] {
-        self.levels.as_ref()
+        self.data
+            .levels
+            .get_or_init(|| {
+                self.data
+                    .lines
+                    .iter()
+                    .map(ConsoleOutputLineSnapshot::level)
+                    .collect::<Vec<_>>()
+                    .into()
+            })
+            .as_ref()
     }
 
     pub fn has_output(&self) -> bool {
-        !self.levels.is_empty()
+        !self.data.lines.is_empty()
     }
 
-    pub const fn counts(&self) -> ConsoleOutputLevelCounts {
-        self.counts
+    pub fn counts(&self) -> ConsoleOutputLevelCounts {
+        self.data.counts
     }
 
-    pub const fn filter(&self) -> ConsoleMessageFilter {
-        self.filter
+    pub fn filter(&self) -> ConsoleMessageFilter {
+        self.data.filter
     }
 
-    pub const fn source_filter(&self) -> ConsoleSourceFilter {
-        self.source_filter
+    pub fn source_filter(&self) -> ConsoleSourceFilter {
+        self.data.source_filter
     }
 
     pub fn jump_sequences(&self) -> &[Option<u64>] {
-        self.jump_sequences.as_ref()
+        self.data
+            .jump_sequences
+            .get_or_init(|| {
+                self.data
+                    .lines
+                    .iter()
+                    .map(ConsoleOutputLineSnapshot::jump_sequence)
+                    .collect::<Vec<_>>()
+                    .into()
+            })
+            .as_ref()
     }
 
     pub(crate) fn levels_arc(&self) -> Arc<[EditorConsoleMessageLevel]> {
-        Arc::clone(&self.levels)
+        Arc::clone(self.data.levels.get_or_init(|| {
+            self.data
+                .lines
+                .iter()
+                .map(ConsoleOutputLineSnapshot::level)
+                .collect::<Vec<_>>()
+                .into()
+        }))
     }
 
     pub(crate) fn text_arc(&self) -> Arc<str> {
-        Arc::clone(&self.text)
+        Arc::clone(
+            self.data
+                .flat_text
+                .get_or_init(|| flatten_lines(&self.data.lines)),
+        )
     }
 
     pub(crate) fn jump_sequences_arc(&self) -> Arc<[Option<u64>]> {
-        Arc::clone(&self.jump_sequences)
+        Arc::clone(self.data.jump_sequences.get_or_init(|| {
+            self.data
+                .lines
+                .iter()
+                .map(ConsoleOutputLineSnapshot::jump_sequence)
+                .collect::<Vec<_>>()
+                .into()
+        }))
+    }
+
+    pub(crate) fn logical_line(&self, index: usize) -> Option<&ConsoleOutputLineSnapshot> {
+        self.data.lines.get(index)
+    }
+
+    pub(crate) fn logical_line_count(&self) -> usize {
+        self.data.lines.len()
+    }
+
+    pub(crate) fn line_generation(&self) -> Arc<ConsoleOutputLineGeneration> {
+        Arc::clone(&self.data.lines)
+    }
+
+    pub(crate) fn line_delta(&self) -> ConsoleOutputLineDelta {
+        self.data.line_delta
+    }
+
+    pub(crate) fn shares_logical_generation_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.data.lines, &other.data.lines)
+    }
+
+    pub(crate) fn shares_logical_storage_chunk_with(
+        &self,
+        other: &Self,
+        self_index: usize,
+        other_index: usize,
+    ) -> bool {
+        self.data
+            .lines
+            .shares_storage_chunk_with(&other.data.lines, self_index, other_index)
+    }
+
+    pub(crate) fn has_materialized_flat_text(&self) -> bool {
+        self.data.flat_text.get().is_some()
+    }
+
+    fn flat_text(&self) -> &str {
+        self.data
+            .flat_text
+            .get_or_init(|| flatten_lines(&self.data.lines))
+            .as_ref()
     }
 }
 
+impl Default for ConsoleOutputSnapshot {
+    fn default() -> Self {
+        Self::from_line_generation(
+            Arc::new(ConsoleOutputLineGeneration::default()),
+            ConsoleOutputLevelCounts::default(),
+            ConsoleMessageFilter::All,
+            ConsoleSourceFilter::All,
+            ConsoleOutputLineDelta::default(),
+        )
+    }
+}
+
+impl fmt::Debug for ConsoleOutputSnapshot {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ConsoleOutputSnapshot")
+            .field("logical_line_count", &self.logical_line_count())
+            .field("counts", &self.counts())
+            .field("filter", &self.filter())
+            .field("source_filter", &self.source_filter())
+            .field("line_delta", &self.line_delta())
+            .field("flat_text_materialized", &self.has_materialized_flat_text())
+            .finish()
+    }
+}
+
+impl PartialEq for ConsoleOutputSnapshot {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.data, &other.data)
+            || (self.counts() == other.counts()
+                && self.filter() == other.filter()
+                && self.source_filter() == other.source_filter()
+                && self.data.lines == other.data.lines)
+    }
+}
+
+impl Eq for ConsoleOutputSnapshot {}
+
 impl AsRef<str> for ConsoleOutputSnapshot {
     fn as_ref(&self) -> &str {
-        self.text.as_ref()
+        self.flat_text()
     }
 }
 
@@ -152,13 +329,13 @@ impl Deref for ConsoleOutputSnapshot {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
-        self.text.as_ref()
+        self.flat_text()
     }
 }
 
 impl fmt::Display for ConsoleOutputSnapshot {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.text.as_ref())
+        formatter.write_str(self.flat_text())
     }
 }
 
@@ -176,9 +353,60 @@ impl From<String> for ConsoleOutputSnapshot {
         if retained_start > 0 {
             return Self::from(&text[retained_start..]);
         }
-        let levels = vec![EditorConsoleMessageLevel::Info; logical_line_count(&text)];
-        Self::new(Arc::from(text), Arc::from(levels))
+        Self::from(text.as_str())
     }
+}
+
+fn generation_from_flat_parts(
+    text: &str,
+    levels: &[EditorConsoleMessageLevel],
+    jump_sequences: &[Option<u64>],
+) -> ConsoleOutputLineGeneration {
+    if text.is_empty() && levels.is_empty() {
+        return ConsoleOutputLineGeneration::default();
+    }
+    let line_count = logical_line_count(text).max(levels.len());
+    let retained_start = line_count.saturating_sub(CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY);
+    let lines = text
+        .split('\n')
+        .skip(retained_start)
+        .enumerate()
+        .map(|(retained_index, line)| {
+            let source_index = retained_start + retained_index;
+            let level = levels.get(source_index).copied().unwrap_or_default();
+            let jump_sequence = jump_sequences.get(source_index).copied().flatten();
+            let action_id = jump_sequence.map(|sequence| {
+                Arc::<str>::from(format!("{ACTIVITY_LOG_JUMP_ACTION_PREFIX}{sequence}"))
+            });
+            ConsoleOutputLineSnapshot::new(
+                source_index as u64,
+                Arc::from(line),
+                level,
+                jump_sequence,
+                action_id,
+            )
+        })
+        .collect::<Vec<_>>();
+    ConsoleOutputLineGeneration::from_lines(lines)
+}
+
+fn flatten_lines(lines: &ConsoleOutputLineGeneration) -> Arc<str> {
+    if lines.is_empty() {
+        return Arc::from("");
+    }
+    let text_len = lines
+        .iter()
+        .map(|line| line.raw_text().len())
+        .sum::<usize>()
+        .saturating_add(lines.len().saturating_sub(1));
+    let mut text = String::with_capacity(text_len);
+    for (index, line) in lines.iter().enumerate() {
+        if index > 0 {
+            text.push('\n');
+        }
+        text.push_str(line.raw_text());
+    }
+    text.into()
 }
 
 fn logical_line_count(text: &str) -> usize {
@@ -203,55 +431,6 @@ fn bounded_text_tail_start(text: &str) -> usize {
         return 0;
     }
     byte_offset_after_logical_lines(text, line_count - CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY)
-}
-
-fn bounded_output(
-    text: Arc<str>,
-    levels: Arc<[EditorConsoleMessageLevel]>,
-) -> (Arc<str>, Arc<[EditorConsoleMessageLevel]>) {
-    let line_count = if text.is_empty() {
-        levels.len()
-    } else {
-        logical_line_count(text.as_ref())
-    };
-    if line_count <= CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY {
-        return (text, levels);
-    }
-
-    let lines_to_drop = line_count - CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY;
-    let retained_text_start = byte_offset_after_logical_lines(text.as_ref(), lines_to_drop);
-    let retained_levels_start = levels.len() - CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY;
-    (
-        Arc::from(&text[retained_text_start..]),
-        Arc::from(&levels[retained_levels_start..]),
-    )
-}
-
-fn bounded_activity_output(
-    text: Arc<str>,
-    levels: Arc<[EditorConsoleMessageLevel]>,
-    jump_sequences: Arc<[Option<u64>]>,
-) -> (
-    Arc<str>,
-    Arc<[EditorConsoleMessageLevel]>,
-    Arc<[Option<u64>]>,
-) {
-    let line_count = if text.is_empty() {
-        levels.len()
-    } else {
-        logical_line_count(text.as_ref())
-    };
-    if line_count <= CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY {
-        return (text, levels, jump_sequences);
-    }
-
-    let lines_to_drop = line_count - CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY;
-    let retained_text_start = byte_offset_after_logical_lines(text.as_ref(), lines_to_drop);
-    (
-        Arc::from(&text[retained_text_start..]),
-        Arc::from(&levels[lines_to_drop..]),
-        Arc::from(&jump_sequences[lines_to_drop..]),
-    )
 }
 
 fn text_and_levels_align(text: &str, levels: &[EditorConsoleMessageLevel]) -> bool {
@@ -297,7 +476,7 @@ mod tests {
         assert_eq!(output.counts().info, 3);
         assert_eq!(output.counts().total(), 3);
         assert_eq!(output.filter(), ConsoleMessageFilter::All);
-        assert!(Arc::ptr_eq(&output.text, &output.text_arc()));
+        assert!(Arc::ptr_eq(&output.text_arc(), &output.text_arc()));
         assert!(ConsoleOutputSnapshot::from("").levels().is_empty());
     }
 
@@ -333,5 +512,20 @@ mod tests {
         assert!(blank_line.has_output());
         assert!(blank_line.is_empty());
         assert_eq!(blank_line.counts().warning, 1);
+    }
+
+    #[test]
+    fn snapshot_preserves_raw_crlf_text_but_exposes_clean_presentation_lines() {
+        let output = ConsoleOutputSnapshot::from("compile\r\nready");
+
+        assert_eq!(output.as_ref(), "compile\r\nready");
+        assert_eq!(
+            output.logical_line(0).map(|line| line.text()),
+            Some("compile")
+        );
+        assert_eq!(
+            output.logical_line(1).map(|line| line.text()),
+            Some("ready")
+        );
     }
 }

@@ -229,6 +229,93 @@ fn event_bus_runtime07_paused_bounded_consumer_pressure_evidence() {
     );
 }
 
+#[test]
+#[ignore = "managed Runtime07 performance evidence"]
+fn event_bus_runtime07_unsubscribe_teardown_evidence() {
+    const QUEUED_EVENTS: usize = 16_384;
+    const REPEATS: usize = 7;
+
+    let mut teardown_samples = Vec::with_capacity(REPEATS);
+    for _ in 0..REPEATS {
+        let bus = EventBus::new(EventBusDiagnosticsMode::Enabled);
+        let events = bus.subscribe("runtime.teardown", EngineEventDeliveryPolicy::Lossless);
+        for sequence in 0..QUEUED_EVENTS {
+            bus.publish(EngineEvent {
+                topic: "runtime.teardown".to_string(),
+                payload: serde_json::json!({ "sequence": sequence }),
+            });
+        }
+        assert_eq!(bus.diagnostic_report().queued, QUEUED_EVENTS as u64);
+
+        let started = Instant::now();
+        drop(events);
+        teardown_samples.push(started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64);
+
+        let report = bus.diagnostic_report();
+        assert_eq!(report.queued, 0);
+        assert_eq!(report.disconnected, 1);
+    }
+
+    println!(
+        "EVENTBUS_BENCH_V2 kind=unsubscribe_teardown mode=enabled queued_events={} repeats={} queue_lock_entries_before={} queue_lock_entries_after=1 p50_ns={} p95_ns={} p99_ns={} max_ns={}",
+        QUEUED_EVENTS,
+        REPEATS,
+        QUEUED_EVENTS,
+        percentile_ns(&teardown_samples, 50),
+        percentile_ns(&teardown_samples, 95),
+        percentile_ns(&teardown_samples, 99),
+        teardown_samples.iter().copied().max().unwrap_or_default(),
+    );
+}
+
+#[test]
+#[ignore = "managed Runtime07 performance evidence"]
+fn event_bus_runtime07_receive_diagnostics_evidence() {
+    const REPEATS: usize = 5;
+    const MEASURED_SAMPLES: usize = 256;
+    const SAMPLE_INTERVAL: u64 = 64;
+
+    for mode in [
+        EventBusDiagnosticsMode::Enabled,
+        EventBusDiagnosticsMode::Sampled {
+            every: NonZeroU64::new(SAMPLE_INTERVAL).unwrap(),
+        },
+        EventBusDiagnosticsMode::Disabled,
+    ] {
+        let mut durations = Vec::with_capacity(REPEATS * MEASURED_SAMPLES);
+        for _ in 0..REPEATS {
+            let bus = EventBus::new(mode);
+            let events = bus.subscribe("runtime.receive", EngineEventDeliveryPolicy::Lossless);
+            for sample in 0..WARMUP_SAMPLES + MEASURED_SAMPLES {
+                bus.publish(EngineEvent {
+                    topic: "runtime.receive".to_string(),
+                    payload: serde_json::json!({ "sample": sample }),
+                });
+                let started = Instant::now();
+                let event = events.recv().expect("queued event must be received");
+                let elapsed = started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
+                assert_eq!(event.payload["sample"].as_u64(), Some(sample as u64));
+                if sample >= WARMUP_SAMPLES {
+                    durations.push(elapsed);
+                }
+            }
+            assert_eq!(bus.diagnostic_report().queued, 0);
+        }
+
+        println!(
+            "EVENTBUS_BENCH_V2 kind=receive_diagnostics mode={} repeats={} samples={} p50_ns={} p95_ns={} p99_ns={} max_ns={} throughput_per_second={:.2}",
+            event_bus_diagnostics_mode_label(mode),
+            REPEATS,
+            durations.len(),
+            percentile_ns(&durations, 50),
+            percentile_ns(&durations, 95),
+            percentile_ns(&durations, 99),
+            durations.iter().copied().max().unwrap_or_default(),
+            throughput_per_second(&durations),
+        );
+    }
+}
+
 fn publish_samples(
     mode: EventBusDiagnosticsMode,
     subscriber_count: usize,
@@ -330,6 +417,14 @@ fn assert_sampled_report(
 
 fn sample_count(total: u64, every: u64) -> u64 {
     total.div_ceil(every)
+}
+
+fn event_bus_diagnostics_mode_label(mode: EventBusDiagnosticsMode) -> &'static str {
+    match mode {
+        EventBusDiagnosticsMode::Enabled => "enabled",
+        EventBusDiagnosticsMode::Sampled { .. } => "sampled",
+        EventBusDiagnosticsMode::Disabled => "disabled",
+    }
 }
 
 fn throughput_per_second(samples_ns: &[u64]) -> f64 {

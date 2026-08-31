@@ -1,3 +1,11 @@
+pub type ReflectResourceReadFieldBySlot = fn(
+    &crate::scene::World,
+    u32,
+) -> Result<
+    zircon_runtime_interface::reflect::ReflectedValue,
+    zircon_runtime_interface::reflect::ReflectError,
+>;
+
 pub type ReflectResourceWriteFieldBySlot =
     fn(
         &mut crate::scene::World,
@@ -44,12 +52,7 @@ pub struct ReflectResource {
         zircon_runtime_interface::reflect::ReflectedValue,
         zircon_runtime_interface::reflect::ReflectError,
     >,
-    pub read_fields: fn(
-        &crate::scene::World,
-    ) -> Result<
-        Vec<zircon_runtime_interface::reflect::ReflectFieldValue>,
-        zircon_runtime_interface::reflect::ReflectError,
-    >,
+    pub read_field_by_slot: ReflectResourceReadFieldBySlot,
     pub write_field_by_slot: ReflectResourceWriteFieldBySlot,
     pub write_fields_by_slot: ReflectResourceWriteFieldsBySlot,
 }
@@ -109,14 +112,15 @@ impl ReflectResource {
         (self.read_field)(world, field_name)
     }
 
-    pub fn read_fields(
+    pub fn read_field_by_slot(
         &self,
         world: &crate::scene::World,
+        field_slot: u32,
     ) -> Result<
-        Vec<zircon_runtime_interface::reflect::ReflectFieldValue>,
+        zircon_runtime_interface::reflect::ReflectedValue,
         zircon_runtime_interface::reflect::ReflectError,
     > {
-        (self.read_fields)(world)
+        (self.read_field_by_slot)(world, field_slot)
     }
 
     pub fn write_fields_by_slot(

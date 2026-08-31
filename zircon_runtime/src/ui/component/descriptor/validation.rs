@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use thiserror::Error;
 
@@ -86,7 +86,7 @@ fn validate_schema_names(
     schema_kind: &'static str,
     schemas: &[UiPropSchema],
 ) -> Result<(), UiComponentDescriptorError> {
-    let mut names = BTreeSet::new();
+    let mut names = HashSet::with_capacity(schemas.len());
     for schema in schemas {
         if schema.name.trim().is_empty() || !names.insert(schema.name.as_str()) {
             return Err(UiComponentDescriptorError::DuplicateSchemaName {
@@ -96,7 +96,7 @@ fn validate_schema_names(
             });
         }
 
-        let mut option_ids = BTreeSet::new();
+        let mut option_ids = HashSet::with_capacity(schema.options.len());
         for option in &schema.options {
             if !option_ids.insert(option.id.as_str()) {
                 return Err(UiComponentDescriptorError::DuplicateSchemaName {
@@ -113,7 +113,7 @@ fn validate_schema_names(
 fn validate_slot_names(
     descriptor: &UiComponentDescriptor,
 ) -> Result<(), UiComponentDescriptorError> {
-    let mut names = BTreeSet::new();
+    let mut names = HashSet::with_capacity(descriptor.slot_schema.len());
     for slot in &descriptor.slot_schema {
         if slot.name.trim().is_empty() || !names.insert(slot.name.as_str()) {
             return Err(UiComponentDescriptorError::DuplicateSlotName {
@@ -280,3 +280,6 @@ fn validate_value_kind(
         actual,
     })
 }
+
+#[cfg(test)]
+mod hash_membership_tests;

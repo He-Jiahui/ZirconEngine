@@ -69,7 +69,7 @@ impl World {
         let registration = self.type_registry.runtime_registration(type_path)?;
         let Some(component) = registration.component.as_ref() else {
             return Err(ReflectError::InvalidRegistration {
-                type_path: registration.registration.type_path.type_path.clone(),
+                type_path: registration.registration.type_path.type_path().to_string(),
                 reason: "registered type has no component staging adapter".to_string(),
             });
         };
@@ -200,7 +200,7 @@ impl World {
             .component_registry
             .begin_transferred_descriptor_imports();
         let mut component_types = Vec::new();
-        let mut registration_validation = crate::scene::reflect::TypeRegistry::default();
+        let mut schema_validation = self.type_registry.schema_catalog().clone();
         let mut pending_component_type_ids = BTreeSet::new();
         for descriptor in component_type_descriptors {
             if let Some(existing) = self.component_type_descriptor(&descriptor.type_id) {
@@ -234,7 +234,13 @@ impl World {
                 registration,
                 resource: None,
             };
-            registration_validation.register(runtime_registration.clone())?;
+            self.type_registry
+                .validate_new_registration(&runtime_registration)?;
+            schema_validation.try_insert(
+                zircon_runtime_interface::reflect::ReflectSchemaCatalogEntry::new(
+                    runtime_registration.registration.clone(),
+                ),
+            )?;
             self.component_registry
                 .preflight_dynamic_descriptor_import(&mut descriptor_imports, &descriptor.type_id);
             component_types.push(PreflightedDynamicComponentType {
@@ -268,14 +274,9 @@ impl World {
                 .push((component_id, row));
         }
 
-        let mut next_id = self.next_id;
+        let mut allocator = self.entity_id_allocator;
         for record in &records {
-            next_id = next_id.max(
-                record
-                    .id
-                    .checked_add(1)
-                    .ok_or(SceneError::EntityIdExhausted { entity: record.id })?,
-            );
+            allocator.advance_past(record.id)?;
         }
 
         Ok(PreflightedDynamicScenePublication {
@@ -285,7 +286,7 @@ impl World {
             dynamic_components,
             resource_rows,
             component_types,
-            next_id,
+            next_id: allocator.next_id(),
         })
     }
 
@@ -338,7 +339,9 @@ impl World {
                 "prevalidated records must have unique entity ids"
             );
         }
-        self.next_id = self.next_id.max(next_id);
+        self.entity_id_allocator.replace_next(next_id).expect(
+            "preflighted dynamic scene publication must retain a valid entity allocator state",
+        );
 
         for component in dynamic_components {
             self.dynamic_components
@@ -467,7 +470,7 @@ impl World {
                 projected_component_descriptors += 1;
             }
             if let Ok(registration) = self.type_registry.runtime_registration(&type_path) {
-                let canonical_type_path = registration.registration.type_path.type_path.as_str();
+                let canonical_type_path = registration.registration.type_path.type_path();
                 if !preflight
                     .type_registry
                     .contains_type_path(canonical_type_path)
@@ -573,8 +576,12 @@ mod tests {
     #[test]
     fn staged_world_commit_stales_compiled_binding_when_entity_ids_are_reused() {
         let mut current = World::empty();
-        let root = current.spawn_node(NodeKind::Empty);
-        let hero = current.spawn_node(NodeKind::Mesh);
+        let root = current
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        let hero = current
+            .spawn_node(NodeKind::Mesh)
+            .expect("test scene spawn should succeed");
         current.rename_node(root, "Root").unwrap();
         current.rename_node(hero, "Hero").unwrap();
         current.set_parent_checked(hero, Some(root)).unwrap();
@@ -587,8 +594,12 @@ mod tests {
             .unwrap();
 
         let mut staged = World::empty();
-        let staged_root = staged.spawn_node(NodeKind::Empty);
-        let staged_hero = staged.spawn_node(NodeKind::Mesh);
+        let staged_root = staged
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        let staged_hero = staged
+            .spawn_node(NodeKind::Mesh)
+            .expect("test scene spawn should succeed");
         assert_eq!(root, staged_root);
         assert_eq!(hero, staged_hero);
         staged.rename_node(staged_root, "Root").unwrap();

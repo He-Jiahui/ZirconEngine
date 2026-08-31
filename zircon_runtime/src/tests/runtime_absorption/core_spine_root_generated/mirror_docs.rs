@@ -42,7 +42,7 @@ fn runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts
     let crate_root = runtime_root.join("src").join("lib.rs");
     assert_eq!(
         public_modules(&crate_root).len(),
-        19,
+        21,
         "runtime root public module count changed without Runtime 02 audit sync"
     );
     assert_eq!(
@@ -152,12 +152,20 @@ fn runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts
     }
 
     for (doc_name, doc_source) in MIRROR_DOCS {
+        assert!(
+            !doc_source.contains("runtime root public modules 19/19"),
+            "{doc_name} must not present the retired 19-module Runtime 02 snapshot as current evidence"
+        );
+        assert!(
+            !doc_source.contains("Direct audit evidence remains 19 public modules"),
+            "{doc_name} must not present the retired 19-module Runtime 02 snapshot as current direct audit evidence"
+        );
         for required_anchor in [
             "core_spine_root_generated_boundary",
             "core root entries 6/6",
             "core public modules 5/5",
             "retired core root entries 0",
-            "runtime root public modules 19/19",
+            "runtime root public modules 21/21",
             "public `pub use` sites 2/2",
             "crate-visible graphics alias debt 0/0",
             "root-surface M1 gate `classified-and-clear`",

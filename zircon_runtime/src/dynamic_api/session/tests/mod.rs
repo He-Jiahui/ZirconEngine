@@ -3,6 +3,7 @@ mod frame_demand;
 mod frame_diagnostics;
 mod highlight_set;
 mod lock_poison;
+mod physical_input_ownership;
 mod runtime_errors;
 mod runtime_ui_surface;
 mod vampire_gameplay;

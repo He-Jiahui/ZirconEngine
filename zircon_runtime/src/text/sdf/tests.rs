@@ -1,6 +1,6 @@
 use crate::core::math::UVec2;
-use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
 use crate::text::VariationCoords;
+use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
 
 use super::*;
 

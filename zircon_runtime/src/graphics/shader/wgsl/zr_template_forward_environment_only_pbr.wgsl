@@ -26,9 +26,10 @@ fn zr_apply_alpha_clip(surface: ZrSurfaceOutput) {
     }
 }
 
-fn zr_fs_main_impl(input: ZrVertexOutput) -> vec4<f32> {
-    let surface = zr_material_surface(input);
+fn zr_fs_main_impl(input: ZrVertexOutput, front_facing: bool) -> vec4<f32> {
+    var surface = zr_surface_apply_raster_facing(zr_material_surface(input), front_facing);
     zr_apply_alpha_clip(surface);
+    surface = zr_surface_apply_environment_capture_policy(surface);
     return vec4<f32>(
         shade_forward(surface, zr_build_shading_context(input)),
         surface.base_color.a,
@@ -36,11 +37,17 @@ fn zr_fs_main_impl(input: ZrVertexOutput) -> vec4<f32> {
 }
 
 @fragment
-fn zr_fs_main(input: ZrVertexOutput) -> @location(0) vec4<f32> {
-    return zr_fs_main_impl(input);
+fn zr_fs_main(
+    input: ZrVertexOutput,
+    @builtin(front_facing) front_facing: bool,
+) -> @location(0) vec4<f32> {
+    return zr_fs_main_impl(input, front_facing);
 }
 
 @fragment
-fn fs_main(input: ZrVertexOutput) -> @location(0) vec4<f32> {
-    return zr_fs_main_impl(input);
+fn fs_main(
+    input: ZrVertexOutput,
+    @builtin(front_facing) front_facing: bool,
+) -> @location(0) vec4<f32> {
+    return zr_fs_main_impl(input, front_facing);
 }

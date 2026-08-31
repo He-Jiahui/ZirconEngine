@@ -6,6 +6,14 @@ use super::ConditionExpressionCompileError;
 pub(in crate::state_machine) struct ParameterSlot(u32);
 
 impl ParameterSlot {
+    pub(in crate::state_machine) fn new(
+        index: usize,
+    ) -> Result<Self, ConditionExpressionCompileError> {
+        Ok(Self(u32::try_from(index).map_err(|_| {
+            ConditionExpressionCompileError::CapacityExceeded
+        })?))
+    }
+
     pub(in crate::state_machine) fn index(self) -> usize {
         self.0 as usize
     }
@@ -25,10 +33,7 @@ impl ParameterTableBuilder {
         if let Some(slot) = self.slots.get(name) {
             return Ok(*slot);
         }
-        let slot = ParameterSlot(
-            u32::try_from(self.names.len())
-                .map_err(|_| ConditionExpressionCompileError::CapacityExceeded)?,
-        );
+        let slot = ParameterSlot::new(self.names.len())?;
         self.names.push(name.to_string());
         self.slots.insert(name.to_string(), slot);
         Ok(slot)

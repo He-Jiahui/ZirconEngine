@@ -125,7 +125,7 @@ fn skinned_morph_velocity_extract(
         CameraRenderDescriptor::from_camera_payload(Some(SKINNED_MORPH_VELOCITY_NODE_ID), camera);
     descriptor.clear = RenderCameraClear::Color(Vec4::ZERO);
     extract.view.select_camera_descriptor(descriptor);
-    extract.geometry = GeometryExtract::from_meshes(
+    *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,
         vec![skinned_morph_velocity_mesh_snapshot(
             material_id,
@@ -133,10 +133,10 @@ fn skinned_morph_velocity_extract(
             morph_weight,
         )],
     );
-    extract.animation_poses = vec![RenderSkeletalPoseExtract {
+    *extract.animation_poses = vec![RenderSkeletalPoseExtract {
         entity: SKINNED_MORPH_VELOCITY_NODE_ID,
         skeleton: skeleton_id,
-        pose: skinned_morph_pose(),
+        pose: Arc::new(skinned_morph_pose()),
     }];
     extract.view.anti_alias = AntiAliasSettings::taa();
     extract.post_process.effect_stack.motion_blur = RenderMotionBlurSettings {

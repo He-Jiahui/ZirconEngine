@@ -23,61 +23,61 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
             "editor.console",
             "res://ui/editor/host/console_body.zui",
             "ConsolePaneBody",
-            "ConsolePaneBody/ClearConsole",
+            Some("ConsolePaneBody/ClearConsole"),
         ),
         (
             "editor.inspector",
             "res://ui/editor/host/inspector_body.zui",
             "InspectorPaneBody",
-            "InspectorPaneBody/ApplyDraft",
+            None,
         ),
         (
             "editor.hierarchy",
             "res://ui/editor/host/hierarchy_body.zui",
             "HierarchyPaneBody",
-            "HierarchyPaneBody/SelectRoot",
+            Some("HierarchyPaneBody/SelectRoot"),
         ),
         (
             "editor.animation_sequence",
             "res://ui/editor/host/animation_sequence_body.zui",
             "AnimationSequencePaneBody",
-            "AnimationSequencePaneBody/ScrubTimeline",
+            None,
         ),
         (
             "editor.animation_graph",
             "res://ui/editor/host/animation_graph_body.zui",
             "AnimationGraphPaneBody",
-            "AnimationGraphPaneBody/AddNode",
+            None,
         ),
         (
             "editor.runtime_diagnostics",
             "res://ui/editor/host/runtime_diagnostics_body.zui",
             "RuntimeDiagnosticsPaneBody",
-            "RuntimeDiagnosticsPaneBody/FocusDiagnostics",
+            Some("RuntimeDiagnosticsPaneBody/FocusDiagnostics"),
         ),
         (
             "editor.performance_timeline",
             "res://ui/editor/host/performance_timeline_body.zui",
             "PerformanceTimelinePaneBody",
-            "PerformanceTimelinePaneBody/RefreshSnapshot",
+            None,
         ),
         (
             "editor.module_plugins",
             "res://ui/editor/host/module_plugins_body.zui",
             "ModulePluginsPaneBody",
-            "ModulePluginsPaneBody/FocusModulePlugins",
+            Some("ModulePluginsPaneBody/FocusModulePlugins"),
         ),
         (
             "editor.build_export_desktop",
             "res://ui/editor/host/build_export_desktop_body.zui",
             "BuildExportPaneBody",
-            "BuildExportPaneBody/FocusBuildExport",
+            Some("BuildExportPaneBody/FocusBuildExport"),
         ),
         (
             "editor.generated_bottom",
             "res://ui/editor/host/generated_bottom_body.zui",
             "GeneratedBottomPaneBody",
-            "WorkbenchGeneratedBottom/OpenPanel",
+            Some("WorkbenchGeneratedBottom/OpenPanel"),
         ),
     ];
 
@@ -116,12 +116,14 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
             "document `{document_id}` should project a vertical root layout, got `{}`",
             projection.root.component
         );
-        assert!(
-            projection
-                .bindings
-                .iter()
-                .any(|binding| binding.binding_id == binding_id),
-            "document `{document_id}` must expose binding `{binding_id}` through runtime projection"
-        );
+        if let Some(binding_id) = binding_id {
+            assert!(
+                projection
+                    .bindings
+                    .iter()
+                    .any(|binding| binding.binding_id == binding_id),
+                "document `{document_id}` must expose binding `{binding_id}` through runtime projection"
+            );
+        }
     }
 }

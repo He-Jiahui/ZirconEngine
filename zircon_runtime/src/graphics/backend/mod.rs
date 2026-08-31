@@ -2,41 +2,61 @@
 
 mod render_backend;
 
+pub(crate) use render_backend::ReadbackPollStats;
+#[cfg(test)]
+pub(crate) use render_backend::RenderBackendConfig;
 #[cfg(test)]
 pub(crate) use render_backend::configure_renderdoc_capture_file_path_template;
 #[cfg(test)]
 pub(crate) use render_backend::read_buffer_f32x4;
 #[cfg(test)]
+pub(crate) use render_backend::read_ibl_bake_artifact_wgpu_sections;
+#[cfg(test)]
+pub(crate) use render_backend::read_texture_rgba;
+#[cfg(test)]
 pub(crate) use render_backend::read_texture_rgba16float_3d;
 #[cfg(test)]
-pub(crate) use render_backend::RenderBackendConfig;
-#[allow(unused_imports)]
 pub(crate) use render_backend::{
-    prepare_ibl_bake_artifact_wgpu_readback, read_buffer_bytes, read_buffer_f32x4_array_bytes,
-    read_buffer_sh9_f32x4_bytes, read_ibl_bake_artifact_wgpu_sections,
-    read_texture_rgba16float_cube_mip_chain, read_texture_rgba16float_region, BufferByteReadback,
-    IblBakeArtifactWgpuPendingReadback, IblBakeArtifactWgpuReadbackResources,
-    Rgba16FloatTextureRegionReadback,
+    BufferByteReadback, read_buffer_bytes, read_buffer_f32x4_array_bytes,
+    read_buffer_sh9_f32x4_bytes,
 };
 pub(crate) use render_backend::{
-    read_texture_rgba, GraphicsDebuggerCaptureStop, OffscreenTarget, RenderBackend, ViewportSurface,
-};
-pub(crate) use render_backend::{
+    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES,
     GpuPassPipelineStatistics, GpuPassTimer, GpuPassTimestampScope, GpuPassTiming,
     GpuPipelineStatistics, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsScope,
     GpuPipelineStatisticsTimer, GpuTimerFrameObservation, GpuTimerFrameResult, GpuTimerFrameStatus,
-    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES,
 };
-pub(crate) use render_backend::{GpuReadbackQueue, ReadbackPollStats};
+pub(crate) use render_backend::{
+    GraphicsDebuggerCaptureStop, OffscreenTarget, RenderBackend, ViewportSurface,
+    ViewportSurfaceFrameAcquire, ViewportSurfacePresentFailure, ViewportSurfacePresentOutcome,
+};
+#[allow(unused_imports)]
+pub(crate) use render_backend::{
+    IblBakeArtifactWgpuPendingReadback, IblBakeArtifactWgpuReadbackResources,
+    request_ibl_bake_artifact_wgpu_readback,
+};
+pub use render_backend::{NeutralMvpCaptureError, NeutralMvpRenderer};
+pub(crate) use render_backend::{
+    ProductDiagnosticQueryFrameScope, ProductDiagnosticReadbackFrameScope,
+};
+#[cfg(test)]
+pub(crate) use render_backend::{
+    Rgba16FloatTextureRegionReadback, read_texture_rgba16float_cube_mip_chain,
+    read_texture_rgba16float_region,
+};
+pub(crate) use render_backend::{
+    SystemTextureGenerationLease, SystemTextureGenerationStartupReport,
+    SystemTexturePayloadCacheState,
+};
 
 #[cfg(test)]
 mod tests {
     use super::{
+        DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES,
         GpuPassPipelineStatistics, GpuPassTimer, GpuPassTimestampScope, GpuPassTiming,
         GpuPipelineStatistics, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsScope,
         GpuPipelineStatisticsTimer, GpuTimerFrameObservation, GpuTimerFrameResult,
-        GpuTimerFrameStatus, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
-        DEFAULT_GPU_TIMER_MAX_PASSES,
+        GpuTimerFrameStatus,
     };
 
     #[test]

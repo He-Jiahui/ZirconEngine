@@ -15,12 +15,17 @@ impl RetainedEditorHost {
             self.welcome_recent_pointer_size,
             ViewContentKind::Welcome,
         );
-        let chrome = self.runtime.chrome_snapshot();
-        self.sync_welcome_recent_pointer_layout(&chrome);
+        let size_state_changed = self.sync_welcome_recent_pointer_size();
         if !self.ensure_welcome_surface_bridge() {
+            if size_state_changed {
+                self.apply_welcome_recent_pointer_state_to_ui();
+            }
             return;
         }
         let Some(welcome_surface_bridge) = self.welcome_surface_bridge.as_ref() else {
+            if size_state_changed {
+                self.apply_welcome_recent_pointer_state_to_ui();
+            }
             self.set_status_line("Welcome UI controls are not available");
             return;
         };
@@ -30,13 +35,19 @@ impl RetainedEditorHost {
             UiPoint::new(x, y),
         ) {
             Ok(dispatch) => {
-                self.welcome_recent_pointer_state = dispatch.pointer.state;
-                self.apply_welcome_recent_pointer_state_to_ui();
+                if size_state_changed || dispatch.pointer.changed {
+                    self.apply_welcome_recent_pointer_state_to_ui();
+                }
                 if let Some(event) = dispatch.event {
                     self.handle_welcome_surface_event(event);
                 }
             }
-            Err(error) => self.set_status_line(error),
+            Err(error) => {
+                if size_state_changed {
+                    self.apply_welcome_recent_pointer_state_to_ui();
+                }
+                self.set_status_line(error);
+            }
         }
     }
 }

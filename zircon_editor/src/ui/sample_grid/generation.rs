@@ -59,9 +59,9 @@ pub(crate) struct SampleGridGeneration {
     x_max: f32,
     y_min: f32,
     y_max: f32,
-    x_ticks: Arc<[SampleGridTick]>,
-    y_ticks: Arc<[SampleGridTick]>,
-    points: Arc<[SampleGridPoint]>,
+    x_ticks: Arc<Vec<SampleGridTick>>,
+    y_ticks: Arc<Vec<SampleGridTick>>,
+    points: Arc<Vec<SampleGridPoint>>,
     static_generation: u64,
     dynamic_generation: u64,
 }
@@ -98,19 +98,21 @@ impl SampleGridGeneration {
     pub(crate) fn new(input: SampleGridGenerationInput) -> Self {
         let x_axis_label: Arc<str> = Arc::from(input.x_axis_label);
         let y_axis_label: Arc<str> = Arc::from(input.y_axis_label);
-        let x_ticks: Arc<[SampleGridTick]> = input
-            .x_ticks
-            .into_iter()
-            .map(SampleGridTick::from_value)
-            .collect::<Vec<_>>()
-            .into();
-        let y_ticks: Arc<[SampleGridTick]> = input
-            .y_ticks
-            .into_iter()
-            .map(SampleGridTick::from_value)
-            .collect::<Vec<_>>()
-            .into();
-        let points: Arc<[SampleGridPoint]> = input.points.into();
+        let x_ticks = shared_vec(
+            input
+                .x_ticks
+                .into_iter()
+                .map(SampleGridTick::from_value)
+                .collect(),
+        );
+        let y_ticks = shared_vec(
+            input
+                .y_ticks
+                .into_iter()
+                .map(SampleGridTick::from_value)
+                .collect(),
+        );
+        let points = shared_vec(input.points);
         let static_generation = static_generation(
             &x_axis_label,
             &y_axis_label,
@@ -118,11 +120,16 @@ impl SampleGridGeneration {
             input.x_max,
             input.y_min,
             input.y_max,
-            &x_ticks,
-            &y_ticks,
+            x_ticks.as_slice(),
+            y_ticks.as_slice(),
         );
-        let dynamic_generation =
-            dynamic_generation(input.x_min, input.x_max, input.y_min, input.y_max, &points);
+        let dynamic_generation = dynamic_generation(
+            input.x_min,
+            input.x_max,
+            input.y_min,
+            input.y_max,
+            points.as_slice(),
+        );
         Self {
             x_axis_label,
             y_axis_label,
@@ -163,15 +170,15 @@ impl SampleGridGeneration {
     }
 
     pub(crate) fn x_ticks(&self) -> &[SampleGridTick] {
-        &self.x_ticks
+        self.x_ticks.as_slice()
     }
 
     pub(crate) fn y_ticks(&self) -> &[SampleGridTick] {
-        &self.y_ticks
+        self.y_ticks.as_slice()
     }
 
     pub(crate) fn points(&self) -> &[SampleGridPoint] {
-        &self.points
+        self.points.as_slice()
     }
 
     pub(crate) fn static_generation(&self) -> u64 {
@@ -181,6 +188,10 @@ impl SampleGridGeneration {
     pub(crate) fn dynamic_generation(&self) -> u64 {
         self.dynamic_generation
     }
+}
+
+fn shared_vec<T>(values: Vec<T>) -> Arc<Vec<T>> {
+    Arc::new(values)
 }
 
 impl SampleGridTick {
@@ -286,3 +297,7 @@ impl GenerationHash {
         self.0
     }
 }
+
+#[cfg(test)]
+#[path = "generation/shared_vec_storage_tests.rs"]
+mod shared_vec_storage_tests;

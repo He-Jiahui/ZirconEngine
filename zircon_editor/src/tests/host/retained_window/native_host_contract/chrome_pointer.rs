@@ -286,7 +286,7 @@ fn native_host_activity_rail_press_uses_center_band_damage() {
 }
 
 #[test]
-fn native_host_pointer_click_routes_host_page_tabs_with_tab_local_point() {
+fn native_host_pointer_click_routes_host_page_tabs_with_explicit_action() {
     let ui = UiHostWindow::new().expect("workbench shell should instantiate");
     ui.window().set_size(PhysicalSize::new(420, 260));
     let mut presentation = ui.get_host_presentation();
@@ -305,11 +305,10 @@ fn native_host_pointer_click_routes_host_page_tabs_with_tab_local_point() {
     let clicks = Rc::new(RefCell::new(Vec::new()));
     {
         let clicks = clicks.clone();
-        ui.global::<UiHostContext>().on_host_page_pointer_clicked(
-            move |index, tab_x, tab_width, x, y| {
-                clicks.borrow_mut().push((index, tab_x, tab_width, x, y));
-            },
-        );
+        ui.global::<UiHostContext>()
+            .on_host_page_pointer_clicked(move |index, close| {
+                clicks.borrow_mut().push((index, close));
+            });
     }
 
     let result = ui.dispatch_native_primary_press_for_test(80.0, 41.0);
@@ -323,8 +322,16 @@ fn native_host_pointer_click_routes_host_page_tabs_with_tab_local_point() {
     );
     assert_eq!(
         clicks.borrow().as_slice(),
-        [(0, 68.0, 116.0, 12.0, 12.0)],
-        "host page tab pointer bridge expects tab-local click coordinates, not global shell coordinates"
+        [(0, false)],
+        "native host page routing should emit an explicit activation receipt"
+    );
+
+    let close_result = ui.dispatch_native_primary_press_for_test(170.0, 41.0);
+    assert!(close_result.request_redraw());
+    assert_eq!(
+        clicks.borrow().as_slice(),
+        [(0, false), (0, true)],
+        "the committed native close frame should emit close without an editor re-hit"
     );
 }
 
@@ -357,17 +364,16 @@ fn native_host_pointer_click_routes_host_page_overflow_button_and_popup_rows() {
     let clicks = Rc::new(RefCell::new(Vec::new()));
     {
         let clicks = clicks.clone();
-        ui.global::<UiHostContext>().on_host_page_pointer_clicked(
-            move |index, tab_x, tab_width, x, y| {
-                clicks.borrow_mut().push((index, tab_x, tab_width, x, y));
-            },
-        );
+        ui.global::<UiHostContext>()
+            .on_host_page_pointer_clicked(move |index, close| {
+                clicks.borrow_mut().push((index, close));
+            });
     }
 
     let overflow_result = ui.dispatch_native_primary_press_for_test(198.0, 41.0);
 
     assert!(overflow_result.request_redraw());
-    assert_eq!(clicks.borrow().as_slice(), [(-2, 188.0, 34.0, 10.0, 12.0)]);
+    assert_eq!(clicks.borrow().as_slice(), [(-2, false)]);
 
     ui.global::<UiHostContext>()
         .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData {
@@ -380,7 +386,7 @@ fn native_host_pointer_click_routes_host_page_overflow_button_and_popup_rows() {
     assert!(row_result.request_redraw());
     assert_eq!(
         clicks.borrow().as_slice(),
-        [(-2, 188.0, 34.0, 10.0, 12.0), (1, 56.0, 160.0, 14.0, 7.0)],
+        [(-2, false), (1, false)],
         "overflow popup rows should dispatch the hidden page index through the same host page callback"
     );
     assert!(
@@ -463,10 +469,10 @@ fn native_host_pointer_click_routes_binding_only_template_buttons() {
         pane: pane_with_nodes(
             "Project",
             vec![template_node_with_binding(
-                "ApplyDraft",
+                "SelectRoot",
                 "Button",
-                "Apply Draft",
-                "InspectorPaneBody/ApplyDraft",
+                "Select Root",
+                "HierarchyPaneBody/SelectRoot",
                 12.0,
                 14.0,
                 92.0,
@@ -495,8 +501,8 @@ fn native_host_pointer_click_routes_binding_only_template_buttons() {
     assert_eq!(
         clicks.borrow().as_slice(),
         [(
-            "ApplyDraft".to_string(),
-            "InspectorPaneBody/ApplyDraft".to_string()
+            "SelectRoot".to_string(),
+            "HierarchyPaneBody/SelectRoot".to_string()
         )],
         "native template button hit-testing should route projected binding metadata when no literal action_id exists"
     );

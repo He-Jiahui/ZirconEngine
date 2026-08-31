@@ -164,7 +164,15 @@ fn assert_populated_asset_content(window: &UiHostWindow) {
 pub(super) fn assets_drawer_window(width: u32, height: u32) -> UiHostWindow {
     let mut fixture = default_preview_fixture();
     let active = ViewInstanceId::new("editor.assets#1");
-    if let Some(drawer) = fixture.layout.drawers.get_mut(&ActivityDrawerSlot::LeftTop) {
+    if let Some(drawer) = fixture
+        .layout
+        .active_activity_window_mut()
+        .and_then(|window| {
+            window
+                .activity_drawers
+                .get_mut(&ActivityDrawerSlot::LeftTop)
+        })
+    {
         if !drawer.tab_stack.tabs.contains(&active) {
             drawer.tab_stack.tabs.push(active.clone());
         }

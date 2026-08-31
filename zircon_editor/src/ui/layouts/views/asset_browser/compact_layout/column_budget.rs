@@ -45,17 +45,34 @@ fn side_panels_preserve_content(viewport_width: f32, side_widths: &[f32], gap: f
     if viewport_width <= f32::EPSILON {
         return false;
     }
-    let (side_width, visible_side_count) = side_widths
-        .iter()
-        .copied()
-        .filter(|width| *width > f32::EPSILON)
-        .fold((0.0_f32, 0_usize), |(width, count), side_width| {
-            (width + side_width, count + 1)
-        });
+    let (side_width, visible_side_count) = match side_widths {
+        [] => (0.0_f32, 0_usize),
+        [width] if *width > f32::EPSILON => (*width, 1),
+        [first, second] => {
+            let first_visible = *first > f32::EPSILON;
+            let second_visible = *second > f32::EPSILON;
+            (
+                if first_visible { *first } else { 0.0 }
+                    + if second_visible { *second } else { 0.0 },
+                usize::from(first_visible) + usize::from(second_visible),
+            )
+        }
+        _ => side_widths
+            .iter()
+            .copied()
+            .filter(|width| *width > f32::EPSILON)
+            .fold((0.0_f32, 0_usize), |(width, count), side_width| {
+                (width + side_width, count + 1)
+            }),
+    };
     let remaining_content_width =
         (viewport_width - side_width - gap * visible_side_count as f32).max(0.0);
     remaining_content_width >= viewport_width * MINIMUM_CONTENT_WIDTH_FRACTION
 }
+
+#[cfg(test)]
+#[path = "column_budget/fast_width_tests.rs"]
+mod fast_width_tests;
 
 fn finite_non_negative(value: f32) -> f32 {
     if value.is_finite() {

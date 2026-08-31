@@ -109,16 +109,6 @@ pub(super) fn feedback(action_id: &str) -> Option<ExtensionModuleFeedback> {
             status_text: "Project overview opened",
             output_text: "Native extension workspace opened for NebulaGame",
         },
-        "workbench.extension.project_overview.refresh.invoke" => ExtensionModuleFeedback {
-            output_control_id: "WorkbenchExtensionProjectOverviewOutputRow",
-            status_text: "Project overview refreshed",
-            output_text: "Refresh queued   health board   7 tasks",
-        },
-        "workbench.extension.project_overview.publish.invoke" => ExtensionModuleFeedback {
-            output_control_id: "WorkbenchExtensionProjectOverviewOutputRow",
-            status_text: "Project overview publish queued",
-            output_text: "Publish queued   Development channel   Healthy",
-        },
         "workbench.extension.project_overview.health_row.select" => ExtensionModuleFeedback {
             output_control_id: "WorkbenchExtensionProjectOverviewOutputRow",
             status_text: "Project health selected",

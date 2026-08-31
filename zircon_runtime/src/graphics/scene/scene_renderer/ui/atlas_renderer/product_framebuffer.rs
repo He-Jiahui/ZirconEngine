@@ -4,11 +4,11 @@ use std::{
 };
 
 use crate::core::math::UVec2;
-use crate::graphics::backend::{read_texture_rgba, RenderBackend};
+use crate::graphics::backend::{RenderBackend, read_texture_rgba};
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{
-    glyph_atlas_bitmap_render_submission_plan, GlyphAtlasBitmapSource,
-    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
+    GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
+    glyph_atlas_bitmap_render_submission_plan,
 };
 
 use super::GlyphAtlasBitmapRenderer;
@@ -93,6 +93,28 @@ fn native_bitmap_product_proof_rejects_relative_cargo_target_directory() {
     let _ = require_absolute_cargo_target_dir(PathBuf::from("cargo-targets").join("native-proof"));
 }
 
+#[cfg(windows)]
+#[test]
+#[should_panic(expected = "CARGO_TARGET_DIR must use a D:, E:, or F: coordinator root")]
+fn native_bitmap_product_proof_rejects_c_drive_cargo_target_directory() {
+    let _ = require_absolute_cargo_target_dir(PathBuf::from(r"C:\cargo-targets\native-proof"));
+}
+
+#[cfg(windows)]
+#[test]
+fn native_bitmap_product_proof_accepts_coordinator_cargo_target_roots() {
+    for target_dir in [
+        PathBuf::from(r"D:\cargo-targets\native-proof"),
+        PathBuf::from(r"E:\cargo-targets\native-proof"),
+        PathBuf::from(r"F:\cargo-targets\native-proof"),
+    ] {
+        assert_eq!(
+            require_absolute_cargo_target_dir(target_dir.clone()),
+            target_dir
+        );
+    }
+}
+
 #[test]
 #[ignore = "exports an explicit runtime WGPU native bitmap atlas framebuffer proof"]
 fn render_text_native_bitmap_atlas_product_framebuffer() {
@@ -127,9 +149,10 @@ fn render_text_native_bitmap_atlas_product_framebuffer() {
     assert_eq!(submission.run.upload_copies.len(), glyphs.len());
 
     let mut renderer = GlyphAtlasBitmapRenderer::new(&backend.device, target_format);
+    let mut buffer_uploads = zr_rhi_wgpu::WgpuBufferUploadBatch::new();
+    let mut texture_uploads = zr_rhi_wgpu::WgpuTextureUploadBatch::new();
     let _shadow_commit = renderer.prepare_submission(
         &backend.device,
-        &backend.queue,
         &submission,
         glyphs.iter().enumerate().map(|(source_index, glyph)| {
             GlyphAtlasBitmapUploadSourceBytes::new(source_index, glyph.mask.as_slice())
@@ -137,6 +160,9 @@ fn render_text_native_bitmap_atlas_product_framebuffer() {
         UVec2::new(ATLAS_SIZE, ATLAS_SIZE),
         1,
         GlyphAtlasFormat::AlphaMask,
+        &mut buffer_uploads,
+        &mut texture_uploads,
+        false,
     );
     let report = renderer.prepare_report();
     assert_eq!(report.storage_pass_visible_glyph_count, glyphs.len());
@@ -152,7 +178,6 @@ fn render_text_native_bitmap_atlas_product_framebuffer() {
 
     let _steady_shadow_commit = renderer.prepare_submission(
         &backend.device,
-        &backend.queue,
         &submission,
         glyphs.iter().enumerate().map(|(source_index, glyph)| {
             GlyphAtlasBitmapUploadSourceBytes::new(source_index, glyph.mask.as_slice())
@@ -160,6 +185,9 @@ fn render_text_native_bitmap_atlas_product_framebuffer() {
         UVec2::new(ATLAS_SIZE, ATLAS_SIZE),
         1,
         GlyphAtlasFormat::AlphaMask,
+        &mut buffer_uploads,
+        &mut texture_uploads,
+        false,
     );
     let steady_report = renderer.prepare_report();
     assert_eq!(steady_report.instance_buffer_reallocation_count, 0);
@@ -167,6 +195,12 @@ fn render_text_native_bitmap_atlas_product_framebuffer() {
         steady_report.instance_buffer_capacity_byte_len,
         first_instance_buffer_capacity
     );
+    backend
+        .enqueue_copy_resource_upload_batch(zr_rhi_wgpu::WgpuResourceUploadBatch::from_batches(
+            buffer_uploads,
+            texture_uploads,
+        ))
+        .expect("native bitmap resource upload batch");
 
     let mut encoder = backend
         .device
@@ -197,7 +231,9 @@ fn render_text_native_bitmap_atlas_product_framebuffer() {
         });
         renderer.render(&mut pass);
     }
-    backend.queue.submit([encoder.finish()]);
+    backend
+        .submit_graphics_command_buffers(vec![encoder.finish()])
+        .expect("submit native bitmap atlas product frame");
     let rgba = read_texture_rgba(&backend.device, &backend.queue, &target, viewport_size)
         .expect("read native bitmap atlas product framebuffer");
     assert_native_bitmap_layout_pixels(&rgba, &glyphs);
@@ -358,7 +394,29 @@ fn require_absolute_cargo_target_dir(target_dir: PathBuf) -> PathBuf {
         "CARGO_TARGET_DIR must be an absolute coordinator path before exporting a framebuffer proof: {}",
         target_dir.display(),
     );
+    #[cfg(windows)]
+    assert!(
+        coordinator_target_root_is_approved(&target_dir),
+        "CARGO_TARGET_DIR must use a D:, E:, or F: coordinator root before exporting a framebuffer proof: {}",
+        target_dir.display(),
+    );
     target_dir
+}
+
+#[cfg(windows)]
+fn coordinator_target_root_is_approved(target_dir: &Path) -> bool {
+    target_dir
+        .components()
+        .next()
+        .is_some_and(|component| match component {
+            Component::Prefix(prefix) => match prefix.kind() {
+                std::path::Prefix::Disk(letter) | std::path::Prefix::VerbatimDisk(letter) => {
+                    matches!(letter, b'D' | b'd' | b'E' | b'e' | b'F' | b'f')
+                }
+                _ => false,
+            },
+            _ => false,
+        })
 }
 
 fn glyph_atlas_product_proof_is_outside_target(output: &Path, target_dir: &Path) -> bool {

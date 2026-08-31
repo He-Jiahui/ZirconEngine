@@ -6,6 +6,15 @@ use crate::plugin::RuntimeExtensionRegistryError;
 
 use super::{PluginModuleId, RuntimeExtensionRegistry};
 
+fn interface_import_key(module_name: &str, interface_id: &str) -> String {
+    let capacity = module_name.len() + 2 + interface_id.len();
+    let mut key = String::with_capacity(capacity);
+    key.push_str(module_name);
+    key.push_str("=>");
+    key.push_str(interface_id);
+    key
+}
+
 impl RuntimeExtensionRegistry {
     pub fn export_interface<T>(
         &mut self,
@@ -79,7 +88,7 @@ impl RuntimeExtensionRegistry {
                 owner.raw()
             ))
         })?;
-        let key = format!("{module_name}=>{}", import.interface_id());
+        let key = interface_import_key(module_name, import.interface_id());
         if self.plugin_interface_imports.contains_key(&key) {
             return Err(RuntimeExtensionRegistryError::DuplicatePluginInterfaceImport(key));
         }
@@ -137,5 +146,18 @@ impl RuntimeExtensionRegistry {
                 .iter()
                 .map(|(owner, interface_id, export)| (owner, interface_id.clone(), export.clone())),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::interface_import_key;
+
+    #[test]
+    fn exact_interface_import_key_preserves_identity() {
+        assert_eq!(
+            interface_import_key("weather.runtime", "zr.weather.v1"),
+            "weather.runtime=>zr.weather.v1"
+        );
     }
 }

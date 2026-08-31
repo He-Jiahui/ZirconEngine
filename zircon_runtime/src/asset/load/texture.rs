@@ -5,6 +5,15 @@ use thiserror::Error;
 
 use crate::asset::types::{CpuTexturePayload, TextureSource};
 
+const RGBA8_BYTES_PER_PIXEL: usize = 4;
+const CHECKER_TEXTURE_WIDTH: usize = 128;
+const CHECKER_TEXTURE_HEIGHT: usize = 128;
+const CHECKER_TILE_SIZE: usize = 16;
+const GRID_TEXTURE_WIDTH: usize = 256;
+const GRID_TEXTURE_HEIGHT: usize = 256;
+const GRID_MINOR_SPACING: usize = 16;
+const GRID_MAJOR_SPACING: usize = 64;
+
 pub(crate) type TextureLoadResult<T> = std::result::Result<T, TextureLoadError>;
 
 #[derive(Debug, Error)]
@@ -50,56 +59,166 @@ fn image_to_payload(source: TextureSource, image: DynamicImage) -> CpuTexturePay
 }
 
 pub(crate) fn generate_checker_texture() -> CpuTexturePayload {
-    let width = 128;
-    let height = 128;
-    let mut rgba = vec![0_u8; width * height * 4];
-
-    for y in 0..height {
-        for x in 0..width {
-            let tile = ((x / 16) + (y / 16)) % 2;
-            let color = if tile == 0 {
-                [220, 220, 220, 255]
-            } else {
-                [40, 40, 40, 255]
-            };
-            let offset = (y * width + x) * 4;
-            rgba[offset..offset + 4].copy_from_slice(&color);
-        }
+    let checker_row_templates = checker_row_templates();
+    let mut rgba =
+        Vec::with_capacity(CHECKER_TEXTURE_WIDTH * CHECKER_TEXTURE_HEIGHT * RGBA8_BYTES_PER_PIXEL);
+    for y in 0..CHECKER_TEXTURE_HEIGHT {
+        rgba.extend_from_slice(&checker_row_templates[(y / CHECKER_TILE_SIZE) % 2]);
     }
 
     CpuTexturePayload {
         source: TextureSource::BuiltinChecker,
-        width: width as u32,
-        height: height as u32,
+        width: CHECKER_TEXTURE_WIDTH as u32,
+        height: CHECKER_TEXTURE_HEIGHT as u32,
         rgba,
     }
 }
 
 pub(crate) fn generate_grid_texture() -> CpuTexturePayload {
-    let width = 256;
-    let height = 256;
-    let mut rgba = vec![0_u8; width * height * 4];
-
-    for y in 0..height {
-        for x in 0..width {
-            let is_major = x % 64 == 0 || y % 64 == 0;
-            let is_minor = x % 16 == 0 || y % 16 == 0;
-            let color = if is_major {
-                [110, 150, 255, 255]
-            } else if is_minor {
-                [55, 65, 85, 255]
-            } else {
-                [26, 30, 38, 255]
-            };
-            let offset = (y * width + x) * 4;
-            rgba[offset..offset + 4].copy_from_slice(&color);
-        }
+    let grid_row_templates = grid_row_templates();
+    let mut rgba =
+        Vec::with_capacity(GRID_TEXTURE_WIDTH * GRID_TEXTURE_HEIGHT * RGBA8_BYTES_PER_PIXEL);
+    for y in 0..GRID_TEXTURE_HEIGHT {
+        let row_kind = if y % GRID_MAJOR_SPACING == 0 {
+            0
+        } else if y % GRID_MINOR_SPACING == 0 {
+            1
+        } else {
+            2
+        };
+        rgba.extend_from_slice(&grid_row_templates[row_kind]);
     }
 
     CpuTexturePayload {
         source: TextureSource::BuiltinGrid,
-        width: width as u32,
-        height: height as u32,
+        width: GRID_TEXTURE_WIDTH as u32,
+        height: GRID_TEXTURE_HEIGHT as u32,
         rgba,
+    }
+}
+
+fn checker_row_templates() -> [[u8; CHECKER_TEXTURE_WIDTH * RGBA8_BYTES_PER_PIXEL]; 2] {
+    const LIGHT: [u8; 4] = [220, 220, 220, 255];
+    const DARK: [u8; 4] = [40, 40, 40, 255];
+    let mut rows = [[0; CHECKER_TEXTURE_WIDTH * RGBA8_BYTES_PER_PIXEL]; 2];
+    for (row_kind, row) in rows.iter_mut().enumerate() {
+        for (x, pixel) in row.chunks_exact_mut(RGBA8_BYTES_PER_PIXEL).enumerate() {
+            let color = if (x / CHECKER_TILE_SIZE + row_kind) % 2 == 0 {
+                LIGHT
+            } else {
+                DARK
+            };
+            pixel.copy_from_slice(&color);
+        }
+    }
+    rows
+}
+
+fn grid_row_templates() -> [[u8; GRID_TEXTURE_WIDTH * RGBA8_BYTES_PER_PIXEL]; 3] {
+    const MAJOR: [u8; 4] = [110, 150, 255, 255];
+    const MINOR: [u8; 4] = [55, 65, 85, 255];
+    const BACKGROUND: [u8; 4] = [26, 30, 38, 255];
+    let mut rows = [[0; GRID_TEXTURE_WIDTH * RGBA8_BYTES_PER_PIXEL]; 3];
+    for (row_kind, row) in rows.iter_mut().enumerate() {
+        for (x, pixel) in row.chunks_exact_mut(RGBA8_BYTES_PER_PIXEL).enumerate() {
+            let color = if row_kind == 0 || x % GRID_MAJOR_SPACING == 0 {
+                MAJOR
+            } else if row_kind == 1 || x % GRID_MINOR_SPACING == 0 {
+                MINOR
+            } else {
+                BACKGROUND
+            };
+            pixel.copy_from_slice(&color);
+        }
+    }
+    rows
+}
+
+#[cfg(test)]
+mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    use super::{generate_checker_texture, generate_grid_texture, CpuTexturePayload};
+
+    #[test]
+    fn optimization_batch_20260830eu_runtime556_reuses_builtin_texture_row_templates() {
+        let production = include_str!("texture.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("texture production source");
+
+        assert!(production.contains("checker_row_templates"));
+        assert!(production.contains("grid_row_templates"));
+        assert!(!production.contains("rgba[offset..offset + 4].copy_from_slice"));
+    }
+
+    #[test]
+    fn optimization_batch_20260830eu_runtime556_preserves_builtin_texture_patterns() {
+        let checker = generate_checker_texture();
+        assert_eq!(pixel(&checker, 0, 0), [220, 220, 220, 255]);
+        assert_eq!(pixel(&checker, 15, 15), [220, 220, 220, 255]);
+        assert_eq!(pixel(&checker, 16, 0), [40, 40, 40, 255]);
+        assert_eq!(pixel(&checker, 16, 16), [220, 220, 220, 255]);
+
+        let grid = generate_grid_texture();
+        assert_eq!(pixel(&grid, 0, 7), [110, 150, 255, 255]);
+        assert_eq!(pixel(&grid, 7, 0), [110, 150, 255, 255]);
+        assert_eq!(pixel(&grid, 16, 7), [55, 65, 85, 255]);
+        assert_eq!(pixel(&grid, 7, 16), [55, 65, 85, 255]);
+        assert_eq!(pixel(&grid, 7, 7), [26, 30, 38, 255]);
+    }
+
+    #[test]
+    #[ignore = "deterministic performance marker"]
+    fn optimization_batch_20260830eu_runtime556_builtin_row_template_benchmark() {
+        const SAMPLES: usize = 9;
+        let mut legacy_samples = Vec::with_capacity(SAMPLES);
+        let mut optimized_samples = Vec::with_capacity(SAMPLES);
+
+        for _ in 0..SAMPLES {
+            let started = Instant::now();
+            black_box(legacy_grid_texture());
+            legacy_samples.push(started.elapsed());
+
+            let started = Instant::now();
+            black_box(generate_grid_texture());
+            optimized_samples.push(started.elapsed());
+        }
+
+        legacy_samples.sort_unstable();
+        optimized_samples.sort_unstable();
+        println!(
+            "RUNTIME556_BUILTIN_ROW_TEMPLATE_BENCH_V1 legacy={:?} optimized={:?}",
+            legacy_samples[SAMPLES / 2],
+            optimized_samples[SAMPLES / 2]
+        );
+    }
+
+    fn legacy_grid_texture() -> Vec<u8> {
+        const WIDTH: usize = 256;
+        const HEIGHT: usize = 256;
+        let mut rgba = vec![0_u8; WIDTH * HEIGHT * 4];
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH {
+                let color = if x % 64 == 0 || y % 64 == 0 {
+                    [110, 150, 255, 255]
+                } else if x % 16 == 0 || y % 16 == 0 {
+                    [55, 65, 85, 255]
+                } else {
+                    [26, 30, 38, 255]
+                };
+                let offset = (y * WIDTH + x) * 4;
+                rgba[offset..offset + 4].copy_from_slice(&color);
+            }
+        }
+        rgba
+    }
+
+    fn pixel(payload: &CpuTexturePayload, x: usize, y: usize) -> [u8; 4] {
+        let offset = (y * payload.width as usize + x) * 4;
+        payload.rgba[offset..offset + 4]
+            .try_into()
+            .expect("RGBA pixel")
     }
 }

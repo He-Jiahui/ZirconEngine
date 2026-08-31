@@ -8,13 +8,13 @@ use zircon_runtime::core::framework::physics::{
     PhysicsManager, PhysicsQueryFilter, PhysicsQueryMode, PhysicsRayCastQuery, PhysicsSettings,
     PhysicsSimulationMode, PhysicsWorldSyncState,
 };
-use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::scene::physics::PhysicsSleepPolicy;
+use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::{NodeKind, RigidBodyComponent, RigidBodyType};
 use zircon_runtime::scene::world::World;
 
-use super::{DefaultPhysicsManager, PhysicsBodyCommand, apply_synchronized_bodies_to_scene};
+use super::{apply_synchronized_bodies_to_scene, DefaultPhysicsManager, PhysicsBodyCommand};
 
 #[test]
 fn physics_manager_settings_and_clock_recover_poisoned_state_locks() {
@@ -154,9 +154,11 @@ fn physics_query_snapshot_clones_the_arc_instead_of_the_world() {
 
     let first = super::query::synchronized_world(&manager, world).unwrap();
     let second = super::query::synchronized_world(&manager, world).unwrap();
+    let runtime_snapshot = manager.synchronized_world_snapshot(world).unwrap();
 
     assert!(Arc::ptr_eq(&snapshot, &first));
     assert!(Arc::ptr_eq(&first, &second));
+    assert!(Arc::ptr_eq(&second, &runtime_snapshot));
 }
 
 #[test]

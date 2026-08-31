@@ -8,6 +8,7 @@ description = "Animation runtime plugin package for Zircon."
 [dependencies]
 crossbeam-channel = "0.5.15"
 serde = { version = "1.0.228", features = ["derive"] }
+spade = "2.15.1"
 toml = "1.1.2"
 zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
 zircon_runtime = { workspace = true, features = ["animation", "physics-contracts"] }

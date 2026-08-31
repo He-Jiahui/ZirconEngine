@@ -148,6 +148,7 @@ pub struct ScriptBuildOrchestrator {
     max_latency_ms: u64,
     next_request_id: u64,
     pending_watch_paths: BTreeSet<PathBuf>,
+    pending_watch_path_bytes: usize,
     pending_watch_requires_full_rebuild: bool,
     watch_first_observed_at_ms: Option<u64>,
     watch_deadline_ms: Option<u64>,
@@ -176,6 +177,7 @@ impl ScriptBuildOrchestrator {
             max_latency_ms: max_latency_ms.max(debounce_ms),
             next_request_id: 1,
             pending_watch_paths: BTreeSet::new(),
+            pending_watch_path_bytes: 0,
             pending_watch_requires_full_rebuild: false,
             watch_first_observed_at_ms: None,
             watch_deadline_ms: None,
@@ -186,12 +188,16 @@ impl ScriptBuildOrchestrator {
     }
 
     pub fn notify_watch_change(&mut self, path: impl Into<PathBuf>, observed_at_ms: u64) {
-        if !self.pending_watch_requires_full_rebuild {
-            self.pending_watch_paths.insert(path.into());
-            if !incremental_paths_fit_budget(&self.pending_watch_paths) {
-                self.pending_watch_paths.clear();
-                self.pending_watch_requires_full_rebuild = true;
-            }
+        if !self.pending_watch_requires_full_rebuild
+            && !try_insert_incremental_path(
+                &mut self.pending_watch_paths,
+                &mut self.pending_watch_path_bytes,
+                path.into(),
+            )
+        {
+            self.pending_watch_paths.clear();
+            self.pending_watch_path_bytes = 0;
+            self.pending_watch_requires_full_rebuild = true;
         }
         let first_observed_at_ms = self
             .watch_first_observed_at_ms
@@ -277,6 +283,7 @@ impl ScriptBuildOrchestrator {
             let dropped_queued_request_count = usize::from(self.queued_request.take().is_some());
             let dropped_watch_path_count = self.pending_watch_path_count();
             self.pending_watch_paths.clear();
+            self.pending_watch_path_bytes = 0;
             self.pending_watch_requires_full_rebuild = false;
             self.watch_first_observed_at_ms = None;
             self.watch_deadline_ms = None;
@@ -391,6 +398,7 @@ impl ScriptBuildOrchestrator {
     fn take_pending_watch_paths(&mut self) -> Vec<PathBuf> {
         self.watch_first_observed_at_ms = None;
         self.watch_deadline_ms = None;
+        self.pending_watch_path_bytes = 0;
         if self.pending_watch_requires_full_rebuild {
             self.pending_watch_requires_full_rebuild = false;
             return Vec::new();
@@ -447,29 +455,43 @@ impl ScriptBuildOrchestrator {
     pub(super) fn exhaust_request_ids(&mut self) {
         self.next_request_id = u64::MAX;
     }
+
+    #[cfg(test)]
+    pub(super) const fn pending_watch_path_bytes_for_test(&self) -> usize {
+        self.pending_watch_path_bytes
+    }
 }
 
-fn incremental_paths_fit_budget(paths: &BTreeSet<PathBuf>) -> bool {
+fn try_insert_incremental_path(
+    paths: &mut BTreeSet<PathBuf>,
+    path_bytes: &mut usize,
+    path: PathBuf,
+) -> bool {
+    let added_bytes = path.as_os_str().len();
+    if !paths.insert(path) {
+        return true;
+    }
+    let Some(next_bytes) = path_bytes.checked_add(added_bytes) else {
+        return false;
+    };
+    *path_bytes = next_bytes;
     paths.len() <= MAX_INCREMENTAL_SCRIPT_WATCH_PATHS
-        && paths
-            .iter()
-            .try_fold(0usize, |total, path| {
-                total.checked_add(path.as_os_str().len())
-            })
-            .is_some_and(|total| total <= MAX_INCREMENTAL_SCRIPT_WATCH_PATH_BYTES)
+        && next_bytes <= MAX_INCREMENTAL_SCRIPT_WATCH_PATH_BYTES
 }
 
-fn merge_incremental_paths(
+pub(super) fn merge_incremental_paths(
     current_paths: &[PathBuf],
     incoming_paths: Vec<PathBuf>,
 ) -> Vec<PathBuf> {
     if current_paths.is_empty() || incoming_paths.is_empty() {
         return Vec::new();
     }
-    let mut merged_paths = current_paths.iter().cloned().collect::<BTreeSet<_>>();
-    merged_paths.extend(incoming_paths);
-    if !incremental_paths_fit_budget(&merged_paths) {
-        return Vec::new();
+    let mut merged_paths = BTreeSet::new();
+    let mut merged_path_bytes = 0;
+    for path in current_paths.iter().cloned().chain(incoming_paths) {
+        if !try_insert_incremental_path(&mut merged_paths, &mut merged_path_bytes, path) {
+            return Vec::new();
+        }
     }
     merged_paths.into_iter().collect()
 }

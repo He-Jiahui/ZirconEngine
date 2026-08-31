@@ -4,6 +4,7 @@ mod keys;
 mod loading;
 mod mui_icons;
 mod pixels;
+mod preview_artifact;
 mod retained;
 mod svg;
 mod target;
@@ -11,14 +12,16 @@ mod template;
 mod tint;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use asset::{
-    load_existing_icon_asset_pixels_for_size, load_visual_asset_pixels,
-    load_visual_asset_pixels_for_size,
+    load_existing_icon_asset_pixels_for_size, load_vector_visual_asset_pixels_for_size,
+    load_visual_asset_pixels, load_visual_asset_pixels_for_size,
 };
 pub(in crate::ui::retained_host) use loading::{
-    clear_visual_asset_pixels_cache, invalidate_visual_asset_pixel_paths,
-    reconcile_visual_asset_pixel_sources,
+    bind_visual_asset_loader, clear_visual_asset_pixels_cache, invalidate_visual_asset_pixel_paths,
+    reconcile_visual_asset_pixel_sources, take_visual_asset_completion, unbind_visual_asset_loader,
+    VisualAssetLoadCompletion,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use pixels::HostPaintImagePixels;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use preview_artifact::preview_artifact_image_pixels;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use retained::retained_image_pixels;
 pub(in crate::ui::retained_host) use svg::{
     clear_svg_tree_cache, invalidate_svg_tree_paths, reconcile_svg_tree_sources,
@@ -26,7 +29,9 @@ pub(in crate::ui::retained_host) use svg::{
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use target::{
     raster_size_from_frame, RasterTargetSize, MAX_VECTOR_RASTER_EDGE,
 };
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use template::template_image_pixels;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use template::{
+    template_image_pixels, template_vector_image_pixels,
+};
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use tint::{
     template_image_tint, tint_non_transparent_pixels, ICON_TINT, ICON_TINT_ACTIVE,
     ICON_TINT_DISABLED, ICON_TINT_ERROR, ICON_TINT_WARNING,

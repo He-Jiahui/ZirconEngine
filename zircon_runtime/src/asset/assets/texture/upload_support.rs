@@ -10,7 +10,7 @@ mod tests;
 
 use serde::{Deserialize, Serialize};
 
-use crate::core::framework::render::RenderImageDimension;
+use crate::core::framework::render::{RenderImageDescriptor, RenderImageDimension};
 
 use self::astc::astc_upload_plan;
 use self::compressed::compressed_plan_readiness;
@@ -113,7 +113,23 @@ impl TextureUploadReadiness {
 impl TextureAsset {
     pub fn upload_readiness(&self, support: TextureUploadSupport) -> TextureUploadReadiness {
         match &self.payload {
-            TexturePayload::Rgba8 => rgba8_upload_readiness(self),
+            TexturePayload::Rgba8 => {
+                let descriptor = self.render_image_descriptor();
+                rgba8_upload_readiness(self, &descriptor)
+            }
+            TexturePayload::Container { format, bytes, .. } => {
+                container_upload_readiness(self, format, bytes, support)
+            }
+        }
+    }
+
+    pub(crate) fn upload_readiness_with_descriptor(
+        &self,
+        descriptor: &RenderImageDescriptor,
+        support: TextureUploadSupport,
+    ) -> TextureUploadReadiness {
+        match &self.payload {
+            TexturePayload::Rgba8 => rgba8_upload_readiness(self, descriptor),
             TexturePayload::Container { format, bytes, .. } => {
                 container_upload_readiness(self, format, bytes, support)
             }
@@ -121,11 +137,13 @@ impl TextureAsset {
     }
 }
 
-fn rgba8_upload_readiness(texture: &TextureAsset) -> TextureUploadReadiness {
-    if let Some(reason) = unsupported_rgba8_shape_reason(texture) {
+fn rgba8_upload_readiness(
+    texture: &TextureAsset,
+    descriptor: &RenderImageDescriptor,
+) -> TextureUploadReadiness {
+    if let Some(reason) = unsupported_rgba8_shape_reason(texture, descriptor) {
         return unsupported(reason);
     }
-    let descriptor = texture.render_image_descriptor();
     let Some(expected_len) = rgba8_mip_chain_len(
         texture.width,
         texture.height,
@@ -170,8 +188,10 @@ fn rgba8_upload_format(format: &str) -> Option<&'static str> {
     }
 }
 
-fn unsupported_rgba8_shape_reason(texture: &TextureAsset) -> Option<String> {
-    let descriptor = texture.render_image_descriptor();
+fn unsupported_rgba8_shape_reason(
+    texture: &TextureAsset,
+    descriptor: &RenderImageDescriptor,
+) -> Option<String> {
     if descriptor.dimension == RenderImageDimension::D1 {
         return Some("rgba8 texture 1d upload is not implemented".to_string());
     }

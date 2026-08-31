@@ -90,14 +90,14 @@ def build_report_with_read_failure(
     unreadable_file: Path,
     message: str,
 ) -> dict[str, object]:
-    original_read_bytes = Path.read_bytes
+    original_open = Path.open
 
-    def read_bytes_or_fail(path: Path) -> bytes:
+    def open_or_fail(path: Path, *args: object, **kwargs: object):
         if path.resolve() == unreadable_file:
             raise OSError(message)
-        return original_read_bytes(path)
+        return original_open(path, *args, **kwargs)
 
-    with mock.patch.object(Path, "read_bytes", read_bytes_or_fail):
+    with mock.patch.object(Path, "open", open_or_fail):
         return build_pipeline_report(out, "windows-release")
 
 

@@ -1,24 +1,24 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
-use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::UiFrame,
     surface::{UiArrangedTree, UiRenderCommand, UiRenderExtract},
 };
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct UiSurfaceRenderCache {
+    // Full payload authority stays in UiSurface::render_extract; this derived index only
+    // locates prior commands and retains frames for fail-closed damage accounting.
     entries: BTreeMap<UiNodeId, UiCachedRenderCommandBucket>,
-    #[serde(default, skip_serializing, skip_deserializing)]
     command_ranges: BTreeMap<UiNodeId, (usize, usize)>,
-    #[serde(default, skip_serializing, skip_deserializing)]
     geometry_patchable_node_ids: BTreeSet<UiNodeId>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-struct UiCachedRenderCommand {
-    command: UiRenderCommand,
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct UiCachedRenderCommandMetadata {
+    command_index: usize,
+    frame: UiFrame,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -27,6 +27,42 @@ struct UiFrameKey {
     y: u32,
     width: u32,
     height: u32,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct UiRenderCommandBuildState {
+    command_count: u32,
+    range_start: usize,
+    range_end: usize,
+    contiguous: bool,
+}
+
+impl UiRenderCommandBuildState {
+    fn new(command_offset: usize) -> Self {
+        Self {
+            command_count: 0,
+            range_start: command_offset,
+            range_end: command_offset,
+            contiguous: true,
+        }
+    }
+
+    fn observe(&mut self, command_offset: usize) -> u32 {
+        let node_command_index = self.command_count;
+        self.command_count = node_command_index
+            .checked_add(1)
+            .expect("a UI node cannot emit more than u32::MAX render commands");
+        if self.range_end != command_offset {
+            self.contiguous = false;
+        }
+        self.range_end = command_offset + 1;
+        node_command_index
+    }
+
+    fn command_range(self) -> Option<(usize, usize)> {
+        self.contiguous
+            .then_some((self.range_start, self.range_end))
+    }
 }
 
 impl From<UiFrame> for UiFrameKey {
@@ -40,28 +76,30 @@ impl From<UiFrame> for UiFrameKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Clone, Debug, PartialEq)]
 enum UiCachedRenderCommandBucket {
-    // Keep persisted one-command node caches compatible with the prior format.
-    Single(UiCachedRenderCommand),
-    Multiple(Vec<UiCachedRenderCommand>),
+    Single(UiCachedRenderCommandMetadata),
+    Multiple(Vec<UiCachedRenderCommandMetadata>),
 }
 
 impl UiCachedRenderCommandBucket {
-    fn get(&self, node_command_index: u32) -> Option<&UiCachedRenderCommand> {
+    fn get(&self, node_command_index: u32) -> Option<&UiCachedRenderCommandMetadata> {
         match self {
             Self::Single(command) => (node_command_index == 0).then_some(command),
             Self::Multiple(commands) => commands.get(node_command_index as usize),
         }
     }
 
-    fn replace_or_append(&mut self, node_command_index: u32, command: UiCachedRenderCommand) {
+    fn replace_or_append(
+        &mut self,
+        node_command_index: u32,
+        command: UiCachedRenderCommandMetadata,
+    ) {
         match self {
             Self::Single(current) if node_command_index == 0 => *current = command,
             Self::Single(current) => {
                 debug_assert_eq!(node_command_index, 1);
-                *self = Self::Multiple(vec![current.clone(), command]);
+                *self = Self::Multiple(vec![*current, command]);
             }
             Self::Multiple(commands) => {
                 let command_index = node_command_index as usize;
@@ -85,14 +123,14 @@ impl UiCachedRenderCommandBucket {
     fn remove_from(&mut self, first_removed_index: u32, damage: &mut HashSet<UiFrameKey>) {
         match self {
             Self::Single(command) if first_removed_index == 0 => {
-                push_damage(damage, command.command.frame);
+                push_damage(damage, command.frame);
                 *self = Self::Multiple(Vec::new());
             }
             Self::Single(_) => {}
             Self::Multiple(commands) => {
                 let first_removed_index = first_removed_index as usize;
                 for entry in commands.iter().skip(first_removed_index) {
-                    push_damage(damage, entry.command.frame);
+                    push_damage(damage, entry.frame);
                 }
                 commands.truncate(first_removed_index);
                 if commands.len() == 1 {
@@ -135,104 +173,105 @@ impl UiSurfaceRenderCache {
             .map(|commands| (start, commands))
     }
 
-    pub fn update(&mut self, extract: UiRenderExtract, force_rebuild: bool) -> UiRenderCacheUpdate {
+    pub fn update(
+        &mut self,
+        previous_extract: &UiRenderExtract,
+        extract: UiRenderExtract,
+        force_rebuild: bool,
+    ) -> UiRenderCacheUpdate {
         self.geometry_patchable_node_ids.clear();
         let mut stats = UiSurfaceRenderCacheStats::default();
-        let mut retained_commands = Vec::with_capacity(extract.list.commands.len());
-        let mut seen_command_counts = BTreeMap::new();
+        let mut command_build_states = BTreeMap::new();
         let mut damage = HashSet::new();
+        let cache_metadata_was_empty = self.entries.is_empty();
+        if cache_metadata_was_empty {
+            for previous in &previous_extract.list.commands {
+                push_damage(&mut damage, previous.frame);
+            }
+        }
 
-        for command in extract.list.commands {
-            let next_node_command_index =
-                seen_command_counts.entry(command.node_id).or_insert(0_u32);
-            let node_command_index = *next_node_command_index;
-            *next_node_command_index = node_command_index
-                .checked_add(1)
-                .expect("a UI node cannot emit more than u32::MAX render commands");
+        for (command_offset, command) in extract.list.commands.iter().enumerate() {
+            let node_command_index = command_build_states
+                .entry(command.node_id)
+                .or_insert_with(|| UiRenderCommandBuildState::new(command_offset))
+                .observe(command_offset);
 
-            match self
+            let cached = self
                 .entries
                 .get(&command.node_id)
                 .and_then(|entries| entries.get(node_command_index))
-            {
-                Some(entry) if !force_rebuild && entry.command == command => {
+                .copied();
+            let previous_command = cached.and_then(|entry| {
+                previous_extract
+                    .list
+                    .commands
+                    .get(entry.command_index)
+                    .filter(|previous| {
+                        previous.node_id == command.node_id && previous.frame == entry.frame
+                    })
+            });
+
+            match (cached, previous_command) {
+                (Some(_), Some(previous)) if !force_rebuild && previous == command => {
                     stats.reused_command_count += 1;
-                    retained_commands.push(command);
                 }
-                Some(entry) => {
+                (Some(_), Some(previous)) => {
                     stats.rebuilt_command_count += 1;
-                    push_damage(&mut damage, union_frame(entry.command.frame, command.frame));
-                    self.entries
-                        .get_mut(&command.node_id)
-                        .expect("the cached command was present")
-                        .replace_or_append(
-                            node_command_index,
-                            UiCachedRenderCommand {
-                                command: command.clone(),
-                            },
-                        );
-                    retained_commands.push(command);
+                    push_damage(&mut damage, union_frame(previous.frame, command.frame));
                 }
-                None => {
+                (Some(entry), None) => {
+                    stats.rebuilt_command_count += 1;
+                    push_damage(&mut damage, union_frame(entry.frame, command.frame));
+                }
+                (None, _) => {
                     stats.rebuilt_command_count += 1;
                     push_damage(&mut damage, command.frame);
-                    let cached_command = UiCachedRenderCommand {
-                        command: command.clone(),
-                    };
-                    match self.entries.get_mut(&command.node_id) {
-                        Some(entries) => {
-                            entries.replace_or_append(node_command_index, cached_command)
-                        }
-                        None => {
-                            debug_assert_eq!(node_command_index, 0);
-                            self.entries.insert(
-                                command.node_id,
-                                UiCachedRenderCommandBucket::Single(cached_command),
-                            );
-                        }
-                    }
-                    retained_commands.push(command);
+                }
+            }
+
+            let metadata = UiCachedRenderCommandMetadata {
+                command_index: command_offset,
+                frame: command.frame,
+            };
+            match self.entries.get_mut(&command.node_id) {
+                Some(entries) => entries.replace_or_append(node_command_index, metadata),
+                None => {
+                    debug_assert_eq!(node_command_index, 0);
+                    self.entries.insert(
+                        command.node_id,
+                        UiCachedRenderCommandBucket::Single(metadata),
+                    );
                 }
             }
         }
 
-        let stale_nodes = self
-            .entries
-            .iter()
-            .filter_map(|(node_id, entries)| {
-                let retained_count = *seen_command_counts.get(node_id).unwrap_or(&0);
-                (entries.len() > retained_count as usize).then_some((*node_id, retained_count))
-            })
-            .collect::<Vec<_>>();
-        for (node_id, retained_count) in stale_nodes {
-            self.entries
-                .get_mut(&node_id)
-                .expect("the stale cache bucket was present")
-                .remove_from(retained_count, &mut damage);
-        }
-        self.entries.retain(|_, entries| !entries.is_empty());
+        self.entries.retain(|node_id, entries| {
+            let retained_count = command_build_states
+                .get(node_id)
+                .map_or(0, |state| state.command_count);
+            if entries.len() > retained_count as usize {
+                entries.remove_from(retained_count, &mut damage);
+            }
+            !entries.is_empty()
+        });
         stats.damage_rect_count = damage.len();
-
-        let extract = UiRenderExtract {
-            tree_id: extract.tree_id,
-            list: zircon_runtime_interface::ui::surface::UiRenderList {
-                commands: retained_commands,
-            },
-            raster_scale: extract.raster_scale,
-        };
-        self.reindex_command_ranges(&extract);
+        self.command_ranges = command_build_states
+            .into_iter()
+            .filter_map(|(node_id, state)| state.command_range().map(|range| (node_id, range)))
+            .collect();
 
         UiRenderCacheUpdate { extract, stats }
     }
 
     pub fn update_for_arranged(
         &mut self,
+        previous_extract: &UiRenderExtract,
         extract: UiRenderExtract,
         force_rebuild: bool,
         arranged_tree: &UiArrangedTree,
         arranged_node_indices: &BTreeMap<UiNodeId, usize>,
     ) -> UiRenderCacheUpdate {
-        let update = self.update(extract, force_rebuild);
+        let update = self.update(previous_extract, extract, force_rebuild);
         self.refresh_geometry_patchable_nodes(
             &update.extract,
             arranged_tree,
@@ -298,12 +337,12 @@ impl UiSurfaceRenderCache {
                 let Some(cached) = bucket.get(command_index as u32) else {
                     return Err(());
                 };
-                if command.node_id != *node_id || cached.command.node_id != *node_id {
+                if command.node_id != *node_id || cached.command_index != start + command_index {
                     return Err(());
                 }
-                if cached.command.frame.width != node.frame.width
-                    || cached.command.frame.height != node.frame.height
-                    || cached.command.text_layout.is_some()
+                if command.frame.width != node.frame.width
+                    || command.frame.height != node.frame.height
+                    || command.text_layout.is_some()
                 {
                     return Err(());
                 }
@@ -318,13 +357,18 @@ impl UiSurfaceRenderCache {
             let bucket = self.entries.get_mut(&node_id).ok_or(())?;
             for (command_index, command) in commands.iter_mut().enumerate() {
                 let cached = bucket.get(command_index as u32).ok_or(())?;
-                push_damage(&mut damage, union_frame(cached.command.frame, frame));
+                let command_offset = start + command_index;
+                if cached.command_index != command_offset {
+                    return Err(());
+                }
+                push_damage(&mut damage, union_frame(command.frame, frame));
                 command.frame = frame;
                 command.clip_frame = Some(clip_frame);
                 bucket.replace_or_append(
                     command_index as u32,
-                    UiCachedRenderCommand {
-                        command: command.clone(),
+                    UiCachedRenderCommandMetadata {
+                        command_index: command_offset,
+                        frame: command.frame,
                     },
                 );
                 stats.reused_command_count += 1;
@@ -388,7 +432,7 @@ impl UiSurfaceRenderCache {
                 let Some(cached) = bucket.get(command_index as u32) else {
                     return Err(());
                 };
-                if current.node_id != *node_id || cached.command.node_id != *node_id {
+                if current.node_id != *node_id || cached.command_index != start + command_index {
                     return Err(());
                 }
             }
@@ -406,19 +450,24 @@ impl UiSurfaceRenderCache {
                 .enumerate()
             {
                 let cached = bucket.get(command_index as u32).ok_or(())?;
-                if cached.command == next {
+                let command_offset = start + command_index;
+                if cached.command_index != command_offset {
+                    return Err(());
+                }
+                if *current == next {
                     stats.reused_command_count += 1;
                 } else {
                     stats.rebuilt_command_count += 1;
-                    push_damage(&mut damage, union_frame(cached.command.frame, next.frame));
-                    bucket.replace_or_append(
-                        command_index as u32,
-                        UiCachedRenderCommand {
-                            command: next.clone(),
-                        },
-                    );
+                    push_damage(&mut damage, union_frame(current.frame, next.frame));
                 }
                 *current = next;
+                bucket.replace_or_append(
+                    command_index as u32,
+                    UiCachedRenderCommandMetadata {
+                        command_index: command_offset,
+                        frame: current.frame,
+                    },
+                );
             }
             self.refresh_geometry_patchable_node(
                 node_id,
@@ -431,36 +480,24 @@ impl UiSurfaceRenderCache {
         Ok(stats)
     }
 
-    fn reindex_command_ranges(&mut self, extract: &UiRenderExtract) {
-        self.command_ranges.clear();
-        let mut start = 0;
-        while start < extract.list.commands.len() {
-            let node_id = extract.list.commands[start].node_id;
-            let mut end = start + 1;
-            while end < extract.list.commands.len() && extract.list.commands[end].node_id == node_id
-            {
-                end += 1;
-            }
-            self.command_ranges.insert(node_id, (start, end));
-            start = end;
-        }
-    }
-
     fn refresh_geometry_patchable_nodes(
         &mut self,
         extract: &UiRenderExtract,
         arranged_tree: &UiArrangedTree,
         arranged_node_indices: &BTreeMap<UiNodeId, usize>,
     ) {
-        self.geometry_patchable_node_ids.clear();
-        for node_id in self.command_ranges.keys().copied().collect::<Vec<_>>() {
-            self.refresh_geometry_patchable_node(
+        let mut patchable_node_ids = BTreeSet::new();
+        for node_id in self.command_ranges.keys().copied() {
+            if self.node_is_geometry_patchable(
                 node_id,
                 extract,
                 arranged_tree,
                 arranged_node_indices,
-            );
+            ) {
+                patchable_node_ids.insert(node_id);
+            }
         }
+        self.geometry_patchable_node_ids = patchable_node_ids;
     }
 
     fn refresh_geometry_patchable_node(
@@ -470,32 +507,42 @@ impl UiSurfaceRenderCache {
         arranged_tree: &UiArrangedTree,
         arranged_node_indices: &BTreeMap<UiNodeId, usize>,
     ) {
-        self.geometry_patchable_node_ids.remove(&node_id);
+        if self.node_is_geometry_patchable(node_id, extract, arranged_tree, arranged_node_indices) {
+            self.geometry_patchable_node_ids.insert(node_id);
+        } else {
+            self.geometry_patchable_node_ids.remove(&node_id);
+        }
+    }
+
+    fn node_is_geometry_patchable(
+        &self,
+        node_id: UiNodeId,
+        extract: &UiRenderExtract,
+        arranged_tree: &UiArrangedTree,
+        arranged_node_indices: &BTreeMap<UiNodeId, usize>,
+    ) -> bool {
         let Some((start, end)) = self.command_ranges.get(&node_id).copied() else {
-            return;
+            return false;
         };
         if end.saturating_sub(start) != 1 {
-            return;
+            return false;
         }
         let Some(command) = extract.list.commands.get(start) else {
-            return;
+            return false;
         };
         let Some(arranged_index) = arranged_node_indices.get(&node_id).copied() else {
-            return;
+            return false;
         };
         let Some(arranged) = arranged_tree
             .nodes
             .get(arranged_index)
             .filter(|arranged| arranged.node_id == node_id)
         else {
-            return;
+            return false;
         };
-        if command.frame == arranged.frame
+        command.frame == arranged.frame
             && command.clip_frame == Some(arranged.clip_frame)
             && command.text_layout.is_none()
-        {
-            self.geometry_patchable_node_ids.insert(node_id);
-        }
     }
 }
 

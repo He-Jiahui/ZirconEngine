@@ -98,7 +98,7 @@ pub(super) fn scan_project_metas(
 pub(super) fn scan_meta_paths(
     meta_paths: &[PathBuf],
 ) -> Result<Vec<ScannedMeta>, AssetRegistryError> {
-    let mut metas = Vec::new();
+    let mut metas = Vec::with_capacity(meta_paths.len());
     for path in meta_paths {
         if !source_path_for_meta(path).is_some_and(|source| source.exists()) {
             continue;
@@ -298,7 +298,8 @@ pub(super) fn refresh_dependency_edges_from_documents<'a>(
     index: &mut AssetRegistryIndex,
     documents: impl IntoIterator<Item = &'a AssetMetaDocument>,
 ) {
-    let mut dependency_paths: HashMap<AssetUuid, &[AssetUri]> = HashMap::new();
+    let mut dependency_paths: HashMap<AssetUuid, &[AssetUri]> =
+        HashMap::with_capacity(index.entries_by_uuid.len());
     for meta in documents {
         if !meta.entries.iter().any(|entry| entry.url.label().is_none()) {
             dependency_paths.insert(meta.uuid, &meta.dependencies);
@@ -315,7 +316,7 @@ pub(super) fn refresh_dependency_edges_from_documents<'a>(
             .get(&entry.uuid())
             .copied()
             .unwrap_or_default();
-        let mut dependencies = Vec::new();
+        let mut dependencies = Vec::with_capacity(paths.len());
         for path in paths {
             if let Some(uuid) = uuids_by_path.get(path).copied() {
                 dependencies.push(uuid);
@@ -344,8 +345,9 @@ pub(super) fn refresh_dependency_edges_from_documents<'a>(
 }
 
 pub(super) fn registry_entries(meta: &AssetMetaDocument) -> Vec<AssetRegistryEntry> {
-    let mut entries = Vec::new();
-    if !meta.entries.iter().any(|entry| entry.url.label().is_none()) {
+    let has_root_entry = !meta.entries.iter().any(|entry| entry.url.label().is_none());
+    let mut entries = Vec::with_capacity(meta.entries.len() + usize::from(has_root_entry));
+    if has_root_entry {
         entries.push(
             AssetRegistryEntry::new(
                 meta.uuid,
@@ -462,6 +464,10 @@ fn reject_link_or_reparse(
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "rebuild/optimization_tests.rs"]
+mod optimization_tests;
 
 #[cfg(windows)]
 fn is_reparse_point(metadata: &fs::Metadata) -> bool {

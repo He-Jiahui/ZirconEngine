@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 use std::hash::Hash;
-use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::mpsc::{channel, sync_channel, Receiver, SyncSender, TryRecvError, TrySendError};
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::mpsc::{Receiver, SyncSender, TryRecvError, TrySendError, channel, sync_channel};
 use std::thread::JoinHandle;
 
 #[cfg(test)]
-use std::sync::{mpsc::Sender, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc::Sender};
 
 type PipelineCompileJob<R> = Box<dyn FnOnce() -> R + Send + 'static>;
 
@@ -17,22 +17,6 @@ struct PipelineCompileRequest<K, R> {
 struct PipelineCompileCompletion<K, R> {
     key: K,
     result: Result<R, PipelineAsyncCompileError>,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) enum PipelinePlaceholderPolicy {
-    #[default]
-    SkipDraw,
-    DepthOnly,
-}
-
-impl PipelinePlaceholderPolicy {
-    pub(crate) const fn label(self) -> &'static str {
-        match self {
-            Self::SkipDraw => "skip_draw",
-            Self::DepthOnly => "depth_only",
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -135,16 +119,16 @@ where
         };
         self.pending.insert(key.clone());
         match sender.try_send(PipelineCompileRequest {
-            key: key.clone(),
+            key,
             job: Box::new(job),
         }) {
             Ok(()) => PipelineAsyncQueueResult::Queued,
-            Err(TrySendError::Full(_)) => {
-                self.pending.remove(&key);
+            Err(TrySendError::Full(request)) => {
+                self.pending.remove(&request.key);
                 PipelineAsyncQueueResult::Full
             }
-            Err(TrySendError::Disconnected(_)) => {
-                self.pending.remove(&key);
+            Err(TrySendError::Disconnected(request)) => {
+                self.pending.remove(&request.key);
                 PipelineAsyncQueueResult::WorkerUnavailable
             }
         }
@@ -209,24 +193,33 @@ where
         mut on_ready: impl FnMut(K, Result<R, PipelineAsyncCompileError>),
     ) -> usize {
         let mut completed = self.drain_ready(&mut on_ready);
+        let target_pending = self.pending.contains(target);
         #[cfg(test)]
-        if self.pending.contains(target) {
+        if target_pending {
             if let Some(observer) = self.target_sync_wait_observer.take() {
                 let _ = observer.send(());
             }
         }
-        while self.pending.contains(target) {
+        if !target_pending {
+            return completed;
+        }
+        loop {
             match self.completion_receiver.recv() {
                 Ok(completion) => {
+                    let reached_target = &completion.key == target;
                     self.pending.remove(&completion.key);
                     on_ready(completion.key, completion.result);
                     completed += 1;
+                    if reached_target {
+                        break;
+                    }
                 }
                 Err(_) => {
                     for key in self.pending.drain() {
                         on_ready(key, Err(PipelineAsyncCompileError::WorkerUnavailable));
                         completed += 1;
                     }
+                    break;
                 }
             }
         }
@@ -265,10 +258,7 @@ impl<K, R> Drop for PipelineAsyncCompiler<K, R> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        PipelineAsyncCompileError, PipelineAsyncCompiler, PipelineAsyncQueueResult,
-        PipelinePlaceholderPolicy,
-    };
+    use super::{PipelineAsyncCompileError, PipelineAsyncCompiler, PipelineAsyncQueueResult};
 
     #[test]
     fn render_perf_async_pipeline_queue_deduplicates_and_recovers_completion() {
@@ -361,13 +351,8 @@ mod tests {
             vec![(3, Err(PipelineAsyncCompileError::JobPanicked))]
         );
     }
-
-    #[test]
-    fn render_perf_async_pipeline_placeholder_no_error_material() {
-        assert_eq!(
-            PipelinePlaceholderPolicy::default(),
-            PipelinePlaceholderPolicy::SkipDraw
-        );
-        assert_eq!(PipelinePlaceholderPolicy::DepthOnly.label(), "depth_only");
-    }
 }
+
+#[cfg(test)]
+#[path = "async_compile/optimization_tests.rs"]
+mod optimization_tests;

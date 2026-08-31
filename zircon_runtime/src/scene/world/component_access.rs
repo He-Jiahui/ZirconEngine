@@ -1,11 +1,11 @@
 use super::{SceneError, SceneResult, World};
+use crate::scene::EntityId;
 use crate::scene::components::{
     AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, ColliderComponent, JointComponent, PointLight, RectLight,
     RigidBodyComponent, SpotLight,
 };
-use crate::scene::EntityId;
 
 impl World {
     pub fn rigid_body(&self, entity: EntityId) -> Option<&RigidBodyComponent> {

@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path, PurePosixPath
 from typing import Sequence
+
+try:
+    from .zircon_export.file_digest import file_sha256
+except ImportError:  # pragma: no cover - exercised when zircon_build.py is run directly.
+    from zircon_export.file_digest import file_sha256
 
 
 def collect_descriptor_rows(
@@ -77,7 +81,7 @@ def shader_module_source_path(manifest_path: Path, source: str, index: int) -> P
 
 
 def shader_module_content_hash(source_path: Path) -> str:
-    return hashlib.sha256(source_path.read_bytes()).hexdigest()
+    return file_sha256(source_path)
 
 
 def unique_in_order(values: Sequence[str]) -> list[str]:

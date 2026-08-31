@@ -1,9 +1,10 @@
-use crate::core::framework::render::PostProcessGraphResourceNames;
+use crate::core::framework::render::{PostProcessGraphResourceNames, RenderPipelinePhase};
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
 use super::super::RenderPassGpuExecutionContext;
 use super::{
-    latest_scene_color_resource, optional_texture_resource_is_bound, optional_texture_view_or_black,
+    latest_scene_color_resource, optional_texture_resource_is_bound,
+    optional_texture_view_or_black, require_post_process_render_region,
 };
 
 impl<'a> RenderPassGpuExecutionContext<'a> {
@@ -23,17 +24,17 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let source_resource_name = if optional_texture_resource_is_bound(
             resources,
             resource_resolver,
-            PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
-            RenderGraphResourceAccessKind::Read,
-        )? {
-            PostProcessGraphResourceNames::DEPTH_OF_FIELDED
-        } else if optional_texture_resource_is_bound(
-            resources,
-            resource_resolver,
             PostProcessGraphResourceNames::TAA_OUTPUT,
             RenderGraphResourceAccessKind::Read,
         )? {
             PostProcessGraphResourceNames::TAA_OUTPUT
+        } else if optional_texture_resource_is_bound(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
+            RenderGraphResourceAccessKind::Read,
+        )? {
+            PostProcessGraphResourceNames::DEPTH_OF_FIELDED
         } else {
             PostProcessGraphResourceNames::SCENE_COLOR
         };
@@ -61,7 +62,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             output_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        let exposure_buffer = if let Some(exposure_buffer) = Self::optional_buffer_by_name(
+        let exposure_buffer = if let Some(exposure_buffer) = Self::optional_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::EXPOSURE_CURRENT,
@@ -69,13 +70,14 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         )? {
             exposure_buffer
         } else {
-            stack.post_process.default_exposure_buffer()
+            stack.post_process.default_exposure_buffer_binding()
         };
-        stack.post_process.execute_motion_blur(
+        let post_process_cluster_dimensions =
+            stack.post_process_cluster_dimensions(self.frame, pass_name)?;
+        let mut params_uploads = stack.post_process.execute_motion_blur(
             self.device,
-            self.queue,
             self.encoder,
-            stack.target.cluster_dimensions,
+            post_process_cluster_dimensions,
             super::post_process_texture_origin(self.frame, source_resource_name),
             scene_color_view,
             scene_depth_view,
@@ -85,6 +87,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.frame,
             attachment_ops,
         );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 
@@ -126,7 +129,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             output_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        let exposure_buffer = if let Some(exposure_buffer) = Self::optional_buffer_by_name(
+        let exposure_buffer = if let Some(exposure_buffer) = Self::optional_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::EXPOSURE_CURRENT,
@@ -134,13 +137,14 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         )? {
             exposure_buffer
         } else {
-            stack.post_process.default_exposure_buffer()
+            stack.post_process.default_exposure_buffer_binding()
         };
-        stack.post_process.execute_scene_composite(
+        let post_process_cluster_dimensions =
+            stack.post_process_cluster_dimensions(self.frame, pass_name)?;
+        let mut params_uploads = stack.post_process.execute_scene_composite(
             self.device,
-            self.queue,
             self.encoder,
-            stack.target.cluster_dimensions,
+            post_process_cluster_dimensions,
             super::post_process_texture_origin(self.frame, scene_color_resource),
             scene_color_view,
             scene_depth_view,
@@ -150,6 +154,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.frame,
             attachment_ops,
         );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 
@@ -194,7 +199,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             output_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        let exposure_buffer = if let Some(exposure_buffer) = Self::optional_buffer_by_name(
+        let exposure_buffer = if let Some(exposure_buffer) = Self::optional_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::EXPOSURE_CURRENT,
@@ -202,13 +207,14 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         )? {
             exposure_buffer
         } else {
-            stack.post_process.default_exposure_buffer()
+            stack.post_process.default_exposure_buffer_binding()
         };
-        stack.post_process.execute_blur(
+        let post_process_cluster_dimensions =
+            stack.post_process_cluster_dimensions(self.frame, pass_name)?;
+        let mut params_uploads = stack.post_process.execute_blur(
             self.device,
-            self.queue,
             self.encoder,
-            stack.target.cluster_dimensions,
+            post_process_cluster_dimensions,
             super::post_process_texture_origin(self.frame, source_resource_name),
             scene_color_view,
             scene_depth_view,
@@ -217,6 +223,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.frame,
             attachment_ops,
         );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 
@@ -233,16 +240,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         })?;
         let resources = &*self.resources;
         let resource_resolver = self.resource_resolver;
-        let source_resource_name = if optional_texture_resource_is_bound(
-            resources,
-            resource_resolver,
-            PostProcessGraphResourceNames::TAA_OUTPUT,
-            RenderGraphResourceAccessKind::Read,
-        )? {
-            PostProcessGraphResourceNames::TAA_OUTPUT
-        } else {
-            PostProcessGraphResourceNames::SCENE_COLOR
-        };
+        let source_resource_name = PostProcessGraphResourceNames::SCENE_COLOR;
         let scene_color_view = Self::require_texture_view_by_name(
             resources,
             resource_resolver,
@@ -273,7 +271,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             output_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        let exposure_buffer = if let Some(exposure_buffer) = Self::optional_buffer_by_name(
+        let exposure_buffer = if let Some(exposure_buffer) = Self::optional_buffer_binding_by_name(
             resources,
             resource_resolver,
             PostProcessGraphResourceNames::EXPOSURE_CURRENT,
@@ -281,13 +279,14 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         )? {
             exposure_buffer
         } else {
-            stack.post_process.default_exposure_buffer()
+            stack.post_process.default_exposure_buffer_binding()
         };
-        stack.post_process.execute_depth_of_field(
+        let post_process_cluster_dimensions =
+            stack.post_process_cluster_dimensions(self.frame, pass_name)?;
+        let mut params_uploads = stack.post_process.execute_depth_of_field(
             self.device,
-            self.queue,
             self.encoder,
-            stack.target.cluster_dimensions,
+            post_process_cluster_dimensions,
             super::post_process_texture_origin(self.frame, source_resource_name),
             scene_color_view,
             scene_depth_view,
@@ -298,6 +297,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.frame,
             attachment_ops,
         );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 
@@ -326,17 +326,24 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             bloom_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        stack.post_process.execute_bloom(
+        let phase = RenderPipelinePhase::PostReconstructionScenePostProcess;
+        let render_region = require_post_process_render_region(
+            pass_name,
+            "bloom",
+            phase,
+            self.frame.render_region_for_phase(phase),
+        )?;
+        let mut params_uploads = stack.post_process.execute_bloom(
             self.device,
-            self.queue,
             self.encoder,
-            self.frame.extract.view.effective_render_size(),
+            render_region.local_size(),
             super::post_process_texture_origin(self.frame, scene_color_resource_name),
             scene_color_view,
             bloom_view,
-            self.frame.extract.post_process.bloom,
+            self.frame.post_process().bloom,
             stack.runtime_features.bloom_enabled,
         );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 
@@ -380,19 +387,20 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             RenderGraphResourceAccessKind::Write,
         )?;
         let camera = self.frame.effective_camera();
-        stack.post_process.execute_depth_of_field_prepare(
+        let scene_linear_size = stack.scene_linear_size(self.frame, pass_name)?;
+        let mut params_uploads = stack.post_process.execute_depth_of_field_prepare(
             self.device,
-            self.queue,
             self.encoder,
-            self.frame.extract.view.effective_render_size(),
+            scene_linear_size,
             super::post_process_texture_origin(self.frame, scene_color_resource_name),
             scene_color_view,
             scene_depth_view,
             coc_view,
             bokeh_view,
-            self.frame.extract.post_process.effect_stack.depth_of_field,
+            self.frame.post_process().effect_stack.depth_of_field,
             &camera,
         );
+        self.append_pre_submit_buffer_uploads(&mut params_uploads);
         Ok(())
     }
 }

@@ -7,6 +7,8 @@ pub enum WelcomeCommand {
     CreateProject,
     OpenExistingProject,
     OpenRecentProject { path: String },
+    SafeRecentProject { path: String },
+    RecoverRecentProject { path: String },
     RemoveRecentProject { path: String },
     OpenStartupWorkbench,
     OpenStartupDemo,

@@ -169,6 +169,48 @@ fn migration_inventory_skips_missing_roots_without_rescanning_existing_roots() {
 }
 
 #[test]
+fn migration_inventory_rejects_regular_file_asset_roots() {
+    let root = fixture_root("migration-regular-file-asset-root");
+    let asset_root = root.join("assets.scene.toml");
+    let original = "scene = true\n";
+    fs::write(&asset_root, original).unwrap();
+
+    let error = scan_migration_inventory_for_test(std::slice::from_ref(&asset_root))
+        .err()
+        .expect("asset roots must be directories");
+
+    assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
+    assert!(error.to_string().contains("is not a directory"));
+    assert_eq!(fs::read_to_string(&asset_root).unwrap(), original);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn migration_commandlet_reports_regular_file_asset_roots_as_scan_errors() {
+    let root = fixture_root("migration-commandlet-regular-file-asset-root");
+    let asset_root = root.join("assets.scene.toml");
+    let original = "scene = true\n";
+    write_manifest(&root, &["assets.scene.toml"]);
+    fs::write(&asset_root, original).unwrap();
+
+    let error = migrate_project_assets(AssetMigrationOptions::new(
+        &root,
+        AssetMigrationMode::DryRun,
+    ))
+    .expect_err("asset roots must be directories");
+
+    let source = match &error {
+        crate::asset::migration::AssetMigrationError::Scan { source, .. } => source,
+        other => panic!("expected scan error, got {other:?}"),
+    };
+    assert_eq!(source.kind(), std::io::ErrorKind::InvalidInput);
+    assert!(source.to_string().contains("is not a directory"));
+    assert!(!source.to_string().contains(r"\\?\"));
+    assert_eq!(fs::read_to_string(&asset_root).unwrap(), original);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn migration_inventory_rejects_reparse_asset_roots_without_visiting_their_target() {
     let root = fixture_root("migration-reparse-asset-root");
     let outside = fixture_root("migration-reparse-asset-root-outside");

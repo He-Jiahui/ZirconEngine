@@ -3,37 +3,50 @@ use zircon_runtime::plugin::native::NativePluginLoadProjection;
 pub(super) fn native_load_state(
     projection: &NativePluginLoadProjection,
     plugin_id: &str,
+    diagnostics: &[String],
 ) -> String {
-    if projection.is_loaded(plugin_id) {
-        let diagnostics = projection.diagnostics_for_plugin(plugin_id);
-        if diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains(" entry failed:"))
-        {
-            return "entry failed".to_string();
+    let is_loaded = projection.is_loaded(plugin_id);
+    native_load_state_label(
+        is_loaded,
+        is_loaded && projection.has_descriptor(plugin_id),
+        diagnostics,
+    )
+    .to_string()
+}
+
+fn native_load_state_label<'a>(
+    is_loaded: bool,
+    has_descriptor: bool,
+    diagnostics: impl IntoIterator<Item = &'a String>,
+) -> &'static str {
+    let mut has_diagnostics = false;
+    let mut has_load_failure = false;
+    for diagnostic in diagnostics {
+        has_diagnostics = true;
+        if is_loaded {
+            if diagnostic.contains(" entry failed:") {
+                return "entry failed";
+            }
+        } else if diagnostic.contains("library is missing") {
+            return "missing library";
+        } else if diagnostic.contains("failed to load") {
+            has_load_failure = true;
         }
-        if !projection.has_descriptor(plugin_id) {
-            return "loaded without descriptor".to_string();
+    }
+
+    if is_loaded {
+        if !has_descriptor {
+            "loaded without descriptor"
+        } else if has_diagnostics {
+            "loaded with diagnostics"
+        } else {
+            "loaded"
         }
-        if !diagnostics.is_empty() {
-            return "loaded with diagnostics".to_string();
-        }
-        return "loaded".to_string();
+    } else if has_load_failure {
+        "load failed"
+    } else {
+        "manifest only"
     }
-    let diagnostics = projection.diagnostics_for_plugin(plugin_id);
-    if diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.contains("library is missing"))
-    {
-        return "missing library".to_string();
-    }
-    if diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.contains("failed to load"))
-    {
-        return "load failed".to_string();
-    }
-    "manifest only".to_string()
 }
 
 #[cfg(test)]
@@ -86,3 +99,7 @@ mod performance_tests {
         assert!(!projected_completion.contains("native_report."));
     }
 }
+
+#[cfg(test)]
+#[path = "native_load_state/optimization_tests.rs"]
+mod optimization_tests;

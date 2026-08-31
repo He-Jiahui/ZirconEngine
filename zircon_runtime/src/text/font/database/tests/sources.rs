@@ -196,10 +196,12 @@ fn text_font_database_builds_discovered_system_face_metadata_once_on_first_use()
         .face_source_identity(face)
         .expect("system face source identity");
     assert_ne!(source_identity, [0; 16]);
-    assert!(database
-        .face_metrics(face)
-        .expect("system face metrics")
-        .is_some());
+    assert!(
+        database
+            .face_metrics(face)
+            .expect("system face metrics")
+            .is_some()
+    );
     assert_eq!(database.face_metadata_build_count(), 1);
 
     assert_eq!(

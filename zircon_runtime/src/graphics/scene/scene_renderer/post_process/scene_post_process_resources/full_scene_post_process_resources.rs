@@ -5,8 +5,11 @@ use super::super::resources::terminal_resource_cache::TerminalPostProcessResourc
 use crate::graphics::resource_identity::SampledTextureIdentity;
 use crate::graphics::scene::scene_renderer::temporal::taa::taa_resolve_bind_group_cache::TaaResolveBindGroupCache;
 use crate::graphics::shader::FullscreenPassParameterBindings;
+use crate::graphics::scene::scene_renderer::post_process::resources::post_process_pass_parameter_buffers::PostProcessPassParameterBuffers;
 
 pub(crate) struct FullScenePostProcessResources {
+    pub(in crate::graphics::scene::scene_renderer::post_process) post_process_pass_parameter_buffers:
+        PostProcessPassParameterBuffers,
     pub(in crate::graphics::scene::scene_renderer) hzb_fallback_resource_identity:
         crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity,
     pub(in crate::graphics::scene::scene_renderer) depth_sampling_mode:
@@ -125,6 +128,10 @@ pub(crate) struct FullScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer::post_process) default_exposure_histogram_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer) taa_resolve_params_buffer: wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process) primary_upscale_params_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process) secondary_upscale_params_buffer:
+        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer) velocity_camera_params_buffer: wgpu::Buffer,

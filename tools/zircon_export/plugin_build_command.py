@@ -24,6 +24,7 @@ def plugin_build_features(
     diagnostics: list[str],
 ) -> list[str]:
     features = [PLUGIN_BUILD_DIST_FEATURE]
+    seen = {PLUGIN_BUILD_DIST_FEATURE}
     for index, feature in enumerate(extra_features):
         label = f"plugin build features[{index}]"
         if not isinstance(feature, str) or not feature.strip():
@@ -32,8 +33,10 @@ def plugin_build_features(
         if feature.strip() != feature:
             diagnostics.append(f"{label} must be trimmed")
             continue
-        if feature not in features:
-            features.append(feature)
+        if feature in seen:
+            continue
+        seen.add(feature)
+        features.append(feature)
     return features
 
 

@@ -1,3 +1,4 @@
+mod commit_pending_icon_uploads;
 mod construct;
 mod prepare;
 mod record;

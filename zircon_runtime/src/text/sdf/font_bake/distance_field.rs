@@ -1,6 +1,6 @@
+use crate::text::FontFaceId;
 use crate::text::font::FontDatabase;
 use crate::text::sdf::{SdfGlyphData, SdfGlyphGenerationError};
-use crate::text::FontFaceId;
 
 use super::{RawBakedGlyph, RawBakedGlyphSource, SdfAtlasGlyphKey, SdfGlyphMetrics};
 

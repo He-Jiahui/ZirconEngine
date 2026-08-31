@@ -10,9 +10,19 @@ impl RuntimeEntryApp {
         &mut self,
         event_loop: &dyn ActiveEventLoop,
     ) {
+        let surface_release = self.application_lifecycle.destroy_surfaces();
+        let teardown_failed = !self.finish_surface_release(surface_release);
         let event =
             ZrRuntimeEventV1::window_destroyed(ZIRCON_RUNTIME_ABI_VERSION_V1, self.viewport);
-        self.dispatch_runtime_event(event_loop, event);
+        let event_dispatched = self.dispatch_runtime_event(event_loop, event);
+        if teardown_failed
+            || !event_dispatched
+            || self
+                .window_lifecycle_policy
+                .should_exit_after_primary_close()
+        {
+            event_loop.exit();
+        }
     }
 
     pub(in crate::entry::runtime_entry_app) fn handle_window_moved(

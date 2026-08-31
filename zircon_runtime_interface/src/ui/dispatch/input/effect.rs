@@ -1,14 +1,17 @@
 use core::fmt;
 
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::ui::component::{UiComponentEvent, UiDragPayload};
 use crate::ui::event_ui::UiNodeId;
 use crate::ui::layout::{UiFrame, UiPoint};
 use crate::ui::surface::UiNavigationEventKind;
+use crate::ui::text::UiRichLinkTarget;
 use crate::ui::tree::UiDirtyFlags;
 
-use super::{event::UiTextByteRange, UiDragSessionId, UiPointerId};
+use super::{event::UiTextByteRange, UiClipboardRequest, UiDragSessionId, UiPointerId};
 
 pub const UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT: usize = 4000;
 
@@ -54,7 +57,8 @@ pub enum UiDispatchEffect {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         point: Option<UiPoint>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        payload: Option<UiDragPayload>,
+        /// Shares the immutable operation payload instead of copying it on every drag update.
+        payload: Option<Arc<UiDragPayload>>,
     },
     RequestNavigation {
         kind: UiNavigationEventKind,
@@ -86,7 +90,8 @@ pub enum UiDispatchEffect {
     /// Requests host-side activation of a parser-approved rich-text link.
     RequestLinkActivation {
         target: UiNodeId,
-        href: String,
+        #[serde(rename = "href")]
+        link_target: UiRichLinkTarget,
     },
     DirtyRedraw {
         target: UiNodeId,
@@ -175,20 +180,6 @@ pub enum UiTransientDismissalReason {
     FocusLost,
     WindowAction,
     ApplicationDeactivated,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UiClipboardRequest {
-    pub kind: UiClipboardRequestKind,
-    pub owner: UiNodeId,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub text: Option<String>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum UiClipboardRequestKind {
-    ReadText,
-    WriteText,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -328,7 +328,8 @@ fn rust_owned_host_window_snapshot_draws_welcome_main_content() {
         .expect("fallback welcome snapshot should render");
 
     let mut with_welcome = baseline;
-    with_welcome.host_scene_data.document_dock.pane = welcome_pane_with_content();
+    with_welcome.host_scene_data.document_dock.pane =
+        welcome_pane_with_content();
     ui.set_host_presentation(with_welcome);
     let snapshot = ui
         .window()

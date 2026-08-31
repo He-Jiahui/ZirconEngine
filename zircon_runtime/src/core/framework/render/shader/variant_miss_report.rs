@@ -19,6 +19,162 @@ pub struct ShaderPipelineDiagnostic {
     pub message: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ShaderPipelineFallbackState {
+    Deferred,
+    Failed,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ShaderPipelineFallbackAction {
+    DeferDraw,
+    RejectDraw,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ShaderPipelineFallbackDiagnostic {
+    pub variant_key: String,
+    pub pipeline_variant_id: u32,
+    pub entity_id: u64,
+    pub consumer: String,
+    pub state: ShaderPipelineFallbackState,
+    pub action: ShaderPipelineFallbackAction,
+    pub reason: String,
+    pub state_age_microseconds: u64,
+    pub occurrence_count: usize,
+}
+
+pub const SHADER_PIPELINE_TARGET_COUNT: usize = 10;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[repr(u8)]
+#[serde(rename_all = "snake_case")]
+pub enum ShaderPipelineTarget {
+    Base = 0,
+    GBuffer = 1,
+    DepthPrepass = 2,
+    HitProxy = 3,
+    ShadowDepth = 4,
+    ShadowDepthAlphaMask = 5,
+    Velocity = 6,
+    TaaReactiveMask = 7,
+    TaaReactiveMaterialMask = 8,
+    Oit = 9,
+}
+
+impl ShaderPipelineTarget {
+    pub const ALL: [Self; SHADER_PIPELINE_TARGET_COUNT] = [
+        Self::Base,
+        Self::GBuffer,
+        Self::DepthPrepass,
+        Self::HitProxy,
+        Self::ShadowDepth,
+        Self::ShadowDepthAlphaMask,
+        Self::Velocity,
+        Self::TaaReactiveMask,
+        Self::TaaReactiveMaterialMask,
+        Self::Oit,
+    ];
+
+    pub const fn index(self) -> usize {
+        self as usize
+    }
+
+    pub const fn token(self) -> &'static str {
+        match self {
+            Self::Base => "base",
+            Self::GBuffer => "gbuffer",
+            Self::DepthPrepass => "depth_prepass",
+            Self::HitProxy => "hit_proxy",
+            Self::ShadowDepth => "shadow_depth",
+            Self::ShadowDepthAlphaMask => "shadow_depth_alpha_mask",
+            Self::Velocity => "velocity",
+            Self::TaaReactiveMask => "taa_reactive_mask",
+            Self::TaaReactiveMaterialMask => "taa_reactive_material_mask",
+            Self::Oit => "oit",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ShaderPipelineTargetMetrics {
+    pub registered_pipeline_variant_count: usize,
+    pub unique_shader_source_count: usize,
+    pub render_pipeline_creation_count: usize,
+    pub shader_module_creation_count: usize,
+    pub render_pipeline_creation_cpu_microseconds: u64,
+    pub shader_module_creation_cpu_microseconds: u64,
+}
+
+impl ShaderPipelineTargetMetrics {
+    fn accumulate_snapshot(&mut self, other: Self) {
+        self.registered_pipeline_variant_count = self
+            .registered_pipeline_variant_count
+            .max(other.registered_pipeline_variant_count);
+        self.unique_shader_source_count = self
+            .unique_shader_source_count
+            .max(other.unique_shader_source_count);
+        if creation_snapshot_is_greater(
+            self.render_pipeline_creation_count,
+            self.render_pipeline_creation_cpu_microseconds,
+            other.render_pipeline_creation_count,
+            other.render_pipeline_creation_cpu_microseconds,
+        ) {
+            self.render_pipeline_creation_count = other.render_pipeline_creation_count;
+            self.render_pipeline_creation_cpu_microseconds =
+                other.render_pipeline_creation_cpu_microseconds;
+        }
+        if creation_snapshot_is_greater(
+            self.shader_module_creation_count,
+            self.shader_module_creation_cpu_microseconds,
+            other.shader_module_creation_count,
+            other.shader_module_creation_cpu_microseconds,
+        ) {
+            self.shader_module_creation_count = other.shader_module_creation_count;
+            self.shader_module_creation_cpu_microseconds =
+                other.shader_module_creation_cpu_microseconds;
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ShaderSourceValidationMetrics {
+    pub queued_count: usize,
+    pub already_pending_count: usize,
+    pub full_count: usize,
+    pub worker_unavailable_count: usize,
+    pub job_count: usize,
+    pub unique_source_count: usize,
+    pub duplicate_job_count: usize,
+    pub success_count: usize,
+    pub failure_count: usize,
+    pub queue_wait_microseconds: u64,
+    pub validation_cpu_microseconds: u64,
+}
+
+impl ShaderSourceValidationMetrics {
+    fn accumulate_snapshot(&mut self, other: Self) {
+        if other.snapshot_order() > self.snapshot_order() {
+            *self = other;
+        }
+    }
+
+    fn snapshot_order(self) -> (usize, usize, usize, u64, u64) {
+        (
+            self.queued_count
+                .saturating_add(self.already_pending_count)
+                .saturating_add(self.full_count)
+                .saturating_add(self.worker_unavailable_count),
+            self.job_count,
+            self.success_count.saturating_add(self.failure_count),
+            self.validation_cpu_microseconds,
+            self.queue_wait_microseconds,
+        )
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderVariantMissReport {
     pub request_count: usize,
@@ -52,13 +208,24 @@ pub struct ShaderVariantMissReport {
     #[serde(default)]
     pub async_base_pipeline_queue_wait_microseconds: u64,
     #[serde(default)]
+    pub shader_source_validation_metrics: ShaderSourceValidationMetrics,
+    #[serde(default)]
+    pub pipeline_deferred_draw_count: usize,
+    #[serde(default)]
+    pub pipeline_failed_draw_count: usize,
+    #[serde(default)]
+    pipeline_target_metrics: [ShaderPipelineTargetMetrics; SHADER_PIPELINE_TARGET_COUNT],
+    #[serde(default)]
     pub dimension_summary: ShaderVariantRuntimeDimensionSummary,
     #[serde(default, deserialize_with = "deserialize_pipeline_diagnostics")]
     pipeline_diagnostics: Vec<ShaderPipelineDiagnostic>,
+    #[serde(default, deserialize_with = "deserialize_pipeline_fallbacks")]
+    pipeline_fallbacks: Vec<ShaderPipelineFallbackDiagnostic>,
 }
 
 impl ShaderVariantMissReport {
-    pub const MAX_PIPELINE_DIAGNOSTICS: usize = 8;
+    pub const MAX_PIPELINE_DIAGNOSTICS: usize = MAX_SHADER_VARIANT_REPORT_DIAGNOSTICS;
+    pub const MAX_PIPELINE_FALLBACKS: usize = MAX_SHADER_VARIANT_REPORT_DIAGNOSTICS;
 
     pub fn record_request(&mut self, key: &ShaderVariantKey) {
         self.request_count += 1;
@@ -142,6 +309,40 @@ impl ShaderVariantMissReport {
         self.async_base_pipeline_queue_wait_microseconds = cpu_microseconds;
     }
 
+    pub fn record_shader_source_validation_metrics(
+        &mut self,
+        metrics: ShaderSourceValidationMetrics,
+    ) {
+        self.shader_source_validation_metrics = metrics;
+    }
+
+    pub fn pipeline_target_metrics(
+        &self,
+        target: ShaderPipelineTarget,
+    ) -> ShaderPipelineTargetMetrics {
+        self.pipeline_target_metrics[target.index()]
+    }
+
+    pub fn record_registered_pipeline_target_variant_count(
+        &mut self,
+        target: ShaderPipelineTarget,
+        count: usize,
+    ) {
+        self.pipeline_target_metrics[target.index()].registered_pipeline_variant_count = count;
+    }
+
+    pub fn record_pipeline_target_runtime_metrics(
+        &mut self,
+        target: ShaderPipelineTarget,
+        metrics: ShaderPipelineTargetMetrics,
+    ) {
+        let target_metrics = &mut self.pipeline_target_metrics[target.index()];
+        let registered_pipeline_variant_count = target_metrics.registered_pipeline_variant_count;
+        *target_metrics = metrics;
+        target_metrics.registered_pipeline_variant_count =
+            registered_pipeline_variant_count.max(metrics.registered_pipeline_variant_count);
+    }
+
     pub fn record_pipeline_diagnostic(
         &mut self,
         key: &ShaderVariantKey,
@@ -159,6 +360,102 @@ impl ShaderVariantMissReport {
         &self.pipeline_diagnostics
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub fn record_pipeline_fallback(
+        &mut self,
+        key: &ShaderVariantKey,
+        pipeline_variant_id: u32,
+        entity_id: u64,
+        consumer: &str,
+        state: ShaderPipelineFallbackState,
+        action: ShaderPipelineFallbackAction,
+        reason: &str,
+        state_age_microseconds: u64,
+    ) {
+        self.record_pipeline_fallback_with_identity(
+            || key.canonical_string(),
+            pipeline_variant_id,
+            entity_id,
+            consumer,
+            state,
+            action,
+            reason,
+            state_age_microseconds,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn record_unresolved_pipeline_fallback(
+        &mut self,
+        pipeline_variant_id: u32,
+        entity_id: u64,
+        consumer: &str,
+        state: ShaderPipelineFallbackState,
+        action: ShaderPipelineFallbackAction,
+        reason: &str,
+        state_age_microseconds: u64,
+    ) {
+        self.record_pipeline_fallback_with_identity(
+            || format!("unresolved-pipeline-variant:{pipeline_variant_id}"),
+            pipeline_variant_id,
+            entity_id,
+            consumer,
+            state,
+            action,
+            reason,
+            state_age_microseconds,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn record_pipeline_fallback_with_identity(
+        &mut self,
+        variant_key: impl FnOnce() -> String,
+        pipeline_variant_id: u32,
+        entity_id: u64,
+        consumer: &str,
+        state: ShaderPipelineFallbackState,
+        action: ShaderPipelineFallbackAction,
+        reason: &str,
+        state_age_microseconds: u64,
+    ) {
+        match state {
+            ShaderPipelineFallbackState::Deferred => self.pipeline_deferred_draw_count += 1,
+            ShaderPipelineFallbackState::Failed => self.pipeline_failed_draw_count += 1,
+        }
+        if let Some(current) = self.pipeline_fallbacks.iter_mut().find(|current| {
+            current.pipeline_variant_id == pipeline_variant_id
+                && current.entity_id == entity_id
+                && current.consumer == consumer
+                && current.state == state
+                && current.action == action
+                && current.reason == reason
+        }) {
+            current.occurrence_count = current.occurrence_count.saturating_add(1);
+            current.state_age_microseconds =
+                current.state_age_microseconds.max(state_age_microseconds);
+            return;
+        }
+        if self.pipeline_fallbacks.len() >= Self::MAX_PIPELINE_FALLBACKS {
+            return;
+        }
+        self.push_pipeline_fallback(ShaderPipelineFallbackDiagnostic {
+            variant_key: variant_key(),
+            pipeline_variant_id,
+            entity_id,
+            consumer: consumer.to_owned(),
+            state,
+            action,
+            reason: reason.to_owned(),
+            state_age_microseconds,
+            occurrence_count: 1,
+        });
+    }
+
+    pub fn pipeline_fallbacks(&self) -> &[ShaderPipelineFallbackDiagnostic] {
+        &self.pipeline_fallbacks
+    }
+
     pub fn accumulate(&mut self, other: Self) {
         self.request_count += other.request_count;
         self.memory_hit_count += other.memory_hit_count;
@@ -166,6 +463,8 @@ impl ShaderVariantMissReport {
         self.compile_miss_count += other.compile_miss_count;
         self.disk_write_count += other.disk_write_count;
         self.disk_error_count += other.disk_error_count;
+        self.pipeline_deferred_draw_count += other.pipeline_deferred_draw_count;
+        self.pipeline_failed_draw_count += other.pipeline_failed_draw_count;
         if other.registered_pipeline_variant_count > self.registered_pipeline_variant_count {
             self.registered_pipeline_variant_count = other.registered_pipeline_variant_count;
             self.registered_shader_variant_count = other.registered_shader_variant_count;
@@ -210,9 +509,18 @@ impl ShaderVariantMissReport {
             self.async_base_pipeline_queue_wait_microseconds =
                 other.async_base_pipeline_queue_wait_microseconds;
         }
+        self.shader_source_validation_metrics
+            .accumulate_snapshot(other.shader_source_validation_metrics);
+        for target in ShaderPipelineTarget::ALL {
+            self.pipeline_target_metrics[target.index()]
+                .accumulate_snapshot(other.pipeline_target_metrics[target.index()]);
+        }
         self.dimension_summary.accumulate(&other.dimension_summary);
         for diagnostic in other.pipeline_diagnostics {
             self.push_pipeline_diagnostic(diagnostic);
+        }
+        for fallback in other.pipeline_fallbacks {
+            self.push_pipeline_fallback(fallback);
         }
     }
 
@@ -231,7 +539,32 @@ impl ShaderVariantMissReport {
         }
         self.pipeline_diagnostics.push(diagnostic);
     }
+
+    fn push_pipeline_fallback(&mut self, fallback: ShaderPipelineFallbackDiagnostic) {
+        if let Some(current) = self.pipeline_fallbacks.iter_mut().find(|current| {
+            current.variant_key == fallback.variant_key
+                && current.pipeline_variant_id == fallback.pipeline_variant_id
+                && current.entity_id == fallback.entity_id
+                && current.consumer == fallback.consumer
+                && current.state == fallback.state
+                && current.action == fallback.action
+                && current.reason == fallback.reason
+        }) {
+            current.occurrence_count = current
+                .occurrence_count
+                .saturating_add(fallback.occurrence_count);
+            current.state_age_microseconds = current
+                .state_age_microseconds
+                .max(fallback.state_age_microseconds);
+            return;
+        }
+        if self.pipeline_fallbacks.len() < Self::MAX_PIPELINE_FALLBACKS {
+            self.pipeline_fallbacks.push(fallback);
+        }
+    }
 }
+
+const MAX_SHADER_VARIANT_REPORT_DIAGNOSTICS: usize = 8;
 
 fn creation_snapshot_is_greater(
     current_count: usize,
@@ -270,6 +603,20 @@ where
         report.push_pipeline_diagnostic(diagnostic);
     }
     Ok(report.pipeline_diagnostics)
+}
+
+fn deserialize_pipeline_fallbacks<'de, D>(
+    deserializer: D,
+) -> Result<Vec<ShaderPipelineFallbackDiagnostic>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let fallbacks = Vec::<ShaderPipelineFallbackDiagnostic>::deserialize(deserializer)?;
+    let mut report = ShaderVariantMissReport::default();
+    for fallback in fallbacks {
+        report.push_pipeline_fallback(fallback);
+    }
+    Ok(report.pipeline_fallbacks)
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -371,296 +718,5 @@ fn accumulate_dimensions(
 }
 
 #[cfg(test)]
-mod tests {
-    use zircon_runtime_interface::resource::ResourceId;
-
-    use crate::core::framework::render::{
-        GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
-        SHADING_MODEL_ID_STANDARD_PBR,
-    };
-
-    use super::{ShaderPipelineDiagnosticStage, ShaderVariantMissReport};
-
-    #[test]
-    fn shader_variant_miss_report_groups_runtime_outcomes_by_variant_dimensions() {
-        let key = ShaderVariantKey {
-            material_shader: ResourceId::from_stable_label("res://materials/runtime-hit.zshader"),
-            material_revision: 11,
-            material_layout_hash: 0,
-            material_option_bits: 0,
-            geometry_source: GeometrySourceId::new(3),
-            shading_model: SHADING_MODEL_ID_STANDARD_PBR,
-            pass_type: ShaderPassType::Velocity,
-            features: ShaderFeatureBits::new(ShaderFeatureBits::ALPHA_TEST),
-            quality: ShaderQualityTier::High,
-            platform_token: "wgpu-runtime".to_string(),
-        };
-        let mut report = ShaderVariantMissReport::default();
-
-        report.record_request(&key);
-        report.record_disk_hit(&key);
-        report.record_compile_miss(&key);
-        report.record_disk_write(&key);
-        report.record_disk_error(&key);
-
-        assert_eq!(report.request_count, 1);
-        assert_eq!(report.disk_hit_count, 1);
-        assert_eq!(report.compile_miss_count, 1);
-        assert_eq!(report.disk_write_count, 1);
-        assert_eq!(report.disk_error_count, 1);
-
-        let pass = report
-            .dimension_summary
-            .pass_types
-            .get("velocity")
-            .expect("velocity runtime dimension");
-        assert_eq!(pass.request_count, 1);
-        assert_eq!(pass.disk_hit_count, 1);
-        assert_eq!(pass.compile_miss_count, 1);
-        assert_eq!(pass.disk_write_count, 1);
-        assert_eq!(pass.disk_error_count, 1);
-        assert_eq!(
-            report.dimension_summary.geometry_source_ids["3"].disk_hit_count,
-            1
-        );
-        assert_eq!(
-            report.dimension_summary.shading_model_ids["2"].compile_miss_count,
-            1
-        );
-        assert_eq!(
-            report.dimension_summary.quality_tiers["high"].disk_write_count,
-            1
-        );
-    }
-
-    #[test]
-    fn shader_variant_miss_report_deduplicates_and_bounds_pipeline_diagnostics() {
-        let key = ShaderVariantKey {
-            material_shader: ResourceId::from_stable_label("res://materials/diagnostic.zshader"),
-            material_revision: 12,
-            material_layout_hash: 0,
-            material_option_bits: 0,
-            geometry_source: GeometrySourceId::new(3),
-            shading_model: SHADING_MODEL_ID_STANDARD_PBR,
-            pass_type: ShaderPassType::Forward,
-            features: ShaderFeatureBits::default(),
-            quality: ShaderQualityTier::High,
-            platform_token: "wgpu-runtime".to_string(),
-        };
-        let mut report = ShaderVariantMissReport::default();
-
-        report.record_pipeline_diagnostic(
-            &key,
-            ShaderPipelineDiagnosticStage::SourceAssembly,
-            "missing surface entry",
-        );
-        report.record_pipeline_diagnostic(
-            &key,
-            ShaderPipelineDiagnosticStage::SourceAssembly,
-            "missing surface entry",
-        );
-        for index in 0..ShaderVariantMissReport::MAX_PIPELINE_DIAGNOSTICS {
-            report.record_pipeline_diagnostic(
-                &key,
-                ShaderPipelineDiagnosticStage::WgslValidation,
-                format!("validation failure {index}"),
-            );
-        }
-
-        assert_eq!(
-            report.pipeline_diagnostics().len(),
-            ShaderVariantMissReport::MAX_PIPELINE_DIAGNOSTICS
-        );
-        assert_eq!(
-            report.pipeline_diagnostics()[0].stage,
-            ShaderPipelineDiagnosticStage::SourceAssembly
-        );
-        assert!(report.pipeline_diagnostics()[0]
-            .variant_key
-            .contains("res://materials/diagnostic.zshader"));
-    }
-
-    #[test]
-    fn shader_variant_miss_report_deserialization_enforces_pipeline_diagnostic_limits() {
-        let mut document = serde_json::to_value(ShaderVariantMissReport::default())
-            .expect("default report serializes");
-        let diagnostics = (0..=ShaderVariantMissReport::MAX_PIPELINE_DIAGNOSTICS)
-            .map(|index| {
-                serde_json::json!({
-                    "variant_key": format!("variant-{index}"),
-                    "stage": "pipeline_creation",
-                    "message": "x".repeat(4096),
-                })
-            })
-            .collect();
-        document["pipeline_diagnostics"] = serde_json::Value::Array(diagnostics);
-
-        let report: ShaderVariantMissReport =
-            serde_json::from_value(document).expect("diagnostics deserialize");
-
-        assert_eq!(
-            report.pipeline_diagnostics().len(),
-            ShaderVariantMissReport::MAX_PIPELINE_DIAGNOSTICS
-        );
-        assert!(
-            report.pipeline_diagnostics()[0].message.chars().count()
-                <= super::MAX_PIPELINE_DIAGNOSTIC_MESSAGE_CHARS
-        );
-    }
-
-    #[test]
-    fn shader_variant_miss_report_legacy_json_defaults_pipeline_shape_gauges() {
-        let mut document = serde_json::to_value(ShaderVariantMissReport::default())
-            .expect("default report serializes");
-        let object = document
-            .as_object_mut()
-            .expect("shader variant report serializes as an object");
-        for field in [
-            "registered_pipeline_variant_count",
-            "registered_shader_variant_count",
-            "texture_presence_normalized_pipeline_variant_count",
-            "texture_presence_equivalent_pipeline_variant_count",
-            "cached_render_pipeline_count",
-            "cached_shader_module_count",
-            "render_pipeline_creation_count",
-            "shader_module_creation_count",
-            "render_pipeline_creation_cpu_microseconds",
-            "shader_module_creation_cpu_microseconds",
-            "async_base_pipeline_queue_wait_count",
-            "async_base_pipeline_queue_wait_microseconds",
-        ] {
-            object.remove(field);
-        }
-
-        let report: ShaderVariantMissReport =
-            serde_json::from_value(document).expect("legacy report deserializes");
-
-        assert_eq!(report.registered_pipeline_variant_count, 0);
-        assert_eq!(report.registered_shader_variant_count, 0);
-        assert_eq!(report.texture_presence_normalized_pipeline_variant_count, 0);
-        assert_eq!(report.texture_presence_equivalent_pipeline_variant_count, 0);
-        assert_eq!(report.cached_render_pipeline_count, 0);
-        assert_eq!(report.cached_shader_module_count, 0);
-        assert_eq!(report.render_pipeline_creation_count, 0);
-        assert_eq!(report.shader_module_creation_count, 0);
-        assert_eq!(report.render_pipeline_creation_cpu_microseconds, 0);
-        assert_eq!(report.shader_module_creation_cpu_microseconds, 0);
-        assert_eq!(report.async_base_pipeline_queue_wait_count, 0);
-        assert_eq!(report.async_base_pipeline_queue_wait_microseconds, 0);
-    }
-
-    #[test]
-    fn shader_variant_miss_report_accumulation_normalizes_foreign_diagnostics() {
-        let mut destination = ShaderVariantMissReport::default();
-        let mut source = ShaderVariantMissReport::default();
-        source
-            .pipeline_diagnostics
-            .push(super::ShaderPipelineDiagnostic {
-                variant_key: "foreign-variant".to_string(),
-                stage: ShaderPipelineDiagnosticStage::PipelineCreation,
-                message: "x".repeat(4096),
-            });
-
-        destination.accumulate(source);
-
-        assert_eq!(destination.pipeline_diagnostics().len(), 1);
-        assert!(
-            destination.pipeline_diagnostics()[0]
-                .message
-                .chars()
-                .count()
-                <= super::MAX_PIPELINE_DIAGNOSTIC_MESSAGE_CHARS
-        );
-    }
-
-    #[test]
-    fn shader_variant_miss_report_registered_variant_gauges_use_latest_counts_and_max_accumulation()
-    {
-        let mut destination = ShaderVariantMissReport::default();
-        destination.record_registered_variant_counts(16, 1, 1);
-        destination.record_cached_gpu_object_counts(12, 3);
-        assert_eq!(destination.registered_pipeline_variant_count, 16);
-        assert_eq!(destination.registered_shader_variant_count, 1);
-        assert_eq!(
-            destination.texture_presence_normalized_pipeline_variant_count,
-            1
-        );
-        assert_eq!(
-            destination.texture_presence_equivalent_pipeline_variant_count,
-            15
-        );
-        assert_eq!(destination.cached_render_pipeline_count, 12);
-        assert_eq!(destination.cached_shader_module_count, 3);
-
-        destination.record_registered_variant_counts(2, 2, 2);
-        assert_eq!(destination.registered_pipeline_variant_count, 2);
-        assert_eq!(destination.registered_shader_variant_count, 2);
-        assert_eq!(
-            destination.texture_presence_normalized_pipeline_variant_count,
-            2
-        );
-        assert_eq!(
-            destination.texture_presence_equivalent_pipeline_variant_count,
-            0
-        );
-
-        let mut source = ShaderVariantMissReport::default();
-        source.record_registered_variant_counts(8, 3, 4);
-        source.record_cached_gpu_object_counts(6, 2);
-        source.record_gpu_object_creation_totals(9, 4, 42, 17);
-        source.record_async_base_pipeline_queue_wait_totals(3, 88);
-        destination.accumulate(source);
-
-        assert_eq!(destination.registered_pipeline_variant_count, 8);
-        assert_eq!(destination.registered_shader_variant_count, 3);
-        assert_eq!(
-            destination.texture_presence_normalized_pipeline_variant_count,
-            4
-        );
-        assert_eq!(
-            destination.texture_presence_equivalent_pipeline_variant_count,
-            4
-        );
-        assert_eq!(destination.cached_render_pipeline_count, 12);
-        assert_eq!(destination.cached_shader_module_count, 3);
-        assert_eq!(destination.render_pipeline_creation_count, 9);
-        assert_eq!(destination.shader_module_creation_count, 4);
-        assert_eq!(destination.render_pipeline_creation_cpu_microseconds, 42);
-        assert_eq!(destination.shader_module_creation_cpu_microseconds, 17);
-        assert_eq!(destination.async_base_pipeline_queue_wait_count, 3);
-        assert_eq!(destination.async_base_pipeline_queue_wait_microseconds, 88);
-    }
-
-    #[test]
-    fn shader_variant_creation_accumulation_keeps_coherent_count_time_snapshots() {
-        let mut destination = ShaderVariantMissReport::default();
-        destination.record_gpu_object_creation_totals(4, 2, 400, 200);
-        let mut more_creations = ShaderVariantMissReport::default();
-        more_creations.record_gpu_object_creation_totals(5, 3, 50, 30);
-        destination.accumulate(more_creations);
-
-        assert_eq!(destination.render_pipeline_creation_count, 5);
-        assert_eq!(destination.render_pipeline_creation_cpu_microseconds, 50);
-        assert_eq!(destination.shader_module_creation_count, 3);
-        assert_eq!(destination.shader_module_creation_cpu_microseconds, 30);
-
-        let mut same_count_more_time = ShaderVariantMissReport::default();
-        same_count_more_time.record_gpu_object_creation_totals(5, 3, 70, 40);
-        same_count_more_time.record_async_base_pipeline_queue_wait_totals(2, 90);
-        destination.accumulate(same_count_more_time);
-
-        assert_eq!(destination.render_pipeline_creation_count, 5);
-        assert_eq!(destination.render_pipeline_creation_cpu_microseconds, 70);
-        assert_eq!(destination.shader_module_creation_count, 3);
-        assert_eq!(destination.shader_module_creation_cpu_microseconds, 40);
-        assert_eq!(destination.async_base_pipeline_queue_wait_count, 2);
-        assert_eq!(destination.async_base_pipeline_queue_wait_microseconds, 90);
-
-        let mut more_wait_samples_less_total = ShaderVariantMissReport::default();
-        more_wait_samples_less_total.record_async_base_pipeline_queue_wait_totals(3, 30);
-        destination.accumulate(more_wait_samples_less_total);
-
-        assert_eq!(destination.async_base_pipeline_queue_wait_count, 3);
-        assert_eq!(destination.async_base_pipeline_queue_wait_microseconds, 30);
-    }
-}
+#[path = "variant_miss_report/tests.rs"]
+mod tests;

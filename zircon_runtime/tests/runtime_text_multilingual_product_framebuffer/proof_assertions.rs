@@ -408,14 +408,18 @@ pub(super) fn assert_bbcode_block_layouts(samples: &[UiRenderCommand]) {
         .as_ref()
         .expect("BBCode list product proof must consume resolved layout");
     assert!(list_layout.lines.iter().any(|line| line.text.contains('◆')));
-    assert!(list_layout
-        .lines
-        .iter()
-        .any(|line| line.text.contains('🚀')));
-    assert!(list_layout
-        .lines
-        .iter()
-        .any(|line| line.text.contains('\u{fffc}')));
+    assert!(
+        list_layout
+            .lines
+            .iter()
+            .any(|line| line.text.contains('🚀'))
+    );
+    assert!(
+        list_layout
+            .lines
+            .iter()
+            .any(|line| line.text.contains('\u{fffc}'))
+    );
     assert!(
         list_layout
             .lines

@@ -1,7 +1,7 @@
 use thiserror::Error;
 
-use crate::scene::ecs::ComponentId;
 use crate::scene::EntityId;
+use crate::scene::ecs::ComponentId;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub(crate) enum ArchetypeTableError {

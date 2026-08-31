@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::ui::surface::UiSurface;
+use crate::ui::surface::{UiSurface, editable_text_input_is_secure};
 use zircon_runtime_interface::ui::{
     accessibility::{
         UiA11yRole, UiA11yState, UiAccessibilityAction, UiAccessibilityDiagnostic,
@@ -22,9 +22,11 @@ use state::{
     checked_state_for, disabled_state_for, expanded_state_for, pressed_state_for,
     selected_state_for, text_selection_state_for, value_state_for,
 };
+use visibility::EffectiveHiddenIndex;
 
 mod resolution;
 mod state;
+mod visibility;
 
 pub(crate) fn accessibility_snapshot(surface: &UiSurface) -> UiAccessibilityTreeSnapshot {
     let mut budget = AccessibilityBuildBudget::unbounded();
@@ -55,10 +57,11 @@ fn build_accessibility_snapshot(
         },
         0,
     )?;
+    let effective_hidden = EffectiveHiddenIndex::build(&surface.tree, || budget.check_deadline())?;
 
     for node in surface.tree.nodes.values() {
         budget.check_deadline()?;
-        let effectively_hidden = is_effectively_hidden(surface, node);
+        let effectively_hidden = effective_hidden.is_hidden(node.node_id);
         if include_node(surface, node, false, false, effectively_hidden) {
             collect_relation_targets(
                 node,
@@ -73,7 +76,7 @@ fn build_accessibility_snapshot(
         let is_relation_target = relation_targets.contains(&node.node_id);
         let can_retain_hidden_relation_target =
             hidden_source_relation_targets.contains(&node.node_id);
-        let effectively_hidden = is_effectively_hidden(surface, node);
+        let effectively_hidden = effective_hidden.is_hidden(node.node_id);
         if is_hidden_focusable(node, effectively_hidden) {
             let hidden_focusable = diagnostic(
                 UiAccessibilityDiagnosticSeverity::Error,
@@ -118,6 +121,14 @@ fn build_accessibility_snapshot(
     prune_hidden_relation_targets(surface, &mut nodes, &mut hidden_relation_targets);
     filter_children(surface, &mut nodes, &hidden_relation_targets, budget)?;
 
+    for hidden_target in &hidden_relation_targets {
+        budget.check_deadline()?;
+        if let Some(node) = nodes.get_mut(hidden_target) {
+            node.children.clear();
+            node.actions.clear();
+        }
+    }
+
     let mut roots = Vec::new();
     for root in surface.tree.roots.iter().copied() {
         budget.check_deadline()?;
@@ -134,18 +145,6 @@ fn build_accessibility_snapshot(
         focused: surface.focus.focused,
         diagnostics,
     };
-
-    for hidden_target in hidden_relation_targets {
-        budget.check_deadline()?;
-        if let Some(node) = snapshot
-            .nodes
-            .iter_mut()
-            .find(|node| node.node_id == hidden_target)
-        {
-            node.children.clear();
-            node.actions.clear();
-        }
-    }
 
     let diagnostic_count_before_validation = snapshot.diagnostics.len();
     validate_snapshot_bounded(&mut snapshot, |count| budget.observe_items(count))?;
@@ -431,6 +430,15 @@ fn actions_for(
     if role == UiA11yRole::Tooltip {
         actions.push(UiAccessibilityAction::Dismiss);
     }
+    if role == UiA11yRole::TextInput && editable_text_input_is_secure(surface, node.node_id) {
+        actions.retain(|action| {
+            !matches!(
+                action,
+                UiAccessibilityAction::ReplaceSelectedText
+                    | UiAccessibilityAction::SetTextSelection
+            )
+        });
+    }
     actions.sort();
     actions.dedup();
     let had_disabled_invalid_action = disabled
@@ -533,23 +541,6 @@ fn is_interactive(node: &UiTreeNode) -> bool {
 
 fn is_hidden(node: &UiTreeNode) -> bool {
     !node.is_render_visible()
-}
-
-fn is_effectively_hidden(surface: &UiSurface, node: &UiTreeNode) -> bool {
-    if is_hidden(node) {
-        return true;
-    }
-    let mut parent = node.parent;
-    while let Some(parent_id) = parent {
-        let Some(parent_node) = surface.tree.nodes.get(&parent_id) else {
-            return false;
-        };
-        if is_hidden(parent_node) {
-            return true;
-        }
-        parent = parent_node.parent;
-    }
-    false
 }
 
 fn is_hidden_focusable(node: &UiTreeNode, effectively_hidden: bool) -> bool {

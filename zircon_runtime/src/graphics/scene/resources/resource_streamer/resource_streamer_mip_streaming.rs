@@ -1,17 +1,16 @@
 use core::ops::Range;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use crate::core::framework::render::{ProjectionMode, ViewportCameraSnapshot};
-use crate::core::math::{view_matrix, Vec3};
+use crate::core::math::{Vec3, view_matrix};
 use crate::core::resource::ResourceId;
-use crate::graphics::scene::resources::GpuTextureResource;
 use crate::graphics::scene::resources::MaterialRuntime;
 
-use super::super::prepared::PreparedTexture;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::ResourceStreamer;
+
+mod frame_apply;
 
 /// Visibility data collected during extract without copying texture metadata or GPU state.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -323,7 +322,10 @@ impl ResourceStreamer {
                 continue;
             };
 
-            for texture in material_texture_ids(&material.runtime) {
+            let Some(published) = material.published.as_ref() else {
+                continue;
+            };
+            for texture in material_texture_ids(&published.runtime) {
                 if self.textures.contains_key(&texture) {
                     self.mip_streaming_visibility.push(MipStreamingVisibility {
                         texture,
@@ -415,46 +417,6 @@ impl ResourceStreamer {
             .finish(task, succeeded)
     }
 
-    pub(super) fn apply_texture_mip_streaming(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        texture_layout: &wgpu::BindGroupLayout,
-        mip_bias: u8,
-    ) {
-        let tasks = self.schedule_texture_mip_streaming(
-            self.mip_streaming_visibility.clone(),
-            MipStreamingSettings {
-                mip_bias,
-                max_resident_bytes: self.mip_streaming_residency_budget_bytes,
-                ..Default::default()
-            },
-        );
-        for task in tasks {
-            let rebuilt =
-                self.rebuild_texture_mip_streaming_task(device, queue, texture_layout, &task);
-            match rebuilt {
-                Some((revision, resource)) => {
-                    if let Some(resident_mip_range) =
-                        self.finish_texture_mip_streaming_task(&task, true)
-                    {
-                        self.textures.insert(
-                            task.texture,
-                            PreparedTexture {
-                                revision,
-                                resource,
-                                resident_mip_range,
-                            },
-                        );
-                    }
-                }
-                None => {
-                    self.finish_texture_mip_streaming_task(&task, false);
-                }
-            }
-        }
-    }
-
     pub(crate) fn persistent_texture_resident_bytes(&self) -> u64 {
         self.textures
             .values()
@@ -464,41 +426,6 @@ impl ResourceStreamer {
 
     pub(crate) fn set_mip_streaming_residency_budget(&mut self, bytes: u64) {
         self.mip_streaming_residency_budget_bytes = bytes;
-    }
-
-    fn rebuild_texture_mip_streaming_task(
-        &self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        texture_layout: &wgpu::BindGroupLayout,
-        task: &MipStreamingTask,
-    ) -> Option<(u64, Arc<GpuTextureResource>)> {
-        let prepared = self.textures.get(&task.texture)?;
-        if prepared.resident_mip_range != task.resident_mips
-            || self.resource_revision(task.texture).ok()? != prepared.revision
-        {
-            return None;
-        }
-        let revision = prepared.revision;
-        let previous = Arc::clone(&prepared.resource);
-        let previous_range = prepared.resident_mip_range.clone();
-        let payload = self
-            .asset_manager()
-            .ok()?
-            .load_texture_asset(task.texture)
-            .ok()?;
-        let resource = GpuTextureResource::rebuild_resident_mips(
-            device,
-            queue,
-            texture_layout,
-            task.texture,
-            payload,
-            previous.as_ref(),
-            previous_range,
-            task.wanted_mips.clone(),
-        )
-        .ok()?;
-        Some((revision, Arc::new(resource)))
     }
 }
 
@@ -768,18 +695,20 @@ mod tests {
     fn render_mip_streaming_hysteresis_avoids_single_mip_thrash() {
         let demand = demand("mip-streaming-hysteresis", 5, 1..5, u16::MAX, true, 0);
 
-        assert!(plan_mip_streaming(
-            [demand.clone()],
-            MipStreamingSettings {
-                max_transitions: 1,
-                max_upload_bytes: u64::MAX,
-                max_resident_bytes: u64::MAX,
-                current_resident_bytes: 0,
-                hysteresis_mips: 1,
-                mip_bias: 0,
-            },
-        )
-        .is_empty());
+        assert!(
+            plan_mip_streaming(
+                [demand.clone()],
+                MipStreamingSettings {
+                    max_transitions: 1,
+                    max_upload_bytes: u64::MAX,
+                    max_resident_bytes: u64::MAX,
+                    current_resident_bytes: 0,
+                    hysteresis_mips: 1,
+                    mip_bias: 0,
+                },
+            )
+            .is_empty()
+        );
 
         let plans = plan_mip_streaming(
             [demand],

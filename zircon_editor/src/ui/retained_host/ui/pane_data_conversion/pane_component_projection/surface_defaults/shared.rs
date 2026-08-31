@@ -47,7 +47,10 @@ pub(super) fn pascal_case(value: &str) -> String {
     let Some(first) = characters.next() else {
         return String::new();
     };
-    first.to_ascii_uppercase().to_string() + characters.as_str()
+    let mut result = String::with_capacity(value.len());
+    result.push(first.to_ascii_uppercase());
+    result.push_str(characters.as_str());
+    result
 }
 
 pub(super) fn alert_color_severity(attributes: &BTreeMap<String, toml::Value>) -> String {
@@ -85,3 +88,7 @@ pub(super) fn variant_contains(component_variant: &str, expected: &str) -> bool 
         .split_whitespace()
         .any(|part| part.eq_ignore_ascii_case(expected))
 }
+
+#[cfg(test)]
+#[path = "shared/single_allocation_pascal_case_tests.rs"]
+mod single_allocation_pascal_case_tests;

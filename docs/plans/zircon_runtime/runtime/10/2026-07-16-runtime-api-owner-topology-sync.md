@@ -5,9 +5,9 @@ accepted_at: 2026-07-16
 status_anchor: runtime_10_runtime_api_owner_topology_8_of_8_static_accepted_cargo_unchanged
 origin_plan: docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md
 related_code:
-  - zircon_runtime_interface/src/runtime_api.rs
-  - zircon_runtime_interface/src/runtime_api/operation.rs
-  - zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
+  - zircon_runtime_interface/src/runtime_api/session/operation.rs
+  - zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_api_boundary.py
 tests:
   - python -m unittest tools.tests.test_runtime_api_boundary

@@ -60,7 +60,10 @@ pub(super) fn dropdown_popup_node() -> TemplatePaneNodeData {
         },
         structured_options: model_rc(vec![
             option("selected", true, false, false, false),
-            option("focused", false, true, false, false),
+            TemplatePaneOptionData {
+                focused: true,
+                ..option("focused", false, false, false, false)
+            },
             option("disabled", false, false, false, true),
             option("loading", false, false, false, false),
         ]),

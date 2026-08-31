@@ -4,8 +4,10 @@ fn dense_and_sparse_component_values_have_exactly_one_storage_owner() {
     let archetype_record = include_str!("../ecs/archetype/record.rs");
     let archetype_table = include_str!("../ecs/archetype/table/table.rs");
 
-    assert!(component_storage
-        .contains("sparse_components: HashMap<ComponentId, SparseComponentStorage>"));
+    assert!(
+        component_storage
+            .contains("sparse_components: HashMap<ComponentId, SparseComponentStorage>")
+    );
     assert!(!component_storage.contains("table_components:"));
     assert!(!component_storage.contains("TableComponentStorage"));
     assert!(archetype_record.contains("table: ArchetypeTable"));

@@ -427,6 +427,34 @@ fn usage_hint_selects_color_space_when_not_explicitly_overridden() {
 }
 
 #[test]
+fn decoded_one_mip_rgba8_factory_preserves_source_payload_truth() {
+    for usage_hint in [
+        TextureUsageHint::Albedo,
+        TextureUsageHint::Normal,
+        TextureUsageHint::Data,
+        TextureUsageHint::Hdr,
+        TextureUsageHint::Ui,
+    ] {
+        let descriptor = TextureAssetDescriptor::decoded_rgba8_for_import_usage(usage_hint);
+
+        assert_eq!(descriptor.mip_count, 1);
+        assert_eq!(descriptor.metadata.mip_policy, TextureMipPolicy::FromSource);
+        assert_eq!(
+            descriptor.metadata.compression,
+            TextureCompressionTarget::Uncompressed
+        );
+        assert_eq!(
+            descriptor.metadata.normal_convention,
+            if usage_hint == TextureUsageHint::Normal {
+                TextureNormalConvention::TangentSpaceDx
+            } else {
+                TextureNormalConvention::None
+            }
+        );
+    }
+}
+
+#[test]
 fn container_format_preserves_from_source_mip_policy_without_an_override() {
     let descriptor = TextureAssetDescriptor::container("dds/ati2", 5, 1)
         .apply_import_settings(&toml::Table::new())

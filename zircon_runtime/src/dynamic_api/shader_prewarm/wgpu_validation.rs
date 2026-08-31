@@ -50,7 +50,7 @@ pub fn prewarm_shader_variants_with_execution_budget(
                 }
             };
             let module_validation_cache =
-                ShaderPrewarmModuleValidationCache::new(manifest.sources.len());
+                ShaderPrewarmModuleValidationCache::new(&manifest.sources);
             prewarm_shader_variants_to_disk_with_module_validation_and_budget(
                 manifest,
                 cache_dir,
@@ -107,7 +107,7 @@ pub fn prewarm_shader_variants_with_execution_budget(
             };
             let pipeline_layout = create_mesh_prewarm_validation_pipeline_layout(&backend.device);
             let module_validation_cache =
-                ShaderPrewarmModuleValidationCache::new(manifest.sources.len());
+                ShaderPrewarmModuleValidationCache::new(&manifest.sources);
             prewarm_shader_variants_to_disk_with_module_and_pipeline_validation_and_budget(
                 manifest,
                 cache_dir,
@@ -144,7 +144,7 @@ pub fn prewarm_shader_variants_with_wgpu_module_validation(
         }
     };
     let device = &backend.device;
-    let module_validation_cache = ShaderPrewarmModuleValidationCache::new(manifest.sources.len());
+    let module_validation_cache = ShaderPrewarmModuleValidationCache::new(&manifest.sources);
     prewarm_shader_variants_to_disk_with_module_validation(
         manifest,
         cache_dir,
@@ -195,7 +195,7 @@ pub fn prewarm_shader_variants_with_wgpu_module_and_pipeline_validation(
     };
     let device = &backend.device;
     let pipeline_layout = create_mesh_prewarm_validation_pipeline_layout(device);
-    let module_validation_cache = ShaderPrewarmModuleValidationCache::new(manifest.sources.len());
+    let module_validation_cache = ShaderPrewarmModuleValidationCache::new(&manifest.sources);
     prewarm_shader_variants_to_disk_with_module_and_pipeline_validation(
         manifest,
         cache_dir,

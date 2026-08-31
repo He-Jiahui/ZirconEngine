@@ -1,14 +1,15 @@
 //! Immutable manager rows and generation-paired catalog snapshots.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+use super::super::catalog::EditorPluginCatalog;
 use super::super::catalog_snapshot::EditorPluginCatalogSnapshot;
 use super::super::extension_catalog_report::EditorExtensionCatalogReport;
-use super::{
-    build_active_extensions, normalize_entries_for_loading_phase, EditorPluginDiscovery,
-    EditorPluginSource, EditorPluginState,
-};
+use super::super::extension_materialization::build_editor_extensions;
+use super::super::phases::EditorPluginLoadingPhase;
+use super::discovery::{EditorPluginDiscovery, EditorPluginSource};
+use super::state::{EditorPluginState, normalize_entries_for_loading_phase};
 
 /// One lightweight manager row. Descriptor and capability data stay in the catalog snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -35,6 +36,78 @@ impl EditorPluginManagerEntry {
     pub fn state(&self) -> EditorPluginState {
         self.state
     }
+}
+
+/// Projects one mutable replacement catalog into the next manager entry set.
+pub(super) fn entries_for_catalog(
+    catalog: &EditorPluginCatalog,
+    previous_entries: &[EditorPluginManagerEntry],
+    discoveries: &BTreeMap<String, EditorPluginDiscovery>,
+    reached_loading_phase: Option<EditorPluginLoadingPhase>,
+) -> Vec<EditorPluginManagerEntry> {
+    let previous_by_package = previous_entries
+        .iter()
+        .map(|entry| (entry.package_id.as_str(), entry))
+        .collect::<BTreeMap<_, _>>();
+    let faulted_packages = catalog
+        .registrations()
+        .iter()
+        .filter(|registration| !registration.is_success())
+        .map(|registration| registration.package_manifest.id.as_str())
+        .collect::<BTreeSet<_>>();
+    let mut entries = catalog
+        .package_manifests()
+        .iter()
+        .map(|package| {
+            let mut entry = previous_by_package
+                .get(package.id.as_str())
+                .copied()
+                .cloned()
+                .unwrap_or_else(|| EditorPluginManagerEntry {
+                    package_id: package.id.clone(),
+                    source: discoveries
+                        .get(package.id.as_str())
+                        .map(EditorPluginDiscovery::source)
+                        .unwrap_or(EditorPluginSource::Builtin),
+                    loading_phase: discoveries
+                        .get(package.id.as_str())
+                        .map(EditorPluginDiscovery::loading_phase)
+                        .unwrap_or(EditorPluginLoadingPhase::Default),
+                    state: EditorPluginState::Validated,
+                });
+            if faulted_packages.contains(package.id.as_str()) {
+                entry.state = EditorPluginState::Faulted;
+            }
+            if let Some(discovery) = discoveries.get(package.id.as_str()) {
+                entry.source = discovery.source();
+                entry.loading_phase = discovery.loading_phase();
+            }
+            entry
+        })
+        .collect::<Vec<_>>();
+    entries.sort_by(|left, right| left.package_id.cmp(&right.package_id));
+    normalize_entries_for_loading_phase(&mut entries, reached_loading_phase);
+    entries
+}
+
+fn build_active_extensions(
+    catalog: &EditorPluginCatalogSnapshot,
+    entries: &[EditorPluginManagerEntry],
+    manager_generation: u64,
+) -> Arc<EditorExtensionCatalogReport> {
+    let active_package_ids = entries
+        .iter()
+        .filter(|entry| entry.state == EditorPluginState::Active)
+        .map(|entry| entry.package_id.as_str())
+        .collect::<BTreeSet<_>>();
+    let mut report = build_editor_extensions(
+        catalog.generation(),
+        catalog.registrations().iter().filter(|registration| {
+            active_package_ids.contains(registration.package_manifest.id.as_str())
+        }),
+    );
+    report.active_manager_generation = Some(manager_generation);
+    Arc::new(report)
 }
 
 /// Immutable manager read model paired with exactly one catalog generation.

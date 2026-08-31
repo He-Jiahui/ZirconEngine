@@ -1445,8 +1445,9 @@ and current status is
 `render_plan08_asset_root_resource_registry_revision_overlay_typecheck_passed_test_timeout_no_result`.
 Built-in fallback and
 `builtin://shader/pbr.wgsl` material references use the standard-material
-template builder for each requested geometry source; custom scanned shader
-payloads remain raw WGSL requests. Runtime lookup checks the writable
+template builder for each requested geometry source; custom scanned Surface
+packages remain material requests, while standalone WGSL modules produce no
+material variants. Runtime lookup checks the writable
 `.zircon/cache/shader_variants` cache first and then the staged
 `cache/shader_variants` payload, so packaged prewarm entries can satisfy the
 first matching shader-module lookup.
@@ -1460,7 +1461,7 @@ asset-root manifest scan. `shader_resource_records_from_asset_root(...)` reads
 staged `.zmeta` documents, exports shader-only ready `ResourceRecord` rows, and
 keeps explicit `--resource-registry` input as the override path. The focused
 manifest regression is
-`shader_prewarm_asset_root_exports_shader_resource_records`, the structure
+`shader_prewarm_asset_root_exports_raw_module_records_without_material_variants`, the structure
 guard is `runtime_15_shader_prewarm_registry_auto_export_is_wired`, and status
 is
 `render_plan08_shader_resource_registry_auto_export_focused_tests_passed_renderdoc_deferred`.

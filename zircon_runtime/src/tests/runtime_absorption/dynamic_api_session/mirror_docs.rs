@@ -60,7 +60,7 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
         for required_doc_anchor in [
             "dynamic_runtime_api_boundary",
             "expected_source_file_count = 60",
-            "ZrRuntimeApiV7",
+            "ZrRuntimeApiV8",
             "runtime_session_ffi_wrappers = 23/23",
             "runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts",
         ] {
@@ -122,8 +122,8 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_include_runtime_diagnostics_anchor
 fn assert_runtime_10_host_request_payload_anchors(repo_root: &Path) {
     assert_eq!(
         EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS.len(),
-        38,
-        "Runtime 10 host-request payload anchor inventory should stay at 38 anchors"
+        60,
+        "Runtime 10 host-request payload anchor inventory should stay at 60 anchors"
     );
     for (relative_file, expected_anchor) in EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS {
         let source = fs::read_to_string(repo_root.join(relative_file))
@@ -170,7 +170,7 @@ fn assert_runtime_10_ffi_wrappers(
         let wrapper = format!("{operation}_ffi");
         assert!(
             exports_source.contains(&format!("Some({wrapper})")),
-            "`ZrRuntimeApiV7` should advertise `{wrapper}`"
+            "`ZrRuntimeApiV8` should advertise `{wrapper}`"
         );
         assert!(
             exports_source.contains(&format!("fn {wrapper}(")),
@@ -182,7 +182,7 @@ fn assert_runtime_10_ffi_wrappers(
         );
         assert!(
             !exports_source.contains(&format!("Some({operation}),")),
-            "`ZrRuntimeApiV7` must not advertise `{operation}` directly"
+            "`ZrRuntimeApiV8` must not advertise `{operation}` directly"
         );
         let owner_source = if operation.ends_with("_operation") {
             operation_source

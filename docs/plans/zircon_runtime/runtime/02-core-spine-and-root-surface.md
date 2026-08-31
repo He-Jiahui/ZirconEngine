@@ -9,6 +9,9 @@ related_code:
   - zircon_runtime/src/core/runtime/events.rs
   - zircon_runtime/src/core/runtime/frame_clock.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/activation.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/activation/contention.rs
+  - tools/tests/test_runtime_activation_contention_test_structure.py
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/runtime/descriptors/service_object.rs
@@ -55,6 +58,7 @@ last_refined: 2026-08-01
 - **结构目标已落地**：`zircon_runtime/src/core/` 当前只有 `runtime/framework/manager/math/resource` 五个目录与 `mod.rs`；原 13 件根散件均已迁入定稿 owner。M2 的结构守卫位于 `zircon_runtime/src/tests/runtime_absorption/root_entries.rs`。
 - **crate root 别名已清零**：`zircon_runtime/src/lib.rs` 当前 49 行，无 `pub(crate) use graphics::{...}` 与 `#[allow(unused_imports)]`。M3 的验收以“无别名块/无旧调用路径”为准，不再使用会随合法模块声明变化的行数阈值。
 - **generated-code 守卫已落地**：`core_spine_root_generated.rs`、`generated_code_guard.rs` 及其 folder-backed 子树已存在。M2/M3/M4 仍保留为历史执行设计；父计划保持 `in_progress` 的原因仅是当前源码受管 Cargo/下游门与两份 open failure 尚未闭合，不是上述结构切换未实现。
+- **2026-08-24 root public-surface 分类同步（静态）**：`text`（共享文本服务与字体排版公共合同）及 `operation`（runtime operation registry/task lifecycle）是外部模块族直接消费的正式 runtime-module-entry；`runtime_diagnostics` 改为 feature-independent 私有根支持模块，避免让仅启用 `graphics` 的测试隐式依赖 optional `dynamic-api`。`core_spine_root_generated_boundary` 当前报告 core root entries 6/6、core public modules 5/5、retired core root entries 0、runtime root public modules 21/21、public `pub use` sites 2/2、crate-visible graphics alias debt 0/0、root-surface M1 `classified-and-clear`、generated export templates 10/10、generated behavior 6/6、generated allowed adapters 6/6、generated migration debt 0/0、generated-code M1 `classified-and-clear`、root_entries guard tests 13、root_surface guard tests 6/6、generated-code guard tests 7/7、`guard_test_anchor_count = 26`、`missing_guard_test_anchors = []`、`mirror_docs_guard_present = true`，且 `risks = []`。这只是源码结构证据，Cargo gate 仍待受管验证环境恢复。
 
 以下 2026-06-12 盘点保留为迁移前历史证据，不再代表当前目录形态：
 
@@ -307,3 +311,18 @@ last_refined: 2026-08-01
 - 2026-07-18 module DAG交接：activation sort的HashMap/DFS临时name clone已止损为借用name+usize stack；Runtime02仍须把递归sort硬切为冻结generation的迭代Kahn/显式frame order cache，避免batch每次clone完整descriptors并让100k深链可验证。见PERF-MVP-325。
 - 2026-07-23 App entry descriptor所有权补充：`ResolvedPluginGroup` single snapshot止损仍成立，但`DescriptorBackedEngineModule`因`EngineModule`名称/描述返回`&'static str`而逐构造`Box::leak`动态name+description。Runtime02按PERF-MVP-004与open [`02/failure-2026-07-17-module-descriptor-regeneration.md`](02/failure-2026-07-17-module-descriptor-regeneration.md)硬切为owner-borrowed读口或可回收冻结`Arc<str>`；禁止global永久interner。dynamic modules 1/100/1,000、entry/report/reload 1/1,000/100,000要求descriptor generation≤1/module、leaked bytes=0、drop/retire后动态文本回收，report/order/activation等价。
 - 两份 open failure 的受管收口门保持显式：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter config_manager`，以及 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_app -LibTests -TestFilter resolved_plugin_group` 与 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_app -SkipBuild -LibTests -TestFilter descriptor_backed_modules_borrow_dynamic_text_at_supported_cardinalities`。只有这些当前源码门与 failure 自身要求的回收/性能证据闭合后才可回传 `fixed-*`。
+
+## 2026-08-27 Activation Contention Test Owner Split
+
+状态：`runtime_02_15_activation_contention_test_owner_split_static_passed_cargo_profile_deferred`。
+
+当前非算法结构切片把 `core/runtime/tests/activation/behavior/activation.rs` 末尾的普通
+contention gate、release-only benchmark 及两个专用采样 helper 原样迁入 folder-backed
+`activation/contention.rs`。父 owner 从 885 行降到 756 行并保留 11 个 activation behavior
+tests，child 为 132 行与 2 个 tests。7 个 joiners、单次 build、750 ms 普通/P95 预算和 21
+release samples 的既有合同全部保留。
+
+Python 结构回归 1/1、定向 Rust `rustfmt --check`、迁移块规范化 SHA-256 等价与 scoped
+diff check 通过。本轮没有修改 lifecycle coordinator 或 activation transaction 算法，也未
+重跑 21 样本 release profile；Cargo 与 profile 仍延后，因此不关闭 Runtime01 optimize
+pending 记录，不声明 Runtime02/15 acceptance，也未触发 milestone commit/企微同步。

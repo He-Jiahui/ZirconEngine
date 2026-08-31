@@ -1,7 +1,10 @@
 use std::fmt::Display;
+use std::sync::Arc;
 
 use crate::asset::TextureUploadPlan;
 use crate::graphics::types::GraphicsError;
+use zr_rhi::TextureCopyRegion;
+use zr_rhi_wgpu::{WgpuTextureUpload, WgpuTextureUploadBatch};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct CompressedMipUpload {
@@ -40,18 +43,31 @@ impl CompressedMipUpload {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn upload_compressed_texture_bytes<T: Display + ?Sized>(
-    queue: &wgpu::Queue,
+pub(super) fn enqueue_compressed_texture_uploads<T: Display + ?Sized>(
+    batch: &mut WgpuTextureUploadBatch,
     texture: &wgpu::Texture,
     texture_uri: &T,
     width: u32,
     height: u32,
     mip_count: u32,
     layer_count: u32,
-    data: &[u8],
-    upload_bytes: &[u8],
+    data: Arc<[u8]>,
     plan: &TextureUploadPlan,
 ) -> Result<(), GraphicsError> {
+    let payload_start = plan.data_offset;
+    let payload_end = match plan.data_length {
+        Some(length) => payload_start.checked_add(length).ok_or_else(|| {
+            GraphicsError::Asset(format!(
+                "texture {texture_uri} compressed payload range overflows"
+            ))
+        })?,
+        None => data.len(),
+    };
+    if payload_start > payload_end || payload_end > data.len() {
+        return Err(GraphicsError::Asset(format!(
+            "texture {texture_uri} compressed payload is shorter than its upload plan"
+        )));
+    }
     if !plan.subresources.is_empty() {
         for upload in &plan.subresources {
             let source_end = upload
@@ -62,35 +78,20 @@ pub(super) fn upload_compressed_texture_bytes<T: Display + ?Sized>(
                         "texture {texture_uri} compressed subresource range overflows"
                     ))
                 })?;
-            let source = data.get(upload.data_offset..source_end).ok_or_else(|| {
-                GraphicsError::Asset(format!(
-                    "texture {texture_uri} compressed payload is missing mip {} layer {}",
-                    upload.mip_level, upload.array_layer
-                ))
-            })?;
-            queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture,
-                    mip_level: upload.mip_level,
-                    origin: wgpu::Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: upload.array_layer,
-                    },
-                    aspect: wgpu::TextureAspect::All,
-                },
-                source,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(upload.bytes_per_row),
-                    rows_per_image: Some(upload.block_rows),
-                },
-                wgpu::Extent3d {
-                    width: mip_extent(width, upload.mip_level),
-                    height: mip_extent(height, upload.mip_level),
-                    depth_or_array_layers: 1,
-                },
-            );
+            enqueue_compressed_subresource(
+                batch,
+                texture,
+                upload.mip_level,
+                upload.array_layer,
+                mip_extent(width, upload.mip_level),
+                mip_extent(height, upload.mip_level),
+                upload.bytes_per_row,
+                upload.block_rows,
+                Arc::clone(&data),
+                upload.data_offset..source_end,
+                payload_start..payload_end,
+                texture_uri,
+            )?;
         }
         return Ok(());
     }
@@ -111,35 +112,20 @@ pub(super) fn upload_compressed_texture_bytes<T: Display + ?Sized>(
                         "texture {texture_uri} compressed DDS subresource range overflows"
                     ))
                 })?;
-            let source = data.get(upload.data_offset..source_end).ok_or_else(|| {
-                GraphicsError::Asset(format!(
-                    "texture {texture_uri} compressed DDS payload is missing mip {} layer {}",
-                    upload.level, upload.layer
-                ))
-            })?;
-            queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture,
-                    mip_level: upload.level,
-                    origin: wgpu::Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: upload.layer,
-                    },
-                    aspect: wgpu::TextureAspect::All,
-                },
-                source,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(upload.bytes_per_row),
-                    rows_per_image: Some(upload.block_rows),
-                },
-                wgpu::Extent3d {
-                    width: upload.width,
-                    height: upload.height,
-                    depth_or_array_layers: 1,
-                },
-            );
+            enqueue_compressed_subresource(
+                batch,
+                texture,
+                upload.level,
+                upload.layer,
+                upload.width,
+                upload.height,
+                upload.bytes_per_row,
+                upload.block_rows,
+                Arc::clone(&data),
+                upload.data_offset..source_end,
+                payload_start..payload_end,
+                texture_uri,
+            )?;
         }
         return Ok(());
     }
@@ -151,35 +137,79 @@ pub(super) fn upload_compressed_texture_bytes<T: Display + ?Sized>(
         .ok_or_else(|| {
             GraphicsError::Asset(format!("texture {texture_uri} row pitch overflows"))
         })?;
-    let required_bytes = u64::from(bytes_per_row)
-        .checked_mul(u64::from(block_rows))
-        .and_then(|bytes| bytes.checked_mul(u64::from(layer_count)))
-        .ok_or_else(|| {
+    let layer_bytes = usize::try_from(
+        u64::from(bytes_per_row)
+            .checked_mul(u64::from(block_rows))
+            .ok_or_else(|| {
+                GraphicsError::Asset(format!("texture {texture_uri} upload size overflows"))
+            })?,
+    )
+    .map_err(|_| GraphicsError::Asset(format!("texture {texture_uri} upload size overflows")))?;
+    for layer in 0..layer_count {
+        let start = payload_start
+            .checked_add(layer_bytes.checked_mul(layer as usize).ok_or_else(|| {
+                GraphicsError::Asset(format!("texture {texture_uri} upload size overflows"))
+            })?)
+            .ok_or_else(|| {
+                GraphicsError::Asset(format!("texture {texture_uri} upload size overflows"))
+            })?;
+        let end = start.checked_add(layer_bytes).ok_or_else(|| {
             GraphicsError::Asset(format!("texture {texture_uri} upload size overflows"))
         })?;
-    let required_bytes = usize::try_from(required_bytes).map_err(|_| {
-        GraphicsError::Asset(format!("texture {texture_uri} upload size overflows"))
-    })?;
-    let source = upload_bytes.get(..required_bytes).ok_or_else(|| {
-        GraphicsError::Asset(format!(
-            "texture {texture_uri} compressed payload has {} bytes but needs at least {required_bytes}",
-            upload_bytes.len()
-        ))
-    })?;
-    queue.write_texture(
-        texture.as_image_copy(),
-        source,
-        wgpu::TexelCopyBufferLayout {
-            offset: 0,
-            bytes_per_row: Some(bytes_per_row),
-            rows_per_image: Some(block_rows),
-        },
-        wgpu::Extent3d {
+        enqueue_compressed_subresource(
+            batch,
+            texture,
+            0,
+            layer,
             width,
             height,
-            depth_or_array_layers: layer_count,
-        },
-    );
+            bytes_per_row,
+            block_rows,
+            Arc::clone(&data),
+            start..end,
+            payload_start..payload_end,
+            texture_uri,
+        )?;
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn enqueue_compressed_subresource<T: Display + ?Sized>(
+    batch: &mut WgpuTextureUploadBatch,
+    texture: &wgpu::Texture,
+    mip_level: u32,
+    layer: u32,
+    width: u32,
+    height: u32,
+    bytes_per_row: u32,
+    block_rows: u32,
+    data: Arc<[u8]>,
+    source_range: core::ops::Range<usize>,
+    payload_range: core::ops::Range<usize>,
+    texture_uri: &T,
+) -> Result<(), GraphicsError> {
+    if source_range.start < payload_range.start || source_range.end > payload_range.end {
+        return Err(GraphicsError::Asset(format!(
+            "texture {texture_uri} compressed upload range is outside its declared payload"
+        )));
+    }
+    let upload = WgpuTextureUpload::new(
+        texture.clone(),
+        TextureCopyRegion::new(width, height)
+            .with_mip_level(mip_level)
+            .with_origin(0, 0, layer),
+        bytes_per_row,
+        block_rows,
+        data,
+        source_range,
+    )
+    .ok_or_else(|| {
+        GraphicsError::Asset(format!(
+            "texture {texture_uri} compressed source range is invalid"
+        ))
+    })?;
+    batch.push(upload);
     Ok(())
 }
 
@@ -258,11 +288,7 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 {
-        1
-    } else {
-        shifted
-    }
+    if shifted == 0 { 1 } else { shifted }
 }
 
 #[cfg(test)]

@@ -4,7 +4,9 @@ const STATUS: &str = "render_plan08_prewarm_wgpu_module_validation_gate_python_c
 
 #[test]
 fn runtime_15_shader_prewarm_wgpu_module_validation_is_wired() {
-    let prewarm = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
+    let prewarm_route = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
+    let prewarm_worker = read_runtime_src("graphics/shader/variant_cache/prewarm/worker.rs");
+    let prewarm_tests = read_runtime_src("graphics/shader/variant_cache/prewarm/tests.rs");
     let shader_mod = read_runtime_src("graphics/shader/mod.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let wgpu_validation = read_runtime_src("dynamic_api/shader_prewarm/wgpu_validation.rs");
@@ -25,15 +27,23 @@ fn runtime_15_shader_prewarm_wgpu_module_validation_is_wired() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
 
     assert_contains_all(
-        "shader cache prewarm validates WGPU modules before disk writes",
-        &prewarm,
+        "shader cache prewarm route exposes module validation",
+        &prewarm_route,
+        &["prewarm_shader_variants_to_disk_with_module_validation"],
+    );
+    assert_contains_all(
+        "shader cache prewarm worker validates WGPU modules before disk writes",
+        &prewarm_worker,
         &[
-            "prewarm_shader_variants_to_disk_with_module_validation",
             "validate_shader_variant_prewarm_wgsl",
             "WGPU shader module validation failed",
             "continue;",
-            "render_shader_variant_prewarm_rejects_wgpu_module_validation_failure_before_disk_write",
         ],
+    );
+    assert_contains_all(
+        "shader cache prewarm tests reject module validation failures before disk writes",
+        &prewarm_tests,
+        &["render_shader_variant_prewarm_rejects_wgpu_module_validation_failure_before_disk_write"],
     );
     assert_contains_all(
         "graphics shader module exposes the validation-capable prewarm entry point",
@@ -113,7 +123,15 @@ fn runtime_15_shader_prewarm_wgpu_module_validation_is_wired() {
     for (path, source) in [
         (
             "zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs",
-            prewarm.as_str(),
+            prewarm_route.as_str(),
+        ),
+        (
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs",
+            prewarm_worker.as_str(),
+        ),
+        (
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs",
+            prewarm_tests.as_str(),
         ),
         (
             "zircon_runtime/src/dynamic_api/shader_prewarm.rs",

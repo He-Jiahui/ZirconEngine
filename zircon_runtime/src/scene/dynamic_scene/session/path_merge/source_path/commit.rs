@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::super::super::{
-    io, target_path as archive_target_path, RuntimeSessionArchiveError,
-    RuntimeSessionArchiveMergePolicy, RuntimeSessionArchiveMergeReport,
+    RuntimeSessionArchiveError, RuntimeSessionArchiveMergePolicy, RuntimeSessionArchiveMergeReport,
+    io, target_path as archive_target_path,
 };
 use super::super::loaded::merge_archive_at_path_atomically;
 

@@ -10,9 +10,9 @@ use super::super::super::super::host_page_overflow_menu::{
 };
 use super::super::super::super::menu_popup_metrics::MENU_POPUP_TEXT_INSET_X;
 use super::super::super::super::paint_frame::HostRgbaFrame;
-use super::super::super::super::paint_geometry::is_visible_frame;
+use super::super::super::super::paint_geometry::{intersect, is_visible_frame};
 use super::super::super::super::paint_primitives::{
-    draw_rect_clipped, draw_rounded_border_clipped, draw_rounded_rect_clipped,
+    draw_rect_clipped, draw_rounded_box_clipped, draw_rounded_rect_clipped,
 };
 use super::super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::super::paint_theme::{
@@ -42,23 +42,23 @@ pub(in super::super) fn draw_host_page_overflow_menu(
     if !is_visible_frame(&popup) {
         return;
     }
+    if frame
+        .paint_clip()
+        .is_some_and(|damage| intersect(&popup, damage).is_none())
+    {
+        return;
+    }
 
     let metrics = current_host_metrics();
     let palette = page_overflow_palette(current_host_palette());
-    draw_rounded_rect_clipped(
+    draw_rounded_box_clipped(
         frame,
         popup.clone(),
         Some(&popup),
         palette.popup,
-        metrics.radius_control,
-    );
-    draw_rounded_border_clipped(
-        frame,
-        popup.clone(),
-        Some(&popup),
         palette.border,
         metrics.border_width,
-        metrics.radius_control,
+        metrics.radius_panel,
     );
     let viewport = host_page_overflow_content_viewport_frame(&popup);
     let scroll_content_extent = host_page_overflow_scroll_content_extent(presentation);
@@ -73,7 +73,7 @@ pub(in super::super) fn draw_host_page_overflow_menu(
             .host_scene_data
             .page_chrome
             .tabs
-            .row_data(page_index)
+            .get(page_index)
         else {
             continue;
         };
@@ -81,7 +81,13 @@ pub(in super::super) fn draw_host_page_overflow_menu(
         let active = tab.active;
         let hovered = is_hovered(&state, page_index);
         if active || hovered {
-            draw_rect_clipped(frame, row_frame.clone(), Some(&viewport), palette.hover);
+            draw_rounded_rect_clipped(
+                frame,
+                row_frame.clone(),
+                Some(&viewport),
+                palette.hover,
+                metrics.radius_small,
+            );
         }
         let selection_reserve =
             (metrics.selection_indicator_width + metrics.gap_s).min(row_frame.width.max(0.0));
@@ -243,6 +249,50 @@ mod tests {
         assert!(
             command.frame.x + command.frame.width <= row.x + row.width - MENU_POPUP_TEXT_INSET_X
         );
+    }
+
+    #[test]
+    fn overflow_popup_and_hover_row_use_panel_and_small_radius_tiers() {
+        let mut presentation = overflow_presentation("Scene");
+        presentation
+            .host_page_overflow_menu_state
+            .hovered_page_index = 0;
+        let mut frame = HostRgbaFrame::recording_only(240, 180);
+
+        draw_host_page_overflow_menu(&mut frame, &presentation);
+
+        let metrics = current_host_metrics();
+        let palette = page_overflow_palette(current_host_palette());
+        let commands = frame.into_recorded_commands();
+        let popup = commands
+            .iter()
+            .find(|command| {
+                matches!(
+                    &command.kind,
+                    HostRecordedPaintKind::Quad { color, .. } if *color == palette.popup
+                )
+            })
+            .expect("page overflow should paint its popup surface");
+        let hover = commands
+            .iter()
+            .find(|command| {
+                matches!(
+                    &command.kind,
+                    HostRecordedPaintKind::Quad { color, .. } if *color == palette.hover
+                )
+            })
+            .expect("hovered overflow row should paint its surface");
+
+        assert!(matches!(
+            &popup.kind,
+            HostRecordedPaintKind::Quad { corner_radius, .. }
+                if *corner_radius == metrics.radius_panel
+        ));
+        assert!(matches!(
+            &hover.kind,
+            HostRecordedPaintKind::Quad { corner_radius, .. }
+                if *corner_radius == metrics.radius_small
+        ));
     }
 
     fn overflow_presentation(title: &str) -> HostWindowPresentationData {

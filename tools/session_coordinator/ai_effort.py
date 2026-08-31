@@ -147,26 +147,30 @@ class AiEffortService:
                 "WHERE baseline_id=?",
                 (DEFAULT_BASELINE_ID,),
             ).fetchone()
-            milestone_rows = connection.execute(
-                "SELECT * FROM ai_effort_milestones ORDER BY recorded_at, ledger_id"
-            ).fetchall()
+            by_outcome = {outcome.value: 0.0 for outcome in AiEffortOutcome}
+            by_cost_class = {cost.value: 0.0 for cost in AiEffortCostClass}
+            blocked: dict[str, dict[str, float | int]] = {}
+            milestone_count = 0
+            for row in connection.execute(
+                """SELECT active_ai_hours, outcome, blocked_by_json, cost_class
+                   FROM ai_effort_milestones ORDER BY recorded_at, ledger_id"""
+            ):
+                milestone_count += 1
+                hours = float(row["active_ai_hours"])
+                by_outcome[row["outcome"]] += hours
+                by_cost_class[row["cost_class"]] += hours
+                for blocker in json.loads(row["blocked_by_json"]):
+                    aggregate = blocked.setdefault(
+                        blocker, {"hours": 0.0, "milestones": 0}
+                    )
+                    aggregate["hours"] = float(aggregate["hours"]) + hours
+                    aggregate["milestones"] = int(aggregate["milestones"]) + 1
             scenarios = connection.execute(
                 """SELECT scenario_id, effective_parallelism_min, effective_parallelism_max,
                           calendar_weeks_min, calendar_weeks_max
                    FROM ai_effort_forecast_scenarios ORDER BY scenario_id"""
             ).fetchall()
         baseline = json.loads(baseline_row["payload_json"]) if baseline_row else None
-        by_outcome = {outcome.value: 0.0 for outcome in AiEffortOutcome}
-        by_cost_class = {cost.value: 0.0 for cost in AiEffortCostClass}
-        blocked: dict[str, dict[str, float | int]] = {}
-        for row in milestone_rows:
-            hours = float(row["active_ai_hours"])
-            by_outcome[row["outcome"]] += hours
-            by_cost_class[row["cost_class"]] += hours
-            for blocker in json.loads(row["blocked_by_json"]):
-                aggregate = blocked.setdefault(blocker, {"hours": 0.0, "milestones": 0})
-                aggregate["hours"] = float(aggregate["hours"]) + hours
-                aggregate["milestones"] = int(aggregate["milestones"]) + 1
         accepted_hours = by_outcome[AiEffortOutcome.ACCEPTED.value]
         failed_hours = by_outcome[AiEffortOutcome.FAILED.value]
         return {
@@ -175,7 +179,7 @@ class AiEffortService:
             "historical": baseline["historical"] if baseline else None,
             "currentPlanBudget": baseline["currentPlan"] if baseline else None,
             "ledger": {
-                "milestoneCount": len(milestone_rows),
+                "milestoneCount": milestone_count,
                 "acceptedEffectiveHours": accepted_hours,
                 "acceptedEffectiveDays": self._days(accepted_hours),
                 "failedQualityCostHours": failed_hours,

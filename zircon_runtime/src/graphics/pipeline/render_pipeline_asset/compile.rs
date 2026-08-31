@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{
-    resolve_subsurface_profile_table, PostProcessGraphResourceNames, RenderFrameExtract,
-    RenderPhase,
+    PostProcessGraphResourceNames, RenderFrameExtract, RenderPhase,
+    resolve_subsurface_profile_table,
 };
 use crate::render_graph::{QueueLane, RenderGraphAttachmentOps};
 
@@ -10,22 +10,27 @@ use crate::graphics::extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHis
 use crate::graphics::feature::{
     BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
     RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceWriteMode,
+    configure_screen_space_ambient_occlusion_for_profile,
 };
+use crate::graphics::pipeline::RenderGraphCompileCameraTargetFingerprint;
 use crate::graphics::pipeline::declarations::{
-    transmission_mesh_pass_name, transmission_scene_copy_pass_name, CompiledRenderPipeline,
-    CompiledRenderPipelineParts, RenderPassStage, RenderPipelineAsset,
-    RenderPipelineCompileOptions, ADVANCED_PBR_OPAQUE_EXECUTOR_ID, ADVANCED_PBR_OPAQUE_PASS_NAME,
-    TRANSMISSION_MESH_EXECUTOR_IDS, TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
+    ADVANCED_PBR_OPAQUE_EXECUTOR_ID, ADVANCED_PBR_OPAQUE_PASS_NAME, AdvancedLightingCompileInputs,
+    CompiledAoProfile, CompiledRenderPipeline, CompiledRenderPipelineParts, RenderPassStage,
+    RenderPipelineAsset, RenderPipelineCompileOptions, TRANSMISSION_MESH_EXECUTOR_IDS,
+    TRANSMISSION_SCENE_COPY_EXECUTOR_IDS, transmission_mesh_pass_name,
+    transmission_scene_copy_pass_name,
 };
 use crate::graphics::scene::HALF_RES_TRANSPARENCY_PARTICLE_EXECUTOR_ID;
 
 use super::super::validation::validate_renderer_asset;
+use super::attachment_initialization::normalize_attachment_initialization;
 use super::descriptor_filtering::{feature_descriptor, feature_descriptor_for_options};
 use super::graph_resources::pipeline_graph_resources;
 use super::half_resolution_transparency::{
     half_resolution_transparency_enabled, maybe_insert_half_resolution_transparency_passes,
 };
 use super::pass_authoring::author_render_graph;
+use super::ssao_input_qualification::validate_ssao_input_qualification;
 
 const CORE_SCENE_PARTICLE_DESCRIPTOR_NAME: &str = "scene_particles";
 const CORE_SCENE_PARTICLE_PLUGIN_FEATURE_NAME: &str = "particle";
@@ -41,9 +46,29 @@ impl RenderPipelineAsset {
         extract: &RenderFrameExtract,
         options: &RenderPipelineCompileOptions,
     ) -> Result<CompiledRenderPipeline, String> {
+        let camera_target = RenderGraphCompileCameraTargetFingerprint::from_target_and_view_size(
+            &extract
+                .view
+                .selected_camera_descriptor()
+                .ok_or_else(|| {
+                    "render graph compilation requires a selected camera descriptor".to_string()
+                })?
+                .target,
+            extract.view.effective_view_size(),
+        );
+        self.compile_with_options_and_camera_target(extract, options, camera_target)
+    }
+
+    pub(crate) fn compile_with_options_and_camera_target(
+        &self,
+        extract: &RenderFrameExtract,
+        options: &RenderPipelineCompileOptions,
+        camera_target: RenderGraphCompileCameraTargetFingerprint,
+    ) -> Result<CompiledRenderPipeline, String> {
         validate_core_pipeline_matches_extract(self, extract)?;
         validate_renderer_asset(&self.renderer)?;
         validate_renderer_stage_phase_mapping(self)?;
+        let advanced_lighting_inputs = options.resolved_advanced_lighting_inputs(extract);
         let asset_descriptors = self
             .renderer
             .features
@@ -75,13 +100,10 @@ impl RenderPipelineAsset {
         }) && enabled_features.iter().any(|feature| {
             feature.is_builtin(crate::graphics::feature::BuiltinRenderFeature::DeferredLighting)
         });
-        let subsurface_table = resolve_subsurface_profile_table(
-            &extract.lighting.advanced_lighting.subsurface_profiles,
-        );
-        let view_uses_active_subsurface_profile = extract
-            .lighting
-            .advanced_lighting
-            .subsurface_material_profile_indices
+        let subsurface_table =
+            resolve_subsurface_profile_table(advanced_lighting_inputs.subsurface_profiles());
+        let view_uses_active_subsurface_profile = advanced_lighting_inputs
+            .subsurface_material_profile_indices()
             .iter()
             .any(|profile_id| subsurface_table.profile_is_active(*profile_id));
         let deferred_subsurface_single_sample =
@@ -118,16 +140,49 @@ impl RenderPipelineAsset {
             &self.renderer.stages,
             &mut enabled_descriptors,
         );
-        maybe_insert_late_forward_opaque_pass(extract, &mut enabled_descriptors)?;
-        maybe_insert_transmission_passes(extract, &mut enabled_descriptors)?;
+        maybe_insert_late_forward_opaque_pass(
+            advanced_lighting_inputs.material_features(),
+            &mut enabled_descriptors,
+        )?;
+        maybe_insert_transmission_passes(
+            extract,
+            &advanced_lighting_inputs,
+            &mut enabled_descriptors,
+        )?;
         apply_pass_resource_extensions(&self.renderer.stages, &mut enabled_descriptors)?;
         apply_pass_replacements(&mut enabled_descriptors)?;
+        let ambient_occlusion_profile = validate_ssao_input_qualification(
+            extract,
+            options,
+            &self.renderer.stages,
+            &enabled_features,
+            &enabled_descriptors,
+        )?
+        .map(|qualification| {
+            CompiledAoProfile::compile(
+                options.resolved_ambient_occlusion_source(extract),
+                qualification,
+            )
+        })
+        .transpose()?;
+        if let Some(profile) = ambient_occlusion_profile.as_ref() {
+            configure_screen_space_ambient_occlusion_for_profile(
+                &mut enabled_descriptors,
+                profile,
+            )?;
+        }
+        wire_ambient_occlusion_lighting_consumer(
+            ambient_occlusion_profile.is_some(),
+            &mut enabled_descriptors,
+        )?;
         maybe_insert_half_resolution_transparency_passes(
             extract,
             options,
             &self.renderer.stages,
             &mut enabled_descriptors,
         )?;
+        validate_feature_descriptors(&self.renderer.stages, &enabled_descriptors)?;
+        normalize_attachment_initialization(&self.renderer.stages, &mut enabled_descriptors)?;
 
         let mut required_extract_sections = BTreeSet::new();
         let mut capability_requirements = Vec::new();
@@ -166,38 +221,64 @@ impl RenderPipelineAsset {
             &enabled_descriptors,
             extract,
             options,
+            camera_target,
         )?;
 
-        Ok(CompiledRenderPipeline::from_parts(
-            CompiledRenderPipelineParts {
-                handle: self.handle,
-                name: self.name.clone(),
-                renderer_name: self.renderer.name.clone(),
-                stages: self.renderer.stages.clone(),
-                pass_stages: authored_graph.pass_stages,
-                enabled_features,
-                required_extract_sections: required_extract_sections.into_iter().collect(),
-                capability_requirements,
-                history_bindings,
-                environment_ibl_bake_request: options.environment_ibl_bake_request,
-                half_resolution_transparency_depth_sigma: options
-                    .half_resolution_transparency_depth_sigma,
-                graph: authored_graph.graph,
-            },
-        ))
+        CompiledRenderPipeline::from_parts(CompiledRenderPipelineParts {
+            handle: self.handle,
+            name: self.name.clone(),
+            renderer_name: self.renderer.name.clone(),
+            execution_pass_metadata: authored_graph.execution_pass_metadata,
+            enabled_features,
+            required_extract_sections: required_extract_sections.into_iter().collect(),
+            capability_requirements,
+            history_bindings,
+            environment_ibl_bake_request: options.environment_ibl_bake_request,
+            ambient_occlusion_profile,
+            half_resolution_transparency_depth_sigma: options
+                .half_resolution_transparency_depth_sigma,
+            graph: authored_graph.graph,
+        })
     }
 }
 
-fn maybe_insert_late_forward_opaque_pass(
-    extract: &RenderFrameExtract,
+fn wire_ambient_occlusion_lighting_consumer(
+    enabled: bool,
     descriptors: &mut [RenderFeatureDescriptor],
 ) -> Result<(), String> {
-    if !extract
-        .lighting
-        .advanced_lighting
-        .material_features
-        .requires_late_forward_opaque_pass()
-    {
+    if !enabled {
+        return Ok(());
+    }
+    let consumers = descriptors
+        .iter()
+        .enumerate()
+        .flat_map(|(descriptor_index, descriptor)| {
+            descriptor
+                .stage_passes
+                .iter()
+                .enumerate()
+                .filter(|(_, pass)| pass.pass_name == "deferred-lighting")
+                .map(move |(pass_index, _)| (descriptor_index, pass_index))
+        })
+        .collect::<Vec<_>>();
+    let [(descriptor_index, pass_index)] = consumers.as_slice() else {
+        return Err(format!(
+            "screen_space_ambient_occlusion requires exactly one indirect-lighting consumer, found {} deferred-lighting passes",
+            consumers.len()
+        ));
+    };
+    let pass = descriptors[*descriptor_index].stage_passes[*pass_index]
+        .clone()
+        .read_external_texture(PostProcessGraphResourceNames::AMBIENT_OCCLUSION);
+    descriptors[*descriptor_index].stage_passes[*pass_index] = pass;
+    Ok(())
+}
+
+fn maybe_insert_late_forward_opaque_pass(
+    material_features: crate::core::framework::render::AdvancedPbrMaterialFrameUsage,
+    descriptors: &mut [RenderFeatureDescriptor],
+) -> Result<(), String> {
+    if !material_features.requires_late_forward_opaque_pass() {
         return Ok(());
     }
     let (descriptor_index, transparent_index) = unique_transparent_mesh_owner(descriptors)?;
@@ -218,14 +299,14 @@ fn maybe_insert_late_forward_opaque_pass(
 
 fn maybe_insert_transmission_passes(
     extract: &RenderFrameExtract,
+    advanced_lighting_inputs: &AdvancedLightingCompileInputs,
     descriptors: &mut [RenderFeatureDescriptor],
 ) -> Result<(), String> {
-    let advanced_lighting = &extract.lighting.advanced_lighting;
-    let draw_step_count = advanced_lighting.transmission_draw_step_count();
+    let draw_step_count = advanced_lighting_inputs.transmission_draw_step_count(extract);
     if draw_step_count == 0 {
         return Ok(());
     }
-    let copy_step_count = advanced_lighting.transmission_scene_copy_step_count();
+    let copy_step_count = advanced_lighting_inputs.transmission_scene_copy_step_count(extract);
 
     let (descriptor_index, transparent_index) = unique_transparent_mesh_owner(descriptors)?;
     let descriptor = &mut descriptors[descriptor_index];
@@ -448,6 +529,12 @@ fn validate_core_pipeline_matches_extract(
 
 fn validate_renderer_stage_phase_mapping(pipeline: &RenderPipelineAsset) -> Result<(), String> {
     for stage in &pipeline.renderer.stages {
+        if *stage == RenderPassStage::Present {
+            return Err(format!(
+                "renderer `{}` cannot declare engine-owned terminal stage `Present`",
+                pipeline.renderer.name
+            ));
+        }
         let Some(phase) = render_phase_for_stage(*stage) else {
             continue;
         };
@@ -477,6 +564,8 @@ fn render_phase_for_stage(stage: RenderPassStage) -> Option<RenderPhase> {
         RenderPassStage::Ui => Some(RenderPhase::Ui),
         RenderPassStage::Overlay => Some(RenderPhase::Overlay),
         RenderPassStage::Debug => Some(RenderPhase::Debug),
+        // Present is an engine-owned terminal graph stage, not a renderer-data phase.
+        RenderPassStage::Present => None,
         RenderPassStage::AmbientOcclusion
         | RenderPassStage::Lighting
         | RenderPassStage::Opaque
@@ -518,14 +607,16 @@ fn maybe_insert_core_scene_particle_descriptor(
             "visibility".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Transparent3d,
-            CORE_SCENE_PARTICLE_PASS_NAME,
-            QueueLane::Graphics,
-        )
-        .with_executor_id(executor_id)
-        .read_texture(depth_resource)
-        .write_texture(color_resource)],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
+                CORE_SCENE_PARTICLE_PASS_NAME,
+                QueueLane::Graphics,
+            )
+            .with_executor_id(executor_id)
+            .read_texture(depth_resource)
+            .write_texture(color_resource),
+        ],
     ));
 }
 
@@ -652,6 +743,15 @@ fn validate_descriptor_names(descriptors: &[RenderFeatureDescriptor]) -> Result<
                         descriptor.name, pass.pass_name
                     ));
                 }
+                workload
+                    .pipeline_fallback_policy
+                    .validate()
+                    .map_err(|error| {
+                        format!(
+                            "feature descriptor `{}` pass `{}` has an invalid compute pipeline fallback policy: {error}",
+                            descriptor.name, pass.pass_name
+                        )
+                    })?;
                 if workload
                     .workgroup_size
                     .iter()

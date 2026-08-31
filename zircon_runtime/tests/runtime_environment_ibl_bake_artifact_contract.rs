@@ -87,12 +87,12 @@ fn runtime_environment_ibl_bake_artifact_header_round_trips_current_algorithm_ve
 }
 
 #[test]
-fn runtime_environment_ibl_bake_version_advances_for_gpu_irradiance_source_lod_contract() {
-    const CANONICAL_DIFFUSE_SOURCE_LOD_ALGORITHM_VERSION: u64 = 2026_08_09_0006;
+fn runtime_environment_ibl_bake_version_advances_for_low_roughness_pmrem_pdf_contract() {
+    const CANONICAL_LOW_ROUGHNESS_PMREM_PDF_ALGORITHM_VERSION: u64 = 2026_08_26_0008;
 
     assert_eq!(
-        IBL_BAKE_ALGORITHM_VERSION, CANONICAL_DIFFUSE_SOURCE_LOD_ALGORITHM_VERSION,
-        "the GPU irradiance source-mip recipe changes persisted runtime-cache output"
+        IBL_BAKE_ALGORITHM_VERSION, CANONICAL_LOW_ROUGHNESS_PMREM_PDF_ALGORITHM_VERSION,
+        "the low-roughness PMREM PDF repair changes persisted prefiltered radiance"
     );
 }
 

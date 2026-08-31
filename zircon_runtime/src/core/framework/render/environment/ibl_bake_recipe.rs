@@ -178,8 +178,8 @@ impl IblBakeRecipe {
         if roughness <= Real::EPSILON || max_mip <= 0.0 {
             return 0.0;
         }
-        (max_mip - self.roughest_mip_offset + self.roughness_mip_scale * roughness.log2())
-            .clamp(0.0, max_mip)
+        let level_from_1x1 = self.roughest_mip_offset - self.roughness_mip_scale * roughness.log2();
+        (max_mip - 1.0 - level_from_1x1).clamp(0.0, max_mip)
     }
 
     pub fn roughness_from_pmrem_mip(self, mip_level: u32, mip_count: u32) -> Real {
@@ -187,14 +187,16 @@ impl IblBakeRecipe {
         if max_mip == 0 || mip_level == 0 {
             return 0.0;
         }
-        let level_from_1x1 = max_mip.saturating_sub(mip_level.min(max_mip)) as Real;
+        let level_from_1x1 = max_mip
+            .saturating_sub(1)
+            .saturating_sub(mip_level.min(max_mip)) as Real;
         2.0_f32
             .powf((self.roughest_mip_offset - level_from_1x1) / self.roughness_mip_scale)
             .clamp(0.0, 1.0)
     }
 }
 
-pub const CANONICAL_IBL_BAKE_ALGORITHM_VERSION: u64 = 2026_08_09_0006;
+pub const CANONICAL_IBL_BAKE_ALGORITHM_VERSION: u64 = 2026_08_26_0008;
 pub const CANONICAL_IBL_BAKE_DIFFUSE_SOURCE_FACE_SIZE: u32 = 32;
 pub const CANONICAL_IBL_BAKE_IRRADIANCE_CUBE_FACE_SIZE: u32 = 32;
 pub const CANONICAL_IBL_BAKE_ROUGHEST_MIP_OFFSET: Real = 1.0;
@@ -270,12 +272,21 @@ mod tests {
     }
 
     #[test]
-    fn canonical_recipe_owns_the_bidirectional_roughness_mapping() {
+    fn canonical_recipe_matches_unreal_reflection_capture_roughness_mapping() {
         let recipe = CANONICAL_IBL_BAKE_RECIPE;
-        for mip_level in 1..7 {
-            let roughness = recipe.roughness_from_pmrem_mip(mip_level, 8);
-            let resolved_mip = recipe.pmrem_mip_from_roughness(roughness, 8);
+        let mip_count = 8;
+        for mip_level in 1..(mip_count - 2) {
+            let roughness = recipe.roughness_from_pmrem_mip(mip_level, mip_count);
+            let resolved_mip = recipe.pmrem_mip_from_roughness(roughness, mip_count);
             assert!((resolved_mip - mip_level as Real).abs() <= 0.0001);
         }
+        assert_eq!(
+            recipe.pmrem_mip_from_roughness(1.0, mip_count),
+            (mip_count - 3) as Real
+        );
+        assert_eq!(
+            recipe.roughness_from_pmrem_mip(mip_count - 3, mip_count),
+            1.0
+        );
     }
 }

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use toml::Value;
 
+use crate::ui::layout::UiPixelSnappingPolicy;
 use crate::ui::template::{
     UiAssetImports, UiBindingRef, UiComponentParamSchema, UiComponentPublicContract,
     UiNamedSlotSchema, UiStyleScope,
@@ -66,6 +67,10 @@ pub struct UiV2NodeDefinition {
     pub component: String,
     #[serde(default)]
     pub control_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pixel_snapping: Option<UiPixelSnappingPolicy>,
+    #[serde(default)]
+    pub params: BTreeMap<String, Value>,
     #[serde(default)]
     pub classes: Vec<String>,
     #[serde(default)]

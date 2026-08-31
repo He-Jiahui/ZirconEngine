@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
     (
-        "src/runtime_api/api_table.rs",
-        &["ZrHostApiV1", "ZrRuntimeApiV7"],
+        "src/runtime_api/abi/api_table.rs",
+        &["ZrHostApiV1", "ZrRuntimeApiV8"],
     ),
     (
         "src/plugin_api.rs",
@@ -24,8 +24,8 @@ const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
     ),
 ];
 const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
-    ("src/runtime_api/api_table.rs", "ZrHostApiV1", 4),
-    ("src/runtime_api/api_table.rs", "ZrRuntimeApiV7", 25),
+    ("src/runtime_api/abi/api_table.rs", "ZrHostApiV1", 4),
+    ("src/runtime_api/abi/api_table.rs", "ZrRuntimeApiV8", 25),
     ("src/plugin_api.rs", "ZrHostApiV3", 7),
     ("src/plugin_api.rs", "ZrHostApiV4", 7),
     ("src/plugin_api.rs", "ZrHostEcsApiV1", 3),
@@ -37,7 +37,7 @@ const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
     ("src/plugin_api.rs", "ZrPluginStateSnapshotApiV1", 4),
     ("src/plugin_api.rs", "ZrPluginApiV1", 4),
 ];
-const RUNTIME_API_V7_SESSION_OPERATION_FIELDS: &[&str] = &[
+const RUNTIME_API_V8_SESSION_OPERATION_FIELDS: &[&str] = &[
     "create_session",
     "destroy_session",
     "release_allocation",
@@ -61,6 +61,9 @@ const RUNTIME_API_V7_SESSION_OPERATION_FIELDS: &[&str] = &[
     "watch_world",
     "unwatch_world",
     "drain_world_invalidations",
+    "request_viewport_pick",
+    "poll_viewport_pick",
+    "cancel_viewport_pick",
 ];
 const FORBIDDEN_PUBLIC_SIGNATURE_NEEDLES: &[&str] = &["Box<dyn", "Rc<", "Arc<dyn", "impl Trait"];
 
@@ -118,10 +121,13 @@ fn function_table_field_counts_match_runtime_10_inventory() {
 
 #[test]
 fn runtime_api_session_operation_surface_matches_inventory() {
-    let source = read_manifest_source("src/runtime_api/api_table.rs");
-    let v7_fields =
-        discover_struct_fields(&source, "src/runtime_api/api_table.rs", "ZrRuntimeApiV7");
-    let v7_operation_fields = v7_fields
+    let source = read_manifest_source("src/runtime_api/abi/api_table.rs");
+    let v8_fields = discover_struct_fields(
+        &source,
+        "src/runtime_api/abi/api_table.rs",
+        "ZrRuntimeApiV8",
+    );
+    let v8_operation_fields = v8_fields
         .iter()
         .filter_map(|field| match field.as_str() {
             "abi_version" | "size_bytes" => None,
@@ -130,35 +136,35 @@ fn runtime_api_session_operation_surface_matches_inventory() {
         .collect::<Vec<_>>();
 
     assert_eq!(
-        v7_operation_fields, RUNTIME_API_V7_SESSION_OPERATION_FIELDS,
-        "ZrRuntimeApiV7 session operation surface changed; update runtime 10 docs and failure-path tests before changing the guard"
+        v8_operation_fields, RUNTIME_API_V8_SESSION_OPERATION_FIELDS,
+        "ZrRuntimeApiV8 session operation surface changed; update runtime 10 docs and failure-path tests before changing the guard"
     );
 }
 
 #[test]
 fn runtime_play_startup_dtos_keep_explicit_c_layout_and_raw_kind() {
-    let session_source = read_manifest_source("src/runtime_api/session.rs");
-    let demand_source = read_manifest_source("src/runtime_api/frame_demand.rs");
+    let session_source = read_manifest_source("src/runtime_api/session/session.rs");
+    let demand_source = read_manifest_source("src/runtime_api/frame/frame_demand.rs");
 
     assert_repr_c_before_struct(
         &session_source,
-        "src/runtime_api/session.rs",
+        "src/runtime_api/session/session.rs",
         "ZrRuntimeWakeSinkV1",
     );
     assert_repr_c_before_struct(
         &session_source,
-        "src/runtime_api/session.rs",
+        "src/runtime_api/session/session.rs",
         "ZrRuntimeSessionConfigV3",
     );
     assert_repr_c_before_struct(
         &demand_source,
-        "src/runtime_api/frame_demand.rs",
+        "src/runtime_api/frame/frame_demand.rs",
         "ZrRuntimeFrameDemandV1",
     );
     assert_eq!(
         discover_struct_fields(
             &session_source,
-            "src/runtime_api/session.rs",
+            "src/runtime_api/session/session.rs",
             "ZrRuntimeWakeSinkV1",
         ),
         ["abi_version", "token", "wake"]
@@ -168,7 +174,7 @@ fn runtime_play_startup_dtos_keep_explicit_c_layout_and_raw_kind() {
     assert_eq!(
         discover_struct_fields(
             &session_source,
-            "src/runtime_api/session.rs",
+            "src/runtime_api/session/session.rs",
             "ZrRuntimeSessionConfigV3",
         ),
         [
@@ -185,7 +191,7 @@ fn runtime_play_startup_dtos_keep_explicit_c_layout_and_raw_kind() {
     assert_eq!(
         discover_struct_fields(
             &demand_source,
-            "src/runtime_api/frame_demand.rs",
+            "src/runtime_api/frame/frame_demand.rs",
             "ZrRuntimeFrameDemandV1",
         ),
         ["abi_version", "kind", "delay_nanoseconds"]
@@ -201,8 +207,8 @@ fn runtime_play_startup_dtos_keep_explicit_c_layout_and_raw_kind() {
 fn runtime_table_v2_export_and_loader_fallback_stay_hard_deleted() {
     let sources = [
         (
-            "zircon_runtime_interface/src/runtime_api/api_table.rs",
-            read_manifest_source("src/runtime_api/api_table.rs"),
+            "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
+            read_manifest_source("src/runtime_api/abi/api_table.rs"),
         ),
         (
             "zircon_runtime_interface/src/lib.rs",
@@ -271,7 +277,7 @@ fn runtime_table_v2_export_and_loader_fallback_stay_hard_deleted() {
 
     assert!(
         violations.is_empty(),
-        "the runtime table is V7-only; remove retired runtime table exports, loaders, and signatures:\n{}",
+        "the runtime table is V8-only; remove retired runtime table exports, loaders, and signatures:\n{}",
         violations.join("\n")
     );
 }
@@ -281,6 +287,7 @@ fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
     let convergence_doc =
         read_repo_file("docs/engine-architecture/runtime-interface-convergence.md");
     let version_source = read_manifest_source("src/version.rs");
+    let interface_catalog_generator = read_repo_file("zircon_runtime_interface/build.rs");
 
     for phrase in [
         "field addition, removal, reorder, type change, or meaning change creates a new table version",
@@ -300,8 +307,12 @@ fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
     assert!(
         version_source.contains("pub const ZIRCON_RUNTIME_ABI_VERSION_V2: u32 = 2;")
             && version_source.contains("pub const ZIRCON_RUNTIME_ABI_VERSION_V3: u32 = 3;")
-            && version_source.contains("pub const ZIRCON_RUNTIME_API_VERSION_V7: u32 = 7;"),
-        "the V7 table and changed V3 session config need explicit version owners"
+            && version_source
+                .contains("pub use crate::runtime_api::ZIRCON_RUNTIME_API_VERSION_V8;")
+            && interface_catalog_generator.contains("const EXPECTED_RUNTIME_API_VERSION: u32 = 7;")
+            && interface_catalog_generator
+                .contains("pub const ZIRCON_RUNTIME_API_VERSION_V8: u32 = {}"),
+        "the V8 table version must come from the frozen InterfaceSpec, while changed V3 session config remains explicit"
     );
     assert!(
         !version_source.contains("ZIRCON_RUNTIME_API_VERSION_V2"),

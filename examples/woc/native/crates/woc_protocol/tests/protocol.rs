@@ -1,8 +1,8 @@
 use woc_protocol::{
     canonical_pairs, command_descriptor, decode_frame, encode_frame, require_finite,
     validate_command_payload, Command, CommandKind, DecodeLimits, EnterDungeonCommandPayload,
-    EntityRef, Event, FixedTickInput, Frame, HarvestCorpseCommandPayload, MessageKind,
-    MovementFrame, MovementInputFlags, NetworkEnvelope, OfflineSessionBootstrap,
+    EntityRef, Event, FixedTickInput, FixedTickInputRef, Frame, HarvestCorpseCommandPayload,
+    MessageKind, MovementFrame, MovementInputFlags, NetworkEnvelope, OfflineSessionBootstrap,
     OfflineWeaponSkinAccount, ProtocolError, RlActionBatch, RlObservationBatch, SaveState,
     TownFocusAllocationEntry, TownFocusCommandPayload, WorldSnapshot, COMMAND_CATALOG,
     COMMAND_PAYLOAD_SCHEMA_SHA256, ENTER_DUNGEON_COMMAND_ID, FRAME_HEADER_BYTES,
@@ -239,6 +239,10 @@ fn fixed_tick_and_world_snapshot_payloads_round_trip_losslessly() {
         }),
     };
     let input_bytes = input.encode_payload().expect("tick input must encode");
+    let borrowed_input_bytes = FixedTickInputRef::from(&input)
+        .encode_payload()
+        .expect("borrowed tick input must encode");
+    assert_eq!(borrowed_input_bytes, input_bytes);
     assert_eq!(
         FixedTickInput::decode_payload(&input_bytes).expect("tick input must decode"),
         input

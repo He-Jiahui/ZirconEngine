@@ -1,6 +1,8 @@
 use super::super::RetainedEditorHost;
 use super::surface_actions::{build_export_wizard_surface_action, export_wizard_status_message};
 use crate::ui::host::{ExportWizardPanelAction, ExportWizardPanelUpdate};
+use crate::ui::retained_host::primary_host_window_id;
+use zircon_runtime_interface::ui::dispatch::UiWindowId;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn dispatch_build_export_surface_action(
@@ -26,10 +28,16 @@ impl RetainedEditorHost {
             ExportWizardPanelAction::Cancel | ExportWizardPanelAction::Poll => None,
         };
 
+        let window_id = self
+            .callback_source_window
+            .as_ref()
+            .map(|window_id| UiWindowId::new(window_id.0.clone()))
+            .unwrap_or_else(primary_host_window_id);
         match self.desktop_export_wizard_sessions.dispatch_profile_action(
             surface_action.profile_name,
             surface_action.action,
             options,
+            window_id,
         ) {
             Ok(update) => {
                 self.apply_export_wizard_update(surface_action.profile_name, &update);

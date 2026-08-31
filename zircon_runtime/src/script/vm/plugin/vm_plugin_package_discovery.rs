@@ -227,12 +227,13 @@ fn resolve_package_payload(
         ));
     }
 
-    let bytecode_file = disk_manifest
-        .bytecode
-        .clone()
-        .unwrap_or_else(default_bytecode_file);
-    let bytecode_path = resolve_relative_package_path(package_root, &bytecode_file, "bytecode")?;
+    let bytecode_file = bytecode_file_name(disk_manifest.bytecode.as_deref());
+    let bytecode_path = resolve_relative_package_path(package_root, bytecode_file, "bytecode")?;
     Ok((Some(bytecode_path), None))
+}
+
+fn bytecode_file_name(bytecode: Option<&str>) -> &str {
+    bytecode.unwrap_or(DEFAULT_BYTECODE_FILE)
 }
 
 fn collect_plugin_manifests(
@@ -510,10 +511,6 @@ fn default_backend_name() -> String {
     DEFAULT_BACKEND_NAME.to_string()
 }
 
-fn default_bytecode_file() -> String {
-    DEFAULT_BYTECODE_FILE.to_string()
-}
-
 fn default_zr_vm_entry_module() -> String {
     "main".to_string()
 }
@@ -531,9 +528,18 @@ mod tests {
     use crate::script::{VmError, VmPluginGarbageCollectionMode, VmPluginHotReloadPolicy};
 
     use super::{
-        discover_vm_plugin_package, discover_vm_plugin_package_with_limits,
+        bytecode_file_name, discover_vm_plugin_package, discover_vm_plugin_package_with_limits,
         discover_vm_plugin_packages_with_limits, VmPluginDiscoveryLimits, VmPluginPayloadCache,
     };
+
+    #[test]
+    fn bytecode_file_name_borrows_custom_and_default_values() {
+        assert_eq!(
+            bytecode_file_name(Some("module/runtime.zrbc")),
+            "module/runtime.zrbc"
+        );
+        assert_eq!(bytecode_file_name(None), "plugin.bin");
+    }
 
     #[test]
     fn discovery_defers_bytecode_until_selected_package_materialization() {

@@ -24,7 +24,7 @@ fn runtime_15_material_runtime_pbr_projection_tests_are_child_owner() {
             "fn render_product_streamer_projects_blinn_phong_shading_model_into_pipeline_key(",
             "fn render_product_pbr_streamer_projects_material_sort_offsets_without_pipeline_variant(",
             "fn render_product_pbr_streamer_projects_receive_shadows_override(",
-            "fn render_product_pbr_streamer_keeps_authored_texture_key_bits_when_upload_falls_back(",
+            "fn render_product_pbr_streamer_keeps_authored_texture_diagnostics_when_upload_falls_back(",
             "fn render_product_streamer_prepares_shader_texture_slot_runtime_mapping(",
             "fn render_product_streamer_prepares_shader_property_runtime_values(",
         ],
@@ -57,7 +57,7 @@ fn runtime_15_material_runtime_pbr_projection_tests_are_child_owner() {
             "capture.metallic_roughness_texture_transform",
             "capture.occlusion_texture_transform",
             "capture.emissive_texture_transform",
-            "material.pipeline_key.has_base_color_texture",
+            "capture.base_color_texture",
             "material_standard_texture_slot_summary",
         ],
     );

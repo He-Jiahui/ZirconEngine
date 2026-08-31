@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use super::{Asset, AssetLoadState, AssetLoadStates, Handle};
 use crate::asset::{AssetId, AssetKind, AssetUri, ProjectAssetManager};
 use crate::core::resource::{
-    ResourceDiagnostic, ResourceMarker, ResourceReadinessGeneration, ResourceReadinessRow,
+    ResourceDiagnostic, ResourceMarker, ResourceReadinessGeneration,
+    ResourceReadinessGenerationAssemblyExt, ResourceReadinessRow,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -125,12 +126,13 @@ fn collect_dependency_readiness(
     root_id: AssetId,
     dependency_ids: &[AssetId],
 ) -> Vec<AssetDependencyReadiness> {
-    let mut rows = Vec::new();
-    let mut row_by_id = HashMap::new();
-    let mut expanded = HashSet::new();
+    let initial_capacity = dependency_ids.len();
+    let mut rows = Vec::with_capacity(initial_capacity);
+    let mut row_by_id = HashMap::with_capacity(initial_capacity);
+    let mut expanded = HashSet::with_capacity(initial_capacity.saturating_add(1));
     expanded.insert(root_id);
 
-    let mut queue = VecDeque::new();
+    let mut queue = VecDeque::with_capacity(initial_capacity);
     for dependency_id in dependency_ids {
         queue.push_back((*dependency_id, 1_u32, true));
     }
@@ -195,3 +197,7 @@ fn dependency_readiness_row(
         diagnostics: row.record.diagnostics.clone(),
     }
 }
+
+#[cfg(test)]
+#[path = "readiness/capacity_tests.rs"]
+mod capacity_tests;

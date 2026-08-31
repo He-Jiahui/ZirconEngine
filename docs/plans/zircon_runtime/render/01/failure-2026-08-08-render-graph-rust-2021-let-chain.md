@@ -52,4 +52,10 @@ Compute binding 的 buffer-offset validation 把 `if let` 与 kind guard 写成�
 - 当前 `zircon_runtime/src/**/*.rs` 源码扫描未发现 `&& let` 形式；`rustfmt --edition 2021 --check zircon_runtime/src/render_graph/builder/compile.rs` 与 scoped source contract 通过。
 - 本轮未执行原始 `tools/build-editor.ps1` 或受管 Cargo，不能从静态门推导 Editor bundle 已编译通过。
 
+2026-08-24 follow-up:
+
+- `BindingSchemaEntry` 的 buffer binding 已改为静态 range + usage 校验；复审发现新增的两个 let-chain 会再次违反 workspace Rust 2021 edition，已立即改为等价嵌套条件，没有添加兼容分支或放宽校验。
+- `rustfmt --edition 2021 --check` 覆盖受影响 render-graph 与 generic-compute 文件，`compile.rs` 的 `&& let` 精确扫描和旧 buffer-offset API 扫描均通过；handoff 结构校验也通过。
+- 原始 managed Editor bundle build 仍未执行，本 failure 保持 open，不能作为该 build 或任何 render milestone 的通过证据。
+
 Open state: `rust_2021_source_repair_complete_pending_managed_editor_bundle_build`; no pass is claimed.

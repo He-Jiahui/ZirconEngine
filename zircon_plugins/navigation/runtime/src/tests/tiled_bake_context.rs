@@ -7,11 +7,12 @@ use zircon_runtime::core::framework::navigation::{
 use zircon_runtime::scene::components::NodeKind;
 
 use super::bake::{tiled_test_world, wait_for_dirty_bake, wait_for_tiled_bake};
-use crate::{DefaultNavigationManager, NavMeshBakeTaskState, NavMeshDirtyBounds};
+use crate::test_support::navigation_manager;
+use crate::{NavMeshBakeTaskState, NavMeshDirtyBounds};
 
 #[test]
 fn stale_async_bake_cannot_restore_snapshot_after_newer_full_bake() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let stale_task = manager.start_tiled_bake(tiled_test_world(24), NavMeshBakeRequest::default());
     let mut newer_world = tiled_test_world(4);
     let surface = newer_world.node_records()[0].id;
@@ -42,7 +43,7 @@ fn stale_async_bake_cannot_restore_snapshot_after_newer_full_bake() {
 
 #[test]
 fn settings_update_retires_inflight_bake_and_snapshot() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let stale_task = manager.start_tiled_bake(tiled_test_world(24), NavMeshBakeRequest::default());
     let mut settings = manager.active_settings();
     settings.areas[0].cost += 0.25;
@@ -64,7 +65,7 @@ fn settings_update_retires_inflight_bake_and_snapshot() {
 
 #[test]
 fn newer_bake_retires_superseded_full_and_dirty_tasks() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     manager
         .bake_surface(&tiled_test_world(6), NavMeshBakeRequest::default())
         .unwrap();
@@ -84,7 +85,7 @@ fn newer_bake_retires_superseded_full_and_dirty_tasks() {
 
 #[test]
 fn tiled_snapshots_are_isolated_per_explicit_surface() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = tiled_test_world(6);
     let surface_a = world.node_records()[0].id;
     let surface_b = world.spawn_node(NodeKind::Empty);
@@ -121,7 +122,7 @@ fn tiled_snapshots_are_isolated_per_explicit_surface() {
 
 #[test]
 fn default_and_explicit_selection_share_the_same_surface_context() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = tiled_test_world(4);
     manager
         .bake_surface(&world, NavMeshBakeRequest::default())
@@ -166,7 +167,7 @@ fn default_and_explicit_selection_share_the_same_surface_context() {
 
 #[test]
 fn concurrent_same_surface_submissions_atomically_retire_the_older_handle() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let barrier = Arc::new(Barrier::new(3));
     let left_manager = manager.clone();
     let left_barrier = Arc::clone(&barrier);

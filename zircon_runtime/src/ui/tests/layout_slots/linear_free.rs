@@ -32,13 +32,13 @@ fn linear_layout_consumes_slot_padding_order_and_alignment() {
             ),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(2), UiSlotKind::Linear)
             .with_padding(UiMargin::new(5.0, 4.0, 7.0, 6.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::End))
             .with_order(2),
     );
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(3), UiSlotKind::Linear)
             .with_padding(UiMargin::new(1.0, 2.0, 3.0, 4.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::Fill))
@@ -112,12 +112,12 @@ fn free_layout_consumes_explicit_slot_padding_alignment_and_preserves_default_an
                 )),
         )
         .unwrap();
-    surface.tree.slots.push(UiSlot::new(
+    surface.tree.push_layout_slot(UiSlot::new(
         UiNodeId::new(1),
         UiNodeId::new(2),
         UiSlotKind::Free,
     ));
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(3), UiSlotKind::Free)
             .with_padding(UiMargin::new(10.0, 5.0, 20.0, 15.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::End, UiAlignment::Center)),
@@ -183,7 +183,7 @@ fn free_layout_consumes_canvas_slot_placement_before_child_default_anchor() {
             ),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(2), UiSlotKind::Free).with_canvas_placement(
             UiCanvasSlotPlacement::new(
                 Anchor::new(1.0, 0.5),
@@ -193,7 +193,7 @@ fn free_layout_consumes_canvas_slot_placement_before_child_default_anchor() {
             .with_offset(UiMargin::new(2.0, 3.0, 80.0, 30.0)),
         ),
     );
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(3), UiSlotKind::Free).with_canvas_placement(
             UiCanvasSlotPlacement::new(
                 Anchor::new(0.5, 0.0),

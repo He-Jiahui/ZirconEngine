@@ -206,7 +206,46 @@ fn editor_manager_marks_dirty_ui_asset_session_conflicted_without_overwriting_lo
         .expect("diff snapshot");
     assert!(snapshot.local_source.contains("Local"));
     assert!(snapshot.external_source.contains("External"));
-    assert_ne!(snapshot.local_hash, snapshot.external_hash);
+    assert_ne!(snapshot.local_digest, snapshot.external_digest);
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
+}
+
+#[test]
+fn editor_manager_save_detects_an_unobserved_external_source_change() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_save_compare_conflict");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_asset_save_compare_conflict_file").join("test.zui");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
+
+    let (_runtime, manager) = manager_for(&path);
+    let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
+    manager
+        .update_ui_asset_editor_source(
+            &instance_id,
+            SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "Local Before Save"),
+        )
+        .unwrap();
+    fs::write(
+        &ui_asset_path,
+        SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External Before Save"),
+    )
+    .unwrap();
+
+    let _error = manager.save_ui_asset_editor(&instance_id).unwrap_err();
+    assert!(fs::read_to_string(&ui_asset_path)
+        .unwrap()
+        .contains("External Before Save"));
+    let pane = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .unwrap();
+    assert!(pane.source_text.contains("Local Before Save"));
+    assert!(pane.source_dirty);
+    assert!(pane.has_external_conflict);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -277,6 +316,47 @@ fn editor_manager_saves_dirty_conflict_local_source_as_copy_without_resolving_co
     let _ = fs::remove_file(path);
     let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
     let _ = fs::remove_dir_all(copy_path.parent().unwrap());
+}
+
+#[test]
+fn editor_manager_retries_adjacent_local_copy_name_without_overwriting_existing_file() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_local_copy_no_replace");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_asset_local_copy_no_replace_file").join("test.zui");
+    let existing_copy_path = ui_asset_path.with_file_name("test.local-copy.zui");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
+    fs::write(&existing_copy_path, "existing local copy").unwrap();
+
+    let (_runtime, manager) = manager_for(&path);
+    let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
+    manager
+        .update_ui_asset_editor_source(
+            &instance_id,
+            SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "New Local Copy"),
+        )
+        .unwrap();
+
+    let copy_path = manager
+        .save_ui_asset_editor_local_copy_next_to_source(&instance_id)
+        .expect("allocate a collision-free local copy");
+    assert_eq!(
+        fs::read_to_string(&existing_copy_path).unwrap(),
+        "existing local copy"
+    );
+    assert!(copy_path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .contains("local-copy-1"));
+    assert!(fs::read_to_string(&copy_path)
+        .unwrap()
+        .contains("New Local Copy"));
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
 }
 
 #[test]

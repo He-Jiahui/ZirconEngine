@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::{
     accessibility::{UiAccessibilityAction, UiAccessibilityActionRequest, UiAccessibilityNode},
     component::UiValue,
     dispatch::UiInputDispatchResult,
-    event_ui::UiReflectedPropertySource,
+    event_ui::{UiNodeId, UiReflectedPropertySource},
 };
 
 use crate::ui::surface::{UiPropertyMutationRequest, UiSurface};
@@ -55,19 +55,30 @@ pub(super) fn dispatch_expanded_state(
         "accessibility.collapse"
     };
 
-    let report = surface.mutate_property(
-        UiPropertyMutationRequest::accessibility_action(
-            target,
-            expandable.property.clone(),
-            UiValue::Bool(expanded),
-        )
-        .with_source(UiReflectedPropertySource::RuntimeState),
-    );
+    let kind = expandable.kind;
+    let report = surface.mutate_property(expanded_state_mutation_request(
+        target,
+        expandable.property,
+        expanded,
+    ));
     finish_expanded_mutation(
         target,
         phase,
-        expanded_component_event(expandable.kind, expanded),
+        expanded_component_event(kind, expanded),
         result,
         report,
     )
 }
+
+fn expanded_state_mutation_request(
+    target: UiNodeId,
+    property: String,
+    expanded: bool,
+) -> UiPropertyMutationRequest {
+    UiPropertyMutationRequest::accessibility_action(target, property, UiValue::Bool(expanded))
+        .with_source(UiReflectedPropertySource::RuntimeState)
+}
+
+#[cfg(test)]
+#[path = "expanded/owned_property_tests.rs"]
+mod owned_property_tests;

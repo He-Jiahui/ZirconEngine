@@ -20,6 +20,23 @@ fn asset_search_dispatches_through_runtime_and_requests_asset_sync_effects() {
 }
 
 #[test]
+fn repeated_asset_search_is_an_invalidation_noop() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_retained_callback_asset_search_noop");
+
+    let first = dispatch_asset_search(&harness.runtime, "cube").unwrap();
+    let repeated = dispatch_asset_search(&harness.runtime, "cube").unwrap();
+
+    assert!(first.presentation_dirty);
+    assert!(!repeated.presentation_dirty);
+    assert!(!repeated.refresh_asset_details);
+    assert!(!repeated.refresh_visible_asset_previews);
+    assert!(!repeated.layout_dirty);
+    assert!(!repeated.render_dirty);
+}
+
+#[test]
 fn mesh_import_path_edit_dispatch_updates_live_snapshot_without_backend_sync() {
     let _guard = env_lock().lock().unwrap();
 

@@ -1,6 +1,7 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, PaneData};
 use crate::ui::retained_host::host_contract::profiling_artifacts::UiProfileNamedFrame;
-use crate::ui::retained_host::welcome_recent_geometry::welcome_recent_viewport;
+use crate::ui::retained_host::welcome_recent_geometry::welcome_recent_viewport_for_layout;
+use crate::ui::workbench::asset_content_layout::AssetContentPaintMetadata;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::super::frame_math::{is_visible_frame, push_named_frame};
@@ -14,6 +15,7 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_frames(
     viewport_toolbar_controls: &mut Vec<UiProfileNamedFrame>,
     template_controls: &mut Vec<UiProfileNamedFrame>,
     welcome_recent_frames: &mut Vec<UiProfileNamedFrame>,
+    asset_browser_content_frames: &mut Vec<UiProfileNamedFrame>,
 ) {
     if !is_visible_frame(content) {
         return;
@@ -38,7 +40,10 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_frames(
         body.height = (body.height - toolbar_height).max(0.0);
     }
     if pane.kind.as_str() == "Welcome" {
-        let viewport = welcome_recent_viewport(UiSize::new(body.width, body.height));
+        let viewport = welcome_recent_viewport_for_layout(
+            &pane.welcome.layout,
+            UiSize::new(body.width, body.height),
+        );
         push_named_frame(
             welcome_recent_frames,
             "welcome.recent.viewport",
@@ -52,6 +57,28 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_frames(
             },
             Some(body.clone()),
         );
+    }
+    if pane.kind.as_str() == "AssetBrowser" {
+        if let Some(panel) = pane
+            .asset_browser
+            .nodes
+            .metadata::<AssetContentPaintMetadata>()
+            .and_then(AssetContentPaintMetadata::content_panel)
+        {
+            push_named_frame(
+                asset_browser_content_frames,
+                "asset_browser.content_viewport",
+                "asset_browser_content_viewport",
+                surface,
+                FrameRect {
+                    x: body.x + panel.x,
+                    y: body.y + panel.y,
+                    width: panel.width,
+                    height: panel.height,
+                },
+                Some(body.clone()),
+            );
+        }
     }
     collect_template_node_controls(surface, pane, &body, template_controls);
 }

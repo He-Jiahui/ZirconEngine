@@ -88,6 +88,93 @@ fn gpu_resources_bind_only_live_compiled_graph_views_without_duplicate_textures(
 }
 
 #[test]
+fn gpu_resources_reuse_validated_execution_resources_for_an_unchanged_topology() {
+    let Ok(backend) = RenderBackend::new_offscreen() else {
+        return;
+    };
+    let params = ProceduralSkyParams::default_gradient();
+    let request = IblBakeArtifactRequest::new(params.ibl_bake_key(), 16, 5);
+    let mut scheduler = RealtimeIblTimeSliceScheduler::new(
+        RealtimeIblTimeSliceConfig::try_new(5, 2).expect("realtime config"),
+    );
+    scheduler.request_rebake(params.ibl_bake_key());
+    let batch = scheduler.begin_frame(1).expect("initial full batch");
+    let mut builder = RenderGraphBuilder::new("realtime-ibl-gpu-resource-cache");
+    let plan = append_realtime_ibl_graph_plan(&mut builder, &request, &batch)
+        .expect("realtime IBL graph plan");
+    let graph = builder.compile().expect("realtime IBL graph");
+    let mut required_resource_names = graph
+        .resource_lifetimes()
+        .iter()
+        .map(|lifetime| lifetime.name.clone())
+        .collect::<Vec<_>>();
+    required_resource_names.sort();
+    let mut gpu_resources = RealtimeIblGpuResources::new(&backend.device, &request);
+
+    let first = gpu_resources
+        .execution_resources_for(
+            &request,
+            &batch,
+            &plan,
+            &graph,
+            &required_resource_names,
+            false,
+        )
+        .expect("initial topology should materialize execution resources");
+    let first_address = std::ptr::from_ref(first.resources());
+    let first_report = first
+        .resources()
+        .validate_materialized_graph_resources(&graph)
+        .expect("initial resource cache entry should be complete");
+    assert!(first_report.is_complete(), "{first_report:?}");
+    assert!(first.texture_view_binding_count() > 0);
+    assert_eq!(first.buffer_binding_count(), 0);
+    assert_eq!(first.execution_resource_cache_hits(), 0);
+    assert_eq!(first.execution_resource_cache_misses(), 1);
+    assert_eq!(first.execution_resource_cache_entry_count(), 1);
+    assert_eq!(
+        first.execution_resource_cache_topology_capacity(),
+        batch.topology_cache_capacity()
+    );
+    drop(first);
+
+    let mut changed_params = params;
+    changed_params.source_revision = 2;
+    let changed_request = IblBakeArtifactRequest::new(changed_params.ibl_bake_key(), 16, 5);
+    let second = gpu_resources
+        .execution_resources_for(
+            &changed_request,
+            &batch,
+            &plan,
+            &graph,
+            &required_resource_names,
+            false,
+        )
+        .expect("a sky-only bake-key change should reuse execution resources");
+
+    assert!(std::ptr::eq(first_address, second.resources()));
+    assert_eq!(second.texture_view_binding_count(), 0);
+    assert_eq!(second.buffer_binding_count(), 0);
+    assert_eq!(second.execution_resource_cache_hits(), 1);
+    assert_eq!(second.execution_resource_cache_misses(), 0);
+    assert_eq!(second.execution_resource_cache_entry_count(), 1);
+    assert_eq!(
+        second.execution_resource_cache_topology_capacity(),
+        batch.topology_cache_capacity()
+    );
+    drop(second);
+    assert_eq!(
+        gpu_resources.execution_resource_cache_stats(),
+        RealtimeIblExecutionResourceCacheStats {
+            cache_hit_count: 1,
+            cache_miss_count: 1,
+            validation_count: 1,
+            entry_count: 1,
+        }
+    );
+}
+
+#[test]
 fn graph_and_gpu_mip_count_mismatch_is_rejected_before_submission() {
     let Ok(backend) = RenderBackend::new_offscreen() else {
         return;

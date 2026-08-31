@@ -42,7 +42,6 @@ fn register_animation_authoring_extensions(
                 ANIMATION_AUTHORING_VIEW_ID,
                 "Animation",
                 "World",
-                "Plugins/Animation",
             )],
         },
     )?;

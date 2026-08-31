@@ -2,8 +2,9 @@
 
 use std::sync::mpsc;
 
-use crate::core::framework::render::{source_cubemap_mip_size, SOURCE_CUBEMAP_FACE_COUNT};
-use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_READBACK};
+#[cfg(test)]
+use crate::core::framework::render::{SOURCE_CUBEMAP_FACE_COUNT, source_cubemap_mip_size};
+use crate::graphics::debug_markers::{RENDERDOC_MARKER_READBACK, insert_marker};
 use crate::graphics::types::GraphicsError;
 
 const RGBA16FLOAT_BYTES_PER_TEXEL: u32 = 8;
@@ -16,6 +17,7 @@ pub(crate) struct Rgba16FloatTextureRegionReadback {
     pub label: &'static str,
 }
 
+#[cfg(test)]
 pub(crate) fn read_texture_rgba16float_cube_mip_chain(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -170,6 +172,7 @@ pub(crate) fn read_texture_rgba16float_region(
     Ok(rgba)
 }
 
+#[cfg(test)]
 fn rgba16float_cube_mip_chain_size_bytes(face_size: u32, mip_count: u32) -> usize {
     let mut total = 0;
     for _face in 0..SOURCE_CUBEMAP_FACE_COUNT {
@@ -181,6 +184,7 @@ fn rgba16float_cube_mip_chain_size_bytes(face_size: u32, mip_count: u32) -> usiz
     total
 }
 
+#[cfg(test)]
 fn rgba16float_cube_mip_staging_size_bytes(face_size: u32, mip_count: u32) -> u64 {
     let mut total = 0;
     for _face in 0..SOURCE_CUBEMAP_FACE_COUNT {
@@ -196,6 +200,7 @@ fn rgba16float_cube_mip_staging_size_bytes(face_size: u32, mip_count: u32) -> u6
     total
 }
 
+#[cfg(test)]
 fn strip_padded_rgba16float_cube_mip_chain(
     mapped: &[u8],
     face_size: u32,
@@ -253,9 +258,9 @@ fn strip_padded_rgba16float_region_rows(
 #[cfg(test)]
 mod tests {
     use super::{
-        rgba16float_cube_mip_chain_size_bytes, rgba16float_cube_mip_staging_size_bytes,
-        strip_padded_rgba16float_cube_mip_chain, strip_padded_rgba16float_region_rows,
-        RGBA16FLOAT_BYTES_PER_TEXEL,
+        RGBA16FLOAT_BYTES_PER_TEXEL, rgba16float_cube_mip_chain_size_bytes,
+        rgba16float_cube_mip_staging_size_bytes, strip_padded_rgba16float_cube_mip_chain,
+        strip_padded_rgba16float_region_rows,
     };
 
     #[test]
@@ -315,5 +320,23 @@ mod tests {
         assert_eq!(&stripped[840..968], &[16_u8; 128]);
         assert_eq!(&stripped[968..1_000], &[17_u8; 32]);
         assert_eq!(&stripped[1_000..], &[18_u8; 8]);
+    }
+
+    #[test]
+    fn synchronous_cube_mip_chain_readback_owner_is_test_only() {
+        let source = include_str!("read_texture_rgba16float_region.rs");
+        let backend_root = include_str!("mod.rs");
+        let graphics_backend_root = include_str!("../mod.rs");
+
+        assert!(
+            source.contains("#[cfg(test)]\npub(crate) fn read_texture_rgba16float_cube_mip_chain(")
+        );
+        assert!(backend_root.contains(
+            "#[cfg(test)]\npub(crate) use read_texture_rgba16float_region::{\n    read_texture_rgba16float_cube_mip_chain, read_texture_rgba16float_region,"
+        ));
+        assert!(graphics_backend_root.contains(
+            "#[cfg(test)]\npub(crate) use render_backend::{\n    read_texture_rgba16float_cube_mip_chain, read_texture_rgba16float_region,"
+        ));
+        assert!(backend_root.contains("#[cfg(test)]\nmod read_texture_rgba16float_region;"));
     }
 }

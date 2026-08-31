@@ -15,17 +15,17 @@ impl ChartRaster {
         let outer = radius + thickness * 0.5;
         for y in clamp_pixel_range(center.1 - outer, center.1 + outer, self.height) {
             for x in clamp_pixel_range(center.0 - outer, center.0 + outer, self.width) {
-                let dx = x as f32 + 0.5 - center.0;
-                let dy = y as f32 + 0.5 - center.1;
-                let distance = (dx * dx + dy * dy).sqrt();
-                let angle = normalized_angle(dy.atan2(dx));
-                if distance >= inner
-                    && distance <= outer
-                    && angle >= start_angle
-                    && angle <= end_angle
-                {
-                    self.set_pixel(x, y, color);
-                }
+                self.sample_pixel(x, y, |px, py| {
+                    let dx = px - center.0;
+                    let dy = py - center.1;
+                    let distance = (dx * dx + dy * dy).sqrt();
+                    let angle = normalized_angle(dy.atan2(dx));
+                    (distance >= inner
+                        && distance <= outer
+                        && angle >= start_angle
+                        && angle <= end_angle)
+                        .then_some(color)
+                });
             }
         }
     }

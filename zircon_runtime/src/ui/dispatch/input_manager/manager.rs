@@ -4,14 +4,14 @@ use zircon_runtime_interface::ui::{
     component::{UiComponentEvent, UiValue},
     dispatch::{
         UiDispatchPhase, UiDispatchReply, UiImeInputEvent, UiImeInputEventKind,
-        UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiInputSequence,
-        UiInputTimestamp, UiPointerId, UiPointerInputEvent, UiPointerSource,
+        UiInputDiagnosticsMode, UiInputDispatchResult, UiInputEvent, UiInputEventMetadata,
+        UiInputSequence, UiInputTimestamp, UiPointerId, UiPointerInputEvent, UiPointerSource,
         UiSubmenuHoverTimerInputEvent, UiToastTimerInputEvent, UiTooltipTimerInputEvent,
         UiTooltipTimerInputEventKind, UiTypeaheadTimerInputEvent,
     },
     event_ui::UiNodeId,
     layout::UiPoint,
-    surface::{UiPointerButton, UiPointerEventKind},
+    surface::{UiHitTestQuery, UiPointerButton, UiPointerEventKind},
     tree::UiTreeError,
     window::{UiWindowInputPumpBatch, UiWindowInputPumpEvent},
 };
@@ -22,25 +22,66 @@ use crate::ui::{
 };
 
 use super::{
+    bound_text_model_updates::UiTextModelUpdateState,
+    clipboard_host_requests::UiClipboardHostRequestQueue,
     ime_host_requests::{
         append_ime_host_requests_for_input_method_requests, append_ime_host_requests_for_result,
     },
+    number_model_updates::UiNumberModelUpdateState,
     outcome::UiInputDispatchOutcome,
     pointer_table::UiActivePointerTable,
+    text_document_session::UiTextDocumentSession,
+    text_focus_lifecycle::finish_pending_text_focus_loss,
     timers::UiInputTimerState,
 };
 use crate::core::framework::input::ImeHostRequest;
 
-#[derive(Default)]
 pub struct UiInputManager {
     pointer: UiPointerDispatcher,
     navigation: UiNavigationDispatcher,
+    diagnostics_mode: UiInputDiagnosticsMode,
     pointers: UiActivePointerTable,
     timers: UiInputTimerState,
     ime_host_requests: Vec<ImeHostRequest>,
+    clipboard_host_requests: UiClipboardHostRequestQueue,
+    pub(super) text_documents: UiTextDocumentSession,
+    pub(super) text_model_updates: UiTextModelUpdateState,
+    pub(super) number_model_updates: UiNumberModelUpdateState,
+}
+
+impl Default for UiInputManager {
+    fn default() -> Self {
+        Self {
+            pointer: UiPointerDispatcher::default(),
+            navigation: UiNavigationDispatcher::default(),
+            diagnostics_mode: UiInputDiagnosticsMode::Full,
+            pointers: UiActivePointerTable::default(),
+            timers: UiInputTimerState::default(),
+            ime_host_requests: Vec::new(),
+            clipboard_host_requests: UiClipboardHostRequestQueue::default(),
+            text_documents: UiTextDocumentSession::default(),
+            text_model_updates: UiTextModelUpdateState::default(),
+            number_model_updates: UiNumberModelUpdateState::default(),
+        }
+    }
 }
 
 impl UiInputManager {
+    pub fn summary() -> Self {
+        Self {
+            diagnostics_mode: UiInputDiagnosticsMode::Summary,
+            ..Self::default()
+        }
+    }
+
+    pub fn diagnostics_mode(&self) -> UiInputDiagnosticsMode {
+        self.diagnostics_mode
+    }
+
+    pub fn set_diagnostics_mode(&mut self, diagnostics_mode: UiInputDiagnosticsMode) {
+        self.diagnostics_mode = diagnostics_mode;
+    }
+
     pub fn pointer_dispatcher(&self) -> &UiPointerDispatcher {
         &self.pointer
     }
@@ -73,25 +114,83 @@ impl UiInputManager {
         self.timers.next_frame_visible_delay(now)
     }
 
+    pub fn tooltip_intro_progress(&self, now: UiInputTimestamp) -> Option<f32> {
+        self.timers.tooltip_intro_progress(now)
+    }
+
+    /// Arms a tooltip whose owner and text were resolved by a host-specific presentation layer.
+    ///
+    /// The input manager remains the timing and transient-state authority even when the host uses
+    /// richer metadata than the generic surface tooltip contract can express.
+    pub fn arm_tooltip_candidate(
+        &mut self,
+        surface: &mut UiSurface,
+        started_at: UiInputTimestamp,
+        owner: UiNodeId,
+        tooltip_id: impl Into<String>,
+        delay_ms: u64,
+    ) {
+        let tooltip_id = tooltip_id.into();
+        self.dismiss_tooltip(surface);
+        surface.input.arm_tooltip(tooltip_id.clone(), Some(owner));
+        self.timers
+            .arm_tooltip_expiration(owner, tooltip_id, started_at, delay_ms);
+    }
+
+    /// Clears every pending or visible tooltip owned by this input manager.
+    pub fn dismiss_tooltip(&mut self, surface: &mut UiSurface) {
+        self.timers.clear_tooltip_expirations();
+        self.timers.clear_tooltip_intro();
+        surface.input.dismiss_transient_ui(
+            zircon_runtime_interface::ui::dispatch::UiTransientDismissalTarget::Tooltip,
+        );
+    }
+
     pub fn drain_ime_host_requests(&mut self) -> Vec<ImeHostRequest> {
         std::mem::take(&mut self.ime_host_requests)
+    }
+
+    pub(crate) fn drain_clipboard_host_requests_into(
+        &mut self,
+        output: &mut Vec<zircon_runtime_interface::ui::dispatch::UiClipboardRequest>,
+    ) {
+        self.clipboard_host_requests.drain_into(output);
     }
 
     pub fn dispatch_input_event(
         &mut self,
         surface: &mut UiSurface,
-        mut event: UiInputEvent,
+        event: UiInputEvent,
     ) -> Result<UiInputDispatchResult, UiTreeError> {
+        self.dispatch_input_event_with_query(surface, event, None)
+    }
+
+    pub(crate) fn dispatch_input_event_with_query(
+        &mut self,
+        surface: &mut UiSurface,
+        mut event: UiInputEvent,
+        pointer_query: Option<UiHitTestQuery>,
+    ) -> Result<UiInputDispatchResult, UiTreeError> {
+        self.synchronize_text_document_owners(surface);
         let active_pointer_event = self.active_pointer_event_for_input(&event);
         apply_primary_touch_mouse_semantics(&mut event, active_pointer_event);
         self.clear_tooltip_for_activity(surface, &event);
         let pointer_release = self.prepare_double_click_pointer_release(surface, &mut event);
         let timestamp = input_event_timestamp(&event);
-        let result = input::dispatch_input_event(surface, &self.pointer, &self.navigation, event)?;
+        let diagnostics_mode = self.diagnostics_mode;
+        let mut result = input::dispatch_input_event(
+            surface,
+            &self.pointer,
+            &self.navigation,
+            event,
+            pointer_query,
+            Some(&mut self.text_documents),
+            diagnostics_mode,
+        )?;
         self.arm_double_click_from_pointer_release(pointer_release);
         self.update_active_pointer_table(surface, &result, active_pointer_event);
         self.arm_timers_from_component_events(surface, timestamp, &result);
-        self.record_ime_host_requests_from_result(&result);
+        self.record_text_service_lifecycle_from_result(surface, &mut result);
         Ok(result)
     }
 
@@ -103,9 +202,15 @@ impl UiInputManager {
         match event {
             UiWindowInputPumpEvent::Input(input) => self.dispatch_input_event(surface, input),
             UiWindowInputPumpEvent::Window(window) => {
-                let result =
-                    input::dispatch_window_event(surface, &self.pointer, &self.navigation, window)?;
-                self.record_ime_host_requests_from_result(&result);
+                self.synchronize_text_document_owners(surface);
+                let mut result = input::dispatch_window_event(
+                    surface,
+                    &self.pointer,
+                    &self.navigation,
+                    window,
+                    self.diagnostics_mode,
+                )?;
+                self.record_text_service_lifecycle_from_result(surface, &mut result);
                 Ok(result)
             }
         }
@@ -128,25 +233,30 @@ impl UiInputManager {
         surface: &mut UiSurface,
         now: UiInputTimestamp,
     ) -> Result<Vec<UiInputDispatchResult>, UiTreeError> {
+        self.synchronize_text_document_owners(surface);
         self.timers.record_tick(now);
         self.timers.expire_double_click_candidate(now);
+        self.timers.expire_tooltip_intro(now);
         let mut results = Vec::new();
         for target in self.timers.drain_expired_typeahead(now) {
             let mut metadata = UiInputEventMetadata::new(now, UiInputSequence::new(0));
             metadata.synthetic = true;
-            let result = input::dispatch_input_event(
+            let mut result = input::dispatch_input_event(
                 surface,
                 &self.pointer,
                 &self.navigation,
                 UiInputEvent::TypeaheadTimer(UiTypeaheadTimerInputEvent { metadata, target }),
+                None,
+                None,
+                self.diagnostics_mode,
             )?;
-            self.record_ime_host_requests_from_result(&result);
+            self.record_text_service_lifecycle_from_result(surface, &mut result);
             results.push(result);
         }
         for (target, option_id) in self.timers.drain_expired_submenu_hover(now) {
             let mut metadata = UiInputEventMetadata::new(now, UiInputSequence::new(0));
             metadata.synthetic = true;
-            let result = input::dispatch_input_event(
+            let mut result = input::dispatch_input_event(
                 surface,
                 &self.pointer,
                 &self.navigation,
@@ -155,14 +265,18 @@ impl UiInputManager {
                     target,
                     option_id,
                 }),
+                None,
+                None,
+                self.diagnostics_mode,
             )?;
-            self.record_ime_host_requests_from_result(&result);
+            self.record_text_service_lifecycle_from_result(surface, &mut result);
             results.push(result);
         }
         for (target, tooltip_id) in self.timers.drain_expired_tooltips(now) {
+            let intro_tooltip_id = tooltip_id.clone();
             let mut metadata = UiInputEventMetadata::new(now, UiInputSequence::new(0));
             metadata.synthetic = true;
-            let result = input::dispatch_input_event(
+            let mut result = input::dispatch_input_event(
                 surface,
                 &self.pointer,
                 &self.navigation,
@@ -172,14 +286,24 @@ impl UiInputManager {
                     tooltip_id,
                     owner: Some(target),
                 }),
+                None,
+                None,
+                self.diagnostics_mode,
             )?;
-            self.record_ime_host_requests_from_result(&result);
+            self.record_text_service_lifecycle_from_result(surface, &mut result);
+            if surface.input.tooltip.as_ref().is_some_and(|tooltip| {
+                tooltip.visible
+                    && tooltip.owner == Some(target)
+                    && tooltip.tooltip_id == intro_tooltip_id
+            }) {
+                self.timers.arm_tooltip_intro(now);
+            }
             results.push(result);
         }
         for (target, toast_id) in self.timers.drain_expired_toasts(now) {
             let mut metadata = UiInputEventMetadata::new(now, UiInputSequence::new(0));
             metadata.synthetic = true;
-            let result = input::dispatch_input_event(
+            let mut result = input::dispatch_input_event(
                 surface,
                 &self.pointer,
                 &self.navigation,
@@ -188,8 +312,11 @@ impl UiInputManager {
                     target,
                     toast_id,
                 }),
+                None,
+                None,
+                self.diagnostics_mode,
             )?;
-            self.record_ime_host_requests_from_result(&result);
+            self.record_text_service_lifecycle_from_result(surface, &mut result);
             results.push(result);
         }
         let lifecycle = surface.input.take_deferred_focus_input_lifecycle();
@@ -205,8 +332,18 @@ impl UiInputManager {
         Ok(results)
     }
 
-    fn record_ime_host_requests_from_result(&mut self, result: &UiInputDispatchResult) {
+    fn record_text_service_lifecycle_from_result(
+        &mut self,
+        surface: &mut UiSurface,
+        result: &mut UiInputDispatchResult,
+    ) {
+        finish_pending_text_focus_loss(
+            &mut self.text_documents,
+            &mut self.text_model_updates,
+            surface,
+        );
         append_ime_host_requests_for_result(result, &mut self.ime_host_requests);
+        self.clipboard_host_requests.record_result(surface, result);
     }
 
     fn arm_timers_from_component_events(
@@ -364,10 +501,7 @@ impl UiInputManager {
         if !input_event_cancels_tooltip(event) {
             return;
         }
-        self.timers.clear_tooltip_expirations();
-        surface.input.dismiss_transient_ui(
-            zircon_runtime_interface::ui::dispatch::UiTransientDismissalTarget::Tooltip,
-        );
+        self.dismiss_tooltip(surface);
     }
 
     fn prepare_double_click_pointer_release(
@@ -454,14 +588,19 @@ impl UiInputManager {
         );
         self.pointers
             .record_point(pointer_id, active_pointer_event.point);
-        self.pointers
-            .set_hovered_path(pointer_id, active_pointer_hover_path(result));
+        let routing = result.pointer_routing.as_ref();
+        if let Some(routing) = routing {
+            self.pointers
+                .set_hovered_path_iter(pointer_id, routing.physical_bubble_route());
+        } else {
+            self.pointers.set_hovered_path(pointer_id, []);
+        }
         match active_pointer_event.kind {
             UiPointerEventKind::Down => {
                 self.pointers.press_button(
                     pointer_id,
                     active_pointer_event.button,
-                    result.diagnostics.route_target,
+                    routing.and_then(|routing| routing.route_target),
                 );
             }
             UiPointerEventKind::Up => {
@@ -473,7 +612,7 @@ impl UiInputManager {
         let capture_target = surface
             .input
             .pointer_capture_owner(pointer_id)
-            .or(result.diagnostics.route_trace.capture_target);
+            .or_else(|| routing.and_then(|routing| routing.capture_target));
         self.pointers.set_capture_target(pointer_id, capture_target);
     }
 
@@ -556,6 +695,7 @@ fn input_event_cancels_tooltip(event: &UiInputEvent) -> bool {
             | UiInputEvent::Keyboard(_)
             | UiInputEvent::Text(_)
             | UiInputEvent::Ime(_)
+            | UiInputEvent::Clipboard(_)
             | UiInputEvent::Navigation(_)
             | UiInputEvent::Analog(_)
             | UiInputEvent::MouseMotion(_)
@@ -576,19 +716,6 @@ fn pointer_release_click_target(
     let pressed = surface.focus.pressed?;
     let hit = surface.hit_test(pointer.event.point);
     hit.stacked.contains(&pressed).then_some(pressed)
-}
-
-fn active_pointer_hover_path(result: &UiInputDispatchResult) -> Vec<UiNodeId> {
-    if !result.diagnostics.route_trace.bubble_path.is_empty() {
-        return result.diagnostics.route_trace.bubble_path.clone();
-    }
-    result
-        .diagnostics
-        .route_trace
-        .direct_target
-        .or(result.diagnostics.route_target)
-        .into_iter()
-        .collect()
 }
 
 fn clear_tooltip_candidate_for_owner(surface: &mut UiSurface, target: UiNodeId) {
@@ -691,6 +818,7 @@ fn input_event_timestamp(event: &UiInputEvent) -> UiInputTimestamp {
         UiInputEvent::Keyboard(keyboard) => keyboard.metadata.timestamp,
         UiInputEvent::Text(text) => text.metadata.timestamp,
         UiInputEvent::Ime(ime) => ime.metadata.timestamp,
+        UiInputEvent::Clipboard(clipboard) => clipboard.metadata.timestamp,
         UiInputEvent::Navigation(navigation) => navigation.metadata.timestamp,
         UiInputEvent::Analog(analog) => analog.metadata.timestamp,
         UiInputEvent::MouseMotion(motion) => motion.metadata.timestamp,

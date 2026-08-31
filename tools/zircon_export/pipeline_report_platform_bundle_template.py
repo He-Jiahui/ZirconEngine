@@ -340,7 +340,8 @@ def platform_bundle_file_sha256(
     label: str,
 ) -> str | None:
     try:
-        return hashlib.sha256(path.read_bytes()).hexdigest()
+        with path.open("rb") as template_file:
+            return hashlib.file_digest(template_file, "sha256").hexdigest()
     except OSError as error:
         diagnostics.append(f"{label} could not be read: {error}")
         return None

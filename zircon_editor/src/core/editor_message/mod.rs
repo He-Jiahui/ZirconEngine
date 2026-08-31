@@ -24,11 +24,12 @@ pub use ids::{DocumentId, PlayStateKind, SceneModeId, SelectionDomain};
 pub use inbox::{EditorMessageInboxLimits, EditorMessageInboxStats};
 pub use message::{
     DocumentMessage, EditorMessage, EditorMessageDelivery, EditorMessagePayload,
-    EditorMessageProtocol, EditorMessageRequest, EditorMessageResponse, EditorViewDirtyMark,
-    FocusMessage, ModeMessage, SceneInspectionFieldsDelta, SceneInspectionHierarchyAnchor,
-    SceneInspectionMessage, SceneInspectionPropertyPath, SceneInspectionSelectionDelta,
-    ToolMessage, TransactionMessage,
+    EditorMessageProtocol, EditorMessageRequest, EditorMessageResponse, EditorMessageSchemaId,
+    EditorViewDirtyMark, FocusMessage, ModeMessage, SceneInspectionFieldsDelta,
+    SceneInspectionHierarchyAnchor, SceneInspectionMessage, SceneInspectionPropertyPath,
+    SceneInspectionSelectionDelta, ToolMessage, TransactionMessage,
 };
+pub(crate) use message::{EditorMessageSchemaIdError, MAX_EDITOR_MESSAGE_SCHEMA_ID_BYTES};
 pub use refresh_report::EditorViewRefreshReport;
 pub use shared::SharedEditorMessageBus;
 pub use subscriber::EditorSubscriberId;

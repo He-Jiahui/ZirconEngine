@@ -8,11 +8,13 @@ pub(crate) fn display_project_path(path: impl AsRef<str>) -> String {
 }
 
 pub(crate) fn display_project_title(path: impl AsRef<str>) -> String {
-    let display_path = display_project_path(path);
-    let normalized = display_path.replace('\\', "/");
-    let trimmed = normalized.trim_end_matches('/');
+    project_title_from_display_path(display_project_path(path))
+}
+
+fn project_title_from_display_path(display_path: String) -> String {
+    let trimmed = display_path.trim_end_matches(['/', '\\']);
     let title = trimmed
-        .rsplit('/')
+        .rsplit(['/', '\\'])
         .find(|segment| !segment.trim().is_empty())
         .unwrap_or(trimmed);
     if title.is_empty() {
@@ -52,3 +54,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "display_project_path/direct_title_tests.rs"]
+mod direct_title_tests;

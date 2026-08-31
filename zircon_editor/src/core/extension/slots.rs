@@ -40,12 +40,32 @@ pub enum DefaultWorkbenchPreset {
 }
 
 impl DefaultWorkbenchPreset {
+    const ORDERED: [Self; 4] = [Self::Authoring, Self::Review, Self::Focus, Self::Debug];
+    const COUNT: usize = Self::ORDERED.len();
+
     /// Produces the canonical, deterministic preset declaration shared by every contribution.
     pub fn normalize(presets: impl IntoIterator<Item = Self>) -> Vec<Self> {
-        let mut presets = presets.into_iter().collect::<Vec<_>>();
-        presets.sort_unstable();
-        presets.dedup();
-        presets
+        let mut present = [false; Self::COUNT];
+        for preset in presets {
+            present[preset.index()] = true;
+        }
+        let present_count = present.iter().filter(|&&is_present| is_present).count();
+        let mut normalized = Vec::with_capacity(present_count);
+        for (preset, is_present) in Self::ORDERED.into_iter().zip(present) {
+            if is_present {
+                normalized.push(preset);
+            }
+        }
+        normalized
+    }
+
+    const fn index(self) -> usize {
+        match self {
+            Self::Authoring => 0,
+            Self::Review => 1,
+            Self::Focus => 2,
+            Self::Debug => 3,
+        }
     }
 }
 
@@ -98,3 +118,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "slots/finite_normalize_tests.rs"]
+mod finite_normalize_tests;

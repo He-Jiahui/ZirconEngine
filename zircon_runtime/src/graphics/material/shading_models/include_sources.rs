@@ -31,12 +31,19 @@ impl ShadingModelIncludeSourceSet {
         asset_manager: &ProjectAssetManager,
         descriptors: &[ShadingModelDescriptor],
     ) -> Result<Self, ShadingModelIncludeSourceError> {
+        Self::from_project_asset_manager_iter(asset_manager, descriptors.iter())
+    }
+
+    pub(crate) fn from_project_asset_manager_iter<'a>(
+        asset_manager: &ProjectAssetManager,
+        descriptors: impl IntoIterator<Item = &'a ShadingModelDescriptor>,
+    ) -> Result<Self, ShadingModelIncludeSourceError> {
         let shader_records = asset_manager
             .resource_manager()
             .ready_records_for_kind(ResourceKind::Shader);
         let mut set = Self::default();
         for descriptor in descriptors
-            .iter()
+            .into_iter()
             .filter(|descriptor| descriptor.id.is_plugin_range())
         {
             if !runtime_owns_include(IncludePass::Forward, &descriptor.forward_include) {
@@ -163,9 +170,10 @@ fn resolve_include_source(
     shader_records: &[ResourceRecord],
     token: &str,
 ) -> Result<ShadingModelIncludeSource, ShadingModelIncludeSourceError> {
+    let normalized_token = normalize_include_token(token);
     let mut matches = shader_records
         .iter()
-        .filter(|record| record_matches_include_token(record, token));
+        .filter(|record| record_matches_include_token(record, &normalized_token));
     let Some(record) = matches.next() else {
         return Err(ShadingModelIncludeSourceError::MissingInclude {
             token: token.to_string(),
@@ -195,18 +203,24 @@ fn resolve_include_source(
     Ok(ShadingModelIncludeSource::new(token, source))
 }
 
-fn record_matches_include_token(record: &ResourceRecord, token: &str) -> bool {
-    locator_matches_include_token(&record.primary_locator, token)
+fn record_matches_include_token(record: &ResourceRecord, normalized_token: &str) -> bool {
+    locator_matches_include_token(&record.primary_locator, normalized_token)
         || record
             .artifact_locator
             .as_ref()
-            .is_some_and(|locator| locator_matches_include_token(locator, token))
+            .is_some_and(|locator| locator_matches_include_token(locator, normalized_token))
 }
 
-fn locator_matches_include_token(locator: &ResourceLocator, token: &str) -> bool {
-    let token = normalize_include_token(token);
-    let path = normalize_include_token(locator.path());
-    path == token || path.ends_with(&format!("/{token}"))
+fn locator_matches_include_token(locator: &ResourceLocator, normalized_token: &str) -> bool {
+    path_matches_normalized_include_token(locator.path(), normalized_token)
+}
+
+fn path_matches_normalized_include_token(path: &str, normalized_token: &str) -> bool {
+    let path = normalize_include_token(path);
+    path == normalized_token
+        || path
+            .strip_suffix(normalized_token)
+            .is_some_and(|prefix| prefix.ends_with('/'))
 }
 
 fn normalize_include_token(value: &str) -> String {
@@ -218,17 +232,21 @@ fn normalize_include_token(value: &str) -> String {
 }
 
 #[cfg(test)]
+#[path = "include_sources/token_hoist_tests.rs"]
+mod token_hoist_tests;
+
+#[cfg(test)]
 mod tests {
     use crate::asset::{ProjectAssetManager, ShaderAsset, ShaderSourceLanguage};
     use crate::core::framework::render::{
-        builtin_geometry_source_descriptor, GBufferChannelMask, ShaderAssetKind, ShaderPassType,
-        ShadingModelDescriptor, ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
-        SHADING_MODEL_ID_STANDARD_PBR,
+        GBufferChannelMask, GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
+        ShaderAssetKind, ShaderPassType, ShadingModelDescriptor, ShadingModelId,
+        builtin_geometry_source_descriptor,
     };
     use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
     use crate::graphics::shader::{
-        assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
         DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateRequest,
+        assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
     };
 
     use super::*;
@@ -331,12 +349,16 @@ mod tests {
         )
         .expect("deferred GBuffer template should consume exported include source set");
 
-        assert!(forward
-            .wgsl_source
-            .contains("// include: zr_shading_toon.wgsl"));
-        assert!(gbuffer
-            .wgsl_source
-            .contains("// include: zr_gbuffer_encode_toon.wgsl"));
+        assert!(
+            forward
+                .wgsl_source
+                .contains("// include: zr_shading_toon.wgsl")
+        );
+        assert!(
+            gbuffer
+                .wgsl_source
+                .contains("// include: zr_gbuffer_encode_toon.wgsl")
+        );
     }
 
     #[test]

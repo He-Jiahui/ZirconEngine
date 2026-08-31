@@ -144,10 +144,12 @@ mod tests {
         assert_eq!(layout.lines.len(), 2);
         assert!(first_line.text.contains('\u{0640}'));
         assert_eq!(first_line.source_range.end, "سَلَام".len());
-        assert!(first_line
-            .runs
-            .iter()
-            .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end }));
+        assert!(
+            first_line
+                .runs
+                .iter()
+                .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end })
+        );
         assert!((first_line.glyph_advances.iter().sum::<f32>() - command.frame.width).abs() < 0.1);
     }
 
@@ -234,7 +236,7 @@ pub(super) fn proof_bbcode_text(
         Some("en"),
         UiTextRenderMode::Native,
     );
-    command.style.rich_text_format = UiRichTextFormat::BbCode;
+    command.style.rich_text_format = UiRichTextFormat::BbCodeV1;
     command.style.font_size = 22.0;
     command.style.line_height = 30.0;
     command.style.tab_size = 3.0;
@@ -258,7 +260,7 @@ pub(super) fn proof_rich_text_with_direction(
         language,
         UiTextRenderMode::Native,
     );
-    command.style.rich_text_format = UiRichTextFormat::Html;
+    command.style.rich_text_format = UiRichTextFormat::HtmlSubsetV1;
     command.text_layout = Some(layout_text(markup, &command.style, frame, None));
     command
 }
@@ -336,7 +338,7 @@ pub(super) fn proof_vertical_bbcode_paragraphs() -> UiRenderCommand {
         Some("zh-Hans"),
         UiTextRenderMode::Sdf,
     );
-    command.style.rich_text_format = UiRichTextFormat::BbCode;
+    command.style.rich_text_format = UiRichTextFormat::BbCodeV1;
     command.style.text_writing_mode = UiTextWritingMode::VerticalRl;
     command.style.font_family = Some("Microsoft YaHei UI".to_string());
     command.style.font_size = 24.0;

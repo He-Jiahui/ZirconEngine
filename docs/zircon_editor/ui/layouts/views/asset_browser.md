@@ -1,12 +1,14 @@
 ---
 related_code:
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
+  - zircon_editor/src/ui/layouts/views/asset_reference_rows.rs
   - zircon_editor/assets/ui/editor/asset_browser.zui
   - zircon_editor/src/ui/layouts/views/asset_browser/compact_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/stack_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/labels.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/name_compaction.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/name_lines.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/selection_text.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/state_marks.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes.rs
@@ -37,12 +39,14 @@ related_code:
   - tools/tests/test_zui_static_suffix_convergence.py
 implementation_files:
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
+  - zircon_editor/src/ui/layouts/views/asset_reference_rows.rs
   - zircon_editor/assets/ui/editor/asset_browser.zui
   - zircon_editor/src/ui/layouts/views/asset_browser/compact_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/stack_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/labels.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/name_compaction.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/name_lines.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/selection_text.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/state_marks.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes.rs
@@ -272,6 +276,10 @@ status: in_progress
 This view projection builds the Asset Browser pane from `AssetWorkspaceSnapshot` into retained template nodes. It is intentionally split by ownership so content-mode work can continue from small components toward complex containers without growing `asset_browser.rs`.
 
 `asset_browser.rs` is the assembly owner. It resolves snapshot text, selection state, table cell text, toggle state, active utility tabs, and then delegates mode-specific layout to sibling owners. It should stay a coordinator, not a place for new card, toolbar, or compact-layout algorithms.
+
+`selection_text.rs` owns selected-folder and selected-asset labels, including the folder breadcrumb. A breadcrumb preserves visible-first selected-folder resolution and tree-first parent resolution. It builds one transaction-local borrowed folder-ID index, borrows display-name segments, and stops repeated parent IDs; it must not linearly scan the complete folder list for every ancestor or clone each path segment. This is bounded per-call scratch, not a second catalog authority. A future generation-owned Asset Browser catalog index should replace the local index and be shared by breadcrumb, tree, selection, and pointer routes.
+
+`asset_reference_rows.rs` owns the shared References/Used By row projection and responsive two-column/stacked layout used by Asset Browser and Assets Activity. Generated row indices are contiguous, so resize layout stores measured kind widths in a bounded contiguous optional-width vector and performs direct lookup; it must not rebuild an ordered map for each layout, and malformed sparse suffixes must not grow scratch beyond node count. This only makes the current full-row layout linear. The module still creates four physical nodes per logical reference, so the terminal collection contract is a logical item source with a scroll-visible row pool plus overscan.
 
 `state_marks.rs` owns the Asset Browser snapshot-state stamping helpers for toolbar toggles, filter chips, utility tabs, and selected utility panels. These helpers now project active/selected visual state without synthesizing keyboard focus; true focus must come from host input state instead of snapshot selection. Utility tabs use their own stamping path so Preview/References/Metadata/Plugins carry selected/default text tone but never request `surface_variant=inset`; their selected feedback remains underline-only. View-mode buttons and kind chips keep the segmented/inset hint. This keeps view-mode buttons, kind chips, utility tabs, and preview/metadata/plugins panels aligned with the Unreal Slate split between selected/active affordance and focused affordance.
 

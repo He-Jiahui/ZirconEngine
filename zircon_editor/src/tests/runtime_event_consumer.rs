@@ -4,8 +4,9 @@ use std::sync::{Arc, Mutex};
 
 use serde::Deserialize;
 use zircon_runtime_interface::{
-    ZrRuntimeEventV1, ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle,
-    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
+    GatewaySessionIdentity, ZrRuntimeEventV1, ZrRuntimePluginEventDeliveryV1,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1,
 };
 
 use crate::core::gateway::{
@@ -72,21 +73,34 @@ impl EditorRuntimeEventConsumerState for TestState {
 
 struct FakeRuntimeGateway {
     session: ZrRuntimeSessionHandle,
+    identity: GatewaySessionIdentity,
     deliveries: Mutex<BTreeMap<u64, Vec<ZrRuntimePluginEventDeliveryV1>>>,
     unsubscribed: Mutex<Vec<u64>>,
     unsubscribe_removed: Mutex<bool>,
     subscribe_calls: AtomicU64,
+    drain_calls: AtomicU64,
     fail_subscribe_call: Mutex<Option<u64>>,
 }
 
 impl FakeRuntimeGateway {
     fn new(session: u64) -> Self {
+        Self::with_identity(GatewaySessionIdentity::new(
+            1,
+            ZrRuntimeSessionHandle::new(session),
+            1,
+            None,
+        ))
+    }
+
+    fn with_identity(identity: GatewaySessionIdentity) -> Self {
         Self {
-            session: ZrRuntimeSessionHandle::new(session),
+            session: identity.runtime_session(),
+            identity,
             deliveries: Mutex::new(BTreeMap::new()),
             unsubscribed: Mutex::new(Vec::new()),
             unsubscribe_removed: Mutex::new(true),
             subscribe_calls: AtomicU64::new(0),
+            drain_calls: AtomicU64::new(0),
             fail_subscribe_call: Mutex::new(None),
         }
     }
@@ -108,6 +122,10 @@ impl FakeRuntimeGateway {
 impl EditorRuntimeGateway for FakeRuntimeGateway {
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         self.session
+    }
+
+    fn session_identity(&self) -> zircon_runtime_interface::GatewaySessionIdentity {
+        self.identity.clone()
     }
 
     fn handle_event(&self, _event: ZrRuntimeEventV1) -> Result<(), GatewayError> {
@@ -148,6 +166,7 @@ impl EditorRuntimeGateway for FakeRuntimeGateway {
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
     ) -> Result<EditorRuntimePluginEventPage, GatewayError> {
+        self.drain_calls.fetch_add(1, Ordering::Relaxed);
         Ok(EditorRuntimePluginEventPage::synthetic(
             self.deliveries
                 .lock()
@@ -183,6 +202,73 @@ impl EditorRuntimeGateway for FakeRuntimeGateway {
             capability: "runtime.operation.harvest",
         })
     }
+}
+
+#[test]
+fn replaced_runtime_cannot_receive_an_old_consumer_subscription() {
+    let state = Arc::new(Mutex::new(TestState::default()));
+    let manifest = EditorRuntimeEventConsumerManifest::new(CONSUMER_ID, EVENT_ID, SCHEMA)
+        .with_required_capability(CAPABILITY);
+    let mut registry = EditorRuntimeEventConsumerRegistry::default();
+    registry
+        .register(EditorRuntimeEventConsumerRegistration::typed(
+            manifest,
+            state.clone(),
+        ))
+        .unwrap();
+    let first = Arc::new(FakeRuntimeGateway::new(7));
+    let gateway = EditorRuntimeGatewayHandle::new(first.clone());
+    let host = EditorRuntimeEventConsumerHost::new(gateway.clone());
+    host.register(registry).unwrap();
+    host.begin_play_session(1, &[CAPABILITY.to_string()])
+        .unwrap();
+
+    let replacement = Arc::new(FakeRuntimeGateway::new(8));
+    replacement.push(delivery(8, 1, SCHEMA));
+    gateway.replace(replacement.clone()).unwrap();
+
+    let report = host.pump().expect("a stale consumer is retired locally");
+    assert_eq!(report.applied(), 0);
+    assert_eq!(report.stale_consumers(), 1);
+    assert_eq!(replacement.drain_calls.load(Ordering::Relaxed), 0);
+    assert!(host.active_consumer_count() == 0);
+}
+
+#[test]
+fn replacement_with_reused_raw_session_and_subscription_still_retires_the_old_consumer() {
+    let state = Arc::new(Mutex::new(TestState::default()));
+    let manifest = EditorRuntimeEventConsumerManifest::new(CONSUMER_ID, EVENT_ID, SCHEMA)
+        .with_required_capability(CAPABILITY);
+    let mut registry = EditorRuntimeEventConsumerRegistry::default();
+    registry
+        .register(EditorRuntimeEventConsumerRegistration::typed(
+            manifest, state,
+        ))
+        .unwrap();
+
+    let raw_session = ZrRuntimeSessionHandle::new(7);
+    let first = Arc::new(FakeRuntimeGateway::with_identity(
+        GatewaySessionIdentity::new(31, raw_session, 41, Some(Arc::from("E:/Projects/First"))),
+    ));
+    let gateway = EditorRuntimeGatewayHandle::new(first);
+    let host = EditorRuntimeEventConsumerHost::new(gateway.clone());
+    host.register(registry).unwrap();
+    host.begin_play_session(1, &[CAPABILITY.to_string()])
+        .unwrap();
+
+    let replacement = Arc::new(FakeRuntimeGateway::with_identity(
+        GatewaySessionIdentity::new(31, raw_session, 42, Some(Arc::from("E:/Projects/Second"))),
+    ));
+    replacement.push(delivery(7, 1, SCHEMA));
+    gateway.replace(replacement.clone()).unwrap();
+
+    let report = host
+        .pump()
+        .expect("the old consumer must retire without draining the replacement transport");
+    assert_eq!(report.applied(), 0);
+    assert_eq!(report.stale_consumers(), 1);
+    assert_eq!(replacement.drain_calls.load(Ordering::Relaxed), 0);
+    assert_eq!(host.active_consumer_count(), 0);
 }
 
 fn test_host() -> (
@@ -332,7 +418,7 @@ fn consumer_host_reconciles_capability_disable_after_an_event() {
 }
 
 #[test]
-fn consumer_host_reports_runtime_refusing_to_remove_subscription() {
+fn consumer_host_locally_retires_when_runtime_refuses_subscription_removal() {
     let (host, client, state) = test_host();
     host.begin_play_session(400, &[CAPABILITY.to_string()])
         .unwrap();
@@ -342,18 +428,14 @@ fn consumer_host_reports_runtime_refusing_to_remove_subscription() {
         host.reconcile_enabled_capabilities(&[]),
         Err(EditorRuntimeEventConsumerError::Gateway { .. })
     ));
-    assert_eq!(host.active_consumer_count(), 1);
-    assert_eq!(state.lock().unwrap().session, Some(400));
-
-    *client.unsubscribe_removed.lock().unwrap() = true;
-    host.reconcile_enabled_capabilities(&[]).unwrap();
     assert_eq!(host.active_consumer_count(), 0);
     assert!(state.lock().unwrap().session.is_none());
+    assert_eq!(*client.unsubscribed.lock().unwrap(), [11]);
     host.end_play_session(400).unwrap();
 }
 
 #[test]
-fn consumer_host_retains_failed_pie_exit_subscriptions_for_retry() {
+fn consumer_host_locally_retires_failed_pie_exit_subscriptions() {
     let (host, client, state) = test_host();
     host.begin_play_session(500, &[CAPABILITY.to_string()])
         .unwrap();
@@ -363,19 +445,14 @@ fn consumer_host_retains_failed_pie_exit_subscriptions_for_retry() {
         host.end_play_session(500),
         Err(EditorRuntimeEventConsumerError::Gateway { .. })
     ));
-    assert_eq!(host.active_consumer_count(), 1);
-    assert_eq!(host.active_play_session_id(), Some(500));
-    assert_eq!(state.lock().unwrap().session, Some(500));
-
-    *client.unsubscribe_removed.lock().unwrap() = true;
-    host.end_play_session(500).unwrap();
     assert_eq!(host.active_consumer_count(), 0);
     assert_eq!(host.active_play_session_id(), None);
     assert!(state.lock().unwrap().session.is_none());
+    assert_eq!(*client.unsubscribed.lock().unwrap(), [11]);
 }
 
 #[test]
-fn consumer_host_reports_begin_rollback_failure_and_keeps_runtime_cleanup_retryable() {
+fn consumer_host_reports_begin_rollback_failure_after_local_retirement() {
     let client = Arc::new(FakeRuntimeGateway::new(7));
     client.fail_subscribe_on(2);
     *client.unsubscribe_removed.lock().unwrap() = false;
@@ -399,17 +476,13 @@ fn consumer_host_reports_begin_rollback_failure_and_keeps_runtime_cleanup_retrya
         host.begin_play_session(600, &[CAPABILITY.to_string()]),
         Err(EditorRuntimeEventConsumerError::Cleanup { .. })
     ));
-    assert_eq!(host.active_consumer_count(), 1);
-    assert_eq!(host.active_play_session_id(), Some(600));
-
-    *client.unsubscribe_removed.lock().unwrap() = true;
-    host.end_play_session(600).unwrap();
     assert_eq!(host.active_consumer_count(), 0);
     assert_eq!(host.active_play_session_id(), None);
+    assert_eq!(*client.unsubscribed.lock().unwrap(), [11]);
 }
 
 #[test]
-fn menu_action_keeps_runtime_alive_until_event_consumer_cleanup_succeeds() {
+fn menu_action_completes_local_play_retirement_after_remote_consumer_cleanup_failure() {
     let source = include_str!("../ui/host/editor_event_execution/menu_action.rs");
     let enter = source
         .split("MenuAction::EnterPlayMode =>")
@@ -427,9 +500,12 @@ fn menu_action_keeps_runtime_alive_until_event_consumer_cleanup_succeeds() {
         .expect("a successful compensating stop should restore the editor state");
     assert!(pending < session_stop);
     assert!(session_stop < compensated_shell_exit);
-    assert!(enter.contains("runtime remains active so Exit Play can retry cleanup"));
     assert!(
-        enter.contains("failed to stop play session, runtime remains active"),
+        enter.contains("MenuActionExecutionError::RuntimeConsumerStart"),
+        "a retained consumer cleanup failure must preserve the typed startup error"
+    );
+    assert!(
+        enter.contains("MenuActionExecutionError::RuntimeConsumerStartStopFailed"),
         "a failed compensating stop must preserve the play session instead of pretending it exited"
     );
     assert!(
@@ -437,7 +513,7 @@ fn menu_action_keeps_runtime_alive_until_event_consumer_cleanup_succeeds() {
         "enter-play compensation must not discard a backend-stop failure"
     );
     assert!(
-        enter.contains("play session stopped but failed to restore editor state"),
+        enter.contains("MenuActionExecutionError::RuntimeConsumerStartRestoreStateFailed"),
         "a successful compensating stop must still report an editor-state restore failure"
     );
     assert!(
@@ -445,7 +521,7 @@ fn menu_action_keeps_runtime_alive_until_event_consumer_cleanup_succeeds() {
         "enter-play rollback must not discard an editor-state restore failure"
     );
     assert!(
-        enter.contains("backend startup failed but editor state could not be restored"),
+        enter.contains("MenuActionExecutionError::PlayStartRestoreStateFailed"),
         "a failed backend start must report an editor-state restore failure"
     );
 
@@ -453,26 +529,45 @@ fn menu_action_keeps_runtime_alive_until_event_consumer_cleanup_succeeds() {
         .split("MenuAction::ExitPlayMode =>")
         .nth(1)
         .expect("exit play mode action body");
-    let consumer_end = exit
-        .find("end_runtime_event_consumers()")
-        .expect("exit should clean up consumers");
+    let consumer_retirement = exit
+        .find("shutdown_runtime_event_consumers()")
+        .expect("exit should perform one explicit consumer-retirement pass");
     let shell_exit = exit
         .find("shell.state.exit_play_mode()")
         .expect("exit should update shell state");
     let session_stop = exit
         .find("play_sessions()")
         .expect("exit should stop the play session");
-    assert!(consumer_end < shell_exit);
-    assert!(consumer_end < session_stop);
+    assert!(consumer_retirement < shell_exit);
+    assert!(consumer_retirement < session_stop);
     assert!(session_stop < shell_exit);
-    assert!(exit.contains("runtime remains active for retry"));
+    assert!(
+        exit.contains("RuntimeEventConsumerShutdownDisposition::RetiredWithCleanupFailure"),
+        "remote cleanup failure must be represented as local terminal retirement"
+    );
+    assert!(
+        exit.contains("runtime event subscription cleanup is pending"),
+        "the user-facing terminal status must retain the remote cleanup diagnostic"
+    );
+    assert!(
+        exit.contains("RuntimeEventConsumerShutdownDisposition::RetirementDeferred"),
+        "only a non-terminal local retirement may retain the editor in play mode"
+    );
+    assert!(
+        !exit.contains("end_runtime_event_consumers()"),
+        "exit must not make remote unsubscribe success a precondition for local retirement"
+    );
+    assert!(
+        exit.contains("MenuActionExecutionError::PlayStopRestoreStateFailed"),
+        "a successful stop must retain the failed editor-state restoration as a typed error"
+    );
 }
 
 #[test]
 fn runtime_event_pump_reports_editor_restore_failures_after_backend_stop() {
     let source = include_str!("../ui/host/editor_host_event_controller.rs");
     let stopped = source
-        .split("if backend_transition.changed && backend_transition.mode == PlayModeKind::Edit")
+        .split("if backend_transition.changed && !backend_transition.mode.has_active_runtime()")
         .nth(1)
         .and_then(|body| {
             body.split("return Ok(EditorRuntimeFrameDemand::OnDemand);")
@@ -496,11 +591,15 @@ fn runtime_event_pump_reports_editor_restore_failures_after_backend_stop() {
         stopped.contains("editor state remains in play mode for retry"),
         "runtime-stop handling should expose a retryable editor-state restore failure"
     );
+    assert!(
+        stopped.contains("PlayTransitionCause::CleanupFailed"),
+        "a stopped runtime with failed plugin restoration must leave Playing before UI recovery"
+    );
     let reflection = stopped
         .find("self.refresh_reflection()")
         .expect("runtime-stop handling should refresh reflection state");
     let error = stopped
-        .find("if let Some(message) = editor_state_exit_error")
+        .find("if let Some(source) = editor_state_exit_error")
         .expect("runtime-stop handling should return the retained restore error");
     assert!(
         reflection < error,
@@ -514,7 +613,7 @@ fn runtime_event_pump_reports_editor_restore_failures_after_backend_stop() {
         "a failed decision publication must not prevent state restoration and reflection refresh"
     );
     assert!(
-        stopped.contains("play.stop.reconcile"),
+        stopped.contains("PendingDecisionPublishAndStateRestore"),
         "dual decision and state-recovery failures should remain observable together"
     );
 }

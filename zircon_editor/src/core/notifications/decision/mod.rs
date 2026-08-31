@@ -17,7 +17,7 @@ pub use id::{
     DecisionTicket, MAX_DECISION_OPTION_ID_BYTES,
 };
 pub use model::{
-    DecisionNotification, DecisionNotificationSnapshot, DecisionOption, MAX_DECISION_OPTIONS,
-    MAX_LOCALIZATION_KEY_BYTES,
+    DecisionNotification, DecisionNotificationSnapshot, DecisionOption,
+    MAX_DECISION_DISPLAY_SUBJECT_BYTES, MAX_DECISION_OPTIONS, MAX_LOCALIZATION_KEY_BYTES,
 };
 pub use receipt::{DecisionReceipt, DecisionReceiptBatch, DecisionResolveReport};

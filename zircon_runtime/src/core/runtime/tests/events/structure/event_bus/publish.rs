@@ -53,9 +53,17 @@ fn event_subscriber_linearizes_physical_queue_changes_with_depth_accounting() {
             "queue_state.queue.push_back",
             "record_replaced_and_capture_time",
             "self.diagnostics.record_enqueued_and_capture_time()",
+            "drop(queue_state);",
             "self.queue_ready.notify_one();",
             "fn pop_front_while_locked",
-            "let queued = queue_state.queue.pop_front()?;",
+            "queue_state.queue.pop_front()",
+            "queued.queued_at.map(|queued_at| queued_at.elapsed())",
+            "self.diagnostics.record_dequeued_depth()",
+            "fn finalize_dequeued_event",
+            "self.diagnostics.record_dequeued_age(dequeued.queue_age)",
+            "pub(super) fn deactivate_and_drain",
+            "std::mem::take(&mut queue_state.queue)",
+            "for queued in queued",
             "self.diagnostics.record_dequeued",
         ],
     );
@@ -114,5 +122,7 @@ fn event_bus_diagnostics_sample_routine_timings_and_measure_every_delivery_wait(
         sources.subscriber,
         "self.diagnostics.record_enqueued_and_capture_time()",
     );
+    assert_contains(sources.diagnostics, "fn record_dequeued_depth");
+    assert_contains(sources.diagnostics, "fn record_dequeued_age");
     assert_absent(sources.publish, "Instant::now()");
 }

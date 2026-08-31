@@ -100,17 +100,24 @@ impl SpriteAtlasUvRect {
             });
         }
 
-        let atlas_width = atlas_width as f32;
-        let atlas_height = atlas_height as f32;
+        let inverse_atlas_width = 1.0 / atlas_width as f32;
+        let inverse_atlas_height = 1.0 / atlas_height as f32;
         Ok(Self {
-            min: [rect.x as f32 / atlas_width, rect.y as f32 / atlas_height],
+            min: [
+                rect.x as f32 * inverse_atlas_width,
+                rect.y as f32 * inverse_atlas_height,
+            ],
             max: [
-                rect_max_x as f32 / atlas_width,
-                rect_max_y as f32 / atlas_height,
+                rect_max_x as f32 * inverse_atlas_width,
+                rect_max_y as f32 * inverse_atlas_height,
             ],
         })
     }
 }
+
+#[cfg(test)]
+#[path = "layout/reciprocal_uv_tests.rs"]
+mod reciprocal_uv_tests;
 
 #[cfg(test)]
 mod tests {

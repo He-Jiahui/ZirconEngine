@@ -13,10 +13,12 @@ fn visibility_context_builds_virtual_geometry_visibility_feedback_and_page_plan(
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let mesh = world.spawn_mesh_node(
-        model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.zmaterial"),
-    );
+    let mesh = world
+        .spawn_mesh_node(
+            model_handle("res://models/virtual_geometry.obj"),
+            material_handle("res://materials/virtual_geometry.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
@@ -101,10 +103,12 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let mesh = world.spawn_mesh_node(
-        model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.zmaterial"),
-    );
+    let mesh = world
+        .spawn_mesh_node(
+            model_handle("res://models/virtual_geometry.obj"),
+            material_handle("res://materials/virtual_geometry.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
@@ -182,15 +186,17 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
 }
 
 #[test]
-fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_children_when_budget_allows(
-) {
+fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_children_when_budget_allows()
+ {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let mesh = world.spawn_mesh_node(
-        model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.zmaterial"),
-    );
+    let mesh = world
+        .spawn_mesh_node(
+            model_handle("res://models/virtual_geometry.obj"),
+            material_handle("res://materials/virtual_geometry.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
@@ -264,15 +270,17 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
 }
 
 #[test]
-fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_requesting_nonresident_children(
-) {
+fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_requesting_nonresident_children()
+ {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let mesh = world.spawn_mesh_node(
-        model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.zmaterial"),
-    );
+    let mesh = world
+        .spawn_mesh_node(
+            model_handle("res://models/virtual_geometry.obj"),
+            material_handle("res://materials/virtual_geometry.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
@@ -334,15 +342,17 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_reques
 }
 
 #[test]
-fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_requesting_nonresident_grandchildren(
-) {
+fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_requesting_nonresident_grandchildren()
+ {
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let mesh = world.spawn_mesh_node(
-        model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.zmaterial"),
-    );
+    let mesh = world
+        .spawn_mesh_node(
+            model_handle("res://models/virtual_geometry.obj"),
+            material_handle("res://materials/virtual_geometry.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
@@ -424,10 +434,12 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
     let mut world = World::new();
     remove_default_meshes(&mut world);
 
-    let mesh = world.spawn_mesh_node(
-        model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.zmaterial"),
-    );
+    let mesh = world
+        .spawn_mesh_node(
+            model_handle("res://models/virtual_geometry.obj"),
+            material_handle("res://materials/virtual_geometry.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");

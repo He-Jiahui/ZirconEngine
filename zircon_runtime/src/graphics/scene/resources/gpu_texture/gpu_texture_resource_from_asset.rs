@@ -3,10 +3,11 @@ use std::sync::Arc;
 
 mod compressed_mip_upload;
 mod texture_format;
+mod upload_work;
 
 use crate::asset::assets::{
-    TextureAsset, TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    LIGHTMAP_RGBA16F_GPU_FORMAT,
+    LIGHTMAP_RGBA16F_GPU_FORMAT, TextureAsset, TextureUploadCompressionFamily, TextureUploadPlan,
+    TextureUploadReadiness,
 };
 use crate::core::framework::render::{
     RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension, TextureMipPolicy,
@@ -16,6 +17,8 @@ use crate::graphics::scene::scene_renderer::mip_gen::{
     MipGenColorMode, MipGenDispatchPlan, RuntimeMipGenPass,
 };
 use crate::graphics::types::GraphicsError;
+use zr_rhi::TextureCopyRegion;
+use zr_rhi_wgpu::{WgpuTextureUpload, WgpuTextureUploadBatch};
 
 pub(crate) use self::texture_format::texture_upload_support_from_device;
 use self::texture_format::{compressed_wgpu_format, rgba8_wgpu_format, wgpu_texture_usages};
@@ -26,18 +29,18 @@ use super::sampler_cache::{
 };
 use super::sampler_cache::{sanitized_anisotropy_clamp, sanitized_anisotropy_clamp_with_cap};
 use super::{GpuTextureResource, TextureSamplerCache};
-use compressed_mip_upload::upload_compressed_texture_bytes;
+use compressed_mip_upload::enqueue_compressed_texture_uploads;
+pub(in crate::graphics::scene::resources) use upload_work::GpuTextureUploadWork;
 
 impl GpuTextureResource {
-    pub(crate) fn from_asset(
+    pub(in crate::graphics::scene::resources) fn from_asset(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         sampler_cache: Arc<TextureSamplerCache>,
         id: ResourceId,
         payload: TextureAsset,
         runtime_mip_gen_pass: &RuntimeMipGenPass,
-    ) -> Result<Self, GraphicsError> {
+    ) -> Result<GpuTextureUploadWork, GraphicsError> {
         let support = texture_upload_support_from_device(device);
         match payload.upload_readiness(support) {
             TextureUploadReadiness::Ready { plan }
@@ -46,7 +49,6 @@ impl GpuTextureResource {
             {
                 Self::from_lightmap_rgba16f_asset(
                     device,
-                    queue,
                     texture_layout,
                     sampler_cache,
                     id,
@@ -58,7 +60,6 @@ impl GpuTextureResource {
             {
                 Self::from_rgba8_asset(
                     device,
-                    queue,
                     texture_layout,
                     sampler_cache,
                     id,
@@ -69,7 +70,6 @@ impl GpuTextureResource {
             }
             TextureUploadReadiness::Ready { plan } => Self::from_compressed_asset(
                 device,
-                queue,
                 texture_layout,
                 sampler_cache,
                 id,
@@ -89,14 +89,13 @@ impl GpuTextureResource {
     #[allow(clippy::too_many_arguments)]
     pub(in crate::graphics::scene::resources) fn rebuild_resident_mips(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         id: ResourceId,
         payload: TextureAsset,
         previous: &GpuTextureResource,
         previous_range: Range<u8>,
         requested_range: Range<u8>,
-    ) -> Result<Self, GraphicsError> {
+    ) -> Result<GpuTextureUploadWork, GraphicsError> {
         if !previous.supports_mip_streaming() {
             return Err(GraphicsError::Asset(format!(
                 "texture {} does not support physical mip streaming",
@@ -125,7 +124,6 @@ impl GpuTextureResource {
         };
         Self::from_rgba8_asset_resident_mips(
             device,
-            queue,
             texture_layout,
             Arc::clone(&previous.sampler_cache),
             id,
@@ -139,25 +137,28 @@ impl GpuTextureResource {
 
     fn from_lightmap_rgba16f_asset(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         sampler_cache: Arc<TextureSamplerCache>,
         id: ResourceId,
         payload: TextureAsset,
-    ) -> Result<Self, GraphicsError> {
+    ) -> Result<GpuTextureUploadWork, GraphicsError> {
         let descriptor = payload.render_image_descriptor();
+        let texture_uri = payload.uri.clone();
+        let width = payload.width;
+        let height = payload.height;
         let layer_count = descriptor.array_layer_count.max(1);
-        let crate::asset::TexturePayload::Container { bytes, .. } = &payload.payload else {
+        let crate::asset::TexturePayload::Container { bytes, .. } = payload.payload else {
             return Err(GraphicsError::Asset(format!(
                 "lightmap texture {} requires a raw rgba16f container payload",
-                payload.uri
+                texture_uri
             )));
         };
+        let upload_payload: Arc<[u8]> = Arc::from(bytes);
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-lightmap-rgba16f-array"),
             size: wgpu::Extent3d {
-                width: payload.width,
-                height: payload.height,
+                width,
+                height,
                 depth_or_array_layers: layer_count,
             },
             mip_level_count: 1,
@@ -167,39 +168,46 @@ impl GpuTextureResource {
             usage: wgpu_texture_usages(&descriptor, wgpu::TextureFormat::Rgba16Float, true),
             view_formats: &[],
         });
-        let page_size_bytes = u64::from(payload.width)
-            .checked_mul(u64::from(payload.height))
+        let page_size_bytes = u64::from(width)
+            .checked_mul(u64::from(height))
             .and_then(|texels| texels.checked_mul(8))
             .ok_or_else(|| {
                 GraphicsError::Asset(format!(
                     "lightmap texture {} upload size overflows",
-                    payload.uri
+                    texture_uri
                 ))
             })?;
+        let mut upload_batch = WgpuTextureUploadBatch::new();
         for layer in 0..layer_count {
-            queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture: &texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: layer,
-                    },
-                    aspect: wgpu::TextureAspect::All,
-                },
-                bytes,
-                wgpu::TexelCopyBufferLayout {
-                    offset: page_size_bytes * u64::from(layer),
-                    bytes_per_row: Some(8 * payload.width),
-                    rows_per_image: Some(payload.height),
-                },
-                wgpu::Extent3d {
-                    width: payload.width,
-                    height: payload.height,
-                    depth_or_array_layers: 1,
-                },
-            );
+            let start = usize::try_from(page_size_bytes * u64::from(layer)).map_err(|_| {
+                GraphicsError::Asset(format!(
+                    "lightmap texture {} upload source offset overflows",
+                    texture_uri
+                ))
+            })?;
+            let end = start
+                .checked_add(usize::try_from(page_size_bytes).map_err(|_| {
+                    GraphicsError::Asset(format!(
+                        "lightmap texture {} upload size overflows",
+                        texture_uri
+                    ))
+                })?)
+                .ok_or_else(|| {
+                    GraphicsError::Asset(format!(
+                        "lightmap texture {} upload source range overflows",
+                        texture_uri
+                    ))
+                })?;
+            enqueue_texture_upload(
+                &mut upload_batch,
+                texture.clone(),
+                TextureCopyRegion::new(width, height).with_origin(0, 0, layer),
+                8 * width,
+                height,
+                Arc::clone(&upload_payload),
+                start..end,
+                &texture_uri,
+            )?;
         }
         let view = texture.create_view(&lightmap_texture_view_descriptor(layer_count));
         let page_zero_bind_group_view =
@@ -219,30 +227,37 @@ impl GpuTextureResource {
                 },
             ],
         });
-        Ok(Self {
-            id: Some(id),
-            descriptor,
-            texture,
-            view,
-            sampler,
-            sampler_cache,
-            mip_streaming_supported: false,
-            resident_texture_bytes: page_size_bytes.saturating_mul(u64::from(layer_count)),
-            bind_group,
-        })
+        Ok(GpuTextureUploadWork::new(
+            Self {
+                id: Some(id),
+                descriptor,
+                texture,
+                view,
+                sampler,
+                sampler_cache,
+                mip_streaming_supported: false,
+                resident_texture_bytes: page_size_bytes.saturating_mul(u64::from(layer_count)),
+                bind_group,
+            },
+            upload_batch,
+            Vec::new(),
+            Vec::new(),
+        ))
     }
 
     fn from_rgba8_asset(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         sampler_cache: Arc<TextureSamplerCache>,
         id: ResourceId,
         payload: TextureAsset,
         plan: TextureUploadPlan,
         runtime_mip_gen_pass: &RuntimeMipGenPass,
-    ) -> Result<Self, GraphicsError> {
+    ) -> Result<GpuTextureUploadWork, GraphicsError> {
         let descriptor = payload.render_image_descriptor();
+        let texture_uri = payload.uri.clone();
+        let width = payload.width;
+        let height = payload.height;
         let mip_level_count = descriptor.mip_count.max(1);
         let layer_count = descriptor.depth_or_array_layers.max(1);
         let runtime_mip_generation = descriptor.metadata.mip_policy
@@ -257,7 +272,7 @@ impl GpuTextureResource {
         {
             return Err(GraphicsError::Asset(format!(
                 "runtime mip generation supports only 2d or cube textures: {}",
-                payload.uri
+                texture_uri
             )));
         }
         let format = if runtime_mip_generation {
@@ -280,8 +295,8 @@ impl GpuTextureResource {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-texture"),
             size: wgpu::Extent3d {
-                width: payload.width,
-                height: payload.height,
+                width,
+                height,
                 depth_or_array_layers: layer_count,
             },
             mip_level_count,
@@ -296,49 +311,38 @@ impl GpuTextureResource {
         } else {
             mip_level_count
         };
-        for upload in rgba8_mip_uploads(
-            payload.width,
-            payload.height,
-            uploaded_mip_level_count,
-            layer_count,
-        ) {
-            queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture: &texture,
-                    mip_level: upload.level,
-                    origin: wgpu::Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: upload.layer,
-                    },
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &payload.rgba,
-                wgpu::TexelCopyBufferLayout {
-                    offset: upload.offset,
-                    bytes_per_row: Some(4 * upload.width),
-                    rows_per_image: Some(upload.height),
-                },
-                wgpu::Extent3d {
-                    width: upload.width,
-                    height: upload.height,
-                    depth_or_array_layers: 1,
-                },
-            );
-        }
-        if runtime_mip_generation {
-            let mip_plan = MipGenDispatchPlan::new(
-                payload.width,
-                payload.height,
-                layer_count,
-                mip_level_count,
-            )
-            .map_err(|error| {
+        let upload_payload: Arc<[u8]> = Arc::from(payload.rgba);
+        let mut upload_batch = WgpuTextureUploadBatch::new();
+        for upload in rgba8_mip_uploads(width, height, uploaded_mip_level_count, layer_count) {
+            let byte_len = rgba8_level_size_bytes(upload.width, upload.height);
+            let end = upload.offset.checked_add(byte_len).ok_or_else(|| {
                 GraphicsError::Asset(format!(
-                    "runtime mip generation plan for texture {} is invalid: {error}",
-                    payload.uri
+                    "texture {} mip upload source range overflows",
+                    texture_uri
                 ))
             })?;
+            enqueue_texture_upload(
+                &mut upload_batch,
+                texture.clone(),
+                TextureCopyRegion::new(upload.width, upload.height)
+                    .with_mip_level(upload.level)
+                    .with_origin(0, 0, upload.layer),
+                4 * upload.width,
+                upload.height,
+                Arc::clone(&upload_payload),
+                byte_range(upload.offset, end, &texture_uri)?,
+                &texture_uri,
+            )?;
+        }
+        let mut post_upload_commands = Vec::new();
+        if runtime_mip_generation {
+            let mip_plan = MipGenDispatchPlan::new(width, height, layer_count, mip_level_count)
+                .map_err(|error| {
+                    GraphicsError::Asset(format!(
+                        "runtime mip generation plan for texture {} is invalid: {error}",
+                        texture_uri
+                    ))
+                })?;
             let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("zircon-runtime-mip-gen-encoder"),
             });
@@ -349,7 +353,7 @@ impl GpuTextureResource {
                 &mip_plan,
                 MipGenColorMode::from_metadata(&descriptor.metadata),
             );
-            queue.submit(std::iter::once(encoder.finish()));
+            post_upload_commands.push(encoder.finish());
         }
         let view = texture.create_view(&texture_view_descriptor(&descriptor));
         let sampler = sampler_cache.sampler_for_image(device, &descriptor);
@@ -367,28 +371,32 @@ impl GpuTextureResource {
                 },
             ],
         });
-        Ok(Self {
-            id: Some(id),
-            descriptor,
-            texture,
-            view,
-            sampler,
-            sampler_cache,
-            mip_streaming_supported,
-            resident_texture_bytes: Self::rgba8_mip_chain_bytes(
-                payload.width,
-                payload.height,
-                layer_count,
-                0..mip_level_count,
-            ),
-            bind_group,
-        })
+        Ok(GpuTextureUploadWork::new(
+            Self {
+                id: Some(id),
+                descriptor,
+                texture,
+                view,
+                sampler,
+                sampler_cache,
+                mip_streaming_supported,
+                resident_texture_bytes: Self::rgba8_mip_chain_bytes(
+                    width,
+                    height,
+                    layer_count,
+                    0..mip_level_count,
+                ),
+                bind_group,
+            },
+            upload_batch,
+            Vec::new(),
+            post_upload_commands,
+        ))
     }
 
     #[allow(clippy::too_many_arguments)]
     fn from_rgba8_asset_resident_mips(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         sampler_cache: Arc<TextureSamplerCache>,
         id: ResourceId,
@@ -397,8 +405,11 @@ impl GpuTextureResource {
         previous: &GpuTextureResource,
         previous_range: Range<u8>,
         requested_range: Range<u8>,
-    ) -> Result<Self, GraphicsError> {
+    ) -> Result<GpuTextureUploadWork, GraphicsError> {
         let descriptor = payload.render_image_descriptor();
+        let texture_uri = payload.uri.clone();
+        let width = payload.width;
+        let height = payload.height;
         if !supports_physical_mip_streaming(&descriptor, &plan) {
             return Err(GraphicsError::Asset(format!(
                 "texture {} is not eligible for physical mip streaming",
@@ -433,8 +444,8 @@ impl GpuTextureResource {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-streamed-texture"),
             size: wgpu::Extent3d {
-                width: mip_extent(payload.width, requested_range.start),
-                height: mip_extent(payload.height, requested_range.start),
+                width: mip_extent(width, requested_range.start),
+                height: mip_extent(height, requested_range.start),
                 depth_or_array_layers: layer_count,
             },
             mip_level_count: requested_range.end - requested_range.start,
@@ -447,14 +458,15 @@ impl GpuTextureResource {
 
         let copy_start = previous_range.start.max(requested_range.start);
         let copy_end = previous_range.end.min(requested_range.end);
+        let mut pre_upload_commands = Vec::new();
         if copy_start < copy_end {
             let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("zircon-streamed-texture-mip-copy"),
             });
             for source_level in copy_start..copy_end {
                 let extent = wgpu::Extent3d {
-                    width: mip_extent(payload.width, source_level),
-                    height: mip_extent(payload.height, source_level),
+                    width: mip_extent(width, source_level),
+                    height: mip_extent(height, source_level),
                     depth_or_array_layers: 1,
                 };
                 for layer in 0..layer_count {
@@ -483,39 +495,37 @@ impl GpuTextureResource {
                     );
                 }
             }
-            queue.submit(std::iter::once(encoder.finish()));
+            pre_upload_commands.push(encoder.finish());
         }
+        let upload_payload: Arc<[u8]> = Arc::from(payload.rgba);
+        let mut upload_batch = WgpuTextureUploadBatch::new();
         for upload in rgba8_resident_mip_uploads(
-            payload.width,
-            payload.height,
+            width,
+            height,
             mip_count,
             layer_count,
             requested_range.clone(),
             previous_range,
         ) {
-            queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture: &texture,
-                    mip_level: upload.destination_level,
-                    origin: wgpu::Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: upload.source.layer,
-                    },
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &payload.rgba,
-                wgpu::TexelCopyBufferLayout {
-                    offset: upload.source.offset,
-                    bytes_per_row: Some(4 * upload.source.width),
-                    rows_per_image: Some(upload.source.height),
-                },
-                wgpu::Extent3d {
-                    width: upload.source.width,
-                    height: upload.source.height,
-                    depth_or_array_layers: 1,
-                },
-            );
+            let byte_len = rgba8_level_size_bytes(upload.source.width, upload.source.height);
+            let end = upload.source.offset.checked_add(byte_len).ok_or_else(|| {
+                GraphicsError::Asset(format!(
+                    "texture {} streamed mip upload source range overflows",
+                    texture_uri
+                ))
+            })?;
+            enqueue_texture_upload(
+                &mut upload_batch,
+                texture.clone(),
+                TextureCopyRegion::new(upload.source.width, upload.source.height)
+                    .with_mip_level(upload.destination_level)
+                    .with_origin(0, 0, upload.source.layer),
+                4 * upload.source.width,
+                upload.source.height,
+                Arc::clone(&upload_payload),
+                byte_range(upload.source.offset, end, &texture_uri)?,
+                &texture_uri,
+            )?;
         }
         let view = texture.create_view(&texture_view_descriptor(&descriptor));
         let sampler = sampler_cache.sampler_for_image(device, &descriptor);
@@ -533,74 +543,63 @@ impl GpuTextureResource {
                 },
             ],
         });
-        Ok(Self {
-            id: Some(id),
-            descriptor,
-            texture,
-            view,
-            sampler,
-            sampler_cache,
-            mip_streaming_supported: true,
-            resident_texture_bytes: Self::rgba8_mip_chain_bytes(
-                payload.width,
-                payload.height,
-                layer_count,
-                u32::from(requested_range.start)..u32::from(requested_range.end),
-            ),
-            bind_group,
-        })
+        Ok(GpuTextureUploadWork::new(
+            Self {
+                id: Some(id),
+                descriptor,
+                texture,
+                view,
+                sampler,
+                sampler_cache,
+                mip_streaming_supported: true,
+                resident_texture_bytes: Self::rgba8_mip_chain_bytes(
+                    width,
+                    height,
+                    layer_count,
+                    u32::from(requested_range.start)..u32::from(requested_range.end),
+                ),
+                bind_group,
+            },
+            upload_batch,
+            pre_upload_commands,
+            Vec::new(),
+        ))
     }
 
     fn from_compressed_asset(
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         sampler_cache: Arc<TextureSamplerCache>,
         id: ResourceId,
         payload: TextureAsset,
         plan: TextureUploadPlan,
-    ) -> Result<Self, GraphicsError> {
+    ) -> Result<GpuTextureUploadWork, GraphicsError> {
         let descriptor = payload.render_image_descriptor();
+        let texture_uri = payload.uri.clone();
+        let width = payload.width;
+        let height = payload.height;
         let format = compressed_wgpu_format(&plan, descriptor.color_space).ok_or_else(|| {
             GraphicsError::Asset(format!(
                 "texture {} has unsupported upload format {}",
-                payload.uri, plan.format
+                texture_uri, plan.format
             ))
         })?;
-        let data = match &payload.payload {
-            crate::asset::TexturePayload::Container { bytes, .. } => bytes,
+        let data = match payload.payload {
+            crate::asset::TexturePayload::Container { bytes, .. } => Arc::<[u8]>::from(bytes),
             crate::asset::TexturePayload::Rgba8 => {
                 return Err(GraphicsError::Asset(format!(
                     "texture {} was planned as compressed but has rgba payload",
-                    payload.uri
+                    texture_uri
                 )));
             }
-        };
-        let upload_bytes = data.get(plan.data_offset..).ok_or_else(|| {
-            GraphicsError::Asset(format!(
-                "texture {} missing compressed payload after {} byte header",
-                payload.uri, plan.data_offset
-            ))
-        })?;
-        let upload_bytes = if let Some(data_length) = plan.data_length {
-            upload_bytes.get(..data_length).ok_or_else(|| {
-                GraphicsError::Asset(format!(
-                    "texture {} declares {} compressed payload bytes but only {} are available",
-                    payload.uri,
-                    data_length,
-                    upload_bytes.len()
-                ))
-            })?
-        } else {
-            upload_bytes
         };
         let depth_or_array_layers = descriptor.depth_or_array_layers.max(1);
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-compressed-texture"),
             size: wgpu::Extent3d {
-                width: payload.width,
-                height: payload.height,
+                width,
+                height,
                 depth_or_array_layers,
             },
             mip_level_count: descriptor.mip_count.max(1),
@@ -610,16 +609,22 @@ impl GpuTextureResource {
             usage: wgpu_texture_usages(&descriptor, format, true),
             view_formats: &[],
         });
-        upload_compressed_texture_bytes(
-            queue,
+        let resident_texture_bytes = plan
+            .data_length
+            .map(|bytes| u64::try_from(bytes).unwrap_or(u64::MAX))
+            .unwrap_or_else(|| {
+                u64::try_from(data.len().saturating_sub(plan.data_offset)).unwrap_or(u64::MAX)
+            });
+        let mut upload_batch = WgpuTextureUploadBatch::new();
+        enqueue_compressed_texture_uploads(
+            &mut upload_batch,
             &texture,
-            &payload.uri,
-            payload.width,
-            payload.height,
+            &texture_uri,
+            width,
+            height,
             descriptor.mip_count.max(1),
             depth_or_array_layers,
             data,
-            upload_bytes,
             &plan,
         )?;
         let view = texture.create_view(&texture_view_descriptor(&descriptor));
@@ -638,17 +643,22 @@ impl GpuTextureResource {
                 },
             ],
         });
-        Ok(Self {
-            id: Some(id),
-            descriptor,
-            texture,
-            view,
-            sampler,
-            sampler_cache,
-            mip_streaming_supported: false,
-            resident_texture_bytes: u64::try_from(upload_bytes.len()).unwrap_or(u64::MAX),
-            bind_group,
-        })
+        Ok(GpuTextureUploadWork::new(
+            Self {
+                id: Some(id),
+                descriptor,
+                texture,
+                view,
+                sampler,
+                sampler_cache,
+                mip_streaming_supported: false,
+                resident_texture_bytes,
+                bind_group,
+            },
+            upload_batch,
+            Vec::new(),
+            Vec::new(),
+        ))
     }
 }
 
@@ -671,6 +681,56 @@ impl GpuTextureResource {
             effective_anisotropy as u8,
         ))
     }
+}
+
+fn byte_range<T: std::fmt::Display + ?Sized>(
+    start: u64,
+    end: u64,
+    texture_uri: &T,
+) -> Result<Range<usize>, GraphicsError> {
+    let start = usize::try_from(start).map_err(|_| {
+        GraphicsError::Asset(format!(
+            "texture {texture_uri} upload source offset overflows"
+        ))
+    })?;
+    let end = usize::try_from(end).map_err(|_| {
+        GraphicsError::Asset(format!(
+            "texture {texture_uri} upload source range overflows"
+        ))
+    })?;
+    (start <= end).then_some(start..end).ok_or_else(|| {
+        GraphicsError::Asset(format!(
+            "texture {texture_uri} upload source range is invalid"
+        ))
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn enqueue_texture_upload<T: std::fmt::Display + ?Sized>(
+    batch: &mut WgpuTextureUploadBatch,
+    texture: wgpu::Texture,
+    region: TextureCopyRegion,
+    bytes_per_row: u32,
+    rows_per_image: u32,
+    payload: Arc<[u8]>,
+    source_range: Range<usize>,
+    texture_uri: &T,
+) -> Result<(), GraphicsError> {
+    let upload = WgpuTextureUpload::new(
+        texture,
+        region,
+        bytes_per_row,
+        rows_per_image,
+        payload,
+        source_range,
+    )
+    .ok_or_else(|| {
+        GraphicsError::Asset(format!(
+            "texture {texture_uri} upload source range is invalid"
+        ))
+    })?;
+    batch.push(upload);
+    Ok(())
 }
 
 fn wgpu_dimension(dimension: RenderImageDimension) -> wgpu::TextureDimension {
@@ -853,11 +913,7 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 {
-        1
-    } else {
-        shifted
-    }
+    if shifted == 0 { 1 } else { shifted }
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
-use super::super::visual_assets::{raster_size_from_frame, template_image_pixels};
+use super::super::visual_assets::{preview_artifact_image_pixels, raster_size_from_frame};
 use crate::ui::retained_host::host_contract::paint_geometry::{
     intersect, inward_pixel_aligned_rect,
 };
@@ -16,26 +16,27 @@ pub(super) fn push_thumbnail_preview_image_command(
     if !thumbnail_has_real_preview(node) {
         return false;
     }
-    let preview_rect = thumbnail_preview_image_rect(node, rect);
-    if intersect(&preview_rect, clip).is_none() {
+    let Some(damage_frame) = intersect(rect, clip) else {
         return true;
-    }
-    let Some((target_width, target_height)) =
-        raster_size_from_frame(preview_rect.width, preview_rect.height)
+    };
+    let Some((target_width, target_height)) = raster_size_from_frame(rect.width, rect.height)
     else {
         return false;
     };
-    let Some(image) = template_image_pixels(
+    let Some(image) = preview_artifact_image_pixels(
         &node.preview_image,
         node.media_source.as_str(),
-        "",
         target_width,
         target_height,
-        None,
-        true,
+        Some(damage_frame),
     ) else {
         return false;
     };
+    let preview_rect = fitted_thumbnail_preview_image_rect(rect, image.width, image.height)
+        .unwrap_or_else(|| rect.clone());
+    if intersect(&preview_rect, clip).is_none() {
+        return true;
+    }
 
     commands.push(HostPaintCommand::image_pixels(
         preview_rect,
@@ -53,12 +54,6 @@ pub(super) fn push_thumbnail_preview_image_command(
 
 fn thumbnail_has_real_preview(node: &TemplatePaneNodeData) -> bool {
     node.has_preview_image || !node.media_source.trim().is_empty()
-}
-
-fn thumbnail_preview_image_rect(node: &TemplatePaneNodeData, rect: &FrameRect) -> FrameRect {
-    let size = node.preview_image.size();
-    fitted_thumbnail_preview_image_rect(rect, size.width, size.height)
-        .unwrap_or_else(|| rect.clone())
 }
 
 fn fitted_thumbnail_preview_image_rect(

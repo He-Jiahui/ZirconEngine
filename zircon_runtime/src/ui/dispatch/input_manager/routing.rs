@@ -1,5 +1,8 @@
 use zircon_runtime_interface::ui::dispatch::UiInputRoutePolicy;
 
+#[cfg(test)]
+mod route_stage_names_tests;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UiInputRouteStage {
     PointerCapture,
@@ -24,12 +27,13 @@ pub const UI_INPUT_ROUTE_ORDER: [UiInputRouteStage; 7] = [
 ];
 
 pub fn route_stage_names_for_policy(policy: UiInputRoutePolicy) -> Vec<&'static str> {
-    UI_INPUT_ROUTE_ORDER
-        .iter()
-        .copied()
-        .filter(|stage| route_policy_uses_stage(policy, *stage))
-        .map(route_stage_name)
-        .collect()
+    let mut names = Vec::with_capacity(4);
+    for stage in UI_INPUT_ROUTE_ORDER {
+        if route_policy_uses_stage(policy, stage) {
+            names.push(route_stage_name(stage));
+        }
+    }
+    names
 }
 
 pub const fn route_policy_uses_stage(policy: UiInputRoutePolicy, stage: UiInputRouteStage) -> bool {

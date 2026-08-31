@@ -3,7 +3,7 @@ use zircon_runtime_interface::{
     ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
 };
 
-use super::{EditorRuntimeGateway, GatewayError};
+use super::{EditorRuntimeGateway, GatewayError, GatewaySessionIdentity};
 
 #[derive(Debug, Default)]
 pub struct DetachedEditorRuntimeGateway;
@@ -11,6 +11,10 @@ pub struct DetachedEditorRuntimeGateway;
 impl EditorRuntimeGateway for DetachedEditorRuntimeGateway {
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         ZrRuntimeSessionHandle::invalid()
+    }
+
+    fn session_identity(&self) -> GatewaySessionIdentity {
+        GatewaySessionIdentity::detached()
     }
 
     fn submit_operation(

@@ -35,17 +35,17 @@ impl UiAssetThemeCascadeLayerKind {
 }
 
 #[derive(Clone, Debug)]
-struct UiAssetThemeTokenDefinition {
-    source: String,
-    value: String,
+struct UiAssetThemeTokenDefinition<'a> {
+    source: &'a str,
+    value: &'a Value,
 }
 
 #[derive(Clone, Debug)]
-struct UiAssetThemeRuleDefinition {
-    selector: String,
-    source: String,
-    stylesheet_id: String,
-    declarations: String,
+struct UiAssetThemeRuleDefinition<'a> {
+    selector: &'a str,
+    source: &'a str,
+    stylesheet_id: &'a str,
+    declarations: &'a UiStyleDeclarationBlock,
 }
 
 pub(crate) fn build_theme_cascade_inspection(
@@ -119,24 +119,21 @@ fn theme_layer_summary(layer: &UiAssetThemeCascadeLayer<'_>, document: &UiAssetD
     }
 }
 
-fn cascade_token_items(layers: &[UiAssetThemeCascadeLayer<'_>]) -> Vec<String> {
-    let mut tokens_by_name = BTreeMap::<String, Vec<UiAssetThemeTokenDefinition>>::new();
+fn cascade_token_items<'a>(layers: &[UiAssetThemeCascadeLayer<'a>]) -> Vec<String> {
+    let mut tokens_by_name = BTreeMap::<&'a str, Vec<UiAssetThemeTokenDefinition<'a>>>::new();
     for layer in layers {
         let Some(document) = layer.document else {
             continue;
         };
         let source = match layer.kind {
-            UiAssetThemeCascadeLayerKind::Local => "Local".to_string(),
-            UiAssetThemeCascadeLayerKind::Imported => layer.reference.to_string(),
+            UiAssetThemeCascadeLayerKind::Local => "Local",
+            UiAssetThemeCascadeLayerKind::Imported => layer.reference,
         };
         for (name, value) in &document.tokens {
             tokens_by_name
-                .entry(name.clone())
+                .entry(name.as_str())
                 .or_default()
-                .push(UiAssetThemeTokenDefinition {
-                    source: source.clone(),
-                    value: value.to_string(),
-                });
+                .push(UiAssetThemeTokenDefinition { source, value });
         }
     }
 
@@ -159,9 +156,9 @@ fn cascade_token_items(layers: &[UiAssetThemeCascadeLayer<'_>]) -> Vec<String> {
     items
 }
 
-fn cascade_rule_items(layers: &[UiAssetThemeCascadeLayer<'_>]) -> Vec<String> {
+fn cascade_rule_items<'a>(layers: &[UiAssetThemeCascadeLayer<'a>]) -> Vec<String> {
     let mut items = Vec::new();
-    let mut rules_by_selector = BTreeMap::<String, Vec<UiAssetThemeRuleDefinition>>::new();
+    let mut rules_by_selector = BTreeMap::<&'a str, Vec<UiAssetThemeRuleDefinition<'a>>>::new();
     let mut order = 1usize;
     for layer in layers {
         let Some(document) = layer.document else {
@@ -185,16 +182,16 @@ fn cascade_rule_items(layers: &[UiAssetThemeCascadeLayer<'_>]) -> Vec<String> {
                 };
                 items.push(item);
                 rules_by_selector
-                    .entry(rule.selector.clone())
+                    .entry(rule.selector.as_str())
                     .or_default()
                     .push(UiAssetThemeRuleDefinition {
-                        selector: rule.selector.clone(),
+                        selector: rule.selector.as_str(),
                         source: match layer.kind {
-                            UiAssetThemeCascadeLayerKind::Imported => layer.reference.to_string(),
-                            UiAssetThemeCascadeLayerKind::Local => "Local".to_string(),
+                            UiAssetThemeCascadeLayerKind::Imported => layer.reference,
+                            UiAssetThemeCascadeLayerKind::Local => "Local",
                         },
-                        stylesheet_id: stylesheet_label.to_string(),
-                        declarations: format_rule_block(&rule.set),
+                        stylesheet_id: stylesheet_label,
+                        declarations: &rule.set,
                     });
                 order += 1;
             }
@@ -209,7 +206,10 @@ fn cascade_rule_items(layers: &[UiAssetThemeCascadeLayer<'_>]) -> Vec<String> {
         }
         items.push(format!(
             "active • rule • {} • {} • {} • {}",
-            active.selector, active.source, active.stylesheet_id, active.declarations
+            active.selector,
+            active.source,
+            active.stylesheet_id,
+            format_rule_block(active.declarations)
         ));
         for definition in shadowed.iter().rev() {
             items.push(format!(
@@ -217,7 +217,7 @@ fn cascade_rule_items(layers: &[UiAssetThemeCascadeLayer<'_>]) -> Vec<String> {
                 definition.selector,
                 definition.source,
                 definition.stylesheet_id,
-                definition.declarations
+                format_rule_block(definition.declarations)
             ));
         }
     }
@@ -258,3 +258,7 @@ fn push_rule_block_value(entries: &mut Vec<String>, path: String, value: &Value)
         _ => entries.push(format!("{path} = {}", value)),
     }
 }
+
+#[cfg(test)]
+#[path = "theme_cascade_inspection/borrowed_definition_tests.rs"]
+mod borrowed_definition_tests;

@@ -32,7 +32,7 @@ pub(super) struct RuntimeAllocationCensus {
 struct RuntimeAllocationRecord {
     session: ZrRuntimeSessionHandle,
     _kind: RuntimeAllocationKind,
-    bytes: Box<[u8]>,
+    bytes: Vec<u8>,
 }
 
 struct RuntimeAllocationRegistry {
@@ -81,7 +81,6 @@ pub(in crate::dynamic_api::session) fn register_runtime_allocation_in_action(
     }
     let len = u64::try_from(bytes.len())
         .map_err(|_| invalid_argument(b"runtime allocation exceeds ABI length range"))?;
-    let bytes = bytes.into_boxed_slice();
     let data = bytes.as_ptr();
 
     let mut registry = lock_registry();

@@ -1,10 +1,14 @@
 use std::sync::Arc;
 
-use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandRegistryError};
-use zircon_editor::core::editing::operation::OperationCommandFactoryRegistration;
+use zircon_editor::core::commands::{
+    EditorCommandDescriptor, EditorCommandMenuPath, EditorCommandRegistryError,
+};
+use zircon_editor::core::editing::operation::{
+    EditOperationTarget, OperationCommandFactoryRegistration,
+};
 use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use zircon_editor::core::editor_extension::{
-    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError,
 };
 use zircon_editor::core::editor_operation::EditorOperationPath;
 
@@ -25,19 +29,24 @@ pub(super) fn register(
 ) -> Result<(), EditorExtensionRegistryError> {
     for spec in operation_specs() {
         let operation = parse_operation(spec.path)?;
-        let command = EditorCommandDescriptor::operation(operation.clone(), spec.display_name)
-            .with_menu_path(spec.menu_path)
+        let command = EditorCommandDescriptor::operation(operation.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(
+                &operation,
+                spec.menu_root,
+                spec.menu_groups,
+            ))
             .with_callable_from_remote(false)
             .with_required_capabilities([spec.capability]);
         let command = match spec.route {
-            OperationRoute::Edit { payload_schema } => command
-                .with_payload_schema_id(payload_schema),
-            OperationRoute::OpenView(view_id) => command.with_event(
-                EditorEvent::WorkbenchMenu(MenuAction::OpenView(ViewDescriptorId::new(view_id))),
-            ),
-            OperationRoute::ToggleOverlay => command
-                .with_payload_schema_id("navigation.overlay.toggle.v1")
-                .with_description("Toggle the Navigation viewport provider; this view-state operation is intentionally non-undoable."),
+            OperationRoute::Edit { payload_schema } => {
+                command.with_payload_schema_id(payload_schema)
+            }
+            OperationRoute::OpenView(view_id) => command.with_event(EditorEvent::WorkbenchMenu(
+                MenuAction::OpenView(ViewDescriptorId::new(view_id)),
+            )),
+            OperationRoute::ToggleOverlay => {
+                command.with_payload_schema_id("navigation.overlay.toggle.v1")
+            }
         };
         if matches!(spec.route, OperationRoute::Edit { .. }) {
             let factory =
@@ -51,16 +60,13 @@ pub(super) fn register(
                 OperationCommandFactoryRegistration::new(
                     operation.clone(),
                     spec.display_name,
+                    EditOperationTarget::EditWorkspace,
                     Arc::new(factory),
                 ),
             )?;
         } else {
             registry.register_command(command)?;
         }
-        registry.register_menu_item(
-            EditorMenuItemDescriptor::new(spec.menu_path, operation)
-                .with_required_capabilities([spec.capability]),
-        )?;
     }
     Ok(())
 }
@@ -76,7 +82,8 @@ enum OperationRoute {
 struct OperationSpec {
     path: &'static str,
     display_name: &'static str,
-    menu_path: &'static str,
+    menu_root: &'static str,
+    menu_groups: &'static [&'static str],
     capability: &'static str,
     route: OperationRoute,
 }
@@ -86,7 +93,8 @@ fn operation_specs() -> [OperationSpec; 5] {
         OperationSpec {
             path: NAVIGATION_BAKE_SCENE_OPERATION,
             display_name: "Bake Navigation Scene",
-            menu_path: "Plugins/Navigation/Bake Scene",
+            menu_root: "plugins",
+            menu_groups: &["navigation"],
             capability: NAVIGATION_AUTHORING_CAPABILITY,
             route: OperationRoute::Edit {
                 payload_schema: "navigation.bake.scene.v1",
@@ -95,7 +103,8 @@ fn operation_specs() -> [OperationSpec; 5] {
         OperationSpec {
             path: NAVIGATION_BAKE_SURFACE_OPERATION,
             display_name: "Bake Selected NavMesh Surface",
-            menu_path: "Plugins/Navigation/Bake Selected Surface",
+            menu_root: "plugins",
+            menu_groups: &["navigation"],
             capability: NAVIGATION_AUTHORING_CAPABILITY,
             route: OperationRoute::Edit {
                 payload_schema: "navigation.bake.selected_surface.v1",
@@ -104,7 +113,8 @@ fn operation_specs() -> [OperationSpec; 5] {
         OperationSpec {
             path: NAVIGATION_CLEAR_SURFACE_OPERATION,
             display_name: "Clear NavMesh Surface Bake",
-            menu_path: "Plugins/Navigation/Clear Surface Bake",
+            menu_root: "plugins",
+            menu_groups: &["navigation"],
             capability: NAVIGATION_AUTHORING_CAPABILITY,
             route: OperationRoute::Edit {
                 payload_schema: "navigation.bake.clear_surface.v1",
@@ -113,14 +123,16 @@ fn operation_specs() -> [OperationSpec; 5] {
         OperationSpec {
             path: NAVIGATION_OPEN_SETTINGS_OPERATION,
             display_name: "Open Navigation Settings",
-            menu_path: "Plugins/Navigation/Settings",
+            menu_root: "plugins",
+            menu_groups: &["navigation"],
             capability: NAVIGATION_AUTHORING_CAPABILITY,
             route: OperationRoute::OpenView(NAVIGATION_AGENTS_VIEW_ID),
         },
         OperationSpec {
             path: NAVIGATION_TOGGLE_GIZMOS_OPERATION,
             display_name: "Toggle Navigation Gizmos",
-            menu_path: "View/Debug Overlays/Navigation",
+            menu_root: "view",
+            menu_groups: &["debug_overlays"],
             capability: NAVIGATION_GIZMOS_CAPABILITY,
             route: OperationRoute::ToggleOverlay,
         },

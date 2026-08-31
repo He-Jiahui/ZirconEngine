@@ -16,7 +16,7 @@ impl ExclusiveTransition<'_> {
         expected_context: &'static str,
         update: impl FnOnce(&mut T) -> Result<(), EditCommandError>,
     ) -> Result<bool, EditCommandError> {
-        let (mut context, mutation) = {
+        let (mut context, mutation, stored_route) = {
             let mut state = self.engine.lock_state();
             let context = EditorTransactionEngine::take_context_from(&mut state)?;
             if !context.as_any().is::<T>() {
@@ -33,8 +33,34 @@ impl ExclusiveTransition<'_> {
                     return Err(error);
                 }
             };
-            (context, mutation)
+            let stored_route = match state
+                .histories
+                .get(&history)
+                .map(|store| store.world_route())
+            {
+                Some(Ok(route)) => route.cloned(),
+                Some(Err(error)) => {
+                    state.context = Some(context);
+                    return Err(error);
+                }
+                None => None,
+            };
+            (context, mutation, stored_route)
         };
+        let route = match stored_route {
+            Some(route) => route,
+            None => match context.capture_world_route(history.world_domain()) {
+                Ok(route) => route,
+                Err(error) => {
+                    self.restore_context(context, false);
+                    return Err(error);
+                }
+            },
+        };
+        if let Err(error) = context.activate_world_route(&route) {
+            self.restore_context(context, false);
+            return Err(error);
+        }
         let selection_before = context.selection_snapshot();
         let Some(typed_context) = context.as_any_mut().downcast_mut::<T>() else {
             self.restore_context(context, false);

@@ -15,7 +15,7 @@ pub(super) fn compute_trigger_events(
 ) -> (PhysicsTriggerPairMap, Vec<PhysicsTriggerEvent>) {
     let current = collect_current_trigger_pairs(sync, settings);
 
-    let mut events = Vec::new();
+    let mut events = Vec::with_capacity(current.len().saturating_add(previous.len()));
     for (pair, point) in &current {
         events.push(trigger_event(
             sync.world,

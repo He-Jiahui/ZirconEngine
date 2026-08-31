@@ -12,6 +12,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::painter_state::UiRenderPainterStateSource;
+use super::popup_position::{PopupPlacement, resolve_anchored_popup_geometry};
 
 const NOTIFICATIONS: &str = "notifications";
 const OPEN: &str = "open";
@@ -191,6 +192,7 @@ pub(super) fn notification_center_render_commands(
     state_flags: &UiStateFlags,
     component_state: Option<&UiComponentState>,
     frame: UiFrame,
+    popup_anchor_frame: Option<UiFrame>,
     clip_frame: Option<UiFrame>,
     z_index: i32,
     opacity: f32,
@@ -204,6 +206,14 @@ pub(super) fn notification_center_render_commands(
     if frame.width <= 1.0 || frame.height <= 1.0 {
         return Vec::new();
     }
+    let (frame, clip_frame) = resolve_anchored_popup_geometry(
+        metadata,
+        frame,
+        popup_anchor_frame,
+        clip_frame,
+        PopupPlacement::BottomEnd,
+        0.0,
+    );
 
     let state = NotificationCenterRenderState::resolve(metadata, state_flags, component_state);
     let visual = NotificationCenterVisual::resolve(metadata);
@@ -512,26 +522,48 @@ fn notification_rows(metadata: &UiTemplateNodeMetadata) -> Vec<NotificationRow> 
     let selected_id = string_attribute(metadata, SELECTED_NOTIFICATION_ID).unwrap_or_default();
     let focused_index = usize_attribute(metadata, FOCUSED_INDEX);
     let visible_limit = usize_attribute(metadata, VISIBLE_LIMIT).unwrap_or(usize::MAX);
-    let mut rows = metadata
-        .attributes
-        .get(NOTIFICATIONS)
-        .map(notification_entry_list)
-        .unwrap_or_default();
+    let Some(notifications) = metadata.attributes.get(NOTIFICATIONS) else {
+        return Vec::new();
+    };
+    let mut rows = Vec::with_capacity(visible_limit.min(notification_root_len(notifications)));
+    collect_visible_notification_rows(notifications, visible_limit, &mut rows);
 
     for (index, row) in rows.iter_mut().enumerate() {
         row.selected = row.matches_id(selected_id);
         row.focused = focused_index == Some(index);
     }
 
-    rows.into_iter().take(visible_limit).collect()
+    rows
 }
 
-fn notification_entry_list(value: &Value) -> Vec<NotificationRow> {
+fn collect_visible_notification_rows(
+    value: &Value,
+    visible_limit: usize,
+    rows: &mut Vec<NotificationRow>,
+) {
+    if rows.len() >= visible_limit {
+        return;
+    }
     match value {
-        Value::Array(values) => values.iter().flat_map(notification_entry_list).collect(),
-        Value::String(value) => notification_entry_from_string(value).into_iter().collect(),
-        Value::Table(values) => notification_entry_from_table(values).into_iter().collect(),
-        _ => Vec::new(),
+        Value::Array(values) => {
+            for value in values {
+                collect_visible_notification_rows(value, visible_limit, rows);
+                if rows.len() >= visible_limit {
+                    break;
+                }
+            }
+        }
+        Value::String(value) => rows.extend(notification_entry_from_string(value)),
+        Value::Table(values) => rows.extend(notification_entry_from_table(values)),
+        _ => {}
+    }
+}
+
+fn notification_root_len(value: &Value) -> usize {
+    match value {
+        Value::Array(values) => values.len(),
+        Value::String(_) | Value::Table(_) => 1,
+        _ => 0,
     }
 }
 
@@ -765,4 +797,31 @@ fn css_color(color: UiRgbaColor) -> String {
     };
     value.insert(0, '#');
     value
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use toml::Value;
+
+    use super::collect_visible_notification_rows;
+
+    #[test]
+    fn visible_rows_stop_after_the_first_valid_depth_first_entries() {
+        let notifications = Value::Array(vec![
+            Value::String(String::new()),
+            Value::String("first|title=First".to_string()),
+            Value::Array(vec![
+                Value::String("second|title=Second".to_string()),
+                Value::String("third|title=Third".to_string()),
+            ]),
+        ]);
+        let mut rows = Vec::new();
+
+        collect_visible_notification_rows(&notifications, 2, &mut rows);
+
+        assert_eq!(
+            rows.iter().map(|row| row.id.as_str()).collect::<Vec<_>>(),
+            vec!["first", "second"]
+        );
+    }
 }

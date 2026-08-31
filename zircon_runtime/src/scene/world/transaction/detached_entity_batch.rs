@@ -410,6 +410,8 @@ impl World {
                 });
             }
         }
+        self.entity_registry
+            .ensure_capacity_for_additional(entity_ids.len())?;
         let hierarchy_component_id = self.registered_component_id::<Hierarchy>();
         for entry in &batch.entries {
             if self.contains_entity(entry.entity)

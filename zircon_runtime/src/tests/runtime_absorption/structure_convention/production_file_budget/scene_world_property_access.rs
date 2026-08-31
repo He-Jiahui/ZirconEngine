@@ -3,6 +3,10 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_scene_world_property_access_physics_writes_are_child_owner() {
     let parent = read_runtime_src("scene/world/property_access/write.rs");
+    let animation = read_runtime_src("scene/world/property_access/write/animation.rs");
+    let camera = read_runtime_src("scene/world/property_access/write/camera.rs");
+    let lighting = read_runtime_src("scene/world/property_access/write/lighting.rs");
+    let mesh = read_runtime_src("scene/world/property_access/write/mesh.rs");
     let physics = read_runtime_src("scene/world/property_access/write/physics.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -16,9 +20,17 @@ fn runtime_15_scene_world_property_access_physics_writes_are_child_owner() {
         "property-access write parent keeps dispatch and non-physics writers",
         &parent,
         &[
+            "mod animation;",
+            "mod camera;",
+            "mod lighting;",
+            "mod mesh;",
             "mod physics;",
             "pub fn set_property",
             "fn set_transform_property",
+            "\"camera\" => self.set_camera_property",
+            "self.set_mesh_renderer_property(entity, &segments, value, property_path)",
+            "self.set_ambient_light_property(entity, &segments, value, property_path)",
+            "self.set_animation_player_property(entity, &segments, value, property_path)",
             "\"rigidbody\" => self.set_rigid_body_property(entity, &segments, value, property_path),",
             "\"collider\" => self.set_collider_property(entity, &segments, value, property_path),",
             "\"joint\" => self.set_joint_property(entity, &segments, value, property_path),",
@@ -41,6 +53,65 @@ fn runtime_15_scene_world_property_access_physics_writes_are_child_owner() {
             "scene/world/property_access/write.rs should delegate {moved_owner} to write/physics.rs"
         );
     }
+    for moved_owner in [
+        "CameraComponent",
+        "MeshRenderer",
+        "AmbientLight",
+        "DirectionalLight",
+        "PointLight",
+        "RectLight",
+        "SpotLight",
+        "AnimationPlayerComponent",
+        "AnimationSequencePlayerComponent",
+        "AnimationGraphPlayerComponent",
+        "AnimationStateMachinePlayerComponent",
+        "SceneError::ReadOnlyProperty",
+        "SceneError::InvalidPropertyIndex",
+    ] {
+        assert!(
+            !parent.contains(moved_owner),
+            "scene/world/property_access/write.rs should delegate {moved_owner} to a component-domain child owner"
+        );
+    }
+    assert_contains_all(
+        "animation child owns animation component write branches",
+        &animation,
+        &[
+            "pub(super) fn set_animation_skeleton_property",
+            "pub(super) fn set_animation_player_property",
+            "pub(super) fn set_animation_sequence_player_property",
+            "pub(super) fn set_animation_graph_player_property",
+            "pub(super) fn set_animation_state_machine_player_property",
+            "set_animation_player_like_property",
+            "let next = if next.is_empty() { None } else { Some(next) };",
+        ],
+    );
+    assert_contains_all(
+        "camera child owns camera write branches",
+        &camera,
+        &["pub(super) fn set_camera_property", "CameraComponent"],
+    );
+    assert_contains_all(
+        "lighting child owns concrete light write branches",
+        &lighting,
+        &[
+            "pub(super) fn set_ambient_light_property",
+            "pub(super) fn set_directional_light_property",
+            "pub(super) fn set_point_light_property",
+            "pub(super) fn set_rect_light_property",
+            "pub(super) fn set_spot_light_property",
+        ],
+    );
+    assert_contains_all(
+        "mesh child owns mesh renderer write branches and typed read-only errors",
+        &mesh,
+        &[
+            "pub(super) fn set_mesh_renderer_property",
+            "MeshRenderer",
+            "SceneError::ReadOnlyProperty",
+            "SceneError::InvalidPropertyIndex",
+        ],
+    );
     assert_contains_all(
         "physics child owns rigid body, collider, and joint write branches",
         &physics,
@@ -62,6 +133,19 @@ fn runtime_15_scene_world_property_access_physics_writes_are_child_owner() {
 
     for (path, source) in [
         ("scene/world/property_access/write.rs", parent.as_str()),
+        (
+            "scene/world/property_access/write/animation.rs",
+            animation.as_str(),
+        ),
+        (
+            "scene/world/property_access/write/camera.rs",
+            camera.as_str(),
+        ),
+        (
+            "scene/world/property_access/write/lighting.rs",
+            lighting.as_str(),
+        ),
+        ("scene/world/property_access/write/mesh.rs", mesh.as_str()),
         (
             "scene/world/property_access/write/physics.rs",
             physics.as_str(),

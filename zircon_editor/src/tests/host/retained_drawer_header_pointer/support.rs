@@ -1,31 +1,30 @@
 use crate::ui::retained_host::drawer_header_pointer::{
     HostDrawerHeaderPointerItem, HostDrawerHeaderPointerLayout, HostDrawerHeaderPointerSurface,
 };
-use zircon_runtime_interface::ui::layout::UiFrame;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::view::ViewInstanceId;
 
 pub(super) fn sample_drawer_header_layout() -> HostDrawerHeaderPointerLayout {
     HostDrawerHeaderPointerLayout {
         surfaces: vec![
             HostDrawerHeaderPointerSurface {
-                key: "left".to_string(),
-                strip_frame: UiFrame::new(35.0, 53.0, 240.0, 25.0),
+                key: "left",
                 items: vec![
                     HostDrawerHeaderPointerItem {
-                        slot: "left_top".to_string(),
-                        instance_id: "editor.project#1".to_string(),
+                        slot: ActivityDrawerSlot::LeftTop,
+                        instance_id: ViewInstanceId::new("editor.project#1"),
                     },
                     HostDrawerHeaderPointerItem {
-                        slot: "left_bottom".to_string(),
-                        instance_id: "editor.hierarchy#1".to_string(),
+                        slot: ActivityDrawerSlot::LeftBottom,
+                        instance_id: ViewInstanceId::new("editor.hierarchy#1"),
                     },
                 ],
             },
             HostDrawerHeaderPointerSurface {
-                key: "right".to_string(),
-                strip_frame: UiFrame::new(1002.0, 53.0, 240.0, 25.0),
+                key: "right",
                 items: vec![HostDrawerHeaderPointerItem {
-                    slot: "right_top".to_string(),
-                    instance_id: "editor.inspector#1".to_string(),
+                    slot: ActivityDrawerSlot::RightTop,
+                    instance_id: ViewInstanceId::new("editor.inspector#1"),
                 }],
             },
         ],

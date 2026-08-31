@@ -84,16 +84,25 @@ impl RuntimeExtensionRegistry {
             .into_iter()
             .map(|module_name| module_name.as_ref().to_string())
             .collect::<HashSet<_>>();
-        let mut owners = self
-            .plugin_interfaces
-            .iter()
-            .filter_map(|(owner, _, _)| {
-                let module_name = self.plugin_module_name(owner)?;
-                module_names.contains(module_name).then_some(owner)
-            })
-            .collect::<Vec<_>>();
-        owners.sort_by_key(|owner| owner.raw());
-        owners.dedup();
-        owners
+        sorted_unique_interface_owners(self.plugin_interfaces.iter().filter_map(|(owner, _, _)| {
+            let module_name = self.plugin_module_name(owner)?;
+            module_names.contains(module_name).then_some(owner)
+        }))
     }
 }
+
+fn sorted_unique_interface_owners(
+    owners: impl IntoIterator<Item = PluginModuleId>,
+) -> Vec<PluginModuleId> {
+    let mut unique = HashSet::new();
+    for owner in owners {
+        unique.insert(owner);
+    }
+    let mut owners = unique.into_iter().collect::<Vec<_>>();
+    owners.sort_by_key(|owner| owner.raw());
+    owners
+}
+
+#[cfg(test)]
+#[path = "access/interface_owner_dedup_tests.rs"]
+mod interface_owner_dedup_tests;

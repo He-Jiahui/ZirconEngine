@@ -18,6 +18,7 @@ impl HostChromePresenter for RecordingPresenter {
     fn present(
         &mut self,
         _presentation: &HostWindowPresentationData,
+        _presentation_cursor: HostPresentationGenerationCursor,
         _damage: Option<FrameRect>,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
@@ -46,6 +47,7 @@ fn host_chrome_presenter_trait_accepts_boxed_backend() {
     let diagnostics = presenter
         .present(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             Some(FrameRect {
                 x: 1.0,
                 y: 2.0,
@@ -75,6 +77,7 @@ fn native_resize_present_has_a_conservative_backend_fallback() {
     presenter
         .present_during_native_resize(
             &HostWindowPresentationData::default(),
+            HostPresentationGenerationCursor::default(),
             HostInvalidationDiagnostics::default(),
         )
         .expect("backends without a resize cache should use an ordinary full present");

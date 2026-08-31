@@ -26,6 +26,7 @@ impl RetainedEditorHost {
             .filter(ui_frame_is_visible)
             .map(shell_frame)
         else {
+            self.shell_pointer_bridge.cancel_resize();
             return;
         };
         let base_preferred = match region {
@@ -33,6 +34,7 @@ impl RetainedEditorHost {
             ShellRegionId::Left | ShellRegionId::Right | ShellRegionId::Document => frame.width,
         };
         if base_preferred <= 0.0 {
+            self.shell_pointer_bridge.cancel_resize();
             return;
         }
 

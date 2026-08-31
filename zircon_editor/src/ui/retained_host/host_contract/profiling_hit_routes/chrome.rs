@@ -1,5 +1,6 @@
 use super::super::data::HostWindowSceneData;
 use super::geometry::{contains, translated};
+use super::identity::profile_control_id;
 
 pub(in crate::ui::retained_host::host_contract) fn resize_splitter_route_hit(
     scene: &HostWindowSceneData,
@@ -30,6 +31,9 @@ pub(in crate::ui::retained_host::host_contract) fn activity_rail_route_hit(
     if dock.rail_width_px <= 0.0 || !contains(&dock.region_frame, x, y) {
         return false;
     }
+    let Some(control_id) = profile_control_id(id, "activity_rail", surface) else {
+        return false;
+    };
     let rail_x = if dock.rail_before_panel {
         dock.region_frame.x
     } else {
@@ -45,8 +49,9 @@ pub(in crate::ui::retained_host::host_contract) fn activity_rail_route_hit(
         let Some(button) = dock.rail_button_frames.row_data(row) else {
             continue;
         };
-        let expected_id = format!("activity_rail.{surface}.{}", button.control_id);
-        if expected_id == id && contains(&translated(&button.frame, rail.x, rail.y), x, y) {
+        if button.control_id.as_str() == control_id
+            && contains(&translated(&button.frame, rail.x, rail.y), x, y)
+        {
             return true;
         }
     }

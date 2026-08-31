@@ -466,11 +466,11 @@ fn complex_text_backends_can_only_enter_through_ui_text_shaper() {
         "runtime text backend replacements should go through the UiTextShaper boundary"
     );
     assert!(
-        shaper.contains("struct UiTextShaperStack")
-            && shaper.contains("shared: UiSharedTextShaper")
-            && shaper.contains("self.shared.shape_text(request)")
-            && shaper.contains("self.shared.measure_text(text, style)"),
-        "UiTextShaperStack must be a direct adapter over the shared text service"
+        shaper.contains("struct UiSharedTextShaper")
+            && shaper.contains("UiSharedTextShaper.shape_text")
+            && shaper.contains("UiSharedTextShaper.measure_text")
+            && !shaper.contains("UiTextShaperStack"),
+        "UI text entrypoints must use the sole shared adapter without an empty backend stack"
     );
     for removed in [
         "UiTextBackendIntent",
@@ -485,9 +485,7 @@ fn complex_text_backends_can_only_enter_through_ui_text_shaper() {
     }
     assert!(
         shaper_tests.contains("shared_text_shaper_matches_public_layout_entrypoint")
-            && shaper_tests.contains(
-                "text_shaper_stack_uses_shared_text_service_for_font_backends"
-            ),
+            && shaper_tests.contains("shared_text_shaper_matches_public_measurement_entrypoint"),
         "runtime text tests should lock public layout parity and current SharedTextService backend behavior"
     );
     assert!(

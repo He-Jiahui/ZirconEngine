@@ -28,7 +28,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_po
         row_rect.clone(),
         Some(clip.clone()),
         popup_row_surface_order(order),
-        Some(style.fill),
+        style.fill,
         style.border,
         style.border_width,
         style.radius,

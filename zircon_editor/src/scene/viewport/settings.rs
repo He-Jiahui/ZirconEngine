@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::scene::modes::SceneModeActivation;
-use crate::scene::viewport::TransformHandleKind;
+use crate::scene::viewport::{PivotMode, TransformHandleKind};
 use zircon_runtime::core::framework::render::{
     DisplayMode, ProjectionMode, ViewportRenderSettings,
 };
@@ -33,7 +33,6 @@ pub enum GridMode {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SceneViewportSettings {
-    pub transform_handle: TransformHandleKind,
     pub transform_space: TransformSpace,
     pub projection_mode: ProjectionMode,
     pub view_orientation: ViewOrientation,
@@ -69,6 +68,7 @@ impl Default for SceneViewportSnapSteps {
 pub struct SceneViewportChromeSettings {
     pub mode: SceneModeActivation,
     pub transform_space: TransformSpace,
+    pub pivot_mode: PivotMode,
     pub projection_mode: ProjectionMode,
     pub view_orientation: ViewOrientation,
     pub gizmos_enabled: bool,
@@ -86,10 +86,12 @@ impl SceneViewportChromeSettings {
         settings: &SceneViewportSettings,
         snap_steps: SceneViewportSnapSteps,
         mode: SceneModeActivation,
+        pivot_mode: PivotMode,
     ) -> Self {
         Self {
             mode,
             transform_space: settings.transform_space,
+            pivot_mode,
             projection_mode: settings.projection_mode,
             view_orientation: settings.view_orientation,
             gizmos_enabled: settings.gizmos_enabled,
@@ -110,6 +112,7 @@ impl Default for SceneViewportChromeSettings {
             &SceneViewportSettings::default(),
             SceneViewportSnapSteps::default(),
             SceneModeActivation::Transform(TransformHandleKind::Move),
+            PivotMode::default(),
         )
     }
 }
@@ -128,7 +131,6 @@ impl SceneViewportSettings {
 impl Default for SceneViewportSettings {
     fn default() -> Self {
         Self {
-            transform_handle: TransformHandleKind::Move,
             transform_space: TransformSpace::Local,
             projection_mode: ProjectionMode::Perspective,
             view_orientation: ViewOrientation::User,

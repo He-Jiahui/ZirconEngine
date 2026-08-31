@@ -22,25 +22,25 @@ doc_type: module-detail
 
 ## Purpose
 
-The native bitmap atlas source cache stores swash glyph images across UI text frames before those images are converted into Zircon bitmap-atlas upload sources. It prevents repeated `SwashCache::get_image_uncached` calls for glyphs that are reused by the same screen-space UI text backend.
+The native bitmap atlas source cache stores swash glyph images across UI text frames before those images are converted into Zircon bitmap-atlas upload sources. It prevents repeated worker raster requests for canonical `GlyphRasterKey` identities reused by the same screen-space UI text backend.
 
 This document exists because the current workspace already had an in-progress UI text cache change while the shader cubemap integration tests were being validated. The cache type needed to be visible to the parent `text.rs` backend that owns the persistent `bitmap_source_cache` field.
 
 ## Behavior Model
 
-`ScreenSpaceUiTextBackend` owns one `NativeBitmapAtlasSourceCache`. Each frame, `native_bitmap_atlas_frame(...)` calls `begin_frame`, requests glyph images through `image(...)`, then records hit, miss, insert, eviction, and final entry counts through `NativeBitmapAtlasSourceCacheFrameReport`.
+`TextRenderState` owns one `NativeBitmapAtlasSourceCache`. Each frame, `native_bitmap_atlas_frame(...)` calls `begin_frame`, drains face-epoch-compatible worker completions, looks up prepared `GlyphRasterKey` images, requests misses through the bounded raster pool, then records hit, miss, insert, eviction, and final entry counts through `NativeBitmapAtlasSourceCacheFrameReport`.
 
-The cache is LRU-like: every lookup increments a monotonic tick and stores the last-used tick on each entry. When capacity is full, inserting a new cache key evicts the entry with the oldest tick.
+The cache uses an indexed intrusive LRU: hit, touch, insert, and least-recent eviction are amortized O(1). Entry count and CPU-byte hard caps are enforced together; a budget eviction returns the linked persistent raster key so the atlas/page owner can invalidate the matching slot rather than leaving stale residency.
 
-The current native bitmap atlas path also normalizes horizontal glyphon subpixel buckets before cache lookup, worker request registration, pending checks, and insertion. `native_bitmap_atlas_stable_raster_cache_key(...)` clears `CacheKey.x_bin` to `SubpixelBin::Zero` so the same glyph does not keep producing new source images or worker requests when only horizontal placement phase changes. `y_bin` remains part of the key because vertical bucket replacement still uses it for conservative approximate reuse.
+The current native bitmap atlas path uses `GlyphRasterKey` directly for cache lookup, worker request registration, pending checks, and insertion. Its horizontal and vertical phase bins are part of the text-owned physical raster identity; approximate reuse probes at most three alternative vertical bins and never scans the cache.
 
 `ScreenSpaceUiTextPrepareReport.raster_upload` now consumes this frame report instead of forcing higher-level perf tests to inspect `NativeBitmapAtlasPrepareReport` and renderer upload reports separately. The aggregate report keeps source-cache hit/miss/insert, approximate hit, worker request submitted/pending/unavailable, visible/source/missing/approx glyph, submission upload byte, and renderer upload/requeue/failure counters in one renderer-local DTO.
 
 ## Visibility Contract
 
-`NativeBitmapAtlasSourceCacheFrameReport` and `NativeBitmapAtlasSourceCache` are visible within `crate::graphics::scene::scene_renderer::ui`. The actual cached glyph image and cache-entry internals remain narrower implementation details of `native_bitmap_atlas/source_cache.rs`.
+`NativeBitmapAtlasSourceCacheFrameReport` and `NativeBitmapAtlasSourceCache` are crate-internal text renderer contracts. The actual cached glyph image, worker font snapshots, and cache-entry internals remain narrower implementation details of `native_bitmap_atlas/source_cache.rs`.
 
-This visibility is intentionally not a public graphics API. It allows the `text` module to store the cache in `ScreenSpaceUiTextBackend` and to aggregate frame-report counters into `ScreenSpaceUiTextRasterUploadReport`, while keeping the glyph image data and insertion helpers local to the native bitmap atlas implementation and tests.
+This visibility is intentionally not a public graphics API. It allows `TextRenderState` to own the cache and the screen-space text module to aggregate frame-report counters into `ScreenSpaceUiTextRasterUploadReport`, while keeping glyph image data and insertion helpers local to the native bitmap atlas implementation and tests.
 
 ## Test Coverage
 

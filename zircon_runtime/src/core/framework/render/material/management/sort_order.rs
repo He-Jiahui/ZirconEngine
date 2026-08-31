@@ -143,11 +143,32 @@ fn compare_material_names_for_direction(
 }
 
 fn compare_material_name_text(left: &str, right: &str) -> Ordering {
-    left.bytes()
-        .map(|byte| byte.to_ascii_lowercase())
-        .cmp(right.bytes().map(|byte| byte.to_ascii_lowercase()))
-        .then_with(|| left.cmp(right))
+    let mut left_bytes = left.bytes();
+    let mut right_bytes = right.bytes();
+    let mut tie_break = Ordering::Equal;
+    loop {
+        match (left_bytes.next(), right_bytes.next()) {
+            (Some(left_byte), Some(right_byte)) => {
+                let primary = left_byte
+                    .to_ascii_lowercase()
+                    .cmp(&right_byte.to_ascii_lowercase());
+                if primary != Ordering::Equal {
+                    return primary;
+                }
+                if tie_break == Ordering::Equal {
+                    tie_break = left_byte.cmp(&right_byte);
+                }
+            }
+            (Some(_), None) => return Ordering::Greater,
+            (None, Some(_)) => return Ordering::Less,
+            (None, None) => return tie_break,
+        }
+    }
 }
+
+#[cfg(test)]
+#[path = "sort_order/fast_case_tests.rs"]
+mod fast_case_tests;
 
 fn status_rank(status: RenderMaterialReadinessStatus) -> u8 {
     match status {

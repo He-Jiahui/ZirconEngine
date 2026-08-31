@@ -33,12 +33,10 @@ pub(in crate::graphics::visibility::planning::build_virtual_geometry_plan) fn re
 
     for cluster in visible_clusters.iter().copied() {
         if let Some(parent_cluster_id) = cluster.parent_cluster_id {
-            if visible_by_id.contains_key(&parent_cluster_id) {
-                children_by_parent
-                    .entry(parent_cluster_id)
-                    .or_default()
-                    .push(cluster);
-            }
+            children_by_parent
+                .entry(parent_cluster_id)
+                .or_default()
+                .push(cluster);
         }
     }
 
@@ -96,6 +94,10 @@ pub(in crate::graphics::visibility::planning::build_virtual_geometry_plan) fn re
     frontier.truncate(cluster_budget);
     frontier
 }
+
+#[cfg(test)]
+#[path = "redundant_parent_lookup_tests.rs"]
+mod redundant_parent_lookup_tests;
 
 fn should_hold_split_hysteresis(
     cluster: &RenderVirtualGeometryCluster,

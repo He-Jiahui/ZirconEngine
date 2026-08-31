@@ -2,48 +2,51 @@ Set-StrictMode -Version Latest
 
 $MvpStagingEvidenceReserveBytes = [Int64](512MB)
 
-function Add-MvpStagingByteCount {
-    param(
-        [Parameter(Mandatory)][Int64]$Total,
-        [Parameter(Mandatory)][Int64]$FileBytes,
-        [ValidateRange(1, 2)][int]$CopyCount = 1
-    )
-
-    if ($FileBytes -lt 0) {
-        throw "MVP staging cannot budget a negative file size '$FileBytes'."
-    }
-    $next = [decimal]$Total + ([decimal]$FileBytes * $CopyCount)
-    if ($next -gt [Int64]::MaxValue) {
-        throw 'MVP staging input size exceeds the supported 64-bit byte budget.'
-    }
-    return [Int64]$next
-}
-
 function Get-MvpStagingRequiredBytes {
     param([Parameter(Mandatory)][object[]]$InputCopies)
 
     [Int64]$inputCopyBytes = 0
     foreach ($inputCopy in $InputCopies) {
-        $path = [string]$inputCopy.path
-        if ([string]::IsNullOrWhiteSpace($path)) {
-            throw 'MVP staging disk budget contains an input without a path.'
+        if ($inputCopy -is [Collections.IDictionary]) {
+            $path = [string]$inputCopy['path']
+            if ([string]::IsNullOrWhiteSpace($path)) {
+                throw 'MVP staging disk budget contains an input without a path.'
+            }
+            $copyCount = [int]$inputCopy['copy_count']
         }
-        $copyCount = [int]$inputCopy.copy_count
+        else {
+            $path = [string]$inputCopy.path
+            if ([string]::IsNullOrWhiteSpace($path)) {
+                throw 'MVP staging disk budget contains an input without a path.'
+            }
+            $copyCount = [int]$inputCopy.copy_count
+        }
         if ($copyCount -lt 1 -or $copyCount -gt 2) {
             throw "MVP staging disk budget input '$path' has invalid copy count '$copyCount'."
         }
-        if (-not [IO.File]::Exists($path)) {
+        $file = [IO.FileInfo]::new($path)
+        if (-not $file.Exists) {
             throw "MVP staging disk budget input '$path' is not a file."
         }
-        $file = [IO.FileInfo]::new($path)
-        $inputCopyBytes = Add-MvpStagingByteCount `
-            -Total $inputCopyBytes `
-            -FileBytes $file.Length `
-            -CopyCount $copyCount
+        $fileLength = [Int64]$file.Length
+        if ($copyCount -eq 2) {
+            if ($fileLength -gt ([Int64]::MaxValue - $fileLength)) {
+                throw 'MVP staging input size exceeds the supported 64-bit byte budget.'
+            }
+            $weightedBytes = $fileLength + $fileLength
+        }
+        else {
+            $weightedBytes = $fileLength
+        }
+        if ($inputCopyBytes -gt ([Int64]::MaxValue - $weightedBytes)) {
+            throw 'MVP staging input size exceeds the supported 64-bit byte budget.'
+        }
+        $inputCopyBytes += $weightedBytes
     }
-    $requiredFreeSpaceBytes = Add-MvpStagingByteCount `
-        -Total $inputCopyBytes `
-        -FileBytes $MvpStagingEvidenceReserveBytes
+    if ($inputCopyBytes -gt ([Int64]::MaxValue - $MvpStagingEvidenceReserveBytes)) {
+        throw 'MVP staging input size exceeds the supported 64-bit byte budget.'
+    }
+    $requiredFreeSpaceBytes = $inputCopyBytes + $MvpStagingEvidenceReserveBytes
 
     return [ordered]@{
         input_copy_bytes = $inputCopyBytes
@@ -84,10 +87,12 @@ function Assert-MvpStagingDiskCapacity {
     catch {
         throw "Could not inspect free space for staging root '$StagingRootPath': $($_.Exception.Message)"
     }
-    Assert-MvpStagingCapacityValues `
-        -StagingRootPath $StagingRootPath `
-        -RequiredFreeSpaceBytes $RequiredFreeSpaceBytes `
-        -AvailableFreeSpaceBytes $availableFreeSpaceBytes
+    if ($availableFreeSpaceBytes -lt $RequiredFreeSpaceBytes) {
+        Assert-MvpStagingCapacityValues `
+            -StagingRootPath $StagingRootPath `
+            -RequiredFreeSpaceBytes $RequiredFreeSpaceBytes `
+            -AvailableFreeSpaceBytes $availableFreeSpaceBytes
+    }
     return [ordered]@{
         drive_root = $driveRoot
         available_free_space_bytes = $availableFreeSpaceBytes
@@ -182,10 +187,10 @@ function Assert-MvpStagingEntryBudget {
     [Int64]$entryBytes = 0
     foreach ($entry in $Entries) {
         if ($entry -is [Collections.IDictionary]) {
-            if (-not $entry.Contains('size_bytes')) {
+            $sizeValue = $entry['size_bytes']
+            if ($null -eq $sizeValue -and -not $entry.Contains('size_bytes')) {
                 throw 'MVP staging final entry is missing size_bytes.'
             }
-            $sizeValue = $entry['size_bytes']
         }
         else {
             $sizeProperty = $entry.PSObject.Properties['size_bytes']
@@ -195,10 +200,22 @@ function Assert-MvpStagingEntryBudget {
             $sizeValue = $sizeProperty.Value
         }
         [Int64]$sizeBytes = 0
-        if (-not [Int64]::TryParse([string]$sizeValue, [ref]$sizeBytes) -or $sizeBytes -lt 0) {
+        if ($sizeValue -is [long]) {
+            $sizeBytes = $sizeValue
+        }
+        elseif ($sizeValue -is [int]) {
+            $sizeBytes = [Int64]$sizeValue
+        }
+        elseif (-not [Int64]::TryParse([string]$sizeValue, [ref]$sizeBytes)) {
             throw "MVP staging final entry has invalid size_bytes '$sizeValue'."
         }
-        $entryBytes = Add-MvpStagingByteCount -Total $entryBytes -FileBytes $sizeBytes
+        if ($sizeBytes -lt 0) {
+            throw "MVP staging final entry has invalid size_bytes '$sizeValue'."
+        }
+        if ($entryBytes -gt ([Int64]::MaxValue - $sizeBytes)) {
+            throw 'MVP staging input size exceeds the supported 64-bit byte budget.'
+        }
+        $entryBytes += $sizeBytes
     }
     if ($entryBytes -ne $ExpectedInputCopyBytes) {
         throw "MVP staging final entry bytes '$entryBytes' differ from preflight input_copy_bytes '$ExpectedInputCopyBytes'."

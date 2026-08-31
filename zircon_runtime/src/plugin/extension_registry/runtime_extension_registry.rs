@@ -232,14 +232,12 @@ impl RuntimeExtensionRegistry {
         let plugin_id = self
             .plugin_modules
             .name(owner)
-            .and_then(plugin_id_from_module_name)
-            .map(str::to_owned);
-        if let Some(plugin_id) = plugin_id.as_deref() {
+            .and_then(plugin_id_from_module_name);
+        if let Some(plugin_id) = plugin_id {
             self.shader_module_sources
                 .retain(|source| source.owner_id != plugin_id);
         }
         let asset_importers = plugin_id
-            .as_deref()
             .map(|plugin_id| self.asset_importers.remove_by_plugin_id(plugin_id))
             .unwrap_or_default();
         if !asset_importers.is_empty() {
@@ -289,4 +287,19 @@ impl RuntimeExtensionRegistry {
 
 fn plugin_id_from_module_name(module_name: &str) -> Option<&str> {
     module_name.strip_suffix(".runtime")
+}
+
+#[cfg(test)]
+mod plugin_id_tests {
+    use super::plugin_id_from_module_name;
+
+    #[test]
+    fn plugin_id_from_module_name_borrows_the_prefix() {
+        let module_name = String::from("weather.runtime");
+        let plugin_id = plugin_id_from_module_name(&module_name)
+            .expect("runtime module name should expose its plugin id");
+
+        assert_eq!(plugin_id, "weather");
+        assert_eq!(plugin_id.as_ptr(), module_name.as_ptr());
+    }
 }

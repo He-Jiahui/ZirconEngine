@@ -7,11 +7,8 @@ pub(crate) fn build_world_space_ui_surface_submissions(
     surface_id: &str,
     nodes: &ModelRc<TemplatePaneNodeData>,
 ) -> Vec<WorldSpaceUiSurfaceSubmission> {
-    let mut submissions = nodes
-        .iter()
-        .filter(|node| node.world_space_enabled)
-        .filter_map(|node| world_space_submission_for_node(surface_id, node))
-        .collect::<Vec<_>>();
+    let mut submissions = Vec::new();
+    extend_world_space_ui_surface_submissions(surface_id, nodes, &mut submissions);
 
     submissions.sort_by(|left, right| {
         left.render_order
@@ -20,6 +17,19 @@ pub(crate) fn build_world_space_ui_surface_submissions(
             .then_with(|| left.control_id.cmp(&right.control_id))
     });
     submissions
+}
+
+pub(super) fn extend_world_space_ui_surface_submissions(
+    surface_id: &str,
+    nodes: &ModelRc<TemplatePaneNodeData>,
+    submissions: &mut Vec<WorldSpaceUiSurfaceSubmission>,
+) {
+    submissions.extend(
+        nodes
+            .iter()
+            .filter(|node| node.world_space_enabled)
+            .filter_map(|node| world_space_submission_for_node(surface_id, node)),
+    );
 }
 
 fn world_space_submission_for_node(
@@ -78,3 +88,7 @@ fn positive_or_projected_world_extent(
         0.0
     }
 }
+
+#[cfg(test)]
+#[path = "node/direct_append_tests.rs"]
+mod direct_append_tests;

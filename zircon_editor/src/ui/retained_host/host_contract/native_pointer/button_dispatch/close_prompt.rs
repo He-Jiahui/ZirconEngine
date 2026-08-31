@@ -18,17 +18,21 @@ pub(super) fn dispatch_close_prompt_button(
     x: f32,
     y: f32,
 ) -> Option<NativePointerDispatchResult> {
-    if let Some(action_id) = close_prompt_action_at(presentation, x, y) {
-        return Some(dispatch_close_prompt_action_press(
-            ui,
-            presentation,
-            action_id,
-            state,
-            button,
-        ));
+    if !presentation.close_prompt.visible {
+        return None;
     }
-    if presentation.close_prompt.visible && contains(&presentation.close_prompt.overlay_frame, x, y)
-    {
+    if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+        if let Some(action_id) = close_prompt_action_at(presentation, x, y) {
+            return Some(dispatch_close_prompt_action_press(
+                ui,
+                presentation,
+                action_id,
+                state,
+                button,
+            ));
+        }
+    }
+    if contains(&presentation.close_prompt.overlay_frame, x, y) {
         return Some(NativePointerDispatchResult::idle());
     }
     None

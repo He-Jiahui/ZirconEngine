@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/extract/history.rs
-  - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/camera/camera_snapshot.rs
   - zircon_runtime/src/core/framework/render/view_family.rs
   - zircon_runtime/src/core/framework/render/temporal_jitter.rs
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
@@ -24,6 +24,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
+  - zircon_runtime/src/graphics/runtime/history/validation_key.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_camera.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_object.rs
@@ -48,7 +49,7 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
@@ -162,25 +163,30 @@ duplicated ViewRect-type risk and confirms clamp/scale preserve each camera's de
   primary to secondary, and the optional spatial transition scales post-process output to display.
   This keeps logical viewports separate from padded allocations and keeps primary-resolution
   changes history-stable.
-- Required Render07 hard cut: the graph must distinguish a primary-resolution
+- Render07 pre/post-reconstruction hard cut source status (2026-08-29): implemented. The graph
+  distinguishes a primary-resolution
   `PreReconstructionScenePostProcess` slot from a `PostReconstructionScenePostProcess` slot. In
   Unreal desktop `PostProcessing.cpp`, `BL_SceneColorBeforeDOF` and Diaphragm DOF run before the
   temporal upscaler, which consumes primary `ViewRect` color/depth/velocity; motion blur consumes
   the temporal output afterwards. The second slot consequently targets secondary resolution for a
-  temporal path and primary resolution for a direct spatial path. Zircon's current legacy chain is
-  `TaaResolve -> DepthOfField -> MotionBlur`, so DOF is presently on the wrong side of temporal
-  reconstruction even though motion blur is not. Render07 must atomically replace the ambiguous
-  `SceneLinearPostProcess` phase and corresponding stack/chain-slot/resource/dependency model;
-  changing only enum order would make graph dependencies disagree with resource geometry.
+  temporal path and primary resolution for a direct spatial path. Zircon now routes
+  `SceneColor -> DepthOfField -> TaaResolve -> MotionBlur`: ViewFamily phase targets, chain order,
+  stack resources, cross-feature producer versions, executor input selection, and history-disabled
+  fallbacks move together; the ambiguous `SceneLinearPostProcess` phase no longer exists in source.
+  Exact-file formatting, scoped diff checks, and locked metadata pass. The focused managed test did
+  not start: its local wrapper timed out before returning a request id or producing Cargo/rustc
+  activity, so this is source completion only and not an accepted dynamic milestone.
 - Spatial-path re-review: this does **not** move Zircon's direct spatial transition ahead of
   display mapping. Unreal's desktop sequence tone maps and runs post-tone-map AA before
   `PrimaryUpscale`; its primary upscaler explicitly chooses `PrimaryToSecondary` when a second
-  upscale is active and otherwise `PrimaryToOutput`. Therefore the compatibility path's
-  `DisplayMapping -> DisplayPostProcess -> SpatialUpscale` geometry is directionally correct.
-  Render07 must preserve that distinction while replacing the ambiguous scene-linear slot.
-- Foundation only: `FrameSubmissionContext` has the resolved ViewFamily value and a focused
+  upscale is active and otherwise `PrimaryToOutput`, while `SecondaryUpscale` always performs
+  `SecondaryToOutput`. Zircon now preserves that distinction as
+  `DisplayMapping -> DisplayPostProcess -> PrimarySpatialUpscale? -> SecondarySpatialUpscale?`;
+  temporal reconstruction replaces only the primary spatial transition.
+- Prior foundation state, superseded by the constructor hard cut below: `FrameSubmissionContext`
+  had the resolved ViewFamily value and a focused
   1920x1080 temporal-path test (960x540 primary, 1440x810 secondary), but its optional field and
-  builder exist solely to land the cross-owner work without a scalar `render_size` fallback.
+  builder existed solely to land the cross-owner work without a scalar `render_size` fallback.
 - Required constructor hard cut: Render01 must make `FrameSubmissionContext::new` take a
   `RenderViewFamilyPipeline`, update every constructor/test caller, and delete the optional field,
   builder, and delayed `expect`. Its owned
@@ -188,11 +194,24 @@ duplicated ViewRect-type risk and confirms clamp/scale preserve each camera's de
   must pass it at construction. This is one atomic construction change, not a permanent
   source-compatible adapter; consumers may only read the required contract after it lands.
   `post_process/pass_graph.rs` remains the independent Render07 phase-node hard cut.
+- 2026-08-29 constructor hard cut source status: implemented. `FrameSubmissionContext::new` now
+  requires the resolved `RenderViewFamilyPipeline`; the production submission builder passes the
+  same instance that validated `PostProcessPassGraph`, and all test constructors provide an
+  explicit native-spatial or scenario-specific temporal pipeline. The optional field, delayed
+  builder, and delayed `expect` are deleted rather than retained as compatibility paths. Static
+  counts are `Option<RenderViewFamilyPipeline>=0`, `with_view_family_pipeline=0`, delayed panic
+  text `=0`, constructor calls `=4`, and production resolved-value handoff `=1`.
+- Validation boundary: exact five-file `rustfmt --check`, scoped `git diff --check`, and
+  `cargo metadata --locked --no-deps` pass. Managed Cargo remains unproven: the latest independent
+  `zr_rhi_wgpu` request `51c0388fb54f414e9cd976ca09e5b33a` ended in coordinator
+  `command_post_timeout` while acquiring the Cargo lane, so it provides no `zircon_runtime`
+  compile evidence. This source completion is not an accepted milestone and does not
+  authorize a commit, screenshot, RenderDoc claim, performance claim, or WeCom completion notice.
 - Static evidence: the owned implementation files pass `rustfmt --check` and scoped
   `git diff --check`; the test file parses through `rustfmt --emit stdout`. A spatial-only phase
-  regression locks `DisplayMapping -> DisplayPostProcess -> SpatialUpscale`, matching the reviewed
-  Unreal primary-upscale ordering. Its full format check still reports pre-existing formatting
-  outside this slice, and no Cargo lane was started.
+  regression locks `DisplayMapping -> DisplayPostProcess -> PrimarySpatialUpscale`, and the
+  four-path regression additionally covers primary-only, secondary-only, dual-spatial, and
+  temporal-plus-secondary topology. Dynamic Cargo/GPU validation remains pending.
 - Required module hard cut: `view_family.rs` now exceeds 1,300 lines and combines resolution
   geometry, dynamic-resolution packets, pipeline topology, and tests. Before adding Render17
   state integration or Render07 phase variants, an audited scope transfer must split it into
@@ -883,7 +902,7 @@ jitter 注入点:`build_frame_submission_context` 在 `apply_viewport_size` 同�
 
 ## 状态与产出记录
 
-- 2026-07-18 history validation性能交接：`FrameHistoryValidationKey`在submission context与viewport history之间已改Arc共享，per-record wide deep clone=0；Render06仍须以scene/camera/post/particle/feature component revisions形成compact token，复用shared bindings/visibility/static handles，stable generation不重建/深比较，changed保持现有五类invalidation reason优先级。见PERF-MVP-413/414。
+- 2026-07-18 history validation性能交接（已被 2026-08-29 正确性硬切部分取代）：`FrameHistoryValidationKey`在submission context与viewport history之间已改Arc共享，per-record wide deep clone=0；当时仍逐帧深比较scene/camera/post/particle内容。PERF-MVP-413/414中“内容revision变化即全局失效”的旧建议不再作为时域正确性合同，内容变化必须由velocity/depth/reactive/domain metadata拒绝。
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
@@ -894,3 +913,12 @@ jitter 注入点:`build_frame_submission_context` 在 `apply_viewport_size` 同�
 - 2026-07-18 TAA history owner交接：TAA双纹理CPU整图初始化已改GPU clear；TP-M1仍须让TAA pair按TAA feature+size generation独立创建/resize/flip，HZB或froxel质量变化不得重建TAA，TAA-off真实texture=0且stable view clone=0。见PERF-MVP-395。
 - 2026-07-18 temporal执行补充交接：object velocity空LoadStore pass已删除；TAA resolve与camera velocity仍每camera建bind group，camera params又重建current/previous matrix pair+inverse。TP-M1/M3消费prepared-camera artifact与resource-generation bindings，stable matrix build≤1/camera、bind create=0；0 reactive归PERF-MVP-350。见temporal静态证据。
 - 2026-07-18 particle velocity hard-cut交接：legacy velocity路径每frame重建anonymous ambiguity与previous identity树并CPU展开current+previous六顶点；compiled graph已保证object velocity先写、particle固定LoadStore。TP-M1只消费Render12/PERF-MVP-341发布的matched current/previous instance ranges，在同一velocity artifact/pass写入，禁止第二history索引和CPU quad owner。见PERF-MVP-396及particle静态证据。
+- 2026-08-29 ViewFamily 阶段尺寸切片：`RenderViewExtract` 现在持有 renderer-owned `RenderViewFamilyPipeline`，最终 graph 编译前由 submission builder 安装同一份解析计划；TAA 参数/历史尺寸使用 primary→secondary 的逻辑 ViewRect，资源分配与编译指纹跟踪 primary/secondary/display allocation extent 及 upscaler。速度相机、HZB、曝光直方图和 clustered-lighting 改为消费 `SceneLinear` 阶段尺寸。`rustfmt --check`、`git diff --check`、`cargo metadata --locked --no-deps` 通过；受管 `zircon_runtime` focused validation 已提交但在 `cargo.acquire` 超时，尚无动态编译、GPU、PNG 或 RenderDoc 证据，状态为 `view_family_allocation_and_execution_source_implemented_static_checks_passed_dynamic_validation_pending`。
+- 2026-08-29 阶段一致性复核：HZB 执行计划改回消费 `SceneLinear` allocation extent 以匹配带对齐尾部的资源与 history mip 链，光栅/采样仍使用 logical extent；历史回写改用 `SceneLinear` 阶段 region，避免分屏/缩放 origin 截断；空间路径的 SSR/GI/AO history 默认尺寸改为 PostReconstruction allocation。OutputTransfer 与物理输出 region 统一读取 `OutputTransform` 阶段，`FINAL_COMPOSITED/COLOR_GRADED/EFFECT_STACKED` 不再误判为 presenter 物理目标。静态格式检查通过；最新受管验证被协调器以 `cargo_reuse_pool_busy` 拒绝（此前为 `cargo.acquire` 超时），动态构建与 GPU 证据仍 pending。
+- 2026-08-29 P0-1 history compatibility 源码切片：全帧相等合同已硬切为结构兼容键，仅保留world identity（不含逐帧generation）、camera core/projection kind/custom projection/HDR/MSAA 与去重排序后的effective feature集合；mesh、animation、lighting、post-process、particle和camera transform不再参与全局history失效。原velocity camera cut判定上移为`ViewportCameraSnapshot::supports_temporal_reprojection_from`，submission发布`previous_available`和camera velocity共同消费同一平移/旋转/FOV/clip/projection连续性结果。回归合同已反转为正常camera/mesh/light/post motion可复用，并新增world identity/feature/projection与100-unit camera cut拒绝。精确`rustfmt`、scoped `git diff --check`与`cargo metadata --locked --no-deps`通过；focused validator在外层等待244秒后无输出超时，没有request id或Cargo/rustc证据。动态Cargo/WGPU、300帧序列、valid ratio、PNG、RDC和性能/功耗数据仍pending。P0-2 per-domain generation/validity table尚未实现，因此TP-M4和计划06不得标记完成。详见`docs/plans/performance/01/2026-08-29-temporal-history-compatibility-structural-review.md`。
+- 2026-08-29 P0-2 per-domain history 源码切片：新增固定7域状态表（TAA、Hybrid GI、AO、SSR、HZB、Exposure、Volumetric），每域独立持有generation/valid/last-successful-frame/reset-reason，并新增O(1) availability snapshot、write intent与不可Copy的frame transaction。旧TAA/GI/volumetric有效位已删除；camera cut只屏蔽空间域，Exposure只在自身无效时安排默认buffer reset。无历史帧不再clone整帧并删除history资源，而是继续执行cold-start seed pass。history copy编码期状态写入为0，所有ping-pong/valid/generation提交移动到backend返回scene `SubmissionTicket`之后、辅助IBL终结错误之前。21个精确Rust文件format check、scoped diff check、Cargo metadata及source guards通过；focused `history_domains_commit`受管请求47.5秒无输出超时，故动态Cargo/WGPU、真实截图、RDC、300帧valid ratio、GPU timing与功耗仍pending，计划06/TP-M4仍不得标记完成。详见`docs/plans/performance/01/2026-08-29-temporal-history-domain-architecture-review.md`。
+- 2026-08-29 P0-2 history observability 源码切片：新增只读`RenderHistoryDomainsReport`，只在scene submit ticket返回并提交history transaction后写入`RenderGraphExecutionRecord`，再投影到`RenderStats`/`DiagnosticStore`。每个submitted frame固定记录1个target-present与7域各6个状态指标（共43项），路径均为静态字符串、域查找为固定索引；active reset reason表示提交后仍无效原因，frame reset reason保留同帧reseed前的reset事件，原因码`0..7`已冻结。runtime到scene改用`RenderFrameHistoryInput`显式携带上游原因，`CameraCut`映射为空间域`CameraCut`，结构兼容键变化的`FrameInputsChanged`映射为空间域`StructuralCompatibilityChanged`。精确Rust文件`rustfmt --check`、scoped `git diff --check`与locked Cargo metadata通过；focused `history_domains_report`受管请求54.1秒无输出超时，因此只标记`history_observability_source_static_complete_dynamic_pending`，真实序列采样、GPU/PNG/RDC和性能/功耗证据仍pending。
+- 2026-08-29 P0-2 disabled-domain follow-up：当所有history consumer关闭时，prepare只访问已存在的history target并提交各域`FeatureDisabled`，不会为记录禁用状态额外分配纹理；无既有target的viewport保持零分配。对应source contract与精确rustfmt检查通过，动态行为仍待受管Cargo/WGPU执行。
+- 2026-08-29 cold-start graph hard-cut：移除`PostProcessStackDescriptor::without_history_resources()`及其整图clone/资源剥离路径；history unavailable现在直接以`history_available=false`构造descriptor，TAA/history节点在编译前省略，DoF、motion blur、SSR等非TAA消费者保持各自输入合同。结构吸收测试与TAA模块文档已同步迁移，静态格式、diff与locked Cargo metadata通过，动态Cargo/WGPU与实际截图仍pending。
+- 2026-08-29 history initialization rejection settlement：history纹理创建返回的真实submission ticket现在通过backend统一登记；若frame ledger因owner或sequence合同拒绝该ticket，backend先立即结算该已接受工作，以typed error保留ticket/status，并从history target表移除未可靠初始化的owner，再交给既有失败帧路径，避免初始化提交或无有效seed的history游离于frame transaction之外。该收敛与texture/frame-resource producer共用同一helper，不新增第二ticket表；精确rustfmt、scoped diff与locked Cargo metadata通过，动态Cargo/WGPU、截图、RDC与性能/功耗仍pending。
+- 2026-08-30 TAA external-texture exact lease：previous/current history 现在发布 View-sized `Rgba16Float` typed schema 与完整 texture access intent；previous 为 fragment sampled read，current 为 color-attachment write。history store/binder 同时发布 borrowed texture、view、descriptor 与稳定 identity，执行资源表按 compiled access ID 创建精确 WGPU view，不再只靠资源名/default view。builder、descriptor、compiled packet 与 live binder 源码回归、精确 rustfmt、locked metadata 和 scoped source checks 通过；受管 validator 仍在 Cargo 前被 `cargo_reuse_target_mismatch` 阻塞，真实连续帧 TAA PNG、RDC、300 帧 validity、帧时/显存/功耗均未取得，TP-M3/TP-M4 不标记 accepted。

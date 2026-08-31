@@ -25,7 +25,7 @@ pub(super) fn resolve_model_geometry(
     asset_manager: &ProjectAssetManager,
     model: &ModelAsset,
 ) -> ResolvedModelGeometry {
-    let mut mesh_assets = HashMap::<String, Option<MeshAsset>>::new();
+    let mut mesh_assets = HashMap::<&crate::asset::AssetUri, Option<MeshAsset>>::new();
     let mut dependency_states = Vec::new();
     let mut deformation = PreparedGeometryDeformation::default();
     let primitives = model
@@ -36,8 +36,7 @@ pub(super) fn resolve_model_geometry(
                 deformation.include_primitive(primitive);
                 return primitive.clone();
             };
-            let locator_key = reference.locator.to_string();
-            let mesh = mesh_assets.entry(locator_key).or_insert_with(|| {
+            let mesh = mesh_assets.entry(&reference.locator).or_insert_with(|| {
                 dependency_states.push(dependency_state(asset_manager, reference));
                 load_referenced_mesh_asset(asset_manager, reference)
             });
@@ -139,6 +138,19 @@ const fn resource_state_tag(state: Option<ResourceState>) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn runtime93_borrowed_mesh_locator_cache_deduplicates_equal_locators() {
+        let first = crate::asset::AssetUri::parse("res://meshes/shared.zmesh").unwrap();
+        let second = crate::asset::AssetUri::parse("res://meshes/shared.zmesh").unwrap();
+        let mut mesh_assets = HashMap::<&crate::asset::AssetUri, u32>::new();
+
+        mesh_assets.entry(&first).or_insert(11);
+        mesh_assets.entry(&second).or_insert(22);
+
+        assert_eq!(mesh_assets.len(), 1);
+        assert_eq!(mesh_assets[&first], 11);
+    }
 
     #[test]
     fn composite_geometry_revision_changes_when_external_mesh_revision_changes() {

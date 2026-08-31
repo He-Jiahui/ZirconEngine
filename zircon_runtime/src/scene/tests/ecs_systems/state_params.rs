@@ -1,5 +1,50 @@
 use super::*;
 
+use std::panic::{AssertUnwindSafe, catch_unwind};
+
+use crate::scene::ecs::{ChangeTickWindow, SystemParam, SystemParamAccess};
+
+struct PanickingParamConstruction;
+
+impl SystemParam for PanickingParamConstruction {
+    type State = ();
+    type Item<'world> = ();
+
+    fn init_state(
+        _world: &mut World,
+        _access: &mut SystemParamAccess,
+    ) -> Result<Self::State, SystemParamError> {
+        Ok(())
+    }
+
+    unsafe fn get_param<'world>(
+        _world: *mut World,
+        _state: &'world mut Self::State,
+        _ticks: ChangeTickWindow,
+    ) -> Self::Item<'world> {
+        panic!("intentional system parameter construction panic")
+    }
+}
+
+#[test]
+fn system_state_restores_active_change_tick_when_param_construction_panics() {
+    let mut world = World::empty();
+    let mut system = SystemState::<PanickingParamConstruction>::new(&mut world)
+        .expect("panic probe parameter state should initialize");
+
+    let panic = catch_unwind(AssertUnwindSafe(|| system.run(&mut world, |_| {})));
+    assert!(panic.is_err());
+    let failed_run_tick = world.read_change_tick();
+
+    world.insert_resource(Score(1));
+
+    assert_eq!(
+        world.read_change_tick(),
+        failed_run_tick.next(),
+        "a later world mutation must not reuse the failed system run tick"
+    );
+}
+
 #[test]
 fn system_state_runs_query_resource_and_commands_params() {
     let mut world = World::empty();
@@ -38,7 +83,14 @@ fn commands_param_rejects_multiple_deferred_command_lanes() {
 
     let tuple_error = SystemState::<(CommandsParam, CommandsParam)>::new(&mut world)
         .expect_err("two command params would alias one system-owned worker lane");
-    assert_eq!(tuple_error, SystemParamError::MultipleDeferredCommandParams);
+    assert_eq!(
+        tuple_error,
+        SystemParamError::TupleElement {
+            index: 1,
+            parameter_type: std::any::type_name::<CommandsParam>(),
+            source: Box::new(SystemParamError::MultipleDeferredCommandParams),
+        }
+    );
 
     let param_set_error = SystemState::<ParamSet<(CommandsParam, CommandsParam)>>::new(&mut world)
         .expect_err("ParamSet must not bypass the one-lane command ownership rule");
@@ -194,21 +246,27 @@ fn param_set_component_access_is_conservative_across_sibling_filters() {
     )>;
     let system = SystemState::<Params>::new(&mut world).unwrap();
 
-    assert!(system
-        .access()
-        .component_access()
-        .writes()
-        .contains(&health_component));
-    assert!(!system
-        .access()
-        .component_access()
-        .with()
-        .contains(&marker_component));
-    assert!(!system
-        .access()
-        .component_access()
-        .without()
-        .contains(&marker_component));
+    assert!(
+        system
+            .access()
+            .component_access()
+            .writes()
+            .contains(&health_component)
+    );
+    assert!(
+        !system
+            .access()
+            .component_access()
+            .with()
+            .contains(&marker_component)
+    );
+    assert!(
+        !system
+            .access()
+            .component_access()
+            .without()
+            .contains(&marker_component)
+    );
 }
 
 #[test]

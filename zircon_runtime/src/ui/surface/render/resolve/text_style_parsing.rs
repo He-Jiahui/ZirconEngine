@@ -57,12 +57,12 @@ pub(super) fn parse_text_render_mode(value: &str) -> Option<UiTextRenderMode> {
 pub(super) fn parse_rich_text_format(value: &str) -> Option<UiRichTextFormat> {
     if matches_ascii_alias(value, &["plain"]) {
         Some(UiRichTextFormat::Plain)
-    } else if matches_ascii_alias(value, &["markdown"]) {
-        Some(UiRichTextFormat::Markdown)
-    } else if matches_ascii_alias(value, &["bbcode", "bb_code", "bb-code"]) {
-        Some(UiRichTextFormat::BbCode)
-    } else if matches_ascii_alias(value, &["html"]) {
-        Some(UiRichTextFormat::Html)
+    } else if matches_ascii_alias(value, &["markdown_inline_v1"]) {
+        Some(UiRichTextFormat::MarkdownInlineV1)
+    } else if matches_ascii_alias(value, &["bbcode_v1"]) {
+        Some(UiRichTextFormat::BbCodeV1)
+    } else if matches_ascii_alias(value, &["html_subset_v1"]) {
+        Some(UiRichTextFormat::HtmlSubsetV1)
     } else {
         None
     }

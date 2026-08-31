@@ -5,8 +5,11 @@ use zircon_runtime::asset::importer::AssetImportError;
 use zircon_runtime::asset::project::{AssetMetaDocument, PreviewState, ProjectManager};
 use zircon_runtime::asset::AssetUuid;
 
-use super::super::catalog_generation::{record_to_view, update_asset_in_catalog_generation};
-use super::super::default_editor_asset_manager::{DefaultEditorAssetManager, EditorAssetState};
+use super::super::catalog_generation::update_catalog_record_in_catalog_generation;
+use super::super::default_editor_asset_manager::{
+    lock_editor_asset_gate_recovering_poison, read_editor_asset_state_recovering_poison,
+    write_editor_asset_state_recovering_poison, DefaultEditorAssetManager, EditorAssetState,
+};
 use super::generate_preview_artifact::generate_preview_artifact;
 use crate::core::jobs::{
     EditorJob, EditorJobSpec, JobCategory, JobContext, JobError, JobPriority, MutexGroup,
@@ -79,11 +82,12 @@ impl DefaultEditorAssetManager {
             MutexGroup::parse(format!("thumbnail_{asset_uuid_text}").replace('-', ""))
                 .map_err(|error| AssetImportError::Parse(error.to_string()))?;
         let job = {
-            let mut state = self
-                .state
-                .write()
-                .expect("editor asset state lock poisoned");
-            let Some(record) = state.catalog_by_uuid.get(&asset_uuid).cloned() else {
+            let mut state = self.write_state_recovering_poison();
+            let Some(record) = state
+                .catalog_generation
+                .catalog_record(&asset_uuid_text)
+                .map(|record| (*record).clone())
+            else {
                 return Ok(None);
             };
             let cache = state.preview_cache.as_ref().cloned().ok_or_else(|| {
@@ -100,7 +104,7 @@ impl DefaultEditorAssetManager {
             let asset_row = state
                 .catalog_generation
                 .asset_shared(&asset_uuid_text)
-                .expect("mutable catalog and immutable generation must share every asset");
+                .expect("catalog generation must expose every previewable asset row");
             PreviewRefreshJob {
                 asset_uuid,
                 asset_uuid_text,
@@ -167,7 +171,7 @@ fn complete_preview_refresh_job(
     context.check_cancelled()?;
 
     let job_is_current = {
-        let state = state.read().expect("editor asset state lock poisoned");
+        let state = read_editor_asset_state_recovering_poison(state);
         preview_job_is_current(&state, job)
     };
     if !job_is_current {
@@ -206,12 +210,10 @@ fn complete_preview_refresh_job(
     }
 
     context.check_cancelled()?;
-    let _publish_guard = publish_gate
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _publish_guard = lock_editor_asset_gate_recovering_poison(publish_gate.as_ref());
     context.check_cancelled()?;
     let change = {
-        let mut state = state.write().expect("editor asset state lock poisoned");
+        let mut state = write_editor_asset_state_recovering_poison(state);
         context.check_cancelled()?;
         if !preview_job_is_current(&state, job) {
             let refill = release_preview_admission_locked(&mut state, job);
@@ -222,20 +224,12 @@ fn complete_preview_refresh_job(
             return Ok(());
         }
 
-        let updated_view = record_to_view(
-            &updated_record,
-            &state.catalog_by_uuid,
-            &state.uuid_by_locator,
-        );
-        let publish_epoch = state.catalog_generation.publish_epoch.saturating_add(1);
-        state.catalog_generation = update_asset_in_catalog_generation(
+        let publish_epoch = state.catalog_generation.next_publish_epoch();
+        state.catalog_generation = update_catalog_record_in_catalog_generation(
             &state.catalog_generation,
-            updated_view,
+            updated_record.clone(),
             publish_epoch,
         );
-        state
-            .catalog_by_uuid
-            .insert(updated_record.asset_uuid, updated_record.clone());
         debug_assert!(state
             .preview_scheduler
             .complete_refresh(updated_record.asset_uuid, job.admission_token));
@@ -264,8 +258,8 @@ fn preview_job_is_current(state: &EditorAssetState, job: &PreviewRefreshJob) -> 
             .asset_shared(&job.asset_uuid_text)
             .is_some_and(|current| Arc::ptr_eq(&current, &job.asset_row))
         && state
-            .catalog_by_uuid
-            .get(&job.asset_uuid)
+            .catalog_generation
+            .catalog_record(&job.asset_uuid_text)
             .is_some_and(|record| {
                 record.source_hash == job.source_hash && record.meta_path == job.meta_path
             })
@@ -277,7 +271,7 @@ fn release_preview_admission(
     job: &PreviewRefreshJob,
 ) {
     let change = {
-        let mut state = state.write().expect("editor asset state lock poisoned");
+        let mut state = write_editor_asset_state_recovering_poison(state);
         release_preview_admission_locked(&mut state, job)
     };
     if let Some(change) = change {

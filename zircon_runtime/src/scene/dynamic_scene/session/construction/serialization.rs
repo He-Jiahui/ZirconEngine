@@ -2,7 +2,7 @@ use std::io::Write;
 
 use super::super::archive::RuntimeSessionArchiveWirePayload;
 use super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchive, RuntimeSessionArchiveError,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn from_versioned_json(

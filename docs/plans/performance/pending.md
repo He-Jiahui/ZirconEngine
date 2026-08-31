@@ -81,9 +81,69 @@ P4 小计：**2,835**。
 
 P5 小计：**753**。全表总计：**17,106**。
 
+## 2026-08-31 closure detail
+
+The following sub-scopes are retained as pending details of the existing
+`zircon_runtime/src/graphics/**` and `zircon_runtime` rows; they do not add
+duplicate files to the conservation totals:
+
+- Framework budget/capability/frame-profiler/query-stats:
+  `zircon_runtime/src/graphics/runtime/render_framework/{budget/**,capability_summary/**,frame_profiler.rs,frame_profiler/**,query_stats/**}`;
+  12 files, 1,481 physical lines, SHA256
+  `101999a880f0531cab7fb2fd2d5c08185b92bb8f3a2da083d306822d4df0c9f7`.
+  Mixed traffic/residency budgets, viewport-count degradation cadence,
+  camera/profile/query lifetime and split capability eligibility remain open.
+- Asset payload/decode/assembly:
+  `zircon_runtime/src/asset/assets/**`; 114 files, 24,135 physical lines, SHA256
+  `f9665b59df0d5314230783e8a350fac671e2834e21bd59065cb61f29e1104eca`.
+  Mesh/model duplication, multi-generation TOML conversion, texture assembly
+  peaks, external/zcube face-cap bypass and deep payload clones remain open.
+
+Evidence and architecture gates are recorded in
+[`01/2026-08-31-framework-budget-and-assets-closure.md`](01/2026-08-31-framework-budget-and-assets-closure.md).
+Both scopes remain pending until current-source Cargo, scale counters and F0/F2/F4
+product validation are available; no static-only acceptance is recorded.
+
+### 2026-08-31 runtime event consumer closure
+
+See [`01/2026-08-31-runtime-event-consumer-closure.md`](01/2026-08-31-runtime-event-consumer-closure.md) for the 16-file retained-host event closure (3,754 lines; SHA256 `4a2024eec6a2cc655519f541223d6b238b8fc0d76385f7024a32bf34f2947add`). The current foreign implementation is preserved, but host admission still follows destructive producer drain, retained-byte accounting omits decoded/object peaks, stable capability reconciliation and empty drains repeat per tick, callbacks lack enforceable affinity/deadlines, lifecycle reconcile is not atomic, and delivery/session terminal generations are split. Route to Editor01/12/14, Runtime06/10/11 and Plugins01; remain pending until managed Cargo and retained-host F0/F4 evidence.
+
+### 2026-08-31 editor gateway closure
+
+See [`01/2026-08-31-editor-gateway-closure.md`](01/2026-08-31-editor-gateway-closure.md) for the current gateway/session/route scope: 25 core Rust files (4,351 lines) plus 11 external test files (2,332 lines). ArcSwap gateway origins and operation/pick routes are positive, but world watches, invalidation drains, capture and other child lifetimes are not universally identity-pinned; request serialization/output projection lacks one end-to-end proposal; in-process callbacks hold the world lock across arbitrary work; and capability/lease generations can become stale or repeat work. Route to Editor01/02/04/12/14, Runtime06/10/11 and Plugins01; remain pending until managed Cargo, gateway scale/lock tests and F4 evidence.
+
+### 2026-08-31 editor message closure
+
+See [`01/2026-08-31-editor-message-closure.md`](01/2026-08-31-editor-message-closure.md) for the current 38-file core message scope plus 14 external test files. Arc payload fan-out, handler-outside-lock dispatch, indexed inbox eviction and typed topic/schema validation are positive. UI delta queues remain unbounded under the bus mutex; inbox byte estimates omit nested allocations and full drains hold a consumer lock; fanout/report vectors scale with subscribers; and message/runtime-event/gateway callback lifetimes do not share one terminal delivery lease. Route to Editor01/09/12/14, Runtime06/10/11 and Plugins01; remain pending until managed Cargo, delta/drain scale tests and F4 evidence.
+
+### 2026-08-31 editor event closure
+
+See [`01/2026-08-31-editor-event-closure.md`](01/2026-08-31-editor-event-closure.md) for the current 40-file event core scope plus 32 external test files. Three retention classes, Arc-shared records, cursor pages, normalized listener filters and lock-free listener projection are positive. Per-event JSON serialization for byte measurement, successful-path full record cloning, full journal snapshot rebuild under lock, listener fan-out without one end-to-end lease, and saturating identity counters remain open. Route to Editor01/09/12/14, Runtime06/10/11 and Plugins01; remain pending until managed Cargo, event scale/lock/identity tests and F4 evidence.
+
+### 2026-08-31 editor jobs closure
+
+See [`01/2026-08-31-editor-jobs-closure.md`](01/2026-08-31-editor-jobs-closure.md) for the current `zircon_editor/src/core/jobs/**` scope: 58 Rust files, 11,423 physical lines, 10,211 nonempty lines, 149 test attributes, 14 ignore attributes and 19 include sites; sorted raw-content SHA256 `b919c077e0d73fa8ca5aee1d1f0a6277958fdc2e19de2a6cae74acb246f23adb`. Finite category/pending limits, indexed fairness and dependencies, keyed latest-work replacement, indexed terminal retention, Arc labels, bounded event journal and panic-contained observers are positive. Editor still owns a peer scheduler in front of Runtime TaskGraph; admission does not reserve result/lifecycle/message delivery capacity as one lease; completion can recursively drive observer and promotion; named product callers can block on `JobTicket::wait`; lock scopes cross progress/journal/bus delivery; shutdown and identity exhaustion lack terminal-generation receipts; and stable status/full snapshots retain a cloning escape hatch. Route to Editor01/02/09/12/14 and Runtime06/10/11; remain pending until the TaskGraph facade hard cut, terminal-lease/affinity tests, managed Cargo and F0/F4 evidence.
+
+### 2026-08-31 editor asset closure
+
+See [`01/2026-08-31-editor-asset-closure.md`](01/2026-08-31-editor-asset-closure.md) for the current `zircon_editor/src/core/asset/**` revalidation: 53 Rust files, 11,628 physical lines, 10,419 nonempty lines, 384,429 bytes, 113 test attributes, 12 ignore attributes and 16 include sites; sorted raw-content SHA256 `396a016e7aee0f75fdadfcf38a27a2dcf39a98a02f35cd42a7a20bc41346cc7e`. Dirty generation cursors, import single-flight, runtime topology preflight, typed refactor tickets and staged type-registry batches are positive. Dirty/save/import/index/catalog remain parallel authorities; dirty deltas clone effect maps under lock; import flight/result waits and observer clones are not one nonblocking lease; index/catalog projections remain full-build or dormant paths; production capability materialization bypasses the batch core; and source/decode/result/output budgets and identities are split. Route to Editor03/09/14, Runtime04/11, Plugins12 and the editor asset/UI owners; remain pending until the shared AssetOperationProposal/AssetPayloadGeneration, managed Cargo and F1/F4 evidence.
+
+### 2026-08-31 runtime text document and layout closure
+
+See [`01/2026-08-31-runtime-text-document-layout-closure.md`](01/2026-08-31-runtime-text-document-layout-closure.md) for the current 70-file document/layout scope: 18,072 physical lines, 16,665 nonempty lines, 640,024 bytes, 265 tests, three ignored manual tests and one include site. Piece storage, prepared edits, store budgets, local hard-line updates, conservative ASCII grapheme splicing, bounded caches and plain no-wrap viewport materialization are positive. Editable content remains split between full Strings and the piece store; replacement admission follows candidate vectors; line/index candidates are not aggregate-budgeted; layout cache hits deep-clone line/run payloads; artifacts duplicate retained lines/text; rich tables shape cells twice; and viewport materialization is domain-narrow. Route to Text09, EditorUI03, Runtime10/11 and Render17; remain pending until one content/edit/layout generation, pre-admitted peaks, Arc-shared rows and managed F4 evidence.
+
+### 2026-08-31 runtime UI layout closure
+
+See [`01/2026-08-31-runtime-ui-layout-closure.md`](01/2026-08-31-runtime-ui-layout-closure.md) for the current 33-file UI layout scope: 9,672 physical lines, 8,924 nonempty lines, 324,559 bytes, 60 tests, two ignored manual tests and two include sites. Indexed slot lookup, local arranged/hit/render/navigation patches and first-party materialized fixed-list virtualization close the earlier blanket full-scan/full-rebuild claims. Taffy still reconstructs nodes for every affected container; engine-selection diagnostics are unconditional; the generic virtual-scroll fallback scans children and clears offscreen subtrees; responsive dirty rows retain owned metadata; scratch high-water residency is unaccounted; and downstream patch generations remain split. Route to EditorUI02/08, Runtime10/11 and the shared diagnostics owner; remain pending until one surface/Taffy/virtual-provider generation and current F4 evidence.
+
+### 2026-08-31 runtime UI input and dispatch closure
+
+See [`01/2026-08-31-runtime-ui-input-dispatch-closure.md`](01/2026-08-31-runtime-ui-input-dispatch-closure.md) for the current 118-file UI input/dispatch scope: 21,811 physical lines, 20,207 nonempty lines, 750,080 bytes, 152 tests, 20 ignored tests and 21 include sites. Cached routes, inline visited nodes, bounded text updates, checked number-field revisions and Arc drag payloads are positive. Default Full diagnostics and incomplete Summary gating still own route/event/label projections; multi-effect rollback clones broad surface state; focused text/IME changes can rebuild the complete surface render extract; timer maps are fully scanned and expired bursts drain synchronously; and clipboard/pointer/analog identities retain split payload and dynamic-key work. Route to EditorUI08, Text09, Runtime10/11 and the shared diagnostics/platform-input owners; remain pending until one input/surface/text-layout generation, narrow mutation journal, bounded timer/host leases and current F4 evidence.
+
 ## 当前全局阻塞
 
 - 当前产品bundle入口在Cargo前稳定失败：`tools/build-editor.ps1:130`以PowerShell字面量`'\\'`拼接approved root，导致合法D/E/F输出无法通过containment匹配。默认D盘和显式E盘调用均复现；`tools/tests/build-editor.Tests.ps1`当前15项为**9 pass / 6 fail**。精确移交见`01/failure-2026-08-15-build-editor-approved-root-separator.md`与PERF-MVP-634。该脚本及测试已有foreign-dirty改动，Performance01未越权覆盖；在15/15、managed bundle与`--help`恢复前，WPR/xperf/RenderDoc仍未启动。
 - Windows managed validator dry run已生成D盘target命令。自建E盘空temp目录曾被`unmanaged_artifacts_detected`拒绝，已由coordinator精确删除且artifact audit为0；build-only `zircon_app`矩阵在D盘managed target运行324.2秒，以212条warning、6个foreign-dirty `zircon_runtime`错误失败。随后focused `zircon_runtime` lib-test又运行843.4秒，以361个编译错误、1,520条warning失败，0条test执行；tests/WPR/Tracy/RenderDoc current binary均未运行。本Session Cargo作业已结束，不抢占、不改用裸Cargo。
 - `python tools/check_conventions.py --repo-root . --only docs --json` 在并发硬切期间从 **612 / 212 documents** 漂移到本轮末次 **638 / 229 documents**（2,382 documents、74,308 checked paths）；本次持有并复核的 performance 文档为 **0 violation**。全局问题保留在 `01/failure-2026-08-02-doc-structured-path-owner-drift.md`，不以批量猜路径消除。
 - RenderDoc 1.44 可用，但已有高级 volumetric capture 不是当前 F2 MVP 场景；在可运行产品入口和 managed build 恢复前，不用旧 capture 冒充当前 GPU 基线。
+- 2026-08-31 E盘 focused `cargo +1.94.1 check -p zircon_runtime --lib` 已确认旧的 text-document `Vec<TextDocumentPiece>`、text overflow outcome 与 layout constraint iterator 三个 blocker 在current source关闭；当前 crate 仍以 **214个**广域foreign integration错误、360 warnings失败，覆盖graphics/runtime-contract/scene/input等owner，focused Rust tests为0执行。Text/UI两项closure不得用这个全局RED反推局部回归，也不得声称Cargo/F4/WPR/像素验收；独立source-contract仅证明115/115静态合同。

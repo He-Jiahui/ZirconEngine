@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
-use crate::text::font::{load_text_font_source, FontDatabase, LoadedTextFontSource};
-use crate::text::sdf::{
-    sdf_offline_artifact_path, SdfGenerationSourceContext, SdfOfflineArtifact,
-    SdfOfflineArtifactIdentity,
-};
 use crate::text::FontFaceId;
+use crate::text::font::{FontDatabase, FontLoadError, LoadedTextFontSource, load_text_font_source};
+use crate::text::sdf::{
+    SdfGenerationSourceContext, SdfOfflineArtifact, SdfOfflineArtifactIdentity,
+    sdf_offline_artifact_path,
+};
 
 use super::distance_field::glyph_id_for_key;
 use super::{RawBakedGlyph, RawBakedGlyphSource, SdfAtlasGlyphKey, SdfGlyphMetrics};
@@ -47,7 +47,7 @@ pub(super) struct SdfOfflineSourceCacheReport {
 
 #[derive(Default)]
 pub(super) struct SdfOfflineSourceCache {
-    manifests: HashMap<String, Option<LoadedTextFontSource>>,
+    manifests: HashMap<String, Result<LoadedTextFontSource, FontLoadError>>,
     artifacts: HashMap<SdfOfflineArtifactIdentity, Option<Arc<SdfOfflineArtifact>>>,
     glyph_bitmaps: HashMap<SdfOfflineGlyphKey, Arc<[u8]>>,
     manifest_recency: HashMap<String, u64>,
@@ -123,7 +123,7 @@ impl SdfOfflineSourceCache {
         asset_manager: &ProjectAssetManager,
     ) -> Option<RawBakedGlyph> {
         let font_ref = key.font.as_deref()?;
-        let manifest = self.load_manifest_cached(font_ref, asset_manager)?;
+        let manifest = self.load_manifest_cached(font_ref, asset_manager).ok()?;
         let asset_uuid = manifest.asset_uuid?;
         let identity = SdfOfflineArtifactIdentity {
             asset_guid: asset_uuid.to_string(),
@@ -178,7 +178,7 @@ impl SdfOfflineSourceCache {
         &mut self,
         font_ref: &str,
         asset_manager: &ProjectAssetManager,
-    ) -> Option<LoadedTextFontSource> {
+    ) -> Result<LoadedTextFontSource, FontLoadError> {
         if let Some(manifest) = self.manifests.get(font_ref).cloned() {
             self.touch_manifest(font_ref.to_owned());
             return manifest;
@@ -324,7 +324,7 @@ impl SdfOfflineSourceCache {
         &mut self,
         font_ref: &str,
         asset_manager: &ProjectAssetManager,
-    ) -> Option<LoadedTextFontSource> {
+    ) -> Result<LoadedTextFontSource, FontLoadError> {
         self.load_manifest_cached(font_ref, asset_manager)
     }
 

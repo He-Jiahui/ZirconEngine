@@ -23,15 +23,14 @@ impl ViewportRecord {
             RenderVisibleSpatialQueryView::MainCamera,
         );
         let query = Arc::new(VisibleSpatialQuery::from_context(visibility_context));
-        self.last_visible_spatial_query = Some(Arc::new(RenderVisibleSpatialQuerySnapshot::new(
-            identity, query,
-        )));
+        self.last_visible_spatial_query =
+            Some(RenderVisibleSpatialQuerySnapshot::new(identity, query));
     }
 
     pub(in crate::graphics::runtime::render_framework) fn visible_spatial_query(
         &self,
     ) -> Option<RenderVisibleSpatialQuerySnapshot> {
-        self.last_visible_spatial_query.as_deref().cloned()
+        self.last_visible_spatial_query.as_ref().cloned()
     }
 }
 
@@ -75,5 +74,33 @@ mod tests {
             .query_bounds(RenderSpatialBounds::new(Vec3::ZERO, 1.0))
             .entities
             .is_empty());
+    }
+
+    #[test]
+    fn viewport_record_returns_owned_visible_snapshot_without_consuming_storage() {
+        let viewport = RenderViewportHandle::new(5);
+        let world = RenderWorldSnapshotHandle::new(3);
+        let mut record = ViewportRecord::new(RenderViewportDescriptor::new(UVec2::new(64, 64)));
+        let context = VisibilityContext::default();
+
+        record.store_visible_spatial_query(viewport, world, 7, &context);
+        let first = record
+            .visible_spatial_query()
+            .expect("first query clones the stored snapshot");
+        let second = record
+            .visible_spatial_query()
+            .expect("stored snapshot remains available");
+        record.store_visible_spatial_query(viewport, world, 8, &context);
+
+        assert_eq!(first.identity().frame_generation, 7);
+        assert_eq!(second.identity().frame_generation, 7);
+        assert_eq!(
+            record
+                .visible_spatial_query()
+                .expect("replacement snapshot remains available")
+                .identity()
+                .frame_generation,
+            8
+        );
     }
 }

@@ -23,9 +23,12 @@ fn apply_resize_to_left_group_updates_all_left_slots() {
     apply_resize_to_group(manager.as_ref(), "left", 344.0).unwrap();
 
     let layout = manager.current_layout();
-    assert_eq!(layout.drawers[&ActivityDrawerSlot::LeftTop].extent, 344.0);
     assert_eq!(
-        layout.drawers[&ActivityDrawerSlot::LeftBottom].extent,
+        layout.active_activity_window_drawers()[&ActivityDrawerSlot::LeftTop].extent,
+        344.0
+    );
+    assert_eq!(
+        layout.active_activity_window_drawers()[&ActivityDrawerSlot::LeftBottom].extent,
         344.0
     );
 
@@ -45,7 +48,10 @@ fn apply_resize_to_bottom_group_updates_all_bottom_slots() {
     apply_resize_to_group(manager.as_ref(), "bottom", 228.0).unwrap();
 
     let layout = manager.current_layout();
-    assert_eq!(layout.drawers[&ActivityDrawerSlot::Bottom].extent, 228.0);
+    assert_eq!(
+        layout.active_activity_window_drawers()[&ActivityDrawerSlot::Bottom].extent,
+        228.0
+    );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -63,9 +69,12 @@ fn apply_resize_to_right_group_updates_all_right_slots() {
     apply_resize_to_group(manager.as_ref(), "right", 312.0).unwrap();
 
     let layout = manager.current_layout();
-    assert_eq!(layout.drawers[&ActivityDrawerSlot::RightTop].extent, 312.0);
     assert_eq!(
-        layout.drawers[&ActivityDrawerSlot::RightBottom].extent,
+        layout.active_activity_window_drawers()[&ActivityDrawerSlot::RightTop].extent,
+        312.0
+    );
+    assert_eq!(
+        layout.active_activity_window_drawers()[&ActivityDrawerSlot::RightBottom].extent,
         312.0
     );
 

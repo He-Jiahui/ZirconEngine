@@ -12,12 +12,18 @@ pub(super) fn load_or_create_meta(
 ) -> Result<AssetMetaDocument, AssetImportError> {
     if meta_path.exists() {
         let mut meta = AssetMetaDocument::load(meta_path)?;
-        meta.url = uri.clone();
-        meta.asset_kind = kind;
+        refresh_loaded_meta_identity(&mut meta, uri, kind);
         return Ok(meta);
     }
 
     Ok(mint_meta(uri, kind))
+}
+
+fn refresh_loaded_meta_identity(meta: &mut AssetMetaDocument, uri: &AssetUri, kind: AssetKind) {
+    if &meta.url != uri {
+        meta.url = uri.clone();
+    }
+    meta.asset_kind = kind;
 }
 
 fn mint_meta(uri: &AssetUri, kind: AssetKind) -> AssetMetaDocument {
@@ -39,3 +45,7 @@ pub(crate) fn mint_meta_for_migration(
         .map(String::into_bytes)
         .map_err(|error| AssetImportError::Parse(error.to_string()))
 }
+
+#[cfg(test)]
+#[path = "load_or_create_meta/matching_identity_tests.rs"]
+mod matching_identity_tests;

@@ -1,17 +1,21 @@
-use std::collections::BTreeSet;
-
 use crate::asset::assets::{
     DecodedFontSource, FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetFaceMetrics,
     FontAssetFaceStyle, FontAssetLineMetrics, FontAssetMetadata, FontAssetParsedFace,
     FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
-    FontAssetVariationCoord, FontMetadataParseError,
+    FontAssetVariationCoord, FontMetadataParseError, FontSourceBudgetError, font_cmap_range_budget,
+    validate_font_metadata_budget,
 };
-use ttf_parser::{name_id, Face, Style, Tag};
+use ttf_parser::{Face, Style, Tag, name_id};
+
+const UNICODE_SCALAR_LIMIT: usize = 0x11_0000;
+const BITS_PER_COVERAGE_WORD: usize = u64::BITS as usize;
+const UNICODE_COVERAGE_WORD_COUNT: usize = UNICODE_SCALAR_LIMIT / BITS_PER_COVERAGE_WORD;
 
 pub(super) fn parse_font_metadata(
     source: &DecodedFontSource,
 ) -> Result<FontAssetMetadata, FontMetadataParseError> {
     let bytes = source.bytes();
+    validate_font_metadata_budget(bytes).map_err(FontMetadataParseError::budget)?;
     let face_count = ttf_parser::fonts_in_collection(bytes).unwrap_or(1);
     let source_format = if source.source_format() == FontAssetSourceFormat::Woff2 {
         FontAssetSourceFormat::Woff2
@@ -20,21 +24,29 @@ pub(super) fn parse_font_metadata(
     } else {
         FontAssetSourceFormat::Sfnt
     };
-    let mut faces = Vec::new();
+    let face_capacity = usize::try_from(face_count)
+        .unwrap_or_default()
+        .min(bytes.len() / 4);
+    let mut faces = Vec::with_capacity(face_capacity);
     for face_index in 0..face_count {
         let face = Face::parse(bytes, face_index)
             .map_err(|error| FontMetadataParseError::new(face_index, error))?;
-        faces.push(parse_face(bytes, face_index, &face));
+        faces.push(parse_face(bytes, face_index, &face)?);
     }
 
     Ok(FontAssetMetadata {
         source_format,
         face_count,
         faces,
+        cooked_blob: None,
     })
 }
 
-fn parse_face(bytes: &[u8], face_index: u32, face: &Face<'_>) -> FontAssetParsedFace {
+fn parse_face(
+    bytes: &[u8],
+    face_index: u32,
+    face: &Face<'_>,
+) -> Result<FontAssetParsedFace, FontMetadataParseError> {
     let axes = variation_axes(face);
     let named_instances = parse_named_instances(
         face.raw_face().table(Tag::from_bytes(b"fvar")),
@@ -42,7 +54,7 @@ fn parse_face(bytes: &[u8], face_index: u32, face: &Face<'_>) -> FontAssetParsed
         |name_id| name_by_id(face, name_id),
     );
 
-    FontAssetParsedFace {
+    Ok(FontAssetParsedFace {
         face_index,
         family: name_by_id(face, name_id::TYPOGRAPHIC_FAMILY)
             .or_else(|| name_by_id(face, name_id::FAMILY)),
@@ -56,8 +68,8 @@ fn parse_face(bytes: &[u8], face_index: u32, face: &Face<'_>) -> FontAssetParsed
         metrics: face_metrics(face),
         variation_axes: axes,
         named_instances,
-        cmap: cmap_coverage(bytes, face),
-    }
+        cmap: cmap_coverage(bytes, face_index, face)?,
+    })
 }
 
 fn face_metrics(face: &Face<'_>) -> FontAssetFaceMetrics {
@@ -96,8 +108,12 @@ fn variation_axes(face: &Face<'_>) -> Vec<FontAssetVariationAxis> {
         .collect()
 }
 
-fn cmap_coverage(bytes: &[u8], face: &Face<'_>) -> FontAssetCmapCoverage {
-    let mut codepoints = BTreeSet::new();
+fn cmap_coverage(
+    bytes: &[u8],
+    face_index: u32,
+    face: &Face<'_>,
+) -> Result<FontAssetCmapCoverage, FontMetadataParseError> {
+    let mut codepoints = UnicodeScalarCoverage::default();
     if let Some(cmap) = face.tables().cmap {
         for subtable in cmap.subtables {
             if !subtable.is_unicode() {
@@ -129,30 +145,97 @@ fn cmap_coverage(bytes: &[u8], face: &Face<'_>) -> FontAssetCmapCoverage {
         }
     }
 
-    FontAssetCmapCoverage {
-        codepoint_count: codepoints.len() as u32,
-        ranges: compact_codepoint_ranges(codepoints),
+    codepoints
+        .into_asset_coverage(face_index, font_cmap_range_budget())
+        .map_err(FontMetadataParseError::budget)
+}
+
+struct UnicodeScalarCoverage {
+    words: Box<[u64]>,
+    codepoint_count: u32,
+}
+
+impl Default for UnicodeScalarCoverage {
+    fn default() -> Self {
+        Self {
+            words: vec![0; UNICODE_COVERAGE_WORD_COUNT].into_boxed_slice(),
+            codepoint_count: 0,
+        }
     }
 }
 
-fn compact_codepoint_ranges(codepoints: BTreeSet<u32>) -> Vec<FontAssetCodepointRange> {
-    let mut ranges = Vec::new();
-    let mut iter = codepoints.into_iter();
-    let Some(mut start) = iter.next() else {
-        return ranges;
-    };
-    let mut end = start;
-    for codepoint in iter {
-        if codepoint == end.saturating_add(1) {
-            end = codepoint;
-            continue;
+impl UnicodeScalarCoverage {
+    fn insert(&mut self, codepoint: u32) {
+        if char::from_u32(codepoint).is_none() {
+            return;
         }
-        ranges.push(FontAssetCodepointRange { start, end });
-        start = codepoint;
-        end = codepoint;
+        let codepoint = codepoint as usize;
+        let word_index = codepoint / BITS_PER_COVERAGE_WORD;
+        let bit_index = codepoint % BITS_PER_COVERAGE_WORD;
+        let bit = 1_u64 << bit_index;
+        if self.words[word_index] & bit == 0 {
+            self.words[word_index] |= bit;
+            self.codepoint_count = self.codepoint_count.saturating_add(1);
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.codepoint_count == 0
+    }
+
+    fn into_asset_coverage(
+        self,
+        face_index: u32,
+        max_ranges: usize,
+    ) -> Result<FontAssetCmapCoverage, FontSourceBudgetError> {
+        let mut ranges = Vec::new();
+        let mut start: Option<u32> = None;
+        let mut end = 0_u32;
+
+        for (word_index, word) in self.words.iter().copied().enumerate() {
+            let mut word = word;
+            while word != 0 {
+                let bit_index = word.trailing_zeros() as usize;
+                let codepoint = (word_index * BITS_PER_COVERAGE_WORD + bit_index) as u32;
+                if start.is_some_and(|_| codepoint == end.saturating_add(1)) {
+                    end = codepoint;
+                } else {
+                    if let Some(start) = start {
+                        push_cmap_range(&mut ranges, start, end, face_index, max_ranges)?;
+                    }
+                    start = Some(codepoint);
+                    end = codepoint;
+                }
+                word &= word - 1;
+            }
+        }
+        if let Some(start) = start {
+            push_cmap_range(&mut ranges, start, end, face_index, max_ranges)?;
+        }
+
+        Ok(FontAssetCmapCoverage {
+            codepoint_count: self.codepoint_count,
+            ranges,
+        })
+    }
+}
+
+fn push_cmap_range(
+    ranges: &mut Vec<FontAssetCodepointRange>,
+    start: u32,
+    end: u32,
+    face_index: u32,
+    max_ranges: usize,
+) -> Result<(), FontSourceBudgetError> {
+    if ranges.len() >= max_ranges {
+        return Err(FontSourceBudgetError::CmapRangeCount {
+            face_index,
+            limit: max_ranges,
+            observed_at_least: ranges.len().saturating_add(1),
+        });
     }
     ranges.push(FontAssetCodepointRange { start, end });
-    ranges
+    Ok(())
 }
 
 fn name_by_id(face: &Face<'_>, id: u16) -> Option<String> {
@@ -197,7 +280,8 @@ fn parse_named_instances(
         return Vec::new();
     };
     let axis_tags = parse_axis_tags(fvar, axes_array_offset, axis_count, axis_size);
-    let mut instances = Vec::new();
+    let available_instances = fvar.len().saturating_sub(instances_offset) / instance_size;
+    let mut instances = Vec::with_capacity(instance_count.min(available_instances));
     for index in 0..instance_count {
         let Some(offset) = instances_offset.checked_add(index * instance_size) else {
             break;
@@ -205,7 +289,7 @@ fn parse_named_instances(
         let Some(subfamily_name_id) = read_u16(fvar, offset) else {
             break;
         };
-        let mut coordinates = Vec::new();
+        let mut coordinates = Vec::with_capacity(axis_tags.len());
         for axis_index in 0..axis_count {
             let coord_offset = offset + 4 + axis_index * 4;
             let Some(value) = read_fixed(fvar, coord_offset) else {
@@ -239,13 +323,17 @@ fn parse_axis_tags(
     axis_count: usize,
     axis_size: usize,
 ) -> Vec<String> {
-    (0..axis_count)
-        .filter_map(|axis_index| {
-            let offset = axes_array_offset.checked_add(axis_index * axis_size)?;
-            let tag = fvar.get(offset..offset + 4)?;
-            Some(String::from_utf8_lossy(tag).into_owned())
-        })
-        .collect()
+    let mut tags = Vec::with_capacity(axis_count);
+    for axis_index in 0..axis_count {
+        let Some(offset) = axes_array_offset.checked_add(axis_index * axis_size) else {
+            continue;
+        };
+        let Some(tag) = fvar.get(offset..offset + 4) else {
+            continue;
+        };
+        tags.push(String::from_utf8_lossy(tag).into_owned());
+    }
+    tags
 }
 
 fn read_u16(data: &[u8], offset: usize) -> Option<u16> {

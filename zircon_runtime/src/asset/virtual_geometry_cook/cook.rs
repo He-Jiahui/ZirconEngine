@@ -14,6 +14,8 @@ const ROOT_MIP_LEVEL: u8 = 0;
 const LEAF_MIP_LEVEL: u8 = 10;
 const CLUSTER_PAYLOAD_MAGIC: u32 = u32::from_le_bytes(*b"ZVG0");
 const PAYLOAD_VERSION: u32 = 1;
+const PAGE_PAYLOAD_HEADER_WORD_COUNT: usize = 7;
+const PAGE_PAYLOAD_ITEM_WORD_COUNT: usize = 4;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VirtualGeometryCookConfig {
@@ -324,7 +326,7 @@ fn append_page_payload(
     } else {
         children.len().min(page_cluster_count)
     };
-    let mut payload = Vec::new();
+    let mut payload = Vec::with_capacity(page_payload_byte_capacity(payload_item_count));
     append_u32(&mut payload, CLUSTER_PAYLOAD_MAGIC);
     append_u32(&mut payload, PAYLOAD_VERSION);
     append_u32(&mut payload, summary.page_id);
@@ -363,6 +365,12 @@ fn append_page_payload(
     cooked.cluster_page_data.push(payload);
 }
 
+fn page_payload_byte_capacity(payload_item_count: usize) -> usize {
+    let word_count = PAGE_PAYLOAD_HEADER_WORD_COUNT
+        .saturating_add(payload_item_count.saturating_mul(PAGE_PAYLOAD_ITEM_WORD_COUNT));
+    word_count.saturating_mul(std::mem::size_of::<u32>())
+}
+
 fn append_payload_item(payload: &mut Vec<u8>, summary: CookNodeSummary) {
     append_u32(payload, summary.node_id);
     append_u32(payload, summary.cluster_id);
@@ -395,3 +403,7 @@ fn allocate_page_id(cooked: &mut CookBuildState) -> u32 {
 fn append_u32(payload: &mut Vec<u8>, value: u32) {
     payload.extend(value.to_le_bytes());
 }
+
+#[cfg(test)]
+#[path = "cook/single_allocation_page_payload_tests.rs"]
+mod single_allocation_page_payload_tests;

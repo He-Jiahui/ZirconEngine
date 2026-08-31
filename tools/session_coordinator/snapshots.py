@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import threading
 import zlib
@@ -11,6 +12,12 @@ from pathlib import Path
 from .baselines import hash_bytes, hash_file
 from .database import Database
 from .models import CoordinatorError, utc_text
+from .processes import process_is_alive
+
+
+_OBJECT_TEMPORARY_NAME = re.compile(
+    r"^(?P<suffix>[0-9a-f]{62})\.tmp-(?P<pid>[1-9][0-9]*)-(?P<thread>[0-9]+)$"
+)
 
 
 class ObjectStore:
@@ -29,8 +36,17 @@ class ObjectStore:
     def _put(self, content: bytes, connection: sqlite3.Connection) -> str:
         object_hash = hash_bytes(content)
         target = self._path(object_hash)
-        compressed = zlib.compress(content, level=6)
-        if not target.exists():
+        try:
+            existing = target.read_bytes()
+            valid = hash_bytes(zlib.decompress(existing)) == object_hash
+        except (FileNotFoundError, OSError, zlib.error):
+            existing = b""
+            valid = False
+        if valid:
+            compressed_byte_count = len(existing)
+        else:
+            compressed = zlib.compress(content, level=6)
+            compressed_byte_count = len(compressed)
             target.parent.mkdir(parents=True, exist_ok=True)
             temporary = target.with_suffix(
                 f".tmp-{os.getpid()}-{threading.get_ident()}"
@@ -44,9 +60,11 @@ class ObjectStore:
             """
             INSERT INTO objects(object_hash, byte_count, compressed_byte_count, created_at)
             VALUES (?, ?, ?, ?)
-            ON CONFLICT(object_hash) DO NOTHING
+            ON CONFLICT(object_hash) DO UPDATE SET
+                byte_count=excluded.byte_count,
+                compressed_byte_count=excluded.compressed_byte_count
             """,
-            (object_hash, len(content), len(compressed), utc_text()),
+            (object_hash, len(content), compressed_byte_count, utc_text()),
         )
         return object_hash
 
@@ -67,6 +85,54 @@ class ObjectStore:
         return self.root / object_hash[:2] / object_hash[2:]
 
     _path = path_for_hash
+
+    def reconcile_orphan_files(self) -> int:
+        """Remove crash residue published before its database row committed."""
+        removed = 0
+        self.root.mkdir(parents=True, exist_ok=True)
+        with self.database.transaction() as connection:
+            known = {
+                str(row["object_hash"])
+                for row in connection.execute("SELECT object_hash FROM objects")
+            }
+            for prefix in tuple(self.root.iterdir()):
+                if (
+                    prefix.is_symlink()
+                    or not prefix.is_dir()
+                    or len(prefix.name) != 2
+                    or any(character not in "0123456789abcdef" for character in prefix.name)
+                ):
+                    continue
+                for candidate in tuple(prefix.iterdir()):
+                    temporary = _OBJECT_TEMPORARY_NAME.fullmatch(candidate.name)
+                    if temporary is not None:
+                        if (
+                            not candidate.is_symlink()
+                            and candidate.is_file()
+                            and not process_is_alive(int(temporary.group("pid")))
+                        ):
+                            candidate.unlink()
+                            removed += 1
+                        continue
+                    object_hash = prefix.name + candidate.name
+                    if (
+                        candidate.is_symlink()
+                        or not candidate.is_file()
+                        or len(object_hash) != 64
+                        or any(
+                            character not in "0123456789abcdef"
+                            for character in object_hash
+                        )
+                        or object_hash in known
+                    ):
+                        continue
+                    candidate.unlink()
+                    removed += 1
+                try:
+                    prefix.rmdir()
+                except OSError:
+                    pass
+        return removed
 
 
 @dataclass(frozen=True, slots=True)

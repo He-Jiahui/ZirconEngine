@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::nodes::{fixed_height_box, fixed_size_box, fixed_width_box, spacer_node, stretch_box};
-use super::ReferenceSurfaceBuilder;
+use super::{normalized_reference_path_segment, ReferenceSurfaceBuilder};
 
 impl ReferenceSurfaceBuilder {
     pub(super) fn build_activity_rail(&mut self, parent: UiNodeId) -> Result<(), UiTreeError> {
@@ -166,7 +166,7 @@ impl ReferenceSurfaceBuilder {
                     id,
                     &format!(
                         "editor/workbench/reference/viewport/toolbar/{}",
-                        label.replace(' ', "_").to_ascii_lowercase()
+                        normalized_reference_path_segment(label)
                     ),
                     label,
                     fixed_size_box(104.0, self.metrics.toolbar_height),
@@ -255,7 +255,7 @@ impl ReferenceSurfaceBuilder {
                     id,
                     &format!(
                         "editor/workbench/reference/inspector/{}",
-                        label.replace(' ', "_").to_ascii_lowercase()
+                        normalized_reference_path_segment(label)
                     ),
                     label,
                     fixed_height_box(self.metrics.compact_row_height),
@@ -344,7 +344,7 @@ impl ReferenceSurfaceBuilder {
                     id,
                     &format!(
                         "editor/workbench/reference/components/inputs/{}",
-                        label.replace(' ', "_").to_ascii_lowercase()
+                        normalized_reference_path_segment(label)
                     ),
                     label,
                     fixed_height_box(self.metrics.control_height),
@@ -451,7 +451,7 @@ impl ReferenceSurfaceBuilder {
                     id,
                     &format!(
                         "editor/workbench/reference/components/list/{}",
-                        label.replace(' ', "_").to_ascii_lowercase()
+                        normalized_reference_path_segment(label)
                     ),
                     label,
                     fixed_height_box(self.metrics.control_height),

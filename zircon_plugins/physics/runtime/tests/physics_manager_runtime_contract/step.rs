@@ -471,7 +471,7 @@ fn builtin_fixed_step_uses_live_world_records_before_node_cache_flush() {
 #[test]
 fn runtime_fixed_update_runs_one_physics_step_without_reaccumulating() {
     let runtime = create_runtime_with_scene_and_physics();
-    runtime.set_fixed_timestep(Duration::from_nanos(1_000_000_000 / 64));
+    configure_fixed_timestep(&runtime, Duration::from_nanos(1_000_000_000 / 64));
     runtime
         .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
         .unwrap()

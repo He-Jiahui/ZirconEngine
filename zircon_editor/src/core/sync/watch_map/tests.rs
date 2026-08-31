@@ -245,6 +245,25 @@ fn draining_tokens_clears_the_session_owned_map() {
 }
 
 #[test]
+fn clearing_session_bindings_does_not_require_a_token_snapshot() {
+    let mut map = WorldWatchMap::default();
+    let hierarchy = view("hierarchy");
+    map.bind(
+        WatchToken::new(4),
+        world_structure_registration(),
+        hierarchy.clone(),
+        EditorViewInvalidationMask::TREE_STRUCTURE,
+    )
+    .unwrap();
+
+    map.clear();
+
+    assert!(map.is_empty());
+    assert!(map.binding(WatchToken::new(4)).is_none());
+    assert_eq!(map.tokens_for_view(&hierarchy).count(), 0);
+}
+
+#[test]
 fn empty_masks_are_rejected_without_mutating_indexes() {
     let mut map = WorldWatchMap::default();
 

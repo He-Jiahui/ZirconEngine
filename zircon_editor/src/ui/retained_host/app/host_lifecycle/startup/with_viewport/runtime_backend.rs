@@ -2,7 +2,7 @@ use super::super::super::super::*;
 
 pub(super) struct StartupRuntimeBackend {
     pub(super) runtime: EditorHostEventController,
-    pub(super) native_plugin_host: zircon_runtime::plugin::native::NativePluginHostHandle,
+    pub(super) native_plugin_host: zircon_runtime::plugin::native::host::NativePluginHostHandle,
 }
 
 pub(super) fn create_startup_runtime_backend(
@@ -10,7 +10,7 @@ pub(super) fn create_startup_runtime_backend(
 ) -> StartupRuntimeBackend {
     let native_plugin_host = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_native_plugin_host");
-        zircon_runtime::plugin::native::NativePluginHostHandle::default()
+        zircon_runtime::plugin::native::host::NativePluginHostHandle::default()
     };
     {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_plugin_bridge_activation");

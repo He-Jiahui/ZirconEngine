@@ -6,12 +6,12 @@ use crate::plugin::{BridgeTableDiagnosticsSummary, FrozenBridgeTable};
 
 use super::{
     RuntimeExtensionCatalogReport, RuntimePluginBridgeLifecycleError,
-    RuntimePluginBridgeLifecycleReport, RuntimePluginCatalog,
+    RuntimePluginBridgeLifecycleReport, RuntimePluginCatalog, RuntimePluginCatalogSnapshot,
 };
 
 #[derive(Clone, Debug)]
 pub struct RuntimePluginBridgeLifecycleState {
-    catalog: RuntimePluginCatalog,
+    snapshot: Arc<RuntimePluginCatalogSnapshot>,
     extension_report: Arc<RuntimeExtensionCatalogReport>,
     bridge_table: FrozenBridgeTable,
 }
@@ -73,24 +73,44 @@ impl RuntimePluginBridgeLifecycleOutcome {
 
 impl RuntimePluginBridgeLifecycleState {
     pub fn from_catalog(catalog: RuntimePluginCatalog) -> Self {
-        let extension_report = Arc::new(catalog.runtime_extensions());
-        Self::from_extension_report(catalog, extension_report)
+        Self::from_snapshot(Arc::new(RuntimePluginCatalogSnapshot::from_catalog(
+            catalog,
+        )))
     }
 
     pub fn from_extension_report(
         catalog: RuntimePluginCatalog,
         extension_report: Arc<RuntimeExtensionCatalogReport>,
     ) -> Self {
+        Self::from_snapshot_and_extension_report(
+            Arc::new(RuntimePluginCatalogSnapshot::from_catalog(catalog)),
+            extension_report,
+        )
+    }
+
+    pub fn from_snapshot(snapshot: Arc<RuntimePluginCatalogSnapshot>) -> Self {
+        let extension_report = Arc::new(snapshot.catalog().runtime_extensions());
+        Self::from_snapshot_and_extension_report(snapshot, extension_report)
+    }
+
+    pub fn from_snapshot_and_extension_report(
+        snapshot: Arc<RuntimePluginCatalogSnapshot>,
+        extension_report: Arc<RuntimeExtensionCatalogReport>,
+    ) -> Self {
         let bridge_table = extension_report.registry.frozen_bridge_table();
         Self {
-            catalog,
+            snapshot,
             extension_report,
             bridge_table,
         }
     }
 
+    pub fn snapshot(&self) -> &Arc<RuntimePluginCatalogSnapshot> {
+        &self.snapshot
+    }
+
     pub fn catalog(&self) -> &RuntimePluginCatalog {
-        &self.catalog
+        self.snapshot.catalog()
     }
 
     pub fn extension_report(&self) -> &RuntimeExtensionCatalogReport {
@@ -109,7 +129,7 @@ impl RuntimePluginBridgeLifecycleState {
         &self,
         runtime_module_name: &str,
     ) -> Option<String> {
-        self.catalog
+        self.catalog()
             .provider_package_id_for_runtime_module(runtime_module_name)
     }
 
@@ -139,7 +159,7 @@ impl RuntimePluginBridgeLifecycleState {
         &self,
         provider_package_id: &str,
     ) -> RuntimePluginBridgeLifecycleReport {
-        self.catalog.activate_bridge_provider_at_frame_boundary(
+        self.catalog().activate_bridge_provider_at_frame_boundary(
             &self.extension_report.registry,
             &self.bridge_table,
             provider_package_id,
@@ -150,7 +170,7 @@ impl RuntimePluginBridgeLifecycleState {
         &self,
         provider_package_id: &str,
     ) -> Result<RuntimePluginBridgeLifecycleReport, RuntimePluginBridgeLifecycleError> {
-        self.catalog.disable_bridge_provider_at_frame_boundary(
+        self.catalog().disable_bridge_provider_at_frame_boundary(
             &self.extension_report.registry,
             &self.bridge_table,
             provider_package_id,
@@ -161,7 +181,7 @@ impl RuntimePluginBridgeLifecycleState {
         &self,
         provider_package_id: &str,
     ) -> Result<RuntimePluginBridgeLifecycleReport, RuntimePluginBridgeLifecycleError> {
-        self.catalog.deactivate_bridge_provider_at_frame_boundary(
+        self.catalog().deactivate_bridge_provider_at_frame_boundary(
             &self.extension_report.registry,
             &self.bridge_table,
             provider_package_id,
@@ -172,7 +192,7 @@ impl RuntimePluginBridgeLifecycleState {
         &self,
         provider_package_id: &str,
     ) -> RuntimePluginBridgeLifecycleReport {
-        self.catalog.reload_bridge_provider_at_frame_boundary(
+        self.catalog().reload_bridge_provider_at_frame_boundary(
             &self.extension_report.registry,
             &self.extension_report.registry,
             &self.bridge_table,
@@ -210,15 +230,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bridge_lifecycle_state_keeps_shared_extension_report_snapshot() {
+    fn bridge_lifecycle_state_keeps_shared_catalog_and_extension_report_snapshots() {
         let catalog = RuntimePluginCatalog::from_descriptors([]);
         let extension_report = Arc::new(catalog.runtime_extensions());
+        let snapshot = Arc::new(RuntimePluginCatalogSnapshot::from_catalog(catalog));
 
-        let state = RuntimePluginBridgeLifecycleState::from_extension_report(
-            catalog,
+        let state = RuntimePluginBridgeLifecycleState::from_snapshot_and_extension_report(
+            Arc::clone(&snapshot),
             Arc::clone(&extension_report),
         );
+        let cloned = state.clone();
 
+        assert!(Arc::ptr_eq(&snapshot, state.snapshot()));
         assert!(Arc::ptr_eq(&extension_report, &state.extension_report));
+        assert!(Arc::ptr_eq(state.snapshot(), cloned.snapshot()));
+        assert!(Arc::ptr_eq(
+            &state.extension_report,
+            &cloned.extension_report
+        ));
     }
 }

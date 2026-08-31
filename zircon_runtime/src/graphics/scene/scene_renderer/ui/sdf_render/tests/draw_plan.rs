@@ -113,6 +113,7 @@ fn sdf_draw_plan_uses_resolved_baseline_for_horizontal_glyph_artifact() {
             source_text: std::sync::Arc::from("A"),
             source_text_origin: 0,
             font_generation: 7,
+            font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
             style: UiResolvedStyle::default(),
             writing_mode: UiTextWritingMode::HorizontalTb,
             lines: vec![Some(ResolvedTextGlyphArtifactLine {
@@ -132,6 +133,7 @@ fn sdf_draw_plan_uses_resolved_baseline_for_horizontal_glyph_artifact() {
                 }],
                 layout_line: UiResolvedTextLine {
                     text: "A".to_string(),
+                    placement_frame: UiFrame::default(),
                     frame,
                     source_range: UiTextRange { start: 0, end: 1 },
                     visual_range: UiTextRange { start: 0, end: 1 },
@@ -143,10 +145,11 @@ fn sdf_draw_plan_uses_resolved_baseline_for_horizontal_glyph_artifact() {
                     ellipsized: false,
                 },
             })],
+            logical_virtual_line_sequences: None,
         }),
         line_index: 0,
-        refreshed_line: None,
         font_generation: 7,
+        glyph_range: 0..1,
     });
     text.text_decoration_baseline = Some(frame.y + 26.0);
 
@@ -171,17 +174,16 @@ fn sdf_draw_plan_uses_resolved_baseline_for_horizontal_glyph_artifact() {
     assert_eq!(vertices.len(), 6);
     assert!((vertices[0].position[1] - pixel_to_ndc_y(expected_top, 128.0)).abs() < 0.0001);
 
-    let mut refreshed_line = text
+    let artifact = &mut text
         .glyph_artifact_line
-        .as_ref()
-        .and_then(|artifact_line| artifact_line.artifact.lines[0].as_ref())
-        .expect("synthetic glyph artifact line")
-        .clone();
-    refreshed_line.layout_line.baseline = 30.0;
-    text.glyph_artifact_line
         .as_mut()
         .expect("synthetic glyph artifact handle")
-        .refreshed_line = Some(std::sync::Arc::new(refreshed_line));
+        .artifact;
+    std::sync::Arc::make_mut(artifact).lines[0]
+        .as_mut()
+        .expect("synthetic glyph artifact line")
+        .layout_line
+        .baseline = 30.0;
     let refreshed_vertices = build_sdf_vertices(
         std::slice::from_ref(&text),
         &plan,
@@ -197,12 +199,14 @@ fn sdf_draw_plan_uses_resolved_baseline_for_horizontal_glyph_artifact() {
             < 0.0001
     );
 
-    let refreshed_line = text
+    let artifact = &mut text
         .glyph_artifact_line
         .as_mut()
-        .and_then(|artifact_line| artifact_line.refreshed_line.as_mut())
-        .expect("refreshed glyph artifact line");
-    std::sync::Arc::make_mut(refreshed_line)
+        .expect("synthetic glyph artifact handle")
+        .artifact;
+    std::sync::Arc::make_mut(artifact).lines[0]
+        .as_mut()
+        .expect("synthetic glyph artifact line")
         .layout_line
         .baseline = f32::NAN;
     let fallback_vertices = build_sdf_vertices(

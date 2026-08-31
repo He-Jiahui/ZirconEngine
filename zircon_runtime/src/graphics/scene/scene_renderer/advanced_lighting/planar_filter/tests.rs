@@ -56,6 +56,42 @@ fn render_planar_filter_rejects_invalid_extent_and_mip_count() {
 }
 
 #[test]
+fn render_planar_filter_routes_native_creates_through_pass_capability() {
+    let recording =
+        include_str!("../../graph_execution/render_pass_execution_context/gpu/native.rs");
+    let pipeline = include_str!("mod.rs");
+    let executor = include_str!("executor.rs");
+
+    assert!(pipeline.contains("RenderPassGpuResourceFactory"));
+    assert!(pipeline.contains("RenderPassGpuRecordingContext"));
+    assert!(recording.contains("trait RenderPassGpuRecordingContext"));
+    assert!(recording.contains("type ResourceFactory: RenderPassGpuResourceFactory + ?Sized"));
+    assert!(pipeline.contains("fn new<F: RenderPassGpuResourceFactory + ?Sized>(factory: &F)"));
+    assert!(pipeline.contains("fn encode<C: RenderPassGpuRecordingContext>"));
+    assert!(!pipeline.contains("device.create_buffer_init"));
+    assert!(!pipeline.contains("device.create_bind_group("));
+    assert!(!pipeline.contains("device.create_bind_group_layout("));
+    assert!(!pipeline.contains("device.create_shader_module("));
+    assert!(!pipeline.contains("device.create_pipeline_layout("));
+    assert!(!pipeline.contains("device.create_compute_pipeline("));
+
+    assert!(executor.contains("let mut native = gpu.native_context()"));
+    assert!(executor.contains("PlanarReflectionFilterPipeline::new("));
+    assert!(executor.contains("native.resource_factory()"));
+    assert!(executor.contains("pipeline.encode("));
+    assert!(executor.contains("&mut native"));
+    let native_scope = executor
+        .find("let report = {")
+        .expect("planar filter must scope native capability and pipeline lock");
+    let dispatch_recording = executor
+        .find("gpu.record_compute_dispatch_with_uploaded_bytes(")
+        .expect("planar filter must record dispatches after encoding");
+    assert!(native_scope < dispatch_recording);
+    assert!(!executor.contains("PlanarReflectionFilterPipeline::new(gpu.device)"));
+    assert!(!executor.contains("pipeline.encode(\n            gpu.device"));
+}
+
+#[test]
 fn render_planar_filter_wgpu_builds_blurred_rgba16f_mip_chain() {
     let Some((device, queue)) = test_device() else {
         return;
@@ -84,10 +120,10 @@ fn render_planar_filter_wgpu_builds_blurred_rgba16f_mip_chain() {
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-planar-filter-test-encoder"),
     });
+    let mut recording = (&device, &mut encoder);
     let report = pipeline
         .encode(
-            &device,
-            &mut encoder,
+            &mut recording,
             &source_view,
             &output,
             test_extent(),

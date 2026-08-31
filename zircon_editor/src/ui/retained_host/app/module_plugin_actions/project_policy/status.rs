@@ -17,13 +17,29 @@ pub(in crate::ui::retained_host::app::module_plugin_actions) fn target_modes_sta
     if target_modes.is_empty() {
         return "all".to_string();
     }
-    target_modes
+    let capacity = target_modes
         .iter()
-        .map(|mode| match mode {
-            RuntimeTargetMode::ClientRuntime => "client",
-            RuntimeTargetMode::ServerRuntime => "server",
-            RuntimeTargetMode::EditorHost => "editor",
-        })
-        .collect::<Vec<_>>()
-        .join(", ")
+        .map(|mode| target_mode_status_name(*mode).len())
+        .sum::<usize>()
+        + target_modes.len().saturating_sub(1) * 2;
+    let mut label = String::with_capacity(capacity);
+    for (index, mode) in target_modes.iter().enumerate() {
+        if index != 0 {
+            label.push_str(", ");
+        }
+        label.push_str(target_mode_status_name(*mode));
+    }
+    label
 }
+
+fn target_mode_status_name(mode: RuntimeTargetMode) -> &'static str {
+    match mode {
+        RuntimeTargetMode::ClientRuntime => "client",
+        RuntimeTargetMode::ServerRuntime => "server",
+        RuntimeTargetMode::EditorHost => "editor",
+    }
+}
+
+#[cfg(test)]
+#[path = "status/direct_join_tests.rs"]
+mod direct_join_tests;

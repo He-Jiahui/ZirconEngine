@@ -136,6 +136,57 @@ fn one_shot_runs_exit_after_a_scene_load_failure() {
 }
 
 #[test]
+fn fatal_viewer_paths_record_a_terminal_outcome_before_event_loop_exit() {
+    let production = production_source();
+
+    assert!(production.contains("fn finish_after_event_loop(&mut self) -> TerminalOutcome"));
+    assert!(production.contains("fn exit_with_failure("));
+    assert!(production.contains("fn exit_with_success("));
+    assert!(production.contains("fn exit_as_cancelled("));
+    assert_source_order_in(
+        production,
+        &[
+            "fn exit_with_failure(",
+            "self.record_terminal_failure(phase, category, &message);",
+            "event_loop.exit();",
+        ],
+    );
+    assert_source_order_in(
+        scene_load_failure_source(),
+        &["self.record_terminal_failure(", "event_loop.exit();"],
+    );
+    assert_eq!(
+        production.matches("event_loop.exit();").count(),
+        4,
+        "new event-loop exit sites must be routed through the terminal-outcome owner"
+    );
+}
+
+#[test]
+fn viewer_shutdown_requests_loader_cancellation_before_the_bounded_join() {
+    let production = production_source();
+
+    assert!(production.contains("const SCENE_LOADER_SHUTDOWN_TIMEOUT: Duration"));
+    assert!(production.contains("PbrMirrorScene::new_with_cancellation("));
+    assert_source_order_in(
+        production,
+        &[
+            "fn exit_as_cancelled(",
+            "self.request_scene_load_cancellation();",
+            "event_loop.exit();",
+        ],
+    );
+    assert_source_order_in(
+        production,
+        &[
+            "fn finish_after_event_loop(&mut self) -> TerminalOutcome",
+            "loader.cancel_and_join(SCENE_LOADER_SHUTDOWN_TIMEOUT)",
+            "TerminalCleanupState::BackgroundLoaderShutdownTimedOut",
+        ],
+    );
+}
+
+#[test]
 fn production_ready_titles_require_a_loaded_ibl_report() {
     let production = production_source();
 
@@ -194,7 +245,7 @@ fn base_pipeline_recheck_backoff_resets_after_readiness_or_load_failure() {
     let render = render_source();
 
     assert_source_order(&[
-        "if environment_only_base_pipeline_ready {",
+        "if required_material_base_pipeline_ready {",
         "self.reset_base_pipeline_recheck();",
     ]);
     assert!(start_scene_load_source().contains("self.reset_base_pipeline_recheck();"));
@@ -434,7 +485,7 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
         "scene.ibl_load_report()",
         "scene.renderer_backend_name()",
         "interactive_direct_present_enabled",
-        "scene.environment_only_base_pipeline_ready()",
+        "scene.required_material_base_pipeline_ready()",
         "let screenshot_input = write_screenshot.then(|| {",
         "self.hdri_path.display().to_string()",
         "requested_source_face_size",
@@ -447,13 +498,17 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
         "scene.base_prewarm_report()",
         "scene.shader_variant_miss_report()",
         "scene.startup_timing()",
-        ".pipeline_ready(),",
+        "required_material_base_pipeline_kind",
+        "required_material_base_pipeline_ready_at_capture:",
+        "environment_only_base_prewarm_requested",
+        "material_fixture: material_fixture.cli_value().to_owned(),",
         "environment_only_base_pipeline_ready_at_capture:",
-        "environment_only_base_pipeline_ready,",
-        "base_prewarm_report.cache_hit()",
-        ".shader_source_resolution(),",
-        ".pipeline_creation(),",
-        "base_prewarm_report.elapsed()",
+        "environment_only_base_prewarm_pipeline_ready,",
+        "environment_only_base_prewarm_cache_scope:",
+        "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized:",
+        "scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait:",
+        "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization:",
+        "scene_startup_renderer_environment_brdf_lut_texture_upload_submission:",
         "scene_startup_renderer_deferred_standard_pipeline: startup_timing",
         "scene_startup_total: startup_timing.total()",
         "ibl_staging_equirect_projection_parallel_work_items: ibl_staging_output",
@@ -485,7 +540,7 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
     );
     let ready_frame_pipeline_gate = render
         .split(
-            "let write_screenshot = screenshot_requested && environment_only_base_pipeline_ready;",
+            "let write_screenshot = screenshot_requested && required_material_base_pipeline_ready;",
         )
         .nth(1)
         .and_then(|source| {
@@ -499,7 +554,7 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
             .find("let one_shot_base_pipeline_wait_elapsed = write_screenshot")
             .expect("Ready-frame evidence must capture the one-shot Base pipeline wait")
             < ready_frame_pipeline_gate
-                .find("if environment_only_base_pipeline_ready {")
+                .find("if required_material_base_pipeline_ready {")
                 .expect("Ready-frame evidence must reset the Base pipeline recheck state"),
         "the one-shot Base pipeline wait must be captured before retry state is reset"
     );
@@ -560,7 +615,7 @@ fn ready_frame_timing_is_gated_to_the_one_shot_screenshot_path() {
         "let screenshot_requested = self.screenshot_path.is_some() && !self.screenshot_written;"
     ));
     assert!(render.contains(
-        "let write_screenshot = screenshot_requested && environment_only_base_pipeline_ready;"
+        "let write_screenshot = screenshot_requested && required_material_base_pipeline_ready;"
     ));
     assert_eq!(
         render
@@ -576,13 +631,13 @@ fn one_shot_evidence_waits_for_the_async_base_pipeline_without_blocking_the_even
     let render = render_source();
 
     assert_source_order(&[
-        "let needs_environment_only_base_pipeline = screenshot_requested || capture_requested;",
-        "scene.environment_only_base_pipeline_ready()",
+        "let needs_required_material_base_pipeline = screenshot_requested || capture_requested;",
+        "scene.required_material_base_pipeline_ready()",
         "let defer_one_shot_until_base_pipeline_ready =",
-        "needs_environment_only_base_pipeline && !environment_only_base_pipeline_ready;",
+        "needs_required_material_base_pipeline && !required_material_base_pipeline_ready;",
         "if defer_one_shot_until_base_pipeline_ready {",
         "if self.one_shot_base_pipeline_wait_has_expired(Instant::now()) {",
-        "environment-only PBR Base pipeline startup timed out",
+        "PBR Base pipeline startup timed out",
         "self.reset_base_pipeline_recheck();",
         "event_loop.exit();",
         "return;",
@@ -590,7 +645,7 @@ fn one_shot_evidence_waits_for_the_async_base_pipeline_without_blocking_the_even
         "self.schedule_base_pipeline_recheck(event_loop, Some(deadline));",
         "return;",
         "let screenshot_input = write_screenshot.then(|| {",
-        "let capture_this_frame = capture_requested && environment_only_base_pipeline_ready;",
+        "let capture_this_frame = capture_requested && required_material_base_pipeline_ready;",
     ]);
     assert!(render.contains("if write_screenshot {"));
     assert!(
@@ -603,10 +658,10 @@ fn pending_base_pipeline_retries_admission_before_scheduling_the_next_recheck() 
     let render = render_source();
 
     assert_source_order(&[
-        "match scene.environment_only_base_pipeline_ready() {",
+        "match scene.required_material_base_pipeline_ready() {",
         "Ok(false) => {",
-        "scene.retry_environment_only_base_pipeline_admission()",
-        "environment-only PBR Base pipeline admission retry failed",
+        "scene.retry_required_material_base_pipeline_admission()",
+        "PBR Base pipeline admission retry:",
         "false",
         "let defer_one_shot_until_base_pipeline_ready =",
     ]);
@@ -665,7 +720,7 @@ fn interactive_frames_prefer_native_gpu_presentation_without_changing_screenshot
         "the direct viewer log must include surface presentation in its timing label"
     );
     assert!(render.contains(
-        "let write_screenshot = screenshot_requested && environment_only_base_pipeline_ready;"
+        "let write_screenshot = screenshot_requested && required_material_base_pipeline_ready;"
     ));
     assert!(render.contains("match scene.render(&self.camera, self.size)"));
 }
@@ -703,7 +758,7 @@ fn screenshot_scoped_gpu_timing_is_opt_in_and_collects_a_post_ready_distribution
         load,
         &[
             "let gpu_timing_enabled = self.gpu_timing_report_path.is_some();",
-            "PbrMirrorScene::new(",
+            "PbrMirrorScene::new_with_cancellation(",
             "gpu_timing_enabled,",
         ],
     );
@@ -751,8 +806,13 @@ fn resize_requests_a_direct_surface_redraw_without_cpu_staging() {
 }
 
 #[test]
-fn native_presentation_failure_requests_cpu_fallback_on_the_next_redraw() {
+fn native_presentation_failure_is_terminal_and_never_falls_back_to_cpu_readback() {
     let render = render_source();
+    let finish_scene_load = APP_SOURCE
+        .split("fn finish_scene_load(")
+        .nth(1)
+        .and_then(|source| source.split("fn refresh_scene_load_status(").next())
+        .expect("viewer app should retain a scene-load completion owner");
     let direct = render
         .split("if self.direct_present_enabled && !write_screenshot {")
         .nth(1)
@@ -763,9 +823,22 @@ fn native_presentation_failure_requests_cpu_fallback_on_the_next_redraw() {
         .next()
         .expect("native presentation error branch");
 
-    assert!(fallback.contains("self.direct_present_enabled = false;"));
-    assert!(fallback.contains("scene.detach_viewport_surface();"));
-    assert!(fallback.contains("self.redraw_requested = true;"));
-    assert!(fallback.contains("window.request_redraw();"));
-    assert!(!fallback.contains("event_loop.exit();"));
+    assert!(fallback.contains("TerminalPhase::FramePresent"));
+    assert!(fallback.contains("TerminalErrorCategory::Presentation"));
+    assert!(fallback.contains("native viewer viewport surface"));
+    assert!(fallback.contains("self.exit_with_failure("));
+    assert!(!fallback.contains("self.direct_present_enabled = false;"));
+    assert!(!fallback.contains("scene.detach_viewport_surface();"));
+    assert_source_order_in(
+        finish_scene_load,
+        &[
+            "if self.host_mode == ViewerHostMode::NativePresent",
+            "self.bind_scene_viewport_surface()",
+            "TerminalPhase::FramePresent",
+            "TerminalErrorCategory::Presentation",
+            "bind native viewer viewport surface",
+            "return;",
+        ],
+    );
+    assert!(!finish_scene_load.contains("falling back to CPU presentation"));
 }

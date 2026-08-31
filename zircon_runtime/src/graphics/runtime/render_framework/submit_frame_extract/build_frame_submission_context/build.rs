@@ -1,19 +1,20 @@
+mod budget_degrade;
+mod effective_view_state;
+#[cfg(test)]
+mod tests;
+mod ui_submission_stats;
+
 use crate::core::framework::render::{
-    AntiAliasSettings, FrameHistoryInvalidationReason, PostProcessEffectKind, PostProcessPassGraph,
-    PostProcessStackDescriptor, RenderBloomSettings, RenderCameraTargetResolutionReport,
-    RenderColorGradingSettings, RenderDynamicResolutionSettings, RenderFrameExtract,
+    AntiAliasSettings, PostProcessPassGraph, PostProcessStackDescriptor, RenderBloomSettings,
+    RenderCameraTargetResolutionReport, RenderColorGradingSettings, RenderFrameExtract,
     RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderPipelinePhase,
-    RenderPostProcessEffectStackSettings, RenderResolutionPolicy, RenderUpscalerKind,
-    RenderViewExtract, RenderViewFamilyPipeline, RenderViewportHandle, RenderViewportRect,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource,
+    RenderUpscalerKind, RenderViewportHandle, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryPayloadSource, UiRenderSubmission,
 };
-use crate::core::math::UVec2;
+use crate::graphics::pipeline::AdvancedLightingCompileInputs;
 use crate::graphics::runtime::FrameHistoryValidationKey;
-use crate::graphics::{
-    BuiltinRenderFeature, RenderPipelineCompileOptions, ViewportRenderOutputTarget,
-};
+use crate::graphics::{RendererPostProcessSnapshot, ViewportRenderOutputTarget};
 use std::sync::Arc;
-use zircon_runtime_interface::ui::surface::{UiRenderCommandKind, UiRenderExtract};
 
 use crate::graphics::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
 
@@ -21,7 +22,7 @@ use super::super::super::budget::BudgetDegradeSettings;
 use super::super::super::compiled_feature_names::compiled_feature_names;
 use super::super::super::wgpu_render_framework::WgpuRenderFrameworkAccess;
 use super::super::frame_submission_context::{
-    temporal_jitter_for_submission, FrameSubmissionContext, UiSubmissionStats,
+    temporal_jitter_for_submission, FrameSubmissionContext,
 };
 use super::camera_history_key::camera_history_key_for_extract;
 use super::compile_pipeline::compile_submission_pipeline_with_options;
@@ -34,58 +35,41 @@ use super::resolve_enabled_features::resolve_enabled_features;
 use super::resolve_viewport_record_state::resolve_viewport_record_state;
 use super::subsurface_profile_extract::resolve_subsurface_material_profiles;
 use super::target_resolution::resolve_camera_target_descriptor;
+use budget_degrade::{
+    apply_budget_render_scale, compile_options_for_budget_degrade, effect_stack_for_budget_degrade,
+};
+use effective_view_state::{
+    apply_effective_view_settings, apply_renderer_owned_particle_previous_state,
+    build_renderer_owned_post_process_snapshot, frame_history_invalidation_reason,
+    resolve_view_family_pipeline_for_submission,
+};
+use ui_submission_stats::compute_ui_submission_stats;
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn build_frame_submission_context_from_runtime_frame_extract(
     framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
-    extract: &mut Arc<RenderFrameExtract>,
-    ui_extract: Option<&UiRenderExtract>,
-    source_payloads: Option<FrameSubmissionSourcePayloads<'_>>,
+    extract: &Arc<RenderFrameExtract>,
+    ui_submission: Option<&UiRenderSubmission>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
-    build_frame_submission_context_from_source(
-        framework,
-        viewport,
-        extract,
-        ui_extract,
-        source_payloads,
-    )
-}
-
-#[derive(Clone, Copy)]
-pub(in crate::graphics::runtime::render_framework::submit_frame_extract) struct FrameSubmissionSourcePayloads<
-    'a,
-> {
-    pub(in crate::graphics::runtime::render_framework::submit_frame_extract) virtual_geometry:
-        Option<&'a RenderVirtualGeometryExtract>,
-    pub(in crate::graphics::runtime::render_framework::submit_frame_extract) hybrid_global_illumination:
-        Option<&'a RenderHybridGiExtract>,
-}
-
-impl<'a> FrameSubmissionSourcePayloads<'a> {
-    pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn from_extract(
-        extract: &'a RenderFrameExtract,
-    ) -> Self {
-        Self {
-            virtual_geometry: extract.geometry.virtual_geometry.as_ref(),
-            hybrid_global_illumination: extract.lighting.hybrid_global_illumination.as_ref(),
-        }
-    }
+    build_frame_submission_context_from_source(framework, viewport, extract, ui_submission)
 }
 
 fn build_frame_submission_context_from_source(
     framework: &dyn WgpuRenderFrameworkAccess,
     viewport: RenderViewportHandle,
-    extract_source: &mut Arc<RenderFrameExtract>,
-    ui_extract: Option<&UiRenderExtract>,
-    source_payloads: Option<FrameSubmissionSourcePayloads<'_>>,
+    source_extract: &Arc<RenderFrameExtract>,
+    ui_submission: Option<&UiRenderSubmission>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
+    // The generation-owned scene remains shared and immutable. Renderer policy is derived into
+    // this compact per-submission view/timing overlay.
+    let mut submission_extract = source_extract.as_ref().clone();
     let budget_degrade_settings = {
         let state = framework.lock_state();
         state.degrade_ladder.settings()
     };
-    apply_budget_render_scale(Arc::make_mut(extract_source), budget_degrade_settings);
+    apply_budget_render_scale(&mut submission_extract, budget_degrade_settings);
     let mut viewport_state =
-        resolve_viewport_record_state(framework, viewport, extract_source.as_ref())?;
+        resolve_viewport_record_state(framework, viewport, &submission_extract)?;
     let primary_target_size = viewport_state.size();
     let (asset_manager, environment_ibl_hydration_cache) = {
         let state = framework.lock_state();
@@ -96,26 +80,31 @@ fn build_frame_submission_context_from_source(
     };
     let asset_manager =
         asset_manager.map_err(|error| RenderFrameworkError::Backend(error.to_string()))?;
-    resolve_subsurface_material_profiles(asset_manager.as_ref(), Arc::make_mut(extract_source));
-    resolve_advanced_pbr_material_usage(asset_manager.as_ref(), Arc::make_mut(extract_source));
+    let (subsurface_profiles, subsurface_material_profile_indices) =
+        resolve_subsurface_material_profiles(asset_manager.as_ref(), &submission_extract);
+    let material_features =
+        resolve_advanced_pbr_material_usage(asset_manager.as_ref(), &submission_extract);
+    let advanced_lighting_inputs = AdvancedLightingCompileInputs::new(
+        material_features,
+        subsurface_profiles,
+        subsurface_material_profile_indices,
+    );
     let environment_ibl_cache_resolution = resolve_and_rehydrate_environment_ibl_cache(
         asset_manager.as_ref(),
         &environment_ibl_hydration_cache,
-        Arc::make_mut(extract_source),
+        &submission_extract,
     )?;
     let resolved_camera_target = resolve_camera_target_descriptor(
         primary_target_size,
-        extract_source.as_ref().view.selected_camera_target(),
+        submission_extract.view.selected_camera_target(),
         asset_manager.as_ref(),
     )?;
     let submission_size = resolved_camera_target.size();
     let compile_camera_target = resolved_camera_target.compile_fingerprint();
-    {
-        let sized_extract = Arc::make_mut(extract_source);
-        sized_extract.apply_viewport_size(submission_size);
-        apply_renderer_owned_particle_previous_state(sized_extract, &mut viewport_state);
-    }
-    let sized_extract = extract_source.as_ref();
+    submission_extract.apply_viewport_size(submission_size);
+    let particle_previous_sprites_override =
+        apply_renderer_owned_particle_previous_state(&submission_extract, &mut viewport_state);
+    let sized_extract = &submission_extract;
     let camera_history_key = camera_history_key_for_extract(sized_extract);
     let effective_view_size = sized_extract.view.effective_view_size();
     let render_size = sized_extract.view.effective_render_size();
@@ -134,7 +123,8 @@ fn build_frame_submission_context_from_source(
     let budget_compile_options = compile_options_for_budget_degrade(
         viewport_state.compile_options().clone(),
         budget_degrade_settings,
-    );
+    )
+    .with_advanced_lighting_inputs(advanced_lighting_inputs);
     let compiled_pipeline = compile_submission_pipeline_with_options(
         framework,
         &viewport_state,
@@ -142,7 +132,7 @@ fn build_frame_submission_context_from_source(
         compile_camera_target,
         &budget_compile_options,
     )?;
-    let advanced_runtime_plan = viewport_state.take_advanced_runtime_plan();
+    let advanced_runtime_plan = viewport_state.take_advanced_runtime_plan()?;
     let solari_runtime_report = viewport_state.take_solari_runtime_report();
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
         resolve_enabled_features(&compiled_pipeline, &advanced_runtime_plan);
@@ -164,7 +154,13 @@ fn build_frame_submission_context_from_source(
     let effective_bloom = bloom_enabled
         .then_some(resolved_post_process.bloom)
         .unwrap_or_else(RenderBloomSettings::default);
+    let effective_ambient_occlusion = resolved_post_process.ambient_occlusion;
     let effective_exposure = resolved_post_process.exposure;
+    let effective_volumetric_fog = sized_extract
+        .lighting
+        .advanced_lighting
+        .volumetric
+        .unwrap_or(resolved_post_process.volumetric_fog);
     let effective_color_grading = color_grading_enabled
         .then_some(resolved_post_process.color_grading)
         .unwrap_or_else(RenderColorGradingSettings::default);
@@ -172,10 +168,8 @@ fn build_frame_submission_context_from_source(
         resolved_post_process.effect_stack,
         budget_degrade_settings,
     );
-    let source_payloads = source_payloads
-        .unwrap_or_else(|| FrameSubmissionSourcePayloads::from_extract(sized_extract));
-    let source_virtual_geometry = source_payloads.virtual_geometry;
-    let source_hybrid_gi = source_payloads.hybrid_global_illumination;
+    let source_virtual_geometry = sized_extract.geometry.virtual_geometry.as_ref();
+    let source_hybrid_gi = sized_extract.lighting.hybrid_global_illumination.as_ref();
     let authored_virtual_geometry_extract = apply_virtual_geometry_debug_override(
         source_virtual_geometry.cloned(),
         sized_extract.geometry.virtual_geometry_debug,
@@ -219,14 +213,7 @@ fn build_frame_submission_context_from_source(
         .flatten();
     let source_anti_alias = sized_extract.view.anti_alias;
     let source_msaa_samples = sized_extract.view.camera.msaa_samples;
-    let effective_extract = Arc::make_mut(extract_source);
-    apply_effective_post_process_settings(
-        effective_extract,
-        effective_bloom,
-        effective_color_grading,
-        effective_effect_stack,
-    );
-    let effective_extract = extract_source.as_ref();
+    let effective_extract = &submission_extract;
     let visibility_context =
         VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads(
             effective_extract,
@@ -239,11 +226,18 @@ fn build_frame_submission_context_from_source(
                 .then_some(effective_virtual_geometry_extract.as_ref())
                 .flatten(),
         );
-    let history_validation_key = FrameHistoryValidationKey::from_extract_with_hybrid_gi(
+    let history_validation_key = FrameHistoryValidationKey::from_extract(
         effective_extract,
         compiled_feature_names(&compiled_pipeline),
-        effective_hybrid_gi_extract.as_ref(),
     );
+    let previous_motion_vector_camera = viewport_state.take_previous_motion_vector_camera();
+    let current_motion_vector_camera = effective_extract.view.selected_effective_camera();
+    let temporal_reprojection_compatible =
+        previous_motion_vector_camera
+            .as_ref()
+            .is_some_and(|previous| {
+                current_motion_vector_camera.supports_temporal_reprojection_from(previous)
+            });
     let history_invalidation_reason = frame_history_invalidation_reason(
         framework,
         viewport,
@@ -253,6 +247,7 @@ fn build_frame_submission_context_from_source(
         &compiled_pipeline,
         &camera_history_key,
         &history_validation_key,
+        temporal_reprojection_compatible,
     );
     let history_available = temporal_history_enabled && history_invalidation_reason.is_none();
     let requested_anti_alias = if anti_alias_feature_enabled {
@@ -291,11 +286,14 @@ fn build_frame_submission_context_from_source(
             RenderUpscalerKind::Spatial
         },
     );
-    let upscale_required = view_family_pipeline
+    let primary_upscale_required = view_family_pipeline
         .phases()
-        .contains(&RenderPipelinePhase::SpatialUpscale);
+        .contains(&RenderPipelinePhase::PrimarySpatialUpscale);
+    let secondary_upscale_required = view_family_pipeline
+        .phases()
+        .contains(&RenderPipelinePhase::SecondarySpatialUpscale);
     let mut post_process_stack =
-        PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+        PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases(
             &effective_bloom,
             &effective_color_grading,
             effective_exposure,
@@ -303,7 +301,8 @@ fn build_frame_submission_context_from_source(
             temporal_history_enabled,
             post_process_history_available,
             &anti_alias_report.effective_settings(),
-            upscale_required,
+            primary_upscale_required,
+            secondary_upscale_required,
         );
     if hybrid_gi_enabled && effective_hybrid_gi_extract.is_some() {
         post_process_stack = post_process_stack.with_hybrid_gi_lighting_input();
@@ -321,6 +320,7 @@ fn build_frame_submission_context_from_source(
         budget_compile_options
             .clone()
             .with_graph_msaa_sample_count(anti_alias_report.effective_graph_sample_count())
+            .with_ambient_occlusion_source(effective_ambient_occlusion)
             .with_post_process_stack(post_process_stack.clone()),
         budget_degrade_settings,
     );
@@ -329,6 +329,10 @@ fn build_frame_submission_context_from_source(
         final_budget_compile_options,
         environment_ibl_cache_resolution.as_ref(),
     )?;
+    submission_extract
+        .view
+        .apply_view_family_pipeline(view_family_pipeline);
+    let effective_extract = &submission_extract;
     let compiled_pipeline = compile_submission_pipeline_with_options(
         framework,
         &viewport_state,
@@ -338,17 +342,21 @@ fn build_frame_submission_context_from_source(
     )?;
     let temporal_jitter =
         temporal_jitter_for_submission(anti_alias_report, viewport_state.temporal_frame_index());
-    {
-        let effective_extract = Arc::make_mut(extract_source);
-        apply_effective_view_and_graph_settings(
-            effective_extract,
-            anti_alias_report,
-            temporal_jitter,
-            post_process_stack.clone(),
-            post_process_graph.clone(),
-        );
-    }
-    let effective_extract = extract_source.as_ref();
+    apply_effective_view_settings(&mut submission_extract, anti_alias_report, temporal_jitter);
+    let effective_extract = &submission_extract;
+    let post_process = RendererPostProcessSnapshot::new(
+        build_renderer_owned_post_process_snapshot(
+            &effective_extract.post_process,
+            effective_ambient_occlusion,
+            effective_bloom,
+            effective_exposure,
+            effective_color_grading,
+            effective_effect_stack,
+            post_process_stack,
+            post_process_graph,
+        ),
+        effective_volumetric_fog,
+    );
     let hybrid_gi_update_plan =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_update_plan.clone());
     let hybrid_gi_feedback =
@@ -360,8 +368,14 @@ fn build_frame_submission_context_from_source(
     let virtual_geometry_feedback =
         virtual_geometry_enabled.then(|| visibility_context.virtual_geometry_feedback.clone());
     let particle_sprite_count = effective_extract.particles.sprites.len();
-    let particle_previous_state_sprite_count =
-        effective_extract.particles.previous_state_sprite_count();
+    let particle_previous_state_sprite_count = particle_previous_sprites_override
+        .as_deref()
+        .map(|previous_sprites| {
+            effective_extract
+                .particles
+                .previous_state_sprite_count_with(previous_sprites)
+        })
+        .unwrap_or_else(|| effective_extract.particles.previous_state_sprite_count());
     let particle_anonymous_stream_ambiguity_sprite_count = effective_extract
         .particles
         .anonymous_stream_ambiguity_sprite_count();
@@ -370,16 +384,16 @@ fn build_frame_submission_context_from_source(
     let virtual_geometry_extract_for_context = virtual_geometry_enabled
         .then_some(effective_virtual_geometry_extract)
         .flatten();
-    let source_extract = Arc::clone(extract_source);
+    let submission_extract = Arc::new(submission_extract);
     let quality_profile_texture_mip_bias = viewport_state.quality_profile_texture_mip_bias();
     let quality_profile_texture_max_anisotropy =
         viewport_state.quality_profile_texture_max_anisotropy();
     let quality_profile = viewport_state.take_quality_profile();
     let capabilities = viewport_state.take_capabilities();
-    let previous_motion_vector_camera = viewport_state.take_previous_motion_vector_camera();
-
-    let environment_ibl_bake_reservation = environment_ibl_cache_resolution
-        .and_then(EnvironmentIblCacheResolution::take_runtime_bake_reservation);
+    let (environment_ibl_bake_reservation, environment_source_cubemap_override) =
+        environment_ibl_cache_resolution
+            .map(EnvironmentIblCacheResolution::into_submission_parts)
+            .unwrap_or_default();
 
     Ok(FrameSubmissionContext::new(
         submission_size,
@@ -398,22 +412,22 @@ fn build_frame_submission_context_from_source(
         history_invalidation_reason,
         output_target,
         camera_target_resolution,
+        view_family_pipeline,
         scene_camera_order_report,
-        ui_extract
+        ui_submission
             .map(compute_ui_submission_stats)
             .unwrap_or_default(),
-        effective_effect_stack,
+        post_process,
         anti_alias_report,
         advanced_runtime_plan,
         solari_runtime_report,
-        post_process_graph,
         hybrid_gi_enabled,
         virtual_geometry_enabled,
         hybrid_gi_extract_for_context,
         hybrid_gi_payload_source,
         hybrid_gi_update_plan,
         hybrid_gi_feedback,
-        source_extract,
+        submission_extract,
         particle_sprite_count,
         particle_previous_state_sprite_count,
         particle_anonymous_stream_ambiguity_sprite_count,
@@ -431,119 +445,9 @@ fn build_frame_submission_context_from_source(
             + budget_degrade_settings.global_mip_bias as f32,
     )
     .with_texture_max_anisotropy(quality_profile_texture_max_anisotropy)
-    .with_environment_ibl_bake_reservation(environment_ibl_bake_reservation))
-}
-
-fn apply_budget_render_scale(extract: &mut RenderFrameExtract, settings: BudgetDegradeSettings) {
-    let authored_scale = extract.view.camera.dynamic_resolution.clamped_scale();
-    let effective_scale = authored_scale.min(settings.render_scale);
-    extract.view.camera.dynamic_resolution = if effective_scale < 1.0 {
-        RenderDynamicResolutionSettings::fixed_scale(effective_scale)
-    } else {
-        RenderDynamicResolutionSettings::disabled()
-    };
-}
-
-fn compile_options_for_budget_degrade(
-    mut options: RenderPipelineCompileOptions,
-    settings: BudgetDegradeSettings,
-) -> RenderPipelineCompileOptions {
-    if settings.disable_ssao {
-        options = options
-            .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-            .with_plugin_feature_disabled("screen_space_ambient_occlusion");
-    }
-    if settings.disable_contact_shadow {
-        options = options.with_plugin_feature_disabled("contact_shadow");
-    }
-    if settings.disable_bloom_high {
-        options = options
-            .with_feature_disabled(BuiltinRenderFeature::Bloom)
-            .with_post_process_effect_disabled(PostProcessEffectKind::Bloom);
-    }
-    options
-}
-
-fn effect_stack_for_budget_degrade(
-    mut effect_stack: RenderPostProcessEffectStackSettings,
-    settings: BudgetDegradeSettings,
-) -> RenderPostProcessEffectStackSettings {
-    effect_stack.screen_space_reflection.roughness_mip_bias += settings.global_mip_bias as f32;
-    if settings.disable_ssr {
-        effect_stack.screen_space_reflection.intensity = 0.0;
-    }
-    effect_stack
-}
-
-fn resolve_view_family_pipeline_for_submission(
-    view: &RenderViewExtract,
-    submission_size: UVec2,
-    upscaler: RenderUpscalerKind,
-) -> RenderViewFamilyPipeline {
-    let view_camera = view.selected_effective_camera();
-    let display_viewport = view
-        .selected_camera_descriptor()
-        .and_then(|descriptor| descriptor.viewport_rect)
-        .map(|viewport| viewport.clamped_to_size(submission_size))
-        .unwrap_or_else(|| RenderViewportRect::new(UVec2::ZERO, submission_size));
-    RenderViewFamilyPipeline::resolve_for_viewport(
-        submission_size,
-        display_viewport,
-        RenderResolutionPolicy::with_spatial_primary_fraction(
-            view_camera.dynamic_resolution.clamped_scale(),
-        ),
-        upscaler,
-    )
-}
-
-fn apply_renderer_owned_particle_previous_state(
-    extract: &mut RenderFrameExtract,
-    viewport_state: &mut super::viewport_record_state::ViewportRecordState,
-) {
-    if !extract.particles.previous_sprites.is_empty() {
-        return;
-    }
-    extract.particles.previous_sprites = viewport_state.take_previous_particle_sprites();
-}
-
-fn apply_effective_post_process_settings(
-    extract: &mut RenderFrameExtract,
-    bloom: RenderBloomSettings,
-    color_grading: RenderColorGradingSettings,
-    effect_stack: RenderPostProcessEffectStackSettings,
-) {
-    extract.post_process.bloom = bloom;
-    extract.post_process.color_grading = color_grading;
-    extract.post_process.effect_stack = effect_stack;
-    extract.post_process.volumes.clear();
-    extract.post_process.rebuild_graph(false, false);
-}
-
-fn frame_history_invalidation_reason(
-    framework: &dyn WgpuRenderFrameworkAccess,
-    viewport: RenderViewportHandle,
-    target_size: crate::core::math::UVec2,
-    render_size: crate::core::math::UVec2,
-    pipeline_handle: crate::core::framework::render::RenderPipelineHandle,
-    compiled_pipeline: &crate::graphics::CompiledRenderPipeline,
-    camera_history_key: &super::super::super::viewport_record::ViewportCameraHistoryKey,
-    history_validation_key: &FrameHistoryValidationKey,
-) -> Option<FrameHistoryInvalidationReason> {
-    let state = framework.lock_state();
-    let Some(history) = state
-        .viewports
-        .get(&viewport)
-        .and_then(|record| record.history(camera_history_key))
-    else {
-        return Some(FrameHistoryInvalidationReason::NoPreviousFrame);
-    };
-    history.incompatibility_reason(
-        target_size,
-        render_size,
-        pipeline_handle,
-        &compiled_pipeline.history_bindings,
-        history_validation_key,
-    )
+    .with_environment_ibl_bake_reservation(environment_ibl_bake_reservation)
+    .with_environment_source_cubemap_override(environment_source_cubemap_override)
+    .with_particle_previous_sprites_override(particle_previous_sprites_override))
 }
 
 fn apply_virtual_geometry_debug_override(
@@ -605,199 +509,4 @@ fn virtual_geometry_payload_source_for_extract(
         return RenderVirtualGeometryPayloadSource::AutomaticFallback;
     }
     RenderVirtualGeometryPayloadSource::None
-}
-
-fn apply_effective_view_and_graph_settings(
-    extract: &mut RenderFrameExtract,
-    anti_alias_report: crate::core::framework::render::AntiAliasFallbackReport,
-    temporal_jitter: crate::core::framework::render::TemporalJitterSample,
-    post_process_stack: PostProcessStackDescriptor,
-    post_process_graph: crate::core::framework::render::PostProcessPassGraph,
-) {
-    extract.view.anti_alias = anti_alias_report.effective_settings();
-    extract.view.camera.temporal_jitter = temporal_jitter;
-    extract.view.sync_selected_descriptor_camera_payload();
-    extract.post_process.stack = post_process_stack;
-    extract.post_process.graph = post_process_graph;
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::render::{
-        CameraRenderDescriptor, PostProcessGraphResourceNames, RenderTonemapOperator,
-        RenderTonemapSettings, ViewportCameraSnapshot,
-    };
-
-    #[test]
-    fn virtual_geometry_payload_source_prefers_authored_extract() {
-        let source = virtual_geometry_payload_source_for_extract(true, true, true);
-
-        assert_eq!(source, RenderVirtualGeometryPayloadSource::Authored);
-    }
-
-    #[test]
-    fn virtual_geometry_payload_source_reports_automatic_fallback() {
-        let source = virtual_geometry_payload_source_for_extract(true, false, true);
-
-        assert_eq!(
-            source,
-            RenderVirtualGeometryPayloadSource::AutomaticFallback
-        );
-    }
-
-    #[test]
-    fn virtual_geometry_payload_source_clears_when_feature_disabled_or_missing() {
-        assert_eq!(
-            virtual_geometry_payload_source_for_extract(false, true, true),
-            RenderVirtualGeometryPayloadSource::None
-        );
-        assert_eq!(
-            virtual_geometry_payload_source_for_extract(true, false, false),
-            RenderVirtualGeometryPayloadSource::None
-        );
-    }
-
-    #[test]
-    fn hybrid_gi_payload_source_reports_scene_representation_only_when_enabled() {
-        assert_eq!(
-            hybrid_gi_payload_source_for_frame(true, true),
-            RenderHybridGiPayloadSource::SceneRepresentation
-        );
-        assert_eq!(
-            hybrid_gi_payload_source_for_frame(false, true),
-            RenderHybridGiPayloadSource::None
-        );
-        assert_eq!(
-            hybrid_gi_payload_source_for_frame(true, false),
-            RenderHybridGiPayloadSource::None
-        );
-    }
-
-    #[test]
-    fn bloom_budget_degrade_synchronizes_the_feature_gate_and_post_process_stack() {
-        let rebuilt_stack =
-            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
-                &RenderBloomSettings {
-                    intensity: 0.6,
-                    ..Default::default()
-                },
-                &RenderColorGradingSettings::default(),
-                &RenderPostProcessEffectStackSettings {
-                    tonemap: RenderTonemapSettings {
-                        operator: RenderTonemapOperator::Aces,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-                false,
-                false,
-                &AntiAliasSettings::off(),
-            );
-        let settings = BudgetDegradeSettings {
-            disable_bloom_high: true,
-            ..Default::default()
-        };
-        let initial_options =
-            compile_options_for_budget_degrade(RenderPipelineCompileOptions::default(), settings);
-        let options = compile_options_for_budget_degrade(
-            initial_options.with_post_process_stack(rebuilt_stack),
-            settings,
-        );
-
-        assert!(options
-            .disabled_features
-            .contains(&BuiltinRenderFeature::Bloom));
-        let stack = options
-            .post_process_stack
-            .expect("budget degradation should preserve the remaining post-process stack");
-        assert!(stack
-            .effects
-            .iter()
-            .any(|effect| { effect.kind == PostProcessEffectKind::Bloom && !effect.enabled }));
-        assert!(stack.effects.iter().all(|effect| {
-            !effect
-                .required_inputs
-                .iter()
-                .any(|resource| resource == PostProcessGraphResourceNames::BLOOM)
-                && !effect.after.contains(&PostProcessEffectKind::Bloom)
-        }));
-    }
-
-    #[test]
-    fn context_build_moves_owned_viewport_and_virtual_geometry_payloads() {
-        let source = include_str!("build.rs");
-
-        assert!(source.contains("take_previous_particle_sprites()"));
-        assert!(source.contains("VirtualGeometryRuntimeExtractOutput::into_parts"));
-        assert!(!source.contains(concat!("previous_particle_sprites()", ".to_vec()")));
-        assert!(!source.contains(concat!("virtual_geometry_runtime_provider", ".clone()")));
-    }
-
-    #[test]
-    fn post_process_mutation_reborrows_before_building_the_view_family() {
-        let source = include_str!("build.rs");
-        let mutation_start = source
-            .find("let effective_extract = Arc::make_mut(extract_source);")
-            .expect("post-process settings must mutate the frame extract once");
-        let view_family_start = source[mutation_start..]
-            .find("let view_family_pipeline =")
-            .map(|offset| mutation_start + offset)
-            .expect("view-family resolution must follow post-process mutation");
-        let view_family_end = source[view_family_start..]
-            .find("\n    );")
-            .map(|offset| view_family_start + offset)
-            .expect("view-family resolution must be a bounded call");
-        let view_family = &source[view_family_start..view_family_end];
-
-        assert!(view_family.contains("&effective_extract.view,"));
-        assert!(!view_family.contains("sized_extract"));
-    }
-
-    #[test]
-    fn submission_view_family_preserves_the_selected_camera_viewport_rect() {
-        let camera = ViewportCameraSnapshot::default();
-        let mut descriptor = CameraRenderDescriptor::from_camera_payload(None, camera.clone());
-        descriptor.viewport_rect = Some(RenderViewportRect::new(
-            UVec2::new(960, 0),
-            UVec2::new(960, 1080),
-        ));
-        let view =
-            RenderViewExtract::from_camera(camera).with_selected_camera_descriptor(descriptor);
-
-        let pipeline = resolve_view_family_pipeline_for_submission(
-            &view,
-            UVec2::new(1920, 1080),
-            RenderUpscalerKind::Spatial,
-        );
-
-        assert_eq!(
-            pipeline.resolution().display_viewport(),
-            RenderViewportRect::new(UVec2::new(960, 0), UVec2::new(960, 1080))
-        );
-        assert_eq!(
-            pipeline.resolution().primary_viewport(),
-            RenderViewportRect::new(UVec2::new(960, 0), UVec2::new(960, 1080))
-        );
-    }
-}
-
-fn compute_ui_submission_stats(extract: &UiRenderExtract) -> UiSubmissionStats {
-    let mut stats = UiSubmissionStats::default();
-    for command in &extract.list.commands {
-        stats.record_command();
-        if matches!(command.kind, UiRenderCommandKind::Quad) {
-            stats.record_quad();
-        }
-        if command.text.is_some() {
-            stats.record_text_payload();
-        }
-        if command.image.is_some() {
-            stats.record_image_payload();
-        }
-        if command.clip_frame.is_some() {
-            stats.record_clipped_command();
-        }
-    }
-    stats
 }

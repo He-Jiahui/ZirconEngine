@@ -192,6 +192,64 @@ fn forward_environment_fallback_does_not_synthesize_roughness_without_pmrem() {
             "a fallback without a PMREM must not synthesize roughness with `{forbidden}`"
         );
     }
+
+    let reflection = wgsl_function_source(
+        &assembly.wgsl_source,
+        "fn zr_environment_reflection_color_after_planar(",
+    );
+    for required in [
+        "let perfect_reflection = zr_environment_perfect_specular_direction_normalized(",
+        "let sky_has_pmrem = zr_environment_is_source_cubemap()",
+        "zr_env_probe_header.probe_count > 0u || sky_has_pmrem",
+        "sky_direction = dominant_direction;",
+    ] {
+        assert!(
+            reflection.contains(required),
+            "reflection routing must retain provider-specific direction contract `{required}`"
+        );
+    }
+
+    let radiance = wgsl_function_source(
+        &assembly.wgsl_source,
+        "fn zr_environment_radiance_color_normalized(",
+    );
+    assert!(
+        radiance.contains("zr_environment_sky_reflection_color(sky_direction, clamped_roughness)")
+    );
+    assert!(
+        radiance.contains(
+            "world_position,\n            probe_direction,\n            clamped_roughness,"
+        )
+    );
+}
+
+#[test]
+fn environment_capture_rejects_unfiltered_procedural_specular_without_pmrem() {
+    let assembly = assemble_material_shader_template(material_template_request(
+        static_mesh_descriptor(),
+        ShaderPassType::Forward,
+    ))
+    .expect("forward template assembly");
+    let sky_reflection = wgsl_function_source(
+        &assembly.wgsl_source,
+        "fn zr_environment_sky_reflection_color(",
+    );
+
+    let pmrem = sky_reflection
+        .find("if (zr_environment_is_source_cubemap() || zr_environment_is_realtime_ibl())")
+        .expect("ready PMREM providers must retain their roughness path");
+    let capture = sky_reflection
+        .find("if (scene.sky_sun_params.w > 0.5)")
+        .expect("capture must identify the full-roughness surface policy");
+    let fail_closed = sky_reflection[capture..]
+        .find("return vec3<f32>(0.0);")
+        .expect("capture without a PMREM must reject unfiltered specular");
+    let viewport_fallback = sky_reflection
+        .find("return zr_environment_procedural_sky_color_normalized(reflected);")
+        .expect("ordinary viewport fallback must retain the reflected sky direction");
+
+    assert!(pmrem < capture);
+    assert!(capture + fail_closed < viewport_fallback);
 }
 
 #[test]
@@ -219,6 +277,28 @@ fn forward_environment_skips_zero_intensity_probes_before_spatial_weighting() {
         "if (!(probe.misc.x > 0.0)) {\n            continue;\n        }",
         "the zero-intensity probe gate must directly exclude the candidate rather than only scale its radiance"
     );
+}
+
+#[test]
+fn forward_environment_consumes_probe_and_camera_layer_masks_before_weighting() {
+    let assembly = assemble_material_shader_template(material_template_request(
+        static_mesh_descriptor(),
+        ShaderPassType::Forward,
+    ))
+    .expect("forward template assembly");
+    let selection = wgsl_function_source(&assembly.wgsl_source, "fn zr_environment_select_probes(");
+
+    let intensity_gate = selection
+        .find("if (!(probe.misc.x > 0.0))")
+        .expect("probe selection must retain the intensity gate");
+    let layer_gate = selection
+        .find("probe_layer_mask & zr_env_probe_header.camera_layer_mask")
+        .expect("probe selection must consume the camera layer mask");
+    let spatial_weight = selection
+        .find("let weight = zr_environment_probe_weight(probe, world_position);")
+        .expect("probe selection must retain spatial weighting");
+
+    assert!(intensity_gate < layer_gate && layer_gate < spatial_weight);
 }
 
 #[test]

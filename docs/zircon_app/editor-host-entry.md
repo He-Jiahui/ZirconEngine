@@ -48,13 +48,13 @@ doc_type: module-detail
 
 # Zircon App Editor Host Entry
 
-`zircon_app` owns the process entry for the native editor host. `src/bin/editor.rs` delegates to `EntryRunner::run_editor_with_args`, which parses diagnostic and startup arguments, bootstraps the editor profile, loads the default runtime dynamic library, creates a runtime client, and hands control to the retained editor host. Normal startup remains interactive; validation-only startup may use `zircon_editor::run_editor_with_config` to request a bounded first presented frame.
+`zircon_app` owns the process entry for the native editor host. `src/bin/editor.rs` delegates to `EntryRunner::run_editor_with_args`, which parses diagnostic and startup arguments, creates one `ProductComposition`, loads the default runtime dynamic library, creates a runtime client, and hands control to the retained editor host. The composition retains Core, module/plugin receipts, and plugin owners until the editor host returns, then releases it before the dynamic runtime session. Normal startup remains interactive; validation-only startup may use `zircon_editor::run_editor_with_config` to request a bounded first presented frame.
 
 ## Runtime Profile Build Boundary
 
 The live Editor visual validation path builds the same `zircon_editor` binary used for the retained host instead of relying only on library tests. That requires app bootstrap to reach the runtime-profile module selection helpers through the stable runtime crate root. `zircon_runtime/src/lib.rs` therefore re-exports the manifest-specific runtime-profile helper APIs, while the implementations remain owned by `zircon_runtime::builtin`.
 
-`zircon_app/src/entry/builtin_modules.rs` keeps the project manifest optional until the resolver path is known. When `EntryConfig.runtime_profile()` is set, the plugin-registration and feature-registration paths use the caller manifest when present and otherwise ask `RuntimeProfileDescriptor` for the profile default manifest. The feature-registration path clones the optional manifest before creating the fallback so later feature dependency reporting can still inspect the original optional manifest. This is entry/profile wiring only; it does not move runtime module ownership into `zircon_app`.
+`EntryConfig::resolve()` owns the single request-to-runtime-profile projection. It merges the optional caller manifest with the `RuntimeProfileDescriptor` baseline and records provenance in `ResolvedProductHostConfig`; `builtin_modules.rs` and first-party provider projection accept only that result. This is entry/profile wiring only and does not move runtime module ownership into `zircon_app`.
 
 The current live validation command is `cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation`. The 2026-05-25 closeout rerun of that command passed. The captured native window artifact is `target/visual-layout/editor-live-window-900x620.png`; the requested capture name is 900 x 620, while the actual OS window PNG reported `1296 x 759` and `86492` bytes.
 

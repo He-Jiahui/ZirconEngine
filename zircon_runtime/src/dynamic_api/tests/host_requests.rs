@@ -110,6 +110,57 @@ fn dynamic_session_drains_runtime_ime_cursor_area_and_surrounding_text_requests_
 }
 
 #[test]
+fn dynamic_session_preserves_host_requests_across_product_tick_before_drain() {
+    let api = runtime_api();
+    let handle_event = api.handle_event.expect("handle_event");
+    let tick_frame = api.tick_frame.expect("tick_frame");
+    let drain_host_requests = api.drain_host_requests.expect("drain_host_requests");
+    let session = create_test_session(api);
+
+    assert_session_status(
+        unsafe {
+            handle_event(
+                session,
+                ZrRuntimeEventV1::ime_cursor_area(
+                    ZIRCON_RUNTIME_ABI_VERSION_V1,
+                    default_viewport(),
+                    12.0,
+                    34.0,
+                    2,
+                    18,
+                ),
+            )
+        },
+        ZrStatusCode::Ok,
+        "",
+    );
+    let mut demand = ZrRuntimeFrameDemandV1::idle();
+    assert_session_status(
+        unsafe { tick_frame(session, &mut demand) },
+        ZrStatusCode::Ok,
+        "",
+    );
+
+    let mut output = ZrOwnedResultV2::empty();
+    assert_session_status(
+        unsafe { drain_host_requests(session, &mut output) },
+        ZrStatusCode::Ok,
+        "",
+    );
+    let batch = host_request_batch_from_output(session, output);
+    assert!(matches!(
+        batch.requests.as_slice(),
+        [ZrRuntimeHostRequestV1::Ime(request)]
+            if request.kind == ZrRuntimeImeHostRequestKindV1::SetCursorArea
+                && request.cursor_area
+                    == Some(ZrRuntimeImeCursorAreaV1::new(12.0, 34.0, 2.0, 18.0))
+                && request.target_viewport == Some(default_viewport())
+    ));
+
+    destroy_test_session(api, session);
+}
+
+#[test]
 fn oversized_host_request_drain_pages_forward_without_losing_requests() {
     let api = runtime_api();
     let handle_event = api.handle_event.expect("handle_event");

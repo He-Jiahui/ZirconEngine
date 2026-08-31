@@ -19,7 +19,6 @@ impl JetBrainsShellPreset {
     }
 
     pub fn drawer(&self, slot: ActivityDrawerSlot) -> Option<&JetBrainsDrawerPreset> {
-        let slot = slot.canonical();
         self.drawers.iter().find(|drawer| drawer.slot == slot)
     }
 
@@ -58,7 +57,7 @@ impl JetBrainsDrawerPreset {
         visible_views: impl IntoIterator<Item = &'static str>,
     ) -> Self {
         Self {
-            slot: slot.canonical(),
+            slot,
             label: label.into(),
             default_mode: ActivityDrawerMode::Pinned,
             visible_views: visible_views.into_iter().map(str::to_string).collect(),

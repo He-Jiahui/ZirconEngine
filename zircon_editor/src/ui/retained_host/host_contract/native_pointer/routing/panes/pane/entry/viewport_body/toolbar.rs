@@ -15,13 +15,13 @@ pub(super) fn viewport_toolbar_frame(pane: &PaneData, content: &FrameRect) -> Op
     })
 }
 
-pub(super) fn route_viewport_toolbar_hit(
-    pane: &PaneData,
+pub(super) fn route_viewport_toolbar_hit<'a>(
+    pane: &'a PaneData,
     toolbar: &FrameRect,
     x: f32,
     y: f32,
-    surface_key: Option<&str>,
-) -> Option<PanePointerRoute> {
+    surface_key: Option<&'a str>,
+) -> Option<PanePointerRoute<'a>> {
     if !contains(toolbar, x, y) {
         return None;
     }

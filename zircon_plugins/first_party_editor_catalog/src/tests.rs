@@ -21,8 +21,12 @@ fn editor_catalog_preallocates_manifest_projection_storage() {
             && projection.contains("Vec::with_capacity(manifest.selections.len())")
             && projection.contains("for selection in manifest.enabled_for_target(target_mode)")
             && projection.contains("registrations.push(registration);")
+            && projection.contains("first_party_editor_registration_provider(&plugin_id)")
+            && projection.contains("seen.insert(plugin_id)")
+            && projection.contains("registrations.push(provider());")
+            && !projection.contains("plugin_id.clone()")
             && !projection.contains(".collect()"),
-        "editor catalog projection must preallocate dedup and result storage from the manifest selection count"
+        "editor catalog projection must preallocate storage and move each parsed id into dedup without cloning"
     );
 }
 

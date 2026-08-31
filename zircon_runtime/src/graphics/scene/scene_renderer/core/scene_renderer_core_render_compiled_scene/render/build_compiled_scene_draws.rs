@@ -1,15 +1,18 @@
 use crate::core::framework::render::ShaderQualityTier;
+use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::gpu_scene::GpuScene;
+use crate::graphics::scene::gpu_scene::GpuScenePreparedUpload;
 use crate::graphics::scene::gpu_scene::GpuSceneUploadReport;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::mesh::{
-    BuiltMeshDraws, CachedMeshDrawCommands, MeshDraw, MeshPassCommandBuffers, MeshPipelineCache,
+    BuiltMeshDraws, CachedMeshDrawCommands, MaterialPipelineFeatureSet,
+    MaterialPipelineRequirementCensus, MeshDraw, MeshPassCommandBuffers, MeshPipelineCache,
     PendingMeshCommandCacheExtractionStats, PendingMeshCommandCachePlanStats,
     PreparedMeshQueueStats, PreparedMeshVirtualGeometryExecutionStats,
     PreparedMeshVirtualGeometryIndirectStats,
 };
 use crate::graphics::scene::scene_renderer::shadow::ShadowLightSlotAssignments;
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 use super::super::super::scene_renderer_core::SceneRendererAdvancedPluginResources;
 
@@ -17,6 +20,7 @@ pub(super) struct CompiledSceneDraws {
     draws: Vec<MeshDraw>,
     prepared_mesh_queue_stats: PreparedMeshQueueStats,
     prebuilt_mesh_pass_command_buffers: MeshPassCommandBuffers,
+    gpu_scene_prepared_upload: Option<GpuScenePreparedUpload>,
     gpu_scene_upload_report: GpuSceneUploadReport,
     indirect_segment_count: u32,
     indirect_args_count: u32,
@@ -27,6 +31,7 @@ pub(super) struct CompiledSceneDraws {
     indirect_segment_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
     pending_command_cache_plan_stats: PendingMeshCommandCachePlanStats,
     pending_command_cache_extraction_stats: PendingMeshCommandCacheExtractionStats,
+    material_pipeline_requirements: MaterialPipelineRequirementCensus,
 }
 
 impl CompiledSceneDraws {
@@ -38,6 +43,7 @@ impl CompiledSceneDraws {
         let indirect_authority_buffer = built_mesh_draws.indirect_authority_buffer();
         let indirect_draw_ref_buffer = built_mesh_draws.indirect_draw_ref_buffer();
         let indirect_segment_buffer = built_mesh_draws.indirect_segment_buffer();
+        let gpu_scene_prepared_upload = built_mesh_draws.take_gpu_scene_prepared_upload();
         let gpu_scene_upload_report = built_mesh_draws.gpu_scene_upload_report();
         let prepared_mesh_queue_stats = built_mesh_draws.prepared_mesh_queue_stats();
         let prebuilt_mesh_pass_command_buffers =
@@ -45,10 +51,12 @@ impl CompiledSceneDraws {
         let pending_command_cache_plan_stats = built_mesh_draws.pending_command_cache_plan_stats();
         let pending_command_cache_extraction_stats =
             built_mesh_draws.pending_command_cache_extraction_stats();
+        let material_pipeline_requirements = built_mesh_draws.take_material_pipeline_requirements();
         Self {
             draws: built_mesh_draws.into_draws(),
             prepared_mesh_queue_stats,
             prebuilt_mesh_pass_command_buffers,
+            gpu_scene_prepared_upload: Some(gpu_scene_prepared_upload),
             gpu_scene_upload_report,
             indirect_segment_count,
             indirect_args_count,
@@ -59,6 +67,7 @@ impl CompiledSceneDraws {
             indirect_segment_buffer,
             pending_command_cache_plan_stats,
             pending_command_cache_extraction_stats,
+            material_pipeline_requirements,
         }
     }
 
@@ -80,6 +89,14 @@ impl CompiledSceneDraws {
 
     pub(super) fn gpu_scene_upload_report(&self) -> GpuSceneUploadReport {
         self.gpu_scene_upload_report
+    }
+
+    pub(super) fn take_gpu_scene_prepared_upload(
+        &mut self,
+    ) -> Result<GpuScenePreparedUpload, GraphicsError> {
+        self.gpu_scene_prepared_upload
+            .take()
+            .ok_or(GraphicsError::MissingPreparedGpuSceneUpload)
     }
 
     pub(super) fn indirect_segment_count(&self) -> u32 {
@@ -129,41 +146,47 @@ impl CompiledSceneDraws {
     ) -> PendingMeshCommandCacheExtractionStats {
         self.pending_command_cache_extraction_stats
     }
+
+    pub(super) fn take_material_pipeline_requirements(
+        &mut self,
+    ) -> MaterialPipelineRequirementCensus {
+        std::mem::take(&mut self.material_pipeline_requirements)
+    }
 }
 
 pub(super) fn build_compiled_scene_draws(
     advanced_plugin_resources: &SceneRendererAdvancedPluginResources,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
+    backend: &RenderBackend,
     encoder: &mut wgpu::CommandEncoder,
     material_texture_bind_group_layout: &wgpu::BindGroupLayout,
     gpu_scene: &mut GpuScene,
-    streamer: &ResourceStreamer,
+    streamer: &mut ResourceStreamer,
     frame: &ViewportRenderFrame,
     virtual_geometry_enabled: bool,
+    material_pipeline_features: MaterialPipelineFeatureSet,
     shadow_light_slots: Option<&ShadowLightSlotAssignments>,
     command_cache: &mut CachedMeshDrawCommands,
     mesh_pipelines: &mut MeshPipelineCache,
     generation: u64,
     shader_quality: ShaderQualityTier,
-) -> CompiledSceneDraws {
+) -> Result<CompiledSceneDraws, GraphicsError> {
     let built_mesh_draws = advanced_plugin_resources.build_mesh_draws_with_command_cache(
-        device,
-        queue,
+        backend,
         encoder,
         material_texture_bind_group_layout,
         gpu_scene,
         streamer,
         frame,
         virtual_geometry_enabled,
+        material_pipeline_features,
         shadow_light_slots,
         command_cache,
         mesh_pipelines,
         generation,
         shader_quality,
-    );
+    )?;
 
-    CompiledSceneDraws::from_built_mesh_draws(built_mesh_draws)
+    Ok(CompiledSceneDraws::from_built_mesh_draws(built_mesh_draws))
 }
 
 fn saturated_u32_index(index: usize) -> u32 {
@@ -176,10 +199,11 @@ mod tests {
 
     #[test]
     fn compiled_scene_draws_report_virtual_geometry_indirect_counts_without_buffers() {
-        let draws = CompiledSceneDraws {
+        let mut draws = CompiledSceneDraws {
             draws: Vec::new(),
             prepared_mesh_queue_stats: PreparedMeshQueueStats::default(),
             prebuilt_mesh_pass_command_buffers: MeshPassCommandBuffers::default(),
+            gpu_scene_prepared_upload: None,
             gpu_scene_upload_report: GpuSceneUploadReport::default(),
             indirect_segment_count: 2,
             indirect_args_count: 3,
@@ -190,6 +214,7 @@ mod tests {
             indirect_segment_buffer: None,
             pending_command_cache_plan_stats: PendingMeshCommandCachePlanStats::default(),
             pending_command_cache_extraction_stats: Default::default(),
+            material_pipeline_requirements: Default::default(),
         };
 
         let stats = draws.virtual_geometry_indirect_stats();
@@ -198,5 +223,9 @@ mod tests {
         assert_eq!(stats.args_count, 3);
         assert_eq!(stats.segment_count, 2);
         assert_eq!(stats.buffer_count, 0);
+        assert!(matches!(
+            draws.take_gpu_scene_prepared_upload(),
+            Err(GraphicsError::MissingPreparedGpuSceneUpload)
+        ));
     }
 }

@@ -8,9 +8,7 @@ fn drawer_slot_region(slot: ActivityDrawerSlot) -> ShellRegionId {
     match slot {
         ActivityDrawerSlot::LeftTop | ActivityDrawerSlot::LeftBottom => ShellRegionId::Left,
         ActivityDrawerSlot::RightTop | ActivityDrawerSlot::RightBottom => ShellRegionId::Right,
-        ActivityDrawerSlot::Bottom
-        | ActivityDrawerSlot::BottomLeft
-        | ActivityDrawerSlot::BottomRight => ShellRegionId::Bottom,
+        ActivityDrawerSlot::Bottom => ShellRegionId::Bottom,
     }
 }
 

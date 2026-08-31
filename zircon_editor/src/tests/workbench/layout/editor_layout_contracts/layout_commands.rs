@@ -25,7 +25,10 @@ fn jetbrains_docking_state_commands_drive_drawer_split_and_active_contracts(
         },
     )?;
 
-    let Some(collapsed_drawer) = layout.drawers.get(&ActivityDrawerSlot::LeftBottom) else {
+    let Some(collapsed_drawer) = layout
+        .active_activity_window_drawers()
+        .get(&ActivityDrawerSlot::LeftBottom)
+    else {
         panic!("expected left-bottom drawer");
     };
     assert_eq!(collapsed_drawer.mode, ActivityDrawerMode::Collapsed);
@@ -39,7 +42,10 @@ fn jetbrains_docking_state_commands_drive_drawer_split_and_active_contracts(
             instance_id: project.clone(),
         },
     )?;
-    let Some(active_drawer) = layout.drawers.get(&ActivityDrawerSlot::LeftBottom) else {
+    let Some(active_drawer) = layout
+        .active_activity_window_drawers()
+        .get(&ActivityDrawerSlot::LeftBottom)
+    else {
         panic!("expected active left-bottom drawer");
     };
     assert_eq!(active_drawer.mode, ActivityDrawerMode::Pinned);
@@ -64,12 +70,9 @@ fn jetbrains_docking_state_commands_drive_drawer_split_and_active_contracts(
         },
     )?;
 
-    let MainHostPageLayout::WorkbenchPage {
-        document_workspace, ..
-    } = &layout.main_pages[0]
-    else {
-        panic!("expected workbench page");
-    };
+    let document_workspace = layout
+        .content_workspace_for_page(&MainPageId::workbench())
+        .expect("workbench page should resolve its activity-window content workspace");
     let DocumentNode::SplitNode {
         axis,
         ratio,
@@ -97,12 +100,9 @@ fn jetbrains_docking_state_commands_drive_drawer_split_and_active_contracts(
             instance_id: scene.clone(),
         },
     )?;
-    let MainHostPageLayout::WorkbenchPage {
-        document_workspace, ..
-    } = &layout.main_pages[0]
-    else {
-        panic!("expected workbench page");
-    };
+    let document_workspace = layout
+        .content_workspace_for_page(&MainPageId::workbench())
+        .expect("workbench page should resolve its activity-window content workspace");
     let DocumentNode::SplitNode { first, .. } = document_workspace else {
         panic!("expected split document root");
     };

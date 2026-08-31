@@ -36,17 +36,21 @@ use super::{
         ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
     },
     scene::{ComponentPropertyPath, EntityPath, LevelSummary, Mobility, WorldHandle},
-    tasks::{
-        AsyncTaskDescriptor, AsyncTaskHandle, AsyncTaskState, AsyncTaskStatus,
-        TaskCancellationPolicy, TaskPollBudget, TaskPoolDescriptor, TaskPoolKind,
-        DEFAULT_MAIN_THREAD_POLLS_PER_FRAME,
-    },
-    time::{Fixed, Real, Time, Virtual},
+    time::{Fixed, MonotonicReal, Time, Virtual},
 };
 
 mod framework_surfaces;
 mod phase_queue_summary;
 mod render_product_surface;
+
+#[test]
+fn render_viewport_hit_proxies_are_explicitly_opt_in() {
+    let game_viewport = RenderViewportDescriptor::new(UVec2::new(320, 240));
+    let editor_viewport = RenderViewportDescriptor::new(UVec2::new(320, 240)).with_hit_proxies();
+
+    assert!(!game_viewport.requires_hit_proxies);
+    assert!(editor_viewport.requires_hit_proxies);
+}
 
 #[test]
 fn framework_contract_types_are_constructible() {
@@ -133,7 +137,7 @@ fn framework_contract_types_are_constructible() {
     assert_eq!(physics.fixed_hz, 60);
     assert_eq!(level.handle.get(), 42);
     assert_eq!(Mobility::default(), Mobility::Dynamic);
-    assert_eq!(Time::<Real>::default().elapsed(), Duration::ZERO);
+    assert_eq!(Time::<MonotonicReal>::default().elapsed(), Duration::ZERO);
     assert_eq!(Time::<Virtual>::default().delta(), Duration::ZERO);
     assert_eq!(Time::<Fixed>::default().frame_index(), 0);
     assert_eq!(

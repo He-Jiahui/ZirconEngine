@@ -4,12 +4,14 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use super::super::admission::validate_catalog_admission;
+use super::discovery::{EditorPluginSource, discovery_index};
+use super::snapshot::entries_for_catalog;
+use super::state::activate_eligible_entries;
 use super::{
-    activate_eligible_entries, active_package_retracted, discovery_index,
-    dispatch_hot_reloaded_replacements, entries_for_catalog, replaced_live_package_ids,
-    reset_replaced_active_entries, retire_replaced_active_entries, EditorPluginCatalog,
-    EditorPluginCatalogSnapshot, EditorPluginDiscovery, EditorPluginDiscoveryError,
-    EditorPluginManager,
+    EditorPluginCatalog, EditorPluginCatalogSnapshot, EditorPluginDiscovery,
+    EditorPluginDiscoveryError, EditorPluginManager, EditorPluginManagerEntry,
+    EditorPluginManagerSnapshot, dispatch_hot_reloaded_replacements, replaced_live_package_ids,
+    reset_replaced_active_entries, retire_replaced_active_entries,
 };
 
 impl EditorPluginManager {
@@ -80,4 +82,24 @@ impl EditorPluginManager {
         );
         Ok(Arc::clone(snapshot.catalog_snapshot()))
     }
+}
+
+fn active_package_retracted(
+    previous: &EditorPluginManagerSnapshot,
+    candidate: &[EditorPluginManagerEntry],
+) -> Option<String> {
+    previous
+        .entries()
+        .iter()
+        .filter(|entry| entry.state == super::EditorPluginState::Active)
+        .filter(|entry| entry.source != EditorPluginSource::Project)
+        .find_map(|active| {
+            candidate
+                .binary_search_by(|entry| entry.package_id.as_str().cmp(active.package_id()))
+                .ok()
+                .and_then(|index| candidate.get(index))
+                .filter(|entry| entry.state == super::EditorPluginState::Active)
+                .is_none()
+                .then(|| active.package_id.clone())
+        })
 }

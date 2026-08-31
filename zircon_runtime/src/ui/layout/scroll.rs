@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::layout::{
     UiScrollState, UiScrollableBoxConfig, UiVirtualListWindow,
 };
 
-use super::compute_virtual_list_window;
+use super::{compute_virtual_list_window, fixed_extent_virtual_list_step_extent};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct UiScrollVirtualizationPlan {
@@ -18,7 +18,7 @@ pub fn virtual_window_for_scrollable_box(
     viewport_extent: f32,
 ) -> Option<UiVirtualListWindow> {
     let virtualization = config.virtualization?;
-    let step_extent = (virtualization.item_extent + config.gap).max(virtualization.item_extent);
+    let step_extent = fixed_extent_virtual_list_step_extent(virtualization.item_extent, config.gap);
     Some(compute_virtual_list_window(
         offset,
         viewport_extent,

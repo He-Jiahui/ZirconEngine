@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 LEGACY_RUNTIME_API_FILES = (
-    "zircon_runtime_interface/src/runtime_api/api_table.rs",
+    "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
     "zircon_runtime/src/dynamic_api/exports.rs",
     "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
 )
@@ -37,6 +37,11 @@ LEGACY_RUNTIME_API_SYMBOLS = (
     "ZR_RUNTIME_GET_API_SYMBOL_V6",
     "zircon_runtime_get_api_v6",
     "RuntimeApi::V6",
+    "ZrRuntimeApiV7",
+    "ZrRuntimeGetApiFnV7",
+    "ZR_RUNTIME_GET_API_SYMBOL_V7",
+    "zircon_runtime_get_api_v7",
+    "RuntimeApi::V7",
 )
 
 
@@ -48,7 +53,7 @@ FFI_PANIC_ANCHORS = (
         "zircon_runtime/src/dynamic_api/exports.rs",
         "runtime dynamic API panic caught at FFI boundary",
     ),
-    ("zircon_runtime/src/dynamic_api/exports.rs", "zircon_runtime_get_api_v7_inner"),
+    ("zircon_runtime/src/dynamic_api/exports.rs", "zircon_runtime_get_api_v8_inner"),
     ("zircon_runtime/src/dynamic_api/exports.rs", "Err(_) => core::ptr::null()"),
     (
         "zircon_runtime/src/dynamic_api/tests/api_table.rs",
@@ -64,7 +69,7 @@ FFI_PANIC_ANCHORS = (
 LOADER_FAILURE_ANCHORS = (
     (
         "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
-        ".get::<ZrRuntimeGetApiFnV7>(ZR_RUNTIME_GET_API_SYMBOL_V7)",
+        ".get::<ZrRuntimeGetApiFnV8>(ZR_RUNTIME_GET_API_SYMBOL_V8)",
     ),
     (
         "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
@@ -96,7 +101,7 @@ LOADER_FAILURE_ANCHORS = (
     ),
     (
         "zircon_app/src/entry/runtime_library/tests.rs",
-        "runtime_session_does_not_recheck_required_v7_mirror_or_operation_capabilities",
+        "runtime_session_does_not_recheck_required_v8_mirror_or_operation_capabilities",
     ),
     (
         "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",

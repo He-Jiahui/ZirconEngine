@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::{
@@ -7,6 +6,10 @@ use crate::{
 };
 
 use super::{ExportBuildPlan, ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};
+
+const MANIFEST_PATH: &str = "Cargo.toml";
+const TARGET_DIR: &str = "stages/compile_host/target";
+const BASE_COMMAND_ARGUMENT_COUNT: usize = 13;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LibraryEmbedCompileHostPlan {
@@ -72,32 +75,11 @@ pub(super) fn library_embed_compile_host_plan(
     let target = target_for_mode(plan.profile.target_mode);
     let cargo_profile =
         LibraryEmbedCompileHostPlan::cargo_profile_for_build_mode(plan.profile.build_mode);
-    let target_dir = Path::new("stages")
-        .join("compile_host")
-        .join("target")
-        .display()
-        .to_string()
-        .replace('\\', "/");
-    let manifest_path = PathBuf::from("Cargo.toml").display().to_string();
+    let target_dir = TARGET_DIR.to_string();
+    let manifest_path = MANIFEST_PATH.to_string();
     let release = plan.profile.build_mode == ExportBuildMode::Release;
-    let mut command = vec![
-        "cargo".to_string(),
-        "build".to_string(),
-        "--manifest-path".to_string(),
-        manifest_path.clone(),
-        "-p".to_string(),
-        target.package.to_string(),
-        "--bin".to_string(),
-        target.binary.to_string(),
-        "--no-default-features".to_string(),
-        "--features".to_string(),
-        target.app_feature.to_string(),
-        "--target-dir".to_string(),
-        target_dir.clone(),
-    ];
-    if release {
-        command.push("--release".to_string());
-    }
+    let command =
+        library_embed_command(&target, manifest_path.clone(), target_dir.clone(), release);
 
     Some(LibraryEmbedCompileHostPlan {
         package: target.package.to_string(),
@@ -115,6 +97,34 @@ pub(super) fn library_embed_compile_host_plan(
             .collect(),
         command,
     })
+}
+
+fn library_embed_command(
+    target: &LibraryEmbedTarget,
+    manifest_path: String,
+    target_dir: String,
+    release: bool,
+) -> Vec<String> {
+    let mut command = Vec::with_capacity(BASE_COMMAND_ARGUMENT_COUNT + usize::from(release));
+    command.extend([
+        "cargo".to_string(),
+        "build".to_string(),
+        "--manifest-path".to_string(),
+        manifest_path,
+        "-p".to_string(),
+        target.package.to_string(),
+        "--bin".to_string(),
+        target.binary.to_string(),
+        "--no-default-features".to_string(),
+        "--features".to_string(),
+        target.app_feature.to_string(),
+        "--target-dir".to_string(),
+        target_dir,
+    ]);
+    if release {
+        command.push("--release".to_string());
+    }
+    command
 }
 
 fn compile_host_strategy_enabled(plan: &ExportBuildPlan) -> bool {
@@ -170,5 +180,37 @@ fn target_for_mode(target_mode: RuntimeTargetMode) -> LibraryEmbedTarget {
             app_feature: "target-editor-host",
             runtime_feature: "target-editor-host",
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{library_embed_command, target_for_mode, RuntimeTargetMode};
+
+    #[test]
+    fn preallocated_library_embed_command_preserves_contract() {
+        let target = target_for_mode(RuntimeTargetMode::ClientRuntime);
+        let manifest_path = "Cargo.toml".to_string();
+        let target_dir = "stages/compile_host/target".to_string();
+
+        assert_eq!(
+            library_embed_command(&target, manifest_path, target_dir, true),
+            vec![
+                "cargo".to_string(),
+                "build".to_string(),
+                "--manifest-path".to_string(),
+                "Cargo.toml".to_string(),
+                "-p".to_string(),
+                "zircon_app".to_string(),
+                "--bin".to_string(),
+                "zircon_runtime".to_string(),
+                "--no-default-features".to_string(),
+                "--features".to_string(),
+                "target-client".to_string(),
+                "--target-dir".to_string(),
+                "stages/compile_host/target".to_string(),
+                "--release".to_string(),
+            ]
+        );
     }
 }

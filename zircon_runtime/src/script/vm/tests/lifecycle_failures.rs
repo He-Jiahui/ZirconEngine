@@ -53,8 +53,9 @@ impl VmBackendFamily for FallbackLifecycleFamily {
         }
     }
 
-    fn selectors(&self) -> Vec<String> {
-        vec!["lifecycle:fallback".to_string(), "fallback".to_string()]
+    fn visit_selectors(&self, visitor: &mut dyn FnMut(&str)) {
+        visitor("lifecycle:fallback");
+        visitor("fallback");
     }
 }
 

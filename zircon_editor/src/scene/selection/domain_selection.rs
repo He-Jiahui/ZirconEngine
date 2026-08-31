@@ -40,6 +40,9 @@ impl DomainSelection {
     where
         I: IntoIterator<Item = EntityId>,
     {
+        let mut items = items.into_iter();
+        let (lower_bound, _) = items.size_hint();
+        self.items.reserve(lower_bound);
         let mut changed = false;
         for entity in items {
             if self.items.insert(entity) {
@@ -90,3 +93,7 @@ impl DomainSelection {
         self.generation = self.generation.wrapping_add(1);
     }
 }
+
+#[cfg(test)]
+#[path = "domain_selection/optimization_tests.rs"]
+mod optimization_tests;

@@ -24,10 +24,34 @@ impl FixedStepPlan {
         }
     }
 
-    pub fn overstep_fraction(&self) -> f32 {
+    /// Total unconsumed fixed-step debt after this outer frame.
+    pub fn debt_duration(&self) -> Duration {
+        self.remaining_overstep
+    }
+
+    /// Number of complete fixed timesteps still owed after this outer frame.
+    pub fn debt_whole_steps(&self) -> u128 {
+        if self.timestep.is_zero() {
+            return 0;
+        }
+        self.remaining_overstep.as_nanos() / self.timestep.as_nanos()
+    }
+
+    /// Unbounded debt measured in fixed timesteps for scheduling and health telemetry.
+    pub fn debt_timestep_ratio_f64(&self) -> f64 {
         if self.timestep.is_zero() {
             return 0.0;
         }
-        (self.remaining_overstep.as_secs_f64() / self.timestep.as_secs_f64()).clamp(0.0, 1.0) as f32
+        self.remaining_overstep.as_secs_f64() / self.timestep.as_secs_f64()
+    }
+
+    /// Fractional remainder of debt that can interpolate between two adjacent fixed states.
+    pub fn interpolation_fraction(&self) -> f32 {
+        if self.timestep.is_zero() {
+            return 0.0;
+        }
+        let timestep_nanos = self.timestep.as_nanos();
+        let remainder_nanos = self.remaining_overstep.as_nanos() % timestep_nanos;
+        (remainder_nanos as f64 / timestep_nanos as f64) as f32
     }
 }

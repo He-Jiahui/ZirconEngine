@@ -88,6 +88,31 @@ fn named_layout_contract(name: &str) -> Option<(u16, &'static [AudioSpeakerChann
     }
 }
 
+fn canonical_discrete_name_matches(name: &str, channel_count: u16) -> bool {
+    let Some(suffix) = name.strip_prefix("discrete_") else {
+        return false;
+    };
+    if suffix.is_empty() || (suffix.len() > 1 && suffix.as_bytes()[0] == b'0') {
+        return false;
+    }
+
+    let mut parsed = 0_u16;
+    for byte in suffix.bytes() {
+        if !byte.is_ascii_digit() {
+            return false;
+        }
+        let digit = u16::from(byte - b'0');
+        let Some(next) = parsed
+            .checked_mul(10)
+            .and_then(|value| value.checked_add(digit))
+        else {
+            return false;
+        };
+        parsed = next;
+    }
+    parsed == channel_count
+}
+
 fn speaker_bit(speaker: AudioSpeakerChannel) -> u8 {
     match speaker {
         AudioSpeakerChannel::FrontLeft => 1 << 0,
@@ -286,7 +311,7 @@ impl AudioChannelLayout {
     pub fn is_canonical_discrete_layout(&self) -> bool {
         self.speakers.is_empty()
             && self.channel_count > 0
-            && self.name == format!("discrete_{}", self.channel_count)
+            && canonical_discrete_name_matches(&self.name, self.channel_count)
     }
 
     pub fn is_valid_contract_layout(&self) -> bool {
@@ -306,3 +331,7 @@ impl AudioChannelLayout {
         self.has_matching_speaker_count() && self.has_unique_speakers()
     }
 }
+
+#[cfg(test)]
+#[path = "channel_layout/allocation_free_discrete_name_tests.rs"]
+mod allocation_free_discrete_name_tests;

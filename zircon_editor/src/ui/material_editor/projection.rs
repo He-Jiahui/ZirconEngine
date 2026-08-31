@@ -69,7 +69,7 @@ fn project_property_rows(
     shader: Option<&ShaderAsset>,
 ) -> Vec<MaterialEditorPropertyRow> {
     let mut rows = Vec::new();
-    let mut seen = BTreeSet::new();
+    let mut seen: BTreeSet<&str> = BTreeSet::new();
 
     if let Some(shader) = shader {
         for property in &shader.property_schema {
@@ -83,12 +83,12 @@ fn project_property_rows(
                 is_overridden: override_value.is_some(),
                 override_value,
             });
-            seen.insert(property.name.clone());
+            seen.insert(property.name.as_str());
         }
     }
 
     for (name, value) in material.property_overrides() {
-        if seen.contains(name) {
+        if seen.contains(name.as_str()) {
             continue;
         }
         rows.push(MaterialEditorPropertyRow {
@@ -110,7 +110,7 @@ fn project_texture_slot_rows(
     shader: Option<&ShaderAsset>,
 ) -> Vec<MaterialEditorTextureSlotRow> {
     let mut rows = Vec::new();
-    let mut seen = BTreeSet::new();
+    let mut seen: BTreeSet<&str> = BTreeSet::new();
 
     if let Some(shader) = shader {
         for slot in &shader.texture_slots {
@@ -125,12 +125,12 @@ fn project_texture_slot_rows(
                 fallback: material_slot.and_then(|value| value.fallback.clone()),
                 is_overridden: material_slot.is_some(),
             });
-            seen.insert(slot.name.clone());
+            seen.insert(slot.name.as_str());
         }
     }
 
     for (name, value) in &material.texture_slots {
-        if seen.contains(name) {
+        if seen.contains(name.as_str()) {
             continue;
         }
         rows.push(MaterialEditorTextureSlotRow {

@@ -11,6 +11,12 @@ use crate::ui::retained_host::route_intent::EditorRouteIntentMap;
 
 impl HostActivityRailPointerBridge {
     pub(super) fn rebuild_surface(&mut self) {
+        zircon_runtime::profile_counter!("editor", "ui.activity_rail.surface_rebuild_count", 1);
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.activity_rail.surface_rebuild_button_count",
+            self.layout.left_tabs.len() + self.layout.right_tabs.len()
+        );
         let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.activity_rail.pointer"));
         let mut dispatcher = UiPointerDispatcher::default();
         let mut route_intents = EditorRouteIntentMap::default();

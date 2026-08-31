@@ -7,7 +7,7 @@ fn taffy_layout_pass_maps_linear_slot_padding_without_fallback() {
         UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
     );
     insert_child(&mut tree, 180, fixed_node(181, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(180), UiNodeId::new(181), UiSlotKind::Linear)
             .with_padding(UiMargin::new(5.0, 2.0, 7.0, 3.0)),
     );
@@ -25,7 +25,7 @@ fn taffy_layout_pass_maps_linear_slot_padding_and_cross_axis_alignment_without_f
         UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
     );
     insert_child(&mut tree, 182, fixed_node(183, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(182), UiNodeId::new(183), UiSlotKind::Linear)
             .with_padding(UiMargin::new(5.0, 2.0, 7.0, 3.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::End)),
@@ -44,7 +44,7 @@ fn taffy_layout_pass_maps_vertical_linear_slot_padding_and_cross_axis_alignment_
         UiContainerKind::VerticalBox(UiLinearBoxConfig { gap: 0.0 }),
     );
     insert_child(&mut tree, 184, fixed_node(185, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(184), UiNodeId::new(185), UiSlotKind::Linear)
             .with_padding(UiMargin::new(5.0, 2.0, 7.0, 3.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::End, UiAlignment::Start)),
@@ -68,7 +68,7 @@ fn taffy_layout_pass_maps_wrap_slot_padding_and_cross_axis_alignment_without_fal
     );
     insert_child(&mut tree, 186, fixed_node(187, Some(30.0), Some(30.0)));
     insert_child(&mut tree, 186, fixed_node(188, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(186), UiNodeId::new(188), UiSlotKind::Flow)
             .with_padding(UiMargin::new(5.0, 2.0, 3.0, 4.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::End)),
@@ -93,12 +93,12 @@ fn taffy_layout_pass_ignores_flow_slot_linear_sizing_without_fallback() {
     );
     insert_child(&mut tree, 460, fixed_node(461, Some(20.0), Some(10.0)));
     insert_child(&mut tree, 460, fixed_node(462, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(460), UiNodeId::new(461), UiSlotKind::Flow).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(3.0),
         ),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(460), UiNodeId::new(462), UiSlotKind::Flow).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
         ),
@@ -119,12 +119,12 @@ fn taffy_layout_pass_maps_linear_slot_sizing_without_fallback() {
     );
     insert_child(&mut tree, 400, node(401));
     insert_child(&mut tree, 400, node(402));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(400), UiNodeId::new(401), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(2.0),
         ),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(400), UiNodeId::new(402), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
         ),
@@ -147,12 +147,12 @@ fn taffy_layout_pass_maps_vertical_linear_slot_sizing_without_fallback() {
     );
     insert_child(&mut tree, 440, node(441));
     insert_child(&mut tree, 440, node(442));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(440), UiNodeId::new(441), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(2.0),
         ),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(440), UiNodeId::new(442), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
         ),
@@ -195,11 +195,11 @@ line_height = 12.0
 "#,
         )),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(410), UiNodeId::new(411), UiSlotKind::Linear)
             .with_linear_sizing(UiLinearSlotSizing::new(UiLinearSlotSizeRule::Auto)),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(410), UiNodeId::new(412), UiSlotKind::Linear)
             .with_linear_sizing(UiLinearSlotSizing::new(UiLinearSlotSizeRule::Auto)),
     );
@@ -248,12 +248,12 @@ line_height = 12.0
 "#,
         )),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(420), UiNodeId::new(421), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::StretchContent).with_value(1.0),
         ),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(420), UiNodeId::new(422), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::StretchContent).with_value(1.0),
         ),
@@ -285,7 +285,7 @@ fn taffy_layout_pass_maps_linear_slot_sizing_bounds_without_fallback() {
     );
     insert_child(&mut tree, 430, node(431));
     insert_child(&mut tree, 430, node(432));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(430), UiNodeId::new(431), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch)
                 .with_value(1.0)
@@ -293,7 +293,7 @@ fn taffy_layout_pass_maps_linear_slot_sizing_bounds_without_fallback() {
                 .with_max(90.0),
         ),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(430), UiNodeId::new(432), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
         ),
@@ -314,7 +314,7 @@ fn taffy_layout_pass_maps_vertical_linear_slot_sizing_bounds_without_fallback() 
     );
     insert_child(&mut tree, 450, node(451));
     insert_child(&mut tree, 450, node(452));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(450), UiNodeId::new(451), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch)
                 .with_value(1.0)
@@ -322,7 +322,7 @@ fn taffy_layout_pass_maps_vertical_linear_slot_sizing_bounds_without_fallback() 
                 .with_max(90.0),
         ),
     );
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(450), UiNodeId::new(452), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch).with_value(1.0),
         ),

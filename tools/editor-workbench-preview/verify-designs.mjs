@@ -39,6 +39,11 @@ const referenceByteLength = 1526533;
 const expected = [...DESIGNS.map((design) => design.output), "preview-sheet.png"];
 const expectedSet = new Set(expected);
 const failures = [];
+const MIN_AVERAGE_LUMA = 12;
+const MAX_AVERAGE_LUMA = 60;
+const MIN_DARK_PIXEL_RATIO = 0.82;
+const MAX_BRIGHT_PIXEL_RATIO = 0.12;
+const MIN_BLUE_ACCENT_RATIO = 0.00008;
 
 await validateReferenceBaseline();
 validateManifest();
@@ -585,17 +590,20 @@ function validateVisualProfile(filename, buffer, size) {
     return;
   }
 
-  if (metrics.averageLuma < 12 || metrics.averageLuma > 55) {
+  if (
+    metrics.averageLuma < MIN_AVERAGE_LUMA ||
+    metrics.averageLuma > MAX_AVERAGE_LUMA
+  ) {
     failures.push(`${filename}: average luminance ${metrics.averageLuma.toFixed(2)} is outside workbench dark range`);
   }
-  if (metrics.darkRatio < 0.82) {
+  if (metrics.darkRatio < MIN_DARK_PIXEL_RATIO) {
     failures.push(`${filename}: dark pixel ratio ${metrics.darkRatio.toFixed(4)} is below workbench density floor`);
   }
-  if (metrics.brightRatio > 0.10) {
+  if (metrics.brightRatio > MAX_BRIGHT_PIXEL_RATIO) {
     failures.push(`${filename}: bright pixel ratio ${metrics.brightRatio.toFixed(4)} is too high for dark chrome`);
   }
-  if (metrics.tealRatio < 0.00008) {
-    failures.push(`${filename}: teal accent ratio ${metrics.tealRatio.toFixed(6)} is too low`);
+  if (metrics.blueAccentRatio < MIN_BLUE_ACCENT_RATIO) {
+    failures.push(`${filename}: blue accent ratio ${metrics.blueAccentRatio.toFixed(6)} is too low`);
   }
   if (metrics.uniqueSampleColors < 32) {
     failures.push(`${filename}: sampled color variety ${metrics.uniqueSampleColors} is too low`);
@@ -617,7 +625,7 @@ function readRgbPngVisualMetrics(buffer, size) {
   let lumaSum = 0;
   let darkPixels = 0;
   let brightPixels = 0;
-  let tealPixels = 0;
+  let blueAccentPixels = 0;
   let sampledPixels = 0;
   const uniqueSampleColors = new Set();
 
@@ -644,8 +652,14 @@ function readRgbPngVisualMetrics(buffer, size) {
         sampledPixels += 1;
         if (luma < 80) darkPixels += 1;
         if (luma > 170) brightPixels += 1;
-        if (red < 100 && green >= 120 && blue >= 120 && green - red >= 35 && blue - red >= 35) {
-          tealPixels += 1;
+        if (
+          red <= 110 &&
+          green >= 55 &&
+          blue >= 80 &&
+          blue - red >= 30 &&
+          blue - green >= 15
+        ) {
+          blueAccentPixels += 1;
         }
         if (x % 20 === 0) {
           uniqueSampleColors.add((red << 16) | (green << 8) | blue);
@@ -660,7 +674,7 @@ function readRgbPngVisualMetrics(buffer, size) {
     averageLuma: lumaSum / sampledPixels,
     darkRatio: darkPixels / sampledPixels,
     brightRatio: brightPixels / sampledPixels,
-    tealRatio: tealPixels / sampledPixels,
+    blueAccentRatio: blueAccentPixels / sampledPixels,
     uniqueSampleColors: uniqueSampleColors.size,
   };
 }

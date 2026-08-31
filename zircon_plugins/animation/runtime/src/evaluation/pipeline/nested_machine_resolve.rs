@@ -1,21 +1,19 @@
 use std::sync::Arc;
 
 use zircon_runtime::asset::{AssetId, ProjectAssetManager};
-use zircon_runtime::core::framework::animation::{
-    AnimationParameterMap, AnimationStateMachineEvaluation,
-};
 use zircon_runtime::scene::AnimationStateTransitionRuntime;
 
-use super::AnimationEvaluationPipeline;
 use super::machine_instance_key::MachineInstanceKey;
 use super::nested_machine_sample::normalized_machine_state_time;
-use super::state_machine_cache::resolve_sub_machine_id;
+use super::requests::StateMachineParameterProjection;
+use super::state_machine_cache::{resolve_sub_machine_id, StateMachineEvaluationResult};
+use super::AnimationEvaluationPipeline;
 use crate::{CompiledAnimationStateMachine, TransitionDesc};
 
 pub(super) struct ResolvedMachineInstance {
     pub(super) instance: MachineInstanceKey,
     pub(super) machine: Arc<CompiledAnimationStateMachine>,
-    pub(super) evaluation: AnimationStateMachineEvaluation,
+    pub(super) evaluation: StateMachineEvaluationResult,
     pub(super) requested_desc: Option<TransitionDesc>,
     pub(super) requested_triggers: Option<Arc<[String]>>,
     pub(super) transition: Option<AnimationStateTransitionRuntime>,
@@ -30,7 +28,7 @@ pub(super) fn resolve_machine_instance(
     mut machine_id: AssetId,
     mut active_state: Option<String>,
     mut transition: Option<AnimationStateTransitionRuntime>,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     skeleton_id: AssetId,
     time_seconds: zircon_runtime::core::math::Real,
 ) -> Option<ResolvedMachineInstance> {
@@ -40,20 +38,16 @@ pub(super) fn resolve_machine_instance(
         let (machine, evaluation, requested_desc, requested_triggers) = pipeline
             .evaluate_state_machine_with_triggers(
                 asset_manager,
+                &instance,
                 machine_id,
                 active_state.as_deref(),
                 parameters,
             )?;
-        root_active_state.get_or_insert_with(|| {
-            evaluation
-                .active_state
-                .clone()
-                .unwrap_or_else(|| active_state.clone().unwrap_or_default())
-        });
+        root_active_state.get_or_insert_with(|| evaluation.active_state.clone());
         let requested_transition_ready = evaluation
-            .active_state
-            .as_deref()
-            .zip(evaluation.transition.as_ref())
+            .transition
+            .as_ref()
+            .map(|transition| (evaluation.active_state.as_str(), transition))
             .zip(requested_desc)
             .is_some_and(|((state, _), desc)| {
                 desc.exit_ready(normalized_machine_state_time(
@@ -79,9 +73,7 @@ pub(super) fn resolve_machine_instance(
                 is_nested,
             });
         }
-        let Some(owner_state) = evaluation.active_state.as_deref() else {
-            return None;
-        };
+        let owner_state = evaluation.active_state.as_str();
         let Some(nested) = machine.sub_machine_for_state(owner_state) else {
             return Some(ResolvedMachineInstance {
                 instance,

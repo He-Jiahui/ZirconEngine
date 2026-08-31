@@ -67,13 +67,6 @@ fn collapse_redundant_header_nodes(nodes: &mut [ViewTemplateNodeData], x: f32, y
         "AssetBrowserTitleText",
         "AssetBrowserToolbarSubtitleRow",
         "AssetBrowserSubtitleText",
-        "AssetBrowserToolbarKindSecondaryRow",
-        "AssetBrowserKindPhysicsChip",
-        "AssetBrowserKindSkeletonChip",
-        "AssetBrowserKindClipChip",
-        "AssetBrowserKindSequenceChip",
-        "AssetBrowserKindGraphChip",
-        "AssetBrowserKindStateChip",
     ] {
         hide_node(nodes, control_id, x, y);
     }
@@ -92,9 +85,14 @@ fn layout_single_toolbar_row(
     let mut import = compact_import_group(nodes, row_width, metrics);
     let mut view = compact_view_group(nodes, metrics);
     let locate_width = control_width(nodes, "LocateSelectedAsset", metrics.compact_icon_width);
+    let preferred_filter_width =
+        control_width(nodes, "AssetBrowserKindFilterDropdown", 168.0).clamp(124.0, 220.0);
+    let minimum_filter_width = 124.0;
+    let minimum_leading_width = COMPACT_SEARCH_MIN_WIDTH + metrics.group_gap + minimum_filter_width;
     let mut locate_visible = true;
     collapse_trailing_actions_to_fit(
         row_width,
+        minimum_leading_width,
         &mut view,
         &mut locate_visible,
         &mut import,
@@ -110,11 +108,10 @@ fn layout_single_toolbar_row(
         0.0
     };
     let leading_span_width = (trailing_x - leading_gap - row_x).max(0.0);
-    let all_chip_width = control_width(nodes, "AssetBrowserKindAllChip", 44.0);
-    let search_width = if leading_span_width >= COMPACT_SEARCH_MIN_WIDTH {
+    let search_width = if leading_span_width >= minimum_leading_width {
         let preferred_search_width = (row_width * COMPACT_SEARCH_PREFERRED_RATIO)
             .max(COMPACT_SEARCH_PREFERRED_MIN_WIDTH)
-            .min((leading_span_width - all_chip_width - metrics.group_gap).max(0.0));
+            .min((leading_span_width - minimum_filter_width - metrics.group_gap).max(0.0));
         preferred_search_width.max(COMPACT_SEARCH_MIN_WIDTH)
     } else {
         0.0
@@ -124,8 +121,8 @@ fn layout_single_toolbar_row(
     } else {
         0.0
     };
-    let chip_x = row_x + search_width + search_gap;
-    let chip_width_limit = (trailing_x - leading_gap - chip_x).max(0.0);
+    let filter_x = row_x + search_width + search_gap;
+    let filter_width_limit = (trailing_x - leading_gap - filter_x).max(0.0);
 
     set_node_frame(
         nodes,
@@ -143,7 +140,19 @@ fn layout_single_toolbar_row(
         search_width,
         metrics.control_height,
     );
-    layout_kind_chips(nodes, chip_x, row_y, chip_width_limit, metrics);
+    if has_control(nodes, "AssetBrowserKindFilterDropdown") {
+        let filter_width = preferred_filter_width.min(filter_width_limit);
+        set_node_frame(
+            nodes,
+            "AssetBrowserKindFilterDropdown",
+            filter_x,
+            row_y,
+            filter_width,
+            metrics.control_height,
+        );
+    } else {
+        layout_kind_chips(nodes, filter_x, row_y, filter_width_limit, metrics);
+    }
     let mut action_x = trailing_x;
     if view.visible {
         set_node_frame(
@@ -191,7 +200,7 @@ fn layout_single_toolbar_row(
     if locate_visible && import.visible {
         action_x += metrics.group_gap;
     }
-    layout_filter_group_frame(nodes, chip_x, row_y, filter_right_edge, metrics);
+    layout_filter_group_frame(nodes, filter_x, row_y, filter_right_edge, metrics);
 
     hide_node(nodes, "AssetBrowserImportLabel", action_x, row_y);
     layout_import_group(nodes, action_x, row_y, import, metrics);
@@ -199,13 +208,18 @@ fn layout_single_toolbar_row(
 
 fn collapse_trailing_actions_to_fit(
     row_width: f32,
+    minimum_leading_width: f32,
     view: &mut CompactViewGroup,
     locate_visible: &mut bool,
     import: &mut CompactImportGroup,
     locate_width: f32,
     metrics: AssetBrowserToolbarMetrics,
 ) {
-    while trailing_actions_width(view, *locate_visible, import, locate_width, metrics) > row_width {
+    while trailing_actions_width(view, *locate_visible, import, locate_width, metrics)
+        + minimum_leading_width
+        + metrics.group_gap
+        > row_width
+    {
         if view.visible {
             view.visible = false;
         } else if *locate_visible {
@@ -249,36 +263,17 @@ fn layout_kind_chips(
     width_limit: f32,
     metrics: AssetBrowserToolbarMetrics,
 ) {
-    let selected_chip = KIND_CHIPS
-        .iter()
-        .find(|(control_id, _)| is_selected(nodes, control_id))
-        .map(|(control_id, _)| *control_id);
-    let mut visible = Vec::new();
-    for &(control_id, _) in KIND_CHIPS {
-        if control_id == "AssetBrowserKindAllChip" || Some(control_id) == selected_chip {
-            visible.push(control_id);
-        }
-    }
-    for &(control_id, _) in KIND_CHIPS {
-        if visible.contains(&control_id) {
-            continue;
-        }
-        let mut candidate = visible.clone();
-        candidate.push(control_id);
-        if chip_stack_width(nodes, &candidate, metrics) <= width_limit {
-            visible.push(control_id);
-        }
-    }
+    let selection = select_visible_kind_chips(nodes, width_limit, metrics);
 
     let mut cursor_x = x;
     let mut has_visible_chip = false;
     let mut used_width = 0.0;
-    for &(control_id, fallback_width) in KIND_CHIPS {
-        if !visible.contains(&control_id) {
+    for (index, &(control_id, _)) in KIND_CHIPS.iter().enumerate() {
+        if !selection.visible[index] {
             hide_node(nodes, control_id, x + width_limit, y);
             continue;
         }
-        let chip_width = control_width(nodes, control_id, fallback_width);
+        let chip_width = selection.widths[index];
         if !chip_fits_in_width(
             used_width,
             has_visible_chip,
@@ -307,6 +302,70 @@ fn layout_kind_chips(
     }
 }
 
+struct KindChipSelection {
+    visible: [bool; KIND_CHIP_COUNT],
+    widths: [f32; KIND_CHIP_COUNT],
+}
+
+fn select_visible_kind_chips(
+    nodes: &[ViewTemplateNodeData],
+    width_limit: f32,
+    metrics: AssetBrowserToolbarMetrics,
+) -> KindChipSelection {
+    let states: [(f32, bool); KIND_CHIP_COUNT] = std::array::from_fn(|index| {
+        let (control_id, fallback_width) = KIND_CHIPS[index];
+        kind_chip_state(nodes, control_id, fallback_width)
+    });
+    let widths: [f32; KIND_CHIP_COUNT] = std::array::from_fn(|index| states[index].0);
+    let selected_chip = states.iter().position(|(_, selected)| *selected);
+    let mut visible = [false; KIND_CHIP_COUNT];
+    let mut visible_width = 0.0;
+    let mut visible_count = 0;
+
+    for index in 0..KIND_CHIP_COUNT {
+        if index == 0 || Some(index) == selected_chip {
+            if visible_count > 0 {
+                visible_width += metrics.row_gap;
+            }
+            visible[index] = true;
+            visible_width += widths[index];
+            visible_count += 1;
+        }
+    }
+    for index in 0..KIND_CHIP_COUNT {
+        if visible[index] {
+            continue;
+        }
+        let leading_gap = if visible_count > 0 {
+            metrics.row_gap
+        } else {
+            0.0
+        };
+        let candidate_width = visible_width + leading_gap + widths[index];
+        if candidate_width <= width_limit {
+            visible[index] = true;
+            visible_width = candidate_width;
+            visible_count += 1;
+        }
+    }
+
+    KindChipSelection { visible, widths }
+}
+
+fn kind_chip_state(
+    nodes: &[ViewTemplateNodeData],
+    control_id: &str,
+    fallback_width: f32,
+) -> (f32, bool) {
+    let Some(node) = nodes.iter().find(|node| node.control_id == control_id) else {
+        return (fallback_width, false);
+    };
+    let width = (node.frame.width > 0.0)
+        .then_some(node.frame.width)
+        .unwrap_or(fallback_width);
+    (width, node.selected)
+}
+
 fn chip_fits_in_width(
     used_width: f32,
     has_visible_chip: bool,
@@ -320,25 +379,6 @@ fn chip_fits_in_width(
         0.0
     };
     used_width + leading_gap + chip_width <= width_limit.max(0.0)
-}
-
-fn chip_stack_width(
-    nodes: &[ViewTemplateNodeData],
-    control_ids: &[&str],
-    metrics: AssetBrowserToolbarMetrics,
-) -> f32 {
-    let mut width = 0.0;
-    let mut visible_count = 0;
-    for &(control_id, fallback_width) in KIND_CHIPS {
-        if control_ids.contains(&control_id) {
-            if visible_count > 0 {
-                width += metrics.row_gap;
-            }
-            width += control_width(nodes, control_id, fallback_width);
-            visible_count += 1;
-        }
-    }
-    width
 }
 
 fn compact_view_group(
@@ -507,6 +547,10 @@ fn node_frame(nodes: &[ViewTemplateNodeData], control_id: &str) -> Option<ViewTe
         .map(|node| node.frame.clone())
 }
 
+fn has_control(nodes: &[ViewTemplateNodeData], control_id: &str) -> bool {
+    nodes.iter().any(|node| node.control_id == control_id)
+}
+
 fn control_width(nodes: &[ViewTemplateNodeData], control_id: &str, fallback: f32) -> f32 {
     node_frame(nodes, control_id)
         .map(|frame| frame.width)
@@ -514,6 +558,7 @@ fn control_width(nodes: &[ViewTemplateNodeData], control_id: &str, fallback: f32
         .unwrap_or(fallback)
 }
 
+#[cfg(test)]
 fn is_selected(nodes: &[ViewTemplateNodeData], control_id: &str) -> bool {
     nodes
         .iter()
@@ -553,10 +598,13 @@ const KIND_CHIPS: &[(&str, f32)] = &[
     ("AssetBrowserKindModelChip", 64.0),
     ("AssetBrowserKindShaderChip", 72.0),
 ];
+const KIND_CHIP_COUNT: usize = KIND_CHIPS.len();
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::hint::black_box;
+    use std::time::{Duration, Instant};
     use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorDensityTokens};
 
     #[test]
@@ -586,5 +634,204 @@ mod tests {
         assert!(chip_fits_in_width(0.0, false, 44.0, 44.0, metrics));
         assert!(!chip_fits_in_width(44.0, true, 78.0, 126.0, metrics));
         assert!(chip_fits_in_width(44.0, true, 78.0, 127.0, metrics));
+    }
+
+    #[test]
+    fn linear_kind_chip_selection_preserves_legacy_visibility() {
+        let metrics = asset_browser_toolbar_metrics();
+        for selected in [None, Some("AssetBrowserKindShaderChip")] {
+            for missing_last_chip in [false, true] {
+                let mut nodes = kind_chip_fixture(selected, 0);
+                if missing_last_chip {
+                    nodes.pop();
+                }
+                for width_limit in [0.0, 44.0, 130.0, 260.0, 1_000.0] {
+                    assert_eq!(
+                        select_visible_kind_chips(&nodes, width_limit, metrics).visible,
+                        legacy_visible_kind_chips(&nodes, width_limit, metrics),
+                        "visibility must match for selected={selected:?}, missing_last_chip={missing_last_chip}, width={width_limit}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn linear_kind_chip_selection_avoids_candidate_clones_and_repeated_width_scans() {
+        let source = include_str!("toolbar_layout.rs");
+        let implementation = source.split("#[cfg(test)]").next().unwrap_or(source);
+
+        assert!(!implementation.contains("let mut candidate = visible.clone()"));
+        assert!(!implementation.contains("fn chip_stack_width("));
+        assert!(implementation.contains("std::array::from_fn"));
+        assert!(implementation.contains("visible: [bool; KIND_CHIP_COUNT]"));
+    }
+
+    #[test]
+    #[ignore = "release-only asset toolbar chip selection performance gate"]
+    fn linear_kind_chip_selection_release_benchmark() {
+        const SAMPLE_COUNT: usize = 11;
+        const ITERATIONS_PER_SAMPLE: usize = 8_192;
+        const PREFIX_NODE_COUNT: usize = 64;
+        const MAX_OPTIMIZED_TO_LEGACY_PERCENT: u128 = 40;
+
+        let nodes = kind_chip_fixture(None, PREFIX_NODE_COUNT);
+        let metrics = asset_browser_toolbar_metrics();
+        let width_limit = 1_000.0;
+        black_box(select_visible_kind_chips(&nodes, width_limit, metrics));
+        black_box(legacy_visible_kind_chips(&nodes, width_limit, metrics));
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_COUNT);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_COUNT);
+        for sample in 0..SAMPLE_COUNT {
+            if sample % 2 == 0 {
+                legacy_samples.push(measure_kind_chip_selection(
+                    &nodes,
+                    metrics,
+                    width_limit,
+                    ITERATIONS_PER_SAMPLE,
+                    false,
+                ));
+                optimized_samples.push(measure_kind_chip_selection(
+                    &nodes,
+                    metrics,
+                    width_limit,
+                    ITERATIONS_PER_SAMPLE,
+                    true,
+                ));
+            } else {
+                optimized_samples.push(measure_kind_chip_selection(
+                    &nodes,
+                    metrics,
+                    width_limit,
+                    ITERATIONS_PER_SAMPLE,
+                    true,
+                ));
+                legacy_samples.push(measure_kind_chip_selection(
+                    &nodes,
+                    metrics,
+                    width_limit,
+                    ITERATIONS_PER_SAMPLE,
+                    false,
+                ));
+            }
+        }
+
+        let legacy_p95_ns = duration_p95_ns(legacy_samples);
+        let optimized_p95_ns = duration_p95_ns(optimized_samples);
+        let reduction_basis_points = legacy_p95_ns
+            .saturating_sub(optimized_p95_ns)
+            .saturating_mul(10_000)
+            / legacy_p95_ns.max(1);
+        println!(
+            "EDITOR57_LINEAR_KIND_CHIP_SELECTION_BENCH_V1 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} reduction_basis_points={reduction_basis_points} samples={SAMPLE_COUNT} iterations_per_sample={ITERATIONS_PER_SAMPLE} prefix_nodes={PREFIX_NODE_COUNT} chips={KIND_CHIP_COUNT} node_searches_per_selection=32->6 candidate_vec_clones_per_selection=5->0"
+        );
+        assert!(
+            optimized_p95_ns.saturating_mul(100)
+                <= legacy_p95_ns.saturating_mul(MAX_OPTIMIZED_TO_LEGACY_PERCENT),
+            "optimized P95 {optimized_p95_ns}ns must be at most {MAX_OPTIMIZED_TO_LEGACY_PERCENT}% of legacy P95 {legacy_p95_ns}ns"
+        );
+    }
+
+    fn measure_kind_chip_selection(
+        nodes: &[ViewTemplateNodeData],
+        metrics: AssetBrowserToolbarMetrics,
+        width_limit: f32,
+        iterations: usize,
+        optimized: bool,
+    ) -> Duration {
+        let started = Instant::now();
+        for _ in 0..iterations {
+            if optimized {
+                black_box(select_visible_kind_chips(
+                    black_box(nodes),
+                    width_limit,
+                    metrics,
+                ));
+            } else {
+                black_box(legacy_visible_kind_chips(
+                    black_box(nodes),
+                    width_limit,
+                    metrics,
+                ));
+            }
+        }
+        started.elapsed()
+    }
+
+    fn duration_p95_ns(mut samples: Vec<Duration>) -> u128 {
+        samples.sort_unstable();
+        let index = (samples.len() * 95).div_ceil(100).saturating_sub(1);
+        samples[index].as_nanos()
+    }
+
+    fn legacy_visible_kind_chips(
+        nodes: &[ViewTemplateNodeData],
+        width_limit: f32,
+        metrics: AssetBrowserToolbarMetrics,
+    ) -> [bool; KIND_CHIP_COUNT] {
+        let selected_chip = KIND_CHIPS
+            .iter()
+            .find(|(control_id, _)| is_selected(nodes, control_id))
+            .map(|(control_id, _)| *control_id);
+        let mut visible = Vec::new();
+        for &(control_id, _) in KIND_CHIPS {
+            if control_id == "AssetBrowserKindAllChip" || Some(control_id) == selected_chip {
+                visible.push(control_id);
+            }
+        }
+        for &(control_id, _) in KIND_CHIPS {
+            if visible.contains(&control_id) {
+                continue;
+            }
+            let mut candidate = visible.clone();
+            candidate.push(control_id);
+            if legacy_chip_stack_width(nodes, &candidate, metrics) <= width_limit {
+                visible.push(control_id);
+            }
+        }
+
+        std::array::from_fn(|index| visible.contains(&KIND_CHIPS[index].0))
+    }
+
+    fn legacy_chip_stack_width(
+        nodes: &[ViewTemplateNodeData],
+        control_ids: &[&str],
+        metrics: AssetBrowserToolbarMetrics,
+    ) -> f32 {
+        let mut width = 0.0;
+        let mut visible_count = 0;
+        for &(control_id, fallback_width) in KIND_CHIPS {
+            if control_ids.contains(&control_id) {
+                if visible_count > 0 {
+                    width += metrics.row_gap;
+                }
+                width += control_width(nodes, control_id, fallback_width);
+                visible_count += 1;
+            }
+        }
+        width
+    }
+
+    fn kind_chip_fixture(
+        selected: Option<&str>,
+        prefix_node_count: usize,
+    ) -> Vec<ViewTemplateNodeData> {
+        let mut nodes = (0..prefix_node_count)
+            .map(|index| ViewTemplateNodeData {
+                control_id: format!("FixturePrefix{index:03}").into(),
+                ..ViewTemplateNodeData::default()
+            })
+            .collect::<Vec<_>>();
+        nodes.extend(KIND_CHIPS.iter().map(|&(control_id, width)| {
+            let mut node = ViewTemplateNodeData {
+                control_id: control_id.into(),
+                selected: selected == Some(control_id),
+                ..ViewTemplateNodeData::default()
+            };
+            node.frame.width = width;
+            node
+        }));
+        nodes
     }
 }

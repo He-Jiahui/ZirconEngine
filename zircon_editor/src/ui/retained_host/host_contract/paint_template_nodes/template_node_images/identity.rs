@@ -3,7 +3,7 @@ use super::super::super::data::TemplatePaneNodeData;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_icon_node(
     node: &TemplatePaneNodeData,
 ) -> bool {
-    matches!(node.role.as_str(), "Icon" | "IconButton" | "SvgIcon") || !node.icon_name.is_empty()
+    !node.icon_name.is_empty() || matches!(node.role.as_str(), "Icon" | "IconButton" | "SvgIcon")
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_icon_only_node(
@@ -28,6 +28,10 @@ fn is_asset_thumbnail_visual(node: &TemplatePaneNodeData) -> bool {
             "asset-placeholder-visual" | "asset-preview-visual"
         )
 }
+
+#[cfg(test)]
+#[path = "identity/single_match_tests.rs"]
+mod single_match_tests;
 
 #[cfg(test)]
 mod tests {

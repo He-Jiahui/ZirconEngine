@@ -1,6 +1,7 @@
 use crate::core::framework::render::{MotionVectorCameraStatus, ViewportCameraSnapshot};
 use crate::core::math::UVec2;
 use crate::render_graph::RenderGraphAttachmentOps;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::scene::scene_renderer::post_process::{
@@ -14,7 +15,6 @@ impl ScenePostProcessResources {
     pub(crate) fn execute_velocity_camera(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         viewport_size: UVec2,
         scene_depth_view: &wgpu::TextureView,
@@ -23,13 +23,19 @@ impl ScenePostProcessResources {
         current_camera: &ViewportCameraSnapshot,
         previous_camera: Option<&ViewportCameraSnapshot>,
         enabled: bool,
-    ) -> MotionVectorCameraStatus {
+    ) -> (MotionVectorCameraStatus, WgpuBufferUploadBatch) {
         if !enabled {
-            return MotionVectorCameraStatus::NotRequested;
+            return (
+                MotionVectorCameraStatus::NotRequested,
+                WgpuBufferUploadBatch::new(),
+            );
         }
         let Some(previous_camera) = previous_camera else {
             clear_velocity_target(encoder, "ClearVelocityCameraPass", velocity_view);
-            return MotionVectorCameraStatus::MissingPreviousCamera;
+            return (
+                MotionVectorCameraStatus::MissingPreviousCamera,
+                WgpuBufferUploadBatch::new(),
+            );
         };
         let params = VelocityCameraParams::from_cameras(
             viewport_size,
@@ -39,14 +45,17 @@ impl ScenePostProcessResources {
         );
         if !params.is_enabled() {
             clear_velocity_target(encoder, "ClearVelocityCameraPass", velocity_view);
-            return MotionVectorCameraStatus::CameraCutOrInvalid;
+            return (
+                MotionVectorCameraStatus::CameraCutOrInvalid,
+                WgpuBufferUploadBatch::new(),
+            );
         }
 
-        queue.write_buffer(
-            &self.velocity_camera_params_buffer,
+        let params_uploads = WgpuBufferUploadBatch::from(WgpuBufferUpload::from_bytes(
+            self.velocity_camera_params_buffer.clone(),
             0,
             bytemuck::bytes_of(&params),
-        );
+        ));
         let scene_depth_binding_view = match self.depth_sampling_mode {
             PostProcessDepthSamplingMode::RawDepthTexture => scene_depth_view,
             PostProcessDepthSamplingMode::ViewportDepthFallback => &self.black_texture_view,
@@ -82,7 +91,7 @@ impl ScenePostProcessResources {
         pass.set_pipeline(&self.velocity_camera_pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.draw(0..3, 0..1);
-        MotionVectorCameraStatus::Ready
+        (MotionVectorCameraStatus::Ready, params_uploads)
     }
 }
 
@@ -107,4 +116,20 @@ fn clear_velocity_target(
         occlusion_query_set: None,
         multiview_mask: None,
     });
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn velocity_camera_params_are_returned_as_pre_submit_uploads() {
+        let source = include_str!("execute_velocity_camera.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("velocity camera production source");
+
+        assert!(!production.contains("queue.write_buffer"));
+        assert!(production.contains("WgpuBufferUpload::from_bytes("));
+        assert!(production.contains("WgpuBufferUploadBatch"));
+    }
 }

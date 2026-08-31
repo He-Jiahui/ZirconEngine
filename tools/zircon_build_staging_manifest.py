@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Iterator
 
@@ -136,6 +137,9 @@ def _source_candidates(config: object, staged_path: Path) -> Iterator[tuple[str,
     ):
         yield "generated", config.repo_root / "tools" / "zircon_build.py"
 
+    if relative.name == f"{_runtime_library_name()}.manifest.json":
+        yield "generated", config.repo_root / "tools" / "zircon_build_runtime_manifest.py"
+
 
 def _compiled_ui_relative(asset_relative: Path) -> Path | None:
     stage_parts = UI_COMPILED_ARTIFACT_STAGE_ROOT.parts
@@ -163,6 +167,8 @@ def _logical_artifact(target_path: str) -> str:
         "libzircon_runtime.so",
     }:
         return "runtime.library"
+    if target_path == f"{_runtime_library_name()}.manifest.json":
+        return "runtime.library.manifest"
     if target_path.startswith("assets/"):
         return f"engine_asset:{target_path.removeprefix('assets/')}"
     if target_path.startswith("plugins/"):
@@ -170,6 +176,14 @@ def _logical_artifact(target_path: str) -> str:
     if target_path == "plugins.toml":
         return "plugin_load_manifest"
     return f"staged_file:{target_path}"
+
+
+def _runtime_library_name() -> str:
+    if os.name == "nt":
+        return "zircon_runtime.dll"
+    if sys.platform == "darwin":
+        return "libzircon_runtime.dylib"
+    return "libzircon_runtime.so"
 
 
 def _source_path(config: object, source_path: Path) -> str:

@@ -1,10 +1,10 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui
-  - zircon_runtime_interface/src/runtime_api/requests.rs
-  - zircon_runtime_interface/src/runtime_api/events.rs
-  - zircon_runtime_interface/src/runtime_api/operation.rs
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/session/requests.rs
+  - zircon_runtime_interface/src/runtime_api/session/events.rs
+  - zircon_runtime_interface/src/runtime_api/session/operation.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime/src/ui
   - zircon_runtime/src/asset/assets/ui
   - zircon_runtime/src/dynamic_api/frame.rs
@@ -672,3 +672,8 @@ capture request声明tree/surface filter、base generation、max nodes/bytes/dep
 当前 `zircon_runtime_interface` 的 UI 公共面不能被视为工程级稳定authoring/runtime/remote/accessibility协议。保留已有tree/layout/dispatch/compiler fingerprint/host budget底座，但停止扩展三套作者格式、无世代action、任意JSON remote mutation和碎片化diagnostic。
 
 后续 interface 队列应转向剩余非UI public DTO与最终全crate ownership consolidation；UI实施必须先完成 M0，并由 Interface、Runtime UI、Editor UI三方共同签署schema/identity/transaction gates。本文所有3项P0、72项P1、12项P2均为 `pending`。
+
+Open Failure（source repaired / managed return pending）：generic UI host bridge 的 `ActivateLink`
+mixed-era `href: String` 投影已由本计划硬切为 `link_target: UiRichLinkTarget`，wire key 仍为 `href`；
+lower/upward managed gates 未完成，详见
+[runtime-interface-ui-activate-link-field-mismatch](03/failure-2026-08-31-runtime-interface-ui-activate-link-field-mismatch.md)。

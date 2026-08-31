@@ -4,12 +4,13 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections.rs
   - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_region.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_writeback.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_readback.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
 plan_sources:
   - user: 2026-07-06 continue real HDRI cubemap/PMREM correction and Shader 06 execution
@@ -33,7 +34,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`ibl_bake_wgpu_readback.rs` is the renderer-local acquisition bridge between materialized render graph outputs and the backend artifact readback helpers. The backend already knows how to read `Rgba16Float` cube mip chains and SH9 buffers, but it should not depend on scene-renderer resource names or render graph transient lifetime. This module owns that mapping.
+`ibl_bake_wgpu_readback.rs` is the renderer-local acquisition bridge between materialized render graph outputs and the backend artifact readback helpers. The backend already knows how to read `Rgba16Float` cube mip chains and SH9 buffers, but it should not depend on scene-renderer resource names or render graph transient lifetime. This module owns that mapping, including the exact compiled access window required for graph-backed SH9 readback.
 
 The bridge is part of Shader 06 EC-M2 / Render 11 EL-M1. It moves the live GPU bake path closer to the planned three-source artifact flow:
 
@@ -43,13 +44,13 @@ The bridge is part of Shader 06 EC-M2 / Render 11 EL-M1. It moves the live GPU b
 
 ## Behavior Model
 
-`ibl_bake_wgpu_readback_resources_from_graph_resources(...)` takes an `IblBakeArtifactDescriptor` and a `RenderGraphExecutionResources` view. It examines `descriptor.contents()` and only requires graph outputs that the descriptor says will be written into the artifact.
+`ibl_bake_wgpu_readback_resources_from_graph_resources(...)` takes an `IblBakeArtifactDescriptor`, a `RenderGraphExecutionResources` view, and the corresponding `CompiledRenderGraph`. It examines `descriptor.contents()` and only requires graph outputs that the descriptor says will be written into the artifact.
 
-- `PMREM` requires the owned transient texture named `environment.ibl.pmrem`.
-- `SH9` requires the storage buffer named `environment.ibl.irradiance_sh9`.
-- `IEM` requires the owned transient texture named `environment.ibl.irradiance_cube`.
+- `PMREM` requires the transient texture named `environment.ibl.pmrem`; every live mip writer must resolve through an exact access ID to the same compiler physical allocation.
+- `SH9` requires the storage buffer named `environment.ibl.irradiance_sh9`; the bridge finds its unique live compiled `Write` access and carries the exact transient/external `(buffer, offset..end)` window into backend readback.
+- `IEM` requires the transient texture named `environment.ibl.irradiance_cube` through its exact live writer access and physical allocation.
 
-The function returns `IblBakeArtifactWgpuReadbackResources`, which is the backend-facing readback packet consumed by `read_ibl_bake_artifact_wgpu_sections(...)`. Missing resources fail before backend readback begins, and the error includes the exact render graph resource name and expected role.
+The function returns `IblBakeArtifactWgpuReadbackResources`, which is the backend-facing readback packet consumed by `read_ibl_bake_artifact_wgpu_sections(...)`. Missing resources, missing access identities, divergent PMREM physical allocations, duplicate SH9 live writers, kind mismatches, and descriptor/window size mismatches fail before backend readback begins, and the error includes the exact render graph resource name and expected role. The backend staging copy and product diagnostic admission consume the same SH9 offset and size.
 
 `read_ibl_bake_artifact_wgpu_sections_from_graph_resources(...)` is the thin integration entry for future scheduler code. It builds the backend readback packet, then calls the backend reader to produce `IblBakeArtifactReadbackSections`.
 
@@ -70,11 +71,12 @@ The bridge intentionally does not read uninitialized GPU data in its acquisition
 - SH9-only descriptors are allowed by the readback bridge because the SH9 buffer is self-contained once a scheduler has an explicit request descriptor. This differs from the current opt-in executor request inference, which still needs PMREM metadata to recover face size and mip count.
 - IEM descriptors use a single-mip irradiance cube texture with `SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE` and six array layers.
 - Missing PMREM/SH9/IEM graph resources fail by name. This is important because runtime graph writeback must run before `release_transient_backings_into_pool(...)`.
+- Graph-backed SH9 readback is range-preserving: a non-zero transient alias/window is read from its compiled source offset, while direct environment-capture targets intentionally use the legacy full-buffer range.
 - The bridge does not choose the production cache root or inject scheduler work into the product renderer. Runtime cache writeback from already-scheduled graph outputs is handled by `ibl_bake_runtime_writeback.rs`.
 
 ## Test Coverage
 
-The focused unit tests materialize an IBL bake render graph on an offscreen WGPU backend, then verify that full `PMREM_SH9_IEM` descriptors resolve all required readback resources and SH9-only descriptors do not require PMREM or IEM. Negative coverage verifies that an empty graph resource set reports the missing PMREM resource by stable graph name. IEM descriptor coverage locks the single-mip, six-face irradiance cube shape.
+The focused unit tests materialize an IBL bake render graph on an offscreen WGPU backend, then verify that full `PMREM_SH9_IEM` descriptors resolve all required readback resources and SH9-only descriptors do not require PMREM or IEM. A typed external SH9 fixture preserves a non-zero `64..64+SH9_SIZE` access window through the renderer packet, while backend fixtures reject descriptor/window size mismatches and physical-buffer overruns. Negative coverage verifies that an empty graph resource set reports the missing PMREM resource by stable graph name. IEM descriptor coverage locks the single-mip, six-face irradiance cube shape. These new 2026-08-30 tests are source-only until the managed Cargo/WGPU gate can run.
 
 The validation commands listed in the header are the scoped checks for this slice. The first `cargo check` run caught a test-only `expect_err` issue because the backend readback resource packet intentionally does not implement `Debug`; the test was corrected to an explicit `match`, then the same scoped check passed.
 

@@ -24,8 +24,8 @@ pub use clip_evaluator::{
 pub use compiled_animation_clip::CompiledAnimationClip;
 pub use compiled_clip_track::CompiledClipTrack;
 pub use compiled_graph::{
-    AnimationGraphCompileError, CompiledAnimationGraph, CompiledAnimationGraphEvaluation,
-    CompiledGraphClipInstance,
+    compile_animation_graph_runtime, AnimationGraphCompileError, CompiledAnimationGraph,
+    CompiledAnimationGraphEvaluation, CompiledGraphClipInstance,
 };
 pub(crate) use pipeline::tick_animation_world;
 pub use pipeline::{

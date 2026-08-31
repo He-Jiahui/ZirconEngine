@@ -1,6 +1,6 @@
 use woc_protocol::{
     event_stream_digest, fnv1a_bytes, Command, EntityRef, FixedTickInput, MovementFrame,
-    MovementInputFlags, WorldSnapshot,
+    MovementInputFlags, WorldSnapshot, MAX_MOVEMENT_FRAMES_PER_TICK,
 };
 use woc_runtime::{RuntimeStatus, TickBudgets, TickUsage, VmTickError, VmTickResult, WocProjectVm};
 use woc_server::{
@@ -149,6 +149,34 @@ fn driver_rejects_duplicate_movement_actor_before_it_can_reach_the_vm() {
         Err(ServerTickInputError::Movement(_))
     ));
     assert_eq!(driver.pending_movement_count(), 1);
+}
+
+#[test]
+fn oversized_protocol_batch_is_rejected_without_losing_pending_frames() {
+    let frame_count = MAX_MOVEMENT_FRAMES_PER_TICK + 1;
+    let mut driver = FixedServerTickDriver::new(
+        RecordingVm::default(),
+        TickBudgets::default(),
+        1,
+        1,
+        frame_count,
+    )
+    .expect("the host queue may expose a larger budget than one protocol tick");
+    let frames = (1..=frame_count)
+        .map(|actor_id| movement(actor_id as u64, 1))
+        .collect();
+    driver.enqueue_movement(frames).unwrap();
+
+    assert!(matches!(
+        driver.advance(SERVER_TICK_NS),
+        Err(woc_server::ServerTickDriverError::Movement(
+            woc_protocol::MovementInputError::TooManyFrames {
+                actual,
+                maximum: MAX_MOVEMENT_FRAMES_PER_TICK,
+            }
+        )) if actual == frame_count
+    ));
+    assert_eq!(driver.pending_movement_count(), frame_count);
 }
 
 #[test]

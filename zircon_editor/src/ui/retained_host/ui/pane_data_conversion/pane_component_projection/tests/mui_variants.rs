@@ -260,3 +260,26 @@ fn runtime_component_projection_preserves_mui_feedback_variant_open_and_progress
     assert_eq!(collapse.transition_progress, 0.0);
     assert_eq!(collapse.transition_duration_ms, 300);
 }
+
+#[test]
+fn runtime_component_projection_ignores_transition_state_without_a_transition_kind() {
+    let paper = host_template_node(projected_node(
+        "Paper",
+        [
+            ("transition_in", Value::Boolean(false)),
+            ("transition_progress", Value::Float(0.25)),
+            ("transition_duration_ms", Value::Integer(999)),
+            ("transition_easing", Value::String("linear".to_owned())),
+            ("transition_direction", Value::String("left".to_owned())),
+        ],
+    ))
+    .expect("a non-transition component should still project into the host contract");
+
+    assert!(paper.transition_kind.is_empty());
+    assert!(paper.transition_in);
+    assert!(paper.transition_entered);
+    assert_eq!(paper.transition_progress, 1.0);
+    assert_eq!(paper.transition_duration_ms, 0);
+    assert!(paper.transition_easing.is_empty());
+    assert!(paper.transition_direction.is_empty());
+}

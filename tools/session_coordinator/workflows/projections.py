@@ -78,25 +78,38 @@ class WorkflowProjectionService:
             "SELECT * FROM workflow_nodes WHERE run_id = ? ORDER BY stage, node_key",
             (run_id,),
         ).fetchall()
+        attempts_by_node: dict[str, list[sqlite3.Row]] = {}
+        for attempt in connection.execute(
+            """
+            SELECT attempt.* FROM workflow_attempts AS attempt
+            WHERE attempt.node_id IN (
+                SELECT node_id FROM workflow_nodes WHERE run_id=?
+            )
+            ORDER BY attempt.node_id, attempt.attempt_number
+            """,
+            (run_id,),
+        ):
+            attempts_by_node.setdefault(str(attempt["node_id"]), []).append(attempt)
+        milestone_node_ids = tuple(
+            str(node["node_id"]) for node in node_rows if node["kind"] == "milestone"
+        )
+        commit_eligibilities = self._commit_eligibilities(
+            connection,
+            run_id,
+            milestone_node_ids,
+            run["current_topology_version_id"],
+        )
         nodes: list[dict[str, object]] = []
         for node in node_rows:
-            attempts = connection.execute(
-                """
-                SELECT * FROM workflow_attempts
-                WHERE node_id = ? ORDER BY attempt_number
-                """,
-                (node["node_id"],),
-            ).fetchall()
-            attempt_history = [self._attempt_projection(attempt) for attempt in attempts]
-            accepted = [attempt for attempt in attempts if bool(attempt["accepted"])]
-            current = self._attempt_projection(accepted[-1]) if accepted else None
+            attempt_history = []
+            current = None
+            for attempt in attempts_by_node.get(str(node["node_id"]), ()):
+                projection = self._attempt_projection(attempt)
+                attempt_history.append(projection)
+                if bool(attempt["accepted"]):
+                    current = projection
             eligibility = (
-                self._commit_eligibility(
-                    connection,
-                    run_id,
-                    node["node_id"],
-                    run["current_topology_version_id"],
-                )
+                commit_eligibilities[str(node["node_id"])]
                 if node["kind"] == "milestone"
                 else None
             )
@@ -242,61 +255,100 @@ class WorkflowProjectionService:
         }
 
     @staticmethod
-    def _commit_eligibility(
+    def _commit_eligibilities(
         connection: sqlite3.Connection,
         run_id: str,
-        node_id: str,
+        node_ids: tuple[str, ...],
         topology_version_id: str | None,
-    ) -> dict[str, object]:
+    ) -> dict[str, dict[str, object]]:
+        if not node_ids:
+            return {}
         required = {
             "validation", "review", "failure_audit", "plan_output", "commit_manifest"
         }
         if topology_version_id is None:
-            return {"eligible": False, "code": "workflow_topology_not_active", "missing": sorted(required)}
+            missing = sorted(required)
+            return {
+                node_id: {
+                    "eligible": False,
+                    "code": "workflow_topology_not_active",
+                    "missing": missing,
+                }
+                for node_id in node_ids
+            }
         rows = connection.execute(
-            """SELECT evidence.* FROM workflow_gate_evidence evidence
-               WHERE evidence.run_id=? AND evidence.topology_version_id=?
-                 AND evidence.node_id=? AND evidence.rowid=(
-                    SELECT latest.rowid FROM workflow_gate_evidence latest
-                    WHERE latest.run_id=evidence.run_id
-                      AND latest.topology_version_id=evidence.topology_version_id
-                      AND latest.node_id=evidence.node_id
-                      AND latest.gate_kind=evidence.gate_kind
-                    ORDER BY latest.created_at DESC, latest.rowid DESC LIMIT 1
-                 )""",
-            (run_id, topology_version_id, node_id),
+            """SELECT evidence.* FROM (
+                   SELECT source.*,
+                          ROW_NUMBER() OVER (
+                              PARTITION BY source.node_id, source.gate_kind
+                              ORDER BY source.created_at DESC, source.rowid DESC
+                          ) AS evidence_rank
+                   FROM workflow_gate_evidence source
+                   WHERE source.run_id=? AND source.topology_version_id=?
+                     AND source.node_id IN (
+                         SELECT node_id FROM workflow_nodes
+                         WHERE run_id=? AND kind='milestone'
+                     )
+               ) evidence
+               WHERE evidence.evidence_rank=1""",
+            (run_id, topology_version_id, run_id),
         ).fetchall()
-        latest = {row["gate_kind"]: row for row in rows}
-        missing = sorted(required - set(latest))
-        rejected = sorted(
-            kind for kind in required & set(latest) if latest[kind]["decision"] != "accepted"
-        )
-        fingerprints = {
-            latest[kind]["input_fingerprint"] for kind in required & set(latest)
+        latest_by_node: dict[str, dict[str, sqlite3.Row]] = {}
+        for row in rows:
+            latest_by_node.setdefault(str(row["node_id"]), {})[
+                str(row["gate_kind"])
+            ] = row
+        accepted_reviews = {
+            (str(row["node_id"]), str(row["input_fingerprint"]))
+            for row in connection.execute(
+                """SELECT node_id, input_fingerprint FROM workflow_review_evidence
+                   WHERE run_id=? AND topology_version_id=? AND verdict='accepted'
+                     AND node_id IN (
+                        SELECT node_id FROM workflow_nodes
+                        WHERE run_id=? AND kind='milestone'
+                     )""",
+                (run_id, topology_version_id, run_id),
+            )
         }
-        review_ok = False
-        if "review" in latest:
-            review_ok = connection.execute(
-                """SELECT 1 FROM workflow_review_evidence
-                   WHERE run_id=? AND topology_version_id=? AND node_id=?
-                     AND input_fingerprint=? AND verdict='accepted' LIMIT 1""",
-                (
-                    run_id,
-                    topology_version_id,
-                    node_id,
-                    latest["review"]["input_fingerprint"],
-                ),
-            ).fetchone() is not None
-        eligible = not missing and not rejected and len(fingerprints) == 1 and review_ok
-        code = "database_evidence_ready" if eligible else "database_evidence_not_ready"
-        return {
-            "eligible": eligible,
-            "code": code,
-            "missing": missing,
-            "rejected": rejected,
-            "fingerprintConsistent": len(fingerprints) <= 1,
-            "independentReviewAccepted": review_ok,
-        }
+        results: dict[str, dict[str, object]] = {}
+        for node_id in node_ids:
+            latest = latest_by_node.get(node_id, {})
+            latest_kinds = set(latest)
+            missing = sorted(required - latest_kinds)
+            rejected = sorted(
+                kind
+                for kind in required & latest_kinds
+                if latest[kind]["decision"] != "accepted"
+            )
+            fingerprints = {
+                latest[kind]["input_fingerprint"]
+                for kind in required & latest_kinds
+            }
+            review_ok = (
+                "review" in latest
+                and (node_id, str(latest["review"]["input_fingerprint"]))
+                in accepted_reviews
+            )
+            eligible = (
+                not missing
+                and not rejected
+                and len(fingerprints) == 1
+                and review_ok
+            )
+            code = (
+                "database_evidence_ready"
+                if eligible
+                else "database_evidence_not_ready"
+            )
+            results[node_id] = {
+                "eligible": eligible,
+                "code": code,
+                "missing": missing,
+                "rejected": rejected,
+                "fingerprintConsistent": len(fingerprints) <= 1,
+                "independentReviewAccepted": review_ok,
+            }
+        return results
 
     @staticmethod
     def _attempt_projection(row: sqlite3.Row) -> dict[str, object]:

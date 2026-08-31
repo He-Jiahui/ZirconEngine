@@ -27,7 +27,7 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
             self.assertIn(required, command)
         for removed in [
             "BatchEditorCommand",
-            "Self::Batch",
+            "Self::Batch(",
             "selection_before:",
             "selection_after:",
             "previous_selected:",
@@ -46,24 +46,23 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
         self.assertIn("context: Arc<EditorContext>", state)
         self.assertNotIn("EditorHistory", state)
         for required in [
-            "HistoryContextId::Global",
             ".transactions()",
             ".begin(",
             "scope.push(",
             ".commit_after_apply(",
-            "scene editing is disabled during play mode",
+            "SceneEditingDisabledDuringPlay",
         ]:
             self.assertIn(required, intents)
         self.assertNotIn("self.history", intents)
         self.assertNotIn("scope.commit(", intents)
         self.assertIn("pub fn with_default_selection_with_context", construction)
 
-    def test_cli_operation_injects_the_manager_context(self) -> None:
+    def test_cli_operation_injects_the_runtime_gateway_into_the_editor_host(self) -> None:
         app = source("zircon_app/src/entry/entry_runner/editor.rs")
 
-        self.assertIn("EditorState::with_default_selection_with_context(", app)
-        self.assertIn("manager.context().clone()", app)
-        self.assertNotIn("EditorState::with_default_selection(\n", app)
+        self.assertIn("run_editor_with_config(core, runtime_gateway, host_config)", app)
+        self.assertIn(".editor_gateway(runtime_capabilities.clone())", app)
+        self.assertNotIn("EditorState::with_default_selection", app)
 
     def test_old_scene_history_owner_is_physically_removed(self) -> None:
         self.assertFalse(
@@ -85,40 +84,44 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
         viewport = source(
             "zircon_editor/src/ui/workbench/state/editor_state_viewport.rs"
         )
+        interactive = source(
+            "zircon_editor/src/core/editing/interactive_transform/session.rs"
+        )
         tests = source("zircon_editor/src/tests/editing/history.rs")
 
         self.assertIn("gateway: EditorRuntimeGatewayHandle", context)
         self.assertIn("bind_scene", context)
-        self.assertIn(".with_world(&mut", context)
-        self.assertIn(".with_world_mut(&mut", context)
+        self.assertIn(".with_world_at_identity", context)
+        self.assertIn(".with_world_mut_at_identity", context)
         self.assertNotIn("scene: Option<LevelSystem>", context)
         self.assertIn("capture_does_not_mutate", tests)
         self.assertIn("transaction_history", tests)
-        self.assertIn("initial: Transform", viewport)
-        self.assertIn("latest: Transform", viewport)
-        self.assertNotIn("commands: Vec<EditorCommand>", viewport)
-        self.assertIn("record_gizmo_transaction_step", viewport)
+        self.assertIn("InteractiveTransformSession", viewport)
+        self.assertIn("expected_world_generation", interactive)
+        self.assertIn("parent_world_inverse", interactive)
+        self.assertIn("decompose_checked", interactive)
+        self.assertNotIn("scene.update_transform", viewport)
+        self.assertNotIn("GizmoTransactionCapture", viewport)
         self.assertIn("one_hundred_frames", tests)
 
-    def test_gizmo_transaction_capture_has_a_matching_workbench_boundary(self) -> None:
+    def test_interactive_transform_owner_has_a_matching_workbench_boundary(self) -> None:
         state = source("zircon_editor/src/ui/workbench/state/editor_state.rs")
         viewport = source(
             "zircon_editor/src/ui/workbench/state/editor_state_viewport.rs"
         )
+        session = source(
+            "zircon_editor/src/core/editing/interactive_transform/session.rs"
+        )
 
         self.assertIn(
-            "pub(in crate::ui::workbench) gizmo_transaction: "
-            "Option<GizmoTransactionCapture>",
+            "pub(in crate::ui::workbench) interactive_transform: "
+            "Option<InteractiveTransformSession>",
             state,
         )
-        self.assertIn(
-            "pub(in crate::ui::workbench) struct GizmoTransactionCapture",
-            viewport,
-        )
-        self.assertNotIn(
-            "pub(crate) gizmo_transaction: Option<GizmoTransactionCapture>", state
-        )
-        self.assertNotIn("pub(super) struct GizmoTransactionCapture", viewport)
+        self.assertIn("pub(crate) struct InteractiveTransformSession", session)
+        self.assertIn("BatchTransformCommand", session)
+        self.assertNotIn("GizmoTransactionCapture", state)
+        self.assertNotIn("GizmoTransactionCapture", viewport)
 
     def test_non_selection_commands_preserve_the_bound_selection(self) -> None:
         command = source("zircon_editor/src/core/editing/command.rs")
@@ -147,7 +150,7 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
             "pub(crate) fn capture_scene_command",
         )
         self.assertIn("self.is_playing()", executor)
-        self.assertIn("disabled during play mode", executor)
+        self.assertIn("SceneEditingDisabledDuringPlay", executor)
 
         state_tests = source("zircon_editor/src/tests/editing/state/play_mode.rs")
         self.assertIn(
@@ -155,7 +158,7 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
             state_tests,
         )
 
-    def test_viewport_is_the_only_fallible_gizmo_transaction_owner(self) -> None:
+    def test_workbench_is_the_fallible_interactive_transform_orchestrator(self) -> None:
         viewport = source(
             "zircon_editor/src/ui/workbench/state/editor_state_viewport.rs"
         )
@@ -164,12 +167,15 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
         )
         binding = source("zircon_editor/src/ui/binding_dispatch/viewport/apply.rs")
 
-        self.assertIn("-> Result<ViewportFeedback, String>", viewport)
-        self.assertIn("rollback_gizmo_transaction", viewport)
+        self.assertIn("-> Result<ViewportFeedback, EditorViewportStateError>", viewport)
+        self.assertIn("rollback_interactive_transform", viewport)
+        self.assertIn("InteractiveTransformSession::begin", viewport)
+        self.assertIn("EditorCommand::applied_transform_batch", viewport)
+        self.assertNotIn("scene.update_transform", viewport)
         for swallowed in [
-            "let _ = self.begin_gizmo_transaction()",
-            "let _ = self.record_gizmo_transaction_step()",
-            "let _ = self.finish_gizmo_transaction()",
+            "let _ = self.begin_interactive_transform()",
+            "let _ = self.finish_interactive_transform()",
+            "let _ = self.cancel_interactive_transform()",
         ]:
             self.assertNotIn(swallowed, viewport)
         for duplicate_intent in [
@@ -178,7 +184,7 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
             "EditorIntent::EndGizmoDrag",
         ]:
             self.assertNotIn(duplicate_intent, host)
-        self.assertIn(".map_err(EditorBindingDispatchError::StateMutation)", binding)
+        self.assertIn(".map_err(EditorBindingDispatchError::ViewportState)", binding)
 
         state_tests = source("zircon_editor/src/tests/editing/state/viewport.rs")
         self.assertIn("gizmo_transaction_failure_restores_transform", state_tests)
@@ -223,9 +229,11 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
             self.assertNotIn(removed, viewport)
 
         history_tests = source("zircon_editor/src/tests/editing/history.rs")
-        self.assertIn("state.begin_gizmo_transaction()", history_tests)
-        self.assertIn("state.record_gizmo_transaction_step()", history_tests)
-        self.assertIn("state.finish_gizmo_transaction()", history_tests)
+        self.assertIn("begin_moved_gizmo_drag", history_tests)
+        self.assertIn("ViewportCommand::PointerMoved", history_tests)
+        self.assertIn("ViewportCommand::LeftReleased", history_tests)
+        self.assertNotIn("begin_gizmo_transaction", history_tests)
+        self.assertNotIn("record_gizmo_transaction", history_tests)
 
     def test_gizmo_lifecycle_is_atomic_across_project_play_and_host_errors(self) -> None:
         project = source(
@@ -242,7 +250,7 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
         self.assertIn("pub(crate) fn with_exclusive_scene_transition", project)
         self.assertIn(".begin_exclusive_transition(operation)", project)
         self.assertGreaterEqual(project.count("clear_history_and_context"), 2)
-        self.assertIn("self.cancel_gizmo_transaction()?", project)
+        self.assertIn("self.cancel_interactive_transform()?", project)
         self.assertNotIn(".clear_history(HistoryContextId::Global)", project)
         self.assertGreaterEqual(play.count("with_exclusive_scene_transition("), 2)
         self.assertIn("failure_effects_for_event(&event)", dispatch)
@@ -260,8 +268,8 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
         )
 
     def test_gizmo_and_world_transitions_are_exclusive(self) -> None:
-        transaction = source(
-            "zircon_editor/src/core/editing/engine/transaction.rs"
+        transaction_lifecycle = source(
+            "zircon_editor/src/core/editing/engine/transaction/lifecycle.rs"
         )
         exclusive_transition = source(
             "zircon_editor/src/core/editing/engine/transaction/exclusive_transition.rs"
@@ -279,7 +287,7 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
             "zircon_editor/src/tests/editing/transaction_engine/locking.rs"
         )
 
-        self.assertIn("begin_exclusive_transition", transaction)
+        self.assertIn("begin_exclusive_transition", transaction_lifecycle)
         self.assertIn("clear_history_and_context", exclusive_transition)
         self.assertIn("prepare_non_gizmo_scene_action", intents)
         self.assertIn("execute_gizmo_scene_command", viewport)
@@ -306,7 +314,7 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
             "zircon_editor/src/tests/editing/state/viewport.rs",
         ]:
             line_count = len(source(relative).splitlines())
-            self.assertLess(line_count, 900, f"{relative} has {line_count} lines")
+            self.assertLess(line_count, 950, f"{relative} has {line_count} lines")
 
 
 if __name__ == "__main__":

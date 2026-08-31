@@ -83,6 +83,8 @@ Zircon 的任务层不是空壳。当前代码已经具备三类 Rayon pool、�
 
 但它们尚未组成一个工程级 execution runtime。`TasksModule` 只是可被激活和卸载的描述符，既不创建 execution owner，也不关闭 admission、取消 scope、排空 task、停止 timer 或 join worker；`CoreRuntime` 则在模块系统之外直接取得进程级 `OnceLock<TaskPools>`。因此 AssetModule 对 TasksModule 的硬依赖只能证明一个名字已激活，不能证明执行服务已就绪或卸载已静默。`AsyncTaskDescriptor`、`TaskCancellationPolicy` 和 `TaskPollBudget` 又与真正的 `JobScheduler/JobHandle` 完全断开，scene 等子系统只好手工重建状态机。
 
+2026-08-26 implementation update, pending acceptance: `CoreRuntime::try_new()` now owns an instance-local `ExecutionRuntime`, and dynamic-session destroy requests that owner's scoped drain after module deactivation. `TasksModule` remains a descriptor rather than the execution lifecycle service; generic scheduler, callback dispatcher, timer, and private workers still bypass scope ownership. The P0 and the remaining Runtime59 findings therefore stay open.
+
 线程预算也不是产品事实。线程分配器在剩余为零时仍把每类 pool clamp 到至少一个 worker，`total_threads=2`可以实际创建三个 worker；`JobScheduler::default()`还能另建一个完整 compute pool。Text 把 async-compute 的预算数字当作自身专用 OS worker 数再次创建线程，Graphics、diagnostic log、config、watcher 和 render submission 也各自管理线程。`TaskPoolReport`只报告三类 pool 的配置，无法回答进程中实际有多少线程、归谁、排了多少工作、能否退出。
 
 本轮不新增跨报告 P0 计数。Runtime02 已拥有 task/timer worker 越过 dynamic session 与 DLL unload 的总 P0；Editor09 已拥有 shutdown deadline 后仍继续拆 project/settings 的 Editor P0。本篇补齐这两个阻断在 task subsystem 内的直接原因和验收合同，但不重复累计。本轮登记 **72项P1、18项P2和40项验收门禁**。目标不是继续为每个子系统加一个私有 pool，而是建立 `ExecutionRuntime + WorkerDomain + TaskScope + TaskDescriptor + Task<T> + DependencyGraph + DeadlineService + BoundedOperationLane + DedicatedWorkerLease + ExecutionDiagnostics`，让每项异步工作都能回答 identity、owner、admission、result、cancel、deadline、shutdown 和 observation。

@@ -1,17 +1,19 @@
-use std::collections::BTreeMap;
+use std::collections::{HashMap, hash_map::Entry};
 
 use crate::core::editor_authoring_extension::SceneModeDescriptor;
 use crate::core::editor_message::SceneModeId;
+use crate::core::extension::ContributionTicket;
 use crate::core::plugin::run_editor_plugin_boundary;
 
 use super::{
-    isolated_scene_mode::IsolatedSceneMode, EditorSceneMode, SceneModeRegistration,
-    SceneModeRegistryError,
+    EditorSceneMode, SceneModeRegistration, SceneModeRegistryError,
+    isolated_scene_mode::IsolatedSceneMode,
 };
 
 #[derive(Clone, Debug, Default)]
 pub struct SceneModeRegistry {
-    registrations: BTreeMap<SceneModeId, SceneModeRegistration>,
+    registrations: HashMap<SceneModeId, SceneModeRegistration>,
+    ordered_mode_ids: Vec<SceneModeId>,
 }
 
 impl SceneModeRegistry {
@@ -20,17 +22,31 @@ impl SceneModeRegistry {
         registration: SceneModeRegistration,
     ) -> Result<(), SceneModeRegistryError> {
         let mode_id = registration.mode_id().clone();
-        if self.registrations.contains_key(&mode_id) {
-            return Err(SceneModeRegistryError::DuplicateMode { mode_id });
+        match self.registrations.entry(mode_id.clone()) {
+            Entry::Occupied(_) => Err(SceneModeRegistryError::DuplicateMode { mode_id }),
+            Entry::Vacant(entry) => {
+                let ordered_index = self
+                    .ordered_mode_ids
+                    .partition_point(|registered| registered < &mode_id);
+                self.ordered_mode_ids.insert(ordered_index, mode_id);
+                entry.insert(registration);
+                Ok(())
+            }
         }
-        self.registrations.insert(mode_id, registration);
-        Ok(())
     }
 
     pub fn create(
         &self,
         mode_id: &SceneModeId,
     ) -> Result<Box<dyn EditorSceneMode>, SceneModeRegistryError> {
+        self.create_with_contribution(mode_id).map(|(mode, _)| mode)
+    }
+
+    pub(crate) fn create_with_contribution(
+        &self,
+        mode_id: &SceneModeId,
+    ) -> Result<(Box<dyn EditorSceneMode>, Option<ContributionTicket>), SceneModeRegistryError>
+    {
         let registration =
             self.registrations
                 .get(mode_id)
@@ -63,7 +79,26 @@ impl SceneModeRegistry {
                 produced_mode_id,
             });
         }
-        Ok(Box::new(isolated))
+        Ok((Box::new(isolated), registration.contribution_ticket()))
+    }
+
+    pub(crate) fn without_contribution(
+        &self,
+        ticket: ContributionTicket,
+    ) -> (Self, Vec<SceneModeId>) {
+        let removed = self
+            .registrations()
+            .filter(|registration| registration.contribution_ticket() == Some(ticket))
+            .map(|registration| registration.mode_id().clone())
+            .collect::<Vec<_>>();
+        let mut candidate = self.clone();
+        candidate
+            .registrations
+            .retain(|_, registration| registration.contribution_ticket() != Some(ticket));
+        candidate
+            .ordered_mode_ids
+            .retain(|mode_id| candidate.registrations.contains_key(mode_id));
+        (candidate, removed)
     }
 
     pub fn descriptor(&self, mode_id: &SceneModeId) -> Option<&SceneModeDescriptor> {
@@ -73,7 +108,9 @@ impl SceneModeRegistry {
     }
 
     pub fn registrations(&self) -> impl Iterator<Item = &SceneModeRegistration> {
-        self.registrations.values()
+        self.ordered_mode_ids
+            .iter()
+            .filter_map(|mode_id| self.registrations.get(mode_id))
     }
 
     pub fn len(&self) -> usize {
@@ -84,3 +121,11 @@ impl SceneModeRegistry {
         self.registrations.is_empty()
     }
 }
+
+#[cfg(test)]
+#[path = "scene_mode_registry/entry_registration_tests.rs"]
+mod entry_registration_tests;
+
+#[cfg(test)]
+#[path = "scene_mode_registry/hash_lookup_tests.rs"]
+mod hash_lookup_tests;

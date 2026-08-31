@@ -9,10 +9,10 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
 ]
 styles = []
@@ -21,24 +21,47 @@ root = "render_workspace"
 default_classes = ["workbench-module-body"]
 
 [nodes.render_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchModuleRenderWorkspace"
 classes = ["workbench-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "render_rail_gap" }, { node = "render_left" }, { node = "render_center" }, { node = "render_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "render_workspace_main" },
+  { node = "render_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.render_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "render_rail_gap" }, { node = "render_left" }, { node = "render_center" }, { node = "render_right_reserve" }]
+
+[nodes.render_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.render_rail_gap]
 component = "Container"
 control_id = "WorkbenchRenderRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.render_left]
 component = "VerticalGroup"
 control_id = "WorkbenchRenderLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "render_title" }, { node = "render_graph_tab" }, { node = "render_resources_tab" }, { node = "render_warnings_tab" }, { node = "render_pass_row_01" }, { node = "render_pass_row_02" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "render_title" }, { node = "render_left_content" }]
+
+[nodes.render_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchRenderLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "render_pass_row_01" }, { node = "render_pass_row_02" }]
 
 [nodes.render_title]
 component = "WorkbenchSectionTitle"
@@ -46,35 +69,11 @@ control_id = "WorkbenchRenderTitle"
 props = { text = "Render Pipeline" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
-[nodes.render_graph_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchRenderGraphTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Graph", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/RenderGraphTab", event = "Click", route = "workbench.module.render.graph" }]
-
-[nodes.render_resources_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchRenderResourcesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Resources", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/RenderResourcesTab", event = "Click", route = "workbench.module.render.resources" }]
-
-[nodes.render_warnings_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchRenderWarningsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Warnings", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/RenderWarningsTab", event = "Click", route = "workbench.module.render.warnings" }]
-
 [nodes.render_pass_row_01]
 component = "WorkbenchListRow"
 control_id = "WorkbenchRenderLightingPassRow"
-classes = ["workbench-list-row", "workbench-row-selected"]
-props = { text = "Lighting Pass", icon = "renderer", selected = true }
+classes = ["workbench-list-row"]
+props = { text = "Lighting Pass", icon = "renderer" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/RenderLightingPass", event = "Click", route = "workbench.module.render.pass.lighting" }]
 
@@ -82,7 +81,7 @@ events = [{ id = "WorkbenchModule/RenderLightingPass", event = "Click", route = 
 component = "WorkbenchListRow"
 control_id = "WorkbenchRenderBloomPassRow"
 classes = ["workbench-list-row"]
-props = { text = "Bloom Pass", icon = "renderer", selected = false }
+props = { text = "Bloom Pass", icon = "renderer" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/RenderBloomPass", event = "Click", route = "workbench.module.render.pass.bloom" }]
 
@@ -90,14 +89,14 @@ events = [{ id = "WorkbenchModule/RenderBloomPass", event = "Click", route = "wo
 component = "VerticalGroup"
 control_id = "WorkbenchRenderCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "render_center_header" }, { node = "render_graph_canvas" }, { node = "render_capture_row" }]
 
 [nodes.render_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchRenderCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "render_center_title" }, { node = "render_header_fill" }, { node = "render_compile_button" }]
 
 [nodes.render_center_title]
@@ -120,17 +119,18 @@ layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed"
 events = [{ id = "WorkbenchModule/RenderCompile", event = "Click", route = "workbench.module.render.compile" }]
 
 [nodes.render_graph_canvas]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchRenderGraphCanvas"
 classes = ["workbench-panel", "workbench-module-graph"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.regular", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "render_graph_row_01" }, { node = "render_graph_row_02" }, { node = "render_resource_row" }]
 
 [nodes.render_graph_row_01]
 component = "WorkbenchPropertyRow"
 control_id = "WorkbenchRenderFrameStartRow"
-classes = ["workbench-property-row", "workbench-row-selected"]
-props = { text = "Frame Start", value_text = "Frame 1234 captured   0.000 ms", selected = true }
+classes = ["workbench-property-row"]
+props = { text = "Frame Start", value_text = "Frame 1234 captured   0.000 ms" }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/RenderFrameStart", event = "Click", route = "workbench.module.render.frame_start" }]
 
@@ -154,22 +154,36 @@ events = [{ id = "WorkbenchModule/RenderSceneColor", event = "Click", route = "w
 component = "WorkbenchTableRow"
 control_id = "WorkbenchRenderCaptureRow"
 classes = ["workbench-table-row"]
-props = { text = "Capture", value_text = "Windows DX12   30 fps   GPU 6.24 ms" }
+props = { text = "Capture", value_text = "Windows DX12   30 fps   GPU 6.24 ms", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/RenderCapture", event = "Click", route = "workbench.module.render.capture" }]
 
 [nodes.render_right]
 component = "VerticalGroup"
 control_id = "WorkbenchRenderRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "render_details_title" }, { node = "render_pipeline_field" }, { node = "render_platform_dropdown" }, { node = "render_frame_field" }, { node = "render_shader_editor_button" }, { node = "render_lighting_bake_button" }, { node = "render_post_process_button" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "render_details_title" }, { node = "render_right_content" }]
+
+[nodes.render_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchRenderRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "render_pipeline_property_row" }, { node = "render_platform_property_row" }, { node = "render_frame_property_row" }, { node = "render_tools_button" }]
 
 [nodes.render_details_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchRenderDetailsTitle"
 props = { text = "Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.render_pipeline_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchRenderPipelinePropertyRow"
+props = { text = "Pipeline" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "render_pipeline_field", slot = { name = "value" } }]
 
 [nodes.render_pipeline_field]
 component = "WorkbenchField"
@@ -182,48 +196,46 @@ events = [
   { id = "WorkbenchModule/RenderPipelineCommit", event = "Submit", route = "workbench.module.render.pipeline.commit" },
 ]
 
+[nodes.render_platform_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchRenderPlatformPropertyRow"
+props = { text = "Platform" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "render_platform_dropdown", slot = { name = "value" } }]
+
 [nodes.render_platform_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchRenderPlatformDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Windows DX12", value = "Windows DX12" }
+props = { value = "windows_dx12", value_text = "Windows DX12", options = ["windows_dx12|label=Windows DX12", "vulkan|label=Vulkan", "metal|label=Metal"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/RenderPlatformEdit", event = "Change", route = "workbench.module.render.platform.edit" },
   { id = "WorkbenchModule/RenderPlatformCommit", event = "Submit", route = "workbench.module.render.platform.commit" },
 ]
 
+[nodes.render_frame_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchRenderFramePropertyRow"
+props = { text = "Frame" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "render_frame_field", slot = { name = "value" } }]
+
 [nodes.render_frame_field]
 component = "WorkbenchField"
 control_id = "WorkbenchRenderFrameField"
 classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Frame: 1234" }
+props = { value = "1234" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/RenderFrameEdit", event = "Change", route = "workbench.module.render.frame.edit" },
   { id = "WorkbenchModule/RenderFrameCommit", event = "Submit", route = "workbench.module.render.frame.commit" },
 ]
 
-[nodes.render_shader_editor_button]
+[nodes.render_tools_button]
 component = "WorkbenchButton"
-control_id = "WorkbenchRenderShaderEditorButton"
+control_id = "WorkbenchRenderTools"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Shader Editor", button_variant = "outlined", button_color = "secondary" }
+props = { text = "Render Tools", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/ShaderEditorOpen", event = "Click", route = "workbench.extension.shader_editor.open" }]
-
-[nodes.render_lighting_bake_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchRenderLightingBakeButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Lighting Bake", button_variant = "outlined", button_color = "secondary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/LightingBakeOpen", event = "Click", route = "workbench.extension.lighting_bake.open" }]
-
-[nodes.render_post_process_button]
-component = "WorkbenchButton"
-control_id = "WorkbenchRenderPostProcessButton"
-classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Post Process", button_variant = "outlined", button_color = "secondary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PostProcessOpen", event = "Click", route = "workbench.extension.post_process.open" }]
+events = [{ id = "WorkbenchModule/RenderToolsOpen", event = "Click", route = "workbench.module.render.tools.open" }]

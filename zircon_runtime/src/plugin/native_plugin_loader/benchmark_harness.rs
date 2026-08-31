@@ -1,4 +1,4 @@
-use std::fmt::Write as _;
+use std::fmt::{self, Write as _};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Barrier};
 use std::thread::{self, Thread};
@@ -181,51 +181,17 @@ impl BenchmarkRunMetadata {
         } else {
             measured_operations as f64 * 1_000_000_000.0 / elapsed_ns as f64
         };
-        let counters = counters
-            .iter()
-            .map(|(name, value)| format!("{}:{value}", json_string(name)))
-            .collect::<Vec<_>>()
-            .join(",");
-        let latency = match latency_sample {
-            Some(mut sample) => {
-                let summary = sample.finalize();
-                format!(
-                    concat!(
-                        "\"latency_sample_count\":{},",
-                        "\"latency_p50_ns\":{},\"latency_p95_ns\":{},",
-                        "\"latency_p99_ns\":{},",
-                        "\"latency_percentile_algorithm\":\"nearest_rank\",",
-                        "\"latency_sampling_ratio_numerator\":{},",
-                        "\"latency_sampling_ratio_denominator\":{},",
-                        "\"latency_observer_elapsed_ns\":{}"
-                    ),
-                    summary.sample_count,
-                    summary.p50_ns,
-                    summary.p95_ns,
-                    summary.p99_ns,
-                    summary.sampling_ratio_numerator,
-                    summary.sampling_ratio_denominator,
-                    summary.observer_elapsed.as_nanos(),
-                )
-            }
-            None => concat!(
-                "\"latency_sample_count\":0,\"latency_p50_ns\":null,",
-                "\"latency_p95_ns\":null,\"latency_p99_ns\":null,",
-                "\"latency_percentile_algorithm\":\"nearest_rank\",",
-                "\"latency_sampling_ratio_numerator\":0,",
-                "\"latency_sampling_ratio_denominator\":0,",
-                "\"latency_observer_elapsed_ns\":0"
-            )
-            .to_owned(),
-        };
+        let latency = latency_sample.map(|mut sample| sample.finalize());
         eprintln!(
-            r#"{{"schema":{},"workload":{},"shape":{},"source_manifest":{},"cargo_profile":{},"debug_assertions":{},"warmup_operations":{warmup_operations},"measured_operations":{measured_operations},"elapsed_ns":{elapsed_ns},"operations_per_second":{operations_per_second:.2},{latency},"counters":{{{counters}}}}}"#,
-            json_string(BENCHMARK_RECORD_SCHEMA),
-            json_string(self.workload),
-            json_string(&self.shape),
-            json_string(&self.source_manifest),
-            json_string(&self.cargo_profile),
+            r#"{{"schema":{},"workload":{},"shape":{},"source_manifest":{},"cargo_profile":{},"debug_assertions":{},"warmup_operations":{warmup_operations},"measured_operations":{measured_operations},"elapsed_ns":{elapsed_ns},"operations_per_second":{operations_per_second:.2},{},"counters":{{{}}}}}"#,
+            JsonString(BENCHMARK_RECORD_SCHEMA),
+            JsonString(self.workload),
+            JsonString(&self.shape),
+            JsonString(&self.source_manifest),
+            JsonString(&self.cargo_profile),
             self.debug_assertions,
+            BenchmarkLatencyFields(latency.as_ref()),
+            BenchmarkCounterFields(counters),
         );
     }
 }
@@ -257,6 +223,80 @@ struct BenchmarkLatencySummary {
     observer_elapsed: Duration,
 }
 
+struct JsonString<'a>(&'a str);
+
+impl std::fmt::Display for JsonString<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_char('"')?;
+        for character in self.0.chars() {
+            match character {
+                '"' => formatter.write_str("\\\"")?,
+                '\\' => formatter.write_str("\\\\")?,
+                '\u{08}' => formatter.write_str("\\b")?,
+                '\u{0C}' => formatter.write_str("\\f")?,
+                '\n' => formatter.write_str("\\n")?,
+                '\r' => formatter.write_str("\\r")?,
+                '\t' => formatter.write_str("\\t")?,
+                character if character <= '\u{1F}' => {
+                    write!(formatter, "\\u{:04x}", character as u32)?;
+                }
+                character => formatter.write_char(character)?,
+            }
+        }
+        formatter.write_char('"')
+    }
+}
+
+struct BenchmarkCounterFields<'a>(&'a [(&'static str, u64)]);
+
+impl std::fmt::Display for BenchmarkCounterFields<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (index, (name, value)) in self.0.iter().enumerate() {
+            if index > 0 {
+                formatter.write_char(',')?;
+            }
+            write!(formatter, "{}:{value}", JsonString(name))?;
+        }
+        Ok(())
+    }
+}
+
+struct BenchmarkLatencyFields<'a>(Option<&'a BenchmarkLatencySummary>);
+
+impl std::fmt::Display for BenchmarkLatencyFields<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Some(summary) = self.0 else {
+            return formatter.write_str(concat!(
+                "\"latency_sample_count\":0,\"latency_p50_ns\":null,",
+                "\"latency_p95_ns\":null,\"latency_p99_ns\":null,",
+                "\"latency_percentile_algorithm\":\"nearest_rank\",",
+                "\"latency_sampling_ratio_numerator\":0,",
+                "\"latency_sampling_ratio_denominator\":0,",
+                "\"latency_observer_elapsed_ns\":0"
+            ));
+        };
+        write!(
+            formatter,
+            concat!(
+                "\"latency_sample_count\":{},",
+                "\"latency_p50_ns\":{},\"latency_p95_ns\":{},",
+                "\"latency_p99_ns\":{},",
+                "\"latency_percentile_algorithm\":\"nearest_rank\",",
+                "\"latency_sampling_ratio_numerator\":{},",
+                "\"latency_sampling_ratio_denominator\":{},",
+                "\"latency_observer_elapsed_ns\":{}"
+            ),
+            summary.sample_count,
+            summary.p50_ns,
+            summary.p95_ns,
+            summary.p99_ns,
+            summary.sampling_ratio_numerator,
+            summary.sampling_ratio_denominator,
+            summary.observer_elapsed.as_nanos(),
+        )
+    }
+}
+
 impl BenchmarkLatencySample<'_> {
     /// Sorting and percentile extraction are observer work, never core-workload time.
     fn finalize(&mut self) -> BenchmarkLatencySummary {
@@ -276,27 +316,9 @@ impl BenchmarkLatencySample<'_> {
     }
 }
 
+#[cfg(test)]
 fn json_string(value: &str) -> String {
-    let mut encoded = String::with_capacity(value.len().saturating_add(2));
-    encoded.push('"');
-    for character in value.chars() {
-        match character {
-            '"' => encoded.push_str("\\\""),
-            '\\' => encoded.push_str("\\\\"),
-            '\u{08}' => encoded.push_str("\\b"),
-            '\u{0C}' => encoded.push_str("\\f"),
-            '\n' => encoded.push_str("\\n"),
-            '\r' => encoded.push_str("\\r"),
-            '\t' => encoded.push_str("\\t"),
-            character if character <= '\u{1F}' => {
-                write!(&mut encoded, "\\u{:04x}", character as u32)
-                    .expect("writing a JSON escape to String cannot fail");
-            }
-            character => encoded.push(character),
-        }
-    }
-    encoded.push('"');
-    encoded
+    JsonString(value).to_string()
 }
 
 fn percentile(sorted_samples_ns: &[u64], percentile: usize) -> u64 {
@@ -389,6 +411,47 @@ mod tests {
         assert_eq!(
             json_string("native\"path\\\n\t\u{08}\u{0C}\u{1F}"),
             r#""native\"path\\\n\t\b\f\u001f""#
+        );
+    }
+
+    #[test]
+    fn streamed_benchmark_fields_preserve_exact_json_bytes() {
+        let counters = [("plain", 1), ("escaped\"\n", 2)];
+        assert_eq!(
+            BenchmarkCounterFields(&counters).to_string(),
+            r#""plain":1,"escaped\"\n":2"#
+        );
+
+        let summary = BenchmarkLatencySummary {
+            sample_count: 5,
+            p50_ns: 30,
+            p95_ns: 50,
+            p99_ns: 50,
+            sampling_ratio_numerator: 5,
+            sampling_ratio_denominator: 1_000,
+            observer_elapsed: Duration::from_nanos(7),
+        };
+        assert_eq!(
+            BenchmarkLatencyFields(Some(&summary)).to_string(),
+            concat!(
+                "\"latency_sample_count\":5,\"latency_p50_ns\":30,",
+                "\"latency_p95_ns\":50,\"latency_p99_ns\":50,",
+                "\"latency_percentile_algorithm\":\"nearest_rank\",",
+                "\"latency_sampling_ratio_numerator\":5,",
+                "\"latency_sampling_ratio_denominator\":1000,",
+                "\"latency_observer_elapsed_ns\":7"
+            )
+        );
+        assert_eq!(
+            BenchmarkLatencyFields(None).to_string(),
+            concat!(
+                "\"latency_sample_count\":0,\"latency_p50_ns\":null,",
+                "\"latency_p95_ns\":null,\"latency_p99_ns\":null,",
+                "\"latency_percentile_algorithm\":\"nearest_rank\",",
+                "\"latency_sampling_ratio_numerator\":0,",
+                "\"latency_sampling_ratio_denominator\":0,",
+                "\"latency_observer_elapsed_ns\":0"
+            )
         );
     }
 

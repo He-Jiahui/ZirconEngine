@@ -14,7 +14,9 @@ use crate::ui::surface::{
     UiPropertyMutationReport, UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface,
 };
 
-use super::{is_default_range_behavior, UiDefaultRangePointerActionReport};
+use super::{
+    UiDefaultRangePointerActionReport, is_default_range_behavior, semantics::component_role_is,
+};
 
 struct UiDefaultRangeValueUpdate {
     active_property: String,
@@ -453,7 +455,7 @@ impl UiSurface {
         point: UiPoint,
     ) -> Result<String, UiTreeError> {
         let metadata = self.template_metadata(node_id)?;
-        if metadata.component != "RangeSlider" {
+        if !component_role_is(metadata, "range-slider") {
             return Ok(widget_value_property(metadata).to_string());
         }
         let Some(next_value) = self.default_range_click_value(node_id, point)? else {
@@ -502,7 +504,7 @@ impl UiSurface {
         } else {
             value
         };
-        if metadata.component != "RangeSlider" {
+        if !component_role_is(metadata, "range-slider") {
             return Ok(constrained);
         }
 
@@ -537,7 +539,7 @@ impl UiSurface {
         } else {
             value
         };
-        if metadata.component == "RangeSlider" && !range_slider_disable_swap(metadata) {
+        if component_role_is(metadata, "range-slider") && !range_slider_disable_swap(metadata) {
             let upper_property = widget_value_property(metadata);
             if property == "range_min" {
                 if let Some(upper_value) =

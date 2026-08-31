@@ -28,8 +28,8 @@ mod proof_output;
 #[path = "runtime_text_multilingual_product_framebuffer/proof_path.rs"]
 mod proof_path;
 mod support;
-use product_project_fixture::product_fixture_asset_manager;
-use product_renderer::{render_ui_extract_frame, ProductUiFrameRenderer, UiTextRasterFrameTrace};
+use product_project_fixture::product_fixture;
+use product_renderer::{ProductUiFrameRenderer, UiTextRasterFrameTrace, render_ui_extract_frame};
 use proof_commands::{
     proof_arabic_justify, proof_background, proof_bbcode_text, proof_horizontal_rich_table,
     proof_msdf_sharp_corner_sample, proof_native_sdf_parity, proof_rich_text,
@@ -50,7 +50,8 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     assert_arabic_mark_cluster_backend_face_contract();
 
     let viewport_size = UVec2::new(1080, 2000);
-    let (asset_manager, fixture_root) = product_fixture_asset_manager("multilingual-fixture");
+    let fixture = product_fixture("multilingual-fixture");
+    let asset_manager = fixture.asset_manager();
     let background = proof_background(viewport_size);
     let mut samples = vec![
         proof_rich_text(
@@ -146,7 +147,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         proof_bbcode_text(
             116,
             UiFrame::new(42.0, 884.0, 430.0, 220.0),
-            "[p align=center]BBCode V1 [icon=★|Microsoft YaHei UI] :rocket:[/p][ul bullet=◆][li][b]Hanging list[/b] alpha beta gamma delta epsilon[/li][li]Nested[ol type=A][li]Alpha item[/li][li]Beta item[/li][/ol][/li][/ul]",
+            "[p align=center]BBCode V1 [icon=res://ui/rich-inline-checker.png|24x24|center|checker icon] :rocket:[/p][ul bullet=◆][li][b]Hanging list[/b] alpha beta gamma delta epsilon[/li][li]Nested[ol type=A][li]Alpha item[/li][li]Beta item[/li][/ol][/li][/ul]",
             UiTextWrap::WordSmart,
         ),
         proof_bbcode_text(
@@ -198,10 +199,12 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     );
     let arabic_justify_line = &arabic_justify_layout.lines[0];
     assert!(arabic_justify_line.text.contains('\u{0640}'));
-    assert!(arabic_justify_line
-        .runs
-        .iter()
-        .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end }));
+    assert!(
+        arabic_justify_line
+            .runs
+            .iter()
+            .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end })
+    );
     assert!(
         (arabic_justify_line.glyph_advances.iter().sum::<f32>() - arabic_justify.frame.width).abs()
             < 0.1,
@@ -370,6 +373,22 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         rtl_rich_channels.iter().all(|count| *count > 20),
         "RTL rich inline image must follow visual order and sample the imported checker texture: {rtl_rich_channels:?}"
     );
+    for (label, sample_index) in [
+        ("BBCode block icon", 15_usize),
+        ("BBCode table icon", 18_usize),
+    ] {
+        let checker_frame = checker_frame_from_layout(&samples[sample_index]);
+        let channels = dominant_checker_channel_counts(
+            &capture.rgba,
+            capture.width,
+            capture.height,
+            checker_frame,
+        );
+        assert!(
+            channels.iter().all(|count| *count > 20),
+            "{label} must render the typed icon asset through the WGPU image batch: channels={channels:?}, frame={checker_frame:?}"
+        );
+    }
     let ellipsis_layout = samples[13]
         .text_layout
         .as_ref()
@@ -477,7 +496,6 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         "runtime multilingual product framebuffer={}",
         output.display()
     );
-    let _ = std::fs::remove_dir_all(fixture_root);
 }
 
 fn assert_color_emoji_backend_raster_contract() {

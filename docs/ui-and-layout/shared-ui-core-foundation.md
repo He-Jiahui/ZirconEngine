@@ -1022,7 +1022,7 @@ editor shell 的 dock target route 和 splitter route 现在不再各自维护�
 
 - `RetainedEditorHost::recompute_if_dirty(...)` 重算 geometry 后，只同步更新一次 `WorkbenchShellPointerBridge`
 - retained shell 只通过 `update_drag_target(x, y)` 和 `begin/update/finish_drawer_resize(x, y)` 回传 pointer 坐标
-- host 用同一棵 shared surface 求 drag target route、splitter route 和 resize capture，再把 editor-only 结果落成 `active_drag_target_group` 或 `LayoutCommand::SetDrawerExtent`
+- host 用同一棵 shared surface 求 drag target route、splitter route 和 resize capture，再把 editor-only 结果落成 `active_drag_target_group` 或单条 `LayoutCommand::SetDrawerRegionExtent`
 - drag overlay 的高亮、badge 和 drop 执行，及 splitter resize 的 pointer capture，都消费这条 host-owned shell bridge
 
 因此这一刀真正完成的是：editor shell 最关键的两类高频 pointer route 已经不再只是“各自走 shared core”，而是开始在同一张 shared surface 上协同。

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use zircon_runtime_interface::ui::{
     binding::{UiBindingSourceKind, UiBindingUpdate, UiBindingUpdateStatus},
     component::UiValue,
@@ -7,11 +9,11 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::binding::reflected_property_update_with_source_kind;
 
-use super::{mark_dirty, metadata_dirty::metadata_attribute_dirty};
+use super::metadata_dirty::metadata_attribute_dirty;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiMetadataPropertyChange {
-    pub(crate) property: &'static str,
+    pub(crate) property: String,
     pub(crate) value: UiValue,
     pub(crate) dirty: UiDirtyFlags,
 }
@@ -23,12 +25,15 @@ pub(crate) struct UiMetadataPropertyBatchMutation {
     pub(crate) dirty: UiDirtyFlags,
 }
 
-pub(crate) fn mutate_tree_metadata_properties(
+pub(crate) fn mutate_tree_metadata_properties<P>(
     tree: &mut UiTree,
     node_id: UiNodeId,
-    properties: impl IntoIterator<Item = (&'static str, UiValue)>,
+    properties: impl IntoIterator<Item = (P, UiValue)>,
     source_kind: UiBindingSourceKind,
-) -> Result<UiMetadataPropertyBatchMutation, UiTreeError> {
+) -> Result<UiMetadataPropertyBatchMutation, UiTreeError>
+where
+    P: AsRef<str> + Into<String>,
+{
     let node = tree
         .node_mut(node_id)
         .ok_or(UiTreeError::MissingNode(node_id))?;
@@ -38,20 +43,25 @@ pub(crate) fn mutate_tree_metadata_properties(
 
     let mut batch = UiMetadataPropertyBatchMutation::default();
     for (property, value) in properties {
+        let property_name = property.as_ref();
         let next = value.to_toml();
-        if metadata.attributes.get(property) == Some(&next) {
+        if metadata.attributes.get(property_name) == Some(&next) {
             continue;
         }
 
-        let previous = metadata.attributes.get(property).map(UiValue::from_toml);
-        metadata.attributes.insert(property.to_string(), next);
-        let dirty = metadata_attribute_dirty(metadata.component.as_str(), property, value.kind());
+        let previous = metadata
+            .attributes
+            .get(property_name)
+            .map(UiValue::from_toml);
+        set_metadata_value(&mut metadata.attributes, property_name, next);
+        let dirty =
+            metadata_attribute_dirty(metadata.component.as_str(), property_name, value.kind());
         merge_dirty_flags(&mut batch.dirty, dirty);
         batch
             .reflected_updates
             .push(reflected_property_update_with_source_kind(
                 node_id,
-                property,
+                property_name,
                 source_kind,
                 previous,
                 value.clone(),
@@ -59,6 +69,7 @@ pub(crate) fn mutate_tree_metadata_properties(
                 UiBindingUpdateStatus::Applied,
                 None,
             ));
+        let property = property.into();
         batch.changes.push(UiMetadataPropertyChange {
             property,
             value,
@@ -66,8 +77,19 @@ pub(crate) fn mutate_tree_metadata_properties(
         });
     }
 
-    mark_dirty(node, batch.dirty);
     Ok(batch)
+}
+
+fn set_metadata_value(
+    attributes: &mut BTreeMap<String, toml::Value>,
+    property: &str,
+    value: toml::Value,
+) {
+    if let Some(existing) = attributes.get_mut(property) {
+        *existing = value;
+    } else {
+        attributes.insert(property.to_string(), value);
+    }
 }
 
 fn merge_dirty_flags(target: &mut UiDirtyFlags, dirty: UiDirtyFlags) {
@@ -122,15 +144,18 @@ mod tests {
 
         assert_eq!(batch.changes.len(), 2);
         assert_eq!(batch.reflected_updates.len(), 2);
-        assert!(batch
-            .reflected_updates
-            .iter()
-            .all(|update| update.status == UiBindingUpdateStatus::Applied));
+        assert!(
+            batch
+                .reflected_updates
+                .iter()
+                .all(|update| update.status == UiBindingUpdateStatus::Applied)
+        );
         assert!(batch.dirty.layout);
         assert!(batch.dirty.hit_test);
         assert!(batch.dirty.render);
         assert!(batch.dirty.input);
         assert!(batch.dirty.visible_range);
+        assert!(!tree.node(node_id).expect("node").dirty.any());
         assert_eq!(
             tree.node(node_id)
                 .and_then(|node| node.template_metadata.as_ref())

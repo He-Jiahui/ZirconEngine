@@ -9,7 +9,7 @@ pub(crate) use artifact::{
 };
 pub(crate) use error::SdfOfflineArtifactError;
 pub(crate) use identity::{
-    sdf_default_variation_hash, sdf_font_source_hash, sdf_variation_hash,
-    SdfOfflineArtifactIdentity,
+    SdfOfflineArtifactIdentity, sdf_default_variation_hash, sdf_font_source_hash,
+    sdf_variation_hash,
 };
 pub(crate) use path::sdf_offline_artifact_path;

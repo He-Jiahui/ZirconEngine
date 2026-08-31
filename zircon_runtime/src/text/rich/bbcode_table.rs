@@ -2,13 +2,13 @@ use crate::text::{RichTable, RichTableCell, RichTableCellBoxStyle, RichTableColu
 
 use self::attributes::{configure_columns, parse_cell_attributes};
 use self::placement::{CellPlacement, TablePlacementCursor};
+use super::admission::RichTextParseError;
 
 mod attributes;
 mod placement;
 
 const DEFAULT_TABLE_COLUMNS: usize = 1;
 const MAX_TABLE_COLUMNS: usize = 64;
-const MAX_TABLE_NESTING: usize = 8;
 
 #[derive(Clone, Debug)]
 struct ActiveCell {
@@ -27,17 +27,36 @@ struct ActiveTable {
     placement: TablePlacementCursor,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub(super) struct BbCodeTableState {
     tables: Vec<ActiveTable>,
-    suppressed_depth: usize,
+    cell_budget: usize,
+    admitted_cells: usize,
+    max_depth: usize,
 }
 
 impl BbCodeTableState {
-    pub(super) fn open_table(&mut self, value: Option<&str>, start: u32) -> bool {
-        if self.suppressed_depth > 0 || self.tables.len() >= MAX_TABLE_NESTING {
-            self.suppressed_depth = self.suppressed_depth.saturating_add(1);
-            return false;
+    pub(super) fn new(cell_budget: usize, max_depth: usize) -> Self {
+        Self {
+            tables: Vec::new(),
+            cell_budget,
+            admitted_cells: 0,
+            max_depth,
+        }
+    }
+
+    pub(super) fn open_table(
+        &mut self,
+        value: Option<&str>,
+        start: u32,
+    ) -> Result<bool, RichTextParseError> {
+        let attempted_depth = self.tables.len().saturating_add(1);
+        let effective_max_depth = self.max_depth.min(usize::from(u16::MAX).saturating_add(1));
+        if attempted_depth > effective_max_depth {
+            return Err(RichTextParseError::TableDepthBudgetExceeded {
+                attempted_depth,
+                max_depth: effective_max_depth,
+            });
         }
         let column_count = value
             .and_then(|value| value.split(',').next())
@@ -46,13 +65,14 @@ impl BbCodeTableState {
             .clamp(DEFAULT_TABLE_COLUMNS, MAX_TABLE_COLUMNS);
         self.tables.push(ActiveTable {
             start,
-            depth: u16::try_from(self.tables.len()).unwrap_or(u16::MAX),
+            depth: u16::try_from(self.tables.len())
+                .expect("table depth admission preserves the public depth representation"),
             columns: vec![RichTableColumn::default(); column_count],
             cells: Vec::new(),
             active_cell: None,
             placement: TablePlacementCursor::new(column_count),
         });
-        true
+        Ok(true)
     }
 
     pub(super) fn open_cell(
@@ -60,13 +80,19 @@ impl BbCodeTableState {
         value: Option<&str>,
         attributes: &[(String, String)],
         start: u32,
-    ) -> bool {
-        if self.suppressed_depth > 0 {
-            return false;
+    ) -> Result<bool, RichTextParseError> {
+        if self.tables.is_empty() {
+            return Ok(false);
         }
-        let Some(table) = self.tables.last_mut() else {
-            return false;
-        };
+        let attempted_cells = self.admitted_cells.saturating_add(1);
+        if attempted_cells > self.cell_budget {
+            return Err(RichTextParseError::TableCellCountBudgetExceeded {
+                attempted_cells,
+                max_cells: self.cell_budget,
+            });
+        }
+        self.admitted_cells = attempted_cells;
+        let table = self.tables.last_mut().expect("table checked above");
         close_active_cell(table, start);
         let cell_attributes = parse_cell_attributes(attributes, table.columns.len());
         let placement = table
@@ -78,13 +104,10 @@ impl BbCodeTableState {
             placement,
             box_style: cell_attributes.box_style,
         });
-        true
+        Ok(true)
     }
 
     pub(super) fn close_cell(&mut self, end: u32) -> bool {
-        if self.suppressed_depth > 0 {
-            return false;
-        }
         let Some(table) = self.tables.last_mut() else {
             return false;
         };
@@ -94,19 +117,12 @@ impl BbCodeTableState {
     }
 
     pub(super) fn close_table(&mut self, end: u32) -> Option<RichTable> {
-        if self.suppressed_depth > 0 {
-            self.suppressed_depth -= 1;
-            return None;
-        }
         let mut table = self.tables.pop()?;
         close_active_cell(&mut table, end);
         Some(finish_table(table, end))
     }
 
     pub(super) fn finish(mut self, end: u32) -> Vec<RichTable> {
-        if self.suppressed_depth > 0 {
-            self.suppressed_depth = 0;
-        }
         let mut tables = Vec::with_capacity(self.tables.len());
         while let Some(mut table) = self.tables.pop() {
             close_active_cell(&mut table, end);

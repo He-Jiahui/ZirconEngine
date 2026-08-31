@@ -1,7 +1,7 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
-    layout::UiFrame,
+    layout::{UiFrame, UiPixelSnappingPolicy},
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
@@ -98,6 +98,46 @@ label_text = "Importing"
         1,
         "owner text must be suppressed once the progress renderer owns the label"
     );
+}
+
+#[test]
+fn progress_preserves_fractional_fill_geometry_when_snapping_is_disabled() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.progress.fractional"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/progress"))
+                .with_frame(UiFrame::new(8.25, 10.5, 200.5, 20.25))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Progress".to_string(),
+                    pixel_snapping: UiPixelSnappingPolicy::Disabled,
+                    attributes: toml::from_str("value_percent = 0.375").unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let fill = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2)
+                && command.style.background_color.as_deref() == Some("#3cc7d6")
+        })
+        .expect("fractional progress should emit its fill command");
+    assert!(frame_approx(fill.frame, 16.25, 18.625, 69.1875, 4.0));
+    assert_eq!(fill.style.pixel_snapping, UiPixelSnappingPolicy::Disabled);
 }
 
 #[test]
@@ -293,4 +333,11 @@ fn disabled_state() -> UiStateFlags {
         enabled: false,
         ..UiStateFlags::default()
     }
+}
+
+fn frame_approx(actual: UiFrame, x: f32, y: f32, width: f32, height: f32) -> bool {
+    (actual.x - x).abs() < 0.000_1
+        && (actual.y - y).abs() < 0.000_1
+        && (actual.width - width).abs() < 0.000_1
+        && (actual.height - height).abs() < 0.000_1
 }

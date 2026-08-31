@@ -1,5 +1,8 @@
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use crate::RenderDevice;
 
 const FORBIDDEN_WGPU_SOURCE_NEEDLES: &[&str] =
     &["wgpu::", "use wgpu", "pub use wgpu", "extern crate wgpu"];
@@ -7,6 +10,13 @@ const FORBIDDEN_WGPU_SOURCE_NEEDLES: &[&str] =
 const FORBIDDEN_RHI_SEMANTIC_TERMS: &[&str] = &[
     "Mesh", "Material", "Light", "Scene", "Camera", "Ui", "Sprite",
 ];
+
+#[test]
+fn neutral_render_device_contract_is_object_safe() {
+    fn accepts_shared_owner(_: Arc<dyn RenderDevice>) {}
+
+    let _: fn(Arc<dyn RenderDevice>) = accepts_shared_owner;
+}
 
 #[test]
 fn app_editor_framework_and_interface_sources_do_not_import_wgpu_directly() {

@@ -1,16 +1,24 @@
+use std::sync::Arc;
+
 use crate::core::asset::{
     builtin_asset_type_definition, AssetContextCommandDescriptor, AssetCreationTemplateDescriptor,
-    AssetSourceKind, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId, AssetWriteAccess,
+    AssetSourceKind, AssetSourceWritePolicy, AssetToolkitDescriptor, AssetTypeContribution,
+    AssetTypeId, AssetTypeRegistryError, AssetWriteAccess,
 };
 use crate::core::commands::EditorCommandDescriptor;
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent};
-use crate::core::editor_extension::{EditorExtensionRegistry, ViewDescriptor};
-use crate::core::editor_operation::{EditorOperationPath, EditorOperationSource};
+use crate::core::editor_extension::{
+    EditorExtensionRegistry, EditorExtensionRegistryError, ViewDescriptor,
+};
+use crate::core::editor_operation::{
+    EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+};
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
     EditorAssetFolderRecord,
 };
+use crate::ui::host::{EditorAssetOperationInvokeError, EditorOperationDispatchError};
 use zircon_runtime::asset::project::PreviewState;
 use zircon_runtime_interface::resource::ResourceKind;
 
@@ -142,13 +150,10 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
             "Assets",
         ))
         .unwrap();
-    for (operation, display_name) in [
-        (create.clone(), "Create UI Layout"),
-        (validate.clone(), "Validate UI Layout"),
-    ] {
+    for operation in [create.clone(), validate.clone()] {
         extension
             .register_command(
-                EditorCommandDescriptor::operation(operation, display_name)
+                EditorCommandDescriptor::operation(operation)
                     .with_event(EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser)),
             )
             .unwrap();
@@ -250,10 +255,20 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
         )
         .unwrap();
 
-    let creation_templates = runtime.runtime.asset_creation_templates(&asset_type);
+    let creation_templates = runtime
+        .runtime
+        .asset_creation_templates(&asset_type)
+        .unwrap();
     assert_eq!(creation_templates.len(), 1);
     assert_eq!(creation_templates[0].operation().as_str(), create.as_str());
-    assert_eq!(runtime.runtime.asset_context_commands(&asset_type).len(), 1);
+    assert_eq!(
+        runtime
+            .runtime
+            .asset_context_commands(&asset_type)
+            .unwrap()
+            .len(),
+        1
+    );
     let snapshot = runtime.runtime.editor_snapshot().asset_browser;
     let item = snapshot
         .visible_assets
@@ -369,4 +384,126 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
         )
     );
 }
-use std::sync::Arc;
+
+#[test]
+fn asset_creation_invocation_retains_extension_registry_materialization_failure() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("editor09_registry_creation_error_retention");
+    let asset_type = AssetTypeId::from_resource_kind(ResourceKind::Material);
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_asset_type_contribution(
+            AssetTypeContribution::augment(asset_type.clone())
+                .with_source_write_policy(AssetSourceWritePolicy::ProjectOnly),
+        )
+        .expect("the deferred registry fixture should register its contribution");
+    runtime
+        .runtime
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
+        .expect("the registry fixture should defer materialization until invocation");
+
+    let error = runtime
+        .runtime
+        .invoke_asset_creation_template(
+            EditorOperationSource::UiBinding,
+            &asset_type,
+            "unreachable.template",
+            "res://materials",
+        )
+        .expect_err("registry materialization failure must not become a missing-template error");
+    assert!(matches!(
+        error,
+        EditorAssetOperationInvokeError::ExtensionRegistry(
+            EditorExtensionRegistryError::AssetTypeRegistry(
+                AssetTypeRegistryError::DuplicateFieldOwner {
+                    field: "source_write_policy",
+                    ..
+                }
+            )
+        )
+    ));
+}
+
+#[test]
+fn asset_registry_materialization_failure_remains_visible_at_every_host_boundary() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("editor09_registry_boundary_error_retention");
+    let asset_type = AssetTypeId::from_resource_kind(ResourceKind::Material);
+    let operation = EditorOperationPath::parse("asset.registry.materialization_probe").unwrap();
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_command(
+            EditorCommandDescriptor::operation(operation.clone())
+                .with_event(EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser))
+                .with_asset_write_target_arguments("asset_type", "target_folder"),
+        )
+        .expect("the operation fixture should register its command");
+    extension
+        .register_asset_type_contribution(
+            AssetTypeContribution::augment(asset_type.clone())
+                .with_source_write_policy(AssetSourceWritePolicy::ProjectOnly),
+        )
+        .expect("the deferred registry fixture should register its contribution");
+    runtime
+        .runtime
+        .register_editor_extension(extension.into_contribution_batch().unwrap())
+        .expect("the registry fixture should defer materialization until a host boundary reads it");
+
+    let query_error = runtime
+        .runtime
+        .asset_type_definition(&asset_type)
+        .expect_err("asset type query must retain registry materialization failure");
+    assert_registry_materialization_error(query_error);
+    let templates_error = runtime
+        .runtime
+        .asset_creation_templates(&asset_type)
+        .expect_err("asset creation menu query must retain registry materialization failure");
+    assert_registry_materialization_error(templates_error);
+    let commands_error = runtime
+        .runtime
+        .asset_context_commands(&asset_type)
+        .expect_err("asset context menu query must retain registry materialization failure");
+    assert_registry_materialization_error(commands_error);
+
+    let operation_error = runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::UiBinding,
+            EditorOperationInvocation::new(operation).with_arguments(serde_json::json!({
+                "asset_type": asset_type.as_str(),
+                "target_folder": "res://materials",
+            })),
+        )
+        .expect_err(
+            "asset write operation must not misreport registry failure as unregistered type",
+        );
+    assert!(matches!(
+        operation_error,
+        EditorOperationDispatchError::ExtensionRegistry(
+            EditorExtensionRegistryError::AssetTypeRegistry(
+                AssetTypeRegistryError::DuplicateFieldOwner {
+                    field: "source_write_policy",
+                    ..
+                }
+            )
+        )
+    ));
+
+    let snapshot = runtime.runtime.editor_snapshot();
+    assert!(snapshot
+        .status_line
+        .contains("Asset type registry unavailable:"));
+    assert!(snapshot.status_line.contains("source_write_policy"));
+}
+
+fn assert_registry_materialization_error(error: EditorExtensionRegistryError) {
+    assert!(matches!(
+        error,
+        EditorExtensionRegistryError::AssetTypeRegistry(
+            AssetTypeRegistryError::DuplicateFieldOwner {
+                field: "source_write_policy",
+                ..
+            }
+        )
+    ));
+}

@@ -4,7 +4,9 @@ use super::*;
 fn gameplay_host_current_hp_and_particle_sprites_use_dynamic_components() {
     let core = CoreRuntime::new();
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,
@@ -100,7 +102,9 @@ fn gameplay_host_current_hp_and_particle_sprites_use_dynamic_components() {
 fn gameplay_host_component_string_reads_string_dynamic_state() {
     let core = CoreRuntime::new();
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Empty);
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,

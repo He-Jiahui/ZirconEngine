@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -32,14 +33,19 @@ def audit_retired_ui_asset_conformance(repo_root: Path) -> RetiredUiAssetAudit:
         root_path = repo_root / scan_root
         if not root_path.exists():
             continue
-        retired_paths.extend(
-            path.relative_to(repo_root).as_posix()
-            for path in root_path.rglob("*")
-            if path.is_file() and is_retired_ui_asset_path(path)
-        )
+        for directory, _subdirectories, file_names in os.walk(root_path):
+            for file_name in file_names:
+                if is_retired_ui_asset_name(file_name):
+                    retired_paths.append(
+                        Path(directory, file_name).relative_to(repo_root).as_posix()
+                    )
     return RetiredUiAssetAudit(retired_ui_asset_file_paths=sorted(retired_paths))
 
 
 def is_retired_ui_asset_path(path: Path) -> bool:
-    normalized = path.as_posix().lower()
+    return is_retired_ui_asset_name(path.as_posix())
+
+
+def is_retired_ui_asset_name(file_name: str) -> bool:
+    normalized = file_name.lower()
     return any(normalized.endswith(suffix) for suffix in RETIRED_UI_ASSET_SUFFIXES)

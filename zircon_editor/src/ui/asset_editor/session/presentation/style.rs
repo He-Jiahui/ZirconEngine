@@ -1,12 +1,13 @@
 use super::super::{
     style_inspection::{
-        build_stylesheet_items, local_style_rule_entries, local_style_token_entries,
-        matched_style_rule_entries_for_selection, selected_node_selector, MatchedStyleRuleEntry,
+        build_stylesheet_items, local_style_rule_entries, matched_style_rule_entries_for_selection,
+        selected_node_selector, MatchedStyleRuleEntry,
     },
     style_rule_declarations::declaration_entries,
     ui_asset_editor_session::UiAssetEditorSession,
 };
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 pub(super) struct UiAssetStylePaneData {
     pub(super) has_selected_node_selector: bool,
@@ -38,6 +39,38 @@ pub(super) struct UiAssetStylePaneData {
     pub(super) can_delete_token: bool,
 }
 
+struct LocalStyleTokenPresentation {
+    items: Vec<String>,
+    selected_index: i32,
+    selected_name: String,
+    selected_value: String,
+}
+
+fn build_local_style_token_presentation(
+    document: &UiAssetDocument,
+    selected_name: Option<&str>,
+) -> LocalStyleTokenPresentation {
+    let mut items = Vec::with_capacity(document.tokens.len());
+    let mut selected_index = -1;
+    let mut selected_token_name = String::new();
+    let mut selected_value = String::new();
+    for (index, (name, value)) in document.tokens.iter().enumerate() {
+        let literal = value.to_string();
+        if selected_index < 0 && selected_name == Some(name.as_str()) {
+            selected_index = index as i32;
+            selected_token_name.clone_from(name);
+            selected_value.clone_from(&literal);
+        }
+        items.push(format!("{name} = {literal}"));
+    }
+    LocalStyleTokenPresentation {
+        items,
+        selected_index,
+        selected_name: selected_token_name,
+        selected_value,
+    }
+}
+
 impl UiAssetEditorSession {
     pub(super) fn style_pane_presentation(&self) -> UiAssetStylePaneData {
         zircon_runtime::profile_scope!("editor", "asset_editor.presentation", "style",);
@@ -51,7 +84,15 @@ impl UiAssetEditorSession {
             &self.compiler_imports,
             &self.style_inspector.active_pseudo_states,
         );
-        let style_tokens = local_style_token_entries(&self.last_valid_document);
+        let LocalStyleTokenPresentation {
+            items: token_items,
+            selected_index: token_selected_index,
+            selected_name: selected_token_name,
+            selected_value: selected_token_value,
+        } = build_local_style_token_presentation(
+            &self.last_valid_document,
+            self.selected_style_token_name.as_deref(),
+        );
         let selected_style_rule = self
             .selected_style_rule_index
             .and_then(|index| style_rules.get(index));
@@ -67,28 +108,12 @@ impl UiAssetEditorSession {
                 )
             })
             .unwrap_or_default();
-        let selected_style_rule_declaration = self
-            .selected_style_rule_declaration_path
-            .as_deref()
-            .and_then(|path| {
-                style_rule_declarations
-                    .iter()
-                    .position(|entry| entry.path.as_str() == path)
-            })
-            .and_then(|index| {
-                style_rule_declarations
-                    .get(index)
-                    .map(|entry| (index, entry))
-            });
-        let selected_style_token = self
-            .selected_style_token_name
-            .as_deref()
-            .and_then(|name| {
-                style_tokens
-                    .iter()
-                    .position(|entry| entry.name.as_str() == name)
-            })
-            .and_then(|index| style_tokens.get(index).map(|entry| (index, entry)));
+        let selected_declaration_path = self.selected_style_rule_declaration_path.as_deref();
+        let (rule_declaration_items, selected_style_rule_declaration) = collect_items_and_selection(
+            &style_rule_declarations,
+            |entry| selected_declaration_path == Some(entry.path.as_str()),
+            |entry| format!("{} = {}", entry.path, entry.literal),
+        );
         record_current_ui_perf_counter(UiPerfCounter::AssetEditorPaneStyleBuildCount, 1.0);
         UiAssetStylePaneData {
             has_selected_node_selector,
@@ -131,10 +156,7 @@ impl UiAssetEditorSession {
             selected_matched_rule_declaration_items: selected_matched_style_rule
                 .map(|(_, rule)| rule.declaration_items())
                 .unwrap_or_default(),
-            rule_declaration_items: style_rule_declarations
-                .iter()
-                .map(|entry| format!("{} = {}", entry.path, entry.literal))
-                .collect(),
+            rule_declaration_items,
             rule_declaration_selected_index: selected_style_rule_declaration
                 .map(|(index, _)| index as i32)
                 .unwrap_or(-1),
@@ -147,21 +169,32 @@ impl UiAssetEditorSession {
             can_edit_rule_declaration: self.diagnostics.is_empty() && selected_style_rule.is_some(),
             can_delete_rule_declaration: self.diagnostics.is_empty()
                 && selected_style_rule_declaration.is_some(),
-            token_items: style_tokens
-                .iter()
-                .map(|entry| format!("{} = {}", entry.name, entry.literal))
-                .collect(),
-            token_selected_index: selected_style_token
-                .map(|(index, _)| index as i32)
-                .unwrap_or(-1),
-            selected_token_name: selected_style_token
-                .map(|(_, entry)| entry.name.clone())
-                .unwrap_or_default(),
-            selected_token_value: selected_style_token
-                .map(|(_, entry)| entry.literal.clone())
-                .unwrap_or_default(),
-            can_edit_token: self.diagnostics.is_empty() && selected_style_token.is_some(),
-            can_delete_token: self.diagnostics.is_empty() && selected_style_token.is_some(),
+            token_items,
+            token_selected_index,
+            selected_token_name,
+            selected_token_value,
+            can_edit_token: self.diagnostics.is_empty() && token_selected_index >= 0,
+            can_delete_token: self.diagnostics.is_empty() && token_selected_index >= 0,
         }
     }
 }
+
+fn collect_items_and_selection<'a, T>(
+    entries: &'a [T],
+    mut is_selected: impl FnMut(&T) -> bool,
+    mut label: impl FnMut(&T) -> String,
+) -> (Vec<String>, Option<(usize, &'a T)>) {
+    let mut items = Vec::with_capacity(entries.len());
+    let mut selected = None;
+    for (index, entry) in entries.iter().enumerate() {
+        if selected.is_none() && is_selected(entry) {
+            selected = Some((index, entry));
+        }
+        items.push(label(entry));
+    }
+    (items, selected)
+}
+
+#[cfg(test)]
+#[path = "style/single_pass_selection_tests.rs"]
+mod single_pass_selection_tests;

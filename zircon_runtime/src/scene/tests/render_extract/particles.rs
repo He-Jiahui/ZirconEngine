@@ -33,8 +33,12 @@ fn render_frame_extract_collects_dynamic_particle_sprites_by_camera_layers() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);
     world.set_active_camera(camera);
-    let visible = world.spawn_node(NodeKind::Empty);
-    let hidden = world.spawn_node(NodeKind::Empty);
+    let visible = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let hidden = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_render_layer_mask(visible, 0b0010).unwrap();
     world.set_render_layer_mask(hidden, 0b0100).unwrap();
     world
@@ -97,8 +101,12 @@ fn render_frame_extract_collects_dynamic_particle_gpu_frames_by_camera_layers() 
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);
     world.set_active_camera(camera);
-    let visible = world.spawn_node(NodeKind::Empty);
-    let hidden = world.spawn_node(NodeKind::Empty);
+    let visible = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let hidden = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_render_layer_mask(visible, 0b0010).unwrap();
     world.set_render_layer_mask(hidden, 0b0100).unwrap();
     world
@@ -166,8 +174,12 @@ fn render_frame_extract_collects_world_hud_health_bars_as_scene_particles() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);
     world.set_active_camera(camera);
-    let visible = world.spawn_node(NodeKind::Empty);
-    let hidden = world.spawn_node(NodeKind::Empty);
+    let visible = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let hidden = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_render_layer_mask(visible, 0b0010).unwrap();
     world.set_render_layer_mask(hidden, 0b0100).unwrap();
     world
@@ -261,11 +273,13 @@ fn render_frame_extract_collects_world_hud_health_bars_as_scene_particles() {
         1,
         "world HUD bar should emit one filled billboard from its health ratio"
     );
-    assert!(extract
-        .particles
-        .sprites
-        .iter()
-        .all(|sprite| sprite.entity == visible && sprite.position.y == 3.5));
+    assert!(
+        extract
+            .particles
+            .sprites
+            .iter()
+            .all(|sprite| sprite.entity == visible && sprite.position.y == 3.5)
+    );
     assert!(extract.visibility.dynamic_entities.contains(&visible));
     assert!(!extract.visibility.dynamic_entities.contains(&hidden));
 }

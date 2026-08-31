@@ -9,8 +9,8 @@ related_code:
   - zircon_runtime/src/navigation/operation
   - zircon_runtime/src/navigation/runtime.rs
   - zircon_runtime/src/scene/navigation.rs
-  - zircon_runtime_interface/src/runtime_api/operation.rs
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/session/operation.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime_interface/src/buffer.rs
   - zircon_editor/src/core/gateway
   - zircon_plugins/navigation/editor/src/operation_command

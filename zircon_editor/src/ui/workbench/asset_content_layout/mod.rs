@@ -1,28 +1,43 @@
 //! Shared visual and pointer geometry for editor asset content surfaces.
 
+mod browser_virtualization;
 mod controls;
+mod identity;
 mod metrics;
 mod paint_metadata;
 mod profile;
 mod text;
+mod thumbnail_geometry;
 mod thumbnail_grid;
 
-pub(crate) use metrics::AssetContentLayoutMetrics;
-pub(crate) use paint_metadata::{
-    asset_content_paint_metadata, ActivityContentNodeIdentity, AssetContentNodeIdentity,
-    AssetContentPaintMetadata, AssetContentPaintNodeInput, AssetContentRect, AssetContentSurface,
-    BrowserContentNodeIdentity,
+pub(crate) use identity::{
+    describe_asset_content_row, ActivityContentNodeIdentity, AssetContentRowDescriptor,
+    AssetContentSurface, BrowserContentNodeIdentity, BrowserThumbnailNodeRole,
 };
 #[cfg(test)]
-pub(crate) use paint_metadata::{
+pub(crate) use identity::{
     parse_activity_content_identity, parse_browser_content_identity, ActivityContentNodeRole,
 };
+pub(crate) use metrics::AssetContentLayoutMetrics;
+pub(crate) use paint_metadata::{
+    asset_content_paint_metadata, AssetContentPaintMetadata, AssetContentPaintNodeInput,
+    AssetContentRect, AssetContentScrollbarDescriptor, AssetContentScrollbarExtent,
+    AssetContentScrollbarKind, AssetContentScrollbarViewport,
+};
 pub(crate) use profile::AssetContentSurfaceProfile;
-pub(crate) use text::{compact_file_like_display_name, RuntimeFileNameCompaction};
+pub(crate) use text::{
+    compact_file_like_display_name, compact_thumbnail_file_name_to_width, RuntimeFileNameCompaction,
+};
+pub(crate) use thumbnail_geometry::{asset_thumbnail_card_geometry, AssetThumbnailCardGeometry};
 pub(crate) use thumbnail_grid::AssetThumbnailGridMetrics;
 
 #[cfg(test)]
 mod tests;
+pub(crate) use browser_virtualization::{
+    asset_browser_materialized_item_budget, AssetBrowserListPaintItem,
+    AssetBrowserLogicalPaintGeneration, AssetBrowserPaintItem, AssetBrowserSlotBinding,
+    AssetBrowserThumbnailPaintItem,
+};
 pub(crate) use controls::{
     activity_reference_row_index, browser_reference_row_index, browser_source_tree_row_index,
     ActivityAssetReferenceListKind, BrowserAssetReferenceListKind,

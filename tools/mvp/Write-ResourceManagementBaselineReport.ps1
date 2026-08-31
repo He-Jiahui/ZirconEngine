@@ -2,7 +2,7 @@
 param(
     [string]$BaselinePlanPath,
     [string]$ObservationPath,
-    [string]$OutputDirectory = (Join-Path 'E:\ZirconBuilds\mvp-resource-management-reports' ([guid]::NewGuid().ToString('N')))
+    [string]$OutputDirectory
 )
 
 Set-StrictMode -Version Latest
@@ -10,6 +10,20 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'ResourceManagementJsonEvidence.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'ResourceManagementSchema.psm1') -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'ResourceManagementSchemaRegistry.psm1') -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'ResourceManagementWorkloadRegistry.psm1') -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'ResourceManagementObservationContext.psm1') -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'ResourceManagementExecutionProtocol.psm1') -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'ResourceManagementStatistics.psm1') -Force -ErrorAction Stop
+
+if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
+    $OutputDirectory = New-MvpArtifactStoragePath `
+        -NamespaceId 'resource-management-reports' `
+        -InstanceId ([guid]::NewGuid().ToString('N'))
+}
 
 $script:ResourceManagementExpectedMeasurements = @{
     scan = @(
@@ -37,6 +51,8 @@ $script:ResourceManagementExpectedMeasurements = @{
         'asset_workspace.surface_clone.instances'
     )
 }
+$script:ResourceManagementMaximumBaselinePlanBytes = 4MB
+$script:ResourceManagementMaximumObservationBytes = 64MB
 
 function Get-ResourceManagementReportProperty {
     param(
@@ -45,11 +61,7 @@ function Get-ResourceManagementReportProperty {
         [Parameter(Mandatory)][string]$Label
     )
 
-    $property = $Value.PSObject.Properties[$Name]
-    if ($null -eq $property -or $null -eq $property.Value) {
-        throw "$Label is missing '$Name'."
-    }
-    return $property.Value
+    return Get-ResourceManagementSchemaProperty -Value $Value -Name $Name -Label $Label
 }
 
 function Get-ResourceManagementReportOptionalProperty {
@@ -58,11 +70,7 @@ function Get-ResourceManagementReportOptionalProperty {
         [Parameter(Mandatory)][string]$Name
     )
 
-    $property = $Value.PSObject.Properties[$Name]
-    if ($null -eq $property) {
-        return $null
-    }
-    return $property.Value
+    return Get-ResourceManagementSchemaOptionalProperty -Value $Value -Name $Name
 }
 
 function Get-ResourceManagementReportArrayProperty {
@@ -72,11 +80,22 @@ function Get-ResourceManagementReportArrayProperty {
         [Parameter(Mandatory)][string]$Label
     )
 
-    $items = @(Get-ResourceManagementReportProperty -Value $Value -Name $Name -Label $Label)
-    if ($items.Count -eq 0) {
-        throw "$Label has no '$Name'."
-    }
-    return $items
+    return Get-ResourceManagementSchemaArrayProperty -Value $Value -Name $Name -Label $Label
+}
+
+function Assert-ResourceManagementReportProperties {
+    param(
+        [Parameter(Mandatory)]$Value,
+        [Parameter(Mandatory)][string[]]$RequiredNames,
+        [string[]]$OptionalNames = @(),
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    Assert-ResourceManagementSchemaProperties `
+        -Value $Value `
+        -RequiredNames $RequiredNames `
+        -OptionalNames $OptionalNames `
+        -Label $Label
 }
 
 function Assert-ResourceManagementReportSha256 {
@@ -85,72 +104,39 @@ function Assert-ResourceManagementReportSha256 {
         [Parameter(Mandatory)][string]$Label
     )
 
-    if ($Value -notmatch '^[0-9A-F]{64}$') {
-        throw "$Label must be an uppercase SHA-256 value."
-    }
-    return $Value
+    return Assert-ResourceManagementSchemaSha256 -Value $Value -Label $Label
 }
 
 function Get-ResourceManagementReportJsonEvidence {
     param(
         [Parameter(Mandatory)][string]$Path,
-        [Parameter(Mandatory)][string]$Label
+        [Parameter(Mandatory)][string]$Label,
+        [ValidateRange(1, [Int32]::MaxValue)][int]$MaximumBytes = $script:ResourceManagementMaximumObservationBytes
     )
 
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    if (-not [IO.File]::Exists($resolution.OperationalPath)) {
-        throw "$Label does not exist: $($resolution.DisplayPath)"
-    }
-    [byte[]]$bytes = [IO.File]::ReadAllBytes($resolution.OperationalPath)
-    if ($bytes.Length -eq 0) {
-        throw "$Label is empty: $($resolution.DisplayPath)"
-    }
-    $hasher = [Security.Cryptography.SHA256]::Create()
-    try {
-        $sha256 = -join ($hasher.ComputeHash($bytes) | ForEach-Object { $_.ToString('X2') })
-    }
-    finally {
-        $hasher.Dispose()
-    }
-    try {
-        $text = ([Text.UTF8Encoding]::new($false)).GetString($bytes)
-        if ($text.Length -gt 0 -and $text[0] -eq [char]0xFEFF) {
-            $text = $text.Substring(1)
-        }
-        $json = $text | ConvertFrom-Json -ErrorAction Stop
-    }
-    catch {
-        throw "$Label is not valid JSON: $($resolution.DisplayPath): $($_.Exception.Message)"
-    }
-    return [pscustomobject]@{
-        json = $json
-        sha256 = $sha256
-        display_path = $resolution.DisplayPath
-    }
+    return Get-ResourceManagementJsonEvidence `
+        -Path $Path `
+        -Label $Label `
+        -MaximumBytes $MaximumBytes
 }
 
 function Get-ResourceManagementReportStatistics {
-    param([Parameter(Mandatory)][double[]]$Values)
+    param(
+        [Parameter(Mandatory)][double[]]$Values,
+        [Parameter(Mandatory)]$StatisticalPolicy
+    )
 
-    if ($Values.Count -eq 0) {
-        throw 'Cannot aggregate zero resource-management baseline samples.'
-    }
-    $sorted = [double[]]$Values.Clone()
-    [Array]::Sort($sorted)
-    $total = 0.0
-    foreach ($value in $sorted) {
-        $total += $value
-    }
-    $percentileIndex = [int][Math]::Ceiling(($sorted.Count - 1) * 0.95)
-    return [pscustomobject][ordered]@{
-        sample_count = $sorted.Count
-        min = $sorted[0]
-        median = $sorted[[int][Math]::Ceiling(($sorted.Count - 1) * 0.5)]
-        p95 = $sorted[$percentileIndex]
-        max = $sorted[$sorted.Count - 1]
-        mean = $total / $sorted.Count
-        total = $total
-    }
+    return Get-ResourceManagementCohortStatistics `
+        -Values $Values `
+        -MinimumSampleCount $StatisticalPolicy.minimum_sample_count `
+        -MaximumCoefficientOfVariation $StatisticalPolicy.maximum_coefficient_of_variation `
+        -MaximumRelativeMarginOfError $StatisticalPolicy.maximum_relative_margin_of_error
+}
+
+function Test-ResourceManagementReportNumberType {
+    param([Parameter(Mandatory)]$Value)
+
+    return Test-ResourceManagementSchemaJsonNumber -Value $Value
 }
 
 function ConvertTo-ResourceManagementReportNumber {
@@ -159,16 +145,10 @@ function ConvertTo-ResourceManagementReportNumber {
         [Parameter(Mandatory)][string]$Label
     )
 
-    try {
-        $number = [double]$Value
-    }
-    catch {
-        throw "$Label must be numeric."
-    }
-    if ([double]::IsNaN($number) -or [double]::IsInfinity($number) -or $number -lt 0) {
-        throw "$Label must be a finite non-negative number."
-    }
-    return $number
+    return ConvertTo-ResourceManagementSchemaJsonNumber `
+        -Value $Value `
+        -Label $Label `
+        -InvalidRangeMessage "$Label must be a finite non-negative number."
 }
 
 function ConvertTo-ResourceManagementReportNonNegativeInteger {
@@ -177,19 +157,56 @@ function ConvertTo-ResourceManagementReportNonNegativeInteger {
         [Parameter(Mandatory)][string]$Label
     )
 
-    if ($Value -is [bool] -or ($Value -is [string] -and [string]::IsNullOrWhiteSpace($Value))) {
-        throw "$Label must be a non-negative integer."
+    return ConvertTo-ResourceManagementSchemaNonNegativeInteger -Value $Value -Label $Label
+}
+
+function Get-ResourceManagementReportStatisticalPolicy {
+    param([Parameter(Mandatory)]$Value)
+
+    Assert-ResourceManagementReportProperties `
+        -Value $Value `
+        -RequiredNames @(
+            'warmup_repetitions',
+            'measurement_repetitions',
+            'minimum_sample_count',
+            'confidence_level',
+            'maximum_coefficient_of_variation',
+            'maximum_relative_margin_of_error') `
+        -Label 'Baseline statistical policy'
+    $warmupRepetitions = [int](ConvertTo-ResourceManagementReportNonNegativeInteger `
+            -Value $Value.warmup_repetitions `
+            -Label 'Baseline statistical policy warmup_repetitions')
+    $measurementRepetitions = [int](ConvertTo-ResourceManagementReportNonNegativeInteger `
+            -Value $Value.measurement_repetitions `
+            -Label 'Baseline statistical policy measurement_repetitions')
+    $minimumSampleCount = [int](ConvertTo-ResourceManagementReportNonNegativeInteger `
+            -Value $Value.minimum_sample_count `
+            -Label 'Baseline statistical policy minimum_sample_count')
+    $confidenceLevel = ConvertTo-ResourceManagementReportNumber `
+        -Value $Value.confidence_level `
+        -Label 'Baseline statistical policy confidence_level'
+    $maximumCoefficientOfVariation = ConvertTo-ResourceManagementReportNumber `
+        -Value $Value.maximum_coefficient_of_variation `
+        -Label 'Baseline statistical policy maximum_coefficient_of_variation'
+    $maximumRelativeMarginOfError = ConvertTo-ResourceManagementReportNumber `
+        -Value $Value.maximum_relative_margin_of_error `
+        -Label 'Baseline statistical policy maximum_relative_margin_of_error'
+    if ($warmupRepetitions -lt 1 -or $warmupRepetitions -gt 10 -or
+        $measurementRepetitions -lt 20 -or $measurementRepetitions -gt 50 -or
+        $minimumSampleCount -lt 20 -or $minimumSampleCount -gt $measurementRepetitions -or
+        $confidenceLevel -ne 0.95 -or
+        $maximumCoefficientOfVariation -le 0 -or $maximumCoefficientOfVariation -gt 0.25 -or
+        $maximumRelativeMarginOfError -le 0 -or $maximumRelativeMarginOfError -gt 0.25) {
+        throw 'Baseline statistical policy is outside the admitted warmup, sample, confidence, or noise bounds.'
     }
-    try {
-        $number = [decimal]$Value
+    return [pscustomobject][ordered]@{
+        warmup_repetitions = $warmupRepetitions
+        measurement_repetitions = $measurementRepetitions
+        minimum_sample_count = $minimumSampleCount
+        confidence_level = $confidenceLevel
+        maximum_coefficient_of_variation = $maximumCoefficientOfVariation
+        maximum_relative_margin_of_error = $maximumRelativeMarginOfError
     }
-    catch {
-        throw "$Label must be a non-negative integer."
-    }
-    if ($number -lt 0 -or [decimal]::Truncate($number) -ne $number -or $number -gt [decimal][uint64]::MaxValue) {
-        throw "$Label must be a non-negative integer."
-    }
-    return [uint64]$number
 }
 
 function Get-ResourceManagementReportQueryKey {
@@ -200,6 +217,10 @@ function Get-ResourceManagementReportQueryKey {
 
     $operation = [string](Get-ResourceManagementReportProperty -Value $Query -Name 'operation' -Label $Label)
     $filter = Get-ResourceManagementReportProperty -Value $Query -Name 'query' -Label $Label
+    Assert-ResourceManagementReportProperties `
+        -Value $filter `
+        -RequiredNames @('kind', 'state') `
+        -Label "$Label filter"
     $kind = [string](Get-ResourceManagementReportProperty -Value $filter -Name 'kind' -Label "$Label query")
     $state = [string](Get-ResourceManagementReportProperty -Value $filter -Name 'state' -Label "$Label query")
     if ($operation -notin @('scan', 'page', 'asset-workspace-snapshot') -or $kind -ne 'Data' -or $state -ne 'any') {
@@ -258,16 +279,45 @@ function Assert-ResourceManagementReportExpectedMeasurements {
 function Get-ResourceManagementReportPlanScenarios {
     param([Parameter(Mandatory)]$BaselinePlan)
 
-    if ([int](Get-ResourceManagementReportProperty -Value $BaselinePlan -Name 'schema_version' -Label 'Baseline plan') -ne 1 -or
-        [string](Get-ResourceManagementReportProperty -Value $BaselinePlan -Name 'workload_family' -Label 'Baseline plan') -ne 'resource-management-query' -or
-        [string](Get-ResourceManagementReportProperty -Value $BaselinePlan -Name 'resource_kind' -Label 'Baseline plan') -ne 'Data') {
+    Assert-ResourceManagementReportProperties `
+        -Value $BaselinePlan `
+        -RequiredNames @(
+            'schema_version', 'workload_family', 'workload_profile_id',
+            'workload_registry_receipt', 'source_fingerprint', 'resource_kind',
+            'statistical_policy', 'scenarios') `
+        -Label 'Baseline plan'
+    Assert-ResourceManagementRegisteredSchemaIdentity `
+        -Value $BaselinePlan `
+        -SchemaId 'zircon.resource-management.baseline-plan' `
+        -Label 'Baseline plan' | Out-Null
+    $workloadRegistryReceipt = Assert-ResourceManagementWorkloadRegistryReceipt `
+        -Receipt (Get-ResourceManagementReportProperty `
+            -Value $BaselinePlan `
+            -Name 'workload_registry_receipt' `
+            -Label 'Baseline plan') `
+        -Label 'Baseline plan workload registry receipt'
+    $workloadProfileId = [string](Get-ResourceManagementReportProperty `
+            -Value $BaselinePlan `
+            -Name 'workload_profile_id' `
+            -Label 'Baseline plan')
+    $workloadProfile = Get-ResourceManagementWorkloadProfile -ProfileId $workloadProfileId
+    $resourceKind = [string](Get-ResourceManagementReportProperty `
+            -Value $BaselinePlan -Name 'resource_kind' -Label 'Baseline plan')
+    if ($workloadProfile.asset_kinds -cnotcontains $resourceKind) {
         throw 'Baseline plan has an unsupported schema.'
     }
     $sourceFingerprint = Assert-ResourceManagementReportSha256 `
         -Value ([string](Get-ResourceManagementReportProperty -Value $BaselinePlan -Name 'source_fingerprint' -Label 'Baseline plan')) `
         -Label 'Baseline plan source_fingerprint'
+    $statisticalPolicy = Get-ResourceManagementReportStatisticalPolicy `
+        -Value (Get-ResourceManagementReportProperty -Value $BaselinePlan -Name 'statistical_policy' -Label 'Baseline plan')
     $scenarioMap = @{}
     foreach ($scenario in @(Get-ResourceManagementReportArrayProperty -Value $BaselinePlan -Name 'scenarios' -Label 'Baseline plan')) {
+        Assert-ResourceManagementReportProperties `
+            -Value $scenario `
+            -RequiredNames @('logical_id', 'mode', 'project_role', 'process_lifecycle', 'data_asset_count', 'data_inventory_sha256', 'required_repetitions', 'queries') `
+            -OptionalNames @('project_id', 'project_manifest_sha256', 'required_generation_relation', 'change_mode', 'change_percent', 'changed_asset_count', 'changed_virtual_paths', 'resource_kind', 'data_virtual_prefix', 'data_source_pattern', 'change_set_manifest_sha256') `
+            -Label 'Baseline scenario'
         $logicalId = [string](Get-ResourceManagementReportProperty -Value $scenario -Name 'logical_id' -Label 'Baseline scenario')
         if ([string]::IsNullOrWhiteSpace($logicalId) -or $scenarioMap.ContainsKey($logicalId)) {
             throw "Baseline plan has an empty or duplicate logical_id '$logicalId'."
@@ -277,7 +327,11 @@ function Get-ResourceManagementReportPlanScenarios {
         $inventory = Assert-ResourceManagementReportSha256 `
             -Value ([string](Get-ResourceManagementReportProperty -Value $scenario -Name 'data_inventory_sha256' -Label "Baseline scenario '$logicalId'")) `
             -Label "Baseline scenario '$logicalId' data_inventory_sha256"
-        if ($dataAssetCount -lt 1 -or $dataAssetCount -gt 100000 -or $repeatCount -lt 3 -or $repeatCount -gt 20) {
+        $expectedRepetitions = $statisticalPolicy.warmup_repetitions + $statisticalPolicy.measurement_repetitions
+        if ($dataAssetCount -lt 1 -or $dataAssetCount -gt 100000 -or
+            $dataAssetCount -lt $workloadProfile.minimum_asset_count -or
+            $dataAssetCount -gt $workloadProfile.maximum_asset_count -or
+            $repeatCount -ne $expectedRepetitions) {
             throw "Baseline scenario '$logicalId' has an invalid scale or repetition count."
         }
         $mode = [string](Get-ResourceManagementReportProperty -Value $scenario -Name 'mode' -Label "Baseline scenario '$logicalId'")
@@ -287,9 +341,22 @@ function Get-ResourceManagementReportPlanScenarios {
             $mode -notin @('cold-open', 'stable-generation', 'one-percent-change')) {
             throw "Baseline scenario '$logicalId' has an invalid mode/project role pairing."
         }
+        $processLifecycle = [string](Get-ResourceManagementReportProperty `
+                -Value $scenario `
+                -Name 'process_lifecycle' `
+                -Label "Baseline scenario '$logicalId'")
+        $expectedProcessLifecycle = if ($mode -eq 'stable-generation') { 'same-process' } else { 'fresh-process' }
+        if ($processLifecycle -cne $expectedProcessLifecycle) {
+            throw "Baseline scenario '$logicalId' process_lifecycle '$processLifecycle' differs from expected '$expectedProcessLifecycle'."
+        }
         $queries = @{}
         foreach ($query in @(Get-ResourceManagementReportArrayProperty -Value $scenario -Name 'queries' -Label "Baseline scenario '$logicalId'")) {
             $key = Get-ResourceManagementReportQueryKey -Query $query -Label "Baseline scenario '$logicalId' query"
+            Assert-ResourceManagementReportProperties `
+                -Value $query `
+                -RequiredNames @('operation', 'query', 'expected_measurements') `
+                -OptionalNames @('offset', 'limit') `
+                -Label "Baseline scenario '$logicalId' query '$key'"
             if ($queries.ContainsKey($key)) {
                 throw "Baseline scenario '$logicalId' has a duplicate query '$key'."
             }
@@ -306,10 +373,15 @@ function Get-ResourceManagementReportPlanScenarios {
                 counter_names = $counterNames
             }
         }
+        $queryOperations = @($queries.Values | ForEach-Object { [string]$_.description.operation } | Select-Object -Unique)
+        if (@($queryOperations | Where-Object { $_ -notin $workloadProfile.query_mix }).Count -ne 0) {
+            throw "Baseline scenario '$logicalId' query mix differs from workload profile '$workloadProfileId'."
+        }
         $scenarioMap[$logicalId] = [pscustomobject]@{
             logical_id = $logicalId
             mode = $mode
             project_role = $projectRole
+            process_lifecycle = $processLifecycle
             data_asset_count = $dataAssetCount
             data_inventory_sha256 = $inventory
             required_repetitions = $repeatCount
@@ -317,7 +389,10 @@ function Get-ResourceManagementReportPlanScenarios {
         }
     }
     return [pscustomobject]@{
+        workload_profile_id = $workloadProfileId
+        workload_registry_receipt = $workloadRegistryReceipt
         source_fingerprint = $sourceFingerprint
+        statistical_policy = $statisticalPolicy
         scenarios = $scenarioMap
     }
 }
@@ -333,10 +408,16 @@ function ConvertTo-ResourceManagementBaselineReport {
     $plan = Get-ResourceManagementReportPlanScenarios -BaselinePlan $BaselinePlan
     Assert-ResourceManagementReportSha256 -Value $BaselinePlanSha256 -Label 'Baseline plan SHA-256' | Out-Null
     Assert-ResourceManagementReportSha256 -Value $ObservationSha256 -Label 'Observation SHA-256' | Out-Null
-    if ([int](Get-ResourceManagementReportProperty -Value $Observation -Name 'schema_version' -Label 'Observation manifest') -ne 1 -or
-        [string](Get-ResourceManagementReportProperty -Value $Observation -Name 'workload_family' -Label 'Observation manifest') -ne 'resource-management-query') {
-        throw 'Observation manifest has an unsupported schema.'
-    }
+    Assert-ResourceManagementReportProperties `
+        -Value $Observation `
+        -RequiredNames @(
+            'schema_version', 'workload_family', 'source_fingerprint',
+            'baseline_plan_sha256', 'observation_context', 'execution_protocol', 'samples') `
+        -Label 'Observation manifest'
+    Assert-ResourceManagementRegisteredSchemaIdentity `
+        -Value $Observation `
+        -SchemaId 'zircon.resource-management.observation' `
+        -Label 'Observation manifest' | Out-Null
     $observationFingerprint = Assert-ResourceManagementReportSha256 `
         -Value ([string](Get-ResourceManagementReportProperty -Value $Observation -Name 'source_fingerprint' -Label 'Observation manifest')) `
         -Label 'Observation manifest source_fingerprint'
@@ -349,18 +430,52 @@ function ConvertTo-ResourceManagementBaselineReport {
     if (-not $declaredPlanSha256.Equals($BaselinePlanSha256, [StringComparison]::Ordinal)) {
         throw 'Observation manifest belongs to a different baseline plan.'
     }
+    $observationContext = Resolve-ResourceManagementObservationContext `
+        -Context (Get-ResourceManagementReportProperty `
+            -Value $Observation `
+            -Name 'observation_context' `
+            -Label 'Observation manifest') `
+        -ExpectedSourceFingerprint $observationFingerprint
+    $executionProtocol = Resolve-ResourceManagementExecutionProtocol `
+        -Protocol (Get-ResourceManagementReportProperty `
+            -Value $Observation `
+            -Name 'execution_protocol' `
+            -Label 'Observation manifest')
 
     $samplesByScenario = @{}
+    $processContextsByScenario = @{}
+    $executionProtocolsByScenario = @{}
+    $allSampleExecutionProtocols = [Collections.Generic.List[object]]::new()
     foreach ($sample in @(Get-ResourceManagementReportArrayProperty -Value $Observation -Name 'samples' -Label 'Observation manifest')) {
+        Assert-ResourceManagementReportProperties `
+            -Value $sample `
+            -RequiredNames @('logical_id', 'attempt', 'sample_phase', 'data_inventory_sha256', 'process_context', 'execution_protocol', 'process', 'queries') `
+            -Label 'Observation sample'
         $logicalId = [string](Get-ResourceManagementReportProperty -Value $sample -Name 'logical_id' -Label 'Observation sample')
         if (-not $plan.scenarios.ContainsKey($logicalId)) {
             throw "Observation sample references an unknown baseline scenario '$logicalId'."
         }
-        $attempt = [int](Get-ResourceManagementReportProperty -Value $sample -Name 'attempt' -Label "Observation sample '$logicalId'")
-        if ($attempt -lt 1) {
-            throw "Observation sample '$logicalId' has an invalid attempt."
-        }
+        $attemptNumber = ConvertTo-ResourceManagementReportNonNegativeInteger `
+            -Value (Get-ResourceManagementReportProperty -Value $sample -Name 'attempt' -Label "Observation sample '$logicalId'") `
+            -Label "Observation sample '$logicalId' attempt"
         $scenario = $plan.scenarios[$logicalId]
+        if ($attemptNumber -lt 1 -or $attemptNumber -gt $scenario.required_repetitions) {
+            throw "Observation sample '$logicalId' attempt $attemptNumber is outside the required repetition budget of 1..$($scenario.required_repetitions)."
+        }
+        $attempt = [int]$attemptNumber
+        $samplePhase = [string](Get-ResourceManagementReportProperty `
+                -Value $sample `
+                -Name 'sample_phase' `
+                -Label "Observation sample '$logicalId'")
+        $expectedSamplePhase = if ($attempt -le $plan.statistical_policy.warmup_repetitions) {
+            'warmup'
+        }
+        else {
+            'measurement'
+        }
+        if ($samplePhase -ne $expectedSamplePhase) {
+            throw "Observation sample '$logicalId' attempt $attempt has sample_phase '$samplePhase'; expected sample_phase '$expectedSamplePhase'."
+        }
         $inventory = Assert-ResourceManagementReportSha256 `
             -Value ([string](Get-ResourceManagementReportProperty -Value $sample -Name 'data_inventory_sha256' -Label "Observation sample '$logicalId'")) `
             -Label "Observation sample '$logicalId' data_inventory_sha256"
@@ -369,12 +484,33 @@ function ConvertTo-ResourceManagementBaselineReport {
         }
         if (-not $samplesByScenario.ContainsKey($logicalId)) {
             $samplesByScenario[$logicalId] = @{}
+            $processContextsByScenario[$logicalId] = @{}
+            $executionProtocolsByScenario[$logicalId] = @{}
         }
         if ($samplesByScenario[$logicalId].ContainsKey($attempt)) {
             throw "Observation sample '$logicalId' has duplicate attempt $attempt."
         }
         $samplesByScenario[$logicalId][$attempt] = $sample
+        $resolvedProcessContext = Resolve-ResourceManagementSampleProcessContext `
+            -Context (Get-ResourceManagementReportProperty `
+                -Value $sample `
+                -Name 'process_context' `
+                -Label "Observation sample '$logicalId'") `
+            -Label "Observation sample '$logicalId' process context"
+        $processContextsByScenario[$logicalId][$attempt] = $resolvedProcessContext
+        $resolvedExecutionProtocol = Resolve-ResourceManagementSampleExecutionProtocol `
+            -Protocol (Get-ResourceManagementReportProperty `
+                -Value $sample `
+                -Name 'execution_protocol' `
+                -Label "Observation sample '$logicalId'") `
+            -ExpectedMode $scenario.mode `
+            -ExpectedProcessId $resolvedProcessContext.process_id `
+            -Label "Observation sample '$logicalId' execution protocol"
+        $executionProtocolsByScenario[$logicalId][$attempt] = $resolvedExecutionProtocol
+        $allSampleExecutionProtocols.Add($resolvedExecutionProtocol) | Out-Null
     }
+    Assert-ResourceManagementExecutionProtocolSequence `
+        -SampleProtocols $allSampleExecutionProtocols.ToArray()
 
     $scenarioReports = [Collections.Generic.List[object]]::new()
     foreach ($scenario in @($plan.scenarios.Values | Sort-Object logical_id)) {
@@ -386,6 +522,31 @@ function ConvertTo-ResourceManagementBaselineReport {
         if ($attempts.Count -ne $expectedAttempts.Count -or @($expectedAttempts | Where-Object { $_ -notin $attempts }).Count -gt 0) {
             throw "Observation manifest does not contain every required attempt for scenario '$($scenario.logical_id)'."
         }
+        $scenarioProcessContexts = @(
+            $expectedAttempts | ForEach-Object { $processContextsByScenario[$scenario.logical_id][$_] }
+        )
+        Assert-ResourceManagementSampleProcessLifecycle `
+            -ProcessContexts $scenarioProcessContexts `
+            -ProcessLifecycle $scenario.process_lifecycle `
+            -Label "Observation scenario '$($scenario.logical_id)' process contexts"
+        $reportedProcessContexts = @(
+            foreach ($attempt in $expectedAttempts) {
+                [pscustomobject][ordered]@{
+                    attempt = $attempt
+                    sample_phase = [string]$samplesByScenario[$scenario.logical_id][$attempt].sample_phase
+                    process_context = $processContextsByScenario[$scenario.logical_id][$attempt]
+                }
+            }
+        )
+        $reportedSampleProtocols = @(
+            foreach ($attempt in $expectedAttempts) {
+                [pscustomobject][ordered]@{
+                    attempt = $attempt
+                    sample_phase = [string]$samplesByScenario[$scenario.logical_id][$attempt].sample_phase
+                    execution_protocol = $executionProtocolsByScenario[$scenario.logical_id][$attempt]
+                }
+            }
+        )
 
         $processCpu = [Collections.Generic.List[double]]::new()
         $workingSet = [Collections.Generic.List[double]]::new()
@@ -403,16 +564,27 @@ function ConvertTo-ResourceManagementBaselineReport {
 
         foreach ($attempt in $expectedAttempts) {
             $sample = $samplesByScenario[$scenario.logical_id][$attempt]
+            $sampleProcessContext = $processContextsByScenario[$scenario.logical_id][$attempt]
+            $isMeasurement = [string]$sample.sample_phase -eq 'measurement'
             $process = Get-ResourceManagementReportProperty -Value $sample -Name 'process' -Label "Observation sample '$($scenario.logical_id)'"
-            $processCpu.Add((ConvertTo-ResourceManagementReportNumber `
-                    -Value (Get-ResourceManagementReportProperty -Value $process -Name 'cpu_time_ms' -Label "Observation sample '$($scenario.logical_id)' process") `
-                    -Label "Observation sample '$($scenario.logical_id)' cpu_time_ms"))
-            $workingSet.Add((ConvertTo-ResourceManagementReportNumber `
-                    -Value (Get-ResourceManagementReportProperty -Value $process -Name 'peak_working_set_bytes' -Label "Observation sample '$($scenario.logical_id)' process") `
-                    -Label "Observation sample '$($scenario.logical_id)' peak_working_set_bytes"))
-            $allocationProxy.Add((ConvertTo-ResourceManagementReportNumber `
-                    -Value (Get-ResourceManagementReportProperty -Value $process -Name 'allocation_proxy_bytes' -Label "Observation sample '$($scenario.logical_id)' process") `
-                    -Label "Observation sample '$($scenario.logical_id)' allocation_proxy_bytes"))
+            Assert-ResourceManagementReportProperties `
+                -Value $process `
+                -RequiredNames @('cpu_time_ms', 'peak_working_set_bytes', 'allocation_proxy_bytes') `
+                -Label "Observation sample '$($scenario.logical_id)' process"
+            $processCpuValue = ConvertTo-ResourceManagementReportNumber `
+                -Value (Get-ResourceManagementReportProperty -Value $process -Name 'cpu_time_ms' -Label "Observation sample '$($scenario.logical_id)' process") `
+                -Label "Observation sample '$($scenario.logical_id)' cpu_time_ms"
+            $workingSetValue = ConvertTo-ResourceManagementReportNumber `
+                -Value (Get-ResourceManagementReportProperty -Value $process -Name 'peak_working_set_bytes' -Label "Observation sample '$($scenario.logical_id)' process") `
+                -Label "Observation sample '$($scenario.logical_id)' peak_working_set_bytes"
+            $allocationProxyValue = ConvertTo-ResourceManagementReportNumber `
+                -Value (Get-ResourceManagementReportProperty -Value $process -Name 'allocation_proxy_bytes' -Label "Observation sample '$($scenario.logical_id)' process") `
+                -Label "Observation sample '$($scenario.logical_id)' allocation_proxy_bytes"
+            if ($isMeasurement) {
+                $processCpu.Add($processCpuValue)
+                $workingSet.Add($workingSetValue)
+                $allocationProxy.Add($allocationProxyValue)
+            }
 
             $observedQueries = @{}
             foreach ($query in @(Get-ResourceManagementReportArrayProperty -Value $sample -Name 'queries' -Label "Observation sample '$($scenario.logical_id)'")) {
@@ -435,69 +607,132 @@ function ConvertTo-ResourceManagementBaselineReport {
                 if ($null -eq $frameIndex -or $null -eq $timestampUs) {
                     throw "Observation sample '$($scenario.logical_id)' query '$queryKey' is missing its profiling frame association."
                 }
-                [void](ConvertTo-ResourceManagementReportNonNegativeInteger `
-                        -Value $frameIndex `
-                        -Label "Observation sample '$($scenario.logical_id)' query '$queryKey' profiling frame association frame_index")
+                $resolvedFrameIndex = ConvertTo-ResourceManagementReportNonNegativeInteger `
+                    -Value $frameIndex `
+                    -Label "Observation sample '$($scenario.logical_id)' query '$queryKey' profiling frame association frame_index"
                 [void](ConvertTo-ResourceManagementReportNonNegativeInteger `
                         -Value $timestampUs `
                         -Label "Observation sample '$($scenario.logical_id)' query '$queryKey' profiling frame association timestamp_us")
-                $querySamples[$queryKey].elapsed_us.Add((ConvertTo-ResourceManagementReportNumber `
-                        -Value (Get-ResourceManagementReportProperty -Value $query -Name 'elapsed_us' -Label "Observation sample '$($scenario.logical_id)' query '$queryKey'") `
-                        -Label "Observation sample '$($scenario.logical_id)' query '$queryKey' elapsed_us"))
+                if ($resolvedFrameIndex -lt $sampleProcessContext.first_frame_index -or
+                    $resolvedFrameIndex -gt $sampleProcessContext.last_frame_index) {
+                    throw "Observation sample '$($scenario.logical_id)' query '$queryKey' profiling frame association is outside the collector frame range."
+                }
+                Assert-ResourceManagementReportProperties `
+                    -Value $query `
+                    -RequiredNames @('operation', 'query', 'elapsed_us', 'counters', 'frame_index', 'timestamp_us') `
+                    -OptionalNames @('offset', 'limit') `
+                    -Label "Observation sample '$($scenario.logical_id)' query '$queryKey'"
+                $elapsedValue = ConvertTo-ResourceManagementReportNumber `
+                    -Value (Get-ResourceManagementReportProperty -Value $query -Name 'elapsed_us' -Label "Observation sample '$($scenario.logical_id)' query '$queryKey'") `
+                    -Label "Observation sample '$($scenario.logical_id)' query '$queryKey' elapsed_us"
+                if ($isMeasurement) {
+                    $querySamples[$queryKey].elapsed_us.Add($elapsedValue)
+                }
                 $counters = Get-ResourceManagementReportProperty -Value $query -Name 'counters' -Label "Observation sample '$($scenario.logical_id)' query '$queryKey'"
                 foreach ($counterName in $scenario.queries[$queryKey].counter_names) {
                     $counter = Get-ResourceManagementReportOptionalProperty -Value $counters -Name $counterName
                     if ($null -eq $counter) {
                         throw "Observation sample '$($scenario.logical_id)' query '$queryKey' is missing required counter '$counterName'."
                     }
-                    $querySamples[$queryKey].counters[$counterName].Add((ConvertTo-ResourceManagementReportNumber `
-                            -Value $counter `
-                            -Label "Observation sample '$($scenario.logical_id)' query '$queryKey' counter '$counterName'"))
+                    $counterValue = ConvertTo-ResourceManagementReportNumber `
+                        -Value $counter `
+                        -Label "Observation sample '$($scenario.logical_id)' query '$queryKey' counter '$counterName'"
+                    if ($isMeasurement) {
+                        $querySamples[$queryKey].counters[$counterName].Add($counterValue)
+                    }
                 }
+                Assert-ResourceManagementReportProperties `
+                    -Value $counters `
+                    -RequiredNames @($scenario.queries[$queryKey].counter_names) `
+                    -Label "Observation sample '$($scenario.logical_id)' query '$queryKey' counters"
             }
         }
+
+        $statisticalPolicy = $plan.statistical_policy
+        $primaryNoiseStatuses = [Collections.Generic.List[string]]::new()
+        $processCpuStatistics = Get-ResourceManagementReportStatistics `
+            -Values $processCpu.ToArray() `
+            -StatisticalPolicy $statisticalPolicy
+        $workingSetStatistics = Get-ResourceManagementReportStatistics `
+            -Values $workingSet.ToArray() `
+            -StatisticalPolicy $statisticalPolicy
+        $allocationProxyStatistics = Get-ResourceManagementReportStatistics `
+            -Values $allocationProxy.ToArray() `
+            -StatisticalPolicy $statisticalPolicy
+        $primaryNoiseStatuses.Add([string]$processCpuStatistics.noise_status)
+        $primaryNoiseStatuses.Add([string]$workingSetStatistics.noise_status)
+        $primaryNoiseStatuses.Add([string]$allocationProxyStatistics.noise_status)
 
         $queryReports = [Collections.Generic.List[object]]::new()
         foreach ($queryKey in @($scenario.queries.Keys | Sort-Object)) {
             $counters = [ordered]@{}
             foreach ($counterName in @($scenario.queries[$queryKey].counter_names | Sort-Object)) {
-                $counters[$counterName] = Get-ResourceManagementReportStatistics -Values $querySamples[$queryKey].counters[$counterName].ToArray()
+                $counters[$counterName] = Get-ResourceManagementReportStatistics `
+                    -Values $querySamples[$queryKey].counters[$counterName].ToArray() `
+                    -StatisticalPolicy $statisticalPolicy
             }
             $description = $scenario.queries[$queryKey].description
             $offset = if ($description.operation -eq 'page') { [int]$description.offset } else { $null }
             $limit = if ($description.operation -eq 'page') { [int]$description.limit } else { $null }
+            $elapsedStatistics = Get-ResourceManagementReportStatistics `
+                -Values $querySamples[$queryKey].elapsed_us.ToArray() `
+                -StatisticalPolicy $statisticalPolicy
+            $primaryNoiseStatuses.Add([string]$elapsedStatistics.noise_status)
             $queryReports.Add([pscustomobject][ordered]@{
                     operation = $description.operation
                     query = $description.query
                     offset = $offset
                     limit = $limit
-                    elapsed_us = Get-ResourceManagementReportStatistics -Values $querySamples[$queryKey].elapsed_us.ToArray()
+                    elapsed_us = $elapsedStatistics
                     counters = $counters
                 }) | Out-Null
+        }
+        $statisticalStatus = if ($primaryNoiseStatuses.Contains('insufficient-samples')) {
+            'insufficient-samples'
+        }
+        elseif ($primaryNoiseStatuses.Contains('unstable')) {
+            'unstable'
+        }
+        else {
+            'stable'
         }
         $scenarioReports.Add([pscustomobject][ordered]@{
                 logical_id = $scenario.logical_id
                 mode = $scenario.mode
                 project_role = $scenario.project_role
+                process_lifecycle = $scenario.process_lifecycle
                 data_asset_count = $scenario.data_asset_count
                 data_inventory_sha256 = $scenario.data_inventory_sha256
                 attempt_count = $expectedAttempts.Count
+                warmup_count = $statisticalPolicy.warmup_repetitions
+                sample_count = $statisticalPolicy.measurement_repetitions
+                statistical_status = $statisticalStatus
+                process_contexts = $reportedProcessContexts
+                sample_protocols = $reportedSampleProtocols
                 process = [ordered]@{
-                    cpu_time_ms = Get-ResourceManagementReportStatistics -Values $processCpu.ToArray()
-                    peak_working_set_bytes = Get-ResourceManagementReportStatistics -Values $workingSet.ToArray()
-                    allocation_proxy_bytes = Get-ResourceManagementReportStatistics -Values $allocationProxy.ToArray()
+                    cpu_time_ms = $processCpuStatistics
+                    peak_working_set_bytes = $workingSetStatistics
+                    allocation_proxy_bytes = $allocationProxyStatistics
                 }
                 queries = $queryReports.ToArray()
             }) | Out-Null
     }
 
     return [pscustomobject][ordered]@{
-        schema_version = 1
+        schema_version = 4
         workload_family = 'resource-management-query'
-        measurement_status = 'measured'
+        workload_profile_id = $plan.workload_profile_id
+        workload_registry_receipt = $plan.workload_registry_receipt
+        # A structurally valid caller manifest is diagnostic input, not
+        # evidence from a trusted product observation producer.
+        measurement_status = 'unverified'
+        measurement_status_reason = 'untrusted-observation-context'
         source_fingerprint = $plan.source_fingerprint
         baseline_plan_sha256 = $BaselinePlanSha256
         observation_sha256 = $ObservationSha256
+        observation_context = $observationContext
+        execution_protocol = $executionProtocol
+        statistical_policy = $plan.statistical_policy
         scenarios = $scenarioReports.ToArray()
     }
 }
@@ -505,14 +740,17 @@ function ConvertTo-ResourceManagementBaselineReport {
 function Assert-ResourceManagementBaselineReportOutputDirectory {
     param([Parameter(Mandatory)][string]$Path)
 
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    if ($resolution.DisplayPath -notmatch '^E:\\ZirconBuilds\\mvp-resource-management-reports\\(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
-        throw "Resource-management baseline report output must resolve under E:\ZirconBuilds\mvp-resource-management-reports\<session>: $($resolution.DisplayPath)"
+    $storage = Resolve-MvpArtifactStoragePath `
+        -Path $Path `
+        -NamespaceId 'resource-management-reports'
+    if ([IO.Directory]::Exists($storage.operation_path) -or [IO.File]::Exists($storage.operation_path)) {
+        throw "Resource-management baseline report output must not already exist: $($storage.display_path)"
     }
-    if ([IO.Directory]::Exists($resolution.OperationalPath) -or [IO.File]::Exists($resolution.OperationalPath)) {
-        throw "Resource-management baseline report output must not already exist: $($resolution.DisplayPath)"
+    return [pscustomobject]@{
+        OperationalPath = $storage.operation_path
+        DisplayPath = $storage.display_path
+        StoragePolicy = $storage
     }
-    return $resolution
 }
 
 function Write-ResourceManagementBaselineReportFileNew {
@@ -539,10 +777,17 @@ function ConvertTo-ResourceManagementBaselineReportMarkdown {
     $lines.Add('# Resource-management baseline report')
     $lines.Add('')
     $lines.Add("- Measurement status: $($Report.measurement_status)")
+    $lines.Add("- Product receipt: $($Report.observation_context.product_receipt.receipt_id)")
+    $lines.Add("- Run: $($Report.observation_context.run.run_id)")
+    $lines.Add("- Machine: $($Report.observation_context.machine.machine_id_sha256)")
+    $lines.Add("- Collector: $($Report.observation_context.collector.collector_id) $($Report.observation_context.collector.collector_version)")
+    $lines.Add("- Order receipt: $($Report.execution_protocol.order_receipt_sha256)")
+    $lines.Add("- Cache scope: $($Report.execution_protocol.cache_scope)")
+    $lines.Add("- Statistical policy: warmup=$($Report.statistical_policy.warmup_repetitions), samples=$($Report.statistical_policy.measurement_repetitions), confidence=95%")
     $lines.Add("- Scenario count: $($Report.scenarios.Count)")
     $lines.Add('')
-    $lines.Add('| Scenario | Resources | Attempts | Query | Median us | P95 us |')
-    $lines.Add('| --- | ---: | ---: | --- | ---: | ---: |')
+    $lines.Add('| Scenario | Resources | Warmup | Samples | Noise | Query | Median us | P95 us |')
+    $lines.Add('| --- | ---: | ---: | ---: | --- | --- | ---: | ---: |')
     foreach ($scenario in $Report.scenarios) {
         foreach ($query in $scenario.queries) {
             $label = if ($query.operation -eq 'page') {
@@ -551,7 +796,7 @@ function ConvertTo-ResourceManagementBaselineReportMarkdown {
             else {
                 [string]$query.operation
             }
-            $lines.Add("| $($scenario.logical_id) | $($scenario.data_asset_count) | $($scenario.attempt_count) | $label | $($query.elapsed_us.median) | $($query.elapsed_us.p95) |")
+            $lines.Add("| $($scenario.logical_id) | $($scenario.data_asset_count) | $($scenario.warmup_count) | $($scenario.sample_count) | $($scenario.statistical_status) | $label | $($query.elapsed_us.median) | $($query.elapsed_us.p95) |")
         }
     }
     return ($lines -join [Environment]::NewLine) + [Environment]::NewLine
@@ -564,8 +809,14 @@ function Invoke-ResourceManagementBaselineReport {
         [Parameter(Mandatory)][string]$OutputDirectory
     )
 
-    $planEvidence = Get-ResourceManagementReportJsonEvidence -Path $BaselinePlanPath -Label 'Resource-management baseline plan'
-    $observationEvidence = Get-ResourceManagementReportJsonEvidence -Path $ObservationPath -Label 'Resource-management baseline observation manifest'
+    $planEvidence = Get-ResourceManagementReportJsonEvidence `
+        -Path $BaselinePlanPath `
+        -Label 'Resource-management baseline plan' `
+        -MaximumBytes $script:ResourceManagementMaximumBaselinePlanBytes
+    $observationEvidence = Get-ResourceManagementReportJsonEvidence `
+        -Path $ObservationPath `
+        -Label 'Resource-management baseline observation manifest' `
+        -MaximumBytes $script:ResourceManagementMaximumObservationBytes
     $report = ConvertTo-ResourceManagementBaselineReport `
         -BaselinePlan $planEvidence.json `
         -BaselinePlanSha256 $planEvidence.sha256 `

@@ -37,6 +37,8 @@ pub(super) fn pressed_button_style(
     match kind {
         WorkbenchButtonKind::Primary => {
             style.surface = button_palette.surface_primary_pressed;
+            style.text = button_palette.primary_pressed_text;
+            style.glyph = button_palette.primary_pressed_text;
         }
         WorkbenchButtonKind::Secondary => {
             style.surface = button_palette.surface_secondary_pressed;

@@ -24,7 +24,7 @@ pub(super) fn vec_component(values: &[f32], index: usize, default: f32) -> f32 {
 }
 
 pub(super) fn humanize_control_id(control_id: &str) -> String {
-    let mut text = String::new();
+    let mut text = String::with_capacity(control_id.len());
     for (index, character) in control_id.chars().enumerate() {
         if index > 0 && character.is_uppercase() {
             text.push(' ');
@@ -40,3 +40,7 @@ pub(super) fn should_humanize_control_label(control_id: &str) -> bool {
         || control_id.ends_with("Button")
         || control_id.ends_with("Action")
 }
+
+#[cfg(test)]
+#[path = "attribute_values/capacity_tests.rs"]
+mod capacity_tests;

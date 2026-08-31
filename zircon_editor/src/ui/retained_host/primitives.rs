@@ -1,6 +1,8 @@
 use std::any::Any;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -8,7 +10,7 @@ use std::sync::Arc;
 #[path = "persistent_row_patch_map.rs"]
 mod persistent_row_patch_map;
 
-use persistent_row_patch_map::PersistentRowPatchMap;
+use persistent_row_patch_map::{PersistentRowPatchCursor, PersistentRowPatchMap};
 
 pub(crate) type SharedString = String;
 
@@ -114,25 +116,41 @@ pub(crate) struct Image {
     rgba: Arc<[u8]>,
     width: u32,
     height: u32,
+    content_fingerprint: u64,
+}
+
+pub(crate) struct ImagePixelProductRef<'a> {
+    pub(crate) rgba: &'a Arc<[u8]>,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
+    pub(crate) content_fingerprint: u64,
 }
 
 impl Image {
     pub(crate) fn from_rgba8(buffer: SharedPixelBuffer<Rgba8Pixel>) -> Self {
+        let rgba: Arc<[u8]> = buffer.rgba.into();
         Self {
-            rgba: buffer.rgba.into(),
+            content_fingerprint: image_content_fingerprint(buffer.width, buffer.height, &rgba),
+            rgba,
             width: buffer.width,
             height: buffer.height,
         }
     }
 
     pub(crate) fn load_from_path(path: &Path) -> Result<Self, image::ImageError> {
-        let image = image::open(path)?.to_rgba8();
-        let (width, height) = image.dimensions();
-        Ok(Self {
-            rgba: image.into_raw().into(),
-            width,
-            height,
-        })
+        Ok(Self::from_dynamic_image(image::open(path)?))
+    }
+
+    pub(crate) fn load_from_path_for_target(
+        path: &Path,
+        target_width: u32,
+        target_height: u32,
+    ) -> Result<Self, image::ImageError> {
+        Ok(Self::from_dynamic_image_for_target(
+            image::open(path)?,
+            target_width,
+            target_height,
+        ))
     }
 
     pub(crate) fn to_rgba8(&self) -> Option<SharedPixelBuffer<Rgba8Pixel>> {
@@ -144,16 +162,69 @@ impl Image {
         PhysicalSize::new(self.width, self.height)
     }
 
+    pub(crate) fn pixel_product(&self) -> Option<ImagePixelProductRef<'_>> {
+        self.is_valid().then_some(ImagePixelProductRef {
+            rgba: &self.rgba,
+            width: self.width,
+            height: self.height,
+            content_fingerprint: self.content_fingerprint,
+        })
+    }
+
     fn is_valid(&self) -> bool {
         self.width > 0
             && self.height > 0
             && self.rgba.len() == self.width as usize * self.height as usize * 4
     }
 
+    fn from_dynamic_image(image: image::DynamicImage) -> Self {
+        let image = image.to_rgba8();
+        let (width, height) = image.dimensions();
+        Self::from_rgba_vec(image.into_raw(), width, height)
+    }
+
+    fn from_dynamic_image_for_target(
+        image: image::DynamicImage,
+        target_width: u32,
+        target_height: u32,
+    ) -> Self {
+        let image = if target_width > 0
+            && target_height > 0
+            && (image.width() > target_width || image.height() > target_height)
+        {
+            image.resize(
+                target_width,
+                target_height,
+                image::imageops::FilterType::Triangle,
+            )
+        } else {
+            image
+        };
+        Self::from_dynamic_image(image)
+    }
+
+    fn from_rgba_vec(rgba: Vec<u8>, width: u32, height: u32) -> Self {
+        let rgba: Arc<[u8]> = rgba.into();
+        Self {
+            content_fingerprint: image_content_fingerprint(width, height, &rgba),
+            rgba,
+            width,
+            height,
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn shares_pixels_with(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.rgba, &other.rgba)
     }
+}
+
+pub(crate) fn image_content_fingerprint(width: u32, height: u32, rgba: &[u8]) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    width.hash(&mut hasher);
+    height.hash(&mut hasher);
+    rgba.hash(&mut hasher);
+    hasher.finish()
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -187,18 +258,20 @@ enum ModelValues<T> {
     },
 }
 
-pub(crate) enum ModelIter<'a, T> {
+enum ModelIter<'a, T> {
     Contiguous(std::slice::Iter<'a, T>),
     ContiguousOverlay {
         base: &'a [T],
-        patches: &'a PersistentRowPatchMap<T>,
+        patches: PersistentRowPatchCursor<'a, T>,
+        reverse_patches: PersistentRowPatchCursor<'a, T>,
         front: usize,
         back: usize,
     },
     SharedRows(std::slice::Iter<'a, Rc<T>>),
     SharedRowsOverlay {
         base: &'a [Rc<T>],
-        patches: &'a PersistentRowPatchMap<T>,
+        patches: PersistentRowPatchCursor<'a, T>,
+        reverse_patches: PersistentRowPatchCursor<'a, T>,
         front: usize,
         back: usize,
     },
@@ -213,6 +286,7 @@ impl<'a, T> Iterator for ModelIter<'a, T> {
             Self::ContiguousOverlay {
                 base,
                 patches,
+                reverse_patches: _,
                 front,
                 back,
             } => {
@@ -221,12 +295,13 @@ impl<'a, T> Iterator for ModelIter<'a, T> {
                 }
                 let row = *front;
                 *front += 1;
-                Some(patches.get(row).map(Rc::as_ref).unwrap_or(&base[row]))
+                Some(patches.value_at(row).map(Rc::as_ref).unwrap_or(&base[row]))
             }
             Self::SharedRows(values) => values.next().map(Rc::as_ref),
             Self::SharedRowsOverlay {
                 base,
                 patches,
+                reverse_patches: _,
                 front,
                 back,
             } => {
@@ -237,7 +312,7 @@ impl<'a, T> Iterator for ModelIter<'a, T> {
                 *front += 1;
                 Some(
                     patches
-                        .get(row)
+                        .value_at(row)
                         .or_else(|| base.get(row))
                         .expect("overlay row must resolve")
                         .as_ref(),
@@ -265,20 +340,8 @@ impl<T> DoubleEndedIterator for ModelIter<'_, T> {
             Self::Contiguous(values) => values.next_back(),
             Self::ContiguousOverlay {
                 base,
-                patches,
-                front,
-                back,
-            } => {
-                if *front >= *back {
-                    return None;
-                }
-                *back -= 1;
-                Some(patches.get(*back).map(Rc::as_ref).unwrap_or(&base[*back]))
-            }
-            Self::SharedRows(values) => values.next_back().map(Rc::as_ref),
-            Self::SharedRowsOverlay {
-                base,
-                patches,
+                patches: _,
+                reverse_patches,
                 front,
                 back,
             } => {
@@ -287,8 +350,27 @@ impl<T> DoubleEndedIterator for ModelIter<'_, T> {
                 }
                 *back -= 1;
                 Some(
-                    patches
-                        .get(*back)
+                    reverse_patches
+                        .value_at(*back)
+                        .map(Rc::as_ref)
+                        .unwrap_or(&base[*back]),
+                )
+            }
+            Self::SharedRows(values) => values.next_back().map(Rc::as_ref),
+            Self::SharedRowsOverlay {
+                base,
+                patches: _,
+                reverse_patches,
+                front,
+                back,
+            } => {
+                if *front >= *back {
+                    return None;
+                }
+                *back -= 1;
+                Some(
+                    reverse_patches
+                        .value_at(*back)
                         .or_else(|| base.get(*back))
                         .expect("overlay row must resolve")
                         .as_ref(),
@@ -376,19 +458,21 @@ impl<T> ModelRc<T> {
         }
     }
 
-    pub(crate) fn iter(&self) -> ModelIter<'_, T> {
+    pub(crate) fn iter(&self) -> impl DoubleEndedIterator<Item = &T> + ExactSizeIterator {
         match &self.values {
             ModelValues::Contiguous(values) => ModelIter::Contiguous(values.iter()),
             ModelValues::ContiguousOverlay { base, patches } => ModelIter::ContiguousOverlay {
                 base,
-                patches,
+                patches: patches.forward_cursor(),
+                reverse_patches: patches.reverse_cursor(),
                 front: 0,
                 back: base.len(),
             },
             ModelValues::SharedRows(values) => ModelIter::SharedRows(values.iter()),
             ModelValues::SharedRowsOverlay { base, patches } => ModelIter::SharedRowsOverlay {
                 base,
-                patches,
+                patches: patches.forward_cursor(),
+                reverse_patches: patches.reverse_cursor(),
                 front: 0,
                 back: base.len(),
             },
@@ -541,6 +625,13 @@ impl<T> ModelRc<T> {
         }
     }
 
+    pub(crate) fn replacing_metadata<M: Any>(&self, metadata: M) -> Self {
+        Self {
+            values: self.values.clone(),
+            metadata: Some(Rc::new(metadata)),
+        }
+    }
+
     pub(crate) fn metadata<M: Any>(&self) -> Option<&M> {
         self.metadata.as_deref()?.downcast_ref()
     }
@@ -571,7 +662,8 @@ impl<T: fmt::Debug> fmt::Debug for ModelRc<T> {
 
 impl<T: PartialEq> PartialEq for ModelRc<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.row_count() == other.row_count() && self.iter().eq(other.iter())
+        self.row_count() == other.row_count()
+            && (self.shares_values_with(other) || self.iter().eq(other.iter()))
     }
 }
 
@@ -596,6 +688,27 @@ mod performance_tests {
     };
 
     use super::*;
+
+    #[test]
+    fn replacing_model_metadata_preserves_the_retained_value_storage() {
+        let original = ModelRc::with_metadata(vec!["first", "second"], 1_u64);
+
+        let replaced = original.replacing_metadata(2_u64);
+
+        assert!(original.shares_values_with(&replaced));
+        assert_eq!(replaced.metadata::<u64>(), Some(&2));
+    }
+
+    #[test]
+    fn raster_pixel_product_downscales_to_fit_without_upscaling() {
+        let source = image::DynamicImage::ImageRgba8(image::RgbaImage::new(400, 200));
+        let downscaled = Image::from_dynamic_image_for_target(source, 40, 40);
+        assert_eq!((downscaled.width, downscaled.height), (40, 20));
+
+        let small = image::DynamicImage::ImageRgba8(image::RgbaImage::new(20, 10));
+        let retained = Image::from_dynamic_image_for_target(small, 40, 40);
+        assert_eq!((retained.width, retained.height), (20, 10));
+    }
 
     #[derive(Debug, PartialEq)]
     struct FixtureMetadata {
@@ -639,6 +752,49 @@ mod performance_tests {
             self.0.fetch_add(1, Ordering::Relaxed);
             Self(Arc::clone(&self.0))
         }
+    }
+
+    #[derive(Clone, Debug)]
+    struct EqualityProbe {
+        comparisons: Arc<AtomicUsize>,
+        value: usize,
+    }
+
+    impl PartialEq for EqualityProbe {
+        fn eq(&self, other: &Self) -> bool {
+            self.comparisons.fetch_add(1, Ordering::Relaxed);
+            self.value == other.value
+        }
+    }
+
+    #[test]
+    fn model_equality_does_not_visit_rows_when_storage_identity_proves_equality() {
+        let comparisons = Arc::new(AtomicUsize::new(0));
+        let model = ModelRc::with_metadata(
+            (0..128)
+                .map(|value| EqualityProbe {
+                    comparisons: Arc::clone(&comparisons),
+                    value,
+                })
+                .collect(),
+            "fixture",
+        );
+        let shared = model.clone();
+
+        assert_eq!(model, shared);
+        assert_eq!(comparisons.load(Ordering::Relaxed), 0);
+
+        let independent = ModelRc::with_metadata(
+            (0..128)
+                .map(|value| EqualityProbe {
+                    comparisons: Arc::clone(&comparisons),
+                    value,
+                })
+                .collect(),
+            "fixture",
+        );
+        assert_eq!(model, independent);
+        assert_eq!(comparisons.load(Ordering::Relaxed), 128);
     }
 
     #[test]
@@ -708,6 +864,35 @@ mod performance_tests {
             }
             _ => panic!("contiguous model should publish a sparse overlay"),
         }
+    }
+
+    #[test]
+    fn sparse_overlay_iterator_preserves_double_ended_interleaving() {
+        let original = ModelRc::with_metadata((0usize..16).collect(), "fixture");
+        let patched = original.with_row_patches(BTreeMap::from([(1, 101), (7, 107), (14, 114)]));
+        let mut iter = patched.iter();
+
+        assert_eq!(iter.next(), Some(&0));
+        assert_eq!(iter.next_back(), Some(&15));
+        assert_eq!(iter.next(), Some(&101));
+        assert_eq!(iter.next_back(), Some(&114));
+        assert_eq!(
+            iter.collect::<Vec<_>>(),
+            vec![&2, &3, &4, &5, &6, &107, &8, &9, &10, &11, &12, &13]
+        );
+    }
+
+    #[test]
+    fn sparse_overlay_iterator_exhausts_when_both_ends_meet_on_one_patch() {
+        let patched = ModelRc::with_metadata(vec![0usize], "fixture")
+            .with_row_patches(BTreeMap::from([(0, 100)]));
+        let mut forward_first = patched.iter();
+        assert_eq!(forward_first.next(), Some(&100));
+        assert_eq!(forward_first.next_back(), None);
+
+        let mut reverse_first = patched.iter();
+        assert_eq!(reverse_first.next_back(), Some(&100));
+        assert_eq!(reverse_first.next(), None);
     }
 
     #[test]

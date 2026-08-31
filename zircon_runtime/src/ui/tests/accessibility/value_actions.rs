@@ -1,4 +1,7 @@
 use super::*;
+use zircon_runtime_interface::ui::dispatch::{
+    UiNumberInputCommitMethod, UiNumberInputCommitStatus, UiNumberInputParseStatus,
+};
 
 #[test]
 fn accessibility_increment_and_decrement_step_slider_value() {
@@ -378,10 +381,12 @@ fn accessibility_dismiss_requires_popup_id() {
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
     assert!(has_note(&result, "status=unsupported"));
-    assert!(result
-        .diagnostics
-        .notes
-        .contains(&"accessibility dismiss requires popup id".to_string()));
+    assert!(
+        result
+            .diagnostics
+            .notes
+            .contains(&"accessibility dismiss requires popup id".to_string())
+    );
 }
 
 #[test]
@@ -433,48 +438,38 @@ fn accessibility_set_value_updates_editable_text_property() {
         Some("accessibility.set_value")
     );
     assert!(has_note(&result, "status=accepted"));
-    assert_eq!(result.binding_reports.len(), 9);
-    assert_eq!(
-        result
-            .binding_reports
-            .iter()
-            .map(|report| report.applied_count)
-            .sum::<u64>(),
-        18
-    );
-    assert!(result
-        .binding_reports
-        .iter()
-        .all(|report| report.rejected_count == 0
-            && report.updates.first().map(|update| update.source.kind)
-                == Some(UiBindingSourceKind::AccessibilityAction)));
+    assert_accessibility_binding_report(&result, 20);
     assert!(has_note(
         &result,
-        "accessibility_text_selection_changed:caret_offset"
+        "accessibility_text_state_changed:caret_offset"
     ));
     assert!(has_note(
         &result,
-        "accessibility_text_selection_changed:selection_anchor"
+        "accessibility_text_state_changed:selection_anchor"
     ));
     assert!(has_note(
         &result,
-        "accessibility_text_selection_changed:selection_focus"
+        "accessibility_text_state_changed:selection_focus"
     ));
     assert!(has_note(
         &result,
-        "accessibility_text_composition_changed:composition_start"
+        "accessibility_text_state_changed:composition_start"
     ));
     assert!(has_note(
         &result,
-        "accessibility_text_composition_changed:composition_end"
+        "accessibility_text_state_changed:composition_end"
     ));
     assert!(has_note(
         &result,
-        "accessibility_text_composition_changed:composition_text"
+        "accessibility_text_state_changed:composition_text"
     ));
     assert!(has_note(
         &result,
-        "accessibility_text_composition_changed:composition_restore_text"
+        "accessibility_text_state_changed:composition_restore_text"
+    ));
+    assert!(has_note(
+        &result,
+        "accessibility_text_state_changed:composition_clauses"
     ));
     assert_eq!(
         result.component_events,
@@ -515,6 +510,10 @@ fn accessibility_set_value_updates_editable_text_property() {
         metadata.attributes["composition_restore_text"].as_str(),
         Some("")
     );
+    assert_eq!(
+        metadata.attributes["composition_clauses"].as_array(),
+        Some([].as_slice())
+    );
     let snapshot = surface.accessibility_snapshot();
     let node = snapshot
         .node(id(2))
@@ -523,6 +522,131 @@ fn accessibility_set_value_updates_editable_text_property() {
         node.state.text_selection,
         Some(UiA11yTextSelection::collapsed(9))
     );
+}
+
+#[test]
+fn accessibility_number_field_set_value_clamps_and_commits_float_atomically() {
+    let mut surface = number_field_surface();
+
+    let result = dispatch_accessibility_with_value(
+        &mut surface,
+        id(2),
+        UiAccessibilityAction::SetValue,
+        None,
+        Some(120.0),
+    );
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.number_input.map(|receipt| (
+            receipt.parse_status,
+            receipt.commit_method,
+            receipt.commit_status,
+        )),
+        Some((
+            UiNumberInputParseStatus::OutOfRange,
+            UiNumberInputCommitMethod::Accessibility,
+            UiNumberInputCommitStatus::Clamped,
+        ))
+    );
+    let metadata = surface
+        .tree
+        .node(id(2))
+        .and_then(|node| node.template_metadata.as_ref())
+        .expect("number field metadata");
+    assert_eq!(metadata.attributes["value"].as_float(), Some(100.0));
+    assert_eq!(metadata.attributes["value_text"].as_str(), Some("100"));
+    assert_eq!(
+        metadata.attributes["number_edit_active"].as_bool(),
+        Some(false)
+    );
+    assert_eq!(
+        metadata.attributes["number_value_revision"].as_integer(),
+        Some(1)
+    );
+    assert_eq!(
+        metadata.attributes["number_edit_base_revision"].as_integer(),
+        Some(1)
+    );
+    assert!(result.component_events.iter().any(|report| {
+        matches!(
+            &report.event,
+            UiComponentEvent::ValueChanged { property, value }
+                if property == "value" && value == &UiValue::Float(100.0)
+        )
+    }));
+}
+
+#[test]
+fn accessibility_number_field_rejects_invalid_text_without_partial_state() {
+    let mut surface = number_field_surface();
+
+    let result = dispatch_accessibility_with_value(
+        &mut surface,
+        id(2),
+        UiAccessibilityAction::SetValue,
+        Some("not-a-number"),
+        None,
+    );
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
+    assert_eq!(
+        result
+            .diagnostics
+            .number_input
+            .map(|receipt| receipt.commit_status),
+        Some(UiNumberInputCommitStatus::Rejected)
+    );
+    let metadata = surface
+        .tree
+        .node(id(2))
+        .and_then(|node| node.template_metadata.as_ref())
+        .expect("number field metadata");
+    assert_eq!(metadata.attributes["value"].as_float(), Some(42.0));
+    assert_eq!(metadata.attributes["value_text"].as_str(), Some(""));
+    assert_eq!(
+        metadata.attributes["number_edit_active"].as_bool(),
+        Some(false)
+    );
+    assert!(result.component_events.is_empty());
+    assert!(result.binding_reports.is_empty());
+}
+
+fn number_field_surface() -> UiSurface {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/number-field"))
+                .with_frame(UiFrame::new(4.0, 4.0, 160.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "NumberField".to_string(),
+                    attributes: toml::from_str(
+                        "value = 42.0\nvalue_text = ''\nnumber_edit_active = false\nmin = 0.0\nmax = 100.0\nstep = 1.0",
+                    )
+                    .unwrap(),
+                    a11y: UiAccessibilityContract {
+                        role: UiA11yRole::TextInput,
+                        actions: vec![
+                            UiAccessibilityAction::Focus,
+                            UiAccessibilityAction::SetValue,
+                        ],
+                        ..UiAccessibilityContract::default()
+                    },
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::TextInput,
+                        value: Some(UiValue::Float(42.0)),
+                        value_property: Some("value".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface
 }
 
 #[test]

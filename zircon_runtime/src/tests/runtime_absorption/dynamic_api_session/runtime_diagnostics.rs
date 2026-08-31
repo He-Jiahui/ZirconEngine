@@ -32,7 +32,7 @@ fn runtime_10_profile_control_exposes_runtime_diagnostics_snapshot_without_abi_t
             .expect("runtime API table should be readable");
     assert!(
         !api_table.contains("runtime_diagnostics"),
-        "runtime diagnostics snapshots must reuse profile_control JSON instead of growing ZrRuntimeApiV7"
+        "runtime diagnostics snapshots must reuse profile_control JSON instead of growing ZrRuntimeApiV8"
     );
 }
 

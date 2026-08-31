@@ -34,16 +34,22 @@ impl DocumentKind {
 
     pub fn parse(value: impl Into<String>) -> Result<Self, DocumentKindError> {
         let value = value.into();
+        let mut segment_has_value = false;
         let valid = !value.is_empty()
-            && value.split('.').all(|segment| {
-                !segment.is_empty()
-                    && segment.chars().all(|character| {
-                        character.is_ascii_lowercase()
-                            || character.is_ascii_digit()
-                            || character == '_'
-                            || character == '-'
-                    })
-            });
+            && value.bytes().all(|byte| match byte {
+                b'.' => {
+                    segment_has_value && {
+                        segment_has_value = false;
+                        true
+                    }
+                }
+                b'a'..=b'z' | b'0'..=b'9' | b'_' | b'-' => {
+                    segment_has_value = true;
+                    true
+                }
+                _ => false,
+            })
+            && segment_has_value;
         if valid {
             Ok(Self(value))
         } else {
@@ -84,6 +90,10 @@ impl fmt::Display for DocumentKindError {
 }
 
 impl std::error::Error for DocumentKindError {}
+
+#[cfg(test)]
+#[path = "document_kind/byte_scan_tests.rs"]
+mod byte_scan_tests;
 
 #[cfg(test)]
 mod tests {

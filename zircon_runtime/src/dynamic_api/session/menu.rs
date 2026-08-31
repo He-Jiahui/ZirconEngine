@@ -1,5 +1,6 @@
 use crate::core::math::{UVec2, Vec2};
 use crate::scene::World;
+use crate::ui::surface::{resolve_text_layout_with_cache, UiTextLayoutRequest, UiTextMeasureCache};
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
@@ -46,10 +47,11 @@ struct MenuLayout {
 pub(super) fn runtime_session_menu_extract(
     world: &World,
     viewport_size: UVec2,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> Option<UiRenderExtract> {
     let menu = collect_runtime_menu(world)?;
     let layout = menu_layout(viewport_size);
-    Some(build_menu_extract(&menu, layout))
+    Some(build_menu_extract(&menu, layout, text_measure_cache))
 }
 
 pub(super) fn runtime_session_menu_action_at(
@@ -169,7 +171,11 @@ fn menu_layout(viewport_size: UVec2) -> MenuLayout {
     }
 }
 
-fn build_menu_extract(menu: &RuntimeMenu, layout: MenuLayout) -> UiRenderExtract {
+fn build_menu_extract(
+    menu: &RuntimeMenu,
+    layout: MenuLayout,
+    text_measure_cache: &mut UiTextMeasureCache,
+) -> UiRenderExtract {
     let accent = match menu.state {
         RuntimeMenuState::Start => "#d43a4bff",
         RuntimeMenuState::GameOver => "#6b1d28ff",
@@ -196,6 +202,7 @@ fn build_menu_extract(menu: &RuntimeMenu, layout: MenuLayout) -> UiRenderExtract
                     30.0,
                     "#f5fff1ff",
                     UiTextAlign::Center,
+                    text_measure_cache,
                 ),
                 text_command(
                     13,
@@ -205,6 +212,7 @@ fn build_menu_extract(menu: &RuntimeMenu, layout: MenuLayout) -> UiRenderExtract
                     16.0,
                     "#c7ddcaff",
                     UiTextAlign::Center,
+                    text_measure_cache,
                 ),
                 quad_command(14, layout.button, 203, accent, Some("#ffe4e8ff"), 1.0, 6.0),
                 text_command(
@@ -215,6 +223,7 @@ fn build_menu_extract(menu: &RuntimeMenu, layout: MenuLayout) -> UiRenderExtract
                     18.0,
                     "#fff8f8ff",
                     UiTextAlign::Center,
+                    text_measure_cache,
                 ),
             ],
         },
@@ -259,23 +268,31 @@ fn text_command(
     font_size: f32,
     color: &str,
     align: UiTextAlign,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> UiRenderCommand {
+    let style = UiResolvedStyle {
+        foreground_color: Some(color.to_string()),
+        font_size,
+        line_height: font_size + 5.0,
+        text_align: align,
+        wrap: UiTextWrap::Word,
+        text_render_mode: UiTextRenderMode::Auto,
+        ..UiResolvedStyle::default()
+    };
     UiRenderCommand {
         node_id: UiNodeId::new(node_id),
         kind: UiRenderCommandKind::Text,
         frame,
-        clip_frame: None,
+        clip_frame: Some(frame),
         z_index,
-        style: UiResolvedStyle {
-            foreground_color: Some(color.to_string()),
-            font_size,
-            line_height: font_size + 5.0,
-            text_align: align,
-            wrap: UiTextWrap::Word,
-            text_render_mode: UiTextRenderMode::Auto,
-            ..UiResolvedStyle::default()
-        },
-        text_layout: None,
+        text_layout: Some(
+            resolve_text_layout_with_cache(
+                &UiTextLayoutRequest::new(text, &style, frame, Some(frame)),
+                text_measure_cache,
+            )
+            .layout,
+        ),
+        style,
         text: Some(text.to_string()),
         image: None,
         opacity: 1.0,
@@ -300,10 +317,20 @@ mod tests {
     use super::*;
     use crate::scene::components::NodeKind;
 
+    fn menu_extract(world: &World, viewport_size: UVec2) -> Option<UiRenderExtract> {
+        let mut text_measure_cache = UiTextMeasureCache::default();
+        text_measure_cache.begin_frame();
+        let extract = runtime_session_menu_extract(world, viewport_size, &mut text_measure_cache);
+        text_measure_cache.finish_frame();
+        extract
+    }
+
     #[test]
     fn runtime_session_menu_extract_builds_start_button_commands() {
         let mut world = World::empty();
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,
@@ -317,7 +344,7 @@ mod tests {
             )
             .unwrap();
 
-        let extract = runtime_session_menu_extract(&world, UVec2::new(640, 360)).unwrap();
+        let extract = menu_extract(&world, UVec2::new(640, 360)).unwrap();
 
         assert_eq!(extract.list.commands.len(), 6);
         assert!(extract
@@ -325,6 +352,57 @@ mod tests {
             .commands
             .iter()
             .any(|command| command.text.as_deref() == Some("Start Game")));
+        assert!(extract
+            .list
+            .commands
+            .iter()
+            .filter(|command| command.kind == UiRenderCommandKind::Text)
+            .all(|command| command.text_layout.is_some()));
+    }
+
+    #[test]
+    fn runtime_session_menu_extract_resolves_cjk_text_before_renderer() {
+        let mut world = World::empty();
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        world
+            .set_dynamic_component(
+                entity,
+                GAMEPLAY_MENU_COMPONENT,
+                serde_json::json!({
+                    "state": "start",
+                    "title": "血月降临",
+                    "subtitle": "这段中文菜单说明必须在渲染前使用规范文本管线完成自动换行与字形产物投影，并且必须裁剪在副标题框内以避免覆盖开始按钮",
+                    "button": "开始游戏"
+                }),
+            )
+            .unwrap();
+
+        let extract = menu_extract(&world, UVec2::new(320, 360)).unwrap();
+        let subtitle = extract
+            .list
+            .commands
+            .iter()
+            .find(|command| {
+                command
+                    .text
+                    .as_deref()
+                    .is_some_and(|text| text.starts_with("这段中文"))
+            })
+            .expect("CJK subtitle command");
+        let layout = subtitle
+            .text_layout
+            .as_ref()
+            .expect("menu text must carry the canonical layout");
+
+        assert!(
+            layout.lines.len() > 1,
+            "fixture must soft-wrap without newlines"
+        );
+        assert!(layout.rich_text_artifact.is_some());
+        assert_eq!(subtitle.clip_frame, Some(subtitle.frame));
+        assert!(layout.overflow_clipped);
     }
 
     #[test]
@@ -343,9 +421,13 @@ mod tests {
 
         let mut world = World::empty();
         for _ in 0..4_096 {
-            world.spawn_node(NodeKind::Empty);
+            world
+                .spawn_node(NodeKind::Empty)
+                .expect("test scene spawn should succeed");
         }
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,
@@ -354,7 +436,7 @@ mod tests {
             )
             .unwrap();
 
-        let extract = runtime_session_menu_extract(&world, UVec2::new(640, 360)).unwrap();
+        let extract = menu_extract(&world, UVec2::new(640, 360)).unwrap();
         assert!(extract
             .list
             .commands
@@ -389,7 +471,9 @@ mod tests {
         assert!(!parser_source.contains("to_string"));
 
         let mut world = World::empty();
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,
@@ -417,7 +501,9 @@ mod tests {
     #[test]
     fn runtime_session_menu_action_writes_start_control_state() {
         let mut world = World::empty();
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,

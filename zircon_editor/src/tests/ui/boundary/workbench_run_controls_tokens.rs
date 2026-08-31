@@ -20,7 +20,7 @@ fn workbench_run_controls_keep_their_tokenized_mvp_command_contract() {
         "WorkbenchRunMode",
         "$editor.density.gap.small",
         "$editor.control.height.compact",
-        "route = \"workbench.run.play\"",
+        "action = { action = \"runtime.play_mode.enter\" }",
         "route = \"workbench.run.open_mode_menu\"",
     ] {
         assert!(
@@ -37,7 +37,7 @@ fn workbench_popup_menus_use_shared_density_tokens_and_popup_surface() {
         "$editor.density.gap.small",
         "$editor.control.height.compact",
         "control_id = \"WorkbenchRunModeMenu\"",
-        "Play In Editor|checked,icon=play",
+        "Play In Editor|icon=play",
         "Simulate|icon=play",
     ] {
         assert!(
@@ -46,10 +46,20 @@ fn workbench_popup_menus_use_shared_density_tokens_and_popup_surface() {
         );
     }
 
+    for authored_business_state in [
+        "Play In Editor|checked,icon=play",
+        "Default Layout|checked,disabled,icon=grid",
+    ] {
+        assert!(
+            !WORKBENCH_WINDOW_TEMPLATE.contains(authored_business_state),
+            "Workbench popup templates must not author live state `{authored_business_state}`"
+        );
+    }
+
     for required in [
         "background_color = \"$editor.popup\"",
         "border_color = \"$workbench_border\"",
-        "radius = \"$editor.control.radius.control\"",
+        "radius = \"$editor.control.radius.panel\"",
     ] {
         assert!(
             WORKBENCH_STRICT_THEME.contains(required),

@@ -1,8 +1,10 @@
 use bytemuck::{Pod, Zeroable};
-use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{FroxelGridParams, RenderAmbientLightSnapshot};
 use crate::core::math::Vec3;
+use crate::graphics::scene::scene_renderer::graph_execution::{
+    RenderPassGpuRecordingContext, RenderPassGpuResourceFactory,
+};
 use crate::graphics::scene::scene_renderer::shadow::atlas::shadow_atlas_bind_group_layout_entries;
 
 use super::{FroxelViewReconstruction, GpuFroxelTemporalReprojection, GpuFroxelViewParams};
@@ -33,9 +35,9 @@ pub(crate) struct FroxelLightScatterRequest<'a> {
     pub temporal: GpuFroxelTemporalReprojection,
     pub light_buffer: &'a wgpu::Buffer,
     pub light_count: u32,
-    pub light_grid_params_buffer: &'a wgpu::Buffer,
-    pub light_zbins_buffer: &'a wgpu::Buffer,
-    pub light_tile_masks_buffer: &'a wgpu::Buffer,
+    pub light_grid_params_buffer: wgpu::BufferBinding<'a>,
+    pub light_zbins_buffer: wgpu::BufferBinding<'a>,
+    pub light_tile_masks_buffer: wgpu::BufferBinding<'a>,
     pub shadow_atlas_view: &'a wgpu::TextureView,
     pub shadow_sampler: &'a wgpu::Sampler,
     pub shadow_slots_buffer: &'a wgpu::Buffer,
@@ -53,19 +55,19 @@ impl FroxelLightScatterPipeline {
     pub(crate) const UPLOADED_BYTES_PER_DISPATCH: u64 =
         std::mem::size_of::<GpuLightScatterParams>() as u64;
 
-    pub(crate) fn new(device: &wgpu::Device) -> Self {
-        let resources_layout = create_resources_layout(device);
-        let lighting_layout = create_lighting_layout(device);
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+    pub(crate) fn new<F: RenderPassGpuResourceFactory + ?Sized>(factory: &F) -> Self {
+        let resources_layout = create_resources_layout(factory);
+        let lighting_layout = create_lighting_layout(factory);
+        let shader = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("zircon-volumetric-light-scatter-shader"),
             source: wgpu::ShaderSource::Wgsl(LIGHT_SCATTER_SHADER.into()),
         });
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        let pipeline_layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-volumetric-light-scatter-pipeline-layout"),
             bind_group_layouts: &[Some(&resources_layout), Some(&lighting_layout)],
             immediate_size: 0,
         });
-        let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        let pipeline = factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
             label: Some(VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL),
             layout: Some(&pipeline_layout),
             module: &shader,
@@ -80,83 +82,95 @@ impl FroxelLightScatterPipeline {
         }
     }
 
-    pub(crate) fn encode(
+    pub(crate) fn encode<C: RenderPassGpuRecordingContext>(
         &self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
+        context: &mut C,
         request: FroxelLightScatterRequest<'_>,
     ) -> Result<[u32; 3], String> {
         let params = GpuLightScatterParams::from_request(&request)?;
-        let params_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("zircon-volumetric-light-scatter-params"),
-            contents: bytemuck::bytes_of(&params),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
-        let resources = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("zircon-volumetric-light-scatter-resources"),
-            layout: &self.resources_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: params_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(request.media_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: request.light_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(request.output_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 4,
-                    resource: wgpu::BindingResource::TextureView(request.history_view),
-                },
-            ],
-        });
-        let lighting = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("zircon-volumetric-light-scatter-lighting"),
-            layout: &self.lighting_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 8,
-                    resource: wgpu::BindingResource::TextureView(request.shadow_atlas_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 9,
-                    resource: wgpu::BindingResource::Sampler(request.shadow_sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 10,
-                    resource: request.shadow_slots_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 11,
-                    resource: request.shadow_globals_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 20,
-                    resource: request.light_grid_params_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 21,
-                    resource: request.light_zbins_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 22,
-                    resource: request.light_tile_masks_buffer.as_entire_binding(),
-                },
-            ],
-        });
-        let dispatch = dispatch_size(params.grid_and_light_count[..3].try_into().unwrap());
-        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-            label: Some("VolumetricLightScatterPass"),
-            timestamp_writes: None,
-        });
+        let params_buffer =
+            context
+                .resource_factory()
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("zircon-volumetric-light-scatter-params"),
+                    contents: bytemuck::bytes_of(&params),
+                    usage: wgpu::BufferUsages::UNIFORM,
+                });
+        let resources = context
+            .resource_factory()
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("zircon-volumetric-light-scatter-resources"),
+                layout: &self.resources_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: params_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(request.media_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: request.light_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::TextureView(request.output_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: wgpu::BindingResource::TextureView(request.history_view),
+                    },
+                ],
+            });
+        let lighting = context
+            .resource_factory()
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("zircon-volumetric-light-scatter-lighting"),
+                layout: &self.lighting_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 8,
+                        resource: wgpu::BindingResource::TextureView(request.shadow_atlas_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 9,
+                        resource: wgpu::BindingResource::Sampler(request.shadow_sampler),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 10,
+                        resource: request.shadow_slots_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 11,
+                        resource: request.shadow_globals_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 20,
+                        resource: wgpu::BindingResource::Buffer(request.light_grid_params_buffer),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 21,
+                        resource: wgpu::BindingResource::Buffer(request.light_zbins_buffer),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 22,
+                        resource: wgpu::BindingResource::Buffer(request.light_tile_masks_buffer),
+                    },
+                ],
+            });
+        let dispatch = dispatch_size([
+            params.grid_and_light_count[0],
+            params.grid_and_light_count[1],
+            params.grid_and_light_count[2],
+        ]);
+        let mut pass = context
+            .command_encoder()
+            .begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("VolumetricLightScatterPass"),
+                timestamp_writes: None,
+            });
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, &resources, &[]);
         pass.set_bind_group(1, &lighting, &[]);
@@ -235,8 +249,10 @@ fn pack_phase_and_ambient(phase_g: f32, ambient_radiance: Vec3) -> [f32; 4] {
     ]
 }
 
-fn create_resources_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+fn create_resources_layout<F: RenderPassGpuResourceFactory + ?Sized>(
+    factory: &F,
+) -> wgpu::BindGroupLayout {
+    factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-volumetric-light-scatter-resources-layout"),
         entries: &[
             buffer_layout_entry(0, wgpu::BufferBindingType::Uniform),
@@ -275,14 +291,16 @@ fn create_resources_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     })
 }
 
-fn create_lighting_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn create_lighting_layout<F: RenderPassGpuResourceFactory + ?Sized>(
+    factory: &F,
+) -> wgpu::BindGroupLayout {
     let mut entries = shadow_atlas_bind_group_layout_entries(wgpu::ShaderStages::COMPUTE).to_vec();
     entries.extend([
         buffer_layout_entry(20, wgpu::BufferBindingType::Uniform),
         buffer_layout_entry(21, wgpu::BufferBindingType::Storage { read_only: true }),
         buffer_layout_entry(22, wgpu::BufferBindingType::Storage { read_only: true }),
     ]);
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+    factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-volumetric-light-scatter-lighting-layout"),
         entries: &entries,
     })

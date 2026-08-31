@@ -33,6 +33,13 @@ export const actionClient = {
     csrfToken = session.csrfToken;
     return session;
   },
+  startLoopbackValidation: (parameters: JsonObject) => request<{ action: ActionRecord }>(
+    "POST", "/control/v1/validation/queue/start", parameters,
+  ),
+  continueValidationQueue: () => request<{
+    ticket: { ticketId: string; sessionId: string; planPath: string; status: string } | null;
+    progress: Record<string, number>;
+  }>("POST", "/control/v1/validation/queue/continue", {}),
   preview: (kind: string, parameters: JsonObject) => request<{ action: ActionRecord }>("POST", "/control/v1/actions/preview", { kind, parameters }),
   confirm: (actionId: string, phrase: string, reason: string) => request<{ action: ActionRecord }>("POST", `/control/v1/actions/${encodeURIComponent(actionId)}/confirm`, { phrase, reason }),
   cancel: (actionId: string, reason: string) => request<{ action: ActionRecord }>("POST", `/control/v1/actions/${encodeURIComponent(actionId)}/cancel`, { reason }),

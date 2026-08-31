@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
@@ -9,6 +11,10 @@ use super::metrics::{
     TICK_LINE_HEIGHT, X_TICK_PLOT_GAP,
 };
 use super::palette::SampleGridPalette;
+
+#[cfg(test)]
+#[path = "text/capacity_tests.rs"]
+mod capacity_tests;
 
 pub(super) fn push_sample_grid_text(
     commands: &mut Vec<HostPaintCommand>,
@@ -51,7 +57,7 @@ pub(super) fn push_sample_grid_text(
                 frame,
                 clip,
                 order + 4,
-                tick.label().to_string(),
+                tick.label(),
                 palette.tick_text,
                 TICK_FONT_SIZE,
                 TICK_LINE_HEIGHT,
@@ -73,7 +79,7 @@ pub(super) fn push_sample_grid_text(
             },
             clip,
             order + 4,
-            tick.label().to_string(),
+            tick.label(),
             palette.tick_text,
             TICK_FONT_SIZE,
             TICK_LINE_HEIGHT,
@@ -99,7 +105,7 @@ pub(super) fn push_sample_grid_text(
             },
             clip,
             order + 5,
-            grid.y_axis_label().to_string(),
+            grid.y_axis_label(),
             palette.axis_text,
             AXIS_FONT_SIZE,
             AXIS_LINE_HEIGHT,
@@ -117,7 +123,7 @@ pub(super) fn push_sample_grid_text(
             },
             clip,
             order + 5,
-            grid.x_axis_label().to_string(),
+            grid.x_axis_label(),
             palette.axis_text,
             AXIS_FONT_SIZE,
             AXIS_LINE_HEIGHT,
@@ -133,17 +139,18 @@ fn measured_text_frame_width(text: &str, font_size: f32, available_width: f32) -
     (measure_runtime_text_width(text, font_size) + 2.0).min(available_width)
 }
 
-pub(super) fn push_text(
+pub(super) fn push_text<'a>(
     commands: &mut Vec<HostPaintCommand>,
     frame: FrameRect,
     clip: &FrameRect,
     order: i32,
-    text: String,
+    text: impl Into<Cow<'a, str>>,
     color: [u8; 4],
     font_size: f32,
     line_height: f32,
     opacity: f32,
 ) {
+    let text = text.into();
     if text.trim().is_empty()
         || !frame.x.is_finite()
         || !frame.y.is_finite()
@@ -158,7 +165,7 @@ pub(super) fn push_text(
         frame,
         Some(clip.clone()),
         order,
-        text,
+        text.into_owned(),
         color,
         font_size,
         line_height,

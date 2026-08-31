@@ -6,10 +6,10 @@ use super::super::{
     GlyphAtlasSet,
 };
 use super::retry::{
+    GlyphAtlasBitmapRetryFrameSubmissionPlan,
     glyph_atlas_bitmap_retry_frame_submission_plan_with_atlas_backpressure_and_padding,
     glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure_and_padding,
     glyph_atlas_bitmap_retry_frame_submission_plan_with_padding,
-    GlyphAtlasBitmapRetryFrameSubmissionPlan,
 };
 
 /// Cross-frame blocked glyph queue owned below the renderer root.

@@ -26,7 +26,9 @@ pub(super) fn dispatch_pane_pointer_move_target(
         | PanePointerTarget::AssetContent(_)
         | PanePointerTarget::AssetReference(_, _) => dispatch_asset_pane_move(&pane_host, pointer),
         PanePointerTarget::TemplateNode(hit) => dispatch_template_pane_move(ui, hit),
-        PanePointerTarget::Viewport(_) => dispatch_viewport_pane_move(ui, &pane_host, pointer),
+        PanePointerTarget::SceneViewport(_) | PanePointerTarget::GameViewport(_) => {
+            dispatch_viewport_pane_move(ui, &pane_host, pointer)
+        }
         PanePointerTarget::Console
         | PanePointerTarget::Inspector
         | PanePointerTarget::BrowserAssetDetails
@@ -52,25 +54,30 @@ fn clear_asset_reference_hover_if_needed(
     }
 }
 
-fn retains_asset_reference_hover(target: &PanePointerTarget) -> bool {
+fn retains_asset_reference_hover(target: &PanePointerTarget<'_>) -> bool {
     matches!(target, PanePointerTarget::AssetReference(_, _))
 }
 
 #[cfg(test)]
 mod tests {
     use super::retains_asset_reference_hover;
-    use crate::ui::retained_host::host_contract::native_pointer::routing::PanePointerTarget;
+    use crate::ui::retained_host::host_contract::native_pointer::routing::{
+        PaneAssetReferenceList, PaneAssetSurface, PanePointerTarget,
+    };
 
     #[test]
     fn only_asset_reference_targets_retain_hover() {
         assert!(!retains_asset_reference_hover(
-            &PanePointerTarget::AssetContent("browser".into())
+            &PanePointerTarget::AssetContent(PaneAssetSurface::Browser)
         ));
         assert!(!retains_asset_reference_hover(
             &PanePointerTarget::BrowserAssetDetails
         ));
         assert!(retains_asset_reference_hover(
-            &PanePointerTarget::AssetReference("browser".into(), "references".into(),)
+            &PanePointerTarget::AssetReference(
+                PaneAssetSurface::Browser,
+                PaneAssetReferenceList::References,
+            )
         ));
     }
 }

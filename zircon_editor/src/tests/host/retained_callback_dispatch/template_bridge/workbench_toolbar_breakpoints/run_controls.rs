@@ -41,7 +41,7 @@ fn toolbar_run_control_tracks_the_editor_play_session() {
         .expect("Play should keep its enter-play binding");
     assert_eq!(
         play_binding.payload(),
-        &EditorUiBindingPayload::menu_action("workbench.play_mode.enter")
+        &EditorUiBindingPayload::editor_command("runtime.play_mode.enter")
     );
 
     chrome.session_mode = EditorSessionMode::Playing;
@@ -73,6 +73,6 @@ fn toolbar_run_control_tracks_the_editor_play_session() {
         .expect("Stop should expose the canonical exit-play binding");
     assert_eq!(
         stop_binding.payload(),
-        &EditorUiBindingPayload::menu_action("workbench.play_mode.exit")
+        &EditorUiBindingPayload::editor_command("runtime.play_mode.exit")
     );
 }

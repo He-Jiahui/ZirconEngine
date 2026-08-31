@@ -11,8 +11,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_r
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_display_text(
     node: &TemplatePaneNodeData,
-) -> String {
-    first_non_empty(&[node.value_text.as_str(), node.validation_message.as_str()])
-        .trim()
-        .to_string()
+) -> &str {
+    first_non_empty(&[node.value_text.as_str(), node.validation_message.as_str()]).trim()
 }
+
+#[cfg(test)]
+#[path = "labels/capacity_tests.rs"]
+mod capacity_tests;

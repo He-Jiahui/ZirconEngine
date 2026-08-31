@@ -122,73 +122,97 @@ fn path_string(path: &Path) -> String {
 }
 
 #[derive(Serialize)]
-struct PerfettoTrace {
+struct PerfettoTrace<'a> {
     #[serde(rename = "traceEvents")]
-    trace_events: Vec<PerfettoEvent>,
+    trace_events: Vec<PerfettoEvent<'a>>,
 }
 
 #[derive(Serialize)]
-struct PerfettoEvent {
-    name: String,
-    cat: String,
+struct PerfettoEvent<'a> {
+    name: &'a str,
+    cat: &'a str,
     ph: &'static str,
     ts: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     dur: Option<u64>,
     pid: u32,
-    tid: String,
+    tid: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
-    id: Option<String>,
+    id: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    args: Option<serde_json::Value>,
+    args: Option<PerfettoArgs<'a>>,
 }
 
-fn perfetto_trace(snapshot: &ProfileSnapshot) -> PerfettoTrace {
-    let mut events = Vec::new();
+#[derive(Serialize)]
+#[serde(untagged)]
+enum PerfettoArgs<'a> {
+    Frame {
+        frame_index: u64,
+        over_budget: bool,
+    },
+    Span {
+        path: &'a str,
+        frame_index: Option<u64>,
+        depth: u16,
+    },
+    Counter {
+        value: f64,
+    },
+}
+
+fn perfetto_trace(snapshot: &ProfileSnapshot) -> PerfettoTrace<'_> {
+    let event_capacity = snapshot
+        .frames
+        .len()
+        .saturating_add(snapshot.spans.len())
+        .saturating_add(snapshot.counters.len());
+    let mut events = Vec::with_capacity(event_capacity);
     for frame in &snapshot.frames {
         events.push(PerfettoEvent {
-            name: frame.name.clone(),
-            cat: "frame".to_string(),
+            name: &frame.name,
+            cat: "frame",
             ph: "X",
             ts: frame.start_us,
             dur: Some(frame.duration_us),
             pid: 1,
-            tid: frame.stream.clone(),
+            tid: &frame.stream,
             id: None,
-            args: Some(serde_json::json!({
-                "frame_index": frame.frame_index,
-                "over_budget": frame.over_budget,
-            })),
+            args: Some(PerfettoArgs::Frame {
+                frame_index: frame.frame_index,
+                over_budget: frame.over_budget,
+            }),
         });
     }
     for span in &snapshot.spans {
         events.push(PerfettoEvent {
-            name: span.name.clone(),
-            cat: span.category.clone(),
+            name: &span.name,
+            cat: &span.category,
             ph: "X",
             ts: span.start_us,
             dur: Some(span.duration_us),
             pid: 1,
-            tid: span.stream.clone(),
+            tid: &span.stream,
             id: None,
-            args: Some(serde_json::json!({
-                "path": span.path,
-                "frame_index": span.frame_index,
-                "depth": span.depth,
-            })),
+            args: Some(PerfettoArgs::Span {
+                path: &span.path,
+                frame_index: span.frame_index,
+                depth: span.depth,
+            }),
         });
     }
     for counter in &snapshot.counters {
         events.push(PerfettoEvent {
-            name: counter.name.clone(),
-            cat: "counter".to_string(),
+            name: &counter.name,
+            cat: "counter",
             ph: "C",
             ts: counter.timestamp_us,
             dur: None,
             pid: 1,
-            tid: counter.stream.clone(),
+            tid: &counter.stream,
             id: None,
-            args: Some(serde_json::json!({ "value": counter.value })),
+            args: Some(PerfettoArgs::Counter {
+                value: counter.value,
+            }),
         });
     }
     PerfettoTrace {
@@ -447,6 +471,141 @@ mod tests {
         assert_eq!(trace.trace_events.len(), 1);
         assert_eq!(trace.trace_events[0].ph, "X");
         assert_eq!(trace.trace_events[0].dur, Some(11));
+    }
+
+    #[test]
+    fn optimization_batch_20260826f_runtime03_perfetto_projection_preserves_json_shape() {
+        let mut snapshot = ProfileSnapshot::default();
+        snapshot.frames.push(ProfileFrameSnapshot {
+            stream: "runtime".to_string(),
+            name: "frame".to_string(),
+            frame_index: 3,
+            start_us: 5,
+            duration_us: 7,
+            budget_ms: 16.67,
+            over_budget: true,
+        });
+        snapshot.spans.push(ProfileSpanSnapshot {
+            id: 9,
+            parent_id: None,
+            frame_index: Some(3),
+            stream: "render".to_string(),
+            category: "submit".to_string(),
+            name: "present".to_string(),
+            path: "runtime/render:present".to_string(),
+            start_us: 11,
+            duration_us: 13,
+            depth: 2,
+        });
+        snapshot.counters.push(runtime_counter("draw_calls", 17.0));
+
+        let value = serde_json::to_value(super::perfetto_trace(&snapshot))
+            .expect("serialize borrowed Perfetto projection");
+        let events = value["traceEvents"].as_array().expect("traceEvents array");
+
+        assert_eq!(events.len(), 3);
+        assert_eq!(events[0]["name"], "frame");
+        assert_eq!(events[0]["cat"], "frame");
+        assert_eq!(events[0]["args"]["frame_index"], 3);
+        assert_eq!(events[0]["args"]["over_budget"], true);
+        assert_eq!(events[1]["name"], "present");
+        assert_eq!(events[1]["cat"], "submit");
+        assert_eq!(events[1]["args"]["path"], "runtime/render:present");
+        assert_eq!(events[1]["args"]["depth"], 2);
+        assert_eq!(events[2]["ph"], "C");
+        assert_eq!(events[2]["args"]["value"], 17.0);
+    }
+
+    #[test]
+    fn optimization_batch_20260826f_runtime03_perfetto_projection_borrows_event_text() {
+        let source = include_str!("export.rs");
+        let projection = source
+            .split("fn perfetto_trace")
+            .nth(1)
+            .expect("Perfetto projection")
+            .split("fn summary_markdown")
+            .next()
+            .expect("bounded Perfetto projection");
+
+        assert!(source.contains("struct PerfettoEvent<'a>"));
+        assert!(source.contains("enum PerfettoArgs<'a>"));
+        assert!(projection.contains("Vec::with_capacity"));
+        assert!(!projection.contains(".clone()"));
+        assert!(!projection.contains("serde_json::json!"));
+        assert!(!projection.contains(".to_string()"));
+    }
+
+    #[test]
+    #[ignore = "release performance evidence; run through the validation coordinator"]
+    fn optimization_batch_20260826f_runtime03_perfetto_projection_performance_evidence() {
+        use std::hint::black_box;
+        use std::time::Instant;
+
+        struct LegacyEvent {
+            name: String,
+            category: String,
+            stream: String,
+            args: serde_json::Value,
+        }
+
+        let mut snapshot = ProfileSnapshot::default();
+        for index in 0..32_768_u64 {
+            snapshot.spans.push(ProfileSpanSnapshot {
+                id: index,
+                parent_id: None,
+                frame_index: Some(index / 64),
+                stream: "runtime".to_string(),
+                category: "render".to_string(),
+                name: "submit".to_string(),
+                path: "runtime/render:submit".to_string(),
+                start_us: index,
+                duration_us: 3,
+                depth: 1,
+            });
+        }
+
+        let mut legacy_samples = Vec::with_capacity(17);
+        let mut borrowed_samples = Vec::with_capacity(17);
+        for _ in 0..17 {
+            let started = Instant::now();
+            let events = snapshot
+                .spans
+                .iter()
+                .map(|span| LegacyEvent {
+                    name: span.name.clone(),
+                    category: span.category.clone(),
+                    stream: span.stream.clone(),
+                    args: serde_json::json!({
+                        "path": span.path,
+                        "frame_index": span.frame_index,
+                        "depth": span.depth,
+                    }),
+                })
+                .collect::<Vec<_>>();
+            black_box(events);
+            legacy_samples.push(started.elapsed().as_nanos());
+
+            let started = Instant::now();
+            let trace = super::perfetto_trace(black_box(&snapshot));
+            black_box(trace.trace_events.len());
+            borrowed_samples.push(started.elapsed().as_nanos());
+        }
+
+        legacy_samples.sort_unstable();
+        borrowed_samples.sort_unstable();
+        let legacy_p95 = legacy_samples[16];
+        let borrowed_p95 = borrowed_samples[16];
+        println!(
+            "RUNTIME03_PERFETTO_BORROWED_EVENT_PROJECTION_BENCH_V1 events={} legacy_p95_ns={} borrowed_p95_ns={} legacy_owned_event_fields={} borrowed_owned_event_fields=0 target_ratio_bp=6000",
+            snapshot.spans.len(),
+            legacy_p95,
+            borrowed_p95,
+            snapshot.spans.len() * 4,
+        );
+        assert!(
+            borrowed_p95.saturating_mul(10_000) <= legacy_p95.saturating_mul(6_000),
+            "borrowed Perfetto projection P95 {borrowed_p95} ns exceeded 60% of legacy {legacy_p95} ns"
+        );
     }
 
     #[test]

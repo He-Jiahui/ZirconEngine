@@ -38,7 +38,7 @@ pub(in super::super) const EXPECTED_RUNTIME_10_SOURCE_FILES: &[&str] = &[
     "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
     "zircon_runtime/src/dynamic_api/tests/session_entry_points.rs",
     "zircon_runtime/src/dynamic_api/tests/session_profiles.rs",
-    "zircon_runtime/tests/runtime_owned_result_v7.rs",
+    "zircon_runtime/tests/runtime_owned_result_v8.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/headless_profiles.rs",

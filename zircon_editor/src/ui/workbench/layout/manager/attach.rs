@@ -16,7 +16,6 @@ impl LayoutManager {
     ) -> Result<(), LayoutCommandError> {
         match target {
             ViewHost::Drawer(slot) => {
-                let slot = slot.canonical();
                 let drawer = layout
                     .active_activity_window_mut()
                     .and_then(|window| window.activity_drawers.get_mut(&slot))

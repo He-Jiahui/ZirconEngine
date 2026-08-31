@@ -112,6 +112,14 @@ pub enum ShaderPrewarmAssetScanError {
         #[source]
         source: zircon_runtime::asset::assets::ProjectDocumentError,
     },
+    #[error(
+        "material {material_path:?} references shader {shader_label} with kind {actual_kind}; material prewarm requires kind surface"
+    )]
+    MaterialShaderKindMismatch {
+        material_path: std::path::PathBuf,
+        shader_label: String,
+        actual_kind: &'static str,
+    },
     #[error("shader source {path:?} has no runtime WGSL payload")]
     EmptyShaderSource { path: std::path::PathBuf },
     #[error("failed to read shader package {path:?}: {source}")]

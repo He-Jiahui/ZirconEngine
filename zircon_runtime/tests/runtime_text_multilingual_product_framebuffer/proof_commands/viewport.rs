@@ -31,7 +31,7 @@ pub(in super::super) fn proof_scrolled_plain_text_viewport() -> UiRenderCommand 
 
     let arranged_tree = UiArrangedTree {
         tree_id,
-        roots: vec![root_id],
+        roots: vec![root_id].into(),
         nodes: vec![
             arranged_node(root_id, "root", None, vec![text_id], root_frame, root_frame),
             arranged_node(
@@ -42,9 +42,10 @@ pub(in super::super) fn proof_scrolled_plain_text_viewport() -> UiRenderCommand 
                 document_frame,
                 clip_frame,
             ),
-        ],
-        draw_order: vec![text_id],
-        canvas_layers: Vec::new(),
+        ]
+        .into(),
+        draw_order: vec![text_id].into(),
+        canvas_layers: Vec::new().into(),
     };
     let extract = extract_ui_render_tree_from_arranged(&tree, &arranged_tree);
     let command = extract
@@ -58,11 +59,23 @@ pub(in super::super) fn proof_scrolled_plain_text_viewport() -> UiRenderCommand 
         .as_ref()
         .expect("viewport proof must resolve text layout");
 
-    assert_eq!(layout.lines.len(), 1);
+    assert_eq!(
+        layout.line_height, LOG_LINE_HEIGHT,
+        "the viewport fixture's document extent must use the resolved physical line height"
+    );
+    assert_eq!(
+        layout.lines.len(),
+        1,
+        "the renderer-facing layout must retain only the clipped log row; lines={:#?}",
+        layout.lines
+    );
     assert_eq!(layout.lines[0].text, "log-row-00098");
     assert_eq!(layout.lines[0].frame.y, 1_960.0);
     assert_eq!(layout.measured_height, document_frame.height);
-    assert!(!layout.overflow_clipped);
+    assert!(
+        layout.overflow_clipped,
+        "the render clip must mark omitted viewport-overscan rows as clipped"
+    );
     assert_eq!(command.clip_frame, Some(clip_frame));
     command
 }
@@ -82,7 +95,8 @@ fn log_metadata() -> UiTemplateNodeMetadata {
         "foreground_color".to_string(),
         Value::String("#edf6ff".to_string()),
     );
-    attributes.insert("font_size".to_string(), Value::Float(16.0));
+    // This fixture's 20 px physical row grid must remain larger than the shaped font metrics.
+    attributes.insert("font_size".to_string(), Value::Float(10.0));
     attributes.insert(
         "line_height".to_string(),
         Value::Float(f64::from(LOG_LINE_HEIGHT)),

@@ -4,6 +4,10 @@ use zircon_runtime::core::math::Real;
 
 use super::sampling::animation_parameter_value_is_finite;
 
+#[cfg(test)]
+#[path = "parameters/performance_tests.rs"]
+mod optimization_batch_20260830cr_tests;
+
 pub(super) fn parameter_defaults(graph: &AnimationGraphAsset) -> AnimationParameterMap {
     graph
         .parameters
@@ -26,7 +30,11 @@ pub(super) fn set_parameter(
     value: AnimationParameterValue,
 ) {
     if animation_parameter_value_is_finite(&value) {
-        parameters.insert(name.to_string(), value);
+        if let Some(parameter) = parameters.get_mut(name) {
+            *parameter = value;
+        } else {
+            parameters.insert(name.to_string(), value);
+        }
     }
 }
 

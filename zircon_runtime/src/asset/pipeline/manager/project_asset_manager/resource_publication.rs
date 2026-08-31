@@ -1,6 +1,7 @@
 use crate::asset::project::ProjectGenerationPhase;
+use crate::asset::project::{PreparedProjectSourceDeletion, PreparedProjectSourceRelocation};
 use crate::asset::{AssetUri, ImportedAsset, ProjectManager};
-use crate::core::resource::{ResourceMutationBatch, ResourceRecord};
+use crate::core::resource::{ResourceManagerAssemblyExt, ResourceMutationBatch, ResourceRecord};
 use crate::core::CoreError;
 
 use super::super::errors::asset_error;
@@ -19,6 +20,30 @@ pub(in crate::asset::pipeline::manager) struct PreparedTargetedProjectResourceSy
     removed_locators: Vec<AssetUri>,
     resources: Vec<PreparedProjectResource>,
     record_updates: Vec<ResourceRecord>,
+}
+
+/// Resource publication prepared from every source in one Runtime import transaction.
+///
+/// Source-path updates and resource mutations remain private until the durable project batch has
+/// committed, so an import cannot expose a prefix of a compound model operation.
+pub(in crate::asset::pipeline::manager) struct PreparedCompoundProjectResourceSync {
+    source_path_updates: Vec<(AssetUri, std::path::PathBuf)>,
+    removed_locators: Vec<AssetUri>,
+    resources: Vec<PreparedProjectResource>,
+    record_updates: Vec<ResourceRecord>,
+}
+
+pub(in crate::asset::pipeline::manager) struct PreparedProjectSourceRelocationResourceSync {
+    source_uri: AssetUri,
+    target_uri: AssetUri,
+    target_path: std::path::PathBuf,
+    locator_moves: Vec<(AssetUri, AssetUri)>,
+    record_updates: Vec<ResourceRecord>,
+}
+
+pub(in crate::asset::pipeline::manager) struct PreparedProjectSourceDeletionResourceSync {
+    source_uri: AssetUri,
+    removed_locators: Vec<AssetUri>,
 }
 
 pub(super) struct PreparedIncrementalProjectResourceSync {
@@ -54,6 +79,113 @@ fn append_prepared_resources(
 }
 
 impl ProjectAssetManager {
+    pub(in crate::asset::pipeline::manager) fn prepare_project_source_deletion_resource_sync(
+        &self,
+        deletion: &PreparedProjectSourceDeletion,
+    ) -> PreparedProjectSourceDeletionResourceSync {
+        let _phase = ProjectGenerationPhase::ResourceProjection.enter();
+        PreparedProjectSourceDeletionResourceSync {
+            source_uri: deletion.source().clone(),
+            removed_locators: deletion
+                .removed_records()
+                .iter()
+                .map(|record| record.primary_locator().clone())
+                .collect(),
+        }
+    }
+
+    pub(in crate::asset::pipeline::manager) fn commit_project_source_deletion_resource_sync<T>(
+        &self,
+        prepared: PreparedProjectSourceDeletionResourceSync,
+        commit_files: impl FnOnce() -> Result<T, CoreError>,
+        commit_project_state: impl FnOnce(),
+    ) -> Result<T, CoreError> {
+        let mut batch = ResourceMutationBatch::new();
+        for locator in prepared.removed_locators {
+            batch = batch.remove(locator);
+        }
+        self.commit_resource_batch_after_dependencies(batch, || {
+            let outcome = commit_files()?;
+            {
+                let _phase = ProjectGenerationPhase::ProjectInstall.enter();
+                let mut source_paths = self.project_source_paths_write();
+                let remove_scheme = source_paths
+                    .get_mut(&prepared.source_uri.scheme())
+                    .is_some_and(|paths| {
+                        paths.remove(prepared.source_uri.path());
+                        paths.is_empty()
+                    });
+                if remove_scheme {
+                    source_paths.remove(&prepared.source_uri.scheme());
+                }
+                commit_project_state();
+            }
+            Ok(outcome)
+        })
+    }
+
+    pub(in crate::asset::pipeline::manager) fn prepare_project_source_relocation_resource_sync(
+        &self,
+        relocation: &PreparedProjectSourceRelocation,
+    ) -> PreparedProjectSourceRelocationResourceSync {
+        let _phase = ProjectGenerationPhase::ResourceProjection.enter();
+        let relocated_targets = relocation
+            .locator_moves()
+            .iter()
+            .map(|(_, target)| target.clone())
+            .collect::<std::collections::HashSet<AssetUri>>();
+        let record_updates = relocation
+            .updated_records()
+            .iter()
+            .filter(|record| !relocated_targets.contains(record.primary_locator()))
+            .cloned()
+            .collect();
+        PreparedProjectSourceRelocationResourceSync {
+            source_uri: relocation.source().clone(),
+            target_uri: relocation.target().clone(),
+            target_path: relocation.target_path().to_path_buf(),
+            locator_moves: relocation.locator_moves().to_vec(),
+            record_updates,
+        }
+    }
+
+    pub(in crate::asset::pipeline::manager) fn commit_project_source_relocation_resource_sync<T>(
+        &self,
+        prepared: PreparedProjectSourceRelocationResourceSync,
+        commit_files: impl FnOnce() -> Result<T, CoreError>,
+        commit_project_state: impl FnOnce(),
+    ) -> Result<T, CoreError> {
+        let mut batch = ResourceMutationBatch::new();
+        for (source, target) in prepared.locator_moves {
+            batch = batch.rename(source, target);
+        }
+        for record in prepared.record_updates {
+            batch = batch.upsert_lazy(record);
+        }
+        self.commit_resource_batch_after_dependencies(batch, || {
+            let outcome = commit_files()?;
+            {
+                let _phase = ProjectGenerationPhase::ProjectInstall.enter();
+                let mut source_paths = self.project_source_paths_write();
+                let remove_scheme = source_paths
+                    .get_mut(&prepared.source_uri.scheme())
+                    .is_some_and(|paths| {
+                        paths.remove(prepared.source_uri.path());
+                        paths.is_empty()
+                    });
+                if remove_scheme {
+                    source_paths.remove(&prepared.source_uri.scheme());
+                }
+                source_paths
+                    .entry(prepared.target_uri.scheme())
+                    .or_default()
+                    .insert(prepared.target_uri.path().to_string(), prepared.target_path);
+                commit_project_state();
+            }
+            Ok(outcome)
+        })
+    }
+
     pub(in crate::asset::pipeline::manager) fn prepare_project_resource_sync(
         &self,
         project: &ProjectManager,
@@ -254,6 +386,88 @@ impl ProjectAssetManager {
                     .entry(prepared.source_uri.scheme())
                     .or_default()
                     .insert(prepared.source_uri.path().to_string(), prepared.source_path);
+                commit_project_state();
+            }
+            Ok(outcome)
+        })
+    }
+
+    pub(in crate::asset::pipeline::manager) fn prepare_compound_project_resource_sync(
+        &self,
+        project: &ProjectManager,
+        source_paths: &[(AssetUri, std::path::PathBuf, Vec<ResourceRecord>)],
+        imported: &[ResourceRecord],
+        affected: &[ResourceRecord],
+        ready_payloads: Vec<(ResourceRecord, ImportedAsset)>,
+    ) -> PreparedCompoundProjectResourceSync {
+        let _phase = ProjectGenerationPhase::ResourceProjection.enter();
+        let mut removed_locators = std::collections::HashSet::new();
+        for (source_uri, _, previous_source_records) in source_paths {
+            let current_locators = project
+                .source_resource_records(source_uri)
+                .into_iter()
+                .map(|record| record.primary_locator().clone())
+                .collect::<std::collections::HashSet<_>>();
+            removed_locators.extend(
+                previous_source_records
+                    .iter()
+                    .map(|record| record.primary_locator().clone())
+                    .filter(|locator| !current_locators.contains(locator)),
+            );
+        }
+        let imported_ids = imported
+            .iter()
+            .map(ResourceRecord::id)
+            .collect::<std::collections::HashSet<_>>();
+        let mut record_updates = std::collections::HashMap::new();
+        for record in affected {
+            if !imported_ids.contains(&record.id()) {
+                record_updates.insert(record.id(), record.clone());
+            }
+        }
+        let mut removed_locators = removed_locators.into_iter().collect::<Vec<_>>();
+        removed_locators.sort();
+        let mut record_updates = record_updates.into_values().collect::<Vec<_>>();
+        record_updates.sort_by(|left, right| left.primary_locator().cmp(right.primary_locator()));
+        PreparedCompoundProjectResourceSync {
+            source_path_updates: source_paths
+                .iter()
+                .map(|(source_uri, source_path, _)| (source_uri.clone(), source_path.clone()))
+                .collect(),
+            removed_locators,
+            resources: ready_payloads
+                .into_iter()
+                .map(|(metadata, payload)| PreparedProjectResource::Ready(metadata, payload))
+                .collect(),
+            record_updates,
+        }
+    }
+
+    pub(in crate::asset::pipeline::manager) fn commit_compound_project_resource_sync<T>(
+        &self,
+        prepared: PreparedCompoundProjectResourceSync,
+        commit_files: impl FnOnce() -> Result<T, CoreError>,
+        commit_project_state: impl FnOnce(),
+    ) -> Result<T, CoreError> {
+        let mut batch = ResourceMutationBatch::new();
+        for locator in prepared.removed_locators {
+            batch = batch.remove(locator);
+        }
+        for record in prepared.record_updates {
+            batch = batch.upsert_lazy(record);
+        }
+        let batch = append_prepared_resources(batch, prepared.resources);
+        self.commit_resource_batch_after_dependencies(batch, || {
+            let outcome = commit_files()?;
+            {
+                let _phase = ProjectGenerationPhase::ProjectInstall.enter();
+                let mut source_paths = self.project_source_paths_write();
+                for (source_uri, source_path) in prepared.source_path_updates {
+                    source_paths
+                        .entry(source_uri.scheme())
+                        .or_default()
+                        .insert(source_uri.path().to_string(), source_path);
+                }
                 commit_project_state();
             }
             Ok(outcome)

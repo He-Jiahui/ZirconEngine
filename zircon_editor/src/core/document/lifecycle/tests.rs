@@ -6,7 +6,7 @@ use crate::core::editor_message::{DocumentId, DocumentMessage};
 
 use super::{
     stable_document_id, DocumentLifecycleAuthority, DocumentLifecycleState,
-    SceneDocumentLifecycleError, DOCUMENT_ID_COLLISION_STEP,
+    SceneDocumentActivationBindingError, SceneDocumentLifecycleError, DOCUMENT_ID_COLLISION_STEP,
 };
 
 #[test]
@@ -298,6 +298,73 @@ fn scene_sessions_distinguish_scene_documents_and_reject_stale_picker_results() 
 }
 
 #[test]
+fn prepared_scene_activation_defers_lifecycle_state_change_until_commit() {
+    let authority = DocumentLifecycleAuthority::default();
+    let root = Path::new("E:/projects/prepared-scene-activation");
+    let session = authority.begin_project_session(root).session;
+
+    let activation = authority.with_scene_route(|| {
+        let reservation = authority
+            .prepare_scene_activation_while_routed(session, root, "res://scenes/next.scene.toml")
+            .unwrap();
+        assert!(
+            authority
+                .active_scene_document_while_routed(session, root, "res://scenes/next.scene.toml",)
+                .unwrap()
+                .is_none(),
+            "reservation must not publish a replacement before world installation succeeds"
+        );
+
+        authority.commit_scene_activation_while_routed(reservation)
+    });
+
+    assert!(!activation.already_active);
+    assert_eq!(
+        authority
+            .active_scene_document(session, root, "res://scenes/next.scene.toml")
+            .unwrap(),
+        Some(activation.document)
+    );
+}
+
+#[test]
+fn active_scene_identity_follows_the_latest_scene_document_not_the_project_default() {
+    let authority = DocumentLifecycleAuthority::default();
+    let root = Path::new("E:/projects/active-scene-identity");
+    let session = authority.begin_project_session(root).session;
+    let first = authority
+        .activate_scene(session, root, "res://scenes/default.scene.toml")
+        .unwrap();
+    let first_identity = authority
+        .active_scene_identity(root)
+        .expect("the first scene activation must publish an identity");
+    let second = authority
+        .activate_scene(session, root, "res://scenes/level_b.scene.toml")
+        .unwrap();
+
+    let active = authority
+        .active_scene_identity(root)
+        .expect("the active project session must retain its selected scene identity");
+    assert_eq!(active.document(), second.document);
+    assert_eq!(active.project_root(), root);
+    assert_eq!(active.scene_uri(), "res://scenes/level_b.scene.toml");
+    assert_ne!(active.document(), first.document);
+    assert_eq!(
+        authority.save_scene_identity_if_active(&active),
+        Some(DocumentMessage::Saved {
+            doc: second.document,
+        })
+    );
+    assert_eq!(
+        authority.save_scene_identity_if_active(&first_identity),
+        None
+    );
+    assert!(authority
+        .active_scene_identity(Path::new("E:/projects/other-project"))
+        .is_none());
+}
+
+#[test]
 fn retention_snapshot_reports_scene_and_session_path_owners_without_cloning_them() {
     let authority = DocumentLifecycleAuthority::default();
     let root = Path::new("C:/projects/profile-snapshot");
@@ -391,9 +458,10 @@ fn project_session_saves_and_closes_the_active_scene_document() {
     let scene = authority
         .activate_scene(session, root, "res://scenes/main.scene.toml")
         .unwrap();
+    let identity = authority.active_scene_identity(root).unwrap();
 
     assert_eq!(
-        authority.save_active_project_session(root),
+        authority.save_scene_identity_if_active(&identity),
         Some(DocumentMessage::Saved {
             doc: scene.document
         })
@@ -405,4 +473,23 @@ fn project_session_saves_and_closes_the_active_scene_document() {
         }]
     );
     assert_eq!(authority.project_session(root), None);
+}
+
+#[test]
+fn binding_failure_does_not_publish_or_activate_the_reserved_scene_document() {
+    let authority = DocumentLifecycleAuthority::default();
+    let root = Path::new("C:/projects/binding-failure");
+    let session = authority.begin_project_session(root).session;
+
+    let error = authority
+        .activate_scene_with_binding(session, root, "res://scenes/main.scene.toml", |_| {
+            Err("journal source is invalid")
+        })
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        SceneDocumentActivationBindingError::Binding("journal source is invalid")
+    ));
+    assert!(authority.active_scene_identity(root).is_none());
 }

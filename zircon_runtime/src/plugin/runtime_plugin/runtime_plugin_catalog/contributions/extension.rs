@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::plugin::{PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
 
 use super::super::descriptor_contributions::merge_descriptor_extension_registry_contributions;
@@ -11,7 +13,44 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_extension
     diagnostics: &mut Vec<String>,
     fatal_diagnostics: &mut Vec<String>,
 ) {
+    merge_extension_registry_contributions_with_module_filter(
+        extensions,
+        None,
+        registry,
+        diagnostics,
+        fatal_diagnostics,
+    );
+}
+
+pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_extension_registry_contributions_for_runtime_modules(
+    extensions: &RuntimeExtensionRegistry,
+    selected_runtime_module_names: &HashSet<&str>,
+    registry: &mut RuntimeExtensionRegistry,
+    diagnostics: &mut Vec<String>,
+    fatal_diagnostics: &mut Vec<String>,
+) {
+    merge_extension_registry_contributions_with_module_filter(
+        extensions,
+        Some(selected_runtime_module_names),
+        registry,
+        diagnostics,
+        fatal_diagnostics,
+    );
+}
+
+fn merge_extension_registry_contributions_with_module_filter(
+    extensions: &RuntimeExtensionRegistry,
+    selected_runtime_module_names: Option<&HashSet<&str>>,
+    registry: &mut RuntimeExtensionRegistry,
+    diagnostics: &mut Vec<String>,
+    fatal_diagnostics: &mut Vec<String>,
+) {
     for module in extensions.modules() {
+        if selected_runtime_module_names
+            .is_some_and(|module_names| !module_names.contains(module.name.as_str()))
+        {
+            continue;
+        }
         push_runtime_extension_result(
             registry.register_module(module.clone()),
             diagnostics,
@@ -19,36 +58,54 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_extension
         );
     }
     for (owner, resource) in extensions.plugin_resources() {
+        if !owner_is_selected(extensions, owner, selected_runtime_module_names) {
+            continue;
+        }
         let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
             registry.register_resource_registration(target_owner, resource.clone())
         });
         push_runtime_extension_result(result, diagnostics, fatal_diagnostics);
     }
     for (owner, event) in extensions.plugin_events() {
+        if !owner_is_selected(extensions, owner, selected_runtime_module_names) {
+            continue;
+        }
         let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
             registry.register_event_registration(target_owner, event.clone())
         });
         push_runtime_extension_result(result, diagnostics, fatal_diagnostics);
     }
     for (owner, system) in extensions.plugin_systems() {
+        if !owner_is_selected(extensions, owner, selected_runtime_module_names) {
+            continue;
+        }
         let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
             registry.register_system_registration(target_owner, system.clone())
         });
         push_runtime_extension_result(result, diagnostics, fatal_diagnostics);
     }
     for (owner, system) in extensions.plugin_runtime_systems() {
+        if !owner_is_selected(extensions, owner, selected_runtime_module_names) {
+            continue;
+        }
         let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
             registry.register_runtime_scene_system_registration(target_owner, system.clone())
         });
         push_runtime_extension_result(result, diagnostics, fatal_diagnostics);
     }
     for (owner, export) in extensions.plugin_interfaces() {
+        if !owner_is_selected(extensions, owner, selected_runtime_module_names) {
+            continue;
+        }
         let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
             registry.register_interface_export(target_owner, export.clone())
         });
         push_runtime_extension_result(result, diagnostics, fatal_diagnostics);
     }
     for (owner, import) in extensions.plugin_interface_imports() {
+        if !owner_is_selected(extensions, owner, selected_runtime_module_names) {
+            continue;
+        }
         let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
             registry.register_interface_import(target_owner, import.clone())
         });
@@ -56,6 +113,9 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_extension
     }
     #[cfg(feature = "graphics")]
     for (owner, descriptor) in extensions.geometry_source_entries() {
+        if !owner_is_selected(extensions, owner, selected_runtime_module_names) {
+            continue;
+        }
         let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
             registry.register_geometry_source_for_owner(target_owner, descriptor.clone())
         });
@@ -63,6 +123,9 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_extension
     }
     #[cfg(feature = "graphics")]
     for (owner, descriptor) in extensions.shading_model_entries() {
+        if !owner_is_selected(extensions, owner, selected_runtime_module_names) {
+            continue;
+        }
         let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
             registry.register_shading_model_for_owner(target_owner, descriptor.clone())
         });
@@ -83,6 +146,18 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_extension
     );
 }
 
+fn owner_is_selected(
+    extensions: &RuntimeExtensionRegistry,
+    owner: PluginModuleId,
+    selected_runtime_module_names: Option<&HashSet<&str>>,
+) -> bool {
+    selected_runtime_module_names.is_none_or(|module_names| {
+        extensions
+            .plugin_module_name(owner)
+            .is_some_and(|module_name| module_names.contains(module_name))
+    })
+}
+
 fn intern_target_owner(
     target: &mut RuntimeExtensionRegistry,
     source: &RuntimeExtensionRegistry,
@@ -99,12 +174,17 @@ fn intern_target_owner(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
     use std::sync::Arc;
 
     use crate::core::framework::bridge::{BridgeError, PluginInterface};
+    use crate::core::ModuleDescriptor;
     use crate::plugin::RuntimeExtensionRegistry;
 
-    use super::merge_extension_registry_contributions;
+    use super::{
+        merge_extension_registry_contributions,
+        merge_extension_registry_contributions_for_runtime_modules,
+    };
 
     trait MergeTestBridge: Send + Sync {
         fn sample(&self) -> i32;
@@ -120,6 +200,41 @@ mod tests {
         fn sample(&self) -> i32 {
             self.0
         }
+    }
+
+    #[test]
+    fn target_filtered_merge_excludes_unselected_module_owned_interfaces() {
+        let mut source = RuntimeExtensionRegistry::default();
+        source
+            .register_module(ModuleDescriptor::new("client.runtime", "Client"))
+            .unwrap();
+        source
+            .register_module(ModuleDescriptor::new("server.runtime", "Server"))
+            .unwrap();
+        let server_owner = source.intern_plugin_module("server.runtime").unwrap();
+        source
+            .export_interface::<dyn MergeTestBridge>(server_owner, Arc::new(MergeTestProvider(7)))
+            .unwrap();
+
+        let mut merged = RuntimeExtensionRegistry::default();
+        let mut diagnostics = Vec::new();
+        let mut fatal_diagnostics = Vec::new();
+        merge_extension_registry_contributions_for_runtime_modules(
+            &source,
+            &HashSet::from(["client.runtime"]),
+            &mut merged,
+            &mut diagnostics,
+            &mut fatal_diagnostics,
+        );
+        merged.finalize();
+
+        assert!(diagnostics.is_empty(), "{diagnostics:?}");
+        assert!(fatal_diagnostics.is_empty(), "{fatal_diagnostics:?}");
+        assert_eq!(merged.modules()[0].name, "client.runtime");
+        assert!(merged
+            .frozen_bridge_table()
+            .resolve_slot(<dyn MergeTestBridge as PluginInterface>::INTERFACE_ID)
+            .is_none());
     }
 
     #[test]

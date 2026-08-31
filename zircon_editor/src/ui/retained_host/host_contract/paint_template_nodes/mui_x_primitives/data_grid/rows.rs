@@ -16,6 +16,7 @@ pub(super) fn push_data_grid_rows(
     opacity: f32,
 ) {
     let [row_surface, selected_surface] = data_grid_row_colors_from_host(current_host_palette());
+    commands.reserve(MUI_X_DATA_GRID_ROW_COUNT as usize);
     for row in 0..MUI_X_DATA_GRID_ROW_COUNT {
         let selected = row == 0 && (node.selected || node.checked);
         super::super::push_quad(
@@ -94,5 +95,47 @@ mod tests {
             data_grid_row_colors_from_host(palette),
             [[10, 11, 12, 255], [20, 21, 22, 255]]
         );
+    }
+
+    #[test]
+    fn optimization_batch_20260830cq_editor504_data_grid_reserves_fixed_row_commands() {
+        let source = include_str!("rows.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("data-grid row production source");
+
+        assert!(production.contains("commands.reserve(MUI_X_DATA_GRID_ROW_COUNT as usize);"));
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830cq_editor504_data_grid_row_capacity_evidence() {
+        const BATCH_COUNT: usize = 32_768;
+        const MARKER: &str = "EDITOR504_DATA_GRID_ROW_COMMAND_CAPACITY_BENCH_V1";
+        let legacy_growth_events = row_command_growth_events(BATCH_COUNT, false);
+        let optimized_growth_events = row_command_growth_events(BATCH_COUNT, true);
+
+        assert!(legacy_growth_events > 0);
+        assert_eq!(optimized_growth_events, 0);
+        println!(
+            "{MARKER} batches={BATCH_COUNT} rows_per_batch={MUI_X_DATA_GRID_ROW_COUNT} legacy_growth_events={legacy_growth_events} optimized_growth_events={optimized_growth_events} reduction_pct=100"
+        );
+    }
+
+    fn row_command_growth_events(batch_count: usize, reserve: bool) -> usize {
+        let mut commands = Vec::new();
+        let mut growth_events = 0;
+        for _ in 0..batch_count {
+            if reserve {
+                commands.reserve(MUI_X_DATA_GRID_ROW_COUNT as usize);
+            }
+            for row in 0..MUI_X_DATA_GRID_ROW_COUNT {
+                let previous_capacity = commands.capacity();
+                commands.push(row);
+                growth_events += usize::from(commands.capacity() != previous_capacity);
+            }
+        }
+        growth_events
     }
 }

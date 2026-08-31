@@ -1,5 +1,5 @@
 use super::*;
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
@@ -9,17 +9,16 @@ use crate::graphics::resource_limits::{
     HZB_OCCLUSION_PASS_STORAGE_BUFFERS_PER_SHADER_STAGE,
 };
 use crate::graphics::scene::gpu_scene::{
-    GpuInstanceData, GpuPrimitiveData, GpuScene, GpuSceneEntry, GPU_PRIMITIVE_FLAG_VISIBLE,
-    GPU_SCENE_INVALID_PAYLOAD_SLOT,
+    GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT, GpuInstanceData, GpuPrimitiveData,
+    GpuScene, GpuSceneEntry,
 };
 use crate::graphics::scene::resources::default_pipeline_key;
-use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
-    DrawInstanceSource, MeshDrawArgs, MeshDrawCommand, MeshGeometryHandle,
-    MeshIndirectArgsSnapshot, MeshIndirectDrawPlan, MeshIndirectPhaseWorkspace,
-    MeshPassPipelineKind, MeshPipelineVariantId, INDEXED_INDIRECT_ARGS_STRIDE_BYTES,
-    INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
-};
 use crate::graphics::scene::scene_renderer::mesh::IndexedIndirectArgs;
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
+    DrawInstanceSource, INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
+    MeshDrawArgs, MeshDrawCommand, MeshGeometryHandle, MeshIndirectArgsSnapshot,
+    MeshIndirectDrawPlan, MeshIndirectPhaseWorkspace, MeshPassPipelineKind, MeshPipelineVariantId,
+};
 use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
 
 const TEST_SKINNED_JOINT_MATRIX_COUNT: u64 = 256;
@@ -64,8 +63,16 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
         sync_occlusion_test_entry(device, &mut gpu_scene, 0x1000_0001, TEST_HIDDEN_INSTANCE_Z);
     let visible =
         sync_occlusion_test_entry(device, &mut gpu_scene, 0x1000_0002, TEST_VISIBLE_INSTANCE_Z);
-    let upload = gpu_scene.flush_updates(queue);
+    let upload = gpu_scene
+        .flush_updates(&backend)
+        .expect("GPU scene upload should be accepted");
     assert!(upload.uploaded_bytes > 0);
+    let upload_flush_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-test-hzb-gpu-scene-upload-flush"),
+    });
+    backend
+        .submit_graphics_command_buffers(vec![upload_flush_encoder.finish()])
+        .expect("GPU scene upload should flush before HZB commands are recorded");
 
     let hzb = test_hzb_texture(device, queue, TEST_WALL_DEPTH);
     let culler =
@@ -103,10 +110,10 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
         mapped_at_creation: false,
     });
 
-    culler.clear_stats(queue);
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-test-hzb-occlusion-cull"),
     });
+    culler.clear_stats(&mut encoder);
     execution
         .compaction_resources()
         .encode_clear_outputs(&mut encoder);
@@ -167,24 +174,40 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
 fn hzb_occlusion_culler_shader_declares_expected_bindings() {
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("@group(0) @binding(0) var<uniform> scene"));
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("@group(1) @binding(0) var previous_hzb"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(2) var<storage, read> source_indirect_args"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(3) var<storage, read> compaction_metadata"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(4) var<storage, read_write> visible_instance_indices"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(5) var<storage, read_write> draw_counts"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(6) var<storage, read_write> compacted_indirect_args"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(7) var<storage, read_write> occlusion_stats"));
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(2) var<storage, read> source_indirect_args")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(3) var<storage, read> compaction_metadata")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(4) var<storage, read_write> visible_instance_indices")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(5) var<storage, read_write> draw_counts")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(6) var<storage, read_write> compacted_indirect_args")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(7) var<storage, read_write> occlusion_stats")
+    );
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("atomicAdd(&occlusion_stats.culled_arg_count"));
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("atomicAdd(&draw_counts"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(3) @binding(0) var<storage, read> zr_primitive_data"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(3) @binding(5) var<storage, read> zr_visible_instance_remap"));
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(3) @binding(0) var<storage, read> zr_primitive_data")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(3) @binding(5) var<storage, read> zr_visible_instance_remap")
+    );
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("@compute @workgroup_size(64, 1, 1)"));
 }
 
@@ -255,7 +278,7 @@ fn hzb_stats_readback_queue_bounds_pending_requests_and_records_drops() {
 }
 
 #[test]
-fn hzb_stats_readback_queue_records_a_skipped_shared_readback_frame() {
+fn hzb_stats_readback_queue_records_a_skipped_product_diagnostic_frame() {
     let mut readbacks = HzbStatsReadbackQueue::default();
 
     readbacks.record_drop();
@@ -272,10 +295,11 @@ fn hzb_cpu_diagnostics_request_stats_and_indirect_args_together() {
     let request_readbacks = &source[start..];
 
     assert!(request_readbacks.contains("source_frame_index: u64"));
-    assert!(request_readbacks.contains("hzb-occlusion.stats"));
+    assert!(request_readbacks.contains("backend.enqueue_product_diagnostic_buffer("));
     assert!(request_readbacks.contains("request_hzb_occlusion_args_readbacks"));
     assert!(request_readbacks.contains("PendingHzbIndirectArgs"));
     assert!(request_readbacks.contains("source_frame_index,"));
+    assert!(!request_readbacks.contains("request_readback_external("));
 
     let indirect_capacity_gate = request_readbacks
         .find("< MAX_PENDING_HZB_DIAGNOSTIC_FRAMES")
@@ -292,7 +316,9 @@ fn hzb_occlusion_uploads_reused_phase_params_before_dispatch() {
     let workspace_source = include_str!("../params_workspace.rs");
 
     assert!(workspace_source.contains("zircon-hzb-occlusion-cull-params"));
-    assert!(workspace_source.contains("queue.write_buffer("));
+    assert!(!workspace_source.contains("queue.write_buffer("));
+    assert!(workspace_source.contains("WgpuBufferUpload::from_bytes("));
+    assert!(culler_source.contains("params_commits"));
     assert!(!culler_source.contains("encoder.copy_buffer_to_buffer("));
     let prepare = culler_source
         .find("let params = self")
@@ -318,6 +344,8 @@ fn hzb_occlusion_culler_clears_compaction_outputs_before_culling_dispatch() {
         .expect("phase hzb cull dispatch");
 
     assert!(clear_index < dispatch_index);
+    assert!(implementation.contains("encoder.clear_buffer(&self.stats_buffer, 0, None)"));
+    assert!(!implementation.contains("queue.write_buffer(\n            &self.stats_buffer"));
     assert!(implementation.contains("HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE"));
     assert!(implementation.contains("HZB_OCCLUSION_DRAW_COUNT_RESOURCE"));
     assert!(implementation.contains("HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE"));
@@ -368,6 +396,7 @@ fn test_scene_uniform() -> SceneUniform {
         view_proj_unjittered: identity_matrix(),
         inverse_view_proj: identity_matrix(),
         ambient_color: [0.0, 0.0, 0.0, 1.0],
+        lightmapped_ambient_color: [0.0, 0.0, 0.0, 1.0],
         previous_view_proj_unjittered: identity_matrix(),
         motion_params: [0.0, 0.0, 0.0, 0.0],
         jitter_params: [0.0, 0.0, 0.0, 0.0],
@@ -424,8 +453,8 @@ fn sync_occlusion_test_entry(
 
 fn test_primitive_data() -> GpuPrimitiveData {
     GpuPrimitiveData {
-        bounds_center: [0.0, 0.0, 0.0],
-        bounds_radius: 0.01,
+        local_bounds_center: [0.0, 0.0, 0.0],
+        local_bounds_radius: 0.01,
         tint: [1.0, 1.0, 1.0, 1.0],
         shadow_params: [0.0, 0.5, 1.0, 0.0],
         motion_params: [0.0, 0.0, 0.0, 0.0],
@@ -434,7 +463,8 @@ fn test_primitive_data() -> GpuPrimitiveData {
         instance_count: u32::MAX,
         payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
         material_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
-        material_payload_padding: [0; 3],
+        hit_proxy_token: 0,
+        material_payload_padding: [0; 2],
     }
 }
 
@@ -450,6 +480,7 @@ fn test_instance_data(translate_z: f32) -> GpuInstanceData {
         morph_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
         lightmap_uv_rect: [0.0; 4],
         lightmap_params: [0; 4],
+        skinning_palette_params: [0; 4],
     }
 }
 

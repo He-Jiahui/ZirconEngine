@@ -9,6 +9,7 @@ fn runtime_15_core_runtime_service_lists_are_folder_backed() {
     let parent = read_runtime_src("core/runtime/handle/registration/service_lists/mod.rs");
     let types = read_runtime_src("core/runtime/handle/registration/service_lists/types.rs");
     let multi = read_runtime_src("core/runtime/handle/registration/service_lists/multi.rs");
+    let selection = read_runtime_src("core/runtime/handle/registration/service_lists/selection.rs");
     let specialized =
         read_runtime_src("core/runtime/handle/registration/service_lists/specialized.rs");
     let shutdown = read_runtime_src("core/runtime/handle/registration/service_lists/shutdown.rs");
@@ -43,11 +44,27 @@ fn runtime_15_core_runtime_service_lists_are_folder_backed() {
         &parent,
         &[
             "mod multi;",
+            "mod selection;",
             "mod shutdown;",
             "mod specialized;",
             "mod types;",
-            "pub(super) fn module_service_lists",
+            "pub(super) use self::selection::module_service_lists;",
             "pub(super) use self::specialized::single_service_module_lists;",
+        ],
+    );
+    assert!(
+        !parent.contains("fn module_service_lists("),
+        "service-list parent should route selection instead of owning its branch policy"
+    );
+    assert_contains_all(
+        "service-list selection owner chooses specialized and generic paths",
+        &selection,
+        &[
+            "pub(in crate::core::runtime::handle::registration) fn module_service_lists",
+            "if let [(name, entry)] = pending_services",
+            "let scan = scan_multi_service_module_lists(pending_services);",
+            "if scan.immediate_count == pending_services.len()",
+            "mixed_startup_multi_service_module_lists(",
         ],
     );
     assert_contains_all(
@@ -105,6 +122,10 @@ fn runtime_15_core_runtime_service_lists_are_folder_backed() {
         (
             "core/runtime/handle/registration/service_lists/multi.rs",
             multi.as_str(),
+        ),
+        (
+            "core/runtime/handle/registration/service_lists/selection.rs",
+            selection.as_str(),
         ),
         (
             "core/runtime/handle/registration/service_lists/specialized.rs",
@@ -179,6 +200,7 @@ fn runtime_15_production_file_budget_core_runtime_guard_is_child_owner() {
             "fn runtime_15_core_runtime_service_lists_are_folder_backed",
             "fn runtime_15_production_file_budget_core_runtime_guard_is_child_owner",
             "core/runtime/handle/registration/service_lists/mod.rs",
+            "core/runtime/handle/registration/service_lists/selection.rs",
             "core/runtime/handle/registration/service_lists/specialized.rs",
         ],
     );

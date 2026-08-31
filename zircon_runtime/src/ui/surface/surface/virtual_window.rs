@@ -74,15 +74,15 @@ impl UiSurface {
             let previous_component_value = self
                 .component_states
                 .get(window.owner_id)
-                .and_then(|state| state.value(change.property).cloned());
+                .and_then(|state| state.value(change.property.as_str()).cloned());
             let _ = self.runtime_style.set_base_attribute(
                 window.owner_id,
-                change.property.to_string(),
+                change.property.clone(),
                 change.value.to_toml(),
             );
             let component_change = self.component_states.sync_from_property(
                 window.owner_id,
-                change.property,
+                change.property.as_str(),
                 &change.value,
             );
             debug_assert!(!component_change.pseudo_state_changed);

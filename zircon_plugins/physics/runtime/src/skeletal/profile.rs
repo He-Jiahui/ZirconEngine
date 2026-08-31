@@ -1,9 +1,11 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::error::Error;
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use zircon_runtime::core::framework::physics::{PhysicsColliderShape, SkeletalPoseTargets};
+use zircon_runtime::core::framework::physics::{
+    PhysicsColliderShape, SkeletalPoseTarget, SkeletalPoseTargets,
+};
 use zircon_runtime::core::framework::scene::physics::{
     PhysicsJointConstraintMetadata, PhysicsSkeletonJointBinding,
 };
@@ -180,11 +182,13 @@ impl RagdollProfile {
         let skeleton_world = world
             .world_transform(skeleton)
             .ok_or(RagdollProfileError::MissingSkeletonTargets { skeleton })?;
+        let target_lookup = SkeletalTargetLookup::new(rows);
         let bones = topologically_ordered_bones(&self.bones);
         let mut bone_world_by_path = BTreeMap::<String, Transform>::new();
         let mut prepared = Vec::with_capacity(bones.len());
         for bone in bones {
-            let local_bone = resolve_unique_target(rows, &bone.bone_path)
+            let local_bone = target_lookup
+                .resolve(&bone.bone_path)
                 .ok_or_else(|| RagdollProfileError::MissingBoneTarget {
                     bone_path: bone.bone_path.clone(),
                 })?
@@ -351,16 +355,34 @@ fn rollback_spawn(world: &mut World, spawn: &RagdollSpawn) {
     }
 }
 
-fn resolve_unique_target<'a>(
-    rows: &'a [zircon_runtime::core::framework::physics::SkeletalPoseTarget],
-    bone_path: &str,
-) -> Option<&'a zircon_runtime::core::framework::physics::SkeletalPoseTarget> {
-    let leaf = bone_leaf(bone_path);
-    let mut matches = rows
-        .iter()
-        .filter(|target| target.bone_name == bone_path || target.bone_name == leaf);
-    let target = matches.next()?;
-    matches.next().is_none().then_some(target)
+struct SkeletalTargetLookup<'a> {
+    by_name: HashMap<&'a str, Option<&'a SkeletalPoseTarget>>,
+}
+
+impl<'a> SkeletalTargetLookup<'a> {
+    fn new(rows: &'a [SkeletalPoseTarget]) -> Self {
+        let mut by_name = HashMap::with_capacity(rows.len());
+        for target in rows {
+            by_name
+                .entry(target.bone_name.as_str())
+                .and_modify(|target| *target = None)
+                .or_insert(Some(target));
+        }
+        Self { by_name }
+    }
+
+    fn resolve(&self, bone_path: &str) -> Option<&'a SkeletalPoseTarget> {
+        let leaf = bone_leaf(bone_path);
+        let full_path = self.by_name.get(bone_path).copied().flatten();
+        if leaf == bone_path {
+            return full_path;
+        }
+        match (full_path, self.by_name.get(leaf).copied().flatten()) {
+            (Some(_), Some(_)) => None,
+            (Some(target), None) | (None, Some(target)) => Some(target),
+            (None, None) => None,
+        }
+    }
 }
 
 fn scene_shape(shape: &PhysicsColliderShape) -> ColliderShape {

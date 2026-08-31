@@ -5,6 +5,7 @@ pub(super) struct RenderShaderTemplateAssemblySources {
     pub(super) template_mod: String,
     pub(super) assemble: String,
     pub(super) module_registry: String,
+    pub(super) module_registry_tests: String,
     pub(super) material_surface: String,
     pub(super) pass_specialization: String,
     pub(super) taa_reactive_template: String,
@@ -13,6 +14,9 @@ pub(super) struct RenderShaderTemplateAssemblySources {
     pub(super) template_surface_module_tests: String,
     pub(super) template_standard_material_surface_tests: String,
     pub(super) variant_cache_prewarm: String,
+    pub(super) variant_cache_prewarm_worker: String,
+    pub(super) variant_cache_prewarm_tests: String,
+    pub(super) variant_cache_prewarm_combined_tests: String,
     pub(super) pipeline_key: String,
     pub(super) mesh_cache_mod: String,
     pub(super) mesh_cache_state: String,
@@ -45,6 +49,9 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
         template_mod: read_runtime_src("graphics/shader/template/mod.rs"),
         assemble: read_runtime_src("graphics/shader/template/assemble.rs"),
         module_registry: read_runtime_src("graphics/shader/template/module_registry.rs"),
+        module_registry_tests: read_runtime_src(
+            "graphics/shader/template/module_registry/tests.rs",
+        ),
         material_surface: read_runtime_src("graphics/shader/template/material_surface.rs"),
         pass_specialization: read_runtime_src("graphics/shader/template/pass_specialization.rs"),
         taa_reactive_template: read_runtime_src("graphics/shader/template/taa_reactive_mask.rs"),
@@ -57,6 +64,15 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
             "graphics/shader/template/tests/standard_material_surface_template.rs",
         ),
         variant_cache_prewarm: read_runtime_src("graphics/shader/variant_cache/prewarm.rs"),
+        variant_cache_prewarm_worker: read_runtime_src(
+            "graphics/shader/variant_cache/prewarm/worker.rs",
+        ),
+        variant_cache_prewarm_tests: read_runtime_src(
+            "graphics/shader/variant_cache/prewarm/tests.rs",
+        ),
+        variant_cache_prewarm_combined_tests: read_runtime_src(
+            "graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs",
+        ),
         pipeline_key: read_runtime_src("graphics/scene/resources/pipeline/pipeline_key.rs"),
         mesh_cache_mod: read_runtime_src(
             "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mod.rs",

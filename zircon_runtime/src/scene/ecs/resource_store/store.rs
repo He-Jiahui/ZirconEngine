@@ -1,6 +1,6 @@
-use std::any::{type_name, TypeId};
-use std::collections::hash_map::Entry;
+use std::any::{TypeId, type_name};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fmt;
 
 use crate::scene::ecs::{ChangeTick, ComponentTicks};

@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::path::{Component, Path, PathBuf};
 
@@ -23,10 +24,13 @@ pub(super) fn workspace_root() -> PathBuf {
 }
 
 pub(super) fn normalized_asset_relative_path(source: &str) -> PathBuf {
-    let mut value = source.trim().replace('\\', "/");
-    if let Some(stripped) = value.strip_prefix("res://") {
-        value = stripped.to_string();
-    }
+    let source = source.trim();
+    let value = if source.contains('\\') {
+        Cow::Owned(source.replace('\\', "/"))
+    } else {
+        Cow::Borrowed(source)
+    };
+    let value = value.strip_prefix("res://").unwrap_or(value.as_ref());
     let mut relative = PathBuf::new();
     for component in Path::new(value.trim_start_matches('/')).components() {
         match component {
@@ -41,3 +45,7 @@ pub(super) fn normalized_asset_relative_path(source: &str) -> PathBuf {
     }
     relative
 }
+
+#[cfg(test)]
+#[path = "paths/borrowed_normalization_tests.rs"]
+mod borrowed_normalization_tests;

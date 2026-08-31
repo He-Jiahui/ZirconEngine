@@ -60,6 +60,7 @@ var cardDuelRouter = %import("social/card_duel_command_router");
 var cardDuelService = %import("social/card_duel_service");
 var targetingMarkers = %import("social/targeting_markers_state");
 var chatWireState = %import("social/chat_wire_state");
+var partyReadyCheckSweep = %import("social/party_raid_state");
 var deadTargetSelection = %import("world/dead_target_selection");
 var targetSelection = %import("world/target_selection");
 var npcPlacement = %import("world/npc_placement");
@@ -26586,31 +26587,23 @@ applyPartyReadyRespondCommand(
 // so finalization commits the same removal boundary while the source's prompt
 // and counts-only notices remain a presentation-host responsibility.
 updatePartyReadyChecks(state: WorldState): void {
-    var index = 0;
-    while (index < state.entityIds.length) {
-        var partyId = <uint>state.entityReadyCheckPartyIds[index];
-        if (partyId != <uint>0) {
-            var seen = false;
-            var prior = 0;
-            while (prior < index) {
-                if (<uint>state.entityReadyCheckPartyIds[prior] == partyId) {
-                    seen = true;
-                }
-                prior = prior + 1;
-            }
-            if (!seen && (state.timeMicros >= <uint>state.entityReadyCheckEndsAtMicros[index] ||
-                !partyReadyCheckHasPending(state, partyId))) {
-                clearPartyReadyCheck(state, partyId);
-            }
-        }
-        index = index + 1;
-    }
+    partyReadyCheckSweep.expireRows(
+        state.timeMicros,
+        state.entityReadyCheckPartyIds,
+        state.entityReadyCheckInitiatorIds,
+        state.entityReadyCheckEndsAtMicros,
+        state.entityReadyCheckResponses
+    );
 }
 
 partyRemoveReadyCheckMember(state: WorldState, index: int): void {
     // Mirrors party.ts deleting exactly the leaver's response. The shared
-    // end-of-tick sweep performs an early finalization after this command batch.
+    // ready-check boundary finalizes when this removal consumes the last pending row.
+    var partyId = <uint>state.entityReadyCheckPartyIds[index];
     clearReadyCheckRow(state, index);
+    if (partyId != <uint>0 && !partyReadyCheckHasPending(state, partyId)) {
+        clearPartyReadyCheck(state, partyId);
+    }
 }
 
 partyNormalizeRaidGroups(state: WorldState, partyId: uint): void {

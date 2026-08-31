@@ -5,7 +5,8 @@ use std::path::{Path, PathBuf};
 #[cfg(windows)]
 use zircon_runtime_interface::project::session_lock::windows_project_session_mutex_name;
 use zircon_runtime_interface::project::session_lock::{
-    decode_project_session_lock_record, project_session_lock_path, ProjectSessionLockRecordV1,
+    decode_project_session_admission_record, project_session_lock_path,
+    ProjectSessionAdmissionLifecycleV1, ProjectSessionAdmissionRecordV1,
 };
 
 use crate::error::HubError;
@@ -15,13 +16,19 @@ use crate::projects::normalize_project_root;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ProjectEditorSessionProbe {
     Inactive,
-    Active(ProjectSessionLockRecordV1),
+    /// The editor holds the exclusive lease but cannot yet consume focus requests.
+    Pending(ProjectSessionAdmissionRecordV1),
+    /// The editor committed an addressable project generation and may receive a focus request.
+    Ready(ProjectSessionAdmissionRecordV1),
+    /// The exclusive lease remains intentionally held until recovery is resolved.
+    RecoveryRequired(ProjectSessionAdmissionRecordV1),
 }
 
 /// Detects an active Editor17 session without creating, replacing, or acquiring its lease.
 ///
-/// The persistent record becomes actionable only after the same OS lease namespace reports an
-/// active owner. A residual record therefore remains the editor's recovery concern.
+/// A lock record becomes focusable only after the same OS lease namespace is held and its
+/// lifecycle has committed `Ready`. Pending and recovery leases prevent a second writer but
+/// never authorize Hub focus.
 pub(crate) fn probe_project_editor_session(
     project_root: impl AsRef<Path>,
 ) -> Result<ProjectEditorSessionProbe, HubError> {
@@ -37,13 +44,28 @@ pub(crate) fn probe_project_editor_session(
             lock_path.display()
         ))
     })?;
-    let record = decode_project_session_lock_record(&source).map_err(|source| {
+    let record = decode_project_session_admission_record(&source).map_err(|source| {
         HubError::message(format!(
             "active editor session has an invalid lock record `{}`: {source}",
             lock_path.display()
         ))
     })?;
-    Ok(ProjectEditorSessionProbe::Active(record))
+    Ok(classify_live_session_record(record))
+}
+
+fn classify_live_session_record(
+    record: ProjectSessionAdmissionRecordV1,
+) -> ProjectEditorSessionProbe {
+    match record.lifecycle() {
+        ProjectSessionAdmissionLifecycleV1::Ready => ProjectEditorSessionProbe::Ready(record),
+        ProjectSessionAdmissionLifecycleV1::RecoveryRequired => {
+            ProjectEditorSessionProbe::RecoveryRequired(record)
+        }
+        ProjectSessionAdmissionLifecycleV1::Claimed
+        | ProjectSessionAdmissionLifecycleV1::PreflightApproved
+        | ProjectSessionAdmissionLifecycleV1::Activating
+        | ProjectSessionAdmissionLifecycleV1::Closing => ProjectEditorSessionProbe::Pending(record),
+    }
 }
 
 fn resolve_project_session_root(project_root: &Path) -> Result<PathBuf, HubError> {
@@ -130,4 +152,66 @@ unsafe extern "system" {
 #[cfg(unix)]
 unsafe extern "C" {
     fn flock(file_descriptor: i32, operation: i32) -> i32;
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime_interface::project::session_lock::{
+        ProjectSessionAdmissionLifecycleV1, ProjectSessionAdmissionRecordV1,
+        ProjectSessionGenerationV1, ProjectSessionPrincipalV1,
+    };
+    use zircon_runtime_interface::project::{
+        ProjectActivationOperationIdGenerator, ProjectLaunchInstanceId,
+    };
+    use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
+
+    use super::{classify_live_session_record, ProjectEditorSessionProbe};
+
+    #[test]
+    fn live_activating_lease_is_pending_not_focusable() {
+        let activating = fixture_claimed_record()
+            .transition_to(ProjectSessionAdmissionLifecycleV1::PreflightApproved)
+            .expect("fixture preflight approval")
+            .transition_to(ProjectSessionAdmissionLifecycleV1::Activating)
+            .expect("fixture activation");
+
+        assert!(matches!(
+            classify_live_session_record(activating),
+            ProjectEditorSessionProbe::Pending(_)
+        ));
+    }
+
+    #[test]
+    fn live_ready_lease_is_the_only_focusable_session() {
+        let ready = fixture_claimed_record()
+            .transition_to(ProjectSessionAdmissionLifecycleV1::PreflightApproved)
+            .expect("fixture preflight approval")
+            .transition_to(ProjectSessionAdmissionLifecycleV1::Activating)
+            .expect("fixture activation")
+            .commit_ready(ProjectSessionGenerationV1::new(1).expect("fixture generation"))
+            .expect("fixture ready commit");
+
+        assert!(matches!(
+            classify_live_session_record(ready),
+            ProjectEditorSessionProbe::Ready(_)
+        ));
+    }
+
+    fn fixture_claimed_record() -> ProjectSessionAdmissionRecordV1 {
+        let operation = ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new())
+            .allocate()
+            .expect("fixture operation");
+        ProjectSessionAdmissionRecordV1::claim(
+            913,
+            "913-1723718523000-1",
+            ProjectSessionPrincipalV1::Hub,
+            ZrRuntimeBuildSetId::parse(
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            )
+            .expect("fixture BuildSet"),
+            operation,
+            1_723_718_523_000,
+        )
+        .expect("fixture admission record")
+    }
 }

@@ -1,10 +1,10 @@
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
+use crate::scene::EntityId;
 use crate::scene::components::{
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
     AnimationStateMachinePlayerComponent,
 };
 use crate::scene::world::{SceneError, SceneResult, World};
-use crate::scene::EntityId;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum CompiledAnimationRuntimeProperty {

@@ -291,7 +291,7 @@ fn rebuild_reconciles_direct_descendant_and_state_flag_changes() {
 fn node_pool_and_slot_mutations_publish_explicit_structure_generations() {
     let mut slot_surface = test_surface();
     let slot_baseline = slot_surface.invalidation_generations();
-    slot_surface.tree.slots.push(UiSlot::new(
+    slot_surface.tree.push_layout_slot(UiSlot::new(
         UiNodeId::new(1),
         UiNodeId::new(2),
         UiSlotKind::Overlay,

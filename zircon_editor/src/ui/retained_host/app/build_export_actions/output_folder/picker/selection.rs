@@ -14,6 +14,11 @@ pub(in crate::ui::retained_host::app::build_export_actions) fn stable_picker_ini
 pub(in crate::ui::retained_host::app::build_export_actions::output_folder) fn parse_selected_folder(
     stdout: &[u8],
 ) -> Option<PathBuf> {
-    let selected = String::from_utf8_lossy(stdout).trim().to_string();
+    let selected = String::from_utf8_lossy(stdout);
+    let selected = selected.trim();
     (!selected.is_empty()).then(|| PathBuf::from(selected))
 }
+
+#[cfg(test)]
+#[path = "selection/borrowed_utf8_tests.rs"]
+mod borrowed_utf8_tests;

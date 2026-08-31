@@ -93,11 +93,11 @@ impl PendingAdmissionLedger {
         if self.reservations.contains_key(&reservation_id) {
             return Err(JobSubmitError::AdmissionReservationMismatch);
         }
-        let requests = reservations
-            .iter()
-            .map(|reservation| &reservation.request)
-            .collect::<Vec<_>>();
-        self.ensure_reservation_batch_admissible(&requests, limits, now)?;
+        self.ensure_reservation_batch_admissible_iter(
+            reservations.iter().map(|reservation| &reservation.request),
+            limits,
+            now,
+        )?;
 
         for reservation in &reservations {
             self.insert(
@@ -121,10 +121,19 @@ impl PendingAdmissionLedger {
         limits: EditorJobAdmissionLimits,
         now: Instant,
     ) -> Result<(), JobSubmitError> {
-        if requests.is_empty() {
+        self.ensure_reservation_batch_admissible_iter(requests.iter().copied(), limits, now)
+    }
+
+    fn ensure_reservation_batch_admissible_iter<'a>(
+        &self,
+        requests: impl Clone + ExactSizeIterator<Item = &'a EditorJobAdmissionRequest>,
+        limits: EditorJobAdmissionLimits,
+        now: Instant,
+    ) -> Result<(), JobSubmitError> {
+        if requests.len() == 0 {
             return Err(JobSubmitError::AdmissionReservationMismatch);
         }
-        for request in requests {
+        for request in requests.clone() {
             self.ensure_oldest_age_limit(
                 request
                     .max_pending_age
@@ -137,7 +146,7 @@ impl PendingAdmissionLedger {
                 limit: limits.max_pending_entries,
             });
         }
-        let requested = requests.iter().fold(0_usize, |total, request| {
+        let requested = requests.fold(0_usize, |total, request| {
             total.saturating_add(request.estimated_pending_bytes)
         });
         if self.estimated_bytes.saturating_add(requested) > limits.max_pending_estimated_bytes {

@@ -17,6 +17,50 @@ use super::execution_segments::{collect_execution_segments, execution_segment_su
 use super::virtual_geometry_indirect_stats::VirtualGeometryIndirectStats;
 use crate::virtual_geometry::renderer::{VirtualGeometryGpuResources, VirtualGeometryRenderFrame};
 
+struct ExecutionDrawProjection<'a> {
+    indirect_execution_draws: Vec<&'a RenderVirtualGeometryExecutionDraw>,
+    has_execution_args_buffer: bool,
+    draw_submission_order: Vec<(Option<u32>, u64, u32)>,
+    execution_indirect_offsets: Vec<u64>,
+    draw_submission_records: Vec<(u64, u32, u32, usize)>,
+    draw_submission_token_records: Vec<(u64, u32, u32, u32, usize)>,
+}
+
+fn collect_execution_draw_projection(
+    execution_draws: &[RenderVirtualGeometryExecutionDraw],
+) -> ExecutionDrawProjection<'_> {
+    let capacity = execution_draws.len();
+    let mut projection = ExecutionDrawProjection {
+        indirect_execution_draws: Vec::with_capacity(capacity),
+        has_execution_args_buffer: false,
+        draw_submission_order: Vec::with_capacity(capacity),
+        execution_indirect_offsets: Vec::with_capacity(capacity),
+        draw_submission_records: Vec::with_capacity(capacity),
+        draw_submission_token_records: Vec::with_capacity(capacity),
+    };
+
+    for draw in execution_draws {
+        if let Some(record) = draw.submission_order_record {
+            projection.draw_submission_order.push(record);
+        }
+        if let Some(record) = draw.draw_submission_record {
+            projection.draw_submission_records.push(record);
+        }
+        if let Some(record) = draw.draw_submission_token_record {
+            projection.draw_submission_token_records.push(record);
+        }
+        if draw.uses_indirect_draw {
+            projection.has_execution_args_buffer |= draw.indirect_args_buffer_available;
+            projection.indirect_execution_draws.push(draw);
+            projection
+                .execution_indirect_offsets
+                .push(draw.indirect_args_offset);
+        }
+    }
+
+    projection
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(in crate::virtual_geometry::renderer::root_render_passes) fn collect_virtual_geometry_indirect_stats(
     virtual_geometry_resources: &VirtualGeometryGpuResources,
@@ -79,28 +123,21 @@ fn virtual_geometry_indirect_stats(
     draw_ref_buffer: Option<Arc<wgpu::Buffer>>,
     segment_buffer: Option<Arc<wgpu::Buffer>>,
 ) -> VirtualGeometryIndirectStats {
-    let indirect_execution_draws = execution_draws
-        .iter()
-        .filter(|draw| draw.uses_indirect_draw)
-        .collect::<Vec<_>>();
+    let ExecutionDrawProjection {
+        indirect_execution_draws,
+        has_execution_args_buffer,
+        draw_submission_order,
+        execution_indirect_offsets,
+        draw_submission_records,
+        draw_submission_token_records,
+    } = collect_execution_draw_projection(execution_draws);
     let draw_count = indirect_execution_draws.len() as u32;
     let execution_segments = collect_execution_segments(&indirect_execution_draws);
     let execution_summary = execution_segment_summary(&execution_segments, draw_count);
-    let has_execution_args_buffer = indirect_execution_draws
-        .iter()
-        .any(|draw| draw.indirect_args_buffer_available);
     let buffer_count = u32::from(has_execution_args_buffer && args_buffer.is_some());
     let execution_args_buffer = has_execution_args_buffer
         .then(|| args_buffer.as_ref().map(Arc::clone))
         .flatten();
-    let draw_submission_order = execution_draws
-        .iter()
-        .filter_map(|draw| draw.submission_order_record)
-        .collect::<Vec<_>>();
-    let execution_indirect_offsets = indirect_execution_draws
-        .iter()
-        .map(|draw| draw.indirect_args_offset)
-        .collect::<Vec<_>>();
     let node_and_cluster_cull_pass = execute_virtual_geometry_node_and_cluster_cull_pass(
         device,
         encoder,
@@ -134,16 +171,6 @@ fn virtual_geometry_indirect_stats(
         executed_selected_cluster_count,
         executed_selected_cluster_buffer,
     ) = executed_cluster_selection_pass.into_indirect_stats_parts();
-    let draw_submission_records = execution_draws
-        .iter()
-        .enumerate()
-        .filter_map(|(_, draw)| draw.draw_submission_record)
-        .collect::<Vec<_>>();
-    let draw_submission_token_records = execution_draws
-        .iter()
-        .enumerate()
-        .filter_map(|(_, draw)| draw.draw_submission_token_record)
-        .collect::<Vec<_>>();
     let execution_submission_buffer = build_execution_submission_buffer(
         device,
         encoder,
@@ -189,3 +216,6 @@ fn virtual_geometry_indirect_stats(
         execution_authority_buffer,
     )
 }
+
+#[cfg(test)]
+mod draw_projection_tests;

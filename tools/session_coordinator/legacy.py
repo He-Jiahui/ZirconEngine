@@ -459,15 +459,8 @@ class LegacyMigrationService:
                 for path in legacy_targets.iterdir():
                     found.add(self._relative(path))
             for path in codex_root.rglob("*"):
-                if not path.is_file():
-                    continue
-                relative = self._relative(path)
-                if relative.startswith(".codex/sessions/"):
-                    continue
-                if relative.startswith(".codex/targets/"):
-                    continue
                 name = path.name.casefold()
-                if (
+                if not (
                     ("cargo" in name and "lease" in name)
                     or (
                         path.suffix.casefold() == ".json"
@@ -475,7 +468,15 @@ class LegacyMigrationService:
                         and "slot" in name
                     )
                 ):
-                    found.add(relative)
+                    continue
+                if not path.is_file():
+                    continue
+                relative = self._relative(path)
+                if relative.startswith(".codex/sessions/"):
+                    continue
+                if relative.startswith(".codex/targets/"):
+                    continue
+                found.add(relative)
         return tuple(sorted(found, key=str.casefold))
 
     def _archive_destination(
@@ -705,7 +706,8 @@ class LegacyMigrationService:
 
     @staticmethod
     def _hash(path: Path) -> str:
-        return hashlib.sha256(path.read_bytes()).hexdigest()
+        with path.open("rb") as handle:
+            return hashlib.file_digest(handle, "sha256").hexdigest()
 
     @staticmethod
     def _optional_text(value: object) -> str | None:

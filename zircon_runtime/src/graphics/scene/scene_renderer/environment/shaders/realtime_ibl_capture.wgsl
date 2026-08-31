@@ -34,18 +34,14 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let uv = ((vec2<f32>(global_id.xy) + vec2<f32>(0.5)) / f32(params.face_params.x)) * 2.0
         - vec2<f32>(1.0);
     let direction = cube_face_direction(face, uv);
-    let sky_t = clamp(direction.y * 0.5 + 0.5, 0.0, 1.0);
-    let ground_t = clamp(direction.y + 1.0, 0.0, 1.0);
-    let sky = mix(params.horizon_color.rgb, params.zenith_color.rgb, sky_t);
-    let ground = mix(params.ground_color.rgb, params.horizon_color.rgb, ground_t);
-    var color = select(ground, sky, direction.y >= 0.0);
-    if (params.sun_direction.w >= 0.5 && params.sun_params.x > 0.0) {
-        let sun_mask = smoothstep(
-            params.sun_params.y,
-            params.sun_params.z,
-            dot(direction, params.sun_direction.xyz),
-        );
-        color += params.sun_color.rgb * params.sun_params.x * sun_mask;
-    }
+    let color = zr_procedural_sky_radiance(
+        direction,
+        params.horizon_color.rgb,
+        params.zenith_color.rgb,
+        params.ground_color.rgb,
+        params.sun_direction,
+        params.sun_color.rgb,
+        params.sun_params,
+    );
     textureStore(output_cube, vec2<i32>(global_id.xy), i32(face), vec4<f32>(color, 1.0));
 }

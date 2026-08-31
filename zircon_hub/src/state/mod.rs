@@ -14,6 +14,7 @@ pub use hub_message::{
     ProcessMessageId, ProjectMessageId, SettingsMessageId, ShellMessageId,
 };
 pub use hub_snapshot::HubSnapshot;
+pub(crate) use hub_snapshot::ProjectAvailabilitySnapshot;
 pub use navigation::HubPage;
 pub use project_view::{ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode};
 pub use scope::{

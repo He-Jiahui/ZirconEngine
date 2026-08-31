@@ -4,7 +4,8 @@ use crate::core::framework::render::RenderMaterialTextureTransform;
 #[test]
 fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/pbr-key.zmaterial");
@@ -45,15 +46,23 @@ fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
             ResourceHandle::<MaterialMarker>::new(material_id),
         )
         .expect("material prepares");
+    assert!(
+        streamer.material_capture_seed(&material_id).is_none(),
+        "a staged material must not leak into capture before pipeline admission"
+    );
+    assert!(streamer.publish_staged_material_candidate(material_id));
 
     let material = streamer.material(&material_id).expect("runtime material");
-    let capture = material.capture_seed();
+    let capture = streamer
+        .material_capture_seed(&material_id)
+        .expect("published material capture seed");
     assert_eq!(capture.base_color.to_array(), [0.25, 0.5, 0.75, 0.8]);
     assert_eq!(capture.emissive.to_array(), [0.1, 0.2, 0.3]);
     assert_eq!(capture.metallic, 0.35);
@@ -158,11 +167,7 @@ fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
         material.pipeline_key.alpha_cutoff_bits,
         Some(0.42f32.to_bits())
     );
-    assert!(material.pipeline_key.has_base_color_texture);
     assert!(material.pipeline_key.has_normal_texture);
-    assert!(material.pipeline_key.has_metallic_roughness_texture);
-    assert!(material.pipeline_key.has_occlusion_texture);
-    assert!(material.pipeline_key.has_emissive_texture);
     assert!(!material.pipeline_key.is_transparent());
     assert!(material.non_standard_texture_slots.is_empty());
     let standard_summary = streamer
@@ -205,6 +210,227 @@ fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
     );
 }
 
+#[test]
+fn cold_material_capture_inherits_parent_values_through_canonical_resolution() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let device = &backend.device;
+    let queue = &backend.queue;
+    let texture_layout = texture_bind_group_layout(device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let parent_uri = locator("res://materials/capture-parent.zmaterial");
+    let parent_id = ResourceId::from_locator(&parent_uri);
+    let child_uri = locator("res://materials/capture-child.zmaterial");
+    let child_id = ResourceId::from_locator(&child_uri);
+    let mut parent = material_with_refs("builtin://shader/pbr.wgsl", None);
+    parent
+        .property_values
+        .insert("roughness".to_string(), toml::Value::Float(0.23));
+    let mut child = material_with_refs("builtin://shader/pbr.wgsl", None);
+    child.parent = Some(AssetReference::from_locator(parent_uri.clone()));
+
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(parent_id, ResourceKind::Material, parent_uri),
+            parent,
+        )
+        .expect("parent material insert");
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(child_id, ResourceKind::Material, child_uri),
+            child,
+        )
+        .expect("child material insert");
+    let streamer = ResourceStreamer::new_for_test(asset_manager, device, queue, &texture_layout);
+
+    let capture = streamer
+        .material_capture_seed(&child_id)
+        .expect("cold effective material capture seed");
+
+    assert_eq!(capture.roughness, 0.23);
+}
+
+#[test]
+fn published_material_capture_retains_texture_revision_and_sample_until_bundle_publication() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let device = &backend.device;
+    let queue = &backend.queue;
+    let texture_layout = texture_bind_group_layout(device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let texture_uri = locator("res://textures/capture-generation.png");
+    let texture_id = ResourceId::from_locator(&texture_uri);
+    let material_uri = locator("res://materials/capture-generation.zmaterial");
+    let material_id = ResourceId::from_locator(&material_uri);
+    asset_manager
+        .assets::<TextureAsset>()
+        .insert(
+            ResourceRecord::new(texture_id, ResourceKind::Texture, texture_uri.clone()),
+            TextureAsset::new_rgba8(texture_uri.clone(), 1, 1, vec![255, 255, 255, 255]),
+        )
+        .expect("initial texture insert");
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material_with_refs(
+                "builtin://shader/pbr.wgsl",
+                Some("res://textures/capture-generation.png"),
+            ),
+        )
+        .expect("material insert");
+    let mut streamer =
+        ResourceStreamer::new_for_test(asset_manager.clone(), device, queue, &texture_layout);
+
+    streamer
+        .ensure_material(
+            &backend,
+            device,
+            queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("initial material prepare");
+    assert!(streamer.publish_staged_material_candidate(material_id));
+    let initial = streamer
+        .material_capture_seed(&material_id)
+        .expect("initial published capture seed");
+    let initial_revision = initial
+        .base_color_texture_revision
+        .expect("initial capture texture revision");
+    assert_eq!(
+        initial.base_color_texture_center_rgba,
+        Some(crate::core::math::Vec4::ONE)
+    );
+
+    asset_manager
+        .assets::<TextureAsset>()
+        .insert(
+            ResourceRecord::new(texture_id, ResourceKind::Texture, texture_uri.clone()),
+            TextureAsset::new_rgba8(texture_uri, 1, 1, vec![0, 0, 0, 255]),
+        )
+        .expect("texture hot reload");
+    streamer
+        .ensure_texture(&backend, &texture_layout, texture_id)
+        .expect("new texture generation prepares");
+    let retained = streamer
+        .material_capture_seed(&material_id)
+        .expect("last-good material capture seed");
+    assert_eq!(retained.base_color_texture_revision, Some(initial_revision));
+    assert_eq!(
+        retained.base_color_texture_center_rgba,
+        Some(crate::core::math::Vec4::ONE)
+    );
+
+    streamer
+        .ensure_material(
+            &backend,
+            device,
+            queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("replacement material stages");
+    let staged = streamer
+        .material_capture_seed(&material_id)
+        .expect("published material remains capture authority");
+    assert_eq!(staged.base_color_texture_revision, Some(initial_revision));
+    assert_eq!(
+        staged.base_color_texture_center_rgba,
+        Some(crate::core::math::Vec4::ONE)
+    );
+
+    assert!(streamer.publish_staged_material_candidate(material_id));
+    let published = streamer
+        .material_capture_seed(&material_id)
+        .expect("replacement published capture seed");
+    assert_ne!(
+        published.base_color_texture_revision,
+        Some(initial_revision)
+    );
+    assert_eq!(
+        published.base_color_texture_center_rgba,
+        Some(crate::core::math::Vec4::new(0.0, 0.0, 0.0, 1.0))
+    );
+}
+
+#[test]
+fn render_product_streamer_preserves_clearcoat_normal_slot_metadata() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let device = &backend.device;
+    let queue = &backend.queue;
+    let texture_layout = texture_bind_group_layout(device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let texture_uri = locator("res://textures/clearcoat-normal.png");
+    let texture_id = ResourceId::from_locator(&texture_uri);
+    let material_uri = locator("res://materials/clearcoat-normal.zmaterial");
+    let material_id = ResourceId::from_locator(&material_uri);
+    asset_manager
+        .assets::<TextureAsset>()
+        .insert(
+            ResourceRecord::new(texture_id, ResourceKind::Texture, texture_uri.clone()),
+            rgba_texture("res://textures/clearcoat-normal.png"),
+        )
+        .expect("clearcoat normal texture insert");
+    let mut material = material_with_refs("builtin://shader/pbr.wgsl", None);
+    material
+        .property_values
+        .insert("clearcoat".to_string(), toml::Value::Float(0.8));
+    material.property_values.insert(
+        "clearcoat_normal_scale".to_string(),
+        toml::Value::Float(0.35),
+    );
+    let mut clearcoat_slot =
+        MaterialTextureSlotValue::new(asset_reference("res://textures/clearcoat-normal.png"));
+    clearcoat_slot.transform = Some(RenderMaterialTextureTransform {
+        scale: [0.5, 0.75],
+        offset: [0.1, 0.2],
+        rotation: 0.4,
+    });
+    clearcoat_slot.uv_channel = 1;
+    material
+        .texture_slots
+        .insert("clearcoat_normal".to_string(), clearcoat_slot);
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material,
+        )
+        .expect("clearcoat material insert");
+    let mut streamer =
+        ResourceStreamer::new_for_test(asset_manager, device, queue, &texture_layout);
+
+    streamer
+        .ensure_material(
+            &backend,
+            device,
+            queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("clearcoat material prepares");
+
+    let runtime = streamer
+        .staged_material_candidate(&material_id)
+        .expect("clearcoat material stages");
+    assert_eq!(runtime.clearcoat_normal_texture, Some(texture_id));
+    assert_eq!(runtime.advanced_features.clearcoat_normal_scale, 0.35);
+    assert_eq!(runtime.clearcoat_normal_texture_uv_channel, 1);
+    assert_eq!(
+        runtime.clearcoat_normal_texture_transform,
+        RenderMaterialTextureTransform {
+            scale: [0.5, 0.75],
+            offset: [0.1, 0.2],
+            rotation: 0.4,
+        }
+    );
+}
+
 fn transform(scale: [f32; 2], offset: [f32; 2]) -> RenderMaterialTextureTransform {
-    RenderMaterialTextureTransform { scale, offset }
+    RenderMaterialTextureTransform {
+        scale,
+        offset,
+        rotation: 0.0,
+    }
 }

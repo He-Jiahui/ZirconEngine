@@ -7,6 +7,11 @@ use super::{DecisionNotificationError, DecisionOptionId, DecisionReceipt, Decisi
 
 pub const MAX_DECISION_OPTIONS: usize = 16;
 pub const MAX_LOCALIZATION_KEY_BYTES: usize = 256;
+/// Maximum UTF-8 bytes retained for non-localized, operator-specific display context.
+///
+/// Identity and action routing remain typed IDs. This field is display-only, for example a
+/// project-relative document name selected by a recovery producer.
+pub const MAX_DECISION_DISPLAY_SUBJECT_BYTES: usize = 256;
 const MAX_DECISION_MESSAGE_ARGUMENTS: usize = 8;
 const MAX_DECISION_MESSAGE_ARGUMENT_NAME_BYTES: usize = 64;
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -48,6 +53,7 @@ struct DecisionNotificationData {
     source: NotificationSource,
     title_key: Arc<str>,
     message_key: Arc<str>,
+    display_subject: Option<Arc<str>>,
     message_arguments: BTreeMap<&'static str, u64>,
     options: Vec<DecisionOption>,
     default_option: Option<DecisionOptionId>,
@@ -84,6 +90,7 @@ impl DecisionNotification {
             source,
             title_key: bounded_non_empty("title key", title_key, MAX_LOCALIZATION_KEY_BYTES)?,
             message_key: bounded_non_empty("message key", message_key, MAX_LOCALIZATION_KEY_BYTES)?,
+            display_subject: None,
             message_arguments: BTreeMap::new(),
             options,
             default_option: None,
@@ -106,6 +113,23 @@ impl DecisionNotification {
     ) -> Result<Self, DecisionNotificationError> {
         self.require_option(&option)?;
         Arc::make_mut(&mut self.0).cancel_option = Some(option);
+        Ok(self)
+    }
+
+    /// Adds bounded operator context that presentation may place beside localized text.
+    ///
+    /// This is not a localization argument and must never be used as a command or persistence
+    /// identity. Producers should pass a project-relative, privacy-safe label rather than an
+    /// absolute filesystem path.
+    pub fn with_display_subject(
+        mut self,
+        subject: impl Into<String>,
+    ) -> Result<Self, DecisionNotificationError> {
+        Arc::make_mut(&mut self.0).display_subject = Some(bounded_non_empty(
+            "display subject",
+            subject,
+            MAX_DECISION_DISPLAY_SUBJECT_BYTES,
+        )?);
         Ok(self)
     }
 
@@ -153,6 +177,10 @@ impl DecisionNotification {
 
     pub fn message_key(&self) -> &str {
         &self.0.message_key
+    }
+
+    pub fn display_subject(&self) -> Option<&str> {
+        self.0.display_subject.as_deref()
     }
 
     pub fn message_arguments(&self) -> impl Iterator<Item = (&'static str, u64)> + '_ {
@@ -297,6 +325,32 @@ mod tests {
             Err(DecisionNotificationError::TooManyMessageArguments {
                 maximum: 8,
                 actual: 9
+            })
+        ));
+    }
+
+    #[test]
+    fn display_subject_is_bounded_optional_operator_context() {
+        let notification = notification()
+            .with_display_subject("assets/scenes/main.zscene")
+            .unwrap();
+
+        assert_eq!(
+            notification.display_subject(),
+            Some("assets/scenes/main.zscene")
+        );
+        assert!(matches!(
+            notification().with_display_subject("   "),
+            Err(DecisionNotificationError::EmptyField {
+                field: "display subject"
+            })
+        ));
+        assert!(matches!(
+            notification().with_display_subject("a".repeat(MAX_DECISION_DISPLAY_SUBJECT_BYTES + 1)),
+            Err(DecisionNotificationError::FieldTooLong {
+                field: "display subject",
+                maximum: MAX_DECISION_DISPLAY_SUBJECT_BYTES,
+                ..
             })
         ));
     }

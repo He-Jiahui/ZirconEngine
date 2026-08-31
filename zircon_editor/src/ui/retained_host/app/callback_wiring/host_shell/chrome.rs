@@ -5,14 +5,12 @@ pub(super) fn wire_host_shell_chrome_callbacks(
     host: &Rc<RefCell<RetainedEditorHost>>,
 ) {
     let weak = Rc::downgrade(host);
-    host_shell.on_host_page_pointer_clicked(
-        move |tab_index, tab_x, tab_width, point_x, point_y| {
-            if let Some(host) = weak.upgrade() {
-                host.borrow_mut()
-                    .host_page_pointer_clicked(tab_index, tab_x, tab_width, point_x, point_y);
-            }
-        },
-    );
+    host_shell.on_host_page_pointer_clicked(move |tab_index, close| {
+        if let Some(host) = weak.upgrade() {
+            host.borrow_mut()
+                .host_page_pointer_clicked(tab_index, close);
+        }
+    });
 
     let weak = Rc::downgrade(host);
     host_shell.on_document_tab_pointer_clicked(

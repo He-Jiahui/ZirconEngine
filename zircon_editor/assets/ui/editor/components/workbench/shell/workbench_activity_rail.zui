@@ -25,8 +25,8 @@ children = [{ node = "rail_scene" }, { node = "rail_cube" }, { node = "rail_grap
 component = "WorkbenchRailButton"
 control_id = "WorkbenchRailScene"
 classes = ["workbench-rail-button"]
-props = { icon = "zircon_editor_shell/activity/play.svg", label = "Scene", selected = true, checked = true, button_interaction_state = "pressed" }
-layout = { width = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
+props = { icon = "zircon_editor_shell/activity/play.svg", label = "Scene" }
+layout = { width = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "DockCommand/ActivateScene", event = "Click", route = "workbench.dock.activate_scene" }]
 
 [nodes.rail_cube]
@@ -34,7 +34,7 @@ component = "WorkbenchRailButton"
 control_id = "WorkbenchRailCube"
 classes = ["workbench-rail-button"]
 props = { icon = "zircon_editor_shell/activity/cube.svg", label = "Entities" }
-layout = { width = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
+layout = { width = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "DockCommand/ActivateHierarchy", event = "Click", route = "workbench.dock.activate_hierarchy" }]
 
 [nodes.rail_graph]
@@ -42,7 +42,7 @@ component = "WorkbenchRailButton"
 control_id = "WorkbenchRailGraph"
 classes = ["workbench-rail-button"]
 props = { icon = "zircon_editor_shell/activity/node-graph.svg", label = "Graph" }
-layout = { width = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
+layout = { width = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "DockCommand/ActivateGraph", event = "Click", route = "workbench.dock.activate_graph" }]
 
 [nodes.rail_image]
@@ -50,7 +50,7 @@ component = "WorkbenchRailButton"
 control_id = "WorkbenchRailImage"
 classes = ["workbench-rail-button"]
 props = { icon = "zircon_editor_shell/activity/image.svg", label = "Assets" }
-layout = { width = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
+layout = { width = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "DockCommand/ActivateAssets", event = "Click", route = "workbench.dock.activate_assets" }]
 
 [nodes.rail_audio]
@@ -58,7 +58,7 @@ component = "WorkbenchRailButton"
 control_id = "WorkbenchRailAudio"
 classes = ["workbench-rail-button"]
 props = { icon = "zircon_editor_shell/activity/audio.svg", label = "Audio" }
-layout = { width = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
+layout = { width = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "DockCommand/ActivateAudio", event = "Click", route = "workbench.dock.activate_audio" }]
 
 [nodes.rail_code]
@@ -66,5 +66,5 @@ component = "WorkbenchRailButton"
 control_id = "WorkbenchRailCode"
 classes = ["workbench-rail-button"]
 props = { icon = "zircon_editor_shell/activity/code.svg", label = "Code" }
-layout = { width = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
+layout = { width = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "DockCommand/ActivateCode", event = "Click", route = "workbench.dock.activate_code" }]

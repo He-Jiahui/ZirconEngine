@@ -4,8 +4,8 @@ use crate::ui::workbench::view::{
     DockPolicy, ViewDescriptor, ViewDescriptorId, ViewKind, WorkbenchSlot,
 };
 
-pub(super) fn functional_panel_view_descriptors() -> Vec<ViewDescriptor> {
-    vec![
+pub(super) fn functional_panel_view_descriptors() -> [ViewDescriptor; 10] {
+    [
         document_view(
             "editor.prefab.viewport",
             "Prefab Viewport",

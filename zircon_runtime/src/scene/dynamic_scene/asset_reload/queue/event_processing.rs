@@ -1,8 +1,8 @@
 use std::time::Instant;
 
 use crate::{
-    asset::{facade::AssetEventPoll, AssetEvent, AssetEventKind, AssetId, SceneAsset},
-    core::{framework::tasks::AsyncTaskState, JobScheduler},
+    asset::{AssetEvent, AssetEventKind, AssetId, SceneAsset, facade::AssetEventPoll},
+    core::{JobScheduler, TaskState},
     scene::dynamic_scene::DynamicSceneSpawnTask,
 };
 
@@ -13,8 +13,8 @@ use super::{
         skip::{DynamicSceneAssetReloadSkipReason, DynamicSceneAssetReloadSkippedEvent},
         task::DynamicSceneAssetReloadTask,
     },
-    locator_metadata_bytes, DeferredReload, DynamicSceneAssetReloadQueue, LatestRevisionState,
-    LATEST_REVISION_METADATA_BYTES, ORDER_ENTRY_METADATA_BYTES,
+    DeferredReload, DynamicSceneAssetReloadQueue, LATEST_REVISION_METADATA_BYTES,
+    LatestRevisionState, ORDER_ENTRY_METADATA_BYTES, locator_metadata_bytes,
 };
 
 impl DynamicSceneAssetReloadQueue {
@@ -43,6 +43,10 @@ impl DynamicSceneAssetReloadQueue {
                     report.generation_gap = Some(gap);
                     self.cancel_all_for_generation_gap(&mut report);
                     self.begin_reconciliation();
+                    break;
+                }
+                Err(crate::core::resource::ResourceEventTryRecvError::SequenceExhausted) => {
+                    report.event_sequence_exhausted = true;
                     break;
                 }
                 Err(crate::core::resource::ResourceEventTryRecvError::Disconnected) => {
@@ -201,13 +205,26 @@ impl DynamicSceneAssetReloadQueue {
         deferred: DeferredReload,
         report: &mut DynamicSceneAssetReloadDrainReport,
     ) {
-        let task = DynamicSceneSpawnTask::schedule_scene_asset_uri_with_limit(
-            scheduler,
-            self.project.clone(),
-            deferred.uri,
-            deferred.label,
-            self.limits.max_prepared_scene_bytes,
-        );
+        let task = match self.task_graph_scope.as_ref() {
+            Some(scope) => DynamicSceneSpawnTask::schedule_scene_asset_uri_with_limit_in_scope(
+                scope,
+                scheduler,
+                self.project.clone(),
+                deferred.uri,
+                deferred.label.clone(),
+                self.limits.max_prepared_scene_bytes,
+            )
+            .unwrap_or_else(|error| {
+                DynamicSceneSpawnTask::rejected(deferred.label, error.to_string())
+            }),
+            None => DynamicSceneSpawnTask::schedule_scene_asset_uri_with_limit(
+                scheduler,
+                self.project.clone(),
+                deferred.uri,
+                deferred.label,
+                self.limits.max_prepared_scene_bytes,
+            ),
+        };
         self.pending_metadata_bytes = self
             .pending_metadata_bytes
             .saturating_add(deferred.metadata_bytes);
@@ -311,7 +328,7 @@ impl DynamicSceneAssetReloadQueue {
                     previous.event().clone(),
                     latest_revision,
                     false,
-                    AsyncTaskState::Completed,
+                    TaskState::Completed,
                 ));
         }
 

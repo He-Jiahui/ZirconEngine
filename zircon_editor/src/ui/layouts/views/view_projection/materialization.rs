@@ -1,10 +1,10 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use zircon_runtime::ui::style::resolve_button_style_from_values;
-use zircon_runtime::ui::surface::{extract_ui_render_tree, UiSurface};
+use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
-    surface::{UiRenderCommand, UiRenderCommandKind},
+    surface::{UiRenderCommand, UiRenderCommandKind, UiRenderFrameCommandRef},
     tree::UiTemplateNodeMetadata,
 };
 
@@ -14,7 +14,7 @@ use super::{
     number_attribute, preferred_binding_id, resolve_commit_action_id, resolve_component_role,
     resolve_component_variant, resolve_edit_action_id, resolve_node_popup_open,
     resolve_node_value_number, resolve_node_value_percent, resolve_role, resolve_transition_in,
-    resolve_transition_kind, resolve_transition_progress, resolve_visual_assets_for_generation,
+    resolve_transition_kind, resolve_transition_progress, resolve_visual_assets,
     string_array_attribute, string_attribute, text_align_name, text_binding_for_metadata,
     ViewTemplateTextBinding, ViewTemplateTextOverrideSemantics,
 };
@@ -38,15 +38,29 @@ pub(super) struct ViewTemplateProjectionRowSignature {
     pub(super) node_id: UiNodeId,
     pub(super) frame_source_node_id: UiNodeId,
     pub(super) command_kind: UiRenderCommandKind,
+    pub(super) render_command_ref: Option<UiRenderFrameCommandRef>,
+}
+
+fn render_commands_with_refs(
+    commands: &[UiRenderCommand],
+) -> impl Iterator<Item = (&UiRenderCommand, Option<UiRenderFrameCommandRef>)> {
+    let mut next_index_by_node = HashMap::<UiNodeId, usize>::new();
+    commands.iter().map(move |command| {
+        let next_index = next_index_by_node.entry(command.node_id).or_default();
+        let node_command_index = *next_index;
+        *next_index = next_index.saturating_add(1);
+        let command_ref = u32::try_from(node_command_index)
+            .ok()
+            .map(|index| UiRenderFrameCommandRef::new(command.node_id, index));
+        (command, command_ref)
+    })
 }
 
 pub(super) fn view_template_nodes_from_surface(
     surface: &UiSurface,
     text_overrides: &BTreeMap<String, String>,
-    resource_generation: u64,
 ) -> ViewTemplateNodeMaterialization {
-    let render = extract_ui_render_tree(&surface.tree);
-    let commands = &render.list.commands;
+    let commands = &surface.render_extract.list.commands;
     let component_owned_text_control_ids = component_owned_text_control_ids(surface, commands);
     let component_owned_frame_by_control_id =
         component_owned_frame_by_control_id(surface, commands);
@@ -59,7 +73,7 @@ pub(super) fn view_template_nodes_from_surface(
     let mut frame_source_node_ids = Vec::new();
     let mut row_signatures = Vec::new();
 
-    for command in commands {
+    for (command, command_ref) in render_commands_with_refs(commands) {
         let Some(tree_node) = surface.tree.node(command.node_id) else {
             continue;
         };
@@ -108,7 +122,7 @@ pub(super) fn view_template_nodes_from_surface(
         let value_number = resolve_node_value_number(metadata);
         let value_percent = resolve_node_value_percent(metadata, component_role, value_number);
         let options = string_array_attribute(metadata, "options");
-        let visual_assets = resolve_visual_assets_for_generation(metadata, resource_generation);
+        let visual_assets = resolve_visual_assets(metadata);
         let button_style = resolve_button_style_from_values(&metadata.style_overrides);
         let popup_open = resolve_node_popup_open(metadata);
         let transition_kind = resolve_transition_kind(metadata, component_role);
@@ -131,10 +145,13 @@ pub(super) fn view_template_nodes_from_surface(
             node_id: tree_node.node_id,
             frame_source_node_id: frame_source.node_id,
             command_kind: command.kind,
+            render_command_ref: command_ref,
         });
 
         nodes.push(ViewTemplateNodeData {
             node_id: tree_node.node_path.0.clone().into(),
+            surface_node_id: Some(tree_node.node_id),
+            surface_render_command_ref: command_ref,
             control_id: control_id.into(),
             role: role.into(),
             text: text.into(),
@@ -234,14 +251,13 @@ pub(super) fn view_template_nodes_from_surface(
 pub(crate) fn view_template_projection_row_signatures(
     surface: &UiSurface,
 ) -> Vec<ViewTemplateProjectionRowSignature> {
-    let render = extract_ui_render_tree(&surface.tree);
-    let commands = &render.list.commands;
+    let commands = &surface.render_extract.list.commands;
     let component_owned_text_control_ids = component_owned_text_control_ids(surface, commands);
     let component_owned_frame_by_control_id =
         component_owned_frame_by_control_id(surface, commands);
     let mut emitted_component_owned_control_ids = BTreeSet::new();
     let mut signatures = Vec::new();
-    for command in commands {
+    for (command, command_ref) in render_commands_with_refs(commands) {
         let Some(tree_node) = surface.tree.node(command.node_id) else {
             continue;
         };
@@ -271,6 +287,7 @@ pub(crate) fn view_template_projection_row_signatures(
             node_id: tree_node.node_id,
             frame_source_node_id: frame_source.node_id,
             command_kind: command.kind,
+            render_command_ref: command_ref,
         });
     }
     signatures
@@ -294,6 +311,52 @@ fn component_owned_text_control_ids(
                 .flatten()
         })
         .collect()
+}
+
+#[cfg(test)]
+mod command_ref_tests {
+    use zircon_runtime_interface::ui::{
+        event_ui::UiNodeId,
+        layout::UiFrame,
+        surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
+    };
+
+    use super::render_commands_with_refs;
+
+    #[test]
+    fn command_refs_count_within_each_runtime_owner() {
+        let commands = [command(7), command(7), command(9)];
+
+        let refs = render_commands_with_refs(&commands)
+            .map(|(_, command_ref)| {
+                command_ref.map(|command_ref| (command_ref.node_id, command_ref.node_command_index))
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            refs,
+            vec![
+                Some((UiNodeId::new(7), 0)),
+                Some((UiNodeId::new(7), 1)),
+                Some((UiNodeId::new(9), 0)),
+            ]
+        );
+    }
+
+    fn command(node_id: u64) -> UiRenderCommand {
+        UiRenderCommand {
+            node_id: UiNodeId::new(node_id),
+            kind: UiRenderCommandKind::Quad,
+            frame: UiFrame::default(),
+            clip_frame: None,
+            z_index: 0,
+            style: UiResolvedStyle::default(),
+            text_layout: None,
+            text: None,
+            image: None,
+            opacity: 1.0,
+        }
+    }
 }
 
 fn component_owned_frame_by_control_id(
@@ -430,7 +493,8 @@ fn should_skip_duplicate_component_owned_command(
 pub(super) fn component_owns_text_paint(metadata: &UiTemplateNodeMetadata) -> bool {
     match metadata.component.as_str() {
         "IconButton" => super::icon_button_hides_label(metadata),
-        "Button" | "EditableTable" | "InputField" | "NumberField" | "Table" | "TextField" => true,
+        "Button" | "EditableTable" | "InputField" | "NumberField" | "SearchField" | "Table"
+        | "TextField" => true,
         _ => false,
     }
 }

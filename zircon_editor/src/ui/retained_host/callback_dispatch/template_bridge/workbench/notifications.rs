@@ -1,11 +1,9 @@
 use zircon_runtime_interface::ui::component::UiValue;
 
-use crate::core::notifications::ToastSeverity;
-use crate::ui::activity::{ActivityProgressView, ActivityToastView};
-use crate::ui::host::play_pending_decision::PlayPendingDecisionOption;
-
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
+use crate::core::notifications::ToastSeverity;
+use crate::ui::activity::{ActivityDecisionOption, ActivityProgressView, ActivityToastView};
 
 pub(crate) const WORKBENCH_TOAST_CONTROL_ID: &str = "WorkbenchToast";
 pub(crate) const WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID: &str = "WorkbenchNotificationCenter";
@@ -41,7 +39,7 @@ const INPUT_HOVERABLE: &str = "input_hoverable";
 const INPUT_FOCUSABLE: &str = "input_focusable";
 const CLOSE_ON_BACKDROP_CLICK: &str = "close_on_backdrop_click";
 const DISABLE_ESCAPE_KEY_DOWN: &str = "disable_escape_key_down";
-const PLAY_PENDING_DECISION_KIND: &str = "play_pending_decision";
+const DECISION_KIND: &str = "decision";
 
 #[derive(Clone, Copy, Default)]
 struct NotificationCounters {
@@ -55,7 +53,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     /// as their core snapshots do.
     pub(crate) fn sync_notification_snapshot(
         &mut self,
-        pending_decisions: &[PlayPendingDecisionOption],
+        pending_decisions: &[ActivityDecisionOption],
         toasts: &[ActivityToastView],
         progress: &[ActivityProgressView],
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
@@ -68,7 +66,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     pub(crate) fn prepare_notification_snapshot(
         &mut self,
-        pending_decisions: &[PlayPendingDecisionOption],
+        pending_decisions: &[ActivityDecisionOption],
         toasts: &[ActivityToastView],
         progress: &[ActivityProgressView],
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
@@ -82,7 +80,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(changed)
     }
 
-    pub(crate) fn is_pending_play_decision_option(
+    pub(crate) fn is_pending_activity_decision_option(
         &self,
         control_id: &str,
         option_id: &str,
@@ -91,7 +89,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             && self
                 .control_string_array(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, NOTIFICATIONS)
                 .iter()
-                .any(|entry| entry_id(entry) == option_id && is_pending_play_decision_entry(entry))
+                .any(|entry| entry_id(entry) == option_id && is_pending_decision_entry(entry))
     }
 
     fn sync_toast_queue(
@@ -229,7 +227,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     fn sync_notification_projection(
         &mut self,
-        pending_decisions: &[PlayPendingDecisionOption],
+        pending_decisions: &[ActivityDecisionOption],
         toasts: &[ActivityToastView],
         progress: &[ActivityProgressView],
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
@@ -242,7 +240,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .saturating_add(toasts.len());
         let entries = pending_decisions
             .iter()
-            .map(pending_play_decision_history_entry)
+            .map(activity_decision_history_entry)
             .chain(progress.iter().map(activity_progress_history_entry))
             .chain(toasts.iter().map(activity_toast_history_entry))
             .take(MAX_NOTIFICATION_HISTORY)
@@ -251,7 +249,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let unread_count = entries.iter().filter(|entry| entry_unread(entry)).count() as i64;
         let selected_id = pending_decisions
             .first()
-            .map(|option| option.selection_id().to_string())
+            .map(|option| option.selection_id().as_str().to_string())
             .or_else(|| {
                 progress
                     .first()
@@ -358,33 +356,20 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     }
 
     fn notification_counters(&self) -> NotificationCounters {
-        self.template_surface
-            .surface
-            .tree
-            .nodes
-            .values()
-            .find_map(|node| {
-                node.template_metadata
-                    .as_ref()
-                    .filter(|metadata| {
-                        metadata.control_id.as_deref()
-                            == Some(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID)
-                    })
-                    .map(|metadata| NotificationCounters {
-                        generation: non_negative_integer(
-                            metadata.attributes.get(NOTIFICATION_GENERATION),
-                        ),
-                        overflow_count: non_negative_integer(
-                            metadata.attributes.get(OVERFLOW_COUNT),
-                        ),
-                    })
-            })
-            .unwrap_or_default()
+        NotificationCounters {
+            generation: self
+                .control_integer(
+                    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+                    NOTIFICATION_GENERATION,
+                )
+                .unwrap_or(0)
+                .max(0),
+            overflow_count: self
+                .control_integer(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, OVERFLOW_COUNT)
+                .unwrap_or(0)
+                .max(0),
+        }
     }
-}
-
-fn non_negative_integer(value: Option<&toml::Value>) -> i64 {
-    value.and_then(toml::Value::as_integer).unwrap_or(0).max(0)
 }
 
 fn next_notification_generation(generation: i64, history_changed: bool) -> i64 {
@@ -399,17 +384,17 @@ fn string_array_value(values: Vec<String>) -> UiValue {
     UiValue::Array(values.into_iter().map(UiValue::String).collect())
 }
 
-fn pending_play_decision_history_entry(option: &PlayPendingDecisionOption) -> String {
+fn activity_decision_history_entry(option: &ActivityDecisionOption) -> String {
     format!(
-        "{}|title={}|message={}|severity=info|unread=true|kind={PLAY_PENDING_DECISION_KIND}",
-        option.selection_id(),
+        "{}|title={}|message={}|severity=info|unread=true|kind={DECISION_KIND}",
+        option.selection_id().as_str(),
         option.title(),
         option.message(),
     )
 }
 
-fn is_pending_play_decision_entry(entry: &str) -> bool {
-    entry_kind(entry) == Some(PLAY_PENDING_DECISION_KIND)
+fn is_pending_decision_entry(entry: &str) -> bool {
+    entry_kind(entry) == Some(DECISION_KIND)
 }
 
 fn entry_kind(entry: &str) -> Option<&str> {

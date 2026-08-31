@@ -1,11 +1,13 @@
 use super::*;
 
+mod last_good;
 mod shader_redirect;
 
 #[test]
 fn render_product_pbr_streamer_records_missing_material_fallback_runtime() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let missing_material_id = ResourceId::from_stable_label("res://materials/not-registered");
@@ -14,6 +16,7 @@ fn render_product_pbr_streamer_records_missing_material_fallback_runtime() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -41,7 +44,8 @@ fn render_product_pbr_streamer_records_missing_material_fallback_runtime() {
 #[test]
 fn render_product_streamer_material_report_exposes_missing_shader_and_texture_fallbacks() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/streamer-missing.zmaterial");
@@ -58,6 +62,7 @@ fn render_product_streamer_material_report_exposes_missing_shader_and_texture_fa
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -98,7 +103,8 @@ fn render_product_streamer_material_report_exposes_missing_shader_and_texture_fa
 #[test]
 fn render_product_streamer_reports_wrong_kind_shader_and_texture_refs() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/wrong-kind.zmaterial");
@@ -140,6 +146,7 @@ fn render_product_streamer_reports_wrong_kind_shader_and_texture_refs() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -167,7 +174,8 @@ fn render_product_streamer_reports_wrong_kind_shader_and_texture_refs() {
 #[test]
 fn render_product_streamer_stores_missing_runtime_wgsl_before_returning_error() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/missing-wgsl.zmaterial");
@@ -195,6 +203,7 @@ fn render_product_streamer_stores_missing_runtime_wgsl_before_returning_error() 
 
     let error = streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -220,7 +229,8 @@ fn render_product_streamer_stores_missing_runtime_wgsl_before_returning_error() 
 #[test]
 fn render_product_streamer_repeated_blocking_material_ensure_remains_blocking() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/repeated-missing-wgsl.zmaterial");
@@ -249,6 +259,7 @@ fn render_product_streamer_repeated_blocking_material_ensure_remains_blocking() 
     for _ in 0..2 {
         let error = streamer
             .ensure_material(
+                &backend,
                 &device,
                 &queue,
                 &texture_layout,
@@ -262,7 +273,8 @@ fn render_product_streamer_repeated_blocking_material_ensure_remains_blocking() 
 #[test]
 fn render_product_streamer_material_report_includes_shader_readiness_diagnostics() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/shader-readiness.zmaterial");
@@ -300,6 +312,7 @@ fn render_product_streamer_material_report_includes_shader_readiness_diagnostics
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -336,7 +349,8 @@ fn render_product_streamer_material_report_includes_shader_readiness_diagnostics
 #[test]
 fn render_product_streamer_reports_shader_material_contract_diagnostics() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/material-contract.zmaterial");
@@ -392,6 +406,7 @@ fn render_product_streamer_reports_shader_material_contract_diagnostics() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -452,7 +467,8 @@ fn render_product_streamer_reports_shader_material_contract_diagnostics() {
 #[test]
 fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/material-layout-abi.zmaterial");
@@ -503,6 +519,7 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -537,16 +554,19 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
             && path == "pipeline_layout.group3.binding1"
             && diagnostic.contains("StorageBuffer")
     )));
-    assert!(report
-        .fallback_usages
-        .iter()
-        .any(|usage| matches!(&usage.reason, RenderMaterialFallbackReason::Validation)));
+    assert!(
+        report
+            .fallback_usages
+            .iter()
+            .any(|usage| matches!(&usage.reason, RenderMaterialFallbackReason::Validation))
+    );
 }
 
 #[test]
 fn render_product_streamer_reports_unregistered_custom_shading_model() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/custom-shading-model.zmaterial");
@@ -568,6 +588,7 @@ fn render_product_streamer_reports_unregistered_custom_shading_model() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -596,16 +617,19 @@ fn render_product_streamer_reports_unregistered_custom_shading_model() {
         RenderMaterialValidationError::UnregisteredShadingModel { path, token }
             if path == "overrides.lighting_model" && token == "custom:subsurface"
     )));
-    assert!(report
-        .fallback_usages
-        .iter()
-        .any(|usage| matches!(&usage.reason, RenderMaterialFallbackReason::Validation)));
+    assert!(
+        report
+            .fallback_usages
+            .iter()
+            .any(|usage| matches!(&usage.reason, RenderMaterialFallbackReason::Validation))
+    );
 }
 
 #[test]
 fn render_product_streamer_dependency_readiness_change_invalidates_material_cache() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let texture_uri = locator("res://textures/cache-change.png");
@@ -634,17 +658,20 @@ fn render_product_streamer_dependency_readiness_change_invalidates_material_cach
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
             ResourceHandle::<MaterialMarker>::new(material_id),
         )
         .expect("initial material prepare");
-    assert!(streamer
-        .material_readiness_report(&material_id)
-        .expect("initial report")
-        .validation_errors
-        .is_empty());
+    assert!(
+        streamer
+            .material_readiness_report(&material_id)
+            .expect("initial report")
+            .validation_errors
+            .is_empty()
+    );
 
     asset_manager
         .assets::<TextureAsset>()
@@ -655,6 +682,7 @@ fn render_product_streamer_dependency_readiness_change_invalidates_material_cach
         .expect("texture update");
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,

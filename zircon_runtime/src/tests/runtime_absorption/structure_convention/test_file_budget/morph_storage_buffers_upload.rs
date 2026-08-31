@@ -55,13 +55,15 @@ fn runtime_15_morph_storage_buffers_upload_is_wired() {
         "GPUScene morph upload owner writes buffers and rebuilds bind groups",
         &gpu_scene_morph,
         &[
-            "upload_morph_buffers",
+            "prepare_morph_buffers",
             "GpuSceneMorphUploadReport",
-            "write_full_pod_buffer",
+            "GpuScenePreparedMorphUpload",
+            "push_changed_pod_slice",
             "zircon-gpu-scene-morph-deltas",
             "zircon-gpu-scene-morph-weights",
             "rebuild_scene_bind_group(device)",
             "render_gpu_scene_uploads_morph_storage_buffers",
+            "render_gpu_scene_dropped_morph_preparation_keeps_committed_shadow_for_retry",
         ],
     );
     assert_contains_all(

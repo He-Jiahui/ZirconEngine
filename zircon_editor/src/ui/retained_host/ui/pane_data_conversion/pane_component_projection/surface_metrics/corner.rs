@@ -9,6 +9,7 @@ pub(in super::super) fn projected_corner_radius(
     attributes
         .get("corner_radius")
         .or_else(|| attributes.get("radius"))
+        .or_else(|| attributes.get("panel_radius"))
         .and_then(value_as_f64)
         .map(|value| value as f32)
         .unwrap_or_else(|| match component_role {
@@ -26,4 +27,20 @@ pub(in super::super) fn projected_corner_radius(
             "drawer" => 0.0,
             _ => 0.0,
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use toml::Value;
+
+    #[test]
+    fn panel_radius_projects_into_the_generic_host_corner_radius() {
+        let attributes = BTreeMap::from([("panel_radius".to_string(), Value::Float(12.0))]);
+
+        assert_eq!(
+            projected_corner_radius(&attributes, "notification-center"),
+            12.0
+        );
+    }
 }

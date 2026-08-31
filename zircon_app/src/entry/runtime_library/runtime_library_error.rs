@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum RuntimeLibraryErrorKind {
     General,
+    CapabilityUnavailable,
     ProtocolViolation,
 }
 
@@ -24,6 +25,13 @@ impl RuntimeLibraryError {
     pub(crate) fn protocol_violation(message: impl Into<String>) -> Self {
         Self {
             kind: RuntimeLibraryErrorKind::ProtocolViolation,
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn capability_unavailable(message: impl Into<String>) -> Self {
+        Self {
+            kind: RuntimeLibraryErrorKind::CapabilityUnavailable,
             message: message.into(),
         }
     }
@@ -71,5 +79,12 @@ mod tests {
 
         assert_eq!(error.kind(), RuntimeLibraryErrorKind::ProtocolViolation);
         assert_eq!(error.to_string(), "foreign output exceeded its budget");
+    }
+
+    #[test]
+    fn unavailable_capabilities_retain_a_typed_error_kind() {
+        let error = RuntimeLibraryError::capability_unavailable("no qualified surface backend");
+
+        assert_eq!(error.kind(), RuntimeLibraryErrorKind::CapabilityUnavailable);
     }
 }

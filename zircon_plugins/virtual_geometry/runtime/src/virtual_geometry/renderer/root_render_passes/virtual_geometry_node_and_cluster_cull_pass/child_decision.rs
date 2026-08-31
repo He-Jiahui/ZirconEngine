@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::virtual_geometry::types::{
     VirtualGeometryNodeAndClusterCullTraversalChildSource,
     VirtualGeometryNodeAndClusterCullTraversalOp, VirtualGeometryNodeAndClusterCullTraversalRecord,
@@ -8,6 +10,10 @@ use zircon_runtime::core::framework::render::{
     ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::view_matrix;
+
+#[cfg(test)]
+#[path = "child_decision/allocation_tests.rs"]
+mod allocation_tests;
 
 pub(super) struct VirtualGeometryNodeAndClusterCullChildDecisionOutput {
     pub(super) traversal_records: Vec<VirtualGeometryNodeAndClusterCullTraversalRecord>,
@@ -46,7 +52,9 @@ pub(super) fn build_node_and_cluster_cull_child_decision_output(
     first_traversal_index: u32,
 ) -> VirtualGeometryNodeAndClusterCullChildDecisionOutput {
     let mut decision_records = Vec::new();
+    let mut store_cluster_keys = BTreeSet::new();
     let mut requested_page_ids = Vec::new();
+    let mut requested_page_id_set = BTreeSet::new();
     let mut traversal_index = first_traversal_index;
 
     for visit_record in child_visit_records.iter().filter(|record| {
@@ -97,6 +105,7 @@ pub(super) fn build_node_and_cluster_cull_child_decision_output(
                 NodeAndClusterCullChildClusterDecision::Store => {
                     push_node_and_cluster_cull_store_cluster_record(
                         &mut decision_records,
+                        &mut store_cluster_keys,
                         visit_record,
                         cluster_array_index,
                         clusters,
@@ -111,12 +120,14 @@ pub(super) fn build_node_and_cluster_cull_child_decision_output(
                 } => {
                     append_node_and_cluster_cull_requested_page_id(
                         &mut requested_page_ids,
+                        &mut requested_page_id_set,
                         page_id,
                         visit_record.page_budget,
                     );
                     if let Some(fallback_cluster_array_index) = fallback_cluster_array_index {
                         push_node_and_cluster_cull_store_cluster_record(
                             &mut decision_records,
+                            &mut store_cluster_keys,
                             visit_record,
                             fallback_cluster_array_index,
                             clusters,
@@ -208,6 +219,7 @@ fn node_and_cluster_cull_effective_pages(
 
 fn push_node_and_cluster_cull_store_cluster_record(
     decision_records: &mut Vec<VirtualGeometryNodeAndClusterCullTraversalRecord>,
+    store_cluster_keys: &mut BTreeSet<(u32, u64, u32)>,
     visit_record: &VirtualGeometryNodeAndClusterCullTraversalRecord,
     cluster_array_index: u32,
     clusters: &[RenderVirtualGeometryCluster],
@@ -215,15 +227,15 @@ fn push_node_and_cluster_cull_store_cluster_record(
     visit_store_cluster_count: &mut u32,
     traversal_index: &mut u32,
 ) {
-    if decision_records.iter().any(|record| {
-        record.op == VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster
-            && record.instance_index == visit_record.instance_index
-            && record.entity == visit_record.entity
-            && record.cluster_array_index == cluster_array_index
-    }) {
+    if *visit_store_cluster_count >= visit_record.cluster_budget {
         return;
     }
-    if *visit_store_cluster_count >= visit_record.cluster_budget {
+    if !insert_store_cluster_key(
+        store_cluster_keys,
+        visit_record.instance_index,
+        visit_record.entity,
+        cluster_array_index,
+    ) {
         return;
     }
 
@@ -247,6 +259,15 @@ fn push_node_and_cluster_cull_store_cluster_record(
     ));
     *visit_store_cluster_count = (*visit_store_cluster_count).saturating_add(1);
     *traversal_index = (*traversal_index).saturating_add(1);
+}
+
+fn insert_store_cluster_key(
+    store_cluster_keys: &mut BTreeSet<(u32, u64, u32)>,
+    instance_index: u32,
+    entity: u64,
+    cluster_array_index: u32,
+) -> bool {
+    store_cluster_keys.insert((instance_index, entity, cluster_array_index))
 }
 
 fn node_and_cluster_cull_store_cluster_record(
@@ -336,10 +357,11 @@ fn node_and_cluster_cull_resident_parent_cluster_array_index(
 
 fn append_node_and_cluster_cull_requested_page_id(
     requested_page_ids: &mut Vec<u32>,
+    requested_page_id_set: &mut BTreeSet<u32>,
     page_id: u32,
     page_budget: u32,
 ) {
-    if requested_page_ids.len() >= page_budget as usize || requested_page_ids.contains(&page_id) {
+    if requested_page_ids.len() >= page_budget as usize || !requested_page_id_set.insert(page_id) {
         return;
     }
 

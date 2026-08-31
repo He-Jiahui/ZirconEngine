@@ -77,7 +77,7 @@ fn runtime_local_config_error(key: &str) -> RendererDataDocumentError {
         name: "local-config-keys".to_string(),
         stages: vec![RenderPassStage::Opaque3d],
         features: vec![
-            RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh).with_local_config(key, "lit")
+            RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh).with_local_config(key, "lit"),
         ],
     };
 

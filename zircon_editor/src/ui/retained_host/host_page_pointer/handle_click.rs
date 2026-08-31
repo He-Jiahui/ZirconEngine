@@ -1,54 +1,35 @@
-use zircon_runtime_interface::ui::{
-    dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
-};
-
 use super::host_page_pointer_bridge::HostPagePointerBridge;
 use super::host_page_pointer_dispatch::HostPagePointerDispatch;
 use super::host_page_pointer_route::HostPagePointerRoute;
-use super::HostPagePointerError;
 
 impl HostPagePointerBridge {
     pub(crate) fn handle_click(
-        &mut self,
+        &self,
         item_index: usize,
-        tab_x: f32,
-        tab_width: f32,
-        point: UiPoint,
-    ) -> Result<HostPagePointerDispatch, HostPagePointerError> {
-        let Some(callback_frame) = self.update_measured_frame(item_index, tab_x, tab_width)? else {
-            return Ok(HostPagePointerDispatch {
-                route: self.route_for_item(item_index),
-            });
+        close: bool,
+    ) -> Result<HostPagePointerDispatch, String> {
+        let item =
+            self.layout.items.get(item_index).ok_or_else(|| {
+                format!("Host page index {item_index} is outside the receipt layout")
+            })?;
+        let route = if close {
+            if item.close_instance_id.is_none() {
+                return Err(format!("Host page index {item_index} is not closeable"));
+            }
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.host_page.native_close_receipt_count",
+                1
+            );
+            HostPagePointerRoute::Close { item_index }
+        } else {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.host_page.native_activate_receipt_count",
+                1
+            );
+            HostPagePointerRoute::Activate { item_index }
         };
-        let point = UiPoint::new(callback_frame.x + point.x, callback_frame.y + point.y);
-        let route = self
-            .dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?
-            .filter(|route| route_targets_item(route, item_index))
-            .or_else(|| self.route_for_item(item_index));
-        Ok(HostPagePointerDispatch { route })
-    }
-
-    pub(super) fn route_for_item(&self, item_index: usize) -> Option<HostPagePointerRoute> {
-        self.layout
-            .items
-            .get(item_index)
-            .map(|item| HostPagePointerRoute::Tab {
-                item_index,
-                page_id: item.page_id.clone(),
-            })
-    }
-}
-
-fn route_targets_item(route: &HostPagePointerRoute, item_index: usize) -> bool {
-    match route {
-        HostPagePointerRoute::Tab {
-            item_index: route_index,
-            ..
-        }
-        | HostPagePointerRoute::Close {
-            item_index: route_index,
-            ..
-        } => *route_index == item_index,
-        HostPagePointerRoute::Overflow { .. } => false,
+        Ok(HostPagePointerDispatch { route: Some(route) })
     }
 }

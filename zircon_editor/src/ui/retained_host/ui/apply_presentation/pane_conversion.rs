@@ -6,6 +6,8 @@ pub(super) fn to_host_contract_pane(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
 ) -> host_contract::PaneData {
     let pane_kind = data.kind.to_string();
     let pane_id = data.id.to_string();
@@ -104,7 +106,17 @@ pub(super) fn to_host_contract_pane(
     };
     let console = if has_console_payload {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_console");
-        to_host_contract_console_pane(&data, pane_size, component_showcase_runtime)
+        component_showcase_runtime.map_or_else(
+            || to_host_contract_console_pane(&data, pane_size, None),
+            |runtime| {
+                pane_data_conversion::to_host_contract_console_pane_from_host_pane_with_runtime_and_cache(
+                    &data,
+                    pane_size,
+                    runtime,
+                    console_projection_cache,
+                )
+            },
+        )
     } else {
         host_contract::ConsolePaneData::default()
     };
@@ -116,7 +128,11 @@ pub(super) fn to_host_contract_pane(
     };
     let module_plugins = if has_module_plugins_payload {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_module_plugins");
-        to_host_contract_module_plugins_pane(&data, pane_size)
+        pane_data_conversion::to_host_contract_module_plugins_pane_from_host_pane_with_cache(
+            &data,
+            pane_size,
+            module_plugins_projection_cache,
+        )
     } else {
         host_contract::ModulePluginsPaneData::default()
     };

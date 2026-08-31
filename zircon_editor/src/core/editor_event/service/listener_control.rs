@@ -1,9 +1,8 @@
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::core::editor_event::{
-    listener_deliveries, listener_descriptors, listener_status, EditorEventListenerControlRequest,
-    EditorEventListenerControlResponse, EditorEventListenerDelivery,
-    EditorEventListenerDeliveryPage,
+    listener_descriptors, listener_status, EditorEventListenerControlRequest,
+    EditorEventListenerControlResponse, SharedEditorEventRecord,
 };
 
 use super::EditorEventService;
@@ -93,28 +92,23 @@ impl EditorEventService {
                             page.records.last().map(|record| record.delivery_cursor);
                         let deliveries = page
                             .records
-                            .into_iter()
+                            .iter()
                             .map(|record| {
-                                EditorEventListenerDelivery::from_shared(
+                                listener_delivery_json(
                                     &listener_id,
                                     record.delivery_cursor,
                                     record.payload.as_ref(),
                                 )
                             })
                             .collect::<Vec<_>>();
-                        let page = EditorEventListenerDeliveryPage {
-                            deliveries,
-                            next_delivery_cursor,
-                            has_more: page.has_more,
-                        };
                         EditorEventListenerControlResponse::success(json!({
                             "listener_id": listener_id,
-                        "after_delivery_cursor": after_delivery_cursor,
+                            "after_delivery_cursor": after_delivery_cursor,
                             "max_deliveries": max_deliveries,
-                            "deliveries": listener_deliveries(&page.deliveries),
-                        "next_delivery_cursor": page.next_delivery_cursor,
+                            "deliveries": deliveries,
+                            "next_delivery_cursor": next_delivery_cursor,
                             "has_more": page.has_more,
-                                }))
+                        }))
                     }
                     Err(error) => EditorEventListenerControlResponse::failure(error),
                 }
@@ -139,10 +133,30 @@ impl EditorEventService {
     }
 }
 
+fn listener_delivery_json(
+    listener_id: &str,
+    delivery_cursor: u64,
+    payload: &SharedEditorEventRecord,
+) -> Value {
+    let record = payload.record();
+    json!({
+        "listener_id": listener_id,
+        "delivery_cursor": delivery_cursor,
+        "event_id": record.event_id.0,
+        "sequence": record.sequence.0,
+        "source": record.source,
+        "operation_id": record.operation_id,
+        "operation_display_name": record.operation_display_name,
+        "operation_arguments": record.operation_arguments,
+        "operation_group": record.operation_group,
+        "result": record.result,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
-    fn delivery_page_dto_projection_stays_outside_the_listener_lock_scope() {
+    fn delivery_page_json_projection_stays_outside_the_listener_lock_scope() {
         let source = include_str!("listener_control.rs");
         let page_body = source
             .split("EditorEventListenerControlRequest::QueryDeliveriesPage")
@@ -152,8 +166,8 @@ mod tests {
             .find("};\n                let page")
             .expect("listener handle must be captured before the page result");
         let projection = page_body
-            .find("EditorEventListenerDelivery::from_shared")
-            .expect("delivery DTO projection should remain explicit");
+            .find("listener_delivery_json")
+            .expect("delivery JSON projection should remain explicit");
         assert!(projection > lock_scope_end);
     }
 }

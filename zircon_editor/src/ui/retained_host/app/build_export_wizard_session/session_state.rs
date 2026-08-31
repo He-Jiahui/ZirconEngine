@@ -3,8 +3,9 @@ mod lookup;
 mod polling;
 
 use std::cell::RefCell;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
+use crate::core::context::ToolSchedulerService;
 use crate::core::jobs::EditorJobSystem;
 use crate::ui::host::ExportWizardPanelSession;
 
@@ -14,16 +15,30 @@ use super::super::build_export_projection::cache::BuildExportProjectionCache;
 // refresh from host state instead of rebuilding a synthetic view model each frame.
 pub(in crate::ui::retained_host::app) struct DesktopExportWizardSessions {
     pub(super) jobs: EditorJobSystem,
-    pub(super) sessions: BTreeMap<String, ExportWizardPanelSession>,
+    pub(super) tools: ToolSchedulerService,
+    pub(super) sessions: HashMap<String, ExportWizardPanelSession>,
     projection_cache: RefCell<BuildExportProjectionCache>,
     projection_overlay_generation: u64,
 }
 
 impl DesktopExportWizardSessions {
     pub(in crate::ui::retained_host::app) fn new(jobs: EditorJobSystem) -> Self {
+        Self::new_with_tools(
+            jobs,
+            ToolSchedulerService::new(
+                crate::core::editor_message::SharedEditorMessageBus::default(),
+            ),
+        )
+    }
+
+    pub(in crate::ui::retained_host::app) fn new_with_tools(
+        jobs: EditorJobSystem,
+        tools: ToolSchedulerService,
+    ) -> Self {
         Self {
             jobs,
-            sessions: BTreeMap::new(),
+            tools,
+            sessions: HashMap::new(),
             projection_cache: RefCell::new(BuildExportProjectionCache::default()),
             projection_overlay_generation: 0,
         }
@@ -49,3 +64,7 @@ impl DesktopExportWizardSessions {
         self.projection_cache.get_mut().invalidate_overlay();
     }
 }
+
+#[cfg(test)]
+#[path = "session_state/hash_index_tests.rs"]
+mod hash_index_tests;

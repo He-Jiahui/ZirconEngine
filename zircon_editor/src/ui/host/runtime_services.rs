@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
-use zircon_runtime::asset::{asset_manager_handle, AssetManager};
+use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use zircon_runtime::asset::{asset_manager_handle, project_asset_manager_handle, AssetManager};
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 use zircon_runtime::core::framework::foundation::ConfigManager;
-use zircon_runtime::core::manager::{config_manager_handle, resolve_manager_service};
+use zircon_runtime::core::manager::{
+    config_manager_handle, resolve_manager_service, ManagerServiceHandle,
+};
 use zircon_runtime::core::{CoreError, CoreHandle, CoreWeak};
-use zircon_runtime::runtime_diagnostics::collect_runtime_diagnostics;
-use zircon_runtime::scene::{create_level, LevelMetadata, Scene};
+use zircon_runtime::scene::{LevelMetadata, Scene};
 use zircon_runtime::script::{
     HostHandle, PluginHostDriver, VmPluginManager, PLUGIN_HOST_DRIVER_NAME, VM_PLUGIN_MANAGER_NAME,
 };
@@ -92,16 +94,14 @@ impl EditorHostRuntimeServices {
         &self,
         scene: Scene,
     ) -> Result<AuthoringWorldSeed, EditorError> {
-        Ok(AuthoringWorldSeed::from(create_level(
-            &self.core()?,
-            scene,
-            LevelMetadata::default(),
-        )?))
+        Ok(AuthoringWorldSeed::from(
+            zircon_runtime::scene::prepare_level(&self.core()?, scene, LevelMetadata::default())?,
+        ))
     }
 
     pub(super) fn runtime_diagnostics(&self) -> RuntimeDiagnosticsSnapshot {
         self.core()
-            .map(|core| collect_runtime_diagnostics(&core))
+            .map(|core| core.runtime_diagnostics_snapshot())
             .unwrap_or_default()
     }
 
@@ -122,9 +122,7 @@ impl EditorHostRuntimeServices {
         instance_id: ViewInstanceId,
         reason: SaveReason,
     ) -> Result<ForegroundDocumentSaveJob, EditorError> {
-        let manager = self
-            .core()?
-            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
+        let manager = self.editor_manager()?;
         Ok(ForegroundDocumentSaveJob::new(
             Arc::downgrade(&manager),
             instance_id,
@@ -132,10 +130,46 @@ impl EditorHostRuntimeServices {
         ))
     }
 
+    pub(super) fn editor_manager(&self) -> Result<Arc<EditorManager>, EditorError> {
+        Ok(self
+            .core()?
+            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?)
+    }
+
     fn core(&self) -> Result<CoreHandle, EditorError> {
         self.core
             .upgrade()
             .ok_or_else(|| CoreError::RuntimeUnavailable.into())
+    }
+}
+
+/// Host-owned access to the one runtime project-asset service used by the editor asset manager.
+///
+/// This keeps the generic resolver and runtime lifetime inside the host service layer rather than
+/// allowing the catalog manager to acquire unrelated runtime services.
+#[derive(Clone)]
+pub(super) struct EditorProjectAssetRuntimeAccess {
+    core: CoreWeak,
+    handle: ManagerServiceHandle<ProjectAssetManager>,
+}
+
+impl EditorProjectAssetRuntimeAccess {
+    pub(super) fn new(core: &CoreHandle) -> Result<Self, CoreError> {
+        Ok(Self {
+            core: core.downgrade(),
+            handle: project_asset_manager_handle(core)?,
+        })
+    }
+
+    pub(super) fn project_asset_manager(&self) -> Result<Arc<ProjectAssetManager>, CoreError> {
+        let core = self.core()?;
+        resolve_manager_service(&core, self.handle.clone())
+    }
+
+    fn core(&self) -> Result<CoreHandle, CoreError> {
+        self.core
+            .upgrade()
+            .ok_or_else(|| CoreError::ServiceUnavailable("CoreRuntime".to_owned()))
     }
 }
 

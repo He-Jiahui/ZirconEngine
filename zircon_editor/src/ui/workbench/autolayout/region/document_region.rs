@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -10,13 +10,13 @@ use super::super::constraints::{
     default_constraints_for_content, default_region_constraints, merge_constraints,
 };
 use super::super::region_state::RegionState;
-use super::super::{PaneConstraints, ShellRegionId};
+use super::super::{LogicalRegionPreferredExtents, PaneConstraints, ShellRegionId};
 
 pub(crate) fn build_document_region_state(
     model: &WorkbenchViewModel,
     layout: &WorkbenchLayout,
     descriptors: &HashMap<&str, &ViewDescriptor>,
-    transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
+    transient_region_preferred: LogicalRegionPreferredExtents<'_>,
 ) -> RegionState {
     let tab = active_document_tab(model);
     let descriptor_constraints = tab
@@ -32,20 +32,20 @@ pub(crate) fn build_document_region_state(
             }
         })
         .unwrap_or_else(|| default_region_constraints(ShellRegionId::Document));
-    let layout_override = layout
-        .region_overrides
-        .get(&ShellRegionId::Document)
+    let active_window = layout.active_activity_window();
+    let layout_override = active_window
+        .and_then(|window| window.region_overrides.get(&ShellRegionId::Document))
         .copied();
-    let view_override = tab.and_then(|tab| layout.view_overrides.get(&tab.instance_id).copied());
+    let view_override = tab.and_then(|tab| {
+        active_window.and_then(|window| window.view_overrides.get(&tab.instance_id).copied())
+    });
     let mut constraints = merge_constraints(
         default_region_constraints(ShellRegionId::Document),
         layout_override,
         descriptor_constraints,
         view_override,
     );
-    if let Some(preferred) =
-        transient_region_preferred.and_then(|map| map.get(&ShellRegionId::Document).copied())
-    {
+    if let Some(preferred) = transient_region_preferred.get(ShellRegionId::Document) {
         constraints.width.preferred = preferred;
     }
     RegionState {

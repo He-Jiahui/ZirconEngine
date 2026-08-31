@@ -100,13 +100,7 @@ class Frameworks01PhysicsSettingsErrorBoundaryTests(unittest.TestCase):
                 framework_core_error_consumers.append(
                     path.relative_to(REPO_ROOT).as_posix()
                 )
-        self.assertEqual(
-            [
-                "zircon_runtime/src/core/framework/foundation.rs",
-                "zircon_runtime/src/core/framework/scene/mod.rs",
-            ],
-            framework_core_error_consumers,
-        )
+        self.assertEqual([], framework_core_error_consumers)
 
 
 if __name__ == "__main__":

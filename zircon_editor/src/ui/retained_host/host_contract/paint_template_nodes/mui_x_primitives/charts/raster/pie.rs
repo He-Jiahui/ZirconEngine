@@ -21,21 +21,23 @@ impl ChartRaster {
             pie_slice_colors_from_host(current_host_palette());
         for y in clamp_pixel_range(center.1 - radius, center.1 + radius, self.height) {
             for x in clamp_pixel_range(center.0 - radius, center.0 + radius, self.width) {
-                let dx = x as f32 + 0.5 - center.0;
-                let dy = y as f32 + 0.5 - center.1;
-                let distance_sq = dx * dx + dy * dy;
-                if distance_sq > radius_sq || distance_sq < hole_sq {
-                    continue;
-                }
-                let progress = (normalized_angle(dy.atan2(dx)) + PI * 0.5).rem_euclid(TAU) / TAU;
-                let color = if progress < 0.42 {
-                    accent_slice
-                } else if progress < 0.76 {
-                    success_slice
-                } else {
-                    warning_slice
-                };
-                self.set_pixel(x, y, color);
+                self.sample_pixel(x, y, |px, py| {
+                    let dx = px - center.0;
+                    let dy = py - center.1;
+                    let distance_sq = dx * dx + dy * dy;
+                    if distance_sq > radius_sq || distance_sq < hole_sq {
+                        return None;
+                    }
+                    let progress =
+                        (normalized_angle(dy.atan2(dx)) + PI * 0.5).rem_euclid(TAU) / TAU;
+                    Some(if progress < 0.42 {
+                        accent_slice
+                    } else if progress < 0.76 {
+                        success_slice
+                    } else {
+                        warning_slice
+                    })
+                });
             }
         }
     }

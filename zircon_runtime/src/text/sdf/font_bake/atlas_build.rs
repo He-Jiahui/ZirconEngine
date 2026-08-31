@@ -63,10 +63,12 @@ impl SdfFontBakeCache {
             .map(|scheduler| scheduler.diagnostics(frame_index))
             .unwrap_or_default();
         if !self.async_generation.has_pending_work() {
-            if let Some(bake) = self
-                .prepared_atlas
-                .reuse(atlas_size, slots, reuse_scheduler_report)
-            {
+            if let Some(bake) = self.prepared_atlas.reuse(
+                atlas_size,
+                slots,
+                reuse_scheduler_report,
+                self.font_asset_faces.report(),
+            ) {
                 return bake;
             }
         }
@@ -140,6 +142,7 @@ impl SdfFontBakeCache {
             .report()
             .delta_since(self.reported_offline_source);
         let baked_glyph_cache_report = self.report_baked_glyph_cache();
+        let font_asset_cache_report = self.font_asset_faces.report();
         self.reported_source_contexts = self.source_contexts.report();
         self.reported_dynamic_generation = self.dynamic_generation_totals;
         self.reported_offline_source = self.offline_source.report();
@@ -152,6 +155,9 @@ impl SdfFontBakeCache {
             resident_font_count,
             loaded_font_count: resident_font_count.saturating_sub(resident_font_count_before),
             generation_failure_count: generation_failures.len(),
+            resident_font_asset_error_count: font_asset_cache_report.resident_error_count,
+            resident_font_asset_no_registered_faces_count: font_asset_cache_report
+                .resident_no_registered_faces_count,
             r8_byte_len: page_byte_len(&pages, 1),
             rgba_byte_len: page_byte_len(&pages, 4),
             offline_glyph_count,

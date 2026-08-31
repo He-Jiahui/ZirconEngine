@@ -4,6 +4,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/hit.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/route_hit.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/action_id.rs
@@ -23,6 +24,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/hit.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/route_hit.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/action_id.rs
@@ -44,6 +46,7 @@ tests:
   - surface hit-test popup-row menu/option/hit/action ownership scan
   - surface hit-test template-node surface-frame builder dispatch/node/surface ownership scan
   - surface hit-test template-node hit/model ownership scan
+  - tools/tests/test_editor_pane_route_borrowed_hit_performance_contract.py
   - M5.S4 source scan confirming no viewport toolbar surface-hit-test owner remains
   - cargo test -p zircon_editor --lib retained_viewport_toolbar_pointer --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-m5s3-focused-0623 --message-format short --color never -- --test-threads=1
   - cargo test -p zircon_editor --test integration_contracts --features integration-contracts --offline --jobs 1 --target-dir E:\cargo-targets\zircon-editor-m5s4-integration-0623 --message-format short --color never -- --test-threads=1
@@ -61,16 +64,17 @@ Viewport toolbar control dispatch no longer lives in this module. M5.S4 moved it
 `surface_hit_test/template_node.rs` owns the public template-node pointer hit entry points:
 
 - `hit_test_pane_template_node(...)` for pane body template nodes.
+- `hit_test_pane_template_node_borrowed(...)` for generation-scoped pane routes that must not allocate an owned callback payload.
 - `hit_test_workbench_window_template_node(...)` for componentized Workbench window nodes.
 - `build_pane_template_surface_frame(...)` for constructing a hit-testable runtime `UiSurfaceFrame` from projected pane template nodes.
 
-`template_node/model.rs` owns `TemplateNodePointerHit`, which carries control/action/binding ids, component role/family, text value, edit/commit action ids, and the final host-space hit frame consumed by native pointer dispatch. `template_node/hit.rs` owns ordinary surface-frame hit traversal after popup-row priority has had the first chance to consume or block a pointer hit.
+`template_node/model.rs` owns the callback-facing `TemplateNodePointerHit` plus borrowed `TemplateNodePointerRouteHit` and move-only views. `template_node/hit.rs` owns the single ordinary/popup geometry selection path and returns generation-borrowed pane hits; `template_node/route_hit.rs` is the only pane activation conversion into the owned callback payload.
 
 ## Subtree Ownership
 
 `template_node/pane_nodes.rs` maps pane kinds to their projected `TemplatePaneNodeData` collections. This keeps the pane-kind registry separate from hit testing and surface-frame construction.
 
-`template_node/popup_rows.rs` owns popup row priority for open template controls. It checks menu rows and option rows before ordinary surface-frame hits, while the `popup_rows/` children own the details: `menu.rs` synthesizes `workbench_menu_item` hits and blocks inside menu popup bodies, `option.rs` synthesizes `workbench_option` hits and blocks inside option popup bodies, `hit.rs` owns the popup-row hit DTO plus `TemplateNodePointerHit` assembly, and `action_id.rs` normalizes menu row action ids.
+`template_node/popup_rows.rs` owns popup row priority for open template controls. It checks menu rows and option rows before ordinary surface-frame hits, while the `popup_rows/` children own the details: `menu.rs` and `option.rs` return one borrowed popup target or a blocking result, `hit.rs` projects that target into borrowed route/move data or the existing owned Workbench payload, and `action_id.rs` normalizes menu row action ids only at an owned activation boundary.
 
 `template_node/surface_frame_builder.rs` is now a structural entry for temporary runtime `UiSurfaceFrame` construction. `surface_frame_builder/dispatch.rs` owns dispatchable-node filtering and component metadata classification, `surface_frame_builder/surface.rs` owns synthetic root creation, dispatchable-row traversal, runtime surface rebuild, and surface-frame return, and `surface_frame_builder/node.rs` owns per-template-node `UiTreeNode` assembly, input state flags, template metadata, and clip-frame preservation.
 

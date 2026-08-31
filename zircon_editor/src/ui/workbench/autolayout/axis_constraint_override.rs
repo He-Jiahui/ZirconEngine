@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{AxisConstraint, StretchMode};
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct AxisConstraintOverride {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min: Option<f32>,

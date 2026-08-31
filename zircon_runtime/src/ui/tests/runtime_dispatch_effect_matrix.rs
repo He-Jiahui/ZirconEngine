@@ -2,7 +2,8 @@ use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     component::{UiComponentEvent, UiValue},
     dispatch::{
-        UiClipboardRequest, UiClipboardRequestKind, UiComponentEmissionPolicy, UiDispatchEffect,
+        UiClipboardRequest, UiClipboardRequestKind, UiClipboardTransferId,
+        UiClipboardTransferIntent, UiComponentEmissionPolicy, UiDispatchEffect,
         UiDispatchHostRequestKind, UiDispatchReply, UiDragDropEffectKind, UiDragSessionId,
         UiFocusEffectReason, UiInputDispatchResult, UiInputEvent, UiInputEventMetadata,
         UiInputMethodRequest, UiInputMethodRequestKind, UiInputMethodSurroundingText,
@@ -143,6 +144,9 @@ fn dispatch_effect_matrix_applies_route_service_and_component_variants() {
             },
             UiDispatchEffect::RequestClipboard {
                 request: UiClipboardRequest {
+                    transfer_id: UiClipboardTransferId::issue(),
+                    intent: UiClipboardTransferIntent::Copy,
+                    expected_edit_revision: 0,
                     kind: UiClipboardRequestKind::WriteText,
                     owner: node(2),
                     text: Some("copied".to_string()),
@@ -309,6 +313,9 @@ fn dispatch_effect_matrix_rejected_effects_keep_indices_and_reasons() {
         (
             UiDispatchEffect::RequestClipboard {
                 request: UiClipboardRequest {
+                    transfer_id: UiClipboardTransferId::issue(),
+                    intent: UiClipboardTransferIntent::Paste,
+                    expected_edit_revision: 0,
                     kind: UiClipboardRequestKind::ReadText,
                     owner: node(2),
                     text: Some("invalid".to_string()),

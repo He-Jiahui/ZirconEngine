@@ -1,5 +1,9 @@
 use super::*;
 
+use std::io::ErrorKind;
+
+use zircon_runtime::core::resource::io::atomic_write_new;
+
 impl EditorUiHost {
     pub fn convert_ui_asset_editor_selected_node_to_reference(
         &self,
@@ -48,47 +52,67 @@ impl EditorUiHost {
                     .to_string(),
             )
         })?;
-        let (widget_asset, target_asset_id, target_source_path) = {
-            let mut sessions = self.lock_ui_asset_sessions();
-            let entry = sessions.get_mut(instance_id).ok_or_else(|| {
-                EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
-            })?;
-            let Some(draft) = entry.session.selected_promote_widget_draft() else {
-                return Ok(false);
-            };
-            let target = resolve_external_widget_target(
-                &project,
-                &draft.asset_id,
-                &draft.component_name,
-                &draft.document_id,
-            )?;
-            let Some(widget_document) = entry
-                .session
-                .promote_selected_component_to_external_widget(
-                    &target.asset_id,
+        for _ in 0..PROMOTION_TARGET_ALLOCATION_RETRIES {
+            let (widget_asset, target_asset_id, target_source_path) = {
+                let mut sessions = self.lock_ui_asset_sessions();
+                let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+                    EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+                })?;
+                let Some(draft) = entry.session.selected_promote_widget_draft() else {
+                    return Ok(false);
+                };
+                let target = resolve_external_widget_target(
+                    &project,
+                    &draft.asset_id,
                     &draft.component_name,
-                    &target.document_id,
-                )
-                .map_err(|error| EditorError::UiAsset(error.to_string()))?
-            else {
-                return Ok(false);
+                    &draft.document_id,
+                )?;
+                let Some(widget_document) = entry
+                    .session
+                    .promote_selected_component_to_external_widget(
+                        &target.asset_id,
+                        &draft.component_name,
+                        &target.document_id,
+                    )
+                    .map_err(|error| EditorError::UiAsset(error.to_string()))?
+                else {
+                    return Ok(false);
+                };
+                (widget_document, target.asset_id, target.source_path)
             };
-            (widget_document, target.asset_id, target.source_path)
-        };
-        if let Some(parent) = target_source_path.parent() {
-            fs::create_dir_all(parent).map_err(|error| EditorError::UiAsset(error.to_string()))?;
+            let widget_source =
+                match crate::ui::asset_editor::serialize_authoring_document_as_v2(&widget_asset) {
+                    Ok(source) => source,
+                    Err(error) => {
+                        self.rollback_unpublished_ui_asset_promotion(instance_id)?;
+                        return Err(EditorError::UiAsset(error.to_string()));
+                    }
+                };
+            match atomic_write_new(&target_source_path, widget_source.as_bytes()) {
+                Ok(()) => {
+                    let normalized = normalize_ui_asset_asset_id(&target_asset_id).to_string();
+                    let _ = self.asset_manager()?.import_asset(&normalized);
+                    self.refresh_ui_asset_workspace_for_changes(vec![normalized])?;
+                    self.hydrate_ui_asset_editor_imports(instance_id)?;
+                    self.sync_ui_asset_editor_instance(instance_id)?;
+                    return Ok(true);
+                }
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+                    self.rollback_unpublished_ui_asset_promotion(instance_id)?;
+                }
+                Err(source) => {
+                    self.rollback_unpublished_ui_asset_promotion(instance_id)?;
+                    return Err(EditorError::UiAssetSaveIo {
+                        stage: UiAssetSaveStage::AtomicCommit,
+                        source_path: target_source_path,
+                        source,
+                    });
+                }
+            }
         }
-        let widget_source =
-            crate::ui::asset_editor::serialize_authoring_document_as_v2(&widget_asset)
-                .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-        fs::write(&target_source_path, widget_source)
-            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-        let normalized = normalize_ui_asset_asset_id(&target_asset_id).to_string();
-        let _ = self.asset_manager()?.import_asset(&normalized);
-        self.refresh_ui_asset_workspace_for_changes(vec![normalized])?;
-        self.hydrate_ui_asset_editor_imports(instance_id)?;
-        self.sync_ui_asset_editor_instance(instance_id)?;
-        Ok(true)
+        Err(EditorError::UiAsset(
+            "could not allocate a collision-free external widget asset path".to_string(),
+        ))
     }
 
     pub fn promote_ui_asset_editor_local_theme_to_external_style_asset(
@@ -102,47 +126,67 @@ impl EditorUiHost {
                     .to_string(),
             )
         })?;
-        let (style_asset, target_asset_id, target_source_path) = {
-            let mut sessions = self.lock_ui_asset_sessions();
-            let entry = sessions.get_mut(instance_id).ok_or_else(|| {
-                EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
-            })?;
-            let Some(draft) = entry.session.selected_promote_theme_draft() else {
-                return Ok(false);
+        for _ in 0..PROMOTION_TARGET_ALLOCATION_RETRIES {
+            let (style_asset, target_asset_id, target_source_path) = {
+                let mut sessions = self.lock_ui_asset_sessions();
+                let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+                    EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+                })?;
+                let Some(draft) = entry.session.selected_promote_theme_draft() else {
+                    return Ok(false);
+                };
+                let target = resolve_external_style_target(
+                    &project,
+                    &draft.asset_id,
+                    &draft.document_id,
+                    &draft.display_name,
+                )?;
+                let Some(style_document) = entry
+                    .session
+                    .promote_local_theme_to_external_style_asset(
+                        &target.asset_id,
+                        &target.document_id,
+                        &target.display_name,
+                    )
+                    .map_err(|error| EditorError::UiAsset(error.to_string()))?
+                else {
+                    return Ok(false);
+                };
+                (style_document, target.asset_id, target.source_path)
             };
-            let target = resolve_external_style_target(
-                &project,
-                &draft.asset_id,
-                &draft.document_id,
-                &draft.display_name,
-            )?;
-            let Some(style_document) = entry
-                .session
-                .promote_local_theme_to_external_style_asset(
-                    &target.asset_id,
-                    &target.document_id,
-                    &target.display_name,
-                )
-                .map_err(|error| EditorError::UiAsset(error.to_string()))?
-            else {
-                return Ok(false);
-            };
-            (style_document, target.asset_id, target.source_path)
-        };
-        if let Some(parent) = target_source_path.parent() {
-            fs::create_dir_all(parent).map_err(|error| EditorError::UiAsset(error.to_string()))?;
+            let style_source =
+                match crate::ui::asset_editor::serialize_authoring_document_as_v2(&style_asset) {
+                    Ok(source) => source,
+                    Err(error) => {
+                        self.rollback_unpublished_ui_asset_promotion(instance_id)?;
+                        return Err(EditorError::UiAsset(error.to_string()));
+                    }
+                };
+            match atomic_write_new(&target_source_path, style_source.as_bytes()) {
+                Ok(()) => {
+                    let normalized = normalize_ui_asset_asset_id(&target_asset_id).to_string();
+                    let _ = self.asset_manager()?.import_asset(&normalized);
+                    self.refresh_ui_asset_workspace_for_changes(vec![normalized])?;
+                    self.hydrate_ui_asset_editor_imports(instance_id)?;
+                    self.sync_ui_asset_editor_instance(instance_id)?;
+                    return Ok(true);
+                }
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+                    self.rollback_unpublished_ui_asset_promotion(instance_id)?;
+                }
+                Err(source) => {
+                    self.rollback_unpublished_ui_asset_promotion(instance_id)?;
+                    return Err(EditorError::UiAssetSaveIo {
+                        stage: UiAssetSaveStage::AtomicCommit,
+                        source_path: target_source_path,
+                        source,
+                    });
+                }
+            }
         }
-        let style_source =
-            crate::ui::asset_editor::serialize_authoring_document_as_v2(&style_asset)
-                .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-        fs::write(&target_source_path, style_source)
-            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-        let normalized = normalize_ui_asset_asset_id(&target_asset_id).to_string();
-        let _ = self.asset_manager()?.import_asset(&normalized);
-        self.refresh_ui_asset_workspace_for_changes(vec![normalized])?;
-        self.hydrate_ui_asset_editor_imports(instance_id)?;
-        self.sync_ui_asset_editor_instance(instance_id)?;
-        Ok(true)
+        Err(EditorError::UiAsset(
+            "could not allocate a collision-free external style asset path".to_string(),
+        ))
     }
 
     pub fn move_ui_asset_editor_selected_node_up(
@@ -271,4 +315,21 @@ impl EditorUiHost {
         self.sync_ui_asset_editor_instance(instance_id)?;
         Ok(changed)
     }
+
+    fn rollback_unpublished_ui_asset_promotion(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<(), EditorError> {
+        let mut sessions = self.lock_ui_asset_sessions();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let _ = entry
+            .session
+            .undo_replay()
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        Ok(())
+    }
 }
+
+const PROMOTION_TARGET_ALLOCATION_RETRIES: usize = 8;

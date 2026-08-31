@@ -254,7 +254,7 @@ Editor command/transaction
 | ID | 当前差距 | 重构完成定义 |
 |---|---|---|
 | ENV-P1-029 | capture固定每帧2 face，与GPU timing和frame pressure无关 | scheduler按GPU timestamp、frame budget、visibility/importance和quality动态选择slice，保持最大延迟上界 |
-| ENV-P1-030 | recording/submission失败只返回无限`Retry` | retry有次数、原因、指数backoff、cancel和terminal failure；保留last-good且不得永久占用job slot |
+| ENV-P1-030 | Partial：scheduler已区分recording/submission，按stage执行3次上限与1/2帧wrap-safe backoff，terminal同key抑制并保留last-good；runtime/framework已统一六态status snapshot；managed WGPU fault product证据仍缺 | 补真实record/submit fault injection、公开status query、cancel/supersede交互、PNG/RenderDoc与timing/power证据后关闭 |
 | ENV-P1-031 | capture/downsample/IBL每slice创建uniform buffer与bind group | 使用persistent ring/dynamic offsets和generation-keyed bind-group cache，steady update无per-slice heap/GPU对象创建 |
 | ENV-P1-032 | 固定双份source+PMREM+SH资源无byte budget | 资源进入environment residency pool，按resolution/format/job count计算预算并对压力给出可解释降级 |
 | ENV-P1-033 | 第一次render调用隐式初始化资源并推进内部frame counter | runtime以外部frame/device/view generation驱动，初始化、camera cut、pause和多viewport不会伪造时间 |
@@ -440,6 +440,6 @@ Unreal最适合作为最终工程规模、capture budget、资源缓存和画质
 
 ## 13. 状态
 
-本文是review与重构计划，不是实现完成声明。Runtime09F1的10项P0继续由原报告唯一计数；其中旧`CaptureCloud`重复证据已废止，但对应物理天空P0未关闭。Runtime96新增1项P0、48项P1、12项P2和48个资格门。实施必须按M96-1至M96-9推进，先恢复workspace contract和真实authoring可达性，再迁移资源生命周期、物理天空、GPU assignment和产品证据。
+本文是review与重构计划，不是实现完成声明。Runtime09F1的10项P0继续由原报告唯一计数；其中旧`CaptureCloud`重复证据已废止，但对应物理天空P0未关闭。Runtime96新增1项P0、48项P1、12项P2和48个资格门。ENV-P1-030现为源码实现、六态status硬切与独立production-scheduler行为验证完成，managed fault/status product验证未完成的`Partial`，不能据此前移M96。实施必须按M96-1至M96-9推进，先恢复workspace contract和真实authoring可达性，再迁移资源生命周期、物理天空、GPU assignment和产品证据。
 
 `source_recheck_required: true`在以下条件全部满足前不得改为false：131文件语料fingerprint重算一致或差异已审计；当前20个相关working-tree修改完成归属和合并复查；reflection-probes workspace package有真实type-check证据；Runtime09F1父P0与本文资格门均有failing/passing evidence；Editor、真实GPU、fault、scale和跨引擎基准形成带revision、hardware与capture provenance的验证记录。

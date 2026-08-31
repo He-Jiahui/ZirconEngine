@@ -2,11 +2,12 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
-use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
+use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorTypographyTokens};
 
 use super::labels::asset_state_label;
 use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
 use super::name_lines::{split_display_name_lines, RuntimeNameLineSplit};
+use super::selection_text::selected_asset;
 
 const SUMMARY_NAME_CONTROL_ID: &str = "AssetBrowserContentPreviewName";
 const SUMMARY_NAME_CONTINUATION_CONTROL_ID: &str = "AssetBrowserContentPreviewNameContinuation";
@@ -116,14 +117,6 @@ fn is_content_preview_summary_node(control_id: &str) -> bool {
     )
 }
 
-fn selected_asset(snapshot: &AssetWorkspaceSnapshot) -> Option<&AssetItemSnapshot> {
-    let selected_uuid = snapshot.selected_asset_uuid.as_deref();
-    snapshot
-        .visible_assets
-        .iter()
-        .find(|asset| selected_uuid == Some(asset.uuid.as_str()) || asset.selected)
-}
-
 fn summary_type_label(asset: &AssetItemSnapshot) -> String {
     asset.asset_type.display_name.clone()
 }
@@ -179,13 +172,17 @@ fn summary_file_like_display_title(display_name: &str, extension: &str) -> Strin
     )
 }
 
+fn summary_badge_corner_radius() -> f32 {
+    EditorControlTokens::workbench_dense().small_radius
+}
+
 fn summary_type_badge_node() -> ViewTemplateNodeData {
     ViewTemplateNodeData {
         node_id: "asset_browser.content_preview.type_badge".into(),
         control_id: SUMMARY_TYPE_BADGE_CONTROL_ID.into(),
         role: "Panel".into(),
         surface_variant: "asset-type-badge".into(),
-        corner_radius: 3.0,
+        corner_radius: summary_badge_corner_radius(),
         frame: ViewTemplateFrameData::default(),
         ..ViewTemplateNodeData::default()
     }
@@ -242,7 +239,8 @@ mod tests {
                 selected: false,
                 resource_state: None,
                 resource_revision: Some(42),
-            }],
+            }]
+            .into(),
             ..AssetWorkspaceSnapshot::default()
         };
         let mut nodes = Vec::new();
@@ -253,6 +251,7 @@ mod tests {
             node.control_id == SUMMARY_TYPE_BADGE_CONTROL_ID
                 && node.role == "Panel"
                 && node.surface_variant == "asset-type-badge"
+                && node.corner_radius == summary_badge_corner_radius()
         }));
         assert!(nodes.iter().any(|node| {
             node.control_id == SUMMARY_TYPE_CONTROL_ID
@@ -292,7 +291,8 @@ mod tests {
                 selected: false,
                 resource_state: None,
                 resource_revision: Some(42),
-            }],
+            }]
+            .into(),
             ..AssetWorkspaceSnapshot::default()
         };
         let mut nodes = vec![ViewTemplateNodeData {
@@ -358,7 +358,8 @@ mod tests {
                 selected: false,
                 resource_state: None,
                 resource_revision: Some(42),
-            }],
+            }]
+            .into(),
             ..AssetWorkspaceSnapshot::default()
         };
         let mut nodes = vec![ViewTemplateNodeData {
@@ -404,7 +405,8 @@ mod tests {
                 selected: false,
                 resource_state: None,
                 resource_revision: Some(42),
-            }],
+            }]
+            .into(),
             ..AssetWorkspaceSnapshot::default()
         };
         let mut nodes = vec![ViewTemplateNodeData {

@@ -1,4 +1,6 @@
-use super::{PendingEditDecisionPrompt, PlayModeKind, PluginBridgeActivationReport};
+use super::{
+    PendingEditDecisionPrompt, PlayCleanupFailure, PlayModeKind, PluginBridgeActivationReport,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PlayTransitionReport {
@@ -20,6 +22,9 @@ pub enum PlayTransitionCause {
     BuildFailed,
     Crashed {
         exit_code: Option<i32>,
+    },
+    CleanupFailed {
+        failure: PlayCleanupFailure,
     },
 }
 
@@ -47,6 +52,22 @@ impl PlayTransitionReport {
             backend_diagnostics,
             backend_attachable: false,
             cause: PlayTransitionCause::Unchanged,
+            pending_edit_prompt: None,
+        }
+    }
+
+    pub(super) fn cleanup_failed(
+        changed: bool,
+        backend_diagnostics: Vec<String>,
+        failure: PlayCleanupFailure,
+    ) -> Self {
+        Self {
+            changed,
+            mode: PlayModeKind::CleanupFailed,
+            activation: PluginBridgeActivationReport::default(),
+            backend_diagnostics,
+            backend_attachable: false,
+            cause: PlayTransitionCause::CleanupFailed { failure },
             pending_edit_prompt: None,
         }
     }

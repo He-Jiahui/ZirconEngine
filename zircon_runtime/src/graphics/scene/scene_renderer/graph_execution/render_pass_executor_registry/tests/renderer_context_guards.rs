@@ -1,10 +1,13 @@
 use super::*;
+use crate::core::framework::render::UiRenderSubmission;
 
 #[test]
 fn screen_space_ui_executor_uses_graph_attachment_ops_for_viewport_output() {
     let backend = RenderBackend::new_offscreen().unwrap();
-    let frame = ViewportRenderFrame::from_extract(test_extract(), UVec2::new(16, 16))
-        .with_ui(Some(test_ui_extract()));
+    let frame =
+        ViewportRenderFrame::from_extract(test_extract(), UVec2::new(16, 16)).with_ui(Some(
+            UiRenderSubmission::single(std::sync::Arc::new(test_ui_extract())),
+        ));
     let mut encoder = backend
         .device
         .create_command_encoder(&wgpu::CommandEncoderDescriptor {

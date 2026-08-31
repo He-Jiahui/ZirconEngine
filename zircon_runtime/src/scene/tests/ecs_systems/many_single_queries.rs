@@ -172,7 +172,7 @@ fn system_query_single_helpers_report_zero_one_many_matches() {
     type PlayerHealth = QueryState<(EntityId, &'static Health), With<Player>>;
     let mut system = SystemState::<PlayerHealth>::new(&mut world).unwrap();
 
-    let empty = system.run(&mut world, |query| {
+    let empty = system.run(&mut world, |mut query| {
         query.single().map(|(entity, health)| (entity, health.0))
     });
     assert_eq!(empty, Err(QuerySingleError::NoEntities));
@@ -180,7 +180,7 @@ fn system_query_single_helpers_report_zero_one_many_matches() {
     let player = world
         .spawn((Name("Player".to_string()), Health(10), Player))
         .unwrap();
-    let one = system.run(&mut world, |query| {
+    let one = system.run(&mut world, |mut query| {
         query.single().map(|(entity, health)| (entity, health.0))
     });
     assert_eq!(one, Ok((player, 10)));
@@ -202,7 +202,7 @@ fn system_query_single_helpers_report_zero_one_many_matches() {
     world
         .spawn((Name("Ally".to_string()), Health(7), Player))
         .unwrap();
-    let many = system.run(&mut world, |query| {
+    let many = system.run(&mut world, |mut query| {
         query.single().map(|(entity, health)| (entity, health.0))
     });
     assert_eq!(many, Err(QuerySingleError::MultipleEntities));

@@ -1,12 +1,18 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
-use super::image_cache::{
-    image_cache_admission_plan, image_payload_layout, remove_cached_image,
-    ImageCacheAdmissionAction, UI_IMAGE_TEXTURE_FORMAT,
-};
+use super::color_space::UI_IMAGE_TEXTURE_FORMAT;
+use super::image_cache::{image_payload_layout, remove_cached_image, ImageCacheAdmissionAction};
 use super::WgpuUiExternalImage;
+
+mod allocation_ledger;
+
+pub(crate) use allocation_ledger::WgpuUiImageInFlightPins;
+use allocation_ledger::{WgpuUiImageAllocationLedger, WgpuUiImageRegistryPin};
+pub(super) use allocation_ledger::{
+    WgpuUiImageAllocationSet, WgpuUiImageAllocationStats, WgpuUiImageSurfacePin,
+};
 
 const MAX_SHARED_UI_IMAGE_ENTRIES: usize = 256;
 const MAX_SHARED_UI_IMAGE_BYTES: u64 = 64 * 1024 * 1024;
@@ -20,17 +26,20 @@ const MAX_SHARED_UI_IMAGE_BYTES: u64 = 64 * 1024 * 1024;
 pub struct WgpuUiSharedImageRegistry {
     state: Mutex<SharedImageRegistryState>,
     resident_bytes_snapshot: AtomicU64,
+    allocation_ledger: Arc<WgpuUiImageAllocationLedger>,
 }
 
 #[derive(Default)]
 struct SharedImageRegistryState {
     resources: HashMap<String, BTreeMap<u64, SharedImageEntry>>,
+    entry_count: usize,
     resident_bytes: u64,
     touch_epoch: u64,
 }
 
 struct SharedImageEntry {
     image: WgpuUiExternalImage,
+    allocation: WgpuUiImageRegistryPin,
     byte_size: u64,
     last_touched_epoch: u64,
 }
@@ -49,6 +58,10 @@ impl WgpuUiSharedImageRegistry {
         self.resident_bytes_snapshot.load(Ordering::Relaxed)
     }
 
+    pub(super) fn allocation_stats(&self) -> WgpuUiImageAllocationStats {
+        self.allocation_ledger.stats()
+    }
+
     pub(super) fn resolve(
         &self,
         resource_key: &str,
@@ -65,7 +78,11 @@ impl WgpuUiSharedImageRegistry {
             return None;
         }
         entry.last_touched_epoch = touch_epoch;
-        Some(entry.image.clone())
+        Some(
+            entry
+                .image
+                .with_shared_allocation(entry.allocation.surface_pin()),
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -103,21 +120,35 @@ impl WgpuUiSharedImageRegistry {
             })
         {
             entry.last_touched_epoch = touch_epoch;
-            return SharedImagePrepareResult::Cached(entry.image.clone());
+            return SharedImagePrepareResult::Cached(
+                entry
+                    .image
+                    .with_shared_allocation(entry.allocation.surface_pin()),
+            );
         }
 
         let required_bytes = layout.expected_len as u64;
-        let replaced_bytes = state
+        let replaced = state
             .resources
             .get(resource_key)
             .and_then(|generations| generations.get(&generation))
-            .map_or(0, |entry| entry.byte_size);
+            .map(|entry| {
+                (
+                    entry.byte_size,
+                    entry.allocation.is_exclusively_registry_owned(),
+                )
+            });
+        let replaced_bytes = replaced.map_or(0, |(byte_size, _)| byte_size);
         let is_new_entry = replaced_bytes == 0;
-        let entry_count_after =
-            shared_entry_count(&state.resources).saturating_add(usize::from(is_new_entry));
-        let resident_bytes_after = state
-            .resident_bytes
-            .saturating_sub(replaced_bytes)
+        let entry_count_after = state.entry_count.saturating_add(usize::from(is_new_entry));
+        let unique_allocation_bytes_after = self
+            .allocation_ledger
+            .unique_allocation_bytes()
+            .saturating_sub(
+                replaced
+                    .filter(|(_, exclusively_registry_owned)| *exclusively_registry_owned)
+                    .map_or(0, |(byte_size, _)| byte_size),
+            )
             .saturating_add(required_bytes);
         let action = shared_image_admission_plan(
             state.resources.iter().flat_map(|(key, generations)| {
@@ -127,12 +158,13 @@ impl WgpuUiSharedImageRegistry {
                         *cached_generation,
                         entry.last_touched_epoch,
                         entry.byte_size,
+                        entry.allocation.is_exclusively_registry_owned(),
                         key == resource_key && *cached_generation == generation,
                     )
                 })
             }),
             entry_count_after,
-            resident_bytes_after,
+            unique_allocation_bytes_after,
             required_bytes,
         );
         let ImageCacheAdmissionAction::Admit { evict_keys } = action else {
@@ -143,22 +175,31 @@ impl WgpuUiSharedImageRegistry {
         }
         remove_shared_image(&mut state, resource_key, generation);
 
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-ui-shared-image"),
-            size: wgpu::Extent3d {
-                width,
-                height,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: UI_IMAGE_TEXTURE_FORMAT,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
+        let Some(allocation) =
+            self.allocation_ledger
+                .try_allocate(required_bytes, MAX_SHARED_UI_IMAGE_BYTES, || {
+                    device.create_texture(&wgpu::TextureDescriptor {
+                        label: Some("zircon-ui-shared-image"),
+                        size: wgpu::Extent3d {
+                            width,
+                            height,
+                            depth_or_array_layers: 1,
+                        },
+                        mip_level_count: 1,
+                        sample_count: 1,
+                        dimension: wgpu::TextureDimension::D2,
+                        format: UI_IMAGE_TEXTURE_FORMAT,
+                        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                        view_formats: &[],
+                    })
+                })
+        else {
+            self.resident_bytes_snapshot
+                .store(state.resident_bytes, Ordering::Relaxed);
+            return SharedImagePrepareResult::Rejected;
+        };
         queue.write_texture(
-            texture.as_image_copy(),
+            allocation.texture().as_image_copy(),
             rgba,
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
@@ -171,8 +212,14 @@ impl WgpuUiSharedImageRegistry {
                 depth_or_array_layers: 1,
             },
         );
-        let image = WgpuUiExternalImage::new_premultiplied(texture, width, height, generation);
-        state
+        let image = WgpuUiExternalImage::new_premultiplied(
+            allocation.texture().clone(),
+            width,
+            height,
+            generation,
+        );
+        let surface_pin = allocation.surface_pin();
+        let replaced_entry = state
             .resources
             .entry(resource_key.to_owned())
             .or_default()
@@ -180,15 +227,23 @@ impl WgpuUiSharedImageRegistry {
                 generation,
                 SharedImageEntry {
                     image: image.clone(),
+                    allocation,
                     byte_size: required_bytes,
                     last_touched_epoch: touch_epoch,
                 },
             );
+        if let Some(replaced_entry) = replaced_entry {
+            state.resident_bytes = state
+                .resident_bytes
+                .saturating_sub(replaced_entry.byte_size);
+        } else {
+            state.entry_count = state.entry_count.saturating_add(1);
+        }
         state.resident_bytes = state.resident_bytes.saturating_add(required_bytes);
         self.resident_bytes_snapshot
             .store(state.resident_bytes, Ordering::Relaxed);
         SharedImagePrepareResult::Uploaded {
-            image,
+            image: image.with_shared_allocation(surface_pin),
             upload_bytes: required_bytes,
         }
     }
@@ -200,33 +255,64 @@ impl WgpuUiSharedImageRegistry {
     }
 }
 
-fn shared_entry_count(resources: &HashMap<String, BTreeMap<u64, SharedImageEntry>>) -> usize {
-    resources.values().map(BTreeMap::len).sum()
-}
-
 fn remove_shared_image(state: &mut SharedImageRegistryState, resource_key: &str, generation: u64) {
     if let Some(entry) = remove_cached_image(&mut state.resources, resource_key, generation) {
+        state.entry_count = state.entry_count.saturating_sub(1);
         state.resident_bytes = state.resident_bytes.saturating_sub(entry.byte_size);
     }
 }
 
 fn shared_image_admission_plan<'a>(
-    entries: impl Iterator<Item = (&'a str, u64, u64, u64, bool)>,
+    entries: impl Iterator<Item = (&'a str, u64, u64, u64, bool, bool)>,
     entry_count_after: usize,
-    resident_bytes_after: u64,
+    unique_allocation_bytes_after: u64,
     required_bytes: u64,
 ) -> ImageCacheAdmissionAction {
-    image_cache_admission_plan(
-        entries.map(|(key, generation, touched, bytes, target)| {
-            (key, generation, touched, bytes, false, target)
-        }),
-        entry_count_after,
-        resident_bytes_after,
-        MAX_SHARED_UI_IMAGE_ENTRIES,
-        MAX_SHARED_UI_IMAGE_BYTES,
-        required_bytes,
-    )
-    .0
+    if entry_count_after <= MAX_SHARED_UI_IMAGE_ENTRIES
+        && unique_allocation_bytes_after <= MAX_SHARED_UI_IMAGE_BYTES
+    {
+        return ImageCacheAdmissionAction::Admit {
+            evict_keys: Vec::new(),
+        };
+    }
+    if MAX_SHARED_UI_IMAGE_ENTRIES == 0 || required_bytes > MAX_SHARED_UI_IMAGE_BYTES {
+        return ImageCacheAdmissionAction::Reject {
+            entry_saturated: false,
+        };
+    }
+    let mut candidates = entries
+        .filter_map(
+            |(key, generation, touched, byte_size, immediately_releasable, target)| {
+                (!target).then_some((touched, key, generation, byte_size, immediately_releasable))
+            },
+        )
+        .collect::<Vec<_>>();
+    candidates
+        .sort_unstable_by_key(|(touched, key, generation, _, _)| (*touched, *key, *generation));
+    let mut retained_entries = entry_count_after;
+    let mut retained_allocation_bytes = unique_allocation_bytes_after;
+    let mut evict_keys = Vec::new();
+    for (_, key, generation, byte_size, immediately_releasable) in candidates {
+        if retained_entries <= MAX_SHARED_UI_IMAGE_ENTRIES
+            && retained_allocation_bytes <= MAX_SHARED_UI_IMAGE_BYTES
+        {
+            break;
+        }
+        retained_entries = retained_entries.saturating_sub(1);
+        if immediately_releasable {
+            retained_allocation_bytes = retained_allocation_bytes.saturating_sub(byte_size);
+        }
+        evict_keys.push((key.to_owned(), generation));
+    }
+    if retained_entries <= MAX_SHARED_UI_IMAGE_ENTRIES
+        && retained_allocation_bytes <= MAX_SHARED_UI_IMAGE_BYTES
+    {
+        ImageCacheAdmissionAction::Admit { evict_keys }
+    } else {
+        ImageCacheAdmissionAction::Reject {
+            entry_saturated: retained_entries > MAX_SHARED_UI_IMAGE_ENTRIES,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -236,8 +322,8 @@ mod tests {
     #[test]
     fn shared_registry_evicts_the_least_recent_cross_window_texture() {
         let entries = [
-            ("older", 1, 3, 32 * 1024 * 1024, false),
-            ("newer", 1, 8, 32 * 1024 * 1024, false),
+            ("older", 1, 3, 32 * 1024 * 1024, true, false),
+            ("newer", 1, 8, 32 * 1024 * 1024, true, false),
         ];
 
         let action =
@@ -253,10 +339,43 @@ mod tests {
 
     #[test]
     fn shared_registry_never_evicts_the_resource_being_replaced() {
-        let entries = [("target", 7, 1, 60 * 1024 * 1024, true)];
+        let entries = [("target", 7, 1, 60 * 1024 * 1024, true, true)];
 
         let action =
             shared_image_admission_plan(entries.into_iter(), 1, 65 * 1024 * 1024, 65 * 1024 * 1024);
+
+        assert_eq!(
+            action,
+            ImageCacheAdmissionAction::Reject {
+                entry_saturated: false,
+            }
+        );
+    }
+
+    #[test]
+    fn shared_registry_counts_pinned_evictions_as_live_device_bytes() {
+        let entries = [
+            ("pinned", 1, 1, 32 * 1024 * 1024, false, false),
+            ("releasable", 1, 2, 32 * 1024 * 1024, true, false),
+        ];
+
+        let action =
+            shared_image_admission_plan(entries.into_iter(), 3, 80 * 1024 * 1024, 16 * 1024 * 1024);
+
+        assert_eq!(
+            action,
+            ImageCacheAdmissionAction::Admit {
+                evict_keys: vec![("pinned".to_owned(), 1), ("releasable".to_owned(), 1),],
+            }
+        );
+    }
+
+    #[test]
+    fn shared_registry_rejects_when_only_surface_pinned_bytes_remain() {
+        let entries = [("pinned", 1, 1, 64 * 1024 * 1024, false, false)];
+
+        let action =
+            shared_image_admission_plan(entries.into_iter(), 2, 65 * 1024 * 1024, 1024 * 1024);
 
         assert_eq!(
             action,

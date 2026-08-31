@@ -5,11 +5,27 @@ use zircon_runtime::core::math::Real;
 use super::compiled_condition_expression::CompiledConditionProgram;
 use super::instruction::ConditionInstruction;
 
+pub(in crate::state_machine) trait ParameterValueTable {
+    fn value(&self, index: usize) -> Option<&AnimationParameterValue>;
+}
+
+impl ParameterValueTable for [Option<AnimationParameterValue>] {
+    fn value(&self, index: usize) -> Option<&AnimationParameterValue> {
+        self.get(index).and_then(Option::as_ref)
+    }
+}
+
+impl ParameterValueTable for [Option<&AnimationParameterValue>] {
+    fn value(&self, index: usize) -> Option<&AnimationParameterValue> {
+        self.get(index).copied().flatten()
+    }
+}
+
 impl CompiledConditionProgram {
-    pub(in crate::state_machine) fn evaluate(
-        &self,
-        values: &[Option<&AnimationParameterValue>],
-    ) -> bool {
+    pub(in crate::state_machine) fn evaluate<T>(&self, values: &T) -> bool
+    where
+        T: ParameterValueTable + ?Sized,
+    {
         let Some(last) = self.instructions.len().checked_sub(1) else {
             return false;
         };
@@ -18,22 +34,21 @@ impl CompiledConditionProgram {
     }
 }
 
-fn evaluate_instruction(
+fn evaluate_instruction<T>(
     instructions: &[ConditionInstruction],
     cursor: &mut usize,
-    values: &[Option<&AnimationParameterValue>],
-) -> bool {
+    values: &T,
+) -> bool
+where
+    T: ParameterValueTable + ?Sized,
+{
     let instruction = &instructions[*cursor];
     match instruction {
         ConditionInstruction::Compare {
             parameter,
             operator,
             value,
-        } => compare(
-            values.get(parameter.index()).copied().flatten(),
-            *operator,
-            value.as_ref(),
-        ),
+        } => compare(values.value(parameter.index()), *operator, value.as_ref()),
         ConditionInstruction::Not => {
             *cursor = cursor.saturating_sub(1);
             !evaluate_instruction(instructions, cursor, values)
@@ -57,14 +72,17 @@ fn evaluate_instruction(
     }
 }
 
-fn evaluate_children(
+fn evaluate_children<T>(
     instructions: &[ConditionInstruction],
     cursor: &mut usize,
-    values: &[Option<&AnimationParameterValue>],
+    values: &T,
     count: usize,
     identity: bool,
     combine: impl Fn(bool, bool) -> bool,
-) -> bool {
+) -> bool
+where
+    T: ParameterValueTable + ?Sized,
+{
     let mut result = identity;
     for _ in 0..count {
         *cursor = cursor.saturating_sub(1);

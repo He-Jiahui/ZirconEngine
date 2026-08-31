@@ -1,32 +1,66 @@
 use crate::core::framework::render::GpuLightData;
+use crate::graphics::backend::RenderBackend;
+use crate::graphics::types::GraphicsError;
 
 use super::gpu_scene::{GpuScene, GpuSceneUploadPath, GpuSceneUploadReport};
 use super::layout::{GPU_INSTANCE_DATA_STRIDE, GPU_PRIMITIVE_DATA_STRIDE};
+use super::prepared_upload::GpuScenePreparedUpload;
 use super::staging_ring::{GpuSceneStagingDestination, GpuSceneStagingRing};
+use super::upload::GpuSceneBufferUploadBatchBuilder;
 
 impl GpuScene {
     /// Uses the persistent frame ring once merged scene updates exceed the
     /// direct-write threshold. Small and empty updates retain the lower-overhead
-    /// queue-write path used by unit-level GPUScene callers.
+    /// batched buffer-write path used by unit-level GPUScene callers.
     pub(crate) fn flush_updates_with_staging(
         &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        backend: &RenderBackend,
         encoder: &mut wgpu::CommandEncoder,
-    ) -> GpuSceneUploadReport {
-        if !GpuSceneStagingRing::should_stage(self.pending_upload_byte_len()) {
-            return self.flush_direct_updates(queue);
-        }
-
-        self.flush_staged_updates(device, queue, encoder)
+    ) -> Result<GpuSceneUploadReport, GraphicsError> {
+        let prepared = self.prepare_updates_with_staging(backend, encoder);
+        self.submit_prepared_upload(backend, prepared)
     }
 
-    fn flush_staged_updates(
+    pub(crate) fn prepare_updates_with_staging(
         &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        backend: &RenderBackend,
         encoder: &mut wgpu::CommandEncoder,
-    ) -> GpuSceneUploadReport {
+    ) -> GpuScenePreparedUpload {
+        let scene_data_counts = self.current_scene_data_counts();
+        self.prepare_updates_with_staging_for_scene_data_counts(backend, encoder, scene_data_counts)
+    }
+
+    pub(crate) fn prepare_updates_with_staging_for_scene_data_counts(
+        &mut self,
+        backend: &RenderBackend,
+        encoder: &mut wgpu::CommandEncoder,
+        scene_data_counts: [u32; 3],
+    ) -> GpuScenePreparedUpload {
+        if !GpuSceneStagingRing::should_stage(self.pending_upload_byte_len()) {
+            return self.prepare_direct_updates_for_scene_data_counts(scene_data_counts);
+        }
+
+        self.prepare_staged_updates(backend, encoder, scene_data_counts)
+    }
+
+    pub(crate) fn prepare_updates_with_staging_for_virtual_geometry_counts(
+        &mut self,
+        backend: &RenderBackend,
+        encoder: &mut wgpu::CommandEncoder,
+        virtual_geometry_counts: [u32; 2],
+    ) -> GpuScenePreparedUpload {
+        let mut scene_data_counts = self.current_scene_data_counts();
+        scene_data_counts[1] = virtual_geometry_counts[0];
+        scene_data_counts[2] = virtual_geometry_counts[1];
+        self.prepare_updates_with_staging_for_scene_data_counts(backend, encoder, scene_data_counts)
+    }
+
+    fn prepare_staged_updates(
+        &mut self,
+        backend: &RenderBackend,
+        encoder: &mut wgpu::CommandEncoder,
+        scene_data_counts: [u32; 3],
+    ) -> GpuScenePreparedUpload {
         let dirty_entry_count = self.updates.dirty_entry_count();
         let mut report = GpuSceneUploadReport {
             upload_path: GpuSceneUploadPath::StagingCopy,
@@ -45,13 +79,13 @@ impl GpuScene {
                 report.primitive_upload_range_count = 1;
                 report.uploaded_bytes += uploaded;
             }
-            self.updates.discard_primitive_updates();
         } else {
             let ranges = self
                 .updates
-                .drain_primitive_upload_ranges(GPU_PRIMITIVE_DATA_STRIDE as u64);
+                .prepare_primitive_upload_ranges(GPU_PRIMITIVE_DATA_STRIDE as u64)
+                .to_vec();
             report.primitive_upload_range_count = ranges.len();
-            for range in ranges {
+            for range in &ranges {
                 let start = range.start as usize;
                 let end = start
                     .checked_add(range.len as usize)
@@ -75,13 +109,13 @@ impl GpuScene {
                 report.instance_upload_range_count = 1;
                 report.uploaded_bytes += uploaded;
             }
-            self.updates.discard_instance_updates();
         } else {
             let ranges = self
                 .updates
-                .drain_instance_upload_ranges(GPU_INSTANCE_DATA_STRIDE as u64);
+                .prepare_instance_upload_ranges(GPU_INSTANCE_DATA_STRIDE as u64)
+                .to_vec();
             report.instance_upload_range_count = ranges.len();
-            for range in ranges {
+            for range in &ranges {
                 let start = range.start as usize;
                 let end = start
                     .checked_add(range.len as usize)
@@ -104,13 +138,13 @@ impl GpuScene {
                 report.light_upload_range_count = 1;
                 report.uploaded_bytes += uploaded;
             }
-            self.updates.discard_light_updates();
         } else {
             let ranges = self
                 .updates
-                .drain_light_upload_ranges(GpuLightData::STRIDE as u64);
+                .prepare_light_upload_ranges(GpuLightData::STRIDE as u64)
+                .to_vec();
             report.light_upload_range_count = ranges.len();
-            for range in ranges {
+            for range in &ranges {
                 let start = range.start as usize;
                 let end = start
                     .checked_add(range.len as usize)
@@ -123,23 +157,27 @@ impl GpuScene {
             }
         }
 
-        self.staging_ring.submit(
-            device,
-            queue,
+        let staging_upload = self.staging_ring.encode_upload(
+            &backend.device,
             encoder,
             &self.primitive_buffer,
             &self.instance_buffer,
             &self.light_buffer,
         );
-        self.write_scene_data_count_params_if_needed(queue);
-
-        self.force_full_primitive_upload = false;
-        self.force_full_instance_upload = false;
-        self.force_full_light_upload = false;
-        self.primitive_ids.commit_pending_frees();
-        self.instance_ids.commit_pending_frees();
-        self.refresh_stats(report.uploaded_bytes, dirty_entry_count);
-        report
+        let mut uploads = GpuSceneBufferUploadBatchBuilder::new();
+        let uploaded_scene_data_counts =
+            self.append_scene_data_count_param_uploads(&mut uploads, scene_data_counts);
+        let mut batch = uploads.into_batch();
+        if let Some(upload) = staging_upload {
+            batch.push(upload);
+        }
+        GpuScenePreparedUpload::new(
+            self,
+            batch,
+            uploaded_scene_data_counts,
+            report,
+            dirty_entry_count,
+        )
     }
 
     fn pending_upload_byte_len(&mut self) -> u64 {

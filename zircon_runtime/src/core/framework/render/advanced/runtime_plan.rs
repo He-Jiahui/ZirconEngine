@@ -36,18 +36,24 @@ impl AdvancedProfileRuntimePlan {
     }
 
     pub fn enabled_features(&self) -> Vec<AdvancedRenderFeature> {
-        self.reports
-            .iter()
-            .filter(|report| report.enabled())
-            .map(|report| report.feature)
-            .collect()
+        let mut features = Vec::with_capacity(self.reports.len());
+        features.extend(
+            self.reports
+                .iter()
+                .filter(|report| report.enabled())
+                .map(|report| report.feature),
+        );
+        features
     }
 
     pub fn degraded_reports(&self) -> Vec<&AdvancedProviderReport> {
-        self.reports
-            .iter()
-            .filter(|report| !report.degradations.is_empty())
-            .collect()
+        let mut reports = Vec::with_capacity(self.reports.len());
+        reports.extend(
+            self.reports
+                .iter()
+                .filter(|report| !report.degradations.is_empty()),
+        );
+        reports
     }
 
     pub fn virtual_geometry_enabled(&self) -> bool {
@@ -156,5 +162,65 @@ mod tests {
             supports_buffer_readback: true,
             ..RenderCapabilitySummary::default()
         }
+    }
+
+    #[test]
+    fn optimization_batch_20260830de_advanced_plan_filters_reserve_report_upper_bound() {
+        let source = include_str!("runtime_plan.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("advanced runtime plan production source");
+
+        assert_eq!(
+            production
+                .matches("Vec::with_capacity(self.reports.len())")
+                .count(),
+            2
+        );
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830de_advanced_plan_capacity_evidence() {
+        const BATCH_COUNT: usize = 32_768;
+        const REPORT_COUNT: usize = 64;
+        const SELECTED_COUNT: usize = 32;
+        const MARKER: &str = "RUNTIME517_ADVANCED_PLAN_CAPACITY_BENCH_V1";
+
+        let legacy_growth_events =
+            filter_growth_events(BATCH_COUNT, REPORT_COUNT, SELECTED_COUNT, false);
+        let optimized_growth_events =
+            filter_growth_events(BATCH_COUNT, REPORT_COUNT, SELECTED_COUNT, true);
+
+        assert!(legacy_growth_events > 0);
+        assert_eq!(optimized_growth_events, 0);
+        println!(
+            "{MARKER} batches={BATCH_COUNT} reports={REPORT_COUNT} selected={SELECTED_COUNT} \
+             legacy_growth_events={legacy_growth_events} \
+             optimized_growth_events={optimized_growth_events} reduction_pct=100"
+        );
+    }
+
+    fn filter_growth_events(
+        batch_count: usize,
+        report_count: usize,
+        selected_count: usize,
+        reserve_upper_bound: bool,
+    ) -> usize {
+        let mut growth_events = 0;
+        for _ in 0..batch_count {
+            let mut selected = if reserve_upper_bound {
+                Vec::with_capacity(report_count)
+            } else {
+                Vec::new()
+            };
+            for report in 0..selected_count {
+                let previous_capacity = selected.capacity();
+                selected.push(report);
+                growth_events += usize::from(selected.capacity() != previous_capacity);
+            }
+        }
+        growth_events
     }
 }

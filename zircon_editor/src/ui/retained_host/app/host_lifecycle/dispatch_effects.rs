@@ -11,8 +11,20 @@ mod status;
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn apply_dispatch_effects(
         &mut self,
-        effects: UiHostEventEffects,
+        mut effects: UiHostEventEffects,
     ) {
+        if effects.sync_viewport_chrome && self.sync_viewport_chrome_projection() {
+            effects.request_paint_only();
+        }
+        if self
+            .workbench_window_bridge
+            .has_pending_host_projection_commit()
+            || self
+                .workbench_window_bridge
+                .has_pending_surface_state_change()
+        {
+            effects.request_workbench_projection();
+        }
         if let Some(name) = effects.active_layout_preset_name.clone() {
             self.active_layout_preset = Some(name);
         }
@@ -55,6 +67,7 @@ impl RetainedEditorHost {
             }
             Err(error) => {
                 self.set_status_line(error);
+                self.commit_pending_workbench_projection();
                 false
             }
         }
@@ -71,7 +84,20 @@ impl RetainedEditorHost {
                     self.publish_activity_toasts(std::slice::from_ref(&notification));
                 }
                 self.set_status_line(error);
+                self.commit_pending_workbench_projection();
             }
+        }
+    }
+
+    fn commit_pending_workbench_projection(&mut self) {
+        if self
+            .workbench_window_bridge
+            .has_pending_host_projection_commit()
+            || self
+                .workbench_window_bridge
+                .has_pending_surface_state_change()
+        {
+            self.invalidate_host(HostInvalidationMask::WORKBENCH_PROJECTION);
         }
     }
 }

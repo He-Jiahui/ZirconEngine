@@ -1,7 +1,7 @@
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
 use super::super::{
-    shadow_command_spec, MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassProcessor,
+    MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassProcessor, shadow_command_spec,
 };
 
 pub(crate) struct ShadowPassProcessor;
@@ -18,7 +18,14 @@ impl MeshPassProcessor for ShadowPassProcessor {
         let Some(spec) = shadow_command_spec(batch) else {
             return;
         };
-        let pipeline_variant_id = context.pipeline_variant_id(spec.pipeline_kind, batch);
-        out.push(batch.command(spec.phase, spec.pipeline_kind, pipeline_variant_id));
+        let pipeline_key = batch.effective_shadow_pipeline_key();
+        let pipeline_variant_id =
+            context.pipeline_variant_id_with_key(spec.pipeline_kind, batch, &pipeline_key);
+        out.push(batch.command_with_pipeline_key(
+            spec.phase,
+            spec.pipeline_kind,
+            pipeline_variant_id,
+            &pipeline_key,
+        ));
     }
 }

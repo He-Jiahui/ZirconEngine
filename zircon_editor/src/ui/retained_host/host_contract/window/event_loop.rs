@@ -21,8 +21,11 @@ mod input;
 mod input_outcome;
 mod lifecycle;
 mod platform_input;
+mod pointer_move_mailbox;
 mod profile_capture;
 mod redraw;
+
+use pointer_move_mailbox::UiIdlePointerMoveMailbox;
 
 const SURFACE_PRESENT_RETRY_BASE_DELAY: Duration = Duration::from_millis(8);
 const SURFACE_PRESENT_RETRY_MAX_DELAY: Duration = Duration::from_millis(250);
@@ -34,11 +37,12 @@ pub(in crate::ui::retained_host::host_contract) struct UiHostWindowEventLoop {
     presenter_backend: Option<HostPresenterBackend>,
     shared_gpu_presenter_active: bool,
     last_pointer_position: Option<(f32, f32)>,
+    pending_idle_pointer_move: UiIdlePointerMoveMailbox,
+    pressed_mouse_button_count: u8,
     pending_redraw: HostRedrawRequest,
     pending_surface_present_retry: HostRedrawRequest,
     pending_surface_present_retry_deadline: Option<Instant>,
     surface_present_retry_attempt: u8,
-    pending_resize_reflow_deadline: Option<Instant>,
     pending_presenter_resize: Option<(u32, u32)>,
     runtime_presenter_upgrade_attempted: bool,
     runtime_presenter_upgrade_poll_deadline: Option<Instant>,
@@ -61,6 +65,8 @@ impl UiHostWindowEventLoop {
             presenter_backend: None,
             shared_gpu_presenter_active: false,
             last_pointer_position: None,
+            pending_idle_pointer_move: UiIdlePointerMoveMailbox::default(),
+            pressed_mouse_button_count: 0,
             pending_redraw: HostRedrawRequest::full_frame_for_scenario(
                 UiPerfScenario::Startup,
                 true,
@@ -68,7 +74,6 @@ impl UiHostWindowEventLoop {
             pending_surface_present_retry: HostRedrawRequest::None,
             pending_surface_present_retry_deadline: None,
             surface_present_retry_attempt: 0,
-            pending_resize_reflow_deadline: None,
             pending_presenter_resize: None,
             runtime_presenter_upgrade_attempted: false,
             runtime_presenter_upgrade_poll_deadline: None,
@@ -99,6 +104,7 @@ impl ApplicationHandler for UiHostWindowEventLoop {
     }
 
     fn proxy_wake_up(&mut self, _event_loop: &dyn ActiveEventLoop) {
+        self.flush_pending_idle_pointer_move();
         if self.host.take_background_event_wake() {
             self.host.request_maintenance_frame_update();
             self.drain_external_redraw_request();

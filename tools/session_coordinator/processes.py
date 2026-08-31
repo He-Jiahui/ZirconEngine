@@ -102,16 +102,7 @@ def live_cargo_process_tree_pids(root_pid: int) -> tuple[int, ...]:
             executable_names = _posix_process_executable_names(parents)
     except OSError:
         return ()
-    candidates = _descendant_pids(root_pid, parents)
-    cargo_roots = [
-        pid
-        for pid in candidates
-        if _is_cargo_or_rustc(executable_names.get(pid, ""))
-    ]
-    tracked: set[int] = set()
-    for cargo_root in cargo_roots:
-        tracked.update(_descendant_pids(cargo_root, parents))
-    return tuple(sorted(tracked))
+    return _cargo_descendant_pids(root_pid, parents, executable_names)
 
 
 def live_process_ids_named(*executable_names: str) -> tuple[int, ...]:
@@ -265,6 +256,35 @@ def _descendant_pids(root_pid: int, parents: dict[int, int]) -> tuple[int, ...]:
             live.add(current)
         pending.extend(child for child in children.get(current, ()) if child not in live)
     return tuple(sorted(live))
+
+
+def _cargo_descendant_pids(
+    root_pid: int,
+    parents: dict[int, int],
+    executable_names: dict[int, str],
+) -> tuple[int, ...]:
+    children: dict[int, list[int]] = defaultdict(list)
+    for pid, parent_pid in parents.items():
+        children[parent_pid].append(pid)
+    tracked: set[int] = set()
+    visited: set[int] = set()
+    pending = [(root_pid, False)]
+    while pending:
+        current, inside_tool_tree = pending.pop()
+        if current in visited:
+            continue
+        visited.add(current)
+        if current not in parents:
+            continue
+        inside_tool_tree = inside_tool_tree or _is_cargo_or_rustc(
+            executable_names.get(current, "")
+        )
+        if inside_tool_tree:
+            tracked.add(current)
+        pending.extend(
+            (child, inside_tool_tree) for child in children.get(current, ())
+        )
+    return tuple(sorted(tracked))
 
 
 def _windows_process_parent_ids() -> dict[int, int]:

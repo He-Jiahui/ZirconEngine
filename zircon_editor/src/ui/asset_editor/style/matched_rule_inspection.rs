@@ -7,6 +7,9 @@ use zircon_runtime_interface::ui::template::{
 
 use super::style_rule_declarations::{declaration_entries, UiStyleRuleDeclarationEntry};
 
+#[cfg(test)]
+mod single_projection_tests;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct MatchedStyleRuleEntry {
     pub(crate) origin_id: String,
@@ -49,20 +52,9 @@ pub(crate) fn matched_style_rule_entries(
     node_id: &str,
     active_states: &[String],
 ) -> Vec<MatchedStyleRuleEntry> {
-    let Some(path) = document_node_path(document, node_id) else {
+    let Some(match_path) = document_style_match_path(document, node_id, active_states) else {
         return Vec::new();
     };
-    let match_path = path
-        .iter()
-        .enumerate()
-        .map(|(index, (_, node))| StyleMatchNode {
-            component: selector_component_name(node),
-            control_id: node.control_id.as_deref(),
-            classes: &node.classes,
-            is_host: index == 0,
-            states: active_states,
-        })
-        .collect::<Vec<_>>();
 
     let mut matched = Vec::new();
     let mut order = 0;
@@ -120,21 +112,30 @@ fn collect_matching_rules(
     }
 }
 
-fn document_node_path<'a>(
+fn document_style_match_path<'a>(
     document: &'a UiAssetDocument,
     node_id: &str,
-) -> Option<Vec<(&'a str, &'a UiNodeDefinition)>> {
+    active_states: &'a [String],
+) -> Option<Vec<StyleMatchNode<'a>>> {
     fn visit<'a>(
         node: &'a UiNodeDefinition,
         target: &str,
-        path: &mut Vec<(&'a str, &'a UiNodeDefinition)>,
+        active_states: &'a [String],
+        is_host: bool,
+        path: &mut Vec<StyleMatchNode<'a>>,
     ) -> bool {
-        path.push((node.node_id.as_str(), node));
+        path.push(StyleMatchNode {
+            component: selector_component_name(node),
+            control_id: node.control_id.as_deref(),
+            classes: &node.classes,
+            is_host,
+            states: active_states,
+        });
         if node.node_id == target {
             return true;
         }
         for child in &node.children {
-            if visit(&child.node, target, path) {
+            if visit(&child.node, target, active_states, false, path) {
                 return true;
             }
         }
@@ -144,7 +145,7 @@ fn document_node_path<'a>(
 
     let root = document.root.as_ref()?;
     let mut path = Vec::new();
-    visit(root, node_id, &mut path).then_some(path)
+    visit(root, node_id, active_states, true, &mut path).then_some(path)
 }
 
 pub(crate) fn selector_component_name(node: &UiNodeDefinition) -> &str {

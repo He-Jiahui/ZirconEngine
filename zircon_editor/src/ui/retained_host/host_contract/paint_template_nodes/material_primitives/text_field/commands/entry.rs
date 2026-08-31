@@ -1,6 +1,6 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::render_commands::HostPaintCommand;
-use super::super::geometry::pixel_aligned_rect;
+use super::super::geometry::paint_rect;
 use super::super::identity::is_text_field_node;
 use super::super::variant::{text_field_variant, TextFieldVariant};
 use super::surface::{push_filled_field, push_outlined_field, push_standard_field};
@@ -17,7 +17,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
         return false;
     }
 
-    let field_rect = pixel_aligned_rect(rect);
+    let field_rect = paint_rect(rect);
     if field_rect.width <= 0.0 || field_rect.height <= 0.0 {
         return true;
     }

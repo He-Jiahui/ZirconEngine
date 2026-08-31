@@ -116,6 +116,7 @@ fn parse_shader_pass_type(token: &str) -> Option<ShaderPassType> {
         "gbuffer" => Some(ShaderPassType::GBuffer),
         "depth_prepass" | "depth" => Some(ShaderPassType::DepthPrepass),
         "shadow" => Some(ShaderPassType::Shadow),
+        "hit_proxy" => Some(ShaderPassType::HitProxy),
         "velocity" => Some(ShaderPassType::Velocity),
         "taa_reactive_mask" | "taa" => Some(ShaderPassType::TaaReactiveMask),
         _ => None,
@@ -153,6 +154,8 @@ mod tests {
             OsString::from("gbuffer:options=0x1"),
             OsString::from("--variant"),
             OsString::from("shadow"),
+            OsString::from("--variant"),
+            OsString::from("hit_proxy"),
         ])
         .unwrap()
         .expect("parsed args");
@@ -162,6 +165,7 @@ mod tests {
             vec![
                 ShaderIdePreviewVariant::new(ShaderPassType::GBuffer, 1),
                 ShaderIdePreviewVariant::new(ShaderPassType::Shadow, 0),
+                ShaderIdePreviewVariant::new(ShaderPassType::HitProxy, 0),
             ]
         );
     }

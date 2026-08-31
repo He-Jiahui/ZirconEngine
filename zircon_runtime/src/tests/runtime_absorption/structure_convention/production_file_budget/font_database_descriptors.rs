@@ -18,7 +18,8 @@ fn runtime_15_font_database_descriptor_helpers_are_child_owner() {
     let sdf_glyph_metrics = read_runtime_src("text/sdf/font_bake/glyph_metrics.rs");
     let sdf_offline_source = read_runtime_src("text/sdf/font_bake/offline_source.rs");
     let native_bitmap_atlas = read_runtime_src("text/native_bitmap_atlas.rs");
-    let native_bitmap_raster_key = read_runtime_src("text/native_bitmap_atlas/raster_key.rs");
+    let native_bitmap_glyph_run =
+        read_runtime_src("graphics/scene/scene_renderer/ui/text/native_glyph_run.rs");
     let native_bitmap_source_image = read_runtime_src("text/native_bitmap_atlas/source_image.rs");
     let composite_resolve = read_runtime_src("text/font/composite_resolve.rs");
     let fallback = read_runtime_src("text/font/fallback.rs");
@@ -222,19 +223,19 @@ fn runtime_15_font_database_descriptor_helpers_are_child_owner() {
         "text/native_bitmap_atlas.rs must stay within the production soft budget"
     );
     assert_contains_all(
-        "native bitmap stable raster identity is a focused child owner",
-        &native_bitmap_raster_key,
+        "native bitmap stable raster identity projects shaped glyphs before atlas ownership",
+        &native_bitmap_glyph_run,
         &[
-            "pub(super) fn native_bitmap_atlas_raster_key(",
-            "native_bitmap_atlas_stable_raster_cache_key(cache_key)",
+            "pub(in crate::graphics::scene::scene_renderer::ui) fn native_bitmap_atlas_glyph_runs(",
             "GlyphRasterKey::from_request",
+            "glyph_artifact_line",
             "vertical_subpixel_bin",
         ],
     );
     assert!(
-        native_bitmap_atlas.contains("mod raster_key;")
-            && !native_bitmap_atlas.contains("fn native_bitmap_atlas_subpixel_bin_index("),
-        "native bitmap atlas root must delegate stable raster-key construction"
+        native_bitmap_atlas.contains("mod glyph_run;")
+            && !native_bitmap_atlas.contains("GlyphRasterKey::from_request"),
+        "native bitmap atlas root must consume prepared raster identities"
     );
     assert_contains_all(
         "native bitmap source-image projection is a focused child owner",
@@ -243,7 +244,6 @@ fn runtime_15_font_database_descriptor_helpers_are_child_owner() {
             "pub(super) struct NativeBitmapGlyphImage",
             "pub(super) fn native_bitmap_atlas_source_from_image(",
             "pub(super) fn native_bitmap_atlas_format(",
-            "pub(super) fn text_bounds_clipped_screen_rect(",
         ],
     );
     assert!(

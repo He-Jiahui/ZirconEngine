@@ -8,5 +8,5 @@ pub(crate) use entry::{
     PreflightedTransferredComponentRow, StoredComponent, TransferredComponentRow,
 };
 pub use location::ComponentStorageLocation;
-pub use store::ComponentStorage;
+pub(crate) use store::ComponentStorage;
 pub(crate) use store::PreflightedComponentInsert;

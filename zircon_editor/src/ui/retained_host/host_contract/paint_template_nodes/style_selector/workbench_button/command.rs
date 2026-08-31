@@ -1,5 +1,6 @@
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
+use super::super::resolved_state_for_node;
 use super::super::workbench_command::{workbench_command_visual_role, WorkbenchCommandVisualRole};
 use super::metrics::workbench_button_border_width;
 use super::model::WorkbenchButtonStyle;
@@ -32,11 +33,7 @@ fn muted_prominent_workbench_command_style(
     mut style: WorkbenchButtonStyle,
 ) -> WorkbenchButtonStyle {
     let active = node.selected || node.checked || node.popup_open;
-    let focus_visible = if node.focus_visible_known {
-        node.focus_visible
-    } else {
-        node.focused
-    };
+    let focus_visible = resolved_state_for_node(node).focus_visible;
     let command_palette = workbench_button_command_palette();
     style.surface = if node.pressed {
         command_palette.muted_pressed_surface
@@ -61,11 +58,7 @@ fn primary_import_workbench_command_style(
     mut style: WorkbenchButtonStyle,
 ) -> WorkbenchButtonStyle {
     let active = node.selected || node.checked || node.popup_open;
-    let focus_visible = if node.focus_visible_known {
-        node.focus_visible
-    } else {
-        node.focused
-    };
+    let focus_visible = resolved_state_for_node(node).focus_visible;
     let command_palette = workbench_button_command_palette();
     let surface = if node.pressed {
         command_palette.primary_pressed_surface

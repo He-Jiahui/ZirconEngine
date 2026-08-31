@@ -13,6 +13,13 @@ pub(in crate::ui::retained_host::app) use events::{
     AssetRefreshAccumulator, AssetRefreshQueueAgeState,
 };
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AssetMaintenanceFrameUpdate {
+    None,
+    Immediate,
+    At(std::time::Instant),
+}
+
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn refresh_project_assets(
         &mut self,
@@ -24,12 +31,20 @@ impl RetainedEditorHost {
             backlog_pending,
             std::time::Instant::now(),
         );
-        if backlog_pending {
-            self.ui.request_maintenance_frame_update();
-        } else if let Some(deadline) = self.asset_refresh_accumulator.next_commit_deadline() {
-            self.ui.schedule_maintenance_frame_update(deadline);
-        } else {
-            self.ui.clear_maintenance_frame_update();
+        match asset_maintenance_frame_update(
+            backlog_pending,
+            self.asset_refresh_accumulator.next_commit_deadline(),
+            self.active_scene_reload_admission_retry_deadline(),
+        ) {
+            AssetMaintenanceFrameUpdate::Immediate => {
+                self.ui.request_maintenance_frame_update();
+            }
+            AssetMaintenanceFrameUpdate::At(deadline) => {
+                self.ui.schedule_maintenance_frame_update(deadline);
+            }
+            AssetMaintenanceFrameUpdate::None => {
+                self.ui.clear_maintenance_frame_update();
+            }
         }
         let Some(events) = events else {
             return Ok(());
@@ -87,8 +102,11 @@ impl RetainedEditorHost {
                 "retained_host",
                 "asset_refresh_runtime_project"
             );
-            self.editor_asset_manager_at_use_point()
-                .map_err(|error| error.to_string())?
+            let editor_asset_manager = self
+                .editor_asset_manager_at_use_point()
+                .map_err(|error| error.to_string())?;
+            editor_asset_manager.project_runtime_asset_changes(&events.asset_changes);
+            editor_asset_manager
                 .refresh_from_runtime_project()
                 .map_err(|error| error.to_string())?;
         }
@@ -101,14 +119,13 @@ impl RetainedEditorHost {
             .editor_snapshot()
             .asset_activity
             .selected_asset_uuid;
-        let default_scene_uri = self
-            .asset_manager_at_use_point()
-            .map_err(|error| error.to_string())?
-            .current_project()
-            .map(|project| project.default_scene_uri);
+        let active_scene_uri = self
+            .editor_manager
+            .active_scene_identity_for_session()
+            .map(|identity| identity.scene_uri().to_owned());
         let mut plan = plan_asset_backend_refresh(
             selected_asset_uuid.as_deref(),
-            default_scene_uri.as_deref(),
+            active_scene_uri.as_deref(),
             &events.asset_changes,
             &events.editor_asset_changes,
             &events.resource_changes,
@@ -117,8 +134,61 @@ impl RetainedEditorHost {
             plan.sync_resources = true;
             plan.mark_presentation_dirty = true;
         }
+        if events.active_scene_reload_requested {
+            plan.reload_active_scene = true;
+            plan.mark_render_dirty = true;
+            plan.mark_presentation_dirty = true;
+        }
         record_asset_refresh_plan_counters(&plan);
-        self.apply_asset_refresh_plan(&plan)
+        self.apply_asset_refresh_plan(&plan, &events)
+    }
+}
+
+fn asset_maintenance_frame_update(
+    backlog_pending: bool,
+    accumulator_deadline: Option<std::time::Instant>,
+    admission_retry_deadline: Option<std::time::Instant>,
+) -> AssetMaintenanceFrameUpdate {
+    if backlog_pending {
+        return AssetMaintenanceFrameUpdate::Immediate;
+    }
+    match (accumulator_deadline, admission_retry_deadline) {
+        (Some(accumulator), Some(admission)) => {
+            AssetMaintenanceFrameUpdate::At(accumulator.min(admission))
+        }
+        (Some(deadline), None) | (None, Some(deadline)) => {
+            AssetMaintenanceFrameUpdate::At(deadline)
+        }
+        (None, None) => AssetMaintenanceFrameUpdate::None,
+    }
+}
+
+#[cfg(test)]
+mod maintenance_frame_update_tests {
+    use std::time::{Duration, Instant};
+
+    use super::{asset_maintenance_frame_update, AssetMaintenanceFrameUpdate};
+
+    #[test]
+    fn empty_refresh_preserves_active_scene_retry_deadline() {
+        let retry_deadline = Instant::now() + Duration::from_millis(128);
+
+        assert_eq!(
+            asset_maintenance_frame_update(false, None, Some(retry_deadline)),
+            AssetMaintenanceFrameUpdate::At(retry_deadline)
+        );
+    }
+
+    #[test]
+    fn earliest_asset_owner_deadline_drives_the_shared_maintenance_slot() {
+        let now = Instant::now();
+        let accumulator_deadline = now + Duration::from_millis(32);
+        let retry_deadline = now + Duration::from_millis(128);
+
+        assert_eq!(
+            asset_maintenance_frame_update(false, Some(accumulator_deadline), Some(retry_deadline)),
+            AssetMaintenanceFrameUpdate::At(accumulator_deadline)
+        );
     }
 }
 

@@ -7,9 +7,9 @@ use toml::Value;
 use super::support::{collect_zui_document_files, editor_asset_root, load_zui_document};
 
 const FROZEN_EDITOR_ASSET_COUNT: usize = 248;
-const FROZEN_RAW_COLOR_COUNT: usize = 268;
-const FROZEN_RAW_COLOR_FILE_COUNT: usize = 13;
-const FROZEN_RAW_COLOR_INVENTORY_HASH: u64 = 0x9bf8_4955_b8e5_f0d2;
+const FROZEN_RAW_COLOR_COUNT: usize = 267;
+const FROZEN_RAW_COLOR_FILE_COUNT: usize = 12;
+const FROZEN_RAW_COLOR_INVENTORY_HASH: u64 = 0xc918_0721_4acc_04c3;
 const FROZEN_FIXED_WORD_COUNT: usize = 5_262;
 const FROZEN_FIXED_WORD_FILE_COUNT: usize = 232;
 const FROZEN_FIXED_WORD_INVENTORY_HASH: u64 = 0x51f7_905c_7f61_032f;
@@ -82,11 +82,6 @@ const RAW_COLOR_ALLOWANCES: &[RawColorAllowance] = &[
         path: "components/showcase/showcase_input_section.zui",
         maximum: 1,
         reason: "literal color-input sample value, not interaction chrome",
-    },
-    RawColorAllowance {
-        path: "windows/workbench_window.zui",
-        maximum: 1,
-        reason: "legacy toast action color debt; remove after the M3 shell source unfreezes",
     },
 ];
 
@@ -206,51 +201,6 @@ const ABSOLUTE_POPUP_ANCHOR_ALLOWANCES: &[AbsolutePopupAnchorAllowance] = &[
         path: "components/showcase/showcase_selection_section.zui",
         node_id: "context_menu_demo",
         reason: "showcase fixture",
-    },
-    AbsolutePopupAnchorAllowance {
-        path: "components/workbench/primitives/feedback/workbench_command_palette.zui",
-        node_id: "root",
-        reason: "primitive authoring fixture; Runtime replaces the trigger frame",
-    },
-    AbsolutePopupAnchorAllowance {
-        path: "components/workbench/primitives/feedback/workbench_confirm_dialog.zui",
-        node_id: "root",
-        reason: "primitive authoring fixture; Runtime centers against bounds",
-    },
-    AbsolutePopupAnchorAllowance {
-        path: "components/workbench/primitives/feedback/workbench_context_menu.zui",
-        node_id: "root",
-        reason: "primitive authoring fixture; Runtime replaces the trigger frame",
-    },
-    AbsolutePopupAnchorAllowance {
-        path: "components/workbench/primitives/feedback/workbench_dialog.zui",
-        node_id: "root",
-        reason: "primitive authoring fixture; Runtime centers against bounds",
-    },
-    AbsolutePopupAnchorAllowance {
-        path: "components/workbench/primitives/feedback/workbench_dropdown_popup.zui",
-        node_id: "root",
-        reason: "primitive authoring fixture; Runtime replaces the tokenized trigger frame",
-    },
-    AbsolutePopupAnchorAllowance {
-        path: "components/workbench/primitives/feedback/workbench_notification_center.zui",
-        node_id: "root",
-        reason: "primitive authoring fixture; Runtime replaces the trigger frame",
-    },
-    AbsolutePopupAnchorAllowance {
-        path: "components/workbench/primitives/feedback/workbench_popup_menu.zui",
-        node_id: "root",
-        reason: "primitive authoring fixture; Runtime replaces the tokenized trigger frame",
-    },
-    AbsolutePopupAnchorAllowance {
-        path: "components/workbench/shell/workbench_component_drawer.zui",
-        node_id: "popup_menu",
-        reason: "M3-frozen shell debt; remove after Runtime trigger-frame cutover",
-    },
-    AbsolutePopupAnchorAllowance {
-        path: "windows/workbench_window.zui",
-        node_id: "toolbar_module_overflow_menu",
-        reason: "M3-frozen shell debt; remove after Runtime trigger-frame cutover",
     },
 ];
 

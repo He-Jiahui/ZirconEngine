@@ -11,6 +11,12 @@ impl EditorTransactionEngine {
         &self,
         history: HistoryContextId,
     ) -> Result<HistorySaveToken, EditCommandError> {
+        if history.is_volatile() {
+            return Err(EditCommandError::VolatileHistoryPersistenceUnsupported {
+                history,
+                operation: "capture save token for",
+            });
+        }
         self.flush_operation_group()?;
         self.start_operation("capture save token")?;
         let mut state = self.lock_state();
@@ -41,6 +47,12 @@ impl EditorTransactionEngine {
         history: HistoryContextId,
         token: HistorySaveToken,
     ) -> Result<HistorySaveMarkOutcome, EditCommandError> {
+        if history.is_volatile() {
+            return Err(EditCommandError::VolatileHistoryPersistenceUnsupported {
+                history,
+                operation: "mark saved",
+            });
+        }
         if !token.belongs_to(&self.save_token_lineage) {
             return Err(EditCommandError::SaveTokenEngineMismatch);
         }

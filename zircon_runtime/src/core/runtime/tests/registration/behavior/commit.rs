@@ -3,8 +3,8 @@ use std::sync::Arc;
 use super::super::super::super::state::{ServiceEntry, ServiceEntryFactory};
 use super::super::super::super::*;
 use super::super::super::fixtures::{TestDriver, TestManager};
-use crate::core::CoreError;
 use crate::core::runtime::ServiceObject;
+use crate::core::CoreError;
 use crate::core::{LifecycleState, ServiceKind, StartupMode};
 
 #[test]

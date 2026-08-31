@@ -3,10 +3,13 @@ use std::collections::{BTreeSet, HashMap};
 use zircon_runtime_interface::reflect::{ReflectError, ReflectedValue};
 
 use crate::scene::components::NodeRecord;
+use crate::scene::reflect::validate_reflected_field_values;
 use crate::scene::{ecs::ChangeTick, EntityId, World};
 
 use super::super::DynamicScene;
-use crate::scene::dynamic_scene::value::{reflected_fields_to_json_object, remap_reflected_value};
+use crate::scene::dynamic_scene::value::{
+    descriptor_fields_to_json_object, reflected_fields_to_json_object,
+};
 use crate::scene::dynamic_scene::{
     DynamicComponent, DynamicSceneError, EntityRemap, ScenePatchPreviewReport,
 };
@@ -15,9 +18,12 @@ use super::commit::commit_preflighted_scene_mutation;
 use super::preflight_mutation::extract_preflighted_scene_mutation;
 use super::preview::build_preview_report;
 use super::resource::{
-    apply_resource_writes_to_preflight, compile_resource_writes,
+    apply_resource_writes_to_preflight, compile_reflected_writes, compile_resource_writes,
     stage_compiled_resource_writes_bounded, CompiledResourceWrite,
 };
+
+// Building the successor cache amortizes at 16 remaps in the dense-collision fixture.
+const ENTITY_REMAP_SUCCESSOR_PROBE_MIN_ENTITIES: usize = 16;
 
 /// Owns the target-bound resolution work so apply never reparses a scene payload.
 pub(crate) struct CompiledSceneSpawn {
@@ -429,11 +435,24 @@ fn compile_component_writes(
         .iter()
         .map(|entity| entity.components.len())
         .sum();
+    let descriptors_by_type = scene
+        .component_types
+        .iter()
+        .map(|descriptor| (descriptor.type_id.as_str(), descriptor))
+        .collect::<HashMap<_, _>>();
     let mut writes = Vec::with_capacity(component_count);
     for entity in &scene.entities {
         let target = remapped_entity(remap, entity.source_entity)?;
         for component in &entity.components {
-            writes.push(compile_component_write(world, target, component, remap)?);
+            writes.push(compile_component_write(
+                world,
+                target,
+                component,
+                descriptors_by_type
+                    .get(component.type_path.as_str())
+                    .copied(),
+                remap,
+            )?);
         }
     }
     Ok(writes)
@@ -443,19 +462,40 @@ fn compile_component_write(
     world: &World,
     entity: EntityId,
     component: &DynamicComponent,
+    descriptor: Option<&crate::core::framework::scene::ComponentTypeDescriptor>,
     remap: &EntityRemap,
 ) -> Result<CompiledComponentWrite, DynamicSceneError> {
+    validate_reflected_field_values(&component.type_path, &component.fields)?;
     if component.plugin_owned {
-        let type_path = world
+        let resolved_type_path = world
             .type_registry()
             .resolve(&component.type_path)
             .unwrap_or(&component.type_path)
             .to_string();
+        let value = match world
+            .type_registry()
+            .runtime_registration(&component.type_path)
+        {
+            Ok(runtime) => reflected_fields_to_json_object(
+                world,
+                &component.type_path,
+                &runtime.registration.type_info.fields,
+                &component.fields,
+                remap,
+            )?,
+            Err(ReflectError::UnknownType { .. }) => {
+                let descriptor = descriptor.ok_or_else(|| ReflectError::UnknownType {
+                    type_path: component.type_path.clone(),
+                })?;
+                descriptor_fields_to_json_object(descriptor, &component.fields, remap)?
+            }
+            Err(error) => return Err(error.into()),
+        };
         return Ok(CompiledComponentWrite {
             entity,
             kind: CompiledComponentWriteKind::Plugin {
-                type_path,
-                value: reflected_fields_to_json_object(&component.fields, remap)?,
+                type_path: resolved_type_path,
+                value,
             },
         });
     }
@@ -463,7 +503,7 @@ fn compile_component_write(
     let runtime = world
         .type_registry()
         .runtime_registration(&component.type_path)?;
-    if !runtime.registration.is_component {
+    if !runtime.registration.is_component() {
         return Err(ReflectError::AddressKindMismatch {
             expected: format!("component `{}`", component.type_path),
             actual: format!("non-component `{}`", component.type_path),
@@ -477,34 +517,13 @@ fn compile_component_write(
             type_path: component.type_path.clone(),
         })?;
 
-    let fields = &runtime.registration.type_info.fields;
-    let mut field_slots = HashMap::with_capacity(fields.len());
-    for (field_slot, field) in fields.iter().enumerate() {
-        let field_slot =
-            u32::try_from(field_slot).map_err(|_| ReflectError::InvalidRegistration {
-                type_path: component.type_path.clone(),
-                reason: "component reflection has more than u32::MAX fields".to_string(),
-            })?;
-        field_slots.insert(
-            field.name.as_str(),
-            (field_slot, field.serializable && field.editable),
-        );
-    }
-
-    let mut writes = Vec::with_capacity(component.fields.len());
-    for field in &component.fields {
-        let Some((field_slot, writable)) = field_slots.get(field.field_name.as_str()).copied()
-        else {
-            return Err(ReflectError::UnknownField {
-                type_path: component.type_path.clone(),
-                field_name: field.field_name.clone(),
-            }
-            .into());
-        };
-        if writable {
-            writes.push((field_slot, remap_reflected_value(&field.value, remap)?));
-        }
-    }
+    let writes = compile_reflected_writes(
+        world,
+        &component.type_path,
+        &runtime.registration.type_info.fields,
+        &component.fields,
+        remap,
+    )?;
     Ok(CompiledComponentWrite {
         entity,
         kind: CompiledComponentWriteKind::Reflected { adapter, writes },
@@ -515,12 +534,86 @@ fn build_entity_remap(
     scene: &DynamicScene,
     world: &World,
 ) -> Result<EntityRemap, DynamicSceneError> {
+    if scene.entities.len() < ENTITY_REMAP_SUCCESSOR_PROBE_MIN_ENTITIES {
+        return build_entity_remap_linear(scene, world);
+    }
+
+    let mut remap = EntityRemap::new();
+    let mut probe = EntityIdReservationProbe::new(world);
+    for entity in &scene.entities {
+        let target = probe.reserve(entity.source_entity)?;
+        remap.insert(entity.source_entity, target);
+    }
+    Ok(remap)
+}
+
+struct EntityIdReservationProbe<'world> {
+    world: &'world World,
+    successor_by_occupied: HashMap<EntityId, Option<EntityId>>,
+    path: Vec<EntityId>,
+}
+
+impl<'world> EntityIdReservationProbe<'world> {
+    fn new(world: &'world World) -> Self {
+        Self {
+            world,
+            successor_by_occupied: HashMap::new(),
+            path: Vec::new(),
+        }
+    }
+
+    fn reserve(&mut self, source: EntityId) -> Result<EntityId, DynamicSceneError> {
+        self.path.clear();
+        let mut candidate = source;
+        loop {
+            if let Some(successor) = self.successor_by_occupied.get(&candidate).copied() {
+                self.path.push(candidate);
+                candidate = successor.ok_or(DynamicSceneError::EntityIdSpaceExhausted {
+                    source_entity: source,
+                })?;
+                continue;
+            }
+
+            let successor = candidate.checked_add(1);
+            if self.world.contains_entity(candidate) {
+                self.path.push(candidate);
+                self.successor_by_occupied.insert(candidate, successor);
+                candidate = successor.ok_or(DynamicSceneError::EntityIdSpaceExhausted {
+                    source_entity: source,
+                })?;
+                continue;
+            }
+
+            self.successor_by_occupied.insert(candidate, successor);
+            for skipped in self.path.drain(..) {
+                self.successor_by_occupied.insert(skipped, successor);
+            }
+            return Ok(candidate);
+        }
+    }
+}
+
+fn build_entity_remap_linear(
+    scene: &DynamicScene,
+    world: &World,
+) -> Result<EntityRemap, DynamicSceneError> {
     let mut remap = EntityRemap::new();
     let mut reserved = BTreeSet::new();
     for entity in &scene.entities {
-        let target = first_available_entity_id(world, &reserved, entity.source_entity)?;
-        reserved.insert(target);
-        remap.insert(entity.source_entity, target);
+        let mut candidate = entity.source_entity;
+        loop {
+            if !world.contains_entity(candidate) && !reserved.contains(&candidate) {
+                reserved.insert(candidate);
+                remap.insert(entity.source_entity, candidate);
+                break;
+            }
+            candidate =
+                candidate
+                    .checked_add(1)
+                    .ok_or(DynamicSceneError::EntityIdSpaceExhausted {
+                        source_entity: entity.source_entity,
+                    })?;
+        }
     }
     Ok(remap)
 }
@@ -609,24 +702,6 @@ fn remapped_entity(
         .ok_or(DynamicSceneError::CompiledPlanMissingEntityRemap { source_entity })
 }
 
-fn first_available_entity_id(
-    world: &World,
-    reserved: &BTreeSet<EntityId>,
-    source: EntityId,
-) -> Result<EntityId, DynamicSceneError> {
-    let mut candidate = source;
-    loop {
-        if !world.contains_entity(candidate) && !reserved.contains(&candidate) {
-            return Ok(candidate);
-        }
-        candidate = candidate
-            .checked_add(1)
-            .ok_or(DynamicSceneError::EntityIdSpaceExhausted {
-                source_entity: source,
-            })?;
-    }
-}
-
 fn remapped_parent(
     world: &World,
     remap: &EntityRemap,
@@ -657,6 +732,10 @@ fn remap_record_entity_references(record: &mut NodeRecord, remap: &EntityRemap) 
         }
     }
 }
+
+#[cfg(test)]
+#[path = "transaction/performance_tests.rs"]
+mod performance_tests;
 
 #[cfg(test)]
 #[path = "transaction/tests.rs"]

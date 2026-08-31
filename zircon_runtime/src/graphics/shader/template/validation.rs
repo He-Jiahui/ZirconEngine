@@ -1,10 +1,12 @@
 use super::assemble::{
-    shader_assembly_source_location_for_line, MaterialShaderTemplateAssembly, ShaderAssemblySegment,
+    MaterialShaderTemplateAssembly, ShaderAssemblySegment, shader_assembly_source_location_for_line,
 };
+use super::reflection::{ShaderTemplateReflection, reflect_validated_shader_module};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct MaterialShaderTemplateValidation {
     pub(crate) entry_points: Vec<String>,
+    pub(crate) reflection: ShaderTemplateReflection,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -43,24 +45,28 @@ pub(crate) fn validate_material_shader_template_wgsl_with_segments(
         naga::valid::ValidationFlags::all(),
         naga::valid::Capabilities::all(),
     );
-    validator
-        .validate(&module)
-        .map_err(|error| ShaderTemplateValidationError::Validate {
-            message: remap_shader_diagnostic_message(
-                error.emit_to_string(wgsl_source),
-                error
-                    .location(wgsl_source)
-                    .map(|location| (location.line_number, location.line_position)),
-                segments,
-            ),
-        })?;
+    let module_info =
+        validator
+            .validate(&module)
+            .map_err(|error| ShaderTemplateValidationError::Validate {
+                message: remap_shader_diagnostic_message(
+                    error.emit_to_string(wgsl_source),
+                    error
+                        .location(wgsl_source)
+                        .map(|location| (location.line_number, location.line_position)),
+                    segments,
+                ),
+            })?;
+
+    let reflection = reflect_validated_shader_module(&module, &module_info);
 
     Ok(MaterialShaderTemplateValidation {
-        entry_points: module
+        entry_points: reflection
             .entry_points
             .iter()
             .map(|entry_point| entry_point.name.clone())
             .collect(),
+        reflection,
     })
 }
 
@@ -94,12 +100,12 @@ fn remap_shader_diagnostic_message(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        builtin_geometry_source_descriptor, ShaderPassType, GEOMETRY_SOURCE_ID_STATIC_MESH,
+        GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderPassType, builtin_geometry_source_descriptor,
     };
 
-    use super::{validate_material_shader_template_assembly, ShaderTemplateValidationError};
+    use super::{ShaderTemplateValidationError, validate_material_shader_template_assembly};
     use crate::graphics::shader::template::assemble::{
-        assemble_material_shader_template, MaterialShaderTemplateRequest,
+        MaterialShaderTemplateRequest, assemble_material_shader_template,
     };
 
     const INVALID_USER_SURFACE: &str = r#"

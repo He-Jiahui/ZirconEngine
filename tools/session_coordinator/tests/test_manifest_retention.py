@@ -102,8 +102,8 @@ class ManifestRetentionTests(unittest.TestCase):
             "terminal-owner",
             ["recent.rs"],
             "removed",
-            "2026-07-30T00:00:00+00:00",
-            "2026-07-30T00:00:00+00:00",
+            "2026-07-30T23:30:00+00:00",
+            "2026-07-30T23:30:00+00:00",
         )
 
         preview = self.service.preview(now=self.now)
@@ -203,6 +203,188 @@ class ManifestRetentionTests(unittest.TestCase):
         self.assertEqual(json.dumps({"expired.rs": "b"}, sort_keys=True), row["manifest_json"])
         self.assertIsNone(row["manifest_archive_path"])
 
+    def test_incremental_retention_rechecks_baseline_ownership_before_retiring(self) -> None:
+        expired_epoch = self._baseline({"expired.rs": "b"}, "2026-07-01T00:00:00+00:00")
+        self._baseline({"latest.rs": "c"}, "2026-07-30T00:00:00+00:00")
+        original_verifier = self.service._verify_archive
+
+        def claim_after_verification(*arguments: object, **kwargs: object) -> None:
+            original_verifier(*arguments, **kwargs)
+            self._session("new-active-owner", "active", expired_epoch)
+
+        self.service._verify_archive = claim_after_verification  # type: ignore[method-assign]
+        self.addCleanup(setattr, self.service, "_verify_archive", original_verifier)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.retire_incremental(actor="test", now=self.now)
+
+        self.assertEqual("manifest_retention_preview_stale", rejected.exception.code)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT manifest_json, manifest_archive_path FROM baseline_epochs WHERE epoch_id=?",
+                (expired_epoch,),
+            ).fetchone()
+            batch = connection.execute(
+                "SELECT status FROM manifest_retention_batches ORDER BY created_at DESC LIMIT 1"
+            ).fetchone()
+        self.assertEqual(json.dumps({"expired.rs": "b"}, sort_keys=True), row["manifest_json"])
+        self.assertIsNone(row["manifest_archive_path"])
+        self.assertEqual("failed", batch["status"])
+        self.assertEqual([], list((self.root / "state" / "manifest-archives").glob("*.jsonl.gz")))
+
+    def test_incremental_retention_rechecks_manifest_content_before_retiring(self) -> None:
+        expired_epoch = self._baseline({"expired.rs": "b"}, "2026-07-01T00:00:00+00:00")
+        self._baseline({"latest.rs": "c"}, "2026-07-30T00:00:00+00:00")
+        replacement = json.dumps({"expired.rs": "changed"}, sort_keys=True)
+        original_verifier = self.service._verify_archive
+
+        def mutate_after_verification(*arguments: object, **kwargs: object) -> None:
+            original_verifier(*arguments, **kwargs)
+            with self.database.transaction() as connection:
+                connection.execute(
+                    "UPDATE baseline_epochs SET manifest_json=? WHERE epoch_id=?",
+                    (replacement, expired_epoch),
+                )
+
+        self.service._verify_archive = mutate_after_verification  # type: ignore[method-assign]
+        self.addCleanup(setattr, self.service, "_verify_archive", original_verifier)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.retire_incremental(actor="test", now=self.now)
+
+        self.assertEqual("manifest_retention_preview_stale", rejected.exception.code)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT manifest_json, manifest_archive_path FROM baseline_epochs WHERE epoch_id=?",
+                (expired_epoch,),
+            ).fetchone()
+        self.assertEqual(replacement, row["manifest_json"])
+        self.assertIsNone(row["manifest_archive_path"])
+        self.assertEqual([], list((self.root / "state" / "manifest-archives").glob("*.jsonl.gz")))
+
+    def test_incremental_retention_rejects_explicit_zero_limits(self) -> None:
+        with self.assertRaisesRegex(ValueError, "max_candidates"):
+            self.service.retire_incremental(actor="test", now=self.now, max_candidates=0)
+        with self.assertRaisesRegex(ValueError, "max_bytes"):
+            self.service.retire_incremental(actor="test", now=self.now, max_bytes=0)
+
+    def test_incremental_retention_empty_rows_do_not_starve_payload_rows(self) -> None:
+        self._session("terminal-owner", "completed")
+        self._validation_copy(
+            "old-empty",
+            "terminal-owner",
+            [],
+            "removed",
+            "2026-07-30T20:00:00+00:00",
+            "2026-07-30T20:00:00+00:00",
+        )
+        self._validation_copy(
+            "old-payload",
+            "terminal-owner",
+            ["payload.rs"],
+            "removed",
+            "2026-07-30T21:00:00+00:00",
+            "2026-07-30T21:00:00+00:00",
+        )
+
+        result = self.service.retire_incremental(
+            actor="test",
+            now=self.now,
+            max_candidates=1,
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(1, result.retired_count)
+        with self.database.connect() as connection:
+            rows = {
+                str(row["job_id"]): tuple(row)
+                for row in connection.execute(
+                    "SELECT job_id, manifest_json, manifest_archive_path FROM validation_copies"
+                )
+            }
+        self.assertEqual("[]", rows["old-empty"][1])
+        self.assertIsNone(rows["old-empty"][2])
+        self.assertEqual("[]", rows["old-payload"][1])
+        self.assertIsNotNone(rows["old-payload"][2])
+
+    def test_incremental_retention_bounds_work_and_keeps_a_one_hour_grace(self) -> None:
+        self._session("terminal-owner", "completed")
+        for job_id, terminal_at in (
+            ("old-a", "2026-07-30T20:00:00+00:00"),
+            ("old-b", "2026-07-30T21:00:00+00:00"),
+            ("old-c", "2026-07-30T22:00:00+00:00"),
+            ("recent", "2026-07-30T23:30:00+00:00"),
+        ):
+            self._validation_copy(
+                job_id,
+                "terminal-owner",
+                [f"{job_id}.rs"],
+                "removed",
+                terminal_at,
+                terminal_at,
+            )
+
+        first = self.service.retire_incremental(
+            actor="test",
+            now=self.now,
+            max_candidates=2,
+            max_bytes=1024 * 1024,
+        )
+
+        self.assertIsNotNone(first)
+        assert first is not None
+        self.assertEqual(2, first.retired_count)
+        self.assertGreater(first.retired_bytes, 0)
+        self.assertTrue(first.archive_path.is_file())
+        with self.database.connect() as connection:
+            rows = {
+                str(row["job_id"]): tuple(row)
+                for row in connection.execute(
+                    """
+                    SELECT job_id, manifest_json, manifest_archive_path
+                    FROM validation_copies ORDER BY job_id
+                    """
+                )
+            }
+            batch = connection.execute(
+                """
+                SELECT status, backup_path FROM manifest_retention_batches
+                WHERE batch_id=?
+                """,
+                (first.batch_id,),
+            ).fetchone()
+        self.assertEqual("[]", rows["old-a"][1])
+        self.assertEqual("[]", rows["old-b"][1])
+        self.assertNotEqual("[]", rows["old-c"][1])
+        self.assertNotEqual("[]", rows["recent"][1])
+        self.assertIsNotNone(rows["old-a"][2])
+        self.assertEqual(("retired", None), tuple(batch))
+
+        second = self.service.retire_incremental(
+            actor="test",
+            now=self.now,
+            max_candidates=2,
+            max_bytes=1024 * 1024,
+        )
+        third = self.service.retire_incremental(
+            actor="test",
+            now=self.now,
+            max_candidates=2,
+            max_bytes=1024 * 1024,
+        )
+
+        self.assertIsNotNone(second)
+        assert second is not None
+        self.assertEqual(1, second.retired_count)
+        self.assertIsNone(third)
+        with self.database.connect() as connection:
+            recent = connection.execute(
+                "SELECT manifest_json, manifest_archive_path FROM validation_copies WHERE job_id='recent'"
+            ).fetchone()
+        self.assertNotEqual("[]", recent["manifest_json"])
+        self.assertIsNone(recent["manifest_archive_path"])
+
     def test_compact_requires_a_retired_batch_and_keeps_sqlite_healthy(self) -> None:
         expired_epoch = self._baseline({"expired.rs": "b"}, "2026-07-01T00:00:00+00:00")
         self._baseline({"latest.rs": "c"}, "2026-07-30T00:00:00+00:00")
@@ -213,11 +395,16 @@ class ManifestRetentionTests(unittest.TestCase):
         queued = self.service.queue_compact(applied.batch_id, actor="test", now=self.now)
 
         compacted = self.service.compact(applied.batch_id, actor="test", now=self.now)
+        repeated = self.service.apply(
+            preview, fingerprint=preview.fingerprint, actor="test", now=self.now
+        )
 
         self.assertEqual(applied.batch_id, compacted.batch_id)
+        self.assertEqual(applied, repeated)
         self.assertEqual("compact_pending", queued.status)
         self.assertEqual("ok", compacted.quick_check)
         self.assertGreaterEqual(compacted.size_before, compacted.size_after)
+        self.assertFalse(applied.backup_path.is_file())
         with self.database.connect() as connection:
             archived = connection.execute(
                 "SELECT manifest_archive_path FROM baseline_epochs WHERE epoch_id=?",

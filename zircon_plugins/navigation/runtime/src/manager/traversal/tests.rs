@@ -10,7 +10,8 @@ use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::{Mobility, NodeKind};
 use zircon_runtime::scene::World;
 
-use super::{begin_from_path, DefaultNavigationManager};
+use super::begin_from_path;
+use crate::test_support::{navigation_manager, TestNavigationManager};
 
 #[test]
 fn started_event_waits_for_successful_transform_write() {
@@ -58,14 +59,14 @@ fn completed_event_waits_for_successful_endpoint_write() {
 }
 
 fn traversal_fixture() -> (
-    DefaultNavigationManager,
+    TestNavigationManager,
     World,
     u64,
     zircon_runtime::core::framework::navigation::NavMeshHandle,
     NavMeshAsset,
     NavPathResult,
 ) {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let mut world = World::new();
     world
         .register_component_type(crate::navigation_component_descriptors()[2].clone())

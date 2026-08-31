@@ -22,6 +22,7 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/prototype.rs
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
+  - zircon_runtime/src/core/framework/render/ui_submission.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime/src/ui/text/mod.rs
@@ -76,10 +77,7 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/invalidation/fingerprint.rs
   - zircon_runtime/src/ui/template/asset/invalidation/graph.rs
-  - zircon_runtime/src/ui/template/loader.rs
-  - zircon_runtime/src/ui/template/validate.rs
   - zircon_runtime/src/ui/template/instance.rs
-  - zircon_runtime/src/ui/template/pipeline.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
   - zircon_runtime/src/ui/tests/template_pipeline.rs
   - docs/zircon_runtime/ui/template/pipeline.md
@@ -294,7 +292,6 @@ implementation_files:
   - zircon_runtime/src/ui/layout/pass/child_frame.rs
   - zircon_runtime/src/ui/layout/scroll.rs
   - zircon_runtime/src/ui/template/mod.rs
-  - zircon_runtime/src/ui/template/pipeline.rs
   - zircon_runtime/src/ui/template/build/mod.rs
   - zircon_runtime/src/ui/template/build/interaction.rs
   - zircon_runtime/src/ui/template/build/slot_contract.rs
@@ -322,8 +319,6 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/invalidation/fingerprint.rs
   - zircon_runtime/src/ui/template/asset/invalidation/graph.rs
-  - zircon_runtime/src/ui/template/loader.rs
-  - zircon_runtime/src/ui/template/validate.rs
   - zircon_runtime/src/ui/template/instance.rs
   - zircon_runtime/src/ui/tree/mod.rs
   - zircon_runtime/src/ui/tree/node/mod.rs
@@ -707,7 +702,7 @@ editor host 这一侧也已经同步收口：
 - [`EditorTemplateRegistry`](../../zircon_editor/src/ui/template/registry.rs) 只存 `UiCompiledDocument`
 - [`runtime_host.rs`](../../zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs) 的生产态只接受 `UiAssetDocument`
 - builtin host 文档 [`zircon_editor/assets/ui/editor/host/*.ui.toml`](../../zircon_editor/assets/ui/editor/host/workbench_shell.zui) 已改写成 tree asset authority，并继续留在 crate `src/` 之外
-- `UiTemplateDocument` / `UiTemplateLoader` 仅保留在 shared template 单元测试和历史 fixture 转换测试中，不再是 editor production runtime 的 fallback authority
+- `UiTemplateDocument` / `UiTemplateLoader` 已从 runtime/interface 生产与测试导出面删除，不再存在 fallback authority
 
 这意味着这一层当前负责的是“资产语义真源 + shared tree 首段落点 + 显式 layout 合同落点”，但仍然不负责 editor docking 业务、host callback ABI 或宿主专属状态机。真正的布局、命中、焦点和 route 权威仍然在 `UiTree` / `UiSurface` / shared layout contract。
 
@@ -813,7 +808,7 @@ Task 8 的文档收口基于当前 hard fence 状态，而不是早期 plan 中�
 
 Rust projection owner 在本次 DTO cutover 中仍是 [`src/ui/layouts/windows/workbench_host_window`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/mod.rs)，而不是 plan 早期样例里的 `host_window` move target。`generic_host_layout_paths` 因此同时守住两件事：active `zircon_editor/ui` 无 `.slint` 源，以及当前 Rust host projection seam 继续存在，避免新代码为了“补回入口”而恢复 `ui/workbench.slint`、`temp/slint-migration/**`、generated Slint include 或 `as slint_ui` 兼容别名。
 
-Runtime 侧不需要 editor host 的 Slint bootstrap。当前 [`RuntimeUiManager`](../../zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs) 已硬切为 test-support 验证器，而不是 product runtime API；它从 runtime `.zui` fixtures 经 `UiV2PrototypeStoreFileCache -> UiV2SurfaceBuilder -> ui::v2::surface_tree` 构建 owned `UiSurface`，再把 `UiRenderExtract` 交给 graphics。`runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces` 覆盖 `HudOverlay`、`PauseMenu`、`SettingsDialog`、`InventoryList` 和 `QuestLogDialog` 五个 fixtures；`render_framework_submits_all_builtin_runtime_ui_fixtures` 继续验证这些 fixture 经 `WgpuRenderFramework::submit_runtime_frame(...)` 进入 screen-space UI pass，并检查 command 与 quad/text payload stats。生产侧直接消费共享 UI surface/frame contract，不保留旧 `ui/runtime_ui` manager facade。
+Runtime 侧不需要 editor host 的 Slint bootstrap。当前 [`RuntimeUiManager`](../../zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs) 已硬切为 test-support 验证器，而不是 product runtime API；它从 runtime `.zui` fixtures 经 `UiV2PrototypeStoreFileCache -> UiV2SurfaceBuilder -> ui::v2::surface_tree` 构建 owned `UiSurface`，再把各 surface 的 `UiRenderExtract` 包装为 `UiRenderSubmission` 交给 graphics。`runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces` 覆盖 `HudOverlay`、`PauseMenu`、`SettingsDialog`、`InventoryList` 和 `QuestLogDialog` 五个 fixtures；`render_framework_submits_all_builtin_runtime_ui_fixtures` 继续验证这些 fixture 经 `WgpuRenderFramework::submit_runtime_frame(...)` 进入 screen-space UI pass，并检查 command 与 quad/text payload stats。生产侧直接消费共享 UI surface/frame contract，不保留旧 `ui/runtime_ui` manager facade。
 
 ## Runtime Typography Metadata
 
@@ -917,26 +912,26 @@ render_mode = "native"
 
 这样 shared template runtime 现在已经能把“字体资源引用、字号、行高、对齐、换行、auto/native/sdf 选择”一路投影到 shared render contract，而不需要 editor/runtime 再各自做一套文本样式解释。
 
-## Legacy Compat Model
+## Retired Recursive Source Model
 
 ### `UiTemplateDocument`
 
-- `version`
-- `components: BTreeMap<String, zircon_runtime::ui::template::UiComponentTemplate>`
-- `root: zircon_runtime::ui::template::UiTemplateNode`
-
-文档拥有一个真正的入口 root，以及一组可被重复装配的命名 component template。
+该 DTO 与旧 loader/validator/pipeline 已由 Runtime74 `RTB-P1-001` 删除。以下结构只用于理解
+历史记录和拒绝测试，不是可调用 API、fixture authority 或迁移入口。
 
 ### `zircon_runtime::ui::template::UiComponentTemplate`
 
 - `root: zircon_runtime::ui::template::UiTemplateNode`
 - `slots: BTreeMap<String, zircon_runtime::ui::template::UiSlotTemplate>`
 
-component template 是“复合组件装配层”的最小权威单元。它不直接描述最终像素 frame，只描述宿主树和 shared tree 应该如何拼装。
+这些类型不再存在于 formal namespace；复合组件定义、slot schema 和实例化现在由
+`UiAssetDocument` / `UiDocumentCompiler` 独占。
 
 ### `zircon_runtime::ui::template::UiTemplateNode`
 
-当前节点固定只有三种互斥形态：
+`UiTemplateNode` 仍是编译后的 retained tree DTO。其 `component/template/slot` 字段为了已有
+artifact 和编译器内部过渡保持可序列化，但对外 surface 输入必须已经展开：只允许
+`component`，且 `template` / `slot` / `slots` 必须为空。
 
 - `component`
   - 表示一个真实宿主/共享组件节点
@@ -962,11 +957,12 @@ component template 是“复合组件装配层”的最小权威单元。它不�
 
 `id` 用来承载诸如 `WorkbenchMenuBar/SaveProject` 这类稳定命名空间；`route` 只是稳定 route key，不是桌面宿主私有函数名。
 
-`UiComponentTemplate` / `UiSlotTemplate` / `UiBindingRef` / `UiActionRef` 现在都统一经 `zircon_runtime::ui::template::*` 暴露，`zircon_runtime::ui` root 不再继续平铺这组 template document model。
+`UiBindingRef` / `UiActionRef` 仍由 interface template namespace 暴露；已删除的
+`UiComponentTemplate` / `UiSlotTemplate` 不保留 re-export。
 
 ## Historical Source Template TOML Shape
 
-当前实现支持的最小 TOML 形态如下：
+已删除的历史 TOML 形态如下。`UiAssetLoader` 会拒绝它，因为它没有 `[asset]` header：
 
 ```toml
 version = 1
@@ -989,7 +985,7 @@ root = { component = "UiHostToolbar", children = [
 
 2026-04-30 generic host catalog cutover removed the host-specific icon-button and label transitional component names from active editor host assets and adapter tests. Host-owned shells such as `UiHostWindow` and `UiHostToolbar` remain as bootstrap/container roles, while leaf visuals use shared Runtime UI names such as `IconButton` and `Label`. The editor host adapter follows the same text resolution contract as Runtime UI render extraction for action-style nodes: a non-empty `text` prop wins, and an authored non-empty `label` remains the fallback when component schema defaults inject `text = ""`. Field/value nodes are the exception: when `placeholder`, `value`, `value_text`, `options`, `items`, or `entries` is present, `label` stays metadata and does not populate retained visible `text`.
 
-这个结构已经满足第一阶段目标：
+这个结构仅记录早期阶段曾覆盖的行为：
 
 - component template 可以嵌套 component template
 - slot 内容由调用点提供
@@ -1039,7 +1035,7 @@ root = { component = "UiHostToolbar", children = [
 
 ## Validation Rules
 
-`UiTemplateValidator` 当前已经把以下约束钉死：
+`UiDocumentCompiler` 当前在 asset schema 上统一执行以下约束：
 
 - 每个节点必须且只能声明 `component` / `template` / `slot` 其中一种
 - `template` 调用必须引用已注册的 component template
@@ -1053,26 +1049,33 @@ root = { component = "UiHostToolbar", children = [
 
 ## Instance Expansion
 
-`zircon_runtime::ui::template::UiTemplateInstance::from_document(...)` 当前会：
-
-- 先跑完整 `UiTemplateValidator`
-- 再把 `template` 调用展开成真实 component 子树
-- 再把 slot placeholder 替换成调用点提供的内容
-- 最终得到一个已经没有 `template`/`slot` 占位歧义的运行时模板实例树
+`UiDocumentCompiler::compile(...)` 当前会统一校验 asset document、展开 component/reference、
+替换 slot fill、编译 binding 并生成没有未解析 `template` / `slot` 占位的
+`UiCompiledDocument`。`UiTemplateInstance` 只承载该编译结果，不再提供 source document 入口。
 
 目前实例层还提供 `binding_refs()`，按树遍历顺序收集稳定 binding 引用。这正是后续 editor/runtime adapter 把模板树映射成 typed command/binding、再投影给 Rust-owned host contract 的入口。
 
 Material/Slate 化后的 `.ui.toml` 组件引用还要求调用点的实例布局能继续约束展开后的真实根控件。`UiDocumentCompiler` 现在会把 `kind = "reference"` 或 `kind = "component"` 实例节点上声明的 `layout` 合并为展开根节点的内联布局覆盖，再由 stylesheet resolver 写入最终 `attributes.layout`。这样 editor toolbar 可以把按钮改成 `MaterialButton` 元组件，同时保留原先的固定宽高、anchor、pivot、position 和 shared surface frame，不需要回到 Rust 坐标表。
 
-## Runtime 09 M3.1 Pipeline Boundary
+## Runtime74 Single Template Compiler Authority
 
-runtime_09_m3_1_template_compile_instance_validate_boundary_static_passed_cargo_pending
+RTB-P1-001
 
-`UiTemplateRuntimePipeline` now records the old recursive template runtime path as an explicit `load -> validate -> instance -> build` pipeline through `UI_TEMPLATE_RUNTIME_PIPELINE_STAGES`. The stage owners stay narrow: `UiTemplateLoader` parses TOML and files, `UiTemplateValidator` rejects structural contract failures, `UiTemplateInstance::from_validated_document(...)` expands already-validated template and slot nodes, and `UiTemplateSurfaceBuilder` builds the lazy `UiSurface`.
+Status: validation_pending
 
-`UiTemplateRuntimePipelineError` keeps the failing stage visible. `template_validate_rejects_unknown_component_contract` proves unknown component/template calls surface as validate failures, while `template_instance_failure_surfaces_loader_error` proves invalid TOML stays in the load stage before instance expansion can run.
+The source-to-surface path is now `UiAssetLoader -> UiDocumentCompiler -> UiCompiledDocument ->
+UiTemplateSurfaceBuilder`. The old recursive `UiTemplateLoader`, `UiTemplateValidator`,
+`UiTemplateRuntimePipeline`, `UiTemplateDocument`, and `UiTemplateError` authorities are deleted
+without compatibility exports. `UiTemplateInstance` remains the compiled retained-tree DTO and no
+longer parses, validates, or expands source documents.
 
-Compiled package output remains a binary/TOML payload DTO. `UiRuntimeCompiledAssetArtifact::generated_policy()` returns `runtime_09_m3_1_binary_leaf_dto_artifact_not_generated_source`, and `compiled_template_artifact_stays_binary_leaf_dto_not_generated_source` locks that it does not require a generated-source marker. If a future compiler emits source files, the first line must follow the Runtime 02 M4 rule `// @generated <generator> - do not edit by hand`; generated source may only contain leaf DTO/table/adaptor material, never validation, loader, instance, or surface mutation behavior.
+`asset_compiler_is_the_single_template_compile_authority` covers the canonical path;
+`legacy_recursive_template_document_is_not_a_runtime_compile_input` locks the hard cut; and
+`template_compiler_authority_has_bounded_p95_latency` emits
+`PERF-RUNTIME74-COMPILER-AUTHORITY` from 21 nearest-rank samples. Cargo and the measured P95 remain
+pending coordinator validation.
+
+Compiled package output remains a framed TOML envelope DTO. `UiRuntimeCompiledAssetArtifact::generated_policy()` returns `runtime_09_m3_1_toml_envelope_leaf_dto_not_generated_source`, and `compiled_template_artifact_stays_toml_envelope_leaf_dto_not_generated_source` locks that it does not require a generated-source marker. If a future compiler emits source files, the first line must follow the Runtime 02 M4 rule `// @generated <generator> - do not edit by hand`; generated source may only contain leaf DTO/table/adaptor material, never validation, loader, instance, or surface mutation behavior.
 
 ## Shared Tree Bridge
 

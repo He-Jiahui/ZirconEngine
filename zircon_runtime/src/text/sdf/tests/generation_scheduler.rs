@@ -30,6 +30,32 @@ fn fixture_glyph(source: &SdfGenerationSourceContext, scalar: char) -> u16 {
 }
 
 #[test]
+fn text_sdf_generation_scheduler_exposes_its_effective_budget_snapshot() {
+    let options = SdfGenerationSchedulerOptions::new(3)
+        .with_max_glyphs_per_batch(7)
+        .with_max_in_flight_glyphs(11)
+        .with_source_byte_budget(13)
+        .with_completion_queue_depth(17)
+        .with_completion_byte_budget(19);
+
+    let expected = SdfGenerationBudgetSnapshot {
+        max_in_flight_batches: 3,
+        max_glyphs_per_batch: 7,
+        max_in_flight_glyphs: 11,
+        source_byte_budget: 13,
+        completion_queue_depth: 17,
+        completion_byte_budget: 19,
+    };
+
+    assert_eq!(options.budget_snapshot(), expected);
+    let scheduler = SdfGenerationScheduler::new(
+        TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(1)),
+        options,
+    );
+    assert_eq!(scheduler.diagnostics(0).budget, expected);
+}
+
+#[test]
 fn text_sdf_generation_scheduler_bounds_deduplicates_and_cancels_work() {
     let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(1));
     let (started_tx, started_rx) = std::sync::mpsc::sync_channel(0);

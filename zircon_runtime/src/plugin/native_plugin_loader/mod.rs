@@ -19,6 +19,7 @@ mod load_discovered;
 mod loaded_native_plugin;
 mod native_plugin_abi;
 mod native_plugin_candidate;
+mod native_plugin_discovery;
 mod native_plugin_host_handle;
 mod native_plugin_live_host;
 mod native_plugin_load_manifest;
@@ -31,10 +32,9 @@ mod registration_manifest;
 pub use abi_declarations::{
     NativePluginAbiV3, NativePluginBehaviorV4, NativePluginBridgeMethodCallV3,
     NativePluginBridgeMethodFnV3, NativePluginBridgeMethodTableV3, NativePluginBridgeMethodV3,
-    NativePluginByteSliceV2, NativePluginByteSliceV3, NativePluginCallbackStatusV2,
-    NativePluginCallbackStatusV3, NativePluginEntryReportV3, NativePluginHostFunctionTableV3,
-    NativePluginInvokeCommandFnV4, NativePluginOutputSinkV4, NativePluginOutputWriteFnV4,
-    NativePluginOwnedByteBufferV2, NativePluginOwnedByteBufferV3, NativePluginSchemaVersionsV3,
+    NativePluginByteSliceV3, NativePluginCallbackStatusV3, NativePluginEntryReportV3,
+    NativePluginHostFunctionTableV3, NativePluginInvokeCommandFnV4, NativePluginOutputSinkV4,
+    NativePluginOutputWriteFnV4, NativePluginOwnedByteBufferV3, NativePluginSchemaVersionsV3,
     ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
     ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL,
     ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3, ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
@@ -47,21 +47,30 @@ pub use bridge_method_bindings::{
     native_bridge_method_descriptors_from_manifest, NativeBridgeCall, NativeBridgeMethodBinding,
     NativeBridgeMethodDescriptor, NativeBridgeMethodFn, NativeBridgeMethodManifestError,
 };
-pub use host_api_adapter::{
-    NativeHostApiV3RegistrationScope, NativeHostApiV4RegistrationPolicy,
-    NativeHostApiV4RegistrationScope, NativeHostBridgeCallScope,
+pub use discovery_refresh::{
+    NativePluginDiscoveryInputIdentity, NativePluginDiscoveryRefreshBudgetKind,
+    NativePluginDiscoveryRefreshError, NativePluginDiscoveryRefreshTerminal,
+    NativePluginDiscoveryRefreshTicket, NativePluginDiscoveryRoot, NativePluginDiscoverySnapshot,
 };
-pub use loaded_native_plugin::{LoadedNativePlugin, NativePluginCallbackDiagnostics};
+pub use host_api_adapter::{
+    NativeHostApiV4RegistrationPolicy, NativeHostApiV4RegistrationScope, NativeHostBridgeCallScope,
+};
+pub use loaded_native_plugin::{
+    LoadedNativePlugin, NativePluginCallbackDiagnostics, NativePluginEditorCommandBinding,
+    NativePluginEditorCommandBindingError,
+};
 pub use native_plugin_abi::{NativePluginDescriptor, NativePluginEntryReport};
 pub use native_plugin_candidate::NativePluginCandidate;
-pub use native_plugin_host_handle::{
+pub use native_plugin_discovery::{
     discover_native_plugins, discover_native_plugins_from_load_manifest,
-    load_discovered_native_editor_plugins, load_discovered_native_plugins,
-    load_discovered_native_runtime_plugins, load_native_editor_from_load_manifest,
-    load_native_plugins_from_load_manifest, load_native_runtime_from_load_manifest,
-    native_plugin_discovery_generation, refresh_native_plugin_discovery_manifest,
-    remove_discovered_native_plugin_path, NativePluginHostHandle, NativePluginHostWeakHandle,
+    latest_native_plugin_discovery_snapshot, load_discovered_native_editor_plugins,
+    load_discovered_native_plugins, load_discovered_native_runtime_plugins,
+    load_native_editor_from_load_manifest, load_native_plugins_from_load_manifest,
+    load_native_runtime_from_load_manifest, native_plugin_discovery_generation,
+    refresh_native_plugin_discovery_manifest, remove_discovered_native_plugin_path,
+    request_native_plugin_discovery_refresh, resolve_native_plugin_discovery_root,
 };
+pub use native_plugin_host_handle::{NativePluginHostHandle, NativePluginHostWeakHandle};
 pub use native_plugin_live_host::{
     NativePluginLiveHost, NativePluginLiveHostBridgeLifecycleReport,
     NativePluginLiveHostBridgeReloadReport, NativePluginLiveHostCommand,

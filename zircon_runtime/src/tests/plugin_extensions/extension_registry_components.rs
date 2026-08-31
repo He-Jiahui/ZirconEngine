@@ -372,7 +372,9 @@ fn runtime_extension_registry_installs_component_types_into_world_registry() {
             .map(|descriptor| descriptor.display_name.as_str()),
         Some("Cloud")
     );
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     world
         .set_dynamic_component(
             entity,

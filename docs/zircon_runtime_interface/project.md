@@ -11,7 +11,13 @@ related_code:
   - zircon_runtime_interface/src/project/rel_path/deserialize.rs
   - zircon_runtime_interface/src/project/manifest_summary/summary.rs
   - zircon_runtime_interface/src/project/manifest_summary/parse.rs
+  - zircon_runtime_interface/src/project/manifest_summary/admission.rs
+  - zircon_runtime_interface/src/project/manifest_summary/limits.rs
+  - zircon_runtime_interface/src/project/manifest_summary/error.rs
   - zircon_runtime_interface/src/project/manifest_summary/migration.rs
+  - zircon_runtime_interface/src/project/retired_asset_ref_migration/budget.rs
+  - zircon_runtime_interface/src/project/retired_asset_ref_migration/migrate.rs
+  - zircon_runtime_interface/src/project/retired_asset_ref_migration/error.rs
   - zircon_runtime_interface/src/project/template_pack/mod.rs
   - zircon_runtime_interface/src/project/template_pack/embedded.rs
   - templates/projects/renderable-empty/zircon-project.toml
@@ -25,7 +31,13 @@ implementation_files:
   - zircon_runtime_interface/src/project/rel_path/parse.rs
   - zircon_runtime_interface/src/project/manifest_summary/summary.rs
   - zircon_runtime_interface/src/project/manifest_summary/parse.rs
+  - zircon_runtime_interface/src/project/manifest_summary/admission.rs
+  - zircon_runtime_interface/src/project/manifest_summary/limits.rs
+  - zircon_runtime_interface/src/project/manifest_summary/error.rs
   - zircon_runtime_interface/src/project/manifest_summary/migration.rs
+  - zircon_runtime_interface/src/project/retired_asset_ref_migration/budget.rs
+  - zircon_runtime_interface/src/project/retired_asset_ref_migration/migrate.rs
+  - zircon_runtime_interface/src/project/retired_asset_ref_migration/error.rs
   - zircon_runtime_interface/src/project/template_pack/render.rs
   - zircon_runtime_interface/src/project/template_pack/embedded.rs
   - zircon_runtime_interface/src/serialization/migration/execute.rs
@@ -39,6 +51,7 @@ tests:
   - zircon_runtime_interface/src/project/tests/manifest_summary.rs
   - zircon_runtime_interface/src/project/tests/rel_path.rs
   - zircon_runtime_interface/src/project/tests/template_pack.rs
+  - zircon_runtime_interface/src/project/tests/retired_asset_ref_migration.rs
   - zircon_runtime_interface/src/serialization/tests/migration_contract.rs
   - tests/fixtures/serialization/project-manifest/v1/zircon-project.toml
   - tests/fixtures/serialization/project-manifest/v2/zircon-project.toml
@@ -72,11 +85,15 @@ The summary carries:
 - textual `default_scene` URI;
 - structural `format_version`.
 
-`parse_toml_str` and `parse_toml_bytes` are lightweight, typed-error entry points. They still validate the required library-version shape and safe asset-root/settings fields even though those fields are not retained in the summary. Extra full-manifest fields such as plugins, scripts, and export profiles remain runtime-owned and are ignored by the summary projection.
+`parse_toml_str` and `parse_toml_bytes` are lightweight, typed-error entry points. Both reject input above `MAX_PROJECT_MANIFEST_BYTES` (4 MiB) before TOML/value migration. After structured TOML parsing and before JSON projection, an iterative admission pass rejects nesting above 32, more than 16,384 cumulative table entries, or more than 65,536 cumulative array items; each typed failure reports `max` and `found`. Asset-root admission rejects empty lists and lists above `MAX_PROJECT_ASSET_ROOTS` (4,096). Duplicate and nested normalized roots return dedicated errors. Validation sorts borrowed roots by path components and scans adjacent entries, so duplicate/overlap detection is O(n log n) rather than pairwise O(n²); component ordering preserves the `a`, `a-b`, `a/child` boundary that raw string ordering would miss. The parser still validates the required library-version shape and safe settings field even though those fields are not retained in the summary. Extra full-manifest fields such as plugins, scripts, and export profiles remain runtime-owned and are ignored by the summary projection.
 
 When `engine_version_req` is present it must parse as `semver::VersionReq`. The typed failure carries both the rejected string and the original `semver::Error`; Hub therefore rejects syntactically valid TOML with an invalid engine requirement.
 
 ## Migration Adapter
+
+The retired `{ uuid, url }` compatibility walker is bounded even for programmatically constructed `serde_json::Value` input. Its standard policy accepts at most 2,000,000 values, depth 128, and 1,000,000 exact retired references; callers that own a narrower format may pass `RetiredAssetRefMigrationBudget` to the budgeted entry points. Admission uses an iterator-frame state machine and completes before any resolver callback or rewrite. A second iterator-frame pass replaces exact references in place, so traversal is O(nodes) time / O(depth) auxiliary space and unchanged arrays or objects are not rebuilt. Depth, node, and reference failures retain typed `resource`, `max`, and `found` evidence.
+
+Asset migration uses the single-reference primitive at known schema paths. The whole-value walker remains only a bounded compatibility adapter for DynamicScene v0 and ReflectedJson v0; exact two-field shape matching is not a substitute for the planned schema-path redirect catalog and changed-path receipt.
 
 The TOML adapter converts `toml::Value` to `serde_json::Value`, reads the structural source version, rejects future input, and calls `MigrationChain::migrate_value`. That serialization API is public specifically for non-JSON format adapters and always validates the entire declared chain before executing a suffix of steps. It prevents TOML consumers from creating a second migration framework or bypassing chain validation for current documents.
 
@@ -90,7 +107,7 @@ The interface boundary continues to forbid arbitrary `include_bytes!`; the only 
 
 ## Failures
 
-Errors distinguish invalid UTF-8, invalid TOML, invalid field shape, invalid values, invalid/future versions, and migration-chain failure. Future-version refusal occurs before current-type deserialization.
+Errors distinguish oversized documents/root lists, duplicate/overlapping roots, invalid UTF-8, invalid TOML, invalid field shape, invalid values, invalid/future versions, and migration-chain failure. Future-version refusal occurs before current-type deserialization.
 
 ## Test Status
 

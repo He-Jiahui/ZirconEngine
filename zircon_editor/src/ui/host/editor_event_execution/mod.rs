@@ -3,6 +3,7 @@ mod asset_event;
 mod common;
 mod dispatch;
 mod draft_event;
+mod error;
 mod execution_outcome;
 mod hierarchy_event;
 mod inspector_event;
@@ -14,4 +15,8 @@ mod viewport_event;
 
 pub(crate) use common::event_result_value;
 pub(crate) use dispatch::execute_event;
+pub use error::{
+    AssetEventExecutionError, AssetKindFilterError, EditorEventExecutionError,
+    MenuActionExecutionError,
+};
 pub(crate) use undo_policy::undo_policy_for_event;

@@ -8,15 +8,25 @@ use serde::ser::{
 };
 use serde::{Serialize, Serializer};
 
+#[path = "canonical_writer/json_string.rs"]
+mod json_string;
+#[path = "canonical_writer/output.rs"]
+mod output;
+
+use self::json_string::{write_json_display, write_json_string, write_json_string_preaccounted};
+use self::output::OutputBudget;
+pub(super) use self::output::{CountingWriter, COPY_BUFFER_BYTES};
+pub(in crate::serialization) use self::output::{
+    MAX_CANONICAL_NESTING_DEPTH, MAX_CANONICAL_OBJECT_ENTRIES,
+};
 use super::super::write_error::CanonicalTextWriteError;
+use super::super::SerializationBudget;
 use super::canonical_map_key::{CanonicalMapKey, CanonicalMapKeySerializer};
 use super::canonical_spool::TempSpool;
 use super::wire::MAX_TEXT_DOCUMENT_BYTES;
 
 pub(in crate::serialization) const SERDE_JSON_RAW_VALUE_TOKEN: &str =
     "$serde_json::private::RawValue";
-
-pub(super) const COPY_BUFFER_BYTES: usize = 64 * 1024;
 
 /// Serializes canonical JSON directly to `sink` and appends exactly one newline.
 ///
@@ -31,26 +41,26 @@ where
     T: ?Sized + Serialize,
     W: Write + ?Sized,
 {
-    write_canonical_text_with_limit(value, sink, Some(MAX_TEXT_DOCUMENT_BYTES))
+    write_canonical_text_with_limit(value, sink, MAX_TEXT_DOCUMENT_BYTES)
 }
 
-/// Streams canonical JSON without applying the authoring text wire's total
-/// document limit. The fixed staging and spool-copy bounds still apply.
-pub(in crate::serialization) fn write_canonical_text_unbounded<T, W>(
+/// Streams canonical JSON under a caller-owned archive budget.
+pub(in crate::serialization) fn write_canonical_text_with_budget<T, W>(
     value: &T,
     sink: &mut W,
+    budget: SerializationBudget,
 ) -> Result<usize, CanonicalTextWriteError>
 where
     T: ?Sized + Serialize,
     W: Write + ?Sized,
 {
-    write_canonical_text_with_limit(value, sink, None)
+    write_canonical_text_with_limit(value, sink, budget.max_output_bytes())
 }
 
 fn write_canonical_text_with_limit<T, W>(
     value: &T,
     sink: &mut W,
-    max_bytes: Option<usize>,
+    max_bytes: usize,
 ) -> Result<usize, CanonicalTextWriteError>
 where
     T: ?Sized + Serialize,
@@ -82,88 +92,7 @@ where
     T: ?Sized + Serialize,
     W: Write + ?Sized,
 {
-    write_canonical_text_with_limit(value, sink, Some(max_bytes))
-}
-
-struct OutputBudget {
-    bytes: usize,
-    max_bytes: Option<usize>,
-}
-
-impl OutputBudget {
-    fn new(max_bytes: Option<usize>) -> Self {
-        Self {
-            bytes: 0,
-            max_bytes,
-        }
-    }
-
-    fn reserve(&mut self, additional: usize) -> Result<(), CanonicalTextWriteError> {
-        let found =
-            self.bytes
-                .checked_add(additional)
-                .ok_or(CanonicalTextWriteError::OutputTooLarge {
-                    max: self.max_bytes.unwrap_or(usize::MAX),
-                    found: usize::MAX,
-                })?;
-        if let Some(max) = self.max_bytes.filter(|max| found > *max) {
-            return Err(CanonicalTextWriteError::OutputTooLarge { max, found });
-        }
-        self.bytes = found;
-        Ok(())
-    }
-
-    fn release(&mut self, bytes: usize) {
-        self.bytes = self.bytes.saturating_sub(bytes);
-    }
-
-    fn max_bytes(&self) -> Option<usize> {
-        self.max_bytes
-    }
-}
-
-pub(super) struct CountingWriter<'sink, 'budget, W: Write + ?Sized> {
-    sink: &'sink mut W,
-    budget: &'budget mut OutputBudget,
-}
-
-impl<'sink, 'budget, W: Write + ?Sized> CountingWriter<'sink, 'budget, W> {
-    fn new(sink: &'sink mut W, budget: &'budget mut OutputBudget) -> Self {
-        Self { sink, budget }
-    }
-
-    fn write_counted(&mut self, bytes: &[u8]) -> Result<(), CanonicalTextWriteError> {
-        self.budget.reserve(bytes.len())?;
-        self.write_all_bounded(bytes)
-    }
-
-    pub(super) fn write_preaccounted(
-        &mut self,
-        bytes: &[u8],
-    ) -> Result<(), CanonicalTextWriteError> {
-        self.write_all_bounded(bytes)
-    }
-
-    fn write_all_bounded(&mut self, bytes: &[u8]) -> Result<(), CanonicalTextWriteError> {
-        for chunk in bytes.chunks(COPY_BUFFER_BYTES) {
-            self.sink
-                .write_all(chunk)
-                .map_err(|source| CanonicalTextWriteError::Io {
-                    operation: "write canonical text",
-                    source,
-                })?;
-        }
-        Ok(())
-    }
-
-    fn flush(&mut self) -> Result<(), CanonicalTextWriteError> {
-        self.sink
-            .flush()
-            .map_err(|source| CanonicalTextWriteError::Io {
-                operation: "flush canonical text",
-                source,
-            })
-    }
+    write_canonical_text_with_limit(value, sink, max_bytes)
 }
 
 struct CanonicalTextSerializer<'output, 'sink, 'budget, W: Write + ?Sized> {
@@ -210,13 +139,14 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     where
         T: ?Sized + Serialize,
     {
+        let depth = self.serializer.depth + 1;
+        self.serializer.output.budget.ensure_nesting_depth(depth)?;
         if self.first {
             self.serializer.output.write_counted(b"\n")?;
             self.first = false;
         } else {
             self.serializer.output.write_counted(b",\n")?;
         }
-        let depth = self.serializer.depth + 1;
         self.serializer.write_indent(depth)?;
         let output = &mut *self.serializer.output;
         let mut nested = CanonicalTextSerializer { output, depth };
@@ -272,6 +202,10 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
         key: CanonicalMapKey,
     ) -> Result<CanonicalMapKey, CanonicalTextWriteError> {
         if !self.entries.contains_key(key.value()) {
+            self.serializer
+                .output
+                .budget
+                .ensure_object_entries(self.entries.len().saturating_add(1))?;
             self.serializer.output.budget.reserve(key.encoded_bytes())?;
         }
         Ok(key)
@@ -302,9 +236,10 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
         T: ?Sized + Serialize,
     {
         let depth = self.serializer.depth + 2;
+        self.serializer.output.budget.ensure_nesting_depth(depth)?;
         {
             let mut output =
-                CountingWriter::new(self.spool.file_mut()?, &mut *self.serializer.output.budget);
+                CountingWriter::new_spool(&mut self.spool, &mut *self.serializer.output.budget);
             if self.first {
                 output.write_counted(b"\n")?;
                 self.first = false;
@@ -325,7 +260,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     fn finish(mut self) -> Result<(), CanonicalTextWriteError> {
         {
             let mut output =
-                CountingWriter::new(self.spool.file_mut()?, &mut *self.serializer.output.budget);
+                CountingWriter::new_spool(&mut self.spool, &mut *self.serializer.output.budget);
             if !self.first {
                 output.write_counted(b"\n")?;
                 write_indent(&mut output, self.serializer.depth + 1)?;
@@ -361,6 +296,10 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     {
         let key = CanonicalMapKey::from_str(key, self.serializer.output.budget.max_bytes())?;
         if !self.entries.contains_key(key.value()) {
+            self.serializer
+                .output
+                .budget
+                .ensure_object_entries(self.entries.len().saturating_add(1))?;
             self.serializer.output.budget.reserve(key.encoded_bytes())?;
         }
         if let Some(previous) = self.entries.remove(key.value()) {
@@ -377,10 +316,10 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     }
 
     fn finish(self) -> Result<(), CanonicalTextWriteError> {
-        let mut inner = TempSpool::new()?;
+        let mut inner = TempSpool::new(self.serializer.output.budget.spool_attempt());
         {
             let mut output =
-                CountingWriter::new(inner.file_mut()?, &mut *self.serializer.output.budget);
+                CountingWriter::new_spool(&mut inner, &mut *self.serializer.output.budget);
             write_object(&mut output, self.serializer.depth + 1, self.entries)?;
             output.flush()?;
         }
@@ -570,9 +509,9 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized> Serializer
         variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        let mut spool = TempSpool::new()?;
+        let mut spool = TempSpool::new(self.output.budget.spool_attempt());
         {
-            let mut output = CountingWriter::new(spool.file_mut()?, &mut *self.output.budget);
+            let mut output = CountingWriter::new_spool(&mut spool, &mut *self.output.budget);
             output.write_counted(b"[")?;
             output.flush()?;
         }
@@ -781,9 +720,10 @@ where
     W: Write + ?Sized,
 {
     let before = parent.budget.bytes;
-    let mut spool = TempSpool::new()?;
+    parent.budget.ensure_nesting_depth(depth)?;
+    let mut spool = TempSpool::new(parent.budget.spool_attempt());
     {
-        let mut output = CountingWriter::new(spool.file_mut()?, &mut *parent.budget);
+        let mut output = CountingWriter::new_spool(&mut spool, &mut *parent.budget);
         let mut serializer = CanonicalTextSerializer {
             output: &mut output,
             depth,
@@ -791,6 +731,7 @@ where
         value.serialize(&mut serializer)?;
         output.flush()?;
     }
+    spool.finish_write()?;
     spool.accounted_bytes = parent.budget.bytes.saturating_sub(before);
     Ok(spool)
 }
@@ -804,6 +745,9 @@ fn write_single_object<W>(
 where
     W: Write + ?Sized,
 {
+    output
+        .budget
+        .ensure_nesting_depth(depth.saturating_add(1))?;
     let key = CanonicalMapKey::from_string(key, output.budget.max_bytes())?;
     output.budget.reserve(key.encoded_bytes())?;
     let (key, _) = key.into_parts();
@@ -850,124 +794,4 @@ where
         output.write_counted(b"  ")?;
     }
     Ok(())
-}
-
-fn write_json_string<W>(
-    output: &mut CountingWriter<'_, '_, W>,
-    value: &str,
-) -> Result<(), CanonicalTextWriteError>
-where
-    W: Write + ?Sized,
-{
-    output.write_counted(b"\"")?;
-    write_json_string_content(value, |bytes| output.write_counted(bytes))?;
-    output.write_counted(b"\"")
-}
-
-fn write_json_string_preaccounted<W>(
-    output: &mut CountingWriter<'_, '_, W>,
-    value: &str,
-) -> Result<(), CanonicalTextWriteError>
-where
-    W: Write + ?Sized,
-{
-    output.write_preaccounted(b"\"")?;
-    write_json_string_content(value, |bytes| output.write_preaccounted(bytes))?;
-    output.write_preaccounted(b"\"")
-}
-
-fn write_json_display<W, T>(
-    output: &mut CountingWriter<'_, '_, W>,
-    value: &T,
-) -> Result<(), CanonicalTextWriteError>
-where
-    W: Write + ?Sized,
-    T: ?Sized + fmt::Display,
-{
-    output.write_counted(b"\"")?;
-    let (display_result, write_error) = {
-        let mut writer = CanonicalJsonDisplayWriter {
-            output,
-            error: None,
-        };
-        let result = fmt::write(&mut writer, format_args!("{value}"));
-        (result, writer.error.take())
-    };
-    if let Some(error) = write_error {
-        return Err(error);
-    }
-    if display_result.is_err() {
-        return Err(CanonicalTextWriteError::PayloadValidation {
-            reason: "Display implementation rejected canonical text formatting".to_string(),
-        });
-    }
-    output.write_counted(b"\"")
-}
-
-struct CanonicalJsonDisplayWriter<'writer, 'sink, 'budget, W: Write + ?Sized> {
-    output: &'writer mut CountingWriter<'sink, 'budget, W>,
-    error: Option<CanonicalTextWriteError>,
-}
-
-impl<W> fmt::Write for CanonicalJsonDisplayWriter<'_, '_, '_, W>
-where
-    W: Write + ?Sized,
-{
-    fn write_str(&mut self, value: &str) -> fmt::Result {
-        let result = write_json_string_content(value, |bytes| self.output.write_counted(bytes));
-        match result {
-            Ok(()) => Ok(()),
-            Err(error) => {
-                self.error = Some(error);
-                Err(fmt::Error)
-            }
-        }
-    }
-}
-
-fn write_json_string_content<F>(value: &str, mut write: F) -> Result<(), CanonicalTextWriteError>
-where
-    F: FnMut(&[u8]) -> Result<(), CanonicalTextWriteError>,
-{
-    let mut literal_start = 0;
-    for (index, character) in value.char_indices() {
-        let escaped = match character {
-            '\"' => Some(b"\\\"" as &[u8]),
-            '\\' => Some(b"\\\\" as &[u8]),
-            '\u{08}' => Some(b"\\b" as &[u8]),
-            '\u{0C}' => Some(b"\\f" as &[u8]),
-            '\n' => Some(b"\\n" as &[u8]),
-            '\r' => Some(b"\\r" as &[u8]),
-            '\t' => Some(b"\\t" as &[u8]),
-            control if control <= '\u{1F}' => {
-                write(value[literal_start..index].as_bytes())?;
-                let code = control as u32;
-                let unicode = [
-                    b'\\',
-                    b'u',
-                    b'0',
-                    b'0',
-                    hex_digit((code >> 4) as u8),
-                    hex_digit(code as u8),
-                ];
-                write(&unicode)?;
-                literal_start = index + character.len_utf8();
-                continue;
-            }
-            _ => None,
-        };
-        if let Some(escaped) = escaped {
-            write(value[literal_start..index].as_bytes())?;
-            write(escaped)?;
-            literal_start = index + character.len_utf8();
-        }
-    }
-    write(value[literal_start..].as_bytes())
-}
-
-fn hex_digit(value: u8) -> u8 {
-    match value & 0x0F {
-        0..=9 => b'0' + (value & 0x0F),
-        digit => b'a' + (digit - 10),
-    }
 }

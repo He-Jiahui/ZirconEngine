@@ -10,6 +10,9 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
     let extract_owner = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract.rs",
     );
+    let extract_command_slots_owner = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/command_slots.rs",
+    );
     let extract_item_owner = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs",
     );
@@ -81,6 +84,23 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
             "pub(crate) use pending_command_cache_plan::PendingMeshCommandCachePlanStats;",
             "PendingMeshCommandCacheExtractionContext",
             "PendingMeshCommandCacheExtractionStats",
+        ],
+    );
+    assert_contains_all(
+        "pending command cache extract mounts bounded command slots owner",
+        &extract_owner,
+        &[
+            "mod command_slots;",
+            "use command_slots::PendingMeshCommandSlots;",
+        ],
+    );
+    assert_contains_all(
+        "pending command slots owner keeps the cacheable phase bound explicit",
+        &extract_command_slots_owner,
+        &[
+            "const MAX_CACHEABLE_PHASE_COUNT: usize = 3;",
+            "pub(super) struct PendingMeshCommandSlots<T>",
+            "impl<T> IntoIterator for PendingMeshCommandSlots<T>",
         ],
     );
     assert_contains_all(
@@ -376,6 +396,11 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
             "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract.rs",
             extract_owner.as_str(),
             320,
+        ),
+        (
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/command_slots.rs",
+            extract_command_slots_owner.as_str(),
+            100,
         ),
         (
             "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs",

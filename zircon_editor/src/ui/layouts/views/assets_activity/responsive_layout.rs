@@ -1,4 +1,5 @@
-use zircon_runtime_interface::resource::ResourceKind;
+use std::collections::HashMap;
+
 use zircon_runtime_interface::ui::design_tokens::{
     EditorControlTokens, EditorDensityTokens, EditorTypographyTokens,
 };
@@ -14,19 +15,67 @@ use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetWorkspaceSnapshot};
 const COMPACT_TOOLBAR_ROW_COUNT: f32 = 2.0;
 const PREFERRED_UTILITY_ROW_COUNT: f32 = 4.0;
 const MINIMUM_UTILITY_ROW_COUNT: f32 = 2.0;
+const PREVIEW_OVERLAY_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_OVERLAY_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+const PREVIEW_CAPTION_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+
+struct ResponsiveNodeIndex<'a> {
+    nodes: &'a mut [ViewTemplateNodeData],
+    indices_by_control_id: HashMap<String, Vec<usize>>,
+}
+
+impl<'a> ResponsiveNodeIndex<'a> {
+    fn new(nodes: &'a mut [ViewTemplateNodeData]) -> Self {
+        let mut indices_by_control_id = HashMap::<String, Vec<usize>>::with_capacity(nodes.len());
+        for (index, node) in nodes.iter().enumerate() {
+            indices_by_control_id
+                .entry(node.control_id.to_string())
+                .or_default()
+                .push(index);
+        }
+        Self {
+            nodes,
+            indices_by_control_id,
+        }
+    }
+
+    fn node(&self, control_id: &str) -> Option<&ViewTemplateNodeData> {
+        let index = *self.indices_by_control_id.get(control_id)?.first()?;
+        self.nodes.get(index)
+    }
+
+    fn frame(&self, control_id: &str) -> Option<ViewTemplateFrameData> {
+        self.node(control_id).map(|node| node.frame.clone())
+    }
+
+    fn set_frame(&mut self, control_id: &str, x: f32, y: f32, width: f32, height: f32) {
+        let Some(indices) = self.indices_by_control_id.get(control_id) else {
+            return;
+        };
+        for &index in indices {
+            let node = &mut self.nodes[index];
+            node.frame.x = x;
+            node.frame.y = y;
+            node.frame.width = width.max(0.0);
+            node.frame.height = height.max(0.0);
+        }
+    }
+}
 
 pub(super) fn apply_assets_activity_responsive_layout(
     nodes: &mut [ViewTemplateNodeData],
     snapshot: &AssetWorkspaceSnapshot,
     size: UiSize,
 ) {
+    let mut nodes = ResponsiveNodeIndex::new(nodes);
     let density = EditorDensityTokens::workbench_dense();
     let controls = EditorControlTokens::workbench_dense();
-    let Some(root) = node_frame(nodes, "AssetsActivityRoot") else {
+    let Some(root) = node_frame(&nodes, "AssetsActivityRoot") else {
         return;
     };
-    if root.width > density.compact_left_drawer_max_width {
-        apply_wide_utility_tab_visibility(nodes, snapshot, &root);
+    if root.width > density.breakpoint_narrow_width {
+        apply_wide_utility_tab_visibility(&mut nodes, snapshot, &root);
         return;
     }
 
@@ -52,8 +101,7 @@ pub(super) fn apply_assets_activity_responsive_layout(
     let utility_y = main_y + main_height + gap;
 
     layout_toolbar(
-        nodes,
-        snapshot,
+        &mut nodes,
         root.x,
         root.y,
         width,
@@ -62,9 +110,9 @@ pub(super) fn apply_assets_activity_responsive_layout(
         density,
         controls,
     );
-    layout_main_content(nodes, root.x, main_y, width, main_height);
+    layout_main_content(&mut nodes, root.x, main_y, width, main_height);
     layout_utility(
-        nodes,
+        &mut nodes,
         snapshot,
         root.x,
         utility_y,
@@ -77,7 +125,7 @@ pub(super) fn apply_assets_activity_responsive_layout(
 }
 
 fn apply_wide_utility_tab_visibility(
-    nodes: &mut [ViewTemplateNodeData],
+    nodes: &mut ResponsiveNodeIndex<'_>,
     snapshot: &AssetWorkspaceSnapshot,
     root: &ViewTemplateFrameData,
 ) {
@@ -92,8 +140,7 @@ fn apply_wide_utility_tab_visibility(
 }
 
 fn layout_toolbar(
-    nodes: &mut [ViewTemplateNodeData],
-    snapshot: &AssetWorkspaceSnapshot,
+    nodes: &mut ResponsiveNodeIndex<'_>,
     x: f32,
     y: f32,
     width: f32,
@@ -109,13 +156,6 @@ fn layout_toolbar(
             "AssetsActivityTitleText",
             "AssetsActivityToolbarSubtitleRow",
             "AssetsActivitySubtitleText",
-            "AssetsActivityToolbarKindSecondaryRow",
-            "AssetsActivityKindPhysicsChip",
-            "AssetsActivityKindSkeletonChip",
-            "AssetsActivityKindClipChip",
-            "AssetsActivityKindSequenceChip",
-            "AssetsActivityKindGraphChip",
-            "AssetsActivityKindStateChip",
         ],
         x,
         y,
@@ -159,7 +199,7 @@ fn layout_toolbar(
     let second_y = y + row_height + density.gap_small;
     set_node_frame(
         nodes,
-        "AssetsActivityToolbarKindPrimaryRow",
+        "AssetsActivityToolbarFilterRow",
         x,
         second_y,
         width,
@@ -167,7 +207,6 @@ fn layout_toolbar(
     );
     layout_compact_toolbar_controls(
         nodes,
-        snapshot,
         x + padding,
         second_y,
         inner_width,
@@ -178,8 +217,7 @@ fn layout_toolbar(
 }
 
 fn layout_compact_toolbar_controls(
-    nodes: &mut [ViewTemplateNodeData],
-    snapshot: &AssetWorkspaceSnapshot,
+    nodes: &mut ResponsiveNodeIndex<'_>,
     x: f32,
     y: f32,
     width: f32,
@@ -187,33 +225,44 @@ fn layout_compact_toolbar_controls(
     density: EditorDensityTokens,
     controls: EditorControlTokens,
 ) {
-    let selected_kind = selected_kind_control(snapshot.kind_filter);
-    let mut visible = vec![
-        "AssetsActivityViewModeListButton",
-        "AssetsActivityViewModeThumbButton",
-        "AssetsActivityKindAllChip",
-    ];
-    if let Some(control_id) = selected_kind {
-        visible.push(control_id);
-    }
+    let icon_width = controls.dense_height.min(width.max(0.0));
+    let first_gap = density.gap_small.min((width - icon_width).max(0.0));
+    let second_icon_width = icon_width.min((width - icon_width - first_gap).max(0.0));
+    let second_gap = density
+        .gap_small
+        .min((width - icon_width - first_gap - second_icon_width).max(0.0));
+    let filter_width = (width - icon_width - first_gap - second_icon_width - second_gap).max(0.0);
+    let list_x = x + filter_width + second_gap;
+    let thumbnail_x = list_x + icon_width + first_gap;
 
-    hide_nodes(nodes, PRIMARY_KIND_CONTROLS, x, y);
-    let mut cursor_x = x;
-    for control_id in visible {
-        let control_width = measured_button_width(nodes, control_id, density, controls);
-        let leading_gap = if cursor_x > x { density.gap_small } else { 0.0 };
-        if cursor_x + leading_gap + control_width > x + width + f32::EPSILON {
-            hide_nodes(nodes, &[control_id], x + width, y);
-            continue;
-        }
-        cursor_x += leading_gap;
-        set_node_frame(nodes, control_id, cursor_x, y, control_width, height);
-        cursor_x += control_width;
-    }
+    set_node_frame(
+        nodes,
+        "AssetsActivityKindFilterDropdown",
+        x,
+        y,
+        filter_width,
+        height,
+    );
+    set_node_frame(
+        nodes,
+        "AssetsActivityViewModeListButton",
+        list_x,
+        y,
+        icon_width,
+        height,
+    );
+    set_node_frame(
+        nodes,
+        "AssetsActivityViewModeThumbButton",
+        thumbnail_x,
+        y,
+        second_icon_width,
+        height,
+    );
 }
 
 fn layout_main_content(
-    nodes: &mut [ViewTemplateNodeData],
+    nodes: &mut ResponsiveNodeIndex<'_>,
     x: f32,
     y: f32,
     width: f32,
@@ -225,7 +274,7 @@ fn layout_main_content(
 }
 
 fn layout_utility(
-    nodes: &mut [ViewTemplateNodeData],
+    nodes: &mut ResponsiveNodeIndex<'_>,
     snapshot: &AssetWorkspaceSnapshot,
     x: f32,
     y: f32,
@@ -310,7 +359,7 @@ fn layout_utility(
 }
 
 fn layout_preview(
-    nodes: &mut [ViewTemplateNodeData],
+    nodes: &mut ResponsiveNodeIndex<'_>,
     x: f32,
     y: f32,
     width: f32,
@@ -331,12 +380,35 @@ fn layout_preview(
     );
     let text_x = x + density.gap_medium * 2.0 + visual_extent;
     let text_width = (x + width - density.gap_medium - text_x).max(0.0);
-    for (control_id, offset_y) in [
-        ("AssetsActivityPreviewNameText", density.gap_small),
-        ("AssetsActivityPreviewLocatorText", density.gap_small + 18.0),
-        ("AssetsActivityPreviewKindText", density.gap_small + 34.0),
+    for (control_id, offset_y, line_height) in [
+        (
+            "AssetsActivityPreviewNameText",
+            density.gap_small,
+            PREVIEW_OVERLAY_LINE_HEIGHT,
+        ),
+        (
+            "AssetsActivityPreviewLocatorText",
+            density.gap_small + PREVIEW_OVERLAY_LINE_HEIGHT + density.gap_xsmall,
+            PREVIEW_CAPTION_LINE_HEIGHT,
+        ),
+        (
+            "AssetsActivityPreviewKindText",
+            density.gap_small
+                + PREVIEW_OVERLAY_LINE_HEIGHT
+                + density.gap_xsmall
+                + PREVIEW_CAPTION_LINE_HEIGHT
+                + density.gap_xsmall,
+            PREVIEW_CAPTION_LINE_HEIGHT,
+        ),
     ] {
-        set_node_frame(nodes, control_id, text_x, y + offset_y, text_width, 14.0);
+        set_node_frame(
+            nodes,
+            control_id,
+            text_x,
+            y + offset_y,
+            text_width,
+            line_height,
+        );
     }
     hide_nodes(
         nodes,
@@ -351,24 +423,13 @@ fn layout_preview(
     );
 }
 
-fn selected_kind_control(kind: Option<ResourceKind>) -> Option<&'static str> {
-    match kind {
-        Some(ResourceKind::Texture) => Some("AssetsActivityKindTextureChip"),
-        Some(ResourceKind::Material) => Some("AssetsActivityKindMaterialChip"),
-        Some(ResourceKind::Scene) => Some("AssetsActivityKindSceneChip"),
-        Some(ResourceKind::Model | ResourceKind::Mesh) => Some("AssetsActivityKindModelChip"),
-        Some(ResourceKind::Shader) => Some("AssetsActivityKindShaderChip"),
-        _ => None,
-    }
-}
-
 fn measured_button_width(
-    nodes: &[ViewTemplateNodeData],
+    nodes: &ResponsiveNodeIndex<'_>,
     control_id: &str,
     density: EditorDensityTokens,
     controls: EditorControlTokens,
 ) -> f32 {
-    let Some(node) = nodes.iter().find(|node| node.control_id == control_id) else {
+    let Some(node) = nodes.node(control_id) else {
         return controls.default_height;
     };
     if node.role.as_str() == "IconButton" {
@@ -412,46 +473,26 @@ fn fit_horizontal_pair(
     (primary_width, secondary_width, gap)
 }
 
-fn node_frame(nodes: &[ViewTemplateNodeData], control_id: &str) -> Option<ViewTemplateFrameData> {
-    nodes
-        .iter()
-        .find(|node| node.control_id == control_id)
-        .map(|node| node.frame.clone())
+fn node_frame(nodes: &ResponsiveNodeIndex<'_>, control_id: &str) -> Option<ViewTemplateFrameData> {
+    nodes.frame(control_id)
 }
 
-fn hide_nodes(nodes: &mut [ViewTemplateNodeData], control_ids: &[&str], x: f32, y: f32) {
+fn hide_nodes(nodes: &mut ResponsiveNodeIndex<'_>, control_ids: &[&str], x: f32, y: f32) {
     for control_id in control_ids {
         set_node_frame(nodes, control_id, x, y, 0.0, 0.0);
     }
 }
 
 fn set_node_frame(
-    nodes: &mut [ViewTemplateNodeData],
+    nodes: &mut ResponsiveNodeIndex<'_>,
     control_id: &str,
     x: f32,
     y: f32,
     width: f32,
     height: f32,
 ) {
-    for node in nodes
-        .iter_mut()
-        .filter(|node| node.control_id == control_id)
-    {
-        node.frame.x = x;
-        node.frame.y = y;
-        node.frame.width = width.max(0.0);
-        node.frame.height = height.max(0.0);
-    }
+    nodes.set_frame(control_id, x, y, width, height);
 }
-
-const PRIMARY_KIND_CONTROLS: &[&str] = &[
-    "AssetsActivityKindAllChip",
-    "AssetsActivityKindTextureChip",
-    "AssetsActivityKindMaterialChip",
-    "AssetsActivityKindSceneChip",
-    "AssetsActivityKindModelChip",
-    "AssetsActivityKindShaderChip",
-];
 
 const TREE_CONTROLS: &[&str] = &[
     "AssetsActivityTreePanel",
@@ -519,3 +560,6 @@ mod tests {
         assert!(primary + gap + secondary <= 120.0);
     }
 }
+
+#[cfg(test)]
+mod control_index_tests;

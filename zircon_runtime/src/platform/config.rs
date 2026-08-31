@@ -17,16 +17,28 @@ pub struct PlatformConfig {
 }
 
 impl PlatformConfig {
-    pub fn capability_report(&self) -> PlatformCapabilityReport {
-        PlatformCapabilityMatrix::new(self.features).report(self.target, self.target_mode)
+    /// Returns the static compile/target catalog used for planning. It does
+    /// not prove that a platform host is installed or observed at runtime.
+    pub fn planning_capability_report(&self) -> PlatformCapabilityReport {
+        let report =
+            PlatformCapabilityMatrix::new(self.features).report(self.target, self.target_mode);
+        if self.enabled {
+            report
+        } else {
+            report.disabled_by_platform()
+        }
     }
 
-    pub fn capability_report_with_preference_storage_backend(
+    pub fn planning_capability_report_with_preference_storage_backend(
         &self,
         backend: PreferenceStorageBackendKind,
     ) -> PlatformCapabilityReport {
-        self.capability_report()
-            .with_preference_storage_backend(backend)
+        let report = self.planning_capability_report();
+        if self.enabled {
+            report.with_preference_storage_backend(backend)
+        } else {
+            report
+        }
     }
 
     pub fn diagnostic_lines(&self) -> Vec<String> {
@@ -42,7 +54,7 @@ impl PlatformConfig {
         let mut lines = Vec::with_capacity(29);
         lines.push(format!("platform.enabled={}", self.enabled));
         lines.extend(
-            self.capability_report_with_preference_storage_backend(backend)
+            self.planning_capability_report_with_preference_storage_backend(backend)
                 .diagnostic_lines(),
         );
         lines

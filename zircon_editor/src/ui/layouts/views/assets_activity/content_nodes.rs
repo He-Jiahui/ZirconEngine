@@ -14,11 +14,16 @@ pub(super) const EMPTY_CONTROL_ID: &str = ACTIVITY_CONTENT_EMPTY_CONTROL_ID;
 const CONTENT_ROW_LAYER: i32 = 20;
 const CONTENT_BADGE_LAYER: i32 = 21;
 const CONTENT_LABEL_LAYER: i32 = 22;
+const CONTENT_NODES_PER_ROW: usize = 5;
 
 pub(super) fn append_assets_activity_content_nodes(
     nodes: &mut Vec<ViewTemplateNodeData>,
     snapshot: &AssetWorkspaceSnapshot,
 ) {
+    nodes.reserve(assets_activity_content_node_count(
+        snapshot.visible_folders.len(),
+        snapshot.visible_assets.len(),
+    ));
     if snapshot.visible_folders.is_empty() && snapshot.visible_assets.is_empty() {
         nodes.push(empty_state_node());
         return;
@@ -84,6 +89,15 @@ pub(super) fn append_assets_activity_content_nodes(
             typography().caption_size,
             typography().body_weight as i32,
         ));
+    }
+}
+
+fn assets_activity_content_node_count(folder_count: usize, asset_count: usize) -> usize {
+    let row_count = folder_count.saturating_add(asset_count);
+    if row_count == 0 {
+        1
+    } else {
+        row_count.saturating_mul(CONTENT_NODES_PER_ROW)
     }
 }
 
@@ -212,3 +226,7 @@ pub(super) fn item_name_control_id(index: usize) -> String {
 pub(super) fn item_meta_control_id(index: usize) -> String {
     format!("{ACTIVITY_CONTENT_ITEM_PREFIX}Meta{index:02}")
 }
+
+#[cfg(test)]
+#[path = "content_nodes/reserve_tests.rs"]
+mod reserve_tests;

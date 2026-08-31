@@ -7,11 +7,11 @@ use crate::ui::retained_host::primitives::SharedString;
 use self::floating::floating_document_tab_drag_payload;
 use self::root::root_document_tab_drag_payload;
 
-pub(super) fn document_tab_drag_payload(
-    presentation: &HostWindowPresentationData,
+pub(super) fn document_tab_drag_payload<'a>(
+    presentation: &'a HostWindowPresentationData,
     surface_key: &SharedString,
     index: usize,
-) -> Option<(TabData, SharedString)> {
+) -> Option<(&'a TabData, &'a SharedString)> {
     if surface_key.as_str() == "document" {
         return root_document_tab_drag_payload(presentation, index);
     }

@@ -75,12 +75,29 @@ fn resource_kind_name(kind: ResourceKind) -> &'static str {
 }
 
 fn render_diagnostics(diagnostics: &[ResourceDiagnostic]) -> String {
-    diagnostics
+    const SEPARATOR: &str = "; ";
+
+    let capacity = diagnostics
         .iter()
-        .map(|diagnostic| diagnostic.message.as_str())
-        .collect::<Vec<_>>()
-        .join("; ")
+        .map(|diagnostic| diagnostic.message.len())
+        .sum::<usize>()
+        + diagnostics
+            .len()
+            .saturating_sub(1)
+            .saturating_mul(SEPARATOR.len());
+    let mut rendered = String::with_capacity(capacity);
+    for (index, diagnostic) in diagnostics.iter().enumerate() {
+        if index != 0 {
+            rendered.push_str(SEPARATOR);
+        }
+        rendered.push_str(&diagnostic.message);
+    }
+    rendered
 }
+
+#[cfg(test)]
+#[path = "resource_access/direct_join_tests.rs"]
+mod direct_join_tests;
 
 #[cfg(test)]
 mod tests {

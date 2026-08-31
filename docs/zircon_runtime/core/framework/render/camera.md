@@ -1,6 +1,21 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/camera/camera_snapshot.rs
+  - zircon_runtime/src/core/framework/render/camera/clear_color.rs
+  - zircon_runtime/src/core/framework/render/camera/defaults.rs
+  - zircon_runtime/src/core/framework/render/camera/display_mode.rs
+  - zircon_runtime/src/core/framework/render/camera/dynamic_resolution.rs
+  - zircon_runtime/src/core/framework/render/camera/layer.rs
+  - zircon_runtime/src/core/framework/render/camera/layer_set.rs
+  - zircon_runtime/src/core/framework/render/camera/projection_mode.rs
+  - zircon_runtime/src/core/framework/render/camera/target.rs
+  - zircon_runtime/src/core/framework/render/camera/target_kind.rs
+  - zircon_runtime/src/core/framework/render/camera/viewport_rect.rs
+  - zircon_runtime/src/core/framework/render/camera/viewport_settings.rs
+  - zircon_runtime/src/core/framework/render/camera/extract_request.rs
+  - zircon_runtime/src/core/framework/render/camera/fallback_skybox.rs
+  - zircon_runtime/src/core/framework/render/camera/tests.rs
   - zircon_runtime/src/core/framework/render/temporal_jitter.rs
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
@@ -61,7 +76,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_writeback_converter.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -83,6 +98,21 @@ related_code:
   - dev/bevy/crates/bevy_core_pipeline/src/core_3d/mod.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/camera/camera_snapshot.rs
+  - zircon_runtime/src/core/framework/render/camera/clear_color.rs
+  - zircon_runtime/src/core/framework/render/camera/defaults.rs
+  - zircon_runtime/src/core/framework/render/camera/display_mode.rs
+  - zircon_runtime/src/core/framework/render/camera/dynamic_resolution.rs
+  - zircon_runtime/src/core/framework/render/camera/layer.rs
+  - zircon_runtime/src/core/framework/render/camera/layer_set.rs
+  - zircon_runtime/src/core/framework/render/camera/projection_mode.rs
+  - zircon_runtime/src/core/framework/render/camera/target.rs
+  - zircon_runtime/src/core/framework/render/camera/target_kind.rs
+  - zircon_runtime/src/core/framework/render/camera/viewport_rect.rs
+  - zircon_runtime/src/core/framework/render/camera/viewport_settings.rs
+  - zircon_runtime/src/core/framework/render/camera/extract_request.rs
+  - zircon_runtime/src/core/framework/render/camera/fallback_skybox.rs
+  - zircon_runtime/src/core/framework/render/camera/tests.rs
   - zircon_runtime/src/core/framework/render/temporal_jitter.rs
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
@@ -138,7 +168,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_writeback_converter.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -254,6 +284,8 @@ doc_type: module-detail
 ## Purpose
 
 `zircon_runtime::core::framework::render::camera` owns the neutral camera data surface used by render extraction and graphics backends. M2A expands the earlier viewport-only snapshot into a Bevy-informed camera contract without moving concrete renderer execution out of `zircon_runtime::graphics`.
+
+`camera.rs` is a structural facade. The snapshot, dynamic-resolution policy, layer set, render target, viewport rectangle, viewport settings, and extract request each have a dedicated child owner while the `render::*` public API remains unchanged.
 
 The contract is still data-oriented, but Plan 09 splits camera state by ownership. `ViewportCameraSnapshot` carries the per-camera payload used for matrices, exposure, HDR, MSAA, dynamic resolution, and temporal jitter. `CameraRenderDescriptor` owns render scheduling and output facts: target, viewport rectangle, render order, clear policy, culling mask, and volume mask. Scene and editor systems project their local state into that descriptor before render graph or RHI code consumes it.
 

@@ -14,10 +14,13 @@ use super::light_buffer::light_buffer;
 use super::reflection_probe_buffer::reflection_probe_buffer;
 use super::ssao_params_buffer::ssao_params_buffer;
 use super::taa_resolve_params_buffer::taa_resolve_params_buffer;
+use super::upscale_params_buffer::upscale_params_buffer;
 use super::velocity_camera_params_buffer::velocity_camera_params_buffer;
+use crate::graphics::scene::scene_renderer::post_process::resources::post_process_pass_parameter_buffers::PostProcessPassParameterBuffers;
 
 pub(in super::super) fn create_buffer_bundle(device: &wgpu::Device) -> BufferBundle {
     BufferBundle {
+        post_process_pass_parameter_buffers: PostProcessPassParameterBuffers::new(device),
         bloom_params_buffer: bloom_params_buffer(device),
         ssao_params_buffer: ssao_params_buffer(device),
         cluster_params_buffer: cluster_params_buffer(device),
@@ -29,6 +32,14 @@ pub(in super::super) fn create_buffer_bundle(device: &wgpu::Device) -> BufferBun
         default_exposure_buffer: default_exposure_buffer(device),
         default_exposure_histogram_buffer: default_exposure_histogram_buffer(device),
         taa_resolve_params_buffer: taa_resolve_params_buffer(device),
+        primary_upscale_params_buffer: upscale_params_buffer(
+            device,
+            "zircon-primary-upscale-params",
+        ),
+        secondary_upscale_params_buffer: upscale_params_buffer(
+            device,
+            "zircon-secondary-upscale-params",
+        ),
         velocity_camera_params_buffer: velocity_camera_params_buffer(device),
         light_buffer: light_buffer(device),
         hybrid_gi_probe_buffer: hybrid_gi_probe_buffer(device),

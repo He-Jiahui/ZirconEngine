@@ -85,6 +85,19 @@ pub(super) fn classify_editor_reference(relative_path: &str) -> Option<&'static 
     if relative_path.starts_with("src/ui/template/") {
         return Some("runtime-ui-template-editor-profile");
     }
+    if relative_path.starts_with("src/ui/surface/render/")
+        || matches!(
+            relative_path,
+            "src/ui/surface/surface.rs"
+                | "src/ui/surface/text_artifact.rs"
+                | "src/ui/text/measure_cache.rs"
+                | "src/ui/v2/cache.rs"
+                | "src/ui/v2/compiler.rs"
+                | "src/ui/v2/style.rs"
+        )
+    {
+        return Some("runtime-ui-editor-host-contract");
+    }
     if relative_path.starts_with("src/asset/") {
         return Some("runtime-asset-editor-metadata");
     }
@@ -106,6 +119,26 @@ pub(super) fn classify_editor_reference(relative_path: &str) -> Option<&'static 
         || relative_path.starts_with("src/scene/inspection/")
     {
         return Some("scene-reflection-editor-visible-metadata");
+    }
+    if matches!(
+        relative_path,
+        "src/scene/level_system.rs" | "src/scene/world/derived_state.rs"
+    ) {
+        return Some("runtime-scene-editor-facing-projection");
+    }
+    if matches!(
+        relative_path,
+        "src/core/runtime/time.rs"
+            | "src/core/runtime/time/product_policy.rs"
+            | "src/scene/world_time/snapshot.rs"
+    ) {
+        return Some("runtime-time-editor-preview-domain");
+    }
+    if matches!(
+        relative_path,
+        "src/text/layout_session.rs" | "src/text/shaping/mod.rs"
+    ) {
+        return Some("runtime-text-editor-host-contract");
     }
     if matches!(
         relative_path,
@@ -156,6 +189,25 @@ pub(super) fn classify_legacy_reference(relative_path: &str) -> Option<&'static 
     }
     if relative_path.starts_with("src/scene/") {
         return Some("legacy-scene-schema-render-debt");
+    }
+    if relative_path.starts_with("src/render_graph/") {
+        return Some("legacy-runtime-render-graph-access-debt");
+    }
+    if relative_path.starts_with("src/text/") {
+        return Some("legacy-runtime-text-compatibility-debt");
+    }
+    if matches!(
+        relative_path,
+        "src/builtin/runtime_modules/assembly.rs"
+            | "src/builtin/runtime_modules/composition/identity.rs"
+    ) {
+        return Some("legacy-runtime-module-composition-debt");
+    }
+    if relative_path == "src/core/framework/window/window_command/header.rs" {
+        return Some("curated-runtime-legacy-rejection-guard");
+    }
+    if relative_path.starts_with("src/core/runtime/diagnostics/") {
+        return Some("curated-runtime-facade-legacy-reference");
     }
     if matches!(
         relative_path,

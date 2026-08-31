@@ -3,81 +3,83 @@ use std::io::{self, Write};
 use std::time::{Duration, Instant};
 
 use serde::ser::{SerializeSeq, SerializeStruct};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Serialize, Serializer};
 use zircon_runtime_interface::reflect::{ReflectFieldInfo, ReflectFieldValue, ReflectedValue};
-use zircon_runtime_interface::world_sync::{EntityRow, QueryFilter, WorldQuery, WorldQueryResult};
+use zircon_runtime_interface::world_sync::{
+    ComponentWorldQuery, EntityRow, QueryFilter, WorldQuery, WorldQueryResult,
+};
 use zircon_runtime_interface::ZrRuntimePayloadLimitV1;
 
 use crate::scene::components::{NodeKind, SceneNode};
-use crate::scene::reflect::RuntimeTypeRegistration;
+use crate::scene::reflect::{
+    validate_reflected_field_values, validate_reflected_value, RuntimeTypeRegistration,
+};
 use crate::scene::{EntityId, World, WorldQueryBudgetError};
 
 use super::{WorldInspectionField, WorldInspectionHierarchyRow};
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct WorldInspection {
-    pub generation: u64,
-    pub focused_entity: Option<EntityId>,
-    pub hierarchy_rows: Vec<WorldInspectionHierarchyRow>,
-    pub fields: Vec<WorldInspectionField>,
-}
-
-impl WorldInspection {
-    pub fn from_world(world: &World, focused: Option<EntityId>) -> Self {
-        let focused_entity = focused.filter(|entity| world.contains_entity(*entity));
-        let hierarchy_rows = build_hierarchy_rows(world, focused_entity);
-        Self {
-            generation: world.world_generation(),
-            focused_entity,
-            hierarchy_rows,
-            fields: focused_entity
-                .map(|entity| world.inspect_fields(entity))
-                .unwrap_or_default(),
-        }
-    }
-}
-
 impl World {
-    /// Builds the composed hierarchy-and-field inspection snapshot.
-    pub fn inspect_world(&self, focused: Option<EntityId>) -> WorldInspection {
-        WorldInspection::from_world(self, focused)
-    }
-
-    /// Builds hierarchy rows without coupling the query to editor focus state.
-    pub fn inspect_hierarchy(&self) -> Vec<WorldInspectionHierarchyRow> {
-        build_hierarchy_rows(self, None)
-    }
-
-    /// Builds reflected fields for one existing entity.
-    pub fn inspect_fields(&self, entity: EntityId) -> Vec<WorldInspectionField> {
-        if !self.contains_entity(entity) {
-            return Vec::new();
-        }
-        build_inspection_fields(self, entity)
-    }
-
     /// Runs one deterministic reflected-component query against the current world generation.
     ///
     /// The query boundary intentionally exposes only editor-visible reflected components. Runtime
     /// storage-only components remain internal until they register an editor reflection contract.
     pub fn query_world(&self, query: &WorldQuery) -> WorldQueryResult {
+        self.query_world_at_replacement_epoch(query, 1)
+    }
+
+    pub(crate) fn query_world_at_replacement_epoch(
+        &self,
+        query: &WorldQuery,
+        world_replacement_epoch: u64,
+    ) -> WorldQueryResult {
         let generation = self.world_generation();
-        if generation != u64::MAX && query.generation_hint == Some(generation) {
+        if generation != u64::MAX && query.generation_hint() == Some(generation) {
             return WorldQueryResult::NotModified { generation };
         }
 
-        let rows = self
-            .node_records()
-            .into_iter()
-            .filter_map(|node| {
-                let fields = self.inspect_fields(node.id);
-                query_matches_reflected_components(&fields, &query.filter).then(|| EntityRow {
-                    entity: node.id,
-                    components: selected_reflected_components(&fields, query),
-                })
-            })
-            .collect();
-        query.result_for_generation(generation, rows)
+        match query {
+            WorldQuery::Components(component_query) => {
+                let rows = self
+                    .node_records()
+                    .into_iter()
+                    .filter_map(|node| {
+                        let fields = build_inspection_fields(self, node.id);
+                        query_matches_reflected_components(&fields, &component_query.filter).then(
+                            || EntityRow {
+                                entity: node.id,
+                                components: selected_reflected_components(&fields, component_query),
+                            },
+                        )
+                    })
+                    .collect();
+                query.component_result_for_generation(generation, rows)
+            }
+            WorldQuery::Hierarchy(_) => {
+                let artifact = self.inspection_artifact();
+                query.hierarchy_result_for_generation(
+                    artifact.generation(),
+                    artifact.hierarchy_rows().to_vec(),
+                )
+            }
+            WorldQuery::InspectionFields(fields_query) => {
+                let artifact = self.inspection_fields_artifact(fields_query.entity);
+                let generation = artifact
+                    .as_ref()
+                    .map(|artifact| artifact.generation())
+                    .unwrap_or(generation);
+                query.inspection_fields_result_for_generation(
+                    generation,
+                    fields_query.entity,
+                    artifact.map(|artifact| artifact.fields().to_vec()),
+                )
+            }
+            WorldQuery::TransformSnapshot(transform_query) => query.transform_snapshot_result(
+                generation,
+                world_replacement_epoch,
+                transform_query.entity,
+                self.local_transform(transform_query.entity),
+            ),
+        }
     }
 
     pub(crate) fn query_world_bounded(
@@ -85,33 +87,97 @@ impl World {
         query: &WorldQuery,
         limit: ZrRuntimePayloadLimitV1,
     ) -> Result<WorldQueryResult, WorldQueryBudgetError> {
+        self.query_world_bounded_at_replacement_epoch(query, limit, 1)
+    }
+
+    pub(crate) fn query_world_bounded_at_replacement_epoch(
+        &self,
+        query: &WorldQuery,
+        limit: ZrRuntimePayloadLimitV1,
+        world_replacement_epoch: u64,
+    ) -> Result<WorldQueryResult, WorldQueryBudgetError> {
         let mut budget = WorldQueryBuildBudget::new(limit);
         let generation = self.world_generation();
-        if generation != u64::MAX && query.generation_hint == Some(generation) {
+        if generation != u64::MAX && query.generation_hint() == Some(generation) {
             let result = WorldQueryResult::NotModified { generation };
             budget.validate_result(&result)?;
             return Ok(result);
         }
 
-        let mut rows = Vec::new();
-        budget.observe_rows_candidate(&rows, None)?;
-        budget.check_deadline()?;
-        for entity in self.entity_ids_for_query() {
-            budget.check_deadline()?;
-            if !query_matches_world_components(self, entity, &query.filter) {
-                continue;
+        match query {
+            WorldQuery::Components(component_query) => {
+                let mut rows = Vec::new();
+                budget.observe_rows_candidate(generation, &rows, None)?;
+                budget.check_deadline()?;
+                for entity in self.entity_ids_for_query() {
+                    budget.check_deadline()?;
+                    if !query_matches_world_components(self, entity, &component_query.filter) {
+                        continue;
+                    }
+                    budget.ensure_additional_items(1)?;
+                    let (components, component_items) = selected_reflected_components_bounded(
+                        self,
+                        entity,
+                        component_query,
+                        &mut budget,
+                    )?;
+                    let row_items = component_items.saturating_add(1);
+                    budget.observe_items(row_items)?;
+                    let row = EntityRow { entity, components };
+                    budget.observe_rows_candidate(generation, &rows, Some(&row))?;
+                    rows.push(row);
+                }
+                budget.check_deadline()?;
+                Ok(query.component_result_for_generation(generation, rows))
             }
-            budget.ensure_additional_items(1)?;
-            let (components, component_items) =
-                selected_reflected_components_bounded(self, entity, query, &mut budget)?;
-            let row_items = component_items.saturating_add(1);
-            budget.observe_items(row_items)?;
-            let row = EntityRow { entity, components };
-            budget.observe_rows_candidate(&rows, Some(&row))?;
-            rows.push(row);
+            WorldQuery::Hierarchy(_) => {
+                let artifact = self.inspection_artifact();
+                let hierarchy_rows = artifact.hierarchy_rows();
+                budget.observe_items(hierarchy_rows.len())?;
+                budget.validate_payload(&WorldQueryHierarchyRowsCandidate {
+                    generation: artifact.generation(),
+                    rows: hierarchy_rows,
+                })?;
+                let rows = hierarchy_rows.to_vec();
+                budget.check_deadline()?;
+                Ok(query.hierarchy_result_for_generation(artifact.generation(), rows))
+            }
+            WorldQuery::InspectionFields(fields_query) => {
+                let Some(artifact) = self.inspection_fields_artifact(fields_query.entity) else {
+                    let result = WorldQueryResult::EntityMissing {
+                        generation,
+                        entity: fields_query.entity,
+                    };
+                    budget.validate_result(&result)?;
+                    return Ok(result);
+                };
+                let fields = artifact.fields();
+                budget.observe_items(fields.len())?;
+                budget.validate_payload(&WorldQueryInspectionFieldsCandidate {
+                    generation: artifact.generation(),
+                    entity: fields_query.entity,
+                    fields,
+                })?;
+                let fields = fields.to_vec();
+                budget.check_deadline()?;
+                Ok(query.inspection_fields_result_for_generation(
+                    artifact.generation(),
+                    fields_query.entity,
+                    Some(fields),
+                ))
+            }
+            WorldQuery::TransformSnapshot(transform_query) => {
+                budget.observe_items(1)?;
+                let result = query.transform_snapshot_result(
+                    generation,
+                    world_replacement_epoch,
+                    transform_query.entity,
+                    self.local_transform(transform_query.entity),
+                );
+                budget.validate_result(&result)?;
+                Ok(result)
+            }
         }
-        budget.check_deadline()?;
-        Ok(query.result_for_generation(generation, rows))
     }
 }
 
@@ -188,6 +254,7 @@ impl WorldQueryBuildBudget {
 
     fn observe_rows_candidate(
         &mut self,
+        generation: u64,
         rows: &[EntityRow],
         next: Option<&EntityRow>,
     ) -> Result<(), WorldQueryBudgetError> {
@@ -200,7 +267,11 @@ impl WorldQueryBuildBudget {
             self.started,
             self.limit.max_processing_time_micros,
         );
-        let candidate = WorldQueryRowsCandidate { rows, next };
+        let candidate = WorldQueryRowsCandidate {
+            generation,
+            rows,
+            next,
+        };
         let result = serde_json::to_writer(&mut writer, &candidate);
         self.encoded_payload_bytes = writer.finish_with_count(result)?;
         self.preflight_value_bytes = 0;
@@ -208,6 +279,10 @@ impl WorldQueryBuildBudget {
     }
 
     fn validate_result(&mut self, result: &WorldQueryResult) -> Result<(), WorldQueryBudgetError> {
+        self.validate_payload(result)
+    }
+
+    fn validate_payload(&mut self, payload: &impl Serialize) -> Result<(), WorldQueryBudgetError> {
         self.check_deadline()?;
         let mut writer = WorldQueryCountingWriter::new(
             0,
@@ -217,7 +292,7 @@ impl WorldQueryBuildBudget {
             self.started,
             self.limit.max_processing_time_micros,
         );
-        let result = serde_json::to_writer(&mut writer, result);
+        let result = serde_json::to_writer(&mut writer, payload);
         self.encoded_payload_bytes = writer.finish_with_count(result)?;
         Ok(())
     }
@@ -233,7 +308,69 @@ impl WorldQueryBuildBudget {
     }
 }
 
+struct WorldQueryHierarchyRowsCandidate<'a> {
+    generation: u64,
+    rows: &'a [WorldInspectionHierarchyRow],
+}
+
+struct WorldQueryInspectionFieldsCandidate<'a> {
+    generation: u64,
+    entity: EntityId,
+    fields: &'a [WorldInspectionField],
+}
+
+impl Serialize for WorldQueryInspectionFieldsCandidate<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("WorldQueryResult", 2)?;
+        state.serialize_field("kind", "inspection_fields")?;
+        state.serialize_field(
+            "data",
+            &WorldQueryInspectionFieldsData {
+                generation: self.generation,
+                entity: self.entity,
+                fields: self.fields,
+            },
+        )?;
+        state.end()
+    }
+}
+
+#[derive(Serialize)]
+struct WorldQueryInspectionFieldsData<'a> {
+    generation: u64,
+    entity: EntityId,
+    fields: &'a [WorldInspectionField],
+}
+
+impl Serialize for WorldQueryHierarchyRowsCandidate<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("WorldQueryResult", 2)?;
+        state.serialize_field("kind", "hierarchy_rows")?;
+        state.serialize_field(
+            "data",
+            &WorldQueryHierarchyRowsData {
+                generation: self.generation,
+                rows: self.rows,
+            },
+        )?;
+        state.end()
+    }
+}
+
+#[derive(Serialize)]
+struct WorldQueryHierarchyRowsData<'a> {
+    generation: u64,
+    rows: &'a [WorldInspectionHierarchyRow],
+}
+
 struct WorldQueryRowsCandidate<'a> {
+    generation: u64,
     rows: &'a [EntityRow],
     next: Option<&'a EntityRow>,
 }
@@ -244,9 +381,34 @@ impl Serialize for WorldQueryRowsCandidate<'_> {
         S: Serializer,
     {
         let mut state = serializer.serialize_struct("WorldQueryResult", 2)?;
-        state.serialize_field("kind", "rows")?;
+        state.serialize_field("kind", "component_rows")?;
         state.serialize_field(
             "data",
+            &WorldQueryRowsData {
+                generation: self.generation,
+                rows: self.rows,
+                next: self.next,
+            },
+        )?;
+        state.end()
+    }
+}
+
+struct WorldQueryRowsData<'a> {
+    generation: u64,
+    rows: &'a [EntityRow],
+    next: Option<&'a EntityRow>,
+}
+
+impl Serialize for WorldQueryRowsData<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("ComponentRows", 2)?;
+        state.serialize_field("generation", &self.generation)?;
+        state.serialize_field(
+            "rows",
             &WorldQueryRowsSequence {
                 rows: self.rows,
                 next: self.next,
@@ -393,7 +555,7 @@ impl Write for WorldQueryCountingWriter {
 fn selected_reflected_components_bounded(
     world: &World,
     entity: EntityId,
-    query: &WorldQuery,
+    query: &ComponentWorldQuery,
     budget: &mut WorldQueryBuildBudget,
 ) -> Result<(BTreeMap<String, serde_json::Value>, usize), WorldQueryBudgetError> {
     let mut components = BTreeMap::new();
@@ -418,6 +580,12 @@ fn selected_reflected_components_bounded(
             let Ok(value) = adapter.read_field(world, entity, &field.name) else {
                 continue;
             };
+            validate_reflected_value(
+                runtime.registration.type_path.type_path(),
+                &field.name,
+                &value,
+            )
+            .map_err(|error| WorldQueryBudgetError::ReflectValue(error.to_string()))?;
             budget.ensure_additional_items(item_count.saturating_add(2))?;
             budget.preflight_reflected_value(&value)?;
             let value = serde_json::to_value(&value)
@@ -441,8 +609,8 @@ fn reflected_component_runtime<'a>(
 ) -> Option<&'a RuntimeTypeRegistration> {
     world.type_registry().iter().find(|runtime| {
         let metadata = &runtime.registration;
-        metadata.type_path.type_path == type_name
-            && metadata.is_component
+        metadata.type_path.type_path() == type_name
+            && metadata.is_component()
             && metadata.editor_visible
             && runtime
                 .component
@@ -479,7 +647,7 @@ fn query_matches_reflected_components(
 
 fn selected_reflected_components(
     fields: &[WorldInspectionField],
-    query: &WorldQuery,
+    query: &ComponentWorldQuery,
 ) -> BTreeMap<String, serde_json::Value> {
     query
         .select
@@ -499,18 +667,9 @@ fn selected_reflected_components(
         .collect()
 }
 
-fn build_hierarchy_rows(
-    world: &World,
-    focused_entity: Option<EntityId>,
-) -> Vec<WorldInspectionHierarchyRow> {
-    let nodes = world.node_records();
-    build_hierarchy_rows_from_nodes(world, &nodes, focused_entity)
-}
-
 pub(super) fn build_hierarchy_rows_from_nodes(
     world: &World,
     nodes: &[SceneNode],
-    focused_entity: Option<EntityId>,
 ) -> Vec<WorldInspectionHierarchyRow> {
     let node_by_entity = nodes
         .iter()
@@ -530,7 +689,6 @@ pub(super) fn build_hierarchy_rows_from_nodes(
     if let Some(roots) = children_by_parent.get(&None) {
         push_hierarchy_roots(
             world,
-            focused_entity,
             &node_by_entity,
             &children_by_parent,
             roots.iter().copied(),
@@ -543,7 +701,6 @@ pub(super) fn build_hierarchy_rows_from_nodes(
         if !visited.contains(&node.id) {
             push_hierarchy_roots(
                 world,
-                focused_entity,
                 &node_by_entity,
                 &children_by_parent,
                 std::iter::once(node.id),
@@ -567,7 +724,6 @@ struct PendingHierarchyRow {
 /// avoiding recursion for editor-scale deep hierarchy chains.
 fn push_hierarchy_roots(
     world: &World,
-    focused_entity: Option<EntityId>,
     node_by_entity: &HashMap<EntityId, &SceneNode>,
     children_by_parent: &HashMap<Option<EntityId>, Vec<EntityId>>,
     roots: impl IntoIterator<Item = EntityId>,
@@ -630,7 +786,6 @@ fn push_hierarchy_roots(
             display_name: node.name.clone(),
             kind: node_kind_label(&node.kind).to_string(),
             subtree_hash: 0,
-            focused: focused_entity == Some(pending.entity),
             active_in_hierarchy: world.active_in_hierarchy(pending.entity).unwrap_or(false),
             has_children: children.is_some_and(|children| !children.is_empty()),
         });
@@ -753,7 +908,7 @@ fn reflected_component_fields(
     runtime: &RuntimeTypeRegistration,
 ) -> Result<Vec<WorldInspectionField>, zircon_runtime_interface::reflect::ReflectError> {
     let metadata = &runtime.registration;
-    if !metadata.is_component || !metadata.editor_visible {
+    if !metadata.is_component() || !metadata.editor_visible {
         return Ok(Vec::new());
     }
     let Some(adapter) = &runtime.component else {
@@ -763,10 +918,13 @@ fn reflected_component_fields(
         return Ok(Vec::new());
     }
 
-    let values = adapter.read_fields(world, entity)?;
-    let values_by_name = values
+    let values = crate::scene::reflect::WorldReflection::read_component_fields_by_slot(
+        world, entity, metadata, adapter,
+    )?;
+    validate_reflected_field_values(metadata.type_path.type_path(), &values)?;
+    let values_by_id = values
         .iter()
-        .map(|field| (field.field_name.as_str(), field))
+        .map(|field| (field.field_id, field))
         .collect::<HashMap<_, _>>();
 
     Ok(metadata
@@ -775,8 +933,8 @@ fn reflected_component_fields(
         .iter()
         .filter(|field| field.editor_visible)
         .filter_map(|field| {
-            values_by_name.get(field.name.as_str()).map(|value| {
-                inspection_field_from_reflection(runtime, field, value, metadata.plugin_owned)
+            values_by_id.get(&field.id).map(|value| {
+                inspection_field_from_reflection(runtime, field, value, metadata.is_plugin_owned())
             })
         })
         .collect())
@@ -790,7 +948,7 @@ fn inspection_field_from_reflection(
 ) -> WorldInspectionField {
     let metadata = &runtime.registration;
     WorldInspectionField {
-        component_type_path: metadata.type_path.type_path.clone(),
+        component_type_path: metadata.type_path.type_path().to_string(),
         component_display_name: metadata.display_name.clone(),
         field_name: field.name.clone(),
         field_display_name: field.display_name.clone(),

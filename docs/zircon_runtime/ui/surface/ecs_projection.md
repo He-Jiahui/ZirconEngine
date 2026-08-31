@@ -5,7 +5,6 @@ related_code:
   - zircon_runtime_interface/src/ui/mod.rs
   - zircon_runtime_interface/src/ui/pipeline/stage.rs
   - zircon_runtime_interface/src/ui/pipeline/dirty_reason.rs
-  - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/tests/ui_ecs_projection_contracts.rs
   - zircon_runtime/src/ui/surface/ecs_projection.rs
@@ -50,7 +49,7 @@ The runtime UI ECS projection is the first M5 bridge between retained `UiSurface
 
 The projection is serde-friendly and default-compatible so editor diagnostics, future runtime schedule probes, and host tooling can consume it without importing runtime-private `UiSurface` internals.
 
-`UiSurfaceFrame` and `UiSurfaceDebugSnapshot` both carry a defaulted `UiEcsProjectionSnapshot`. Older serialized frames or snapshots that do not include the field still deserialize to an empty projection, while new runtime diagnostics expose the projection next to arranged nodes, render extract, hit grid, focus state, rebuild stats, layout engine report, and pipeline report.
+`UiSurfaceDebugSnapshot` carries a defaulted `UiEcsProjectionSnapshot`. Older serialized snapshots that do not include the field still deserialize to an empty projection. `UiSurfaceFrame` deliberately does not carry this diagnostic product: input, layout, render, hit testing, and focus consume the frame's immutable authority domains, while retained component/path/dirty-domain projection is generated only when a caller explicitly asks a `UiSurface` for diagnostics.
 
 `UiEcsProjectionSnapshot::diff_from(...)` creates a read-only change-detection packet for the next schedule bridge. `UiEcsProjectionDelta` records previous/current tree ids, node-level `Added` / `Removed` / `Updated` changes, derived dirty domains, stable change reasons, and aggregate counts. Structural changes mark layout, picking, accessibility, and render domains; interaction changes mark input, accessibility, and render domains; render and hit-entry count changes mark their own domains. Added and removed nodes also preserve any retained dirty domains already present on the projected node.
 
@@ -81,7 +80,9 @@ Snapshot and delta payloads now expose a unified derived-field freshness contrac
 
 State-flag dirtiness is folded into input, picking, and render projection domains, matching the existing `UiSurface::dirty_flags()` behavior. A text dirty node therefore reports text, accessibility, and render schedule visibility; a layout dirty node additionally reports layout, picking, accessibility, and render visibility.
 
-`UiSurface::surface_frame()` stores the latest projection on the frame, and `debug_surface_frame_with_options(...)` copies that projection into `UiSurfaceDebugSnapshot`. That keeps direct frame consumers, JSON diagnostics, editor debug reflection, and future schedule probes aligned on the same runtime facts.
+`UiSurface::debug_snapshot()`, `debug_snapshot_with_options(...)`, `debug_snapshot_for_pick(...)`, and `debug_snapshot_for_selection(...)` first obtain the current `UiSurfaceFrame`, then explicitly build one ECS projection from the same retained surface and pass both products to the shared diagnostics builder. This keeps surface-owned JSON diagnostics and editor debug reflection aligned with current runtime facts without charging every pointer/focus/window frame publication for a full tree/render/hit scan.
+
+The free `debug_surface_frame*` helpers still accept a submitted frame for geometry, render, hit, focus, and overlay diagnostics. Their `UiSurfaceDebugSnapshot.ecs_projection` is the default empty projection because a frame does not own the retained node/component metadata needed to build live ECS rows. A caller that needs those rows must retain `UiSurface` and use its `debug_snapshot*` methods; diagnostics must not reconstruct a second component tree from arranged nodes.
 
 `UiSurface::ui_ecs_projection_delta_from(...)` is a thin runtime helper over the interface diff. Callers keep the previous snapshot, ask the current surface for a delta, and use the returned domains to decide whether layout, text, input, picking, accessibility, or render systems need work. `UiSurface::ui_ecs_schedule_mask_from(...)` folds that delta into the schedule mask for callers that only need stage requirements. `UiSurface::ui_ecs_schedule_impacts_from(...)` is the matching convenience helper for callers that need stage rows and affected node ids without manually building a delta first. `UiSurface::ui_ecs_dirty_domain_impacts_from(...)` exposes the domain rows directly for inspectors that want to show, for example, that a single text dirty node only contributed text/accessibility/render domains before layout expansion. `UiSurface::ui_ecs_component_structure_change_node_ids_from(...)`, `ui_ecs_interaction_change_node_ids_from(...)`, `ui_ecs_interaction_only_change_node_ids_from(...)`, and `ui_ecs_render_only_change_node_ids_from(...)` provide the same fast-path node lists from a previous projection for runtime schedule probes. These helpers do not cache or mutate projection records, and the carried schedule/domain fields remain default-compatible for older serialized diagnostics.
 

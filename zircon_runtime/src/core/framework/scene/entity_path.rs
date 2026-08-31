@@ -29,12 +29,13 @@ impl EntityPath {
     }
 
     pub fn parse(path: &str) -> Result<Self, PathParseError> {
-        let segments = path
-            .split('/')
-            .map(str::trim)
-            .filter(|segment| !segment.is_empty())
-            .map(ToOwned::to_owned)
-            .collect::<Vec<_>>();
+        let mut segments = Vec::with_capacity(path.len().saturating_div(2).max(1));
+        segments.extend(
+            path.split('/')
+                .map(str::trim)
+                .filter(|segment| !segment.is_empty())
+                .map(ToOwned::to_owned),
+        );
 
         Self::new(segments)
     }
@@ -47,6 +48,10 @@ impl EntityPath {
         &self.raw
     }
 }
+
+#[cfg(test)]
+#[path = "entity_path/single_scan_parse_tests.rs"]
+mod single_scan_parse_tests;
 
 impl fmt::Display for EntityPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

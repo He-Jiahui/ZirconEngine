@@ -1,7 +1,7 @@
 use super::EditorConsoleHistory;
 use crate::core::editor_event::ConsoleMessageFilter;
 use crate::ui::workbench::snapshot::{
-    EditorConsoleMessageLevel, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY,
+    ConsoleOutputLineDelta, EditorConsoleMessageLevel, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY,
 };
 use std::sync::Arc;
 
@@ -182,4 +182,50 @@ fn console_history_clear_preserves_filter_for_subsequent_messages() {
     history.push_with_level("pipeline failed", EditorConsoleMessageLevel::Error);
     assert_eq!(history.output().as_ref(), "pipeline failed");
     assert_eq!(history.output().counts().error, 1);
+}
+
+#[test]
+fn console_history_append_reuses_retained_line_chunks_and_publishes_exact_delta() {
+    let mut history = EditorConsoleHistory::new("");
+    for index in 0..CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY {
+        history.push(&format!("line {index}"));
+    }
+    let before = history.output();
+
+    history.push("next line");
+
+    let after = history.output();
+    assert_eq!(
+        after.line_delta(),
+        ConsoleOutputLineDelta {
+            entered: 1,
+            expired: 1,
+            retained: CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY - 1,
+        }
+    );
+    assert!(before.shares_logical_storage_chunk_with(&after, 64, 63));
+    assert!(!after.has_materialized_flat_text());
+    assert_eq!(
+        after
+            .logical_line(CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY - 1)
+            .map(|line| line.text()),
+        Some("next line")
+    );
+}
+
+#[test]
+fn filtered_out_append_keeps_the_visible_line_generation() {
+    let mut history = EditorConsoleHistory::new("");
+    history.push_with_level("failed", EditorConsoleMessageLevel::Error);
+    assert!(history.set_filter(ConsoleMessageFilter::Error));
+    let before = history.output();
+
+    history.push_with_level("still running", EditorConsoleMessageLevel::Info);
+
+    let after = history.output();
+    assert!(before.shares_logical_generation_with(&after));
+    assert_eq!(after.line_delta(), ConsoleOutputLineDelta::default());
+    assert_eq!(after.counts().info, 1);
+    assert_eq!(after.counts().error, 1);
+    assert!(!after.has_materialized_flat_text());
 }

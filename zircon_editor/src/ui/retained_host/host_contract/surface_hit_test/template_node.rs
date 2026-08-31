@@ -4,6 +4,7 @@ mod model;
 mod pane_index;
 mod pane_nodes;
 mod popup_rows;
+mod route_hit;
 mod surface_frame_builder;
 
 use std::sync::Arc;
@@ -15,10 +16,14 @@ use crate::ui::retained_host::console_output::ConsoleOutputPaintMetadata;
 use super::super::data::{FrameRect, HostWindowPresentationData, PaneData};
 use hit::{
     hit_test_console_static_template_nodes, hit_test_scrolled_console_template_nodes,
-    hit_test_template_nodes, hit_test_workbench_template_nodes_with_index,
+    hit_test_template_nodes, hit_test_workbench_template_node_for_pointer_move_with_index,
+    hit_test_workbench_template_nodes_with_index,
 };
 pub(crate) use index::HostWorkbenchHitIndex;
-pub(crate) use model::TemplateNodePointerHit;
+pub(crate) use model::{
+    TemplateNodePointerHit, TemplateNodePointerMoveHit, TemplateNodePointerMoveKind,
+    TemplateNodePointerRouteHit,
+};
 pub(crate) use pane_index::HostPaneTemplateHitIndex;
 use pane_nodes::pane_template_nodes;
 use surface_frame_builder::build_template_surface_frame;
@@ -30,12 +35,23 @@ pub(crate) fn hit_test_pane_template_node(
     y: f32,
     console_scroll_px: f32,
 ) -> Option<TemplateNodePointerHit> {
+    hit_test_pane_template_node_borrowed(pane, body, x, y, console_scroll_px)
+        .map(|hit| hit.to_owned_hit())
+}
+
+pub(crate) fn hit_test_pane_template_node_borrowed<'a>(
+    pane: &'a PaneData,
+    body: &FrameRect,
+    x: f32,
+    y: f32,
+    console_scroll_px: f32,
+) -> Option<TemplateNodePointerRouteHit<'a>> {
     let nodes = pane_template_nodes(pane)?;
     let popup_rows = pane
         .body_template_hit_index
         .as_deref()
         .filter(|index| index.indexes_nodes(nodes));
-    if let Some(metadata) = nodes.metadata_rc::<ConsoleOutputPaintMetadata>() {
+    if let Some(metadata) = nodes.metadata::<ConsoleOutputPaintMetadata>() {
         let viewport = metadata.viewport();
         let viewport_frame = FrameRect {
             x: body.x + viewport.x,
@@ -43,10 +59,10 @@ pub(crate) fn hit_test_pane_template_node(
             width: viewport.width,
             height: viewport.height,
         };
-        let mut hit = if super::super::frame_geometry::contains_point(&viewport_frame, x, y) {
+        let hit = if super::super::frame_geometry::contains_point(&viewport_frame, x, y) {
             hit_test_scrolled_console_template_nodes(
                 nodes,
-                &metadata,
+                metadata,
                 body,
                 x,
                 y,
@@ -54,15 +70,13 @@ pub(crate) fn hit_test_pane_template_node(
                 popup_rows,
             )
         } else {
-            hit_test_console_static_template_nodes(nodes, &metadata, body, x, y, popup_rows)
+            hit_test_console_static_template_nodes(nodes, metadata, body, x, y, popup_rows)
         }?;
-        hit.pane_id = pane.id.clone();
-        return Some(hit);
+        return Some(hit.with_pane_id(pane.id.as_str()));
     }
     let surface_frame = pane.body_surface_frame.as_ref()?;
-    let mut hit = hit_test_template_nodes(nodes, surface_frame, body, x, y, popup_rows)?;
-    hit.pane_id = pane.id.clone();
-    Some(hit)
+    hit_test_template_nodes(nodes, surface_frame, body, x, y, popup_rows)
+        .map(|hit| hit.with_pane_id(pane.id.as_str()))
 }
 
 pub(crate) fn hit_test_workbench_window_template_node_with_index(
@@ -72,6 +86,20 @@ pub(crate) fn hit_test_workbench_window_template_node_with_index(
     y: f32,
 ) -> Option<TemplateNodePointerHit> {
     hit_test_workbench_template_nodes_with_index(&presentation.workbench_window_nodes, index, x, y)
+}
+
+pub(crate) fn hit_test_workbench_window_template_node_for_pointer_move_with_index<'a>(
+    presentation: &'a HostWindowPresentationData,
+    index: &HostWorkbenchHitIndex,
+    x: f32,
+    y: f32,
+) -> Option<TemplateNodePointerMoveHit<'a>> {
+    hit_test_workbench_template_node_for_pointer_move_with_index(
+        &presentation.workbench_window_nodes,
+        index,
+        x,
+        y,
+    )
 }
 
 pub(crate) fn build_pane_template_surface_frame(

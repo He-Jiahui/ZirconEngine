@@ -16,6 +16,7 @@ fn shared_viewport_toolbar_surface_uses_toml_controls_and_rust_callbacks() {
     for required in [
         "ActivateSceneMode",
         "SetTransformSpace",
+        "SetPivotMode",
         "SetDisplayMode",
         "SetGridMode",
         "FrameSelection",

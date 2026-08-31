@@ -10,6 +10,7 @@ use zircon_runtime::core::manager::ManagerServiceHandle;
 use super::active_viewport::ActiveViewport;
 use super::render_framework_access::ViewportRenderFrameworkAccess;
 use super::render_framework_resolve_job::RenderFrameworkResolveJob;
+use super::world_space_ui::WorldSpaceUiMergeCache;
 
 pub(super) struct ViewportState {
     pub(super) render_framework: Option<ManagerServiceHandle<dyn RenderFramework>>,
@@ -23,6 +24,8 @@ pub(super) struct ViewportState {
     pub(super) latest_generation: Option<u64>,
     pub(super) last_error: Option<String>,
     pub(super) last_world_space_ui_surfaces: Vec<WorldSpaceUiSurfaceSubmission>,
+    pub(super) world_space_ui_generation: u64,
+    pub(super) world_space_ui_merge_cache: WorldSpaceUiMergeCache,
     pub(super) world_space_ui_pointer_capture: Option<WorldSpaceUiSurfaceSubmission>,
 }
 
@@ -146,6 +149,8 @@ impl ViewportState {
             latest_generation: None,
             last_error: None,
             last_world_space_ui_surfaces: Vec::new(),
+            world_space_ui_generation: 0,
+            world_space_ui_merge_cache: WorldSpaceUiMergeCache::default(),
             world_space_ui_pointer_capture: None,
         }
     }

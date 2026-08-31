@@ -15,6 +15,8 @@ pub enum LoadError {
         #[source]
         source: serde_json::Error,
     },
+    #[error("schema {schema_id} requires a versioned text envelope")]
+    MissingTextEnvelope { schema_id: String },
     #[error("versioned text is too large: maximum {max} bytes, found {found}")]
     TextDocumentTooLarge { max: usize, found: usize },
     #[error(

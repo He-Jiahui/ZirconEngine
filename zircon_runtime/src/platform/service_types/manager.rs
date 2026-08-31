@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
 use crate::core::framework::platform::{
-    PreferenceEviction, PreferenceFlushTicket, PreferenceKey, PreferenceMutationSubmission,
-    PreferenceReadSnapshot, PreferenceStorage, PreferenceStorageError, PreferenceWorkDeadline,
+    ApplicationLifecycleSnapshot, PlatformHostSnapshot, PreferenceEviction, PreferenceFlushTicket,
+    PreferenceKey, PreferenceMutationSubmission, PreferenceReadSnapshot, PreferenceStorage,
+    PreferenceStorageError, PreferenceWorkDeadline,
 };
+use crate::core::framework::window::DisplayTopologySnapshot;
 
 use super::PlatformDriver;
 use crate::platform::preferences::{InstalledPreferenceBackendKind, PreferencePersistenceAdapter};
-use crate::platform::{PlatformCapabilityReport, PlatformConfig};
+use crate::platform::{PlatformCapabilityReport, PlatformConfig, PlatformRuntimeCapabilityReport};
 
 #[derive(Clone, Debug)]
 pub struct PlatformManager {
@@ -23,8 +25,40 @@ impl PlatformManager {
         }
     }
 
-    pub fn capability_report(&self, config: &PlatformConfig) -> PlatformCapabilityReport {
-        config.capability_report_with_preference_storage_backend(self.backend_kind())
+    /// Returns the static catalog used for offline planning only. Product
+    /// admission must consume `runtime_capability_report` instead.
+    pub fn planning_capability_report(&self, config: &PlatformConfig) -> PlatformCapabilityReport {
+        config.planning_capability_report_with_preference_storage_backend(self.backend_kind())
+    }
+
+    /// Projects catalog entries through the installed platform-host owner and
+    /// its observed evidence. A compiled feature cannot become Ready without
+    /// this runtime fact.
+    pub fn runtime_capability_report(
+        &self,
+        config: &PlatformConfig,
+    ) -> PlatformRuntimeCapabilityReport {
+        PlatformRuntimeCapabilityReport::new(
+            config.enabled,
+            self.planning_capability_report(config),
+            self.driver.platform_host_snapshot(),
+        )
+    }
+
+    /// Returns the platform driver's immutable display facts. Commands remain
+    /// brokered by the platform host; callers never receive a native monitor.
+    pub fn display_topology_snapshot(&self) -> Arc<DisplayTopologySnapshot> {
+        self.driver.display_topology_snapshot()
+    }
+
+    /// Publishes only immutable host state. Native backend objects remain
+    /// private to the process host and commands stay on the driver path.
+    pub fn platform_host_snapshot(&self) -> PlatformHostSnapshot {
+        self.driver.platform_host_snapshot()
+    }
+
+    pub fn application_lifecycle_snapshot(&self) -> ApplicationLifecycleSnapshot {
+        self.driver.application_lifecycle_snapshot()
     }
 }
 
@@ -68,3 +102,6 @@ impl PreferenceStorage for PlatformManager {
         self.preferences.evict(key)
     }
 }
+
+#[cfg(test)]
+mod tests;

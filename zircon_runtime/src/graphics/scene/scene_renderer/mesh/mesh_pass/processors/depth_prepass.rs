@@ -1,8 +1,8 @@
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
 use super::super::{
-    depth_prepass_command_spec, MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext,
-    MeshPassProcessor,
+    MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassProcessor,
+    depth_prepass_command_spec,
 };
 
 pub(crate) struct DepthPrepassProcessor;

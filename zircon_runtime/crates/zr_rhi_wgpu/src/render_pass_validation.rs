@@ -2,12 +2,20 @@ use std::collections::BTreeSet;
 
 use zr_rhi::{
     PipelineDesc, RenderPassColorAttachmentDesc, RenderPassColorLoadOp, RenderPassDepthLoadOp,
-    RenderPassDepthStencilAttachmentDesc, RenderScissorRect, RenderViewportDesc, RhiError,
-    TextureDesc, TextureDimension, TextureHandle, TextureUsage,
+    RenderPassDepthStencilAttachmentDesc, RenderPassTextureViewDesc, RenderScissorRect,
+    RenderViewportDesc, RhiError, TextureDesc, TextureDimension, TextureHandle, TextureUsage,
+    TextureViewAspect, TextureViewDesc, TextureViewDimension, TextureViewHandle,
 };
 
-use super::device::DeterministicRhiContractDeviceState;
 use super::resource_validation::ensure_texture_usage;
+
+/// Descriptor-only view used by shared command validation. Native resource
+/// ownership remains in the production registry; the deterministic fixture
+/// supplies the same view in tests.
+pub(crate) trait RenderPassResourceLookup {
+    fn texture_desc(&self, handle: TextureHandle) -> Result<&TextureDesc, RhiError>;
+    fn texture_view_desc(&self, handle: TextureViewHandle) -> Result<&TextureViewDesc, RhiError>;
+}
 
 #[derive(Clone, Debug)]
 pub(super) struct ActiveRenderPass {
@@ -37,9 +45,9 @@ impl ActiveRenderPass {
         }
     }
 
-    pub(super) fn validate_pipeline_attachments(
+    pub(crate) fn validate_pipeline_attachments(
         &self,
-        state: &DeterministicRhiContractDeviceState,
+        resources: &impl RenderPassResourceLookup,
         pipeline: &PipelineDesc,
     ) -> Result<(), RhiError> {
         let raster_state =
@@ -66,7 +74,7 @@ impl ActiveRenderPass {
             .zip(&raster_state.color_targets)
             .enumerate()
         {
-            let texture_desc = state.texture_desc_ref(*texture)?;
+            let texture_desc = resources.texture_desc(*texture)?;
             if texture_desc.format != color_target.format {
                 return Err(RhiError::InvalidRenderPass {
                     reason: format!(
@@ -88,7 +96,7 @@ impl ActiveRenderPass {
 
         match (self.depth_stencil_attachment, raster_state.depth_stencil) {
             (Some(texture), Some(depth_stencil)) => {
-                let texture_desc = state.texture_desc_ref(texture)?;
+                let texture_desc = resources.texture_desc(texture)?;
                 if texture_desc.format != depth_stencil.format {
                     return Err(RhiError::InvalidRenderPass {
                         reason: format!(
@@ -265,8 +273,8 @@ impl RenderPassAttachmentInfo {
     }
 }
 
-pub(super) fn validate_render_pass_attachments(
-    state: &DeterministicRhiContractDeviceState,
+pub(crate) fn validate_render_pass_attachments(
+    resources: &impl RenderPassResourceLookup,
     color_attachments: &[RenderPassColorAttachmentDesc],
     depth_stencil_attachment: Option<RenderPassDepthStencilAttachmentDesc>,
 ) -> Result<RenderPassAttachmentInfo, RhiError> {
@@ -281,26 +289,32 @@ pub(super) fn validate_render_pass_attachments(
     let mut attachment_info = None;
     for (index, attachment) in color_attachments.iter().enumerate() {
         if !seen.insert((
-            attachment.view.texture.raw(),
+            attachment.view.texture.diagnostic_id(),
             attachment.view.mip_level,
             attachment.view.array_layer,
         )) {
             return Err(RhiError::InvalidRenderPass {
                 reason: format!(
                     "texture `{}` mip {} layer {} is bound more than once in the render pass",
-                    attachment.view.texture.raw(),
+                    attachment.view.texture.diagnostic_id(),
                     attachment.view.mip_level,
                     attachment.view.array_layer
                 ),
             });
         }
-        let desc = state.texture_desc_ref(attachment.view.texture)?;
+        let desc = resources.texture_desc(attachment.view.texture)?;
         ensure_texture_usage(
-            attachment.view.texture.raw(),
+            attachment.view.texture.diagnostic_id(),
             desc,
             TextureUsage::RENDER_ATTACHMENT,
         )?;
         validate_color_attachment_desc(index, attachment, desc)?;
+        validate_registered_attachment_view(
+            resources,
+            &format!("color attachment {index}"),
+            attachment.view,
+            desc,
+        )?;
         let view_shape = validate_attachment_view(
             &format!("color attachment {index}"),
             desc,
@@ -315,26 +329,32 @@ pub(super) fn validate_render_pass_attachments(
         let info = attachment_info.expect("color attachment info was just initialized");
         if let Some(resolve_target) = attachment.resolve_target {
             if !seen.insert((
-                resolve_target.texture.raw(),
+                resolve_target.texture.diagnostic_id(),
                 resolve_target.mip_level,
                 resolve_target.array_layer,
             )) {
                 return Err(RhiError::InvalidRenderPass {
                     reason: format!(
                         "texture `{}` mip {} layer {} is bound more than once in the render pass",
-                        resolve_target.texture.raw(),
+                        resolve_target.texture.diagnostic_id(),
                         resolve_target.mip_level,
                         resolve_target.array_layer
                     ),
                 });
             }
-            let resolve_desc = state.texture_desc_ref(resolve_target.texture)?;
+            let resolve_desc = resources.texture_desc(resolve_target.texture)?;
             ensure_texture_usage(
-                resolve_target.texture.raw(),
+                resolve_target.texture.diagnostic_id(),
                 resolve_desc,
                 TextureUsage::RENDER_ATTACHMENT,
             )?;
             validate_color_resolve_target_desc(index, resolve_desc)?;
+            validate_registered_attachment_view(
+                resources,
+                &format!("color attachment {index} resolve target"),
+                resolve_target,
+                resolve_desc,
+            )?;
             let resolve_view_shape = validate_attachment_view(
                 &format!("color attachment {index} resolve target"),
                 resolve_desc,
@@ -347,26 +367,32 @@ pub(super) fn validate_render_pass_attachments(
 
     if let Some(depth_stencil) = depth_stencil_attachment {
         if !seen.insert((
-            depth_stencil.view.texture.raw(),
+            depth_stencil.view.texture.diagnostic_id(),
             depth_stencil.view.mip_level,
             depth_stencil.view.array_layer,
         )) {
             return Err(RhiError::InvalidRenderPass {
                 reason: format!(
                     "texture `{}` mip {} layer {} is bound more than once in the render pass",
-                    depth_stencil.view.texture.raw(),
+                    depth_stencil.view.texture.diagnostic_id(),
                     depth_stencil.view.mip_level,
                     depth_stencil.view.array_layer
                 ),
             });
         }
-        let desc = state.texture_desc_ref(depth_stencil.view.texture)?;
+        let desc = resources.texture_desc(depth_stencil.view.texture)?;
         ensure_texture_usage(
-            depth_stencil.view.texture.raw(),
+            depth_stencil.view.texture.diagnostic_id(),
             desc,
             TextureUsage::RENDER_ATTACHMENT,
         )?;
         validate_depth_stencil_attachment_desc(desc, depth_stencil)?;
+        validate_registered_attachment_view(
+            resources,
+            "depth/stencil attachment",
+            depth_stencil.view,
+            desc,
+        )?;
         let view_shape = validate_attachment_view(
             "depth/stencil attachment",
             desc,
@@ -379,6 +405,63 @@ pub(super) fn validate_render_pass_attachments(
     attachment_info.ok_or_else(|| RhiError::InvalidRenderPass {
         reason: "render pass requires at least one color or depth/stencil attachment".to_string(),
     })
+}
+
+fn validate_registered_attachment_view(
+    resources: &impl RenderPassResourceLookup,
+    role: &str,
+    attachment_view: RenderPassTextureViewDesc,
+    parent_desc: &TextureDesc,
+) -> Result<(), RhiError> {
+    let Some(registered_view) = attachment_view.registered_view else {
+        return Ok(());
+    };
+    let view = resources.texture_view_desc(registered_view)?;
+    if view.texture != attachment_view.texture {
+        return Err(RhiError::InvalidRenderPass {
+            reason: format!(
+                "{role} registered view `{}` belongs to texture `{}`, expected texture `{}`",
+                registered_view.diagnostic_id(),
+                view.texture.diagnostic_id(),
+                attachment_view.texture.diagnostic_id(),
+            ),
+        });
+    }
+    if view.dimension != TextureViewDimension::D2 {
+        return Err(RhiError::InvalidRenderPass {
+            reason: format!("{role} registered view must have D2 dimension"),
+        });
+    }
+    if view.format.is_some() || view.aspect != TextureViewAspect::All {
+        return Err(RhiError::InvalidRenderPass {
+            reason: format!(
+                "{role} registered view must use the parent format with the All aspect"
+            ),
+        });
+    }
+    if view.base_mip_level != attachment_view.mip_level
+        || view.base_array_layer != attachment_view.array_layer
+    {
+        return Err(RhiError::InvalidRenderPass {
+            reason: format!(
+                "{role} registered view subresource does not match the render-pass attachment"
+            ),
+        });
+    }
+    let mip_level_count = view
+        .mip_level_count
+        .unwrap_or_else(|| parent_desc.mip_levels.saturating_sub(view.base_mip_level));
+    let array_layer_count = view.array_layer_count.unwrap_or_else(|| {
+        texture_view_layer_count(parent_desc).saturating_sub(view.base_array_layer)
+    });
+    if mip_level_count != 1 || array_layer_count != 1 {
+        return Err(RhiError::InvalidRenderPass {
+            reason: format!(
+                "{role} registered view must select exactly one mip level and array layer"
+            ),
+        });
+    }
+    Ok(())
 }
 
 fn validate_color_attachment_desc(
@@ -459,6 +542,14 @@ fn validate_attachment_view(
     mip_level: u32,
     array_layer: u32,
 ) -> Result<RenderPassAttachmentInfo, RhiError> {
+    if !matches!(
+        desc.dimension,
+        TextureDimension::D2 | TextureDimension::D2Array | TextureDimension::Cube
+    ) {
+        return Err(RhiError::InvalidRenderPass {
+            reason: format!("{role} must use a 2D, 2D array, or cube texture"),
+        });
+    }
     if mip_level >= desc.mip_levels {
         return Err(RhiError::InvalidRenderPass {
             reason: format!(
@@ -478,10 +569,7 @@ fn validate_attachment_view(
 
     Ok(RenderPassAttachmentInfo {
         width: mip_extent(desc.width, mip_level),
-        height: match desc.dimension {
-            TextureDimension::D1 => 1,
-            _ => mip_extent(desc.height, mip_level),
-        },
+        height: mip_extent(desc.height, mip_level),
         sample_count: desc.sample_count,
     })
 }

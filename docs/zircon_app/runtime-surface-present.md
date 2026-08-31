@@ -119,7 +119,7 @@ related_code:
   - zircon_app/src/entry/tests/runtime_entry_surface_present_guards/structure.rs
   - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/runtime_presenter.rs
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime/src/dynamic_api/surface.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
 implementation_files:

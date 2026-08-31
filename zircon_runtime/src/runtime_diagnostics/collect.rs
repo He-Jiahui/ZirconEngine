@@ -64,8 +64,8 @@ fn collect_render_diagnostics(core: &CoreHandle) -> RuntimeRenderDiagnostics {
         Err(error) => (None, Some(error.to_string())),
     };
     let (virtual_geometry_debug_available, debug_error) =
-        match render_framework.query_virtual_geometry_debug_snapshot() {
-            Ok(snapshot) => (snapshot.is_some(), None),
+        match render_framework.query_virtual_geometry_debug_snapshot_available() {
+            Ok(available) => (available, None),
             Err(error) => (false, Some(error.to_string())),
         };
 

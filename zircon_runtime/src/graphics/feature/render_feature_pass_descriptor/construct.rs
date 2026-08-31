@@ -5,7 +5,8 @@ use crate::core::framework::render::{
 use crate::graphics::scene::RenderPassExecutorId;
 use crate::render_graph::{
     QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload,
-    RenderGraphExternalResourceBinding,
+    RenderGraphExternalResourceBinding, RenderGraphResourceAccessMetadata,
+    RenderGraphResourceUsageFlags, RenderGraphTextureSubresourceRange, RenderResourceSchema,
 };
 
 use crate::graphics::pipeline::RenderPassStage;
@@ -15,6 +16,7 @@ use super::super::compute_pass_descriptor::ComputePassDescriptor;
 use super::render_feature_pass_descriptor::{
     RenderFeaturePassDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceDescriptor,
     RenderFeatureResourceKind, RenderFeatureResourceVersion, RenderFeatureResourceWriteMode,
+    RenderFeatureTextureViewAlias,
 };
 
 impl RenderFeaturePassDescriptor {
@@ -75,6 +77,23 @@ impl RenderFeaturePassDescriptor {
         )
     }
 
+    /// Declares a texture read with the producer-owned physical contract.
+    pub fn read_texture_with_schema(
+        self,
+        name: impl Into<String>,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        self.with_resource_with_schema(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            Some(schema),
+        )
+    }
+
     pub fn read_texture_from(
         self,
         name: impl Into<String>,
@@ -91,6 +110,30 @@ impl RenderFeaturePassDescriptor {
         )
     }
 
+    /// Reads a specific producer value while retaining its allocation contract.
+    pub fn read_texture_from_with_schema(
+        self,
+        name: impl Into<String>,
+        producer_pass_name: impl Into<String>,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        let name = name.into();
+        self.with_resource_with_input_version(
+            name.clone(),
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            Some(schema),
+            Some(RenderFeatureResourceVersion::new(
+                name,
+                RenderFeatureResourceKind::Texture,
+                producer_pass_name,
+            )),
+        )
+    }
+
     pub fn write_texture(self, name: impl Into<String>) -> Self {
         self.with_resource(
             name,
@@ -102,6 +145,101 @@ impl RenderFeaturePassDescriptor {
         )
     }
 
+    /// Writes a graph-owned texture retained until its cross-frame extraction
+    /// has completed. This prevents same-frame aliasing and makes the source
+    /// an explicit culling root without introducing a synthetic copy pass.
+    pub fn write_persistent_texture(self, name: impl Into<String>) -> Self {
+        self.with_resource_with_input_version_and_usage(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            None,
+            None,
+            RenderGraphResourceUsageFlags::persistent(),
+        )
+    }
+
+    /// Writes a retained graph-owned texture with an explicit attachment
+    /// initialization decision.
+    pub fn write_persistent_texture_with_ops(
+        self,
+        name: impl Into<String>,
+        attachment_ops: RenderGraphAttachmentOps,
+    ) -> Self {
+        self.with_resource_with_input_version_and_usage(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Write,
+            Some(attachment_ops),
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            None,
+            None,
+            RenderGraphResourceUsageFlags::persistent(),
+        )
+    }
+
+    /// Declares an attachment write with an explicit physical contract.
+    pub fn write_texture_with_schema(
+        self,
+        name: impl Into<String>,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        self.with_resource_with_schema(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            Some(schema),
+        )
+    }
+
+    /// Writes an attachment by loading the value produced by `producer_pass_name`.
+    pub fn write_texture_load_from(
+        self,
+        name: impl Into<String>,
+        producer_pass_name: impl Into<String>,
+    ) -> Self {
+        self.with_resource_from_producer(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Write,
+            Some(RenderGraphAttachmentOps::load_store()),
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            producer_pass_name,
+        )
+    }
+
+    /// Loads a producer-owned attachment value with its explicit contract.
+    pub fn write_texture_load_from_with_schema(
+        self,
+        name: impl Into<String>,
+        producer_pass_name: impl Into<String>,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        let name = name.into();
+        self.with_resource_with_input_version(
+            name.clone(),
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Write,
+            Some(RenderGraphAttachmentOps::load_store()),
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            Some(schema),
+            Some(RenderFeatureResourceVersion::new(
+                name,
+                RenderFeatureResourceKind::Texture,
+                producer_pass_name,
+            )),
+        )
+    }
+
     pub fn write_storage_texture(self, name: impl Into<String>) -> Self {
         self.with_resource(
             name,
@@ -110,6 +248,38 @@ impl RenderFeaturePassDescriptor {
             None,
             RenderFeatureResourceWriteMode::Storage,
             RenderGraphExternalResourceBinding::report_only(),
+        )
+    }
+
+    /// Writes a graph-owned storage texture retained until its cross-frame
+    /// extraction has completed.
+    pub fn write_persistent_storage_texture(self, name: impl Into<String>) -> Self {
+        self.with_resource_with_input_version_and_usage(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::report_only(),
+            None,
+            None,
+            RenderGraphResourceUsageFlags::persistent(),
+        )
+    }
+
+    pub fn write_storage_texture_with_schema(
+        self,
+        name: impl Into<String>,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        self.with_resource_with_schema(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::report_only(),
+            Some(schema),
         )
     }
 
@@ -128,6 +298,50 @@ impl RenderFeaturePassDescriptor {
         )
     }
 
+    /// Declares an attachment write and its physical contract atomically.
+    pub fn write_texture_with_ops_and_schema(
+        self,
+        name: impl Into<String>,
+        attachment_ops: RenderGraphAttachmentOps,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        self.with_resource_with_schema(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Write,
+            Some(attachment_ops),
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            Some(schema),
+        )
+    }
+
+    /// Writes a logical texture resource backed by an exact view of `parent`.
+    /// The graph compiler owns parent-name resolution and range validation.
+    pub fn write_texture_view_alias_with_ops(
+        mut self,
+        name: impl Into<String>,
+        parent: impl Into<String>,
+        range: RenderGraphTextureSubresourceRange,
+        attachment_ops: RenderGraphAttachmentOps,
+    ) -> Self {
+        self.resources.push(RenderFeatureResourceDescriptor {
+            name: name.into(),
+            kind: RenderFeatureResourceKind::Texture,
+            access: RenderFeatureResourceAccess::Write,
+            input_version: None,
+            minimum_size_bytes: None,
+            attachment_ops: Some(attachment_ops),
+            write_mode: RenderFeatureResourceWriteMode::Attachment,
+            access_metadata: None,
+            external_binding: RenderGraphExternalResourceBinding::report_only(),
+            texture_view_alias: Some(RenderFeatureTextureViewAlias::new(parent, range)),
+            schema: None,
+            usage: RenderGraphResourceUsageFlags::default(),
+        });
+        self
+    }
+
     pub fn read_buffer(self, name: impl Into<String>) -> Self {
         self.with_resource(
             name,
@@ -136,6 +350,23 @@ impl RenderFeaturePassDescriptor {
             None,
             RenderFeatureResourceWriteMode::Attachment,
             RenderGraphExternalResourceBinding::report_only(),
+        )
+    }
+
+    /// Declares a buffer read with the producer-owned physical contract.
+    pub fn read_buffer_with_schema(
+        self,
+        name: impl Into<String>,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        self.with_resource_with_schema(
+            name,
+            RenderFeatureResourceKind::Buffer,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            Some(schema),
         )
     }
 
@@ -155,6 +386,30 @@ impl RenderFeaturePassDescriptor {
         )
     }
 
+    /// Reads a specific buffer producer value with its explicit contract.
+    pub fn read_buffer_from_with_schema(
+        self,
+        name: impl Into<String>,
+        producer_pass_name: impl Into<String>,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        let name = name.into();
+        self.with_resource_with_input_version(
+            name.clone(),
+            RenderFeatureResourceKind::Buffer,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            Some(schema),
+            Some(RenderFeatureResourceVersion::new(
+                name,
+                RenderFeatureResourceKind::Buffer,
+                producer_pass_name,
+            )),
+        )
+    }
+
     pub fn write_buffer(self, name: impl Into<String>) -> Self {
         self.with_resource(
             name,
@@ -163,6 +418,22 @@ impl RenderFeaturePassDescriptor {
             None,
             RenderFeatureResourceWriteMode::Storage,
             RenderGraphExternalResourceBinding::report_only(),
+        )
+    }
+
+    pub fn write_buffer_with_schema(
+        self,
+        name: impl Into<String>,
+        schema: RenderResourceSchema,
+    ) -> Self {
+        self.with_resource_with_schema(
+            name,
+            RenderFeatureResourceKind::Buffer,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::report_only(),
+            Some(schema),
         )
     }
 
@@ -180,223 +451,8 @@ impl RenderFeaturePassDescriptor {
         )
     }
 
-    pub fn read_external(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Read,
-            None,
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::report_only(),
-        )
-    }
-
-    pub fn read_external_from(
+    pub(super) fn with_resource(
         self,
-        name: impl Into<String>,
-        producer_pass_name: impl Into<String>,
-    ) -> Self {
-        self.with_resource_from_producer(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Read,
-            None,
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::report_only(),
-            producer_pass_name,
-        )
-    }
-
-    pub fn read_external_texture(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Read,
-            None,
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::report_only_texture(),
-        )
-    }
-
-    pub fn read_external_buffer(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Read,
-            None,
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::report_only_buffer(),
-        )
-    }
-
-    pub fn write_external(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            None,
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::report_only(),
-        )
-    }
-
-    pub fn write_external_texture(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            None,
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::report_only_texture(),
-        )
-    }
-
-    pub fn write_external_buffer(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            None,
-            RenderFeatureResourceWriteMode::Storage,
-            RenderGraphExternalResourceBinding::report_only_buffer(),
-        )
-    }
-
-    pub fn write_storage_external(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            None,
-            RenderFeatureResourceWriteMode::Storage,
-            RenderGraphExternalResourceBinding::report_only(),
-        )
-    }
-
-    pub fn write_storage_external_texture(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            None,
-            RenderFeatureResourceWriteMode::Storage,
-            RenderGraphExternalResourceBinding::report_only_texture(),
-        )
-    }
-
-    pub fn write_storage_external_buffer(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            None,
-            RenderFeatureResourceWriteMode::Storage,
-            RenderGraphExternalResourceBinding::report_only_buffer(),
-        )
-    }
-
-    pub fn read_required_external_buffer(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Read,
-            None,
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::required_buffer(),
-        )
-    }
-
-    pub fn read_required_external_texture(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Read,
-            None,
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::required_texture(),
-        )
-    }
-
-    pub fn write_required_external_buffer(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            None,
-            RenderFeatureResourceWriteMode::Storage,
-            RenderGraphExternalResourceBinding::required_buffer(),
-        )
-    }
-
-    pub fn write_required_external_texture(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            None,
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::required_texture(),
-        )
-    }
-
-    pub fn write_required_external_texture_with_ops(
-        self,
-        name: impl Into<String>,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            Some(attachment_ops),
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::required_texture(),
-        )
-    }
-
-    pub fn write_required_storage_external_texture(self, name: impl Into<String>) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            None,
-            RenderFeatureResourceWriteMode::Storage,
-            RenderGraphExternalResourceBinding::required_texture(),
-        )
-    }
-
-    pub fn write_external_with_ops(
-        self,
-        name: impl Into<String>,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            Some(attachment_ops),
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::report_only(),
-        )
-    }
-
-    pub fn write_external_texture_with_ops(
-        self,
-        name: impl Into<String>,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Self {
-        self.with_resource(
-            name,
-            RenderFeatureResourceKind::External,
-            RenderFeatureResourceAccess::Write,
-            Some(attachment_ops),
-            RenderFeatureResourceWriteMode::Attachment,
-            RenderGraphExternalResourceBinding::report_only_texture(),
-        )
-    }
-
-    fn with_resource(
-        mut self,
         name: impl Into<String>,
         kind: RenderFeatureResourceKind,
         access: RenderFeatureResourceAccess,
@@ -404,7 +460,7 @@ impl RenderFeaturePassDescriptor {
         write_mode: RenderFeatureResourceWriteMode,
         external_binding: RenderGraphExternalResourceBinding,
     ) -> Self {
-        self.with_resource_with_input_version(
+        self.with_resource_with_schema(
             name,
             kind,
             access,
@@ -415,7 +471,29 @@ impl RenderFeaturePassDescriptor {
         )
     }
 
-    fn with_resource_from_producer(
+    pub(super) fn with_resource_with_schema(
+        self,
+        name: impl Into<String>,
+        kind: RenderFeatureResourceKind,
+        access: RenderFeatureResourceAccess,
+        attachment_ops: Option<RenderGraphAttachmentOps>,
+        write_mode: RenderFeatureResourceWriteMode,
+        external_binding: RenderGraphExternalResourceBinding,
+        schema: Option<RenderResourceSchema>,
+    ) -> Self {
+        self.with_resource_with_input_version(
+            name,
+            kind,
+            access,
+            attachment_ops,
+            write_mode,
+            external_binding,
+            schema,
+            None,
+        )
+    }
+
+    pub(super) fn with_resource_from_producer(
         self,
         name: impl Into<String>,
         kind: RenderFeatureResourceKind,
@@ -433,6 +511,7 @@ impl RenderFeaturePassDescriptor {
             attachment_ops,
             write_mode,
             external_binding,
+            None,
             Some(RenderFeatureResourceVersion::new(
                 name,
                 kind,
@@ -449,7 +528,60 @@ impl RenderFeaturePassDescriptor {
         attachment_ops: Option<RenderGraphAttachmentOps>,
         write_mode: RenderFeatureResourceWriteMode,
         external_binding: RenderGraphExternalResourceBinding,
+        schema: Option<RenderResourceSchema>,
         input_version: Option<RenderFeatureResourceVersion>,
+    ) -> Self {
+        self.with_resource_with_input_version_and_usage(
+            name,
+            kind,
+            access,
+            attachment_ops,
+            write_mode,
+            external_binding,
+            schema,
+            input_version,
+            RenderGraphResourceUsageFlags::default(),
+        )
+    }
+
+    pub(super) fn with_resource_with_input_version_and_usage(
+        self,
+        name: impl Into<String>,
+        kind: RenderFeatureResourceKind,
+        access: RenderFeatureResourceAccess,
+        attachment_ops: Option<RenderGraphAttachmentOps>,
+        write_mode: RenderFeatureResourceWriteMode,
+        external_binding: RenderGraphExternalResourceBinding,
+        schema: Option<RenderResourceSchema>,
+        input_version: Option<RenderFeatureResourceVersion>,
+        usage: RenderGraphResourceUsageFlags,
+    ) -> Self {
+        self.with_resource_contract(
+            name,
+            kind,
+            access,
+            attachment_ops,
+            write_mode,
+            external_binding,
+            schema,
+            input_version,
+            usage,
+            None,
+        )
+    }
+
+    pub(super) fn with_resource_contract(
+        mut self,
+        name: impl Into<String>,
+        kind: RenderFeatureResourceKind,
+        access: RenderFeatureResourceAccess,
+        attachment_ops: Option<RenderGraphAttachmentOps>,
+        write_mode: RenderFeatureResourceWriteMode,
+        external_binding: RenderGraphExternalResourceBinding,
+        schema: Option<RenderResourceSchema>,
+        input_version: Option<RenderFeatureResourceVersion>,
+        usage: RenderGraphResourceUsageFlags,
+        access_metadata: Option<RenderGraphResourceAccessMetadata>,
     ) -> Self {
         self.resources.push(RenderFeatureResourceDescriptor {
             name: name.into(),
@@ -459,7 +591,11 @@ impl RenderFeaturePassDescriptor {
             minimum_size_bytes: None,
             attachment_ops,
             write_mode,
+            access_metadata,
             external_binding,
+            texture_view_alias: None,
+            schema,
+            usage,
         });
         self
     }
@@ -480,7 +616,11 @@ impl RenderFeaturePassDescriptor {
             minimum_size_bytes: Some(minimum_size_bytes),
             attachment_ops: None,
             write_mode,
+            access_metadata: None,
             external_binding: RenderGraphExternalResourceBinding::report_only(),
+            texture_view_alias: None,
+            schema: None,
+            usage: RenderGraphResourceUsageFlags::default(),
         });
         self
     }
@@ -530,7 +670,11 @@ fn render_feature_resource_for_shader_binding(
         minimum_size_bytes: None,
         attachment_ops: None,
         write_mode,
+        access_metadata: None,
         external_binding: RenderGraphExternalResourceBinding::report_only(),
+        texture_view_alias: None,
+        schema: None,
+        usage: RenderGraphResourceUsageFlags::default(),
     })
 }
 
@@ -539,7 +683,7 @@ mod tests {
     use zircon_runtime_interface::resource::{AssetReference, ResourceLocator};
 
     use super::*;
-    use crate::core::framework::render::{
+    use crate::graphics::shader::invocation::{
         ComputeDispatchBuilder, ComputeKernelRef, FullscreenPassBuilder, FullscreenShaderRef,
         RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind,
         ShaderDispatchBuildDiagnostic, ShaderDispatchExtent, ShaderResourceDescriptor,
@@ -597,6 +741,135 @@ mod tests {
             pass.resources[0].write_mode,
             RenderFeatureResourceWriteMode::Storage
         );
+    }
+
+    #[test]
+    fn storage_texture_schema_is_preserved_by_feature_authoring() {
+        let schema = crate::render_graph::RenderResourceSchema::texture(
+            crate::render_graph::RenderTextureSchema::new(
+                crate::rhi::TextureFormat::Rgba8Unorm,
+                crate::rhi::TextureUsage::SAMPLED
+                    | crate::rhi::TextureUsage::STORAGE
+                    | crate::rhi::TextureUsage::COPY_DST,
+            ),
+        );
+        let pass = RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "typed-storage-output",
+            QueueLane::AsyncCompute,
+        )
+        .write_storage_texture_with_schema("typed-storage-output", schema);
+
+        assert_eq!(pass.resources.len(), 1);
+        assert_eq!(pass.resources[0].schema, Some(schema));
+    }
+
+    #[test]
+    fn persistent_texture_write_is_an_explicit_graph_extraction_root() {
+        let pass = RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "history-source",
+            QueueLane::Graphics,
+        )
+        .write_persistent_texture("history-source");
+
+        assert_eq!(pass.resources.len(), 1);
+        assert!(pass.resources[0].usage.persistent);
+        assert!(pass.resources[0].usage.is_cull_root());
+    }
+
+    #[test]
+    fn persistent_storage_texture_write_retains_the_storage_contract() {
+        let pass = RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "persistent-storage-history-source",
+            QueueLane::AsyncCompute,
+        )
+        .write_persistent_storage_texture("persistent-storage-history-source");
+
+        assert_eq!(pass.resources.len(), 1);
+        assert_eq!(
+            pass.resources[0].write_mode,
+            RenderFeatureResourceWriteMode::Storage
+        );
+        assert!(pass.resources[0].usage.persistent);
+    }
+
+    #[test]
+    fn persistent_attachment_write_preserves_explicit_attachment_ops() {
+        let pass = RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "persistent-attachment-history-source",
+            QueueLane::Graphics,
+        )
+        .write_persistent_texture_with_ops(
+            "persistent-attachment-history-source",
+            RenderGraphAttachmentOps::clear_store(),
+        );
+
+        assert_eq!(
+            pass.resources[0].attachment_ops,
+            Some(RenderGraphAttachmentOps::clear_store())
+        );
+        assert!(pass.resources[0].usage.persistent);
+    }
+
+    #[test]
+    fn persistent_external_storage_write_retains_its_external_binding() {
+        let pass = RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "persistent-external-storage-history-source",
+            QueueLane::AsyncCompute,
+        )
+        .write_persistent_storage_external_texture("persistent-external-storage-history-source");
+
+        assert_eq!(pass.resources[0].kind, RenderFeatureResourceKind::External);
+        assert_eq!(
+            pass.resources[0].external_binding,
+            RenderGraphExternalResourceBinding::report_only_texture()
+        );
+        assert_eq!(
+            pass.resources[0].write_mode,
+            RenderFeatureResourceWriteMode::Storage
+        );
+        assert!(pass.resources[0].usage.persistent);
+    }
+
+    #[test]
+    fn attachment_and_read_resource_schemas_are_preserved_by_feature_authoring() {
+        let texture_schema = crate::render_graph::RenderResourceSchema::texture(
+            crate::render_graph::RenderTextureSchema::new(
+                crate::rhi::TextureFormat::Rgba16Float,
+                crate::rhi::TextureUsage::RENDER_ATTACHMENT
+                    | crate::rhi::TextureUsage::SAMPLED
+                    | crate::rhi::TextureUsage::COPY_SRC,
+            ),
+        );
+        let buffer_schema = crate::render_graph::RenderResourceSchema::buffer(
+            crate::render_graph::RenderBufferSchema::new(
+                256,
+                crate::rhi::BufferUsage::STORAGE | crate::rhi::BufferUsage::COPY_DST,
+            ),
+        );
+        let pass = RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "typed-attachment-and-read-resources",
+            QueueLane::Graphics,
+        )
+        .read_texture_with_schema("typed-input", texture_schema)
+        .write_texture_with_ops_and_schema(
+            "typed-output",
+            RenderGraphAttachmentOps::clear_store(),
+            texture_schema,
+        )
+        .read_buffer_with_schema("typed-input-buffer", buffer_schema)
+        .write_buffer_with_schema("typed-output-buffer", buffer_schema);
+
+        assert_eq!(pass.resources.len(), 4);
+        assert_eq!(pass.resources[0].schema, Some(texture_schema));
+        assert_eq!(pass.resources[1].schema, Some(texture_schema));
+        assert_eq!(pass.resources[2].schema, Some(buffer_schema));
+        assert_eq!(pass.resources[3].schema, Some(buffer_schema));
     }
 
     #[test]

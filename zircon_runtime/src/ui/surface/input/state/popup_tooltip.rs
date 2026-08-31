@@ -26,6 +26,21 @@ pub struct UiSurfaceTooltipState {
 }
 
 impl UiSurfaceInputState {
+    pub(crate) fn set_popup_anchor_point(&mut self, popup_node: UiNodeId, point: UiPoint) {
+        self.popup_anchor_points.insert(popup_node, point);
+        if let Some(popup) = self
+            .popup_stack
+            .iter_mut()
+            .find(|popup| popup.popup_node == Some(popup_node))
+        {
+            popup.anchor = Some(point);
+        }
+    }
+
+    pub(crate) fn popup_anchor_point(&self, popup_node: UiNodeId) -> Option<UiPoint> {
+        self.popup_anchor_points.get(&popup_node).copied()
+    }
+
     pub fn open_popup(
         &mut self,
         popup_id: String,
@@ -93,6 +108,7 @@ impl UiSurfaceInputState {
     }
 
     pub(crate) fn close_popup_with_node(&mut self, popup_node: UiNodeId, popup_id: &str) -> bool {
+        self.popup_anchor_points.remove(&popup_node);
         let index = self
             .popup_stack
             .iter()
@@ -105,6 +121,11 @@ impl UiSurfaceInputState {
         let Some(index) = index else {
             return false;
         };
+        for popup in &self.popup_stack[index..] {
+            if let Some(popup_node) = popup.popup_node {
+                self.popup_anchor_points.remove(&popup_node);
+            }
+        }
         self.popup_stack.truncate(index);
         true
     }
@@ -117,6 +138,11 @@ impl UiSurfaceInputState {
         else {
             return false;
         };
+        for popup in &self.popup_stack[index..] {
+            if let Some(popup_node) = popup.popup_node {
+                self.popup_anchor_points.remove(&popup_node);
+            }
+        }
         self.popup_stack.truncate(index);
         true
     }

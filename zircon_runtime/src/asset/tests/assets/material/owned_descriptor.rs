@@ -466,3 +466,64 @@ custom_gain = 2.0
     let encoded = material.to_toml_string().unwrap();
     assert!(!encoded.contains("occlusion_strength"));
 }
+
+#[test]
+fn material_owned_normal_scale_defaults_serializes_and_drives_standard_descriptor() {
+    let default_material = MaterialAsset::from_toml_str(
+        r#"
+version = 2
+name = "Default Normal Scale"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+"#,
+    )
+    .unwrap();
+    let mut material = MaterialAsset::from_toml_str(
+        r#"
+version = 2
+name = "Normal Scale"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+normal_scale = 0.35
+custom_gain = 2.0
+"#,
+    )
+    .unwrap();
+
+    assert_eq!(default_material.normal_scale(), 1.0);
+    assert_eq!(
+        default_material.standard_material_descriptor().normal_scale,
+        1.0
+    );
+    assert_eq!(material.normal_scale(), 0.35);
+    assert_eq!(material.standard_material_descriptor().normal_scale, 0.35);
+    assert!(material.shader_property_override("normal_scale").is_none());
+    assert!(material
+        .shader_property_overrides()
+        .all(|(property, _)| property != "normal_scale"));
+    assert_eq!(
+        material.shader_property_override("custom_gain"),
+        Some(&toml::Value::Float(2.0))
+    );
+
+    let encoded = material.to_toml_string().unwrap();
+    assert!(encoded.contains("normal_scale = 0.35"));
+    assert_eq!(
+        MaterialAsset::from_toml_str(&encoded)
+            .unwrap()
+            .normal_scale(),
+        0.35
+    );
+
+    material
+        .property_values
+        .insert("normal_scale".to_string(), toml::Value::Float(1.0));
+    let encoded = material.to_toml_string().unwrap();
+    assert!(!encoded.contains("normal_scale"));
+}

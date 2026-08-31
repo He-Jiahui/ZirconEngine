@@ -52,10 +52,16 @@ asset fixture 与 primitive cutover 行为拆分为 folder-backed 模块。
 
 ## 修复结果与回传
 
-Open state: `待修复`。本 handoff 未修改业务测试，不能作为 EditorUI11 或根 failure 的 fixed evidence。
+Open state: `结构修复已完成，待受管 Rust/upward gate`。根 owner 已拆为普通
+`asset_placement`、`asset_imports`、`asset_identity` 子模块；Workbench primitive
+合同留在 740 行父 owner，native/overlay/shell 行为测试进入独立子模块，并删除
+`#[path]` 挂载。23 个测试名称保持不变。结构审计已不再报告本 failure 的两条路径，
+但全局仍有 31 条 foreign oversized test owners，且 current-source Cargo 尚未取得终态，
+因此本记录继续保持 open，不能作为 EditorUI11 或根 failure 的 fixed evidence。
 
 ## 产出记录与时间
 
 | 时间 | 里程碑/切片 | 状态 | 完成项目与证据 | 后续门禁 |
 | --- | --- | --- | --- | --- |
 | 2026-08-13 | M3 ZUI governance test-budget handoff | `open` | 从准确 48/0 审计中隔离 2 个 ZUI governance owner，最大项为 1174 行。 | 取得源码 exact lease 后按 cutover 行为 folder-backed 拆分，重跑受管回归和结构审计。 |
+| 2026-08-24 | ZUI governance owner split | `code_complete_validation_pending` | RED 审计为 981/1174 行；GREEN owner 行数为 87/190/555/167 与 740/164/120/162，目标两项从审计清单移除，oversized test 总数 33→31；23/23 测试名称保留，rustfmt 与 scoped diff-check 通过。 | 提交 exact snapshot 的受管结构审计与 `zircon_editor --lib ui` gate；仅在 Cargo/upward gate 终态后执行 failure return。 |

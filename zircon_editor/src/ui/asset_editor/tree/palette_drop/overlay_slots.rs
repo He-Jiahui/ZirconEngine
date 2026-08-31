@@ -8,6 +8,12 @@ use super::resolution::{
     UiAssetPaletteTargetFrame,
 };
 
+#[cfg(test)]
+#[path = "overlay_slots/capacity_tests.rs"]
+mod capacity_tests;
+
+const OVERLAY_SLOT_TARGET_COUNT: usize = 9;
+
 pub(super) fn overlay_slot_target_overlays(
     frame: UiAssetPaletteTargetFrame,
     selected_slot: &BTreeMap<String, Value>,
@@ -106,7 +112,7 @@ pub(super) fn overlay_slot_targets(
         ["Left", "Center", "Right"],
         ["Bottom Left", "Bottom", "Bottom Right"],
     ];
-    let mut targets = Vec::new();
+    let mut targets = Vec::with_capacity(OVERLAY_SLOT_TARGET_COUNT);
     for row in 0..3 {
         for column in 0..3 {
             let anchor_x = [0.0, 0.5, 1.0][column];

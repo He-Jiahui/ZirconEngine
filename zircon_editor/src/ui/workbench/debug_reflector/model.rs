@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     surface::{UiSurfaceDebugSnapshot, UiWidgetReflectorNode},
@@ -54,14 +52,13 @@ impl EditorUiDebugReflectorModel {
 
     pub(crate) fn from_snapshot(snapshot: &UiSurfaceDebugSnapshot) -> Self {
         let selected_node = snapshot.capture.selected_node;
-        let known_nodes = snapshot
-            .nodes
-            .iter()
-            .map(|node| node.node_id)
-            .collect::<BTreeSet<_>>();
         let mut warnings = Vec::new();
         if let Some(selected_node) = selected_node {
-            if !known_nodes.contains(&selected_node) {
+            if !snapshot
+                .nodes
+                .iter()
+                .any(|node| node.node_id == selected_node)
+            {
                 warnings.push(format!(
                     "Selected node {} is not present in snapshot tree",
                     selected_node.0

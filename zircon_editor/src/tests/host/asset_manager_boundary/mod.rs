@@ -112,6 +112,36 @@ fn editor_asset_boundary_lives_in_editor_crate() {
 }
 
 #[test]
+fn editor_asset_project_access_stays_host_owned_and_typed() {
+    let module_source = include_str!("../../../ui/host/module.rs");
+    let runtime_services_source = include_str!("../../../ui/host/runtime_services.rs");
+    let default_manager_source = include_str!(
+        "../../../ui/host/editor_asset_manager/manager/default_editor_asset_manager/mod.rs"
+    );
+    let relocation_source = include_str!(
+        "../../../ui/host/editor_asset_manager/manager/default_editor_asset_manager/project_relocation.rs"
+    );
+
+    assert!(
+        module_source.contains("EditorProjectAssetRuntimeAccess::new(&core)?"),
+        "EditorModule should construct the typed project-asset access at the host composition boundary"
+    );
+    assert!(
+        runtime_services_source.contains("struct EditorProjectAssetRuntimeAccess")
+            && runtime_services_source.contains("CoreWeak")
+            && runtime_services_source.contains("project_asset_manager_handle"),
+        "the host runtime-service leaf should own the weak, typed project-asset resolver"
+    );
+    assert!(
+        !default_manager_source.contains("ManagerResolver")
+            && !default_manager_source.contains("CoreHandle")
+            && !default_manager_source.contains(".resolver.resolve(")
+            && !relocation_source.contains(".resolver.resolve("),
+        "DefaultEditorAssetManager should receive typed project-asset access instead of retaining runtime locator state"
+    );
+}
+
+#[test]
 fn editor_host_uses_asset_owned_asset_change_stream() {
     let app_source = include_str!("../../../ui/retained_host/app.rs");
     let backend_refresh_source = include_str!("../../../ui/retained_host/app/backend_refresh.rs");
@@ -184,8 +214,6 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
     let accessors_source =
         include_str!("../../../ui/host/editor_event_runtime_access/asset_access.rs");
     let resource_access_source = include_str!("../../../ui/host/resource_access.rs");
-    let asset_surface_source =
-        include_str!("../../../ui/layouts/views/asset_surface_presentation.rs");
     let asset_item_snapshot_source =
         include_str!("../../../ui/workbench/snapshot/asset/asset_item_snapshot.rs");
     let asset_selection_snapshot_source =
@@ -196,7 +224,6 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
         editor_state_asset_workspace_source,
         accessors_source,
         resource_access_source,
-        asset_surface_source,
         asset_item_snapshot_source,
         asset_selection_snapshot_source,
     ] {
@@ -208,7 +235,6 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
 
     for source in [
         resource_access_source,
-        asset_surface_source,
         asset_item_snapshot_source,
         asset_selection_snapshot_source,
     ] {

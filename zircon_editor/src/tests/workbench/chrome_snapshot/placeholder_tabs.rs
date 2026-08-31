@@ -28,36 +28,34 @@ fn chrome_builder_keeps_placeholder_tabs_for_missing_view_instances() {
         host: ViewHost::Drawer(ActivityDrawerSlot::LeftTop),
     };
     let missing = ViewInstanceId::new("editor.scene#missing");
-    let layout = WorkbenchLayout {
-        active_main_page: MainPageId::workbench(),
-        main_pages: vec![MainHostPageLayout::WorkbenchPage {
-            id: MainPageId::workbench(),
-            title: "Workbench".to_string(),
-            activity_window: ActivityWindowId::workbench(),
-            document_workspace: DocumentNode::Tabs(TabStackLayout {
-                tabs: vec![missing.clone()],
-                active_tab: Some(missing.clone()),
-            }),
-        }],
-        drawers: BTreeMap::from([(
-            ActivityDrawerSlot::LeftTop,
-            ActivityDrawerLayout {
-                slot: ActivityDrawerSlot::LeftTop,
-                tab_stack: TabStackLayout {
-                    tabs: vec![present.instance_id.clone()],
-                    active_tab: Some(present.instance_id.clone()),
-                },
-                active_view: Some(present.instance_id.clone()),
-                mode: ActivityDrawerMode::Pinned,
-                extent: 260.0,
-                visible: true,
+    let mut layout = WorkbenchLayout::default();
+    layout.active_main_page = MainPageId::workbench();
+    layout.main_pages = vec![MainHostPageLayout::WorkbenchPage {
+        id: MainPageId::workbench(),
+        title: "Workbench".to_string(),
+        activity_window: ActivityWindowId::workbench(),
+    }];
+    let default_window = layout
+        .default_activity_window_mut()
+        .expect("default workbench window");
+    default_window.content_workspace = DocumentNode::Tabs(TabStackLayout {
+        tabs: vec![missing.clone()],
+        active_tab: Some(missing.clone()),
+    });
+    default_window.activity_drawers = BTreeMap::from([(
+        ActivityDrawerSlot::LeftTop,
+        ActivityDrawerLayout {
+            slot: ActivityDrawerSlot::LeftTop,
+            tab_stack: TabStackLayout {
+                tabs: vec![present.instance_id.clone()],
+                active_tab: Some(present.instance_id.clone()),
             },
-        )]),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    };
+            active_view: Some(present.instance_id.clone()),
+            mode: ActivityDrawerMode::Pinned,
+            extent: 260.0,
+            visible: true,
+        },
+    )]);
     let descriptors = vec![ViewDescriptor::new(
         ViewDescriptorId::new("editor.hierarchy"),
         ViewKind::ActivityView,

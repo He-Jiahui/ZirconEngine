@@ -58,7 +58,7 @@ impl EditorHostEventController {
         descriptor
     }
 
-    pub(crate) fn plugin_template_revision(&self) -> (u64, Vec<String>) {
+    pub(crate) fn extension_projection_revision(&self) -> (u64, Vec<String>) {
         let inner = self.shell().lock();
         let enabled_capabilities = inner
             .manager

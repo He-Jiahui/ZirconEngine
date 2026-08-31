@@ -191,6 +191,34 @@ fn editable_text_state_restores_preedit_text_when_composition_is_canceled() {
 }
 
 #[test]
+fn editable_text_state_cancels_existing_composition_after_becoming_read_only() {
+    let state = UiEditableTextState {
+        text: "Hello".to_string(),
+        caret: UiTextCaret {
+            offset: 1,
+            affinity: Default::default(),
+        },
+        selection: None,
+        composition: None,
+        read_only: false,
+    };
+    let mut state = crate::ui::text::apply_text_edit_action(
+        state,
+        UiTextEditAction::SetComposition {
+            range: UiTextRange { start: 1, end: 5 },
+            text: "allo".to_string(),
+        },
+    );
+    state.read_only = true;
+
+    let state = crate::ui::text::apply_text_edit_action(state, UiTextEditAction::CancelComposition);
+
+    assert_eq!(state.text, "Hello");
+    assert_eq!(state.composition, None);
+    assert!(state.read_only);
+}
+
+#[test]
 fn editable_text_state_updates_composition_against_preedit_base_text() {
     let state = UiEditableTextState {
         text: "Hello".to_string(),

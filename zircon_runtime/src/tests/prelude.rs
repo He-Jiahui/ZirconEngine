@@ -21,8 +21,10 @@ fn runtime_prelude_exports_core_lifecycle_and_module_contracts() {
 
 #[test]
 fn runtime_prelude_exports_time_diagnostics_and_explicit_profile_contracts_compose() {
-    let mut real_time = Time::<Real>::default();
+    let mut real_time = Time::<MonotonicReal>::default();
     real_time.advance_by(std::time::Duration::from_millis(16));
+    let clock_domain_registry: ClockDomainRegistry = ClockDomainRegistry::builtin();
+    let real_clock_domain_stamp: ClockDomainStamp = real_time.clock_domain_stamp();
     let mut virtual_time = Time::<Virtual>::default();
     virtual_time.pause();
     virtual_time.advance_from_real_delta(std::time::Duration::from_millis(16));
@@ -30,9 +32,31 @@ fn runtime_prelude_exports_time_diagnostics_and_explicit_profile_contracts_compo
     fixed_time.accumulate_overstep(std::time::Duration::from_millis(18));
     let fixed_plan: FixedStepPlan = fixed_time.drain_steps(4);
     let runtime = CoreRuntime::new();
-    let runtime_advance: RuntimeTimeAdvance =
+    let requested_policy: TimePolicy = runtime
+        .time_policy()
+        .with_fixed_timestep(std::time::Duration::from_millis(10));
+    let policy_receipt: TimePolicyReceipt = runtime
+        .apply_time_policy(TimePolicyTransaction::new(requested_policy))
+        .expect("valid prelude time policy should commit");
+    let policy_error: TimePolicyError = runtime
+        .apply_time_policy(TimePolicyTransaction::new(
+            runtime
+                .time_policy()
+                .with_virtual_max_delta(std::time::Duration::ZERO),
+        ))
+        .expect_err("invalid prelude time policy should reject");
+    let product_policy: ProductTimePolicy =
+        ProductTimePolicies::for_profile(ProductTimeProfile::Client);
+    let product_policy_digest: ProductTimePolicyDigest =
+        ProductTimePolicyDigest::from_policy(product_policy);
+    let product_policy_error: Result<(), ProductTimePolicyError> = product_policy.validate();
+    let frame_clock_rebase: FrameClockRebaseReceipt = FrameClock::default().rebase();
+    let lifecycle_discontinuity =
+        ClockDiscontinuity::ApplicationLifecycle(ClockLifecycleTransition::Resumed);
+    let discontinuity_rebase: FrameClockRebaseReceipt =
+        runtime.submit_clock_discontinuity(lifecycle_discontinuity);
+    let runtime_advance: FrameTimeSnapshot =
         runtime.advance_time_by(std::time::Duration::from_millis(16), 4);
-    let runtime_clocks: RuntimeTimeClocks = runtime.time_clocks();
 
     let mut diagnostics = DiagnosticStore::default();
     diagnostics.record(
@@ -46,15 +70,35 @@ fn runtime_prelude_exports_time_diagnostics_and_explicit_profile_contracts_compo
     let minimal_core_profile = RuntimeCoreProfile::minimal();
 
     assert_eq!(real_time.frame_index(), 1);
+    assert_eq!(
+        clock_domain_registry.version(),
+        ClockDomainRegistry::VERSION
+    );
+    assert_eq!(real_clock_domain_stamp.id(), ClockDomainId::MonotonicReal);
+    assert_eq!(real_clock_domain_stamp.unit(), ClockDomainUnit::Duration);
     assert_eq!(virtual_time.delta(), std::time::Duration::ZERO);
     assert_eq!(fixed_plan.step_count, 2);
-    assert_eq!(runtime_advance.fixed_step_plan().step_count, 1);
+    assert!(policy_receipt.changed());
+    assert_eq!(policy_error, TimePolicyError::VirtualMaxDeltaZero);
+    assert_eq!(product_policy.profile(), ProductTimeProfile::Client);
+    assert!(product_policy_error.is_ok());
+    assert_ne!(product_policy_digest.as_bytes(), &[0; 32]);
+    assert_eq!(frame_clock_rebase.generation(), 1);
     assert_eq!(
-        runtime_clocks.real().delta(),
+        frame_clock_rebase.first_tick_policy(),
+        FrameClockFirstTickPolicy::MeasureFromRebase
+    );
+    assert_eq!(frame_clock_rebase.cause(), FrameClockRebaseCause::Manual);
+    assert_eq!(
+        discontinuity_rebase.cause(),
+        FrameClockRebaseCause::ClockDiscontinuity(lifecycle_discontinuity)
+    );
+    assert_eq!(runtime_advance.fixed_step_budget(), 4);
+    assert_eq!(
+        runtime_advance.raw_real_delta(),
         std::time::Duration::from_millis(16)
     );
     assert_eq!(TIME_FRAME_COUNT_DIAGNOSTIC, "time.frame_count");
-    assert_eq!(TIME_FIXED_STEPS_DIAGNOSTIC, "time.fixed_steps");
     assert_eq!(TIME_FRAME_TIME_DIAGNOSTIC, "time.frame_time");
     assert_eq!(TIME_FPS_DIAGNOSTIC, "time.fps");
     assert_eq!(diagnostics.snapshot().series.len(), 1);
@@ -105,7 +149,7 @@ fn runtime_prelude_exports_diagnostic_log_contracts_when_enabled() {
 
 #[test]
 fn runtime_prelude_exports_task_and_builtin_module_facades() {
-    let scheduler = JobScheduler::default();
+    let scheduler = JobScheduler::from_pool(TaskPools::process_default().compute().clone());
     let task_pools = TaskPoolOptions::with_num_threads(3).create_pools();
     let counts: TaskPoolThreadCounts = task_pools.thread_counts();
     let task_report: TaskPoolReport = task_pools.report();

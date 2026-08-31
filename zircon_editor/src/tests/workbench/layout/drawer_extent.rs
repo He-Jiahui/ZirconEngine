@@ -17,5 +17,8 @@ fn set_drawer_extent_clamps_to_minimum_size() {
         )
         .unwrap();
 
-    assert_eq!(layout.drawers[&ActivityDrawerSlot::LeftTop].extent, 120.0);
+    assert_eq!(
+        layout.active_activity_window_drawers()[&ActivityDrawerSlot::LeftTop].extent,
+        120.0
+    );
 }

@@ -8,11 +8,12 @@ use zircon_runtime_interface::world_sync::{
     InvalidationBatch, WatchRegistration, WatchToken, WorldFact, WorldQuery, WorldQueryResult,
 };
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeApiV7, ZrRuntimeEventV1,
+    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeApiV8, ZrRuntimeEventV1,
     ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2,
     ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
     ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZrRuntimePluginEventDeliveryBatchV1,
     ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportPickRequestV1, ZrRuntimeViewportPickResultV1, ZrRuntimeViewportPickTicket,
     ZrStatus, ZrStatusCode, ZR_RUNTIME_FRAME_DEMAND_IDLE_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1,
@@ -577,8 +578,31 @@ pub(super) fn capabilities() -> RuntimeCapabilities {
     )
 }
 
-pub(super) fn api_table() -> ZrRuntimeApiV7 {
-    let mut api = ZrRuntimeApiV7::empty();
+unsafe extern "C" fn request_test_viewport_pick(
+    _session: ZrRuntimeSessionHandle,
+    _request: ZrRuntimeViewportPickRequestV1,
+    _out_ticket: *mut ZrRuntimeViewportPickTicket,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn poll_test_viewport_pick(
+    _session: ZrRuntimeSessionHandle,
+    _ticket: ZrRuntimeViewportPickTicket,
+    _out_result: *mut ZrRuntimeViewportPickResultV1,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn cancel_test_viewport_pick(
+    _session: ZrRuntimeSessionHandle,
+    _ticket: ZrRuntimeViewportPickTicket,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+pub(super) fn api_table() -> ZrRuntimeApiV8 {
+    let mut api = ZrRuntimeApiV8::empty();
     api.release_allocation = Some(release_json_output);
     api.tick_frame = Some(fake_tick_frame);
     api.handle_event = Some(fake_handle_event);
@@ -593,16 +617,25 @@ pub(super) fn api_table() -> ZrRuntimeApiV7 {
     api.watch_world = Some(fake_watch_world);
     api.unwatch_world = Some(fake_unwatch_world);
     api.drain_world_invalidations = Some(fake_drain_world_invalidations);
+    api.request_viewport_pick = Some(request_test_viewport_pick);
+    api.poll_viewport_pick = Some(poll_test_viewport_pick);
+    api.cancel_viewport_pick = Some(cancel_test_viewport_pick);
     api
 }
 
-pub(super) fn gateway(api: ZrRuntimeApiV7) -> SessionGateway {
+pub(super) fn gateway(api: ZrRuntimeApiV8) -> SessionGateway {
     let owner: Arc<dyn Send + Sync> = Arc::new(());
     unsafe {
-        SessionGateway::new(
+        SessionGateway::new_with_identity(
             owner,
             api,
             ZrRuntimeSessionHandle::new(17),
+            zircon_runtime_interface::GatewaySessionIdentity::new(
+                17,
+                ZrRuntimeSessionHandle::new(17),
+                1,
+                None,
+            ),
             capabilities(),
             Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )

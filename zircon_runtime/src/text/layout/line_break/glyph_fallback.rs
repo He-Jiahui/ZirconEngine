@@ -3,11 +3,11 @@ use super::super::measure::measure_line_width;
 #[cfg(test)]
 use super::super::measure::measure_line_width_with_provider;
 #[cfg(test)]
+use crate::text::TextStyle;
+#[cfg(test)]
 use crate::text::shaping::DirectTextShapeRunProvider;
 #[cfg(test)]
 use crate::text::shaping::TextShapeRunProvider;
-#[cfg(test)]
-use crate::text::TextStyle;
 use unicode_segmentation::UnicodeSegmentation;
 
 #[cfg(test)]
@@ -17,7 +17,7 @@ pub(super) fn should_fallback_to_glyph_wrap(
     max_width: f32,
     style: &TextStyle,
 ) -> bool {
-    let mut provider = DirectTextShapeRunProvider;
+    let mut provider = DirectTextShapeRunProvider::default();
     should_fallback_to_glyph_wrap_with_provider(
         allow_glyph_fallback,
         candidate_text,
@@ -25,6 +25,8 @@ pub(super) fn should_fallback_to_glyph_wrap(
         style,
         &mut provider,
     )
+    .into_result()
+    .expect("test shaping request must be valid")
 }
 
 #[cfg(test)]
@@ -34,13 +36,12 @@ pub(super) fn should_fallback_to_glyph_wrap_with_provider<P>(
     max_width: f32,
     style: &TextStyle,
     provider: &mut P,
-) -> bool
+) -> crate::text::shaping::TextLayoutOutcome<bool>
 where
     P: TextShapeRunProvider + ?Sized,
 {
-    allow_glyph_fallback
-        && !line_text_fits_with_provider(candidate_text, max_width, style, provider)
-        && has_more_than_one_grapheme(candidate_text)
+    line_text_fits_with_provider(candidate_text, max_width, style, provider)
+        .map(|fits| allow_glyph_fallback && !fits && has_more_than_one_grapheme(candidate_text))
 }
 
 pub(super) fn should_fallback_to_glyph_wrap_with_advance(
@@ -57,7 +58,10 @@ pub(super) fn should_fallback_to_glyph_wrap_with_advance(
 
 #[cfg(test)]
 fn line_text_fits(text: &str, max_width: f32, style: &TextStyle) -> bool {
-    measure_line_width(text, style) <= max_width + 0.01
+    measure_line_width(text, style)
+        .into_result()
+        .expect("measure test line width")
+        <= max_width + 0.01
 }
 
 #[cfg(test)]
@@ -66,11 +70,11 @@ fn line_text_fits_with_provider<P>(
     max_width: f32,
     style: &TextStyle,
     provider: &mut P,
-) -> bool
+) -> crate::text::shaping::TextLayoutOutcome<bool>
 where
     P: TextShapeRunProvider + ?Sized,
 {
-    measure_line_width_with_provider(text, style, provider) <= max_width + 0.01
+    measure_line_width_with_provider(text, style, provider).map(|width| width <= max_width + 0.01)
 }
 
 fn has_more_than_one_grapheme(text: &str) -> bool {
@@ -86,7 +90,10 @@ mod tests {
     #[test]
     fn overwide_plain_chunk_requests_glyph_wrap_fallback() {
         let style = TextStyle::default();
-        let max_width = measure_line_width("a", &style) + 0.1;
+        let max_width = measure_line_width("a", &style)
+            .into_result()
+            .expect("measure test line width")
+            + 0.1;
 
         assert!(should_fallback_to_glyph_wrap(
             true, "abcd", max_width, &style
@@ -96,7 +103,10 @@ mod tests {
     #[test]
     fn overwide_glue_chunk_does_not_request_glyph_wrap_fallback() {
         let style = TextStyle::default();
-        let max_width = measure_line_width("a", &style) + 0.1;
+        let max_width = measure_line_width("a", &style)
+            .into_result()
+            .expect("measure test line width")
+            + 0.1;
 
         assert!(!should_fallback_to_glyph_wrap(
             false,

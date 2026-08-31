@@ -142,6 +142,12 @@ def pack_document_manifest_schema_diagnostics(
         if field not in PACK_DOCUMENT_MANIFEST_FIELDS
     )
     pack = manifest.get("pack")
+    chunks = pack.get("chunks") if isinstance(pack, dict) else None
+    chunks_are_schema_clean = (
+        all(pack_chunk_entry_is_schema_clean(chunk) for chunk in chunks)
+        if isinstance(chunks, list)
+        else None
+    )
     for field in PACK_DOCUMENT_MANIFEST_REQUIRED_OBJECT_FIELDS:
         diagnostics.extend(
             validate_object_schema_diagnostics(f"{label}.{field}", manifest.get(field))
@@ -157,9 +163,15 @@ def pack_document_manifest_schema_diagnostics(
                 validate_object_array_schema_diagnostics=(
                     validate_object_array_schema_diagnostics
                 ),
+                chunks_are_schema_clean=chunks_are_schema_clean,
             )
         )
     assets = manifest.get("assets")
+    assets_are_schema_clean = (
+        all(pack_asset_entry_is_schema_clean(asset) for asset in assets)
+        if isinstance(assets, list)
+        else None
+    )
     for field in PACK_DOCUMENT_MANIFEST_REQUIRED_OBJECT_ARRAY_FIELDS:
         diagnostics.extend(
             validate_object_array_schema_diagnostics(
@@ -184,9 +196,14 @@ def pack_document_manifest_schema_diagnostics(
         diagnostics.extend(pack_asset_path_order_diagnostics(f"{label}.assets", assets))
         if isinstance(pack, dict):
             diagnostics.extend(
-                pack_asset_chunk_reference_diagnostics(label, pack, assets)
+                pack_asset_chunk_reference_diagnostics(
+                    label,
+                    pack,
+                    assets,
+                    chunks_are_schema_clean=chunks_are_schema_clean,
+                    assets_are_schema_clean=assets_are_schema_clean,
+                )
             )
-            chunks = pack.get("chunks")
             if isinstance(chunks, list):
                 diagnostics.extend(
                     pack_asset_chunk_size_diagnostics(
@@ -194,6 +211,8 @@ def pack_document_manifest_schema_diagnostics(
                         f"{label}.pack.chunks",
                         chunks,
                         assets,
+                        chunks_are_schema_clean=chunks_are_schema_clean,
+                        assets_are_schema_clean=assets_are_schema_clean,
                     )
                 )
     return diagnostics

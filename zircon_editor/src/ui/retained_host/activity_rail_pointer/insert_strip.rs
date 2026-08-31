@@ -47,7 +47,7 @@ pub(super) fn insert_strip(
         EditorRouteIntent::ActivityRail(HostActivityRailPointerRoute::Strip(side)),
     );
 
-    for (item_index, tab) in tabs.iter().enumerate() {
+    for (item_index, _) in tabs.iter().enumerate() {
         let node_id = strip_button_node_id(side, item_index);
         surface
             .tree
@@ -75,8 +75,6 @@ pub(super) fn insert_strip(
             EditorRouteIntent::ActivityRail(HostActivityRailPointerRoute::Button {
                 side,
                 item_index,
-                slot: tab.slot.clone(),
-                instance_id: tab.instance_id.clone(),
             }),
         );
     }

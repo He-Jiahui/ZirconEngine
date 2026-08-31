@@ -1,5 +1,8 @@
+mod capacity;
 mod gpu_layout;
+mod report;
 mod resources;
+mod selection;
 mod slot_allocator;
 mod upload;
 
@@ -9,6 +12,7 @@ pub(in crate::graphics::scene::scene_renderer) use gpu_layout::{
 pub(in crate::graphics::scene::scene_renderer) use resources::{
     SceneReflectionProbeResources, PLANAR_REFLECTION_MIP_COUNT, PLANAR_REFLECTION_TEXTURE_SIZE,
 };
+pub(in crate::graphics) use slot_allocator::ProbeCubemapSlotReservation;
 
 #[cfg(test)]
 mod tests;

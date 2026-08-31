@@ -1,6 +1,6 @@
 use zircon_runtime::asset::{AssetImportError, TextureAsset, TexturePayload};
 use zircon_runtime::core::framework::render::{
-    RenderImageDimension, TextureCompressionTarget, TextureUsageHint,
+    RenderImageDimension, TextureCompressionTarget, TextureNormalConvention, TextureUsageHint,
 };
 
 const DDS_CLASSIC_HEADER_LEN: usize = 128;
@@ -34,6 +34,12 @@ pub(crate) fn transcode_normal_bc5(
         || descriptor.metadata.compression != TextureCompressionTarget::Bc5
     {
         return Ok(texture);
+    }
+    if descriptor.metadata.normal_convention != TextureNormalConvention::TangentSpaceGl {
+        return Err(AssetImportError::Parse(format!(
+            "bc5 normal transcode requires canonical tangent-space GL input: {}",
+            texture.uri
+        )));
     }
     if !matches!(&texture.payload, TexturePayload::Rgba8) {
         // Container payloads can already be hardware-compressed and have no Rust encoder path.
@@ -186,14 +192,37 @@ fn encode_bc5_layer(source: &[u8], width: u32, height: u32, output: &mut Vec<u8>
         for block_x in 0..width.div_ceil(BC5_BLOCK_EDGE) {
             let mut red = [0_u8; 16];
             let mut green = [0_u8; 16];
-            for local_y in 0..BC5_BLOCK_EDGE {
-                for local_x in 0..BC5_BLOCK_EDGE {
-                    let source_x = (block_x * BC5_BLOCK_EDGE + local_x).min(width - 1);
-                    let source_y = (block_y * BC5_BLOCK_EDGE + local_y).min(height - 1);
-                    let source_offset = ((source_y * width + source_x) as usize) * 4;
-                    let index = (local_y * BC5_BLOCK_EDGE + local_x) as usize;
-                    red[index] = source[source_offset];
-                    green[index] = source[source_offset + 1];
+            let source_x = block_x * BC5_BLOCK_EDGE;
+            let source_y = block_y * BC5_BLOCK_EDGE;
+            if width >= BC5_BLOCK_EDGE
+                && height >= BC5_BLOCK_EDGE
+                && source_x <= width - BC5_BLOCK_EDGE
+                && source_y <= height - BC5_BLOCK_EDGE
+            {
+                let row_stride = width as usize * 4;
+                let block_offset = (source_y as usize * width as usize + source_x as usize) * 4;
+                for local_y in 0..BC5_BLOCK_EDGE as usize {
+                    let row_offset = block_offset + local_y * row_stride;
+                    let target_offset = local_y * BC5_BLOCK_EDGE as usize;
+                    red[target_offset] = source[row_offset];
+                    red[target_offset + 1] = source[row_offset + 4];
+                    red[target_offset + 2] = source[row_offset + 8];
+                    red[target_offset + 3] = source[row_offset + 12];
+                    green[target_offset] = source[row_offset + 1];
+                    green[target_offset + 1] = source[row_offset + 5];
+                    green[target_offset + 2] = source[row_offset + 9];
+                    green[target_offset + 3] = source[row_offset + 13];
+                }
+            } else {
+                for local_y in 0..BC5_BLOCK_EDGE {
+                    for local_x in 0..BC5_BLOCK_EDGE {
+                        let source_x = (source_x + local_x).min(width - 1);
+                        let source_y = (source_y + local_y).min(height - 1);
+                        let source_offset = ((source_y * width + source_x) as usize) * 4;
+                        let index = (local_y * BC5_BLOCK_EDGE + local_x) as usize;
+                        red[index] = source[source_offset];
+                        green[index] = source[source_offset + 1];
+                    }
                 }
             }
             output.extend_from_slice(&encode_bc4_block(&red));
@@ -219,6 +248,9 @@ fn encode_bc4_block(values: &[u8; 16]) -> [u8; 8] {
             if distance < nearest_distance {
                 palette_index = candidate_index;
                 nearest_distance = distance;
+                if distance == 0 {
+                    break;
+                }
             }
         }
         indices |= (palette_index as u64) << (index * 3);
@@ -382,6 +414,8 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::hint::black_box;
+    use std::time::Instant;
     use zircon_runtime::asset::{AssetUri, TextureUploadSupport};
     use zircon_runtime::core::framework::render::{
         TextureMetadata, TextureMipPolicy, TextureNormalConvention,
@@ -399,7 +433,7 @@ mod tests {
         descriptor.metadata = TextureMetadata {
             usage_hint: TextureUsageHint::Normal,
             compression: TextureCompressionTarget::Bc5,
-            normal_convention: TextureNormalConvention::TangentSpaceDx,
+            normal_convention: TextureNormalConvention::TangentSpaceGl,
             mip_policy: TextureMipPolicy::FromSource,
             ..TextureMetadata::default()
         };
@@ -409,11 +443,9 @@ mod tests {
 
         assert!(texture.rgba.is_empty());
         assert_eq!(texture.texture_descriptor().format, "dds/ati2");
-        assert!(
-            texture
-                .upload_readiness(TextureUploadSupport::all_compressed())
-                .is_ready()
-        );
+        assert!(texture
+            .upload_readiness(TextureUploadSupport::all_compressed())
+            .is_ready());
         let TexturePayload::Container {
             bytes, mip_count, ..
         } = texture.payload
@@ -439,7 +471,7 @@ mod tests {
         descriptor.metadata = TextureMetadata {
             usage_hint: TextureUsageHint::Normal,
             compression: TextureCompressionTarget::Bc5,
-            normal_convention: TextureNormalConvention::TangentSpaceDx,
+            normal_convention: TextureNormalConvention::TangentSpaceGl,
             mip_policy: TextureMipPolicy::FromSource,
             ..TextureMetadata::default()
         };
@@ -447,11 +479,9 @@ mod tests {
 
         let texture = transcode_normal_bc5(texture).expect("bc5 mip transcode succeeds");
 
-        assert!(
-            texture
-                .upload_readiness(TextureUploadSupport::all_compressed())
-                .is_ready()
-        );
+        assert!(texture
+            .upload_readiness(TextureUploadSupport::all_compressed())
+            .is_ready());
         let TexturePayload::Container {
             bytes, mip_count, ..
         } = texture.payload
@@ -472,9 +502,35 @@ mod tests {
     }
 
     #[test]
-    fn existing_normal_container_is_preserved_without_a_transcoder() {
+    fn existing_canonical_normal_container_is_preserved_without_a_transcoder() {
         let mut texture = TextureAsset::new_container(
             AssetUri::parse("res://textures/existing-normal.dds").expect("valid texture uri"),
+            4,
+            4,
+            "dds/dxt5",
+            vec![0; DDS_CLASSIC_HEADER_LEN],
+            1,
+            1,
+        );
+        let mut descriptor = texture.texture_descriptor();
+        descriptor.metadata = TextureMetadata {
+            usage_hint: TextureUsageHint::Normal,
+            compression: TextureCompressionTarget::Bc5,
+            normal_convention: TextureNormalConvention::TangentSpaceGl,
+            ..TextureMetadata::default()
+        };
+        texture.descriptor = Some(descriptor);
+
+        let texture = transcode_normal_bc5(texture).expect("container is retained");
+
+        assert_eq!(texture.texture_descriptor().format, "dds/dxt5");
+        assert!(matches!(texture.payload, TexturePayload::Container { .. }));
+    }
+
+    #[test]
+    fn dx_normal_container_is_rejected_before_bc5_passthrough() {
+        let mut texture = TextureAsset::new_container(
+            AssetUri::parse("res://textures/existing-dx-normal.dds").expect("valid texture uri"),
             4,
             4,
             "dds/dxt5",
@@ -491,10 +547,10 @@ mod tests {
         };
         texture.descriptor = Some(descriptor);
 
-        let texture = transcode_normal_bc5(texture).expect("container is retained");
+        let error =
+            transcode_normal_bc5(texture).expect_err("DX container must be normalized first");
 
-        assert_eq!(texture.texture_descriptor().format, "dds/dxt5");
-        assert!(matches!(texture.payload, TexturePayload::Container { .. }));
+        assert!(error.to_string().contains("canonical tangent-space GL"));
     }
 
     #[test]
@@ -525,7 +581,7 @@ mod tests {
         descriptor.metadata = TextureMetadata {
             usage_hint: TextureUsageHint::Normal,
             compression: TextureCompressionTarget::Bc5,
-            normal_convention: TextureNormalConvention::TangentSpaceDx,
+            normal_convention: TextureNormalConvention::TangentSpaceGl,
             mip_policy: TextureMipPolicy::FromSource,
             ..TextureMetadata::default()
         };
@@ -534,11 +590,9 @@ mod tests {
         let texture = transcode_normal_bc5(texture).expect("bc5 array transcode succeeds");
 
         assert_eq!(texture.texture_descriptor().format, "dds/dxgi-83");
-        assert!(
-            texture
-                .upload_readiness(TextureUploadSupport::all_compressed())
-                .is_ready()
-        );
+        assert!(texture
+            .upload_readiness(TextureUploadSupport::all_compressed())
+            .is_ready());
         let TexturePayload::Container {
             bytes,
             mip_count,
@@ -557,5 +611,292 @@ mod tests {
         );
         assert_eq!(u32::from_le_bytes(bytes[140..144].try_into().unwrap()), 2);
         assert_eq!(bytes.len(), DDS_DX10_HEADER_LEN + 2 * BC5_BLOCK_BYTES);
+    }
+
+    #[test]
+    fn bc5_hotpath_interior_layer_matches_legacy_bytes() {
+        for (width, height) in [(1, 1), (3, 5), (4, 4), (7, 9), (8, 8), (16, 12)] {
+            let source = patterned_rgba(width, height);
+            let mut legacy = Vec::new();
+            let mut optimized = Vec::new();
+
+            encode_bc5_layer_legacy(&source, width, height, &mut legacy);
+            encode_bc5_layer(&source, width, height, &mut optimized);
+
+            assert_eq!(optimized, legacy, "{width}x{height} output changed");
+        }
+    }
+
+    #[test]
+    fn bc5_hotpath_palette_early_exit_matches_legacy_bytes() {
+        for seed in 0..=u8::MAX {
+            let mut values = [0_u8; 16];
+            for (index, value) in values.iter_mut().enumerate() {
+                *value = seed.wrapping_add((index as u8).wrapping_mul(37));
+            }
+
+            assert_eq!(encode_bc4_block(&values), encode_bc4_block_legacy(&values));
+        }
+    }
+
+    #[test]
+    #[ignore = "release performance gate"]
+    fn bc5_hotpath_interior_layer_release_benchmark() {
+        const WIDTH: u32 = 512;
+        const HEIGHT: u32 = 512;
+        const REQUIRED_IMPROVEMENT_PERCENT: u128 = 10;
+
+        let source = patterned_rgba(WIDTH, HEIGHT);
+        let mut legacy_output = Vec::with_capacity(bc5_level_len(WIDTH, HEIGHT).unwrap());
+        let mut optimized_output = Vec::with_capacity(bc5_level_len(WIDTH, HEIGHT).unwrap());
+        encode_bc5_layer_legacy(&source, WIDTH, HEIGHT, &mut legacy_output);
+        encode_bc5_layer(&source, WIDTH, HEIGHT, &mut optimized_output);
+        assert_eq!(optimized_output, legacy_output);
+
+        let mut legacy_samples = Vec::with_capacity(PERF_SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(PERF_SAMPLE_PAIRS);
+        for pair in 0..PERF_SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy_samples.push(time_bc5_layer(
+                    &source,
+                    WIDTH,
+                    HEIGHT,
+                    &mut legacy_output,
+                    encode_bc5_layer_legacy,
+                ));
+                optimized_samples.push(time_bc5_layer(
+                    &source,
+                    WIDTH,
+                    HEIGHT,
+                    &mut optimized_output,
+                    encode_bc5_layer,
+                ));
+            } else {
+                optimized_samples.push(time_bc5_layer(
+                    &source,
+                    WIDTH,
+                    HEIGHT,
+                    &mut optimized_output,
+                    encode_bc5_layer,
+                ));
+                legacy_samples.push(time_bc5_layer(
+                    &source,
+                    WIDTH,
+                    HEIGHT,
+                    &mut legacy_output,
+                    encode_bc5_layer_legacy,
+                ));
+            }
+        }
+
+        let legacy_p95 = nearest_rank_p95(&legacy_samples);
+        let optimized_p95 = nearest_rank_p95(&optimized_samples);
+        let improvement = improvement_percent(legacy_p95, optimized_p95);
+        println!(
+            "PERF_RESULT plugins07_bc5_interior_blocks sample_pairs={} order=alternating_legacy_first_even workload_pixels={} full_blocks={} legacy_clamps_per_block=32 optimized_clamps_per_full_block=0 legacy_ns={} optimized_ns={} legacy_p95_ns={} optimized_p95_ns={} threshold_percent={} improvement_percent={}",
+            PERF_SAMPLE_PAIRS,
+            u128::from(WIDTH) * u128::from(HEIGHT),
+            WIDTH / BC5_BLOCK_EDGE * (HEIGHT / BC5_BLOCK_EDGE),
+            samples_csv(&legacy_samples),
+            samples_csv(&optimized_samples),
+            legacy_p95,
+            optimized_p95,
+            REQUIRED_IMPROVEMENT_PERCENT,
+            improvement
+        );
+        assert!(
+            improvement >= REQUIRED_IMPROVEMENT_PERCENT,
+            "BC5 interior block path improved {improvement}%, below {REQUIRED_IMPROVEMENT_PERCENT}%"
+        );
+    }
+
+    #[test]
+    #[ignore = "release performance gate"]
+    fn bc5_hotpath_palette_early_exit_release_benchmark() {
+        const BLOCK_COUNT: usize = 4_096;
+        const ITERATIONS_PER_SAMPLE: usize = 32;
+        const REQUIRED_IMPROVEMENT_PERCENT: u128 = 20;
+
+        let palette = bc4_palette(255, 0);
+        let blocks = (0..BLOCK_COUNT)
+            .map(|block_index| {
+                let mut values = [0_u8; 16];
+                for (value_index, value) in values.iter_mut().enumerate() {
+                    *value = palette[(block_index + value_index) % palette.len()];
+                }
+                values
+            })
+            .collect::<Vec<_>>();
+        for block in &blocks {
+            assert_eq!(encode_bc4_block(block), encode_bc4_block_legacy(block));
+        }
+
+        let mut legacy_samples = Vec::with_capacity(PERF_SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(PERF_SAMPLE_PAIRS);
+        for pair in 0..PERF_SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy_samples.push(time_bc4_blocks(
+                    &blocks,
+                    ITERATIONS_PER_SAMPLE,
+                    encode_bc4_block_legacy,
+                ));
+                optimized_samples.push(time_bc4_blocks(
+                    &blocks,
+                    ITERATIONS_PER_SAMPLE,
+                    encode_bc4_block,
+                ));
+            } else {
+                optimized_samples.push(time_bc4_blocks(
+                    &blocks,
+                    ITERATIONS_PER_SAMPLE,
+                    encode_bc4_block,
+                ));
+                legacy_samples.push(time_bc4_blocks(
+                    &blocks,
+                    ITERATIONS_PER_SAMPLE,
+                    encode_bc4_block_legacy,
+                ));
+            }
+        }
+
+        let legacy_p95 = nearest_rank_p95(&legacy_samples);
+        let optimized_p95 = nearest_rank_p95(&optimized_samples);
+        let improvement = improvement_percent(legacy_p95, optimized_p95);
+        println!(
+            "PERF_RESULT plugins07_bc4_palette_early_exit sample_pairs={} order=alternating_legacy_first_even workload_blocks={} iterations_per_sample={} values_per_block=16 palette_candidates=8 legacy_max_comparisons_per_block=128 optimized_exact_match_early_exit=true legacy_ns={} optimized_ns={} legacy_p95_ns={} optimized_p95_ns={} threshold_percent={} improvement_percent={}",
+            PERF_SAMPLE_PAIRS,
+            BLOCK_COUNT,
+            ITERATIONS_PER_SAMPLE,
+            samples_csv(&legacy_samples),
+            samples_csv(&optimized_samples),
+            legacy_p95,
+            optimized_p95,
+            REQUIRED_IMPROVEMENT_PERCENT,
+            improvement
+        );
+        assert!(
+            improvement >= REQUIRED_IMPROVEMENT_PERCENT,
+            "BC4 exact-palette path improved {improvement}%, below {REQUIRED_IMPROVEMENT_PERCENT}%"
+        );
+    }
+
+    const PERF_SAMPLE_PAIRS: usize = 21;
+
+    fn patterned_rgba(width: u32, height: u32) -> Vec<u8> {
+        let mut source = Vec::with_capacity((width * height * 4) as usize);
+        for y in 0..height {
+            for x in 0..width {
+                source.extend_from_slice(&[
+                    (x.wrapping_mul(17) ^ y.wrapping_mul(29)) as u8,
+                    (x.wrapping_mul(31).wrapping_add(y.wrapping_mul(11))) as u8,
+                    (x ^ y) as u8,
+                    255,
+                ]);
+            }
+        }
+        source
+    }
+
+    fn encode_bc5_layer_legacy(source: &[u8], width: u32, height: u32, output: &mut Vec<u8>) {
+        for block_y in 0..height.div_ceil(BC5_BLOCK_EDGE) {
+            for block_x in 0..width.div_ceil(BC5_BLOCK_EDGE) {
+                let mut red = [0_u8; 16];
+                let mut green = [0_u8; 16];
+                for local_y in 0..BC5_BLOCK_EDGE {
+                    for local_x in 0..BC5_BLOCK_EDGE {
+                        let source_x = (block_x * BC5_BLOCK_EDGE + local_x).min(width - 1);
+                        let source_y = (block_y * BC5_BLOCK_EDGE + local_y).min(height - 1);
+                        let source_offset = ((source_y * width + source_x) as usize) * 4;
+                        let index = (local_y * BC5_BLOCK_EDGE + local_x) as usize;
+                        red[index] = source[source_offset];
+                        green[index] = source[source_offset + 1];
+                    }
+                }
+                output.extend_from_slice(&encode_bc4_block(&red));
+                output.extend_from_slice(&encode_bc4_block(&green));
+            }
+        }
+    }
+
+    fn encode_bc4_block_legacy(values: &[u8; 16]) -> [u8; 8] {
+        let mut endpoint_high = values[0];
+        let mut endpoint_low = values[0];
+        for value in &values[1..] {
+            endpoint_high = endpoint_high.max(*value);
+            endpoint_low = endpoint_low.min(*value);
+        }
+        let palette = bc4_palette(endpoint_high, endpoint_low);
+        let mut indices = 0_u64;
+        for (index, value) in values.iter().enumerate() {
+            let mut palette_index = 0;
+            let mut nearest_distance = u16::MAX;
+            for (candidate_index, candidate) in palette.iter().enumerate() {
+                let distance = u16::from(*candidate).abs_diff(u16::from(*value));
+                if distance < nearest_distance {
+                    palette_index = candidate_index;
+                    nearest_distance = distance;
+                }
+            }
+            indices |= (palette_index as u64) << (index * 3);
+        }
+        let mut block = [0_u8; 8];
+        block[0] = endpoint_high;
+        block[1] = endpoint_low;
+        block[2..8].copy_from_slice(&indices.to_le_bytes()[..6]);
+        block
+    }
+
+    fn time_bc5_layer(
+        source: &[u8],
+        width: u32,
+        height: u32,
+        output: &mut Vec<u8>,
+        encoder: fn(&[u8], u32, u32, &mut Vec<u8>),
+    ) -> u128 {
+        output.clear();
+        let started = Instant::now();
+        encoder(black_box(source), width, height, output);
+        let elapsed = started.elapsed().as_nanos();
+        black_box(output.as_slice());
+        elapsed
+    }
+
+    fn time_bc4_blocks(
+        blocks: &[[u8; 16]],
+        iterations: usize,
+        encoder: fn(&[u8; 16]) -> [u8; 8],
+    ) -> u128 {
+        let started = Instant::now();
+        let mut checksum = 0_u64;
+        for _ in 0..iterations {
+            for block in blocks {
+                let encoded = encoder(black_box(block));
+                checksum = checksum.wrapping_add(u64::from(encoded[black_box(2)]));
+            }
+        }
+        let elapsed = started.elapsed().as_nanos();
+        black_box(checksum);
+        elapsed
+    }
+
+    fn nearest_rank_p95(samples: &[u128]) -> u128 {
+        assert_eq!(samples.len(), PERF_SAMPLE_PAIRS);
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = (sorted.len() * 95).div_ceil(100);
+        sorted[rank - 1]
+    }
+
+    fn improvement_percent(legacy: u128, optimized: u128) -> u128 {
+        assert!(legacy > 0);
+        legacy.saturating_sub(optimized) * 100 / legacy
+    }
+
+    fn samples_csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 }

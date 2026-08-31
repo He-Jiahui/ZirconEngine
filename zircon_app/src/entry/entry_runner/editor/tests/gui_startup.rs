@@ -11,6 +11,11 @@ use zircon_runtime::asset::AssetUri;
 use zircon_runtime::builtin::RuntimePluginId;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ProjectPluginSelection};
+use zircon_runtime_interface::project::{
+    ProjectActivationOperationId, ProjectActivationOperationIdGenerator, ProjectLaunchInstanceId,
+    ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource, ProjectLaunchTarget,
+    ProjectTemplateId,
+};
 
 #[test]
 fn editor_gui_startup_parser_accepts_project_path() {
@@ -21,10 +26,15 @@ fn editor_gui_startup_parser_accepts_project_path() {
     .unwrap()
     .unwrap();
 
+    let EditorGuiStartupRequest::Project { intent } = request else {
+        panic!("--project must produce a versioned project launch intent");
+    };
+    assert_eq!(intent.source(), ProjectLaunchSource::Cli);
+    assert_eq!(intent.profile(), ProjectLaunchProfile::Normal);
     assert_eq!(
-        request,
-        EditorGuiStartupRequest::OpenProject {
-            project_path: PathBuf::from("E:/Projects/My Game")
+        intent.target(),
+        &ProjectLaunchTarget::OpenExisting {
+            requested_path: PathBuf::from("E:/Projects/My Game"),
         }
     );
 }
@@ -79,9 +89,17 @@ fn editor_gui_startup_parser_accepts_create_project_request() {
     .unwrap()
     .unwrap();
 
+    let EditorGuiStartupRequest::Project { intent } = request else {
+        panic!("--create-project must produce a versioned project launch intent");
+    };
+    assert_eq!(intent.source(), ProjectLaunchSource::Cli);
     assert_eq!(
-        request,
-        EditorGuiStartupRequest::create_renderable_empty("My Game", "E:/Projects")
+        intent.target(),
+        &ProjectLaunchTarget::CreateProject {
+            project_name: "My Game".to_string(),
+            location: PathBuf::from("E:/Projects"),
+            template: ProjectTemplateId::RenderableEmpty,
+        }
     );
 }
 
@@ -160,7 +178,7 @@ fn editor_host_startup_error_is_actionable_for_an_invalid_builtin_view() {
 
 #[test]
 fn editor_host_startup_request_identifies_project_and_welcome_modes() {
-    let project = EditorGuiStartupRequest::open_project("E:/Projects/My Game");
+    let project = project_request("E:/Projects/My Game");
 
     assert_eq!(
         editor_host_startup_request(Some(&project)),
@@ -172,7 +190,7 @@ fn editor_host_startup_request_identifies_project_and_welcome_modes() {
 #[cfg(windows)]
 #[test]
 fn editor_host_startup_request_hides_windows_verbatim_project_path_prefixes() {
-    let project = EditorGuiStartupRequest::open_project(r"\\?\C:\ZirconBuilds\project");
+    let project = project_request(r"\\?\C:\ZirconBuilds\project");
 
     assert_eq!(
         editor_host_startup_request(Some(&project)),
@@ -181,29 +199,23 @@ fn editor_host_startup_request_hides_windows_verbatim_project_path_prefixes() {
 }
 
 #[test]
-fn create_startup_request_is_materialized_before_runtime_session_startup() {
+fn create_startup_request_reenters_the_admission_path_without_a_prepared_project() {
     let location = unique_temp_project_root("editor-startup-create");
     std::fs::create_dir_all(&location).unwrap();
     let project_root = location.join("StartupProject");
     let resolved_project_root = ProjectPaths::resolve_path(&project_root).unwrap();
 
-    let prepared =
-        prepare_editor_gui_startup(Some(EditorGuiStartupRequest::create_renderable_empty(
-            "StartupProject",
-            location.to_string_lossy(),
-        )))
-        .unwrap();
+    let prepared = prepare_editor_gui_startup(Some(create_project_request(
+        "StartupProject",
+        location.to_string_lossy(),
+    )))
+    .unwrap();
 
-    assert_eq!(
-        prepared.startup_request,
-        Some(EditorGuiStartupRequest::open_project(
-            resolved_project_root.operation_path()
-        ))
+    assert_startup_project_path(
+        prepared.startup_request.as_ref(),
+        resolved_project_root.operation_path(),
     );
-    assert_eq!(
-        prepared.prepared_project.as_ref().unwrap().paths().root(),
-        resolved_project_root.operation_path()
-    );
+    assert!(prepared.entry_config.project_plugin_manifest().is_none());
     assert!(project_root.join("zircon-project.toml").is_file());
 
     drop(prepared);
@@ -211,32 +223,22 @@ fn create_startup_request_is_materialized_before_runtime_session_startup() {
 }
 
 #[test]
-fn editor_gui_startup_normalizes_a_manifest_input_to_its_resolved_project_root() {
+fn editor_gui_startup_keeps_existing_projects_as_unmaterialized_launch_intents() {
     let root = unique_temp_project_root("startup_manifest_input");
-    write_project_manifest_with_plugins(&root, 0);
+    write_project_manifest_with_plugins(&root, 1_000);
     let manifest = root.join(zircon_runtime::asset::project::PROJECT_MANIFEST_FILE);
-    let resolved_root = ProjectPaths::resolve_path(&root).unwrap();
 
-    let prepared =
-        prepare_editor_gui_startup(Some(EditorGuiStartupRequest::open_project(&manifest))).unwrap();
+    let prepared = prepare_editor_gui_startup(Some(project_request(&manifest))).unwrap();
 
-    assert_eq!(
-        prepared.startup_request,
-        Some(EditorGuiStartupRequest::open_project(
-            resolved_root.operation_path()
-        ))
-    );
-    assert_eq!(
-        prepared.prepared_project.as_ref().unwrap().paths().root(),
-        resolved_root.operation_path()
-    );
+    assert_startup_project_path(prepared.startup_request.as_ref(), &manifest);
+    assert!(prepared.entry_config.project_plugin_manifest().is_none());
 
     drop(prepared);
     std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
-fn editor_entry_has_one_prepared_startup_projection_owner() {
+fn editor_entry_defers_project_materialization_and_plugin_selection_to_admission() {
     let source = include_str!("../../editor.rs");
 
     assert!(source.contains("prepare_editor_gui_startup(gui_startup_request)"));
@@ -244,34 +246,30 @@ fn editor_entry_has_one_prepared_startup_projection_owner() {
         !source.contains("EditorCliOperationRequest"),
         "the retired operation-control parser must not remain in the editor entry"
     );
-    assert_eq!(
-        source
-            .matches("ProjectAuthority::default().open_project(")
-            .count(),
-        1,
-        "the entry preparation owns the one project open for a startup generation"
+    assert!(
+        !source.contains("authority.open_project("),
+        "App startup preparation must not materialize a project before Editor admission"
     );
     assert!(
-        !source.contains("ProjectManager::open("),
-        "the entry must use ProjectAuthority's resolve-once operation instead of reopening a raw path"
-    );
-    assert_eq!(
-        source
-            .matches("first_party_runtime_plugin_registrations_for_config(")
-            .count(),
-        1,
-        "GUI startup must consume one runtime registration projection"
-    );
-    assert_eq!(
-        source
-            .matches("first_party_editor_plugin_registrations_for_config(")
-            .count(),
-        1,
-        "the host must receive the one editor registration projection"
+        !source.contains("prepare_open_project("),
+        "the retired App-side project materialization helper must not remain"
     );
     assert!(
-        !source.contains("ProjectManager::open("),
-        "entry configuration must consume the prepared project instead of reopening it"
+        !source
+            .contains("first_party_runtime_plugin_registrations_for_manifest_with_render_profile("),
+        "project manifest must not select runtime providers before admission"
+    );
+    assert!(
+        !source.contains("first_party_editor_plugin_registrations_for_manifest("),
+        "project manifest must not select editor providers before admission"
+    );
+    assert!(
+        !source.contains("selected_native_editor_plugin_registration_reports("),
+        "native project plugins must not be discovered before admission"
+    );
+    assert!(
+        !source.contains(".with_prepared_project("),
+        "the retained host must receive a launch intent, not an App-materialized project"
     );
     assert!(
         !source.contains("bootstrap_with_first_party_runtime_plugin_registrations("),
@@ -288,114 +286,16 @@ fn editor_entry_has_one_prepared_startup_projection_owner() {
 }
 
 #[test]
-fn editor_gui_startup_reuses_the_prepared_manifest_for_editor_registrations() {
-    let source = include_str!("../../editor.rs");
+fn editor_gui_startup_never_projects_manifest_plugins_into_the_bootstrap_configuration() {
+    let root = unique_temp_project_root("startup_project_plugin_boundary");
+    write_project_manifest_with_plugins(&root, 1_000);
 
-    assert!(
-        source.contains("Some(manifest) => first_party_editor_plugin_registrations_for_manifest("),
-        "a prepared project must lend its manifest to the editor registration projection"
-    );
-    assert!(
-        source.contains("entry_config.project_plugins.as_ref()"),
-        "the GUI startup path must borrow the one prepared project-plugin manifest"
-    );
-}
+    let prepared = prepare_editor_gui_startup(Some(project_request(&root))).unwrap();
 
-#[test]
-fn editor_startup_projection_scans_1_100_1000_navigation_manifest_rows_once() {
-    const SAMPLES: usize = 20;
+    assert!(prepared.entry_config.project_plugin_manifest().is_none());
 
-    for plugin_count in [1usize, 100, 1_000] {
-        let root = unique_temp_project_root(&format!("startup_projection_{plugin_count}"));
-        write_project_manifest_with_plugins(&root, plugin_count);
-        let mut elapsed_micros = Vec::with_capacity(SAMPLES);
-        let mut first_sample_micros = None;
-        let mut clone_heap_bytes = None;
-
-        for _ in 0..SAMPLES {
-            let started = Instant::now();
-            let prepared =
-                prepare_editor_gui_startup(Some(EditorGuiStartupRequest::open_project(&root)))
-                    .unwrap();
-            let elapsed = started.elapsed().as_micros();
-            first_sample_micros.get_or_insert(elapsed);
-            elapsed_micros.push(elapsed);
-
-            assert_eq!(prepared.startup_metrics.project_open_count, 1);
-            assert_eq!(
-                prepared.startup_metrics.runtime_manifest_projection_count,
-                1
-            );
-            assert_eq!(prepared.startup_metrics.editor_manifest_projection_count, 1);
-            assert_eq!(prepared.startup_metrics.project_manifest_clone_count, 1);
-            assert_eq!(
-                prepared
-                    .entry_config
-                    .project_plugins
-                    .as_ref()
-                    .unwrap()
-                    .selections
-                    .len(),
-                plugin_count
-            );
-            assert!(prepared.startup_metrics.project_manifest_clone_heap_bytes > 0);
-            assert_eq!(prepared.runtime_plugin_registrations.len(), 2);
-            assert_eq!(
-                prepared.runtime_plugin_registrations[0].package_manifest.id,
-                RuntimePluginId::Navigation.key()
-            );
-            assert_eq!(
-                prepared.runtime_plugin_registrations[1].package_manifest.id,
-                RuntimePluginId::HybridGi.key()
-            );
-            assert_eq!(prepared.editor_plugin_registrations.len(), 1);
-            assert_eq!(
-                prepared.editor_plugin_registrations[0].package_manifest.id,
-                RuntimePluginId::Navigation.key()
-            );
-            clone_heap_bytes = Some(prepared.startup_metrics.project_manifest_clone_heap_bytes);
-        }
-
-        elapsed_micros.sort_unstable();
-        let p95_index = (SAMPLES * 95).div_ceil(100).saturating_sub(1);
-        println!(
-            "EDITOR01_STARTUP_PROJECTION plugins={plugin_count} samples={SAMPLES} \
-             project_open_count=1 runtime_manifest_projection_count=1 \
-             editor_manifest_projection_count=1 runtime_registration_count=2 \
-             editor_registration_count=1 project_manifest_clone_count=1 \
-             project_manifest_clone_heap_bytes={} f0_wall_us={} p95_us={}",
-            clone_heap_bytes.unwrap(),
-            first_sample_micros.unwrap(),
-            elapsed_micros[p95_index],
-        );
-
-        std::fs::remove_dir_all(root).unwrap();
-    }
-}
-
-#[test]
-fn editor_gui_startup_injects_selected_native_registrations_from_the_prepared_project() {
-    let source = include_str!("../../editor.rs");
-
-    assert_eq!(
-        source
-            .matches("selected_native_editor_plugin_registration_reports(")
-            .count(),
-        1,
-        "a prepared GUI project must produce one native registration projection"
-    );
-    assert!(source.contains("prepared_project.as_ref()"));
-    assert!(source.contains("set_editor_capabilities_enabled(&native_editor_capabilities, true)"));
-    assert_eq!(
-        source.matches(".with_editor_plugin_registrations(").count(),
-        2,
-        "first-party and selected native registrations must both be appended to the host config"
-    );
-    assert_eq!(
-        source.matches("NativePluginLoader").count(),
-        0,
-        "the editor entry must consume the manager's one native load report instead of discovering plugins itself"
-    );
+    drop(prepared);
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
@@ -447,6 +347,56 @@ fn unique_temp_project_root(label: &str) -> PathBuf {
             std::process::id(),
             unique
         ))
+}
+
+fn project_request(project_path: impl Into<PathBuf>) -> EditorGuiStartupRequest {
+    EditorGuiStartupRequest::project(
+        ProjectLaunchIntent::open_existing(
+            test_operation_id(),
+            ProjectLaunchSource::Application,
+            ProjectLaunchProfile::Normal,
+            project_path,
+        )
+        .unwrap(),
+    )
+}
+
+fn create_project_request(
+    project_name: impl Into<String>,
+    location: impl Into<PathBuf>,
+) -> EditorGuiStartupRequest {
+    EditorGuiStartupRequest::project(
+        ProjectLaunchIntent::create_project(
+            test_operation_id(),
+            ProjectLaunchSource::Application,
+            ProjectLaunchProfile::Normal,
+            project_name,
+            location,
+            ProjectTemplateId::RenderableEmpty,
+        )
+        .unwrap(),
+    )
+}
+
+fn test_operation_id() -> ProjectActivationOperationId {
+    ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new())
+        .allocate()
+        .expect("a fresh test operation generator must have its first sequence")
+}
+
+fn assert_startup_project_path(
+    request: Option<&EditorGuiStartupRequest>,
+    expected_path: &std::path::Path,
+) {
+    let Some(EditorGuiStartupRequest::Project { intent }) = request else {
+        panic!("startup must retain a project launch intent");
+    };
+    assert_eq!(
+        intent.target(),
+        &ProjectLaunchTarget::OpenExisting {
+            requested_path: expected_path.to_path_buf(),
+        }
+    );
 }
 
 #[test]

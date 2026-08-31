@@ -5,7 +5,7 @@ use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::scene::components::Name;
 use zircon_runtime::scene::{DefaultLevelManager, NodeKind, World};
 use zircon_runtime_interface::world_sync::{
-    ComponentSelector, QueryFilter, WorldQuery, WorldQueryResult,
+    ComponentSelector, ComponentWorldQuery, QueryFilter, WorldQuery, WorldQueryResult,
 };
 use zircon_runtime_interface::world_sync::{WatchKey, WatchRegistration, WorldFact};
 use zircon_runtime_interface::ZrRuntimeViewportHandle;
@@ -29,7 +29,11 @@ fn in_process_gateway_reads_and_mutates_the_owned_level_without_serialization() 
     let mut spawned = None;
     gateway
         .with_world_mut(&mut |world: &mut World| {
-            spawned = Some(world.spawn_node(NodeKind::Empty));
+            spawned = Some(
+                world
+                    .spawn_node(NodeKind::Empty)
+                    .expect("test scene spawn should succeed"),
+            );
         })
         .unwrap();
 
@@ -90,7 +94,13 @@ fn in_process_gateway_routes_structural_facts_to_live_watch_tokens() {
 
     let mut root = None;
     gateway
-        .with_world_mut(&mut |world| root = Some(world.spawn_node(NodeKind::Empty)))
+        .with_world_mut(&mut |world| {
+            root = Some(
+                world
+                    .spawn_node(NodeKind::Empty)
+                    .expect("test scene spawn should succeed"),
+            )
+        })
         .unwrap();
     let root = root.expect("root spawn must produce an entity");
     assert_eq!(gateway.drain_world_invalidations().unwrap().len(), 1);
@@ -103,13 +113,17 @@ fn in_process_gateway_routes_structural_facts_to_live_watch_tokens() {
         .unwrap();
 
     let mut staging_snapshot = level.snapshot();
-    staging_snapshot.spawn_node(NodeKind::Empty);
+    staging_snapshot
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     assert!(gateway.drain_world_invalidations().unwrap().is_empty());
 
     let mut child = None;
     gateway
         .with_world_mut(&mut |world| {
-            let entity = world.spawn_node(NodeKind::Empty);
+            let entity = world
+                .spawn_node(NodeKind::Empty)
+                .expect("test scene spawn should succeed");
             world.set_parent_checked(entity, Some(root)).unwrap();
             child = Some(entity);
         })
@@ -149,37 +163,46 @@ fn in_process_gateway_queries_the_same_reflected_projection_as_its_level() {
 
     let mut entity = None;
     gateway
-        .with_world_mut(&mut |world| entity = Some(world.spawn_node(NodeKind::Empty)))
+        .with_world_mut(&mut |world| {
+            entity = Some(
+                world
+                    .spawn_node(NodeKind::Empty)
+                    .expect("test scene spawn should succeed"),
+            )
+        })
         .unwrap();
     let entity = entity.expect("spawn must produce a queryable entity");
     let component_type = level.with_world(|world| {
         world
-            .inspect_fields(entity)
-            .into_iter()
+            .inspection_fields_artifact(entity)
+            .expect("default nodes expose reflected editor fields")
+            .fields()
+            .iter()
             .next()
             .expect("default nodes expose reflected editor fields")
             .component_type_path
+            .clone()
     });
-    let query = WorldQuery {
+    let query = WorldQuery::Components(ComponentWorldQuery {
         filter: QueryFilter {
             with: vec![component_type.clone()],
             without: Vec::new(),
         },
         select: vec![ComponentSelector::new(component_type)],
         generation_hint: None,
-    };
+    });
 
     let result = gateway.query_world(query.clone()).unwrap();
-    assert!(matches!(result, WorldQueryResult::Rows(ref rows) if rows.len() == 1));
+    assert!(matches!(
+        result,
+        WorldQueryResult::ComponentRows { ref rows, .. } if rows.len() == 1
+    ));
     assert_eq!(result, level.with_world(|world| world.query_world(&query)));
 
     let current_generation = level.world_generation();
     assert_eq!(
         gateway
-            .query_world(WorldQuery {
-                generation_hint: Some(current_generation),
-                ..query
-            })
+            .query_world(query.with_generation_hint(Some(current_generation)))
             .unwrap(),
         WorldQueryResult::NotModified {
             generation: current_generation
@@ -195,7 +218,13 @@ fn in_process_gateway_routes_component_type_mutations_by_reflection_type_path() 
 
     let mut entity = None;
     gateway
-        .with_world_mut(&mut |world| entity = Some(world.spawn_node(NodeKind::Empty)))
+        .with_world_mut(&mut |world| {
+            entity = Some(
+                world
+                    .spawn_node(NodeKind::Empty)
+                    .expect("test scene spawn should succeed"),
+            )
+        })
         .unwrap();
     let entity = entity.expect("spawn must produce an entity");
     assert_eq!(gateway.drain_world_invalidations().unwrap().len(), 1);
@@ -225,7 +254,13 @@ fn in_process_gateway_routes_dynamic_component_mutations_by_canonical_type_id() 
 
     let mut entity = None;
     gateway
-        .with_world_mut(&mut |world| entity = Some(world.spawn_node(NodeKind::Empty)))
+        .with_world_mut(&mut |world| {
+            entity = Some(
+                world
+                    .spawn_node(NodeKind::Empty)
+                    .expect("test scene spawn should succeed"),
+            )
+        })
         .unwrap();
     let entity = entity.expect("spawn must produce an entity");
     assert_eq!(gateway.drain_world_invalidations().unwrap().len(), 1);
@@ -264,7 +299,13 @@ fn gateway_handle_forwards_borrowed_world_access_to_the_current_transport() {
 
     let mut spawned = None;
     handle
-        .with_world_mut(&mut |world| spawned = Some(world.spawn_node(NodeKind::Empty)))
+        .with_world_mut(&mut |world| {
+            spawned = Some(
+                world
+                    .spawn_node(NodeKind::Empty)
+                    .expect("test scene spawn should succeed"),
+            )
+        })
         .unwrap();
 
     assert!(level.with_world(|world| world.contains_entity(spawned.unwrap())));

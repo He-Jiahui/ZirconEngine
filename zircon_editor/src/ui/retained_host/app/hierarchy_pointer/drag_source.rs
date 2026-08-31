@@ -17,18 +17,21 @@ pub(super) fn hierarchy_drag_source_from_route(
         return None;
     };
     let entry = scene_entries.get(item_index)?;
-    let node_ids = if authoritative_scene_entries.is_selected(entry.entity) {
+    let authoritative_entry = authoritative_scene_entries
+        .iter()
+        .find(|candidate| candidate.entity == entry.entity)?;
+    let node_ids = if authoritative_scene_entries.is_selected(authoritative_entry.entity) {
         authoritative_scene_entries
             .iter()
             .filter(|entry| authoritative_scene_entries.is_selected(entry.entity))
             .map(|entry| entry.entity)
             .collect()
     } else {
-        vec![entry.entity]
+        vec![authoritative_entry.entity]
     };
     Some(HierarchyDragSource {
         node_ids,
-        payload: scene_drag_payload_from_entry(entry),
+        payload: scene_drag_payload_from_entry(authoritative_entry),
     })
 }
 
@@ -91,10 +94,7 @@ mod tests {
     fn selected_hierarchy_drag_preserves_the_full_selection() {
         let entries = entries();
         let source = hierarchy_drag_source_from_route(
-            Some(HierarchyPointerRoute::Node {
-                item_index: 1,
-                node_id: "7".to_string(),
-            }),
+            Some(HierarchyPointerRoute::Node { item_index: 1 }),
             &entries,
             &entries,
         )
@@ -108,10 +108,7 @@ mod tests {
     fn unselected_hierarchy_drag_uses_only_the_pressed_node() {
         let entries = entries();
         let source = hierarchy_drag_source_from_route(
-            Some(HierarchyPointerRoute::Node {
-                item_index: 2,
-                node_id: "11".to_string(),
-            }),
+            Some(HierarchyPointerRoute::Node { item_index: 2 }),
             &entries,
             &entries,
         )
@@ -126,10 +123,7 @@ mod tests {
         let visible_entries = vec![authoritative_entries[1].clone()];
 
         let source = hierarchy_drag_source_from_route(
-            Some(HierarchyPointerRoute::Node {
-                item_index: 0,
-                node_id: "7".to_string(),
-            }),
+            Some(HierarchyPointerRoute::Node { item_index: 0 }),
             &visible_entries,
             &authoritative_entries,
         )
@@ -139,15 +133,32 @@ mod tests {
     }
 
     #[test]
+    fn hierarchy_drag_payload_uses_the_current_authoritative_row() {
+        let authoritative_entries = entries();
+        let mut stale_visible_entry = authoritative_entries[1].clone();
+        stale_visible_entry.display_name = "Old Cube".to_string();
+
+        let source = hierarchy_drag_source_from_route(
+            Some(HierarchyPointerRoute::Node { item_index: 0 }),
+            &[stale_visible_entry],
+            &authoritative_entries,
+        )
+        .unwrap();
+
+        assert_eq!(source.node_ids, vec![3, 7]);
+        assert_eq!(
+            source.payload.source.unwrap().display_name.as_deref(),
+            Some("Cube")
+        );
+    }
+
+    #[test]
     fn hierarchy_reparent_target_keeps_node_and_root_targets_distinct() {
         let entries = entries();
 
         assert_eq!(
             hierarchy_reparent_target_from_route(
-                Some(HierarchyPointerRoute::Node {
-                    item_index: 0,
-                    node_id: "3".to_string(),
-                }),
+                Some(HierarchyPointerRoute::Node { item_index: 0 }),
                 &entries,
             ),
             Some(Some(3))

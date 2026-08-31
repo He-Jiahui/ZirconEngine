@@ -76,6 +76,9 @@ pub(super) fn runtime_host_requests_cursor_root_source() -> &'static str {
 pub(super) fn runtime_host_requests_source() -> String {
     [
         runtime_host_requests_root_source(),
+        include_str!("../../runtime_entry_app/host_requests/clipboard/mod.rs"),
+        include_str!("../../runtime_entry_app/host_requests/clipboard/platform.rs"),
+        include_str!("../../runtime_entry_app/host_requests/clipboard/platform/windows.rs"),
         include_str!("../../runtime_entry_app/host_requests/drain.rs"),
         include_str!("../../runtime_entry_app/host_requests/routing.rs"),
         runtime_host_requests_cursor_root_source(),

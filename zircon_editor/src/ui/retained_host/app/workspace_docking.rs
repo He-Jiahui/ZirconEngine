@@ -27,7 +27,7 @@ impl RetainedEditorHost {
 
         match kind {
             HostPointerFactKind::Down | HostPointerFactKind::Move => {
-                self.sync_drag_target_group(x, y);
+                let _ = self.sync_drag_target_group(x, y);
             }
             HostPointerFactKind::Up => self.dispatch_drag_drop_from_pointer(x, y),
         }

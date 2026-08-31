@@ -3,12 +3,14 @@ use super::super::super::mesh::PreparedMeshQueueStats;
 use super::super::super::sprite::PreparedSpriteQueueStats;
 use super::super::scene_renderer_core::SceneRendererAdvancedPluginReadbacks;
 use crate::core::framework::render::RenderCameraTargetGraphImportReport;
+use crate::rhi::SubmissionTicket;
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCompiledSceneOutputs {
     advanced_plugin_readbacks: SceneRendererAdvancedPluginReadbacks,
     render_graph_execution: RenderGraphExecutionRecord,
     prepared_mesh_queue_stats: PreparedMeshQueueStats,
     prepared_sprite_queue_stats: PreparedSpriteQueueStats,
+    scene_submission: SubmissionTicket,
     output_target_graph_import_report: Option<RenderCameraTargetGraphImportReport>,
 }
 
@@ -18,14 +20,22 @@ impl SceneRendererCompiledSceneOutputs {
         render_graph_execution: RenderGraphExecutionRecord,
         prepared_mesh_queue_stats: PreparedMeshQueueStats,
         prepared_sprite_queue_stats: PreparedSpriteQueueStats,
+        scene_submission: SubmissionTicket,
     ) -> Self {
         Self {
             advanced_plugin_readbacks,
             render_graph_execution,
             prepared_mesh_queue_stats,
             prepared_sprite_queue_stats,
+            scene_submission,
             output_target_graph_import_report: None,
         }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) const fn scene_submission(
+        &self,
+    ) -> SubmissionTicket {
+        self.scene_submission
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) fn with_output_target_graph_import_report(
@@ -64,6 +74,16 @@ impl SceneRendererCompiledSceneOutputs {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::rhi::{DeviceGeneration, DeviceId, RenderQueueClass, SubmissionTicket};
+
+    fn scene_submission() -> SubmissionTicket {
+        SubmissionTicket::new(
+            DeviceId::new(1),
+            DeviceGeneration::initial(),
+            RenderQueueClass::Graphics,
+            2,
+        )
+    }
 
     #[test]
     fn compiled_scene_outputs_carry_prepared_mesh_queue_stats() {
@@ -84,6 +104,7 @@ mod tests {
             RenderGraphExecutionRecord::default(),
             stats,
             PreparedSpriteQueueStats::default(),
+            scene_submission(),
         );
 
         let (_readbacks, _record, carried_stats, _sprite_stats, _graph_import) =
@@ -109,6 +130,7 @@ mod tests {
             RenderGraphExecutionRecord::default(),
             PreparedMeshQueueStats::default(),
             stats,
+            scene_submission(),
         );
 
         let (_readbacks, _record, _mesh_stats, carried_stats, _graph_import) = outputs.into_parts();
@@ -126,6 +148,7 @@ mod tests {
             RenderGraphExecutionRecord::default(),
             PreparedMeshQueueStats::default(),
             PreparedSpriteQueueStats::default(),
+            scene_submission(),
         )
         .with_output_target_graph_import_report(report);
 

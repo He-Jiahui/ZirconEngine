@@ -366,14 +366,14 @@ fn value_rect(
     if has_label && frame.height >= visual.two_line_min_height {
         UiFrame::new(
             frame.x + visual.horizontal_inset,
-            (frame.y + frame.height - visual.value_line_height - visual.value_bottom_inset).round(),
+            frame.y + frame.height - visual.value_line_height - visual.value_bottom_inset,
             (text_right - frame.x - visual.horizontal_inset).max(visual.min_frame_extent),
             visual.value_line_height.min(frame.height),
         )
     } else {
         UiFrame::new(
             frame.x + visual.horizontal_inset,
-            (frame.y + (frame.height - visual.value_line_height).max(0.0) * 0.5).round(),
+            frame.y + (frame.height - visual.value_line_height).max(0.0) * 0.5,
             (text_right - frame.x - visual.horizontal_inset).max(visual.min_frame_extent),
             visual.value_line_height.min(frame.height),
         )

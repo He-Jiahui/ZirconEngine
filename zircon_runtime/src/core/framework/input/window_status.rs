@@ -14,6 +14,7 @@ pub enum WindowStatusEvent {
     ThemeChanged(WindowTheme),
     ScaleFactorChanged { scale_factor: f32 },
     BackendScaleFactorChanged { scale_factor: f32 },
+    SurfaceRecreated,
     CloseRequested,
     Destroyed,
 }

@@ -418,12 +418,14 @@ fn runtime_session_archive_selected_single_slot_export_to_path_is_atomic() {
         archive.slot_ids().collect::<Vec<_>>(),
         vec!["autosave", "manual-new", "manual-old"]
     );
-    assert!(temporary_archive_leftovers(
-        target_path
-            .parent()
-            .expect("target path should have parent")
-    )
-    .is_empty());
+    assert!(
+        temporary_archive_leftovers(
+            target_path
+                .parent()
+                .expect("target path should have parent")
+        )
+        .is_empty()
+    );
 
     let _ = fs::remove_dir_all(root);
 }
@@ -464,7 +466,9 @@ fn runtime_session_archive_selected_restore_apply_and_diff_use_resolved_slots() 
     assert_eq!(selected_world_diff.target_entity_count, 1);
 
     let mut live_world = World::empty();
-    let existing_entity = live_world.spawn_node(NodeKind::AmbientLight);
+    let existing_entity = live_world
+        .spawn_node(NodeKind::AmbientLight)
+        .expect("test scene spawn should succeed");
     assert_eq!(existing_entity, new_entity);
     let remap = archive
         .apply_selected_slot(
@@ -488,7 +492,9 @@ fn runtime_session_archive_selected_restore_apply_and_diff_use_resolved_slots() 
     let manager = crate::scene::DefaultLevelManager::default();
     let level = manager.create_level(World::empty(), LevelMetadata::default());
     let stale_entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::PointLight);
+        let entity = world
+            .spawn_node(NodeKind::PointLight)
+            .expect("test scene spawn should succeed");
         world
             .rename_node(entity, "Stale Light")
             .expect("stale entity should be named");
@@ -505,10 +511,12 @@ fn runtime_session_archive_selected_restore_apply_and_diff_use_resolved_slots() 
     assert_eq!(restore_report.entity_count, 1);
     assert_eq!(level.metadata().display_name.as_deref(), Some("Old Manual"));
     level.with_world(|world| {
-        assert!(world
-            .node_records()
-            .iter()
-            .all(|record| record.name != "Stale Light"));
+        assert!(
+            world
+                .node_records()
+                .iter()
+                .all(|record| record.name != "Stale Light")
+        );
         assert_eq!(
             world
                 .find_node(old_entity)
@@ -588,7 +596,9 @@ fn runtime_session_archive_selected_path_restore_apply_and_diff_use_resolved_slo
     assert!(world_diff.matches);
 
     let mut live_world = World::empty();
-    let existing_entity = live_world.spawn_node(NodeKind::AmbientLight);
+    let existing_entity = live_world
+        .spawn_node(NodeKind::AmbientLight)
+        .expect("test scene spawn should succeed");
     assert_eq!(existing_entity, new_entity);
     let remap = RuntimeSessionArchive::apply_selected_slot_from_path_to_world(
         &path,
@@ -657,7 +667,9 @@ fn runtime_session_archive_selected_path_restore_apply_and_diff_use_resolved_slo
 
 fn world_with_named_node(kind: NodeKind, name: &str) -> (World, EntityId) {
     let mut world = World::empty();
-    let entity = world.spawn_node(kind);
+    let entity = world
+        .spawn_node(kind)
+        .expect("test scene spawn should succeed");
     world
         .rename_node(entity, name)
         .expect("fixture entity should be named");

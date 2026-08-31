@@ -160,7 +160,7 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/mobile.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_app/src/entry/builtin_modules.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
@@ -348,7 +348,7 @@ implementation_files:
   - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/src/feature.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs

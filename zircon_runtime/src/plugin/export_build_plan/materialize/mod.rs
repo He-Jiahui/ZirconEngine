@@ -56,6 +56,8 @@ impl ExportBuildPlan {
         }
 
         if !self.native_dynamic_packages.is_empty() {
+            let copied_package_capacity = self.native_dynamic_packages.len();
+            report.copied_packages.reserve(copied_package_capacity);
             let inventory =
                 NativePackageInventory::build(plugin_root, &self.native_dynamic_packages)?;
             native::materialize_native_dynamic_packages(
@@ -93,6 +95,8 @@ impl ExportBuildPlan {
         let mut report = self.preview_materialize(output_root)?;
 
         if !self.native_dynamic_packages.is_empty() {
+            let copied_package_capacity = self.native_dynamic_packages.len();
+            report.copied_packages.reserve(copied_package_capacity);
             let inventory =
                 NativePackageInventory::build(plugin_root, &self.native_dynamic_packages)?;
             native::preview_native_dynamic_packages(self, &inventory, output_root, &mut report)?;

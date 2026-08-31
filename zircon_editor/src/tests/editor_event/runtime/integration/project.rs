@@ -113,13 +113,14 @@ fn save_project_marks_the_transaction_history_only_after_persisting_the_world() 
             shell
                 .state
                 .world
-                .try_with_world(|scene| {
+                .expect_with_world(|scene| {
                     scene
                         .nodes()
                         .iter()
                         .find(|node| node.kind == NodeKind::Cube)
                         .map(|node| node.id)
                 })
+                .expect("default world gateway should succeed")
                 .flatten()
                 .expect("renderable template should contain a cube")
         };
@@ -127,7 +128,10 @@ fn save_project_marks_the_transaction_history_only_after_persisting_the_world() 
             .runtime
             .dispatch_event(
                 EditorEventSource::RetainedHost,
-                EditorEvent::Selection(SelectionHostEvent::SelectSceneNode { node_id: cube }),
+                EditorEvent::Selection(SelectionHostEvent::SelectSceneNode {
+                    world_domain: crate::core::play::WorldDomain::Edit,
+                    node_id: cube,
+                }),
             )
             .expect("hierarchy selection should dispatch");
         runtime

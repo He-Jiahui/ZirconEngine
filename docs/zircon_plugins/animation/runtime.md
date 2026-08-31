@@ -9,8 +9,6 @@ related_code:
   - zircon_plugins/animation/runtime/src/state_machine/transition/mod.rs
   - zircon_plugins/animation/runtime/src/gpu_skinning/mod.rs
   - zircon_plugins/animation/runtime/src/ik/mod.rs
-  - zircon_plugins/animation/runtime/src/ik/postprocess.rs
-  - zircon_runtime/src/core/framework/animation/ik_command.rs
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/mod.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/mod.rs
@@ -96,11 +94,6 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/gpu_skinning/decision.rs
   - zircon_plugins/animation/runtime/src/ik/two_bone.rs
   - zircon_plugins/animation/runtime/src/ik/look_at.rs
-  - zircon_plugins/animation/runtime/src/ik/postprocess.rs
-  - zircon_plugins/animation/runtime/src/ik/diagnostic.rs
-  - zircon_plugins/animation/runtime/src/ik/execution_error.rs
-  - zircon_runtime/src/core/framework/animation/ik_command.rs
-  - zircon_runtime/src/core/framework/animation/ik_command_error.rs
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/mod.rs
@@ -159,7 +152,6 @@ tests:
   - zircon_plugins/animation/runtime/tests/animation_state_kind_asset_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_gpu_skinning_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_ik_contract.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/ik_postprocess.rs
   - zircon_plugins/animation/runtime/tests/animation_pipeline_structure_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_pose_buffer_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_state_transition_contract.rs
@@ -178,6 +170,7 @@ tests:
   - zircon_runtime/src/tests/extensions/manager_handles.rs
   - zircon_runtime/src/asset/tests/assets/animation.rs
   - animation_registration_contributes_runtime_module
+  - animation_runtime_has_no_process_wide_ik_inbox
   - animation_plugin_toml_matches_catalog_beta_partial_metadata
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --test runtime_physics_animation_tick_contract --target-dir target\codex-shared-a
   - cargo test --manifest-path zircon_plugins\animation\runtime\Cargo.toml animation_registration_contributes_runtime_module --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-animation-runtime-metadata --color never --quiet
@@ -219,9 +212,9 @@ The plugin `DefaultAnimationManager` may be installed as a Runtime registry serv
 - PoseApply consumes Runtime08's `World::compile_descendant_name_index(...)` projection. Runtime owns each root's hierarchy/name generation; structured name and reparent writes invalidate only affected ancestor roots, while raw hierarchy-component mutation conservatively invalidates cached roots. `pose_target_binding.rs` derives plugin-local exact/short bone-name maps to dense `EntityId` values only when that Runtime binding changes. Transform writes and unrelated subtree edits retain the existing binding, while stable frames do not scan scene node records or reconstruct alias collections.
 - M2-T1 adds `mask/{asset,compile,error}.rs`: `.avatar_mask.toml` rules compile subtree inheritance, ordered overrides, and boundary gradients into dense `MaskWeights` aligned with `SkeletonTargetTable`. `AnimationAvatarMask` remains the neutral editor/diagnostic view.
 - M2-T2 adds `PoseLayer` and `PoseLayerBlendMode`; `PoseBuffer::blend_layers` applies ordered override/additive layers and multiplies each dense source row by the aligned `MaskWeights` row. Shape and layer weights are validated before mutation.
-- M2-T3's Animation half reads Physics-owned `SimulatedPoseFeed` after the final graph/state-machine/layer blend and before IK. Physics supplies a per-bone `normalized_weight` that already combines ragdoll mode, avatar-mask, and interpolation-alpha weights. The plugin resolves exact unique bone names through the compiled skeleton target table and blends local TRS without allocating a per-frame name map; invalid rows do not mutate the pose. The resulting pose is then published as the next `SkeletalPoseTargets` snapshot.
+- M2-T3's Animation half reads Physics-owned `SimulatedPoseFeed` after the final graph/state-machine/layer blend and before pose publication. Physics supplies a per-bone `normalized_weight` that already combines ragdoll mode, avatar-mask, and interpolation-alpha weights. The plugin resolves exact unique bone names through the compiled skeleton target table and blends local TRS without allocating a per-frame name map; invalid rows do not mutate the pose. The resulting pose is then published as the next `SkeletalPoseTargets` snapshot.
 
-## 2026-07-11 M3-M5 Runtime Extensions
+## M3-M5 Runtime Extensions
 
 - `state_machine/condition_expression/**` compiles Condition/All/Any/Not trees to postfix instructions and dense parameter slots. Legacy flat asset conditions enter the same evaluator as an implicit All expression.
 - `state_machine/transition/**` owns bounded duration/elapsed time, normalized exit-time gating, the four interruption policies, and continuous crossfade weights. The neutral transition asset serializes optional exit time and interruption policy with serde defaults; compiled transitions retain the full descriptor, and production evaluation gates requests using graph-duration-normalized state time. `evaluation/pipeline/state_machine_transition.rs` applies the active-transition policy to current/next candidate states. When A→B is interrupted by B→C, `InterruptedTransitionSource` retains the already blended A/B pose and uses it as the new crossfade source, so the first interrupted frame is continuous instead of snapping to B.
@@ -231,16 +224,16 @@ The plugin `DefaultAnimationManager` may be installed as a Runtime registry serv
 - `AnimationStateMachineAsset` is the single layered-machine representation. Its `layers` carry machine references, finite normalized weights, Override/Additive modes, and optional dense mask rows; current/v3/v2/v1 payload migration gives historical machines an empty layer list. `state_machine/layer/**` compiles this representation, while `evaluation/pipeline/state_machine_layers.rs` evaluates independent per-layer machine state and folds poses through `PoseLayer`/`PoseBuffer::blend_layers`. Layer transitions use the same interruption-policy selector as the base machine, retain the already blended source pose across A→B→C interruption, advance old/new event windows independently, and clear the retained source on completion. Bone-count/name, pose-row, mask, and blend-shape failures emit `AnimationStateMachineLayerDiagnostic` instead of silently dropping a layer.
 - SubMachine runtime keys include the owning parent state in addition to entity and machine lineage, so sibling parent states that reference one child asset do not alias state. `nested_machine_resolve.rs` stops descent when a parent transition is active/requested, and `nested_machine_sample.rs` recursively samples SubMachine pose/event/time on transition endpoints.
 - `gpu_skinning/**` builds a maximum-256-joint `SkinningPalette` as posed-world × inverse-bind, preserves current/previous palettes through `SkinningPaletteDoubleBuffer`, and returns typed GPU-versus-CPU decisions from the neutral readiness contract. The Render owner consumes the neutral `RenderSkeletalPoseExtract`, packs the same posed-world × inverse-bind matrices into `SkinnedMeshJointPaletteStorage`, and owns two persistent `STORAGE | COPY_DST` buffers per stable GPUScene instance. Draw build writes the alternate slot; successful submit alone commits it as previous, and a third frame reuses the first slot. Group3 bindings 3/4 expose current/previous palettes as vertex-visible read-only storage, while over-256 or unavailable payloads retain the CPU-skinned draw. No Render dependency on the concrete Animation plugin type is introduced.
-- `ik/**` owns the complete M5-T1 postprocess. Components/scripts submit stable-ID `AnimationIkCommand` values through the neutral Manager queue; `ik/postprocess.rs` resolves those IDs through the evaluator's revision-aware `SkeletonTargetTable`, compiles private TwoBone/LookAt slot jobs, evaluates model-space targets after graph/state-machine/layer blending, and writes solved local rotations before Physics pose-target publication and PoseApply. TwoBone chains must be direct root→mid→tip; target/pole values are skeleton model-space points. Invalid bindings, target lookup, pose shape, hierarchy, chain, and solver inputs become typed `AnimationIkDiagnostic` events.
-- The focused low-memory Windows executable run passes all four `animation_ik_contract` cases (three solver boundaries plus Manager validation/world isolation/drain semantics). The subsequent Windows nightly locked/offline production Tick executable passes both queued TwoBone and LookAt paths inside the complete 34/34 suite, proving dense target resolution, model-space solve, final local-pose mutation, one-shot command drain, and the required `PoseBlend/SimulatedPoseFeed → IK → SkeletalPoseTargets/PoseApply` ordering.
-- `runtime_system.rs` registers `AnimationClipEvent`, `AnimationEvaluationDiagnostic`, `AnimationIkDiagnostic`, and `AnimationStateMachineLayerDiagnostic` through the SDK event builder. The derived `animation.events` catalog identifies clip, IK, and layer diagnostic payloads with explicit v1 schemas; publication remains dormant until a consumer subscription is connected.
+- `ik/{two_bone,look_at}.rs` owns the reusable mathematical solver foundation. M5-T1 product integration remains open: IK parameters and cached target slots must be owned by a compiled animation graph/evaluation node, evaluated inside the pose pipeline, and stored per graph instance. The retired process-wide command queue is not a supported producer boundary.
+- The 2026-07-11 four-case and production Tick evidence covered three solver contracts plus test-only queue producers. Current source retains the three mathematical solver contracts and deliberately removes the queue-driven product tests; that historical evidence does not prove graph-local product integration.
+- `runtime_system.rs` registers `AnimationClipEvent`, `AnimationEvaluationDiagnostic`, and `AnimationStateMachineLayerDiagnostic` through the SDK event builder. IK diagnostics will be introduced with the future graph-local node contract, rather than preserving an event type owned by a deleted queue adapter.
 
 ## M6 Editor Ownership
 
 - `animation_graph/editor` owns graph/state-machine asset editors, compile/validate/open operations, and graph palettes. BlendSpace1D/2D appear as graph nodes because they participate in pose topology; the editor package does not own generic Animation asset drawers.
 - `animation/editor` owns the authoring surface shared by runtime animation assets. It registers dedicated BlendSpace1D, BlendSpace2D, and Avatar Mask drawers under `plugins://animation/editor/**`; the Avatar Mask drawer is therefore not duplicated behind the Animation Graph plugin.
 - `timeline_sequence/editor` remains the single sequencer owner and registers the `animation.sequence` timeline editor plus transform, component-property, and event-marker track descriptors. Runtime sequence DTOs stay neutral and no editor-only type crosses into the Animation runtime crate.
-- This split follows the fixed Editor/Runtime boundary: authoring packages consume neutral Runtime asset contracts, while evaluation, target compilation, IK, and pose production stay in `animation/runtime`.
+- This split follows the fixed Editor/Runtime boundary: authoring packages consume neutral Runtime asset contracts, while evaluation, target compilation, and pose production stay in `animation/runtime`.
 
 ## Runtime Boundary
 
@@ -253,7 +246,7 @@ The plugin `DefaultAnimationManager` may be installed as a Runtime registry serv
 - `AnimationRuntimeSystem` resolves `AnimationManagerHandle`, advances scene player clocks, loads animation assets through `ProjectAssetManager`, blends graph/state-machine pose output, and records pose/playback runtime state on `LevelSystem`.
 - `AnimationRuntimeSystem` publishes `AnimationClipEvent` values when direct clip players, graph players, state-machine active graphs, or state-machine transition graphs advance across `AnimationClipAsset.event_tracks`, matching Bevy's clip-event precedent for timeline-authored gameplay hooks.
 - `runtime_system.rs` is the scheduling entry. `evaluation/pipeline/` is the folder-backed tick implementation; no path attributes or `scene_hook` compatibility modules remain.
-- The linked plugin's `DefaultAnimationManager` and `animation.runtime` descriptor own playback settings persistence, graph evaluation, state-machine evaluation, clip pose sampling, and the bounded per-World neutral IK command queue. Concrete target compilation and solving remain plugin-owned; Runtime fallback manager/module types are not re-exported as plugin production types.
+- The linked plugin's `DefaultAnimationManager` and `animation.runtime` descriptor own playback settings persistence, graph evaluation, state-machine evaluation, and clip pose sampling. Neither the plugin manager nor the Runtime fallback manager owns a process-wide IK inbox. Runtime fallback manager/module types are not re-exported as plugin production types.
 - `manager.rs` is the plugin-owned structural `DefaultAnimationManager` facade. `manager/parameters.rs` owns parameter default/value mutation and numeric scalar helpers, `graph.rs` owns graph clip collection plus additive/masked graph evaluation, `state_machine.rs` owns transition condition evaluation and active-state resolution, `pose.rs` owns skeleton bind validation plus clip bone-track sampling, and `sampling.rs` owns finite-value, sample-time, and channel-sample conversion helpers.
 - The private `channel_sampling/` module currently supplies channel sampling and interpolation to the manager facade. `apply_sequence_to_world(...)` remains a Runtime interop re-export until Runtime08 publishes the generation-validated generic compiled property accessor; it must not become a second plugin production evaluator.
 - `DefaultAnimationManager::evaluate_graph(...)` remains a neutral compatibility-facing contract, while the production pipeline consumes `CompiledAnimationGraph` and dense target masks directly.
@@ -312,6 +305,8 @@ The linked plugin owns the canonical manager/module identity. Remaining Runtime 
 - 2026-07-11 SubMachine evidence: compiled state tests pass 6/6; production nested delegation passes 1/1; a nested child transition persists over two ticks and produces the expected 5.0→10.0 crossfade output, 1/1. Runtime keys include entity and machine lineage so sibling/nested state and interruption sources cannot alias.
 - 2026-07-11 layer compiler evidence: `animation_state_machine_layer_contract` passes 3/3 for Override/Additive mapping, dense mask compilation, invalid input rejection, and stable direct-reference ordering.
 - The complete pre-latest-slice Windows nightly/offline Animation runtime suite passes 78/78 after adding the Physics-owned skeletal target bridge; Physics default tests pass 43/43. The later production Tick executable passes 34/34 and now includes the executable `simulated_pose_blends_under_ragdoll_mask`, masked layer, SubMachine parent-transition, layer-interruption continuity, and TwoBone/LookAt paths. Physics ragdoll focused behavior independently passes 5/5, including the drop golden snapshot and no-pop velocity inheritance. A new all-`--tests` total is not inferred from these focused runs; post-hard-cut full Windows/WSL suites remain the final cross-platform gate, and the earlier WSL 75/75 baseline predates these additions.
+- The TwoBone/LookAt cases in that historical 34/34 run were driven only by test-side queue producers. The 2026-08-24 architecture hard cut removes that queue and reopens M5-T1 product integration; only the three pure solver contracts remain current until a graph-local IK node is implemented and revalidated.
+- `animation_runtime_has_no_process_wide_ik_inbox` locks the neutral manager, plugin manager, and production tick against restoring the retired queue/drain surface.
 
 - Current D10 animation/physics bridge call migration: the contract test now uses `WeakBridge<dyn PhysicsQueryInterface>` / `physics.query.v1` for physics ray, shape-overlap, and shape-cast calls after ticking the level. Static guard `review_d10_animation_physics_tests_use_sdk_bridge_call` records status `d10_animation_physics_bridge_call_static_passed_cargo_deferred`; Cargo remains deferred for this implementation slice.
 - The 2026-06-04 scene hook boundary split reduced `zircon_runtime/src/animation/scene_hook.rs` from a mixed 867-line file to a structural 32-line entry plus `scene_hook/{tick,scan,pending,events,sequences,pose,graph,state_machine}.rs`. `rustfmt --edition 2021 --check --config skip_children=true` passed over the split files. A focused `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-animation-scene-hook-split-0604 --message-format short --color never` attempt timed out after two minutes while other workspace/Hub/editor Cargo lanes were active and did not return Rust diagnostics; compile acceptance for this structural split remains pending.

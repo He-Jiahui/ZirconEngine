@@ -3,7 +3,8 @@ use super::*;
 #[test]
 fn render_product_streamer_reports_container_textures_as_not_upload_ready() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/container-texture.zmaterial");
@@ -34,6 +35,7 @@ fn render_product_streamer_reports_container_textures_as_not_upload_ready() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -61,7 +63,8 @@ fn render_product_streamer_reports_container_textures_as_not_upload_ready() {
 #[test]
 fn render_product_streamer_reports_rgba8_descriptor_conversion_fallback_detail() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let texture_uri = locator("res://textures/height-map.png");
@@ -92,6 +95,7 @@ fn render_product_streamer_reports_rgba8_descriptor_conversion_fallback_detail()
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -147,7 +151,8 @@ fn render_product_streamer_reports_rgba8_descriptor_conversion_fallback_detail()
 #[test]
 fn render_product_streamer_reports_compressed_mip_chain_texture_fallback_detail() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let texture_uri = locator("res://textures/mip-chain.astc");
@@ -176,6 +181,7 @@ fn render_product_streamer_reports_compressed_mip_chain_texture_fallback_detail(
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -230,7 +236,8 @@ fn render_product_streamer_reports_compressed_mip_chain_texture_fallback_detail(
 #[test]
 fn render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/custom-slot.zmaterial");
@@ -276,6 +283,7 @@ fn render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_k
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -350,7 +358,8 @@ fn render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_k
 #[test]
 fn render_product_streamer_reports_unresolved_shader_texture_slot_by_slot_key() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = locator("res://materials/missing-custom-slot.zmaterial");
@@ -384,6 +393,7 @@ fn render_product_streamer_reports_unresolved_shader_texture_slot_by_slot_key() 
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -458,7 +468,8 @@ fn render_product_streamer_reports_unresolved_shader_texture_slot_by_slot_key() 
 #[test]
 fn render_product_streamer_reports_texture_dimension_mismatch_for_cube_slot() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let texture_uri = locator("res://textures/two-dimensional.png");
@@ -506,6 +517,7 @@ fn render_product_streamer_reports_texture_dimension_mismatch_for_cube_slot() {
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -549,7 +561,8 @@ fn render_product_streamer_reports_texture_dimension_mismatch_for_cube_slot() {
 #[test]
 fn render_product_streamer_falls_back_for_cube_array_slot_without_material_binding_abi() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let texture_uri = locator("res://textures/environment-probes.png");
@@ -602,6 +615,7 @@ fn render_product_streamer_falls_back_for_cube_array_slot_without_material_bindi
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,

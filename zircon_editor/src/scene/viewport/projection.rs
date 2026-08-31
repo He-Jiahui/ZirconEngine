@@ -8,14 +8,15 @@ pub(crate) struct ScreenProjection {
     pub(crate) depth: f32,
 }
 
-pub(crate) struct ViewportProjectionContext<'a> {
-    camera: &'a ViewportCameraSnapshot,
+#[derive(Clone)]
+pub(crate) struct ViewportProjectionContext {
+    camera: ViewportCameraSnapshot,
     viewport: UVec2,
     view_projection: Mat4,
 }
 
-impl<'a> ViewportProjectionContext<'a> {
-    pub(crate) fn new(camera: &'a ViewportCameraSnapshot, viewport: UVec2) -> Self {
+impl ViewportProjectionContext {
+    pub(crate) fn new(camera: &ViewportCameraSnapshot, viewport: UVec2) -> Self {
         let viewport = UVec2::new(viewport.x.max(1), viewport.y.max(1));
         let aspect = viewport.x as f32 / viewport.y as f32;
         let projection = match camera.projection_mode {
@@ -39,11 +40,19 @@ impl<'a> ViewportProjectionContext<'a> {
             }
         };
         Self {
-            camera,
+            camera: camera.clone(),
             viewport,
             view_projection: projection
                 * zircon_runtime_interface::math::view_matrix(camera.transform),
         }
+    }
+
+    pub(crate) fn matches_camera_and_viewport(
+        &self,
+        camera: &ViewportCameraSnapshot,
+        viewport: UVec2,
+    ) -> bool {
+        self.camera == *camera && self.viewport == UVec2::new(viewport.x.max(1), viewport.y.max(1))
     }
 
     pub(crate) fn projected_point(&self, world: Vec3) -> Option<ScreenProjection> {
@@ -175,6 +184,20 @@ mod tests {
             .spatial_ray_at(Vec2::new(400.0, 300.0));
 
         assert_eq!(ray.direction, Vec3::ZERO);
+    }
+
+    #[test]
+    fn shared_projection_context_matches_its_camera_and_normalized_viewport() {
+        let camera = ViewportCameraSnapshot::default();
+        let context = ViewportProjectionContext::new(&camera, UVec2::new(800, 0));
+
+        assert!(context.matches_camera_and_viewport(&camera, UVec2::new(800, 0)));
+        assert!(context.matches_camera_and_viewport(&camera, UVec2::new(800, 1)));
+
+        let mut changed_camera = camera.clone();
+        changed_camera.fov_y_radians += 0.1;
+        assert!(!context.matches_camera_and_viewport(&changed_camera, UVec2::new(800, 1)));
+        assert!(!context.matches_camera_and_viewport(&camera, UVec2::new(801, 1)));
     }
 
     #[test]

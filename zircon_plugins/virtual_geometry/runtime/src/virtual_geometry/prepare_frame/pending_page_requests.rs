@@ -5,6 +5,10 @@ use crate::virtual_geometry::VirtualGeometryPrepareRequest;
 use super::super::{VirtualGeometryPageRequest, VirtualGeometryRuntimeState};
 use super::available_slots::available_slots;
 
+#[cfg(test)]
+#[path = "pending_page_requests/allocation_tests.rs"]
+mod allocation_tests;
+
 #[derive(Clone, Copy)]
 struct AssignedSlotPlan {
     slot: Option<u32>,
@@ -76,14 +80,11 @@ fn assigned_slots(
             }
         }
 
-        let preferred_recycled_page_id = preferred_recycled_page_id(state, request.page_id());
-        let ordered_evictable_pages =
-            state.ordered_evictable_pages_for_target(request.page_id(), &remaining_evictable_pages);
-        let Some(recycled_page_id) = ordered_evictable_pages
-            .into_iter()
-            .find(|page_id| remaining_evictable_pages.contains(page_id))
-        else {
-            if let Some(recycled_page_id) = preferred_recycled_page_id {
+        let Some(recycled_page_index) = state.preferred_evictable_page_index_for_target(
+            request.page_id(),
+            &remaining_evictable_pages,
+        ) else {
+            if let Some(recycled_page_id) = preferred_recycled_page_id(state, request.page_id()) {
                 assigned_slots.insert(
                     request.page_id(),
                     AssignedSlotPlan {
@@ -94,6 +95,7 @@ fn assigned_slots(
             }
             continue;
         };
+        let recycled_page_id = remaining_evictable_pages[recycled_page_index];
         let Some(recycled_slot) = state.resident_slot(recycled_page_id) else {
             continue;
         };
@@ -104,7 +106,7 @@ fn assigned_slots(
                 recycled_page_id: Some(recycled_page_id),
             },
         );
-        remaining_evictable_pages.retain(|page_id| *page_id != recycled_page_id);
+        remaining_evictable_pages.swap_remove(recycled_page_index);
     }
 
     assigned_slots
@@ -115,10 +117,7 @@ fn current_request_rank(state: &VirtualGeometryRuntimeState, page_id: u32) -> us
 }
 
 fn preferred_recycled_page_id(state: &VirtualGeometryRuntimeState, page_id: u32) -> Option<u32> {
-    state
-        .ordered_evictable_pages_for_target(page_id, state.evictable_page_ids())
-        .into_iter()
-        .next()
+    state.preferred_evictable_page_for_target(page_id, state.evictable_page_ids())
 }
 
 fn has_pending_ancestor_request(state: &VirtualGeometryRuntimeState, page_id: u32) -> bool {

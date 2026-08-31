@@ -1,10 +1,4 @@
-use zircon_runtime::core::framework::animation::{
-    AnimationIkCommand, AnimationIkCommandError, AnimationLookAtCommand, AnimationManager,
-    AnimationTargetId,
-};
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
-use zircon_runtime::core::framework::scene::WorldHandle;
-use zircon_runtime::core::math::Vec3;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::plugin::PluginModuleKind;
 
@@ -19,40 +13,24 @@ fn plugin_default_animation_manager_is_not_runtime_fallback_type() {
 }
 
 #[test]
-fn plugin_manager_validates_and_drains_ik_commands_per_world() {
-    let manager = DefaultAnimationManager::default();
-    let world = WorldHandle::new(7);
-    let other_world = WorldHandle::new(8);
-    let bone = AnimationTargetId::from_segments(["Root", "Head"]);
-    let command = AnimationIkCommand::LookAt(AnimationLookAtCommand {
-        world,
-        entity: 41,
-        bone,
-        target: Vec3::Y,
-        axis: Vec3::X,
-        clamp_degrees: 35.0,
-        weight: 0.75,
-    });
+fn animation_runtime_has_no_process_wide_ik_inbox() {
+    let framework_manager =
+        include_str!("../../../../zircon_runtime/src/core/framework/animation/manager.rs");
+    let plugin_manager = include_str!("manager.rs");
+    let tick = include_str!("evaluation/pipeline/tick.rs");
+    let queue_method = ["queue", "ik", "command"].join("_");
+    let drain_method = ["drain", "ik", "commands"].join("_");
 
-    manager.queue_ik_command(3, command.clone()).unwrap();
-
-    assert!(manager.drain_ik_commands(other_world, 3).is_empty());
-    assert_eq!(manager.drain_ik_commands(world, 3), vec![command]);
-    assert!(manager.drain_ik_commands(world, 3).is_empty());
-
-    let invalid = AnimationIkCommand::LookAt(AnimationLookAtCommand {
-        world,
-        entity: 41,
-        bone,
-        target: Vec3::Y,
-        axis: Vec3::ZERO,
-        clamp_degrees: 35.0,
-        weight: 1.0,
-    });
-    assert_eq!(
-        manager.queue_ik_command(3, invalid),
-        Err(AnimationIkCommandError::DegenerateAxis { world, entity: 41 })
-    );
+    for (owner, source) in [
+        ("framework manager", framework_manager),
+        ("plugin manager", plugin_manager),
+        ("animation tick", tick),
+    ] {
+        assert!(
+            !source.contains(&queue_method) && !source.contains(&drain_method),
+            "{owner} must not restore the retired process-wide IK inbox"
+        );
+    }
 }
 
 #[test]
@@ -83,10 +61,6 @@ fn animation_registration_contributes_runtime_module() {
     assert!(report.extensions.plugin_events().any(|(owner, event)| {
         report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
             && event.type_name() == std::any::type_name::<AnimationClipEvent>()
-    }));
-    assert!(report.extensions.plugin_events().any(|(owner, event)| {
-        report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
-            && event.type_name() == std::any::type_name::<AnimationIkDiagnostic>()
     }));
     assert!(report.extensions.plugin_events().any(|(owner, event)| {
         report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)

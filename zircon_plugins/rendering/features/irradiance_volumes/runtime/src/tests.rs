@@ -11,5 +11,11 @@ fn irradiance_volume_feature_is_optional_and_registers_binding_executor() {
         report.extensions.render_features()[0].stage_passes[0].pass_name,
         VOLUME_BIND_PASS
     );
+    assert!(
+        !report.extensions.render_features()[0].stage_passes[0]
+            .flags
+            .has_side_effects,
+        "opaque and deferred material passes consume the bound irradiance volume resource"
+    );
     assert_eq!(report.extensions.render_pass_executors().len(), 1);
 }

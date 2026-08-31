@@ -1,9 +1,11 @@
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::{
-    asset_content_paint_metadata, parse_activity_content_identity, AssetContentLayoutMetrics,
-    AssetContentPaintMetadata, AssetContentPaintNodeInput, AssetContentRect, AssetContentSurface,
-    AssetContentSurfaceProfile,
+    asset_content_paint_metadata, parse_activity_content_identity, ActivityAssetReferenceListKind,
+    ActivityContentNodeIdentity, ActivityContentNodeRole, AssetContentLayoutMetrics,
+    AssetContentPaintMetadata, AssetContentPaintNodeInput, AssetContentRect,
+    AssetContentRowDescriptor, AssetContentSurface, AssetContentSurfaceProfile,
+    BrowserThumbnailNodeRole,
 };
 use super::{compact_file_like_display_name, RuntimeFileNameCompaction};
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
@@ -100,6 +102,13 @@ fn activity_generation_metadata_selects_fixed_nodes_and_only_visible_scroll_grou
         .expect("generation metadata");
 
     assert_eq!(metadata.folder_row_count(), 1);
+    assert!(matches!(
+        metadata.row_descriptor(1),
+        AssetContentRowDescriptor::ActivityContent(ActivityContentNodeIdentity::Folder {
+            index: 0,
+            role: ActivityContentNodeRole::Row,
+        })
+    ));
     assert_eq!(
         metadata.visible_node_rows(
             50.0,
@@ -115,6 +124,92 @@ fn activity_generation_metadata_selects_fixed_nodes_and_only_visible_scroll_grou
         vec![0, 3, 4, 5]
     );
     assert!(parse_activity_content_identity("AssetsActivityContentItemName00").is_some());
+}
+
+#[test]
+fn activity_tree_metadata_publishes_count_and_row_addresses_without_removing_fixed_paint_rows() {
+    let nodes = view_model_with_asset_metadata(
+        vec![
+            node(
+                "Workspace/AssetsActivityTreeRowPanel",
+                4.0,
+                10.0,
+                92.0,
+                18.0,
+            ),
+            node("AssetsActivityTreeLabel", 12.0, 14.0, 70.0, 10.0),
+            node("AssetsActivityTreeRowPanel", 4.0, 34.0, 92.0, 18.0),
+        ],
+        AssetContentSurface::Activity,
+    );
+    let metadata = nodes
+        .metadata::<AssetContentPaintMetadata>()
+        .expect("generation metadata");
+
+    assert_eq!(metadata.asset_tree_row_count(), 2);
+    assert_eq!(metadata.activity_tree_node_row(0), Some(0));
+    assert_eq!(metadata.activity_tree_node_row(1), Some(2));
+    assert_eq!(
+        metadata.row_descriptor(0),
+        AssetContentRowDescriptor::ActivityTreeRow
+    );
+    assert_eq!(
+        metadata.visible_activity_node_rows(
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            AssetContentRect {
+                x: 0.0,
+                y: 0.0,
+                width: 120.0,
+                height: 80.0,
+            },
+        ),
+        vec![0, 1, 2],
+        "tree rows remain fixed paint rows until Activity tree virtualization owns them"
+    );
+}
+
+#[test]
+fn browser_tree_metadata_counts_published_logical_row_groups() {
+    let metadata = asset_content_paint_metadata(
+        [
+            AssetContentPaintNodeInput::new(
+                "AssetBrowserSourcesRowPanel",
+                0.0,
+                0.0,
+                100.0,
+                20.0,
+                0.0,
+            ),
+            AssetContentPaintNodeInput::new(
+                "AssetBrowserSourcesTreeRow2/AssetBrowserSourcesRowPanel",
+                0.0,
+                22.0,
+                100.0,
+                20.0,
+                0.0,
+            ),
+            AssetContentPaintNodeInput::new(
+                "AssetBrowserSourcesTreeRow2/AssetBrowserSourcesNameText",
+                8.0,
+                26.0,
+                80.0,
+                10.0,
+                0.0,
+            ),
+        ]
+        .into_iter(),
+        AssetContentSurface::Browser,
+    );
+
+    assert_eq!(metadata.asset_tree_row_count(), 2);
+    assert!(matches!(
+        metadata.row_descriptor(1),
+        AssetContentRowDescriptor::BrowserSourceTree { index: 1 }
+    ));
 }
 
 #[test]
@@ -201,6 +296,183 @@ fn activity_reference_metadata_virtualizes_each_list_with_its_own_scroll_offset(
         vec![0, 3, 4, 5, 6, 7],
         "the scrolled References list must not keep its first row in the painter plan"
     );
+    assert_eq!(
+        metadata.row_descriptor(1),
+        AssetContentRowDescriptor::ActivityReference {
+            list_kind: ActivityAssetReferenceListKind::References,
+            index: 0,
+            paints_hover: true,
+        }
+    );
+    assert_eq!(
+        metadata.row_descriptor(2),
+        AssetContentRowDescriptor::ActivityReference {
+            list_kind: ActivityAssetReferenceListKind::References,
+            index: 0,
+            paints_hover: false,
+        }
+    );
+}
+
+#[test]
+fn browser_generation_descriptor_preserves_thumbnail_roles_without_paint_time_strings() {
+    let inputs = [
+        "AssetBrowserThumbGridPanel",
+        "AssetBrowserThumbCard01",
+        "AssetBrowserThumbSelectionMarker01",
+        "AssetBrowserThumbVisual01",
+        "AssetBrowserThumbInfoBand01",
+        "AssetBrowserThumbNameContinuation01",
+        "AssetBrowserThumbName01",
+        "AssetBrowserThumbTypeBadge01",
+        "AssetBrowserThumbType01",
+        "AssetBrowserThumbMeta01",
+    ];
+    let metadata = asset_content_paint_metadata(
+        inputs.iter().enumerate().map(|(index, control_id)| {
+            AssetContentPaintNodeInput::new(control_id, 0.0, index as f32 * 16.0, 100.0, 12.0, 0.0)
+        }),
+        AssetContentSurface::Browser,
+    );
+
+    for (row, role) in [
+        (1, BrowserThumbnailNodeRole::Card),
+        (2, BrowserThumbnailNodeRole::SelectionMarker),
+        (3, BrowserThumbnailNodeRole::Visual),
+        (4, BrowserThumbnailNodeRole::InfoBand),
+        (5, BrowserThumbnailNodeRole::NameContinuation),
+        (6, BrowserThumbnailNodeRole::Name),
+        (7, BrowserThumbnailNodeRole::TypeBadge),
+        (8, BrowserThumbnailNodeRole::Type),
+        (9, BrowserThumbnailNodeRole::Meta),
+    ] {
+        assert!(matches!(
+            metadata.row_descriptor(row),
+            AssetContentRowDescriptor::BrowserContent(
+                super::BrowserContentNodeIdentity::Thumbnail { index: 0, role: actual }
+            ) if actual == role
+        ));
+    }
+}
+
+#[test]
+fn generation_metadata_reports_one_identity_parse_per_input_row() {
+    let metadata = asset_content_paint_metadata(
+        [
+            AssetContentPaintNodeInput::new("AssetBrowserTable", 0.0, 0.0, 100.0, 24.0, 0.0),
+            AssetContentPaintNodeInput::new("AssetBrowserItem01", 0.0, 24.0, 100.0, 24.0, 0.0),
+            AssetContentPaintNodeInput::new("AssetBrowserItem02", 0.0, 48.0, 100.0, 24.0, 0.0),
+        ]
+        .into_iter(),
+        AssetContentSurface::Browser,
+    );
+
+    assert_eq!(metadata.identity_parse_count(), 3);
+}
+
+#[test]
+fn browser_generation_descriptors_own_content_and_auxiliary_viewport_geometry() {
+    let metadata = asset_content_paint_metadata(
+        [
+            AssetContentPaintNodeInput::new(
+                "Workspace/AssetBrowserTablePanel",
+                10.0,
+                12.0,
+                240.0,
+                180.0,
+                640.0,
+            ),
+            AssetContentPaintNodeInput::new(
+                "Workspace/AssetBrowserTableHeader",
+                10.0,
+                12.0,
+                240.0,
+                24.0,
+                0.0,
+            ),
+            AssetContentPaintNodeInput::new(
+                "Workspace/AssetBrowserContentPreview",
+                10.0,
+                160.0,
+                240.0,
+                32.0,
+                0.0,
+            ),
+            AssetContentPaintNodeInput::new(
+                "AssetBrowserSourcesScrollBody",
+                2.0,
+                40.0,
+                120.0,
+                96.0,
+                0.0,
+            ),
+            AssetContentPaintNodeInput::new(
+                "AssetBrowserReferenceLeftScrollBody",
+                260.0,
+                40.0,
+                120.0,
+                48.0,
+                0.0,
+            ),
+            AssetContentPaintNodeInput::new(
+                "AssetBrowserReferenceRightScrollBody",
+                260.0,
+                96.0,
+                120.0,
+                48.0,
+                0.0,
+            ),
+        ]
+        .into_iter(),
+        AssetContentSurface::Browser,
+    );
+
+    assert_eq!(
+        metadata.content_panel(),
+        Some(AssetContentRect {
+            x: 10.0,
+            y: 12.0,
+            width: 240.0,
+            height: 180.0,
+        })
+    );
+    assert_eq!(
+        metadata.viewport(),
+        Some(AssetContentRect {
+            x: 10.0,
+            y: 36.0,
+            width: 240.0,
+            height: 124.0,
+        })
+    );
+    assert_eq!(metadata.content_extent(), 640.0);
+    assert_eq!(
+        metadata.browser_source_tree_viewport(),
+        Some(AssetContentRect {
+            x: 2.0,
+            y: 40.0,
+            width: 120.0,
+            height: 96.0,
+        })
+    );
+    assert_eq!(
+        metadata.browser_reference_viewport(super::BrowserAssetReferenceListKind::References),
+        Some(AssetContentRect {
+            x: 260.0,
+            y: 40.0,
+            width: 120.0,
+            height: 48.0,
+        })
+    );
+    assert_eq!(
+        metadata.browser_reference_viewport(super::BrowserAssetReferenceListKind::UsedBy),
+        Some(AssetContentRect {
+            x: 260.0,
+            y: 96.0,
+            width: 120.0,
+            height: 48.0,
+        })
+    );
 }
 
 #[test]
@@ -223,8 +495,11 @@ fn ten_thousand_browser_nodes_project_only_the_visible_thumbnail_groups() {
         .metadata::<AssetContentPaintMetadata>()
         .expect("generation metadata");
 
-    let visible = metadata.visible_node_rows(
+    let (visible, visible_item_count) = metadata.visible_browser_node_rows(
         100_000.0,
+        0.0,
+        0.0,
+        0.0,
         0.0,
         0.0,
         AssetContentRect {
@@ -235,6 +510,9 @@ fn ten_thousand_browser_nodes_project_only_the_visible_thumbnail_groups() {
         },
     );
 
+    assert_eq!(metadata.browser_materialized_item_count(), 10_000);
+    assert_eq!(metadata.browser_materialized_node_count(), 10_000);
+    assert_eq!(visible_item_count, 2);
     assert_eq!(visible, vec![0, 5001, 5002]);
 }
 

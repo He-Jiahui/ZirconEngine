@@ -1,6 +1,36 @@
 use super::*;
 
 #[test]
+fn generic_environment_brdf_approx_matches_unreal_f90_gate() {
+    let generic_api = include_str!("../../../wgsl/zr_environment_generic_api.wgsl");
+    let approximate = wgsl_function_source(generic_api, "fn zr_environment_env_brdf_approx(");
+
+    assert!(approximate.contains("let f90 = clamp(50.0 * f0.g, 0.0, 1.0);"));
+    assert!(approximate.contains("f0 * ab.x + vec3<f32>(f90) * ab.y"));
+    assert!(
+        !approximate.contains("f0 * ab.x + vec3<f32>(ab.y)"),
+        "the generic approximation must not restore a fixed F90=1 term"
+    );
+}
+
+#[test]
+fn environment_brdf_helpers_preserve_unclamped_split_sum_energy() {
+    let core = include_str!("../../../wgsl/zr_environment_core.wgsl");
+    let generic_api = include_str!("../../../wgsl/zr_environment_generic_api.wgsl");
+    let lut = wgsl_function_source(core, "fn zr_environment_env_brdf_lut(");
+    let approximate = wgsl_function_source(generic_api, "fn zr_environment_env_brdf_approx(");
+
+    for helper in [lut, approximate] {
+        assert!(helper.contains("let f90 = clamp(50.0 * f0.g, 0.0, 1.0);"));
+        assert!(helper.contains("return f0 * ab.x + vec3<f32>(f90) * ab.y;"));
+        assert!(
+            !helper.contains("return clamp("),
+            "the split-sum result must not receive a post-integration energy clamp"
+        );
+    }
+}
+
+#[test]
 fn forward_environment_keeps_local_reflections_when_global_source_is_disabled() {
     let assembly = assemble_material_shader_template(material_template_request(
         static_mesh_descriptor(),
@@ -72,8 +102,8 @@ fn forward_environment_keeps_local_provider_intensity_independent_from_global_in
 }
 
 #[test]
-fn forward_environment_skips_global_sampling_when_intensity_is_not_positive_and_local_reflections_are_absent(
-) {
+fn forward_environment_skips_global_sampling_when_intensity_is_not_positive_and_local_reflections_are_absent()
+ {
     let assembly = assemble_material_shader_template(material_template_request(
         static_mesh_descriptor(),
         ShaderPassType::Forward,
@@ -146,7 +176,7 @@ fn forward_environment_skips_global_ibl_samples_when_only_local_reflections_are_
     assert!(!reflection.contains("let has_global_environment ="));
     assert!(reflection.contains("if (sky_weight > 0.0 && has_global_environment) {"));
     assert!(components.contains(
-        "if (diffuse_energy_scale > 0.0\n        && has_global_environment\n        && any(diffuse_color != vec3<f32>(0.0)))"
+        "if (diffuse_energy_scale > 0.0\n        && has_global_environment\n        && any(pbr_diffuse_color != vec3<f32>(0.0)))"
     ));
 }
 
@@ -173,8 +203,10 @@ fn forward_environment_defers_reflection_direction_until_a_provider_can_consume_
         .map(|offset| no_provider + offset)
         .expect("an unavailable global environment should return zero without probes");
     let reflected = reflection
-        .find("let reflected = reflect(-view_dir, normal);")
-        .expect("reflection composition should build the direction for active providers");
+        .find("let perfect_reflection = zr_environment_perfect_specular_direction_normalized(")
+        .expect(
+            "reflection composition should build the reflection direction for active providers",
+        );
 
     assert!(
         availability < no_provider && no_provider < zero_return && zero_return < reflected,
@@ -240,7 +272,7 @@ fn forward_environment_skips_texture_work_for_zero_diffuse_and_reflection_contri
     let diffuse_sample = "zr_environment_diffuse_color_normalized(normal)";
     let diffuse_branch = components
         .split(
-            "if (diffuse_energy_scale > 0.0\n        && has_global_environment\n        && any(diffuse_color != vec3<f32>(0.0)))\n    {",
+            "if (any(diffuse_energy_scale > vec3<f32>(0.0))\n        && has_global_environment\n        && any(pbr_diffuse_color != vec3<f32>(0.0)))\n    {",
         )
         .nth(1)
         .and_then(|source| source.split("\n    }\n    let reflection =").next())
@@ -265,8 +297,29 @@ fn forward_environment_skips_texture_work_for_zero_diffuse_and_reflection_contri
         .find("if (any(reflection != vec3<f32>(0.0))) {")
         .expect("zero reflection radiance should skip the BRDF LUT sample");
     let brdf_sample = "reflection * zr_environment_env_brdf_lut(f0, clamped_roughness, no_v)";
-    let f0 = "let f0 = mix(";
+    let pbr_diffuse = "let pbr_diffuse_color = zr_pbr_base_color(diffuse_color);";
+    let pbr_base = "let pbr_base_color = zr_pbr_base_color(base_color);";
+    let f0 = "let f0 = zr_pbr_material_f0(dielectric_f0, pbr_base_color, clamped_metallic);";
     let no_v = "let no_v = clamp(dot(normal, view_dir), 0.0, 1.0);";
+    let diffuse_energy = "let diffuse_energy_scale = vec3<f32>(\n        zr_surface_metallic_diffuse_energy_scale(clamped_metallic),\n    );";
+    let no_v_offset = components
+        .find(no_v)
+        .expect("PBR components should calculate NdotV before the split-sum specular lookup");
+    let pbr_diffuse_offset = components
+        .find(pbr_diffuse)
+        .expect("PBR components should clamp diffuse reflectance once at the shared boundary");
+    let pbr_base_offset = components
+        .find(pbr_base)
+        .expect("PBR components should clamp base reflectance once at the shared boundary");
+    let f0_offset = components
+        .find(f0)
+        .expect("PBR components should derive the material F0 once");
+    let diffuse_energy_offset = components
+        .find(diffuse_energy)
+        .expect("PBR components should derive metallic diffuse energy once");
+    let diffuse_gate = components
+        .find("if (any(diffuse_energy_scale > vec3<f32>(0.0))")
+        .expect("PBR components should guard diffuse IBL with its spectral energy scale");
     let reflection_branch = components
         .split("if (any(reflection != vec3<f32>(0.0))) {")
         .nth(1)
@@ -288,13 +341,23 @@ fn forward_environment_skips_texture_work_for_zero_diffuse_and_reflection_contri
         "the zero-reflection gate must follow the zero default"
     );
     assert!(
-        reflection_branch.contains(f0)
-            && reflection_branch.contains(no_v)
-            && reflection_branch.contains(brdf_sample),
-        "the zero-reflection gate must own F0, NdotV, and the split-sum BRDF lookup"
+        no_v_offset < pbr_diffuse_offset
+            && pbr_diffuse_offset < pbr_base_offset
+            && pbr_base_offset < f0_offset
+            && f0_offset < diffuse_energy_offset
+            && diffuse_energy_offset < diffuse_gate,
+        "material inputs and the metallic diffuse-energy gate must precede diffuse IBL sampling"
     );
+    assert!(components.contains("zr_surface_metallic_diffuse_energy_scale(clamped_metallic),"));
+    assert!(!components.contains("zr_pbr_diffuse_energy_scale("));
+    assert!(reflection_branch.contains(brdf_sample));
+    assert!(!reflection_branch.contains("let f0 ="));
+    assert!(!reflection_branch.contains("let no_v ="));
     assert_eq!(components.matches(f0).count(), 1);
+    assert_eq!(components.matches(pbr_diffuse).count(), 1);
+    assert_eq!(components.matches(pbr_base).count(), 1);
     assert_eq!(components.matches(no_v).count(), 1);
+    assert_eq!(components.matches(diffuse_energy).count(), 1);
     assert_eq!(
         components.matches(brdf_sample).count(),
         1,
@@ -418,8 +481,8 @@ fn environment_only_forward_shading_preserves_runtime_material_model_safety() {
     );
     assert!(
         shading[ibl_call..ibl_call_end].contains(
-            "surface.occlusion,\n        surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,",
+            "surface.dielectric_f0,\n        surface.occlusion,\n        surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,",
         ),
-        "environment-only Forward must pass the dynamic Standard-PBR gate to IBL"
+        "environment-only Forward must pass material F0 and the dynamic Standard-PBR gate to IBL"
     );
 }

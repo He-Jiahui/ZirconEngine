@@ -3,6 +3,19 @@ const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
 const RUNTIME_ANCHORS_SOURCE: &str = include_str!("runtime_anchors.rs");
 const MIRROR_DOCS_SOURCE: &str = include_str!("mirror_docs.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
+const SCHEDULE_RUNNER_SOURCE: &str = include_str!("../../../scene/ecs/schedule_runner.rs");
+const SCHEDULE_RUNNER_TEST_ROOT_SOURCE: &str =
+    include_str!("../../../scene/ecs/schedule_runner/tests/mod.rs");
+const SCHEDULE_RUNNER_WORKER_DISPATCH_TESTS: &str =
+    include_str!("../../../scene/ecs/schedule_runner/tests/worker_dispatch.rs");
+const SCHEDULE_RUNNER_PANIC_RECOVERY_TESTS: &str =
+    include_str!("../../../scene/ecs/schedule_runner/tests/panic_recovery.rs");
+const SCHEDULE_RUNNER_SUPPORT_TESTS: &str =
+    include_str!("../../../scene/ecs/schedule_runner/tests/support.rs");
+const SCHEDULE_RUNNER_TYPED_WORKER_STRUCTURAL_TESTS: &str =
+    include_str!("../../../scene/ecs/schedule_runner/tests/typed_worker_structural.rs");
+const SCHEDULE_RUNNER_WORKER_CALLBACK_ORDER_TESTS: &str =
+    include_str!("../../../scene/ecs/schedule_runner/tests/worker_callback_order.rs");
 
 const FRAMEWORKS_02_OUTPUT_RECORDS: &str = include_str!(
     "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
@@ -29,6 +42,64 @@ fn runtime_15_schedule_frame_loop_route_owner_is_folder_backed() {
     assert_child_owners_are_focused();
     assert_line_budget();
     assert_docs_and_status_mirror_split();
+}
+
+#[test]
+fn runtime_03_schedule_runner_behavior_tests_are_folder_backed() {
+    assert_contains_all(
+        "schedule runner test route",
+        SCHEDULE_RUNNER_SOURCE,
+        &["#[path = \"schedule_runner/tests/mod.rs\"]", "mod tests;"],
+    );
+    for forbidden in ["mod tests {", "include!(\"schedule_runner/tests/"] {
+        assert!(
+            !SCHEDULE_RUNNER_SOURCE.contains(forbidden),
+            "schedule_runner.rs should not retain inline behavior test `{forbidden}`"
+        );
+    }
+    assert_contains_all(
+        "schedule runner test root",
+        SCHEDULE_RUNNER_TEST_ROOT_SOURCE,
+        &[
+            "mod panic_recovery;",
+            "mod typed_worker_structural;",
+            "mod worker_callback_order;",
+            "mod worker_dispatch;",
+            "mod support;",
+        ],
+    );
+    for (label, source) in [
+        (
+            "schedule runner test root",
+            SCHEDULE_RUNNER_TEST_ROOT_SOURCE,
+        ),
+        (
+            "schedule runner worker dispatch tests",
+            SCHEDULE_RUNNER_WORKER_DISPATCH_TESTS,
+        ),
+        (
+            "schedule runner panic recovery tests",
+            SCHEDULE_RUNNER_PANIC_RECOVERY_TESTS,
+        ),
+        (
+            "schedule runner support tests",
+            SCHEDULE_RUNNER_SUPPORT_TESTS,
+        ),
+        (
+            "schedule runner typed worker structural tests",
+            SCHEDULE_RUNNER_TYPED_WORKER_STRUCTURAL_TESTS,
+        ),
+        (
+            "schedule runner worker callback order tests",
+            SCHEDULE_RUNNER_WORKER_CALLBACK_ORDER_TESTS,
+        ),
+    ] {
+        let line_count = source.lines().count();
+        assert!(
+            line_count <= 800,
+            "{label} has {line_count} lines; expected at most 800"
+        );
+    }
 }
 
 fn assert_parent_route_only() {

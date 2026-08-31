@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
-use crate::core::framework::foundation::ConfigManager;
+use crate::core::framework::foundation::{ConfigManager, ConfigManagerError};
 use crate::core::resource::io::{atomic_write_with_fault, stage_atomic_write, AtomicWriteFault};
 use crate::core::CoreRuntime;
 
@@ -416,7 +416,10 @@ fn identical_value_retries_a_failed_dirty_generation() {
     let manager = test_manager(&runtime, Arc::clone(&writer), LONG_TEST_DEBOUNCE);
 
     manager.set_value("runtime.retry", json!(7)).unwrap();
-    assert!(manager.flush(TEST_FLUSH_TIMEOUT).is_err());
+    assert!(matches!(
+        manager.flush(TEST_FLUSH_TIMEOUT),
+        Err(ConfigManagerError::Persistence { .. })
+    ));
     let failed = manager.persistence_report();
     assert_eq!(failed.dirty_generation, 1);
     assert_eq!(failed.persisted_generation, 0);
@@ -497,8 +500,15 @@ fn explicit_flush_returns_when_its_timeout_expires() {
 
     manager.set_value("runtime.blocked", json!(true)).unwrap();
     writer.wait_until_entered();
-    let error = manager.flush(Duration::from_millis(25)).unwrap_err();
-    assert!(error.to_string().contains("timed out"));
+    let timeout = Duration::from_millis(25);
+    let error = manager.flush(timeout).unwrap_err();
+    assert!(matches!(
+        error,
+        ConfigManagerError::FlushTimedOut {
+            timeout: actual_timeout,
+            ..
+        } if actual_timeout == timeout
+    ));
 
     writer.release();
     manager.flush(TEST_FLUSH_TIMEOUT).unwrap();

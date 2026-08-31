@@ -4,7 +4,6 @@ pub(super) struct VolumetricHistoryTexture {
     pub(super) quality: FroxelGridQuality,
     pub(super) texture: wgpu::Texture,
     pub(super) view: wgpu::TextureView,
-    pub(super) valid: bool,
 }
 
 impl VolumetricHistoryTexture {
@@ -29,7 +28,6 @@ impl VolumetricHistoryTexture {
             quality,
             texture,
             view,
-            valid: false,
         }
     }
 }

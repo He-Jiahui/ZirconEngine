@@ -18,6 +18,14 @@ impl HostTextInputFocusData {
         !self.control_id.is_empty()
     }
 
+    pub(crate) fn captures_keyboard_chord(&self) -> bool {
+        self.is_active() && self.dispatch_kind.as_str() == "chord_capture"
+    }
+
+    pub(crate) fn accepts_text_input(&self) -> bool {
+        self.is_active() && !self.captures_keyboard_chord()
+    }
+
     pub(crate) fn edit_target_id(&self) -> SharedString {
         if !self.edit_action_id.is_empty() {
             self.edit_action_id.clone()

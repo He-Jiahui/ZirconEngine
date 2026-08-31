@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import io
 import os
+import re
+import shutil
 import subprocess
 import threading
 import time
@@ -11,10 +13,29 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Mapping
 
+from .cargo_command_policy import (
+    scrub_inherited_cargo_environment,
+    validate_no_ambient_cargo_configs,
+)
 from .cargo_jobs import CargoJobService
+from .cargo_storage import (
+    managed_cargo_cache_paths,
+    managed_cargo_scratch_path,
+    managed_cargo_server_port,
+    managed_cargo_server_temp_path,
+    managed_native_dynamic_cas_path,
+    prepare_isolated_cargo_home,
+)
 from .database import Database
 from .models import CoordinatorError, utc_text
 from .processes import popen_process_creation_time
+from .trusted_tools import (
+    bind_trusted_cargo,
+    bind_trusted_rust_environment,
+    trusted_executable,
+    trusted_file_identity,
+    trusted_rust_toolchain_identity,
+)
 from .windows_job_process import (
     close_process_job,
     create_atomic_kill_on_close_process,
@@ -27,7 +48,27 @@ from .windows_job_process import (
 MAX_LOG_TAIL_BYTES = 64 * 1024
 CARGO_JOB_HEARTBEAT_INTERVAL_SECONDS = 5.0
 _STREAM_READER_JOIN_TIMEOUT_SECONDS = 5.0
+_SCCACHE_SERVER_START_TIMEOUT_SECONDS = 30.0
 _ALLOWED_ENVIRONMENT_KEYS = frozenset({"RUSTFLAGS", "CARGO_INCREMENTAL", "CARGO_BUILD_JOBS"})
+_MANAGED_JOB_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+_SCCACHE_CACHE_SIZE = "12G"
+_NATIVE_DYNAMIC_CAS_MAX_BYTES = 4 * 1024 * 1024 * 1024
+_SCCACHE_BINDING_HELPER = Path(
+    ".codex/skills/zircon-dev/scripts/managed-cargo-storage.ps1"
+)
+_WINDOWS_PATH_RESOLVER = Path("tools/WindowsPathResolver.psm1")
+_SCCACHE_BINDING_COMMAND = """
+$ErrorActionPreference = 'Stop'
+Import-Module $env:ZIRCON_MANAGED_WINDOWS_PATH_RESOLVER -Force -ErrorAction Stop
+. $env:ZIRCON_MANAGED_SCCACHE_HELPER
+$binding = Initialize-ManagedCompilerCacheServer `
+    -CompilerCacheExecutable $env:ZIRCON_MANAGED_SCCACHE_EXECUTABLE `
+    -SccacheDirectory $env:ZIRCON_MANAGED_SCCACHE_DIRECTORY `
+    -StableTemporaryDirectory $env:ZIRCON_MANAGED_SCCACHE_TEMPORARY `
+    -ServerPort ([int]$env:ZIRCON_MANAGED_SCCACHE_PORT) `
+    -CacheSize $env:ZIRCON_MANAGED_SCCACHE_CACHE_SIZE
+$binding | ConvertTo-Json -Compress
+""".strip()
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +117,12 @@ class CargoJobRunner:
         resume_process: Callable[[subprocess.Popen], None] = resume_popen_process,
         terminate_process_job: Callable[[int | None], None] = terminate_and_close_process_job,
         wait_process_job: Callable[..., None] = wait_for_process_job_terminal,
+        compiler_cache: str | Path | None = None,
+        compiler_cache_server_initializer: Callable[
+            [str, Mapping[str, str]], None
+        ]
+        | None = None,
+        powershell_executable: str | Path | None = None,
     ):
         self.database = database
         self.cargo_jobs = cargo_jobs
@@ -87,26 +134,312 @@ class CargoJobRunner:
         self.resume_process = resume_process
         self.terminate_process_job = terminate_process_job
         self.wait_process_job = wait_process_job
+        try:
+            discovered_cache = compiler_cache or trusted_executable(
+                "sccache", self.repo_root
+            )
+        except CoordinatorError:
+            discovered_cache = None
+        self.compiler_cache = (
+            str(Path(discovered_cache).resolve()) if discovered_cache is not None else None
+        )
+        if (
+            self.compiler_cache is not None
+            and Path(self.compiler_cache).is_relative_to(self.repo_root)
+        ):
+            raise CoordinatorError(
+                "trusted_tool_unavailable",
+                "Managed sccache executable cannot come from the live repository",
+                details={"tool": "sccache"},
+            )
+        discovered_powershell = powershell_executable
+        if discovered_powershell is None:
+            for name in ("pwsh", "powershell"):
+                try:
+                    discovered_powershell = trusted_executable(name, self.repo_root)
+                    break
+                except CoordinatorError:
+                    continue
+        self.powershell_executable = (
+            str(Path(discovered_powershell).resolve())
+            if discovered_powershell is not None
+            else None
+        )
+        if (
+            self.powershell_executable is not None
+            and Path(self.powershell_executable).is_relative_to(self.repo_root)
+        ):
+            raise CoordinatorError(
+                "trusted_tool_unavailable",
+                "Managed PowerShell executable cannot come from the live repository",
+                details={"tool": "powershell"},
+            )
+        self._compiler_cache_server_initializer = (
+            compiler_cache_server_initializer or self._initialize_compiler_cache_server
+        )
+        self._compiler_cache_server_lock = threading.Lock()
         self._running_lock = threading.Lock()
         self._running: dict[str, subprocess.Popen] = {}
         self._collecting: set[str] = set()
 
+    def toolchain_identity(
+        self,
+        command: tuple[str, ...],
+        working_directory: str | Path | None = None,
+    ) -> str:
+        payload = json.loads(trusted_rust_toolchain_identity(
+            command,
+            self.repo_root,
+            working_directory=working_directory,
+        ))
+        if self.compiler_cache is not None:
+            payload["compilerCache"] = trusted_file_identity(self.compiler_cache)
+        return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
     @staticmethod
-    def _managed_cargo_environment(target_directory: str | Path) -> dict[str, str]:
+    def _expected_runtime_toolchain_identity(job: object) -> str | None:
+        compatibility_text = getattr(job, "compatibility_json", None)
+        if not isinstance(compatibility_text, str) or not compatibility_text:
+            return None
+        try:
+            compatibility = json.loads(compatibility_text)
+            toolchain = json.loads(str(compatibility["toolchain"]))
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            return None
+        runtime = toolchain.get("runtime") if isinstance(toolchain, Mapping) else None
+        return runtime if isinstance(runtime, str) and runtime else None
+
+    @staticmethod
+    def _path_contract_key(value: str | Path) -> str:
+        text = str(value)
+        if text.startswith("\\\\?\\"):
+            text = text[4:]
+        return os.path.normpath(text).casefold()
+
+    def _validate_compiler_cache_binding_marker(
+        self,
+        marker_path: Path,
+        *,
+        executable: str,
+        environment: Mapping[str, str],
+    ) -> None:
+        try:
+            marker = json.loads(marker_path.read_text(encoding="utf-8"))
+            expected_port = int(environment["SCCACHE_SERVER_PORT"])
+            process_id = int(marker["server_process_id"])
+            started_at_ticks = int(marker["server_started_at_utc_ticks"])
+            matches = (
+                int(marker["schema_version"]) == 1
+                and int(marker["server_port"]) == expected_port
+                and process_id > 0
+                and started_at_ticks > 0
+                and str(marker["cache_size"]) == environment["SCCACHE_CACHE_SIZE"]
+                and self._path_contract_key(marker["cache_directory"])
+                == self._path_contract_key(environment["SCCACHE_DIR"])
+                and self._path_contract_key(marker["stable_temporary_directory"])
+                == self._path_contract_key(environment["TEMP"])
+                and self._path_contract_key(marker["compiler_cache_executable"])
+                == self._path_contract_key(executable)
+            )
+        except (KeyError, TypeError, ValueError, OSError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                "cargo_sccache_binding_receipt_invalid",
+                "Managed sccache binding marker could not be validated",
+                details={"markerPath": str(marker_path), "errorType": type(error).__name__},
+            ) from error
+        if not matches:
+            raise CoordinatorError(
+                "cargo_sccache_binding_receipt_invalid",
+                "Managed sccache binding marker does not match the requested server contract",
+                details={"markerPath": str(marker_path), "serverPort": expected_port},
+            )
+
+    def _initialize_compiler_cache_server(
+        self, executable: str, environment: Mapping[str, str]
+    ) -> None:
+        helper_path = (self.repo_root / _SCCACHE_BINDING_HELPER).resolve()
+        path_resolver = (self.repo_root / _WINDOWS_PATH_RESOLVER).resolve()
+        if not helper_path.is_file():
+            raise CoordinatorError(
+                "cargo_sccache_binding_helper_missing",
+                "Managed sccache lifecycle helper is unavailable",
+                details={"helperPath": str(helper_path)},
+            )
+        if not path_resolver.is_file():
+            raise CoordinatorError(
+                "cargo_sccache_binding_helper_missing",
+                "Managed sccache Windows path resolver is unavailable",
+                details={"pathResolver": str(path_resolver)},
+            )
+        if self.powershell_executable is None:
+            raise CoordinatorError(
+                "cargo_sccache_binding_helper_missing",
+                "Managed sccache lifecycle requires PowerShell",
+            )
+        required = (
+            "SCCACHE_SERVER_PORT",
+            "SCCACHE_CACHE_SIZE",
+            "SCCACHE_DIR",
+            "TEMP",
+        )
+        missing = [name for name in required if not environment.get(name)]
+        if missing:
+            raise CoordinatorError(
+                "cargo_sccache_binding_environment_invalid",
+                "Managed sccache lifecycle environment is incomplete",
+                details={"missing": missing},
+            )
+        command = (
+            self.powershell_executable,
+            "-NoLogo",
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            _SCCACHE_BINDING_COMMAND,
+        )
+        invocation_environment = dict(environment)
+        invocation_environment.update(
+            {
+                "ZIRCON_MANAGED_SCCACHE_HELPER": str(helper_path),
+                "ZIRCON_MANAGED_WINDOWS_PATH_RESOLVER": str(path_resolver),
+                "ZIRCON_MANAGED_SCCACHE_EXECUTABLE": executable,
+                "ZIRCON_MANAGED_SCCACHE_DIRECTORY": environment["SCCACHE_DIR"],
+                "ZIRCON_MANAGED_SCCACHE_TEMPORARY": environment["TEMP"],
+                "ZIRCON_MANAGED_SCCACHE_PORT": environment["SCCACHE_SERVER_PORT"],
+                "ZIRCON_MANAGED_SCCACHE_CACHE_SIZE": environment["SCCACHE_CACHE_SIZE"],
+            }
+        )
+        try:
+            completed = subprocess.run(
+                command,
+                env=invocation_environment,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=_SCCACHE_SERVER_START_TIMEOUT_SECONDS,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise CoordinatorError(
+                "cargo_sccache_server_start_failed",
+                "Managed sccache binding could not be established outside the Cargo process job",
+                details={"errorType": type(error).__name__},
+            ) from error
+        if completed.returncode != 0:
+            output = "\n".join(part for part in (completed.stdout, completed.stderr) if part)
+            busy = (
+                "Cargo/rustc processes are active" in output
+                and "refusing an unsafe daemon restart" in output
+            )
+            raise CoordinatorError(
+                "cargo_sccache_rebind_busy" if busy else "cargo_sccache_server_start_failed",
+                (
+                    "Managed sccache binding cannot be replaced while Cargo/rustc are active"
+                    if busy
+                    else "Managed sccache binding could not be established outside the Cargo process job"
+                ),
+                details={
+                    "exitCode": completed.returncode,
+                    "output": output[-4096:],
+                },
+            )
+        try:
+            receipt = json.loads(completed.stdout.strip().splitlines()[-1])
+            marker_path = Path(receipt["BindingMarkerPath"])
+            if int(receipt["ServerPort"]) != int(environment["SCCACHE_SERVER_PORT"]):
+                raise ValueError("server port mismatch")
+        except (IndexError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                "cargo_sccache_binding_receipt_invalid",
+                "Managed sccache lifecycle helper returned an invalid receipt",
+                details={"output": completed.stdout[-4096:]},
+            ) from error
+        self._validate_compiler_cache_binding_marker(
+            marker_path,
+            executable=executable,
+            environment=environment,
+        )
+
+    def _ensure_compiler_cache_server(self, environment: Mapping[str, str]) -> None:
+        if self.compiler_cache is None:
+            return
+        with self._compiler_cache_server_lock:
+            server_environment = dict(environment)
+            stable_temporary = Path(environment["SCCACHE_DIR"]).parent / "sccache-temporary"
+            for name in ("TEMP", "TMP", "TMPDIR"):
+                server_environment[name] = str(stable_temporary)
+            self._compiler_cache_server_initializer(
+                self.compiler_cache, server_environment
+            )
+
+    def _managed_cargo_environment(
+        self, target_directory: str | Path, *, job_id: str
+    ) -> dict[str, str]:
+        if _MANAGED_JOB_ID.fullmatch(job_id) is None:
+            raise CoordinatorError(
+                "cargo_job_identity_invalid",
+                "Managed Cargo job identity cannot be used as a scratch path",
+            )
         target_root = Path(target_directory).resolve()
-        temporary = target_root / "temporary"
-        cargo_home = target_root / "cargo-home"
-        sccache = target_root / "sccache"
-        for directory in (target_root, temporary, cargo_home, sccache):
+        _shared_cargo_home, sccache = managed_cargo_cache_paths(target_root)
+        scratch = managed_cargo_scratch_path(target_root, job_id)
+        temporary = scratch / "temporary"
+        try:
+            cargo_home = prepare_isolated_cargo_home(
+                target_root, scratch / "cargo-home"
+            )
+        except OSError as error:
+            raise CoordinatorError(
+                "cargo_home_isolation_failed",
+                "Managed Cargo could not create its isolated configuration home",
+                details={"errorType": type(error).__name__},
+            ) from error
+        sccache_temporary = managed_cargo_server_temp_path(target_root)
+        native_dynamic_cas = managed_native_dynamic_cas_path(target_root)
+        for directory in (
+            target_root,
+            temporary,
+            cargo_home,
+            sccache,
+            sccache_temporary,
+            native_dynamic_cas,
+        ):
             directory.mkdir(parents=True, exist_ok=True)
-        return {
+        environment = {
             "CARGO_TARGET_DIR": str(target_root),
             "CARGO_HOME": str(cargo_home),
             "SCCACHE_DIR": str(sccache),
+            "SCCACHE_CACHE_SIZE": _SCCACHE_CACHE_SIZE,
+            "CARGO_INCREMENTAL": "0",
+            "CARGO_PROFILE_DEV_DEBUG": "0",
+            "CARGO_PROFILE_TEST_DEBUG": "0",
+            "CARGO_PROFILE_RELEASE_DEBUG": "0",
             "TEMP": str(temporary),
             "TMP": str(temporary),
             "TMPDIR": str(temporary),
+            # NativeDynamic export stages inherit this value from managed
+            # validation processes and copy verified DLL blobs into each
+            # job-local stage. The cache is outside the job scratch tree.
+            "ZIRCON_NATIVE_DYNAMIC_CAS_ROOT": str(native_dynamic_cas),
+            "ZIRCON_NATIVE_DYNAMIC_CAS_MAX_BYTES": str(
+                _NATIVE_DYNAMIC_CAS_MAX_BYTES
+            ),
         }
+        if self.compiler_cache is not None:
+            environment["RUSTC_WRAPPER"] = self.compiler_cache
+            environment["SCCACHE_CLIENT_SIDE"] = "1"
+            environment["SCCACHE_IGNORE_SERVER_IO_ERROR"] = "1"
+            environment["SCCACHE_SERVER_PORT"] = str(managed_cargo_server_port(target_root))
+            environment["SCCACHE_IDLE_TIMEOUT"] = "0"
+        return environment
+
+    @staticmethod
+    def _remove_scratch_directory(scratch_directory: Path | None) -> None:
+        if scratch_directory is not None:
+            shutil.rmtree(scratch_directory, ignore_errors=True)
 
     def start(
         self,
@@ -132,6 +465,7 @@ class CargoJobRunner:
                 "Managed Cargo source root must be an existing directory",
                 details={"sourceRoot": str(working_root)},
             )
+        validate_no_ambient_cargo_configs(working_root)
         job = self.cargo_jobs.get(job_id)
         if job.session_id != session_id:
             raise CoordinatorError("cargo_job_owner_mismatch", f"Cargo job {job_id} belongs to another Session")
@@ -140,6 +474,17 @@ class CargoJobRunner:
                 "invalid_cargo_job_status",
                 f"Cargo job {job_id} is {job.status.value}; expected ['leased']",
             )
+        expected_toolchain_identity = self._expected_runtime_toolchain_identity(job)
+        if expected_toolchain_identity is not None:
+            actual_toolchain_identity = self.toolchain_identity(
+                command_tuple, working_root
+            )
+            if expected_toolchain_identity != actual_toolchain_identity:
+                raise CoordinatorError(
+                    "cargo_toolchain_identity_changed",
+                    "Managed Rust toolchain changed after Cargo lane admission",
+                    details={"jobId": job_id},
+                )
         run_id = uuid.uuid4().hex
         run_root = self.log_root / job_id / run_id
         run_root.mkdir(parents=True, exist_ok=False)
@@ -153,6 +498,7 @@ class CargoJobRunner:
         collector_authorized = threading.Event()
         authorized = False
         process_registered = False
+        scratch_directory = managed_cargo_scratch_path(job.target_dir, job_id)
         with self.cargo_jobs.managed_start_registration():
             try:
                 self.cargo_jobs.authorize_managed_start(
@@ -161,15 +507,29 @@ class CargoJobRunner:
                     command=command_tuple,
                 )
                 authorized = True
-                child_environment = os.environ.copy()
+                child_environment = scrub_inherited_cargo_environment(os.environ)
                 child_environment.update(environment_values)
-                child_environment.update(self._managed_cargo_environment(job.target_dir))
+                child_environment.update(
+                    self._managed_cargo_environment(job.target_dir, job_id=job_id)
+                )
+                child_environment = bind_trusted_rust_environment(
+                    child_environment,
+                    command_tuple,
+                    self.repo_root,
+                    working_directory=working_root,
+                )
+                self._ensure_compiler_cache_server(child_environment)
+                launch_command = bind_trusted_cargo(
+                    command_tuple,
+                    self.repo_root,
+                    working_directory=working_root,
+                )
                 use_atomic_launch = self.popen is None and (
                     os.name == "nt" or self._atomic_popen_injected
                 )
                 if use_atomic_launch:
                     process, process_job = self.atomic_popen(
-                        command_tuple,
+                        launch_command,
                         cwd=working_root,
                         env=child_environment,
                     )
@@ -182,7 +542,7 @@ class CargoJobRunner:
                         "w", encoding="utf-8", errors="replace"
                     ) as stderr_file:
                         process = popen(
-                            command_tuple,
+                            launch_command,
                             cwd=working_root,
                             env=child_environment,
                             stdout=stdout_file,
@@ -194,7 +554,7 @@ class CargoJobRunner:
                     job_id,
                     session_id=session_id,
                     pid=int(process.pid),
-                    command=command_tuple,
+                    command=launch_command,
                     run_id=run_id,
                     environment=environment_values,
                     stdout_path=stdout_path,
@@ -242,6 +602,7 @@ class CargoJobRunner:
                                 reader_group,
                                 stdout_path,
                                 stderr_path,
+                                scratch_directory,
                             )
 
                     threading.Thread(
@@ -323,6 +684,7 @@ class CargoJobRunner:
                 close_process = getattr(process, "close", None)
                 if close_process is not None:
                     close_process()
+                self._remove_scratch_directory(scratch_directory)
                 raise
         return CargoRun(run_id, job_id, session_id, "running", process.pid, str(stdout_path), str(stderr_path))
 
@@ -458,7 +820,9 @@ class CargoJobRunner:
         reader_group: _PipeReaderGroup | None,
         stdout_path: Path,
         stderr_path: Path,
+        scratch_directory: Path | None = None,
     ) -> None:
+        terminal_release_confirmed = False
         try:
             job_tree_error: str | None = None
             job_tree_terminal = False
@@ -578,6 +942,7 @@ class CargoJobRunner:
                         self.cargo_jobs.finish_from_atomic_job_terminal(
                             job_id, session_id=session_id, exit_code=exit_code
                         )
+                        terminal_release_confirmed = True
                     else:
                         while True:
                             try:
@@ -587,6 +952,7 @@ class CargoJobRunner:
                                     )
                                     finished = True
                                 self.cargo_jobs.release(job_id, session_id=session_id)
+                                terminal_release_confirmed = True
                                 break
                             except CoordinatorError as error:
                                 if error.code != "cargo_process_tree_alive":
@@ -623,6 +989,8 @@ class CargoJobRunner:
             close_process = getattr(process, "close", None)
             if close_process is not None:
                 close_process()
+            if terminal_release_confirmed:
+                self._remove_scratch_directory(scratch_directory)
             self.cargo_jobs.unregister_managed_collector(job_id)
             with self._running_lock:
                 self._running.pop(job_id, None)

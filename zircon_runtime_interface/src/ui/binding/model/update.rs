@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::{component::UiValue, event_ui::UiNodeId, tree::UiDirtyFlags};
 
+use super::mutation_receipt::UiBindingMutationReceipt;
+use super::UiBindingExecutionReceipt;
+
 #[derive(
     Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
 )]
@@ -277,6 +280,10 @@ pub struct UiBindingUpdateReport {
     pub unchanged_count: u64,
     pub rejected_count: u64,
     pub dirty: Vec<UiBindingDirtyDomain>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transaction: Option<UiBindingMutationReceipt>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_receipt: Option<UiBindingExecutionReceipt>,
 }
 
 impl UiBindingUpdateReport {

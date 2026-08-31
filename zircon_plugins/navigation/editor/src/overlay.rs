@@ -91,19 +91,23 @@ pub fn build_navigation_overlay(
     pie_frame: Option<&NavigationPieFrame>,
     options: NavigationOverlayOptions,
 ) -> SceneGizmoOverlayExtract {
-    let source = NavigationGizmoSnapshot {
-        triangles: if options.nav_mesh_areas {
-            nav_mesh.triangles.clone()
-        } else {
-            Vec::new()
-        },
-        off_mesh_links: if options.off_mesh_links {
-            nav_mesh.off_mesh_links.clone()
-        } else {
-            Vec::new()
-        },
+    let mut overlay = if options.nav_mesh_areas && options.off_mesh_links {
+        nav_mesh.to_scene_gizmo_overlay(owner, false)
+    } else {
+        NavigationGizmoSnapshot {
+            triangles: if options.nav_mesh_areas {
+                nav_mesh.triangles.clone()
+            } else {
+                Vec::new()
+            },
+            off_mesh_links: if options.off_mesh_links {
+                nav_mesh.off_mesh_links.clone()
+            } else {
+                Vec::new()
+            },
+        }
+        .to_scene_gizmo_overlay(owner, false)
     };
-    let mut overlay = source.to_scene_gizmo_overlay(owner, false);
     if let Some(frame) = pie_frame {
         append_agent_debug(&mut overlay, frame, options);
     }

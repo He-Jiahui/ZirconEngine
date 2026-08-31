@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
-use crate::graphics::backend::GpuReadbackQueue;
+use crate::graphics::backend::RenderBackend;
 
 const TIMESTAMP_QUERY_COUNT: u32 = 2;
 const TIMESTAMP_BYTES: u64 = TIMESTAMP_QUERY_COUNT as u64 * size_of::<u64>() as u64;
@@ -16,6 +16,15 @@ pub struct RealtimeIblGpuTimingReport {
     pub operation_label: String,
     pub pass_count: usize,
     pub dispatch_count: usize,
+    pub binding_cache_hits: usize,
+    pub binding_cache_misses: usize,
+    pub params_buffer_creations: usize,
+    pub bind_group_creations: usize,
+    pub binding_cache_resets: usize,
+    pub capture_params_buffer_creations: usize,
+    pub capture_bind_group_creations: usize,
+    pub source_mip_params_buffer_creations: usize,
+    pub source_mip_bind_group_creations: usize,
     pub scheduled_workgroups: u64,
     pub completed_workgroups: u64,
     pub terminal_reason: String,
@@ -87,24 +96,24 @@ impl RealtimeIblGpuTimestampCollector {
         self.supported
     }
 
-    pub(in crate::graphics) fn request_readback(
+    pub(in crate::graphics) fn request_product_readback(
         &mut self,
         readback: &RealtimeIblGpuTimestampReadback,
         metadata: RealtimeIblGpuTimingMetadata,
         timestamp_period_nanoseconds: f32,
-        readback_queue: &mut GpuReadbackQueue,
+        backend: &RenderBackend,
     ) -> bool {
         let completed = Arc::clone(&self.completed);
-        readback_queue
-            .request_readback_external(
-                "zircon-realtime-ibl-timestamps",
+        backend
+            .enqueue_product_diagnostic_buffer(
                 &readback.source,
-                0..TIMESTAMP_BYTES,
+                0,
+                TIMESTAMP_BYTES,
                 Box::new(move |result| {
                     let Ok(bytes) = result else {
                         return;
                     };
-                    let Some(timestamps) = decode_timestamp_pair(bytes) else {
+                    let Some(timestamps) = decode_timestamp_pair(&bytes) else {
                         return;
                     };
                     let report = metadata.into_report(timestamps, timestamp_period_nanoseconds);
@@ -114,7 +123,7 @@ impl RealtimeIblGpuTimestampCollector {
                         .push_back(report);
                 }),
             )
-            .is_ok()
+            .unwrap_or(false)
     }
 
     pub(in crate::graphics) fn take_completed(&mut self) -> Vec<RealtimeIblGpuTimingReport> {
@@ -136,6 +145,15 @@ pub(in crate::graphics) struct RealtimeIblGpuTimingMetadata {
     pub operation_label: String,
     pub pass_count: usize,
     pub dispatch_count: usize,
+    pub binding_cache_hits: usize,
+    pub binding_cache_misses: usize,
+    pub params_buffer_creations: usize,
+    pub bind_group_creations: usize,
+    pub binding_cache_resets: usize,
+    pub capture_params_buffer_creations: usize,
+    pub capture_bind_group_creations: usize,
+    pub source_mip_params_buffer_creations: usize,
+    pub source_mip_bind_group_creations: usize,
     pub scheduled_workgroups: u64,
     pub completed_workgroups: u64,
     pub terminal_reason: String,
@@ -156,6 +174,15 @@ impl RealtimeIblGpuTimingMetadata {
             operation_label: self.operation_label,
             pass_count: self.pass_count,
             dispatch_count: self.dispatch_count,
+            binding_cache_hits: self.binding_cache_hits,
+            binding_cache_misses: self.binding_cache_misses,
+            params_buffer_creations: self.params_buffer_creations,
+            bind_group_creations: self.bind_group_creations,
+            binding_cache_resets: self.binding_cache_resets,
+            capture_params_buffer_creations: self.capture_params_buffer_creations,
+            capture_bind_group_creations: self.capture_bind_group_creations,
+            source_mip_params_buffer_creations: self.source_mip_params_buffer_creations,
+            source_mip_bind_group_creations: self.source_mip_bind_group_creations,
             scheduled_workgroups: self.scheduled_workgroups,
             completed_workgroups: self.completed_workgroups,
             terminal_reason: self.terminal_reason,
@@ -204,5 +231,41 @@ mod tests {
     #[test]
     fn timestamp_delta_saturates_invalid_reverse_order() {
         assert_eq!(elapsed_gpu_nanoseconds([132, 100], 2.5), 0.0);
+    }
+
+    #[test]
+    fn gpu_timing_contract_excludes_cpu_recording_windows() {
+        let source = include_str!("realtime_ibl_gpu_timestamps.rs");
+        let gpu_report = source
+            .split("pub struct RealtimeIblGpuTimingReport {")
+            .nth(1)
+            .and_then(|definition| definition.split("\n}\n\n#[derive(Clone, Debug)]").next())
+            .expect("GPU timing report definition");
+        let gpu_metadata = source
+            .split("pub(in crate::graphics) struct RealtimeIblGpuTimingMetadata {")
+            .nth(1)
+            .and_then(|definition| {
+                definition
+                    .split("\n}\n\nimpl RealtimeIblGpuTimingMetadata")
+                    .next()
+            })
+            .expect("GPU timing metadata definition");
+
+        for cpu_window in [
+            "command_plan_creation_micros",
+            "pipeline_ensure_micros",
+            "binding_creation_micros",
+            "capture_binding_creation_micros",
+            "source_mip_binding_creation_micros",
+        ] {
+            assert!(
+                !gpu_report.contains(cpu_window),
+                "GPU timing report must not expose CPU recording window {cpu_window}"
+            );
+            assert!(
+                !gpu_metadata.contains(cpu_window),
+                "GPU timing metadata must not transport CPU recording window {cpu_window}"
+            );
+        }
     }
 }

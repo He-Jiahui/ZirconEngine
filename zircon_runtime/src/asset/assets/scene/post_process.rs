@@ -189,8 +189,55 @@ pub struct ScenePostProcessEffectStackAsset {
     pub fog: SceneFogSettingsAsset,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SceneAoQualityTierAsset {
+    Low,
+    Medium,
+    #[default]
+    High,
+    Ultra,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneAmbientOcclusionSettingsAsset {
+    #[serde(default = "default_one_real")]
+    pub intensity: Real,
+    #[serde(default = "default_ao_radius_meters")]
+    pub radius_meters: Real,
+    #[serde(default = "default_ao_thickness_meters")]
+    pub thickness_meters: Real,
+    #[serde(default = "default_ao_depth_bias_meters")]
+    pub depth_bias_meters: Real,
+    #[serde(default = "default_ao_falloff_start_meters")]
+    pub falloff_start_meters: Real,
+    #[serde(default)]
+    pub quality: SceneAoQualityTierAsset,
+    #[serde(default)]
+    pub half_resolution: bool,
+    #[serde(default)]
+    pub temporal: bool,
+}
+
+impl Default for SceneAmbientOcclusionSettingsAsset {
+    fn default() -> Self {
+        Self {
+            intensity: default_one_real(),
+            radius_meters: default_ao_radius_meters(),
+            thickness_meters: default_ao_thickness_meters(),
+            depth_bias_meters: default_ao_depth_bias_meters(),
+            falloff_start_meters: default_ao_falloff_start_meters(),
+            quality: SceneAoQualityTierAsset::High,
+            half_resolution: false,
+            temporal: false,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct ScenePostProcessSettingsAsset {
+    #[serde(default)]
+    pub ambient_occlusion: SceneAmbientOcclusionSettingsAsset,
     #[serde(default)]
     pub bloom: SceneBloomSettingsAsset,
     #[serde(default)]
@@ -234,6 +281,8 @@ impl Default for SceneVolumetricFogSettingsAsset {
 #[derive(Clone, Copy, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct ScenePostProcessVolumeProfileAsset {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ambient_occlusion: Option<SceneAmbientOcclusionSettingsAsset>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub volumetric_fog: Option<SceneVolumetricFogSettingsAsset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bloom: Option<SceneBloomSettingsAsset>,
@@ -257,6 +306,22 @@ fn default_volumetric_height_falloff() -> Real {
 
 fn default_volumetric_depth_distribution_exp() -> Real {
     2.0
+}
+
+fn default_ao_radius_meters() -> Real {
+    1.0
+}
+
+fn default_ao_thickness_meters() -> Real {
+    0.15
+}
+
+fn default_ao_depth_bias_meters() -> Real {
+    0.02
+}
+
+fn default_ao_falloff_start_meters() -> Real {
+    0.5
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]

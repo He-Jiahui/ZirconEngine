@@ -10,6 +10,7 @@ use crate::core::editor_message::{
     SceneInspectionHierarchyAnchor, SceneInspectionMessage, SceneInspectionPropertyPath,
     SceneInspectionSelectionDelta, TOPIC_SCENE_INSPECTION,
 };
+use crate::core::play::WorldDomain;
 use crate::ui::workbench::snapshot::{SceneEntries, SceneInspectionHierarchyFragment};
 
 use super::EditorHostEventController;
@@ -176,6 +177,9 @@ impl EditorHostEventController {
     }
 
     pub(super) fn publish_scene_inspection_publication(&self) {
+        if matches!(self.active_hierarchy_world_domain(), WorldDomain::Play(_)) {
+            return;
+        }
         let Some(message) = self.observe_scene_inspection_publication() else {
             return;
         };
@@ -187,7 +191,10 @@ impl EditorHostEventController {
         );
     }
 
-    pub(super) fn publish_scene_inspection_resync(&self) {
+    pub(crate) fn publish_scene_inspection_resync(&self) {
+        if matches!(self.active_hierarchy_world_domain(), WorldDomain::Play(_)) {
+            return;
+        }
         let mut publication = self
             .scene_inspection_publication
             .lock()
@@ -196,14 +203,22 @@ impl EditorHostEventController {
         let selection = shell.state.viewport_controller.selection();
         let focused_entity = selection.active_primary();
         let selection_revision = selection.revision();
-        let message = shell.state.world.try_with_world(|scene| {
+        let message = match shell.state.world.with_world(|scene| {
             publication.reset(
                 scene,
                 focused_entity,
                 selection_revision,
                 selection.active_items().iter().copied(),
             )
-        });
+        }) {
+            Ok(message) => message,
+            Err(error) => {
+                shell
+                    .state
+                    .report_authoring_world_access_failure("scene inspection resync", &error);
+                None
+            }
+        };
         drop(shell);
         drop(publication);
         let Some(message) = message else {
@@ -218,6 +233,9 @@ impl EditorHostEventController {
     }
 
     fn observe_scene_inspection_publication(&self) -> Option<SceneInspectionMessage> {
+        if matches!(self.active_hierarchy_world_domain(), WorldDomain::Play(_)) {
+            return None;
+        }
         let mut publication = self
             .scene_inspection_publication
             .lock()
@@ -226,18 +244,22 @@ impl EditorHostEventController {
         let selection = shell.state.viewport_controller.selection();
         let focused_entity = selection.active_primary();
         let selection_revision = selection.revision();
-        shell
-            .state
-            .world
-            .try_with_world(|scene| {
-                publication.observe(
-                    scene,
-                    focused_entity,
-                    selection_revision,
-                    selection.active_items().iter().copied(),
-                )
-            })
-            .flatten()
+        match shell.state.world.with_world(|scene| {
+            publication.observe(
+                scene,
+                focused_entity,
+                selection_revision,
+                selection.active_items().iter().copied(),
+            )
+        }) {
+            Ok(message) => message.flatten(),
+            Err(error) => {
+                shell
+                    .state
+                    .report_authoring_world_access_failure("scene inspection publication", &error);
+                None
+            }
+        }
     }
 
     /// Delivers the newest hierarchy publication to the retained surface once per host frame.
@@ -258,6 +280,9 @@ impl EditorHostEventController {
         &self,
         message: SceneInspectionMessage,
     ) -> Option<SceneInspectionHierarchyFragment> {
+        if matches!(self.active_hierarchy_world_domain(), WorldDomain::Play(_)) {
+            return self.play_scene_inspection_hierarchy_reflow();
+        }
         zircon_runtime::profile_scope!(
             "editor",
             "scene_inspection",
@@ -267,46 +292,51 @@ impl EditorHostEventController {
         let selection = shell.state.viewport_controller.selection();
         let focused_entity = selection.active_primary();
         let selection_revision = selection.revision();
-        shell
-            .state
-            .world
-            .try_with_world(|scene| {
-                let artifact = scene.inspection_artifact();
-                let message = if artifact.generation() == message.generation() {
-                    message
-                } else {
-                    SceneInspectionMessage::resync_with_selection_revision(
-                        artifact.generation(),
-                        focused_entity,
-                        selection_revision,
-                    )
-                };
-                if message.requires_resync()
-                    || message.requires_hierarchy_reflow()
-                    || !message.added_anchors().is_empty()
-                    || !message.removed_entities().is_empty()
-                {
-                    let selected = selection
-                        .active_items()
-                        .iter()
-                        .copied()
-                        .collect::<BTreeSet<_>>();
-                    return scene_inspection_reflow_fragment(
-                        &artifact,
-                        message.with_selection_resync_at(selection_revision),
-                        &selected,
-                    )
-                    .ok();
-                }
-
-                let changed_rows = message
-                    .changed_anchors()
+        match shell.state.world.with_world(|scene| {
+            let artifact = scene.inspection_artifact();
+            let message = if artifact.generation() == message.generation() {
+                message
+            } else {
+                SceneInspectionMessage::resync_with_selection_revision(
+                    artifact.generation(),
+                    focused_entity,
+                    selection_revision,
+                )
+            };
+            if message.requires_resync()
+                || message.requires_hierarchy_reflow()
+                || !message.added_anchors().is_empty()
+                || !message.removed_entities().is_empty()
+            {
+                let selected = selection
+                    .active_items()
                     .iter()
-                    .map(|anchor| artifact.hierarchy_row(anchor.entity()).cloned())
-                    .collect::<Option<Vec<_>>>()?;
-                SceneInspectionHierarchyFragment::patch(message, changed_rows).ok()
-            })
-            .flatten()
+                    .copied()
+                    .collect::<BTreeSet<_>>();
+                return scene_inspection_reflow_fragment(
+                    &artifact,
+                    message.with_selection_resync_at(selection_revision),
+                    &selected,
+                )
+                .ok();
+            }
+
+            let changed_rows = message
+                .changed_anchors()
+                .iter()
+                .map(|anchor| artifact.hierarchy_row(anchor.entity()).cloned())
+                .collect::<Option<Vec<_>>>()?;
+            SceneInspectionHierarchyFragment::patch(message, changed_rows).ok()
+        }) {
+            Ok(fragment) => fragment.flatten(),
+            Err(error) => {
+                shell.state.report_authoring_world_access_failure(
+                    "scene inspection hierarchy fragment",
+                    &error,
+                );
+                None
+            }
+        }
     }
 
     /// Resolves a complete hierarchy only after an explicit reflow request from the retained
@@ -315,6 +345,9 @@ impl EditorHostEventController {
         &self,
         message: SceneInspectionMessage,
     ) -> Option<SceneInspectionHierarchyFragment> {
+        if matches!(self.active_hierarchy_world_domain(), WorldDomain::Play(_)) {
+            return self.play_scene_inspection_hierarchy_reflow();
+        }
         let shell = self.shell().lock();
         let selection = shell.state.viewport_controller.selection();
         let focused_entity = selection.active_primary();
@@ -324,28 +357,33 @@ impl EditorHostEventController {
             .iter()
             .copied()
             .collect::<BTreeSet<_>>();
-        shell
-            .state
-            .world
-            .try_with_world(|scene| {
-                let artifact = scene.inspection_artifact();
-                let message = if artifact.generation() == message.generation() {
-                    message
-                } else {
-                    SceneInspectionMessage::resync_with_selection_revision(
-                        artifact.generation(),
-                        focused_entity,
-                        selection_revision,
-                    )
-                };
-                scene_inspection_reflow_fragment(
-                    &artifact,
-                    message.with_selection_resync_at(selection_revision),
-                    &selected,
+        match shell.state.world.with_world(|scene| {
+            let artifact = scene.inspection_artifact();
+            let message = if artifact.generation() == message.generation() {
+                message
+            } else {
+                SceneInspectionMessage::resync_with_selection_revision(
+                    artifact.generation(),
+                    focused_entity,
+                    selection_revision,
                 )
-                .ok()
-            })
-            .flatten()
+            };
+            scene_inspection_reflow_fragment(
+                &artifact,
+                message.with_selection_resync_at(selection_revision),
+                &selected,
+            )
+            .ok()
+        }) {
+            Ok(fragment) => fragment.flatten(),
+            Err(error) => {
+                shell.state.report_authoring_world_access_failure(
+                    "scene inspection hierarchy reflow",
+                    &error,
+                );
+                None
+            }
+        }
     }
 
     /// Returns the authoritative selection only when the retained projection reports a revision
@@ -364,12 +402,43 @@ impl EditorHostEventController {
         &self,
         entity: EntityId,
     ) -> Option<zircon_runtime::scene::WorldInspectionHierarchyRow> {
-        self.shell()
-            .lock()
+        if matches!(self.active_hierarchy_world_domain(), WorldDomain::Play(_)) {
+            return self
+                .play_hierarchy_projection
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .row(entity);
+        }
+        let shell = self.shell().lock();
+        match shell
             .state
             .world
-            .try_with_world(|scene| scene.inspection_artifact().hierarchy_row(entity).cloned())
-            .flatten()
+            .with_world(|scene| scene.inspection_artifact().hierarchy_row(entity).cloned())
+        {
+            Ok(row) => row.flatten(),
+            Err(error) => {
+                shell
+                    .state
+                    .report_authoring_world_access_failure("scene inspection row", &error);
+                None
+            }
+        }
+    }
+
+    fn play_scene_inspection_hierarchy_reflow(&self) -> Option<SceneInspectionHierarchyFragment> {
+        let (focused_entity, selection_revision, selected_entities) = {
+            let shell = self.shell().lock();
+            let selection = shell.state.viewport_controller.selection();
+            (
+                selection.active_primary(),
+                selection.revision(),
+                selection.active_items().iter().copied().collect::<Vec<_>>(),
+            )
+        };
+        self.play_hierarchy_projection
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .reflow(selection_revision, selected_entities, focused_entity)
     }
 }
 
@@ -458,7 +527,11 @@ mod tests {
 
         let mut scene = Scene::new();
         let selected_entities = (0..SELECTED_ENTITY_COUNT)
-            .map(|_| scene.spawn_node(NodeKind::Empty))
+            .map(|_| {
+                scene
+                    .spawn_node(NodeKind::Empty)
+                    .expect("test scene spawn should succeed")
+            })
             .collect::<Vec<_>>();
         let renamed_entity = selected_entities[0];
         let mut publication = SceneInspectionPublication::default();

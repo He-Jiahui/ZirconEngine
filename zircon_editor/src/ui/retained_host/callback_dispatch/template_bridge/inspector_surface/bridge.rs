@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use zircon_runtime_interface::ui::binding::UiEventKind;
 
@@ -12,7 +12,7 @@ use super::super::{binding_for_control, project_builtin_surface_with_runtime};
 use super::error::BuiltinInspectorSurfaceTemplateBridgeError;
 
 pub(crate) struct BuiltinInspectorSurfaceTemplateBridge {
-    bindings_by_id: BTreeMap<String, EditorUiBinding>,
+    bindings_by_id: HashMap<String, EditorUiBinding>,
     host_projection: RetainedUiHostProjection,
 }
 

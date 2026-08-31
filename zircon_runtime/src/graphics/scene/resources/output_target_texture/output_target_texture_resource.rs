@@ -1,10 +1,11 @@
-use crate::asset::{TextureAsset, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
+use crate::asset::{RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureAsset};
 use crate::core::framework::render::{
     RenderImageDescriptor, RenderImageDimension, RenderImageUsage, RenderSamplerAddressMode,
     RenderSamplerFilter, TextureMetadata,
 };
 use crate::core::resource::ResourceId;
 use crate::graphics::types::GraphicsError;
+use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
 
 const OUTPUT_TARGET_TEXTURE_LABEL: &str = "zircon-output-target-texture";
 
@@ -87,6 +88,25 @@ impl OutputTargetTextureResource {
         &self.sampler
     }
 
+    pub(in crate::graphics::scene) fn graph_texture_desc(
+        &self,
+        label: &str,
+    ) -> Result<TextureDesc, GraphicsError> {
+        let format = output_target_rhi_format(&self.descriptor).ok_or_else(|| {
+            GraphicsError::Asset(format!(
+                "output target texture graph binding has unsupported format {}",
+                self.descriptor.format
+            ))
+        })?;
+        Ok(TextureDesc::new(
+            label,
+            self.descriptor.width,
+            self.descriptor.height,
+            format,
+            output_target_rhi_usages(&self.descriptor, format),
+        ))
+    }
+
     fn assert_retained_output_target_texture_owner_count(&self) {
         debug_assert_eq!(
             self.retained_output_target_texture_owner_count(),
@@ -131,7 +151,11 @@ fn output_target_texture_usages(
     descriptor: &RenderImageDescriptor,
     format: wgpu::TextureFormat,
 ) -> wgpu::TextureUsages {
-    let mut usages = wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::COPY_DST;
+    // Camera output targets are terminal graph products and remain readable by
+    // composition passes even when the asset author only requests render-target use.
+    let mut usages = wgpu::TextureUsages::COPY_SRC
+        | wgpu::TextureUsages::COPY_DST
+        | wgpu::TextureUsages::TEXTURE_BINDING;
     for usage in &descriptor.usage {
         match usage {
             RenderImageUsage::Sampled => usages |= wgpu::TextureUsages::TEXTURE_BINDING,
@@ -159,6 +183,37 @@ fn output_target_wgpu_format(descriptor: &RenderImageDescriptor) -> Option<wgpu:
     } else {
         None
     }
+}
+
+fn output_target_rhi_format(descriptor: &RenderImageDescriptor) -> Option<TextureFormat> {
+    let format = descriptor.format.trim();
+    if format.eq_ignore_ascii_case(RGBA8_UNORM_FORMAT) {
+        Some(TextureFormat::Rgba8Unorm)
+    } else if format.eq_ignore_ascii_case(RGBA8_UNORM_SRGB_FORMAT) {
+        Some(TextureFormat::Rgba8UnormSrgb)
+    } else {
+        None
+    }
+}
+
+fn output_target_rhi_usages(
+    descriptor: &RenderImageDescriptor,
+    format: TextureFormat,
+) -> TextureUsage {
+    let mut usages = TextureUsage::COPY_SRC | TextureUsage::COPY_DST | TextureUsage::SAMPLED;
+    for usage in &descriptor.usage {
+        match usage {
+            RenderImageUsage::Sampled => usages |= TextureUsage::SAMPLED,
+            RenderImageUsage::Storage if format.supports_write_only_storage() => {
+                usages |= TextureUsage::STORAGE;
+            }
+            RenderImageUsage::Storage => {}
+            RenderImageUsage::RenderTarget => usages |= TextureUsage::RENDER_ATTACHMENT,
+            RenderImageUsage::CopySrc => usages |= TextureUsage::COPY_SRC,
+            RenderImageUsage::CopyDst => usages |= TextureUsage::COPY_DST,
+        }
+    }
+    usages
 }
 
 fn supports_render_attachment_usage(format: wgpu::TextureFormat) -> bool {
@@ -225,7 +280,7 @@ mod tests {
     };
 
     #[test]
-    fn output_target_texture_usages_prepare_render_target_only_without_sampled_binding() {
+    fn output_target_texture_usages_keep_render_targets_graph_readable() {
         let descriptor = texture_descriptor(vec![RenderImageUsage::RenderTarget]);
 
         let usages = output_target_texture_usages(&descriptor, wgpu::TextureFormat::Rgba8UnormSrgb);
@@ -233,7 +288,7 @@ mod tests {
         assert!(usages.contains(wgpu::TextureUsages::RENDER_ATTACHMENT));
         assert!(usages.contains(wgpu::TextureUsages::COPY_SRC));
         assert!(usages.contains(wgpu::TextureUsages::COPY_DST));
-        assert!(!usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
+        assert!(usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
     }
 
     #[test]
@@ -266,6 +321,38 @@ mod tests {
             output_target_wgpu_format(&texture_descriptor_with_format("dds/dxt1")),
             None
         );
+    }
+
+    #[test]
+    fn output_target_rhi_descriptor_matches_wgpu_allocation_contract() {
+        let descriptor = texture_descriptor(vec![
+            RenderImageUsage::RenderTarget,
+            RenderImageUsage::Sampled,
+            RenderImageUsage::Storage,
+        ]);
+
+        let format = output_target_rhi_format(&descriptor).expect("supported target format");
+        let usages = output_target_rhi_usages(&descriptor, format);
+
+        assert_eq!(format, TextureFormat::Rgba8UnormSrgb);
+        assert!(usages.contains(TextureUsage::RENDER_ATTACHMENT));
+        assert!(usages.contains(TextureUsage::SAMPLED));
+        assert!(usages.contains(TextureUsage::COPY_SRC));
+        assert!(usages.contains(TextureUsage::COPY_DST));
+        assert!(!usages.contains(TextureUsage::STORAGE));
+    }
+
+    #[test]
+    fn output_target_rhi_descriptor_keeps_render_targets_graph_readable() {
+        let descriptor = texture_descriptor(vec![RenderImageUsage::RenderTarget]);
+        let format = output_target_rhi_format(&descriptor).expect("supported target format");
+
+        let usages = output_target_rhi_usages(&descriptor, format);
+
+        assert!(usages.contains(TextureUsage::RENDER_ATTACHMENT));
+        assert!(usages.contains(TextureUsage::SAMPLED));
+        assert!(usages.contains(TextureUsage::COPY_SRC));
+        assert!(usages.contains(TextureUsage::COPY_DST));
     }
 
     #[test]

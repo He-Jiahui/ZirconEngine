@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use super::{UiDragPayload, UiValue, UiValueKind};
+use super::{UiDragPayload, UiSecureTextValueRef, UiValue, UiValueKind};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum UiComponentEventKind {
@@ -42,6 +42,92 @@ pub enum UiComponentEventKind {
     SetWorldSurface,
 }
 
+impl UiComponentEventKind {
+    pub const ALL: [Self; 35] = [
+        Self::ValueChanged,
+        Self::Commit,
+        Self::KeyboardAction,
+        Self::KeyboardText,
+        Self::TypeaheadExpired,
+        Self::Focus,
+        Self::Hover,
+        Self::Press,
+        Self::BeginDrag,
+        Self::DragDelta,
+        Self::LargeDragDelta,
+        Self::EndDrag,
+        Self::DropHover,
+        Self::ActiveDragTarget,
+        Self::OpenPopup,
+        Self::OpenPopupAt,
+        Self::ClosePopup,
+        Self::SelectOption,
+        Self::ToggleExpanded,
+        Self::AddElement,
+        Self::SetElement,
+        Self::RemoveElement,
+        Self::MoveElement,
+        Self::AddMapEntry,
+        Self::SetMapEntry,
+        Self::RenameMapKey,
+        Self::RemoveMapEntry,
+        Self::DropReference,
+        Self::ClearReference,
+        Self::LocateReference,
+        Self::OpenReference,
+        Self::SetVisibleRange,
+        Self::SetPage,
+        Self::SetWorldTransform,
+        Self::SetWorldSurface,
+    ];
+
+    pub const fn schema_name(self) -> &'static str {
+        match self {
+            Self::ValueChanged => "ValueChanged",
+            Self::Commit => "Commit",
+            Self::KeyboardAction => "KeyboardAction",
+            Self::KeyboardText => "KeyboardText",
+            Self::TypeaheadExpired => "TypeaheadExpired",
+            Self::Focus => "Focus",
+            Self::Hover => "Hover",
+            Self::Press => "Press",
+            Self::BeginDrag => "BeginDrag",
+            Self::DragDelta => "DragDelta",
+            Self::LargeDragDelta => "LargeDragDelta",
+            Self::EndDrag => "EndDrag",
+            Self::DropHover => "DropHover",
+            Self::ActiveDragTarget => "ActiveDragTarget",
+            Self::OpenPopup => "OpenPopup",
+            Self::OpenPopupAt => "OpenPopupAt",
+            Self::ClosePopup => "ClosePopup",
+            Self::SelectOption => "SelectOption",
+            Self::ToggleExpanded => "ToggleExpanded",
+            Self::AddElement => "AddElement",
+            Self::SetElement => "SetElement",
+            Self::RemoveElement => "RemoveElement",
+            Self::MoveElement => "MoveElement",
+            Self::AddMapEntry => "AddMapEntry",
+            Self::SetMapEntry => "SetMapEntry",
+            Self::RenameMapKey => "RenameMapKey",
+            Self::RemoveMapEntry => "RemoveMapEntry",
+            Self::DropReference => "DropReference",
+            Self::ClearReference => "ClearReference",
+            Self::LocateReference => "LocateReference",
+            Self::OpenReference => "OpenReference",
+            Self::SetVisibleRange => "SetVisibleRange",
+            Self::SetPage => "SetPage",
+            Self::SetWorldTransform => "SetWorldTransform",
+            Self::SetWorldSurface => "SetWorldSurface",
+        }
+    }
+
+    pub fn from_schema_name(value: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|kind| kind.schema_name() == value)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum UiComponentKeyboardAction {
     Activate,
@@ -63,9 +149,19 @@ pub enum UiComponentEvent {
         property: String,
         value: UiValue,
     },
+    /// A secure text value changed. The plaintext is available only through the owning surface.
+    SecureValueChanged {
+        property: String,
+        reference: UiSecureTextValueRef,
+    },
     Commit {
         property: String,
         value: UiValue,
+    },
+    /// A secure text value was committed without copying it into the generic event payload.
+    SecureCommit {
+        property: String,
+        reference: UiSecureTextValueRef,
     },
     KeyboardAction {
         action: UiComponentKeyboardAction,
@@ -193,8 +289,10 @@ pub enum UiComponentEvent {
 impl UiComponentEvent {
     pub fn kind(&self) -> UiComponentEventKind {
         match self {
-            Self::ValueChanged { .. } => UiComponentEventKind::ValueChanged,
-            Self::Commit { .. } => UiComponentEventKind::Commit,
+            Self::ValueChanged { .. } | Self::SecureValueChanged { .. } => {
+                UiComponentEventKind::ValueChanged
+            }
+            Self::Commit { .. } | Self::SecureCommit { .. } => UiComponentEventKind::Commit,
             Self::KeyboardAction { .. } => UiComponentEventKind::KeyboardAction,
             Self::KeyboardText { .. } => UiComponentEventKind::KeyboardText,
             Self::TypeaheadExpired => UiComponentEventKind::TypeaheadExpired,

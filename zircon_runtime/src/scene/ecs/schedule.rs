@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
-use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
 
 #[cfg(test)]
 use super::ScheduledSceneStep;
 use super::{
     BoxedRuntimeSceneSystem, BoxedSceneSystem, IntoSceneSystem, IntoWorldlessSceneSystem,
     SceneScheduleStagePlan, SceneSystem, SceneSystemDescriptor, SceneSystemRegistry,
-    ScheduleConflictGraph, ScheduleError, SystemParam, SystemStage, WorldlessSystemParam,
+    ScheduleBuildReceipt, ScheduleConflictGraph, ScheduleError, SystemParam, SystemStage,
+    WorldlessSystemParam,
 };
 
 #[derive(Debug, Serialize)]
@@ -22,7 +23,7 @@ pub struct Schedule {
     #[serde(skip)]
     taken_native_system_ids: Vec<String>,
     #[serde(skip)]
-    taken_runtime_system_ids: Vec<String>,
+    taken_runtime_system_count: usize,
 }
 
 impl Schedule {
@@ -74,7 +75,9 @@ impl Schedule {
         self.systems
             .register_native_system::<P, S>(id.clone(), stage, order, world, system)?;
         if let Err(error) = self.refresh_or_defer_executor_plan() {
-            self.systems.remove_native_system(&id);
+            if let Some(mut system) = self.systems.remove_native_system(&id) {
+                system.retire(world);
+            }
             self.refresh_or_defer_executor_plan()?;
             return Err(error);
         }
@@ -104,7 +107,9 @@ impl Schedule {
             system,
         )?;
         if let Err(error) = self.refresh_or_defer_executor_plan() {
-            self.systems.remove_native_system(&id);
+            if let Some(mut system) = self.systems.remove_native_system(&id) {
+                system.retire(world);
+            }
             self.refresh_or_defer_executor_plan()?;
             return Err(error);
         }
@@ -113,17 +118,39 @@ impl Schedule {
 
     pub(crate) fn register_boxed_native_system(
         &mut self,
+        world: &mut crate::scene::World,
         system: BoxedSceneSystem,
     ) -> Result<(), ScheduleError> {
         let id = system.id().to_string();
         self.ensure_id_not_taken(&id)?;
         self.systems.register_boxed_native_system(system)?;
         if let Err(error) = self.refresh_or_defer_executor_plan() {
-            self.systems.remove_native_system(&id);
+            if let Some(mut system) = self.systems.remove_native_system(&id) {
+                system.retire(world);
+            }
             self.refresh_or_defer_executor_plan()?;
             return Err(error);
         }
         Ok(())
+    }
+
+    pub(crate) fn unregister_native_system(
+        &mut self,
+        world: &mut crate::scene::World,
+        id: &str,
+    ) -> Result<bool, ScheduleError> {
+        if taken_system_id_exists(&self.taken_native_system_ids, id) {
+            return Err(ScheduleError::SystemInFlight(id.to_string()));
+        }
+        let Some(mut system) = self.systems.remove_native_system(id) else {
+            return Ok(false);
+        };
+        if let Err(error) = self.refresh_or_defer_executor_plan() {
+            self.systems.restore_native_system(system);
+            return Err(error);
+        }
+        system.retire(world);
+        Ok(true)
     }
 
     pub fn stages(&self) -> &[SystemStage] {
@@ -171,6 +198,11 @@ impl Schedule {
         Arc::clone(&self.executor_plan)
     }
 
+    /// Returns the immutable receipt for the currently compiled execution graph.
+    pub fn build_receipt(&self) -> ScheduleBuildReceipt {
+        self.executor_plan.build_receipt()
+    }
+
     pub(crate) fn take_native_system(&mut self, id: &str) -> Option<BoxedSceneSystem> {
         let system = self.systems.take_native_system(id)?;
         self.taken_native_system_ids.push(system.id().to_string());
@@ -183,7 +215,7 @@ impl Schedule {
 
     pub(crate) fn take_runtime_system(&mut self, id: &str) -> Option<BoxedRuntimeSceneSystem> {
         let system = self.systems.take_runtime_system(id)?;
-        self.taken_runtime_system_ids.push(system.id().to_string());
+        self.taken_runtime_system_count += 1;
         Some(system)
     }
 
@@ -198,8 +230,8 @@ impl Schedule {
     }
 
     pub(crate) fn restore_runtime_system(&mut self, system: BoxedRuntimeSceneSystem) {
-        let system_id = system.id();
-        remove_taken_system_id(&mut self.taken_runtime_system_ids, system_id);
+        debug_assert!(self.taken_runtime_system_count > 0);
+        self.taken_runtime_system_count -= 1;
         self.systems.restore_runtime_system(system);
         if self.no_taken_systems() && self.executor_plan_dirty {
             self.refresh_executor_plan()
@@ -218,7 +250,7 @@ impl Schedule {
             executor_plan,
             executor_plan_dirty: false,
             taken_native_system_ids: Vec::new(),
-            taken_runtime_system_ids: Vec::new(),
+            taken_runtime_system_count: 0,
         }
     }
 
@@ -242,7 +274,7 @@ impl Schedule {
 
     fn ensure_id_not_taken(&self, id: &str) -> Result<(), ScheduleError> {
         if taken_system_id_exists(&self.taken_native_system_ids, id)
-            || taken_system_id_exists(&self.taken_runtime_system_ids, id)
+            || self.systems.runtime_system_id_exists(id)
         {
             return Err(ScheduleError::DuplicateSystem(id.to_string()));
         }
@@ -250,7 +282,7 @@ impl Schedule {
     }
 
     fn no_taken_systems(&self) -> bool {
-        self.taken_native_system_ids.is_empty() && self.taken_runtime_system_ids.is_empty()
+        self.taken_native_system_ids.is_empty() && self.taken_runtime_system_count == 0
     }
 }
 
@@ -267,7 +299,7 @@ fn remove_taken_system_id(taken_system_ids: &mut Vec<String>, id: &str) {
     let mut index = 0_usize;
     while index < taken_system_ids.len() {
         if taken_system_ids[index].as_str() == id {
-            // Taken ids are a membership guard only; restore order is already owned by the registry.
+            // Native taken IDs are only a membership guard; registry restore owns ordering.
             taken_system_ids.swap_remove(index);
             return;
         }
@@ -325,7 +357,7 @@ impl Schedule {
             executor_plan,
             executor_plan_dirty: false,
             taken_native_system_ids: Vec::new(),
-            taken_runtime_system_ids: Vec::new(),
+            taken_runtime_system_count: 0,
         })
     }
 }

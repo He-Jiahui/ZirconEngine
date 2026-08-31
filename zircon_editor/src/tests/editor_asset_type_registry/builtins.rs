@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::core::asset::{AssetTypeId, AssetTypeRegistry, ThumbnailProviderDescriptor};
+use crate::core::commands::EditorCommandRegistry;
 use zircon_runtime_interface::resource::ResourceKind;
 
 const RESOURCE_KINDS: [ResourceKind; 26] = [
@@ -78,4 +79,45 @@ fn builtin_ids_match_first_party_plugin_authoring_keys() {
         AssetTypeId::from_resource_kind(ResourceKind::TileMap).as_str(),
         "tilemap_2d.tilemap"
     );
+}
+
+#[test]
+fn builtin_animation_assets_have_production_toolkit_routes_and_open_operations() {
+    let asset_types = AssetTypeRegistry::with_builtins().unwrap();
+    let commands = EditorCommandRegistry::default_workbench();
+
+    for (kind, view_id, operation) in [
+        (
+            ResourceKind::AnimationSequence,
+            "editor.animation_sequence",
+            "timeline_sequence.authoring.open",
+        ),
+        (
+            ResourceKind::AnimationGraph,
+            "editor.animation_graph",
+            "animation_graph.authoring.open_graph",
+        ),
+        (
+            ResourceKind::AnimationStateMachine,
+            "editor.animation_graph",
+            "animation_graph.authoring.open_state_machine",
+        ),
+    ] {
+        let asset_type = AssetTypeId::from_resource_kind(kind);
+        let toolkit = asset_types
+            .get(&asset_type)
+            .and_then(|definition| definition.toolkit())
+            .expect("built-in animation asset type should declare a toolkit");
+
+        assert_eq!(toolkit.view_id(), view_id);
+        assert_eq!(toolkit.open_operation().as_str(), operation);
+        assert!(
+            toolkit.required_capabilities().is_empty(),
+            "production animation toolkit must not depend on a test-only extension capability"
+        );
+        assert!(
+            commands.command(operation).is_some(),
+            "built-in animation toolkit operation must be registered"
+        );
+    }
 }

@@ -7,8 +7,6 @@ pub enum ActivityDrawerSlot {
     RightTop,
     RightBottom,
     Bottom,
-    BottomLeft,
-    BottomRight,
 }
 
 impl ActivityDrawerSlot {
@@ -20,20 +18,13 @@ impl ActivityDrawerSlot {
         Self::Bottom,
     ];
 
-    pub fn canonical(self) -> Self {
-        match self {
-            Self::BottomLeft | Self::BottomRight => Self::Bottom,
-            slot => slot,
-        }
-    }
-
     pub fn is_bottom(self) -> bool {
-        matches!(self, Self::Bottom | Self::BottomLeft | Self::BottomRight)
+        self == Self::Bottom
     }
 
     pub fn shares_region(self, other: Self) -> bool {
         matches!(
-            (self.canonical(), other.canonical()),
+            (self, other),
             (
                 Self::LeftTop | Self::LeftBottom,
                 Self::LeftTop | Self::LeftBottom

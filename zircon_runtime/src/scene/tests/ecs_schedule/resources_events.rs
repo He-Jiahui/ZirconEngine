@@ -71,7 +71,9 @@ fn typed_events_publish_on_update_and_keep_next_frame_events_separate() {
 #[test]
 fn apply_deferred_internal_system_flushes_queued_commands() {
     let mut world = crate::scene::World::empty();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let mut system = SystemState::<CommandsParam>::new(&mut world).unwrap();
 
     system.run(&mut world, |mut commands| {
@@ -92,8 +94,8 @@ fn event_store_tracks_each_event_type_independently() {
     struct Despawned(u64);
 
     let mut store = EventStore::default();
-    store.register_reader::<Spawned>();
-    store.register_reader::<Despawned>();
+    let _spawned_reader = store.register_reader::<Spawned>().unwrap();
+    let _despawned_reader = store.register_reader::<Despawned>().unwrap();
     store.send(Spawned("cube"));
     store.send(Despawned(42));
 
@@ -139,7 +141,8 @@ fn event_store_registered_channel_accepts_writes_before_reader_registered() {
     store.update_by_id::<Spawned>(spawned);
     assert_eq!(store.drain::<Spawned>(), vec![Spawned("before-reader")]);
 
-    assert_eq!(store.register_reader::<Spawned>(), spawned);
+    let reader_lease = store.register_reader::<Spawned>().unwrap();
+    assert_eq!(reader_lease.event_type_id(), spawned);
     assert!(store.is_active(spawned));
     assert_eq!(store.reader_count(spawned), Some(1));
     assert!(store.send_by_id(spawned, Spawned("after-reader")));

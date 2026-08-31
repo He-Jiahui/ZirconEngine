@@ -116,7 +116,7 @@ impl RuntimePlugin for ZrVmLanguageRuntimePlugin {
                                 zircon_runtime::script::VM_PLUGIN_MANAGER_NAME,
                             )?;
                         manager
-                            .run_registered_systems(stage, context.delta_seconds)
+                            .run_registered_systems(stage, context.tick().delta_seconds())
                             .map(|_| ())
                             .map_err(|error| {
                                 zircon_runtime::core::CoreError::Initialization(

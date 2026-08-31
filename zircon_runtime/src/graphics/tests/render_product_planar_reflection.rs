@@ -26,10 +26,10 @@ use crate::core::resource::{
     TextureMarker,
 };
 use crate::graphics::{
+    PLANAR_FILTER_EXECUTOR_ID, PLANAR_REFLECTION_TEXTURE_RESOURCE, RenderFeatureDescriptor,
+    RenderFeaturePassDescriptor, RenderPassStage, WgpuRenderFramework,
     planar_reflection_filter_compute_workload,
-    planar_reflection_render_pass_executor_registrations, RenderFeatureDescriptor,
-    RenderFeaturePassDescriptor, RenderPassStage, WgpuRenderFramework, PLANAR_FILTER_EXECUTOR_ID,
-    PLANAR_REFLECTION_TEXTURE_RESOURCE,
+    planar_reflection_render_pass_executor_registrations,
 };
 use crate::render_graph::QueueLane;
 
@@ -66,11 +66,13 @@ fn render_product_planar_reflection_registered_but_empty_matches_baseline_exactl
         baseline.frame.rgba, registered_but_empty.frame.rgba,
         "registering planar reflections must be byte-inert without an extracted probe"
     );
-    assert!(!registered_but_empty
-        .stats
-        .last_graph_executed_passes
-        .iter()
-        .any(|pass| pass == PLANAR_FILTER_EXECUTOR_ID));
+    assert!(
+        !registered_but_empty
+            .stats
+            .last_graph_executed_passes
+            .iter()
+            .any(|pass| pass == PLANAR_FILTER_EXECUTOR_ID)
+    );
 }
 
 #[test]
@@ -399,16 +401,18 @@ fn planar_render_feature_descriptor() -> RenderFeatureDescriptor {
         "planar_reflections",
         vec!["view".to_string(), "advanced_lighting".to_string()],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            PLANAR_FILTER_EXECUTOR_ID,
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id(PLANAR_FILTER_EXECUTOR_ID)
-        .with_compute_workload(planar_reflection_filter_compute_workload())
-        .with_side_effects()
-        .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
-        .write_storage_external_texture(PLANAR_REFLECTION_TEXTURE_RESOURCE)],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                PLANAR_FILTER_EXECUTOR_ID,
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id(PLANAR_FILTER_EXECUTOR_ID)
+            .with_compute_workload(planar_reflection_filter_compute_workload())
+            .with_side_effects()
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .write_storage_external_texture(PLANAR_REFLECTION_TEXTURE_RESOURCE),
+        ],
     )
     .when_advanced_lighting_planar_capture_enabled()
 }

@@ -114,6 +114,9 @@ class ReservedCargoStartService:
                 "The reserved Cargo pair already has a durable start request",
                 details={"requestId": other["request_id"], "jobId": job_id},
             )
+        self.cargo_jobs.require_cargo_start_admission_in_connection(
+            connection, f"cargo.run_reserved@{session_id}"
+        )
         require_executable_cargo_session(connection, session_id)
         reservation = connection.execute(
             "SELECT * FROM cargo_lane_reservations WHERE reservation_id=?",

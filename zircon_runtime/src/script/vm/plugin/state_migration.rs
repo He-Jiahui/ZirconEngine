@@ -1,29 +1,23 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use zircon_runtime_interface::reflect::{ReflectFieldValue, ReflectTypeRegistration};
+use zircon_runtime_interface::reflect::{
+    ReflectFieldId, ReflectTypeRegistration, ReflectValueValidationError,
+};
 
-use super::{VmStateBlob, VmStateObject, VmStateTypeIdentity};
+use crate::scene::reflect::RUNTIME_REFLECT_VALUE_BUDGET;
 
-/// Historical field-name mapping applied while migrating one reflected type.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct VmStateFieldRename {
-    /// Field name stored by the source schema.
-    pub from: String,
-    /// Serializable field name in the target registration.
-    pub to: String,
-}
+use super::{VmStateBlob, VmStateFieldValue, VmStateObject, VmStateTypeIdentity};
 
-/// Target reflected type registration plus migration-only revision metadata.
+/// Target reflected type registration plus its structural revision identity.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct VmStateTypeSchema {
     /// Shared reflection registration consumed by every engine subsystem.
     pub registration: ReflectTypeRegistration,
     /// Structural hash written to the migrated type identity table.
     pub type_hash: u32,
-    /// Historical field mappings for this type revision.
-    pub renames: Vec<VmStateFieldRename>,
 }
 
 /// Destination schema published by a VM plugin generation.
@@ -38,13 +32,17 @@ pub struct VmStateSchema {
 impl VmStateSchema {
     /// Decodes a schema published by a VM lifecycle `stateSchema` export.
     pub fn from_json(schema: &str) -> Result<Self, VmStateMigrationError> {
-        serde_json::from_str(schema).map_err(|error| VmStateMigrationError::SchemaDecode {
-            reason: error.to_string(),
-        })
+        let schema: Self =
+            serde_json::from_str(schema).map_err(|error| VmStateMigrationError::SchemaDecode {
+                reason: error.to_string(),
+            })?;
+        validate_schema_default_values(&schema)?;
+        Ok(schema)
     }
 
     /// Encodes a schema for a VM lifecycle `stateSchema` export.
     pub fn to_json(&self) -> Result<String, VmStateMigrationError> {
+        validate_schema_default_values(self)?;
         serde_json::to_string(self).map_err(|error| VmStateMigrationError::SchemaEncode {
             reason: error.to_string(),
         })
@@ -87,21 +85,19 @@ pub enum VmStateMigrationError {
     /// A destination type opted out of serialization.
     #[error("target vm state type `{type_path}` is not serializable")]
     NonSerializableTargetType { type_path: String },
-    /// A source object contains a duplicate field name.
+    /// A source object contains a duplicate stable field identity.
     #[error("vm state object `{type_path}` contains duplicate field `{field}`")]
     DuplicateSourceField { type_path: String, field: String },
+    /// A reflected source value or target default exceeds runtime value admission.
+    #[error("vm state value `{field}` on `{type_path}` was rejected: {error}")]
+    ReflectedValueRejected {
+        type_path: String,
+        field: String,
+        error: ReflectValueValidationError,
+    },
     /// A target reflection registration contains a duplicate serializable field.
     #[error("vm state type `{type_path}` contains duplicate target field `{field}`")]
     DuplicateTargetField { type_path: String, field: String },
-    /// Two rename declarations consume the same source name.
-    #[error("vm state type `{type_path}` contains duplicate rename source `{field}`")]
-    DuplicateRenameSource { type_path: String, field: String },
-    /// Two rename declarations write the same target name.
-    #[error("vm state type `{type_path}` contains duplicate rename target `{field}`")]
-    DuplicateRenameTarget { type_path: String, field: String },
-    /// A rename declaration targets a non-serializable or absent field.
-    #[error("vm state type `{type_path}` rename target `{field}` is not in the target schema")]
-    UnknownRenameTarget { type_path: String, field: String },
     /// A required target field has no current value, historical value, or default.
     #[error("vm state type `{type_path}` is missing required field `{field}`")]
     MissingRequiredField { type_path: String, field: String },
@@ -115,7 +111,7 @@ pub fn migrate_vm_state_blob(
     let target_types = index_target_types(target)?;
     let mut migrated_objects = Vec::new();
     for object in source.reflected_objects()? {
-        let type_path = object.type_path.type_path.clone();
+        let type_path = object.type_path.type_path().to_string();
         let target_type = target_types
             .get(type_path.as_str())
             .copied()
@@ -138,10 +134,10 @@ pub fn migrate_vm_state_blob(
 
 fn index_target_types(
     target: &VmStateSchema,
-) -> Result<BTreeMap<&str, &VmStateTypeSchema>, VmStateMigrationError> {
-    let mut target_types = BTreeMap::new();
+) -> Result<HashMap<&str, &VmStateTypeSchema>, VmStateMigrationError> {
+    let mut target_types = HashMap::with_capacity(target.types.len());
     for target_type in &target.types {
-        let type_path = target_type.registration.type_path.type_path.as_str();
+        let type_path = target_type.registration.type_path.type_path();
         if !target_type.registration.serializable {
             return Err(VmStateMigrationError::NonSerializableTargetType {
                 type_path: type_path.to_string(),
@@ -152,6 +148,7 @@ fn index_target_types(
                 type_path: type_path.to_string(),
             });
         }
+        validate_target_default_values(target_type)?;
     }
     Ok(target_types)
 }
@@ -160,13 +157,12 @@ fn migrate_object(
     object: VmStateObject,
     target: &VmStateTypeSchema,
 ) -> Result<VmStateObject, VmStateMigrationError> {
-    let mut source_fields = BTreeMap::new();
+    let mut source_fields = HashMap::with_capacity(object.fields.len());
     for field in object.fields {
-        source_fields.insert(field.field_name, field.value);
+        source_fields.insert(field.field_id, field.value);
     }
 
-    let target_field_names = validate_target_fields(target)?;
-    let renames = validate_renames(target, &target_field_names)?;
+    validate_target_fields(target)?;
     let target_fields = target
         .registration
         .type_info
@@ -176,21 +172,17 @@ fn migrate_object(
         .collect::<Vec<_>>();
     let mut fields = Vec::with_capacity(target_fields.len());
     for field in target_fields {
-        let value = source_fields.remove(&field.name).or_else(|| {
-            renames
-                .get(field.name.as_str())
-                .and_then(|old_name| source_fields.remove(*old_name))
-        });
+        let value = source_fields.remove(&field.id);
         let value = match value {
             Some(value) => value,
             None => field.default_value.clone().ok_or_else(|| {
                 VmStateMigrationError::MissingRequiredField {
-                    type_path: target.registration.type_path.type_path.clone(),
+                    type_path: target.registration.type_path.type_path().to_string(),
                     field: field.name.clone(),
                 }
             })?,
         };
-        fields.push(ReflectFieldValue::new(field.name.clone(), value));
+        fields.push(VmStateFieldValue::new(field.id, value));
     }
 
     Ok(VmStateObject {
@@ -201,8 +193,8 @@ fn migrate_object(
 
 fn validate_target_fields(
     target: &VmStateTypeSchema,
-) -> Result<BTreeSet<&str>, VmStateMigrationError> {
-    let mut names = BTreeSet::new();
+) -> Result<HashSet<ReflectFieldId>, VmStateMigrationError> {
+    let mut ids = HashSet::with_capacity(target.registration.type_info.fields.len());
     for field in target
         .registration
         .type_info
@@ -210,64 +202,293 @@ fn validate_target_fields(
         .iter()
         .filter(|field| field.serializable)
     {
-        if !names.insert(field.name.as_str()) {
+        if !ids.insert(field.id) {
             return Err(VmStateMigrationError::DuplicateTargetField {
-                type_path: target.registration.type_path.type_path.clone(),
-                field: field.name.clone(),
+                type_path: target.registration.type_path.type_path().to_string(),
+                field: field.id.to_string(),
             });
         }
     }
-    Ok(names)
+    Ok(ids)
 }
 
-fn validate_renames<'a>(
-    target: &'a VmStateTypeSchema,
-    target_fields: &BTreeSet<&str>,
-) -> Result<BTreeMap<&'a str, &'a str>, VmStateMigrationError> {
-    let mut sources = BTreeSet::new();
-    let mut targets = BTreeMap::new();
-    for rename in &target.renames {
-        if !sources.insert(rename.from.as_str()) {
-            return Err(VmStateMigrationError::DuplicateRenameSource {
-                type_path: target.registration.type_path.type_path.clone(),
-                field: rename.from.clone(),
-            });
-        }
-        if !target_fields.contains(rename.to.as_str()) {
-            return Err(VmStateMigrationError::UnknownRenameTarget {
-                type_path: target.registration.type_path.type_path.clone(),
-                field: rename.to.clone(),
-            });
-        }
-        if targets
-            .insert(rename.to.as_str(), rename.from.as_str())
-            .is_some()
-        {
-            return Err(VmStateMigrationError::DuplicateRenameTarget {
-                type_path: target.registration.type_path.type_path.clone(),
-                field: rename.to.clone(),
-            });
-        }
+fn validate_schema_default_values(schema: &VmStateSchema) -> Result<(), VmStateMigrationError> {
+    for target in &schema.types {
+        validate_target_default_values(target)?;
     }
-    Ok(targets)
+    Ok(())
+}
+
+fn validate_target_default_values(target: &VmStateTypeSchema) -> Result<(), VmStateMigrationError> {
+    for field in &target.registration.type_info.fields {
+        let Some(default_value) = &field.default_value else {
+            continue;
+        };
+        default_value
+            .validate_with_budget(RUNTIME_REFLECT_VALUE_BUDGET)
+            .map_err(|error| VmStateMigrationError::ReflectedValueRejected {
+                type_path: target.registration.type_path.type_path().to_string(),
+                field: field.name.clone(),
+                error,
+            })?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        collections::{BTreeMap, BTreeSet},
+        hint::black_box,
+        time::{Duration, Instant},
+    };
+
     use zircon_runtime_interface::reflect::{
-        ReflectEditorHint, ReflectFieldInfo, ReflectFieldValue, ReflectSerializationStrategy,
+        ReflectEditorHint, ReflectFieldId, ReflectFieldInfo, ReflectSerializationStrategy,
         ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration, ReflectedValue,
     };
 
     use super::{
-        migrate_vm_state_blob, VmStateFieldRename, VmStateMigrationError, VmStateSchema,
-        VmStateTypeSchema,
+        index_target_types, migrate_object, migrate_vm_state_blob, VmStateMigrationError,
+        VmStateSchema, VmStateTypeSchema,
     };
-    use crate::script::{VmStateBlob, VmStateObject, VmStateTypeIdentity};
+    use crate::script::{VmStateBlob, VmStateFieldValue, VmStateObject, VmStateTypeIdentity};
+
+    const PERF_SAMPLE_PAIRS: usize = 15;
+
+    fn state_field_id(field_key: &str) -> ReflectFieldId {
+        ReflectFieldId::from_stable_keys("tests.vm-state-field", field_key)
+    }
+
+    fn state_field(
+        name: impl Into<String>,
+        value_type_path: impl Into<String>,
+        editor_hint: ReflectEditorHint,
+    ) -> ReflectFieldInfo {
+        let name = name.into();
+        ReflectFieldInfo::new(
+            state_field_id(&name),
+            name.clone(),
+            value_type_path,
+            editor_hint,
+        )
+    }
+
+    fn legacy_index_target_types(
+        target: &VmStateSchema,
+    ) -> Result<BTreeMap<&str, &VmStateTypeSchema>, VmStateMigrationError> {
+        let mut target_types = BTreeMap::new();
+        for target_type in &target.types {
+            let type_path = target_type.registration.type_path.type_path();
+            if !target_type.registration.serializable {
+                return Err(VmStateMigrationError::NonSerializableTargetType {
+                    type_path: type_path.to_string(),
+                });
+            }
+            if target_types.insert(type_path, target_type).is_some() {
+                return Err(VmStateMigrationError::DuplicateTargetType {
+                    type_path: type_path.to_string(),
+                });
+            }
+        }
+        Ok(target_types)
+    }
+
+    fn legacy_validate_target_fields(
+        target: &VmStateTypeSchema,
+    ) -> Result<BTreeSet<ReflectFieldId>, VmStateMigrationError> {
+        let mut ids = BTreeSet::new();
+        for field in target
+            .registration
+            .type_info
+            .fields
+            .iter()
+            .filter(|field| field.serializable)
+        {
+            if !ids.insert(field.id) {
+                return Err(VmStateMigrationError::DuplicateTargetField {
+                    type_path: target.registration.type_path.type_path().to_string(),
+                    field: field.id.to_string(),
+                });
+            }
+        }
+        Ok(ids)
+    }
+
+    fn legacy_migrate_object(
+        object: VmStateObject,
+        target: &VmStateTypeSchema,
+    ) -> Result<VmStateObject, VmStateMigrationError> {
+        let mut source_fields = BTreeMap::new();
+        for field in object.fields {
+            source_fields.insert(field.field_id, field.value);
+        }
+
+        legacy_validate_target_fields(target)?;
+        let target_fields = target
+            .registration
+            .type_info
+            .fields
+            .iter()
+            .filter(|field| field.serializable)
+            .collect::<Vec<_>>();
+        let mut fields = Vec::with_capacity(target_fields.len());
+        for field in target_fields {
+            let value = source_fields.remove(&field.id);
+            let value = match value {
+                Some(value) => value,
+                None => field.default_value.clone().ok_or_else(|| {
+                    VmStateMigrationError::MissingRequiredField {
+                        type_path: target.registration.type_path.type_path().to_string(),
+                        field: field.name.clone(),
+                    }
+                })?,
+            };
+            fields.push(VmStateFieldValue::new(field.id, value));
+        }
+
+        Ok(VmStateObject {
+            type_path: target.registration.type_path.clone(),
+            fields,
+        })
+    }
+
+    fn measure_pairs<L, O>(mut legacy: L, mut optimized: O) -> (Vec<Duration>, Vec<Duration>)
+    where
+        L: FnMut() -> usize,
+        O: FnMut() -> usize,
+    {
+        let mut legacy_samples = Vec::with_capacity(PERF_SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(PERF_SAMPLE_PAIRS);
+        for pair in 0..PERF_SAMPLE_PAIRS {
+            let mut measure_legacy = || {
+                let started = Instant::now();
+                black_box(legacy());
+                legacy_samples.push(started.elapsed());
+            };
+            let mut measure_optimized = || {
+                let started = Instant::now();
+                black_box(optimized());
+                optimized_samples.push(started.elapsed());
+            };
+            if pair % 2 == 0 {
+                measure_legacy();
+                measure_optimized();
+            } else {
+                measure_optimized();
+                measure_legacy();
+            }
+        }
+        (legacy_samples, optimized_samples)
+    }
+
+    fn nearest_rank(samples: &[Duration], percentile: usize) -> Duration {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = sorted.len().saturating_mul(percentile).div_ceil(100);
+        sorted[rank.saturating_sub(1)]
+    }
+
+    fn duration_csv(samples: &[Duration]) -> String {
+        samples
+            .iter()
+            .map(|sample| sample.as_nanos().to_string())
+            .collect::<Vec<_>>()
+            .join(",")
+    }
+
+    fn assert_hash_index_target(
+        label: &str,
+        legacy_p95: Duration,
+        optimized_p95: Duration,
+        maximum_ratio_percent: u128,
+        maximum_elapsed: Duration,
+    ) {
+        assert!(
+            optimized_p95.as_nanos().saturating_mul(100)
+                <= legacy_p95
+                    .as_nanos()
+                    .saturating_mul(maximum_ratio_percent),
+            "{label} hash index exceeds the P95 ratio target: legacy={legacy_p95:?}, optimized={optimized_p95:?}, maximum_ratio_percent={maximum_ratio_percent}"
+        );
+        assert!(
+            optimized_p95 <= maximum_elapsed,
+            "{label} hash index exceeds the release budget: optimized={optimized_p95:?}, maximum={maximum_elapsed:?}"
+        );
+    }
 
     #[test]
-    fn schema_change_migrates_fields() {
+    fn vm_schema_rejects_non_finite_default_values_before_encoding() {
+        let schema = VmStateSchema {
+            schema_version: 2,
+            types: vec![VmStateTypeSchema {
+                registration: ReflectTypeRegistration::new(
+                    ReflectTypePath::new("game.PlayerState", "PlayerState").unwrap(),
+                    "Player State",
+                    ReflectTypeInfo::struct_with_fields(vec![state_field(
+                        "health",
+                        "Scalar",
+                        ReflectEditorHint::Scalar,
+                    )
+                    .with_default_value(ReflectedValue::Scalar(f32::NAN))]),
+                    ReflectSerializationStrategy::Value,
+                ),
+                type_hash: 1,
+            }],
+        };
+
+        assert!(matches!(
+            schema
+                .to_json()
+                .expect_err("VM schema defaults must pass reflection value admission"),
+            VmStateMigrationError::ReflectedValueRejected {
+                ref type_path,
+                ref field,
+                ..
+            } if type_path == "game.PlayerState" && field == "health"
+        ));
+    }
+
+    #[test]
+    fn vm_schema_rejects_legacy_field_rename_maps() {
+        let schema = VmStateSchema {
+            schema_version: 3,
+            types: vec![VmStateTypeSchema {
+                registration: ReflectTypeRegistration::new(
+                    ReflectTypePath::new("game.PlayerState", "PlayerState").unwrap(),
+                    "Player State",
+                    ReflectTypeInfo::struct_with_fields(vec![state_field(
+                        "health",
+                        "f64",
+                        ReflectEditorHint::Scalar,
+                    )]),
+                    ReflectSerializationStrategy::Value,
+                ),
+                type_hash: 1,
+            }],
+        };
+        let mut encoded = serde_json::to_value(schema).unwrap();
+        encoded["types"][0]["renames"] = serde_json::json!([{
+            "from": "old_health",
+            "to": "health"
+        }]);
+
+        assert!(matches!(
+            VmStateSchema::from_json(&encoded.to_string()),
+            Err(VmStateMigrationError::SchemaDecode { .. })
+        ));
+    }
+
+    #[test]
+    fn stable_field_id_survives_current_name_change_without_migration_map() {
         let type_path = ReflectTypePath::new("game.PlayerState", "PlayerState").unwrap();
+        let source_health = ReflectFieldInfo::new(
+            state_field_id("health"),
+            "old_health",
+            "f64",
+            ReflectEditorHint::Scalar,
+        );
+        assert_ne!(source_health.name, "health");
         let source = VmStateBlob::from_reflected_objects(
             1,
             vec![VmStateTypeIdentity {
@@ -277,9 +498,12 @@ mod tests {
             &[VmStateObject {
                 type_path: type_path.clone(),
                 fields: vec![
-                    ReflectFieldValue::new("old_health", ReflectedValue::Scalar(75.0)),
-                    ReflectFieldValue::new("name", ReflectedValue::String("Ada".to_string())),
-                    ReflectFieldValue::new("removed", ReflectedValue::Bool(true)),
+                    VmStateFieldValue::new(source_health.id, ReflectedValue::Scalar(75.0)),
+                    VmStateFieldValue::new(
+                        state_field_id("name"),
+                        ReflectedValue::String("Ada".to_string()),
+                    ),
+                    VmStateFieldValue::new(state_field_id("removed"), ReflectedValue::Bool(true)),
                 ],
             }],
         )
@@ -291,18 +515,14 @@ mod tests {
                     type_path.clone(),
                     "Player State",
                     ReflectTypeInfo::struct_with_fields(vec![
-                        ReflectFieldInfo::new("health", "f64", ReflectEditorHint::Scalar),
-                        ReflectFieldInfo::new("max_health", "f64", ReflectEditorHint::Scalar)
+                        state_field("health", "f64", ReflectEditorHint::Scalar),
+                        state_field("max_health", "f64", ReflectEditorHint::Scalar)
                             .with_default_value(ReflectedValue::Scalar(100.0)),
-                        ReflectFieldInfo::new("name", "String", ReflectEditorHint::String),
+                        state_field("name", "String", ReflectEditorHint::String),
                     ]),
                     ReflectSerializationStrategy::Value,
                 ),
                 type_hash: 2,
-                renames: vec![VmStateFieldRename {
-                    from: "old_health".to_string(),
-                    to: "health".to_string(),
-                }],
             }],
         };
 
@@ -321,9 +541,15 @@ mod tests {
             vec![VmStateObject {
                 type_path,
                 fields: vec![
-                    ReflectFieldValue::new("health", ReflectedValue::Scalar(75.0)),
-                    ReflectFieldValue::new("max_health", ReflectedValue::Scalar(100.0)),
-                    ReflectFieldValue::new("name", ReflectedValue::String("Ada".to_string())),
+                    VmStateFieldValue::new(state_field_id("health"), ReflectedValue::Scalar(75.0),),
+                    VmStateFieldValue::new(
+                        state_field_id("max_health"),
+                        ReflectedValue::Scalar(100.0),
+                    ),
+                    VmStateFieldValue::new(
+                        state_field_id("name"),
+                        ReflectedValue::String("Ada".to_string()),
+                    ),
                 ],
             }]
         );
@@ -374,6 +600,160 @@ mod tests {
             VmStateMigrationError::MissingSourceTypeIdentity {
                 type_path: "game.PlayerState".to_string(),
             }
+        );
+    }
+
+    #[test]
+    fn optimization_wave_20260825vw_runtime129_migration_uses_hash_indexes() {
+        let production = include_str!("state_migration.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .unwrap();
+
+        assert!(production.contains("use std::collections::{HashMap, HashSet};"));
+        assert!(production.contains("HashMap::with_capacity(target.types.len())"));
+        assert!(production.contains("HashMap::with_capacity(object.fields.len())"));
+        assert!(production
+            .contains("HashSet::with_capacity(target.registration.type_info.fields.len())"));
+        assert!(!production.contains("VmStateFieldRename"));
+        assert!(!production.contains("BTreeMap"));
+        assert!(!production.contains("BTreeSet"));
+    }
+
+    #[test]
+    #[ignore = "managed Runtime129 performance evidence"]
+    fn optimization_wave_20260825vw_runtime129_migration_hash_index_evidence() {
+        const TYPE_COUNT: usize = 8_192;
+        const FIELD_COUNT: usize = 4_096;
+
+        let target = VmStateSchema {
+            schema_version: 2,
+            types: (0..TYPE_COUNT)
+                .map(|index| VmStateTypeSchema {
+                    registration: ReflectTypeRegistration::new(
+                        ReflectTypePath::new(
+                            format!("game.State{index:05}"),
+                            format!("State{index:05}"),
+                        )
+                        .unwrap(),
+                        format!("State {index:05}"),
+                        ReflectTypeInfo::struct_with_fields(Vec::new()),
+                        ReflectSerializationStrategy::Value,
+                    ),
+                    type_hash: index as u32,
+                })
+                .collect(),
+        };
+        let target_paths = target
+            .types
+            .iter()
+            .map(|schema| schema.registration.type_path.type_path())
+            .collect::<Vec<_>>();
+        let legacy_type_index = || {
+            let index = legacy_index_target_types(black_box(&target)).unwrap();
+            (0..TYPE_COUNT).fold(index.len(), |sum, probe| {
+                let type_path = target_paths[(probe * 4_093) % TYPE_COUNT];
+                sum.wrapping_add(index.get(type_path).unwrap().type_hash as usize)
+            })
+        };
+        let optimized_type_index = || {
+            let index = index_target_types(black_box(&target)).unwrap();
+            (0..TYPE_COUNT).fold(index.len(), |sum, probe| {
+                let type_path = target_paths[(probe * 4_093) % TYPE_COUNT];
+                sum.wrapping_add(index.get(type_path).unwrap().type_hash as usize)
+            })
+        };
+        assert_eq!(legacy_type_index(), optimized_type_index());
+        black_box(legacy_type_index());
+        black_box(optimized_type_index());
+        let (legacy_type_samples, optimized_type_samples) =
+            measure_pairs(legacy_type_index, optimized_type_index);
+
+        let field_names = (0..FIELD_COUNT)
+            .map(|index| format!("field_{index:05}"))
+            .collect::<Vec<_>>();
+        let migrated_type_path =
+            ReflectTypePath::new("game.MigratedState", "MigratedState").unwrap();
+        let migrated_type = VmStateTypeSchema {
+            registration: ReflectTypeRegistration::new(
+                migrated_type_path.clone(),
+                "Migrated State",
+                ReflectTypeInfo::struct_with_fields(
+                    field_names
+                        .iter()
+                        .map(|name| state_field(name.clone(), "f64", ReflectEditorHint::Scalar))
+                        .collect(),
+                ),
+                ReflectSerializationStrategy::Value,
+            ),
+            type_hash: 2,
+        };
+        let source_object = VmStateObject {
+            type_path: migrated_type_path,
+            fields: (0..FIELD_COUNT)
+                .map(|probe| {
+                    let index = (probe * 4_093) % FIELD_COUNT;
+                    VmStateFieldValue::new(
+                        state_field_id(&field_names[index]),
+                        ReflectedValue::Scalar(index as f32),
+                    )
+                })
+                .collect(),
+        };
+        assert_eq!(
+            legacy_migrate_object(source_object.clone(), &migrated_type).unwrap(),
+            migrate_object(source_object.clone(), &migrated_type).unwrap()
+        );
+        let legacy_field_migration = || {
+            legacy_migrate_object(black_box(source_object.clone()), black_box(&migrated_type))
+                .unwrap()
+                .fields
+                .len()
+        };
+        let optimized_field_migration = || {
+            migrate_object(black_box(source_object.clone()), black_box(&migrated_type))
+                .unwrap()
+                .fields
+                .len()
+        };
+        assert_eq!(legacy_field_migration(), optimized_field_migration());
+        black_box(legacy_field_migration());
+        black_box(optimized_field_migration());
+        let (legacy_field_samples, optimized_field_samples) =
+            measure_pairs(legacy_field_migration, optimized_field_migration);
+
+        let legacy_type_p95 = nearest_rank(&legacy_type_samples, 95);
+        let optimized_type_p95 = nearest_rank(&optimized_type_samples, 95);
+        let legacy_field_p95 = nearest_rank(&legacy_field_samples, 95);
+        let optimized_field_p95 = nearest_rank(&optimized_field_samples, 95);
+        eprintln!(
+            "RUNTIME129_VM_STATE_MIGRATION_HASH_INDEX_BENCH_V2 target_types={TYPE_COUNT} stable_id_fields={FIELD_COUNT} sample_pairs={PERF_SAMPLE_PAIRS} pair_order=alternating_legacy_even type_legacy_p50_ns={} type_legacy_p95_ns={} type_optimized_p50_ns={} type_optimized_p95_ns={} field_legacy_p50_ns={} field_legacy_p95_ns={} field_optimized_p50_ns={} field_optimized_p95_ns={} type_legacy_ns={} type_optimized_ns={} field_legacy_ns={} field_optimized_ns={}",
+            nearest_rank(&legacy_type_samples, 50).as_nanos(),
+            legacy_type_p95.as_nanos(),
+            nearest_rank(&optimized_type_samples, 50).as_nanos(),
+            optimized_type_p95.as_nanos(),
+            nearest_rank(&legacy_field_samples, 50).as_nanos(),
+            legacy_field_p95.as_nanos(),
+            nearest_rank(&optimized_field_samples, 50).as_nanos(),
+            optimized_field_p95.as_nanos(),
+            duration_csv(&legacy_type_samples),
+            duration_csv(&optimized_type_samples),
+            duration_csv(&legacy_field_samples),
+            duration_csv(&optimized_field_samples),
+        );
+        assert_hash_index_target(
+            "target-type indexing",
+            legacy_type_p95,
+            optimized_type_p95,
+            80,
+            Duration::from_millis(20),
+        );
+        assert_hash_index_target(
+            "field migration",
+            legacy_field_p95,
+            optimized_field_p95,
+            90,
+            Duration::from_millis(50),
         );
     }
 }

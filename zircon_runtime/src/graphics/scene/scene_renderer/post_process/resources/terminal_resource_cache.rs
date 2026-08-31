@@ -145,7 +145,14 @@ fn create_smaa_stage_texture(
 
 struct BoundedResourceCache<K, V> {
     capacity: usize,
-    entries: Vec<(K, Arc<V>)>,
+    entries: Vec<BoundedResourceCacheEntry<K, V>>,
+    access_epoch: u64,
+}
+
+struct BoundedResourceCacheEntry<K, V> {
+    key: K,
+    resource: Arc<V>,
+    last_used: u64,
 }
 
 impl<K, V> BoundedResourceCache<K, V>
@@ -156,25 +163,34 @@ where
         Self {
             capacity: capacity.max(1),
             entries: Vec::with_capacity(capacity.max(1)),
+            access_epoch: 0,
         }
     }
 
     fn get_or_insert_with(&mut self, key: K, create: impl FnOnce() -> V) -> Arc<V> {
-        if let Some(index) = self
-            .entries
-            .iter()
-            .position(|(candidate, _)| candidate == &key)
-        {
-            let entry = self.entries.remove(index);
-            let resource = entry.1.clone();
-            self.entries.push(entry);
-            return resource;
-        }
-        if self.entries.len() == self.capacity {
-            self.entries.remove(0);
+        self.access_epoch += 1;
+        if let Some(entry) = self.entries.iter_mut().find(|entry| entry.key == key) {
+            entry.last_used = self.access_epoch;
+            return entry.resource.clone();
         }
         let resource = Arc::new(create());
-        self.entries.push((key, resource.clone()));
+        let entry = BoundedResourceCacheEntry {
+            key,
+            resource: resource.clone(),
+            last_used: self.access_epoch,
+        };
+        if self.entries.len() == self.capacity {
+            let oldest_index = self
+                .entries
+                .iter()
+                .enumerate()
+                .min_by_key(|(_, entry)| entry.last_used)
+                .map(|(index, _)| index)
+                .expect("a full bounded cache has an oldest entry");
+            self.entries[oldest_index] = entry;
+        } else {
+            self.entries.push(entry);
+        }
         resource
     }
 }
@@ -217,6 +233,20 @@ mod tests {
         assert_eq!(*replacement, 2);
         assert_eq!(*rebuilt, 3);
         assert!(!Arc::ptr_eq(&first, &rebuilt));
+    }
+
+    #[test]
+    fn bounded_resource_cache_hit_promotes_the_entry_without_reordering_slots() {
+        let mut cache = BoundedResourceCache::new(2);
+        let first = cache.get_or_insert_with(1_u32, || 10_u32);
+        cache.get_or_insert_with(2_u32, || 20_u32);
+
+        let warm_first = cache.get_or_insert_with(1_u32, || 11_u32);
+        assert!(Arc::ptr_eq(&first, &warm_first));
+        assert_eq!([cache.entries[0].key, cache.entries[1].key], [1, 2]);
+
+        cache.get_or_insert_with(3_u32, || 30_u32);
+        assert_eq!([cache.entries[0].key, cache.entries[1].key], [1, 3]);
     }
 
     #[test]

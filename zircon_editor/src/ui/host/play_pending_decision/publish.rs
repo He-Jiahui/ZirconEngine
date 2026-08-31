@@ -1,50 +1,27 @@
 use crate::core::notifications::{DecisionNotificationCenter, DecisionReceiptCursor};
-use crate::core::play::PendingEditDecisionPrompt;
 use crate::ui::host::EditorHostEventController;
 
 use super::adapter::ExpiredReceiptRepublish;
-use super::PlayPendingDecisionOption;
+use super::PlayPendingDecisionPublishError;
 
 impl EditorHostEventController {
-    pub(crate) fn publish_pending_edit_decision(
+    pub(crate) fn reconcile_pending_play_decision_from_controller(
         &self,
-        prompt: Option<&PendingEditDecisionPrompt>,
-    ) -> Result<bool, String> {
-        if prompt.is_none() {
-            return Ok(false);
-        }
-        let center = self
-            .context()
-            .notifications()
-            .decisions()
-            .map_err(|error| error.to_string())?;
+    ) -> Result<bool, PlayPendingDecisionPublishError> {
+        let center = self.context().notifications().decisions()?;
         self.reconcile_pending_play_decision(center)
-    }
-
-    pub(crate) fn pending_play_decision_options(
-        &self,
-    ) -> Result<Vec<PlayPendingDecisionOption>, String> {
-        let center = self
-            .context()
-            .notifications()
-            .decisions()
-            .map_err(|error| error.to_string())?;
-        self.reconcile_pending_play_decision(center)?;
-        Ok(self
-            .play_pending_decisions()
-            .pending_options(center, self.context().i18n()))
     }
 
     pub(super) fn reconcile_pending_play_decision(
         &self,
         center: &DecisionNotificationCenter,
-    ) -> Result<bool, String> {
+    ) -> Result<bool, PlayPendingDecisionPublishError> {
         let mut published = false;
         let prompt_available =
             self.play_sessions()
                 .with_pending_edit_decision_prompt(|prompt| {
                     published = self.play_pending_decisions().publish(center, prompt)?;
-                    Ok::<(), String>(())
+                    Ok::<(), PlayPendingDecisionPublishError>(())
                 })?;
         Ok(prompt_available && published)
     }
@@ -53,7 +30,7 @@ impl EditorHostEventController {
         &self,
         center: &DecisionNotificationCenter,
         stale_cutoff: DecisionReceiptCursor,
-    ) -> Result<ExpiredReceiptRepublish, String> {
+    ) -> Result<ExpiredReceiptRepublish, PlayPendingDecisionPublishError> {
         let mut outcome = ExpiredReceiptRepublish::NotRequired;
         let prompt_available =
             self.play_sessions()
@@ -66,7 +43,7 @@ impl EditorHostEventController {
                     } else {
                         ExpiredReceiptRepublish::ExistingDecision
                     };
-                    Ok::<(), String>(())
+                    Ok::<(), PlayPendingDecisionPublishError>(())
                 })?;
         Ok(if prompt_available {
             outcome

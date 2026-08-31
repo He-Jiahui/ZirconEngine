@@ -1,10 +1,10 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::scene::{EntityId, World};
 
-use super::super::snapshot::build_inspection_fields;
 use super::super::WorldInspectionField;
+use super::super::snapshot::build_inspection_fields;
 
 /// Immutable inspector payload for one entity in one runtime generation.
 #[derive(Clone, Debug, PartialEq)]
@@ -57,7 +57,7 @@ impl WorldInspectionFieldsArtifact {
                     field,
                 )
             })
-            .collect::<BTreeMap<_, _>>();
+            .collect::<HashMap<_, _>>();
         let current_fields = self
             .fields
             .iter()
@@ -70,7 +70,7 @@ impl WorldInspectionFieldsArtifact {
                     field,
                 )
             })
-            .collect::<BTreeMap<_, _>>();
+            .collect::<HashMap<_, _>>();
 
         let changed_fields = self
             .fields
@@ -162,3 +162,7 @@ impl WorldInspectionFieldDelta {
         &self.removed_fields
     }
 }
+
+#[cfg(test)]
+#[path = "fields/hash_delta_tests.rs"]
+mod hash_delta_tests;

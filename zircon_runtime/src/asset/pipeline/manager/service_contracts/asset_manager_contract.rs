@@ -5,7 +5,7 @@ use crossbeam_channel::unbounded;
 use super::super::errors::{asset_error, asset_error_message};
 use super::super::project_asset_manager::ProjectAssetManager;
 use super::super::records::{build_project_info, build_status_record};
-use super::super::resource_sync::{clear_removed_project_resources, project_locators};
+use super::super::resource_sync::{project_resource_identities, reconcile_project_resources};
 use super::super::{
     AssetManager as AssetManagerContract, AssetPipelineInfo, AssetStatusRecord, ProjectInfo,
 };
@@ -13,6 +13,7 @@ use crate::asset::project::ProjectManager;
 use crate::asset::watch::{AssetChange, AssetChangeKind, AssetWatchError};
 use crate::asset::{
     AssetImportError, AssetImporterCapabilityReport, AssetImporterHandler, AssetUri,
+    ProjectImportReceipt,
 };
 use crate::core::resource::{ResourceMutationBatch, ResourceScheme};
 use std::sync::Arc;
@@ -140,6 +141,116 @@ impl AssetManagerContract for ProjectAssetManager {
         receiver
     }
 
+    fn relocate_project_source(
+        &self,
+        source_uuid: crate::asset::AssetUuid,
+        target: AssetUri,
+    ) -> Result<Vec<AssetStatusRecord>, CoreError> {
+        ProjectAssetManager::relocate_project_source(self, source_uuid, target)
+    }
+
+    fn import_model_source(
+        &self,
+        source_path: &std::path::Path,
+    ) -> Result<ProjectImportReceipt, CoreError> {
+        const DEFAULT_PROJECT_MATERIAL_URI: &str = "res://materials/default.zmaterial";
+
+        let (expected_generation, expected_preparation_epoch, mut candidate) = {
+            let _generation = self.project_generation_read();
+            let project = self.project_read();
+            let Some(active_project) = project.as_ref() else {
+                return Err(asset_error_message(
+                    "model import requires an active directory project",
+                ));
+            };
+            (
+                active_project.catalog_input_generation().sequence(),
+                self.current_project_preparation_epoch(),
+                active_project.clone(),
+            )
+        };
+        let source_plan = candidate
+            .prepare_model_import_source(source_path)
+            .map_err(asset_error)?;
+        let source_uri = source_plan.source_uri().clone();
+        let source_watch_echoes = source_plan.watch_echoes().to_vec();
+        let source_path = source_plan.source_path().to_path_buf();
+        let material_uri = AssetUri::parse(DEFAULT_PROJECT_MATERIAL_URI).map_err(asset_error)?;
+        let material_path = candidate
+            .existing_or_primary_project_source_path_for_uri(&material_uri)
+            .map_err(asset_error)?;
+        let material_previous_records = candidate.source_resource_records(&material_uri);
+        let source_paths = vec![
+            (
+                source_uri.clone(),
+                source_path,
+                candidate.source_resource_records(&source_uri),
+            ),
+            (material_uri, material_path, material_previous_records),
+        ];
+        let mut prepared_generation = candidate
+            .prepare_model_import_batch(source_plan)
+            .map_err(asset_error)?;
+        let imported = prepared_generation.imported().to_vec();
+        let affected = prepared_generation.affected().to_vec();
+        let ready_payloads = prepared_generation.take_ready_payloads();
+        let prepared = self.prepare_compound_project_resource_sync(
+            &candidate,
+            &source_paths,
+            &imported,
+            &affected,
+            ready_payloads,
+        );
+        let receipt = ProjectImportReceipt::new(
+            source_uri,
+            candidate.catalog_input_generation().sequence(),
+            imported,
+        );
+        let generation = self.project_generation_write();
+        let mut project = self.project_write();
+        let Some(active_project) = project.as_ref() else {
+            return Err(asset_error_message(
+                "model import lost its active project before commit",
+            ));
+        };
+        if active_project.catalog_input_generation().sequence() != expected_generation
+            || self.current_project_preparation_epoch() != expected_preparation_epoch
+        {
+            return Err(asset_error_message(
+                "model import was superseded by a newer project generation",
+            ));
+        }
+        self.commit_compound_project_resource_sync(
+            prepared,
+            || {
+                prepared_generation
+                    .commit()
+                    .and_then(|outcome| outcome.ensure_durable())
+                    .map_err(asset_error)
+            },
+            || {
+                *project = Some(candidate);
+                drop(project);
+            },
+        )?;
+        self.register_transaction_watch_echoes(source_watch_echoes);
+        self.publish_project_generation(
+            generation,
+            receipt
+                .committed_records()
+                .iter()
+                .map(|record| {
+                    AssetChange::new(
+                        AssetChangeKind::Modified,
+                        record.primary_locator().clone(),
+                        None,
+                    )
+                })
+                .collect(),
+        );
+        Ok(receipt)
+    }
+
     fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError> {
         let uri = AssetUri::parse(uri).map_err(asset_error)?;
         let (
@@ -224,7 +335,12 @@ impl AssetManagerContract for ProjectAssetManager {
     }
 
     fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError> {
-        let (expected_generation, expected_preparation_epoch, previous_locators, mut candidate) = {
+        let (
+            expected_generation,
+            expected_preparation_epoch,
+            previous_project_identities,
+            mut candidate,
+        ) = {
             let _generation = self.project_generation_read();
             let project = self.project_read();
             let Some(active_project) = project.as_ref() else {
@@ -233,7 +349,7 @@ impl AssetManagerContract for ProjectAssetManager {
             (
                 active_project.catalog_input_generation().sequence(),
                 self.current_project_preparation_epoch(),
-                project_locators(active_project),
+                project_resource_identities(active_project),
                 active_project.clone(),
             )
         };
@@ -256,9 +372,9 @@ impl AssetManagerContract for ProjectAssetManager {
                 "project reimport was superseded by a newer project generation",
             ));
         }
-        let batch = clear_removed_project_resources(
+        let batch = reconcile_project_resources(
             ResourceMutationBatch::new(),
-            &previous_locators,
+            &previous_project_identities,
             &candidate,
         );
         let commit_outcome = self.commit_project_resource_sync(

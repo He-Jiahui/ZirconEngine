@@ -3,6 +3,7 @@ use std::sync::Arc;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::paint_frame::HostRenderCommandSource;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract) enum ChromeCommandLayer {
@@ -59,5 +60,6 @@ pub(in crate::ui::retained_host::host_contract) struct ChromeCommand {
     pub(in crate::ui::retained_host::host_contract) z_index: i32,
     pub(in crate::ui::retained_host::host_contract) frame: FrameRect,
     pub(in crate::ui::retained_host::host_contract) clip: Option<FrameRect>,
+    pub(in crate::ui::retained_host::host_contract) source: Option<HostRenderCommandSource>,
     pub(in crate::ui::retained_host::host_contract) kind: ChromeCommandKind,
 }

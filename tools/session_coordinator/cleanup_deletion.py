@@ -178,18 +178,18 @@ def interrupted_target_deletions(
         elif payload.get("result") not in {"failed", "failed_after_restart"}:
             completed.add(deletion_id)
 
+    latest_by_target: dict[str, dict[str, object]] = {}
+    for deletion_id, payload in started.items():
+        if deletion_id in completed:
+            continue
+        target_key = payload.get("target_key")
+        if isinstance(target_key, str):
+            latest_by_target[target_key] = payload
+
     interrupted: list[dict[str, object]] = []
     for reservation in reservations:
         target_key = str(reservation["target_key"])
-        evidence = next(
-            (
-                payload
-                for deletion_id, payload in reversed(tuple(started.items()))
-                if deletion_id not in completed
-                and payload.get("target_key") == target_key
-            ),
-            None,
-        )
+        evidence = latest_by_target.get(target_key)
         if evidence is None:
             continue
         interrupted.append(dict(evidence))

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 
 use crate::core::math::{Real, Vec3};
@@ -103,10 +103,28 @@ impl VisibilityStaticIndex {
             return self.rebuild(instances);
         }
 
-        let instances_by_stable_instance_key = instances
+        let changed_key_count = plan
+            .inserted_stable_instance_keys
+            .len()
+            .saturating_add(plan.updated_stable_instance_keys.len());
+        let mut instances_by_changed_key =
+            HashMap::<u64, Option<&VisibilityBvhInstance>>::with_capacity(changed_key_count);
+        for stable_instance_key in plan
+            .inserted_stable_instance_keys
             .iter()
-            .map(|instance| (instance.stable_instance_key, instance))
-            .collect::<BTreeMap<_, _>>();
+            .chain(plan.updated_stable_instance_keys.iter())
+        {
+            instances_by_changed_key.insert(*stable_instance_key, None);
+        }
+        if !instances_by_changed_key.is_empty() {
+            for instance in instances {
+                if let Some(changed_instance) =
+                    instances_by_changed_key.get_mut(&instance.stable_instance_key)
+                {
+                    *changed_instance = Some(instance);
+                }
+            }
+        }
 
         for stable_instance_key in &plan.removed_stable_instance_keys {
             self.remove(*stable_instance_key);
@@ -116,7 +134,11 @@ impl VisibilityStaticIndex {
             .iter()
             .chain(plan.updated_stable_instance_keys.iter())
         {
-            if let Some(instance) = instances_by_stable_instance_key.get(stable_instance_key) {
+            if let Some(instance) = instances_by_changed_key
+                .get(stable_instance_key)
+                .copied()
+                .flatten()
+            {
                 self.insert_or_replace(instance.stable_instance_key, instance.bounds);
             } else {
                 self.remove(*stable_instance_key);
@@ -434,6 +456,9 @@ fn append_ray_boundary_neighbors(
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use super::*;
     use crate::core::framework::render::RenderLayerSet;
     use crate::core::framework::scene::{EntityId, Mobility};
@@ -489,6 +514,126 @@ mod tests {
             incremental.query_bounds(removed_entity_query),
             Vec::<EntityId>::new()
         );
+    }
+
+    #[test]
+    fn visibility_static_index_incremental_projection_keeps_last_duplicate_instance() {
+        let mut index = VisibilityStaticIndex::new(16.0);
+        index.rebuild(&[instance(1, Vec3::new(-32.0, 0.0, 0.0), 1.0)]);
+        let current = [
+            instance(1, Vec3::ZERO, 1.0),
+            instance(1, Vec3::new(64.0, 0.0, 0.0), 1.0),
+        ];
+
+        index.apply_update_plan(
+            &current,
+            &VisibilityBvhUpdatePlan {
+                strategy: VisibilityBvhUpdateStrategy::Incremental,
+                inserted_stable_instance_keys: Vec::new(),
+                updated_stable_instance_keys: vec![1],
+                removed_stable_instance_keys: Vec::new(),
+            },
+        );
+
+        assert_eq!(
+            index.query_bounds(VisibilityBounds {
+                center: Vec3::ZERO,
+                radius: 2.0,
+            }),
+            Vec::<u64>::new(),
+        );
+        assert_eq!(
+            index.query_bounds(VisibilityBounds {
+                center: Vec3::new(64.0, 0.0, 0.0),
+                radius: 2.0,
+            }),
+            vec![1],
+        );
+    }
+
+    #[test]
+    #[ignore = "release performance evidence; run through the validation coordinator"]
+    fn optimization_batch_20260827_runtime09b_dirty_proportional_static_index_evidence() {
+        const INSTANCE_COUNT: usize = 65_536;
+        const CHANGED_KEY_COUNT: usize = 128;
+        const SAMPLE_COUNT: usize = 21;
+        let instances = (0..INSTANCE_COUNT as u64)
+            .map(|key| (key, key.wrapping_mul(17).rotate_left(7)))
+            .collect::<Vec<_>>();
+        let changed_keys = (0..CHANGED_KEY_COUNT as u64)
+            .map(|index| {
+                if index % 8 == 0 {
+                    INSTANCE_COUNT as u64 + index
+                } else {
+                    index * (INSTANCE_COUNT as u64 / CHANGED_KEY_COUNT as u64)
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let legacy = |instances: &[(u64, u64)], changed_keys: &[u64]| {
+            let by_key = instances.iter().copied().collect::<BTreeMap<_, _>>();
+            changed_keys.iter().fold(0_u64, |checksum, key| {
+                checksum.wrapping_add(
+                    by_key
+                        .get(key)
+                        .copied()
+                        .unwrap_or_else(|| key.rotate_left(11)),
+                )
+            })
+        };
+        let optimized = |instances: &[(u64, u64)], changed_keys: &[u64]| {
+            let mut by_changed_key = HashMap::with_capacity(changed_keys.len());
+            for key in changed_keys {
+                by_changed_key.insert(*key, None);
+            }
+            for (key, value) in instances {
+                if let Some(slot) = by_changed_key.get_mut(key) {
+                    *slot = Some(*value);
+                }
+            }
+            changed_keys.iter().fold(0_u64, |checksum, key| {
+                checksum.wrapping_add(
+                    by_changed_key
+                        .get(key)
+                        .copied()
+                        .flatten()
+                        .unwrap_or_else(|| key.rotate_left(11)),
+                )
+            })
+        };
+        assert_eq!(
+            legacy(&instances, &changed_keys),
+            optimized(&instances, &changed_keys)
+        );
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_COUNT);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_COUNT);
+        for sample in 0..SAMPLE_COUNT {
+            if sample % 2 == 0 {
+                let started = Instant::now();
+                black_box(legacy(black_box(&instances), black_box(&changed_keys)));
+                legacy_samples.push(started.elapsed().as_nanos());
+                let started = Instant::now();
+                black_box(optimized(black_box(&instances), black_box(&changed_keys)));
+                optimized_samples.push(started.elapsed().as_nanos());
+            } else {
+                let started = Instant::now();
+                black_box(optimized(black_box(&instances), black_box(&changed_keys)));
+                optimized_samples.push(started.elapsed().as_nanos());
+                let started = Instant::now();
+                black_box(legacy(black_box(&instances), black_box(&changed_keys)));
+                legacy_samples.push(started.elapsed().as_nanos());
+            }
+        }
+        legacy_samples.sort_unstable();
+        optimized_samples.sort_unstable();
+        let legacy_p95 = legacy_samples[(SAMPLE_COUNT - 1) * 95 / 100];
+        let optimized_p95 = optimized_samples[(SAMPLE_COUNT - 1) * 95 / 100];
+        println!(
+            "RUNTIME09B_DIRTY_PROPORTIONAL_STATIC_INDEX_BENCH_V1 instances={INSTANCE_COUNT} changed_keys={CHANGED_KEY_COUNT} legacy_index_entries={INSTANCE_COUNT} optimized_index_entries={CHANGED_KEY_COUNT} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} target_ratio_bp=6000"
+        );
+        assert!(CHANGED_KEY_COUNT * 100 <= INSTANCE_COUNT * 5);
+        assert!(optimized_p95 * 100 <= legacy_p95 * 60);
     }
 
     #[test]

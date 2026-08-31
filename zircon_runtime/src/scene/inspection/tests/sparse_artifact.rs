@@ -5,12 +5,18 @@ fn five_thousand_node_name_edit_updates_one_parent_aggregate_without_sibling_sca
     const NODE_COUNT: usize = 5_000;
 
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
-    let renamed = world.spawn_node(NodeKind::Empty);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let renamed = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(renamed, Some(root)).unwrap();
     let mut unrelated = None;
     for index in 2..NODE_COUNT {
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world.set_parent_checked(entity, Some(root)).unwrap();
         if index == NODE_COUNT / 2 {
             unrelated = Some(entity);
@@ -30,7 +36,7 @@ fn five_thousand_node_name_edit_updates_one_parent_aggregate_without_sibling_sca
     let delta = current
         .published_delta_from(initial.generation())
         .expect("adjacent name edit should publish its bounded delta");
-    let rebuilt_rows = world.inspect_hierarchy();
+    let rebuilt_rows = world.inspection_artifact().hierarchy_rows().to_vec();
 
     assert_eq!(current.summary().node_count(), NODE_COUNT);
     assert_eq!(current.hierarchy_row_override_count(), 2);
@@ -76,9 +82,13 @@ fn hundred_thousand_node_name_delta_stays_sparse_until_a_consumer_reads_the_comp
     const NODE_COUNT: usize = 100_000;
 
     let mut world = World::empty();
-    let renamed = world.spawn_node(NodeKind::Empty);
+    let renamed = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     for _ in 1..NODE_COUNT {
-        world.spawn_node(NodeKind::Empty);
+        world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
     }
     let initial = world.inspection_artifact();
     let before = world.inspection_artifact_diagnostics();
@@ -131,8 +141,12 @@ fn hundred_thousand_node_name_delta_stays_sparse_until_a_consumer_reads_the_comp
 #[test]
 fn cloned_world_materialization_diagnostics_do_not_mutate_the_source_cache() {
     let mut source = World::empty();
-    let renamed = source.spawn_node(NodeKind::Empty);
-    source.spawn_node(NodeKind::Empty);
+    let renamed = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     source.inspection_artifact();
     source.rename_node(renamed, "Sparse clone").unwrap();
     let source_artifact = source.inspection_artifact();
@@ -161,9 +175,15 @@ fn cloned_world_materialization_diagnostics_do_not_mutate_the_source_cache() {
 #[test]
 fn same_generation_sibling_renames_compose_parent_aggregate_updates() {
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
-    let first = world.spawn_node(NodeKind::Empty);
-    let second = world.spawn_node(NodeKind::Empty);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let first = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let second = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(first, Some(root)).unwrap();
     world.set_parent_checked(second, Some(root)).unwrap();
     let initial = world.inspection_artifact();
@@ -195,7 +215,7 @@ fn same_generation_sibling_renames_compose_parent_aggregate_updates() {
         after.hierarchy_child_hash_updates() - before.hierarchy_child_hash_updates(),
         2
     );
-    let rebuilt_rows = world.inspect_hierarchy();
+    let rebuilt_rows = world.inspection_artifact().hierarchy_rows().to_vec();
     for entity in [root, first, second] {
         assert_eq!(
             current.hierarchy_row(entity).map(|row| row.subtree_hash),
@@ -210,9 +230,15 @@ fn same_generation_sibling_renames_compose_parent_aggregate_updates() {
 #[test]
 fn same_generation_ancestor_and_descendant_renames_propagate_deepest_first() {
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
-    let parent = world.spawn_node(NodeKind::Empty);
-    let child = world.spawn_node(NodeKind::Empty);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let parent = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(parent, Some(root)).unwrap();
     world.set_parent_checked(child, Some(parent)).unwrap();
     let initial = world.inspection_artifact();
@@ -245,7 +271,7 @@ fn same_generation_ancestor_and_descendant_renames_propagate_deepest_first() {
         after.hierarchy_child_hash_updates() - before.hierarchy_child_hash_updates(),
         2
     );
-    let rebuilt_rows = world.inspect_hierarchy();
+    let rebuilt_rows = world.inspection_artifact().hierarchy_rows().to_vec();
     for entity in [root, parent, child] {
         assert_eq!(
             current.hierarchy_row(entity).map(|row| row.subtree_hash),
@@ -260,8 +286,12 @@ fn same_generation_ancestor_and_descendant_renames_propagate_deepest_first() {
 #[test]
 fn cyclic_hierarchy_name_change_falls_back_to_explicit_reflow() {
     let mut source = World::empty();
-    let first = source.spawn_node(NodeKind::Empty);
-    let second = source.spawn_node(NodeKind::Empty);
+    let first = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let second = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mut world =
         world_with_serialized_parents(&source, &[(first, Some(second)), (second, Some(first))]);
     let initial = world.inspection_artifact();
@@ -285,7 +315,7 @@ fn cyclic_hierarchy_name_change_falls_back_to_explicit_reflow() {
         after.hierarchy_child_hash_updates(),
         before.hierarchy_child_hash_updates()
     );
-    let rebuilt_rows = world.inspect_hierarchy();
+    let rebuilt_rows = world.inspection_artifact().hierarchy_rows().to_vec();
     assert_eq!(current.hierarchy_rows(), rebuilt_rows.as_slice());
 }
 
@@ -295,7 +325,11 @@ fn sequential_name_edits_keep_the_hierarchy_sparse_without_periodic_full_materia
 
     let mut world = World::empty();
     let entities = (0..NODE_COUNT)
-        .map(|_| world.spawn_node(NodeKind::Empty))
+        .map(|_| {
+            world
+                .spawn_node(NodeKind::Empty)
+                .expect("test scene spawn should succeed")
+        })
         .collect::<Vec<_>>();
     world.inspection_artifact();
     let before = world.inspection_artifact_diagnostics();
@@ -345,7 +379,9 @@ fn hundred_thousand_node_transform_change_publishes_only_the_target_field_delta(
     let mut world = World::empty();
     let mut target = 0;
     for index in 0..NODE_COUNT {
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         if index == NODE_COUNT / 2 {
             target = entity;
         }

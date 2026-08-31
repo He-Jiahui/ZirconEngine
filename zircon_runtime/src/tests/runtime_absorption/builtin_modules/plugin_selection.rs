@@ -15,7 +15,8 @@ fn required_unavailable_runtime_plugin_is_reported_as_fatal_missing() {
         )],
     };
 
-    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest));
+    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest))
+        .expect_err("required unavailable provider must reject composition");
 
     assert!(report
         .required_missing()
@@ -36,9 +37,9 @@ fn optional_unavailable_runtime_plugin_stays_warning_only() {
         )],
     };
 
-    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest));
+    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest))
+        .expect("optional unavailable provider should retain ready composition");
 
-    assert!(report.required_missing().is_empty());
     assert!(report.warning_messages().iter().any(|warning| warning
         .contains("optional runtime plugin VirtualGeometry is unavailable")
         && warning.contains("no linked or native dynamic provider registration")));
@@ -53,7 +54,8 @@ fn physics_animation_manifest_entries_require_linked_external_plugins() {
         ],
     };
 
-    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest));
+    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest))
+        .expect_err("required external providers must reject composition");
 
     assert_eq!(report.required_missing().len(), 2);
     assert!(report

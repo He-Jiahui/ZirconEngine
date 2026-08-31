@@ -2,8 +2,7 @@ use super::*;
 
 #[test]
 fn template_surface_builder_maps_known_container_components_into_shared_runtime_nodes() {
-    let document = UiTemplateLoader::load_toml_str(SHARED_CONTAINER_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(SHARED_CONTAINER_TEMPLATE_TOML);
 
     let surface = UiTemplateSurfaceBuilder::build_surface(
         UiTreeId::new("shared.container.template"),
@@ -81,8 +80,7 @@ fn template_surface_builder_maps_known_container_components_into_shared_runtime_
 
 #[test]
 fn template_surface_builder_leaves_projection_lazy_until_layout_or_rebuild() {
-    let document = UiTemplateLoader::load_toml_str(SHARED_CONTAINER_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(SHARED_CONTAINER_TEMPLATE_TOML);
 
     let mut surface = UiTemplateSurfaceBuilder::build_surface(
         UiTreeId::new("shared.container.template.lazy"),
@@ -107,8 +105,7 @@ fn template_surface_builder_leaves_projection_lazy_until_layout_or_rebuild() {
 
 #[test]
 fn template_tree_builder_maps_layout_contract_attributes_into_shared_runtime_nodes() {
-    let document = UiTemplateLoader::load_toml_str(LAYOUT_CONTRACT_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(LAYOUT_CONTRACT_TEMPLATE_TOML);
 
     let tree =
         UiTemplateTreeBuilder::build_tree(UiTreeId::new("layout.contract"), &instance).unwrap();

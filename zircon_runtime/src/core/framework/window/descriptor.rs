@@ -88,12 +88,7 @@ impl WindowDescriptor {
         let logical_size = self.resolution.logical_size();
         let constraints = self.resize_constraints.validated();
         vec![
-            format!(
-                "window.primary_window={}",
-                self.primary_window
-                    .map(|handle| handle.raw().to_string())
-                    .unwrap_or_else(|| "none".to_string())
-            ),
+            format_primary_window_diagnostic(self.primary_window),
             format!("window.title={}", self.title),
             format!("window.present_mode={:?}", self.present_mode),
             format!("window.mode={:?}", self.mode),
@@ -108,13 +103,7 @@ impl WindowDescriptor {
                 format_window_axis(logical_size[1])
             ),
             format!("window.scale_factor={}", self.resolution.scale_factor()),
-            format!(
-                "window.scale_factor_override={}",
-                self.resolution
-                    .scale_factor_override()
-                    .map(|scale_factor| scale_factor.to_string())
-                    .unwrap_or_else(|| "none".to_string())
-            ),
+            format_scale_factor_override_diagnostic(self.resolution.scale_factor_override()),
             format!(
                 "window.resize_constraints={}x{}..{}x{}",
                 format_window_axis(constraints.min_width),
@@ -131,6 +120,20 @@ impl WindowDescriptor {
 
     pub fn format_diagnostics(&self) -> String {
         self.diagnostic_lines().join("\n")
+    }
+}
+
+fn format_primary_window_diagnostic(primary_window: Option<PrimaryWindowHandle>) -> String {
+    match primary_window {
+        Some(handle) => format!("window.primary_window={}", handle.raw()),
+        None => "window.primary_window=none".to_string(),
+    }
+}
+
+fn format_scale_factor_override_diagnostic(scale_factor: Option<f32>) -> String {
+    match scale_factor {
+        Some(scale_factor) => format!("window.scale_factor_override={scale_factor}"),
+        None => "window.scale_factor_override=none".to_string(),
     }
 }
 
@@ -159,3 +162,7 @@ impl Default for WindowDescriptor {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "descriptor/optional_value_format_tests.rs"]
+mod optional_value_format_tests;

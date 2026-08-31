@@ -2,6 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use toml::Value;
+use zircon_runtime_interface::ui::component::UiValue;
+use zircon_runtime_interface::ui::layout::UiPixelSnappingPolicy;
 use zircon_runtime_interface::ui::template::UiBindingRef;
 use zircon_runtime_interface::ui::v2::{
     UiV2AssetDocument, UiV2AssetError, UiV2ChildMount, UiV2ComponentDefinition, UiV2NodeDefinition,
@@ -14,10 +16,15 @@ use super::{
         parse_v2_component_reference, parse_v2_widget_import_reference, UiV2WidgetImportReference,
     },
 };
+use crate::ui::template::{
+    resolve_component_binding_params, resolve_component_param_value,
+    resolve_component_param_value_map, validate_typed_component_params,
+};
 
 #[derive(Clone, Debug, Default)]
 struct MountPatch {
     control_id: Option<String>,
+    pixel_snapping: Option<UiPixelSnappingPolicy>,
     classes: Vec<String>,
     props: BTreeMap<String, Value>,
     state: BTreeMap<String, Value>,
@@ -31,7 +38,14 @@ struct MountPatch {
 #[derive(Clone, Debug)]
 struct SlotContext {
     caller_document: Arc<UiV2AssetDocument>,
+    caller_params: Arc<ComponentParamScope>,
     children_by_slot: BTreeMap<String, Vec<UiV2ChildMount>>,
+}
+
+#[derive(Clone, Debug, Default)]
+struct ComponentParamScope {
+    values: BTreeMap<String, Value>,
+    binding_values: BTreeMap<String, UiValue>,
 }
 
 #[derive(Clone, Debug)]
@@ -44,6 +58,7 @@ struct ComponentPrototype {
 #[derive(Clone, Debug)]
 struct ExpandTask {
     document: Arc<UiV2AssetDocument>,
+    params: Arc<ComponentParamScope>,
     node_id: String,
     parent_output_id: Option<String>,
     mount_slot: BTreeMap<String, Value>,
@@ -60,6 +75,7 @@ struct InsertedNode {
     parent_output_id: Option<String>,
     mount_slot: BTreeMap<String, Value>,
     source_document: Arc<UiV2AssetDocument>,
+    params: Arc<ComponentParamScope>,
     slot_context: Arc<SlotContext>,
     component_stack: Vec<String>,
 }
@@ -78,8 +94,10 @@ impl UiV2ComponentInstancer {
         validate_source_graph(document, root)?;
 
         let source_document = Arc::new(document.clone());
+        let params = Arc::new(ComponentParamScope::default());
         let slot_context = Arc::new(SlotContext {
             caller_document: Arc::clone(&source_document),
+            caller_params: Arc::clone(&params),
             children_by_slot: BTreeMap::new(),
         });
         let mut output = UiV2AssetDocument {
@@ -91,6 +109,7 @@ impl UiV2ComponentInstancer {
         let mut next_id = 0usize;
         let mut stack = vec![ExpandTask {
             document: source_document,
+            params,
             node_id: root.to_string(),
             parent_output_id: None,
             mount_slot: BTreeMap::new(),
@@ -124,6 +143,12 @@ impl UiV2ComponentInstancer {
                     });
                 }
                 stack_key.push(prototype.key);
+                let component_params = Arc::new(resolve_component_param_scope(
+                    &prototype.definition,
+                    &source_node.params,
+                    task.params.as_ref(),
+                    &task.document.asset.id,
+                )?);
                 let component_slots = children_by_slot(&source_node.children);
                 validate_component_slots(
                     &task.document,
@@ -133,24 +158,37 @@ impl UiV2ComponentInstancer {
                 )?;
                 let component_slot_context = Arc::new(SlotContext {
                     caller_document: Arc::clone(&task.document),
+                    caller_params: Arc::clone(&task.params),
                     children_by_slot: component_slots,
                 });
                 stack.push(ExpandTask {
                     document: prototype.document,
+                    params: component_params,
                     node_id: prototype.definition.root.clone(),
                     parent_output_id: task.parent_output_id,
                     mount_slot: task.mount_slot,
                     patch: Some(patch_for_component_mount(
                         &source_node,
                         &prototype.definition,
-                    )),
+                        task.params.as_ref(),
+                        &task.document.asset.id,
+                    )?),
                     slot_context: component_slot_context,
                     component_stack: stack_key,
                 });
                 continue;
             }
+            if !source_node.params.is_empty() {
+                return Err(UiV2AssetError::InvalidDocument {
+                    asset_id: task.document.asset.id.clone(),
+                    detail: format!(
+                        "node {} supplies params to non-prototype component {}",
+                        task.node_id, source_node.component
+                    ),
+                });
+            }
 
-            let inserted = inserted_node(task, source_node, &mut next_id);
+            let inserted = inserted_node(task, source_node, &mut next_id)?;
             if inserted.parent_output_id.is_none() {
                 output.root = Some(UiV2Root {
                     node: inserted.output_id.clone(),
@@ -171,6 +209,7 @@ impl UiV2ComponentInstancer {
             for child in inserted.source_children.iter().rev() {
                 stack.push(ExpandTask {
                     document: Arc::clone(&inserted.source_document),
+                    params: Arc::clone(&inserted.params),
                     node_id: child.node.clone(),
                     parent_output_id: Some(inserted.output_id.clone()),
                     mount_slot: child.slot.clone(),
@@ -190,7 +229,12 @@ fn inserted_node(
     task: ExpandTask,
     mut source_node: UiV2NodeDefinition,
     next_id: &mut usize,
-) -> InsertedNode {
+) -> Result<InsertedNode, UiV2AssetError> {
+    resolve_node_param_scope(
+        &mut source_node,
+        task.params.as_ref(),
+        &task.document.asset.id,
+    )?;
     let original_children = std::mem::take(&mut source_node.children);
     let preserve_source_id = task.patch.is_none() && task.component_stack.is_empty();
     if let Some(patch) = task.patch {
@@ -204,16 +248,17 @@ fn inserted_node(
         output_id
     };
     source_node.children = Vec::new();
-    InsertedNode {
+    Ok(InsertedNode {
         output_id,
         node: source_node,
         source_children: original_children,
         parent_output_id: task.parent_output_id,
         mount_slot: task.mount_slot,
         source_document: task.document,
+        params: task.params,
         slot_context: task.slot_context,
         component_stack: task.component_stack,
-    }
+    })
 }
 
 fn resolve_component(
@@ -286,28 +331,153 @@ fn resolve_component(
 fn patch_for_component_mount(
     node: &UiV2NodeDefinition,
     definition: &UiV2ComponentDefinition,
-) -> MountPatch {
-    MountPatch {
+    params: &ComponentParamScope,
+    asset_id: &str,
+) -> Result<MountPatch, UiV2AssetError> {
+    let mut node = node.clone();
+    resolve_node_param_scope(&mut node, params, asset_id)?;
+    Ok(MountPatch {
         control_id: node.control_id.clone(),
+        pixel_snapping: node.pixel_snapping,
         classes: definition
             .default_classes
             .iter()
             .chain(node.classes.iter())
             .cloned()
             .collect(),
-        props: node.props.clone(),
-        state: node.state.clone(),
-        layout: node.layout.clone(),
+        props: node.props,
+        state: node.state,
+        layout: node.layout,
         repeat: node.repeat.clone(),
-        style: node.style.clone(),
-        slots: node.slots.clone(),
-        events: node.events.clone(),
+        style: node.style,
+        slots: node.slots,
+        events: node.events,
+    })
+}
+
+fn resolve_component_param_scope(
+    definition: &UiV2ComponentDefinition,
+    provided: &BTreeMap<String, Value>,
+    caller: &ComponentParamScope,
+    asset_id: &str,
+) -> Result<ComponentParamScope, UiV2AssetError> {
+    for name in provided.keys() {
+        if !definition.params.contains_key(name) {
+            return Err(invalid_param_document(
+                asset_id,
+                format!("resolved unknown component param {name}"),
+            ));
+        }
+    }
+
+    let mut values = BTreeMap::new();
+    for (name, schema) in &definition.params {
+        let value = provided
+            .get(name)
+            .or(schema.default.as_ref())
+            .ok_or_else(|| {
+                invalid_param_document(asset_id, format!("missing required component param {name}"))
+            })?;
+        values.insert(
+            name.clone(),
+            resolve_component_param_value(value, &BTreeMap::new(), &caller.values),
+        );
+    }
+    ensure_param_values_resolved(&values, asset_id, "component param")?;
+    let binding_values = validate_typed_component_params(&definition.params, &values, asset_id)
+        .map_err(|error| invalid_param_document(asset_id, error.to_string()))?;
+    Ok(ComponentParamScope {
+        values,
+        binding_values,
+    })
+}
+
+fn resolve_node_param_scope(
+    node: &mut UiV2NodeDefinition,
+    params: &ComponentParamScope,
+    asset_id: &str,
+) -> Result<(), UiV2AssetError> {
+    node.props = resolve_param_value_map(&node.props, params);
+    node.state = resolve_param_value_map(&node.state, params);
+    node.layout = node
+        .layout
+        .as_ref()
+        .map(|layout| resolve_param_value_map(layout, params));
+    node.style = resolve_param_style(&node.style, params);
+    node.slots = resolve_param_value_map(&node.slots, params);
+    ensure_param_values_resolved(&node.props, asset_id, "node prop")?;
+    ensure_param_values_resolved(&node.state, asset_id, "node state")?;
+    if let Some(layout) = &node.layout {
+        ensure_param_values_resolved(layout, asset_id, "node layout")?;
+    }
+    ensure_param_values_resolved(&node.style.self_values, asset_id, "node style")?;
+    ensure_param_values_resolved(&node.style.slot, asset_id, "node slot style")?;
+    ensure_param_values_resolved(&node.slots, asset_id, "node slot")?;
+    node.events = resolve_component_binding_params(
+        std::mem::take(&mut node.events),
+        &params.binding_values,
+        asset_id,
+    )
+    .map_err(|error| invalid_param_document(asset_id, error.to_string()))?;
+    node.params.clear();
+    Ok(())
+}
+
+fn resolve_param_style(
+    style: &UiV2StyleDeclarationBlock,
+    params: &ComponentParamScope,
+) -> UiV2StyleDeclarationBlock {
+    UiV2StyleDeclarationBlock {
+        self_values: resolve_param_value_map(&style.self_values, params),
+        slot: resolve_param_value_map(&style.slot, params),
+    }
+}
+
+fn resolve_param_value_map(
+    values: &BTreeMap<String, Value>,
+    params: &ComponentParamScope,
+) -> BTreeMap<String, Value> {
+    resolve_component_param_value_map(values, &BTreeMap::new(), &params.values)
+}
+
+fn ensure_param_values_resolved(
+    values: &BTreeMap<String, Value>,
+    asset_id: &str,
+    context: &str,
+) -> Result<(), UiV2AssetError> {
+    for (name, value) in values {
+        if let Some(reference) = unresolved_param_reference(value) {
+            return Err(invalid_param_document(
+                asset_id,
+                format!("{context} {name} references missing component param {reference}"),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn unresolved_param_reference(value: &Value) -> Option<&str> {
+    match value {
+        Value::String(value) => value.strip_prefix("$param."),
+        Value::Array(values) => values.iter().find_map(unresolved_param_reference),
+        Value::Table(values) => values.values().find_map(unresolved_param_reference),
+        _ => None,
+    }
+}
+
+fn invalid_param_document(asset_id: &str, detail: String) -> UiV2AssetError {
+    UiV2AssetError::InvalidDocument {
+        asset_id: asset_id.to_string(),
+        detail,
     }
 }
 
 fn apply_patch_to_node(node: &mut UiV2NodeDefinition, patch: MountPatch) {
     if patch.control_id.is_some() {
         node.control_id = patch.control_id;
+    }
+    if patch.pixel_snapping.is_some() {
+        node.pixel_snapping = patch.pixel_snapping;
     }
     node.classes.extend(patch.classes);
     node.props.extend(patch.props);
@@ -342,11 +512,15 @@ fn push_slot_children(stack: &mut Vec<ExpandTask>, task: &ExpandTask, node: &UiV
         merge_mount_slot(&mut mount_slot, &child.slot);
         stack.push(ExpandTask {
             document: Arc::clone(&task.slot_context.caller_document),
+            params: Arc::clone(&task.slot_context.caller_params),
             node_id: child.node.clone(),
             parent_output_id: task.parent_output_id.clone(),
             mount_slot,
             patch: None,
-            slot_context: empty_slot_context(Arc::clone(&task.slot_context.caller_document)),
+            slot_context: empty_slot_context(
+                Arc::clone(&task.slot_context.caller_document),
+                Arc::clone(&task.slot_context.caller_params),
+            ),
             component_stack: task.component_stack.clone(),
         });
     }
@@ -404,9 +578,13 @@ fn merge_toml_table(
     }
 }
 
-fn empty_slot_context(caller_document: Arc<UiV2AssetDocument>) -> Arc<SlotContext> {
+fn empty_slot_context(
+    caller_document: Arc<UiV2AssetDocument>,
+    caller_params: Arc<ComponentParamScope>,
+) -> Arc<SlotContext> {
     Arc::new(SlotContext {
         caller_document,
+        caller_params,
         children_by_slot: BTreeMap::new(),
     })
 }

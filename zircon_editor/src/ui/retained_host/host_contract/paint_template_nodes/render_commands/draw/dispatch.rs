@@ -11,19 +11,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_ho
         return false;
     }
 
-    match command.kind {
-        HostPaintCommandKind::Group => false,
-        HostPaintCommandKind::Quad => {
-            zircon_runtime::profile_scope!("editor", "host_painter", "paint_command_quad");
-            draw_quad_command(frame, command)
+    frame.with_render_source_command(command.source_render_command_ref, |frame| {
+        match command.kind {
+            HostPaintCommandKind::Group => false,
+            HostPaintCommandKind::Quad => {
+                zircon_runtime::profile_scope!("editor", "host_painter", "paint_command_quad");
+                draw_quad_command(frame, command)
+            }
+            HostPaintCommandKind::Text => {
+                zircon_runtime::profile_scope!("editor", "host_painter", "paint_command_text");
+                draw_text_command(frame, command)
+            }
+            HostPaintCommandKind::Image => {
+                zircon_runtime::profile_scope!("editor", "host_painter", "paint_command_image");
+                draw_image_command(frame, command)
+            }
         }
-        HostPaintCommandKind::Text => {
-            zircon_runtime::profile_scope!("editor", "host_painter", "paint_command_text");
-            draw_text_command(frame, command)
-        }
-        HostPaintCommandKind::Image => {
-            zircon_runtime::profile_scope!("editor", "host_painter", "paint_command_image");
-            draw_image_command(frame, command)
-        }
-    }
+    })
 }

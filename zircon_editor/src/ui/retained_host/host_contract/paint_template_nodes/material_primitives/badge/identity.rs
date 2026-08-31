@@ -13,9 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_badg
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_badge_slot_node(
     node: &TemplatePaneNodeData,
 ) -> bool {
-    component_variant_contains(node, "muiBadgeSlot")
-        || component_variant_contains(node, "BadgeSlot")
-        || component_variant_contains(node, "badgeSlot")
+    badge_slot_variant(&node.component_variant)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_is_dot(
@@ -31,3 +29,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_i
         || component_variant_contains(node, "invisible")
         || component_variant_contains(node, "hidden")
 }
+
+fn badge_slot_variant(component_variant: &str) -> bool {
+    component_variant
+        .split(|character: char| {
+            character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
+        })
+        .any(|part| {
+            part.eq_ignore_ascii_case("muiBadgeSlot") || part.eq_ignore_ascii_case("badgeSlot")
+        })
+}
+
+#[cfg(test)]
+#[path = "identity/single_scan_slot_tests.rs"]
+mod single_scan_slot_tests;

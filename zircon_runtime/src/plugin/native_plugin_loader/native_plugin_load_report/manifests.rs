@@ -17,6 +17,10 @@ const MAX_SHADER_MODULES_PER_PACKAGE: usize = 64;
 const MAX_SHADER_MODULE_SOURCE_BYTES: u64 = 4 * 1024 * 1024;
 const MAX_SHADER_MODULE_SOURCE_TOTAL_BYTES: u64 = 16 * 1024 * 1024;
 
+#[cfg(test)]
+#[path = "manifests/capacity_tests.rs"]
+mod capacity_tests;
+
 impl NativePluginLoadReport {
     pub fn package_manifests(&self) -> Vec<PluginPackageManifest> {
         self.projection().package_manifests().to_vec()
@@ -60,9 +64,7 @@ pub(super) fn projected_package_manifests(
 pub(super) fn shader_module_sources_from_candidate(
     candidate: &crate::plugin::native_plugin_loader::NativePluginCandidate,
 ) -> (Vec<PluginShaderModuleSource>, Vec<String>) {
-    let mut sources = Vec::new();
     let mut diagnostics = Vec::new();
-    let mut seen_import_paths = HashSet::new();
     let declared_modules = &candidate.package_manifest.shader_permutation.shader_modules;
     if declared_modules.len() > MAX_SHADER_MODULES_PER_PACKAGE {
         diagnostics.push(format!(
@@ -77,7 +79,7 @@ pub(super) fn shader_module_sources_from_candidate(
             "native plugin {} has no package root for shader module resolution",
             candidate.plugin_id
         ));
-        return (sources, diagnostics);
+        return (Vec::new(), diagnostics);
     };
     let canonical_package_root = match fs::canonicalize(package_root) {
         Ok(path) => path,
@@ -87,9 +89,12 @@ pub(super) fn shader_module_sources_from_candidate(
                 candidate.plugin_id,
                 package_root.display()
             ));
-            return (sources, diagnostics);
+            return (Vec::new(), diagnostics);
         }
     };
+    let module_capacity = declared_modules.len().min(MAX_SHADER_MODULES_PER_PACKAGE);
+    let mut sources = Vec::with_capacity(module_capacity);
+    let mut seen_import_paths = HashSet::with_capacity(module_capacity);
     let mut total_source_bytes = 0_u64;
     for module in declared_modules.iter().take(MAX_SHADER_MODULES_PER_PACKAGE) {
         let origin = format!(

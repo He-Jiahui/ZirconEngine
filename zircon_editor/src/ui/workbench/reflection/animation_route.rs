@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::name_mapping::binding_view_id;
-use super::route_registration::register_stub_route;
+use super::route_registration::register_binding_route;
 
 pub(super) fn register_animation_route(
     service: &mut EditorUiControlService,
@@ -31,5 +31,5 @@ pub(super) fn register_animation_route(
         path.event_kind,
         payload,
     );
-    Some(register_stub_route(service, registration_binding))
+    Some(register_binding_route(service, registration_binding))
 }

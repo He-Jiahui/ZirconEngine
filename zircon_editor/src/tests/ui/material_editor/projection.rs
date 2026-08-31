@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::time::{Duration, Instant};
 
 use crate::ui::material_editor::MaterialEditorProjection;
 use zircon_runtime::asset::assets::generate_material_artifact;
@@ -179,6 +180,76 @@ fn material_editor_projection_maps_missing_required_shader_property() {
             && row.message.contains("base_color")
             && row.message.contains("required")
     }));
+}
+
+#[test]
+fn optimization_wave_20260825vw_editor15_material_projection_borrows_schema_names() {
+    let source = include_str!("../../../ui/material_editor/projection.rs");
+    let production = source
+        .split("#[cfg(test)]")
+        .next()
+        .expect("production projection source should exist");
+
+    assert!(production.contains("BTreeSet<&str>"));
+    assert!(production.contains("seen.insert(property.name.as_str())"));
+    assert!(production.contains("seen.insert(slot.name.as_str())"));
+    assert!(!production.contains("seen.insert(property.name.clone())"));
+    assert!(!production.contains("seen.insert(slot.name.clone())"));
+}
+
+#[test]
+#[ignore = "release-mode performance evidence"]
+fn optimization_wave_20260825vw_editor15_material_projection_borrowed_keys_evidence() {
+    const PROPERTY_COUNT: usize = 10_000;
+    const TEXTURE_SLOT_COUNT: usize = 10_000;
+    const TARGET: Duration = Duration::from_millis(750);
+    const MARKER: &str = "EDITOR15_MATERIAL_PROJECTION_BORROWED_KEYS_BENCH_V1";
+
+    let mut shader = shader_asset();
+    shader.property_schema = (0..PROPERTY_COUNT)
+        .map(|index| ShaderMaterialPropertyAsset {
+            name: format!("property_{index:05}"),
+            kind: MaterialPropertyKind::Float,
+            required: false,
+            default: Some(toml::Value::Float(0.0)),
+            editor: BTreeMap::new(),
+        })
+        .collect();
+    shader.texture_slots = (0..TEXTURE_SLOT_COUNT)
+        .map(|index| ShaderTextureSlotAsset {
+            name: format!("texture_{index:05}"),
+            kind: "texture2d".to_string(),
+            required: false,
+            default: Some("white".to_string()),
+            sampler: Some("linear_repeat".to_string()),
+            group: None,
+            label: None,
+            option: None,
+            st: false,
+            editor: BTreeMap::new(),
+        })
+        .collect();
+    shader.validation_diagnostics.clear();
+    let material =
+        material_from_document(Some("Large Projection"), BTreeMap::new(), BTreeMap::new());
+
+    let started = Instant::now();
+    let projection = MaterialEditorProjection::from_material(&material, Some(&shader));
+    let elapsed = started.elapsed();
+
+    assert_eq!(projection.properties.len(), PROPERTY_COUNT);
+    assert_eq!(projection.texture_slots.len(), TEXTURE_SLOT_COUNT);
+    assert!(
+        elapsed <= TARGET,
+        "{MARKER}: expected projection within {TARGET:?}, got {elapsed:?}"
+    );
+    eprintln!(
+        "{MARKER} properties={PROPERTY_COUNT} texture_slots={TEXTURE_SLOT_COUNT} legacy_schema_name_clones={} optimized_schema_name_clones={} clone_reduction_percent=50.00 elapsed_us={} target_us={}",
+        (PROPERTY_COUNT + TEXTURE_SLOT_COUNT) * 2,
+        PROPERTY_COUNT + TEXTURE_SLOT_COUNT,
+        elapsed.as_micros(),
+        TARGET.as_micros()
+    );
 }
 
 fn material_asset() -> MaterialAsset {

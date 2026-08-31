@@ -1,12 +1,14 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::resource::{MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::super::{
     build_mesh_phase_queue, CorePipelineKind, MaterialPropertyOverrideBlock, MeshPhaseInput,
-    RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderPhaseQueue,
-    RenderPhaseQueueSummary, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
+    RenderComponentChangeArtifact, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
+    RenderPhaseQueue, RenderPhaseQueueSummary, RenderVirtualGeometryDebugState,
+    RenderVirtualGeometryExtract,
 };
 use super::resolved_phase_queue;
 
@@ -71,6 +73,7 @@ impl GeometryPhaseInput {
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct GeometryExtract {
+    pub scene_changes: Option<Arc<RenderComponentChangeArtifact>>,
     pub meshes: Vec<RenderMeshSnapshot>,
     pub material_property_overrides: BTreeMap<EntityId, MaterialPropertyOverrideBlock>,
     pub phase_inputs: Vec<GeometryPhaseInput>,
@@ -155,6 +158,7 @@ impl GeometryExtract {
         let static_batches = build_static_mesh_batches(&meshes, &material_property_overrides);
 
         Self {
+            scene_changes: None,
             meshes,
             material_property_overrides,
             phase_inputs,
@@ -172,6 +176,14 @@ impl GeometryExtract {
         self.material_property_overrides = overrides;
         self.static_batches =
             build_static_mesh_batches(&self.meshes, &self.material_property_overrides);
+        self
+    }
+
+    pub fn with_scene_changes(
+        mut self,
+        scene_changes: Option<Arc<RenderComponentChangeArtifact>>,
+    ) -> Self {
+        self.scene_changes = scene_changes;
         self
     }
 

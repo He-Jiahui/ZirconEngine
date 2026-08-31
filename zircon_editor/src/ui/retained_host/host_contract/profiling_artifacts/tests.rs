@@ -8,6 +8,9 @@ use super::super::presenter::HostPresenterBackend;
 use super::geometry::collect_surface_frame_controls;
 use super::UiProfileGeometry;
 use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};
+use crate::ui::workbench::asset_content_layout::{
+    asset_content_paint_metadata, AssetContentPaintNodeInput, AssetContentSurface,
+};
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
@@ -123,6 +126,70 @@ fn profile_geometry_omits_template_controls_disjoint_from_clip() {
         .hit_samples
         .iter()
         .all(|sample| sample.id != "template.document.OffClipAction"));
+}
+
+#[test]
+fn profile_geometry_exports_the_source_bound_asset_browser_content_viewport() {
+    let mut presentation = HostWindowPresentationData::default();
+    presentation.host_scene_data.document_dock.region_frame = FrameRect {
+        x: 10.0,
+        y: 20.0,
+        width: 640.0,
+        height: 480.0,
+    };
+    presentation.host_scene_data.document_dock.content_frame = FrameRect {
+        x: 5.0,
+        y: 30.0,
+        width: 620.0,
+        height: 430.0,
+    };
+    presentation.host_scene_data.document_dock.pane.kind = "AssetBrowser".into();
+    let nodes = vec![TemplatePaneNodeData {
+        control_id: "AssetBrowserThumbGridPanel".into(),
+        frame: TemplateNodeFrameData {
+            x: 40.0,
+            y: 60.0,
+            width: 320.0,
+            height: 220.0,
+        },
+        ..TemplatePaneNodeData::default()
+    }];
+    let metadata = asset_content_paint_metadata(
+        nodes.iter().map(|node| {
+            AssetContentPaintNodeInput::new(
+                node.control_id.as_str(),
+                node.frame.x,
+                node.frame.y,
+                node.frame.width,
+                node.frame.height,
+                node.value_number,
+            )
+        }),
+        AssetContentSurface::Browser,
+    );
+    presentation
+        .host_scene_data
+        .document_dock
+        .pane
+        .asset_browser
+        .nodes = ModelRc::with_metadata(nodes, metadata);
+
+    let geometry = UiProfileGeometry::from_presentation(
+        &presentation,
+        &PhysicalSize::new(1280, 720),
+        HostPresenterBackend::Gpu,
+    );
+
+    let content = geometry
+        .asset_browser_content_frame
+        .expect("asset browser content viewport should be exported");
+    assert_eq!(content.id, "asset_browser.content_viewport");
+    assert_eq!(content.kind, "asset_browser_content_viewport");
+    assert_eq!(content.surface, "document");
+    assert_eq!(content.frame.x, 55.0);
+    assert_eq!(content.frame.y, 110.0);
+    assert_eq!(content.frame.width, 320.0);
+    assert_eq!(content.frame.height, 220.0);
 }
 
 #[test]

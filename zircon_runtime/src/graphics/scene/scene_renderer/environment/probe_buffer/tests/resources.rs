@@ -18,16 +18,23 @@ use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::scene::world::World;
 
+use super::super::capacity::ReflectionProbeResourceCapacity;
 use super::super::reflection_probe_bind_group_layout_entries;
 use super::super::resources::{
-    SceneReflectionProbeResources, MAX_REFLECTION_PROBES, REFLECTION_PROBE_FACE_SIZE,
-    REFLECTION_PROBE_MIP_COUNT,
+    SceneReflectionProbeResources, MAX_REFLECTION_PROBES, REFLECTION_PROBE_FACE_COUNT,
+    REFLECTION_PROBE_FACE_SIZE, REFLECTION_PROBE_MIP_COUNT,
 };
 use super::super::upload::ReflectionProbeAssetRejectionReason;
 
 #[test]
 fn render_probe_gpu_capacity_matches_plan_v1_limit() {
     assert_eq!(MAX_REFLECTION_PROBES, 64);
+    assert_eq!(ReflectionProbeResourceCapacity::FULL.probe_count, 64);
+    assert_eq!(ReflectionProbeResourceCapacity::FULL.cubemap_slot_count, 65);
+    assert_eq!(
+        ReflectionProbeResourceCapacity::ENVIRONMENT_PREVIEW_PLACEHOLDER.cubemap_slot_count,
+        2
+    );
 }
 
 #[test]
@@ -37,7 +44,7 @@ fn render_probe_prepare_reads_registry_before_candidate_upload_loop() {
         .find("fn prepare(")
         .expect("probe prepare implementation");
     let prepare_end = source[prepare_start..]
-        .find("fn write_probe_header")
+        .find("fn append_buffer_uploads")
         .map(|offset| prepare_start + offset)
         .expect("probe prepare boundary");
     let prepare = &source[prepare_start..prepare_end];
@@ -63,13 +70,30 @@ fn render_probe_prepare_reads_registry_before_candidate_upload_loop() {
 }
 
 #[test]
+fn capture_probe_copy_covers_all_pmrem_mips_without_committing_slot_state() {
+    let source = include_str!("../resources.rs");
+    let copy_start = source
+        .find("fn copy_environment_capture_probe(")
+        .expect("capture copy owner");
+    let copy_end = source[copy_start..]
+        .find("fn commit_environment_capture_target(")
+        .map(|offset| copy_start + offset)
+        .expect("capture copy must precede its explicit commit owner");
+    let copy = &source[copy_start..copy_end];
+
+    assert!(copy.contains("for mip_level in 0..REFLECTION_PROBE_MIP_COUNT"));
+    assert!(copy.contains("encoder.copy_texture_to_texture("));
+    assert!(!copy.contains("commit_pending_uploads"));
+}
+
+#[test]
 fn render_probe_prepare_clears_header_when_asset_manager_resolution_fails() {
     let source = include_str!("../resources.rs");
     let prepare_start = source
         .find("fn prepare(")
         .expect("probe prepare implementation");
     let prepare_end = source[prepare_start..]
-        .find("fn write_probe_header")
+        .find("fn append_buffer_uploads")
         .map(|offset| prepare_start + offset)
         .expect("probe prepare boundary");
     let prepare = &source[prepare_start..prepare_end];
@@ -81,23 +105,30 @@ fn render_probe_prepare_clears_header_when_asset_manager_resolution_fails() {
         .map(|offset| asset_manager + offset)
         .expect("asset-manager failure must have an explicit recovery branch");
     let clear_header = prepare[unavailable..]
-        .find("self.write_probe_header(queue, 0);")
+        .find("self.append_buffer_uploads(")
         .map(|offset| unavailable + offset)
         .expect("asset-manager failure must clear the prior probe header");
+    let clear_header_call = prepare[clear_header..]
+        .find("&[],\n                    camera_layers.to_scene_schema_v1_mask_lossy(),")
+        .map(|offset| clear_header + offset)
+        .expect("asset-manager failure must clear probes while preserving the camera layer mask");
     let return_report = prepare[clear_header..]
         .find("return report;")
         .map(|offset| clear_header + offset)
         .expect("asset-manager recovery must return after clearing stale probe state");
 
     assert!(
-        asset_manager < unavailable && unavailable < clear_header && clear_header < return_report,
+        asset_manager < unavailable
+            && unavailable < clear_header
+            && clear_header < clear_header_call
+            && clear_header_call < return_report,
         "unavailable asset-manager recovery must clear probe visibility before returning"
     );
 }
 
 #[test]
 fn render_probe_candidate_distance_rotates_only_box_influences() {
-    let source = include_str!("../resources.rs");
+    let source = include_str!("../selection.rs");
     let distance = source
         .split("fn probe_distance_to_influence")
         .nth(1)
@@ -136,7 +167,7 @@ fn render_probe_prepare_evaluates_candidate_distance_once_before_sorting() {
         .find("fn prepare(")
         .expect("probe prepare implementation");
     let prepare_end = source[prepare_start..]
-        .find("fn write_probe_header")
+        .find("fn append_buffer_uploads")
         .map(|offset| prepare_start + offset)
         .expect("probe prepare boundary");
     let prepare = &source[prepare_start..prepare_end];
@@ -182,7 +213,7 @@ fn render_probe_prepare_partitions_over_capacity_candidates_before_final_sort() 
         .find("fn prepare(")
         .expect("probe prepare implementation");
     let prepare_end = source[prepare_start..]
-        .find("fn write_probe_header")
+        .find("fn append_buffer_uploads")
         .map(|offset| prepare_start + offset)
         .expect("probe prepare boundary");
     let prepare = &source[prepare_start..prepare_end];
@@ -222,7 +253,8 @@ fn render_probe_prepare_partitions_over_capacity_candidates_before_final_sort() 
 #[test]
 fn render_probe_resources_upload_valid_pmrem_once_and_disable_to_sky_fallback() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let cubemap_uri =
@@ -245,22 +277,46 @@ fn render_probe_resources_upload_valid_pmrem_once_and_disable_to_sky_fallback() 
     let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
     let mut resources = SceneReflectionProbeResources::new(&device);
 
-    let first = resources.prepare(&device, &queue, &streamer, &frame, true);
+    let first = prepare_resources(&mut resources, &backend, &streamer, &frame, true);
     assert_eq!(first.extracted_probe_count, 1);
+    assert_eq!(first.camera_layer_candidate_count, 1);
+    assert_eq!(first.attempted_candidate_count, 1);
+    assert_eq!(first.capacity_dropped_candidate_count, 0);
     assert_eq!(first.active_probe_count, 1);
-    assert_eq!(first.uploaded_cubemap_count, 1);
+    assert_eq!(first.scheduled_cubemap_upload_count, 1);
+    assert_eq!(
+        first.scheduled_texture_write_count,
+        REFLECTION_PROBE_MIP_COUNT as usize
+    );
+    assert_eq!(first.asset_load_call_count, 1);
+    let expected_upload_bytes = (0..REFLECTION_PROBE_MIP_COUNT)
+        .map(|mip| {
+            let edge = (REFLECTION_PROBE_FACE_SIZE >> mip).max(1) as u64;
+            edge * edge * u64::from(REFLECTION_PROBE_FACE_COUNT) * 8
+        })
+        .sum::<u64>();
+    assert_eq!(first.scheduled_cubemap_upload_bytes, expected_upload_bytes);
     assert_eq!(first.rejected_cubemap_count, 0);
     assert_eq!(first.first_rejection, None);
 
-    let second = resources.prepare(&device, &queue, &streamer, &frame, true);
+    let second = prepare_resources(&mut resources, &backend, &streamer, &frame, true);
     assert_eq!(second.active_probe_count, 1);
-    assert_eq!(second.uploaded_cubemap_count, 0);
+    assert_eq!(second.scheduled_cubemap_upload_count, 0);
+    assert_eq!(second.scheduled_cubemap_upload_bytes, 0);
+    assert_eq!(second.scheduled_texture_write_count, 0);
+    assert_eq!(second.asset_load_call_count, 0);
+    assert_eq!(second.asset_load_cpu_time_us, 0);
     assert_eq!(second.rejected_cubemap_count, 0);
 
-    let disabled = resources.prepare(&device, &queue, &streamer, &frame, false);
+    let disabled = prepare_resources(&mut resources, &backend, &streamer, &frame, false);
     assert_eq!(disabled.extracted_probe_count, 1);
+    assert_eq!(disabled.camera_layer_candidate_count, 0);
+    assert_eq!(disabled.attempted_candidate_count, 0);
     assert_eq!(disabled.active_probe_count, 0);
-    assert_eq!(disabled.uploaded_cubemap_count, 0);
+    assert_eq!(disabled.scheduled_cubemap_upload_count, 0);
+    assert_eq!(disabled.scheduled_texture_write_count, 0);
+    assert_eq!(disabled.asset_load_call_count, 0);
+    assert_eq!(disabled.asset_load_cpu_time_us, 0);
     assert_eq!(disabled.rejected_cubemap_count, 0);
 
     let validation_error = pollster::block_on(error_scope.pop());
@@ -271,9 +327,71 @@ fn render_probe_resources_upload_valid_pmrem_once_and_disable_to_sky_fallback() 
 }
 
 #[test]
+fn render_probe_resources_retry_an_uncommitted_cubemap_upload() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let device = &backend.device;
+    let queue = &backend.queue;
+    let texture_layout = texture_bind_group_layout(device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let cubemap_uri =
+        AssetUri::parse("res://environment/uncommitted-probe-pmrem.zcube").expect("valid URI");
+    let cubemap = ResourceId::from_locator(&cubemap_uri);
+    asset_manager
+        .assets::<TextureAsset>()
+        .insert(
+            ResourceRecord::new(cubemap, ResourceKind::Texture, cubemap_uri.clone()),
+            valid_probe_pmrem(cubemap_uri),
+        )
+        .expect("probe PMREM insert");
+    let streamer = ResourceStreamer::new_for_test(asset_manager, device, queue, &texture_layout);
+    let frame = probe_frame(cubemap);
+    let mut resources = SceneReflectionProbeResources::new(device);
+
+    let mut first_buffer_uploads = zr_rhi_wgpu::WgpuBufferUploadBatch::new();
+    let mut first_texture_uploads = zr_rhi_wgpu::WgpuTextureUploadBatch::new();
+    let first = resources.prepare(
+        device,
+        &streamer,
+        &frame,
+        true,
+        &mut first_buffer_uploads,
+        &mut first_texture_uploads,
+    );
+    assert_eq!(first.scheduled_cubemap_upload_count, 1);
+    assert_eq!(
+        first.scheduled_texture_write_count,
+        REFLECTION_PROBE_MIP_COUNT as usize
+    );
+
+    resources.discard_pending_uploads();
+    drop((first_buffer_uploads, first_texture_uploads));
+
+    let mut retry_buffer_uploads = zr_rhi_wgpu::WgpuBufferUploadBatch::new();
+    let mut retry_texture_uploads = zr_rhi_wgpu::WgpuTextureUploadBatch::new();
+    let retry = resources.prepare(
+        device,
+        &streamer,
+        &frame,
+        true,
+        &mut retry_buffer_uploads,
+        &mut retry_texture_uploads,
+    );
+
+    assert_eq!(retry.active_probe_count, 1);
+    assert_eq!(retry.scheduled_cubemap_upload_count, 1);
+    assert_eq!(retry.asset_load_call_count, 1);
+    assert_eq!(
+        retry.scheduled_texture_write_count,
+        REFLECTION_PROBE_MIP_COUNT as usize
+    );
+    resources.discard_pending_uploads();
+}
+
+#[test]
 fn environment_preview_defers_local_provider_resources_until_a_probe_is_enabled() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let cubemap_uri =
@@ -292,17 +410,18 @@ fn environment_preview_defers_local_provider_resources_until_a_probe_is_enabled(
 
     assert!(resources.is_environment_only_placeholder_for_tests());
     assert!(!resources.requires_generic_environment_pbr());
-    let disabled = resources.prepare(&device, &queue, &streamer, &frame, false);
+    let disabled = prepare_resources(&mut resources, &backend, &streamer, &frame, false);
     assert_eq!(disabled.active_probe_count, 0);
     assert!(resources.is_environment_only_placeholder_for_tests());
 
-    let enabled = resources.prepare(&device, &queue, &streamer, &frame, true);
+    let enabled = prepare_resources(&mut resources, &backend, &streamer, &frame, true);
     assert_eq!(enabled.active_probe_count, 1);
-    assert_eq!(enabled.uploaded_cubemap_count, 1);
+    assert_eq!(enabled.scheduled_cubemap_upload_count, 1);
+    assert_eq!(enabled.asset_load_call_count, 1);
     assert!(!resources.is_environment_only_placeholder_for_tests());
     assert!(resources.requires_generic_environment_pbr());
 
-    let hidden = resources.prepare(&device, &queue, &streamer, &frame, false);
+    let hidden = prepare_resources(&mut resources, &backend, &streamer, &frame, false);
     assert_eq!(hidden.active_probe_count, 0);
     assert!(
         resources.requires_generic_environment_pbr(),
@@ -313,7 +432,8 @@ fn environment_preview_defers_local_provider_resources_until_a_probe_is_enabled(
 #[test]
 fn environment_preview_does_not_upgrade_for_a_rejected_baked_probe() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let cubemap_uri =
@@ -336,10 +456,12 @@ fn environment_preview_does_not_upgrade_for_a_rejected_baked_probe() {
     let frame = probe_frame(cubemap);
     let mut resources = SceneReflectionProbeResources::new_environment_only_preview(&device);
 
-    let report = resources.prepare(&device, &queue, &streamer, &frame, true);
+    let report = prepare_resources(&mut resources, &backend, &streamer, &frame, true);
 
     assert_eq!(report.active_probe_count, 0);
-    assert_eq!(report.uploaded_cubemap_count, 0);
+    assert_eq!(report.scheduled_cubemap_upload_count, 0);
+    assert_eq!(report.scheduled_texture_write_count, 0);
+    assert_eq!(report.asset_load_call_count, 1);
     assert_eq!(report.rejected_cubemap_count, 1);
     assert!(
         resources.is_environment_only_placeholder_for_tests(),
@@ -354,7 +476,7 @@ fn environment_preview_does_not_upgrade_for_a_rejected_baked_probe() {
 #[test]
 fn full_scene_reflection_resources_do_not_report_an_environment_preview_upgrade() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, .. } = backend;
+    let device = &backend.device;
     let resources = SceneReflectionProbeResources::new(&device);
 
     assert!(
@@ -364,9 +486,22 @@ fn full_scene_reflection_resources_do_not_report_an_environment_preview_upgrade(
 }
 
 #[test]
+fn environment_capture_expands_placeholder_before_pmrem_array_copy() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let device = &backend.device;
+    let mut resources = SceneReflectionProbeResources::new_environment_only_preview(device);
+
+    assert!(resources.is_environment_only_placeholder_for_tests());
+    resources.ensure_environment_capture_provider(device);
+    assert!(!resources.is_environment_only_placeholder_for_tests());
+    assert!(resources.requires_generic_environment_pbr());
+}
+
+#[test]
 fn environment_preview_placeholder_satisfies_the_local_provider_binding_abi() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let resources = SceneReflectionProbeResources::new_environment_only_preview(&device);
     let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-environment-preview-probe-placeholder-layout"),
@@ -399,7 +534,8 @@ fn environment_preview_placeholder_satisfies_the_local_provider_binding_abi() {
 #[test]
 fn environment_preview_upgrades_for_a_planar_capture_camera_and_rebinds() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let streamer = ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
@@ -428,7 +564,7 @@ fn environment_preview_upgrades_for_a_planar_capture_camera_and_rebinds() {
     let mut resources = SceneReflectionProbeResources::new_environment_only_preview(&device);
 
     assert!(!resources.requires_generic_environment_pbr());
-    let report = resources.prepare(&device, &queue, &streamer, &frame, false);
+    let report = prepare_resources(&mut resources, &backend, &streamer, &frame, false);
     assert_eq!(report.active_probe_count, 0);
     assert!(!resources.is_environment_only_placeholder_for_tests());
     assert!(resources.requires_generic_environment_pbr());
@@ -454,7 +590,8 @@ fn environment_preview_upgrades_for_a_planar_capture_camera_and_rebinds() {
 #[test]
 fn environment_preview_selects_the_lowest_id_valid_planar_provider() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let streamer = ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
@@ -501,7 +638,7 @@ fn environment_preview_selects_the_lowest_id_valid_planar_provider() {
     ];
     let mut resources = SceneReflectionProbeResources::new_environment_only_preview(&device);
 
-    let report = resources.prepare(&device, &queue, &streamer, &frame, false);
+    let report = prepare_resources(&mut resources, &backend, &streamer, &frame, false);
 
     assert_eq!(report.active_probe_count, 0);
     assert!(resources.requires_generic_environment_pbr());
@@ -517,7 +654,8 @@ fn environment_preview_selects_the_lowest_id_valid_planar_provider() {
 #[test]
 fn render_probe_resources_report_source_cubemap_rejection() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let cubemap_uri =
@@ -540,10 +678,16 @@ fn render_probe_resources_report_source_cubemap_rejection() {
     let streamer = ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
     let mut resources = SceneReflectionProbeResources::new(&device);
 
-    let report = resources.prepare(&device, &queue, &streamer, &probe_frame(cubemap), true);
+    let report = prepare_resources(
+        &mut resources,
+        &backend,
+        &streamer,
+        &probe_frame(cubemap),
+        true,
+    );
 
     assert_eq!(report.active_probe_count, 0);
-    assert_eq!(report.uploaded_cubemap_count, 0);
+    assert_eq!(report.scheduled_cubemap_upload_count, 0);
     assert_eq!(report.rejected_cubemap_count, 1);
     assert_eq!(
         report
@@ -557,7 +701,8 @@ fn render_probe_resources_report_source_cubemap_rejection() {
 #[test]
 fn render_probe_over_capacity_replaces_an_invalid_nearest_candidate() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let cubemap_uri =
@@ -594,11 +739,22 @@ fn render_probe_over_capacity_replaces_an_invalid_nearest_candidate() {
     let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
     let mut resources = SceneReflectionProbeResources::new(&device);
 
-    let report = resources.prepare(&device, &queue, &streamer, &frame, true);
+    let report = prepare_resources(&mut resources, &backend, &streamer, &frame, true);
 
     assert_eq!(report.extracted_probe_count, MAX_REFLECTION_PROBES + 1);
+    assert_eq!(
+        report.camera_layer_candidate_count,
+        MAX_REFLECTION_PROBES + 1
+    );
+    assert_eq!(report.attempted_candidate_count, MAX_REFLECTION_PROBES + 1);
+    assert_eq!(report.capacity_dropped_candidate_count, 0);
     assert_eq!(report.active_probe_count, MAX_REFLECTION_PROBES);
-    assert_eq!(report.uploaded_cubemap_count, 1);
+    assert_eq!(report.scheduled_cubemap_upload_count, 1);
+    assert_eq!(
+        report.scheduled_texture_write_count,
+        REFLECTION_PROBE_MIP_COUNT as usize
+    );
+    assert_eq!(report.asset_load_call_count, 1);
     assert_eq!(report.rejected_cubemap_count, 1);
     assert_eq!(
         report
@@ -612,7 +768,8 @@ fn render_probe_over_capacity_replaces_an_invalid_nearest_candidate() {
 #[test]
 fn render_probe_over_capacity_resolves_only_selected_healthy_candidates() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let cubemap_uri =
@@ -644,14 +801,55 @@ fn render_probe_over_capacity_resolves_only_selected_healthy_candidates() {
     let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
     let mut resources = SceneReflectionProbeResources::new(&device);
 
-    let report = resources.prepare(&device, &queue, &streamer, &frame, true);
+    let report = prepare_resources(&mut resources, &backend, &streamer, &frame, true);
 
+    assert_eq!(
+        report.camera_layer_candidate_count,
+        MAX_REFLECTION_PROBES + 1
+    );
+    assert_eq!(report.attempted_candidate_count, MAX_REFLECTION_PROBES);
+    assert_eq!(report.capacity_dropped_candidate_count, 1);
     assert_eq!(report.active_probe_count, MAX_REFLECTION_PROBES);
+    assert_eq!(
+        report.scheduled_texture_write_count,
+        REFLECTION_PROBE_MIP_COUNT as usize
+    );
+    assert_eq!(report.asset_load_call_count, 1);
     assert_eq!(
         resources.candidate_registry_resolution_count_for_tests(),
         MAX_REFLECTION_PROBES,
         "healthy overflow candidates must not touch the registry or asset path"
     );
+}
+
+fn prepare_resources(
+    resources: &mut SceneReflectionProbeResources,
+    backend: &RenderBackend,
+    streamer: &ResourceStreamer,
+    frame: &ViewportRenderFrame,
+    enabled: bool,
+) -> super::super::resources::ReflectionProbeUploadReport {
+    let mut frame_buffer_uploads = zr_rhi_wgpu::WgpuBufferUploadBatch::new();
+    let mut frame_texture_uploads = zr_rhi_wgpu::WgpuTextureUploadBatch::new();
+    let report = resources.prepare(
+        &backend.device,
+        streamer,
+        frame,
+        enabled,
+        &mut frame_buffer_uploads,
+        &mut frame_texture_uploads,
+    );
+    backend
+        .enqueue_copy_resource_upload_batch(zr_rhi_wgpu::WgpuResourceUploadBatch::from_batches(
+            frame_buffer_uploads,
+            frame_texture_uploads,
+        ))
+        .expect("probe test frame uploads should be accepted");
+    backend
+        .submit_graphics_command_buffers(Vec::new())
+        .expect("probe test frame uploads should reach the native queue");
+    resources.commit_pending_uploads();
+    report
 }
 
 fn valid_probe_pmrem(uri: AssetUri) -> TextureAsset {

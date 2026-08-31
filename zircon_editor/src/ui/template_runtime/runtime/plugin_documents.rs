@@ -366,6 +366,7 @@ impl EditorUiHostRuntime {
         // A same-id replacement has no retired document id, but its old generation's action
         // slots and control state must not survive until the next pane rebuild.
         self.remove_template_actions_for_documents(&previous_document_ids);
+        self.invalidate_projection_cache();
         Ok(update)
     }
 
@@ -451,6 +452,7 @@ impl EditorUiHostRuntime {
 
         // Same-id replacements also retire their action state: token ownership includes generation.
         self.remove_template_actions_for_documents(&previous_document_ids);
+        self.invalidate_projection_cache();
         Ok(())
     }
 
@@ -499,6 +501,7 @@ impl EditorUiHostRuntime {
         plugin_v2_documents.retain(|_, document| document.owner != *owner);
         drop(plugin_v2_documents);
         self.remove_template_actions_for_documents(&retired_document_ids);
+        self.invalidate_projection_cache();
         retired_document_ids
     }
 

@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use super::super::super::RetainedEditorHost;
-use super::super::pane_payloads::HostLifecyclePanePayloads;
+use crate::ui::retained_host::app::committed_shell_state::HostLifecyclePanePayloads;
 use crate::ui::retained_host::callback_dispatch;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::retained_host::host_contract::{FrameRect, TemplatePaneNodeData};
@@ -60,10 +60,11 @@ impl RetainedEditorHost {
         if !applied {
             return false;
         }
-        self.runtime_diagnostics_visible =
-            crate::ui::retained_host::app::runtime_diagnostics_visibility::should_collect_runtime_diagnostics(
-                &committed.model,
-            );
+        self.runtime_diagnostics_refresh_target = crate::ui::retained_host::app::runtime_diagnostics_visibility::runtime_diagnostics_refresh_target(
+            &committed.model,
+        );
+        committed.pane_payloads = None;
+        committed.retained_shell_presentation = None;
         self.shell_geometry = Some(committed.geometry.clone());
         self.committed_shell_state = Some(committed);
         zircon_runtime::profile_counter!("editor", "ui.shell_content.committed_state_hit_count", 1);
@@ -148,6 +149,8 @@ impl RetainedEditorHost {
             Some(pane_template_runtime),
             &hierarchy_filter_query,
             &mut self.host_chrome_projection_cache,
+            &mut self.console_pane_projection_cache,
+            &mut self.module_plugins_pane_projection_cache,
         )
     }
 
@@ -198,6 +201,7 @@ impl RetainedEditorHost {
             record_workbench_projection_fallback(WorkbenchProjectionFallback::HitIndex);
             return false;
         }
+        self.invalidate_committed_shell_presentation();
         self.workbench_window_bridge
             .mark_host_projection_committed();
         for frame in &damage {
@@ -278,8 +282,22 @@ impl RetainedEditorHost {
             view_ids.len() as f64,
         );
         record_scoped_presentation_work(&work);
+        self.invalidate_committed_pane_payloads();
         self.publish_refresh_invalidation_diagnostics();
         true
+    }
+
+    fn invalidate_committed_pane_payloads(&mut self) {
+        if let Some(committed) = self.committed_shell_state.as_mut() {
+            committed.pane_payloads = None;
+            committed.retained_shell_presentation = None;
+        }
+    }
+
+    fn invalidate_committed_shell_presentation(&mut self) {
+        if let Some(committed) = self.committed_shell_state.as_mut() {
+            committed.retained_shell_presentation = None;
+        }
     }
 
     pub(super) fn apply_recompute_presentation(
@@ -291,7 +309,8 @@ impl RetainedEditorHost {
         componentized_workbench_layout_frames: callback_dispatch::BuiltinWorkbenchWindowLayoutFrames,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
         reuse_shell_layout: bool,
-    ) {
+    ) -> Option<std::sync::Arc<crate::ui::layouts::windows::workbench_host_window::ShellPresentation>>
+    {
         zircon_runtime::profile_scope!("editor", "retained_host", "recompute_apply_presentation");
         let filtered_hierarchy_entries = self.filtered_hierarchy_entries(&chrome.scene_entries);
         let filtered_chrome = filtered_hierarchy_entries.map(|scene_entries| {
@@ -329,8 +348,10 @@ impl RetainedEditorHost {
             self.template_bridge.presentation_scale_factor(),
             &hierarchy_filter_query,
             &mut self.host_chrome_projection_cache,
+            &mut self.console_pane_projection_cache,
+            &mut self.module_plugins_pane_projection_cache,
             reuse_shell_layout,
-        );
+        )
     }
 }
 

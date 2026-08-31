@@ -27,26 +27,63 @@ impl DirtyExternalEffectId {
                 max: MAX_EXTERNAL_EFFECT_ID_LEN,
             });
         }
-        if value.split('.').any(str::is_empty) {
-            return Err(DirtyExternalEffectIdError::EmptySegment { value });
+        match validate_external_effect_id(&value) {
+            Ok(()) => Ok(Self(value)),
+            Err(ExternalEffectIdValidationFailure::EmptySegment) => {
+                Err(DirtyExternalEffectIdError::EmptySegment { value })
+            }
+            Err(ExternalEffectIdValidationFailure::InvalidCharacter { index, character }) => {
+                Err(DirtyExternalEffectIdError::InvalidCharacter {
+                    value,
+                    index,
+                    character,
+                })
+            }
         }
-        if let Some((index, character)) = value.char_indices().find(|(_, character)| {
-            !(character.is_ascii_lowercase()
-                || character.is_ascii_digit()
-                || matches!(character, '_' | '-' | '.'))
-        }) {
-            return Err(DirtyExternalEffectIdError::InvalidCharacter {
-                value,
-                index,
-                character,
-            });
-        }
-        Ok(Self(value))
     }
 
     pub fn as_str(&self) -> &str {
         &self.0
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ExternalEffectIdValidationFailure {
+    EmptySegment,
+    InvalidCharacter { index: usize, character: char },
+}
+
+fn validate_external_effect_id(value: &str) -> Result<(), ExternalEffectIdValidationFailure> {
+    let mut previous_was_separator = true;
+    let mut has_empty_segment = false;
+    let mut invalid_character = None;
+
+    for (index, character) in value.char_indices() {
+        if character == '.' {
+            if previous_was_separator {
+                has_empty_segment = true;
+            }
+            previous_was_separator = true;
+            continue;
+        }
+
+        previous_was_separator = false;
+        if invalid_character.is_none()
+            && !(character.is_ascii_lowercase()
+                || character.is_ascii_digit()
+                || matches!(character, '_' | '-'))
+        {
+            invalid_character = Some((index, character));
+        }
+    }
+
+    if previous_was_separator || has_empty_segment {
+        return Err(ExternalEffectIdValidationFailure::EmptySegment);
+    }
+    if let Some((index, character)) = invalid_character {
+        return Err(ExternalEffectIdValidationFailure::InvalidCharacter { index, character });
+    }
+    Ok(())
 }
 
 impl Display for DirtyExternalEffectId {
@@ -72,3 +109,7 @@ pub enum DirtyExternalEffectIdError {
         character: char,
     },
 }
+
+#[cfg(test)]
+#[path = "external_effect_id/single_pass_tests.rs"]
+mod single_pass_tests;

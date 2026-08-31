@@ -58,3 +58,8 @@ Runtime project authority 没有发布一个 immutable、单调且覆盖全部 c
 ## 修复结果与回传
 
 Open state: `待 Runtime04 提供完整 project catalog-input generation 与 typed delta；Editor09 当前安全保留 full rebuild，不声明 unchanged fast path、10k规模门或本 Failure 已完成。`
+
+## 2026-08-30 当前源复审
+
+- 当前 Runtime04 source 已提供 immutable `ProjectCatalogInputGeneration`，其 identity 覆盖 source metadata、catalog projection、artifact direct references 与 package roots，并提供 typed added/modified/removed/renamed delta；Runtime 与 Editor 回归覆盖 unchanged、source touch、meta/artifact/reference、package-root、rename 与 skipped-delta 场景。
+- `sync_from_project` 已对同一 generation 使用 O(1) identity fast path；本轮只完成 source/static review，受管 Cargo 尚未取得，因此原 failure 保持 `open`，不把实现标记为已验收。

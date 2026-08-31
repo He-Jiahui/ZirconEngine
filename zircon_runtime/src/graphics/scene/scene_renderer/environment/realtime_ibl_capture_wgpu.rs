@@ -1,12 +1,28 @@
+use std::time::Instant;
+
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::ProceduralSkyParams;
 
 use super::realtime_ibl_time_slice::CubeFaceRange;
+use super::shader_source_identity::shader_source_pair_content_identity;
 
-const CAPTURE_WGSL: &str = include_str!("shaders/realtime_ibl_capture.wgsl");
+const CAPTURE_WGSL: &str = concat!(
+    include_str!("../../../shader/wgsl/zr_procedural_sky.wgsl"),
+    "\n",
+    include_str!("shaders/realtime_ibl_capture.wgsl"),
+);
 const DOWNSAMPLE_WGSL: &str = include_str!("shaders/realtime_ibl_downsample.wgsl");
+pub(in crate::graphics) const REALTIME_IBL_SOURCE_SHADER_CONTENT_IDENTITY: [u32; 4] =
+    shader_source_pair_content_identity(CAPTURE_WGSL, DOWNSAMPLE_WGSL);
 const WORKGROUP_SIZE: u32 = 8;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(in crate::graphics) struct RealtimeIblWgpuBindingCreationStats {
+    pub params_buffer_creations: usize,
+    pub bind_group_creations: usize,
+    pub creation_micros: u64,
+}
 
 pub(in crate::graphics) struct RealtimeIblCaptureWgpuPipelines {
     capture_layout: wgpu::BindGroupLayout,
@@ -67,10 +83,12 @@ impl RealtimeIblCaptureWgpuPipelines {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         params: &ProceduralSkyParams,
+        cpu_timing_enabled: bool,
         face_size: u32,
         faces: CubeFaceRange,
         output: &wgpu::TextureView,
-    ) {
+    ) -> RealtimeIblWgpuBindingCreationStats {
+        let started = cpu_timing_enabled.then(Instant::now);
         let uniform = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("zircon-realtime-ibl-capture-params"),
             contents: &capture_params_bytes(params, face_size, faces.first),
@@ -90,6 +108,7 @@ impl RealtimeIblCaptureWgpuPipelines {
                 },
             ],
         });
+        let creation_micros = elapsed_micros(started);
         record_dispatch(
             encoder,
             "zircon-realtime-ibl-capture",
@@ -101,18 +120,25 @@ impl RealtimeIblCaptureWgpuPipelines {
                 u32::from(faces.count),
             ],
         );
+        RealtimeIblWgpuBindingCreationStats {
+            params_buffer_creations: 1,
+            bind_group_creations: 1,
+            creation_micros,
+        }
     }
 
     pub(in crate::graphics) fn record_downsample_mip(
         &self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
+        cpu_timing_enabled: bool,
         source_face_size: u32,
         destination_face_size: u32,
         source: &wgpu::TextureView,
         output: &wgpu::TextureView,
-    ) {
+    ) -> RealtimeIblWgpuBindingCreationStats {
         let words = [source_face_size, destination_face_size, 0, 0];
+        let started = cpu_timing_enabled.then(Instant::now);
         let uniform = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("zircon-realtime-ibl-downsample-params"),
             contents: bytemuck::cast_slice(&words),
@@ -140,6 +166,7 @@ impl RealtimeIblCaptureWgpuPipelines {
                 },
             ],
         });
+        let creation_micros = elapsed_micros(started);
         record_dispatch(
             encoder,
             "zircon-realtime-ibl-downsample",
@@ -151,7 +178,55 @@ impl RealtimeIblCaptureWgpuPipelines {
                 6,
             ],
         );
+        RealtimeIblWgpuBindingCreationStats {
+            params_buffer_creations: 1,
+            bind_group_creations: 1,
+            creation_micros,
+        }
     }
+
+    pub(in crate::graphics) fn record_source_mip_chain(
+        &self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        cpu_timing_enabled: bool,
+        face_size: u32,
+        sampled_mips: &[wgpu::TextureView],
+        storage_mips: &[wgpu::TextureView],
+    ) -> Result<RealtimeIblWgpuBindingCreationStats, String> {
+        if sampled_mips.is_empty() || sampled_mips.len() != storage_mips.len() {
+            return Err(format!(
+                "HDR cube mip views must be non-empty and paired, got sampled={} storage={}",
+                sampled_mips.len(),
+                storage_mips.len()
+            ));
+        }
+
+        let mut total = RealtimeIblWgpuBindingCreationStats::default();
+        for mip_level in 1..sampled_mips.len() {
+            let creation = self.record_downsample_mip(
+                device,
+                encoder,
+                cpu_timing_enabled,
+                mip_dimension(face_size, mip_level - 1),
+                mip_dimension(face_size, mip_level),
+                &sampled_mips[mip_level - 1],
+                &storage_mips[mip_level],
+            );
+            total.params_buffer_creations += creation.params_buffer_creations;
+            total.bind_group_creations += creation.bind_group_creations;
+            total.creation_micros = total
+                .creation_micros
+                .saturating_add(creation.creation_micros);
+        }
+        Ok(total)
+    }
+}
+
+fn elapsed_micros(started: Option<Instant>) -> u64 {
+    started
+        .map(|started| u64::try_from(started.elapsed().as_micros()).unwrap_or(u64::MAX))
+        .unwrap_or_default()
 }
 
 fn create_pipeline(
@@ -286,6 +361,15 @@ fn storage_texture_layout_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
 
 const fn div_ceil(value: u32, divisor: u32) -> u32 {
     value.saturating_add(divisor.saturating_sub(1)) / divisor
+}
+
+const fn mip_dimension(face_size: u32, mip_level: usize) -> u32 {
+    let shifted = face_size >> mip_level;
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 #[cfg(test)]

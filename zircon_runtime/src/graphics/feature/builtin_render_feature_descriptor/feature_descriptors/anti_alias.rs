@@ -8,8 +8,8 @@ use crate::render_graph::QueueLane;
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
-) -> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
+-> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "anti_alias",
         vec!["view".to_string(), "post_process".to_string()],
@@ -21,7 +21,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::Graphics,
             )
             .with_executor_id(FXAA_EXECUTOR_ID)
-            .with_side_effects()
             .read_texture(PostProcessGraphResourceNames::TONEMAPPED)
             .write_texture(PostProcessGraphResourceNames::FINAL_COMPOSITED),
             RenderFeaturePassDescriptor::new(
@@ -30,7 +29,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::Graphics,
             )
             .with_executor_id(SMAA_EXECUTOR_ID)
-            .with_side_effects()
             .read_texture(PostProcessGraphResourceNames::TONEMAPPED)
             .write_texture(PostProcessGraphResourceNames::FINAL_COMPOSITED),
         ],

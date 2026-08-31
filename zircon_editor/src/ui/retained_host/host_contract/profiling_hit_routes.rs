@@ -1,5 +1,6 @@
 mod chrome;
 mod geometry;
+mod identity;
 mod routes;
 mod tabs;
 mod template;

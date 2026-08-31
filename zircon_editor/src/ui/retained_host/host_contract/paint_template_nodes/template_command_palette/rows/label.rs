@@ -12,7 +12,7 @@ pub(super) fn push_command_row_label(
     row_rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
-    text: String,
+    text: &str,
     color: [u8; 4],
     opacity: f32,
 ) {
@@ -25,7 +25,7 @@ pub(super) fn push_command_row_label(
         row_label_rect(row_rect),
         Some(clip.clone()),
         order,
-        text,
+        text.to_string(),
         style.color,
         style.font_size,
         style.line_height,

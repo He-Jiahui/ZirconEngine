@@ -5,9 +5,10 @@ use toml::Value;
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{UiComponentDescriptor, UiValue, UiValueKind};
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetError, UiBindingDiagnostic, UiBindingDiagnosticCode,
-    UiBindingDiagnosticSeverity, UiBindingExpression, UiBindingExpressionParseError, UiBindingRef,
-    UiBindingReport, UiBindingTarget, UiBindingTargetAssignment, UiBindingTargetKind,
+    UiActionPayloadFieldName, UiAssetDocument, UiAssetError, UiBindingDiagnostic,
+    UiBindingDiagnosticCode, UiBindingDiagnosticSeverity, UiBindingExpression,
+    UiBindingExpressionParseError, UiBindingMode, UiBindingRef, UiBindingReport,
+    UiBindingSchemaNameKind, UiBindingTarget, UiBindingTargetAssignment, UiBindingTargetKind,
     UiComponentParamSchema, UiNodeDefinition,
 };
 
@@ -92,6 +93,28 @@ impl<'a> ValidationContext<'a> {
         params: &BTreeMap<String, UiComponentParamSchema>,
         binding: &UiBindingRef,
     ) {
+        if binding.mode != UiBindingMode::Event {
+            self.push_error(
+                UiBindingDiagnosticCode::UnsupportedBindingMode,
+                format!("{path}.mode"),
+                node,
+                binding,
+                format!(
+                    "binding {} mode {:?} does not have a runtime executor",
+                    binding.id, binding.mode
+                ),
+            );
+            return;
+        }
+        if let Some(route) = binding.route.as_deref() {
+            self.validate_schema_name(
+                &format!("{path}.route"),
+                node,
+                binding,
+                UiBindingSchemaNameKind::Route,
+                route,
+            );
+        }
         for (target_index, assignment) in binding.targets.iter().enumerate() {
             self.validate_assignment(
                 &format!("{path}.targets[{target_index}]"),
@@ -103,7 +126,32 @@ impl<'a> ValidationContext<'a> {
             );
         }
         if let Some(action) = &binding.action {
+            if let Some(route) = action.route.as_deref() {
+                self.validate_schema_name(
+                    &format!("{path}.action.route"),
+                    node,
+                    binding,
+                    UiBindingSchemaNameKind::Route,
+                    route,
+                );
+            }
+            if let Some(action_name) = action.action.as_deref() {
+                self.validate_schema_name(
+                    &format!("{path}.action.action"),
+                    node,
+                    binding,
+                    UiBindingSchemaNameKind::Action,
+                    action_name,
+                );
+            }
             for (key, value) in &action.payload {
+                self.validate_schema_name(
+                    &format!("{path}.action.payload.{key}"),
+                    node,
+                    binding,
+                    UiBindingSchemaNameKind::PayloadField,
+                    key,
+                );
                 self.validate_payload_expression(
                     &format!("{path}.action.payload.{key}"),
                     node,
@@ -158,7 +206,7 @@ impl<'a> ValidationContext<'a> {
         if !text.trim_start().starts_with('=') {
             return;
         }
-        if !is_m18_runtime_expression(text) {
+        if !is_runtime_binding_expression(text) {
             return;
         }
         self.validate_expression_text(
@@ -512,6 +560,27 @@ impl<'a> ValidationContext<'a> {
         );
     }
 
+    fn validate_schema_name(
+        &mut self,
+        path: &str,
+        node: &UiNodeDefinition,
+        binding: &UiBindingRef,
+        kind: UiBindingSchemaNameKind,
+        value: &str,
+    ) {
+        if let Err(error) = kind.validate(value) {
+            self.invalid_target(
+                path,
+                node,
+                binding,
+                format!(
+                    "binding {} has invalid {kind} `{value}`: {error}",
+                    binding.id
+                ),
+            );
+        }
+    }
+
     fn push_error(
         &mut self,
         code: UiBindingDiagnosticCode,
@@ -581,7 +650,7 @@ fn kind_matches(expected: UiValueKind, actual: UiValueKind) -> bool {
         || matches!((expected, actual), (UiValueKind::Float, UiValueKind::Int))
 }
 
-fn component_param_kind(value: &str) -> Option<UiValueKind> {
+pub(crate) fn component_param_kind(value: &str) -> Option<UiValueKind> {
     match value.trim().to_ascii_lowercase().as_str() {
         "any" => Some(UiValueKind::Any),
         "bool" | "boolean" => Some(UiValueKind::Bool),
@@ -604,19 +673,19 @@ fn component_param_kind(value: &str) -> Option<UiValueKind> {
 }
 
 fn payload_value_kind(payload_key: &str, value: &Value) -> UiValueKind {
-    match payload_key {
-        "checked" | "committed" | "confirm" | "enabled" | "visible" | "force_full_rebuild" => {
-            UiValueKind::Bool
-        }
-        "delta" | "index" | "count" | "surface_entity" => UiValueKind::Int,
-        _ if matches!(value, Value::String(text) if text.trim_start().starts_with('=')) => {
-            UiValueKind::Any
-        }
-        _ => UiValue::from_toml(value).kind(),
+    if let Some(kind) = UiActionPayloadFieldName::from_schema_name(payload_key)
+        .and_then(UiActionPayloadFieldName::expected_value_kind)
+    {
+        return kind;
+    }
+    if matches!(value, Value::String(text) if text.trim_start().starts_with('=')) {
+        UiValueKind::Any
+    } else {
+        UiValue::from_toml(value).kind()
     }
 }
 
-fn is_m18_runtime_expression(text: &str) -> bool {
+fn is_runtime_binding_expression(text: &str) -> bool {
     let expression = text
         .trim_start()
         .strip_prefix('=')

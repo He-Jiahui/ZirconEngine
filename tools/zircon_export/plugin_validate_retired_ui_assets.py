@@ -70,9 +70,10 @@ def _plugin_validate_retired_ui_asset_files(
         if not root.exists():
             continue
         for path in root.rglob("*"):
+            if plugin_validate_retired_ui_asset_suffix(path) is None:
+                continue
             if not path.is_file():
                 continue
             relative_path = path.relative_to(base_root)
-            if plugin_validate_retired_ui_asset_suffix(relative_path) is not None:
-                retired_paths.append(relative_path)
+            retired_paths.append(relative_path)
     return sorted(retired_paths, key=lambda path: path.as_posix())

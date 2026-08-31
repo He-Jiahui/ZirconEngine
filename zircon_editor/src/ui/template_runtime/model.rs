@@ -53,8 +53,16 @@ impl RetainedUiProjection {
                 let metadata = by_control_id
                     .entry(control_id.clone())
                     .or_insert_with(RetainedUiProjectionSurfaceMetadata::default);
-                metadata.attributes.extend(node.attributes.clone());
-                metadata.style_tokens.extend(node.style_tokens.clone());
+                metadata.attributes.extend(
+                    node.attributes
+                        .iter()
+                        .map(|(key, value)| (key.clone(), value.clone())),
+                );
+                metadata.style_tokens.extend(
+                    node.style_tokens
+                        .iter()
+                        .map(|(key, value)| (key.clone(), value.clone())),
+                );
             }
             stack.extend(node.children.iter().rev());
         }
@@ -73,8 +81,18 @@ impl RetainedUiProjectionSurfaceMetadataIndex {
         else {
             return;
         };
-        attributes.extend(metadata.attributes.clone());
-        style_tokens.extend(metadata.style_tokens.clone());
+        attributes.extend(
+            metadata
+                .attributes
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone())),
+        );
+        style_tokens.extend(
+            metadata
+                .style_tokens
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone())),
+        );
     }
 
     #[cfg(test)]
@@ -142,3 +160,7 @@ mod tests {
         assert_eq!(style_tokens.get("accent"), Some(&"second".to_string()));
     }
 }
+
+#[cfg(test)]
+#[path = "model/optimization_tests.rs"]
+mod optimization_tests;

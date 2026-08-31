@@ -1,3 +1,3 @@
 mod dispatch;
-mod floating_strip_bounds;
+mod floating_receipt;
 mod surface_contract;

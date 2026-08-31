@@ -21,6 +21,13 @@ pub(crate) struct DeferredSceneResources {
 }
 
 impl DeferredSceneResources {
+    pub(in crate::graphics::scene::scene_renderer) fn set_reflection_probe_bindings(
+        &mut self,
+        bindings: crate::graphics::scene::scene_renderer::environment::ReflectionProbeGpuBindings,
+    ) {
+        self.reflection_probe_bindings = bindings;
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn set_lightmap_bindings(
         &mut self,
         bindings: crate::graphics::scene::scene_renderer::environment::LightmapGpuBindings,

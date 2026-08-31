@@ -1,7 +1,7 @@
 use crate::graphics::shader::{
+    MOTION_VECTOR_SOURCE_RESOURCE, ShaderWgpuResourceDescriptor,
     create_fullscreen_pass_input_bind_group_layout,
     create_fullscreen_pass_parameter_bind_group_layout, motion_vector_tile_max_pass_plan,
-    ShaderWgpuResourceDescriptor, MOTION_VECTOR_SOURCE_RESOURCE,
 };
 
 pub(crate) fn motion_vector_tile_max(device: &wgpu::Device) -> wgpu::BindGroupLayout {

@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use crate::ui::layouts::windows::workbench_host_window::{
     InspectorPaneViewData, InspectorPluginComponentViewData, PaneContentSize,
 };
@@ -420,31 +422,19 @@ fn inspector_component_key(value: &str) -> String {
         if ch.is_ascii_alphanumeric() {
             key.push(ch.to_ascii_lowercase());
         } else {
-            key.push_str("_u");
-            key.push_str(&format!("{:x}", ch as u32));
-            key.push('_');
+            write!(&mut key, "_u{:x}_", ch as u32).expect("writing to a String cannot fail");
         }
     }
     key
 }
 
 fn inspector_numeric_kind(value_kind: &str) -> bool {
-    matches!(
-        value_kind.to_ascii_lowercase().as_str(),
-        "number"
-            | "float"
-            | "scalar"
-            | "real"
-            | "double"
-            | "integer"
-            | "int"
-            | "signed"
-            | "unsigned"
-            | "u32"
-            | "u64"
-            | "i32"
-            | "i64"
-    )
+    [
+        "number", "float", "scalar", "real", "double", "integer", "int", "signed", "unsigned",
+        "u32", "u64", "i32", "i64",
+    ]
+    .iter()
+    .any(|numeric_kind| value_kind.eq_ignore_ascii_case(numeric_kind))
 }
 
 fn inspector_body_frame(

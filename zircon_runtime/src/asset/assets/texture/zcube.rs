@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    decode_rgba16f_texels, encode_rgba16f_texels, source_cubemap_mip_count, RenderImageColorSpace,
+    append_rgba16f_texels, decode_rgba16f_texels, source_cubemap_mip_count, RenderImageColorSpace,
     RenderImageDimension, SourceCubemapMipChain, RGBA16F_TEXEL_SIZE_BYTES,
     SOURCE_CUBEMAP_FACE_COUNT,
 };
@@ -24,6 +24,12 @@ pub struct ZcubeSourceCubemap {
     face_size: u32,
     mip_count: u32,
     texels: Vec<[Real; 4]>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ZcubeSourceCubemapInfo {
+    pub face_size: u32,
+    pub mip_count: u32,
 }
 
 impl ZcubeSourceCubemap {
@@ -50,25 +56,155 @@ pub fn texture_asset_from_source_cubemap_zcube(
     uri: AssetUri,
     cubemap: &SourceCubemapMipChain,
 ) -> TextureAsset {
-    let mut bytes = ZcubeSourceCubemapHeader {
-        face_size: cubemap.source_face_size(),
-        mip_count: cubemap.source_mip_count(),
-    }
-    .encode()
-    .to_vec();
-    bytes.extend_from_slice(&encode_rgba16f_texels(cubemap.source_texels()));
-
-    TextureAsset::new_container(
+    texture_asset_from_source_cubemap_zcube_mips(
         uri,
         cubemap.source_face_size(),
-        cubemap.source_face_size(),
-        ZCUBE_SOURCE_CUBEMAP_FORMAT,
-        bytes,
         cubemap.source_mip_count(),
-        SOURCE_CUBEMAP_FACE_COUNT as u32,
+        cubemap.source_texels(),
     )
-    .with_descriptor(zcube_source_cubemap_descriptor(cubemap.source_mip_count()))
+    .expect("SourceCubemapMipChain must contain one validated complete source pyramid")
 }
+
+/// Encodes a source-only cubemap without requiring PMREM or irradiance data.
+///
+/// GPU capture readback owns a source mip pyramid before any asset-derived
+/// representation exists. Keeping this boundary source-only prevents callers
+/// from fabricating filtered outputs merely to publish the `.zcube` container.
+pub fn texture_asset_from_source_cubemap_zcube_mips(
+    uri: AssetUri,
+    face_size: u32,
+    mip_count: u32,
+    texels: &[[Real; 4]],
+) -> Result<TextureAsset, ZcubeSourceCubemapError> {
+    let expected_payload_len = validate_zcube_source_layout(face_size, mip_count)?;
+    let expected_texel_count = expected_payload_len / RGBA16F_TEXEL_SIZE_BYTES;
+    if texels.len() != expected_texel_count {
+        return Err(ZcubeSourceCubemapError::SourceTexelCountMismatch {
+            expected: expected_texel_count,
+            actual: texels.len(),
+        });
+    }
+
+    let encoded_capacity = ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE
+        .checked_add(expected_payload_len)
+        .ok_or(ZcubeSourceCubemapError::ExtentTooLarge {
+            face_size,
+            mip_count,
+        })?;
+    let mut bytes = Vec::with_capacity(encoded_capacity);
+    bytes.extend_from_slice(
+        &ZcubeSourceCubemapHeader {
+            face_size,
+            mip_count,
+        }
+        .encode(),
+    );
+    append_rgba16f_texels(&mut bytes, texels);
+
+    Ok(zcube_source_texture_asset(uri, face_size, mip_count, bytes))
+}
+
+/// Encodes a canonical face-major RGBA16F source pyramid without expanding it to `f32x4`.
+///
+/// GPU readback already returns the exact on-disk texel representation. Accepting those bytes at
+/// this boundary avoids a full-cubemap decode and a second lossy half-float encode before durable
+/// project publication.
+pub fn texture_asset_from_source_cubemap_zcube_rgba16f_mips(
+    uri: AssetUri,
+    face_size: u32,
+    mip_count: u32,
+    source_rgba16f: &[u8],
+) -> Result<TextureAsset, ZcubeSourceCubemapError> {
+    let bytes = encode_source_cubemap_zcube_rgba16f_mips(face_size, mip_count, source_rgba16f)?;
+    Ok(zcube_source_texture_asset(uri, face_size, mip_count, bytes))
+}
+
+pub fn encode_source_cubemap_zcube_rgba16f_mips(
+    face_size: u32,
+    mip_count: u32,
+    source_rgba16f: &[u8],
+) -> Result<Vec<u8>, ZcubeSourceCubemapError> {
+    let expected_payload_len = validate_zcube_source_layout(face_size, mip_count)?;
+    if source_rgba16f.len() != expected_payload_len {
+        return Err(ZcubeSourceCubemapError::InvalidPayloadLength {
+            expected: expected_payload_len,
+            actual: source_rgba16f.len(),
+        });
+    }
+    let encoded_capacity = ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE
+        .checked_add(expected_payload_len)
+        .ok_or(ZcubeSourceCubemapError::ExtentTooLarge {
+            face_size,
+            mip_count,
+        })?;
+    let mut bytes = Vec::with_capacity(encoded_capacity);
+    bytes.extend_from_slice(
+        &ZcubeSourceCubemapHeader {
+            face_size,
+            mip_count,
+        }
+        .encode(),
+    );
+    bytes.extend_from_slice(source_rgba16f);
+    Ok(bytes)
+}
+
+/// Converts an owned canonical payload into a `.zcube` container in place when capacity permits.
+pub fn encode_source_cubemap_zcube_rgba16f_mips_owned(
+    face_size: u32,
+    mip_count: u32,
+    mut source_rgba16f: Vec<u8>,
+) -> Result<Vec<u8>, ZcubeSourceCubemapError> {
+    let expected_payload_len = validate_zcube_source_layout(face_size, mip_count)?;
+    if source_rgba16f.len() != expected_payload_len {
+        return Err(ZcubeSourceCubemapError::InvalidPayloadLength {
+            expected: expected_payload_len,
+            actual: source_rgba16f.len(),
+        });
+    }
+    source_rgba16f
+        .try_reserve_exact(ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE)
+        .map_err(|_| ZcubeSourceCubemapError::ExtentTooLarge {
+            face_size,
+            mip_count,
+        })?;
+    source_rgba16f.resize(expected_payload_len + ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE, 0);
+    source_rgba16f.copy_within(0..expected_payload_len, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE);
+    source_rgba16f[..ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE].copy_from_slice(
+        &ZcubeSourceCubemapHeader {
+            face_size,
+            mip_count,
+        }
+        .encode(),
+    );
+    Ok(source_rgba16f)
+}
+
+pub fn is_zcube_source_cubemap_bytes(bytes: &[u8]) -> bool {
+    bytes.starts_with(&ZCUBE_SOURCE_CUBEMAP_MAGIC)
+}
+
+/// Validates and adopts an already encoded source cubemap without expanding its texels.
+pub fn texture_asset_from_encoded_source_cubemap_zcube(
+    uri: AssetUri,
+    bytes: Vec<u8>,
+) -> Result<TextureAsset, ZcubeSourceCubemapError> {
+    let info = zcube_source_cubemap_bytes_info(&bytes)?;
+    Ok(zcube_source_texture_asset(
+        uri,
+        info.face_size,
+        info.mip_count,
+        bytes,
+    ))
+}
+
+#[cfg(test)]
+#[path = "zcube/single_append_tests.rs"]
+mod single_append_tests;
+
+#[cfg(test)]
+#[path = "zcube/source_mip_encoding_tests.rs"]
+mod source_mip_encoding_tests;
 
 pub fn decode_zcube_source_cubemap_texture(
     texture: &TextureAsset,
@@ -114,14 +250,61 @@ pub fn decode_zcube_source_cubemap_texture(
 pub fn decode_zcube_source_cubemap_bytes(
     bytes: &[u8],
 ) -> Result<ZcubeSourceCubemap, ZcubeSourceCubemapError> {
-    let header = ZcubeSourceCubemapHeader::decode(bytes)?;
+    let info = zcube_source_cubemap_bytes_info(bytes)?;
+    let payload = &bytes[ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE..];
 
-    let expected_payload_len = zcube_source_payload_len(header.face_size, header.mip_count).ok_or(
-        ZcubeSourceCubemapError::ExtentTooLarge {
-            face_size: header.face_size,
-            mip_count: header.mip_count,
-        },
-    )?;
+    Ok(ZcubeSourceCubemap {
+        face_size: info.face_size,
+        mip_count: info.mip_count,
+        texels: decode_rgba16f_texels(payload),
+    })
+}
+
+/// Classifies and validates a source-only `.zcube` texture without decoding its texels.
+pub fn zcube_source_cubemap_texture_info(
+    texture: &TextureAsset,
+) -> Result<Option<ZcubeSourceCubemapInfo>, ZcubeSourceCubemapError> {
+    let TexturePayload::Container {
+        format,
+        bytes,
+        mip_count,
+        array_layers,
+    } = &texture.payload
+    else {
+        return Ok(None);
+    };
+    if format != ZCUBE_SOURCE_CUBEMAP_FORMAT {
+        return Ok(None);
+    }
+
+    let info = zcube_source_cubemap_bytes_info(bytes)?;
+    if texture.width != info.face_size || texture.height != info.face_size {
+        return Err(ZcubeSourceCubemapError::TextureExtentMismatch {
+            expected_face_size: info.face_size,
+            actual_width: texture.width,
+            actual_height: texture.height,
+        });
+    }
+    if *mip_count != info.mip_count || *array_layers != SOURCE_CUBEMAP_FACE_COUNT as u32 {
+        return Err(ZcubeSourceCubemapError::TextureContainerMetadataMismatch {
+            expected_mip_count: info.mip_count,
+            actual_mip_count: *mip_count,
+            expected_array_layers: SOURCE_CUBEMAP_FACE_COUNT as u32,
+            actual_array_layers: *array_layers,
+        });
+    }
+    Ok(Some(info))
+}
+
+pub fn is_zcube_source_cubemap_texture(texture: &TextureAsset) -> bool {
+    matches!(zcube_source_cubemap_texture_info(texture), Ok(Some(_)))
+}
+
+fn zcube_source_cubemap_bytes_info(
+    bytes: &[u8],
+) -> Result<ZcubeSourceCubemapInfo, ZcubeSourceCubemapError> {
+    let header = ZcubeSourceCubemapHeader::decode(bytes)?;
+    let expected_payload_len = validate_zcube_source_layout(header.face_size, header.mip_count)?;
     let payload = &bytes[ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE..];
     if payload.len() != expected_payload_len {
         return Err(ZcubeSourceCubemapError::InvalidPayloadLength {
@@ -129,19 +312,10 @@ pub fn decode_zcube_source_cubemap_bytes(
             actual: payload.len(),
         });
     }
-
-    Ok(ZcubeSourceCubemap {
+    Ok(ZcubeSourceCubemapInfo {
         face_size: header.face_size,
         mip_count: header.mip_count,
-        texels: decode_rgba16f_texels(payload),
     })
-}
-
-pub fn is_zcube_source_cubemap_texture(texture: &TextureAsset) -> bool {
-    matches!(
-        &texture.payload,
-        TexturePayload::Container { format, .. } if format == ZCUBE_SOURCE_CUBEMAP_FORMAT
-    )
 }
 
 fn zcube_source_cubemap_descriptor(mip_count: u32) -> TextureAssetDescriptor {
@@ -156,6 +330,48 @@ fn zcube_source_cubemap_descriptor(mip_count: u32) -> TextureAssetDescriptor {
     descriptor.depth_or_array_layers = SOURCE_CUBEMAP_FACE_COUNT as u32;
     descriptor.array_layer_count = SOURCE_CUBEMAP_FACE_COUNT as u32;
     descriptor.normalized()
+}
+
+fn validate_zcube_source_layout(
+    face_size: u32,
+    mip_count: u32,
+) -> Result<usize, ZcubeSourceCubemapError> {
+    if face_size == 0 || mip_count == 0 {
+        return Err(ZcubeSourceCubemapError::InvalidLayout {
+            face_size,
+            mip_count,
+        });
+    }
+    let expected_mip_count = source_cubemap_mip_count(face_size);
+    if mip_count != expected_mip_count {
+        return Err(ZcubeSourceCubemapError::InvalidMipCount {
+            face_size,
+            expected: expected_mip_count,
+            actual: mip_count,
+        });
+    }
+    zcube_source_payload_len(face_size, mip_count).ok_or(ZcubeSourceCubemapError::ExtentTooLarge {
+        face_size,
+        mip_count,
+    })
+}
+
+fn zcube_source_texture_asset(
+    uri: AssetUri,
+    face_size: u32,
+    mip_count: u32,
+    bytes: Vec<u8>,
+) -> TextureAsset {
+    TextureAsset::new_container(
+        uri,
+        face_size,
+        face_size,
+        ZCUBE_SOURCE_CUBEMAP_FORMAT,
+        bytes,
+        mip_count,
+        SOURCE_CUBEMAP_FACE_COUNT as u32,
+    )
+    .with_descriptor(zcube_source_cubemap_descriptor(mip_count))
 }
 
 fn zcube_source_payload_len(face_size: u32, mip_count: u32) -> Option<usize> {
@@ -282,6 +498,8 @@ pub enum ZcubeSourceCubemapError {
     ExtentTooLarge { face_size: u32, mip_count: u32 },
     #[error(".zcube payload length mismatch: expected {expected} bytes, found {actual}")]
     InvalidPayloadLength { expected: usize, actual: usize },
+    #[error(".zcube source texel count mismatch: expected {expected}, found {actual}")]
+    SourceTexelCountMismatch { expected: usize, actual: usize },
     #[error(
         ".zcube texture extent mismatch: expected square face {expected_face_size}, found {actual_width}x{actual_height}"
     )]

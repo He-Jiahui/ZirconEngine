@@ -161,7 +161,7 @@ fn root_console_pointer_scroll_uses_region_frame_fallback_in_real_host() {
 
     let harness = ChildWindowHostHarness::new("zircon_retained_root_console_projection");
     harness.activate_workbench_page();
-    harness.activate_drawer_tab(ActivityDrawerSlot::BottomLeft, "editor.console#1");
+    harness.activate_drawer_tab(ActivityDrawerSlot::Bottom, "editor.console#1");
 
     harness
         .root_ui
@@ -179,7 +179,7 @@ fn root_console_recompute_initializes_viewport_and_follows_first_overflow_withou
 
     let harness = ChildWindowHostHarness::new("zircon_retained_root_console_recompute_tail");
     harness.activate_workbench_page();
-    harness.activate_drawer_tab(ActivityDrawerSlot::BottomLeft, "editor.console#1");
+    harness.activate_drawer_tab(ActivityDrawerSlot::Bottom, "editor.console#1");
 
     {
         let host = harness.host.borrow();
@@ -230,7 +230,7 @@ fn root_console_pointer_scroll_prefers_shared_drawer_content_projection_over_sta
     let harness =
         ChildWindowHostHarness::new("zircon_retained_root_console_content_projection_height");
     harness.activate_workbench_page();
-    harness.activate_drawer_tab(ActivityDrawerSlot::BottomLeft, "editor.console#1");
+    harness.activate_drawer_tab(ActivityDrawerSlot::Bottom, "editor.console#1");
 
     let expected_size = {
         let mut host = harness.host.borrow_mut();

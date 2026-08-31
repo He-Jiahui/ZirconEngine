@@ -1,15 +1,19 @@
 use std::any::Any;
+use std::collections::BTreeSet;
+use std::hint::black_box;
 use std::sync::Arc;
+use std::time::Instant;
 
 use crate::core::editing::engine::{
-    EditCommandError, EditContext, EditorTransactionEngine, HistoryContextId, SelectionSnapshot,
+    EditCommandError, EditContext, EditWorldRoute, EditorTransactionEngine, HistoryContextId,
+    SelectionSnapshot,
 };
 use crate::core::editor_message::DocumentId;
 use crate::core::extension::{
     DocumentAutosavePayload, DocumentToolkit, DocumentToolkitDescriptor, DocumentToolkitRegistry,
     SaveCtx, ToolkitInstanceId, ToolkitLayout, ToolkitSaveFailure,
 };
-use crate::core::gateway::EditorRuntimeGatewayHandle;
+use crate::core::play::WorldDomain;
 
 use super::{
     SaveDirtyViewCandidate, SaveDirtyViewCompletion, SaveDirtyViewFailure,
@@ -18,21 +22,23 @@ use super::{
 };
 use crate::core::asset::dirty::{DirtyExternalEffectId, DirtyRegistry};
 
-struct FixtureContext {
-    gateway: EditorRuntimeGatewayHandle,
-}
-
-impl Default for FixtureContext {
-    fn default() -> Self {
-        Self {
-            gateway: EditorRuntimeGatewayHandle::detached(),
-        }
-    }
-}
+#[derive(Default)]
+struct FixtureContext;
 
 impl EditContext for FixtureContext {
-    fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle {
-        &self.gateway
+    fn capture_world_route(
+        &self,
+        world_domain: WorldDomain,
+    ) -> Result<EditWorldRoute, EditCommandError> {
+        Ok(EditWorldRoute::logical(world_domain))
+    }
+
+    fn activate_world_route(&mut self, _route: &EditWorldRoute) -> Result<(), EditCommandError> {
+        Ok(())
+    }
+
+    fn retire_world_route(&mut self, _world_domain: WorldDomain) -> Result<(), EditCommandError> {
+        Ok(())
     }
 
     fn selection_snapshot(&self) -> SelectionSnapshot {
@@ -59,6 +65,10 @@ struct FixtureToolkit {
 impl DocumentToolkit<()> for FixtureToolkit {
     fn descriptor(&self) -> &DocumentToolkitDescriptor {
         &self.descriptor
+    }
+
+    fn validate_references(&self, _host: &()) -> Result<(), ToolkitSaveFailure> {
+        Ok(())
     }
 
     fn save(&self, _host: &(), _context: &mut SaveCtx) -> Result<(), ToolkitSaveFailure> {
@@ -325,4 +335,126 @@ fn malformed_completion_sets_are_rejected_before_dirty_state_changes() {
             if duplicate == document(1)
     ));
     assert!(dirty.snapshot(document(1)).unwrap().is_dirty());
+}
+
+#[test]
+fn optimization_wave_20260824h_editor02_save_preflight_reports_each_sorted_duplicate() {
+    let (transactions, dirty) = state();
+    let toolkits = DocumentToolkitRegistry::<()>::default();
+    for value in 1..=2 {
+        dirty.register_document(document(value)).unwrap();
+        dirty
+            .mark_external_effect(document(value), effect())
+            .unwrap();
+        register_toolkit(&toolkits, value);
+    }
+
+    let report = SaveDirtyViewsRequest::prepare(
+        &toolkits.snapshot(),
+        [2, 1, 2, 1].map(|value| candidate(&transactions, &dirty, value, 64)),
+    )
+    .unwrap_err();
+    let duplicate_documents = report
+        .failures()
+        .iter()
+        .filter(|failure| failure.kind() == SaveDirtyViewsPreflightErrorKind::DuplicateDocument)
+        .map(|failure| failure.document_id())
+        .collect::<Vec<_>>();
+
+    assert_eq!(duplicate_documents, vec![document(1), document(2)]);
+}
+
+#[test]
+fn optimization_wave_20260824h_editor02_save_preflight_uses_sorted_adjacency() {
+    const PRODUCTION: &str = include_str!("../save_batch.rs");
+
+    assert!(PRODUCTION.contains("let mut previous_document = None;"));
+    assert!(PRODUCTION.contains("previous_document == Some(document)"));
+    assert!(!PRODUCTION.contains("let mut seen = BTreeSet::new()"));
+}
+
+#[test]
+#[ignore = "release-only performance evidence"]
+fn optimization_wave_20260824h_editor02_save_preflight_adjacent_dedup_evidence() {
+    const CANDIDATE_COUNT: usize = 65_536;
+    const SAMPLE_COUNT: usize = 21;
+    let documents = (0..CANDIDATE_COUNT)
+        .map(|index| document((index / 2) as u64))
+        .collect::<Vec<_>>();
+
+    let (legacy_samples, optimized_samples) = benchmark_paired_samples::<SAMPLE_COUNT>(
+        || legacy_duplicate_count(&documents),
+        || adjacent_duplicate_count(&documents),
+    );
+    let expected_duplicates = CANDIDATE_COUNT / 2;
+    assert_eq!(legacy_duplicate_count(&documents), expected_duplicates);
+    assert_eq!(adjacent_duplicate_count(&documents), expected_duplicates);
+
+    let legacy_p95 = percentile(&legacy_samples, 95);
+    let optimized_p95 = percentile(&optimized_samples, 95);
+    println!(
+        "PERF_RESULT EDITOR02_SAVE_PREFLIGHT_DEDUP_BENCH_V1 candidates={CANDIDATE_COUNT} unique_documents={} samples={SAMPLE_COUNT} sample_order=alternating legacy_set_entries={} optimized_set_entries=0 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} reduction_set_entries_percent=100.0000",
+        CANDIDATE_COUNT / 2,
+        CANDIDATE_COUNT / 2,
+    );
+    assert!(
+        optimized_p95 * 2 <= legacy_p95,
+        "optimized P95 {optimized_p95}ns must be no more than 50% of legacy P95 {legacy_p95}ns"
+    );
+}
+
+fn legacy_duplicate_count(documents: &[DocumentId]) -> usize {
+    let mut seen = BTreeSet::new();
+    documents
+        .iter()
+        .copied()
+        .filter(|document| !seen.insert(*document))
+        .count()
+}
+
+fn adjacent_duplicate_count(documents: &[DocumentId]) -> usize {
+    let mut previous_document = None;
+    documents
+        .iter()
+        .copied()
+        .filter(|document| {
+            let duplicate = previous_document == Some(*document);
+            previous_document = Some(*document);
+            duplicate
+        })
+        .count()
+}
+
+fn benchmark_paired_samples<const SAMPLE_COUNT: usize>(
+    mut legacy: impl FnMut() -> usize,
+    mut optimized: impl FnMut() -> usize,
+) -> (Vec<u128>, Vec<u128>) {
+    black_box(legacy());
+    black_box(optimized());
+    let mut legacy_samples = Vec::with_capacity(SAMPLE_COUNT);
+    let mut optimized_samples = Vec::with_capacity(SAMPLE_COUNT);
+    for sample_index in 0..SAMPLE_COUNT {
+        if sample_index % 2 == 0 {
+            legacy_samples.push(benchmark_sample(&mut legacy));
+            optimized_samples.push(benchmark_sample(&mut optimized));
+        } else {
+            optimized_samples.push(benchmark_sample(&mut optimized));
+            legacy_samples.push(benchmark_sample(&mut legacy));
+        }
+    }
+    (legacy_samples, optimized_samples)
+}
+
+fn benchmark_sample(operation: &mut impl FnMut() -> usize) -> u128 {
+    let started = Instant::now();
+    black_box(operation());
+    started.elapsed().as_nanos()
+}
+
+fn percentile(samples: &[u128], percentile: usize) -> u128 {
+    let mut sorted = samples.to_vec();
+    sorted.sort_unstable();
+    assert!(!sorted.is_empty());
+    assert!((1..=100).contains(&percentile));
+    sorted[(sorted.len() * percentile).div_ceil(100) - 1]
 }

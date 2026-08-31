@@ -6,11 +6,12 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeError},
 };
 
-use crate::ui::surface::UiSurface;
+use crate::ui::{dispatch::DEFAULT_TOOLTIP_DELAY_MS, surface::UiSurface};
+
+use super::semantics::component_role_is_one_of;
 
 const DEFAULT_TYPEAHEAD_TIMEOUT_MS: u64 = 500;
 const DEFAULT_SUBMENU_HOVER_DELAY_MS: u64 = 300;
-const DEFAULT_TOOLTIP_DELAY_MS: u64 = 500;
 
 impl UiSurface {
     pub(crate) fn typeahead_timeout_ms_for_component_node(&self, node_id: UiNodeId) -> Option<u64> {
@@ -107,25 +108,10 @@ impl UiSurface {
 }
 
 fn is_menu_component(metadata: &UiTemplateNodeMetadata) -> bool {
-    matches!(
-        metadata.component.as_str(),
-        "Menu"
-            | "MenuList"
-            | "PopupMenu"
-            | "MenuPopup"
-            | "ContextMenu"
-            | "ContextActionMenu"
-            | "DropdownPopup"
-    ) || metadata
-        .attributes
-        .get("role")
-        .and_then(toml::Value::as_str)
-        .is_some_and(|role| {
-            matches!(
-                role,
-                "menu" | "menu-list" | "context-menu" | "dropdown-popup"
-            )
-        })
+    component_role_is_one_of(
+        metadata,
+        &["menu", "menu-list", "context-menu", "dropdown-popup"],
+    )
 }
 
 fn u64_attribute_value(

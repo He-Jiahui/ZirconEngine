@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    CapturedFrame, CapturedHdrFrame, GraphicsDebuggerStatus, RenderFrameExtract, RenderFramework,
-    RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
-    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle, RenderViewportProduct,
-    RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
-    RenderVisibleSpatialQuerySnapshot,
+    CapturedFrame, CapturedHdrFrame, EnvironmentRuntimeSnapshot, GraphicsDebuggerStatus,
+    RenderEnvironmentCaptureHandle, RenderEnvironmentCaptureRequest,
+    RenderEnvironmentCaptureSourcePayload, RenderEnvironmentCaptureStatus, RenderFrameExtract,
+    RenderFramework, RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
+    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle,
+    RenderViewportPickRequest, RenderViewportPickResult, RenderViewportPickTicket,
+    RenderViewportProduct, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
+    RenderVisibleSpatialQuerySnapshot, SceneViewportRenderPacket, UiRenderSubmission,
 };
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
 use zr_rhi::{UiSurfaceDescriptor, UiSurfacePresenter};
 
 use super::super::capture_frame::{
@@ -18,8 +20,11 @@ use super::super::destroy_viewport::destroy_viewport;
 use super::super::graphics_debugger_capture::{
     query_graphics_debugger_status, request_graphics_debugger_capture,
 };
+use super::super::query_environment_runtime_snapshot::query_environment_runtime_snapshot;
 use super::super::query_stats::query_stats;
-use super::super::query_virtual_geometry_debug_snapshot::query_virtual_geometry_debug_snapshot;
+use super::super::query_virtual_geometry_debug_snapshot::{
+    query_virtual_geometry_debug_snapshot, query_virtual_geometry_debug_snapshot_available,
+};
 use super::super::query_visible_spatial_snapshot::query_visible_spatial_snapshot;
 use super::super::reload_pipeline::reload_pipeline;
 use super::super::render_framework_state::WgpuViewportProductProvider;
@@ -27,6 +32,9 @@ use super::super::set_pipeline_asset::set_pipeline_asset;
 use super::super::set_quality_profile::set_quality_profile;
 use super::super::submit_frame_extract::{present_frame_extract, present_frame_extract_with_ui};
 use super::super::submit_frame_extract::{submit_frame_extract, submit_frame_extract_with_ui};
+use super::super::viewport_pick::{
+    cancel_viewport_pick, poll_viewport_pick, request_viewport_pick,
+};
 use super::super::viewport_surface::{bind_viewport_surface, unbind_viewport_surface};
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
@@ -54,7 +62,7 @@ impl RenderFramework for WgpuRenderFramework {
         &self,
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
-        ui: Option<UiRenderExtract>,
+        ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError> {
         submit_frame_extract_with_ui(self, viewport, extract, ui)
     }
@@ -97,7 +105,7 @@ impl RenderFramework for WgpuRenderFramework {
         &self,
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
-        ui: Option<UiRenderExtract>,
+        ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError> {
         present_frame_extract_with_ui(self, viewport, extract, ui)
     }
@@ -118,6 +126,12 @@ impl RenderFramework for WgpuRenderFramework {
         query_stats(self)
     }
 
+    fn query_environment_runtime_snapshot(
+        &self,
+    ) -> Result<EnvironmentRuntimeSnapshot, RenderFrameworkError> {
+        query_environment_runtime_snapshot(self)
+    }
+
     fn query_visible_spatial_snapshot(
         &self,
         viewport: RenderViewportHandle,
@@ -129,6 +143,12 @@ impl RenderFramework for WgpuRenderFramework {
         &self,
     ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
         query_virtual_geometry_debug_snapshot(self)
+    }
+
+    fn query_virtual_geometry_debug_snapshot_available(
+        &self,
+    ) -> Result<bool, RenderFrameworkError> {
+        query_virtual_geometry_debug_snapshot_available(self)
     }
 
     fn request_graphics_debugger_capture(
@@ -158,6 +178,51 @@ impl RenderFramework for WgpuRenderFramework {
         capture_scene_color_hdr(self, viewport)
     }
 
+    fn request_environment_capture(
+        &self,
+        scene: SceneViewportRenderPacket,
+        request: RenderEnvironmentCaptureRequest,
+    ) -> Result<RenderEnvironmentCaptureHandle, RenderFrameworkError> {
+        self.core
+            .environment_captures
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .request(scene, request)
+    }
+
+    fn poll_environment_capture(
+        &self,
+        handle: RenderEnvironmentCaptureHandle,
+    ) -> Result<RenderEnvironmentCaptureStatus, RenderFrameworkError> {
+        self.core
+            .environment_captures
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .poll(handle)
+    }
+
+    fn cancel_environment_capture(
+        &self,
+        handle: RenderEnvironmentCaptureHandle,
+    ) -> Result<(), RenderFrameworkError> {
+        self.core
+            .environment_captures
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .cancel(handle)
+    }
+
+    fn take_environment_capture_source_payload(
+        &self,
+        handle: RenderEnvironmentCaptureHandle,
+    ) -> Result<Option<RenderEnvironmentCaptureSourcePayload>, RenderFrameworkError> {
+        self.core
+            .environment_captures
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take_source_payload(handle)
+    }
+
     fn capture_frame_if_newer(
         &self,
         viewport: RenderViewportHandle,
@@ -181,6 +246,27 @@ impl RenderFramework for WgpuRenderFramework {
     ) -> Result<Option<RenderViewportProduct>, RenderFrameworkError> {
         let products = Arc::clone(&self.lock_state().viewport_products);
         Ok(products.poll_if_newer(viewport, last_generation))
+    }
+
+    fn request_viewport_pick(
+        &self,
+        request: RenderViewportPickRequest,
+    ) -> Result<RenderViewportPickTicket, RenderFrameworkError> {
+        request_viewport_pick(self, request)
+    }
+
+    fn poll_viewport_pick(
+        &self,
+        ticket: RenderViewportPickTicket,
+    ) -> Result<Option<RenderViewportPickResult>, RenderFrameworkError> {
+        poll_viewport_pick(self, ticket)
+    }
+
+    fn cancel_viewport_pick(
+        &self,
+        ticket: RenderViewportPickTicket,
+    ) -> Result<(), RenderFrameworkError> {
+        cancel_viewport_pick(self, ticket)
     }
 
     fn create_ui_surface_presenter(

@@ -48,7 +48,7 @@ fn runtime_15_post_process_stack_is_folder_backed() {
         &stack,
         &[
             "pub struct PostProcessStackDescriptor",
-            "pub fn from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale",
+            "pub fn from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale_phases",
             "PostProcessPassGraph::validate_stack(self)",
             "#[cfg(test)]",
             "mod tests;",
@@ -117,12 +117,12 @@ fn runtime_15_post_process_stack_is_folder_backed() {
         ],
     );
     assert_contains_all(
-        "temporal tests own TAA/history stripping contracts",
+        "temporal tests own TAA/history availability contracts",
         &temporal_tests,
         &[
             "fn taa_resolve_declares_history_velocity_and_output_transfer_input",
-            "fn without_history_resources_disables_taa_and_restores_scene_color_input",
-            "fn without_history_resources_keeps_scene_velocity_for_motion_blur",
+            "fn unavailable_history_disables_taa_and_restores_scene_color_input",
+            "fn unavailable_history_keeps_scene_velocity_for_motion_blur",
         ],
     );
     assert_contains_all(

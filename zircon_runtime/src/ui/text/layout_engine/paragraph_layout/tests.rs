@@ -1,12 +1,33 @@
 use super::{
-    physical_paragraph_ranges, physical_paragraph_start, resolve_physical_paragraph_override_spans,
     CandidateLine, ColumnConstraints, LineConstraints, ParagraphOverrideSpan,
-    ResolvedParagraphColumnConstraints, ResolvedParagraphLineConstraints,
-    ResolvedPhysicalParagraphColumns, ResolvedPhysicalParagraphLines,
+    ResolvedParagraphColumnConstraints, ResolvedParagraphLayoutOverride,
+    ResolvedParagraphLineConstraints, ResolvedPhysicalParagraphColumns,
+    ResolvedPhysicalParagraphLines, paragraph_insets, physical_paragraph_ranges,
+    physical_paragraph_start, resolve_physical_paragraph_override_spans,
 };
+use crate::core::framework::text::TextLayoutError;
 use crate::text::ParagraphOverride;
+use crate::text::SharedTextLayoutSession;
+use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 use zircon_runtime_interface::ui::surface::UiTextAlign;
 use zircon_runtime_interface::ui::surface::UiTextRange;
+
+#[test]
+fn paragraph_insets_reject_malformed_list_prefix_ranges() {
+    let mut provider = SharedTextLayoutSession::new();
+    let style = UiResolvedStyle::default();
+
+    for (start, end) in [(1, 2), (0, 4), (3, 2)] {
+        let paragraph = ResolvedParagraphLayoutOverride {
+            list_prefix: Some(UiTextRange { start, end }),
+            ..Default::default()
+        };
+        assert_eq!(
+            paragraph_insets("界", &paragraph, &style, &mut provider).into_result(),
+            Err(TextLayoutError::LayoutFailed)
+        );
+    }
+}
 
 #[test]
 fn physical_paragraphs_follow_canonical_hard_line_separators() {
@@ -219,15 +240,15 @@ fn paragraph_override_sweep_restores_the_outer_override_after_a_nested_range() {
         ],
     );
 
-    assert_eq!(resolved[0].paragraph.indent_level, Some(2));
-    assert_eq!(resolved[0].paragraph.indent, Some(3.0));
-    assert_eq!(resolved[0].paragraph.align, Some(UiTextAlign::Left.into()));
-    assert_eq!(resolved[1].paragraph.indent_level, Some(5));
-    assert_eq!(resolved[1].paragraph.indent, Some(7.0));
-    assert_eq!(resolved[1].paragraph.align, Some(UiTextAlign::Right.into()));
-    assert_eq!(resolved[2].paragraph.indent_level, Some(2));
-    assert_eq!(resolved[2].paragraph.indent, Some(3.0));
-    assert_eq!(resolved[2].paragraph.align, Some(UiTextAlign::Left.into()));
+    assert_eq!(resolved[0].layout.indent_level, Some(2));
+    assert_eq!(resolved[0].layout.indent, Some(3.0));
+    assert_eq!(resolved[0].layout.align, Some(UiTextAlign::Left.into()));
+    assert_eq!(resolved[1].layout.indent_level, Some(5));
+    assert_eq!(resolved[1].layout.indent, Some(7.0));
+    assert_eq!(resolved[1].layout.align, Some(UiTextAlign::Right.into()));
+    assert_eq!(resolved[2].layout.indent_level, Some(2));
+    assert_eq!(resolved[2].layout.indent, Some(3.0));
+    assert_eq!(resolved[2].layout.align, Some(UiTextAlign::Left.into()));
 }
 
 #[test]
@@ -275,11 +296,36 @@ fn paragraph_override_sweep_prefers_later_starts_and_later_orders_for_equal_span
     );
 
     assert_eq!(
-        later_start_resolved[0].paragraph.align,
+        later_start_resolved[0].layout.align,
         Some(UiTextAlign::Right.into())
     );
     assert_eq!(
-        later_order_resolved[0].paragraph.align,
+        later_order_resolved[0].layout.align,
         Some(UiTextAlign::Center.into())
     );
+}
+
+#[test]
+fn paragraph_override_sweep_keeps_list_prefix_in_layout_projection() {
+    let resolved = resolve_physical_paragraph_override_spans(
+        vec![UiTextRange { start: 0, end: 1 }],
+        vec![ParagraphOverrideSpan {
+            range: UiTextRange { start: 0, end: 1 },
+            paragraph: ParagraphOverride::default(),
+            list_prefix: Some(UiTextRange {
+                start: usize::MAX,
+                end: usize::MAX,
+            }),
+            order: 0,
+        }],
+    );
+
+    assert_eq!(
+        resolved[0].layout.list_prefix,
+        Some(UiTextRange {
+            start: usize::MAX,
+            end: usize::MAX,
+        })
+    );
+    assert!(resolved[0].layout.align.is_none());
 }

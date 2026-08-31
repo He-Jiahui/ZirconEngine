@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use super::super::super::pane_value_conversion::value_as_options;
-use super::super::collection_window::visible_collection_items;
+use super::super::super::pane_value_conversion::value_as_string;
+use super::super::collection_window::collect_visible_collection_items;
 use super::virtualization::ProjectedVirtualization;
 use crate::ui::retained_host as host_contract;
 use toml::Value;
@@ -10,21 +10,24 @@ pub(super) fn projected_collection_items(
     attributes: &BTreeMap<String, toml::Value>,
     virtualization: &ProjectedVirtualization,
 ) -> Vec<String> {
-    let mut items = attributes
+    let Some(values) = attributes
         .get("collection_items")
-        .and_then(value_as_options)
-        .unwrap_or_default();
+        .and_then(toml::Value::as_array)
+    else {
+        return Vec::new();
+    };
+    let items = values.iter().filter_map(value_as_string);
 
     if virtualization.enabled {
-        items = visible_collection_items(
+        collect_visible_collection_items(
             items,
             virtualization.visible_start,
             virtualization.visible_count,
             virtualization.overscan,
-        );
+        )
+    } else {
+        items.collect()
     }
-
-    items
 }
 
 pub(super) fn projected_collection_rows(
@@ -59,18 +62,17 @@ pub(super) fn projected_collection_rows(
                     .unwrap_or(identity_text.as_str())
                     .into(),
             })
-        })
-        .collect();
+        });
 
     if virtualization.enabled {
-        visible_collection_items(
+        collect_visible_collection_items(
             rows,
             virtualization.visible_start,
             virtualization.visible_count,
             virtualization.overscan,
         )
     } else {
-        rows
+        rows.collect()
     }
 }
 

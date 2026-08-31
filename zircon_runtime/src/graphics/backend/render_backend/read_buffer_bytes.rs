@@ -3,7 +3,7 @@
 use std::sync::mpsc;
 
 use crate::core::framework::render::SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT;
-use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_READBACK};
+use crate::graphics::debug_markers::{RENDERDOC_MARKER_READBACK, insert_marker};
 use crate::graphics::types::GraphicsError;
 
 const F32X4_BYTE_LEN: u64 = 16;
@@ -123,7 +123,7 @@ fn validate_buffer_copy_size(byte_len: u64) -> Result<(), GraphicsError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{f32x4_array_readback_size_bytes, validate_buffer_copy_size, F32X4_BYTE_LEN};
+    use super::{F32X4_BYTE_LEN, f32x4_array_readback_size_bytes, validate_buffer_copy_size};
     use crate::core::framework::render::{
         IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
     };
@@ -142,5 +142,18 @@ mod tests {
         assert!(validate_buffer_copy_size(0).is_err());
         assert!(validate_buffer_copy_size(3).is_err());
         assert!(validate_buffer_copy_size(wgpu::COPY_BUFFER_ALIGNMENT as u64).is_ok());
+    }
+
+    #[test]
+    fn synchronous_buffer_readback_owner_is_test_only() {
+        let backend_root = include_str!("mod.rs");
+        let graphics_backend_root = include_str!("../mod.rs");
+
+        assert!(backend_root.contains("#[cfg(test)]\nmod read_buffer_bytes;"));
+        assert!(backend_root.contains("#[cfg(test)]\npub(crate) use read_buffer_bytes::{"));
+        assert!(
+            graphics_backend_root
+                .contains("#[cfg(test)]\npub(crate) use render_backend::{\n    read_buffer_bytes")
+        );
     }
 }

@@ -44,9 +44,13 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
 
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    let activity_rail_width =
+        zircon_runtime_interface::ui::design_tokens::EditorDesignTokens::workbench_dark()
+            .chrome
+            .activity_rail_width;
 
     assert!(control_bool(&bridge, "WorkbenchModuleEffect", "selected"));
-    assert!(control_bool(&bridge, "WorkbenchModuleCompile", "selected"));
+    assert!(!control_bool(&bridge, "WorkbenchModuleCompile", "selected"));
     assert_eq!(
         control_visibility(&bridge, "WorkbenchSceneWorkspace"),
         Some(UiVisibility::Visible)
@@ -90,7 +94,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("visible material rail gap projection")
             .frame
             .width,
-        72.0
+        activity_rail_width
     );
 
     assert!(matches!(
@@ -107,7 +111,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
         "WorkbenchMaterialNodeRow02",
         "selected"
     ));
-    assert!(!control_bool(
+    assert!(control_bool(
         &bridge,
         "WorkbenchMaterialBaseColorRow",
         "selected"
@@ -200,26 +204,6 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
 
     assert!(matches!(
         bridge
-            .dispatch_control_state("WorkbenchMaterialPreviewTab", UiEventKind::Click)
-            .unwrap()
-            .expect("material preview tab should expose a preview binding")
-            .payload(),
-        EditorUiBindingPayload::MenuAction { action_id }
-            if action_id == "workbench.module.material.preview_tab.select"
-    ));
-    assert!(!control_bool(
-        &bridge,
-        "WorkbenchMaterialGraphTab",
-        "selected"
-    ));
-    assert!(control_bool(
-        &bridge,
-        "WorkbenchMaterialPreviewTab",
-        "selected"
-    ));
-
-    assert!(matches!(
-        bridge
             .dispatch_control_state("WorkbenchMaterialNormalRow", UiEventKind::Click)
             .unwrap()
             .expect("material normal row should expose a preview binding")
@@ -248,8 +232,8 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             if action_id == "workbench.module.diff.invoke"
     ));
     assert!(!control_bool(&bridge, "WorkbenchModuleCompile", "selected"));
-    assert!(control_bool(&bridge, "WorkbenchModuleDiff", "selected"));
-    assert!(control_bool(&bridge, "WorkbenchModuleDiff", "checked"));
+    assert!(!control_bool(&bridge, "WorkbenchModuleDiff", "selected"));
+    assert!(!control_bool(&bridge, "WorkbenchModuleDiff", "checked"));
 
     assert!(matches!(
         bridge
@@ -260,7 +244,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
         EditorUiBindingPayload::MenuAction { action_id }
             if action_id == "workbench.module.browse.invoke"
     ));
-    assert!(control_bool(&bridge, "WorkbenchModuleBrowse", "selected"));
+    assert!(!control_bool(&bridge, "WorkbenchModuleBrowse", "selected"));
     assert!(!control_bool(&bridge, "WorkbenchModuleDiff", "selected"));
     assert!(control_bool(&bridge, "WorkbenchModuleAssets", "selected"));
     assert_eq!(
@@ -286,7 +270,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
         EditorUiBindingPayload::MenuAction { action_id }
             if action_id == "workbench.module.assets.import.invoke"
     ));
-    assert!(control_bool(
+    assert!(!control_bool(
         &bridge,
         "WorkbenchAssetsImportButton",
         "selected"
@@ -322,7 +306,7 @@ fn componentized_workbench_window_template_bridge_updates_module_navigation_stat
             .expect("visible ability rail gap projection")
             .frame
             .width,
-        72.0
+        activity_rail_width
     );
     assert!(matches!(
         bridge

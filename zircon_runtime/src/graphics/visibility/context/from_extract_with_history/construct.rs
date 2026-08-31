@@ -1,15 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::core::TaskPool;
 use crate::core::framework::render::{
     ProjectionMode, RenderFrameExtract, RenderHybridGiExtract, RenderVirtualGeometryExtract,
     ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
-use crate::core::math::{is_finite_vec3, Real};
-use crate::core::TaskPool;
+use crate::core::math::{Real, is_finite_vec3};
 
 use super::super::super::culling::parallel_frustum::{
-    mesh_frustum_visibility, MeshFrustumCandidate,
+    MeshFrustumCandidate, mesh_frustum_visibility,
 };
 use super::super::super::declarations::{
     VisibilityBounds, VisibilityBvhInstance, VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy,
@@ -24,7 +24,7 @@ use super::super::super::planning::{
 };
 use super::super::super::view_context::FrameVisibility;
 use super::super::super::{VisibilityStaticIndex, VisibilityStaticIndexReport};
-use super::batching_result::BatchingResult;
+use super::batching_result::{BatchingResult, sorted_entity_ids};
 use super::build_history_snapshot::build_history_snapshot;
 use super::collect_batching_result::collect_batching_result;
 use super::collect_gpu_instancing_candidates::collect_gpu_instancing_candidates;
@@ -164,9 +164,9 @@ impl VisibilityContext {
 
         Self {
             frame_visibility,
-            renderable_entities: renderable_entities.into_iter().collect(),
-            static_entities: static_entities.into_iter().collect(),
-            dynamic_entities: dynamic_entities.into_iter().collect(),
+            renderable_entities: sorted_entity_ids(renderable_entities),
+            static_entities: sorted_entity_ids(static_entities),
+            dynamic_entities: sorted_entity_ids(dynamic_entities),
             primitive_relevance,
             batches,
             visible_instances,

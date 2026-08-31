@@ -9,11 +9,10 @@ pub(super) fn load_current_ui_document(input: &str) -> Result<UiAssetDocument, U
     let document: UiAssetDocument =
         toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
     if document.asset.version != UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION {
-        return Err(UiAssetError::UnsupportedSchemaVersion {
-            asset_id: document.asset.id.clone(),
-            version: document.asset.version,
-            current: UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
-        });
+        return Err(unsupported_current_schema_error(
+            document.asset.id,
+            document.asset.version,
+        ));
     }
     Ok(document)
 }
@@ -21,8 +20,7 @@ pub(super) fn load_current_ui_document(input: &str) -> Result<UiAssetDocument, U
 pub(super) fn load_ui_v2_document(input: &str) -> Result<UiV2AssetDocument, UiV2AssetError> {
     let document: UiV2AssetDocument =
         toml::from_str(input).map_err(|error| UiV2AssetError::ParseToml(error.to_string()))?;
-    validate_version(&document)?;
-    Ok(document)
+    validate_version(document)
 }
 
 pub(super) fn load_zui_document(input: &str) -> Result<UiV2AssetDocument, UiV2AssetError> {
@@ -31,15 +29,30 @@ pub(super) fn load_zui_document(input: &str) -> Result<UiV2AssetDocument, UiV2As
     Ok(document)
 }
 
-fn validate_version(document: &UiV2AssetDocument) -> Result<(), UiV2AssetError> {
+fn validate_version(document: UiV2AssetDocument) -> Result<UiV2AssetDocument, UiV2AssetError> {
     if document.asset.version != UI_V2_ASSET_SCHEMA_VERSION {
-        return Err(UiV2AssetError::UnsupportedSchemaVersion {
-            asset_id: document.asset.id.clone(),
-            version: document.asset.version,
-            expected: UI_V2_ASSET_SCHEMA_VERSION,
-        });
+        return Err(unsupported_v2_schema_error(
+            document.asset.id,
+            document.asset.version,
+        ));
     }
-    Ok(())
+    Ok(document)
+}
+
+fn unsupported_current_schema_error(asset_id: String, version: u32) -> UiAssetError {
+    UiAssetError::UnsupportedSchemaVersion {
+        asset_id,
+        version,
+        current: UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
+    }
+}
+
+fn unsupported_v2_schema_error(asset_id: String, version: u32) -> UiV2AssetError {
+    UiV2AssetError::UnsupportedSchemaVersion {
+        asset_id,
+        version,
+        expected: UI_V2_ASSET_SCHEMA_VERSION,
+    }
 }
 
 fn validate_zui_document_profile(document: &UiV2AssetDocument) -> Result<(), UiV2AssetError> {
@@ -132,3 +145,7 @@ fn validate_zui_style_profile(document: &UiV2AssetDocument) -> Result<(), UiV2As
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "document_loader/owned_schema_error_tests.rs"]
+mod owned_schema_error_tests;

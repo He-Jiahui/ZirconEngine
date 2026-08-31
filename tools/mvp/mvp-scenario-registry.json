@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "registry_kind": "zircon.mvp-scenario-registry",
+  "registry_id": "mvp.core-scenarios.v1",
+  "scenarios": [
+    {
+      "scenario_id": "mvp.runtime-first-frame.v1",
+      "capability_id": "runtime.render.first-frame",
+      "owner": "zircon_tooling.mvp",
+      "roles": ["runtime"],
+      "liveness_scenario": "runtime_first_frame",
+      "automation_request": null,
+      "steps": ["launch", "first_frame", "teardown"],
+      "progress_event_ids": [
+        "mvp.runtime.startup-ready.v1",
+        "mvp.runtime.first-frame-presented.v1",
+        "mvp.runtime.teardown-complete.v1"
+      ],
+      "oracle_ids": ["diagnostic.runtime-first-frame"],
+      "artifact_ids": ["process.stdout", "process.stderr", "product.diagnostics", "capture.frame"],
+      "variants": ["host.default"],
+      "execution_policy": {
+        "device_class": "host.default",
+        "attempts": {"minimum": 1, "default": 2, "maximum": 4},
+        "progress_inactivity_timeout_seconds": 45,
+        "step_timeouts": [
+          {"step_id": "launch", "timeout_seconds": 30},
+          {"step_id": "first_frame", "timeout_seconds": 30},
+          {"step_id": "teardown", "timeout_seconds": 30}
+        ]
+      }
+    },
+    {
+      "scenario_id": "mvp.editor-first-frame.v1",
+      "capability_id": "editor.render.first-frame",
+      "owner": "zircon_tooling.mvp",
+      "roles": ["editor"],
+      "liveness_scenario": "editor_first_frame",
+      "automation_request": null,
+      "steps": ["launch", "first_frame", "teardown"],
+      "progress_event_ids": [
+        "mvp.editor.startup-ready.v1",
+        "mvp.editor.first-frame-presented.v1",
+        "mvp.editor.teardown-complete.v1"
+      ],
+      "oracle_ids": ["diagnostic.editor-first-frame"],
+      "artifact_ids": ["process.stdout", "process.stderr", "product.diagnostics", "capture.frame"],
+      "variants": ["host.default"],
+      "execution_policy": {
+        "device_class": "host.default",
+        "attempts": {"minimum": 1, "default": 2, "maximum": 4},
+        "progress_inactivity_timeout_seconds": 45,
+        "step_timeouts": [
+          {"step_id": "launch", "timeout_seconds": 30},
+          {"step_id": "first_frame", "timeout_seconds": 30},
+          {"step_id": "teardown", "timeout_seconds": 30}
+        ]
+      }
+    },
+    {
+      "scenario_id": "mvp.editor-project-create.v1",
+      "capability_id": "editor.project.create",
+      "owner": "zircon_tooling.mvp",
+      "roles": ["editor"],
+      "liveness_scenario": "editor_project_create",
+      "automation_request": null,
+      "steps": ["create_project", "open_project", "first_frame", "teardown"],
+      "progress_event_ids": [
+        "mvp.editor.project-opened.v1",
+        "mvp.editor.startup-ready.v1",
+        "mvp.editor.first-frame-presented.v1",
+        "mvp.editor.teardown-complete.v1"
+      ],
+      "oracle_ids": ["diagnostic.editor-project-open", "capture.editor-before-edit"],
+      "artifact_ids": ["process.stdout", "process.stderr", "product.diagnostics", "project.tree", "capture.frame"],
+      "variants": ["host.default"],
+      "execution_policy": {
+        "device_class": "host.default",
+        "attempts": {"minimum": 1, "default": 1, "maximum": 1},
+        "progress_inactivity_timeout_seconds": 45,
+        "step_timeouts": [
+          {"step_id": "create_project", "timeout_seconds": 30},
+          {"step_id": "open_project", "timeout_seconds": 30},
+          {"step_id": "first_frame", "timeout_seconds": 30},
+          {"step_id": "teardown", "timeout_seconds": 30}
+        ]
+      }
+    },
+    {
+      "scenario_id": "mvp.editor-authoring.v1",
+      "capability_id": "editor.scene.authoring",
+      "owner": "zircon_tooling.mvp",
+      "roles": ["editor"],
+      "liveness_scenario": "editor_authoring",
+      "automation_request": "mvp-authoring-automation.json",
+      "steps": ["select_cube", "set_translation_x", "set_scale_x", "undo", "redo", "save_project"],
+      "progress_event_ids": [
+        "mvp.editor.automation.project-save-started.v1",
+        "mvp.editor.automation.project-save-completed.v1",
+        "mvp.editor.automation.completed.v1"
+      ],
+      "oracle_ids": ["report.automation-records", "diagnostic.editor-project-save"],
+      "artifact_ids": ["process.stdout", "process.stderr", "product.diagnostics", "project.tree"],
+      "variants": ["host.default"],
+      "execution_policy": {
+        "device_class": "host.default",
+        "attempts": {"minimum": 1, "default": 1, "maximum": 1},
+        "progress_inactivity_timeout_seconds": 45,
+        "step_timeouts": [
+          {"step_id": "select_cube", "timeout_seconds": 15},
+          {"step_id": "set_translation_x", "timeout_seconds": 15},
+          {"step_id": "set_scale_x", "timeout_seconds": 15},
+          {"step_id": "undo", "timeout_seconds": 15},
+          {"step_id": "redo", "timeout_seconds": 15},
+          {"step_id": "save_project", "timeout_seconds": 15}
+        ]
+      }
+    },
+    {
+      "scenario_id": "mvp.editor-reopen.v1",
+      "capability_id": "editor.project.reopen",
+      "owner": "zircon_tooling.mvp",
+      "roles": ["editor"],
+      "liveness_scenario": "editor_authoring",
+      "automation_request": "mvp-reopen-automation.json",
+      "steps": ["select_cube"],
+      "progress_event_ids": [
+        "mvp.editor.automation.project-save-started.v1",
+        "mvp.editor.automation.project-save-completed.v1",
+        "mvp.editor.automation.completed.v1"
+      ],
+      "oracle_ids": ["report.automation-records", "project.persisted-state"],
+      "artifact_ids": ["process.stdout", "process.stderr", "product.diagnostics", "project.tree", "capture.frame"],
+      "variants": ["host.default"],
+      "execution_policy": {
+        "device_class": "host.default",
+        "attempts": {"minimum": 1, "default": 2, "maximum": 4},
+        "progress_inactivity_timeout_seconds": 45,
+        "step_timeouts": [
+          {"step_id": "select_cube", "timeout_seconds": 90}
+        ]
+      }
+    }
+  ]
+}

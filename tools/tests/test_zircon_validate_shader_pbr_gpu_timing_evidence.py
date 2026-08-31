@@ -36,6 +36,28 @@ class ZirconValidateShaderPbrGpuTimingEvidenceTests(unittest.TestCase):
             )
             self.assertEqual(87, evidence.total_distribution.median_us)
             self.assertEqual(129, evidence.total_distribution.p95_us)
+            self.assertEqual(
+                {
+                    "advanced_pbr_opaque_command_count": 0,
+                    "cached_command_hit_count": 1,
+                    "command_rebuild_count": 0,
+                    "dynamic_command_count": 0,
+                    "opaque_command_count": 1,
+                },
+                evidence.mesh_submission,
+            )
+
+    def test_rejects_mesh_submission_drift_across_retained_samples(self):
+        with _controlled_temporary_directory() as temporary_directory:
+            report_path, screenshot_path = _write_valid_fixture(temporary_directory)
+            _replace_once(
+                report_path,
+                "sample.010.mesh.advanced_pbr_opaque_command_count=0\n",
+                "sample.010.mesh.advanced_pbr_opaque_command_count=1\n",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "mesh submission changed"):
+                validate_gpu_timing_evidence(report_path, screenshot_path)
 
     def test_rejects_an_aggregate_that_does_not_match_the_retained_samples(self):
         with _controlled_temporary_directory() as temporary_directory:
@@ -249,6 +271,15 @@ def _distribution_report(screenshot_path: Path) -> str:
         lines.append(f"sample.{index:03}.total_us={sum(values.values())}")
         for pass_name in pass_names:
             lines.append(f"sample.{index:03}.pass.{pass_name}_us={values[pass_name]}")
+        lines.extend(
+            [
+                f"sample.{index:03}.mesh.opaque_command_count=1",
+                f"sample.{index:03}.mesh.advanced_pbr_opaque_command_count=0",
+                f"sample.{index:03}.mesh.cached_command_hit_count=1",
+                f"sample.{index:03}.mesh.command_rebuild_count=0",
+                f"sample.{index:03}.mesh.dynamic_command_count=0",
+            ]
+        )
     return "\n".join(lines) + "\n"
 
 

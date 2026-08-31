@@ -3,6 +3,7 @@
 mod admission;
 mod diagnostics;
 mod fence;
+mod key;
 mod lane;
 mod ticket;
 
@@ -12,6 +13,7 @@ pub use admission::{
 };
 pub use diagnostics::{BoundedKeyedIoDiagnostics, BoundedKeyedIoShutdownReport};
 pub use fence::{BoundedKeyedIoFence, GlobalAdmissionEpoch};
+pub use key::BoundedKeyedIoKey;
 pub use lane::{BoundedKeyedIoLane, BoundedKeyedIoLimits, BoundedKeyedIoShutdownGuard};
 pub use ticket::{
     BoundedKeyedIoCancelError, BoundedKeyedIoFailure, BoundedKeyedIoTerminal, BoundedKeyedIoTicket,

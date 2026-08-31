@@ -1,9 +1,9 @@
-use super::super::{load_versioned, Format};
+use super::super::{load_versioned_legacy_schema_zero, Format};
 use super::FixtureDocument;
 
 #[test]
 fn unwrapped_v0_payload_may_own_a_domain_field_named_payload() {
-    let loaded = load_versioned::<FixtureDocument>(
+    let loaded = load_versioned_legacy_schema_zero::<FixtureDocument>(
         br#"{"name":"legacy","payload":"domain-owned"}"#,
         Format::Text,
     )
@@ -16,7 +16,7 @@ fn unwrapped_v0_payload_may_own_a_domain_field_named_payload() {
 
 #[test]
 fn unwrapped_v0_payload_may_own_header_and_payload_domain_fields() {
-    let loaded = load_versioned::<FixtureDocument>(
+    let loaded = load_versioned_legacy_schema_zero::<FixtureDocument>(
         br#"{"name":"legacy","header":{"domain":true},"payload":"domain-owned"}"#,
         Format::Text,
     )
@@ -29,7 +29,7 @@ fn unwrapped_v0_payload_may_own_header_and_payload_domain_fields() {
 
 #[test]
 fn unwrapped_v0_payload_may_own_a_domain_field_named_zircon() {
-    let loaded = load_versioned::<FixtureDocument>(
+    let loaded = load_versioned_legacy_schema_zero::<FixtureDocument>(
         br#"{"name":"legacy","$zircon":"domain-owned"}"#,
         Format::Text,
     )

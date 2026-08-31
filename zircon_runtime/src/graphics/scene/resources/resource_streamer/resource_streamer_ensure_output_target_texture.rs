@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::core::resource::ResourceId;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
-use super::super::prepared::PreparedOutputTargetTexture;
 use super::super::OutputTargetTextureResource;
+use super::super::prepared::PreparedOutputTargetTexture;
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
@@ -24,21 +24,24 @@ impl ResourceStreamer {
         device: &wgpu::Device,
         id: ResourceId,
     ) -> Result<(), GraphicsError> {
-        let revision = self.resource_revision(id)?;
+        let requested_revision = self.resource_revision(id)?;
         if self
             .output_target_textures
             .get(&id)
-            .is_some_and(|prepared| prepared.revision == revision)
+            .is_some_and(|prepared| prepared.revision == requested_revision)
         {
             return Ok(());
         }
 
         let texture = self
             .asset_manager()?
-            .load_texture_asset(id)
+            .load_texture_asset_snapshot(id)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+        let revision = texture.revision();
         let resource = Arc::new(OutputTargetTextureResource::from_asset(
-            device, id, texture,
+            device,
+            id,
+            (*texture).clone(),
         )?);
         self.output_target_textures
             .insert(id, PreparedOutputTargetTexture { revision, resource });

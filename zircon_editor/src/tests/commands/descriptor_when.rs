@@ -1,11 +1,13 @@
 use crate::core::asset::AssetWriteAccess;
 use crate::core::commands::{
-    CommandEvalCtx, EditorCommandDescriptor, EditorCommandRegistry, WhenClause,
+    CommandEvalCtx, EditorCommandDescriptor, EditorCommandMenuPath, EditorCommandRegistry,
+    WhenClause,
 };
 use crate::core::editor_operation::EditorOperationPath;
+use crate::core::i18n::EditorI18nService;
 
 fn descriptor(id: &str) -> EditorCommandDescriptor {
-    EditorCommandDescriptor::operation(EditorOperationPath::parse(id).unwrap(), id)
+    EditorCommandDescriptor::operation(EditorOperationPath::parse(id).unwrap())
 }
 
 #[test]
@@ -37,20 +39,35 @@ fn required_capabilities_are_metadata_and_effective_when_conjuncts() {
 
 #[test]
 fn menu_and_palette_use_the_same_descriptor_when_evaluation() {
-    let registry = EditorCommandRegistry::new(vec![descriptor("test.selection.action")
-        .with_menu_path("Tools/Selection Action")
-        .with_when(WhenClause::SelectionNonEmpty)])
-    .unwrap();
+    let operation = EditorOperationPath::parse("test.selection.action").unwrap();
+    let registry =
+        EditorCommandRegistry::new(vec![EditorCommandDescriptor::operation(operation.clone())
+            .with_menu_path(EditorCommandMenuPath::builtin(&operation, "tools", &[]))
+            .with_when(WhenClause::SelectionNonEmpty)])
+        .unwrap();
     let empty = CommandEvalCtx::interactive().with_selection_count(0);
     let selected = CommandEvalCtx::interactive().with_selection_count(1);
+    let i18n = EditorI18nService::default();
+    let locale = i18n.active_locale();
 
-    let empty_menu = registry.menu_model("Tools", &empty).unwrap();
-    let selected_menu = registry.menu_model("Tools", &selected).unwrap();
+    let empty_menu = registry
+        .menu_model("tools", &i18n, &locale, &empty)
+        .unwrap();
+    let selected_menu = registry
+        .menu_model("tools", &i18n, &locale, &selected)
+        .unwrap();
     assert!(!empty_menu.items[0].enabled);
     assert!(selected_menu.items[0].enabled);
     let catalog = registry.command_palette_catalog();
-    assert!(catalog.query_window(&empty, "", 0, 16).is_empty());
-    assert_eq!(catalog.query_window(&selected, "", 0, 16).len(), 1);
+    assert!(catalog
+        .query_window(&i18n, &locale, &empty, "", 0, 16)
+        .is_empty());
+    assert_eq!(
+        catalog
+            .query_window(&i18n, &locale, &selected, "", 0, 16)
+            .len(),
+        1
+    );
 }
 
 #[test]

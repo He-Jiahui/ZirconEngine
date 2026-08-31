@@ -9,9 +9,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn runtime
     commands: &[UiRenderCommand],
     clip_frame: Option<&FrameRect>,
 ) -> Vec<HostPaintCommand> {
-    let mut host_commands = Vec::new();
+    let mut host_commands = Vec::with_capacity(commands.len());
     for command in commands {
         push_runtime_command(&mut host_commands, command, clip_frame);
     }
     host_commands
 }
+
+#[cfg(test)]
+#[path = "entry/capacity_tests.rs"]
+mod capacity_tests;

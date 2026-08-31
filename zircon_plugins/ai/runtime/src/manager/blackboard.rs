@@ -11,6 +11,10 @@ use super::DefaultAiManager;
 use crate::blackboard::BlackboardLayout;
 use crate::blackboard::{BlackboardLayoutError, BlackboardRuntimeError, BlackboardStore};
 
+#[cfg(test)]
+#[path = "blackboard/schema_clone_tests.rs"]
+mod schema_clone_tests;
+
 pub(super) fn register_schema(
     manager: &DefaultAiManager,
     descriptor: AiBlackboardSchemaDescriptor,
@@ -72,36 +76,38 @@ pub(super) fn set_entries(
     entries: Vec<AiBlackboardEntry>,
 ) -> Result<(), AiManagerError> {
     let mut state = manager.lock_state();
-    let active_schema = state
+    let active_schema_id = state
         .active_behavior_trees
         .get(&(world, entity))
-        .and_then(|active| active.blackboard_schema)
-        .and_then(|schema_id| {
-            state
-                .blackboard_schemas
-                .iter()
-                .find(|schema| schema.id == schema_id)
-                .cloned()
-        });
-    validate_blackboard_entries(
-        active_schema.as_ref().map(|schema| &schema.descriptor),
-        &entries,
-    )?;
-    if let Some(schema) = active_schema {
+        .and_then(|active| active.blackboard_schema);
+    let active_schema = active_schema_id.and_then(|schema_id| {
+        state
+            .blackboard_schemas
+            .iter()
+            .find(|schema| schema.id == schema_id)
+    });
+    let active_layout = if let Some(schema) = active_schema {
+        validate_blackboard_entries(Some(&schema.descriptor), &entries)?;
+        Some(Arc::clone(&schema.layout))
+    } else {
+        validate_blackboard_entries(None, &entries)?;
+        None
+    };
+    if let Some(layout) = active_layout {
         let blackboard = state
             .blackboards
             .entry((world, entity))
-            .or_insert_with(|| AgentBlackboard::Dense(BlackboardStore::new(schema.layout.clone())));
+            .or_insert_with(|| AgentBlackboard::Dense(BlackboardStore::new(Arc::clone(&layout))));
         if !matches!(
             blackboard,
-            AgentBlackboard::Dense(store) if store.layout().schema_id() == schema.layout.schema_id()
+            AgentBlackboard::Dense(store) if store.layout().schema_id() == layout.schema_id()
         ) {
-            *blackboard = AgentBlackboard::Dense(BlackboardStore::new(schema.layout.clone()));
+            *blackboard = AgentBlackboard::Dense(BlackboardStore::new(Arc::clone(&layout)));
         }
         if let AgentBlackboard::Dense(store) = blackboard {
             store
                 .synchronize(&entries)
-                .map_err(|error| map_runtime_error(schema.layout.schema_id(), error))?;
+                .map_err(|error| map_runtime_error(layout.schema_id(), error))?;
         }
     } else {
         state

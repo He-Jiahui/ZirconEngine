@@ -7,7 +7,7 @@ fn runtime_sources_route_preview_through_dynamic_api_without_app_wgpu_dependency
         .split("\n#[cfg(test)]")
         .next()
         .unwrap_or(lib_source);
-    let presenter_source = include_str!("../../../runtime_presenter.rs");
+    let presenter_source = include_str!("../../../reference_cpu_presenter.rs");
     let runtime_surface_present_source = runtime_surface_present_source();
     let manifest = include_str!("../../../../Cargo.toml");
 

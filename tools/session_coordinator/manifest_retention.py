@@ -93,30 +93,56 @@ class ManifestCompactionReceipt:
     status: str
 
 
+@dataclass(frozen=True, slots=True)
+class IncrementalManifestRetentionResult:
+    batch_id: str
+    archive_path: Path
+    retired_count: int
+    retired_bytes: int
+
+
 class ManifestRetentionService:
     """Archive old manifests before retiring their SQLite payloads.
 
-    A retention batch has exactly one gzip JSONL archive and one SQLite backup.
-    The service re-derives candidates inside its retirement transaction, so a
-    preview never grants authority over a manifest that changed meanwhile.
+    Every batch has one verified gzip JSONL archive. Reviewed bulk batches also
+    keep a SQLite backup until compaction; bounded maintenance batches avoid
+    duplicating the database. Retirement rechecks ownership and payload hashes
+    transactionally so stale previews cannot clear live or changed manifests.
     """
 
     _TERMINAL_SESSION_STATUSES = ("completed", "archived", "cancelled")
     _ACTIVE_COPY_STATUSES = ("planned", "materialized", "running", "cleanup_pending")
     _TERMINAL_COPY_STATUSES = ("removed", "failed")
+    _DEFAULT_INCREMENTAL_CANDIDATE_LIMIT = 128
+    _DEFAULT_INCREMENTAL_BYTE_LIMIT = 128 * 1024 * 1024
 
     def __init__(
         self,
         database: Database,
         state_root: str | Path,
         *,
-        retention_days: int = 7,
+        retention_days: int | None = None,
+        retention_hours: int = 1,
+        incremental_candidate_limit: int = _DEFAULT_INCREMENTAL_CANDIDATE_LIMIT,
+        incremental_byte_limit: int = _DEFAULT_INCREMENTAL_BYTE_LIMIT,
     ) -> None:
-        if retention_days < 1:
+        if retention_days is not None and retention_days < 1:
             raise ValueError("retention_days must be positive")
+        if retention_hours < 1:
+            raise ValueError("retention_hours must be positive")
+        if incremental_candidate_limit < 1:
+            raise ValueError("incremental_candidate_limit must be positive")
+        if incremental_byte_limit < 1:
+            raise ValueError("incremental_byte_limit must be positive")
         self.database = database
         self.state_root = Path(state_root).resolve()
-        self.retention_days = retention_days
+        self.retention_age = (
+            timedelta(days=retention_days)
+            if retention_days is not None
+            else timedelta(hours=retention_hours)
+        )
+        self.incremental_candidate_limit = incremental_candidate_limit
+        self.incremental_byte_limit = incremental_byte_limit
         self.archive_root = self.state_root / "manifest-archives"
         self.backup_root = self.state_root / "backups"
 
@@ -239,6 +265,61 @@ class ManifestRetentionService:
             len(preview.candidates),
         )
 
+    def retire_incremental(
+        self,
+        *,
+        actor: str,
+        now: datetime | None = None,
+        max_candidates: int | None = None,
+        max_bytes: int | None = None,
+    ) -> IncrementalManifestRetentionResult | None:
+        """Archive one bounded batch without creating another full database copy."""
+
+        candidate_limit = (
+            self.incremental_candidate_limit if max_candidates is None else max_candidates
+        )
+        byte_limit = self.incremental_byte_limit if max_bytes is None else max_bytes
+        if candidate_limit < 1:
+            raise ValueError("max_candidates must be positive")
+        if byte_limit < 1:
+            raise ValueError("max_bytes must be positive")
+        current_time = now or datetime.now(UTC)
+        with self.database.connect() as connection:
+            candidates = self._candidates_with_connection(
+                connection,
+                current_time,
+                max_candidates=candidate_limit,
+                max_bytes=byte_limit,
+            )
+        if not candidates:
+            return None
+
+        preview = ManifestRetentionPreview.create(candidates, current_time)
+        archive_path = self.archive_root / f"{preview.fingerprint}.jsonl.gz"
+        archive_temporary = archive_path.with_suffix(archive_path.suffix + ".tmp")
+        archive_published = False
+        self._begin_batch(preview, actor, archive_path, None, current_time)
+        try:
+            records = self._read_records(preview)
+            self._write_archive(archive_temporary, records)
+            self._verify_archive(archive_temporary, preview.candidates)
+            archive_path.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(archive_temporary, archive_path)
+            archive_published = True
+            self._retire(preview, archive_path, current_time)
+        except BaseException as error:
+            archive_temporary.unlink(missing_ok=True)
+            if archive_published:
+                archive_path.unlink(missing_ok=True)
+            self._fail_batch(preview.fingerprint, str(error))
+            raise
+        return IncrementalManifestRetentionResult(
+            preview.fingerprint,
+            archive_path,
+            len(preview.candidates),
+            sum(candidate.byte_count for candidate in preview.candidates),
+        )
+
     def _completed_result(self, batch_id: str) -> ManifestRetentionResult | None:
         with self.database.connect() as connection:
             row = connection.execute(
@@ -252,10 +333,11 @@ class ManifestRetentionService:
             return None
         archive_path = self.state_root / str(row["archive_path"])
         backup_path = self.state_root / str(row["backup_path"])
-        if not archive_path.is_file() or not backup_path.is_file():
+        backup_required = str(row["status"]) == "retired"
+        if not archive_path.is_file() or (backup_required and not backup_path.is_file()):
             raise CoordinatorError(
                 "manifest_retention_batch_artifact_missing",
-                "A completed manifest retention batch is missing its archive or backup",
+                "A completed manifest retention batch is missing a required archive or backup",
                 details={"batchId": batch_id},
             )
         return ManifestRetentionResult(
@@ -275,7 +357,8 @@ class ManifestRetentionService:
         current_time = now or datetime.now(UTC)
         with self.database.connect() as connection:
             batch = connection.execute(
-                "SELECT status FROM manifest_retention_batches WHERE batch_id=?", (batch_id,)
+                "SELECT status, backup_path FROM manifest_retention_batches WHERE batch_id=?",
+                (batch_id,),
             ).fetchone()
         if batch is None:
             raise CoordinatorError(
@@ -305,6 +388,9 @@ class ManifestRetentionService:
                     "SQLite quick_check failed after manifest compaction",
                     details={"quickCheck": quick_check},
                 )
+            raw_backup_path = batch["backup_path"]
+            if raw_backup_path:
+                (self.state_root / str(raw_backup_path)).unlink(missing_ok=True)
             with self.database.transaction() as connection:
                 cursor = connection.execute(
                     """
@@ -384,44 +470,68 @@ class ManifestRetentionService:
         return tuple(str(row["batch_id"]) for row in rows)
 
     def _candidates_with_connection(
-        self, connection: sqlite3.Connection, current_time: datetime
+        self,
+        connection: sqlite3.Connection,
+        current_time: datetime,
+        *,
+        max_candidates: int | None = None,
+        max_bytes: int | None = None,
     ) -> tuple[ManifestRetentionCandidate, ...]:
-        cutoff = current_time - timedelta(days=self.retention_days)
-        protected_epochs = self._protected_epochs(connection)
+        cutoff = utc_text(current_time - self.retention_age)
+        candidate_limit = max_candidates if max_candidates is not None else -1
+        session_placeholders = ", ".join("?" for _ in self._TERMINAL_SESSION_STATUSES)
+        copy_placeholders = ", ".join("?" for _ in self._TERMINAL_COPY_STATUSES)
         candidates: list[ManifestRetentionCandidate] = []
-        for row in connection.execute(
-            """
-            SELECT epoch_id, manifest_json, created_at
-            FROM baseline_epochs
-            WHERE manifest_archive_path IS NULL
-            ORDER BY epoch_id
-            """
-        ):
-            epoch_id = int(row["epoch_id"])
-            if epoch_id in protected_epochs or parse_utc(str(row["created_at"])) > cutoff:
-                continue
-            candidate = self._candidate("baseline_epochs", str(epoch_id), str(row["manifest_json"]))
-            if candidate is not None:
-                candidates.append(candidate)
-        placeholders = ", ".join("?" for _ in self._TERMINAL_COPY_STATUSES)
+        retained_bytes = 0
         for row in connection.execute(
             f"""
-            SELECT job_id, manifest_json, created_at, removed_at
-            FROM validation_copies
-            WHERE manifest_archive_path IS NULL AND status IN ({placeholders})
-            ORDER BY job_id
-            """,
-            self._TERMINAL_COPY_STATUSES,
-        ):
-            created_at = parse_utc(str(row["created_at"]))
-            terminal_at = parse_utc(str(row["removed_at"] or row["created_at"]))
-            if created_at > cutoff or terminal_at > cutoff:
-                continue
-            candidate = self._candidate(
-                "validation_copies", str(row["job_id"]), str(row["manifest_json"])
+            SELECT table_name, identity, manifest_json
+            FROM (
+                SELECT 'baseline_epochs' AS table_name,
+                       CAST(epoch.epoch_id AS TEXT) AS identity,
+                       epoch.manifest_json AS manifest_json,
+                       epoch.created_at AS terminal_at
+                FROM baseline_epochs AS epoch
+                WHERE epoch.manifest_archive_path IS NULL
+                  AND epoch.manifest_json != '{{}}'
+                  AND epoch.created_at <= ?
+                  AND epoch.epoch_id != (SELECT MAX(epoch_id) FROM baseline_epochs)
+                  AND NOT EXISTS (
+                      SELECT 1 FROM sessions AS session
+                      WHERE session.baseline_epoch=epoch.epoch_id
+                        AND session.status NOT IN ({session_placeholders})
+                  )
+                UNION ALL
+                SELECT 'validation_copies' AS table_name,
+                       copy.job_id AS identity,
+                       copy.manifest_json AS manifest_json,
+                       COALESCE(copy.removed_at, copy.created_at) AS terminal_at
+                FROM validation_copies AS copy
+                WHERE copy.manifest_archive_path IS NULL
+                  AND copy.manifest_json != '[]'
+                  AND copy.status IN ({copy_placeholders})
+                  AND COALESCE(copy.removed_at, copy.created_at) <= ?
             )
-            if candidate is not None:
-                candidates.append(candidate)
+            ORDER BY terminal_at, table_name, identity
+            LIMIT ?
+            """,
+            (
+                cutoff,
+                *self._TERMINAL_SESSION_STATUSES,
+                *self._TERMINAL_COPY_STATUSES,
+                cutoff,
+                candidate_limit,
+            ),
+        ):
+            candidate = self._candidate(
+                str(row["table_name"]), str(row["identity"]), str(row["manifest_json"])
+            )
+            if candidate is None:
+                continue
+            if candidates and max_bytes is not None and retained_bytes + candidate.byte_count > max_bytes:
+                break
+            candidates.append(candidate)
+            retained_bytes += candidate.byte_count
         return tuple(sorted(candidates, key=lambda item: (item.table, item.identity)))
 
     def _protected_epochs(self, connection: sqlite3.Connection) -> set[int]:
@@ -489,11 +599,13 @@ class ManifestRetentionService:
         preview: ManifestRetentionPreview,
         actor: str,
         archive_path: Path,
-        backup_path: Path,
+        backup_path: Path | None,
         current_time: datetime,
     ) -> None:
         archive_relative = str(archive_path.relative_to(self.state_root))
-        backup_relative = str(backup_path.relative_to(self.state_root))
+        backup_relative = (
+            str(backup_path.relative_to(self.state_root)) if backup_path is not None else None
+        )
         with self.database.transaction() as connection:
             row = connection.execute(
                 "SELECT status FROM manifest_retention_batches WHERE batch_id=?",
@@ -651,13 +763,22 @@ class ManifestRetentionService:
     ) -> None:
         archive_relative = str(archive_path.relative_to(self.state_root))
         with self.database.transaction() as connection:
-            current = self._candidates_with_connection(connection, current_time)
-            if current != preview.candidates:
-                raise CoordinatorError(
-                    "manifest_retention_preview_stale",
-                    "Manifest retention candidates changed before retirement",
-                )
             for candidate in preview.candidates:
+                if not self._candidate_is_eligible(connection, candidate, current_time):
+                    raise CoordinatorError(
+                        "manifest_retention_preview_stale",
+                        f"Manifest is no longer retireable: {candidate.table}:{candidate.identity}",
+                    )
+                manifest_json = self._read_manifest(connection, candidate)
+                encoded = manifest_json.encode("utf-8")
+                if (
+                    len(encoded) != candidate.byte_count
+                    or hashlib.sha256(encoded).hexdigest() != candidate.sha256
+                ):
+                    raise CoordinatorError(
+                        "manifest_retention_preview_stale",
+                        f"Manifest changed before retirement: {candidate.table}:{candidate.identity}",
+                    )
                 if candidate.table == "baseline_epochs":
                     cursor = connection.execute(
                         """
@@ -673,7 +794,7 @@ class ManifestRetentionService:
                             archive_relative,
                             utc_text(current_time),
                             int(candidate.identity),
-                            self._read_manifest(connection, candidate),
+                            manifest_json,
                         ),
                     )
                 else:
@@ -691,7 +812,7 @@ class ManifestRetentionService:
                             archive_relative,
                             utc_text(current_time),
                             candidate.identity,
-                            self._read_manifest(connection, candidate),
+                            manifest_json,
                         ),
                     )
                 if cursor.rowcount != 1:
@@ -722,6 +843,46 @@ class ManifestRetentionService:
                     utc_text(current_time),
                 ),
             )
+
+    def _candidate_is_eligible(
+        self,
+        connection: sqlite3.Connection,
+        candidate: ManifestRetentionCandidate,
+        current_time: datetime,
+    ) -> bool:
+        cutoff = utc_text(current_time - self.retention_age)
+        if candidate.table == "baseline_epochs":
+            placeholders = ", ".join("?" for _ in self._TERMINAL_SESSION_STATUSES)
+            row = connection.execute(
+                f"""
+                SELECT 1 FROM baseline_epochs AS epoch
+                WHERE epoch.epoch_id=?
+                  AND epoch.manifest_archive_path IS NULL
+                  AND epoch.created_at <= ?
+                  AND epoch.epoch_id != (SELECT MAX(epoch_id) FROM baseline_epochs)
+                  AND NOT EXISTS (
+                      SELECT 1 FROM sessions AS session
+                      WHERE session.baseline_epoch=epoch.epoch_id
+                        AND session.status NOT IN ({placeholders})
+                  )
+                """,
+                (int(candidate.identity), cutoff, *self._TERMINAL_SESSION_STATUSES),
+            ).fetchone()
+            return row is not None
+        if candidate.table == "validation_copies":
+            placeholders = ", ".join("?" for _ in self._TERMINAL_COPY_STATUSES)
+            row = connection.execute(
+                f"""
+                SELECT 1 FROM validation_copies
+                WHERE job_id=?
+                  AND manifest_archive_path IS NULL
+                  AND status IN ({placeholders})
+                  AND COALESCE(removed_at, created_at) <= ?
+                """,
+                (candidate.identity, *self._TERMINAL_COPY_STATUSES, cutoff),
+            ).fetchone()
+            return row is not None
+        return False
 
     def _fail_batch(self, batch_id: str, error_text: str) -> None:
         with self.database.transaction() as connection:

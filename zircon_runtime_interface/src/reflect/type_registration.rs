@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use super::{ReflectScriptVisibility, ReflectTypeInfo, ReflectTypePath};
+use super::{
+    ReflectError, ReflectScriptVisibility, ReflectTypeInfo, ReflectTypePath, ReflectTypeRole,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReflectSerializationStrategy {
@@ -12,6 +14,7 @@ pub enum ReflectSerializationStrategy {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReflectTypeRegistration {
     pub type_path: ReflectTypePath,
     pub display_name: String,
@@ -19,16 +22,12 @@ pub struct ReflectTypeRegistration {
     pub documentation: Option<String>,
     pub type_info: ReflectTypeInfo,
     pub serialization: ReflectSerializationStrategy,
-    pub is_component: bool,
-    pub is_resource: bool,
-    pub plugin_owned: bool,
+    pub role: ReflectTypeRole,
     pub serializable: bool,
     pub editor_visible: bool,
     pub remote_visible: bool,
     #[serde(default)]
     pub script_visibility: ReflectScriptVisibility,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub plugin_id: Option<String>,
 }
 
 impl ReflectTypeRegistration {
@@ -45,19 +44,16 @@ impl ReflectTypeRegistration {
             documentation: None,
             type_info,
             serialization,
-            is_component: false,
-            is_resource: false,
-            plugin_owned: false,
+            role: ReflectTypeRole::Value,
             serializable,
             editor_visible: true,
             remote_visible: false,
             script_visibility: ReflectScriptVisibility::Private,
-            plugin_id: None,
         }
     }
 
     pub fn as_component(mut self) -> Self {
-        self.is_component = true;
+        self.role = ReflectTypeRole::Component;
         self
     }
 
@@ -67,13 +63,20 @@ impl ReflectTypeRegistration {
     }
 
     pub fn as_resource(mut self) -> Self {
-        self.is_resource = true;
+        self.role = ReflectTypeRole::Resource;
         self
     }
 
-    pub fn with_plugin_owned(mut self, plugin_owned: bool) -> Self {
-        self.plugin_owned = plugin_owned;
-        self
+    pub fn is_component(&self) -> bool {
+        self.role == ReflectTypeRole::Component
+    }
+
+    pub fn is_resource(&self) -> bool {
+        self.role == ReflectTypeRole::Resource
+    }
+
+    pub fn is_plugin_owned(&self) -> bool {
+        self.type_path.plugin_id().is_some()
     }
 
     pub fn with_serializable(mut self, serializable: bool) -> Self {
@@ -96,10 +99,8 @@ impl ReflectTypeRegistration {
         self
     }
 
-    pub fn with_plugin_id(mut self, plugin_id: impl Into<String>) -> Self {
-        let plugin_id = plugin_id.into();
-        self.type_path.plugin_id = Some(plugin_id.clone());
-        self.plugin_id = Some(plugin_id);
-        self
+    pub fn with_plugin_id(mut self, plugin_id: impl Into<String>) -> Result<Self, ReflectError> {
+        self.type_path = self.type_path.with_plugin_id(plugin_id)?;
+        Ok(self)
     }
 }

@@ -93,6 +93,7 @@ doc_type: category-index
 ## Documents
 
 - [Editor Workbench Shell](./editor-workbench-shell.md): 混合固定壳 workbench、主 tabs、drawers、document workspace、native floating windows、拖放命中与布局持久化。
+- [Workbench Layout Persistence](../zircon_editor/ui/workbench/layout-persistence.md): 五种布局文档的统一 `$zircon` 版本壳、硬切语义、原子写入和启动降级边界。
 - [Activity Window Drawer Boundary](./activity-window-drawer-boundary.md): `ActivityWindowLayout` 如何拥有 left/right/bottom drawers，主 window/page 如何绑定 `ActivityWindowId`，以及切换到无 drawer 配置的 AssetBrowserWindow 时为什么不会继承 WorkbenchWindow 的边缘抽屉。
 - [Zircon Editor / UI / Workbench / Window Registry](../zircon_editor/ui/workbench/window_registry/mod.md): editor 内部 `EditorWindowRegistry` 如何作为窗口、drawer view、独立 drawer window 的单一数据层，并把普通窗口与 drawer-capable 窗口的注册边界固定下来。
 - [Workbench Main Interface Entries](../zircon_editor/ui/layouts/windows/workbench_host_window/main_interface_entries.md): M3 主界面入口收口表，固定菜单、drawer、toolbar、document pane、floating panel 的 `.ui.toml + shared surface` 真源和 host 边界。

@@ -55,12 +55,11 @@ fn runtime_modules_for_profile_descriptor_manifest_with_plugin_registration_repo
     manifest: &ProjectPluginManifest,
     registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
 ) -> RuntimeModuleLoadReport {
-    let registrations = registrations.into_iter().collect::<Vec<_>>();
     runtime_modules_for_profile_manifest_with_plugin_registration_reports(
         profile,
         profile.target_mode,
         manifest,
-        registrations.iter().copied(),
+        registrations,
     )
 }
 
@@ -106,30 +105,15 @@ fn runtime_modules_for_profile_descriptor_manifest_with_plugin_and_feature_regis
     registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
     feature_registrations: impl IntoIterator<Item = &'a RuntimePluginFeatureRegistrationReport>,
 ) -> RuntimeModuleLoadReport {
-    let registrations = registrations.into_iter().collect::<Vec<_>>();
-    let feature_registrations = feature_registrations.into_iter().collect::<Vec<_>>();
     super::registration_reports::runtime_modules_for_target_with_plugin_and_feature_registration_reports(
         profile.target_mode,
         Some(manifest),
-        registrations.iter().copied(),
-        feature_registrations.iter().copied(),
+        registrations,
+        feature_registrations,
         Some(profile),
     )
 }
 
 #[cfg(test)]
-mod performance_tests {
-    #[test]
-    fn profile_feature_assembly_collects_borrowed_registration_refs() {
-        let source = include_str!("profile_modules.rs");
-        let start = source
-            .find("fn runtime_modules_for_profile_descriptor_manifest_with_plugin_and_feature_registration_reports")
-            .expect("profile feature assembly owner");
-        let compact = source[start..].split_whitespace().collect::<String>();
-
-        assert!(
-            !compact.contains(".into_iter().cloned().collect::<Vec<_>>()"),
-            "profile assembly must not deep-clone reports before the target assembly owner"
-        );
-    }
-}
+#[path = "profile_modules/direct_iterator_forwarding_tests.rs"]
+mod direct_iterator_forwarding_tests;

@@ -86,6 +86,7 @@ const EFFECT_TEXT_FIELDS = ['auraKind', 'kind', 'mobId'];
 const EFFECT_FLAG_FIELDS = [
   'canCrit', 'requiresBehind', 'spell', 'exhaust', 'groupOnly', 'stun',
 ];
+const METRIC_INDEX_BUCKET_SIZE = 8;
 
 main();
 
@@ -269,26 +270,37 @@ function renderCatalog(document) {
     'pub metric(index: int, level: int, field: string): float {',
     '    var rank = rankAtLevel(index, level);',
     '    if (rank == 0) { throw "WOC M4 ability is not learned at this level"; }',
+    `    var bucket = index / ${METRIC_INDEX_BUCKET_SIZE};`,
   );
-  for (const entry of document.entries) {
-    const definition = entry.definition;
-    lines.push(`    if (index == ${entry.index}) {`);
-    for (const field of ABILITY_METRIC_FIELDS) {
-      lines.push(`        if (field == ${zrString(field)}) {`);
-      for (const rank of [...(definition.ranks ?? [])].reverse()) {
-        const override = rankMetricOverride(rank, field);
-        if (override !== undefined) {
-          lines.push(`            if (rank >= ${rank.rank}) { return ${zrNumber(override)}; }`);
+  const metricBucketCount = Math.ceil(document.entries.length / METRIC_INDEX_BUCKET_SIZE);
+  for (let bucket = 0; bucket < metricBucketCount; bucket += 1) {
+    lines.push(
+      `    if (bucket == ${bucket}) { return metricBucket${bucket}(index, rank, field); }`,
+    );
+  }
+  lines.push('    throw "unknown WOC M4 ability index";', '}', '');
+  for (let bucket = 0; bucket < metricBucketCount; bucket += 1) {
+    lines.push(`metricBucket${bucket}(index: int, rank: int, field: string): float {`);
+    const start = bucket * METRIC_INDEX_BUCKET_SIZE;
+    const entries = document.entries.slice(start, start + METRIC_INDEX_BUCKET_SIZE);
+    for (const entry of entries) {
+      const definition = entry.definition;
+      lines.push(`    if (index == ${entry.index}) {`);
+      for (const field of ABILITY_METRIC_FIELDS) {
+        lines.push(`        if (field == ${zrString(field)}) {`);
+        for (const rank of [...(definition.ranks ?? [])].reverse()) {
+          const override = rankMetricOverride(rank, field);
+          if (override !== undefined) {
+            lines.push(`            if (rank >= ${rank.rank}) { return ${zrNumber(override)}; }`);
+          }
         }
+        lines.push(`            return ${zrNumber(baseAbilityMetric(definition, field))};`, '        }');
       }
-      lines.push(`            return ${zrNumber(baseAbilityMetric(definition, field))};`, '        }');
+      lines.push('        throw "unknown WOC M4 ability metric field";', '    }');
     }
-    lines.push('        throw "unknown WOC M4 ability metric field";', '    }');
+    lines.push('    throw "unknown WOC M4 ability index";', '}', '');
   }
   lines.push(
-    '    throw "unknown WOC M4 ability index";',
-    '}',
-    '',
     'pub flag(index: int, field: string): bool {',
   );
   for (const entry of document.entries) {

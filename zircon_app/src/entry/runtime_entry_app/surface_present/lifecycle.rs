@@ -4,10 +4,13 @@ use super::super::RuntimeEntryApp;
 use crate::entry::runtime_library::RuntimeLibraryError;
 
 impl RuntimeEntryApp {
-    pub(in crate::entry::runtime_entry_app) fn close_primary_window_after_request(&mut self) {
-        self.teardown_surface_present();
-        self.presenter = None;
+    pub(in crate::entry::runtime_entry_app) fn teardown_primary_window(&mut self) -> bool {
+        let surface_released = self.teardown_surface_present();
+        if let Some(presenter) = self.presenter.take() {
+            presenter.publish_summary();
+        }
         self.window = None;
+        surface_released
     }
 
     pub(super) fn disable_surface_present(&mut self) {
@@ -19,14 +22,18 @@ impl RuntimeEntryApp {
         }
     }
 
-    fn teardown_surface_present(&mut self) {
-        if let Err(error) = self.release_surface_present() {
-            self.report_fatal_failure(
-                "runtime_surface_present",
-                format!("viewport={:?}", self.viewport),
-                format!("runtime surface unbind failed: {error}"),
-                "verify the runtime surface lifecycle and restart zircon_runtime",
-            );
+    fn teardown_surface_present(&mut self) -> bool {
+        match self.release_surface_present() {
+            Ok(()) => true,
+            Err(error) => {
+                self.report_fatal_failure(
+                    "runtime_surface_present",
+                    format!("viewport={:?}", self.viewport),
+                    format!("runtime surface unbind failed: {error}"),
+                    "verify the runtime surface lifecycle and restart zircon_runtime",
+                );
+                false
+            }
         }
     }
 
@@ -55,11 +62,11 @@ impl RuntimeEntryApp {
         write_log("runtime_surface_present", "runtime_surface_present_enabled");
     }
 
-    pub(in crate::entry::runtime_entry_app) fn fallback_surface_present(&mut self) {
+    pub(in crate::entry::runtime_entry_app) fn enable_reference_cpu_presenter(&mut self) {
         self.disable_surface_present();
         write_log(
             "runtime_surface_present",
-            "runtime_surface_present_fallback",
+            "runtime_reference_cpu_presenter_enabled capability=degraded",
         );
     }
 }
@@ -87,6 +94,6 @@ impl Drop for RuntimeEntryApp {
         );
         #[cfg(feature = "gamepad-gilrs")]
         super::super::gamepad::clear_gamepad_rumble_effects(&mut self.gamepad_rumble_effects);
-        self.teardown_surface_present();
+        let _ = self.teardown_primary_window();
     }
 }

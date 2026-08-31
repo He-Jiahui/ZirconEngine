@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use zircon_runtime::core::framework::render::{
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExecutionState,
-    RenderVirtualGeometryExtract, RenderVirtualGeometrySelectedCluster,
-    RenderVirtualGeometryVisBufferMark,
+    RenderVirtualGeometryExecutionState, RenderVirtualGeometryExtract,
+    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometryVisBufferMark,
 };
 use zircon_runtime::core::framework::scene::EntityId;
 
@@ -11,6 +10,10 @@ use super::{
     VirtualGeometryClusterRasterDraw, VirtualGeometryPrepareClusterState,
     VirtualGeometryPrepareFrame,
 };
+
+mod overlay_lookup;
+
+use overlay_lookup::OverlayClusterLookup;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct VirtualGeometryClusterSelection {
@@ -80,9 +83,10 @@ pub(crate) fn build_cluster_selections(
     frame: &VirtualGeometryPrepareFrame,
     extract: &RenderVirtualGeometryExtract,
 ) -> Vec<VirtualGeometryClusterSelection> {
-    let mut selections = build_cluster_selections_from_unified_indirect(frame, extract);
+    let overlay_lookup = OverlayClusterLookup::new(extract);
+    let mut selections = build_cluster_selections_from_unified_indirect(frame, &overlay_lookup);
     if selections.is_empty() {
-        selections = build_cluster_selections_from_visible_clusters(frame, extract);
+        selections = build_cluster_selections_from_visible_clusters(frame, &overlay_lookup);
     }
     selections.sort_by_key(|selection| {
         (
@@ -133,13 +137,13 @@ pub(crate) fn cluster_raster_draws_from_selections(
 
 fn build_cluster_selections_from_unified_indirect(
     frame: &VirtualGeometryPrepareFrame,
-    extract: &RenderVirtualGeometryExtract,
+    overlay_lookup: &OverlayClusterLookup,
 ) -> Vec<VirtualGeometryClusterSelection> {
     let mut selections = Vec::new();
     let mut emitted_clusters = HashSet::<(EntityId, u32)>::new();
 
     for (submission_index, draw) in frame.unified_indirect_draws().into_iter().enumerate() {
-        let entity_clusters = clusters_for_entity_in_overlay_order(extract, draw.entity);
+        let entity_clusters = overlay_lookup.clusters_for_entity(draw.entity);
         if entity_clusters.is_empty() {
             continue;
         }
@@ -162,11 +166,7 @@ fn build_cluster_selections_from_unified_indirect(
 
             selections.push(VirtualGeometryClusterSelection {
                 submission_index: u32::try_from(submission_index).unwrap_or(u32::MAX),
-                instance_index: overlay_instance_index_for_cluster(
-                    extract,
-                    cluster.entity,
-                    cluster.cluster_id,
-                ),
+                instance_index: overlay_lookup.instance_index(cluster.entity, cluster.cluster_id),
                 entity: cluster.entity,
                 cluster_id: cluster.cluster_id,
                 cluster_ordinal: u32::try_from(cluster_ordinal).unwrap_or(u32::MAX),
@@ -193,7 +193,7 @@ fn build_cluster_selections_from_unified_indirect(
 
 fn build_cluster_selections_from_visible_clusters(
     frame: &VirtualGeometryPrepareFrame,
-    extract: &RenderVirtualGeometryExtract,
+    overlay_lookup: &OverlayClusterLookup,
 ) -> Vec<VirtualGeometryClusterSelection> {
     let page_slot = frame
         .resident_pages
@@ -235,14 +235,10 @@ fn build_cluster_selections_from_visible_clusters(
         .filter(|cluster| !matches!(cluster.state, VirtualGeometryPrepareClusterState::Missing))
         .filter_map(|cluster| {
             let cluster_ordinal =
-                overlay_cluster_ordinal_for_cluster(extract, cluster.entity, cluster.cluster_id)?;
+                overlay_lookup.cluster_ordinal(cluster.entity, cluster.cluster_id)?;
             Some(VirtualGeometryClusterSelection {
                 submission_index: 0,
-                instance_index: overlay_instance_index_for_cluster(
-                    extract,
-                    cluster.entity,
-                    cluster.cluster_id,
-                ),
+                instance_index: overlay_lookup.instance_index(cluster.entity, cluster.cluster_id),
                 entity: cluster.entity,
                 cluster_id: cluster.cluster_id,
                 cluster_ordinal,
@@ -290,77 +286,6 @@ fn build_cluster_selections_from_visible_clusters(
     }
 
     selections
-}
-
-fn clusters_for_entity_in_overlay_order(
-    extract: &RenderVirtualGeometryExtract,
-    entity: EntityId,
-) -> Vec<RenderVirtualGeometryCluster> {
-    let mut clusters = if extract.instances.is_empty() {
-        extract
-            .clusters
-            .iter()
-            .copied()
-            .filter(|cluster| cluster.entity == entity)
-            .collect::<Vec<_>>()
-    } else {
-        extract
-            .instances
-            .iter()
-            .filter(|instance| instance.entity == entity)
-            .flat_map(|instance| {
-                let start = instance.cluster_offset as usize;
-                let end = start.saturating_add(instance.cluster_count as usize);
-                extract
-                    .clusters
-                    .get(start..end)
-                    .into_iter()
-                    .flatten()
-                    .copied()
-            })
-            .collect::<Vec<_>>()
-    };
-    clusters.sort_by_key(|cluster| cluster.cluster_id);
-    clusters.dedup_by_key(|cluster| cluster.cluster_id);
-    clusters
-}
-
-fn overlay_instance_index_for_cluster(
-    extract: &RenderVirtualGeometryExtract,
-    entity: EntityId,
-    cluster_id: u32,
-) -> Option<u32> {
-    extract
-        .instances
-        .iter()
-        .enumerate()
-        .find(|(_, instance)| {
-            if instance.entity != entity {
-                return false;
-            }
-
-            let start = instance.cluster_offset as usize;
-            let end = start.saturating_add(instance.cluster_count as usize);
-            extract
-                .clusters
-                .get(start..end)
-                .into_iter()
-                .flatten()
-                .any(|cluster| cluster.cluster_id == cluster_id)
-        })
-        .and_then(|(instance_index, _)| u32::try_from(instance_index).ok())
-}
-
-fn overlay_cluster_ordinal_for_cluster(
-    extract: &RenderVirtualGeometryExtract,
-    entity: EntityId,
-    cluster_id: u32,
-) -> Option<u32> {
-    clusters_for_entity_in_overlay_order(extract, entity)
-        .iter()
-        .enumerate()
-        .find(|(_, cluster)| cluster.cluster_id == cluster_id)
-        .and_then(|(cluster_ordinal, _)| u32::try_from(cluster_ordinal).ok())
 }
 
 fn map_prepare_cluster_state(

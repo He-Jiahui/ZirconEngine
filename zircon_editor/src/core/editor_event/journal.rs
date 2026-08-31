@@ -7,9 +7,13 @@ use super::{
     EditorEventRetentionDiagnostics, EditorEventRetentionStore, SharedEditorEventRecord,
 };
 
+#[cfg(test)]
+#[path = "journal/shared_snapshot_cache_tests.rs"]
+mod shared_snapshot_cache_tests;
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct EditorEventJournal {
-    records: Vec<EditorEventRecord>,
+    records: Arc<[EditorEventRecord]>,
     #[serde(default)]
     retention_diagnostics: EditorEventRetentionDiagnostics,
     #[serde(default)]
@@ -33,12 +37,16 @@ impl EditorEventJournal {
 #[derive(Debug)]
 pub(crate) struct EditorEventJournalStore {
     records: EditorEventRetentionStore,
+    cached_generation: u64,
+    cached_records: Arc<[EditorEventRecord]>,
 }
 
 impl EditorEventJournalStore {
     pub(crate) fn new(budgets: EditorEventRetentionBudgets) -> Self {
         Self {
             records: EditorEventRetentionStore::new(budgets),
+            cached_generation: 0,
+            cached_records: Arc::default(),
         }
     }
 
@@ -47,14 +55,18 @@ impl EditorEventJournalStore {
     }
 
     pub(crate) fn snapshot(&mut self) -> EditorEventJournal {
-        let records = self
-            .records
-            .records()
-            .into_iter()
-            .map(|record| record.record().clone())
-            .collect();
+        let generation = self.records.generation_after_prune();
+        if generation != self.cached_generation {
+            let shared_records = self.records.records();
+            self.cached_records = shared_records
+                .iter()
+                .map(|record| record.record().clone())
+                .collect::<Vec<_>>()
+                .into();
+            self.cached_generation = self.records.generation();
+        }
         EditorEventJournal {
-            records,
+            records: Arc::clone(&self.cached_records),
             retention_diagnostics: self.records.diagnostics(),
             retention_budgets: self.records.budgets(),
         }

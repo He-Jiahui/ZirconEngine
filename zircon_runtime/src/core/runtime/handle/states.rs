@@ -1,6 +1,6 @@
 use std::sync::MutexGuard;
 
-use crate::core::framework::state::{
+use crate::core::runtime::state_machine::{
     NextState, OnEnter, OnExit, OnTransition, State, StateRegistry, StateSpec, StateTransitionEvent,
 };
 
@@ -64,8 +64,8 @@ impl CoreHandle {
         Some(event)
     }
 
-    pub fn state_transition_events<T: StateSpec>(&self) -> Vec<StateTransitionEvent<T>> {
-        self.lock_states().transition_events::<T>()
+    pub fn latest_state_transition<T: StateSpec>(&self) -> Option<StateTransitionEvent<T>> {
+        self.lock_states().latest_transition::<T>()
     }
 
     pub fn register_on_enter<T, F>(&self, label: OnEnter<T>, hook: F)
@@ -104,7 +104,7 @@ impl CoreHandle {
 mod tests {
     use std::panic::{self, AssertUnwindSafe};
 
-    use crate::core::framework::state::NextState;
+    use crate::core::runtime::state_machine::NextState;
     use crate::core::CoreRuntime;
 
     #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
@@ -145,8 +145,8 @@ mod tests {
             StateFixture::Running
         );
 
-        let events = handle.state_transition_events::<StateFixture>();
-        assert_eq!(events.len(), 2);
+        let latest = handle.latest_state_transition::<StateFixture>();
+        assert_eq!(latest, Some(transition));
 
         handle.reset_next_state::<StateFixture>();
         assert_eq!(handle.next_state::<StateFixture>(), NextState::Unchanged);

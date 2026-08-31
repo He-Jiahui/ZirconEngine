@@ -1,6 +1,7 @@
 use super::*;
 use std::sync::{Arc, Barrier};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use crate::core::notifications::{MAX_NOTIFICATION_ID_BYTES, MAX_NOTIFICATION_SOURCE_ID_BYTES};
 
@@ -22,7 +23,7 @@ fn editor_context_owns_an_empty_decision_notification_center() {
     use crate::core::context::EditorContextBuilder;
     use crate::core::jobs::test_job_scheduler;
 
-    let context = EditorContextBuilder::new(test_job_scheduler()).build();
+    let context = EditorContextBuilder::new(test_job_scheduler(), test_job_scheduler()).build();
 
     assert!(context
         .notifications()
@@ -284,6 +285,24 @@ fn resolving_a_notification_releases_pending_capacity() {
 }
 
 #[test]
+fn pending_snapshot_preserves_publish_order_instead_of_notification_id_order() {
+    let center = center();
+    center.publish(notification("z_last", true)).unwrap();
+    center.publish(notification("a_first", true)).unwrap();
+
+    let pending = center.pending_snapshot();
+    assert_eq!(pending.len(), 2);
+    assert_eq!(
+        pending[0].notification().id().as_str(),
+        "editor.play.z_last"
+    );
+    assert_eq!(
+        pending[1].notification().id().as_str(),
+        "editor.play.a_first"
+    );
+}
+
+#[test]
 fn expired_cursor_recovers_oldest_retained_receipt() {
     let center = configured_center(1, 2);
     let initial_cursor = center.initial_cursor();
@@ -479,4 +498,70 @@ fn bounded_receipt_history_reports_cursor_gap() {
         .unwrap();
     assert_eq!(batch.receipts().len(), 2);
     assert_eq!(batch.next_cursor().value(), sequences[2].value());
+}
+
+#[test]
+fn latest_receipt_cursor_returns_an_unchanged_empty_batch() {
+    let center = configured_center(1, 4);
+    let apply = DecisionOptionId::parse("apply").unwrap();
+    let ticket = center.publish(notification("latest_cursor", true)).unwrap();
+    let sequence = center
+        .resolve(&ticket, &apply)
+        .unwrap()
+        .receipt()
+        .sequence();
+    let cursor = DecisionReceiptCursor::after(center.instance_id(), sequence);
+
+    let batch = center.receipts_since(cursor).unwrap();
+
+    assert!(batch.receipts().is_empty());
+    assert_eq!(batch.next_cursor(), cursor);
+}
+
+#[test]
+#[ignore = "performance evidence; run in the managed Windows release lane"]
+fn optimization_wave_20260824d_editor10_decision_receipt_tail_evidence() {
+    const RETAINED_RECEIPTS: usize = 256;
+    const POLLS: usize = 10_000;
+    const MAX_ELAPSED: Duration = Duration::from_secs(3);
+
+    let center = configured_center(1, RETAINED_RECEIPTS);
+    let apply = DecisionOptionId::parse("apply").unwrap();
+    let mut latest_sequence = None;
+    for index in 0..RETAINED_RECEIPTS {
+        let ticket = center
+            .publish(notification(&format!("tail_perf_{index}"), true))
+            .unwrap();
+        latest_sequence = Some(
+            center
+                .resolve(&ticket, &apply)
+                .unwrap()
+                .receipt()
+                .sequence(),
+        );
+    }
+    let cursor = DecisionReceiptCursor::after(center.instance_id(), latest_sequence.unwrap());
+    let started = Instant::now();
+
+    for _ in 0..POLLS {
+        let batch = center.receipts_since(cursor).unwrap();
+        assert!(batch.receipts().is_empty());
+        assert_eq!(batch.next_cursor(), cursor);
+    }
+
+    let elapsed = started.elapsed();
+    let legacy_receipt_checks = RETAINED_RECEIPTS * POLLS;
+    let optimized_tail_checks = POLLS;
+    let reduction_basis_points =
+        (legacy_receipt_checks - optimized_tail_checks) * 10_000 / legacy_receipt_checks;
+    assert!(elapsed <= MAX_ELAPSED, "tail polling took {elapsed:?}");
+    println!(
+        "EDITOR_DECISION_RECEIPT_BENCH_V1 retained_receipts={} polls={} legacy_receipt_checks={} optimized_tail_checks={} reduction_basis_points={} elapsed_ns={}",
+        RETAINED_RECEIPTS,
+        POLLS,
+        legacy_receipt_checks,
+        optimized_tail_checks,
+        reduction_basis_points,
+        elapsed.as_nanos()
+    );
 }

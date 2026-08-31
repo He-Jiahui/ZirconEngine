@@ -5,6 +5,7 @@ use super::super::{assert_has_event, assert_has_prop};
 use super::{assert_button_style_schema_with_variant_default, assert_enum_options};
 
 pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
+    assert_text_field(registry);
     assert_number_field(registry);
     assert_checkbox(registry);
     assert_radio(registry);
@@ -13,13 +14,57 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
     assert_toggle_button(registry);
 }
 
+fn assert_text_field(registry: &UiComponentDescriptorRegistry) {
+    let text_field = registry
+        .descriptor("TextField")
+        .expect("TextField descriptor");
+    assert_enum_options(
+        text_field,
+        "input_kind",
+        &[
+            "text", "password", "email", "search", "number", "tel", "url",
+        ],
+    );
+    assert_eq!(
+        text_field.prop("input_kind").unwrap().default_value,
+        Some(UiValue::Enum("text".to_string()))
+    );
+}
+
 fn assert_number_field(registry: &UiComponentDescriptorRegistry) {
     let number_field = registry
         .descriptor("NumberField")
         .expect("NumberField descriptor");
-    for prop in ["value", "min", "max", "step", "large_step"] {
+    for prop in [
+        "value",
+        "number_format",
+        "number_publish_per_key",
+        "number_snap_on_commit",
+        "min",
+        "max",
+        "step",
+        "large_step",
+    ] {
         assert_has_prop(number_field, prop);
     }
+    assert_eq!(
+        number_field.prop("number_format").unwrap().default_value,
+        Some(UiValue::Enum("invariant_ascii".to_string()))
+    );
+    assert!(number_field.state_prop("value_text").is_some());
+    assert!(number_field.state_prop("number_edit_active").is_some());
+    assert_eq!(
+        number_field
+            .state_prop("number_value_revision")
+            .and_then(|schema| schema.default_value.as_ref()),
+        Some(&UiValue::Int(0))
+    );
+    assert_eq!(
+        number_field
+            .state_prop("number_edit_base_revision")
+            .and_then(|schema| schema.default_value.as_ref()),
+        Some(&UiValue::Int(0))
+    );
     assert_eq!(number_field.prop("value").unwrap().min, Some(0.0));
     assert_eq!(number_field.prop("value").unwrap().max, Some(100.0));
     assert_eq!(number_field.prop("value").unwrap().step, Some(1.0));

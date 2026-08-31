@@ -1,9 +1,8 @@
 use zircon_editor::core::asset::{AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId};
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 use zircon_editor::core::editor_authoring_extension::{
     TimelineEditorDescriptor, TimelineTrackDescriptor,
 };
-use zircon_editor::core::editor_extension::EditorMenuItemDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
@@ -62,7 +61,6 @@ impl zircon_editor::EditorPlugin for TimelineSequenceEditorPlugin {
                     TIMELINE_SEQUENCE_VIEW_ID,
                     "Timeline Sequence",
                     "Animation",
-                    "Plugins/Timeline Sequence",
                 )],
             },
         )?;
@@ -144,34 +142,48 @@ fn timeline_authoring_batch() -> EditorAuthoringContributionBatch {
     let validate = operation("timeline_sequence.authoring.validate");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::operation(open.clone(), "Open Timeline Sequence")
-                .with_menu_path("Plugins/Timeline Sequence/Open Sequence")
+            EditorCommandDescriptor::operation(open.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &open,
+                    "plugins",
+                    &["timeline_sequence"],
+                ))
                 .with_payload_schema_id("timeline_sequence.open.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(create_track.clone(), "Create Timeline Track")
-                .with_menu_path("Plugins/Timeline Sequence/Create Track")
+            EditorCommandDescriptor::operation(create_track.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &create_track,
+                    "plugins",
+                    &["timeline_sequence"],
+                ))
                 .with_payload_schema_id("timeline_sequence.create_track.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(delete_track.clone(), "Delete Timeline Track")
-                .with_menu_path("Plugins/Timeline Sequence/Delete Track")
+            EditorCommandDescriptor::operation(delete_track.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &delete_track,
+                    "plugins",
+                    &["timeline_sequence"],
+                ))
                 .with_payload_schema_id("timeline_sequence.delete_track.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(move_key.clone(), "Move Timeline Keyframe")
-                .with_menu_path("Plugins/Timeline Sequence/Move Keyframe")
+            EditorCommandDescriptor::operation(move_key.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &move_key,
+                    "plugins",
+                    &["timeline_sequence"],
+                ))
                 .with_payload_schema_id("timeline_sequence.move_keyframe.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::operation(validate.clone(), "Validate Timeline Sequence")
-                .with_menu_path("Plugins/Timeline Sequence/Validate")
+            EditorCommandDescriptor::operation(validate.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &validate,
+                    "plugins",
+                    &["timeline_sequence"],
+                ))
                 .with_payload_schema_id("timeline_sequence.validate.v1")
                 .with_required_capabilities([CAPABILITY]),
         ],
-        menu_items: vec![
-            menu_item("Plugins/Timeline Sequence/Open Sequence", &open),
-            menu_item("Plugins/Timeline Sequence/Create Track", &create_track),
-            menu_item("Plugins/Timeline Sequence/Delete Track", &delete_track),
-            menu_item("Plugins/Timeline Sequence/Move Keyframe", &move_key),
-            menu_item("Plugins/Timeline Sequence/Validate", &validate),
-        ],
+        menu_items: Vec::new(),
         asset_type_contributions: vec![AssetTypeContribution::augment(
             AssetTypeId::from_resource_kind(ResourceKind::AnimationSequence),
         )
@@ -215,8 +227,4 @@ fn timeline_authoring_batch() -> EditorAuthoringContributionBatch {
 
 fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid timeline operation path")
-}
-
-fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
-    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
 }

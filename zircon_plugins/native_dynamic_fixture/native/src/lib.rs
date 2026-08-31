@@ -1,12 +1,10 @@
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "abi_v2_only")]
-use std::ffi::c_char;
 use std::io::{self, Write};
 use zircon_plugin_sdk::native::{
-    self, NativePluginBridgeMethodCallV3, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
-    NativePluginHostFunctionTableV3, NativePluginOutputSinkV4, NativePluginOwnedByteBufferV2,
-    ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-    ZIRCON_NATIVE_PLUGIN_STATUS_OK, bytes_from_slice, callback_status as status, owned_bytes,
+    self, bytes_from_slice, callback_status as status, owned_bytes, NativePluginBridgeMethodCallV3,
+    NativePluginByteSliceV3, NativePluginCallbackStatusV3, NativePluginHostFunctionTableV3,
+    NativePluginOutputSinkV4, NativePluginOwnedByteBufferV3, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 
 #[cfg(feature = "abi_unknown_version")]
@@ -15,13 +13,10 @@ const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 = 99;
 const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 =
     zircon_plugin_sdk::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION;
 const IMPORT_REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
-const IMPORT_RESPONSE_MAGIC: &[u8] = b"ZRIMO001\n";
+const IMPORT_RESPONSE_MAGIC: &[u8] = b"ZRIMO002\n";
 const IMPORT_ENVELOPE_LENGTH_BYTES: usize = std::mem::size_of::<u64>();
 const MAX_IMPORT_METADATA_BYTES: usize = 64 * 1024;
 const MAX_IMPORT_SOURCE_BYTES: usize = 256 * 1024;
-
-#[cfg(feature = "abi_v2_only")]
-const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2: u32 = 2;
 
 zircon_plugin_sdk::declare_plugin! {
     NATIVE_DYNAMIC_FIXTURE_DECLARATION {
@@ -83,113 +78,6 @@ zircon_plugin_sdk::declare_plugin! {
 }
 
 const FIXTURE_DATA_IMPORTER_ID: &str = "native_dynamic_fixture.data_json";
-
-#[cfg(feature = "abi_v2_only")]
-const V2_RUNTIME_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_v2\0";
-#[cfg(feature = "abi_v2_only")]
-const V2_RUNTIME_DIAGNOSTICS: &[u8] =
-    b"runtime v2 entry reached with host ABI table\nnegotiated runtime.plugin.native_dynamic_fixture\0";
-#[cfg(feature = "abi_v2_only")]
-const V2_MISSING_HOST_DIAGNOSTICS: &[u8] = b"native v2 entry missing negotiated host ABI table\0";
-
-#[cfg(feature = "abi_v2_only")]
-#[repr(C)]
-struct NativePluginAbiV2 {
-    abi_version: u32,
-    plugin_id: *const c_char,
-    package_manifest_toml: *const c_char,
-    runtime_entry_name: *const c_char,
-    editor_entry_name: *const c_char,
-    requested_capabilities: *const c_char,
-}
-
-#[cfg(feature = "abi_v2_only")]
-#[repr(C)]
-struct NativePluginEntryReportV2 {
-    abi_version: u32,
-    package_manifest_toml: *const c_char,
-    diagnostics: *const c_char,
-    negotiated_capabilities: *const c_char,
-    behavior: *const NativePluginBehaviorV2,
-}
-
-#[cfg(feature = "abi_v2_only")]
-#[repr(C)]
-struct NativePluginHostFunctionTableV2 {
-    abi_version: u32,
-    host_handle: u64,
-    granted_capabilities: *const c_char,
-    host_abi_version: Option<unsafe extern "C" fn() -> u32>,
-    host_has_capability:
-        Option<unsafe extern "C" fn(*const NativePluginHostFunctionTableV2, *const c_char) -> u32>,
-}
-
-#[cfg(feature = "abi_v2_only")]
-#[repr(C)]
-struct FixtureNativePluginByteSliceV2 {
-    data: *const u8,
-    len: usize,
-}
-
-#[cfg(feature = "abi_v2_only")]
-#[repr(C)]
-struct FixtureNativePluginOwnedByteBufferV2 {
-    data: *mut u8,
-    len: usize,
-    capacity: usize,
-    owner_token: u64,
-    free: Option<FixtureNativePluginFreeBytesFnV2>,
-}
-
-#[cfg(feature = "abi_v2_only")]
-#[repr(C)]
-struct FixtureNativePluginCallbackStatusV2 {
-    code: u32,
-    diagnostics: *const c_char,
-}
-
-#[cfg(feature = "abi_v2_only")]
-type FixtureNativePluginFreeBytesFnV2 = unsafe extern "C" fn(
-    FixtureNativePluginOwnedByteBufferV2,
-)
-    -> FixtureNativePluginCallbackStatusV2;
-#[cfg(feature = "abi_v2_only")]
-type FixtureNativePluginInvokeCommandFnV2 =
-    unsafe extern "C" fn(
-        *const c_char,
-        FixtureNativePluginByteSliceV2,
-        *mut FixtureNativePluginOwnedByteBufferV2,
-    ) -> FixtureNativePluginCallbackStatusV2;
-#[cfg(feature = "abi_v2_only")]
-type FixtureNativePluginSaveStateFnV2 = unsafe extern "C" fn(
-    *mut FixtureNativePluginOwnedByteBufferV2,
-)
-    -> FixtureNativePluginCallbackStatusV2;
-#[cfg(feature = "abi_v2_only")]
-type FixtureNativePluginRestoreStateFnV2 =
-    unsafe extern "C" fn(FixtureNativePluginByteSliceV2) -> FixtureNativePluginCallbackStatusV2;
-#[cfg(feature = "abi_v2_only")]
-type FixtureNativePluginUnloadFnV2 = unsafe extern "C" fn() -> FixtureNativePluginCallbackStatusV2;
-
-#[cfg(feature = "abi_v2_only")]
-#[repr(C)]
-struct NativePluginBehaviorV2 {
-    abi_version: u32,
-    is_stateless: u32,
-    command_manifest: *const c_char,
-    event_manifest: *const c_char,
-    invoke_command: Option<FixtureNativePluginInvokeCommandFnV2>,
-    save_state: Option<FixtureNativePluginSaveStateFnV2>,
-    restore_state: Option<FixtureNativePluginRestoreStateFnV2>,
-    unload: Option<FixtureNativePluginUnloadFnV2>,
-}
-
-#[cfg(feature = "abi_v2_only")]
-#[repr(transparent)]
-struct SyncStatic<T>(T);
-
-#[cfg(feature = "abi_v2_only")]
-unsafe impl<T> Sync for SyncStatic<T> {}
 
 const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
 #[cfg(feature = "runtime_entry_export_missing")]
@@ -293,6 +181,7 @@ struct NativeAssetImportRequestMetadata {
 struct NativeAssetImportResponseMetadata<'a> {
     importer_id: &'a str,
     entries: [NativeAssetImportResponseEntry<'a>; 1],
+    reference_repairs: Vec<serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -381,10 +270,7 @@ impl Write for BoundedResponseWriter {
     }
 }
 
-#[cfg(all(
-    not(feature = "descriptor_export_missing"),
-    not(feature = "abi_v2_only")
-))]
+#[cfg(not(feature = "descriptor_export_missing"))]
 zircon_plugin_sdk::native_dist_plugin_v3! {
     plugin_id: NATIVE_PLUGIN_ID,
     package_manifest: PLUGIN_MANIFEST,
@@ -444,75 +330,6 @@ zircon_plugin_sdk::native_dist_plugin_v3! {
     },
 }
 
-// ABI v2 stays descriptor-compatible for the plan's fallback coverage, but its
-// behavior callbacks are intentionally not reintroduced after the V4 hard cut.
-#[cfg(feature = "abi_v2_only")]
-static V2_RUNTIME_BEHAVIOR: SyncStatic<NativePluginBehaviorV2> =
-    SyncStatic(NativePluginBehaviorV2 {
-        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-        is_stateless: 0,
-        command_manifest: std::ptr::null(),
-        event_manifest: std::ptr::null(),
-        invoke_command: None,
-        save_state: None,
-        restore_state: None,
-        unload: None,
-    });
-
-#[cfg(feature = "abi_v2_only")]
-static V2_DESCRIPTOR: SyncStatic<NativePluginAbiV2> = SyncStatic(NativePluginAbiV2 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    plugin_id: NATIVE_PLUGIN_ID.as_ptr().cast(),
-    package_manifest_toml: PLUGIN_MANIFEST.as_ptr().cast(),
-    runtime_entry_name: V2_RUNTIME_ENTRY.as_ptr().cast(),
-    editor_entry_name: std::ptr::null(),
-    requested_capabilities: NATIVE_REQUESTED_CAPABILITIES.as_ptr().cast(),
-});
-
-#[cfg(feature = "abi_v2_only")]
-static V2_RUNTIME_REPORT: SyncStatic<NativePluginEntryReportV2> =
-    SyncStatic(NativePluginEntryReportV2 {
-        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-        package_manifest_toml: PLUGIN_MANIFEST.as_ptr().cast(),
-        diagnostics: V2_RUNTIME_DIAGNOSTICS.as_ptr().cast(),
-        negotiated_capabilities: RUNTIME_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
-        behavior: &V2_RUNTIME_BEHAVIOR.0,
-    });
-
-#[cfg(feature = "abi_v2_only")]
-static V2_MISSING_HOST_REPORT: SyncStatic<NativePluginEntryReportV2> =
-    SyncStatic(NativePluginEntryReportV2 {
-        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-        package_manifest_toml: PLUGIN_MANIFEST.as_ptr().cast(),
-        diagnostics: V2_MISSING_HOST_DIAGNOSTICS.as_ptr().cast(),
-        negotiated_capabilities: std::ptr::null(),
-        behavior: std::ptr::null(),
-    });
-
-#[cfg(all(feature = "abi_v2_only", not(feature = "descriptor_export_missing")))]
-#[no_mangle]
-pub extern "C" fn zircon_native_plugin_descriptor_v2() -> *const NativePluginAbiV2 {
-    &V2_DESCRIPTOR.0
-}
-
-#[cfg(feature = "abi_v2_only")]
-#[no_mangle]
-pub unsafe extern "C" fn zircon_native_dynamic_fixture_runtime_entry_v2(
-    host_functions: *const NativePluginHostFunctionTableV2,
-) -> *const NativePluginEntryReportV2 {
-    if host_functions.is_null() {
-        return &V2_MISSING_HOST_REPORT.0;
-    }
-    let host_functions = unsafe { &*host_functions };
-    let Some(host_abi_version) = host_functions.host_abi_version else {
-        return &V2_MISSING_HOST_REPORT.0;
-    };
-    if unsafe { host_abi_version() } != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2 {
-        return &V2_MISSING_HOST_REPORT.0;
-    }
-    &V2_RUNTIME_REPORT.0
-}
-
 unsafe extern "C" fn fixture_runtime_tick_bridge(
     _call: NativePluginBridgeMethodCallV3,
 ) -> native::ZrStatus {
@@ -521,9 +338,9 @@ unsafe extern "C" fn fixture_runtime_tick_bridge(
 
 unsafe extern "C" fn fixture_invoke_command(
     command_slot: u32,
-    payload: NativePluginByteSliceV2,
+    payload: NativePluginByteSliceV3,
     output: NativePluginOutputSinkV4,
-) -> NativePluginCallbackStatusV2 {
+) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(STATUS_PANIC_DIAGNOSTICS, || unsafe {
         fixture_invoke_command_inner(command_slot, payload, output)
     })
@@ -531,9 +348,9 @@ unsafe extern "C" fn fixture_invoke_command(
 
 unsafe fn fixture_invoke_command_inner(
     command_slot: u32,
-    payload: NativePluginByteSliceV2,
+    payload: NativePluginByteSliceV3,
     output: NativePluginOutputSinkV4,
-) -> NativePluginCallbackStatusV2 {
+) -> NativePluginCallbackStatusV3 {
     match command_slot {
         COMMAND_ECHO_SLOT => {
             let prefix_status = unsafe { output.write(b"echo:") };
@@ -563,9 +380,9 @@ unsafe fn fixture_invoke_command_inner(
 }
 
 unsafe fn fixture_import_data_json(
-    payload: NativePluginByteSliceV2,
+    payload: NativePluginByteSliceV3,
     output: NativePluginOutputSinkV4,
-) -> NativePluginCallbackStatusV2 {
+) -> NativePluginCallbackStatusV3 {
     let Ok((metadata, source_bytes)) = decode_import_request(bytes_from_slice(payload)) else {
         return status(
             ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
@@ -656,6 +473,7 @@ fn encode_import_response(
             },
             diagnostics: [format!("native fixture imported {}", metadata.source_path)],
         }],
+        reference_repairs: Vec::new(),
     };
     let mut response = BoundedResponseWriter::new(max_output_bytes, source_bytes.len())?;
     serde_json::to_writer(&mut response, &response_metadata).map_err(|error| error.to_string())?;
@@ -663,8 +481,8 @@ fn encode_import_response(
 }
 
 unsafe extern "C" fn fixture_save_state(
-    output: *mut NativePluginOwnedByteBufferV2,
-) -> NativePluginCallbackStatusV2 {
+    output: *mut NativePluginOwnedByteBufferV3,
+) -> NativePluginCallbackStatusV3 {
     if output.is_null() {
         return status(
             ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
@@ -679,8 +497,8 @@ unsafe extern "C" fn fixture_save_state(
 }
 
 unsafe extern "C" fn fixture_restore_state(
-    state: NativePluginByteSliceV2,
-) -> NativePluginCallbackStatusV2 {
+    state: NativePluginByteSliceV3,
+) -> NativePluginCallbackStatusV3 {
     if bytes_from_slice(state) == RUNTIME_STATE_BLOB {
         status(
             ZIRCON_NATIVE_PLUGIN_STATUS_OK,
@@ -694,11 +512,11 @@ unsafe extern "C" fn fixture_restore_state(
     }
 }
 
-unsafe extern "C" fn fixture_unload() -> NativePluginCallbackStatusV2 {
+unsafe extern "C" fn fixture_unload() -> NativePluginCallbackStatusV3 {
     status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, STATUS_UNLOAD_DIAGNOSTICS)
 }
 
-unsafe extern "C" fn fixture_stateless_unload() -> NativePluginCallbackStatusV2 {
+unsafe extern "C" fn fixture_stateless_unload() -> NativePluginCallbackStatusV3 {
     status(
         ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         STATUS_STATELESS_UNLOAD_DIAGNOSTICS,
@@ -707,9 +525,9 @@ unsafe extern "C" fn fixture_stateless_unload() -> NativePluginCallbackStatusV2 
 
 unsafe extern "C" fn fixture_stateless_invoke_command(
     _command_slot: u32,
-    _payload: NativePluginByteSliceV2,
+    _payload: NativePluginByteSliceV3,
     _output: NativePluginOutputSinkV4,
-) -> NativePluginCallbackStatusV2 {
+) -> NativePluginCallbackStatusV3 {
     status(
         ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
         STATUS_STATELESS_COMMAND_DENIED_DIAGNOSTICS,

@@ -25,10 +25,10 @@ impl LayoutManager {
             }
         }
 
-        for page in &mut layout.main_pages {
-            if let Some(workspace) = page.document_workspace_mut() {
-                changed |= workspace.remove_instance(instance_id);
-            }
+        for activity_window in layout.activity_windows.values_mut() {
+            changed |= activity_window
+                .content_workspace
+                .remove_instance(instance_id);
         }
 
         for window in &mut layout.floating_windows {

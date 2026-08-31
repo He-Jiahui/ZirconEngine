@@ -2,6 +2,10 @@ use crate::core::framework::animation::AnimationChannelValueAsset;
 use crate::core::framework::animation::{AnimationError, AnimationParameterValue, AnimationResult};
 use crate::core::math::{Quat, Real, Vec3};
 
+#[cfg(test)]
+#[path = "sampling/quaternion_property_tests.rs"]
+mod quaternion_property_tests;
+
 pub(super) const DEFAULT_GRAPH_CLIP_PLAYBACK_SPEED: Real = 1.0;
 
 pub(super) fn finite_graph_clip_playback_speed(playback_speed: Real) -> Real {
@@ -76,22 +80,33 @@ pub(super) fn sample_vec3(value: &AnimationChannelValueAsset) -> AnimationResult
 
 pub(super) fn sample_quaternion(value: &AnimationChannelValueAsset) -> AnimationResult<Quat> {
     match value {
-        AnimationChannelValueAsset::Quaternion(value)
-            if value.iter().all(|c| c.is_finite()) && quaternion_array_is_normalizable(value) =>
-        {
-            Ok(Quat::from_array(*value).normalize())
+        AnimationChannelValueAsset::Quaternion(value) => {
+            let (finite, normalizable) = quaternion_sample_properties(value);
+            if finite && normalizable {
+                Ok(Quat::from_array(*value).normalize())
+            } else if finite {
+                Err(AnimationError::ZeroLengthQuaternionSample)
+            } else {
+                Err(AnimationError::NonFiniteSample {
+                    sample_kind: "quaternion",
+                })
+            }
         }
-        AnimationChannelValueAsset::Quaternion(value) if value.iter().all(|c| c.is_finite()) => {
-            Err(AnimationError::ZeroLengthQuaternionSample)
-        }
-        AnimationChannelValueAsset::Quaternion(_) => Err(AnimationError::NonFiniteSample {
-            sample_kind: "quaternion",
-        }),
         other => Err(AnimationError::SampleTypeMismatch {
             expected: "quaternion",
             actual: animation_channel_value_kind(other),
         }),
     }
+}
+
+fn quaternion_sample_properties(value: &[Real; 4]) -> (bool, bool) {
+    let mut finite = true;
+    let mut squared_length = 0.0;
+    for component in value {
+        finite &= component.is_finite();
+        squared_length += component * component;
+    }
+    (finite, squared_length > Real::EPSILON)
 }
 
 fn animation_channel_value_kind(value: &AnimationChannelValueAsset) -> &'static str {

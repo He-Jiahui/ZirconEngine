@@ -9,7 +9,7 @@ pub(crate) struct AssetBackendRefreshPlan {
     pub sync_resources: bool,
     pub refresh_selected_asset_details: bool,
     pub refresh_visible_asset_previews: bool,
-    pub reload_default_scene: bool,
+    pub reload_active_scene: bool,
     pub mark_render_dirty: bool,
     pub mark_presentation_dirty: bool,
     pub mark_paint_only_dirty: bool,
@@ -17,7 +17,7 @@ pub(crate) struct AssetBackendRefreshPlan {
 
 pub(crate) fn plan_asset_backend_refresh(
     selected_asset_uuid: Option<&str>,
-    default_scene_uri: Option<&str>,
+    active_scene_uri: Option<&str>,
     asset_changes: &[AssetChange],
     editor_changes: &[EditorAssetChange],
     resource_changes: &[ResourceEvent],
@@ -30,6 +30,10 @@ pub(crate) fn plan_asset_backend_refresh(
                 plan.sync_catalog = true;
                 plan.refresh_selected_asset_details = true;
                 plan.refresh_visible_asset_previews = true;
+                plan.mark_presentation_dirty = true;
+            }
+            EditorAssetChangeKind::AssetStateChanged => {
+                plan.sync_catalog = true;
                 plan.mark_presentation_dirty = true;
             }
             EditorAssetChangeKind::PreviewChanged => {
@@ -71,23 +75,23 @@ pub(crate) fn plan_asset_backend_refresh(
             .any(|change| change.resource_kind == ResourceKind::Texture);
     }
 
-    if let Some(default_scene_uri) = default_scene_uri {
-        let default_scene_locator = ResourceLocator::parse(default_scene_uri).ok();
-        let default_scene_changed = asset_changes
+    if let Some(active_scene_uri) = active_scene_uri {
+        let active_scene_locator = ResourceLocator::parse(active_scene_uri).ok();
+        let active_scene_changed = asset_changes
             .iter()
-            .any(|change| default_scene_locator.as_ref() == Some(&change.uri))
+            .any(|change| active_scene_locator.as_ref() == Some(&change.uri))
             || resource_changes.iter().any(|change| {
                 change
                     .locator
                     .as_ref()
-                    .is_some_and(|locator| default_scene_locator.as_ref() == Some(locator))
+                    .is_some_and(|locator| active_scene_locator.as_ref() == Some(locator))
                     || change
                         .previous_locator
                         .as_ref()
-                        .is_some_and(|locator| default_scene_locator.as_ref() == Some(locator))
+                        .is_some_and(|locator| active_scene_locator.as_ref() == Some(locator))
             });
-        if default_scene_changed {
-            plan.reload_default_scene = true;
+        if active_scene_changed {
+            plan.reload_active_scene = true;
             plan.mark_render_dirty = true;
             plan.mark_presentation_dirty = true;
         }
@@ -106,15 +110,15 @@ mod performance_tests {
     use super::plan_asset_backend_refresh;
 
     #[test]
-    fn default_scene_refresh_parses_the_locator_once() {
+    fn active_scene_refresh_parses_the_locator_once() {
         let source = include_str!("backend_refresh.rs");
         let production = source.split("#[cfg(test)]").next().expect("implementation");
-        let formatting_comparison = [".to_", "string() == default_scene_uri"].concat();
+        let formatting_comparison = [".to_", "string() == active_scene_uri"].concat();
 
         assert!(!production.contains(&formatting_comparison));
         assert_eq!(
             production
-                .matches("ResourceLocator::parse(default_scene_uri)")
+                .matches("ResourceLocator::parse(active_scene_uri)")
                 .count(),
             1
         );

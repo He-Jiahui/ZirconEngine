@@ -12,53 +12,36 @@ use crate::ui::retained_host::document_tab_pointer::{
     HostDocumentTabPointerItem, HostDocumentTabPointerLayout, HostDocumentTabPointerRoute,
     HostDocumentTabPointerSurface,
 };
-use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle;
-use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
-use crate::ui::workbench::document_tabs::{
-    document_tab_close_x, DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH, DOCUMENT_TAB_CLOSE_EXTENT,
-};
 use crate::ui::workbench::model::WorkbenchViewModel;
-use zircon_runtime_interface::ui::{
-    binding::UiEventKind,
-    layout::{UiFrame, UiPoint, UiSize},
-};
+use crate::ui::workbench::view::ViewInstanceId;
+use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiSize};
 
 #[test]
 fn shared_document_tab_pointer_bridge_routes_document_and_floating_tab_targets() {
     let mut bridge = HostDocumentTabPointerBridge::new();
     assert!(bridge.sync(sample_document_tab_layout()));
 
-    let document = bridge
-        .handle_activate_click("document", 1, 110.0, 120.0, UiPoint::new(132.0, 14.0))
-        .unwrap();
+    let document = bridge.handle_activate_click("document", 1).unwrap();
     assert_eq!(
         document.route,
         Some(HostDocumentTabPointerRoute::ActivateTab {
-            surface_key: "document".to_string(),
+            surface_index: 0,
             item_index: 1,
-            instance_id: "editor.game#1".to_string(),
         })
     );
+    assert_eq!(
+        bridge
+            .target_for_route(document.route.expect("activation route"))
+            .map(|instance_id| instance_id.0.as_str()),
+        Some("editor.game#1")
+    );
 
-    let floating_tab_x = 8.0;
-    let floating_tab_width = DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH;
-    let floating_close_x =
-        document_tab_close_x(floating_tab_x, floating_tab_width) + DOCUMENT_TAB_CLOSE_EXTENT * 0.5;
-    let floating_close = bridge
-        .handle_close_click(
-            "preview",
-            0,
-            floating_tab_x,
-            floating_tab_width,
-            UiPoint::new(floating_close_x, 14.0),
-        )
-        .unwrap();
+    let floating_close = bridge.handle_close_click("preview", 0).unwrap();
     assert_eq!(
         floating_close.route,
         Some(HostDocumentTabPointerRoute::CloseTab {
-            surface_key: "preview".to_string(),
+            surface_index: 1,
             item_index: 0,
-            instance_id: "editor.preview#1".to_string(),
         })
     );
 }
@@ -73,34 +56,13 @@ fn shared_document_tab_pointer_bridge_skips_rebuild_for_unchanged_layout() {
 }
 
 #[test]
-fn shared_document_tab_measured_frame_patch_preserves_surface_authority() {
+fn shared_document_tab_native_receipt_validates_index_and_closeability() {
     let mut bridge = HostDocumentTabPointerBridge::new();
     assert!(bridge.sync(sample_document_tab_layout()));
-    let authority_generation = bridge.debug_surface_authority_generation();
 
-    let first = bridge
-        .handle_activate_click("document", 1, 110.0, 120.0, UiPoint::new(132.0, 14.0))
-        .expect("measured document tab should remain routable");
-    assert_eq!(
-        first.route,
-        Some(HostDocumentTabPointerRoute::ActivateTab {
-            surface_key: "document".to_string(),
-            item_index: 1,
-            instance_id: "editor.game#1".to_string(),
-        })
-    );
-    assert_eq!(
-        bridge.debug_surface_authority_generation(),
-        authority_generation
-    );
-
-    bridge
-        .handle_activate_click("document", 1, 110.0, 120.0, UiPoint::new(132.0, 14.0))
-        .expect("unchanged measured frame should reuse the projected hit geometry");
-    assert_eq!(
-        bridge.debug_surface_authority_generation(),
-        authority_generation
-    );
+    assert!(bridge.handle_close_click("document", 0).is_err());
+    assert!(bridge.handle_activate_click("document", 99).is_err());
+    assert!(bridge.handle_activate_click("missing", 0).is_err());
 }
 
 #[test]
@@ -116,18 +78,7 @@ fn shared_document_tab_pointer_click_dispatches_focus_view_through_runtime_dispa
         &chrome,
     );
     let mut pointer_bridge = HostDocumentTabPointerBridge::new();
-    let floating_window_projection_bundle = build_floating_window_projection_bundle(
-        &model,
-        None,
-        &WorkbenchChromeMetrics::default(),
-        &[],
-    );
-    pointer_bridge.sync(build_host_document_tab_pointer_layout(
-        &model,
-        &WorkbenchChromeMetrics::default(),
-        Some(&template_bridge.root_shell_frames()),
-        &floating_window_projection_bundle,
-    ));
+    pointer_bridge.sync(build_host_document_tab_pointer_layout(&model));
 
     let dispatched = dispatch_shared_document_tab_pointer_click(
         &harness.runtime,
@@ -135,18 +86,14 @@ fn shared_document_tab_pointer_click_dispatches_focus_view_through_runtime_dispa
         &mut pointer_bridge,
         "document",
         0,
-        8.0,
-        114.0,
-        UiPoint::new(24.0, 14.0),
     )
     .expect("shared document tab route should dispatch focus view");
 
     assert_eq!(
         dispatched.pointer.route,
         Some(HostDocumentTabPointerRoute::ActivateTab {
-            surface_key: "document".to_string(),
+            surface_index: 0,
             item_index: 0,
-            instance_id: "editor.scene#1".to_string(),
         })
     );
     let effects = dispatched
@@ -192,22 +139,7 @@ fn shared_document_tab_close_pointer_click_dispatches_close_view_through_runtime
         .find(|(_, tab)| tab.closeable)
         .expect("opened asset browser should add a closeable document tab");
     let mut pointer_bridge = HostDocumentTabPointerBridge::new();
-    let floating_window_projection_bundle = build_floating_window_projection_bundle(
-        &model,
-        None,
-        &WorkbenchChromeMetrics::default(),
-        &[],
-    );
-    pointer_bridge.sync(build_host_document_tab_pointer_layout(
-        &model,
-        &WorkbenchChromeMetrics::default(),
-        Some(&template_bridge.root_shell_frames()),
-        &floating_window_projection_bundle,
-    ));
-
-    let tab_x = 8.0 + close_index as f32 * 160.0;
-    let tab_width = DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH;
-    let close_center_x = document_tab_close_x(tab_x, tab_width) + DOCUMENT_TAB_CLOSE_EXTENT * 0.5;
+    pointer_bridge.sync(build_host_document_tab_pointer_layout(&model));
 
     let dispatched = dispatch_shared_document_tab_close_pointer_click(
         &harness.runtime,
@@ -215,18 +147,14 @@ fn shared_document_tab_close_pointer_click_dispatches_close_view_through_runtime
         &mut pointer_bridge,
         "document",
         close_index,
-        tab_x,
-        tab_width,
-        UiPoint::new(close_center_x, 14.0),
     )
     .expect("shared document tab close route should dispatch close view");
 
     assert_eq!(
         dispatched.pointer.route,
         Some(HostDocumentTabPointerRoute::CloseTab {
-            surface_key: "document".to_string(),
+            surface_index: 0,
             item_index: close_index,
-            instance_id: close_tab.instance_id.0.clone(),
         })
     );
     let effects = dispatched
@@ -247,23 +175,21 @@ fn sample_document_tab_layout() -> HostDocumentTabPointerLayout {
         surfaces: vec![
             HostDocumentTabPointerSurface {
                 key: "document".to_string(),
-                strip_frame: UiFrame::new(312.0, 51.0, 640.0, 31.0),
                 items: vec![
                     HostDocumentTabPointerItem {
-                        instance_id: "editor.scene#1".to_string(),
-                        closeable: true,
+                        instance_id: ViewInstanceId::new("editor.scene#1"),
+                        closeable: false,
                     },
                     HostDocumentTabPointerItem {
-                        instance_id: "editor.game#1".to_string(),
+                        instance_id: ViewInstanceId::new("editor.game#1"),
                         closeable: true,
                     },
                 ],
             },
             HostDocumentTabPointerSurface {
                 key: "preview".to_string(),
-                strip_frame: UiFrame::new(100.0, 140.0, 360.0, 31.0),
                 items: vec![HostDocumentTabPointerItem {
-                    instance_id: "editor.preview#1".to_string(),
+                    instance_id: ViewInstanceId::new("editor.preview#1"),
                     closeable: true,
                 }],
             },

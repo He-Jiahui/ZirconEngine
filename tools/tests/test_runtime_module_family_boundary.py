@@ -23,9 +23,9 @@ class RuntimeModuleFamilyBoundaryTests(unittest.TestCase):
             family for family in audit["families"] if family["family"] == "navigation"
         )
 
-        self.assertEqual(MODULE_FAMILY_ROOTS["navigation"]["expected_file_count"], 12)
-        self.assertEqual(navigation["rust_file_count"], 12)
-        self.assertEqual(navigation["expected_file_count"], 12)
+        self.assertEqual(MODULE_FAMILY_ROOTS["navigation"]["expected_file_count"], 16)
+        self.assertEqual(navigation["rust_file_count"], 16)
+        self.assertEqual(navigation["expected_file_count"], 16)
         self.assertEqual(audit["file_count_mismatches"], [])
         self.assertEqual(audit["missing_doc_anchors"], [])
         self.assertEqual(audit["missing_guards"], [])

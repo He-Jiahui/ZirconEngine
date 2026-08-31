@@ -40,38 +40,72 @@ impl VirtualGeometryRuntimeState {
         target_page_id: u32,
         evictable_pages: &[u32],
     ) -> Vec<u32> {
+        let frontier_hot_pages = self.frontier_hot_resident_pages();
         let mut ordered = evictable_pages.to_vec();
         ordered.sort_by_key(|page_id| {
-            let (relation, lineage_distance) =
-                self.page_relation_to_target(target_page_id, *page_id);
-            let active_request_lineage_priority =
-                self.active_request_lineage_priority(target_page_id, *page_id);
-            let relation_order = match relation {
-                PageRelation::Unrelated => 0_u8,
-                PageRelation::Ancestor => 1_u8,
-                PageRelation::Descendant => 2_u8,
-            };
-            let active_request_group = u8::from(active_request_lineage_priority.is_some());
-            let active_request_order = active_request_lineage_priority
-                .map(|(request_order, _lineage_distance)| usize::MAX - request_order)
-                .unwrap_or_default();
-            let active_request_distance = active_request_lineage_priority
-                .map(|(_request_order, lineage_distance)| u32::MAX - lineage_distance)
-                .unwrap_or_default();
-            let hot_frontier_group = u8::from(self.page_or_lineage_is_hot(*page_id));
-            let relation_distance_order =
-                descendant_frontier_distance_order(relation, lineage_distance, hot_frontier_group);
-            (
-                relation_order,
-                active_request_group,
-                hot_frontier_group,
-                active_request_order,
-                relation_distance_order,
-                active_request_distance,
-                *page_id,
-            )
+            self.page_eviction_priority(target_page_id, *page_id, &frontier_hot_pages)
         });
         ordered
+    }
+
+    pub(in crate::virtual_geometry) fn preferred_evictable_page_for_target(
+        &self,
+        target_page_id: u32,
+        evictable_pages: &[u32],
+    ) -> Option<u32> {
+        self.preferred_evictable_page_index_for_target(target_page_id, evictable_pages)
+            .map(|index| evictable_pages[index])
+    }
+
+    pub(in crate::virtual_geometry) fn preferred_evictable_page_index_for_target(
+        &self,
+        target_page_id: u32,
+        evictable_pages: &[u32],
+    ) -> Option<usize> {
+        let frontier_hot_pages = self.frontier_hot_resident_pages();
+        evictable_pages
+            .iter()
+            .enumerate()
+            .min_by_key(|(_index, page_id)| {
+                self.page_eviction_priority(target_page_id, **page_id, &frontier_hot_pages)
+            })
+            .map(|(index, _page_id)| index)
+    }
+
+    fn page_eviction_priority(
+        &self,
+        target_page_id: u32,
+        page_id: u32,
+        frontier_hot_pages: &BTreeSet<u32>,
+    ) -> (u8, u8, u8, usize, u32, u32, u32) {
+        let (relation, lineage_distance) = self.page_relation_to_target(target_page_id, page_id);
+        let active_request_lineage_priority =
+            self.active_request_lineage_priority(target_page_id, page_id);
+        let relation_order = match relation {
+            PageRelation::Unrelated => 0_u8,
+            PageRelation::Ancestor => 1_u8,
+            PageRelation::Descendant => 2_u8,
+        };
+        let active_request_group = u8::from(active_request_lineage_priority.is_some());
+        let active_request_order = active_request_lineage_priority
+            .map(|(request_order, _lineage_distance)| usize::MAX - request_order)
+            .unwrap_or_default();
+        let active_request_distance = active_request_lineage_priority
+            .map(|(_request_order, lineage_distance)| u32::MAX - lineage_distance)
+            .unwrap_or_default();
+        let hot_frontier_group =
+            u8::from(self.page_or_lineage_is_hot_in(page_id, frontier_hot_pages));
+        let relation_distance_order =
+            descendant_frontier_distance_order(relation, lineage_distance, hot_frontier_group);
+        (
+            relation_order,
+            active_request_group,
+            hot_frontier_group,
+            active_request_order,
+            relation_distance_order,
+            active_request_distance,
+            page_id,
+        )
     }
 
     fn page_relation_to_target(

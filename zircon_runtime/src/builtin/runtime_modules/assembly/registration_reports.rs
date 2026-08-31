@@ -1,3 +1,6 @@
+use std::collections::HashSet;
+
+use crate::builtin::RuntimePluginId;
 use crate::core::framework::project::ProjectPluginManifest;
 use crate::plugin::{
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
@@ -24,9 +27,9 @@ pub(super) fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
     manifest_override: Option<&ProjectPluginManifest>,
     registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
 ) -> RuntimeModuleLoadReport {
-    let registrations = active_plugin_registration_refs(target, registrations);
-    let inputs = registration_inputs_for_plugin_reports(&registrations);
     let manifest = manifest_with_mode_baseline(target, manifest_override);
+    let registrations = active_plugin_registration_refs(target, &manifest, registrations);
+    let inputs = registration_inputs_for_plugin_reports(&registrations);
     let availability = target_manifest_availability_for_registration_reports(
         target,
         &manifest,
@@ -49,7 +52,7 @@ pub(super) fn runtime_modules_for_profile_manifest_with_plugin_registration_repo
     manifest: &ProjectPluginManifest,
     registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
 ) -> RuntimeModuleLoadReport {
-    let registrations = active_plugin_registration_refs(target, registrations);
+    let registrations = active_plugin_registration_refs(target, manifest, registrations);
     let inputs = registration_inputs_for_plugin_reports(&registrations);
     let availability =
         runtime_profile_manifest_availability(profile, manifest, registrations.iter().copied());
@@ -77,7 +80,8 @@ pub(super) fn runtime_modules_for_target_with_plugin_and_feature_registration_re
         .cloned()
         .collect::<Vec<_>>();
     let manifest = manifest_with_mode_baseline(target, manifest_override);
-    let active_registrations = active_plugin_registration_refs(target, registrations.iter());
+    let active_registrations =
+        active_plugin_registration_refs(target, &manifest, registrations.iter());
     let feature_reports = feature_reports_for_plugin_and_feature_registration_reports(
         target,
         &manifest,
@@ -123,13 +127,20 @@ pub(super) fn runtime_modules_for_target_with_plugin_and_feature_registration_re
 
 fn active_plugin_registration_refs<'a>(
     target: RuntimeTargetMode,
+    manifest: &ProjectPluginManifest,
     registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
 ) -> Vec<&'a RuntimePluginRegistrationReport> {
+    let enabled_plugin_ids = manifest
+        .enabled_for_target(target)
+        .filter_map(|selection| RuntimePluginId::parse_key(&selection.id))
+        .collect::<HashSet<_>>();
     registrations
         .into_iter()
         .filter(|registration| {
             registration.project_selection.enabled
                 && registration.project_selection.supports_target(target)
+                && RuntimePluginId::parse_key(&registration.project_selection.id)
+                    .is_some_and(|plugin_id| enabled_plugin_ids.contains(&plugin_id))
         })
         .collect()
 }

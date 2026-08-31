@@ -8,7 +8,7 @@ use zircon_runtime_interface::{
 use crate::scene::ecs::SystemStage;
 
 use super::super::super::registration_manifest::NativePluginRegistrationThreadAffinity;
-use super::{read_utf8, AbiDecodeError, AbiDecodeResult};
+use super::{read_utf8_with, AbiDecodeError, AbiDecodeResult};
 
 pub(super) const MAX_NATIVE_SYSTEM_ACCESS_ENTRIES: usize = 4_096;
 
@@ -74,10 +74,28 @@ pub(in super::super) unsafe fn read_v4_system_accesses(
                 ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_RESOURCE_V1 => "resource",
                 domain => return Err(AbiDecodeError::InvalidV4AccessDomain { domain }),
             };
-            let stable_id = unsafe { read_utf8(access.stable_id) }?;
-            Ok(format!("{mode}:{domain}:{stable_id}"))
+            unsafe {
+                read_utf8_with(access.stable_id, |stable_id| {
+                    system_access_id(mode, domain, stable_id)
+                })
+            }
         })
         .collect()
+}
+
+fn system_access_id(mode: &str, domain: &str, stable_id: &str) -> String {
+    let capacity = mode
+        .len()
+        .saturating_add(domain.len())
+        .saturating_add(stable_id.len())
+        .saturating_add(2);
+    let mut access_id = String::with_capacity(capacity);
+    access_id.push_str(mode);
+    access_id.push(':');
+    access_id.push_str(domain);
+    access_id.push(':');
+    access_id.push_str(stable_id);
+    access_id
 }
 
 pub(in super::super) fn v4_thread_affinity_from_abi(
@@ -91,5 +109,18 @@ pub(in super::super) fn v4_thread_affinity_from_abi(
             Ok(NativePluginRegistrationThreadAffinity::WorkerSafe)
         }
         affinity => Err(AbiDecodeError::InvalidV4ThreadAffinity { affinity }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::system_access_id;
+
+    #[test]
+    fn exact_capacity_system_access_id_preserves_output() {
+        assert_eq!(
+            system_access_id("read", "component", "weather.velocity"),
+            "read:component:weather.velocity"
+        );
     }
 }

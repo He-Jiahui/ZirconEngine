@@ -49,6 +49,10 @@ pub(super) struct UiAssetInspectorPaneData {
     pub(super) can_edit_promote_draft: bool,
 }
 
+fn extend_cloned_values<T: Clone>(target: &mut Vec<T>, source: &[T]) {
+    target.extend_from_slice(source);
+}
+
 impl UiAssetEditorSession {
     pub(super) fn inspector_pane_presentation(
         &self,
@@ -122,7 +126,7 @@ impl UiAssetEditorSession {
             .selected_component_root_class_policy()
             .map(root_class_policy_label);
         let mut inspector_items = build_inspector_items(reflection);
-        inspector_items.extend(widget_prop_state_items.clone());
+        extend_cloned_values(&mut inspector_items, &widget_prop_state_items);
         inspector_items.extend(build_component_contract_items(component_root_class_policy));
         let promote_draft = self.selected_promote_widget_draft();
         record_current_ui_perf_counter(UiPerfCounter::AssetEditorPaneInspectorBuildCount, 1.0);
@@ -166,3 +170,7 @@ impl UiAssetEditorSession {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "inspector/streaming_items_tests.rs"]
+mod streaming_items_tests;

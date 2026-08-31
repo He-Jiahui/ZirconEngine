@@ -9,19 +9,103 @@ if ($PSVersionTable.PSEdition -eq 'Core') {
 }
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $stager = Join-Path $repoRoot 'tools\mvp\Stage-MvpProducts.ps1'
+$supervisorModule = Join-Path $repoRoot 'tools\mvp\StagedProcessSupervisor.psm1'
+$journalModule = Join-Path $repoRoot 'tools\mvp\MvpProcessLifecycleJournal.psm1'
+$outputCaptureModule = Join-Path $repoRoot 'tools\mvp\MvpProcessOutputCapture.psm1'
+$environmentPolicyModule = Join-Path $repoRoot 'tools\mvp\MvpProcessEnvironmentPolicy.psm1'
+$stageEnvironmentPolicyModule = Join-Path $repoRoot 'tools\mvp\MvpStageProcessEnvironmentPolicy.psm1'
+$cancellationModule = Join-Path $repoRoot 'tools\mvp\MvpStagingCancellationRequest.psm1'
+$terminalReceiptModule = Join-Path $repoRoot 'tools\mvp\MvpStagingTerminalReceipt.psm1'
 $preflightModule = Join-Path $repoRoot 'tools\mvp\MvpStagingPreflight.psm1'
 $productInputManifestModule = Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1'
+$productProfileRegistryModule = Join-Path $repoRoot 'tools\mvp\MvpProductProfileRegistry.psm1'
+$buildSetModule = Join-Path $repoRoot 'tools\mvp\MvpBuildSet.psm1'
 $fixturePathsModule = Join-Path $repoRoot 'tools\mvp\MvpTestFixturePaths.psm1'
 $stagingTreeManifestModule = Join-Path $repoRoot 'tools\mvp\MvpAcceptanceStagingTreeManifest.psm1'
 $windowsPathResolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
 Import-Module $productInputManifestModule -Force -ErrorAction Stop
+Import-Module $productProfileRegistryModule -Force -ErrorAction Stop
+Import-Module $buildSetModule -Force -ErrorAction Stop
+Import-Module $cancellationModule -Force -ErrorAction Stop
 Import-Module $fixturePathsModule -Force -ErrorAction Stop
 Import-Module $stagingTreeManifestModule -Force -ErrorAction Stop
 Import-Module $windowsPathResolverModule -Force -Global -ErrorAction Stop
 
 function Assert-True {
-    param([bool]$Condition, [string]$Message)
+    param($Condition, [string]$Message)
+
+    if ($Condition -isnot [bool]) {
+        $caller = @(Get-PSCallStack)[1]
+        throw "Assertion condition at $($caller.ScriptName):$($caller.ScriptLineNumber) must be one Boolean, got '$($Condition.GetType().FullName)'."
+    }
     if (-not $Condition) { throw $Message }
+}
+
+function Invoke-MvpStagingFixtureGit {
+    param(
+        [Parameter(Mandatory)][string]$GitPath,
+        [Parameter(Mandatory)][string]$RepositoryRoot,
+        [Parameter(Mandatory)][string[]]$Arguments
+    )
+
+    & $GitPath -C $RepositoryRoot @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not create the immutable BuildSet fixture with git $($Arguments -join ' ')."
+    }
+}
+
+function Remove-MvpStagingFixtureBuildSet {
+    param([Parameter(Mandatory)][pscustomobject]$Fixture)
+
+    if ($null -eq $Fixture.PSObject.Properties['BuildSet'] -or $null -eq $Fixture.BuildSet) {
+        return
+    }
+    $git = Get-Command git.exe -ErrorAction Stop
+    if (Test-Path -LiteralPath $Fixture.BuildSet.snapshot_root -PathType Container) {
+        & $git.Source -C $Fixture.BuildSetSourceRoot worktree remove --force $Fixture.BuildSet.snapshot_root
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not release the immutable BuildSet fixture worktree '$($Fixture.BuildSet.snapshot_root)'."
+        }
+    }
+    & $git.Source -C $Fixture.BuildSetSourceRoot worktree prune
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not prune the immutable BuildSet fixture source repository '$($Fixture.BuildSetSourceRoot)'."
+    }
+}
+
+function Set-MvpStagingFixtureControl {
+    param(
+        [Parameter(Mandatory)][pscustomobject]$Fixture,
+        [Parameter(Mandatory)][ValidateSet('Project', 'Template')][string]$Scope,
+        [Parameter(Mandatory)][string]$Control
+    )
+
+    $controlRoot = if ($Scope -eq 'Project') {
+        $Fixture.ProjectRoot
+    }
+    else {
+        Join-Path $Fixture.TemplateRoot 'renderable-empty'
+    }
+    [IO.File]::WriteAllText(
+        (Join-Path $controlRoot 'fixture-control.txt'),
+        ($Control + [Environment]::NewLine),
+        [Text.UTF8Encoding]::new($false)
+    )
+}
+
+function Clear-MvpStagingFixtureControl {
+    param(
+        [Parameter(Mandatory)][pscustomobject]$Fixture,
+        [Parameter(Mandatory)][ValidateSet('Project', 'Template')][string]$Scope
+    )
+
+    $controlRoot = if ($Scope -eq 'Project') {
+        $Fixture.ProjectRoot
+    }
+    else {
+        Join-Path $Fixture.TemplateRoot 'renderable-empty'
+    }
+    Remove-Item -LiteralPath (Join-Path $controlRoot 'fixture-control.txt') -Force -ErrorAction SilentlyContinue
 }
 
 function Assert-ProcessTiming {
@@ -41,12 +125,37 @@ function Assert-ProcessTiming {
 function Get-ProcessJournalEntries {
     param([Parameter(Mandatory)][string]$StageRoot)
 
-    $journalPath = Join-Path $StageRoot 'logs/process-execution-journal.jsonl'
-    Assert-True (Test-Path -LiteralPath $journalPath -PathType Leaf) "Stage did not persist process journal '$journalPath'."
+    return @(Get-ProcessJournalLifecycleEntries -StageRoot $StageRoot | Where-Object {
+            $_.event_kind -eq 'terminal'
+        })
+}
+
+function Get-MvpStagingTerminalReceiptFixture {
+    param(
+        [Parameter(Mandatory)][string]$StagingRoot,
+        [Parameter(Mandatory)][string]$RunId
+    )
+
+    $path = Join-Path $StagingRoot ".mvp-staging-receipts\$RunId.json"
+    Assert-True (Test-Path -LiteralPath $path -PathType Leaf) "MVP staging run '$RunId' has no terminal receipt."
+    return Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+}
+
+function Get-ProcessJournalLifecycleEntries {
+    param([Parameter(Mandatory)][string]$StageRoot)
+
+    $logRoot = Join-Path $StageRoot 'logs'
+    $journalPaths = @(Get-ChildItem -LiteralPath $logRoot -Filter 'process-execution-journal*.jsonl' -File |
+            Sort-Object Name)
+    Assert-True ($journalPaths.Count -gt 0) "Stage did not persist a process journal under '$logRoot'."
     return @(
-        Get-Content -LiteralPath $journalPath -Encoding UTF8 |
+        $journalPaths |
+            ForEach-Object { Get-Content -LiteralPath $_.FullName -Encoding UTF8 } |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-            ForEach-Object { $_ | ConvertFrom-Json }
+            ForEach-Object { $_ | ConvertFrom-Json } |
+            Sort-Object `
+                @{ Expression = { [int]$_.journal_segment } }, `
+                @{ Expression = { [Int64]$_.journal_offset_bytes } }
     )
 }
 
@@ -66,6 +175,27 @@ function Assert-ProcessJournalEntry {
     Assert-True ([DateTimeOffset]::TryParse([string]$Entry.started_at_utc, [ref]$startedAt)) "Process journal '$Phase' has no parseable start time."
     Assert-True ([DateTimeOffset]::TryParse([string]$Entry.ended_at_utc, [ref]$endedAt)) "Process journal '$Phase' has no parseable end time."
     Assert-True ($endedAt -ge $startedAt) "Process journal '$Phase' ended before it started."
+}
+
+function Assert-ProcessJournalProgress {
+    param(
+        [Parameter(Mandatory)][object[]]$Entries,
+        [Parameter(Mandatory)][string]$Phase,
+        [Parameter(Mandatory)][string[]]$ExpectedNames
+    )
+
+    $phaseEntries = @($Entries | Where-Object { $_.phase -eq $Phase })
+    $progressEntries = @($phaseEntries | Where-Object { $_.event_kind -eq 'progress' })
+    $exitEntries = @($phaseEntries | Where-Object { $_.event_kind -eq 'exit' })
+    $terminalEntries = @($phaseEntries | Where-Object { $_.event_kind -eq 'terminal' })
+    Assert-True ($progressEntries.Count -eq $ExpectedNames.Count) "Process journal '$Phase' progress count differs from $($ExpectedNames.Count)."
+    for ($index = 0; $index -lt $ExpectedNames.Count; $index++) {
+        Assert-True ($progressEntries[$index].progress_name -eq $ExpectedNames[$index]) "Process journal '$Phase' progress $index differs from '$($ExpectedNames[$index])'."
+    }
+    Assert-True ($exitEntries.Count -eq 1) "Process journal '$Phase' must contain exactly one exit after progress."
+    Assert-True ($terminalEntries.Count -eq 1) "Process journal '$Phase' must contain exactly one terminal entry after progress."
+    Assert-True ([array]::IndexOf($Entries, $progressEntries[-1]) -lt [array]::IndexOf($Entries, $exitEntries[0])) "Process journal '$Phase' recorded its final progress after exit."
+    Assert-True ($terminalEntries[0].phase_progress.last_name -eq $ExpectedNames[-1]) "Process journal '$Phase' terminal entry lost its final progress milestone."
 }
 
 function New-MvpStagingFixture {
@@ -111,6 +241,37 @@ public static class FixtureProduct
         }
     }
 
+    private static bool HasFixtureControl(string[] args, string control)
+    {
+        var projectIndex = Array.IndexOf(args, "--project");
+        var candidateRoots = new[]
+        {
+            projectIndex >= 0 && projectIndex + 1 < args.Length ? args[projectIndex + 1] : null,
+            Environment.CurrentDirectory,
+            Path.Combine(Environment.CurrentDirectory, "..", "templates", "renderable-empty"),
+        };
+        foreach (var candidateRoot in candidateRoots)
+        {
+            if (String.IsNullOrWhiteSpace(candidateRoot))
+            {
+                continue;
+            }
+            var controlPath = Path.Combine(Path.GetFullPath(candidateRoot), "fixture-control.txt");
+            if (!File.Exists(controlPath))
+            {
+                continue;
+            }
+            foreach (var line in File.ReadAllLines(controlPath))
+            {
+                if (String.Equals(line.Trim(), control, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static int Main(string[] args)
     {
         if (Array.IndexOf(args, "--fixture-child") >= 0)
@@ -121,7 +282,7 @@ public static class FixtureProduct
         var createProject = Array.IndexOf(args, "--create-project");
         if (createProject >= 0)
         {
-            if (Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_FAIL_CREATE_WITH_CHILD") == "1")
+            if (HasFixtureControl(args, "fail-create-with-child"))
             {
                 using (var child = Process.Start(new ProcessStartInfo
                 {
@@ -148,9 +309,9 @@ public static class FixtureProduct
             var creationCaptureDiagnostic = "";
             var creationProductDiagnostic = "";
             if (!String.IsNullOrWhiteSpace(creationCapturePath) &&
-                Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE") != "1")
+                !HasFixtureControl(args, "skip-editor-capture"))
             {
-                if (Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE_FILE") != "1")
+                if (!HasFixtureControl(args, "skip-editor-capture-file"))
                 {
                     WriteVisibleCapture(creationCapturePath);
                 }
@@ -165,7 +326,7 @@ public static class FixtureProduct
             {
                 Directory.CreateDirectory(creationDiagnosticRoot);
                 var projectOpenDiagnostic = "";
-                if (Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_SKIP_PROJECT_OPEN_DIAGNOSTIC") != "1")
+                if (!HasFixtureControl(args, "skip-project-open-diagnostic"))
                 {
                     projectOpenDiagnostic =
                         "editor_project_open result=completed project_root=" + Uri.EscapeDataString(projectRoot) +
@@ -207,7 +368,7 @@ public static class FixtureProduct
             {
                 return 31;
             }
-            if (hasTransform && Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_FAIL_AUTOMATION_WITH_CHILD") == "1")
+            if (hasTransform && HasFixtureControl(args, "fail-automation-with-child"))
             {
                 using (var child = Process.Start(new ProcessStartInfo
                 {
@@ -220,8 +381,8 @@ public static class FixtureProduct
                 Console.Error.WriteLine("fixture automation failed after spawning child");
                 return 32;
             }
-            var reportedProjectRoot = Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_WRONG_AUTOMATION_PROJECT") == "1"
-                ? Path.GetFullPath(Path.Combine(args[automationProjectIndex + 1], "..", "wrong-automation-project"))
+            var reportedProjectRoot = HasFixtureControl(args, "report-wrong-authoring-project-path")
+                ? Path.GetFullPath(Path.Combine(args[automationProjectIndex + 1], ".."))
                 : args[automationProjectIndex + 1];
             var automationProjectIdentity = "fixture-project";
             var automationManifestPath = Path.Combine(args[automationProjectIndex + 1], "zircon-project.toml");
@@ -272,6 +433,36 @@ public static class FixtureProduct
         }
 
         Directory.CreateDirectory(diagnosticRoot);
+        if (HasFixtureControl(args, "timeout-with-child"))
+        {
+            using (var child = Process.Start(new ProcessStartInfo
+            {
+                FileName = Process.GetCurrentProcess().MainModule.FileName,
+                Arguments = "--fixture-child",
+                UseShellExecute = true,
+            }))
+            {
+            }
+            Console.Error.WriteLine("fixture timeout emitted before termination");
+            System.Threading.Thread.Sleep(30000);
+        }
+        if (HasFixtureControl(args, "diagnostic-file-flood"))
+        {
+            for (var index = 0; index < 65; index++)
+            {
+                File.WriteAllText(Path.Combine(diagnosticRoot, "fixture-flood-" + index + ".log"), "fixture diagnostic flood");
+            }
+        }
+        if (HasFixtureControl(args, "diagnostic-depth-overflow"))
+        {
+            var nestedDiagnosticRoot = diagnosticRoot;
+            for (var index = 0; index < 9; index++)
+            {
+                nestedDiagnosticRoot = Path.Combine(nestedDiagnosticRoot, "nested-" + index);
+            }
+            Directory.CreateDirectory(nestedDiagnosticRoot);
+            File.WriteAllText(Path.Combine(nestedDiagnosticRoot, "fixture-nested.log"), "fixture nested diagnostic");
+        }
         var logPath = Path.Combine(diagnosticRoot, "fixture.log");
         File.AppendAllText(logPath,
             "fixture_asset_root=" + Uri.EscapeDataString(
@@ -290,19 +481,19 @@ public static class FixtureProduct
         {
             File.AppendAllText(logPath, "runtime_first_frame_presented" + Environment.NewLine);
             File.AppendAllText(logPath, "runtime_process_teardown_complete" + Environment.NewLine);
-            if (Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_DIAGNOSTICS") != "1")
+            if (!HasFixtureControl(args, "skip-runtime-diagnostics"))
             {
                 var inputEvidence = Environment.GetEnvironmentVariable("ZIRCON_RUNTIME_MVP_INPUT_PROBE") == "1"
                     ? " input_viewport_resize_count=2 input_pointer_move_count=1 input_mouse_button_press_count=1 input_mouse_button_release_count=1 input_keyboard_press_count=1 input_keyboard_release_count=1"
                     : "";
-                var materialFallbackCount = Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_MATERIAL_FALLBACK") == "1" ? "1" : "0";
+                var materialFallbackCount = HasFixtureControl(args, "material-fallback") ? "1" : "0";
                 File.AppendAllText(logPath,
                     "runtime_product_frame_diagnostics frame_index=1 viewport=16x16 project_identity=" + projectIdentity + " scene_uri=res://scenes/main.scene.toml selected_model_resource_id=fixture-cube-model-resource selected_material_resource_id=fixture-default-material-resource render_backend=fixture-wgpu render_adapter=Fixture WGPU Adapter render_adapter_type=discrete_gpu device_max_bind_groups=5 device_max_texture_dimension_2d=16384 device_max_texture_array_layers=256 device_max_sampled_textures_per_shader_stage=16 device_max_storage_buffers_per_shader_stage=8 device_max_storage_buffer_binding_size=134217728 graph_executed_pass_count=1 mesh_draw_count=1 directional_light_count=1 material_fallback_count=" + materialFallbackCount + " material_validation_error_count=0" + inputEvidence +
                     Environment.NewLine);
             }
             var capturePath = Environment.GetEnvironmentVariable("ZIRCON_RUNTIME_CAPTURE_FRAME_PNG");
             if (!String.IsNullOrWhiteSpace(capturePath) &&
-                Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_CAPTURE") != "1")
+                !HasFixtureControl(args, "skip-runtime-capture"))
             {
                 WriteVisibleCapture(capturePath);
                 File.AppendAllText(logPath, "runtime_product_frame_capture_written" + Environment.NewLine);
@@ -320,9 +511,9 @@ public static class FixtureProduct
             File.AppendAllText(logPath, "editor_process_teardown_complete" + Environment.NewLine);
             var editorCapturePath = Environment.GetEnvironmentVariable("ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG");
             if (!String.IsNullOrWhiteSpace(editorCapturePath) &&
-                Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE") != "1")
+                !HasFixtureControl(args, "skip-editor-capture"))
             {
-                if (Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE_FILE") != "1")
+                if (!HasFixtureControl(args, "skip-editor-capture-file"))
                 {
                     WriteVisibleCapture(editorCapturePath, true);
                 }
@@ -333,18 +524,38 @@ public static class FixtureProduct
                     Environment.NewLine);
             }
         }
-        if (Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_LEAK_STAGED_CHILD") == "1")
+        if (HasFixtureControl(args, "leak-staged-child"))
         {
             using (var child = Process.Start(new ProcessStartInfo
             {
-                FileName = Process.GetCurrentProcess().MainModule.FileName,
-                Arguments = "--fixture-child",
-                UseShellExecute = true,
+                FileName = "ping.exe",
+                Arguments = "127.0.0.1 -n 30",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
             }))
             {
+                File.WriteAllText(Path.Combine(diagnosticRoot, "leaked-child.pid"), child.Id.ToString());
             }
         }
-        if (Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_FAIL_WITH_CHILD") == "1")
+        if (HasFixtureControl(args, "leak-external-child") &&
+            Environment.GetEnvironmentVariable("ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME") != null)
+        {
+            using (var child = Process.Start(new ProcessStartInfo
+            {
+                FileName = "ping.exe",
+                Arguments = "127.0.0.1 -n 30",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            }))
+            {
+                File.WriteAllText(Path.Combine(diagnosticRoot, "escaped-child.pid"), child.Id.ToString());
+            }
+        }
+        if (HasFixtureControl(args, "fail-with-child"))
         {
             using (var child = Process.Start(new ProcessStartInfo
             {
@@ -356,18 +567,11 @@ public static class FixtureProduct
             }
             return 23;
         }
-        if (Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_TIMEOUT_WITH_CHILD") == "1")
+        if (HasFixtureControl(args, "spam-process-output") &&
+            Environment.GetEnvironmentVariable("ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME") != null)
         {
-            using (var child = Process.Start(new ProcessStartInfo
-            {
-                FileName = Process.GetCurrentProcess().MainModule.FileName,
-                Arguments = "--fixture-child",
-                UseShellExecute = true,
-            }))
-            {
-            }
-            Console.Error.WriteLine("fixture timeout emitted before termination");
-            System.Threading.Thread.Sleep(30000);
+            Console.Out.Write(new string('o', 8192));
+            Console.Error.Write(new string('e', 8192));
         }
         return 0;
     }
@@ -398,13 +602,36 @@ public static class FixtureProduct
         EngineAssetRoot = $engineAssets
         ProjectRoot = $project
         StagingRoot = Join-Path $root 'staging'
+        ProductInputRoot = Join-Path $root 'product-inputs'
+        BuildSetSourceRoot = Join-Path $root 'build-set-source'
+        SourceFingerprint = $null
     }
+    $fixtureSourceRoot = $fixture.BuildSetSourceRoot
+    [IO.Directory]::CreateDirectory($fixtureSourceRoot) | Out-Null
+    [IO.File]::WriteAllText((Join-Path $fixtureSourceRoot 'fixture-source.txt'), 'immutable staging fixture source', [Text.UTF8Encoding]::new($false))
+    $git = Get-Command git.exe -ErrorAction Stop
+    Invoke-MvpStagingFixtureGit -GitPath $git.Source -RepositoryRoot $fixtureSourceRoot -Arguments @('init', '--quiet')
+    Invoke-MvpStagingFixtureGit -GitPath $git.Source -RepositoryRoot $fixtureSourceRoot -Arguments @('config', 'user.email', 'zircon-fixture@example.invalid')
+    Invoke-MvpStagingFixtureGit -GitPath $git.Source -RepositoryRoot $fixtureSourceRoot -Arguments @('config', 'user.name', 'Zircon fixture')
+    Invoke-MvpStagingFixtureGit -GitPath $git.Source -RepositoryRoot $fixtureSourceRoot -Arguments @('add', '--all')
+    Invoke-MvpStagingFixtureGit -GitPath $git.Source -RepositoryRoot $fixtureSourceRoot -Arguments @('commit', '--quiet', '-m', 'fixture source')
+    [IO.Directory]::CreateDirectory($fixture.ProductInputRoot) | Out-Null
+    $fixture | Add-Member -NotePropertyName BuildSet -NotePropertyValue (New-MvpProductBuildSet `
+            -RepositoryRoot $fixtureSourceRoot `
+            -BuildSetRoot (Join-Path $fixture.ProductInputRoot 'build-set'))
+    $fixture.SourceFingerprint = $fixture.BuildSet.build_set_id
     $fixture | Add-Member -NotePropertyName ProductInputManifest -NotePropertyValue (New-MvpProductInputManifestFixture -Fixture $fixture)
     return $fixture
 }
 
 function New-MvpProductInputManifestFixture {
     param([Parameter(Mandatory)][pscustomobject]$Fixture)
+
+    # Stage imports replace these modules under Windows PowerShell 5.1; keep each
+    # independently rebuilt fixture bound to fresh module exports.
+    Import-Module $productInputManifestModule -Force -ErrorAction Stop
+    Import-Module $productProfileRegistryModule -Force -ErrorAction Stop
+    Import-Module $windowsPathResolverModule -Force -ErrorAction Stop
 
     $pathsByLogicalId = @{
         'runtime-executable' = $Fixture.RuntimeExecutable
@@ -427,11 +654,18 @@ function New-MvpProductInputManifestFixture {
             Sha256 = Get-MvpProductInputFileSha256 -Path $resolution.OperationalPath
         }
     }
-    $manifestPath = Join-Path $Fixture.Root 'mvp-product-inputs.json'
+    $manifestPath = Join-Path $Fixture.ProductInputRoot 'mvp-product-inputs.json'
     $manifest = [ordered]@{
-        schema_version = 1
+        schema_version = 2
         generated_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
-        source_fingerprint = Get-MvpSourceFingerprint -RepositoryRoot $repoRoot
+        source_fingerprint = $Fixture.SourceFingerprint
+        product_profile_registry = (Get-MvpProductProfileRegistrySnapshot).receipt
+        build_set = [ordered]@{
+            build_set_id = $Fixture.BuildSet.build_set_id
+            git_revision = $Fixture.BuildSet.git_revision
+            dirty_overlay_sha256 = $Fixture.BuildSet.dirty_overlay_sha256
+            manifest_relative_path = 'build-set/build-set.json'
+        }
         artifact_output_directory = (Resolve-ZirconWindowsPath -Path (Split-Path -Parent $manifestPath)).DisplayPath
         artifacts = @($artifacts)
     }
@@ -457,6 +691,12 @@ function Invoke-MvpStager {
 }
 
 $stagerSource = Get-Content -LiteralPath $stager -Raw -Encoding UTF8
+$supervisorSource = Get-Content -LiteralPath $supervisorModule -Raw -Encoding UTF8
+$journalSource = Get-Content -LiteralPath $journalModule -Raw -Encoding UTF8
+$outputCaptureSource = Get-Content -LiteralPath $outputCaptureModule -Raw -Encoding UTF8
+$environmentPolicySource = Get-Content -LiteralPath $environmentPolicyModule -Raw -Encoding UTF8
+$stageEnvironmentPolicySource = Get-Content -LiteralPath $stageEnvironmentPolicyModule -Raw -Encoding UTF8
+$terminalReceiptSource = Get-Content -LiteralPath $terminalReceiptModule -Raw -Encoding UTF8
 $preflightSource = Get-Content -LiteralPath $preflightModule -Raw -Encoding UTF8
 $productInputManifestSource = Get-Content -LiteralPath $productInputManifestModule -Raw -Encoding UTF8
 $projectOpenEvidenceSource = Get-Content -LiteralPath (Join-Path $repoRoot 'tools\mvp\MvpProjectOpenEvidence.psm1') -Raw -Encoding UTF8
@@ -464,8 +704,9 @@ Assert-True ($stagerSource -notmatch '`\$') 'MVP staging diagnostics must interp
 Assert-True ($stagerSource -match 'WindowsPathResolver\.psm1') 'MVP staging must import the shared Windows final-path resolver.'
 Assert-True ($stagerSource -match 'tools\\WindowsPathResolver\.psm1') 'MVP staging must import the shared resolver from tracked tools source.'
 Assert-True ($stagerSource -match 'MvpProductInputManifest\.psm1') 'MVP staging must import the source-bound product input manifest boundary.'
+Assert-True ($stagerSource -match 'MvpBuildSet\.psm1') 'MVP staging must import the immutable BuildSet receipt boundary.'
 Assert-True ($stagerSource -match 'Resolve-MvpProductInputManifest -Path \$ProductInputManifest') 'MVP staging must resolve product binaries from their signed input manifest.'
-Assert-True ($stagerSource -match 'Get-MvpSourceFingerprint') 'MVP staging must compare the manifest source fingerprint with the current source.'
+Assert-True ($stagerSource -match 'Assert-MvpProductBuildSet -ManifestPath \$buildSetManifestPath') 'MVP staging must validate the published BuildSet receipt before consuming product artifacts.'
 Assert-True ($stagerSource -match 'product_input_manifest = \$productInputManifestEvidence') 'MVP staging must retain immutable product-input manifest evidence.'
 Assert-True ($stagerSource -match "-LogicalId 'product-input-manifest'") 'MVP staging must copy the original product-input manifest into the staged product.'
 Assert-True ($stagerSource -match "-TargetRelativePath 'build\\mvp-product-inputs.json'") 'MVP staging must give the staged product-input manifest a canonical relative path.'
@@ -488,6 +729,7 @@ Assert-True ($stagerSource -match 'function Get-MvpOperationalFileList') 'MVP st
 Assert-True ($stagerSource -match '\[IO\.Directory\]::GetFiles\(\$directory\)') 'MVP staging must enumerate source files through Windows PowerShell-compatible System.IO calls.'
 Assert-True ($stagerSource -match '\[IO\.Directory\]::GetDirectories\(\$directory\)') 'MVP staging must traverse source directories through Windows PowerShell-compatible System.IO calls.'
 Assert-True ($stagerSource -match '\[IO\.FileAttributes\]::ReparsePoint') 'MVP staging must not traverse reparse points after resolving source roots.'
+Assert-True ($stagerSource -match 'cannot be staged because it is a reparse point') 'MVP staging must fail closed instead of silently omitting a source reparse point.'
 Assert-True ($stagerSource -notmatch 'Get-ChildItem -LiteralPath \$engineAssetRootPath -Recurse -File') 'MVP staging must not enumerate operational source paths through the PowerShell provider.'
 Assert-True ($stagerSource -match '-SourcePath \$engineAssetFile\s+`') 'MVP staging must copy engine assets from their operational string paths.'
 Assert-True ($stagerSource -match '-SourcePath \$templateFile\s+`') 'MVP staging must copy templates from their operational string paths.'
@@ -497,10 +739,11 @@ Assert-True ($stagerSource -notmatch '-SourcePath \$templateFile\.FullName') 'MV
 Assert-True ($stagerSource -notmatch '-SourcePath \$projectFile\.FullName') 'MVP staging must not read FileInfo members from operational project paths.'
 Assert-True ($stagerSource -match 'diagnostic_logs = @\(\$diagnosticFiles \| ForEach-Object \{ Get-MvpStagedFileEvidence -Path \$_ ') 'MVP staging must pass operational diagnostic strings directly to evidence collection.'
 Assert-True ($stagerSource -notmatch 'diagnostic_logs = @\(\$diagnosticFiles \| ForEach-Object \{ Get-MvpStagedFileEvidence -Path \$_\.FullName') 'MVP staging must not treat operational diagnostic strings as FileInfo values.'
-Assert-True ($stagerSource -match '\$displayPath = \$resolution\.DisplayPath\.TrimEnd') 'MVP staging must compare its approved-root policy against the resolver display path.'
-Assert-True ($stagerSource -match 'return \$resolution\.OperationalPath') 'MVP staging must retain the resolved staging root for filesystem operations.'
-Assert-True ($stagerSource -match '\$resolvedDirectory = \(Resolve-ZirconWindowsPath -Path \$StageDirectory\)\.DisplayPath\.TrimEnd') 'MVP staging must compare WMI executable paths through the resolver display boundary.'
-Assert-True ($stagerSource -notmatch '\$resolvedDirectory = \[IO\.Path\]::GetFullPath\(\$StageDirectory\)') 'MVP staging must not compare WMI executable paths against a verbatim operational prefix.'
+Assert-True ($stagerSource -match 'Resolve-MvpArtifactStorageRootPath') 'MVP staging must delegate approved-root authorization to the shared storage policy.'
+Assert-True ($stagerSource -match 'return \$storage\.operation_path') 'MVP staging must retain the policy-resolved staging root for filesystem operations.'
+Assert-True ($stagerSource -notmatch '\$storageCapabilityEvidence = if \(\$AllowUnsafeStagingRoot\)') 'Unsafe test namespace admission must not bypass physical storage capability evidence.'
+Assert-True ($stagerSource -match 'function Test-MvpStagingDirectoryReleased') 'MVP staging must retain a directory-release probe after supervised processes reach terminal state.'
+Assert-True ($stagerSource -match 'Move-ZirconWindowsPath -Source \$StageDirectory -Destination \$probe') 'MVP staging must test release by moving the physical staging directory through the shared Windows path boundary.'
 Assert-True ($stagerSource -match '\$resolvedRoot = \(Resolve-ZirconWindowsPath -Path \$Root\)\.OperationalPath') 'MVP staging must derive staged-file containment from the resolver operational path.'
 Assert-True ($stagerSource -match '\$resolvedPath = \(Resolve-ZirconWindowsPath -Path \$Path\)\.OperationalPath') 'MVP staging must derive staged-file identity from the resolver operational path.'
 Assert-True ($stagerSource -match '\$createProjectLocation = Join-ZirconWindowsPath -Path \$stageDirectory -ChildPath ''project''') 'MVP staging must establish one physical creation parent inside the stage.'
@@ -512,7 +755,7 @@ Assert-True ($stagerSource -match '\$createdProjectParentResolution = Resolve-Zi
 Assert-True ($stagerSource -match '(?s)\$createdProjectExpectedResolution = Resolve-ZirconWindowsPath -Path \(Join-ZirconWindowsPath\s+`\s+-Path \$createdProjectParentResolution\.OperationalPath\s+`\s+-ChildPath \$ProjectName\)') 'MVP staging must derive the created-project identity from the resolved parent, not a caller-specific Windows path form.'
 Assert-True ($stagerSource -match '\$createdProjectExpectedRoot = \$createdProjectExpectedResolution\.OperationalPath') 'MVP staging must compare the created-project root using the resolver operational path.'
 Assert-True ($projectOpenEvidenceSource -match '\$resolvedStagingRoot = \$stagingResolution\.OperationalPath') 'MVP project-open evidence must derive staging containment from the resolver operational path.'
-Assert-True ($projectOpenEvidenceSource -match '\$resolvedProjectRoot = \$projectResolution\.OperationalPath') 'MVP project-open evidence must derive project identity from the resolver operational path.'
+Assert-True ($projectOpenEvidenceSource -match '\$resolvedProjectRoot = \$effectiveProjectResolution\.OperationalPath') 'MVP project-open evidence must derive project identity from the effective resolver operational path.'
 Assert-True ($stagerSource -match 'could not launch from') 'MVP staging launch failures must identify the staged executable path.'
 Assert-True ($stagerSource -match 'first_frame_exit_requested') 'MVP staging must record that each product used the first-frame exit path.'
 Assert-True ($stagerSource -match 'ZIRCON_LOG_ROOT') 'MVP staging must isolate product diagnostics under the stage directory.'
@@ -525,6 +768,11 @@ Assert-True ($stagerSource -match 'runtime_first_frame_presented') 'MVP staging 
 Assert-True ($stagerSource -match 'editor_first_frame_presented') 'MVP staging must verify the editor first-presented-frame diagnostic from its log files.'
 Assert-True ($stagerSource -match 'runtime_process_teardown_complete') 'MVP staging must verify runtime teardown after the first presented frame.'
 Assert-True ($stagerSource -match 'editor_process_teardown_complete') 'MVP staging must verify editor teardown after the first presented frame.'
+Assert-True ([regex]::Matches($stagerSource, '-ProgressInactivityTimeoutSeconds \$ExecutionPolicy\.progress_inactivity_timeout_seconds').Count -eq 2) 'MVP staged product and automation helpers must consume their resolved semantic-progress policy.'
+Assert-True ([regex]::Matches($stagerSource, '-ProgressInactivityTimeoutSeconds \$createExecutionPolicy\.progress_inactivity_timeout_seconds').Count -eq 1) 'MVP project creation must consume its resolved semantic-progress policy.'
+Assert-True ($stagerSource -notmatch '-ProgressInactivityTimeoutSeconds \$ProgressInactivityTimeoutSeconds') 'MVP staging must not pass one global inactivity timeout directly to supervised processes.'
+Assert-True ([regex]::Matches($stagerSource, 'Resolve-MvpScenarioExecutionPolicy').Count -ge 5) 'MVP staging must resolve execution policy independently for every registered scenario.'
+Assert-True ($stagerSource -match 'scenario_execution_policies = \$scenarioExecutionPolicyReceipts') 'MVP staging must receipt the resolved scenario execution policies.'
 Assert-True ($stagerSource -match 'ZIRCON_RUNTIME_CAPTURE_FRAME_PNG') 'MVP staging must request runtime first-frame PNG evidence only for the staged runtime product.'
 Assert-True ($stagerSource -match 'ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG') 'MVP staging must request a native editor first-frame PNG only for the selected staged editor run.'
 Assert-True ($stagerSource -match 'ZIRCON_RUNTIME_MVP_INPUT_PROBE') 'MVP staging must request the runtime host input probe before first-frame evidence.'
@@ -552,6 +800,55 @@ Assert-True ($stagerSource -match 'teardown_complete') 'MVP staging must record 
 Assert-True ($stagerSource -notmatch '\[IO\.Path\]::GetRelativePath') 'MVP staging must remain compatible with Windows PowerShell hosts that lack Path.GetRelativePath.'
 Assert-True ($stagerSource -match 'ProcessStartInfo') 'MVP staging must launch products through the host-compatible process API.'
 Assert-True ($stagerSource -notmatch 'Get-Command Start-Process') 'MVP staging must not require the PowerShell 7-only Start-Process Environment parameter.'
+Assert-True ($stagerSource -match 'StagedProcessSupervisor\.psm1') 'MVP staging must import its dedicated process-supervisor boundary.'
+Assert-True ($stagerSource -match 'MvpStageProcessEnvironmentPolicy\.psm1') 'MVP staging must import its scenario environment-policy registry.'
+Assert-True ($stagerSource -match 'MvpStagingTerminalReceipt\.psm1') 'MVP staging must import its terminal receipt boundary.'
+Assert-True ($supervisorSource -match 'RenderExtractProcessJob\.psm1') 'The staged process supervisor must import the Job Object process-containment boundary.'
+Assert-True ($supervisorSource -match 'New-RenderExtractBaselineProcessJob') 'The staged process supervisor must create a Job Object before launching each product process.'
+Assert-True ($supervisorSource -match 'Start-RenderExtractBaselineSuspendedProcess') 'The staged process supervisor must assign each product process to its Job Object before it runs.'
+Assert-True ($supervisorSource -match 'Test-RenderExtractBaselineProcessJobEmpty') 'The staged process supervisor must reject a Job Object that retains descendants after its root product exits.'
+Assert-True ($stagerSource -match 'MaxProcessLogBytes') 'MVP staging must declare a bounded process-log limit.'
+Assert-True ($supervisorSource -match 'Start-RenderExtractBaselineBoundedOutputCapture') 'The staged process supervisor must stream product output directly to bounded files.'
+Assert-True (($supervisorSource + $outputCaptureSource) -notmatch 'ReadToEndAsync\(\)') 'The staged process path must not retain entire product stdout or stderr in memory.'
+Assert-True ($journalSource -match 'dropped_bytes') 'The staged process journal must retain output truncation evidence.'
+Assert-True ($supervisorSource -match 'MvpSupervisorMaximumTailOutputBytes') 'The staged process supervisor must impose a fixed shared tail-output byte ceiling.'
+Assert-True ($supervisorSource -match 'TailOutputPath') 'The staged process supervisor must create a separate bounded tail artifact for each output stream.'
+Assert-True ($journalSource -match 'tail_retained_bytes') 'The staged process journal must retain tail-artifact byte evidence.'
+Assert-True ($supervisorSource -match 'MvpSupervisorMaximumJournalBytes') 'The staged process supervisor must impose a fixed process-journal byte ceiling.'
+Assert-True ($journalSource -match 'journal_segment') 'The staged process journal must retain a stable rotation segment cursor.'
+Assert-True ($journalSource -match 'journal_offset_bytes') 'The staged process journal must retain a byte-offset tail cursor.'
+Assert-True ($supervisorSource -match 'function Get-MvpSupervisedJournalTail') 'The staged process supervisor must expose a bounded journal-tail reader.'
+Assert-True ($supervisorSource -match 'function Get-MvpSupervisedBoundedTailText') 'The staged process supervisor must own the bounded output-summary reader.'
+Assert-True ($supervisorSource -match 'Seek\(-\$bytesToRead') 'The staged process supervisor summary reader must seek only a bounded tail window.'
+Assert-True ($stagerSource -match 'Get-MvpSupervisedBoundedTailText -Path \$summaryPath') 'MVP staging failure summaries must prefer the bounded tail artifact over full log reads.'
+Assert-True ($supervisorSource -match 'function Get-MvpSupervisedBoundedDiagnosticText') 'The staged process supervisor must own bounded diagnostic aggregation.'
+Assert-True ($stagerSource -match 'Get-MvpSupervisedBoundedDiagnosticText -Paths \$diagnosticFiles') 'MVP staging product checks must use bounded diagnostic aggregation.'
+Assert-True ($supervisorSource -match 'Write-MvpSupervisedProcessHeartbeat') 'The staged process supervisor must emit explicit liveness heartbeats.'
+Assert-True ($supervisorSource -match "EventKind 'heartbeat'") 'The staged process supervisor heartbeat must be an append-only journal event.'
+Assert-True ($supervisorSource -match "EventKind 'exit'") 'The staged process supervisor must journal root-process exit before terminal evidence.'
+Assert-True ($supervisorSource -match "EventKind 'cleanup'") 'The staged process supervisor must journal process-tree cleanup before terminal evidence.'
+Assert-True ($supervisorSource -match 'run_id') 'The staged process supervisor journal must bind every lifecycle event to the staging run id.'
+Assert-True ($supervisorSource -match 'executable_sha256') 'The staged process supervisor journal must bind every lifecycle event to its executable hash.'
+Assert-True ($supervisorSource -match 'arguments_sha256') 'The staged process supervisor journal must bind every lifecycle event to its argument digest.'
+Assert-True ($supervisorSource -match 'environment_sha256') 'The staged process supervisor journal must bind every lifecycle event to its environment digest.'
+Assert-True ($supervisorSource -match 'environment_policy_id') 'The staged process supervisor journal must bind every lifecycle event to its scenario environment policy.'
+Assert-True ($environmentPolicySource -match 'EnvironmentVariables\.Clear\(\)') 'The process environment policy must clear inherited environment before applying its allowlist.'
+Assert-True ($environmentPolicySource -match 'MvpProcessHostEnvironmentNames') 'The process environment policy must declare the maximum host environment allowlist.'
+Assert-True ($environmentPolicySource -match 'MvpProcessDeclaredEnvironmentNames') 'The process environment policy must declare the maximum product environment allowlist.'
+Assert-True ($stageEnvironmentPolicySource -match 'runtime_first_frame') 'The stage environment registry must own a runtime first-frame policy.'
+Assert-True ($stageEnvironmentPolicySource -match 'editor_first_frame') 'The stage environment registry must own an editor first-frame policy.'
+Assert-True ($stageEnvironmentPolicySource -match 'editor_project_create') 'The stage environment registry must own an editor project-creation policy.'
+Assert-True ($stageEnvironmentPolicySource -match 'editor_authoring') 'The stage environment registry must own an editor authoring policy.'
+Assert-True ($stagerSource -match '-EnvironmentPolicy \$environmentPolicy') 'MVP staged products and authoring automation must pass their scenario environment policy.'
+Assert-True ($stagerSource -match '-EnvironmentPolicy \$createEnvironmentPolicy') 'MVP project creation must pass its scenario environment policy.'
+Assert-True ($terminalReceiptSource -match '\[IO\.FileMode\]::CreateNew') 'MVP staging terminal receipts must use exclusive temporary files.'
+Assert-True ($terminalReceiptSource -match '\[IO\.File\]::Move\(\$temporaryPath, \$path\)') 'MVP staging terminal receipts must publish through an atomic same-directory move.'
+Assert-True ($terminalReceiptSource -match 'MvpStagingTerminalReceiptMaximumBytes = 16384') 'MVP staging terminal receipts must enforce a fixed byte ceiling.'
+Assert-True ($stagerSource -match "-Outcome 'succeeded'") 'MVP staging must publish a successful terminal receipt.'
+Assert-True ($stagerSource -match '-Outcome \$terminalOutcome') 'MVP staging must publish failed, timed-out, or cancelled terminal outcomes.'
+Assert-True ($supervisorSource -match 'environment_variables') 'The staged process supervisor journal must retain environment provenance records.'
+Assert-True ($journalSource -match 'previous_event_sha256') 'The staged process journal must chain events to their predecessor hash.'
+Assert-True ($journalSource -match 'event_sha256') 'The staged process journal must hash each event payload.'
 Assert-True ($stagerSource -match '\$stagedProductRoot = \(Resolve-ZirconWindowsPath -Path \$StageRoot\)\.OperationalPath') 'MVP staging must resolve the process-tree root through the Windows path resolver before launch.'
 Assert-True ($stagerSource -match 'staged_product_root = \$stagedProductRoot') 'MVP staging must retain the resolver operation path for process cleanup and journaling.'
 Assert-True ($stagerSource -notmatch 'staged_product_root = \[IO\.Path\]::GetFullPath\(\$StageRoot\)') 'MVP staging must not derive process cleanup identity through lexical GetFullPath.'
@@ -562,34 +859,31 @@ Assert-True ($stagerSource -match '\$projectRootResolution = if \(\[string\]::Is
 Assert-True ($stagerSource -match '\$startInfo\.WorkingDirectory = if \(\$null -eq \$projectRootResolution\)') 'MVP staging must use the project root as the child working directory when a project is selected.'
 Assert-True ($stagerSource -match '\$workingDirectoryResolution\.DisplayPath' -and $stagerSource -match '\$projectRootResolution\.DisplayPath') 'MVP staging must cross the child cwd boundary with canonical display paths.'
 Assert-True ($stagerSource.Contains("@('--project', '.') + @(`$Arguments)")) 'MVP staging must pass the selected project through the portable --project . contract.'
-Assert-True ($stagerSource -match 'Assert-MvpStagingProcessesReleased') 'MVP staging must reject a staged executable that survives its product exit.'
-Assert-True ($stagerSource -match 'Assert-MvpStagingProcessesReleased -StageDirectory \$stageDirectory\s*\r?\n\s*if \(\$createExitCode -ne 0\)') 'MVP staging must check that project creation released all staged processes before rejecting a nonzero editor exit.'
-Assert-True ($stagerSource -match 'Get-CimInstance Win32_Process') 'MVP staging must inspect live Windows processes for staged executable paths.'
-Assert-True ($stagerSource -match 'ExecutablePath') 'MVP staging must scope lingering-process checks to the staging root.'
-Assert-True ($stagerSource -match 'function Stop-MvpTimedOutStagedProcessTree') 'MVP staging must sweep staged processes after a timeout race.'
-Assert-True ($stagerSource -match '\$ProcessState\.staged_product_root') 'MVP staging timeout cleanup must receive the full staging run root.'
-Assert-True ($stagerSource -match '\$timeoutCleanupErrors\.Add\(\$_\.Exception\.Message\)') 'MVP staging must retain timeout cleanup failures until after process stream collection.'
-$stderrWriteIndex = $stagerSource.IndexOf('[IO.File]::WriteAllText($StderrPath', [StringComparison]::Ordinal)
-$timeoutThrowIndex = $stagerSource.IndexOf('throw [TimeoutException]::new', [StringComparison]::Ordinal)
-Assert-True ($stderrWriteIndex -ge 0 -and $timeoutThrowIndex -gt $stderrWriteIndex) 'MVP staging must persist process logs before reporting a timeout or timeout-cleanup failure.'
-Assert-True ($productInputManifestSource -match "@\('diff', '--no-ext-diff', '--raw', '--no-abbrev', '-z', 'HEAD'\)") 'MVP source fingerprints must enumerate the current tracked working-tree content.'
-Assert-True ($productInputManifestSource -match "@\('hash-object', '--no-filters', '--'\)") 'MVP source fingerprints must hash each tracked working-tree file without a PowerShell stdin encoding boundary.'
-Assert-True ($productInputManifestSource -match 'Add-MvpTrackedSourceContentHashBatch') 'MVP source fingerprints must batch tracked content hashes below the Windows process argument limit.'
-Assert-True ($productInputManifestSource -match 'RedirectStandardOutput = \$true') 'MVP source fingerprints must collect Git stdout outside the PowerShell native-command pipeline.'
-Assert-True ($productInputManifestSource -match 'RedirectStandardError = \$true') 'MVP source fingerprints must isolate Git stderr from fingerprint material.'
-Assert-True ($productInputManifestSource -match 'BaseStream\.CopyToAsync') 'MVP source fingerprints must retain Git stdout as raw bytes.'
-Assert-True ($productInputManifestSource -match 'Add-MvpFingerprintSegment') 'MVP source fingerprints must frame raw Git bytes without ambiguous text delimiters.'
-Assert-True ($productInputManifestSource -match "@\('ls-files', '-z', '--others', '--exclude-standard'\)") 'MVP source fingerprints must enumerate untracked source inputs with NUL path separators.'
-Assert-True ($productInputManifestSource -match 'untracked source input') 'MVP source fingerprints must hash each untracked source input.'
+Assert-True ($stagerSource -notmatch 'Assert-MvpStagingProcessesReleased') 'MVP staging must not repeat process-tree cleanup after the supervised Job has reached its terminal state.'
+Assert-True ($stagerSource -notmatch 'Get-CimInstance Win32_Process') 'MVP staging production code must not scan the machine-wide process table after each product attempt.'
+Assert-True ($stagerSource -notmatch 'taskkill\.exe') 'MVP staging production code must not bypass the supervised Job with taskkill.'
+Assert-True ($stagerSource -match 'Test-MvpStagingDirectoryReleased -StageDirectory \$stageDirectory') 'MVP staging must retain the final directory rename probe for residual file handles.'
+Assert-True ($supervisorSource -match 'Wait-RenderExtractBaselineProcessJobEmpty' -and $supervisorSource -match 'Test-RenderExtractBaselineProcessJobEmpty') 'The staged process supervisor must wait for and verify an empty Job before returning.'
+Assert-True ($supervisorSource -match 'Stop-RenderExtractBaselineProcessJob -Job \$processJob') 'The staged process supervisor must terminate timed-out descendants through the Job Object.'
+Assert-True ($stagerSource -notmatch 'Stop-MvpTimedOutStagedProcessTree') 'MVP staging timeout cleanup must not fall back to executable-path process-tree discovery.'
+Assert-True ($supervisorSource -match '\$terminationCleanupErrors\.Add\(\$_\.Exception\.Message\)') 'The staged process supervisor must retain termination cleanup failures until after process stream collection.'
+$stderrCaptureIndex = $supervisorSource.IndexOf('Start-RenderExtractBaselineBoundedOutputCapture', [StringComparison]::Ordinal)
+$timeoutThrowIndex = $supervisorSource.IndexOf('throw [TimeoutException]::new', [StringComparison]::Ordinal)
+Assert-True ($stderrCaptureIndex -ge 0 -and $timeoutThrowIndex -gt $stderrCaptureIndex) 'The staged process supervisor must start streaming process logs before reporting a timeout or timeout-cleanup failure.'
+Assert-True ($productInputManifestSource -match 'Resolve-MvpProductInputBuildSet') 'MVP product inputs must resolve immutable BuildSet provenance from the manifest.'
+Assert-True ($productInputManifestSource -match '\$sourceFingerprint\.Equals\(\[string\]\$buildSet\.build_set_id') 'MVP source_fingerprint compatibility must bind exactly to BuildSetId.'
+Assert-True ($productInputManifestSource -notmatch "@\('diff', '--no-ext-diff'" -and $productInputManifestSource -notmatch "@\('ls-files'" -and $productInputManifestSource -notmatch "@\('hash-object'") 'MVP product-input validation must not rescan the active Git checkout.'
 Assert-True ($stagerSource -match 'function Get-FileSha256') 'MVP staging must hash files without a PowerShell module auto-load dependency.'
 Assert-True ($stagerSource -notmatch 'Get-FileHash') 'MVP staging must not require the Get-FileHash cmdlet in the Windows PowerShell host.'
+Assert-True ($stagerSource -match '\[char\[\]\]::new\(\$hashBytes\.Length \* 2\)') 'MVP staging SHA-256 output must allocate one fixed-size character buffer.'
+Assert-True ($stagerSource -notmatch "ForEach-Object \{ \$_.ToString\('X2'\) \}") 'MVP staging SHA-256 output must not dispatch one PowerShell pipeline stage per digest byte.'
 Assert-True ($stagerSource -notmatch '(?m)^\s*\[string\]\$Toolchain\s*[,)]') 'MVP staging must not accept caller-provided toolchain provenance.'
 Assert-True ($stagerSource -notmatch '(?m)^\s*\[string\]\$Target\s*[,)]') 'MVP staging must not accept caller-provided target provenance.'
 Assert-True ($stagerSource -match 'rustc -Vv') 'MVP staging must record toolchain provenance from the active Rust compiler.'
 Assert-True ($stagerSource -match 'MvpStagingPreflight\.psm1') 'MVP staging must import its dedicated environment preflight boundary.'
 Assert-True ($preflightSource -match 'function Get-MvpStagingRequiredBytes') 'MVP staging must derive its disk budget from the files that will be copied.'
-Assert-True ($preflightSource -match '\[IO\.File\]::Exists\(\$path\)') 'MVP staging preflight must validate resolved source files through System.IO.'
-Assert-True ($preflightSource -match '\[IO\.FileInfo\]::new\(\$path\)') 'MVP staging preflight must size resolved source files through System.IO.'
+Assert-True ($preflightSource -match '\$file = \[IO\.FileInfo\]::new\(\$path\)') 'MVP staging preflight must create one System.IO metadata view for each resolved source file.'
+Assert-True ($preflightSource -match '-not \$file\.Exists' -and $preflightSource -match '\$fileLength = \[Int64\]\$file\.Length') 'MVP staging preflight must reuse the same metadata view for existence and length validation.'
 Assert-True ($preflightSource -notmatch 'Get-Item -LiteralPath \$path') 'MVP staging preflight must not send resolver operational input paths through the PowerShell provider.'
 Assert-True ($preflightSource -match 'function Assert-MvpStagingDiskCapacity') 'MVP staging must reject a run before copying when its staging drive lacks capacity.'
 Assert-True ($preflightSource -match 'function Assert-MvpStagingCapacityValues') 'MVP staging capacity policy must have a directly testable value boundary.'
@@ -687,7 +981,7 @@ Assert-True ($stagerSource -match 'authoring_automation') 'MVP staging must pres
 Assert-True ($stagerSource -match 'ReopenAutomationRequest') 'MVP staging must accept a second source-bound reopen automation request.'
 Assert-True ($stagerSource -match 'reopen_automation') 'MVP staging must preserve repeated reopen automation reports in startup evidence.'
 Assert-True ($stagerSource -match 'AttemptOffset') 'MVP staging must allocate a non-duplicate runtime attempt number after authoring.'
-Assert-True ($stagerSource -match 'RepeatCount and ReopenRepeatCount to both equal 2') 'MVP staging must reject a reopen sequence that cannot satisfy the fixed F5 repeat contract.'
+Assert-True ($stagerSource -match '\$runtimeExecutionPolicy\.attempt_count -ne 2 -or \$reopenExecutionPolicy\.attempt_count -ne 2') 'MVP staging must reject a reopen sequence whose resolved policies cannot satisfy the fixed F5 repeat contract.'
 Assert-True ($stagerSource -match 'Get-MvpStagedFileEvidence') 'MVP staging must hash product stdout, stderr, and diagnostic evidence files.'
 Assert-True ($stagerSource -notmatch 'source_path = \$SourcePath') 'MVP staging manifest must not retain absolute source input paths in uploaded evidence.'
 Assert-True ($stagerSource -match 'project_creation') 'MVP staging must record the staged editor project-creation process as structured evidence.'
@@ -697,7 +991,7 @@ Assert-True ($projectOpenEvidenceSource -match 'if \(\$reportedProjectRoot -eq '
 Assert-True ($projectOpenEvidenceSource -match 'GetParent\(\$expectedProjectRootResolution\.DisplayPath\)') 'MVP project-open evidence must resolve created-project relative diagnostics from the staged project parent.'
 Assert-True ($projectOpenEvidenceSource.Contains('[IO.Path]::IsPathRooted($reportedProjectRoot) -or $reportedProjectRoot.Contains('':'')')) 'MVP project-open evidence must reject root-relative and drive-relative diagnostics before resolving them.'
 Assert-True ($stagerSource -match 'Authoring automation diagnostic log') 'MVP staging must retain diagnostic evidence for normal editor automation processes.'
-Assert-True ($stagerSource -match 'process-execution-journal\.jsonl') 'MVP staging must persist an incremental journal for every started child process.'
+Assert-True ($journalSource -match 'process-execution-journal\.jsonl') 'The staged process lifecycle owner must persist an incremental journal for every started child process.'
 
 $defaultAuthoringAutomationPath = Join-Path $repoRoot 'tools\mvp\mvp-authoring-automation.json'
 Assert-True (Test-Path -LiteralPath $defaultAuthoringAutomationPath -PathType Leaf) 'The source-bound F5 authoring automation request is missing.'
@@ -717,10 +1011,41 @@ Assert-True ($defaultReopenAutomation.bindings[0].payload.SelectionCommand.Selec
 
 $fixture = New-MvpStagingFixture
 try {
+    Assert-True ($fixture.SourceFingerprint -eq $fixture.BuildSet.build_set_id) 'BuildSet-backed staging fixtures must derive their compatibility source fingerprint from the immutable BuildSet identity.'
+    $stagerSource = Get-Content -LiteralPath $stager -Raw
+    Assert-True (([regex]::Matches($stagerSource, '\bGet-MvpSourceFingerprint\b')).Count -eq 0) 'Staging must not rescan the active checkout for legacy source currentness.'
     $inputManifest = Get-Content -LiteralPath $fixture.ProductInputManifest -Raw -Encoding UTF8 | ConvertFrom-Json
-    $inputManifest.source_fingerprint = '0000000000000000000000000000000000000000000000000000000000000000'
+    $inputManifest.build_set.build_set_id = '0000000000000000000000000000000000000000000000000000000000000000'
     [IO.File]::WriteAllText($fixture.ProductInputManifest, ($inputManifest | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
-    $sourceMismatchRejected = $false
+    $buildSetMismatchRejected = $false
+    $buildSetMismatchError = $null
+    try {
+        & $stager `
+            -ProductInputManifest $fixture.ProductInputManifest `
+            -TemplateRoot $fixture.TemplateRoot `
+            -EngineAssetRoot $fixture.EngineAssetRoot `
+            -StagingRoot $fixture.StagingRoot `
+            -RunId 'fixture-build-set-mismatch' `
+            -NoLaunch `
+            -AllowUnsafeStagingRoot | Out-Null
+    }
+    catch {
+        $buildSetMismatchError = $_.Exception.Message
+        $buildSetMismatchRejected = $_.Exception.Message -match 'source_fingerprint must equal its BuildSetId'
+    }
+    Assert-True $buildSetMismatchRejected "Staging failed to reject the BuildSet identity mismatch. Actual result: $buildSetMismatchError"
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-build-set-mismatch'))) 'BuildSet mismatch rejection created a staging directory.'
+    $buildSetMismatchReceipt = Get-MvpStagingTerminalReceiptFixture -StagingRoot $fixture.StagingRoot -RunId 'fixture-build-set-mismatch'
+    Assert-True ($buildSetMismatchReceipt.outcome -eq 'failed') 'BuildSet mismatch did not publish a failed staging receipt.'
+    Assert-True ($buildSetMismatchReceipt.phase -eq 'admission') 'BuildSet mismatch terminal receipt lost its admission phase.'
+    Assert-True (-not $buildSetMismatchReceipt.staging_directory_published) 'BuildSet mismatch terminal receipt claimed a published stage directory.'
+
+    $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
+    $inputManifest = Get-Content -LiteralPath $fixture.ProductInputManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+    $inputManifest.PSObject.Properties.Remove('build_set')
+    [IO.File]::WriteAllText($fixture.ProductInputManifest, ($inputManifest | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
+    $missingBuildSetRejected = $false
+    $missingBuildSetError = $null
     try {
         & $stager `
             -ProductInputManifest $fixture.ProductInputManifest `
@@ -732,10 +1057,11 @@ try {
             -AllowUnsafeStagingRoot | Out-Null
     }
     catch {
-        $sourceMismatchRejected = $_.Exception.Message -match 'differs from the current source fingerprint'
+        $missingBuildSetError = $_.Exception.Message
+        $missingBuildSetRejected = $_.Exception.Message -match 'requires a BuildSet receipt'
     }
-    Assert-True $sourceMismatchRejected 'Staging accepted product inputs that were built from a different source fingerprint.'
-    Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-source-mismatch'))) 'Source mismatch rejection created a staging directory.'
+    Assert-True $missingBuildSetRejected "Staging accepted product inputs without a BuildSet receipt. Actual result: $missingBuildSetError"
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-source-mismatch'))) 'Missing BuildSet rejection created a staging directory.'
 
     $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
     $inputManifest = Get-Content -LiteralPath $fixture.ProductInputManifest -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -759,11 +1085,45 @@ try {
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-hash-drift'))) 'Hash-drift rejection created a staging directory.'
     $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
 
+    $cancelledRunId = 'fixture-prelaunch-cancelled'
+    $cancelRequest = Write-MvpStagingCancellationRequest `
+        -StagingRoot $fixture.StagingRoot `
+        -RunId $cancelledRunId `
+        -Reason 'operator_requested'
+    $prelaunchCancelled = $false
+    try {
+        & $stager `
+            -ProductInputManifest $fixture.ProductInputManifest `
+            -TemplateRoot $fixture.TemplateRoot `
+            -EngineAssetRoot $fixture.EngineAssetRoot `
+            -StagingRoot $fixture.StagingRoot `
+            -RunId $cancelledRunId `
+            -NoLaunch `
+            -AllowUnsafeStagingRoot | Out-Null
+    }
+    catch [OperationCanceledException] {
+        $prelaunchCancelled = $true
+    }
+    Assert-True $prelaunchCancelled 'A run-bound external request did not cancel staging before publication.'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot $cancelledRunId))) 'Prelaunch cancellation created a staging directory.'
+    Assert-True (Test-Path -LiteralPath $cancelRequest.path -PathType Leaf) 'Prelaunch cancellation removed its immutable request evidence.'
+    $prelaunchCancellationReceipt = Get-MvpStagingTerminalReceiptFixture -StagingRoot $fixture.StagingRoot -RunId $cancelledRunId
+    Assert-True ($prelaunchCancellationReceipt.outcome -eq 'cancelled') 'Prelaunch cancellation did not publish a cancelled terminal outcome.'
+    Assert-True ($prelaunchCancellationReceipt.phase -eq 'admission') 'Prelaunch cancellation terminal receipt lost its admission phase.'
+    Assert-True (-not $prelaunchCancellationReceipt.staging_directory_published) 'Prelaunch cancellation claimed a published staging directory.'
+    Assert-True ($prelaunchCancellationReceipt.cleanup.outcome -eq 'not_required') 'Prelaunch cancellation incorrectly claimed process cleanup.'
+    Assert-True ($prelaunchCancellationReceipt.failure.kind -eq 'operation_cancelled') 'Prelaunch cancellation terminal receipt lost its failure kind.'
+
     $result = Invoke-MvpStager -Fixture $fixture
     $manifestPath = Join-Path $result.staging_root 'staging-manifest.json'
     $manifest = Get-Content -Raw -Encoding UTF8 $manifestPath | ConvertFrom-Json
+    $successfulTerminalReceipt = Get-MvpStagingTerminalReceiptFixture -StagingRoot $fixture.StagingRoot -RunId 'fixture-run'
 
     Assert-True (Test-Path -LiteralPath $result.tree_manifest -PathType Leaf) 'MVP staging did not publish its complete tree manifest.'
+    Assert-True ($successfulTerminalReceipt.outcome -eq 'succeeded') 'NoLaunch staging did not publish a successful terminal outcome.'
+    Assert-True ($successfulTerminalReceipt.phase -eq 'complete') 'NoLaunch staging terminal receipt did not reach the complete phase.'
+    Assert-True ($successfulTerminalReceipt.staging_manifest_sha256 -eq $result.output_hash.ToLowerInvariant()) 'NoLaunch staging terminal receipt is not bound to its staging manifest.'
+    Assert-True ($result.terminal_receipt.sha256 -match '^[0-9a-f]{64}$') 'MVP staging result did not expose the terminal receipt digest.'
     $stagingTreeEntries = @(Read-MvpAcceptanceStagingTreeManifest -StagingRoot $result.staging_root)
     Assert-True ($stagingTreeEntries.relative_path -contains 'staging-manifest.json') 'MVP staging tree manifest omitted its staging manifest.'
     Assert-True ($stagingTreeEntries.relative_path -contains 'runtime/zircon_runtime.exe') 'MVP staging tree manifest omitted the staged runtime executable.'
@@ -833,6 +1193,9 @@ try {
     $authoringAutomationRequest = Join-Path $fixture.Root 'authoring-automation.json'
     [IO.File]::WriteAllText($authoringAutomationRequest, @'
 {
+  "schema_version": 1,
+  "scenario_kind": "zircon.mvp-editor-automation-scenario",
+  "scenario_id": "mvp.editor-authoring.v1",
   "bindings": [
     { "path": { "view_id": "Hierarchy", "control_id": "SelectCube", "event_kind": "Click" }, "payload": { "SelectionCommand": { "SelectSceneNode": { "node_id": 3 } } } },
     { "path": { "view_id": "Inspector", "control_id": "TransformPositionXCommit", "event_kind": "Submit" }, "payload": { "InspectorFieldBatch": { "subject_path": "entity://selected", "changes": [{ "field_id": "transform.translation.x", "value": { "Float": 42.0 } }] } } },
@@ -898,11 +1261,16 @@ try {
     Assert-True ($authoringStartupSummary.reopen_automation[0].stdout.sha256 -match '^[0-9A-F]{64}$') 'MVP staging startup evidence did not hash the reopen automation stdout.'
     Assert-True ($authoringStartupSummary.reopen_automation[0].diagnostic_logs.Count -gt 0) 'MVP staging startup evidence did not retain reopen diagnostic log evidence.'
     Assert-True (Test-Path -LiteralPath (Join-Path $authoringLaunched.staging_root 'reopen\automation.json')) 'MVP staging did not copy the reopen request into the source-bound staging root.'
+    $authoringLifecycleEntries = Get-ProcessJournalLifecycleEntries -StageRoot $authoringLaunched.staging_root
+    Assert-ProcessJournalProgress `
+        -Entries $authoringLifecycleEntries `
+        -Phase 'editor-authoring' `
+        -ExpectedNames @('mvp.editor.automation.completed.v1')
 
-    $previousWrongAutomationProject = $env:ZIRCON_MVP_FIXTURE_WRONG_AUTOMATION_PROJECT
-    $env:ZIRCON_MVP_FIXTURE_WRONG_AUTOMATION_PROJECT = '1'
+    $wrongAutomationProjectRejected = $false
+    $wrongAutomationProjectError = $null
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'report-wrong-authoring-project-path'
     try {
-        $wrongAutomationProjectRejected = $false
         try {
             $null = & $stager `
                 -ProductInputManifest $fixture.ProductInputManifest `
@@ -918,23 +1286,18 @@ try {
                 -AllowUnsafeStagingRoot
         }
         catch {
+            $wrongAutomationProjectError = $_.Exception.Message
             $wrongAutomationProjectRejected = $_.Exception.Message -match 'authoring automation report project_path.*differs from staged project'
         }
-        Assert-True $wrongAutomationProjectRejected 'MVP staging accepted authoring automation evidence from a different project root.'
     }
     finally {
-        if ($null -eq $previousWrongAutomationProject) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_WRONG_AUTOMATION_PROJECT -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_WRONG_AUTOMATION_PROJECT = $previousWrongAutomationProject
-        }
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
     }
+    Assert-True $wrongAutomationProjectRejected "MVP staging failed to reject authoring automation evidence from a different project root. Actual result: $wrongAutomationProjectError"
 
     $authoringFailureRunId = 'fixture-authoring-nonzero-child'
     $authoringFailureStage = Join-Path $fixture.StagingRoot $authoringFailureRunId
-    $previousAuthoringFailureWithChild = $env:ZIRCON_MVP_FIXTURE_FAIL_AUTOMATION_WITH_CHILD
-    $env:ZIRCON_MVP_FIXTURE_FAIL_AUTOMATION_WITH_CHILD = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'fail-automation-with-child'
     try {
         $authoringFailureCleaned = $false
         $authoringFailureDiagnostics = ''
@@ -960,10 +1323,10 @@ try {
         Assert-True ($authoringFailureDiagnostics -match 'fixture automation failed after spawning child') 'A nonzero authoring automation exit did not retain the child stderr diagnostic.'
         $authoringFailureStderr = Join-Path $authoringFailureStage 'logs/editor-authoring.stderr.log'
         Assert-True (Test-Path -LiteralPath $authoringFailureStderr) 'A nonzero authoring automation exit did not preserve its stderr log.'
-        Assert-True ((Get-Content -Raw -LiteralPath $authoringFailureStderr) -match 'fixture automation failed after spawning child') 'A nonzero authoring automation stderr log was not drained before failure.'
+        Assert-True ([IO.File]::ReadAllText($authoringFailureStderr) -match 'fixture automation failed after spawning child') 'A nonzero authoring automation stderr log was not drained before failure.'
         $authoringFailureJournal = @(Get-ProcessJournalEntries -StageRoot $authoringFailureStage | Where-Object { $_.phase -eq 'editor-authoring' })
         Assert-True ($authoringFailureJournal.Count -eq 1) 'Nonzero authoring automation did not emit exactly one journal entry.'
-        Assert-ProcessJournalEntry -Entry $authoringFailureJournal[0] -Phase 'editor-authoring' -Outcome 'cleanup_failed' -ExitCode 32
+        Assert-ProcessJournalEntry -Entry $authoringFailureJournal[0] -Phase 'editor-authoring' -Outcome 'crashed' -ExitCode 32
         Start-Sleep -Milliseconds 250
         $authoringFailurePrefix = [IO.Path]::GetFullPath($authoringFailureStage).TrimEnd('\') + [IO.Path]::DirectorySeparatorChar
         $authoringFailurePids = @(
@@ -976,12 +1339,7 @@ try {
         Assert-True ($authoringFailurePids.Count -eq 0) 'A nonzero authoring automation exit left a staged child process.'
     }
     finally {
-        if ($null -eq $previousAuthoringFailureWithChild) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_FAIL_AUTOMATION_WITH_CHILD -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_FAIL_AUTOMATION_WITH_CHILD = $previousAuthoringFailureWithChild
-        }
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
         $authoringFailurePrefix = [IO.Path]::GetFullPath($authoringFailureStage).TrimEnd('\') + [IO.Path]::DirectorySeparatorChar
         $authoringFailurePids = @(
             Get-CimInstance Win32_Process | Where-Object {
@@ -998,8 +1356,7 @@ try {
         }
     }
 
-    $previousEditorCaptureSkip = $env:ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE
-    $env:ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'skip-editor-capture'
     try {
         $missingReopenedEditorCaptureRejected = $false
         try {
@@ -1022,16 +1379,10 @@ try {
         Assert-True $missingReopenedEditorCaptureRejected 'MVP staging did not reject a missing reopened editor window PNG diagnostic.'
     }
     finally {
-        if ($null -eq $previousEditorCaptureSkip) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE = $previousEditorCaptureSkip
-        }
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
     }
 
-    $previousEditorCaptureFileSkip = $env:ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE_FILE
-    $env:ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE_FILE = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'skip-editor-capture-file'
     try {
         $missingReopenedEditorCaptureFileRejected = $false
         try {
@@ -1054,18 +1405,10 @@ try {
         Assert-True $missingReopenedEditorCaptureFileRejected 'MVP staging did not reject a completed reopened editor capture diagnostic without its PNG file.'
     }
     finally {
-        if ($null -eq $previousEditorCaptureFileSkip) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE_FILE -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_SKIP_EDITOR_CAPTURE_FILE = $previousEditorCaptureFileSkip
-        }
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
     }
 
-    $previousRuntimeInputProbe = $env:ZIRCON_RUNTIME_MVP_INPUT_PROBE
-    $env:ZIRCON_RUNTIME_MVP_INPUT_PROBE = '1'
-    try {
-        $launched = (& $stager `
+    $launched = (& $stager `
             -ProductInputManifest $fixture.ProductInputManifest `
             -TemplateRoot $fixture.TemplateRoot `
             -EngineAssetRoot $fixture.EngineAssetRoot `
@@ -1126,15 +1469,52 @@ try {
         Assert-True ($null -eq $editorRun.frame_capture) 'MVP staging must not request a runtime PNG from the editor product.'
         Assert-True ($null -eq $editorRun.editor_window_capture) 'MVP staging must not request editor window PNG evidence outside the F5 reopen workflow.'
         Assert-True ($null -eq $editorRun.runtime_product_diagnostics) 'MVP staging must not require runtime diagnostics from the editor product.'
-    }
-    finally {
-        if ($null -eq $previousRuntimeInputProbe) {
-            Remove-Item Env:\ZIRCON_RUNTIME_MVP_INPUT_PROBE -ErrorAction SilentlyContinue
+        $lifecycleEntries = Get-ProcessJournalLifecycleEntries -StageRoot $launched.staging_root
+        foreach ($phase in @('runtime-1', 'editor-1')) {
+            $phaseEntries = @($lifecycleEntries | Where-Object { $_.phase -eq $phase })
+            $startedEntries = @($phaseEntries | Where-Object { $_.event_kind -eq 'started' })
+            $exitEntries = @($phaseEntries | Where-Object { $_.event_kind -eq 'exit' })
+            $cleanupEntries = @($phaseEntries | Where-Object { $_.event_kind -eq 'cleanup' })
+            $terminalEntries = @($phaseEntries | Where-Object { $_.event_kind -eq 'terminal' })
+            Assert-True ($startedEntries.Count -eq 1) "MVP staging did not persist exactly one started lifecycle record for '$phase'."
+            Assert-True ($exitEntries.Count -eq 1) "MVP staging did not persist exactly one exit lifecycle record for '$phase'."
+            Assert-True ($cleanupEntries.Count -eq 1) "MVP staging did not persist exactly one cleanup lifecycle record for '$phase'."
+            Assert-True ($terminalEntries.Count -eq 1) "MVP staging did not persist exactly one terminal lifecycle record for '$phase'."
+            Assert-True ($startedEntries[0].run_id -eq $launched.run_id) "MVP staging lifecycle start record for '$phase' does not bind the staging run id."
+            Assert-True ($exitEntries[0].run_id -eq $launched.run_id) "MVP staging lifecycle exit record for '$phase' does not bind the staging run id."
+            Assert-True ($cleanupEntries[0].run_id -eq $launched.run_id) "MVP staging lifecycle cleanup record for '$phase' does not bind the staging run id."
+            Assert-True ($terminalEntries[0].run_id -eq $launched.run_id) "MVP staging lifecycle terminal record for '$phase' does not bind the staging run id."
+            Assert-True ([int]$startedEntries[0].process_id -gt 0) "MVP staging lifecycle start record for '$phase' has no process id."
+            Assert-True (-not [string]::IsNullOrWhiteSpace([string]$startedEntries[0].process_started_at_utc)) "MVP staging lifecycle start record for '$phase' has no process creation time."
+            Assert-True ($exitEntries[0].process_id -eq $startedEntries[0].process_id) "MVP staging lifecycle exit record for '$phase' does not bind the started process id."
+            Assert-True ($exitEntries[0].process_started_at_utc -eq $startedEntries[0].process_started_at_utc) "MVP staging lifecycle exit record for '$phase' does not bind the started process creation time."
+            Assert-True ($exitEntries[0].root_process_exited -eq $true) "MVP staging lifecycle exit record for '$phase' does not record root process completion."
+            Assert-True ($cleanupEntries[0].process_id -eq $startedEntries[0].process_id) "MVP staging lifecycle cleanup record for '$phase' does not bind the started process id."
+            Assert-True ($cleanupEntries[0].process_started_at_utc -eq $startedEntries[0].process_started_at_utc) "MVP staging lifecycle cleanup record for '$phase' does not bind the started process creation time."
+            Assert-True ($cleanupEntries[0].job_empty -eq $true) "MVP staging lifecycle cleanup record for '$phase' did not confirm an empty process job."
+            Assert-True ($terminalEntries[0].process_id -eq $startedEntries[0].process_id) "MVP staging lifecycle terminal record for '$phase' does not bind the started process id."
+            Assert-True ($terminalEntries[0].process_started_at_utc -eq $startedEntries[0].process_started_at_utc) "MVP staging lifecycle terminal record for '$phase' does not bind the started process creation time."
+            Assert-True ([array]::IndexOf($lifecycleEntries, $startedEntries[0]) -lt [array]::IndexOf($lifecycleEntries, $exitEntries[0])) "MVP staging exit record for '$phase' was written before its start record."
+            Assert-True ([array]::IndexOf($lifecycleEntries, $exitEntries[0]) -lt [array]::IndexOf($lifecycleEntries, $cleanupEntries[0])) "MVP staging cleanup record for '$phase' was written before its exit record."
+            Assert-True ([array]::IndexOf($lifecycleEntries, $cleanupEntries[0]) -lt [array]::IndexOf($lifecycleEntries, $terminalEntries[0])) "MVP staging terminal record for '$phase' was written before its cleanup record."
+            Assert-ProcessJournalProgress `
+                -Entries $lifecycleEntries `
+                -Phase $phase `
+                -ExpectedNames $(if ($phase.StartsWith('runtime-', [StringComparison]::Ordinal)) {
+                    @(
+                        'mvp.runtime.startup-ready.v1',
+                        'mvp.runtime.first-frame-presented.v1',
+                        'mvp.runtime.teardown-complete.v1'
+                    )
+                }
+                else {
+                    @(
+                        'mvp.editor.startup-ready.v1',
+                        'mvp.editor.first-frame-presented.v1',
+                        'mvp.editor.teardown-complete.v1'
+                    )
+                })
         }
-        else {
-            $env:ZIRCON_RUNTIME_MVP_INPUT_PROBE = $previousRuntimeInputProbe
-        }
-    }
 
     $createWithoutLaunchRejected = $false
     try {
@@ -1187,6 +1567,16 @@ try {
     Assert-True ($createdStartupSummary.project_creation.project_open.settings_source -eq 'persisted-v1') 'Created project startup evidence did not preserve persisted project-settings provenance.'
     Assert-True (Test-Path -LiteralPath (Join-Path $created.staging_root 'logs/editor-create.stdout.log')) 'Created project staging did not retain the editor creation stdout log.'
     Assert-True (Test-Path -LiteralPath (Join-Path $created.staging_root 'logs/editor-create.stderr.log')) 'Created project staging did not retain the editor creation stderr log.'
+    $createdLifecycleEntries = Get-ProcessJournalLifecycleEntries -StageRoot $created.staging_root
+    Assert-ProcessJournalProgress `
+        -Entries $createdLifecycleEntries `
+        -Phase 'editor-create' `
+        -ExpectedNames @(
+            'mvp.editor.project-opened.v1',
+            'mvp.editor.startup-ready.v1',
+            'mvp.editor.first-frame-presented.v1',
+            'mvp.editor.teardown-complete.v1'
+        )
 
     $unicodeProjectName = (-join ([char[]]@(0x9879, 0x76EE))) + ' ' + (-join ([char[]]@(0x8DEF, 0x5F84)))
     $unicodeProjectRunId = 'fixture-created-project-unicode'
@@ -1212,8 +1602,7 @@ try {
     Assert-True ($unicodeStartupSummary.project_creation.project_open.project_root -eq "project/$unicodeProjectName") 'Created project staging did not retain the Unicode project-open root from the normal editor diagnostic.'
 
     $missingProjectOpenDiagnosticRunId = 'fixture-created-project-missing-open-diagnostic'
-    $previousSkipProjectOpenDiagnostic = $env:ZIRCON_MVP_FIXTURE_SKIP_PROJECT_OPEN_DIAGNOSTIC
-    $env:ZIRCON_MVP_FIXTURE_SKIP_PROJECT_OPEN_DIAGNOSTIC = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Template -Control 'skip-project-open-diagnostic'
     try {
         $missingProjectOpenDiagnosticRejected = $false
         try {
@@ -1235,20 +1624,15 @@ try {
         Assert-True $missingProjectOpenDiagnosticRejected 'A staged project creation without the normal editor project-open diagnostic was not rejected.'
     }
     finally {
-        if ($null -eq $previousSkipProjectOpenDiagnostic) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_SKIP_PROJECT_OPEN_DIAGNOSTIC -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_SKIP_PROJECT_OPEN_DIAGNOSTIC = $previousSkipProjectOpenDiagnostic
-        }
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Template
     }
 
     $createFailureRunId = 'fixture-created-project-failure'
     $createFailureStage = Join-Path $fixture.StagingRoot $createFailureRunId
-    $previousCreateFailureWithChild = $env:ZIRCON_MVP_FIXTURE_FAIL_CREATE_WITH_CHILD
-    $env:ZIRCON_MVP_FIXTURE_FAIL_CREATE_WITH_CHILD = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Template -Control 'fail-create-with-child'
     try {
         $createFailureCleaned = $false
+        $createFailureDiagnostics = ''
         try {
             & $stager `
                 -ProductInputManifest $fixture.ProductInputManifest `
@@ -1263,9 +1647,10 @@ try {
                 -AllowUnsafeStagingRoot | Out-Null
         }
         catch {
-            $createFailureCleaned = $_.Exception.Message -match 'remain after product exit and were terminated'
+            $createFailureDiagnostics = $_.Exception.Message
+            $createFailureCleaned = $_.Exception.Message -match 'failed with exit code 24|remain after product exit and were terminated'
         }
-        Assert-True $createFailureCleaned 'A nonzero staged project-creation exit with a child process must be rejected only after the staged child is cleaned up.'
+        Assert-True $createFailureCleaned "A nonzero staged project-creation exit with a child process must be rejected only after the staged child is cleaned up. Actual result: $createFailureDiagnostics"
         Start-Sleep -Milliseconds 250
         $createFailurePids = @(
             Get-CimInstance Win32_Process | Where-Object {
@@ -1280,15 +1665,10 @@ try {
         Assert-True ($createFailurePids.Count -eq 0) 'A nonzero staged project-creation exit must not leave a staged child process.'
         $createFailureJournal = @(Get-ProcessJournalEntries -StageRoot $createFailureStage | Where-Object { $_.phase -eq 'editor-create' })
         Assert-True ($createFailureJournal.Count -eq 1) 'Nonzero project creation did not emit exactly one journal entry.'
-        Assert-ProcessJournalEntry -Entry $createFailureJournal[0] -Phase 'editor-create' -Outcome 'cleanup_failed' -ExitCode 24
+        Assert-ProcessJournalEntry -Entry $createFailureJournal[0] -Phase 'editor-create' -Outcome 'crashed' -ExitCode 24
     }
     finally {
-        if ($null -eq $previousCreateFailureWithChild) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_FAIL_CREATE_WITH_CHILD -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_FAIL_CREATE_WITH_CHILD = $previousCreateFailureWithChild
-        }
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Template
         $createFailurePrefix = [IO.Path]::GetFullPath($createFailureStage).TrimEnd('\\') + [IO.Path]::DirectorySeparatorChar
         $createFailurePids = @(
             Get-CimInstance Win32_Process | Where-Object {
@@ -1306,8 +1686,7 @@ try {
     }
 
     $missingCaptureRunId = 'fixture-missing-runtime-capture'
-    $previousSkipCapture = $env:ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_CAPTURE
-    $env:ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_CAPTURE = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'skip-runtime-capture'
     try {
         $missingCaptureDetected = $false
         try {
@@ -1326,19 +1705,20 @@ try {
             $missingCaptureDetected = $_.Exception.Message -match 'runtime_product_frame_capture_written|Runtime frame capture'
         }
         Assert-True $missingCaptureDetected 'A runtime product that omits requested PNG evidence was not rejected.'
+        $missingCaptureReceipt = Get-MvpStagingTerminalReceiptFixture -StagingRoot $fixture.StagingRoot -RunId $missingCaptureRunId
+        Assert-True ($missingCaptureReceipt.outcome -eq 'failed') 'Missing runtime capture did not publish a failed terminal outcome.'
+        Assert-True ($missingCaptureReceipt.phase -eq 'product_startup') 'Missing runtime capture terminal receipt lost its product-startup phase.'
+        Assert-True $missingCaptureReceipt.staging_directory_published 'Missing runtime capture terminal receipt did not retain its published stage identity.'
+        Assert-True ($missingCaptureReceipt.staging_manifest_sha256 -match '^[0-9a-f]{64}$') 'Missing runtime capture terminal receipt lost its staging manifest digest.'
+        Assert-True ($missingCaptureReceipt.failure.message_sha256 -match '^[0-9a-f]{64}$') 'Missing runtime capture terminal receipt lost its failure digest.'
+        Assert-True ($null -eq $missingCaptureReceipt.failure.PSObject.Properties['message']) 'Missing runtime capture terminal receipt retained raw failure text.'
     }
     finally {
-        if ($null -eq $previousSkipCapture) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_CAPTURE -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_CAPTURE = $previousSkipCapture
-        }
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
     }
 
     $missingDiagnosticsRunId = 'fixture-missing-runtime-diagnostics'
-    $previousSkipDiagnostics = $env:ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_DIAGNOSTICS
-    $env:ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_DIAGNOSTICS = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'skip-runtime-diagnostics'
     try {
         $missingDiagnosticsDetected = $false
         try {
@@ -1359,17 +1739,69 @@ try {
         Assert-True $missingDiagnosticsDetected 'A runtime product that omits structured diagnostics was not rejected.'
     }
     finally {
-        if ($null -eq $previousSkipDiagnostics) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_DIAGNOSTICS -ErrorAction SilentlyContinue
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
+    }
+
+    $diagnosticFileBudgetRunId = 'fixture-diagnostic-file-budget'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'diagnostic-file-flood'
+    try {
+        $diagnosticFileBudgetDetected = $false
+        try {
+            & $stager `
+                -ProductInputManifest $fixture.ProductInputManifest `
+                -TemplateRoot $fixture.TemplateRoot `
+                -EngineAssetRoot $fixture.EngineAssetRoot `
+                -ProjectRoot $fixture.ProjectRoot `
+                -StagingRoot $fixture.StagingRoot `
+                -RunId $diagnosticFileBudgetRunId `
+                -RepeatCount 1 `
+                -TimeoutSeconds 10 `
+                -AllowUnsafeStagingRoot | Out-Null
         }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_SKIP_RUNTIME_DIAGNOSTICS = $previousSkipDiagnostics
+        catch {
+            $diagnosticFileBudgetDetected = $true
         }
+        Assert-True $diagnosticFileBudgetDetected 'A product diagnostic directory that exceeds its file-count budget was not rejected.'
+        $diagnosticFileBudgetTerminal = @(Get-ProcessJournalEntries -StageRoot (Join-Path $fixture.StagingRoot $diagnosticFileBudgetRunId) | Where-Object { $_.phase -eq 'runtime-1' })
+        Assert-True ($diagnosticFileBudgetTerminal.Count -eq 1) 'Diagnostic file-count rejection did not publish one runtime terminal journal entry.'
+        Assert-True ($diagnosticFileBudgetTerminal[0].outcome -eq 'supervisor_failed') 'Diagnostic file-count rejection lost its supervisor-failed terminal outcome.'
+        Assert-True ($diagnosticFileBudgetTerminal[0].supervisor_failure.kind -eq 'progress_probe_failed') 'Diagnostic file-count rejection lost its progress-probe failure kind.'
+    }
+    finally {
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
+    }
+
+    $diagnosticDepthBudgetRunId = 'fixture-diagnostic-depth-budget'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'diagnostic-depth-overflow'
+    try {
+        $diagnosticDepthBudgetDetected = $false
+        try {
+            & $stager `
+                -ProductInputManifest $fixture.ProductInputManifest `
+                -TemplateRoot $fixture.TemplateRoot `
+                -EngineAssetRoot $fixture.EngineAssetRoot `
+                -ProjectRoot $fixture.ProjectRoot `
+                -StagingRoot $fixture.StagingRoot `
+                -RunId $diagnosticDepthBudgetRunId `
+                -RepeatCount 1 `
+                -TimeoutSeconds 10 `
+                -AllowUnsafeStagingRoot | Out-Null
+        }
+        catch {
+            $diagnosticDepthBudgetDetected = $true
+        }
+        Assert-True $diagnosticDepthBudgetDetected 'A product diagnostic directory that exceeds its depth budget was not rejected.'
+        $diagnosticDepthBudgetTerminal = @(Get-ProcessJournalEntries -StageRoot (Join-Path $fixture.StagingRoot $diagnosticDepthBudgetRunId) | Where-Object { $_.phase -eq 'runtime-1' })
+        Assert-True ($diagnosticDepthBudgetTerminal.Count -eq 1) 'Diagnostic depth rejection did not publish one runtime terminal journal entry.'
+        Assert-True ($diagnosticDepthBudgetTerminal[0].outcome -eq 'supervisor_failed') 'Diagnostic depth rejection lost its supervisor-failed terminal outcome.'
+        Assert-True ($diagnosticDepthBudgetTerminal[0].supervisor_failure.kind -eq 'progress_probe_failed') 'Diagnostic depth rejection lost its progress-probe failure kind.'
+    }
+    finally {
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
     }
 
     $materialFallbackRunId = 'fixture-runtime-material-fallback'
-    $previousMaterialFallback = $env:ZIRCON_MVP_FIXTURE_MATERIAL_FALLBACK
-    $env:ZIRCON_MVP_FIXTURE_MATERIAL_FALLBACK = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'material-fallback'
     try {
         $materialFallbackDetected = $false
         try {
@@ -1390,18 +1822,12 @@ try {
         Assert-True $materialFallbackDetected 'A runtime product that used a fallback material was not rejected.'
     }
     finally {
-        if ($null -eq $previousMaterialFallback) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_MATERIAL_FALLBACK -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_MATERIAL_FALLBACK = $previousMaterialFallback
-        }
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
     }
 
     $timeoutRunId = 'fixture-timeout-process-tree'
     $timeoutStage = Join-Path $fixture.StagingRoot $timeoutRunId
-    $previousTimeoutChild = $env:ZIRCON_MVP_FIXTURE_TIMEOUT_WITH_CHILD
-    $env:ZIRCON_MVP_FIXTURE_TIMEOUT_WITH_CHILD = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'timeout-with-child'
     try {
         $timedOut = $false
         try {
@@ -1413,7 +1839,7 @@ try {
                 -StagingRoot $fixture.StagingRoot `
                 -RunId $timeoutRunId `
                 -RepeatCount 1 `
-                -TimeoutSeconds 1 `
+                -TimeoutSeconds 5 `
                 -AllowUnsafeStagingRoot | Out-Null
         }
         catch {
@@ -1422,10 +1848,14 @@ try {
         Assert-True $timedOut 'A timed-out staged product was not reported as a failure.'
         $timeoutStderr = Join-Path $timeoutStage 'logs/runtime-1.stderr.log'
         Assert-True (Test-Path -LiteralPath $timeoutStderr) 'A timed-out staged product did not preserve its stderr log.'
-        Assert-True ((Get-Content -Raw -LiteralPath $timeoutStderr) -match 'fixture timeout emitted before termination') 'A timed-out staged product stderr stream was not drained before failure.'
+        Assert-True ([IO.File]::ReadAllText($timeoutStderr) -match 'fixture timeout emitted before termination') 'A timed-out staged product stderr stream was not drained before failure.'
         $timeoutJournal = @(Get-ProcessJournalEntries -StageRoot $timeoutStage | Where-Object { $_.phase -eq 'runtime-1' })
         Assert-True ($timeoutJournal.Count -eq 1) 'Timed-out runtime did not emit exactly one journal entry.'
         Assert-ProcessJournalEntry -Entry $timeoutJournal[0] -Phase 'runtime-1' -Outcome 'timed_out' -ExitCode $null
+        $timeoutReceipt = Get-MvpStagingTerminalReceiptFixture -StagingRoot $fixture.StagingRoot -RunId $timeoutRunId
+        Assert-True ($timeoutReceipt.outcome -eq 'timed_out') 'Timed-out staging run did not publish a timed-out terminal outcome.'
+        Assert-True $timeoutReceipt.staging_directory_published 'Timed-out staging run lost its published stage identity.'
+        Assert-True ($timeoutReceipt.cleanup.outcome -eq 'succeeded') 'Timed-out staging run did not record successful process cleanup.'
         Start-Sleep -Milliseconds 250
         $timeoutPids = @(
             Get-CimInstance Win32_Process | Where-Object {
@@ -1440,12 +1870,7 @@ try {
         Assert-True ($timeoutPids.Count -eq 0) 'A timeout must terminate every staged product child process.'
     }
     finally {
-        if ($null -eq $previousTimeoutChild) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_TIMEOUT_WITH_CHILD -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_TIMEOUT_WITH_CHILD = $previousTimeoutChild
-        }
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
         $timeoutPrefix = [IO.Path]::GetFullPath($timeoutStage).TrimEnd('\\') + [IO.Path]::DirectorySeparatorChar
         $timeoutPids = @(
             Get-CimInstance Win32_Process | Where-Object {
@@ -1464,10 +1889,10 @@ try {
 
     $nonzeroRunId = 'fixture-nonzero-process-tree'
     $nonzeroStage = Join-Path $fixture.StagingRoot $nonzeroRunId
-    $previousNonzeroChild = $env:ZIRCON_MVP_FIXTURE_FAIL_WITH_CHILD
-    $env:ZIRCON_MVP_FIXTURE_FAIL_WITH_CHILD = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'fail-with-child'
     try {
         $nonzeroExitDetected = $false
+        $nonzeroExitError = '<no exception>'
         try {
             & $stager `
                 -ProductInputManifest $fixture.ProductInputManifest `
@@ -1481,12 +1906,15 @@ try {
                 -AllowUnsafeStagingRoot | Out-Null
         }
         catch {
-            $nonzeroExitDetected = $_.Exception.Message -match 'exited with code 23'
+            $nonzeroExitError = $_.Exception.Message
+            $nonzeroExitDetected = $nonzeroExitError -match 'exited with code 23'
         }
-        Assert-True $nonzeroExitDetected 'A nonzero staged product exit was not reported as a failure.'
+        Assert-True `
+            $nonzeroExitDetected `
+            "A nonzero staged product exit was not reported as a failure. Actual: '$nonzeroExitError'."
         $nonzeroJournal = @(Get-ProcessJournalEntries -StageRoot $nonzeroStage | Where-Object { $_.phase -eq 'runtime-1' })
         Assert-True ($nonzeroJournal.Count -eq 1) 'Nonzero runtime did not emit exactly one journal entry.'
-        Assert-ProcessJournalEntry -Entry $nonzeroJournal[0] -Phase 'runtime-1' -Outcome 'cleanup_failed' -ExitCode 23
+        Assert-ProcessJournalEntry -Entry $nonzeroJournal[0] -Phase 'runtime-1' -Outcome 'crashed' -ExitCode 23
         Start-Sleep -Milliseconds 250
         $nonzeroPids = @(
             Get-CimInstance Win32_Process | Where-Object {
@@ -1501,12 +1929,7 @@ try {
         Assert-True ($nonzeroPids.Count -eq 0) 'A nonzero staged product exit must not leave a staged child process.'
     }
     finally {
-        if ($null -eq $previousNonzeroChild) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_FAIL_WITH_CHILD -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_FAIL_WITH_CHILD = $previousNonzeroChild
-        }
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
         $nonzeroPrefix = [IO.Path]::GetFullPath($nonzeroStage).TrimEnd('\\') + [IO.Path]::DirectorySeparatorChar
         $nonzeroPids = @(
             Get-CimInstance Win32_Process | Where-Object {
@@ -1525,10 +1948,10 @@ try {
 
     $leakedRunId = 'fixture-leaked-process'
     $leakedStage = Join-Path $fixture.StagingRoot $leakedRunId
-    $previousLeakChild = $env:ZIRCON_MVP_FIXTURE_LEAK_STAGED_CHILD
-    $env:ZIRCON_MVP_FIXTURE_LEAK_STAGED_CHILD = '1'
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'leak-staged-child'
     try {
         $leakedProcessDetected = $false
+        $leakedProcessError = '<no exception>'
         try {
             & $stager `
                 -ProductInputManifest $fixture.ProductInputManifest `
@@ -1542,16 +1965,18 @@ try {
                 -AllowUnsafeStagingRoot | Out-Null
         }
         catch {
-            $leakedProcessDetected = $_.Exception.Message -match 'Staged executable process\(es\) remain after product exit'
+            $leakedProcessError = $_.Exception.Message
+            $leakedProcessDetected = $leakedProcessError -match 'Staged process job retained a descendant after its root product exited|did not exit within'
         }
-        Assert-True $leakedProcessDetected 'A staged child process that outlives product exit was not reported.'
+        Assert-True $leakedProcessDetected "A staged child process that outlives product exit was not reported. Actual: '$leakedProcessError'."
     }
     finally {
-        if ($null -eq $previousLeakChild) {
-            Remove-Item Env:\ZIRCON_MVP_FIXTURE_LEAK_STAGED_CHILD -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:ZIRCON_MVP_FIXTURE_LEAK_STAGED_CHILD = $previousLeakChild
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
+        $leakedPidPath = Join-Path $leakedStage 'logs/runtime-1.diagnostics/leaked-child.pid'
+        if (Test-Path -LiteralPath $leakedPidPath) {
+            $leakedPid = [int](Get-Content -LiteralPath $leakedPidPath -Raw)
+            Stop-Process -Id $leakedPid -Force -ErrorAction SilentlyContinue
+            Wait-Process -Id $leakedPid -Timeout 5 -ErrorAction SilentlyContinue
         }
         $leakedPrefix = [IO.Path]::GetFullPath($leakedStage).TrimEnd('\\') + [IO.Path]::DirectorySeparatorChar
         $leakedPids = @(
@@ -1567,6 +1992,82 @@ try {
         foreach ($processId in $leakedPids) {
             Wait-Process -Id $processId -Timeout 5 -ErrorAction SilentlyContinue
         }
+    }
+
+    $externalLeakRunId = 'fixture-external-process-job-containment'
+    $externalLeakStage = Join-Path $fixture.StagingRoot $externalLeakRunId
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'leak-external-child'
+    $externalChildPid = $null
+    try {
+        $externalLeakDetected = $false
+        $externalLeakError = '<no exception>'
+        try {
+            & $stager `
+                -ProductInputManifest $fixture.ProductInputManifest `
+                -TemplateRoot $fixture.TemplateRoot `
+                -EngineAssetRoot $fixture.EngineAssetRoot `
+                -ProjectRoot $fixture.ProjectRoot `
+                -StagingRoot $fixture.StagingRoot `
+                -RunId $externalLeakRunId `
+                -RepeatCount 1 `
+                -TimeoutSeconds 10 `
+                -AllowUnsafeStagingRoot | Out-Null
+        }
+        catch {
+            $externalLeakError = $_.Exception.Message
+            $externalLeakDetected = $externalLeakError -match 'process job.*descendant|descendant.*process job|did not exit within'
+        }
+        $externalPidPath = Join-Path $externalLeakStage 'logs/runtime-1.diagnostics/escaped-child.pid'
+        if (Test-Path -LiteralPath $externalPidPath) {
+            $externalChildPid = [int](Get-Content -LiteralPath $externalPidPath -Raw)
+        }
+        Assert-True $externalLeakDetected ("A child process outside the staging executable directory must be contained and rejected by the staged product Job Object. Actual error: $externalLeakError")
+        if ($null -ne $externalChildPid) {
+            Assert-True (-not (Get-Process -Id $externalChildPid -ErrorAction SilentlyContinue)) 'A Job Object-contained external child process survived its root product exit.'
+        }
+    }
+    finally {
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
+        if ($null -ne $externalChildPid) {
+            Stop-Process -Id $externalChildPid -Force -ErrorAction SilentlyContinue
+            Wait-Process -Id $externalChildPid -Timeout 5 -ErrorAction SilentlyContinue
+        }
+    }
+
+    $boundedLogRunId = 'fixture-bounded-process-output'
+    $boundedLogStage = Join-Path $fixture.StagingRoot $boundedLogRunId
+    Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'spam-process-output'
+    try {
+        & $stager `
+            -ProductInputManifest $fixture.ProductInputManifest `
+            -TemplateRoot $fixture.TemplateRoot `
+            -EngineAssetRoot $fixture.EngineAssetRoot `
+            -ProjectRoot $fixture.ProjectRoot `
+            -StagingRoot $fixture.StagingRoot `
+            -RunId $boundedLogRunId `
+            -RepeatCount 1 `
+            -TimeoutSeconds 10 `
+            -MaxProcessLogBytes 1024 `
+            -AllowUnsafeStagingRoot | Out-Null
+        $boundedStdout = Join-Path $boundedLogStage 'logs/runtime-1.stdout.log'
+        $boundedStderr = Join-Path $boundedLogStage 'logs/runtime-1.stderr.log'
+        $boundedStdoutTail = Join-Path $boundedLogStage 'logs/runtime-1.stdout.tail.log'
+        $boundedStderrTail = Join-Path $boundedLogStage 'logs/runtime-1.stderr.tail.log'
+        Assert-True ([IO.FileInfo]::new($boundedStdout).Length -le 1024) 'Staged stdout exceeded its configured byte limit.'
+        Assert-True ([IO.FileInfo]::new($boundedStderr).Length -le 1024) 'Staged stderr exceeded its configured byte limit.'
+        Assert-True ([IO.FileInfo]::new($boundedStdoutTail).Length -le 1024) 'Staged stdout tail exceeded its configured byte limit.'
+        Assert-True ([IO.FileInfo]::new($boundedStderrTail).Length -le 1024) 'Staged stderr tail exceeded its configured byte limit.'
+        $boundedJournal = @(Get-ProcessJournalEntries -StageRoot $boundedLogStage | Where-Object { $_.phase -eq 'runtime-1' })
+        Assert-True ($boundedJournal.Count -eq 1) 'Bounded-output runtime did not emit exactly one journal entry.'
+        Assert-True ([Int64]$boundedJournal[0].stdout.dropped_bytes -gt 0) 'Bounded stdout did not record dropped-byte evidence.'
+        Assert-True ([Int64]$boundedJournal[0].stderr.dropped_bytes -gt 0) 'Bounded stderr did not record dropped-byte evidence.'
+        Assert-True ([string]$boundedJournal[0].stdout.tail_file_name -eq 'runtime-1.stdout.tail.log') 'Bounded stdout journal did not identify its tail artifact.'
+        Assert-True ([string]$boundedJournal[0].stderr.tail_file_name -eq 'runtime-1.stderr.tail.log') 'Bounded stderr journal did not identify its tail artifact.'
+        Assert-True ([Int64]$boundedJournal[0].stdout.tail_retained_bytes -le 1024) 'Bounded stdout tail did not record its byte ceiling.'
+        Assert-True ([Int64]$boundedJournal[0].stderr.tail_retained_bytes -le 1024) 'Bounded stderr tail did not record its byte ceiling.'
+    }
+    finally {
+        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
     }
 
     $originalEditorRuntimeLibrary = $fixture.EditorRuntimeLibrary
@@ -1635,6 +2136,7 @@ try {
     Write-Host 'MVP staging contract passed'
 }
 finally {
+    Remove-MvpStagingFixtureBuildSet -Fixture $fixture
     if (Test-Path -LiteralPath $fixture.Root) {
         Remove-MvpTestFixtureRoot -Path $fixture.Root
     }

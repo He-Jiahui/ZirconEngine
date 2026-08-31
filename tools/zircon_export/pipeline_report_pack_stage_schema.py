@@ -39,6 +39,10 @@ from .pipeline_report_pack_trim_schema import (
     pack_trim_report_non_fatal_preflight_diagnostics,
     pack_trim_report_schema_diagnostics,
 )
+from .pipeline_report_pack_manifest_path_hash_schema_helpers import (
+    normalized_asset_package_path,
+    pack_asset_path_schema_diagnostics,
+)
 from .pipeline_report_schema_string_array import string_array_no_blank_entries_schema_diagnostics
 
 PACK_REPORT_FIELDS = (
@@ -110,6 +114,46 @@ PACK_REPORT_OBJECT_FIELDS = (
 SchemaDiagnostic = Callable[[str, Any], list[str]]
 
 
+def pack_report_asset_path_array_projection(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"]
+    type_diagnostics: list[str] = []
+    path_diagnostics: list[str] = []
+    seen_paths: set[str] = set()
+    all_strings = True
+    has_blank = False
+    for index, item in enumerate(value):
+        if not isinstance(item, str):
+            all_strings = False
+            type_diagnostics.append(f"{label}[{index}] must be a string")
+            continue
+        if not item.strip():
+            has_blank = True
+            continue
+        path_result = pack_asset_path_schema_diagnostics(
+            f"{label}[{index}]", item
+        )
+        path_diagnostics.extend(path_result)
+        if path_result:
+            continue
+        normalized_path = normalized_asset_package_path(item)
+        if normalized_path in seen_paths:
+            path_diagnostics.append(
+                f"{label} path {normalized_path} is declared more than once"
+            )
+        else:
+            seen_paths.add(normalized_path)
+    blank_diagnostics = (
+        [f"{label} must not contain blank entries"]
+        if all_strings and has_blank
+        else []
+    )
+    return type_diagnostics + blank_diagnostics + path_diagnostics
+
+
 def pack_report_schema_diagnostics(
     report: dict[str, Any],
     *,
@@ -163,26 +207,12 @@ def pack_report_schema_diagnostics(
     for field in PACK_REPORT_STRING_ARRAY_FIELDS:
         if field in report and report.get(field) is not None:
             label = f"pack report {field}"
-            diagnostics.extend(
-                pack_string_array_entry_type_schema_diagnostics(
-                    label,
-                    report.get(field),
-                )
-            )
-            if field in PACK_REPORT_NO_BLANK_STRING_ARRAY_FIELDS:
-                diagnostics.extend(
-                    string_array_no_blank_entries_schema_diagnostics(
-                        label,
-                        report.get(field),
-                    )
-                )
             if field in PACK_REPORT_ASSET_PATH_ARRAY_FIELDS:
-                diagnostics.extend(
-                    pack_asset_path_array_schema_diagnostics(
-                        label,
-                        report.get(field),
-                    )
-                )
+                diagnostics.extend(pack_report_asset_path_array_projection(label, report.get(field)))
+            else:
+                diagnostics.extend(pack_string_array_entry_type_schema_diagnostics(label, report.get(field)))
+                if field in PACK_REPORT_NO_BLANK_STRING_ARRAY_FIELDS:
+                    diagnostics.extend(string_array_no_blank_entries_schema_diagnostics(label, report.get(field)))
     for field in PACK_REPORT_BOOL_FIELDS:
         if field in report and report.get(field) is not None:
             diagnostics.extend(

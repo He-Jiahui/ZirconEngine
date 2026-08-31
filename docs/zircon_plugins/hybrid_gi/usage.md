@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_app/Cargo.toml
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
@@ -34,7 +34,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
 implementation_files:
   - zircon_app/Cargo.toml
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs

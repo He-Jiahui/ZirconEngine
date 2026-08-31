@@ -72,6 +72,7 @@ def materialize_generated_files(
             f"SourceTemplate generated project {project_dir} could not be created: {error}"
         )
         return False
+    resolved_root, root_resolution_error = resolve_project_root(project_dir)
     for file in files:
         path = file.get("path")
         contents = file.get("contents")
@@ -80,7 +81,13 @@ def materialize_generated_files(
         if not isinstance(contents, str):
             diagnostics.append(f"validate report generated file {path} has no contents; skipped")
             continue
-        destination = resolve_project_child(project_dir, path, diagnostics)
+        destination = resolve_project_child_from_root(
+            project_dir,
+            resolved_root,
+            root_resolution_error,
+            path,
+            diagnostics,
+        )
         if destination is None:
             continue
         try:
@@ -112,12 +119,19 @@ def generated_file_path_safety_diagnostics(
     if not isinstance(files, list):
         return []
     diagnostics: list[str] = []
+    resolved_root, root_resolution_error = resolve_project_root(project_dir)
     for file in files:
         if not isinstance(file, dict):
             continue
         path = file.get("path")
         if isinstance(path, str):
-            resolve_project_child(project_dir, path, diagnostics)
+            resolve_project_child_from_root(
+                project_dir,
+                resolved_root,
+                root_resolution_error,
+                path,
+                diagnostics,
+            )
     return diagnostics
 
 
@@ -145,9 +159,16 @@ def source_template_generated_file_report(
     diagnostics: list[str],
 ) -> list[dict[str, str | int]]:
     report: list[dict[str, str | int]] = []
+    resolved_root, root_resolution_error = resolve_project_root(project_dir)
     for file in generated_files:
         path = file["path"]
-        destination = resolve_project_child(project_dir, path, diagnostics)
+        destination = resolve_project_child_from_root(
+            project_dir,
+            resolved_root,
+            root_resolution_error,
+            path,
+            diagnostics,
+        )
         if destination is None:
             continue
         if not destination.exists():
@@ -232,17 +253,44 @@ def resolve_project_child(
     *,
     kind: str = "generated file path",
 ) -> Path | None:
+    resolved_root, root_resolution_error = resolve_project_root(project_dir)
+    return resolve_project_child_from_root(
+        project_dir,
+        resolved_root,
+        root_resolution_error,
+        relative_path,
+        diagnostics,
+        kind=kind,
+    )
+
+
+def resolve_project_root(project_dir: Path) -> tuple[Path | None, OSError | None]:
+    try:
+        return project_dir.resolve(), None
+    except OSError as error:
+        return None, error
+
+
+def resolve_project_child_from_root(
+    project_dir: Path,
+    resolved_root: Path | None,
+    root_resolution_error: OSError | None,
+    relative_path: str,
+    diagnostics: list[str],
+    *,
+    kind: str = "generated file path",
+) -> Path | None:
     child_path = Path(relative_path)
     if child_path.is_absolute():
         diagnostics.append(f"{kind} {relative_path} must be relative")
         return None
-    try:
-        resolved_root = project_dir.resolve()
-    except OSError as error:
+    if root_resolution_error is not None:
         diagnostics.append(
-            f"SourceTemplate project {project_dir} could not be resolved for {kind} {relative_path}: {error}"
+            f"SourceTemplate project {project_dir} could not be resolved for "
+            f"{kind} {relative_path}: {root_resolution_error}"
         )
         return None
+    assert resolved_root is not None
     try:
         resolved = (resolved_root / child_path).resolve()
     except OSError as error:

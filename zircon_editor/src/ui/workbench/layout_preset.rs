@@ -5,10 +5,8 @@ use serde::{Deserialize, Serialize};
 use super::autolayout::{PaneConstraintOverride, ShellRegionId, WorkbenchConstraintTokenName};
 use super::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
-    MainHostPageLayout, MainPageId, SplitAxis, TabStackLayout, WorkbenchLayout,
+    MainPageId, SplitAxis, TabStackLayout, WorkbenchLayout,
 };
-
-pub const LAYOUT_PRESET_PERSISTENCE_VERSION: u32 = 1;
 
 const LEFT_DRAWER_WIDTH_TOKEN: &str = "--left-drawer-width";
 const RIGHT_DRAWER_WIDTH_TOKEN: &str = "--right-drawer-width";
@@ -119,8 +117,7 @@ impl LayoutPreset {
         layout: &WorkbenchLayout,
         page_id: &MainPageId,
     ) -> Self {
-        let drawers = activity_window_drawers_for_page(layout, page_id)
-            .unwrap_or_else(|| layout.drawers.clone());
+        let drawers = activity_window_drawers_for_page(layout, page_id).unwrap_or_default();
         Self {
             name,
             drawer_states: drawer_states_from_layout(&drawers),
@@ -133,9 +130,6 @@ impl LayoutPreset {
         apply_drawer_states(layout, page_id, &self.drawer_states);
         apply_size_overrides(layout, page_id, &self.size_overrides);
         apply_center_split(layout, page_id, self.center_split);
-        if &layout.active_main_page == page_id {
-            layout.sync_legacy_drawers_from_active_activity_window();
-        }
     }
 }
 
@@ -204,21 +198,6 @@ impl LayoutPresetScope {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PersistedLayoutPreset {
-    pub format_version: u32,
-    pub preset: LayoutPreset,
-}
-
-impl PersistedLayoutPreset {
-    pub fn new(preset: LayoutPreset) -> Self {
-        Self {
-            format_version: LAYOUT_PRESET_PERSISTENCE_VERSION,
-            preset,
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct LayoutPresetPersistenceStore {
     #[serde(default)]
@@ -228,22 +207,19 @@ pub struct LayoutPresetPersistenceStore {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LayoutPresetPersistenceEntry {
     pub scope: LayoutPresetScope,
-    pub document: PersistedLayoutPreset,
+    pub preset: LayoutPreset,
 }
 
 impl LayoutPresetPersistenceStore {
     pub fn persist_layout(&mut self, scope: LayoutPresetScope, preset: LayoutPreset) {
-        self.insert_persisted(scope, PersistedLayoutPreset::new(preset));
-    }
-
-    pub fn insert_persisted(&mut self, scope: LayoutPresetScope, document: PersistedLayoutPreset) {
-        if let Some(entry) = self.entries.iter_mut().find(|entry| entry.scope == scope) {
-            entry.document = document;
-        } else {
-            self.entries
-                .push(LayoutPresetPersistenceEntry { scope, document });
-            self.entries
-                .sort_by(|left, right| left.scope.cmp(&right.scope));
+        match self
+            .entries
+            .binary_search_by(|entry| entry.scope.cmp(&scope))
+        {
+            Ok(index) => self.entries[index].preset = preset,
+            Err(index) => self
+                .entries
+                .insert(index, LayoutPresetPersistenceEntry { scope, preset }),
         }
     }
 
@@ -259,25 +235,13 @@ impl LayoutPresetPersistenceStore {
     }
 
     pub fn restore_layout(&self, scope: &LayoutPresetScope) -> LayoutPresetRestoreResult {
-        let Some(document) = self
+        let Ok(index) = self
             .entries
-            .iter()
-            .find(|entry| &entry.scope == scope)
-            .map(|entry| &entry.document)
+            .binary_search_by(|entry| entry.scope.cmp(scope))
         else {
             return LayoutPresetRestoreResult::fallback(LayoutPresetRestoreFallback::Missing);
         };
-
-        if document.format_version != LAYOUT_PRESET_PERSISTENCE_VERSION {
-            return LayoutPresetRestoreResult::fallback(
-                LayoutPresetRestoreFallback::VersionMismatch {
-                    stored_version: document.format_version,
-                    expected_version: LAYOUT_PRESET_PERSISTENCE_VERSION,
-                },
-            );
-        }
-
-        LayoutPresetRestoreResult::Restored(document.preset.clone())
+        LayoutPresetRestoreResult::Restored(self.entries[index].preset.clone())
     }
 
     pub fn restore_into_layout(
@@ -295,13 +259,13 @@ impl LayoutPresetPersistenceStore {
     }
 }
 
+#[cfg(test)]
+#[path = "layout_preset/optimization_tests.rs"]
+mod optimization_tests;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LayoutPresetRestoreFallback {
     Missing,
-    VersionMismatch {
-        stored_version: u32,
-        expected_version: u32,
-    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -430,7 +394,6 @@ fn preferred_region_extent(
     activity_window_id_for_page(layout, page_id)
         .and_then(|window_id| layout.activity_windows.get(&window_id))
         .and_then(|window| preferred_from_override(window.region_overrides.get(&region), region))
-        .or_else(|| preferred_from_override(layout.region_overrides.get(&region), region))
 }
 
 fn preferred_from_override(
@@ -447,15 +410,7 @@ fn preferred_from_override(
 
 fn center_split_from_layout(layout: &WorkbenchLayout, page_id: &MainPageId) -> CenterSplitLayout {
     layout
-        .main_pages
-        .iter()
-        .find(|page| page.id() == page_id)
-        .and_then(|page| match page {
-            MainHostPageLayout::WorkbenchPage {
-                document_workspace, ..
-            } => Some(document_workspace),
-            MainHostPageLayout::ExclusiveActivityWindowPage { .. } => None,
-        })
+        .content_workspace_for_page(page_id)
         .map(center_split_from_document)
         .unwrap_or(CenterSplitLayout::SingleDocument)
 }
@@ -509,17 +464,9 @@ fn apply_drawer_states(
     if let Some(window_id) = activity_window_id_for_page(layout, page_id) {
         if let Some(window) = layout.activity_windows.get_mut(&window_id) {
             for state in states {
-                if let Some(drawer) = window.activity_drawers.get_mut(&state.slot.canonical()) {
+                if let Some(drawer) = window.activity_drawers.get_mut(&state.slot) {
                     apply_drawer_mode(drawer, state.mode);
                 }
-            }
-        }
-    }
-
-    if &layout.active_main_page == page_id {
-        for state in states {
-            if let Some(drawer) = layout.drawers.get_mut(&state.slot.canonical()) {
-                apply_drawer_mode(drawer, state.mode);
             }
         }
     }
@@ -551,15 +498,6 @@ fn apply_size_overrides(
                     if let Some(drawer) = window.activity_drawers.get_mut(slot) {
                         drawer.extent = extent;
                     }
-                }
-            }
-        }
-
-        if &layout.active_main_page == page_id {
-            set_region_preferred(&mut layout.region_overrides, binding.region, extent);
-            for slot in binding.slots {
-                if let Some(drawer) = layout.drawers.get_mut(slot) {
-                    drawer.extent = extent;
                 }
             }
         }
@@ -611,12 +549,7 @@ fn apply_center_split(
     page_id: &MainPageId,
     center_split: CenterSplitLayout,
 ) {
-    let Some(document_workspace) = layout
-        .main_pages
-        .iter_mut()
-        .find(|page| page.id() == page_id)
-        .and_then(MainHostPageLayout::document_workspace_mut)
-    else {
+    let Some(document_workspace) = layout.content_workspace_for_page_mut(page_id) else {
         return;
     };
 

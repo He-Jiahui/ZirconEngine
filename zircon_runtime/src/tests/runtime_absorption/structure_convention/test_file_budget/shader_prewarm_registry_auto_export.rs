@@ -86,7 +86,7 @@ fn runtime_15_shader_prewarm_registry_auto_export_is_wired() {
         &manifest,
         &[
             "shader_source_from_zmeta",
-            "has_sidecar_zmeta(&path)",
+            "has_sidecar_zmeta(path, inventory.paths())",
             "continue;",
         ],
     );
@@ -96,18 +96,18 @@ fn runtime_15_shader_prewarm_registry_auto_export_is_wired() {
         &[
             "has_sidecar_zmeta",
             "format!(\"{file_name}.zmeta\")",
-            ".exists()",
+            "candidate == &metadata_path",
         ],
     );
     assert_contains_all(
         "focused tests cover staged registry export handoff",
         &manifest_registry_tests,
         &[
-            "shader_prewarm_asset_root_exports_shader_resource_records",
+            "shader_prewarm_asset_root_exports_raw_module_records_without_material_variants",
             "shader_resource_records_from_asset_root",
             "ResourceState::Ready",
-            "assert_eq!(manifest.variants.len(), 6)",
-            "request.key.material_revision == record.revision",
+            "manifest.sources.is_empty()",
+            "manifest.variants.is_empty()",
         ],
     );
     assert_contains_all(
@@ -179,9 +179,19 @@ fn runtime_15_shader_prewarm_registry_auto_export_is_wired() {
                 "Staged shader resource registry auto-export",
                 STATUS,
                 "shader_resource_records_from_asset_root",
-                "shader_prewarm_asset_root_exports_shader_resource_records",
                 "runtime_15_shader_prewarm_registry_auto_export_is_wired",
             ],
+        );
+    }
+
+    for (label, source) in [
+        ("shader doc", shader_doc.as_str()),
+        ("build tool doc", build_tool_doc.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &["shader_prewarm_asset_root_exports_raw_module_records_without_material_variants"],
         );
     }
 }

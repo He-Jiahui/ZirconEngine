@@ -29,12 +29,7 @@ impl VirtualGeometryRuntimeState {
             ));
         }
 
-        let evictable_pages = plan
-            .evictable_pages
-            .iter()
-            .copied()
-            .filter(|page_id| self.has_resident_page(*page_id))
-            .collect();
+        let evictable_pages = resident_evictable_pages(self, &plan.evictable_pages);
         self.replace_evictable_pages(evictable_pages);
     }
 
@@ -65,3 +60,17 @@ impl VirtualGeometryRuntimeState {
         }
     }
 }
+
+fn resident_evictable_pages(state: &VirtualGeometryRuntimeState, candidates: &[u32]) -> Vec<u32> {
+    let mut resident_candidates = Vec::with_capacity(candidates.len());
+    resident_candidates.extend(
+        candidates
+            .iter()
+            .copied()
+            .filter(|page_id| state.has_resident_page(*page_id)),
+    );
+    resident_candidates
+}
+
+#[cfg(test)]
+mod performance_tests;

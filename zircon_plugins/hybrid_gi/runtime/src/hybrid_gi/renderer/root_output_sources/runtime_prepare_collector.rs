@@ -9,6 +9,7 @@ use zircon_runtime::core::framework::render::{
 use zircon_runtime::core::math::Vec3;
 use zircon_runtime::graphics::{
     GraphicsError, RuntimePrepareCollector, RuntimePrepareCollectorContext,
+    RuntimePrepareDeviceEpoch, RuntimePrepareFrameTransaction,
 };
 
 use crate::hybrid_gi::renderer::{
@@ -28,7 +29,7 @@ mod material_capture;
 mod mesh_projection;
 mod neutral_projection;
 
-use global_sdf_stats::{global_sdf_runtime_stats, GlobalSdfCpuPrepareTimings};
+use global_sdf_stats::{GlobalSdfCpuPrepareTimings, global_sdf_runtime_stats};
 use material_capture::RuntimePrepareMaterialCaptureCache;
 use mesh_projection::RuntimePrepareMeshProjectionCache;
 use neutral_projection::{
@@ -49,11 +50,12 @@ const HGI_PREPARE_PROFILE_NAME: &str = "runtime_prepare.hybrid_gi.prepare";
 
 #[derive(Default)]
 pub(crate) struct HybridGiRuntimePrepareCollector {
-    state: Mutex<HybridGiRuntimePrepareCollectorState>,
+    state: Arc<Mutex<HybridGiRuntimePrepareCollectorState>>,
 }
 
 #[derive(Default)]
 struct HybridGiRuntimePrepareCollectorState {
+    active_device_epoch: Option<RuntimePrepareDeviceEpoch>,
     gpu_resources: Option<HybridGiGpuResources>,
     radiance_cache_instances: BTreeMap<u64, HybridGiRuntimePrepareInstanceState>,
     collector_frame_index: u64,
@@ -122,10 +124,16 @@ pub(crate) fn runtime_prepare_collector() -> Arc<dyn RuntimePrepareCollector> {
 }
 
 impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
+    fn requests_gpu_readback(&self) -> bool {
+        true
+    }
+
     fn collect(
         &self,
         context: &mut RuntimePrepareCollectorContext<'_>,
     ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
+        let mut state = self.lock_state()?;
+        state.activate_device_epoch(context.device_epoch());
         let Some(prepared_frame) = context
             .prepared_runtime_sidebands()
             .hybrid_gi_prepared_frame()
@@ -158,7 +166,6 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
         let global_sdf_page_budget = global_sdf_page_budget(extract.quality);
         let global_sdf_build_page_budget = global_sdf_build_page_budget(extract.quality);
 
-        let mut state = self.lock_state()?;
         let instance_id = prepared_frame.radiance_cache_instance_id;
         if instance_id == 0 {
             return Err(GraphicsError::AdvancedProviderSelection(
@@ -168,7 +175,26 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
         }
         state.collector_frame_index = state.collector_frame_index.saturating_add(1).max(1);
         let collector_frame_index = state.collector_frame_index;
-        state.ensure_instance(instance_id, collector_frame_index, context.device);
+        if !context.gpu_work_admitted() {
+            let completed_readback =
+                if let Some(instance) = state.radiance_cache_instances.get_mut(&instance_id) {
+                    let global_sdf_completions = instance.collect_ready_global_sdf_builds()?;
+                    instance
+                        .global_sdf_scene_state
+                        .commit_pages(&global_sdf_completions);
+                    instance.collect_ready_readbacks()?
+                } else {
+                    None
+                };
+            return Ok(plugin_renderer_outputs_from_gpu_readback(
+                completed_readback,
+                None,
+            ));
+        }
+        {
+            let gpu = context.gpu_recording_context();
+            state.ensure_instance(instance_id, collector_frame_index, gpu.device);
+        }
 
         let prepare = prepare_frame_from_neutral(&prepared_frame);
         let resolve_runtime = resolve_runtime_from_neutral(&prepared_frame);
@@ -191,20 +217,25 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
                 "hybrid GI runtime-prepare instance {instance_id} was not retained after insertion"
             )));
         };
+        let mut staged_readback_count = 0_usize;
         let global_sdf_completions = instance.collect_ready_global_sdf_builds()?;
         let global_sdf_uploaded_page_count = global_sdf_completions.len();
         instance
             .global_sdf_scene_state
             .commit_pages(&global_sdf_completions);
         let completed_readback = instance.collect_ready_readbacks()?;
-        if !context.gpu_work_admitted() {
-            return Ok(plugin_renderer_outputs_from_gpu_readback(
-                completed_readback,
-                None,
-            ));
+        if gpu_resources.is_none() {
+            let resources = {
+                let gpu = context.gpu_recording_context();
+                HybridGiGpuResources::new(gpu.device)
+            };
+            *gpu_resources = Some(resources);
         }
-        let gpu_resources =
-            gpu_resources.get_or_insert_with(|| HybridGiGpuResources::new(context.device));
+        let Some(gpu_resources) = gpu_resources.as_mut() else {
+            return Err(GraphicsError::AdvancedProviderSelection(
+                "hybrid GI GPU resources were not retained after initialization".to_string(),
+            ));
+        };
         let mesh_projection_started = Instant::now();
         let mesh_projection_cache_hit = instance
             .mesh_projection_cache
@@ -268,7 +299,11 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
             .collect::<Vec<_>>();
         let mut global_sdf_build_stats = GlobalSdfGpuBuildStats::default();
         if !global_sdf_build_requests.is_empty() {
-            if can_enqueue_readback_observation(instance.in_flight_readback_count()) {
+            if can_enqueue_readback_observation(
+                instance
+                    .in_flight_readback_count()
+                    .saturating_add(staged_readback_count),
+            ) {
                 rotate_global_sdf_build_requests(
                     &mut global_sdf_build_requests,
                     &mut instance.global_sdf_deferred_cursor,
@@ -276,15 +311,18 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
                 );
                 let gpu_pass = context.begin_gpu_pass(GLOBAL_SDF_BUILD_PROFILE_NAME);
                 let gpu_dispatch_started = Instant::now();
-                let dispatch = gpu_resources.dispatch_global_sdf_pages(
-                    &instance.global_sdf_gpu_state,
-                    context.device,
-                    &mut *context.encoder,
-                    &mut instance.global_sdf_scene_state,
-                    instance.mesh_sdf_scene_state.objects(),
-                    &global_sdf_build_requests,
-                    global_sdf_build_page_budget,
-                );
+                let dispatch = {
+                    let gpu = context.gpu_recording_context();
+                    gpu_resources.dispatch_global_sdf_pages(
+                        &instance.global_sdf_gpu_state,
+                        gpu.device,
+                        gpu.encoder,
+                        &mut instance.global_sdf_scene_state,
+                        instance.mesh_sdf_scene_state.objects(),
+                        &global_sdf_build_requests,
+                        global_sdf_build_page_budget,
+                    )
+                };
                 if dispatch.encoded_gpu_work() {
                     context.end_gpu_pass(
                         gpu_pass,
@@ -298,7 +336,13 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
                 global_sdf_build_stats = dispatch.stats();
                 if let Some(pending) = dispatch.into_pending() {
                     let future = pending.enqueue(context)?;
-                    instance.pending_global_sdf_readbacks.push_back(future);
+                    register_global_sdf_readback_frame_commit(
+                        context,
+                        Arc::clone(&self.state),
+                        instance_id,
+                        future,
+                    );
+                    staged_readback_count = staged_readback_count.saturating_add(1);
                 }
             } else {
                 global_sdf_build_stats = GlobalSdfGpuBuildStats::deferred_by_readback_backpressure(
@@ -328,7 +372,11 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
         );
         let outputs =
             plugin_renderer_outputs_from_gpu_readback(completed_readback, Some(global_sdf_stats));
-        if !can_enqueue_readback_observation(instance.in_flight_readback_count()) {
+        if !can_enqueue_readback_observation(
+            instance
+                .in_flight_readback_count()
+                .saturating_add(staged_readback_count),
+        ) {
             return Ok(outputs);
         }
         let cache_submission = instance
@@ -340,27 +388,38 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
         );
         let gpu_pass = context.begin_gpu_pass(HGI_PREPARE_PROFILE_NAME);
         let gpu_prepare_started = Instant::now();
-        let pending_readback = gpu_resources.execute_prepare(
-            &instance.radiance_cache_gpu_state,
-            &instance.global_sdf_gpu_state,
-            &instance.global_sdf_scene_state,
-            context.device,
-            context.queue,
-            &mut *context.encoder,
-            instance.mesh_projection_cache.material_capture(),
-            Some(&prepare),
-            scene_prepare.as_ref(),
-            &radiance_cache_updates,
-            &radiance_cache_consumes,
-            Some(&resolve_runtime),
-            scene_mesh_world_bounds,
-            execution_scene_meshes,
-            &directional_lights,
-            &point_lights,
-            &spot_lights,
-            probe_budget,
-            tracing_budget,
-        );
+        let pending_readback = {
+            let gpu = context.gpu_recording_context();
+            let zircon_runtime::graphics::RuntimePrepareGpuRecordingContext {
+                device,
+                device_epoch: _,
+                encoder,
+                mut buffer_uploads,
+                mut frame_transactions,
+            } = gpu;
+            gpu_resources.execute_prepare(
+                &instance.radiance_cache_gpu_state,
+                &instance.global_sdf_gpu_state,
+                &instance.global_sdf_scene_state,
+                device,
+                &mut buffer_uploads,
+                &mut frame_transactions,
+                encoder,
+                instance.mesh_projection_cache.material_capture(),
+                Some(&prepare),
+                scene_prepare.as_ref(),
+                &radiance_cache_updates,
+                &radiance_cache_consumes,
+                Some(&resolve_runtime),
+                scene_mesh_world_bounds,
+                execution_scene_meshes,
+                &directional_lights,
+                &point_lights,
+                &spot_lights,
+                probe_budget,
+                tracing_budget,
+            )
+        };
         context.end_gpu_pass(
             gpu_pass,
             HGI_RUNTIME_PREPARE_EXECUTOR_ID,
@@ -370,19 +429,72 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
         let pending_readback = pending_readback?;
         if let Some(pending_readback) = pending_readback {
             let future = pending_readback.enqueue(context)?;
-            instance
-                .pending_readbacks
-                .push_back(HybridGiRuntimePreparePendingReadback {
+            register_radiance_cache_readback_frame_commit(
+                context,
+                Arc::clone(&self.state),
+                instance_id,
+                HybridGiRuntimePreparePendingReadback {
                     radiance_cache_revision: cache_submission.revision,
                     future,
-                });
+                },
+            );
         }
 
         Ok(outputs)
     }
 }
 
+fn register_global_sdf_readback_frame_commit(
+    context: &mut RuntimePrepareCollectorContext<'_>,
+    state: Arc<Mutex<HybridGiRuntimePrepareCollectorState>>,
+    instance_id: u64,
+    future: GlobalSdfGpuReadbackFuture,
+) {
+    context.register_frame_transaction(RuntimePrepareFrameTransaction::new(
+        "hybrid-gi.global-sdf-readback",
+        move || {
+            let mut state = state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Some(instance) = state.radiance_cache_instances.get_mut(&instance_id) {
+                instance.pending_global_sdf_readbacks.push_back(future);
+            }
+        },
+        || {},
+    ));
+}
+
+fn register_radiance_cache_readback_frame_commit(
+    context: &mut RuntimePrepareCollectorContext<'_>,
+    state: Arc<Mutex<HybridGiRuntimePrepareCollectorState>>,
+    instance_id: u64,
+    pending: HybridGiRuntimePreparePendingReadback,
+) {
+    context.register_frame_transaction(RuntimePrepareFrameTransaction::new(
+        "hybrid-gi.radiance-cache-readback",
+        move || {
+            let mut state = state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Some(instance) = state.radiance_cache_instances.get_mut(&instance_id) {
+                instance.pending_readbacks.push_back(pending);
+            }
+        },
+        || {},
+    ));
+}
+
 impl HybridGiRuntimePrepareCollectorState {
+    fn activate_device_epoch(&mut self, device_epoch: RuntimePrepareDeviceEpoch) -> bool {
+        let changed = self.active_device_epoch != Some(device_epoch);
+        if changed {
+            self.gpu_resources = None;
+            self.radiance_cache_instances.clear();
+        }
+        self.active_device_epoch = Some(device_epoch);
+        changed
+    }
+
     fn ensure_instance(
         &mut self,
         instance_id: u64,
@@ -580,6 +692,10 @@ impl HybridGiRuntimePrepareCollector {
 }
 
 #[cfg(test)]
+#[path = "runtime_prepare_collector/device_epoch_tests.rs"]
+mod device_epoch_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -673,6 +789,63 @@ mod tests {
 
         assert!(admission_gate < global_sdf_dispatch);
         assert!(admission_gate < prepare_dispatch);
+    }
+
+    #[test]
+    fn hgi_prepare_uses_queue_free_upload_and_state_transaction_recorders() {
+        let collector = include_str!("runtime_prepare_collector.rs")
+            .split("\n#[cfg(test)]")
+            .next()
+            .unwrap_or_default();
+        let params = include_str!("../gpu_resources/execute_prepare/execute/queue_params.rs");
+        let radiance = include_str!(
+            "../gpu_resources/execute_prepare/execute/dispatch_radiance_cache/dispatch.rs"
+        );
+
+        assert!(collector.contains("context.gpu_recording_context()"));
+        assert!(collector.contains("mut buffer_uploads"));
+        assert!(collector.contains("mut frame_transactions"));
+        assert!(!collector.contains("context.queue"));
+        assert!(!collector.contains("context.device"));
+        assert!(!collector.contains("context.encoder"));
+        assert!(!collector.contains("expect(\"hybrid GI GPU resources"));
+        assert!(!params.contains("queue.write_buffer"));
+        assert!(!radiance.contains("queue.write_buffer"));
+    }
+
+    #[test]
+    fn hgi_readback_futures_publish_only_after_frame_acceptance() {
+        let source = include_str!("runtime_prepare_collector.rs")
+            .split("\n#[cfg(test)]")
+            .next()
+            .unwrap_or_default();
+        let global_enqueue = source
+            .find("let future = pending.enqueue(context)?;")
+            .expect("Global SDF readback enqueue");
+        let global_publish = source[global_enqueue..]
+            .find("register_global_sdf_readback_frame_commit(")
+            .map(|offset| global_enqueue + offset)
+            .expect("Global SDF readback frame commit");
+        let radiance_enqueue = source[global_publish..]
+            .find("let future = pending_readback.enqueue(context)?;")
+            .map(|offset| global_publish + offset)
+            .expect("radiance-cache readback enqueue");
+        let radiance_publish = source[radiance_enqueue..]
+            .find("register_radiance_cache_readback_frame_commit(")
+            .map(|offset| radiance_enqueue + offset)
+            .expect("radiance-cache readback frame commit");
+
+        assert!(global_enqueue < global_publish);
+        assert!(radiance_enqueue < radiance_publish);
+        assert!(source.contains("hybrid-gi.global-sdf-readback"));
+        assert!(source.contains("hybrid-gi.radiance-cache-readback"));
+        assert!(source.contains(".saturating_add(staged_readback_count)"));
+        assert_eq!(
+            source
+                .matches("context.register_frame_transaction(RuntimePrepareFrameTransaction::new(")
+                .count(),
+            2
+        );
     }
 
     #[test]

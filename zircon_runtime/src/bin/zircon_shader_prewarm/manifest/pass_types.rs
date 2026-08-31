@@ -32,9 +32,13 @@ pub(super) fn asset_scan_pass_types_for_zshader(
 }
 
 fn pass_type_from_token(token: &str) -> Option<ShaderPassType> {
-    let token = token.trim().to_ascii_lowercase();
+    let token = token.trim();
     ASSET_SCAN_FULL_MATERIAL_PASSES
         .iter()
         .copied()
-        .find(|pass_type| pass_type.token() == token)
+        .find(|pass_type| token.eq_ignore_ascii_case(pass_type.token()))
 }
+
+#[cfg(test)]
+#[path = "pass_types/borrowed_token_tests.rs"]
+mod borrowed_token_tests;

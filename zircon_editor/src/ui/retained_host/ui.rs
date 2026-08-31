@@ -34,7 +34,7 @@ mod workbench_window_projection;
 
 pub(crate) use apply_presentation_impl::{
     apply_presentation, apply_presentation_with_template_v2_data,
-    to_host_contract_scene_viewport_chrome,
+    apply_window_metrics_geometry_presentation, to_host_contract_scene_viewport_chrome,
 };
 #[cfg(test)]
 pub(crate) use pane_data_conversion::refresh_runtime_diagnostics_debug_reflector_from_body_surface;
@@ -52,6 +52,8 @@ pub(crate) use pane_data_conversion::to_host_contract_hierarchy_pane_from_host_p
 pub(crate) use pane_data_conversion::to_host_contract_inspector_pane_from_host_pane;
 #[cfg(test)]
 pub(crate) use pane_data_conversion::to_host_contract_runtime_diagnostics_pane_from_host_pane;
+pub(crate) use pane_data_conversion::ConsolePaneProjectionCache;
+pub(crate) use pane_data_conversion::ModulePluginsPaneProjectionCache;
 pub(crate) use scoped_presentation::{
     build_ui_asset_presentation_patch, patch_ui_asset_presentation,
 };

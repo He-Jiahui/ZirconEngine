@@ -8,6 +8,7 @@ use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
 };
 use crate::plugin::PluginShaderModuleSource;
+use crate::text::font::{FontCollectionService, shared_font_collection_service};
 
 use crate::graphics::types::GraphicsError;
 
@@ -78,7 +79,29 @@ impl SceneRenderer {
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
         plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
     ) -> Result<Self, GraphicsError> {
-        Self::new_with_icon_source_and_plugin_render_features_and_shading_models(
+        Self::new_with_plugin_render_extensions_and_shading_models_and_font_collection(
+            asset_manager,
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            plugin_geometry_sources,
+            plugin_shading_models,
+            plugin_shader_module_sources,
+            shared_font_collection_service(),
+        )
+    }
+
+    pub(crate) fn new_with_plugin_render_extensions_and_shading_models_and_font_collection(
+        asset_manager: ProjectAssetManagerAccess,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
+        font_collection: Arc<FontCollectionService>,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_icon_source_and_plugin_render_features_and_shading_models_and_font_collection(
             asset_manager,
             Arc::new(EmptyViewportIconSource),
             render_features,
@@ -87,6 +110,7 @@ impl SceneRenderer {
             plugin_geometry_sources,
             plugin_shading_models,
             plugin_shader_module_sources,
+            font_collection,
         )
     }
 

@@ -1,6 +1,10 @@
 use super::super::{RenderCapabilityMismatchDetail, RenderCapabilitySummary};
 use super::AdvancedRenderFeature;
 
+#[cfg(test)]
+#[path = "provider_report/capacity_tests.rs"]
+mod capacity_tests;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AdvancedProviderStatus {
     NotRequested,
@@ -123,7 +127,10 @@ impl AdvancedProviderReport {
             };
         }
 
-        let mut degradations = Vec::new();
+        let mut degradations = Vec::with_capacity(advanced_provider_degradation_capacity(
+            feature,
+            provider_id.is_some(),
+        ));
         for required_capability in feature.required_capabilities() {
             if !required_capability.is_satisfied_by(capabilities) {
                 degradations.push(AdvancedRenderDegradation::missing_capability(
@@ -161,4 +168,14 @@ impl AdvancedProviderReport {
             .map(AdvancedRenderDegradation::reason_label)
             .collect()
     }
+}
+
+fn advanced_provider_degradation_capacity(
+    feature: AdvancedRenderFeature,
+    provider_available: bool,
+) -> usize {
+    feature
+        .required_capabilities()
+        .len()
+        .saturating_add(usize::from(!provider_available))
 }

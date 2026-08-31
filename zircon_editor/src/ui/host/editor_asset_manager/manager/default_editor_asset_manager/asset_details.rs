@@ -8,7 +8,7 @@ impl DefaultEditorAssetManager {
         &self,
         uuid: &str,
     ) -> Option<Arc<EditorAssetDetailsGeneration>> {
-        let state = self.state.read().expect("editor asset state lock poisoned");
+        let state = self.read_state_recovering_poison();
         state.catalog_generation.details(uuid)
     }
 }

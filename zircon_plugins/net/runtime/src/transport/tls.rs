@@ -3,6 +3,10 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::{ClientConfig, RootCertStore, ServerConfig};
 use zircon_runtime::core::framework::net::{NetError, NetSecurityPolicy};
 
+#[cfg(test)]
+#[path = "tls/performance_tests.rs"]
+mod performance_tests;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TlsServerIdentity {
     certificate_chain_der: Vec<Vec<u8>>,
@@ -106,8 +110,12 @@ fn normalize_certificate_pin(pin: &str) -> String {
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
-    bytes
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>()
+    const HEX_DIGITS: &[u8; 16] = b"0123456789abcdef";
+
+    let mut encoded = String::with_capacity(bytes.len().saturating_mul(2));
+    for &byte in bytes {
+        encoded.push(HEX_DIGITS[(byte >> 4) as usize] as char);
+        encoded.push(HEX_DIGITS[(byte & 0x0f) as usize] as char);
+    }
+    encoded
 }

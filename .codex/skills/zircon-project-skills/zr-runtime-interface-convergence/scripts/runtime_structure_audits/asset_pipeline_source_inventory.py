@@ -31,8 +31,8 @@ RUNTIME_04_SOURCE_FILES = (
     "zircon_runtime/src/asset/artifact/chunk_residency.rs",
     "zircon_runtime/src/asset/artifact/store.rs",
     "zircon_runtime/src/asset/module.rs",
-    "zircon_runtime/src/core/resource/manager/registry_ops.rs",
-    "zircon_runtime/src/core/resource/manager/commit.rs",
+    "zircon_runtime/crates/zr_resource/src/manager/registry_ops.rs",
+    "zircon_runtime/crates/zr_resource/src/manager/commit.rs",
     "zircon_runtime_interface/src/resource/resource_record.rs",
 )
 
@@ -50,7 +50,7 @@ RUNTIME_04_GUARD_FILES = (
     "zircon_runtime/src/asset/tests/assets/artifact_store/lazy_residency.rs",
     "zircon_runtime/src/asset/tests/assets/artifact_store/scene_components.rs",
     "zircon_runtime/src/asset/tests/assets/artifact_store/scene_script.rs",
-    "zircon_runtime/src/core/resource/tests.rs",
+    "zircon_runtime/crates/zr_resource/src/tests.rs",
     "zircon_runtime/src/tests/runtime_absorption/asset_surface.rs",
     "zircon_runtime/src/tests/runtime_absorption/asset_surface/facade_query.rs",
     "zircon_runtime/src/tests/runtime_absorption/asset_worker_policy.rs",

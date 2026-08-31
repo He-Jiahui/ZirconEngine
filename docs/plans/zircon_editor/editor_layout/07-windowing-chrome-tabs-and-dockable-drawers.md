@@ -7,6 +7,8 @@ related_code:
   - zircon_editor/src/ui/workbench/window_registry/drawer_dock_position.rs
   - zircon_editor/src/ui/workbench/window_registry/drawer_binding.rs
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
+  - zircon_editor/src/ui/workbench/layout/main_host_page_layout.rs
+  - zircon_editor/src/ui/workbench/layout/workbench_layout.rs
 design_references:
   - docs/ui-and-layout/editor-workbench-designs/main-tabs-layout-spec.png
   - docs/ui-and-layout/editor-workbench-designs/drawer-expanded-state-spec.png
@@ -14,7 +16,7 @@ design_references:
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/03-jetbrains-docking-workbench.md
   - docs/plans/zircon_editor/editor_layout/04-layout-presets-and-persistence.md
-status: planned
+status: in_progress
 ---
 # 07 窗口化、Chrome 式页签与可吸附抽屉架构
 
@@ -137,4 +139,5 @@ impl EditorWindowRegistry {
 
 ## 12. 状态与产出记录
 
-planned。后续项:S1 目的视图 + Chrome 页签合并。
+- 当前源码已先完成 window 承载事实源的前置硬切：`MainHostPageLayout::WorkbenchPage` 只保留 `activity_window` 外键，文档树唯一归 `ActivityWindowLayout.content_workspace`；旧持久化字段不兼容、不迁移。详见 [2026-08-29 content-workspace single-authority hard cut](07/2026-08-29-content-workspace-single-authority-hardcut.md)。
+- S1 目的视图 + Chrome 页签合并仍待后续切片；不得重新在 main page 建立第二份文档树。

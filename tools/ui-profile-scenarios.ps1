@@ -13,8 +13,11 @@ function Get-ZirconUiProfileCaptureScenarioDefinitions {
         [pscustomobject]@{ id = 'drawer_resize'; instruction = 'Drag side or bottom pane splitters repeatedly, then close.'; include_in_all = $true }
         [pscustomobject]@{ id = 'window_resize'; instruction = 'Resize the native editor window repeatedly, restore its original extent, then close.'; include_in_all = $true }
         [pscustomobject]@{ id = 'hierarchy_scroll'; instruction = 'Scroll the live hierarchy pane in alternating directions, then close.'; include_in_all = $true }
+        [pscustomobject]@{ id = 'hierarchy_filter'; instruction = 'Enter the configured query into the live hierarchy search field, wait for the refreshed geometry, then close.'; include_in_all = $true }
         [pscustomobject]@{ id = 'welcome_recent_scroll'; instruction = 'Scroll the Welcome recent-project viewport in alternating directions, then close.'; include_in_all = $true }
+        [pscustomobject]@{ id = 'runtime_diagnostics'; instruction = 'Open the source-bound Runtime Diagnostics bottom drawer and observe incremental viewport-driven refreshes, then close.'; include_in_all = $true }
         [pscustomobject]@{ id = 'asset_refresh'; instruction = 'Trigger an asset refresh or reopen the project/asset pane, then close.'; include_in_all = $true }
+        [pscustomobject]@{ id = 'asset_browser_scroll'; instruction = 'Scroll the source-bound Asset Browser content viewport in alternating directions, then close.'; include_in_all = $false }
         [pscustomobject]@{ id = 'viewport_image'; instruction = 'Let the scene/game viewport update for several seconds, orbit if useful, then close.'; include_in_all = $true }
     )
 }

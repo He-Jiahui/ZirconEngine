@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::ffi::{c_char, CStr};
 
 use crate::plugin::PluginPackageManifest;
@@ -79,12 +80,13 @@ pub(super) fn package_manifest_from_toml(
 
 pub(super) fn parse_native_string_list(value: &str) -> Vec<String> {
     let mut entries = Vec::new();
+    let mut seen = HashSet::new();
     for entry in value
         .split(|character| matches!(character, '\n' | ',' | ';'))
         .map(str::trim)
         .filter(|entry| !entry.is_empty())
     {
-        if !entries.iter().any(|existing| existing == entry) {
+        if seen.insert(entry) {
             entries.push(entry.to_string());
         }
     }
@@ -128,3 +130,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "native_strings/string_list_dedup_tests.rs"]
+mod string_list_dedup_tests;

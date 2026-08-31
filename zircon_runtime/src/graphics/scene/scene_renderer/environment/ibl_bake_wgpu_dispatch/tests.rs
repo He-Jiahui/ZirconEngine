@@ -366,9 +366,14 @@ fn record_graph_context_dispatch(
         .unwrap_or_else(|| panic!("IBL bake pass `{pass_name}` should exist"));
     let mut resources = RenderGraphExecutionResources::new();
     let mut transient_pool = TransientResourcePool::default();
-    transient_pool.begin_frame();
+    transient_pool.begin_frame(backend.device_profile());
     resources
-        .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
+        .materialize_transient_resources_with_pool(
+            &backend.device,
+            backend.device_profile(),
+            &graph,
+            &mut transient_pool,
+        )
         .expect("IBL transient outputs should materialize");
     let source_texture = create_source_cubemap_texture(&backend.device);
     resources.import_texture_view(
@@ -462,6 +467,42 @@ fn graph_context_rejects_pmrem_pass_without_mip_suffix_before_gpu_lookup() {
     let error = record_ibl_bake_wgpu_pass_for_request(&mut context, &request).unwrap_err();
 
     assert!(error.contains("no IBL bake WGPU command matches pass"));
+}
+
+#[test]
+fn graph_context_resolves_only_canonical_pass_and_executor_pairs() {
+    let context = RenderPassExecutionContext::with_declared_graph_metadata_and_resources(
+        "env.ibl_prefilter.mip7",
+        RenderPassExecutorId::new(super::super::ibl_bake_graph_plan::IBL_BAKE_PMREM_EXECUTOR_ID),
+        QueueLane::AsyncCompute,
+        QueueLane::AsyncCompute,
+        Default::default(),
+        Vec::new(),
+    );
+    assert_eq!(
+        command_kind_for_context(&context),
+        Some(IblBakeComputeKernelKind::Pmrem { mip_level: 7 })
+    );
+
+    let noncanonical = RenderPassExecutionContext::with_declared_graph_metadata_and_resources(
+        "env.ibl_prefilter.mip07",
+        RenderPassExecutorId::new(super::super::ibl_bake_graph_plan::IBL_BAKE_PMREM_EXECUTOR_ID),
+        QueueLane::AsyncCompute,
+        QueueLane::AsyncCompute,
+        Default::default(),
+        Vec::new(),
+    );
+    assert_eq!(command_kind_for_context(&noncanonical), None);
+
+    let mismatched = RenderPassExecutionContext::with_declared_graph_metadata_and_resources(
+        super::super::ibl_bake_graph_plan::IBL_BAKE_IRRADIANCE_SH9_PASS,
+        RenderPassExecutorId::new(super::super::ibl_bake_graph_plan::IBL_BAKE_PMREM_EXECUTOR_ID),
+        QueueLane::AsyncCompute,
+        QueueLane::AsyncCompute,
+        Default::default(),
+        Vec::new(),
+    );
+    assert_eq!(command_kind_for_context(&mismatched), None);
 }
 
 fn request(

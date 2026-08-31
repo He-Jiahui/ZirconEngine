@@ -5,8 +5,9 @@ use zircon_runtime::core::framework::navigation::{
     NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
 use zircon_runtime::core::manager::{ManagerResolver, NAVIGATION_MANAGER_NAME};
-use zircon_runtime::core::runtime::CoreRuntime;
+use zircon_runtime::core::runtime::{CoreRuntime, TasksModule, TASKS_MODULE_NAME};
 use zircon_runtime::core::ServiceKind;
+use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::scene::ecs::{SystemOrderingConstraint, SystemRef};
 use zircon_runtime::scene::{
     SceneNavigationRuntimeHandle, SystemStage, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
@@ -25,6 +26,11 @@ fn navigation_module_obeys_driver_manager_dependency_layers() {
     const IMPLEMENTATION_DRIVER_NAME: &str = "navigation.runtime.Driver.DefaultNavigationRuntime";
 
     let descriptor = module_descriptor();
+    assert_eq!(descriptor.module_dependencies.len(), 1);
+    assert_eq!(
+        descriptor.module_dependencies[0].module_name,
+        TASKS_MODULE_NAME
+    );
 
     let implementation = descriptor
         .drivers
@@ -60,6 +66,9 @@ fn navigation_module_obeys_driver_manager_dependency_layers() {
     );
 
     let runtime = CoreRuntime::new();
+    runtime
+        .register_module(TasksModule.descriptor())
+        .expect("tasks module registration");
     runtime
         .register_module(descriptor)
         .expect("navigation service dependency layering must be valid");

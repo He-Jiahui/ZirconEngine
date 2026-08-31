@@ -42,6 +42,33 @@ fn mui_input_base_component_name_is_editable_text_owner() {
 }
 
 #[test]
+fn editor_text_component_aliases_use_their_canonical_surface_value_property() {
+    for (component, property) in [("FieldEditor", "value_text"), ("SourceEditor", "text")] {
+        let mut surface = mui_text_input_surface(component, "a", 1, []);
+        surface.focus_node(UiNodeId::new(2)).unwrap();
+
+        let result = dispatch_text(&mut surface, "b");
+
+        assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+        assert_eq!(
+            result.diagnostics.handled_phase.as_deref(),
+            Some("text.edit")
+        );
+        assert_eq!(text_attr(&surface, property), "ab");
+        assert_eq!(int_attr(&surface, "caret_offset"), 2);
+        assert_eq!(result.component_events.len(), 1);
+        assert_eq!(
+            result.component_events[0].event,
+            UiComponentEvent::ValueChanged {
+                property: property.to_string(),
+                value: UiValue::String("ab".to_string()),
+            }
+        );
+        assert_widget_binding_report_for_property(&result.binding_reports, property);
+    }
+}
+
+#[test]
 fn mui_input_base_read_only_alias_blocks_text_mutation_but_allows_navigation() {
     let mut surface = mui_text_input_surface(
         "InputBase",
@@ -502,8 +529,16 @@ fn mui_text_input_surface(
         UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
             .with_frame(UiFrame::new(0.0, 0.0, 200.0, 80.0)),
     );
+    let value_property = match component {
+        "FieldEditor" => "value_text",
+        "SourceEditor" => "text",
+        _ => "value",
+    };
     let attributes = [
-        ("value".to_string(), toml::Value::String(value.to_string())),
+        (
+            value_property.to_string(),
+            toml::Value::String(value.to_string()),
+        ),
         (
             "caret_offset".to_string(),
             toml::Value::Integer(caret_offset as i64),
@@ -663,8 +698,10 @@ fn int_attr(surface: &UiSurface, key: &str) -> i64 {
 
 fn binding(id: &str, event: UiEventKind) -> UiBindingRef {
     UiBindingRef {
+        component_event: super::typed_component_event_kind_for_test(id),
         id: id.to_string(),
         event,
+        mode: Default::default(),
         route: Some(id.replace('/', ".")),
         action: None,
         targets: Vec::new(),

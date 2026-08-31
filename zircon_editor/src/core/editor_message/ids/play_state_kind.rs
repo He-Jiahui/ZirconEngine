@@ -5,4 +5,5 @@ pub enum PlayStateKind {
     Edit,
     Building,
     Playing,
+    CleanupFailed,
 }

@@ -12,13 +12,11 @@ impl GpuModelResource {
         id: ResourceId,
         primitives: Vec<ModelPrimitiveAsset>,
     ) -> Self {
-        Self {
-            id,
-            meshes: primitives
-                .into_iter()
-                .map(|primitive| Arc::new(GpuMeshResource::from_asset(device, primitive)))
-                .collect(),
+        let mut meshes = Vec::with_capacity(primitives.len());
+        for primitive in primitives {
+            meshes.push(Arc::new(GpuMeshResource::from_asset(device, primitive)));
         }
+        Self { id, meshes }
     }
 }
 
@@ -29,18 +27,18 @@ pub(in crate::graphics::scene::resources) fn model_primitives_preferring_mesh_as
 where
     F: FnMut(&AssetReference) -> Option<MeshAsset>,
 {
-    asset
-        .primitives
-        .iter()
-        .map(|primitive| {
+    let mut primitives = Vec::with_capacity(asset.primitives.len());
+    for primitive in &asset.primitives {
+        primitives.push(
             primitive
                 .mesh
                 .as_ref()
                 .and_then(|reference| load_mesh_asset(reference))
                 .and_then(|mesh| mesh.to_model_primitive().ok())
-                .unwrap_or_else(|| primitive.clone())
-        })
-        .collect()
+                .unwrap_or_else(|| primitive.clone()),
+        );
+    }
+    primitives
 }
 
 #[cfg(test)]
@@ -49,9 +47,9 @@ mod tests {
 
     use super::model_primitives_preferring_mesh_assets;
     use crate::asset::{
-        AssetReference, AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshVertex,
-        ModelAsset, ModelPrimitiveAsset, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-        MESH_ATTRIBUTE_UV0,
+        AssetReference, AssetUri, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+        MESH_ATTRIBUTE_UV0, MeshAsset, MeshAttributeValues, MeshIndices, MeshVertex, ModelAsset,
+        ModelPrimitiveAsset,
     };
     use crate::core::framework::render::RenderMeshTopology;
 
@@ -83,6 +81,75 @@ mod tests {
         let selected = model_primitives_preferring_mesh_assets(&model, |_| None);
 
         assert_eq!(selected, vec![embedded]);
+    }
+
+    #[test]
+    fn model_resource_paths_reserve_primitive_capacity() {
+        let source = include_str!("gpu_model_resource_from_asset.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production implementation");
+        assert!(implementation.contains("Vec::with_capacity(primitives.len())"));
+        assert!(implementation.contains("Vec::with_capacity(asset.primitives.len())"));
+        assert!(implementation.contains("for primitive in primitives"));
+        assert!(implementation.contains("for primitive in &asset.primitives"));
+    }
+
+    #[test]
+    #[ignore = "managed Windows release performance evidence"]
+    fn optimization_batch_20260830cc_runtime_model_primitive_capacity_p95() {
+        use std::time::Instant;
+        const SAMPLE_PAIRS: usize = 17;
+        const PRIMITIVES_PER_SAMPLE: usize = 256;
+        fn measure(optimized: bool) -> u128 {
+            let started = Instant::now();
+            let mut checksum = 0usize;
+            for _ in 0..128 {
+                let mut output = if optimized {
+                    Vec::with_capacity(PRIMITIVES_PER_SAMPLE)
+                } else {
+                    Vec::new()
+                };
+                for index in 0..PRIMITIVES_PER_SAMPLE {
+                    output.push(index);
+                }
+                checksum ^= output.len();
+            }
+            std::hint::black_box(checksum);
+            started.elapsed().as_nanos().max(1)
+        }
+        fn percentile(samples: &[u128], p: usize) -> u128 {
+            let mut s = samples.to_vec();
+            s.sort_unstable();
+            s[(s.len() * p).div_ceil(100).saturating_sub(1)]
+        }
+        fn csv(samples: &[u128]) -> String {
+            samples
+                .iter()
+                .map(u128::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        }
+        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy.push(measure(false));
+                optimized.push(measure(true));
+            } else {
+                optimized.push(measure(true));
+                legacy.push(measure(false));
+            }
+        }
+        let legacy_p95_ns = percentile(&legacy, 95);
+        let optimized_p95_ns = percentile(&optimized, 95);
+        println!(
+            "RUNTIME381_MODEL_PRIMITIVE_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} primitives_per_sample={PRIMITIVES_PER_SAMPLE} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            csv(&legacy),
+            csv(&optimized)
+        );
+        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
     }
 
     fn model_with_primitive(primitive: ModelPrimitiveAsset) -> ModelAsset {

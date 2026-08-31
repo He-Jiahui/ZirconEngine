@@ -59,7 +59,6 @@ fn list_row_border_from_palette(
     matches!(
         state,
         UiPainterResolvedState::Focused
-            | UiPainterResolvedState::Pressed
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered
     )

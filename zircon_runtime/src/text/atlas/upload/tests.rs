@@ -87,6 +87,57 @@ fn render_text_atlas_upload_skips_empty_and_out_of_range_sources() {
     );
 }
 
+#[test]
+fn render_text_atlas_upload_rejects_zero_sized_page() {
+    let page = page_spec(GlyphAtlasFormat::Sdf, 0, UVec2::new(0, 16));
+
+    assert_eq!(
+        glyph_atlas_upload_command(&page, GlyphAtlasUploadMode::FullPage, None, 16),
+        None
+    );
+}
+
+#[test]
+fn render_text_atlas_upload_rejects_dirty_rect_outside_page() {
+    let page = page_spec(GlyphAtlasFormat::Sdf, 0, UVec2::new(16, 16));
+
+    assert_eq!(
+        glyph_atlas_upload_command(
+            &page,
+            GlyphAtlasUploadMode::PartialRect,
+            Some(atlas_rect(12, 12, 8, 8)),
+            16 * 16,
+        ),
+        None
+    );
+}
+
+#[test]
+fn render_text_atlas_upload_rejects_rgba_row_stride_overflow() {
+    let page = page_spec(GlyphAtlasFormat::Color, 0, UVec2::new(u32::MAX, 2));
+
+    assert_eq!(
+        glyph_atlas_upload_command(
+            &page,
+            GlyphAtlasUploadMode::PartialRect,
+            Some(atlas_rect(0, 0, 1, 1)),
+            usize::MAX,
+        ),
+        None
+    );
+}
+
+#[test]
+fn render_text_atlas_upload_rejects_source_range_overflow() {
+    assert!(!source_range_fits(
+        u64::MAX - 2,
+        u32::MAX,
+        atlas_rect(0, 0, 4, 2),
+        4,
+        usize::MAX,
+    ));
+}
+
 fn page_spec(format: GlyphAtlasFormat, page_index: u32, size: UVec2) -> GlyphAtlasPageSpec {
     GlyphAtlasPageSpec::new(GlyphAtlasPageKey::new(format, page_index), size)
 }

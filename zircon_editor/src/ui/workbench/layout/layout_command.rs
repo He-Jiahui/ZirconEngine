@@ -53,6 +53,10 @@ pub enum LayoutCommand {
         slot: ActivityDrawerSlot,
         extent: f32,
     },
+    SetDrawerRegionExtent {
+        slot: ActivityDrawerSlot,
+        extent: f32,
+    },
     ActivateDrawerTab {
         slot: ActivityDrawerSlot,
         instance_id: ViewInstanceId,
@@ -67,4 +71,15 @@ pub enum LayoutCommand {
         name: String,
     },
     ResetToDefault,
+}
+
+impl LayoutCommand {
+    pub const fn is_geometry_only(&self) -> bool {
+        matches!(
+            self,
+            Self::ResizeSplit { .. }
+                | Self::SetDrawerExtent { .. }
+                | Self::SetDrawerRegionExtent { .. }
+        )
+    }
 }

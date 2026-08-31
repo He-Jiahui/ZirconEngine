@@ -9,12 +9,12 @@ use super::feature_status_record::FeatureStatus;
 use cycle::{mark_unresolved_feature_cycle, unresolved_feature_ids};
 
 pub(super) fn block_unresolved_features(
-    pending: Vec<(PendingFeatureSelection<'_>, FeatureStatus)>,
+    mut pending: Vec<(PendingFeatureSelection<'_>, FeatureStatus)>,
     projection: &RuntimePluginCatalogProjection,
     target: RuntimeTargetMode,
     report: &mut RuntimePluginFeatureDependencyReport,
 ) {
-    let unresolved_feature_ids = unresolved_feature_ids(&pending);
+    let unresolved_feature_ids = unresolved_feature_ids(&mut pending);
     for (active, mut status) in pending {
         debug_assert!(!status.is_immediately_blocked());
         mark_unresolved_feature_cycle(&mut status, projection, &unresolved_feature_ids, target);

@@ -90,8 +90,10 @@ fn importance_sample_ggx(xi: vec2<f32>, normal: vec3<f32>, roughness: f32) -> ve
 fn distribution_ggx(no_h: f32, roughness: f32) -> f32 {
     let alpha = max(roughness * roughness, 0.0001);
     let alpha2 = alpha * alpha;
-    let denominator = max(no_h * no_h * (alpha2 - 1.0) + 1.0, 0.0001);
-    return alpha2 / max(PI * denominator * denominator, 0.000001);
+    let clamped_no_h = clamp(no_h, 0.0, 1.0);
+    let no_h_squared = clamped_no_h * clamped_no_h;
+    let denominator = (1.0 - no_h_squared) + no_h_squared * alpha2;
+    return alpha2 / (PI * denominator * denominator);
 }
 
 fn source_footprint_lod(source_face_size: f32, source_max_mip: f32) -> f32 {

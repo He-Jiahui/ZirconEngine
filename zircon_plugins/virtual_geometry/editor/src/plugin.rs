@@ -40,7 +40,6 @@ impl zircon_editor::EditorPlugin for VirtualGeometryEditorPlugin {
                     VIRTUAL_GEOMETRY_AUTHORING_VIEW_ID,
                     "Virtual Geometry",
                     "Rendering",
-                    "Plugins/Virtual Geometry",
                 )],
             },
         )

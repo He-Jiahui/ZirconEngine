@@ -1,3 +1,4 @@
+mod ambient_occlusion_settings;
 mod chain;
 mod color_lut_readback;
 mod color_space;
@@ -17,6 +18,9 @@ mod volume_extract;
 mod volume_profile;
 mod volume_registry;
 
+pub use ambient_occlusion_settings::{
+    AoQualityTier, AoSourceSettings, AoSourceSettingsKey, AO_SOURCE_SETTINGS_VERSION,
+};
 pub use chain::PostProcessChainSlot;
 pub use color_lut_readback::{
     RenderColorLutReadbackReference, RenderColorLutReadbackReport, COLOR_LUT_IDENTITY_EPSILON_MICRO,

@@ -1,14 +1,19 @@
+#[cfg(test)]
+mod asset_deletion_blocker_tests;
 mod chrome_command_stream;
 pub(crate) mod data;
 mod diagnostics;
 mod frame_geometry;
 mod globals;
+mod host_dock_overflow_menu;
 mod host_page_overflow_menu;
 mod menu_popup_metrics;
 mod native_keyboard;
 mod native_pointer;
 mod native_popup_dismiss;
+mod paint_asset_deletion_blocker;
 mod paint_close_prompt;
+mod paint_color;
 mod paint_debug_reflector_overlay;
 mod paint_diagnostics;
 mod paint_frame;
@@ -17,9 +22,11 @@ mod paint_primitives;
 mod paint_recording;
 mod paint_template_nodes;
 pub(in crate::ui::retained_host) use paint_template_nodes::{
-    clear_svg_tree_cache, clear_visual_asset_pixels_cache, invalidate_editor_sprite_atlas_cache,
-    invalidate_svg_tree_paths, invalidate_visual_asset_pixel_paths, reconcile_svg_tree_sources,
-    reconcile_visual_asset_pixel_sources,
+    bind_visual_asset_loader, clear_svg_tree_cache, clear_visual_asset_pixels_cache,
+    invalidate_editor_sprite_atlas_cache, invalidate_svg_tree_paths,
+    invalidate_visual_asset_pixel_paths, reconcile_svg_tree_sources,
+    reconcile_visual_asset_pixel_sources, take_visual_asset_completion, unbind_visual_asset_loader,
+    VisualAssetLoadCompletion,
 };
 mod paint_text;
 pub(crate) mod paint_theme;
@@ -30,6 +37,8 @@ mod profiling_artifacts;
 mod profiling_hit_routes;
 mod redraw;
 mod search_field_clear_action;
+mod settings_color_editor_geometry;
+mod settings_window_geometry;
 mod surface_hit_test;
 mod template_activation_semantics;
 mod template_component_family;
@@ -44,8 +53,9 @@ pub(crate) use diagnostics::{
     HostInvalidationDiagnostics, HostWindowDiagnostic, HostWindowDiagnosticSeverity,
     STARTUP_REFRESH_DIAGNOSTICS_OVERLAY,
 };
-pub(crate) use globals::{PaneSurfaceHostContext, UiHostContext};
+pub(crate) use globals::{HostAssetSurfaceInteractionState, PaneSurfaceHostContext, UiHostContext};
 pub(crate) use menu_popup_metrics::menu_popup_text_width;
+pub(crate) use native_pointer::{HostChromeTooltipTarget, WorkbenchTooltipPointerTarget};
 pub(crate) use paint_text::{measure_runtime_text_width, runtime_text_metrics_generation};
 pub(crate) use paint_theme::{
     apply_host_appearance_from_tokens, apply_host_metrics_from_tokens,
@@ -81,4 +91,4 @@ pub(crate) use paint_workbench_renderer::paint_scrollbar_component_for_test;
 pub(crate) use surface_hit_test::{
     build_pane_template_surface_frame, rebuild_pane_template_hit_artifacts,
 };
-pub(crate) use window::UiHostWindow;
+pub(crate) use window::{primary_host_window_id, UiHostWindow};

@@ -5,7 +5,7 @@ pub(super) fn assert_owner_budget_source_inventory(sources: &OwnerBudgetSources)
         "performance hotpath source inventory",
         sources.source_inventory,
         &[
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget/child_routes/artifact_render_diagnostics.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget/child_routes/hotspot_inventory.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget/child_routes/owner_budget.rs",
@@ -36,7 +36,7 @@ pub(super) fn assert_owner_budget_source_inventory(sources: &OwnerBudgetSources)
         sources.owner_budget_source_inventory,
         &[
             "assert_performance_hotpath_source_inventory",
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "owner_budget/child_routes/artifact_render_diagnostics.rs",
             "owner_budget/child_routes/hotspot_inventory.rs",
             "owner_budget/child_routes/owner_budget.rs",
@@ -62,7 +62,7 @@ pub(super) fn assert_owner_budget_source_inventory(sources: &OwnerBudgetSources)
         sources.owner_budget_mirror_docs_source_inventory,
         &[
             "assert_source_inventory_anchors",
-            "EXPECTED_TEST_FILE_COUNT = 91",
+            "RUNTIME_07_TEST_FILES = (",
             "owner_budget/child_routes/artifact_render_diagnostics.rs",
             "owner_budget/child_routes/hotspot_inventory.rs",
             "owner_budget/child_routes/owner_budget.rs",

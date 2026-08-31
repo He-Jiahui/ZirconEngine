@@ -3,9 +3,11 @@ mod keyboard;
 mod pointer;
 mod resize;
 
+use crate::ui::retained_host::host_contract::globals::UiHostContext;
 use crate::ui::retained_host::primitives::CloseRequestResponse;
-use winit::event::WindowEvent;
+use winit::event::{ButtonSource, ElementState, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 use super::platform_input::event_uses_platform_input;
 use super::platform_input::PlatformInputTranslation;
@@ -17,6 +19,11 @@ impl UiHostWindowEventLoop {
         event_loop: &dyn ActiveEventLoop,
         event: WindowEvent,
     ) {
+        if self.try_defer_idle_pointer_move(&event) {
+            return;
+        }
+        self.flush_pending_idle_pointer_move();
+        let mouse_button_pressed = mouse_button_pressed(&event);
         let platform_input_event =
             event_uses_platform_input(&event).then(|| self.translate_platform_input_event(&event));
         match event {
@@ -50,12 +57,30 @@ impl UiHostWindowEventLoop {
             WindowEvent::PointerButton { position, .. } => {
                 self.handle_pointer_button(require_platform_input(platform_input_event), position);
             }
-            WindowEvent::PointerEntered { .. } | WindowEvent::PointerLeft { .. } => {
+            WindowEvent::PointerEntered { .. } => {
                 let platform_event = require_platform_input(platform_input_event);
                 self.begin_input_outcome(platform_event.sequence);
                 self.reject_input_outcome();
             }
-            WindowEvent::Focused(false) => self.handle_native_window_focus_lost(),
+            WindowEvent::PointerLeft { .. } => {
+                let platform_event = require_platform_input(platform_input_event);
+                self.begin_input_outcome(platform_event.sequence);
+                let (x, y) = self.last_pointer_position.unwrap_or((0.0, 0.0));
+                if let Some(pointer) = super::platform_input::platform_pointer_cancel_input(
+                    platform_event.event,
+                    UiPoint::new(x, y),
+                ) {
+                    self.host
+                        .global::<UiHostContext>()
+                        .invoke_workbench_pointer_input(pointer, None);
+                }
+                self.reject_input_outcome();
+            }
+            WindowEvent::Focused(true) => self.handle_native_window_focused(),
+            WindowEvent::Focused(false) => {
+                self.pressed_mouse_button_count = 0;
+                self.handle_native_window_focus_lost();
+            }
             WindowEvent::KeyboardInput { event, .. } => {
                 self.handle_keyboard_input(event, require_platform_input(platform_input_event));
             }
@@ -73,6 +98,29 @@ impl UiHostWindowEventLoop {
             }
             _ => {}
         }
+        if let Some(pressed) = mouse_button_pressed {
+            self.pressed_mouse_button_count = if pressed {
+                self.pressed_mouse_button_count.saturating_add(1)
+            } else {
+                self.pressed_mouse_button_count.saturating_sub(1)
+            };
+        }
+    }
+}
+
+fn mouse_button_pressed(event: &WindowEvent) -> Option<bool> {
+    match event {
+        WindowEvent::PointerButton {
+            state: ElementState::Pressed,
+            button: ButtonSource::Mouse(_),
+            ..
+        } => Some(true),
+        WindowEvent::PointerButton {
+            state: ElementState::Released,
+            button: ButtonSource::Mouse(_),
+            ..
+        } => Some(false),
+        _ => None,
     }
 }
 
@@ -84,6 +132,10 @@ fn require_platform_input(
 
 #[cfg(test)]
 mod tests {
+    use winit::event::{ButtonSource, ElementState, MouseButton, WindowEvent};
+
+    use super::mouse_button_pressed;
+
     #[test]
     fn routed_native_inputs_keep_translation_identity_until_their_handler() {
         let source = include_str!("events.rs");
@@ -101,5 +153,34 @@ mod tests {
 
         assert!(source.contains("WindowEvent::Focused(false)"));
         assert!(source.contains("handle_native_window_focus_lost"));
+    }
+
+    #[test]
+    fn native_focus_gain_routes_to_the_owner_acknowledgement_callback() {
+        let source = include_str!("events.rs");
+
+        assert!(source.contains("WindowEvent::Focused(true)"));
+        assert!(source.contains("handle_native_window_focused"));
+    }
+
+    #[test]
+    fn only_mouse_buttons_gate_idle_move_coalescing() {
+        let mouse = WindowEvent::PointerButton {
+            device_id: None,
+            state: ElementState::Pressed,
+            position: winit::dpi::PhysicalPosition::new(0.0, 0.0),
+            primary: true,
+            button: ButtonSource::Mouse(MouseButton::Left),
+        };
+        let unknown = WindowEvent::PointerButton {
+            device_id: None,
+            state: ElementState::Pressed,
+            position: winit::dpi::PhysicalPosition::new(0.0, 0.0),
+            primary: true,
+            button: ButtonSource::Unknown(1),
+        };
+
+        assert_eq!(mouse_button_pressed(&mouse), Some(true));
+        assert_eq!(mouse_button_pressed(&unknown), None);
     }
 }

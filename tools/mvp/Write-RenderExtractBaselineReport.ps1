@@ -7,16 +7,45 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $repoRoot 'tools\mvp\RenderExtractBaselineEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $repoRoot 'tools\mvp\RenderExtractBaselineMetrics.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\mvp\RenderExtractMachineEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\mvp\RenderExtractPerformanceScenario.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 
-$script:RenderExtractRequiredScenarios = @(
-    [pscustomobject]@{ logical_id = 'pipelined-first-frame'; product = 'runtime'; runtime_profile = 'runtime-pipelined'; measurement_window = 'cold-first-presented-frame' },
-    [pscustomobject]@{ logical_id = 'pipelined-steady'; product = 'runtime'; runtime_profile = 'runtime-pipelined'; measurement_window = 'steady-presented-frames-after-warmup' },
-    [pscustomobject]@{ logical_id = 'synchronous-steady'; product = 'runtime'; runtime_profile = 'runtime'; measurement_window = 'steady-presented-frames-after-warmup' },
-    [pscustomobject]@{ logical_id = 'editor-first-frame'; product = 'editor'; runtime_profile = 'editor'; measurement_window = 'cold-first-presented-frame' }
-)
+$script:RenderExtractRequiredScenarios = @(Get-RenderExtractPerformanceScenarioDefinitions)
+
+function Get-RenderExtractScenarioBudgetEvaluation {
+    param(
+        [Parameter(Mandatory)]$BudgetContract,
+        [Parameter(Mandatory)]$FrameStatistics
+    )
+
+    if ($BudgetContract.status -eq 'unconfigured') {
+        return [pscustomobject][ordered]@{
+            status = 'not_evaluated'
+            reason = $BudgetContract.reason
+        }
+    }
+    if ($BudgetContract.status -ne 'declared' -or
+        $BudgetContract.metric_id -ne 'app.runtime_redraw.frame_duration_us' -or
+        $BudgetContract.aggregation -ne 'p95' -or
+        $BudgetContract.comparator -ne 'less_than_or_equal' -or
+        $BudgetContract.unit -ne 'us') {
+        throw 'Render-extract scenario has an unsupported budget contract.'
+    }
+    $observed = [double]$FrameStatistics.p95
+    $threshold = [double]$BudgetContract.threshold
+    return [pscustomobject][ordered]@{
+        status = if ($observed -le $threshold) { 'within_budget' } else { 'over_budget' }
+        metric_id = $BudgetContract.metric_id
+        aggregation = $BudgetContract.aggregation
+        comparator = $BudgetContract.comparator
+        observed = $observed
+        threshold = $threshold
+        unit = $BudgetContract.unit
+    }
+}
 
 function ConvertTo-RenderExtractBaselineReportMarkdown {
     param([Parameter(Mandatory)]$Report)
@@ -26,6 +55,7 @@ function ConvertTo-RenderExtractBaselineReportMarkdown {
     $lines.Add('')
     $lines.Add(('- Source fingerprint: `' + $Report.source_fingerprint + '`'))
     $lines.Add(('- Raw baseline summary SHA-256: `' + $Report.raw_evidence.summary_sha256 + '`'))
+    $lines.Add(('- Qualification: `' + $Report.qualification.status + '`'))
     if ($null -ne $Report.project.scale_project) {
         $lines.Add(('- Primitive count: `' + $Report.project.scale_project.primitive_count + '`'))
         $lines.Add(('- Scene virtual path: `' + $Report.project.scale_project.scene_virtual_path + '`'))
@@ -40,7 +70,7 @@ function ConvertTo-RenderExtractBaselineReportMarkdown {
         else {
             ''
         }
-        $lines.Add("- `$($scenario.logical_id)` ($($scenario.product), $($scenario.measurement_window)$window): attempts=$($scenario.attempt_count), process median=$($scenario.process_elapsed_ms.median) ms p95=$($scenario.process_elapsed_ms.p95) ms, CPU median=$($scenario.total_processor_time_ms.median) ms p95=$($scenario.total_processor_time_ms.p95) ms, peak working set median=$($scenario.peak_working_set_bytes.median) bytes p95=$($scenario.peak_working_set_bytes.p95) bytes, frame median=$($scenario.frame_duration_us.median) us p95=$($scenario.frame_duration_us.p95) us p99=$($scenario.frame_duration_us.p99) us")
+        $lines.Add("- `$($scenario.logical_id)` ($($scenario.product), $($scenario.measurement_window)$window): attempts=$($scenario.attempt_count), process median=$($scenario.process_elapsed_ms.median) ms p95=$($scenario.process_elapsed_ms.p95) ms, CPU median=$($scenario.total_processor_time_ms.median) ms p95=$($scenario.total_processor_time_ms.p95) ms, peak working set median=$($scenario.peak_working_set_bytes.median) bytes p95=$($scenario.peak_working_set_bytes.p95) bytes, frame median=$($scenario.frame_duration_us.median) us p95=$($scenario.frame_duration_us.p95) us p99=$($scenario.frame_duration_us.p99) us, budget=$($scenario.budget_evaluation.status)")
     }
     $lines.Add('')
     $lines.Add('## Instrumentation Coverage')
@@ -155,8 +185,8 @@ function Write-RenderExtractBaselineReport {
         -Path $summaryResolution.OperationalPath `
         -Label 'Render-extract baseline summary'
     $summary = $summarySnapshot.json
-    if ([int](Get-RenderExtractReportProperty -Value $summary -Name 'schema_version' -Label 'Baseline summary') -ne 4) {
-        throw 'Baseline summary schema_version must be 4.'
+    if ([int](Get-RenderExtractReportProperty -Value $summary -Name 'schema_version' -Label 'Baseline summary') -ne 5) {
+        throw 'Baseline summary schema_version must be 5.'
     }
     $sourceFingerprint = [string](Get-RenderExtractReportProperty -Value $summary -Name 'source_fingerprint' -Label 'Baseline summary')
     if ($sourceFingerprint -notmatch '^[0-9A-Fa-f]{64}$') {
@@ -166,7 +196,19 @@ function Write-RenderExtractBaselineReport {
     if ($inputManifestSha -notmatch '^[0-9A-Fa-f]{64}$') {
         throw 'Baseline summary profiling_input_manifest_sha256 must be a SHA-256 hexadecimal value.'
     }
+    $buildSetId = [string](Get-RenderExtractReportProperty -Value $summary -Name 'build_set_id' -Label 'Baseline summary')
+    $buildSetManifestSha = [string](Get-RenderExtractReportProperty -Value $summary -Name 'build_set_manifest_sha256' -Label 'Baseline summary')
+    if ($buildSetId -notmatch '^[0-9A-Fa-f]{64}$' -or $buildSetManifestSha -notmatch '^[0-9A-Fa-f]{64}$') {
+        throw 'Baseline summary BuildSet identity must contain SHA-256 hexadecimal values.'
+    }
     $project = Get-RenderExtractReportProject -Summary $summary
+    $machineReference = Get-RenderExtractReportProperty `
+        -Value $summary `
+        -Name 'machine_manifest' `
+        -Label 'Baseline summary'
+    $machineEvidence = Resolve-RenderExtractMachineEvidence `
+        -Reference $machineReference `
+        -EvidenceDirectory $evidenceDirectory.OperationalPath
     $runs = @(Get-RenderExtractReportArrayProperty -Value $summary -Name 'runs' -Label 'Baseline summary')
     if ($runs.Count -eq 0) {
         throw 'Baseline summary contains no runs.'
@@ -193,6 +235,7 @@ function Write-RenderExtractBaselineReport {
         if ($scenario.Count -ne 1) {
             throw "Baseline run '$logicalId' is not a required scenario."
         }
+        $scenarioBinding = Resolve-RenderExtractPerformanceScenarioRunBinding -Run $run
         $product = [string](Get-RenderExtractReportProperty -Value $run -Name 'product' -Label "Baseline run '$logicalId'")
         if ($product -ne $scenario[0].product) {
             throw "Baseline run '$logicalId' has product '$product'; expected '$($scenario[0].product)'."
@@ -227,12 +270,14 @@ function Write-RenderExtractBaselineReport {
         }
         $profilingInput = Get-RenderExtractReportProperty -Value $run -Name 'profiling_input' -Label "Baseline run '$logicalId'"
         $runManifestSha = [string](Get-RenderExtractReportProperty -Value $profilingInput -Name 'manifest_sha256' -Label "Baseline run '$logicalId' profiling input")
+        $runBuildSetId = [string](Get-RenderExtractReportProperty -Value $profilingInput -Name 'build_set_id' -Label "Baseline run '$logicalId' profiling input")
+        $runBuildSetManifestSha = [string](Get-RenderExtractReportProperty -Value $profilingInput -Name 'build_set_manifest_sha256' -Label "Baseline run '$logicalId' profiling input")
         $runExecutableSha = [string](Get-RenderExtractReportProperty -Value $profilingInput -Name 'executable_sha256' -Label "Baseline run '$logicalId' profiling input")
         $runLibrarySha = [string](Get-RenderExtractReportProperty -Value $profilingInput -Name 'library_sha256' -Label "Baseline run '$logicalId' profiling input")
         $runAssetManifestSha = [string](Get-RenderExtractReportProperty -Value $profilingInput -Name 'asset_manifest_sha256' -Label "Baseline run '$logicalId' profiling input")
         $runAssetFileCount = [int](Get-RenderExtractReportProperty -Value $profilingInput -Name 'asset_file_count' -Label "Baseline run '$logicalId' profiling input")
         $runAssetBytes = [Int64](Get-RenderExtractReportProperty -Value $profilingInput -Name 'asset_bytes' -Label "Baseline run '$logicalId' profiling input")
-        foreach ($hash in @($runManifestSha, $runExecutableSha, $runLibrarySha, $runAssetManifestSha)) {
+        foreach ($hash in @($runManifestSha, $runBuildSetId, $runBuildSetManifestSha, $runExecutableSha, $runLibrarySha, $runAssetManifestSha)) {
             if ($hash -notmatch '^[0-9A-Fa-f]{64}$') {
                 throw "Baseline run '$logicalId' attempt $attempt has an invalid profiling input SHA-256."
             }
@@ -243,8 +288,14 @@ function Write-RenderExtractBaselineReport {
         if (-not $runManifestSha.Equals($inputManifestSha, [StringComparison]::OrdinalIgnoreCase)) {
             throw "Baseline run '$logicalId' attempt $attempt profiling input manifest SHA-256 does not match the capture summary."
         }
+        if (-not $runBuildSetId.Equals($buildSetId, [StringComparison]::OrdinalIgnoreCase) -or
+            -not $runBuildSetManifestSha.Equals($buildSetManifestSha, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Baseline run '$logicalId' attempt $attempt BuildSet identity does not match the capture summary."
+        }
         $runProfilingInput = [pscustomobject]@{
             manifest_sha256 = $runManifestSha.ToUpperInvariant()
+            build_set_id = $runBuildSetId.ToUpperInvariant()
+            build_set_manifest_sha256 = $runBuildSetManifestSha.ToUpperInvariant()
             executable_sha256 = $runExecutableSha.ToUpperInvariant()
             library_sha256 = $runLibrarySha.ToUpperInvariant()
             asset_manifest_sha256 = $runAssetManifestSha.ToUpperInvariant()
@@ -345,13 +396,20 @@ function Write-RenderExtractBaselineReport {
             -Label "Baseline run '$logicalId' attempt $attempt"
         $scenarioRecords.Add([pscustomobject]@{
                 logical_id = $logicalId
+                scenario_id = $scenarioBinding.scenario_id
+                scenario_version = $scenarioBinding.scenario_version
+                scenario_binding_id = $scenarioBinding.scenario_binding_id
                 product = $product
                 measurement_window = $measurement.measurement_window
+                repeat_count = $scenarioBinding.repeat_count
                 warmup_presented_frame_count = $measurement.warmup_presented_frame_count
                 measured_presented_frame_count = $measurement.measured_presented_frame_count
                 target_presented_frame_count = $measurement.target_presented_frame_count
                 primary_frame_stream = $measurement.primary_frame_stream
                 primary_frame_name = $measurement.primary_frame_name
+                cache_contract = $scenarioBinding.cache_contract
+                required_metrics = @($scenarioBinding.required_metrics)
+                budget_contract = $scenarioBinding.budget_contract
                 attempt = $attempt
                 process_id = $processId
                 process_elapsed_ms = Get-RenderExtractProcessElapsedMilliseconds -Run $run
@@ -377,6 +435,15 @@ function Write-RenderExtractBaselineReport {
         $attemptIds = @($attemptRecords | ForEach-Object { $_.attempt })
         if (@($attemptIds | Select-Object -Unique).Count -ne $attemptIds.Count) {
             throw "Baseline scenario '$($scenarioGroup.Name)' has duplicate attempt identifiers."
+        }
+        $expectedAttemptCount = [int]$attemptRecords[0].repeat_count
+        if ($attemptRecords.Count -ne $expectedAttemptCount -or
+            ($attemptIds -join ',') -ne ((1..$expectedAttemptCount) -join ',')) {
+            throw "Baseline scenario '$($scenarioGroup.Name)' does not contain its complete declared attempt set."
+        }
+        $bindingIds = @($attemptRecords | ForEach-Object { $_.scenario_binding_id } | Select-Object -Unique)
+        if ($bindingIds.Count -ne 1) {
+            throw "Baseline scenario '$($scenarioGroup.Name)' mixes different scenario bindings."
         }
         $frameRecords = [System.Collections.Generic.List[object]]::new()
         $spanRecords = [System.Collections.Generic.List[object]]::new()
@@ -467,13 +534,23 @@ function Write-RenderExtractBaselineReport {
         }
         [pscustomobject][ordered]@{
             logical_id = $scenarioGroup.Name
+            scenario_id = $attemptRecords[0].scenario_id
+            scenario_version = $attemptRecords[0].scenario_version
+            scenario_binding_id = $attemptRecords[0].scenario_binding_id
             product = $attemptRecords[0].product
             measurement_window = $attemptRecords[0].measurement_window
+            repeat_count = [int]$attemptRecords[0].repeat_count
             warmup_presented_frame_count = [int]$attemptRecords[0].warmup_presented_frame_count
             measured_presented_frame_count = [int]$attemptRecords[0].measured_presented_frame_count
             target_presented_frame_count = [int]$attemptRecords[0].target_presented_frame_count
             primary_frame_stream = $attemptRecords[0].primary_frame_stream
             primary_frame_name = $attemptRecords[0].primary_frame_name
+            cache_contract = $attemptRecords[0].cache_contract
+            required_metrics = @($attemptRecords[0].required_metrics)
+            budget_contract = $attemptRecords[0].budget_contract
+            budget_evaluation = Get-RenderExtractScenarioBudgetEvaluation `
+                -BudgetContract $attemptRecords[0].budget_contract `
+                -FrameStatistics $frameStatistics
             process_measurement_scope = if ($attemptRecords[0].warmup_presented_frame_count -gt 0) {
                 'full-process-lifetime-including-warmup'
             }
@@ -578,22 +655,38 @@ function Write-RenderExtractBaselineReport {
     }
 
     $report = [pscustomobject][ordered]@{
-        schema_version = 4
+        schema_version = 5
         generated_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
         source_fingerprint = $sourceFingerprint.ToUpperInvariant()
         profiling_input_manifest_sha256 = $inputManifestSha.ToUpperInvariant()
+        build_set_id = $buildSetId.ToUpperInvariant()
+        build_set_manifest_sha256 = $buildSetManifestSha.ToUpperInvariant()
         profiling_inputs = [ordered]@{
             runtime = $expectedProfilingInputs['runtime']
             editor = $expectedProfilingInputs['editor']
         }
+        machine_manifest = $machineEvidence.manifest
         project = $project
         aggregation = [ordered]@{
             percentile_method = 'upper-nearest-index: ceil((n-1) * percentile / 100), zero-based'
             scope = 'timeline samples use each scenario evidence-declared window; process CPU and working-set samples cover the full product lifetime'
         }
+        qualification = [ordered]@{
+            status = 'unqualified'
+            blocking_reasons = @(
+                'product_receipt_not_bound',
+                'device_profile_not_bound',
+                'independent_comparison_receipt_missing'
+            ) + @(if (-not $machineEvidence.all_required_observed) { 'machine_manifest_incomplete' })
+        }
         raw_evidence = [ordered]@{
             summary_path = $summaryResolution.DisplayPath
             summary_sha256 = $summarySnapshot.sha256
+            machine_manifest = [ordered]@{
+                path = $machineEvidence.path
+                bytes = $machineEvidence.bytes
+                sha256 = $machineEvidence.sha256
+            }
             profile_artifacts = @($rawEvidence)
             frame_capture_artifacts = @($frameCaptureEvidence)
             system_trace_artifacts = @($systemTraceEvidence)

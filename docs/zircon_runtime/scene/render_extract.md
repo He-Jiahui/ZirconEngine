@@ -28,6 +28,7 @@ related_code:
   - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
   - zircon_runtime/src/scene/tests/world_basics/sprites.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
+  - zircon_runtime/src/scene/tests/render_post_process_extract/volumetric_fog.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
   - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_runtime/src/scene/world/dirty_state.rs
@@ -80,6 +81,7 @@ implementation_files:
   - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
   - zircon_runtime/src/scene/tests/world_basics/sprites.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
+  - zircon_runtime/src/scene/tests/render_post_process_extract/volumetric_fog.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
   - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_runtime/src/scene/world/dirty_state.rs
@@ -153,13 +155,25 @@ doc_type: module-detail
 
 The snapshot-adapter source guard treats explicit `tests/` directories and `tests.rs` files as test-only owners. It still scans every production Rust file under `graphics/runtime/render_framework/submit_frame_extract`; the 2026-07-10 current-source pass covered 50 production files and found no `RenderFrameExtract::from_snapshot` or `ViewportRenderFrame::from_snapshot` calls.
 
-The scene render-extract boundary turns authoritative `World` or `LevelSystem` state into `RenderFrameExtract`, the neutral frame DTO consumed by the renderer. In the current M3 canonical render-extract milestone, the important contract is both execution order and DTO authority: native dirty-state systems and plugin hooks must run before render extraction observes world transforms, active state, render-layer masks, and animation pose sidebands, and the scene producer must populate `RenderFrameExtract` sections directly rather than adapting through `SceneViewportRenderPacket`.
+The scene render-extract boundary turns authoritative `World` or `LevelSystem` state into
+`RenderFrameExtract`, the neutral frame DTO consumed by the renderer. Native dirty-state systems
+and plugin hooks run before extraction observes world transforms, active state, render-layer masks,
+and animation pose sidebands. The scene producer seals those cacheable domains directly in
+`RenderFrameScenePayload` rather than adapting through `SceneViewportRenderPacket`; timing and view
+selection remain the small submission-local overlay.
 
 ## Ownership
 
 `World` remains the runtime scene authority. Public `World` render helpers that take `&self` clone the world and build the extract on the clone, preserving existing callers that expect read-only access while leaving the source world's dirty bits unchanged. The prepared path takes `&mut World` and is used by `LevelSystem` so scheduled render extraction can flush authoritative dirty state instead of producing a stale snapshot.
 
-`LevelSystem` implements `RenderExtractProducer` by calling `with_world_mut(...)`, building the prepared scene extract, and then merging cached animation poses into `RenderFrameExtract::animation_poses`. The pose cache is a `BTreeMap<EntityId, _>`; `animation_pose_entries()` snapshots it directly into one ordered `Vec`, avoiding an intermediate cloned tree. Filtering that consuming iterator preserves entity order, so the per-frame path also does not sort the collected vector again. This keeps animation pose extraction level-owned and deterministic while removing the intermediate tree allocation and a redundant `O(n log n)` pass; scene geometry, camera, lights, active state, and transforms continue to come from `World`.
+`LevelSystem` implements `RenderExtractProducer` by calling `with_world_mut(...)`, building the prepared scene payload, and then filling its independently shared animation-pose domain before the generation enters the dynamic cache. The level snapshot is an ordered `BTreeMap<EntityId, Arc<AnimationPoseOutput>>`; `animation_pose_entries()` materializes one ordered `Vec` of render rows whose pose field clones the sealed handle, never the bones or names. Filtering that consuming iterator preserves entity order, so the per-frame path does not clone an intermediate tree or sort the collected vector again. Temporal-history validation compares each pose row by entity, skeleton, and handle identity rather than invoking `AnimationPoseOutput` equality. This keeps animation pose extraction level-owned and deterministic while making render/history sharing and comparison independent of bone payload size; scene geometry, camera, lights, active state, and transforms continue to come from `World`.
+
+`RenderFrameExtract::timing` is the neutral frame-family timing receipt, not scene state. A dynamic
+session captures `outer_frame_index` and raw-real delta from the runtime's sole `tick_time` result,
+then overlays that receipt after scene extract cache lookup. Timing therefore never participates in
+the scene cache key or forces stable scene content to rebuild every frame. Synthetic and snapshot
+adapters default to frame zero/delta zero instead of inventing a refresh rate. All camera frames that
+share one extract observe the same receipt; exposure adaptation is the first renderer consumer.
 
 ## Prepared Extract Path
 
@@ -168,8 +182,8 @@ The prepared path is:
 1. `LevelSystem::build_render_frame_extract(...)` enters `World` mutably.
 2. `World::build_prepared_render_frame_extract(...)` delegates to `World::build_prepared_render_frame_extract_for_request(...)`.
 3. `World::build_prepared_render_frame_extract_for_request(...)` runs the `RenderExtract` built-in systems before reading camera, mesh, light, post-process settings, post-process volume, active, transform, and layer data.
-4. The world assembles `RenderViewExtract`, `GeometryExtract`, `LightingExtract`, `PostProcessExtract`, `DebugOverlayExtract`, `ParticleExtract`, and `VisibilityInput` directly. `PostProcessExtract` keeps base defaults, seeds manual exposure from the effective camera `exposure_ev100`, and carries the scene-authored volume DTOs for submit-side resolution.
-5. `LevelSystem` appends animation pose sidebands for mesh entities with skeletons.
+4. The world assembles `GeometryExtract`, `LightingExtract`, `PostProcessExtract`, `DebugOverlayExtract`, `ParticleExtract`, and `VisibilityInput` into one `RenderFrameScenePayload`, then combines it with `RenderViewExtract` and default timing through `RenderFrameExtract::new(...)`. `PostProcessExtract` keeps base defaults, seeds manual exposure from the effective camera `exposure_ev100`, and carries the scene-authored volume DTOs for submit-side resolution.
+5. `LevelSystem` fills the animation-pose domain for mesh entities with skeletons before returning the generation-qualified extract.
 
 `SceneViewportRenderPacket` remains available through `to_render_snapshot()` / `to_render_extract()` for preview and roundtrip callers, and `RenderFrameExtract::from_snapshot(...)` remains a framework adapter for tests or snapshot-era owners. The scene producer no longer uses that adapter for frame extraction.
 

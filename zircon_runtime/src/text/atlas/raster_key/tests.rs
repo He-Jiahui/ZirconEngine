@@ -1,4 +1,6 @@
 use super::*;
+use std::hint::black_box;
+use std::time::Instant;
 
 #[test]
 fn text_atlas_key_rebuckets_on_scale_change() {
@@ -24,6 +26,91 @@ fn text_raster_subpixel_bins_are_part_of_bitmap_key() {
     assert_eq!(right.subpixel_bin, 2);
     assert_ne!(left, middle);
     assert_ne!(middle, right);
+}
+
+#[test]
+fn optimization_batch_20260831fa_runtime566_signed_fraction_preserves_subpixel_bins() {
+    for screen_x in [
+        -4096.75_f32,
+        -4.0,
+        -1.0,
+        -0.9999,
+        -0.6667,
+        -0.3334,
+        -0.0,
+        0.0,
+        0.3333,
+        0.6666,
+        0.9999,
+        1.0,
+        4096.75,
+    ] {
+        let legacy = (screen_x.rem_euclid(1.0) * SUBPIXEL_BIN_COUNT as f32).floor() as u8;
+        assert_eq!(subpixel_bin_for_screen_x(screen_x), legacy);
+    }
+}
+
+#[test]
+#[ignore = "managed Windows release performance evidence"]
+fn optimization_batch_20260831fa_runtime566_subpixel_fraction_p95() {
+    const SAMPLE_PAIRS: usize = 13;
+    const ITERATIONS: u64 = 20_000_000;
+    let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
+    for pair in 0..SAMPLE_PAIRS {
+        if pair % 2 == 0 {
+            legacy.push(measure_fraction(false, ITERATIONS));
+            optimized.push(measure_fraction(true, ITERATIONS));
+        } else {
+            optimized.push(measure_fraction(true, ITERATIONS));
+            legacy.push(measure_fraction(false, ITERATIONS));
+        }
+    }
+    let legacy_p95_ns = percentile(&legacy, 95);
+    let optimized_p95_ns = percentile(&optimized, 95);
+    println!(
+        "RUNTIME566_SUBPIXEL_FRACTION_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
+iterations={ITERATIONS} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} \
+legacy_raw_ns={} optimized_raw_ns={}",
+        csv(&legacy),
+        csv(&optimized)
+    );
+    assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(85));
+}
+
+fn measure_fraction(optimized: bool, iterations: u64) -> u128 {
+    let started = Instant::now();
+    let mut checksum = 0_u64;
+    for index in 0..iterations {
+        let whole = (index & 4095) as f32;
+        let fraction = ((index >> 12) & 31) as f32 * (1.0 / 32.0);
+        let screen_x = black_box(if index & 127 == 0 {
+            -whole - fraction
+        } else {
+            whole + fraction
+        });
+        checksum += u64::from(if optimized {
+            subpixel_bin_for_screen_x(screen_x)
+        } else {
+            (screen_x.rem_euclid(1.0) * SUBPIXEL_BIN_COUNT as f32).floor() as u8
+        });
+    }
+    black_box(checksum);
+    started.elapsed().as_nanos().max(1)
+}
+
+fn percentile(samples: &[u128], percentile: usize) -> u128 {
+    let mut sorted = samples.to_vec();
+    sorted.sort_unstable();
+    sorted[(sorted.len() * percentile).div_ceil(100).saturating_sub(1)]
+}
+
+fn csv(samples: &[u128]) -> String {
+    samples
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 #[test]

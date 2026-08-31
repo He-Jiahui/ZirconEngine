@@ -9,7 +9,7 @@ use zircon_runtime::asset::assets::{
     texture_asset_from_lightmap_bake_output, AlphaMode, MaterialAsset, ModelAsset,
     ModelPrimitiveAsset,
 };
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use zircon_runtime::asset::pipeline::manager::{ProjectAssetManager, ProjectAssetManagerAccess};
 use zircon_runtime::asset::{AssetReference, AssetUri, MeshVertex, TextureAsset};
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, CapturedFrame,
@@ -23,9 +23,15 @@ use zircon_runtime::core::framework::render::{
     RendererCommon, ShL2Rgb, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
+use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
 use zircon_runtime::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
+};
+use zircon_runtime::core::runtime::ServiceObject;
+use zircon_runtime::core::{
+    CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
+    TaskPool,
 };
 use zircon_runtime::graphics::WgpuRenderFramework;
 
@@ -40,6 +46,58 @@ const MOBILITY_OUTPUT_PNG: &str = "plan18_hybrid_gi_m4_mobility_roundtrip_wgpu_2
 const MOBILITY_OUTPUT_REPORT: &str = "plan18_hybrid_gi_m4_mobility_roundtrip_wgpu_20260713.txt";
 const EMISSIVE_OUTPUT_PNG: &str = "plan18_hybrid_gi_m4_moving_emissive_wgpu_20260713.png";
 const EMISSIVE_OUTPUT_REPORT: &str = "plan18_hybrid_gi_m4_moving_emissive_wgpu_20260713.txt";
+const TEST_ASSET_MODULE_NAME: &str = "HybridGiProfileMatrixAssetRuntime";
+const TEST_ASSET_SERVICE_NAME: &str =
+    "HybridGiProfileMatrixAssetRuntime.Manager.ProjectAssetManager";
+
+struct ProjectAssetTestRuntime {
+    runtime: CoreRuntime,
+    access: ProjectAssetManagerAccess,
+}
+
+impl ProjectAssetTestRuntime {
+    fn new(manager: Arc<ProjectAssetManager>) -> Self {
+        let runtime = CoreRuntime::new();
+        runtime
+            .register_module(
+                ModuleDescriptor::new(TEST_ASSET_MODULE_NAME, "hybrid GI profile test assets")
+                    .with_manager(ManagerDescriptor::new(
+                        RegistryName::from_parts(
+                            TEST_ASSET_MODULE_NAME,
+                            ServiceKind::Manager,
+                            "ProjectAssetManager",
+                        ),
+                        StartupMode::Immediate,
+                        Vec::new(),
+                        Arc::new(move |_| {
+                            Ok(
+                                Arc::new(RegisteredManagerService::new(Arc::clone(&manager)))
+                                    as ServiceObject,
+                            )
+                        }),
+                    )),
+            )
+            .expect("hybrid GI profile ProjectAssetManager service should register");
+        runtime
+            .activate_module(TEST_ASSET_MODULE_NAME)
+            .expect("hybrid GI profile ProjectAssetManager module should activate");
+        let core = runtime.handle();
+        let handle = manager_service_handle(&core, TEST_ASSET_SERVICE_NAME)
+            .expect("hybrid GI profile ProjectAssetManager handle should resolve");
+        Self {
+            runtime,
+            access: ProjectAssetManagerAccess::new(core, handle),
+        }
+    }
+
+    fn access(&self) -> ProjectAssetManagerAccess {
+        self.access.clone()
+    }
+
+    fn worker_pool(&self) -> TaskPool {
+        self.runtime.task_graph().worker_pool().clone()
+    }
+}
 
 struct Capture {
     frame: CapturedFrame,
@@ -140,13 +198,15 @@ fn hybrid_gi_m4_mobility_round_trip_releases_and_restores_static_lightmap() {
         let model = register_plane(&assets);
         let material = register_material(&assets);
         let environment = register_environment(&assets, true);
+        let asset_runtime = ProjectAssetTestRuntime::new(Arc::clone(&assets));
         let framework = WgpuRenderFramework::new_with_plugin_render_extensions(
-            assets,
+            asset_runtime.access(),
             [render_feature_descriptor()],
             render_pass_executor_registrations(),
             [runtime_prepare_collector_registration()],
             [hybrid_gi_runtime_provider_registration()],
             Vec::new(),
+            asset_runtime.worker_pool(),
         )
         .unwrap();
         let viewport = framework
@@ -210,13 +270,15 @@ fn hybrid_gi_m4_moving_emissive_invalidates_and_restores_without_ghosting() {
         let material = register_material(&assets);
         let emissive = register_emissive_material(&assets);
         let environment = register_environment(&assets, true);
+        let asset_runtime = ProjectAssetTestRuntime::new(Arc::clone(&assets));
         let framework = WgpuRenderFramework::new_with_plugin_render_extensions(
-            assets,
+            asset_runtime.access(),
             [render_feature_descriptor()],
             render_pass_executor_registrations(),
             [runtime_prepare_collector_registration()],
             [hybrid_gi_runtime_provider_registration()],
             Vec::new(),
+            asset_runtime.worker_pool(),
         )
         .unwrap();
         let viewport = framework
@@ -271,13 +333,15 @@ fn capture_profile(
     let model = register_plane(&assets);
     let material = register_material(&assets);
     let environment = register_environment(&assets, baked);
+    let asset_runtime = ProjectAssetTestRuntime::new(Arc::clone(&assets));
     let framework = WgpuRenderFramework::new_with_plugin_render_extensions(
-        assets,
+        asset_runtime.access(),
         [render_feature_descriptor()],
         render_pass_executor_registrations(),
         [runtime_prepare_collector_registration()],
         [hybrid_gi_runtime_provider_registration()],
         Vec::new(),
+        asset_runtime.worker_pool(),
     )
     .expect("HybridGI WGPU framework should initialize");
     let viewport = framework

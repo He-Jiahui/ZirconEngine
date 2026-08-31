@@ -43,7 +43,7 @@ fn assert_near(actual: f64, expected: f64, label: &str) {
 }
 
 #[test]
-fn authored_workbench_menus_share_slate_popup_density_and_flat_surface() {
+fn authored_workbench_menus_share_popup_density_and_panel_radius() {
     for (file_name, component_name) in [
         ("workbench_context_menu.zui", "WorkbenchContextMenu"),
         ("workbench_dropdown_popup.zui", "WorkbenchDropdownPopup"),
@@ -58,7 +58,7 @@ fn authored_workbench_menus_share_slate_popup_density_and_flat_surface() {
             ("layout_spacing", 4.0),
             ("layout_min_height", 28.0),
             ("border_width", 1.0),
-            ("corner_radius", 4.0),
+            ("corner_radius", 12.0),
             ("elevation", 0.0),
         ] {
             assert_near(

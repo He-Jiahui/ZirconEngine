@@ -1,0 +1,17 @@
+use std::num::NonZeroU64;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ApplicationLifecycleOperationId(NonZeroU64);
+
+impl ApplicationLifecycleOperationId {
+    pub(crate) const fn new(raw: u64) -> Option<Self> {
+        match NonZeroU64::new(raw) {
+            Some(raw) => Some(Self(raw)),
+            None => None,
+        }
+    }
+
+    pub const fn raw(self) -> u64 {
+        self.0.get()
+    }
+}

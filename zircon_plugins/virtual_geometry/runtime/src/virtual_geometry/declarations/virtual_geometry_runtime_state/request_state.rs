@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use super::super::virtual_geometry_page_request::VirtualGeometryPageRequest;
 use super::runtime_state::VirtualGeometryRuntimeState;
@@ -121,7 +121,7 @@ impl VirtualGeometryRuntimeState {
     }
 
     pub(in crate::virtual_geometry) fn retain_resident_evictable_pages(&mut self) {
-        let resident_page_ids = self.resident_page_ids().collect::<BTreeSet<_>>();
+        let resident_page_ids = self.resident_page_id_index();
         self.retain_evictable_pages(|page_id| resident_page_ids.contains(page_id));
     }
 }

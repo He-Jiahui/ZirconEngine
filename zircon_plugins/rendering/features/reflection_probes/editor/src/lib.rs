@@ -6,8 +6,9 @@ pub use capability::{CAPABILITY, EDITOR_CAPABILITIES, FEATURE_ID};
 pub use capture::{
     ReflectionProbeCaptureEditorCommand, ReflectionProbeCaptureEditorCommandError,
     ReflectionProbeCaptureEditorExecutionError, ReflectionProbeCaptureEditorResult,
-    ReflectionProbeCaptureEditorTrigger,
+    ReflectionProbeCaptureEditorTrigger, ReflectionProbeCaptureProjectPublicationError,
+    publish_reflection_probe_capture_source,
 };
 pub use plugin::{
-    editor_capabilities, editor_feature, feature_manifest, RenderingReflectionProbesEditorFeature,
+    RenderingReflectionProbesEditorFeature, editor_capabilities, editor_feature, feature_manifest,
 };

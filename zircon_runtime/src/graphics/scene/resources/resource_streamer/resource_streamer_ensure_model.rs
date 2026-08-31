@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::asset::ModelAsset;
 use crate::core::resource::{ModelMarker, ResourceHandle};
 
 use crate::graphics::types::GraphicsError;
@@ -30,14 +29,13 @@ impl ResourceStreamer {
         }) {
             return Ok(());
         }
-        let model = asset_manager
+        let model = self
             .load_model_asset(id)
-            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-        let resolved = resolve_model_geometry(asset_manager.as_ref(), &model);
+            .ok_or_else(|| GraphicsError::Asset(format!("failed to load model asset {id:?}")))?;
+        let resolved = resolve_model_geometry(asset_manager.as_ref(), model.as_ref());
         let revision = model_geometry_revision(id, source_revision, &resolved.dependency_states);
         let local_bounds = resolved.local_bounds;
         let mesh_sdf = mesh_sdf_seed_from_primitives(&resolved.primitives);
-        let asset = Arc::<ModelAsset>::new(model);
         let resource = Arc::new(GpuModelResource::from_primitives(
             device,
             id,
@@ -52,7 +50,7 @@ impl ResourceStreamer {
                 local_bounds,
                 deformation: resolved.deformation,
                 mesh_sdf,
-                asset,
+                asset: model,
                 resource,
             },
         );

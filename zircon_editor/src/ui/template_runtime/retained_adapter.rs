@@ -3,7 +3,10 @@ use std::collections::BTreeMap;
 use toml::Value;
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::{
-    binding::UiEventKind, component::UiValue, event_ui::UiRouteId, layout::UiFrame,
+    binding::UiEventKind,
+    component::UiValue,
+    event_ui::{UiNodeId, UiRouteId},
+    layout::UiFrame,
 };
 
 use super::RetainedUiHostModel;
@@ -83,6 +86,8 @@ pub struct RetainedUiHostRouteProjection {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RetainedUiHostNodeModel {
     pub node_id: String,
+    pub surface_node_id: Option<UiNodeId>,
+    pub has_workbench_icon_tooltip: bool,
     pub parent_id: Option<String>,
     pub kind: RetainedUiHostComponentKind,
     pub component: String,
@@ -180,6 +185,8 @@ impl RetainedUiHostAdapter {
         };
         RetainedUiHostNodeModel {
             node_id: node.node_id.clone(),
+            surface_node_id: node.surface_node_id,
+            has_workbench_icon_tooltip: node.has_workbench_icon_tooltip,
             parent_id: node.parent_id.clone(),
             kind: RetainedUiHostComponentKind::from_component(&node.component),
             component: node.component.clone(),

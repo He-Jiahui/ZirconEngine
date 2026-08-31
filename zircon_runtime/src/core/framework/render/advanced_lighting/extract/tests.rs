@@ -123,8 +123,12 @@ fn render_advanced_extract_filters_fog_volumes_for_camera_layers() {
         ..AdvancedLightingExtract::default()
     };
 
-    let visible = extract.fog_volumes_for_layers(&RenderLayerSet::layer(1));
+    let render_layers = RenderLayerSet::layer(1);
+    let mut visible = extract.fog_volumes_for_layers(&render_layers);
 
-    assert_eq!(visible.len(), 1);
-    assert_eq!(visible[0].volume_id, 1);
+    assert!(std::ptr::eq(
+        visible.next().unwrap(),
+        &extract.fog_volumes[1]
+    ));
+    assert!(visible.next().is_none());
 }

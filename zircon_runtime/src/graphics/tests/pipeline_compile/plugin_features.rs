@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
+fn rendering_plugin_product_defaults_exclude_unqualified_forward_plus_ssao() {
     let pipeline = RenderPipelineAsset::default_forward_plus()
         .with_plugin_render_features(default_rendering_feature_descriptors());
     let compiled = pipeline.compile(&test_extract()).unwrap();
@@ -20,7 +20,6 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "velocity-camera",
             "shadow-atlas",
             "hzb-build",
-            "ssao-evaluate",
             "light-grid-build",
             "opaque-mesh",
             "alpha-mask-mesh",
@@ -42,6 +41,7 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "fxaa",
             "overlay-gizmo",
             "runtime-ui",
+            "surface-present",
         ]
     );
     pass_resource_access(
@@ -70,10 +70,9 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
     );
     assert_eq!(
         compiled.history_bindings,
-        vec![
-            FrameHistoryBinding::read_write(FrameHistorySlot::AmbientOcclusion),
-            FrameHistoryBinding::read_write(FrameHistorySlot::HzbFurthest)
-        ]
+        vec![FrameHistoryBinding::read_write(
+            FrameHistorySlot::HzbFurthest
+        )]
     );
 }
 
@@ -95,11 +94,16 @@ fn rendering_plugin_post_process_routes_output_transfer_through_terminal_anti_al
         )
         .unwrap();
 
-    pass_resource_access(
-        &compiled,
-        "uber",
-        PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
-        RenderGraphResourceAccessKind::Read,
+    let uber = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "uber")
+        .expect("plugin post-process should keep uber");
+    assert!(
+        uber.resources
+            .iter()
+            .all(|resource| resource.name != PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
     );
     pass_resource_access(
         &compiled,
@@ -132,7 +136,7 @@ fn rendering_plugin_post_process_routes_output_transfer_through_terminal_anti_al
 }
 
 #[test]
-fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
+fn rendering_plugin_product_defaults_keep_deferred_ssao_disabled() {
     let pipeline = RenderPipelineAsset::default_deferred()
         .with_plugin_render_features(default_rendering_feature_descriptors());
     let compiled = pipeline.compile(&test_extract()).unwrap();
@@ -152,7 +156,6 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "shadow-atlas",
             "gbuffer-mesh",
             "hzb-build",
-            "ssao-evaluate",
             "light-grid-build",
             "deferred-lighting",
             "preview-sky",
@@ -173,6 +176,7 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "fxaa",
             "overlay-gizmo",
             "runtime-ui",
+            "surface-present",
         ]
     );
 }
@@ -224,19 +228,21 @@ fn plugin_feature_buffer_minimum_size_survives_graph_resource_planning() {
         "fixed-size-plugin-packet",
         vec!["view".to_string()],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Lighting,
-            "fixed-size-plugin-packet-write",
-            QueueLane::AsyncCompute,
-        )
-        .with_executor_id("test.fixed-size-plugin-packet")
-        .with_compute_workload(RenderGraphComputeWorkload::fixed(
-            "test-fixed-size-plugin-packet",
-            [1, 1, 1],
-            [1, 1, 1],
-        ))
-        .with_side_effects()
-        .write_buffer_with_minimum_size("fixed-size-plugin-packet", PLUGIN_PACKET_SIZE_BYTES)],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Lighting,
+                "fixed-size-plugin-packet-write",
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id("test.fixed-size-plugin-packet")
+            .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                "test-fixed-size-plugin-packet",
+                [1, 1, 1],
+                [1, 1, 1],
+            ))
+            .with_side_effects()
+            .write_buffer_with_minimum_size("fixed-size-plugin-packet", PLUGIN_PACKET_SIZE_BYTES),
+        ],
     );
 
     let compiled = RenderPipelineAsset::default_forward_plus()

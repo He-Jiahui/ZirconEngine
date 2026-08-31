@@ -17,3 +17,6 @@ ids. The v1 node palette contains `output`, `texture_sample`,
 
 Validation covers missing output nodes, duplicate node ids, disconnected
 required inputs, parameter defaults, and capability-gated asset editor exposure.
+Each target pin admits at most one incoming link. Validation and constant graph
+evaluation share one borrowed node/link index, so recursive math-node evaluation
+does not rebuild node maps or linearly rescan the full link array for every pin.

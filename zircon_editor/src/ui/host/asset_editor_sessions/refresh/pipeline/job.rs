@@ -10,7 +10,7 @@ use crate::ui::host::asset_editor_sessions::imports::{
     collect_ui_asset_import_document, UiAssetImportResolution, UiAssetImportTraversal,
 };
 use crate::ui::host::asset_editor_sessions::{
-    build_ui_asset_editor_session_from_source, preview_size_for_preset, ui_asset_source_hash,
+    build_ui_asset_editor_session_from_source, preview_size_for_preset, ui_asset_source_digest,
     UiAssetStaleImportDiagnostic,
 };
 use crate::ui::host::editor_error::EditorError;
@@ -100,7 +100,7 @@ fn run_direct_refresh(
             };
         }
     };
-    if ui_asset_source_hash(&external_source) == plan.disk_source_hash {
+    if ui_asset_source_digest(&external_source) == plan.disk_source_digest {
         return UiAssetDirectRefreshOutcome::Unchanged;
     }
     if plan.source_dirty {

@@ -2,9 +2,8 @@ use crate::core::framework::scene::ComponentPropertyPath;
 use crate::core::framework::scene::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 use crate::scene::{reflect::ReflectComponent, EntityId, World};
 use zircon_runtime_interface::reflect::{
-    ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue,
-    ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration,
-    ReflectedValue,
+    ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectSerializationStrategy,
+    ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration, ReflectedValue,
 };
 
 pub fn registration_from_component_descriptor(
@@ -15,10 +14,10 @@ pub fn registration_from_component_descriptor(
         fields.push(field_from_property_descriptor(
             &descriptor.type_id,
             property,
-        )?);
+        ));
     }
 
-    Ok(ReflectTypeRegistration::new(
+    ReflectTypeRegistration::new(
         ReflectTypePath::new(
             descriptor.type_id.clone(),
             short_type_path(&descriptor.type_id).to_string(),
@@ -28,11 +27,10 @@ pub fn registration_from_component_descriptor(
         ReflectSerializationStrategy::Json,
     )
     .as_component()
-    .with_plugin_owned(true)
     .with_serializable(true)
     .with_editor_visible(true)
     .with_remote_visible(true)
-    .with_plugin_id(descriptor.plugin_id.clone()))
+    .with_plugin_id(descriptor.plugin_id.clone())
 }
 
 pub fn reflect_component_for_dynamic_descriptor(
@@ -42,7 +40,6 @@ pub fn reflect_component_for_dynamic_descriptor(
         descriptor.type_id.clone(),
         contains,
         read_field,
-        read_fields,
         write_field,
         remove,
     )
@@ -52,31 +49,17 @@ pub fn reflect_component_for_dynamic_descriptor(
 }
 
 fn field_from_property_descriptor(
-    type_path: &str,
+    owner_key: &str,
     descriptor: &ComponentPropertyDescriptor,
-) -> Result<ReflectFieldInfo, ReflectError> {
-    if descriptor.name.trim().is_empty() {
-        return Err(ReflectError::InvalidRegistration {
-            type_path: type_path.to_string(),
-            reason: "dynamic component field name must not be empty".to_string(),
-        });
-    }
-    if descriptor.value_type.trim().is_empty() {
-        return Err(ReflectError::InvalidRegistration {
-            type_path: type_path.to_string(),
-            reason: format!(
-                "dynamic component field `{}` value type must not be empty",
-                descriptor.name
-            ),
-        });
-    }
-
-    Ok(ReflectFieldInfo::new(
+) -> ReflectFieldInfo {
+    ReflectFieldInfo::from_stable_keys(
+        owner_key,
+        &descriptor.name,
         descriptor.name.clone(),
         descriptor.value_type.clone(),
         ReflectEditorHint::None,
     )
-    .with_editable(descriptor.editable))
+    .with_editable(descriptor.editable)
 }
 
 fn short_type_path(type_path: &str) -> &str {
@@ -166,21 +149,6 @@ fn read_declared_field(
         &field.value_type_path,
         value,
     )
-}
-
-fn read_fields(
-    world: &World,
-    entity: EntityId,
-    type_path: &str,
-) -> Result<Vec<ReflectFieldValue>, ReflectError> {
-    let registration = world.type_registry().registration(type_path)?;
-    let fields = &registration.type_info.fields;
-    let mut values = Vec::with_capacity(fields.len());
-    for field in fields {
-        let value = read_declared_field(world, entity, type_path, field)?;
-        values.push(ReflectFieldValue::new(field.name.clone(), value));
-    }
-    Ok(values)
 }
 
 fn write_field(
@@ -350,7 +318,7 @@ fn ensure_declared_field<'a>(
     }
 
     Err(ReflectError::UnknownField {
-        type_path: registration.type_path.type_path.clone(),
+        type_path: registration.type_path.type_path().to_string(),
         field_name: field_name.to_string(),
     })
 }
@@ -398,7 +366,9 @@ mod tests {
         world
             .register_component_type(descriptor.clone())
             .expect("test dynamic component descriptor must register");
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         world
             .set_dynamic_component(
                 entity,
@@ -449,7 +419,9 @@ mod tests {
         source
             .register_component_type(unselected_descriptor.clone())
             .expect("unselected source dynamic component descriptor must register");
-        let entity = source.spawn_node(NodeKind::Empty);
+        let entity = source
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         source
             .set_dynamic_component(entity, &descriptor.type_id, json!({"value": 5.0}))
             .expect("source dynamic component must attach");
@@ -462,7 +434,7 @@ mod tests {
             .expect("unselected source dynamic component must attach");
 
         let mut preflight = source.dynamic_scene_preflight_world([
-            selected_registration.type_path.short_type_path.as_str(),
+            selected_registration.type_path.short_type_path(),
             descriptor.type_id.as_str(),
         ]);
         assert!(preflight
@@ -501,7 +473,7 @@ fn declared_field_by_slot(
 ) -> Result<&ReflectFieldInfo, ReflectError> {
     let Some(field) = registration.type_info.fields.get(field_slot as usize) else {
         return Err(ReflectError::UnknownField {
-            type_path: registration.type_path.type_path.clone(),
+            type_path: registration.type_path.type_path().to_string(),
             field_name: format!("#{field_slot}"),
         });
     };

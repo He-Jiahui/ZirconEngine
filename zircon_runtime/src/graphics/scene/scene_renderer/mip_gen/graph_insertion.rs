@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn runtime_mipgen_graph_node_follows_the_last_writer() {
         let mut graph = RenderGraphBuilder::new("runtime-mipgen");
-        let texture = graph.import_external_resource("runtime-texture");
+        let texture = graph.import_present_external_resource("runtime-texture");
         let writer = graph.add_pass("texture-producer", QueueLane::Graphics);
         graph
             .write_external(writer, texture)

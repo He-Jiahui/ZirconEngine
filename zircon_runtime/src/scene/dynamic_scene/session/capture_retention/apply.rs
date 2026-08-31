@@ -1,11 +1,11 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use super::super::{
-    retention, slot_capture, RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport,
-    RuntimeSessionArchiveError, RuntimeSessionArchiveManifest, RuntimeSessionArchivePruneReport,
+    RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
+    RuntimeSessionArchiveManifest, RuntimeSessionArchivePruneReport,
     RuntimeSessionArchiveRetentionPolicy, RuntimeSessionSlot,
-    RuntimeSessionSlotCapturePreviewReport,
+    RuntimeSessionSlotCapturePreviewReport, retention, slot_capture,
 };
 
 #[derive(Debug)]
@@ -79,12 +79,7 @@ impl RuntimeSessionArchiveCaptureRetentionPlan {
     }
 
     fn virtual_manifest(&self, archive: &RuntimeSessionArchive) -> RuntimeSessionArchiveManifest {
-        let retained_slot_ids = self
-            .prune
-            .retained_slot_ids
-            .iter()
-            .map(String::as_str)
-            .collect::<BTreeSet<_>>();
+        let retained_slot_ids = retained_slot_id_index(&self.prune.retained_slot_ids);
         let mut slots = archive
             .iter_canonical_slots()
             .filter(|slot| slot.slot_id != self.slot.slot_id)
@@ -101,3 +96,13 @@ impl RuntimeSessionArchiveCaptureRetentionPlan {
         }
     }
 }
+
+fn retained_slot_id_index(retained_slot_ids: &[String]) -> HashSet<&str> {
+    let mut index = HashSet::with_capacity(retained_slot_ids.len());
+    index.extend(retained_slot_ids.iter().map(String::as_str));
+    index
+}
+
+#[cfg(test)]
+#[path = "apply/hash_membership_tests.rs"]
+mod hash_membership_tests;

@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 use super::PlayStartRequest;
 use serde::{Deserialize, Serialize};
 
@@ -7,6 +9,49 @@ pub enum PlayModeKind {
     Edit,
     Building,
     Playing,
+    CleanupFailed,
+}
+
+impl PlayModeKind {
+    /// Only `Playing` has a live runtime backend that can receive runtime work.
+    pub const fn has_active_runtime(self) -> bool {
+        matches!(self, Self::Playing)
+    }
+}
+
+/// A cleanup owner that remains retryable after the runtime has reached its terminal state.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PlayCleanupFailure {
+    PluginDeactivation {
+        message: String,
+    },
+    BackendRetirement {
+        message: String,
+        plugin_deactivation: Option<String>,
+    },
+}
+
+impl Display for PlayCleanupFailure {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PluginDeactivation { message } => {
+                write!(formatter, "plugin deactivation failed: {message}")
+            }
+            Self::BackendRetirement {
+                message,
+                plugin_deactivation,
+            } => {
+                write!(formatter, "play session retirement failed: {message}")?;
+                if let Some(plugin_deactivation) = plugin_deactivation {
+                    write!(
+                        formatter,
+                        "; plugin deactivation is also pending: {plugin_deactivation}"
+                    )?;
+                }
+                Ok(())
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -27,6 +72,10 @@ pub enum PlayMode {
     Playing {
         kind: PlayKind,
     },
+    CleanupFailed {
+        kind: PlayKind,
+        failure: PlayCleanupFailure,
+    },
 }
 
 impl PlayMode {
@@ -35,6 +84,7 @@ impl PlayMode {
             Self::Edit => PlayModeKind::Edit,
             Self::Building { .. } => PlayModeKind::Building,
             Self::Playing { .. } => PlayModeKind::Playing,
+            Self::CleanupFailed { .. } => PlayModeKind::CleanupFailed,
         }
     }
 }

@@ -1,18 +1,23 @@
 use std::collections::HashMap;
 use std::ops::Range;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use bytemuck::{Pod, Zeroable};
 use zircon_runtime_interface::ui::layout::UiFrame;
 
 use crate::core::math::UVec2;
-use crate::core::resource::ResourceId;
+use crate::core::resource::{
+    ResourceId, ResourceManagementGenerationIdentity, ResourceReadinessGenerationIdentity,
+};
 use crate::graphics::scene::resources::{GpuTextureResource, ResourceStreamer};
 
-use super::render::ScreenSpaceUiScissor;
+use super::render::{PlannedScreenSpaceUi, ScreenSpaceUiScissor};
 
 const SCREEN_SPACE_UI_IMAGE_SHADER: &str = include_str!("shaders/screen_space_ui_image.wgsl");
 const SCREEN_SPACE_UI_IMAGE_MIN_VERTEX_BUFFER_CAPACITY_BYTES: u64 = 4 * 1024;
+const SCREEN_SPACE_UI_IMAGE_BINDING_CACHE_IDLE_EPOCHS: u64 = 2;
+const SCREEN_SPACE_UI_IMAGE_BINDING_CACHE_MAX_ENTRIES: usize = 512;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct ScreenSpaceUiImageBatch {
@@ -27,13 +32,30 @@ pub(super) struct ScreenSpaceUiImageSystem {
     bind_group_layout: wgpu::BindGroupLayout,
     image_bindings: ScreenSpaceUiImageBindingCache,
     prepared_textures: ScreenSpaceUiImagePrepareTextureCache,
-    image_vertices: ScreenSpaceUiImageVertexBuffer,
+    image_segments: Vec<ScreenSpaceUiImageSegmentCache>,
 }
 
 pub(super) struct PreparedScreenSpaceUiImage {
     vertex_range: Range<u32>,
-    binding_handle: ScreenSpaceUiImageBindingHandle,
+    dependency_index: usize,
     scissor: ScreenSpaceUiScissor,
+}
+
+#[derive(Default)]
+struct ScreenSpaceUiImageSegmentCache {
+    plan: Option<Weak<PlannedScreenSpaceUi>>,
+    viewport_size: UVec2,
+    images: Vec<PreparedScreenSpaceUiImage>,
+    dependencies: Vec<ScreenSpaceUiImageTextureDependency>,
+    image_vertices: ScreenSpaceUiImageVertexBuffer,
+}
+
+struct ScreenSpaceUiImageTextureDependency {
+    requested: ResourceId,
+    resolved_texture_id: Option<ResourceId>,
+    resolution_is_current: bool,
+    texture: Option<Arc<GpuTextureResource>>,
+    binding_handle: Option<ScreenSpaceUiImageBindingHandle>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -52,6 +74,9 @@ struct CachedScreenSpaceUiImageBinding {
 
 #[derive(Default)]
 struct ScreenSpaceUiImagePrepareTextureCache {
+    management_generation: Option<ResourceManagementGenerationIdentity>,
+    readiness_generation: Option<ResourceReadinessGenerationIdentity>,
+    frame_prepare_epoch: Option<u64>,
     resolved_texture_ids: HashMap<ResourceId, Option<ResourceId>>,
 }
 
@@ -136,43 +161,77 @@ impl ScreenSpaceUiImageBindingCache {
     }
 
     fn retain_prepare_epoch(&mut self, prepare_epoch: u64) {
-        self.bindings
-            .retain(|_, binding| binding.last_prepare_epoch == prepare_epoch);
-        if self.bindings.is_empty() {
-            self.clear();
+        self.bindings.retain(|_, binding| {
+            binding_cache_epoch_is_recent(prepare_epoch, binding.last_prepare_epoch)
+        });
+        while self.bindings.len() > SCREEN_SPACE_UI_IMAGE_BINDING_CACHE_MAX_ENTRIES {
+            let Some(stale_key) = self
+                .bindings
+                .iter()
+                .filter(|(_, binding)| {
+                    binding_cache_entry_is_trimmable(prepare_epoch, binding.last_prepare_epoch)
+                })
+                .min_by_key(|(_, binding)| binding.last_prepare_epoch)
+                .map(|(key, _)| *key)
+            else {
+                break;
+            };
+            self.bindings.remove(&stale_key);
         }
     }
 
+    #[cfg(test)]
     fn clear(&mut self) {
         self.bindings = HashMap::new();
     }
 }
 
 impl ScreenSpaceUiImagePrepareTextureCache {
-    fn clear(&mut self) {
+    fn begin_prepare(
+        &mut self,
+        management_generation: Option<ResourceManagementGenerationIdentity>,
+        readiness_generation: Option<ResourceReadinessGenerationIdentity>,
+        frame_prepare_epoch: Option<u64>,
+    ) -> bool {
+        if self.management_generation == management_generation
+            && self.readiness_generation == readiness_generation
+            && self.frame_prepare_epoch == frame_prepare_epoch
+        {
+            return false;
+        }
         self.resolved_texture_ids.clear();
+        self.management_generation = management_generation;
+        self.readiness_generation = readiness_generation;
+        self.frame_prepare_epoch = frame_prepare_epoch;
+        true
     }
 
     fn reset(&mut self) {
+        self.management_generation = None;
+        self.readiness_generation = None;
+        self.frame_prepare_epoch = None;
         self.resolved_texture_ids = HashMap::new();
     }
 
-    fn texture_for<'a>(
+    fn resolved_texture_id_for(
         &mut self,
-        streamer: &'a ResourceStreamer,
+        streamer: &ResourceStreamer,
         requested: ResourceId,
-    ) -> &'a Arc<GpuTextureResource> {
-        let resolved_texture_id = *self
+    ) -> Option<ResourceId> {
+        if streamer.last_ui_texture_prepare_receipt().is_some() {
+            return streamer.prepared_ui_texture_id(requested);
+        }
+        *self
             .resolved_texture_ids
             .entry(requested)
-            .or_insert_with(|| streamer.resolve_ui_texture_id(requested));
-        streamer.ui_texture_ref(resolved_texture_id)
+            .or_insert_with(|| streamer.resolve_ui_texture_id(requested))
     }
 }
 
 impl ScreenSpaceUiImageVertexBuffer {
     fn clear_cpu_staging(&mut self) {
         self.vertices = Vec::new();
+        self.payload_hash = None;
     }
 }
 
@@ -249,27 +308,34 @@ impl ScreenSpaceUiImageSystem {
                 bindings: HashMap::new(),
             },
             prepared_textures: ScreenSpaceUiImagePrepareTextureCache::default(),
-            image_vertices: ScreenSpaceUiImageVertexBuffer::default(),
+            image_segments: Vec::new(),
         }
     }
 
     pub(super) fn clear_frame_state(&mut self) {
-        self.image_bindings.clear();
+        let prepare_epoch = self.image_bindings.begin_prepare();
+        self.image_bindings.retain_prepare_epoch(prepare_epoch);
         self.prepared_textures.reset();
-        self.image_vertices.clear_cpu_staging();
+        for segment in &mut self.image_segments {
+            segment.plan = None;
+            segment.images.clear();
+            segment.dependencies.clear();
+            segment.image_vertices.clear_cpu_staging();
+        }
     }
 
     pub(super) fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         viewport_size: UVec2,
-        batches: &[ScreenSpaceUiImageBatch],
+        render_segments: &[Arc<PlannedScreenSpaceUi>],
         streamer: Option<&ResourceStreamer>,
-    ) -> Vec<PreparedScreenSpaceUiImage> {
+        uploads: &mut WgpuBufferUploadBatch,
+        force_full_upload: bool,
+    ) {
         let Some(streamer) = streamer else {
             self.clear_frame_state();
-            return Vec::new();
+            return;
         };
         let prepare_epoch = self.image_bindings.begin_prepare();
         let viewport = UiFrame::new(
@@ -281,90 +347,256 @@ impl ScreenSpaceUiImageSystem {
         let bind_group_layout = &self.bind_group_layout;
         let image_bindings = &mut self.image_bindings;
         let prepared_textures = &mut self.prepared_textures;
-        let image_vertices = &mut self.image_vertices;
-        prepared_textures.clear();
-        image_vertices.vertices.clear();
-        let images: Vec<PreparedScreenSpaceUiImage> = batches
-            .iter()
-            .filter_map(|batch| {
-                Self::prepare_batch(
+        let image_segments = &mut self.image_segments;
+        let texture_prepare_generation = streamer
+            .last_ui_texture_prepare_receipt()
+            .map(|receipt| {
+                (
+                    Some(receipt.management_generation().clone()),
+                    Some(receipt.readiness_generation().clone()),
+                    Some(receipt.frame_prepare_epoch()),
+                )
+            })
+            .or_else(|| {
+                streamer.asset_manager().ok().map(|manager| {
+                    let projection = manager.resource_manager().projection_snapshot();
+                    (
+                        Some(projection.management_identity()),
+                        Some(projection.readiness_identity()),
+                        None,
+                    )
+                })
+            })
+            .unwrap_or((None, None, None));
+        let texture_resolution_generation_changed = prepared_textures.begin_prepare(
+            texture_prepare_generation.0,
+            texture_prepare_generation.1,
+            texture_prepare_generation.2,
+        );
+        if image_segments.len() < render_segments.len() {
+            image_segments.resize_with(
+                render_segments.len(),
+                ScreenSpaceUiImageSegmentCache::default,
+            );
+        }
+
+        let mut segment_plan_reuse_count = 0_usize;
+        let mut image_batch_visit_count = 0_usize;
+        let mut texture_dependency_check_count = 0_usize;
+        for (plan, segment) in render_segments.iter().zip(image_segments.iter_mut()) {
+            if !force_full_upload
+                && screen_space_ui_image_segment_plan_reused(
+                    segment.plan.as_ref(),
+                    segment.viewport_size,
+                    plan,
+                    viewport_size,
+                )
+            {
+                segment_plan_reuse_count = segment_plan_reuse_count.saturating_add(1);
+            } else {
+                image_batch_visit_count =
+                    image_batch_visit_count.saturating_add(plan.image_batches().len());
+                Self::rebuild_segment_geometry(
+                    device,
+                    viewport,
+                    viewport_size,
+                    plan,
+                    segment,
+                    uploads,
+                    force_full_upload,
+                );
+            }
+            texture_dependency_check_count =
+                texture_dependency_check_count.saturating_add(Self::refresh_segment_dependencies(
                     device,
                     bind_group_layout,
-                    viewport,
-                    batch,
                     streamer,
                     prepare_epoch,
                     image_bindings,
                     prepared_textures,
-                    &mut image_vertices.vertices,
-                )
-            })
-            .collect();
-        if image_cpu_staging_should_reset(images.len()) {
-            prepared_textures.reset();
-            image_vertices.clear_cpu_staging();
-        } else {
-            write_screen_space_ui_image_vertex_buffer(device, queue, image_vertices);
+                    texture_resolution_generation_changed,
+                    segment,
+                ));
         }
+        image_segments.truncate(render_segments.len());
         image_bindings.retain_prepare_epoch(prepare_epoch);
-        images
+        crate::core::diagnostics::profiling::record_counter_batch(
+            "runtime",
+            &[
+                (
+                    "ui.screen_space_ui_image.segment_plan_reuse_count",
+                    segment_plan_reuse_count as f64,
+                ),
+                (
+                    "ui.screen_space_ui_image.batch_visit_count",
+                    image_batch_visit_count as f64,
+                ),
+                (
+                    "ui.screen_space_ui_image.texture_dependency_check_count",
+                    texture_dependency_check_count as f64,
+                ),
+            ],
+        );
     }
 
-    fn prepare_batch(
+    fn rebuild_segment_geometry(
         device: &wgpu::Device,
-        bind_group_layout: &wgpu::BindGroupLayout,
+        viewport: UiFrame,
+        viewport_size: UVec2,
+        plan: &Arc<PlannedScreenSpaceUi>,
+        segment: &mut ScreenSpaceUiImageSegmentCache,
+        uploads: &mut WgpuBufferUploadBatch,
+        force_full_upload: bool,
+    ) {
+        segment.images.clear();
+        segment.dependencies.clear();
+        segment.image_vertices.vertices.clear();
+        let mut dependency_indices = HashMap::new();
+        for batch in plan.image_batches() {
+            let Some(image) = Self::prepare_batch_geometry(
+                viewport,
+                batch,
+                &mut dependency_indices,
+                &mut segment.dependencies,
+                &mut segment.image_vertices.vertices,
+            ) else {
+                continue;
+            };
+            segment.images.push(image);
+        }
+        if image_cpu_staging_should_reset(segment.images.len()) {
+            segment.image_vertices.clear_cpu_staging();
+        } else {
+            write_screen_space_ui_image_vertex_buffer(
+                device,
+                &mut segment.image_vertices,
+                uploads,
+                force_full_upload,
+            );
+        }
+        segment.plan = Some(Arc::downgrade(plan));
+        segment.viewport_size = viewport_size;
+    }
+
+    fn prepare_batch_geometry(
         viewport: UiFrame,
         batch: &ScreenSpaceUiImageBatch,
-        streamer: &ResourceStreamer,
-        prepare_epoch: u64,
-        image_bindings: &mut ScreenSpaceUiImageBindingCache,
-        prepared_textures: &mut ScreenSpaceUiImagePrepareTextureCache,
+        dependency_indices: &mut HashMap<ResourceId, usize>,
+        dependencies: &mut Vec<ScreenSpaceUiImageTextureDependency>,
         vertices: &mut Vec<ScreenSpaceUiImageVertex>,
     ) -> Option<PreparedScreenSpaceUiImage> {
         if batch.frame.width <= 0.0 || batch.frame.height <= 0.0 {
             return None;
         }
         let scissor = image_batch_scissor(batch.frame, viewport, batch.clip_frame)?;
-        let texture = prepared_textures.texture_for(streamer, batch.texture);
-        let binding_handle =
-            image_bindings.binding_handle_for(device, bind_group_layout, texture, prepare_epoch);
+        let dependency_index = *dependency_indices.entry(batch.texture).or_insert_with(|| {
+            let dependency_index = dependencies.len();
+            dependencies.push(ScreenSpaceUiImageTextureDependency {
+                requested: batch.texture,
+                resolved_texture_id: None,
+                resolution_is_current: false,
+                texture: None,
+                binding_handle: None,
+            });
+            dependency_index
+        });
         let vertex_start = u32::try_from(vertices.len()).ok()?;
         vertices.extend(image_vertices(batch.frame, viewport, batch.tint));
         let vertex_end = u32::try_from(vertices.len()).ok()?;
         Some(PreparedScreenSpaceUiImage {
             vertex_range: vertex_start..vertex_end,
-            binding_handle,
+            dependency_index,
             scissor,
         })
     }
 
-    pub(super) fn render<'pass>(
-        &'pass self,
-        pass: &mut wgpu::RenderPass<'pass>,
-        images: &'pass [PreparedScreenSpaceUiImage],
-    ) {
-        if images.is_empty() {
-            return;
+    fn refresh_segment_dependencies(
+        device: &wgpu::Device,
+        bind_group_layout: &wgpu::BindGroupLayout,
+        streamer: &ResourceStreamer,
+        prepare_epoch: u64,
+        image_bindings: &mut ScreenSpaceUiImageBindingCache,
+        prepared_textures: &mut ScreenSpaceUiImagePrepareTextureCache,
+        texture_resolution_generation_changed: bool,
+        segment: &mut ScreenSpaceUiImageSegmentCache,
+    ) -> usize {
+        for dependency in &mut segment.dependencies {
+            if texture_resolution_generation_changed || !dependency.resolution_is_current {
+                dependency.resolved_texture_id =
+                    prepared_textures.resolved_texture_id_for(streamer, dependency.requested);
+                dependency.resolution_is_current = true;
+            }
+            let texture = streamer.ui_texture_ref(dependency.resolved_texture_id);
+            let binding_handle = image_bindings.binding_handle_for(
+                device,
+                bind_group_layout,
+                texture,
+                prepare_epoch,
+            );
+            if !screen_space_ui_image_texture_dependency_is_current(
+                dependency.texture.as_ref(),
+                texture,
+            ) {
+                dependency.texture = Some(Arc::clone(texture));
+            }
+            dependency.binding_handle = Some(binding_handle);
         }
-        let Some(vertex_buffer) = self.image_vertices.buffer.as_ref() else {
-            return;
-        };
-        pass.set_pipeline(&self.pipeline);
-        pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-        for image in images {
-            let Some(bind_group) = self.image_bindings.bind_group(image.binding_handle) else {
+        segment.dependencies.len()
+    }
+
+    pub(super) fn render<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>) {
+        let mut pipeline_is_bound = false;
+        for segment in &self.image_segments {
+            if segment.images.is_empty() {
+                continue;
+            }
+            let Some(vertex_buffer) = segment.image_vertices.buffer.as_ref() else {
                 continue;
             };
-            pass.set_scissor_rect(
-                image.scissor.x,
-                image.scissor.y,
-                image.scissor.width,
-                image.scissor.height,
-            );
-            pass.set_bind_group(0, bind_group, &[]);
-            pass.draw(image.vertex_range.clone(), 0..1);
+            if !pipeline_is_bound {
+                pass.set_pipeline(&self.pipeline);
+                pipeline_is_bound = true;
+            }
+            pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+            for image in &segment.images {
+                let Some(binding_handle) = segment
+                    .dependencies
+                    .get(image.dependency_index)
+                    .and_then(|dependency| dependency.binding_handle)
+                else {
+                    continue;
+                };
+                let Some(bind_group) = self.image_bindings.bind_group(binding_handle) else {
+                    continue;
+                };
+                pass.set_scissor_rect(
+                    image.scissor.x,
+                    image.scissor.y,
+                    image.scissor.width,
+                    image.scissor.height,
+                );
+                pass.set_bind_group(0, bind_group, &[]);
+                pass.draw(image.vertex_range.clone(), 0..1);
+            }
         }
     }
+}
+
+fn screen_space_ui_image_segment_plan_reused(
+    current: Option<&Weak<PlannedScreenSpaceUi>>,
+    current_viewport_size: UVec2,
+    next: &Arc<PlannedScreenSpaceUi>,
+    next_viewport_size: UVec2,
+) -> bool {
+    current_viewport_size == next_viewport_size
+        && current.is_some_and(|current| std::ptr::eq(current.as_ptr(), Arc::as_ptr(next)))
+}
+
+fn screen_space_ui_image_texture_dependency_is_current<T>(
+    current: Option<&Arc<T>>,
+    next: &Arc<T>,
+) -> bool {
+    current.is_some_and(|current| Arc::ptr_eq(current, next))
 }
 
 fn image_batch_scissor(
@@ -382,8 +614,9 @@ fn image_batch_scissor(
 
 fn write_screen_space_ui_image_vertex_buffer(
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
     image_vertices: &mut ScreenSpaceUiImageVertexBuffer,
+    uploads: &mut WgpuBufferUploadBatch,
+    force_full_upload: bool,
 ) {
     if image_vertices.vertices.is_empty() {
         return;
@@ -408,13 +641,17 @@ fn write_screen_space_ui_image_vertex_buffer(
     }
     let payload_hash = *blake3::hash(vertex_bytes).as_bytes();
     let write_required = image_vertex_buffer_write_required(
-        requires_reallocation,
+        requires_reallocation || force_full_upload,
         image_vertices.payload_hash,
         payload_hash,
     );
     if write_required {
         if let Some(vertex_buffer) = image_vertices.buffer.as_ref() {
-            queue.write_buffer(vertex_buffer, 0, vertex_bytes);
+            uploads.push(WgpuBufferUpload::from_bytes(
+                vertex_buffer.clone(),
+                0,
+                vertex_bytes,
+            ));
             image_vertices.payload_hash = Some(payload_hash);
         }
     }
@@ -422,6 +659,15 @@ fn write_screen_space_ui_image_vertex_buffer(
 
 const fn image_cpu_staging_should_reset(image_count: usize) -> bool {
     image_count == 0
+}
+
+fn binding_cache_epoch_is_recent(current_epoch: u64, last_prepare_epoch: u64) -> bool {
+    current_epoch >= last_prepare_epoch
+        && current_epoch - last_prepare_epoch <= SCREEN_SPACE_UI_IMAGE_BINDING_CACHE_IDLE_EPOCHS
+}
+
+fn binding_cache_entry_is_trimmable(current_epoch: u64, last_prepare_epoch: u64) -> bool {
+    last_prepare_epoch != current_epoch
 }
 
 fn image_vertex_buffer_capacity(required_byte_len: usize) -> u64 {

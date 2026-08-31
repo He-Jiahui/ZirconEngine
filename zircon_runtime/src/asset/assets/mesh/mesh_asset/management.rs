@@ -126,8 +126,9 @@ impl MeshAssetManagementRecordSet {
             Result<MeshAssetManagementRecord, MeshValidationError>,
         )>,
     ) -> Self {
+        let record_capacity = results.len();
         results.sort_by_key(|(mesh_id, _)| *mesh_id);
-        let mut records = Vec::new();
+        let mut records = Vec::with_capacity(record_capacity);
         let mut failures = Vec::new();
         for (mesh_id, result) in results {
             match result {
@@ -147,3 +148,7 @@ impl MeshAssetManagementRecordSet {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "management/capacity_tests.rs"]
+mod capacity_tests;

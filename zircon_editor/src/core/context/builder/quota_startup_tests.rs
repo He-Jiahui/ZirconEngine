@@ -38,7 +38,7 @@ fn restart_only_job_quota_changes_apply_to_the_next_context_admission_owner() {
     ));
     let store = SettingsStore::from_roots(&root, None);
     let scheduler = crate::core::jobs::test_job_scheduler();
-    let context_a = EditorContextBuilder::new(scheduler.clone())
+    let context_a = EditorContextBuilder::new(scheduler.clone(), scheduler.clone())
         .with_settings_store(store.clone())
         .build();
     assert!(matches!(
@@ -93,7 +93,7 @@ fn restart_only_job_quota_changes_apply_to_the_next_context_admission_owner() {
     assert!(first.wait().is_ok());
     assert!(second.wait().is_ok());
 
-    let context_b = EditorContextBuilder::new(scheduler)
+    let context_b = EditorContextBuilder::new(scheduler.clone(), scheduler)
         .with_settings_store(store.clone())
         .build();
     assert!(matches!(

@@ -41,6 +41,17 @@ pub enum MeshValidationError {
     TangentGenerationMissingAttribute {
         attribute: &'static str,
     },
+    TangentGenerationFailed {
+        reason: String,
+    },
+    MorphTangentHandednessMismatch {
+        target_index: usize,
+        vertex_index: usize,
+    },
+    MorphTangentCornerMismatch {
+        target_index: usize,
+        vertex_index: usize,
+    },
 }
 
 impl fmt::Display for MeshValidationError {
@@ -117,6 +128,23 @@ impl fmt::Display for MeshValidationError {
             Self::TangentGenerationMissingAttribute { attribute } => write!(
                 formatter,
                 "tangent generation requires mesh attribute `{attribute}`"
+            ),
+            Self::TangentGenerationFailed { reason } => {
+                write!(formatter, "MikkTSpace tangent generation failed: {reason}")
+            }
+            Self::MorphTangentHandednessMismatch {
+                target_index,
+                vertex_index,
+            } => write!(
+                formatter,
+                "mesh morph target {target_index} changes MikkTSpace handedness at vertex {vertex_index}, which cannot be represented by a glTF tangent xyz delta"
+            ),
+            Self::MorphTangentCornerMismatch {
+                target_index,
+                vertex_index,
+            } => write!(
+                formatter,
+                "mesh morph target {target_index} needs more than one MikkTSpace corner tangent at vertex {vertex_index}, which is not representable by the completed base vertex split"
             ),
         }
     }

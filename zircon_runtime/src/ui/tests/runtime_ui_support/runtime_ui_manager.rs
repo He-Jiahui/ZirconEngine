@@ -1,7 +1,7 @@
 use crate::asset::assets::ui_v2_asset_references;
 use crate::core::framework::render::{
     FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderOverlayExtract,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle, UiRenderSubmission,
     ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
@@ -10,6 +10,7 @@ use crate::ui::template::UiAssetSurfaceIndex;
 use crate::ui::theme::UiThemeRegistry;
 use crate::ui::v2::{UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder};
 use crate::ui::{dispatch::UiInputManager, PublicRuntimeFrame};
+use std::sync::Arc;
 use zircon_runtime_interface::ui::tree::UiTreeError;
 use zircon_runtime_interface::ui::v2::UiV2AssetDocument;
 use zircon_runtime_interface::ui::{
@@ -90,7 +91,10 @@ impl RuntimeUiManager {
         kind: UiPointerEventKind,
         handler: F,
     ) where
-        F: Fn(&UiPointerDispatchContext) -> UiPointerDispatchEffect + Send + Sync + 'static,
+        F: for<'route> Fn(&UiPointerDispatchContext<'route>) -> UiPointerDispatchEffect
+            + Send
+            + Sync
+            + 'static,
     {
         self.input_manager
             .pointer_dispatcher_mut()
@@ -104,7 +108,10 @@ impl RuntimeUiManager {
         phase: UiDispatchPhase,
         handler: F,
     ) where
-        F: Fn(&UiPointerDispatchContext) -> UiPointerDispatchEffect + Send + Sync + 'static,
+        F: for<'route> Fn(&UiPointerDispatchContext<'route>) -> UiPointerDispatchEffect
+            + Send
+            + Sync
+            + 'static,
     {
         self.input_manager
             .pointer_dispatcher_mut()
@@ -117,7 +124,10 @@ impl RuntimeUiManager {
         kind: UiNavigationEventKind,
         handler: F,
     ) where
-        F: Fn(&UiNavigationDispatchContext) -> UiNavigationDispatchEffect + Send + Sync + 'static,
+        F: for<'route> Fn(&UiNavigationDispatchContext<'route>) -> UiNavigationDispatchEffect
+            + Send
+            + Sync
+            + 'static,
     {
         self.input_manager
             .navigation_dispatcher_mut()
@@ -240,7 +250,9 @@ impl RuntimeUiManager {
         PublicRuntimeFrame {
             extract,
             viewport_size: self.viewport_size,
-            ui: Some(self.surface.render_extract.clone()),
+            ui: Some(UiRenderSubmission::single(Arc::new(
+                self.surface.render_extract.clone(),
+            ))),
         }
     }
 

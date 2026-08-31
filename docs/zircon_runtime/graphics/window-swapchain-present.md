@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/core/framework/render/framework_error.rs
   - zircon_runtime/src/core/framework/render/surface.rs

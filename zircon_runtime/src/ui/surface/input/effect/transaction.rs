@@ -1,35 +1,34 @@
-use std::collections::BTreeSet;
-
-use zircon_runtime_interface::ui::{
-    dispatch::{UiDispatchEffect, UiDispatchRejectedEffect, UiInputDispatchResult},
-    event_ui::UiNodeId,
-    surface::{UiFocusState, UiNavigationState},
-    tree::UiTree,
+use zircon_runtime_interface::ui::dispatch::{
+    UiDispatchEffect, UiDispatchRejectedEffect, UiDragDropEffectKind, UiInputDiagnosticsMode,
+    UiInputDispatchResult,
 };
 
-use crate::ui::{
-    surface::{
-        UiSurface, UiSurfaceComponentStateStore, UiSurfaceInputState, UiSurfaceInvalidationState,
-    },
-    v2::UiV2RuntimeStyleIndex,
-};
+use crate::ui::surface::{UiSurface, UiSurfaceMutationDomains, UiSurfaceMutationSnapshot};
 
 pub(super) struct UiInputTransaction {
     atomic: bool,
     effect_count: usize,
     base_generation: u64,
-    snapshot: UiInputMutationSnapshot,
+    snapshot: UiSurfaceMutationSnapshot,
 }
 
 impl UiInputTransaction {
     pub(super) fn prepare(surface: &UiSurface, effects: &[UiDispatchEffect]) -> Self {
         let write_set = UiInputWriteSet::for_effects(effects);
-        let atomic = effects.len() > 1 || effects.iter().any(effect_is_composite);
+        let atomic = effects.len() > 1
+            || effects
+                .iter()
+                .any(|effect| effect_requires_atomic_snapshot(surface, effect));
         Self {
             atomic,
             effect_count: effects.len(),
             base_generation: surface.invalidation.generations().generation,
-            snapshot: UiInputMutationSnapshot::capture(surface, atomic.then_some(write_set)),
+            snapshot: UiSurfaceMutationSnapshot::capture(
+                surface,
+                atomic
+                    .then(|| write_set.mutation_domains())
+                    .unwrap_or_default(),
+            ),
         }
     }
 
@@ -43,6 +42,7 @@ impl UiInputTransaction {
         result: &mut UiInputDispatchResult,
         failed_effect_index: usize,
         failed_reason: String,
+        diagnostics_mode: UiInputDiagnosticsMode,
     ) {
         self.snapshot.restore(surface);
         let rejected_effects = result
@@ -68,14 +68,20 @@ impl UiInputTransaction {
         result.host_requests.clear();
         result.component_events.clear();
         result.diagnostics.route_target = result.reply.handler;
-        result.diagnostics.notes.push(format!(
-            "input_transaction=aborted base_generation={} failed_effect={failed_effect_index}",
-            self.base_generation
-        ));
+        if diagnostics_mode.captures_full_trace() {
+            result.diagnostics.notes.push(format!(
+                "input_transaction=aborted base_generation={} failed_effect={failed_effect_index}",
+                self.base_generation
+            ));
+        }
     }
 
-    pub(super) fn commit(self, result: &mut UiInputDispatchResult) {
-        if self.atomic {
+    pub(super) fn commit(
+        self,
+        result: &mut UiInputDispatchResult,
+        diagnostics_mode: UiInputDiagnosticsMode,
+    ) {
+        if self.atomic && diagnostics_mode.captures_full_trace() {
             result.diagnostics.notes.push(format!(
                 "input_transaction=committed base_generation={} effects={}",
                 self.base_generation, self.effect_count
@@ -94,8 +100,22 @@ struct UiInputWriteSet {
 }
 
 impl UiInputWriteSet {
+    const fn mutation_domains(self) -> UiSurfaceMutationDomains {
+        UiSurfaceMutationDomains {
+            tree: self.tree,
+            focus: self.focus,
+            input: self.input,
+            component_states: self.component_states,
+            navigation: self.navigation,
+        }
+    }
+
     fn for_effects(effects: &[UiDispatchEffect]) -> Self {
-        let mut write_set = Self::default();
+        let mut write_set = Self {
+            // Every successful effect drains deferred focus/IME lifecycle state.
+            input: !effects.is_empty(),
+            ..Self::default()
+        };
         for effect in effects {
             write_set.include(effect);
         }
@@ -153,82 +173,27 @@ impl UiInputWriteSet {
     }
 }
 
-fn effect_is_composite(effect: &UiDispatchEffect) -> bool {
-    matches!(
-        effect,
+fn effect_requires_atomic_snapshot(surface: &UiSurface, effect: &UiDispatchEffect) -> bool {
+    match effect {
+        UiDispatchEffect::DragDrop {
+            kind: UiDragDropEffectKind::Update,
+            target,
+            pointer_id,
+            session_id,
+            ..
+        } => {
+            // A steady-target update validates ownership before mutation and leaves component
+            // flags unchanged, so no later fallible style invalidation needs rollback.
+            let steady_target_update = surface.input.drag_drop.as_ref().is_some_and(|drag| {
+                drag.target == *target
+                    && drag.pointer_id == *pointer_id
+                    && session_id.is_none_or(|session_id| session_id == drag.session_id)
+            });
+            !steady_target_update
+        }
         UiDispatchEffect::DragDrop { .. }
-            | UiDispatchEffect::Popup { .. }
-            | UiDispatchEffect::DismissTransientUi { .. }
-    )
-}
-
-#[derive(Default)]
-struct UiInputMutationSnapshot {
-    tree: Option<UiTreeMutationSnapshot>,
-    focus: Option<UiFocusState>,
-    input: Option<UiSurfaceInputState>,
-    component_states: Option<UiSurfaceComponentStateStore>,
-    navigation: Option<UiNavigationState>,
-}
-
-impl UiInputMutationSnapshot {
-    fn capture(surface: &UiSurface, write_set: Option<UiInputWriteSet>) -> Self {
-        let Some(write_set) = write_set else {
-            return Self::default();
-        };
-        Self {
-            tree: write_set
-                .tree
-                .then(|| UiTreeMutationSnapshot::capture(surface)),
-            focus: write_set.focus.then(|| surface.focus.clone()),
-            input: write_set.input.then(|| surface.input.clone()),
-            component_states: write_set
-                .component_states
-                .then(|| surface.component_states.clone()),
-            navigation: write_set.navigation.then(|| surface.navigation.clone()),
-        }
-    }
-
-    fn restore(self, surface: &mut UiSurface) {
-        if let Some(tree) = self.tree {
-            tree.restore(surface);
-        }
-        if let Some(focus) = self.focus {
-            surface.focus = focus;
-        }
-        if let Some(input) = self.input {
-            surface.input = input;
-        }
-        if let Some(component_states) = self.component_states {
-            surface.component_states = component_states;
-        }
-        if let Some(navigation) = self.navigation {
-            surface.navigation = navigation;
-        }
-    }
-}
-
-struct UiTreeMutationSnapshot {
-    tree: UiTree,
-    runtime_style: UiV2RuntimeStyleIndex,
-    invalidation: UiSurfaceInvalidationState,
-    dirty_node_ids: BTreeSet<UiNodeId>,
-}
-
-impl UiTreeMutationSnapshot {
-    fn capture(surface: &UiSurface) -> Self {
-        Self {
-            tree: surface.tree.clone(),
-            runtime_style: surface.runtime_style.clone(),
-            invalidation: surface.invalidation.clone(),
-            dirty_node_ids: surface.dirty_node_ids.clone(),
-        }
-    }
-
-    fn restore(self, surface: &mut UiSurface) {
-        surface.tree = self.tree;
-        surface.runtime_style = self.runtime_style;
-        surface.invalidation = self.invalidation;
-        surface.dirty_node_ids = self.dirty_node_ids;
+        | UiDispatchEffect::Popup { .. }
+        | UiDispatchEffect::DismissTransientUi { .. } => true,
+        _ => false,
     }
 }

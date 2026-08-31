@@ -7,7 +7,7 @@ use zircon_runtime::core::framework::render::{
     EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
     RenderFrameExtract, RenderFramework, RenderOverlayExtract, RenderQualityProfile,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderWorldSnapshotHandle, UiRenderSubmission, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec4};
 use zircon_runtime::graphics::WgpuRenderFramework;
@@ -426,7 +426,8 @@ fn render_ui_extract_frame(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
-    let server = WgpuRenderFramework::new(asset_runtime.access()).unwrap();
+    let server =
+        WgpuRenderFramework::new(asset_runtime.access(), asset_runtime.worker_pool()).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -453,12 +454,13 @@ fn render_ui_extract_frame(
     let mut final_stats = None;
     let mut raster_was_settled = false;
     let mut capture_is_stable = false;
+    let submission = UiRenderSubmission::single(Arc::new(ui));
     for frame_index in 0..settle_frame_limit {
         server
             .submit_frame_extract_with_ui(
                 viewport,
                 empty_extract(viewport_size, frame_index + 1),
-                Some(ui.clone()),
+                Some(Arc::clone(&submission)),
             )
             .unwrap();
         let stats = server.query_stats().unwrap();

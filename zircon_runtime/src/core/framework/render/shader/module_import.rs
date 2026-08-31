@@ -59,12 +59,24 @@ pub fn wgsl_include_paths(source: &str) -> Vec<String> {
 }
 
 pub fn strip_wgsl_include_directives(source: &str) -> String {
-    source
+    let mut stripped = String::with_capacity(source.len());
+    let mut has_output_line = false;
+    for line in source
         .lines()
         .filter(|line| wgsl_include_path_from_line(line).is_none())
-        .collect::<Vec<_>>()
-        .join("\n")
+    {
+        if has_output_line {
+            stripped.push('\n');
+        }
+        stripped.push_str(line);
+        has_output_line = true;
+    }
+    stripped
 }
+
+#[cfg(test)]
+#[path = "module_import/include_strip_tests.rs"]
+mod include_strip_tests;
 
 pub fn is_generated_shader_module_token(token: &str) -> bool {
     token

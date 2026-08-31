@@ -46,6 +46,11 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs
+  - tools/tests/test_runtime_shader_prewarm_test_structure.py
   - docs/zircon_runtime/performance/hotspot_inventory.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
@@ -210,6 +215,41 @@ last_refined: 2026-07-23
 - 里程碑末：重跑 M0 基线命令对比 FPS/帧分解；基线对比表（优化项、计数变化、FPS 变化）写入状态节
 - 文档：受影响模块的 `docs/zircon_runtime/**` 镜像文档更新
 
+### M3 World hierarchy dirty-frontier repair
+
+- M2 的 F459 generation-topology 候选经独立审查发现三个 P1：有效的结构化重挂接仍触发
+  `O(N)` hierarchy validity 扫描；原始 `get_mut::<Hierarchy>` 修复无效边后未发布被修复端点的
+  derived state；检查字段失效在 topology 的 dense projection 过期时临时遍历全世界。
+- M3 保持一个唯一、稳定顺序的 World-owned parent-to-children topology。结构化
+  `set_parent_checked` 只原子更新 changed edge、受影响子树和检查字段；它不走 raw hierarchy
+  escape hatch 的全量 validity path。泛型 `Hierarchy` 写入和 raw mutable borrow 仍保守地触发
+  validity rebuild；若该 rebuild 修复任何边，必须将 active、world matrix、NodeCache 及 render
+  前沿提升为全量，以免发布旧端点。
+- 拓扑读取以每父节点的有序邻接表完成，避免为一次 reparent 重建全局 dense child range 或临时
+  traversal map。此选择与 Unreal `USceneComponent` 的 attached-children ownership 和 changed
+  component propagation 一致；它以局部 `O(log siblings + affected_subtree)` 更新取代 `O(N)`
+  projection refresh。
+- 验收：1k 与 100k 结构化 reparent 后 hierarchy snapshot/validity/topology source rebuild 都为
+  `0`，active/world matrix 只访问 changed subtree，NodeCache 父节点行正确；raw cycle repair 后
+  A/B 的 parent、matrix、active 和缓存行全部正确。必须用托管 Windows Cargo 验证与独立复审，
+  不以静态检查或墙钟阈值替代访问计数。
+
+#### M3 测试阶段（milestone-first）
+
+- `derived_state` 聚焦回归覆盖 structured reparent、raw cycle repair、1k/100k 计数与 inspection
+  subtree 无临时全局 traversal。
+- 使用非 C 盘 target 的托管验证收集编译和测试结果；记录 validation ticket、计数结果及任何
+  pool/外部 owner 阻塞，未经通过不得提交。
+
+### M4 F459 repair execution
+
+**Dependencies:** M2
+
+- 执行 M3 已审阅的 World-owned ordered adjacency topology、structured versus raw hierarchy
+  invalidation split 和 repair-frontier publication。
+- M2 的 `world-derived-state-full-rebuild` failure 生命周期转交到本节点；只有通过 M3 审查
+  定义的行为和计数验收、托管 Windows Cargo 验证及独立复审后才能关闭该 failure 并提交。
+
 ## 状态与产出记录
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
@@ -349,3 +389,20 @@ last_refined: 2026-07-23
 - 2026-07-22 World派生状态交接：despawn full archetype rebuild与validity per-entity HashSet allocation已止损；hierarchy dirty仍做parent O(N×depth)验证、active/transform各建children表并递归全树、NodeCache深clone宽SceneNode。Runtime07联动Runtime08/Editor05交付唯一generation topology、dirty-root frontier与迭代subtree delta，stable build/scan/clone=0，100k深链无栈溢出；见PERF-MVP-459与`07/failure-2026-07-22-world-derived-state-full-rebuild.md`。
 - 2026-07-22 scene render projection补充：World render五文件已静态读完；particle候选已从全World扫描止损到dynamic owner并删除两个重复sort，但每camera仍重新排序owners、解析JSON并重建sprite/bounds/gpu-frame。Runtime07联动Render12发布typed/revision particle artifact并跨camera共享；mesh/light/camera/Volume/visibility稳定帧统一复用349/363/364/419的scene generation owner，见PERF-MVP-465与render projection静态证据。
 - 2026-07-22 LevelSystem frame-state交接：单`WorldRuntimeState` Mutex当前串行physics/animation/script，render先锁内深clone全部pose再持World锁extract，playback/events也owned clone，script started lookup分配String。Runtime07发布按域revision的sealed frame handles并让render短锁取一次后锁外消费，具体domain复用335/439/442；见PERF-MVP-469与`07/failure-2026-07-22-level-system-runtime-state-frame-snapshot.md`。
+
+## 2026-08-27 Shader Prewarm Test Owner Split
+
+状态：`runtime_07_15_shader_prewarm_test_owner_and_source_guard_routing_static_passed_cargo_deferred`。
+
+本切片先完成不依赖受管 Cargo 队列的基础设施收敛：`graphics/shader/variant_cache/prewarm.rs`
+从 811 行降到 142 行，只保留四个预热入口与 folder-backed test route；既有执行循环继续由
+251 行的 `prewarm/worker.rs` 持有，11 个主体测试原样迁移到 667 行的 `prewarm/tests.rs`，
+2 个 module+pipeline 组合验证测试继续由 159 行的
+`prewarm/tests/combined_validation_tests.rs` 持有。Runtime15 的 source guards 现分别读取
+route、worker 与 test owner，不再依赖把生产锚和测试锚混在旧父文件中的假阳性。
+
+Python 结构回归 1/1、定向 `rustfmt --check`、11+2 测试属性计数及拆分前后规范化源码
+等价检查通过。缓存键的 source hash、include hashes、template revision、Naga 与 WGPU
+版本身份参数保持当前源码语义。此项未修改预热调度、校验、磁盘写入或缓存算法，也未生成
+profile、功耗或二次启动 miss 数据；因此不关闭任何 shader-prewarm 性能瓶颈，受管 Cargo
+仍延后，本状态不构成 Runtime07/Render08 产品验收。

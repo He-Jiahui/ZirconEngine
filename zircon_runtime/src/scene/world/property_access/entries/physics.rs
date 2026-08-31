@@ -1,11 +1,11 @@
+use crate::core::framework::scene::ScenePropertyValue;
 use crate::core::framework::scene::physics::{
     PhysicsCcdMode, PhysicsMassProperties, PhysicsSleepPolicy,
 };
-use crate::core::framework::scene::ScenePropertyValue;
+use crate::scene::EntityId;
 use crate::scene::components::{
     ColliderComponent, JointComponent, JointKind, RigidBodyComponent, RigidBodyType,
 };
-use crate::scene::EntityId;
 
 #[path = "collider_shape.rs"]
 mod collider_shape;

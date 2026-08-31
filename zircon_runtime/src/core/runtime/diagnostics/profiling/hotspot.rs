@@ -1,16 +1,20 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{HashMap, HashSet};
 
 use zircon_runtime_interface::{HotspotEntry, HotspotReport, ProfileSnapshot, ProfileSpanSnapshot};
 
 pub fn analyze_hotspots(snapshot: &ProfileSnapshot) -> HotspotReport {
-    let mut groups: HashMap<HotspotKey, HotspotAccumulator> = HashMap::new();
+    let budget_us = (snapshot.frame_budget_ms.max(0.0) * 1_000.0) as u64;
+    let mut groups: HashMap<HotspotKey<'_>, HotspotAccumulator> = HashMap::new();
     for span in &snapshot.spans {
-        groups.entry(HotspotKey::from(span)).or_default().push(span);
+        groups
+            .entry(HotspotKey::from(span))
+            .or_default()
+            .push(span, budget_us);
     }
 
     let mut hotspots = groups
         .into_iter()
-        .map(|(key, accumulator)| accumulator.finish(key, snapshot.frame_budget_ms))
+        .map(|(key, accumulator)| accumulator.finish(key))
         .collect::<Vec<_>>();
     hotspots.sort_by(|left, right| {
         right
@@ -30,20 +34,20 @@ pub fn analyze_hotspots(snapshot: &ProfileSnapshot) -> HotspotReport {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-struct HotspotKey {
-    stream: String,
-    category: String,
-    name: String,
-    path: String,
+struct HotspotKey<'a> {
+    stream: &'a str,
+    category: &'a str,
+    name: &'a str,
+    path: &'a str,
 }
 
-impl From<&ProfileSpanSnapshot> for HotspotKey {
-    fn from(span: &ProfileSpanSnapshot) -> Self {
+impl<'a> From<&'a ProfileSpanSnapshot> for HotspotKey<'a> {
+    fn from(span: &'a ProfileSpanSnapshot) -> Self {
         Self {
-            stream: span.stream.clone(),
-            category: span.category.clone(),
-            name: span.name.clone(),
-            path: span.path.clone(),
+            stream: span.stream.as_str(),
+            category: span.category.as_str(),
+            name: span.name.as_str(),
+            path: span.path.as_str(),
         }
     }
 }
@@ -51,52 +55,52 @@ impl From<&ProfileSpanSnapshot> for HotspotKey {
 #[derive(Default)]
 struct HotspotAccumulator {
     durations: Vec<u64>,
-    frames: BTreeSet<u64>,
+    frames: HashSet<u64>,
+    total_us: u64,
+    max_us: u64,
+    over_budget_count: u64,
 }
 
 impl HotspotAccumulator {
-    fn push(&mut self, span: &ProfileSpanSnapshot) {
+    fn push(&mut self, span: &ProfileSpanSnapshot, budget_us: u64) {
         self.durations.push(span.duration_us);
+        self.total_us += span.duration_us;
+        self.max_us = self.max_us.max(span.duration_us);
+        if span.duration_us > budget_us {
+            self.over_budget_count += 1;
+        }
         if let Some(frame) = span.frame_index {
             self.frames.insert(frame);
         }
     }
 
-    fn finish(mut self, key: HotspotKey, budget_ms: f64) -> HotspotEntry {
-        self.durations.sort_unstable();
+    fn finish(mut self, key: HotspotKey<'_>) -> HotspotEntry {
         let count = self.durations.len() as u64;
-        let total_us = self.durations.iter().sum::<u64>();
-        let avg_us = if count == 0 { 0 } else { total_us / count };
-        let max_us = self.durations.last().copied().unwrap_or(0);
-        let p95_us = percentile(&self.durations, 95);
-        let budget_us = (budget_ms.max(0.0) * 1_000.0) as u64;
-        let over_budget_count = self
-            .durations
-            .iter()
-            .filter(|duration| **duration > budget_us)
-            .count() as u64;
+        let avg_us = if count == 0 { 0 } else { self.total_us / count };
+        let p95_us = percentile(&mut self.durations, 95);
         HotspotEntry {
-            stream: key.stream,
-            category: key.category,
-            name: key.name,
-            path: key.path,
-            total_us,
+            stream: key.stream.to_owned(),
+            category: key.category.to_owned(),
+            name: key.name.to_owned(),
+            path: key.path.to_owned(),
+            total_us: self.total_us,
             avg_us,
             p95_us,
-            max_us,
+            max_us: self.max_us,
             count,
             frame_count: self.frames.len() as u64,
-            over_budget_count,
+            over_budget_count: self.over_budget_count,
         }
     }
 }
 
-fn percentile(sorted: &[u64], percentile: usize) -> u64 {
-    if sorted.is_empty() {
+fn percentile(values: &mut [u64], percentile: usize) -> u64 {
+    if values.is_empty() {
         return 0;
     }
-    let index = ((sorted.len() - 1) * percentile).div_ceil(100);
-    sorted[index.min(sorted.len() - 1)]
+    let index = ((values.len() - 1) * percentile).div_ceil(100);
+    let (_, selected, _) = values.select_nth_unstable(index.min(values.len() - 1));
+    *selected
 }
 
 fn optimization_hints(hotspots: &[HotspotEntry], budget_ms: f64) -> Vec<String> {
@@ -131,7 +135,7 @@ fn optimization_hints(hotspots: &[HotspotEntry], budget_ms: f64) -> Vec<String> 
 mod tests {
     use zircon_runtime_interface::{ProfileSnapshot, ProfileSpanSnapshot};
 
-    use super::analyze_hotspots;
+    use super::{analyze_hotspots, percentile};
 
     #[test]
     fn hotspots_sort_by_total_then_p95() {
@@ -152,6 +156,28 @@ mod tests {
         assert_eq!(report.hotspots[0].total_us, 30_000);
         assert_eq!(report.hotspots[0].frame_count, 2);
         assert_eq!(report.hotspots[0].p95_us, 20_000);
+    }
+
+    #[test]
+    fn percentile_selection_matches_the_sorted_order_statistic() {
+        for mut values in [
+            Vec::new(),
+            vec![9],
+            vec![9, 1],
+            vec![8, 3, 5, 1, 9, 2, 7, 4, 6],
+            (0..101).rev().collect::<Vec<_>>(),
+        ] {
+            let mut sorted = values.clone();
+            sorted.sort_unstable();
+            let expected = if sorted.is_empty() {
+                0
+            } else {
+                let index = ((sorted.len() - 1) * 95).div_ceil(100);
+                sorted[index]
+            };
+
+            assert_eq!(percentile(&mut values, 95), expected);
+        }
     }
 
     fn span(

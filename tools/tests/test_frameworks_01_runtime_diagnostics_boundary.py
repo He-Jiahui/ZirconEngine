@@ -58,7 +58,8 @@ class Frameworks01RuntimeDiagnosticsBoundaryTests(unittest.TestCase):
             encoding="utf-8"
         )
         core_mod = (core_diagnostics / "mod.rs").read_text(encoding="utf-8")
-        self.assertIn("pub mod runtime_diagnostics;", lib_source)
+        self.assertIn("mod runtime_diagnostics;", lib_source)
+        self.assertNotIn("pub mod runtime_diagnostics;", lib_source)
         self.assertNotIn("mod collect;", core_mod)
         self.assertNotIn("pub use collect::collect_runtime_diagnostics;", core_mod)
         self.assertNotIn("collect_runtime_devtools_snapshot", core_mod)

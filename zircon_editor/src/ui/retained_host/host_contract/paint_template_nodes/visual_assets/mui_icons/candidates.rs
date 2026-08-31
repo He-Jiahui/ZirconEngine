@@ -1,4 +1,5 @@
-use std::path::{Path, PathBuf};
+use std::ffi::OsStr;
+use std::path::{Component, Path, PathBuf};
 
 use super::names::module_name;
 
@@ -18,11 +19,32 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn module_
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_module_path(
     path: &Path,
 ) -> bool {
-    path.extension()
+    if !path
+        .extension()
         .and_then(|extension| extension.to_str())
         .is_some_and(|extension| extension.eq_ignore_ascii_case("js"))
-        && path
-            .to_string_lossy()
-            .replace('\\', "/")
-            .contains("/mui-icons-material/lib/")
+    {
+        return false;
+    }
+
+    let mut has_leading_component = false;
+    let mut previous_was_module = false;
+    for component in path.components() {
+        let Component::Normal(component) = component else {
+            has_leading_component = true;
+            previous_was_module = false;
+            continue;
+        };
+        if previous_was_module && component == OsStr::new("lib") {
+            return true;
+        }
+        previous_was_module =
+            has_leading_component && component == OsStr::new("mui-icons-material");
+        has_leading_component = true;
+    }
+    false
 }
+
+#[cfg(test)]
+#[path = "candidates/component_scan_tests.rs"]
+mod component_scan_tests;

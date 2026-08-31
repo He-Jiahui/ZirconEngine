@@ -3,6 +3,16 @@ use super::*;
 #[test]
 fn scene_asset_toml_roundtrip_preserves_post_process_components() {
     let post_process_settings = ScenePostProcessSettingsAsset {
+        ambient_occlusion: SceneAmbientOcclusionSettingsAsset {
+            intensity: 0.8,
+            radius_meters: 1.5,
+            thickness_meters: 0.2,
+            depth_bias_meters: 0.025,
+            falloff_start_meters: 0.75,
+            quality: SceneAoQualityTierAsset::Ultra,
+            half_resolution: false,
+            temporal: false,
+        },
         bloom: SceneBloomSettingsAsset {
             threshold: 0.3,
             intensity: 0.7,
@@ -52,6 +62,11 @@ fn scene_asset_toml_roundtrip_preserves_post_process_components() {
         weight: 0.75,
         blend_distance: 0.0,
         profile: ScenePostProcessVolumeProfileAsset {
+            ambient_occlusion: Some(SceneAmbientOcclusionSettingsAsset {
+                intensity: 0.5,
+                quality: SceneAoQualityTierAsset::Medium,
+                ..SceneAmbientOcclusionSettingsAsset::default()
+            }),
             volumetric_fog: Some(SceneVolumetricFogSettingsAsset {
                 density: 0.12,
                 albedo: [0.8, 0.9, 1.0],
@@ -150,6 +165,7 @@ fn scene_asset_toml_roundtrip_preserves_post_process_components() {
     assert!(document.contains("post_process_settings"));
     assert!(document.contains("post_process_volume"));
     assert!(document.contains("chromatic_aberration"));
+    assert!(document.contains("ambient_occlusion"));
     assert!(document.contains("volumetric_fog"));
     assert!(loaded.overview().entities[0].has_post_process_settings);
     assert!(loaded.overview().entities[1].has_post_process_volume);

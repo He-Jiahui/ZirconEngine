@@ -56,8 +56,8 @@ fn tick_frame_drives_loaded_level_before_clearing_frame_input() {
     );
 
     assert!(
-        !source[tick_start..].contains(".tick(&self.runtime.handle(), advance.real_delta()"),
-        "runtime frame should pass RuntimeTimeAdvance through instead of reducing it to raw delta"
+        !source[tick_start..].contains(".tick(&self.runtime.handle(), advance.raw_real_delta()"),
+        "runtime frame should pass FrameTimeSnapshot through instead of reducing it to raw delta"
     );
     assert!(
         level_tick < input_begin_frame,
@@ -69,41 +69,62 @@ fn tick_frame_drives_loaded_level_before_clearing_frame_input() {
 fn session_ui_extract_remains_documented_dynamic_session_side_path() {
     let session_source = include_str!("../session/state.rs");
     let extract_source = include_str!("../session/extract.rs");
+    let ui_extract_cache_source = include_str!("../session/ui_extract_cache.rs");
     let capture_start = session_source
         .find("fn capture_frame(\n        &mut self,")
         .expect("RuntimeDynamicSession::capture_frame implementation");
     let present_start = session_source
         .find("fn present_viewport(\n        &mut self,")
         .expect("RuntimeDynamicSession::present_viewport implementation");
-    let ui_extract_start = extract_source
-        .find("fn current_ui_extract(\n        &mut self,")
-        .expect("current_ui_extract implementation");
-    let resize_start = extract_source[ui_extract_start..]
+    let ui_submission_start = extract_source
+        .find("fn current_ui_submission(\n        &mut self,")
+        .expect("current_ui_submission implementation");
+    let resize_start = extract_source[ui_submission_start..]
         .find("fn resize_viewport")
-        .map(|offset| ui_extract_start + offset)
-        .expect("method after current_ui_extract");
-    let ui_extract_body = &extract_source[ui_extract_start..resize_start];
+        .map(|offset| ui_submission_start + offset)
+        .expect("method after current_ui_submission");
+    let ui_submission_body = &extract_source[ui_submission_start..resize_start];
 
     assert!(
         session_source[capture_start..present_start]
-            .contains("let ui = self.current_ui_extract()?;"),
-        "capture_frame should keep the documented UI extract side path explicit"
+            .contains("let ui = self.current_ui_submission()?;"),
+        "capture_frame should keep the documented UI submission side path explicit"
     );
     assert!(
-        session_source[present_start..].contains("let ui = self.current_ui_extract()?;"),
-        "present_viewport should keep the documented UI extract side path explicit"
-    );
-    assert!(ui_extract_body.contains("runtime_session_menu_extract(world, viewport_size)"));
-    assert!(
-        ui_extract_body.contains(".or_else(|| runtime_session_hud_extract(world, viewport_size))")
+        session_source[present_start..].contains("let ui = self.current_ui_submission()?;"),
+        "present_viewport should keep the documented UI submission side path explicit"
     );
     assert!(
-        !ui_extract_body.contains("SystemStage::RenderExtract"),
-        "current UI extract side path is not owned by the scheduled RenderExtract stage yet"
+        ui_submission_body.contains("ui_extract_cache")
+            && ui_submission_body.contains(".current_extract(world, viewport_size)")
+            && ui_submission_body.contains(".map(UiRenderSubmission::single)"),
+        "fallback UI capture should delegate to the component-generation cache"
+    );
+    let menu_extract = ui_extract_cache_source
+        .find("runtime_session_menu_extract(")
+        .expect("menu fallback extraction");
+    let hud_extract = ui_extract_cache_source
+        .find("None => runtime_session_hud_extract(")
+        .expect("HUD fallback extraction");
+    assert!(
+        menu_extract < hud_extract
+            && ui_extract_cache_source[menu_extract..hud_extract]
+                .contains("&mut self.text_measure_cache")
+            && ui_extract_cache_source[hud_extract..].contains("&mut self.text_measure_cache"),
+        "the cache miss path must preserve menu-over-HUD fallback priority with one producer-owned text cache"
     );
     assert!(
-        ui_extract_body.contains(".runtime_ui")
-            && ui_extract_body.contains(".render_extract(viewport_size)"),
+        ui_extract_cache_source.contains("self.text_measure_cache.begin_frame()")
+            && ui_extract_cache_source.contains("self.text_measure_cache.finish_frame()"),
+        "fallback UI extraction must establish the standard text-cache frame boundary"
+    );
+    assert!(
+        !ui_submission_body.contains("SystemStage::RenderExtract"),
+        "current UI submission side path is not owned by the scheduled RenderExtract stage yet"
+    );
+    assert!(
+        ui_submission_body.contains(".runtime_ui")
+            && ui_submission_body.contains(".render_submission(viewport_size)"),
         "project-owned UI surfaces must take precedence over legacy world preview extractors"
     );
 }

@@ -18,6 +18,7 @@ mod editor_event_runtime_access;
 mod editor_event_runtime_reflection;
 mod editor_extension_registration;
 mod editor_extension_views;
+mod editor_host_activity_decision;
 mod editor_host_event_controller;
 mod editor_host_startup;
 mod editor_host_visible_spatial_query;
@@ -29,11 +30,14 @@ mod editor_manager_layout;
 mod editor_manager_minimal_host;
 mod editor_manager_plugins_export;
 mod editor_manager_project;
+mod editor_manager_project_activation_effects;
 mod editor_manager_project_session;
 mod editor_manager_runtime_diagnostics;
 mod editor_manager_startup;
 mod editor_manager_workspace;
 mod editor_operation_dispatch;
+mod editor_runtime_event_pump_error;
+mod editor_save_batch;
 mod editor_scene_document_submission;
 mod editor_scene_mode_lifecycle;
 mod editor_session_state;
@@ -49,8 +53,13 @@ mod layout_persistence;
 pub(crate) mod minimal_host_contract;
 pub(crate) mod module;
 mod native_dynamic_export_preparation;
+mod play_hierarchy_projection;
+mod play_inspector_projection;
 pub(crate) mod play_pending_decision;
 pub(crate) mod project_access;
+mod project_recovery_decision;
+mod project_session_close;
+mod project_session_transition;
 pub(crate) mod resource_access;
 mod runtime_services;
 mod scene_inspection_publication;
@@ -65,8 +74,27 @@ pub use asset_editor_sessions::{
 };
 pub(crate) use builtin_layout::builtin_hybrid_layout;
 pub use editor_capabilities::EditorCapabilitySnapshot;
-pub use editor_error::EditorError;
-pub use editor_host_event_controller::EditorHostEventController;
+pub use editor_error::{
+    AnimationEditorDocumentLoadDiagnostic, AnimationEditorTargetDiagnostic,
+    AnimationEditorTargetKind, AnimationEditorTargetUnavailableReason, EditorError,
+    UiAssetSaveStage,
+};
+pub use editor_event_dispatch::{
+    EditorEventBindingDispatchError, EditorEventDispatchError, EditorEventDispatcherError,
+};
+pub use editor_event_execution::{
+    AssetEventExecutionError, AssetKindFilterError, EditorEventExecutionError,
+    MenuActionExecutionError,
+};
+pub use editor_event_runtime_access::EditorAssetOperationInvokeError;
+pub use editor_host_event_controller::{
+    EditorHostEventController, EditorPlaySessionShutdownReceipt,
+    EditorPlayStateShutdownDisposition, EditorRuntimeSessionShutdownReceipt,
+    EditorTerminalPlayDetachError, RuntimeEventConsumerShutdownDisposition,
+    RuntimePlayBackendRetirementDisposition, RuntimePlayGatewayShutdownDisposition,
+    RuntimePlaySessionShutdownDisposition,
+};
+pub(crate) use editor_host_event_controller::{PlayGizmoOverlaySnapshot, PlayGizmoPointerOutcome};
 pub(crate) use editor_host_startup::resolve_editor_startup_session;
 pub use editor_host_startup::EditorHostStartupSession;
 pub use editor_manager::{EditorKeymapService, EditorManager};
@@ -104,6 +132,13 @@ pub use editor_manager_plugins_export::{
     DESKTOP_EXPORT_TERMINAL_OUTPUT_SLOT, EXPORT_WIZARD_BINDING_SYMBOL,
     EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID, EXPORT_WIZARD_VIEW_ID,
 };
+pub use editor_operation_dispatch::EditorOperationDispatchError;
+pub use editor_runtime_event_pump_error::EditorRuntimeEventPumpError;
+pub use editor_save_batch::EditorDirtySaveError;
+pub(crate) use editor_save_batch::{DirtyDocumentSaveOwner, DirtyDocumentSaveStart};
+pub(crate) use editor_scene_document_submission::{
+    PreparedActiveSceneReloadDirtyPolicy, PreparedActiveSceneReloadOutcome,
+};
 pub use editor_subsystems::{
     EditorSubsystemReport, EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
     EDITOR_RUNTIME_SANDBOX_ENABLED_CONFIG_KEY, EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
@@ -116,4 +151,12 @@ pub use minimal_host_contract::{
     editor_host_minimal_contract, EditorHostMinimalContract, EditorHostMinimalReport,
 };
 pub use native_dynamic_export_preparation::NativeDynamicPreparationError;
+pub use play_pending_decision::{
+    PlayPendingDecisionPublishError, PlayPendingDecisionReceiptDispatchError,
+    PlayPendingDecisionReceiptError, PlayPendingDecisionReceiptRecoveryError,
+};
+pub(crate) use project_session_close::{
+    ProjectCloseCommit, ProjectCloseCoordinator, ProjectCloseCoordinatorPhase, ProjectCloseError,
+    ProjectCloseOperation, ProjectCloseReceipt, ProjectCloseTransitionError,
+};
 pub use window_host_manager::NativeWindowHostState;

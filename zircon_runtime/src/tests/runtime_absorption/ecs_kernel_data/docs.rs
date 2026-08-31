@@ -31,7 +31,7 @@ pub(super) fn assert_runtime_08_mirror_docs() {
     for (doc_name, doc_source) in mirror_docs {
         for required_anchor in [
             "ecs_kernel_data_boundary",
-            "expected_source_file_count = 75",
+            "expected_source_file_count = 77",
             "expected_test_file_count = 10",
             "archetype_anchors = 15/15",
             "storage_anchors = 9/9",

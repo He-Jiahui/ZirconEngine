@@ -1,26 +1,28 @@
+use std::sync::Arc;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UiAssetSourceBuffer {
-    text: String,
-    saved_text: String,
+    text: Arc<String>,
+    saved_text: Arc<String>,
     revision: u64,
 }
 
 impl UiAssetSourceBuffer {
     pub fn new(text: impl Into<String>) -> Self {
-        let text = text.into();
+        let text = Arc::new(text.into());
         Self {
-            saved_text: text.clone(),
+            saved_text: Arc::clone(&text),
             text,
             revision: 0,
         }
     }
 
     pub fn text(&self) -> &str {
-        &self.text
+        self.text.as_str()
     }
 
     pub fn replace(&mut self, text: impl Into<String>) {
-        let text = text.into();
+        let text = Arc::new(text.into());
         if self.text == text {
             return;
         }
@@ -33,7 +35,7 @@ impl UiAssetSourceBuffer {
     }
 
     pub fn mark_saved(&mut self) {
-        self.saved_text = self.text.clone();
+        self.saved_text = Arc::clone(&self.text);
     }
 
     pub fn is_dirty(&self) -> bool {
@@ -56,3 +58,7 @@ mod tests {
         assert_eq!(buffer.revision(), 1);
     }
 }
+
+#[cfg(test)]
+#[path = "source_buffer/shared_text_tests.rs"]
+mod shared_text_tests;

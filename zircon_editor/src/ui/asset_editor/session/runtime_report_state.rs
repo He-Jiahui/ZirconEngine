@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use zircon_runtime::ui::template::{
     collect_document_localization_report, collect_document_resource_dependencies,
     validate_document_action_policy,
@@ -235,6 +237,11 @@ fn unsafe_action_guidance_items(
     editor_report: &UiActionPolicyReport,
 ) -> Vec<String> {
     let mut items = Vec::new();
+    let editor_diagnostic_keys = editor_report
+        .diagnostics
+        .iter()
+        .map(|diagnostic| (diagnostic.node_id.as_str(), diagnostic.binding_id.as_str()))
+        .collect::<HashSet<(&str, &str)>>();
     for diagnostic in &editor_report.diagnostics {
         items.push(format!(
             "editor-authoring binding {} uses {:?}; explicit host capability required before authoring or packaging. Move unsafe work behind an approved host service.",
@@ -250,10 +257,8 @@ fn unsafe_action_guidance_items(
                 diagnostic.side_effect
             ));
         } else if !runtime_policy.allows(diagnostic.side_effect)
-            && !editor_report.diagnostics.iter().any(|editor_diagnostic| {
-                editor_diagnostic.node_id == diagnostic.node_id
-                    && editor_diagnostic.binding_id == diagnostic.binding_id
-            })
+            && !editor_diagnostic_keys
+                .contains(&(diagnostic.node_id.as_str(), diagnostic.binding_id.as_str()))
         {
             items.push(format!(
                 "runtime-default binding {} uses {:?}; explicit host capability required before runtime packaging.",
@@ -267,6 +272,10 @@ fn unsafe_action_guidance_items(
     }
     items
 }
+
+#[cfg(test)]
+#[path = "runtime_report_state/policy_index_tests.rs"]
+mod policy_index_tests;
 
 fn action_binding_label(diagnostic: &UiActionPolicyDiagnostic) -> String {
     let route = diagnostic.route.as_deref().unwrap_or("<none>");

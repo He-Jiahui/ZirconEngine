@@ -4,15 +4,15 @@ use crate::ui::{
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     layout::{
-        AxisConstraint, BoxConstraints, StretchMode, UiAxis, UiContainerKind, UiFrame,
+        AxisConstraint, BoxConstraints, StretchMode, UiAxis, UiContainerKind, UiFrame, UiPoint,
         UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSize, UiVirtualListConfig,
         UiVirtualListWindow,
     },
-    tree::UiTreeNode,
+    tree::{UiInputPolicy, UiStateFlags, UiTreeNode},
 };
 
 #[test]
-fn virtualized_list_only_materializes_visible_window() {
+fn retained_virtual_list_only_arranges_visible_window() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.virtual.window"));
     surface.tree.insert_root(
         UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
@@ -199,8 +199,77 @@ fn non_virtualized_scroll_offset_keeps_full_window_dirty_domain() {
     assert!(scroll.dirty.layout);
     assert!(scroll.dirty.hit_test);
     assert!(scroll.dirty.render);
-    assert!(scroll.dirty.input);
+    assert!(!scroll.dirty.input);
     assert!(!scroll.dirty.visible_range);
+}
+
+#[test]
+fn virtual_scroll_patches_arranged_and_hit_without_index_fallback() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.virtual.incremental-scroll"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_constraints(BoxConstraints {
+                width: fixed_constraint(200.0),
+                height: fixed_constraint(80.0),
+            })
+            .with_container(UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
+                axis: UiAxis::Vertical,
+                gap: 0.0,
+                scrollbar_visibility: UiScrollbarVisibility::Auto,
+                virtualization: Some(UiVirtualListConfig {
+                    item_extent: 40.0,
+                    overscan: 0,
+                }),
+            }))
+            .with_scroll_state(UiScrollState::default()),
+    );
+
+    for item in 0..4 {
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                UiTreeNode::new(
+                    UiNodeId::new(10 + item),
+                    UiNodePath::new(format!("root/item_{item}")),
+                )
+                .with_constraints(BoxConstraints {
+                    width: fixed_constraint(200.0),
+                    height: fixed_constraint(40.0),
+                })
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    clickable: true,
+                    ..UiStateFlags::default()
+                }),
+            )
+            .unwrap();
+    }
+
+    surface.compute_layout(UiSize::new(200.0, 80.0)).unwrap();
+    assert_eq!(
+        surface.hit_test(UiPoint::new(20.0, 20.0)).top_hit,
+        Some(UiNodeId::new(10))
+    );
+    surface
+        .tree
+        .set_scroll_offset(UiNodeId::new(1), 40.0)
+        .unwrap();
+
+    let report = surface.rebuild_dirty(UiSize::new(200.0, 80.0)).unwrap();
+
+    assert!(report.arranged_outer_node_visit_count < surface.tree.nodes.len());
+    assert!(report.hit_grid_outer_node_visit_count < surface.tree.nodes.len());
+    assert_eq!(
+        surface.hit_test(UiPoint::new(20.0, 20.0)).top_hit,
+        Some(UiNodeId::new(11))
+    );
+    assert_eq!(
+        surface.hit_test(UiPoint::new(20.0, 60.0)).top_hit,
+        Some(UiNodeId::new(12))
+    );
 }
 
 fn fixed_constraint(size: f32) -> AxisConstraint {

@@ -4,9 +4,9 @@ use crate::builtin::RuntimePluginId;
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::ProjectPluginManifest;
 use crate::plugin::{
-    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest,
-    PluginPackageManifest, RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginFeature,
-    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+    PluginCatalogGeneration, PluginFeatureBundleManifest, PluginFeatureDependency,
+    PluginModuleManifest, PluginPackageManifest, RuntimePluginCatalog, RuntimePluginDescriptor,
+    RuntimePluginFeature, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 
 #[test]
@@ -32,7 +32,7 @@ fn catalog_generation_builds_one_projection_for_all_consumers() {
         assert_eq!(stats.runtime_modules_indexed, row_count);
         assert_eq!(stats.feature_dependency_edges_indexed, row_count * 2 - 1);
         let metrics = catalog.projection_metrics();
-        assert_eq!(metrics.catalog_generation, 1);
+        assert_eq!(metrics.catalog_generation, PluginCatalogGeneration::INITIAL);
         assert_eq!(metrics.projection_builds, 1);
         assert!(metrics.indexed_entry_count >= row_count);
         assert!(metrics.indexed_string_bytes >= row_count);
@@ -57,11 +57,26 @@ fn register_and_register_feature_advance_one_projection_generation_each() {
     assert!(catalog.register_feature(&RegisteredFeature).is_published());
     let feature_projection = catalog.projection_metrics();
 
-    assert_eq!(initial_projection.catalog_generation, 1);
+    assert_eq!(
+        initial_projection.catalog_generation,
+        PluginCatalogGeneration::INITIAL
+    );
     assert_eq!(initial_projection.projection_builds, 1);
-    assert_eq!(plugin_projection.catalog_generation, 2);
+    assert_eq!(
+        plugin_projection.catalog_generation,
+        initial_projection
+            .catalog_generation
+            .checked_next()
+            .expect("initial test generation should advance")
+    );
     assert_eq!(plugin_projection.projection_builds, 2);
-    assert_eq!(feature_projection.catalog_generation, 3);
+    assert_eq!(
+        feature_projection.catalog_generation,
+        plugin_projection
+            .catalog_generation
+            .checked_next()
+            .expect("plugin test generation should advance")
+    );
     assert_eq!(feature_projection.projection_builds, 3);
 }
 
@@ -95,7 +110,10 @@ fn batch_registration_publishes_one_projection_generation_for_all_candidate_repo
     let projection = catalog.projection_metrics();
     assert_eq!(
         projection.catalog_generation,
-        initial_projection.catalog_generation + 1
+        initial_projection
+            .catalog_generation
+            .checked_next()
+            .expect("batch test generation should advance")
     );
     assert_eq!(
         projection.projection_builds,
@@ -256,24 +274,20 @@ fn metadata_only_features_fail_closed_without_capability_or_extension_publicatio
 
     assert!(report.available_features.is_empty());
     assert_eq!(report.blocked_features.len(), ROW_COUNT);
-    assert!(
-        report
-            .blocked_features
-            .iter()
-            .all(|blocked| blocked.provider_missing)
-    );
+    assert!(report
+        .blocked_features
+        .iter()
+        .all(|blocked| blocked.provider_missing));
     assert_eq!(report.diagnostics.len(), ROW_COUNT);
     assert!(report.diagnostics.iter().all(|diagnostic| {
         diagnostic.contains("concrete runtime feature provider registration is missing")
     }));
     assert_eq!(extensions.fatal_diagnostics.len(), ROW_COUNT);
-    assert!(
-        extensions
-            .registry
-            .modules()
-            .iter()
-            .all(|module| !module.name.ends_with(".feature.runtime"))
-    );
+    assert!(extensions
+        .registry
+        .modules()
+        .iter()
+        .all(|module| !module.name.ends_with(".feature.runtime")));
     assert_eq!(stats.feature_status_evaluations, ROW_COUNT);
     assert_eq!(stats.provider_registration_checks, ROW_COUNT);
     assert_eq!(stats.provider_missing_blocks, ROW_COUNT);

@@ -12,6 +12,9 @@ use crate::core::extension::{
     InspectTarget, InspectTargetType, InspectorCustomization, InspectorCustomizationDescriptor,
     InspectorCustomizationSurface, InspectorField, InspectorLayoutBuilder,
 };
+use crate::core::tools::{
+    ToolResourceChannelPolicy, ToolResourceKindDeclaration, ToolResourceKindId, ToolScopeKind,
+};
 
 use super::model::CONTRIBUTION_CHANGE_JOURNAL_CAPACITY;
 use super::{
@@ -85,6 +88,55 @@ fn plugin_contribution_requires_its_typed_namespace_without_publishing() {
     ));
     assert_eq!(store.generation(), 0);
     assert_eq!(store.snapshot().views(&CapabilitySet::default()).count(), 0);
+}
+
+#[test]
+fn tool_resource_kind_requires_its_plugin_namespace_without_publishing() {
+    let mut foreign = ContributionBatch::default();
+    foreign
+        .register_tool_resource_kind(
+            ToolResourceKindDeclaration::new(
+                ToolResourceKindId::parse("plugin.foreign.viewport-lock").unwrap(),
+                [ToolScopeKind::Viewport],
+                ToolResourceChannelPolicy::Forbidden,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    let mut store = ContributionStore::default();
+
+    let namespace_error = store
+        .contribute(plugin_source("sample"), foreign)
+        .expect_err("a plugin must not reserve another plugin's tool resource namespace");
+    assert!(matches!(
+        namespace_error,
+        ContributionError::PluginNamespace {
+            plugin_id,
+            kind: "tool resource kind",
+            id,
+        } if plugin_id.as_str() == "sample" && id == "plugin.foreign.viewport-lock"
+    ));
+    assert_eq!(store.generation(), 0);
+    assert!(store.is_empty());
+
+    let mut builtin = ContributionBatch::default();
+    builtin
+        .register_tool_resource_kind(
+            ToolResourceKindDeclaration::new(
+                ToolResourceKindId::parse("plugin.sample.viewport-lock").unwrap(),
+                [ToolScopeKind::Viewport],
+                ToolResourceChannelPolicy::Forbidden,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    assert!(matches!(
+        store.contribute(ContributionSource::Builtin, builtin),
+        Err(ContributionError::ToolResourceKindRequiresPluginSource { kind })
+            if kind == "plugin.sample.viewport-lock"
+    ));
+    assert_eq!(store.generation(), 0);
+    assert!(store.is_empty());
 }
 
 #[test]
@@ -373,16 +425,14 @@ fn revoke_removes_every_family_while_old_generation_readers_remain_immutable() {
         ))
         .unwrap();
     batch
-        .register_command(EditorCommandDescriptor::operation(
-            operation("plugin.sample.command"),
-            "Sample Command",
-        ))
+        .register_command(EditorCommandDescriptor::operation(operation(
+            "plugin.sample.command",
+        )))
         .unwrap();
     batch
-        .register_menu_item(EditorMenuItemDescriptor::new(
-            "Plugins/Sample",
-            operation("plugin.sample.command"),
-        ))
+        .register_menu_item(EditorMenuItemDescriptor::for_operation(operation(
+            "plugin.sample.command",
+        )))
         .unwrap();
 
     let mut store = ContributionStore::default();
@@ -646,8 +696,10 @@ fn template_replacement_is_atomic_and_preserves_ticket_and_old_readers() {
     let report = store.revoke(ticket);
     assert!(report.revoked());
     assert_eq!(report.removed().ui_templates(), 1);
-    assert!(store
-        .snapshot()
-        .ui_templates(&capabilities)
-        .all(|descriptor| descriptor.id() != "plugin.sample.template"));
+    assert!(
+        store
+            .snapshot()
+            .ui_templates(&capabilities)
+            .all(|descriptor| descriptor.id() != "plugin.sample.template")
+    );
 }

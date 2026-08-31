@@ -1,4 +1,5 @@
 mod application_handler;
+mod application_lifecycle;
 mod config;
 mod construct;
 mod converters;
@@ -33,7 +34,8 @@ use zircon_runtime::core::framework::window::{WindowDescriptor, WindowLifecycleP
 use zircon_runtime_interface::{ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1};
 
 use super::runtime_library::RuntimeSession;
-use crate::runtime_presenter::SoftbufferRuntimePresenter;
+use crate::reference_cpu_presenter::ReferenceCpuPresenter;
+use application_lifecycle::ApplicationLifecycleMachine;
 use event_loop_policy::RuntimeFrameCadence;
 
 pub(in crate::entry) use config::RuntimeEntryAppConfig;
@@ -43,8 +45,10 @@ pub(super) struct RuntimeEntryApp {
     window: Option<Arc<dyn Window>>,
     window_descriptor: WindowDescriptor,
     frame_cadence: RuntimeFrameCadence,
+    application_lifecycle: ApplicationLifecycleMachine,
     window_lifecycle_policy: WindowLifecyclePolicy,
-    presenter: Option<SoftbufferRuntimePresenter>,
+    presenter: Option<ReferenceCpuPresenter>,
+    reference_cpu_presenter_enabled: bool,
     surface_present_enabled: bool,
     surface_present_attempted: bool,
     exit_after_presented_frames: Option<NonZeroU64>,
@@ -54,8 +58,9 @@ pub(super) struct RuntimeEntryApp {
     first_frame_capture_written: bool,
     first_frame_product_diagnostics_emitted: bool,
     mvp_input_probe_submitted: bool,
-    // `run_app` consumes the handler, so this slot carries the first terminal
-    // callback failure back to EntryRunner after the event loop ends.
+    unhandled_ui_action_count: u64,
+    unhandled_ui_host_request_count: u64,
+    // Event callbacks set an atomic stop gate and append failures to the shared cold-path ledger.
     failure_state: RuntimeEntryAppFailureState,
     session: RuntimeSession,
     viewport: ZrRuntimeViewportHandle,

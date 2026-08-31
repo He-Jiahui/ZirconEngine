@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     sync::mpsc::Receiver,
     time::{Duration, Instant},
 };
@@ -375,16 +376,26 @@ fn report_path_from_artifacts(artifacts: &[ExportWizardStageArtifactPath]) -> Op
 }
 
 fn stage_diagnostics(
-    mut diagnostics: Vec<String>,
+    diagnostics: Vec<String>,
     execution: Option<&ExportWizardStageExecution>,
 ) -> Vec<String> {
     if let Some(execution) = execution {
-        for diagnostic in &execution.diagnostics {
-            if !diagnostics.contains(diagnostic) {
-                diagnostics.push(diagnostic.clone());
-            }
-        }
+        return merge_unique_diagnostics(diagnostics, &execution.diagnostics);
     }
+    diagnostics
+}
+
+fn merge_unique_diagnostics(mut diagnostics: Vec<String>, additions: &[String]) -> Vec<String> {
+    let mut seen = diagnostics
+        .iter()
+        .map(String::as_str)
+        .collect::<HashSet<_>>();
+    let additions = additions
+        .iter()
+        .filter(|diagnostic| seen.insert(diagnostic.as_str()))
+        .cloned()
+        .collect::<Vec<_>>();
+    diagnostics.extend(additions);
     diagnostics
 }
 
@@ -411,3 +422,7 @@ fn stage_stderr_lines(
         .map(|output| output.stderr_lines.iter().cloned().collect())
         .unwrap_or_default()
 }
+
+#[cfg(test)]
+#[path = "view_model/stage_diagnostics_tests.rs"]
+mod stage_diagnostics_tests;

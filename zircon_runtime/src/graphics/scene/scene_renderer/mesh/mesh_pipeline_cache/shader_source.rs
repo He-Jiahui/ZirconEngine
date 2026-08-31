@@ -1,24 +1,28 @@
 use crate::core::framework::render::{
-    builtin_geometry_source_descriptor, GeometrySourceDescriptor, GeometrySourceId,
-    ShaderFeatureBits, ShaderPassType, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceDescriptor, GeometrySourceId, ShaderFeatureBits,
+    ShaderPassType, builtin_geometry_source_descriptor,
 };
 use crate::graphics::scene::resources::{PipelineKey, ResourceStreamer};
 use crate::graphics::shader::{
-    assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
-    assemble_taa_reactive_mask_shader_template, standard_material_surface_source_for_features,
-    validate_material_shader_template_wgsl_with_segments, DeferredGBufferShaderTemplateRequest,
-    MaterialShaderTemplateAssembly, MaterialShaderTemplateRequest, ShaderAssemblySegment,
-    ShaderAssemblySegmentKind, ShaderTemplateAssemblyError, ShaderTemplateValidationError,
-    TaaReactiveMaskShaderTemplateRequest,
+    DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateAssembly,
+    MaterialShaderTemplateRequest, ShaderAssemblySegment, ShaderAssemblySegmentKind,
+    ShaderTemplateAssemblyError, ShaderTemplateReflection, ShaderTemplateValidationError,
+    TaaReactiveMaskShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
+    assemble_material_shader_template, assemble_taa_reactive_mask_shader_template,
+    standard_material_surface_source_for_features,
+    validate_material_shader_template_wgsl_with_segments,
 };
+use std::sync::Arc;
+
+use super::shader_source_validation_admission::ShaderSourceValidationKey;
 
 const MESH_SHADER_TEMPLATE_REVISION: &str = "mesh-template-v1";
 const OIT_SHADER_TEMPLATE_REVISION: &str = "oit-fragment-store-v1";
 const OIT_DRAW_SHADER_SOURCE: &str = include_str!("../../../../shader/includes/zr_oit.wgsl");
 const OIT_FRAGMENT_ENTRY_SOURCE: &str = r#"
 @fragment
-fn fs_oit(input: ZrVertexOutput) {
-    oit_draw(input.clip_position, zr_fs_main_impl(input));
+fn fs_oit(input: ZrVertexOutput, @builtin(front_facing) front_facing: bool) {
+    oit_draw(input.clip_position, zr_fs_main_impl(input, front_facing));
 }
 "#;
 const OIT_DRAW_SHADER_MODULE_ID: &str = "zircon::oit::draw";
@@ -35,9 +39,27 @@ pub(crate) struct MeshPipelineShaderSource {
     pub(crate) segments: Vec<ShaderAssemblySegment>,
 }
 
+#[derive(Clone)]
+pub(super) struct ValidatedMeshPipelineShaderSource {
+    pub(super) wgsl_source: String,
+    pub(super) reflection: Arc<ShaderTemplateReflection>,
+    pub(super) validation_key: ShaderSourceValidationKey,
+}
+
 impl MeshPipelineShaderSource {
     fn from_template(assembly: MaterialShaderTemplateAssembly) -> Self {
+        crate::profile_scope!("render", "shader_pipeline", "source_hash");
         let source_hash = mesh_pipeline_wgsl_hash(&assembly.wgsl_source);
+        crate::profile_counter!(
+            "render",
+            "mesh_shader_source_bytes",
+            assembly.wgsl_source.len()
+        );
+        crate::profile_counter!(
+            "render",
+            "mesh_shader_assembly_segment_count",
+            assembly.segments.len()
+        );
         let mut cache_content_hashes = assembly.include_content_hashes;
         cache_content_hashes.push(source_hash.clone());
         Self {
@@ -50,7 +72,10 @@ impl MeshPipelineShaderSource {
     }
 
     fn from_raw_wgsl(source: &str) -> Self {
+        crate::profile_scope!("render", "shader_pipeline", "source_hash");
         let source_hash = mesh_pipeline_wgsl_hash(source);
+        crate::profile_counter!("render", "mesh_shader_source_bytes", source.len());
+        crate::profile_counter!("render", "mesh_shader_assembly_segment_count", 0);
         Self {
             wgsl_source: source.to_string(),
             source_hash: source_hash.clone(),
@@ -61,16 +86,20 @@ impl MeshPipelineShaderSource {
     }
 
     #[cfg(test)]
-    pub(super) fn validate_wgsl(&self, wgsl_source: &str) -> Result<(), String> {
+    pub(super) fn validate_wgsl(
+        &self,
+        wgsl_source: &str,
+    ) -> Result<Arc<ShaderTemplateReflection>, String> {
         Self::validate_wgsl_with_segments(wgsl_source, &self.segments)
     }
 
     pub(super) fn validate_wgsl_with_segments(
         wgsl_source: &str,
         segments: &[ShaderAssemblySegment],
-    ) -> Result<(), String> {
+    ) -> Result<Arc<ShaderTemplateReflection>, String> {
+        crate::profile_scope!("render", "shader_pipeline", "naga_validation");
         validate_material_shader_template_wgsl_with_segments(wgsl_source, segments)
-            .map(|_| ())
+            .map(|validation| Arc::new(validation.reflection))
             .map_err(|error| match error {
                 ShaderTemplateValidationError::Parse { message }
                 | ShaderTemplateValidationError::Validate { message } => message,
@@ -122,13 +151,25 @@ impl MeshPipelineShaderSource {
             assembled_line_count: shader_source_line_count(OIT_FRAGMENT_ENTRY_SOURCE),
             source_line_offset: 0,
         });
-        self.source_hash = mesh_pipeline_wgsl_hash(&self.wgsl_source);
-        self.cache_content_hashes
-            .push(mesh_pipeline_wgsl_hash(OIT_DRAW_SHADER_SOURCE));
+        let (source_hash, oit_draw_hash) = {
+            crate::profile_scope!("render", "shader_pipeline", "source_hash");
+            (
+                mesh_pipeline_wgsl_hash(&self.wgsl_source),
+                mesh_pipeline_wgsl_hash(OIT_DRAW_SHADER_SOURCE),
+            )
+        };
+        self.source_hash = source_hash;
+        self.cache_content_hashes.push(oit_draw_hash);
         self.cache_content_hashes.push(self.source_hash.clone());
         self.template_revision = format!(
             "{}+{}",
             self.template_revision, OIT_SHADER_TEMPLATE_REVISION
+        );
+        crate::profile_counter!("render", "mesh_shader_source_bytes", self.wgsl_source.len());
+        crate::profile_counter!(
+            "render",
+            "mesh_shader_assembly_segment_count",
+            self.segments.len()
         );
         Some(self)
     }
@@ -165,6 +206,7 @@ pub(crate) fn mesh_pipeline_shader_source_for_geometry_descriptor_with_features(
     geometry_source: &GeometrySourceDescriptor,
     features: ShaderFeatureBits,
 ) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
+    crate::profile_scope!("render", "shader_pipeline", "mesh_source_build");
     if key.uses_fallback_shader() {
         mesh_pipeline_standard_material_template_source_for_geometry_descriptor_with_streamer_and_features(
             streamer,
@@ -334,6 +376,38 @@ pub(crate) fn mesh_pipeline_depth_prepass_template_source_for_geometry(
 ) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
     let geometry_source = mesh_pipeline_builtin_geometry_source_descriptor(geometry_source)?;
     mesh_pipeline_depth_prepass_template_source_for_geometry_descriptor(key, &geometry_source)
+}
+
+pub(crate) fn mesh_pipeline_hit_proxy_template_source_for_geometry(
+    key: &PipelineKey,
+    geometry_source: GeometrySourceId,
+) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
+    let geometry_source = mesh_pipeline_builtin_geometry_source_descriptor(geometry_source)?;
+    mesh_pipeline_hit_proxy_template_source_for_geometry_descriptor(key, &geometry_source)
+}
+
+pub(crate) fn mesh_pipeline_hit_proxy_template_source_for_geometry_descriptor(
+    key: &PipelineKey,
+    geometry_source: &GeometrySourceDescriptor,
+) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
+    mesh_pipeline_material_template_source_for_geometry_descriptor_and_pass(
+        key,
+        geometry_source.clone(),
+        ShaderPassType::HitProxy,
+    )
+}
+
+pub(crate) fn mesh_pipeline_hit_proxy_template_source_for_geometry_descriptor_with_streamer(
+    streamer: &ResourceStreamer,
+    key: &PipelineKey,
+    geometry_source: &GeometrySourceDescriptor,
+) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
+    mesh_pipeline_material_template_source_for_geometry_descriptor_and_pass_with_streamer(
+        streamer,
+        key,
+        geometry_source.clone(),
+        ShaderPassType::HitProxy,
+    )
 }
 
 pub(crate) fn mesh_pipeline_depth_prepass_template_source_for_geometry_descriptor(

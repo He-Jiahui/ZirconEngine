@@ -37,7 +37,7 @@ The scheduler follows the real-time sky capture sequence in Unreal's `Reflection
 
 - Slot A/B form a ready/work pair.
 - The renderer samples only the ready slot while all slices write the work slot.
-- A completed 12-state cycle atomically publishes the work slot and swaps A/B.
+- A completed generation cycle atomically publishes the work slot and swaps A/B.
 - A parameter change increments the generation, discards unfinished work, and preserves the published environment.
 - A late GPU completion carrying an older generation token is `Stale` and cannot publish.
 - A failed GPU slice is `Retry`; state and published resources remain unchanged.
@@ -45,24 +45,21 @@ The scheduler follows the real-time sky capture sequence in Unreal's `Reflection
 
 The first environment has no valid ready slot, so it is emitted as one complete batch. Later rebakes use time slicing.
 
-## Twelve logical states
+## Default ticket schedule
 
-With the default two capture faces per frame, one cycle occupies 16 physical frames:
+With the default two capture faces per frame and eight PMREM mips, one update
+cycle occupies 21 physical batches. Each batch contains one operation:
 
-| State | Work | Physical frames |
+| Batches | Work | Count |
 |---|---|---:|
-| 0 | Capture sky faces 0-1, 2-3, 4-5 | 3 |
-| 1 | Capture cloud faces 0-1, 2-3, 4-5 | 3 |
-| 2 | Generate source cubemap mips | 1 |
-| 3-5 | PMREM mip 0, faces 0-1, 2-3, 4-5 | 3 |
-| 6 | PMREM mip 1, all faces | 1 |
-| 7 | PMREM mip 2, all faces | 1 |
-| 8 | PMREM mip 3, all faces | 1 |
-| 9 | PMREM mips 4-5, all faces | 1 |
-| 10 | PMREM mips 6-last, all faces | 1 |
-| 11 | Project diffuse SH9 and publish | 1 |
+| 1-3 | Capture sky faces 0-1, 2-3, 4-5 | 3 |
+| 4-10 | Generate source cubemap mips 1-7 | 7 |
+| 11-13 | PMREM mip 0, faces 0-1, 2-3, 4-5 | 3 |
+| 14-20 | PMREM mips 1-7, all faces | 7 |
+| 21 | Project diffuse SH9 and publish | 1 |
 
-Unavailable high-mip states emit no zero-length GPU dispatch, but still advance the logical schedule.
+There is no `CaptureCloud` scheduler operation. A shorter mip chain reduces
+the source-mip and PMREM rows without emitting zero-length dispatches.
 
 ## Parameterized PMREM dispatch
 
@@ -97,12 +94,12 @@ The ready slot is imported for downstream sampling but is never declared as a wr
 
 The pass sequence is generated directly from the batch operations:
 
-- `CaptureSky` and `CaptureCloud` write the requested face range of the work source cubemap.
+- `CaptureSky` writes the requested face range of the work source cubemap.
 - `GenerateSourceMips` expands into one pass per destination mip. Each pass reads only the previous mip through a single-mip `Cube` view and writes only the destination through a single-mip `D2Array` storage view. This keeps sampled and writable subresources non-overlapping under WGPU validation.
 - Each PMREM mip slice becomes a separate pass. It reads the work source cubemap, writes the work PMREM cubemap, and preserves `first_face` plus `face_count` in its workload.
 - `ProjectDiffuseSh9` reads the work source cubemap, writes the work SH9 buffer, and depends on the last generated operation.
 
-All passes use the async-compute queue contract and explicit dependencies. `RealtimeIblGpuResources` allocates exactly two source cubes, two PMREM cubes, and two SH9 buffers, then binds graph aliases to views of those allocations. The allocations and every A/B view remain resident, but graph materialization binds only names present in the current `CompiledRenderGraph::resource_lifetimes()`. A time-sliced graph intentionally omits unused face/mip aliases; binding all resident aliases would create stale external-resource bindings outside the compiled lifetime set. `RealtimeIblWgpuRecorder` records the graph pass order: dedicated procedural capture and source-mip kernels feed the existing GGX PMREM and SH9 pipeline cache. The V1 cloud pass repeats the analytical sky capture because no separate cloud model is present; it does not introduce a different cubemap orientation or filtering path. SH9 reuse clears the work buffer before projection.
+All passes use the async-compute queue contract and explicit dependencies. `RealtimeIblGpuResources` allocates exactly two source cubes, two PMREM cubes, and two SH9 buffers, then binds graph aliases to views of those allocations. The allocations and every A/B view remain resident, but graph materialization binds only names present in the current `CompiledRenderGraph::resource_lifetimes()`. A time-sliced graph intentionally omits unused face/mip aliases; binding all resident aliases would create stale external-resource bindings outside the compiled lifetime set. `RealtimeIblWgpuRecorder` records the graph pass order: dedicated procedural capture and source-mip kernels feed the existing GGX PMREM and SH9 pipeline cache. SH9 reuse clears the work buffer before projection.
 
 The graph contract itself does not publish the slot. `SceneRendererCore` prepares and records it before scene passes, submits one command buffer, and only then gives the generation token back to `RealtimeIblRuntime::complete_submission`. Failed recording returns the batch as `Retry`; stale generations cannot publish.
 
@@ -131,15 +128,16 @@ The single-group extent is one contract across all owners. The shader plan, offl
 
 ## Validation
 
-- Scheduler tests cover initial publication, the exact 16-frame/12-state sequence, stale generations, retry behavior, short mip chains, cancellation, and dispatch expansion.
+- Current scheduler tests define the exact 21-batch default sequence, stale generations, retry behavior, short mip chains, cancellation, and dispatch expansion. The managed lib-test validation is currently blocked before test execution by the open Runtime74 UI compile failure.
 - PMREM command tests cover face offset serialization, face-count dispatch reduction, invalid ranges, and WGSL ABI text.
 - `cargo check -p zircon_runtime --lib --no-default-features --features core-min` passes with the Windows target under `E:\cargo-targets`.
-- A standalone executable harness compiled the production scheduler source and completed the initial publish, exact 16-frame state sequence, generation invalidation, and cancellation assertions with exit code 0.
+- The standalone executable harness below is historical evidence for the earlier 16-frame topology; it does not attest the current 21-batch schedule.
 - At the scheduler-only checkpoint, the normal focused lib-test command was blocked by unrelated missing diagnostics symbols in `zircon_runtime/src/tests/prelude.rs`; a temporary cfg experiment only established that the crate test target compiled after excluding that owner and was reverted because it selected zero scheduler tests. No EC-M4 visual pass was claimed from that scheduler-only slice.
 - The SceneRendererCore integration check passed on Windows: `cargo check -p zircon_runtime --lib --no-default-features --features core-min` finished successfully with the target under `E:\cargo-targets\zircon-shader06-ecm4-runtime-20260712`.
 - The final-source graphics integration export compiled on Windows. The exact contract test passed 1/1, the direct-SH9 ignored 8x8 product export passed 1/1 in 50.10 seconds, and the ignored five-view regression product export passed 1/1 in 94.07 seconds.
+- The following 2026-07 measurements are historical baselines for the earlier 16-batch topology; they do not attest the current 21-batch schedule.
 - The 1600x1200 direct-SH9 PBR result, CPU wall times, and 17 nonzero WGPU timestamp-query samples are recorded below `docs/tests/runtime/shader`. Initial full publication measured 4.981760 ms GPU; the sixteen sliced batches averaged 0.321728 ms and peaked at 4.472832 ms in the SH9 projection slice.
-- The export renders a presentation-only frame after state 11 publishes the work slot. This prevents the accepted screenshot from accidentally sampling the previous ready slot; the final image differs from the retained pre-SH9 image by RGB channel MAE 27.999296.
+- The historical export renders a presentation-only frame after state 11 publishes the work slot. This prevents the accepted screenshot from accidentally sampling the previous ready slot; the final image differs from the retained pre-SH9 image by RGB channel MAE 27.999296.
 - A five-view perspective product export covers front, pitch +/-120 degrees, and yaw +/-120 degrees. The directional sun gives the otherwise azimuthally symmetric procedural gradient a stable orientation marker; the product test requires the highlight in every view, requires the orbit to move it to the viewport edge within one raster pixel, and requires every rotated frame to differ from front. The 800x600 per-view PNGs and 4000x600 single-row contact sheet are stored only below `docs/tests/runtime/shader`.
 - The 2026-07-14 DX12 closeout run measured the complete update at 4.363264 ms GPU, all sliced updates at 0.361920 ms average, and the heaviest/final SH9 slice at 1.819648 ms. The maximum slice is 41.7% of the full update and passes the product gate requiring less than 75%.
-- `ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9=1` captures only state 11 from the product test. The resulting 40334552-byte RDC replayed successfully with `renderdoccmd replay --loops 1`, proving that the captured workload is the final SH9 reduction and publication slice rather than an unrelated viewer frame.
+- The historical `ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9=1` capture targeted state 11. The current product contract targets the terminal 21st `ProjectDiffuseSh9` batch; a fresh RDC is required before making a current capture claim.

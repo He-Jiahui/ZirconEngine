@@ -135,11 +135,15 @@ pub enum CoreError {
         activation: Box<CoreError>,
         cleanup: Box<CoreError>,
     },
-    #[error("module batch activation failed: {activation}; cleanup failures: {cleanup_failures:?}")]
+    #[error(
+        "module batch activation failed: {activation}; cleanup failures: {cleanup_failures:?}"
+    )]
     ModuleBatchActivationRollback {
         activation: Box<CoreError>,
         cleanup_failures: Vec<(String, CoreError)>,
     },
+    #[error("service factory panicked while initializing {service}")]
+    ServiceFactoryPanicked { service: String },
     #[error("service initialization failed for {0}: {1}")]
     Initialization(String, String),
     #[error("runtime is no longer available")]

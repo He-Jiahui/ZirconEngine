@@ -64,8 +64,13 @@ pub(super) fn create_project_with_default_world(project_root: &Path) {
     project
         .scan_and_import()
         .expect("created manager test project should scan");
-    EditorProjectDocument::save_to_project(&project, &world, None)
-        .expect("existing manager test project should save");
+    EditorProjectDocument::save_scene_to_project(
+        &project,
+        &project.manifest().default_scene,
+        &world,
+        None,
+    )
+    .expect("existing manager test project should save");
 }
 
 pub(super) const SIMPLE_UI_LAYOUT_ASSET: &str = r#"
@@ -412,50 +417,39 @@ fn activate_editor_test_runtime(runtime: CoreRuntime) -> CoreRuntime {
         .activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
         .unwrap();
     runtime.activate_module(module::EDITOR_MODULE_NAME).unwrap();
+    crate::tests::support::configure_editor_test_runtime_build_set(&runtime);
     runtime
 }
 
 pub(super) fn empty_layout_with_page(page_id: &str) -> WorkbenchLayout {
     let page_id = MainPageId::new(page_id);
-    WorkbenchLayout {
-        active_main_page: page_id.clone(),
-        main_pages: vec![MainHostPageLayout::WorkbenchPage {
-            id: page_id,
-            title: "Workbench".to_string(),
-            activity_window: ActivityWindowId::workbench(),
-            document_workspace: DocumentNode::Tabs(TabStackLayout {
-                tabs: Vec::new(),
-                active_tab: None,
-            }),
-        }],
-        drawers: ActivityDrawerSlot::ALL
-            .into_iter()
-            .map(|slot| {
-                (
+    let mut layout = WorkbenchLayout::default();
+    layout.active_main_page = page_id.clone();
+    layout.main_pages = vec![MainHostPageLayout::WorkbenchPage {
+        id: page_id,
+        title: "Workbench".to_string(),
+        activity_window: ActivityWindowId::workbench(),
+    }];
+    layout
+        .active_activity_window_mut()
+        .expect("test layout owns the workbench activity window")
+        .activity_drawers = ActivityDrawerSlot::ALL
+        .into_iter()
+        .map(|slot| {
+            (
+                slot,
+                ActivityDrawerLayout {
                     slot,
-                    ActivityDrawerLayout {
-                        slot,
-                        tab_stack: TabStackLayout::default(),
-                        active_view: None,
-                        mode: ActivityDrawerMode::Pinned,
-                        extent: if matches!(
-                            slot,
-                            ActivityDrawerSlot::BottomLeft | ActivityDrawerSlot::BottomRight
-                        ) {
-                            200.0
-                        } else {
-                            260.0
-                        },
-                        visible: true,
-                    },
-                )
-            })
-            .collect(),
-        activity_windows: Default::default(),
-        floating_windows: Vec::new(),
-        region_overrides: BTreeMap::new(),
-        view_overrides: BTreeMap::new(),
-    }
+                    tab_stack: TabStackLayout::default(),
+                    active_view: None,
+                    mode: ActivityDrawerMode::Pinned,
+                    extent: if slot.is_bottom() { 200.0 } else { 260.0 },
+                    visible: true,
+                },
+            )
+        })
+        .collect();
+    layout
 }
 
 pub(super) fn slot_value<'a>(

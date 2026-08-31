@@ -80,7 +80,25 @@ impl RandomAuthority {
     }
 
     pub(crate) fn reseed(&self, master_seed: u64) -> Result<RandomSeedReceipt, RandomServiceError> {
+        self.reseed_with_observer(master_seed, || {})
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reseed_with_test_observer(
+        &self,
+        master_seed: u64,
+        on_enter: impl FnOnce(),
+    ) -> Result<RandomSeedReceipt, RandomServiceError> {
+        self.reseed_with_observer(master_seed, on_enter)
+    }
+
+    fn reseed_with_observer(
+        &self,
+        master_seed: u64,
+        on_enter: impl FnOnce(),
+    ) -> Result<RandomSeedReceipt, RandomServiceError> {
         match self.registry.clear_if_idle_with(|| {
+            on_enter();
             let mut seed = self.lock_seed();
             let previous_seed = seed.master_seed;
             let previous_generation = seed.generation;

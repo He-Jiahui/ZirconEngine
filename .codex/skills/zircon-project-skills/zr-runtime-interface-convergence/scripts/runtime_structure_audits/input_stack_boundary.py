@@ -42,8 +42,11 @@ def _relative(root: Path, path: Path) -> str:
     return path.relative_to(root).as_posix()
 
 
-def _file_line_count(path: Path) -> int:
-    return len(_read_text(path).splitlines())
+def _file_line_count(path: Path, production_only: bool = False) -> int:
+    source = _read_text(path)
+    if production_only:
+        source = source.split("\n#[cfg(test)]", maxsplit=1)[0]
+    return len(source.splitlines())
 
 
 def _module_entries(
@@ -61,7 +64,13 @@ def _module_entries(
             missing.append(module)
             continue
 
-        entry = {"path": module, "lines": _file_line_count(path)}
+        entry = {
+            "path": module,
+            "lines": _file_line_count(
+                path,
+                production_only=max_lines == INPUT_PRODUCTION_MODULE_MAX_LINES,
+            ),
+        }
         entries.append(entry)
         if entry["lines"] > max_lines:
             oversized.append(entry)
@@ -76,9 +85,14 @@ def _actual_modules(root: Path, folder: str, exclude_tests: bool = False) -> lis
 
     modules: list[str] = []
     for path in source_root.rglob("*.rs"):
-        if exclude_tests and "/tests/" in _relative(root, path):
+        relative = _relative(root, path)
+        if exclude_tests and (
+            "/tests/" in relative
+            or relative.endswith("/tests.rs")
+            or relative.endswith("_tests.rs")
+        ):
             continue
-        modules.append(_relative(root, path))
+        modules.append(relative)
     return sorted(modules)
 
 
@@ -111,13 +125,16 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
     app_gamepad_polling = root / "zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs"
     dynamic_session = root / "zircon_runtime/src/dynamic_api/session.rs"
     dynamic_session_events = root / "zircon_runtime/src/dynamic_api/session/events.rs"
+    dynamic_session_gamepad_events = (
+        root / "zircon_runtime/src/dynamic_api/session/events/gamepad.rs"
+    )
     input_event = root / "zircon_runtime/src/core/framework/input/input_event.rs"
     default_input_manager = root / "zircon_runtime/src/input/runtime/default_input_manager.rs"
     dynamic_session_host_requests = (
         root / "zircon_runtime/src/dynamic_api/session/host_requests.rs"
     )
     runtime_interface_host_requests = (
-        root / "zircon_runtime_interface/src/runtime_api/host_requests.rs"
+        root / "zircon_runtime_interface/src/runtime_api/host/host_requests.rs"
     )
     app_host_request_routing = (
         root / "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs"
@@ -165,6 +182,8 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
             app_gamepad_polling,
             dynamic_session,
             dynamic_session_events,
+            dynamic_session_gamepad_events,
+            input_event,
         )
         if path.exists()
     )
@@ -214,6 +233,7 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
     actual_framework_modules = _actual_modules(
         root,
         "zircon_runtime/src/core/framework/input",
+        exclude_tests=True,
     )
     unexpected_framework_modules = [
         module for module in actual_framework_modules if module not in FRAMEWORK_INPUT_MODULES

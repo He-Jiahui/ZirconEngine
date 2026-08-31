@@ -1,3 +1,4 @@
+use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 use zircon_runtime_interface::ui::layout::UiSize;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextOverflow};
 
@@ -10,9 +11,9 @@ pub(super) fn resolve<F>(
     style: &UiResolvedStyle,
     max_width: f32,
     mut measure: F,
-) -> UiResolvedStyle
+) -> TextLayoutOutcome<UiResolvedStyle>
 where
-    F: FnMut(&str, &UiResolvedStyle) -> UiSize,
+    F: FnMut(&str, &UiResolvedStyle) -> TextLayoutOutcome<UiSize>,
 {
     match style.text_overflow {
         UiTextOverflow::ShrinkToFit => fit_text_style(
@@ -35,7 +36,7 @@ where
                 &mut measure,
             )
         }
-        _ => style.clone(),
+        _ => TextShapingOutcome::Ready(style.clone()),
     }
 }
 
@@ -66,11 +67,11 @@ fn fit_text_style(
     max_width: f32,
     min_font_size: f32,
     max_font_size: f32,
-    measure: &mut dyn FnMut(&str, &UiResolvedStyle) -> UiSize,
-) -> UiResolvedStyle {
+    measure: &mut dyn FnMut(&str, &UiResolvedStyle) -> TextLayoutOutcome<UiSize>,
+) -> TextLayoutOutcome<UiResolvedStyle> {
     let max_width = max_width.max(0.0);
     if text.is_empty() || max_width <= 0.0 {
-        return style.clone();
+        return TextShapingOutcome::Ready(style.clone());
     }
 
     let requested_font_size = style
@@ -78,9 +79,13 @@ fn fit_text_style(
         .max(MIN_TEXT_FONT_SIZE)
         .clamp(min_font_size, max_font_size);
     let max_style = style_with_font_size(style, requested_font_size, min_font_size, max_font_size);
-    let natural_width = measure(text, &max_style).width;
+    let natural_width = match measure(text, &max_style) {
+        TextShapingOutcome::Ready(size) => size.width,
+        TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+        TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+    };
     if natural_width <= max_width + FIT_WIDTH_EPSILON || natural_width <= 0.0 {
-        return max_style;
+        return TextShapingOutcome::Ready(max_style);
     }
 
     let min_scale = (min_font_size / requested_font_size).min(1.0);
@@ -91,7 +96,11 @@ fn fit_text_style(
     for _ in 0..FIT_SEARCH_STEPS {
         let scale = (low + high) * 0.5;
         let candidate = scaled_text_style(&max_style, scale, min_font_size, max_font_size);
-        let candidate_width = measure(text, &candidate).width;
+        let candidate_width = match measure(text, &candidate) {
+            TextShapingOutcome::Ready(size) => size.width,
+            TextShapingOutcome::Deferred(error) => return TextShapingOutcome::Deferred(error),
+            TextShapingOutcome::Failed(error) => return TextShapingOutcome::Failed(error),
+        };
         if candidate_width <= max_width + FIT_WIDTH_EPSILON {
             best = scale;
             low = scale;
@@ -100,7 +109,12 @@ fn fit_text_style(
         }
     }
 
-    scaled_text_style(&max_style, best, min_font_size, max_font_size)
+    TextShapingOutcome::Ready(scaled_text_style(
+        &max_style,
+        best,
+        min_font_size,
+        max_font_size,
+    ))
 }
 
 fn style_with_font_size(

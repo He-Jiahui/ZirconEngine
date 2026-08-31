@@ -8,6 +8,7 @@ const DEFAULT_SIDE_DRAWER_EXTENT: f32 = 260.0;
 const DEFAULT_BOTTOM_DRAWER_EXTENT: f32 = 148.0;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ActivityDrawerLayout {
     pub slot: ActivityDrawerSlot,
     pub tab_stack: TabStackLayout,

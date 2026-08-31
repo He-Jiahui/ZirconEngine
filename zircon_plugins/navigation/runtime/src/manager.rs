@@ -11,12 +11,11 @@ use std::sync::{Arc, Mutex};
 
 use zircon_plugin_navigation_recast::RecastBackend;
 use zircon_runtime::core::framework::navigation::{
-    DEFAULT_AGENT_TYPE, NavAgentTickReport, NavMeshAsset, NavMeshBakeReport, NavMeshBakeRequest,
-    NavMeshHandle, NavPathQuery, NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult,
-    NavSampleHit, NavSampleQuery, NavigationError, NavigationGeneratedBakeSnapshot,
-    NavigationManager, NavigationRuntimeStats, NavigationSettingsAsset,
+    NavAgentTickReport, NavMeshAsset, NavMeshBakeReport, NavMeshBakeRequest, NavMeshHandle,
+    NavPathQuery, NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult, NavSampleHit,
+    NavSampleQuery, NavigationError, NavigationGeneratedBakeSnapshot, NavigationManager,
+    NavigationRuntimeStats, NavigationSettingsAsset, DEFAULT_AGENT_TYPE,
 };
-use zircon_runtime::core::framework::tasks::TaskPoolDescriptor;
 use zircon_runtime::core::math::Real;
 use zircon_runtime::core::runtime::tasks::TaskPool;
 use zircon_runtime::scene::{SceneNavigationRuntime, World};
@@ -41,12 +40,10 @@ impl DefaultNavigationManager {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    pub fn new() -> Self {
+    pub fn new(bake_pool: TaskPool) -> Self {
         Self {
             backend: RecastBackend,
-            bake_pool: TaskPool::new(
-                TaskPoolDescriptor::async_compute().with_thread_name("navigation-bake"),
-            ),
+            bake_pool,
             state: Arc::new(Mutex::new(NavigationRuntimeState::default())),
         }
     }
@@ -149,12 +146,6 @@ impl DefaultNavigationManager {
         state.stats.active_off_mesh_links = counts.1;
         state.stats.active_off_mesh_bridges = counts.2;
         Ok(())
-    }
-}
-
-impl Default for DefaultNavigationManager {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

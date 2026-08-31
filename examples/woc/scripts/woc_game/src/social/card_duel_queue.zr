@@ -7,19 +7,128 @@ pub class CardDuelPair {
     pub var ready: bool;
     pub var a: uint;
     pub var b: uint;
+    pub var aOwnerIndex: int;
+    pub var bOwnerIndex: int;
 
     pub @constructor() {
         this.ready = false;
         this.a = <uint>0;
         this.b = <uint>0;
+        this.aOwnerIndex = -1;
+        this.bOwnerIndex = -1;
+    }
+}
+
+pub class CardDuelQueueJoin {
+    pub var status: int;
+    pub var slot: int;
+    pub var generation: uint;
+
+    pub @constructor() {
+        this.status = 0;
+        this.slot = -1;
+        this.generation = <uint>0;
     }
 }
 
 pub class CardDuelQueue {
-    pri var entries: container.Array<uint>;
+    pri var slotPlayerIds: container.Array<uint>;
+    pri var slotGenerations: container.Array<uint>;
+    pri var slotActive: container.Array<bool>;
+    pri var slotNext: container.Array<int>;
+    pri var slotPrevious: container.Array<int>;
+    pri var slotOwnerIndexes: container.Array<int>;
+    pri var freeSlots: container.Array<int>;
+    pri var headSlot: int;
+    pri var tailSlot: int;
+    pri var liveCount: int;
 
     pub @constructor() {
-        this.entries = new container.Array<uint>();
+        this.slotPlayerIds = new container.Array<uint>();
+        this.slotGenerations = new container.Array<uint>();
+        this.slotActive = new container.Array<bool>();
+        this.slotNext = new container.Array<int>();
+        this.slotPrevious = new container.Array<int>();
+        this.slotOwnerIndexes = new container.Array<int>();
+        this.freeSlots = new container.Array<int>();
+        this.headSlot = -1;
+        this.tailSlot = -1;
+        this.liveCount = 0;
+    }
+
+    pri appendTracked(pid: uint, ownerIndex: int): CardDuelQueueJoin {
+        var result = new CardDuelQueueJoin();
+        var slot = -1;
+        var generation: uint = <uint>1;
+        if (this.freeSlots.length > 0) {
+            var freeIndex = this.freeSlots.length - 1;
+            slot = <int>this.freeSlots[freeIndex];
+            this.freeSlots.removeAt(freeIndex);
+            generation = <uint>this.slotGenerations[slot] + <uint>1;
+            if (generation == <uint>0) generation = <uint>1;
+            this.slotPlayerIds[slot] = pid;
+            this.slotGenerations[slot] = generation;
+            this.slotActive[slot] = true;
+            this.slotNext[slot] = -1;
+            this.slotPrevious[slot] = this.tailSlot;
+            this.slotOwnerIndexes[slot] = ownerIndex;
+        } else {
+            slot = this.slotPlayerIds.length;
+            this.slotPlayerIds.add(pid);
+            this.slotGenerations.add(generation);
+            this.slotActive.add(true);
+            this.slotNext.add(-1);
+            this.slotPrevious.add(this.tailSlot);
+            this.slotOwnerIndexes.add(ownerIndex);
+        }
+        if (this.tailSlot >= 0) {
+            this.slotNext[this.tailSlot] = slot;
+        } else {
+            this.headSlot = slot;
+        }
+        this.tailSlot = slot;
+        this.liveCount = this.liveCount + 1;
+        result.status = 1;
+        result.slot = slot;
+        result.generation = generation;
+        return result;
+    }
+
+    pri unlinkSlot(slot: int): void {
+        var previous = <int>this.slotPrevious[slot];
+        var next = <int>this.slotNext[slot];
+        if (previous >= 0) {
+            this.slotNext[previous] = next;
+        } else {
+            this.headSlot = next;
+        }
+        if (next >= 0) {
+            this.slotPrevious[next] = previous;
+        } else {
+            this.tailSlot = previous;
+        }
+        this.slotPlayerIds[slot] = <uint>0;
+        this.slotActive[slot] = false;
+        this.slotNext[slot] = -1;
+        this.slotPrevious[slot] = -1;
+        this.slotOwnerIndexes[slot] = -1;
+        this.freeSlots.add(slot);
+        this.liveCount = this.liveCount - 1;
+    }
+
+    pri popHead(pair: CardDuelPair, first: bool): void {
+        var slot = this.headSlot;
+        if (slot < 0) throw "card duel queue head is invalid";
+        var pid = <uint>this.slotPlayerIds[slot];
+        var ownerIndex = <int>this.slotOwnerIndexes[slot];
+        this.unlinkSlot(slot);
+        if (first) {
+            pair.a = pid;
+            pair.aOwnerIndex = ownerIndex;
+        } else {
+            pair.b = pid;
+            pair.bOwnerIndex = ownerIndex;
+        }
     }
 
     // 1 = joined; 0 = already queued; -1 = already in a live duel.
@@ -27,53 +136,96 @@ pub class CardDuelQueue {
         if (pid == <uint>0) throw "card duel queue player id is invalid";
         if (alreadyInDuel) return -1;
         if (this.contains(pid)) return 0;
-        this.entries.add(pid);
-        return 1;
+        return this.appendTracked(pid, -1).status;
+    }
+
+    // The coordinator already owns duplicate membership. Returning the slot
+    // generation lets lifecycle changes unlink without rescanning the queue.
+    pub joinTracked(
+        pid: uint,
+        alreadyInDuel: bool,
+        alreadyQueued: bool,
+        ownerIndex: int
+    ): CardDuelQueueJoin {
+        if (pid == <uint>0) throw "card duel queue player id is invalid";
+        var result = new CardDuelQueueJoin();
+        if (alreadyInDuel) {
+            result.status = -1;
+            return result;
+        }
+        if (alreadyQueued) return result;
+        return this.appendTracked(pid, ownerIndex);
+    }
+
+    pub leaveTracked(slot: int, generation: uint, pid: uint): bool {
+        if (slot < 0 || slot >= this.slotPlayerIds.length ||
+            !<bool>this.slotActive[slot] ||
+            <uint>this.slotGenerations[slot] != generation ||
+            <uint>this.slotPlayerIds[slot] != pid) {
+            return false;
+        }
+        this.unlinkSlot(slot);
+        return true;
     }
 
     pub leave(pid: uint): bool {
-        var index = 0;
-        while (index < this.entries.length) {
-            if (<uint>this.entries[index] == pid) {
-                this.entries.removeAt(index);
-                return true;
+        var slot = this.headSlot;
+        while (slot >= 0) {
+            if (<uint>this.slotPlayerIds[slot] == pid) {
+                return this.leaveTracked(
+                    slot, <uint>this.slotGenerations[slot], pid
+                );
             }
-            index = index + 1;
+            slot = <int>this.slotNext[slot];
         }
         return false;
     }
 
     pub contains(pid: uint): bool {
-        var index = 0;
-        while (index < this.entries.length) {
-            if (<uint>this.entries[index] == pid) return true;
-            index = index + 1;
+        var slot = this.headSlot;
+        while (slot >= 0) {
+            if (<uint>this.slotPlayerIds[slot] == pid) return true;
+            slot = <int>this.slotNext[slot];
         }
         return false;
     }
 
     pub size(): int {
-        return this.entries.length;
+        return this.liveCount;
     }
 
     // Read-only FIFO projection for the durable service snapshot. Keeping this
     // narrow prevents callers from mutating queue order outside join/leave.
     pub at(index: int): uint {
-        if (index < 0 || index >= this.entries.length) {
+        if (index < 0 || index >= this.liveCount) {
             throw "card duel queue index is invalid";
         }
-        return <uint>this.entries[index];
+        var slot = this.headSlot;
+        var cursor = 0;
+        while (cursor < index) {
+            slot = <int>this.slotNext[slot];
+            cursor = cursor + 1;
+        }
+        return <uint>this.slotPlayerIds[slot];
     }
 
-    // Removes the two oldest entries, exactly matching two FIFO `shift()` calls.
+    pub snapshotEntries(): container.Array<uint> {
+        var result = new container.Array<uint>();
+        var slot = this.headSlot;
+        while (slot >= 0) {
+            result.add(<uint>this.slotPlayerIds[slot]);
+            slot = <int>this.slotNext[slot];
+        }
+        return result;
+    }
+
+    // Unlinks the two oldest entries without shifting the remaining slots.
     pub pairFirst(): CardDuelPair {
         var pair = new CardDuelPair();
-        if (this.entries.length < 2) return pair;
+        if (this.liveCount < 2) return pair;
         pair.ready = true;
-        pair.a = <uint>this.entries[0];
-        this.entries.removeAt(0);
-        pair.b = <uint>this.entries[0];
-        this.entries.removeAt(0);
+        this.popHead(pair, true);
+        this.popHead(pair, false);
         return pair;
     }
 }

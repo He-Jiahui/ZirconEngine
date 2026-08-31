@@ -8,7 +8,7 @@ fixing_plan: docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-conv
 origin_child_dir: docs/plans/zircon_editor/editor/03
 fixing_child_dir: docs/plans/zircon_runtime/runtime/10
 related_code:
-  - zircon_runtime_interface/src/runtime_api/api_table.rs
+  - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs

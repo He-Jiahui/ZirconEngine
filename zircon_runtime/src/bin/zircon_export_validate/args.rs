@@ -98,9 +98,13 @@ fn next_path(
 }
 
 fn output_paths_alias(report: &Path, artifact: &Path) -> bool {
-    same_file::is_same_file(report, artifact).unwrap_or(false)
-        || ProjectPaths::same_lexical_path(report, artifact).unwrap_or(false)
+    ProjectPaths::same_lexical_path(report, artifact).unwrap_or(false)
+        || same_file::is_same_file(report, artifact).unwrap_or(false)
 }
+
+#[cfg(test)]
+#[path = "args/lexical_alias_fast_path_tests.rs"]
+mod lexical_alias_fast_path_tests;
 
 #[cfg(test)]
 mod tests {

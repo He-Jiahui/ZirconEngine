@@ -1,9 +1,15 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::de::{Error as DeError, Unexpected, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::RenderShaderDefinitionValue;
+
+#[cfg(test)]
+#[path = "material_property_layout/option_lookup_tests.rs"]
+mod option_lookup_tests;
+
+const MATERIAL_OPTION_HASH_INDEX_MIN_OPTIONS: usize = 16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum MaterialPropertyKind {
@@ -191,19 +197,29 @@ impl MaterialOptionTable {
     }
 
     pub fn bits_for_values(&self, values: &BTreeMap<String, toml::Value>) -> u32 {
-        values
-            .iter()
-            .fold(self.default_bits(), |bits, (name, value)| {
+        let default_bits = self.default_bits();
+        if self.options.len() < MATERIAL_OPTION_HASH_INDEX_MIN_OPTIONS || values.len() < 2 {
+            return values.iter().fold(default_bits, |bits, (name, value)| {
                 let Some(option) = self.option(name) else {
                     return bits;
                 };
-                let Some(value_bits) = option.value_bits(value) else {
-                    return bits;
-                };
-                let local_mask = option_bit_mask(option.bit_width);
-                let shifted_mask = local_mask << option.bit_offset;
-                (bits & !shifted_mask) | ((value_bits & local_mask) << option.bit_offset)
-            })
+                apply_material_option_value(bits, option, value)
+            });
+        }
+
+        let mut options_by_name: HashMap<&str, &MaterialOptionRef> =
+            HashMap::with_capacity(self.options.len());
+        for option in &self.options {
+            options_by_name
+                .entry(option.name.as_str())
+                .or_insert(option);
+        }
+        values.iter().fold(default_bits, |bits, (name, value)| {
+            let Some(option) = options_by_name.get(name.as_str()).copied() else {
+                return bits;
+            };
+            apply_material_option_value(bits, option, value)
+        })
     }
 
     pub fn option(&self, name: &str) -> Option<&MaterialOptionRef> {
@@ -216,6 +232,15 @@ impl MaterialOptionTable {
             .map(|option| option.definition_value_for_bits(bits))
             .collect()
     }
+}
+
+fn apply_material_option_value(bits: u32, option: &MaterialOptionRef, value: &toml::Value) -> u32 {
+    let Some(value_bits) = option.value_bits(value) else {
+        return bits;
+    };
+    let local_mask = option_bit_mask(option.bit_width);
+    let shifted_mask = local_mask << option.bit_offset;
+    (bits & !shifted_mask) | ((value_bits & local_mask) << option.bit_offset)
 }
 
 impl MaterialOptionRef {

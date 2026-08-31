@@ -7,7 +7,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
 {
     pub surface: [u8; 4],
     pub border: [u8; 4],
-    pub active_border: [u8; 4],
     pub title: [u8; 4],
     pub body: [u8; 4],
     pub action: [u8; 4],
@@ -33,7 +32,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_
     WorkbenchDialogPalette {
         surface: palette.popup,
         border: palette.border,
-        active_border: palette.focus_ring,
         title: palette.text,
         body: palette.text_muted,
         action: palette.accent,

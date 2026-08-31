@@ -62,6 +62,7 @@ Describe 'Render-extract profiling input build plan' {
 
     It 'renders managed profiling validator invocations for both runtime artifacts' {
         $validator = 'E:\Git\ZirconEngine\.codex\skills\zircon-dev\scripts\validate-matrix.ps1'
+        $snapshotRoot = 'E:\ZirconBuilds\render-extract-build-set\snapshot'
         $outputDirectory = 'E:\ZirconBuilds\mvp-product-inputs-profile-contract'
         $requests = @(Get-RenderExtractProfilingBuildRequests)
         $executable = @($requests | Where-Object { $_.logical_id -eq 'runtime-profile-executable' })[0]
@@ -70,10 +71,12 @@ Describe 'Render-extract profiling input build plan' {
 
         $executableArguments = @(Get-RenderExtractProfilingValidatorArguments `
                 -Validator $validator `
+                -RepositoryRoot $snapshotRoot `
                 -OutputDirectory $outputDirectory `
                 -Request $executable)
         $libraryArguments = @(Get-RenderExtractProfilingValidatorArguments `
                 -Validator $validator `
+                -RepositoryRoot $snapshotRoot `
                 -OutputDirectory $outputDirectory `
                 -Request $library)
 
@@ -81,6 +84,7 @@ Describe 'Render-extract profiling input build plan' {
             '-NoProfile',
             '-ExecutionPolicy', 'Bypass',
             '-File', $validator,
+            '-RepoRoot', $snapshotRoot,
             '-Package', 'zircon_app',
             '-NoDefaultFeatures',
             '-Features', 'target-client,platform-winit,input-gamepad,gamepad-gilrs,profiling',
@@ -95,6 +99,7 @@ Describe 'Render-extract profiling input build plan' {
             '-NoProfile',
             '-ExecutionPolicy', 'Bypass',
             '-File', $validator,
+            '-RepoRoot', $snapshotRoot,
             '-Package', 'zircon_runtime',
             '-NoDefaultFeatures',
             '-Features', 'target-client,platform-winit,input-gamepad,gamepad-gilrs,profiling',
@@ -106,11 +111,13 @@ Describe 'Render-extract profiling input build plan' {
         )
         @(Get-RenderExtractProfilingValidatorArguments `
                 -Validator $validator `
+                -RepositoryRoot $snapshotRoot `
                 -OutputDirectory $outputDirectory `
                 -Request $editorExecutable) | Should Be @(
             '-NoProfile',
             '-ExecutionPolicy', 'Bypass',
             '-File', $validator,
+            '-RepoRoot', $snapshotRoot,
             '-Package', 'zircon_app',
             '-NoDefaultFeatures',
             '-Features', 'target-editor-host,profiling',
@@ -123,86 +130,31 @@ Describe 'Render-extract profiling input build plan' {
         )
     }
 
-    It 'binds the profiling build to the source snapshot before launching the validator' {
+    It 'builds every profiling artifact from one integrity-checked BuildSet snapshot' {
         $builderSource = Get-Content -LiteralPath $builder -Raw
-        $beforePhasePattern = [regex]::Escape('-Phase "before $($request.logical_id) build"')
-        $afterPhasePattern = [regex]::Escape('-Phase "after $($request.logical_id) build"')
 
-        $builderSource | Should Match $beforePhasePattern
-        $builderSource | Should Match $afterPhasePattern
+        $builderSource | Should Match 'Import-Module .*MvpBuildSet\.psm1'
+        $builderSource | Should Match '\$buildSet = New-MvpProductBuildSet'
+        $builderSource | Should Match '\$validator = Join-Path \$buildSet\.snapshot_root'
+        $builderSource | Should Match '-RepositoryRoot \$buildSet\.snapshot_root'
+        $builderSource | Should Match 'Assert-MvpProductBuildSet -ManifestPath \$buildSet\.manifest_path'
+        $builderSource | Should Not Match 'Get-MvpSourceFingerprint -RepositoryRoot \$repoRoot'
+        $builderSource | Should Not Match '\$sourceFingerprint\s*='
     }
 
-    It 'changes the complete source fingerprint when tracked or untracked input bytes change' {
-        $sourceRoot = Join-Path $TestDrive ('source-fingerprint-' + [guid]::NewGuid().ToString('N'))
-        [IO.Directory]::CreateDirectory($sourceRoot) | Out-Null
-        $trackedPaths = @(0..319 | ForEach-Object {
-                $name = ('fixture-{0:D4}-' -f $_) + ('x' * 72) + '.rs'
-                Join-Path $sourceRoot $name
-            })
-        foreach ($trackedPath in $trackedPaths) {
-            [IO.File]::WriteAllText($trackedPath, 'baseline', [Text.UTF8Encoding]::new($false))
-        }
+    It 'does not export the removed active-checkout source fingerprint API' {
+        $manifestModule = Get-Module MvpProductInputManifest
 
-        & git -C $sourceRoot init --quiet
-        $LASTEXITCODE | Should Be 0
-        & git -C $sourceRoot config user.email 'mvp-fingerprint@example.invalid'
-        $LASTEXITCODE | Should Be 0
-        & git -C $sourceRoot config user.name 'MVP Fingerprint Test'
-        $LASTEXITCODE | Should Be 0
-        & git -C $sourceRoot add -- .
-        $LASTEXITCODE | Should Be 0
-        & git -C $sourceRoot commit --quiet -m 'baseline'
-        $LASTEXITCODE | Should Be 0
-
-        foreach ($trackedPath in $trackedPaths) {
-            [IO.File]::WriteAllText($trackedPath, 'tracked-one', [Text.UTF8Encoding]::new($false))
-        }
-        $trackedOne = Get-MvpSourceFingerprint -RepositoryRoot $sourceRoot
-        foreach ($trackedPath in $trackedPaths) {
-            [IO.File]::WriteAllText($trackedPath, 'tracked-two', [Text.UTF8Encoding]::new($false))
-        }
-        $trackedTwo = Get-MvpSourceFingerprint -RepositoryRoot $sourceRoot
-
-        $trackedOne | Should Match '^[0-9A-F]{64}$'
-        $trackedTwo | Should Match '^[0-9A-F]{64}$'
-        $trackedTwo | Should Not Be $trackedOne
-
-        $untrackedPath = Join-Path $sourceRoot 'generated-input.txt'
-        [IO.File]::WriteAllText($untrackedPath, 'untracked-one', [Text.UTF8Encoding]::new($false))
-        $untrackedOne = Get-MvpSourceFingerprint -RepositoryRoot $sourceRoot
-        [IO.File]::WriteAllText($untrackedPath, 'untracked-two', [Text.UTF8Encoding]::new($false))
-        $untrackedTwo = Get-MvpSourceFingerprint -RepositoryRoot $sourceRoot
-
-        $untrackedTwo | Should Not Be $untrackedOne
+        (@($manifestModule.ExportedFunctions.Keys) -join ',') | Should Not Match 'Get-MvpSourceFingerprint'
     }
 
-    It 'accepts a first changed dot-path through Windows PowerShell without a UTF-8 preamble' {
-        $sourceRoot = Join-Path $TestDrive ('source-fingerprint-dot-path-' + [guid]::NewGuid().ToString('N'))
-        $dotDirectory = Join-Path $sourceRoot '.codex'
-        [IO.Directory]::CreateDirectory($dotDirectory) | Out-Null
-        $trackedPath = Join-Path $dotDirectory 'config with spaces.toml'
-        [IO.File]::WriteAllText($trackedPath, 'baseline', [Text.UTF8Encoding]::new($false))
+    It 'contains no legacy git diff or untracked-file fingerprint implementation' {
+        $manifestModuleSource = Get-Content -LiteralPath (Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1') -Raw
 
-        & git -C $sourceRoot init --quiet
-        $LASTEXITCODE | Should Be 0
-        & git -C $sourceRoot config user.email 'mvp-fingerprint@example.invalid'
-        $LASTEXITCODE | Should Be 0
-        & git -C $sourceRoot config user.name 'MVP Fingerprint Test'
-        $LASTEXITCODE | Should Be 0
-        & git -C $sourceRoot add -- .
-        $LASTEXITCODE | Should Be 0
-        & git -C $sourceRoot commit --quiet -m 'baseline'
-        $LASTEXITCODE | Should Be 0
-        [IO.File]::WriteAllText($trackedPath, 'changed', [Text.UTF8Encoding]::new($false))
-
-        $escapedModule = (Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1').Replace("'", "''")
-        $escapedSourceRoot = $sourceRoot.Replace("'", "''")
-        $command = "Import-Module '$escapedModule' -Force; Get-MvpSourceFingerprint -RepositoryRoot '$escapedSourceRoot'"
-        $fingerprint = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -Command $command)
-
-        $LASTEXITCODE | Should Be 0
-        $fingerprint.Count | Should Be 1
-        $fingerprint[0].Trim() | Should Match '^[0-9A-F]{64}$'
+        $manifestModuleSource | Should Not Match 'function Get-MvpSourceFingerprint'
+        $manifestModuleSource | Should Not Match 'Invoke-MvpSourceGit'
+        $manifestModuleSource | Should Not Match "'ls-files', '-z', '--others', '--exclude-standard'"
+        $manifestModuleSource | Should Not Match 'zircon-mvp-source-fingerprint-v3'
     }
 
     It 'accepts only a physical profiling input root on an approved artifact drive' {
@@ -226,32 +178,12 @@ Describe 'Render-extract profiling input build plan' {
         $failure.Exception.Message | Should Match 'mvp-product-inputs-profile-'
     }
 
-    It 'does not create a profiling output root when source changes before the first managed build' {
-        $outputDirectory = Join-Path $TestDrive 'profiling-build-source-change-output'
-        $script:fingerprintCallCount = 0
-        Mock Assert-RenderExtractProfilingInputDirectory {
-            param($Path)
-            $outputDirectory
-        }
-        Mock Get-MvpSourceFingerprint {
-            $script:fingerprintCallCount++
-            if ($script:fingerprintCallCount -le 2) {
-                return 'A' * 64
-            }
-            return 'B' * 64
-        }
-        $failure = $null
+    It 'publishes through a sibling partial root instead of exposing build groups incrementally' {
+        $builderSource = Get-Content -LiteralPath $builder -Raw
 
-        try {
-            Invoke-RenderExtractProfilingInputBuild -OutputDirectory 'E:\ZirconBuilds\mvp-product-inputs-profile-contract' | Out-Null
-        }
-        catch {
-            $failure = $_
-        }
-
-        $failure | Should Not BeNullOrEmpty
-        $failure.Exception.Message | Should Match 'source fingerprint changed during before runtime-profile-executable build'
-        [System.IO.Directory]::Exists($outputDirectory) | Should Be $false
+        $builderSource | Should Match '\.partial-'
+        $builderSource | Should Match 'Move-ZirconWindowsPath -Source \$PublicationDirectory -Destination \$OutputDirectory -ApprovedRoot \$PublicationParent'
+        $builderSource | Should Match 'render-extract-profiling-inputs-aborted\.json'
     }
 
     It 'writes a source-bound standalone profiling measurement manifest with both product pairs' {
@@ -271,12 +203,20 @@ Describe 'Render-extract profiling input build plan' {
 
         Write-RenderExtractProfilingInputManifest `
             -Path $manifestPath `
-            -SourceFingerprint ('A' * 64) `
+            -BuildSet ([pscustomobject]@{
+                    build_set_id = 'B' * 64
+                    git_revision = 'c' * 40
+                    dirty_overlay_sha256 = 'D' * 64
+                }) `
             -ArtifactOutputDirectory $TestDrive | Out-Null
 
         $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-        $manifest.schema_version | Should Be 2
-        $manifest.source_fingerprint | Should Be ('A' * 64)
+        $manifest.schema_version | Should Be 3
+        $manifest.source_fingerprint | Should Be ('B' * 64)
+        $manifest.build_set.build_set_id | Should Be ('B' * 64)
+        $manifest.build_set.git_revision | Should Be ('c' * 40)
+        $manifest.build_set.dirty_overlay_sha256 | Should Be ('D' * 64)
+        $manifest.build_set.manifest_relative_path | Should Be 'build-set/build-set.json'
         $manifest.cargo_profile | Should Be 'profiling'
         $manifest.artifacts.Count | Should Be 4
         $manifest.artifacts[0].logical_id | Should Be 'runtime-profile-executable'
@@ -319,7 +259,11 @@ Describe 'Render-extract profiling input build plan' {
         try {
             Write-RenderExtractProfilingInputManifest `
                 -Path $manifestPath `
-                -SourceFingerprint ('A' * 64) `
+                -BuildSet ([pscustomobject]@{
+                        build_set_id = 'B' * 64
+                        git_revision = 'c' * 40
+                        dirty_overlay_sha256 = 'D' * 64
+                    }) `
                 -ArtifactOutputDirectory $TestDrive | Out-Null
         }
         catch {

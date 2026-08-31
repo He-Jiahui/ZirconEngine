@@ -7,10 +7,11 @@ use super::diagnostics::RuntimeModuleLoadDiagnostic;
 use crate::core::CoreError;
 
 #[derive(Clone, Debug)]
-pub struct RuntimeModuleLoadReport {
-    pub modules: Vec<Arc<dyn EngineModule>>,
-    pub runtime_plugin_availability: RuntimePluginAvailabilityReport,
-    diagnostics: Vec<RuntimeModuleLoadDiagnostic>,
+pub(in crate::builtin::runtime_modules) struct RuntimeModuleLoadReport {
+    pub(in crate::builtin::runtime_modules) modules: Vec<Arc<dyn EngineModule>>,
+    pub(in crate::builtin::runtime_modules) runtime_plugin_availability:
+        RuntimePluginAvailabilityReport,
+    pub(in crate::builtin::runtime_modules) diagnostics: Vec<RuntimeModuleLoadDiagnostic>,
 }
 
 impl RuntimeModuleLoadReport {
@@ -50,7 +51,9 @@ impl RuntimeModuleLoadReport {
         self.diagnostics.extend(diagnostics);
     }
 
-    pub fn diagnostics(&self) -> &[RuntimeModuleLoadDiagnostic] {
+    pub(in crate::builtin::runtime_modules) fn diagnostics(
+        &self,
+    ) -> &[RuntimeModuleLoadDiagnostic] {
         &self.diagnostics
     }
 }

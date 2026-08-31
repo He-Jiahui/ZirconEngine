@@ -50,6 +50,7 @@ The shared service owns text segmentation, shaping, layout, and measurement. `gl
 The current output contract remains unchanged:
 
 - layout lines, source ranges, baselines, wrapping, ellipsis, and visual order are produced by the shared text/layout owners
+- resolved style `font` is a FontObject asset owner while `font_family` is its optional typeface selector; shaping, fallback, fixed-height metric certification, and cache identity consume both without treating the asset URI as a family, and an unavailable explicit owner drops that local typeface before using project/runtime defaults
 - hit testing still consumes the same resolved layout rather than measuring independently
 - render paint payloads still carry `UiTextRenderMode` through `UiTextPaint` and synthetic `UiShapedText`
 - the graphics text renderer still resolves Auto batches through font manifests and routes to glyphon-native or SDF batches

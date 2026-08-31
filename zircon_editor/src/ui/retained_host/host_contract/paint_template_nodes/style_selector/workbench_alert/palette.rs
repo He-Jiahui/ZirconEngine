@@ -18,7 +18,6 @@ pub(super) struct WorkbenchAlertPalette {
     pub disabled_surface: [u8; 4],
     pub disabled_border: [u8; 4],
     pub disabled_text: [u8; 4],
-    pub active_border: [u8; 4],
 }
 
 pub(super) fn workbench_alert_palette() -> WorkbenchAlertPalette {
@@ -41,7 +40,6 @@ pub(super) fn workbench_alert_palette_from_host(
         disabled_surface: palette.surface_disabled,
         disabled_border: palette.border_disabled,
         disabled_text: palette.text_disabled,
-        active_border: palette.focus_ring,
     }
 }
 
@@ -190,7 +188,6 @@ mod tests {
         palette.surface_disabled = [50, 51, 52, 255];
         palette.border_disabled = [53, 54, 55, 255];
         palette.text_disabled = [56, 57, 58, 255];
-        palette.focus_ring = [59, 60, 61, 255];
         palette.text = [62, 63, 64, 255];
 
         let alert_palette = workbench_alert_palette_from_host(palette);
@@ -198,7 +195,6 @@ mod tests {
         assert_eq!(alert_palette.disabled_surface, [50, 51, 52, 255]);
         assert_eq!(alert_palette.disabled_border, [53, 54, 55, 255]);
         assert_eq!(alert_palette.disabled_text, [56, 57, 58, 255]);
-        assert_eq!(alert_palette.active_border, [59, 60, 61, 255]);
         assert_eq!(alert_palette.text, [62, 63, 64, 255]);
     }
 }

@@ -218,6 +218,7 @@ fn window_framework_root_stays_structural_after_folder_split() {
     for required in [
         "mod constants;",
         "mod descriptor;",
+        "mod display_topology;",
         "mod lifecycle_policy;",
         "mod mode;",
         "mod monitor_selection;",
@@ -229,6 +230,8 @@ fn window_framework_root_stays_structural_after_folder_split() {
         "mod validation;",
         "mod video_mode_selection;",
         "WindowDescriptor",
+        "DisplayTopologySnapshot",
+        "DisplayId",
         "WindowExitCondition",
         "WindowLifecyclePolicy",
         "PrimaryWindowHandle",

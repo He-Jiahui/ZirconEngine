@@ -140,3 +140,28 @@ fn text_and_ime_inputs_record_focused_input_routes() {
     assert!(surface.focus.focused_inputs[0].accepted);
     assert!(surface.focus.focused_inputs[1].accepted);
 }
+
+#[test]
+fn focus_diagnostic_histories_are_bounded_and_keep_the_newest_event() {
+    let mut surface = focus_surface();
+
+    for index in 0..130 {
+        let target = if index % 2 == 0 { id(2) } else { id(3) };
+        surface.focus_node(target).unwrap();
+        surface.record_focused_input(
+            UiFocusedInputKind::Keyboard,
+            target,
+            vec![target, id(1)],
+            Some(target),
+            true,
+        );
+    }
+
+    assert!(surface.focus.changes.len() < 130);
+    assert!(surface.focus.focused_inputs.len() < 130);
+    assert_eq!(surface.focus.changes.last().unwrap().current, Some(id(3)));
+    assert_eq!(
+        surface.focus.focused_inputs.last().unwrap().handled_by,
+        Some(id(3)),
+    );
+}

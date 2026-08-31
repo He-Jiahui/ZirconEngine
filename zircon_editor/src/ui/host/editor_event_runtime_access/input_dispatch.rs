@@ -43,5 +43,6 @@ impl EditorHostEventController {
             crate::ui::binding::EditorUiBindingPayload::editor_command(command_id),
         );
         self.dispatch_binding(binding, source)
+            .map_err(|error| error.to_string())
     }
 }

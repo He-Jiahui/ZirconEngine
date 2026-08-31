@@ -5,6 +5,7 @@ use crate::ui::workbench::view::ViewInstanceId;
 use super::TabInsertionAnchor;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct TabStackLayout {
     pub tabs: Vec<ViewInstanceId>,
     pub active_tab: Option<ViewInstanceId>,

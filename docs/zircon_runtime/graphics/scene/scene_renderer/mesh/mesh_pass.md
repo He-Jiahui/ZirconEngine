@@ -297,7 +297,7 @@ doc_type: module-detail
 - `phase` and `sort_key` define where the command belongs in the render queue.
 - `pipeline_kind`, `pipeline_key`, and `pipeline_variant_id` identify the resolved pass-specific pipeline path.
 - `instance_source` records the GPUScene instance span. Built-in shader transforms are driven through `@builtin(instance_index)`, and commands no longer carry a model-uniform or object-bind fallback.
-- `gpu_scene_bind_group` optionally overrides the frame GPUScene bind group for skinned draws that need real current or previous palette buffers.
+- `gpu_scene_bind_group` optionally overrides the frame GPUScene bind group for indirect visible-instance remap execution. Skinned palette identity lives in the GPUScene instance row and global arena, so normal skinned draws do not create command-local overrides.
 - `material_textures`, `base_color_texture`, `material`, `standard_material`, and `geometry` are command-owned WGPU handles with stable ids for replay-state comparisons.
 - `draw_args` distinguishes direct indexed draws from indexed indirect draws.
 

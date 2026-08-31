@@ -1,4 +1,4 @@
-import type { ApiEnvelope, ControlEvent, ControlSnapshot, JsonObject, LogRange, WorkflowDetail } from "./contracts";
+import type { ApiEnvelope, CodexSessionsProjection, ContinuationProjection, ControlEvent, ControlSnapshot, FailureHistoryProjection, FailureProjection, GitProjection, JsonObject, LogRange, ValidationHistoryProjection, ValidationProjection, WorkflowDetail } from "./contracts";
 
 function object(value: unknown, label: string): JsonObject {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} 必须是对象`);
@@ -82,6 +82,7 @@ const sessionStates = ["registered", "active", "waiting_lease", "resolving_failu
 const nodeStates = ["pending", "ready", "running", "waiting_external", "succeeded", "failed", "cancelled", "skipped"];
 const nodeKinds = ["goal", "milestone", "slice", "validation", "review", "commit", "notification", "closeout"];
 const stages = ["goal", "preflight", "implementation", "validation", "review", "commit", "notification"];
+const validationTicketStatuses = ["queued", "materializing", "running", "passed", "failed", "snapshot_stale"];
 
 export function parseEnvelope<T>(value: unknown, parseData: (input: unknown) => T): ApiEnvelope<T> {
   const root = object(value, "响应");
@@ -116,22 +117,115 @@ export function parseSnapshot(value: unknown): ControlSnapshot {
   array(root.workflows, "workflows").forEach((item, index) => validateWorkflowSummary(item, `workflows[${index}]`));
   array(root.sessions, "sessions").forEach((item, index) => validateSession(item, `sessions[${index}]`));
   if (root.codexSessions === undefined) root.codexSessions = emptyCodexSessions();
-  validateCodexSessions(root.codexSessions, "Codex Sessions");
+  parseCodexSessions(root.codexSessions);
   if (root.experience === undefined) root.experience = emptyExperience();
   validateExperience(root.experience, "协作体验");
   array(root.audit, "audit").forEach((item, index) => validateAudit(item, `audit[${index}]`));
-  const failures = object(root.failures, "失败投影");
+  parseFailureProjection(root.failures);
+  const collaboration = object(root.collaboration, "协作投影");
+  if (collaboration.baseline !== null) validateBaseline(collaboration.baseline, "协作基线");
+  array(collaboration.leases, "协作.leases").forEach((item, index) => validateLease(item, `协作.leases[${index}]`));
+  array(collaboration.patches, "协作.patches").forEach((item, index) => validatePatch(item, `协作.patches[${index}]`));
+  parseValidationProjection(root.validation);
+  parseGitProjection(root.git);
+  return value as unknown as ControlSnapshot;
+}
+
+export function parseCodexSessions(value: unknown): CodexSessionsProjection {
+  validateCodexSessions(value, "Codex Sessions");
+  return value as CodexSessionsProjection;
+}
+
+export function parseFailureProjection(value: unknown): FailureProjection {
+  const failures = object(value, "失败投影");
   array(failures.nodes, "失败节点").forEach((item, index) => validateFailureNode(item, `失败节点[${index}]`));
   array(failures.diagnostics, "失败诊断").forEach((item, index) => {
     const diagnostic = object(item, `失败诊断[${index}]`);
     integer(diagnostic.diagnosticId, "诊断标识"); string(diagnostic.code, "诊断代码"); string(diagnostic.message, "诊断消息");
     array(diagnostic.paths, "诊断路径").forEach((path) => string(path, "诊断路径")); string(diagnostic.createdAt, "诊断时间");
   });
-  const collaboration = object(root.collaboration, "协作投影");
-  if (collaboration.baseline !== null) validateBaseline(collaboration.baseline, "协作基线");
-  array(collaboration.leases, "协作.leases").forEach((item, index) => validateLease(item, `协作.leases[${index}]`));
-  array(collaboration.patches, "协作.patches").forEach((item, index) => validatePatch(item, `协作.patches[${index}]`));
-  const validation = object(root.validation, "验证投影");
+  return failures as unknown as FailureProjection;
+}
+
+export function parseFailureHistory(value: unknown): FailureHistoryProjection {
+  const projection = object(value, "Failure 历史");
+  exactKeys(projection, ["chains", "statusCounts", "truncated"], "Failure 历史");
+  const chains = array(projection.chains, "Failure 历史.chains");
+  if (chains.length > 200) throw new Error("Failure 历史.chains 超过 200 行上限");
+  chains.forEach((value, index) => {
+    const chain = object(value, `Failure 历史.chains[${index}]`);
+    exactKeys(chain, ["lifecycleKey", "summarySlug", "status", "priority", "originPlan", "fixingPlan", "artifactPath", "createdAt", "resolvedAt", "events"], `Failure 历史.chains[${index}]`);
+    boundedString(chain.lifecycleKey, `Failure 历史.chains[${index}].lifecycleKey`, 1000);
+    boundedString(chain.summarySlug, `Failure 历史.chains[${index}].summarySlug`, 500);
+    enumeration(chain.status, ["open", "fixed"], `Failure 历史.chains[${index}].status`);
+    nonnegativeInteger(chain.priority, `Failure 历史.chains[${index}].priority`);
+    for (const key of ["originPlan", "fixingPlan", "artifactPath"])
+      boundedString(chain[key], `Failure 历史.chains[${index}].${key}`, 1000);
+    boundedString(chain.createdAt, `Failure 历史.chains[${index}].createdAt`, 64);
+    if (chain.resolvedAt !== null) boundedString(chain.resolvedAt, `Failure 历史.chains[${index}].resolvedAt`, 64);
+    const events = array(chain.events, `Failure 历史.chains[${index}].events`);
+    if (events.length < 1 || events.length > 2) throw new Error(`Failure 历史.chains[${index}].events 数量无效`);
+    events.forEach((eventValue, eventIndex) => {
+      const event = object(eventValue, `Failure 历史.chains[${index}].events[${eventIndex}]`);
+      exactKeys(event, ["kind", "createdAt", "artifactPath"], `Failure 历史.chains[${index}].events[${eventIndex}]`);
+      enumeration(event.kind, ["added", "fixed"], `Failure 历史.chains[${index}].events[${eventIndex}].kind`);
+      boundedString(event.createdAt, `Failure 历史.chains[${index}].events[${eventIndex}].createdAt`, 64);
+      boundedString(event.artifactPath, `Failure 历史.chains[${index}].events[${eventIndex}].artifactPath`, 1000);
+    });
+  });
+  const counts = object(projection.statusCounts, "Failure 历史.statusCounts");
+  exactKeys(counts, ["open", "fixed"], "Failure 历史.statusCounts");
+  nonnegativeInteger(counts.open, "Failure 历史.statusCounts.open");
+  nonnegativeInteger(counts.fixed, "Failure 历史.statusCounts.fixed");
+  if (typeof projection.truncated !== "boolean") throw new Error("Failure 历史.truncated 必须是布尔值");
+  return projection as unknown as FailureHistoryProjection;
+}
+
+export function parseValidationHistory(value: unknown): ValidationHistoryProjection {
+  const projection = object(value, "验证历史");
+  exactKeys(projection, ["tickets", "statusCounts", "truncated"], "验证历史");
+  const tickets = array(projection.tickets, "验证历史.tickets");
+  if (tickets.length > 200) throw new Error("验证历史.tickets 超过 200 行上限");
+  tickets.forEach((value, index) => {
+    const ticket = object(value, `验证历史.tickets[${index}]`);
+    exactKeys(ticket, ["ticketId", "sessionId", "planPath", "status", "sourceManifestHash", "command", "commandTruncated", "createdAt", "updatedAt", "events", "eventsTruncated"], `验证历史.tickets[${index}]`);
+    boundedString(ticket.ticketId, `验证历史.tickets[${index}].ticketId`, 160);
+    boundedString(ticket.sessionId, `验证历史.tickets[${index}].sessionId`, 160);
+    boundedString(ticket.planPath, `验证历史.tickets[${index}].planPath`, 1000);
+    enumeration(ticket.status, validationTicketStatuses, `验证历史.tickets[${index}].status`);
+    const manifestHash = boundedString(ticket.sourceManifestHash, `验证历史.tickets[${index}].sourceManifestHash`, 64);
+    if (!/^[0-9a-f]{64}$/.test(manifestHash)) throw new Error(`验证历史.tickets[${index}].sourceManifestHash 必须是 SHA-256`);
+    const command = array(ticket.command, `验证历史.tickets[${index}].command`);
+    if (command.length > 24) throw new Error(`验证历史.tickets[${index}].command 超过 24 项上限`);
+    command.forEach((argument, argumentIndex) => boundedString(argument, `验证历史.tickets[${index}].command[${argumentIndex}]`, 160));
+    if (typeof ticket.commandTruncated !== "boolean" || typeof ticket.eventsTruncated !== "boolean")
+      throw new Error(`验证历史.tickets[${index}] 截断标记必须是布尔值`);
+    boundedString(ticket.createdAt, `验证历史.tickets[${index}].createdAt`, 64);
+    boundedString(ticket.updatedAt, `验证历史.tickets[${index}].updatedAt`, 64);
+    const events = array(ticket.events, `验证历史.tickets[${index}].events`);
+    if (events.length > 64) throw new Error(`验证历史.tickets[${index}].events 超过 64 项上限`);
+    events.forEach((eventValue, eventIndex) => {
+      const event = object(eventValue, `验证历史.tickets[${index}].events[${eventIndex}]`);
+      exactKeys(event, ["eventId", "type", "createdAt", "fromStatus", "toStatus", "phase", "errorCode", "jobId", "runId", "exitCode"], `验证历史.tickets[${index}].events[${eventIndex}]`);
+      nonnegativeInteger(event.eventId, `验证历史.tickets[${index}].events[${eventIndex}].eventId`);
+      boundedString(event.type, `验证历史.tickets[${index}].events[${eventIndex}].type`, 160);
+      boundedString(event.createdAt, `验证历史.tickets[${index}].events[${eventIndex}].createdAt`, 64);
+      for (const key of ["fromStatus", "toStatus"])
+        if (event[key] !== null) enumeration(event[key], validationTicketStatuses, `验证历史.tickets[${index}].events[${eventIndex}].${key}`);
+      for (const key of ["phase", "errorCode", "jobId", "runId"])
+        if (event[key] !== null) boundedString(event[key], `验证历史.tickets[${index}].events[${eventIndex}].${key}`, 160);
+      nullableInteger(event.exitCode, `验证历史.tickets[${index}].events[${eventIndex}].exitCode`);
+    });
+  });
+  const counts = object(projection.statusCounts, "验证历史.statusCounts");
+  exactKeys(counts, validationTicketStatuses, "验证历史.statusCounts");
+  for (const status of validationTicketStatuses) nonnegativeInteger(counts[status], `验证历史.statusCounts.${status}`);
+  if (typeof projection.truncated !== "boolean") throw new Error("验证历史.truncated 必须是布尔值");
+  return projection as unknown as ValidationHistoryProjection;
+}
+
+export function parseValidationProjection(value: unknown): ValidationProjection {
+  const validation = object(value, "验证投影");
   if (validation.cargoReservations === undefined) validation.cargoReservations = [];
   if (validation.cpuBurst === undefined) validation.cpuBurst = emptyCpuBurst();
   array(validation.cargoJobs, "验证.cargoJobs").forEach((item, index) => {
@@ -151,9 +245,20 @@ export function parseSnapshot(value: unknown): ControlSnapshot {
   validateCpuBurst(validation.cpuBurst, "验证.cpuBurst");
   validateArtifactLifecycle(validation.artifactLifecycle, "验证.artifactLifecycle");
   array(validation.validationCopies, "验证.validationCopies").forEach((item, index) => validateValidationCopy(item, `验证.validationCopies[${index}]`));
-  const git = object(root.git, "Git 投影");
+  return validation as unknown as ValidationProjection;
+}
+
+export function parseContinuationProjection(value: unknown): ContinuationProjection {
+  const projection = object(value, "续作投影");
+  exactKeys(projection, ["continuations"], "续作投影");
+  validateExperience({ sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 }, blockers: [], continuations: projection.continuations }, "续作投影");
+  return projection as unknown as ContinuationProjection;
+}
+
+export function parseGitProjection(value: unknown): GitProjection {
+  const git = object(value, "Git 投影");
   array(git.finalizeRequests, "Git.finalizeRequests").forEach((item, index) => validateFinalizeRequest(item, `Git.finalizeRequests[${index}]`));
-  return value as unknown as ControlSnapshot;
+  return git as unknown as GitProjection;
 }
 
 function emptyCodexSessions() {

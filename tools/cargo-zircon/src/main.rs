@@ -1,13 +1,15 @@
 use std::env;
 use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
-use std::process::ExitCode;
+use std::path::PathBuf;
+use std::process::{Command, ExitCode};
 
 use cargo_zircon::plugin::check::check_plugin_workspace_with_artifact_root;
 use cargo_zircon::plugin::manifest_sync::{synchronize_workspace_manifests, SyncMode, SyncOutcome};
 use cargo_zircon::plugin::scaffold::{scaffold_plugin, NewPluginOptions, PluginKind};
 use cargo_zircon::plugin::validate::{validate_native_artifact, validate_plugin_manifest};
+
+mod product_receipt_cli;
 
 fn main() -> ExitCode {
     match run(env::args().skip(1).collect()) {
@@ -23,6 +25,20 @@ fn run(mut arguments: Vec<String>) -> Result<ExitCode, Box<dyn std::error::Error
     if arguments.first().is_some_and(|value| value == "zircon") {
         arguments.remove(0);
     }
+    if arguments
+        .first()
+        .is_some_and(|value| value == "validation-batch")
+    {
+        arguments.remove(0);
+        return run_validation_batch(arguments);
+    }
+    if arguments
+        .first()
+        .is_some_and(|value| value == "product-receipt")
+    {
+        arguments.remove(0);
+        return product_receipt_cli::run(arguments);
+    }
     if arguments.first().map(String::as_str) != Some("plugin") {
         return Err(usage_error().into());
     }
@@ -37,6 +53,59 @@ fn run(mut arguments: Vec<String>) -> Result<ExitCode, Box<dyn std::error::Error
         "validate" => run_validate(arguments),
         _ => Err(usage_error().into()),
     }
+}
+
+fn run_validation_batch(arguments: Vec<String>) -> Result<ExitCode, Box<dyn std::error::Error>> {
+    let script = parse_validation_batch_script(arguments)?;
+    let script = fs::canonicalize(script)?;
+    let source_root = env::current_dir()?;
+    let mut command = Command::new("pwsh.exe");
+    command
+        .args([
+            "-NoLogo",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+        ])
+        .arg(script)
+        .arg("-SourceRoot")
+        .arg(source_root);
+    if let Some(target_dir) = env::var_os("CARGO_TARGET_DIR") {
+        command.env(
+            "CARGO_TARGET_DIR",
+            PathBuf::from(target_dir).join("validation-batch"),
+        );
+    }
+    let status = command.status()?;
+    if status.success() {
+        return Ok(ExitCode::SUCCESS);
+    }
+    let code = status
+        .code()
+        .and_then(|code| u8::try_from(code).ok())
+        .unwrap_or(1);
+    Ok(ExitCode::from(code))
+}
+
+fn parse_validation_batch_script(arguments: Vec<String>) -> Result<PathBuf, io::Error> {
+    let [script] = arguments.as_slice() else {
+        return Err(usage_error());
+    };
+    let path = PathBuf::from(script);
+    let file_name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default();
+    if !file_name.starts_with("zircon-validation-")
+        || path.extension().and_then(|value| value.to_str()) != Some("ps1")
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "validation-batch requires one zircon-validation-*.ps1 script",
+        ));
+    }
+    Ok(path)
 }
 
 fn run_manifest_sync(
@@ -214,10 +283,31 @@ fn parse_check_paths(
 }
 
 fn usage() -> String {
-    "usage: cargo zircon plugin <new|check|validate|sync-manifest|check-manifest> [OPTIONS]"
+    "usage: cargo zircon plugin <new|check|validate|sync-manifest|check-manifest> [OPTIONS]\n       cargo-zircon validation-batch <zircon-validation-*.ps1>\n       cargo-zircon product-receipt build --request <PATH> --output <DRAFT>\n       cargo-zircon product-receipt build-batch --request <PATH> --output <DRAFT-BATCH>\n       cargo-zircon product-receipt issue-draft --draft <PATH> --expected-draft-sha256 <SHA256> --private-key <PKCS8> --trust-registry <PATH> --signer-id <ID> --created-utc <UTC> --output <PATH>\n       cargo-zircon product-receipt issue-draft-batch --draft-batch <PATH> --expected-draft-sha256 <SHA256> --private-key <PKCS8> --trust-registry <PATH> --signer-id <ID> --created-utc <UTC> --output <PATH>\n       cargo-zircon product-receipt issue --closure <PATH> --private-key <PKCS8> --signer-id <ID> --created-utc <UTC> --output <PATH>\n       cargo-zircon product-receipt verify --receipt <PATH> --trust-registry <PATH> --artifact-root <DIR>\n       cargo-zircon product-receipt verify-batch --receipt-batch <PATH> --trust-registry <PATH> --artifact-root <DIR>"
         .to_string()
 }
 
 fn usage_error() -> io::Error {
     io::Error::new(io::ErrorKind::InvalidInput, usage())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validation_batch_arguments_require_one_pinned_script() {
+        let script = PathBuf::from("zircon-validation-runtime74-batch.ps1");
+        assert_eq!(
+            parse_validation_batch_script(vec![script.display().to_string()]).unwrap(),
+            script
+        );
+        assert!(parse_validation_batch_script(Vec::new()).is_err());
+        assert!(parse_validation_batch_script(vec![
+            "zircon-validation-runtime74-batch.ps1".to_string(),
+            "unexpected".to_string(),
+        ])
+        .is_err());
+        assert!(parse_validation_batch_script(vec!["unscoped.ps1".to_string()]).is_err());
+    }
 }

@@ -2,10 +2,10 @@ use super::*;
 
 #[test]
 fn present_stats_default_to_a_submitted_frame() {
-    assert_eq!(
-        UiSurfacePresentStats::default().outcome,
-        UiSurfacePresentOutcome::Submitted
-    );
+    let stats = UiSurfacePresentStats::default();
+
+    assert_eq!(stats.outcome, UiSurfacePresentOutcome::Submitted);
+    assert!(stats.submission.is_none());
 }
 
 #[test]
@@ -73,9 +73,43 @@ fn draw_list_stats_count_draw_upload_and_clip_commands() {
     assert_eq!(stats.retained_cache_copy_bytes, 0);
     assert_eq!(stats.visible_command_count, 3);
     assert_eq!(stats.visible_draw_item_count, 3);
+    assert_eq!(stats.command_visibility_scan_count, 4);
     assert_eq!(stats.image_count, 1);
     assert_eq!(stats.image_upload_bytes, 16);
     assert_eq!(stats.clip_count, 1);
+}
+
+#[test]
+fn draw_list_stats_count_every_command_visibility_visit() {
+    let draw_list = UiSurfaceDrawList::new(
+        (64, 32),
+        Some(UiSurfaceRect::new(0.0, 0.0, 8.0, 8.0)),
+        vec![
+            UiSurfaceCommand {
+                z_index: 0,
+                frame: UiSurfaceRect::new(0.0, 0.0, 4.0, 4.0),
+                clip: None,
+                kind: UiSurfaceCommandKind::Quad {
+                    color: [1, 2, 3, 255],
+                    corner_radius: 0.0,
+                },
+            },
+            UiSurfaceCommand {
+                z_index: 1,
+                frame: UiSurfaceRect::new(40.0, 20.0, 4.0, 4.0),
+                clip: None,
+                kind: UiSurfaceCommandKind::Quad {
+                    color: [4, 5, 6, 255],
+                    corner_radius: 0.0,
+                },
+            },
+        ],
+    );
+
+    let stats = draw_list.stats();
+
+    assert_eq!(stats.visible_command_count, 1);
+    assert_eq!(stats.command_visibility_scan_count, 2);
 }
 
 #[test]
@@ -203,6 +237,21 @@ fn draw_list_generation_is_opt_in_for_compiled_presenters() {
 
     assert_eq!(legacy.generation(), None);
     assert_eq!(versioned.generation(), Some(9));
+}
+
+#[test]
+fn ordinary_draw_lists_use_a_physical_target_as_their_projection_extent() {
+    let legacy = UiSurfaceDrawList::new((0, 0), None, Vec::new());
+    let versioned = UiSurfaceDrawList::with_generation((640, 520), None, Vec::new(), 7);
+    let compact = UiSurfaceDrawList::with_compact_styles((900, 620), None, Vec::new());
+
+    assert_eq!(legacy.surface_size, (1, 1));
+    assert_eq!(legacy.projection_size(), legacy.surface_size);
+    assert_eq!(versioned.projection_size(), versioned.surface_size);
+    assert_eq!(compact.projection_size(), compact.surface_size);
+    assert!(!legacy.is_target_only_resize());
+    assert!(!versioned.is_target_only_resize());
+    assert!(!compact.is_target_only_resize());
 }
 
 #[test]

@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "terrain_editor_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.terrain_editor_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionTerrainEditorWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "terrain_editor_rail_gap" }, { node = "terrain_editor_left" }, { node = "terrain_editor_center" }, { node = "terrain_editor_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "terrain_editor_workspace_main" },
+  { node = "terrain_editor_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.terrain_editor_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "terrain_editor_rail_gap" }, { node = "terrain_editor_left" }, { node = "terrain_editor_center" }, { node = "terrain_editor_right_reserve" }]
+
+[nodes.terrain_editor_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.terrain_editor_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionTerrainEditorRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.terrain_editor_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionTerrainEditorLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "terrain_editor_title" }, { node = "terrain_editor_sculpt_tab" }, { node = "terrain_editor_paint_tab" }, { node = "terrain_editor_streaming_tab" }, { node = "terrain_editor_landscape_row" }, { node = "terrain_editor_heightfield_row" }, { node = "terrain_editor_layer_rock_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "terrain_editor_title" }, { node = "terrain_editor_left_content" }]
+
+[nodes.terrain_editor_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionTerrainEditorLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "terrain_editor_landscape_row" }, { node = "terrain_editor_heightfield_row" }, { node = "terrain_editor_layer_rock_row" }]
 
 [nodes.terrain_editor_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionTerrainEditorTitle"
 props = { text = "Terrain Editor" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.terrain_editor_sculpt_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionTerrainEditorSculptTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Sculpt", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/TerrainEditorSculptTab", event = "Click", route = "workbench.extension.terrain_editor.sculpt" }]
-
-[nodes.terrain_editor_paint_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionTerrainEditorPaintTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Paint", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/TerrainEditorPaintTab", event = "Click", route = "workbench.extension.terrain_editor.paint" }]
-
-[nodes.terrain_editor_streaming_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionTerrainEditorStreamingTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Streaming", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/TerrainEditorStreamingTab", event = "Click", route = "workbench.extension.terrain_editor.streaming" }]
 
 [nodes.terrain_editor_landscape_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/TerrainEditorLayerRockRow", event = "Click"
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionTerrainEditorCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "terrain_editor_center_header" }, { node = "terrain_editor_cell_table" }, { node = "terrain_editor_output" }]
 
 [nodes.terrain_editor_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionTerrainEditorCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "terrain_editor_center_title" }, { node = "terrain_editor_header_fill" }, { node = "terrain_editor_preview_button" }, { node = "terrain_editor_build_button" }]
 
 [nodes.terrain_editor_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionTerrainEditorPreviewButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Preview", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Preview", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/TerrainEditorPreview", event = "Click", route = "workbench.extension.terrain_editor.preview" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/TerrainEditorPreview", event = "Click", rou
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionTerrainEditorBuildButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Build", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Build", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 86.0, preferred = 86.0, max = 96.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/TerrainEditorBuild", event = "Click", route = "workbench.extension.terrain_editor.build" }]
 
 [nodes.terrain_editor_cell_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionTerrainEditorCellTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "terrain_editor_cell_a1208_row" }, { node = "terrain_editor_cell_a1209_row" }, { node = "terrain_editor_rock_layer_table_row" }, { node = "terrain_editor_streaming_cell_row" }]
 
 [nodes.terrain_editor_cell_a1208_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/TerrainEditorStreamingCellTableRow", event 
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionTerrainEditorOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Build Output", value_text = "Terrain cells ready   2 warnings" }
+props = { text = "Build Output", value_text = "Terrain cells ready   2 warnings", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/TerrainEditorOutput", event = "Click", route = "workbench.extension.terrain_editor.output" }]
 
 [nodes.terrain_editor_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionTerrainEditorRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "terrain_editor_details_title" }, { node = "terrain_editor_brush_dropdown" }, { node = "terrain_editor_radius_field" }, { node = "terrain_editor_strength_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "terrain_editor_details_title" }, { node = "terrain_editor_right_content" }]
+
+[nodes.terrain_editor_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionTerrainEditorRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "terrain_editor_brush_dropdown_property_row" }, { node = "terrain_editor_radius_field_property_row" }, { node = "terrain_editor_strength_field_property_row" }]
 
 [nodes.terrain_editor_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,16 +202,30 @@ control_id = "WorkbenchExtensionTerrainEditorDetailsTitle"
 props = { text = "Brush Properties" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.terrain_editor_brush_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionTerrainEditorBrushDropdownPropertyRow"
+props = { text = "Brush" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "terrain_editor_brush_dropdown", slot = { name = "value" } }]
+
 [nodes.terrain_editor_brush_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionTerrainEditorBrushDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Sculpt Soft", value = "Sculpt Soft", options = ["Sculpt Soft", "Flatten", "Erosion", "Noise"] }
+props = { value_text = "Sculpt Soft", value = "Sculpt Soft", options = ["Sculpt Soft", "Flatten", "Erosion", "Noise"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/TerrainEditorBrushEdit", event = "Change", route = "workbench.extension.terrain_editor.brush.edit" },
   { id = "WorkbenchExtension/TerrainEditorBrushCommit", event = "Submit", route = "workbench.extension.terrain_editor.brush.commit" },
 ]
+
+[nodes.terrain_editor_radius_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionTerrainEditorRadiusFieldPropertyRow"
+props = { text = "Radius" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "terrain_editor_radius_field", slot = { name = "value" } }]
 
 [nodes.terrain_editor_radius_field]
 component = "WorkbenchField"
@@ -217,6 +237,13 @@ events = [
   { id = "WorkbenchExtension/TerrainEditorRadiusEdit", event = "Change", route = "workbench.extension.terrain_editor.radius.edit" },
   { id = "WorkbenchExtension/TerrainEditorRadiusCommit", event = "Submit", route = "workbench.extension.terrain_editor.radius.commit" },
 ]
+
+[nodes.terrain_editor_strength_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionTerrainEditorStrengthFieldPropertyRow"
+props = { text = "Strength" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "terrain_editor_strength_field", slot = { name = "value" } }]
 
 [nodes.terrain_editor_strength_field]
 component = "WorkbenchField"

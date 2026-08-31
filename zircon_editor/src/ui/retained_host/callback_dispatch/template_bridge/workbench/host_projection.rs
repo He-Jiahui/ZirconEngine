@@ -21,7 +21,8 @@ pub(super) fn rebuild_builtin_host_window_surface(
     surface: &mut UiSurface,
     shell_size: UiSize,
 ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-    for root_id in surface.tree.roots.clone() {
+    for root_index in 0..surface.tree.roots.len() {
+        let root_id = surface.tree.roots[root_index];
         if let Some(root) = surface.tree.node_mut(root_id) {
             root.dirty.layout = true;
             root.dirty.hit_test = true;

@@ -106,14 +106,17 @@ fn pointer_capture_routes_move_and_up_to_the_captured_node() {
         .route_pointer_event(UiPointerEventKind::Down, UiPoint::new(130.0, 20.0))
         .unwrap();
     assert_eq!(down.target, Some(UiNodeId::new(3)));
-    assert_eq!(down.bubbled, vec![UiNodeId::new(3), UiNodeId::new(1)]);
+    assert_eq!(
+        down.bubble_route().collect::<Vec<_>>(),
+        vec![UiNodeId::new(3), UiNodeId::new(1)]
+    );
     assert_eq!(down.hit_path.target, Some(UiNodeId::new(3)));
     assert_eq!(
         down.hit_path.root_to_leaf,
         vec![UiNodeId::new(1), UiNodeId::new(3)]
     );
     assert_eq!(
-        down.hit_path.bubble_route,
+        down.hit_path.bubble_route().collect::<Vec<_>>(),
         vec![UiNodeId::new(3), UiNodeId::new(1)]
     );
     assert_eq!(surface.focus.focused, Some(UiNodeId::new(3)));

@@ -8,13 +8,13 @@ use crate::text::raster::{GlyphBitmap, SwashRasterRequest};
 use swash::FontRef;
 
 use super::raster_pool::{
-    TextRasterCompletionDrainBudget, TextRasterThreadBudgetSource, TextRasterWorkId,
-    TextRasterWorkItem, TextRasterWorkResult, TextRasterWorkerPool,
-    TextRasterWorkerPoolFrameSampler, TextRasterWorkerPoolOptions, TextRasterWorkerRequestError,
     TEXT_RASTER_WORKER_BUDGETED_THREADS_DIAGNOSTIC, TEXT_RASTER_WORKER_COMPLETED_DIAGNOSTIC,
     TEXT_RASTER_WORKER_FRAME_COMPLETED_DIAGNOSTIC, TEXT_RASTER_WORKER_FRAME_FAILED_DIAGNOSTIC,
     TEXT_RASTER_WORKER_IN_FLIGHT_DIAGNOSTIC, TEXT_RASTER_WORKER_QUEUED_DIAGNOSTIC,
-    TEXT_RASTER_WORKER_RUNNING_DIAGNOSTIC,
+    TEXT_RASTER_WORKER_RUNNING_DIAGNOSTIC, TextRasterCompletionDrainBudget,
+    TextRasterThreadBudgetSource, TextRasterWorkId, TextRasterWorkItem, TextRasterWorkResult,
+    TextRasterWorkerPool, TextRasterWorkerPoolFrameSampler, TextRasterWorkerPoolOptions,
+    TextRasterWorkerRequestError,
 };
 
 const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(

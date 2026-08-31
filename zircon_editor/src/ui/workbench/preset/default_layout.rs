@@ -19,20 +19,13 @@ impl EditorUiDesignStack {
         let workbench = self
             .window(EditorFunctionalWindowKind::Workbench)
             .expect("default editor UI design stack must contain Workbench");
-        let drawers = self.drawers_for_window_views(workbench.kind, &workbench.drawer_views);
-
         WorkbenchLayout {
             active_main_page: MainPageId::workbench(),
             main_pages: vec![MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::workbench(),
                 title: workbench.title.clone(),
                 activity_window: ActivityWindowId::workbench(),
-                document_workspace: document_tabs_for_views(
-                    workbench.kind,
-                    &workbench.primary_views,
-                ),
             }],
-            drawers: drawers.clone(),
             activity_windows: self
                 .window_model
                 .windows
@@ -43,8 +36,6 @@ impl EditorUiDesignStack {
                 })
                 .collect(),
             floating_windows: Vec::new(),
-            region_overrides: BTreeMap::new(),
-            view_overrides: BTreeMap::new(),
         }
     }
 
@@ -183,12 +174,12 @@ mod tests {
         let stack = EditorUiDesignStack::material_fyrox_jetbrains_unreal();
         let layout = stack.default_workbench_layout();
 
-        let [MainHostPageLayout::WorkbenchPage {
-            document_workspace, ..
-        }] = layout.main_pages.as_slice()
-        else {
+        let [MainHostPageLayout::WorkbenchPage { id, .. }] = layout.main_pages.as_slice() else {
             panic!("default layout should expose one main workbench page");
         };
+        let document_workspace = layout
+            .content_workspace_for_page(id)
+            .expect("workbench page should resolve the workbench activity window");
         let DocumentNode::Tabs(documents) = document_workspace else {
             panic!("workbench document area should be a tab stack");
         };
@@ -229,11 +220,11 @@ mod tests {
             &["editor.module_plugins#1"],
         );
         assert_eq!(
-            layout.drawers[&ActivityDrawerSlot::LeftTop].mode,
+            layout.active_activity_window_drawers()[&ActivityDrawerSlot::LeftTop].mode,
             ActivityDrawerMode::Pinned
         );
         assert_eq!(
-            layout.drawers[&ActivityDrawerSlot::LeftBottom].mode,
+            layout.active_activity_window_drawers()[&ActivityDrawerSlot::LeftBottom].mode,
             ActivityDrawerMode::Collapsed
         );
         assert_eq!(
@@ -300,7 +291,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            layout.drawers[&ActivityDrawerSlot::LeftTop].active_view,
+            layout.active_activity_window_drawers()[&ActivityDrawerSlot::LeftTop].active_view,
             Some(ViewInstanceId::new("editor.assets#1"))
         );
 
@@ -330,12 +321,12 @@ mod tests {
             )
             .unwrap();
         assert!(layout.floating_windows.is_empty());
-        let MainHostPageLayout::WorkbenchPage {
-            document_workspace, ..
-        } = &layout.main_pages[0]
-        else {
+        let MainHostPageLayout::WorkbenchPage { id, .. } = &layout.main_pages[0] else {
             panic!("main page should remain the workbench page");
         };
+        let document_workspace = layout
+            .content_workspace_for_page(id)
+            .expect("main page should resolve its activity-window content workspace");
         assert!(document_workspace.contains(&ViewInstanceId::new("editor.scene#1")));
     }
 
@@ -346,7 +337,7 @@ mod tests {
         let manager = LayoutManager;
 
         assert_eq!(
-            layout.drawers[&ActivityDrawerSlot::LeftBottom].mode,
+            layout.active_activity_window_drawers()[&ActivityDrawerSlot::LeftBottom].mode,
             ActivityDrawerMode::Collapsed
         );
 
@@ -359,14 +350,8 @@ mod tests {
             )
             .unwrap();
 
-        let root_drawer = &layout.drawers[&ActivityDrawerSlot::LeftBottom];
-        assert_eq!(root_drawer.mode, ActivityDrawerMode::Pinned);
-        assert_eq!(
-            root_drawer.active_view,
-            Some(ViewInstanceId::new("editor.module_plugins#1"))
-        );
-        let activity_drawer = &layout.activity_windows[&ActivityWindowId::workbench()]
-            .activity_drawers[&ActivityDrawerSlot::LeftBottom];
+        let activity_drawer =
+            &layout.active_activity_window_drawers()[&ActivityDrawerSlot::LeftBottom];
         assert_eq!(activity_drawer.mode, ActivityDrawerMode::Pinned);
         assert_eq!(
             activity_drawer.active_view,
@@ -380,7 +365,6 @@ mod tests {
             slot,
             expected,
         );
-        assert_drawer_tabs_in_map(&layout.drawers, slot, expected);
     }
 
     fn assert_drawer_tabs_in_window(

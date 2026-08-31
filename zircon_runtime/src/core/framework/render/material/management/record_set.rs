@@ -62,7 +62,10 @@ impl RenderMaterialManagementRecordSet {
         &self,
         sort_order: RenderMaterialManagementSortOrder,
     ) -> RenderMaterialManagementOverview {
-        RenderMaterialManagementOverview::from_record_set(self).sorted(sort_order)
+        sort_owned_overview(
+            RenderMaterialManagementOverview::from_record_set(self),
+            sort_order,
+        )
     }
 
     pub fn status_view(
@@ -120,3 +123,26 @@ impl RenderMaterialManagementRecordSet {
         RenderMaterialManagementSelection::from_record_set(self, material_ids)
     }
 }
+
+fn sort_owned_overview(
+    mut overview: RenderMaterialManagementOverview,
+    sort_order: RenderMaterialManagementSortOrder,
+) -> RenderMaterialManagementOverview {
+    overview.records = sort_owned_values(overview.records, |records| {
+        sort_order.sort_overview_records(records)
+    });
+    overview.status_index =
+        RenderMaterialManagementStatusIndex::from_overview_records(&overview.records);
+    overview.issue_index =
+        RenderMaterialManagementIssueIndex::from_overview_records(&overview.records);
+    overview
+}
+
+fn sort_owned_values<T>(mut values: Vec<T>, sort: impl FnOnce(&mut [T])) -> Vec<T> {
+    sort(&mut values);
+    values
+}
+
+#[cfg(test)]
+#[path = "record_set/owned_overview_sort_tests.rs"]
+mod owned_overview_sort_tests;

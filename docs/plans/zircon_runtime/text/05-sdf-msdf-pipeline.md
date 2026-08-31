@@ -268,6 +268,48 @@ fn msdf_alpha(s: vec4<f32>, screen_px_range: f32) -> f32 {
 
 2026-08-01 performance failure implementation advance：Text05 非验收实现与二次审查已收敛 generation-owned parsed source、runtime/offline deterministic batch generator、bounded async scheduler、completion/panic 前向重试、bounded source/offline/baked caches、run-shared `Arc<str>` glyph identity、single `SdfAtlasBake` failure/render artifact、compiled atlas/CPU/vertex-material frame caches、persistent CPU atlas dirty pages、page-local borrowed upload 与 capacity/hash managed vertex buffer。稳定帧跳过 key/slot transition、CPU metrics、failure map、bake metadata、material/draw/vertex build 和 GPU write；pending/deferred/font reload/atlas upload/device recreate 均 fail closed 到重建。二次审查累计前向修复永久 pending、逐 glyph String 深拷贝、无界 resident caches、stable metadata/failure-map 分配、no-fallback Vec 搬移与 renderer generation 双 owner；production owner 全部低于 800 行且禁用模式扫描为 0。两份 2026-07-18 failure 保持 `open / non_validation_implementation_complete / secondary_review_complete / managed_validation_pending`：managed Cargo、1/100/10k 规模 p50/p95/RSS、reload/device-loss、真实 WGPU/RenderDoc 与新截图仍待 coordinator receipt。本轮不等待/轮询协调器，也未向 `target` 或 `docs/tests/runtime/text` 写入伪验证图。
 
+2026-08-26 identity类型边界增量：SDF generation context、source cache与offline artifact identity中的
+variation/source 32-byte值已统一为`StableContentDigest`；codec仍按原位置写入完全相同的BLAKE3字节，v1 header、
+artifact path、checksum与public build-tool inspection的`[u8;32]`输出均不变。该类型防止把Runtime Text的
+`EphemeralCacheHash`误写入`.zsdf`，不改变生成、缓存或渲染算法。Rustfmt、scoped diff与传播扫描已完成；managed
+encode/decode golden、Cargo、profile/power、WGPU/PNG待验收，状态为`stable_artifact_digest_type_implemented /
+sdf_v1_bytes_unchanged / algorithm_unchanged / static_checks_complete / managed_validation_pending`。
+
+2026-08-29 FontObject 最终消费恢复路径已与规范整形收敛：正常产品路径继续直接消费 generation-checked
+shaped face/instance handle 与 glyph id，对齐 Unreal `FShapedGlyphEntry(FontFaceData, GlyphIndex)` 进入
+`GetSdfGlyphFontAtlasData` 的边界；只有没有 handle 或 handle stale/mismatch 时才按标量恢复。旧恢复路径以资产
+primary face 调用 `composite=None` 的全局 fallback，因而可能跳过请求 FontObject 自有 CompositeFont。现在 SDF
+通过数据库窄接口复用同一 owner-scoped primary/composite/locale/fallback resolver，空 `font_family` 生成空 family
+查询，不再创建空名称候选。新增双 face FontAsset 的 unshaped CJK 回归，要求恢复到 owner 的第二个 CJK face；
+有效 handle 热路径、glyph-id 复用、generation cache 和 source context 均未改变。Rustfmt 与静态检查已完成，
+focused Cargo、真实 CJK SDF raster、WGPU/PNG/profile/power 尚未执行；状态为
+`font_object_sdf_recovery_static_implemented / shaped_hot_path_unchanged / managed_product_validation_pending`，
+Text05 仍保持 `in_progress`。
+
+同一 resolver 现在约束 unavailable FontObject：若显式 owner 未注册，SDF scalar/stale-handle recovery 不把该
+owner-local `font_family` 交给全局 family index，而是清空 family 后使用 project/runtime default。owner 已注册时
+仍复用 borrowed query；因此正常 shaped handle 与 registered-owner recovery 无额外 clone。
+
+Registered-owner scalar recovery 也继承 family provenance：请求 typeface 只能在 owner faces 内匹配，只有
+CompositeFont/asset/base fallback 明确声明的 family 可在 owner 不提供时搜索全局 face。SDF 不再自行推断这一边界。
+
+owner resolver 使用注册事务发布的 generation-local `Arc<[FontFaceId]>`；scalar recovery 不再先从 source-key
+索引重新收集完整 owner face `Vec`。有效 shaped handle 热路径仍直接消费 face/instance/glyph，不经过该恢复查询。
+
+fallback 全链耗尽时 SDF 恢复现在取得 packaged `runtime_last_resort_face`，并继续通过
+`standalone_face_bytes(face)` 消费该 face 自身字节，不沿原 custom asset URI 取错 source。源码回归要求内嵌 face 0 的
+glyph 0 可生成非空 SDF 轮廓；测试与真实 WGPU 像素尚未运行，因此不宣称专用 LastResort 产品资格完成。
+
+2026-08-29 current-source owner review 又发现 raster 层仍保留第二套 runtime font loader：当 asset mapping
+缺失时，`SdfFontAssetFaceCache` 会解析 manifest 并只修改 `TextRenderState` 私有 database。生产 SDF 调用实际位于
+screen-space renderer 完成批量 dependency admission 和 collection refresh 之后，这条旁路会让 raster 与
+shaping/layout 看到不同的 font set。现已硬切为 lookup-only：只消费已 admission 的 asset primary face 或 packaged
+runtime default，缺失映射发布 `NoRegisteredFaces`，不在 raster 阶段做 manifest I/O、source decode、注册、删除或
+publication。`.zsdf` offline artifact 的 manifest/bitmap cache 保留，fixture source registration 仅 `cfg(test)`。
+静态契约 9/9、rustfmt、scoped diff-check 通过；managed build 在 Cargo 启动前因共享兼容池 busy 退出，未生成
+产品图。状态：`sdf_runtime_font_lookup_only_static_implemented / shaping_raster_font_set_divergence_removed_by_source /
+managed_cargo_wgpu_png_profile_power_pending`，Text05 保持 `in_progress`。
+
 - 迁入记录：[`05/2026-07-09-sdf-msdf-pipeline-output-records.md`](05/2026-07-09-sdf-msdf-pipeline-output-records.md)
 - fixed 已修复：[ui-text-distance-field-effects-type-resolution](../../zircon_editor/editor_layout/15/fixed-2026-07-13-ui-text-distance-field-effects-type-resolution.md)
 - fixed 已修复：[font-sdf-build-tool-root-surface-drift](../runtime/02/fixed-2026-07-14-font-sdf-build-tool-root-surface-drift.md)

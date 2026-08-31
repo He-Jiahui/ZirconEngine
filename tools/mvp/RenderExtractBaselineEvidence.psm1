@@ -2,6 +2,34 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
+$script:RenderExtractUpperHexDigits = [char[]]'0123456789ABCDEF'
+
+function ConvertTo-RenderExtractEvidenceSha256 {
+    param([Parameter(Mandatory)][byte[]]$HashBytes)
+
+    [char[]]$characters = [char[]]::new($HashBytes.Length * 2)
+    for ($index = 0; $index -lt $HashBytes.Length; $index++) {
+        $value = [int]$HashBytes[$index]
+        $characters[$index * 2] = $script:RenderExtractUpperHexDigits[$value -shr 4]
+        $characters[($index * 2) + 1] = $script:RenderExtractUpperHexDigits[$value -band 0x0F]
+    }
+    return [string]::new($characters)
+}
+
+function Get-RenderExtractFileSha256 {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $hasher = [Security.Cryptography.SHA256]::Create()
+    $stream = [IO.FileStream]::new($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    try {
+        return ConvertTo-RenderExtractEvidenceSha256 -HashBytes $hasher.ComputeHash($stream)
+    }
+    finally {
+        $stream.Dispose()
+        $hasher.Dispose()
+    }
+}
 
 function Get-RenderExtractReportProperty {
     param(
@@ -77,11 +105,14 @@ function Get-RenderExtractReportProject {
 function Assert-RenderExtractBaselineEvidenceDirectory {
     param([Parameter(Mandatory)][string]$Path)
 
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    if ($resolution.DisplayPath -notmatch '^E:\\ZirconBuilds\\mvp-perf\\(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
-        throw "Render-extract baseline evidence must resolve under E:\ZirconBuilds\mvp-perf\<session>: $($resolution.DisplayPath)"
+    $storage = Resolve-MvpArtifactStoragePath `
+        -Path $Path `
+        -NamespaceId 'render-extract-baselines'
+    return [pscustomobject]@{
+        OperationalPath = $storage.operation_path
+        DisplayPath = $storage.display_path
+        StoragePolicy = $storage
     }
-    return $resolution
 }
 
 function Test-RenderExtractPathWithinDirectory {
@@ -152,7 +183,7 @@ function Get-RenderExtractFileEvidence {
         kind = $Kind
         path = $resolution.DisplayPath
         bytes = $file.Length
-        sha256 = (Get-FileHash -LiteralPath $resolution.OperationalPath -Algorithm SHA256).Hash.ToUpperInvariant()
+        sha256 = Get-RenderExtractFileSha256 -Path $resolution.OperationalPath
     }
 }
 
@@ -172,7 +203,7 @@ function Read-RenderExtractJsonEvidence {
     }
     $hasher = [Security.Cryptography.SHA256]::Create()
     try {
-        $sha256 = -join ($hasher.ComputeHash($bytes) | ForEach-Object { $_.ToString('X2') })
+        $sha256 = ConvertTo-RenderExtractEvidenceSha256 -HashBytes $hasher.ComputeHash($bytes)
     }
     finally {
         $hasher.Dispose()
@@ -204,7 +235,7 @@ function Get-RenderExtractProcessElapsedMilliseconds {
                 -Name 'process_elapsed_ms' `
                 -Label 'Baseline run'
         $numericTypes = @(
-            [sbyte], [byte], [short], [ushort], [int], [uint], [long], [ulong],
+            [sbyte], [byte], [Int16], [UInt16], [int], [UInt32], [long], [UInt64],
             [single], [double], [decimal]
         )
         if ($null -eq $rawElapsed -or $numericTypes -notcontains $rawElapsed.GetType()) {
@@ -231,7 +262,7 @@ function Get-RenderExtractProcessId {
             -Name 'process_id' `
             -Label 'Baseline run'
         $numericTypes = @(
-            [sbyte], [byte], [short], [ushort], [int], [uint], [long], [ulong],
+            [sbyte], [byte], [Int16], [UInt16], [int], [UInt32], [long], [UInt64],
             [single], [double], [decimal]
         )
         if ($null -eq $rawProcessId -or $numericTypes -notcontains $rawProcessId.GetType()) {

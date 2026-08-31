@@ -3,11 +3,17 @@ use super::staging_ring::{
     MIN_STAGING_CAPACITY, READBACK_FRAME_SLOTS, READBACK_OFFSET_ALIGNMENT,
 };
 use super::GpuReadbackQueue;
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc, Mutex,
+};
+use zr_rhi::DiagnosticReadbackBudget;
 
 #[test]
 fn texture_readback_layout_unpads_rows_without_retaining_staging_padding() {
-    let layout = super::queue::texture_rgba_readback_layout(65, 2).unwrap();
+    let layout = super::texture_readback::texture_rgba_readback_copy(65, 2)
+        .unwrap()
+        .layout;
     assert_eq!(layout.unpadded_bytes_per_row, 260);
     assert_eq!(layout.padded_bytes_per_row, 512);
     assert_eq!(layout.staging_byte_len, 1024);
@@ -110,7 +116,7 @@ fn readback_callback_fires_after_n_frame_delay() {
     let delivered = Arc::new(Mutex::new(None));
     let callback_delivered = Arc::clone(&delivered);
     let mut readback_queue = GpuReadbackQueue::new(&device);
-    readback_queue.prepare_frame(&device, 0).unwrap();
+    readback_queue.prepare_frame(0).unwrap();
     readback_queue
         .request_readback_external(
             "test-source",
@@ -130,7 +136,7 @@ fn readback_callback_fires_after_n_frame_delay() {
 
     assert_eq!(*delivered.lock().unwrap(), None);
     device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
-    let stats = readback_queue.poll_completed(&device);
+    let stats = readback_queue.poll_completed();
     assert_eq!(*delivered.lock().unwrap(), Some(expected.to_vec()));
     assert_eq!(stats.completed_request_count, 1);
     assert_eq!(stats.completed_bytes, 8);
@@ -178,7 +184,7 @@ fn texture_readback_callback_delivers_rgba_after_async_map_completion() {
     let delivered = Arc::new(Mutex::new(None));
     let callback_delivered = Arc::clone(&delivered);
     let mut readback_queue = GpuReadbackQueue::new(&device);
-    readback_queue.prepare_frame(&device, 1).unwrap();
+    readback_queue.prepare_frame(1).unwrap();
     readback_queue
         .request_texture_rgba(
             "test-texture",
@@ -198,7 +204,7 @@ fn texture_readback_callback_delivers_rgba_after_async_map_completion() {
     readback_queue.begin_map(1).unwrap();
 
     device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
-    readback_queue.poll_completed(&device);
+    readback_queue.poll_completed();
 
     assert_eq!(*delivered.lock().unwrap(), Some(expected));
 }
@@ -304,8 +310,21 @@ fn readback_queue_production_paths_are_panic_free() {
 }
 
 #[test]
+fn readback_queue_owns_the_only_device_poll_for_its_staging_ring() {
+    let queue = include_str!("queue.rs")
+        .split("\n#[cfg(test)]")
+        .next()
+        .unwrap_or_default();
+
+    assert!(queue.contains("pub fn poll_completed(&mut self)"));
+    assert!(!queue.contains("pub fn poll_completed(&mut self, device"));
+    assert!(!queue.contains("pub fn prepare_frame(\n        &mut self,\n        device"));
+    assert!(queue.contains("self.device.poll(wgpu::PollType::Poll)"));
+}
+
+#[test]
 fn readback_request_requires_a_prepared_frame_and_aligned_source() {
-    let Some((device, _)) = offscreen_test_device() else {
+    let Some((device, _submission_queue)) = offscreen_test_device() else {
         return;
     };
     let source = device.create_buffer(&wgpu::BufferDescriptor {
@@ -319,7 +338,7 @@ fn readback_request_requires_a_prepared_frame_and_aligned_source() {
         .request_readback_external("inactive", &source, 0..4, Box::new(|_| {}))
         .is_err());
 
-    queue.prepare_frame(&device, 7).unwrap();
+    queue.prepare_frame(7).unwrap();
     assert!(queue
         .request_readback_external("unaligned", &source, 2..6, Box::new(|_| {}))
         .is_err());
@@ -327,13 +346,13 @@ fn readback_request_requires_a_prepared_frame_and_aligned_source() {
 
 #[test]
 fn readback_slot_reuse_is_refused_without_waiting_for_map_completion() {
-    let Some((device, _)) = offscreen_test_device() else {
+    let Some((device, _submission_queue)) = offscreen_test_device() else {
         return;
     };
     let mut queue = GpuReadbackQueue::new(&device);
     let _completion_sender = queue.inject_in_flight_slot_for_tests(0);
 
-    let error = queue.prepare_frame(&device, 3).unwrap_err();
+    let error = queue.prepare_frame(3).unwrap_err();
 
     assert!(matches!(
         error,
@@ -344,17 +363,17 @@ fn readback_slot_reuse_is_refused_without_waiting_for_map_completion() {
 
 #[test]
 fn readback_invalid_map_or_abort_keeps_the_active_frame_owned() {
-    let Some((device, _)) = offscreen_test_device() else {
+    let Some((device, _submission_queue)) = offscreen_test_device() else {
         return;
     };
     let mut queue = GpuReadbackQueue::new(&device);
-    queue.prepare_frame(&device, 9).unwrap();
+    queue.prepare_frame(9).unwrap();
 
     assert!(queue.begin_map(9).is_err());
     assert!(queue.begin_map(10).is_err());
     queue.abort_frame(10);
     assert!(matches!(
-        queue.prepare_frame(&device, 11),
+        queue.prepare_frame(11),
         Err(super::ReadbackError::FrameAlreadyActive {
             active: 9,
             requested: 11
@@ -362,12 +381,12 @@ fn readback_invalid_map_or_abort_keeps_the_active_frame_owned() {
     ));
 
     queue.abort_frame(9);
-    assert!(queue.prepare_frame(&device, 12).is_ok());
+    assert!(queue.prepare_frame(12).is_ok());
 }
 
 #[test]
 fn readback_abort_completes_pending_callbacks_with_an_error() {
-    let Some((device, _)) = offscreen_test_device() else {
+    let Some((device, _submission_queue)) = offscreen_test_device() else {
         return;
     };
     let source = device.create_buffer(&wgpu::BufferDescriptor {
@@ -379,7 +398,7 @@ fn readback_abort_completes_pending_callbacks_with_an_error() {
     let delivered = Arc::new(Mutex::new(None));
     let callback_delivered = Arc::clone(&delivered);
     let mut queue = GpuReadbackQueue::new(&device);
-    queue.prepare_frame(&device, 17).unwrap();
+    queue.prepare_frame(17).unwrap();
     queue
         .request_readback_external(
             "test-abort",
@@ -397,11 +416,152 @@ fn readback_abort_completes_pending_callbacks_with_an_error() {
     queue.abort_frame(17);
 
     assert_eq!(*delivered.lock().unwrap(), Some(true));
+    assert_eq!(queue.stats().in_flight_count, 0);
+    assert_eq!(queue.stats().in_flight_bytes, 0);
+}
+
+#[test]
+fn readback_encoded_frame_rejects_late_requests() {
+    let Some((device, _submission_queue)) = offscreen_test_device() else {
+        return;
+    };
+    let source = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-readback-queue-sealed-source"),
+        size: 4,
+        usage: wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    });
+    let mut queue = GpuReadbackQueue::new(&device);
+    queue.prepare_frame(18).unwrap();
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-readback-queue-sealed-encoder"),
+    });
+    assert_eq!(queue.encode_copies(&mut encoder, 18).unwrap(), 0);
+
+    assert!(matches!(
+        queue.request_readback_external("late", &source, 0..4, Box::new(|_| {})),
+        Err(super::ReadbackError::FrameRequestsSealed { frame_index: 18 })
+    ));
+    queue.abort_frame(18);
+}
+
+#[test]
+fn readback_cancel_terminalizes_the_callback_once_before_copy_encoding() {
+    let Some((device, _submission_queue)) = offscreen_test_device() else {
+        return;
+    };
+    let source = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-readback-queue-cancel-source"),
+        size: 4,
+        usage: wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    });
+    let callback_count = Arc::new(AtomicUsize::new(0));
+    let callback_count_for_request = Arc::clone(&callback_count);
+    let cancelled = Arc::new(Mutex::new(false));
+    let cancelled_for_request = Arc::clone(&cancelled);
+    let mut queue = GpuReadbackQueue::new(&device);
+    queue.prepare_frame(19).unwrap();
+    let ticket = queue
+        .request_readback_external(
+            "test-cancel",
+            &source,
+            0..4,
+            Box::new(move |result| {
+                callback_count_for_request.fetch_add(1, Ordering::Relaxed);
+                *cancelled_for_request.lock().unwrap() =
+                    matches!(result, Err(super::ReadbackError::Cancelled { .. }));
+            }),
+        )
+        .unwrap();
+
+    assert!(queue.cancel(ticket));
+    assert!(!queue.cancel(ticket));
+    assert_eq!(callback_count.load(Ordering::Relaxed), 1);
+    assert_eq!(*cancelled.lock().unwrap(), true);
+    assert_eq!(queue.stats().in_flight_count, 0);
+    assert_eq!(queue.stats().in_flight_bytes, 0);
+}
+
+#[test]
+fn readback_queue_budget_rejects_request_frame_and_in_flight_overruns_before_encoding() {
+    let Some((device, _submission_queue)) = offscreen_test_device() else {
+        return;
+    };
+    let source = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-readback-queue-budget-source"),
+        size: 16,
+        usage: wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    });
+    let request_budget = zr_rhi::DiagnosticReadbackBudget::new(1, 2, 4, 4, 8, 2);
+    let mut queue = GpuReadbackQueue::with_budget(&device, request_budget);
+    queue.prepare_frame(21).unwrap();
+
+    assert!(matches!(
+        queue.request_readback_external("too-large", &source, 0..8, Box::new(|_| {})),
+        Err(super::ReadbackError::RequestBytesExceeded { .. })
+    ));
+    let first = queue
+        .request_readback_external("first", &source, 0..4, Box::new(|_| {}))
+        .unwrap();
+    assert!(matches!(
+        queue.request_readback_external("frame-overrun", &source, 4..8, Box::new(|_| {})),
+        Err(super::ReadbackError::FrameRequestLimitExceeded { .. })
+    ));
+    assert!(queue.cancel(first));
+
+    let in_flight_budget = zr_rhi::DiagnosticReadbackBudget::new(8, 1, 8, 16, 4, 2);
+    let mut queue = GpuReadbackQueue::with_budget(&device, in_flight_budget);
+    queue.prepare_frame(22).unwrap();
+    queue
+        .request_readback_external("in-flight", &source, 0..4, Box::new(|_| {}))
+        .unwrap();
+    assert!(matches!(
+        queue.request_readback_external("in-flight-overrun", &source, 4..8, Box::new(|_| {})),
+        Err(super::ReadbackError::PendingRequestLimitExceeded { .. })
+    ));
+}
+
+#[test]
+fn readback_drop_terminalizes_pending_callbacks_once() {
+    let Some((device, _submission_queue)) = offscreen_test_device() else {
+        return;
+    };
+    let source = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-readback-queue-drop-source"),
+        size: 4,
+        usage: wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    });
+    let callback_count = Arc::new(AtomicUsize::new(0));
+    let callback_count_for_request = Arc::clone(&callback_count);
+    let shutdown = Arc::new(Mutex::new(false));
+    let shutdown_for_request = Arc::clone(&shutdown);
+    let mut queue = GpuReadbackQueue::new(&device);
+    queue.prepare_frame(20).unwrap();
+    queue
+        .request_readback_external(
+            "test-drop",
+            &source,
+            0..4,
+            Box::new(move |result| {
+                callback_count_for_request.fetch_add(1, Ordering::Relaxed);
+                *shutdown_for_request.lock().unwrap() =
+                    matches!(result, Err(super::ReadbackError::Shutdown));
+            }),
+        )
+        .unwrap();
+
+    drop(queue);
+
+    assert_eq!(callback_count.load(Ordering::Relaxed), 1);
+    assert_eq!(*shutdown.lock().unwrap(), true);
 }
 
 #[test]
 fn readback_layout_failure_preserves_callbacks_for_abort() {
-    let Some((device, _)) = offscreen_test_device() else {
+    let Some((device, _submission_queue)) = offscreen_test_device() else {
         return;
     };
     let source = device.create_buffer(&wgpu::BufferDescriptor {
@@ -412,8 +572,9 @@ fn readback_layout_failure_preserves_callbacks_for_abort() {
     });
     let delivered = Arc::new(Mutex::new(None));
     let callback_delivered = Arc::clone(&delivered);
-    let mut queue = GpuReadbackQueue::new(&device);
-    queue.prepare_frame(&device, 23).unwrap();
+    let overflow_budget = DiagnosticReadbackBudget::new(1, 1, u64::MAX, u64::MAX, u64::MAX, 1);
+    let mut queue = GpuReadbackQueue::with_budget(&device, overflow_budget);
+    queue.prepare_frame(23).unwrap();
     queue
         .request_readback_external(
             "test-layout-overflow",
@@ -442,7 +603,7 @@ fn readback_layout_failure_preserves_callbacks_for_abort() {
     assert_eq!(*delivered.lock().unwrap(), Some(true));
 }
 
-fn offscreen_test_device() -> Option<(wgpu::Device, wgpu::Queue)> {
+pub(super) fn offscreen_test_device() -> Option<(wgpu::Device, wgpu::Queue)> {
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::LowPower,

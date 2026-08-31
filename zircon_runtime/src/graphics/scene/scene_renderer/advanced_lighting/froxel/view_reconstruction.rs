@@ -56,7 +56,7 @@ impl FroxelViewReconstruction {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 pub(crate) struct GpuFroxelViewParams {
     world_from_clip: [[f32; 4]; 4],
     camera_position_projection: [f32; 4],

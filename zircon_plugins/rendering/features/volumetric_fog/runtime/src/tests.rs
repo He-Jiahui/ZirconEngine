@@ -10,9 +10,12 @@ use zircon_runtime::graphics::{
     RenderPipelineAsset, RenderPipelineCompileOptions,
 };
 use zircon_runtime::render_graph::{
-    RenderGraphComputeDispatchExtent, RenderGraphResourceAccessKind, RenderGraphResourceDesc,
+    RenderGraphComputeDispatchExtent, RenderGraphResourceAccessIntent,
+    RenderGraphResourceAccessKind, RenderGraphResourceAccessMetadata,
+    RenderGraphResourceAccessRange, RenderGraphResourceDesc, RenderGraphShaderStages,
+    RenderGraphTextureSubresourceRange,
 };
-use zircon_runtime::rhi::{TextureDimension, TextureFormat};
+use zircon_runtime::rhi::{TextureDimension, TextureFormat, TextureUsage};
 
 #[test]
 fn volumetric_fog_feature_declares_three_compute_passes_and_resources() {
@@ -70,6 +73,26 @@ fn volumetric_fog_feature_declares_three_compute_passes_and_resources() {
         RenderFeatureResourceKind::Texture,
         RenderFeatureResourceAccess::Write,
     ));
+    let history = scatter
+        .resources
+        .iter()
+        .find(|resource| {
+            resource.name == PostProcessGraphResourceNames::HISTORY_PREVIOUS_VOLUMETRIC_SCATTERING
+        })
+        .expect("volumetric history resource");
+    assert!(history.usage.persistent);
+    assert_eq!(history.schema, None);
+    assert_eq!(
+        history.access_metadata,
+        Some(RenderGraphResourceAccessMetadata::new(
+            RenderGraphResourceAccessRange::Texture(RenderGraphTextureSubresourceRange::full()),
+            RenderGraphResourceAccessIntent::sampled_texture(RenderGraphShaderStages::COMPUTE),
+        ))
+    );
+    assert!(scatter.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING
+            && resource.usage.persistent
+    }));
     let integrate = &feature.stage_passes[2];
     assert!(resource_matches(
         integrate,
@@ -162,9 +185,10 @@ fn volumetric_fog_graph_uses_rgba16f_d3_resources_and_two_physical_slots() {
         allocation.slot_for(PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED),
         "media lifetime must alias integrated output so three logical products use two physical textures",
     );
-    assert_ne!(
+    assert_eq!(
         allocation.slot_for(PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING),
-        allocation.slot_for(PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED),
+        None,
+        "cross-frame volumetric history source must retain its own physical backing until extraction",
     );
 
     let media_dispatch = compute_dispatch(&compiled, MEDIA_INJECT_PASS);
@@ -209,6 +233,63 @@ fn volumetric_fog_graph_dimensions_follow_shader_quality_tier() {
             [160, 90, expected_depth]
         );
     }
+}
+
+#[test]
+fn volumetric_fog_graph_preserves_exact_external_history_texture_lease() {
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([render_feature_descriptor()])
+        .compile_with_options(
+            &volumetric_extract(),
+            &RenderPipelineCompileOptions::default().with_shader_quality(ShaderQualityTier::High),
+        )
+        .expect("high-quality volumetric graph compiles");
+    let graph = compiled.graph();
+    let resource_name = PostProcessGraphResourceNames::HISTORY_PREVIOUS_VOLUMETRIC_SCATTERING;
+    let desc = graph
+        .resource_lifetime_by_name(resource_name)
+        .and_then(|lifetime| lifetime.external_texture_desc.as_ref())
+        .expect("volumetric external history descriptor");
+    assert_eq!((desc.width, desc.height, desc.depth), (160, 90, 96));
+    assert_eq!(desc.dimension, TextureDimension::D3);
+    assert_eq!(desc.format, TextureFormat::Rgba16Float);
+    assert_eq!(desc.mip_levels, 1);
+    assert_eq!(desc.sample_count, 1);
+    assert_eq!(desc.usage, TextureUsage::SAMPLED);
+
+    let pass = graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == LIGHT_SCATTER_PASS)
+        .expect("volumetric light-scatter pass");
+    let access_index = pass
+        .resources
+        .iter()
+        .position(|access| {
+            access.name == resource_name && access.access == RenderGraphResourceAccessKind::Read
+        })
+        .expect("volumetric history read");
+    let access_id = graph
+        .access_id_at(pass.id, access_index)
+        .expect("volumetric history access ID");
+    let key = graph
+        .versioned_access_key(access_id)
+        .expect("volumetric history access key");
+    assert_eq!(
+        key.range,
+        RenderGraphResourceAccessRange::Texture(RenderGraphTextureSubresourceRange {
+            base_mip_level: 0,
+            mip_level_count: Some(1),
+            base_array_layer: 0,
+            array_layer_count: Some(1),
+            aspect: zircon_runtime::render_graph::RenderGraphTextureAspect::All,
+        })
+    );
+    assert_eq!(
+        key.intent,
+        RenderGraphResourceAccessIntent::sampled_texture(RenderGraphShaderStages::COMPUTE)
+    );
+    assert!(graph.external_access_packet().access(access_id).is_some());
 }
 
 fn resource_matches(

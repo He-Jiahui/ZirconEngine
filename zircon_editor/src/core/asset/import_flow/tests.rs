@@ -18,9 +18,14 @@ use crate::core::jobs::{
 
 #[path = "tests/concurrency.rs"]
 mod concurrency;
+#[path = "tests/diagnostics.rs"]
+mod diagnostics;
+use super::diagnostics::{EditorAssetImportDiagnostics, EditorModelImportDiagnostics};
 use super::{
-    AssetImportBackend, EditorAssetImportAdmissionLimits, EditorAssetImportFlow,
-    EditorAssetImportReason, EditorAssetImportRequest, EditorAssetImportSubmitError,
+    lock::lock_editor_asset_index_recovering_poison, AssetImportBackend,
+    EditorAssetImportAdmissionLimits, EditorAssetImportExecutionError, EditorAssetImportFlow,
+    EditorAssetImportReason, EditorAssetImportRequest, EditorAssetImportResult,
+    EditorAssetImportSubmitError, EditorAssetImportTicket, EditorModelImportTicket,
 };
 
 fn uri(value: &str) -> AssetUri {
@@ -49,9 +54,7 @@ fn index_for_assets(entries: &[(&str, &str, &str)]) -> Arc<Mutex<EditorAssetInde
 }
 
 fn import_state(index: &Arc<Mutex<EditorAssetIndex>>, path: &AssetUri) -> EditorAssetImportState {
-    index
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
+    lock_editor_asset_index_recovering_poison(index.as_ref())
         .row_by_path(path)
         .unwrap()
         .import_state()
@@ -62,6 +65,39 @@ struct RecordingBackend {
     calls: Mutex<Vec<AssetUri>>,
     fail: AtomicBool,
     status: Mutex<Option<AssetStatusRecord>>,
+}
+
+#[test]
+fn submit_recovers_from_a_poisoned_editor_asset_index_lock() {
+    let jobs = test_job_system();
+    let backend = Arc::new(RecordingBackend::default());
+    let index = index_for("res://textures/poisoned.png");
+    let flow = EditorAssetImportFlow::with_backend(jobs, Arc::clone(&backend), Arc::clone(&index));
+    let target = uri("res://textures/poisoned.png");
+    let poison_target = Arc::clone(&index);
+    let poisoner = std::thread::spawn(move || {
+        let _guard = poison_target.lock().expect("index lock");
+        panic!("poison the editor asset index lock");
+    });
+    assert!(poisoner.join().is_err());
+
+    let result = flow
+        .submit(EditorAssetImportRequest::new(
+            target.clone(),
+            EditorAssetImportReason::Manual,
+        ))
+        .expect("submission should recover the index lock")
+        .wait()
+        .expect("import should complete after index lock recovery");
+
+    assert_eq!(result.uri(), &target);
+    assert_eq!(
+        *backend
+            .calls
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()),
+        vec![target]
+    );
 }
 
 impl AssetImportBackend for RecordingBackend {
@@ -99,6 +135,13 @@ fn imported_status(path: &AssetUri) -> AssetStatusRecord {
     }
 }
 
+impl EditorAssetImportTicket {
+    fn wait(&self) -> Result<EditorAssetImportResult, JobError> {
+        self.wait_until(Instant::now() + Duration::from_secs(5))
+            .expect("import ticket exceeded the test deadline")
+    }
+}
+
 #[test]
 fn successful_import_uses_runtime_backend_and_clears_importing_state() {
     let jobs = test_job_system();
@@ -123,7 +166,38 @@ fn successful_import_uses_runtime_backend_and_clears_importing_state() {
 
     assert_eq!(result.uri(), &target);
     assert_eq!(result.reasons(), vec![EditorAssetImportReason::Manual]);
-    assert_eq!(result.status(), Some(&expected_status));
+    assert_eq!(result.status(), &expected_status);
+    assert_eq!(
+        *backend
+            .calls
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()),
+        vec![target.clone()]
+    );
+    assert_eq!(import_state(&index, &target), EditorAssetImportState::Stale);
+}
+
+#[test]
+fn missing_runtime_commit_status_is_typed_and_clears_importing_state() {
+    let jobs = test_job_system();
+    let backend = Arc::new(RecordingBackend::default());
+    let index = index_for("res://textures/no-commit.png");
+    let flow = EditorAssetImportFlow::with_backend(jobs, backend.clone(), index.clone());
+    let target = uri("res://textures/no-commit.png");
+
+    let error = flow
+        .submit(EditorAssetImportRequest::new(
+            target.clone(),
+            EditorAssetImportReason::Manual,
+        ))
+        .unwrap()
+        .wait()
+        .unwrap_err();
+
+    assert!(matches!(
+        error.downcast_ref::<EditorAssetImportExecutionError>(),
+        Some(EditorAssetImportExecutionError::RuntimeDidNotCommit { uri }) if uri == &target
+    ));
     assert_eq!(
         *backend
             .calls
@@ -315,7 +389,7 @@ impl AssetImportBackend for PathMigrationBackend {
         } else {
             Self::wait(&self.new_released);
         }
-        Ok(None)
+        Ok(Some(imported_status(uri)))
     }
 }
 
@@ -487,7 +561,7 @@ impl BlockingBackend {
 }
 
 impl AssetImportBackend for BlockingBackend {
-    fn import(&self, _uri: &AssetUri) -> Result<Option<AssetStatusRecord>, CoreError> {
+    fn import(&self, uri: &AssetUri) -> Result<Option<AssetStatusRecord>, CoreError> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         if let Some(started) = self
             .started
@@ -506,8 +580,37 @@ impl AssetImportBackend for BlockingBackend {
                 .wait(released)
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
         }
-        Ok(None)
+        Ok(Some(imported_status(uri)))
     }
+}
+
+#[test]
+fn ticket_wait_until_returns_pending_at_an_explicit_deadline() {
+    let jobs = test_job_system();
+    let (started_tx, started_rx) = mpsc::channel();
+    let backend = Arc::new(BlockingBackend {
+        calls: AtomicUsize::new(0),
+        started: Mutex::new(Some(started_tx)),
+        released: (Mutex::new(false), Condvar::new()),
+    });
+    let target = uri("res://models/deadline.glb");
+    let index = index_for("res://models/deadline.glb");
+    let flow = EditorAssetImportFlow::with_backend(jobs, backend.clone(), index);
+    let ticket = flow
+        .submit(EditorAssetImportRequest::new(
+            target,
+            EditorAssetImportReason::Manual,
+        ))
+        .unwrap();
+    started_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+
+    assert!(ticket.wait_until(Instant::now()).is_none());
+
+    backend.release();
+    assert!(ticket
+        .wait_until(Instant::now() + Duration::from_secs(5))
+        .expect("released import should complete")
+        .is_ok());
 }
 
 #[test]

@@ -97,11 +97,12 @@ class FailureReturnDelegationService:
     ) -> tuple[FailureReturnDelegationProof, ...]:
         """Resolve only explicitly authorized fixed destinations in the manifest."""
         manifest = {self._normalize(path) for path in manifest_paths}
+        authorizations = self._authorizations_for(
+            fixing_session_id, lifecycle_keys
+        )
         proofs: list[FailureReturnDelegationProof] = []
         for lifecycle_key in lifecycle_keys:
-            authorization = self._authorization_for(
-                fixing_session_id, lifecycle_key
-            )
+            authorization = authorizations.get(lifecycle_key)
             if authorization is None:
                 continue
             payload = authorization["payload"]
@@ -424,23 +425,34 @@ class FailureReturnDelegationService:
             )
         return event, node, origin, fixing
 
-    def _authorization_for(
-        self, fixing_session_id: str, lifecycle_key: str
-    ) -> dict[str, object] | None:
+    def _authorizations_for(
+        self, fixing_session_id: str, lifecycle_keys: tuple[str, ...]
+    ) -> dict[str, dict[str, object]]:
+        requested_keys = set(lifecycle_keys)
+        if not requested_keys:
+            return {}
         with self.database.connect() as connection:
             rows = connection.execute(
                 """SELECT event_id, payload_json FROM events
                    WHERE session_id=? AND event_type=? ORDER BY event_id DESC""",
                 (fixing_session_id, self.AUTHORIZATION_EVENT),
             ).fetchall()
+        authorizations: dict[str, dict[str, object]] = {}
         for row in rows:
             try:
                 payload = json.loads(row["payload_json"])
             except (TypeError, json.JSONDecodeError):
                 continue
-            if payload.get("lifecycleKey") == lifecycle_key:
-                return {"event_id": int(row["event_id"]), "payload": payload}
-        return None
+            lifecycle_key = payload.get("lifecycleKey")
+            if not isinstance(lifecycle_key, str) or lifecycle_key not in requested_keys:
+                continue
+            authorizations.setdefault(
+                lifecycle_key,
+                {"event_id": int(row["event_id"]), "payload": payload},
+            )
+            if len(authorizations) == len(requested_keys):
+                break
+        return authorizations
 
     def _require_origin_lease(self, proof: FailureReturnDelegationProof) -> None:
         now = utc_text()

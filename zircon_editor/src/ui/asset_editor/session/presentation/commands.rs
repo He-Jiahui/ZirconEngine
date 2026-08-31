@@ -1,17 +1,19 @@
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 use super::super::{
-    palette::{can_convert_selected_node_to_reference, PaletteInsertMode},
+    palette::{
+        can_convert_selected_node_to_reference, node_accepts_palette_children, PaletteInsertMode,
+    },
     palette_drop::can_insert_palette_item_for_node as can_insert_palette_item_at_node,
     promote_widget::can_promote_selected_component_to_external_widget,
     style_inspection::selected_node_has_inline_overrides,
     tree_editing::{
-        can_extract_selected_node_to_component, move_selected_node,
-        reparent_selected_node as tree_reparent_selected_node, unwrap_selected_node,
-        wrap_selected_node, UiTreeMoveDirection, UiTreeReparentDirection,
+        can_extract_selected_node_to_component, UiTreeMoveDirection, UiTreeReparentDirection,
     },
     ui_asset_editor_session::UiAssetEditorSession,
 };
+use crate::ui::asset_editor::UiDesignerSelectionModel;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 pub(super) struct UiAssetCommandAvailability {
@@ -80,41 +82,6 @@ impl UiAssetEditorSession {
                         self.palette_catalog.reference_imports(),
                     )
                 });
-        let can_move_up = diagnostics_empty
-            && can_apply_tree_document_edit(&self.last_valid_document, |document| {
-                move_selected_node(document, &self.selection, UiTreeMoveDirection::Up)
-            });
-        let can_move_down = diagnostics_empty
-            && can_apply_tree_document_edit(&self.last_valid_document, |document| {
-                move_selected_node(document, &self.selection, UiTreeMoveDirection::Down)
-            });
-        let can_reparent_into_previous = diagnostics_empty
-            && can_apply_tree_document_edit(&self.last_valid_document, |document| {
-                tree_reparent_selected_node(
-                    document,
-                    &self.selection,
-                    UiTreeReparentDirection::IntoPrevious,
-                )
-                .is_some()
-            });
-        let can_reparent_into_next = diagnostics_empty
-            && can_apply_tree_document_edit(&self.last_valid_document, |document| {
-                tree_reparent_selected_node(
-                    document,
-                    &self.selection,
-                    UiTreeReparentDirection::IntoNext,
-                )
-                .is_some()
-            });
-        let can_reparent_outdent = diagnostics_empty
-            && can_apply_tree_document_edit(&self.last_valid_document, |document| {
-                tree_reparent_selected_node(
-                    document,
-                    &self.selection,
-                    UiTreeReparentDirection::Outdent,
-                )
-                .is_some()
-            });
         let can_open_reference = self.selected_reference_asset_id().is_some();
         let can_convert_to_reference = self
             .selected_palette_index
@@ -134,14 +101,8 @@ impl UiAssetEditorSession {
                 &self.last_valid_document,
                 &self.selection,
             );
-        let can_wrap_in_vertical_box = diagnostics_empty
-            && can_apply_tree_document_edit(&self.last_valid_document, |document| {
-                wrap_selected_node(document, &self.selection, "VerticalBox").is_some()
-            });
-        let can_unwrap = diagnostics_empty
-            && can_apply_tree_document_edit(&self.last_valid_document, |document| {
-                unwrap_selected_node(document, &self.selection).is_some()
-            });
+        let tree_commands =
+            readonly_tree_command_availability(&self.last_valid_document, &self.selection);
         record_current_ui_perf_counter(
             UiPerfCounter::AssetEditorPaneCommandAvailabilityBuildCount,
             1.0,
@@ -151,25 +112,106 @@ impl UiAssetEditorSession {
             can_extract_rule,
             can_insert_child,
             can_insert_after,
-            can_move_up,
-            can_move_down,
-            can_reparent_into_previous,
-            can_reparent_into_next,
-            can_reparent_outdent,
+            can_move_up: diagnostics_empty && tree_commands.can_move_up,
+            can_move_down: diagnostics_empty && tree_commands.can_move_down,
+            can_reparent_into_previous: diagnostics_empty
+                && tree_commands.can_reparent_into_previous,
+            can_reparent_into_next: diagnostics_empty && tree_commands.can_reparent_into_next,
+            can_reparent_outdent: diagnostics_empty && tree_commands.can_reparent_outdent,
             can_open_reference,
             can_convert_to_reference,
             can_extract_component,
             can_promote_to_external_widget,
-            can_wrap_in_vertical_box,
-            can_unwrap,
+            can_wrap_in_vertical_box: diagnostics_empty && tree_commands.can_wrap_in_vertical_box,
+            can_unwrap: diagnostics_empty && tree_commands.can_unwrap,
         }
     }
 }
 
-fn can_apply_tree_document_edit(
-    document: &UiAssetDocument,
-    edit: impl FnOnce(&mut UiAssetDocument) -> bool,
-) -> bool {
-    let mut document = document.clone();
-    edit(&mut document)
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct UiAssetTreeCommandAvailability {
+    can_move_up: bool,
+    can_move_down: bool,
+    can_reparent_into_previous: bool,
+    can_reparent_into_next: bool,
+    can_reparent_outdent: bool,
+    can_wrap_in_vertical_box: bool,
+    can_unwrap: bool,
 }
+
+fn readonly_tree_command_availability(
+    document: &UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+) -> UiAssetTreeCommandAvailability {
+    let Some(node_id) = selection.primary_node_id.as_deref() else {
+        return UiAssetTreeCommandAvailability::default();
+    };
+    let child_location = document.child_index_in_parent(node_id);
+    let parent = child_location
+        .as_ref()
+        .and_then(|(parent_id, _)| document.node(parent_id));
+    let can_move_up = child_location
+        .as_ref()
+        .is_some_and(|(_, child_index)| *child_index > 0);
+    let can_move_down = child_location
+        .as_ref()
+        .zip(parent)
+        .is_some_and(|((_, child_index), parent)| *child_index + 1 < parent.children.len());
+    let can_reparent_into_previous = sibling_accepts_children(
+        document,
+        child_location.as_ref(),
+        parent,
+        UiTreeReparentDirection::IntoPrevious,
+    );
+    let can_reparent_into_next = sibling_accepts_children(
+        document,
+        child_location.as_ref(),
+        parent,
+        UiTreeReparentDirection::IntoNext,
+    );
+    let can_reparent_outdent = child_location
+        .as_ref()
+        .is_some_and(|(parent_id, _)| document.child_index_in_parent(parent_id).is_some());
+    let has_parent_mount = child_location.is_some() && document.child_mount(node_id).is_some();
+    let can_unwrap = has_parent_mount
+        && document
+            .node(node_id)
+            .is_some_and(|node| node.children.len() == 1);
+
+    UiAssetTreeCommandAvailability {
+        can_move_up,
+        can_move_down,
+        can_reparent_into_previous,
+        can_reparent_into_next,
+        can_reparent_outdent,
+        can_wrap_in_vertical_box: has_parent_mount,
+        can_unwrap,
+    }
+}
+
+fn sibling_accepts_children(
+    document: &UiAssetDocument,
+    child_location: Option<&(String, usize)>,
+    parent: Option<&zircon_runtime_interface::ui::template::UiNodeDefinition>,
+    direction: UiTreeReparentDirection,
+) -> bool {
+    let (Some((_, child_index)), Some(parent)) = (child_location, parent) else {
+        return false;
+    };
+    let target_index = match direction {
+        UiTreeReparentDirection::IntoPrevious => child_index.checked_sub(1),
+        UiTreeReparentDirection::IntoNext => {
+            let next_index = *child_index + 1;
+            (next_index < parent.children.len()).then_some(next_index)
+        }
+        UiTreeReparentDirection::Outdent => None,
+    };
+    target_index
+        .and_then(|target_index| parent.children.get(target_index))
+        .and_then(|mount| document.node(&mount.node.node_id))
+        .is_some_and(node_accepts_palette_children)
+}
+
+#[cfg(test)]
+#[path = "commands/readonly_availability_tests.rs"]
+mod readonly_availability_tests;

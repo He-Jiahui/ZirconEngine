@@ -26,7 +26,7 @@ classes = ["showcase-field", "material-control", "material-button"]
 props = { text = "Primary Button", surface_variant = "accent", button_variant = "primary", button_color = "primary", button_size = "medium", icon_placement = "none", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, corner_radius = "$editor.control.radius.control", border_width = "$editor.control.border_width", layout_padding_left = "$editor.density.gap.large", layout_padding_right = "$editor.density.gap.large", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", layout_min_width = "$editor.control.height.default", layout_min_height = "$editor.control.height.default", layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/ButtonCommit", event = "Click", route = "component_lab.showcase.commit.button" },
+  { id = "UiComponentShowcase/ButtonCommit", event = "Click", component_event = "Commit", route = "component_lab.showcase.commit.button" },
 ]
 
 [nodes.button_outlined_demo]
@@ -64,7 +64,7 @@ classes = ["showcase-field", "material-control", "material-icon-button"]
 props = { text = "Icon Button", icon = "add-outline", layout_padding_left = "$editor.density.gap.large", layout_padding_right = "$editor.density.gap.large", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", layout_min_width = "$editor.control.height.default", layout_min_height = "$editor.control.height.default", layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/IconButtonCommit", event = "Click", route = "component_lab.showcase.commit.icon_button" },
+  { id = "UiComponentShowcase/IconButtonCommit", event = "Click", component_event = "Commit", route = "component_lab.showcase.commit.icon_button" },
 ]
 
 [nodes.toggle_button_demo]
@@ -104,7 +104,7 @@ classes = ["showcase-field", "material-control"]
 props = { value = "move", options = ["select", "move", "rotate", "scale"], selection_state = "single", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/SegmentedControlChanged", event = "Change", route = "component_lab.showcase.select_option.segmented_control" },
+  { id = "UiComponentShowcase/SegmentedControlChanged", event = "Change", component_event = "SelectOption", route = "component_lab.showcase.select_option.segmented_control" },
 ]
 
 [nodes.tab_demo]
@@ -114,7 +114,7 @@ classes = ["showcase-field", "material-control"]
 props = { text = "Scene", label = "Scene", value = "scene", selected = true, focused = true, hovered = false, pressed = false, disabled = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/TabChanged", event = "Change", route = "component_lab.showcase.select_option.tab" },
+  { id = "UiComponentShowcase/TabChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.select_option.tab" },
 ]
 
 [nodes.tab_strip_demo]
@@ -124,7 +124,7 @@ classes = ["showcase-field", "material-control"]
 props = { value = "scene", options = ["scene", "assets", "console"], selected_index = 0, focused_index = 1, hovered_options = ["assets"], disabled_options = ["console"], variant = "standard", orientation = "horizontal", selection_follows_focus = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/TabStripChanged", event = "Change", route = "component_lab.showcase.select_option.tab_strip" },
+  { id = "UiComponentShowcase/TabStripChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.select_option.tab_strip" },
 ]
 
 [nodes.text_field_demo]
@@ -134,8 +134,8 @@ classes = ["showcase-field", "material-control", "material-outlined-field"]
 props = { value = "Runtime retained text", placeholder = "Type here", validation_level = "normal", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/InputFieldChanged", event = "Change", route = "component_lab.showcase.value_changed.input_field" },
-  { id = "UiComponentShowcase/InputFieldCommitted", event = "Submit", route = "component_lab.showcase.commit.input_field" },
+  { id = "UiComponentShowcase/InputFieldChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.input_field" },
+  { id = "UiComponentShowcase/InputFieldCommitted", event = "Submit", component_event = "Commit", route = "component_lab.showcase.commit.input_field" },
 ]
 
 [nodes.text_area_demo]
@@ -145,8 +145,8 @@ classes = ["showcase-field", "material-control", "material-outlined-field"]
 props = { value = "Longer retained text field", placeholder = "Multi-line notes", validation_level = "normal", height = 34.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/TextFieldChanged", event = "Change", route = "component_lab.showcase.value_changed.text_field" },
-  { id = "UiComponentShowcase/TextFieldCommitted", event = "Submit", route = "component_lab.showcase.commit.text_field" },
+  { id = "UiComponentShowcase/TextFieldChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.text_field" },
+  { id = "UiComponentShowcase/TextFieldCommitted", event = "Submit", component_event = "Commit", route = "component_lab.showcase.commit.text_field" },
 ]
 
 [nodes.number_field_demo]
@@ -156,12 +156,12 @@ classes = ["showcase-field", "material-control", "material-outlined-field"]
 props = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/NumberFieldDragBegin", event = "DragBegin", route = "component_lab.showcase.begin_drag.number_field" },
-  { id = "UiComponentShowcase/NumberFieldDragUpdate", event = "DragUpdate", route = "component_lab.showcase.drag_delta.number_field" },
-  { id = "UiComponentShowcase/NumberFieldLargeDragUpdate", event = "DragUpdate", route = "component_lab.showcase.large_drag_delta.number_field" },
-  { id = "UiComponentShowcase/NumberFieldDragEnd", event = "DragEnd", route = "component_lab.showcase.end_drag.number_field" },
-  { id = "UiComponentShowcase/NumberFieldChanged", event = "Change", route = "component_lab.showcase.value_changed.number_field" },
-  { id = "UiComponentShowcase/NumberFieldCommitted", event = "Submit", route = "component_lab.showcase.commit.number_field" },
+  { id = "UiComponentShowcase/NumberFieldDragBegin", event = "DragBegin", component_event = "BeginDrag", route = "component_lab.showcase.begin_drag.number_field" },
+  { id = "UiComponentShowcase/NumberFieldDragUpdate", event = "DragUpdate", component_event = "DragDelta", route = "component_lab.showcase.drag_delta.number_field" },
+  { id = "UiComponentShowcase/NumberFieldLargeDragUpdate", event = "DragUpdate", component_event = "LargeDragDelta", route = "component_lab.showcase.large_drag_delta.number_field" },
+  { id = "UiComponentShowcase/NumberFieldDragEnd", event = "DragEnd", component_event = "EndDrag", route = "component_lab.showcase.end_drag.number_field" },
+  { id = "UiComponentShowcase/NumberFieldChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.number_field" },
+  { id = "UiComponentShowcase/NumberFieldCommitted", event = "Submit", component_event = "Commit", route = "component_lab.showcase.commit.number_field" },
 ]
 
 [nodes.range_field_demo]
@@ -171,9 +171,9 @@ classes = ["showcase-field", "material-control", "material-outlined-field"]
 props = { value = 68.0, min = 0.0, max = 100.0, step = 1.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/RangeFieldDragUpdate", event = "DragUpdate", route = "component_lab.showcase.drag_delta.range_field" },
-  { id = "UiComponentShowcase/RangeFieldChanged", event = "Change", route = "component_lab.showcase.value_changed.range_field" },
-  { id = "UiComponentShowcase/RangeFieldCommitted", event = "Submit", route = "component_lab.showcase.commit.range_field" },
+  { id = "UiComponentShowcase/RangeFieldDragUpdate", event = "DragUpdate", component_event = "DragDelta", route = "component_lab.showcase.drag_delta.range_field" },
+  { id = "UiComponentShowcase/RangeFieldChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.range_field" },
+  { id = "UiComponentShowcase/RangeFieldCommitted", event = "Submit", component_event = "Commit", route = "component_lab.showcase.commit.range_field" },
 ]
 
 [nodes.slider_demo]
@@ -183,8 +183,8 @@ classes = ["showcase-field", "material-control"]
 props = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, value_percent = 0.42, show_value_label = true, hovered = true, pressed = false, focused = true, disabled = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/SliderDragUpdate", event = "DragUpdate", route = "component_lab.showcase.drag_delta.slider" },
-  { id = "UiComponentShowcase/SliderChanged", event = "Change", route = "component_lab.showcase.value_changed.slider" },
+  { id = "UiComponentShowcase/SliderDragUpdate", event = "DragUpdate", component_event = "DragDelta", route = "component_lab.showcase.drag_delta.slider" },
+  { id = "UiComponentShowcase/SliderChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.slider" },
 ]
 
 [nodes.range_slider_demo]
@@ -194,8 +194,8 @@ classes = ["showcase-field", "material-control"]
 props = { value = 72.0, range_min = 28.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, value_percent = 0.72, range_min_percent = 0.28, focused_thumb = "upper", disable_swap = true, show_value_label = true, hovered = false, pressed = true, focused = true, disabled = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/RangeSliderDragUpdate", event = "DragUpdate", route = "component_lab.showcase.drag_delta.range_slider" },
-  { id = "UiComponentShowcase/RangeSliderChanged", event = "Change", route = "component_lab.showcase.value_changed.range_slider" },
+  { id = "UiComponentShowcase/RangeSliderDragUpdate", event = "DragUpdate", component_event = "DragDelta", route = "component_lab.showcase.drag_delta.range_slider" },
+  { id = "UiComponentShowcase/RangeSliderChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.range_slider" },
 ]
 
 [nodes.color_field_demo]
@@ -205,7 +205,7 @@ classes = ["showcase-field", "material-control"]
 props = { value = "#4d89ff", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/ColorFieldChanged", event = "Change", route = "component_lab.showcase.value_changed.color_field" },
+  { id = "UiComponentShowcase/ColorFieldChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.color_field" },
 ]
 
 [nodes.vector2_field_demo]
@@ -215,7 +215,7 @@ classes = ["showcase-field", "material-control"]
 props = { value = [12.0, 24.0], value_text = "12, 24", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/Vector2FieldChanged", event = "Change", route = "component_lab.showcase.value_changed.vector2_field" },
+  { id = "UiComponentShowcase/Vector2FieldChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.vector2_field" },
 ]
 
 [nodes.vector3_field_demo]
@@ -225,7 +225,7 @@ classes = ["showcase-field", "material-control"]
 props = { value = [0.0, 1.0, 0.0], value_text = "0, 1, 0", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/Vector3FieldChanged", event = "Change", route = "component_lab.showcase.value_changed.vector3_field" },
+  { id = "UiComponentShowcase/Vector3FieldChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.vector3_field" },
 ]
 
 [nodes.vector4_field_demo]
@@ -235,7 +235,7 @@ classes = ["showcase-field", "material-control"]
 props = { value = [0.0, 1.0, 0.0, 1.0], value_text = "0, 1, 0, 1", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
-  { id = "UiComponentShowcase/Vector4FieldChanged", event = "Change", route = "component_lab.showcase.value_changed.vector4_field" },
+  { id = "UiComponentShowcase/Vector4FieldChanged", event = "Change", component_event = "ValueChanged", route = "component_lab.showcase.value_changed.vector4_field" },
 ]
 
 [nodes.input_section_root]

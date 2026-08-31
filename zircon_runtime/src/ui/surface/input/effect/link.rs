@@ -1,34 +1,20 @@
-use zircon_runtime_interface::{
-    resource::{ResourceLocator, ResourceScheme},
-    ui::{dispatch::UiDispatchEffect, event_ui::UiNodeId},
-};
+use zircon_runtime_interface::ui::{dispatch::UiDispatchEffect, event_ui::UiNodeId};
 
 use super::super::super::surface::UiSurface;
 use super::super::{
-    require_valid_input_owner, UiSurfaceInputEffectError, UiSurfaceInputEffectResult,
+    UiSurfaceInputEffectError, UiSurfaceInputEffectResult, require_valid_input_owner,
 };
 
 pub(super) fn apply_link_activation_effect(
     surface: &UiSurface,
     effect: &UiDispatchEffect,
 ) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
-    let UiDispatchEffect::RequestLinkActivation { target, href } = effect else {
+    let UiDispatchEffect::RequestLinkActivation { target, .. } = effect else {
         return Err(UiSurfaceInputEffectError::UnexpectedEffect {
             expected: "rich link activation",
         });
     };
     require_valid_input_owner(surface, *target)?;
-    let locator = ResourceLocator::parse(href)
-        .map_err(|_| UiSurfaceInputEffectError::InvalidRichLinkTarget { href: href.clone() })?;
-    if !matches!(
-        locator.scheme(),
-        ResourceScheme::Res
-            | ResourceScheme::Library
-            | ResourceScheme::Package
-            | ResourceScheme::Builtin
-    ) {
-        return Err(UiSurfaceInputEffectError::InvalidRichLinkTarget { href: href.clone() });
-    }
     Ok(Some(*target))
 }
 
@@ -43,10 +29,12 @@ mod tests {
 
     use crate::ui::surface::UiSurface;
 
-    use super::{apply_link_activation_effect, UiSurfaceInputEffectError};
+    use super::apply_link_activation_effect;
 
     #[test]
-    fn rich_link_effect_rejects_network_scheme_even_for_valid_owner() {
+    fn rich_link_effect_accepts_a_typed_target_for_a_valid_owner() {
+        use zircon_runtime_interface::ui::text::UiRichLinkTarget;
+
         let target = UiNodeId::new(9);
         let mut surface = UiSurface::new(UiTreeId::new("runtime.rich-link-effect"));
         surface.tree.insert_root(
@@ -54,20 +42,15 @@ mod tests {
                 .with_frame(UiFrame::new(0.0, 0.0, 80.0, 20.0)),
         );
 
-        let error = apply_link_activation_effect(
+        let applied = apply_link_activation_effect(
             &surface,
             &UiDispatchEffect::RequestLinkActivation {
                 target,
-                href: "https://example.com/escape".to_string(),
+                link_target: UiRichLinkTarget::parse("res://docs/guide.zui").unwrap(),
             },
         )
-        .expect_err("network links must not cross the rich-link host boundary");
+        .unwrap();
 
-        assert_eq!(
-            error,
-            UiSurfaceInputEffectError::InvalidRichLinkTarget {
-                href: "https://example.com/escape".to_string(),
-            }
-        );
+        assert_eq!(applied, Some(target));
     }
 }

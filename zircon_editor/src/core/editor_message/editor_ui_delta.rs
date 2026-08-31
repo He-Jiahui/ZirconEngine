@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::event_ui::{UiNodePath, UiReflectionNodePatch};
@@ -91,7 +91,7 @@ impl EditorUiDeltaBatch {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct EditorUiDeltaQueue {
     entries: Vec<EditorUiDeltaEntry>,
-    pending: BTreeMap<UiNodePath, EditorUiNodeDelta>,
+    pending: HashMap<UiNodePath, EditorUiNodeDelta>,
 }
 
 impl EditorUiDeltaQueue {
@@ -129,10 +129,10 @@ impl EditorUiDeltaQueue {
         if self.pending.is_empty() {
             return;
         }
-        let deltas = std::mem::take(&mut self.pending)
-            .into_iter()
-            .map(|(_, delta)| delta)
-            .collect();
+        let mut deltas = std::mem::take(&mut self.pending)
+            .into_values()
+            .collect::<Vec<_>>();
+        deltas.sort_unstable_by(|left, right| left.patch.node_path.cmp(&right.patch.node_path));
         self.entries.push(EditorUiDeltaEntry::Nodes(deltas));
     }
 }
@@ -213,3 +213,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "editor_ui_delta/hash_coalescing_tests.rs"]
+mod hash_coalescing_tests;

@@ -47,7 +47,9 @@ fn zr_environment_env_brdf_approx(f0: vec3<f32>, roughness: f32, no_v: f32) -> v
     let r = roughness * c0 + c1;
     let a004 = min(r.x * r.x, exp2(-9.28 * no_v)) * r.x + r.y;
     let ab = vec2<f32>(-1.04, 1.04) * a004 + r.zw;
-    return clamp(f0 * ab.x + vec3<f32>(ab.y), vec3<f32>(0.0), vec3<f32>(1.0));
+    let f90 = clamp(50.0 * f0.g, 0.0, 1.0);
+    // Keep the HDR split-sum result; only the F90 gate is saturated.
+    return f0 * ab.x + vec3<f32>(f90) * ab.y;
 }
 
 fn zr_environment_sh9_eval(normal_ws: vec3<f32>) -> vec3<f32> {

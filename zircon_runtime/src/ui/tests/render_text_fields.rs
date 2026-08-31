@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
-    surface::UiRenderCommandKind,
+    surface::{UiPaintPayload, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
@@ -206,6 +206,220 @@ line_height = 13.2
             .and_then(|layout| layout.editable.as_ref())
             .is_none(),
         "unfocused placeholder paint should not expose caret or selection decorations"
+    );
+}
+
+#[test]
+fn password_input_kind_publishes_only_masked_text_through_command_paint_and_artifact() {
+    let source = "a\u{0301}\u{4e2d}\u{1f600}";
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.text_fields.secure"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 240.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_text_field(
+        &mut surface,
+        UiNodeId::new(2),
+        UiFrame::new(12.0, 16.0, 180.0, 30.0),
+        r##"
+content = 'á中😀'
+input_kind = 'password'
+focused = true
+caret_offset = 10
+selection_anchor = 0
+selection_focus = 10
+composition_start = 0
+composition_end = 3
+composition_text = 'á'
+composition_restore_text = 'á'
+"##,
+        focusable_state(),
+    );
+
+    surface.rebuild();
+
+    let command = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.kind == UiRenderCommandKind::Text
+        })
+        .expect("secure input must publish one text command");
+    assert_eq!(command.text.as_deref(), Some("\u{2022}\u{2022}\u{2022}"));
+    assert_ne!(command.text.as_deref(), Some(source));
+    assert_eq!(
+        command.style.rich_text_format,
+        zircon_runtime_interface::ui::surface::UiRichTextFormat::Plain
+    );
+    let editable = command
+        .text_layout
+        .as_ref()
+        .and_then(|layout| layout.editable.as_ref())
+        .expect("focused secure input keeps editable geometry");
+    assert_eq!(editable.text, "\u{2022}\u{2022}\u{2022}");
+    assert_eq!(editable.caret.offset, source.len());
+    assert!(editable.composition.is_none());
+    let artifact = command
+        .text_layout
+        .as_ref()
+        .and_then(|layout| layout.rich_text_artifact.as_ref())
+        .and_then(crate::text::resolve_resolved_text_glyph_artifact)
+        .expect("secure command must publish a display-only glyph artifact");
+    assert_eq!(artifact.source_text.as_ref(), "\u{2022}\u{2022}\u{2022}");
+    assert_ne!(artifact.source_text.as_ref(), source);
+    assert_eq!(
+        surface.text_measure_cache.frame_layout_report().entry_count,
+        1,
+        "supported secure text layout must publish through the surface-owned layout cache"
+    );
+    let paint = command
+        .to_transient_paint_elements(0)
+        .into_iter()
+        .find_map(|element| match element.payload {
+            UiPaintPayload::Text { text } => Some(text),
+            _ => None,
+        })
+        .expect("secure command must produce text paint");
+    assert_eq!(paint.source_text, "\u{2022}\u{2022}\u{2022}");
+    assert!(paint.composition.is_none());
+    assert!(paint.runs.iter().all(|run| run.text != source));
+}
+
+#[test]
+fn secure_multiline_text_edit_fails_closed_without_publishing_raw_text() {
+    let source = "top secret";
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.text_fields.secure-text-edit",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 240.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_text_field_with_component(
+        &mut surface,
+        UiNodeId::new(2),
+        UiFrame::new(12.0, 16.0, 180.0, 48.0),
+        "TextEdit",
+        r##"
+content = "top secret"
+secure = true
+focused = true
+caret_offset = 10
+selection_anchor = 0
+selection_focus = 10
+"##,
+        focusable_state(),
+    );
+
+    surface.rebuild();
+
+    let command = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.kind == UiRenderCommandKind::Text
+        })
+        .expect("secure TextEdit must publish one safe text command");
+    assert_eq!(
+        command.text.as_deref(),
+        Some("\u{2022}".repeat(source.len()).as_str())
+    );
+    assert_ne!(command.text.as_deref(), Some(source));
+    let layout = command
+        .text_layout
+        .as_ref()
+        .expect("secure TextEdit must carry a safe empty layout");
+    assert!(layout.lines.is_empty());
+    assert!(layout.rich_text_artifact.is_none());
+    let editable = layout
+        .editable
+        .as_ref()
+        .expect("focused secure TextEdit keeps sanitized editable state");
+    assert_eq!(editable.text, "\u{2022}".repeat(source.len()));
+    assert!(editable.composition.is_none());
+}
+
+#[test]
+fn secure_text_field_with_multiline_attribute_fails_closed_outside_shared_text_caches() {
+    let source = "top secret";
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.text_fields.secure-multiline-attribute",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 240.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_text_field(
+        &mut surface,
+        UiNodeId::new(2),
+        UiFrame::new(12.0, 16.0, 180.0, 48.0),
+        r##"
+content = "top secret"
+secure = true
+multiline = true
+focused = true
+caret_offset = 10
+selection_anchor = 0
+selection_focus = 10
+"##,
+        focusable_state(),
+    );
+
+    surface.rebuild();
+
+    let command = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.kind == UiRenderCommandKind::Text
+        })
+        .expect("secure multiline TextField must publish one safe text command");
+    assert_eq!(
+        command.text.as_deref(),
+        Some("\u{2022}".repeat(source.len()).as_str())
+    );
+    assert_ne!(command.text.as_deref(), Some(source));
+    let layout = command
+        .text_layout
+        .as_ref()
+        .expect("secure multiline TextField must carry a safe empty layout");
+    assert!(layout.lines.is_empty());
+    assert!(layout.rich_text_artifact.is_none());
+    let editable = layout
+        .editable
+        .as_ref()
+        .expect("focused secure multiline TextField keeps sanitized editable state");
+    assert_eq!(editable.text, "\u{2022}".repeat(source.len()));
+    assert!(editable.composition.is_none());
+    assert_eq!(
+        surface.text_measure_cache.frame_layout_report().entry_count,
+        0,
+        "secure multiline layout must not enter the shared persistent cache"
+    );
+    assert_eq!(
+        surface
+            .text_measure_cache
+            .frame_layout_report()
+            .insert_count,
+        0,
+        "secure multiline layout must not publish a shared cache entry"
+    );
+    assert_eq!(
+        surface
+            .text_measure_cache
+            .frame_shape_prewarm_report()
+            .requested_count,
+        0,
+        "secure multiline text must not enter the render-command prewarm batch"
     );
 }
 
@@ -531,13 +745,60 @@ fn insert_text_field(
     attributes: &str,
     state_flags: UiStateFlags,
 ) {
-    insert_text_field_with_style_overrides(surface, node_id, frame, attributes, "", state_flags);
+    insert_text_field_with_component(
+        surface,
+        node_id,
+        frame,
+        "InputField",
+        attributes,
+        state_flags,
+    );
+}
+
+fn insert_text_field_with_component(
+    surface: &mut UiSurface,
+    node_id: UiNodeId,
+    frame: UiFrame,
+    component: &str,
+    attributes: &str,
+    state_flags: UiStateFlags,
+) {
+    insert_text_field_with_style_overrides_and_component(
+        surface,
+        node_id,
+        frame,
+        component,
+        attributes,
+        "",
+        state_flags,
+    );
 }
 
 fn insert_text_field_with_style_overrides(
     surface: &mut UiSurface,
     node_id: UiNodeId,
     frame: UiFrame,
+    attributes: &str,
+    style_overrides: &str,
+    state_flags: UiStateFlags,
+) {
+    insert_text_field_with_style_overrides_and_component(
+        surface,
+        node_id,
+        frame,
+        "InputField",
+        attributes,
+        style_overrides,
+        state_flags,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn insert_text_field_with_style_overrides_and_component(
+    surface: &mut UiSurface,
+    node_id: UiNodeId,
+    frame: UiFrame,
+    component: &str,
     attributes: &str,
     style_overrides: &str,
     state_flags: UiStateFlags,
@@ -550,7 +811,7 @@ fn insert_text_field_with_style_overrides(
                 .with_frame(frame)
                 .with_state_flags(state_flags)
                 .with_template_metadata(UiTemplateNodeMetadata {
-                    component: "InputField".to_string(),
+                    component: component.to_string(),
                     attributes: toml::from_str(attributes).unwrap(),
                     style_overrides: toml::from_str(style_overrides).unwrap(),
                     widget: UiWidgetContract {

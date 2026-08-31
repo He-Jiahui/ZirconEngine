@@ -7,7 +7,7 @@ fn taffy_layout_pass_rejects_unsupported_slot_padding_values() {
         UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
     );
     insert_child(&mut tree, 190, fixed_node(191, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(190), UiNodeId::new(191), UiSlotKind::Linear)
             .with_padding(UiMargin::new(-1.0, 0.0, 0.0, 0.0)),
     );
@@ -28,7 +28,7 @@ fn taffy_layout_pass_reports_non_finite_slot_padding_fallback() {
         UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
     );
     insert_child(&mut tree, 189, fixed_node(188, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(189), UiNodeId::new(188), UiSlotKind::Linear)
             .with_padding(UiMargin::new(f32::INFINITY, 0.0, 0.0, 0.0)),
     );
@@ -50,7 +50,7 @@ fn taffy_layout_pass_reports_linear_main_axis_slot_alignment_fallback() {
         UiContainerKind::VerticalBox(UiLinearBoxConfig { gap: 0.0 }),
     );
     insert_child(&mut tree, 196, fixed_node(197, Some(20.0), Some(10.0)));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(196), UiNodeId::new(197), UiSlotKind::Linear)
             .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::Center)),
     );
@@ -74,7 +74,7 @@ fn taffy_layout_pass_reports_cross_axis_slot_alignment_without_fixed_extent_fall
         UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
     );
     insert_child(&mut tree, 198, fixed_node(199, Some(20.0), None));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(198), UiNodeId::new(199), UiSlotKind::Linear)
             .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::End)),
     );
@@ -138,7 +138,7 @@ fn taffy_layout_pass_reports_non_finite_linear_slot_sizing_fallback() {
         UiContainerKind::HorizontalBox(UiLinearBoxConfig { gap: 0.0 }),
     );
     insert_child(&mut tree, 490, node(491));
-    tree.slots.push(
+    tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(490), UiNodeId::new(491), UiSlotKind::Linear).with_linear_sizing(
             UiLinearSlotSizing::new(UiLinearSlotSizeRule::Stretch)
                 .with_value(1.0)

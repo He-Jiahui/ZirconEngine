@@ -3,6 +3,7 @@ use super::{assert_contains_all, assert_contains_all_exact, read_repo, read_runt
 #[test]
 fn runtime_15_frame_extract_geometry_is_child_owner() {
     let root = read_runtime_src("core/framework/render/frame_extract.rs");
+    let frame = read_runtime_src("core/framework/render/frame_extract/frame.rs");
     let geometry = read_runtime_src("core/framework/render/frame_extract/geometry.rs");
 
     let plan_09 = read_repo(
@@ -23,7 +24,16 @@ fn runtime_15_frame_extract_geometry_is_child_owner() {
         &root,
         &[
             "mod geometry;",
+            "mod frame;",
             "pub use geometry::{GeometryExtract, GeometryPhaseInput, StaticMeshBatchExtract};",
+            "pub use frame::RenderFrameExtract;",
+        ],
+    );
+
+    assert_contains_all(
+        "frame extract child owns frame DTO and snapshot adapter",
+        &frame,
+        &[
             "pub struct RenderFrameExtract",
             "pub fn from_snapshot(",
             "pub fn phase_queue_summary(&self) -> RenderFramePhaseQueueSummary",
@@ -60,6 +70,7 @@ fn runtime_15_frame_extract_geometry_is_child_owner() {
 
     for (path, source) in [
         ("frame_extract.rs", root.as_str()),
+        ("frame_extract/frame.rs", frame.as_str()),
         ("frame_extract/geometry.rs", geometry.as_str()),
     ] {
         let line_count = source.lines().count();

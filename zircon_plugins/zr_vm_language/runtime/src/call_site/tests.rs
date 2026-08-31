@@ -51,11 +51,9 @@ fn call_site_resolution_happens_once() {
             .expect("compiled field read should succeed"),
         ReflectedValue::Scalar(25.0)
     );
-    assert!(
-        table
-            .write(&site, &mut world, entity, ReflectedValue::Scalar(40.0))
-            .expect("compiled field write should succeed")
-    );
+    assert!(table
+        .write(&site, &mut world, entity, ReflectedValue::Scalar(40.0))
+        .expect("compiled field write should succeed"));
     assert_eq!(
         table
             .read(&site, &world, entity)
@@ -311,7 +309,9 @@ fn runtime_calls_use_dense_slots_without_field_name_dispatch() {
                 ReflectTypePath::new("test.DenseProbe", "DenseProbe")
                     .expect("test reflection path should be valid"),
                 "DenseProbe",
-                ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+                ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::from_stable_keys(
+                    "test.DenseProbe",
+                    "value",
                     "value",
                     "Unsigned",
                     ReflectEditorHint::Unsigned,
@@ -348,11 +348,9 @@ fn runtime_calls_use_dense_slots_without_field_name_dispatch() {
             .expect("dense probe read should use the slot callback"),
         ReflectedValue::Unsigned(0)
     );
-    assert!(
-        table
-            .write(&site, &mut world, 7, ReflectedValue::Unsigned(1))
-            .expect("dense probe write should use the slot callback")
-    );
+    assert!(table
+        .write(&site, &mut world, 7, ReflectedValue::Unsigned(1))
+        .expect("dense probe write should use the slot callback"));
     assert_eq!(NAMED_FIELD_CALLS.load(Ordering::Relaxed), 0);
     assert_eq!(DENSE_FIELD_CALLS.load(Ordering::Relaxed), 2);
 }
@@ -423,18 +421,31 @@ fn vm_health_registration() -> ReflectTypeRegistration {
     ReflectTypeRegistration::new(
         ReflectTypePath::new("gameplay.Component.Health", "Health")
             .expect("health reflection path should be valid")
-            .with_plugin_id("gameplay"),
+            .with_plugin_id("gameplay")
+            .expect("test plugin id should be valid"),
         "Health",
         ReflectTypeInfo::struct_with_fields(vec![
-            ReflectFieldInfo::new("current", "Scalar", ReflectEditorHint::Scalar),
-            ReflectFieldInfo::new("maximum", "Scalar", ReflectEditorHint::Scalar)
-                .with_editable(false),
+            ReflectFieldInfo::from_stable_keys(
+                "gameplay.Component.Health",
+                "current",
+                "current",
+                "Scalar",
+                ReflectEditorHint::Scalar,
+            ),
+            ReflectFieldInfo::from_stable_keys(
+                "gameplay.Component.Health",
+                "maximum",
+                "maximum",
+                "Scalar",
+                ReflectEditorHint::Scalar,
+            )
+            .with_editable(false),
         ]),
         ReflectSerializationStrategy::Value,
     )
     .as_component()
-    .with_plugin_owned(true)
     .with_plugin_id("gameplay")
+    .expect("test plugin id should be valid")
     .with_script_visibility(ReflectScriptVisibility::Public)
 }
 
@@ -447,7 +458,9 @@ fn reflected_component_registration(
         ReflectTypePath::new(type_path, short_type_path)
             .expect("test reflection path should be valid"),
         short_type_path,
-        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::from_stable_keys(
+            type_path,
+            "value",
             "value",
             "Unsigned",
             ReflectEditorHint::Unsigned,
@@ -467,7 +480,9 @@ fn public_registration_with_fields(type_path: &str, field_count: usize) -> Refle
         ReflectTypeInfo::struct_with_fields(
             (0..field_count)
                 .map(|index| {
-                    ReflectFieldInfo::new(
+                    ReflectFieldInfo::from_stable_keys(
+                        type_path,
+                        &format!("field_{index:04}"),
                         format!("field_{index:04}"),
                         "Unsigned",
                         ReflectEditorHint::Unsigned,

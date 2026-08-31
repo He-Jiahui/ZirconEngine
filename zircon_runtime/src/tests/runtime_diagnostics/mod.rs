@@ -10,7 +10,7 @@ mod support;
 use crate::core::CoreRuntime;
 use crate::runtime_diagnostics::{collect_runtime_devtools_snapshot, collect_runtime_diagnostics};
 
-use support::{fake_render_module, DIAGNOSTICS_TEST_MODULE};
+use support::{failing_render_module, fake_render_module, DIAGNOSTICS_TEST_MODULE};
 
 #[test]
 fn runtime_diagnostics_reports_missing_runtime_contracts_without_panicking() {
@@ -28,6 +28,31 @@ fn runtime_diagnostics_reports_missing_runtime_contracts_without_panicking() {
     assert!(snapshot.animation.playback_settings.is_none());
     assert!(snapshot.animation.error.is_some());
     assert!(snapshot.store.is_empty());
+}
+
+#[test]
+fn runtime_diagnostics_preserves_render_initialization_failure_in_frame_status() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(failing_render_module()).unwrap();
+
+    let snapshot = collect_runtime_diagnostics(&runtime.handle());
+
+    assert!(!snapshot.render.available);
+    let error = snapshot
+        .render
+        .error
+        .as_deref()
+        .expect("render initialization failure should be diagnostic-visible");
+    assert!(error.contains("post-process full resources construction"));
+    assert!(error.contains("wgpu validation failed"));
+
+    let render_status = snapshot
+        .frame_diagnostics_statuses()
+        .into_iter()
+        .find(|status| status.domain == "render")
+        .expect("render frame diagnostics status");
+    assert!(!render_status.available);
+    assert_eq!(render_status.error, Some(error));
 }
 
 #[test]

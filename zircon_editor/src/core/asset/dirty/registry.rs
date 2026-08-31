@@ -223,6 +223,22 @@ impl DirtyRegistryState {
     }
 }
 
+fn partition_external_changes(
+    state: &DirtyRegistryState,
+    external_changed: &BTreeSet<DocumentId>,
+) -> (BTreeSet<DocumentId>, Vec<DocumentId>) {
+    let mut present = BTreeSet::new();
+    let mut removed = Vec::new();
+    for document in external_changed {
+        if state.documents.contains(document) {
+            present.insert(*document);
+        } else {
+            removed.push(*document);
+        }
+    }
+    (present, removed)
+}
+
 #[derive(Clone)]
 pub struct DirtyRegistry {
     transactions: Arc<dyn DirtyTransactionStateSource>,
@@ -369,7 +385,13 @@ impl DirtyRegistry {
         let cursor_generation = cursor.map(|cursor| cursor.registry_generation);
         let transaction_cursor = cursor.map(|cursor| &cursor.transaction);
         for _ in 0..MAX_SNAPSHOT_ATTEMPTS {
-            let (registry_generation, external_reset, external_changed, external_present) = {
+            let (
+                registry_generation,
+                external_reset,
+                external_changed,
+                external_present,
+                external_removed,
+            ) = {
                 let mut state = self.lock_state();
                 let external_reset =
                     cursor_generation.is_none_or(|generation| !state.can_replay_from(generation));
@@ -379,16 +401,14 @@ impl DirtyRegistry {
                     Some(generation) if generation == state.registry_generation => BTreeSet::new(),
                     Some(generation) => state.changed_documents_after(generation),
                 };
-                let external_present = external_changed
-                    .iter()
-                    .filter(|document| state.documents.contains(document))
-                    .copied()
-                    .collect::<BTreeSet<_>>();
+                let (external_present, external_removed) =
+                    partition_external_changes(&state, &external_changed);
                 (
                     state.registry_generation,
                     external_reset,
                     external_changed,
                     external_present,
+                    external_removed,
                 )
             };
 
@@ -411,7 +431,6 @@ impl DirtyRegistry {
             };
 
             let transaction_reset = transaction_batch.kind() == HistoryDirtyBatchKind::Reset;
-            let external_change_documents = external_changed.clone();
             let mut changed_documents = if external_reset || transaction_reset {
                 let state = self.lock_state();
                 if state.registry_generation != registry_generation {
@@ -437,12 +456,9 @@ impl DirtyRegistry {
                 continue;
             }
             let mut snapshots = Vec::with_capacity(changed_documents.len());
-            let mut removed_documents = Vec::new();
+            let removed_documents = external_removed;
             for document in changed_documents {
                 if !state.documents.contains(&document) {
-                    if external_change_documents.contains(&document) {
-                        removed_documents.push(document);
-                    }
                     continue;
                 }
                 let history = HistoryContextId::Document(document);
@@ -544,24 +560,54 @@ impl DirtyRegistry {
         &self,
         snapshot: &DirtyDocumentSnapshot,
     ) -> Result<bool, DirtyRegistryError> {
-        if !self.is_generation_current(snapshot.document(), snapshot.generation())? {
+        let document = snapshot.document();
+        let mut state = self.lock_state();
+        Self::require_document(&state, document)?;
+        if state.document_generations.get(&document) != Some(&snapshot.generation()) {
             return Ok(false);
         }
-        let mut unchanged = true;
-        for effect in snapshot.external_effects() {
-            let Some(revision) = snapshot.external_revision(effect) else {
+
+        debug_assert_eq!(
+            snapshot.external_effects.len(),
+            snapshot.external_revisions.len()
+        );
+        let mut unchanged = snapshot.external_effects.len() == snapshot.external_revisions.len();
+        for (effect, expected_revision) in snapshot
+            .external_effects
+            .iter()
+            .zip(&snapshot.external_revisions)
+        {
+            let matches_revision = state
+                .external_effects
+                .get(&document)
+                .and_then(|effects| effects.get(effect))
+                == Some(expected_revision);
+            if !matches_revision {
                 unchanged = false;
                 continue;
-            };
-            if !self.clear_external_effect(snapshot.document(), effect, revision)? {
-                unchanged = false;
             }
+
+            let generation = Self::next_document_generation(&state)?;
+            let removed = state
+                .external_effects
+                .get_mut(&document)
+                .is_some_and(|effects| effects.remove(effect).is_some());
+            if !removed {
+                unchanged = false;
+                continue;
+            }
+            if state
+                .external_effects
+                .get(&document)
+                .is_some_and(BTreeMap::is_empty)
+            {
+                state.external_effects.remove(&document);
+            }
+            state.record_change(generation, document);
         }
-        let state = self.lock_state();
-        Self::require_document(&state, snapshot.document())?;
         let has_residual_effects = state
             .external_effects
-            .get(&snapshot.document())
+            .get(&document)
             .is_some_and(|effects| !effects.is_empty());
         Ok(unchanged && !has_residual_effects)
     }
@@ -596,3 +642,7 @@ impl DirtyRegistry {
         std::mem::take(&mut state.journal_visits)
     }
 }
+
+#[cfg(test)]
+#[path = "registry/optimization_tests.rs"]
+mod optimization_tests;

@@ -1,12 +1,11 @@
-use std::collections::{BTreeMap, VecDeque};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use crate::core::editor_message::{
     EditorMessage, EditorMessagePayload, EditorTopic, SharedEditorMessageBus, TOPIC_JOB,
 };
 
-use super::{JobEvent, JobEventKind, JobId};
+use super::event_journal::{EditorJobEventJournal, EditorJobEventJournalRecord};
 
 pub const DEFAULT_JOB_EVENT_PUMP_BUDGET: JobEventPumpBudget =
     JobEventPumpBudget::new(64, Duration::from_millis(1));
@@ -34,68 +33,15 @@ impl JobEventPumpBudget {
     }
 }
 
-#[derive(Clone, Debug, Default)]
-pub(super) struct JobEventQueue {
-    inner: Arc<Mutex<JobEventQueueState>>,
-}
-
-#[derive(Debug, Default)]
-struct JobEventQueueState {
-    order: VecDeque<QueuedJobEvent>,
-    latest_progress: BTreeMap<JobId, JobEvent>,
-}
-
-#[derive(Debug)]
-enum QueuedJobEvent {
-    Lifecycle(JobEvent),
-    Progress(JobId),
-}
-
-impl JobEventQueue {
-    pub(super) fn push(&self, event: JobEvent) {
-        self.lock().push(event);
-    }
-
-    fn pop(&self) -> Option<JobEvent> {
-        self.lock().pop()
-    }
-
-    fn lock(&self) -> MutexGuard<'_, JobEventQueueState> {
-        self.inner
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-}
-
-impl JobEventQueueState {
-    fn push(&mut self, event: JobEvent) {
-        let id = event.id();
-        if matches!(event.kind(), JobEventKind::Progress { .. }) {
-            if self.latest_progress.insert(id, event).is_none() {
-                self.order.push_back(QueuedJobEvent::Progress(id));
-            }
-            return;
-        }
-        self.order.push_back(QueuedJobEvent::Lifecycle(event));
-    }
-
-    fn pop(&mut self) -> Option<JobEvent> {
-        match self.order.pop_front()? {
-            QueuedJobEvent::Lifecycle(event) => Some(event),
-            QueuedJobEvent::Progress(id) => self.latest_progress.remove(&id),
-        }
-    }
-}
-
 pub(super) struct JobEventPump {
     bus: SharedEditorMessageBus,
     topic: EditorTopic,
-    queue: JobEventQueue,
+    queue: EditorJobEventJournal,
     consumer: Mutex<()>,
 }
 
 impl JobEventPump {
-    pub(super) fn new(bus: SharedEditorMessageBus, queue: JobEventQueue) -> Self {
+    pub(super) fn new(bus: SharedEditorMessageBus, queue: EditorJobEventJournal) -> Self {
         Self {
             bus,
             topic: EditorTopic::parse(TOPIC_JOB)
@@ -124,13 +70,24 @@ impl JobEventPump {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let mut count = 0;
         while count < budget.max_events && elapsed() < budget.max_elapsed {
-            let Some(event) = self.queue.pop() else {
+            let Some(record) = self.queue.pop() else {
                 break;
             };
-            self.bus.publish(
-                self.topic.clone(),
-                EditorMessage::new(EditorMessagePayload::Job(event)),
-            );
+            let payload = match &record {
+                EditorJobEventJournalRecord::Event { event, .. } => {
+                    EditorMessagePayload::Job(event.clone())
+                }
+                EditorJobEventJournalRecord::Gap(gap) => {
+                    EditorMessagePayload::JobJournalGap(gap.clone())
+                }
+            };
+            let report = self
+                .bus
+                .publish(self.topic.clone(), EditorMessage::new(payload));
+            if report.error().is_some() || !report.backpressured().is_empty() {
+                self.queue.restore_front(record);
+                break;
+            }
             count += 1;
         }
         count

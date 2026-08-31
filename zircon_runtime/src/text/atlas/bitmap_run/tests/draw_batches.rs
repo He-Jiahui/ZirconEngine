@@ -1,7 +1,7 @@
+use super::super::super::GlyphAtlasFormat;
 use super::super::super::render_batch::glyph_atlas_draw_batch_plan;
 use super::super::super::render_contract::GlyphAtlasBlendMode;
 use super::super::super::render_plan::GlyphAtlasScreenRect;
-use super::super::super::GlyphAtlasFormat;
 use super::source;
 use crate::core::math::UVec2;
 

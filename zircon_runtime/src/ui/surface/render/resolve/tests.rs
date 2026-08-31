@@ -121,7 +121,25 @@ language = "zh-Hans-CN"
 
     let style = resolve_style(Some(&metadata));
 
-    assert_eq!(style.language.as_deref(), Some("zh-hans-cn"));
+    assert_eq!(style.language.as_deref(), Some("zh-Hans-CN"));
+}
+
+#[test]
+fn resolve_style_preserves_invalid_language_for_typed_shaping_rejection() {
+    let metadata = UiTemplateNodeMetadata {
+        attributes: toml::from_str(
+            r#"
+[font]
+language = "en--US"
+"#,
+        )
+        .unwrap(),
+        ..Default::default()
+    };
+
+    let style = resolve_style(Some(&metadata));
+
+    assert_eq!(style.language.as_deref(), Some("en--US"));
 }
 
 #[test]
@@ -129,7 +147,7 @@ fn resolve_style_selects_explicit_rich_text_format() {
     let metadata = UiTemplateNodeMetadata {
         attributes: toml::from_str(
             r#"
-rich_text_format = "html"
+rich_text_format = "html_subset_v1"
 "#,
         )
         .unwrap(),
@@ -138,10 +156,32 @@ rich_text_format = "html"
 
     assert_eq!(
         resolve_style(Some(&metadata)).rich_text_format,
-        UiRichTextFormat::Html
+        UiRichTextFormat::HtmlSubsetV1
     );
     assert_eq!(
         resolve_style(None).rich_text_format,
         UiRichTextFormat::Plain
     );
+}
+
+#[test]
+fn autocomplete_render_and_editable_state_share_query_property() {
+    let metadata = UiTemplateNodeMetadata {
+        component: "Autocomplete".to_string(),
+        attributes: toml::from_str(
+            r#"
+query = "needle"
+value = "asset://selected"
+caret_offset = 6
+"#,
+        )
+        .unwrap(),
+        ..Default::default()
+    };
+
+    assert_eq!(resolve_text(Some(&metadata)).as_deref(), Some("needle"));
+    let editable = resolve_editable_text_state(Some(&metadata), Some("needle"))
+        .expect("Autocomplete query should resolve as editable text");
+    assert_eq!(editable.text, "needle");
+    assert_eq!(editable.caret.offset, 6);
 }

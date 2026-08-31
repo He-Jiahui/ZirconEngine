@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::math::{Transform, Vec3};
+use crate::core::math::{Mat4, Transform, Vec3};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RenderMeshBounds {
@@ -44,10 +44,14 @@ impl RenderMeshBounds {
     }
 
     pub fn transformed(self, transform: Transform) -> Self {
-        let local_center = Vec3::from_array(self.center);
-        let local_half_extent =
-            (Vec3::from_array(self.max) - Vec3::from_array(self.min)).abs() * 0.5;
-        let world_from_local = transform.matrix();
+        self.transformed_by_affine(transform.matrix())
+    }
+
+    pub(crate) fn transformed_by_affine(self, world_from_local: Mat4) -> Self {
+        let local_min = Vec3::from_array(self.min);
+        let local_max = Vec3::from_array(self.max);
+        let local_center = (local_min + local_max) * 0.5;
+        let local_half_extent = (local_max - local_min).abs() * 0.5;
         let world_center = world_from_local.transform_point3(local_center);
         let world_half_extent = world_from_local
             .transform_vector3(Vec3::new(local_half_extent.x, 0.0, 0.0))
@@ -80,10 +84,10 @@ fn max_distance_from_center(points: [[f32; 3]; 2], center: [f32; 3]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::RenderMeshBounds;
-    use crate::core::math::{Quat, Transform, Vec3};
+    use crate::core::math::{Mat4, Quat, Transform, Vec3, Vec4};
 
     #[test]
-    fn transformed_bounds_preserve_local_center_rotation_and_non_uniform_scale() {
+    fn render_mesh_bounds_transform_preserves_local_center_rotation_and_non_uniform_scale() {
         let local = RenderMeshBounds::from_min_max([-1.0, -2.0, -0.5], [3.0, 2.0, 0.5]);
         let transform = Transform::from_translation(Vec3::new(10.0, 20.0, 30.0))
             .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2))
@@ -95,6 +99,41 @@ mod tests {
         assert_vec3_close(world.min, [4.0, 18.0, 28.0]);
         assert_vec3_close(world.max, [16.0, 26.0, 32.0]);
         assert!((world.radius - 56.0_f32.sqrt()).abs() <= 1.0e-5);
+    }
+
+    #[test]
+    fn render_mesh_bounds_affine_matrix_projection_preserves_shear() {
+        let local = RenderMeshBounds::from_min_max([-1.0, -2.0, -0.5], [3.0, 2.0, 0.5]);
+        let world_from_local = Mat4::from_cols(
+            Vec4::new(2.0, 0.0, 0.0, 0.0),
+            Vec4::new(1.0, 1.0, 0.0, 0.0),
+            Vec4::new(0.0, 0.0, 3.0, 0.0),
+            Vec4::new(10.0, 20.0, 30.0, 1.0),
+        );
+
+        let world = local.transformed_by_affine(world_from_local);
+
+        assert_vec3_close(world.center, [12.0, 20.0, 30.0]);
+        assert_vec3_close(world.min, [6.0, 18.0, 28.5]);
+        assert_vec3_close(world.max, [18.0, 22.0, 31.5]);
+        assert!((world.radius - 6.5).abs() <= 1.0e-5);
+    }
+
+    #[test]
+    fn render_mesh_bounds_transform_rebuilds_derived_metadata_from_min_max() {
+        let stale = RenderMeshBounds {
+            min: [-1.0; 3],
+            max: [1.0; 3],
+            center: [100.0; 3],
+            radius: 0.0,
+        };
+
+        let canonical = stale.transformed_by_affine(Mat4::IDENTITY);
+
+        assert_eq!(canonical.min, [-1.0; 3]);
+        assert_eq!(canonical.max, [1.0; 3]);
+        assert_eq!(canonical.center, [0.0; 3]);
+        assert!((canonical.radius - 3.0_f32.sqrt()).abs() <= 1.0e-5);
     }
 
     fn assert_vec3_close(actual: [f32; 3], expected: [f32; 3]) {

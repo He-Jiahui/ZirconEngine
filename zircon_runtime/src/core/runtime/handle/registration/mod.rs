@@ -1,3 +1,4 @@
+mod commit;
 mod descriptor_entries;
 mod descriptor_entries_five;
 mod descriptor_entries_four;

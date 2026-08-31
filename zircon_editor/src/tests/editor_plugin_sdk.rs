@@ -219,9 +219,17 @@ fn editor_host_reuses_asset_type_registry_for_unchanged_extension_generation() {
     let runtime = EventRuntimeHarness::new("asset_type_registry_generation_cache");
     let model_type = AssetTypeId::from_resource_kind(ResourceKind::Model);
 
-    let _ = runtime.runtime.asset_type_definition(&model_type).unwrap();
+    let _ = runtime
+        .runtime
+        .asset_type_definition(&model_type)
+        .unwrap()
+        .unwrap();
     let after_first = runtime.runtime.asset_type_registry_cache_counts();
-    let _ = runtime.runtime.asset_type_definition(&model_type).unwrap();
+    let _ = runtime
+        .runtime
+        .asset_type_definition(&model_type)
+        .unwrap()
+        .unwrap();
     let after_second = runtime.runtime.asset_type_registry_cache_counts();
 
     assert_eq!(after_second.1, after_first.1);
@@ -246,10 +254,7 @@ fn editor_plugin_sdk_reports_lifecycle_failures_without_discarding_extensions() 
             let operation_path = EditorOperationPath::parse("sdk.failure.open").map_err(
                 crate::core::editor_extension::EditorExtensionRegistryError::OperationPath,
             )?;
-            registry.register_command(EditorCommandDescriptor::operation(
-                operation_path,
-                "Open Failure Panel",
-            ))
+            registry.register_command(EditorCommandDescriptor::operation(operation_path))
         }
 
         fn on_lifecycle_event(
@@ -462,16 +467,10 @@ fn asset_contribution_descriptors_normalize_extensions_and_capability_gates() {
 
     let mut registry = EditorExtensionRegistry::default();
     registry
-        .register_command(EditorCommandDescriptor::operation(
-            import_operation.clone(),
-            "Import Model",
-        ))
+        .register_command(EditorCommandDescriptor::operation(import_operation.clone()))
         .unwrap();
     registry
-        .register_command(EditorCommandDescriptor::operation(
-            open_operation.clone(),
-            "Open Model Inspector",
-        ))
+        .register_command(EditorCommandDescriptor::operation(open_operation.clone()))
         .unwrap();
     registry
         .register_asset_importer(
@@ -577,16 +576,10 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
     let open_operation = EditorOperationPath::parse("sdk.asset.open_model_inspector").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_command(EditorCommandDescriptor::operation(
-            import_operation.clone(),
-            "Import Model",
-        ))
+        .register_command(EditorCommandDescriptor::operation(import_operation.clone()))
         .unwrap();
     extension
-        .register_command(EditorCommandDescriptor::operation(
-            open_operation.clone(),
-            "Open Model Inspector",
-        ))
+        .register_command(EditorCommandDescriptor::operation(open_operation.clone()))
         .unwrap();
     extension
         .register_asset_importer(
@@ -625,6 +618,7 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
         .runtime
         .asset_type_definition(&model_type)
         .unwrap()
+        .unwrap()
         .toolkit()
         .is_none());
 
@@ -643,6 +637,7 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
     let definition = runtime
         .runtime
         .asset_type_definition(&model_type)
+        .expect("asset type registry should materialize after capability is enabled")
         .expect("asset type should be visible after capability is enabled");
     assert_eq!(
         definition.toolkit().unwrap().view_id(),

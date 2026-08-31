@@ -27,7 +27,8 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
     );
 
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let material_uri = AssetUri::parse("res://materials/imported-layout-abi.zmaterial").unwrap();
@@ -55,6 +56,7 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
         ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,

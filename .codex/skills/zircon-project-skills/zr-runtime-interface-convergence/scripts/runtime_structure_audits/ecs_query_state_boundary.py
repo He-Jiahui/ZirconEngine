@@ -4,19 +4,23 @@ from pathlib import Path
 
 
 ECS_QUERY_STATE_MODULE_MAX_LINES = 450
-ECS_QUERY_STATE_ROOT_MAX_NON_EMPTY_LINES = 180
+ECS_QUERY_STATE_ROOT_MAX_NON_EMPTY_LINES = 32
 ECS_QUERY_STATE_MODULES = (
     "mod",
+    "archetype_plan",
     "cache",
     "cached_direct",
     "many_item_array",
     "mutable",
     "read_only",
     "read_only_cached",
+    "state",
     "stats",
     "system_param",
 )
 ECS_QUERY_STATE_ROOT_FORBIDDEN_SNIPPETS = {
+    "state-declaration": "pub struct QueryState",
+    "state-impl": "impl<D, F> QueryState",
     "cached-direct-impl": "D: CachedQueryData",
     "read-only-impl": "D: QueryData,",
     "mutable-impl": "D: QueryMutData",
@@ -113,11 +117,11 @@ def ecs_query_state_boundary_audit(root: Path) -> dict[str, object]:
         risks.append("scene/ecs/query/mod.rs is missing the `mod query_state;` declaration.")
     if root_non_empty_lines > ECS_QUERY_STATE_ROOT_MAX_NON_EMPTY_LINES:
         risks.append(
-            f"QueryState root exceeds {ECS_QUERY_STATE_ROOT_MAX_NON_EMPTY_LINES} non-empty lines; keep it to state, cache metadata, and construction."
+            f"QueryState root exceeds {ECS_QUERY_STATE_ROOT_MAX_NON_EMPTY_LINES} non-empty lines; keep it to module wiring and curated exports."
         )
     if root_forbidden_locations:
         risks.append(
-            "QueryState root contains behavior impl families that belong in read_only, mutable, cached_direct, or system_param."
+            "QueryState root contains state declarations or behavior impl families that belong in focused child owners."
         )
     if oversized_modules:
         risks.append(

@@ -75,8 +75,8 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
     load_state = root / "zircon_runtime/src/asset/facade/load_state.rs"
     facade_manager = root / "zircon_runtime/src/asset/facade/manager.rs"
     resource_record = root / "zircon_runtime_interface/src/resource/resource_record.rs"
-    registry_ops = root / "zircon_runtime/src/core/resource/manager/registry_ops.rs"
-    resource_commit = root / "zircon_runtime/src/core/resource/manager/commit.rs"
+    registry_ops = root / "zircon_runtime/crates/zr_resource/src/manager/registry_ops.rs"
+    resource_commit = root / "zircon_runtime/crates/zr_resource/src/manager/commit.rs"
     resource_sync = (
         root
         / "zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs"
@@ -173,6 +173,7 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
             cache_mesh,
             cache_scene,
             cache_toml,
+            root / "zircon_runtime/src/asset/artifact/cache_payload/scene/script.rs",
         )
         if path.exists()
     )
@@ -200,7 +201,7 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
             "zircon_runtime/src/asset/tests/assets/artifact_store.rs",
             "zircon_runtime/src/asset/tests/assets/artifact_store/bounded_read.rs",
             "zircon_runtime/src/asset/tests/assets/artifact_store/lazy_residency.rs",
-            "zircon_runtime/src/core/resource/tests.rs",
+            "zircon_runtime/crates/zr_resource/src/tests.rs",
         )
         if (root / file_name).exists()
     ) + artifact_store_roundtrip_sources + ((_read_text(load_state),) if load_state.exists() else tuple())

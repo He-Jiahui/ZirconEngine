@@ -83,10 +83,10 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
             "fn present_redraw_frame",
             "if self.surface_present_enabled {",
             ".present_viewport(self.viewport, self.viewport_size)",
-            "self.ensure_fallback_presenter(event_loop)",
+            "self.ensure_reference_cpu_presenter(event_loop)",
             ".capture_frame(self.viewport, self.viewport_size)",
         ],
-        "runtime redraw should use capture_frame plus softbuffer only when native surface presentation is unavailable",
+        "runtime redraw should use capture_frame plus the explicit reference CPU presenter only when selected",
     );
     for required_path in [
         "self.complete_presented_frame(event_loop);",
@@ -147,7 +147,7 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         "fn teardown_surface_present(&mut self)",
         "format!(\"runtime surface unbind failed: {error}\")",
         "fn drop(&mut self)",
-        "self.teardown_surface_present();",
+        "self.teardown_primary_window();",
     ] {
         assert!(
             runtime_surface_present_source.contains(unbind_path),
@@ -157,27 +157,35 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
     assert_source_order(
         runtime_surface_present_source.as_str(),
         &[
-            "fn close_primary_window_after_request",
-            "self.teardown_surface_present();",
+            "fn teardown_primary_window(&mut self) -> bool",
+            "let surface_released = self.teardown_surface_present();",
+            "if let Some(presenter) = self.presenter.take() {",
+            "presenter.publish_summary();",
+            "self.window = None;",
+            "surface_released",
             "fn disable_surface_present",
             "write_warn(",
-            "fn teardown_surface_present",
+            "fn teardown_surface_present(&mut self) -> bool",
             "self.report_fatal_failure(",
             "fn release_surface_present",
         ],
-        "terminal close should fail closed while runtime fallback keeps recoverable unbind semantics",
+        "primary-window teardown should release runtime surface ownership and publish degraded-presenter cost before invalidating host presentation state",
     );
     let drop_source = runtime_surface_present_source
         .split("impl Drop for RuntimeEntryApp")
         .nth(1)
         .expect("runtime entry app should retain explicit teardown");
     assert!(
-        drop_source.contains("self.teardown_surface_present();"),
-        "RuntimeEntryApp Drop should report terminal surface-unbind failures"
+        drop_source.contains("let _ = self.teardown_primary_window();"),
+        "RuntimeEntryApp Drop should release the presenter and report terminal surface-unbind failures"
+    );
+    assert!(
+        !runtime_surface_present_source.contains("close_primary_window_after_request"),
+        "window teardown should have one generic owner instead of a close-request-only helper"
     );
     for diagnostic in [
         "runtime_surface_present_enabled",
-        "runtime_surface_present_fallback",
+        "runtime_reference_cpu_presenter_enabled",
     ] {
         assert!(
             runtime_surface_present_source.contains(diagnostic),
@@ -206,8 +214,8 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         );
     }
     assert!(
-        runtime_surface_present_source.contains("SoftbufferRuntimePresenter::new"),
-        "runtime surface-present fallback should preserve SoftbufferRuntimePresenter construction"
+        runtime_surface_present_source.contains("ReferenceCpuPresenter::new"),
+        "runtime surface-present owner should preserve ReferenceCpuPresenter construction"
     );
 }
 
@@ -246,9 +254,9 @@ fn explicit_native_surface_failure_branches_remain_fail_closed_before_fallback()
             "native surface presentation failed: {error}",
             "event_loop.exit();",
             "return;",
-            "self.ensure_fallback_presenter(event_loop)",
+            "self.ensure_reference_cpu_presenter(event_loop)",
         ],
-        "native presentation failures must terminate before the optional fallback path",
+        "native presentation failures must terminate before the explicit reference CPU path",
     );
     assert_source_order(
         resize,

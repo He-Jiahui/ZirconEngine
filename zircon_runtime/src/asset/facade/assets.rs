@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use super::{Asset, AssetEventReceiver, AssetLoadState, Handle};
 use crate::core::resource::{
-    ResourceLease, ResourceManager, ResourceMarker, ResourceMutationBatch, ResourceRecord,
-    ResourceRegistryError, ResourceResult,
+    ResourceLease, ResourceManager, ResourceMarker, ResourceMutationBatch,
+    ResourceReadinessGenerationAssemblyExt, ResourceRecord, ResourceRegistryError, ResourceResult,
 };
 
 #[derive(Clone, Debug)]

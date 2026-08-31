@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
   - zircon_runtime_interface/src/ui/dispatch/input/mod.rs
   - zircon_runtime_interface/src/ui/dispatch/mod.rs
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime_interface/src/tests/accessibility_contracts.rs
   - zircon_runtime_interface/src/tests/mod.rs
@@ -15,7 +15,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
   - zircon_runtime_interface/src/ui/dispatch/input/mod.rs
   - zircon_runtime_interface/src/ui/dispatch/mod.rs
-  - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime_interface/src/tests/accessibility_contracts.rs
   - zircon_runtime_interface/src/tests/mod.rs
@@ -28,7 +28,7 @@ tests:
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - pass: coordination scan with LookbackHours 4
   - pass: cargo metadata --locked --format-version 1
-  - pass: rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/accessibility.rs zircon_runtime_interface/src/ui/dispatch/input/event.rs zircon_runtime_interface/src/runtime_api.rs zircon_runtime_interface/src/tests/mod.rs zircon_runtime_interface/src/tests/accessibility_contracts.rs
+  - pass: rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/accessibility.rs zircon_runtime_interface/src/ui/dispatch/input/event.rs zircon_runtime_interface/src/runtime_api/mod.rs zircon_runtime_interface/src/tests/mod.rs zircon_runtime_interface/src/tests/accessibility_contracts.rs
   - pass: cargo test -p zircon_runtime_interface --lib accessibility_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-accesskit-bridge --message-format short --color never (rerun after initial compile timeout; 7 passed, 0 failed, 83 filtered)
   - pass: cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-accesskit-bridge --message-format short --color never
   - pass: git diff --check on Milestone 0 interface/doc files with LF/CRLF warnings only
@@ -130,7 +130,7 @@ Milestone 0 validation evidence:
 
 - `./.codex/skills/zircon-project-skills/cross-session-coordination/scripts/Get-RecentCoordinationContext.ps1 -RepoRoot E:\Git\ZirconEngine -LookbackHours 4`: PASS.
 - `cargo metadata --locked --format-version 1`: PASS.
-- `rustfmt --edition 2021 --check "zircon_runtime_interface/src/ui/accessibility.rs" "zircon_runtime_interface/src/ui/dispatch/input/event.rs" "zircon_runtime_interface/src/runtime_api.rs" "zircon_runtime_interface/src/tests/mod.rs" "zircon_runtime_interface/src/tests/accessibility_contracts.rs"`: PASS.
+- `rustfmt --edition 2021 --check "zircon_runtime_interface/src/ui/accessibility.rs" "zircon_runtime_interface/src/ui/dispatch/input/event.rs" "zircon_runtime_interface/src/runtime_api/mod.rs" "zircon_runtime_interface/src/tests/mod.rs" "zircon_runtime_interface/src/tests/accessibility_contracts.rs"`: PASS.
 - `cargo test -p zircon_runtime_interface --lib accessibility_contracts --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-accesskit-bridge" --message-format short --color never`: first run timed out during initial compile; rerun PASS with 7 passed, 0 failed, 83 filtered.
 - `cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-accesskit-bridge" --message-format short --color never`: PASS.
-- `git diff --check -- "zircon_runtime_interface/src/ui/accessibility.rs" "zircon_runtime_interface/src/ui/dispatch/input/event.rs" "zircon_runtime_interface/src/runtime_api.rs" "zircon_runtime_interface/src/tests/mod.rs" "zircon_runtime_interface/src/tests/accessibility_contracts.rs" "docs/zircon_runtime_interface/ui/accessibility.md"`: PASS with LF/CRLF warnings only.
+- `git diff --check -- "zircon_runtime_interface/src/ui/accessibility.rs" "zircon_runtime_interface/src/ui/dispatch/input/event.rs" "zircon_runtime_interface/src/runtime_api/mod.rs" "zircon_runtime_interface/src/tests/mod.rs" "zircon_runtime_interface/src/tests/accessibility_contracts.rs" "docs/zircon_runtime_interface/ui/accessibility.md"`: PASS with LF/CRLF warnings only.

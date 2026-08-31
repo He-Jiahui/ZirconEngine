@@ -3,14 +3,14 @@ use std::ops::Range;
 use bytemuck::{Pod, Zeroable};
 
 use crate::core::math::UVec2;
-use crate::text::layout::justify_line_advances;
-use crate::text::sdf::{
-    scale_sdf_metrics_for_display, SdfAtlasBake, SdfAtlasRect, SdfBakeParams, SdfBakedGlyph,
-    SdfGlyphMetrics, SdfMode, SdfRunCpuPreparation,
-};
 use crate::text::ShapedGlyphRotation;
 #[cfg(test)]
 use crate::text::TextRenderState;
+use crate::text::layout::justify_line_advances;
+use crate::text::sdf::{
+    SdfAtlasBake, SdfAtlasRect, SdfBakeParams, SdfBakedGlyph, SdfGlyphMetrics, SdfMode,
+    SdfRunCpuPreparation, scale_sdf_metrics_for_display,
+};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextDirection, UiTextWritingMode};
 
@@ -96,6 +96,7 @@ pub(super) fn build_sdf_vertices(
     vertices
 }
 
+#[cfg(test)]
 pub(super) fn build_sdf_vertex_plan(
     vertices: &mut Vec<ScreenSpaceUiSdfVertex>,
     text_ranges: &mut Vec<Range<u32>>,
@@ -105,6 +106,31 @@ pub(super) fn build_sdf_vertex_plan(
     cpu_runs: &[SdfRunCpuPreparation],
     viewport_size: UVec2,
 ) {
+    build_sdf_vertex_plan_iter(
+        vertices,
+        text_ranges,
+        texts.iter(),
+        texts.len(),
+        plan,
+        atlas_bake,
+        cpu_runs,
+        viewport_size,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn build_sdf_vertex_plan_iter<'a, Texts>(
+    vertices: &mut Vec<ScreenSpaceUiSdfVertex>,
+    text_ranges: &mut Vec<Range<u32>>,
+    texts: Texts,
+    text_batch_count: usize,
+    plan: &SdfAtlasPlan,
+    atlas_bake: &SdfAtlasBake,
+    cpu_runs: &[SdfRunCpuPreparation],
+    viewport_size: UVec2,
+) where
+    Texts: IntoIterator<Item = &'a ScreenSpaceUiTextBatch>,
+{
     let viewport = UiFrame::new(
         0.0,
         0.0,
@@ -112,8 +138,8 @@ pub(super) fn build_sdf_vertex_plan(
         viewport_size.y.max(1) as f32,
     );
     text_ranges.clear();
-    text_ranges.reserve(texts.len());
-    for (index, text) in texts.iter().enumerate() {
+    text_ranges.reserve(text_batch_count);
+    for (index, text) in texts.into_iter().enumerate() {
         let start = vertices.len() as u32;
         if let (Some(run), Some(cpu_run), Some(text_frame_clip)) = (
             plan.runs.get(index),

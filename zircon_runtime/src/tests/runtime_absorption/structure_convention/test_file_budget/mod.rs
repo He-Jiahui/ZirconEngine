@@ -135,6 +135,7 @@ mod shader_prewarm_wgpu_module_validation;
 mod shader_prewarm_wgpu_pipeline_validation;
 mod shader_prewarm_wgpu_report_contract;
 mod shader_prewarm_wgpu_validation_report_summary;
+mod shader_surface_source_contract;
 mod taa_reactive_shader_pass_identity;
 mod ui_accessibility;
 mod ui_accessibility_widget_actions;

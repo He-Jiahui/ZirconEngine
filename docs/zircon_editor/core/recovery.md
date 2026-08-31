@@ -29,13 +29,16 @@ provided by the save owner. Editor14 remains the only job queue owner and must
 submit and report the terminal task.
 
 `AutosaveJobAdapter` reserves the selected batch through that shared admission
-owner before it materializes document requests. Completion polling is bounded by
-an explicit ticket count; the default is `DEFAULT_AUTOSAVE_COMPLETION_BUDGET`
-(64). A poll reports the current batch's cumulative succeeded/failed counts and
-the remaining ticket count, so consumers must not re-apply intermediate counts
-as deltas. Pending tickets rotate through one retained `VecDeque`; the terminal
-poll advances the scheduler exactly once, returns the final cumulative counts,
-and resets the accumulator for the next interval.
+owner before it materializes document requests. A snapshot source must declare
+its project-relative `AutosaveSourcePath` before admission, so a capture failure
+cannot lose its document/source identity. Completion polling is bounded by an
+explicit ticket count; the default is `DEFAULT_AUTOSAVE_COMPLETION_BUDGET`
+(64). A poll reports cumulative succeeded/failed counts, the remaining ticket
+count, immutable generation health counters, and only the document-bound
+terminal outcomes newly observed by that poll. Each outcome retains its stage,
+retryability, bounded error chain, and any still-usable snapshot path. Pending
+tickets rotate through one retained `VecDeque`; the terminal poll advances the
+scheduler exactly once and resets only the batch counters for the next interval.
 
 ## Snapshot Store
 
@@ -60,7 +63,11 @@ atomic create-new operation. The marker is shared across independent
 `AutosaveStore` instances and processes, so a document/sequence pair remains
 unavailable while its write or retention rotation is in flight. Existing
 snapshots with the same numeric sequence are rejected even when the requested
-extension differs. The store keeps the latest three numeric sequences per
+extension differs. A payload `N.<extension>` becomes recoverable only after its
+no-replace `N.snapshot.json` commit record is published. That record carries the
+source content digest captured with the dirty generation, the explicit journal
+availability state, the autosave schema id/version, and the payload BLAKE3
+checksum. The store keeps the latest three committed numeric sequences per
 document. If rotation fails after a new snapshot is durable, it returns
 `AutosaveError::RotationAfterWrite` with the persisted path so callers must
 allocate a new sequence rather than retry the same one.
@@ -73,20 +80,62 @@ safe interrupted-process repair.
 
 ## Recovery Catalog
 
-Each document autosave directory has one immutable `recovery.json` that binds
-the document id to its validated `AutosaveSourcePath`. The first mapping is
-published with no-replace semantics; a concurrent or later write must read the
-same mapping, and a different source path is rejected. This prevents a later
-snapshot from silently changing the document restored by an earlier snapshot.
+Each document autosave directory has one immutable `recovery.json` v2 that
+binds the document id to a validated, normalized `AutosaveSourcePath` and its
+BLAKE3 path identity. The first mapping is published with no-replace semantics;
+a concurrent or later write must read the same mapping, and a different source
+path is rejected. This prevents a later snapshot from silently changing the
+document restored by an earlier snapshot.
 
-`AutosaveStore::recovery_candidates()` enumerates only directories with valid
-document identifiers, valid metadata, and one unambiguous latest numeric
-snapshot. It reconstructs `RestoreCandidate` with the project-relative source
-resolved under the project root. Missing metadata, malformed metadata, an
-invalid document directory, or duplicate snapshot sequence is an explicit
-error rather than a guessed recovery choice. A missing source file remains a
-candidate with no source modification timestamp, preserving the recovery UI's
-explicit decision requirement.
+`AutosaveStore::recovery_catalog()` enumerates only committed metadata/payload
+pairs and returns `AutosaveRecoveryCatalogReport { candidates, diagnostics }`.
+Once the catalog root is enumerable, malformed document directories, metadata,
+or checksums are quarantined per entry so they cannot suppress valid documents.
+The catalog streams the current source digest and classifies each snapshot as
+`SourceMissing`, `SnapshotAheadOfSource`, `SourceDiverged`, or
+`SnapshotAlreadyCommitted`; it does not use modification times. The last state
+is not offered for recovery. A missing source remains an explicit candidate
+state rather than a guessed restore action.
+
+## Terminal Autosave Diagnostics
+
+Every worker terminal result is appended as an independent no-replace JSON
+record below `<project-root>/.zircon/autosave/diagnostics/`; records retain the
+document/source outcome but never authorize source overwrite. Retention keeps
+the newest 128 records. `AutosaveDiagnosticStore::load()` isolates one damaged
+record and still returns the rest for Welcome or Hub; `document_folder()`
+provides the per-document autosave folder for an explicit host open-folder
+action. Normal worker persistence stays off the UI poll path. If a job is
+cancelled before its worker begins, the active/retired project lifecycle writes
+that one fallback record before discarding the adapter; a failed write retains
+the retired adapter for a later poll retry.
+
+## Final Autosave Shutdown
+
+`EditorAutosaveService::shutdown_with_final_autosave` is the only editor
+shutdown path for autosave. The retained host first captures document-bound
+requests from the current dirty-toolkit projection; snapshot serialization
+remains deferred to the recovery worker. The service fences interval admission,
+drains any already-admitted work while the shared Editor14 job system remains
+live, then uses a final scheduler window that bypasses the periodic deadline.
+It still observes the shared entry and byte admission limits, repeats bounded
+windows until every requested document reaches a final terminal outcome or the
+deadline expires, and never starts a second in-flight window.
+
+Only outcomes from that final pass determine whether normal editor shutdown may
+release the project session guard. A request left without a final terminal
+result at the deadline becomes a document-bound, retryable lifecycle
+cancellation and is persisted through the normal fallback diagnostic path. A
+diagnostic persistence error, final failure, or unfinished shared job keeps the
+normal project-close path from removing its OS-backed admission lease. This
+recovery boundary neither writes authoritative source files nor bypasses the
+shared job-system shutdown owner.
+
+If final requests arrive without an active project adapter, the service returns
+an explicit retryable lifecycle cancellation without starting a worker. It
+cannot derive a diagnostic-store root in that invalid lifecycle state, so the
+host must treat the outcome as a failed close and preserve the project guard
+rather than silently dropping the request.
 
 ## Project Session Boundary
 
@@ -122,6 +171,13 @@ creates through `hard_link`, replaces through `ReplaceFileW`, and removes the
 record directly; this layer has no parent-directory fsync equivalent for any
 of those Windows publication paths, so successful mutations intentionally
 report this state.
+
+The editor manager removes a session record only through its explicit,
+successful project-close transaction. Dropping the manager never calls
+`SessionGuard::release()`: an early startup failure, final-autosave failure, or
+release I/O failure must leave a residual record after its OS lease is dropped,
+so the next startup enters the explicit recovery/admission path instead of
+silently treating the project as cleanly closed.
 
 `SessionGuard::replace_residual_at` is deliberately not a liveness detector.
 The project lifecycle owner must first determine that the inspected record is

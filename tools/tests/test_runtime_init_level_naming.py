@@ -102,6 +102,58 @@ class RuntimeInitLevelNamingTests(unittest.TestCase):
                 ("editor_authoring_state",),
             ),
         )
+        runtime_ui_theme_path = (
+            "zircon_runtime/src/ui/surface/render/feedback/colors.rs"
+        )
+        self.assertEqual(
+            "runtime-ui-editor-host-contract",
+            _classify_editor_reference(
+                runtime_ui_theme_path,
+                ("EditorDesignTokens",),
+            ),
+        )
+        self.assertEqual(
+            "runtime-ui-editor-host-contract",
+            _classify_editor_reference(
+                "zircon_runtime/src/ui/v2/style.rs",
+                ("register_editor_design_tokens",),
+            ),
+        )
+        self.assertEqual(
+            "unclassified-runtime-naming-reference",
+            _classify_editor_reference(
+                runtime_ui_theme_path,
+                ("editor_authoring_state",),
+            ),
+        )
+        self.assertEqual(
+            "runtime-time-editor-preview-domain",
+            _classify_editor_reference(
+                "zircon_runtime/src/core/runtime/time.rs",
+                ("EditorPreview",),
+            ),
+        )
+        self.assertEqual(
+            "runtime-scene-editor-facing-projection",
+            _classify_editor_reference(
+                "zircon_runtime/src/scene/level_system.rs",
+                ("editor",),
+            ),
+        )
+        self.assertEqual(
+            "unclassified-runtime-naming-reference",
+            _classify_editor_reference(
+                "zircon_runtime/src/scene/level_system.rs",
+                ("editor_selection",),
+            ),
+        )
+        self.assertEqual(
+            "runtime-text-editor-host-contract",
+            _classify_editor_reference(
+                "zircon_runtime/src/text/layout_session.rs",
+                ("Editor",),
+            ),
+        )
         self.assertEqual(
             "unclassified-runtime-naming-reference",
             _classify_editor_reference(
@@ -166,6 +218,36 @@ class RuntimeInitLevelNamingTests(unittest.TestCase):
         self.assertEqual(
             "legacy-scene-schema-render-debt",
             _classify_legacy_reference(scene_path),
+        )
+        self.assertEqual(
+            "legacy-runtime-render-graph-access-debt",
+            _classify_legacy_reference(
+                "zircon_runtime/src/render_graph/graph/access_index.rs"
+            ),
+        )
+        self.assertEqual(
+            "legacy-runtime-text-compatibility-debt",
+            _classify_legacy_reference(
+                "zircon_runtime/src/text/document/storage.rs"
+            ),
+        )
+        self.assertEqual(
+            "legacy-runtime-module-composition-debt",
+            _classify_legacy_reference(
+                "zircon_runtime/src/builtin/runtime_modules/assembly.rs"
+            ),
+        )
+        self.assertEqual(
+            "curated-runtime-legacy-rejection-guard",
+            _classify_legacy_reference(
+                "zircon_runtime/src/core/framework/window/window_command/header.rs"
+            ),
+        )
+        self.assertEqual(
+            "curated-runtime-facade-legacy-reference",
+            _classify_legacy_reference(
+                "zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs"
+            ),
         )
 
     def test_legacy_scan_applies_cfg_test_boundary_per_item(self) -> None:

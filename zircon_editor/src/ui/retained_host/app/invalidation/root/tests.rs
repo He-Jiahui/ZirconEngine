@@ -7,8 +7,8 @@ use crate::ui::workbench::view::ViewInstanceId;
 fn host_invalidation_coalesces_recompute_reasons_per_view_scope() {
     let view = ViewInstanceId::new("ui-asset-editor#main");
     let mut root = HostInvalidationRoot::default();
-    root.invalidate_view(view.clone(), HostInvalidationMask::PRESENTATION_DATA);
-    root.invalidate_view(view.clone(), HostInvalidationMask::HIT_TEST);
+    root.invalidate_view(&view, HostInvalidationMask::PRESENTATION_DATA);
+    root.invalidate_view(&view, HostInvalidationMask::HIT_TEST);
 
     let transaction = root.take_recompute_transaction();
 
@@ -128,8 +128,8 @@ fn host_invalidation_exposes_view_only_presentation_scopes() {
     let first = ViewInstanceId::new("ui-asset-editor#first");
     let second = ViewInstanceId::new("ui-asset-editor#second");
     let mut root = HostInvalidationRoot::default();
-    root.invalidate_view(first.clone(), HostInvalidationMask::PRESENTATION_DATA);
-    root.invalidate_view(second.clone(), HostInvalidationMask::PRESENTATION_DATA);
+    root.invalidate_view(&first, HostInvalidationMask::PRESENTATION_DATA);
+    root.invalidate_view(&second, HostInvalidationMask::PRESENTATION_DATA);
 
     let transaction = root.take_recompute_transaction();
 
@@ -144,7 +144,7 @@ fn host_invalidation_rejects_global_or_non_presentation_scoped_fast_paths() {
     let view = ViewInstanceId::new("ui-asset-editor#main");
     let mut root = HostInvalidationRoot::default();
     root.invalidate_view(
-        view.clone(),
+        &view,
         HostInvalidationMask::PRESENTATION_DATA.union(HostInvalidationMask::HIT_TEST),
     );
     assert!(root.has_pending_presentation_recompute());

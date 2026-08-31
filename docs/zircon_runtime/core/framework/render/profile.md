@@ -25,7 +25,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types/capability.rs
   - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/tests.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - dev/bevy/Cargo.toml
@@ -50,7 +50,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/backend_types/capability.rs
   - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/tests.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
 plan_sources:
@@ -169,7 +169,7 @@ Profile freeze is the first M10 dependency gate. It does not mean the renderer i
 | `DefaultRender` is a default-rendering bundle, not the whole engine default. | `dev/bevy/docs/cargo_features.md:22-52` separates Bevy `default`, `2d`, `3d`, `ui`, `common_api`, and renderer collections. | `zircon_runtime/src/core/framework/render/profile.rs:78-87` builds `DefaultRender` from `CommonRenderApi`, `Render2d`, `Render3d`, and `Ui`. | Keep audio, platform, input, scene, and UI widget/picking ownership outside this profile gate. |
 | `DefaultRender` excludes advanced products. | Bevy default plugin order includes normal render/PBR slices before optional advanced tooling in `dev/bevy/crates/bevy_internal/src/default_plugins.rs:43-77`. | `zircon_runtime/src/core/framework/tests.rs:1050-1063` asserts no `AdvancedRender`, `SolariExperimental`, `VirtualGeometry`, `HybridGlobalIllumination`, or `Solari` feature in default render. | No M10 acceptance statement may cite VG/HGI/Solari as default 2D/3D/UI proof. |
 | Required feature validation stays explicit. | Bevy collections split API and renderer collections, so renderer readiness must be named rather than implied. | `profile.rs:149-176` validates required profiles and backend capabilities; `framework/tests.rs:1066-1106` rejects missing 2D sprite, 3D PBR, and UI render target dependencies. | Later M10 slices must add or update tests when they change required feature sets. |
-| App bootstrap stores the selected profile before runtime modules depend on it. | Bevy plugin groups are configured before app execution. | `zircon_app/src/entry/entry_config.rs:203-207` defaults runtime/editor to `DefaultRender` and headless to `Headless`; `zircon_app/src/entry/tests/profile_bootstrap.rs:446-473` covers runtime default and explicit headless storage under `RENDER_PROFILE_CONFIG_KEY`. | `cargo check -p zircon_app --locked --all-targets` remains the app-profile promotion check. |
+| App bootstrap stores the selected profile before runtime modules depend on it. | Bevy plugin groups are configured before app execution. | `zircon_app/src/entry/product_host_config/resolution.rs` derives runtime/editor `DefaultRender` and server `Headless`; `engine_entry.rs` stores only the resolved bundle under `RENDER_PROFILE_CONFIG_KEY`. | `cargo check -p zircon_app --locked --all-targets` remains the app-profile promotion check. |
 | Advanced provider registration is opt-in. | Bevy Cargo features and plugin groups make optional renderer products explicit. | `profile_bootstrap.rs:219-300` covers default render not linking VG/HGI providers and advanced/Solari profiles linking their providers only when selected. | Feature-gated advanced-provider tests stay separate from default profile acceptance. |
 | Backend capability gates are not silently bypassed. | Bevy render features are gated by renderer/platform support. | `profile.rs:194-219` maps advanced, AA, and Solari features to backend capabilities; profile module tests cover default AA and Solari capability failures. | Missing capability must be structured `RenderProfileValidationError`, not a fallback renderer success. |
 
@@ -191,7 +191,7 @@ M9B adds the neutral Solari contract under `render::solari`. `SolariExperimental
 
 ## App Wiring
 
-`EntryConfig` now carries a `RenderProfileBundle`. Runtime and editor profiles default to `RenderProfileBundle::default_render()`, while headless defaults to `RenderProfileBundle::headless()`. The app host stores the chosen bundle in `CoreRuntime` config under `RENDER_PROFILE_CONFIG_KEY` before module activation so runtime modules and later plugin groups can query the active render product surface without coupling to `zircon_app` internals.
+`EntryConfig` carries only an optional render-profile request. `EntryConfig::resolve()` derives runtime/editor `DefaultRender` and server `Headless`, rejects non-headless server combinations, and stores the immutable result in `ResolvedProductHostConfig`. The app host writes only that resolved bundle under `RENDER_PROFILE_CONFIG_KEY` before module activation.
 
 ## Test Coverage
 

@@ -9,24 +9,10 @@ use super::{
 
 const TABLE_COLUMN_RESIZE_DRAG_PREFIX: &str = "table_column_resize";
 const DEFAULT_MIN_COLUMN_WIDTH: f64 = 40.0;
-const TABLE_COLUMN_RESIZE_HANDLE_COMPONENTS: [&str; 4] = [
-    "TableColumnResizeHandle",
-    "DataGridColumnResizeHandle",
-    "TableResizeHandle",
-    "ColumnResizeHandle",
-];
 const TABLE_COLUMN_RESIZE_HANDLE_ROLES: [&str; 3] = [
     "table-column-resize-handle",
     "data-grid-column-resize-handle",
     "column-resize-handle",
-];
-const TABLE_COLUMN_SORT_HEADER_COMPONENTS: [&str; 6] = [
-    "TableColumnHeader",
-    "TableSortHeader",
-    "TableHeaderCell",
-    "DataGridColumnHeader",
-    "DataGridSortHeader",
-    "ColumnHeader",
 ];
 const TABLE_COLUMN_SORT_HEADER_ROLES: [&str; 4] = [
     "table-column-header",
@@ -46,13 +32,11 @@ const TABLE_COLUMN_FIELD_PROPERTIES: [&str; 8] = [
 ];
 
 pub(super) fn is_table_column_resize_handle(metadata: &UiTemplateNodeMetadata) -> bool {
-    TABLE_COLUMN_RESIZE_HANDLE_COMPONENTS.contains(&metadata.component.as_str())
-        || role_is_one_of(metadata, &TABLE_COLUMN_RESIZE_HANDLE_ROLES)
+    role_is_one_of(metadata, &TABLE_COLUMN_RESIZE_HANDLE_ROLES)
 }
 
 pub(super) fn is_table_column_sort_header(metadata: &UiTemplateNodeMetadata) -> bool {
-    TABLE_COLUMN_SORT_HEADER_COMPONENTS.contains(&metadata.component.as_str())
-        || role_is_one_of(metadata, &TABLE_COLUMN_SORT_HEADER_ROLES)
+    role_is_one_of(metadata, &TABLE_COLUMN_SORT_HEADER_ROLES)
 }
 
 pub(super) fn table_column_resize_disabled(metadata: &UiTemplateNodeMetadata) -> bool {

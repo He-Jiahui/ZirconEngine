@@ -4,10 +4,10 @@ use super::super::*;
 use super::text_batch;
 use crate::core::framework::text::TextLayoutError;
 use crate::graphics::scene::scene_renderer::ui::render::{
+    ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiShapedGlyph,
     text_decorations::ScreenSpaceUiTextDecorations,
     text_effects::{ScreenSpaceUiTextEffects, ScreenSpaceUiTextGlow, ScreenSpaceUiTextOutline},
     text_projection::ScreenSpaceUiTextClipTransform,
-    ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiShapedGlyph,
 };
 use crate::text::{ResolvedTextGlyphArtifact, ShapedGlyphRotation};
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -340,12 +340,14 @@ fn artifact_line_for_test(
             source_text: Arc::from(source_text),
             source_text_origin,
             font_generation: 7,
+            font_lease: crate::text::ResolvedTextGlyphArtifactFontLease::process_default(),
             style: UiResolvedStyle::default(),
             writing_mode: UiTextWritingMode::HorizontalTb,
             lines: Vec::new(),
+            logical_virtual_line_sequences: None,
         }),
         line_index: 0,
-        refreshed_line: None,
         font_generation: 7,
+        glyph_range: 0..0,
     }
 }

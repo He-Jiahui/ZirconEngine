@@ -6,22 +6,6 @@ pub(super) use self::observability::DIAGNOSTICS_OBSERVABILITY_BINDINGS;
 
 pub(super) const UI_AUTHORING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
-        "UiAssetEditorOpen",
-        "workbench.extension.ui_asset_editor.open",
-    ),
-    click(
-        "UiAssetEditorHierarchyTab",
-        "workbench.extension.ui_asset_editor.hierarchy_tab.select",
-    ),
-    click(
-        "UiAssetEditorStatesTab",
-        "workbench.extension.ui_asset_editor.states_tab.select",
-    ),
-    click(
-        "UiAssetEditorBindingsTab",
-        "workbench.extension.ui_asset_editor.bindings_tab.select",
-    ),
-    click(
         "UiAssetEditorInventoryRow",
         "workbench.extension.ui_asset_editor.inventory_row.select",
     ),
@@ -61,19 +45,6 @@ pub(super) const UI_AUTHORING_BINDINGS: &[ExtensionBindingSpec] = &[
         "UiAssetEditorValidate",
         "workbench.extension.ui_asset_editor.validate.invoke",
     ),
-    click("UiBindingOpen", "workbench.extension.ui_binding.open"),
-    click(
-        "UiBindingBindingsTab",
-        "workbench.extension.ui_binding.bindings_tab.select",
-    ),
-    click(
-        "UiBindingExpressionsTab",
-        "workbench.extension.ui_binding.expressions_tab.select",
-    ),
-    click(
-        "UiBindingValidationTab",
-        "workbench.extension.ui_binding.validation_tab.select",
-    ),
     click(
         "UiBindingViewModelRow",
         "workbench.extension.ui_binding.view_model_row.select",
@@ -103,29 +74,12 @@ pub(super) const UI_AUTHORING_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.ui_binding.validation_table_row.select",
     ),
     click(
-        "UiBindingOutput",
-        "workbench.extension.ui_binding.output.select",
-    ),
-    click(
         "UiBindingPreview",
         "workbench.extension.ui_binding.preview.invoke",
     ),
     click(
         "UiBindingValidate",
         "workbench.extension.ui_binding.validate.invoke",
-    ),
-    click("IconLibraryOpen", "workbench.extension.icon_library.open"),
-    click(
-        "IconLibraryIconTab",
-        "workbench.extension.icon_library.icon_tab.select",
-    ),
-    click(
-        "IconLibraryUsageTab",
-        "workbench.extension.icon_library.usage_tab.select",
-    ),
-    click(
-        "IconLibraryExportTab",
-        "workbench.extension.icon_library.export_tab.select",
     ),
     click(
         "IconLibraryEditorCoreRow",
@@ -156,32 +110,12 @@ pub(super) const UI_AUTHORING_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.icon_library.archived_table_row.select",
     ),
     click(
-        "IconLibraryOutput",
-        "workbench.extension.icon_library.output.select",
-    ),
-    click(
         "IconLibraryFindUsage",
         "workbench.extension.icon_library.find_usage.invoke",
     ),
     click(
         "IconLibraryValidate",
         "workbench.extension.icon_library.validate.invoke",
-    ),
-    click(
-        "AccessibilityAuditOpen",
-        "workbench.extension.accessibility_audit.open",
-    ),
-    click(
-        "AccessibilityAuditIssuesTab",
-        "workbench.extension.accessibility_audit.issues_tab.select",
-    ),
-    click(
-        "AccessibilityAuditRulesTab",
-        "workbench.extension.accessibility_audit.rules_tab.select",
-    ),
-    click(
-        "AccessibilityAuditFixesTab",
-        "workbench.extension.accessibility_audit.fixes_tab.select",
     ),
     click(
         "AccessibilityAuditGameplayHudRow",
@@ -212,29 +146,12 @@ pub(super) const UI_AUTHORING_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.accessibility_audit.motion_table_row.select",
     ),
     click(
-        "AccessibilityAuditOutput",
-        "workbench.extension.accessibility_audit.output.select",
-    ),
-    click(
         "AccessibilityAuditAuditScreen",
         "workbench.extension.accessibility_audit.audit_screen.invoke",
     ),
     click(
         "AccessibilityAuditPreviewFix",
         "workbench.extension.accessibility_audit.preview_fix.invoke",
-    ),
-    click("MenuFlowOpen", "workbench.extension.menu_flow.open"),
-    click(
-        "MenuFlowRoutesTab",
-        "workbench.extension.menu_flow.routes_tab.select",
-    ),
-    click(
-        "MenuFlowFocusTab",
-        "workbench.extension.menu_flow.focus_tab.select",
-    ),
-    click(
-        "MenuFlowSimulationTab",
-        "workbench.extension.menu_flow.simulation_tab.select",
     ),
     click(
         "MenuFlowMainMenuRow",
@@ -265,29 +182,12 @@ pub(super) const UI_AUTHORING_BINDINGS: &[ExtensionBindingSpec] = &[
         "workbench.extension.menu_flow.exit_route_row.select",
     ),
     click(
-        "MenuFlowOutput",
-        "workbench.extension.menu_flow.output.select",
-    ),
-    click(
         "MenuFlowPreviewFlow",
         "workbench.extension.menu_flow.preview_flow.invoke",
     ),
     click(
         "MenuFlowValidateFocus",
         "workbench.extension.menu_flow.validate_focus.invoke",
-    ),
-    click("FontAtlasOpen", "workbench.extension.font_atlas.open"),
-    click(
-        "FontAtlasGlyphsTab",
-        "workbench.extension.font_atlas.glyphs_tab.select",
-    ),
-    click(
-        "FontAtlasKerningTab",
-        "workbench.extension.font_atlas.kerning_tab.select",
-    ),
-    click(
-        "FontAtlasCoverageTab",
-        "workbench.extension.font_atlas.coverage_tab.select",
     ),
     click(
         "FontAtlasInterUiRow",
@@ -316,10 +216,6 @@ pub(super) const UI_AUTHORING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "FontAtlasIconsTableRow",
         "workbench.extension.font_atlas.icons_table_row.select",
-    ),
-    click(
-        "FontAtlasOutput",
-        "workbench.extension.font_atlas.output.select",
     ),
     click(
         "FontAtlasBakeAtlas",

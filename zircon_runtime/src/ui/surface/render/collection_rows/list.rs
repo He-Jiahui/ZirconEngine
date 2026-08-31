@@ -4,8 +4,11 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::shared::{
-    icon_command, quad_command, row_label, text_command, CollectionRowVisual, RowRenderState,
+    CollectionRowVisual, RowRenderState, icon_command, quad_command, row_label, text_command,
 };
+
+#[cfg(test)]
+mod capacity_tests;
 
 pub(super) fn list_row_commands(
     node_id: UiNodeId,
@@ -17,7 +20,7 @@ pub(super) fn list_row_commands(
     opacity: f32,
 ) -> Vec<UiRenderCommand> {
     let visual = CollectionRowVisual::resolve(metadata);
-    let mut commands = Vec::new();
+    let mut commands = Vec::with_capacity(3);
     if let Some(background) = background(&visual, state) {
         commands.push(quad_command(
             node_id,

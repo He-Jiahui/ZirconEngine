@@ -31,7 +31,7 @@ doc_type: module-detail
 
 `sdf_font_bake.rs` converts renderer-neutral atlas keys into SDF, MSDF, or MTSDF glyph bitmaps and metrics. It owns the renderer-side materialized `fontsdf::Font` cache, glyph bake cache, offline artifact lookup, dynamic generation fallback, page pixel assembly, and the typed bake report consumed by the screen-space SDF renderer.
 
-The module does not own shaping or fallback policy. Shaping supplies an authoritative `font_id` and optional backend glyph ID whenever that identity exists. Only scalar-only callers without shaped identity ask `FontDatabase` to resolve a face from the font asset, family, locale, and project CompositeFont.
+The module does not own shaping or fallback policy. Shaping supplies an authoritative `font_id` and optional backend glyph ID whenever that identity exists. Only scalar-only callers, or stale/mismatched handles that cannot be trusted, ask `FontDatabase` to resolve a face from the exact FontObject owner, its CompositeFont, owner-local typeface, locale, and base fallback chain.
 
 ## Related files
 
@@ -45,8 +45,8 @@ The module does not own shaping or fallback policy. Shaping supplies an authorit
 Each atlas build records the number of materialized faces already present before slot processing. Slot keys are then resolved in this order:
 
 1. An authoritative `font_id` is used directly after the `FontDatabase` proves that its standalone face bytes are available.
-2. Without a face ID, the requested/default font asset establishes the primary face.
-3. `FontDatabase` applies project CompositeFont, script/range/locale routing, requested family, and runtime fallback families.
+2. Without a valid face ID, the requested/default font asset is loaded or attached before resolution.
+3. `FontDatabase` applies the registered request owner's precompiled CompositeFont, script/range/locale routing, owner-local family, and base fallback chain. When no request owner exists, project/runtime defaults remain authoritative.
 
 Resolved faces are deduplicated by `FontFaceId`. `ensure_sdf_font` cannot insert the same face twice because the cache is keyed by that ID. A successful offline or dynamic glyph bake stops face iteration; a later candidate is materialized only if earlier candidates cannot provide the glyph.
 
@@ -63,6 +63,10 @@ The second build of an unchanged atlas may therefore report the same resident co
 
 The face ID carried by shaping is stronger than a family string. A family-only CJK key is allowed to select the checked-in project CompositeFont face even when a different system CJK face was materialized earlier. Tests that claim to exercise a particular system face must therefore populate `font_id`, matching the production shaped-key path; forcing family fallback to reuse an unrelated preloaded face would violate Text01/02 face identity authority.
 
+Recovery is intentionally weaker than a valid shaped handle but must use the same owner selection policy. It resolves a scalar through `FontDatabase` and never reuses the stale glyph ID. This matches Unreal's primary path, where the SDF atlas consumes `FShapedGlyphEntry` face data and glyph index directly, while keeping malformed or legacy scalar-only inputs deterministic without inventing a renderer-local fallback order.
+
+The resolver retains candidate provenance: the requested typeface is owner-local, while CompositeFont and authored fallback families may use an external face if the owner does not provide one. Font bake receives the resolved face and does not apply a second same-name-family retry.
+
 The cache remains local to the SDF bake owner. It does not modify shared `FontDatabase` fallback ordering, add a renderer special case, or introduce a compatibility path around CompositeFont.
 
 ## Edge cases and constraints
@@ -76,6 +80,8 @@ The cache remains local to the SDF bake owner. It does not modify shared `FontDa
 ## Test coverage
 
 The Text05 failure repair adds deterministic coverage for first-build versus cached-build counts and updates the Windows CJK test to use the authoritative Microsoft YaHei UI face ID. A current-source Windows lib-test executable passed all 13 `sdf_font_bake` tests and all 44 runnable `sdf_render` tests. The originating `scene::` gate ran 1,714 tests: 1,705 passed, 6 were ignored, and 3 unrelated renderer-owner tests failed because concurrent shadow-binding work left source/pipeline-layout guards inconsistent. No text, SDF bake, layout, dynamic-scene, or Editor02-owned assertion failed.
+
+The 2026-08-29 owner-scoped recovery regression is implemented but has not been executed in Cargo or WGPU. It requires an unshaped CJK scalar from a two-face FontAsset to select that owner's CompositeFont CJK face; the earlier accepted counts remain historical evidence only.
 
 ## Plan sources
 

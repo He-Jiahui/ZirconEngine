@@ -15,6 +15,18 @@ use super::{
 };
 use nodes::{fixed_height_box, fixed_size_box, spacer_node, stretch_box};
 
+fn normalized_reference_path_segment(label: &str) -> String {
+    let mut segment = String::with_capacity(label.len());
+    segment.extend(label.chars().map(|character| {
+        if character == ' ' {
+            '_'
+        } else {
+            character.to_ascii_lowercase()
+        }
+    }));
+    segment
+}
+
 pub(super) struct ReferenceSurfaceBuilder {
     pub(super) surface: UiSurface,
     pub(super) metrics: EditorWorkbenchReferenceMetrics,
@@ -207,7 +219,7 @@ impl ReferenceSurfaceBuilder {
                     id,
                     &format!(
                         "editor/workbench/reference/status/{}",
-                        label.replace(' ', "_").to_ascii_lowercase()
+                        normalized_reference_path_segment(label)
                     ),
                     label,
                     fixed_size_box(140.0, self.metrics.status_bar_height),
@@ -253,3 +265,7 @@ impl ReferenceSurfaceBuilder {
         UiNodeId::new(id)
     }
 }
+
+#[cfg(test)]
+#[path = "path_segment_tests.rs"]
+mod path_segment_tests;

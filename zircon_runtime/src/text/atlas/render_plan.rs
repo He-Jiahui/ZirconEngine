@@ -7,7 +7,7 @@ use super::{
 
 const COLOR_CHANNEL_MIN: f32 = 0.0;
 const COLOR_CHANNEL_MAX: f32 = 1.0;
-const DEFAULT_BACKGROUND_CHANNEL: f32 = 0.0;
+const DEFAULT_COLOR_CHANNEL: f32 = 0.0;
 const OPAQUE_BACKGROUND_ALPHA: f32 = 1.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -50,6 +50,8 @@ impl GlyphAtlasScreenRect {
             && self.y.is_finite()
             && self.width.is_finite()
             && self.height.is_finite()
+            && self.right().is_finite()
+            && self.bottom().is_finite()
             && self.width > 0.0
             && self.height > 0.0
     }
@@ -65,7 +67,8 @@ impl GlyphAtlasScreenRect {
         let y1 = self.bottom().min(clip.bottom());
         let width = x1 - x0;
         let height = y1 - y0;
-        (width > 0.0 && height > 0.0).then(|| Self::new(x0, y0, width, height))
+        let clipped = Self::new(x0, y0, width, height);
+        clipped.is_drawable().then_some(clipped)
     }
 }
 
@@ -131,7 +134,7 @@ pub(crate) fn glyph_atlas_draw_instance(
             x1: uv1[0],
             y1: uv1[1],
         },
-        foreground_color: glyph.foreground_color,
+        foreground_color: normalized_gpu_color(glyph.foreground_color),
         background_color: glyph_atlas_background_color_for_contract(
             glyph.background_color,
             contract,
@@ -148,19 +151,33 @@ fn glyph_atlas_content_uv_rect(
         return None;
     }
 
-    let content_width = content_size.x.min(atlas_rect.width);
-    let content_height = content_size.y.min(atlas_rect.height);
-    if content_width == 0 || content_height == 0 {
+    if content_size.x > atlas_rect.width || content_size.y > atlas_rect.height {
         return None;
     }
+    let slot_right = atlas_rect.x.checked_add(atlas_rect.width)?;
+    let slot_bottom = atlas_rect.y.checked_add(atlas_rect.height)?;
+    if slot_right > atlas_size.x || slot_bottom > atlas_size.y {
+        return None;
+    }
+    let content_right = atlas_rect.x.checked_add(content_size.x)?;
+    let content_bottom = atlas_rect.y.checked_add(content_size.y)?;
+    if content_right > atlas_size.x || content_bottom > atlas_size.y {
+        return None;
+    }
+    let atlas_content_rect = GlyphAtlasRect {
+        x: atlas_rect.x,
+        y: atlas_rect.y,
+        width: content_size.x,
+        height: content_size.y,
+    };
 
     let atlas_width = atlas_size.x as f32;
     let atlas_height = atlas_size.y as f32;
     Some(GlyphAtlasUvRect {
-        x0: atlas_rect.x as f32 / atlas_width,
-        y0: atlas_rect.y as f32 / atlas_height,
-        x1: atlas_rect.x.saturating_add(content_width) as f32 / atlas_width,
-        y1: atlas_rect.y.saturating_add(content_height) as f32 / atlas_height,
+        x0: atlas_content_rect.x as f32 / atlas_width,
+        y0: atlas_content_rect.y as f32 / atlas_height,
+        x1: content_right as f32 / atlas_width,
+        y1: content_bottom as f32 / atlas_height,
     })
 }
 
@@ -168,21 +185,22 @@ fn glyph_atlas_background_color_for_contract(
     background_color: [f32; 4],
     render_contract: GlyphAtlasRenderContract,
 ) -> [f32; 4] {
+    let mut background_color = normalized_gpu_color(background_color);
     if !render_contract.requires_background_composite() {
         return background_color;
     }
 
-    [
-        normalized_background_channel(background_color[0]),
-        normalized_background_channel(background_color[1]),
-        normalized_background_channel(background_color[2]),
-        OPAQUE_BACKGROUND_ALPHA,
-    ]
+    background_color[3] = OPAQUE_BACKGROUND_ALPHA;
+    background_color
 }
 
-fn normalized_background_channel(value: f32) -> f32 {
+fn normalized_gpu_color(color: [f32; 4]) -> [f32; 4] {
+    color.map(normalized_gpu_color_channel)
+}
+
+fn normalized_gpu_color_channel(value: f32) -> f32 {
     if !value.is_finite() {
-        return DEFAULT_BACKGROUND_CHANNEL;
+        return DEFAULT_COLOR_CHANNEL;
     }
 
     value.clamp(COLOR_CHANNEL_MIN, COLOR_CHANNEL_MAX)

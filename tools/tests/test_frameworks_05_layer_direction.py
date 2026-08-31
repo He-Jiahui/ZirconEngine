@@ -76,9 +76,6 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
         manager_source = (
             REPO_ROOT / "zircon_runtime/src/core/framework/animation/manager.rs"
         ).read_text(encoding="utf-8")
-        runtime_sequence_apply_owner_source = (
-            REPO_ROOT / "zircon_runtime/src/animation/sequence/apply.rs"
-        ).read_text(encoding="utf-8")
         runtime_sequence_compiled_owner_source = (
             REPO_ROOT / "zircon_runtime/src/animation/sequence/compiled.rs"
         ).read_text(encoding="utf-8")
@@ -89,14 +86,14 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
 
         self.assertNotIn("crate::scene", manager_source)
         self.assertNotIn("apply_sequence_to_world", manager_source)
-        self.assertIn(
-            "pub fn apply_sequence_to_world", runtime_sequence_apply_owner_source
-        )
         for compiled_api in (
             "pub fn compile_sequence_for_world",
             "pub fn apply_compiled_sequence_to_world",
         ):
             self.assertIn(compiled_api, runtime_sequence_compiled_owner_source)
+        self.assertNotIn(
+            "pub fn apply_sequence_to_world", runtime_sequence_compiled_owner_source
+        )
         self.assertIn("compile_sequence_for_world", plugin_sequence_source)
         self.assertIn("apply_compiled_sequence_to_world", plugin_sequence_source)
         self.assertNotIn("crate::sequence::", plugin_sequence_source)

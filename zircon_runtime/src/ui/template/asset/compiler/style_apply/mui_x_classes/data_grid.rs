@@ -4,7 +4,7 @@ use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 use super::super::{
-    append_class, bool_attribute_any, bool_from_attributes_any, pascal_case, string_attribute_any,
+    append_class, bool_attribute_any, bool_from_attributes_any, string_attribute_any,
 };
 use super::{
     array_attribute_any_empty, array_attribute_any_non_empty,
@@ -13,6 +13,27 @@ use super::{
     string_attribute_any_from_attributes,
 };
 
+fn prefixed_pascal_class(prefix: &str, infix: &str, value: &str) -> String {
+    let mut class = String::with_capacity(prefix.len() + infix.len() + value.len());
+    class.push_str(prefix);
+    class.push_str(infix);
+
+    let mut uppercase_next = true;
+    for character in value.chars() {
+        if matches!(character, '-' | '_' | ' ') {
+            uppercase_next = true;
+            continue;
+        }
+        class.push(if uppercase_next {
+            character.to_ascii_uppercase()
+        } else {
+            character
+        });
+        uppercase_next = false;
+    }
+    class
+}
+
 pub(super) fn append_component_classes(node: &mut UiTemplateNode, prefix: &str) {
     append_class(&mut node.classes, format!("{prefix}-withBorderColor"));
     let density = string_attribute_any(node, &["density"])
@@ -20,7 +41,7 @@ pub(super) fn append_component_classes(node: &mut UiTemplateNode, prefix: &str) 
         .unwrap_or_else(|| "standard".to_string());
     append_class(
         &mut node.classes,
-        format!("{prefix}-root--density{}", pascal_case(&density)),
+        prefixed_pascal_class(prefix, "-root--density", &density),
     );
     if bool_attribute_any(node, &["loading"]) {
         append_class(&mut node.classes, format!("{prefix}-loading"));
@@ -79,7 +100,7 @@ pub(super) fn append_component_classes(node: &mut UiTemplateNode, prefix: &str) 
     {
         append_class(
             &mut node.classes,
-            format!("{prefix}-rowSpacing{}", pascal_case(&row_spacing_type)),
+            prefixed_pascal_class(prefix, "-rowSpacing", &row_spacing_type),
         );
     }
     if number_attribute_any(node, &["scrollbarSize", "scrollbar_size"]) {
@@ -112,13 +133,13 @@ pub(super) fn append_component_classes(node: &mut UiTemplateNode, prefix: &str) 
     if let Some(mode) = string_attribute_any(node, &["sortingMode", "sorting_mode"]) {
         append_class(
             &mut node.classes,
-            format!("{prefix}-sortingMode{}", pascal_case(&mode)),
+            prefixed_pascal_class(prefix, "-sortingMode", &mode),
         );
     }
     if let Some(mode) = string_attribute_any(node, &["filterMode", "filter_mode"]) {
         append_class(
             &mut node.classes,
-            format!("{prefix}-filterMode{}", pascal_case(&mode)),
+            prefixed_pascal_class(prefix, "-filterMode", &mode),
         );
     }
     if array_attribute_any_non_empty(node, &["sortModel", "sort_model"]) {
@@ -139,7 +160,7 @@ pub(super) fn append_component_classes(node: &mut UiTemplateNode, prefix: &str) 
     if let Some(mode) = string_attribute_any(node, &["editMode", "edit_mode"]) {
         append_class(
             &mut node.classes,
-            format!("{prefix}-editMode{}", pascal_case(&mode)),
+            prefixed_pascal_class(prefix, "-editMode", &mode),
         );
     }
     if map_attribute_any_non_empty(node, &["cellModesModel", "cell_modes_model"]) {
@@ -202,7 +223,7 @@ pub(super) fn append_slot_classes(
         "toolbar" | "footer" | "loadingOverlay" | "noRowsOverlay" => {
             append_class(
                 &mut child.classes,
-                format!("MuiDataGrid-{}", pascal_case(slot_name)),
+                prefixed_pascal_class("MuiDataGrid", "-", slot_name),
             );
         }
         _ => return false,
@@ -282,3 +303,7 @@ fn append_cell_slot_classes(
         );
     }
 }
+
+#[cfg(test)]
+#[path = "data_grid/single_buffer_pascal_class_tests.rs"]
+mod single_buffer_pascal_class_tests;

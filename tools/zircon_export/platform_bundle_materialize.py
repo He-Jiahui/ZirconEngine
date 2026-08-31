@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -180,15 +181,16 @@ def materialize_platform_bundle(
 
 
 def platform_bundle_file_input_diagnostic(label: str, path: Path) -> str | None:
-    if not path.exists():
-        return f"{label} {path} does not exist"
-    if not path.is_file():
-        return f"{label} {path} is not a file"
     try:
-        if path.stat().st_size <= 0:
-            return f"{label} {path} is empty"
+        metadata = path.stat()
+    except FileNotFoundError:
+        return f"{label} {path} does not exist"
     except OSError as error:
         return f"{label} {path} could not be inspected: {error}"
+    if not stat.S_ISREG(metadata.st_mode):
+        return f"{label} {path} is not a file"
+    if metadata.st_size <= 0:
+        return f"{label} {path} is empty"
     return None
 
 

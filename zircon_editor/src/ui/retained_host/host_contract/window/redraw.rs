@@ -17,6 +17,18 @@ impl UiHostWindow {
         self.event_wake.callback()
     }
 
+    pub(crate) fn background_visual_asset_wake_callback(
+        &self,
+    ) -> zircon_runtime::core::framework::channel::ChannelWakeCallback {
+        self.visual_asset_wake.callback()
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn take_visual_asset_completion_wake(
+        &self,
+    ) -> bool {
+        self.visual_asset_wake.take_request()
+    }
+
     pub(in crate::ui::retained_host::host_contract) fn take_background_event_wake(&self) -> bool {
         self.event_wake.take_request()
     }
@@ -74,6 +86,11 @@ impl UiHostWindow {
         self.global::<UiHostContext>().invoke_frame_requested();
     }
 
+    pub(crate) fn request_interactive_frame_update(&self) {
+        self.global::<UiHostContext>()
+            .invoke_interactive_frame_requested();
+    }
+
     pub(crate) fn request_maintenance_frame_update(&self) {
         self.state.borrow_mut().maintenance_frame_wake_deadline = None;
         self.queue_external_redraw(HostRedrawRequest::frame_update_only_for_scenario(
@@ -89,10 +106,35 @@ impl UiHostWindow {
         self.state.borrow_mut().maintenance_frame_wake_deadline = None;
     }
 
+    /// Replaces the input-manager wake because each pointer observation owns its next deadline.
+    pub(crate) fn set_input_timer_frame_update(&self, deadline: Option<Instant>) {
+        self.state.borrow_mut().input_timer_frame_wake_deadline = deadline;
+    }
+
+    /// Schedules one retained-host lifecycle tick without borrowing the asset-refresh wake slot.
+    ///
+    /// Lifecycle work must stay independently schedulable while the native window is idle; asset
+    /// refresh owns and may clear its separate maintenance deadline on every tick.
+    pub(crate) fn set_lifecycle_frame_update(&self, deadline: Option<Instant>) {
+        self.state.borrow_mut().lifecycle_frame_wake_deadline = deadline;
+    }
+
     pub(in crate::ui::retained_host::host_contract) fn maintenance_frame_wake_deadline(
         &self,
     ) -> Option<Instant> {
         self.state.borrow().maintenance_frame_wake_deadline
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn lifecycle_frame_wake_deadline(
+        &self,
+    ) -> Option<Instant> {
+        self.state.borrow().lifecycle_frame_wake_deadline
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn input_timer_frame_wake_deadline(
+        &self,
+    ) -> Option<Instant> {
+        self.state.borrow().input_timer_frame_wake_deadline
     }
 
     pub(in crate::ui::retained_host::host_contract) fn take_due_maintenance_frame_wake(
@@ -108,6 +150,42 @@ impl UiHostWindow {
             self.state.borrow_mut().maintenance_frame_wake_deadline = None;
             self.queue_external_redraw(HostRedrawRequest::frame_update_only_for_scenario(
                 UiPerfScenario::AssetRefresh,
+            ));
+        }
+        due
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn take_due_lifecycle_frame_wake(
+        &self,
+        now: Instant,
+    ) -> bool {
+        let due = self
+            .state
+            .borrow()
+            .lifecycle_frame_wake_deadline
+            .is_some_and(|deadline| deadline <= now);
+        if due {
+            self.state.borrow_mut().lifecycle_frame_wake_deadline = None;
+            self.queue_external_redraw(HostRedrawRequest::frame_update_only_for_scenario(
+                UiPerfScenario::SessionHeartbeat,
+            ));
+        }
+        due
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn take_due_input_timer_frame_wake(
+        &self,
+        now: Instant,
+    ) -> bool {
+        let due = self
+            .state
+            .borrow()
+            .input_timer_frame_wake_deadline
+            .is_some_and(|deadline| deadline <= now);
+        if due {
+            self.state.borrow_mut().input_timer_frame_wake_deadline = None;
+            self.queue_external_redraw(HostRedrawRequest::frame_update_only_for_scenario(
+                UiPerfScenario::IdleHover,
             ));
         }
         due
@@ -185,6 +263,7 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use crate::core::gateway::EditorRuntimeFrameDemand;
+    use crate::ui::retained_host::ui_perf::UiPerfScenario;
 
     #[test]
     fn runtime_frame_wake_replaces_stale_requests_and_bounds_extreme_delays() {
@@ -238,5 +317,45 @@ mod tests {
         assert!(redraw.requires_frame_update());
         assert!(!redraw.requires_present());
         assert_eq!(host.maintenance_frame_wake_deadline(), None);
+    }
+
+    #[test]
+    fn lifecycle_wake_remains_independent_from_asset_maintenance() {
+        let host = super::UiHostWindow::new().expect("host window");
+        let now = Instant::now();
+        let lifecycle_deadline = now + Duration::from_secs(5);
+        let asset_deadline = now + Duration::from_millis(25);
+
+        host.set_lifecycle_frame_update(Some(lifecycle_deadline));
+        host.schedule_maintenance_frame_update(asset_deadline);
+        host.clear_maintenance_frame_update();
+
+        assert_eq!(
+            host.lifecycle_frame_wake_deadline(),
+            Some(lifecycle_deadline)
+        );
+        assert!(host.take_due_lifecycle_frame_wake(lifecycle_deadline));
+        assert_eq!(
+            host.take_external_redraw().scenario(),
+            UiPerfScenario::SessionHeartbeat
+        );
+    }
+
+    #[test]
+    fn input_timer_wake_survives_asset_maintenance_clear() {
+        let host = super::UiHostWindow::new().expect("host window");
+        let now = Instant::now();
+        let input_deadline = now + Duration::from_millis(500);
+
+        host.set_input_timer_frame_update(Some(input_deadline));
+        host.schedule_maintenance_frame_update(now + Duration::from_millis(25));
+        host.clear_maintenance_frame_update();
+
+        assert_eq!(host.input_timer_frame_wake_deadline(), Some(input_deadline));
+        assert!(host.take_due_input_timer_frame_wake(input_deadline));
+        let redraw = host.take_external_redraw();
+        assert!(redraw.requires_frame_update());
+        assert!(!redraw.requires_present());
+        assert_eq!(redraw.scenario(), UiPerfScenario::IdleHover);
     }
 }

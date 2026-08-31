@@ -69,9 +69,12 @@ impl ViewportOverlayProviderRegistration {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
+        let capabilities = capabilities.into_iter();
+        let (lower_bound, _) = capabilities.size_hint();
+        self.required_capabilities.reserve(lower_bound);
         self.required_capabilities
-            .extend(capabilities.into_iter().map(Into::into));
-        self.required_capabilities.sort();
+            .extend(capabilities.map(Into::into));
+        self.required_capabilities.sort_unstable();
         self.required_capabilities.dedup();
         self
     }
@@ -106,3 +109,7 @@ impl PartialEq for ViewportOverlayProviderRegistration {
             && Arc::ptr_eq(&self.factory, &other.factory)
     }
 }
+
+#[cfg(test)]
+#[path = "viewport_overlay_provider/optimization_tests.rs"]
+mod optimization_tests;

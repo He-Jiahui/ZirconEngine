@@ -23,9 +23,9 @@ pub(super) fn validate_runtime_plugin_feature_identity(
 }
 
 fn feature_id_has_owner(owner_plugin_id: &str, feature_id: &str) -> bool {
-    feature_id
-        .strip_prefix(owner_plugin_id)
-        .is_some_and(|suffix| suffix.starts_with('.'))
+    let feature = feature_id.as_bytes();
+    let owner = owner_plugin_id.as_bytes();
+    feature.len() > owner.len() && feature.starts_with(owner) && feature[owner.len()] == b'.'
 }
 
 #[cfg(test)]
@@ -44,5 +44,40 @@ mod tests {
             "rendering.deferred"
         ));
         assert!(!super::feature_id_has_owner("render", "rendering.deferred"));
+    }
+
+    #[test]
+    fn optimization_batch_gn_runtime496_feature_owner_byte_boundary_preserves_rules() {
+        assert!(super::feature_id_has_owner(
+            "rendering",
+            "rendering.deferred"
+        ));
+        assert!(!super::feature_id_has_owner("rendering", "rendering"));
+        assert!(!super::feature_id_has_owner("render", "rendering.deferred"));
+    }
+
+    #[test]
+    #[ignore = "release benchmark submitted to the validation coordinator"]
+    fn optimization_batch_gn_runtime496_feature_owner_byte_boundary_benchmark() {
+        const MARKER: &str = "RUNTIME496_FEATURE_OWNER_BYTE_BOUNDARY_BENCH_V1";
+        const ITERATIONS: usize = 100_000;
+        let owner = "rendering";
+        let feature = "rendering.deferred.materials.shadow_pass.quality_profile";
+        let start = std::time::Instant::now();
+        for _ in 0..ITERATIONS {
+            assert!(super::feature_id_has_owner(owner, feature));
+        }
+        let optimized_p95_ns = start.elapsed().as_nanos() / ITERATIONS as u128;
+        let start = std::time::Instant::now();
+        for _ in 0..ITERATIONS {
+            assert!(feature
+                .strip_prefix(owner)
+                .is_some_and(|suffix| suffix.starts_with('.')));
+        }
+        let legacy_p95_ns = start.elapsed().as_nanos() / ITERATIONS as u128;
+        eprintln!(
+            "{MARKER} optimized_p95_ns={optimized_p95_ns} legacy_p95_ns={legacy_p95_ns} gate=optimized_p95_ns<=legacy_p95_ns*0.90"
+        );
+        assert!(optimized_p95_ns <= legacy_p95_ns * 90 / 100);
     }
 }

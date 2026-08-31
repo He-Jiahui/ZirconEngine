@@ -10,14 +10,6 @@ const FROZEN_NON_COMMAND_ROUTE_BINDING_HASH: u64 = 0xff00_9acf_d490_db55;
 const FNV_1A_64_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_1A_64_PRIME: u64 = 0x0000_0100_0000_01b3;
 
-struct FrozenCommandRouteAlias {
-    route: &'static str,
-    command: &'static str,
-    path: &'static str,
-    node_id: &'static str,
-    binding_id: &'static str,
-}
-
 struct CanonicalCommandActionBinding {
     path: &'static str,
     binding_id: &'static str,
@@ -41,11 +33,6 @@ const CANONICAL_COMMAND_ACTION_BINDINGS: &[CanonicalCommandActionBinding] = &[
         command: "scene.node.delete_selected",
     },
     CanonicalCommandActionBinding {
-        path: "host/pane_surface_controls.zui",
-        binding_id: "PaneSurface/TriggerAction",
-        command: "file.project.open",
-    },
-    CanonicalCommandActionBinding {
         path: "host/scene_viewport_toolbar.zui",
         binding_id: "ViewportToolbar/EnterPlayMode",
         command: "runtime.play_mode.enter",
@@ -55,66 +42,59 @@ const CANONICAL_COMMAND_ACTION_BINDINGS: &[CanonicalCommandActionBinding] = &[
         binding_id: "ViewportToolbar/ExitPlayMode",
         command: "runtime.play_mode.exit",
     },
+    CanonicalCommandActionBinding {
+        path: "components/workbench/shell/workbench_top_toolbar.zui",
+        binding_id: "AssetSurface/OpenAssetBrowser",
+        command: "view.asset_browser.open",
+    },
+    CanonicalCommandActionBinding {
+        path: "components/workbench/shell/workbench_top_toolbar.zui",
+        binding_id: "MenuAction/OpenProject",
+        command: "file.project.open",
+    },
+    CanonicalCommandActionBinding {
+        path: "components/workbench/shell/workbench_top_toolbar.zui",
+        binding_id: "MenuAction/SaveProject",
+        command: "file.project.save",
+    },
+    CanonicalCommandActionBinding {
+        path: "components/workbench/shell/workbench_top_toolbar.zui",
+        binding_id: "Run/Play",
+        command: "runtime.play_mode.enter",
+    },
+    CanonicalCommandActionBinding {
+        path: "components/workbench/shell/workbench_top_toolbar.zui",
+        binding_id: "ViewportToolbar/ExitPlayMode",
+        command: "runtime.play_mode.exit",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/workbench_shell.zui",
+        binding_id: "WorkbenchMenuBar/OpenProject",
+        command: "file.project.open",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/workbench_shell.zui",
+        binding_id: "WorkbenchMenuBar/SaveProject",
+        command: "file.project.save",
+    },
 ];
 
-const FROZEN_COMMAND_ROUTE_ALIASES: &[FrozenCommandRouteAlias] = &[
-    FrozenCommandRouteAlias {
-        route: "workbench.asset.open_asset_browser",
-        command: "view.asset_browser.open",
-        path: "components/workbench/shell/workbench_top_toolbar.zui",
-        node_id: "toolbar_assets",
-        binding_id: "AssetSurface/OpenAssetBrowser",
-    },
-    FrozenCommandRouteAlias {
-        route: "workbench.play_mode.exit",
-        command: "runtime.play_mode.exit",
-        path: "components/workbench/shell/workbench_top_toolbar.zui",
-        node_id: "run_stop",
-        binding_id: "ViewportToolbar/ExitPlayMode",
-    },
-    FrozenCommandRouteAlias {
-        route: "workbench.project.open",
-        command: "file.project.open",
-        path: "components/workbench/shell/workbench_top_toolbar.zui",
-        node_id: "toolbar_open",
-        binding_id: "MenuAction/OpenProject",
-    },
-    FrozenCommandRouteAlias {
-        route: "workbench.project.open",
-        command: "file.project.open",
-        path: "host/workbench_shell.zui",
-        node_id: "open_project",
-        binding_id: "WorkbenchMenuBar/OpenProject",
-    },
-    FrozenCommandRouteAlias {
-        route: "workbench.project.save",
-        command: "file.project.save",
-        path: "components/workbench/shell/workbench_top_toolbar.zui",
-        node_id: "toolbar_save",
-        binding_id: "MenuAction/SaveProject",
-    },
-    FrozenCommandRouteAlias {
-        route: "workbench.project.save",
-        command: "file.project.save",
-        path: "host/workbench_shell.zui",
-        node_id: "save_project",
-        binding_id: "WorkbenchMenuBar/SaveProject",
-    },
-    FrozenCommandRouteAlias {
-        route: "workbench.run.play",
-        command: "runtime.play_mode.enter",
-        path: "components/workbench/shell/workbench_top_toolbar.zui",
-        node_id: "run_play",
-        binding_id: "Run/Play",
-    },
+const REMOVED_COMMAND_ROUTE_ALIASES: &[(&str, &str)] = &[
+    (
+        "workbench.asset.open_asset_browser",
+        "view.asset_browser.open",
+    ),
+    ("workbench.play_mode.exit", "runtime.play_mode.exit"),
+    ("workbench.project.open", "file.project.open"),
+    ("workbench.project.save", "file.project.save"),
+    ("workbench.run.play", "runtime.play_mode.enter"),
 ];
 
 #[test]
 fn editor_command_event_bindings_use_registered_action_identity_only() {
     let registry = EditorCommandRegistry::default_workbench();
     let editor_root = editor_asset_root().join("ui/editor");
-    let frozen_aliases = frozen_command_route_aliases(&registry);
-    let mut observed_aliases = BTreeMap::new();
+    let removed_aliases = removed_command_route_aliases(&registry);
     let mut observed_canonical_actions = BTreeMap::new();
     let mut non_command_routes = Vec::new();
     let mut checked_bindings = 0usize;
@@ -152,17 +132,10 @@ fn editor_command_event_bindings_use_registered_action_identity_only() {
                             "{label} routes registered editor command `{route}` instead of using UiActionRef.action"
                         ));
                     }
-                    if let Some(command) = frozen_aliases.get(route) {
-                        *observed_aliases
-                            .entry((
-                                route.to_string(),
-                                command.to_string(),
-                                relative_path.clone(),
-                                node_id.clone(),
-                                binding.id.clone(),
-                                "binding.route",
-                            ))
-                            .or_insert(0usize) += 1;
+                    if let Some(command) = removed_aliases.get(route) {
+                        offenders.push(format!(
+                            "{label} uses removed editor-command route alias `{route}` for `{command}` instead of UiActionRef.action"
+                        ));
                     } else {
                         non_command_routes.push((
                             relative_path.clone(),
@@ -188,17 +161,10 @@ fn editor_command_event_bindings_use_registered_action_identity_only() {
                             "{label} routes registered editor command `{route}` inside UiActionRef instead of using UiActionRef.action"
                         ));
                     }
-                    if let Some(command) = frozen_aliases.get(route) {
-                        *observed_aliases
-                            .entry((
-                                route.to_string(),
-                                command.to_string(),
-                                relative_path.clone(),
-                                node_id.clone(),
-                                binding.id.clone(),
-                                "action.route",
-                            ))
-                            .or_insert(0usize) += 1;
+                    if let Some(command) = removed_aliases.get(route) {
+                        offenders.push(format!(
+                            "{label} uses removed editor-command route alias `{route}` for `{command}` instead of UiActionRef.action"
+                        ));
                     } else {
                         non_command_routes.push((
                             relative_path.clone(),
@@ -248,23 +214,6 @@ fn editor_command_event_bindings_use_registered_action_identity_only() {
     assert!(
         checked_command_actions >= 12,
         "editor command governance must exercise the migrated console command actions"
-    );
-    let mut expected_aliases = BTreeMap::new();
-    for alias in FROZEN_COMMAND_ROUTE_ALIASES {
-        *expected_aliases
-            .entry((
-                alias.route.to_string(),
-                alias.command.to_string(),
-                alias.path.to_string(),
-                alias.node_id.to_string(),
-                alias.binding_id.to_string(),
-                "binding.route",
-            ))
-            .or_insert(0usize) += 1;
-    }
-    assert_eq!(
-        observed_aliases, expected_aliases,
-        "the editor-command route-alias debt changed; migrate aliases to canonical UiActionRef.action identities and shrink this frozen inventory, never add a second route name"
     );
     non_command_routes.sort();
     assert_eq!(
@@ -332,19 +281,19 @@ fn hash_byte(hash: u64, byte: u8) -> u64 {
     (hash ^ u64::from(byte)).wrapping_mul(FNV_1A_64_PRIME)
 }
 
-fn frozen_command_route_aliases<'a>(
-    registry: &'a EditorCommandRegistry,
+fn removed_command_route_aliases(
+    registry: &EditorCommandRegistry,
 ) -> BTreeMap<&'static str, &'static str> {
-    FROZEN_COMMAND_ROUTE_ALIASES
+    REMOVED_COMMAND_ROUTE_ALIASES
         .iter()
-        .map(|alias| {
+        .map(|(route, command)| {
             assert!(
-                registry.command(alias.command).is_some(),
-                "frozen route alias `{}` must resolve to registered command `{}`",
-                alias.route,
-                alias.command
+                registry.command(command).is_some(),
+                "removed route alias `{}` must resolve to registered command `{}`",
+                route,
+                command
             );
-            (alias.route, alias.command)
+            (*route, *command)
         })
         .collect()
 }

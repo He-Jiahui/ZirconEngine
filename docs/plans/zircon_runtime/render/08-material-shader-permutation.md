@@ -345,7 +345,7 @@ pub struct ShaderVariantKey {
     pub platform_token: String,             // backend + downlevel caps 摘要,只进磁盘哈希
 }
 impl ShaderVariantKey {
-    pub fn packed_dims(&self) -> u64;       // geometry 0..3 | shading 4..11 | pass 12..15 | features 16..47 | quality 48..49;材质维度不打包
+    pub fn packed_dims(&self) -> u64;       // geometry 0..7 | shading 8..15 | pass 16..19 | features 20..51 | quality 52..53;仅内存维度,不作持久化identity
     pub fn canonical_string(&self) -> String; // 全字段 + 模板修订号,磁盘哈希输入
 }
 ```
@@ -441,7 +441,7 @@ fn shade_deferred(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32>;
 
 磁盘缓存:根目录默认 `<project>/.zircon-cache/shader_variants/`(`ZR_SHADER_CACHE_DIR` 覆写);布局 `<root>/v<schema_version>/<hash[0..2]>/<hash>.wgsl.zst` + 同名 `.meta`(键 canonical_string、模板修订号、naga/wgpu 版本、创建时间)。`hash = blake3(canonical_string + 全部参与 include 的内容哈希)`,宁可多失效不可错命中(与"风险与回退"口径一致)。并发写:临时文件 + 原子 rename,先到为准;读损坏视为 miss 并删除条目。
 
-prewarm 钩子:`tools/zircon_build.py --prewarm-shaders` 在 stage 完成后,扫描 staged 资产清单中材质引用,生成变体枚举清单(材质 × 适用几何源 × 启用 pass × 默认 quality),调用 runtime 的 headless 入口 `zircon_runtime::dynamic_api::prewarm_shader_variants(manifest, cache_dir)` 离线编译,产物放入 staged payload 的 `ZirconEngine/cache/shader_variants/`,运行时缓存查找链为"运行期目录 → staged 预热目录"。
+prewarm 钩子:`tools/zircon_build.py --prewarm-shaders` 在 stage 完成后,扫描 staged 资产清单中显式 Surface 与材质引用,生成变体枚举清单(材质 × 适用几何源 × 启用 pass × 默认 quality),调用 runtime 的 headless 入口 `zircon_runtime::dynamic_api::prewarm_shader_variants(manifest, cache_dir)` 离线编译,产物放入 staged payload 的 `ZirconEngine/cache/shader_variants/`,运行时缓存查找链为"运行期目录 → staged 预热目录"。裸 WGSL 是 generic Module，不进入材质变体；材质解析到 Module 必须 fail-closed。
 
 ### 实施切片细化
 
@@ -504,6 +504,7 @@ MS-M4(变体缓存与预热):
 - 2026-07-18 material bind-group性能交接：mesh draw当前为每draw创建custom/standard两套13-entry WGPU bind group，即使1k instance共享同一material generation也创建2k组。Render08须发布material/textures/uniform/layout generation keyed prepared binding pair/allocator，只prepare dirty material；Render02/03消费dense handle。stable create=0、changed≤2/unique generation。见PERF-MVP-384及build-mesh-draws root静态证据。
 - 2026-07-18 mesh pipeline stable-hit补充交接：Base/OIT/GBuffer/depth/shadow/velocity/TAA ensure已改为pipeline map命中后在variant/key/source投影前返回，stable WGSL assembly/hash/module-key work=0。Render08后续Queued→Ready实现必须保留该O(1) ready path，并把首次disk/driver工作移出frame线程；见PERF-MVP-355/356及mesh-pipeline-cache静态证据。
 - 2026-07-18 driver pipeline cache补充交接：`mesh_pipeline/**` 7类descriptor当前全部`cache: None`；WGSL disk hit仍不代表跨启动driver compile hit。PERF-MVP-356实现须按adapter/device/driver/layout/source generation管理兼容pipeline cache artifact或后台driver lane，warm frame-thread compile=0、失配有界重建。见mesh-pipeline静态证据。
+- 2026-08-27 PFO-4d4a pipeline-cache identity owner收敛：mesh driver cache不再要求outer `RenderBackend`保留raw adapter或传递`wgpu::AdapterInfo`；构造链改从唯一device profile借用neutral `RenderAdapterFacts`。Vulkan磁盘key保持WGPU 29.0.3的`wgpu_pipeline_cache_vulkan_<vendor>_<device>`逐字兼容，非Vulkan仍disabled。outer raw adapter字段与bootstrap clone均为0，静态格式/source/diff检查通过；真实Vulkan warm cache、driver失配、WGPU和frame-thread compile数据仍待验收，当前不关闭PERF-MVP-356。
 - 2026-07-18 Deferred pipeline补充交接：普通/SSS MRT构造现共享一次include导出、WGSL assembly、shader module与layout，前端2→1；但两条descriptor仍`cache: None`且SSS无需求也同步创建。Render08须把Deferred variants纳入PERF-MVP-356 typed async/driver cache，并按compiled shading-model generation懒建SSS；见PERF-MVP-390及Deferred静态证据。
 - 2026-07-18 overlay pipeline补充交接：`ViewportOverlayRenderer::new`当前无条件同步创建line/sky/icon pipelines与相关fallback，即使minimal/headless或sky/icons关闭。Render08联动Render10把三类descriptor纳入typed async/driver cache并按compiled overlay feature generation按需single-flight；minimal未请求pipeline create=0，warm frame-thread compile=0。见PERF-MVP-356/390及overlay静态证据。
 - 2026-07-18 particle pipeline hard-cut交接：legacy `ParticleRenderer::new`无条件同步创建depth/overlay/velocity三条pipeline且descriptor cache均为None。FX-M2删除旧目录时，Render08须把billboard color/velocity variants纳入typed queued/driver cache并按compiled particle feature generation懒建；particle-off create=0、warm frame compile=0。见PERF-MVP-396。
@@ -515,5 +516,7 @@ MS-M4(变体缓存与预热):
 - 2026-07-18 graphics shader全目录补充：preview URI index已从shader×variant降为每批一次，三类assembly的token/hash clone已移动清零。Render08继续按PERF-MVP-356/357/358交付content-addressed module/variant generation、bounded queued compile/prewarm与indexed include DAG；稳定builtin registry/hash/assembly/Naga/disk/driver工作=0，frame线程只读ready/last-good ticket。
 - 2026-07-18 graphics material registry补充：builtin shading-model lookup已从两次String分配降为静态token借用，include duplicate判定不再收集全匹配Vec；但plugin descriptor×3 pass仍全扫ready shader并同步load/copy WGSL。Render08按PERF-MVP-358/404消费Runtime04 normalized token→parsed module Arc index，stable lookup/scan/load/clone=0，reload只失效affected model。
 - 2026-07-22 shader prewarm CLI补充交接：`src/bin` 40/40审查确认每asset root被resource export、shader recursion、AssetRegistryIndex与material recursion至少多轮遍历；include dependency又按每source重走DAG，material按label/id线性找并深clone source。Render08联动Runtime04/11把PERF-MVP-357/358落到一次bounded inventory、indexed include DAG与content-addressed source table，新增PERF-MVP-448；见`08/failure-2026-07-22-shader-prewarm-multi-scan-dag.md`。
+- 2026-08-26 shader prewarm kind hard-cut：raw WGSL scanner 不再猜 Surface 或展开六个材质 pass，source/material 两层均以 `ShaderAssetKind::participates_in_material_variants()` 门禁；`.zmaterial -> Module` 返回类型化错误。错误请求规模从每 source `6 x quality x geometry` 降为 0，显式 Surface 路径保持不变；这是结构性工作移除，动态耗时/RSS/功耗仍待受管 profile。
 - 2026-07-22 material asset contract补充：`assets/material` 14/14审查确认readiness、standard/shader-aware descriptor与contract validation反复扫描并复制properties/slots/dependencies/errors，parent inheritance按层深clone。Render08按PERF-MVP-516消费Runtime04唯一effective-material generation，以Bevy `PreparedMaterial`、change tick和specialization cache为本地参考；stable frame只读`Arc` payload/binding/key，prepare≤1/changed generation，并继续满足PERF-MVP-359/360/384/404。
 - 2026-07-22 shader asset generation补充：`assets/shader` 8/8审查确认property packing首适配最坏O(P²)、variant keys按entry深clone全部defines、readiness/management复制宽report；PERF-MVP-517已止损summary 14→1遍历与stage parse临时String。Render08按PERF-MVP-518把355..358落到唯一compiled generation：deterministic indexed packing、shared define/entry/layout/WGSL、compact counters与lazy detail，stable specialize/management不得重建资产DTO。
+- 2026-08-26 texture binding/pipeline identity hard-cut：固定material ABI对base-color、metallic-roughness、occlusion、emissive始终绑定中性fallback，这四个presence不再进入`PipelineKey`或`ShaderPipelinePrewarmState`；normal texture因切换切线框架与生成WGSL仍保留为`HAS_NORMAL_TEXTURE`。删除每个新variant最多16次额外HashMap查询的等价扫描后，16种无效组合从16个pipeline variant收敛为1个canonical variant；这是算法规模结论，Cargo/WGPU、1/1k/100k注册CPU、PSO create、RSS和功耗仍待受管profile。

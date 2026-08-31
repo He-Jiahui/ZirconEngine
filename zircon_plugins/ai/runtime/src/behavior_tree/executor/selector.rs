@@ -14,22 +14,27 @@ use super::{
     BehaviorTreeExecutionContext, CompiledBehaviorNode, CompiledBehaviorTree,
 };
 
+#[cfg(test)]
+#[path = "selector/allocation_tests.rs"]
+mod allocation_tests;
+
 pub(super) fn evaluate_selector(
     node_index: u32,
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
+    tree_stack: &mut super::BehaviorTreeStack,
 ) -> BehaviorTreeExecution {
-    let cached = context
-        .instance
-        .node_mut(tree, node_index)
-        .terminal_children
-        .clone();
-    let resume_child = context.instance.node_mut(tree, node_index).active_child;
+    let (mut cached, resume_child) = {
+        let state = context.instance.node_mut(tree, node_index);
+        (
+            std::mem::take(&mut state.terminal_children),
+            state.active_child,
+        )
+    };
     let mut reached_resume = resume_child.is_none();
-    let mut last_failed = None;
+    let mut last_failed_child = None;
     for child in tree.child_indices(node) {
         if resume_child == Some(*child) {
             reached_resume = true;
@@ -50,7 +55,7 @@ pub(super) fn evaluate_selector(
         let result = if precedes_running_branch
             && (!requires_recheck || eligibility == Some(SelectorBranchEligibility::Ineligible))
         {
-            cached.get(child).cloned().unwrap_or_else(|| {
+            cached.remove(child).unwrap_or_else(|| {
                 evaluate_node(*child, tree, tree_descriptors, context, tree_stack)
             })
         } else {
@@ -66,37 +71,29 @@ pub(super) fn evaluate_selector(
                 abort_subtree(tree, active_child, context);
             }
         }
-        match &result.status {
-            AiDecisionStatus::Failed => {
-                context
-                    .instance
-                    .node_mut(tree, node_index)
-                    .terminal_children
-                    .insert(*child, result.clone());
-                last_failed = Some(result);
-            }
-            AiDecisionStatus::Running | AiDecisionStatus::Idle => {
-                context.instance.node_mut(tree, node_index).active_child = Some(*child);
-                return result;
-            }
-            _ => {
-                context.instance.node_mut(tree, node_index).active_child = None;
-                context
-                    .instance
-                    .node_mut(tree, node_index)
-                    .terminal_children
-                    .clear();
-                return result;
-            }
+        if result.status == AiDecisionStatus::Failed {
+            cached.insert(*child, result);
+            last_failed_child = Some(*child);
+        } else if matches!(
+            &result.status,
+            AiDecisionStatus::Running | AiDecisionStatus::Idle
+        ) {
+            let state = context.instance.node_mut(tree, node_index);
+            state.active_child = Some(*child);
+            state.terminal_children = cached;
+            return result;
+        } else {
+            let state = context.instance.node_mut(tree, node_index);
+            state.active_child = None;
+            state.terminal_children.clear();
+            return result;
         }
     }
 
-    context.instance.node_mut(tree, node_index).active_child = None;
-    context
-        .instance
-        .node_mut(tree, node_index)
-        .terminal_children
-        .clear();
+    let last_failed = last_failed_child.and_then(|child| cached.remove(&child));
+    let state = context.instance.node_mut(tree, node_index);
+    state.active_child = None;
+    state.terminal_children.clear();
 
     last_failed.unwrap_or_else(|| BehaviorTreeExecution {
         status: AiDecisionStatus::Failed,
@@ -230,7 +227,13 @@ fn probe_parallel_children(
     tree: &CompiledBehaviorTree,
     context: &BehaviorTreeExecutionContext<'_, '_>,
 ) -> SelectorBranchEligibility {
-    let mut eligible_children = Vec::new();
+    let success_policy =
+        parallel_policy(node, PARALLEL_SUCCESS_POLICY_PARAMETER_KEY).unwrap_or(ParallelPolicy::All);
+    let failure_policy =
+        parallel_policy(node, PARALLEL_FAILURE_POLICY_PARAMETER_KEY).unwrap_or(ParallelPolicy::Any);
+    let mut eligible_child_count = 0_usize;
+    let mut eligible_guarantees_success = false;
+    let mut all_eligible_must_fail = true;
     let mut saw_deferred_child = false;
     let mut known_failed_reactive_children = 0;
     for child in tree.child_indices(node) {
@@ -238,7 +241,19 @@ fn probe_parallel_children(
             continue;
         }
         match selector_branch_eligibility(*child, tree, context) {
-            SelectorBranchEligibility::Eligible => eligible_children.push(*child),
+            SelectorBranchEligibility::Eligible => {
+                eligible_child_count += 1;
+                if success_policy == ParallelPolicy::Any
+                    && reactive_branch_guarantees_success(*child, tree, context)
+                {
+                    eligible_guarantees_success = true;
+                }
+                if failure_policy == ParallelPolicy::All
+                    && reactive_branch_can_avoid_failure(*child, tree, context)
+                {
+                    all_eligible_must_fail = false;
+                }
+            }
             SelectorBranchEligibility::Deferred => {
                 saw_deferred_child = true;
             }
@@ -247,7 +262,7 @@ fn probe_parallel_children(
             }
         }
     }
-    if eligible_children.is_empty() {
+    if eligible_child_count == 0 {
         return if saw_deferred_child {
             SelectorBranchEligibility::Deferred
         } else {
@@ -255,55 +270,40 @@ fn probe_parallel_children(
         };
     }
 
-    let fixed_nonreactive = tree
+    let mut fixed_has_blocked = false;
+    let mut fixed_has_succeeded = false;
+    let mut fixed_has_failed = false;
+    let mut fixed_all_failed = true;
+    for child in tree
         .child_indices(node)
         .iter()
         .filter(|child| !selector_branch_requires_recheck(**child, tree))
-        .map(|child| fixed_parallel_child_status(node_index, *child, tree, context))
-        .collect::<Option<Vec<_>>>();
-    let Some(fixed_nonreactive) = fixed_nonreactive else {
-        // A reactive guard is already true. Preempt before evaluating unknown siblings so an
-        // integration task cannot mutate the host ahead of lower-branch cleanup.
-        return SelectorBranchEligibility::Eligible;
-    };
-    if fixed_nonreactive
-        .iter()
-        .any(|status| *status == AiDecisionStatus::Blocked)
     {
+        let Some(status) = fixed_parallel_child_status(node_index, *child, tree, context) else {
+            // A reactive guard is already true. Preempt before evaluating unknown siblings so an
+            // integration task cannot mutate the host ahead of lower-branch cleanup.
+            return SelectorBranchEligibility::Eligible;
+        };
+        fixed_has_blocked |= status == AiDecisionStatus::Blocked;
+        fixed_has_succeeded |= status == AiDecisionStatus::Succeeded;
+        fixed_has_failed |= status == AiDecisionStatus::Failed;
+        fixed_all_failed &= status == AiDecisionStatus::Failed;
+    }
+    if fixed_has_blocked {
         return SelectorBranchEligibility::Ineligible;
     }
 
-    let success_policy =
-        parallel_policy(node, PARALLEL_SUCCESS_POLICY_PARAMETER_KEY).unwrap_or(ParallelPolicy::All);
-    if success_policy == ParallelPolicy::Any
-        && (fixed_nonreactive
-            .iter()
-            .any(|status| *status == AiDecisionStatus::Succeeded)
-            || eligible_children
-                .iter()
-                .any(|child| reactive_branch_guarantees_success(*child, tree, context)))
+    if success_policy == ParallelPolicy::Any && (fixed_has_succeeded || eligible_guarantees_success)
     {
         return SelectorBranchEligibility::Eligible;
     }
 
-    let failure_policy =
-        parallel_policy(node, PARALLEL_FAILURE_POLICY_PARAMETER_KEY).unwrap_or(ParallelPolicy::Any);
     if failure_policy == ParallelPolicy::Any
-        && (known_failed_reactive_children > 0
-            || fixed_nonreactive
-                .iter()
-                .any(|status| *status == AiDecisionStatus::Failed))
+        && (known_failed_reactive_children > 0 || fixed_has_failed)
     {
         return SelectorBranchEligibility::Ineligible;
     }
-    if failure_policy == ParallelPolicy::All
-        && eligible_children
-            .iter()
-            .all(|child| !reactive_branch_can_avoid_failure(*child, tree, context))
-        && fixed_nonreactive
-            .iter()
-            .all(|status| *status == AiDecisionStatus::Failed)
-    {
+    if failure_policy == ParallelPolicy::All && all_eligible_must_fail && fixed_all_failed {
         return SelectorBranchEligibility::Ineligible;
     }
 

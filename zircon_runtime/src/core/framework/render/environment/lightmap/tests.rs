@@ -1,3 +1,8 @@
+use std::{
+    hint::black_box,
+    time::{Duration, Instant},
+};
+
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
 
@@ -142,7 +147,7 @@ fn render_env_lightmap_uv_rect_transform_roundtrip() {
 }
 
 #[test]
-fn render_env_lightmap_contract_resolves_stable_instance_slot() {
+fn optimization_wave_20260824rs_runtime09f2_resolves_stable_instance_slot() {
     let contract = lightmaps(5);
 
     assert_eq!(contract.slot_for_instance(7), Some(slot()));
@@ -150,21 +155,118 @@ fn render_env_lightmap_contract_resolves_stable_instance_slot() {
 }
 
 #[test]
-fn lightmap_consume_contract_slot_lookup_tracks_public_slot_mutation() {
-    let mut contract = lightmaps(5);
+fn optimization_wave_20260824rs_runtime09f2_slot_lookup_tracks_generation_replacement() {
     let replacement = LightmapInstanceSlot {
         atlas_page: 0,
         uv_rect: Vec4::new(0.25, 0.25, 0.5, 0.5),
     };
-
-    contract.slots = vec![(9, replacement)];
+    let contract = LightmapConsumeContract::new(
+        6,
+        ResourceId::from_stable_label("res://lighting/replaced.lightmap-array"),
+        atlas_descriptor(),
+        vec![(9, replacement)],
+    );
 
     assert_eq!(contract.slot_for_instance(7), None);
     assert_eq!(contract.slot_for_instance(9), Some(replacement));
 }
 
 #[test]
-fn lightmap_consume_contract_serde_roundtrip_preserves_slots() {
+fn optimization_wave_20260824rs_runtime09f2_normalizes_slot_order_and_preserves_first_duplicate() {
+    let first = slot();
+    let replacement = LightmapInstanceSlot {
+        atlas_page: 0,
+        uv_rect: Vec4::new(0.25, 0.25, 0.5, 0.5),
+    };
+    let contract = LightmapConsumeContract::new(
+        5,
+        ResourceId::from_stable_label("res://lighting/sorted.lightmap-array"),
+        atlas_descriptor(),
+        vec![(9, replacement), (7, first), (7, replacement)],
+    );
+
+    assert_eq!(
+        contract
+            .slots()
+            .iter()
+            .map(|(instance_id, _)| *instance_id)
+            .collect::<Vec<_>>(),
+        vec![7, 7, 9]
+    );
+    assert_eq!(contract.slot_for_instance(7), Some(first));
+}
+
+#[test]
+fn optimization_wave_20260824rs_runtime09f2_deserialization_normalizes_slot_order() {
+    let contract = LightmapConsumeContract::new(
+        5,
+        ResourceId::from_stable_label("res://lighting/decoded.lightmap-array"),
+        atlas_descriptor(),
+        vec![(7, slot()), (9, slot())],
+    );
+    let mut encoded = serde_json::to_value(contract).expect("contract should serialize");
+    encoded["slots"]
+        .as_array_mut()
+        .expect("slots should serialize as an array")
+        .reverse();
+
+    let decoded: LightmapConsumeContract =
+        serde_json::from_value(encoded).expect("contract should deserialize");
+
+    assert_eq!(
+        decoded
+            .slots()
+            .iter()
+            .map(|(instance_id, _)| *instance_id)
+            .collect::<Vec<_>>(),
+        vec![7, 9]
+    );
+}
+
+#[test]
+#[ignore = "performance evidence; run in the managed Windows release lane"]
+fn optimization_wave_20260824rs_runtime09f2_lightmap_slot_lookup_evidence() {
+    const SLOT_COUNT: u64 = 100_000;
+    const QUERY_COUNT: u64 = 10_000;
+    const MAX_ELAPSED: Duration = Duration::from_millis(500);
+
+    let slots = (0..SLOT_COUNT)
+        .rev()
+        .map(|instance_id| (instance_id, slot()))
+        .collect();
+    let contract = LightmapConsumeContract::new(
+        5,
+        ResourceId::from_stable_label("res://lighting/lookup-bench.lightmap-array"),
+        atlas_descriptor(),
+        slots,
+    );
+    let started = Instant::now();
+    for _ in 0..QUERY_COUNT {
+        black_box(contract.slot_for_instance(black_box(SLOT_COUNT - 1)))
+            .expect("last slot should resolve");
+    }
+    let elapsed = started.elapsed();
+
+    let legacy_slot_comparisons = SLOT_COUNT * QUERY_COUNT;
+    let comparisons_per_query_upper_bound = u64::from(u64::BITS - SLOT_COUNT.leading_zeros());
+    let indexed_comparisons_upper_bound = comparisons_per_query_upper_bound * QUERY_COUNT;
+    let reduction_basis_points = (legacy_slot_comparisons - indexed_comparisons_upper_bound)
+        * 10_000
+        / legacy_slot_comparisons;
+    assert!(elapsed <= MAX_ELAPSED, "indexed lookup took {elapsed:?}");
+    println!(
+        "RUNTIME09F2_LIGHTMAP_SLOT_BENCH_V1 slots={} queries={} legacy_slot_comparisons={} indexed_comparisons_upper_bound={} reduction_basis_points={} elapsed_ns={}",
+        SLOT_COUNT,
+        QUERY_COUNT,
+        legacy_slot_comparisons,
+        indexed_comparisons_upper_bound,
+        reduction_basis_points,
+        elapsed.as_nanos()
+    );
+}
+
+#[test]
+fn optimization_wave_20260824rs_runtime09f2_serde_roundtrip_preserves_slots() {
     let contract = LightmapConsumeContract::new(
         5,
         ResourceId::from_stable_label("res://lighting/test.lightmap-array"),
@@ -200,7 +302,7 @@ fn lightmap_consume_contract_serde_roundtrip_preserves_slots() {
 }
 
 #[test]
-fn lightmap_slots_reject_duplicate_instances_and_out_of_bounds_uvs() {
+fn optimization_wave_20260824rs_runtime09f2_rejects_duplicate_instances_and_out_of_bounds_uvs() {
     let duplicate = LightmapConsumeContract::new(
         1,
         ResourceId::from_stable_label("res://lighting/test.lightmap-array"),

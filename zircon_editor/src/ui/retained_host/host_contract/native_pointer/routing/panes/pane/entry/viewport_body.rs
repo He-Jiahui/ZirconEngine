@@ -8,13 +8,13 @@ use self::body::viewport_body_frame_below_toolbar;
 pub(super) use self::model::ViewportBodyRoute;
 use self::toolbar::{route_viewport_toolbar_hit, viewport_toolbar_frame};
 
-pub(super) fn viewport_body_route(
-    pane: &PaneData,
+pub(super) fn viewport_body_route<'a>(
+    pane: &'a PaneData,
     content: &FrameRect,
     x: f32,
     y: f32,
-    surface_key: Option<&str>,
-) -> ViewportBodyRoute {
+    surface_key: Option<&'a str>,
+) -> ViewportBodyRoute<'a> {
     let Some(toolbar) = viewport_toolbar_frame(pane, content) else {
         return ViewportBodyRoute::content(content.clone());
     };

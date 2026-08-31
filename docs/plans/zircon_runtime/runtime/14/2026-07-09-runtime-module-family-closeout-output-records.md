@@ -9,15 +9,15 @@ Files: [".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/sc
 
 ## Scope Delivered
 
-The 2026-08-01 current-source mirror records animation/navigation/diagnostic_log/engine_module as
-17/15/31/8 Rust files. The counts include nested tests and folder-backed owners and are only a
+The 2026-08-30 current-source mirror records animation/navigation/diagnostic_log/engine_module as
+21/16/32/8 Rust files. The counts include nested tests and folder-backed owners and are only a
 structure-drift tripwire. Historical 28/9/7/8 and 28/12/7/8 evidence remains historical; current
 synchronization is owned by the Runtime14 plan, this numbered record, the structure audit, the Rust
 mirror guard, and the module documents. No production behavior or module-family ownership changed
 in this review slice.
 
-Current `module_family_boundary` anchors are `expected_family_count = 4`, `animation = 17`,
-`navigation = 15`, `diagnostic_log = 31`, `engine_module = 8`, `root_seat_guard_present = true`,
+Current `module_family_boundary` anchors are `expected_family_count = 4`, `animation = 21`,
+`navigation = 16`, `diagnostic_log = 32`, `engine_module = 8`, `root_seat_guard_present = true`,
 `animation_status_json_guard_present = true`, `animation_status_json_anchor_count = 8`,
 `missing_animation_status_json_anchors = []`, `module_family_guard_anchor_count = 7`,
 `missing_module_family_guard_anchors = []`, `cargo_gate_anchor_count = 5`,

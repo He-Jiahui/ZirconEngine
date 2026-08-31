@@ -54,3 +54,23 @@ fn publish_marks_the_message_view_dirty() {
         Some(EditorViewInvalidationMask::PRESENTATION_DATA)
     );
 }
+
+#[test]
+fn optimization_wave_20260824_editor48_zero_route_publish_does_not_reserve_a_delivery_sequence() {
+    let mut bus = EditorMessageBus::default();
+    bus.set_next_delivery_sequence_for_test(u64::MAX - 1);
+    let unrouted_message = typed_messages().pop().unwrap().1;
+
+    let unrouted = bus.publish(topic("editor.unrouted"), unrouted_message);
+
+    assert!(unrouted.delivered().is_empty());
+    assert!(unrouted.error().is_none());
+
+    let routed_topic = topic("editor.routed");
+    let subscriber = bus.register_subscriber([routed_topic.clone()]).unwrap();
+    let routed = bus.publish(routed_topic, typed_messages().pop().unwrap().1);
+
+    assert_eq!(routed.delivered(), &[subscriber]);
+    assert!(routed.error().is_none());
+    assert_eq!(bus.deliveries_for(subscriber).len(), 1);
+}

@@ -7,6 +7,112 @@ pub enum RenderQueueClass {
     Copy,
 }
 
+/// An operation that can be admitted through the neutral RHI contract.
+///
+/// This is deliberately distinct from adapter feature bits: a backend must not
+/// advertise an operation here until the neutral command or service surface can
+/// execute it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[repr(u8)]
+pub enum RenderOperation {
+    DirectDraw,
+    IndexedDraw,
+    ComputeDispatch,
+    BufferToBufferCopy,
+    BufferToTextureCopy,
+    TextureToBufferCopy,
+    DebugMarker,
+    DebugGroup,
+    IndirectDraw,
+    MultiDrawIndirect,
+    MultiDrawIndirectCount,
+    AsyncComputeQueue,
+    AsyncCopyQueue,
+    GraphicsDebuggerCapture,
+    TextureToTextureCopy,
+    /// Compute dispatch whose workgroup dimensions are sourced from an
+    /// indirect-argument buffer.
+    ComputeDispatchIndirect,
+}
+
+impl RenderOperation {
+    /// Append only: serialized operation matrices use these discriminant indices.
+    pub const COUNT: usize = Self::ComputeDispatchIndirect as usize + 1;
+
+    pub const ALL: [Self; Self::COUNT] = [
+        Self::DirectDraw,
+        Self::IndexedDraw,
+        Self::ComputeDispatch,
+        Self::BufferToBufferCopy,
+        Self::BufferToTextureCopy,
+        Self::TextureToBufferCopy,
+        Self::DebugMarker,
+        Self::DebugGroup,
+        Self::IndirectDraw,
+        Self::MultiDrawIndirect,
+        Self::MultiDrawIndirectCount,
+        Self::AsyncComputeQueue,
+        Self::AsyncCopyQueue,
+        Self::GraphicsDebuggerCapture,
+        Self::TextureToTextureCopy,
+        Self::ComputeDispatchIndirect,
+    ];
+
+    const fn index(self) -> usize {
+        self as usize
+    }
+}
+
+/// Whether a backend can execute a neutral RHI operation without or with a
+/// documented emulation path.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RenderOperationSupport {
+    #[default]
+    Unsupported,
+    Emulated,
+    Native,
+}
+
+impl RenderOperationSupport {
+    pub const fn is_supported(self) -> bool {
+        !matches!(self, Self::Unsupported)
+    }
+}
+
+/// Structured reason returned when a neutral RHI operation has no executable
+/// backend path. This keeps admission failures allocation-free and machine
+/// readable for callers that need to select a fallback.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct UnsupportedRenderOperation {
+    pub operation: RenderOperation,
+    pub support: RenderOperationSupport,
+}
+
+/// Fixed-size operation table so admission stays allocation-free and every
+/// operation has an explicit fail-closed default.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenderOperationMatrix {
+    support: [RenderOperationSupport; RenderOperation::COUNT],
+}
+
+impl Default for RenderOperationMatrix {
+    fn default() -> Self {
+        Self {
+            support: [RenderOperationSupport::Unsupported; RenderOperation::COUNT],
+        }
+    }
+}
+
+impl RenderOperationMatrix {
+    pub const fn support(&self, operation: RenderOperation) -> RenderOperationSupport {
+        self.support[operation.index()]
+    }
+
+    pub fn set(&mut self, operation: RenderOperation, support: RenderOperationSupport) {
+        self.support[operation.index()] = support;
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AccelerationStructureCaps {
     pub supported: bool,
@@ -53,8 +159,16 @@ pub struct RenderDeviceLimits {
     pub max_binding_array_elements_per_shader_stage: u32,
     #[serde(default)]
     pub max_binding_array_sampler_elements_per_shader_stage: u32,
+    #[serde(default = "default_dynamic_buffer_offset_alignment")]
+    pub min_uniform_buffer_offset_alignment: u32,
+    #[serde(default = "default_dynamic_buffer_offset_alignment")]
+    pub min_storage_buffer_offset_alignment: u32,
     pub max_storage_buffers_per_shader_stage: u32,
     pub max_storage_buffer_binding_size: u64,
+}
+
+const fn default_dynamic_buffer_offset_alignment() -> u32 {
+    256
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,6 +213,8 @@ pub struct RenderBackendCaps {
     pub supports_debug_groups: bool,
     pub supports_graphics_debugger_capture: bool,
     pub acceleration_structures: AccelerationStructureCaps,
+    #[serde(default)]
+    pub operation_matrix: RenderOperationMatrix,
 }
 
 impl RenderBackendCaps {
@@ -135,6 +251,7 @@ impl RenderBackendCaps {
             supports_debug_groups: false,
             supports_graphics_debugger_capture: false,
             acceleration_structures: AccelerationStructureCaps::disabled(),
+            operation_matrix: RenderOperationMatrix::default(),
         }
     }
 
@@ -157,6 +274,35 @@ impl RenderBackendCaps {
 
     pub fn supports_queue(&self, queue: RenderQueueClass) -> bool {
         self.queue_classes.contains(&queue)
+    }
+
+    pub fn with_operation_support(
+        mut self,
+        operation: RenderOperation,
+        support: RenderOperationSupport,
+    ) -> Self {
+        self.operation_matrix.set(operation, support);
+        self
+    }
+
+    pub const fn operation_support(&self, operation: RenderOperation) -> RenderOperationSupport {
+        self.operation_matrix.support(operation)
+    }
+
+    pub const fn supports_operation(&self, operation: RenderOperation) -> bool {
+        self.operation_support(operation).is_supported()
+    }
+
+    pub const fn require_operation(
+        &self,
+        operation: RenderOperation,
+    ) -> Result<RenderOperationSupport, UnsupportedRenderOperation> {
+        let support = self.operation_support(operation);
+        if support.is_supported() {
+            Ok(support)
+        } else {
+            Err(UnsupportedRenderOperation { operation, support })
+        }
     }
 
     pub fn with_surface_support(mut self, enabled: bool) -> Self {
@@ -331,7 +477,7 @@ impl RenderDebugInstrumentationStatus {
 
 #[cfg(test)]
 mod tests {
-    use super::RenderBackendCaps;
+    use super::{RenderBackendCaps, RenderOperation, RenderOperationSupport};
 
     #[test]
     fn render_backend_caps_deserialize_literal_pre_device_diagnostics_payload() {
@@ -375,5 +521,9 @@ mod tests {
         assert!(decoded.supports_buffer_readback);
         assert!(!decoded.supports_subgroup);
         assert!(!decoded.supports_pipeline_statistics_query);
+        assert_eq!(
+            decoded.operation_support(RenderOperation::DirectDraw),
+            RenderOperationSupport::Unsupported
+        );
     }
 }

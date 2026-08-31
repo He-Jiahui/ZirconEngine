@@ -27,6 +27,10 @@ impl SkeletalPoseTargets {
         self.entities.get(&entity)
     }
 
+    pub fn remove(&mut self, entity: EntityId) -> Option<Arc<[SkeletalPoseTarget]>> {
+        self.entities.remove(&entity)
+    }
+
     pub fn clear(&mut self) {
         self.entities.clear();
     }

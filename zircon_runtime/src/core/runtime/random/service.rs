@@ -112,10 +112,7 @@ impl RandomService {
         let (authority, streams) = self
             .authority
             .registry()
-            .checkpoint_with_authority_snapshot(|| {
-                after_stream_capture();
-                self.authority.snapshot()
-            })
+            .checkpoint_with_authority_snapshot(|| self.authority.snapshot(), after_stream_capture)
             .map_err(|active_leases| RandomServiceError::CheckpointBlocked { active_leases })?;
         Ok(RandomServiceCheckpoint::try_new(authority, streams)?)
     }
@@ -126,6 +123,9 @@ impl RandomService {
     }
 
     /// Explicitly removes parked progress so the next acquire re-derives the stream.
+    ///
+    /// The returned state is an observation of the removed progress, not an independently
+    /// restorable checkpoint. Use [`Self::checkpoint`] for replay persistence.
     pub fn evict_stream(
         &self,
         key: RandomStreamKey,
@@ -143,7 +143,10 @@ impl RandomService {
     ) -> Result<Vec<RandomStreamCheckpoint>, RandomServiceError> {
         self.authority
             .registry()
-            .evict_matching(|key| key.world() == world)
+            .evict_matching(
+                |key| key.world() == world,
+                || self.authority.master_seed_generation(),
+            )
             .map_err(
                 |active_leases| RandomServiceError::StreamScopeEvictionBlocked { active_leases },
             )
@@ -157,7 +160,10 @@ impl RandomService {
     ) -> Result<Vec<RandomStreamCheckpoint>, RandomServiceError> {
         self.authority
             .registry()
-            .evict_matching(|key| key.world() == world && key.entity() == Some(entity))
+            .evict_matching(
+                |key| key.world() == world && key.entity() == Some(entity),
+                || self.authority.master_seed_generation(),
+            )
             .map_err(
                 |active_leases| RandomServiceError::StreamScopeEvictionBlocked { active_leases },
             )
@@ -174,7 +180,7 @@ impl RandomService {
 
 #[cfg(test)]
 mod ownership_tests {
-    use std::sync::{mpsc, Arc};
+    use std::sync::{Arc, mpsc};
     use std::thread;
 
     use zr_contracts::random::{
@@ -250,14 +256,31 @@ mod ownership_tests {
         );
 
         let reseed_authority = Arc::clone(&service.authority);
-        let (reseed_started_tx, reseed_started_rx) = mpsc::sync_channel(0);
+        let (reseed_attempt_tx, reseed_attempt_rx) = mpsc::sync_channel(0);
+        let (reseed_entered_tx, reseed_entered_rx) = mpsc::channel();
+        let (reseed_done_tx, reseed_done_rx) = mpsc::channel();
         let reseed_worker = thread::spawn(move || {
-            reseed_started_tx.send(()).expect("reseed start observer");
-            reseed_authority.reseed(RESEEDED_SEED)
+            reseed_attempt_tx.send(()).expect("reseed attempt observer");
+            let result = reseed_authority.reseed_with_test_observer(RESEEDED_SEED, || {
+                reseed_entered_tx.send(()).expect("reseed entry observer");
+            });
+            reseed_done_tx.send(()).expect("reseed completion observer");
+            result
         });
-        reseed_started_rx.recv().expect("reseed start signal");
+        reseed_attempt_rx.recv().expect("reseed attempt signal");
+        assert!(
+            matches!(reseed_entered_rx.try_recv(), Err(mpsc::TryRecvError::Empty)),
+            "reseed must not enter while checkpoint capture is paused"
+        );
+        assert!(
+            matches!(reseed_done_rx.try_recv(), Err(mpsc::TryRecvError::Empty)),
+            "reseed must remain blocked while checkpoint capture is paused"
+        );
 
         resume_tx.send(()).expect("checkpoint resume receiver");
+        reseed_entered_rx
+            .recv()
+            .expect("reseed entry after checkpoint resume");
         let checkpoint = checkpoint_worker
             .join()
             .expect("checkpoint worker should not panic")
@@ -266,6 +289,7 @@ mod ownership_tests {
             .join()
             .expect("reseed worker should not panic")
             .expect("idle service should reseed");
+        reseed_done_rx.recv().expect("reseed completion signal");
 
         assert_eq!(checkpoint.service_state(), before_service);
         assert_eq!(checkpoint.streams()[0].state(), before_stream);

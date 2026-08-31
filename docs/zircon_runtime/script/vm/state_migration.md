@@ -13,6 +13,7 @@ related_code:
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime_interface/src/reflect/type_registration.rs
   - zircon_runtime_interface/src/reflect/field_info.rs
+  - zircon_runtime_interface/src/reflect/field_id.rs
 implementation_files:
   - zircon_runtime/src/script/vm/plugin/vm_state_blob.rs
   - zircon_runtime/src/script/vm/plugin/state_migration.rs
@@ -46,15 +47,17 @@ The Script VM state-migration module owns the runtime-neutral snapshot, schema, 
 
 This implementation closes the runtime-neutral Plugins 08 M5 contract while preserving the Plugins 08 M4 ownership boundary. The single feature-gated real ZrVM adapter owned by `zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs` consumes an optional `stateSchema` JSON export. Plugins 08 M4 records a managed Windows real-backend run with 15/15 passing and doc-tests 0 failures, plus a passing default-feature package matrix; this Frameworks 06 docs-only batch neither reruns nor promotes that foreign milestone.
 
-## `VmStateBlob` v2
+## `VmStateBlob` v3
 
 `VmStateBlob` contains three fields:
 
-- `schema_version`: the producer's state-schema version. `VM_STATE_SCHEMA_VERSION_V2` is the default.
+- `schema_version`: the producer's state-schema version. `VM_STATE_SCHEMA_VERSION_V3` is the default.
 - `types`: the authoritative `VmStateTypeIdentity` table. Each entry contains one `ReflectTypePath` and the producer's `u32` type hash.
-- `payload`: backend bytes. Reflected migration encodes a JSON array of `VmStateObject`; each object carries its type path and ordered `ReflectFieldValue` entries.
+- `payload`: backend bytes. Reflected migration encodes a JSON array of `VmStateObject`; each object carries its type path and ordered `VmStateFieldValue { field_id, value }` entries.
 
-`from_reflected_objects`, `reflected_objects`, and `validate_reflected` are the centralized reflected-payload boundary. Construction and decoding both enforce unique type identities, declared object types, and unique field names per object; encode and decode failures become `VmStateMigrationError` rather than stringly backend failures. `from_json` / `to_json` define the cross-language lifecycle envelope for a complete versioned blob. `from_payload` remains available to runtime-neutral opaque backends and produces a v2 blob with an empty type table. Such a blob may be restored unchanged when the destination returns `state_schema = None`; a destination that opts into reflected migration must provide reflected payload and authoritative type identities.
+`from_reflected_objects`, `reflected_objects`, and `validate_reflected` are the centralized reflected-payload boundary. Construction and decoding both enforce unique type identities, declared object types, and unique stable field IDs per object; encode and decode failures become `VmStateMigrationError` rather than stringly backend failures. `from_json` / `to_json` define the cross-language lifecycle envelope for a complete versioned blob. `from_payload` remains available to runtime-neutral opaque backends and produces a v3 blob with an empty type table. Such a blob may be restored unchanged when the destination returns `state_schema = None`; a destination that opts into reflected migration must provide reflected payload and authoritative type identities.
+
+V3 is a hard format cut. Reflected values no longer serialize `field_name`, and `VmStateTypeSchema` no longer accepts a `renames` table. Both structures reject unknown fields, so an old name-addressed payload or schema fails decoding instead of being partially accepted.
 
 The migration path rejects duplicate source type identities and any payload object whose type path is absent from the source type table. This prevents a payload from silently claiming a type not described by its schema metadata.
 
@@ -62,13 +65,12 @@ The migration path rejects duplicate source type identities and any payload obje
 
 `VmStateTypeSchema` embeds `zircon_runtime_interface::reflect::ReflectTypeRegistration`. Serializable destination fields, field defaults, the type path, and serialization eligibility all come directly from that registration. M5 deliberately removed the temporary duplicate field-schema DTO, so Inspector, replication, VM type registration, and state migration consume the same `ReflectTypeRegistration` / `ReflectFieldInfo` model.
 
-The migration-only additions are limited to:
+The VM-specific additions are limited to:
 
 - the destination `type_hash` written into the new identity table as revision metadata;
-- `VmStateFieldRename { from, to }` declarations for historical field names;
 - the destination `schema_version`.
 
-Target registrations must be serializable. Duplicate target type paths, duplicate serializable field names, duplicate rename sources or destinations, and rename destinations absent from the serializable target field set are typed errors. M5 carries the source hash and rewrites it to the target hash; it does not use hash equality as a migration gate because explicit field migration is selected by the stable fully qualified type path.
+Target registrations must be serializable. Duplicate target type paths and duplicate serializable field IDs are typed errors. A current name, display name, or alias is schema metadata and never participates in VM state lookup. The source hash is rewritten to the target hash; hash equality is not a migration gate because type selection uses the stable fully qualified type path and field selection uses `ReflectFieldId`.
 
 ## Field migration algorithm
 
@@ -77,9 +79,9 @@ Target registrations must be serializable. Duplicate target type paths, duplicat
 1. Validate and index the source identity table.
 2. Validate and index serializable target registrations by fully qualified type path.
 3. Decode reflected objects and require each object type to be declared by the source table and present in the target schema.
-4. Reject duplicate source fields.
-5. Visit serializable destination fields in `ReflectTypeInfo` order. A field with the current name wins; otherwise its declared historical name is consumed.
-6. If neither source name exists, clone `ReflectFieldInfo::default_value`. A field without a source value or default returns `MissingRequiredField`.
+4. Reject duplicate source field IDs.
+5. Visit serializable destination fields in `ReflectTypeInfo` order and consume the source value with the same `ReflectFieldId`. Renaming a field preserves the ID and needs no migration table.
+6. If the stable ID is absent, clone `ReflectFieldInfo::default_value`. A field without a source value or default returns `MissingRequiredField`.
 7. Drop source fields not present in the destination and emit objects with the destination type path, destination schema version, and destination type hashes.
 
 The algorithm is value-preserving rather than coercive: M5 does not invent numeric or container conversions. A future conversion layer must be explicit and typed instead of weakening the current deterministic behavior.
@@ -102,6 +104,6 @@ When new-instance cleanup, old-instance reactivation, and old-state restoration 
 
 ## Validation and reference evidence
 
-Windows validation used fixed toolchain `1.94.1-x86_64-pc-windows-msvc`, a coordinator-managed retained target, `--locked --offline --jobs 1`, and the `core-min,script,net-contracts` runtime feature set. The focused migration group passed 4/4; the complete `script::vm` domain passed 86/86. The default ZrVM plugin package passed 11/11 plus an empty doctest set.
+The owner suites are the focused `vm_state_blob` and `state_migration` tests, hot-reload rollback migration tests, and the real ZrVM backend lifecycle tests. They cover V3 round trips, legacy name-format rejection, stable-ID rename preservation, duplicate-ID admission, default values, and rollback behavior.
 
 The design follows Godot's rule that extension reload must retain explicit class/instance ownership and clean registration state (`dev/godot/core/extension/gdextension.cpp`), Bevy's use of dynamic reflection metadata for field-wise application (`dev/bevy/crates/bevy_reflect/src`), and Fyrox's explicit versioned visitor model. Zircon intentionally keeps rollback in the host coordinator and treats backend state bytes as opaque unless the backend opts into the shared reflection schema.

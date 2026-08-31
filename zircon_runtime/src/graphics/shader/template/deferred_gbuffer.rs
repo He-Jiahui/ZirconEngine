@@ -1,18 +1,19 @@
 use crate::core::framework::render::{
-    strip_wgsl_include_directives, GeometrySourceDescriptor, RenderShaderDefinitionValue,
-    ShaderFeatureBits, ShadingModelDescriptor,
+    GeometrySourceDescriptor, RenderShaderDefinitionValue, ShaderFeatureBits,
+    ShadingModelDescriptor, strip_wgsl_include_directives,
 };
 use crate::graphics::material::ShadingModelIncludeSourceSet;
 
 use super::assemble::{
-    format_defines_header, generated_material_include, push_include_chunk,
-    push_source_module_includes, rename_material_surface_entry, MaterialShaderTemplateAssembly,
-    ShaderAssemblyBuilder, ShaderAssemblySegmentKind, ShaderTemplateAssemblyError,
+    MaterialShaderTemplateAssembly, ShaderAssemblyBuilder, ShaderAssemblySegmentKind,
+    ShaderTemplateAssemblyError, format_defines_header, generated_material_include,
+    push_include_chunk, push_source_module_includes, rename_material_surface_entry,
 };
 use super::module_registry::{
-    geometry_source_include_for, gpu_scene_include, irradiance_volume_include, lightmap_include,
+    ShaderTemplateInclude, ShaderTemplateIncludeRegistry, geometry_source_include_for,
+    gpu_scene_include, irradiance_volume_include, lightmap_include, pbr_common_include,
     scene_runtime_include, shading_model_gbuffer_include_for, shading_model_gbuffer_include_token,
-    surface_types_include, ShaderTemplateInclude, ShaderTemplateIncludeRegistry,
+    surface_types_include,
 };
 use super::pass_specialization::MATERIAL_SHADER_TEMPLATE_REVISION;
 
@@ -128,6 +129,7 @@ impl DeferredGBufferShaderTemplateRequest {
 pub(crate) fn assemble_deferred_gbuffer_shader_template(
     request: DeferredGBufferShaderTemplateRequest,
 ) -> Result<MaterialShaderTemplateAssembly, ShaderTemplateAssemblyError> {
+    crate::profile_scope!("render", "shader_pipeline", "template_assembly");
     let mut registry = ShaderTemplateIncludeRegistry::default();
     let mut builder = ShaderAssemblyBuilder::default();
 
@@ -145,6 +147,7 @@ pub(crate) fn assemble_deferred_gbuffer_shader_template(
 
     push_include_chunk(&mut registry, &mut builder, scene_runtime_include());
     push_include_chunk(&mut registry, &mut builder, gpu_scene_include());
+    push_include_chunk(&mut registry, &mut builder, pbr_common_include());
     push_include_chunk(&mut registry, &mut builder, surface_types_include());
     push_include_chunk(&mut registry, &mut builder, irradiance_volume_include());
     push_include_chunk(&mut registry, &mut builder, lightmap_include());

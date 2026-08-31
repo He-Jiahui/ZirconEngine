@@ -8,6 +8,7 @@ related_code:
   - zircon_runtime/src/core/framework/animation/graph_evaluation.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
   - zircon_runtime/src/core/framework/animation/parameter_map.rs
+  - zircon_runtime/src/core/framework/animation/parameter_set.rs
   - zircon_runtime/src/core/framework/animation/parameter_value.rs
   - zircon_runtime/src/core/framework/animation/playback_settings.rs
   - zircon_runtime/src/core/framework/animation/track_path.rs
@@ -27,6 +28,7 @@ related_code:
   - zircon_runtime/src/animation/module.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
   - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
@@ -46,6 +48,7 @@ related_code:
   - zircon_runtime/src/asset/assets/model/mod.rs
   - zircon_runtime/src/asset/assets/physics_material.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
+  - zircon_runtime/src/asset/assets/scene/animation.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/import_obj.rs
@@ -166,6 +169,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/animation/mod.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
   - zircon_runtime/src/core/framework/animation/parameter_map.rs
+  - zircon_runtime/src/core/framework/animation/parameter_set.rs
   - zircon_runtime/src/core/framework/animation/parameter_value.rs
   - zircon_runtime/src/core/framework/animation/playback_settings.rs
   - zircon_runtime/src/core/framework/animation/track_path.rs
@@ -184,6 +188,7 @@ implementation_files:
   - zircon_runtime/src/animation/module.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
   - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
@@ -203,6 +208,7 @@ implementation_files:
   - zircon_runtime/src/asset/assets/model/mod.rs
   - zircon_runtime/src/asset/assets/physics_material.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
+  - zircon_runtime/src/asset/assets/scene/animation.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/import_obj.rs
@@ -644,8 +650,10 @@ doc_type: module-detail
 - collider 允许两种材质来源
   - `material: AssetReference`
   - `material_override: PhysicsMaterialMetadata`
-- graph/state-machine 参数统一走 `BTreeMap<String, AnimationParameterValue>`
-  - 这样序列化顺序稳定，editor/runtime roundtrip 可比对
+- graph/state-machine scene schema 与 ECS component 统一由 `AnimationParameterSet` 持有
+  - 内部 `BTreeMap<String, AnimationParameterValue>` 保持确定性序列化顺序
+  - process-local revision/fingerprint 不写入 scene，加载时按内容重建
+  - runtime request 只克隆共享参数 owner，不保留第二张 per-entity 参数快照表
 
 ## World Access And Mutation
 

@@ -1,22 +1,16 @@
-mod constants;
 mod helper;
-mod register_handled_pointer_node;
-mod route_conversion;
 mod welcome_recent_pointer_action;
 mod welcome_recent_pointer_bridge;
 mod welcome_recent_pointer_bridge_clamp_scroll_offset;
-mod welcome_recent_pointer_bridge_dispatch_event;
 mod welcome_recent_pointer_bridge_handle_click;
 mod welcome_recent_pointer_bridge_handle_move;
 mod welcome_recent_pointer_bridge_handle_scroll;
 mod welcome_recent_pointer_bridge_new;
 mod welcome_recent_pointer_bridge_project_route;
-mod welcome_recent_pointer_bridge_rebuild_surface;
 mod welcome_recent_pointer_bridge_sync;
 mod welcome_recent_pointer_dispatch;
 mod welcome_recent_pointer_layout;
 mod welcome_recent_pointer_route;
-mod welcome_recent_pointer_route_intent;
 mod welcome_recent_pointer_state;
 
 pub(crate) use welcome_recent_pointer_action::WelcomeRecentPointerAction;
@@ -24,5 +18,4 @@ pub(crate) use welcome_recent_pointer_bridge::WelcomeRecentPointerBridge;
 pub(crate) use welcome_recent_pointer_dispatch::WelcomeRecentPointerDispatch;
 pub(crate) use welcome_recent_pointer_layout::WelcomeRecentPointerLayout;
 pub(crate) use welcome_recent_pointer_route::WelcomeRecentPointerRoute;
-pub(crate) use welcome_recent_pointer_route_intent::WelcomeRecentPointerRouteIntent;
 pub(crate) use welcome_recent_pointer_state::WelcomeRecentPointerState;

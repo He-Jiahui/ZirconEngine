@@ -215,6 +215,8 @@ function New-RenderExtractFrozenProfilingInput {
     $frozen = [ordered]@{
         manifest_path = $frozenManifestPath
         manifest_sha256 = $ProfilingInput.manifest_sha256
+        build_set_id = $ProfilingInput.build_set_id
+        build_set_manifest_sha256 = $ProfilingInput.build_set_manifest_sha256
     }
     foreach ($product in @('runtime', 'editor')) {
         $productDirectory = Join-ZirconWindowsPath -Path $snapshotDirectory -ChildPath $product

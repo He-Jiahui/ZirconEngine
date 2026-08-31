@@ -10,7 +10,7 @@ pub struct ViewProjectionMatrixPair {
 
 impl ViewProjectionMatrixPair {
     pub fn from_camera(camera: &ViewportCameraSnapshot, viewport_size: UVec2) -> Self {
-        let projection = projection_from_camera(camera, viewport_size);
+        let projection = Self::projection_from_camera(camera, viewport_size);
         let clip_from_world_unjittered = projection * view_matrix(camera.transform);
         let jitter = camera.temporal_jitter.offset_pixels;
         if jitter == Vec2::ZERO {
@@ -31,6 +31,13 @@ impl ViewProjectionMatrixPair {
             clip_from_world_unjittered,
         }
     }
+
+    pub(crate) fn projection_from_camera(
+        camera: &ViewportCameraSnapshot,
+        viewport_size: UVec2,
+    ) -> Mat4 {
+        projection_from_camera(camera, viewport_size)
+    }
 }
 
 fn projection_from_camera(camera: &ViewportCameraSnapshot, viewport_size: UVec2) -> Mat4 {
@@ -38,13 +45,12 @@ fn projection_from_camera(camera: &ViewportCameraSnapshot, viewport_size: UVec2)
         return projection;
     }
     let aspect = aspect_ratio_from_viewport_size(viewport_size);
+    let z_near = camera.z_near.max(0.001);
+    let z_far = camera.z_far.max(z_near + 0.001);
     match camera.projection_mode {
-        ProjectionMode::Perspective => Mat4::perspective_rh(
-            camera.fov_y_radians,
-            aspect.max(0.001),
-            camera.z_near.max(0.001),
-            camera.z_far,
-        ),
+        ProjectionMode::Perspective => {
+            Mat4::perspective_rh(camera.fov_y_radians, aspect.max(0.001), z_near, z_far)
+        }
         ProjectionMode::Orthographic => {
             let half_height = camera.ortho_size.max(0.01);
             let half_width = half_height * aspect.max(0.001);
@@ -53,8 +59,8 @@ fn projection_from_camera(camera: &ViewportCameraSnapshot, viewport_size: UVec2)
                 half_width,
                 -half_height,
                 half_height,
-                camera.z_near.max(0.001),
-                camera.z_far,
+                z_near,
+                z_far,
             )
         }
     }

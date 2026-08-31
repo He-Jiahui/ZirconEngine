@@ -4,7 +4,10 @@ use crate::asset::{
     AssetUri, TextureAsset, TextureAssetDescriptor, LIGHTMAP_RGBA16F_FORMAT,
     LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
-use crate::core::framework::render::{RenderImageColorSpace, RenderImageDimension};
+use crate::core::framework::render::{
+    RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageUsage,
+    RenderMaterialTextureDimension,
+};
 
 #[test]
 fn ktx2_upload_plan_rejects_level_payload_inside_level_index() {
@@ -142,6 +145,167 @@ fn rgba8_upload_readiness_accepts_layered_shapes_with_complete_payloads() {
             .unsupported_reason(),
         Some("rgba8 texture 3d upload is not implemented")
     );
+}
+
+#[test]
+fn optimization_batch_dg_borrowed_descriptor_matches_owned_rgba8_readiness() {
+    let texture = optimization_batch_dg_texture();
+    let descriptor = texture.render_image_descriptor();
+    let support = TextureUploadSupport::uncompressed_only();
+
+    assert_eq!(
+        texture.upload_readiness(support),
+        texture.upload_readiness_with_descriptor(&descriptor, support)
+    );
+}
+
+#[test]
+fn optimization_batch_dg_resource_admission_reuses_one_render_descriptor() {
+    let upload_source = include_str!("../upload_support.rs");
+    let resolve_source = include_str!(
+        "../../../../graphics/scene/resources/resource_streamer/resource_streamer_resolve_texture_id.rs"
+    );
+
+    assert!(upload_source.contains("pub(crate) fn upload_readiness_with_descriptor("));
+    assert!(upload_source.contains("rgba8_upload_readiness(self, descriptor)"));
+    assert_eq!(
+        resolve_source
+            .matches("texture.render_image_descriptor()")
+            .count(),
+        1
+    );
+    assert!(resolve_source.contains("upload_readiness_with_descriptor(&descriptor, support)"));
+}
+
+#[test]
+#[ignore = "release-only alternating p95 performance gate"]
+fn optimization_batch_dg_texture_descriptor_single_projection_p95() {
+    const SAMPLE_PAIRS: usize = 17;
+    const ADMISSIONS_PER_SAMPLE: usize = 1_024;
+
+    let texture = optimization_batch_dg_texture();
+    assert_eq!(
+        optimization_batch_dg_legacy_admission(&texture),
+        optimization_batch_dg_borrowed_admission(&texture)
+    );
+
+    let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    for sample_index in 0..SAMPLE_PAIRS {
+        if sample_index % 2 == 0 {
+            legacy_samples.push(optimization_batch_dg_measure(
+                &texture,
+                ADMISSIONS_PER_SAMPLE,
+                optimization_batch_dg_legacy_admission,
+            ));
+            optimized_samples.push(optimization_batch_dg_measure(
+                &texture,
+                ADMISSIONS_PER_SAMPLE,
+                optimization_batch_dg_borrowed_admission,
+            ));
+        } else {
+            optimized_samples.push(optimization_batch_dg_measure(
+                &texture,
+                ADMISSIONS_PER_SAMPLE,
+                optimization_batch_dg_borrowed_admission,
+            ));
+            legacy_samples.push(optimization_batch_dg_measure(
+                &texture,
+                ADMISSIONS_PER_SAMPLE,
+                optimization_batch_dg_legacy_admission,
+            ));
+        }
+    }
+
+    let legacy_p95 = optimization_batch_dg_p95(&mut legacy_samples);
+    let optimized_p95 = optimization_batch_dg_p95(&mut optimized_samples);
+    println!(
+        "RUNTIME414_TEXTURE_DESCRIPTOR_SINGLE_PROJECTION_BENCH_V1 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} ratio={:.4}",
+        optimized_p95 as f64 / legacy_p95.max(1) as f64
+    );
+    assert!(
+        optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(70),
+        "borrowed descriptor admission p95 {optimized_p95}ns exceeded 70% of legacy {legacy_p95}ns"
+    );
+}
+
+fn optimization_batch_dg_texture() -> TextureAsset {
+    let mut descriptor = TextureAssetDescriptor::rgba8_srgb();
+    descriptor.usage = [
+        RenderImageUsage::Sampled,
+        RenderImageUsage::Storage,
+        RenderImageUsage::RenderTarget,
+        RenderImageUsage::CopySrc,
+        RenderImageUsage::CopyDst,
+    ]
+    .into_iter()
+    .cycle()
+    .take(256)
+    .collect();
+    descriptor.asset_usage = [
+        RenderImageAssetUsage::MainWorld,
+        RenderImageAssetUsage::RenderWorld,
+    ]
+    .into_iter()
+    .cycle()
+    .take(256)
+    .collect();
+    TextureAsset::new_rgba8(
+        AssetUri::parse("res://textures/optimization-batch-dg.png").unwrap(),
+        4,
+        4,
+        vec![0_u8; 4 * 4 * 4],
+    )
+    .with_descriptor(descriptor)
+}
+
+fn optimization_batch_dg_legacy_admission(texture: &TextureAsset) -> bool {
+    let dimension_descriptor = texture.render_image_descriptor();
+    let actual_dimension =
+        RenderMaterialTextureDimension::from_image_descriptor(&dimension_descriptor);
+    let shape_descriptor = texture.render_image_descriptor();
+    std::hint::black_box(shape_descriptor.dimension);
+    let readiness_descriptor = texture.render_image_descriptor();
+    let ready = texture
+        .upload_readiness_with_descriptor(
+            &readiness_descriptor,
+            TextureUploadSupport::uncompressed_only(),
+        )
+        .is_ready();
+    std::hint::black_box((actual_dimension, ready)).1
+}
+
+fn optimization_batch_dg_borrowed_admission(texture: &TextureAsset) -> bool {
+    let descriptor = texture.render_image_descriptor();
+    let actual_dimension = RenderMaterialTextureDimension::from_image_descriptor(&descriptor);
+    let ready = texture
+        .upload_readiness_with_descriptor(&descriptor, TextureUploadSupport::uncompressed_only())
+        .is_ready();
+    std::hint::black_box((actual_dimension, ready)).1
+}
+
+fn optimization_batch_dg_measure(
+    texture: &TextureAsset,
+    admissions: usize,
+    admission: fn(&TextureAsset) -> bool,
+) -> u128 {
+    let started_at = std::time::Instant::now();
+    let mut ready_count = 0_usize;
+    for _ in 0..admissions {
+        ready_count += usize::from(admission(std::hint::black_box(texture)));
+    }
+    std::hint::black_box(ready_count);
+    started_at.elapsed().as_nanos()
+}
+
+fn optimization_batch_dg_p95(samples: &mut [u128]) -> u128 {
+    samples.sort_unstable();
+    let index = samples
+        .len()
+        .saturating_mul(95)
+        .div_ceil(100)
+        .saturating_sub(1);
+    samples[index]
 }
 
 #[test]

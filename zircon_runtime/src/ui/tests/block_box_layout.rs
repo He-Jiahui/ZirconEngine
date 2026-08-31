@@ -1,5 +1,6 @@
+use super::template::compiled_instance_from_toml;
 use crate::ui::surface::{hit_test_surface_frame, UiSurface};
-use crate::ui::template::{UiTemplateInstance, UiTemplateLoader, UiTemplateSurfaceBuilder};
+use crate::ui::template::UiTemplateSurfaceBuilder;
 use crate::ui::v2::{UiV2AssetLoader, UiV2DocumentCompiler, UiV2SurfaceBuilder};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
@@ -84,14 +85,14 @@ fn block_box_arranges_visible_children_through_taffy_surface_frame() {
     assert_eq!(surface.hit_test(UiPoint::new(12.0, 32.0)), frame_hit);
     assert_eq!(frame_hit.top_hit, Some(UiNodeId::new(3)));
     assert_eq!(
-        frame_hit.path.bubble_route,
+        frame_hit.path.bubble_route().collect::<Vec<_>>(),
         vec![UiNodeId::new(3), UiNodeId::new(1)]
     );
 }
 
 #[test]
 fn block_box_template_contract_infers_and_parses_explicit_block_container() {
-    let document = UiTemplateLoader::load_toml_str(
+    let instance = compiled_instance_from_toml(
         r#"
 version = 1
 
@@ -102,9 +103,7 @@ children = [
     { component = "Block", control_id = "BlockAlias", attributes = { layout = { container = { kind = "Block" } } } }
 ]
 "#,
-    )
-    .unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    );
     let surface = UiTemplateSurfaceBuilder::build_surface(
         UiTreeId::new("runtime.ui.template.block_box"),
         &instance,
@@ -186,7 +185,7 @@ fn block_box_native_path_uses_container_slots_for_padding() {
             pointer_node(2, "root/first", fixed_constraints(40.0, 10.0)),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(2), UiSlotKind::Container)
             .with_padding(UiMargin::new(3.0, 5.0, 7.0, 11.0)),
     );
@@ -228,7 +227,7 @@ fn block_box_fallback_keeps_container_slots_when_taffy_rejects_alignment() {
             pointer_node(2, "root/first", fixed_constraints(40.0, 10.0)),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(2), UiSlotKind::Container)
             .with_padding(UiMargin::new(3.0, 5.0, 7.0, 11.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Center, UiAlignment::Start)),

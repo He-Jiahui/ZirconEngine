@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime_interface::ui::layout::UiPoint;
 use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
@@ -72,7 +74,7 @@ pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click_at_point(
     bridge: &BuiltinViewportToolbarTemplateBridge,
     pointer_bridge: &mut ViewportToolbarPointerBridge,
     surface_key: &str,
-    surface_frame: &UiSurfaceFrame,
+    surface_frame: &Arc<UiSurfaceFrame>,
     point: UiPoint,
 ) -> Result<SharedViewportToolbarPointerClickDispatch, String> {
     pointer_bridge.sync_surface_frame(surface_key, surface_frame)?;

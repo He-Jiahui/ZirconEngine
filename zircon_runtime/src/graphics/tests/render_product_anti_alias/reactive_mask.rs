@@ -16,9 +16,8 @@ use crate::core::resource::{
 use crate::graphics::WgpuRenderFramework;
 
 use super::{
-    anti_alias_product_profile, assert_taa_resolve_product_stats,
-    submit_and_capture_anti_alias_product, TAA_REACTIVE_MASK_MESH_EXECUTOR_ID,
-    TAA_RESOLVE_EXECUTOR_ID,
+    TAA_REACTIVE_MASK_MESH_EXECUTOR_ID, TAA_RESOLVE_EXECUTOR_ID, anti_alias_product_profile,
+    assert_taa_resolve_product_stats, submit_and_capture_anti_alias_product,
 };
 
 const TAA_REACTIVE_MASK_WGPU_PNG: &str = "render18_taa_reactive_mask_wgpu_20260813.png";
@@ -386,7 +385,7 @@ fn authored_reactive_mask_taa_product_extract_with_alpha_mode(
             virtual_geometry_debug: None,
         },
     );
-    extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
+    *extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
         extract.view.core_pipeline,
         vec![mesh.clone()],
         vec![GeometryPhaseInput::new(

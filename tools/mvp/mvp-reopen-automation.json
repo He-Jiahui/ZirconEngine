@@ -1,4 +1,7 @@
 {
+  "schema_version": 1,
+  "scenario_kind": "zircon.mvp-editor-automation-scenario",
+  "scenario_id": "mvp.editor-reopen.v1",
   "bindings": [
     {
       "path": {

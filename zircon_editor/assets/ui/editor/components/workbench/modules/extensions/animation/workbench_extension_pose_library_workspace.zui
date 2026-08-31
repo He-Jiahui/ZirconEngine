@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "pose_library_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.pose_library_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionPoseLibraryWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "pose_library_rail_gap" }, { node = "pose_library_left" }, { node = "pose_library_center" }, { node = "pose_library_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "pose_library_workspace_main" },
+  { node = "pose_library_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.pose_library_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "pose_library_rail_gap" }, { node = "pose_library_left" }, { node = "pose_library_center" }, { node = "pose_library_right_reserve" }]
+
+[nodes.pose_library_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.pose_library_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionPoseLibraryRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.pose_library_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPoseLibraryLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "pose_library_title" }, { node = "pose_library_poses_tab" }, { node = "pose_library_tags_tab" }, { node = "pose_library_mirror_tab" }, { node = "pose_library_combat_row" }, { node = "pose_library_locomotion_row" }, { node = "pose_library_emote_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "pose_library_title" }, { node = "pose_library_left_content" }]
+
+[nodes.pose_library_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPoseLibraryLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "pose_library_combat_row" }, { node = "pose_library_locomotion_row" }, { node = "pose_library_emote_row" }]
 
 [nodes.pose_library_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionPoseLibraryTitle"
 props = { text = "Pose Library" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.pose_library_poses_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPoseLibraryPosesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Poses", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PoseLibraryPosesTab", event = "Click", route = "workbench.extension.pose_library.poses" }]
-
-[nodes.pose_library_tags_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPoseLibraryTagsTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Tags", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PoseLibraryTagsTab", event = "Click", route = "workbench.extension.pose_library.tags" }]
-
-[nodes.pose_library_mirror_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPoseLibraryMirrorTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Mirror", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PoseLibraryMirrorTab", event = "Click", route = "workbench.extension.pose_library.mirror" }]
 
 [nodes.pose_library_combat_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/PoseLibraryEmoteRow", event = "Click", rout
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPoseLibraryCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "pose_library_center_header" }, { node = "pose_library_pose_table" }, { node = "pose_library_output" }]
 
 [nodes.pose_library_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionPoseLibraryCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "pose_library_center_title" }, { node = "pose_library_header_fill" }, { node = "pose_library_preview_button" }, { node = "pose_library_apply_button" }]
 
 [nodes.pose_library_center_title]
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/PoseLibraryPreview", event = "Click", route
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionPoseLibraryApplyButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Apply", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Apply", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 72.0, preferred = 72.0, max = 82.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PoseLibraryApply", event = "Click", route = "workbench.extension.pose_library.apply" }]
 
 [nodes.pose_library_pose_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionPoseLibraryPoseTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "pose_library_idle_pose_table_row" }, { node = "pose_library_aim_pose_table_row" }, { node = "pose_library_crouch_pose_table_row" }, { node = "pose_library_mirror_pose_table_row" }]
 
 [nodes.pose_library_idle_pose_table_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/PoseLibraryMirrorPoseTableRow", event = "Cl
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionPoseLibraryOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Pose Library", value_text = "PL_Combat   42 poses   6 tags" }
+props = { text = "Pose Library", value_text = "PL_Combat   42 poses   6 tags", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PoseLibraryOutput", event = "Click", route = "workbench.extension.pose_library.output" }]
 
 [nodes.pose_library_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPoseLibraryRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "pose_library_details_title" }, { node = "pose_library_asset_dropdown" }, { node = "pose_library_tag_field" }, { node = "pose_library_mirror_dropdown" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "pose_library_details_title" }, { node = "pose_library_right_content" }]
+
+[nodes.pose_library_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPoseLibraryRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "pose_library_asset_dropdown_property_row" }, { node = "pose_library_tag_field_property_row" }, { node = "pose_library_mirror_dropdown_property_row" }]
 
 [nodes.pose_library_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,16 +202,30 @@ control_id = "WorkbenchExtensionPoseLibraryDetailsTitle"
 props = { text = "Pose Settings" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.pose_library_asset_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPoseLibraryAssetDropdownPropertyRow"
+props = { text = "Asset" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "pose_library_asset_dropdown", slot = { name = "value" } }]
+
 [nodes.pose_library_asset_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionPoseLibraryAssetDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "PL_Combat", value = "PL_Combat", options = ["PL_Combat", "PL_Locomotion", "PL_Emotes"] }
+props = { value_text = "PL_Combat", value = "PL_Combat", options = ["PL_Combat", "PL_Locomotion", "PL_Emotes"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PoseLibraryAssetEdit", event = "Change", route = "workbench.extension.pose_library.asset.edit" },
   { id = "WorkbenchExtension/PoseLibraryAssetCommit", event = "Submit", route = "workbench.extension.pose_library.asset.commit" },
 ]
+
+[nodes.pose_library_tag_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPoseLibraryTagFieldPropertyRow"
+props = { text = "Tag" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "pose_library_tag_field", slot = { name = "value" } }]
 
 [nodes.pose_library_tag_field]
 component = "WorkbenchField"
@@ -218,11 +238,18 @@ events = [
   { id = "WorkbenchExtension/PoseLibraryTagCommit", event = "Submit", route = "workbench.extension.pose_library.tag.commit" },
 ]
 
+[nodes.pose_library_mirror_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPoseLibraryMirrorDropdownPropertyRow"
+props = { text = "Mirror" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "pose_library_mirror_dropdown", slot = { name = "value" } }]
+
 [nodes.pose_library_mirror_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionPoseLibraryMirrorDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Mirror: Left/Right", value = "LeftRight", options = ["LeftRight", "UpperLower", "Disabled"] }
+props = { value_text = "Left/Right", value = "LeftRight", options = ["LeftRight|label=Left/Right", "UpperLower|label=Upper/Lower", "Disabled|label=Disabled"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PoseLibraryMirrorEdit", event = "Change", route = "workbench.extension.pose_library.mirror.edit" },

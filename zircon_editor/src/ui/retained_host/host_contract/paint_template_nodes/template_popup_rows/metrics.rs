@@ -1,8 +1,5 @@
 use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
-const SHORTCUT_LEFT_RATIO: f32 = 0.58;
-const SHORTCUT_WIDTH_RATIO: f32 = 0.38;
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchPopupRowMetrics
 {
@@ -12,8 +9,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub text_right: f32,
     pub text_top: f32,
     pub text_bottom: f32,
-    pub shortcut_left_ratio: f32,
-    pub shortcut_width_ratio: f32,
     pub surface_radius: f32,
     pub outline_width: f32,
     pub adornment_right: f32,
@@ -39,8 +34,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         text_right: metrics.input_pad[1],
         text_top: metrics.input_pad[2],
         text_bottom: metrics.input_pad[3],
-        shortcut_left_ratio: SHORTCUT_LEFT_RATIO,
-        shortcut_width_ratio: SHORTCUT_WIDTH_RATIO,
         surface_radius: (metrics.radius_control - metrics.border_width).max(0.0),
         outline_width: metrics.border_width,
         adornment_right: metrics.gap_l,

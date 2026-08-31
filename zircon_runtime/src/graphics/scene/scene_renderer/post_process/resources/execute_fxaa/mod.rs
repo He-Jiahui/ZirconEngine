@@ -1,6 +1,5 @@
 use super::super::scene_post_process_resources::ScenePostProcessResources;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
-use crate::graphics::scene::scene_renderer::post_process::resources::render_region::apply_physical_render_region_to_pass;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
@@ -16,7 +15,7 @@ impl ScenePostProcessResources {
     ) {
         let terminal_region_params_buffer = self
             .terminal_resource_cache
-            .physical_terminal_region_params_buffer(device, render_region);
+            .local_terminal_region_params_buffer(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-fxaa-bind-group"),
             layout: &self.output_transfer_bind_group_layout,
@@ -44,7 +43,7 @@ impl ScenePostProcessResources {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        if !apply_physical_render_region_to_pass(&mut pass, render_region) {
+        if !render_region.apply_local_to_render_pass(&mut pass) {
             return;
         }
         pass.set_pipeline(&self.fxaa_pipeline);

@@ -1,4 +1,4 @@
-use crate::asset::{project::ProjectManager, AssetUri, SceneAsset};
+use crate::asset::{AssetUri, SceneAsset, project::ProjectManager};
 use crate::scene::serializer::SceneAssetSerializer;
 
 use super::error::scene_asset_error;

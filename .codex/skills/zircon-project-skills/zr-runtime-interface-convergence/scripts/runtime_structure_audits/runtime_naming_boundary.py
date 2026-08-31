@@ -23,13 +23,17 @@ NAMING_CLASSIFICATION_ORDER = (
     "dynamic-api-editor-host-mode",
     "runtime-ui-component-catalog-editor-controls",
     "runtime-ui-template-editor-profile",
+    "runtime-ui-editor-host-contract",
     "runtime-asset-editor-metadata",
     "framework-editor-facing-descriptor",
     "graphics-editor-facing-metadata",
     "platform-editor-target-diagnostic",
     "rhi-editor-surface-label",
     "scene-reflection-editor-visible-metadata",
+    "runtime-scene-editor-facing-projection",
     "script-editor-operation-contribution-descriptor",
+    "runtime-time-editor-preview-domain",
+    "runtime-text-editor-host-contract",
     "runtime-text-editor-product-fixture",
     "curated-runtime-facade-editor-reference",
     "legacy-runtime-ui-input-debt",
@@ -42,6 +46,10 @@ NAMING_CLASSIFICATION_ORDER = (
     "legacy-runtime-asset-schema-debt",
     "legacy-dynamic-api-migration-debt",
     "legacy-scene-schema-render-debt",
+    "legacy-runtime-render-graph-access-debt",
+    "legacy-runtime-text-compatibility-debt",
+    "legacy-runtime-module-composition-debt",
+    "curated-runtime-legacy-rejection-guard",
     "curated-runtime-facade-legacy-reference",
     "unclassified-runtime-naming-reference",
 )
@@ -90,6 +98,13 @@ NAMING_CLASSIFICATION_DECISIONS = {
         "target_owner": "runtime UI compiled-asset profile owner",
         "required_action": "keep as UI asset compiler profile vocabulary",
     },
+    "runtime-ui-editor-host-contract": {
+        "target_owner": "runtime UI editor-host theme and process-cache contract owner",
+        "required_action": (
+            "keep only editor-host theme, font, and compiled-asset contracts; editor "
+            "authoring state remains forbidden"
+        ),
+    },
     "runtime-asset-editor-metadata": {
         "target_owner": "runtime asset metadata owner",
         "required_action": (
@@ -120,11 +135,29 @@ NAMING_CLASSIFICATION_DECISIONS = {
             "authoring state remains forbidden in serialization"
         ),
     },
+    "runtime-scene-editor-facing-projection": {
+        "target_owner": "runtime scene editor-facing neutral projection owner",
+        "required_action": (
+            "keep only neutral highlight and component-availability projections; "
+            "selection, tools, and authoring state remain editor-owned"
+        ),
+    },
     "script-editor-operation-contribution-descriptor": {
         "target_owner": "runtime script host-interface contribution descriptor owner",
         "required_action": (
             "keep only typed editor-operation capability, registration, and reflection "
             "metadata; editor command execution and authoring state remain editor-owned"
+        ),
+    },
+    "runtime-time-editor-preview-domain": {
+        "target_owner": "runtime time policy and editor-preview clock-domain owner",
+        "required_action": "keep as an explicit runtime host clock/profile vocabulary",
+    },
+    "runtime-text-editor-host-contract": {
+        "target_owner": "runtime text process-owner contract",
+        "required_action": (
+            "keep only shared editor-host/standalone text entry vocabulary; editor UI "
+            "state remains outside the text runtime"
         ),
     },
     "runtime-text-editor-product-fixture": {
@@ -177,6 +210,34 @@ NAMING_CLASSIFICATION_DECISIONS = {
     "legacy-scene-schema-render-debt": {
         "target_owner": "runtime scene schema/render owner",
         "required_action": "replace legacy scene schema/render names with explicit version names",
+    },
+    "legacy-runtime-render-graph-access-debt": {
+        "target_owner": "runtime render-graph typed access owner",
+        "required_action": (
+            "remove the compatibility access intent and pass/resource/kind lookup after "
+            "all consumers use exact access identities"
+        ),
+    },
+    "legacy-runtime-text-compatibility-debt": {
+        "target_owner": "runtime text retained-source and shaping owner",
+        "required_action": (
+            "replace legacy text consumer terminology with the explicit retained or "
+            "one-shot contract, then remove the compatibility path"
+        ),
+    },
+    "legacy-runtime-module-composition-debt": {
+        "target_owner": "runtime module composition identity owner",
+        "required_action": (
+            "remove the legacy composition identity seed after every public assembly "
+            "entry supplies an explicit profile and composition identity"
+        ),
+    },
+    "curated-runtime-legacy-rejection-guard": {
+        "target_owner": "runtime window command contract owner",
+        "required_action": (
+            "keep as an explicit contract comment that rejects the retired descriptor "
+            "schema from the runtime command path"
+        ),
     },
     "curated-runtime-facade-legacy-reference": {
         "target_owner": "runtime facade/accessibility owner",
@@ -249,6 +310,35 @@ def _classify_editor_reference(
         return "runtime-ui-component-catalog-editor-controls"
     if relative_path.startswith("zircon_runtime/src/ui/template/"):
         return "runtime-ui-template-editor-profile"
+    if (
+        relative_path.startswith("zircon_runtime/src/ui/surface/render/")
+        and tokens
+        and all(
+            token in {"EditorDesignTokens", "EditorTypographyTokens"}
+            for token in tokens
+        )
+    ):
+        return "runtime-ui-editor-host-contract"
+    if relative_path in {
+        "zircon_runtime/src/ui/surface/surface.rs",
+        "zircon_runtime/src/ui/surface/text_artifact.rs",
+        "zircon_runtime/src/ui/text/measure_cache.rs",
+        "zircon_runtime/src/ui/v2/cache.rs",
+        "zircon_runtime/src/ui/v2/compiler.rs",
+        "zircon_runtime/src/ui/v2/style.rs",
+    } and tokens and all(
+        token.casefold()
+        in {
+            "editor",
+            "editordesigntokens",
+            "editor_showcase_shared",
+            "material_editor_foundation_shared",
+            "register_editor_design_tokens",
+        }
+        or token.casefold().startswith("editor.")
+        for token in tokens
+    ):
+        return "runtime-ui-editor-host-contract"
     if relative_path.startswith("zircon_runtime/src/asset/"):
         return "runtime-asset-editor-metadata"
     if relative_path.startswith("zircon_runtime/src/core/framework/") or relative_path.startswith(
@@ -273,8 +363,26 @@ def _classify_editor_reference(
         and all(token.casefold() == "editor_hint" for token in tokens)
     ):
         return "scene-reflection-editor-visible-metadata"
+    if relative_path in {
+        "zircon_runtime/src/scene/level_system.rs",
+        "zircon_runtime/src/scene/world/derived_state.rs",
+    } and tokens and all(token.casefold() == "editor" for token in tokens):
+        return "runtime-scene-editor-facing-projection"
     if relative_path in SCRIPT_EDITOR_CONTRIBUTION_PATHS:
         return "script-editor-operation-contribution-descriptor"
+    if relative_path in {
+        "zircon_runtime/src/core/runtime/time.rs",
+        "zircon_runtime/src/core/runtime/time/product_policy.rs",
+        "zircon_runtime/src/scene/world_time/snapshot.rs",
+    } and tokens and all(
+        token in {"Editor", "EditorPreview"} for token in tokens
+    ):
+        return "runtime-time-editor-preview-domain"
+    if relative_path in {
+        "zircon_runtime/src/text/layout_session.rs",
+        "zircon_runtime/src/text/shaping/mod.rs",
+    } and tokens and all(token.casefold() == "editor" for token in tokens):
+        return "runtime-text-editor-host-contract"
     if (
         relative_path in RUNTIME_TEXT_EDITOR_PRODUCT_FIXTURE_PATHS
         and in_cfg_test_item
@@ -328,6 +436,21 @@ def _classify_legacy_reference(
         return "legacy-dynamic-api-migration-debt"
     if relative_path.startswith("zircon_runtime/src/scene/"):
         return "legacy-scene-schema-render-debt"
+    if relative_path.startswith("zircon_runtime/src/render_graph/"):
+        return "legacy-runtime-render-graph-access-debt"
+    if relative_path.startswith("zircon_runtime/src/text/"):
+        return "legacy-runtime-text-compatibility-debt"
+    if relative_path in {
+        "zircon_runtime/src/builtin/runtime_modules/assembly.rs",
+        "zircon_runtime/src/builtin/runtime_modules/composition/identity.rs",
+    }:
+        return "legacy-runtime-module-composition-debt"
+    if relative_path == (
+        "zircon_runtime/src/core/framework/window/window_command/header.rs"
+    ):
+        return "curated-runtime-legacy-rejection-guard"
+    if relative_path.startswith("zircon_runtime/src/core/runtime/diagnostics/"):
+        return "curated-runtime-facade-legacy-reference"
     if relative_path in {
         "zircon_runtime/src/prelude.rs",
         "zircon_runtime/src/ui/accessibility/extract.rs",
@@ -382,15 +505,20 @@ def _migration_debt(
             "dynamic-api-editor-host-mode",
             "runtime-ui-component-catalog-editor-controls",
             "runtime-ui-template-editor-profile",
+            "runtime-ui-editor-host-contract",
             "runtime-asset-editor-metadata",
             "framework-editor-facing-descriptor",
             "graphics-editor-facing-metadata",
             "platform-editor-target-diagnostic",
             "rhi-editor-surface-label",
             "scene-reflection-editor-visible-metadata",
+            "runtime-scene-editor-facing-projection",
             "script-editor-operation-contribution-descriptor",
+            "runtime-time-editor-preview-domain",
+            "runtime-text-editor-host-contract",
             "runtime-text-editor-product-fixture",
             "curated-runtime-facade-editor-reference",
+            "curated-runtime-legacy-rejection-guard",
             "curated-runtime-facade-legacy-reference",
         }:
             continue

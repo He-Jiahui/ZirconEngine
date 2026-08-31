@@ -3,6 +3,26 @@ use serde::{Deserialize, Serialize};
 use crate::builtin::RuntimePluginId;
 use crate::plugin::PluginMaturity;
 
+const RUNTIME_PLUGIN_AVAILABILITY_CATEGORY_COUNT: usize = 8;
+
+fn availability_diagnostic_line_count(report: &RuntimePluginAvailabilityReport) -> usize {
+    [
+        report.available.len(),
+        report.linked.len(),
+        report.native_dynamic.len(),
+        report.externalized_missing.len(),
+        report.stub.len(),
+        report.blocked_by_target.len(),
+        report.blocked_by_maturity.len(),
+        report.missing_required.len(),
+    ]
+    .into_iter()
+    .fold(
+        RUNTIME_PLUGIN_AVAILABILITY_CATEGORY_COUNT,
+        usize::saturating_add,
+    )
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RuntimePluginAvailabilityReport {
     pub available: Vec<RuntimePluginAvailabilityEntry>,
@@ -89,6 +109,7 @@ impl RuntimePluginAvailabilityReport {
     }
 
     pub fn push_diagnostic_lines(&self, lines: &mut Vec<String>) {
+        lines.reserve(availability_diagnostic_line_count(self));
         push_availability_diagnostic_lines(lines, "available", &self.available);
         push_availability_diagnostic_lines(lines, "linked", &self.linked);
         push_availability_diagnostic_lines(lines, "native_dynamic", &self.native_dynamic);
@@ -135,3 +156,7 @@ fn push_availability_diagnostic_lines(
         )
     }));
 }
+
+#[cfg(test)]
+#[path = "availability_report/capacity_tests.rs"]
+mod capacity_tests;

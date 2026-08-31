@@ -28,7 +28,7 @@ use zircon_runtime_interface::ui::{
     dispatch::{
         UiDispatchAppliedEffect, UiDispatchEffect, UiDispatchHostRequest,
         UiDispatchHostRequestKind, UiDispatchRejectedEffect, UiDispatchReply, UiDispatchReplyStep,
-        UiInputDispatchResult, UiInputEvent,
+        UiInputDiagnosticsMode, UiInputDispatchResult, UiInputEvent,
     },
     event_ui::UiNodeId,
 };
@@ -42,26 +42,31 @@ pub(crate) fn apply_dispatch_reply(
     event: UiInputEvent,
     reply: UiDispatchReply,
 ) -> UiInputDispatchResult {
-    let mut result = apply_dispatch_reply_core(surface, event, reply);
+    let mut result = apply_dispatch_reply_core(surface, event, reply, UiInputDiagnosticsMode::Full);
     let event = result.event.clone();
     annotate_route_policy(surface, &event, &mut result);
     annotate_result_route_steps(&mut result);
+    surface.redact_secure_text_dispatch_result(&mut result);
     result
 }
 
-fn apply_dispatch_reply_core(
+pub(super) fn apply_dispatch_reply_core(
     surface: &mut UiSurface,
     event: UiInputEvent,
     reply: UiDispatchReply,
+    diagnostics_mode: UiInputDiagnosticsMode,
 ) -> UiInputDispatchResult {
-    let mut result = UiInputDispatchResult::new(event, reply.clone());
+    let transaction = UiInputTransaction::prepare(surface, &reply.effects);
+    let effect_count = reply.effects.len();
+    let mut result = UiInputDispatchResult::new(event, reply);
     result.diagnostics.routed = true;
-    result.diagnostics.route_target = reply.handler;
-    result.diagnostics.handled_phase =
-        reply
+    result.diagnostics.route_target = result.reply.handler;
+    if diagnostics_mode.captures_full_trace() {
+        result.diagnostics.handled_phase = result
+            .reply
             .phase
             .map(|phase| phase.as_str().to_string())
-            .or_else(|| match reply.disposition {
+            .or_else(|| match result.reply.disposition {
                 zircon_runtime_interface::ui::dispatch::UiDispatchDisposition::Unhandled => None,
                 zircon_runtime_interface::ui::dispatch::UiDispatchDisposition::Handled => {
                     Some("reply".to_string())
@@ -73,9 +78,10 @@ fn apply_dispatch_reply_core(
                     Some("passthrough".to_string())
                 }
             });
+    }
 
-    let transaction = UiInputTransaction::prepare(surface, &reply.effects);
-    for (effect_index, effect) in reply.effects.iter().cloned().enumerate() {
+    for effect_index in 0..effect_count {
+        let effect = result.reply.effects[effect_index].clone();
         let rejected_before = result.rejected_effects.len();
         apply_dispatch_effect_at_index(surface, &mut result, effect_index, effect);
         if result.rejected_effects.len() != rejected_before && transaction.is_atomic() {
@@ -84,11 +90,11 @@ fn apply_dispatch_reply_core(
                 .last()
                 .map(|rejected| rejected.reason.clone())
                 .unwrap_or_else(|| "effect rejected".to_string());
-            transaction.abort(surface, &mut result, effect_index, reason);
+            transaction.abort(surface, &mut result, effect_index, reason, diagnostics_mode);
             return result;
         }
     }
-    transaction.commit(&mut result);
+    transaction.commit(&mut result, diagnostics_mode);
 
     result
 }
@@ -117,11 +123,13 @@ fn apply_dispatch_effect_at_index(
             if result.diagnostics.route_target.is_none() {
                 result.diagnostics.route_target = applied.or_else(|| effect_target(&effect));
             }
+            let host_request = host_request_for_effect(effect_index, &effect, applied);
+            let component_report = component_event_report_for_effect(&effect);
             result.applied_effects.push(UiDispatchAppliedEffect {
                 effect_index,
-                effect: effect.clone(),
+                effect,
             });
-            if let Some(host_request) = host_request_for_effect(effect_index, &effect, applied) {
+            if let Some(host_request) = host_request {
                 result.host_requests.push(host_request);
             }
             if let Some(target) = high_precision_released {
@@ -129,7 +137,7 @@ fn apply_dispatch_effect_at_index(
                     .host_requests
                     .push(high_precision_release_host_request(effect_index, target));
             }
-            if let Some(report) = component_event_report_for_effect(&effect) {
+            if let Some(report) = component_report {
                 result.component_events.push(report);
             }
             append_focus_input_method_lifecycle(surface, result, effect_index);
@@ -179,7 +187,8 @@ pub(crate) fn apply_dispatch_reply_steps(
     let stopped_phase = merge.stopped_phase;
     let step_count = merge.step_count;
     let route_steps = merge.steps;
-    let mut result = apply_dispatch_reply_core(surface, event, merge.reply);
+    let mut result =
+        apply_dispatch_reply_core(surface, event, merge.reply, UiInputDiagnosticsMode::Full);
     result.diagnostics.route_steps = route_steps;
     result
         .diagnostics
@@ -199,6 +208,7 @@ pub(crate) fn apply_dispatch_reply_steps(
     }
     let event = result.event.clone();
     annotate_route_policy(surface, &event, &mut result);
+    surface.redact_secure_text_dispatch_result(&mut result);
     result
 }
 

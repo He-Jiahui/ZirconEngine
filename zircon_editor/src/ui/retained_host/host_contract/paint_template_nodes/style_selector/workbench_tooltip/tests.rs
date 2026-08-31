@@ -26,7 +26,7 @@ fn tooltip_palette_projects_from_host_palette() {
     assert_eq!(palette.border, [20, 21, 22, 255]);
     assert_eq!(palette.title, [30, 31, 32, 255]);
     assert_eq!(palette.body, [40, 41, 42, 255]);
-    assert_eq!(palette.icon, [50, 51, 52, 255]);
+    assert_eq!(palette.icon, [90, 91, 92, 255]);
     assert_eq!(palette.shadow, [1, 2, 3, 90]);
     assert_eq!(palette.disabled_surface, [60, 61, 62, 255]);
     assert_eq!(palette.disabled_border, [70, 71, 72, 255]);
@@ -67,8 +67,8 @@ fn tooltip_state_style_projects_state_roles_from_host_palette() {
     assert_eq!(loading.icon, [60, 61, 62, 255]);
     assert_eq!(loading.shadow, [1, 2, 3, 48]);
     assert_eq!(pressed.surface, [10, 11, 12, 255]);
-    assert_eq!(pressed.border, [70, 71, 72, 255]);
-    assert_eq!(pressed.icon, [70, 71, 72, 255]);
+    assert_eq!(pressed.border, [20, 21, 22, 255]);
+    assert_eq!(pressed.icon, [80, 81, 82, 255]);
     assert_eq!(pressed.title, [30, 31, 32, 255]);
     assert_eq!(hovered.border, [20, 21, 22, 255]);
     assert_eq!(hovered.icon, [80, 81, 82, 255]);
@@ -117,7 +117,7 @@ fn focused_tooltip_keeps_normal_surface_with_focus_border() {
 }
 
 #[test]
-fn pressed_tooltip_uses_active_bubble_border() {
+fn pressed_tooltip_uses_accent_content_without_a_focus_outline() {
     let mut node = TemplatePaneNodeData::default();
     node.focused = true;
     node.pressed = true;
@@ -125,7 +125,9 @@ fn pressed_tooltip_uses_active_bubble_border() {
     let style = select_workbench_tooltip_style(&node);
 
     assert_eq!(style.state, UiPainterResolvedState::Pressed);
-    assert_eq!(style.border, PALETTE.focus_ring);
+    assert_eq!(style.border, PALETTE.border);
+    assert_eq!(style.icon, PALETTE.accent);
+    assert_ne!(style.border, PALETTE.focus_ring);
 }
 
 #[test]

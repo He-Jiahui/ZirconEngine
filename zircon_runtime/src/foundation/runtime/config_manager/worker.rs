@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
-use crate::core::framework::foundation::ConfigPersistenceReport;
+use crate::core::framework::foundation::{ConfigManagerError, ConfigPersistenceReport};
 use crate::core::CoreError;
 
 use super::commit_fence::ConfigCommitFence;
@@ -66,7 +66,12 @@ impl ConfigPersistenceWorker {
                     shared_for_thread.changed.notify_all();
                 }
             })
-            .map_err(|error| persistence_error(&shared.path, error.to_string()))?;
+            .map_err(|error| {
+                CoreError::ThreadSpawn(format!(
+                    "config persistence worker for {}: {error}",
+                    shared.path.display()
+                ))
+            })?;
         Ok(Arc::new(Self {
             shared,
             thread: Mutex::new(Some(thread)),
@@ -81,7 +86,7 @@ impl ConfigPersistenceWorker {
         }
     }
 
-    pub(super) fn flush(&self, timeout: Duration) -> Result<(), CoreError> {
+    pub(super) fn flush(&self, timeout: Duration) -> Result<(), ConfigManagerError> {
         let started = Instant::now();
         let mut state = self.shared.lock_state();
         let target_generation = state.request_force_flush();
@@ -113,10 +118,7 @@ impl ConfigPersistenceWorker {
 
             let remaining = timeout.saturating_sub(started.elapsed());
             if remaining.is_zero() {
-                return Err(persistence_error(
-                    &self.shared.path,
-                    format!("config persistence flush timed out after {timeout:?}"),
-                ));
+                return Err(flush_timeout_error(&self.shared.path, timeout));
             }
             let (next_state, wait_result) = self
                 .shared
@@ -125,10 +127,7 @@ impl ConfigPersistenceWorker {
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
             state = next_state;
             if wait_result.timed_out() && state.persisted_generation < target_generation {
-                return Err(persistence_error(
-                    &self.shared.path,
-                    format!("config persistence flush timed out after {timeout:?}"),
-                ));
+                return Err(flush_timeout_error(&self.shared.path, timeout));
             }
         }
     }
@@ -292,6 +291,16 @@ fn wait_for_attempt(shared: &ConfigPersistenceShared) -> Option<u64> {
     }
 }
 
-fn persistence_error(path: &PathBuf, message: String) -> CoreError {
-    CoreError::ConfigParse(path.to_string_lossy().into_owned(), message)
+fn persistence_error(path: &PathBuf, reason: String) -> ConfigManagerError {
+    ConfigManagerError::Persistence {
+        path: path.to_string_lossy().into_owned(),
+        reason,
+    }
+}
+
+fn flush_timeout_error(path: &PathBuf, timeout: Duration) -> ConfigManagerError {
+    ConfigManagerError::FlushTimedOut {
+        path: path.to_string_lossy().into_owned(),
+        timeout,
+    }
 }

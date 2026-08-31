@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface},
@@ -157,7 +159,7 @@ fn drag_drop_input_event(
         kind,
         session_id,
         point,
-        payload: payload.map(Box::new),
+        payload: payload.map(Arc::new),
     })
 }
 
@@ -223,7 +225,7 @@ fn drag_effect(
         pointer_id,
         session_id,
         point,
-        payload,
+        payload: payload.map(Arc::new),
     }
 }
 

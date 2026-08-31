@@ -98,7 +98,7 @@ fn deterministic_rhi_contract_device_roundtrips_resource_descriptors_by_handle()
     device.destroy_buffer(buffer).unwrap();
     assert_eq!(
         device.buffer_desc(buffer).unwrap_err(),
-        zr_rhi::RhiError::UnknownBuffer(buffer.raw())
+        zr_rhi::RhiError::UnknownBuffer(buffer.diagnostic_id())
     );
 }
 

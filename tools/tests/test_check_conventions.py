@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 from tools.check_conventions import (
     ConventionCommand,
+    _managed_cargo_environment_active,
     audit_rule_guard_coverage,
     audit_rust_exemptions,
     convention_commands,
@@ -23,6 +24,33 @@ from tools.tests.check_conventions.document_paths import DocumentPathAuditTests
 
 
 class CheckConventionsTests(unittest.TestCase):
+    def test_managed_cargo_environment_requires_target_scratch_and_cache_contract(
+        self,
+    ) -> None:
+        managed = {
+            "CARGO_TARGET_DIR": r"\\?\E:\cargo-targets\zircon-engine\pool\abc",
+            "TEMP": r"E:\cargo-targets\zircon-engine\scratch\job-1\temporary",
+            "SCCACHE_DIR": r"E:\cargo-targets\zircon-engine\cache\sccache",
+            "CARGO_INCREMENTAL": "0",
+            "SCCACHE_CLIENT_SIDE": "1",
+        }
+
+        with patch.dict("tools.check_conventions.os.environ", managed, clear=True):
+            self.assertTrue(_managed_cargo_environment_active())
+            for missing in (
+                "CARGO_TARGET_DIR",
+                "TEMP",
+                "SCCACHE_DIR",
+                "CARGO_INCREMENTAL",
+                "SCCACHE_CLIENT_SIDE",
+            ):
+                with self.subTest(missing=missing), patch.dict(
+                    "tools.check_conventions.os.environ",
+                    {key: value for key, value in managed.items() if key != missing},
+                    clear=True,
+                ):
+                    self.assertFalse(_managed_cargo_environment_active())
+
     def test_ci_invokes_single_convention_entrypoint_without_duplicate_command_plan(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         workflow = (repo_root / ".github" / "workflows" / "ci.yml").read_text(
@@ -779,6 +807,77 @@ class CheckConventionsTests(unittest.TestCase):
         self.assertEqual(payload["commands"][0]["exit_code"], 17)
         self.assertEqual(payload["commands"][0]["stdout"], "child stdout\n")
 
+    def test_windows_local_cargo_gates_delegate_to_the_managed_validator(self) -> None:
+        commands = convention_commands(managed_cargo=True)
+
+        self.assertEqual(
+            commands[1],
+            ConventionCommand(
+                "structure",
+                (
+                    "rustup",
+                    "run",
+                    "1.94.1",
+                    "pwsh",
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    ".codex/skills/zircon-dev/scripts/validate-matrix.ps1",
+                    "-SkipBuild",
+                    "-SkipTest",
+                    "-RunConventionStructure",
+                ),
+            ),
+        )
+        self.assertEqual(
+            commands[3],
+            ConventionCommand(
+                "clippy",
+                (
+                    "rustup",
+                    "run",
+                    "1.94.1",
+                    "pwsh",
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    ".codex/skills/zircon-dev/scripts/validate-matrix.ps1",
+                    "-SkipBuild",
+                    "-SkipTest",
+                    "-RunConventionClippy",
+                ),
+            ),
+        )
+
+    def test_runner_selects_managed_commands_when_local_cargo_is_unmanaged(self) -> None:
+        invoked: list[tuple[str, ...]] = []
+
+        def completed_child(
+            argv: tuple[str, ...], **_kwargs: object
+        ) -> subprocess.CompletedProcess[str]:
+            invoked.append(tuple(argv))
+            return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+        with (
+            patch(
+                "tools.check_conventions._requires_managed_cargo_delegation",
+                return_value=True,
+            ),
+            patch("tools.check_conventions.subprocess.run", side_effect=completed_child),
+        ):
+            report = run_conventions(
+                Path(__file__).resolve().parents[2],
+                ["structure", "clippy"],
+                dry_run=False,
+            )
+
+        self.assertTrue(report["passed"])
+        self.assertEqual("rustup", invoked[0][0])
+        self.assertIn("-RunConventionClippy", invoked[1])
+        self.assertNotIn("cargo", (invoked[0][0], invoked[1][0]))
+
     def test_json_mode_captures_subprocess_launch_failure(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         launch_error = FileNotFoundError(2, "missing executable", "cargo")
@@ -820,7 +919,7 @@ class CheckConventionsTests(unittest.TestCase):
         runner_source = (repo_root / "tools/check_conventions.py").read_text(
             encoding="utf-8-sig"
         )
-        commands = convention_commands()
+        commands = convention_commands(managed_cargo=False)
 
         self.assertIn("if __package__:", runner_source)
         self.assertNotIn("except ImportError", runner_source)

@@ -41,10 +41,14 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
             ROOT
             / "zircon_editor/src/tests/ui/boundary/material_component_lab/support.rs"
         ).read_text(encoding="utf-8")
-        inventory = (
+        inventory_root = (
             ROOT
-            / "zircon_editor/src/tests/ui/boundary/material_component_lab/inventory.rs"
-        ).read_text(encoding="utf-8")
+            / "zircon_editor/src/tests/ui/boundary/material_component_lab/inventory"
+        )
+        inventory = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted(inventory_root.glob("*.rs"))
+        )
 
         self.assertIn("OnceLock<Vec<PathBuf>>", support)
         self.assertIn(
@@ -63,10 +67,14 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
             ROOT
             / "zircon_editor/src/tests/ui/boundary/material_component_lab/support.rs"
         ).read_text(encoding="utf-8")
-        lab_theme = (
+        lab_theme_root = (
             ROOT
-            / "zircon_editor/src/tests/ui/boundary/material_component_lab/lab_theme.rs"
-        ).read_text(encoding="utf-8")
+            / "zircon_editor/src/tests/ui/boundary/material_component_lab/lab_theme"
+        )
+        lab_theme = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted(lab_theme_root.glob("*.rs"))
+        )
         mui_x_theme = (
             ROOT
             / "zircon_editor/src/tests/ui/boundary/material_component_lab/mui_x_theme.rs"
@@ -122,7 +130,7 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
     def test_material_meta_fixture_is_cached_once_per_test_process(self) -> None:
         source = (
             ROOT
-            / "zircon_editor/src/tests/ui/boundary/material_meta_component_contracts.rs"
+            / "zircon_editor/src/tests/ui/boundary/material_meta_component_contracts/fixture.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("static MATERIAL_META_DOCUMENT: OnceLock<Value>", source)
@@ -140,13 +148,14 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
             support.count('.project_document(COMPONENT_SHOWCASE_DOCUMENT_ID)'), 1
         )
 
-        for relative in [
-            "component_showcase_category.rs",
-            "component_showcase_selection.rs",
-            "component_showcase_state.rs",
-            "dual_host_parity.rs",
-        ]:
-            source = (root / relative).read_text(encoding="utf-8")
+        showcase_sources = [
+            root / "component_showcase_category.rs",
+            root / "component_showcase_selection.rs",
+            root / "dual_host_parity.rs",
+            *(root / "component_showcase_state").rglob("*.rs"),
+        ]
+        for source_path in showcase_sources:
+            source = source_path.read_text(encoding="utf-8")
             self.assertNotIn("fn showcase_binding(", source)
 
     def test_pane_body_specs_do_not_rebuild_the_editor_runtime_per_lookup(self) -> None:
@@ -163,7 +172,7 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
 
     def test_workbench_contract_node_lookup_borrows_wide_model_rows(self) -> None:
         for relative in [
-            "workbench_projection.rs",
+            "workbench_projection/support.rs",
             "status_bar.rs",
         ]:
             source = (

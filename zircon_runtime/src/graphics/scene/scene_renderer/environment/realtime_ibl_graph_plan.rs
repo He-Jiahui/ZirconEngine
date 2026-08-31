@@ -4,7 +4,9 @@ use crate::render_graph::{
     RenderGraphExternalResourceBinding, RenderGraphResourceUsageFlags, RenderPassId,
 };
 
-use super::ibl_bake_graph_plan::ibl_bake_terminal_pmrem_average_mip;
+use super::ibl_bake_graph_plan::{
+    ibl_bake_pmrem_dispatch_groups_for_face_range, IBL_BAKE_IRRADIANCE_SH9_DISPATCH_GROUPS,
+};
 use super::realtime_ibl_time_slice::{
     CubeFaceRange, IblRealtimeBufferSlot, RealtimeIblFrameBatch, RealtimeIblOperation,
     RealtimeIblPrefilterDispatchSlice,
@@ -83,6 +85,25 @@ pub(in crate::graphics) struct RealtimeIblGraphPlan {
     pub passes: Vec<RealtimeIblGraphPass>,
 }
 
+/// Identifies an immutable compiled graph topology and its matching physical
+/// execution-resource bindings for one time-sliced realtime IBL batch.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(in crate::graphics) struct RealtimeIblGraphTopologyKey {
+    ready_slot: IblRealtimeBufferSlot,
+    work_slot: IblRealtimeBufferSlot,
+    operation: RealtimeIblOperation,
+}
+
+impl RealtimeIblGraphTopologyKey {
+    pub(in crate::graphics) fn from_batch(batch: &RealtimeIblFrameBatch) -> Self {
+        Self {
+            ready_slot: batch.ready_slot(),
+            work_slot: batch.work_slot(),
+            operation: batch.operation(),
+        }
+    }
+}
+
 pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
     builder: &mut RenderGraphBuilder,
     request: &IblBakeArtifactRequest,
@@ -150,26 +171,18 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
                         first_face: faces.first,
                         face_count: faces.count,
                     };
-                    let mip_size = mip_dimension(request.pmrem_face_size(), u32::from(mip_level));
-                    let writes_terminal_average_to_all_faces = faces.first == 0
-                        && u32::from(faces.count) == CUBE_FACE_COUNT
-                        && ibl_bake_terminal_pmrem_average_mip(
-                            request.pmrem_face_size(),
-                            request.pmrem_mip_count(),
-                            u32::from(mip_level),
-                        );
+                    let dispatch_groups = ibl_bake_pmrem_dispatch_groups_for_face_range(
+                        request.pmrem_face_size(),
+                        request.pmrem_mip_count(),
+                        u32::from(mip_level),
+                        u32::from(faces.first),
+                        u32::from(faces.count),
+                    )
+                    .expect("realtime IBL scheduler emits bounded PMREM slices");
                     let workload = RenderGraphComputeWorkload::fixed(
                         "zircon-env-realtime-ibl-prefilter",
                         REALTIME_IBL_WORKGROUP_SIZE,
-                        [
-                            div_ceil(mip_size, REALTIME_IBL_WORKGROUP_SIZE[0]),
-                            div_ceil(mip_size, REALTIME_IBL_WORKGROUP_SIZE[1]),
-                            if writes_terminal_average_to_all_faces {
-                                1
-                            } else {
-                                u32::from(faces.count)
-                            },
-                        ],
+                        dispatch_groups,
                     );
                     let pass = add_pass(
                         builder,
@@ -193,7 +206,7 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
                 let workload = RenderGraphComputeWorkload::fixed(
                     "zircon-env-realtime-ibl-project-sh9",
                     REALTIME_IBL_WORKGROUP_SIZE,
-                    [4, 4, CUBE_FACE_COUNT],
+                    IBL_BAKE_IRRADIANCE_SH9_DISPATCH_GROUPS,
                 );
                 let pass = add_pass(
                     builder,

@@ -28,8 +28,8 @@ pub(crate) struct ContainerAttributes {
     pub(crate) component: bool,
     pub(crate) resource: bool,
     pub(crate) type_path: Option<String>,
+    pub(crate) identity: Option<String>,
     pub(crate) display_name: Option<String>,
-    pub(crate) plugin_owned: bool,
     pub(crate) serializable: Option<bool>,
     pub(crate) editor_visible: Option<bool>,
     pub(crate) remote_visible: Option<bool>,
@@ -42,6 +42,8 @@ pub(crate) struct ContainerAttributes {
 pub(crate) struct FieldAttributes {
     pub(crate) skip: bool,
     pub(crate) name: Option<String>,
+    pub(crate) identity: Option<String>,
+    pub(crate) aliases: Vec<String>,
     pub(crate) value_type_path: Option<String>,
     pub(crate) editor_hint: Option<String>,
     pub(crate) readonly: bool,
@@ -66,10 +68,10 @@ pub(crate) fn parse_container_attributes(
                 parsed.resource = true;
             } else if meta.path.is_ident("type_path") {
                 parsed.type_path = Some(parse_string(meta)?);
+            } else if meta.path.is_ident("identity") {
+                parsed.identity = Some(parse_string(meta)?);
             } else if meta.path.is_ident("display_name") {
                 parsed.display_name = Some(parse_string(meta)?);
-            } else if meta.path.is_ident("plugin_owned") {
-                parsed.plugin_owned = parse_bool_or_true(meta)?;
             } else if meta.path.is_ident("serializable") {
                 parsed.serializable = Some(parse_bool(meta)?);
             } else if meta.path.is_ident("editor_visible") {
@@ -130,6 +132,16 @@ pub(crate) fn parse_container_attributes(
             "zr_reflect type_path must not be empty",
         ));
     }
+    if parsed
+        .identity
+        .as_ref()
+        .is_some_and(|identity| identity.is_empty() || identity.trim() != identity)
+    {
+        return Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "zr_reflect identity must be non-empty and already trimmed",
+        ));
+    }
 
     Ok(parsed)
 }
@@ -155,6 +167,10 @@ fn parse_field_meta(
         parsed.skip = true;
     } else if meta.path.is_ident("name") {
         parsed.name = Some(parse_string(meta)?);
+    } else if meta.path.is_ident("identity") {
+        parsed.identity = Some(parse_string(meta)?);
+    } else if meta.path.is_ident("alias") {
+        parsed.aliases.push(parse_string(meta)?);
     } else if meta.path.is_ident("value_type_path") {
         parsed.value_type_path = Some(parse_string(meta)?);
     } else if meta.path.is_ident("editor_hint") {
@@ -182,6 +198,16 @@ fn validate_field_attributes(parsed: &FieldAttributes) -> syn::Result<()> {
             "a readonly reflected field cannot declare a write accessor",
         ));
     }
+    if parsed
+        .identity
+        .as_ref()
+        .is_some_and(|identity| identity.is_empty() || identity.trim() != identity)
+    {
+        return Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "a reflected field identity must be non-empty and already trimmed",
+        ));
+    }
     Ok(())
 }
 
@@ -191,13 +217,6 @@ fn parse_string(meta: syn::meta::ParseNestedMeta<'_>) -> syn::Result<String> {
 
 fn parse_bool(meta: syn::meta::ParseNestedMeta<'_>) -> syn::Result<bool> {
     Ok(meta.value()?.parse::<LitBool>()?.value())
-}
-
-fn parse_bool_or_true(meta: syn::meta::ParseNestedMeta<'_>) -> syn::Result<bool> {
-    if meta.input.is_empty() {
-        return Ok(true);
-    }
-    parse_bool(meta)
 }
 
 fn parse_path(meta: syn::meta::ParseNestedMeta<'_>) -> syn::Result<Path> {

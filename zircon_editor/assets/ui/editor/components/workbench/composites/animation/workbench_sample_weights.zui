@@ -22,13 +22,20 @@ component = "VerticalGroup"
 control_id = "WorkbenchSampleWeightsRoot"
 classes = ["workbench-panel", "workbench-surface-inset"]
 layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "sample_weights_header" }, { node = "sample_weights_axes" }, { node = "sample_weights_run_forward_row" }, { node = "sample_weights_run_left_row" }, { node = "sample_weights_run_right_row" }, { node = "sample_weights_idle_row" }, { node = "sample_weights_footer" }]
+children = [{ node = "sample_weights_header" }, { node = "sample_weights_body" }]
 
 [nodes.sample_weights_header]
 component = "WorkbenchPanelHeader"
 control_id = "WorkbenchSampleWeightsHeader"
 layout = { width = { stretch = "Stretch" } }
 children = [{ node = "sample_weights_title", slot = { name = "title" } }]
+
+[nodes.sample_weights_body]
+component = "ScrollableBox"
+control_id = "WorkbenchSampleWeightsBody"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.xsmall", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sample_weights_axes" }, { node = "sample_weights_run_forward_row" }, { node = "sample_weights_run_left_row" }, { node = "sample_weights_run_right_row" }, { node = "sample_weights_idle_row" }, { node = "sample_weights_footer" }]
 
 [nodes.sample_weights_title]
 component = "WorkbenchCaption"

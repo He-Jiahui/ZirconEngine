@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 use super::{
     append_class, bool_attribute, bool_attribute_any, bool_from_attributes_any, pascal_case,
-    string_attribute_any, string_from_attributes_any,
+    string_from_attributes_any,
 };
 
 pub(super) fn append_component_classes(
@@ -181,7 +181,7 @@ fn autocomplete_has_clear_icon(node: &UiTemplateNode) -> bool {
 }
 
 fn autocomplete_has_popup_icon(node: &UiTemplateNode) -> bool {
-    match string_attribute_any(node, &["forcePopupIcon", "force_popup_icon"]).as_deref() {
+    match borrowed_autocomplete_attribute(node, &["forcePopupIcon", "force_popup_icon"]) {
         Some("false") => false,
         Some("true") => true,
         _ => !bool_attribute_any(node, &["freeSolo", "free_solo"]),
@@ -199,9 +199,10 @@ fn autocomplete_owner_has_clear_icon(owner_attributes: &BTreeMap<String, Value>)
 }
 
 fn autocomplete_owner_has_popup_icon(owner_attributes: &BTreeMap<String, Value>) -> bool {
-    match string_from_attributes_any(owner_attributes, &["forcePopupIcon", "force_popup_icon"])
-        .as_deref()
-    {
+    match borrowed_autocomplete_attribute_from_attributes(
+        owner_attributes,
+        &["forcePopupIcon", "force_popup_icon"],
+    ) {
         Some("false") => false,
         Some("true") => true,
         _ => !bool_from_attributes_any(owner_attributes, &["freeSolo", "free_solo"]),
@@ -209,14 +210,14 @@ fn autocomplete_owner_has_popup_icon(owner_attributes: &BTreeMap<String, Value>)
 }
 
 fn autocomplete_has_value(node: &UiTemplateNode) -> bool {
-    string_attribute_any(node, &["value", "value_text"])
-        .or_else(|| string_attribute_any(node, &["query", "inputValue"]))
+    borrowed_autocomplete_attribute(node, &["value", "value_text"])
+        .or_else(|| borrowed_autocomplete_attribute(node, &["query", "inputValue"]))
         .is_some()
         || array_attribute_any_non_empty(node, &["selected_options", "selectedOptions"])
 }
 
 fn autocomplete_owner_has_value(owner_attributes: &BTreeMap<String, Value>) -> bool {
-    string_from_attributes_any(
+    borrowed_autocomplete_attribute_from_attributes(
         owner_attributes,
         &["value", "value_text", "query", "inputValue"],
     )
@@ -225,6 +226,26 @@ fn autocomplete_owner_has_value(owner_attributes: &BTreeMap<String, Value>) -> b
             owner_attributes,
             &["selected_options", "selectedOptions"],
         )
+}
+
+fn borrowed_autocomplete_attribute<'a>(
+    node: &'a UiTemplateNode,
+    names: &[&str],
+) -> Option<&'a str> {
+    borrowed_autocomplete_attribute_from_attributes(&node.attributes, names)
+}
+
+fn borrowed_autocomplete_attribute_from_attributes<'a>(
+    attributes: &'a BTreeMap<String, Value>,
+    names: &[&str],
+) -> Option<&'a str> {
+    names.iter().find_map(|name| {
+        attributes
+            .get(*name)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+    })
 }
 
 fn array_attribute_any_non_empty(node: &UiTemplateNode, names: &[&str]) -> bool {
@@ -247,3 +268,7 @@ fn array_attribute_any_non_empty_from_attributes(
             .is_some_and(|values| !values.is_empty())
     })
 }
+
+#[cfg(test)]
+#[path = "mui_selection_classes/borrowed_attribute_tests.rs"]
+mod borrowed_attribute_tests;

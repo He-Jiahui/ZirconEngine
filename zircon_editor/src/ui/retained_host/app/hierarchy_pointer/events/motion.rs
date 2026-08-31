@@ -9,15 +9,10 @@ impl RetainedEditorHost {
         height: f32,
     ) {
         self.prepare_hierarchy_pointer_target(width, height, false);
-        match self
+        let dispatch = self
             .hierarchy_pointer_bridge
-            .handle_move(UiPoint::new(x, y))
-        {
-            Ok(dispatch) => {
-                self.hierarchy_pointer_state = dispatch.state;
-                self.apply_hierarchy_pointer_state_to_ui();
-            }
-            Err(error) => self.set_status_line(error),
-        }
+            .handle_move(UiPoint::new(x, y));
+        self.hierarchy_pointer_state = dispatch.state;
+        self.apply_hierarchy_pointer_state_to_ui();
     }
 }

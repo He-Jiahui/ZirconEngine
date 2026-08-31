@@ -6,7 +6,7 @@ use crate::core::editing::engine::{
     CommandExecutionError, EditCommand, EditContext, HistoryContextId,
 };
 use crate::core::editing::operation::{
-    OperationCommand, OperationCommandFactory, OperationCommandFactoryError,
+    EditOperationTarget, OperationCommand, OperationCommandFactory, OperationCommandFactoryError,
     OperationCommandFactoryRegistration, PendingEditRetention,
 };
 use crate::core::editor_event::{EditorEvent, EditorEventTransient};
@@ -15,7 +15,7 @@ use crate::core::editor_operation::{EditorOperationInvocation, EditorOperationPa
 #[test]
 fn command_registry_registers_descriptor_and_factory_as_one_operation() {
     let operation_id = EditorOperationPath::parse("test.operation.increment").unwrap();
-    let descriptor = EditorCommandDescriptor::operation(operation_id.clone(), "Increment");
+    let descriptor = EditorCommandDescriptor::operation(operation_id.clone());
     assert!(matches!(
         descriptor.action(),
         EditorCommandAction::Operation
@@ -23,6 +23,7 @@ fn command_registry_registers_descriptor_and_factory_as_one_operation() {
     let registration = OperationCommandFactoryRegistration::new(
         operation_id.clone(),
         "Increment",
+        EditOperationTarget::EditWorkspace,
         Arc::new(FixtureOperationFactory),
     );
     let mut registry = EditorCommandRegistry::default();
@@ -39,6 +40,13 @@ fn command_registry_registers_descriptor_and_factory_as_one_operation() {
         .create(&invocation)
         .unwrap();
     assert_eq!(operation.history(), HistoryContextId::Global);
+    assert_eq!(
+        registry
+            .operation_factory(&operation_id)
+            .unwrap()
+            .edit_target(),
+        EditOperationTarget::EditWorkspace
+    );
     assert_eq!(operation.command().label(), "Increment");
     assert_eq!(
         registry
@@ -59,6 +67,7 @@ fn operation_factory_is_the_only_owner_of_deferred_edit_retention() {
     let registration = OperationCommandFactoryRegistration::new(
         operation_id.clone(),
         "Rename",
+        EditOperationTarget::EditWorkspace,
         Arc::new(FixtureOperationFactory),
     )
     .with_pending_edit_retention(
@@ -83,10 +92,11 @@ fn operation_factory_is_the_only_owner_of_deferred_edit_retention() {
 fn command_registry_rejects_factory_registered_for_another_operation() {
     let operation_id = EditorOperationPath::parse("test.operation.increment").unwrap();
     let foreign_id = EditorOperationPath::parse("test.operation.foreign").unwrap();
-    let descriptor = EditorCommandDescriptor::operation(operation_id.clone(), "Increment");
+    let descriptor = EditorCommandDescriptor::operation(operation_id.clone());
     let registration = OperationCommandFactoryRegistration::new(
         foreign_id.clone(),
         "Increment",
+        EditOperationTarget::EditWorkspace,
         Arc::new(FixtureOperationFactory),
     );
     let mut registry = EditorCommandRegistry::default();
@@ -113,7 +123,6 @@ fn command_registry_rejects_factory_for_event_descriptor() {
     let operation_id = EditorOperationPath::parse("test.operation.event_route").unwrap();
     let descriptor = EditorCommandDescriptor::new(
         operation_id.clone(),
-        "Event Route",
         crate::core::commands::EditorCommandCategory::Command,
         EditorCommandAction::Emit(EditorEvent::Transient(
             EditorEventTransient::OpenCommandPalette,
@@ -122,6 +131,7 @@ fn command_registry_rejects_factory_for_event_descriptor() {
     let registration = OperationCommandFactoryRegistration::new(
         operation_id.clone(),
         "Event Route",
+        EditOperationTarget::EditWorkspace,
         Arc::new(FixtureOperationFactory),
     );
     let mut registry = EditorCommandRegistry::default();

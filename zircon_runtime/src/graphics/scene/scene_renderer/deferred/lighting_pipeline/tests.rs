@@ -1,10 +1,10 @@
 use crate::core::framework::render::{
-    wgsl_include_paths, GBufferChannelMask, ShadingModelDescriptor, ShadingModelId,
+    GBufferChannelMask, ShadingModelDescriptor, ShadingModelId, wgsl_include_paths,
 };
 
 use super::shader_source::{
-    assemble_deferred_lighting_shader_source, DeferredLightingShaderSourceError,
-    DeferredLightingShaderSourceRequest, DEFERRED_LIGHTING_SHADER,
+    DEFERRED_LIGHTING_SHADER, DeferredLightingShaderSourceError,
+    DeferredLightingShaderSourceRequest, assemble_deferred_lighting_shader_source,
 };
 
 mod runtime_pipeline;
@@ -52,8 +52,8 @@ fn deferred_direct_lighting_reuses_fragment_normalized_inputs() {
             "let direct_metallic = clamp(metallic, 0.0, 1.0);",
             "world_normal,",
             "world_view,",
+            "metallic,",
             "direct_f0,",
-            "direct_diffuse_brdf,",
         ] {
             assert!(
                 light_loop.contains(expected),
@@ -84,7 +84,7 @@ fn deferred_direct_lighting_reuses_fragment_normalized_inputs() {
             .and_then(|source| source.split("fn shade_deferred_pixel(").next())
             .expect("deferred lighting shader should retain the shading owner");
         assert!(
-            shading.contains("let view_dir = scene_view_dir_ws(world_position);"),
+            shading.contains("let view_dir = zr_pbr_view_direction_ws(world_position);"),
             "{label} must use the zero-safe normalized scene view direction"
         );
         assert!(
@@ -110,8 +110,7 @@ fn deferred_direct_lighting_reuses_fragment_normalized_inputs() {
     for expected in [
         "if (shading_model_id != ZR_SHADING_MODEL_BLINN_PHONG_ID)",
         "let direct_metallic = clamp(metallic, 0.0, 1.0);",
-        "direct_f0 = mix(",
-        "direct_diffuse_brdf =",
+        "direct_f0 = zr_pbr_material_f0(",
     ] {
         assert!(
             light_loop.contains(expected),
@@ -126,8 +125,7 @@ fn deferred_direct_lighting_reuses_fragment_normalized_inputs() {
         .expect("deferred lighting shader should retain the component light-grid owner");
     for expected in [
         "let direct_metallic = clamp(metallic, 0.0, 1.0);",
-        "let direct_f0 = mix(",
-        "let direct_diffuse_brdf =",
+        "let direct_f0 = zr_pbr_material_f0(",
     ] {
         assert!(
             component_loop.contains(expected),
@@ -152,10 +150,7 @@ fn deferred_direct_lighting_reuses_fragment_normalized_inputs() {
         !per_light.contains("normalize_or_zero(view_dir)"),
         "per-light shading must not renormalize the view direction"
     );
-    assert!(
-        !per_light.contains("metallic: f32"),
-        "the deferred per-light owner must not carry metallic after material-factor precomputation"
-    );
+    assert!(!per_light.contains("metallic: f32"));
     for expected in ["direct_f0", "direct_diffuse_brdf"] {
         assert!(
             per_light.contains(expected),
@@ -180,20 +175,16 @@ fn deferred_direct_lighting_reuses_fragment_normalized_inputs() {
         !standard_lobe.contains("let f0 = mix("),
         "the deferred standard PBR lobe must not recompute F0 per light"
     );
-    assert!(
-        !standard_lobe.contains("1.0 - clamp(metallic, 0.0, 1.0)"),
-        "the deferred standard PBR lobe must not recompute diffuse BRDF per light"
-    );
+    assert!(standard_lobe.contains("direct_diffuse_brdf"));
+    assert!(!standard_lobe.contains("zr_pbr_diffuse_energy_scale("));
 
     let per_light_components = DEFERRED_LIGHTING_SHADER
         .split("fn shade_gpu_light_index_components(")
         .nth(1)
         .and_then(|source| source.split("fn gpu_light_lighting(").next())
         .expect("deferred lighting shader should retain the component per-light owner");
-    assert!(
-        !per_light_components.contains("metallic: f32"),
-        "the deferred component per-light owner must not carry metallic after material-factor precomputation"
-    );
+    assert!(per_light_components.contains("direct_diffuse_brdf: vec3<f32>"));
+    assert!(!per_light_components.contains("metallic: f32"));
     assert!(
         !per_light_components.contains("occlusion"),
         "deferred component direct-light accumulation must not apply ambient occlusion"
@@ -223,7 +214,7 @@ fn deferred_lighting_shader_accepts_baked_indirect_from_gbuffer_emissive() {
         "@group(1) @binding(23)",
         "@group(1) @binding(24)",
         "@group(1) @binding(28)",
-        "let emissive = textureLoad(gbuffer_emissive_tex, coord, 0).rgb;",
+        "let emissive = textureLoad(gbuffer_emissive_tex, coord, 0);",
         "add_deferred_emissive(",
     ] {
         assert!(DEFERRED_LIGHTING_SHADER.contains(expected));
@@ -297,6 +288,7 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
     let view_proj_unjittered = scene_uniform.find("view_proj_unjittered").unwrap();
     let inverse_view_proj = scene_uniform.find("inverse_view_proj").unwrap();
     let ambient_color = scene_uniform.find("ambient_color").unwrap();
+    let lightmapped_ambient_color = scene_uniform.find("lightmapped_ambient_color").unwrap();
     let previous_view_proj_unjittered =
         scene_uniform.find("previous_view_proj_unjittered").unwrap();
     let motion_params = scene_uniform.find("motion_params").unwrap();
@@ -313,7 +305,8 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
         view_proj < view_proj_unjittered
             && view_proj_unjittered < inverse_view_proj
             && inverse_view_proj < ambient_color
-            && ambient_color < previous_view_proj_unjittered
+            && ambient_color < lightmapped_ambient_color
+            && lightmapped_ambient_color < previous_view_proj_unjittered
             && previous_view_proj_unjittered < motion_params
             && motion_params < jitter_params
             && jitter_params < camera_world_position
@@ -361,7 +354,7 @@ fn deferred_lighting_shader_receives_gpu_light_buffer() {
 fn deferred_lighting_shader_restores_hdr_gbuffer_emissive_for_every_shading_model() {
     for expected in [
         "@group(1) @binding(5) var gbuffer_emissive_tex: texture_2d<f32>;",
-        "let emissive = textureLoad(gbuffer_emissive_tex, coord, 0).rgb;",
+        "let emissive = textureLoad(gbuffer_emissive_tex, coord, 0);",
         "fn add_deferred_emissive(shaded: vec4<f32>, emissive: vec3<f32>)",
         "add_deferred_emissive(shade_deferred_unlit(albedo), emissive)",
         "add_deferred_emissive(\n            shade_deferred_standard_pbr",
@@ -414,21 +407,92 @@ fn deferred_lighting_shader_applies_environment_reflections_to_standard_pbr() {
         "fn zr_environment_fix_cube_lookup",
         "const ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP: f32 = 1.0;",
         "const ZR_ENVIRONMENT_PMREM_ROUGHNESS_MIP_SCALE: f32 = 1.2;",
-        "max_mip - ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP",
+        "max_mip - 1.0 - ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP",
         "ZR_ENVIRONMENT_PMREM_ROUGHNESS_MIP_SCALE * log2(clamped_roughness)",
         "zr_environment_fix_pmrem_cube_lookup(rotated, clamped_lod)",
         "camera_world_position: vec4<f32>",
         "camera_view_direction: vec4<f32>",
-        "let view_dir = scene_view_dir_ws(world_position);",
-        "let environment_lights = zr_environment_pbr_indirect_normalized(",
+        "let view_dir = zr_pbr_view_direction_ws(world_position);",
+        "@group(1) @binding(2) var ambient_occlusion_tex: texture_2d<f32>;",
+        "let environment_lights = zr_environment_pbr_components_normalized(",
         "shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID",
-        "let color = diffuse_color * diffuse_energy_scale * ambient + direct_lights + environment_lights;",
+        "environment_lights.diffuse * screen_space_ao",
+        "+ environment_lights.specular;",
     ] {
         assert!(
             DEFERRED_LIGHTING_SHADER.contains(expected),
             "deferred lighting shader should use `{expected}` for PBR environment reflection"
         );
     }
+}
+
+#[test]
+fn deferred_screen_space_ao_only_modulates_indirect_diffuse_lighting() {
+    let lit = DEFERRED_LIGHTING_SHADER
+        .split("fn shade_deferred_lit(")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("fn shade_deferred_subsurface_components(")
+                .next()
+        })
+        .expect("deferred lit shading owner");
+
+    for required in [
+        "let screen_space_ao = clamp(textureLoad(ambient_occlusion_tex, coord, 0).r, 0.0, 1.0);",
+        "let ambient = zr_deferred_ambient_radiance() * occlusion * screen_space_ao;",
+        "+ direct_lights",
+        "+ environment_lights.diffuse * screen_space_ao",
+        "+ environment_lights.specular;",
+    ] {
+        assert!(
+            lit.contains(required),
+            "missing AO composition contract `{required}`"
+        );
+    }
+    for forbidden in [
+        "direct_lights * screen_space_ao",
+        "environment_lights.specular * screen_space_ao",
+        "color * screen_space_ao",
+    ] {
+        assert!(
+            !lit.contains(forbidden),
+            "screen-space AO must not modulate `{forbidden}`"
+        );
+    }
+
+    let pixel_dispatch = DEFERRED_LIGHTING_SHADER
+        .split("fn shade_deferred_pixel(")
+        .nth(1)
+        .and_then(|source| source.split("@fragment").next())
+        .expect("deferred shading-model dispatch owner");
+    assert!(!pixel_dispatch.contains("ambient_occlusion_tex"));
+    assert!(!pixel_dispatch.contains("screen_space_ao"));
+    assert!(pixel_dispatch.contains("shade_deferred_unlit(albedo)"));
+    assert!(pixel_dispatch.contains("add_deferred_emissive("));
+}
+
+#[test]
+fn environment_only_deferred_source_does_not_require_screen_space_ao() {
+    let source = assemble_deferred_lighting_shader_source(
+        DeferredLightingShaderSourceRequest::new().with_deferred_lighting_profile(
+            crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
+        ),
+    )
+    .expect("environment-only deferred source");
+
+    assert!(!source.contains("ambient_occlusion_tex"));
+    assert!(!source.contains("screen_space_ao"));
+    assert!(!source.contains("@group(1) @binding(2)"));
+
+    let module = naga::front::wgsl::parse_str(&source)
+        .unwrap_or_else(|error| panic!("{}", error.emit_to_string(&source)));
+    naga::valid::Validator::new(
+        naga::valid::ValidationFlags::all(),
+        naga::valid::Capabilities::all(),
+    )
+    .validate(&module)
+    .expect("environment-only deferred shader should validate");
 }
 
 #[test]
@@ -488,8 +552,8 @@ fn deferred_lighting_shader_receives_shadow_atlas_resources() {
 }
 
 #[test]
-fn deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_gbuffer_material_alpha(
-) {
+fn deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_gbuffer_material_alpha()
+ {
     for expected in [
         "const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;",
         "const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;",
@@ -510,7 +574,7 @@ fn deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_g
         "if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID)",
         "return shade_blinn_phong_light_vector_normalized(",
         "return shade_standard_pbr_light_vector_normalized(",
-        "fn deferred_diffuse_color(albedo: vec4<f32>) -> vec3<f32>",
+        "fn deferred_diffuse_color(albedo: vec4<f32>, shading_model_id: u32) -> vec3<f32>",
         "fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>, shading_model_id: u32)",
         "let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, diffuse_color, view_dir, shading_model_id, receive_shadows);",
         "if (shading_model_id == ZR_SHADING_MODEL_UNLIT_ID)",
@@ -530,13 +594,18 @@ fn deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_g
 }
 
 #[test]
-fn deferred_standard_pbr_applies_metallic_diffuse_energy_exactly_once() {
+fn deferred_standard_pbr_uses_source_independent_metallic_diffuse_energy() {
     for expected in [
+        "fn deferred_standard_pbr_diffuse_color(albedo: vec4<f32>) -> vec3<f32>",
+        "return zr_pbr_base_color(albedo.rgb);",
+        "if (shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID)",
         "return albedo.rgb;",
         "let direct_metallic = clamp(metallic, 0.0, 1.0);",
-        "diffuse_color * (1.0 - direct_metallic) / DEFERRED_PBR_PI",
-        "1.0 - metallic,\n        shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID",
-        "diffuse_color * (1.0 - metallic) * scene.ambient_color.rgb * occlusion",
+        "zr_pbr_material_f0(",
+        "fn zr_surface_metallic_diffuse_energy_scale(",
+        "let specular = zr_pbr_isotropic_ggx(",
+        "direct_diffuse_brdf * radiance * lambert",
+        "direct_diffuse_brdf",
     ] {
         assert!(DEFERRED_LIGHTING_SHADER.contains(expected));
     }
@@ -547,22 +616,42 @@ fn deferred_standard_pbr_applies_metallic_diffuse_energy_exactly_once() {
 #[test]
 fn deferred_standard_pbr_direct_lighting_uses_the_same_isotropic_ggx_contract_as_forward() {
     for expected in [
-        "fn deferred_pbr_fresnel_schlick(",
-        "fn deferred_pbr_smith_visibility(",
-        "fn deferred_standard_pbr_isotropic_ggx(",
+        "fn zr_pbr_fresnel_schlick(",
+        "fn zr_pbr_normalize_or_zero(",
+        "fn zr_pbr_smith_joint_visibility_approx(",
+        "fn zr_pbr_isotropic_ggx(",
         "let alpha = max(perceptual_roughness * perceptual_roughness, 0.001);",
         "let alpha_squared = alpha * alpha;",
-        "return 0.5 / max(gv + gl, EPSILON);",
-        "return deferred_pbr_fresnel_schlick(vo_h, f0) * distribution * visibility;",
+        "return 0.5 / max(visibility_v + visibility_l, ZR_PBR_EXTRAS_EPSILON);",
         "let direct_metallic = clamp(metallic, 0.0, 1.0);",
-        "direct_f0 = mix(vec3<f32>(0.04), max(diffuse_color, vec3<f32>(0.0)), direct_metallic);",
-        "diffuse_color * (1.0 - direct_metallic) / DEFERRED_PBR_PI",
-        "deferred_standard_pbr_isotropic_ggx(",
+        "direct_f0 = zr_pbr_material_f0(",
+        "let specular = zr_pbr_isotropic_ggx(",
+        "direct_diffuse_brdf * radiance * lambert,",
         "radiance * specular * lambert,",
     ] {
         assert!(
             DEFERRED_LIGHTING_SHADER.contains(expected),
             "deferred Standard PBR should use forward-compatible GGX direct lighting `{expected}`"
+        );
+    }
+    let deferred_body = include_str!("../shaders/deferred_lighting.wgsl");
+    for rejected in [
+        "struct ZrPbrSpecularComponents",
+        "fn zr_pbr_isotropic_ggx_components(",
+        "specular_components.fresnel",
+    ] {
+        assert!(!DEFERRED_LIGHTING_SHADER.contains(rejected));
+    }
+    for duplicate_owner in [
+        "struct ZrDeferredPbrGgxTerms",
+        "fn deferred_pbr_smith_visibility(",
+        "fn deferred_standard_pbr_isotropic_ggx_terms(",
+        "struct ZrPbrGgxTerms",
+        "fn zr_pbr_isotropic_ggx_terms(",
+    ] {
+        assert!(
+            !deferred_body.contains(duplicate_owner),
+            "deferred lighting body must not duplicate shared PBR owner `{duplicate_owner}`"
         );
     }
     assert!(
@@ -635,4 +724,37 @@ fn deferred_lighting_shader_is_valid_wgsl() {
     validator
         .validate(&module)
         .expect("deferred lighting shader should validate");
+}
+
+#[test]
+fn deferred_lighting_selects_ambient_from_the_gbuffer_lightmap_bit() {
+    for expected in [
+        "lightmapped_ambient_color: vec4<f32>",
+        "fn deferred_ambient_color(lightmapped: bool) -> vec3<f32>",
+        "fn zr_deferred_ambient_radiance() -> vec3<f32>",
+        "let lightmapped = emissive.a > 0.5;",
+        "deferred_ambient_color(lightmapped)",
+    ] {
+        assert!(
+            DEFERRED_LIGHTING_SHADER.contains(expected),
+            "deferred ambient/lightmap policy should contain `{expected}`"
+        );
+    }
+
+    let environment_only = assemble_deferred_lighting_shader_source(
+        DeferredLightingShaderSourceRequest::new().with_deferred_lighting_profile(
+            SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
+        ),
+    )
+    .expect("environment-only PBR source should assemble");
+    for expected in [
+        "lightmapped_ambient_color: vec4<f32>",
+        "let lightmapped = emissive.a > 0.5;",
+        "deferred_ambient_color(lightmapped)",
+    ] {
+        assert!(
+            environment_only.contains(expected),
+            "environment-only deferred ambient/lightmap policy should contain `{expected}`"
+        );
+    }
 }

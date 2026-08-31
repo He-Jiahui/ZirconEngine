@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use zircon_runtime_interface::{
-    ZrRuntimeFrameDemandV1, ZrRuntimeOperationHandle, ZrRuntimeOperationStatusV2, ZrStatus,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+    validate_runtime_frame_rgba_shape, ZrRuntimeFrameDemandV1, ZrRuntimeOperationHandle,
+    ZrRuntimeOperationStatusV2, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
     ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
-    ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1,
     ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1,
 };
 
@@ -56,38 +56,15 @@ pub(super) fn ensure_frame_rgba_shape(
     height: u32,
     rgba: &[u8],
 ) -> Result<(), GatewayError> {
-    if width > ZR_RUNTIME_FRAME_MAX_DIMENSION_V1 || height > ZR_RUNTIME_FRAME_MAX_DIMENSION_V1 {
-        return Err(GatewayError::Protocol {
-            message: format!(
-                "runtime frame dimensions {width}x{height} exceed maximum {ZR_RUNTIME_FRAME_MAX_DIMENSION_V1}"
-            ),
-        });
-    }
-    let expected = u64::from(width)
-        .checked_mul(u64::from(height))
-        .and_then(|pixels| pixels.checked_mul(4))
-        .and_then(|bytes| usize::try_from(bytes).ok())
-        .ok_or_else(|| GatewayError::Protocol {
-            message: format!("runtime frame dimensions {width}x{height} overflow RGBA byte length"),
-        })?;
-    if expected > ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1 {
-        return Err(GatewayError::Protocol {
-            message: format!(
-                "runtime frame RGBA length {expected} exceeds maximum {ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1}"
-            ),
-        });
-    }
-    if rgba.is_empty() {
-        return Ok(());
-    }
-    if rgba.len() == expected {
-        return Ok(());
-    }
-    Err(GatewayError::Protocol {
+    let rgba_len = u64::try_from(rgba.len()).map_err(|_| GatewayError::Protocol {
         message: format!(
-            "runtime frame {width}x{height} returned {} RGBA bytes; expected {expected}",
-            rgba.len()
+            "runtime frame {width}x{height} RGBA byte length cannot fit the V2 u64 contract"
         ),
+    })?;
+    validate_runtime_frame_rgba_shape(width, height, rgba_len).map_err(|error| {
+        GatewayError::Protocol {
+            message: error.to_string(),
+        }
     })
 }
 
@@ -205,6 +182,14 @@ mod tests {
             rgba_error,
             GatewayError::Protocol { message }
                 if message.contains("exceeds maximum 268435456")
+        ));
+
+        let empty_payload_error = ensure_frame_rgba_shape(1, 1, &[])
+            .expect_err("nonempty frame dimensions require an exact RGBA payload");
+        assert!(matches!(
+            empty_payload_error,
+            GatewayError::Protocol { message }
+                if message.contains("returned 0 RGBA bytes; expected 4")
         ));
     }
 }

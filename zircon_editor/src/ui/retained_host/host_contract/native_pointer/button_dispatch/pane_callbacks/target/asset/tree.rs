@@ -10,10 +10,14 @@ pub(super) fn dispatch_asset_tree_target(
     pointer: &PanePointerRoute,
     state: NativePointerButtonState,
     button: UiPointerButton,
+    host_kind: i32,
+    button_id: i32,
 ) -> bool {
     let PanePointerTarget::AssetTree(mode) = &pointer.target else {
         return false;
     };
-    dispatch_asset_tree_button(pane_host, pointer, mode.clone(), state, button);
+    dispatch_asset_tree_button(
+        pane_host, pointer, *mode, state, button, host_kind, button_id,
+    );
     true
 }

@@ -34,6 +34,14 @@ impl PrecisionShape {
                 let mut best = f32::MAX;
                 for (start, end) in segments {
                     best = best.min(distance_to_segment(point, *start, *end));
+                    if *threshold_px >= 0.0 {
+                        if best <= *thickness_px {
+                            return Some(0.0);
+                        }
+                        if best <= *thickness_px + *threshold_px {
+                            return Some(best - *thickness_px);
+                        }
+                    }
                 }
                 let score = best - *thickness_px;
                 (score <= *threshold_px).then_some(score.max(0.0))
@@ -41,3 +49,11 @@ impl PrecisionShape {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "precision_shape_score/early_exit_tests.rs"]
+mod early_exit_tests;
+
+#[cfg(test)]
+#[path = "precision_shape_score/threshold_exit_tests.rs"]
+mod threshold_exit_tests;

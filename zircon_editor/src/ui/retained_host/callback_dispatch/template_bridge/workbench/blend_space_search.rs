@@ -10,12 +10,6 @@ const ASSET_ROWS: &[(&str, &str)] = &[
     ("WorkbenchExtensionBlendSpaceStrafeRow", "BS_Strafe_Grid"),
     ("WorkbenchExtensionBlendSpaceSprintRow", "BS_Sprint_Lean"),
 ];
-const ASSET_ROW_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionBlendSpaceIdleRunRow",
-    "WorkbenchExtensionBlendSpaceStrafeRow",
-    "WorkbenchExtensionBlendSpaceSprintRow",
-];
-
 pub(super) fn is_blend_space_search_action(action_id: &str) -> bool {
     matches!(
         action_id,
@@ -50,7 +44,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
         self.set_visible(EMPTY_SEARCH_CONTROL, first_match.is_none())?;
         if let Some(control_id) = first_match.filter(|_| !selected_match) {
-            self.select_exclusive_selected(ASSET_ROW_CONTROLS, control_id)?;
+            self.select_blend_space_asset_control(control_id)?;
         }
         Ok(())
     }
@@ -76,9 +70,16 @@ mod tests {
             BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
                 .expect("workbench bridge should build");
         bridge
-            .dispatch_control_state("WorkbenchAbilityBlendSpaceButton", UiEventKind::Click)
+            .dispatch_control_state("WorkbenchAbilityAnimationTools", UiEventKind::Click)
             .expect("Blend Space opener should dispatch")
             .expect("Blend Space opener should bind");
+        bridge
+            .dispatch_workbench_ability_editor_menu_item_state(
+                "WorkbenchAbilityAnimationToolsMenu",
+                "menu.item.ability.blend_space",
+            )
+            .expect("Blend Space menu item should dispatch")
+            .expect("Blend Space menu item should bind");
 
         bridge
             .mutate_control_property(
@@ -102,6 +103,14 @@ mod tests {
             .control_frame("WorkbenchExtensionBlendSpaceSprintRow")
             .is_none());
         assert!(bridge.control_bool("WorkbenchExtensionBlendSpaceStrafeRow", "selected"));
+        assert_eq!(
+            Some("BS_Strafe_Grid  |  8 samples".to_string()),
+            bridge.control_string("WorkbenchExtensionBlendSpaceAssetSummary", "text")
+        );
+        assert_eq!(
+            Some("Strafe_L".to_string()),
+            bridge.control_string("WorkbenchExtensionBlendSpacePreviewAsset", "value")
+        );
         assert!(bridge.control_frame(EMPTY_SEARCH_CONTROL).is_none());
 
         bridge
@@ -129,7 +138,7 @@ mod tests {
             .expect("cleared search should dispatch")
             .expect("cleared search should bind");
 
-        for control_id in ASSET_ROW_CONTROLS {
+        for (control_id, _) in ASSET_ROWS {
             assert!(bridge.control_frame(control_id).is_some());
         }
         assert!(bridge.control_bool("WorkbenchExtensionBlendSpaceStrafeRow", "selected"));

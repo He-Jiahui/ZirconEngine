@@ -4,14 +4,11 @@ use super::registration_sources;
 fn registration_source_preserves_service_list_cache_paths() {
     let sources = registration_sources();
     let registration = sources.registration.as_str();
-    let duplicates = sources.duplicates;
     let behavior_tests = sources.behavior_tests.as_str();
 
     assert!(registration.contains("service_names: Arc::default()"));
     assert!(registration.contains("startup_service_names: Arc::default()"));
     assert!(registration.contains("shutdown_service_names: Arc::default()"));
-    assert!(registration.contains("HashSet::with_capacity(service_count)"));
-    assert!(registration.contains("!pending_keys.insert(name.clone())"));
     assert!(registration.contains("let module_service_lists ="));
     assert!(registration.contains(
         "module_service_lists(&pending_services, driver_count, manager_count, plugin_count)"
@@ -95,7 +92,6 @@ fn registration_source_preserves_service_list_cache_paths() {
         .expect("two-service modules should use direct cached-list construction");
     assert!(registration.contains("struct MultiServiceListScan"));
     assert!(registration.contains("fn scan_multi_service_module_lists("));
-    assert!(duplicates.contains("debug_assert!(pending_services.len() >= 6);"));
     assert!(registration.contains("let scan = scan_multi_service_module_lists(pending_services);"));
     assert!(registration.contains("service_names: service_names.into()"));
     let scan_helper_index = registration

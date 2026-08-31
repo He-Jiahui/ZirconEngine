@@ -1,7 +1,11 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{hash_map::Entry, HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
+
+#[cfg(test)]
+#[path = "ingress/path_admission_tests.rs"]
+mod path_admission_tests;
 
 #[derive(Debug)]
 pub(super) struct UiAssetWatchPendingPath {
@@ -27,11 +31,13 @@ pub(super) struct UiAssetWatchIngressHandle {
 struct UiAssetWatchIngress {
     max_pending_paths: usize,
     pending_paths: VecDeque<UiAssetWatchPendingPath>,
-    pending_path_set: HashSet<PathBuf>,
+    pending_path_set: HashMap<PathBuf, ()>,
     received_path_count: u64,
     coalesced_path_count: u64,
     overflow_count: u64,
     overflow_pending: bool,
+    #[cfg(test)]
+    path_admission_hash_probes: usize,
 }
 
 impl UiAssetWatchIngressHandle {
@@ -40,11 +46,13 @@ impl UiAssetWatchIngressHandle {
             state: Arc::new(Mutex::new(UiAssetWatchIngress {
                 max_pending_paths,
                 pending_paths: VecDeque::with_capacity(max_pending_paths),
-                pending_path_set: HashSet::with_capacity(max_pending_paths),
+                pending_path_set: HashMap::with_capacity(max_pending_paths),
                 received_path_count: 0,
                 coalesced_path_count: 0,
                 overflow_count: 0,
                 overflow_pending: false,
+                #[cfg(test)]
+                path_admission_hash_probes: 0,
             })),
         }
     }
@@ -85,15 +93,29 @@ impl UiAssetWatchIngressHandle {
         let mut state = self.lock_state();
         let mut restored = Vec::new();
         for pending in paths {
-            if state.pending_path_set.contains(&pending.path) {
-                continue;
+            let UiAssetWatchPendingPath {
+                path,
+                first_seen_at,
+            } = pending;
+            let at_capacity = state.pending_paths.len() + restored.len() >= state.max_pending_paths;
+            #[cfg(test)]
+            state.record_path_admission_hash_probe();
+            match state.pending_path_set.entry(path) {
+                Entry::Occupied(_) => {}
+                Entry::Vacant(entry) => {
+                    if at_capacity {
+                        drop(entry);
+                        state.mark_overflow();
+                        continue;
+                    }
+                    let path = entry.key().clone();
+                    entry.insert(());
+                    restored.push(UiAssetWatchPendingPath {
+                        path,
+                        first_seen_at,
+                    });
+                }
             }
-            if state.pending_paths.len() + restored.len() >= state.max_pending_paths {
-                state.mark_overflow();
-                continue;
-            }
-            let _ = state.pending_path_set.insert(pending.path.clone());
-            restored.push(pending);
         }
         for pending in restored.into_iter().rev() {
             state.pending_paths.push_front(pending);
@@ -124,20 +146,34 @@ impl UiAssetWatchIngressHandle {
         let mut state = self.lock_state();
         for path in paths {
             state.received_path_count = state.received_path_count.saturating_add(1);
-            if state.pending_path_set.contains(&path) {
-                state.coalesced_path_count = state.coalesced_path_count.saturating_add(1);
-                continue;
+            let at_capacity = state.pending_paths.len() >= state.max_pending_paths;
+            #[cfg(test)]
+            state.record_path_admission_hash_probe();
+            match state.pending_path_set.entry(path) {
+                Entry::Occupied(entry) => {
+                    drop(entry);
+                    state.coalesced_path_count = state.coalesced_path_count.saturating_add(1);
+                }
+                Entry::Vacant(entry) => {
+                    if at_capacity {
+                        drop(entry);
+                        state.mark_overflow();
+                        continue;
+                    }
+                    let path = entry.key().clone();
+                    entry.insert(());
+                    state.pending_paths.push_back(UiAssetWatchPendingPath {
+                        path,
+                        first_seen_at: observed_at,
+                    });
+                }
             }
-            if state.pending_paths.len() >= state.max_pending_paths {
-                state.mark_overflow();
-                continue;
-            }
-            let _ = state.pending_path_set.insert(path.clone());
-            state.pending_paths.push_back(UiAssetWatchPendingPath {
-                path,
-                first_seen_at: observed_at,
-            });
         }
+    }
+
+    #[cfg(test)]
+    fn path_admission_hash_probe_count(&self) -> usize {
+        self.lock_state().path_admission_hash_probes
     }
 
     fn lock_state(&self) -> MutexGuard<'_, UiAssetWatchIngress> {
@@ -148,6 +184,11 @@ impl UiAssetWatchIngressHandle {
 }
 
 impl UiAssetWatchIngress {
+    #[cfg(test)]
+    fn record_path_admission_hash_probe(&mut self) {
+        self.path_admission_hash_probes = self.path_admission_hash_probes.saturating_add(1);
+    }
+
     fn mark_overflow(&mut self) {
         if self.overflow_pending {
             return;

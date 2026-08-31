@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use zircon_runtime::ui::template::{
     collect_document_localization_report, validate_localization_report_against_catalog,
     validate_resource_dependency_files, UiResourcePathResolver,
@@ -10,6 +12,8 @@ use super::{
     runtime_report_state::DEFAULT_LOCALE_PREVIEW,
     ui_asset_editor_session::UiAssetEditorSession,
 };
+
+const HASH_DEDUP_DIAGNOSTIC_THRESHOLD: usize = 128;
 
 impl UiAssetEditorSession {
     pub fn register_locale_table_keys<I, S>(
@@ -85,11 +89,42 @@ fn resource_resolver_diagnostics(
 ) -> Vec<UiResourceDiagnostic> {
     let mut diagnostics = compiler_diagnostics.to_vec();
     diagnostics.extend(validate_resource_dependency_files(dependencies, resolver));
-    diagnostics.sort_by(|left, right| {
-        (&left.path, &left.code, &left.message).cmp(&(&right.path, &right.code, &right.message))
-    });
-    diagnostics.dedup_by(|left, right| {
-        left.path == right.path && left.code == right.code && left.message == right.message
-    });
+    dedup_resource_diagnostics(&mut diagnostics);
     diagnostics
 }
+
+fn dedup_resource_diagnostics(diagnostics: &mut Vec<UiResourceDiagnostic>) {
+    if diagnostics.len() < HASH_DEDUP_DIAGNOSTIC_THRESHOLD {
+        diagnostics.sort_by(|left, right| {
+            (&left.path, &left.code, &left.message).cmp(&(&right.path, &right.code, &right.message))
+        });
+        diagnostics.dedup_by(|left, right| {
+            left.path == right.path && left.code == right.code && left.message == right.message
+        });
+        return;
+    }
+
+    let mut seen = HashSet::with_capacity(diagnostics.len());
+    let keep = diagnostics
+        .iter()
+        .map(|diagnostic| {
+            seen.insert((
+                diagnostic.path.as_str(),
+                diagnostic.code.as_str(),
+                diagnostic.message.as_str(),
+            ))
+        })
+        .collect::<Vec<_>>();
+    drop(seen);
+
+    let mut keep = keep.into_iter();
+    diagnostics.retain(|_| keep.next().expect("one keep decision per diagnostic"));
+    debug_assert!(keep.next().is_none());
+    diagnostics.sort_unstable_by(|left, right| {
+        (&left.path, &left.code, &left.message).cmp(&(&right.path, &right.code, &right.message))
+    });
+}
+
+#[cfg(test)]
+#[path = "resolver_state/hash_dedup_tests.rs"]
+mod hash_dedup_tests;

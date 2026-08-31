@@ -6,9 +6,9 @@ use wgpu::util::DeviceExt;
 
 use super::super::super::params::hzb_params::HzbParams;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
-use crate::core::framework::render::COMPUTE_SHADER_PARAMS_BINDING;
+use crate::graphics::shader::invocation::COMPUTE_SHADER_PARAMS_BINDING;
 use crate::graphics::shader::{
-    hzb_build_dispatch_plan, HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
+    HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE, hzb_build_dispatch_plan,
 };
 
 const HZB_MAX_MIP_COUNT: usize = u32::BITS as usize;

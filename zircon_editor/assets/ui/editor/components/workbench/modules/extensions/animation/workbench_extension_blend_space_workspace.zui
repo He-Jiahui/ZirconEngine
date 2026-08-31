@@ -23,7 +23,6 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/chrome/workbench_chip.zui#WorkbenchChip",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
   "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui#WorkbenchPanelHeader",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/composites/animation/workbench_transport_controls.zui#WorkbenchTransportControls",
   "res://ui/editor/components/workbench/composites/animation/workbench_blend_space_details.zui#WorkbenchBlendSpaceDetails",
   "res://ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui#WorkbenchSampleWeights",
@@ -36,26 +35,47 @@ root = "blend_space_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.blend_space_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionBlendSpaceWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 1.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "blend_space_rail_gap" }, { node = "blend_space_left" }, { node = "blend_space_center" }, { node = "blend_space_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "blend_space_workspace_main" },
+  { node = "blend_space_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.blend_space_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.chrome.separator.thickness" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "blend_space_rail_gap" }, { node = "blend_space_left" }, { node = "blend_space_center" }, { node = "blend_space_right_reserve" }]
+
+[nodes.blend_space_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 210.0, preferred = 260.0, max = 310.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.blend_space_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionBlendSpaceRailGap"
 props = { responsive_min_tier = "narrow" }
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.blend_space_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionBlendSpaceLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
 props = { responsive_min_tier = "narrow" }
-layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 188.0, preferred = 220.0, max = 250.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "blend_space_title" }, { node = "blend_space_tabs" }, { node = "blend_space_search" }, { node = "blend_space_assets_title" }, { node = "blend_space_idle_run_row" }, { node = "blend_space_strafe_row" }, { node = "blend_space_sprint_row" }, { node = "blend_space_search_empty" }, { node = "blend_space_left_divider" }, { node = "blend_space_files_title" }, { node = "blend_space_characters_tree_row" }, { node = "blend_space_locomotion_tree_row" }, { node = "blend_space_clips_tree_row" }, { node = "blend_space_left_fill" }]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 188.0, preferred = 220.0, max = 250.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "blend_space_title" }, { node = "blend_space_search" }, { node = "blend_space_left_content" }]
+
+[nodes.blend_space_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionBlendSpaceLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "blend_space_assets_title" }, { node = "blend_space_idle_run_row" }, { node = "blend_space_strafe_row" }, { node = "blend_space_sprint_row" }, { node = "blend_space_search_empty" }, { node = "blend_space_left_divider" }, { node = "blend_space_files_title" }, { node = "blend_space_characters_tree_row" }, { node = "blend_space_locomotion_tree_row" }, { node = "blend_space_clips_tree_row" }, { node = "blend_space_left_fill" }]
 
 [nodes.blend_space_title]
 component = "WorkbenchSectionTitle"
@@ -63,41 +83,10 @@ control_id = "WorkbenchExtensionBlendSpaceTitle"
 props = { text = "Blend Space" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
-[nodes.blend_space_tabs]
-component = "HorizontalGroup"
-control_id = "WorkbenchExtensionBlendSpaceTabs"
-classes = ["workbench-tab-strip", "workbench-module-panel-tabs"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-children = [{ node = "blend_space_samples_tab" }, { node = "blend_space_axes_tab" }, { node = "blend_space_preview_tab" }]
-
-[nodes.blend_space_samples_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionBlendSpaceSamplesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Samples", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BlendSpaceSamplesTab", event = "Click", route = "workbench.extension.blend_space.samples_tab.select" }]
-
-[nodes.blend_space_axes_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionBlendSpaceAxesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Axes", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BlendSpaceAxesTab", event = "Click", route = "workbench.extension.blend_space.axes_tab.select" }]
-
-[nodes.blend_space_preview_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionBlendSpacePreviewTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Preview", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BlendSpacePreviewTab", event = "Click", route = "workbench.extension.blend_space.preview_tab.select" }]
-
 [nodes.blend_space_search]
 component = "WorkbenchSearchInput"
 control_id = "WorkbenchExtensionBlendSpaceSearch"
-props = { query = "", placeholder = "Search samples", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { query = "", placeholder = "Search blend assets", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/BlendSpaceSearchEdit", event = "Change", route = "workbench.extension.blend_space.search.edit" }, { id = "WorkbenchExtension/BlendSpaceSearchCommit", event = "Submit", route = "workbench.extension.blend_space.search.commit" }]
 
@@ -110,8 +99,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 2
 [nodes.blend_space_idle_run_row]
 component = "WorkbenchListRow"
 control_id = "WorkbenchExtensionBlendSpaceIdleRunRow"
-classes = ["workbench-list-row", "workbench-row-selected"]
-props = { text = "BS_Idle_Run", icon = "play", selected = true }
+classes = ["workbench-list-row"]
+props = { text = "BS_Idle_Run", icon = "play", selected = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/BlendSpaceIdleRunRow", event = "Click", route = "workbench.extension.blend_space.idle_run_row.select" }]
 
@@ -208,14 +197,14 @@ events = [{ id = "WorkbenchExtension/BlendSpacePreview", event = "Click", route 
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionBlendSpaceApplyButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Apply", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Apply", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 62.0, preferred = 68.0, max = 76.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/BlendSpaceApply", event = "Click", route = "workbench.extension.blend_space.apply.invoke" }]
 
 [nodes.blend_space_center_work_area]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionBlendSpaceCenterWorkArea"
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 1.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.chrome.separator.thickness" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "blend_space_sample_canvas" }, { node = "blend_space_preview_card" }]
 
 [nodes.blend_space_sample_canvas]
@@ -255,7 +244,14 @@ control_id = "WorkbenchExtensionBlendSpacePreviewCard"
 classes = ["workbench-panel", "workbench-module-side", "workbench-surface-inset"]
 props = { responsive_min_tier = "wide" }
 layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 176.0, preferred = 208.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "blend_space_preview_header" }, { node = "blend_space_preview_viewport" }, { node = "blend_space_preview_divider" }, { node = "blend_space_heatmap_header" }, { node = "blend_space_weight_heatmap" }, { node = "blend_space_preview_asset" }, { node = "blend_space_preview_fill" }]
+children = [{ node = "blend_space_preview_header" }, { node = "blend_space_preview_content" }]
+
+[nodes.blend_space_preview_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionBlendSpacePreviewContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "blend_space_preview_viewport" }, { node = "blend_space_preview_divider" }, { node = "blend_space_heatmap_header" }, { node = "blend_space_weight_heatmap" }, { node = "blend_space_preview_asset" }]
 
 [nodes.blend_space_preview_header]
 component = "WorkbenchPanelHeader"
@@ -341,16 +337,11 @@ control_id = "WorkbenchExtensionBlendSpacePreviewAsset"
 props = { text = "Asset", value = "Run_Fwd" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
-[nodes.blend_space_preview_fill]
-component = "Container"
-control_id = "WorkbenchExtensionBlendSpacePreviewFill"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-
 [nodes.blend_space_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionBlendSpaceRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-props = { responsive_min_tier = "wide" }
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
 layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 210.0, preferred = 260.0, max = 310.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "blend_space_details_title" }, { node = "blend_space_details" }]
 
@@ -405,9 +396,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 2
 [nodes.blend_space_preview_timeline]
 component = "WorkbenchTimelineStrip"
 control_id = "WorkbenchExtensionBlendSpacePreviewTimeline"
-props = { component_variant = "timeline-strip", duration = 3.0, current_time = 3.0, tick_interval = 0.5, track_label = "Run_Fwd", timeline_keys = [{ time = 0.0, label = "Start", selected = false }, { time = 2.0, label = "Run_Fwd", selected = true }], input_interactive = true, input_clickable = true, input_focusable = true }
+props = { component_variant = "timeline-strip", duration = 3.0, current_time = 3.0, tick_interval = 0.5, track_label = "Run_Fwd", timeline_keys = [{ time = 0.0, label = "Start", selected = false }, { time = 2.0, label = "Run_Fwd", selected = true }], input_interactive = false, input_clickable = false, input_focusable = false, input_hoverable = false }
 layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-events = [{ id = "WorkbenchExtension/BlendSpaceOutput", event = "Click", route = "workbench.extension.blend_space.output.select" }]
 
 [nodes.blend_space_sample_weights]
 component = "WorkbenchSampleWeights"

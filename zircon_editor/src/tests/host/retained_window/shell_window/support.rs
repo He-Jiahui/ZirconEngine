@@ -4,8 +4,9 @@ pub(super) use crate::ui::retained_host::primitives::{
     ModelRc, PhysicalSize, SharedString, VecModel,
 };
 pub(super) use crate::ui::retained_host::{
-    build_pane_template_surface_frame, paint_runtime_render_commands_for_test, FloatingWindowData,
-    FrameRect, HostBottomDockSurfaceData, HostChromeControlFrameData, HostDocumentDockSurfaceData,
+    build_pane_template_surface_frame, compile_welcome_pane_layout,
+    paint_runtime_render_commands_for_test, FloatingWindowData, FrameRect,
+    HostBottomDockSurfaceData, HostChromeControlFrameData, HostDocumentDockSurfaceData,
     HostFloatingWindowLayerData, HostMenuChromeData, HostMenuChromeMenuData, HostMenuStateData,
     HostSideDockSurfaceData, HostStatusBarData, HostWindowLayoutData, HostWindowShellData,
     NewProjectFormData, PaneData, RecentProjectData, SceneViewportChromeData,
@@ -95,7 +96,7 @@ pub(super) fn pane_with_nodes(kind: &str, nodes: Vec<TemplatePaneNodeData>) -> P
 }
 
 pub(super) fn welcome_pane_with_content() -> PaneData {
-    PaneData {
+    let mut pane = PaneData {
         kind: "Welcome".into(),
         title: "Welcome".into(),
         welcome: WelcomePaneData {
@@ -193,7 +194,9 @@ pub(super) fn welcome_pane_with_content() -> PaneData {
             ]),
         },
         ..PaneData::default()
-    }
+    };
+    pane.welcome.layout = compile_welcome_pane_layout(&pane.welcome.nodes);
+    pane
 }
 
 pub(super) fn selected_template_node(

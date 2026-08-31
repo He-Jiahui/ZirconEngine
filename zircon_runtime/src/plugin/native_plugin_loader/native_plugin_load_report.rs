@@ -14,10 +14,10 @@ use super::{LoadedNativePlugin, NativePluginCandidate};
 
 #[derive(Default)]
 pub struct NativePluginLoadReport {
-    pub(in crate::plugin::native_plugin_loader) discovered: Vec<NativePluginCandidate>,
-    pub(in crate::plugin::native_plugin_loader) loaded: Vec<LoadedNativePlugin>,
-    pub(in crate::plugin::native_plugin_loader) diagnostics: Vec<String>,
-    pub(super) projection: OnceLock<NativePluginLoadProjection>,
+    discovered: Vec<NativePluginCandidate>,
+    loaded: Vec<LoadedNativePlugin>,
+    diagnostics: Vec<String>,
+    projection: OnceLock<NativePluginLoadProjection>,
 }
 
 impl std::fmt::Debug for NativePluginLoadReport {

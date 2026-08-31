@@ -95,7 +95,7 @@ impl SaveDirtyViewsRequest {
     ) -> Result<Self, SaveDirtyViewsPreflightReport> {
         let mut candidates = candidates.into_iter().collect::<Vec<_>>();
         candidates.sort_by_key(|candidate| candidate.snapshot.document());
-        let mut seen = BTreeSet::new();
+        let mut previous_document = None;
         let mut failures = Vec::new();
         let mut total_estimated_bytes = 0_u64;
         let toolkit_by_document = toolkits
@@ -106,12 +106,13 @@ impl SaveDirtyViewsRequest {
 
         for candidate in &candidates {
             let document = candidate.snapshot.document();
-            if !seen.insert(document) {
+            if previous_document == Some(document) {
                 failures.push(SaveDirtyViewsPreflightError::new(
                     document,
                     SaveDirtyViewsPreflightErrorKind::DuplicateDocument,
                 ));
             }
+            previous_document = Some(document);
             if !candidate.snapshot.is_dirty() {
                 failures.push(SaveDirtyViewsPreflightError::new(
                     document,

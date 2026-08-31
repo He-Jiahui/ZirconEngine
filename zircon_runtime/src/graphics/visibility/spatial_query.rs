@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::{
     RenderSpatialBounds, RenderSpatialRay, RenderVisibleSpatialQuery,
@@ -21,7 +21,7 @@ struct VisibleSpatialEntry {
 pub(crate) struct VisibleSpatialQuery {
     static_index: VisibilityStaticIndex,
     dynamic_index: VisibilityStaticIndex,
-    visible_entries: BTreeMap<u64, VisibleSpatialEntry>,
+    visible_entries: HashMap<u64, VisibleSpatialEntry>,
 }
 
 impl VisibleSpatialQuery {
@@ -29,20 +29,18 @@ impl VisibleSpatialQuery {
         let visible_stable_instance_keys = context
             .frame_visibility
             .main_view_visible_stable_instance_key_set();
-        let visible_entries = context
-            .bvh_instances
-            .iter()
-            .filter(|instance| visible_stable_instance_keys.contains(&instance.stable_instance_key))
-            .map(|instance| {
-                (
+        let mut visible_entries = HashMap::with_capacity(visible_stable_instance_keys.len());
+        for instance in &context.bvh_instances {
+            if visible_stable_instance_keys.contains(&instance.stable_instance_key) {
+                visible_entries.insert(
                     instance.stable_instance_key,
                     VisibleSpatialEntry {
                         entity: instance.entity,
                         bounds: instance.bounds,
                     },
-                )
-            })
-            .collect();
+                );
+            }
+        }
 
         Self {
             static_index: context.static_index().clone(),
@@ -76,27 +74,19 @@ impl RenderVisibleSpatialQuery for VisibleSpatialQuery {
                     .stable_instance_keys
                     .into_iter()
                     .chain(dynamic_query.stable_instance_keys)
-                    .collect::<BTreeSet<_>>(),
+                    .collect::<HashSet<_>>(),
                 static_query
                     .visited_node_count
                     .saturating_add(dynamic_query.visited_node_count),
             ),
             _ => (
-                self.visible_entries
-                    .keys()
-                    .copied()
-                    .collect::<BTreeSet<_>>(),
+                self.visible_entries.keys().copied().collect::<HashSet<_>>(),
                 self.visible_entries.len(),
             ),
         };
-        let entities = candidate_keys
-            .iter()
-            .filter_map(|stable_instance_key| self.visible_entries.get(stable_instance_key))
-            .filter(|entry| bounds_overlap(entry.bounds, bounds))
-            .map(|entry| entry.entity)
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect::<Vec<_>>();
+        let entities = matching_entities(&candidate_keys, &self.visible_entries, |entry_bounds| {
+            bounds_overlap(entry_bounds, bounds)
+        });
 
         RenderVisibleSpatialQueryResult {
             stats: RenderVisibleSpatialQueryStats {
@@ -139,29 +129,19 @@ impl RenderVisibleSpatialQuery for VisibleSpatialQuery {
                     .stable_instance_keys
                     .into_iter()
                     .chain(dynamic_query.stable_instance_keys)
-                    .collect::<BTreeSet<_>>(),
+                    .collect::<HashSet<_>>(),
                 static_query
                     .visited_node_count
                     .saturating_add(dynamic_query.visited_node_count),
             ),
             _ => (
-                self.visible_entries
-                    .keys()
-                    .copied()
-                    .collect::<BTreeSet<_>>(),
+                self.visible_entries.keys().copied().collect::<HashSet<_>>(),
                 self.visible_entries.len(),
             ),
         };
-        let entities = candidate_keys
-            .iter()
-            .filter_map(|stable_instance_key| self.visible_entries.get(stable_instance_key))
-            .filter(|entry| {
-                ray_intersects_bounds(entry.bounds, ray.origin, direction, ray.max_distance)
-            })
-            .map(|entry| entry.entity)
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect::<Vec<_>>();
+        let entities = matching_entities(&candidate_keys, &self.visible_entries, |entry_bounds| {
+            ray_intersects_bounds(entry_bounds, ray.origin, direction, ray.max_distance)
+        });
 
         RenderVisibleSpatialQueryResult {
             stats: RenderVisibleSpatialQueryStats {
@@ -172,6 +152,22 @@ impl RenderVisibleSpatialQuery for VisibleSpatialQuery {
             entities,
         }
     }
+}
+
+fn matching_entities(
+    candidate_keys: &HashSet<u64>,
+    visible_entries: &HashMap<u64, VisibleSpatialEntry>,
+    mut matches: impl FnMut(VisibilityBounds) -> bool,
+) -> Vec<EntityId> {
+    let mut entities = candidate_keys
+        .iter()
+        .filter_map(|stable_instance_key| visible_entries.get(stable_instance_key))
+        .filter(|entry| matches(entry.bounds))
+        .map(|entry| entry.entity)
+        .collect::<Vec<_>>();
+    entities.sort_unstable();
+    entities.dedup();
+    entities
 }
 
 fn bounds_overlap(left: VisibilityBounds, right: VisibilityBounds) -> bool {
@@ -197,6 +193,10 @@ fn is_finite_vec3(value: Vec3) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::hint::black_box;
+    use std::time::Instant;
+
     use crate::core::framework::render::{RenderLayerSet, RenderSpatialBounds, RenderSpatialRay};
     use crate::core::framework::scene::Mobility;
     use crate::core::resource::ResourceId;
@@ -302,6 +302,191 @@ mod tests {
                 result.stats
             );
         }
+    }
+
+    #[test]
+    fn optimization_batch_20260826k_runtime09b_hash_dedup_preserves_sorted_fallback_hits() {
+        let context = dynamic_context(256);
+
+        let result = VisibleSpatialQuery::from_context(&context)
+            .query_bounds(RenderSpatialBounds::new(Vec3::ZERO, f32::MAX));
+
+        assert_eq!(result.entities, (1..=256).collect::<Vec<_>>());
+        assert_eq!(result.stats.candidate_count, 256);
+        assert_eq!(result.stats.hit_count, 256);
+    }
+
+    #[test]
+    fn optimization_batch_20260826k_runtime09b_spatial_query_uses_hash_then_vec_dedup() {
+        let source = include_str!("spatial_query.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("visible spatial query production source");
+
+        assert!(!production.contains("BTreeMap"));
+        assert!(production.contains("visible_entries: HashMap"));
+        assert!(production.contains("collect::<HashSet<_>>()"));
+        assert!(production.contains("fn matching_entities"));
+        assert!(production.contains("entities.sort_unstable()"));
+        assert!(production.contains("entities.dedup()"));
+    }
+
+    #[test]
+    fn optimization_batch_gz_runtime581_hash_lookup_preserves_sorted_hits() {
+        let context = dynamic_context(512);
+        let result = VisibleSpatialQuery::from_context(&context)
+            .query_bounds(RenderSpatialBounds::new(Vec3::ZERO, f32::MAX));
+
+        assert_eq!(result.entities, (1..=512).collect::<Vec<_>>());
+        assert_eq!(result.stats.candidate_count, 512);
+        assert_eq!(result.stats.hit_count, 512);
+    }
+
+    #[test]
+    #[ignore = "release performance evidence; run through the validation coordinator"]
+    fn optimization_batch_gz_runtime581_hash_lookup_performance_evidence() {
+        fn legacy_matching_entities(
+            candidate_keys: &HashSet<u64>,
+            visible_entries: &BTreeMap<u64, VisibleSpatialEntry>,
+        ) -> Vec<EntityId> {
+            let mut entities = candidate_keys
+                .iter()
+                .filter_map(|key| visible_entries.get(key))
+                .map(|entry| entry.entity)
+                .collect::<Vec<_>>();
+            entities.sort_unstable();
+            entities.dedup();
+            entities
+        }
+
+        let visible_entries = (0..32_768_u64)
+            .map(|key| {
+                (
+                    key,
+                    VisibleSpatialEntry {
+                        entity: key / 2,
+                        bounds: VisibilityBounds {
+                            center: Vec3::new(key as f32, 0.0, 0.0),
+                            radius: 1.0,
+                        },
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let hash_entries = visible_entries
+            .iter()
+            .map(|(key, entry)| (*key, *entry))
+            .collect::<HashMap<_, _>>();
+        let candidate_keys = (0..32_768_u64).rev().collect::<HashSet<_>>();
+        let mut legacy_samples = Vec::with_capacity(17);
+        let mut hash_samples = Vec::with_capacity(17);
+        for _ in 0..17 {
+            let started = Instant::now();
+            black_box(legacy_matching_entities(
+                black_box(&candidate_keys),
+                black_box(&visible_entries),
+            ));
+            legacy_samples.push(started.elapsed().as_nanos());
+
+            let started = Instant::now();
+            black_box(matching_entities(
+                black_box(&candidate_keys),
+                black_box(&hash_entries),
+                |_| true,
+            ));
+            hash_samples.push(started.elapsed().as_nanos());
+        }
+
+        legacy_samples.sort_unstable();
+        hash_samples.sort_unstable();
+        let legacy_p95 = legacy_samples[16];
+        let hash_p95 = hash_samples[16];
+        println!(
+            "RUNTIME581_SPATIAL_QUERY_HASH_LOOKUP_BENCH_V1 candidate_keys={} unique_entities={} legacy_p95_ns={} optimized_p95_ns={} target_ratio_bp=7000",
+            candidate_keys.len(),
+            visible_entries.len() / 2,
+            legacy_p95,
+            hash_p95,
+        );
+        assert!(
+            hash_p95.saturating_mul(10_000) <= legacy_p95.saturating_mul(7_000),
+            "visible spatial HashMap lookup P95 {hash_p95} ns exceeded 70% of legacy {legacy_p95} ns"
+        );
+    }
+
+    #[test]
+    #[ignore = "release performance evidence; run through the validation coordinator"]
+    fn optimization_batch_20260826k_runtime09b_spatial_query_hash_dedup_performance_evidence() {
+        fn legacy_matching_entities(
+            candidate_keys: &[u64],
+            visible_entries: &BTreeMap<u64, VisibleSpatialEntry>,
+        ) -> Vec<EntityId> {
+            candidate_keys
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                .iter()
+                .filter_map(|key| visible_entries.get(key))
+                .map(|entry| entry.entity)
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect()
+        }
+
+        let visible_entries = (0..32_768_u64)
+            .map(|key| {
+                (
+                    key,
+                    VisibleSpatialEntry {
+                        entity: key / 2,
+                        bounds: VisibilityBounds {
+                            center: Vec3::new(key as f32, 0.0, 0.0),
+                            radius: 1.0,
+                        },
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let candidate_input = (0..32_768_u64).rev().collect::<Vec<_>>();
+        let mut legacy_samples = Vec::with_capacity(17);
+        let mut hash_samples = Vec::with_capacity(17);
+        for _ in 0..17 {
+            let started = Instant::now();
+            black_box(legacy_matching_entities(
+                black_box(&candidate_input),
+                black_box(&visible_entries),
+            ));
+            legacy_samples.push(started.elapsed().as_nanos());
+
+            let started = Instant::now();
+            let candidate_keys = candidate_input.iter().copied().collect::<HashSet<_>>();
+            black_box(matching_entities(
+                black_box(&candidate_keys),
+                black_box(&visible_entries),
+                |_| true,
+            ));
+            hash_samples.push(started.elapsed().as_nanos());
+        }
+
+        legacy_samples.sort_unstable();
+        hash_samples.sort_unstable();
+        let legacy_p95 = legacy_samples[16];
+        let hash_p95 = hash_samples[16];
+        println!(
+            "RUNTIME09B_VISIBLE_SPATIAL_QUERY_HASH_DEDUP_BENCH_V1 candidate_keys={} unique_entities={} legacy_p95_ns={} hash_p95_ns={} legacy_ordered_set_admissions={} hash_candidate_admissions={} vec_entity_values={} target_ratio_bp=6000",
+            candidate_input.len(),
+            visible_entries.len() / 2,
+            legacy_p95,
+            hash_p95,
+            candidate_input.len() + visible_entries.len() / 2,
+            candidate_input.len(),
+            candidate_input.len(),
+        );
+        assert!(
+            hash_p95.saturating_mul(10_000) <= legacy_p95.saturating_mul(6_000),
+            "visible spatial hash dedup P95 {hash_p95} ns exceeded 60% of legacy {legacy_p95} ns"
+        );
     }
 
     fn instance(

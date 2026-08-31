@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 pub enum ActivityDrawerSlotPreference {
     LeftTop,
     LeftBottom,
-    #[serde(alias = "BottomLeft", alias = "BottomRight")]
     Bottom,
     RightTop,
     RightBottom,

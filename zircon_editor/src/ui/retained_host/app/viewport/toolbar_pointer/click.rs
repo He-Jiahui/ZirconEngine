@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use super::super::super::RetainedEditorHost;
-use crate::ui::retained_host::{
-    callback_dispatch, viewport_toolbar_pointer::build_viewport_toolbar_pointer_layout_with_size,
-    HostWindowPresentationData,
-};
+use crate::ui::retained_host::{callback_dispatch, HostWindowPresentationData};
 use zircon_runtime_interface::ui::{layout::UiPoint, layout::UiSize, surface::UiSurfaceFrame};
 
 impl RetainedEditorHost {
@@ -24,10 +21,7 @@ impl RetainedEditorHost {
             self.viewport_toolbar_surface_size(surface_key)
         };
         self.viewport_toolbar_pointer_bridge
-            .sync(build_viewport_toolbar_pointer_layout_with_size(
-                [surface_key],
-                surface_size,
-            ));
+            .sync_single_surface(surface_key, surface_size);
 
         let generation = self.ui.get_host_presentation_generation();
         let Some(surface_frame) =

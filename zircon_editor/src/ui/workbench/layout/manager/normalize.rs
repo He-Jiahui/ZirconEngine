@@ -10,19 +10,8 @@ impl LayoutManager {
         layout: &mut WorkbenchLayout,
         _registry: &ViewRegistry,
     ) -> LayoutNormalizationReport {
-        if layout.activity_windows.is_empty() && !layout.drawers.is_empty() {
-            layout.activity_windows =
-                super::super::workbench_layout::activity_windows_from_legacy_drawers(
-                    layout.drawers.clone(),
-                );
-        }
-
         let mut removed_missing_active_tabs = 0;
         for activity_window in layout.activity_windows.values_mut() {
-            activity_window.activity_drawers =
-                super::super::workbench_layout::canonical_activity_drawers(std::mem::take(
-                    &mut activity_window.activity_drawers,
-                ));
             for drawer in activity_window.activity_drawers.values_mut() {
                 normalize_drawer(drawer, &mut removed_missing_active_tabs);
             }
@@ -40,8 +29,6 @@ impl LayoutManager {
                 .unwrap_or_else(MainPageId::workbench);
         }
 
-        layout.sync_legacy_drawers_from_active_activity_window();
-
         LayoutNormalizationReport {
             placeholders: Vec::new(),
             removed_missing_active_tabs,
@@ -53,20 +40,56 @@ fn normalize_drawer(
     drawer: &mut super::super::ActivityDrawerLayout,
     removed_missing_active_tabs: &mut usize,
 ) {
-    if let Some(active) = drawer.tab_stack.active_tab.clone() {
-        if !drawer.tab_stack.tabs.contains(&active) {
-            drawer.tab_stack.active_tab = drawer.tab_stack.tabs.first().cloned();
-            *removed_missing_active_tabs += 1;
-        }
+    if drawer
+        .tab_stack
+        .active_tab
+        .as_ref()
+        .is_some_and(|active| !drawer.tab_stack.tabs.contains(active))
+    {
+        drawer.tab_stack.active_tab = drawer.tab_stack.tabs.first().cloned();
+        *removed_missing_active_tabs += 1;
     }
-    if let Some(active) = drawer.active_view.clone() {
-        if !drawer.tab_stack.tabs.contains(&active) {
-            drawer.active_view = drawer.tab_stack.active_tab.clone();
-            *removed_missing_active_tabs += 1;
-        }
+    if drawer
+        .active_view
+        .as_ref()
+        .is_some_and(|active| !drawer.tab_stack.tabs.contains(active))
+    {
+        drawer.active_view = drawer.tab_stack.active_tab.clone();
+        *removed_missing_active_tabs += 1;
     }
     if drawer.mode == ActivityDrawerMode::Collapsed {
         drawer.tab_stack.active_tab = None;
         drawer.active_view = None;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::workbench::layout::{ActivityDrawerLayout, ActivityDrawerSlot};
+    use crate::ui::workbench::view::ViewInstanceId;
+
+    #[test]
+    fn drawer_selection_only_clones_when_repair_is_required() {
+        let selected = ViewInstanceId::new("editor.selection#stable");
+        let mut drawer = ActivityDrawerLayout::new(ActivityDrawerSlot::LeftTop);
+        drawer.tab_stack.tabs.push(selected.clone());
+        drawer.tab_stack.active_tab = Some(selected.clone());
+        drawer.active_view = Some(selected.clone());
+        let mut repairs = 0;
+
+        normalize_drawer(&mut drawer, &mut repairs);
+
+        assert_eq!(repairs, 0);
+        assert_eq!(drawer.tab_stack.active_tab, Some(selected.clone()));
+        assert_eq!(drawer.active_view, Some(selected.clone()));
+
+        drawer.tab_stack.active_tab = Some(ViewInstanceId::new("editor.missing#tab"));
+        drawer.active_view = Some(ViewInstanceId::new("editor.missing#view"));
+        normalize_drawer(&mut drawer, &mut repairs);
+
+        assert_eq!(repairs, 2);
+        assert_eq!(drawer.tab_stack.active_tab, Some(selected.clone()));
+        assert_eq!(drawer.active_view, Some(selected));
     }
 }

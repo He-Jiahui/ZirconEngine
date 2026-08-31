@@ -87,7 +87,7 @@ fn runtime_ui_host_surface_splits_production_frame_from_test_support() {
     }
     for required in [
         "pub(crate) struct PublicRuntimeFrame",
-        "ui: Option<UiRenderExtract>",
+        "ui: Option<Arc<UiRenderSubmission>>",
     ] {
         assert!(
             public_runtime_frame_source.contains(required),

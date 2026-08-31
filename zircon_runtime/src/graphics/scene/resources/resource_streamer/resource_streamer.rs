@@ -15,8 +15,8 @@ use super::super::prepared::{
     PreparedPostProcessLutTexture, PreparedShader, PreparedTexture,
 };
 use super::super::{
-    GpuMaterialUniformResource, GpuTextureResource, OutputTargetWritebackConverter,
-    TextureSamplerCache,
+    GpuMaterialUniformResource, GpuTextureResource, OutputTargetFramePlan,
+    OutputTargetWritebackConverter, TextureSamplerCache, UiTexturePrepareReceipt,
 };
 use super::resource_streamer_mip_streaming::{MipStreamingState, MipStreamingVisibility};
 
@@ -27,6 +27,8 @@ pub(crate) struct ResourceStreamer {
     pub(super) models: HashMap<ResourceId, PreparedModel>,
     pub(super) meshes: HashMap<ResourceId, PreparedMesh>,
     pub(super) materials: HashMap<ResourceId, PreparedMaterial>,
+    pub(super) active_staged_material_ids: HashSet<ResourceId>,
+    pub(super) next_material_draw_generation: u64,
     pub(super) textures: HashMap<ResourceId, PreparedTexture>,
     pub(super) mip_streaming_states: HashMap<ResourceId, MipStreamingState>,
     pub(super) mip_streaming_visible_instance_keys: HashSet<u64>,
@@ -56,6 +58,10 @@ pub(crate) struct ResourceStreamer {
     pub(super) last_post_process_lut_2d_strip_ready_count: usize,
     pub(super) last_post_process_lut_3d_request_count: usize,
     pub(super) last_post_process_lut_unsupported_shape_count: usize,
+    pub(in crate::graphics::scene::resources) next_ui_texture_prepare_epoch: u64,
+    pub(in crate::graphics::scene::resources) last_ui_texture_prepare_receipt:
+        Option<UiTexturePrepareReceipt>,
+    pub(super) last_output_target_frame_plan: OutputTargetFramePlan,
     pub(super) last_output_target_graph_import_report: RenderCameraTargetGraphImportReport,
     pub(super) last_output_target_writeback_report: RenderCameraTargetWritebackReport,
 }

@@ -1,14 +1,29 @@
 use super::super::super::{
-    glyph_atlas_bitmap_staged_upload_plan,
+    GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapUploadCopy, GlyphAtlasBitmapUploadSourceBytes,
+    GlyphAtlasDirtyPage, GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet,
+    GlyphAtlasUploadMode, glyph_atlas_bitmap_staged_upload_plan,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas,
-    glyph_atlas_bitmap_upload_staging_plan, glyph_atlas_upload_command, GlyphAtlasBitmapRunPlan,
-    GlyphAtlasBitmapUploadCopy, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasDirtyPage,
-    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet, GlyphAtlasUploadMode,
+    glyph_atlas_bitmap_upload_staging_plan, glyph_atlas_upload_command,
 };
 use super::{atlas_rect, source};
 use crate::core::math::UVec2;
 
 const TEXT_ATLAS_UPLOAD_BUDGET_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
+
+#[test]
+fn render_perf_text_bitmap_staging_indexes_sources_and_copies_before_commands() {
+    let source = include_str!("../staging.rs");
+    let staging_source = source
+        .split("pub(super) fn glyph_atlas_bitmap_upload_staging_plan_for_commands")
+        .nth(1)
+        .and_then(|source| source.split("fn seed_staging_from_page_shadow").next())
+        .expect("bitmap staging source");
+
+    assert!(staging_source.contains("collect::<HashMap<_, _>>()"));
+    assert!(staging_source.contains("let mut copies_by_page = HashMap::new();"));
+    assert!(staging_source.contains("copies_by_page.entry(copy.page_key)"));
+    assert!(!staging_source.contains("run.upload_copies.iter().filter"));
+}
 
 #[test]
 fn render_text_atlas_bitmap_run_promotes_full_page_dirty_to_full_upload() {
@@ -100,10 +115,11 @@ fn render_perf_text_typical_256_glyph_frame_stays_within_upload_budget() {
     assert_eq!(plan.glyphs.len(), 256);
     assert_eq!(plan.dirty_pages.len(), 4);
     assert_eq!(plan.upload_commands.len(), 4);
-    assert!(plan
-        .upload_commands
-        .iter()
-        .all(|command| command.mode == GlyphAtlasUploadMode::FullPage));
+    assert!(
+        plan.upload_commands
+            .iter()
+            .all(|command| command.mode == GlyphAtlasUploadMode::FullPage)
+    );
     assert_eq!(upload_byte_len, 1_835_008);
     assert!(upload_byte_len <= TEXT_ATLAS_UPLOAD_BUDGET_BYTES_PER_FRAME);
 }
@@ -177,9 +193,11 @@ fn render_text_atlas_bitmap_uploads_distant_regions_without_bounding_union() {
     let commands = super::super::upload::bitmap_upload_commands(&atlas, &[dirty_page]);
 
     assert_eq!(commands.len(), 2);
-    assert!(commands
-        .iter()
-        .all(|command| command.mode == GlyphAtlasUploadMode::PartialRect));
+    assert!(
+        commands
+            .iter()
+            .all(|command| command.mode == GlyphAtlasUploadMode::PartialRect)
+    );
     assert_eq!(
         commands
             .iter()

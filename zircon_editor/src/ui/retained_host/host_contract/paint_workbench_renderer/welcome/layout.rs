@@ -1,21 +1,16 @@
-use super::super::super::data::{FrameRect, PaneData};
-use super::super::super::paint_geometry::{frame_from_template, is_visible_frame, translated};
+use super::super::super::data::FrameRect;
+use super::super::super::paint_geometry::{is_visible_frame, translated};
 
 pub(in crate::ui::retained_host::host_contract) const WELCOME_COLUMN_INSET: f32 = 18.0;
 pub(in crate::ui::retained_host::host_contract) const WELCOME_CONTENT_MAX_WIDTH: f32 = 680.0;
 
-pub(in crate::ui::retained_host::host_contract) fn welcome_node_frame(
-    pane: &PaneData,
+pub(in crate::ui::retained_host::host_contract) fn translated_welcome_frame(
+    frame: Option<&FrameRect>,
     body: &FrameRect,
-    control_id: &str,
 ) -> Option<FrameRect> {
-    (0..pane.welcome.nodes.row_count())
-        .filter_map(|row| pane.welcome.nodes.row_data(row))
-        .find_map(|node| {
-            (node.control_id.as_str() == control_id)
-                .then(|| translated(&frame_from_template(&node.frame), body.x, body.y))
-                .filter(is_visible_frame)
-        })
+    frame
+        .map(|frame| translated(frame, body.x, body.y))
+        .filter(is_visible_frame)
 }
 
 pub(in crate::ui::retained_host::host_contract) fn inset_frame(

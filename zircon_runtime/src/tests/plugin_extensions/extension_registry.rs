@@ -2,6 +2,7 @@ use crate::asset::{
     AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, FunctionAssetImporter,
     ImportedAsset,
 };
+use crate::core::framework::project::ProjectPluginManifest;
 use crate::core::framework::render::{
     RenderFrameExtract, RenderPipelineHandle, RenderViewportDescriptor, RenderWorldSnapshotHandle,
 };
@@ -322,14 +323,18 @@ fn runtime_modules_propagate_reported_executor_registrations_into_render_framewo
     };
     let registration = crate::plugin::RuntimePluginRegistrationReport::from_plugin(&plugin);
     assert!(registration.is_success(), "{:?}", registration.diagnostics);
+    let manifest = ProjectPluginManifest {
+        selections: vec![registration.project_selection.clone()],
+    };
 
     let modules = crate::builtin::runtime_modules_for_target_with_plugin_registration_reports(
         RuntimeTargetMode::ClientRuntime,
-        None,
+        Some(&manifest),
         [&registration],
-    );
+    )
+    .expect("extension registry module composition should compile");
     let runtime = crate::core::CoreRuntime::new();
-    for module in modules.modules {
+    for module in modules.modules() {
         runtime.register_module(module.descriptor()).unwrap();
     }
     runtime.activate_module(asset::ASSET_MODULE_NAME).unwrap();

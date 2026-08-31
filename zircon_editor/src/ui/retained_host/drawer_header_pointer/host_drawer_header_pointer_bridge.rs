@@ -1,25 +1,51 @@
-use std::collections::BTreeMap;
-
-use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
-use zircon_runtime_interface::ui::layout::UiFrame;
-
 use super::host_drawer_header_pointer_layout::HostDrawerHeaderPointerLayout;
-use crate::ui::retained_host::route_intent::EditorRouteIntentMap;
+use super::host_drawer_header_pointer_route::HostDrawerHeaderPointerRoute;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::view::ViewInstanceId;
 
 #[derive(Default)]
 pub(crate) struct HostDrawerHeaderPointerBridge {
-    pub(super) layout: HostDrawerHeaderPointerLayout,
-    pub(super) measured_frames: BTreeMap<String, Vec<Option<UiFrame>>>,
-    pub(super) surface: UiSurface,
-    pub(super) dispatcher: UiPointerDispatcher,
-    pub(super) route_intents: EditorRouteIntentMap,
-    #[cfg(test)]
-    pub(super) surface_authority_generation: u64,
+    pub(in crate::ui::retained_host::drawer_header_pointer) layout: HostDrawerHeaderPointerLayout,
 }
 
 impl HostDrawerHeaderPointerBridge {
-    #[cfg(test)]
-    pub(crate) const fn debug_surface_authority_generation(&self) -> u64 {
-        self.surface_authority_generation
+    pub(in crate::ui::retained_host::drawer_header_pointer) fn route_for_receipt(
+        &self,
+        surface_key: &str,
+        item_index: usize,
+    ) -> Result<HostDrawerHeaderPointerRoute, String> {
+        let (surface_index, surface) = self
+            .layout
+            .surfaces
+            .iter()
+            .enumerate()
+            .find(|(_, surface)| surface.key == surface_key)
+            .ok_or_else(|| format!("Unknown drawer header surface {surface_key}"))?;
+        if surface.items.get(item_index).is_none() {
+            return Err(format!(
+                "Drawer header index {item_index} is outside surface {surface_key}"
+            ));
+        }
+        Ok(HostDrawerHeaderPointerRoute::Tab {
+            surface_index,
+            item_index,
+        })
+    }
+
+    pub(crate) fn target_for_route(
+        &self,
+        route: HostDrawerHeaderPointerRoute,
+    ) -> Option<(ActivityDrawerSlot, &ViewInstanceId)> {
+        let HostDrawerHeaderPointerRoute::Tab {
+            surface_index,
+            item_index,
+        } = route;
+        let item = self
+            .layout
+            .surfaces
+            .get(surface_index)?
+            .items
+            .get(item_index)?;
+        Some((item.slot, &item.instance_id))
     }
 }

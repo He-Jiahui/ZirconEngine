@@ -1,5 +1,10 @@
-use std::collections::BTreeMap;
 use std::fmt;
+
+mod tensor_use_counts;
+mod tensor_workspace;
+
+use tensor_use_counts::TensorUseCounts;
+use tensor_workspace::{InputBindings, TensorWorkspace};
 
 use crate::{
     NnConv2dAttrs, NnDataType, NnModelAsset, NnOpAttrs, NnOpCode, NnTensorDesc, NnTensorKind,
@@ -47,7 +52,8 @@ pub fn run_cpu(
     model
         .validate()
         .map_err(|error| NnCpuError::InvalidModel(error.to_string()))?;
-    let mut tensors = BTreeMap::<u16, Vec<f32>>::new();
+    let mut uses = TensorUseCounts::new(model);
+    let mut tensors = TensorWorkspace::new(model.tensors.len());
     load_inputs(model, inputs, &mut tensors)?;
     load_weights(model, &mut tensors)?;
 
@@ -56,7 +62,7 @@ pub fn run_cpu(
             NnOpCode::Gemm => execute_gemm(model, op, &tensors)?,
             NnOpCode::Conv2d | NnOpCode::DepthwiseConv2d => execute_conv2d(model, op, &tensors)?,
             NnOpCode::Relu | NnOpCode::Sigmoid | NnOpCode::Tanh | NnOpCode::Silu => {
-                execute_unary(op.code, op, &tensors)?
+                execute_unary(op.code, op, &mut tensors, &uses)?
             }
             NnOpCode::Add | NnOpCode::Mul | NnOpCode::Sub | NnOpCode::Div => {
                 execute_binary(op.code, op, &tensors)?
@@ -84,7 +90,10 @@ pub fn run_cpu(
         if output.len() != expected {
             return Err(NnCpuError::ShapeMismatch { code: op.code });
         }
-        tensors.insert(output_id, output);
+        if !tensors.store(output_id, output) {
+            return Err(NnCpuError::MissingTensor(output_id));
+        }
+        uses.consume(&op.inputs);
     }
 
     model
@@ -95,7 +104,7 @@ pub fn run_cpu(
         .map(|(index, _)| {
             let tensor_id = index as u16;
             tensors
-                .remove(&tensor_id)
+                .take(tensor_id)
                 .ok_or(NnCpuError::MissingTensor(tensor_id))
         })
         .collect()
@@ -104,16 +113,16 @@ pub fn run_cpu(
 fn load_inputs(
     model: &NnModelAsset,
     inputs: &[(u16, &[f32])],
-    tensors: &mut BTreeMap<u16, Vec<f32>>,
+    tensors: &mut TensorWorkspace,
 ) -> Result<(), NnCpuError> {
+    let bindings = InputBindings::new(model.tensors.len(), inputs);
     for (index, descriptor) in model.tensors.iter().enumerate() {
         if descriptor.kind != NnTensorKind::Input {
             continue;
         }
         let tensor_id = index as u16;
-        let (_, values) = inputs
-            .iter()
-            .find(|(provided_id, _)| *provided_id == tensor_id)
+        let values = bindings
+            .get(tensor_id)
             .ok_or(NnCpuError::MissingInput(tensor_id))?;
         let expected = element_count(descriptor)?;
         if values.len() != expected {
@@ -123,15 +132,14 @@ fn load_inputs(
                 actual: values.len(),
             });
         }
-        tensors.insert(tensor_id, values.to_vec());
+        if !tensors.store(tensor_id, values.to_vec()) {
+            return Err(NnCpuError::MissingTensor(tensor_id));
+        }
     }
     Ok(())
 }
 
-fn load_weights(
-    model: &NnModelAsset,
-    tensors: &mut BTreeMap<u16, Vec<f32>>,
-) -> Result<(), NnCpuError> {
+fn load_weights(model: &NnModelAsset, tensors: &mut TensorWorkspace) -> Result<(), NnCpuError> {
     for (index, descriptor) in model.tensors.iter().enumerate() {
         if descriptor.kind != NnTensorKind::Weight {
             continue;
@@ -171,7 +179,10 @@ fn load_weights(
             .chunks_exact(4)
             .map(|value| f32::from_le_bytes(value.try_into().unwrap()))
             .collect();
-        tensors.insert(index as u16, values);
+        let tensor_id = index as u16;
+        if !tensors.store(tensor_id, values) {
+            return Err(NnCpuError::MissingTensor(tensor_id));
+        }
     }
     Ok(())
 }
@@ -179,7 +190,7 @@ fn load_weights(
 fn execute_gemm(
     model: &NnModelAsset,
     op: &crate::NnOp,
-    tensors: &BTreeMap<u16, Vec<f32>>,
+    tensors: &TensorWorkspace,
 ) -> Result<Vec<f32>, NnCpuError> {
     if !(2..=3).contains(&op.inputs.len()) {
         return Err(NnCpuError::InvalidOpArity {
@@ -241,7 +252,7 @@ fn execute_gemm(
 fn execute_conv2d(
     model: &NnModelAsset,
     op: &crate::NnOp,
-    tensors: &BTreeMap<u16, Vec<f32>>,
+    tensors: &TensorWorkspace,
 ) -> Result<Vec<f32>, NnCpuError> {
     if !(2..=3).contains(&op.inputs.len()) {
         return Err(NnCpuError::InvalidOpArity {
@@ -430,7 +441,8 @@ fn nchw_index(
 fn execute_unary(
     code: NnOpCode,
     op: &crate::NnOp,
-    tensors: &BTreeMap<u16, Vec<f32>>,
+    tensors: &mut TensorWorkspace,
+    uses: &TensorUseCounts,
 ) -> Result<Vec<f32>, NnCpuError> {
     if op.inputs.len() != 1 {
         return Err(NnCpuError::InvalidOpArity {
@@ -439,23 +451,37 @@ fn execute_unary(
             actual: op.inputs.len(),
         });
     }
-    let source = tensor(tensors, op.inputs[0])?;
+    let input = op.inputs[0];
+    if uses.is_last_consumer(input) {
+        let mut source = tensors
+            .take(input)
+            .ok_or(NnCpuError::MissingTensor(input))?;
+        for value in &mut source {
+            *value = apply_unary_value(code, *value);
+        }
+        return Ok(source);
+    }
+    let source = tensor(tensors, input)?;
     Ok(source
         .iter()
-        .map(|value| match code {
-            NnOpCode::Relu => value.max(0.0),
-            NnOpCode::Sigmoid => 1.0 / (1.0 + (-value).exp()),
-            NnOpCode::Tanh => value.tanh(),
-            NnOpCode::Silu => value / (1.0 + (-value).exp()),
-            _ => unreachable!("only unary elementwise ops are dispatched here"),
-        })
+        .map(|value| apply_unary_value(code, *value))
         .collect())
+}
+
+fn apply_unary_value(code: NnOpCode, value: f32) -> f32 {
+    match code {
+        NnOpCode::Relu => value.max(0.0),
+        NnOpCode::Sigmoid => 1.0 / (1.0 + (-value).exp()),
+        NnOpCode::Tanh => value.tanh(),
+        NnOpCode::Silu => value / (1.0 + (-value).exp()),
+        _ => unreachable!("only unary elementwise ops are dispatched here"),
+    }
 }
 
 fn execute_binary(
     code: NnOpCode,
     op: &crate::NnOp,
-    tensors: &BTreeMap<u16, Vec<f32>>,
+    tensors: &TensorWorkspace,
 ) -> Result<Vec<f32>, NnCpuError> {
     if op.inputs.len() != 2 {
         return Err(NnCpuError::InvalidOpArity {
@@ -485,7 +511,7 @@ fn execute_binary(
 fn execute_pool2d(
     model: &NnModelAsset,
     op: &crate::NnOp,
-    tensors: &BTreeMap<u16, Vec<f32>>,
+    tensors: &TensorWorkspace,
 ) -> Result<Vec<f32>, NnCpuError> {
     if op.inputs.len() != 1 {
         return Err(NnCpuError::InvalidOpArity {
@@ -611,7 +637,7 @@ fn validate_pool_shape(
 fn execute_upsample2d(
     model: &NnModelAsset,
     op: &crate::NnOp,
-    tensors: &BTreeMap<u16, Vec<f32>>,
+    tensors: &TensorWorkspace,
 ) -> Result<Vec<f32>, NnCpuError> {
     if op.inputs.len() != 1 {
         return Err(NnCpuError::InvalidOpArity {
@@ -683,7 +709,7 @@ fn execute_upsample2d(
 fn execute_batch_norm(
     model: &NnModelAsset,
     op: &crate::NnOp,
-    tensors: &BTreeMap<u16, Vec<f32>>,
+    tensors: &TensorWorkspace,
 ) -> Result<Vec<f32>, NnCpuError> {
     if op.inputs.len() != 5 {
         return Err(NnCpuError::InvalidOpArity {
@@ -734,7 +760,7 @@ fn execute_batch_norm(
 fn execute_layer_norm(
     model: &NnModelAsset,
     op: &crate::NnOp,
-    tensors: &BTreeMap<u16, Vec<f32>>,
+    tensors: &TensorWorkspace,
 ) -> Result<Vec<f32>, NnCpuError> {
     if op.inputs.len() != 3 {
         return Err(NnCpuError::InvalidOpArity {
@@ -784,10 +810,7 @@ fn execute_layer_norm(
     Ok(output)
 }
 
-fn execute_reshape(
-    op: &crate::NnOp,
-    tensors: &BTreeMap<u16, Vec<f32>>,
-) -> Result<Vec<f32>, NnCpuError> {
+fn execute_reshape(op: &crate::NnOp, tensors: &TensorWorkspace) -> Result<Vec<f32>, NnCpuError> {
     if op.inputs.len() != 1 {
         return Err(NnCpuError::InvalidOpArity {
             code: op.code,
@@ -795,11 +818,11 @@ fn execute_reshape(
             actual: op.inputs.len(),
         });
     }
-    Ok(tensor(tensors, op.inputs[0])?.clone())
+    Ok(tensor(tensors, op.inputs[0])?.to_vec())
 }
 
-fn tensor<'a>(tensors: &'a BTreeMap<u16, Vec<f32>>, id: u16) -> Result<&'a Vec<f32>, NnCpuError> {
-    tensors.get(&id).ok_or(NnCpuError::MissingTensor(id))
+fn tensor(tensors: &TensorWorkspace, id: u16) -> Result<&[f32], NnCpuError> {
+    tensors.get(id).ok_or(NnCpuError::MissingTensor(id))
 }
 
 fn descriptor<'a>(model: &'a NnModelAsset, id: u16) -> Result<&'a NnTensorDesc, NnCpuError> {

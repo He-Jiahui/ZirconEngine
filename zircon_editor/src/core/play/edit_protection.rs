@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::sync::Mutex;
 
-use crate::core::editing::operation::DeferredOperationInvocation;
+use crate::core::editing::operation::{DeferredOperationInvocation, EditOperationTarget};
 use crate::core::editor_message::DocumentId;
 use crate::core::editor_operation::EditorOperationInvocation;
 
@@ -9,7 +9,7 @@ use super::{
     PendingEditApplyBudget, PendingEditApplyReport, PendingEditDecisionPrompt,
     PendingEditDiscardReport, PendingEditId, PendingEditIntent, PendingEditPage,
     PendingEditPageCursor, PendingEditQueue, PendingEditQueueError, PendingEditQueueSummary,
-    PlayEditDecision, PlayEditPolicy, PlayEditTarget,
+    PlayEditDecision, PlayEditPolicy,
 };
 
 #[derive(Debug, Default)]
@@ -60,9 +60,15 @@ impl PlayEditProtection {
 
     pub(super) fn route(
         &self,
-        target: PlayEditTarget,
+        target: EditOperationTarget,
         deferred: DeferredOperationInvocation,
     ) -> Result<PlayEditRoute, PlayEditRouteError> {
+        if target != deferred.target() {
+            return Err(PlayEditRouteError::TargetMismatch {
+                requested: target,
+                registered: deferred.target(),
+            });
+        }
         let state = self
             .state
             .lock()
@@ -86,7 +92,16 @@ impl PlayEditProtection {
                 let queued = self
                     .pending_edits
                     .enqueue(target, deferred)
-                    .map_err(PlayEditRouteError::PendingQueue)?;
+                    .map_err(|error| match error {
+                        PendingEditQueueError::TargetMismatch {
+                            requested,
+                            registered,
+                        } => PlayEditRouteError::TargetMismatch {
+                            requested,
+                            registered,
+                        },
+                        error => PlayEditRouteError::PendingQueue(error),
+                    })?;
                 Ok(PlayEditRoute::Queued {
                     id: queued.id,
                     coalesced: queued.coalesced,
@@ -221,7 +236,7 @@ impl Drop for PendingEditDecisionPublicationGuard<'_> {
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlayEditRoute {
     ApplyNow {
-        target: PlayEditTarget,
+        target: EditOperationTarget,
         invocation: EditorOperationInvocation,
     },
     Queued {
@@ -233,8 +248,14 @@ pub enum PlayEditRoute {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PlayEditRouteError {
+    TargetMismatch {
+        requested: EditOperationTarget,
+        registered: EditOperationTarget,
+    },
     PlayDomainUnavailable,
-    RunningDocumentLocked { document: DocumentId },
+    RunningDocumentLocked {
+        document: DocumentId,
+    },
     PendingResolutionInProgress,
     PendingQueue(PendingEditQueueError),
 }
@@ -242,6 +263,13 @@ pub enum PlayEditRouteError {
 impl Display for PlayEditRouteError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::TargetMismatch {
+                requested,
+                registered,
+            } => write!(
+                formatter,
+                "edit operation target {requested:?} does not match its registered target {registered:?}"
+            ),
             Self::PlayDomainUnavailable => {
                 formatter.write_str("play-domain edits require an active play session")
             }

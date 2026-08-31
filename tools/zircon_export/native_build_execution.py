@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from .native_build_workspace import resolve_native_build_path
+from .native_dynamic_materialize_io import copy_native_dynamic_file
 
 
 def execute_native_dynamic_build_plan(
@@ -153,12 +154,13 @@ def execute_native_dynamic_package_build(
         return result
 
     destination_artifact = native_dir / source_artifact.name
-    try:
-        shutil.copy2(source_artifact, destination_artifact)
-    except OSError as error:
-        diagnostics.append(
-            f"NativeDynamic native build for package {package_id} artifact {source_artifact} could not be copied to {destination_artifact}: {error}"
-        )
+    if not copy_native_dynamic_file(
+        source_artifact,
+        destination_artifact,
+        diagnostics,
+        f"NativeDynamic native build for package {package_id} artifact",
+        copy_function=shutil.copy2,
+    ):
         return result
     result["copied_loadable_artifact"] = str(destination_artifact)
     result["copied_sidecars"] = copy_native_dynamic_build_sidecars(
@@ -219,12 +221,13 @@ def copy_native_dynamic_build_sidecars(
                 continue
             copied.append(str(destination))
         elif sidecar.is_file():
-            try:
-                shutil.copy2(sidecar, destination)
-            except OSError as error:
-                diagnostics.append(
-                    f"NativeDynamic native build for package {package_id} sidecar {sidecar} could not be copied to {destination}: {error}"
-                )
+            if not copy_native_dynamic_file(
+                sidecar,
+                destination,
+                diagnostics,
+                f"NativeDynamic native build for package {package_id} sidecar",
+                copy_function=shutil.copy2,
+            ):
                 continue
             copied.append(str(destination))
     return copied

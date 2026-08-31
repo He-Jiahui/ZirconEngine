@@ -114,10 +114,11 @@ impl RendererDataEditorProjection {
             let Some(material) = diagnostic.material_reference.as_ref() else {
                 continue;
             };
-            diagnostics
-                .entry(material.clone())
-                .or_insert_with(Vec::new)
-                .push(diagnostic);
+            if let Some(rows) = diagnostics.get_mut(material) {
+                rows.push(diagnostic);
+            } else {
+                diagnostics.insert(material.clone(), vec![diagnostic]);
+            }
         }
         diagnostics
     }
@@ -128,10 +129,11 @@ impl RendererDataEditorProjection {
         let mut diagnostics = HashMap::new();
         for diagnostic in &self.diagnostics {
             for shader in &diagnostic.shader_references {
-                diagnostics
-                    .entry(shader.clone())
-                    .or_insert_with(Vec::new)
-                    .push(diagnostic);
+                if let Some(rows) = diagnostics.get_mut(shader) {
+                    rows.push(diagnostic);
+                } else {
+                    diagnostics.insert(shader.clone(), vec![diagnostic]);
+                }
             }
         }
         diagnostics

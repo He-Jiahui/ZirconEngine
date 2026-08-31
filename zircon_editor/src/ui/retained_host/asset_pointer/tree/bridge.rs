@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerEvent,
-    layout::{UiFrame, UiPoint},
+    layout::{UiFrame, UiPoint, UiSize},
     surface::UiPointerEventKind,
 };
 
@@ -54,6 +54,18 @@ impl AssetFolderTreePointerBridge {
         true
     }
 
+    pub(crate) fn sync_pane_size(&mut self, pane_size: UiSize) -> Option<AssetListPointerState> {
+        if self.layout.pane_size == pane_size {
+            return None;
+        }
+
+        let previous_state = self.state.clone();
+        self.layout.pane_size = pane_size;
+        self.clamp_scroll_offset();
+        self.patch_surface_geometry();
+        (self.state != previous_state).then(|| self.state.clone())
+    }
+
     pub(crate) fn handle_click(
         &mut self,
         point: UiPoint,
@@ -91,6 +103,10 @@ impl AssetFolderTreePointerBridge {
         }
         self.state.hovered_row_index = hovered_row_index;
         Some(self.state.clone())
+    }
+
+    pub(crate) fn route_at(&self, point: UiPoint) -> Option<super::route::AssetPointerTreeRoute> {
+        self.move_target(point).map(to_public_route)
     }
 
     pub(crate) fn handle_scroll(
@@ -183,5 +199,31 @@ impl AssetFolderTreePointerBridge {
     #[cfg(test)]
     pub(crate) const fn surface_authority_generation_for_test(&self) -> u64 {
         self.authority.generation()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pane_size_patch_preserves_folder_projection() {
+        let mut bridge = AssetFolderTreePointerBridge::new();
+        let folder_ids = (0..1_024)
+            .map(|index| format!("res://folder-{index}"))
+            .collect::<Vec<_>>();
+        bridge.sync(
+            AssetFolderTreePointerLayout {
+                pane_size: UiSize::new(240.0, 180.0),
+                folder_ids: folder_ids.clone(),
+            },
+            AssetListPointerState::default(),
+        );
+
+        let state_change = bridge.sync_pane_size(UiSize::new(480.0, 360.0));
+
+        assert!(state_change.is_none());
+        assert_eq!(bridge.layout.folder_ids, folder_ids);
+        assert_eq!(bridge.surface_node_count_for_test(), 2);
     }
 }

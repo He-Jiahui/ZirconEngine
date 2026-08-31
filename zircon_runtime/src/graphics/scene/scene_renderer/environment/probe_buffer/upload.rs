@@ -1,4 +1,8 @@
+use std::sync::Arc;
+
 use thiserror::Error;
+use zr_rhi::TextureCopyRegion;
+use zr_rhi_wgpu::{WgpuTextureUpload, WgpuTextureUploadBatch};
 
 use crate::asset::{
     decode_ibl_pmrem_rgba16f_texture, is_zcube_source_cubemap_texture, IblPmremTextureError,
@@ -7,7 +11,9 @@ use crate::asset::{
 use crate::core::framework::render::RenderImageDimension;
 use crate::core::resource::ResourceId;
 
-use super::resources::{REFLECTION_PROBE_FACE_SIZE, REFLECTION_PROBE_MIP_COUNT};
+use super::resources::{
+    REFLECTION_PROBE_FACE_COUNT, REFLECTION_PROBE_FACE_SIZE, REFLECTION_PROBE_MIP_COUNT,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum ReflectionProbeAssetRejectionReason {
@@ -133,7 +139,9 @@ pub(super) fn validate_probe_pmrem_texture<'a>(
             height: texture.height,
         });
     }
-    if descriptor.array_layer_count != 6 || descriptor.depth_or_array_layers != 6 {
+    if descriptor.array_layer_count != REFLECTION_PROBE_FACE_COUNT
+        || descriptor.depth_or_array_layers != REFLECTION_PROBE_FACE_COUNT
+    {
         return Err(ReflectionProbeAssetError::FaceCount {
             cubemap,
             actual: descriptor.array_layer_count,
@@ -168,52 +176,43 @@ pub(super) fn validate_probe_pmrem_texture<'a>(
     Ok(bytes)
 }
 
-pub(super) fn upload_probe_pmrem_texture(
-    queue: &wgpu::Queue,
+pub(super) fn append_probe_pmrem_texture_uploads(
+    batch: &mut WgpuTextureUploadBatch,
     destination: &wgpu::Texture,
     array_slice: u32,
     bytes: &[u8],
 ) {
+    let payload: Arc<[u8]> = Arc::from(bytes);
     let mut mip_base = 0_usize;
     for mip_level in 0..REFLECTION_PROBE_MIP_COUNT {
         let mip_size = (REFLECTION_PROBE_FACE_SIZE >> mip_level).max(1);
         let face_byte_len = mip_size as usize * mip_size as usize * 8;
-        for face in 0..6_u32 {
-            let face_offset = mip_base + face as usize * face_byte_len;
-            let source = &bytes[face_offset..face_offset + face_byte_len];
-            queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture: destination,
-                    mip_level,
-                    origin: wgpu::Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: array_slice * 6 + face,
-                    },
-                    aspect: wgpu::TextureAspect::All,
-                },
-                source,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(mip_size * 8),
-                    rows_per_image: Some(mip_size),
-                },
-                wgpu::Extent3d {
-                    width: mip_size,
-                    height: mip_size,
-                    depth_or_array_layers: 1,
-                },
-            );
-        }
-        mip_base += face_byte_len * 6;
+        let mip_byte_len = face_byte_len * REFLECTION_PROBE_FACE_COUNT as usize;
+        let source_range = mip_base..mip_base + mip_byte_len;
+        batch.push(
+            WgpuTextureUpload::new(
+                destination.clone(),
+                TextureCopyRegion::new(mip_size, mip_size)
+                    .with_mip_level(mip_level)
+                    .with_origin(0, 0, array_slice * REFLECTION_PROBE_FACE_COUNT)
+                    .with_depth_or_array_layers(REFLECTION_PROBE_FACE_COUNT),
+                mip_size * 8,
+                mip_size,
+                Arc::clone(&payload),
+                source_range,
+            )
+            .expect("validated probe PMREM mip range must reference its shared payload"),
+        );
+        mip_base += mip_byte_len;
     }
+    debug_assert_eq!(mip_base, payload.len());
 }
 
 fn rgba16f_cube_mip_chain_len(face_size: u32, mip_count: u32) -> usize {
     (0..mip_count)
         .map(|mip| {
             let mip_size = (face_size >> mip).max(1) as usize;
-            mip_size * mip_size * 8 * 6
+            mip_size * mip_size * 8 * REFLECTION_PROBE_FACE_COUNT as usize
         })
         .sum()
 }

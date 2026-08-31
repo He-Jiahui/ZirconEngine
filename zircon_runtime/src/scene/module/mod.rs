@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use crate::asset::{AssetManager, AssetUri, ASSET_MODULE_NAME};
+use crate::asset::{ASSET_MODULE_NAME, AssetManager, AssetUri};
 use crate::core::framework::scene::{LevelManager, SCENE_MODULE_NAME};
 use crate::core::manager::RegisteredManagerService;
-use crate::core::runtime::modules::TIME_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
+use crate::core::runtime::modules::TIME_MODULE_NAME;
 use crate::core::{
     CoreError, CoreHandle, DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec,
     ModuleDescriptor, ServiceKind, StartupMode,
 };
-use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
+use crate::engine_module::{EngineModule, dependency_on, factory, qualified_name};
 
 mod core_error;
 mod default_level_manager;
@@ -23,6 +23,7 @@ mod world_driver;
 use core_error::scene_core_error;
 
 pub use default_level_manager::DefaultLevelManager;
+pub use level_manager_lifecycle::{PreparedLevel, PreparedLevelPublication};
 pub use world_driver::WorldDriver;
 
 pub const WORLD_DRIVER_NAME: &str = "SceneModule.Driver.WorldDriver";
@@ -97,6 +98,16 @@ pub fn create_level(
 ) -> Result<crate::scene::LevelSystem, CoreError> {
     let manager = resolve_default_level_manager(core)?;
     manager.try_create_level(world, metadata)
+}
+
+pub fn prepare_level(
+    core: &CoreHandle,
+    world: crate::scene::World,
+    metadata: crate::scene::LevelMetadata,
+) -> Result<PreparedLevel, CoreError> {
+    let manager = resolve_default_level_manager(core)?;
+    let level = manager.try_prepare_level(world, metadata)?;
+    Ok(PreparedLevel::new(manager, level))
 }
 
 pub fn load_level_asset(

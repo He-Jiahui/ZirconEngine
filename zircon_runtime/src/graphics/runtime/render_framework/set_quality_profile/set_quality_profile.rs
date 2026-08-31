@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use crate::core::framework::render::{
-    RenderFrameworkError, RenderQualityProfile, RenderViewportHandle,
+    RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderViewportHandle,
 };
+use crate::graphics::RenderPipelineAsset;
 
 use super::super::capability_validation::{
     validate_compiled_pipeline_capabilities, validate_quality_profile_capabilities,
@@ -24,22 +27,7 @@ pub(in crate::graphics::runtime::render_framework) fn set_quality_profile(
             })?
             .pipeline();
         let effective_pipeline = active_pipeline.or(profile.pipeline_override);
-        if let Some(pipeline) = profile.pipeline_override {
-            if !state.pipelines.contains_key(&pipeline) {
-                return Err(RenderFrameworkError::UnknownPipeline {
-                    pipeline: pipeline.raw(),
-                });
-            }
-        }
-        let pipeline_asset = effective_pipeline
-            .map(|pipeline| {
-                state.pipelines.get(&pipeline).cloned().ok_or(
-                    RenderFrameworkError::UnknownPipeline {
-                        pipeline: pipeline.raw(),
-                    },
-                )
-            })
-            .transpose()?;
+        let pipeline_asset = pipeline_asset_for_profile(&state.pipelines, effective_pipeline)?;
         (
             state.stats.capabilities.clone(),
             effective_pipeline,
@@ -72,9 +60,28 @@ pub(in crate::graphics::runtime::render_framework) fn set_quality_profile(
     Ok(())
 }
 
+fn pipeline_asset_for_profile(
+    pipelines: &HashMap<RenderPipelineHandle, RenderPipelineAsset>,
+    pipeline: Option<RenderPipelineHandle>,
+) -> Result<Option<RenderPipelineAsset>, RenderFrameworkError> {
+    pipeline
+        .map(|pipeline| {
+            pipelines
+                .get(&pipeline)
+                .cloned()
+                .ok_or(RenderFrameworkError::UnknownPipeline {
+                    pipeline: pipeline.raw(),
+                })
+        })
+        .transpose()
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::hint::black_box;
     use std::sync::Arc;
+    use std::time::Instant;
 
     use crate::asset::pipeline::manager::ProjectAssetManager;
     use crate::core::framework::render::{
@@ -88,7 +95,122 @@ mod tests {
     };
     use crate::render_graph::QueueLane;
 
-    use super::set_quality_profile;
+    use super::{pipeline_asset_for_profile, set_quality_profile};
+
+    #[test]
+    fn optimization_batch_dl_pipeline_asset_lookup_preserves_profile_semantics() {
+        let handle = RenderPipelineHandle::new(73);
+        let mut pipeline = RenderPipelineAsset::default_forward_plus();
+        pipeline.handle = handle;
+        let pipelines = HashMap::from([(handle, pipeline)]);
+
+        assert_eq!(
+            pipeline_asset_for_profile(&pipelines, Some(handle))
+                .unwrap()
+                .expect("registered pipeline")
+                .handle,
+            handle
+        );
+        assert!(pipeline_asset_for_profile(&pipelines, None)
+            .unwrap()
+            .is_none());
+        assert_eq!(
+            pipeline_asset_for_profile(&pipelines, Some(RenderPipelineHandle::new(74)))
+                .unwrap_err(),
+            RenderFrameworkError::UnknownPipeline { pipeline: 74 }
+        );
+    }
+
+    #[test]
+    fn optimization_batch_dl_quality_profile_uses_one_pipeline_lookup() {
+        let source = include_str!("set_quality_profile.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("quality profile production source");
+
+        assert!(!production.contains("state.pipelines.contains_key(&pipeline)"));
+        assert!(
+            production.contains("pipeline_asset_for_profile(&state.pipelines, effective_pipeline)")
+        );
+    }
+
+    #[test]
+    #[ignore = "release-only alternating p95 performance gate"]
+    fn optimization_batch_dl_single_quality_pipeline_lookup_p95() {
+        const SAMPLE_PAIRS: usize = 17;
+        const LOOKUPS_PER_SAMPLE: usize = 262_144;
+        const PIPELINE_COUNT: usize = 4_096;
+
+        let pipelines = (0..PIPELINE_COUNT as u64)
+            .map(|pipeline| (pipeline, pipeline.wrapping_mul(17)))
+            .collect::<HashMap<_, _>>();
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample_index in 0..SAMPLE_PAIRS {
+            if sample_index % 2 == 0 {
+                legacy_samples.push(measure_pipeline_lookups(
+                    &pipelines,
+                    LOOKUPS_PER_SAMPLE,
+                    true,
+                ));
+                optimized_samples.push(measure_pipeline_lookups(
+                    &pipelines,
+                    LOOKUPS_PER_SAMPLE,
+                    false,
+                ));
+            } else {
+                optimized_samples.push(measure_pipeline_lookups(
+                    &pipelines,
+                    LOOKUPS_PER_SAMPLE,
+                    false,
+                ));
+                legacy_samples.push(measure_pipeline_lookups(
+                    &pipelines,
+                    LOOKUPS_PER_SAMPLE,
+                    true,
+                ));
+            }
+        }
+
+        let legacy_p95 = p95(&mut legacy_samples);
+        let optimized_p95 = p95(&mut optimized_samples);
+        println!(
+            "RUNTIME420_SINGLE_QUALITY_PIPELINE_LOOKUP_BENCH_V1 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} ratio={:.4}",
+            optimized_p95 as f64 / legacy_p95.max(1) as f64
+        );
+        assert!(
+            optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(70),
+            "single quality pipeline lookup p95 {optimized_p95}ns exceeded 70% of legacy {legacy_p95}ns"
+        );
+    }
+
+    fn measure_pipeline_lookups(
+        pipelines: &HashMap<u64, u64>,
+        lookup_count: usize,
+        legacy: bool,
+    ) -> u128 {
+        let started_at = Instant::now();
+        let mut checksum = 0_u64;
+        for index in 0..lookup_count {
+            let pipeline = black_box((index % pipelines.len()) as u64);
+            let value = if legacy {
+                black_box(pipelines.contains_key(&pipeline))
+                    .then(|| pipelines.get(&pipeline).copied())
+                    .flatten()
+            } else {
+                pipelines.get(&pipeline).copied()
+            };
+            checksum = checksum.wrapping_add(black_box(value.unwrap_or_default()));
+        }
+        black_box(checksum);
+        started_at.elapsed().as_nanos()
+    }
+
+    fn p95(samples: &mut [u128]) -> u128 {
+        samples.sort_unstable();
+        samples[(samples.len() * 95).div_ceil(100).saturating_sub(1)]
+    }
 
     #[test]
     fn set_quality_profile_compiles_outside_framework_state_lock() {

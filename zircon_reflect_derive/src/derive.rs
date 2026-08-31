@@ -27,8 +27,13 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
         .unwrap_or_else(|| short_type_path.clone());
     let type_path = attributes
         .type_path
+        .clone()
         .map(|path| quote!(#path))
         .unwrap_or_else(|| quote!(concat!(module_path!(), "::", stringify!(#ident))));
+    let type_identity = attributes
+        .identity
+        .map(|identity| quote!(#identity))
+        .unwrap_or_else(|| type_path.clone());
 
     let (kind, mut fields) = match input.data {
         Data::Struct(data) => (
@@ -49,7 +54,9 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
     fields.extend(collect_virtual_fields(attributes.virtual_fields)?);
     validate_unique_field_names(&fields, input_span)?;
 
-    let field_info = fields.iter().map(field_info_tokens);
+    let field_info = fields
+        .iter()
+        .map(|field| field_info_tokens(field, &type_identity));
     let reflected_fields = if fields.is_empty() {
         quote!(::std::vec::Vec::new())
     } else {
@@ -70,7 +77,6 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
     let serialization = serialization_tokens(attributes.serialization);
     let component = attributes.component.then(|| quote!(.as_component()));
     let resource = attributes.resource.then(|| quote!(.as_resource()));
-    let plugin_owned = attributes.plugin_owned;
     let serializable = attributes
         .serializable
         .unwrap_or(!matches!(attributes.serialization, SerializationKind::None));
@@ -98,7 +104,6 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
                 )
                 #component
                 #resource
-                .with_plugin_owned(#plugin_owned)
                 .with_serializable(#serializable)
                 .with_editor_visible(#editor_visible)
                 .with_remote_visible(#remote_visible)

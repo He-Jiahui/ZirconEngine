@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
@@ -9,12 +9,13 @@ use zircon_runtime_interface::ui::{
 use crate::ui::text::UiTextMeasureCache;
 
 use super::{
-    arrange::arrange_node,
+    arrange::{arrange_node, arrange_resized_root},
     child_frame::free_child_frame,
     engine::UiLayoutPassEngineContext,
-    measure::measure_node,
+    inline_widgets::arrange_inline_widget_children,
+    measure::measure_node_incremental,
     pipeline::{assert_layout_pass_stage, UiLayoutPassStage},
-    responsive_mui::{apply_mui_responsive_layout, apply_mui_responsive_layout_for_nodes},
+    responsive_mui::{apply_mui_responsive_layout_for_nodes, apply_mui_responsive_layout_indexed},
     slot::{slot_for_container_child, UiLayoutSlotIndex},
 };
 
@@ -22,22 +23,20 @@ use super::{
 pub(crate) struct UiIncrementalLayoutStats {
     pub visited_node_count: usize,
     pub visited_node_ids: BTreeSet<UiNodeId>,
+    pub layout_engine_route_node_ids: BTreeSet<UiNodeId>,
+    pub removed_node_ids: BTreeSet<UiNodeId>,
     pub geometry_changed_node_count: usize,
     pub geometry_changed_node_ids: BTreeSet<UiNodeId>,
     pub skipped_node_count: usize,
+    pub layout_measure_probe_node_count: usize,
+    pub layout_arrange_probe_node_count: usize,
     pub layout_engine_report: UiLayoutEngineSelectionReport,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-struct LayoutGeometry {
-    frame: UiFrame,
-    clip_frame: Option<UiFrame>,
 }
 
 pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
     tree: &mut UiTree,
     root_size: UiSize,
-    mut text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
     dirty_node_ids: &BTreeSet<UiNodeId>,
     root_size_changed: bool,
     layout_slot_index: &UiLayoutSlotIndex,
@@ -45,60 +44,83 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
     assert_layout_pass_stage(UiLayoutPassStage::ResponsiveStyleResolution, 0);
     layout_slot_index.ensure_initialized(tree);
     let mut layout_dirty_node_ids = dirty_node_ids.clone();
+    layout_dirty_node_ids.extend(tree.pending_mutation_node_ids().iter().copied());
+    layout_slot_index.synchronize_responsive_candidates(tree, &layout_dirty_node_ids);
     if root_size_changed {
-        apply_mui_responsive_layout(tree, root_size)?;
+        apply_mui_responsive_layout_indexed(tree, root_size, layout_slot_index)?;
     } else {
         apply_mui_responsive_layout_for_nodes(tree, root_size, dirty_node_ids, layout_slot_index)?;
     }
     layout_dirty_node_ids.extend(tree.pending_mutation_node_ids().iter().copied());
+    layout_slot_index.synchronize_ordered_children(tree, &layout_dirty_node_ids);
+    layout_slot_index.synchronize_parent_size_dependencies(tree, &layout_dirty_node_ids);
+    let removed_node_ids = layout_dirty_node_ids
+        .iter()
+        .copied()
+        .filter(|node_id| !tree.nodes.contains_key(node_id))
+        .collect::<BTreeSet<_>>();
 
-    let roots = incremental_layout_roots(tree, &layout_dirty_node_ids)?;
+    let measurement_roots = incremental_layout_roots(tree, &layout_dirty_node_ids)?;
+    let required_node_ids =
+        layout_dependency_paths(tree, &measurement_roots, &layout_dirty_node_ids)?;
     let mut visited = BTreeSet::new();
-    for root_id in &roots {
-        collect_subtree_nodes(tree, *root_id, &mut visited)?;
-    }
-    let previous = snapshot_geometry(tree, &visited);
-    let mut engine_context = UiLayoutPassEngineContext::default();
+    let mut layout_measure_probe_node_count = 0usize;
+    let mut engine_context = UiLayoutPassEngineContext::incremental_with_sources(
+        required_node_ids.clone(),
+        tree.pending_layout_source_node_ids().clone(),
+    );
+    engine_context.index_required_children(tree);
 
     assert_layout_pass_stage(UiLayoutPassStage::Measurement, 1);
-    for root_id in &roots {
-        measure_node(
+    for root_id in &measurement_roots {
+        let (_, measurement_probe_node_count) = measure_node_incremental(
             tree,
             *root_id,
-            text_measure_cache.as_deref_mut(),
+            &mut *text_measure_cache,
             layout_slot_index,
+            &required_node_ids,
+            &mut visited,
         )?;
+        layout_measure_probe_node_count =
+            layout_measure_probe_node_count.saturating_add(measurement_probe_node_count);
     }
 
     assert_layout_pass_stage(UiLayoutPassStage::BackendSelection, 2);
     assert_layout_pass_stage(UiLayoutPassStage::TaffyBridgeArrangement, 3);
     assert_layout_pass_stage(UiLayoutPassStage::ZirconFallbackArrangement, 4);
     assert_layout_pass_stage(UiLayoutPassStage::ClipAndVirtualWindowPropagation, 5);
-    for root_id in roots {
+    let mut arrangement_roots = measurement_roots;
+    if root_size_changed {
+        arrangement_roots.extend(tree.roots.iter().copied());
+        arrangement_roots.sort_unstable();
+        arrangement_roots.dedup();
+    }
+    let pure_root_resize = root_size_changed && required_node_ids.is_empty();
+    for root_id in arrangement_roots.iter().copied() {
         arrange_layout_root(
             tree,
             root_id,
             root_size,
             layout_slot_index,
             &mut engine_context,
+            pure_root_resize,
         )?;
     }
+    arrange_inline_widget_children(
+        tree,
+        &arrangement_roots,
+        text_measure_cache,
+        layout_slot_index,
+        &mut engine_context,
+    )?;
 
-    let geometry_changed_node_ids = visited
-        .iter()
-        .filter_map(|node_id| {
-            let node = tree
-                .nodes
-                .get(node_id)
-                .expect("visited layout node must remain in the tree");
-            (previous.get(node_id).copied().unwrap_or_default()
-                != LayoutGeometry {
-                    frame: node.layout_cache.frame,
-                    clip_frame: node.layout_cache.clip_frame,
-                })
-            .then_some(*node_id)
-        })
-        .collect::<BTreeSet<_>>();
+    let (
+        layout_engine_report,
+        layout_engine_route_node_ids,
+        geometry_changed_node_ids,
+        layout_arrange_probe_node_count,
+    ) = engine_context.finish_incremental();
+    visited.extend(layout_engine_route_node_ids.iter().copied());
     let geometry_changed_node_count = geometry_changed_node_ids.len();
 
     let visited_node_count = visited.len();
@@ -108,11 +130,49 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
     Ok(UiIncrementalLayoutStats {
         visited_node_count,
         visited_node_ids: visited,
+        layout_engine_route_node_ids,
+        removed_node_ids,
         geometry_changed_node_count,
         geometry_changed_node_ids,
         skipped_node_count,
-        layout_engine_report: engine_context.finish(),
+        layout_measure_probe_node_count,
+        layout_arrange_probe_node_count,
+        layout_engine_report,
     })
+}
+
+fn layout_dependency_paths(
+    tree: &UiTree,
+    roots: &[UiNodeId],
+    dirty_node_ids: &BTreeSet<UiNodeId>,
+) -> Result<BTreeSet<UiNodeId>, UiTreeError> {
+    let roots = roots.iter().copied().collect::<BTreeSet<_>>();
+    let mut required = BTreeSet::new();
+    for node_id in dirty_node_ids.iter().copied() {
+        let Some(node) = tree.node(node_id) else {
+            continue;
+        };
+        if !(node.dirty.layout || node.dirty.style || node.dirty.text || node.dirty.visible_range) {
+            continue;
+        }
+
+        let mut current = node_id;
+        loop {
+            required.insert(current);
+            if roots.contains(&current) {
+                break;
+            }
+            let Some(parent_id) = tree
+                .node(current)
+                .ok_or(UiTreeError::MissingNode(current))?
+                .parent
+            else {
+                break;
+            };
+            current = parent_id;
+        }
+    }
+    Ok(required)
 }
 
 fn incremental_layout_roots(
@@ -186,12 +246,22 @@ fn arrange_layout_root(
     root_size: UiSize,
     slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
+    pure_root_resize: bool,
 ) -> Result<(), UiTreeError> {
     let parent_id = tree
         .node(root_id)
         .ok_or(UiTreeError::MissingNode(root_id))?
         .parent;
     let Some(parent_id) = parent_id else {
+        if pure_root_resize {
+            return arrange_resized_root(
+                tree,
+                root_id,
+                root_frame(root_size),
+                slot_index,
+                engine_context,
+            );
+        }
         return arrange_node(
             tree,
             root_id,
@@ -223,43 +293,6 @@ fn arrange_layout_root(
         slot_index,
         engine_context,
     )
-}
-
-fn collect_subtree_nodes(
-    tree: &UiTree,
-    node_id: UiNodeId,
-    visited: &mut BTreeSet<UiNodeId>,
-) -> Result<(), UiTreeError> {
-    let node = tree
-        .node(node_id)
-        .ok_or(UiTreeError::MissingNode(node_id))?;
-    visited.insert(node_id);
-    for child_id in &node.children {
-        collect_subtree_nodes(tree, *child_id, visited)?;
-    }
-    Ok(())
-}
-
-fn snapshot_geometry(
-    tree: &UiTree,
-    visited: &BTreeSet<UiNodeId>,
-) -> BTreeMap<UiNodeId, LayoutGeometry> {
-    visited
-        .iter()
-        .map(|node_id| {
-            let node = tree
-                .nodes
-                .get(node_id)
-                .expect("visited layout node must exist in the tree");
-            (
-                *node_id,
-                LayoutGeometry {
-                    frame: node.layout_cache.frame,
-                    clip_frame: node.layout_cache.clip_frame,
-                },
-            )
-        })
-        .collect()
 }
 
 fn root_frame(root_size: UiSize) -> UiFrame {

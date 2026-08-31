@@ -1,4 +1,80 @@
 use super::*;
+use crate::core::editor_event::MenuAction;
+
+#[test]
+fn menu_undo_replays_the_focused_animation_document_history() {
+    let _guard = env_lock().lock().unwrap();
+    let mut harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_menu_undo");
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_graph_menu_undo_project",
+        "res://animation/hero.graph.zranim",
+        write_graph_asset,
+    );
+
+    harness
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                asset_locator: asset_locator.clone(),
+            }),
+        )
+        .unwrap();
+    let animation_record = harness
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::Animation(
+                crate::core::editor_event::EditorAnimationEvent::RemoveGraphNode {
+                    graph_locator: asset_locator,
+                    node_id: "output".to_string(),
+                },
+            ),
+        )
+        .unwrap();
+    assert!(
+        animation_record.transaction_id.is_some(),
+        "a persistent animation mutation must record its document transaction identity"
+    );
+    assert!(
+        harness.runtime.chrome_snapshot().can_undo,
+        "the focused document history must enable the workbench undo command"
+    );
+    harness
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::WorkbenchMenu(MenuAction::Undo),
+        )
+        .expect("undo should replay the focused animation document history");
+
+    let manager = harness
+        .core
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let instance = harness
+        .runtime
+        .current_view_instances()
+        .into_iter()
+        .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
+        .expect("graph editor view should remain open");
+    let pane = manager
+        .animation_editor_pane_presentation(&instance.instance_id)
+        .expect("graph editor session should project the restored source");
+
+    assert!(
+        pane.node_items
+            .iter()
+            .any(|item| item.starts_with("Output <-")),
+        "menu undo must restore the graph output node from document history"
+    );
+    assert!(
+        !instance.dirty,
+        "undoing back to the saved history mark must clear document dirty metadata"
+    );
+    assert_eq!(harness.runtime.editor_snapshot().status_line, "Undo");
+}
 
 #[test]
 fn animation_graph_ignores_duplicate_output_node_requests() {
@@ -264,7 +340,7 @@ fn animation_graph_ignores_self_referential_connections() {
 }
 
 #[test]
-fn animation_graph_ignores_unknown_node_kinds() {
+fn animation_graph_rejects_declared_but_unimplemented_node_kinds() {
     let _guard = env_lock().lock().unwrap();
     let mut harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_unknown_kind");
     let asset_locator = open_indexed_animation_asset(
@@ -274,7 +350,7 @@ fn animation_graph_ignores_unknown_node_kinds() {
         write_graph_asset,
     );
 
-    harness
+    let error = harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
@@ -295,32 +371,71 @@ fn animation_graph_ignores_unknown_node_kinds() {
                 },
             ),
         )
-        .unwrap();
+        .expect_err("a declared but unavailable graph node must return a typed diagnostic");
 
-    let manager = harness
-        .core
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
-        .unwrap();
-    let instance = harness
-        .runtime
-        .current_view_instances()
-        .into_iter()
-        .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
-        .expect("graph editor view should stay open");
-    let pane = manager
-        .animation_editor_pane_presentation(&instance.instance_id)
-        .expect("graph editor session should remain queryable after unknown-node request");
-
-    assert!(
-        pane.node_items.iter().all(|item| item != "Blend run"),
-        "unsupported graph node kinds should not silently degrade into blend nodes"
-    );
-    assert!(
-        !instance.dirty,
-        "unknown graph node kinds should remain a no-op"
-    );
+    assert!(matches!(
+        error,
+        crate::ui::host::EditorEventDispatcherError::Event(
+            crate::ui::host::EditorEventDispatchError::Execution(
+                crate::ui::host::EditorEventExecutionError::Animation {
+                    source: crate::ui::host::EditorError::AnimationCommandUnavailable {
+                        diagnostic,
+                    },
+                }
+            )
+        ) if diagnostic.code() == "ZR-ANIM-CMD-002"
+    ));
     assert_eq!(
         harness.runtime.editor_snapshot().status_line,
-        "Ignored animation command because it did not change the current document"
+        "animation event execution failed: [ZR-ANIM-CMD-002] animation graph node kind `clip` is declared but not implemented"
     );
+}
+
+#[test]
+fn animation_graph_events_reject_state_machine_documents_with_a_typed_target_diagnostic() {
+    let _guard = env_lock().lock().unwrap();
+    let mut harness =
+        EventRuntimeHarness::new("zircon_editor_event_animation_graph_wrong_document");
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_graph_wrong_document_project",
+        "res://animation/hero.state_machine.zranim",
+        write_state_machine_asset,
+    );
+
+    harness
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                asset_locator: asset_locator.clone(),
+            }),
+        )
+        .expect("state machine fixture must open in the shared graph view");
+    let error = harness
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::Animation(
+                crate::core::editor_event::EditorAnimationEvent::AddGraphNode {
+                    graph_locator: asset_locator,
+                    node_id: "locomotion".to_string(),
+                    node_kind: "blend".to_string(),
+                },
+            ),
+        )
+        .expect_err("graph events must not mutate a state-machine document");
+
+    assert!(matches!(
+        error,
+        crate::ui::host::EditorEventDispatcherError::Event(
+            crate::ui::host::EditorEventDispatchError::Execution(
+                crate::ui::host::EditorEventExecutionError::Animation {
+                    source: crate::ui::host::EditorError::AnimationTargetUnavailable {
+                        diagnostic,
+                    },
+                }
+            )
+        ) if diagnostic.code() == "ZR-ANIM-TARGET-008"
+    ));
 }

@@ -6,30 +6,12 @@ use super::super::super::tabs::dispatch_host_page_tab_press;
 
 pub(super) fn dispatch_host_page_tab_route(ui: &UiHostWindow, route: &ChromePointerRoute) -> bool {
     match route {
-        ChromePointerRoute::HostPageTab {
-            index,
-            tab_x,
-            tab_width,
-            local_x,
-            local_y,
-        } => {
-            dispatch_host_page_tab_press(ui, *index as i32, *tab_x, *tab_width, *local_x, *local_y);
+        ChromePointerRoute::HostPageTab { index, close } => {
+            dispatch_host_page_tab_press(ui, *index as i32, *close);
             true
         }
-        ChromePointerRoute::HostPageOverflow {
-            tab_x,
-            tab_width,
-            local_x,
-            local_y,
-        } => {
-            dispatch_host_page_tab_press(
-                ui,
-                HOST_PAGE_OVERFLOW_POINTER_INDEX,
-                *tab_x,
-                *tab_width,
-                *local_x,
-                *local_y,
-            );
+        ChromePointerRoute::HostPageOverflow => {
+            dispatch_host_page_tab_press(ui, HOST_PAGE_OVERFLOW_POINTER_INDEX, false);
             true
         }
         _ => false,

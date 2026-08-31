@@ -1,14 +1,18 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
 
 use super::error::{SceneError, SceneResult};
 
+#[cfg(test)]
+#[path = "component_type_registry/schema_generation_hash_tests.rs"]
+mod schema_generation_hash_tests;
+
 #[derive(Clone, Debug, Default)]
 pub struct ComponentTypeRegistry {
     descriptors: BTreeMap<String, ComponentTypeDescriptor>,
     next_schema_generation: u64,
-    schema_generations: BTreeMap<String, u64>,
+    schema_generations: HashMap<String, u64>,
 }
 
 // Schema revisions are runtime cache metadata and do not change persistent

@@ -24,6 +24,9 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_anchor_inventory.py
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
+  - zircon_runtime/src/dynamic_api/session/events/keyboard_ime.rs
+  - zircon_runtime/src/dynamic_api/session/events/gamepad.rs
+  - tools/tests/test_runtime_dynamic_event_input_owner_structure.py
   - zircon_runtime/src/ui/surface/interaction_gate.rs
   - zircon_runtime/src/ui/dispatch
   - zircon_app/Cargo.toml
@@ -38,7 +41,7 @@ last_refined: 2026-07-23
 
 # 12 输入栈与动作映射对齐
 
-Runtime 12 current child-owner sync (2026-07-10): `input_stack_boundary` reports `expected_runtime_module_count = 12`, `expected_framework_module_count = 20`, `expected_test_module_count = 7`, `expected_guard_file_count = 6`, `missing_guard_files = []`, `public_surface_anchors = 26/26`, `runtime_12_guard_anchors = 5/5`, `missing_gamepad_abi_anchors = []`, `missing_cursor_host_request_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `behavior_test_anchor_count = 15`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. Current status anchors are `Frame Input Contract`, `input_frame_contract_static_passed_cargo_pending`, `arbitration_judgement_documented_static_passed`, `action_contract_static_passed_cargo_pending`, `action_evaluator_static_passed_cargo_pending`, `action_context_static_passed_cargo_pending`, `action_axis_value_static_passed_cargo_deferred`, `action_config_static_passed_cargo_deferred`, `action_manager_registration_static_passed_cargo_deferred`, `action_axis_consumption_static_passed_cargo_deferred`, `input_recording_replay_static_passed_cargo_deferred`, `cursor_host_request_static_passed_cargo_deferred`, `gamepad_bridge_static_passed_cargo_pending`, and `runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation`. Pending command anchors remain `cargo test -p zircon_runtime --lib input --locked -- --nocapture`, `cargo test -p zircon_runtime --lib action_map --locked -- --nocapture`, `cargo test -p zircon_runtime --lib gamepad --locked -- --nocapture`, and `cargo test -p zircon_app --locked`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, input module doc, M0 review, and interface-convergence mirror aligned; production input behavior is unchanged.
+Runtime 12 current child-owner sync (2026-08-30): `input_stack_boundary` reports `expected_runtime_module_count = 27`, `expected_framework_module_count = 44`, `expected_test_module_count = 7`, `expected_guard_file_count = 6`, `missing_guard_files = []`, `public_surface_anchors = 31/31`, `runtime_12_guard_anchors = 5/5`, `missing_gamepad_abi_anchors = []`, `missing_cursor_host_request_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `behavior_test_anchor_count = 25`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. The runtime owner set explicitly includes `input/camera_controller/{free,orbit,pan}` and the indexed action evaluator/event-buffer children. Current status anchors are `Frame Input Contract`, `input_frame_contract_static_passed_cargo_pending`, `arbitration_judgement_documented_static_passed`, `action_contract_static_passed_cargo_pending`, `action_evaluator_static_passed_cargo_pending`, `action_context_static_passed_cargo_pending`, `action_axis_value_static_passed_cargo_deferred`, `action_config_static_passed_cargo_deferred`, `action_manager_registration_static_passed_cargo_deferred`, `action_axis_consumption_static_passed_cargo_deferred`, `input_recording_replay_static_passed_cargo_deferred`, `cursor_host_request_static_passed_cargo_deferred`, `gamepad_bridge_static_passed_cargo_pending`, and `runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation`. Pending command anchors remain `cargo test -p zircon_runtime --lib input --locked -- --nocapture`, `cargo test -p zircon_runtime --lib action_map --locked -- --nocapture`, `cargo test -p zircon_runtime --lib gamepad --locked -- --nocapture`, and `cargo test -p zircon_app --locked`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, input module doc, M0 review, and interface-convergence mirror aligned; production input behavior is unchanged.
 
 输入域当前没有任何子计划认领：09 只管 `ui/surface/input` 的 UI 路由侧，本计划管其上游——原始输入契约、帧输入状态语义、动作映射层缺口、gamepad 接入路径。
 
@@ -127,3 +130,18 @@ Runtime 12 current child-owner sync (2026-07-10): `input_stack_boundary` reports
 - 2026-07-23 interface dispatch输入补充：`ui/dispatch/**` clean 18/19确认metadata/key/control/timer identity仍为per-event String，normal result可保留full event/reply/diagnostics；IME surrounding text虽有4,000-byte上限，composition rect Vec仍无预算。Runtime12把typed identity与move/analog accumulator贯穿window→dispatch，不在dispatch result重新复制；IME request按platform entry/bytes/rect count设硬限并在边界物化shared text ranges。回链PERF-MVP-296/297/314/426，验收1000 Hz输入与10k rect恶意/错误payload的queue age、String/Vec bytes、edge保序和typed rejection。
 - 2026-07-23 clean contract tests性能补充：interface window/runtime-adapter测试只验证相邻redraw合并、单事件映射与3-event batch顺序；没有move/raw-motion/wheel/axis coalesce、entries+bytes+age硬限、late-invalid partial work或p95门禁。Runtime12把PERF-MVP-297/314/426的验收扩为125/500/1000 Hz和100k mixed events，记录event/result clone bytes、coalesce、edge、queue/drop/age与p95；press/release/cancel/key/text/IME严格保序，Runtime09 geometry barrier不得跨越。
 - 2026-07-23 App current-source纠偏：`runtime_entry_app/**`74/74确认keyboard fallback已用`fmt::Write`零中间String、gamepad drain已有256 events/2ms预算、rumble已有32 effects/gamepad上限与清理；这些保持static pending Cargo/backend/storm，不得继续写成“无预算/无界”。PERF-MVP-426剩余owner是gilrs producer wake、pointer/raw-motion/wheel/axis帧内accumulator、逐事件ABI/identity/payload copy收敛及queue peak/age/drop/coalesce观测；沿用[`12/failure-2026-07-19-app-entry-input-and-gamepad-storm-budget.md`](12/failure-2026-07-19-app-entry-input-and-gamepad-storm-budget.md)。
+
+## 2026-08-27 Dynamic Input Adapter Owner Split
+
+状态：`runtime_10_12_15_dynamic_event_keyboard_ime_gamepad_owner_split_static_passed_cargo_deferred`。
+
+Dynamic ABI 到 neutral `InputEvent` 的 adapter 已按输入域拆分：keyboard/IME owns text/IME
+payload 解析与 UI input projection，gamepad owns connection/button/axis projection 以及共享 UI
+navigation/analog mapping；734 行 event root 只路由各输入域并保留 pointer/window/lifecycle
+协调。父/child 都继续调用同一个 `RuntimeDynamicSession::submit_input_event` 与 runtime UI
+dispatch owner，没有建立第二个 input manager、action map 或 event queue。
+
+本切片不改变当前 physical input 与 UI dispatch 顺序，不调整 gamepad threshold、IME byte
+range、payload limit、coalescing 或录制策略，也没有性能样本。Python structure/status guard 2/2、
+定向 rustfmt/diff check 通过；Cargo、app host、UI consumed/unhandled 和设备后端验证延后，
+Runtime12 仍为 `in_progress`。

@@ -9,7 +9,8 @@ fn runtime_15_shader_prewarm_source_provenance_summary_is_wired() {
     let variant_prewarm = read_runtime_src("core/framework/render/shader/variant_prewarm.rs");
     let shader_mod = read_runtime_src("core/framework/render/shader/mod.rs");
     let render_mod = read_runtime_src("core/framework/render/mod.rs");
-    let prewarm = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
+    let prewarm_worker = read_runtime_src("graphics/shader/variant_cache/prewarm/worker.rs");
+    let prewarm_tests = read_runtime_src("graphics/shader/variant_cache/prewarm/tests.rs");
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
     let manifest_tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
@@ -50,10 +51,16 @@ fn runtime_15_shader_prewarm_source_provenance_summary_is_wired() {
     );
     assert_contains_all(
         "prewarm write path records request-level provenance",
-        &prewarm,
+        &prewarm_worker,
         &[
             "report.record_written_cache_entry(",
             "report.record_failure_request(",
+        ],
+    );
+    assert_contains_all(
+        "prewarm tests verify written and failed source provenance",
+        &prewarm_tests,
+        &[
             "report.source_provenance.source_count",
             "written source provenance",
             "failed source provenance",
@@ -91,8 +98,12 @@ fn runtime_15_shader_prewarm_source_provenance_summary_is_wired() {
             variant_prewarm.as_str(),
         ),
         (
-            "zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs",
-            prewarm.as_str(),
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs",
+            prewarm_worker.as_str(),
+        ),
+        (
+            "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs",
+            prewarm_tests.as_str(),
         ),
         (
             "zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs",

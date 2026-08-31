@@ -13,8 +13,8 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 
 use super::super::pending_command_cache_plan::PendingMeshCommandCacheVisibility;
 use super::{
-    commands_for_extract_item_with_stats, PendingMeshCommandCacheExtractItem,
-    PendingMeshCommandCacheExtractionStats,
+    PendingMeshCommandCacheExtractItem, PendingMeshCommandCacheExtractionStats,
+    commands_for_extract_item_with_stats,
 };
 
 #[test]
@@ -91,6 +91,8 @@ fn item(phase: MeshDrawQueuePhase) -> PendingMeshCommandCacheExtractItem {
         stable_instance_key: (7 << 16) | 1,
         draw_ordinal: 1,
         source_draw_index: 0,
+        sort_components: RenderPhaseSortComponents::new(0.0, 10),
+        gpu_scene_instance_span: Some((1, 1)),
         queue_profile: MeshDrawQueueProfile::new(
             phase,
             MeshDrawGeometrySource::Prepared,

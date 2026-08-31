@@ -89,6 +89,17 @@ pub abilityNumberFieldName(field: int): string {
     return "";
 }
 
+pub entryIndex(originCode: uint, spec: bool): int {
+    if (originCode == <uint>0) return -1;
+    var code = <int>originCode - 1;
+    if (spec) {
+        if (originCode > <uint>27) return -1;
+        return code / 3 * 21 + code % 3;
+    }
+    if (originCode > <uint>162) return -1;
+    return code / 18 * 21 + 3 + code % 18;
+}
+
 pub entryOriginCode(index: int): uint {
     if (index == 0) return <uint>1;
     if (index == 1) return <uint>2;

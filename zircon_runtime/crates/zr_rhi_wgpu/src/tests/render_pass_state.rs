@@ -159,9 +159,12 @@ fn command_list_records_viewport_and_scissor_inside_render_pass() {
             zr_rhi::CommandListCommand::EndRenderPass,
         ]
     );
-    assert!(device
-        .is_fence_complete(device.submit(command_list).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(command_list).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 }
 
 #[test]

@@ -12,17 +12,15 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ActivityWindowLayout {
     pub window_id: ActivityWindowId,
     pub descriptor_id: ViewDescriptorId,
     pub host_mode: ActivityWindowHostMode,
     pub activity_drawers: BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
     pub content_workspace: DocumentNode,
-    #[serde(default)]
     pub menu_overflow_mode: MenuOverflowMode,
-    #[serde(default)]
     pub region_overrides: BTreeMap<ShellRegionId, PaneConstraintOverride>,
-    #[serde(default)]
     pub view_overrides: BTreeMap<ViewInstanceId, PaneConstraintOverride>,
 }
 
@@ -31,7 +29,6 @@ impl ActivityWindowLayout {
         &mut self,
         active_slot: ActivityDrawerSlot,
     ) -> bool {
-        let active_slot = active_slot.canonical();
         let mut changed = false;
         for (slot, drawer) in &mut self.activity_drawers {
             if *slot == active_slot || !slot.shares_region(active_slot) {

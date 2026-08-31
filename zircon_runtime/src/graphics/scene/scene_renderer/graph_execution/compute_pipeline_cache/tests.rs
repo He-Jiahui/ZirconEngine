@@ -1,10 +1,119 @@
 use super::{
-    compute_entry_point_workgroup_size, validate_compute_workgroup_limits,
-    validate_expected_workgroup_size, ComputePipelineBindingLayout, ComputePipelineCache,
-    ComputePipelineCacheBucketKey, ComputePipelineCacheEntry, ComputePipelineCacheKey,
+    ComputePipelineBindingLayout, ComputePipelineCache, ComputePipelineCacheBucketKey,
+    ComputePipelineCacheEntry, ComputePipelineCacheKey, compute_entry_point_workgroup_size,
+    validate_compute_workgroup_limits, validate_expected_workgroup_size,
 };
 use crate::graphics::backend::RenderBackend;
+use crate::graphics::scene::scene_renderer::graph_execution::RenderPassDeviceEpoch;
+use crate::render_graph::{
+    RenderGraphComputePipelineFallbackPolicy, RenderGraphComputePipelineResolutionStatus,
+};
 use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
+
+mod mru_hash_bypass;
+
+#[test]
+fn last_good_resolution_requires_matching_family_interface_abi_and_device_epoch() {
+    let Ok(backend) = RenderBackend::new_offscreen() else {
+        return;
+    };
+    let scene_bind_group_layout =
+        backend
+            .device
+            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("compute-last-good-empty-scene-layout"),
+                entries: &[],
+            });
+    let mut cache = ComputePipelineCache::default();
+    let policy = RenderGraphComputePipelineFallbackPolicy::last_good("ao.evaluate", 2);
+    let valid_source = "@compute @workgroup_size(1) fn cs_main() {}";
+    let invalid_candidate = "@compute @workgroup_size(1) fn other_entry() {}";
+
+    let ready = cache
+        .resolve(
+            &backend.device,
+            &scene_bind_group_layout,
+            "ao-evaluate",
+            valid_source,
+            "cs_main",
+            [1, 1, 1],
+            &[],
+            &policy,
+            Some(RenderPassDeviceEpoch::new(7, 3)),
+        )
+        .expect("valid candidate should publish the family");
+    assert_eq!(
+        ready.resolution.status,
+        RenderGraphComputePipelineResolutionStatus::Ready
+    );
+
+    let fallback = cache
+        .resolve(
+            &backend.device,
+            &scene_bind_group_layout,
+            "ao-evaluate",
+            invalid_candidate,
+            "cs_main",
+            [1, 1, 1],
+            &[],
+            &policy,
+            Some(RenderPassDeviceEpoch::new(7, 3)),
+        )
+        .expect("failed compatible candidate should resolve the published family");
+    assert_eq!(
+        fallback.resolution.status,
+        RenderGraphComputePipelineResolutionStatus::UsingLastGood
+    );
+    assert_ne!(
+        fallback.resolution.candidate_artifact_fingerprint,
+        fallback.resolution.resolved_artifact_fingerprint
+    );
+    assert!(fallback.resolution.candidate_failure.is_some());
+
+    let changed_interface = RenderGraphComputePipelineFallbackPolicy::last_good("ao.evaluate", 3);
+    assert!(
+        cache
+            .resolve(
+                &backend.device,
+                &scene_bind_group_layout,
+                "ao-evaluate",
+                invalid_candidate,
+                "cs_main",
+                [1, 1, 1],
+                &[],
+                &changed_interface,
+                Some(RenderPassDeviceEpoch::new(7, 3)),
+            )
+            .is_err()
+    );
+    assert!(
+        cache
+            .resolve(
+                &backend.device,
+                &scene_bind_group_layout,
+                "ao-evaluate",
+                invalid_candidate,
+                "cs_main",
+                [1, 1, 1],
+                &[],
+                &policy,
+                Some(RenderPassDeviceEpoch::new(7, 4)),
+            )
+            .is_err()
+    );
+}
+
+#[test]
+fn compute_pipeline_cache_keeps_native_epoch_typed_until_report_projection() {
+    let source = include_str!("../compute_pipeline_cache.rs");
+
+    assert!(source.contains("active_device_epoch: Option<RenderPassDeviceEpoch>"));
+    assert!(source.contains("device_epoch: Option<RenderPassDeviceEpoch>"));
+    assert!(source.contains("device_epoch.map(RenderPassDeviceEpoch::raw_parts)"));
+    assert!(source.contains("device_epoch.raw_parts()"));
+    assert!(!source.contains("active_device_epoch: Option<(u64, u64)>"));
+    assert!(!source.contains("device_epoch: Option<(u64, u64)>"));
+}
 
 #[test]
 fn pipeline_cache_key_requires_full_schema_equality_after_bucket_selection() {

@@ -6,7 +6,10 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use zircon_runtime::ui::surface::UiSurface;
-use zircon_runtime::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus};
+use zircon_runtime::ui::surface::{
+    UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurfaceRebuildReport,
+};
+use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 use zircon_runtime_interface::ui::v2::UiV2CompiledDocument;
 use zircon_runtime_interface::ui::{
     design_tokens::EditorDesignTokens, event_ui::UiNodeId, layout::UiSize,
@@ -18,10 +21,16 @@ use super::{
     ViewTemplateNodeMaterialization, ViewTemplateNodePatch, ViewTemplateProjectionError,
     ViewTemplateProjectionRowSignature,
 };
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+
+mod render_command_index;
+
+use render_command_index::ViewTemplateRenderCommandIndex;
 
 pub(super) struct CachedProjection {
     pub(super) base_rows: Rc<Vec<Rc<ViewTemplateNodeData>>>,
     pub(super) row_patches: Rc<BTreeMap<usize, Rc<ViewTemplateNodeData>>>,
+    pub(super) source_frame: Arc<UiSurfaceFrame>,
 }
 
 enum ProjectionCacheUpdate {
@@ -41,6 +50,7 @@ struct ProjectionCacheEntry {
     control_rows: Rc<BTreeMap<String, Vec<usize>>>,
     frame_source_node_ids: Rc<Vec<UiNodeId>>,
     frame_source_rows: BTreeMap<UiNodeId, Vec<usize>>,
+    render_command_index: ViewTemplateRenderCommandIndex,
     row_signatures: Rc<Vec<ViewTemplateProjectionRowSignature>>,
     surface_topology_signatures: Rc<Vec<ViewTemplateProjectionRowSignature>>,
     authored_node_patches: Rc<Vec<ViewTemplateNodePatch>>,
@@ -227,27 +237,24 @@ where
                         entry.surface.rebuild_dirty(UiSize::new(width, height))?
                     };
                     record_incremental_rebuild_for_tests();
-                    zircon_runtime::profile_counter!(
-                        "editor",
-                        "ui.template_projection.surface_rebuild_count",
-                        1,
-                    );
-                    zircon_runtime::profile_counter!(
-                        "editor",
-                        "ui.template_projection.layout_visited_node_count",
-                        rebuild.layout_visited_node_count,
-                    );
-                    zircon_runtime::profile_counter!(
-                        "editor",
-                        "ui.template_projection.geometry_changed_node_count",
-                        rebuild.layout_geometry_changed_node_count,
-                    );
-                    let rebound_frame_source_node_ids = if surface_changed {
-                        entry.surface_topology_signatures = Rc::new(
-                            super::view_template_projection_row_signatures(&entry.surface),
+                    record_template_projection_layout_work(rebuild);
+                    let topology_requires_full_sync =
+                        size_changed || !changed_patch_controls.is_empty();
+                    let text_index_is_stable = !surface_changed
+                        || render_command_index_matches_changed_bindings(
+                            entry,
+                            &changed_text_controls,
                         );
-                        std::collections::BTreeSet::new()
-                    } else if size_changed {
+                    if !text_index_is_stable {
+                        zircon_runtime::profile_counter!(
+                            "editor",
+                            "ui.template_projection.command_index_validation_fallback_count",
+                            1,
+                        );
+                    }
+                    let rebound_frame_source_node_ids = if topology_requires_full_sync
+                        || !text_index_is_stable
+                    {
                         let Some(rebound) = sync_projection_row_topology(document_tree_id, entry)
                         else {
                             zircon_runtime::profile_counter!(
@@ -257,6 +264,9 @@ where
                             );
                             return Ok(ProjectionCacheUpdate::TopologyChanged);
                         };
+                        entry.render_command_index = ViewTemplateRenderCommandIndex::build(
+                            &entry.surface.render_extract.list.commands,
+                        );
                         zircon_runtime::profile_counter!(
                             "editor",
                             "ui.template_projection.frame_source_rebind_count",
@@ -266,32 +276,25 @@ where
                     } else {
                         std::collections::BTreeSet::new()
                     };
-                    let changed_node_ids = entry.surface.last_layout_geometry_changed_node_ids();
-                    for command in &entry.surface.render_extract.list.commands {
-                        if !(changed_node_ids.contains(&command.node_id)
-                            || rebound_frame_source_node_ids.contains(&command.node_id))
-                            || !entry.frame_source_rows.contains_key(&command.node_id)
-                        {
-                            continue;
-                        }
-                        let frame = ViewTemplateFrameData {
-                            x: command.frame.x,
-                            y: command.frame.y,
-                            width: command.frame.width,
-                            height: command.frame.height,
-                        };
-                        let replace = changed_geometry
-                            .get(&command.node_id)
-                            .is_none_or(|current| frame_area(&frame) > frame_area(current));
-                        if replace {
-                            changed_geometry.insert(command.node_id, frame);
-                        }
-                    }
+                    let Some((geometry, geometry_command_visit_count)) = collect_changed_geometry(
+                        entry,
+                        entry.surface.last_layout_geometry_changed_node_ids(),
+                        &rebound_frame_source_node_ids,
+                    ) else {
+                        zircon_runtime::profile_counter!(
+                            "editor",
+                            "ui.template_projection.command_index_lookup_fallback_count",
+                            1,
+                        );
+                        return Ok(ProjectionCacheUpdate::TopologyChanged);
+                    };
+                    changed_geometry = geometry;
                     zircon_runtime::profile_counter!(
                         "editor",
                         "ui.template_projection.geometry_command_visit_count",
-                        entry.surface.render_extract.list.commands.len(),
+                        geometry_command_visit_count,
                     );
+                    record_geometry_command_visit_for_tests(geometry_command_visit_count);
                     zircon_runtime::profile_counter!(
                         "editor",
                         "ui.template_projection.geometry_patch_node_count",
@@ -390,6 +393,7 @@ where
             Ok(ProjectionCacheUpdate::Ready(CachedProjection {
                 base_rows: Rc::clone(&entry.base_rows),
                 row_patches: Rc::clone(&entry.row_patches),
+                source_frame: entry.surface.surface_frame(),
             }))
         })?;
 
@@ -455,6 +459,8 @@ fn install_projection_cache_entry(
     }
     let control_rows = Rc::new(control_rows);
     let rows: Rc<Vec<Rc<ViewTemplateNodeData>>> = Rc::new(nodes.into_iter().map(Rc::new).collect());
+    let render_command_index =
+        ViewTemplateRenderCommandIndex::build(&surface.render_extract.list.commands);
     zircon_runtime::profile_counter!(
         "editor",
         "ui.template_projection.full_materialization_count",
@@ -480,6 +486,7 @@ fn install_projection_cache_entry(
                 control_rows,
                 frame_source_node_ids: Rc::new(frame_source_node_ids),
                 frame_source_rows,
+                render_command_index,
                 surface_topology_signatures: Rc::new(row_signatures.clone()),
                 row_signatures: Rc::new(row_signatures),
                 authored_node_patches: Rc::new(authored_node_patches),
@@ -512,7 +519,9 @@ fn sync_projection_row_topology(
         .iter()
         .zip(entry.surface_topology_signatures.iter())
         .any(|(current, cached)| {
-            current.node_id != cached.node_id || current.command_kind != cached.command_kind
+            current.node_id != cached.node_id
+                || current.command_kind != cached.command_kind
+                || current.render_command_ref != cached.render_command_ref
         })
     {
         let mut current_identities = current
@@ -549,7 +558,9 @@ fn sync_projection_row_topology(
             .iter()
             .zip(entry.row_signatures.iter())
             .any(|(current, cached)| {
-                current.node_id != cached.node_id || current.command_kind != cached.command_kind
+                current.node_id != cached.node_id
+                    || current.command_kind != cached.command_kind
+                    || current.render_command_ref != cached.render_command_ref
             })
     {
         return Some(std::collections::BTreeSet::new());
@@ -581,14 +592,64 @@ fn sync_projection_row_topology(
     Some(rebound_frame_source_node_ids)
 }
 
-fn projection_row_identity(signature: &ViewTemplateProjectionRowSignature) -> (UiNodeId, u8) {
+fn projection_row_identity(
+    signature: &ViewTemplateProjectionRowSignature,
+) -> (
+    Option<zircon_runtime_interface::ui::surface::UiRenderFrameCommandRef>,
+    u8,
+) {
     let command_kind = match signature.command_kind {
         zircon_runtime_interface::ui::surface::UiRenderCommandKind::Group => 0,
         zircon_runtime_interface::ui::surface::UiRenderCommandKind::Quad => 1,
         zircon_runtime_interface::ui::surface::UiRenderCommandKind::Text => 2,
         zircon_runtime_interface::ui::surface::UiRenderCommandKind::Image => 3,
     };
-    (signature.node_id, command_kind)
+    (signature.render_command_ref, command_kind)
+}
+
+fn render_command_index_matches_changed_bindings(
+    entry: &ProjectionCacheEntry,
+    changed_control_ids: &std::collections::BTreeSet<String>,
+) -> bool {
+    entry.render_command_index.matches_changed_bindings(
+        &entry.surface.render_extract.list.commands,
+        &entry.text_bindings,
+        changed_control_ids,
+    )
+}
+
+fn collect_changed_geometry(
+    entry: &ProjectionCacheEntry,
+    changed_node_ids: &std::collections::BTreeSet<UiNodeId>,
+    rebound_frame_source_node_ids: &std::collections::BTreeSet<UiNodeId>,
+) -> Option<(BTreeMap<UiNodeId, ViewTemplateFrameData>, usize)> {
+    let render_commands = &entry.surface.render_extract.list.commands;
+    let mut changed_geometry = BTreeMap::new();
+    let mut command_visit_count = 0;
+    for node_id in changed_node_ids.union(rebound_frame_source_node_ids) {
+        if !entry.frame_source_rows.contains_key(node_id) {
+            continue;
+        }
+        let commands = entry
+            .render_command_index
+            .indexed_render_commands(render_commands, *node_id)?;
+        command_visit_count += commands.len();
+        for command in commands {
+            let frame = ViewTemplateFrameData {
+                x: command.frame.x,
+                y: command.frame.y,
+                width: command.frame.width,
+                height: command.frame.height,
+            };
+            let replace = changed_geometry
+                .get(node_id)
+                .is_none_or(|current| frame_area(&frame) > frame_area(current));
+            if replace {
+                changed_geometry.insert(*node_id, frame);
+            }
+        }
+    }
+    Some((changed_geometry, command_visit_count))
 }
 
 fn record_projection_topology_owner(document_tree_id: &str) {
@@ -639,6 +700,55 @@ fn projection_resource_identity_matches(
         && cached_font_database_generation == font_database_generation
 }
 
+fn record_template_projection_layout_work(rebuild: UiSurfaceRebuildReport) {
+    record_current_ui_perf_counter(
+        UiPerfCounter::TemplateProjectionLayoutMeasureProbeNodeCount,
+        rebuild.layout_measure_probe_node_count as f64,
+    );
+    record_current_ui_perf_counter(
+        UiPerfCounter::TemplateProjectionLayoutArrangeProbeNodeCount,
+        rebuild.layout_arrange_probe_node_count as f64,
+    );
+    #[cfg(feature = "profiling")]
+    {
+        if !cfg!(feature = "profiling-tracy")
+            && !zircon_runtime::core::diagnostics::profiling::capture_active()
+        {
+            return;
+        }
+        let counters = [
+            ("ui.template_projection.surface_rebuild_count", 1.0),
+            (
+                "ui.template_projection.layout_visited_node_count",
+                rebuild.layout_visited_node_count as f64,
+            ),
+            (
+                "ui.template_projection.geometry_changed_node_count",
+                rebuild.layout_geometry_changed_node_count as f64,
+            ),
+            (
+                "ui.template_projection.layout_measure_probe_node_count",
+                rebuild.layout_measure_probe_node_count as f64,
+            ),
+            (
+                "ui.template_projection.layout_arrange_probe_node_count",
+                rebuild.layout_arrange_probe_node_count as f64,
+            ),
+            (
+                "ui.template_projection.taffy_tree_build_count",
+                rebuild.layout_taffy_tree_build_count as f64,
+            ),
+            (
+                "ui.template_projection.taffy_tree_node_build_count",
+                rebuild.layout_taffy_tree_node_build_count as f64,
+            ),
+        ];
+        zircon_runtime::core::diagnostics::profiling::record_counter_batch("editor", &counters);
+    }
+    #[cfg(not(feature = "profiling"))]
+    let _ = rebuild;
+}
+
 fn projection_size_matches(
     cached_width_bits: u32,
     cached_height_bits: u32,
@@ -663,6 +773,8 @@ thread_local! {
     static PROPERTY_MUTATION_COUNT: Cell<u64> = const { Cell::new(0) };
     #[cfg(test)]
     static INCREMENTAL_REBUILD_COUNT: Cell<u64> = const { Cell::new(0) };
+    #[cfg(test)]
+    static GEOMETRY_COMMAND_VISIT_COUNT: Cell<u64> = const { Cell::new(0) };
 }
 
 fn estimated_node_clone_owned_bytes(node: &ViewTemplateNodeData) -> usize {
@@ -720,6 +832,18 @@ fn record_incremental_rebuild_for_tests() {
 }
 
 #[cfg(test)]
+fn record_geometry_command_visit_for_tests(visit_count: usize) {
+    GEOMETRY_COMMAND_VISIT_COUNT.set(
+        GEOMETRY_COMMAND_VISIT_COUNT
+            .get()
+            .saturating_add(visit_count as u64),
+    );
+}
+
+#[cfg(not(test))]
+fn record_geometry_command_visit_for_tests(_visit_count: usize) {}
+
+#[cfg(test)]
 pub(super) fn clear_for_tests() {
     PROJECTION_CACHE.with(|cache| cache.borrow_mut().clear());
     SURFACE_MATERIALIZATION_COUNT.set(0);
@@ -728,6 +852,7 @@ pub(super) fn clear_for_tests() {
     LEGACY_FULL_CLONE_COUNT.set(0);
     PROPERTY_MUTATION_COUNT.set(0);
     INCREMENTAL_REBUILD_COUNT.set(0);
+    GEOMETRY_COMMAND_VISIT_COUNT.set(0);
 }
 
 #[cfg(test)]
@@ -763,6 +888,21 @@ pub(super) fn property_mutation_count_for_tests() -> u64 {
 #[cfg(test)]
 pub(super) fn incremental_rebuild_count_for_tests() -> u64 {
     INCREMENTAL_REBUILD_COUNT.get()
+}
+
+#[cfg(test)]
+pub(super) fn geometry_command_visit_count_for_tests() -> u64 {
+    GEOMETRY_COMMAND_VISIT_COUNT.get()
+}
+
+#[cfg(test)]
+pub(super) fn render_command_count_for_tests(document_tree_id: &str) -> Option<usize> {
+    PROJECTION_CACHE.with(|cache| {
+        cache
+            .borrow()
+            .get(document_tree_id)
+            .map(|entry| entry.render_command_index.command_count())
+    })
 }
 
 #[cfg(test)]

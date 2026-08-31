@@ -133,6 +133,7 @@ uv_channel = 1
 [textures.base_color.transform]
 scale = [2.0, 3.0]
 offset = [0.25, 0.5]
+rotation = 0.75
 "#,
     )
     .unwrap();
@@ -140,6 +141,7 @@ offset = [0.25, 0.5]
     let transform = RenderMaterialTextureTransform {
         scale: [2.0, 3.0],
         offset: [0.25, 0.5],
+        rotation: 0.75,
     };
     assert_eq!(
         material.texture_slots["base_color"].texture_transform(),

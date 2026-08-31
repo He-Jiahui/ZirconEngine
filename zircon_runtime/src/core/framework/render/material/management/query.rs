@@ -101,7 +101,7 @@ impl RenderMaterialManagementQuery {
                 })
             })
             .filter(|record| {
-                text_filter.as_deref().map_or(true, |filter| {
+                text_filter.map_or(true, |filter| {
                     overview_record_matches_text_filter(record, filter)
                 })
             })
@@ -130,12 +130,12 @@ impl RenderMaterialManagementQuery {
     }
 }
 
-fn normalize_text_filter(text_filter: &str) -> Option<String> {
+fn normalize_text_filter(text_filter: &str) -> Option<&str> {
     let text_filter = text_filter.trim();
     if text_filter.is_empty() {
         None
     } else {
-        Some(text_filter.to_ascii_lowercase())
+        Some(text_filter)
     }
 }
 
@@ -169,3 +169,7 @@ fn page_overview_records(
         None => remaining.cloned().collect(),
     }
 }
+
+#[cfg(test)]
+#[path = "query/borrowed_filter_tests.rs"]
+mod borrowed_filter_tests;

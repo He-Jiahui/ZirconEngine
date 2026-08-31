@@ -1,15 +1,19 @@
-use crate::core::math::{Vec2, Vec3};
-
-use super::generate_normals::generate_normals;
-use crate::asset::assets::{ModelAsset, ModelPrimitiveAsset};
+use crate::asset::assets::ModelPrimitiveAsset;
+use crate::asset::importer::{IndexedMeshSource, project_indexed_mesh_primitive};
 use crate::asset::{
-    cook_mesh_sdf_or_fallback, cook_virtual_geometry_from_mesh, AssetImportError,
-    MeshSdfCookBudget, MeshSdfCookRequest, MeshVertex, VirtualGeometryCookRequest,
+    AssetImportError, MeshSdfCookBudget, MeshSdfCookRequest, VirtualGeometryCookRequest,
 };
 
+pub(super) use crate::asset::importer::{
+    IndexedMeshMissingNormalPolicy as MissingNormalPolicy, backfill_mesh_sdf_for_model,
+    backfill_virtual_geometry_for_model,
+};
+
+#[allow(clippy::too_many_arguments)]
 pub(super) fn primitive_from_indexed_mesh(
     positions: &[f32],
     normals: &[f32],
+    missing_normal_policy: MissingNormalPolicy,
     texcoords: &[f32],
     texcoords1: &[f32],
     tangents: &[[f32; 4]],
@@ -23,141 +27,134 @@ pub(super) fn primitive_from_indexed_mesh(
     mesh_sdf_request: &MeshSdfCookRequest,
     mesh_sdf_budget: &mut MeshSdfCookBudget,
 ) -> Result<ModelPrimitiveAsset, AssetImportError> {
-    if positions.len() % 3 != 0 {
-        return Err(AssetImportError::Parse(
-            "vertex positions were not a multiple of 3".to_string(),
-        ));
-    }
-    let vertex_count = positions.len() / 3;
-    let mut computed_normals = if normals.is_empty() {
-        generate_normals(positions, indices)
-    } else {
-        normals.to_vec()
-    };
-    if computed_normals.len() < vertex_count * 3 {
-        computed_normals.resize(vertex_count * 3, 0.0);
-    }
-
-    let vertices: Vec<MeshVertex> = (0..vertex_count)
-        .map(|index| {
-            let position = Vec3::new(
-                positions[index * 3],
-                positions[index * 3 + 1],
-                positions[index * 3 + 2],
-            );
-            let normal = Vec3::new(
-                computed_normals[index * 3],
-                computed_normals[index * 3 + 1],
-                computed_normals[index * 3 + 2],
-            );
-            let uv = if texcoords.len() >= (index + 1) * 2 {
-                Vec2::new(texcoords[index * 2], texcoords[index * 2 + 1])
-            } else {
-                Vec2::ZERO
-            };
-            let uv1 = if texcoords1.len() >= (index + 1) * 2 {
-                Vec2::new(texcoords1[index * 2], texcoords1[index * 2 + 1])
-            } else {
-                Vec2::ZERO
-            };
-            let tangent = tangents.get(index).copied().unwrap_or([1.0, 0.0, 0.0, 1.0]);
-            let color = colors.get(index).copied().unwrap_or([1.0, 1.0, 1.0, 1.0]);
-            MeshVertex::new(
-                position,
-                if normal.length_squared() <= f32::EPSILON {
-                    Vec3::Y
-                } else {
-                    normal.normalize_or_zero()
-                },
-                uv,
-            )
-            .with_uv1(uv1)
-            .with_tangent(tangent)
-            .with_color(color)
-            .with_skinning(
-                joint_indices.get(index).copied().unwrap_or([0, 0, 0, 0]),
-                joint_weights
-                    .get(index)
-                    .copied()
-                    .unwrap_or([0.0, 0.0, 0.0, 0.0]),
-            )
-        })
-        .collect();
-
-    // Automatic VG payloads currently encode vertex ordinals in joint slots;
-    // skinned imports preserve those slots for authored joint data instead.
-    let virtual_geometry = if uses_skinning_channels(joint_weights) {
-        None
-    } else {
-        virtual_geometry_request
-            .cook_config_for(mesh_name, source_hint)
-            .and_then(|config| cook_virtual_geometry_from_mesh(&vertices, indices, config))
-    };
-    let mesh_sdf = match mesh_sdf_request.settings() {
-        Some(settings) => cook_mesh_sdf_or_fallback(&vertices, indices, settings, mesh_sdf_budget)
-            .map_err(|error| AssetImportError::Parse(format!("cook mesh SDF: {error}")))?,
-        None => None,
-    };
-
-    let mut primitive = ModelPrimitiveAsset {
-        vertices,
-        indices: indices.to_vec(),
-        mesh: None,
-        mesh_sdf,
-        virtual_geometry,
-    };
-    primitive.assign_virtual_geometry_vertex_ordinals();
-    Ok(primitive)
+    project_indexed_mesh_primitive(
+        IndexedMeshSource {
+            positions,
+            normals,
+            texcoords0: texcoords,
+            texcoords1,
+            tangents,
+            colors,
+            indices,
+            joint_indices,
+            joint_weights,
+            missing_normal_policy,
+        },
+        mesh_name,
+        source_hint,
+        virtual_geometry_request,
+        mesh_sdf_request,
+        mesh_sdf_budget,
+    )
 }
 
-pub(super) fn backfill_mesh_sdf_for_model(
-    model: &mut ModelAsset,
-    mesh_sdf_request: &MeshSdfCookRequest,
-) -> Result<(), AssetImportError> {
-    let Some(settings) = mesh_sdf_request.settings() else {
-        return Ok(());
-    };
-    let mut mesh_sdf_budget = MeshSdfCookBudget::default();
-    for primitive in &mut model.primitives {
-        if primitive.mesh_sdf.is_none() && !primitive.vertices.is_empty() {
-            primitive.mesh_sdf = cook_mesh_sdf_or_fallback(
-                &primitive.vertices,
-                &primitive.indices,
-                settings,
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::panic::AssertUnwindSafe;
+
+    #[test]
+    fn primitive_rejects_out_of_range_indices_with_authored_normals() {
+        let mut mesh_sdf_budget = MeshSdfCookBudget::default();
+        let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+            primitive_from_indexed_mesh(
+                &[0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                &[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+                MissingNormalPolicy::Smooth,
+                &[],
+                &[],
+                &[],
+                &[],
+                &[0, 1, 3],
+                &[],
+                &[],
+                Some("malformed"),
+                "runtime-index-admission-test",
+                &VirtualGeometryCookRequest::default(),
+                &MeshSdfCookRequest::default(),
                 &mut mesh_sdf_budget,
             )
-            .map_err(|error| AssetImportError::Parse(format!("cook mesh SDF: {error}")))?;
+        }));
+
+        assert!(result.is_ok(), "malformed indices must not unwind");
+        let error = result
+            .unwrap()
+            .expect_err("out-of-range mesh index must be rejected");
+        assert!(matches!(
+            error,
+            AssetImportError::Parse(message)
+                if message.contains("mesh index 3") && message.contains("vertex count 3")
+        ));
+    }
+
+    #[test]
+    fn primitive_expands_shared_vertices_for_missing_flat_normals_before_tangent_generation() {
+        let mut mesh_sdf_budget = MeshSdfCookBudget::default();
+        let primitive = primitive_from_indexed_mesh(
+            &[
+                0.0, 0.0, 0.0, // shared origin
+                1.0, 0.0, 0.0, // shared edge
+                0.0, 1.0, 0.0, // +Z face
+                0.0, 0.0, 1.0, // +Y face
+            ],
+            &[],
+            MissingNormalPolicy::Flat,
+            &[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            &[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+            &[],
+            &[
+                [1.0, 0.0, 0.0, 1.0],
+                [0.0, 1.0, 0.0, 1.0],
+                [0.0, 0.0, 1.0, 1.0],
+                [1.0, 1.0, 0.0, 1.0],
+            ],
+            &[0, 1, 2, 0, 3, 1],
+            &[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+            &[
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            Some("flat-hard-edge"),
+            "runtime-flat-normal-test",
+            &VirtualGeometryCookRequest::default(),
+            &MeshSdfCookRequest::default(),
+            &mut mesh_sdf_budget,
+        )
+        .unwrap();
+
+        assert_eq!(primitive.vertices.len(), 6);
+        assert_eq!(primitive.indices, [0, 1, 2, 3, 4, 5]);
+        for vertex in &primitive.vertices[..3] {
+            assert_eq!(vertex.normal, [0.0, 0.0, 1.0]);
+        }
+        for vertex in &primitive.vertices[3..] {
+            assert_eq!(vertex.normal, [0.0, 1.0, 0.0]);
+        }
+
+        let source_indices = [0, 1, 2, 0, 3, 1];
+        let source_uv0 = [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]];
+        let source_uv1 = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6], [0.7, 0.8]];
+        let source_colors = [
+            [1.0, 0.0, 0.0, 1.0],
+            [0.0, 1.0, 0.0, 1.0],
+            [0.0, 0.0, 1.0, 1.0],
+            [1.0, 1.0, 0.0, 1.0],
+        ];
+        let source_joints = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]];
+        let source_weights = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+        for (vertex, source_index) in primitive.vertices.iter().zip(source_indices) {
+            assert_eq!(vertex.uv, source_uv0[source_index]);
+            assert_eq!(vertex.uv1, source_uv1[source_index]);
+            assert_eq!(vertex.color, source_colors[source_index]);
+            assert_eq!(vertex.joint_indices, source_joints[source_index]);
+            assert_eq!(vertex.joint_weights, source_weights[source_index]);
         }
     }
-    Ok(())
-}
-
-pub(super) fn backfill_virtual_geometry_for_model(
-    model: &mut ModelAsset,
-    virtual_geometry_request: &VirtualGeometryCookRequest,
-) {
-    let source_hint = model.uri.to_string();
-    for (primitive_index, primitive) in model.primitives.iter_mut().enumerate() {
-        // The VG ordinal assignment below would overwrite active skinning
-        // channels, so weighted primitives stay on the skinned mesh path.
-        if primitive.uses_skinning_channels() {
-            continue;
-        }
-        if primitive.virtual_geometry.is_none() {
-            let mesh_name = format!("primitive_{primitive_index}");
-            primitive.virtual_geometry = virtual_geometry_request
-                .cook_config_for(Some(&mesh_name), &source_hint)
-                .and_then(|config| {
-                    cook_virtual_geometry_from_mesh(&primitive.vertices, &primitive.indices, config)
-                });
-        }
-        primitive.assign_virtual_geometry_vertex_ordinals();
-    }
-}
-
-fn uses_skinning_channels(joint_weights: &[[f32; 4]]) -> bool {
-    joint_weights
-        .iter()
-        .flatten()
-        .any(|weight| weight.abs() > f32::EPSILON)
 }

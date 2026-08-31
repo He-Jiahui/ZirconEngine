@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use zr_rhi::{UiSurfaceDrawList, UiSurfaceRect};
 
-use super::batching::{BatchDrawPlan, DrawOp};
+use super::batching::{BatchDrawPlan, DrawOp, DrawOpSequence};
 use super::geometry::UI_QUAD_VERTEX_COUNT;
 use super::image_cache::WgpuUiImageCache;
 use super::text::WgpuUiTextRenderer;
@@ -16,6 +16,7 @@ pub(super) struct WgpuUiDrawBufferStats {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct WgpuUiRecordedDrawStats {
     pub(super) draw_calls: u64,
+    pub(super) damage_clear_draw_count: u64,
     pub(super) render_pass_count: u64,
     pub(super) visible_draw_item_count: u64,
     pub(super) solid_vertex_count: u64,
@@ -26,6 +27,15 @@ pub(super) struct WgpuUiRecordedDrawStats {
 }
 
 impl WgpuUiRecordedDrawStats {
+    fn record_clear_draw(&mut self) {
+        self.draw_calls = self.draw_calls.saturating_add(1);
+        self.damage_clear_draw_count = self.damage_clear_draw_count.saturating_add(1);
+    }
+
+    pub(super) fn content_draw_calls(self) -> u64 {
+        self.draw_calls.saturating_sub(self.damage_clear_draw_count)
+    }
+
     fn record_draw(
         &mut self,
         layer_index: u32,
@@ -258,15 +268,108 @@ impl TargetLoad {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn record_draw_ops_to_view(
+pub(super) fn record_draw_plan_to_view(
     encoder: &mut wgpu::CommandEncoder,
     target_view: &wgpu::TextureView,
     initial_load: TargetLoad,
     surface_size: (u32, u32),
     projection_size: (u32, u32),
     damage: Option<UiSurfaceRect>,
-    draw_ops: &[DrawOp],
+    draw_plan: &BatchDrawPlan,
     buffers: &WgpuUiDrawBuffers,
+    damage_draw_op_candidates: &mut Vec<usize>,
+    damage_clear_pipeline: &wgpu::RenderPipeline,
+    solid_pipeline: &wgpu::RenderPipeline,
+    solid_instance_pipeline: &wgpu::RenderPipeline,
+    image_pipeline: &wgpu::RenderPipeline,
+    image_cache: &WgpuUiImageCache,
+    text: &mut WgpuUiTextRenderer,
+) -> WgpuUiRecordedDrawStats {
+    let Some(damage) = damage else {
+        return record_draw_ops_to_view(
+            encoder,
+            target_view,
+            initial_load,
+            surface_size,
+            projection_size,
+            None,
+            &draw_plan.ops,
+            buffers,
+            solid_pipeline,
+            solid_instance_pipeline,
+            image_pipeline,
+            image_cache,
+            text,
+        );
+    };
+    let Some((x, y, width, height)) = damage_scissor(Some(damage), surface_size) else {
+        return WgpuUiRecordedDrawStats::default();
+    };
+    let scissor_bounds = UiSurfaceRect::new(x as f32, y as f32, width as f32, height as f32);
+    let draw_ops = draw_plan.draw_ops_intersecting(scissor_bounds, damage_draw_op_candidates);
+    record_draw_ops_to_view_inner(
+        encoder,
+        target_view,
+        initial_load,
+        surface_size,
+        projection_size,
+        Some(damage),
+        &draw_ops,
+        buffers,
+        Some(damage_clear_pipeline),
+        solid_pipeline,
+        solid_instance_pipeline,
+        image_pipeline,
+        image_cache,
+        text,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn record_draw_ops_to_view<T: DrawOpSequence + ?Sized>(
+    encoder: &mut wgpu::CommandEncoder,
+    target_view: &wgpu::TextureView,
+    initial_load: TargetLoad,
+    surface_size: (u32, u32),
+    projection_size: (u32, u32),
+    damage: Option<UiSurfaceRect>,
+    draw_ops: &T,
+    buffers: &WgpuUiDrawBuffers,
+    solid_pipeline: &wgpu::RenderPipeline,
+    solid_instance_pipeline: &wgpu::RenderPipeline,
+    image_pipeline: &wgpu::RenderPipeline,
+    image_cache: &WgpuUiImageCache,
+    text: &mut WgpuUiTextRenderer,
+) -> WgpuUiRecordedDrawStats {
+    record_draw_ops_to_view_inner(
+        encoder,
+        target_view,
+        initial_load,
+        surface_size,
+        projection_size,
+        damage,
+        draw_ops,
+        buffers,
+        None,
+        solid_pipeline,
+        solid_instance_pipeline,
+        image_pipeline,
+        image_cache,
+        text,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn record_draw_ops_to_view_inner<T: DrawOpSequence + ?Sized>(
+    encoder: &mut wgpu::CommandEncoder,
+    target_view: &wgpu::TextureView,
+    initial_load: TargetLoad,
+    surface_size: (u32, u32),
+    projection_size: (u32, u32),
+    damage: Option<UiSurfaceRect>,
+    draw_ops: &T,
+    buffers: &WgpuUiDrawBuffers,
+    damage_clear_pipeline: Option<&wgpu::RenderPipeline>,
     solid_pipeline: &wgpu::RenderPipeline,
     solid_instance_pipeline: &wgpu::RenderPipeline,
     image_pipeline: &wgpu::RenderPipeline,
@@ -280,10 +383,14 @@ pub(super) fn record_draw_ops_to_view(
         let mut pass = begin_ui_surface_pass(encoder, target_view, initial_load);
         set_surface_viewport(&mut pass, projection_size);
         pass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
-        return WgpuUiRecordedDrawStats {
+        let mut stats = WgpuUiRecordedDrawStats {
             render_pass_count: 1,
             ..WgpuUiRecordedDrawStats::default()
         };
+        if record_damage_clear(&mut pass, damage_clear_pipeline, true) {
+            stats.record_clear_draw();
+        }
+        return stats;
     }
 
     let mut stats = WgpuUiRecordedDrawStats::default();
@@ -295,7 +402,10 @@ pub(super) fn record_draw_ops_to_view(
         } else {
             TargetLoad::Load
         };
-        if let DrawOp::Text(draw) = &draw_ops[op_index] {
+        let op = draw_ops
+            .get(op_index)
+            .expect("draw-op sequence index must remain valid");
+        if let DrawOp::Text(draw) = op {
             if !draw_bounds_intersect_scissor(draw.bounds, scissor) {
                 op_index += 1;
                 continue;
@@ -304,6 +414,9 @@ pub(super) fn record_draw_ops_to_view(
             stats.render_pass_count = stats.render_pass_count.saturating_add(1);
             set_surface_viewport(&mut pass, projection_size);
             pass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
+            if record_damage_clear(&mut pass, damage_clear_pipeline, first_pass) {
+                stats.record_clear_draw();
+            }
             if text.render_batch(draw.batch_index, &mut pass) {
                 stats.record_draw(draw.layer_index, draw.command_indices.len() as u32, 0, 0, 0);
             }
@@ -313,10 +426,15 @@ pub(super) fn record_draw_ops_to_view(
         }
 
         let run_end = non_text_run_end(draw_ops, op_index);
-        if !draw_ops[op_index..run_end].iter().any(|op| match op {
-            DrawOp::Solid(draw) => draw_bounds_intersect_scissor(draw.bounds, scissor),
-            DrawOp::Image(draw) => draw_bounds_intersect_scissor(draw.bounds, scissor),
-            DrawOp::Text(_) => unreachable!("non-text draw run cannot contain text"),
+        if !(op_index..run_end).any(|run_index| {
+            match draw_ops
+                .get(run_index)
+                .expect("draw-op run index must remain valid")
+            {
+                DrawOp::Solid(draw) => draw_bounds_intersect_scissor(draw.bounds, scissor),
+                DrawOp::Image(draw) => draw_bounds_intersect_scissor(draw.bounds, scissor),
+                DrawOp::Text(_) => unreachable!("non-text draw run cannot contain text"),
+            }
         }) {
             op_index = run_end;
             continue;
@@ -325,8 +443,14 @@ pub(super) fn record_draw_ops_to_view(
         stats.render_pass_count = stats.render_pass_count.saturating_add(1);
         set_surface_viewport(&mut pass, projection_size);
         pass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
+        if record_damage_clear(&mut pass, damage_clear_pipeline, first_pass) {
+            stats.record_clear_draw();
+        }
         for run_index in op_index..run_end {
-            match &draw_ops[run_index] {
+            match draw_ops
+                .get(run_index)
+                .expect("draw-op run index must remain valid")
+            {
                 DrawOp::Solid(draw) => {
                     if !draw_bounds_intersect_scissor(draw.bounds, scissor) {
                         continue;
@@ -392,12 +516,27 @@ pub(super) fn record_draw_ops_to_view(
     stats
 }
 
-fn non_text_run_end(draw_ops: &[DrawOp], start: usize) -> usize {
+fn record_damage_clear(
+    pass: &mut wgpu::RenderPass<'_>,
+    damage_clear_pipeline: Option<&wgpu::RenderPipeline>,
+    first_pass: bool,
+) -> bool {
+    if !first_pass {
+        return false;
+    }
+    let Some(damage_clear_pipeline) = damage_clear_pipeline else {
+        return false;
+    };
+    pass.set_pipeline(damage_clear_pipeline);
+    pass.draw(0..3, 0..1);
+    true
+}
+
+fn non_text_run_end<T: DrawOpSequence + ?Sized>(draw_ops: &T, start: usize) -> usize {
     debug_assert!(!matches!(draw_ops.get(start), Some(DrawOp::Text(_))));
-    draw_ops[start..]
-        .iter()
-        .position(|op| matches!(op, DrawOp::Text(_)))
-        .map_or(draw_ops.len(), |offset| start + offset)
+    (start..draw_ops.len())
+        .find(|index| matches!(draw_ops.get(*index), Some(DrawOp::Text(_))))
+        .unwrap_or_else(|| draw_ops.len())
 }
 
 fn begin_ui_surface_pass<'encoder>(

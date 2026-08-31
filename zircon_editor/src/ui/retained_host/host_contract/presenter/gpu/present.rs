@@ -3,10 +3,11 @@ use zircon_runtime::rhi::{UiSurfaceDrawList, UiSurfacePresentStats, UiSurfacePre
 use super::super::super::chrome_command_stream::{
     build_chrome_command_stream_with_residency,
     ui_surface_draw_list_from_owned_stream_with_generation_and_residency,
-    ui_surface_draw_list_from_owned_stream_with_residency,
     ui_surface_draw_list_from_stream_with_residency, ChromeCommandStream,
 };
-use super::super::super::data::{FrameRect, HostWindowPresentationData};
+use super::super::super::data::{
+    FrameRect, HostPresentationGenerationCursor, HostWindowPresentationData,
+};
 use super::super::super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
 use super::geometry::{damage_pixel_count, full_surface_pixels};
 use super::stats::record_present_stats;
@@ -20,9 +21,11 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
     pub(in crate::ui::retained_host::host_contract) fn present(
         &mut self,
         presentation: &HostWindowPresentationData,
+        presentation_cursor: HostPresentationGenerationCursor,
         damage: Option<FrameRect>,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        let _ = presentation_cursor;
         self.native_resize_draw_list = None;
         self.native_resize_projection_size = self.size;
         let stream_damage = damage.as_ref().filter(|_| self.surface_cache_initialized);
@@ -36,7 +39,8 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
                     .is_image_resource_resident(resource_key, generation)
             },
         );
-        let region_present = damage.is_some() || !stream.is_full_rebuild();
+        let submitted_damage = stream.damage().cloned();
+        let region_present = submitted_damage.is_some();
         let surface_size = stream.surface_size();
         // A damage stream contains only commands for the damaged region. It is not a complete
         // projection and must never share the full-projection cache key across presents.
@@ -51,7 +55,7 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
             draw_list,
             surface_size,
             region_present,
-            damage.as_ref(),
+            submitted_damage.as_ref(),
             invalidation,
         )
     }
@@ -59,8 +63,10 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
     pub(in crate::ui::retained_host::host_contract) fn present_during_native_resize(
         &mut self,
         presentation: &HostWindowPresentationData,
+        presentation_cursor: HostPresentationGenerationCursor,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        let _ = presentation_cursor;
         let reused_snapshot = self.native_resize_draw_list.is_some();
         if !reused_snapshot {
             self.native_resize_generation = self.native_resize_generation.saturating_add(1);

@@ -1,8 +1,9 @@
 use crate::core::framework::render::{
     RenderBudgetKey, RenderColorLutReadbackReport, RenderExposureReadbackReport,
-    RenderGraphExecutionResourceReport, RenderGraphParallelRecordingReport,
-    RenderGraphPassProfileMetrics, RenderGraphStageExecutionReport, RenderHistoryCopyReport,
-    RenderSceneVelocityReadbackReport,
+    RenderGraphExecutionBatchReport, RenderGraphExecutionResourceReport,
+    RenderGraphParallelRecordingReport, RenderGraphPassProfileMetrics,
+    RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderHistoryDomain,
+    RenderHistoryDomainStatus, RenderHistoryDomainsReport, RenderSceneVelocityReadbackReport,
 };
 use crate::core::math::UVec2;
 use crate::graphics::pipeline::RenderPassStage;
@@ -41,6 +42,16 @@ fn parallel_recording_report_distinguishes_eligibility_from_execution() {
         record.parallel_recording_report(),
         RenderGraphParallelRecordingReport::new(1, 3, 1, 2)
     );
+}
+
+#[test]
+fn execution_record_preserves_compiled_batch_plan_report() {
+    let mut record = RenderGraphExecutionRecord::default();
+    let report = RenderGraphExecutionBatchReport::new(5, 18, 3, 1, 1, 7, 4);
+
+    record.set_execution_batch_report(report);
+
+    assert_eq!(record.execution_batch_report(), report);
 }
 
 #[test]
@@ -87,6 +98,25 @@ fn execution_record_preserves_history_copy_report() {
 
     assert_eq!(record.history_copy_report(), report);
     assert!(record.history_copy_report().debug_marker_emitted);
+}
+
+#[test]
+fn execution_record_preserves_committed_history_domains_report() {
+    let mut record = RenderGraphExecutionRecord::default();
+    let mut states = [RenderHistoryDomainStatus::default(); RenderHistoryDomain::COUNT];
+    states[RenderHistoryDomain::AmbientOcclusion.index()] =
+        RenderHistoryDomainStatus::new(2, true, Some(17), None, None);
+    let report = RenderHistoryDomainsReport::new(true, states);
+
+    record.set_history_domains_report(report);
+
+    assert_eq!(record.history_domains_report(), report);
+    assert!(
+        record
+            .history_domains_report()
+            .state(RenderHistoryDomain::AmbientOcclusion)
+            .valid
+    );
 }
 
 #[test]
@@ -449,6 +479,10 @@ fn execution_record_preserves_pass_debug_markers() {
 #[test]
 fn profile_report_preserves_per_pass_compute_metrics() {
     let mut record = RenderGraphExecutionRecord::default();
+    let native_resource_creates =
+        crate::core::framework::render::RenderPassNativeResourceCreateMetrics::new(
+            1, 2, 3, 4, 5, 6, 7,
+        );
     let compute_dispatches = vec![
         RenderGraphComputeDispatchRecord::new(
             "ssao-evaluate",
@@ -469,12 +503,13 @@ fn profile_report_preserves_per_pass_compute_metrics() {
         )
         .with_uploaded_bytes(64),
     ];
-    record.push_pass_profile_with_budget_key_and_compute_dispatches(
+    record.push_pass_profile_with_budget_key_native_resources_and_compute_dispatches(
         "ssao-evaluate",
         "compute.generic",
         RenderBudgetKey::Ssao,
         31,
         RenderGraphPassProfileMetrics::new(3, 0, 7),
+        native_resource_creates,
         &compute_dispatches,
     );
     for dispatch in compute_dispatches {
@@ -489,4 +524,8 @@ fn profile_report_preserves_per_pass_compute_metrics() {
     assert_eq!(profile.pass_profiles[0].state_change_count, 7);
     assert_eq!(profile.pass_profiles[0].dispatch_count, 2);
     assert_eq!(profile.pass_profiles[0].upload_bytes, 192);
+    assert_eq!(
+        profile.pass_profiles[0].native_resource_creates,
+        native_resource_creates
+    );
 }

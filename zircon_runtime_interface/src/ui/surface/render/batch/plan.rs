@@ -18,11 +18,7 @@ pub struct UiBatchPlan {
 
 impl UiBatchPlan {
     pub fn from_paint_elements(elements: &[UiPaintElement]) -> Self {
-        let mut ordered_element_indices = (0..elements.len()).collect::<Vec<_>>();
-        ordered_element_indices.sort_by_key(|&index| {
-            let element = &elements[index];
-            (element.z_index, element.paint_order, index)
-        });
+        let ordered_element_indices = ordered_element_indices(elements);
 
         let mut clip_states = UiBatchClipStates::default();
         let mut batches = Vec::new();
@@ -103,6 +99,21 @@ impl UiBatchPlan {
     pub(super) fn clip_states(&self) -> &UiBatchClipStates {
         &self.clip_states
     }
+}
+
+fn ordered_element_indices(elements: &[UiPaintElement]) -> Vec<usize> {
+    let mut indices = (0..elements.len()).collect::<Vec<_>>();
+    if elements.windows(2).all(|pair| {
+        (pair[0].z_index, pair[0].paint_order) <= (pair[1].z_index, pair[1].paint_order)
+    }) {
+        return indices;
+    }
+
+    indices.sort_by_key(|&index| {
+        let element = &elements[index];
+        (element.z_index, element.paint_order, index)
+    });
+    indices
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

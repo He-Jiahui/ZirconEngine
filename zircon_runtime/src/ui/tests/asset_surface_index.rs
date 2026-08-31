@@ -33,6 +33,8 @@ type = "Label"
 props = { text = "Main" }
 "#;
 
+mod binding_ownership;
+mod binding_ownership_performance;
 mod dirty_targets;
 mod node_resources;
 mod surface_edges;

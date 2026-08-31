@@ -1,5 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_frame::HostRgbaFrame;
+use super::super::super::super::paint_geometry::intersect;
 use super::super::super::super::paint_primitives::{
     draw_border_clipped, draw_rect_clipped, draw_rounded_rect_clipped,
 };
@@ -17,13 +18,19 @@ pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer) fn dra
     content_extent: f32,
     active: bool,
 ) -> bool {
+    if intersect(viewport, clip).is_none()
+        || !content_extent.is_finite()
+        || content_extent <= viewport.height.max(0.0)
+    {
+        return false;
+    }
     let metrics = workbench_scrollbar_metrics();
-    let palette = workbench_scrollbar_palette();
     let Some(geometry) =
         vertical_scrollbar_geometry(viewport, scroll_offset, content_extent, metrics)
     else {
         return false;
     };
+    let palette = workbench_scrollbar_palette();
 
     draw_rounded_rect_clipped(
         frame,

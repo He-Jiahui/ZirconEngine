@@ -22,6 +22,11 @@ struct QueuedEngineEvent {
     queued_at: Option<Instant>,
 }
 
+struct DequeuedEngineEvent {
+    queued: QueuedEngineEvent,
+    queue_age: Option<Duration>,
+}
+
 pub(super) struct EventSubscriber {
     id: u64,
     policy: EngineEventDeliveryPolicy,
@@ -101,17 +106,21 @@ impl EventSubscriber {
             .back_mut()
             .expect("the delivered event must remain queued")
             .queued_at = queued_at;
+        drop(queue_state);
         self.queue_ready.notify_one();
         EventDeliveryStatus::Delivered
     }
 
     pub(super) fn deactivate_and_drain(&self) {
-        let mut queue_state = self.lock_queue_state();
-        if !queue_state.active {
-            return;
-        }
-        queue_state.active = false;
-        while let Some(queued) = queue_state.queue.pop_front() {
+        let queued = {
+            let mut queue_state = self.lock_queue_state();
+            if !queue_state.active {
+                return;
+            }
+            queue_state.active = false;
+            std::mem::take(&mut queue_state.queue)
+        };
+        for queued in queued {
             self.diagnostics.record_dequeued(queued.queued_at);
         }
         self.diagnostics.record_disconnected();
@@ -119,32 +128,40 @@ impl EventSubscriber {
     }
 
     fn receive(&self) -> Result<Arc<EngineEvent>, EngineEventReceiveError> {
-        let mut queue_state = self.lock_queue_state();
-        loop {
-            if let Some(event) = self.pop_front_while_locked(&mut queue_state) {
-                return Ok(event);
+        let queued = {
+            let mut queue_state = self.lock_queue_state();
+            loop {
+                if let Some(queued) = self.pop_front_while_locked(&mut queue_state) {
+                    break queued;
+                }
+                if !queue_state.active {
+                    return Err(EngineEventReceiveError::Disconnected);
+                }
+                self.diagnostics.record_receiver_waiting();
+                queue_state = self
+                    .queue_ready
+                    .wait(queue_state)
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                self.diagnostics.record_receiver_resumed();
             }
-            if !queue_state.active {
-                return Err(EngineEventReceiveError::Disconnected);
-            }
-            self.diagnostics.record_receiver_waiting();
-            queue_state = self
-                .queue_ready
-                .wait(queue_state)
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            self.diagnostics.record_receiver_resumed();
-        }
+        };
+        Ok(self.finalize_dequeued_event(queued))
     }
 
     fn try_receive(&self) -> Result<Arc<EngineEvent>, EngineEventTryReceiveError> {
-        let mut queue_state = self.lock_queue_state();
-        if let Some(event) = self.pop_front_while_locked(&mut queue_state) {
-            return Ok(event);
-        }
-        if queue_state.active {
-            Err(EngineEventTryReceiveError::Empty)
-        } else {
-            Err(EngineEventTryReceiveError::Disconnected)
+        let result = {
+            let mut queue_state = self.lock_queue_state();
+            if let Some(queued) = self.pop_front_while_locked(&mut queue_state) {
+                Ok(queued)
+            } else if queue_state.active {
+                Err(EngineEventTryReceiveError::Empty)
+            } else {
+                Err(EngineEventTryReceiveError::Disconnected)
+            }
+        };
+        match result {
+            Ok(queued) => Ok(self.finalize_dequeued_event(queued)),
+            Err(error) => Err(error),
         }
     }
 
@@ -153,47 +170,57 @@ impl EventSubscriber {
         timeout: Duration,
     ) -> Result<Arc<EngineEvent>, EngineEventReceiveTimeoutError> {
         let deadline = Instant::now().checked_add(timeout);
-        let mut queue_state = self.lock_queue_state();
-        loop {
-            if let Some(event) = self.pop_front_while_locked(&mut queue_state) {
-                return Ok(event);
-            }
-            if !queue_state.active {
-                return Err(EngineEventReceiveTimeoutError::Disconnected);
-            }
-            let (remaining, timeout_expires_after_wait) = match deadline {
-                Some(deadline) => {
-                    let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
-                        return Err(EngineEventReceiveTimeoutError::Timeout);
-                    };
-                    (remaining, true)
+        let queued = {
+            let mut queue_state = self.lock_queue_state();
+            loop {
+                if let Some(queued) = self.pop_front_while_locked(&mut queue_state) {
+                    break queued;
                 }
-                None => (OVERFLOW_TIMEOUT_WAIT_SLICE, false),
-            };
-            self.diagnostics.record_receiver_waiting();
-            let (next_state, wait_result) = self
-                .queue_ready
-                .wait_timeout(queue_state, remaining)
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            queue_state = next_state;
-            self.diagnostics.record_receiver_resumed();
-            if timeout_expires_after_wait
-                && wait_result.timed_out()
-                && queue_state.queue.is_empty()
-                && queue_state.active
-            {
-                return Err(EngineEventReceiveTimeoutError::Timeout);
+                if !queue_state.active {
+                    return Err(EngineEventReceiveTimeoutError::Disconnected);
+                }
+                let (remaining, timeout_expires_after_wait) = match deadline {
+                    Some(deadline) => {
+                        let Some(remaining) = deadline.checked_duration_since(Instant::now())
+                        else {
+                            return Err(EngineEventReceiveTimeoutError::Timeout);
+                        };
+                        (remaining, true)
+                    }
+                    None => (OVERFLOW_TIMEOUT_WAIT_SLICE, false),
+                };
+                self.diagnostics.record_receiver_waiting();
+                let (next_state, wait_result) = self
+                    .queue_ready
+                    .wait_timeout(queue_state, remaining)
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                queue_state = next_state;
+                self.diagnostics.record_receiver_resumed();
+                if timeout_expires_after_wait
+                    && wait_result.timed_out()
+                    && queue_state.queue.is_empty()
+                    && queue_state.active
+                {
+                    return Err(EngineEventReceiveTimeoutError::Timeout);
+                }
             }
-        }
+        };
+        Ok(self.finalize_dequeued_event(queued))
     }
 
     fn pop_front_while_locked(
         &self,
         queue_state: &mut EventQueueState,
-    ) -> Option<Arc<EngineEvent>> {
+    ) -> Option<DequeuedEngineEvent> {
         let queued = queue_state.queue.pop_front()?;
-        self.diagnostics.record_dequeued(queued.queued_at);
-        Some(queued.event)
+        let queue_age = queued.queued_at.map(|queued_at| queued_at.elapsed());
+        self.diagnostics.record_dequeued_depth();
+        Some(DequeuedEngineEvent { queued, queue_age })
+    }
+
+    fn finalize_dequeued_event(&self, dequeued: DequeuedEngineEvent) -> Arc<EngineEvent> {
+        self.diagnostics.record_dequeued_age(dequeued.queue_age);
+        dequeued.queued.event
     }
 
     fn lock_queue_state(&self) -> MutexGuard<'_, EventQueueState> {

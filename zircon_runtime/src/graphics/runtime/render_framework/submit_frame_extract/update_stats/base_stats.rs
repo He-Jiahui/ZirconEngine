@@ -37,12 +37,23 @@ pub(super) fn update_base_stats(
 ) {
     state.stats.submitted_frames += 1;
     state.stats.last_generation = Some(frame_generation);
+    state.stats.last_ambient_occlusion_execution_report =
+        state.renderer.last_ambient_occlusion_execution_report();
+    state.stats.last_scene_submission_completion_report =
+        state.renderer.last_scene_submission_completion_report();
+    state.stats.last_frame_submission_receipt = state.renderer.last_frame_submission_receipt();
     state.stats.last_pipeline = Some(context.pipeline_handle());
     state.stats.last_frame_target_size = Some(context.size());
     state.stats.last_frame_render_size = Some(context.render_size());
+    state.stats.last_reflection_probe_workload = state
+        .renderer
+        .reflection_probe_workload_report()
+        .with_render_size(context.render_size());
     state.stats.last_frame_history = Some(record_update.history_handle());
     state.stats.last_frame_history_status = record_update.history_status();
     state.stats.last_frame_history_copy_report = state.renderer.last_frame_history_copy_report();
+    state.stats.last_frame_history_domains_report =
+        state.renderer.last_frame_history_domains_report();
     state.stats.last_camera_target_resolution = context.camera_target_resolution();
     state.stats.last_camera_target_graph_import =
         state.renderer.last_output_target_graph_import_report();
@@ -150,6 +161,8 @@ pub(super) fn update_base_stats(
         .clone();
     state.stats.last_graph_execution_profile_report =
         state.renderer.last_render_graph_execution_profile_report();
+    state.stats.last_graph_execution_batch_report =
+        state.renderer.last_render_graph_execution_batch_report();
     state.stats.last_graph_parallel_recording_report =
         state.renderer.last_render_graph_parallel_recording_report();
     state.stats.last_graph_stage_execution_report =
@@ -402,6 +415,9 @@ pub(super) fn update_base_stats(
     state.stats.last_mesh_gpu_instancing_candidate_draw_count =
         prepared_mesh_queue_stats.gpu_instancing_candidate_draw_count;
     state.stats.last_mesh_command_count = prepared_mesh_queue_stats.command_count;
+    state.stats.last_mesh_opaque_command_count = prepared_mesh_queue_stats.opaque_command_count;
+    state.stats.last_mesh_advanced_pbr_opaque_command_count =
+        prepared_mesh_queue_stats.advanced_pbr_opaque_command_count;
     state.stats.last_mesh_cached_command_hit_count =
         prepared_mesh_queue_stats.cached_command_hit_count;
     state.stats.last_mesh_command_rebuild_count = prepared_mesh_queue_stats.command_rebuild_count;

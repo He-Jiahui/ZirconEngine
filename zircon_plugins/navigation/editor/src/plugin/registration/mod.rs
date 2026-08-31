@@ -35,26 +35,14 @@ pub(crate) fn register_navigation_extensions(
                     NAVIGATION_AUTHORING_VIEW_ID,
                     "Navigation Surfaces",
                     "World",
-                    "Plugins/Navigation/Surfaces",
                 ),
                 EditorAuthoringSurface::new(
                     NAVIGATION_AGENTS_VIEW_ID,
                     "Navigation Agents & Areas",
                     "World",
-                    "Plugins/Navigation/Agents & Areas",
                 ),
-                EditorAuthoringSurface::new(
-                    NAVIGATION_BAKE_VIEW_ID,
-                    "Navigation Bake",
-                    "World",
-                    "Plugins/Navigation/Bake",
-                ),
-                EditorAuthoringSurface::new(
-                    NAVIGATION_DEBUG_VIEW_ID,
-                    "Navigation Debug",
-                    "World",
-                    "Plugins/Navigation/Debug",
-                ),
+                EditorAuthoringSurface::new(NAVIGATION_BAKE_VIEW_ID, "Navigation Bake", "World"),
+                EditorAuthoringSurface::new(NAVIGATION_DEBUG_VIEW_ID, "Navigation Debug", "World"),
             ],
         },
     )?;

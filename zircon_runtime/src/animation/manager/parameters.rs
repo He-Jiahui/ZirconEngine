@@ -25,7 +25,12 @@ pub(super) fn set_parameter(
     name: &str,
     value: AnimationParameterValue,
 ) {
-    if animation_parameter_value_is_finite(&value) {
+    if !animation_parameter_value_is_finite(&value) {
+        return;
+    }
+    if let Some(current) = parameters.get_mut(name) {
+        *current = value;
+    } else {
         parameters.insert(name.to_string(), value);
     }
 }
@@ -45,3 +50,7 @@ pub(super) fn parameter_scalar(parameters: &AnimationParameterMap, name: &str) -
         _ => None,
     }
 }
+
+#[cfg(test)]
+#[path = "parameters/in_place_update_tests.rs"]
+mod in_place_update_tests;

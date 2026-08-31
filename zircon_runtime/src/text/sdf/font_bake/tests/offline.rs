@@ -1,15 +1,15 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::asset::{AssetManager, AssetUri, ProjectAssetManager, ProjectManifest, ProjectPaths};
-use crate::text::font::{load_text_font_source, FontDatabase};
+use crate::text::font::{FontDatabase, load_text_font_source};
 use crate::text::sdf::{
-    generate_distance_field_glyph, sdf_default_variation_hash, sdf_font_source_hash,
-    sdf_offline_artifact_path, SdfBakeParams, SdfOfflineArtifact, SdfOfflineArtifactIdentity,
-    SdfOfflineGlyph, SdfOfflineGlyphMetrics, SdfOfflinePage, SdfOfflineRect,
+    SdfBakeParams, SdfOfflineArtifact, SdfOfflineArtifactIdentity, SdfOfflineGlyph,
+    SdfOfflineGlyphMetrics, SdfOfflinePage, SdfOfflineRect, generate_distance_field_glyph,
+    sdf_default_variation_hash, sdf_font_source_hash, sdf_offline_artifact_path,
 };
 use zircon_runtime_interface::project::RelPath;
 
-use super::super::{resolve_font_face, SdfFontBakeCache};
+use super::super::{SdfFontBakeCache, resolve_font_face};
 
 const TEXT_SDF_OFFLINE_WORK_DIRECTORY: &str = ".runtime_text_sdf_offline_work";
 
@@ -19,7 +19,9 @@ fn text_sdf_offline_lookup_resolves_manifest_and_instance_once() {
 
     assert!(!source.contains("resolve_font_face("));
     assert!(!source.contains("register_loaded_font_manifest("));
-    assert!(source.contains("manifests: HashMap<String, Option<LoadedTextFontSource>>"));
+    assert!(
+        source.contains("manifests: HashMap<String, Result<LoadedTextFontSource, FontLoadError>>")
+    );
     assert!(source.contains("artifacts: HashMap<SdfOfflineArtifactIdentity, Option<"));
     assert!(source.contains("glyph_bitmaps: HashMap<SdfOfflineGlyphKey, Arc<[u8]>>"));
     assert!(source.contains("MAX_RESIDENT_MANIFEST_COUNT"));
@@ -36,10 +38,11 @@ fn text_sdf_offline_negative_manifest_cache_has_a_hard_lru_limit() {
 
     for index in 0..129 {
         let font_ref = format!("res://fonts/missing-{index}.font.toml");
-        assert!(bake
-            .offline_source
-            .load_manifest_for_test(&font_ref, &asset_manager)
-            .is_none());
+        assert!(
+            bake.offline_source
+                .load_manifest_for_test(&font_ref, &asset_manager)
+                .is_err()
+        );
     }
 
     let report = bake.offline_source.report();
@@ -55,23 +58,27 @@ fn text_sdf_font_bake_consumers_use_database_glyph_metadata_without_reparse() {
     assert!(!dynamic_source.contains("Face::parse"));
     assert!(!offline_source.contains("Face::parse"));
     assert!(dynamic_source.contains("face_glyph_id"));
-    assert!(offline_source
-        .contains("glyph_id_for_key(key, face_id, resolved_shaped_face, font_database)"));
+    assert!(
+        offline_source
+            .contains("glyph_id_for_key(key, face_id, resolved_shaped_face, font_database)")
+    );
 }
 
 #[test]
 fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     let fixture = OfflineFontProject::new();
-    assert!(fixture.root.starts_with(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("zircon_runtime manifest must have a workspace parent")
-            .join("docs")
-            .join("tests")
-            .join("runtime")
-            .join("text")
-            .join(TEXT_SDF_OFFLINE_WORK_DIRECTORY)
-    ));
+    assert!(
+        fixture.root.starts_with(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .expect("zircon_runtime manifest must have a workspace parent")
+                .join("docs")
+                .join("tests")
+                .join("runtime")
+                .join("text")
+                .join(TEXT_SDF_OFFLINE_WORK_DIRECTORY)
+        )
+    );
     let asset_manager = ProjectAssetManager::default();
     asset_manager
         .open_project(fixture.root.to_string_lossy().as_ref())
@@ -127,6 +134,8 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     let artifact_path = sdf_offline_artifact_path(project.paths().cache_root(), &identity);
     std::fs::create_dir_all(artifact_path.parent().expect("artifact parent")).unwrap();
     std::fs::write(&artifact_path, artifact.encode().unwrap()).unwrap();
+    std::fs::remove_file(fixture.font_root.join("FiraSans-Regular.ttf"))
+        .expect("runtime font loading must not depend on the imported source file");
 
     let mut bake = SdfFontBakeCache::new();
     let offline_plan = super::atlas_plan_for_asset('A', OfflineFontProject::FONT_REF);
@@ -193,7 +202,7 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     assert_eq!(reused.report.offline_pixel_copy_count, 0);
 
     let mut stale_variation = identity.clone();
-    stale_variation.variation_hash = [0x11; 32];
+    stale_variation.variation_hash = [0x11; 32].into();
     write_artifact_at_expected_path(&artifact_path, &artifact, stale_variation);
     let mut stale_variation_bake = SdfFontBakeCache::new();
     let stale_variation_result = stale_variation_bake.build_atlas_from_slots(
@@ -227,7 +236,7 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     );
 
     let mut stale_source = identity;
-    stale_source.source_hash = [0x22; 32];
+    stale_source.source_hash = [0x22; 32].into();
     write_artifact_at_expected_path(&artifact_path, &artifact, stale_source);
     let mut stale_source_bake = SdfFontBakeCache::new();
     let stale_source_result = stale_source_bake.build_atlas_from_slots(
@@ -239,11 +248,17 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     assert_eq!(stale_source_result.report.offline_glyph_count, 0);
     assert_eq!(stale_source_result.report.dynamic_glyph_count, 1);
 
+    std::fs::write(
+        fixture.font_root.join("FiraSans-Regular.ttf"),
+        face_bytes.as_ref(),
+    )
+    .expect("restore fixture source before a later project rescan");
     let late_manifest_ref = "res://fonts/late.font.toml";
-    assert!(bake
-        .offline_source
-        .load_manifest_for_test(late_manifest_ref, &asset_manager)
-        .is_none());
+    assert!(
+        bake.offline_source
+            .load_manifest_for_test(late_manifest_ref, &asset_manager)
+            .is_none()
+    );
     std::fs::copy(
         fixture.font_root.join("offline.font.toml"),
         fixture.font_root.join("late.font.toml"),
@@ -263,10 +278,11 @@ fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     let next_generation = bake.observed_font_generation.wrapping_add(1);
     bake.sync_font_generation(next_generation);
     assert_eq!(bake.offline_source.manifest_cache_len(), 0);
-    assert!(bake
-        .offline_source
-        .load_manifest_for_test(late_manifest_ref, &asset_manager)
-        .is_some());
+    assert!(
+        bake.offline_source
+            .load_manifest_for_test(late_manifest_ref, &asset_manager)
+            .is_some()
+    );
 }
 
 fn write_artifact_at_expected_path(

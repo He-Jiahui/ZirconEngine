@@ -3,7 +3,7 @@ use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{RenderImageColorSpace, TextureMetadata, TextureUsageHint};
 
-use super::{MipGenDispatch, MipGenDispatchPlan, MIP_GEN_MIPS_PER_DISPATCH};
+use super::{MIP_GEN_MIPS_PER_DISPATCH, MipGenDispatch, MipGenDispatchPlan};
 
 const MIP_GEN_SHADER: &str = include_str!("shaders/mip_gen.wgsl");
 const MIP_GEN_STORAGE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
@@ -113,17 +113,19 @@ impl RuntimeMipGenPass {
             dispatch.source_mip_level(),
             plan.array_layer_count(),
         ));
-        let target_views = (0..dispatch.generated_mip_count())
-            .map(|target_offset| {
-                texture.create_view(&mip_view_descriptor(
-                    dispatch.first_target_mip_level() + target_offset,
-                    plan.array_layer_count(),
-                ))
-            })
-            .collect::<Vec<_>>();
+        let target_views: [Option<wgpu::TextureView>; MIP_GEN_MIPS_PER_DISPATCH as usize] =
+            std::array::from_fn(|target_offset| {
+                (target_offset < dispatch.generated_mip_count() as usize).then(|| {
+                    texture.create_view(&mip_view_descriptor(
+                        dispatch.first_target_mip_level() + target_offset as u32,
+                        plan.array_layer_count(),
+                    ))
+                })
+            });
         let target_view = |index: usize| {
             target_views
                 .get(index)
+                .and_then(Option::as_ref)
                 .unwrap_or(&self.fallback_storage_views[index])
         };
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -265,11 +267,7 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
         1
     } else {
         let shifted = value >> level;
-        if shifted == 0 {
-            1
-        } else {
-            shifted
-        }
+        if shifted == 0 { 1 } else { shifted }
     }
 }
 
@@ -311,5 +309,83 @@ mod tests {
                 normal: true
             }
         );
+    }
+
+    #[test]
+    fn runtime_mipgen_target_views_use_fixed_dispatch_storage() {
+        let source = include_str!("runtime_pass.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("runtime mipgen pass implementation");
+
+        assert!(
+            implementation
+                .contains("[Option<wgpu::TextureView>; MIP_GEN_MIPS_PER_DISPATCH as usize]")
+        );
+        assert!(implementation.contains("std::array::from_fn"));
+        assert!(implementation.contains("fallback_storage_views[index]"));
+    }
+
+    #[test]
+    #[ignore = "managed Windows release performance evidence"]
+    fn optimization_batch_20260830cr_runtime_mipgen_target_storage_p95() {
+        use std::time::Instant;
+
+        const SAMPLE_PAIRS: usize = 17;
+        const VIEWS_PER_SAMPLE: usize = 4;
+        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy.push(measure(VIEWS_PER_SAMPLE, false));
+                optimized.push(measure(VIEWS_PER_SAMPLE, true));
+            } else {
+                optimized.push(measure(VIEWS_PER_SAMPLE, true));
+                legacy.push(measure(VIEWS_PER_SAMPLE, false));
+            }
+        }
+        let legacy_p95_ns = percentile(&legacy, 95);
+        let optimized_p95_ns = percentile(&optimized, 95);
+        println!(
+            "RUNTIME393_MIPGEN_TARGET_STORAGE_BENCH_V1 sample_pairs={SAMPLE_PAIRS} views_per_sample={VIEWS_PER_SAMPLE} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            csv(&legacy),
+            csv(&optimized)
+        );
+        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
+
+        fn measure(count: usize, use_fixed_storage: bool) -> u128 {
+            let started = Instant::now();
+            let mut checksum = 0usize;
+            for _ in 0..100_000 {
+                if use_fixed_storage {
+                    let values = std::array::from_fn::<_, 4, _>(|index| {
+                        (index < count).then_some(index as u8)
+                    });
+                    checksum ^= values.iter().flatten().count();
+                    std::hint::black_box(values);
+                } else {
+                    let values = (0..count).map(|index| index as u8).collect::<Vec<_>>();
+                    checksum ^= values.len();
+                    std::hint::black_box(values);
+                }
+            }
+            std::hint::black_box(checksum);
+            started.elapsed().as_nanos().max(1)
+        }
+
+        fn percentile(samples: &[u128], p: usize) -> u128 {
+            let mut sorted = samples.to_vec();
+            sorted.sort_unstable();
+            sorted[(sorted.len() * p).div_ceil(100).saturating_sub(1)]
+        }
+
+        fn csv(samples: &[u128]) -> String {
+            samples
+                .iter()
+                .map(u128::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        }
     }
 }

@@ -3,7 +3,7 @@ use std::time::Instant;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
-    surface::{UiTextDirection, UiTextOverflow, UiTextWrap},
+    surface::{UiRichTextFormat, UiTextDirection, UiTextOverflow, UiTextWrap},
 };
 
 use crate::text::SharedTextLayoutSession;
@@ -13,6 +13,7 @@ use super::test_style;
 
 const SAMPLE_COUNT: usize = 31;
 const SCALE_GRAPHEME_COUNTS: [usize; 4] = [1, 100, 1_000, 10_000];
+const BLOCK_PARAGRAPH_COUNTS: [usize; 4] = [1, 100, 1_000, 10_000];
 const WRAP_FRAME: UiFrame = UiFrame::new(0.0, 0.0, 96.0, 1_000_000.0);
 
 #[derive(Clone, Copy)]
@@ -131,6 +132,84 @@ fn plain_layout_artifact_scale_reports_cold_and_warm_p50_p95() {
     }
 }
 
+#[test]
+#[ignore = "manual 31-sample Text03 block paragraph cold/warm evidence; no machine-time acceptance threshold"]
+fn block_paragraph_layout_scale_reports_cold_and_warm_p50_p95() {
+    let _capture_guard = crate::core::diagnostics::profiling::test_capture_lock();
+    assert!(
+        !crate::core::diagnostics::profiling::feature_enabled()
+            && !cfg!(feature = "profiling-tracy"),
+        "Text03 wall-clock evidence requires profiling and Tracy features to stay disabled"
+    );
+
+    let mut style = test_style(UiTextWrap::WordSmart, UiTextOverflow::Clip);
+    style.rich_text_format = UiRichTextFormat::BbCodeV1;
+    for paragraph_count in BLOCK_PARAGRAPH_COUNTS {
+        let source = block_list_source(paragraph_count);
+        let mut cold_samples_ns = Vec::with_capacity(SAMPLE_COUNT);
+        let mut warm_samples_ns = Vec::with_capacity(SAMPLE_COUNT);
+        let mut cold_cache_delta = CacheDelta::default();
+        let mut warm_cache_delta = CacheDelta::default();
+        let mut line_count = 0_usize;
+
+        for _ in 0..SAMPLE_COUNT {
+            let mut session = SharedTextLayoutSession::new();
+            let cold_before = session.cache_report();
+            let cold_started = Instant::now();
+            let cold_layout =
+                layout_text_with_provider(&source, &style, WRAP_FRAME, None, &mut session);
+            cold_samples_ns.push(cold_started.elapsed().as_nanos());
+            let cold_after = session.cache_report();
+
+            let warm_started = Instant::now();
+            let warm_layout =
+                layout_text_with_provider(&source, &style, WRAP_FRAME, None, &mut session);
+            warm_samples_ns.push(warm_started.elapsed().as_nanos());
+            let warm_after = session.cache_report();
+
+            assert!(
+                cold_layout.lines.len() >= paragraph_count
+                    && warm_layout.lines.len() >= paragraph_count,
+                "{paragraph_count} list items must materialize at least one line per physical paragraph"
+            );
+            assert_eq!(
+                cold_layout.lines.len(),
+                warm_layout.lines.len(),
+                "cold and warm requests must resolve the same line count"
+            );
+            assert_eq!(
+                cold_layout.measured_width.to_bits(),
+                warm_layout.measured_width.to_bits(),
+                "cold and warm requests must resolve the same width"
+            );
+            assert_eq!(
+                cold_layout.measured_height.to_bits(),
+                warm_layout.measured_height.to_bits(),
+                "cold and warm requests must resolve the same height"
+            );
+
+            cold_cache_delta = cache_delta(cold_before, cold_after);
+            warm_cache_delta = cache_delta(cold_after, warm_after);
+            line_count = cold_layout.lines.len();
+        }
+
+        let (cold_p50_ns, cold_p95_ns) = p50_p95(&mut cold_samples_ns);
+        let (warm_p50_ns, warm_p95_ns) = p50_p95(&mut warm_samples_ns);
+        println!(
+            "text03_block_paragraph_layout_scale paragraphs={paragraph_count} wrap=word_smart \\
+             frame_width=96 lines={line_count} expected_inset_resolutions={} \\
+             cold_cache_hits={} cold_cache_misses={} warm_cache_hits={} warm_cache_misses={} \\
+             cold_p50_ns={cold_p50_ns} cold_p95_ns={cold_p95_ns} warm_p50_ns={warm_p50_ns} \\
+             warm_p95_ns={warm_p95_ns}",
+            paragraph_count.saturating_mul(3),
+            cold_cache_delta.hit_count,
+            cold_cache_delta.miss_count,
+            warm_cache_delta.hit_count,
+            warm_cache_delta.miss_count,
+        );
+    }
+}
+
 fn repeat_to_grapheme_count(seed: &str, grapheme_count: usize) -> String {
     let graphemes = seed.graphemes(true).collect::<Vec<_>>();
     assert!(
@@ -141,6 +220,23 @@ fn repeat_to_grapheme_count(seed: &str, grapheme_count: usize) -> String {
     for index in 0..grapheme_count {
         source.push_str(graphemes[index % graphemes.len()]);
     }
+    source
+}
+
+fn block_list_source(paragraph_count: usize) -> String {
+    const LIST_ITEM: &str = "[li]alpha beta gamma delta epsilon zeta[/li]";
+
+    let mut source = String::with_capacity(
+        LIST_ITEM
+            .len()
+            .saturating_mul(paragraph_count)
+            .saturating_add("[ul][/ul]".len()),
+    );
+    source.push_str("[ul]");
+    for _ in 0..paragraph_count {
+        source.push_str(LIST_ITEM);
+    }
+    source.push_str("[/ul]");
     source
 }
 

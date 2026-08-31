@@ -3,6 +3,13 @@ use crate::core::math::UVec2;
 use super::{GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec};
 
 pub(crate) const GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT: usize = 8;
+const INLINE_PAGE_INDEX_CAPACITY: u32 = u128::BITS;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct PageFormatOccupancy {
+    page_count: usize,
+    low_indices: u128,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct GlyphAtlasResidentPage {
@@ -77,10 +84,11 @@ pub(crate) fn page_residency_decision(
         return GlyphAtlasPageResidencyDecision::Blocked;
     }
 
-    if page_count_for_format(pages, format) < max_pages_per_format {
+    let occupancy = page_format_occupancy(pages, format);
+    if occupancy.page_count < max_pages_per_format {
         return GlyphAtlasPageResidencyDecision::Allocate(GlyphAtlasPageKey::new(
             format,
-            next_free_page_index(pages, format),
+            next_free_page_index(pages, format, occupancy),
         ));
     }
 
@@ -102,10 +110,11 @@ pub(crate) fn page_rebuild_residency_decision(
         return GlyphAtlasPageResidencyDecision::Evict(page.key());
     }
 
-    if page_count_for_format(pages, format) < max_pages_per_format {
+    let occupancy = page_format_occupancy(pages, format);
+    if occupancy.page_count < max_pages_per_format {
         return GlyphAtlasPageResidencyDecision::Allocate(GlyphAtlasPageKey::new(
             format,
-            next_free_page_index(pages, format),
+            next_free_page_index(pages, format, occupancy),
         ));
     }
 
@@ -170,13 +179,6 @@ fn page_generation_for_reservation(
     }
 }
 
-fn page_count_for_format(pages: &[GlyphAtlasResidentPage], format: GlyphAtlasFormat) -> usize {
-    pages
-        .iter()
-        .filter(|page| page.key().format == format)
-        .count()
-}
-
 fn least_recent_evictable_page(
     pages: &[GlyphAtlasResidentPage],
     format: GlyphAtlasFormat,
@@ -191,16 +193,55 @@ fn least_recent_evictable_page(
         })
 }
 
-fn next_free_page_index(pages: &[GlyphAtlasResidentPage], format: GlyphAtlasFormat) -> u32 {
-    let mut page_index = 0;
-    while pages
-        .iter()
-        .any(|page| page.key() == GlyphAtlasPageKey::new(format, page_index))
-    {
-        page_index = page_index.saturating_add(1);
+fn page_format_occupancy(
+    pages: &[GlyphAtlasResidentPage],
+    format: GlyphAtlasFormat,
+) -> PageFormatOccupancy {
+    let mut occupancy = PageFormatOccupancy::default();
+    for page in pages {
+        let key = page.key();
+        if key.format != format {
+            continue;
+        }
+        occupancy.page_count += 1;
+        if key.page_index < INLINE_PAGE_INDEX_CAPACITY {
+            occupancy.low_indices |= 1_u128 << key.page_index;
+        }
     }
-    page_index
+    occupancy
+}
+
+fn next_free_page_index(
+    pages: &[GlyphAtlasResidentPage],
+    format: GlyphAtlasFormat,
+    occupancy: PageFormatOccupancy,
+) -> u32 {
+    if occupancy.page_count < INLINE_PAGE_INDEX_CAPACITY as usize {
+        return occupancy.low_indices.trailing_ones();
+    }
+
+    let mut occupied = vec![false; occupancy.page_count + 1];
+    for page in pages {
+        let key = page.key();
+        if key.format == format {
+            if let Some(slot) = usize::try_from(key.page_index)
+                .ok()
+                .and_then(|index| occupied.get_mut(index))
+            {
+                *slot = true;
+            }
+        }
+    }
+    occupied
+        .iter()
+        .position(|is_occupied| !*is_occupied)
+        .and_then(|index| u32::try_from(index).ok())
+        .unwrap_or(u32::MAX)
 }
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "page_residency/single_pass_index_tests.rs"]
+mod single_pass_index_tests;

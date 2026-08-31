@@ -5,7 +5,7 @@ mod stats;
 
 use zircon_runtime::rhi::{UiSurfaceDrawList, UiSurfacePresenter};
 
-use super::super::data::{FrameRect, HostWindowPresentationData};
+use super::super::data::{FrameRect, HostPresentationGenerationCursor, HostWindowPresentationData};
 use super::super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
 use super::error::HostPresenterResult;
 use super::host_chrome_presenter::HostChromePresenter;
@@ -34,18 +34,31 @@ impl<P: UiSurfacePresenter> HostChromePresenter for GpuChromePresenter<P> {
     fn present(
         &mut self,
         presentation: &HostWindowPresentationData,
+        presentation_cursor: HostPresentationGenerationCursor,
         damage: Option<FrameRect>,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
-        GpuChromePresenter::present(self, presentation, damage, invalidation)
+        GpuChromePresenter::present(
+            self,
+            presentation,
+            presentation_cursor,
+            damage,
+            invalidation,
+        )
     }
 
     fn present_during_native_resize(
         &mut self,
         presentation: &HostWindowPresentationData,
+        presentation_cursor: HostPresentationGenerationCursor,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
-        GpuChromePresenter::present_during_native_resize(self, presentation, invalidation)
+        GpuChromePresenter::present_during_native_resize(
+            self,
+            presentation,
+            presentation_cursor,
+            invalidation,
+        )
     }
 
     fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics {

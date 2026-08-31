@@ -1,5 +1,5 @@
 use super::super::super::abi_declarations::{
-    NativePluginRestoreStateFnV2, NativePluginSaveStateFnV2,
+    NativePluginRestoreStateFnV3, NativePluginSaveStateFnV3,
 };
 use super::*;
 
@@ -101,8 +101,8 @@ fn hot_reload_state_restore_failure_rolls_back_and_reports() {
 }
 
 fn hot_reload_stateful_behavior(
-    save_state: Option<NativePluginSaveStateFnV2>,
-    restore_state: Option<NativePluginRestoreStateFnV2>,
+    save_state: Option<NativePluginSaveStateFnV3>,
+    restore_state: Option<NativePluginRestoreStateFnV3>,
 ) -> NativePluginBehavior {
     NativePluginBehavior {
         is_stateless: false,

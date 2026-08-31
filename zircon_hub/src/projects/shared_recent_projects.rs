@@ -1,29 +1,80 @@
-use std::fs;
-#[cfg(unix)]
-use std::fs::OpenOptions;
-use std::io;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use thiserror::Error;
-#[cfg(unix)]
-use zircon_runtime_interface::hub_protocol::hub_recent_projects_lock_path;
 use zircon_runtime_interface::hub_protocol::{
-    hub_recent_project_path_key, HubRecentProjectV1, HubRecentProjectsError, HubRecentProjectsV1,
+    hub_recent_project_path_key, HubRecentProjectV1, HubRecentProjectsError,
+    HubRecentProjectsStore, HubRecentProjectsStoreError, HubRecentProjectsV1,
+    HubRecentProjectsWritePolicy,
 };
 
 use super::metadata::normalize_project_root;
 use super::RecentProject;
 
-/// Loads the strict, versioned Hub/Editor shared recent-project registry.
+// Hub reconciliation runs on its background action path and may wait briefly for a concurrent
+// post-Ready Editor projection, but it never inherits an unbounded OS mutex wait.
+const HUB_RECENT_PROJECTS_RECONCILIATION_WAIT: Duration = Duration::from_millis(250);
+const HUB_RECENT_PROJECTS_CAS_RETRY_LIMIT: u8 = 4;
+
+/// The Hub's last synchronized view of the shared recent-project projection.
+///
+/// The revision is deliberately carried beside the display rows. Consumers use it only to decide
+/// whether a deletion derived from old local state may still be applied; it is not a project ID.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SharedRecentProjectsSnapshot {
+    revision: u64,
+    projects: Vec<RecentProject>,
+}
+
+impl SharedRecentProjectsSnapshot {
+    fn from_registry(registry: HubRecentProjectsV1) -> Self {
+        Self {
+            revision: registry.revision(),
+            projects: registry
+                .projects
+                .into_iter()
+                .map(recent_project_from_shared)
+                .collect(),
+        }
+    }
+
+    fn from_projects(projects: Vec<RecentProject>) -> Self {
+        Self {
+            revision: 0,
+            projects,
+        }
+    }
+
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+
+    pub fn projects(&self) -> &[RecentProject] {
+        &self.projects
+    }
+
+    pub fn into_projects(self) -> Vec<RecentProject> {
+        self.projects
+    }
+}
+
+/// Loads the strict, versioned Hub/Editor shared recent-project registry as a rebuildable
+/// projection. Corruption and oversized files return an empty projection instead of blocking Hub.
 pub fn load_shared_recent_projects(
     registry_path: impl AsRef<Path>,
 ) -> Result<Vec<RecentProject>, SharedRecentProjectsError> {
-    let registry = load_registry(registry_path.as_ref())?;
-    Ok(registry
-        .projects
-        .into_iter()
-        .map(recent_project_from_shared)
-        .collect())
+    Ok(load_shared_recent_projects_snapshot(registry_path)?.into_projects())
+}
+
+/// Reads the shared projection together with the revision needed for safe future reconciliation.
+pub fn load_shared_recent_projects_snapshot(
+    registry_path: impl AsRef<Path>,
+) -> Result<SharedRecentProjectsSnapshot, SharedRecentProjectsError> {
+    let registry = HubRecentProjectsStore::new(registry_path.as_ref())
+        .load_projection()?
+        .registry()
+        .clone();
+    Ok(SharedRecentProjectsSnapshot::from_registry(registry))
 }
 
 /// Normalizes an in-memory Hub history through the same v1 DTO merge rules as the shared file.
@@ -48,7 +99,8 @@ where
         .collect())
 }
 
-/// Reconciles Hub changes against the current shared Hub/Editor registry atomically.
+/// Reconciles Hub changes against the current shared Hub/Editor registry in one bounded
+/// transaction. A stalled writer yields a typed projection failure instead of blocking the Hub.
 ///
 /// `previous_hub_projects` is the last snapshot synchronized into this Hub process. Comparing it
 /// with `hub_projects` lets external Editor changes win unless the Hub changed that project after
@@ -58,129 +110,105 @@ pub fn reconcile_shared_recent_projects(
     previous_hub_projects: &[RecentProject],
     hub_projects: &[RecentProject],
 ) -> Result<Vec<RecentProject>, SharedRecentProjectsError> {
+    let previous_hub_projects =
+        SharedRecentProjectsSnapshot::from_projects(previous_hub_projects.to_vec());
+    Ok(reconcile_shared_recent_projects_snapshot(
+        registry_path,
+        &previous_hub_projects,
+        hub_projects,
+    )?
+    .into_projects())
+}
+
+/// Reconciles Hub changes through a revisioned compare-and-update transaction.
+///
+/// A failed CAS re-reads the canonical projection and recalculates the same user-derived delta.
+/// On a stale deletion, a project changed by another process is retained; an explicit Hub record
+/// remains an intentional new open and may supersede a tombstone.
+pub fn reconcile_shared_recent_projects_snapshot(
+    registry_path: impl AsRef<Path>,
+    previous_hub_snapshot: &SharedRecentProjectsSnapshot,
+    hub_projects: &[RecentProject],
+) -> Result<SharedRecentProjectsSnapshot, SharedRecentProjectsError> {
     let registry_path = registry_path.as_ref();
-    let _lease = SharedRecentProjectsWriteLease::acquire(registry_path)?;
-    let mut registry = load_registry(registry_path)?;
     let hub_projects = hub_projects
         .iter()
         .cloned()
         .map(|project| shared_project_from_recent(registry_path, project))
         .collect::<Result<Vec<_>, _>>()?;
-    let previous_by_key = previous_hub_projects
+    let previous_by_key = previous_hub_snapshot
+        .projects()
         .iter()
+        .cloned()
         .map(|project| (hub_recent_project_path_key(&project.path), project))
         .collect::<std::collections::BTreeMap<_, _>>();
-    let current_keys = hub_projects
+    let current_by_key = hub_projects
         .iter()
-        .map(|project| hub_recent_project_path_key(&project.path))
-        .collect::<std::collections::BTreeSet<_>>();
-
-    for (path_key, project) in &previous_by_key {
-        if !current_keys.contains(path_key) {
-            registry.remove(&project.path);
-        }
+        .cloned()
+        .map(|project| (hub_recent_project_path_key(&project.path), project))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let removed_keys = previous_by_key
+        .keys()
+        .filter(|path_key| !current_by_key.contains_key(*path_key))
+        .cloned()
+        .collect::<Vec<_>>();
+    let recorded_projects = current_by_key
+        .iter()
+        .filter_map(|(path_key, project)| {
+            previous_by_key
+                .get(path_key)
+                .is_none_or(|previous| recent_project_changed(previous, project))
+                .then(|| project.clone())
+        })
+        .collect::<Vec<_>>();
+    if removed_keys.is_empty() && recorded_projects.is_empty() {
+        return load_shared_recent_projects_snapshot(registry_path);
     }
-    for project in hub_projects {
-        let path_key = hub_recent_project_path_key(&project.path);
-        let changed_by_hub = previous_by_key
-            .get(&path_key)
-            .is_none_or(|previous| recent_project_changed(previous, &project));
-        if changed_by_hub {
-            registry.record(project);
-        }
-    }
 
-    registry
-        .validate()
-        .map_err(|source| SharedRecentProjectsError::Contract {
-            path: registry_path.to_path_buf(),
-            source,
-        })?;
-    write_registry(registry_path, &registry)?;
-    Ok(registry
-        .projects
-        .into_iter()
-        .map(recent_project_from_shared)
-        .collect())
-}
-
-fn load_registry(registry_path: &Path) -> Result<HubRecentProjectsV1, SharedRecentProjectsError> {
-    if !registry_path.exists() {
-        return Ok(HubRecentProjectsV1::default());
-    }
-    let bytes = fs::read(registry_path).map_err(|source| SharedRecentProjectsError::Io {
-        operation: "read shared recent-project registry",
-        path: registry_path.to_path_buf(),
-        source,
-    })?;
-    let registry = serde_json::from_slice::<HubRecentProjectsV1>(&bytes).map_err(|source| {
-        SharedRecentProjectsError::Decode {
-            path: registry_path.to_path_buf(),
-            source,
-        }
-    })?;
-    registry
-        .validate()
-        .map_err(|source| SharedRecentProjectsError::Contract {
-            path: registry_path.to_path_buf(),
-            source,
-        })?;
-    Ok(registry)
-}
-
-fn write_registry(
-    registry_path: &Path,
-    registry: &HubRecentProjectsV1,
-) -> Result<(), SharedRecentProjectsError> {
-    let parent = registry_path.parent().unwrap_or_else(|| Path::new("."));
-    fs::create_dir_all(parent).map_err(|source| SharedRecentProjectsError::Io {
-        operation: "create shared recent-project registry directory",
-        path: parent.to_path_buf(),
-        source,
-    })?;
-    let bytes = serde_json::to_vec_pretty(registry).map_err(|source| {
-        SharedRecentProjectsError::Encode {
-            path: registry_path.to_path_buf(),
-            source,
-        }
-    })?;
-    write_atomic(registry_path, &bytes)
-}
-
-fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), SharedRecentProjectsError> {
-    let temporary = path.with_extension(format!(
-        "{}tmp",
-        path.extension()
-            .and_then(|extension| extension.to_str())
-            .map(|extension| format!("{extension}."))
-            .unwrap_or_default()
-    ));
-    fs::write(&temporary, bytes).map_err(|source| SharedRecentProjectsError::Io {
-        operation: "write shared recent-project registry staging file",
-        path: temporary.clone(),
-        source,
-    })?;
-    match fs::rename(&temporary, path) {
-        Ok(()) => Ok(()),
-        Err(first_error) if path.exists() => {
-            replace_existing_file(&temporary, path).map_err(|replace_error| {
-                let _ = fs::remove_file(&temporary);
-                SharedRecentProjectsError::AtomicReplace {
-                    path: path.to_path_buf(),
-                    first_error,
-                    replace_error,
+    let store = HubRecentProjectsStore::new(registry_path);
+    for _ in 0..HUB_RECENT_PROJECTS_CAS_RETRY_LIMIT {
+        let projection = store.load_projection()?;
+        let expected_revision = projection.registry().revision();
+        let projection_matches_snapshot = expected_revision == previous_hub_snapshot.revision();
+        match store.compare_and_update(
+            HubRecentProjectsWritePolicy::with_timeout(HUB_RECENT_PROJECTS_RECONCILIATION_WAIT),
+            expected_revision,
+            |registry| {
+                for path_key in &removed_keys {
+                    let current = registry
+                        .projects
+                        .iter()
+                        .find(|project| hub_recent_project_path_key(&project.path) == *path_key);
+                    let unchanged_since_snapshot =
+                        previous_by_key.get(path_key).is_some_and(|previous| {
+                            current
+                                .is_some_and(|current| !recent_project_changed(previous, current))
+                        });
+                    if projection_matches_snapshot || unchanged_since_snapshot {
+                        let previous = previous_by_key
+                            .get(path_key)
+                            .expect("removed key always originates from the prior snapshot");
+                        registry.remove(&previous.path)?;
+                    }
                 }
-            })
-        }
-        Err(source) => {
-            let _ = fs::remove_file(&temporary);
-            Err(SharedRecentProjectsError::Io {
-                operation: "replace shared recent-project registry",
-                path: path.to_path_buf(),
-                source,
-            })
+                for project in &recorded_projects {
+                    registry.record(project.clone())?;
+                }
+                Ok(())
+            },
+        ) {
+            Ok(mutation) => {
+                return Ok(SharedRecentProjectsSnapshot::from_registry(
+                    mutation.registry().clone(),
+                ));
+            }
+            Err(HubRecentProjectsStoreError::RevisionConflict { .. }) => continue,
+            Err(error) => return Err(error.into()),
         }
     }
+    Err(SharedRecentProjectsError::CasRetryExhausted {
+        attempts: HUB_RECENT_PROJECTS_CAS_RETRY_LIMIT,
+    })
 }
 
 fn shared_project_from_recent(
@@ -209,245 +237,37 @@ fn recent_project_changed(previous: &RecentProject, current: &HubRecentProjectV1
 
 #[derive(Debug, Error)]
 pub enum SharedRecentProjectsError {
-    #[error("failed to {operation} `{path}`: {source}")]
-    Io {
-        operation: &'static str,
-        path: PathBuf,
-        #[source]
-        source: io::Error,
-    },
-    #[error("failed to decode shared recent-project registry `{path}`: {source}")]
-    Decode {
-        path: PathBuf,
-        #[source]
-        source: serde_json::Error,
-    },
-    #[error("failed to encode shared recent-project registry `{path}`: {source}")]
-    Encode {
-        path: PathBuf,
-        #[source]
-        source: serde_json::Error,
-    },
     #[error("shared recent-project registry `{path}` violates the v1 contract: {source}")]
     Contract {
         path: PathBuf,
         #[source]
         source: HubRecentProjectsError,
     },
+    #[error(transparent)]
+    Store(#[from] HubRecentProjectsStoreError),
     #[error(
-        "failed to atomically replace shared recent-project registry `{path}`: rename: {first_error}; replacement: {replace_error}"
+        "shared recent-project registry changed during all {attempts} bounded reconciliation attempts"
     )]
-    AtomicReplace {
-        path: PathBuf,
-        first_error: io::Error,
-        replace_error: io::Error,
-    },
-    #[error("shared recent-project writer lease is unsupported for `{path}`")]
-    PlatformUnsupported { path: PathBuf },
-}
-
-#[derive(Debug)]
-struct SharedRecentProjectsWriteLease {
-    #[cfg(windows)]
-    handle: isize,
-    #[cfg(unix)]
-    lock_file: fs::File,
-}
-
-impl SharedRecentProjectsWriteLease {
-    fn acquire(registry_path: &Path) -> Result<Self, SharedRecentProjectsError> {
-        #[cfg(windows)]
-        {
-            return Self::acquire_windows(registry_path);
-        }
-        #[cfg(unix)]
-        {
-            return Self::acquire_unix(registry_path);
-        }
-        #[cfg(not(any(windows, unix)))]
-        {
-            Err(SharedRecentProjectsError::PlatformUnsupported {
-                path: registry_path.to_path_buf(),
-            })
-        }
-    }
-
-    #[cfg(windows)]
-    fn acquire_windows(registry_path: &Path) -> Result<Self, SharedRecentProjectsError> {
-        use zircon_runtime_interface::hub_protocol::windows_hub_recent_projects_mutex_name;
-
-        const WAIT_OBJECT_0: u32 = 0;
-        const WAIT_ABANDONED: u32 = 0x0000_0080;
-        const INFINITE: u32 = 0xFFFF_FFFF;
-
-        let mutex_name = windows_hub_recent_projects_mutex_name(registry_path)
-            .encode_utf16()
-            .chain(Some(0))
-            .collect::<Vec<_>>();
-        // SAFETY: the name buffer is NUL-terminated for this synchronous call and the returned
-        // handle is owned by the lease when non-zero.
-        let handle = unsafe { CreateMutexW(std::ptr::null(), 0, mutex_name.as_ptr()) };
-        if handle == 0 {
-            return Err(SharedRecentProjectsError::Io {
-                operation: "create shared recent-project writer lease",
-                path: registry_path.to_path_buf(),
-                source: io::Error::last_os_error(),
-            });
-        }
-        // SAFETY: `handle` is valid and an abandoned mutex transfers ownership to this caller.
-        match unsafe { WaitForSingleObject(handle, INFINITE) } {
-            WAIT_OBJECT_0 | WAIT_ABANDONED => Ok(Self { handle }),
-            _ => {
-                // SAFETY: this local handle has not been transferred to a lease.
-                unsafe {
-                    CloseHandle(handle);
-                }
-                Err(SharedRecentProjectsError::Io {
-                    operation: "acquire shared recent-project writer lease",
-                    path: registry_path.to_path_buf(),
-                    source: io::Error::last_os_error(),
-                })
-            }
-        }
-    }
-
-    #[cfg(unix)]
-    fn acquire_unix(registry_path: &Path) -> Result<Self, SharedRecentProjectsError> {
-        use std::os::unix::io::AsRawFd;
-
-        const LOCK_EX: i32 = 2;
-        let lock_path = hub_recent_projects_lock_path(registry_path);
-        let parent = lock_path.parent().unwrap_or_else(|| Path::new("."));
-        fs::create_dir_all(parent).map_err(|source| SharedRecentProjectsError::Io {
-            operation: "create shared recent-project registry directory",
-            path: parent.to_path_buf(),
-            source,
-        })?;
-        let lock_file = OpenOptions::new()
-            .create(true)
-            .read(true)
-            .write(true)
-            .open(&lock_path)
-            .map_err(|source| SharedRecentProjectsError::Io {
-                operation: "open shared recent-project writer lease",
-                path: lock_path.clone(),
-                source,
-            })?;
-        // SAFETY: the descriptor belongs to `lock_file`, retained by the returned lease.
-        if unsafe { flock(lock_file.as_raw_fd(), LOCK_EX) } != 0 {
-            return Err(SharedRecentProjectsError::Io {
-                operation: "acquire shared recent-project writer lease",
-                path: lock_path,
-                source: io::Error::last_os_error(),
-            });
-        }
-        Ok(Self { lock_file })
-    }
-}
-
-#[cfg(windows)]
-impl Drop for SharedRecentProjectsWriteLease {
-    fn drop(&mut self) {
-        // SAFETY: this lease owns the mutex after a successful wait.
-        unsafe {
-            ReleaseMutex(self.handle);
-            CloseHandle(self.handle);
-        }
-    }
-}
-
-#[cfg(unix)]
-impl Drop for SharedRecentProjectsWriteLease {
-    fn drop(&mut self) {
-        use std::os::unix::io::AsRawFd;
-
-        const LOCK_UN: i32 = 8;
-        // SAFETY: the descriptor remains valid until this destructor returns.
-        unsafe {
-            flock(self.lock_file.as_raw_fd(), LOCK_UN);
-        }
-    }
-}
-
-#[cfg(not(windows))]
-fn replace_existing_file(temporary: &Path, target: &Path) -> io::Result<()> {
-    fs::rename(temporary, target)
-}
-
-#[cfg(windows)]
-fn replace_existing_file(temporary: &Path, target: &Path) -> io::Result<()> {
-    use std::os::windows::ffi::OsStrExt;
-
-    const REPLACEFILE_WRITE_THROUGH: u32 = 1;
-
-    fn wide_path(path: &Path) -> Vec<u16> {
-        path.as_os_str().encode_wide().chain(Some(0)).collect()
-    }
-
-    let target = wide_path(target);
-    let replacement = wide_path(temporary);
-    // SAFETY: both paths are NUL-terminated for the duration of this synchronous call.
-    if unsafe {
-        ReplaceFileW(
-            target.as_ptr(),
-            replacement.as_ptr(),
-            std::ptr::null(),
-            REPLACEFILE_WRITE_THROUGH,
-            std::ptr::null(),
-            std::ptr::null(),
-        )
-    } == 0
-    {
-        Err(io::Error::last_os_error())
-    } else {
-        Ok(())
-    }
-}
-
-#[cfg(windows)]
-#[link(name = "kernel32")]
-unsafe extern "system" {
-    fn CreateMutexW(
-        attributes: *const std::ffi::c_void,
-        initial_owner: i32,
-        name: *const u16,
-    ) -> isize;
-    fn WaitForSingleObject(handle: isize, milliseconds: u32) -> u32;
-    fn ReleaseMutex(handle: isize) -> i32;
-    fn CloseHandle(handle: isize) -> i32;
-    fn ReplaceFileW(
-        replaced_file_name: *const u16,
-        replacement_file_name: *const u16,
-        backup_file_name: *const u16,
-        replace_flags: u32,
-        exclude: *const std::ffi::c_void,
-        reserved: *const std::ffi::c_void,
-    ) -> i32;
-}
-
-#[cfg(unix)]
-unsafe extern "C" {
-    fn flock(file_descriptor: i32, operation: i32) -> i32;
+    CasRetryExhausted { attempts: u8 },
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{load_shared_recent_projects, reconcile_shared_recent_projects};
+    use std::time::Duration;
+
+    use zircon_runtime_interface::hub_protocol::{
+        HubRecentProjectV1, HubRecentProjectsStore, HubRecentProjectsWritePolicy,
+    };
+
+    use super::{
+        load_shared_recent_projects, reconcile_shared_recent_projects,
+        reconcile_shared_recent_projects_snapshot, SharedRecentProjectsSnapshot,
+    };
     use crate::projects::RecentProject;
 
     #[test]
     fn reconciliation_merges_hub_history_with_the_shared_v1_registry() {
-        let target_directory = std::env::var_os("CARGO_TARGET_DIR").expect(
-            "shared recent-project filesystem tests require coordinator-managed CARGO_TARGET_DIR",
-        );
-        let root = std::path::PathBuf::from(target_directory).join(format!(
-            "zircon-hub-shared-recents-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system clock should be after epoch")
-                .as_nanos()
-        ));
+        let root = temporary_root("merge");
         let registry_path = root.join("recent_projects.json");
 
         let first = reconcile_shared_recent_projects(
@@ -480,17 +300,7 @@ mod tests {
 
     #[test]
     fn stale_hub_snapshot_does_not_restore_an_editor_removed_project() {
-        let target_directory = std::env::var_os("CARGO_TARGET_DIR").expect(
-            "shared recent-project filesystem tests require coordinator-managed CARGO_TARGET_DIR",
-        );
-        let root = std::path::PathBuf::from(target_directory).join(format!(
-            "zircon-hub-shared-recents-delete-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system clock should be after epoch")
-                .as_nanos()
-        ));
+        let root = temporary_root("delete");
         let registry_path = root.join("recent_projects.json");
         let initial = reconcile_shared_recent_projects(
             &registry_path,
@@ -507,5 +317,49 @@ mod tests {
         assert!(removed.is_empty());
         assert!(after_stale_hub_persist.is_empty());
         std::fs::remove_dir_all(root).expect("remove shared history fixture");
+    }
+
+    #[test]
+    fn stale_hub_delete_preserves_an_externally_updated_project() {
+        let root = temporary_root("stale-delete");
+        let registry_path = root.join("recent_projects.json");
+        let initial = reconcile_shared_recent_projects_snapshot(
+            &registry_path,
+            &SharedRecentProjectsSnapshot::default(),
+            &[RecentProject::fixture("Game", "E:/Projects/Game", 1)],
+        )
+        .expect("write initial shared history");
+        HubRecentProjectsStore::new(&registry_path)
+            .update(
+                HubRecentProjectsWritePolicy::with_timeout(Duration::from_millis(50)),
+                |registry| {
+                    registry.record(HubRecentProjectV1::new(
+                        RecentProject::fixture("External", "E:/Projects/Game", 9).summary,
+                        "E:/Projects/Game",
+                        9,
+                    )?)
+                },
+            )
+            .expect("external editor update");
+
+        let reconciled = reconcile_shared_recent_projects_snapshot(&registry_path, &initial, &[])
+            .expect("stale Hub delete must rebase safely");
+
+        assert_eq!(reconciled.projects()[0].summary.name, "External");
+        std::fs::remove_dir_all(root).expect("remove shared history fixture");
+    }
+
+    fn temporary_root(label: &str) -> std::path::PathBuf {
+        let target_directory = std::env::var_os("CARGO_TARGET_DIR").expect(
+            "shared recent-project filesystem tests require coordinator-managed CARGO_TARGET_DIR",
+        );
+        std::path::PathBuf::from(target_directory).join(format!(
+            "zircon-hub-shared-recents-{label}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock should be after epoch")
+                .as_nanos()
+        ))
     }
 }

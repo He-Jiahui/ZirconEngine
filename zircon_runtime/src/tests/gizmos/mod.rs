@@ -3,9 +3,9 @@ use std::{hint::black_box, time::Instant};
 use crate::core::{
     framework::{
         gizmos::{
-            GizmoAsset, GizmoAxis, GizmoBuffer, GizmoColorPolicy, GizmoConfig, GizmoConfigGroupId,
-            GizmoLineConfig, GizmoOverlayExtractRequest, GizmoRenderLayer, GizmoScreenScalePolicy,
-            RetainedGizmo, append_gizmo_overlay, extract_gizmo_overlay,
+            append_gizmo_overlay, extract_gizmo_overlay, GizmoAsset, GizmoAxis, GizmoBuffer,
+            GizmoColorPolicy, GizmoConfig, GizmoConfigGroupId, GizmoLineConfig,
+            GizmoOverlayExtractRequest, GizmoRenderLayer, GizmoScreenScalePolicy, RetainedGizmo,
         },
         render::{RenderOverlayExtract, SceneGizmoKind},
     },

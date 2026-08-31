@@ -2,6 +2,7 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::paint_geometry::intersect;
 use super::super::super::paint_text::measure_runtime_text_width;
 use super::super::render_commands::HostPaintCommand;
+use super::super::template_diamond_glyph::push_aa_diamond;
 use super::geometry::SampleGridGeometry;
 use super::metrics::{
     SampleGridMetrics, POINT_EDGE_INSET, POINT_INTERIOR_RADIUS, POINT_RADIUS, SAMPLE_LABEL_HEIGHT,
@@ -27,7 +28,7 @@ pub(super) fn push_sample_points(
     for point in grid.points() {
         let x = geometry.point_x_for_value(point.x(), grid.x_min(), grid.x_max());
         let y = geometry.point_y_for_value(point.y(), grid.y_min(), grid.y_max());
-        push_diamond(
+        push_aa_diamond(
             commands,
             x,
             y,
@@ -41,7 +42,7 @@ pub(super) fn push_sample_points(
             order + 7,
             opacity,
         );
-        push_diamond(
+        push_aa_diamond(
             commands,
             x,
             y,
@@ -132,36 +133,6 @@ fn selected_sample_label_y(point_y: f32, plot: &FrameRect) -> Option<f32> {
     let preferred_above =
         point_y - POINT_RADIUS as f32 - SAMPLE_LABEL_POINT_GAP - SAMPLE_LABEL_HEIGHT;
     (preferred_above >= min_y && preferred_above <= max_y).then_some(preferred_above)
-}
-
-fn push_diamond(
-    commands: &mut Vec<HostPaintCommand>,
-    x: f32,
-    y: f32,
-    radius: i32,
-    color: [u8; 4],
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-) {
-    for offset in -radius..=radius {
-        let half_width = radius - offset.abs();
-        commands.push(HostPaintCommand::quad(
-            FrameRect {
-                x: x - half_width as f32,
-                y: y + offset as f32,
-                width: (half_width * 2 + 1) as f32,
-                height: 1.0,
-            },
-            Some(clip.clone()),
-            order,
-            Some(color),
-            None,
-            0.0,
-            0.0,
-            opacity,
-        ));
-    }
 }
 
 #[cfg(test)]

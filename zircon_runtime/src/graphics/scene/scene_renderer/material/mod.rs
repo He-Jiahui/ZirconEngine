@@ -3,11 +3,11 @@ mod bindless_material_payload_registry;
 mod bindless_slab;
 
 pub(crate) use crate::graphics::scene::gpu_scene::{
-    GpuBindlessMaterialPayload, BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT,
-    GPU_BINDLESS_MATERIAL_PAYLOAD_STRIDE,
+    BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT, GPU_BINDLESS_MATERIAL_PAYLOAD_STRIDE,
+    GpuBindlessMaterialPayload,
 };
 pub(crate) use bindless_material_eligibility::{
-    bindless_material_eligibility, BindlessMaterialEligibility, BindlessMaterialFallbackReason,
+    BindlessMaterialEligibility, BindlessMaterialFallbackReason, bindless_material_eligibility,
 };
 pub(crate) use bindless_material_payload_registry::{
     BindlessMaterialPayloadPrepareResult, BindlessMaterialPayloadRegistry,

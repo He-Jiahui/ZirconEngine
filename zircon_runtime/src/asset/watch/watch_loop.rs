@@ -213,7 +213,15 @@ fn watch_loop_inner(
                                 }
                             }
                         }
-                        Err(error) => on_error(AssetWatchError::from_notify_error(assets_root.clone(), error)),
+                        Err(error) => {
+                            requires_reconciliation = true;
+                            started_at.get_or_insert(message.received_at);
+                            last_event_at = Some(Instant::now());
+                            on_error(AssetWatchError::from_notify_error(
+                                assets_root.clone(),
+                                error,
+                            ));
+                        }
                     }
                 }
                 Err(_) => {

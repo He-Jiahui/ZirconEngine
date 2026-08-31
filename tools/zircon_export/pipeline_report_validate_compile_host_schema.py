@@ -68,6 +68,47 @@ VALIDATE_LIBRARY_EMBED_COMPILE_HOST_STRING_ARRAY_FIELDS = (
 VALIDATE_LIBRARY_EMBED_COMPILE_HOST_PROJECT_PLUGIN_ID_ARRAY_FIELDS = (
     "expected_runtime_plugins",
 )
+
+
+def validate_compile_host_string_array_projection(
+    label: str,
+    value: Any,
+    *,
+    check_trimmed: bool,
+    check_duplicate_indexes: bool,
+) -> tuple[list[str], list[str], list[str], list[str]]:
+    if not isinstance(value, list):
+        return [f"{label} must be a string array"], [], [], []
+    type_diagnostics: list[str] = []
+    blank = False
+    trimmed: list[str] = []
+    duplicates: list[str] = []
+    seen: dict[str, int] = {}
+    all_strings = True
+    for index, entry in enumerate(value):
+        if not isinstance(entry, str):
+            all_strings = False
+            type_diagnostics.append(f"{label}[{index}] must be a string")
+            continue
+        stripped = entry.strip()
+        if not stripped:
+            blank = True
+            continue
+        if check_trimmed and stripped != entry:
+            trimmed.append(
+                f"{label}[{index}] must be a non-empty trimmed string"
+            )
+            continue
+        if check_duplicate_indexes:
+            previous = seen.get(entry)
+            if previous is None:
+                seen[entry] = index
+            else:
+                duplicates.append(f"{label}[{index}] duplicates entry {previous}")
+    if not all_strings:
+        return type_diagnostics, [], [], []
+    blank_diagnostics = [f"{label} must not contain blank entries"] if blank else []
+    return type_diagnostics, blank_diagnostics, trimmed, duplicates
 VALIDATE_LIBRARY_EMBED_COMPILE_HOST_BOOL_FIELDS = (
     "release",
 )
@@ -114,32 +155,16 @@ def validate_library_embed_compile_host_schema_diagnostics(value: Any) -> list[s
     for field in VALIDATE_LIBRARY_EMBED_COMPILE_HOST_STRING_ARRAY_FIELDS:
         if field in value:
             field_label = f"{label}.{field}"
-            diagnostics.extend(
-                validate_string_array_schema_diagnostics(
-                    field_label,
-                    value.get(field),
-                )
+            projection = validate_compile_host_string_array_projection(
+                field_label,
+                value.get(field),
+                check_trimmed=field in ("app_features", "command", "runtime_features"),
+                check_duplicate_indexes=field in ("app_features", "runtime_features"),
             )
-            diagnostics.extend(
-                string_array_no_blank_entries_schema_diagnostics(
-                    field_label,
-                    value.get(field),
-                )
-            )
-            if field in ("app_features", "command", "runtime_features"):
-                diagnostics.extend(
-                    string_array_trimmed_non_empty_entries_schema_diagnostics(
-                        field_label,
-                        value.get(field),
-                    )
-                )
-            if field in ("app_features", "runtime_features"):
-                diagnostics.extend(
-                    string_array_duplicate_entry_index_schema_diagnostics(
-                        field_label,
-                        value.get(field),
-                    )
-                )
+            diagnostics.extend(projection[0])
+            diagnostics.extend(projection[1])
+            diagnostics.extend(projection[2])
+            diagnostics.extend(projection[3])
     for field in VALIDATE_LIBRARY_EMBED_COMPILE_HOST_PROJECT_PLUGIN_ID_ARRAY_FIELDS:
         if field in value:
             field_label = f"{label}.{field}"

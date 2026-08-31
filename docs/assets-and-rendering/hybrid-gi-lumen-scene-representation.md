@@ -109,7 +109,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
@@ -283,7 +283,7 @@ related_code:
   - zircon_runtime/src/graphics/tests/render_framework_bridge/hybrid_gi_visual_export.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
   - zircon_editor/src/ui/retained_host/viewport/viewport_state_ensure_viewport.rs
@@ -365,7 +365,7 @@ implementation_files:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_resources.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
@@ -511,7 +511,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/write_hybrid_gi_buffers/write.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/encode.rs
-  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/product_host_config/
   - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
   - zircon_editor/src/ui/retained_host/viewport/viewport_state_ensure_viewport.rs
   - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
@@ -2298,7 +2298,7 @@ Implementation files:
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff.wgsl`
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff_msaa.wgsl`
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
-- `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs`
 
 Visual evidence:

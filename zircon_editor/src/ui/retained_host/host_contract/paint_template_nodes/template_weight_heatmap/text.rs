@@ -13,6 +13,10 @@ const LEGEND_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
 const LEGEND_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
     * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
 
+#[cfg(test)]
+#[path = "text/capacity_tests.rs"]
+mod capacity_tests;
+
 pub(super) fn legend_label_width(generation: &WeightHeatmapGeneration) -> f32 {
     legend_label_width_from_labels(generation.high_label(), generation.low_label())
 }
@@ -27,7 +31,7 @@ pub(super) fn push_heatmap_legend_text(
 ) {
     push_label(
         commands,
-        generation.high_label().to_owned(),
+        generation.high_label(),
         geometry.legend.y,
         geometry,
         clip,
@@ -36,7 +40,7 @@ pub(super) fn push_heatmap_legend_text(
     );
     push_label(
         commands,
-        generation.low_label().to_owned(),
+        generation.low_label(),
         geometry.legend.y + geometry.legend.height - LEGEND_LINE_HEIGHT,
         geometry,
         clip,
@@ -47,7 +51,7 @@ pub(super) fn push_heatmap_legend_text(
 
 fn push_label(
     commands: &mut Vec<HostPaintCommand>,
-    text: String,
+    text: &str,
     y: f32,
     geometry: &WeightHeatmapGeometry,
     clip: &FrameRect,
@@ -69,7 +73,7 @@ fn push_label(
         frame,
         Some(clip.clone()),
         order,
-        text,
+        text.to_owned(),
         LEGEND_TEXT,
         LEGEND_FONT_SIZE,
         LEGEND_LINE_HEIGHT,
@@ -123,15 +127,7 @@ mod tests {
         };
         let mut commands = Vec::new();
 
-        push_label(
-            &mut commands,
-            "High".to_string(),
-            0.0,
-            &geometry,
-            &clip,
-            0,
-            1.0,
-        );
+        push_label(&mut commands, "High", 0.0, &geometry, &clip, 0, 1.0);
 
         assert!(commands.is_empty());
     }

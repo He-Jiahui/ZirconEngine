@@ -11,8 +11,8 @@ use crate::core::framework::render::{
     RenderMaterialTextureSlotFallbackReason, RenderMaterialTextureTransform,
     RenderMaterialValidationError, RenderShaderBindGroupLayoutDescriptor,
     RenderShaderBindingDescriptor, RenderShaderBindingResourceType, RenderShaderDefinitionValue,
-    RenderShaderPipelineLayoutDescriptor, RenderShaderStage, ShaderAssetKind,
-    SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
+    RenderShaderPipelineLayoutDescriptor, RenderShaderStage, SHADING_MODEL_ID_BLINN_PHONG,
+    SHADING_MODEL_ID_STANDARD_PBR, ShaderAssetKind,
 };
 use crate::core::resource::{
     MaterialMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
@@ -113,7 +113,11 @@ fn material_texture_slot(
     uv_channel: u32,
 ) -> MaterialTextureSlotValue {
     let mut slot = MaterialTextureSlotValue::new(asset_reference(uri));
-    slot.transform = Some(RenderMaterialTextureTransform { scale, offset });
+    slot.transform = Some(RenderMaterialTextureTransform {
+        scale,
+        offset,
+        rotation: 0.0,
+    });
     slot.uv_channel = uv_channel;
     slot
 }

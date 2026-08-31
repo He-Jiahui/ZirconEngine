@@ -224,12 +224,7 @@ applyEntry(state: TalentModifierState, entry: int, multiplier: float): void {
 }
 
 findEntry(originCode: uint, spec: bool): int {
-    var index = 0;
-    while (index < catalog.entryCount()) {
-        if (catalog.entryOriginCode(index) == originCode && catalog.entryIsSpec(index) == spec) return index;
-        index = index + 1;
-    }
-    return -1;
+    return catalog.entryIndex(originCode, spec);
 }
 
 masteryMultiplier(level: int): float {
@@ -304,5 +299,15 @@ pub contractTest(): int {
         <int>nested.nestedEffectTypes[0] != 1 || <int>nested.nestedEffectTypes[1] != 2 ||
         nestedEffectNumber(nested, 0, 1) != 4.0 || nestedEffectNumber(nested, 1, 1) != 15.0 ||
         nestedEffectNumber(nested, 1, 2) != 0.5) return -7;
+    var entry = 0;
+    while (entry < catalog.entryCount()) {
+        if (catalog.entryIndex(
+            catalog.entryOriginCode(entry), catalog.entryIsSpec(entry)
+        ) != entry) return -8;
+        entry = entry + 1;
+    }
+    if (catalog.entryIndex(<uint>0, false) != -1 ||
+        catalog.entryIndex(<uint>28, true) != -1 ||
+        catalog.entryIndex(<uint>163, false) != -1) return -9;
     return 1;
 }

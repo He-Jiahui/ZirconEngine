@@ -9,26 +9,25 @@ mod pipeline;
 mod viewport;
 
 pub(crate) use bind_group::{
-    glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuBindGroupLayout, GlyphAtlasGpuSamplerBinding,
-    GlyphAtlasGpuSamplerBindingType, GlyphAtlasGpuTextureBinding, GlyphAtlasGpuTextureSampleType,
-    GlyphAtlasGpuTextureViewDimension,
+    GlyphAtlasGpuBindGroupLayout, GlyphAtlasGpuSamplerBinding, GlyphAtlasGpuSamplerBindingType,
+    GlyphAtlasGpuTextureBinding, GlyphAtlasGpuTextureSampleType, GlyphAtlasGpuTextureViewDimension,
+    glyph_atlas_gpu_bind_group_layout,
 };
 pub(crate) use draw_command::{
-    glyph_atlas_gpu_batch_contract, glyph_atlas_gpu_draw_command, GlyphAtlasGpuBatch,
-    GlyphAtlasGpuDrawCommand, GlyphAtlasGpuPrimitiveTopology,
-    GLYPH_ATLAS_GPU_VERTICES_PER_INSTANCE,
+    GLYPH_ATLAS_GPU_VERTICES_PER_INSTANCE, GlyphAtlasGpuBatch, GlyphAtlasGpuDrawCommand,
+    GlyphAtlasGpuPrimitiveTopology, glyph_atlas_gpu_batch_contract, glyph_atlas_gpu_draw_command,
 };
 pub(crate) use instance::{
-    glyph_atlas_gpu_instance_buffer_layout, GlyphAtlasGpuInstance, GlyphAtlasGpuInstanceAttribute,
-    GlyphAtlasGpuInstanceAttributeFormat, GlyphAtlasGpuInstanceAttributeSemantic,
-    GlyphAtlasGpuInstanceBufferLayout,
+    GlyphAtlasGpuInstance, GlyphAtlasGpuInstanceAttribute, GlyphAtlasGpuInstanceAttributeFormat,
+    GlyphAtlasGpuInstanceAttributeSemantic, GlyphAtlasGpuInstanceBufferLayout,
+    glyph_atlas_gpu_instance_buffer_layout,
 };
 pub(crate) use pipeline::{
-    glyph_atlas_gpu_pipeline_contract, GlyphAtlasGpuPipelineContract, GlyphAtlasGpuPipelineKey,
+    GlyphAtlasGpuPipelineContract, GlyphAtlasGpuPipelineKey, glyph_atlas_gpu_pipeline_contract,
 };
 pub(crate) use viewport::{
-    glyph_atlas_gpu_viewport_transform, GlyphAtlasGpuPixelCoordinateConvention,
-    GlyphAtlasGpuViewportTransform,
+    GlyphAtlasGpuPixelCoordinateConvention, GlyphAtlasGpuViewportTransform,
+    glyph_atlas_gpu_viewport_transform,
 };
 
 #[derive(Clone, Debug, PartialEq)]

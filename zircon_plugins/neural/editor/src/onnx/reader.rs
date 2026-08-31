@@ -1,6 +1,10 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
+mod raw_data;
+
+use raw_data::decode_f32;
+
 use super::{OnnxAttribute, OnnxGraph, OnnxNode, OnnxTensor, OnnxTensorDataType};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -165,7 +169,7 @@ fn parse_tensor(bytes: &[u8]) -> Result<OnnxTensor, OnnxReadError> {
             (4, LENGTH_DELIMITED) => read_packed_f32(reader.read_bytes()?, &mut values)?,
             (4, FIXED32) => values.push(f32::from_bits(reader.read_fixed32()?)),
             (8, LENGTH_DELIMITED) => name = read_string(&mut reader)?,
-            (9, LENGTH_DELIMITED) => raw_data = Some(reader.read_bytes()?.to_vec()),
+            (9, LENGTH_DELIMITED) => raw_data = Some(reader.read_bytes()?),
             _ => reader.skip_value(wire_type)?,
         }
     }
@@ -173,13 +177,10 @@ fn parse_tensor(bytes: &[u8]) -> Result<OnnxTensor, OnnxReadError> {
         return Err(OnnxReadError::MissingTensorName);
     }
     if let Some(raw_data) = raw_data {
-        if data_type != OnnxTensorDataType::F32 || raw_data.len() % 4 != 0 {
+        if data_type != OnnxTensorDataType::F32 {
             return Err(OnnxReadError::InvalidFloatTensorData);
         }
-        values = raw_data
-            .chunks_exact(4)
-            .map(|bytes| f32::from_le_bytes(bytes.try_into().unwrap()))
-            .collect();
+        values = decode_f32(raw_data)?;
     }
     Ok(OnnxTensor {
         name,

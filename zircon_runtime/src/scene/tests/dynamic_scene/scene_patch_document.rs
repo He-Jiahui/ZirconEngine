@@ -7,8 +7,12 @@ fn dynamic_scene_roundtrips_reflected_components_with_entity_remap() {
     source
         .register_component_type(cloud_layer_descriptor())
         .expect("dynamic descriptor should register");
-    let parent = source.spawn_node(NodeKind::Mesh);
-    let child = source.spawn_node(NodeKind::Mesh);
+    let parent = source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let child = source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     source
         .rename_node(parent, "Weather Root")
         .expect("parent should be named");
@@ -31,9 +35,11 @@ fn dynamic_scene_roundtrips_reflected_components_with_entity_remap() {
         .to_versioned_json_pretty()
         .expect("dynamic scene should serialize");
     let document: serde_json::Value = serde_json::from_str(&encoded).unwrap();
-    assert!(document["$zircon"]["payload"]
-        .get("format_version")
-        .is_none());
+    assert!(
+        document["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
     assert!(encoded.contains("\"schema_id\": \"zircon.scene.dynamic-scene\""));
     assert!(encoded.contains(CLOUD_LAYER_TYPE_PATH));
     assert_text_excludes_authoring_tokens(
@@ -48,7 +54,9 @@ fn dynamic_scene_roundtrips_reflected_components_with_entity_remap() {
     target
         .register_component_type(cloud_layer_descriptor())
         .expect("target descriptor should register");
-    let collision = target.spawn_node(NodeKind::Mesh);
+    let collision = target
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     assert_eq!(collision, parent);
 
     let remap = scene
@@ -79,11 +87,21 @@ fn dynamic_scene_roundtrips_reflected_components_with_entity_remap() {
             .reflect_read(ReflectReadRequest::new(
                 ReflectObjectAddress::component(mapped_child, CLOUD_LAYER_TYPE_PATH)
                     .expect("component address should be valid"),
-                "coverage",
+                zircon_runtime_interface::reflect::ReflectFieldId::from_stable_keys(
+                    CLOUD_LAYER_TYPE_PATH,
+                    "coverage",
+                ),
             ))
             .expect("spawned dynamic field should read through reflection")
             .field,
-        ReflectFieldValue::new("coverage", ReflectedValue::Scalar(0.75))
+        ReflectFieldValue::new(
+            zircon_runtime_interface::reflect::ReflectFieldId::from_stable_keys(
+                CLOUD_LAYER_TYPE_PATH,
+                "coverage",
+            ),
+            "coverage",
+            ReflectedValue::Scalar(0.75),
+        )
     );
 }
 
@@ -237,8 +255,12 @@ fn scene_patch_preview_reports_remaps_without_mutating_target_world() {
     source
         .register_component_type(cloud_layer_descriptor())
         .expect("source descriptor should register");
-    let parent = source.spawn_node(NodeKind::Mesh);
-    let child = source.spawn_node(NodeKind::Mesh);
+    let parent = source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let child = source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     source
         .set_parent_checked(child, Some(parent))
         .expect("child should be parented");
@@ -268,7 +290,9 @@ fn scene_patch_preview_reports_remaps_without_mutating_target_world() {
     );
 
     let mut target = World::empty();
-    let collision = target.spawn_node(NodeKind::Mesh);
+    let collision = target
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     assert_eq!(collision, parent);
     let target_before = DynamicScene::from_world(&target).expect("target should export");
 
@@ -349,7 +373,7 @@ fn dynamic_scene_rejects_future_envelope_header_before_payload_decode() {
         .to_versioned_json_pretty()
         .expect("current dynamic scene should serialize");
     let mut future: serde_json::Value = serde_json::from_str(&current).unwrap();
-    future["$zircon"]["header"]["schema_version"] = serde_json::Value::from(3);
+    future["$zircon"]["header"]["schema_version"] = serde_json::Value::from(4);
     future["$zircon"]["payload"] = json!({ "not": "a dynamic scene" });
 
     let error = DynamicScene::from_versioned_json(&future.to_string())
@@ -360,8 +384,8 @@ fn dynamic_scene_rejects_future_envelope_header_before_payload_decode() {
             if matches!(
                 source.as_ref(),
                 LoadError::FutureVersion {
-                    found: 3,
-                    supported: 2,
+                    found: 4,
+                    supported: 3,
                     ..
                 }
             )
@@ -388,7 +412,7 @@ fn dynamic_scene_rejects_retired_inner_version_in_current_envelope() {
 }
 
 #[test]
-fn dynamic_scene_migrates_v1_envelope_to_versionless_v2_payload() {
+fn dynamic_scene_migrates_v1_envelope_to_versionless_v3_payload() {
     let mut v1: serde_json::Value = serde_json::from_str(
         &DynamicScene::empty()
             .to_versioned_json_pretty()
@@ -402,16 +426,91 @@ fn dynamic_scene_migrates_v1_envelope_to_versionless_v2_payload() {
         .expect("v1 dynamic scene should migrate through the explicit chain");
     let current: serde_json::Value =
         serde_json::from_str(&migrated.to_versioned_json_pretty().unwrap()).unwrap();
-    assert_eq!(current["$zircon"]["header"]["schema_version"], 2);
-    assert!(current["$zircon"]["payload"]
-        .get("format_version")
-        .is_none());
+    assert_eq!(current["$zircon"]["header"]["schema_version"], 3);
+    assert!(
+        current["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
+}
+
+#[test]
+fn dynamic_scene_resource_load_routes_renamed_fields_by_stable_id() {
+    let field_id = ReflectFieldId::from_stable_keys(FRAME_COUNTER_TYPE_PATH, "value");
+    let mut scene = DynamicScene::empty();
+    scene.resources.push(crate::scene::DynamicResource::new(
+        FRAME_COUNTER_TYPE_PATH,
+        vec![ReflectFieldValue::new(
+            field_id,
+            "legacy_value",
+            ReflectedValue::Unsigned(19),
+        )],
+    ));
+
+    let mut target = World::empty();
+    let renamed_registration = ReflectTypeRegistration::new(
+        ReflectTypePath::new(FRAME_COUNTER_TYPE_PATH, "FrameCounter")
+            .expect("renamed resource type path should be valid"),
+        "Frame Counter",
+        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+            field_id,
+            "current_value",
+            "Unsigned",
+            ReflectEditorHint::Unsigned,
+        )]),
+        ReflectSerializationStrategy::ResourceHandle,
+    )
+    .as_resource();
+    target
+        .type_registry_mut_for_tests()
+        .register_resource(renamed_registration, frame_counter_adapter())
+        .expect("renamed frame counter registration should be accepted");
+    target.insert_resource(FrameCounter { value: 0 });
+
+    scene
+        .spawn_into(&mut target)
+        .expect("stable field identity should survive a current-name rename");
+    assert_eq!(target.get_resource::<FrameCounter>().unwrap().value, 19);
+}
+
+#[test]
+fn dynamic_scene_migrates_v2_name_only_fields_to_stable_ids() {
+    const TYPE_PATH: &str = "tests.Resource.LegacyCounter";
+    let field_id = ReflectFieldId::from_stable_keys(TYPE_PATH, "value");
+    let mut scene = DynamicScene::empty();
+    scene.resources.push(crate::scene::DynamicResource::new(
+        TYPE_PATH,
+        vec![ReflectFieldValue::new(
+            field_id,
+            "value",
+            ReflectedValue::Unsigned(7),
+        )],
+    ));
+    let mut v2: serde_json::Value = serde_json::from_str(
+        &scene
+            .to_versioned_json_pretty()
+            .expect("current dynamic scene should serialize"),
+    )
+    .unwrap();
+    v2["$zircon"]["header"]["schema_version"] = json!(2);
+    v2["$zircon"]["payload"]["resources"][0]["fields"][0]
+        .as_object_mut()
+        .expect("legacy reflected field should be an object")
+        .remove("field_id");
+
+    let migrated = DynamicScene::from_versioned_json(&v2.to_string())
+        .expect("v2 name-only reflected fields should migrate explicitly");
+    let field = &migrated.resources[0].fields[0];
+    assert_eq!(field.field_id, field_id);
+    assert_eq!(field.field_name, "value");
 }
 
 #[test]
 fn versioned_json_migrates_legacy_world_project_documents() {
     let mut legacy = World::empty();
-    let entity = legacy.spawn_node(NodeKind::Mesh);
+    let entity = legacy
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     legacy
         .rename_node(entity, "Legacy Mesh")
         .expect("legacy entity should be named");
@@ -436,9 +535,11 @@ fn versioned_json_migrates_legacy_world_project_documents() {
         .to_versioned_json_pretty()
         .expect("dynamic scene should write versioned JSON");
     let current: serde_json::Value = serde_json::from_str(&encoded).unwrap();
-    assert!(current["$zircon"]["payload"]
-        .get("format_version")
-        .is_none());
+    assert!(
+        current["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
     assert_text_excludes_authoring_tokens(
         "versioned dynamic scene JSON",
         &encoded,

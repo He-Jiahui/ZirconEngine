@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
-    RenderHybridGiPreparedFrame, RenderHybridGiPreparedProbe, RenderHybridGiPreparedProbeSceneData,
+    RenderHybridGiPreparedFrame, RenderHybridGiPreparedProbe,
+    RenderHybridGiPreparedProbeRtLighting, RenderHybridGiPreparedProbeSceneData,
 };
 use crate::core::math::{Mat4, UVec2, Vec3};
 use bytemuck::Zeroable;
@@ -14,6 +15,44 @@ const HYBRID_GI_POSITION_BIAS: i32 = 2048;
 const HYBRID_GI_POSITION_SCALE: f32 = 64.0;
 const HYBRID_GI_RADIUS_SCALE: f32 = 64.0;
 const PREPARED_RT_LIGHTING_WEIGHT: f32 = 0.75;
+
+struct PreparedProbeSidebandLookup<'a> {
+    scene_data: &'a [RenderHybridGiPreparedProbeSceneData],
+    rt_lighting: &'a [RenderHybridGiPreparedProbeRtLighting],
+    scene_data_is_canonical: bool,
+    rt_lighting_is_canonical: bool,
+}
+
+impl<'a> PreparedProbeSidebandLookup<'a> {
+    fn new(prepared_frame: &'a RenderHybridGiPreparedFrame) -> Self {
+        let scene_data = prepared_frame.probe_scene_data.as_slice();
+        let rt_lighting = prepared_frame.probe_rt_lighting_rgb.as_slice();
+        Self {
+            scene_data,
+            rt_lighting,
+            scene_data_is_canonical: strictly_increasing_by_key(scene_data, scene_data_probe_id),
+            rt_lighting_is_canonical: strictly_increasing_by_key(rt_lighting, rt_lighting_probe_id),
+        }
+    }
+
+    fn scene_data(&self, probe_id: u32) -> Option<&RenderHybridGiPreparedProbeSceneData> {
+        lookup_by_probe_id(
+            self.scene_data,
+            probe_id,
+            self.scene_data_is_canonical,
+            scene_data_probe_id,
+        )
+    }
+
+    fn rt_lighting(&self, probe_id: u32) -> Option<&RenderHybridGiPreparedProbeRtLighting> {
+        lookup_by_probe_id(
+            self.rt_lighting,
+            probe_id,
+            self.rt_lighting_is_canonical,
+            rt_lighting_probe_id,
+        )
+    }
+}
 
 pub(in super::super) fn encode_hybrid_gi_probes(
     frame: &ViewportRenderFrame,
@@ -44,6 +83,7 @@ pub(in super::super) fn encode_hybrid_gi_probes(
         .prepared_runtime_sidebands()
         .hybrid_gi_prepared_frame()
     {
+        let sidebands = PreparedProbeSidebandLookup::new(prepared_frame);
         for prepared_probe in &prepared_frame.resident_probes {
             if count >= MAX_HYBRID_GI_PROBES {
                 break;
@@ -51,6 +91,7 @@ pub(in super::super) fn encode_hybrid_gi_probes(
             let Some(gpu_probe) = project_prepared_hybrid_gi_probe(
                 prepared_probe,
                 prepared_frame,
+                &sidebands,
                 view_proj,
                 camera_position,
             ) else {
@@ -67,13 +108,11 @@ pub(in super::super) fn encode_hybrid_gi_probes(
 fn project_prepared_hybrid_gi_probe(
     probe: &RenderHybridGiPreparedProbe,
     prepared_frame: &RenderHybridGiPreparedFrame,
+    sidebands: &PreparedProbeSidebandLookup<'_>,
     view_proj: Mat4,
     camera_position: Vec3,
 ) -> Option<GpuHybridGiProbe> {
-    let scene_data = prepared_frame
-        .probe_scene_data
-        .iter()
-        .find(|scene_data| scene_data.probe_id == probe.probe_id)?;
+    let scene_data = sidebands.scene_data(probe.probe_id)?;
     let position = dequantized_probe_position(scene_data);
     let radius = dequantized_probe_radius(scene_data);
     let (uv_x, uv_y) = project_screen_uv(view_proj, position)?;
@@ -81,10 +120,8 @@ fn project_prepared_hybrid_gi_probe(
     let budget_weight = ((probe.ray_budget.max(1) as f32) / 128.0).clamp(0.25, 1.5);
     let temporal_signature = probe_temporal_signature(probe, prepared_frame);
     let irradiance = rgb8_to_unit(probe.irradiance_rgb);
-    let rt_lighting = prepared_frame
-        .probe_rt_lighting_rgb
-        .iter()
-        .find(|rt_lighting| rt_lighting.probe_id == probe.probe_id)
+    let rt_lighting = sidebands
+        .rt_lighting(probe.probe_id)
         .map(|rt_lighting| rgb8_to_unit(rt_lighting.rt_lighting_rgb))
         .unwrap_or([0.0; 3]);
     let rt_lighting_weight = if rt_lighting.iter().any(|channel| *channel > 0.0) {
@@ -110,6 +147,31 @@ fn project_prepared_hybrid_gi_probe(
             f32::from(probe.dynamic_weight_q8) / 255.0,
         ],
     })
+}
+
+fn lookup_by_probe_id<T>(
+    entries: &[T],
+    probe_id: u32,
+    is_canonical: bool,
+    key: fn(&T) -> u32,
+) -> Option<&T> {
+    if is_canonical {
+        let index = entries.binary_search_by_key(&probe_id, key).ok()?;
+        return entries.get(index);
+    }
+    entries.iter().find(|entry| key(entry) == probe_id)
+}
+
+fn strictly_increasing_by_key<T>(entries: &[T], key: fn(&T) -> u32) -> bool {
+    entries.windows(2).all(|pair| key(&pair[0]) < key(&pair[1]))
+}
+
+fn scene_data_probe_id(entry: &RenderHybridGiPreparedProbeSceneData) -> u32 {
+    entry.probe_id
+}
+
+fn rt_lighting_probe_id(entry: &RenderHybridGiPreparedProbeRtLighting) -> u32 {
+    entry.probe_id
 }
 
 fn probe_temporal_signature(
@@ -214,6 +276,104 @@ mod tests {
     }
 
     #[test]
+    fn hybrid_gi_sideband_lookup_preserves_reordered_duplicate_first_match() {
+        let prepared = RenderHybridGiPreparedFrame {
+            probe_scene_data: vec![scene_data(9, 90), scene_data(7, 70), scene_data(7, 71)],
+            probe_rt_lighting_rgb: vec![
+                rt_lighting(9, [90, 0, 0]),
+                rt_lighting(7, [70, 0, 0]),
+                rt_lighting(7, [71, 0, 0]),
+            ],
+            ..RenderHybridGiPreparedFrame::default()
+        };
+
+        let lookup = PreparedProbeSidebandLookup::new(&prepared);
+
+        assert!(!lookup.scene_data_is_canonical);
+        assert!(!lookup.rt_lighting_is_canonical);
+        assert_eq!(
+            lookup.scene_data(7).map(|entry| entry.position_x_q),
+            Some(70)
+        );
+        assert_eq!(
+            lookup.rt_lighting(7).map(|entry| entry.rt_lighting_rgb),
+            Some([70, 0, 0])
+        );
+    }
+
+    #[test]
+    fn optimization_batch_20260830dv_hybrid_gi_sidebands_use_canonical_binary_lookup() {
+        let prepared = RenderHybridGiPreparedFrame {
+            probe_scene_data: vec![scene_data(3, 30), scene_data(7, 70), scene_data(9, 90)],
+            probe_rt_lighting_rgb: vec![
+                rt_lighting(3, [30, 0, 0]),
+                rt_lighting(7, [70, 0, 0]),
+                rt_lighting(9, [90, 0, 0]),
+            ],
+            ..RenderHybridGiPreparedFrame::default()
+        };
+        let lookup = PreparedProbeSidebandLookup::new(&prepared);
+
+        assert!(lookup.scene_data_is_canonical);
+        assert!(lookup.rt_lighting_is_canonical);
+        assert_eq!(
+            lookup.scene_data(7).map(|entry| entry.position_x_q),
+            Some(70)
+        );
+        assert_eq!(
+            lookup.rt_lighting(7).map(|entry| entry.rt_lighting_rgb),
+            Some([70, 0, 0])
+        );
+
+        let source = include_str!("encode.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production source");
+        assert!(production.contains("binary_search_by_key"));
+        assert!(production.contains("strictly_increasing_by_key"));
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830dv_hybrid_gi_sideband_lookup_evidence() {
+        const FRAME_COUNT: usize = 32_768;
+        const PROBE_COUNT: usize = MAX_HYBRID_GI_PROBES;
+        const MARKER: &str = "RUNTIME531_HYBRID_GI_SIDEBAND_BINARY_LOOKUP_BENCH_V1";
+
+        let legacy_checks_per_frame = PROBE_COUNT
+            .saturating_mul(PROBE_COUNT.saturating_add(1))
+            .saturating_mul(2)
+            / 2;
+        let comparisons_per_lookup = usize::BITS as usize - PROBE_COUNT.leading_zeros() as usize;
+        let indexed_checks_per_frame = PROBE_COUNT
+            .saturating_sub(1)
+            .saturating_mul(2)
+            .saturating_add(
+                PROBE_COUNT
+                    .saturating_mul(comparisons_per_lookup)
+                    .saturating_mul(2),
+            );
+        let legacy_candidate_checks = FRAME_COUNT.saturating_mul(legacy_checks_per_frame);
+        let indexed_candidate_checks = FRAME_COUNT.saturating_mul(indexed_checks_per_frame);
+        let reduction_bps = legacy_candidate_checks
+            .saturating_sub(indexed_candidate_checks)
+            .saturating_mul(10_000)
+            / legacy_candidate_checks.max(1);
+
+        assert!(
+            indexed_candidate_checks.saturating_mul(100)
+                <= legacy_candidate_checks.saturating_mul(70)
+        );
+        println!(
+            "{MARKER} frames={FRAME_COUNT} probes={PROBE_COUNT} \
+             legacy_candidate_checks={legacy_candidate_checks} \
+             indexed_candidate_checks_upper_bound={indexed_candidate_checks} \
+             comparisons_per_lookup={comparisons_per_lookup} reduction_bps={reduction_bps}"
+        );
+    }
+
+    #[test]
     fn hybrid_gi_probe_encoder_projects_prepared_runtime_screen_probe_sideband() {
         let frame = ViewportRenderFrame::from_extract(
             hybrid_gi_scene_representation_extract(),
@@ -271,5 +431,25 @@ mod tests {
             ..RenderHybridGiExtract::default()
         });
         extract
+    }
+
+    fn scene_data(probe_id: u32, position_x_q: u32) -> RenderHybridGiPreparedProbeSceneData {
+        RenderHybridGiPreparedProbeSceneData {
+            probe_id,
+            position_x_q,
+            position_y_q: 2048,
+            position_z_q: 2048,
+            radius_q: 96,
+        }
+    }
+
+    fn rt_lighting(
+        probe_id: u32,
+        rt_lighting_rgb: [u8; 3],
+    ) -> RenderHybridGiPreparedProbeRtLighting {
+        RenderHybridGiPreparedProbeRtLighting {
+            probe_id,
+            rt_lighting_rgb,
+        }
     }
 }

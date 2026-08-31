@@ -2,9 +2,39 @@ use std::error::Error;
 use std::path::{Path, PathBuf};
 
 use crate::gpu_timing_evidence::validate_gpu_timing_report_output;
+use crate::material_fixture::ViewerMaterialFixture;
 
 pub(crate) const MIN_FACE_SIZE: u32 = 64;
 pub(crate) const MAX_FACE_SIZE: u32 = 1024;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ViewerHostMode {
+    OffscreenDiagnostic,
+    NativePresent,
+}
+
+impl ViewerHostMode {
+    pub(crate) const fn as_str(self) -> &'static str {
+        match self {
+            Self::OffscreenDiagnostic => "offscreen-diagnostic",
+            Self::NativePresent => "native-present",
+        }
+    }
+
+    pub(crate) const fn capture_target(self) -> &'static str {
+        match self {
+            Self::OffscreenDiagnostic => "offscreen-scene-renderer-cpu-readback",
+            Self::NativePresent => "native-viewport-surface",
+        }
+    }
+
+    pub(crate) const fn gpu_scene_surface_present_count(self) -> u32 {
+        match self {
+            Self::OffscreenDiagnostic => 0,
+            Self::NativePresent => 1,
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct ViewerConfig {
@@ -17,7 +47,10 @@ pub(crate) struct ViewerConfig {
     // None uses the stable cache below work_dir shared by independent viewer launches.
     pub(crate) ibl_cache_dir: Option<PathBuf>,
     pub(crate) screenshot_path: Option<PathBuf>,
+    pub(crate) evidence_identity_path: Option<PathBuf>,
     pub(crate) gpu_timing_report_path: Option<PathBuf>,
+    pub(crate) material_fixture: ViewerMaterialFixture,
+    pub(crate) host_mode: ViewerHostMode,
     pub(crate) renderdoc_capture_once: bool,
     pub(crate) renderdoc_dll: Option<PathBuf>,
     pub(crate) renderdoc_capture_path: Option<PathBuf>,
@@ -37,7 +70,10 @@ impl ViewerConfig {
         let mut work_dir = default_work_dir();
         let mut ibl_cache_dir = None;
         let mut screenshot_path = None;
+        let mut evidence_identity_path = None;
         let mut gpu_timing_report_path = None;
+        let mut material_fixture = ViewerMaterialFixture::default();
+        let mut requested_host_mode = None;
         let mut renderdoc_capture_once = false;
         let mut renderdoc_dll = None;
         let mut renderdoc_capture_path = None;
@@ -126,6 +162,16 @@ impl ViewerConfig {
                     }
                     screenshot_path = Some(path);
                 }
+                "--evidence-identity" => {
+                    let Some(path) = args.next() else {
+                        return Err("--evidence-identity requires a JSON file path".into());
+                    };
+                    let path = PathBuf::from(path);
+                    if path.as_os_str().is_empty() {
+                        return Err("--evidence-identity requires a JSON file path".into());
+                    }
+                    evidence_identity_path = Some(path);
+                }
                 "--gpu-timing-report" => {
                     let Some(path) = args.next() else {
                         return Err("--gpu-timing-report requires a file path".into());
@@ -136,6 +182,22 @@ impl ViewerConfig {
                     }
                     gpu_timing_report_path = Some(path);
                 }
+                "--material-fixture" => {
+                    let Some(value) = args.next() else {
+                        return Err(
+                            "--material-fixture requires metal-mirror or dielectric-ior".into()
+                        );
+                    };
+                    material_fixture = ViewerMaterialFixture::from_cli_value(&value)?;
+                }
+                "--host-mode" => {
+                    let Some(value) = args.next() else {
+                        return Err(
+                            "--host-mode requires offscreen-diagnostic or native-present".into(),
+                        );
+                    };
+                    requested_host_mode = Some(parse_host_mode(&value)?);
+                }
                 _ if arg.starts_with('-') => {
                     return Err(format!("unknown argument `{arg}`").into());
                 }
@@ -145,21 +207,37 @@ impl ViewerConfig {
             }
         }
 
+        let host_mode = requested_host_mode.unwrap_or_else(|| {
+            if screenshot_path.is_some() {
+                ViewerHostMode::OffscreenDiagnostic
+            } else {
+                ViewerHostMode::NativePresent
+            }
+        });
+
         if !help_requested {
             require_radiance_hdr_path(&hdri_path)?;
-            require_non_c_artifact_path("--work-dir", &work_dir)?;
-            if let Some(path) = ibl_cache_dir.as_deref() {
-                require_non_c_artifact_path("--ibl-cache-dir", path)?;
-            }
-            if let Some(path) = screenshot_path.as_deref() {
-                require_non_c_artifact_path("--screenshot", path)?;
-            }
-            if let Some(path) = gpu_timing_report_path.as_deref() {
-                require_non_c_artifact_path("--gpu-timing-report", path)?;
-            }
-            if let Some(path) = renderdoc_capture_path.as_deref() {
-                require_non_c_artifact_path("--renderdoc-capture-path", path)?;
-            }
+            work_dir = resolve_non_c_artifact_path("--work-dir", &work_dir)?;
+            ibl_cache_dir = ibl_cache_dir
+                .as_deref()
+                .map(|path| resolve_non_c_artifact_path("--ibl-cache-dir", path))
+                .transpose()?;
+            screenshot_path = screenshot_path
+                .as_deref()
+                .map(|path| resolve_non_c_artifact_path("--screenshot", path))
+                .transpose()?;
+            evidence_identity_path = evidence_identity_path
+                .as_deref()
+                .map(|path| resolve_non_c_artifact_path("--evidence-identity", path))
+                .transpose()?;
+            gpu_timing_report_path = gpu_timing_report_path
+                .as_deref()
+                .map(|path| resolve_non_c_artifact_path("--gpu-timing-report", path))
+                .transpose()?;
+            renderdoc_capture_path = renderdoc_capture_path
+                .as_deref()
+                .map(|path| resolve_non_c_artifact_path("--renderdoc-capture-path", path))
+                .transpose()?;
             if renderdoc_capture_once {
                 require_renderdoc_capture_support(cfg!(debug_assertions))?;
             }
@@ -177,6 +255,24 @@ impl ViewerConfig {
             if gpu_timing_report_path.is_some() && screenshot_path.is_none() {
                 return Err("--gpu-timing-report requires --screenshot".into());
             }
+            match host_mode {
+                ViewerHostMode::OffscreenDiagnostic if screenshot_path.is_none() => {
+                    return Err("--host-mode offscreen-diagnostic requires --screenshot".into());
+                }
+                ViewerHostMode::NativePresent if screenshot_path.is_some() => {
+                    return Err(
+                        "--host-mode native-present forbids --screenshot and CPU readback evidence"
+                            .into(),
+                    );
+                }
+                _ => {}
+            }
+            if screenshot_path.is_some() && evidence_identity_path.is_none() {
+                return Err("--screenshot requires --evidence-identity <path.json>".into());
+            }
+            if evidence_identity_path.is_some() && screenshot_path.is_none() {
+                return Err("--evidence-identity requires --screenshot".into());
+            }
             if let (Some(screenshot_path), Some(gpu_timing_report_path)) = (
                 screenshot_path.as_deref(),
                 gpu_timing_report_path.as_deref(),
@@ -192,7 +288,10 @@ impl ViewerConfig {
             work_dir,
             ibl_cache_dir,
             screenshot_path,
+            evidence_identity_path,
             gpu_timing_report_path,
+            material_fixture,
+            host_mode,
             renderdoc_capture_once,
             renderdoc_dll,
             renderdoc_capture_path,
@@ -201,6 +300,21 @@ impl ViewerConfig {
             initial_pitch_degrees,
             help_requested,
         })
+    }
+}
+
+fn parse_host_mode(value: &str) -> Result<ViewerHostMode, Box<dyn Error>> {
+    match value {
+        "offscreen-diagnostic" => Ok(ViewerHostMode::OffscreenDiagnostic),
+        "native-present" => Ok(ViewerHostMode::NativePresent),
+        "packaged-product" => Err(
+            "--host-mode packaged-product is not implemented by zircon_shader_pbr_viewer; use the product entrypoint"
+                .into(),
+        ),
+        _ => Err(format!(
+            "--host-mode must be offscreen-diagnostic or native-present, got {value}"
+        )
+        .into()),
     }
 }
 
@@ -230,22 +344,111 @@ fn require_radiance_hdr_path(path: &Path) -> Result<(), Box<dyn Error>> {
     .into())
 }
 
-fn require_non_c_artifact_path(option: &str, path: &Path) -> Result<(), Box<dyn Error>> {
-    let resolved_path = if path.is_absolute() {
+fn resolve_non_c_artifact_path(option: &str, path: &Path) -> Result<PathBuf, Box<dyn Error>> {
+    let absolute_path = if path.is_absolute() {
         path.to_path_buf()
     } else {
         std::env::current_dir()
             .map_err(|error| format!("failed to resolve {option}: {error}"))?
             .join(path)
     };
-    if is_c_drive_path(path) || is_c_drive_path(&resolved_path) {
+    if is_c_drive_path(path) || is_c_drive_path(&absolute_path) {
+        return Err(format!(
+            "{option} must write artifacts outside C:, got {}",
+            absolute_path.display()
+        )
+        .into());
+    }
+
+    let mut existing_ancestor = None;
+    for ancestor in absolute_path.ancestors() {
+        match std::fs::symlink_metadata(ancestor) {
+            Ok(metadata) => {
+                if is_reparse_point(&metadata) {
+                    return Err(format!(
+                        "{option} must not traverse a reparse point: {}",
+                        ancestor.display()
+                    )
+                    .into());
+                }
+                if existing_ancestor.is_none() {
+                    existing_ancestor = Some(ancestor);
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(format!(
+                    "failed to inspect {option} ancestor {}: {error}",
+                    ancestor.display()
+                )
+                .into());
+            }
+        }
+    }
+    let existing_ancestor = existing_ancestor.ok_or_else(|| {
+        format!(
+            "failed to find an existing ancestor while resolving {option}: {}",
+            absolute_path.display()
+        )
+    })?;
+    let canonical_ancestor = std::fs::canonicalize(existing_ancestor).map_err(|error| {
+        format!(
+            "failed to canonicalize {option} ancestor {}: {error}",
+            existing_ancestor.display()
+        )
+    })?;
+    if is_c_drive_path(&canonical_ancestor) {
+        return Err(format!(
+            "{option} must write artifacts outside C:, got {}",
+            canonical_ancestor.display()
+        )
+        .into());
+    }
+    let unresolved_suffix = absolute_path
+        .strip_prefix(existing_ancestor)
+        .map_err(|error| {
+            format!(
+                "failed to preserve {option} path below {}: {error}",
+                existing_ancestor.display()
+            )
+        })?;
+    let resolved_path = normalize_artifact_path(canonical_ancestor.join(unresolved_suffix));
+    if is_c_drive_path(&resolved_path) {
         return Err(format!(
             "{option} must write artifacts outside C:, got {}",
             resolved_path.display()
         )
         .into());
     }
-    Ok(())
+    Ok(resolved_path)
+}
+
+fn normalize_artifact_path(path: PathBuf) -> PathBuf {
+    #[cfg(windows)]
+    {
+        let value = path.as_os_str().to_string_lossy();
+        if let Some(unc_path) = value.strip_prefix("\\\\?\\UNC\\") {
+            return PathBuf::from(format!("\\\\{unc_path}"));
+        }
+        if let Some(normal_path) = value.strip_prefix("\\\\?\\") {
+            return PathBuf::from(normal_path);
+        }
+    }
+    path
+}
+
+fn is_reparse_point(metadata: &std::fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+
+        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0000_0400;
+        return metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0;
+    }
+    #[cfg(not(windows))]
+    {
+        metadata.file_type().is_symlink()
+    }
 }
 
 fn is_c_drive_path(path: &Path) -> bool {
@@ -324,8 +527,10 @@ pub(crate) fn print_help() {
          Optional: --pmrem-face-size <64|128|256|512|1024>\n\
          Optional: --work-dir <directory>\n\
          Optional: --ibl-cache-dir <directory>\n\
-         Optional: --screenshot <path.png> (write the first Ready frame and exit)\n\
+         Optional: --screenshot <path.png> --evidence-identity <path.json> (write the first Ready frame and its bound provenance, then exit)\n\
          Optional: --gpu-timing-report <path.txt> (requires --screenshot; write GPU timing after nonblocking readback)\n\
+         Optional: --material-fixture <metal-mirror|dielectric-ior> (default: metal-mirror)\n\
+         Optional: --host-mode <offscreen-diagnostic|native-present> (screenshot selects offscreen-diagnostic when omitted)\n\
          Optional: --renderdoc-capture-once [--renderdoc-dll <renderdoc.dll> --renderdoc-capture-path <capture-template>] [--exit-after-capture]\n\
          Optional: --yaw <degrees> --pitch <degrees>\n\
          Left mouse drag: orbit camera\n\
@@ -343,7 +548,7 @@ pub(crate) fn print_help() {
 mod tests {
     use super::{
         default_work_dir, default_work_dir_for_workspace, require_renderdoc_capture_support,
-        ViewerConfig,
+        resolve_non_c_artifact_path, ViewerConfig, ViewerHostMode,
     };
 
     #[test]
@@ -351,6 +556,32 @@ mod tests {
         let config = ViewerConfig::from_args([]).expect("default viewer arguments should parse");
 
         assert_eq!(config.face_size, None);
+    }
+
+    #[test]
+    fn material_fixture_defaults_to_the_existing_metal_mirror_baseline() {
+        let config = ViewerConfig::from_args([]).expect("default viewer arguments should parse");
+
+        assert_eq!(
+            config.material_fixture,
+            crate::material_fixture::ViewerMaterialFixture::MetalMirror
+        );
+    }
+
+    #[test]
+    fn dielectric_ior_fixture_is_an_explicit_closed_cli_choice() {
+        let config =
+            ViewerConfig::from_args(["--material-fixture".to_owned(), "dielectric-ior".to_owned()])
+                .expect("the IOR fixture should parse");
+        assert_eq!(
+            config.material_fixture,
+            crate::material_fixture::ViewerMaterialFixture::DielectricIor
+        );
+
+        let error =
+            ViewerConfig::from_args(["--material-fixture".to_owned(), "unsupported".to_owned()])
+                .expect_err("the fixture mode must stay closed");
+        assert!(error.to_string().contains("metal-mirror or dielectric-ior"));
     }
 
     #[test]
@@ -472,6 +703,7 @@ mod tests {
             ("--work-dir", "C:/viewer-work"),
             ("--ibl-cache-dir", "C:/ibl-cache"),
             ("--screenshot", "C:/evidence/ready.png"),
+            ("--evidence-identity", "C:/evidence/identity.json"),
             ("--gpu-timing-report", "C:/evidence/timing.txt"),
             ("--renderdoc-capture-path", "C:/evidence/frame"),
         ] {
@@ -491,6 +723,26 @@ mod tests {
         }
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn viewer_rejects_artifact_paths_below_a_c_drive_reparse_point() {
+        let root = crate::work_paths::viewer_test_artifact_root("c-drive-reparse-point");
+        let reparse_path = root.join("redirected-output");
+        match std::os::windows::fs::symlink_dir(r"C:\Windows", &reparse_path) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+                std::fs::remove_dir_all(root).expect("test artifact root should be removed");
+                return;
+            }
+            Err(error) => panic!("create C-drive test reparse point: {error}"),
+        }
+
+        let error = resolve_non_c_artifact_path("--screenshot", &reparse_path.join("ready.png"))
+            .expect_err("an artifact path below a reparse point must be rejected");
+        assert!(error.to_string().contains("reparse point"));
+        std::fs::remove_dir_all(root).expect("test artifact root should be removed");
+    }
+
     #[test]
     fn viewer_rejects_a_missing_work_directory() {
         let error = ViewerConfig::from_args(["--work-dir".to_owned()])
@@ -506,6 +758,8 @@ mod tests {
         let config = ViewerConfig::from_args([
             "--screenshot".to_owned(),
             "E:/evidence/pbr-ready.png".to_owned(),
+            "--evidence-identity".to_owned(),
+            "E:/evidence/identity.json".to_owned(),
         ])
         .expect("a screenshot destination should parse");
 
@@ -513,6 +767,55 @@ mod tests {
             config.screenshot_path,
             Some(std::path::PathBuf::from("E:/evidence/pbr-ready.png"))
         );
+        assert_eq!(config.host_mode, ViewerHostMode::OffscreenDiagnostic);
+        assert_eq!(
+            config.evidence_identity_path,
+            Some(std::path::PathBuf::from("E:/evidence/identity.json"))
+        );
+    }
+
+    #[test]
+    fn host_mode_makes_cpu_readback_and_native_presentation_mutually_exclusive() {
+        let offscreen = ViewerConfig::from_args([
+            "--host-mode".to_owned(),
+            "offscreen-diagnostic".to_owned(),
+            "--screenshot".to_owned(),
+            "E:/evidence/pbr-ready.png".to_owned(),
+            "--evidence-identity".to_owned(),
+            "E:/evidence/identity.json".to_owned(),
+        ])
+        .expect("offscreen diagnostic evidence must be explicit and self-consistent");
+        assert_eq!(offscreen.host_mode, ViewerHostMode::OffscreenDiagnostic);
+
+        let native =
+            ViewerConfig::from_args(["--host-mode".to_owned(), "native-present".to_owned()])
+                .expect("native presentation must remain available without an offscreen artifact");
+        assert_eq!(native.host_mode, ViewerHostMode::NativePresent);
+
+        let native_with_screenshot = ViewerConfig::from_args([
+            "--host-mode".to_owned(),
+            "native-present".to_owned(),
+            "--screenshot".to_owned(),
+            "E:/evidence/pbr-ready.png".to_owned(),
+        ])
+        .expect_err("a native claim cannot use the CPU readback capture path");
+        assert!(native_with_screenshot
+            .to_string()
+            .contains("native-present forbids --screenshot"));
+
+        let offscreen_without_screenshot =
+            ViewerConfig::from_args(["--host-mode".to_owned(), "offscreen-diagnostic".to_owned()])
+                .expect_err("offscreen diagnostic mode needs a committed screenshot artifact");
+        assert!(offscreen_without_screenshot
+            .to_string()
+            .contains("offscreen-diagnostic requires --screenshot"));
+
+        let packaged_product =
+            ViewerConfig::from_args(["--host-mode".to_owned(), "packaged-product".to_owned()])
+                .expect_err("the standalone diagnostic viewer must not claim product composition");
+        assert!(packaged_product
+            .to_string()
+            .contains("not implemented by zircon_shader_pbr_viewer"));
     }
 
     #[test]
@@ -537,6 +840,8 @@ mod tests {
         let config = ViewerConfig::from_args([
             "--screenshot".to_owned(),
             "E:/evidence/pbr-ready.png".to_owned(),
+            "--evidence-identity".to_owned(),
+            "E:/evidence/identity.json".to_owned(),
             "--gpu-timing-report".to_owned(),
             "E:/evidence/pbr-gpu-timing.txt".to_owned(),
         ])
@@ -545,6 +850,27 @@ mod tests {
             config.gpu_timing_report_path,
             Some(std::path::PathBuf::from("E:/evidence/pbr-gpu-timing.txt"))
         );
+    }
+
+    #[test]
+    fn viewer_requires_a_screenshot_and_identity_manifest_pair() {
+        let screenshot_without_identity = ViewerConfig::from_args([
+            "--screenshot".to_owned(),
+            "E:/evidence/pbr-ready.png".to_owned(),
+        ])
+        .expect_err("a screenshot without an identity manifest must be rejected");
+        assert!(screenshot_without_identity
+            .to_string()
+            .contains("--screenshot requires --evidence-identity"));
+
+        let identity_without_screenshot = ViewerConfig::from_args([
+            "--evidence-identity".to_owned(),
+            "E:/evidence/identity.json".to_owned(),
+        ])
+        .expect_err("an identity manifest without a screenshot must be rejected");
+        assert!(identity_without_screenshot
+            .to_string()
+            .contains("--evidence-identity requires --screenshot"));
     }
 
     #[test]
@@ -560,6 +886,8 @@ mod tests {
             let error = ViewerConfig::from_args([
                 "--screenshot".to_owned(),
                 screenshot_path.to_owned(),
+                "--evidence-identity".to_owned(),
+                "E:/evidence/identity.json".to_owned(),
                 "--gpu-timing-report".to_owned(),
                 report_path.to_owned(),
             ])

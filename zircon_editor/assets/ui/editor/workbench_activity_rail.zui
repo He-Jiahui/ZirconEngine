@@ -8,7 +8,7 @@ display_name = "workbench activity rail"
 
 [imports]
 widgets = []
-styles = ["res://ui/theme/editor_base.zui"]
+styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]
 node = "activity_rail_root"
@@ -16,7 +16,7 @@ node = "activity_rail_root"
 [nodes.activity_rail_root]
 component = "Overlay"
 control_id = "ActivityRailRoot"
-classes = ["activity-rail", "editor-shell"]
+classes = ["activity-rail", "editor-shell", "workbench-shell-root"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "activity_rail_panel" },
@@ -29,13 +29,15 @@ children = [
 [nodes.activity_rail_panel]
 component = "Container"
 control_id = "ActivityRailPanel"
+classes = ["workbench-rail"]
 props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
 layout = { position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.activity_rail_button_0]
 component = "Container"
 control_id = "ActivityRailButton0"
-props = { radius = 3.0, border_width = 0.0 }
+classes = ["workbench-rail-button"]
+props = { surface_variant = "transparent", radius = "$editor.control.radius.small", border_width = 0.0 }
 layout = { position = { x = 3.0, y = 6.0 }, width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.activity_rail_button_icon_0]
@@ -47,7 +49,8 @@ layout = { position = { x = 8.0, y = 13.0 }, width = { min = 18.0, preferred = 1
 [nodes.activity_rail_button_1]
 component = "Container"
 control_id = "ActivityRailButton1"
-props = { radius = 3.0, border_width = 0.0 }
+classes = ["workbench-rail-button"]
+props = { surface_variant = "transparent", radius = "$editor.control.radius.small", border_width = 0.0 }
 layout = { position = { x = 3.0, y = 42.0 }, width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.activity_rail_button_icon_1]

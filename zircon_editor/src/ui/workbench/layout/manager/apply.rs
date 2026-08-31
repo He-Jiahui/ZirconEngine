@@ -11,6 +11,7 @@ impl LayoutManager {
         layout: &mut WorkbenchLayout,
         cmd: LayoutCommand,
     ) -> Result<LayoutDiff, LayoutCommandError> {
+        let geometry_only = cmd.is_geometry_only();
         let result = match cmd {
             LayoutCommand::OpenView {
                 instance_id,
@@ -105,6 +106,9 @@ impl LayoutManager {
                 path,
                 ratio,
             } => {
+                if !ratio.is_finite() {
+                    return Err(LayoutCommandError::NonFiniteSplitRatio { workspace, path });
+                }
                 let node = self
                     .workspace_node_mut(layout, &workspace, &path)
                     .ok_or_else(|| LayoutCommandError::MissingSplitPath {
@@ -126,7 +130,6 @@ impl LayoutManager {
                 Ok(LayoutDiff { changed })
             }
             LayoutCommand::SetDrawerMode { slot, mode } => {
-                let slot = slot.canonical();
                 let window = layout
                     .active_activity_window_mut()
                     .ok_or(LayoutCommandError::MissingDrawer { slot })?;
@@ -138,7 +141,7 @@ impl LayoutManager {
                 let drawer = window
                     .activity_drawers
                     .get_mut(&slot)
-                    .expect("validated drawer must remain present");
+                    .ok_or(LayoutCommandError::MissingDrawer { slot })?;
                 changed |= drawer.mode != mode
                     || (mode == ActivityDrawerMode::Collapsed
                         && (drawer.tab_stack.active_tab.is_some() || drawer.active_view.is_some()));
@@ -153,20 +156,12 @@ impl LayoutManager {
                 Ok(LayoutDiff { changed })
             }
             LayoutCommand::SetDrawerExtent { slot, extent } => {
-                let slot = slot.canonical();
-                let extent = extent.max(120.0);
-                let drawer = layout
-                    .active_activity_window_mut()
-                    .and_then(|window| window.activity_drawers.get_mut(&slot))
-                    .ok_or(LayoutCommandError::MissingDrawer { slot })?;
-                let changed = drawer.extent != extent;
-                if changed {
-                    drawer.extent = extent;
-                }
-                Ok(LayoutDiff { changed })
+                set_drawer_extents_atomically(layout, &[slot], extent)
+            }
+            LayoutCommand::SetDrawerRegionExtent { slot, extent } => {
+                set_drawer_extents_atomically(layout, drawer_region_slots(slot), extent)
             }
             LayoutCommand::ActivateDrawerTab { slot, instance_id } => {
-                let slot = slot.canonical();
                 let window = layout
                     .active_activity_window_mut()
                     .ok_or(LayoutCommandError::MissingDrawer { slot })?;
@@ -183,7 +178,7 @@ impl LayoutManager {
                 let drawer = window
                     .activity_drawers
                     .get_mut(&slot)
-                    .expect("validated drawer must remain present");
+                    .ok_or(LayoutCommandError::MissingDrawer { slot })?;
                 changed |= drawer.tab_stack.active_tab.as_ref() != Some(&instance_id)
                     || drawer.active_view.as_ref() != Some(&instance_id)
                     || drawer.mode == ActivityDrawerMode::Collapsed;
@@ -195,6 +190,25 @@ impl LayoutManager {
                 Ok(LayoutDiff { changed })
             }
             LayoutCommand::ActivateMainPage { page_id } => {
+                let mut pages = layout
+                    .main_pages
+                    .iter()
+                    .filter(|page| page.id() == &page_id);
+                let Some(page) = pages.next() else {
+                    return Err(LayoutCommandError::MissingMainPage { page_id });
+                };
+                if pages.next().is_some() {
+                    return Err(LayoutCommandError::DuplicateMainPage { page_id });
+                }
+                let activity_window_id = page.activity_window_id().cloned();
+                if let Some(window_id) = activity_window_id {
+                    if !layout.activity_windows.contains_key(&window_id) {
+                        return Err(LayoutCommandError::MissingActivityWindow {
+                            page_id,
+                            window_id,
+                        });
+                    }
+                }
                 let changed = layout.active_main_page != page_id;
                 if changed {
                     layout.active_main_page = page_id;
@@ -205,14 +219,17 @@ impl LayoutManager {
                 Ok(LayoutDiff { changed: false })
             }
             LayoutCommand::ResetToDefault => {
-                *layout = self.default_layout();
-                Ok(LayoutDiff { changed: true })
+                let default_layout = self.default_layout();
+                let changed = *layout != default_layout;
+                if changed {
+                    *layout = default_layout;
+                }
+                Ok(LayoutDiff { changed })
             }
         };
 
-        if matches!(&result, Ok(diff) if diff.changed) {
+        if matches!(&result, Ok(diff) if diff.changed) && !geometry_only {
             normalize_drawer_active_selection(layout);
-            layout.sync_legacy_drawers_from_active_activity_window();
         }
 
         result
@@ -228,6 +245,63 @@ fn append_instance_to_floating_workspace(
         DocumentNode::SplitNode { first, .. } => {
             append_instance_to_floating_workspace(first, instance_id);
         }
+    }
+}
+
+fn set_drawer_extents_atomically(
+    layout: &mut WorkbenchLayout,
+    slots: &[super::super::ActivityDrawerSlot],
+    extent: f32,
+) -> Result<LayoutDiff, LayoutCommandError> {
+    let Some(first_slot) = slots.first().copied() else {
+        return Ok(LayoutDiff { changed: false });
+    };
+    if !extent.is_finite() {
+        return Err(LayoutCommandError::NonFiniteDrawerExtent { slot: first_slot });
+    }
+    let extent = extent.max(120.0);
+    let changed = {
+        let window = layout
+            .active_activity_window_mut()
+            .ok_or(LayoutCommandError::MissingDrawer { slot: first_slot })?;
+        if let Some(slot) = slots
+            .iter()
+            .copied()
+            .find(|slot| !window.activity_drawers.contains_key(slot))
+        {
+            return Err(LayoutCommandError::MissingDrawer { slot });
+        }
+        let mut changed = false;
+        for slot in slots {
+            let drawer = window
+                .activity_drawers
+                .get_mut(slot)
+                .ok_or(LayoutCommandError::MissingDrawer { slot: *slot })?;
+            if drawer.extent != extent {
+                drawer.extent = extent;
+                changed = true;
+            }
+        }
+        changed
+    };
+
+    Ok(LayoutDiff { changed })
+}
+
+fn drawer_region_slots(
+    slot: super::super::ActivityDrawerSlot,
+) -> &'static [super::super::ActivityDrawerSlot] {
+    use super::super::ActivityDrawerSlot;
+
+    match slot {
+        ActivityDrawerSlot::LeftTop | ActivityDrawerSlot::LeftBottom => {
+            &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom]
+        }
+        ActivityDrawerSlot::RightTop | ActivityDrawerSlot::RightBottom => &[
+            ActivityDrawerSlot::RightTop,
+            ActivityDrawerSlot::RightBottom,
+        ],
+        ActivityDrawerSlot::Bottom => &[ActivityDrawerSlot::Bottom],
     }
 }
 
@@ -258,141 +332,5 @@ fn normalize_drawer_active_selection(layout: &mut WorkbenchLayout) {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    use super::*;
-    use crate::ui::workbench::layout::{
-        ActivityDrawerSlot, LayoutCommand, LayoutManager, MainPageId, WorkbenchLayout,
-    };
-    use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
-
-    #[test]
-    fn repeated_layout_commands_report_unchanged() {
-        let manager = LayoutManager::default();
-        let mut layout = WorkbenchLayout::default();
-
-        assert!(
-            !manager
-                .apply(
-                    &mut layout,
-                    LayoutCommand::SetDrawerMode {
-                        slot: ActivityDrawerSlot::LeftTop,
-                        mode: ActivityDrawerMode::Pinned,
-                    },
-                )
-                .expect("drawer mode")
-                .changed
-        );
-        assert!(
-            !manager
-                .apply(
-                    &mut layout,
-                    LayoutCommand::SetDrawerExtent {
-                        slot: ActivityDrawerSlot::LeftTop,
-                        extent: 260.0,
-                    },
-                )
-                .expect("drawer extent")
-                .changed
-        );
-        assert!(
-            !manager
-                .apply(
-                    &mut layout,
-                    LayoutCommand::ActivateMainPage {
-                        page_id: MainPageId::workbench(),
-                    },
-                )
-                .expect("main page")
-                .changed
-        );
-
-        let instance_id = ViewInstanceId::new("editor.scene#performance");
-        manager
-            .apply(
-                &mut layout,
-                LayoutCommand::OpenView {
-                    instance_id: instance_id.clone(),
-                    target: ViewHost::Document(MainPageId::workbench(), Vec::new()),
-                },
-            )
-            .expect("open view");
-        assert!(
-            !manager
-                .apply(&mut layout, LayoutCommand::FocusView { instance_id },)
-                .expect("repeat focus")
-                .changed
-        );
-    }
-
-    #[test]
-    fn activating_a_drawer_collapses_the_other_drawer_in_the_same_region() {
-        let manager = LayoutManager::default();
-        let mut layout = WorkbenchLayout::default();
-        let hierarchy = ViewInstanceId::new("editor.hierarchy#region");
-        let plugins = ViewInstanceId::new("editor.module_plugins#region");
-        let window = layout
-            .active_activity_window_mut()
-            .expect("active workbench window");
-
-        let left_top = window
-            .activity_drawers
-            .get_mut(&ActivityDrawerSlot::LeftTop)
-            .expect("left-top drawer");
-        left_top.tab_stack.tabs = vec![hierarchy.clone()];
-        left_top.tab_stack.active_tab = Some(hierarchy.clone());
-        left_top.active_view = Some(hierarchy.clone());
-        left_top.mode = ActivityDrawerMode::Pinned;
-
-        let left_bottom = window
-            .activity_drawers
-            .get_mut(&ActivityDrawerSlot::LeftBottom)
-            .expect("left-bottom drawer");
-        left_bottom.tab_stack.tabs = vec![plugins.clone()];
-        left_bottom.mode = ActivityDrawerMode::Collapsed;
-
-        assert!(
-            manager
-                .apply(
-                    &mut layout,
-                    LayoutCommand::ActivateDrawerTab {
-                        slot: ActivityDrawerSlot::LeftBottom,
-                        instance_id: plugins.clone(),
-                    },
-                )
-                .expect("activate left-bottom drawer")
-                .changed
-        );
-
-        let drawers = layout.active_activity_window_drawers();
-        let left_top = &drawers[&ActivityDrawerSlot::LeftTop];
-        assert_eq!(left_top.mode, ActivityDrawerMode::Collapsed);
-        assert_eq!(left_top.tab_stack.active_tab, None);
-        assert_eq!(left_top.active_view, None);
-
-        let left_bottom = &drawers[&ActivityDrawerSlot::LeftBottom];
-        assert_eq!(left_bottom.mode, ActivityDrawerMode::Pinned);
-        assert_eq!(left_bottom.tab_stack.active_tab, Some(plugins.clone()));
-        assert_eq!(left_bottom.active_view, Some(plugins));
-
-        assert!(
-            manager
-                .apply(
-                    &mut layout,
-                    LayoutCommand::FocusView {
-                        instance_id: hierarchy.clone(),
-                    },
-                )
-                .expect("focus left-top drawer")
-                .changed
-        );
-        let drawers = layout.active_activity_window_drawers();
-        assert_eq!(
-            drawers[&ActivityDrawerSlot::LeftTop].active_view,
-            Some(hierarchy)
-        );
-        assert_eq!(
-            drawers[&ActivityDrawerSlot::LeftBottom].mode,
-            ActivityDrawerMode::Collapsed
-        );
-    }
-}
+#[path = "apply/tests/mod.rs"]
+mod tests;

@@ -34,9 +34,12 @@ fn camera_loop_frame_submissions_project_selected_children_and_terminal_ui() {
         RenderWorldSnapshotHandle::new(2),
         empty_scene_snapshot(),
     );
+    let source_scene = extract.shared_scene();
     extract.view = extract.view.with_cameras(vec![base, overlay, primary]);
     let mut frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64))
-        .with_ui(Some(UiRenderExtract::default()))
+        .with_ui(Some(UiRenderSubmission::single(Arc::new(
+            UiRenderExtract::default(),
+        ))))
         .with_prepared_runtime_sidebands(RenderPreparedRuntimeSidebands::new(
             RenderPluginRendererOutputs {
                 particles: RenderParticleGpuReadbackOutputs {
@@ -157,38 +160,34 @@ fn submit_camera_loop_frame_streams_selected_children_and_restores_source_fields
         empty_scene_snapshot(),
     );
     extract.view = extract.view.with_cameras(vec![base, overlay, primary]);
-    let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64))
-        .with_ui(Some(UiRenderExtract::default()));
+    let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64)).with_ui(Some(
+        UiRenderSubmission::single(Arc::new(UiRenderExtract::default())),
+    ));
     let submissions = camera_loop_submissions(&frame.extract).expect("frame submissions");
     let mut seen_cameras = Vec::new();
     let mut terminal_ui = Vec::new();
     let mut output_owners = Vec::new();
+    let mut viewport_sizes = Vec::new();
 
-    stream_camera_loop_frame_submissions(
-        frame,
-        submissions,
-        |frame, _source_payloads, output_policy| {
-            seen_cameras.push(frame.camera().entity);
-            terminal_ui.push(frame.ui.is_some());
-            output_owners.push(
-                ViewportCameraStackOutputPolicy::from(output_policy).owns_viewport_submission(),
-            );
-            assert!(
-                frame.extract.geometry.virtual_geometry.is_none(),
-                "streaming submit should restore source advanced extract state before each child"
-            );
-            frame.extract_mut().geometry.virtual_geometry =
-                Some(RenderVirtualGeometryExtract::default());
-            frame.viewport_size = UVec2::new(7, 7);
-            frame.extract_mut().view.target_size = Some(UVec2::new(7, 7));
-            Ok(())
-        },
-    )
+    stream_camera_loop_frame_submissions(frame, submissions, |frame, output_policy| {
+        seen_cameras.push(frame.camera().entity);
+        terminal_ui.push(frame.ui.is_some());
+        viewport_sizes.push(frame.viewport_size);
+        output_owners
+            .push(ViewportCameraStackOutputPolicy::from(output_policy).owns_viewport_submission());
+        assert!(
+            Arc::ptr_eq(&source_scene, &frame.extract.shared_scene()),
+            "every camera submission must retain the immutable source scene"
+        );
+        frame.viewport_size = UVec2::new(7, 7);
+        Ok(())
+    })
     .expect("streamed frame submissions");
 
     assert_eq!(seen_cameras, vec![Some(1), Some(2), Some(3)]);
     assert_eq!(terminal_ui, vec![false, false, true]);
     assert_eq!(output_owners, vec![false, false, true]);
+    assert_eq!(viewport_sizes, vec![UVec2::new(64, 64); 3]);
 }
 
 fn camera_loop_frame_submissions(
@@ -241,8 +240,13 @@ fn project_borrowed_frame_to_selected_camera(
         .with_output_target(frame.output_target())
         .with_ui(frame.ui.clone())
         .with_previous_motion_vector_camera(frame.previous_motion_vector_camera().cloned())
+        .with_environment_source_cubemap_override(frame.environment_source_cubemap_override.clone())
+        .with_particle_previous_sprites_override(frame.particle_previous_sprites_override.clone())
         .with_virtual_geometry_debug_snapshot(frame.virtual_geometry_debug_snapshot.clone())
         .with_camera_stack_output_policy(frame.camera_stack_output_policy());
+    if let Some(post_process) = frame.post_process_override.clone() {
+        projected = projected.with_post_process_override(post_process);
+    }
     if let Some(frame_visibility) = frame.frame_visibility.clone() {
         projected = projected.with_frame_visibility(frame_visibility);
     }
@@ -264,6 +268,9 @@ fn project_owned_frame_to_selected_camera(
         ui,
         output_target,
         previous_motion_vector_camera,
+        post_process_override,
+        environment_source_cubemap_override,
+        particle_previous_sprites_override,
         frame_visibility,
         virtual_geometry_debug_snapshot,
         prepared_runtime_sidebands,
@@ -280,9 +287,14 @@ fn project_owned_frame_to_selected_camera(
         .with_output_target(output_target)
         .with_ui(ui)
         .with_previous_motion_vector_camera(previous_motion_vector_camera)
+        .with_environment_source_cubemap_override(environment_source_cubemap_override)
+        .with_particle_previous_sprites_override(particle_previous_sprites_override)
         .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot)
         .with_prepared_runtime_sidebands(prepared_runtime_sidebands)
         .with_camera_stack_output_policy(camera_stack_output_policy);
+    if let Some(post_process) = post_process_override {
+        projected = projected.with_post_process_override(post_process);
+    }
     if let Some(frame_visibility) = frame_visibility {
         projected = projected.with_frame_visibility(frame_visibility);
     }

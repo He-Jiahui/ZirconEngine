@@ -55,12 +55,12 @@ mod tests {
     }
 
     fn assert_default_material_fyrox_workbench(layout: &super::WorkbenchLayout) {
-        let MainHostPageLayout::WorkbenchPage {
-            document_workspace, ..
-        } = &layout.main_pages[0]
-        else {
+        let MainHostPageLayout::WorkbenchPage { id, .. } = &layout.main_pages[0] else {
             panic!("restore fallback should open the default workbench page");
         };
+        let document_workspace = layout
+            .content_workspace_for_page(id)
+            .expect("workbench page should resolve its activity-window content workspace");
         let DocumentNode::Tabs(documents) = document_workspace else {
             panic!("workbench document area should use the preset tab stack");
         };
@@ -73,7 +73,9 @@ mod tests {
         );
 
         assert_eq!(
-            layout.drawers[&ActivityDrawerSlot::LeftTop].tab_stack.tabs,
+            layout.active_activity_window_drawers()[&ActivityDrawerSlot::LeftTop]
+                .tab_stack
+                .tabs,
             vec![
                 ViewInstanceId::new("editor.hierarchy#1"),
                 ViewInstanceId::new("editor.assets#1")

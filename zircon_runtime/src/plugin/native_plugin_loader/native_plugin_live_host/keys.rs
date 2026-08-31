@@ -62,8 +62,12 @@ impl<T> NativePluginLiveRegistry<T> {
     }
 
     pub(super) fn insert(&mut self, key: NativePluginLiveKey<'_>, value: T) -> Option<T> {
-        self.map_mut(key.module_kind())
-            .insert(key.plugin_id().to_string(), value)
+        let map = self.map_mut(key.module_kind());
+        if let Some(current) = map.get_mut(key.plugin_id()) {
+            let previous = std::mem::replace(current, value);
+            return Some(previous);
+        }
+        map.insert(key.plugin_id().to_string(), value)
     }
 
     pub(super) fn remove(&mut self, key: &NativePluginLiveKey<'_>) -> Option<T> {
@@ -117,5 +121,47 @@ pub(super) fn module_kind_article_label(module_kind: PluginModuleKind) -> &'stat
         PluginModuleKind::Editor => "an editor",
         PluginModuleKind::Native => "a native",
         PluginModuleKind::Vm => "a vm",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{NativePluginLiveRegistry, live_key};
+    use crate::plugin::PluginModuleKind;
+
+    #[test]
+    fn replacement_returns_previous_value_without_replacing_key() {
+        let mut registry = NativePluginLiveRegistry::default();
+        assert_eq!(
+            registry.insert(live_key(PluginModuleKind::Runtime, "physics"), 1_u8),
+            None
+        );
+        let original_key = registry
+            .plugin_ids(PluginModuleKind::Runtime)
+            .next()
+            .expect("runtime plugin id")
+            .as_ptr();
+
+        let borrowed_id = String::from("physics");
+        assert_eq!(
+            registry.insert(
+                live_key(PluginModuleKind::Runtime, borrowed_id.as_str()),
+                2_u8,
+            ),
+            Some(1)
+        );
+
+        assert_eq!(
+            registry
+                .plugin_ids(PluginModuleKind::Runtime)
+                .next()
+                .expect("runtime plugin id")
+                .as_ptr(),
+            original_key
+        );
+        assert_eq!(
+            registry.get(&live_key(PluginModuleKind::Runtime, "physics")),
+            Some(&2)
+        );
     }
 }

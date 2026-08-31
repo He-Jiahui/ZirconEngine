@@ -1,6 +1,5 @@
 use super::super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
-use super::super::super::component_variant_contains;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn timeline_dot_tone_color(
     node: &TemplatePaneNodeData,
@@ -30,20 +29,8 @@ fn timeline_dot_tone_color_from_host(
 }
 
 pub(super) fn timeline_dot_color_token(node: &TemplatePaneNodeData) -> &str {
-    for token in [
-        "secondary",
-        "primary",
-        "grey",
-        "inherit",
-        "warning",
-        "error",
-        "danger",
-        "success",
-        "info",
-    ] {
-        if component_variant_contains(node, token) {
-            return token;
-        }
+    if let Some(token) = timeline_dot_color_variant(&node.component_variant) {
+        return token;
     }
     match node.text_tone.as_str() {
         "" => "grey",
@@ -51,6 +38,55 @@ pub(super) fn timeline_dot_color_token(node: &TemplatePaneNodeData) -> &str {
         other => other,
     }
 }
+
+fn timeline_dot_color_variant(component_variant: &str) -> Option<&'static str> {
+    let mut best = u8::MAX;
+    for part in component_variant.split(|character: char| {
+        character.is_ascii_whitespace() || matches!(character, ',' | '/' | '|' | ':' | ';')
+    }) {
+        let candidate = if part.eq_ignore_ascii_case("secondary") {
+            1
+        } else if part.eq_ignore_ascii_case("primary") {
+            2
+        } else if part.eq_ignore_ascii_case("grey") {
+            3
+        } else if part.eq_ignore_ascii_case("inherit") {
+            4
+        } else if part.eq_ignore_ascii_case("warning") {
+            5
+        } else if part.eq_ignore_ascii_case("error") {
+            6
+        } else if part.eq_ignore_ascii_case("danger") {
+            7
+        } else if part.eq_ignore_ascii_case("success") {
+            8
+        } else if part.eq_ignore_ascii_case("info") {
+            9
+        } else {
+            continue;
+        };
+        best = best.min(candidate);
+        if best == 1 {
+            break;
+        }
+    }
+    match best {
+        1 => Some("secondary"),
+        2 => Some("primary"),
+        3 => Some("grey"),
+        4 => Some("inherit"),
+        5 => Some("warning"),
+        6 => Some("error"),
+        7 => Some("danger"),
+        8 => Some("success"),
+        9 => Some("info"),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+#[path = "tokens/single_scan_color_tests.rs"]
+mod single_scan_color_tests;
 
 #[cfg(test)]
 mod tests {

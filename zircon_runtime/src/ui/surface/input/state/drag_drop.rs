@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::{
     component::UiDragPayload,
@@ -16,7 +18,8 @@ pub struct UiSurfaceDragDropState {
     pub target: UiNodeId,
     pub pointer_id: UiPointerId,
     pub point: Option<UiPoint>,
-    pub payload: Option<UiDragPayload>,
+    /// Retains the same immutable operation payload published by the input event.
+    pub payload: Option<Arc<UiDragPayload>>,
     pub accepted: bool,
 }
 
@@ -28,7 +31,7 @@ impl UiSurfaceInputState {
         pointer_id: UiPointerId,
         session_id: Option<UiDragSessionId>,
         point: Option<UiPoint>,
-        payload: Option<UiDragPayload>,
+        payload: Option<Arc<UiDragPayload>>,
     ) -> UiSurfaceInputEffectResult<()> {
         if self.drag_drop.is_some() {
             return Err(UiSurfaceInputEffectError::DragSessionAlreadyActive);
@@ -51,7 +54,7 @@ impl UiSurfaceInputState {
         pointer_id: UiPointerId,
         session_id: Option<UiDragSessionId>,
         point: Option<UiPoint>,
-        payload: Option<UiDragPayload>,
+        payload: Option<Arc<UiDragPayload>>,
     ) -> UiSurfaceInputEffectResult<()> {
         let drag = self
             .drag_drop

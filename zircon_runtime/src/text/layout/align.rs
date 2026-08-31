@@ -1,5 +1,7 @@
-use unicode_normalization::char::is_combining_mark;
+use unicode_script::{Script, UnicodeScript};
 use unicode_segmentation::UnicodeSegmentation;
+
+use crate::text::{TextJoiningTypeMap, compiled_joining_type_map};
 
 const JUSTIFY_EPSILON: f32 = 0.01;
 
@@ -40,13 +42,22 @@ pub(crate) fn justify_line_advances(
     Some(adjusted)
 }
 
-/// Returns logical byte offsets immediately after Arabic joining pairs where a virtual tatweel
-/// can be inserted without changing the source range of either neighboring grapheme.
+/// Returns logical byte offsets immediately after Arabic joining pairs that are candidates for a
+/// virtual tatweel. The shaping backend must still validate that a candidate is safe for the
+/// selected face and language before materializing it.
 pub(crate) fn arabic_kashida_insertion_offsets(text: &str) -> Vec<usize> {
+    let joining_types = compiled_joining_type_map();
+    arabic_kashida_insertion_offsets_with_map(text, joining_types)
+}
+
+fn arabic_kashida_insertion_offsets_with_map(
+    text: &str,
+    joining_types: TextJoiningTypeMap,
+) -> Vec<usize> {
     let mut offsets = Vec::new();
     let mut previous = None;
     for (start, grapheme) in text.grapheme_indices(true) {
-        if previous.is_some_and(|left| is_arabic_kashida_pair(left, grapheme)) {
+        if previous.is_some_and(|left| is_arabic_kashida_pair(left, grapheme, joining_types)) {
             offsets.push(start);
         }
         previous = Some(grapheme);
@@ -61,9 +72,10 @@ pub(crate) fn arabic_kashida_insertion_offsets_bounded(text: &str, limit: usize)
         return Vec::new();
     }
 
-    let pair_count = arabic_kashida_pair_count(text);
+    let joining_types = compiled_joining_type_map();
+    let pair_count = arabic_kashida_pair_count(text, joining_types);
     if pair_count <= limit {
-        return arabic_kashida_insertion_offsets(text);
+        return arabic_kashida_insertion_offsets_with_map(text, joining_types);
     }
 
     let mut offsets = Vec::with_capacity(limit);
@@ -72,7 +84,7 @@ pub(crate) fn arabic_kashida_insertion_offsets_bounded(text: &str, limit: usize)
     let mut pair_index = 0;
     let mut previous = None;
     for (start, grapheme) in text.grapheme_indices(true) {
-        if previous.is_some_and(|left| is_arabic_kashida_pair(left, grapheme)) {
+        if previous.is_some_and(|left| is_arabic_kashida_pair(left, grapheme, joining_types)) {
             if next_pair_index == Some(pair_index) {
                 offsets.push(start);
                 next_slot += 1;
@@ -89,11 +101,11 @@ pub(crate) fn arabic_kashida_insertion_offsets_bounded(text: &str, limit: usize)
     offsets
 }
 
-fn arabic_kashida_pair_count(text: &str) -> usize {
+fn arabic_kashida_pair_count(text: &str, joining_types: TextJoiningTypeMap) -> usize {
     let mut count = 0;
     let mut previous = None;
     for (_, grapheme) in text.grapheme_indices(true) {
-        if previous.is_some_and(|left| is_arabic_kashida_pair(left, grapheme)) {
+        if previous.is_some_and(|left| is_arabic_kashida_pair(left, grapheme, joining_types)) {
             count += 1;
         }
         previous = Some(grapheme);
@@ -116,6 +128,7 @@ fn justification_opportunities(graphemes: &[&str]) -> Vec<usize> {
     };
 
     let mut opportunities = Vec::new();
+    let joining_types = compiled_joining_type_map();
     for index in content_start..content_end.saturating_sub(1) {
         if is_word_space(graphemes[index]) {
             opportunities.push(index);
@@ -125,8 +138,10 @@ fn justification_opportunities(graphemes: &[&str]) -> Vec<usize> {
             opportunities.push(index);
             continue;
         }
-        if is_arabic_kashida_pair(graphemes[index], graphemes[index + 1]) {
-            if let Some(tatweel_index) = arabic_tatweel_opportunity_index(graphemes, index) {
+        if is_arabic_kashida_pair(graphemes[index], graphemes[index + 1], joining_types) {
+            if let Some(tatweel_index) =
+                arabic_tatweel_opportunity_index(graphemes, index, joining_types)
+            {
                 opportunities.push(tatweel_index);
             }
         }
@@ -134,8 +149,12 @@ fn justification_opportunities(graphemes: &[&str]) -> Vec<usize> {
     opportunities
 }
 
-fn arabic_tatweel_opportunity_index(graphemes: &[&str], index: usize) -> Option<usize> {
-    if is_tatweel(graphemes[index + 1]) {
+fn arabic_tatweel_opportunity_index(
+    graphemes: &[&str],
+    index: usize,
+    joining_types: TextJoiningTypeMap,
+) -> Option<usize> {
+    if is_tatweel(graphemes[index + 1], joining_types) {
         return Some(index + 1);
     }
     None
@@ -160,25 +179,32 @@ fn is_cjk_justifiable_pair(left: &str, right: &str) -> bool {
     cjk_char(left).is_some() && cjk_char(right).is_some()
 }
 
-fn is_arabic_kashida_pair(left: &str, right: &str) -> bool {
-    let Some(left) = arabic_grapheme_base(left) else {
+fn is_arabic_kashida_pair(left: &str, right: &str, joining_types: TextJoiningTypeMap) -> bool {
+    let Some(left) = arabic_grapheme_base(left, joining_types) else {
         return false;
     };
-    let Some(right) = arabic_grapheme_base(right) else {
+    let Some(right) = arabic_grapheme_base(right, joining_types) else {
         return false;
     };
 
-    is_arabic_left_joining_letter(left) && is_arabic_right_joining_letter(right)
+    joining_types
+        .get(left)
+        .joins_with_following_logical_character()
+        && joining_types
+            .get(right)
+            .joins_with_preceding_logical_character()
 }
 
-fn arabic_grapheme_base(grapheme: &str) -> Option<char> {
+fn arabic_grapheme_base(grapheme: &str, joining_types: TextJoiningTypeMap) -> Option<char> {
     let mut chars = grapheme.chars();
     let base = chars.next()?;
-    (is_arabic_letter(base) && chars.all(is_arabic_grapheme_continuation)).then_some(base)
+    ((base.script() == Script::Arabic || base == '\u{0640}')
+        && chars.all(|ch| is_arabic_grapheme_continuation(ch, joining_types)))
+    .then_some(base)
 }
 
-fn is_arabic_grapheme_continuation(ch: char) -> bool {
-    is_combining_mark(ch) || matches!(ch, '\u{200d}')
+fn is_arabic_grapheme_continuation(ch: char, joining_types: TextJoiningTypeMap) -> bool {
+    joining_types.get(ch).is_transparent() || matches!(ch, '\u{200d}')
 }
 
 fn cjk_char(grapheme: &str) -> Option<char> {
@@ -202,53 +228,10 @@ fn single_char(grapheme: &str) -> Option<char> {
     chars.next().is_none().then_some(ch)
 }
 
-fn is_tatweel(grapheme: &str) -> bool {
-    matches!(arabic_grapheme_base(grapheme), Some('\u{0640}'))
-}
-
-fn is_arabic_left_joining_letter(ch: char) -> bool {
-    is_arabic_letter(ch) && !is_arabic_non_left_joining_letter(ch)
-}
-
-fn is_arabic_right_joining_letter(ch: char) -> bool {
-    is_arabic_letter(ch)
-}
-
-fn is_arabic_letter(ch: char) -> bool {
+fn is_tatweel(grapheme: &str, joining_types: TextJoiningTypeMap) -> bool {
     matches!(
-        ch as u32,
-        0x0620..=0x063F
-            | 0x0640
-            | 0x0641..=0x064A
-            | 0x066E..=0x066F
-            | 0x0671..=0x06D3
-            | 0x06FA..=0x06FC
-            | 0x06FF
-            | 0x0750..=0x077F
-            | 0x08A0..=0x08C7
-            | 0xFB50..=0xFDCF
-            | 0xFDF0..=0xFDFF
-            | 0xFE70..=0xFEFC
-    )
-}
-
-fn is_arabic_non_left_joining_letter(ch: char) -> bool {
-    matches!(
-        ch as u32,
-        0x0622..=0x0625
-            | 0x0627
-            | 0x0629
-            | 0x062F..=0x0632
-            | 0x0648
-            | 0x0671..=0x0673
-            | 0x0675..=0x0677
-            | 0x0688..=0x0699
-            | 0x06C0
-            | 0x06C3..=0x06CB
-            | 0x06CD
-            | 0x06CF
-            | 0x06D2..=0x06D3
-            | 0x06EE..=0x06EF
+        arabic_grapheme_base(grapheme, joining_types),
+        Some('\u{0640}')
     )
 }
 
@@ -274,6 +257,16 @@ mod tests {
     #[test]
     fn arabic_kashida_offsets_do_not_cross_an_explicit_non_joiner() {
         assert_eq!(arabic_kashida_insertion_offsets("س\u{200c}لام"), vec![7]);
+    }
+
+    #[test]
+    fn arabic_kashida_uses_unicode_joining_type_beyond_the_retired_ranges() {
+        assert_eq!(arabic_kashida_insertion_offsets("س\u{0870}"), vec![2]);
+    }
+
+    #[test]
+    fn arabic_kashida_does_not_admit_other_joining_scripts() {
+        assert!(arabic_kashida_insertion_offsets("\u{10acd}\u{10acd}").is_empty());
     }
 
     #[test]

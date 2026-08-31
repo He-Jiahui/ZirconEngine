@@ -17,7 +17,7 @@ fn toolbar_commands_and_dividers_center_within_their_rows() {
             "WorkbenchToolbarFileGroup",
             &[
                 "WorkbenchToolbarMenu",
-                "WorkbenchToolbarNew",
+                "WorkbenchToolbarAssets",
                 "WorkbenchToolbarOpen",
                 "WorkbenchToolbarSave",
             ][..],

@@ -2,53 +2,60 @@ mod action_id;
 mod hit;
 mod menu;
 mod option;
+mod settings;
 
 use crate::ui::retained_host::primitives::ModelRc;
 
-use self::menu::hit_test_template_menu_rows;
-use self::option::hit_test_template_option_rows;
+use self::menu::hit_test_template_menu_row_target;
+use self::option::hit_test_template_option_row_target;
+use self::settings::hit_test_settings_window_target;
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::HostPaneTemplateHitIndex;
 
-pub(in crate::ui::retained_host::host_contract) use self::hit::TemplatePopupRowHit;
+pub(super) use self::action_id::normalized_menu_row_action_id;
+pub(super) use self::hit::TemplatePopupRowTarget;
+pub(in crate::ui::retained_host::host_contract) use self::hit::{
+    TemplatePopupRowHit, TemplatePopupRowMoveHit, TemplatePopupRowRouteHit,
+};
 
-pub(in crate::ui::retained_host::host_contract) fn hit_test_template_popup_rows(
-    nodes: &ModelRc<TemplatePaneNodeData>,
+pub(in crate::ui::retained_host::host_contract) fn hit_test_template_popup_route_rows<'a>(
+    nodes: &'a ModelRc<TemplatePaneNodeData>,
     index: Option<&HostPaneTemplateHitIndex>,
     origin: &FrameRect,
     x: f32,
     y: f32,
-) -> Option<TemplatePopupRowHit> {
+) -> Option<TemplatePopupRowRouteHit<'a>> {
     if let Some(index) = index {
         index.begin_query();
         for row in index.popup_rows().iter().rev().copied() {
             index.record_popup_candidate_visit();
             let node = nodes.get(row)?;
-            if let Some(hit) = hit_test_template_popup_node(node, origin, x, y) {
-                return Some(hit);
+            if let Some(target) = hit_test_template_popup_target(node, origin, x, y) {
+                return Some(target.into_pointer_route_hit(node));
             }
         }
         return None;
     }
     for node in nodes.iter().rev() {
-        if let Some(hit) = hit_test_template_popup_node(node, origin, x, y) {
-            return Some(hit);
+        if let Some(target) = hit_test_template_popup_target(node, origin, x, y) {
+            return Some(target.into_pointer_route_hit(node));
         }
     }
     None
 }
 
-pub(super) fn hit_test_template_popup_node(
-    node: &TemplatePaneNodeData,
+pub(super) fn hit_test_template_popup_target<'a>(
+    node: &'a TemplatePaneNodeData,
     origin: &FrameRect,
     x: f32,
     y: f32,
-) -> Option<TemplatePopupRowHit> {
+) -> Option<TemplatePopupRowTarget<'a>> {
     if !node.popup_open || node.disabled || node.control_id.is_empty() {
         return None;
     }
-    hit_test_template_menu_rows(node, origin, x, y)
-        .or_else(|| hit_test_template_option_rows(node, origin, x, y))
+    hit_test_settings_window_target(node, origin, x, y)
+        .or_else(|| hit_test_template_menu_row_target(node, origin, x, y))
+        .or_else(|| hit_test_template_option_row_target(node, origin, x, y))
 }
 
 pub(super) fn uniform_popup_row_at_y(

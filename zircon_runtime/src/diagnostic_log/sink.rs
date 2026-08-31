@@ -118,6 +118,11 @@ impl ProcessLogController {
         self.active_state.load_full()
     }
 
+    fn with_active_state<R>(&self, read: impl FnOnce(Option<&DiagnosticLogState>) -> R) -> R {
+        let state = self.active_state.load();
+        read(state.as_deref())
+    }
+
     fn publish_state(&self, settings: DiagnosticLogSettings) -> Arc<DiagnosticLogState> {
         let state = Arc::new(DiagnosticLogState::from_settings(settings));
         self.active_state.store(Some(Arc::clone(&state)));
@@ -315,9 +320,7 @@ pub fn diagnostic_log_allows(level: DiagnosticLogLevel) -> bool {
 
 pub fn diagnostic_log_allows_for_scope(level: DiagnosticLogLevel, scope: &str) -> bool {
     process_log_controller()
-        .active_state()
-        .as_deref()
-        .is_some_and(|state| state.allows(level, scope))
+        .with_active_state(|state| state.is_some_and(|state| state.allows(level, scope)))
 }
 
 pub fn write_debug_log(scope: &str, message: impl AsRef<str>) {
@@ -337,10 +340,11 @@ pub fn write_error(scope: &str, message: impl AsRef<str>) {
 }
 
 pub fn write_diagnostic_log_at(level: DiagnosticLogLevel, scope: &str, message: impl AsRef<str>) {
-    let Some(state) = process_log_controller().active_state() else {
-        return;
-    };
-    state.write(level, scope, message.as_ref());
+    process_log_controller().with_active_state(|state| {
+        if let Some(state) = state {
+            state.write(level, scope, message.as_ref());
+        }
+    });
 }
 
 pub fn write_diagnostic_log_lazy<F, M>(scope: &str, message: F)
@@ -388,17 +392,15 @@ where
     F: FnOnce() -> M,
     M: AsRef<str>,
 {
-    let Some(state) = process_log_controller().active_state() else {
-        return;
-    };
-    state.write_lazy(level, scope, message);
+    process_log_controller().with_active_state(|state| {
+        if let Some(state) = state {
+            state.write_lazy(level, scope, message);
+        }
+    });
 }
 
 pub fn diagnostic_log_sink_snapshot() -> Option<DiagnosticLogSinkSnapshot> {
-    process_log_controller()
-        .active_state()
-        .as_deref()
-        .and_then(DiagnosticLogState::snapshot)
+    process_log_controller().with_active_state(|state| state.and_then(DiagnosticLogState::snapshot))
 }
 
 /// Installs one process-wide panic hook that attempts the bounded crash flush before delegating.

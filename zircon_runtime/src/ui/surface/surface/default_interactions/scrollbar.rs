@@ -310,11 +310,8 @@ impl UiSurface {
         if let Some(node_id) = parse_node_reference(reference) {
             return Some(node_id);
         }
-        self.tree.nodes.iter().find_map(|(node_id, node)| {
-            let metadata = node.template_metadata.as_ref()?;
-            (metadata.control_id.as_deref() == Some(reference) || node.node_path.0 == reference)
-                .then_some(*node_id)
-        })
+        self.control_index
+            .first_node_id_for_reference(&self.tree, reference)
     }
 }
 

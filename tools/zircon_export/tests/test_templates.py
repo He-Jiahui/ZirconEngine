@@ -746,14 +746,14 @@ class ExportTemplateValidationTests(unittest.TestCase):
             unreadable_file = (
                 template_dir / "bin" / "zircon_runtime.host-placeholder"
             ).resolve()
-            original_read_bytes = Path.read_bytes
+            original_open = Path.open
 
-            def read_bytes_or_fail(path: Path) -> bytes:
+            def open_or_fail(path: Path, *args: object, **kwargs: object):
                 if path.resolve() == unreadable_file:
                     raise OSError("simulated template read failure")
-                return original_read_bytes(path)
+                return original_open(path, *args, **kwargs)
 
-            with mock.patch.object(Path, "read_bytes", read_bytes_or_fail):
+            with mock.patch.object(Path, "open", open_or_fail):
                 report = validate_export_template(
                     template_dir=template_dir,
                     expected_engine_version="0.1.0",

@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::snapshot::{AssetReferenceSnapshot, AssetWorkspaceSnapshot};
@@ -199,6 +197,7 @@ fn apply_asset_reference_list_layout(
 
     let row_width = finite_non_negative(panel.width - metrics.row_gap);
     let kind_widths = reference_kind_slot_widths(nodes, controls, row_width, metrics);
+    let mut default_kind_width = None;
     for node in nodes.iter_mut() {
         let Some(index) = reference_row_index(controls, node.control_id.as_str()) else {
             continue;
@@ -206,9 +205,12 @@ fn apply_asset_reference_list_layout(
         let row_y = scroll.y + index as f32 * (metrics.row_height + metrics.row_gap);
         let control_id = node.control_id.as_str();
         let kind_width = kind_widths
-            .get(&index)
-            .copied()
-            .unwrap_or_else(|| reference_kind_slot_width("Unknown", row_width, metrics));
+            .get(index)
+            .and_then(|width| *width)
+            .unwrap_or_else(|| {
+                *default_kind_width
+                    .get_or_insert_with(|| reference_kind_slot_width("Unknown", row_width, metrics))
+            });
         let text_width = finite_non_negative(row_width - metrics.text_inset * 2.0 - kind_width);
         node.frame = if control_id.starts_with(controls.row_panel_control_id) {
             frame(panel.x, row_y, row_width, metrics.row_height)
@@ -348,8 +350,8 @@ fn reference_kind_slot_widths(
     controls: AssetReferenceListControls,
     row_width: f32,
     metrics: AssetReferenceListMetrics,
-) -> BTreeMap<usize, f32> {
-    let mut widths = BTreeMap::new();
+) -> Vec<Option<f32>> {
+    let mut widths = Vec::new();
     for node in nodes {
         if !node.control_id.starts_with(controls.row_kind_control_id) {
             continue;
@@ -357,10 +359,17 @@ fn reference_kind_slot_widths(
         let Some(index) = reference_row_index(controls, node.control_id.as_str()) else {
             continue;
         };
-        widths.insert(
-            index,
-            reference_kind_slot_width(node.text.as_str(), row_width, metrics),
-        );
+        if index >= nodes.len() {
+            continue;
+        }
+        if widths.len() <= index {
+            widths.resize(index + 1, None);
+        }
+        widths[index] = Some(reference_kind_slot_width(
+            node.text.as_str(),
+            row_width,
+            metrics,
+        ));
     }
     widths
 }
@@ -462,7 +471,8 @@ fn finite_coordinate(value: f32) -> f32 {
 mod tests {
     use super::{
         apply_asset_reference_lists_layout, asset_reference_list_metrics,
-        reference_kind_slot_width, sync_asset_reference_lists, AssetReferenceListControls,
+        reference_kind_slot_width, reference_kind_slot_widths, sync_asset_reference_lists,
+        AssetReferenceListControls,
     };
     use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
     use crate::ui::workbench::snapshot::{
@@ -589,6 +599,37 @@ mod tests {
             (wide_width - metrics.text_inset * 2.0) * metrics.kind_max_width_fraction
         );
         assert!(wide > narrow);
+    }
+
+    #[test]
+    fn kind_width_index_is_dense_and_rejects_sparse_control_suffixes() {
+        let metrics = asset_reference_list_metrics();
+        let mut nodes = prototypes();
+        sync_asset_reference_lists(
+            &mut nodes,
+            &snapshot(
+                vec![
+                    reference("first", "First", "Content/First"),
+                    reference("second", "Second", "Content/Second"),
+                ],
+                Vec::new(),
+            ),
+            LEFT,
+            RIGHT,
+        );
+
+        let widths = reference_kind_slot_widths(&nodes, LEFT, 320.0, metrics);
+        assert_eq!(widths.len(), 2);
+        assert!(widths.iter().all(Option::is_some));
+
+        nodes.push(ViewTemplateNodeData {
+            node_id: "test.references.left.sparse".into(),
+            control_id: "LeftRowKindText999999".into(),
+            text: "Sparse".into(),
+            ..ViewTemplateNodeData::default()
+        });
+        let sparse_widths = reference_kind_slot_widths(&nodes, LEFT, 320.0, metrics);
+        assert!(sparse_widths.len() <= nodes.len());
     }
 
     fn prototypes() -> Vec<ViewTemplateNodeData> {

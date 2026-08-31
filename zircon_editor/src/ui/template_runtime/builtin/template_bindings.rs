@@ -6,11 +6,11 @@ use super::workbench_window_template_bindings::workbench_window_template_binding
 use crate::core::editor_event::InspectorFieldChange;
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformSpace, ViewOrientation,
 };
 use crate::ui::binding::{
-    AnimationCommand, AssetCommand, DockCommand, DraftCommand, EditorUiBinding,
-    EditorUiBindingPayload, EditorUiEventKind, SelectionCommand, ViewportCommand, WelcomeCommand,
+    AssetCommand, DockCommand, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
+    EditorUiEventKind, SelectionCommand, ViewportCommand, WelcomeCommand,
 };
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
@@ -111,6 +111,28 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
         (
+            "Workbench/ActivateDocumentTab".to_string(),
+            EditorUiBinding::new(
+                "Workbench",
+                "ActivateDocumentTab",
+                EditorUiEventKind::Change,
+                EditorUiBindingPayload::dock_command(DockCommand::FocusView {
+                    instance_id: DYNAMIC_DOCUMENT_TAB_INSTANCE_ID.to_string(),
+                }),
+            ),
+        ),
+        (
+            "Workbench/CloseDocumentTab".to_string(),
+            EditorUiBinding::new(
+                "Workbench",
+                "CloseDocumentTab",
+                EditorUiEventKind::Submit,
+                EditorUiBindingPayload::dock_command(DockCommand::CloseView {
+                    instance_id: DYNAMIC_DOCUMENT_TAB_INSTANCE_ID.to_string(),
+                }),
+            ),
+        ),
+        (
             "UiHostWindow/ActivateMainPage".to_string(),
             EditorUiBinding::new(
                 "UiHostWindow",
@@ -140,6 +162,17 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 EditorUiEventKind::Change,
                 EditorUiBindingPayload::viewport_command(ViewportCommand::SetTransformSpace(
                     TransformSpace::Local,
+                )),
+            ),
+        ),
+        (
+            "ViewportToolbar/SetPivotMode".to_string(),
+            EditorUiBinding::new(
+                "ViewportToolbar",
+                "SetPivotMode",
+                EditorUiEventKind::Change,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetPivotMode(
+                    PivotMode::Centroid,
                 )),
             ),
         ),
@@ -430,6 +463,28 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
         (
+            "WelcomeSurface/RecoverRecentProject".to_string(),
+            EditorUiBinding::new(
+                "WelcomeSurface",
+                "RecoverRecentProject",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::welcome_command(WelcomeCommand::RecoverRecentProject {
+                    path: "E:/Projects/Sandbox".to_string(),
+                }),
+            ),
+        ),
+        (
+            "WelcomeSurface/SafeRecentProject".to_string(),
+            EditorUiBinding::new(
+                "WelcomeSurface",
+                "SafeRecentProject",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::welcome_command(WelcomeCommand::SafeRecentProject {
+                    path: "E:/Projects/Sandbox".to_string(),
+                }),
+            ),
+        ),
+        (
             "WelcomeSurface/RemoveRecentProject".to_string(),
             EditorUiBinding::new(
                 "WelcomeSurface",
@@ -524,15 +579,6 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "DeleteSelected",
                 EditorUiEventKind::Click,
                 EditorUiBindingPayload::menu_action("workbench.selection.delete_selected"),
-            ),
-        ),
-        (
-            "PaneSurface/TriggerAction".to_string(),
-            EditorUiBinding::new(
-                "PaneSurface",
-                "TriggerAction",
-                EditorUiEventKind::Click,
-                EditorUiBindingPayload::menu_action("workbench.project.open"),
             ),
         ),
         (
@@ -644,19 +690,6 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
         (
-            "InspectorPaneBody/ApplyDraft".to_string(),
-            EditorUiBinding::new(
-                "InspectorPaneBody",
-                "ApplyDraft",
-                EditorUiEventKind::Click,
-                EditorUiBindingPayload::draft_command(DraftCommand::SetInspectorField {
-                    subject_path: "entity://selected".to_string(),
-                    field_id: "name".to_string(),
-                    value: UiBindingValue::string(String::new()),
-                }),
-            ),
-        ),
-        (
             "HierarchyPaneBody/SelectRoot".to_string(),
             EditorUiBinding::new(
                 "HierarchyPaneBody",
@@ -668,30 +701,6 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
         (
-            "AnimationSequencePaneBody/ScrubTimeline".to_string(),
-            EditorUiBinding::new(
-                "AnimationSequencePaneBody",
-                "ScrubTimeline",
-                EditorUiEventKind::Click,
-                EditorUiBindingPayload::animation_command(AnimationCommand::ScrubTimeline {
-                    frame: 0,
-                }),
-            ),
-        ),
-        (
-            "AnimationGraphPaneBody/AddNode".to_string(),
-            EditorUiBinding::new(
-                "AnimationGraphPaneBody",
-                "AddNode",
-                EditorUiEventKind::Click,
-                EditorUiBindingPayload::animation_command(AnimationCommand::AddGraphNode {
-                    graph_locator: "animation://selected/graph".to_string(),
-                    node_id: "new_state".to_string(),
-                    node_kind: "State".to_string(),
-                }),
-            ),
-        ),
-        (
             "RuntimeDiagnosticsPaneBody/FocusDiagnostics".to_string(),
             EditorUiBinding::new(
                 "RuntimeDiagnosticsPaneBody",
@@ -699,17 +708,6 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 EditorUiEventKind::Click,
                 EditorUiBindingPayload::dock_command(DockCommand::FocusView {
                     instance_id: "editor.runtime_diagnostics#1".to_string(),
-                }),
-            ),
-        ),
-        (
-            "PerformanceTimelinePaneBody/RefreshSnapshot".to_string(),
-            EditorUiBinding::new(
-                "PerformanceTimelinePaneBody",
-                "RefreshSnapshot",
-                EditorUiEventKind::Click,
-                EditorUiBindingPayload::dock_command(DockCommand::FocusView {
-                    instance_id: "editor.performance_timeline#1".to_string(),
                 }),
             ),
         ),
@@ -753,5 +751,24 @@ mod performance_tests {
 
         assert!(std::ptr::eq(first, second));
         assert!(first.contains_key("WorkbenchMenuBar/OpenProject"));
+    }
+
+    #[test]
+    fn componentized_document_tabs_share_the_canonical_dynamic_payloads() {
+        let bindings = builtin_template_bindings();
+
+        for (workbench_id, canonical_id) in [
+            ("Workbench/ActivateDocumentTab", "DocumentTabs/ActivateTab"),
+            ("Workbench/CloseDocumentTab", "DocumentTabs/CloseTab"),
+        ] {
+            let workbench = bindings
+                .get(workbench_id)
+                .unwrap_or_else(|| panic!("{workbench_id} should be registered"));
+            let canonical = bindings
+                .get(canonical_id)
+                .unwrap_or_else(|| panic!("{canonical_id} should be registered"));
+            assert_eq!(workbench.path().event_kind, canonical.path().event_kind);
+            assert_eq!(workbench.payload(), canonical.payload());
+        }
     }
 }

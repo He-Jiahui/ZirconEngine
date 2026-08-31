@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 #[cfg(test)]
 use std::cell::Cell;
 
@@ -9,7 +7,7 @@ use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCo
 
 pub(crate) struct HostPaneTemplateHitIndex {
     indexed_nodes: ModelRc<TemplatePaneNodeData>,
-    popup_rows: Arc<[usize]>,
+    popup_rows: Box<[usize]>,
     #[cfg(test)]
     last_popup_candidate_visit_count: Cell<usize>,
     #[cfg(test)]
@@ -18,14 +16,16 @@ pub(crate) struct HostPaneTemplateHitIndex {
 
 impl HostPaneTemplateHitIndex {
     pub(crate) fn new(nodes: ModelRc<TemplatePaneNodeData>) -> Self {
-        let popup_rows = nodes
-            .iter()
-            .enumerate()
-            .filter_map(|(row, node)| {
-                (node.popup_open && !node.disabled && !node.control_id.is_empty()).then_some(row)
-            })
-            .collect::<Vec<_>>()
-            .into();
+        let popup_rows = boxed_popup_rows(
+            nodes
+                .iter()
+                .enumerate()
+                .filter_map(|(row, node)| {
+                    (node.popup_open && !node.disabled && !node.control_id.is_empty())
+                        .then_some(row)
+                })
+                .collect(),
+        );
         Self {
             indexed_nodes: nodes,
             popup_rows,
@@ -73,3 +73,11 @@ impl HostPaneTemplateHitIndex {
         self.query_count.get()
     }
 }
+
+fn boxed_popup_rows(rows: Vec<usize>) -> Box<[usize]> {
+    rows.into_boxed_slice()
+}
+
+#[cfg(test)]
+#[path = "pane_index/boxed_popup_rows_tests.rs"]
+mod boxed_popup_rows_tests;

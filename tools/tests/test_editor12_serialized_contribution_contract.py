@@ -18,9 +18,10 @@ class SerializedContributionContractTests(unittest.TestCase):
         self.assertIn("Menu", source)
         self.assertIn("Command", source)
         self.assertIn("AssetType", source)
+        self.assertIn("LocalizationBundle", source)
         self.assertIn("SettingsPage", source)
         self.assertIn("deny_unknown_fields", source)
-        self.assertEqual(source.count("schema: String"), 6)
+        self.assertEqual(source.count("schema: String"), 7)
         self.assertIn("pub fn expected_schema(&self) -> &'static str", source)
         for schema in (
             "zircon.editor.view/1",
@@ -28,9 +29,11 @@ class SerializedContributionContractTests(unittest.TestCase):
             "zircon.editor.menu/1",
             "zircon.editor.command/1",
             "zircon.editor.asset-type/1",
-            "zircon.editor.settings-page/1",
+            "zircon.editor.localization-bundle/1",
+            "zircon.editor.settings-page/2",
         ):
             self.assertIn(schema, source)
+        self.assertIn("settings_page_v1_literal_payload_is_rejected_by_the_hard_cut", source)
         self.assertIn("UnsupportedContributionSchema", source)
         self.assertIn("contribution.validate_schema()?", source)
         self.assertIn(

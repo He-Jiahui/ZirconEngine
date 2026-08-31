@@ -1,14 +1,25 @@
+const PROCEDURAL_SKY_SHADER: &str =
+    include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl");
 const ENVIRONMENT_SHADER: &str = concat!(
+    include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl"),
+    "\n",
     include_str!("../src/graphics/shader/wgsl/zr_environment_core.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_environment_generic_api.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_environment.wgsl"),
 );
-const SKYBOX_SHADER: &str =
-    include_str!("../src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl");
-const REALTIME_CAPTURE_SHADER: &str = include_str!(
-    "../src/graphics/scene/scene_renderer/environment/shaders/realtime_ibl_capture.wgsl"
+const SKYBOX_SHADER: &str = concat!(
+    include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl"),
+    "\n",
+    include_str!("../src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl"),
+);
+const REALTIME_CAPTURE_SHADER: &str = concat!(
+    include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl"),
+    "\n",
+    include_str!(
+        "../src/graphics/scene/scene_renderer/environment/shaders/realtime_ibl_capture.wgsl"
+    ),
 );
 const SKYBOX_SETTINGS_SOURCE: &str =
     include_str!("../src/core/framework/render/environment/skybox.rs");
@@ -599,42 +610,61 @@ fn runtime_environment_procedural_pbr_reuses_normalized_directions() {
 }
 
 #[test]
-fn runtime_environment_procedural_sun_uses_cpu_prepared_parameters() {
-    let environment_sun = function_body(
-        ENVIRONMENT_SHADER,
-        "fn zr_environment_procedural_sky_color_normalized(",
+fn runtime_environment_procedural_sky_uses_shared_source_radiance_owner() {
+    let helper = function_body(PROCEDURAL_SKY_SHADER, "fn zr_procedural_sky_radiance(");
+    assert!(
+        !helper.contains("normalize("),
+        "the shared procedural-sky helper must consume a normalized direction"
     );
-    let skybox_sun = function_body(SKYBOX_SHADER, "fn procedural_sun_radiance(");
-    let realtime_capture = wgsl_code_view(REALTIME_CAPTURE_SHADER, "realtime capture shader");
+    for forbidden in ["sin(", "cos("] {
+        assert!(
+            !contains_wgsl_function_call(&helper, forbidden.trim_end_matches('(')),
+            "the shared procedural-sky helper must not calculate {forbidden} per invocation"
+        );
+    }
 
-    for (label, source, direction_owner) in [
+    for (label, source, signature) in [
         (
             "environment",
-            environment_sun,
-            "scene.sky_sun_direction.xyz",
+            ENVIRONMENT_SHADER,
+            "fn zr_environment_procedural_sky_color_normalized(",
         ),
-        ("skybox", skybox_sun, "scene.sky_sun_direction.xyz"),
-        (
-            "realtime capture",
-            realtime_capture,
-            "params.sun_direction.xyz",
-        ),
+        ("skybox", SKYBOX_SHADER, "fn fs_main("),
+        ("realtime capture", REALTIME_CAPTURE_SHADER, "fn cs_main("),
     ] {
+        let consumer = function_body(source, signature);
         assert!(
-            source.contains(direction_owner),
-            "{label} must consume the CPU-normalized sun direction"
+            contains_wgsl_function_call(&consumer, "zr_procedural_sky_radiance"),
+            "{label} must call the shared source-radiance owner"
         );
+        assert_eq!(
+            source.matches("fn zr_procedural_sky_radiance(").count(),
+            1,
+            "{label} pipeline must assemble one shared procedural-sky radiance owner"
+        );
+    }
+}
+
+#[test]
+fn runtime_environment_procedural_sun_uses_cpu_prepared_parameters() {
+    let shared_radiance = function_body(PROCEDURAL_SKY_SHADER, "fn zr_procedural_sky_radiance(");
+
+    assert!(
+        shared_radiance.contains("sun_direction.xyz"),
+        "the shared source-radiance owner must consume the CPU-normalized sun direction"
+    );
+    for source in [shared_radiance] {
         assert!(
             !source.contains("sun_direction_length"),
-            "{label} must not measure a uniform direction per invocation"
+            "the shared source-radiance owner must not measure a uniform direction per invocation"
         );
         assert!(
             !source.contains("angular_radius"),
-            "{label} must consume precomputed cosine edges"
+            "the shared source-radiance owner must consume precomputed cosine edges"
         );
         assert!(
             !source.contains("cos("),
-            "{label} must not compute sun cosine edges per invocation"
+            "the shared source-radiance owner must not compute sun cosine edges per invocation"
         );
     }
 }
@@ -645,23 +675,20 @@ fn runtime_environment_direct_procedural_sun_obeys_final_sampling_intensity() {
         ENVIRONMENT_SHADER,
         "fn zr_environment_procedural_sky_color_normalized(",
     );
-    assert!(environment_sun.contains("return color * max(scene.environment_params.y, 0.0);"));
+    assert!(environment_sun.contains("zr_procedural_sky_radiance("));
+    assert!(environment_sun.contains("* max(scene.environment_params.y, 0.0);"));
 
     let skybox_fragment = function_body(SKYBOX_SHADER, "fn fs_main(");
     let color_composition = skybox_fragment
-        .find("color = (select(ground, sky, direction.y >= 0.0)")
-        .expect("the procedural skybox must compose the ground-or-sky base color");
-    let sun = skybox_fragment[color_composition..]
-        .find("procedural_sun_radiance(direction)")
+        .find("color = zr_procedural_sky_radiance(")
+        .expect("the procedural skybox must use the shared source-radiance owner");
+    let final_intensity = skybox_fragment[color_composition..]
+        .find("* max(scene.environment_params.y, 0.0);")
         .map(|offset| color_composition + offset)
-        .expect("the procedural skybox must add the direct sun before intensity");
-    let final_intensity = skybox_fragment[sun..]
-        .find("* intensity;")
-        .map(|offset| sun + offset)
         .expect("the procedural skybox must apply final sampling intensity");
     assert!(
-        color_composition < sun && sun < final_intensity,
-        "the direct procedural sun must receive the same final sampling intensity as the sky"
+        color_composition < final_intensity,
+        "the shared procedural sun and sky radiance must receive the same final sampling intensity"
     );
 }
 
@@ -836,20 +863,27 @@ fn runtime_environment_pbr_reuses_normalized_reflection_inputs() {
 fn runtime_environment_full_metal_skips_zero_weight_diffuse_ibl() {
     let components = environment_pbr_composition_source();
 
+    let no_v = components
+        .find("let no_v = clamp(dot(normal, view_dir), 0.0, 1.0);")
+        .expect("PBR indirect must derive NdotV before Fresnel energy conservation");
+    let f0 = components
+        .find("let f0 = zr_pbr_material_f0(dielectric_f0, base_color, clamped_metallic);")
+        .expect("PBR indirect must derive material F0 before diffuse energy scaling");
     let diffuse_energy = components
-        .find("let diffuse_energy_scale = 1.0 - clamped_metallic;")
-        .expect("PBR indirect must retain metallic diffuse energy scaling");
+        .find("let diffuse_energy_scale = zr_pbr_diffuse_energy_scale(")
+        .expect("PBR indirect must retain Fresnel-aware diffuse energy scaling");
     let guard = components
-        .find("if (diffuse_energy_scale > 0.0")
+        .find("if (any(diffuse_energy_scale > vec3<f32>(0.0))")
         .expect("zero-weight diffuse IBL must be guarded for full-metal materials");
     let diffuse_sample = components
         .find("zr_environment_diffuse_color_normalized(normal)")
         .expect("PBR indirect must retain diffuse IBL below the metallic guard");
 
     assert!(
-        diffuse_energy < guard && guard < diffuse_sample,
+        no_v < f0 && f0 < diffuse_energy && diffuse_energy < guard && guard < diffuse_sample,
         "full-metal materials must not evaluate diffuse IBL before its zero-weight guard"
     );
+    assert!(components.contains("zr_pbr_fresnel_schlick(no_v, f0),"));
 }
 
 #[test]

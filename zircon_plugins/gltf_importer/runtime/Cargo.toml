@@ -18,7 +18,7 @@ runtime = [
 ]
 
 [dependencies]
-gltf = { version = "1.4.1", features = ["KHR_texture_transform", "extensions"], optional = true }
+gltf = { workspace = true, optional = true }
 serde_json = { version = "1.0.149", optional = true }
 toml = { workspace = true, optional = true }
 zircon_plugin_sdk = { workspace = true, default-features = false }

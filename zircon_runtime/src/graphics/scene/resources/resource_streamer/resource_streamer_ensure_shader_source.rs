@@ -3,7 +3,9 @@ use crate::core::framework::render::{
     RenderMaterialDependencySet, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
     RenderMaterialFallbackUsage, RenderMaterialReadinessReport, RenderMaterialValidationError,
 };
-use crate::core::resource::{AssetReference, ResourceId, ResourceKind};
+use crate::core::resource::{
+    AssetReference, ResourceId, ResourceKind, ResourceReadinessGeneration,
+};
 use std::{collections::HashSet, sync::Arc};
 
 use crate::graphics::types::GraphicsError;
@@ -18,6 +20,9 @@ use super::ResourceStreamer;
 struct ShaderSourcePreparationTraversal {
     visiting: HashSet<ResourceId>,
     completed: HashSet<ResourceId>,
+    cache_hits: usize,
+    rebuilds: usize,
+    dependency_generation_invalidations: usize,
 }
 
 impl ShaderSourcePreparationTraversal {
@@ -37,45 +42,68 @@ impl ResourceStreamer {
     pub(crate) fn ensure_shader_source(
         &mut self,
         reference: &AssetReference,
-    ) -> Result<(ResourceId, u64, Option<RenderMaterialReadinessReport>), GraphicsError> {
-        self.ensure_shader_source_recursive(
+    ) -> Result<(ResourceId, u64, u64, Option<RenderMaterialReadinessReport>), GraphicsError> {
+        let readiness_generation = self
+            .asset_manager()?
+            .resource_manager()
+            .readiness_generation();
+        let mut traversal = ShaderSourcePreparationTraversal::default();
+        let result = self.ensure_shader_source_recursive(
             reference,
-            &mut ShaderSourcePreparationTraversal::default(),
-        )
+            readiness_generation.as_ref(),
+            &mut traversal,
+        );
+        crate::profile_counter!(
+            "render",
+            "shader_artifact_cache_hit",
+            traversal.cache_hits as u64
+        );
+        crate::profile_counter!(
+            "render",
+            "shader_artifact_rebuild",
+            traversal.rebuilds as u64
+        );
+        crate::profile_counter!(
+            "render",
+            "shader_dependency_generation_invalidation",
+            traversal.dependency_generation_invalidations as u64
+        );
+        result
     }
 
     fn ensure_shader_source_recursive(
         &mut self,
         reference: &AssetReference,
+        readiness_generation: &ResourceReadinessGeneration,
         traversal: &mut ShaderSourcePreparationTraversal,
-    ) -> Result<(ResourceId, u64, Option<RenderMaterialReadinessReport>), GraphicsError> {
+    ) -> Result<(ResourceId, u64, u64, Option<RenderMaterialReadinessReport>), GraphicsError> {
         let uri = &reference.locator;
         let mut fallback_report = None;
         let asset_manager = self.asset_manager()?;
         let resolved_shader_id = asset_manager.resolve_asset_id(uri);
         if let Some(shader_id) = resolved_shader_id {
-            let revision = self.resource_revision(shader_id)?;
-            if self
-                .shaders
-                .get(&shader_id)
-                .is_some_and(|prepared| prepared.revision == revision)
-            {
-                if !traversal.enter(shader_id) {
-                    return Ok((shader_id, revision, None));
-                }
-                let result = self.ensure_shader_dependency_sources(
-                    asset_manager.as_ref(),
-                    shader_id,
-                    traversal,
-                );
-                traversal.finish(shader_id, result.is_ok());
-                result?;
-                return Ok((shader_id, revision, None));
+            let requested_revision = self.resource_revision(shader_id)?;
+            let dependency_revision = readiness_generation
+                .dependency_revision(shader_id)
+                .unwrap_or(0);
+            if self.shaders.get(&shader_id).is_some_and(|prepared| {
+                shader_artifact_identity_is_current(
+                    prepared.revision,
+                    prepared.dependency_revision,
+                    requested_revision,
+                    dependency_revision,
+                )
+            }) {
+                traversal.cache_hits = traversal.cache_hits.saturating_add(1);
+                return Ok((shader_id, requested_revision, dependency_revision, None));
             }
         }
-        let (shader_id, shader) = match resolved_shader_id {
-            Some(shader_id) => match asset_manager.load_shader_asset(shader_id) {
-                Ok(shader) => (shader_id, shader),
+        let (shader_id, revision, shader) = match resolved_shader_id {
+            Some(shader_id) => match asset_manager.load_shader_asset_snapshot(shader_id) {
+                Ok(shader) => {
+                    let revision = shader.revision();
+                    (shader_id, revision, (*shader).clone())
+                }
                 Err(_) => {
                     fallback_report = Some(missing_shader_readiness_report(reference));
                     self.load_fallback_shader()?
@@ -86,30 +114,39 @@ impl ResourceStreamer {
                 self.load_fallback_shader()?
             }
         };
-        let (shader_id, shader) = if shader.runtime_wgsl_source().is_some() {
-            (shader_id, shader)
+        let (shader_id, revision, shader) = if shader.runtime_wgsl_source().is_some() {
+            (shader_id, revision, shader)
         } else {
             fallback_report = Some(missing_runtime_shader_readiness_report(reference));
             self.load_fallback_shader()?
         };
-        let revision = self.resource_revision(shader_id)?;
+        let dependency_revision = readiness_generation
+            .dependency_revision(shader_id)
+            .unwrap_or(0);
 
         if !traversal.enter(shader_id) {
-            return Ok((shader_id, revision, fallback_report));
+            return Ok((shader_id, revision, dependency_revision, fallback_report));
         }
         let result = (|| {
-            if self
-                .shaders
-                .get(&shader_id)
-                .is_some_and(|prepared| prepared.revision == revision)
-            {
-                self.ensure_shader_dependency_sources(
-                    asset_manager.as_ref(),
-                    shader_id,
-                    traversal,
-                )?;
-                return Ok((shader_id, revision, fallback_report));
+            if self.shaders.get(&shader_id).is_some_and(|prepared| {
+                shader_artifact_identity_is_current(
+                    prepared.revision,
+                    prepared.dependency_revision,
+                    revision,
+                    dependency_revision,
+                )
+            }) {
+                traversal.cache_hits = traversal.cache_hits.saturating_add(1);
+                return Ok((shader_id, revision, dependency_revision, fallback_report));
             }
+            if self.shaders.get(&shader_id).is_some_and(|prepared| {
+                prepared.revision == revision && prepared.dependency_revision != dependency_revision
+            }) {
+                traversal.dependency_generation_invalidations = traversal
+                    .dependency_generation_invalidations
+                    .saturating_add(1);
+            }
+            traversal.rebuilds = traversal.rebuilds.saturating_add(1);
             let import_dependencies = shader
                 .imports
                 .iter()
@@ -126,6 +163,12 @@ impl ResourceStreamer {
                     })?
                     .to_string(),
             );
+            let surface_source_contract = shader.surface_source_contract().map_err(|error| {
+                GraphicsError::Asset(format!(
+                    "shader {} has an invalid surface source contract: {error}",
+                    shader.uri
+                ))
+            })?;
             let module_source_binding = shader
                 .kind
                 .is_include()
@@ -146,26 +189,36 @@ impl ResourceStreamer {
                     })
                 })
                 .flatten();
-            self.shaders.insert(
-                shader_id,
-                PreparedShader {
-                    revision,
-                    runtime: ShaderRuntime {
-                        source,
-                        kind: shader.kind,
-                        import_path: shader.import_path.clone(),
-                        imports: shader.imports.clone(),
-                        material_option_table: shader.material_option_table,
-                        generated_material_wgsl: shader.generated_material_wgsl,
-                    },
-                    module_source_binding,
+            let prepared_shader = PreparedShader {
+                revision,
+                dependency_revision,
+                runtime: ShaderRuntime {
+                    source,
+                    kind: shader.kind,
+                    surface_source_contract,
+                    import_path: shader.import_path.clone(),
+                    imports: shader.imports.clone(),
+                    material_option_table: shader.material_option_table,
+                    generated_material_wgsl: shader.generated_material_wgsl,
                 },
-            );
+                module_source_binding,
+            };
             for dependency in import_dependencies {
-                let _ = self.ensure_shader_source_recursive(&dependency, traversal)?;
+                let _ = self.ensure_shader_source_recursive(
+                    &dependency,
+                    readiness_generation,
+                    traversal,
+                )?;
             }
-            self.ensure_shader_dependency_sources(asset_manager.as_ref(), shader_id, traversal)?;
-            Ok((shader_id, revision, fallback_report))
+            self.ensure_shader_dependency_sources(
+                asset_manager.as_ref(),
+                shader_id,
+                readiness_generation,
+                traversal,
+            )?;
+            self.shaders.insert(shader_id, prepared_shader);
+            crate::profile_counter!("render", "shader_artifact_publish", 1);
+            Ok((shader_id, revision, dependency_revision, fallback_report))
         })();
         traversal.finish(shader_id, result.is_ok());
         result
@@ -175,6 +228,7 @@ impl ResourceStreamer {
         &mut self,
         asset_manager: &ProjectAssetManager,
         shader_id: ResourceId,
+        readiness_generation: &ResourceReadinessGeneration,
         traversal: &mut ShaderSourcePreparationTraversal,
     ) -> Result<(), GraphicsError> {
         let resource_manager = asset_manager.resource_manager();
@@ -185,14 +239,15 @@ impl ResourceStreamer {
             .map(|record| AssetReference::from_locator(record.primary_locator.clone()))
             .collect::<Vec<_>>();
         for dependency in dependencies {
-            let _ = self.ensure_shader_source_recursive(&dependency, traversal)?;
+            let _ =
+                self.ensure_shader_source_recursive(&dependency, readiness_generation, traversal)?;
         }
         Ok(())
     }
 
     fn load_fallback_shader(
         &self,
-    ) -> Result<(ResourceId, crate::asset::ShaderAsset), GraphicsError> {
+    ) -> Result<(ResourceId, u64, crate::asset::ShaderAsset), GraphicsError> {
         let fallback_uri = fallback_shader_uri();
         let asset_manager = self.asset_manager()?;
         let shader_id = asset_manager
@@ -201,15 +256,26 @@ impl ResourceStreamer {
                 GraphicsError::Asset(format!("missing shader resource for {fallback_uri}"))
             })?;
         let shader = asset_manager
-            .load_shader_asset(shader_id)
+            .load_shader_asset_snapshot(shader_id)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-        Ok((shader_id, shader))
+        let revision = shader.revision();
+        Ok((shader_id, revision, (*shader).clone()))
     }
+}
+
+fn shader_artifact_identity_is_current(
+    prepared_revision: u64,
+    prepared_dependency_revision: u64,
+    requested_revision: u64,
+    requested_dependency_revision: u64,
+) -> bool {
+    prepared_revision == requested_revision
+        && prepared_dependency_revision == requested_dependency_revision
 }
 
 #[cfg(test)]
 mod tests {
-    use super::ShaderSourcePreparationTraversal;
+    use super::{ShaderSourcePreparationTraversal, shader_artifact_identity_is_current};
     use crate::core::resource::ResourceId;
 
     #[test]
@@ -232,6 +298,27 @@ mod tests {
         );
         traversal.finish(right, true);
         traversal.finish(root, true);
+    }
+
+    #[test]
+    fn shader_artifact_identity_requires_root_and_transitive_revisions() {
+        assert!(shader_artifact_identity_is_current(7, 11, 7, 11));
+        assert!(!shader_artifact_identity_is_current(7, 11, 8, 11));
+        assert!(!shader_artifact_identity_is_current(7, 11, 7, 12));
+    }
+
+    #[test]
+    fn shader_rebuild_pairs_source_with_its_atomic_resource_revision() {
+        let production = include_str!("resource_streamer_ensure_shader_source.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("shader preparation test boundary");
+
+        assert!(production.contains("load_shader_asset_snapshot(shader_id)"));
+        assert!(production.contains("let revision = shader.revision();"));
+        assert!(!production.contains(
+            "let revision = self.resource_revision(shader_id)?;\n        let dependency_revision"
+        ));
     }
 }
 

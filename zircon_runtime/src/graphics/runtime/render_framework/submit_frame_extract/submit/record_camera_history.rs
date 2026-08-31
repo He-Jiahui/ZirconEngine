@@ -17,7 +17,7 @@ pub(super) fn record_non_viewport_camera_state_after_success(
     state: &mut RenderFrameworkState,
     viewport: RenderViewportHandle,
     context: &FrameSubmissionContext,
-    frame: &ViewportRenderFrame,
+    frame: &mut ViewportRenderFrame,
     light_grid_report: Option<RenderGraphLightGridReport>,
     runtime_feedback: RuntimeFeedbackBatch,
     generation: u64,
@@ -32,7 +32,7 @@ pub(super) fn record_non_viewport_camera_state_after_success(
                     viewport: viewport.raw(),
                 })?;
         let (previous_handle, _, _) =
-            record_history(record, context, generation, allocated_history);
+            record_history(record, context, generation, allocated_history)?;
         record.record_camera_product_reports(
             context.camera_history_key(),
             light_grid_report,

@@ -1,14 +1,11 @@
-use std::sync::OnceLock;
-
-use zircon_runtime::core::runtime::tasks::JobScheduler;
+use zircon_runtime::core::runtime::tasks::{JobScheduler, TaskPools};
 
 use super::{EditorJobLimits, EditorJobSystem};
 use crate::core::editor_message::SharedEditorMessageBus;
 
 pub(crate) fn test_job_scheduler() -> JobScheduler {
-    // Keep fixture state isolated while preventing parallel lib tests from multiplying worker pools.
-    static SCHEDULER: OnceLock<JobScheduler> = OnceLock::new();
-    SCHEDULER.get_or_init(JobScheduler::default).clone()
+    // Isolate diagnostics and callback queues while sharing one physical test worker owner.
+    JobScheduler::from_pool(TaskPools::process_default().compute().clone())
 }
 
 pub(crate) fn test_job_system() -> EditorJobSystem {

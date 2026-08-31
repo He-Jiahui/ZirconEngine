@@ -43,18 +43,24 @@ fn render_framework_skips_advanced_postprocess_work_when_effects_are_disabled() 
         stats.last_motion_vector_camera_status,
         MotionVectorCameraStatus::NotRequested
     );
-    assert!(!stats
-        .last_post_process_effect_stack_report
-        .active_families
-        .contains(&"depth-of-field".to_string()));
-    assert!(!stats
-        .last_post_process_effect_stack_report
-        .active_families
-        .contains(&"motion-blur".to_string()));
-    assert!(!stats
-        .last_post_process_effect_stack_report
-        .active_families
-        .contains(&"screen-space-reflection".to_string()));
+    assert!(
+        !stats
+            .last_post_process_effect_stack_report
+            .active_families
+            .contains(&"depth-of-field".to_string())
+    );
+    assert!(
+        !stats
+            .last_post_process_effect_stack_report
+            .active_families
+            .contains(&"motion-blur".to_string())
+    );
+    assert!(
+        !stats
+            .last_post_process_effect_stack_report
+            .active_families
+            .contains(&"screen-space-reflection".to_string())
+    );
 }
 
 #[test]
@@ -163,24 +169,34 @@ fn render_framework_submits_advanced_postprocess_graph_passes() {
     assert_eq!(stats.last_hzb_occlusion_compacted_draw_count, 0);
     assert_eq!(stats.last_hzb_occlusion_zero_instance_arg_count, 0);
     assert_eq!(stats.last_hzb_occlusion_remaining_instance_count, 0);
-    assert!(stats
-        .last_post_process_graph_executed_nodes
-        .contains(&"uber".to_string()));
-    assert!(stats
-        .last_post_process_graph_executed_nodes
-        .contains(&"output-transfer".to_string()));
-    assert!(stats
-        .last_post_process_effect_stack_report
-        .active_families
-        .contains(&"depth-of-field".to_string()));
-    assert!(stats
-        .last_post_process_effect_stack_report
-        .active_families
-        .contains(&"motion-blur".to_string()));
-    assert!(stats
-        .last_post_process_effect_stack_report
-        .active_families
-        .contains(&"screen-space-reflection".to_string()));
+    assert!(
+        stats
+            .last_post_process_graph_executed_nodes
+            .contains(&"uber".to_string())
+    );
+    assert!(
+        stats
+            .last_post_process_graph_executed_nodes
+            .contains(&"output-transfer".to_string())
+    );
+    assert!(
+        stats
+            .last_post_process_effect_stack_report
+            .active_families
+            .contains(&"depth-of-field".to_string())
+    );
+    assert!(
+        stats
+            .last_post_process_effect_stack_report
+            .active_families
+            .contains(&"motion-blur".to_string())
+    );
+    assert!(
+        stats
+            .last_post_process_effect_stack_report
+            .active_families
+            .contains(&"screen-space-reflection".to_string())
+    );
     assert!(
         !stats
             .last_post_process_effect_stack_report

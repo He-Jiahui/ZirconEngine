@@ -1,3 +1,7 @@
+use crate::evidence_identity::{
+    evidence_transport_path, fingerprint_file, EvidenceFileFingerprint, ReadyFrameEvidenceIdentity,
+    READY_FRAME_EVIDENCE_IDENTITY_SCHEMA,
+};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -5,14 +9,22 @@ use zircon_runtime::core::framework::render::ShaderVariantMissReport;
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::ViewportFrame;
 
-const READY_FRAME_EVIDENCE_SCHEMA: &str = "zircon_shader_pbr_viewer_ready_frame_evidence_v12";
+const READY_FRAME_EVIDENCE_SCHEMA: &str = "zircon_shader_pbr_viewer_ready_frame_evidence_v17";
 // This reports only reuse inside the viewer's MeshPipelineCache, never a persisted driver PSO.
-const ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE: &str = "process_local_mesh_pipeline_cache";
+pub(crate) const ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE: &str =
+    "process_local_mesh_pipeline_cache";
+pub(crate) const ENVIRONMENT_ONLY_BASE_PREWARM_NOT_REQUESTED_CACHE_SCOPE: &str = "not_requested";
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ReadyFrameEvidenceMetadata {
     pub(crate) backend: String,
+    pub(crate) evidence_identity: ReadyFrameEvidenceIdentity,
     pub(crate) interactive_direct_present_enabled: bool,
+    pub(crate) host_mode: String,
+    pub(crate) host_composition_id: String,
+    pub(crate) scene_id: String,
+    pub(crate) capture_target: String,
+    pub(crate) gpu_scene_surface_present_count: u32,
     pub(crate) hdri_path: String,
     pub(crate) requested_source_face_size: Option<u32>,
     pub(crate) requested_pmrem_face_size: Option<u32>,
@@ -21,9 +33,14 @@ pub(crate) struct ReadyFrameEvidenceMetadata {
     pub(crate) active_pmrem_face_size: u32,
     pub(crate) active_pmrem_mip_count: u32,
     pub(crate) render_profile: String,
+    pub(crate) material_fixture: String,
+    pub(crate) required_material_base_pipeline_kind: String,
+    pub(crate) required_material_base_pipeline_ready_at_capture: bool,
+    pub(crate) environment_only_base_prewarm_requested: bool,
     pub(crate) environment_only_base_prewarm_pipeline_ready: bool,
     pub(crate) environment_only_base_pipeline_ready_at_capture: bool,
     pub(crate) environment_only_base_prewarm_cache_hit: bool,
+    pub(crate) environment_only_base_prewarm_cache_scope: String,
     pub(crate) environment_only_base_prewarm_shader_source_resolution: Duration,
     pub(crate) environment_only_base_prewarm_pipeline_creation: Duration,
     pub(crate) environment_only_base_prewarm_elapsed: Duration,
@@ -56,6 +73,11 @@ pub(crate) struct ReadyFrameEvidenceMetadata {
     pub(crate) scene_startup_world_load: Duration,
     pub(crate) scene_startup_renderer_initialization: Duration,
     pub(crate) scene_startup_renderer_backend_initialization: Duration,
+    pub(crate) scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized: bool,
+    pub(crate) scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait: Duration,
+    pub(crate) scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization:
+        Duration,
+    pub(crate) scene_startup_renderer_environment_brdf_lut_texture_upload_submission: Duration,
     pub(crate) scene_startup_renderer_deferred_initialization: Duration,
     pub(crate) scene_startup_renderer_deferred_standard_pipeline: Duration,
     pub(crate) scene_startup_resource_streamer_initialization: Duration,
@@ -127,6 +149,13 @@ pub(crate) fn write_ready_frame_evidence(
     metadata: &ReadyFrameEvidenceMetadata,
 ) -> Result<PathBuf, String> {
     write_ready_frame_png(path, width, height, rgba)?;
+    let screenshot_fingerprint = match fingerprint_file(path, "Ready-frame screenshot") {
+        Ok(fingerprint) => fingerprint,
+        Err(error) => {
+            let _ = std::fs::remove_file(path);
+            return Err(error);
+        }
+    };
     let metadata_path = match ready_frame_evidence_metadata_path(path) {
         Ok(path) => path,
         Err(error) => {
@@ -134,7 +163,14 @@ pub(crate) fn write_ready_frame_evidence(
             return Err(error);
         }
     };
-    if let Err(error) = write_ready_frame_metadata(&metadata_path, path, width, height, metadata) {
+    if let Err(error) = write_ready_frame_metadata(
+        &metadata_path,
+        path,
+        &screenshot_fingerprint,
+        width,
+        height,
+        metadata,
+    ) {
         let _ = std::fs::remove_file(path);
         let _ = std::fs::remove_file(&metadata_path);
         return Err(error);
@@ -154,6 +190,7 @@ fn ready_frame_evidence_metadata_path(path: &Path) -> Result<PathBuf, String> {
 fn write_ready_frame_metadata(
     metadata_path: &Path,
     screenshot_path: &Path,
+    screenshot_fingerprint: &EvidenceFileFingerprint,
     width: u32,
     height: u32,
     metadata: &ReadyFrameEvidenceMetadata,
@@ -170,8 +207,30 @@ fn write_ready_frame_metadata(
     let contents = format!(
         "schema={READY_FRAME_EVIDENCE_SCHEMA}\n\
          screenshot={screenshot_name}\n\
+         screenshot_sha256={}\n\
+         screenshot_byte_length={}\n\
+         evidence_identity_schema={}\n\
+         evidence_run_id={}\n\
+         evidence_validation_policy={}\n\
+         evidence_identity_path={}\n\
+         evidence_identity_sha256={}\n\
+         evidence_identity_byte_length={}\n\
+         viewer_binary_path={}\n\
+         viewer_binary_sha256={}\n\
+         viewer_binary_byte_length={}\n\
+         hdri_sha256={}\n\
+         hdri_byte_length={}\n\
+         build_provenance_path={}\n\
+         build_provenance_sha256={}\n\
+         build_provenance_byte_length={}\n\
+         source_manifest_sha256={}\n\
          screenshot_presentation=cpu_readback\n\
          interactive_direct_present_enabled={}\n\
+         host_mode={}\n\
+         host_composition_id={}\n\
+         scene_id={}\n\
+         capture_target={}\n\
+         gpu_scene_surface_present_count={}\n\
          backend={}\n\
          hdri_path={}\n\
          requested_source_face_size={}\n\
@@ -181,6 +240,10 @@ fn write_ready_frame_metadata(
          active_pmrem_face_size={}\n\
          active_pmrem_mip_count={}\n\
          render_profile={}\n\
+         material_fixture={}\n\
+         required_material_base_pipeline_kind={}\n\
+         required_material_base_pipeline_ready_at_capture={}\n\
+         environment_only_base_prewarm_requested={}\n\
          environment_only_base_prewarm_pipeline_ready={}\n\
          environment_only_base_pipeline_ready_at_capture={}\n\
          environment_only_base_prewarm_cache_hit={}\n\
@@ -218,6 +281,10 @@ fn write_ready_frame_metadata(
          scene_startup_world_load_ns={}\n\
          scene_startup_renderer_initialization_ns={}\n\
          scene_startup_renderer_backend_initialization_ns={}\n\
+         scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized={}\n\
+         scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait_ns={}\n\
+         scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization_ns={}\n\
+         scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns={}\n\
          scene_startup_renderer_deferred_initialization_ns={}\n\
          scene_startup_renderer_deferred_standard_pipeline_ns={}\n\
          scene_startup_resource_streamer_initialization_ns={}\n\
@@ -242,7 +309,29 @@ fn write_ready_frame_metadata(
          shader_module_creation_cpu_microseconds={}\n\
          async_base_pipeline_queue_wait_count={}\n\
          async_base_pipeline_queue_wait_microseconds={}\n",
+        screenshot_fingerprint.sha256,
+        screenshot_fingerprint.byte_length,
+        READY_FRAME_EVIDENCE_IDENTITY_SCHEMA,
+        metadata.evidence_identity.run_id,
+        metadata.evidence_identity.validation_policy,
+        evidence_transport_path(&metadata.evidence_identity.identity_manifest.path).display(),
+        metadata.evidence_identity.identity_manifest.sha256,
+        metadata.evidence_identity.identity_manifest.byte_length,
+        evidence_transport_path(&metadata.evidence_identity.viewer_binary.path).display(),
+        metadata.evidence_identity.viewer_binary.sha256,
+        metadata.evidence_identity.viewer_binary.byte_length,
+        metadata.evidence_identity.hdri.sha256,
+        metadata.evidence_identity.hdri.byte_length,
+        evidence_transport_path(&metadata.evidence_identity.build_provenance.path).display(),
+        metadata.evidence_identity.build_provenance.sha256,
+        metadata.evidence_identity.build_provenance.byte_length,
+        metadata.evidence_identity.source_manifest_sha256,
         metadata.interactive_direct_present_enabled,
+        metadata.host_mode,
+        metadata.host_composition_id,
+        metadata.scene_id,
+        metadata.capture_target,
+        metadata.gpu_scene_surface_present_count,
         metadata.backend,
         metadata.hdri_path,
         face_size_label(metadata.requested_source_face_size),
@@ -252,10 +341,14 @@ fn write_ready_frame_metadata(
         metadata.active_pmrem_face_size,
         metadata.active_pmrem_mip_count,
         metadata.render_profile,
+        metadata.material_fixture,
+        metadata.required_material_base_pipeline_kind,
+        metadata.required_material_base_pipeline_ready_at_capture,
+        metadata.environment_only_base_prewarm_requested,
         metadata.environment_only_base_prewarm_pipeline_ready,
         metadata.environment_only_base_pipeline_ready_at_capture,
         metadata.environment_only_base_prewarm_cache_hit,
-        ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE,
+        metadata.environment_only_base_prewarm_cache_scope,
         metadata
             .environment_only_base_prewarm_shader_source_resolution
             .as_nanos(),
@@ -295,6 +388,16 @@ fn write_ready_frame_metadata(
         metadata.scene_startup_renderer_initialization.as_nanos(),
         metadata
             .scene_startup_renderer_backend_initialization
+            .as_nanos(),
+        metadata.scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized,
+        metadata
+            .scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait
+            .as_nanos(),
+        metadata
+            .scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization
+            .as_nanos(),
+        metadata
+            .scene_startup_renderer_environment_brdf_lut_texture_upload_submission
             .as_nanos(),
         metadata
             .scene_startup_renderer_deferred_initialization
@@ -397,8 +500,13 @@ mod tests {
         write_ready_frame_png, ReadyFrameEvidenceMetadata,
     };
     use std::time::Duration;
-    use zircon_runtime::core::framework::render::ShaderVariantMissReport;
+    use zircon_runtime::core::framework::render::{
+        ShaderVariantMissReport, IBL_BAKE_ALGORITHM_VERSION,
+    };
 
+    use crate::evidence_identity::{
+        EvidenceFileFingerprint, ReadyFrameEvidenceIdentity, READY_FRAME_EVIDENCE_VALIDATION_POLICY,
+    };
     use crate::work_paths::viewer_test_artifact_root;
 
     #[test]
@@ -463,7 +571,13 @@ mod tests {
         let path = viewer_test_artifact_root("ready-frame-evidence").join(format!("{unique}.png"));
         let metadata = ReadyFrameEvidenceMetadata {
             backend: "Dx12".to_owned(),
-            interactive_direct_present_enabled: true,
+            evidence_identity: ready_frame_evidence_identity_fixture(),
+            interactive_direct_present_enabled: false,
+            host_mode: "offscreen-diagnostic".to_owned(),
+            host_composition_id: "zircon_shader_pbr_viewer_standalone_diagnostic_v1".to_owned(),
+            scene_id: "single_pbr_mirror_sphere".to_owned(),
+            capture_target: "offscreen-scene-renderer-cpu-readback".to_owned(),
+            gpu_scene_surface_present_count: 0,
             hdri_path: "polyhaven_lakes_2k.hdr".to_owned(),
             requested_source_face_size: None,
             requested_pmrem_face_size: Some(256),
@@ -472,15 +586,21 @@ mod tests {
             active_pmrem_face_size: 256,
             active_pmrem_mip_count: 9,
             render_profile: "environment_only_pbr_preview".to_owned(),
+            material_fixture: "metal-mirror".to_owned(),
+            required_material_base_pipeline_kind: "environment-only-pbr-base".to_owned(),
+            required_material_base_pipeline_ready_at_capture: true,
+            environment_only_base_prewarm_requested: true,
             environment_only_base_prewarm_pipeline_ready: false,
             environment_only_base_pipeline_ready_at_capture: true,
             environment_only_base_prewarm_cache_hit: false,
+            environment_only_base_prewarm_cache_scope: ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE
+                .to_owned(),
             environment_only_base_prewarm_shader_source_resolution: Duration::from_millis(2),
             environment_only_base_prewarm_pipeline_creation: Duration::from_millis(11),
             environment_only_base_prewarm_elapsed: Duration::from_millis(13),
             camera_yaw_degrees: 12.5,
             camera_pitch_degrees: -7.0,
-            ibl_bake_algorithm_version: 2026_08_09_0006,
+            ibl_bake_algorithm_version: IBL_BAKE_ALGORITHM_VERSION,
             ibl_staging_status: "Written".to_owned(),
             ibl_staging_elapsed: Duration::from_millis(34),
             ibl_staging_source_decode: Duration::from_millis(1),
@@ -507,6 +627,13 @@ mod tests {
             scene_startup_world_load: Duration::from_millis(144),
             scene_startup_renderer_initialization: Duration::from_millis(3_600),
             scene_startup_renderer_backend_initialization: Duration::from_millis(377),
+            scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized: true,
+            scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait:
+                Duration::from_millis(8),
+            scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization:
+                Duration::from_millis(7),
+            scene_startup_renderer_environment_brdf_lut_texture_upload_submission:
+                Duration::from_millis(1),
             scene_startup_renderer_deferred_initialization: Duration::from_millis(1_600),
             scene_startup_renderer_deferred_standard_pipeline: Duration::from_millis(987),
             scene_startup_resource_streamer_initialization: Duration::from_millis(1_597),
@@ -534,8 +661,24 @@ mod tests {
             metadata_path,
             ready_frame_evidence_metadata_path(&path).unwrap()
         );
-        assert!(metadata_text.contains("schema=zircon_shader_pbr_viewer_ready_frame_evidence_v12"));
+        assert!(metadata_text.contains("schema=zircon_shader_pbr_viewer_ready_frame_evidence_v17"));
+        assert!(metadata_text
+            .contains("evidence_identity_schema=zircon_shader_pbr_viewer_evidence_identity_v1"));
+        assert!(metadata_text.contains("evidence_run_id=shader-pbr-test-ready-frame"));
+        assert!(metadata_text
+            .contains("evidence_validation_policy=zircon_shader_pbr_viewer_ready_frame_v17"));
+        assert!(metadata_text.contains("material_fixture=metal-mirror"));
+        assert!(metadata_text
+            .contains("required_material_base_pipeline_kind=environment-only-pbr-base"));
+        assert!(metadata_text.contains("required_material_base_pipeline_ready_at_capture=true"));
+        assert!(metadata_text.contains("source_manifest_sha256=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"));
         assert!(metadata_text.contains("screenshot_presentation=cpu_readback"));
+        assert!(metadata_text.contains("host_mode=offscreen-diagnostic"));
+        assert!(metadata_text
+            .contains("host_composition_id=zircon_shader_pbr_viewer_standalone_diagnostic_v1"));
+        assert!(metadata_text.contains("scene_id=single_pbr_mirror_sphere"));
+        assert!(metadata_text.contains("capture_target=offscreen-scene-renderer-cpu-readback"));
+        assert!(metadata_text.contains("gpu_scene_surface_present_count=0"));
         assert!(metadata_text.contains("backend=Dx12"));
         assert!(metadata_text.contains("hdri_path=polyhaven_lakes_2k.hdr"));
         assert!(metadata_text.contains("requested_source_face_size=automatic"));
@@ -557,8 +700,10 @@ mod tests {
             metadata_text.contains("environment_only_base_prewarm_pipeline_creation_ns=11000000")
         );
         assert!(metadata_text.contains("environment_only_base_prewarm_elapsed_ns=13000000"));
-        assert!(metadata_text.contains("interactive_direct_present_enabled=true"));
-        assert!(metadata_text.contains("ibl_bake_algorithm_version=202608090006"));
+        assert!(metadata_text.contains("interactive_direct_present_enabled=false"));
+        assert!(metadata_text.contains(&format!(
+            "ibl_bake_algorithm_version={IBL_BAKE_ALGORITHM_VERSION}"
+        )));
         assert!(metadata_text.contains("ibl_staging_status=Written"));
         assert!(metadata_text.contains("ibl_staging_source_decode_ns=1000000"));
         assert!(metadata_text.contains("ibl_staging_cubemap_build_ns=18000000"));
@@ -585,6 +730,17 @@ mod tests {
         assert!(
             metadata_text.contains("scene_startup_renderer_backend_initialization_ns=377000000")
         );
+        assert!(metadata_text.contains(
+            "scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized=true"
+        ));
+        assert!(metadata_text.contains(
+            "scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait_ns=8000000"
+        ));
+        assert!(metadata_text
+            .contains("scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization_ns=7000000"));
+        assert!(metadata_text.contains(
+            "scene_startup_renderer_environment_brdf_lut_texture_upload_submission_ns=1000000"
+        ));
         assert!(
             metadata_text.contains("scene_startup_renderer_deferred_initialization_ns=1600000000")
         );
@@ -622,7 +778,13 @@ mod tests {
             viewer_test_artifact_root("invalid-ready-evidence").join(format!("{unique}.png"));
         let metadata = ReadyFrameEvidenceMetadata {
             backend: "Dx12".to_owned(),
+            evidence_identity: ready_frame_evidence_identity_fixture(),
             interactive_direct_present_enabled: false,
+            host_mode: "offscreen-diagnostic".to_owned(),
+            host_composition_id: "zircon_shader_pbr_viewer_standalone_diagnostic_v1".to_owned(),
+            scene_id: "single_pbr_mirror_sphere".to_owned(),
+            capture_target: "offscreen-scene-renderer-cpu-readback".to_owned(),
+            gpu_scene_surface_present_count: 0,
             hdri_path: "test.hdr".to_owned(),
             requested_source_face_size: Some(64),
             requested_pmrem_face_size: Some(64),
@@ -631,15 +793,21 @@ mod tests {
             active_pmrem_face_size: 64,
             active_pmrem_mip_count: 7,
             render_profile: "environment_only_pbr_preview".to_owned(),
+            material_fixture: "metal-mirror".to_owned(),
+            required_material_base_pipeline_kind: "environment-only-pbr-base".to_owned(),
+            required_material_base_pipeline_ready_at_capture: true,
+            environment_only_base_prewarm_requested: true,
             environment_only_base_prewarm_pipeline_ready: true,
             environment_only_base_pipeline_ready_at_capture: true,
             environment_only_base_prewarm_cache_hit: true,
+            environment_only_base_prewarm_cache_scope: ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE
+                .to_owned(),
             environment_only_base_prewarm_shader_source_resolution: Duration::ZERO,
             environment_only_base_prewarm_pipeline_creation: Duration::ZERO,
             environment_only_base_prewarm_elapsed: Duration::ZERO,
             camera_yaw_degrees: 0.0,
             camera_pitch_degrees: 0.0,
-            ibl_bake_algorithm_version: 2026_08_09_0006,
+            ibl_bake_algorithm_version: IBL_BAKE_ALGORITHM_VERSION,
             ibl_staging_status: "Written".to_owned(),
             ibl_staging_elapsed: Duration::ZERO,
             ibl_staging_source_decode: Duration::ZERO,
@@ -666,6 +834,11 @@ mod tests {
             scene_startup_world_load: Duration::ZERO,
             scene_startup_renderer_initialization: Duration::ZERO,
             scene_startup_renderer_backend_initialization: Duration::ZERO,
+            scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized: false,
+            scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait: Duration::ZERO,
+            scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization:
+                Duration::ZERO,
+            scene_startup_renderer_environment_brdf_lut_texture_upload_submission: Duration::ZERO,
             scene_startup_renderer_deferred_initialization: Duration::ZERO,
             scene_startup_renderer_deferred_standard_pipeline: Duration::ZERO,
             scene_startup_resource_streamer_initialization: Duration::ZERO,
@@ -702,7 +875,13 @@ mod tests {
         let metadata_path = ready_frame_evidence_metadata_path(&path).unwrap();
         let metadata = ReadyFrameEvidenceMetadata {
             backend: "Dx12".to_owned(),
+            evidence_identity: ready_frame_evidence_identity_fixture(),
             interactive_direct_present_enabled: false,
+            host_mode: "offscreen-diagnostic".to_owned(),
+            host_composition_id: "zircon_shader_pbr_viewer_standalone_diagnostic_v1".to_owned(),
+            scene_id: "single_pbr_mirror_sphere".to_owned(),
+            capture_target: "offscreen-scene-renderer-cpu-readback".to_owned(),
+            gpu_scene_surface_present_count: 0,
             hdri_path: "test.hdr".to_owned(),
             requested_source_face_size: Some(64),
             requested_pmrem_face_size: Some(64),
@@ -711,15 +890,21 @@ mod tests {
             active_pmrem_face_size: 64,
             active_pmrem_mip_count: 7,
             render_profile: "environment_only_pbr_preview".to_owned(),
+            material_fixture: "metal-mirror".to_owned(),
+            required_material_base_pipeline_kind: "environment-only-pbr-base".to_owned(),
+            required_material_base_pipeline_ready_at_capture: true,
+            environment_only_base_prewarm_requested: true,
             environment_only_base_prewarm_pipeline_ready: true,
             environment_only_base_pipeline_ready_at_capture: true,
             environment_only_base_prewarm_cache_hit: true,
+            environment_only_base_prewarm_cache_scope: ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE
+                .to_owned(),
             environment_only_base_prewarm_shader_source_resolution: Duration::ZERO,
             environment_only_base_prewarm_pipeline_creation: Duration::ZERO,
             environment_only_base_prewarm_elapsed: Duration::ZERO,
             camera_yaw_degrees: 0.0,
             camera_pitch_degrees: 0.0,
-            ibl_bake_algorithm_version: 2026_08_09_0006,
+            ibl_bake_algorithm_version: IBL_BAKE_ALGORITHM_VERSION,
             ibl_staging_status: "Written".to_owned(),
             ibl_staging_elapsed: Duration::ZERO,
             ibl_staging_source_decode: Duration::ZERO,
@@ -746,6 +931,11 @@ mod tests {
             scene_startup_world_load: Duration::ZERO,
             scene_startup_renderer_initialization: Duration::ZERO,
             scene_startup_renderer_backend_initialization: Duration::ZERO,
+            scene_startup_renderer_environment_brdf_lut_builtin_payload_materialized: false,
+            scene_startup_renderer_environment_brdf_lut_builtin_payload_cache_wait: Duration::ZERO,
+            scene_startup_renderer_environment_brdf_lut_builtin_payload_materialization:
+                Duration::ZERO,
+            scene_startup_renderer_environment_brdf_lut_texture_upload_submission: Duration::ZERO,
             scene_startup_renderer_deferred_initialization: Duration::ZERO,
             scene_startup_renderer_deferred_standard_pipeline: Duration::ZERO,
             scene_startup_resource_streamer_initialization: Duration::ZERO,
@@ -773,6 +963,29 @@ mod tests {
         assert!(!path.exists());
         std::fs::remove_dir_all(path.parent().expect("test path should have a parent"))
             .expect("test artifact root should be removed");
+    }
+
+    fn ready_frame_evidence_identity_fixture() -> ReadyFrameEvidenceIdentity {
+        ReadyFrameEvidenceIdentity {
+            identity_manifest: evidence_file_fingerprint_fixture("E:/evidence/identity.json", 'a'),
+            run_id: "shader-pbr-test-ready-frame".to_owned(),
+            validation_policy: READY_FRAME_EVIDENCE_VALIDATION_POLICY.to_owned(),
+            source_manifest_sha256: "c".repeat(64),
+            viewer_binary: evidence_file_fingerprint_fixture("E:/evidence/viewer.exe", 'd'),
+            hdri: evidence_file_fingerprint_fixture("E:/evidence/lakes.hdr", 'e'),
+            build_provenance: evidence_file_fingerprint_fixture(
+                "E:/evidence/build-provenance.json",
+                'f',
+            ),
+        }
+    }
+
+    fn evidence_file_fingerprint_fixture(path: &str, marker: char) -> EvidenceFileFingerprint {
+        EvidenceFileFingerprint {
+            path: std::path::PathBuf::from(path),
+            sha256: marker.to_string().repeat(64),
+            byte_length: 4096,
+        }
     }
 
     fn shader_variant_miss_report_fixture() -> ShaderVariantMissReport {

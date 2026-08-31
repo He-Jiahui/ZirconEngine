@@ -2,14 +2,13 @@ use super::*;
 
 #[test]
 fn template_tree_builder_preserves_parent_owned_slot_contracts() {
-    let document = UiTemplateLoader::load_toml_str(SLOT_CONTRACT_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(SLOT_CONTRACT_TEMPLATE_TOML);
 
     let tree =
         UiTemplateTreeBuilder::build_tree(UiTreeId::new("slot.contract"), &instance).unwrap();
 
-    assert_eq!(tree.slots.len(), 1);
-    let slot = &tree.slots[0];
+    assert_eq!(tree.layout_slots().len(), 1);
+    let slot = &tree.layout_slots()[0];
     let parent = tree.node(slot.parent_id).unwrap();
     let child = tree.node(slot.child_id).unwrap();
     assert_eq!(
@@ -57,8 +56,7 @@ fn template_tree_builder_preserves_parent_owned_slot_contracts() {
 
 #[test]
 fn template_tree_builder_preserves_overlay_slot_z_order_contracts() {
-    let document = UiTemplateLoader::load_toml_str(OVERLAY_SLOT_CONTRACT_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(OVERLAY_SLOT_CONTRACT_TEMPLATE_TOML);
 
     let tree = UiTemplateTreeBuilder::build_tree(UiTreeId::new("overlay.slot.contract"), &instance)
         .unwrap();
@@ -101,16 +99,14 @@ fn template_tree_builder_preserves_overlay_slot_z_order_contracts() {
 
 #[test]
 fn template_tree_builder_preserves_canvas_free_slot_placement_contracts() {
-    let document =
-        UiTemplateLoader::load_toml_str(CANVAS_FREE_SLOT_CONTRACT_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(CANVAS_FREE_SLOT_CONTRACT_TEMPLATE_TOML);
 
     let tree =
         UiTemplateTreeBuilder::build_tree(UiTreeId::new("canvas.free.slot.contract"), &instance)
             .unwrap();
 
-    assert_eq!(tree.slots.len(), 1);
-    let slot = &tree.slots[0];
+    assert_eq!(tree.layout_slots().len(), 1);
+    let slot = &tree.layout_slots()[0];
     let parent = tree.node(slot.parent_id).unwrap();
     let child = tree.node(slot.child_id).unwrap();
     let placement = slot.canvas_placement.expect("canvas/free slot placement");
@@ -142,15 +138,13 @@ fn template_tree_builder_preserves_canvas_free_slot_placement_contracts() {
 
 #[test]
 fn template_tree_builder_ignores_canvas_free_placement_on_non_free_slots() {
-    let document =
-        UiTemplateLoader::load_toml_str(NON_CANVAS_FREE_SLOT_PLACEMENT_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(NON_CANVAS_FREE_SLOT_PLACEMENT_TEMPLATE_TOML);
 
     let tree = UiTemplateTreeBuilder::build_tree(UiTreeId::new("linear.slot.contract"), &instance)
         .unwrap();
 
-    assert_eq!(tree.slots.len(), 1);
-    let slot = &tree.slots[0];
+    assert_eq!(tree.layout_slots().len(), 1);
+    let slot = &tree.layout_slots()[0];
     let child = tree.node(slot.child_id).unwrap();
 
     assert_eq!(slot.kind, UiSlotKind::Linear);
@@ -163,14 +157,13 @@ fn template_tree_builder_ignores_canvas_free_placement_on_non_free_slots() {
 
 #[test]
 fn template_tree_builder_ignores_canvas_free_placement_on_space_slots() {
-    let document = UiTemplateLoader::load_toml_str(SPACE_SLOT_PLACEMENT_TEMPLATE_TOML).unwrap();
-    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    let instance = compiled_instance_from_toml(SPACE_SLOT_PLACEMENT_TEMPLATE_TOML);
 
     let tree =
         UiTemplateTreeBuilder::build_tree(UiTreeId::new("space.slot.contract"), &instance).unwrap();
 
-    assert_eq!(tree.slots.len(), 1);
-    let slot = &tree.slots[0];
+    assert_eq!(tree.layout_slots().len(), 1);
+    let slot = &tree.layout_slots()[0];
     let parent = tree.node(slot.parent_id).unwrap();
     let child = tree.node(slot.child_id).unwrap();
 

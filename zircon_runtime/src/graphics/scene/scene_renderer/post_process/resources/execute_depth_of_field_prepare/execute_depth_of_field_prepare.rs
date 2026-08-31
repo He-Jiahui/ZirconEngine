@@ -1,9 +1,10 @@
 use crate::core::framework::render::{RenderDepthOfFieldSettings, ViewportCameraSnapshot};
 use crate::core::math::UVec2;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use super::super::super::clear_render_target::clear_render_target;
 use super::super::super::depth_of_field_prepare_params::{
-    depth_of_field_prepare_enabled, DepthOfFieldPrepareParams,
+    DepthOfFieldPrepareParams, depth_of_field_prepare_enabled,
 };
 use super::super::super::resources::depth_sampling_mode::PostProcessDepthSamplingMode;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
@@ -13,7 +14,6 @@ impl ScenePostProcessResources {
     pub(crate) fn execute_depth_of_field_prepare(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         viewport_size: UVec2,
         scene_origin: [u32; 2],
@@ -23,7 +23,7 @@ impl ScenePostProcessResources {
         bokeh_view: &wgpu::TextureView,
         settings: RenderDepthOfFieldSettings,
         camera: &ViewportCameraSnapshot,
-    ) {
+    ) -> WgpuBufferUploadBatch {
         if !depth_of_field_prepare_enabled(settings) {
             clear_render_target(
                 encoder,
@@ -37,16 +37,16 @@ impl ScenePostProcessResources {
                 bokeh_view,
                 wgpu::Color::BLACK,
             );
-            return;
+            return WgpuBufferUploadBatch::new();
         }
 
         let params =
             DepthOfFieldPrepareParams::from_camera(viewport_size, scene_origin, camera, settings);
-        queue.write_buffer(
-            &self.depth_of_field_prepare_params_buffer,
+        let params_uploads = WgpuBufferUploadBatch::from(WgpuBufferUpload::from_bytes(
+            self.depth_of_field_prepare_params_buffer.clone(),
             0,
             bytemuck::bytes_of(&params),
-        );
+        ));
         let scene_depth_binding_view = match self.depth_sampling_mode {
             PostProcessDepthSamplingMode::RawDepthTexture => scene_depth_view,
             PostProcessDepthSamplingMode::ViewportDepthFallback => &self.black_texture_view,
@@ -102,5 +102,22 @@ impl ScenePostProcessResources {
         pass.set_pipeline(&self.depth_of_field_prepare_pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.draw(0..3, 0..1);
+        params_uploads
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn depth_of_field_prepare_params_are_returned_as_pre_submit_uploads() {
+        let source = include_str!("execute_depth_of_field_prepare.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("depth-of-field prepare production source");
+
+        assert!(!production.contains("queue.write_buffer"));
+        assert!(production.contains("WgpuBufferUpload::from_bytes("));
+        assert!(production.contains("return WgpuBufferUploadBatch::new()"));
     }
 }

@@ -1,12 +1,14 @@
+use crate::core::framework::render::RenderPipelinePhase;
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::RenderGraphAttachmentOps;
+use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 use super::super::scene_post_process_resources::ScenePostProcessResources;
 use super::super::scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
 use super::execute_post_process::{
-    build_post_process_params, create_bind_group, create_post_process_params_buffer,
+    build_post_process_params, create_bind_group, post_process_params_upload,
 };
 
 impl ScenePostProcessResources {
@@ -14,23 +16,26 @@ impl ScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer) fn execute_blur(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         cluster_dimensions: UVec2,
         scene_color_origin: [u32; 2],
         scene_color_view: &wgpu::TextureView,
         scene_depth_view: &wgpu::TextureView,
         output_view: &wgpu::TextureView,
-        exposure_buffer: &wgpu::Buffer,
+        exposure_buffer: wgpu::BufferBinding<'_>,
         frame: &ViewportRenderFrame,
         attachment_ops: RenderGraphAttachmentOps,
-    ) {
+    ) -> WgpuBufferUploadBatch {
+        let render_region = frame
+            .render_region_for_phase(RenderPipelinePhase::PostReconstructionScenePostProcess)
+            .expect("blur requires the post-reconstruction phase");
         let mut params = build_post_process_params(
-            frame.extract.view.effective_render_size(),
+            render_region.local_size(),
             cluster_dimensions,
-            frame.render_region(),
+            render_region,
             scene_color_origin,
             &frame.extract,
+            frame.post_process(),
             SceneRuntimeFeatureFlags::default(),
             false,
             0,
@@ -42,12 +47,12 @@ impl ScenePostProcessResources {
         params.effect_blur_dof[2] = 0.0;
         params.effect_blur_dof[3] = 0.0;
         params.effect_dof_lens = [0.0; 4];
-        let params_buffer =
-            create_post_process_params_buffer(device, queue, "zircon-blur-params", &params);
+        let params_buffer = &self.post_process_pass_parameter_buffers.blur;
+        let params_uploads = post_process_params_upload(params_buffer, &params);
         let bind_group = create_bind_group(
             self,
             device,
-            &params_buffer,
+            params_buffer,
             scene_color_view,
             scene_depth_view,
             &self.black_texture_view,
@@ -85,9 +90,13 @@ impl ScenePostProcessResources {
             timestamp_writes: None,
             multiview_mask: None,
         });
+        if !render_region.apply_local_to_render_pass(&mut pass) {
+            return params_uploads;
+        }
         pass.set_pipeline(&self.blur_pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.draw(0..3, 0..1);
+        params_uploads
     }
 }
 
@@ -101,5 +110,16 @@ mod tests {
             PostProcessGraphResourceNames::BLURRED,
             "postprocess.blurred"
         );
+    }
+
+    #[test]
+    fn blur_params_are_returned_as_pre_submit_uploads() {
+        let source = include_str!("mod.rs");
+        let production = source.split("#[cfg(test)]").next().expect("blur source");
+
+        assert!(!production.contains("queue.write_buffer"));
+        assert!(!production.contains("create_post_process_params_buffer"));
+        assert!(production.contains("post_process_params_upload("));
+        assert!(production.contains("WgpuBufferUploadBatch"));
     }
 }

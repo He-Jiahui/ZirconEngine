@@ -78,15 +78,20 @@ pub struct ParticleGpuFrameParams {
 
 impl ParticleGpuFrameParams {
     pub fn encode_emitters(&self, layout: &ParticleGpuLayout) -> Vec<u8> {
-        let mut encoded = Vec::with_capacity(
-            layout.emitter_count.max(1) as usize * ParticleGpuEmitterFrameParams::ENCODED_SIZE,
-        );
-        for emitter_index in 0..layout.emitter_count.max(1) {
-            if let Some(params) = self
-                .emitters
-                .iter()
-                .find(|params| params.emitter_index == emitter_index)
-            {
+        let emitter_slots = layout.emitter_count.max(1) as usize;
+        let mut indexed_emitters = vec![None; emitter_slots];
+        for params in &self.emitters {
+            if let Some(slot) = indexed_emitters.get_mut(params.emitter_index as usize) {
+                if slot.is_none() {
+                    *slot = Some(params);
+                }
+            }
+        }
+
+        let mut encoded =
+            Vec::with_capacity(emitter_slots * ParticleGpuEmitterFrameParams::ENCODED_SIZE);
+        for params in indexed_emitters {
+            if let Some(params) = params {
                 params.encode(&mut encoded);
             } else {
                 encoded.resize(
@@ -131,6 +136,29 @@ pub struct ParticleGpuFramePlanner {
     next_burst_indices: Vec<usize>,
 }
 
+#[derive(Debug)]
+pub(crate) struct ParticleGpuPreparedFramePlan {
+    frame: ParticleGpuFrameParams,
+    next_state: ParticleGpuPlannerCommit,
+}
+
+#[derive(Debug)]
+pub(crate) struct ParticleGpuPlannerCommit {
+    age_seconds: Real,
+    spawn_accumulators: Vec<Real>,
+    next_burst_indices: Vec<usize>,
+}
+
+impl ParticleGpuPreparedFramePlan {
+    pub(crate) fn frame(&self) -> &ParticleGpuFrameParams {
+        &self.frame
+    }
+
+    pub(crate) fn into_parts(self) -> (ParticleGpuFrameParams, ParticleGpuPlannerCommit) {
+        (self.frame, self.next_state)
+    }
+}
+
 impl ParticleGpuFramePlanner {
     pub fn new(asset: ParticleSystemAsset) -> Self {
         let layout = compile_particle_gpu_layout(&asset);
@@ -159,11 +187,22 @@ impl ParticleGpuFramePlanner {
         dt: Real,
         transform: Transform,
     ) -> Result<ParticleGpuFrameParams, ParticleSimulationError> {
+        let prepared = self.prepare_frame(dt, transform)?;
+        Ok(self.commit_prepared_frame(prepared))
+    }
+
+    pub(crate) fn prepare_frame(
+        &self,
+        dt: Real,
+        transform: Transform,
+    ) -> Result<ParticleGpuPreparedFramePlan, ParticleSimulationError> {
         if !dt.is_finite() || dt < 0.0 {
             return Err(ParticleSimulationError::InvalidDeltaTime);
         }
         let previous_age = self.age_seconds;
-        self.age_seconds += dt;
+        let age_seconds = previous_age + dt;
+        let mut spawn_accumulators = self.spawn_accumulators.clone();
+        let mut next_burst_indices = self.next_burst_indices.clone();
         let transform_rows = transform_rows(transform);
         let mut emitters = Vec::with_capacity(self.asset.emitters.len());
 
@@ -177,7 +216,14 @@ impl ParticleGpuFramePlanner {
             else {
                 continue;
             };
-            let spawn_count = self.spawn_count_for(index, &emitter, previous_age, self.age_seconds);
+            let spawn_count = spawn_count_for(
+                index,
+                &emitter,
+                previous_age,
+                age_seconds,
+                &mut spawn_accumulators,
+                &mut next_burst_indices,
+            );
             emitters.push(emitter_frame_params(
                 index as u32,
                 base_slot,
@@ -187,49 +233,72 @@ impl ParticleGpuFramePlanner {
                 &emitter,
                 transform_rows,
                 dt,
-                self.age_seconds,
+                age_seconds,
             ));
         }
 
-        Ok(ParticleGpuFrameParams {
-            dt,
-            age_seconds: self.age_seconds,
-            emitters,
+        Ok(ParticleGpuPreparedFramePlan {
+            frame: ParticleGpuFrameParams {
+                dt,
+                age_seconds,
+                emitters,
+            },
+            next_state: ParticleGpuPlannerCommit {
+                age_seconds,
+                spawn_accumulators,
+                next_burst_indices,
+            },
         })
     }
 
-    fn spawn_count_for(
+    pub(crate) fn commit_prepared_frame(
         &mut self,
-        emitter_index: usize,
-        emitter: &ParticleEmitterAsset,
-        previous_age: Real,
-        current_age: Real,
-    ) -> u32 {
-        let mut spawn_count = 0u32;
-        while let Some(burst) = emitter
-            .bursts
-            .get(self.next_burst_indices[emitter_index])
-            .copied()
-        {
-            let burst_time = burst.time_seconds.max(0.0);
-            if burst_time > current_age {
-                break;
-            }
-            if burst_time >= previous_age {
-                spawn_count = spawn_count.saturating_add(burst.count);
-            }
-            self.next_burst_indices[emitter_index] += 1;
-        }
-
-        if emitter.spawn_rate_per_second > 0.0 {
-            self.spawn_accumulators[emitter_index] +=
-                (current_age - previous_age) * emitter.spawn_rate_per_second;
-            let continuous = self.spawn_accumulators[emitter_index].floor() as u32;
-            self.spawn_accumulators[emitter_index] -= continuous as Real;
-            spawn_count = spawn_count.saturating_add(continuous);
-        }
-        spawn_count
+        prepared: ParticleGpuPreparedFramePlan,
+    ) -> ParticleGpuFrameParams {
+        let (frame, next_state) = prepared.into_parts();
+        self.commit_prepared_state(next_state);
+        frame
     }
+
+    pub(crate) fn commit_prepared_state(&mut self, next_state: ParticleGpuPlannerCommit) {
+        self.age_seconds = next_state.age_seconds;
+        self.spawn_accumulators = next_state.spawn_accumulators;
+        self.next_burst_indices = next_state.next_burst_indices;
+    }
+}
+
+fn spawn_count_for(
+    emitter_index: usize,
+    emitter: &ParticleEmitterAsset,
+    previous_age: Real,
+    current_age: Real,
+    spawn_accumulators: &mut [Real],
+    next_burst_indices: &mut [usize],
+) -> u32 {
+    let mut spawn_count = 0u32;
+    while let Some(burst) = emitter
+        .bursts
+        .get(next_burst_indices[emitter_index])
+        .copied()
+    {
+        let burst_time = burst.time_seconds.max(0.0);
+        if burst_time > current_age {
+            break;
+        }
+        if burst_time >= previous_age {
+            spawn_count = spawn_count.saturating_add(burst.count);
+        }
+        next_burst_indices[emitter_index] += 1;
+    }
+
+    if emitter.spawn_rate_per_second > 0.0 {
+        spawn_accumulators[emitter_index] +=
+            (current_age - previous_age) * emitter.spawn_rate_per_second;
+        let continuous = spawn_accumulators[emitter_index].floor() as u32;
+        spawn_accumulators[emitter_index] -= continuous as Real;
+        spawn_count = spawn_count.saturating_add(continuous);
+    }
+    spawn_count
 }
 
 fn emitter_frame_params(

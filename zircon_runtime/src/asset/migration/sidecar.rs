@@ -23,9 +23,11 @@ pub(super) fn preflight_sidecars(
     roots: &[PathBuf],
     inventory: &MigrationInventory,
 ) -> Result<SidecarPreflight, AssetMigrationIssue> {
-    let mut documents = Vec::new();
-    let mut pending = Vec::new();
-    let mut compound_bindings = Vec::new();
+    let sidecar_capacity = inventory.sidecar_candidates().len();
+    let generated_capacity = inventory.recognized_sources().len();
+    let mut documents = Vec::with_capacity(sidecar_capacity.saturating_add(generated_capacity));
+    let mut pending = Vec::with_capacity(sidecar_capacity.saturating_add(generated_capacity));
+    let mut compound_bindings = Vec::with_capacity(sidecar_capacity);
     for path in inventory.sidecar_candidates().iter().cloned() {
         let source =
             fs::read_to_string(&path).map_err(|error| invalid(&path, error.to_string()))?;
@@ -153,7 +155,12 @@ pub(super) fn preflight_sidecars(
         }
     }
     mint_missing_sidecars(inventory, &mut documents, &mut pending)?;
-    let mut entries = Vec::new();
+    let entry_capacity = documents.iter().fold(0usize, |capacity, document| {
+        capacity
+            .saturating_add(1)
+            .saturating_add(document.entries.len())
+    });
+    let mut entries = Vec::with_capacity(entry_capacity);
     for document in documents {
         entries.push(
             AssetRegistryEntry::new(
@@ -353,3 +360,7 @@ fn invalid(path: &Path, message: impl Into<String>) -> AssetMigrationIssue {
         message,
     )
 }
+
+#[cfg(test)]
+#[path = "sidecar/optimization_tests.rs"]
+mod optimization_tests;

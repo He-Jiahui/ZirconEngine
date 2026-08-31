@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::core::framework::render::select_irradiance_volume_for_view;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderPassExecutionContext, RenderPassExecutor, RenderPassExecutorRegistration,
 };
@@ -25,37 +24,24 @@ impl RenderPassExecutor for IrradianceVolumeBindExecutor {
         {
             return Err("irradiance.volume_bind executor contract mismatch".to_string());
         }
-        let gpu = context.require_gpu()?;
-        let extract = gpu.frame_extract();
-        let render_layers = extract.view.selected_camera_layers();
-        let visible_world_positions = extract
-            .geometry
-            .meshes
-            .iter()
-            .filter(|mesh| mesh.common.layer_mask.intersects(render_layers))
-            .map(|mesh| mesh.transform.translation)
-            .collect::<Vec<_>>();
-        let selected = select_irradiance_volume_for_view(
-            &extract.lighting.advanced_lighting.irradiance_volumes,
-            render_layers,
-            &visible_world_positions,
-        )
-        .cloned();
-        let streamer = gpu.streamer.ok_or_else(|| {
-            "irradiance.volume_bind requires resource streamer context".to_string()
-        })?;
-        let selected = selected.and_then(|volume| {
-            streamer
-                .irradiance_volume_texture(volume.voxels)
-                .map(|texture| (volume, texture))
-        });
-        let mesh_pipelines = gpu
-            .mesh_pipelines
-            .as_deref_mut()
-            .ok_or_else(|| "irradiance.volume_bind requires mesh pipeline context".to_string())?;
-        mesh_pipelines
-            .irradiance_volume
-            .prepare(gpu.queue, selected);
+        context.require_gpu()?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn irradiance_bind_executor_does_not_repeat_frame_preparation() {
+        let production = include_str!("executor.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("irradiance executor test boundary");
+
+        assert!(production.contains("context.require_gpu()?"));
+        assert!(!production.contains("select_irradiance_volume_for_view"));
+        assert!(!production.contains("irradiance_volume_texture"));
+        assert!(!production.contains(".prepare("));
+        assert!(!production.contains("gpu.queue"));
     }
 }

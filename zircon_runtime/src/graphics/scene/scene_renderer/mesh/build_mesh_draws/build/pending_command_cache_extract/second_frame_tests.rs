@@ -14,8 +14,8 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 
 use super::super::pending_command_cache_plan::PendingMeshCommandCacheVisibility;
 use super::{
-    commands_for_extract_item_with_stats, PendingMeshCommandCacheExtractItem,
-    PendingMeshCommandCacheExtractionStats,
+    PendingMeshCommandCacheExtractItem, PendingMeshCommandCacheExtractionStats,
+    commands_for_extract_item_with_stats,
 };
 
 #[test]
@@ -95,6 +95,8 @@ fn item(
         stable_instance_key: (7 << 16) | 1,
         draw_ordinal: 1,
         source_draw_index: 8,
+        sort_components: RenderPhaseSortComponents::new(0.0, 10),
+        gpu_scene_instance_span: Some((1, 1)),
         queue_profile: MeshDrawQueueProfile::new(
             phase,
             MeshDrawGeometrySource::Prepared,
@@ -124,9 +126,10 @@ fn store(
             draw_ordinal: item.draw_ordinal,
             phase,
             disabled_passes: item.disabled_passes,
+            shader_quality: Default::default(),
         },
         &state,
-        command(phase, sort_key),
+        command(phase, sort_key).static_payload(),
         1,
     );
 }

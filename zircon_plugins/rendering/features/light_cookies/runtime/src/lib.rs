@@ -32,7 +32,6 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             QueueLane::Graphics,
         )
         .with_executor_id(LIGHT_COOKIE_ATLAS_BUILD_EXECUTOR_ID)
-        .with_side_effects()
         .write_external_texture(LIGHT_COOKIE_ATLAS_RESOURCE)],
     )
     .when_advanced_lighting_cookies_enabled()

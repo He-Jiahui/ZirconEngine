@@ -36,6 +36,7 @@ fn text_input_keyboard_text_payload_inserts_printable_text() {
     assert_eq!(int_attr(&surface, "caret_offset"), 2);
     assert_eq!(int_attr(&surface, "selection_anchor"), 2);
     assert_eq!(int_attr(&surface, "selection_focus"), 2);
+    assert!(result.diagnostics.text_constraint.is_none());
     assert_eq!(result.component_events.len(), 1);
     assert_eq!(
         result.component_events[0].event,
@@ -89,6 +90,13 @@ fn text_input_keyboard_text_payload_uses_constraints_and_selection() {
     assert_eq!(int_attr(&surface, "caret_offset"), 2);
     assert_eq!(int_attr(&surface, "selection_anchor"), 2);
     assert_eq!(int_attr(&surface, "selection_focus"), 2);
+    let receipt = result
+        .diagnostics
+        .text_constraint
+        .expect("keyboard filtering publishes the shared typed constraint receipt");
+    assert_eq!(receipt.removed_hard_line_count, 0);
+    assert_eq!(receipt.removed_filter_scalar_count, 1);
+    assert!(!receipt.max_graphemes_truncated);
     assert_eq!(
         result.component_events[0].event,
         UiComponentEvent::ValueChanged {
@@ -97,6 +105,18 @@ fn text_input_keyboard_text_payload_uses_constraints_and_selection() {
         }
     );
     assert_widget_binding_report(&result.binding_reports);
+}
+
+#[test]
+fn text_input_zero_max_length_keeps_the_catalog_unbounded_contract() {
+    let mut surface = text_input_surface("ab", 2, [("max_length", toml::Value::Integer(0))]);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = dispatch_key_with_text(&mut surface, "Z", 90, Some("XYZ"), |_| {});
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "abXYZ");
+    assert!(result.diagnostics.text_constraint.is_none());
 }
 
 fn assert_input_method_request(
@@ -129,11 +149,13 @@ fn text_input_keyboard_text_payload_rejects_stale_disabled_focus_owner() {
     let result = dispatch_key_with_text(&mut surface, "Z", 90, Some("Z"), |_| {});
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
-    assert!(result
-        .diagnostics
-        .notes
-        .iter()
-        .any(|note| note == "owner route rejected"));
+    assert!(
+        result
+            .diagnostics
+            .notes
+            .iter()
+            .any(|note| note == "owner route rejected")
+    );
     assert_eq!(text_attr(&surface, "content"), "ab");
     assert_eq!(int_attr(&surface, "caret_offset"), 1);
     assert_eq!(int_attr(&surface, "selection_anchor"), 1);
@@ -158,11 +180,13 @@ fn text_input_keyboard_tab_does_not_insert_text_and_routes_navigation() {
         result.diagnostics.handled_phase.as_deref(),
         Some("keyboard.navigation")
     );
-    assert!(result
-        .diagnostics
-        .notes
-        .iter()
-        .any(|note| note == "keyboard_navigation=Next"));
+    assert!(
+        result
+            .diagnostics
+            .notes
+            .iter()
+            .any(|note| note == "keyboard_navigation=Next")
+    );
     assert!(matches!(
         &result.applied_effects[0].effect,
         UiDispatchEffect::SetFocus { target, reason }
@@ -183,15 +207,20 @@ fn text_input_keyboard_tab_does_not_insert_text_and_routes_navigation() {
 }
 
 #[test]
-fn text_input_keyboard_text_payload_newline_does_not_bypass_single_line_enter() {
+fn text_input_keyboard_text_payload_newline_submits_single_line_without_insertion() {
     let mut surface = text_input_surface("ab", 1, [("multiline", toml::Value::Boolean(false))]);
     surface.focus_node(UiNodeId::new(2)).unwrap();
 
     let result = dispatch_key_with_text(&mut surface, "Enter", 13, Some("\n"), |_| {});
 
-    assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.submit")
+    );
     assert_eq!(text_attr(&surface, "content"), "ab");
     assert_eq!(int_attr(&surface, "caret_offset"), 1);
+    assert!(result.diagnostics.text_constraint.is_none());
     assert!(result.component_events.is_empty());
     assert!(result.binding_reports.is_empty());
 }
@@ -331,8 +360,10 @@ fn int_attr(surface: &UiSurface, key: &str) -> i64 {
 
 fn binding(path: &str, event: UiEventKind) -> UiBindingRef {
     UiBindingRef {
+        component_event: super::typed_component_event_kind_for_test(path),
         id: path.to_string(),
         event,
+        mode: Default::default(),
         route: Some(path.replace('/', ".")),
         action: None,
         targets: Vec::new(),

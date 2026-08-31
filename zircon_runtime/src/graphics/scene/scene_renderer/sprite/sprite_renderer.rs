@@ -10,7 +10,6 @@ use crate::render_graph::{
     RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
 };
 
-use super::build_sprite_vertices::build_sprite_vertices;
 use super::prepared_batches::prepare_sprite_draw_batches;
 use super::sprite_vertex::SpriteVertex;
 
@@ -130,8 +129,7 @@ impl SpriteRenderer {
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) {
-        let sprite_batches =
-            prepare_sprite_draw_batches(frame, build_sprite_vertices(frame, stage));
+        let sprite_batches = prepare_sprite_draw_batches(frame, stage);
         if sprite_batches.is_empty() {
             return;
         }

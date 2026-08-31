@@ -76,9 +76,18 @@ impl AssetSourceAuthority {
         policy: AssetSourceWritePolicy,
         target: &str,
     ) -> Result<Self, ResourceLocatorError> {
-        let normalized_root = if matches!(target, "res://" | "lib://" | "builtin://" | "mem://") {
-            Some(format!("{target}__root__"))
-        } else if let Some(package_id) = target.strip_prefix("package://") {
+        let fixed_root_kind = match target {
+            "res://" => Some(AssetSourceKind::Project),
+            "lib://" => Some(AssetSourceKind::Library),
+            "builtin://" => Some(AssetSourceKind::Builtin),
+            "mem://" => Some(AssetSourceKind::Transient),
+            _ => None,
+        };
+        if let Some(kind) = fixed_root_kind {
+            return Ok(Self::new(policy, kind));
+        }
+
+        let normalized_root = if let Some(package_id) = target.strip_prefix("package://") {
             (!package_id.is_empty() && !package_id.contains('/'))
                 .then(|| format!("{target}/__root__"))
         } else {
@@ -118,3 +127,7 @@ impl AssetSourceAuthority {
         Self { kind, write_access }
     }
 }
+
+#[cfg(test)]
+#[path = "source_authority/fixed_root_classification_tests.rs"]
+mod fixed_root_classification_tests;

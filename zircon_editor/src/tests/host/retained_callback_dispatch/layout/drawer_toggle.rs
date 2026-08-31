@@ -5,12 +5,10 @@ use crate::core::editor_event::{
 };
 
 #[test]
-fn builtin_host_activity_toggle_collapses_active_hierarchy_drawer_from_template_binding() {
+fn builtin_host_activity_toggle_collapses_active_hierarchy_drawer_from_typed_target() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_template_bridge_activity_collapse");
-    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
-
     let before = harness.runtime.current_layout();
     let drawer = before.drawers.get(&ActivityDrawerSlot::LeftTop).unwrap();
     assert_eq!(drawer.mode, ActivityDrawerMode::Pinned);
@@ -21,12 +19,10 @@ fn builtin_host_activity_toggle_collapses_active_hierarchy_drawer_from_template_
 
     let effects = dispatch_builtin_host_drawer_toggle(
         &harness.runtime,
-        &bridge,
-        "left_top",
-        "editor.hierarchy#1",
+        ActivityDrawerSlot::LeftTop,
+        &ViewInstanceId::new("editor.hierarchy#1"),
     )
-    .expect("builtin activity rail target should resolve through template bridge")
-    .unwrap();
+    .expect("typed activity target should collapse the drawer");
 
     let after = harness.runtime.current_layout();
     assert_eq!(
@@ -50,30 +46,24 @@ fn builtin_host_activity_toggle_collapses_active_hierarchy_drawer_from_template_
 }
 
 #[test]
-fn builtin_host_activity_toggle_reopens_collapsed_hierarchy_drawer_from_template_binding() {
+fn builtin_host_activity_toggle_reopens_collapsed_hierarchy_drawer_from_typed_target() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_template_bridge_activity_reopen");
-    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
-
     let collapse = dispatch_builtin_host_drawer_toggle(
         &harness.runtime,
-        &bridge,
-        "left_top",
-        "editor.hierarchy#1",
+        ActivityDrawerSlot::LeftTop,
+        &ViewInstanceId::new("editor.hierarchy#1"),
     )
-    .expect("builtin activity rail target should resolve through template bridge")
-    .unwrap();
+    .expect("typed activity target should collapse the drawer");
     assert!(collapse.layout_dirty);
 
     let effects = dispatch_builtin_host_drawer_toggle(
         &harness.runtime,
-        &bridge,
-        "left_top",
-        "editor.hierarchy#1",
+        ActivityDrawerSlot::LeftTop,
+        &ViewInstanceId::new("editor.hierarchy#1"),
     )
-    .expect("builtin activity rail target should still resolve through template bridge")
-    .unwrap();
+    .expect("typed activity target should reopen the drawer");
 
     let after = harness.runtime.current_layout();
     let drawer = after.drawers.get(&ActivityDrawerSlot::LeftTop).unwrap();

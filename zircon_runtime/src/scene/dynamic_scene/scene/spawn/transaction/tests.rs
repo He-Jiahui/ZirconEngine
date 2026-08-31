@@ -30,11 +30,15 @@ use resources::{
 #[test]
 fn compiled_spawn_applies_the_previewed_entity_remap() {
     let mut source = World::empty();
-    let source_entity = source.spawn_node(NodeKind::Empty);
+    let source_entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let scene = DynamicScene::from_world(&source).expect("source world should capture");
 
     let mut target = World::empty();
-    target.spawn_node(NodeKind::Cube);
+    target
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let plan = compile_scene_spawn(&scene, &target).expect("scene should compile for target");
     assert_eq!(plan.preview.entity_remaps.len(), 1);
     let planned_target = plan.preview.entity_remaps[0].target_entity;
@@ -61,7 +65,9 @@ fn compiled_spawn_publishes_one_final_state_for_one_hundred_thousand_entities() 
 fn assert_compiled_spawn_final_publication(entity_count: usize) {
     let mut source = World::empty();
     for _ in 0..entity_count {
-        source.spawn_node(NodeKind::Empty);
+        source
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
     }
     let scene = DynamicScene::from_world(&source).expect("source world should capture");
 
@@ -97,14 +103,18 @@ fn assert_compiled_spawn_final_publication(entity_count: usize) {
 #[test]
 fn compiled_spawn_rejects_a_target_generation_change_before_apply() {
     let mut source = World::empty();
-    source.spawn_node(NodeKind::Empty);
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let scene = DynamicScene::from_world(&source).expect("source world should capture");
 
     let mut target = World::empty();
     let expected_generation = target.world_generation();
     let plan = compile_scene_spawn(&scene, &target).expect("scene should compile for target");
 
-    target.spawn_node(NodeKind::Cube);
+    target
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let actual_generation = target.world_generation();
     let error = apply_compiled_scene_spawn(&mut target, plan)
         .expect_err("a stale compiled spawn plan must not mutate the target");
@@ -122,7 +132,9 @@ fn compiled_spawn_rejects_a_target_generation_change_before_apply() {
 #[test]
 fn compiled_spawn_rejects_a_component_schema_catalog_change_before_apply() {
     let mut source = World::empty();
-    source.spawn_node(NodeKind::Empty);
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let scene = DynamicScene::from_world(&source).expect("source world should capture");
 
     let mut target = World::empty();
@@ -154,7 +166,9 @@ fn compiled_spawn_rejects_a_component_schema_catalog_change_before_apply() {
 fn compiled_spawn_commit_rejects_a_resource_change_after_preflight() {
     let mut source = World::empty();
     register_slot_resource(&mut source);
-    source.spawn_node(NodeKind::Empty);
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     source.insert_resource(SlotResource { value: 17 });
     let scene = DynamicScene::from_world(&source).expect("source scene should capture");
 
@@ -194,7 +208,9 @@ fn compiled_spawn_commit_rejects_a_resource_change_after_preflight() {
 fn compiled_spawn_commit_rejects_a_resource_removal_after_preflight() {
     let mut source = World::empty();
     register_slot_resource(&mut source);
-    source.spawn_node(NodeKind::Empty);
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     source.insert_resource(SlotResource { value: 17 });
     let scene = DynamicScene::from_world(&source).expect("source scene should capture");
 
@@ -231,7 +247,9 @@ fn compiled_spawn_commit_rejects_a_resource_removal_after_preflight() {
 #[test]
 fn compiled_spawn_commit_rejects_a_component_registry_change_after_preflight() {
     let mut source = World::empty();
-    source.spawn_node(NodeKind::Empty);
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let scene = DynamicScene::from_world(&source).expect("source scene should capture");
 
     let mut target = World::empty();
@@ -262,7 +280,9 @@ fn compiled_spawn_commit_rejects_a_component_registry_change_after_preflight() {
 fn staged_compiled_spawn_rejects_a_resource_removal_before_commit() {
     let mut source = World::empty();
     register_slot_resource(&mut source);
-    source.spawn_node(NodeKind::Empty);
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     source.insert_resource(SlotResource { value: 17 });
     let prepared = PreparedDynamicSceneSpawn::new(
         DynamicScene::from_world(&source).expect("source scene should capture"),
@@ -335,7 +355,9 @@ fn prepared_commit_keeps_plugin_rows_bound_to_its_preflighted_descriptor() {
         "Prepared Commit Plugin Marker",
     );
     let mut source = World::empty();
-    let source_entity = source.spawn_node(NodeKind::Empty);
+    let source_entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mut scene = DynamicScene::from_world(&source).expect("source scene should capture");
     scene.component_types.push(descriptor.clone());
     let entity = scene
@@ -392,7 +414,9 @@ fn compiled_spawn_projects_only_affected_target_schema_into_preflight() {
     );
 
     let mut source = World::empty();
-    let source_entity = source.spawn_node(NodeKind::Empty);
+    let source_entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mut scene = DynamicScene::from_world(&source).expect("source scene should capture");
     assert!(
         scene
@@ -460,7 +484,9 @@ fn compiled_spawn_rejects_unknown_plugin_type_when_target_catalog_is_nonempty() 
     const KNOWN_TYPE_ID: &str = "tests.KnownTargetComponent";
     const UNKNOWN_TYPE_ID: &str = "tests.UnknownSceneComponent";
     let mut source = World::empty();
-    let source_entity = source.spawn_node(NodeKind::Empty);
+    let source_entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mut scene = DynamicScene::from_world(&source).expect("source scene should capture");
     scene
         .entities
@@ -501,7 +527,9 @@ fn compiled_spawn_accepts_scene_declared_plugin_type_with_nonempty_target_catalo
         "Scene Declared Component",
     );
     let mut source = World::empty();
-    let source_entity = source.spawn_node(NodeKind::Empty);
+    let source_entity = source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mut scene = DynamicScene::from_world(&source).expect("source scene should capture");
     scene.component_types.push(scene_descriptor.clone());
     scene
@@ -586,7 +614,9 @@ impl Component for TargetOnlyComponent {}
 #[test]
 fn compiled_spawn_rekeys_preflight_component_rows_for_the_target_registry() {
     let mut source = World::empty();
-    source.spawn_node(NodeKind::Empty);
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let scene = DynamicScene::from_world(&source).expect("source world should capture");
 
     let mut target = World::empty();
@@ -604,7 +634,9 @@ fn compiled_spawn_rekeys_preflight_component_rows_for_the_target_registry() {
 fn scene_spawn_keeps_target_unpublished_when_resource_write_preflight_fails() {
     let mut source = World::empty();
     register_rejecting_resource(&mut source);
-    source.spawn_node(NodeKind::Empty);
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     source.insert_resource(RejectingResource(7));
     let scene = DynamicScene::from_world(&source).expect("source scene should capture");
 
@@ -656,7 +688,9 @@ fn compiled_spawn_writes_resource_fields_through_dense_slots() {
 fn compiled_spawn_publishes_a_resource_preflight_result_without_replaying_the_adapter() {
     let mut source = World::empty();
     register_slot_resource(&mut source);
-    source.spawn_node(NodeKind::Empty);
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     source.insert_resource(SlotResource { value: 17 });
     let scene = DynamicScene::from_world(&source).expect("source scene should capture");
 
@@ -688,7 +722,9 @@ fn compiled_spawn_profiles_compact_commit_artifact_and_descriptor_delta() {
     start_capture(config);
 
     let mut source = World::empty();
-    source.spawn_node(NodeKind::Empty);
+    source
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let scene = DynamicScene::from_world(&source).expect("source world should capture");
     let mut target = World::empty();
 

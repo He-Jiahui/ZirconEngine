@@ -1,3 +1,4 @@
+use crate::asset::assets::ProjectDocumentError;
 use crate::asset::assets::{
     ImportedAsset, SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset,
     SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
@@ -6,7 +7,10 @@ use crate::asset::assets::{
     SceneMobilityAsset, ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset,
     SceneRigidBodyTypeAsset, SceneSpotLightAsset, TransformAsset,
 };
-use crate::asset::project::ProjectManager;
+use crate::asset::project::{
+    ProjectManager, ProjectReferenceDiagnostic, ProjectReferenceDiagnosticPhase,
+};
+use crate::asset::{AssetImportError, ReferenceResolutionError};
 use crate::core::resource::io::atomic_write;
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
@@ -20,8 +24,8 @@ use crate::scene::components::{
     PostProcessVolumeComponent, RectLight, RigidBodyComponent, RigidBodyType, SpotLight,
 };
 
-use super::super::transform_validation::validate_persisted_transforms;
 use super::super::World;
+use super::super::transform_validation::validate_persisted_transforms;
 use super::camera::{camera_target_from_asset, camera_to_asset, viewport_rect_from_asset};
 use super::mesh::{mesh_from_asset, mesh_to_asset};
 use super::physics::{collider_shape_from_asset, collider_shape_to_asset};
@@ -29,10 +33,13 @@ use super::post_process::{
     post_process_settings_from_asset, post_process_settings_to_asset,
     post_process_volume_from_asset, post_process_volume_to_asset,
 };
+use super::prefab::prefab_instance_for_record;
 use super::references::{handle_for_reference, reference_for_handle};
 use super::script::script_bindings_for_record;
 use super::transform::{transform_from_asset, transform_to_asset};
-use super::{SceneProjectError, BUILTIN_CUBE, SCRIPT_BINDINGS_COMPONENT};
+use super::{
+    BUILTIN_CUBE, PREFAB_INSTANCE_COMPONENT, SCRIPT_BINDINGS_COMPONENT, SceneProjectError,
+};
 
 impl World {
     pub fn load_scene_from_uri(
@@ -47,14 +54,23 @@ impl World {
         uri: &ResourceLocator,
         max_raw_payload_bytes: u64,
     ) -> Result<Self, SceneProjectError> {
-        let ImportedAsset::Scene(scene) =
-            project.load_artifact_with_raw_payload_limit(uri, max_raw_payload_bytes)?
-        else {
-            return Err(SceneProjectError::SceneAsset(format!(
-                "asset {uri} is not a scene"
-            )));
-        };
-        Self::from_scene_asset(project, &scene)
+        let result = (|| {
+            let ImportedAsset::Scene(scene) =
+                project.load_artifact_with_raw_payload_limit(uri, max_raw_payload_bytes)?
+            else {
+                return Err(SceneProjectError::SceneAsset(format!(
+                    "asset {uri} is not a scene"
+                )));
+            };
+            Self::from_scene_asset(project, &scene)
+        })();
+        publish_scene_reference_diagnostics(
+            project,
+            uri,
+            ProjectReferenceDiagnosticPhase::Load,
+            result.as_ref().err(),
+        );
+        result
     }
 
     pub fn from_scene_asset(
@@ -350,6 +366,20 @@ impl World {
                     )
                     .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))?;
             }
+            if let Some(prefab_instance) = entity.prefab_instance.as_ref() {
+                world
+                    .set_dynamic_component(
+                        entity.entity,
+                        PREFAB_INSTANCE_COMPONENT,
+                        serde_json::to_value(prefab_instance).map_err(|error| {
+                            SceneProjectError::SceneAsset(format!(
+                                "failed to encode prefab instance for entity {}: {error}",
+                                entity.entity
+                            ))
+                        })?,
+                    )
+                    .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))?;
+            }
         }
 
         world.normalize_scene_asset_after_load()?;
@@ -369,6 +399,7 @@ impl World {
             .map(|record| {
                 let mesh = mesh_to_asset(project, record.mesh)?;
 
+                let prefab_instance = prefab_instance_for_record(self, record.id)?;
                 let script_bindings = script_bindings_for_record(self, record.id)?;
                 let post_process_settings = self
                     .get::<PostProcessSettingsComponent>(record.id)
@@ -580,7 +611,7 @@ impl World {
                         .transpose()?,
                     terrain: None,
                     tilemap: None,
-                    prefab_instance: None,
+                    prefab_instance,
                     script_bindings,
                 })
             })
@@ -594,11 +625,165 @@ impl World {
         project: &ProjectManager,
         uri: &ResourceLocator,
     ) -> Result<(), SceneProjectError> {
-        let scene = self.to_scene_asset(project)?;
-        let path = project.existing_or_primary_project_source_path_for_uri(uri)?;
-        let document = scene
-            .to_project_toml_string(|reference| project.persist_runtime_reference(reference))?;
-        atomic_write(&path, document.as_bytes())?;
-        Ok(())
+        let result = (|| {
+            let scene = self.to_scene_asset(project)?;
+            let path = project.existing_or_primary_project_source_path_for_uri(uri)?;
+            let document = scene
+                .to_project_toml_string(|reference| project.persist_runtime_reference(reference))?;
+            atomic_write(&path, document.as_bytes())?;
+            Ok(())
+        })();
+        publish_scene_reference_diagnostics(
+            project,
+            uri,
+            ProjectReferenceDiagnosticPhase::Save,
+            result.as_ref().err(),
+        );
+        result
+    }
+}
+
+fn publish_scene_reference_diagnostics(
+    project: &ProjectManager,
+    document: &ResourceLocator,
+    phase: ProjectReferenceDiagnosticPhase,
+    error: Option<&SceneProjectError>,
+) {
+    let diagnostics = match error {
+        None => Vec::new(),
+        Some(error) => {
+            let Some(diagnostic) = scene_reference_diagnostic(document, phase, error) else {
+                // An unrelated failure did not prove that the document's previous reference
+                // diagnostics were resolved. Retain the last validated replacement snapshot.
+                return;
+            };
+            vec![diagnostic]
+        }
+    };
+    project.replace_reference_diagnostics(document.clone(), phase, diagnostics);
+}
+
+fn scene_reference_diagnostic(
+    document: &ResourceLocator,
+    phase: ProjectReferenceDiagnosticPhase,
+    error: &SceneProjectError,
+) -> Option<ProjectReferenceDiagnostic> {
+    match error {
+        SceneProjectError::DanglingAssetReference { uuid, locator } => Some(
+            ProjectReferenceDiagnostic::dangling(document.clone(), phase, *uuid, locator.clone()),
+        ),
+        SceneProjectError::UnresolvedResourceHandle { resource_id, role } => {
+            Some(ProjectReferenceDiagnostic::unresolved_handle(
+                document.clone(),
+                phase,
+                *resource_id,
+                *role,
+            ))
+        }
+        SceneProjectError::Asset(AssetImportError::ProjectDocument(
+            ProjectDocumentError::Reference(error),
+        ))
+        | SceneProjectError::Asset(AssetImportError::ReferenceResolution(error))
+        | SceneProjectError::ProjectDocument(ProjectDocumentError::Reference(error)) => {
+            persisted_reference_diagnostic(document, phase, error)
+        }
+        _ => None,
+    }
+}
+
+fn persisted_reference_diagnostic(
+    document: &ResourceLocator,
+    phase: ProjectReferenceDiagnosticPhase,
+    error: &ReferenceResolutionError,
+) -> Option<ProjectReferenceDiagnostic> {
+    let (uuid, path_hint, subasset) = match error {
+        ReferenceResolutionError::Dangling { guid, path }
+        | ReferenceResolutionError::PathOccupiedCandidate { guid, path, .. } => {
+            (*guid, path.as_str(), None)
+        }
+        ReferenceResolutionError::DanglingSubasset {
+            guid, path, label, ..
+        } => (*guid, path.as_str(), Some(label.as_str())),
+        _ => return None,
+    };
+    Some(ProjectReferenceDiagnostic::persisted_dangling(
+        document.clone(),
+        phase,
+        uuid,
+        path_hint,
+        subasset,
+    ))
+}
+
+#[cfg(test)]
+mod reference_diagnostic_tests {
+    use super::*;
+    use crate::asset::project::ProjectReferenceDiagnosticKind;
+    use crate::asset::{AssetUri, AssetUuid};
+    use crate::core::resource::ResourceId;
+
+    #[test]
+    fn typed_scene_errors_project_to_the_runtime_reference_diagnostic_contract() {
+        let document = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
+        let locator = AssetUri::parse("res://models/missing.glb").unwrap();
+        let uuid = AssetUuid::new();
+        let dangling = scene_reference_diagnostic(
+            &document,
+            ProjectReferenceDiagnosticPhase::Load,
+            &SceneProjectError::DanglingAssetReference {
+                uuid,
+                locator: locator.clone(),
+            },
+        )
+        .unwrap();
+        assert!(matches!(
+            dangling.kind(),
+            ProjectReferenceDiagnosticKind::DanglingAssetReference {
+                uuid: observed,
+                locator: observed_locator,
+            } if *observed == uuid && observed_locator == &locator
+        ));
+
+        let persisted = scene_reference_diagnostic(
+            &document,
+            ProjectReferenceDiagnosticPhase::Load,
+            &SceneProjectError::Asset(AssetImportError::ProjectDocument(
+                ProjectDocumentError::Reference(ReferenceResolutionError::DanglingSubasset {
+                    guid: uuid,
+                    path: "assets/models/hero.glb".to_owned(),
+                    label: "MissingMesh".to_owned(),
+                    candidates: Vec::new(),
+                }),
+            )),
+        )
+        .unwrap();
+        assert!(matches!(
+            persisted.kind(),
+            ProjectReferenceDiagnosticKind::PersistedDanglingReference {
+                uuid: observed,
+                path_hint,
+                subasset: Some(subasset),
+            } if *observed == uuid
+                && path_hint.as_ref() == "assets/models/hero.glb"
+                && subasset.as_ref() == "MissingMesh"
+        ));
+
+        let resource_id = ResourceId::new();
+        let unresolved = scene_reference_diagnostic(
+            &document,
+            ProjectReferenceDiagnosticPhase::Save,
+            &SceneProjectError::UnresolvedResourceHandle {
+                resource_id,
+                role: "material",
+            },
+        )
+        .unwrap();
+        assert!(matches!(
+            unresolved.kind(),
+            ProjectReferenceDiagnosticKind::UnresolvedResourceHandle {
+                resource_id: observed,
+                role,
+            } if *observed == resource_id && role.as_ref() == "material"
+        ));
     }
 }

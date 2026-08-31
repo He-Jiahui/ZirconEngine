@@ -24,7 +24,8 @@ impl<'a> RuntimePluginPackageValidationProjection<'a> {
         #[cfg(test)]
         super::metrics::observe_package_projection_build();
 
-        let mut seen = HashSet::new();
+        let identity_row_capacity = package_identity_row_capacity(package_manifest);
+        let mut seen = HashSet::with_capacity(identity_row_capacity);
         let mut duplicates = HashSet::new();
         let mut identity_rows_indexed = 0;
 
@@ -158,6 +159,7 @@ impl<'a> RuntimePluginPackageValidationProjection<'a> {
             &mut duplicates,
             &mut identity_rows_indexed,
         );
+        debug_assert_eq!(identity_rows_indexed, identity_row_capacity);
 
         let owned_capabilities = package_manifest
             .capabilities
@@ -215,6 +217,66 @@ impl<'a> RuntimePluginPackageValidationProjection<'a> {
             membership_probes: Cell::new(0),
         }
     }
+}
+
+fn package_identity_row_capacity(package_manifest: &PluginPackageManifest) -> usize {
+    let mut rows = package_manifest
+        .capabilities
+        .len()
+        .saturating_add(package_manifest.asset_roots.len())
+        .saturating_add(package_manifest.content_roots.len())
+        .saturating_add(package_manifest.options.len())
+        .saturating_add(package_manifest.event_catalogs.len())
+        .saturating_add(package_manifest.components.len())
+        .saturating_add(package_manifest.ui_components.len());
+
+    for importer in &package_manifest.asset_importers {
+        rows = rows
+            .saturating_add(1)
+            .saturating_add(importer.required_capabilities.len());
+    }
+    for dependency in &package_manifest.dependencies {
+        rows = rows
+            .saturating_add(usize::from(dependency.capability.is_some()))
+            .saturating_add(dependency.interfaces.len());
+    }
+    for status in &package_manifest.capability_statuses {
+        rows = rows
+            .saturating_add(1)
+            .saturating_add(status.bevy_references.len());
+    }
+    for feature in package_manifest
+        .optional_features
+        .iter()
+        .chain(&package_manifest.feature_extensions)
+    {
+        rows = rows
+            .saturating_add(1)
+            .saturating_add(feature.capabilities.len())
+            .saturating_add(feature.dependencies.len());
+        for module in &feature.modules {
+            rows = rows
+                .saturating_add(1)
+                .saturating_add(module.capabilities.len());
+        }
+    }
+    for interface in &package_manifest.provides_interfaces {
+        rows = rows.saturating_add(1);
+        for method in &interface.methods {
+            rows = rows
+                .saturating_add(2)
+                .saturating_add(method.required_capabilities.len());
+        }
+    }
+    for module in &package_manifest.modules {
+        rows = rows
+            .saturating_add(1)
+            .saturating_add(module.capabilities.len())
+            .saturating_add(module.system_sets.len())
+            .saturating_add(module.system_anchors.len());
+    }
+
+    rows
 }
 
 pub(super) fn index_identity<'a>(

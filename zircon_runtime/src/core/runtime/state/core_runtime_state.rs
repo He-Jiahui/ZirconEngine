@@ -5,15 +5,16 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::thread::ThreadId;
 
 use crate::core::diagnostics::{DiagnosticStore, RuntimeDevtoolsPluginCatalogEntry};
-use crate::core::framework::state::StateRegistry;
 use crate::core::{CoreError, RuntimeModuleLifecycleObserver};
 
 use super::super::config_store::ConfigStore;
 use super::super::descriptors::{FrozenModuleGraph, RegistryName};
 use super::super::events::EventBus;
 use super::super::frame_clock::FrameClock;
-use super::super::tasks::{JobScheduler, TaskPools};
-use super::super::time::RuntimeTimeClocks;
+use super::super::random::RandomService;
+use super::super::state_machine::StateRegistry;
+use super::super::tasks::{EngineTaskGraph, JobScheduler};
+use super::super::time::RuntimeTimeAuthority;
 use super::{ModuleEntry, ServiceEntry};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -180,6 +181,7 @@ pub(crate) struct CoreRuntimeInner {
     pub(crate) modules: Mutex<HashMap<String, ModuleEntry>>,
     pub(crate) services: Mutex<HashMap<RegistryName, ServiceEntry>>,
     pub(crate) frozen_module_graph: Mutex<Option<Arc<FrozenModuleGraph>>>,
+    pub(crate) active_module_order: Mutex<Vec<String>>,
     pub(crate) lifecycle_coordinator: Mutex<LifecycleCoordinator>,
     pub(crate) lifecycle_transition_changed: Condvar,
     pub(crate) service_resolution_changed: Condvar,
@@ -191,12 +193,51 @@ pub(crate) struct CoreRuntimeInner {
     pub(crate) event_bus: EventBus,
     pub(crate) config_store: ConfigStore,
     pub(crate) scheduler: JobScheduler,
-    pub(crate) task_pools: TaskPools,
+    pub(crate) task_graph: EngineTaskGraph,
     pub(crate) frame_clock: Mutex<FrameClock>,
-    pub(crate) time: Mutex<RuntimeTimeClocks>,
+    random_service: RandomService,
+    pub(crate) time: Mutex<RuntimeTimeAuthority>,
     pub(crate) diagnostics: Mutex<DiagnosticStore>,
     pub(crate) states: Mutex<StateRegistry>,
     pub(crate) devtools_plugin_catalog_entries: Mutex<Vec<RuntimeDevtoolsPluginCatalogEntry>>,
     pub(crate) runtime_module_lifecycle_observer:
         Mutex<Option<Arc<dyn RuntimeModuleLifecycleObserver>>>,
+}
+
+impl CoreRuntimeInner {
+    pub(crate) fn new(
+        frame_clock: FrameClock,
+        random_service: RandomService,
+        task_graph: EngineTaskGraph,
+    ) -> Self {
+        Self {
+            modules: Default::default(),
+            services: Default::default(),
+            frozen_module_graph: Default::default(),
+            active_module_order: Default::default(),
+            lifecycle_coordinator: Default::default(),
+            lifecycle_transition_changed: Default::default(),
+            service_resolution_changed: Default::default(),
+            service_call_changed: Default::default(),
+            service_resolution_waits: Default::default(),
+            service_activation_reentries: Default::default(),
+            #[cfg(test)]
+            service_resolution_claim_barrier: Default::default(),
+            event_bus: EventBus::default(),
+            config_store: ConfigStore::default(),
+            scheduler: JobScheduler::from_pool(task_graph.worker_pool().clone()),
+            task_graph,
+            frame_clock: Mutex::new(frame_clock),
+            random_service,
+            time: Default::default(),
+            diagnostics: Default::default(),
+            states: Default::default(),
+            devtools_plugin_catalog_entries: Default::default(),
+            runtime_module_lifecycle_observer: Default::default(),
+        }
+    }
+
+    pub(crate) const fn random_service(&self) -> &RandomService {
+        &self.random_service
+    }
 }

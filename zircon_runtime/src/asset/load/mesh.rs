@@ -37,19 +37,23 @@ pub(crate) fn decode_mesh_file(path: &str) -> MeshLoadResult<CpuMeshPayload> {
     let extension = mesh_path
         .extension()
         .and_then(|extension| extension.to_str())
-        .unwrap_or_default()
-        .to_ascii_lowercase();
+        .unwrap_or_default();
 
-    match extension.as_str() {
-        "obj" => obj::decode_obj_file(path).map_err(|source| MeshLoadError::Obj {
+    if is_obj_mesh_extension(extension) {
+        obj::decode_obj_file(path).map_err(|source| MeshLoadError::Obj {
             path: path.to_string(),
             source,
-        }),
-        _ => Err(MeshLoadError::UnsupportedFormat {
+        })
+    } else {
+        Err(MeshLoadError::UnsupportedFormat {
             path: path.to_string(),
-            extension,
-        }),
+            extension: extension.to_ascii_lowercase(),
+        })
     }
+}
+
+fn is_obj_mesh_extension(extension: &str) -> bool {
+    extension.eq_ignore_ascii_case("obj")
 }
 
 pub(crate) fn generate_cube_mesh() -> CpuMeshPayload {
@@ -90,3 +94,7 @@ pub(crate) fn generate_cube_mesh() -> CpuMeshPayload {
         indices,
     }
 }
+
+#[cfg(test)]
+#[path = "mesh/extension_dispatch_tests.rs"]
+mod extension_dispatch_tests;

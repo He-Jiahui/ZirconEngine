@@ -67,9 +67,9 @@ pub use command_value::{
     decode_command_value, encode_command_value, CommandValue, CommandValueLimits,
 };
 pub use contracts::{
-    Command, EntityRef, Event, FixedTickInput, MessageKind, MovementFrame, NetworkEnvelope,
-    OfflineSessionBootstrap, OfflineWeaponSkinAccount, RlActionBatch, RlObservationBatch,
-    SaveState, WocReferenceIdentity, WorldSnapshot, OFFLINE_WEAPON_SKIN_COUNT,
+    Command, EntityRef, Event, FixedTickInput, FixedTickInputRef, MessageKind, MovementFrame,
+    NetworkEnvelope, OfflineSessionBootstrap, OfflineWeaponSkinAccount, RlActionBatch,
+    RlObservationBatch, SaveState, WocReferenceIdentity, WorldSnapshot, OFFLINE_WEAPON_SKIN_COUNT,
     OFFLINE_WEAPON_SKIN_TYPE_COUNT,
 };
 pub use corpse_harvest_contract::corpse_harvest_component_code;

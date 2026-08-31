@@ -8,8 +8,7 @@ use std::{
 use crate::{
     asset::{AssetEventKind, AssetUri, Assets, ImportedAsset, ProjectManager, SceneAsset},
     core::{
-        JobScheduler, TaskPool, TaskPoolDescriptor,
-        framework::tasks::TaskCancellationPolicy,
+        JobScheduler, TaskCancellationPolicy, TaskPool, TaskPoolDescriptor, TaskPools,
         resource::{ResourceDiagnostic, ResourceId, ResourceKind, ResourceManager, ResourceRecord},
     },
     scene::{
@@ -23,6 +22,10 @@ use super::support::{create_test_project, unique_temp_project_root};
 const EVENT_DRAIN_TIMEOUT: Duration = Duration::from_secs(1);
 const MAIN_SCENE_URI: &str = "res://scenes/main.scene.toml";
 
+fn test_job_scheduler() -> JobScheduler {
+    JobScheduler::from_pool(TaskPools::process_default().compute().clone())
+}
+
 #[path = "dynamic_scene_asset_reload/byte_budgets.rs"]
 mod byte_budgets;
 
@@ -30,7 +33,7 @@ mod byte_budgets;
 fn dynamic_scene_asset_reload_supersedes_older_pending_scene_revision() {
     let fixture = SceneReloadFixture::new("asset_reload_supersedes_pending");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let mut queue = DynamicSceneAssetReloadQueue::new(
         fixture.project.clone(),
         events,
@@ -53,8 +56,7 @@ fn dynamic_scene_asset_reload_supersedes_older_pending_scene_revision() {
         drain.superseded_pending[0].cancellation_requested(),
         matches!(
             drain.superseded_pending[0].previous_state(),
-            crate::core::framework::tasks::AsyncTaskState::Pending
-                | crate::core::framework::tasks::AsyncTaskState::Running
+            crate::core::TaskState::Pending | crate::core::TaskState::Running
         )
     );
     assert_eq!(queue.pending_count(), 1);
@@ -160,7 +162,7 @@ fn dynamic_scene_asset_reload_asset_scale_matrix_honors_single_event_and_task_bu
     for asset_count in [1usize, 1_000, 100_000] {
         let fixture = SceneReloadFixture::new(&format!("asset_reload_scale_{asset_count}"));
         let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-        let scheduler = JobScheduler::default();
+        let scheduler = test_job_scheduler();
         let limits = DynamicSceneAssetReloadLimits {
             max_events_per_tick: 1,
             max_schedules_per_tick: 1,
@@ -205,7 +207,7 @@ fn dynamic_scene_asset_reload_asset_scale_matrix_honors_single_event_and_task_bu
 fn dynamic_scene_asset_reload_resumes_event_drain_at_the_frame_budget() {
     let fixture = SceneReloadFixture::new("asset_reload_event_budget");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let limits = DynamicSceneAssetReloadLimits {
         max_events_per_tick: 1,
         max_schedules_per_tick: 1,
@@ -257,7 +259,7 @@ fn dynamic_scene_asset_reload_resumes_event_drain_at_the_frame_budget() {
 fn dynamic_scene_asset_reload_budgets_filtered_raw_events() {
     let fixture = SceneReloadFixture::new("asset_reload_filtered_event_budget");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let limits = DynamicSceneAssetReloadLimits {
         max_events_per_tick: 1,
         ..DynamicSceneAssetReloadLimits::default()
@@ -304,7 +306,7 @@ fn dynamic_scene_asset_reload_reports_resource_event_generation_gaps() {
     let fixture = SceneReloadFixture::new("asset_reload_generation_gap");
     fixture.register_ready_revision("scene-gap-current");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let mut queue = DynamicSceneAssetReloadQueue::with_limits(
         fixture.project.clone(),
         events,
@@ -350,7 +352,7 @@ fn dynamic_scene_asset_reload_reconciliation_is_incremental_and_skips_pending_ro
         ))
         .unwrap();
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let limits = DynamicSceneAssetReloadLimits {
         max_events_per_tick: 1,
         max_schedules_per_tick: 1,
@@ -386,7 +388,7 @@ fn dynamic_scene_asset_reload_reconciliation_obeys_event_byte_budget() {
     let fixture = SceneReloadFixture::new("asset_reload_reconciliation_byte_budget");
     fixture.register_ready_revision("scene-reconcile-byte-budget");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let limits = DynamicSceneAssetReloadLimits {
         max_event_bytes_per_tick: 1,
         ..DynamicSceneAssetReloadLimits::default()
@@ -423,7 +425,7 @@ fn dynamic_scene_asset_reload_skips_removed_and_reload_failed_events() {
         .start_reload(fixture.record.id(), Vec::new())
         .expect("scene asset should enter reload state");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let mut queue = DynamicSceneAssetReloadQueue::new(
         fixture.project.clone(),
         events,
@@ -468,7 +470,7 @@ fn dynamic_scene_asset_reload_removed_asset_can_recreate_same_id_from_revision_o
     let fixture = SceneReloadFixture::new("asset_reload_recreates_removed_id");
     fixture.register_ready_revision("scene-before-remove");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let mut queue = DynamicSceneAssetReloadQueue::new(
         fixture.project.clone(),
         events,
@@ -502,7 +504,7 @@ fn dynamic_scene_asset_reload_removed_asset_can_recreate_same_id_from_revision_o
 fn dynamic_scene_asset_reload_tick_into_applies_ready_payload_to_world() {
     let fixture = SceneReloadFixture::new("asset_reload_tick_into_world");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let mut queue = DynamicSceneAssetReloadQueue::new(
         fixture.project.clone(),
         events,
@@ -556,7 +558,7 @@ fn dynamic_scene_asset_reload_tick_into_applies_ready_payload_to_world() {
 fn dynamic_scene_asset_reload_tick_into_level_applies_ready_payload_to_level_world() {
     let fixture = SceneReloadFixture::new("asset_reload_tick_into_level");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let mut queue = DynamicSceneAssetReloadQueue::new(
         fixture.project.clone(),
         events,
@@ -605,7 +607,7 @@ fn dynamic_scene_asset_reload_renamed_scene_event_schedules_new_project_uri() {
         .expect("renamed scene should import into the project registry");
     fixture.register_ready_revision("scene-before-rename");
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
-    let scheduler = JobScheduler::default();
+    let scheduler = test_job_scheduler();
     let mut queue = DynamicSceneAssetReloadQueue::new(project, events, fixture.resources.clone());
 
     fixture
@@ -680,11 +682,10 @@ fn drain_until_events(
 }
 
 fn wait_for_pending(scheduler: &JobScheduler, queue: &DynamicSceneAssetReloadQueue) {
-    let handles = queue
-        .pending_tasks()
-        .map(|task| task.task().completion_handle())
-        .collect::<Vec<_>>();
-    scheduler.wait_all(&handles);
+    let _ = scheduler;
+    for task in queue.pending_tasks() {
+        task.task().wait();
+    }
 }
 
 fn tick_into_until_terminal(

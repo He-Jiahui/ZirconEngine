@@ -47,19 +47,25 @@ def stage_hub_tauri_installers(
         shutil.rmtree(installers_dir)
     installers_dir.mkdir(parents=True, exist_ok=True)
 
-    copied = 0
-    for source in sorted(bundle_root.rglob("*")):
+    bundle_directories: list[Path] = []
+    bundle_files: list[Path] = []
+    for directory, subdirectories, file_names in os.walk(bundle_root):
+        directory_path = Path(directory)
+        bundle_directories.extend(
+            directory_path / name for name in subdirectories
+        )
+        bundle_files.extend(directory_path / name for name in file_names)
+
+    for source in sorted(bundle_directories):
         relative = source.relative_to(bundle_root)
         destination = installers_dir / relative
-        if source.is_dir():
-            destination.mkdir(parents=True, exist_ok=True)
-            continue
-        if not source.is_file():
-            continue
+        destination.mkdir(parents=True, exist_ok=True)
+    for source in sorted(bundle_files):
+        relative = source.relative_to(bundle_root)
+        destination = installers_dir / relative
         _copy_file(source, destination, config)
-        copied += 1
 
-    if copied == 0:
+    if not bundle_files:
         raise SystemExit(f"Tauri bundle output has no files: {bundle_root}")
 
 
@@ -71,11 +77,16 @@ def _copy_artifact(config: object, target_dir: Path, artifact_name: str) -> None
 
 def _find_artifact(target_dir: Path, profile_dir: str, artifact_name: str) -> Path:
     profile_root = target_dir / profile_dir
-    candidates = [profile_root / artifact_name, profile_root / "deps" / artifact_name]
-    candidates.extend(profile_root.rglob(artifact_name) if profile_root.exists() else [])
-    for candidate in candidates:
+    for candidate in (
+        profile_root / artifact_name,
+        profile_root / "deps" / artifact_name,
+    ):
         if candidate.exists() and candidate.is_file():
             return candidate
+    if profile_root.exists():
+        for candidate in profile_root.rglob(artifact_name):
+            if candidate.exists() and candidate.is_file():
+                return candidate
     raise SystemExit(f"Built artifact not found under {profile_root}: {artifact_name}")
 
 

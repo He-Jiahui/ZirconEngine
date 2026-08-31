@@ -4,18 +4,19 @@ use std::borrow::Cow;
 
 use crate::asset::{ShaderDependencyAsset, ShaderImportRedirectAsset};
 use crate::core::framework::render::{
-    builtin_geometry_source_descriptor, ShaderPassType, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderPassType, builtin_geometry_source_descriptor,
 };
 use crate::graphics::shader::{
-    assemble_material_shader_template, validate_material_shader_template_wgsl_with_segments,
-    MaterialShaderTemplateRequest, ShaderTemplateAssemblyError,
+    MaterialShaderTemplateRequest, ShaderTemplateAssemblyError, assemble_material_shader_template,
+    validate_material_shader_template_wgsl_with_segments,
 };
 use crate::plugin::PluginShaderModuleSource;
 
 #[test]
 fn render_product_streamer_resolves_plugin_imports_into_validated_module_sources() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let surface_uri = locator("res://shaders/plugin-resolved-surface.zshader");
@@ -58,6 +59,7 @@ fn render_product_streamer_resolves_plugin_imports_into_validated_module_sources
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -77,12 +79,16 @@ fn render_product_streamer_resolves_plugin_imports_into_validated_module_sources
     assert!(includes[0].source.contains("plugin_lighting"));
     assert_eq!(includes[0].content_hash, expected_content_hash);
     let assembly = material_template_assembly(&streamer, &surface_id, includes);
-    assert!(assembly
-        .wgsl_source
-        .contains("fn plugin_lighting() -> vec3f"));
-    assert!(assembly
-        .include_content_hashes
-        .contains(&expected_content_hash));
+    assert!(
+        assembly
+            .wgsl_source
+            .contains("fn plugin_lighting() -> vec3f")
+    );
+    assert!(
+        assembly
+            .include_content_hashes
+            .contains(&expected_content_hash)
+    );
     validate_material_shader_template_wgsl_with_segments(&assembly.wgsl_source, &assembly.segments)
         .expect("plugin product assembly is valid WGSL");
     validate_wgpu_shader_module(
@@ -95,7 +101,8 @@ fn render_product_streamer_resolves_plugin_imports_into_validated_module_sources
 #[test]
 fn render_product_streamer_resolves_source_only_imports_into_validated_module_sources() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let surface_uri = locator("res://shaders/source-only-resolved-surface.zshader");
@@ -152,6 +159,7 @@ fn render_product_streamer_resolves_source_only_imports_into_validated_module_so
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -163,9 +171,11 @@ fn render_product_streamer_resolves_source_only_imports_into_validated_module_so
     assert_eq!(includes.len(), 1);
     assert_eq!(includes[0].token, "zircon_product::source_only_lighting");
     assert_eq!(includes[0].owner_id, format!("project:{include_id}"));
-    assert!(includes[0]
-        .diagnostic_origin
-        .contains("source-only-resolved-shared.zshader"));
+    assert!(
+        includes[0]
+            .diagnostic_origin
+            .contains("source-only-resolved-shared.zshader")
+    );
     assert!(includes[0].source.contains("vec3f(0.25, 0.5, 0.75)"));
     let assembly = material_template_assembly(&streamer, &surface_id, includes);
     assert!(assembly.wgsl_source.contains("vec3f(0.25, 0.5, 0.75)"));
@@ -184,7 +194,8 @@ fn render_product_streamer_resolves_source_only_imports_into_validated_module_so
 #[test]
 fn render_product_streamer_preserves_module_cycle_diagnostics_after_dependency_preparation() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let surface_uri = locator("res://shaders/cyclic-surface.zshader");
@@ -235,7 +246,7 @@ fn render_product_streamer_preserves_module_cycle_diagnostics_after_dependency_p
     let mut streamer =
         ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
 
-    let (prepared_id, _, fallback_report) = streamer
+    let (prepared_id, _, _, fallback_report) = streamer
         .ensure_shader_source(&asset_reference("res://shaders/cyclic-surface.zshader"))
         .expect("cyclic shader dependencies prepare without recursive re-entry");
 
@@ -245,12 +256,16 @@ fn render_product_streamer_preserves_module_cycle_diagnostics_after_dependency_p
     assert!(streamer.shader_source(&first_id).is_some());
     assert!(streamer.shader_source(&second_id).is_some());
     let modules = streamer.shader_module_include_sources(&surface_id);
-    assert!(modules
-        .iter()
-        .any(|module| module.token == "zircon_product::cyclic_first"));
-    assert!(modules
-        .iter()
-        .any(|module| module.token == "zircon_product::cyclic_second"));
+    assert!(
+        modules
+            .iter()
+            .any(|module| module.token == "zircon_product::cyclic_first")
+    );
+    assert!(
+        modules
+            .iter()
+            .any(|module| module.token == "zircon_product::cyclic_second")
+    );
     let error = try_material_template_assembly(&streamer, &surface_id, modules)
         .expect_err("source-only product modules must retain the circular include diagnostic");
     assert_eq!(
@@ -268,7 +283,8 @@ fn render_product_streamer_preserves_module_cycle_diagnostics_after_dependency_p
 #[test]
 fn render_product_streamer_resolves_shader_redirect_imports_into_module_sources() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let surface_uri = locator("res://shaders/redirect-resolved-surface.zshader");
@@ -312,6 +328,7 @@ fn render_product_streamer_resolves_shader_redirect_imports_into_module_sources(
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -324,10 +341,12 @@ fn render_product_streamer_resolves_shader_redirect_imports_into_module_sources(
         .expect("streamer readiness report");
     assert!(report.validation_errors.is_empty());
     assert!(!report.uses_fallback());
-    assert!(streamer
-        .shader_source(&include_id)
-        .expect("redirect include shader prepared")
-        .contains("redirected_lighting"));
+    assert!(
+        streamer
+            .shader_source(&include_id)
+            .expect("redirect include shader prepared")
+            .contains("redirected_lighting")
+    );
     let includes = streamer.shader_module_include_sources(&surface_id);
     assert_eq!(includes.len(), 1);
     assert_eq!(includes[0].token, "zircon_product::lighting");
@@ -337,7 +356,8 @@ fn render_product_streamer_resolves_shader_redirect_imports_into_module_sources(
 #[test]
 fn render_product_streamer_reports_missing_shader_redirect_import_as_fallback() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
-    let RenderBackend { device, queue, .. } = backend;
+    let device = &backend.device;
+    let queue = &backend.queue;
     let texture_layout = texture_bind_group_layout(&device);
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let surface_uri = locator("res://shaders/redirect-missing-surface.zshader");
@@ -368,6 +388,7 @@ fn render_product_streamer_reports_missing_shader_redirect_import_as_fallback() 
 
     streamer
         .ensure_material(
+            &backend,
             &device,
             &queue,
             &texture_layout,
@@ -399,7 +420,7 @@ fn surface_shader_with_redirect_import(
 ) -> ShaderAsset {
     let mut shader = wgsl_shader(uri);
     shader.source = format!(
-        "#include <{import_path}>\nfn zr_material_surface(input: ZrSurfaceInput) -> ZrMaterialSurface {{\n    var surface = zr_surface_default(input);\n    surface.base_color = vec4f(redirected_lighting(), 1.0);\n    return surface;\n}}"
+        "#include <{import_path}>\nfn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {{\n    var surface = zr_surface_default(input);\n    surface.base_color = vec4f(redirected_lighting(), 1.0);\n    return surface;\n}}"
     );
     let redirect = asset_reference(redirect_uri);
     shader.imports = vec![ShaderImportRedirectAsset {
@@ -416,7 +437,7 @@ fn surface_shader_with_redirect_import(
 fn surface_shader_with_source_only_import(uri: &str, import_path: &str) -> ShaderAsset {
     let mut shader = wgsl_shader(uri);
     shader.source = format!(
-        "#include <{import_path}>\nfn zr_material_surface(input: ZrSurfaceInput) -> ZrMaterialSurface {{\n    var surface = zr_surface_default(input);\n    surface.base_color = vec4f(source_only_lighting(), 1.0);\n    return surface;\n}}"
+        "#include <{import_path}>\nfn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {{\n    var surface = zr_surface_default(input);\n    surface.base_color = vec4f(source_only_lighting(), 1.0);\n    return surface;\n}}"
     );
     shader.imports = vec![ShaderImportRedirectAsset {
         source: import_path.to_string(),
@@ -428,7 +449,7 @@ fn surface_shader_with_source_only_import(uri: &str, import_path: &str) -> Shade
 fn surface_shader_with_plugin_import(uri: &str, import_path: &str) -> ShaderAsset {
     let mut shader = wgsl_shader(uri);
     shader.source = format!(
-        "#include <{import_path}>\nfn zr_material_surface(input: ZrSurfaceInput) -> ZrMaterialSurface {{\n    var surface = zr_surface_default(input);\n    surface.base_color = vec4f(plugin_lighting(), 1.0);\n    return surface;\n}}"
+        "#include <{import_path}>\nfn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {{\n    var surface = zr_surface_default(input);\n    surface.base_color = vec4f(plugin_lighting(), 1.0);\n    return surface;\n}}"
     );
     shader.imports = vec![ShaderImportRedirectAsset {
         source: import_path.to_string(),

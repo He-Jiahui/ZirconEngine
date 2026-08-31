@@ -9,7 +9,7 @@ fn editor_ui_host_runtime_projects_builtin_viewport_toolbar_template_into_retain
     .expect("viewport toolbar template should be readable");
     assert_eq!(
         template.matches("icon_placement = \"icon_only\"").count(),
-        15,
+        16,
         "every 28px viewport toolbar action must retain only its semantic label"
     );
 
@@ -128,6 +128,12 @@ fn editor_ui_host_runtime_builds_surface_backed_viewport_toolbar_group_frames() 
         UiFrame::new(32.0, 0.0, 28.0, 28.0)
     );
 
+    let set_pivot_mode = host_model
+        .node_by_control_id("SetPivotMode")
+        .expect("pivot mode control should exist");
+    assert_eq!(set_pivot_mode.component, "IconButton");
+    assert_eq!(set_pivot_mode.frame, UiFrame::new(64.0, 0.0, 28.0, 28.0));
+
     let set_projection_mode = host_model
         .node_by_control_id("SetProjectionMode")
         .expect("projection mode group should exist");
@@ -145,7 +151,7 @@ fn editor_ui_host_runtime_builds_surface_backed_viewport_toolbar_group_frames() 
         .node_by_control_id("FrameSelection")
         .expect("frame selection control should exist");
     assert_eq!(frame_selection.component, "IconButton");
-    assert_eq!(frame_selection.frame, UiFrame::new(320.0, 0.0, 28.0, 28.0));
+    assert_eq!(frame_selection.frame, UiFrame::new(352.0, 0.0, 28.0, 28.0));
 }
 
 #[test]
@@ -194,8 +200,8 @@ fn editor_ui_host_runtime_keeps_play_and_view_controls_non_overlapping_at_640px(
         return;
     };
 
-    assert_eq!(play.frame, UiFrame::new(352.0, 0.0, 28.0, 28.0));
-    assert_eq!(stop.frame, UiFrame::new(384.0, 0.0, 28.0, 28.0));
+    assert_eq!(play.frame, UiFrame::new(384.0, 0.0, 28.0, 28.0));
+    assert_eq!(stop.frame, UiFrame::new(416.0, 0.0, 28.0, 28.0));
     assert!(stop.frame.x + stop.frame.width <= projection_mode.frame.x);
     assert!(projection_mode.frame.x + projection_mode.frame.width <= align_view.frame.x);
     assert!(align_view.frame.x + align_view.frame.width <= 640.0);

@@ -338,8 +338,10 @@ fn values_map(values: Vec<(&str, Value)>) -> BTreeMap<String, Value> {
 
 fn binding(path: &str, event: UiEventKind) -> UiBindingRef {
     UiBindingRef {
+        component_event: None,
         id: format!("{path}/{event:?}"),
         event,
+        mode: Default::default(),
         route: Some(path.replace('/', ".")),
         action: None,
         targets: Vec::new(),

@@ -88,12 +88,16 @@ fn extraction_reads_disabled_state_from_runtime_component_value() {
         .clone();
 
     assert!(snapshot_node.state.disabled);
-    assert!(!snapshot_node
-        .actions
-        .contains(&UiAccessibilityAction::Activate));
-    assert!(snapshot_node
-        .actions
-        .contains(&UiAccessibilityAction::Focus));
+    assert!(
+        !snapshot_node
+            .actions
+            .contains(&UiAccessibilityAction::Activate)
+    );
+    assert!(
+        snapshot_node
+            .actions
+            .contains(&UiAccessibilityAction::Focus)
+    );
 }
 
 #[test]
@@ -171,9 +175,11 @@ fn extraction_reads_selected_state_from_runtime_component_value() {
         .clone();
 
     assert!(snapshot_node.state.selected);
-    assert!(snapshot_node
-        .actions
-        .contains(&UiAccessibilityAction::Activate));
+    assert!(
+        snapshot_node
+            .actions
+            .contains(&UiAccessibilityAction::Activate)
+    );
 }
 
 #[test]
@@ -252,15 +258,58 @@ fn extraction_reads_text_input_selection_from_retained_attributes() {
             focus: 4,
         })
     );
-    assert!(snapshot_node
-        .actions
-        .contains(&UiAccessibilityAction::SetValue));
-    assert!(snapshot_node
-        .actions
-        .contains(&UiAccessibilityAction::ReplaceSelectedText));
-    assert!(snapshot_node
-        .actions
-        .contains(&UiAccessibilityAction::SetTextSelection));
+    assert!(
+        snapshot_node
+            .actions
+            .contains(&UiAccessibilityAction::SetValue)
+    );
+    assert!(
+        snapshot_node
+            .actions
+            .contains(&UiAccessibilityAction::ReplaceSelectedText)
+    );
+    assert!(
+        snapshot_node
+            .actions
+            .contains(&UiAccessibilityAction::SetTextSelection)
+    );
+}
+
+#[test]
+fn secure_text_input_snapshot_redacts_value_selection_and_range_actions() {
+    let mut surface = root_surface();
+    insert_widget_node(
+        &mut surface,
+        id(2),
+        "SecureTextInput",
+        "value = 'top secret'\ninput_kind = 'password'\ncaret_offset = 10\nselection_anchor = 0\nselection_focus = 10",
+        UiWidgetBehavior::TextInput,
+    );
+    surface.rebuild();
+
+    let snapshot_node = surface
+        .accessibility_snapshot()
+        .node(id(2))
+        .expect("secure text input remains discoverable");
+
+    assert_eq!(snapshot_node.role, UiA11yRole::TextInput);
+    assert_eq!(snapshot_node.state.value, None);
+    assert_eq!(snapshot_node.state.text_selection, None);
+    assert!(
+        snapshot_node
+            .actions
+            .contains(&UiAccessibilityAction::SetValue)
+    );
+    assert!(
+        !snapshot_node
+            .actions
+            .contains(&UiAccessibilityAction::ReplaceSelectedText)
+    );
+    assert!(
+        !snapshot_node
+            .actions
+            .contains(&UiAccessibilityAction::SetTextSelection)
+    );
 }
 
 #[test]

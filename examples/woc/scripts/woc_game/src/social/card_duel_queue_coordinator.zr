@@ -9,31 +9,58 @@ pub class CardDuelQueueCandidate {
     // A human, live player that can be matched. Fiesta/Vale Cup bots and dead
     // players must be represented as false before they reach this coordinator.
     pub var queueable: bool;
+    pub var queued: bool;
+    pub var queueSlot: int;
+    pub var queueGeneration: uint;
+    pub var purgePending: bool;
 
     pub @constructor() {
         this.pid = <uint>0;
         this.queueable = false;
+        this.queued = false;
+        this.queueSlot = -1;
+        this.queueGeneration = <uint>0;
+        this.purgePending = false;
     }
 }
 
 pub class CardDuelQueueCoordinator {
     pri var candidates: container.Array<CardDuelQueueCandidate>;
     pri var queue: queueModule.CardDuelQueue;
+    pri var pendingPurgeCandidateIndexes: container.Array<int>;
 
     pub @constructor() {
         this.candidates = new container.Array<CardDuelQueueCandidate>();
         this.queue = new queueModule.CardDuelQueue();
+        this.pendingPurgeCandidateIndexes = new container.Array<int>();
+    }
+
+    pri candidateIndex(pid: uint): int {
+        var index = 0;
+        while (index < this.candidates.length) {
+            if (<uint>this.candidates[index].pid == pid) return index;
+            index = index + 1;
+        }
+        return -1;
+    }
+
+    pri clearQueueHandle(candidate: CardDuelQueueCandidate): void {
+        candidate.queued = false;
+        candidate.queueSlot = -1;
+        candidate.queueGeneration = <uint>0;
     }
 
     pub upsert(pid: uint, queueable: bool): void {
         if (pid == <uint>0) throw "card duel candidate id is invalid";
-        var index = 0;
-        while (index < this.candidates.length) {
-            if (<uint>this.candidates[index].pid == pid) {
-                this.candidates[index].queueable = queueable;
-                return;
+        var index = this.candidateIndex(pid);
+        if (index >= 0) {
+            var existing = this.candidates[index];
+            existing.queueable = queueable;
+            if (!queueable && existing.queued && !existing.purgePending) {
+                existing.purgePending = true;
+                this.pendingPurgeCandidateIndexes.add(index);
             }
-            index = index + 1;
+            return;
         }
         var candidate = new CardDuelQueueCandidate();
         candidate.pid = pid;
@@ -42,13 +69,8 @@ pub class CardDuelQueueCoordinator {
     }
 
     pub isQueueable(pid: uint): bool {
-        var index = 0;
-        while (index < this.candidates.length) {
-            var candidate = this.candidates[index];
-            if (<uint>candidate.pid == pid) return candidate.queueable;
-            index = index + 1;
-        }
-        return false;
+        var index = this.candidateIndex(pid);
+        return index >= 0 && this.candidates[index].queueable;
     }
 
     // Matches the source's availability gate: another queueable human must
@@ -67,18 +89,38 @@ pub class CardDuelQueueCoordinator {
     // -2 is out of Card Master range, -3 has no possible opponent and -4 is
     // an unknown/non-queueable player.
     pub join(pid: uint, cardMasterInRange: bool, alreadyInDuel: bool): int {
-        if (!this.isQueueable(pid)) return -4;
+        var index = this.candidateIndex(pid);
+        if (index < 0 || !this.candidates[index].queueable) return -4;
         if (!cardMasterInRange) return -2;
         if (!this.availableFor(pid)) return -3;
-        return this.queue.join(pid, alreadyInDuel);
+        var candidate = this.candidates[index];
+        var admission = this.queue.joinTracked(
+            pid, alreadyInDuel, candidate.queued, index
+        );
+        if (admission.status == 1) {
+            candidate.queued = true;
+            candidate.queueSlot = admission.slot;
+            candidate.queueGeneration = admission.generation;
+        }
+        return admission.status;
     }
 
     pub leave(pid: uint): bool {
-        return this.queue.leave(pid);
+        var index = this.candidateIndex(pid);
+        if (index < 0 || !this.candidates[index].queued) return false;
+        var candidate = this.candidates[index];
+        if (!this.queue.leaveTracked(
+                candidate.queueSlot, candidate.queueGeneration, pid
+            )) {
+            throw "card duel candidate queue handle is stale";
+        }
+        this.clearQueueHandle(candidate);
+        return true;
     }
 
     pub queued(pid: uint): bool {
-        return this.queue.contains(pid);
+        var index = this.candidateIndex(pid);
+        return index >= 0 && this.candidates[index].queued;
     }
 
     pub size(): int {
@@ -88,39 +130,65 @@ pub class CardDuelQueueCoordinator {
     // A queue snapshot is FIFO ordered. It carries only player ids; candidate
     // liveness is restored by CardDuelService before this list is accepted.
     pub snapshotEntries(): container.Array<uint> {
-        var result = new container.Array<uint>();
-        var index = 0;
-        while (index < this.queue.size()) {
-            result.add(this.queue.at(index));
-            index = index + 1;
-        }
-        return result;
+        return this.queue.snapshotEntries();
     }
 
     pub restoreEntries(entries: container.Array<uint>): void {
         this.queue = new queueModule.CardDuelQueue();
+        this.pendingPurgeCandidateIndexes = new container.Array<int>();
+        for (var candidate in this.candidates) {
+            this.clearQueueHandle(candidate);
+            candidate.purgePending = false;
+        }
         for (var pid in entries) {
-            if (pid == <uint>0 || !this.isQueueable(<uint>pid) ||
-                this.queue.contains(<uint>pid)) {
+            var index = this.candidateIndex(<uint>pid);
+            if (pid == <uint>0 || index < 0 ||
+                !this.candidates[index].queueable || this.candidates[index].queued) {
                 throw "card duel queue snapshot is invalid";
             }
-            if (this.queue.join(<uint>pid, false) != 1) {
+            var admission = this.queue.joinTracked(<uint>pid, false, false, index);
+            if (admission.status != 1) {
                 throw "card duel queue snapshot could not restore";
             }
+            var candidate = this.candidates[index];
+            candidate.queued = true;
+            candidate.queueSlot = admission.slot;
+            candidate.queueGeneration = admission.generation;
         }
     }
 
-    // Sim sweeps disconnected/dead players before pairFirst(). Removing every
-    // false candidate first prevents a stale first row from consuming a live
-    // second row and preserves FIFO among survivors.
+    // Queueability transitions are recorded once by upsert. Draining this
+    // small dirty list preserves update-time purge semantics without rescans.
     pub purgeUnqueueable(): void {
-        for (var candidate in this.candidates) {
-            if (!candidate.queueable) this.queue.leave(<uint>candidate.pid);
+        while (this.pendingPurgeCandidateIndexes.length > 0) {
+            var pendingIndex = this.pendingPurgeCandidateIndexes.length - 1;
+            var index = <int>this.pendingPurgeCandidateIndexes[pendingIndex];
+            this.pendingPurgeCandidateIndexes.removeAt(pendingIndex);
+            var candidate = this.candidates[index];
+            candidate.purgePending = false;
+            if (!candidate.queueable && candidate.queued) {
+                if (!this.queue.leaveTracked(
+                        candidate.queueSlot, candidate.queueGeneration, candidate.pid
+                    )) {
+                    throw "card duel purge queue handle is stale";
+                }
+                this.clearQueueHandle(candidate);
+            }
         }
     }
 
     pub pairNext(): queueModule.CardDuelPair {
         this.purgeUnqueueable();
-        return this.queue.pairFirst();
+        var pair = this.queue.pairFirst();
+        if (!pair.ready) return pair;
+        if (pair.aOwnerIndex < 0 || pair.aOwnerIndex >= this.candidates.length ||
+            pair.bOwnerIndex < 0 || pair.bOwnerIndex >= this.candidates.length ||
+            <uint>this.candidates[pair.aOwnerIndex].pid != pair.a ||
+            <uint>this.candidates[pair.bOwnerIndex].pid != pair.b) {
+            throw "card duel pair owner index is invalid";
+        }
+        this.clearQueueHandle(this.candidates[pair.aOwnerIndex]);
+        this.clearQueueHandle(this.candidates[pair.bOwnerIndex]);
+        return pair;
     }
 }

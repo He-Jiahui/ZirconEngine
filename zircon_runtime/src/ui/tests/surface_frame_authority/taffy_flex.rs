@@ -47,12 +47,18 @@ fn taffy_native_flex_surface_frame_feeds_render_hit_and_pointer_dispatch() {
     assert_eq!(surface.hit_test(point), frame_hit);
     assert_eq!(frame_hit.top_hit, Some(FRONT_ID));
     assert_eq!(frame_hit.path.root_to_leaf, vec![ROOT_ID, FRONT_ID]);
-    assert_eq!(frame_hit.path.bubble_route, vec![FRONT_ID, ROOT_ID]);
+    assert_eq!(
+        frame_hit.path.bubble_route().collect::<Vec<_>>(),
+        vec![FRONT_ID, ROOT_ID]
+    );
 
     let mut dispatcher = UiPointerDispatcher::default();
     dispatcher.register(FRONT_ID, UiPointerEventKind::Down, |context| {
         assert_eq!(context.route.hit_path.target, Some(FRONT_ID));
-        assert_eq!(context.route.hit_path.bubble_route, vec![FRONT_ID, ROOT_ID]);
+        assert_eq!(
+            context.route.hit_path.bubble_route().collect::<Vec<_>>(),
+            vec![FRONT_ID, ROOT_ID]
+        );
         UiPointerDispatchEffect::handled()
     });
 
@@ -123,12 +129,18 @@ fn taffy_flex_linear_slot_sizing_feeds_render_hit_and_pointer_dispatch() {
     assert_eq!(surface.hit_test(point), frame_hit);
     assert_eq!(frame_hit.top_hit, Some(FRONT_ID));
     assert_eq!(frame_hit.path.root_to_leaf, vec![ROOT_ID, FRONT_ID]);
-    assert_eq!(frame_hit.path.bubble_route, vec![FRONT_ID, ROOT_ID]);
+    assert_eq!(
+        frame_hit.path.bubble_route().collect::<Vec<_>>(),
+        vec![FRONT_ID, ROOT_ID]
+    );
 
     let mut dispatcher = UiPointerDispatcher::default();
     dispatcher.register(FRONT_ID, UiPointerEventKind::Down, |context| {
         assert_eq!(context.route.hit_path.target, Some(FRONT_ID));
-        assert_eq!(context.route.hit_path.bubble_route, vec![FRONT_ID, ROOT_ID]);
+        assert_eq!(
+            context.route.hit_path.bubble_route().collect::<Vec<_>>(),
+            vec![FRONT_ID, ROOT_ID]
+        );
         UiPointerDispatchEffect::handled()
     });
 
@@ -199,12 +211,18 @@ fn taffy_vertical_flex_linear_slot_sizing_feeds_render_hit_and_pointer_dispatch(
     assert_eq!(surface.hit_test(point), frame_hit);
     assert_eq!(frame_hit.top_hit, Some(FRONT_ID));
     assert_eq!(frame_hit.path.root_to_leaf, vec![ROOT_ID, FRONT_ID]);
-    assert_eq!(frame_hit.path.bubble_route, vec![FRONT_ID, ROOT_ID]);
+    assert_eq!(
+        frame_hit.path.bubble_route().collect::<Vec<_>>(),
+        vec![FRONT_ID, ROOT_ID]
+    );
 
     let mut dispatcher = UiPointerDispatcher::default();
     dispatcher.register(FRONT_ID, UiPointerEventKind::Down, |context| {
         assert_eq!(context.route.hit_path.target, Some(FRONT_ID));
-        assert_eq!(context.route.hit_path.bubble_route, vec![FRONT_ID, ROOT_ID]);
+        assert_eq!(
+            context.route.hit_path.bubble_route().collect::<Vec<_>>(),
+            vec![FRONT_ID, ROOT_ID]
+        );
         UiPointerDispatchEffect::handled()
     });
 
@@ -273,12 +291,18 @@ fn taffy_flex_slot_policy_fallback_feeds_render_hit_and_pointer_dispatch() {
     assert_eq!(surface.hit_test(point), frame_hit);
     assert_eq!(frame_hit.top_hit, Some(FRONT_ID));
     assert_eq!(frame_hit.path.root_to_leaf, vec![ROOT_ID, FRONT_ID]);
-    assert_eq!(frame_hit.path.bubble_route, vec![FRONT_ID, ROOT_ID]);
+    assert_eq!(
+        frame_hit.path.bubble_route().collect::<Vec<_>>(),
+        vec![FRONT_ID, ROOT_ID]
+    );
 
     let mut dispatcher = UiPointerDispatcher::default();
     dispatcher.register(FRONT_ID, UiPointerEventKind::Down, |context| {
         assert_eq!(context.route.hit_path.target, Some(FRONT_ID));
-        assert_eq!(context.route.hit_path.bubble_route, vec![FRONT_ID, ROOT_ID]);
+        assert_eq!(
+            context.route.hit_path.bubble_route().collect::<Vec<_>>(),
+            vec![FRONT_ID, ROOT_ID]
+        );
         UiPointerDispatchEffect::handled()
     });
 

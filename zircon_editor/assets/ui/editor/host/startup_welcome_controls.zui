@@ -39,7 +39,7 @@ component = "IconButton"
 control_id = "CreateProject"
 props = { label = "Create", icon = "add-circle-outline", icon_placement = "leading", surface_variant = "accent", button_variant = "primary", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-events = [{ id = "WelcomeSurface/CreateProject", event = "Click", route = "workbench.welcome.create_project" }]
+events = [{ id = "WelcomeSurface/CreateProject", event = "Click", route = "workbench.welcome.surface.create_project" }]
 
 [nodes.open_existing]
 component = "IconButton"
@@ -52,7 +52,7 @@ events = [{ id = "WelcomeSurface/OpenExistingProject", event = "Click", route = 
 component = "HorizontalGroup"
 control_id = "WelcomeRecentActions"
 layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-children = [{ node = "open_recent" }, { node = "remove_recent" }]
+children = [{ node = "open_recent" }, { node = "safe_recent" }, { node = "recover_recent" }, { node = "remove_recent" }]
 
 [nodes.open_recent]
 component = "IconButton"
@@ -60,6 +60,20 @@ control_id = "OpenRecentProject"
 props = { label = "Open Recent", icon = "editor_pages/asset_browser/navigation/recent.svg", icon_placement = "leading", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "WelcomeSurface/OpenRecentProject", event = "Click", route = "workbench.welcome.open_recent_project" }]
+
+[nodes.safe_recent]
+component = "IconButton"
+control_id = "SafeRecentProject"
+props = { label = "Safe Mode", icon = "editor_pages/hierarchy/row_state/warning-state.svg", icon_placement = "icon_only", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control" }
+layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WelcomeSurface/SafeRecentProject", event = "Click", route = "workbench.welcome.safe_recent_project" }]
+
+[nodes.recover_recent]
+component = "IconButton"
+control_id = "RecoverRecentProject"
+props = { label = "Recover", icon = "editor_pages/workbench/menu/undo-history.svg", icon_placement = "icon_only", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control" }
+layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WelcomeSurface/RecoverRecentProject", event = "Click", route = "workbench.welcome.recover_recent_project" }]
 
 [nodes.remove_recent]
 component = "IconButton"

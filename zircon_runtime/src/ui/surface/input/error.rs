@@ -56,8 +56,12 @@ pub enum UiSurfaceInputEffectError {
     InputMethodDisabledForSecureTextInput,
     #[error("clipboard read request cannot carry text")]
     ClipboardReadRequestCarriesText,
+    #[error("clipboard transfer id is missing")]
+    ClipboardTransferIdMissing,
+    #[error("clipboard transfer intent does not match request kind")]
+    ClipboardTransferIntentMismatch,
+    #[error("clipboard write is disabled for secure text input")]
+    ClipboardWriteDisabledForSecureTextInput,
     #[error("clipboard write request missing text")]
     ClipboardWriteRequestMissingText,
-    #[error("rich-text link target is not an approved engine resource: {href}")]
-    InvalidRichLinkTarget { href: String },
 }

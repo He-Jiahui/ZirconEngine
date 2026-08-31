@@ -29,7 +29,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sh
     );
     let field = nested_select_field_rect(rect);
     push_field(commands, node, &field, clip, order + 1, opacity);
-    let value = bool_display_value(node.value_text.trim());
+    let value = bool_display_value(&node.value_text);
     push_text(
         commands,
         FrameRect {

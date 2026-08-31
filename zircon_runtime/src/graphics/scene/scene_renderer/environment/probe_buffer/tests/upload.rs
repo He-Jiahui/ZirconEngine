@@ -12,6 +12,23 @@ use crate::core::resource::ResourceId;
 use super::super::upload::{validate_probe_pmrem_texture, ReflectionProbeAssetError};
 
 #[test]
+fn render_probe_pmrem_upload_batches_one_six_layer_write_per_mip() {
+    let source = include_str!("../upload.rs");
+    let append = source
+        .split("pub(super) fn append_probe_pmrem_texture_uploads")
+        .nth(1)
+        .and_then(|source| source.split("fn rgba16f_cube_mip_chain_len").next())
+        .expect("probe PMREM upload batch builder");
+
+    assert_eq!(append.matches("for mip_level in").count(), 1);
+    assert!(!append.contains("for face in"));
+    assert_eq!(append.matches("WgpuTextureUpload::new(").count(), 1);
+    assert!(append.contains("Arc::from(bytes)"));
+    assert!(append.contains(".with_depth_or_array_layers(REFLECTION_PROBE_FACE_COUNT)"));
+    assert!(!append.contains("queue.write_texture"));
+}
+
+#[test]
 fn render_probe_source_cubemap_mips_are_rejected_as_pmrem() {
     let source = build_source_cubemap_from_equirect(128, |u, v| [u, v, 0.5, 1.0]);
     let texture = texture_asset_from_source_cubemap_zcube(

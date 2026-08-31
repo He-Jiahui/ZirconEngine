@@ -8,7 +8,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     assert!(pipeline.phase_mapping.contains(&RenderPhase::AlphaMask3d));
 
     assert_eq!(
-        compiled.stages,
+        compiled_execution_stage_order(&compiled),
         vec![
             RenderPassStage::DepthPrepass,
             RenderPassStage::Shadow,
@@ -21,6 +21,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             RenderPassStage::Overlay,
             RenderPassStage::Debug,
             RenderPassStage::Ui,
+            RenderPassStage::Present,
         ]
     );
     assert_eq!(
@@ -62,8 +63,25 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "fxaa",
             "overlay-gizmo",
             "runtime-ui",
+            "surface-present",
         ]
     );
+    for pass_name in ["shadow-atlas", "uber", "fxaa", "runtime-ui"] {
+        let pass = compiled
+            .graph()
+            .passes()
+            .iter()
+            .find(|pass| pass.name == pass_name)
+            .unwrap_or_else(|| panic!("default forward graph missing `{pass_name}`"));
+        assert!(
+            !pass.flags.has_side_effects,
+            "`{pass_name}` has an explicit graph consumer or present root and must not become a culling root"
+        );
+        assert!(
+            !pass.culled,
+            "`{pass_name}` must remain live through its graph data dependency"
+        );
+    }
     pass_resource_access(
         &compiled,
         "depth-prepass",
@@ -390,7 +408,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     assert!(pipeline.phase_mapping.contains(&RenderPhase::AlphaMask3d));
 
     assert_eq!(
-        compiled.stages,
+        compiled_execution_stage_order(&compiled),
         vec![
             RenderPassStage::DepthPrepass,
             RenderPassStage::Shadow,
@@ -403,6 +421,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             RenderPassStage::Overlay,
             RenderPassStage::Debug,
             RenderPassStage::Ui,
+            RenderPassStage::Present,
         ]
     );
     assert_eq!(
@@ -444,6 +463,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "fxaa",
             "overlay-gizmo",
             "runtime-ui",
+            "surface-present",
         ]
     );
     pass_resource_access(

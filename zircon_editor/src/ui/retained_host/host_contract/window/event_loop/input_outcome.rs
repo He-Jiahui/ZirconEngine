@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::ui::dispatch::UiInputSequence;
 
+use super::pointer_move_mailbox::UiCoalescedInputRange;
 use super::UiHostWindowEventLoop;
 use crate::ui::retained_host::host_contract::redraw::HostRedrawRequest;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
@@ -213,6 +214,48 @@ impl UiHostWindowEventLoop {
         }
     }
 
+    pub(super) fn record_idle_pointer_move_batch(
+        &mut self,
+        received_count: u64,
+        coalesced: Option<UiCoalescedInputRange>,
+    ) {
+        #[cfg(feature = "profiling")]
+        {
+            let coalesced_count = coalesced.map_or(0, |range| range.count);
+            let base_counters = [
+                ("ui.idle_hover.received_move_count", received_count as f64),
+                ("ui.idle_hover.coalesced_move_count", coalesced_count as f64),
+                ("ui.idle_hover.dispatched_move_count", 1.0),
+            ];
+            if let Some(coalesced) = coalesced {
+                let counters = [
+                    base_counters[0],
+                    base_counters[1],
+                    base_counters[2],
+                    (
+                        "ui.input.outcome.coalesced_first_sequence",
+                        coalesced.first_sequence.0 as f64,
+                    ),
+                    (
+                        "ui.input.outcome.coalesced_last_sequence",
+                        coalesced.last_sequence.0 as f64,
+                    ),
+                    ("ui.input.outcome.coalesced_count", coalesced.count as f64),
+                ];
+                zircon_runtime::core::diagnostics::profiling::record_counter_batch(
+                    "editor", &counters,
+                );
+            } else {
+                zircon_runtime::core::diagnostics::profiling::record_counter_batch(
+                    "editor",
+                    &base_counters,
+                );
+            }
+        }
+        #[cfg(not(feature = "profiling"))]
+        let _ = (received_count, coalesced);
+    }
+
     pub(super) fn reset_input_outcome_tracking(&mut self) {
         #[cfg(feature = "profiling")]
         {
@@ -420,9 +463,11 @@ mod tests {
     fn frame_update_wake_is_not_misclassified_as_present_damage() {
         let frame_update = HostRedrawRequest::FrameUpdate {
             scenario: UiPerfScenario::Click,
+            interactive_frame_update: false,
         };
         let present = HostRedrawRequest::Full {
             frame_update: true,
+            interactive_frame_update: false,
             scenario: UiPerfScenario::Click,
         };
 

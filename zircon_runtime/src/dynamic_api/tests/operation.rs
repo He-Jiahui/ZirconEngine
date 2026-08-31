@@ -2,7 +2,7 @@ use super::support::*;
 use zircon_runtime_interface::{
     ZrRuntimeFrameDemandV1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
     ZrRuntimeOperationPhase, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
-    ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimeOperationSubmitRequestV1, ZR_RUNTIME_OPERATION_REQUEST_LIMIT_V1,
 };
 
 #[test]
@@ -59,6 +59,35 @@ fn dynamic_api_submits_polls_and_harvests_runtime_operation() {
         decode_operation_output(session, call_operation_output(harvest, session, handle));
     assert!(result.succeeded_output().is_some());
 
+    destroy_test_session(api, session);
+}
+
+#[test]
+fn dynamic_api_preserves_limit_status_for_oversized_operation_wire_input() {
+    let api = runtime_api();
+    let session = create_test_session(api);
+    let submit = api.submit_operation.expect("submit_operation");
+    let request = vec![b' '; ZR_RUNTIME_OPERATION_REQUEST_LIMIT_V1.max_encoded_bytes + 1];
+    let sentinel = ZrRuntimeOperationHandle::new(17);
+    let mut handle = sentinel;
+
+    let status = unsafe {
+        submit(
+            session,
+            ZrByteSlice {
+                data: request.as_ptr(),
+                len: request.len(),
+            },
+            &mut handle,
+        )
+    };
+
+    assert_eq!(
+        status.status_code(),
+        ZrStatusCode::LimitExceeded,
+        "{status:?}"
+    );
+    assert_eq!(handle, sentinel);
     destroy_test_session(api, session);
 }
 

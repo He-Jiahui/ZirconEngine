@@ -5,10 +5,10 @@ use zircon_runtime_interface::world_sync::{
     AssetReloadFrameApplyReportDto, WatchKey, WatchRegistration, WorldFact,
 };
 
-use crate::scene::components::NodeKind;
 use crate::scene::World;
+use crate::scene::components::NodeKind;
 
-use super::{ancestor_chain_contains, SubscriptionTable, SubscriptionTableLimits};
+use super::{SubscriptionTable, SubscriptionTableLimits, ancestor_chain_contains};
 
 #[test]
 fn watch_allocates_distinct_tokens_and_unwatch_revokes_pending_dirty() {
@@ -59,8 +59,12 @@ fn typed_indexes_route_without_scanning_unrelated_watch_variants() {
 #[test]
 fn subtree_invalidation_walks_ancestry_once_for_many_watches() {
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
-    let child = world.spawn_node(NodeKind::Empty);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(child, Some(root)).unwrap();
 
     let mut table = SubscriptionTable::default();
@@ -87,8 +91,12 @@ fn subtree_invalidation_walks_ancestry_once_for_many_watches() {
 #[test]
 fn repeated_subtree_invalidation_reuses_its_session_owned_ancestry_scratch() {
     let mut world = World::empty();
-    let root = world.spawn_node(NodeKind::Empty);
-    let child = world.spawn_node(NodeKind::Empty);
+    let root = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(child, Some(root)).unwrap();
 
     let mut table = SubscriptionTable::default();
@@ -138,10 +146,83 @@ fn fact_queue_coalesces_by_semantic_identity_and_stays_bounded() {
 }
 
 #[test]
+fn world_replacement_invalidates_every_watch_and_coalesces_to_the_latest_epoch() {
+    let world = World::empty();
+    let asset = ResourceId::from_stable_label("tests.replaced-scene");
+    let mut table = SubscriptionTable::default();
+    let tokens = [
+        table.watch(WatchRegistration::new(WatchKey::WorldStructure)),
+        table.watch(WatchRegistration::new(WatchKey::Subtree { root: 91 })),
+        table.watch(WatchRegistration::new(WatchKey::ComponentType {
+            type_name: "tests.Health".to_string(),
+        })),
+        table.watch(WatchRegistration::new(WatchKey::Asset {
+            resource_id: asset,
+        })),
+    ];
+
+    table.record_fact(
+        &world,
+        WorldFact::WorldReplaced {
+            replacement_epoch: 7,
+        },
+    );
+    table.record_fact(
+        &world,
+        WorldFact::WorldReplaced {
+            replacement_epoch: 8,
+        },
+    );
+
+    let batch = table.flush(world.world_generation()).unwrap();
+    assert_eq!(batch.dirty, tokens);
+    assert_eq!(
+        batch.facts,
+        vec![WorldFact::WorldReplaced {
+            replacement_epoch: 8,
+        }]
+    );
+}
+
+#[test]
+fn world_replacement_uses_the_reserved_control_slot_when_the_fact_queue_is_full() {
+    let world = World::empty();
+    let mut table = SubscriptionTable::with_limits(SubscriptionTableLimits::new(
+        1,
+        std::mem::size_of::<WorldFact>()
+            + std::mem::size_of::<super::PendingFactKey>()
+            + std::mem::size_of::<usize>(),
+        4,
+    ));
+    let token = table.watch(WatchRegistration::new(WatchKey::WorldStructure));
+    table.record_fact(&world, WorldFact::Spawned(1));
+
+    table.record_fact(
+        &world,
+        WorldFact::WorldReplaced {
+            replacement_epoch: 9,
+        },
+    );
+
+    let batch = table.flush(world.world_generation()).unwrap();
+    assert_eq!(batch.dirty, vec![token]);
+    assert_eq!(
+        batch.facts.last(),
+        Some(&WorldFact::WorldReplaced {
+            replacement_epoch: 9,
+        })
+    );
+}
+
+#[test]
 fn overflow_marks_world_dirty_and_records_diagnostics() {
     let mut world = World::empty();
-    let first = world.spawn_node(NodeKind::Empty);
-    let second = world.spawn_node(NodeKind::Empty);
+    let first = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let second = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
     let mut table = SubscriptionTable::with_limits(SubscriptionTableLimits::new(1, usize::MAX, 1));
     let world_token = table.watch(WatchRegistration::new(WatchKey::WorldStructure));
 

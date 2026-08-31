@@ -21,12 +21,34 @@ pub struct AnimationSkeletonAsset {
     pub bones: Vec<AnimationSkeletonBoneAsset>,
 }
 
+#[derive(Clone, Serialize)]
+struct AnimationSkeletonAssetRef<'a> {
+    name: Option<&'a str>,
+    bones: &'a [AnimationSkeletonBoneAsset],
+}
+
+impl<'a> From<&'a AnimationSkeletonAsset> for AnimationSkeletonAssetRef<'a> {
+    fn from(value: &'a AnimationSkeletonAsset) -> Self {
+        Self {
+            name: value.name.as_deref(),
+            bones: &value.bones,
+        }
+    }
+}
+
 impl AnimationSkeletonAsset {
     pub fn from_bytes(bytes: &[u8]) -> AnimationAssetResult<Self> {
         decode_binary_asset(AnimationBinaryAssetKind::Skeleton, bytes)
     }
 
     pub fn to_bytes(&self) -> AnimationAssetResult<Vec<u8>> {
-        encode_binary_asset(AnimationBinaryAssetKind::Skeleton, self)
+        encode_binary_asset(
+            AnimationBinaryAssetKind::Skeleton,
+            &AnimationSkeletonAssetRef::from(self),
+        )
     }
 }
+
+#[cfg(test)]
+#[path = "skeleton/borrowed_encoding_tests.rs"]
+mod borrowed_encoding_tests;

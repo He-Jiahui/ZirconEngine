@@ -1,6 +1,7 @@
 mod ambient;
 mod cubemap_projection;
 mod environment_brdf_lut;
+mod environment_pbr_recipe;
 mod extract;
 mod ibl_bake_artifact;
 mod ibl_bake_artifact_blob;
@@ -9,8 +10,10 @@ mod ibl_bake_artifact_resolution;
 mod ibl_bake_recipe;
 mod irradiance_comparison;
 mod lightmap;
+mod realtime_ibl_status;
 mod reflection_probe;
 mod rgba16f;
+mod runtime_snapshot;
 mod skybox;
 mod source_cubemap;
 mod source_cubemap_artifact;
@@ -19,14 +22,21 @@ mod source_irradiance_cubemap;
 
 pub use ambient::{ShL2Rgb, SH_L2_RGB_COEFFICIENT_COUNT};
 pub use cubemap_projection::{
-    cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
-    cubemap_face_size_from_equirect_height, cubemap_scaled_uv_for_texel,
-    cubemap_solid_angle_from_scaled_uv, cubemap_texel_direction, cubemap_texel_solid_angle,
-    equirect_uv_from_direction, CubemapFace,
+    cubemap_capture_camera, cubemap_capture_view_from_world, cubemap_direction_from_scaled_uv,
+    cubemap_face_scaled_uv_from_direction, cubemap_face_size_from_equirect_height,
+    cubemap_scaled_uv_for_texel, cubemap_solid_angle_from_scaled_uv, cubemap_texel_direction,
+    cubemap_texel_solid_angle, equirect_uv_from_direction, CubemapCaptureCamera,
+    CubemapCaptureView, CubemapFace, CubemapFaceProjectionAxes,
 };
 pub use environment_brdf_lut::{
     build_environment_brdf_lut, build_environment_brdf_lut_with_extent,
     environment_brdf_lut_integrate, environment_brdf_lut_texel_index, EnvironmentBrdfLutTexel,
+};
+pub use environment_pbr_recipe::{
+    EnvironmentBrdfLutFormat, EnvironmentBrdfLutIntegrator, EnvironmentBrdfLutRecipe,
+    EnvironmentBrdfLutRecipeIdentity, EnvironmentPbrEnergyMode, EnvironmentPbrRecipe,
+    EnvironmentPbrRecipeIdentity, CANONICAL_ENVIRONMENT_BRDF_LUT_ALGORITHM_VERSION,
+    CANONICAL_ENVIRONMENT_BRDF_LUT_RECIPE, CANONICAL_ENVIRONMENT_PBR_RECIPE,
     ENVIRONMENT_BRDF_LUT_HEIGHT, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT, ENVIRONMENT_BRDF_LUT_WIDTH,
 };
 pub use extract::EnvironmentExtract;
@@ -64,15 +74,21 @@ pub use lightmap::{
     LightmapConsumeContract, LightmapContractValidationError, LightmapInstanceSlot,
     LIGHTMAP_CONSUME_CONTRACT_VERSION, LIGHTMAP_SCENE_SNAPSHOT_VERSION,
 };
+pub use realtime_ibl_status::{
+    RealtimeIblFailureKind, RealtimeIblFailureOperation, RealtimeIblFailureReport,
+    RealtimeIblReadiness, RealtimeIblStatusReport,
+};
 pub use reflection_probe::{
     reflection_probe_box_project_direction, reflection_probe_influence_weight,
-    select_reflection_probe_blend, ProbeBakeTiming, ProbeInfluenceShape, ReflectionProbeBlend,
+    select_reflection_probe_blend, ProbeInfluenceShape, ReflectionProbeBlend,
     ReflectionProbeBlendEntry, ReflectionProbeData, ReflectionProbeValidationError,
 };
 pub use rgba16f::{
     append_rgb_as_rgba16f_texels, append_rgba16f_texels, decode_rgb_from_rgba16f_texels,
-    decode_rgba16f_texels, encode_rgba16f_texels, RGBA16F_TEXEL_SIZE_BYTES,
+    decode_rgba16f_texels, decode_rgba16f_texels_into_exact, encode_rg16f_texels,
+    encode_rgba16f_texels, RG16F_TEXEL_SIZE_BYTES, RGBA16F_TEXEL_SIZE_BYTES,
 };
+pub use runtime_snapshot::{EnvironmentRuntimeSnapshot, EnvironmentRuntimeSnapshotError};
 pub use skybox::{
     IblBakeKey, ProceduralSkyParams, SkyboxMode, SkyboxSettings, SourceCubemapEnvironment,
     SourceCubemapUploadKey, PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION,

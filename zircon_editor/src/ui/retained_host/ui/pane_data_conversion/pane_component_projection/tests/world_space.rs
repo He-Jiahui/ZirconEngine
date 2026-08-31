@@ -36,3 +36,23 @@ fn runtime_component_projection_preserves_world_space_metadata() {
     assert_eq!(world_surface.world_render_order, 7);
     assert_eq!(world_surface.world_camera_target.as_str(), "viewport-main");
 }
+
+#[test]
+fn disabled_component_does_not_project_world_only_fields() {
+    let node = host_template_node(projected_node(
+        "Button",
+        [
+            ("world_position", float_array([1.0, 2.0, 3.0])),
+            ("world_scale", float_array([2.0, 2.0, 2.0])),
+            ("world_size", float_array([4.0, 2.0, 0.0])),
+            ("camera_target", Value::String("viewport-main".to_owned())),
+        ],
+    ))
+    .expect("ordinary component should still project into the host contract");
+
+    assert!(!node.world_space_enabled);
+    assert_eq!(node.world_position_x, 0.0);
+    assert_eq!(node.world_scale_x, 1.0);
+    assert_eq!(node.world_width, 0.0);
+    assert_eq!(node.world_camera_target.as_str(), "");
+}

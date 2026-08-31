@@ -11,11 +11,12 @@
   Editor11 owns versioned text; Editor12 owns plugin setting definitions; Render17 owns measurement.
 - Accounting: keep `zircon_editor/src/core/settings/**` in `pending.md`. Do not add it to `review.md`
   before current managed Cargo, file-generation scale gates, F0/F4 WPR and CPU/RSS/power evidence.
-- Code disposition: no Rust source changed. Eleven of the 16 present files are foreign modified or
-  untracked current work, and the retired monolithic `tests.rs` deletion was preserved. The P0
-  persistence fix changes request, receipt and flush ownership and is not a one-line lane-key edit.
+- Code disposition: the 2026-08-15 review changed no Rust source. The 2026-08-26 follow-up hard-cut
+  file-target/generation identity in the current persistence, mutation and health owners while
+  preserving foreign modified/untracked work. Immutable file projection, byte digest and
+  lock-external full-document encoding remain open.
 
-## Exact scope
+## Exact scope (2026-08-15 baseline)
 
 | scope | files | physical lines | tests | ignored | ordinal path-and-raw-content SHA256 |
 |---|---:|---:|---:|---:|---|
@@ -214,6 +215,81 @@ RenderDoc is not applicable to this CPU/configuration slice. WPR/xperf is the pr
 managed editor launcher is available; the existing approved-root separator failure currently blocks
 that launch.
 
+## 2026-08-26 implementation delta
+
+Editor17 has completed the first ownership correction identified by this review. Product Project
+source binding, pending ticket retention and retry no longer live in `SceneViewportController`;
+they are owned by a Context-level `SettingsMutationCoordinator`. Product `set`, `clear` and Session
+MRU changes use that boundary, invalid persistent sources are rejected before authority mutation,
+and admission failure is retained as an explicit applied-but-pending receipt. Shutdown now rejects
+a deferred document that never entered Runtime11 instead of accepting an empty fence.
+
+The Runtime11 lane key is now `(scope, physical target path)`, so different settings in one document
+share the lane's one-active/one-latest-pending policy. The coordinator itself retains at most two
+document states: User and the active Project generation. This removes the specific per-key whole-file
+queue topology and the feature-owned persistence lifecycle together; it was not implemented as the
+unsafe lane-key-only change rejected above.
+
+The larger performance verdict remains open. Tickets still name an authority generation rather than
+an exact immutable file generation/digest; workers still prepare the current complete layer and full
+encode under authority/project ownership; durable-byte equality, changed-key masks, debounce,
+change-driven projection dispatch and central encode/write counters are not implemented. Static
+mutation contracts pass 5/5 and focused Rust behavior tests were added but could not be executed
+without the managed Cargo lane. No WPR/xperf, scale, latency, write-count, RSS or power result exists,
+so this delta does not change `static_complete / dynamic_pending` or the acceptance matrix.
+
+The Settings Workbench now has O(1) indexed hit testing for bool, numeric and reset controls, and
+numeric step/boundary logic is owned by `SettingSchema` rather than key-specific UI branches. This
+is a functional architecture result only: no pointer-rate, paint, mutation, encode, power or
+same-machine comparison trace was collected, so it is not counted as a performance optimization.
+
+## 2026-08-26 current-source recheck and next structural cut
+
+The current production path was re-read after the file-key lane and operator retry work. The lane
+now correctly coalesces by `(scope, physical path)`, but `SettingsPersistenceRequest::generation`
+is still copied from the process-wide authority revision. A retry preserves that trigger revision,
+while the worker can serialize a later authority layer when it eventually runs. The current ticket
+therefore still cannot identify the exact file generation it attempted or made durable.
+
+`SettingsAuthority::prepare_persistent_layer_for_write` still holds the authority state mutex while
+`SettingsStore::prepare_registry_layer` traverses the complete persistent `BTreeMap` and calls
+`write_versioned_text`. Project writes also hold project-source ownership over that encode. Moving a
+plain `BTreeMap::clone` to each mutation is rejected: it would replace encode contention with
+`O(N + payload bytes)` mutation cost and becomes especially poor while pending work retains prior
+snapshots.
+
+The Unreal primary source was checked again at the current local revision. `FConfigFile::SetString`
+marks its owning file dirty only for a new or changed saved value; `FConfigFile::WriteInternal`
+generates one file text, skips equal original contents, clears dirty only on equality/success and
+retains dirty after failure; `FConfigCacheIni::Flush` routes one named file or the full cache through
+the file owner. This continues to support a file-generation owner and does not justify per-key save
+workers or UI-thread serialization.
+
+The next implementation is deliberately split into dependency order:
+
+1. Hard-cut persistence identity to `(physical file target, SettingsFileGeneration)`. Allocate a
+   process-monotonic generation before admission so project rebinds cannot regress Runtime11's
+   same-key generation ordering. Preserve that exact request through admission failure and retry;
+   retain authority revision only as diagnostic change metadata.
+2. Add an immutable file-projection chain whose mutation cost is one typed key delta. A worker seals
+   a generation by cloning only projection handles under the authority lock, then merges/encodes the
+   complete ordered document outside authority and project locks. Successful materialization
+   compacts the projection base; it must not clone the complete map per accepted key.
+3. Add encoded-byte digest and last-durable digest to the exact generation result. Skip atomic file
+   output on byte equality, preserve dirty generation on write failure, and expose encode/write/
+   skip/coalescing counters for the existing scale and WPR matrix.
+
+Item 1's identity boundary is now source-complete: the service allocates a process-monotonic
+`SettingsFileGeneration`, Runtime11 orders the physical-file lane by that generation, and health,
+receipts and typed retry expose the same identity. Each request and deferred admission retains the
+original `SettingsStore`, so retry cannot substitute a newly bound physical source. The contract
+test moved from 4/4 RED to 4/4 GREEN and the complete Editor17 static suite is 48/48 GREEN.
+
+This does not yet capture immutable durable bytes. The worker still reads the authority layer at
+execution time, and complete encoding still occurs under authority/project ownership. Items 2-3
+therefore remain open. The overall status remains `static_complete / dynamic_pending`; no latency,
+lock-hold, write-count or power claim is made by this recheck.
+
 ## Per-file review
 
 | file | current-source performance result |
@@ -221,7 +297,7 @@ that launch.
 | `authority.rs` | Single authority, ArcSwap publication and cached project source are positive. Full encode is state-lock-held; subscriber cardinality is one; bulk replacement publishes through N transient snapshots. |
 | `change_log.rs` | Entry/estimated-byte/age bounds and resync semantics are sound. Needs central counters in product traces, not a second log. |
 | `defaults.rs` | Built-ins register once; no hot algorithmic issue found. Large default payload ownership should converge with shared immutable values. |
-| `definition.rs` | Validation is explicit and bounded by schema data. `set` currently clones schema before validation. |
+| `definition.rs` | Validation and numeric step/boundary behavior are explicit and bounded by schema data. `set` currently clones schema before validation. |
 | `io.rs` | Atomic writer is correct baseline. Complete map encode per trigger, no unchanged-byte skip and double current-text parse remain. |
 | `keymap_overrides.rs` | Small typed DTO; no independent hotspot. Its payload should be shared into the published keymap. |
 | `mod.rs` | Export-only owner; no independent runtime work. |
@@ -247,3 +323,9 @@ that launch.
   approved-root separator defect. No output artifact was written to C:.
 - Protected plans/indexes were not modified. This static review is not an accepted milestone, so no
   commit or WeCom notification is due.
+
+## 产出记录与时间
+
+| 时间 | 状态 | 产出 |
+|---|---|---|
+| 2026-08-26 | `current_source_recheck_complete / file_generation_identity_source_complete / immutable_projection_pending / dynamic_pending` | Re-read the current Settings authority, mutation, persistence, versioned I/O and Runtime11 same-file coalescing path; rechecked Unreal `ConfigCacheIni.cpp` file-dirty/write/flush ownership; hard-cut scheduling, receipt, health and retry to a process-monotonic physical-file generation while retaining the original Store on every request. The focused contract moved 4/4 RED to 4/4 GREEN and Editor17 static contracts are 48/48 GREEN. Immutable generation bytes, digest/equality skip, lock-external encoding, managed Cargo, product profiling, milestone closeout, commit and WeCom notification remain unclaimed. |

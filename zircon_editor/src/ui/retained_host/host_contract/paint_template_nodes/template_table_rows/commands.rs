@@ -20,11 +20,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         return false;
     }
 
-    let cells = table_cells(node);
-    if cells.is_empty() {
-        return false;
-    }
-
     let rect = table_paint_rect(node, rect);
     if !has_paintable_table_row_extent(&rect) {
         return true;
@@ -32,6 +27,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     let Some(clip) = intersect(&rect, clip) else {
         return true;
     };
+    let cells = table_cells(node);
+    if cells.is_empty() {
+        return false;
+    }
     push_table_row_surface(commands, node, &rect, &clip, order, opacity);
     push_table_cells(
         commands,
@@ -63,6 +62,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
 ) -> bool {
     if is_workbench_table_row(node) || !is_table_row(node) {
         return false;
+    }
+    if intersect(rect, clip).is_none() {
+        return true;
     }
 
     let cells = table_cells(node);

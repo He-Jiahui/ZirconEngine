@@ -1,6 +1,6 @@
 use super::super::workbench_row_selection::selected_row_outline_color;
 use super::palette::{workbench_tree_row_palette, WorkbenchTreeRowPalette};
-use super::state::{is_focus_or_press, is_hot, is_unavailable_tree_row_state};
+use super::state::{is_hot, is_unavailable_tree_row_state, uses_focus_outline};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
@@ -47,7 +47,7 @@ fn tree_row_border_from_palette(
         None
     } else if marked {
         Some(selected_row_outline_color())
-    } else if is_focus_or_press(state) {
+    } else if uses_focus_outline(state) {
         Some(palette.focus_border)
     } else {
         None

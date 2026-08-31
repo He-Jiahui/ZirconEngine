@@ -20,7 +20,7 @@ use super::plugin_render_feature_fixtures::particle_render_feature_descriptor;
 
 const PARTICLE_TRANSPARENT_EXECUTOR_ID: &str = "particle.transparent";
 const POST_OUTPUT_TRANSFER_EXECUTOR_ID: &str = "post.output-transfer";
-const POST_UPSCALE_EXECUTOR_ID: &str = "post.upscale";
+const POST_PRIMARY_UPSCALE_EXECUTOR_ID: &str = "post.primary-upscale";
 const POST_UBER_EXECUTOR_ID: &str = "post.uber";
 
 #[test]
@@ -121,21 +121,21 @@ fn render_product_post_dynamic_resolution_upscale_feeds_smaa_terminal_frame() {
         SMAA_EXECUTOR_ID,
         SMAA_PASS_NAME,
     );
-    assert_post_process_node_executed(&stats, "upscale");
+    assert_post_process_node_executed(&stats, "primary-upscale");
     assert_post_process_node_executed(&stats, "output-transfer");
     assert_graph_executor_executed(&stats, PARTICLE_TRANSPARENT_EXECUTOR_ID);
     assert_graph_executor_executed(&stats, POST_UBER_EXECUTOR_ID);
-    assert_graph_executor_executed(&stats, POST_UPSCALE_EXECUTOR_ID);
+    assert_graph_executor_executed(&stats, POST_PRIMARY_UPSCALE_EXECUTOR_ID);
     assert_graph_executor_executed(&stats, POST_OUTPUT_TRANSFER_EXECUTOR_ID);
     assert_graph_executor_order(&stats, POST_UBER_EXECUTOR_ID, SMAA_EXECUTOR_ID);
-    assert_graph_executor_order(&stats, SMAA_EXECUTOR_ID, POST_UPSCALE_EXECUTOR_ID);
+    assert_graph_executor_order(&stats, SMAA_EXECUTOR_ID, POST_PRIMARY_UPSCALE_EXECUTOR_ID);
     assert_graph_executor_order(
         &stats,
-        POST_UPSCALE_EXECUTOR_ID,
+        POST_PRIMARY_UPSCALE_EXECUTOR_ID,
         POST_OUTPUT_TRANSFER_EXECUTOR_ID,
     );
     assert_graph_executor_not_executed(&stats, FXAA_EXECUTOR_ID);
-    assert_texture_backing_exists(&stats, PostProcessGraphResourceNames::UPSCALED);
+    assert_texture_backing_exists(&stats, PostProcessGraphResourceNames::PRIMARY_UPSCALED);
     assert_texture_backing_exists(&stats, PostProcessGraphResourceNames::FINAL_COMPOSITED);
 
     let frame_rgb_sum = frame_rgb_sum(&frame);

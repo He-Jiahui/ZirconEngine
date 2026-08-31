@@ -7,7 +7,7 @@ use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{
     AdvancedProviderAvailability, GeometrySourceDescriptor, ShadingModelDescriptor,
 };
-use crate::core::{TaskPool, TaskPoolDescriptor};
+use crate::core::TaskPool;
 use crate::graphics::pipeline::CompiledGraphCache;
 use crate::graphics::{
     GraphicsError, SceneRenderer, SceneRendererStartupOptions, SceneRendererStartupReport,
@@ -18,6 +18,7 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::PluginShaderModuleSource;
+use crate::text::font::{shared_font_collection_service, FontCollectionService};
 
 use super::super::capability_summary::{capability_summary, render_device_diagnostics};
 use super::super::graphics_debugger_capture::{
@@ -32,11 +33,22 @@ impl WgpuRenderFramework {
     pub(crate) fn new_for_test(
         asset_manager: Arc<ProjectAssetManager>,
     ) -> Result<Self, GraphicsError> {
-        Self::new(ProjectAssetManagerAccess::for_test(asset_manager))
+        let asset_manager = ProjectAssetManagerAccess::for_test(asset_manager);
+        let compute_task_pool = asset_manager.test_worker_pool();
+        Self::new(asset_manager, compute_task_pool)
     }
 
-    pub fn new(asset_manager: ProjectAssetManagerAccess) -> Result<Self, GraphicsError> {
-        Self::new_with_plugin_render_features(asset_manager, Vec::new(), Vec::new(), Vec::new())
+    pub fn new(
+        asset_manager: ProjectAssetManagerAccess,
+        compute_task_pool: TaskPool,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_features(
+            asset_manager,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            compute_task_pool,
+        )
     }
 
     /// Creates the framework around a renderer with a specialized startup profile.
@@ -46,17 +58,12 @@ impl WgpuRenderFramework {
     pub fn new_with_startup_options_and_report(
         asset_manager: ProjectAssetManagerAccess,
         startup_options: SceneRendererStartupOptions,
+        compute_task_pool: TaskPool,
     ) -> Result<(Self, SceneRendererStartupReport), GraphicsError> {
         let (renderer, startup_report) =
             SceneRenderer::new_with_startup_options_and_report(asset_manager, startup_options)?;
-        let framework = Self::from_renderer(
-            renderer,
-            Vec::new(),
-            None,
-            None,
-            None,
-            TaskPool::new(TaskPoolDescriptor::compute()),
-        );
+        let framework =
+            Self::from_renderer(renderer, Vec::new(), None, None, None, compute_task_pool);
         Ok((framework, startup_report))
     }
 
@@ -67,6 +74,7 @@ impl WgpuRenderFramework {
         virtual_geometry_runtime_providers: impl IntoIterator<
             Item = VirtualGeometryRuntimeProviderRegistration,
         >,
+        compute_task_pool: TaskPool,
     ) -> Result<Self, GraphicsError> {
         Self::new_with_plugin_render_extensions(
             asset_manager,
@@ -75,6 +83,7 @@ impl WgpuRenderFramework {
             Vec::new(),
             Vec::new(),
             virtual_geometry_runtime_providers,
+            compute_task_pool,
         )
     }
 
@@ -87,11 +96,14 @@ impl WgpuRenderFramework {
             Item = VirtualGeometryRuntimeProviderRegistration,
         >,
     ) -> Result<Self, GraphicsError> {
+        let asset_manager = ProjectAssetManagerAccess::for_test(asset_manager);
+        let compute_task_pool = asset_manager.test_worker_pool();
         Self::new_with_plugin_render_features(
-            ProjectAssetManagerAccess::for_test(asset_manager),
+            asset_manager,
             render_features,
             render_pass_executors,
             virtual_geometry_runtime_providers,
+            compute_task_pool,
         )
     }
 
@@ -104,6 +116,7 @@ impl WgpuRenderFramework {
         virtual_geometry_runtime_providers: impl IntoIterator<
             Item = VirtualGeometryRuntimeProviderRegistration,
         >,
+        compute_task_pool: TaskPool,
     ) -> Result<Self, GraphicsError> {
         Self::new_with_plugin_render_extensions_and_shading_models(
             asset_manager,
@@ -114,6 +127,7 @@ impl WgpuRenderFramework {
             Vec::new(),
             hybrid_gi_runtime_providers,
             virtual_geometry_runtime_providers,
+            compute_task_pool,
         )
     }
 
@@ -128,13 +142,16 @@ impl WgpuRenderFramework {
             Item = VirtualGeometryRuntimeProviderRegistration,
         >,
     ) -> Result<Self, GraphicsError> {
+        let asset_manager = ProjectAssetManagerAccess::for_test(asset_manager);
+        let compute_task_pool = asset_manager.test_worker_pool();
         Self::new_with_plugin_render_extensions(
-            ProjectAssetManagerAccess::for_test(asset_manager),
+            asset_manager,
             render_features,
             render_pass_executors,
             runtime_prepare_collectors,
             hybrid_gi_runtime_providers,
             virtual_geometry_runtime_providers,
+            compute_task_pool,
         )
     }
 
@@ -149,6 +166,7 @@ impl WgpuRenderFramework {
         virtual_geometry_runtime_providers: impl IntoIterator<
             Item = VirtualGeometryRuntimeProviderRegistration,
         >,
+        compute_task_pool: TaskPool,
     ) -> Result<Self, GraphicsError> {
         Self::new_with_plugin_render_extensions_and_solari_and_shading_models(
             asset_manager,
@@ -161,6 +179,7 @@ impl WgpuRenderFramework {
             plugin_geometry_sources,
             plugin_shading_models,
             Vec::new(),
+            compute_task_pool,
         )
     }
 
@@ -177,8 +196,10 @@ impl WgpuRenderFramework {
             Item = VirtualGeometryRuntimeProviderRegistration,
         >,
     ) -> Result<Self, GraphicsError> {
+        let asset_manager = ProjectAssetManagerAccess::for_test(asset_manager);
+        let compute_task_pool = asset_manager.test_worker_pool();
         Self::new_with_plugin_render_extensions_and_shading_models(
-            ProjectAssetManagerAccess::for_test(asset_manager),
+            asset_manager,
             render_features,
             render_pass_executors,
             runtime_prepare_collectors,
@@ -186,32 +207,6 @@ impl WgpuRenderFramework {
             plugin_shading_models,
             hybrid_gi_runtime_providers,
             virtual_geometry_runtime_providers,
-        )
-    }
-
-    pub fn new_with_plugin_render_extensions_and_solari(
-        asset_manager: ProjectAssetManagerAccess,
-        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
-        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
-        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
-        hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
-        solari_runtime_providers: impl IntoIterator<Item = SolariRuntimeProviderRegistration>,
-        virtual_geometry_runtime_providers: impl IntoIterator<
-            Item = VirtualGeometryRuntimeProviderRegistration,
-        >,
-    ) -> Result<Self, GraphicsError> {
-        let compute_task_pool = TaskPool::new(TaskPoolDescriptor::compute());
-        Self::new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
-            asset_manager,
-            render_features,
-            render_pass_executors,
-            runtime_prepare_collectors,
-            hybrid_gi_runtime_providers,
-            solari_runtime_providers,
-            virtual_geometry_runtime_providers,
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
             compute_task_pool,
         )
     }
@@ -229,8 +224,8 @@ impl WgpuRenderFramework {
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
         plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
+        compute_task_pool: TaskPool,
     ) -> Result<Self, GraphicsError> {
-        let compute_task_pool = TaskPool::new(TaskPoolDescriptor::compute());
         Self::new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
             asset_manager,
             render_features,
@@ -243,6 +238,7 @@ impl WgpuRenderFramework {
             plugin_shading_models,
             plugin_shader_module_sources,
             compute_task_pool,
+            shared_font_collection_service(),
         )
     }
 
@@ -260,8 +256,10 @@ impl WgpuRenderFramework {
         plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
     ) -> Result<Self, GraphicsError> {
+        let asset_manager = ProjectAssetManagerAccess::for_test(asset_manager);
+        let compute_task_pool = asset_manager.test_worker_pool();
         Self::new_with_plugin_render_extensions_and_solari_and_shading_models(
-            ProjectAssetManagerAccess::for_test(asset_manager),
+            asset_manager,
             render_features,
             render_pass_executors,
             runtime_prepare_collectors,
@@ -271,6 +269,7 @@ impl WgpuRenderFramework {
             plugin_geometry_sources,
             plugin_shading_models,
             Vec::new(),
+            compute_task_pool,
         )
     }
 
@@ -288,6 +287,7 @@ impl WgpuRenderFramework {
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
         plugin_shader_module_sources: impl IntoIterator<Item = PluginShaderModuleSource>,
         compute_task_pool: TaskPool,
+        font_collection: Arc<FontCollectionService>,
     ) -> Result<Self, GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
         let render_pass_executors = render_pass_executors.into_iter().collect::<Vec<_>>();
@@ -308,7 +308,7 @@ impl WgpuRenderFramework {
             select_solari_runtime_provider(solari_runtime_providers)?;
         let selected_virtual_geometry_runtime_provider =
             select_virtual_geometry_runtime_provider(virtual_geometry_runtime_providers)?;
-        let renderer = SceneRenderer::new_with_plugin_render_extensions_and_shading_models(
+        let renderer = SceneRenderer::new_with_plugin_render_extensions_and_shading_models_and_font_collection(
             asset_manager,
             render_features.clone(),
             render_pass_executors,
@@ -316,6 +316,7 @@ impl WgpuRenderFramework {
             plugin_geometry_sources,
             plugin_shading_models,
             plugin_shader_module_sources,
+            font_collection,
         )?;
         Ok(Self::from_renderer(
             renderer,
@@ -341,6 +342,7 @@ impl WgpuRenderFramework {
             selected_hybrid_gi_runtime_provider.as_ref(),
             selected_virtual_geometry_runtime_provider.as_ref(),
         );
+        let device_fault_gate = renderer.device_fault_gate();
         let backend_caps = renderer.backend_caps();
         let render_capabilities = capability_summary(&backend_caps);
         let device_diagnostics = render_device_diagnostics(&backend_caps);
@@ -351,11 +353,15 @@ impl WgpuRenderFramework {
         Self {
             submission_scheduler: Mutex::new(Default::default()),
             core: Arc::new(WgpuRenderFrameworkCore {
+                device_fault_gate,
                 operation_lock: Mutex::new(()),
                 compute_task_pool,
                 planar_reflection_updates: Mutex::new(Default::default()),
+                environment_captures: Mutex::new(Default::default()),
                 state: Mutex::new(RenderFrameworkState {
                     renderer,
+                    pending_environment_capture_submission: None,
+                    environment_capture_residency: Default::default(),
                     last_retained_scene_color_viewport: None,
                     next_viewport_id: 1,
                     next_history_id: 1,
@@ -378,6 +384,8 @@ impl WgpuRenderFramework {
                     degrade_ladder: Default::default(),
                     graphics_debugger,
                     viewport_products: Default::default(),
+                    viewport_pick_frames: Default::default(),
+                    viewport_picks: Default::default(),
                 }),
             }),
         }

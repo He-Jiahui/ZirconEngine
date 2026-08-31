@@ -1,8 +1,12 @@
 //! Registration report construction and lifecycle diagnostics.
 
+use std::collections::BTreeMap;
+
+use zircon_runtime::plugin::native::NativePluginEditorCommandBinding;
 use zircon_runtime::plugin::PluginPackageManifest;
 
 use crate::core::editor_extension::EditorExtensionRegistry;
+use crate::core::editor_operation::EditorOperationPath;
 use crate::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry;
 
 use super::descriptor::EditorPlugin;
@@ -23,6 +27,8 @@ pub struct EditorPluginRegistrationReport {
     pub(crate) successful_lifecycle_stages: Vec<EditorPluginLifecycleStage>,
     pub(crate) failed_lifecycle_stages: Vec<EditorPluginLifecycleStage>,
     pub runtime_event_consumers: EditorRuntimeEventConsumerRegistry,
+    pub(crate) native_command_bindings:
+        BTreeMap<EditorOperationPath, NativePluginEditorCommandBinding>,
     pub diagnostics: Vec<String>,
 }
 
@@ -70,6 +76,7 @@ impl EditorPluginRegistrationReport {
             successful_lifecycle_stages: Vec::new(),
             failed_lifecycle_stages: Vec::new(),
             runtime_event_consumers,
+            native_command_bindings: BTreeMap::new(),
             diagnostics,
         }
     }
@@ -111,8 +118,7 @@ impl EditorPluginRegistrationReport {
             if !self.successful_lifecycle_stages.contains(&stage) {
                 self.successful_lifecycle_stages.push(stage.clone());
             }
-            self.failed_lifecycle_stages
-                .retain(|failed_stage| failed_stage != &stage);
+            remove_failed_lifecycle_stage(&mut self.failed_lifecycle_stages, &stage);
         } else if !self.failed_lifecycle_stages.contains(&stage) {
             self.failed_lifecycle_stages.push(stage);
         }
@@ -131,6 +137,20 @@ impl EditorPluginRegistrationReport {
     pub fn is_success(&self) -> bool {
         self.diagnostics.is_empty()
     }
+}
+
+fn remove_failed_lifecycle_stage(
+    failed_stages: &mut Vec<EditorPluginLifecycleStage>,
+    stage: &EditorPluginLifecycleStage,
+) -> bool {
+    let Some(index) = failed_stages
+        .iter()
+        .position(|failed_stage| failed_stage == stage)
+    else {
+        return false;
+    };
+    failed_stages.swap_remove(index);
+    true
 }
 
 fn dispatch_lifecycle_event(
@@ -156,3 +176,7 @@ fn dispatch_lifecycle_event(
     }
     lifecycle
 }
+
+#[cfg(test)]
+#[path = "registration/optimization_tests.rs"]
+mod optimization_tests;

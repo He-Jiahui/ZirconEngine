@@ -1,7 +1,10 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use super::super::{render_project_template, ProjectTemplateId, PROJECT_MANIFEST_FORMAT_VERSION};
+use super::super::{
+    render_project_template, ProjectNameError, ProjectTemplateId, ProjectTemplatePackError,
+    PROJECT_MANIFEST_FORMAT_VERSION,
+};
 
 #[test]
 fn embedded_pack_matches_every_versioned_template_file() {
@@ -20,7 +23,7 @@ fn embedded_pack_matches_every_versioned_template_file() {
 
 #[test]
 fn render_rewrites_only_manifest_identity_and_preserves_current_schema() {
-    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "My \"Game\"")
+    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "My Game")
         .expect("render project template");
     let manifest = rendered
         .entries
@@ -32,7 +35,7 @@ fn render_rewrites_only_manifest_identity_and_preserves_current_schema() {
         .unwrap()
         .value;
 
-    assert_eq!(summary.name, "My \"Game\"");
+    assert_eq!(summary.name, "My Game");
     assert_eq!(summary.format_version, PROJECT_MANIFEST_FORMAT_VERSION);
     assert_eq!(rendered.summary, summary);
     assert!(rendered
@@ -69,6 +72,42 @@ fn render_rewrites_only_manifest_identity_and_preserves_current_schema() {
     for retired in ["vs_main", "fs_main", "lib://"] {
         assert!(!shader.contains(retired));
         assert!(!wgsl.contains(retired));
+    }
+}
+
+#[test]
+fn render_reuses_portable_project_name_admission_without_trimming() {
+    for (name, expected) in [
+        (
+            "CON",
+            ProjectNameError::WindowsReserved {
+                value: "CON".to_string(),
+            },
+        ),
+        (
+            "Game.",
+            ProjectNameError::WindowsTrailingAlias {
+                value: "Game.".to_string(),
+            },
+        ),
+        (
+            " Game",
+            ProjectNameError::SurroundingWhitespace {
+                value: " Game".to_string(),
+            },
+        ),
+        (
+            "folder/Game",
+            ProjectNameError::NotSingleComponent {
+                value: "folder/Game".to_string(),
+            },
+        ),
+    ] {
+        let error = render_project_template(ProjectTemplateId::RenderableEmpty, name).unwrap_err();
+        assert!(matches!(
+            error,
+            ProjectTemplatePackError::InvalidProjectName { source } if source == expected
+        ));
     }
 }
 

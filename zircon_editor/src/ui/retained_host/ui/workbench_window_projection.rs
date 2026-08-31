@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::load_preview_image;
 use crate::ui::retained_host as host_contract;
 use crate::ui::retained_host::primitives::ModelRc;
 #[cfg(test)]
@@ -12,8 +11,8 @@ use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiFrame};
 
 use super::component_contract_metadata::tokens_for_component_role;
 use super::pane_data_conversion::{
-    projected_command_palette_options, projected_command_palette_structured_options,
-    projected_notification_center_metadata_from_host, projected_notification_center_option_rows,
+    projected_command_palette_option_rows, projected_notification_center_metadata_from_host,
+    projected_notification_center_option_rows, projected_settings_window_data,
     structured_menu_items, structured_options_for_node,
 };
 use super::template_layout_context::apply_table_layout_context_variant;
@@ -42,13 +41,15 @@ mod typed_canvas;
 use defaults::{
     default_border_width, default_corner_radius, default_text_tone,
     default_workbench_surface_variant, is_workbench_command_palette_mount,
-    is_workbench_notification_center_mount, projected_workbench_text,
-    projected_workbench_value_text, resolve_workbench_role,
+    is_workbench_notification_center_mount, is_workbench_settings_window_mount,
+    projected_workbench_text, projected_workbench_value_text, resolve_workbench_role,
 };
 use host_value_toml::{
     toml_values_from_host_properties, toml_values_from_host_properties_without_notifications,
 };
-use mount::{project_node_into_physical_mount, scale_visual_metric};
+use mount::{
+    project_frame_into_physical_mount, project_node_into_physical_mount, scale_visual_metric,
+};
 use node_index::ProjectionNodeIndex;
 use notification_cache::reusable_notification_rows;
 use previous_node_index::{model_with_projection_identity, PreviousWorkbenchNodeIndex};
@@ -215,6 +216,58 @@ pub(crate) fn build_host_contract_workbench_window_node_patch_at_mount_and_scale
     })
 }
 
+pub(crate) fn build_host_contract_workbench_window_geometry_patch_at_mount_and_scale(
+    projection: &RetainedUiHostProjection,
+    projection_node_indices: &[usize],
+    previous_nodes: &ModelRc<host_contract::TemplatePaneNodeData>,
+    mount_frame: Option<UiFrame>,
+    scale_factor: f32,
+) -> Option<WorkbenchWindowNodePatch> {
+    if projection_node_indices.is_empty() {
+        return Some(WorkbenchWindowNodePatch {
+            nodes: previous_nodes.clone(),
+            changed_rows: Vec::new(),
+        });
+    }
+    let previous_node_index = PreviousWorkbenchNodeIndex::for_projection(
+        previous_nodes,
+        projection.document_id.as_str(),
+    )?;
+    let mut row_patches = BTreeMap::new();
+    for projection_index in projection_node_indices {
+        let node = projection.nodes.get(*projection_index)?;
+        let control_id = node.control_id.as_deref()?;
+        let row = previous_node_index.row(control_id)?;
+        let previous = previous_node_index.get(control_id)?;
+        if previous.node_id.as_str() != node.node_id.as_str()
+            || previous.control_id.as_str() != control_id
+            || previous.parent_node_id.as_str() != node.parent_id.as_deref().unwrap_or_default()
+        {
+            return None;
+        }
+
+        let mut projected = previous.clone();
+        projected.frame = project_frame_into_physical_mount(
+            template_frame(node.frame),
+            mount_frame,
+            scale_factor,
+        );
+        projected.has_clip_frame = node.clip_frame.is_some();
+        projected.clip_frame = node
+            .clip_frame
+            .map(template_frame)
+            .map(|frame| project_frame_into_physical_mount(frame, mount_frame, scale_factor))
+            .unwrap_or_default();
+        projected.z_index = node.z_index;
+        row_patches.insert(row, projected);
+    }
+    let changed_rows = row_patches.keys().copied().collect();
+    Some(WorkbenchWindowNodePatch {
+        nodes: previous_nodes.with_row_patches(row_patches),
+        changed_rows,
+    })
+}
+
 fn projection_layout_context_width(projection: &RetainedUiHostProjection) -> f32 {
     projection
         .nodes
@@ -257,6 +310,11 @@ fn to_host_contract_workbench_window_node_with_previous(
     {
         component_role = "notification-center".to_string();
     }
+    if component_role.is_empty()
+        && is_workbench_settings_window_mount(node.component.as_str(), control_id.as_str())
+    {
+        component_role = "settings-window".to_string();
+    }
     let notification_metadata =
         projected_notification_center_metadata_from_host(component_role.as_str(), &node.properties)
             .unwrap_or_default();
@@ -266,6 +324,13 @@ fn to_host_contract_workbench_window_node_with_previous(
     } else {
         toml_values_from_host_properties(&node.properties)
     };
+    let settings_window_data =
+        projected_settings_window_data(component_role.as_str(), &button_style_values);
+    let settings_category_scroll_offset =
+        numeric_property(&button_style_values, "settings_category_scroll_offset").unwrap_or(0.0)
+            as f32;
+    let settings_scroll_offset =
+        numeric_property(&button_style_values, "settings_scroll_offset").unwrap_or(0.0) as f32;
     if is_cleared_inspector_property_row(control_id.as_str(), &node.properties) {
         clear_button_surface_style_values(&mut button_style_values);
     }
@@ -284,8 +349,7 @@ fn to_host_contract_workbench_window_node_with_previous(
         })
         .unwrap_or_default();
     let icon_name = node.icon.clone().unwrap_or_default();
-    let preview_image = load_preview_image(&media_source, &icon_name);
-    let preview_size = preview_image.size();
+    let has_preview_image = !media_source.trim().is_empty() || !icon_name.trim().is_empty();
     let (options_text, options, structured_options) = if let Some(reused) = reused_notification_rows
     {
         (
@@ -301,18 +365,16 @@ fn to_host_contract_workbench_window_node_with_previous(
             )
             .map(|(options, structured_options)| (Some(options), Some(structured_options)))
             .unwrap_or_default();
-        let option_values =
-            projected_command_palette_options(component_role.as_str(), &button_style_values)
-                .or(notification_option_values)
-                .unwrap_or_else(|| {
-                    string_array_property(&node.properties, "options", &node.options)
-                });
-        let structured_options = projected_command_palette_structured_options(
-            component_role.as_str(),
-            &button_style_values,
-        )
-        .or(notification_structured_options)
-        .unwrap_or_else(|| structured_options_for_node(&option_values, &button_style_values));
+        let (command_option_values, command_structured_options) =
+            projected_command_palette_option_rows(component_role.as_str(), &button_style_values)
+                .map(|(options, structured_options)| (Some(options), Some(structured_options)))
+                .unwrap_or_default();
+        let option_values = command_option_values
+            .or(notification_option_values)
+            .unwrap_or_else(|| string_array_property(&node.properties, "options", &node.options));
+        let structured_options = command_structured_options
+            .or(notification_structured_options)
+            .unwrap_or_else(|| structured_options_for_node(&option_values, &button_style_values));
         (
             option_values.join(", ").into(),
             shared_string_list(option_values),
@@ -382,6 +444,15 @@ fn to_host_contract_workbench_window_node_with_previous(
         .or_else(|| numeric_property(&node.properties, "icon_offset_y"))
         .or_else(|| numeric_property(&node.properties, "track_height"))
         .unwrap_or(0.0) as f32;
+    let layout_padding_left =
+        numeric_property(&node.properties, "layout_padding_left").unwrap_or(0.0) as f32;
+    let layout_padding_right =
+        numeric_property(&node.properties, "layout_padding_right").unwrap_or(0.0) as f32;
+    let layout_padding_top =
+        numeric_property(&node.properties, "layout_padding_top").unwrap_or(0.0) as f32;
+    let layout_padding_bottom =
+        numeric_property(&node.properties, "layout_padding_bottom").unwrap_or(0.0) as f32;
+    let layout_spacing = numeric_property(&node.properties, "layout_spacing").unwrap_or(0.0) as f32;
     let layout_first_cell_offset_x =
         numeric_property(&node.properties, "layout_first_cell_offset_x")
             .or_else(|| numeric_property(&node.properties, "track_width_delta"))
@@ -415,6 +486,8 @@ fn to_host_contract_workbench_window_node_with_previous(
 
     Some(host_contract::TemplatePaneNodeData {
         node_id: node.node_id.clone().into(),
+        surface_node_id: node.surface_node_id,
+        has_workbench_icon_tooltip: node.has_workbench_icon_tooltip,
         parent_node_id: node_index
             .projected_parent_node_id(node)
             .unwrap_or_default()
@@ -430,6 +503,11 @@ fn to_host_contract_workbench_window_node_with_previous(
         layout_icon_size,
         layout_content_offset_x,
         layout_content_offset_y,
+        layout_padding_left,
+        layout_padding_right,
+        layout_padding_top,
+        layout_padding_bottom,
+        layout_spacing,
         layout_first_cell_offset_x,
         layout_second_cell_offset_x,
         layout_third_cell_offset_x,
@@ -476,8 +554,8 @@ fn to_host_contract_workbench_window_node_with_previous(
         selected_segment_underline_color,
         media_source: media_source.into(),
         icon_name: icon_name.into(),
-        has_preview_image: preview_size.width > 0 && preview_size.height > 0,
-        preview_image,
+        has_preview_image,
+        preview_image: Default::default(),
         validation_level: node.validation_level.clone().unwrap_or_default().into(),
         validation_message: node.validation_message.clone().unwrap_or_default().into(),
         popup_open: node.popup_open,
@@ -507,6 +585,18 @@ fn to_host_contract_workbench_window_node_with_previous(
             .and_then(|index| i32::try_from(index).ok())
             .unwrap_or(-1),
         notification_visible_limit: notification_metadata.visible_limit,
+        settings_title: settings_window_data.title.into(),
+        selected_settings_category_id: settings_window_data.selected_category_id.into(),
+        settings_editor_open_key: settings_window_data.editor_open_key.into(),
+        settings_editor_open_kind: settings_window_data.editor_open_kind.into(),
+        settings_editor_open_row: settings_window_data.editor_open_row,
+        settings_category_scroll_offset,
+        settings_scroll_offset,
+        settings_persistence_health_generation: settings_window_data.persistence_health_generation,
+        settings_persistence_retry_scope: settings_window_data.persistence_retry_scope.into(),
+        settings_persistence_status_text: settings_window_data.persistence_status_text.into(),
+        settings_categories: model_rc(settings_window_data.categories),
+        settings_entries: model_rc(settings_window_data.entries),
         collection_items: shared_string_list(collection_item_values),
         menu_items: shared_string_list(menu_item_values),
         structured_menu_items: model_rc(structured_menu_item_values),

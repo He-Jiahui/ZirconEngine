@@ -1,7 +1,7 @@
 use super::super::colors::declared_style_border;
 use super::super::model::WorkbenchSelectionControlKind;
 use super::super::palette::WorkbenchSelectionControlPalette;
-use super::super::state::{is_hot, is_unavailable_selection_state};
+use super::super::state::{is_unavailable_selection_state, uses_focus_outline};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
@@ -17,7 +17,7 @@ pub(super) fn control_border(
     }
     match kind {
         WorkbenchSelectionControlKind::Checkbox => {
-            if state == UiPainterResolvedState::Focused || is_hot(state) {
+            if uses_focus_outline(state) {
                 palette.focus_ring
             } else if checked {
                 palette.accent
@@ -26,7 +26,7 @@ pub(super) fn control_border(
             }
         }
         WorkbenchSelectionControlKind::Radio => {
-            if state == UiPainterResolvedState::Focused || is_hot(state) {
+            if uses_focus_outline(state) {
                 palette.focus_ring
             } else if checked {
                 palette.radio_checked_border
@@ -35,7 +35,7 @@ pub(super) fn control_border(
             }
         }
         WorkbenchSelectionControlKind::Toggle => {
-            if state == UiPainterResolvedState::Focused || is_hot(state) {
+            if uses_focus_outline(state) {
                 palette.focus_ring
             } else if checked {
                 palette.toggle_checked_border

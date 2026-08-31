@@ -1,9 +1,12 @@
+use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
 
 use zircon_runtime_interface::ui::template::{
     UiResourceDependency, UiResourceDiagnostic, UiResourceDiagnosticSeverity,
     UiResourceFallbackMode,
 };
+
+const HASH_DEDUP_DIAGNOSTIC_THRESHOLD: usize = 128;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiResourcePathResolver {
@@ -68,13 +71,40 @@ pub fn validate_resource_dependency_files(
             ));
         }
     }
-    diagnostics.sort_by(|left, right| {
+    dedup_resource_diagnostics(&mut diagnostics);
+    diagnostics
+}
+
+fn dedup_resource_diagnostics(diagnostics: &mut Vec<UiResourceDiagnostic>) {
+    if diagnostics.len() < HASH_DEDUP_DIAGNOSTIC_THRESHOLD {
+        diagnostics.sort_by(|left, right| {
+            (&left.path, &left.code, &left.message).cmp(&(&right.path, &right.code, &right.message))
+        });
+        diagnostics.dedup_by(|left, right| {
+            left.path == right.path && left.code == right.code && left.message == right.message
+        });
+        return;
+    }
+
+    let mut seen = HashSet::with_capacity(diagnostics.len());
+    let keep = diagnostics
+        .iter()
+        .map(|diagnostic| {
+            seen.insert((
+                diagnostic.path.as_str(),
+                diagnostic.code.as_str(),
+                diagnostic.message.as_str(),
+            ))
+        })
+        .collect::<Vec<_>>();
+    drop(seen);
+
+    let mut keep = keep.into_iter();
+    diagnostics.retain(|_| keep.next().expect("one keep decision per diagnostic"));
+    debug_assert!(keep.next().is_none());
+    diagnostics.sort_unstable_by(|left, right| {
         (&left.path, &left.code, &left.message).cmp(&(&right.path, &right.code, &right.message))
     });
-    diagnostics.dedup_by(|left, right| {
-        left.path == right.path && left.code == right.code && left.message == right.message
-    });
-    diagnostics
 }
 
 fn validate_uri(
@@ -142,3 +172,7 @@ fn resource_diagnostic(
         path: path.to_string(),
     }
 }
+
+#[cfg(test)]
+#[path = "resolve/hash_dedup_tests.rs"]
+mod hash_dedup_tests;

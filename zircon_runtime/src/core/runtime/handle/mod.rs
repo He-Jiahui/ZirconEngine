@@ -2,6 +2,7 @@ mod activation;
 mod core_handle;
 mod diagnostics;
 mod events;
+mod random;
 mod registration;
 mod resolution;
 mod runtime_extensions;

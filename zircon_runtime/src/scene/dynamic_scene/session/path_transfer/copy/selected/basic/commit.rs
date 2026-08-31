@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use super::super::super::super::super::{
-    io, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest, RuntimeSessionSlotSelector,
+    RuntimeSessionArchiveError, RuntimeSessionArchiveManifest, RuntimeSessionSlotSelector, io,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn copy_selected_slot_at_path_atomically(

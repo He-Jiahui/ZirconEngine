@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageUsage,
     RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
@@ -148,7 +150,7 @@ pub(super) fn parse_array_layout(
 }
 
 pub(super) fn parse_color_space(value: &str) -> TextureDescriptorResult<RenderImageColorSpace> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "srgb" => Ok(RenderImageColorSpace::Srgb),
         "linear" => Ok(RenderImageColorSpace::Linear),
         "hdr" => Ok(RenderImageColorSpace::Hdr),
@@ -157,7 +159,7 @@ pub(super) fn parse_color_space(value: &str) -> TextureDescriptorResult<RenderIm
 }
 
 pub(super) fn parse_usage_hint(value: &str) -> TextureDescriptorResult<TextureUsageHint> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "albedo" => Ok(TextureUsageHint::Albedo),
         "normal" => Ok(TextureUsageHint::Normal),
         "mask" => Ok(TextureUsageHint::Mask),
@@ -169,7 +171,7 @@ pub(super) fn parse_usage_hint(value: &str) -> TextureDescriptorResult<TextureUs
 }
 
 pub(super) fn parse_mip_policy(value: &str) -> TextureDescriptorResult<TextureMipPolicy> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "from_source" => Ok(TextureMipPolicy::FromSource),
         "generate_offline" => Ok(TextureMipPolicy::GenerateOffline),
         "generate_runtime" => Ok(TextureMipPolicy::GenerateRuntime),
@@ -179,7 +181,7 @@ pub(super) fn parse_mip_policy(value: &str) -> TextureDescriptorResult<TextureMi
 }
 
 pub(super) fn parse_mip_filter(value: &str) -> TextureDescriptorResult<TextureMipFilter> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "kaiser" => Ok(TextureMipFilter::Kaiser),
         "box" => Ok(TextureMipFilter::Box),
         _ => Err(TextureDescriptorError::unsupported("mip_filter", value)),
@@ -189,7 +191,7 @@ pub(super) fn parse_mip_filter(value: &str) -> TextureDescriptorResult<TextureMi
 pub(super) fn parse_normal_convention(
     value: &str,
 ) -> TextureDescriptorResult<TextureNormalConvention> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "none" => Ok(TextureNormalConvention::None),
         "tangent_space_dx" | "dx" => Ok(TextureNormalConvention::TangentSpaceDx),
         "tangent_space_gl" | "gl" => Ok(TextureNormalConvention::TangentSpaceGl),
@@ -201,7 +203,7 @@ pub(super) fn parse_normal_convention(
 }
 
 pub(super) fn parse_compression(value: &str) -> TextureDescriptorResult<TextureCompressionTarget> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "auto" => Ok(TextureCompressionTarget::Auto),
         "uncompressed" => Ok(TextureCompressionTarget::Uncompressed),
         "bc1" => Ok(TextureCompressionTarget::Bc1),
@@ -214,7 +216,7 @@ pub(super) fn parse_compression(value: &str) -> TextureDescriptorResult<TextureC
 }
 
 pub(super) fn parse_dimension(value: &str) -> TextureDescriptorResult<RenderImageDimension> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "1d" | "d1" => Ok(RenderImageDimension::D1),
         "2d" | "d2" => Ok(RenderImageDimension::D2),
         "3d" | "d3" => Ok(RenderImageDimension::D3),
@@ -227,7 +229,7 @@ fn parse_sampler_shorthand(
     value: &str,
     sampler: RenderSamplerDescriptor,
 ) -> TextureDescriptorResult<RenderSamplerDescriptor> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "default" => Ok(sampler),
         "linear" => Ok(sampler_with_filter(sampler, RenderSamplerFilter::Linear)),
         "nearest" => Ok(sampler_with_filter(sampler, RenderSamplerFilter::Nearest)),
@@ -246,7 +248,7 @@ fn sampler_with_filter(
 }
 
 fn parse_usage(value: &str) -> TextureDescriptorResult<RenderImageUsage> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "sampled" => Ok(RenderImageUsage::Sampled),
         "storage" => Ok(RenderImageUsage::Storage),
         "render_target" => Ok(RenderImageUsage::RenderTarget),
@@ -257,7 +259,7 @@ fn parse_usage(value: &str) -> TextureDescriptorResult<RenderImageUsage> {
 }
 
 fn parse_asset_usage(name: &str, value: &str) -> TextureDescriptorResult<RenderImageAssetUsage> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "main_world" | "main" | "cpu" => Ok(RenderImageAssetUsage::MainWorld),
         "render_world" | "render" | "gpu" => Ok(RenderImageAssetUsage::RenderWorld),
         _ => Err(TextureDescriptorError::unsupported(name, value)),
@@ -265,7 +267,7 @@ fn parse_asset_usage(name: &str, value: &str) -> TextureDescriptorResult<RenderI
 }
 
 fn parse_address_mode(value: &str) -> TextureDescriptorResult<RenderSamplerAddressMode> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "clamp_to_edge" => Ok(RenderSamplerAddressMode::ClampToEdge),
         "repeat" => Ok(RenderSamplerAddressMode::Repeat),
         "mirror_repeat" => Ok(RenderSamplerAddressMode::MirrorRepeat),
@@ -277,13 +279,128 @@ fn parse_address_mode(value: &str) -> TextureDescriptorResult<RenderSamplerAddre
 }
 
 fn parse_filter(value: &str) -> TextureDescriptorResult<RenderSamplerFilter> {
-    match normalized_token(value).as_str() {
+    match normalized_token(value).as_ref() {
         "nearest" => Ok(RenderSamplerFilter::Nearest),
         "linear" => Ok(RenderSamplerFilter::Linear),
         _ => Err(TextureDescriptorError::unsupported("sampler filter", value)),
     }
 }
 
-fn normalized_token(value: &str) -> String {
-    value.trim().to_ascii_lowercase().replace('-', "_")
+fn normalized_token(value: &str) -> Cow<'_, str> {
+    let value = value.trim();
+    if value
+        .bytes()
+        .any(|byte| byte.is_ascii_uppercase() || byte == b'-')
+    {
+        Cow::Owned(value.to_ascii_lowercase().replace('-', "_"))
+    } else {
+        Cow::Borrowed(value)
+    }
+}
+
+#[cfg(test)]
+mod plugins07_setting_token_hotpath_tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    use super::*;
+
+    const SAMPLE_PAIRS: usize = 21;
+    const LOOKUPS_PER_SAMPLE: usize = 80_000;
+    const TOKENS: [&str; 3] = ["render_target", "copy_src", "copy_dst"];
+
+    #[test]
+    fn borrowed_texture_metadata_contract_setting_token() {
+        assert!(matches!(
+            normalized_token(" render_target "),
+            std::borrow::Cow::Borrowed("render_target")
+        ));
+        assert!(matches!(
+            normalized_token("Render-Target"),
+            std::borrow::Cow::Owned(ref value) if value == "render_target"
+        ));
+        assert_eq!(
+            parse_usage("Render-Target"),
+            Ok(RenderImageUsage::RenderTarget)
+        );
+    }
+
+    #[test]
+    #[ignore = "release performance gate"]
+    fn borrowed_texture_metadata_performance_release_setting_token() {
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair_index in 0..SAMPLE_PAIRS {
+            let (legacy_ns, optimized_ns) = if pair_index % 2 == 0 {
+                (measure_legacy(), measure_borrowed())
+            } else {
+                let optimized_ns = measure_borrowed();
+                (measure_legacy(), optimized_ns)
+            };
+            legacy_samples.push(legacy_ns);
+            optimized_samples.push(optimized_ns);
+        }
+
+        let legacy_p95 = nearest_rank_p95(&legacy_samples);
+        let optimized_p95 = nearest_rank_p95(&optimized_samples);
+        let improvement_percent =
+            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
+        println!(
+            "PERF_RESULT plugins07_texture_setting_token_borrow sample_pairs={SAMPLE_PAIRS} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=50 legacy_allocations_per_sample={} optimized_allocations_per_sample=0 order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10",
+            csv(&legacy_samples),
+            csv(&optimized_samples),
+            LOOKUPS_PER_SAMPLE * TOKENS.len() * 2,
+        );
+        assert!(
+            improvement_percent >= 50,
+            "borrowed canonical texture setting tokens must improve P95 by at least 50%"
+        );
+    }
+
+    fn measure_legacy() -> u128 {
+        let started = Instant::now();
+        let mut parsed = 0_u64;
+        for _ in 0..LOOKUPS_PER_SAMPLE {
+            for token in TOKENS {
+                let normalized = black_box(token)
+                    .trim()
+                    .to_ascii_lowercase()
+                    .replace('-', "_");
+                parsed += u64::from(matches!(
+                    normalized.as_str(),
+                    "render_target" | "copy_src" | "copy_dst"
+                ));
+                black_box(normalized);
+            }
+        }
+        black_box(parsed);
+        started.elapsed().as_nanos()
+    }
+
+    fn measure_borrowed() -> u128 {
+        let started = Instant::now();
+        let mut parsed = 0_u64;
+        for _ in 0..LOOKUPS_PER_SAMPLE {
+            for token in TOKENS {
+                parsed += u64::from(parse_usage(black_box(token)).is_ok());
+            }
+        }
+        black_box(parsed);
+        started.elapsed().as_nanos()
+    }
+
+    fn nearest_rank_p95(samples: &[u128]) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = (sorted.len() * 95).div_ceil(100);
+        sorted[rank.saturating_sub(1)]
+    }
+
+    fn csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    }
 }

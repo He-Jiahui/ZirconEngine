@@ -158,6 +158,7 @@ struct SvgTreeCacheEntry {
 #[derive(Default)]
 struct SvgTreeCache {
     entries: BTreeMap<PathBuf, SvgTreeCacheEntry>,
+    lru_order: BTreeMap<u64, PathBuf>,
     alias_paths: BTreeMap<String, BTreeSet<PathBuf>>,
     access_clock: u64,
 }
@@ -184,18 +185,26 @@ impl SvgTreeCache {
             return None;
         }
         let cached_path = cached_paths.first()?.clone();
+        let previous_last_used = self.entries.get(&cached_path)?.last_used;
         let last_used = self.next_access();
+        self.lru_order.remove(&previous_last_used);
         let entry = self.entries.get_mut(&cached_path)?;
         entry.last_used = last_used;
-        Some(entry.tree.clone())
+        let tree = entry.tree.clone();
+        self.lru_order.insert(last_used, cached_path);
+        Some(tree)
     }
 
     fn get(&mut self, key: &SvgTreeCacheKey) -> Option<Option<Arc<usvg::Tree>>> {
-        let last_used = self.next_access();
-        let entry = self.entries.get_mut(&key.path)?;
+        let entry = self.entries.get(&key.path)?;
         if entry.stamp != key.stamp {
             return None;
         }
+        let previous_last_used = entry.last_used;
+        let last_used = self.next_access();
+        self.lru_order.remove(&previous_last_used);
+        self.lru_order.insert(last_used, key.path.clone());
+        let entry = self.entries.get_mut(&key.path)?;
         entry.last_used = last_used;
         Some(entry.tree.clone())
     }
@@ -211,35 +220,36 @@ impl SvgTreeCache {
         tree: Option<Arc<usvg::Tree>>,
         source_fingerprint: SvgSourceFingerprint,
     ) {
-        self.remove(&key.path);
+        let SvgTreeCacheKey { path, stamp } = key;
+        self.remove(&path);
         if self.entries.len() >= MAX_SVG_TREE_CACHE_ENTRIES {
             let stale_path = self
-                .entries
-                .iter()
-                .min_by_key(|(path, entry)| (entry.last_used, *path))
-                .map(|(path, _)| path.clone());
+                .lru_order
+                .first_key_value()
+                .map(|(_, path)| path.clone());
             if let Some(stale_path) = stale_path {
                 self.remove(&stale_path);
             }
         }
-        let aliases = path_aliases(&key.path.to_string_lossy());
+        let aliases = path_aliases(&path.to_string_lossy());
         for alias in &aliases {
             self.alias_paths
                 .entry(alias.clone())
                 .or_default()
-                .insert(key.path.clone());
+                .insert(path.clone());
         }
         let last_used = self.next_access();
         self.entries.insert(
-            key.path,
+            path.clone(),
             SvgTreeCacheEntry {
-                stamp: key.stamp,
+                stamp,
                 source_fingerprint,
                 tree,
                 aliases,
                 last_used,
             },
         );
+        self.lru_order.insert(last_used, path);
     }
 
     fn invalidate_paths(&mut self, paths: &[String]) -> usize {
@@ -290,6 +300,7 @@ impl SvgTreeCache {
         let Some(entry) = self.entries.remove(path) else {
             return;
         };
+        self.lru_order.remove(&entry.last_used);
         for alias in entry.aliases {
             let remove_alias = self.alias_paths.get_mut(&alias).is_some_and(|paths| {
                 paths.remove(path);
@@ -355,8 +366,11 @@ fn normalize_path(path: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{normalize_path, path_aliases, SvgFileStamp, SvgTreeCache, SvgTreeCacheKey};
-    use std::path::PathBuf;
+    use super::{
+        normalize_path, path_aliases, SvgFileStamp, SvgTreeCache, SvgTreeCacheKey,
+        MAX_SVG_TREE_CACHE_ENTRIES,
+    };
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn storing_a_new_svg_generation_replaces_the_old_tree_for_that_path() {
@@ -385,7 +399,48 @@ mod tests {
         );
 
         assert_eq!(cache.entries.len(), 1);
+        assert_eq!(cache.lru_order.len(), 1);
         assert_eq!(cache.entries[&path].stamp.modified_unix_ns, Some(2));
+    }
+
+    #[test]
+    fn tree_cache_evicts_the_least_recently_used_path_without_scanning_entries() {
+        let mut cache = SvgTreeCache::default();
+        for index in 0..MAX_SVG_TREE_CACHE_ENTRIES {
+            cache.insert(
+                SvgTreeCacheKey {
+                    path: PathBuf::from(format!("assets/icons/{index:04}.svg")),
+                    stamp: SvgFileStamp {
+                        modified_unix_ns: Some(1),
+                        len: Some(10),
+                    },
+                },
+                None,
+            );
+        }
+        assert!(cache
+            .get_by_query_path(std::path::Path::new("assets/icons/0000.svg"))
+            .is_some());
+
+        cache.insert(
+            SvgTreeCacheKey {
+                path: PathBuf::from("assets/icons/new.svg"),
+                stamp: SvgFileStamp {
+                    modified_unix_ns: Some(1),
+                    len: Some(10),
+                },
+            },
+            None,
+        );
+
+        assert_eq!(cache.entries.len(), MAX_SVG_TREE_CACHE_ENTRIES);
+        assert!(cache
+            .entries
+            .contains_key(Path::new("assets/icons/0000.svg")));
+        assert!(!cache
+            .entries
+            .contains_key(Path::new("assets/icons/0001.svg")));
+        assert_eq!(cache.lru_order.len(), cache.entries.len());
     }
 
     #[test]

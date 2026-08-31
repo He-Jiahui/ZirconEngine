@@ -16,10 +16,13 @@ class RuntimeScheduleFrameLoopAuditTests(unittest.TestCase):
         from runtime_structure_audits.schedule_frame_loop_boundary import (
             schedule_frame_loop_boundary_audit,
         )
+        from runtime_structure_audits.schedule_frame_loop_source_inventory import (
+            RUNTIME_03_GUARD_FILES,
+        )
 
         audit = schedule_frame_loop_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_guard_file_count"], 10)
+        self.assertEqual(audit["expected_guard_file_count"], len(RUNTIME_03_GUARD_FILES))
         self.assertEqual(audit["missing_guard_files"], [])
         self.assertEqual(audit["missing_test_anchors"], [])
         self.assertEqual(audit["missing_behavior_test_anchors"], [])

@@ -5,6 +5,7 @@ use zircon_runtime::core::runtime::tasks::JobScheduler;
 use crate::core::editor_message::SharedEditorMessageBus;
 use crate::core::jobs::{EditorJobLimits, EditorJobProgressObserver, EditorJobProgressSource};
 
+use super::super::event_journal::EditorJobEventJournal;
 use super::super::pump::JobEventPump;
 use super::progress_observer::ProgressObserverDispatch;
 use super::state::EditorJobSystemState;
@@ -76,7 +77,7 @@ impl EditorJobAdmissionWindow {
 pub(super) struct EditorJobSystemInner {
     pub(super) scheduler: JobScheduler,
     pub(super) limits: EditorJobLimits,
-    pub(super) event_queue: super::super::pump::JobEventQueue,
+    pub(super) event_queue: EditorJobEventJournal,
     pub(super) event_pump: JobEventPump,
     pub(super) state: Mutex<EditorJobSystemState>,
     pub(super) promotion: Mutex<()>,
@@ -119,7 +120,7 @@ impl EditorJobSystem {
         limits: EditorJobLimits,
         progress_observer: Option<Arc<dyn EditorJobProgressObserver>>,
     ) -> Self {
-        let event_queue = super::super::pump::JobEventQueue::default();
+        let event_queue = EditorJobEventJournal::new(limits.event_journal_limits());
         Self {
             inner: Arc::new(EditorJobSystemInner {
                 scheduler,

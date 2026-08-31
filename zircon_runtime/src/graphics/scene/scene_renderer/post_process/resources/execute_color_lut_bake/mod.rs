@@ -1,7 +1,8 @@
-use crate::core::framework::render::COLOR_LUT_SIZE_DEFAULT;
+use crate::core::framework::render::{COLOR_LUT_SIZE_DEFAULT, RenderPipelinePhase};
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::post_process::cluster_dimensions_for_size;
 use crate::graphics::types::ViewportRenderFrame;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use super::super::params::color_lut_bake_params::ColorLutBakeParams;
 use super::super::scene_post_process_resources::ScenePostProcessResources;
@@ -15,20 +16,19 @@ impl ScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer) fn execute_color_lut_bake(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         color_lut_view: &wgpu::TextureView,
-        exposure_buffer: &wgpu::Buffer,
+        exposure_buffer: wgpu::BufferBinding<'_>,
         frame: &ViewportRenderFrame,
         streamer: &ResourceStreamer,
-    ) -> [u32; 3] {
+    ) -> ([u32; 3], WgpuBufferUploadBatch) {
         let user_lut = select_user_lut_texture_views(self, streamer, frame);
         let params = color_lut_bake_params(frame, user_lut.binding_mode.shader_id());
-        queue.write_buffer(
-            &self.color_lut_bake_params_buffer,
+        let params_uploads = WgpuBufferUploadBatch::from(WgpuBufferUpload::from_bytes(
+            self.color_lut_bake_params_buffer.clone(),
             0,
             bytemuck::bytes_of(&params),
-        );
+        ));
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-color-lut-bake-bind-group"),
@@ -40,7 +40,7 @@ impl ScenePostProcessResources {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: exposure_buffer.as_entire_binding(),
+                    resource: wgpu::BindingResource::Buffer(exposure_buffer),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
@@ -69,7 +69,7 @@ impl ScenePostProcessResources {
         pass.set_pipeline(&self.color_lut_bake_pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.dispatch_workgroups(dispatch_groups[0], dispatch_groups[1], dispatch_groups[2]);
-        dispatch_groups
+        (dispatch_groups, params_uploads)
     }
 }
 
@@ -119,7 +119,7 @@ fn select_user_lut_texture_views<'a>(
     streamer: &'a ResourceStreamer,
     frame: &ViewportRenderFrame,
 ) -> UserLutTextureViews<'a> {
-    let settings = frame.extract.post_process.effect_stack.color_lookup;
+    let settings = frame.post_process().effect_stack.color_lookup;
     let fallback = UserLutTextureViews {
         texture_2d_view: &resources.effect_lut_texture_view,
         texture_3d_view: &resources.effect_lut_texture_3d_view,
@@ -170,12 +170,16 @@ fn color_lut_bake_params(
     user_lut_binding_mode: u32,
 ) -> ColorLutBakeParams {
     let extract = &frame.extract;
+    let render_region = frame
+        .render_region_for_phase(RenderPipelinePhase::DisplayMapping)
+        .expect("color LUT bake requires the display-mapping phase");
     let params = build_post_process_params(
-        extract.view.effective_render_size(),
-        cluster_dimensions_for_size(extract.view.effective_render_size()),
-        frame.render_region(),
+        render_region.local_size(),
+        cluster_dimensions_for_size(render_region.local_size()),
+        render_region,
         [0, 0],
         extract,
+        frame.post_process(),
         SceneRuntimeFeatureFlags {
             color_grading_enabled: true,
             ..SceneRuntimeFeatureFlags::default()
@@ -186,7 +190,7 @@ fn color_lut_bake_params(
         0,
         false,
     );
-    let effect_stack = extract.post_process.effect_stack;
+    let effect_stack = frame.post_process().effect_stack;
 
     ColorLutBakeParams {
         lut_size_and_flags: [
@@ -241,9 +245,9 @@ mod tests {
         color_lut_bake_workgroup_size, color_transform_requires_lut_bake,
     };
     use crate::core::framework::render::{
-        RenderColorGradingSettings, RenderColorLookupSettings, RenderColorLookupTextureLayout,
-        RenderPostProcessEffectStackSettings, RenderTonemapOperator, RenderTonemapSettings,
-        COLOR_LUT_SIZE_DEFAULT,
+        COLOR_LUT_SIZE_DEFAULT, RenderColorGradingSettings, RenderColorLookupSettings,
+        RenderColorLookupTextureLayout, RenderPostProcessEffectStackSettings,
+        RenderTonemapOperator, RenderTonemapSettings,
     };
 
     #[test]
@@ -251,6 +255,19 @@ mod tests {
         assert_eq!(color_lut_bake_workgroup_size(), [4, 4, 4]);
         assert_eq!(color_lut_bake_dispatch_groups(), [8, 8, 8]);
         assert_eq!(COLOR_LUT_SIZE_DEFAULT, 32);
+    }
+
+    #[test]
+    fn color_lut_params_are_returned_as_pre_submit_uploads() {
+        let source = include_str!("mod.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("color LUT production source");
+
+        assert!(!production.contains("queue.write_buffer"));
+        assert!(production.contains("WgpuBufferUpload::from_bytes("));
+        assert!(production.contains("WgpuBufferUploadBatch"));
     }
 
     #[test]

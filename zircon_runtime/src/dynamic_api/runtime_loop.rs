@@ -3,19 +3,30 @@ use std::sync::Arc;
 use crate::core::framework::render::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderProfileBundle,
     RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle,
-    RenderViewportSurfaceDescriptor, RENDER_PROFILE_CONFIG_KEY,
+    RenderViewportPickDisposition, RenderViewportPickPolicy, RenderViewportPickPurpose,
+    RenderViewportPickRequest, RenderViewportPickResult, RenderViewportPickTicket,
+    RenderViewportSurfaceDescriptor, UiRenderSubmission, RENDER_PROFILE_CONFIG_KEY,
 };
 use crate::core::manager::{
     render_framework_handle, resolve_manager_service, ManagerServiceHandle,
 };
 use crate::core::math::UVec2;
 use crate::core::{CoreError, CoreHandle};
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::{ZrRuntimeViewportPickPurposeV1, ZrRuntimeViewportPickRequestV1};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ActiveViewport {
     handle: RenderViewportHandle,
     size: UVec2,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) enum RuntimeViewportPickAdmission {
+    Backend {
+        request: RenderViewportPickRequest,
+        ticket: RenderViewportPickTicket,
+    },
+    Terminal(RenderViewportPickDisposition),
 }
 
 pub(super) struct RuntimeRenderBridge {
@@ -67,7 +78,7 @@ impl RuntimeRenderBridge {
         &mut self,
         mut extract: RenderFrameExtract,
         size: UVec2,
-        ui: Option<UiRenderExtract>,
+        ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         crate::profile_scope!("runtime", "frame", "runtime_frame_submit");
         crate::profile_scope!("runtime", "render_bridge", "submit_extract");
@@ -111,8 +122,16 @@ impl RuntimeRenderBridge {
     ) -> Result<(), RenderFrameworkError> {
         crate::profile_scope!("runtime", "render_bridge", "bind_surface");
         let render_framework = self.resolve_render_framework()?;
-        let viewport = self.ensure_viewport(descriptor.size, render_framework.as_ref())?;
-        render_framework.bind_viewport_surface(viewport, descriptor)
+        let size = UVec2::new(descriptor.size.x.max(1), descriptor.size.y.max(1));
+        let descriptor = RenderViewportSurfaceDescriptor::new(size, descriptor.target);
+        let viewport = self.ensure_viewport_for_surface_rebind(size, render_framework.as_ref())?;
+        render_framework.bind_viewport_surface(viewport, descriptor)?;
+        self.viewport = Some(ActiveViewport {
+            handle: viewport,
+            size,
+        });
+        self.last_generation = None;
+        Ok(())
     }
 
     pub(super) fn unbind_surface(&mut self) -> Result<(), RenderFrameworkError> {
@@ -136,7 +155,7 @@ impl RuntimeRenderBridge {
         &mut self,
         mut extract: RenderFrameExtract,
         size: UVec2,
-        ui: Option<UiRenderExtract>,
+        ui: Option<Arc<UiRenderSubmission>>,
     ) -> Result<(), RenderFrameworkError> {
         crate::profile_scope!("runtime", "frame", "runtime_frame_submit");
         crate::profile_scope!("runtime", "render_bridge", "present_extract");
@@ -144,6 +163,78 @@ impl RuntimeRenderBridge {
         let viewport = self.ensure_viewport(size, render_framework.as_ref())?;
         extract.apply_viewport_size(size);
         render_framework.present_frame_extract_with_ui(viewport, extract, ui)
+    }
+
+    pub(super) fn request_viewport_pick(
+        &self,
+        request: ZrRuntimeViewportPickRequestV1,
+    ) -> Result<RuntimeViewportPickAdmission, RenderFrameworkError> {
+        let Some(viewport) = self.viewport else {
+            return Ok(RuntimeViewportPickAdmission::Terminal(
+                RenderViewportPickDisposition::Unavailable,
+            ));
+        };
+        if viewport.size.x != request.viewport_size.width
+            || viewport.size.y != request.viewport_size.height
+        {
+            return Ok(RuntimeViewportPickAdmission::Terminal(
+                RenderViewportPickDisposition::StaleFrame,
+            ));
+        }
+
+        let purpose = match request.purpose() {
+            Some(ZrRuntimeViewportPickPurposeV1::Hover) => RenderViewportPickPurpose::Hover,
+            Some(ZrRuntimeViewportPickPurposeV1::Press) => RenderViewportPickPurpose::Press,
+            Some(ZrRuntimeViewportPickPurposeV1::Selection) => RenderViewportPickPurpose::Selection,
+            None => {
+                return Ok(RuntimeViewportPickAdmission::Terminal(
+                    RenderViewportPickDisposition::Rejected,
+                ));
+            }
+        };
+        let Some(policy) = RenderViewportPickPolicy::from_bits(request.policy_flags) else {
+            return Ok(RuntimeViewportPickAdmission::Terminal(
+                RenderViewportPickDisposition::Rejected,
+            ));
+        };
+        let backend_request = RenderViewportPickRequest::new(
+            viewport.handle,
+            viewport.size,
+            UVec2::new(request.pixel.x, request.pixel.y),
+            request.frame_generation,
+            request.input_sequence,
+            purpose,
+            policy,
+        );
+        let render_framework = self.resolve_render_framework()?;
+        match render_framework.request_viewport_pick(backend_request) {
+            Ok(ticket) if ticket.is_valid() => Ok(RuntimeViewportPickAdmission::Backend {
+                request: backend_request,
+                ticket,
+            }),
+            Ok(_) => Ok(RuntimeViewportPickAdmission::Terminal(
+                RenderViewportPickDisposition::Rejected,
+            )),
+            Err(RenderFrameworkError::UnsupportedCapability { .. }) => Ok(
+                RuntimeViewportPickAdmission::Terminal(RenderViewportPickDisposition::Unavailable),
+            ),
+            Err(error) => Err(error),
+        }
+    }
+
+    pub(super) fn poll_viewport_pick(
+        &self,
+        ticket: RenderViewportPickTicket,
+    ) -> Result<Option<RenderViewportPickResult>, RenderFrameworkError> {
+        self.resolve_render_framework()?.poll_viewport_pick(ticket)
+    }
+
+    pub(super) fn cancel_viewport_pick(
+        &self,
+        ticket: RenderViewportPickTicket,
+    ) -> Result<(), RenderFrameworkError> {
+        self.resolve_render_framework()?
+            .cancel_viewport_pick(ticket)
     }
 
     fn ensure_viewport(
@@ -161,7 +252,26 @@ impl RuntimeRenderBridge {
             self.last_generation = None;
         }
 
-        let descriptor = RenderViewportDescriptor::new(size).with_label("runtime.viewport");
+        let descriptor = RenderViewportDescriptor::new(size)
+            .with_label("runtime.viewport")
+            .with_hit_proxies();
+        let handle = render_framework.create_viewport(descriptor)?;
+        self.viewport = Some(ActiveViewport { handle, size });
+        Ok(handle)
+    }
+
+    fn ensure_viewport_for_surface_rebind(
+        &mut self,
+        size: UVec2,
+        render_framework: &dyn RenderFramework,
+    ) -> Result<RenderViewportHandle, RenderFrameworkError> {
+        if let Some(viewport) = self.viewport {
+            return Ok(viewport.handle);
+        }
+
+        let descriptor = RenderViewportDescriptor::new(size)
+            .with_label("runtime.viewport")
+            .with_hit_proxies();
         let handle = render_framework.create_viewport(descriptor)?;
         self.viewport = Some(ActiveViewport { handle, size });
         Ok(handle)

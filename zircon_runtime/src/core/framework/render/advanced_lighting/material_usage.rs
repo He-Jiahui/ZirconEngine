@@ -7,6 +7,7 @@ use super::StandardPbrMaterialFeatures;
 pub struct AdvancedPbrMaterialFrameUsage {
     pub clearcoat: bool,
     pub anisotropy: bool,
+    pub dielectric_f0_override: bool,
     pub specular_transmission: bool,
     pub diffuse_transmission: bool,
     pub late_forward_opaque: bool,
@@ -16,6 +17,7 @@ impl AdvancedPbrMaterialFrameUsage {
     pub const fn is_empty(self) -> bool {
         !self.clearcoat
             && !self.anisotropy
+            && !self.dielectric_f0_override
             && !self.specular_transmission
             && !self.diffuse_transmission
             && !self.late_forward_opaque
@@ -40,11 +42,14 @@ impl AdvancedPbrMaterialFrameUsage {
     pub fn record(&mut self, features: &StandardPbrMaterialFeatures) {
         self.clearcoat |= features.uses_clearcoat();
         self.anisotropy |= features.uses_anisotropy();
+        self.dielectric_f0_override |= features.uses_dielectric_f0_override();
         self.specular_transmission |=
             features.specular_transmission.is_finite() && features.specular_transmission > 0.0;
         self.diffuse_transmission |=
             features.diffuse_transmission.is_finite() && features.diffuse_transmission > 0.0;
-        self.late_forward_opaque |= (features.uses_clearcoat() || features.uses_anisotropy())
+        self.late_forward_opaque |= (features.uses_clearcoat()
+            || features.uses_anisotropy()
+            || features.uses_dielectric_f0_override())
             && !features.uses_transmission();
     }
 }
@@ -90,5 +95,19 @@ mod tests {
         assert!(!transmitted.requires_late_forward_opaque_pass());
         assert!(transmitted.uses_transmission());
         assert!(transmitted.requires_scene_color_copy());
+    }
+
+    #[test]
+    fn render_advanced_material_frame_usage_routes_only_non_default_ior_to_late_opaque() {
+        let mut usage = AdvancedPbrMaterialFrameUsage::default();
+        usage.record(&StandardPbrMaterialFeatures {
+            ior: 2.5,
+            ..Default::default()
+        });
+
+        assert!(usage.dielectric_f0_override);
+        assert!(usage.requires_forward_path());
+        assert!(usage.requires_late_forward_opaque_pass());
+        assert!(!usage.requires_scene_color_copy());
     }
 }

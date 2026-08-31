@@ -11,6 +11,12 @@ pub(crate) enum GlyphBitmapContent {
     Color,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum GlyphColorBitmapAlphaMode {
+    Straight,
+    Premultiplied,
+}
+
 impl GlyphBitmapContent {
     fn channels(self) -> u8 {
         match self {
@@ -78,7 +84,27 @@ impl GlyphBitmap {
         px_size: f32,
         data: Vec<u8>,
     ) -> Result<Self, GlyphBitmapError> {
-        Self::new(size, bearing, px_size, data, GlyphBitmapContent::Color)
+        Self::color_with_alpha_mode(
+            size,
+            bearing,
+            px_size,
+            data,
+            GlyphColorBitmapAlphaMode::Straight,
+        )
+    }
+
+    pub(super) fn color_with_alpha_mode(
+        size: UVec2,
+        bearing: Vec2,
+        px_size: f32,
+        data: Vec<u8>,
+        alpha_mode: GlyphColorBitmapAlphaMode,
+    ) -> Result<Self, GlyphBitmapError> {
+        let mut bitmap = Self::new(size, bearing, px_size, data, GlyphBitmapContent::Color)?;
+        if alpha_mode == GlyphColorBitmapAlphaMode::Premultiplied {
+            unpremultiply_rgba8_in_place(&mut bitmap.data);
+        }
+        Ok(bitmap)
     }
 
     fn new(
@@ -148,5 +174,23 @@ impl GlyphBitmap {
 
     pub(crate) fn has_expected_data_len(&self) -> bool {
         self.data.len() == self.expected_data_len()
+    }
+}
+
+fn unpremultiply_rgba8_in_place(data: &mut [u8]) {
+    for pixel in data.chunks_exact_mut(COLOR_BITMAP_CHANNELS as usize) {
+        let alpha = u32::from(pixel[3]);
+        if alpha == 0 {
+            pixel[..3].fill(0);
+            continue;
+        }
+        if alpha == u32::from(u8::MAX) {
+            continue;
+        }
+
+        for channel in &mut pixel[..3] {
+            let straight = (u32::from(*channel) * u32::from(u8::MAX) + alpha / 2) / alpha;
+            *channel = straight.min(u32::from(u8::MAX)) as u8;
+        }
     }
 }

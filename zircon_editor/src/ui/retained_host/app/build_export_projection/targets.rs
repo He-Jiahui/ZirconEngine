@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use zircon_runtime::core::framework::project::ExportProfile;
+
 use crate::core::export::ExportPresetStore;
 use crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
@@ -43,6 +47,7 @@ pub(super) fn rebuild_export_targets(
         .map(|(_, path)| path.clone())
         .collect::<Vec<_>>();
     let store = ExportPresetStore::new(&project_root);
+    let export_profiles_by_name = export_profiles_by_name(&manifest.export_profiles);
     let targets = preset_entries
         .into_iter()
         .filter_map(|(preset_name, _)| {
@@ -53,10 +58,9 @@ pub(super) fn rebuild_export_targets(
                     return None;
                 }
             };
-            let Some(profile) = manifest
-                .export_profiles
-                .iter()
-                .find(|profile| profile.name == preset.profile_ref)
+            let Some(profile) = export_profiles_by_name
+                .get(preset.profile_ref.as_str())
+                .copied()
                 .cloned()
             else {
                 diagnostics.push(format!(
@@ -94,3 +98,16 @@ pub(super) fn apply_export_target_overlays(
     }
     targets
 }
+
+fn export_profiles_by_name(profiles: &[ExportProfile]) -> HashMap<&str, &ExportProfile> {
+    // EDITOR78_EXPORT_PROFILE_HASH_INDEX_BENCH_V1
+    let mut by_name = HashMap::with_capacity(profiles.len());
+    for profile in profiles {
+        by_name.entry(profile.name.as_str()).or_insert(profile);
+    }
+    by_name
+}
+
+#[cfg(test)]
+#[path = "targets/profile_index_tests.rs"]
+mod profile_index_tests;

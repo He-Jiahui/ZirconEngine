@@ -1,3 +1,10 @@
 mod boundary;
 mod capabilities;
 mod descriptors;
+mod device_fault;
+mod device_profile;
+mod diagnostic_query;
+mod diagnostic_readback;
+mod handles;
+mod memory;
+mod submission;

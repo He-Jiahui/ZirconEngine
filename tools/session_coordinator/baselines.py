@@ -274,9 +274,9 @@ class BaselineService:
         }
         return [
             change
-            for change in changes
-            if change.path.casefold() not in attributed_hashes
-            or attributed_hashes[change.path.casefold()] != change.current_hash
+            for change, path_key in zip(changes, path_keys, strict=True)
+            if path_key not in attributed_hashes
+            or attributed_hashes[path_key] != change.current_hash
         ]
 
     def _mark_degraded(

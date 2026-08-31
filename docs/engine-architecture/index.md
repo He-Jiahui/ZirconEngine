@@ -112,7 +112,7 @@ doc_type: category-index
 - [Runtime Export Build Plan](../zircon_runtime/plugin/export_build_plan.md): `zircon-project.toml` export profile 资产解析、profile 级插件/feature 裁剪、LibraryEmbed/SourceTemplate/NativeDynamic 计划期投影、SourceTemplate 生成工程构建验证计划、NativeDynamic ABI v3 package export/report 和 fatal diagnostics 边界。
 - [Zircon Export Tool](../cli-and-tooling/zircon-export-tool.md): `python -m tools.zircon_export` 阶段式发行入口、Validate/CompileHost/SourceTemplate/CookAssets/Pack/PlatformBundle/Report 阶段目录、Rust 校验器/pack 写入器、Pack delta 输出、SourceTemplate 工程物化、NativeDynamic ABI v3 package exports、Editor 导出向导数据契约与 CLI stdout 阶段进度解析模型、CookAssets 清单交接、`export-template` 包格式与版本锁定校验、最终 JSON report 聚合，以及后续真实资产烘焙与启动/性能证据扩展边界。
 - [Plugin Optional Feature Bundles](./plugin-optional-feature-bundles.md): 多插件组合功能的 owner-plugin 子功能模型、all-of capability dependency 规则、feature registration 顺序和导出链接规则。
-- [Runtime Foundation Precision And Scene Authority](./runtime-foundation-precision-and-scene-authority.md): `zircon_runtime_interface::math` 精度 seam、`zircon_runtime::core::math` re-export 入口、runtime scene 的 `LocalTransform + WorldMatrix + ActiveSelf/ActiveInHierarchy + RenderLayerMask + Mobility` authority、scene serializer 默认化字段，以及 graphics renderer 的 runtime-to-render downcast 边界。
+- [Runtime Foundation Precision And Scene Authority](./runtime-foundation-precision-and-scene-authority.md): `zr_math` 低依赖数学实现 owner、Runtime Interface 的版本化 ABI schema、`zircon_runtime::core::math` 显式产品投影、runtime scene 的 `LocalTransform + WorldMatrix + ActiveSelf/ActiveInHierarchy + RenderLayerMask + Mobility` authority、scene serializer 默认化字段，以及 graphics renderer 的 runtime-to-render downcast 边界。
 - [Workspace Ownership Cutover Map](./workspace-ownership-cutover-map.md): workspace hard-cutover 的旧 owner -> 新 owner 权威映射，以及删旧、收根、去兼容层时必须遵守的 owner 依据。
 - [Workspace Root Rules And Hard Cutover](./workspace-root-rules-and-hard-cutover.md): 固定三包形态、root file 红线、hard-cutover 删除规则，以及 crate root/public surface 的长期标准。
 
@@ -132,7 +132,7 @@ doc_type: category-index
 - non-network `server` 命名 gate：`observer` 不是 server 命名，真实 server/target/dev-server 语义允许，剩余非网络命名必须在 M6/M7 owner slice 中硬切改名
 - hard-cutover migration smell gate：生产 Rust 中的 `legacy`、`compat`、`shim` 和迁移语境 `bridge` 必须按 owner 硬切删除或改成明确版本策略，不能保留兼容层、shim、alias 或 forwarding bridge
 - large-file ownership gate：超过 1000 行的 runtime/editor/Hub 生产热点必须先按 owner 分组，再按行为 family 拆分，不能用任意行数切块掩盖混合职责
-- `zircon_runtime_interface::math -> zircon_runtime::scene -> runtime scene serializer -> graphics renderer` 这条 runtime foundation 的精度与派生态边界
+- `zr_math` 单一实现 owner、Runtime Interface ABI schema 与显式产品投影的单向依赖边界，以及 `zircon_runtime::scene -> runtime scene serializer -> graphics renderer` 的精度与派生态边界
 - workspace hard-cutover 之后 `zircon_app` / `zircon_runtime` / `zircon_editor` 的固定 owner 形态与 root file 纪律
 - “先抽象框架，后写功能实现”的工程规则
 - “先检查是否和主流引擎模式对齐，过于简单时优先深化架构设计”的设计规则

@@ -1,4 +1,5 @@
 use std::{
+    cell::RefCell,
     collections::VecDeque,
     env,
     path::{Path, PathBuf},
@@ -27,14 +28,15 @@ use crate::error::HubError;
 use crate::learn::LearnCatalogEntry;
 use crate::plugins::PluginCatalogEntry;
 use crate::projects::{
-    load_shared_recent_projects, metadata_for_path, project_filesystem_path_key,
-    project_metadata_key, project_paths_match, reconcile_shared_recent_projects, RecentProject,
+    load_shared_recent_projects_snapshot, metadata_for_path, project_filesystem_path_key,
+    project_metadata_key, project_paths_match, reconcile_shared_recent_projects_snapshot,
+    RecentProject, SharedRecentProjectsSnapshot,
 };
 use crate::settings::{default_hub_config_path, HubConfig, HubRuntimeState, HubSettings};
 use crate::state::{
-    EngineMessageId, HubMessage, HubMessageId, HubPage, HubSnapshot, ProjectFilterMode,
-    ProjectMessageId, ProjectSortMode, ProjectSubpage, ProjectViewMode, SettingsMessageId,
-    ShellMessageId, TaskOperationKind, TaskStatus,
+    EngineMessageId, HubMessage, HubMessageId, HubPage, HubSnapshot, ProjectAvailabilitySnapshot,
+    ProjectFilterMode, ProjectMessageId, ProjectSortMode, ProjectSubpage, ProjectViewMode,
+    SettingsMessageId, ShellMessageId, TaskOperationKind, TaskStatus,
 };
 use crate::team::TeamOverview;
 use zircon_runtime_interface::hub_protocol::hub_recent_projects_path;
@@ -48,8 +50,9 @@ const VISUAL_TASK_STATE_ENV: &str = "ZIRCON_HUB_VISUAL_TASK_STATE";
 pub(super) struct HubRuntimeSession {
     config_path: PathBuf,
     shared_recent_projects_path: PathBuf,
-    shared_recent_projects_snapshot: Vec<RecentProject>,
+    shared_recent_projects_snapshot: SharedRecentProjectsSnapshot,
     config: HubConfig,
+    project_availability: RefCell<ProjectAvailabilitySnapshot>,
     settings_draft: HubSettings,
     selected_page: HubPage,
     project_filter: ProjectFilterMode,
@@ -85,13 +88,17 @@ impl HubRuntimeSession {
         shared_recent_projects_path: PathBuf,
     ) -> Result<Self, HubError> {
         let mut config = HubConfig::load(&config_path)?;
-        config.recent_projects = reconcile_shared_recent_projects(
+        let shared_recent_projects_snapshot = reconcile_shared_recent_projects_snapshot(
             &shared_recent_projects_path,
-            &[],
+            &SharedRecentProjectsSnapshot::default(),
             &config.recent_projects,
         )
         .map_err(shared_recent_projects_error)?;
+        config.recent_projects = shared_recent_projects_snapshot.projects().to_vec();
         config.repair_registries();
+        let project_availability = RefCell::new(ProjectAvailabilitySnapshot::capture(
+            &config.recent_projects,
+        ));
 
         let runtime_state = config.runtime.clone();
         let selected_project_path = startup_selected_project_path(
@@ -103,8 +110,9 @@ impl HubRuntimeSession {
         let mut session = Self {
             config_path,
             shared_recent_projects_path,
-            shared_recent_projects_snapshot: config.recent_projects.clone(),
+            shared_recent_projects_snapshot,
             config,
+            project_availability,
             settings_draft,
             selected_page: runtime_state.selected_page,
             project_filter: runtime_state.project_filter,
@@ -150,7 +158,13 @@ impl HubRuntimeSession {
     }
 
     pub(super) fn view_model(&self) -> HubViewModel {
-        HubViewModel::from_snapshot(&self.snapshot())
+        let snapshot = self.snapshot();
+        let mut project_availability = self.project_availability.borrow_mut();
+        project_availability.synchronize_with_selected(
+            &snapshot.recent_projects,
+            snapshot.selected_project_path.as_deref(),
+        );
+        HubViewModel::from_snapshot_with_availability(&snapshot, &project_availability)
     }
 
     /// Refreshes Editor-written recents after the Hub window regains focus.
@@ -269,13 +283,10 @@ impl HubRuntimeSession {
                 )?;
                 self.install_recent_project_to_device()?
             }
-            HubAction::OpenEditor { target_id, payload } => {
-                self.apply_action_project_target(
-                    target_id.as_deref(),
-                    payload.as_ref(),
-                    HubActionId::OpenEditor,
-                )?;
-                self.open_selected_project_or_editor()?
+            HubAction::OpenEditor { .. } => {
+                return Err(HubError::message(
+                    "OpenEditor must be dispatched through the Hub background action runner",
+                ));
             }
         }
 
@@ -546,39 +557,44 @@ impl HubRuntimeSession {
     }
 
     fn persist_unchecked(&mut self) -> Result<(), HubError> {
-        let reconciled_recent_projects = reconcile_shared_recent_projects(
+        let reconciled_recent_projects = reconcile_shared_recent_projects_snapshot(
             &self.shared_recent_projects_path,
             &self.shared_recent_projects_snapshot,
             &self.config.recent_projects,
         )
         .map_err(shared_recent_projects_error)?;
-        self.config.recent_projects = reconciled_recent_projects;
+        self.config.recent_projects = reconciled_recent_projects.projects().to_vec();
         self.persist_config()?;
-        self.shared_recent_projects_snapshot = self.config.recent_projects.clone();
+        self.shared_recent_projects_snapshot = reconciled_recent_projects;
         Ok(())
     }
 
     fn refresh_shared_recent_projects_on_focus_unchecked(&mut self) -> Result<bool, HubError> {
-        let hub_has_pending_recent_projects =
-            self.shared_recent_projects_snapshot != self.config.recent_projects;
+        let hub_has_pending_recent_projects = self.shared_recent_projects_snapshot.projects()
+            != self.config.recent_projects.as_slice();
         let refreshed_recent_projects = if !hub_has_pending_recent_projects {
-            load_shared_recent_projects(&self.shared_recent_projects_path)
+            load_shared_recent_projects_snapshot(&self.shared_recent_projects_path)
                 .map_err(shared_recent_projects_error)?
         } else {
-            reconcile_shared_recent_projects(
+            reconcile_shared_recent_projects_snapshot(
                 &self.shared_recent_projects_path,
                 &self.shared_recent_projects_snapshot,
                 &self.config.recent_projects,
             )
             .map_err(shared_recent_projects_error)?
         };
-        let changed = self.config.recent_projects != refreshed_recent_projects;
-        self.config.recent_projects = refreshed_recent_projects;
-        if changed || hub_has_pending_recent_projects {
+        let refreshed_projects = refreshed_recent_projects.projects().to_vec();
+        let recent_projects_changed = self.config.recent_projects != refreshed_projects;
+        self.config.recent_projects = refreshed_projects;
+        let availability_changed = self.project_availability.get_mut().refresh_with_selected(
+            &self.config.recent_projects,
+            self.selected_project_path.as_deref(),
+        );
+        if recent_projects_changed || hub_has_pending_recent_projects {
             self.persist_config()?;
         }
-        self.shared_recent_projects_snapshot = self.config.recent_projects.clone();
-        Ok(changed)
+        self.shared_recent_projects_snapshot = refreshed_recent_projects;
+        Ok(recent_projects_changed || availability_changed)
     }
 
     fn persist_config(&self) -> Result<(), HubError> {

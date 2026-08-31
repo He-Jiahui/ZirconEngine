@@ -6,8 +6,7 @@ mod scrollbar;
 mod viewport;
 
 use super::super::data::{
-    FrameRect, HostPaneInteractionStateData, HostTextInputFocusData, HostViewportImageData,
-    PaneData,
+    FrameRect, HostPaneInteractionStateData, HostTextInputFocusData, HostViewportImageSet, PaneData,
 };
 use super::super::paint_frame::HostRgbaFrame;
 
@@ -29,9 +28,9 @@ pub(in crate::ui::retained_host::host_contract) fn draw_viewport_image(
     pane: &PaneData,
     body: &FrameRect,
     clip: &FrameRect,
-    viewport_image: Option<&HostViewportImageData>,
+    viewport_images: &HostViewportImageSet,
 ) -> bool {
-    viewport::draw_viewport_image(frame, pane, body, clip, viewport_image)
+    viewport::draw_viewport_image(frame, pane, body, clip, viewport_images)
 }
 
 pub(in crate::ui::retained_host::host_contract) fn draw_native_pane_content(

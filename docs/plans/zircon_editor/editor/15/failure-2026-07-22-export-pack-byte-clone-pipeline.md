@@ -67,3 +67,13 @@ CookAssets输出没有content-addressed immutable chunk/stream contract，Pack�
 - 受管产品门：执行 `validate-matrix.ps1 -Package zircon_runtime -SkipBuild -Bin zircon_export_pack -VerboseOutput` 后没有创建新的 coordinator Cargo job，未取得产品编译/测试证据。此前同一窗口的只读 artifact audit（request `1a2ef083c416447b8108a56dc620a491`）仍报告外部未受管目录 `D:\\ZirconBuilds\\tooling15-wave143-runtime-20260827-080526`；本切片不清理、不重试该外部 artifact。
 
 Open state: `部分推进，仍待修复`。本切片只消除 writer 边界和 determinism 复写的 input payload 深复制；source loading、最终 pack `Vec<u8>`、有界 chunk streaming、delta/reader/installer 全包 owner、resume 与 1/1k/100k 性能门均未完成，因此不声明 failure fixed。
+
+### 2026-08-27 文件源流式读取切片
+
+- RED：在既有 Python 契约上新增两项断言，首次运行 5 项中 2 项按预期失败，固定 manifest 仍通过 `std::fs::read` 同时持有全部 source payload、writer 尚无固定读取缓冲的事实。
+- GREEN：`ExportPackInputs` 仅保留规范化 pack path 与 source path；`ZrPackWriter::write_files` 按 pack path 排序后逐文件打开，通过固定 64 KiB 缓冲计算 BLAKE3，不再把所有 source bytes 预载入 `Vec<ZrPackInputAsset>`。hash-first 让重复 chunk 在追加前直接登记，避免 `Vec::truncate` 后仍保留整份 duplicate capacity；unique chunk seek 回起点后流写，并比较第二遍 size/hash，源在两遍之间漂移则 fail closed。首写和 determinism 复写均使用相同文件流入口；二次源读取失败保留为明确 diagnostic，不再伪装成 manifest decode 错误。
+- lower-layer 回归：新增跨越两个完整读取缓冲的 payload、乱序输入和重复 payload，用内存 writer 与文件流 writer 的完整 report/pack bytes 一致性固定格式、排序和 dedup 语义；静态契约另固定 duplicate hash-first、不追加后 truncate 与源漂移检测。该 Rust 回归已写入 `writer/optimization_tests.rs`，但本轮未取得 Cargo 执行证据。
+- 已通过门：`python -B -m unittest tools.tests.test_editor15_export_pack_borrowed_writer_contract -v` 为 6/6；四个 Rust 文件通过 `rustfmt +1.94.1 --edition 2021 --check`；Python test 通过 `py_compile`；scoped diff whitespace gate 通过。
+- 受管产品门：后续已确认 schema 68 successor 为 `read_write`/healthy、`busy=false`，DB 与 OS 均无活跃 Cargo；但 `validate-matrix.ps1 -Package zircon_runtime -SkipBuild -Bin zircon_export_pack -VerboseOutput` 在 Cargo acquire 前 fail closed，返回 `unmanaged_artifacts_detected`，精确外部路径为 `D:\\ZirconBuilds\\tooling15-local-benchmarks`，`cleanupReservations=[]`。本次没有创建 Editor15 Cargo job，不清理该 Tooling15 所有物，也不在相同外部状态下重试。
+
+Open state: `部分推进，仍待修复`。本切片把 source payload 峰值从“全部 source 常驻”降为“最终 pack Vec + 单个 64 KiB read buffer”，且 duplicate 不再扩大 pack capacity；代价是 unique source 目前读取两遍。最终 pack 仍整体驻留，delta/reader/installer、content-addressed immutable staged chunk、resume 与规模性能门仍待后续切片完成。

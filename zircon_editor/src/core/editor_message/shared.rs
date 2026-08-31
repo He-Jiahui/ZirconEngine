@@ -43,7 +43,7 @@ impl SharedEditorMessageBus {
         let prepared = { self.lock().prepare_publish(topic, message) };
         match prepared {
             Ok(plan) => self.finish_dispatch(plan),
-            Err(report) => report,
+            Err((report, _message)) => report,
         }
     }
 
@@ -55,7 +55,7 @@ impl SharedEditorMessageBus {
         let prepared = { self.lock().prepare_broadcast(topic, message) };
         match prepared {
             Ok(plan) => self.finish_dispatch(plan),
-            Err(report) => report,
+            Err((report, _message)) => report,
         }
     }
 

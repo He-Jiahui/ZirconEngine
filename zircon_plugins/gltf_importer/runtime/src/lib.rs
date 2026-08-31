@@ -13,20 +13,25 @@ use std::path::Path;
 
 #[cfg(feature = "runtime")]
 use subassets::{
-    GltfMeshSubasset, GltfPrimitiveSubasset, add_gltf_animation_placeholders_and_skin_subassets,
-    add_gltf_material_subassets, add_gltf_mesh_subassets, add_gltf_scene_subassets,
-    add_gltf_texture_subassets, gltf_label_reference,
+    add_gltf_animation_placeholders_and_skin_subassets, add_gltf_material_subassets,
+    add_gltf_mesh_subassets, add_gltf_scene_subassets, add_gltf_texture_subassets,
+    gltf_label_reference, validate_gltf_texture_import_support, GltfMeshSubasset,
+    GltfPrimitiveSubasset,
+};
+#[cfg(feature = "runtime")]
+use zircon_runtime::asset::importer::{
+    cook_mesh_asset_derived_data, project_indexed_mesh_primitive,
+    remap_gltf_morph_targets_for_flat_normals, resolve_gltf_normal_texture_tangent_uv_attribute,
+    validate_required_gltf_material_extension_support, IndexedMeshMissingNormalPolicy,
+    IndexedMeshSource,
 };
 #[cfg(feature = "runtime")]
 use zircon_runtime::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MeshAttributeValues, MeshMorphTargetAsset,
-    MeshSdfCookBudget, MeshSdfCookSettings, MeshSkinAsset, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset, VirtualGeometryCookConfig, cook_mesh_sdf_or_fallback,
-    cook_virtual_geometry_from_mesh,
+    AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, MeshAsset,
+    MeshAttributeValues, MeshMorphTargetAsset, MeshSdfCookBudget, MeshSdfCookRequest,
+    MeshSkinAsset, ModelAsset, ModelPrimitiveAsset, VirtualGeometryCookRequest,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
 };
-#[cfg(feature = "runtime")]
-use zircon_runtime::core::math::{Vec2, Vec3};
 
 pub use capability::{
     GLTF_IMPORTER_DECLARATION, IMPORTER_CAPABILITY, MODULE_NAME, NATIVE_PLUGIN_ID,
@@ -35,22 +40,39 @@ pub use capability::{
 };
 #[cfg(feature = "runtime")]
 pub use plugin::{
-    GLTF_IMPORTER_DIST_CRATE_NAME, GLTF_IMPORTER_DIST_RUNTIME_ENTRY, GltfImporterRuntimePlugin,
     asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
     plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
     runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
+    GltfImporterRuntimePlugin, GLTF_IMPORTER_DIST_CRATE_NAME, GLTF_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 #[cfg(feature = "runtime")]
+const STABLE_IMPORTER_SUPPORTED_REQUIRED_EXTENSIONS: &[&str] = &[
+    "EXT_texture_webp",
+    "KHR_mesh_quantization",
+    "KHR_materials_anisotropy",
+    "KHR_materials_clearcoat",
+    "KHR_materials_emissive_strength",
+    "KHR_materials_ior",
+    "KHR_materials_transmission",
+    "KHR_materials_unlit",
+    "KHR_materials_volume",
+    "KHR_texture_transform",
+];
+
+#[cfg(feature = "runtime")]
 pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
-    validate_external_gltf_buffers(context)?;
+    let preflight_document = parse_gltf_preflight_document(&context.source_bytes)?;
+    validate_external_gltf_buffers(context, &preflight_document)?;
+    validate_gltf_texture_import_support(&preflight_document)?;
     let (document, buffers, images) = gltf::import(&context.source_path)
         .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
     let mut primitives = Vec::new();
     let mut meshes = Vec::new();
     let mesh_skins = mesh_skin_assets_by_mesh(&document, &buffers);
     let source_hint = context.uri.to_string();
-    let mesh_sdf_settings = context.mesh_sdf_cook_request()?.settings();
+    let virtual_geometry_request = context.virtual_geometry_cook_request()?;
+    let mesh_sdf_request = context.mesh_sdf_cook_request()?;
     let mut mesh_sdf_budget = MeshSdfCookBudget::default();
 
     for mesh in document.meshes() {
@@ -80,6 +102,14 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
                         .collect::<Vec<_>>()
                 })
                 .unwrap_or_default();
+            let tangents = reader
+                .read_tangents()
+                .map(|set| set.collect::<Vec<_>>())
+                .unwrap_or_default();
+            let colors = reader
+                .read_colors(0)
+                .map(|set| set.into_rgba_f32().collect::<Vec<_>>())
+                .unwrap_or_default();
             let texcoords = reader
                 .read_tex_coords(0)
                 .map(|set| {
@@ -96,6 +126,14 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
                         .collect::<Vec<_>>()
                 })
                 .unwrap_or_default();
+            let normals_missing = normals.is_empty();
+            let tangents_missing = tangents.is_empty() || normals_missing;
+            let normal_tangent_uv_attribute = resolve_gltf_normal_texture_tangent_uv_attribute(
+                &primitive,
+                tangents_missing,
+                &texcoords,
+                &texcoords1,
+            )?;
             let joint_indices = reader
                 .read_joints(0)
                 .map(|set| set.into_u16().collect::<Vec<_>>())
@@ -112,36 +150,83 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
                     (0..vertex_count as u32).collect()
                 });
 
-            let mut primitive_asset = primitive_from_indexed_mesh(
-                &positions,
-                &normals,
-                &texcoords,
-                &texcoords1,
-                &indices,
-                &joint_indices,
-                &joint_weights,
+            let mut primitive_asset = project_indexed_mesh_primitive(
+                IndexedMeshSource {
+                    positions: &positions,
+                    normals: &normals,
+                    texcoords0: &texcoords,
+                    texcoords1: &texcoords1,
+                    tangents: &tangents,
+                    colors: &colors,
+                    indices: &indices,
+                    joint_indices: &joint_indices,
+                    joint_weights: &joint_weights,
+                    missing_normal_policy: IndexedMeshMissingNormalPolicy::Flat,
+                },
                 mesh_name,
                 &source_hint,
-                mesh_sdf_settings,
+                &VirtualGeometryCookRequest::default(),
+                &MeshSdfCookRequest::default(),
                 &mut mesh_sdf_budget,
             )?;
-            primitive_asset.mesh = Some(gltf_label_reference(
-                &context.uri,
-                &format!("Mesh{}/Primitive{}", mesh.index(), primitive.index()),
-            ));
-            let mut model_primitive = primitive_asset.clone();
-            model_primitive.mesh_sdf = None;
-            primitives.push(model_primitive);
+            let primitive_label = format!("Mesh{}/Primitive{}", mesh.index(), primitive.index());
+            let primitive_uri = gltf_label_reference(&context.uri, &primitive_label);
+            primitive_asset.mesh = Some(primitive_uri.clone());
+            let mut mesh_asset =
+                MeshAsset::from_model_primitive(primitive_uri.locator.clone(), &primitive_asset);
+            let mut morph_targets = morph_targets_from_reader(&reader);
+            if normals_missing {
+                remap_gltf_morph_targets_for_flat_normals(&mut morph_targets, &indices)?;
+            }
+            mesh_asset.morph_targets = morph_targets;
+            mesh_asset.skin = mesh_skins.get(&mesh.index()).cloned();
+            if tangents_missing {
+                if let Some(uv_attribute) = normal_tangent_uv_attribute {
+                    mesh_asset.attributes.remove(MESH_ATTRIBUTE_TANGENT);
+                    mesh_asset
+                        .try_generate_missing_tangents_for_uv(uv_attribute)
+                        .map_err(|error| {
+                            AssetImportError::Parse(format!(
+                                "generate glTF MikkTSpace tangents for {primitive_label}: {error}"
+                            ))
+                        })?;
+                }
+            }
+            mesh_asset
+                .try_rebuild_morph_tangent_frames_for_uv(
+                    normals_missing,
+                    tangents_missing
+                        .then_some(normal_tangent_uv_attribute)
+                        .flatten(),
+                )
+                .map_err(|error| {
+                    AssetImportError::Parse(format!(
+                        "rebuild glTF morph tangent frames for {primitive_label}: {error}"
+                    ))
+                })?;
+            cook_mesh_asset_derived_data(
+                &mut mesh_asset,
+                mesh_name,
+                &source_hint,
+                &virtual_geometry_request,
+                &mesh_sdf_request,
+                &mut mesh_sdf_budget,
+            )?;
+            primitives.push(ModelPrimitiveAsset {
+                vertices: Vec::new(),
+                indices: Vec::new(),
+                mesh: Some(primitive_uri),
+                mesh_sdf: None,
+                virtual_geometry: None,
+            });
             mesh_primitives.push(GltfPrimitiveSubasset {
                 primitive_index: primitive.index(),
                 material_index: primitive.material().index(),
-                morph_targets: morph_targets_from_reader(&reader),
-                primitive: primitive_asset,
+                mesh: mesh_asset,
             });
         }
         meshes.push(GltfMeshSubasset {
             mesh_index: mesh.index(),
-            skin: mesh_skins.get(&mesh.index()).cloned(),
             primitives: mesh_primitives,
         });
     }
@@ -151,9 +236,9 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
         primitives,
     };
     let mut outcome = AssetImportOutcome::new(context.uri.clone(), ImportedAsset::Model(model));
-    outcome = add_gltf_texture_subassets(outcome, &context.uri, &document, &images)?;
+    outcome = add_gltf_texture_subassets(outcome, &context.uri, &document, images)?;
     outcome = add_gltf_material_subassets(outcome, &context.uri, &document);
-    outcome = add_gltf_mesh_subassets(outcome, &context.uri, &meshes);
+    outcome = add_gltf_mesh_subassets(outcome, &context.uri, meshes);
     outcome = add_gltf_scene_subassets(outcome, &context.uri, &document);
     outcome = add_gltf_animation_placeholders_and_skin_subassets(
         outcome,
@@ -165,14 +250,43 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
 }
 
 #[cfg(feature = "runtime")]
-fn validate_external_gltf_buffers(context: &AssetImportContext) -> Result<(), AssetImportError> {
-    let gltf = gltf::Gltf::from_slice(&context.source_bytes)
+fn parse_gltf_preflight_document(source_bytes: &[u8]) -> Result<gltf::Document, AssetImportError> {
+    let gltf = gltf::Gltf::from_slice_without_validation(source_bytes)
         .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
+    let mut json = gltf.document.into_json();
+    let required_extensions = json.extensions_required.clone();
+    validate_gltf_required_extensions(&required_extensions)?;
+    json.extensions_required.retain(|extension| {
+        STABLE_IMPORTER_SUPPORTED_REQUIRED_EXTENSIONS.contains(&extension.as_str())
+    });
+    let document = gltf::Document::from_json(json)
+        .map_err(|error| AssetImportError::Parse(format!("validate gltf: {error}")))?;
+    validate_required_gltf_material_extension_support(&document, &required_extensions)?;
+    Ok(document)
+}
+
+#[cfg(feature = "runtime")]
+fn validate_gltf_required_extensions(required: &[String]) -> Result<(), AssetImportError> {
+    if let Some(extension) = required.iter().find(|extension| {
+        !STABLE_IMPORTER_SUPPORTED_REQUIRED_EXTENSIONS.contains(&extension.as_str())
+    }) {
+        return Err(AssetImportError::Parse(format!(
+            "gltf requires unsupported extension `{extension}`"
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(feature = "runtime")]
+fn validate_external_gltf_buffers(
+    context: &AssetImportContext,
+    document: &gltf::Document,
+) -> Result<(), AssetImportError> {
     let base_dir = context
         .source_path
         .parent()
         .unwrap_or_else(|| Path::new(""));
-    for buffer in gltf.document.buffers() {
+    for buffer in document.buffers() {
         let gltf::buffer::Source::Uri(uri) = buffer.source() else {
             continue;
         };
@@ -263,161 +377,17 @@ fn mesh_skin_assets_by_mesh(
     mesh_skins
 }
 
-#[cfg(feature = "runtime")]
-fn primitive_from_indexed_mesh(
-    positions: &[f32],
-    normals: &[f32],
-    texcoords: &[f32],
-    texcoords1: &[f32],
-    indices: &[u32],
-    joint_indices: &[[u16; 4]],
-    joint_weights: &[[f32; 4]],
-    mesh_name: Option<&str>,
-    source_hint: &str,
-    mesh_sdf_settings: Option<MeshSdfCookSettings>,
-    mesh_sdf_budget: &mut MeshSdfCookBudget,
-) -> Result<ModelPrimitiveAsset, AssetImportError> {
-    if positions.len() % 3 != 0 {
-        return Err(AssetImportError::Parse(
-            "vertex positions were not a multiple of 3".to_string(),
-        ));
-    }
-    let vertex_count = positions.len() / 3;
-    let mut computed_normals = if normals.is_empty() {
-        generate_normals(positions, indices)?
-    } else {
-        validate_triangle_indices(indices, vertex_count)?;
-        normals.to_vec()
-    };
-    if computed_normals.len() < vertex_count * 3 {
-        computed_normals.resize(vertex_count * 3, 0.0);
-    }
-
-    let vertices: Vec<MeshVertex> = (0..vertex_count)
-        .map(|index| {
-            let position = Vec3::new(
-                positions[index * 3],
-                positions[index * 3 + 1],
-                positions[index * 3 + 2],
-            );
-            let normal = Vec3::new(
-                computed_normals[index * 3],
-                computed_normals[index * 3 + 1],
-                computed_normals[index * 3 + 2],
-            );
-            let uv = if texcoords.len() >= (index + 1) * 2 {
-                Vec2::new(texcoords[index * 2], texcoords[index * 2 + 1])
-            } else {
-                Vec2::ZERO
-            };
-            let uv1 = if texcoords1.len() >= (index + 1) * 2 {
-                Vec2::new(texcoords1[index * 2], texcoords1[index * 2 + 1])
-            } else {
-                Vec2::ZERO
-            };
-            MeshVertex::new(
-                position,
-                if normal.length_squared() <= f32::EPSILON {
-                    Vec3::Y
-                } else {
-                    normal.normalize_or_zero()
-                },
-                uv,
-            )
-            .with_uv1(uv1)
-            .with_skinning(
-                joint_indices.get(index).copied().unwrap_or([0, 0, 0, 0]),
-                joint_weights
-                    .get(index)
-                    .copied()
-                    .unwrap_or([0.0, 0.0, 0.0, 0.0]),
-            )
-        })
-        .collect();
-
-    let virtual_geometry = cook_virtual_geometry_from_mesh(
-        &vertices,
-        indices,
-        VirtualGeometryCookConfig {
-            mesh_name: mesh_name.map(str::to_owned),
-            source_hint: Some(source_hint.to_string()),
-            ..VirtualGeometryCookConfig::default()
-        },
-    );
-    let mesh_sdf = match mesh_sdf_settings {
-        Some(settings) => cook_mesh_sdf_or_fallback(&vertices, indices, settings, mesh_sdf_budget)
-            .map_err(|error| AssetImportError::Parse(format!("cook mesh SDF: {error}")))?,
-        None => None,
-    };
-
-    Ok(ModelPrimitiveAsset {
-        vertices,
-        indices: indices.to_vec(),
-        mesh: None,
-        mesh_sdf,
-        virtual_geometry,
-    })
-}
-
-#[cfg(feature = "runtime")]
-fn validate_triangle_indices(indices: &[u32], vertex_count: usize) -> Result<(), AssetImportError> {
-    if indices.len() % 3 != 0 {
-        return Err(AssetImportError::Parse(format!(
-            "triangle index count {} was not a multiple of 3",
-            indices.len()
-        )));
-    }
-    for (element, &index) in indices.iter().enumerate() {
-        let index = usize::try_from(index).map_err(|_| {
-            AssetImportError::Parse(format!(
-                "mesh index {index} at element {element} exceeds platform limits"
-            ))
-        })?;
-        if index >= vertex_count {
-            return Err(AssetImportError::Parse(format!(
-                "mesh index {index} at element {element} exceeds vertex count {vertex_count}"
-            )));
-        }
-    }
-    Ok(())
-}
-
-#[cfg(feature = "runtime")]
-fn generate_normals(positions: &[f32], indices: &[u32]) -> Result<Vec<f32>, AssetImportError> {
-    let vertex_count = positions.len() / 3;
-    validate_triangle_indices(indices, vertex_count)?;
-    let mut normals = vec![0.0_f32; vertex_count * 3];
-
-    for triangle in indices.chunks_exact(3) {
-        let a = triangle[0] as usize;
-        let b = triangle[1] as usize;
-        let c = triangle[2] as usize;
-        let position = |index: usize| -> Vec3 {
-            Vec3::new(
-                positions[index * 3],
-                positions[index * 3 + 1],
-                positions[index * 3 + 2],
-            )
-        };
-        let position_a = position(a);
-        let position_b = position(b);
-        let position_c = position(c);
-        let face_normal = (position_b - position_a)
-            .cross(position_c - position_a)
-            .normalize_or_zero();
-        for index in [a, b, c] {
-            normals[index * 3] += face_normal.x;
-            normals[index * 3 + 1] += face_normal.y;
-            normals[index * 3 + 2] += face_normal.z;
-        }
-    }
-
-    Ok(normals)
-}
-
 #[cfg(all(test, feature = "runtime"))]
 mod tests;
 
 #[cfg(all(test, feature = "runtime"))]
 #[path = "tests/index_admission.rs"]
 mod index_admission_tests;
+
+#[cfg(all(test, feature = "runtime"))]
+#[path = "tests/hotpaths.rs"]
+mod hotpath_tests;
+
+#[cfg(all(test, feature = "runtime"))]
+#[path = "tests/geometry_convergence.rs"]
+mod geometry_convergence_tests;

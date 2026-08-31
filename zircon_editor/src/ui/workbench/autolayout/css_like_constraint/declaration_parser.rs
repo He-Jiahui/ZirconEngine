@@ -330,11 +330,17 @@ fn parse_non_negative_number(
 }
 
 fn parse_aspect_ratio(value: &str) -> Result<f32, CssLikeConstraintError> {
-    let parts = value.split('/').map(str::trim).collect::<Vec<_>>();
-    let ratio = match parts.as_slice() {
-        [single] if !single.is_empty() => parse_non_negative_number(single, "aspect-ratio")?,
-        [numerator, denominator] if !numerator.is_empty() && !denominator.is_empty() => {
-            let numerator = parse_non_negative_number(numerator, "aspect-ratio")?;
+    let mut parts = value.split('/').map(str::trim);
+    let first = parts.next().unwrap_or_default();
+    let second = parts.next();
+    if parts.next().is_some() {
+        return Err(invalid_value("aspect-ratio", value));
+    }
+
+    let ratio = match second {
+        None if !first.is_empty() => parse_non_negative_number(first, "aspect-ratio")?,
+        Some(denominator) if !first.is_empty() && !denominator.is_empty() => {
+            let numerator = parse_non_negative_number(first, "aspect-ratio")?;
             let denominator = parse_non_negative_number(denominator, "aspect-ratio")?;
             if denominator == 0.0 {
                 return Err(invalid_value("aspect-ratio", value));
@@ -444,3 +450,7 @@ fn invalid_value(property: &'static str, value: &str) -> CssLikeConstraintError 
         value: value.to_owned(),
     }
 }
+
+#[cfg(test)]
+#[path = "declaration_parser/aspect_ratio_tests.rs"]
+mod aspect_ratio_tests;

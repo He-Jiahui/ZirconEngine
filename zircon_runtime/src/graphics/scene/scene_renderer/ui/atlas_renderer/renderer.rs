@@ -1,28 +1,28 @@
 use wgpu::util::DeviceExt;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch, WgpuTextureUploadBatch};
 
 use crate::core::math::UVec2;
 use crate::text::atlas::render_gpu_plan::{
-    glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuDrawPlan, GlyphAtlasGpuPipelineContract,
-    GlyphAtlasGpuPipelineKey, GlyphAtlasGpuViewportTransform,
+    GlyphAtlasGpuDrawPlan, GlyphAtlasGpuPipelineContract, GlyphAtlasGpuPipelineKey,
+    GlyphAtlasGpuViewportTransform, glyph_atlas_gpu_bind_group_layout,
 };
 use crate::text::atlas::{
-    glyph_atlas_bitmap_page_shadow_commit, GlyphAtlasBitmapFaceValidity,
+    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasBitmapFaceValidity,
     GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapPreparedUploadPlan,
     GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
-    GlyphAtlasSet, GlyphAtlasStorageFormat, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
+    GlyphAtlasSet, GlyphAtlasStorageFormat,
 };
 
 use super::super::atlas_texture_upload::{
+    GlyphAtlasBitmapTextureUploadFramePlan, GlyphAtlasBitmapTextureUploadFrameReport,
     glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas_and_face_validity,
-    write_glyph_atlas_bitmap_texture_upload_frame_plan, GlyphAtlasBitmapTextureUploadFramePlan,
-    GlyphAtlasBitmapTextureUploadFrameReport,
+    prepare_glyph_atlas_bitmap_texture_upload_for_resources,
 };
 use super::instance_buffer::glyph_atlas_bitmap_renderer_write_instance_buffer;
 use super::pipeline::{
     create_glyph_atlas_bitmap_pipeline, create_glyph_atlas_bitmap_pipeline_layout,
     create_glyph_atlas_bitmap_shader,
 };
-use super::prepare_report::glyph_atlas_bitmap_renderer_prepare_report_for_storage_passes;
 use super::resources::{
     create_glyph_atlas_bitmap_atlas_resources, create_glyph_atlas_bitmap_bind_group_layout,
     create_glyph_atlas_bitmap_sampler,
@@ -30,7 +30,6 @@ use super::resources::{
 use super::state::{
     GlyphAtlasBitmapPipelineResource, GlyphAtlasBitmapRendererAtlasResource,
     GlyphAtlasBitmapRendererDrawPass, GlyphAtlasBitmapRendererPrepareReport,
-    GlyphAtlasBitmapRendererStorageSubmission,
 };
 
 pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapRenderer {
@@ -91,7 +90,7 @@ impl GlyphAtlasBitmapRenderer {
                 atlas_format,
                 atlas,
             )],
-            draw_passes: vec![GlyphAtlasBitmapRendererDrawPass::new(atlas_format)],
+            draw_passes: vec![GlyphAtlasBitmapRendererDrawPass::new()],
             pipeline_resources: Vec::new(),
             pending_invalidated_storage_pass_count: 0,
             last_report: GlyphAtlasBitmapRendererPrepareReport::default(),
@@ -110,21 +109,25 @@ impl GlyphAtlasBitmapRenderer {
     pub(in crate::graphics::scene::scene_renderer::ui) fn prepare_plan(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         plan: &GlyphAtlasGpuDrawPlan,
         atlas_size: UVec2,
         atlas_layer_count: u32,
         atlas_storage_format: GlyphAtlasStorageFormat,
+        buffer_uploads: &mut WgpuBufferUploadBatch,
+        force_full_upload: bool,
     ) {
-        self.write_viewport_uniform(queue, plan.viewport_transform);
-        let mut report = self.prepare_storage_pass(
+        self.write_viewport_uniform(plan.viewport_transform, buffer_uploads, force_full_upload);
+        let atlas_format =
+            glyph_atlas_bitmap_renderer_default_format_for_storage(atlas_storage_format);
+        let mut report = self.prepare_frame_pass(
             device,
-            queue,
             plan,
             atlas_size,
             atlas_layer_count,
-            glyph_atlas_bitmap_renderer_default_format_for_storage(atlas_storage_format),
-            0,
+            atlas_format,
+            &[(atlas_format, atlas_layer_count)],
+            buffer_uploads,
+            force_full_upload,
         );
         report = self.report_with_pending_face_invalidation(report);
         self.draw_passes.truncate(1);
@@ -133,12 +136,13 @@ impl GlyphAtlasBitmapRenderer {
 
     pub(in crate::graphics::scene::scene_renderer::ui) fn prepare_idle(&mut self) {
         glyph_atlas_bitmap_renderer_release_idle_draw_passes(&mut self.draw_passes);
+        self.last_viewport_transform = None;
         let report = glyph_atlas_bitmap_renderer_idle_prepare_report(
             self.atlas_resources.iter().map(|resource| {
                 (
                     resource.atlas.size(),
                     resource.atlas.layer_count(),
-                    resource.atlas.storage_format(),
+                    resource.atlas_format,
                 )
             }),
             self.pipeline_resources.len(),
@@ -149,25 +153,29 @@ impl GlyphAtlasBitmapRenderer {
     pub(in crate::graphics::scene::scene_renderer::ui) fn prepare_submission<'a, I>(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         submission: &GlyphAtlasBitmapRenderSubmissionPlan,
         source_bytes: I,
         atlas_size: UVec2,
         atlas_layer_count: u32,
         atlas_format: GlyphAtlasFormat,
+        buffer_uploads: &mut WgpuBufferUploadBatch,
+        texture_uploads: &mut WgpuTextureUploadBatch,
+        force_full_upload: bool,
     ) -> GlyphAtlasBitmapPageShadowCommit
     where
         I: IntoIterator<Item = GlyphAtlasBitmapUploadSourceBytes<'a>>,
     {
         self.prepare_submission_with_face_validity(
             device,
-            queue,
             submission,
             source_bytes,
             atlas_size,
             atlas_layer_count,
             atlas_format,
             GlyphAtlasBitmapFaceValidity::Valid,
+            buffer_uploads,
+            texture_uploads,
+            force_full_upload,
         )
     }
 
@@ -177,13 +185,15 @@ impl GlyphAtlasBitmapRenderer {
     >(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         submission: &GlyphAtlasBitmapRenderSubmissionPlan,
         source_bytes: I,
         atlas_size: UVec2,
         atlas_layer_count: u32,
         atlas_format: GlyphAtlasFormat,
         face_validity: GlyphAtlasBitmapFaceValidity,
+        buffer_uploads: &mut WgpuBufferUploadBatch,
+        texture_uploads: &mut WgpuTextureUploadBatch,
+        force_full_upload: bool,
     ) -> GlyphAtlasBitmapPageShadowCommit
     where
         I: IntoIterator<Item = GlyphAtlasBitmapUploadSourceBytes<'a>>,
@@ -193,88 +203,40 @@ impl GlyphAtlasBitmapRenderer {
             "ui_text.atlas_upload",
             "prepare_submission_with_face_validity"
         );
-        self.write_viewport_uniform(queue, submission.gpu_draw.viewport_transform);
-        let mut report = self.prepare_storage_pass(
+        self.write_viewport_uniform(
+            submission.gpu_draw.viewport_transform,
+            buffer_uploads,
+            force_full_upload,
+        );
+        let atlas_requirements = glyph_atlas_bitmap_renderer_submission_atlas_requirements(
+            submission,
+            atlas_format,
+            atlas_layer_count,
+        );
+        let mut report = self.prepare_frame_pass(
             device,
-            queue,
             &submission.gpu_draw,
             atlas_size,
             atlas_layer_count,
             atlas_format,
-            0,
+            atlas_requirements.as_slice(),
+            buffer_uploads,
+            force_full_upload,
         );
         self.draw_passes.truncate(1);
+        let force_full_atlas_replay = force_full_upload || report.atlas_resized;
         let (upload_report, shadow_commit, upload_plan_built) = self.prepare_submission_upload(
-            queue,
             submission,
             source_bytes,
-            atlas_format,
             face_validity,
+            texture_uploads,
+            force_full_atlas_replay,
         );
         report = report
             .with_upload_report(upload_report)
             .with_upload_plan_preparation(upload_plan_built);
         report = self.report_with_pending_face_invalidation(report);
         self.last_report = report;
-        shadow_commit
-    }
-
-    pub(in crate::graphics::scene::scene_renderer::ui) fn prepare_storage_submissions<'a>(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        submissions: &[GlyphAtlasBitmapRendererStorageSubmission<'a>],
-        atlas_size: UVec2,
-    ) -> GlyphAtlasBitmapPageShadowCommit {
-        crate::profile_scope!(
-            "runtime",
-            "ui_text.atlas_upload",
-            "prepare_storage_submissions"
-        );
-        if submissions.is_empty() {
-            self.prepare_idle();
-            return GlyphAtlasBitmapPageShadowCommit::default();
-        }
-
-        let mut pass_reports = Vec::with_capacity(submissions.len());
-        let mut shadow_commit = GlyphAtlasBitmapPageShadowCommit::default();
-        self.write_viewport_uniform(queue, submissions[0].submission.gpu_draw.viewport_transform);
-        for (pass_index, submission) in submissions.iter().enumerate() {
-            debug_assert_eq!(
-                submission.submission.gpu_draw.viewport_transform,
-                submissions[0].submission.gpu_draw.viewport_transform,
-                "mixed storage submissions must share the UI viewport uniform",
-            );
-            let mut report = self.prepare_storage_pass(
-                device,
-                queue,
-                &submission.submission.gpu_draw,
-                atlas_size,
-                submission.atlas_layer_count,
-                submission.atlas_format,
-                pass_index,
-            );
-            let (upload_report, upload_shadow_commit, upload_plan_built) = self
-                .prepare_submission_upload(
-                    queue,
-                    submission.submission,
-                    submission.source_bytes.iter().copied(),
-                    submission.atlas_format,
-                    submission.face_validity,
-                );
-            shadow_commit.extend(upload_shadow_commit);
-            report = report
-                .with_upload_report(upload_report)
-                .with_upload_plan_preparation(upload_plan_built);
-            pass_reports.push(report);
-        }
-
-        self.draw_passes.truncate(submissions.len());
-        let report = glyph_atlas_bitmap_renderer_prepare_report_for_storage_passes(
-            &pass_reports,
-            self.pipeline_resources.len(),
-        );
-        self.last_report = self.report_with_pending_face_invalidation(report);
         shadow_commit
     }
 
@@ -295,13 +257,18 @@ impl GlyphAtlasBitmapRenderer {
             if draw_pass.draw_commands.is_empty() {
                 continue;
             }
-            let Some(atlas_resource) = self.atlas_resource(draw_pass.atlas_format) else {
-                continue;
-            };
-
-            pass.set_bind_group(0, atlas_resource.atlas.bind_group(), &[]);
             pass.set_vertex_buffer(0, instance_buffer.slice(..));
+            let mut bound_format = None;
             for command in &draw_pass.draw_commands {
+                let atlas_format = command.key.page_key.format;
+                if bound_format != Some(atlas_format) {
+                    let Some(atlas_resource) = self.atlas_resource(atlas_format) else {
+                        bound_format = None;
+                        continue;
+                    };
+                    pass.set_bind_group(0, atlas_resource.atlas.bind_group(), &[]);
+                    bound_format = Some(atlas_format);
+                }
                 let Some(pipeline) = self.pipeline(command.pipeline_key) else {
                     continue;
                 };
@@ -314,27 +281,32 @@ impl GlyphAtlasBitmapRenderer {
         }
     }
 
-    fn prepare_storage_pass(
+    fn prepare_frame_pass(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         plan: &GlyphAtlasGpuDrawPlan,
         atlas_size: UVec2,
         atlas_layer_count: u32,
-        atlas_format: GlyphAtlasFormat,
-        pass_index: usize,
+        fallback_format: GlyphAtlasFormat,
+        atlas_requirements: &[(GlyphAtlasFormat, u32)],
+        buffer_uploads: &mut WgpuBufferUploadBatch,
+        force_full_upload: bool,
     ) -> GlyphAtlasBitmapRendererPrepareReport {
         self.ensure_pipelines(device, &plan.pipeline_contracts);
-        let atlas_resized =
-            self.ensure_atlas_resources(device, atlas_size, atlas_layer_count, atlas_format);
-        self.ensure_draw_pass(pass_index, atlas_format);
-        let draw_pass = &mut self.draw_passes[pass_index];
+        let mut atlas_resized = false;
+        for &(atlas_format, required_layer_count) in atlas_requirements {
+            atlas_resized |=
+                self.ensure_atlas_resources(device, atlas_size, required_layer_count, atlas_format);
+        }
+        self.ensure_draw_pass(0);
+        let draw_pass = &mut self.draw_passes[0];
         let (instance_buffer_capacity_byte_len, instance_buffer_reallocation_count) =
             glyph_atlas_bitmap_renderer_write_instance_buffer(
                 device,
-                queue,
                 draw_pass,
                 plan.instances.as_slice(),
+                buffer_uploads,
+                force_full_upload,
             );
         draw_pass.draw_commands = plan.draw_commands.clone();
 
@@ -343,9 +315,13 @@ impl GlyphAtlasBitmapRenderer {
             self.pipeline_resources.len(),
             atlas_size,
             atlas_layer_count,
-            atlas_format.storage_format(),
+            fallback_format.storage_format(),
             atlas_resized,
         );
+        report.storage_resource_count = atlas_requirements.len();
+        report.ordered_draw_segment_count =
+            glyph_atlas_bitmap_renderer_ordered_draw_segment_count(plan);
+        report.mixed_atlas_storage_format = atlas_requirements.len() > 1;
         report.instance_buffer_capacity_byte_len = instance_buffer_capacity_byte_len;
         report.instance_buffer_reallocation_count = instance_buffer_reallocation_count;
         report
@@ -390,13 +366,12 @@ impl GlyphAtlasBitmapRenderer {
         true
     }
 
-    fn ensure_draw_pass(&mut self, pass_index: usize, atlas_format: GlyphAtlasFormat) {
+    fn ensure_draw_pass(&mut self, pass_index: usize) {
         if self.draw_passes.len() == pass_index {
             self.draw_passes
-                .push(GlyphAtlasBitmapRendererDrawPass::new(atlas_format));
+                .push(GlyphAtlasBitmapRendererDrawPass::new());
             return;
         }
-        self.draw_passes[pass_index].atlas_format = atlas_format;
     }
 
     fn atlas_resource(
@@ -472,52 +447,33 @@ impl GlyphAtlasBitmapRenderer {
 
     fn write_viewport_uniform(
         &mut self,
-        queue: &wgpu::Queue,
         viewport_transform: GlyphAtlasGpuViewportTransform,
+        buffer_uploads: &mut WgpuBufferUploadBatch,
+        force_full_upload: bool,
     ) {
-        if !glyph_atlas_bitmap_renderer_viewport_uniform_write_required(
-            self.last_viewport_transform,
-            viewport_transform,
-        ) {
+        if !force_full_upload
+            && !glyph_atlas_bitmap_renderer_viewport_uniform_write_required(
+                self.last_viewport_transform,
+                viewport_transform,
+            )
+        {
             return;
         }
-        queue.write_buffer(
-            &self.viewport_uniform_buffer,
+        buffer_uploads.push(WgpuBufferUpload::from_bytes(
+            self.viewport_uniform_buffer.clone(),
             0,
             bytemuck::cast_slice(&viewport_transform.uniform_bytes()),
-        );
+        ));
         self.last_viewport_transform = Some(viewport_transform);
-    }
-
-    fn write_upload_frame(
-        &self,
-        queue: &wgpu::Queue,
-        atlas_format: GlyphAtlasFormat,
-        upload_frame: &GlyphAtlasBitmapTextureUploadFramePlan<'_>,
-    ) -> GlyphAtlasBitmapTextureUploadFrameReport {
-        self.atlas_resource(atlas_format).map_or_else(
-            || {
-                glyph_atlas_bitmap_renderer_upload_report_without_atlas_resource(
-                    upload_frame.report(),
-                )
-            },
-            |resource| {
-                write_glyph_atlas_bitmap_texture_upload_frame_plan(
-                    queue,
-                    resource.atlas.texture(),
-                    upload_frame,
-                )
-            },
-        )
     }
 
     fn prepare_submission_upload<'a, I>(
         &self,
-        queue: &wgpu::Queue,
         submission: &GlyphAtlasBitmapRenderSubmissionPlan,
         source_bytes: I,
-        atlas_format: GlyphAtlasFormat,
         face_validity: GlyphAtlasBitmapFaceValidity,
+        texture_uploads: &mut WgpuTextureUploadBatch,
+        force_full_atlas_replay: bool,
     ) -> (
         GlyphAtlasBitmapTextureUploadFrameReport,
         GlyphAtlasBitmapPageShadowCommit,
@@ -526,7 +482,7 @@ impl GlyphAtlasBitmapRenderer {
     where
         I: IntoIterator<Item = GlyphAtlasBitmapUploadSourceBytes<'a>>,
     {
-        if submission.upload_commands().is_empty() {
+        if submission.upload_commands().is_empty() && !force_full_atlas_replay {
             return (
                 GlyphAtlasBitmapTextureUploadFrameReport::default(),
                 GlyphAtlasBitmapPageShadowCommit::default(),
@@ -534,19 +490,22 @@ impl GlyphAtlasBitmapRenderer {
             );
         }
 
-        let prepared_upload = submission.prepared_upload(source_bytes);
-        let upload_frame = glyph_atlas_bitmap_renderer_texture_upload_frame_plan(
-            &prepared_upload,
-            &submission.run.atlas,
-            face_validity,
-        );
-        let upload_report = self.write_upload_frame(queue, atlas_format, &upload_frame);
-        drop(upload_frame);
-        let shadow_commit = glyph_atlas_bitmap_page_shadow_commit(
+        let prepared_upload = if force_full_atlas_replay {
+            submission.prepared_upload_with_full_shadow_replay(source_bytes)
+        } else {
+            submission.prepared_upload(source_bytes)
+        };
+        let prepared_texture_upload = prepare_glyph_atlas_bitmap_texture_upload_for_resources(
+            self.atlas_resources
+                .iter()
+                .map(|resource| (resource.atlas_format, resource.atlas.texture().clone())),
             &submission.run,
             prepared_upload,
-            upload_report.ready_to_write_texture,
+            face_validity,
         );
+        let (prepared_texture_uploads, shadow_commit, upload_report) =
+            prepared_texture_upload.into_parts();
+        texture_uploads.append(prepared_texture_uploads);
         (upload_report, shadow_commit, true)
     }
 
@@ -641,21 +600,56 @@ pub(super) fn glyph_atlas_bitmap_renderer_atlas_layer_capacity(required_layer_co
     required_layer_count.max(maximum_resident_layers).max(1)
 }
 
+pub(super) fn glyph_atlas_bitmap_renderer_submission_atlas_requirements(
+    submission: &GlyphAtlasBitmapRenderSubmissionPlan,
+    fallback_format: GlyphAtlasFormat,
+    fallback_layer_count: u32,
+) -> Vec<(GlyphAtlasFormat, u32)> {
+    let mut requirements: Vec<(GlyphAtlasFormat, u32)> = Vec::new();
+    let mut add_page = |format: GlyphAtlasFormat, page_index: u32| {
+        let required_layers = page_index.saturating_add(1).max(1);
+        if let Some((_, layer_count)) = requirements
+            .iter_mut()
+            .find(|(existing_format, _)| *existing_format == format)
+        {
+            *layer_count = (*layer_count).max(required_layers);
+        } else {
+            requirements.push((format, required_layers));
+        }
+    };
+
+    for glyph in &submission.run.glyphs {
+        add_page(glyph.page_key.format, glyph.page_key.page_index);
+    }
+    for copy in &submission.run.upload_copies {
+        add_page(copy.page_key.format, copy.page_key.page_index);
+    }
+    if requirements.is_empty() {
+        requirements.push((fallback_format, fallback_layer_count.max(1)));
+    }
+    requirements
+}
+
+pub(super) fn glyph_atlas_bitmap_renderer_ordered_draw_segment_count(
+    plan: &GlyphAtlasGpuDrawPlan,
+) -> usize {
+    let mut previous_format = None;
+    let mut segment_count = 0;
+    for command in &plan.draw_commands {
+        let format = command.key.page_key.format;
+        if previous_format != Some(format) {
+            segment_count += 1;
+            previous_format = Some(format);
+        }
+    }
+    segment_count
+}
+
 pub(super) fn glyph_atlas_bitmap_renderer_prepare_report_with_upload_report(
     report: GlyphAtlasBitmapRendererPrepareReport,
     upload: GlyphAtlasBitmapTextureUploadFrameReport,
 ) -> GlyphAtlasBitmapRendererPrepareReport {
     report.with_upload_report(upload)
-}
-
-pub(super) fn glyph_atlas_bitmap_renderer_upload_report_without_atlas_resource(
-    mut upload: GlyphAtlasBitmapTextureUploadFrameReport,
-) -> GlyphAtlasBitmapTextureUploadFrameReport {
-    upload.binding_failure_count = upload
-        .binding_failure_count
-        .saturating_add(upload.request_count);
-    upload.ready_to_write_texture = false;
-    upload
 }
 
 pub(super) fn glyph_atlas_bitmap_renderer_texture_upload_frame_plan<'a>(
@@ -695,6 +689,8 @@ pub(super) fn glyph_atlas_bitmap_renderer_prepare_report(
         storage_pass_count: 1,
         storage_pass_visible_glyph_count: plan.visible_glyph_count,
         mixed_atlas_storage_format: false,
+        storage_resource_count: 1,
+        ordered_draw_segment_count: glyph_atlas_bitmap_renderer_ordered_draw_segment_count(plan),
         atlas_resized,
         vertex_count: plan.vertex_count(),
         vertex_buffer_byte_len: std::mem::size_of_val(plan.instances.as_slice()),
@@ -718,28 +714,30 @@ pub(super) fn glyph_atlas_bitmap_renderer_prepare_report(
 }
 
 pub(super) fn glyph_atlas_bitmap_renderer_idle_prepare_report(
-    storage_passes: impl IntoIterator<Item = (UVec2, u32, GlyphAtlasStorageFormat)>,
+    atlas_resources: impl IntoIterator<Item = (UVec2, u32, GlyphAtlasFormat)>,
     pipeline_count: usize,
 ) -> GlyphAtlasBitmapRendererPrepareReport {
-    let mut storage_passes = storage_passes.into_iter();
-    let Some((atlas_size, first_layer_count, atlas_storage_format)) = storage_passes.next() else {
+    let mut atlas_resources = atlas_resources.into_iter();
+    let Some((atlas_size, first_layer_count, first_format)) = atlas_resources.next() else {
         return GlyphAtlasBitmapRendererPrepareReport::default();
     };
     let mut atlas_layer_count = first_layer_count.max(1);
-    let mut storage_pass_count = 1;
+    let atlas_storage_format = first_format.storage_format();
+    let mut storage_resource_count = 1;
     let mut mixed_atlas_storage_format = false;
-    for (_, layer_count, storage_format) in storage_passes {
-        atlas_layer_count = atlas_layer_count.saturating_add(layer_count.max(1));
-        storage_pass_count += 1;
-        mixed_atlas_storage_format |= storage_format != atlas_storage_format;
+    for (_, layer_count, atlas_format) in atlas_resources {
+        atlas_layer_count = atlas_layer_count.max(layer_count.max(1));
+        storage_resource_count += 1;
+        mixed_atlas_storage_format |= atlas_format.storage_format() != atlas_storage_format;
     }
 
     GlyphAtlasBitmapRendererPrepareReport {
         atlas_size,
         atlas_layer_count,
         atlas_storage_format,
-        storage_pass_count,
+        storage_pass_count: 0,
         mixed_atlas_storage_format,
+        storage_resource_count,
         pipeline_count,
         ..GlyphAtlasBitmapRendererPrepareReport::default()
     }

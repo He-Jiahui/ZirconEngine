@@ -38,6 +38,7 @@ impl ProjectAssetManager {
             self.commit_resource_batch_after_dependencies(batch, || {
                 retired_watchers = Some(self.deactivate_project_watchers());
                 self.clear_project_source_paths();
+                self.clear_transaction_watch_echoes();
                 *project = None;
                 drop(project);
                 Ok(())

@@ -3,15 +3,8 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchDropdownStyle;
 use super::super::template_dropdown_metrics::WorkbenchDropdownMetrics;
 use super::super::template_icon_assets::push_icon_asset_pixels;
-use super::segments::{push_segments, DropdownGlyphSegmentSpec};
 
-const DROPDOWN_CHEVRON_ICON: &str = "dropdown";
-
-const DROPDOWN_CHEVRON_SEGMENTS: &[DropdownGlyphSegmentSpec] = &[
-    DropdownGlyphSegmentSpec::new(3, 5, 2, 2),
-    DropdownGlyphSegmentSpec::new(5, 7, 2, 2),
-    DropdownGlyphSegmentSpec::new(7, 5, 2, 2),
-];
+const DROPDOWN_CHEVRON_ICON: &str = "zircon_editor_shell/toolbar/dropdown.svg";
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dropdown_chevron(
     commands: &mut Vec<HostPaintCommand>,
@@ -41,7 +34,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dr
         width: size,
         height: size,
     };
-    if push_icon_asset_pixels(
+    push_icon_asset_pixels(
         commands,
         DROPDOWN_CHEVRON_ICON,
         &chevron,
@@ -49,18 +42,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dr
         order,
         Some(style.chevron),
         opacity,
-    ) {
-        return;
-    }
-
-    push_segments(
-        commands,
-        &chevron,
-        clip,
-        order,
-        style.chevron,
-        opacity,
-        DROPDOWN_CHEVRON_SEGMENTS,
     );
 }
 

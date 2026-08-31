@@ -1,10 +1,10 @@
 use crate::core::framework::render::{ShaderFeatureBits, ShaderPassType};
 
 use super::module_registry::{
-    environment_include, environment_only_pbr_include, environment_standard_pbr_include,
-    irradiance_volume_include, light_cookie_include, light_grid_include, lightmap_include,
-    pbr_extras_include, pbr_extras_include_for_features, shadow_disabled_include, shadow_include,
-    volumetric_disabled_include, volumetric_include, ShaderTemplateInclude,
+    ShaderTemplateInclude, environment_include, environment_only_pbr_include,
+    environment_standard_pbr_include, irradiance_volume_include, light_cookie_include,
+    light_grid_include, lightmap_include, pbr_extras_include, pbr_extras_include_for_features,
+    shadow_disabled_include, shadow_include, volumetric_disabled_include, volumetric_include,
 };
 
 pub(crate) const MATERIAL_SHADER_TEMPLATE_REVISION: &str = "zr-material-template-v1";
@@ -20,6 +20,8 @@ const SHADOW_ALPHA_TEMPLATE_TOKEN: &str = "zr_template_shadow_alpha.wgsl";
 const VELOCITY_TEMPLATE_TOKEN: &str = "zr_template_velocity.wgsl";
 const VELOCITY_ALPHA_TEMPLATE_TOKEN: &str = "zr_template_velocity_alpha.wgsl";
 const TAA_REACTIVE_MASK_TEMPLATE_TOKEN: &str = "zr_template_taa_reactive_mask.wgsl";
+const HIT_PROXY_TEMPLATE_TOKEN: &str = "zr_template_hit_proxy.wgsl";
+const HIT_PROXY_ALPHA_TEMPLATE_TOKEN: &str = "zr_template_hit_proxy_alpha.wgsl";
 
 const FORWARD_TEMPLATE: &str = include_str!("../wgsl/zr_template_forward.wgsl");
 const ENVIRONMENT_ONLY_PBR_FORWARD_TEMPLATE: &str =
@@ -32,6 +34,8 @@ const SHADOW_ALPHA_TEMPLATE: &str = include_str!("../wgsl/zr_template_shadow_alp
 const VELOCITY_TEMPLATE: &str = include_str!("../wgsl/zr_template_velocity.wgsl");
 const VELOCITY_ALPHA_TEMPLATE: &str = include_str!("../wgsl/zr_template_velocity_alpha.wgsl");
 const TAA_REACTIVE_MASK_TEMPLATE: &str = include_str!("../wgsl/zr_template_taa_reactive_mask.wgsl");
+const HIT_PROXY_TEMPLATE: &str = include_str!("../wgsl/zr_template_hit_proxy.wgsl");
+const HIT_PROXY_ALPHA_TEMPLATE: &str = include_str!("../wgsl/zr_template_hit_proxy_alpha.wgsl");
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ShaderPassTemplate {
@@ -159,6 +163,17 @@ pub(crate) fn pass_template_for_shading_model(
             requires_shading_include: false,
             uses_previous_position: false,
         },
+        ShaderPassType::HitProxy => ShaderPassTemplate {
+            include: if alpha_test {
+                ShaderTemplateInclude::new(HIT_PROXY_ALPHA_TEMPLATE_TOKEN, HIT_PROXY_ALPHA_TEMPLATE)
+            } else {
+                ShaderTemplateInclude::new(HIT_PROXY_TEMPLATE_TOKEN, HIT_PROXY_TEMPLATE)
+            },
+            support_includes: Vec::new(),
+            requires_material_surface: alpha_test,
+            requires_shading_include: false,
+            uses_previous_position: false,
+        },
     }
 }
 
@@ -178,9 +193,11 @@ mod tests {
     fn forward_without_receive_shadows_uses_binding_free_shadow_stub() {
         let include = forward_shadow_include(ShaderFeatureBits::default());
 
-        assert!(include
-            .source
-            .contains("fn zr_gpu_light_shadow_visibility("));
+        assert!(
+            include
+                .source
+                .contains("fn zr_gpu_light_shadow_visibility(")
+        );
         assert!(include.source.contains("return 1.0;"));
         assert!(!include.source.contains("@group(1) @binding(8)"));
         assert!(!include.source.contains("fn zr_sample_shadow_slot("));
@@ -221,6 +238,7 @@ mod tests {
 
         for required in [
             "@group(1) @binding(31) var zr_transmission_scene_color",
+            "@group(1) @binding(38) var<uniform> zr_transmission_scene_color_params",
             "fn zr_aniso_ggx(",
             "fn zr_clearcoat_lobe(",
             "fn zr_pbr_screen_space_transmission(",

@@ -20,10 +20,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     opacity: f32,
     style: &WorkbenchTextFieldStyle,
 ) {
-    let label = field_label(node);
-    if label.trim().is_empty() {
-        return;
-    }
     let metrics = workbench_field_metrics();
     let right_reserve = if stepper_painted {
         workbench_field_stepper_metrics().width + metrics.input_pad_right
@@ -41,6 +37,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         height: metrics.line_height,
     };
     if !frame_is_within(&text_rect, rect) {
+        return;
+    }
+    let label = field_label(node);
+    if label.trim().is_empty() {
         return;
     }
     commands.push(HostPaintCommand::text(
@@ -81,3 +81,7 @@ fn import_path_field_label_is_placeholder(node: &TemplatePaneNodeData, label: &s
         && node.value_text.trim().is_empty()
         && !label.trim().is_empty()
 }
+
+#[cfg(test)]
+#[path = "text/capacity_tests.rs"]
+mod capacity_tests;

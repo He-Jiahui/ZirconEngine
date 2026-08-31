@@ -13,6 +13,7 @@ use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 #[derive(Clone)]
 pub(crate) struct HostPaintThemeSnapshot {
     generation: u64,
+    base_metrics: metrics::HostControlMetrics,
     metrics: metrics::HostControlMetrics,
     scale_factor: f32,
     palette: model::HostMaterialPalette,
@@ -42,13 +43,14 @@ impl Drop for HostPaintThemeScope {
 }
 
 pub(crate) fn apply_host_appearance_from_tokens(tokens: &EditorDesignTokens) {
-    let metrics = metrics::project_host_metrics(tokens);
+    let base_metrics = metrics::project_host_metrics(tokens);
     let palette = palette_projection::project_host_palette(tokens);
     let text_preferences = Arc::new(typography::project_host_text_preferences(tokens));
     host_paint_theme_authority().rcu(move |current| {
         Arc::new(HostPaintThemeSnapshot {
             generation: current.generation.saturating_add(1),
-            metrics,
+            base_metrics,
+            metrics: base_metrics.at_scale(current.scale_factor),
             scale_factor: current.scale_factor,
             palette,
             text_preferences: Arc::clone(&text_preferences),
@@ -64,9 +66,11 @@ pub(crate) fn capture_host_paint_theme_snapshot() -> Arc<HostPaintThemeSnapshot>
 pub(crate) fn host_paint_theme_snapshot_from_tokens_for_test(
     tokens: &EditorDesignTokens,
 ) -> Arc<HostPaintThemeSnapshot> {
+    let base_metrics = metrics::project_host_metrics(tokens);
     Arc::new(HostPaintThemeSnapshot {
         generation: 0,
-        metrics: metrics::project_host_metrics(tokens),
+        base_metrics,
+        metrics: base_metrics,
         scale_factor: 1.0,
         palette: palette_projection::project_host_palette(tokens),
         text_preferences: Arc::new(typography::project_host_text_preferences(tokens)),
@@ -80,11 +84,12 @@ pub(crate) fn enter_host_paint_theme_scope(
     HostPaintThemeScope { previous }
 }
 
-fn replace_host_metrics(metrics: metrics::HostControlMetrics) {
+fn replace_host_metrics(base_metrics: metrics::HostControlMetrics) {
     host_paint_theme_authority().rcu(move |current| {
         Arc::new(HostPaintThemeSnapshot {
             generation: current.generation.saturating_add(1),
-            metrics,
+            base_metrics,
+            metrics: base_metrics.at_scale(current.scale_factor),
             scale_factor: current.scale_factor,
             palette: current.palette,
             text_preferences: Arc::clone(&current.text_preferences),
@@ -96,6 +101,7 @@ fn replace_host_palette(palette: model::HostMaterialPalette) {
     host_paint_theme_authority().rcu(move |current| {
         Arc::new(HostPaintThemeSnapshot {
             generation: current.generation.saturating_add(1),
+            base_metrics: current.base_metrics,
             metrics: current.metrics,
             scale_factor: current.scale_factor,
             palette,
@@ -109,6 +115,7 @@ fn replace_host_text_preferences(text_preferences: typography::HostTextPreferenc
     host_paint_theme_authority().rcu(move |current| {
         Arc::new(HostPaintThemeSnapshot {
             generation: current.generation.saturating_add(1),
+            base_metrics: current.base_metrics,
             metrics: current.metrics,
             scale_factor: current.scale_factor,
             palette: current.palette,
@@ -119,16 +126,8 @@ fn replace_host_text_preferences(text_preferences: typography::HostTextPreferenc
 
 fn host_metrics_for_read() -> metrics::HostControlMetrics {
     ACTIVE_HOST_PAINT_THEME
-        .with(|active| {
-            active
-                .borrow()
-                .as_ref()
-                .map(|snapshot| snapshot.metrics.at_scale(snapshot.scale_factor))
-        })
-        .unwrap_or_else(|| {
-            let snapshot = host_paint_theme_authority().load();
-            snapshot.metrics.at_scale(snapshot.scale_factor)
-        })
+        .with(|active| active.borrow().as_ref().map(|snapshot| snapshot.metrics))
+        .unwrap_or_else(|| host_paint_theme_authority().load().metrics)
 }
 
 pub(crate) fn apply_host_paint_scale_factor(scale_factor: f32) {
@@ -143,7 +142,8 @@ pub(crate) fn apply_host_paint_scale_factor(scale_factor: f32) {
         }
         Arc::new(HostPaintThemeSnapshot {
             generation: current.generation.saturating_add(1),
-            metrics: current.metrics,
+            base_metrics: current.base_metrics,
+            metrics: current.base_metrics.at_scale(scale_factor),
             scale_factor,
             palette: current.palette,
             text_preferences: Arc::clone(&current.text_preferences),
@@ -174,6 +174,7 @@ fn host_paint_theme_authority() -> &'static ArcSwap<HostPaintThemeSnapshot> {
     AUTHORITY.get_or_init(|| {
         ArcSwap::from_pointee(HostPaintThemeSnapshot {
             generation: 0,
+            base_metrics: metrics::METRICS,
             metrics: metrics::METRICS,
             scale_factor: 1.0,
             palette: palette_projection::DEFAULT_HOST_PALETTE,

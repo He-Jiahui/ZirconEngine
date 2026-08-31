@@ -92,8 +92,12 @@ mod tests {
     #[test]
     fn frame_selection_centers_the_active_multiselection_instead_of_the_primary_item() {
         let mut scene = Scene::new();
-        let left = scene.spawn_node(NodeKind::Empty);
-        let right = scene.spawn_node(NodeKind::Empty);
+        let left = scene
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
+        let right = scene
+            .spawn_node(NodeKind::Empty)
+            .expect("test scene spawn should succeed");
         scene
             .update_transform(
                 left,

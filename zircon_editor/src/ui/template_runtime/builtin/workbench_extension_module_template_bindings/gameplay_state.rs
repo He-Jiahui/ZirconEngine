@@ -1,19 +1,6 @@
 use super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(super) const GAMEPLAY_STATE_BINDINGS: &[ExtensionBindingSpec] = &[
-    click("SpawnRulesOpen", "workbench.extension.spawn_rules.open"),
-    click(
-        "SpawnRulesRulesTab",
-        "workbench.extension.spawn_rules.rules_tab.select",
-    ),
-    click(
-        "SpawnRulesStateTab",
-        "workbench.extension.spawn_rules.state_tab.select",
-    ),
-    click(
-        "SpawnRulesValidationTab",
-        "workbench.extension.spawn_rules.validation_tab.select",
-    ),
     click(
         "SpawnRulesEnemyRow",
         "workbench.extension.spawn_rules.enemy_row.select",
@@ -41,10 +28,6 @@ pub(super) const GAMEPLAY_STATE_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "SpawnRulesConflictTableRow",
         "workbench.extension.spawn_rules.conflict_table_row.select",
-    ),
-    click(
-        "SpawnRulesOutput",
-        "workbench.extension.spawn_rules.output.select",
     ),
     click(
         "SpawnRulesSimulate",
@@ -78,19 +61,6 @@ pub(super) const GAMEPLAY_STATE_BINDINGS: &[ExtensionBindingSpec] = &[
         "SpawnRulesSeedCommit",
         "workbench.extension.spawn_rules.seed.commit",
     ),
-    click("WorldStateOpen", "workbench.extension.world_state.open"),
-    click(
-        "WorldStateKeysTab",
-        "workbench.extension.world_state.keys_tab.select",
-    ),
-    click(
-        "WorldStateScenarioTab",
-        "workbench.extension.world_state.scenario_tab.select",
-    ),
-    click(
-        "WorldStateTimelineTab",
-        "workbench.extension.world_state.timeline_tab.select",
-    ),
     click(
         "WorldStateNightRaidRow",
         "workbench.extension.world_state.night_raid_row.select",
@@ -118,10 +88,6 @@ pub(super) const GAMEPLAY_STATE_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "WorldStateQuestFlagTableRow",
         "workbench.extension.world_state.quest_flag_table_row.select",
-    ),
-    click(
-        "WorldStateOutput",
-        "workbench.extension.world_state.output.select",
     ),
     click(
         "WorldStateSimulate",
@@ -155,19 +121,6 @@ pub(super) const GAMEPLAY_STATE_BINDINGS: &[ExtensionBindingSpec] = &[
         "WorldStateAuthorityCommit",
         "workbench.extension.world_state.authority.commit",
     ),
-    click("NavmeshAiOpen", "workbench.extension.navmesh_ai.open"),
-    click(
-        "NavmeshAiTilesTab",
-        "workbench.extension.navmesh_ai.tiles_tab.select",
-    ),
-    click(
-        "NavmeshAiAgentsTab",
-        "workbench.extension.navmesh_ai.agents_tab.select",
-    ),
-    click(
-        "NavmeshAiQueriesTab",
-        "workbench.extension.navmesh_ai.queries_tab.select",
-    ),
     click(
         "NavmeshAiMainNavmeshRow",
         "workbench.extension.navmesh_ai.main_navmesh_row.select",
@@ -195,10 +148,6 @@ pub(super) const GAMEPLAY_STATE_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "NavmeshAiBlockedLinkTableRow",
         "workbench.extension.navmesh_ai.blocked_link_table_row.select",
-    ),
-    click(
-        "NavmeshAiOutput",
-        "workbench.extension.navmesh_ai.output.select",
     ),
     click(
         "NavmeshAiRebuild",

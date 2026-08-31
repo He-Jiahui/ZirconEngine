@@ -8,20 +8,27 @@ use super::super::RuntimeEntryApp;
 impl ApplicationHandler for RuntimeEntryApp {
     fn resumed(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "resumed");
-        if self.create_primary_window_surface(event_loop)
-            && self.submit_mvp_input_probe_if_requested(event_loop)
-        {
-            self.request_runtime_frame();
-        }
+        self.handle_application_resumed(event_loop);
     }
 
     fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "can_create_surfaces");
-        if self.create_primary_window_surface(event_loop)
-            && self.submit_mvp_input_probe_if_requested(event_loop)
-        {
-            self.request_runtime_frame();
-        }
+        self.handle_surface_availability(event_loop);
+    }
+
+    fn suspended(&mut self, event_loop: &dyn ActiveEventLoop) {
+        zircon_runtime::profile_scope!("app", "runtime_entry", "suspended");
+        self.handle_application_suspended(event_loop);
+    }
+
+    fn destroy_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
+        zircon_runtime::profile_scope!("app", "runtime_entry", "destroy_surfaces");
+        self.handle_surface_destruction(event_loop);
+    }
+
+    fn exiting(&mut self, event_loop: &dyn ActiveEventLoop) {
+        zircon_runtime::profile_scope!("app", "runtime_entry", "exiting");
+        self.handle_application_exit(event_loop);
     }
 
     fn proxy_wake_up(&mut self, _event_loop: &dyn ActiveEventLoop) {
@@ -44,7 +51,7 @@ impl ApplicationHandler for RuntimeEntryApp {
 
     fn about_to_wait(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "about_to_wait");
-        if !self.failure_state.is_recorded() {
+        if !self.failure_state.is_recorded() && self.application_lifecycle.allows_frame_pump() {
             self.pump_frame_loop(event_loop);
         }
     }
@@ -65,14 +72,25 @@ impl ApplicationHandler for RuntimeEntryApp {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn input_probe_failure_blocks_initial_frame_scheduling_for_both_surface_hooks() {
-        let source = include_str!("hooks.rs");
-        let probe_then_frame = [
-            "&& self.submit_mvp_input_probe_if_requested(event_loop)\n",
-            "        {\n            self.request_runtime_frame();\n        }",
-        ]
-        .concat();
+    fn surface_ownership_is_confirmed_before_input_probe_controls_initial_frame_scheduling() {
+        let source = include_str!("../application_lifecycle/events.rs");
+        let surface_created = source
+            .find("if self.create_primary_window_surface(event_loop) {")
+            .expect(
+                "surface availability should create the primary window only after winit admission",
+            );
+        let ownership_confirmed = source
+            .find("self.application_lifecycle.confirm_surface_created();")
+            .expect("successful native creation should immediately update lifecycle ownership");
+        let input_probe = source
+            .find("if self.submit_mvp_input_probe_if_requested(event_loop) {")
+            .expect("input probe should continue to gate the initial frame");
+        let frame_requested = source
+            .find("self.request_runtime_frame();")
+            .expect("input probe success should schedule the initial frame");
 
-        assert_eq!(source.matches(&probe_then_frame).count(), 2);
+        assert!(surface_created < ownership_confirmed);
+        assert!(ownership_confirmed < input_probe);
+        assert!(input_probe < frame_requested);
     }
 }

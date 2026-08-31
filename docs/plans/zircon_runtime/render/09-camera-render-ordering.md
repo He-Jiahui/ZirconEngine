@@ -479,3 +479,12 @@ pub struct RenderPhaseSortComponents {
 - 2026-07-18 framework camera-loop plan交接：terminal target不再物化完整submission Vec，planar target查重也已由P×C降为一次HashSet；CO-M1/M2仍须让order report/sequence/submission/preflight共享唯一`CompiledCameraSubmissionPlan`，并让post/visibility/source payload按generation handle恢复。stable plan build/sort/large clone=0、每loop resolve≤1；见PERF-MVP-417并复用345/410。
 - 2026-07-18 custom-target visibility补充：extra view candidate Vec已整帧共享且相机matrix/tan每view只算一次；但每个非primary target仍全primitive cull并在事后做layer过滤。Render09向PERF-MVP-419的compiled camera plan发布culling mask/class与prepared view descriptor，Render04先过滤再测试；stable descriptor/frustum build=0，多camera不得各自重建scene SoA。
 - 2026-07-18 graphics types补充：`ViewportRenderFrame`跨camera恢复仍clone visibility、post volumes/stack/graph。Render09在PERF-MVP-417的`CompiledCameraSubmissionPlan`为每slot发布source generation handles与terminal target policy，Runtime07只切换句柄；stable plan/source clone=0，camera间大payload复制=0。
+- 2026-08-28 viewport output planner owner split：757 行
+  `graphics/types/viewport_render_output_target.rs` 已收束为 83 行 target declaration/resolution
+  root、217 行 `viewport_render_output_target/writeback.rs`、217 行
+  `viewport_render_output_target/graph_import.rs` 与 268 行 tests owner。26 个生产/行为块相对
+  `HEAD` 的规范化 SHA-256 26/26 等价，结构守卫固定格式漂移、sRGB direct path、linear
+  conversion 和 blocked 状态顺序。状态：
+  `runtime_render_09_15_viewport_output_planner_owner_split_static_passed_cargo_deferred`。
+  这不实现 PERF-MVP-417 的 retained `CompiledCameraSubmissionPlan`，不声明复杂度、GPU/CPU、
+  功耗或产品验收收益；Cargo/product/profile 仍延后。

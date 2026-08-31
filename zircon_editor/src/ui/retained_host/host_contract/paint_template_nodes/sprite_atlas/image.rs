@@ -1,7 +1,11 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
+
+#[cfg(test)]
+#[path = "image/hash_index_tests.rs"]
+mod hash_index_tests;
 
 const MAX_ATLAS_RGBA_CACHE_ENTRIES: usize = 64;
 const MAX_ATLAS_RGBA_CACHE_BYTES: usize = 64 * 1024 * 1024;
@@ -20,8 +24,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Atl
 
 #[derive(Default)]
 struct AtlasRgbaCache {
-    entries: BTreeMap<PathBuf, AtlasRgba>,
-    resource_index: BTreeMap<String, AtlasRgbaResourceIndex>,
+    entries: HashMap<PathBuf, AtlasRgba>,
+    resource_index: HashMap<String, AtlasRgbaResourceIndex>,
     resident_bytes: usize,
 }
 
@@ -60,7 +64,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_at
         && (cache.entries.len() >= MAX_ATLAS_RGBA_CACHE_ENTRIES
             || cache.resident_bytes.saturating_add(decoded.rgba.len()) > MAX_ATLAS_RGBA_CACHE_BYTES)
     {
-        let Some(evicted_key) = cache.entries.keys().next().cloned() else {
+        let Some(evicted_key) = eviction_texture_path(&cache.entries) else {
             break;
         };
         cache.remove(&evicted_key);
@@ -78,6 +82,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_at
     );
     cache.entries.insert(texture_path, decoded);
     Some(metadata)
+}
+
+fn eviction_texture_path(entries: &HashMap<PathBuf, AtlasRgba>) -> Option<PathBuf> {
+    entries.keys().min().cloned()
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn copy_atlas_rgba(

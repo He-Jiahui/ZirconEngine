@@ -41,4 +41,3 @@ pub fn editor_capabilities() -> Vec<String> {
 pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
     zircon_plugin_rendering_volumetric_fog_runtime::feature_manifest()
 }
-

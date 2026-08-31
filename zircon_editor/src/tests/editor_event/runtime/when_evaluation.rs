@@ -29,7 +29,7 @@ fn register_when_command(
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "When Command")
+            EditorCommandDescriptor::operation(operation_path.clone())
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
                 .with_when(when),
         )
@@ -100,7 +100,8 @@ fn workbench_position_commit_dispatches_a_typed_inspector_transaction() {
         shell
             .state
             .world
-            .try_with_world(|scene| scene.find_node(selected).unwrap().transform.translation.x)
+            .expect_with_world(|scene| scene.find_node(selected).unwrap().transform.translation.x)
+            .expect("default world gateway should succeed")
             .expect("default world should remain loaded")
     };
     assert_eq!(committed_x, 4.25);
@@ -137,7 +138,8 @@ fn workbench_scale_commit_dispatches_a_typed_inspector_transaction() {
         shell
             .state
             .world
-            .try_with_world(|scene| scene.find_node(selected).unwrap().transform.scale.x)
+            .expect_with_world(|scene| scene.find_node(selected).unwrap().transform.scale.x)
+            .expect("default world gateway should succeed")
             .expect("default world should remain loaded")
     };
     assert_eq!(committed_x, 2.5);
@@ -214,7 +216,8 @@ fn workbench_position_commit_publishes_only_inspection_generation_and_property_d
         let generation = shell
             .state
             .world
-            .try_with_world(|scene| scene.world_generation())
+            .expect_with_world(|scene| scene.world_generation())
+            .expect("default world gateway should succeed")
             .expect("default world should remain loaded");
         (selected, generation)
     };
@@ -361,7 +364,7 @@ fn remote_capability_failure_comes_from_effective_when() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Capability")
+            EditorCommandDescriptor::operation(operation_path.clone())
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
                 .with_required_capabilities(["editor.extension.missing"]),
         )

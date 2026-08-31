@@ -324,7 +324,7 @@ mod tests {
         let floating_windows = FloatingWindowProjectionBundle::default();
         let mut cache = HostChromeProjectionCache::default();
 
-        let first = ShellPresentation::from_state_with_template_v2_data_and_cache(
+        let first = ShellPresentation::from_state(
             &first_model,
             &chrome,
             &geometry,
@@ -351,7 +351,7 @@ mod tests {
             &mut cache,
         );
 
-        let second = ShellPresentation::from_state_with_template_v2_data_and_cache(
+        let second = ShellPresentation::from_state(
             &second_model,
             &chrome,
             &geometry,

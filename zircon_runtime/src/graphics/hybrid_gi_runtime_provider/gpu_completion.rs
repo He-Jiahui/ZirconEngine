@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    RenderHybridGiGlobalSdfStats, RenderHybridGiReadbackOutputs,
-    RenderHybridGiScenePrepareReadbackOutputs, RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT,
+    RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT, RenderHybridGiGlobalSdfStats,
+    RenderHybridGiReadbackOutputs, RenderHybridGiScenePrepareReadbackOutputs,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -205,10 +205,10 @@ mod tests {
 
     #[test]
     fn gpu_completion_skips_empty_neutral_hybrid_gi_readback_outputs() {
-        assert!(HybridGiGpuCompletion::from_readback_outputs(
-            RenderHybridGiReadbackOutputs::default()
-        )
-        .is_none());
+        assert!(
+            HybridGiGpuCompletion::from_readback_outputs(RenderHybridGiReadbackOutputs::default())
+                .is_none()
+        );
     }
 
     #[test]

@@ -186,18 +186,28 @@ impl fmt::Display for ExportPipelinePlanError {
                 stage.cli_id(),
                 dependency.cli_id()
             ),
-            Self::DependencyCycle { stages } => write!(
-                formatter,
-                "export stage dependency cycle contains: {}",
-                stages
-                    .iter()
-                    .map(|stage| stage.cli_id())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            Self::DependencyCycle { stages } => write_dependency_cycle(formatter, stages),
         }
     }
 }
+
+fn write_dependency_cycle(
+    formatter: &mut fmt::Formatter<'_>,
+    stages: &[ExportStage],
+) -> fmt::Result {
+    formatter.write_str("export stage dependency cycle contains: ")?;
+    for (index, stage) in stages.iter().enumerate() {
+        if index != 0 {
+            formatter.write_str(", ")?;
+        }
+        formatter.write_str(stage.cli_id())?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "pipeline/dependency_cycle_format_tests.rs"]
+mod dependency_cycle_format_tests;
 
 impl Error for ExportPipelinePlanError {}
 

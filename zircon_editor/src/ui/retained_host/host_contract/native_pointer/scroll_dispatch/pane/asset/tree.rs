@@ -12,7 +12,7 @@ pub(super) fn dispatch_asset_tree_scroll(
     };
 
     pane_host.invoke_asset_tree_pointer_scrolled(
-        mode.clone(),
+        mode.as_str().into(),
         pointer.local_x,
         pointer.local_y,
         delta,

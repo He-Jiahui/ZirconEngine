@@ -7,7 +7,9 @@ use zircon_runtime::core::math::{Vec3, Vec4};
 use zircon_runtime::core::resource::ResourceId;
 
 use super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
-use super::material_capture_source::{HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource};
+use super::material_capture_source::{
+    HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource, HybridGiMaterialCaptureTextureKey,
+};
 
 fn card_capture_debug_rgba(request: &HybridGiPrepareCardCaptureRequest) -> [u8; 4] {
     [
@@ -77,32 +79,32 @@ pub(super) fn rgba8_from_color(color: Vec3) -> [u8; 4] {
 
 fn sample_material_texture_rgba(
     streamer: &impl HybridGiMaterialCaptureSource,
-    texture_id: Option<ResourceId>,
+    texture: Option<HybridGiMaterialCaptureTextureKey>,
     uv: [f32; 2],
 ) -> Vec4 {
     streamer
-        .sample_texture_rgba(texture_id, uv)
+        .sample_texture_rgba(texture, uv)
         .unwrap_or(Vec4::ONE)
 }
 
 fn sample_material_texture_rgb(
     streamer: &impl HybridGiMaterialCaptureSource,
-    texture_id: Option<ResourceId>,
+    texture: Option<HybridGiMaterialCaptureTextureKey>,
     uv: [f32; 2],
 ) -> Vec3 {
-    let sample = sample_material_texture_rgba(streamer, texture_id, uv);
+    let sample = sample_material_texture_rgba(streamer, texture, uv);
     Vec3::new(sample.x, sample.y, sample.z)
 }
 
 fn sample_material_texture_value(
     streamer: &impl HybridGiMaterialCaptureSource,
-    texture_id: Option<ResourceId>,
+    texture: Option<HybridGiMaterialCaptureTextureKey>,
     uv: [f32; 2],
     channel: usize,
     default_value: f32,
 ) -> f32 {
     streamer
-        .sample_texture_rgba(texture_id, uv)
+        .sample_texture_rgba(texture, uv)
         .map(|sample| match channel {
             0 => sample.x,
             1 => sample.y,
@@ -113,10 +115,15 @@ fn sample_material_texture_value(
         .unwrap_or(default_value)
 }
 
-fn decode_normal_texture(sample: Vec3) -> Vec3 {
+fn decode_normal_texture(sample: Vec3, normal_scale: f32) -> Vec3 {
+    let normal_scale = if normal_scale.is_finite() {
+        normal_scale
+    } else {
+        1.0
+    };
     let decoded = Vec3::new(
-        sample.x * 2.0 - 1.0,
-        sample.y * 2.0 - 1.0,
+        (sample.x * 2.0 - 1.0) * normal_scale,
+        (sample.y * 2.0 - 1.0) * normal_scale,
         sample.z * 2.0 - 1.0,
     )
     .normalize_or_zero();
@@ -129,13 +136,14 @@ fn decode_normal_texture(sample: Vec3) -> Vec3 {
 
 fn sample_material_normal(
     streamer: &impl HybridGiMaterialCaptureSource,
-    texture_id: Option<ResourceId>,
+    texture: Option<HybridGiMaterialCaptureTextureKey>,
     uv: [f32; 2],
+    normal_scale: f32,
     fallback_normal: Vec3,
 ) -> Vec3 {
     streamer
-        .sample_texture_rgba(texture_id, uv)
-        .map(|sample| decode_normal_texture(Vec3::new(sample.x, sample.y, sample.z)))
+        .sample_texture_rgba(texture, uv)
+        .map(|sample| decode_normal_texture(Vec3::new(sample.x, sample.y, sample.z), normal_scale))
         .unwrap_or(fallback_normal)
 }
 
@@ -276,6 +284,7 @@ fn default_material_capture_seed() -> HybridGiMaterialCaptureSeed {
         metallic: 0.0,
         roughness: 1.0,
         occlusion_strength: 1.0,
+        normal_scale: 1.0,
         double_sided: false,
         alpha_blend: false,
         alpha_cutoff: None,
@@ -355,6 +364,7 @@ pub(super) fn mesh_capture_radiance(
         streamer,
         material.normal_texture,
         texture_uv,
+        material.normal_scale,
         card_normal(mesh),
     );
     let direct_light = inputs
@@ -554,6 +564,18 @@ mod tests {
     }
 
     #[test]
+    fn normal_texture_scale_only_scales_tangent_xy_before_normalization() {
+        let unscaled = decode_normal_texture(Vec3::new(0.75, 0.5, 1.0), 1.0);
+        let flattened = decode_normal_texture(Vec3::new(0.75, 0.5, 1.0), 0.0);
+        let non_finite = decode_normal_texture(Vec3::new(0.75, 0.5, 1.0), f32::NAN);
+
+        assert!(unscaled.x > 0.0);
+        assert!(unscaled.z < 1.0);
+        assert_eq!(flattened, Vec3::Z);
+        assert_eq!(non_finite, unscaled);
+    }
+
+    #[test]
     fn card_capture_applies_gltf_occlusion_strength_to_indirect_light() {
         let no_occlusion = capture_ambient_with_occlusion_strength(0.0);
         let quarter_strength = capture_ambient_with_occlusion_strength(0.25);
@@ -568,7 +590,7 @@ mod tests {
 
     struct OcclusionCaptureSource {
         seed: HybridGiMaterialCaptureSeed,
-        occlusion_texture: ResourceId,
+        occlusion_texture: HybridGiMaterialCaptureTextureKey,
     }
 
     impl HybridGiMaterialCaptureSource for OcclusionCaptureSource {
@@ -576,14 +598,21 @@ mod tests {
             Some(self.seed)
         }
 
-        fn sample_texture_rgba(&self, id: Option<ResourceId>, _uv: [f32; 2]) -> Option<Vec4> {
-            (id == Some(self.occlusion_texture)).then_some(Vec4::splat(0.2))
+        fn sample_texture_rgba(
+            &self,
+            texture: Option<HybridGiMaterialCaptureTextureKey>,
+            _uv: [f32; 2],
+        ) -> Option<Vec4> {
+            (texture == Some(self.occlusion_texture)).then_some(Vec4::splat(0.2))
         }
     }
 
     fn capture_ambient_with_occlusion_strength(occlusion_strength: f32) -> Vec3 {
         let material_id = ResourceId::from_stable_label("res://materials/occlusion.zmaterial");
-        let occlusion_texture = ResourceId::from_stable_label("res://textures/occlusion.png");
+        let occlusion_texture = HybridGiMaterialCaptureTextureKey::new(
+            ResourceId::from_stable_label("res://textures/occlusion.png"),
+            1,
+        );
         let source = OcclusionCaptureSource {
             seed: HybridGiMaterialCaptureSeed {
                 base_color: Vec4::ONE,
@@ -591,6 +620,7 @@ mod tests {
                 metallic: 0.0,
                 roughness: 1.0,
                 occlusion_strength,
+                normal_scale: 1.0,
                 double_sided: false,
                 alpha_blend: false,
                 alpha_cutoff: None,

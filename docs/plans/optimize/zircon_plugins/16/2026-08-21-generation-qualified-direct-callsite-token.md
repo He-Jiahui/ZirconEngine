@@ -3,7 +3,7 @@
 - Date: 2026-08-21
 - Owner: `optimize-plugins16-callsite-token-r1-01a00797-20260821`
 - Source plan: `docs/plans/optimize/zircon_plugins/16-first-party-zr-vm-language-source-runtime-dist-catalog-reflection-callsite-host-interface-gc-hot-reload-product-integration-review.md`, NZR-P1-022
-- Status: implementation complete; combined managed validation pending
+- Status: implementation and focused static validation complete; managed release timing queued
 
 ## Problem
 
@@ -46,6 +46,27 @@ and token order.
 Exact Windows P50/P95 values remain pending the combined coordinator batch and
 must be written here before integration acceptance.
 
+## Current Execution Evidence
+
+- Integration Session: `root-runtime-interface03-activate-link-failure-20260831`.
+- Exact-path ownership transfer applied by request
+  `7788690352e049958d59223c90847d58`, from preview
+  `6a34f771bb334e428bef3d596538264e` and fingerprint
+  `4962ef7107a638dc7fce4400bad7ba8b228b04dcf1df1b9984003964621c9244`.
+- Current source SHA-256:
+  `script_call_table.rs=6485FCDF76C1CF3BC5586AB713AC7D38F736D823C0E6497E3DBDCF4E1391948C`,
+  `tests.rs=3D18095D32175F35DB57C39359185A3D3F211ED91AE9231E1E04CD5444897AD3`.
+- Deterministic work-model manifest SHA-256:
+  `3826DE9DB61E243A8BD83B74CBE4413B809D847369034D04DC34CA6A08C7C3B7`.
+  The model records `4,096 -> 1` compile atomics, `4,096 -> 0` retained
+  token-hash entries, and `131,072 -> 0` token-hash lookups while preserving
+  `131,072` direct-index dispatches.
+- Focused source/model contract passed locally `7/7`; the source-bound managed
+  static ticket is `2acef3a01bd94382b3d948612c6c0971`.
+- Exact ignored Windows release benchmark ticket
+  `74b6e322d0394b3f9cc81afadff564ef` is queued. Its 21 alternating sample
+  pairs are the only accepted source for the pending P50/P95 values.
+
 The pinned Plugins16 child validator is
 `zircon-validation-plugins16-callsite-token.ps1` at SHA-256
 `DF42A70B1AB6FFA87D694941C133AB00ECB406786537C5BF12104393557FF5A7`.
@@ -64,9 +85,9 @@ It is aggregated with the existing six plugin batches by
 - `generation_qualified_direct_token_release_benchmark` emits 21 alternating
   raw sample pairs, recomputable nearest-rank P50/P95 values, and exact atomic,
   hash-entry, hash-lookup, and direct-index counts.
-- Exact-file Rustfmt, scoped diff checks, Cargo regressions, and release timing
-  are required in one managed multi-task Windows validation copy. No per-task
-  Cargo invocation is used.
+- Exact-file Rustfmt and scoped diff checks are green. Cargo regressions and
+  release timing are queued in the managed Windows lane; no synchronous wait
+  or duplicate Cargo invocation is used.
 
 ## Remaining Scope
 

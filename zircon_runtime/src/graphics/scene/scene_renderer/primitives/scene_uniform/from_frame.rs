@@ -1,6 +1,7 @@
 use crate::core::framework::render::{ProjectionMode, SkyboxMode, ViewProjectionMatrixPair};
-use crate::core::math::{Mat4, RenderMat4, RenderVec3};
+use crate::core::math::{Mat4, RenderMat4, RenderVec3, UVec2};
 
+use crate::graphics::ViewportRenderRegion;
 use crate::graphics::scene::scene_renderer::temporal::velocity::velocity_camera_params::VelocityCameraParams;
 use crate::graphics::types::ViewportRenderFrame;
 
@@ -10,10 +11,11 @@ use super::SceneUniform;
 impl SceneUniform {
     pub(crate) fn from_frame(frame: &ViewportRenderFrame) -> Self {
         let camera = frame.effective_camera();
-        let ambient_color = if frame.preview().lighting_enabled {
-            authored_ambient_color(frame, RenderVec3::splat(0.2))
+        let (ambient_color, lightmapped_ambient_color) = if frame.preview().lighting_enabled {
+            authored_ambient_colors(frame, RenderVec3::splat(0.2))
         } else {
-            RenderVec3::splat(0.55).extend(1.0).to_array()
+            let fallback = RenderVec3::splat(0.55).extend(1.0).to_array();
+            (fallback, fallback)
         };
 
         let matrix_pair =
@@ -40,7 +42,7 @@ impl SceneUniform {
         let resolved_sun = sky_params.resolved_sun();
         let scene_sun_direction =
             resolved_sun.direction_for_sampling_rotation(environment_rotation);
-        let source_cubemap_environment = skybox.source_cubemap_environment();
+        let source_cubemap_environment = frame.source_cubemap_environment();
         let has_ibl_source = match skybox.mode {
             SkyboxMode::Disabled => false,
             SkyboxMode::ProceduralGradient => true,
@@ -70,6 +72,7 @@ impl SceneUniform {
             inverse_view_proj: render_mat4_or(view_proj_unjittered.inverse(), RenderMat4::IDENTITY)
                 .to_cols_array_2d(),
             ambient_color,
+            lightmapped_ambient_color,
             previous_view_proj_unjittered,
             motion_params,
             jitter_params: jitter_params(&camera),
@@ -114,6 +117,41 @@ impl SceneUniform {
             environment_rotation_sin_cos,
         }
     }
+
+    pub(crate) fn from_hit_proxy_frame(frame: &ViewportRenderFrame, pixel: UVec2) -> Option<Self> {
+        let crop = hit_proxy_clip_crop(pixel, frame.render_region())?;
+        let mut uniform = Self::from_frame(frame);
+        let jittered = crop * Mat4::from_cols_array_2d(&uniform.view_proj);
+        let unjittered = crop * Mat4::from_cols_array_2d(&uniform.view_proj_unjittered);
+        uniform.view_proj = render_mat4_or(jittered, RenderMat4::IDENTITY).to_cols_array_2d();
+        uniform.view_proj_unjittered =
+            render_mat4_or(unjittered, RenderMat4::IDENTITY).to_cols_array_2d();
+        uniform.inverse_view_proj =
+            render_mat4_or(unjittered.inverse(), RenderMat4::IDENTITY).to_cols_array_2d();
+        Some(uniform)
+    }
+}
+
+fn hit_proxy_clip_crop(pixel: UVec2, region: ViewportRenderRegion) -> Option<Mat4> {
+    let origin = region.physical_position();
+    let size = region.physical_size();
+    if pixel.x < origin.x || pixel.y < origin.y {
+        return None;
+    }
+    let local = pixel - origin;
+    if local.x >= size.x || local.y >= size.y {
+        return None;
+    }
+    let width = size.x as f32;
+    let height = size.y as f32;
+    let center_x = 2.0 * (local.x as f32 + 0.5) / width - 1.0;
+    let center_y = 1.0 - 2.0 * (local.y as f32 + 0.5) / height;
+    Some(Mat4::from_cols_array_2d(&[
+        [width, 0.0, 0.0, 0.0],
+        [0.0, height, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [-width * center_x, -height * center_y, 0.0, 1.0],
+    ]))
 }
 
 fn previous_motion_view_projection(
@@ -171,36 +209,66 @@ fn camera_view_direction(
     ]
 }
 
-fn authored_ambient_color(
+fn authored_ambient_colors(
     frame: &crate::graphics::types::ViewportRenderFrame,
     fallback: RenderVec3,
-) -> [f32; 4] {
+) -> ([f32; 4], [f32; 4]) {
     if frame.ambient_lights().is_empty() {
-        return fallback.extend(1.0).to_array();
+        let fallback = fallback.extend(1.0).to_array();
+        return (fallback, fallback);
     }
 
-    frame
-        .ambient_lights()
-        .iter()
-        .fold(RenderVec3::ZERO, |accumulated, light| {
-            accumulated + render_vec3_or(light.color * light.intensity, RenderVec3::ZERO)
-        })
-        .extend(1.0)
-        .to_array()
+    let (ambient, lightmapped_ambient) = frame.ambient_lights().iter().fold(
+        (RenderVec3::ZERO, RenderVec3::ZERO),
+        |accumulated, light| {
+            let radiance = render_vec3_or(light.color * light.intensity, RenderVec3::ZERO);
+            (
+                accumulated.0 + radiance,
+                accumulated.1
+                    + if light.affects_lightmapped_meshes {
+                        radiance
+                    } else {
+                        RenderVec3::ZERO
+                    },
+            )
+        },
+    );
+    (
+        ambient.extend(1.0).to_array(),
+        lightmapped_ambient.extend(1.0).to_array(),
+    )
 }
 
 #[cfg(test)]
 mod tests {
-    use super::SceneUniform;
+    use super::{SceneUniform, hit_proxy_clip_crop};
     use crate::core::framework::render::{
         EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
         RenderAmbientLightSnapshot, RenderFrameExtract, RenderOverlayExtract,
         RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
         TemporalJitterSample, ViewProjectionMatrixPair, ViewportCameraSnapshot,
     };
-    use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
+    use crate::core::math::{Quat, Transform, UVec2, Vec2, Vec3, Vec4};
+    use crate::graphics::ViewportRenderRegion;
     use crate::graphics::scene::scene_renderer::primitives::SceneEnvironmentSh9;
     use crate::graphics::types::ViewportRenderFrame;
+
+    #[test]
+    fn hit_proxy_clip_crop_maps_the_requested_pixel_center_to_the_single_texel() {
+        let region = ViewportRenderRegion::full_target(UVec2::new(100, 50));
+        let pixel = UVec2::new(73, 11);
+        let crop = hit_proxy_clip_crop(pixel, region).expect("pixel inside render region");
+        let center_x = 2.0 * (pixel.x as f32 + 0.5) / 100.0 - 1.0;
+        let center_y = 1.0 - 2.0 * (pixel.y as f32 + 0.5) / 50.0;
+
+        let cropped = crop * Vec4::new(center_x, center_y, 0.25, 1.0);
+
+        assert_close(cropped.x, 0.0);
+        assert_close(cropped.y, 0.0);
+        assert_close(cropped.z, 0.25);
+        assert_close(cropped.w, 1.0);
+        assert!(hit_proxy_clip_crop(UVec2::new(100, 49), region).is_none());
+    }
 
     #[test]
     fn scene_uniform_uses_authored_ambient_light_when_lighting_is_enabled() {
@@ -215,6 +283,7 @@ mod tests {
             .push(RenderAmbientLightSnapshot {
                 color: Vec3::new(0.05, 0.06, 0.07),
                 intensity: 0.35,
+                affects_lightmapped_meshes: false,
                 renderer_degraded: false,
                 degradation_reason: None,
             });
@@ -224,6 +293,7 @@ mod tests {
             .push(RenderAmbientLightSnapshot {
                 color: Vec3::new(0.01, 0.02, 0.03),
                 intensity: 0.5,
+                affects_lightmapped_meshes: true,
                 renderer_degraded: false,
                 degradation_reason: None,
             });
@@ -235,6 +305,10 @@ mod tests {
         assert_close(uniform.ambient_color[1], 0.031);
         assert_close(uniform.ambient_color[2], 0.0395);
         assert_eq!(uniform.ambient_color[3], 1.0);
+        assert_close(uniform.lightmapped_ambient_color[0], 0.005);
+        assert_close(uniform.lightmapped_ambient_color[1], 0.01);
+        assert_close(uniform.lightmapped_ambient_color[2], 0.015);
+        assert_eq!(uniform.lightmapped_ambient_color[3], 1.0);
     }
 
     #[test]
@@ -295,17 +369,21 @@ mod tests {
     }
 
     #[test]
-    fn scene_uniform_marks_orthographic_camera_view_direction() {
+    fn scene_uniform_orthographic_view_direction_uses_rotated_camera_backward_axis() {
         let mut extract = RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(7),
             empty_scene_snapshot(),
         );
         extract.view.camera.projection_mode = ProjectionMode::Orthographic;
+        extract.view.camera.transform.rotation = Quat::from_rotation_y(std::f32::consts::FRAC_PI_2);
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
 
         let uniform = SceneUniform::from_frame(&frame);
 
-        assert_eq!(uniform.camera_view_direction, [0.0, 0.0, 1.0, 1.0]);
+        assert_close(uniform.camera_view_direction[0], 1.0);
+        assert_close(uniform.camera_view_direction[1], 0.0);
+        assert_close(uniform.camera_view_direction[2], 0.0);
+        assert_eq!(uniform.camera_view_direction[3], 1.0);
     }
 
     #[test]
@@ -369,7 +447,7 @@ mod tests {
             RenderWorldSnapshotHandle::new(7),
             empty_scene_snapshot(),
         );
-        extract.environment = EnvironmentExtract::procedural_default();
+        extract.environment = EnvironmentExtract::procedural_default().into();
         extract.environment.skybox.procedural.sun_direction = Vec4::new(0.0, 3.0, 4.0, 0.0);
         extract.environment.skybox.procedural.sun_intensity = 2.0;
         extract
@@ -407,7 +485,7 @@ mod tests {
             RenderWorldSnapshotHandle::new(7),
             empty_scene_snapshot(),
         );
-        extract.environment = EnvironmentExtract::procedural_default();
+        extract.environment = EnvironmentExtract::procedural_default().into();
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
 
         let mut uniform = SceneUniform::from_frame(&frame);
@@ -435,7 +513,7 @@ mod tests {
             RenderWorldSnapshotHandle::new(7),
             empty_scene_snapshot(),
         );
-        extract.environment = EnvironmentExtract::procedural_default();
+        extract.environment = EnvironmentExtract::procedural_default().into();
         extract.environment.skybox.procedural.sun_intensity = 1.0;
         extract.environment.skybox.procedural.rotation_radians = f32::NAN;
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
@@ -462,7 +540,7 @@ mod tests {
             RenderWorldSnapshotHandle::new(7),
             empty_scene_snapshot(),
         );
-        extract.environment = EnvironmentExtract::source_cubemap(source);
+        extract.environment = EnvironmentExtract::source_cubemap(source).into();
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
 
         let uniform = SceneUniform::from_frame(&frame);
@@ -498,7 +576,7 @@ mod tests {
             RenderWorldSnapshotHandle::new(7),
             empty_scene_snapshot(),
         );
-        extract.environment = EnvironmentExtract::source_cubemap(source);
+        extract.environment = EnvironmentExtract::source_cubemap(source).into();
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
 
         let uniform = SceneUniform::from_frame(&frame);

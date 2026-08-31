@@ -9,7 +9,7 @@ export interface EventCallbacks {
 }
 
 export function openControlEvents(cursor: number, callbacks: EventCallbacks): () => void {
-  const source = new EventSource(`/control/v1/events/stream?cursor=${encodeURIComponent(cursor)}`, { withCredentials: true });
+  const source = new EventSource(`/control/v1/events/stream?cursor=${encodeURIComponent(cursor)}`);
   source.onopen = () => callbacks.onConnection(true);
   source.addEventListener("coordinator", (raw) => {
     try {

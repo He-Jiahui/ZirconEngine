@@ -1,23 +1,7 @@
-use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
-use zircon_runtime_interface::ui::event_ui::UiTreeId;
-
-use super::{
-    host_document_tab_pointer_bridge::HostDocumentTabPointerBridge,
-    host_document_tab_pointer_layout::HostDocumentTabPointerLayout,
-};
+use super::host_document_tab_pointer_bridge::HostDocumentTabPointerBridge;
 
 impl HostDocumentTabPointerBridge {
     pub(crate) fn new() -> Self {
-        let mut bridge = Self {
-            layout: HostDocumentTabPointerLayout::default(),
-            measured_frames: Default::default(),
-            surface: UiSurface::new(UiTreeId::new("zircon.editor.document_tab.pointer")),
-            dispatcher: UiPointerDispatcher::default(),
-            route_intents: Default::default(),
-            #[cfg(test)]
-            surface_authority_generation: 0,
-        };
-        bridge.rebuild_surface();
-        bridge
+        Self::default()
     }
 }

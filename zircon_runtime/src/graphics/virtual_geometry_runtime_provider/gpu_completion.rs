@@ -113,10 +113,12 @@ mod tests {
 
     #[test]
     fn gpu_completion_skips_empty_neutral_virtual_geometry_readback_outputs() {
-        assert!(VirtualGeometryGpuCompletion::from_readback_outputs(
-            RenderVirtualGeometryReadbackOutputs::default()
-        )
-        .is_none());
+        assert!(
+            VirtualGeometryGpuCompletion::from_readback_outputs(
+                RenderVirtualGeometryReadbackOutputs::default()
+            )
+            .is_none()
+        );
     }
 
     #[test]

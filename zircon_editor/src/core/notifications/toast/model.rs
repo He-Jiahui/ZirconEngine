@@ -101,7 +101,7 @@ fn key(field: &'static str, value: impl Into<String>) -> Result<Arc<str>, ToastN
 
 #[cfg(test)]
 mod tests {
-    use super::{ToastNotification, MAX_TOAST_KEY_BYTES};
+    use super::{MAX_TOAST_KEY_BYTES, ToastNotification};
 
     #[test]
     fn bounded_message_preserves_utf8_boundary_and_contract_limit() {

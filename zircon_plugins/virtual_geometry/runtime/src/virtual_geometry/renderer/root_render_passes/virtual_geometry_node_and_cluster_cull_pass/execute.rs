@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use wgpu::util::DeviceExt;
@@ -98,6 +99,7 @@ pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual
     );
     let mut child_work_items = Vec::new();
     let mut page_request_ids = Vec::new();
+    let mut seen_page_request_ids = BTreeSet::new();
     let mut current_wave_records = traversal_records.clone();
     let page_request_budget = cull_input
         .page_budget
@@ -134,6 +136,7 @@ pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual
             );
         append_node_and_cluster_cull_page_requests(
             &mut page_request_ids,
+            &mut seen_page_request_ids,
             &child_decision_output.requested_page_ids,
             page_request_budget,
         );

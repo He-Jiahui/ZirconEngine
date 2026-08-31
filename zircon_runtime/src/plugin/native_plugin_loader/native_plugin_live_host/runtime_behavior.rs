@@ -169,7 +169,7 @@ impl NativePluginLiveHost {
                 })
                 .collect::<NativePluginRuntimeBehaviorResult<Vec<_>>>()?
         };
-        let mut calls = Vec::new();
+        let mut calls = Vec::with_capacity(snapshots.len());
         let mut diagnostics = Vec::new();
         for (plugin_id, snapshot) in snapshots {
             let report = snapshot.invoke_command(command_name, payload);

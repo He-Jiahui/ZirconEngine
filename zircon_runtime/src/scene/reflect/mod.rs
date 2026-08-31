@@ -10,7 +10,9 @@ mod json_document;
 mod reflect_component;
 mod reflect_resource;
 mod registration;
+mod runtime_type_registration;
 mod type_registry;
+mod value_admission;
 mod vm_type_backing;
 mod world_reflection;
 
@@ -30,6 +32,10 @@ pub use reflect_component::ReflectComponent;
 pub use reflect_resource::ReflectResource;
 pub(crate) use registration::builtin_type_registry;
 pub(in crate::scene) use registration::register_builtin_reflection;
-pub use type_registry::{RuntimeTypeRegistration, TypeRegistry};
+pub use runtime_type_registration::RuntimeTypeRegistration;
+pub use type_registry::TypeRegistry;
+pub(crate) use value_admission::{
+    validate_reflected_field_values, validate_reflected_value, RUNTIME_REFLECT_VALUE_BUDGET,
+};
 pub use vm_type_backing::VmTypeBacking;
 pub use world_reflection::WorldReflection;

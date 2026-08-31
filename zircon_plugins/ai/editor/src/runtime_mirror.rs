@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
 use zircon_editor::core::runtime_event_consumer::{
@@ -15,6 +15,10 @@ use crate::extension_ids::{
     AI_BEHAVIOR_DEBUG_CONSUMER_ID, AI_BT_NODE_RESULT_CONSUMER_ID,
     AI_BT_NODE_RESULT_SNAPSHOT_PRUNE_CONSUMER_ID,
 };
+
+#[cfg(test)]
+#[path = "runtime_mirror/lookup_allocation_tests.rs"]
+mod lookup_allocation_tests;
 
 pub use zircon_plugin_ai_runtime::{
     AI_BEHAVIOR_DEBUG_SNAPSHOT_EVENT_ID, AI_BEHAVIOR_DEBUG_SNAPSHOT_PAYLOAD_SCHEMA,
@@ -186,7 +190,7 @@ pub struct AiBtNodeResultMirror {
     play_session_id: Option<u64>,
     node_result_sequence: Option<u64>,
     snapshot_sequence: Option<u64>,
-    results: BTreeMap<(u64, u64, String), BtNodeResultEvent>,
+    results: BTreeMap<(u64, u64), BTreeMap<String, BtNodeResultEvent>>,
 }
 
 impl AiBtNodeResultMirror {
@@ -221,8 +225,11 @@ impl AiBtNodeResultMirror {
             return AiBtNodeResultMirrorApply::Stale;
         }
         self.node_result_sequence = Some(sequence);
-        let key = (event.world.get(), event.entity, event.node_id.clone());
-        self.results.insert(key, event);
+        let agent_key = (event.world.get(), event.entity);
+        self.results
+            .entry(agent_key)
+            .or_default()
+            .insert(event.node_id.clone(), event);
         AiBtNodeResultMirrorApply::Applied
     }
 
@@ -232,7 +239,9 @@ impl AiBtNodeResultMirror {
         entity: u64,
         node_id: &str,
     ) -> Option<&BtNodeResultEvent> {
-        self.results.get(&(world.get(), entity, node_id.to_owned()))
+        self.results
+            .get(&(world.get(), entity))
+            .and_then(|results| results.get(node_id))
     }
 
     pub fn apply_debug_snapshot(
@@ -259,19 +268,24 @@ impl AiBtNodeResultMirror {
         }
         self.snapshot_sequence = Some(sequence);
         let world = snapshot.world.get();
-        let active_nodes = snapshot
-            .frames
-            .into_iter()
-            .filter_map(|frame| {
-                frame
-                    .report
-                    .active_node
-                    .map(|node_id| (world, frame.report.entity, node_id))
-            })
-            .collect::<std::collections::BTreeSet<_>>();
-        self.results.retain(|(result_world, entity, node_id), _| {
-            *result_world != world
-                || active_nodes.contains(&(*result_world, *entity, node_id.clone()))
+        let mut active_nodes = BTreeMap::<u64, BTreeSet<String>>::new();
+        for frame in snapshot.frames {
+            if let Some(node_id) = frame.report.active_node {
+                active_nodes
+                    .entry(frame.report.entity)
+                    .or_default()
+                    .insert(node_id);
+            }
+        }
+        self.results.retain(|(result_world, entity), results| {
+            if *result_world != world {
+                return true;
+            }
+            let Some(active_node_ids) = active_nodes.get(entity) else {
+                return false;
+            };
+            results.retain(|node_id, _| active_node_ids.contains(node_id));
+            !results.is_empty()
         });
         AiBtNodeResultMirrorApply::Applied
     }

@@ -51,17 +51,27 @@ fn world_bootstraps_with_renderable_defaults() {
 #[test]
 fn spawned_entities_have_unique_ids() {
     let mut world = World::new();
-    let first = world.spawn_node(NodeKind::Cube);
-    let second = world.spawn_node(NodeKind::Cube);
+    let first = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let second = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     assert_ne!(first, second);
 }
 
 #[test]
 fn spawn_node_assigns_one_based_kind_ordinals() {
     let mut world = World::empty();
-    let first_mesh = world.spawn_node(NodeKind::Mesh);
-    let second_mesh = world.spawn_node(NodeKind::Mesh);
-    let first_cube = world.spawn_node(NodeKind::Cube);
+    let first_mesh = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let second_mesh = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let first_cube = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
 
     assert_eq!(world.get::<Name>(first_mesh).unwrap().0, "Mesh 1");
     assert_eq!(world.get::<Name>(second_mesh).unwrap().0, "Mesh 2");
@@ -71,15 +81,23 @@ fn spawn_node_assigns_one_based_kind_ordinals() {
 #[test]
 fn spawn_node_kind_ordinals_survive_removal_and_world_deserialization() {
     let mut world = World::empty();
-    let first = world.spawn_node(NodeKind::Mesh);
-    let removed = world.spawn_node(NodeKind::Mesh);
+    let first = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let removed = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.remove_entity(removed).unwrap();
-    let replacement = world.spawn_node(NodeKind::Mesh);
+    let replacement = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     assert_eq!(world.get::<Name>(replacement).unwrap().0, "Mesh 2");
 
     let encoded = serde_json::to_string(&world).unwrap();
     let mut restored: World = serde_json::from_str(&encoded).unwrap();
-    let after_restore = restored.spawn_node(NodeKind::Mesh);
+    let after_restore = restored
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
 
     assert_eq!(world.get::<Name>(first).unwrap().0, "Mesh 1");
     assert_eq!(restored.get::<Name>(after_restore).unwrap().0, "Mesh 3");
@@ -88,8 +106,12 @@ fn spawn_node_kind_ordinals_survive_removal_and_world_deserialization() {
 #[test]
 fn hierarchy_updates_world_transform() {
     let mut world = World::new();
-    let parent = world.spawn_node(NodeKind::Cube);
-    let child = world.spawn_node(NodeKind::Mesh);
+    let parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world
         .update_transform(
             parent,
@@ -110,8 +132,12 @@ fn hierarchy_updates_world_transform() {
 #[test]
 fn local_transform_reads_one_component_without_projecting_a_scene_node() {
     let mut world = World::new();
-    let parent = world.spawn_node(NodeKind::Cube);
-    let child = world.spawn_node(NodeKind::Mesh);
+    let parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let parent_transform = Transform::from_translation(Vec3::new(5.0, 0.0, 0.0));
     let child_transform = Transform::from_translation(Vec3::new(2.0, 0.0, 0.0));
     world.update_transform(parent, parent_transform).unwrap();
@@ -128,7 +154,9 @@ fn local_transform_reads_one_component_without_projecting_a_scene_node() {
 #[test]
 fn update_transform_rejects_values_that_cannot_be_persisted() {
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Mesh);
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let original = world.local_transform(entity).unwrap();
 
     let mut zero_scale = original;
@@ -313,10 +341,12 @@ fn project_load_rejects_an_unsupported_project_format_version() {
 #[test]
 fn project_roundtrip_preserves_imported_meshes() {
     let mut world = World::new();
-    let imported = world.spawn_mesh_node(
-        model_handle("res://models/robot.obj"),
-        material_handle("res://materials/robot.zmaterial"),
-    );
+    let imported = world
+        .spawn_mesh_node(
+            model_handle("res://models/robot.obj"),
+            material_handle("res://materials/robot.zmaterial"),
+        )
+        .expect("test mesh spawn should succeed");
 
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -344,7 +374,9 @@ fn project_roundtrip_preserves_imported_meshes() {
 #[test]
 fn node_record_roundtrip_restores_same_entity() {
     let mut world = World::new();
-    let cube = world.spawn_node(NodeKind::Cube);
+    let cube = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
     let record = world.node_record(cube).unwrap();
 
     world.remove_entity(cube).unwrap();
@@ -359,8 +391,12 @@ fn node_record_roundtrip_restores_same_entity() {
 #[test]
 fn recursive_remove_returns_parent_and_children_records() {
     let mut world = World::new();
-    let parent = world.spawn_node(NodeKind::Cube);
-    let child = world.spawn_node(NodeKind::Mesh);
+    let parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(child, Some(parent)).unwrap();
 
     let removed = world.remove_entity_recursive(parent).unwrap();
@@ -372,8 +408,12 @@ fn recursive_remove_returns_parent_and_children_records() {
 #[test]
 fn set_parent_checked_rejects_hierarchy_cycles() {
     let mut world = World::new();
-    let parent = world.spawn_node(NodeKind::Cube);
-    let child = world.spawn_node(NodeKind::Mesh);
+    let parent = world
+        .spawn_node(NodeKind::Cube)
+        .expect("test scene spawn should succeed");
+    let child = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     world.set_parent_checked(child, Some(parent)).unwrap();
 
     let error = world.set_parent_checked(parent, Some(child)).unwrap_err();

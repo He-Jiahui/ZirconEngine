@@ -107,21 +107,26 @@ fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_t
         &task,
         &[
             "use std::sync::{Arc, Mutex, MutexGuard};",
-            "pub(super) fn lock_spawn_status(",
             "pub(super) fn lock_spawn_result(",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "dynamic_scene_spawn_task_accessors_recover_poisoned_locks",
         ],
     );
     assert_contains_all(
-        "dynamic scene spawn loader uses shared lock helpers",
+        "dynamic scene spawn loader uses canonical task state and shared result helper",
         &loader,
         &[
-            "use super::task::{lock_spawn_result, lock_spawn_status, DynamicSceneSpawnTask};",
-            "lock_spawn_status(&status_for_task).mark_running();",
-            "let mut status = lock_spawn_status(&status_for_task);",
-            "*lock_spawn_result(&result_for_task) = Some(prepared);",
+            "use super::task::{lock_spawn_result, DynamicSceneSpawnTask};",
+            "let task = TaskHandle::schedule_detached",
+            "let task = scope.schedule",
+            "let mut result = lock_spawn_result(&result);",
         ],
+    );
+    assert!(
+        !task.contains("Mutex<TaskStatus>")
+            && !task.contains("AtomicBool")
+            && !loader.contains("lock_spawn_status"),
+        "dynamic scene must not restore a second lifecycle or cancellation authority"
     );
 
     let task_production = production_section(&task);

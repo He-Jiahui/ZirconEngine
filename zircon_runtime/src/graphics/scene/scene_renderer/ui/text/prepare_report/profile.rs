@@ -1,26 +1,23 @@
 use super::ScreenSpaceUiTextPrepareReport;
 
+#[path = "profile/artifact_routes.rs"]
+mod artifact_routes;
+#[path = "profile/dto_residency.rs"]
+mod dto_residency;
+#[path = "profile/runtime_budget.rs"]
+mod runtime_budget;
+#[path = "profile/sdf_residency.rs"]
+mod sdf_residency;
+
 #[cfg(feature = "profiling")]
 pub(in super::super) fn record_text_prepare_profile(report: &ScreenSpaceUiTextPrepareReport) {
+    artifact_routes::record_resolved_glyph_artifact_route_profile(
+        &report.resolved_glyph_artifact_routes,
+        report.post_layout_stale_artifact_batch_rejection_count,
+    );
+    dto_residency::record_dto_residency_profile(report);
+    runtime_budget::record_runtime_budget_profile(report);
     let raster = &report.raster_upload;
-    crate::profile_counter!(
-        "runtime",
-        "ui_text.prepare.input_batches",
-        report
-            .input_auto_text_batch_count
-            .saturating_add(report.input_native_text_batch_count)
-            .saturating_add(report.input_sdf_text_batch_count)
-    );
-    crate::profile_counter!(
-        "runtime",
-        "ui_text.prepare.resolved_native_batches",
-        report.resolved_native_text_batch_count
-    );
-    crate::profile_counter!(
-        "runtime",
-        "ui_text.prepare.resolved_sdf_batches",
-        report.resolved_sdf_text_batch_count
-    );
     crate::profile_counter!(
         "runtime",
         "ui_text.native_raster_plan.source_cache_hits",
@@ -303,6 +300,7 @@ pub(in super::super) fn record_text_prepare_profile(report: &ScreenSpaceUiTextPr
         "ui_text.sdf_prepare.atlas_slots",
         report.sdf_renderer.atlas_slot_count
     );
+    sdf_residency::record_sdf_residency_profile(report);
     crate::profile_counter!(
         "runtime",
         "ui_text.sdf_prepare.vertices",
@@ -316,9 +314,9 @@ pub(in super::super) fn record_text_prepare_profile(report: &ScreenSpaceUiTextPr
 }
 #[cfg(all(test, feature = "profiling"))]
 mod tests {
-    use super::{record_text_prepare_profile, ScreenSpaceUiTextPrepareReport};
+    use super::{ScreenSpaceUiTextPrepareReport, record_text_prepare_profile};
     use crate::core::runtime::diagnostics::profiling::{
-        reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig,
+        ProfileCaptureConfig, reset_capture, snapshot, start_capture, test_capture_lock,
     };
 
     #[test]
@@ -335,6 +333,7 @@ mod tests {
             input_sdf_text_batch_count: 5,
             resolved_native_text_batch_count: 4,
             resolved_sdf_text_batch_count: 6,
+            post_layout_stale_artifact_batch_rejection_count: 89,
             ..ScreenSpaceUiTextPrepareReport::default()
         };
         report.raster_upload.source_cache_hit_count = 7;
@@ -361,6 +360,12 @@ mod tests {
             .source_cache_linked_raster_invalidation_count = 61;
         report.raster_upload.source_cache_rejected_byte_budget_count = 29;
         report.raster_upload.source_cache_invalidated_count = 31;
+        report.raster_upload.atlas_page_shadow_resident_page_count = 97;
+        report.raster_upload.atlas_page_shadow_resident_byte_count = 101;
+        report.raster_upload.atlas_page_shadow_max_byte_count = 103;
+        report
+            .raster_upload
+            .atlas_page_shadow_budget_rejection_count = 107;
         report.raster_upload.worker_pending_count = 13;
         report.raster_upload.worker_raster_font_resident_byte_count = 71;
         report.raster_upload.worker_raster_font_entry_count = 73;
@@ -382,10 +387,28 @@ mod tests {
         report.raster_upload.worker_pool_queue_peak_count = 67;
         report.raster_upload.upload_copy_count = 17;
         report.raster_upload.upload_byte_len = 19;
+        report.resolved_glyph_artifact_routes.rejected_command_count = 73;
+        report.renderer_batch_residency.materialized_batch_count = 79;
+        report.renderer_batch_residency.text_byte_count = 83;
+        report.renderer_batch_residency.glyph_advance_byte_count = 87;
         report
             .bitmap_atlas_renderer
             .storage_pass_visible_glyph_count = 31;
         report.bitmap_atlas_renderer.draw_command_count = 37;
+        report.sdf_renderer.bake.resident_font_asset_error_count = 5;
+        report
+            .sdf_renderer
+            .bake
+            .resident_font_asset_no_registered_faces_count = 31;
+        report.sdf_renderer.bake.generation_scheduler.budget =
+            crate::text::sdf::SdfGenerationBudgetSnapshot {
+                max_in_flight_batches: 109,
+                max_glyphs_per_batch: 113,
+                max_in_flight_glyphs: 127,
+                source_byte_budget: 131,
+                completion_queue_depth: 137,
+                completion_byte_budget: 139,
+            };
         report.sdf_renderer.vertex_count = 23;
         report.sdf_renderer.draw_count = 29;
 
@@ -471,6 +494,25 @@ mod tests {
         assert_eq!(
             counter_value(&profile, "ui_text.native_raster_plan.source_cache_inserts"),
             83.0
+        );
+        assert_eq!(
+            counter_value(&profile, "ui_text.atlas_page_shadow.resident_bytes"),
+            101.0
+        );
+        assert_eq!(
+            counter_value(&profile, "text.runtime_budget.atlas_page_shadow_bytes"),
+            103.0
+        );
+        assert_eq!(
+            counter_value(
+                &profile,
+                "ui_text.atlas_page_shadow.budget_rejections_total"
+            ),
+            107.0
+        );
+        assert_eq!(
+            counter_value(&profile, "text.runtime_budget.sdf_completion_bytes"),
+            139.0
         );
         assert_eq!(
             counter_value(&profile, "ui_text.native_raster_plan.source_cache_capacity"),
@@ -596,6 +638,46 @@ mod tests {
             23.0
         );
         assert_eq!(counter_value(&profile, "ui_text.sdf_prepare.draws"), 29.0);
+        assert_eq!(
+            counter_value(
+                &profile,
+                "ui_text.prepare.post_layout_stale_artifact_batch_rejections"
+            ),
+            89.0
+        );
+        assert_eq!(
+            counter_value(
+                &profile,
+                "ui_text.resolved_glyph_artifact_route.rejected_commands"
+            ),
+            73.0
+        );
+        assert_eq!(
+            counter_value(&profile, "ui_text.dto_projection.renderer_batches"),
+            79.0
+        );
+        assert_eq!(
+            counter_value(&profile, "ui_text.dto_projection.renderer_text_bytes"),
+            83.0
+        );
+        assert_eq!(
+            counter_value(
+                &profile,
+                "ui_text.dto_projection.renderer_glyph_advance_bytes"
+            ),
+            87.0
+        );
+        assert_eq!(
+            counter_value(&profile, "ui_text.sdf_prepare.resident_font_asset_errors"),
+            5.0
+        );
+        assert_eq!(
+            counter_value(
+                &profile,
+                "ui_text.sdf_prepare.resident_font_asset_no_registered_faces"
+            ),
+            31.0
+        );
     }
 
     fn counter_value(

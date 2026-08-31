@@ -9,6 +9,7 @@ pub(in crate::ui::retained_host::host_contract) fn role_family(
         "input-field" | "text-field" | "number-field" | "color-field" | "vector-field" => {
             Some(TemplateComponentFamily::TextInput)
         }
+        "key-selector" => Some(TemplateComponentFamily::KeySelector),
         "range-field" | "slider" => Some(TemplateComponentFamily::Slider),
         "checkbox" => Some(TemplateComponentFamily::Checkbox),
         "radio" => Some(TemplateComponentFamily::Radio),
@@ -46,6 +47,7 @@ pub(in crate::ui::retained_host::host_contract) fn host_role_family(
         "Button" => Some(TemplateComponentFamily::Button),
         "IconButton" => Some(TemplateComponentFamily::IconButton),
         "InputField" | "TextField" | "SearchField" => Some(TemplateComponentFamily::TextInput),
+        "KeySelector" => Some(TemplateComponentFamily::KeySelector),
         "Slider" | "RangeField" => Some(TemplateComponentFamily::Slider),
         "Checkbox" => Some(TemplateComponentFamily::Checkbox),
         "Radio" => Some(TemplateComponentFamily::Radio),

@@ -144,7 +144,8 @@ fn validate_ui_template_document(
     kind: &'static str,
     document: &str,
 ) -> Result<(), EditorExtensionRegistryError> {
-    if document.trim().is_empty() || document.trim() != document || !document.ends_with(".zui") {
+    let trimmed = document.trim();
+    if trimmed.is_empty() || trimmed.len() != document.len() || !document.ends_with(".zui") {
         return Err(EditorExtensionRegistryError::InvalidUiDocument {
             kind,
             document: document.to_string(),
@@ -152,6 +153,10 @@ fn validate_ui_template_document(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "template_contributions/single_trim_tests.rs"]
+mod single_trim_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EditorUiTemplateDescriptor {

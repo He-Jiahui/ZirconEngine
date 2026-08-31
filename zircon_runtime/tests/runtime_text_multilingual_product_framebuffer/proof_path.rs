@@ -4,7 +4,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-const PROOF_FILE_NAME: &str = "runtime_text_mvp_foundation_product_framebuffer_20260801.png";
+const PROOF_FILE_NAME: &str = "runtime_text_mvp_foundation_product_framebuffer_20260831.png";
 const PRODUCT_PROOF_WORK_DIRECTORY: &str = ".runtime_text_product_framebuffer_work";
 
 pub(super) fn proof_path() -> PathBuf {
@@ -74,7 +74,29 @@ fn require_absolute_target_dir(target_dir: PathBuf) -> PathBuf {
         "CARGO_TARGET_DIR must be an absolute coordinator path before exporting a framebuffer proof: {}",
         target_dir.display(),
     );
+    #[cfg(windows)]
+    assert!(
+        coordinator_target_root_is_approved(&target_dir),
+        "CARGO_TARGET_DIR must use a D:, E:, or F: coordinator root before exporting a framebuffer proof: {}",
+        target_dir.display(),
+    );
     target_dir
+}
+
+#[cfg(windows)]
+fn coordinator_target_root_is_approved(target_dir: &Path) -> bool {
+    target_dir
+        .components()
+        .next()
+        .is_some_and(|component| match component {
+            Component::Prefix(prefix) => match prefix.kind() {
+                std::path::Prefix::Disk(letter) | std::path::Prefix::VerbatimDisk(letter) => {
+                    matches!(letter, b'D' | b'd' | b'E' | b'e' | b'F' | b'f')
+                }
+                _ => false,
+            },
+            _ => false,
+        })
 }
 
 fn canonicalize_or_normalize_path(path: &Path) -> PathBuf {
@@ -156,13 +178,15 @@ mod tests {
             &output,
             &workspace_root.join("target"),
         ));
-        assert!(work_root.starts_with(
-            workspace_root
-                .join("docs")
-                .join("tests")
-                .join("runtime")
-                .join("text"),
-        ));
+        assert!(
+            work_root.starts_with(
+                workspace_root
+                    .join("docs")
+                    .join("tests")
+                    .join("runtime")
+                    .join("text"),
+            )
+        );
         assert!(product_proof_is_outside_target(
             &work_root,
             &workspace_root.join("target"),
@@ -203,11 +227,30 @@ mod tests {
         let _ = require_absolute_target_dir(PathBuf::from("cargo-targets").join("text-proof"));
     }
 
+    #[cfg(windows)]
+    #[test]
+    #[should_panic(expected = "CARGO_TARGET_DIR must use a D:, E:, or F: coordinator root")]
+    fn c_drive_external_target_is_rejected() {
+        let _ = require_absolute_target_dir(PathBuf::from(r"C:\cargo-targets\text-proof"));
+    }
+
     #[test]
     fn absolute_external_target_is_accepted() {
         let workspace_root = workspace_root();
         let target_dir = workspace_root.join("external-cargo-target");
 
         assert_eq!(require_absolute_target_dir(target_dir.clone()), target_dir,);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn coordinator_external_target_roots_are_accepted() {
+        for target_dir in [
+            PathBuf::from(r"D:\cargo-targets\text-proof"),
+            PathBuf::from(r"E:\cargo-targets\text-proof"),
+            PathBuf::from(r"F:\cargo-targets\text-proof"),
+        ] {
+            assert_eq!(require_absolute_target_dir(target_dir.clone()), target_dir);
+        }
     }
 }

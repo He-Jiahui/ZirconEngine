@@ -11,8 +11,9 @@ pub(super) fn pointer_reply(
     routed_result: &UiPointerDispatchResult,
     pointer_id: UiPointerId,
 ) -> UiDispatchReply {
-    let effects = pointer_reply_effects(routed_result, pointer_id);
     let component_handler = pointer_component_handler(routed_result);
+    let handler = routed_result.handled_by.or(routed_result.blocked_by);
+    let (effects, invocation_phases) = pointer_reply_effects(routed_result, pointer_id, handler);
     // A delivered component event is the unified input equivalent of a handled widget reply.
     let disposition = if routed_result.blocked_by.is_some() {
         UiDispatchDisposition::Blocked
@@ -28,11 +29,18 @@ pub(super) fn pointer_reply(
     };
     UiDispatchReply {
         disposition,
-        handler: routed_result
-            .handled_by
-            .or(routed_result.blocked_by)
-            .or(component_handler),
-        phase: pointer_reply_phase(routed_result, component_handler),
+        handler: handler.or(component_handler),
+        phase: if handler.is_some() {
+            invocation_phases
+                .handler_phase
+                .or(Some(UiDispatchPhase::Bubble))
+        } else if component_handler.is_some() {
+            Some(UiDispatchPhase::Target)
+        } else {
+            invocation_phases
+                .redraw_phase
+                .or(Some(UiDispatchPhase::Target))
+        },
         effects,
     }
 }
@@ -46,42 +54,11 @@ pub(super) fn pointer_component_handler(
         .map(|event| event.node_id)
 }
 
-fn pointer_reply_phase(
-    routed_result: &UiPointerDispatchResult,
-    component_handler: Option<UiNodeId>,
-) -> Option<UiDispatchPhase> {
-    let handler = routed_result.handled_by.or(routed_result.blocked_by);
-    if let Some(handler) = handler {
-        return routed_result
-            .invocations
-            .iter()
-            .rev()
-            .find(|invocation| invocation.node_id == handler)
-            .map(|invocation| invocation.phase)
-            .or(Some(UiDispatchPhase::Bubble));
-    }
-    if component_handler.is_some() {
-        return Some(UiDispatchPhase::Target);
-    }
-    routed_result
-        .invocations
-        .iter()
-        .rev()
-        .find(|invocation| {
-            matches!(
-                invocation.effect,
-                UiPointerDispatchEffect::RequestDirty(_)
-                    | UiPointerDispatchEffect::RequestDamage(_)
-            )
-        })
-        .map(|invocation| invocation.phase)
-        .or(Some(UiDispatchPhase::Target))
-}
-
 fn pointer_reply_effects(
     routed_result: &UiPointerDispatchResult,
     pointer_id: UiPointerId,
-) -> Vec<UiDispatchEffect> {
+    handler: Option<UiNodeId>,
+) -> (Vec<UiDispatchEffect>, PointerInvocationPhases) {
     let mut effects = Vec::new();
     if let Some(target) = routed_result.captured_by {
         effects.push(UiDispatchEffect::CapturePointer {
@@ -111,17 +88,7 @@ fn pointer_reply_effects(
             });
         }
     }
-    for invocation in &routed_result.invocations {
-        if let UiPointerDispatchEffect::RequestDirty(dirty) = invocation.effect {
-            if dirty.any() {
-                effects.push(UiDispatchEffect::DirtyRedraw {
-                    target: invocation.node_id,
-                    dirty,
-                    reason: UiRedrawRequestReason::Input,
-                });
-            }
-        }
-    }
+    let invocation_phases = scan_pointer_invocations(routed_result, handler, &mut effects);
     if routed_result.requested_dirty.any()
         && !effects
             .iter()
@@ -148,7 +115,42 @@ fn pointer_reply_effects(
             );
         }
     }
-    effects
+    (effects, invocation_phases)
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct PointerInvocationPhases {
+    handler_phase: Option<UiDispatchPhase>,
+    redraw_phase: Option<UiDispatchPhase>,
+}
+
+fn scan_pointer_invocations(
+    routed_result: &UiPointerDispatchResult,
+    handler: Option<UiNodeId>,
+    effects: &mut Vec<UiDispatchEffect>,
+) -> PointerInvocationPhases {
+    let mut phases = PointerInvocationPhases::default();
+    for invocation in &routed_result.invocations {
+        if Some(invocation.node_id) == handler {
+            phases.handler_phase = Some(invocation.phase);
+        }
+        if matches!(
+            invocation.effect,
+            UiPointerDispatchEffect::RequestDirty(_) | UiPointerDispatchEffect::RequestDamage(_)
+        ) {
+            phases.redraw_phase = Some(invocation.phase);
+        }
+        if let UiPointerDispatchEffect::RequestDirty(dirty) = invocation.effect {
+            if dirty.any() {
+                effects.push(UiDispatchEffect::DirtyRedraw {
+                    target: invocation.node_id,
+                    dirty,
+                    reason: UiRedrawRequestReason::Input,
+                });
+            }
+        }
+    }
+    phases
 }
 
 fn pointer_release_target(routed_result: &UiPointerDispatchResult) -> Option<UiNodeId> {
@@ -158,6 +160,10 @@ fn pointer_release_target(routed_result: &UiPointerDispatchResult) -> Option<UiN
             .flatten()
     })
 }
+
+#[cfg(test)]
+#[path = "pointer_reply/single_pass_tests.rs"]
+mod single_pass_tests;
 
 pub(super) fn merge_pointer_text_result(
     result: &mut UiInputDispatchResult,

@@ -227,7 +227,7 @@ fn command_palette_matches_top_center_keyboard_overlay_contract() {
 }
 
 #[test]
-fn preferences_matches_modal_navigation_content_contract() {
+fn preferences_matches_dynamic_modal_settings_contract() {
     let source =
         asset_source("assets/ui/editor/components/workbench/floating/workbench_preferences.zui");
     let document = asset_document(&source);
@@ -237,8 +237,6 @@ fn preferences_matches_modal_navigation_content_contract() {
         "preferences"
     );
     assert_low_chrome(&document, "preferences");
-    assert_low_chrome(&document, "navigation");
-    assert_low_chrome(&document, "content");
     assert_eq!(
         string_at(
             &document,
@@ -246,25 +244,17 @@ fn preferences_matches_modal_navigation_content_contract() {
         ),
         "HorizontalBox"
     );
-    assert_eq!(
-        child_nodes(&document, "preferences"),
-        vec!["navigation", "content"]
-    );
-    assert!(
-        number_at(
-            &document,
-            &["nodes", "navigation", "layout", "width", "preferred"]
-        ) >= 224.0
-    );
-    assert_eq!(
-        string_at(
-            &document,
-            &["nodes", "content", "layout", "width", "stretch"]
-        ),
-        "Stretch"
-    );
-    assert_eq!(
-        string_at(&document, &["nodes", "title", "props", "text"]),
-        "Preferences"
-    );
+    let preferences = value_at(&document, &["nodes", "preferences"]);
+    assert!(preferences.get("children").is_none());
+    for property in [
+        "selected_category_id",
+        "categories",
+        "settings",
+        "plugin_pages",
+    ] {
+        assert!(
+            value_at(preferences, &["props"]).get(property).is_some(),
+            "dynamic settings root must expose `{property}`"
+        );
+    }
 }

@@ -1,20 +1,25 @@
-use zircon_runtime::core::framework::project::{
-    ProjectPluginManifest, ProjectPluginSelection, RuntimeProfileId,
-};
-use zircon_runtime::core::framework::render::{RenderProductFeature, RenderProfileBundle};
+use zircon_runtime::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
+use zircon_runtime::core::framework::render::RenderProfileBundle;
 use zircon_runtime::plugin::{RuntimePluginRegistrationReport, RuntimeProfileDescriptor};
-use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
+use zircon_runtime::{
+    builtin::{manifest_with_mode_baseline, RuntimePluginId},
+    core::framework::platform::RuntimeTargetMode,
+};
 
-use super::EntryConfig;
+use super::{
+    builtin_modules::{
+        effective_project_plugin_manifest, effective_project_plugin_manifest_with_render_profile,
+    },
+    ResolvedProductHostConfig,
+};
 
 pub fn first_party_runtime_plugin_registrations_for_config(
-    config: &EntryConfig,
+    config: &ResolvedProductHostConfig,
 ) -> Vec<RuntimePluginRegistrationReport> {
-    let manifest = config.project_plugins.as_ref().cloned().unwrap_or_default();
-    first_party_runtime_plugin_registrations_for_manifest_with_render_profile(
-        config.target_mode,
-        &manifest,
-        &config.render_profile,
+    let effective_manifest = effective_project_plugin_manifest(config);
+    first_party_runtime_plugin_registrations_for_manifest_impl(
+        config.target_mode(),
+        &effective_manifest,
     )
 }
 
@@ -23,24 +28,20 @@ pub(super) fn first_party_runtime_plugin_registrations_for_manifest_with_render_
     manifest: &ProjectPluginManifest,
     render_profile: &RenderProfileBundle,
 ) -> Vec<RuntimePluginRegistrationReport> {
-    let mut registrations =
-        first_party_runtime_plugin_registrations_for_manifest(target_mode, manifest);
-    let render_profile_overlay =
-        render_profile_runtime_plugin_overlay(manifest, target_mode, render_profile);
-    if !render_profile_overlay.selections.is_empty() {
-        registrations.extend(first_party_runtime_plugin_registrations_for_manifest(
-            target_mode,
-            &render_profile_overlay,
-        ));
-    }
-    registrations
+    let effective_manifest = effective_project_plugin_manifest_with_render_profile(
+        target_mode,
+        Some(manifest),
+        render_profile,
+    );
+    first_party_runtime_plugin_registrations_for_manifest_impl(target_mode, &effective_manifest)
 }
 
 pub fn first_party_runtime_plugin_registrations_for_runtime_profile(
     profile_id: RuntimeProfileId,
 ) -> Vec<RuntimePluginRegistrationReport> {
     let profile = RuntimeProfileDescriptor::for_id(profile_id);
-    let manifest = profile.project_manifest();
+    let profile_manifest = profile.project_manifest();
+    let manifest = manifest_with_mode_baseline(profile.target_mode, Some(&profile_manifest));
     first_party_runtime_plugin_registrations_for_manifest(profile.target_mode, &manifest)
 }
 
@@ -55,6 +56,7 @@ pub fn first_party_runtime_plugin_registrations_for_manifest(
     feature = "first-party-runtime-plugins",
     feature = "first-party-advanced-render-runtime-plugins",
     feature = "first-party-navigation-runtime-plugin",
+    feature = "first-party-ui-document-importer",
     feature = "first-party-zr-vm-language-runtime-plugin"
 ))]
 fn first_party_runtime_plugin_registrations_for_manifest_impl(
@@ -71,6 +73,7 @@ fn first_party_runtime_plugin_registrations_for_manifest_impl(
     feature = "first-party-runtime-plugins",
     feature = "first-party-advanced-render-runtime-plugins",
     feature = "first-party-navigation-runtime-plugin",
+    feature = "first-party-ui-document-importer",
     feature = "first-party-zr-vm-language-runtime-plugin"
 )))]
 fn first_party_runtime_plugin_registrations_for_manifest_impl(
@@ -81,54 +84,13 @@ fn first_party_runtime_plugin_registrations_for_manifest_impl(
     Vec::new()
 }
 
-fn render_profile_runtime_plugin_overlay(
-    manifest: &ProjectPluginManifest,
-    target_mode: RuntimeTargetMode,
-    render_profile: &RenderProfileBundle,
-) -> ProjectPluginManifest {
-    ProjectPluginManifest {
-        selections: runtime_plugins_for_render_profile(render_profile)
-            .filter(|runtime_plugin| {
-                !manifest
-                    .selections
-                    .iter()
-                    .any(|selection| selection.id == runtime_plugin.key())
-            })
-            .map(|runtime_plugin| {
-                ProjectPluginSelection::runtime_plugin(runtime_plugin, true, false)
-                    .with_target_modes([target_mode])
-            })
-            .collect(),
-    }
-}
-
-fn runtime_plugins_for_render_profile(
-    render_profile: &RenderProfileBundle,
-) -> impl Iterator<Item = RuntimePluginId> + '_ {
-    [
-        (
-            RenderProductFeature::VirtualGeometry,
-            RuntimePluginId::VirtualGeometry,
-        ),
-        (
-            RenderProductFeature::HybridGlobalIllumination,
-            RuntimePluginId::HybridGi,
-        ),
-        (RenderProductFeature::Solari, RuntimePluginId::Solari),
-    ]
-    .into_iter()
-    .filter_map(|(feature, runtime_plugin)| {
-        render_profile
-            .has_feature(feature)
-            .then_some(runtime_plugin)
-    })
-}
-
 #[cfg(test)]
 mod tests {
-    use zircon_runtime::core::framework::project::ProjectPluginManifest;
+    use zircon_runtime::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
+    use zircon_runtime::core::framework::render::RenderProductFeature;
 
     use super::*;
+    use crate::entry::builtin_modules::render_profile_runtime_plugin_overlay;
 
     #[test]
     fn render_profile_overlay_omits_a_project_selected_runtime_plugin() {
@@ -168,5 +130,44 @@ mod tests {
             overlay.selections[0].target_modes,
             vec![RuntimeTargetMode::EditorHost]
         );
+    }
+
+    #[cfg(feature = "first-party-ui-document-importer")]
+    #[test]
+    fn ui_product_baseline_projects_one_document_importer_provider() {
+        let config = crate::entry::EntryConfig::new(crate::entry::EntryProfile::Runtime)
+            .resolve()
+            .expect("runtime product host config should resolve");
+        let registrations = first_party_runtime_plugin_registrations_for_config(&config);
+
+        assert_eq!(
+            registrations
+                .iter()
+                .filter(|registration| {
+                    registration.package_manifest.id == RuntimePluginId::UiDocumentImporter.key()
+                })
+                .count(),
+            1
+        );
+    }
+
+    #[cfg(feature = "first-party-ui-document-importer")]
+    #[test]
+    fn project_manifest_can_disable_the_linked_document_importer_provider() {
+        let config = crate::entry::EntryConfig::new(crate::entry::EntryProfile::Runtime)
+            .with_project_plugins(ProjectPluginManifest {
+                selections: vec![ProjectPluginSelection::runtime_plugin(
+                    RuntimePluginId::UiDocumentImporter,
+                    false,
+                    false,
+                )],
+            })
+            .resolve()
+            .expect("runtime product host config should resolve");
+        let registrations = first_party_runtime_plugin_registrations_for_config(&config);
+
+        assert!(registrations.iter().all(|registration| {
+            registration.package_manifest.id != RuntimePluginId::UiDocumentImporter.key()
+        }));
     }
 }

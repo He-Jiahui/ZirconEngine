@@ -1,9 +1,9 @@
-use crate::core::framework::render::ShadingModelDescriptor;
+use crate::core::framework::render::{ShaderFeatureBits, ShadingModelDescriptor};
 use crate::graphics::material::ShadingModelIncludeSourceSet;
 use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::shader::template::{
-    environment_standard_pbr_include, ShaderModuleRegistry, ShaderModuleResolutionError,
-    ShaderTemplateInclude,
+    ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
+    environment_standard_pbr_include, pbr_extras_include_for_features,
 };
 
 const GPU_SCENE_INCLUDE_TOKEN: &str = "zr_gpu_scene.wgsl";
@@ -12,6 +12,7 @@ const LIGHTMAP_INCLUDE_TOKEN: &str = "zr_lightmap.wgsl";
 const LIGHT_GRID_INCLUDE_TOKEN: &str = "zr_light_grid.wgsl";
 const SHADOW_INCLUDE_TOKEN: &str = "zr_shadow.wgsl";
 const ENVIRONMENT_INCLUDE_TOKEN: &str = "zr_environment.wgsl";
+const PBR_EXTRAS_INCLUDE_TOKEN: &str = "zr_pbr_extras.wgsl";
 const VOLUMETRIC_INCLUDE_TOKEN: &str = "zr_volumetric.wgsl";
 const DEFERRED_STANDARD_PBR_INCLUDE_TOKEN: &str = "zr_shade_deferred_standard_pbr.wgsl";
 const DEFERRED_BLINN_PHONG_INCLUDE_TOKEN: &str = "zr_shade_deferred_blinn_phong.wgsl";
@@ -110,6 +111,10 @@ pub(in crate::graphics::scene::scene_renderer::deferred) const DEFERRED_LIGHTING
     include_str!("../../shadow/shaders/zr_shadow.wgsl"),
     "\n// include: zr_volumetric.wgsl\n",
     include_str!("../../../../shader/wgsl/zr_volumetric.wgsl"),
+    "\n// include: zr_pbr_common.wgsl\n",
+    include_str!("../../../../shader/includes/zr_pbr_common.wgsl"),
+    "\n// include: zr_pbr_extras.wgsl\n",
+    include_str!("../../../../shader/includes/zr_pbr_extras_core.wgsl"),
     "\n// include: zr_shade_deferred_standard_pbr.wgsl\n",
     include_str!("../../../../shader/wgsl/zr_shade_deferred_standard_pbr.wgsl"),
     "\n// include: zr_shade_deferred_blinn_phong.wgsl\n",
@@ -119,6 +124,8 @@ pub(in crate::graphics::scene::scene_renderer::deferred) const DEFERRED_LIGHTING
     "\n// include: deferred_lighting.wgsl\n",
     include_str!("../shaders/deferred_lighting.wgsl"),
     "\n// include: zr_environment.wgsl\n",
+    include_str!("../../../../shader/wgsl/zr_procedural_sky.wgsl"),
+    "\n",
     include_str!("../../../../shader/wgsl/zr_environment_core.wgsl"),
     "\n",
     include_str!("../../../../shader/wgsl/zr_environment_generic_api.wgsl"),
@@ -266,10 +273,14 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
             LIGHT_GRID_INCLUDE_TOKEN.to_string(),
             SHADOW_INCLUDE_TOKEN.to_string(),
             VOLUMETRIC_INCLUDE_TOKEN.to_string(),
+            PBR_EXTRAS_INCLUDE_TOKEN.to_string(),
         ]
     };
     roots.extend(builtin_roots.iter().map(|token| (*token).to_string()));
     let mut source_includes = Vec::new();
+    if roots.iter().any(|root| root == PBR_EXTRAS_INCLUDE_TOKEN) {
+        source_includes.push(pbr_extras_include_for_features(ShaderFeatureBits::default()));
+    }
     if !request.volumetric_enabled && roots.iter().any(|root| root == VOLUMETRIC_INCLUDE_TOKEN) {
         source_includes.push(ShaderTemplateInclude::new(
             VOLUMETRIC_INCLUDE_TOKEN,
@@ -422,8 +433,8 @@ fn deferred_shading_function_name(token: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GBufferChannelMask, ShadingModelDescriptor, ShadingModelId, SHADING_MODEL_ID_BLINN_PHONG,
-        SHADING_MODEL_ID_STANDARD_PBR, SHADING_MODEL_ID_UNLIT,
+        GBufferChannelMask, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
+        SHADING_MODEL_ID_UNLIT, ShadingModelDescriptor, ShadingModelId,
     };
     use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 
@@ -491,11 +502,47 @@ mod tests {
         .expect("standard PBR preview source should assemble");
 
         assert!(source.contains("// include: zr_shade_deferred_standard_pbr.wgsl"));
+        assert!(source.contains("// include: zr_pbr_extras.wgsl"));
+        assert!(source.contains("fn zr_pbr_isotropic_ggx("));
         assert!(!source.contains("// include: zr_shade_deferred_blinn_phong.wgsl"));
         assert!(!source.contains("// include: zr_shade_deferred_unlit.wgsl"));
         assert!(!source.contains("// include: zr_shade_deferred_subsurface.wgsl"));
         assert!(!source.contains("shade_deferred_blinn_phong("));
         assert!(!source.contains("shade_deferred_unlit("));
+    }
+
+    #[test]
+    fn standard_pbr_preview_uses_source_independent_diffuse_and_shared_ggx_specular() {
+        let source = assemble_deferred_lighting_shader_source(
+            DeferredLightingShaderSourceRequest::new().with_deferred_lighting_profile(
+                SceneRendererDeferredLightingProfile::StandardPbrPreview,
+            ),
+        )
+        .expect("standard PBR preview source should assemble");
+
+        for required in [
+            "fn zr_pbr_isotropic_ggx(",
+            "let specular = zr_pbr_isotropic_ggx(",
+            "direct_diffuse_brdf * radiance * lambert",
+            "radiance * specular * lambert",
+            "zr_surface_metallic_diffuse_energy_scale(direct_metallic)",
+        ] {
+            assert!(
+                source.contains(required),
+                "deferred Standard PBR must retain source-independent diffuse/GGX contract `{required}`"
+            );
+        }
+        for rejected in [
+            "struct ZrPbrSpecularComponents",
+            "fn zr_pbr_isotropic_ggx_components(",
+            "specular_components.fresnel",
+        ] {
+            assert!(!source.contains(rejected));
+        }
+        assert!(
+            !source.contains("zr_pbr_diffuse_energy_scale("),
+            "standard PBR preview must use the shared metallic diffuse-energy owner"
+        );
     }
 
     #[test]
@@ -597,12 +644,22 @@ mod tests {
 
         assert!(source.contains("// include: zr_environment.wgsl"));
         assert!(source.contains("zr_environment_pbr_indirect("));
+        assert!(source.contains("fn zr_environment_pbr_indirect_with_dielectric_f0_normalized("));
+        assert!(source.contains(
+            "let environment_lights = zr_environment_pbr_indirect_with_dielectric_f0_normalized("
+        ));
+        assert!(
+            !source.contains("zr_pbr_diffuse_energy_scale("),
+            "environment-only deferred source must use the shared metallic diffuse-energy owner"
+        );
         assert!(!source.contains("// include: zr_gpu_scene.wgsl"));
         assert!(!source.contains("// include: zr_light_grid.wgsl"));
         assert!(!source.contains("// include: zr_light_cookie.wgsl"));
         assert!(!source.contains("// include: zr_lightmap.wgsl"));
         assert!(!source.contains("// include: zr_shadow.wgsl"));
         assert!(!source.contains("// include: zr_volumetric.wgsl"));
+        assert!(!source.contains("// include: zr_pbr_extras.wgsl"));
+        assert!(!source.contains("fn zr_pbr_isotropic_ggx("));
         assert!(!source.contains("fn fs_main_sss("));
     }
 

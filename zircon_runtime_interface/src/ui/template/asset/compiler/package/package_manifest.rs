@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::ui::template::{
     UiAssetError, UiAssetFingerprint, UiCompiledAssetArtifact, UiCompiledAssetCacheRecord,
     UiCompiledAssetDependencyManifest, UiCompiledAssetHeader,
-    UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,7 +22,7 @@ impl UiCompiledAssetPackageManifest {
             dependencies: artifact.report.dependencies.clone(),
             cache: UiCompiledAssetCacheRecord::from_artifact_bytes(artifact, artifact_bytes),
             artifact: UiCompiledAssetPackageArtifactEntry {
-                schema_version: UI_COMPILED_ASSET_BINARY_ARTIFACT_SCHEMA_VERSION,
+                schema_version: UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
                 byte_len: artifact_bytes.len() as u64,
                 fingerprint: artifact_fingerprint,
             },

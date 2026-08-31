@@ -195,9 +195,7 @@ where
         if !self.entries.contains_key(&slot) {
             return;
         }
-        if self.lru_links.contains_key(&slot) {
-            self.detach_lru(slot);
-        }
+        self.detach_lru(slot);
         self.attach_most_recent(slot);
     }
 
@@ -235,9 +233,7 @@ where
 
     pub(super) fn remove(&mut self, slot: TextCacheSlot) -> Option<E> {
         let entry = self.entries.remove(&slot)?;
-        if self.lru_links.contains_key(&slot) {
-            self.detach_lru(slot);
-        }
+        self.detach_lru(slot);
 
         let key = entry.cache_key();
         let remove_bucket = if let Some(candidates) = self.buckets.get_mut(key) {
@@ -307,24 +303,36 @@ where
         let Some(links) = self.lru_links.remove(&slot) else {
             return;
         };
-        let previous = links
-            .previous
-            .filter(|candidate| self.lru_links.contains_key(candidate));
-        let next = links
-            .next
-            .filter(|candidate| self.lru_links.contains_key(candidate));
-        if let Some(previous) = previous {
-            if let Some(previous_links) = self.lru_links.get_mut(&previous) {
-                previous_links.next = next;
+        let mut previous = links.previous;
+        if let Some(candidate) = previous {
+            if let Some(previous_links) = self.lru_links.get_mut(&candidate) {
+                previous_links.next = links.next;
+            } else {
+                previous = None;
+                self.lru_head = links.next;
             }
         } else {
-            self.lru_head = next;
+            self.lru_head = links.next;
         }
-        if let Some(next) = next {
-            if let Some(next_links) = self.lru_links.get_mut(&next) {
+
+        let next = if let Some(candidate) = links.next {
+            if let Some(next_links) = self.lru_links.get_mut(&candidate) {
                 next_links.previous = previous;
+                Some(candidate)
+            } else {
+                if let Some(previous) = previous {
+                    if let Some(previous_links) = self.lru_links.get_mut(&previous) {
+                        previous_links.next = None;
+                    }
+                } else {
+                    self.lru_head = None;
+                }
+                None
             }
         } else {
+            None
+        };
+        if next.is_none() {
             self.lru_tail = previous;
         }
     }
@@ -478,3 +486,7 @@ mod tests {
         assert_eq!(cache.entry(retained).map(|entry| entry.value), Some(20));
     }
 }
+
+#[cfg(test)]
+#[path = "index/detach_single_lookup_tests.rs"]
+mod detach_single_lookup_tests;

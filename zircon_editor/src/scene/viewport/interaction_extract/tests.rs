@@ -7,10 +7,10 @@ use crate::scene::viewport::{
     render_packet::build_render_packet, SceneViewportSettings, ViewportCameraSnapshot,
 };
 
-use super::ViewportInteractionExtractCache;
+use super::{ViewportInteractionExtractCache, ViewportInteractionExtractPointerResolution};
 
 #[test]
-fn stable_generation_reuses_one_interaction_extract_and_handle_build() {
+fn rendered_generation_reuses_one_interaction_extract_and_handle_build_for_pointer_queries() {
     let scene = Scene::new();
     let cache = ViewportInteractionExtractCache::default();
     let settings = SceneViewportSettings::default();
@@ -18,64 +18,105 @@ fn stable_generation_reuses_one_interaction_extract_and_handle_build() {
     let viewport = UVec2::new(1280, 720);
     let handle_builds = Cell::new(0);
 
-    let first = cache.resolve_for_pointer(
+    let packet = build_render_packet(&scene, &settings, &camera, None, viewport);
+    let first = cache.resolve_from_render_packet(
         &scene,
         None,
         &settings,
         &camera,
         viewport,
+        &packet.scene.meshes,
         || {
             handle_builds.set(handle_builds.get() + 1);
             Vec::new()
         },
         Vec::new,
     );
-    let second = cache.resolve_for_pointer(
-        &scene,
-        None,
-        &settings,
-        &camera,
-        viewport,
-        || {
-            handle_builds.set(handle_builds.get() + 1);
-            Vec::new()
-        },
-        Vec::new,
-    );
+    let second = cache.resolve_for_pointer(&scene, None, &settings, &camera, viewport);
 
+    let ViewportInteractionExtractPointerResolution::Ready(second) = second else {
+        panic!("the rendered interaction extract must remain current for pointer queries");
+    };
     assert!(Arc::ptr_eq(&first, &second));
     assert_eq!(handle_builds.get(), 1);
 }
 
 #[test]
-fn world_generation_change_rebuilds_the_shared_extract() {
+fn world_generation_change_leaves_pointer_product_stale_until_render_republishes_it() {
     let mut scene = Scene::new();
     let cache = ViewportInteractionExtractCache::default();
     let settings = SceneViewportSettings::default();
     let camera = ViewportCameraSnapshot::default();
     let viewport = UVec2::new(1280, 720);
 
-    let first = cache.resolve_for_pointer(
+    let first_packet = build_render_packet(&scene, &settings, &camera, None, viewport);
+    let first = cache.resolve_from_render_packet(
         &scene,
         None,
         &settings,
         &camera,
         viewport,
+        &first_packet.scene.meshes,
         Vec::new,
         Vec::new,
     );
-    scene.spawn_node(NodeKind::Empty);
-    let second = cache.resolve_for_pointer(
+    scene
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+    let stale = cache.resolve_for_pointer(&scene, None, &settings, &camera, viewport);
+    assert!(matches!(
+        stale,
+        ViewportInteractionExtractPointerResolution::Stale
+    ));
+
+    let second_packet = build_render_packet(&scene, &settings, &camera, None, viewport);
+    let second = cache.resolve_from_render_packet(
         &scene,
         None,
         &settings,
         &camera,
         viewport,
+        &second_packet.scene.meshes,
         Vec::new,
         Vec::new,
     );
 
     assert!(!Arc::ptr_eq(&first, &second));
+}
+
+#[test]
+fn repeated_pointer_misses_become_preparing_after_one_render_request() {
+    let scene = Scene::new();
+    let cache = ViewportInteractionExtractCache::default();
+    let settings = SceneViewportSettings::default();
+    let camera = ViewportCameraSnapshot::default();
+    let viewport = UVec2::new(1280, 720);
+
+    assert!(matches!(
+        cache.resolve_for_pointer(&scene, None, &settings, &camera, viewport),
+        ViewportInteractionExtractPointerResolution::Stale
+    ));
+    assert!(matches!(
+        cache.resolve_for_pointer(&scene, None, &settings, &camera, viewport),
+        ViewportInteractionExtractPointerResolution::Preparing
+    ));
+
+    let packet = build_render_packet(&scene, &settings, &camera, None, viewport);
+    cache.resolve_from_render_packet(
+        &scene,
+        None,
+        &settings,
+        &camera,
+        viewport,
+        &packet.scene.meshes,
+        Vec::new,
+        Vec::new,
+    );
+
+    assert!(matches!(
+        cache.resolve_for_pointer(&scene, None, &settings, &camera, viewport),
+        ViewportInteractionExtractPointerResolution::Ready(_)
+    ));
 }
 
 #[test]
@@ -97,16 +138,11 @@ fn render_path_seeds_the_same_runtime_mesh_extract_used_by_pointer() {
         Vec::new,
         Vec::new,
     );
-    let from_pointer = cache.resolve_for_pointer(
-        &scene,
-        None,
-        &settings,
-        &camera,
-        viewport,
-        Vec::new,
-        Vec::new,
-    );
+    let from_pointer = cache.resolve_for_pointer(&scene, None, &settings, &camera, viewport);
 
+    let ViewportInteractionExtractPointerResolution::Ready(from_pointer) = from_pointer else {
+        panic!("the render-published extract must be available to pointer queries");
+    };
     assert!(Arc::ptr_eq(&from_render, &from_pointer));
     assert_eq!(
         from_render
@@ -124,7 +160,7 @@ fn render_path_seeds_the_same_runtime_mesh_extract_used_by_pointer() {
 }
 
 #[test]
-fn interaction_extract_profiling_distinguishes_cache_and_pointer_fallback_work() {
+fn interaction_extract_profiling_exposes_pointer_staleness_without_packet_fallback_work() {
     let source = include_str!("cache.rs");
     let compact_source = source
         .chars()
@@ -134,6 +170,8 @@ fn interaction_extract_profiling_distinguishes_cache_and_pointer_fallback_work()
     for counter in [
         "interaction_extract_cache_hit",
         "interaction_extract_cache_miss",
+        "interaction_extract_pointer_stale",
+        "interaction_extract_pointer_preparing",
         "interaction_mesh_copy_payload_bytes",
     ] {
         let invocation_prefix =
@@ -143,10 +181,7 @@ fn interaction_extract_profiling_distinguishes_cache_and_pointer_fallback_work()
             "interaction extract profiling must keep `{counter}` observable"
         );
     }
-    for scope in [
-        "interaction_extract_rebuild",
-        "pointer_fallback_packet_build",
-    ] {
+    for scope in ["interaction_extract_rebuild"] {
         let invocation =
             format!("zircon_runtime::profile_scope!(\"editor\",\"viewport\",\"{scope}\");");
         assert!(
@@ -154,4 +189,12 @@ fn interaction_extract_profiling_distinguishes_cache_and_pointer_fallback_work()
             "interaction extract profiling must keep `{scope}` observable"
         );
     }
+    assert!(
+        !compact_source.contains("build_render_packet("),
+        "pointer cache resolution must never rebuild a render packet"
+    );
+    assert!(
+        !compact_source.contains("pointer_fallback_packet_build"),
+        "the pointer fallback render-packet scope must stay removed"
+    );
 }

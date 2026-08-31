@@ -29,7 +29,7 @@ pub fn validate_native_artifact(
             "Build the manifest's dist_crate, then pass its target profile directory through --artifact-root or the file through --artifact.",
         )];
     }
-    let manifest: Value = match manifest_text.parse() {
+    let manifest: Value = match toml::from_str(manifest_text) {
         Ok(manifest) => manifest,
         Err(error) => {
             return vec![PluginDiagnostic::new(
@@ -131,7 +131,7 @@ pub fn validate_native_artifact(
         "package_manifest_toml",
         &mut diagnostics,
     ) {
-        match embedded.parse::<Value>() {
+        match toml::from_str::<Value>(&embedded) {
             Ok(embedded) if embedded == manifest => {}
             Ok(_) => diagnostics.push(PluginDiagnostic::new(
                 "plugin.native_artifact.embedded_manifest_drift",
@@ -224,7 +224,7 @@ fn validate_entry_symbol(
     }
 }
 
-fn validate_entry_name(
+pub(super) fn validate_entry_name(
     distribution: &toml::map::Map<String, Value>,
     field: &str,
     descriptor_entry: *const c_char,

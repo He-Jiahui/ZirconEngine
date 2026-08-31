@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use toml::Value;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
@@ -267,13 +267,12 @@ fn validate_child_mounts_for_component(
     children: &[UiChildMount],
     component: &UiComponentDefinition,
 ) -> Option<()> {
-    let mut counts = BTreeMap::<&str, usize>::new();
+    let mut occupied = HashSet::<&str>::with_capacity(children.len());
     for child in children {
         let slot_name = child.mount.as_deref().unwrap_or_default();
         let slot = component.slots.get(slot_name)?;
-        let count = counts.entry(slot_name).or_insert(0);
-        *count += 1;
-        if !slot.multiple && *count > 1 {
+        let first_occupant = occupied.insert(slot_name);
+        if !slot.multiple && !first_occupant {
             return None;
         }
     }
@@ -281,7 +280,7 @@ fn validate_child_mounts_for_component(
     component
         .slots
         .iter()
-        .all(|(slot_name, slot)| !slot.required || counts.contains_key(slot_name.as_str()))
+        .all(|(slot_name, slot)| !slot.required || occupied.contains(slot_name.as_str()))
         .then_some(())
 }
 
@@ -318,22 +317,24 @@ fn unique_node_id(document: &UiAssetDocument, base: &str) -> String {
 }
 
 fn unique_control_id(document: &UiAssetDocument, label: &str) -> String {
+    let existing_control_ids = document
+        .iter_nodes()
+        .filter_map(|node| node.control_id.as_deref())
+        .collect::<HashSet<_>>();
+    unique_control_id_from_existing(&existing_control_ids, label)
+}
+
+fn unique_control_id_from_existing(existing_control_ids: &HashSet<&str>, label: &str) -> String {
     let base = label
         .chars()
         .filter(|ch| ch.is_ascii_alphanumeric())
         .collect::<String>();
-    if !document
-        .iter_nodes()
-        .any(|node| node.control_id.as_deref() == Some(base.as_str()))
-    {
+    if !existing_control_ids.contains(base.as_str()) {
         return base;
     }
     for index in 2.. {
         let candidate = format!("{base}{index}");
-        if !document
-            .iter_nodes()
-            .any(|node| node.control_id.as_deref() == Some(candidate.as_str()))
-        {
+        if !existing_control_ids.contains(candidate.as_str()) {
             return candidate;
         }
     }
@@ -341,12 +342,23 @@ fn unique_control_id(document: &UiAssetDocument, label: &str) -> String {
 }
 
 fn base_node_id(label: &str) -> String {
-    let normalized = label
-        .chars()
-        .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '_' })
-        .collect::<String>()
-        .trim_matches('_')
-        .to_ascii_lowercase();
+    let mut normalized = String::with_capacity(label.len());
+    let mut trimmed_len = 0;
+    for ch in label.chars() {
+        let ch = if ch.is_ascii_alphanumeric() {
+            ch.to_ascii_lowercase()
+        } else {
+            '_'
+        };
+        if ch == '_' && normalized.is_empty() {
+            continue;
+        }
+        normalized.push(ch);
+        if ch != '_' {
+            trimmed_len = normalized.len();
+        }
+    }
+    normalized.truncate(trimmed_len);
     if normalized.is_empty() {
         "node".to_string()
     } else {
@@ -377,3 +389,15 @@ fn new_child_mount_for_parent(
     }
     mount
 }
+
+#[cfg(test)]
+#[path = "instantiate/control_id_index_tests.rs"]
+mod control_id_index_tests;
+
+#[cfg(test)]
+#[path = "instantiate/child_mount_validation_tests.rs"]
+mod child_mount_validation_tests;
+
+#[cfg(test)]
+#[path = "instantiate/base_node_id_tests.rs"]
+mod base_node_id_tests;

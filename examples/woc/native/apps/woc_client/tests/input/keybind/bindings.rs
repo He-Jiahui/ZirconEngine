@@ -102,6 +102,28 @@ fn attack_move_shares_a_without_stealing_or_being_stolen() {
 }
 
 #[test]
+fn lookup_kinds_preserve_shared_precedence_after_mutations() {
+    let mut bindings = Keybinds::default();
+    assert_eq!(bindings.action_for_combo("KeyA"), Some("turnLeft"));
+    assert_eq!(bindings.held_action_for_code("KeyA"), Some("turnLeft"));
+    assert_eq!(bindings.edge_action_for_combo("KeyA"), Some("attackMove"));
+
+    assert!(bindings.bind("bags", 0, "KeyA"));
+    assert_eq!(bindings.action_for_combo("KeyA"), Some("attackMove"));
+    assert_eq!(bindings.held_action_for_code("KeyA"), None);
+    assert_eq!(bindings.edge_action_for_combo("KeyA"), Some("attackMove"));
+
+    bindings.clear("attackMove", 0);
+    assert_eq!(bindings.action_for_combo("KeyA"), Some("bags"));
+    assert_eq!(bindings.edge_action_for_combo("KeyA"), Some("bags"));
+
+    bindings.reset();
+    assert_eq!(bindings.action_for_combo("KeyA"), Some("turnLeft"));
+    assert_eq!(bindings.held_action_for_code("KeyA"), Some("turnLeft"));
+    assert_eq!(bindings.edge_action_for_combo("KeyA"), Some("attackMove"));
+}
+
+#[test]
 fn clear_and_reset_restore_exact_defaults() {
     let mut bindings = Keybinds::default();
     bindings.clear("forward", 1);

@@ -26,7 +26,7 @@ fn workbench_toast_style_uses_shared_state_priority() {
     node.disabled = false;
     let pressed = select_workbench_toast_style(&node);
     assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
-    assert_eq!(pressed.border, PALETTE.focus_ring);
+    assert_eq!(pressed.border, PALETTE.accent);
 
     node.pressed = false;
     let focused = select_workbench_toast_style(&node);
@@ -41,7 +41,7 @@ fn workbench_toast_style_uses_shared_state_priority() {
     node.focused = false;
     let open = select_workbench_toast_style(&node);
     assert_eq!(open.state, UiPainterResolvedState::Open);
-    assert_eq!(open.border, PALETTE.focus_ring);
+    assert_eq!(open.border, PALETTE.accent);
 }
 
 #[test]
@@ -68,7 +68,8 @@ fn workbench_alert_style_uses_shared_state_priority() {
     node.disabled = false;
     let pressed = select_workbench_alert_style(&node, AlertTone::Warning);
     assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
-    assert_eq!(pressed.border, PALETTE.focus_ring);
+    assert_eq!(pressed.border, PALETTE.warning);
+    assert_ne!(pressed.border, PALETTE.focus_ring);
 
     node.pressed = false;
     let focused = select_workbench_alert_style(&node, AlertTone::Warning);

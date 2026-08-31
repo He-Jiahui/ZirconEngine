@@ -17,7 +17,8 @@ mod tests {
     use zircon_runtime_interface::ui::surface::{
         UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiShapedGlyph, UiShapedText,
         UiShapedTextCluster, UiShapedTextLine, UiTextDirection, UiTextOverflow, UiTextPaint,
-        UiTextRange, UiTextRenderMode, UiTextRunKind, UiTextRunPaintStyle, UiTextWritingMode,
+        UiTextRange, UiTextRenderMode, UiTextRunKind, UiTextRunPaintStyle, UiTextShapeArtifact,
+        UiTextWritingMode,
     };
 
     #[test]
@@ -234,7 +235,7 @@ mod tests {
             text_effects: Default::default(),
             text_decorations: Default::default(),
             overflow: UiTextOverflow::Clip,
-            shaped: Some(UiShapedText {
+            shaped: UiTextShapeArtifact::Canonical(UiShapedText {
                 source_text: "Name id".to_string(),
                 source_range: text_range(0, 7),
                 direction: UiTextDirection::LeftToRight,
@@ -311,7 +312,7 @@ mod tests {
             text_effects: Default::default(),
             text_decorations: Default::default(),
             overflow: UiTextOverflow::Ellipsis,
-            shaped: Some(UiShapedText {
+            shaped: UiTextShapeArtifact::Canonical(UiShapedText {
                 source_text: "folder-open-line.svg".to_string(),
                 source_range: text_range(0, 20),
                 direction: UiTextDirection::LeftToRight,

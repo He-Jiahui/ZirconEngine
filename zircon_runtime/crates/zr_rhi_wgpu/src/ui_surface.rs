@@ -2,13 +2,16 @@
 use crate::GPU_TIMESTAMP_REQUIRED_FEATURES;
 use std::sync::Arc;
 
-use crate::{GpuPassTimer, GpuReadbackQueue};
+use crate::{GpuPassTimer, GpuReadbackQueue, WgpuRenderDevice};
 use zr_rhi::{
-    RhiError, UiSurfaceDescriptor, UiSurfaceDrawList, UiSurfaceImageResourceTable,
-    UiSurfacePresentOutcome, UiSurfacePresentStats, UiSurfacePresenter,
+    RenderQueueClass, RhiError, SubmissionTicket, UiSurfaceDescriptor, UiSurfaceDrawList,
+    UiSurfaceImageResourceTable, UiSurfacePresentOutcome, UiSurfacePresentStats,
+    UiSurfacePresenter,
 };
 
 mod batching;
+mod color_space;
+mod external_image_copy;
 mod geometry;
 mod image_cache;
 mod pipeline;
@@ -20,15 +23,19 @@ mod surface_setup;
 mod text;
 
 use batching::{BatchDrawPlanStats, CompiledUiBatchPlanCache};
+pub use external_image_copy::{WgpuUiExternalImageCopyReceipt, WgpuUiExternalImageCopyTarget};
 use image_cache::{WgpuUiImageCache, WgpuUiImageResourceStats};
 use pipeline::{
-    create_image_bind_group_layout, create_image_pipeline, create_image_sampler,
-    create_solid_instance_pipeline, create_solid_pipeline,
+    create_damage_clear_pipeline, create_image_bind_group_layout, create_image_pipeline,
+    create_image_sampler, create_solid_instance_pipeline, create_solid_pipeline,
 };
 use render_pass::{WgpuUiDrawBufferCache, WgpuUiDrawBufferStats, WgpuUiRecordedDrawStats};
 use retained_cache::WgpuRetainedSurfaceCache;
+pub(crate) use shared_image_registry::WgpuUiImageInFlightPins;
 pub use shared_image_registry::WgpuUiSharedImageRegistry;
-use surface_setup::{configure_surface, create_surface, instance_descriptor, request_device};
+use surface_setup::{
+    configure_surface, create_surface, instance_descriptor, request_owned_render_device,
+};
 use text::{WgpuUiTextPrepareStats, WgpuUiTextRenderer};
 
 #[cfg(test)]
@@ -51,7 +58,19 @@ use image_cache::{
     remove_cached_image, take_image_source_pixels, ImageCacheAdmissionAction, ImagePayloadLayout,
 };
 
-/// Owned WGPU state that lets a native UI surface share the runtime renderer's device.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum WgpuUiSurfaceCompletionOwner {
+    External,
+    Local,
+}
+
+impl WgpuUiSurfaceCompletionOwner {
+    const fn is_local(self) -> bool {
+        matches!(self, Self::Local)
+    }
+}
+
+/// Owned WGPU state that binds a native UI surface to one render-device owner.
 ///
 /// The context is deliberately made of cloned WGPU handles rather than raw native pointers.
 /// Its creator must keep the instance, adapter, device, and queue from one negotiated backend;
@@ -63,30 +82,18 @@ pub struct WgpuUiSurfaceContext {
     device: wgpu::Device,
     queue: wgpu::Queue,
     shared_image_registry: Arc<WgpuUiSharedImageRegistry>,
+    render_device: Arc<WgpuRenderDevice>,
+    completion_owner: WgpuUiSurfaceCompletionOwner,
 }
 
 impl WgpuUiSurfaceContext {
-    pub fn new(
-        instance: wgpu::Instance,
-        adapter: wgpu::Adapter,
-        device: wgpu::Device,
-        queue: wgpu::Queue,
-    ) -> Self {
-        Self::new_with_shared_image_registry(
-            instance,
-            adapter,
-            device,
-            queue,
-            Arc::new(WgpuUiSharedImageRegistry::default()),
-        )
-    }
-
-    pub fn new_with_shared_image_registry(
+    pub(crate) fn new_with_render_device(
         instance: wgpu::Instance,
         adapter: wgpu::Adapter,
         device: wgpu::Device,
         queue: wgpu::Queue,
         shared_image_registry: Arc<WgpuUiSharedImageRegistry>,
+        render_device: Arc<WgpuRenderDevice>,
     ) -> Self {
         Self {
             instance,
@@ -94,74 +101,23 @@ impl WgpuUiSurfaceContext {
             device,
             queue,
             shared_image_registry,
+            render_device,
+            completion_owner: WgpuUiSurfaceCompletionOwner::External,
         }
     }
 
-    /// Copies a renderer-owned output into a texture whose identity is stable for one UI product.
-    ///
-    /// Both submissions use this context's queue, so queue order is the GPU lifetime fence: a UI
-    /// present can only sample the copied product after the producer and this copy have executed.
-    /// No staging buffer, mapping operation, or CPU pixel clone is involved.
-    pub fn copy_texture_for_external_image(
-        &self,
-        source: &wgpu::Texture,
-        width: u32,
-        height: u32,
-        format: wgpu::TextureFormat,
-        generation: u64,
-    ) -> WgpuUiExternalImage {
-        let byte_space_view_format = byte_space_sample_view_format(format);
-        let view_formats = byte_space_view_format
-            .as_ref()
-            .map(std::slice::from_ref)
-            .unwrap_or_default();
-        let texture = self.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-ui-external-product"),
-            size: wgpu::Extent3d {
-                width: width.max(1),
-                height: height.max(1),
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats,
-        });
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("zircon-ui-external-product-copy"),
-            });
-        encoder.copy_texture_to_texture(
-            source.as_image_copy(),
-            texture.as_image_copy(),
-            wgpu::Extent3d {
-                width: width.max(1),
-                height: height.max(1),
-                depth_or_array_layers: 1,
-            },
-        );
-        self.queue.submit(Some(encoder.finish()));
-        WgpuUiExternalImage::new_with_sample_view_format(
-            texture,
-            width,
-            height,
-            generation,
-            WgpuUiExternalImageAlphaMode::Opaque,
-            byte_space_view_format,
-        )
+    fn with_local_completion_owner(mut self) -> Self {
+        self.completion_owner = WgpuUiSurfaceCompletionOwner::Local;
+        self
     }
-}
 
-/// The retained UI composites byte-space image payloads. Sampling an sRGB product through its
-/// default view would decode it before the UI pass and make the direct path darker than readback.
-fn byte_space_sample_view_format(format: wgpu::TextureFormat) -> Option<wgpu::TextureFormat> {
-    match format {
-        wgpu::TextureFormat::Rgba8UnormSrgb => Some(wgpu::TextureFormat::Rgba8Unorm),
-        wgpu::TextureFormat::Bgra8UnormSrgb => Some(wgpu::TextureFormat::Bgra8Unorm),
-        _ => None,
+    fn external_image_render_device(&self) -> Result<&WgpuRenderDevice, RhiError> {
+        if self.completion_owner.is_local() {
+            return Err(RhiError::SurfaceUnavailable(
+                "external UI image publication requires the shared runtime device profile".into(),
+            ));
+        }
+        Ok(self.render_device.as_ref())
     }
 }
 
@@ -170,7 +126,10 @@ fn byte_space_sample_view_format(format: wgpu::TextureFormat) -> Option<wgpu::Te
 pub enum WgpuUiExternalImageAlphaMode {
     /// Every sampled texel has alpha one, so straight and premultiplied RGB are equivalent.
     Opaque,
-    /// RGB channels have already been multiplied by alpha before any linear filtering.
+    /// RGB channels are premultiplied in the texture view's decoded sampling space.
+    ///
+    /// For an sRGB texture, stored bytes therefore encode linear-premultiplied RGB rather than
+    /// multiplying ordinary sRGB bytes directly.
     Premultiplied,
 }
 
@@ -186,46 +145,43 @@ pub struct WgpuUiExternalImage {
     height: u32,
     generation: u64,
     alpha_mode: WgpuUiExternalImageAlphaMode,
-    sample_view_format: Option<wgpu::TextureFormat>,
+    shared_allocation_pin: Option<shared_image_registry::WgpuUiImageSurfacePin>,
 }
 
 impl WgpuUiExternalImage {
     /// Declares a texture whose sampled alpha is always one.
     pub fn new_opaque(texture: wgpu::Texture, width: u32, height: u32, generation: u64) -> Self {
-        Self::new_with_sample_view_format(
+        Self::new(
             texture,
             width,
             height,
             generation,
             WgpuUiExternalImageAlphaMode::Opaque,
-            None,
         )
     }
 
-    /// Declares a texture whose RGB channels are already multiplied by alpha.
+    /// Declares a texture whose decoded RGB channels are already multiplied by alpha.
     pub fn new_premultiplied(
         texture: wgpu::Texture,
         width: u32,
         height: u32,
         generation: u64,
     ) -> Self {
-        Self::new_with_sample_view_format(
+        Self::new(
             texture,
             width,
             height,
             generation,
             WgpuUiExternalImageAlphaMode::Premultiplied,
-            None,
         )
     }
 
-    fn new_with_sample_view_format(
+    fn new(
         texture: wgpu::Texture,
         width: u32,
         height: u32,
         generation: u64,
         alpha_mode: WgpuUiExternalImageAlphaMode,
-        sample_view_format: Option<wgpu::TextureFormat>,
     ) -> Self {
         Self {
             texture,
@@ -233,7 +189,21 @@ impl WgpuUiExternalImage {
             height,
             generation,
             alpha_mode,
-            sample_view_format,
+            shared_allocation_pin: None,
+        }
+    }
+
+    fn with_shared_allocation(
+        &self,
+        shared_allocation_pin: shared_image_registry::WgpuUiImageSurfacePin,
+    ) -> Self {
+        Self {
+            texture: self.texture.clone(),
+            width: self.width,
+            height: self.height,
+            generation: self.generation,
+            alpha_mode: self.alpha_mode,
+            shared_allocation_pin: Some(shared_allocation_pin),
         }
     }
 
@@ -249,7 +219,6 @@ impl WgpuUiExternalImage {
     fn create_sample_view(&self) -> wgpu::TextureView {
         self.texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("zircon-ui-external-image-view"),
-            format: self.sample_view_format,
             ..Default::default()
         })
     }
@@ -409,6 +378,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
                     resolved_draw_plan.batch_plan_cache_hit_count;
                 WgpuUiSurfacePresentation {
                     outcome: UiSurfacePresentOutcome::Submitted,
+                    submission: None,
                     draw_list_stats: resolved_draw_plan
                         .draw_list_stats
                         .unwrap_or_else(|| draw_list.stats()),
@@ -425,6 +395,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
 
         let mut stats = presentation.draw_list_stats;
         stats.outcome = presentation.outcome;
+        stats.submission = presentation.submission;
         stats.compiled_draw_calls = presentation.batch_stats.draw_calls;
         stats.compiled_visible_draw_item_count = presentation.batch_stats.visible_draw_item_count;
         stats.compiled_solid_vertex_count = presentation.batch_stats.solid_vertex_count;
@@ -462,7 +433,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
             stats.batch_dependency_count = 0;
             stats.batch_merge_count = recorded
                 .visible_draw_item_count
-                .saturating_sub(recorded.draw_calls);
+                .saturating_sub(recorded.content_draw_calls());
         }
         stats.text_shape_count = presentation.text_stats.text_shape_count;
         stats.text_renderer_build_count = presentation.text_stats.text_renderer_build_count;
@@ -475,6 +446,14 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
             stats.image_shared_upload_write_count = image_resource_stats.shared_upload_write_count;
             stats.image_shared_upload_bytes = image_resource_stats.shared_upload_bytes;
             stats.image_shared_resident_bytes = image_resource_stats.shared_resident_bytes;
+            stats.image_device_allocation_count = image_resource_stats.device_allocation_count;
+            stats.image_device_allocation_bytes = image_resource_stats.device_allocation_bytes;
+            stats.image_registry_evicted_pinned_bytes =
+                image_resource_stats.registry_evicted_pinned_bytes;
+            stats.image_surface_pin_count = image_resource_stats.surface_pin_count;
+            stats.image_in_flight_present_pin_count =
+                image_resource_stats.in_flight_present_pin_count;
+            stats.image_eviction_completion_count = image_resource_stats.eviction_completion_count;
             stats.image_cache_key_allocation_count =
                 image_resource_stats.cache_key_allocation_count;
             stats.image_cache_prune_visit_count = image_resource_stats.cache_prune_visit_count;
@@ -513,6 +492,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
 
 struct WgpuUiSurfacePresentation {
     outcome: UiSurfacePresentOutcome,
+    submission: Option<SubmissionTicket>,
     draw_list_stats: UiSurfacePresentStats,
     batch_stats: BatchDrawPlanStats,
     text_stats: WgpuUiTextPrepareStats,
@@ -526,6 +506,7 @@ struct WgpuUiSurfacePresentation {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct WgpuUiSurfaceRenderStats {
     outcome: UiSurfacePresentOutcome,
+    submission: Option<SubmissionTicket>,
     draw_buffers: WgpuUiDrawBufferStats,
     recorded: WgpuUiRecordedDrawStats,
     retained_cache_copy_bytes: u64,
@@ -545,6 +526,10 @@ fn advance_presented_frame_count(current: u64, outcome: UiSurfacePresentOutcome)
 impl WgpuUiSurfaceRenderStats {
     fn add_recorded(&mut self, recorded: WgpuUiRecordedDrawStats) {
         self.recorded.draw_calls = self.recorded.draw_calls.saturating_add(recorded.draw_calls);
+        self.recorded.damage_clear_draw_count = self
+            .recorded
+            .damage_clear_draw_count
+            .saturating_add(recorded.damage_clear_draw_count);
         self.recorded.render_pass_count = self
             .recorded
             .render_pass_count
@@ -579,6 +564,7 @@ struct WgpuUiSurfaceRenderer {
     queue: wgpu::Queue,
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
+    damage_clear_pipeline: wgpu::RenderPipeline,
     solid_pipeline: wgpu::RenderPipeline,
     solid_instance_pipeline: wgpu::RenderPipeline,
     image_pipeline: wgpu::RenderPipeline,
@@ -590,10 +576,13 @@ struct WgpuUiSurfaceRenderer {
     external_images: Option<Arc<dyn WgpuUiSurfaceExternalImageProvider>>,
     pending_image_resources: UiSurfaceImageResourceTable,
     text: WgpuUiTextRenderer,
-    gpu_readback_queue: GpuReadbackQueue,
+    render_device: Arc<WgpuRenderDevice>,
+    completion_owner: WgpuUiSurfaceCompletionOwner,
+    gpu_readback_queue: Option<GpuReadbackQueue>,
     gpu_pass_timer: Option<GpuPassTimer>,
     compiled_batch_plan: CompiledUiBatchPlanCache,
     compiled_draw_buffers: WgpuUiDrawBufferCache,
+    damage_draw_op_candidates: Vec<usize>,
     present_index: u64,
 }
 
@@ -614,13 +603,12 @@ impl WgpuUiSurfaceRenderer {
             force_fallback_adapter: false,
         }))
         .map_err(|_| RhiError::SurfaceUnavailable("no compatible adapter found".into()))?;
-        let (device, queue) = request_device(&adapter, descriptor.allow_gpu_timing)?;
-        Self::from_surface(
-            descriptor,
-            WgpuUiSurfaceContext::new(instance, adapter, device, queue),
-            surface,
-            None,
-        )
+        let render_device =
+            request_owned_render_device(instance, &adapter, descriptor.allow_gpu_timing)?;
+        let context = render_device
+            .ui_surface_context()
+            .with_local_completion_owner();
+        Self::from_surface(descriptor, context, surface, None)
     }
 
     fn new_with_context(
@@ -643,6 +631,7 @@ impl WgpuUiSurfaceRenderer {
     ) -> Result<Self, RhiError> {
         let size = descriptor.clamped_size();
         let config = configure_surface(&surface, &context.adapter, &context.device, size)?;
+        let damage_clear_pipeline = create_damage_clear_pipeline(&context.device, config.format);
         let solid_pipeline = create_solid_pipeline(&context.device, config.format);
         let solid_instance_pipeline =
             create_solid_instance_pipeline(&context.device, config.format);
@@ -653,13 +642,14 @@ impl WgpuUiSurfaceRenderer {
         let retained_cache = retained_cache_copy_supported(config.usage)
             .then(|| WgpuRetainedSurfaceCache::new(&context.device, config.format, size));
         let text = WgpuUiTextRenderer::new(&context.device, &context.queue, config.format);
-        let gpu_pass_timer = descriptor
-            .allow_gpu_timing
+        let gpu_pass_timer = (descriptor.allow_gpu_timing && context.completion_owner.is_local())
             .then(|| {
                 GpuPassTimer::try_new(&context.device, &context.queue, UI_GPU_TIMER_MAX_PASSES)
             })
             .flatten();
-        let gpu_readback_queue = GpuReadbackQueue::new(&context.device);
+        let gpu_readback_queue = gpu_pass_timer
+            .as_ref()
+            .map(|_| GpuReadbackQueue::new(&context.device));
 
         Ok(Self {
             _instance: context.instance,
@@ -668,6 +658,7 @@ impl WgpuUiSurfaceRenderer {
             queue: context.queue,
             surface,
             config,
+            damage_clear_pipeline,
             solid_pipeline,
             solid_instance_pipeline,
             image_pipeline,
@@ -679,10 +670,13 @@ impl WgpuUiSurfaceRenderer {
             external_images,
             pending_image_resources: UiSurfaceImageResourceTable::default(),
             text,
+            render_device: context.render_device,
+            completion_owner: context.completion_owner,
             gpu_readback_queue,
             gpu_pass_timer,
             compiled_batch_plan: CompiledUiBatchPlanCache::default(),
             compiled_draw_buffers: WgpuUiDrawBufferCache::default(),
+            damage_draw_op_candidates: Vec::new(),
             present_index: 0,
         })
     }
@@ -693,6 +687,22 @@ impl WgpuUiSurfaceRenderer {
         self.config.height = size.1;
         self.surface.configure(&self.device, &self.config);
         Ok(())
+    }
+
+    fn submit_present_command_buffer(
+        &self,
+        command_buffer: wgpu::CommandBuffer,
+        image_allocation_pins: Option<WgpuUiImageInFlightPins>,
+    ) -> Result<SubmissionTicket, RhiError> {
+        let mut recording = self
+            .render_device
+            .begin_native_recording(RenderQueueClass::Graphics)?;
+        recording.extend_recorded_command_buffers([command_buffer]);
+        let mut packet = recording.finish()?;
+        if let Some(pins) = image_allocation_pins {
+            packet.retain_ui_image_pins(pins);
+        }
+        self.render_device.submit_native_recording_packet(packet)
     }
 }
 

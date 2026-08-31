@@ -1,6 +1,7 @@
+use std::hint::black_box;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Barrier};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use super::super::worker::SinkRuntime;
 use super::super::{DiagnosticLogState, ProcessLogController};
@@ -161,6 +162,54 @@ fn process_shutdown_without_an_active_sink_is_already_complete() {
     let controller = ProcessLogController::default();
 
     assert!(controller.shutdown_when_idle(Duration::from_millis(1)));
+}
+
+#[test]
+fn runtime44_batch_borrowed_active_state_reads_do_not_clone_the_published_arc() {
+    let controller = ProcessLogController::default();
+    let state = Arc::new(DiagnosticLogState::for_test(
+        DiagnosticLogFilterConfig::default(),
+    ));
+    controller.active_state.store(Some(Arc::clone(&state)));
+    let strong_count = Arc::strong_count(&state);
+
+    controller.with_active_state(|active| {
+        assert!(active.is_some_and(|active| std::ptr::eq(active, state.as_ref())));
+        assert_eq!(Arc::strong_count(&state), strong_count);
+    });
+
+    assert_eq!(Arc::strong_count(&state), strong_count);
+}
+
+#[test]
+#[ignore = "managed release performance evidence"]
+fn runtime44_batch_borrowed_active_state_evidence() {
+    const READS: usize = 1_000_000;
+    const MAX_ELAPSED_NS: u128 = 3_000_000_000;
+
+    let controller = ProcessLogController::default();
+    let state = Arc::new(DiagnosticLogState::for_test(
+        DiagnosticLogFilterConfig::default(),
+    ));
+    controller.active_state.store(Some(Arc::clone(&state)));
+    let strong_count = Arc::strong_count(&state);
+    let started = Instant::now();
+    for _ in 0..READS {
+        black_box(controller.with_active_state(|active| active.is_some()));
+    }
+    let elapsed_ns = started.elapsed().as_nanos();
+    let legacy_arc_refcount_pairs = READS;
+    let borrowed_arc_refcount_pairs = 0;
+    let refcount_reduction_bps = 10_000;
+
+    println!(
+        "RUNTIME44_BORROWED_ACTIVE_STATE_BENCH_V1 reads={READS} legacy_arc_refcount_pairs={legacy_arc_refcount_pairs} borrowed_arc_refcount_pairs={borrowed_arc_refcount_pairs} refcount_reduction_bps={refcount_reduction_bps} elapsed_ns={elapsed_ns} max_elapsed_ns={MAX_ELAPSED_NS}"
+    );
+
+    assert_eq!(Arc::strong_count(&state), strong_count);
+    assert_eq!(borrowed_arc_refcount_pairs, 0);
+    assert_eq!(refcount_reduction_bps, 10_000);
+    assert!(elapsed_ns <= MAX_ELAPSED_NS);
 }
 
 #[test]

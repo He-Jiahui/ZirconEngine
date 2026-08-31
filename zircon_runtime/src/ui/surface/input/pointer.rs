@@ -1,9 +1,10 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiComponentEventReport, UiDispatchAppliedEffect, UiInputDispatchResult, UiInputEvent,
-        UiInputEventMetadata, UiPointerEvent, UiPointerInputEvent,
+        UiComponentEventReport, UiDispatchAppliedEffect, UiInputDiagnosticsMode,
+        UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiPointerEvent,
+        UiPointerInputEvent,
     },
-    surface::UiPointerEventKind,
+    surface::{UiHitTestQuery, UiPointerEventKind},
     tree::UiTreeError,
 };
 
@@ -21,22 +22,25 @@ pub(super) fn dispatch_pointer_input(
     surface: &mut UiSurface,
     pointer_dispatcher: &UiPointerDispatcher,
     pointer: UiPointerInputEvent,
+    pointer_query: Option<UiHitTestQuery>,
+    diagnostics_mode: UiInputDiagnosticsMode,
 ) -> Result<UiInputDispatchResult, UiTreeError> {
-    let metadata = pointer.metadata.clone();
-    record_cursor_position_before_pointer_dispatch(surface, &metadata, &pointer.event);
+    let pointer_id = pointer.metadata.pointer_id;
+    let pointer_source = pointer.metadata.pointer_source;
+    let click_count = pointer.event.click_count;
+    record_cursor_position_before_pointer_dispatch(surface, &pointer.metadata, &pointer.event);
     let clear_cursor_point_after_dispatch =
-        should_clear_cursor_position_after_pointer_dispatch(&metadata, &pointer.event);
-    let pointer_for_text = pointer.clone();
+        should_clear_cursor_position_after_pointer_dispatch(&pointer.metadata, &pointer.event);
     let routed_result = dispatch_pointer_event_for_metadata(
         surface,
         pointer_dispatcher,
-        &metadata,
+        &pointer.metadata,
         pointer.event.clone(),
+        pointer_query,
     )?;
     surface.apply_pointer_dispatch_dirty(&routed_result)?;
-    let event = UiInputEvent::Pointer(pointer);
     if let Some(captured_by) = routed_result.captured_by {
-        if let Some(pointer_id) = metadata.pointer_id {
+        if let Some(pointer_id) = pointer_id {
             surface
                 .input
                 .set_pointer_capture_for_id(pointer_id, captured_by);
@@ -47,7 +51,7 @@ pub(super) fn dispatch_pointer_input(
             .released_capture
             .or(routed_result.route.captured)
         {
-            if let Some(pointer_id) = metadata.pointer_id {
+            if let Some(pointer_id) = pointer_id {
                 surface
                     .input
                     .clear_pointer_capture_id_for_owner(pointer_id, owner);
@@ -60,25 +64,32 @@ pub(super) fn dispatch_pointer_input(
         surface.focus.captured = surface.input.activate_any_pointer_capture();
     }
     let component_handler = pointer_component_handler(&routed_result);
-    let reply = pointer_reply(&routed_result, metadata.pointer_id.unwrap_or_default());
-    let mut applied_effects = Vec::new();
+    let reply = pointer_reply(&routed_result, pointer_id.unwrap_or_default());
+    let mut applied_effects = Vec::with_capacity(reply.effects.len());
     for (effect_index, effect) in reply.effects.iter().cloned().enumerate() {
         applied_effects.push(UiDispatchAppliedEffect {
             effect_index,
             effect,
         });
     }
-    let mut result = UiInputDispatchResult::new(event, reply.clone());
+    let text_result =
+        dispatch_pointer_text_edit(surface, &pointer, &routed_result.route, diagnostics_mode);
+    let event = UiInputEvent::Pointer(pointer);
+    let mut result = UiInputDispatchResult::new(event, reply);
     result.diagnostics.routed = routed_result.diagnostics.pointer_routed;
     result.diagnostics.route_target = routed_result.route.target;
     result.diagnostics.blocked_by = routed_result.blocked_by;
-    result.diagnostics.handled_phase =
-        if routed_result.handled_by.is_some() || component_handler.is_some() {
-            Some("pointer".to_string())
-        } else {
-            None
-        };
-    if routed_result.route.kind == UiPointerEventKind::Scroll {
+    if diagnostics_mode.captures_full_trace() {
+        result.diagnostics.handled_phase =
+            if routed_result.handled_by.is_some() || component_handler.is_some() {
+                Some("pointer".to_string())
+            } else {
+                None
+            };
+    }
+    if diagnostics_mode.captures_full_trace()
+        && routed_result.route.kind == UiPointerEventKind::Scroll
+    {
         result
             .diagnostics
             .notes
@@ -102,15 +113,14 @@ pub(super) fn dispatch_pointer_input(
         })
         .collect();
     result.binding_reports = routed_result.binding_reports;
-    if let Some(text_result) =
-        dispatch_pointer_text_edit(surface, &pointer_for_text, &routed_result.route)
-    {
+    if let Some(text_result) = text_result {
         merge_pointer_text_result(&mut result, text_result);
     }
     dispatch_pointer_rich_link_activation(
         surface,
-        &pointer_for_text,
+        click_count,
         &routed_result.route,
+        diagnostics_mode,
         &mut result,
     );
     if clear_cursor_point_after_dispatch {
@@ -118,11 +128,15 @@ pub(super) fn dispatch_pointer_input(
     }
     annotate_pointer_route_trace(
         surface,
-        &routed_result.route,
-        &pointer_for_text,
+        routed_result.route,
+        pointer_source,
+        pointer_id,
+        diagnostics_mode,
         &mut result,
     );
-    annotate_result_route_steps(&mut result);
+    if diagnostics_mode.captures_full_trace() {
+        annotate_result_route_steps(&mut result);
+    }
     Ok(result)
 }
 
@@ -160,6 +174,7 @@ fn dispatch_pointer_event_for_metadata(
     pointer_dispatcher: &UiPointerDispatcher,
     metadata: &zircon_runtime_interface::ui::dispatch::UiInputEventMetadata,
     event: zircon_runtime_interface::ui::dispatch::UiPointerEvent,
+    pointer_query: Option<UiHitTestQuery>,
 ) -> Result<zircon_runtime_interface::ui::dispatch::UiPointerDispatchResult, UiTreeError> {
     let incoming_capture = metadata
         .pointer_id
@@ -185,11 +200,16 @@ fn dispatch_pointer_event_for_metadata(
         surface.focus.captured = None;
         surface.focus.pressed = None;
     }
-    let result = surface.dispatch_pointer_event_with_modifiers(
-        pointer_dispatcher,
-        event,
-        metadata.modifiers,
-    );
+    let result = if let Some(pointer_query) = pointer_query {
+        surface.dispatch_pointer_event_with_query_and_modifiers(
+            pointer_dispatcher,
+            event,
+            pointer_query,
+            metadata.modifiers,
+        )
+    } else {
+        surface.dispatch_pointer_event_with_modifiers(pointer_dispatcher, event, metadata.modifiers)
+    };
     let captured_by_incoming_pointer = result
         .as_ref()
         .ok()

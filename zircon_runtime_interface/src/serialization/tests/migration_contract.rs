@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::super::{
-    load_versioned, Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId,
-    VersionedSchema,
+    load_versioned, load_versioned_legacy_schema_zero, Format, LoadError, MigrateError,
+    MigrationChain, MigrationStep, SchemaId, VersionedSchema,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,7 +29,7 @@ fn identity_migration(value: Value) -> Result<Value, MigrateError> {
 
 #[test]
 fn duplicate_source_version_is_rejected_instead_of_using_table_order() {
-    let error = load_versioned::<DuplicateStepDocument>(b"{}", Format::Text)
+    let error = load_versioned_legacy_schema_zero::<DuplicateStepDocument>(b"{}", Format::Text)
         .expect_err("duplicate migration steps are ambiguous");
 
     assert!(matches!(
@@ -60,7 +60,8 @@ static OUT_OF_ORDER_CHAIN: MigrationChain<OutOfOrderDocument> = MigrationChain::
 
 #[test]
 fn out_of_order_table_is_rejected_instead_of_searched() {
-    let error = load_versioned::<OutOfOrderDocument>(b"{}", Format::Text).unwrap_err();
+    let error =
+        load_versioned_legacy_schema_zero::<OutOfOrderDocument>(b"{}", Format::Text).unwrap_err();
 
     assert!(matches!(
         error,
@@ -91,7 +92,8 @@ static EXTRA_STEP_CHAIN: MigrationChain<ExtraStepDocument> = MigrationChain::new
 
 #[test]
 fn extra_step_past_current_version_is_rejected() {
-    let error = load_versioned::<ExtraStepDocument>(b"{}", Format::Text).unwrap_err();
+    let error =
+        load_versioned_legacy_schema_zero::<ExtraStepDocument>(b"{}", Format::Text).unwrap_err();
 
     assert!(matches!(
         error,

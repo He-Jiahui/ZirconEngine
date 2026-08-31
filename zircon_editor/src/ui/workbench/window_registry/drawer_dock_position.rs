@@ -28,9 +28,7 @@ impl DrawerDockPosition {
             ActivityDrawerSlot::LeftBottom => Self::LeftBottom,
             ActivityDrawerSlot::RightTop => Self::RightTop,
             ActivityDrawerSlot::RightBottom => Self::RightBottom,
-            ActivityDrawerSlot::Bottom
-            | ActivityDrawerSlot::BottomLeft
-            | ActivityDrawerSlot::BottomRight => Self::Bottom,
+            ActivityDrawerSlot::Bottom => Self::Bottom,
         }
     }
 }

@@ -132,7 +132,6 @@ fn build_main_pages(
                 id,
                 title,
                 activity_window,
-                document_workspace,
             } => MainPageSnapshot::Workbench {
                 id: id.clone(),
                 title: title.clone(),
@@ -142,7 +141,16 @@ fn build_main_pages(
                     descriptors,
                     activity_window,
                 ),
-                workspace: resolve_document_workspace(document_workspace, instances, descriptors),
+                workspace: layout
+                    .content_workspace_for_page(id)
+                    .map(|workspace| resolve_document_workspace(workspace, instances, descriptors))
+                    .unwrap_or_else(|| {
+                        resolve_document_workspace(
+                            &crate::ui::workbench::layout::DocumentNode::default(),
+                            instances,
+                            descriptors,
+                        )
+                    }),
             },
             MainHostPageLayout::ExclusiveActivityWindowPage {
                 id,

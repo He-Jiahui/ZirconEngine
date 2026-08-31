@@ -1,6 +1,9 @@
 use crate::scene::viewport::{GizmoAxis, HandleOverlayExtract, OverlayAxis};
 use zircon_runtime_interface::math::Transform;
 
+#[cfg(test)]
+mod overlay_capacity_tests;
+
 use crate::scene::viewport::handles::{
     handle_drag_context::HandleDragContext,
     handle_drag_session::HandleDragSession,
@@ -19,7 +22,7 @@ impl HandleTool for ScaleHandleTool {
         ctx: &crate::scene::viewport::handles::handle_build_context::HandleBuildContext<'_>,
     ) -> Option<HandleOverlayExtract> {
         let (selected, basis) = selected_basis(ctx)?;
-        let mut elements = Vec::new();
+        let mut elements = Vec::with_capacity(4);
         push_axis_scale(
             &mut elements,
             OverlayAxis::X,

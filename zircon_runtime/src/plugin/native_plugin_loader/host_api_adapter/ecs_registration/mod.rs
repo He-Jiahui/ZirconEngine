@@ -1,9 +1,8 @@
-use std::marker::PhantomData;
 use std::sync::Arc;
 
 use zircon_runtime_interface::{
-    ZrByteBufferRef, ZrByteSlice, ZrComponentDescV1, ZrEventTypeId, ZrHostApiV3, ZrHostAssetApiV1,
-    ZrHostBridgeApiV1, ZrHostDiagnosticsApiV1, ZrHostEcsApiV1, ZrHostEventApiV1, ZrOwnedByteBuffer,
+    ZrByteBufferRef, ZrByteSlice, ZrComponentDescV1, ZrEventTypeId, ZrHostAssetApiV1,
+    ZrHostBridgeApiV1, ZrHostDiagnosticsApiV1, ZrHostEventApiV1, ZrOwnedByteBuffer,
     ZrRuntimePluginHandle, ZrStatus, ZrStatusCode, ZrSystemRegistrationV1, ZrSystemRegistrationV2,
 };
 
@@ -21,86 +20,8 @@ use super::abi_decode::{
     v4_thread_affinity_from_abi, validate_v4_registration_header, NativeHostApiAdapterError,
     NativeHostApiAdapterResult,
 };
-use super::bridge_scope::native_host_bridge_call_v1;
-use super::context_handles::{
-    context_for, context_for_v4, insert_context, remove_context, NativeHostApiV3Context,
-    NativeHostRegistrationScopeState,
-};
+use super::context_handles::{context_for, context_for_v4, NativeHostRegistrationScopeState};
 use super::registration_policy::NativeHostApiV4RegistrationContext;
-
-pub struct NativeHostApiV3RegistrationScope<'registry> {
-    pub(super) handle: ZrRuntimePluginHandle,
-    pub(super) lifetime: Arc<NativeHostRegistrationScopeState>,
-    pub(super) _registry: PhantomData<&'registry mut RuntimeExtensionRegistry>,
-}
-
-impl<'registry> NativeHostApiV3RegistrationScope<'registry> {
-    pub fn new(
-        registry: &'registry mut RuntimeExtensionRegistry,
-        module_name: impl Into<String>,
-    ) -> Result<Self, String> {
-        Self::new_result(registry, module_name).map_err(|error| error.to_string())
-    }
-
-    fn new_result(
-        registry: &'registry mut RuntimeExtensionRegistry,
-        module_name: impl Into<String>,
-    ) -> NativeHostApiAdapterResult<Self> {
-        let owner = registry
-            .intern_plugin_module(module_name)
-            .map_err(|source| NativeHostApiAdapterError::InvalidPluginModuleOwner { source })?;
-        let lifetime = Arc::new(NativeHostRegistrationScopeState::default());
-        let handle = ZrRuntimePluginHandle::new(insert_context(
-            NativeHostApiV3Context::Registration(NativeHostApiV3RegistrationContext {
-                registry: registry as *mut RuntimeExtensionRegistry as usize,
-                owner,
-                lifetime: Arc::clone(&lifetime),
-            }),
-        ));
-        Ok(Self {
-            handle,
-            lifetime,
-            _registry: PhantomData,
-        })
-    }
-
-    pub const fn handle(&self) -> ZrRuntimePluginHandle {
-        self.handle
-    }
-
-    pub fn api(&self) -> ZrHostApiV3 {
-        ZrHostApiV3 {
-            abi_version: 3,
-            size_bytes: std::mem::size_of::<ZrHostApiV3>(),
-            ecs: ZrHostEcsApiV1 {
-                register_system: Some(native_host_register_system_v1),
-                register_component: Some(native_host_register_component_v1),
-                spawn_command: Some(native_host_spawn_command_v1),
-            },
-            asset: ZrHostAssetApiV1 {
-                request: Some(native_host_asset_request_v1),
-            },
-            event: ZrHostEventApiV1 {
-                emit: Some(native_host_event_emit_v1),
-                drain: Some(native_host_event_drain_v1),
-            },
-            bridge: ZrHostBridgeApiV1 {
-                call: Some(native_host_bridge_call_v1),
-            },
-            diagnostics: ZrHostDiagnosticsApiV1 {
-                emit: Some(native_host_diagnostics_emit_v1),
-                metric: Some(native_host_diagnostics_metric_v1),
-            },
-        }
-    }
-}
-
-impl Drop for NativeHostApiV3RegistrationScope<'_> {
-    fn drop(&mut self) {
-        self.lifetime.close_and_wait();
-        remove_context(self.handle.raw());
-    }
-}
 
 #[derive(Clone)]
 pub(super) struct NativeHostApiV3RegistrationContext {
@@ -430,6 +351,3 @@ pub(super) fn plugin_id_from_runtime_module_name(module_name: &str) -> Option<&s
 fn status(code: ZrStatusCode) -> ZrStatus {
     ZrStatus::new(code, ZrByteSlice::empty())
 }
-
-#[cfg(test)]
-mod tests;

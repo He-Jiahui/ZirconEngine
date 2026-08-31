@@ -21,11 +21,33 @@ struct ZrEnvironmentPbrComponents {
 @group(0) @binding(6) var<uniform> zr_environment_sh9: ZrEnvironmentSh9;
 
 fn zr_environment_normalize_or_zero(value: vec3<f32>) -> vec3<f32> {
-    let value_length = length(value);
-    if (value_length <= ZR_ENVIRONMENT_EPSILON) {
-        return vec3<f32>(0.0, 0.0, 0.0);
+    return zr_pbr_common_normalize_or_zero(value);
+}
+
+fn zr_environment_dominant_specular_direction_normalized(
+    normal: vec3<f32>,
+    perfect_reflection: vec3<f32>,
+    roughness: f32,
+) -> vec3<f32> {
+    let clamped_roughness = clamp(roughness, 0.0, 1.0);
+    if (clamped_roughness <= ZR_ENVIRONMENT_EPSILON) {
+        return perfect_reflection;
     }
-    return value / value_length;
+    if (clamped_roughness >= 1.0 - ZR_ENVIRONMENT_EPSILON) {
+        return normal;
+    }
+    return zr_environment_normalize_or_zero(mix(
+        perfect_reflection,
+        normal,
+        clamped_roughness * clamped_roughness,
+    ));
+}
+
+fn zr_environment_perfect_specular_direction_normalized(
+    normal: vec3<f32>,
+    view_dir: vec3<f32>,
+) -> vec3<f32> {
+    return reflect(-view_dir, normal);
 }
 
 fn zr_environment_is_enabled() -> bool {
@@ -95,7 +117,7 @@ fn zr_environment_mip_from_roughness(roughness: f32, max_mip: f32) -> f32 {
         return 0.0;
     }
     return clamp(
-        max_mip - ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP
+        max_mip - 1.0 - ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP
             + ZR_ENVIRONMENT_PMREM_ROUGHNESS_MIP_SCALE * log2(clamped_roughness),
         0.0,
         max_mip,
@@ -111,10 +133,13 @@ fn zr_environment_env_brdf_lut(f0: vec3<f32>, roughness: f32, no_v: f32) -> vec3
         0.0,
     ).rg;
     let f90 = clamp(50.0 * f0.g, 0.0, 1.0);
-    return clamp(f0 * ab.x + vec3<f32>(f90) * ab.y, vec3<f32>(0.0), vec3<f32>(1.0));
+    // Keep the HDR split-sum result; only the F90 gate is saturated.
+    return f0 * ab.x + vec3<f32>(f90) * ab.y;
 }
 
 fn zr_environment_sh9_eval_normalized(n: vec3<f32>) -> vec3<f32> {
+    // Coefficients use the serialized Zircon Y-up order, not cmft's legacy
+    // SH9 order. Keep this polynomial aligned with the CPU payload producer.
     let x = n.x;
     let y = n.y;
     let z = n.z;
@@ -149,23 +174,15 @@ fn zr_environment_irradiance_cube_color_normalized(normal: vec3<f32>) -> vec3<f3
 fn zr_environment_procedural_sky_color_normalized(
     normalized_direction: vec3<f32>,
 ) -> vec3<f32> {
-    let sky_t = clamp(normalized_direction.y * 0.5 + 0.5, 0.0, 1.0);
-    let ground_t = clamp(normalized_direction.y + 1.0, 0.0, 1.0);
-    let sky = mix(scene.sky_horizon_color.rgb, scene.sky_zenith_color.rgb, sky_t);
-    let ground = mix(scene.sky_ground_color.rgb, scene.sky_horizon_color.rgb, ground_t);
-    var color = select(ground, sky, normalized_direction.y >= 0.0);
-    if (
-        scene.sky_sun_direction.w >= 0.5
-        && scene.sky_sun_params.x > 0.0
-    ) {
-        let sun_mask = smoothstep(
-            scene.sky_sun_params.y,
-            scene.sky_sun_params.z,
-            dot(normalized_direction, scene.sky_sun_direction.xyz),
-        );
-        color += scene.sky_sun_color_radius.rgb * scene.sky_sun_params.x * sun_mask;
-    }
-    return color * max(scene.environment_params.y, 0.0);
+    return zr_procedural_sky_radiance(
+        normalized_direction,
+        scene.sky_horizon_color.rgb,
+        scene.sky_zenith_color.rgb,
+        scene.sky_ground_color.rgb,
+        scene.sky_sun_direction,
+        scene.sky_sun_color_radius.rgb,
+        scene.sky_sun_params,
+    ) * max(scene.environment_params.y, 0.0);
 }
 
 fn zr_environment_sky_reflection_color(
@@ -176,6 +193,11 @@ fn zr_environment_sky_reflection_color(
         let max_mip = max(scene.environment_sample_params.w - 1.0, 0.0);
         let lod = zr_environment_mip_from_roughness(roughness, max_mip);
         return zr_environment_specular_pmrem_color_at_clamped_lod_normalized(reflected, lod);
+    }
+    // A capture must not bake a sharp procedural reflection while its PMREM is unavailable.
+    // Diffuse sky lighting and the sky background are evaluated by their separate paths.
+    if (scene.sky_sun_params.w > 0.5) {
+        return vec3<f32>(0.0);
     }
     // A sky without a PMREM has no roughness convolution. Keep the reflected
     // direction instead of fabricating a rough lobe from the surface normal.
@@ -223,27 +245,28 @@ fn zr_environment_pbr_components_from_reflection(
     clamped_occlusion: f32,
     diffuse_color: vec3<f32>,
     base_color: vec3<f32>,
+    dielectric_f0: vec3<f32>,
     has_global_environment: bool,
     reflection: vec3<f32>,
 ) -> ZrEnvironmentPbrComponents {
-    let diffuse_energy_scale = 1.0 - clamped_metallic;
+    let no_v = clamp(dot(normal, view_dir), 0.0, 1.0);
+    let pbr_diffuse_color = zr_pbr_base_color(diffuse_color);
+    let pbr_base_color = zr_pbr_base_color(base_color);
+    let f0 = zr_pbr_material_f0(dielectric_f0, pbr_base_color, clamped_metallic);
+    let diffuse_energy_scale = vec3<f32>(
+        zr_surface_metallic_diffuse_energy_scale(clamped_metallic),
+    );
     var diffuse_environment = vec3<f32>(0.0);
-    if (diffuse_energy_scale > 0.0
+    if (any(diffuse_energy_scale > vec3<f32>(0.0))
         && has_global_environment
-        && any(diffuse_color != vec3<f32>(0.0)))
+        && any(pbr_diffuse_color != vec3<f32>(0.0)))
     {
         diffuse_environment = zr_environment_diffuse_color_normalized(normal)
-            * diffuse_color
+            * pbr_diffuse_color
             * diffuse_energy_scale;
     }
     var specular_environment = vec3<f32>(0.0);
     if (any(reflection != vec3<f32>(0.0))) {
-        let f0 = mix(
-            vec3<f32>(0.04, 0.04, 0.04),
-            max(base_color, vec3<f32>(0.0, 0.0, 0.0)),
-            clamped_metallic,
-        );
-        let no_v = clamp(dot(normal, view_dir), 0.0, 1.0);
         let specular_occlusion = zr_environment_specular_occlusion(
             no_v,
             clamped_roughness,

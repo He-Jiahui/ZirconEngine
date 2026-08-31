@@ -1,9 +1,9 @@
-use std::collections::VecDeque;
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use fontdue::Font;
-use zircon_runtime::core::framework::text::TextFontFaceHandle;
+use zircon_runtime::core::framework::text::{TextFontCollectionHandle, TextFontFaceHandle};
 use zircon_runtime::ui::surface::UiTextGlyphArtifactRasterFace;
 
 use super::{font_settings_for_collection_index, HostTextFont, HostTextFontSnapshot};
@@ -73,11 +73,7 @@ struct RuntimeArtifactFontKey {
 fn cached_runtime_artifact_font(key: RuntimeArtifactFontKey) -> Option<Arc<HostTextFont>> {
     let cache = runtime_artifact_font_cache();
     let mut cache = lock_recovering_poison(cache);
-    let index = cache.iter().position(|entry| entry.key == key)?;
-    let entry = cache.remove(index)?;
-    let font = Arc::clone(&entry.font);
-    cache.push_front(entry);
-    Some(font)
+    cache.get(key)
 }
 
 fn insert_runtime_artifact_font(
@@ -86,29 +82,86 @@ fn insert_runtime_artifact_font(
 ) -> Arc<HostTextFont> {
     let cache = runtime_artifact_font_cache();
     let mut cache = lock_recovering_poison(cache);
-    if let Some(index) = cache.iter().position(|entry| entry.key == key) {
-        let entry = cache.remove(index).expect("cache entry located above");
-        let existing = Arc::clone(&entry.font);
-        cache.push_front(entry);
-        return existing;
-    }
-
-    cache.push_front(RuntimeArtifactFontCacheEntry {
-        key,
-        font: Arc::clone(&font),
-    });
-    cache.truncate(RUNTIME_ARTIFACT_FONT_CACHE_CAPACITY);
-    font
+    cache.insert(key, font)
 }
 
 struct RuntimeArtifactFontCacheEntry {
-    key: RuntimeArtifactFontKey,
     font: Arc<HostTextFont>,
+    last_used: u64,
 }
 
-fn runtime_artifact_font_cache() -> &'static Mutex<VecDeque<RuntimeArtifactFontCacheEntry>> {
-    static CACHE: OnceLock<Mutex<VecDeque<RuntimeArtifactFontCacheEntry>>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(VecDeque::new()))
+#[derive(Default)]
+struct RuntimeArtifactFontCache {
+    entries: HashMap<RuntimeArtifactFontKey, RuntimeArtifactFontCacheEntry>,
+    access_generation: u64,
+}
+
+impl RuntimeArtifactFontCache {
+    fn get(&mut self, key: RuntimeArtifactFontKey) -> Option<Arc<HostTextFont>> {
+        let generation = self.next_access_generation();
+        let entry = self.entries.get_mut(&key)?;
+        entry.last_used = generation;
+        Some(Arc::clone(&entry.font))
+    }
+
+    fn insert(
+        &mut self,
+        key: RuntimeArtifactFontKey,
+        font: Arc<HostTextFont>,
+    ) -> Arc<HostTextFont> {
+        let generation = self.next_access_generation();
+        if let Some(entry) = self.entries.get_mut(&key) {
+            entry.last_used = generation;
+            return Arc::clone(&entry.font);
+        }
+        if self.entries.len() >= RUNTIME_ARTIFACT_FONT_CACHE_CAPACITY {
+            let least_recent_key = self
+                .entries
+                .iter()
+                .min_by_key(|(_, entry)| entry.last_used)
+                .map(|(key, _)| *key)
+                .expect("a full runtime artifact font cache has an entry");
+            self.entries.remove(&least_recent_key);
+        }
+        self.entries.insert(
+            key,
+            RuntimeArtifactFontCacheEntry {
+                font: Arc::clone(&font),
+                last_used: generation,
+            },
+        );
+        font
+    }
+
+    fn next_access_generation(&mut self) -> u64 {
+        if self.access_generation == u64::MAX {
+            self.rebase_access_generations();
+        }
+        let generation = self.access_generation;
+        self.access_generation += 1;
+        generation
+    }
+
+    fn rebase_access_generations(&mut self) {
+        let mut order = self
+            .entries
+            .iter()
+            .map(|(key, entry)| (*key, entry.last_used))
+            .collect::<Vec<_>>();
+        order.sort_unstable_by_key(|(_, generation)| *generation);
+        for (generation, (key, _)) in order.into_iter().enumerate() {
+            self.entries
+                .get_mut(&key)
+                .expect("runtime artifact font cache key remains present")
+                .last_used = generation as u64;
+        }
+        self.access_generation = self.entries.len() as u64;
+    }
+}
+
+fn runtime_artifact_font_cache() -> &'static Mutex<RuntimeArtifactFontCache> {
+    static CACHE: OnceLock<Mutex<RuntimeArtifactFontCache>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(RuntimeArtifactFontCache::default()))
 }
 
 fn runtime_artifact_font_cache_key(key: RuntimeArtifactFontKey) -> u64 {
@@ -122,23 +175,25 @@ fn runtime_artifact_font_cache_key(key: RuntimeArtifactFontKey) -> u64 {
 mod tests {
     use super::*;
 
+    const TEST_FONT_COLLECTION: TextFontCollectionHandle = TextFontCollectionHandle::new(1);
+
     #[test]
     fn runtime_artifact_font_cache_key_keeps_generation_and_instance_identity() {
         let base = RuntimeArtifactFontKey {
             source_identity: [7; 16],
             font_generation: 12,
-            font_face: TextFontFaceHandle::new(3, 12),
-            font_instance: Some(TextFontFaceHandle::new(5, 12)),
+            font_face: TextFontFaceHandle::new(TEST_FONT_COLLECTION, 3, 12),
+            font_instance: Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 5, 12)),
             collection_index: 1,
         };
         let stale_generation = RuntimeArtifactFontKey {
             font_generation: 13,
-            font_face: TextFontFaceHandle::new(3, 13),
-            font_instance: Some(TextFontFaceHandle::new(5, 13)),
+            font_face: TextFontFaceHandle::new(TEST_FONT_COLLECTION, 3, 13),
+            font_instance: Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 5, 13)),
             ..base
         };
         let other_instance = RuntimeArtifactFontKey {
-            font_instance: Some(TextFontFaceHandle::new(6, 12)),
+            font_instance: Some(TextFontFaceHandle::new(TEST_FONT_COLLECTION, 6, 12)),
             ..base
         };
 
@@ -152,3 +207,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "runtime_artifact/hash_lru_tests.rs"]
+mod hash_lru_tests;

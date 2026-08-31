@@ -13,6 +13,9 @@ use super::error::{SceneError, SceneResult};
 use super::World;
 use crate::scene::reflect::VmTypeBacking;
 
+#[cfg(test)]
+mod registration_tests;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct DynamicComponentInstance {
     pub component_id: String,
@@ -26,17 +29,15 @@ impl World {
         registration: ReflectTypeRegistration,
         backing: VmTypeBacking,
     ) -> SceneResult<()> {
-        let type_path = registration.type_path.type_path.clone();
+        let type_path = registration.type_path.type_path().to_string();
         if self.type_registry.contains(&type_path) {
             return Err(ReflectError::DuplicateTypePath { type_path }.into());
         }
 
-        let descriptor =
-            crate::scene::reflect::TypeRegistry::vm_component_descriptor(&registration, backing)?;
+        let mut type_registry = self.type_registry.clone();
+        let descriptor = type_registry.register_vm_type_with_descriptor(registration, backing)?;
         let mut component_types = self.component_types.clone();
         component_types.register(descriptor)?;
-        let mut type_registry = self.type_registry.clone();
-        type_registry.register_vm_type(registration, backing)?;
 
         let registration = type_registry.registration(&type_path)?;
         self.validate_retained_vm_payloads(std::slice::from_ref(registration))?;
@@ -73,6 +74,7 @@ impl World {
     ) -> SceneResult<()> {
         let registration =
             crate::scene::reflect::registration_from_component_descriptor(&descriptor)?;
+        self.component_types.validate_new_descriptor(&descriptor)?;
         if self.type_registry.contains(&descriptor.type_id) {
             return Err(ReflectError::DuplicateTypePath {
                 type_path: descriptor.type_id.clone(),
@@ -82,14 +84,23 @@ impl World {
         let component =
             crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor);
         let component_type_id = descriptor.type_id.clone();
-        self.component_types.register(descriptor)?;
-        self.type_registry.register(RuntimeTypeRegistration {
+        let runtime_registration = RuntimeTypeRegistration {
             registration,
             component: Some(component),
             resource: None,
-        })?;
+        };
+        self.type_registry
+            .validate_new_registration(&runtime_registration)?;
+
+        let mut descriptor_imports = self
+            .component_registry
+            .begin_transferred_descriptor_imports();
         self.component_registry
-            .dynamic_component_id(&component_type_id);
+            .preflight_dynamic_descriptor_import(&mut descriptor_imports, &component_type_id);
+
+        self.component_registry
+            .publish_preflighted_transferred_descriptor_imports(descriptor_imports);
+        self.publish_prevalidated_dynamic_component_type(descriptor, runtime_registration);
         Ok(())
     }
 
@@ -102,9 +113,7 @@ impl World {
         debug_assert!(!self.component_types.contains(&type_path));
         debug_assert!(!self.type_registry.contains_type_path(&type_path));
         self.component_types.publish_prevalidated(descriptor);
-        self.type_registry
-            .register(registration)
-            .expect("preflight-validated dynamic type registration must publish");
+        self.type_registry.publish_prevalidated(registration);
     }
 
     pub fn component_type_descriptor(&self, type_id: &str) -> Option<&ComponentTypeDescriptor> {
@@ -444,7 +453,7 @@ impl World {
         let mut type_registry = self.type_registry.clone();
         let desired_type_paths = registrations
             .iter()
-            .map(|registration| registration.type_path.type_path.clone())
+            .map(|registration| registration.type_path.type_path().to_string())
             .collect::<std::collections::BTreeSet<_>>();
         for obsolete_type_path in self.vm_catalog_type_paths.difference(&desired_type_paths) {
             self.ensure_vm_catalog_type_unused(obsolete_type_path)?;
@@ -452,7 +461,7 @@ impl World {
             type_registry.remove_vm_type(obsolete_type_path)?;
         }
         for registration in registrations {
-            let type_path = registration.type_path.type_path.as_str();
+            let type_path = registration.type_path.type_path();
             if type_registry.contains_type_path(type_path)
                 && !self.vm_catalog_type_paths.contains(type_path)
             {
@@ -462,12 +471,8 @@ impl World {
                 .into());
             }
             let backing = VmTypeBacking::DynamicComponent;
-            let descriptor = crate::scene::reflect::TypeRegistry::vm_component_descriptor(
-                registration,
-                backing,
-            )?;
+            let descriptor = type_registry.upsert_vm_type(registration.clone(), backing)?;
             component_types.upsert_vm_descriptor(descriptor)?;
-            type_registry.upsert_vm_type(registration.clone(), backing)?;
         }
         self.validate_retained_vm_payloads(registrations)?;
         let mut vm_dynamic_type_paths = self
@@ -572,7 +577,7 @@ impl World {
             }
         }
         for registration in registrations {
-            let type_path = registration.type_path.type_path.as_str();
+            let type_path = registration.type_path.type_path();
             let Some(payloads) = payloads_by_type.get(type_path) else {
                 continue;
             };
@@ -587,7 +592,7 @@ impl World {
         registration: &ReflectTypeRegistration,
         value: &Value,
     ) -> SceneResult<()> {
-        let component_id = registration.type_path.type_path.as_str();
+        let component_id = registration.type_path.type_path();
         let Some(object) = value.as_object() else {
             return Err(SceneError::DynamicComponentNotObject {
                 component_id: component_id.to_string(),

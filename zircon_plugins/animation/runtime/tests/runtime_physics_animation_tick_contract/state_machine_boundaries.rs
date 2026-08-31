@@ -35,7 +35,7 @@ fn graph_backed_state_samples_events_and_pose_from_one_graph_evaluation() {
                 entity,
                 Some(AnimationStateMachinePlayerComponent {
                     state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(machine_id),
-                    parameters: BTreeMap::new(),
+                    parameters: BTreeMap::new().into(),
                     active_state: Some("Idle".to_string()),
                     playing: true,
                 }),
@@ -104,7 +104,7 @@ fn assert_invalid_duration_switches_immediately(duration_seconds: f32) {
                 entity,
                 Some(AnimationStateMachinePlayerComponent {
                     state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(machine_id),
-                    parameters: BTreeMap::new(),
+                    parameters: BTreeMap::new().into(),
                     active_state: Some("Idle".to_string()),
                     playing: true,
                 }),

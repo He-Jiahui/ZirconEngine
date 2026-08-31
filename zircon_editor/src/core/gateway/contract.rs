@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use zircon_runtime::scene::World;
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeModuleCompositionReceiptV1;
 use zircon_runtime_interface::world_sync::{
     InvalidationBatch, WatchRegistration, WatchToken, WorldQuery, WorldQueryResult,
 };
@@ -10,10 +11,11 @@ use zircon_runtime_interface::{
     ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeOperationHandle,
     ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
     ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportPickRequestV1, ZrRuntimeViewportPickResultV1,
+    ZrRuntimeViewportPickTicket, ZrRuntimeViewportSizeV1,
 };
 
-use super::{EditorRuntimeHighlightSet, GatewayError, RuntimeCapabilities};
+use super::{EditorRuntimeHighlightSet, GatewayError, GatewaySessionIdentity, RuntimeCapabilities};
 
 pub(crate) trait EditorRuntimeFramePixels {
     fn rgba(&self) -> &[u8];
@@ -207,7 +209,18 @@ pub trait EditorRuntimeGateway: Send + Sync {
         RuntimeCapabilities::unavailable()
     }
 
+    fn module_composition_receipt(&self) -> Option<Arc<ZrRuntimeModuleCompositionReceiptV1>> {
+        None
+    }
+
     fn session_handle(&self) -> ZrRuntimeSessionHandle;
+
+    /// Returns the complete App- or transport-owned identity for this endpoint.
+    ///
+    /// Implementations must return [`GatewaySessionIdentity::detached`] only when the endpoint
+    /// intentionally has no runtime session. A valid ABI session handle is never sufficient by
+    /// itself because its opaque value can be reused by another runtime instance.
+    fn session_identity(&self) -> GatewaySessionIdentity;
 
     fn with_world(&self, _read: &mut dyn FnMut(&World)) -> Result<(), GatewayError> {
         Err(GatewayError::RequiresSerializedAccess)
@@ -290,6 +303,37 @@ pub trait EditorRuntimeGateway: Send + Sync {
     fn submit_highlight_set(&self, _set: EditorRuntimeHighlightSet) -> Result<(), GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.editor_overlay.highlight_set",
+        })
+    }
+
+    /// Requests a renderer-owned pick from this exact endpoint.
+    ///
+    /// Callers with a replaceable gateway must retain an identity-pinned viewport-pick route for
+    /// the complete request/poll/cancel lifetime of the opaque ticket.
+    fn request_viewport_pick(
+        &self,
+        _request: ZrRuntimeViewportPickRequestV1,
+    ) -> Result<ZrRuntimeViewportPickTicket, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.viewport.pick.request",
+        })
+    }
+
+    fn poll_viewport_pick(
+        &self,
+        _ticket: ZrRuntimeViewportPickTicket,
+    ) -> Result<ZrRuntimeViewportPickResultV1, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.viewport.pick.poll",
+        })
+    }
+
+    fn cancel_viewport_pick(
+        &self,
+        _ticket: ZrRuntimeViewportPickTicket,
+    ) -> Result<(), GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.viewport.pick.cancel",
         })
     }
 

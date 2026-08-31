@@ -21,8 +21,10 @@ impl RuntimePluginCatalog {
         catalog
     }
 
-    pub(super) fn publish_initial_generation(&mut self) {
-        let catalog_generation = self.catalog_generation.saturating_add(1);
+    pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn publish_initial_generation(
+        &mut self,
+    ) {
+        let catalog_generation = self.catalog_generation;
         let projection_builds = self.projection_builds.saturating_add(1);
         let projection = Arc::new(RuntimePluginCatalogProjection::build(
             &self.registrations,

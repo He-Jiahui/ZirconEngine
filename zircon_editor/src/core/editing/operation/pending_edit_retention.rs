@@ -3,6 +3,8 @@ use std::time::Duration;
 
 use crate::core::editor_operation::EditorOperationInvocation;
 
+use super::EditOperationTarget;
+
 /// Deferred-edit retention is declared by the operation registration, never by a Play caller.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum PendingEditRetention {
@@ -113,16 +115,19 @@ impl std::error::Error for PendingEditRetentionError {}
 #[derive(Clone, Debug, PartialEq)]
 pub struct DeferredOperationInvocation {
     invocation: EditorOperationInvocation,
+    target: EditOperationTarget,
     retention: PendingEditRetention,
 }
 
 impl DeferredOperationInvocation {
     pub(crate) fn from_registration(
         invocation: EditorOperationInvocation,
+        target: EditOperationTarget,
         retention: PendingEditRetention,
     ) -> Self {
         Self {
             invocation,
+            target,
             retention,
         }
     }
@@ -135,7 +140,17 @@ impl DeferredOperationInvocation {
         &self.retention
     }
 
-    pub(crate) fn into_parts(self) -> (EditorOperationInvocation, PendingEditRetention) {
-        (self.invocation, self.retention)
+    pub const fn target(&self) -> EditOperationTarget {
+        self.target
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        EditorOperationInvocation,
+        EditOperationTarget,
+        PendingEditRetention,
+    ) {
+        (self.invocation, self.target, self.retention)
     }
 }

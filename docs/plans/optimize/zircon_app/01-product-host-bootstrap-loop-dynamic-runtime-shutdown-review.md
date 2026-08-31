@@ -6,7 +6,7 @@ related_code:
   - zircon_app/src/bin/runtime_preview.rs
   - zircon_app/src/entry
   - zircon_app/src/plugins
-  - zircon_app/src/runtime_presenter.rs
+  - zircon_app/src/reference_cpu_presenter.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/01-core-runtime-lifecycle-registry-review.md
@@ -21,13 +21,15 @@ reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Launch/Private/Launch.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Launch/Private/Windows/LaunchWindows.cpp
+  - dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Configuration/Rules/TargetRules.cs
+  - dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/System/TargetReceipt.cs
   - dev/bevy/crates/bevy_app/src/app.rs
   - dev/bevy/crates/bevy_winit/src/state.rs
   - dev/Fyrox/fyrox-impl/src/engine/executor.rs
   - dev/godot/main/main.cpp
 doc_type: review-and-refactor-plan
 review_status: review_complete
-implementation_status: pending
+implementation_status: m0_shutdown_disposition_editor_exit_abi_source_implemented_static_review_passed_managed_validation_pending
 source_recheck_required: true
 ---
 
@@ -39,7 +41,7 @@ source_recheck_required: true
 
 但从产品宿主角度看，当前实现仍是“桌面单窗口 runtime preview + Editor 专用入口 + 若干 bootstrap API”，不是 Unreal `Launch`/`FEngineLoop` 级别的统一产品外壳。`target-server` 没有 binary，唯一 `run_headless()` 激活模块后立即返回；可执行的无窗口 profile 只能借用 `target-client` 的 Winit/DLL 路径。`target-client` 又强制带入 desktop X11/Wayland、窗口、输入和动态 runtime，因此 manifest 中列出的 Web/Android/headless 能力没有形成各自可构建、可启动、可停机的产品角色。
 
-当前停机安全主要集中在 `RuntimeSession::drop`：若 DLL session destroy 失败会直接 `abort`，避免带活 callback 卸载库。这是正确的最后防线，却不是完整 shutdown architecture。App 没有 process-wide shutdown coordinator、signal/OS termination owner、分阶段 quiesce/drain/flush/unload 顺序或幂等状态机；`EngineEntry::bootstrap` 只激活模块并返回 `CoreHandle`，顶层 binary 又忽略日志 drain 失败。此前 Runtime01 已确认产品退出没有显式触发完整模块 cleanup，因此不能把“Rust drop 最终发生”当成与 Unreal/Fyrox/Godot 有序停机等价。
+当前停机安全主要集中在 `RuntimeSession::drop`：若 DLL session destroy 失败会直接 `abort`，避免带活 callback 卸载库。这是正确的最后防线，却不是完整 shutdown architecture。2026-08-27 的 composition 硬切已关闭公开 `EngineEntry::bootstrap -> CoreHandle` 旁路，Editor/runtime binary 也会把日志 drain 失败提升为进程失败；但 App 仍没有 process-wide shutdown coordinator、signal/OS termination owner、分阶段 quiesce/drain/flush/unload 顺序或幂等状态机。此前 Runtime01 已确认产品退出没有显式触发完整模块 cleanup，因此不能把“Rust drop 最终发生”当成与 Unreal/Fyrox/Godot 有序停机等价。
 
 Play-in-Editor 的进程边界也尚未闭合。`--play-report-pipe` 目前只是写入 stdout 文本中的 outlet 标签，不创建或连接 pipe；Editor process backend 只把 stdout 当普通 diagnostics 收集，不解析 starting/ready/start-failed/terminal，更不据此推进 Play 状态。runtime 还在 session 创建后、首帧和场景可用性尚未验证时发出 `ready`。这不能作为可靠的启动握手、健康检查或超时/取消协议。
 
@@ -56,7 +58,7 @@ Play-in-Editor 的进程边界也尚未闭合。`--play-report-pipe` 目前只�
 | combined focused set | 173 / 21,933 | E2-E3；production fingerprint `743cb2c27f4ca99e3f325cf1a711d886cb840b4aae7b853abf094ba3bd0f5ed1` |
 | crate-level integration tests | 3 files / 4 tests | 一个真实 Editor authoring restart；其余两个为源码顺序和 plugin builder contract |
 
-focused set 包含 `zircon_app/src/entry`、`src/plugins`、`src/runtime_presenter.rs`、`src/lib.rs`、`src/prelude.rs`、`src/bin/editor.rs` 和 `src/bin/runtime_preview.rs`，排除 `src/bin/zircon_shader_pbr_viewer`。PBR viewer 有独立 scene/bootstrap、后台载入、native/CPU present、evidence 与 RenderDoc 生命周期，下一份 `zircon_app/02` 单独审查，不能用它的测试和工具能力替 runtime 产品入口背书。
+focused set 包含 `zircon_app/src/entry`、`src/plugins`、`src/reference_cpu_presenter.rs`、`src/lib.rs`、`src/prelude.rs`、`src/bin/editor.rs` 和 `src/bin/runtime_preview.rs`，排除 `src/bin/zircon_shader_pbr_viewer`。PBR viewer 有独立 scene/bootstrap、后台载入、native/CPU present、evidence 与 RenderDoc 生命周期，下一份 `zircon_app/02` 单独审查，不能用它的测试和工具能力替 runtime 产品入口背书。
 
 production classifier 排除路径段 `tests`、叶文件 `test.rs`/`tests.rs` 和 `_tests.rs`，但保留 production 文件内嵌的 `#[cfg(test)]` 物理行。fingerprint 算法为路径排序、逐文件 SHA-256，再对 `path<TAB>hash<LF>` 清单取 SHA-256。成文前 `zircon_app` 未出现在工作区修改列表；实施前仍需重取指纹，因为相邻 Runtime、Editor 和计划文件存在其他 Session 修改。
 
@@ -134,7 +136,7 @@ client binary 中的 `minimal/headless` profile 不能替代 server：它依赖 
 
 ### P0-3：没有 process-wide shutdown coordinator，正常退出仍依赖局部 Drop 偶然排序
 
-`EngineEntry::bootstrap` 和 `BuiltinEngineEntry::bootstrap` 完成 module activation 后直接返回 `CoreHandle`；app 没有 `Running -> Quiescing -> Draining -> ReleasingSurfaces -> DestroyingSession -> DeactivatingModules -> FlushingDiagnostics -> Exited` 状态机，也没有 signal/OS termination owner。Runtime01 已确认产品入口不显式触发完整 module cleanup。Editor/runtime binary 对 `shutdown_process_log(...)` 的结果都 `let _ =` 丢弃；runtime callback failure state只保存第一个错误；session destroy failure则跳过全部剩余收尾直接 abort。
+首轮审查时，`EngineEntry::bootstrap` 和 `BuiltinEngineEntry::bootstrap` 完成 module activation 后直接向公开调用方返回 `CoreHandle`；2026-08-27 已将两者降为 crate-private，并由不可公开借出 Core 的 `ProductComposition` 统一持有 Core 与插件 owner。App 已定义 `Running -> Quiescing -> Draining -> ReleasingPlatform -> DestroyingRuntime -> DeactivatingModules -> FlushingDiagnostics -> Exited` 单调状态与ordered failure ledger，但状态机尚未持有实际资源，也没有 signal/OS termination owner。Runtime01 已确认产品入口不显式触发完整 module cleanup。Editor/runtime failure冷路径已共享ledger并检查 `shutdown_process_log(...)`，但log结果仍在ledger外；session destroy failure则跳过全部剩余收尾直接 abort。
 
 必须新增进程级 coordinator，持有 Core、session、native plugin host、windows/surfaces、task/network/asset/render drains、profiling与diagnostic sinks的依赖图。每个阶段要幂等、可超时、可记录 primary+secondary failure；正常退出、startup rollback、window close、server signal、Editor stop、panic/crash前置 flush和DLL destroy failure都必须经过同一状态机或明确的 emergency branch。仅靠字段 Drop 顺序和 source-order test不达标。
 
@@ -148,17 +150,19 @@ runtime 的 reporter 只是 `write_all` 到 stdout，记录 `zircon_play_report 
 
 ### 6.1 Product composition 与配置真值
 
-#### P1-1：`EntryConfig` 可构造互相矛盾的 profile/target/render/window/plugin 组合
+#### P1-1：`EntryConfig` 可构造互相矛盾的 profile/target/render/window/plugin 组合（M0 源码已收敛，受管验证待执行）
 
-公开字段与链式 setter 可独立改写 `profile`、`runtime_profile`、`target_mode`、manifest、export profile、render profile和window descriptor。`with_target_mode(ServerRuntime)` 只隐藏窗口，不把 render profile切到 headless；`with_export_profile` 只更新 target/window；`with_runtime_profile` 会覆盖 target/manifest但不统一重算全部派生值。系统没有 `validate/finalize` gate。
+首轮审查发现公开字段与链式 setter 会独立改写 `profile`、`runtime_profile`、`target_mode`、manifest、export profile、render profile和window descriptor。2026-08-27 的 M0 源码切片已删除该可变派生模型：`EntryConfig` 只保存用户请求，`resolve()` 统一校验 role/target/runtime profile/export、合并 profile manifest与显式插件选择，并在任何模块编译或native export插件加载前失败。
 
-应将用户 intent 与 resolved config 分离。`ProductRoleRequest` 经 platform/capability/plugin/export resolver一次生成不可变 `ResolvedProductHostConfig`，其中每项派生值带 provenance；任何矛盾组合在 module activation前失败。禁止把半解析 config跨 Core 和 DLL 各解释一次。
+当前 `ProductRoleRequest` 已冻结desktop/editor/server以及web/android/editor-play/commandlet/embedded角色词表；只有已有owner的desktop/editor/server可解析，其余角色返回typed unsupported-role error，不伪造支持。`ResolvedProductHostConfig`字段私有且携带 `ProductHostConfigProvenance`，crate-private entry compiler、Editor预备流程、一方插件投影和runtime module composition只消费解析结果。Plugin manifest以runtime profile为base并按ID叠加entry/export选择，required/optional同ID返回typed conflict，optional不能降级已有required；manifest provenance用无堆分配的source set保留全部贡献源，两个Editor字段分别记录来源。Export profile的`runtime_profile_id`不再被setter清空，并进入现有module selection/composition receipt。`ExportRuntimeBootstrapConfig`也已删除重复的`EntryProfile`与target mode输入，统一从`ExportProfile.target_mode + target_platform`投影product role；Android、Web/Wasm、iOS embedded在专属host owner缺失时分别以`AndroidClient`、`WebClient`、`Embedded` typed fail-closed，不再静默冒充desktop client。platform capability resolver与统一`ProductComposition`源码均已在本轮后续切片落地；受管行为验证仍待执行。
 
-#### P1-2：bootstrap public surface 过度排列组合，缺少单一 composition transaction
+#### P1-2：bootstrap public surface 过度排列组合，缺少单一 composition transaction（M0 源码已收敛，独立复核通过，受管验证待执行）
 
 `EntryRunner` 同时公开 report/no-report、first-party/runtime/feature/native plugin/export-root等大量 `bootstrap_with_*`；`BuiltinEngineEntry` 又有对应 `for_config_with_*`，`builtin_modules.rs` 再复制多条 selection route。调用方是否保留 selection report、native host owner和feature registration取决于选中了哪个函数，而不是一个统一 transaction result。
 
 应收敛为 `ProductCompositionRequest -> ProductComposition`：result始终持有 resolved config、module report、plugin/native owners、Core 和 diagnostics；调用方不能通过较短 helper意外丢失 owner或证据。便捷 API只构造 request，不再复制执行逻辑。
+
+2026-08-27 的 M0 源码切片已完成该硬切：`ProductCompositionRequest`统一解析配置、选择first-party或显式linked provider、在配置准入后加载native export report，并通过单一private prepare stage生成report-only或完整composition；`ProductComposition`按安全drop顺序持有resolved config、module receipt/identity、Core、bridge lifecycle state、compiled plugin plan、diagnostics与可选native host。旧`EntryRuntimeBootstrap`、`NativePluginRuntimeBootstrap`、`bootstrap_with_*`及`into_core`/`into_parts`逃生口已删除，`EngineEntry`、`BuiltinEngineEntry`、`ProductComposition::core`均降为crate内部边界。Editor GUI、retained-host automation、headless和export facade均保留完整composition owner；生成的mobile/browser library以进程级`Vacant/Starting/Running/Stopping`状态机持有composition，bootstrap和析构均在mutex外执行，reentrant start/shutdown不死锁也不重叠generation，析构panic则保持`Stopping`并拒绝重新启动。ABI事件只在`Running`接受；Android `onDestroy`、iOS `applicationWillTerminate`和非BFCache browser `pagehide`均调用显式shutdown。native diagnostics保留在result中，不再由底层composition直接`eprintln!`。早期composition独立复审达到Critical/Important/Minor `0/0/0`；扩展到shutdown/Editor/FFI后的新一轮复核发现`0/2/1`，三项修复后的同一评审者重检为`0/0/0`。本段仍未宣称Cargo、产品行为或性能验收通过。
 
 #### P1-3：Editor GUI 与 authoring automation 使用不同 runtime 部署路径
 
@@ -280,7 +284,7 @@ renderer应为presented frame发布frame token/fence；capture绑定同一token�
 
 #### P1-22：callback failure state只保留首个错误，跨阶段secondary failure丢失
 
-`RuntimeEntryAppFailureState` 和 session teardown state都只写第一个failure。顶层能合并event-loop/app/session三个owner，但同一owner内后续surface unbind、frame free、host request和log flush失败被覆盖。复杂停机需要primary cause，也需要secondary cleanup evidence。
+首轮审查时，`RuntimeEntryAppFailureState` 和 session teardown state都只写第一个failure。当前runtime callback/event-loop/session/reporter以及Editor host/session已经共享bounded ordered ledger，保留primary、secondary和suppressed count；顶层log flush仍在binary外层处理，尚未进入该ledger。复杂停机需要primary cause，也需要完整secondary cleanup evidence。
 
 统一 failure ledger 应保留bounded ordered chain、component/phase/severity/time和suppressed count；exit code由policy选择primary，不等于丢弃其余错误。
 
@@ -292,9 +296,9 @@ runtime在CLI、unknown args、project resolve、capture/exit env和Play startin
 
 需要极早 bootstrap logger/ring buffer：进程开始即记录build/argv摘要和phase，正式sink可用后replay；敏感路径按typed field脱敏，不靠字符串替换。
 
-#### P1-24：顶层忽略日志shutdown结果，仍返回业务成功exit code
+#### P1-24：顶层忽略日志shutdown结果，仍返回业务成功exit code（历史发现，局部修复已落地）
 
-两个binary都 `let _ = shutdown_process_log(...)`。如果flush超时或文件写失败，Editor/runtime仍可能返回0并声称 teardown complete，自动化会误判证据已持久化。
+首轮审查时两个binary都 `let _ = shutdown_process_log(...)`。当前 Editor/runtime 已检查该结果，并在业务成功但日志flush失败时通过统一`ProductProcessExitCode`返回failure；runtime与Editor其他失败也已共享typed ledger。log flush写入同一ledger与durable terminal receipt仍未完成。
 
 shutdown结果必须进入failure ledger和exit policy；至少在成功业务但日志durability失败时返回可区分非零码或写OS emergency sink。teardown-complete记录只能在durable flush确认后发布。
 
@@ -394,6 +398,33 @@ host拥有event/schedule runner、window/viewport/surface registry、runtime ses
 
 每阶段幂等并能在startup rollback复用；deadline升级到emergency abort时仍尽可能写最小durable record。
 
+#### 2026-08-27 M0 shutdown owner-chain重审与实现顺序
+
+当前源码已比首轮审查前进：`zircon_editor`与`runtime_preview` binary都会检查`shutdown_process_log`结果，并在业务成功但log flush失败时返回failure；runtime event callback、event-loop、session teardown、terminal reporter以及Editor host/session teardown已汇入同一bounded ordered ledger，旧的首错兼容槽和三`Option`字符串聚合已经删除。`ProductProcessExitCode`把普通host成功/失败稳定映射为portable `0/1`，同时保留command显式返回的非零`u8`。因此P1-24的“结果完全丢弃”和“没有统一ledger/exit policy”都只保留为历史发现。但这还不是process-wide shutdown：已定义的phase coordinator尚未持有window/surface/session/Core/module/log实际资源图，顶层log flush失败仍在binary边界直接覆盖exit code而未写入同一ledger。`RuntimeSession::Drop`的destroy失败abort继续作为防UAF的emergency底线，不能被普通退出路径复用为coordinator。
+
+Unreal-first重审再次确认目标不是增加一个`on_exit`回调。`FEngineLoop::Exit`先停止ticker与异步生产，flush并禁止新async load，关闭窗口/input，等待streaming/PSO/GPU/task，然后反向`UnloadModulesAtShutdown`并退出RHI/task graph；`AppPreExit`只用于受保护的正常退出，而`AppExit`用`bCalledOnce`保证所有退出路径上的platform/config/log/trace teardown幂等。Bevy的`AppExit`提供typed portable process code，`finish/cleanup`主要是启动期plugin完成阶段；Fyrox的window close直接退出event loop并依赖owner析构。后两者可用于adapter和typed-exit对照，但不能降低Unreal式显式反向资源图的目标。
+
+实现顺序据此冻结为：
+
+1. 独立小owner定义typed terminal reason、portable exit policy、shutdown phase与bounded ordered failure ledger；ledger只在failure/shutdown冷路径加锁，固定容量和单条message预算，保留primary、secondary与suppressed count。
+2. 建立幂等、单调且可审计的`ShutdownCoordinator` phase transition；先用fake phase owner验证正常、重复调用、startup rollback、secondary failure与deadline升级，不直接绑Winit或DLL。
+3. 让runtime event loop、Editor host、surface/session、Core composition与diagnostic log向同一ledger/phase owner汇报，再删除现有首错state和`finish_*`字符串拼接器；迁移必须同批完成，不保留双ledger。
+4. 动态runtime的`request_stop/quiesce/poll_shutdown/destroy`仍属于ABI/M2 owner；在ABI slot落地前，App coordinator只能把现有destroy标为legacy emergency branch，不能伪造quiesce已完成。
+
+性能与功耗协议先于优化实现：每个phase记录monotonic elapsed、deadline/overrun、drained work与suppressed failure数量；成功frame/event路径不得触碰ledger lock。后续以正常/故障shutdown、空闲Editor和headless fixture采集P50/P95/P99、CPU time、context switch、memory high-water与idle power，并与固定硬件/构建/负载的Unreal经验值比较。本轮没有运行这些测量，不声明瓶颈已消失或功耗已接近参考引擎。
+
+2026-08-27 的首个基础设施切片已实现独立 `product_shutdown` owner：`ProductHostPhase`覆盖composing/running以及quiesce、drain、platform release、runtime destroy、module deactivate、diagnostic flush、exited；`ProductTerminalReason`映射semantic exit class，公开`ProductProcessExitCode`按Bevy/通用OS进程约束把host成功/失败收敛为`0/1`，并保留command显式非零`u8`结果，不为startup/runtime/shutdown故障虚构不可移植的多个数值码；`ProductShutdownCoordinator`保留首个terminal reason，拒绝跳阶段/逆序并记录每阶段与总耗时。`ProductFailureLedger`固定保留16条、每条message最多512 UTF-8 bytes，后续输入只增加saturating suppressed count；容量与message预算是App账本模块内的具名策略常量，不提升为跨crate协议。
+
+runtime与Editor failure path已接入同一ledger：原 `RuntimeEntryAppFailureState` 的每次 `is_recorded()` 都锁 `Mutex<Option<_>>`，现在成功路径只做 `AtomicBool::load(Acquire)`；只有callback/event-loop/session/host/reporter teardown失败才锁共享ledger。callback先完成ledger写入再以Release发布recorded flag，Acquire观察者不会看到“已发布但记录尚不存在”的状态；terminal reporter失败在最终snapshot前追加，已有runtime failure保持primary。Editor GUI、automation和close路径都在释放composition/Core owner后再释放runtime session，并在两者之后snapshot；只用于startup验证的`EditorManager`强引用已提前释放。旧session首错兼容槽、三`Option`聚合和临时`Vec`/join已删除。顶层diagnostic-log flush仍未进入该ledger，实际phase coordinator也尚未接管资源释放。此处只有源码复杂度与锁位置证据，没有运行profile、benchmark或功耗测量，不声明实际耗时下降。
+
+#### 2026-08-27 actual-owner wiring gate
+
+本轮继续核对真实调用图后冻结以下约束。Winit 0.31路径的`event_loop.run_app(app)`消费`RuntimeEntryApp`；app内部持有window、presenter与`RuntimeSession`，其`Drop`先尝试surface/window teardown，随后字段析构才执行session destroy；runner只有在整个app已释放后才恢复执行，而两个binary又在runner返回后执行process-log shutdown。因此在`run_app`返回点补写`ReleasingPlatform`或`DestroyingRuntime`会伪造发生时间，不能作为phase接入。
+
+Unreal `GuardedMain`的cleanup guard保证`EngineExit`必达，`FEngineLoop::Exit`在模块卸载前停止ticker/异步生产、flush loading/streaming与任务并关闭输入/窗口，`AppExit`再以called-once门禁完成platform teardown。Zircon不复制其全局状态，但必须保留同样的owner跨度。下一实现切片必须先建立跨越event loop与log flush的process owner/terminal receipt：共享coordinator在app adapter的真实surface/window释放点记`ReleasingPlatform`，在session owner的真实destroy边界记`DestroyingRuntime`，runner恢复后才进入profiling/report/log flush并发布`Exited`。startup rollback也必须由同一owner guard记录已经构造和释放的资源，不能在错误返回后补齐阶段。
+
+当前冻结V7只有合并式`destroy_session`，没有独立`request_stop/quiesce/poll_shutdown`，因此不能把runtime内部drain和module deactivation伪装成App可观测的独立成功阶段。本切片已给transition receipt增加明确的`Executed`、`NoOwner`与`LegacyCombined` disposition，并保持原有单调/idempotent gate；M0接线可据实记录无owner阶段与legacy combined destroy，M2新增ABI后再把它硬切为可超时的quiesce/drain/destroy。该改动是停机冷路径架构，不触碰frame/event成功热路径；本轮没有性能优化或功耗结论。
+
 ### 9.5 Typed child-process protocol
 
 Editor Play child使用versioned framed protocol和随机session token。stdout/stderr继续是human diagnostics，不承担控制面。Editor在world-ready或first-frame-ready前不进入Playing；stop发送cancel并等ack，deadline后终止process tree；EOF、crash和protocol violation映射为不同terminal result。
@@ -402,9 +433,20 @@ Editor Play child使用versioned framed protocol和随机session token。stdout/
 
 ### M0：冻结产品角色、生命周期和ABI政策
 
-- 写出role/artifact/capability矩阵，明确desktop/server/web/android/editor-play/commandlet。
-- 定义composition receipt、host state machine、shutdown phase、failure ledger和exit code。
-- 决定V6 exact/frozen还是prefix-compatible；定义dynamic library trust/build identity。
+状态（2026-08-27）：`shutdown_disposition_editor_exit_abi_source_implemented_static_review_passed_managed_validation_pending`。
+
+- 已完成：产品角色词表；`EntryConfig -> ResolvedProductHostConfig`单次解析；逐字段及manifest多来源provenance；profile-base + request/export plugin overlay；required/optional typed conflict与required precedence；role/target/runtime profile/export冲突的typed failure；Editor复用同一解析结果；native export先解析后加载；Export runtime profile进入module selection receipt；导出配置删除重复profile/target authority并按export target投影product role；8角色`ProductRoleDescriptor` target-rule目录；entry/runner/linkage/platform/window/input/render/shutdown/artifact manifest矩阵；role级window/render typed admission；resolved export platform与诊断投影；对应单元测试源码与跨crate source guard已更新。App不再声明一份未接入composition的静态required-module baseline，实际模块集合只由runtime profile、`RuntimeModuleCompositionCompiler`与composition receipt拥有。`ProductCompositionRequest -> ProductComposition`现为唯一公开执行transaction，report-only与full compose共享prepare stage，Core/module receipt/compiled plan/bridge lifecycle/native owner不再由调用方手工拼接生命周期；Editor、headless与export入口均已迁移，生成export模板保留完整composition。portable进程退出策略已冻结为host `0/1`加command显式`u8`；dynamic runtime ABI已确认只接受exact/frozen V7，短表、超长同版本表和旧symbol均不兼容。
+- 静态证据：配置域现为13个具名实现文件加1个导航`mod.rs`，最大实现文件`resolution.rs` 386行；目标Rust叶文件与`skip_children`导航/root文件的Rust 1.94 `rustfmt --check`通过，作用域`git diff --check`通过；旧`entry_config.rs`生产/测试引用已清零；8/8角色均有descriptor与唯一artifact target；delivery分布为runnable 1、preview 1、configuration-only 1、unavailable 5；当前Cargo只声明`zircon_editor`与`zircon_runtime`两个对应可运行target，`zircon_server`不存在，未把`target-server` feature伪装为artifact；导出authority、profile overlay、required precedence、editor provenance、resolved platform与role capability的有界源码断言通过；Minimal无窗口契约、Windows/Linux Server OS保留与App required-module owner清零均有测试源码；App静态依赖审计为0个optional runtime plugin path dependency、0个对应feature mention、`risks=[]`。增量独立复核初次发现3个Important与1个Minor，修复及diagnostics期望校正后二次复核Critical/Important/Minor均为0；按同一审计器过滤本次两个文档为0个路径违规。全局文档路径基线仍有1363个其他文档违规，全量`validate-matrix.Tests.ps1`静态矩阵此前在127秒上限内超时且无判定结果，均不记作本切片通过。
+- ProductComposition静态证据：implementation按职责拆成185行`composition.rs`、188行`request.rs`与纯导航`mod.rs`，没有新增大root；Rust 1.94叶文件及`skip_children` root/mod格式检查通过，作用域`git diff --check`通过；Rust源码中旧`EntryRuntimeBootstrap`、`NativePluginRuntimeBootstrap`、`bootstrap_export_runtime_with_report`、公开`bootstrap_with_*`和`clone_core`生产入口均为0，唯一命中是新source guard的禁止断言；两个native registration report向量均move-extend且无clone；配置解析文本顺序先于native root load；Editor显式和默认字段drop都先释放product composition再释放dynamic runtime session，startup验证用manager引用在runtime load前释放；mobile/browser生成库使用四态owner，所有13个C/JNI出口由精确函数清单逐体约束进入统一`catch_unwind`门禁。第一轮独立评审发现1个Critical与3个Important，修复后同一评审者复审Critical/Important/Minor为`0/0/0`；本轮扩大范围后的`0/2/1`修复后重检也为`0/0/0`。5份本轮owner文档的canonical path audit为0个违规，同一时点全库其余违规为1361且不归入本切片。Cargo/行为验收未执行。
+- Shutdown ledger源码证据：实现按职责拆为230行`coordinator.rs`、134行`failure.rs`、112行`failure_ledger.rs`、103行`terminal.rs`、45行`phase.rs`与20行导航`mod.rs`；测试源码236行。生产Rust中的裸`16`/`512`只各出现于账本具名策略常量定义；runtime callback成功门禁为atomic read，账本mutex只出现在failure record/snapshot；旧`finish_runtime_process`的`Vec::with_capacity(3)`、三个terminal `Option`聚合、callback failure `Mutex<Option<_>>`和session首错兼容槽均已清零。ledger message在512-byte预算内执行UTF-8安全转义/截断；runtime reporter secondary failure在snapshot前记录；Editor host/session共享ledger；binary使用统一`ProductProcessExitCode`。transition receipt现记录`Executed`、`NoOwner`或`LegacyCombined`，startup rollback可把没有running owner的quiescing记为`NoOwner`，幂等重复调用不覆盖首次disposition；测试约束不把无owner和V7合并destroy标成独立执行成功。Rust 1.94格式与作用域diff检查通过；独立复核的ledger publish-order、reporter-order、message-bound与Editor manager寿命问题均已关闭，扩展范围及disposition追加重检均为Critical/Important/Minor `0/0/0`。Cargo/行为验收尚未执行。
+- 结构裁决（Unreal-first）：重新核对`TargetRules.cs`的`TargetType`/`TargetLinkType`、`TargetDescriptor.cs`的requested target、`TargetReceipt.cs`的Launch/BuildProducts/RuntimeDependencies以及`LaunchEngineLoop.cpp`的PreInit/Init/Tick/Exit；并以Bevy runner/finish/cleanup和Fyrox独立headless loop作次级对照。Zircon据此把`ProductRoleDescriptor`限定为静态target rule，把实际文件/hash/ABI继续留给build receipt与现有Runtime BuildSet manifest，禁止用Cargo feature或静态descriptor冒充构建产物证据。Server保留Windows/Linux/macOS目标OS，由`ServerRuntime`和window/render policy表达headless topology；`Minimal`保留为DesktopClient下合法的无窗口utility configuration。二者都禁止把target type、target platform和runtime backend重新压成一个枚举。
+- 性能评估：本切片不是热点算法优化，没有运行profile、功耗或同负载benchmark，也不作性能提升声明。角色解析新增内容是8分支静态descriptor查表和启动期typed检查；composition新增分配、native manifest I/O与diagnostic收集均只发生在启动prepare阶段，registration report通过move合并而非clone，frame/event/render loop零改动。后续若优化host loop，仍须先按本计划P1-27采集startup phase、frame pump CPU、event latency、idle power与shutdown时间基线。
+- 待受管验证：`zircon_app` lib/all-target测试、export bootstrap行为、feature matrix和workspace回归；本轮按里程碑策略未执行Cargo。
+- M0剩余：让已定义的shutdown phase真实接管runtime/Editor资源反向释放，把顶层log failure写入同一ledger，以及执行本轮composition/ledger/exit policy的受管Cargo与行为验收；因此M0未完成且不得提交里程碑commit/企微完成通知。
+
+- role/artifact/capability矩阵已写入源码；受管Cargo与feature-matrix验收仍待测试阶段。
+- composition receipt、host phase、terminal reason、portable exit code和bounded failure ledger源码已定义；继续把runtime/Editor实际资源owner接入coordinator。
+- dynamic runtime已冻结为V7 exact-size、不降级且版本内不追加字段；后续新字段必须新table版本并hard cutover。dynamic library trust/build identity仍待定义。
 - 禁止新增新的`bootstrap_with_*`和裸environment product switch。
 
 ### M1：交付server runner与统一shutdown coordinator
@@ -469,6 +511,6 @@ Editor Play child使用versioned framed protocol和随机session token。stdout/
 
 ## 13. 本轮完成定义
 
-本轮只完成静态review与重构计划，没有修改production代码，也没有把任何P0/P1标记为已修复。117个production focused文件在成文前保持工作区clean，fingerprint已记录；相邻文件后续发生变化时必须重新读取owner chain，不能仅运行旧source guard后关闭问题。
+首轮只完成静态review与重构计划；2026-08-27 已在重新读取owner chain、Unreal TargetRules/TargetReceipt/Launch、Bevy App runner和Fyrox Executor后落地P1-1角色/配置、P1-2统一composition、共享failure ledger、portable exit policy与V7 exact/frozen ABI裁决的M0源码切片。该批切片尚未经过受管Cargo与行为验收，phase coordinator也未接管真实资源图，因此只能记录为source implemented，不能把M0或整个计划标记为完成。
 
-`zircon_app` 分类仍为进行中：本01关闭产品host/bootstrap/runtime-library/runtime-entry首轮E3静态扫描，PBR viewer、完整export/package实物、跨平台runner以及与 `zircon_runtime_interface`/plugins/editor/hub 的后续交界仍待审。
+`zircon_app` 分类仍为进行中：产品配置权威已从可变`EntryConfig`派生状态收敛到一次性`ResolvedProductHostConfig`，公开bootstrap已收敛到统一composition owner，runtime/Editor冷路径也已共享failure ledger；但server/跨平台runner、真实资源shutdown coordinator、log-ledger接入、PBR viewer、完整export/package实物以及与 `zircon_runtime_interface`/plugins/editor/hub 的后续交界仍待完成。

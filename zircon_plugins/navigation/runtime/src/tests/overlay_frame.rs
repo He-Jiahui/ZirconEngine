@@ -3,25 +3,25 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use zircon_runtime::core::framework::navigation::{
-    AREA_WALKABLE, DEFAULT_AGENT_TYPE, NavAgentTickReport, NavMeshAsset, NavigationDebugCapture,
-    NavigationManager,
+    NavAgentTickReport, NavMeshAsset, NavigationDebugCapture, NavigationManager, AREA_WALKABLE,
+    DEFAULT_AGENT_TYPE,
 };
 use zircon_runtime::scene::World;
 
-use crate::DefaultNavigationManager;
 use crate::plugin::navigation_overlay_frame_if_enabled;
+use crate::test_support::navigation_manager;
 use crate::tests::support::two_island_navmesh;
 
 const BENCHMARK_SAMPLES: usize = 21;
 
 #[test]
 fn manager_overlay_frame_projects_loaded_navmesh_and_owner_generation() {
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     let first = manager.navigation_overlay_frame(NavAgentTickReport::default());
     assert_eq!(first.owner_generation, 0);
     assert!(first.nav_mesh.triangles.is_empty());
 
-    NavigationManager::load_nav_mesh(&manager, two_island_navmesh(true)).unwrap();
+    NavigationManager::load_nav_mesh(&*manager, two_island_navmesh(true)).unwrap();
     let frame = manager.navigation_overlay_frame(NavAgentTickReport {
         moved_agents: 3,
         ..NavAgentTickReport::default()
@@ -31,7 +31,7 @@ fn manager_overlay_frame_projects_loaded_navmesh_and_owner_generation() {
     assert_eq!(frame.nav_mesh.off_mesh_links.len(), 1);
     assert_eq!(frame.tick_report.moved_agents, 3);
 
-    NavigationManager::load_nav_mesh(&manager, two_island_navmesh(false)).unwrap();
+    NavigationManager::load_nav_mesh(&*manager, two_island_navmesh(false)).unwrap();
     assert_eq!(
         manager
             .navigation_overlay_frame(NavAgentTickReport::default())
@@ -42,8 +42,8 @@ fn manager_overlay_frame_projects_loaded_navmesh_and_owner_generation() {
 
 #[test]
 fn loaded_asset_snapshots_share_the_immutable_navmesh_allocation() {
-    let manager = DefaultNavigationManager::new();
-    NavigationManager::load_nav_mesh(&manager, two_island_navmesh(true)).unwrap();
+    let manager = navigation_manager();
+    NavigationManager::load_nav_mesh(&*manager, two_island_navmesh(true)).unwrap();
 
     let first = manager.loaded_assets();
     let second = manager.loaded_assets();
@@ -54,8 +54,8 @@ fn loaded_asset_snapshots_share_the_immutable_navmesh_allocation() {
 
 #[test]
 fn overlay_frame_is_projected_only_while_debug_capture_is_enabled() {
-    let manager = DefaultNavigationManager::new();
-    NavigationManager::load_nav_mesh(&manager, two_island_navmesh(true)).unwrap();
+    let manager = navigation_manager();
+    NavigationManager::load_nav_mesh(&*manager, two_island_navmesh(true)).unwrap();
     let mut world = World::empty();
     world.insert_resource(NavigationDebugCapture { enabled: false });
 
@@ -79,9 +79,9 @@ fn arc_loaded_navmesh_snapshot_release_benchmark_evidence() {
     const TRIANGLES_PER_ASSET: usize = 8_192;
     const ITERATIONS: usize = 4;
 
-    let manager = DefaultNavigationManager::new();
+    let manager = navigation_manager();
     for _ in 0..ASSET_COUNT {
-        NavigationManager::load_nav_mesh(&manager, large_navmesh(TRIANGLES_PER_ASSET)).unwrap();
+        NavigationManager::load_nav_mesh(&*manager, large_navmesh(TRIANGLES_PER_ASSET)).unwrap();
     }
     let shared = manager.loaded_assets();
 
@@ -131,8 +131,8 @@ fn demand_driven_overlay_frame_release_benchmark_evidence() {
     const TRIANGLE_COUNT: usize = 32_768;
     const ITERATIONS: usize = 4;
 
-    let manager = DefaultNavigationManager::new();
-    NavigationManager::load_nav_mesh(&manager, large_navmesh(TRIANGLE_COUNT)).unwrap();
+    let manager = navigation_manager();
+    NavigationManager::load_nav_mesh(&*manager, large_navmesh(TRIANGLE_COUNT)).unwrap();
     let mut world = World::empty();
     world.insert_resource(NavigationDebugCapture { enabled: false });
     let report = NavAgentTickReport::default();

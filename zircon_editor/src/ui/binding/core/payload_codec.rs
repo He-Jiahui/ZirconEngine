@@ -8,6 +8,17 @@ use crate::ui::binding::{
 
 use super::{EditorUiBindingError, EditorUiBindingPayload};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CommandFamily {
+    Animation,
+    Selection,
+    Asset,
+    Welcome,
+    Draft,
+    Dock,
+    Viewport,
+}
+
 impl EditorUiBindingPayload {
     pub(crate) fn to_call(&self) -> UiBindingCall {
         match self {
@@ -48,26 +59,45 @@ impl EditorUiBindingPayload {
     }
 
     pub(crate) fn from_call(call: UiBindingCall) -> Result<Self, EditorUiBindingError> {
-        if let Some(command) = AnimationCommand::from_call(call.clone())? {
-            return Ok(Self::AnimationCommand(command));
-        }
-        if let Some(command) = SelectionCommand::from_call(call.clone())? {
-            return Ok(Self::SelectionCommand(command));
-        }
-        if let Some(command) = AssetCommand::from_call(call.clone())? {
-            return Ok(Self::AssetCommand(command));
-        }
-        if let Some(command) = WelcomeCommand::from_call(call.clone())? {
-            return Ok(Self::WelcomeCommand(command));
-        }
-        if let Some(command) = DraftCommand::from_call(call.clone())? {
-            return Ok(Self::DraftCommand(command));
-        }
-        if let Some(command) = DockCommand::from_call(call.clone())? {
-            return Ok(Self::DockCommand(command));
-        }
-        if let Some(command) = ViewportCommand::from_call(call.clone())? {
-            return Ok(Self::ViewportCommand(command));
+        if let Some(family) = command_family(&call.symbol) {
+            let command_call = call.clone();
+            match family {
+                CommandFamily::Animation => {
+                    if let Some(command) = AnimationCommand::from_call(command_call)? {
+                        return Ok(Self::AnimationCommand(command));
+                    }
+                }
+                CommandFamily::Selection => {
+                    if let Some(command) = SelectionCommand::from_call(command_call)? {
+                        return Ok(Self::SelectionCommand(command));
+                    }
+                }
+                CommandFamily::Asset => {
+                    if let Some(command) = AssetCommand::from_call(command_call)? {
+                        return Ok(Self::AssetCommand(command));
+                    }
+                }
+                CommandFamily::Welcome => {
+                    if let Some(command) = WelcomeCommand::from_call(command_call)? {
+                        return Ok(Self::WelcomeCommand(command));
+                    }
+                }
+                CommandFamily::Draft => {
+                    if let Some(command) = DraftCommand::from_call(command_call)? {
+                        return Ok(Self::DraftCommand(command));
+                    }
+                }
+                CommandFamily::Dock => {
+                    if let Some(command) = DockCommand::from_call(command_call)? {
+                        return Ok(Self::DockCommand(command));
+                    }
+                }
+                CommandFamily::Viewport => {
+                    if let Some(command) = ViewportCommand::from_call(command_call)? {
+                        return Ok(Self::ViewportCommand(command));
+                    }
+                }
+            }
         }
         match call.symbol.as_str() {
             "MenuAction" => Ok(Self::MenuAction {
@@ -126,3 +156,21 @@ impl EditorUiBindingPayload {
         }
     }
 }
+
+fn command_family(symbol: &str) -> Option<CommandFamily> {
+    let (namespace, _) = symbol.split_once('.')?;
+    match namespace {
+        "AnimationCommand" => Some(CommandFamily::Animation),
+        "SelectionCommand" => Some(CommandFamily::Selection),
+        "AssetCommand" => Some(CommandFamily::Asset),
+        "WelcomeCommand" => Some(CommandFamily::Welcome),
+        "DraftCommand" => Some(CommandFamily::Draft),
+        "DockCommand" => Some(CommandFamily::Dock),
+        "ViewportCommand" => Some(CommandFamily::Viewport),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+#[path = "payload_codec/symbol_routing_tests.rs"]
+mod symbol_routing_tests;

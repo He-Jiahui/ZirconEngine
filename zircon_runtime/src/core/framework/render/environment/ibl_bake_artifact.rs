@@ -7,13 +7,25 @@ use super::rgba16f::{
     decode_rgba16f_texels, RGBA16F_TEXEL_SIZE_BYTES,
 };
 use super::{
-    source_cubemap_sample_count, IblBakeKey, SourceCubemapIrradianceCube,
-    SourceCubemapIrradianceSh9, SourceCubemapMipChain, SourceCubemapPmremLayout,
-    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
+    IblBakeKey, SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9, SourceCubemapMipChain,
+    SourceCubemapPmremLayout, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
     SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 use crate::core::math::Real;
 use std::ops::{BitOr, BitOrAssign, Range};
+
+mod header_wire;
+mod payload_codec;
+
+#[cfg(test)]
+#[path = "ibl_bake_artifact/tests.rs"]
+mod tests;
+
+use header_wire::{
+    read_bytes, read_ibl_bake_key, read_u32, read_u64, write_bytes, write_ibl_bake_key, write_u32,
+    write_u64,
+};
+use payload_codec::{artifact_payload_ranges, decode_sh9, push_sh9};
 
 const IBL_BAKE_ARTIFACT_MAGIC: [u8; 8] = *b"ZRIBLBAK";
 const IBL_BAKE_ARTIFACT_FORMAT_VERSION: u32 = 4;
@@ -617,221 +629,5 @@ pub fn select_ibl_bake_artifact(
         environment_compute_dispatch_count: request
             .required_contents
             .runtime_compute_dispatch_count(),
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct ArtifactPayloadRanges {
-    pmrem: Option<Range<usize>>,
-    sh9: Option<Range<usize>>,
-    iem: Option<Range<usize>>,
-    total_size: usize,
-}
-
-fn artifact_payload_ranges(descriptor: IblBakeArtifactDescriptor) -> ArtifactPayloadRanges {
-    let mut cursor = 0;
-    let pmrem = if descriptor.contents.contains(IblBakeArtifactContents::PMREM) {
-        let byte_len = source_cubemap_sample_count(descriptor.face_size, descriptor.mip_count)
-            * IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES;
-        let range = cursor..cursor + byte_len;
-        cursor += byte_len;
-        Some(range)
-    } else {
-        None
-    };
-
-    let sh9 = if descriptor.contents.contains(IblBakeArtifactContents::SH9) {
-        let range = cursor..cursor + IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES;
-        cursor += IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES;
-        Some(range)
-    } else {
-        None
-    };
-
-    let iem = if descriptor.contents.contains(IblBakeArtifactContents::IEM) {
-        let texel_count = SOURCE_CUBEMAP_FACE_COUNT
-            * SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE as usize
-            * SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE as usize;
-        let byte_len = texel_count * IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES;
-        let range = cursor..cursor + byte_len;
-        cursor += byte_len;
-        Some(range)
-    } else {
-        None
-    };
-
-    ArtifactPayloadRanges {
-        pmrem,
-        sh9,
-        iem,
-        total_size: cursor,
-    }
-}
-
-fn push_sh9(bytes: &mut Vec<u8>, coefficients: &SourceCubemapIrradianceSh9) {
-    for coefficient in coefficients {
-        for channel in *coefficient {
-            bytes.extend_from_slice(&channel.to_le_bytes());
-        }
-    }
-}
-
-fn decode_sh9(bytes: &[u8]) -> SourceCubemapIrradianceSh9 {
-    let mut coefficients = [[0.0; 4]; SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT];
-    let mut cursor = 0;
-    for coefficient in &mut coefficients {
-        for channel in coefficient {
-            *channel = f32::from_le_bytes(read_dynamic_bytes::<4>(bytes, &mut cursor));
-        }
-    }
-    coefficients
-}
-
-fn write_ibl_bake_key(
-    bytes: &mut [u8; IBL_BAKE_ARTIFACT_HEADER_SIZE],
-    cursor: &mut usize,
-    bake_key: IblBakeKey,
-) {
-    write_u32(bytes, cursor, bake_key.source_kind);
-    write_u64(bytes, cursor, bake_key.source_revision);
-    for value in bake_key.horizon_color {
-        write_u32(bytes, cursor, value);
-    }
-    for value in bake_key.zenith_color {
-        write_u32(bytes, cursor, value);
-    }
-    for value in bake_key.ground_color {
-        write_u32(bytes, cursor, value);
-    }
-    for value in bake_key.source_hash {
-        write_u32(bytes, cursor, value);
-    }
-}
-
-fn read_ibl_bake_key(bytes: &[u8], cursor: &mut usize) -> IblBakeKey {
-    IblBakeKey {
-        source_kind: read_u32(bytes, cursor),
-        source_revision: read_u64(bytes, cursor),
-        horizon_color: read_u32_array(bytes, cursor),
-        zenith_color: read_u32_array(bytes, cursor),
-        ground_color: read_u32_array(bytes, cursor),
-        source_hash: read_u32_array(bytes, cursor),
-    }
-}
-
-fn write_bytes(bytes: &mut [u8; IBL_BAKE_ARTIFACT_HEADER_SIZE], cursor: &mut usize, value: &[u8]) {
-    let next = *cursor + value.len();
-    bytes[*cursor..next].copy_from_slice(value);
-    *cursor = next;
-}
-
-fn write_u32(bytes: &mut [u8; IBL_BAKE_ARTIFACT_HEADER_SIZE], cursor: &mut usize, value: u32) {
-    write_bytes(bytes, cursor, &value.to_le_bytes());
-}
-
-fn write_u64(bytes: &mut [u8; IBL_BAKE_ARTIFACT_HEADER_SIZE], cursor: &mut usize, value: u64) {
-    write_bytes(bytes, cursor, &value.to_le_bytes());
-}
-
-fn read_bytes<const N: usize>(bytes: &[u8], cursor: &mut usize) -> [u8; N] {
-    let mut value = [0; N];
-    let next = *cursor + N;
-    value.copy_from_slice(&bytes[*cursor..next]);
-    *cursor = next;
-    value
-}
-
-fn read_dynamic_bytes<const N: usize>(bytes: &[u8], cursor: &mut usize) -> [u8; N] {
-    let mut value = [0; N];
-    let next = *cursor + N;
-    value.copy_from_slice(&bytes[*cursor..next]);
-    *cursor = next;
-    value
-}
-
-fn read_u32(bytes: &[u8], cursor: &mut usize) -> u32 {
-    u32::from_le_bytes(read_bytes(bytes, cursor))
-}
-
-fn read_u64(bytes: &[u8], cursor: &mut usize) -> u64 {
-    u64::from_le_bytes(read_bytes(bytes, cursor))
-}
-
-fn read_u32_array(bytes: &[u8], cursor: &mut usize) -> [u32; 4] {
-    [
-        read_u32(bytes, cursor),
-        read_u32(bytes, cursor),
-        read_u32(bytes, cursor),
-        read_u32(bytes, cursor),
-    ]
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::render::ProceduralSkyParams;
-
-    #[test]
-    fn header_round_trips_descriptor() {
-        let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-        let descriptor =
-            IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9);
-
-        let encoded = IblBakeArtifactHeader::from_descriptor(descriptor).encode();
-
-        assert_eq!(
-            IblBakeArtifactHeader::decode(&encoded)
-                .unwrap()
-                .descriptor(),
-            descriptor
-        );
-    }
-
-    #[test]
-    fn descriptor_recipe_identity_keeps_cpu_and_runtime_integrators_distinct() {
-        let request = IblBakeArtifactRequest::new(
-            ProceduralSkyParams::default_gradient().ibl_bake_key(),
-            128,
-            8,
-        );
-        let asset = IblBakeArtifactDescriptor::current_for_request(&request);
-        let runtime = IblBakeArtifactDescriptor::current_for_runtime_cache_request(&request);
-        let stale = runtime.with_algorithm_version(IBL_BAKE_ALGORITHM_VERSION - 1);
-
-        assert_eq!(
-            asset.recipe_identity(),
-            CANONICAL_IBL_BAKE_RECIPE.asset_recipe_identity()
-        );
-        assert_eq!(
-            runtime.recipe_identity(),
-            CANONICAL_IBL_BAKE_RECIPE.runtime_recipe_identity()
-        );
-        assert_ne!(asset.recipe_identity(), runtime.recipe_identity());
-        assert_ne!(stale.recipe_identity(), runtime.recipe_identity());
-        assert!(!stale.is_current_runtime_cache_for(&request));
-    }
-
-    #[test]
-    fn sh9_only_payload_does_not_require_pmrem_layout_match() {
-        let cubemap = SourceCubemapMipChain::new(
-            4,
-            3,
-            vec![[0.25, 0.5, 0.75, 1.0]; source_cubemap_sample_count(4, 3)],
-            4,
-            3,
-            vec![[0.25, 0.5, 0.75, 1.0]; source_cubemap_sample_count(4, 3)],
-        );
-        let request = IblBakeArtifactRequest::new(
-            ProceduralSkyParams::default_gradient().ibl_bake_key(),
-            4,
-            3,
-        )
-        .with_required_contents(IblBakeArtifactContents::SH9);
-        let descriptor = IblBakeArtifactDescriptor::current_for_request(&request);
-
-        let payload = IblBakeArtifactPayload::from_source_cubemap(descriptor, &cubemap, None)
-            .expect("SH9 serialization depends on coefficients, not PMREM texture layout");
-
-        assert_eq!(payload.bytes().len(), IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES);
     }
 }

@@ -1,6 +1,7 @@
+use crate::core::editing::operation::EditOperationTarget;
 use crate::core::editor_message::DocumentId;
 
-use super::{PlayEditDecision, PlayEditTarget};
+use super::PlayEditDecision;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct PlayEditPolicy {
@@ -27,22 +28,24 @@ impl PlayEditPolicy {
         self.running_document
     }
 
-    pub fn evaluate(self, target: PlayEditTarget) -> PlayEditDecision {
+    pub fn evaluate(self, target: EditOperationTarget) -> PlayEditDecision {
         if !self.playing {
             return match target {
-                PlayEditTarget::PlayDomain => PlayEditDecision::PlayDomainUnavailable,
-                PlayEditTarget::EditDocument(_) | PlayEditTarget::EditWorkspace => {
+                EditOperationTarget::PlayDomain => PlayEditDecision::PlayDomainUnavailable,
+                EditOperationTarget::EditDocument(_) | EditOperationTarget::EditWorkspace => {
                     PlayEditDecision::ApplyNow
                 }
             };
         }
 
         match target {
-            PlayEditTarget::PlayDomain => PlayEditDecision::ApplyNow,
-            PlayEditTarget::EditDocument(document) if self.running_document == Some(document) => {
+            EditOperationTarget::PlayDomain => PlayEditDecision::ApplyNow,
+            EditOperationTarget::EditDocument(document)
+                if self.running_document == Some(document) =>
+            {
                 PlayEditDecision::RunningDocumentLocked { document }
             }
-            PlayEditTarget::EditDocument(_) | PlayEditTarget::EditWorkspace => {
+            EditOperationTarget::EditDocument(_) | EditOperationTarget::EditWorkspace => {
                 PlayEditDecision::QueueUntilPlayStops
             }
         }

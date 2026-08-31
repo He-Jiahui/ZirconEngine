@@ -1,67 +1,63 @@
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fmt;
 use std::sync::Arc;
 
 use zircon_runtime_interface::ui::surface::{UiResolvedTextLayout, UiResolvedTextLine};
 
 use crate::core::framework::text::{TextFontFaceHandle, TextGlyph};
-use crate::text::font::FontDatabase;
+use crate::text::font::{
+    FontCollectionSnapshot, FontHandleResolverSnapshot, resolve_font_handle_batch_from_snapshot,
+};
 use crate::text::{
-    resolve_resolved_text_glyph_artifact, resolved_text_line_requires_visual_fallback,
-    ResolvedTextGlyphArtifact, VariationCoords,
+    ResolvedTextGlyphArtifact, VariationCoords, resolve_resolved_text_glyph_artifact,
+    resolved_text_line_requires_visual_fallback,
 };
 
 /// A runtime-owned, zero-copy visual glyph line that is valid only for its matching resolved layout.
 ///
 /// The opaque artifact stays inside the runtime. Consumers receive the canonical `TextGlyph` slice
-/// only while the shared font generation still matches, so a font publication falls back instead of
-/// reinterpreting glyph IDs against a different font database.
+/// through a retained font-generation lease, so an in-flight frame never reinterprets glyph IDs
+/// against a different font database after publication.
 #[derive(Clone, Debug)]
 pub struct UiResolvedTextGlyphArtifactLine {
     artifact: Arc<ResolvedTextGlyphArtifact>,
     line_index: usize,
-    font_generation: u64,
+    font_collection: FontCollectionSnapshot,
+    font_handles: FontHandleResolverSnapshot,
 }
 
-/// Current runtime-font publication generation for caches that retain artifact-backed consumers.
+/// Current process-owner font publication generation for Editor-host and standalone consumers.
 ///
-/// Consumers must include this in their own cache identity when they hold a raster face beyond a
-/// single layout call. A generation change invalidates glyph IDs and source snapshots together.
+/// Process-owned consumers must include this in their cache identity when they hold a raster face
+/// beyond a single layout call. Core/session consumers use their injected collection revision
+/// instead. A generation change invalidates glyph IDs and source snapshots together.
 pub fn current_resolved_text_font_generation() -> u64 {
     crate::text::font::shared_font_database_generation()
 }
 
 impl UiResolvedTextGlyphArtifactLine {
-    /// Returns the immutable, visual-order glyph slice while its font generation remains current.
+    /// Returns the immutable, visual-order glyph slice retained by this generation lease.
     pub fn glyphs(&self) -> Option<&[TextGlyph]> {
-        (self.font_generation == crate::text::font::shared_font_database_generation())
-            .then(|| {
-                self.artifact
-                    .lines
-                    .get(self.line_index)
-                    .and_then(Option::as_ref)
-                    .map(|line| line.glyphs.as_slice())
-            })
-            .flatten()
+        self.artifact
+            .lines
+            .get(self.line_index)
+            .and_then(Option::as_ref)
+            .map(|line| line.glyphs.as_slice())
     }
 
-    /// Returns the layout line paired with this glyph slice while its font generation is current.
+    /// Returns the layout line paired with this leased glyph slice.
     pub fn layout_line(&self) -> Option<&UiResolvedTextLine> {
-        (self.font_generation == crate::text::font::shared_font_database_generation())
-            .then(|| {
-                self.artifact
-                    .lines
-                    .get(self.line_index)
-                    .and_then(Option::as_ref)
-                    .map(|line| &line.layout_line)
-            })
-            .flatten()
+        self.artifact
+            .lines
+            .get(self.line_index)
+            .and_then(Option::as_ref)
+            .map(|line| &line.layout_line)
     }
 
     /// The text-owned font generation used for cache identity by a consuming raster path.
     pub const fn font_generation(&self) -> u64 {
-        self.font_generation
+        self.font_collection.generation()
     }
 
     /// Returns whether two line views borrow the same immutable resolved-layout artifact.
@@ -69,21 +65,20 @@ impl UiResolvedTextGlyphArtifactLine {
     /// A multi-line raster consumer must reject a mixed collection instead of resolving faces from
     /// one layout and glyphs from another layout that happens to share the same font generation.
     pub fn shares_artifact_layout_with(&self, other: &Self) -> bool {
-        self.font_generation == other.font_generation
+        self.font_collection.collection_id() == other.font_collection.collection_id()
+            && self.font_collection.generation() == other.font_collection.generation()
             && Arc::ptr_eq(&self.artifact, &other.artifact)
     }
 
-    /// Captures a shared-font database once for all artifact lines from the same resolved layout.
+    /// Clones the immutable font-generation lease for all artifact lines in this resolved layout.
     ///
-    /// The database clone is intentionally layout-scoped: a retained consumer obtains one snapshot
-    /// and passes it to every line, avoiding a `FontDatabase` clone per wrapped visual line.
+    /// Both clones are O(1) `Arc` operations; font bytes and the handle registry are not copied.
     pub fn face_snapshot(&self) -> Option<UiTextGlyphArtifactFaceSnapshot> {
         crate::profile_scope!("runtime", "text.surface", "artifact_face_snapshot");
         self.glyphs()?;
-        let (snapshot_generation, database) = crate::text::font::shared_font_database_snapshot();
-        (snapshot_generation == self.font_generation).then_some(UiTextGlyphArtifactFaceSnapshot {
-            font_generation: self.font_generation,
-            database,
+        Some(UiTextGlyphArtifactFaceSnapshot {
+            font_collection: self.font_collection.clone(),
+            font_handles: self.font_handles.clone(),
         })
     }
 
@@ -123,18 +118,13 @@ impl UiResolvedTextGlyphArtifactLine {
         line_indices: impl IntoIterator<Item = usize>,
     ) -> Option<UiTextGlyphArtifactRasterFaces> {
         crate::profile_scope!("runtime", "text.surface", "artifact_raster_face_resolution");
-        if self.font_generation != crate::text::font::shared_font_database_generation() {
-            return None;
-        }
-
         let (pairs, pair_indices) = self.raster_face_pairs_from_line_indices(line_indices)?;
         if pairs.is_empty() {
-            return (crate::text::font::shared_font_database_generation() == self.font_generation)
-                .then_some(UiTextGlyphArtifactRasterFaces {
-                    font_generation: self.font_generation,
-                    faces: Vec::new(),
-                    pair_indices,
-                });
+            return Some(UiTextGlyphArtifactRasterFaces {
+                font_generation: self.font_generation(),
+                faces: Vec::new(),
+                pair_indices,
+            });
         }
 
         let snapshot = self.face_snapshot()?;
@@ -147,8 +137,8 @@ impl UiResolvedTextGlyphArtifactLine {
         line_indices: impl IntoIterator<Item = usize>,
     ) -> Option<UiTextGlyphArtifactRasterFaces> {
         crate::profile_scope!("runtime", "text.surface", "artifact_raster_face_resolution");
-        if self.font_generation != crate::text::font::shared_font_database_generation()
-            || snapshot.font_generation != self.font_generation
+        if snapshot.font_collection.collection_id() != self.font_collection.collection_id()
+            || snapshot.font_collection.generation() != self.font_collection.generation()
         {
             return None;
         }
@@ -226,7 +216,7 @@ impl UiResolvedTextGlyphArtifactLine {
             .iter()
             .map(|(font_face, font_instance)| (Some(*font_face), *font_instance))
             .collect::<Vec<_>>();
-        let resolved = crate::text::font::resolve_font_handle_batch(&handles);
+        let resolved = resolve_font_handle_batch_from_snapshot(&snapshot.font_handles, &handles);
         if resolved.len() != pairs.len() {
             return None;
         }
@@ -239,7 +229,10 @@ impl UiResolvedTextGlyphArtifactLine {
             let variations = match (font_instance, resolved_instance) {
                 (None, None) => None,
                 (Some(_), Some(instance)) => {
-                    let instance = snapshot.database.font_instance(instance)?;
+                    let instance = snapshot
+                        .font_collection
+                        .database()
+                        .font_instance(instance)?;
                     (instance.face == face).then(|| instance.variations.clone())
                 }
                 _ => return None,
@@ -247,21 +240,23 @@ impl UiResolvedTextGlyphArtifactLine {
             faces.push(UiTextGlyphArtifactRasterFace {
                 font_face,
                 font_instance,
-                font_generation: self.font_generation,
-                bytes: snapshot.database.face_bytes(face).ok()?,
-                collection_index: snapshot.database.face_index(face).ok()?,
-                source_identity: snapshot.database.face_source_identity(face).ok()?,
+                font_generation: self.font_generation(),
+                bytes: snapshot.font_collection.database().face_bytes(face).ok()?,
+                collection_index: snapshot.font_collection.database().face_index(face).ok()?,
+                source_identity: snapshot
+                    .font_collection
+                    .database()
+                    .face_source_identity(face)
+                    .ok()?,
                 variations,
             });
         }
 
-        (crate::text::font::shared_font_database_generation() == self.font_generation).then_some(
-            UiTextGlyphArtifactRasterFaces {
-                font_generation: self.font_generation,
-                faces,
-                pair_indices,
-            },
-        )
+        Some(UiTextGlyphArtifactRasterFaces {
+            font_generation: self.font_generation(),
+            faces,
+            pair_indices,
+        })
     }
 
     /// Resolves a single visual line without cloning a database when it has no raster glyphs.
@@ -272,13 +267,13 @@ impl UiResolvedTextGlyphArtifactLine {
 
 /// A private runtime-font snapshot shared by every artifact line in one resolved layout.
 pub struct UiTextGlyphArtifactFaceSnapshot {
-    font_generation: u64,
-    database: FontDatabase,
+    font_collection: FontCollectionSnapshot,
+    font_handles: FontHandleResolverSnapshot,
 }
 
 impl UiTextGlyphArtifactFaceSnapshot {
     pub const fn font_generation(&self) -> u64 {
-        self.font_generation
+        self.font_collection.generation()
     }
 }
 
@@ -286,7 +281,8 @@ impl fmt::Debug for UiTextGlyphArtifactFaceSnapshot {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("UiTextGlyphArtifactFaceSnapshot")
-            .field("font_generation", &self.font_generation)
+            .field("font_collection", &self.font_collection)
+            .field("font_handles", &self.font_handles)
             .finish_non_exhaustive()
     }
 }
@@ -380,8 +376,8 @@ impl UiTextGlyphArtifactRasterFaces {
 
 /// Borrows one exact resolved-layout line from its runtime-owned glyph artifact without cloning glyphs.
 ///
-/// A missing artifact, synthetic line, changed line DTO, or changed shared font generation returns
-/// `None`. Callers must use their established fallback path in those cases.
+/// A missing artifact, synthetic line, changed line DTO, or a generation race while acquiring the
+/// initial lease returns `None`. Callers must use their established fallback path in those cases.
 pub fn resolved_text_glyph_artifact_line(
     layout: &UiResolvedTextLayout,
     line_index: usize,
@@ -390,18 +386,43 @@ pub fn resolved_text_glyph_artifact_line(
     if resolved_text_line_requires_visual_fallback(layout_line) {
         return None;
     }
-    let font_generation = crate::text::font::shared_font_database_generation();
     let artifact = layout
         .rich_text_artifact
         .as_ref()
         .and_then(resolve_resolved_text_glyph_artifact)?;
     let artifact_line = artifact.lines.get(line_index)?.as_ref()?;
-    (artifact.font_generation == font_generation && artifact_line.layout_line == *layout_line)
-        .then_some(UiResolvedTextGlyphArtifactLine {
-            artifact,
-            line_index,
-            font_generation,
-        })
+    if artifact.font_generation != artifact.font_lease.generation()
+        || artifact_line.layout_line != *layout_line
+    {
+        return None;
+    }
+    let font_collection = artifact.font_lease.font_collection().clone();
+    let font_handles = artifact.font_lease.font_handles().clone();
+    let requires_font_handles = artifact_line
+        .glyphs
+        .iter()
+        .filter(|glyph| glyph.requires_rasterization)
+        .any(|glyph| glyph.font_face.is_some() || glyph.font_instance.is_some());
+    let handles_match_collection = artifact_line
+        .glyphs
+        .iter()
+        .filter(|glyph| glyph.requires_rasterization)
+        .flat_map(|glyph| glyph.font_face.iter().chain(glyph.font_instance.iter()))
+        .all(|handle| {
+            handle.collection == font_collection.collection_id()
+                && handle.generation == font_collection.generation()
+        });
+    if requires_font_handles
+        && (!handles_match_collection || !font_handles.matches_font_collection(&font_collection))
+    {
+        return None;
+    }
+    Some(UiResolvedTextGlyphArtifactLine {
+        artifact,
+        line_index,
+        font_collection,
+        font_handles,
+    })
 }
 
 #[cfg(test)]

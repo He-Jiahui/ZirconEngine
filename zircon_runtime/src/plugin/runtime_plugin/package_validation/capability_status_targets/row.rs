@@ -13,7 +13,7 @@ pub(super) fn validate_runtime_plugin_package_capability_status_target_row(
     package_manifest: &PluginPackageManifest,
     capability: &str,
     target_mode: RuntimeTargetMode,
-    seen: &mut Vec<RuntimeTargetMode>,
+    seen: &mut u8,
     diagnostics: &mut Vec<String>,
 ) {
     validate_runtime_plugin_package_capability_status_target_row_uniqueness(

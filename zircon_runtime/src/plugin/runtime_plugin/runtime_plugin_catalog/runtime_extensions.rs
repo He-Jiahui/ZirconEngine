@@ -16,7 +16,11 @@ impl RuntimePluginCatalog {
         manifest: &ProjectPluginManifest,
         target: RuntimeTargetMode,
     ) -> Arc<RuntimeExtensionCatalogReport> {
-        Arc::clone(self.project_plan_for(manifest, target).extension_report())
+        Arc::clone(
+            &self
+                .compiled_project_plan(manifest, target)
+                .extension_report,
+        )
     }
 }
 

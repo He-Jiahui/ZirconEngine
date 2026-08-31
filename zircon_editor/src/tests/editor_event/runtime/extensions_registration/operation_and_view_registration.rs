@@ -1,5 +1,5 @@
 use super::super::*;
-use crate::core::commands::EditorCommandDescriptor;
+use crate::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 
 #[test]
 fn editor_runtime_folds_menu_capabilities_into_the_shared_command_descriptor() {
@@ -13,18 +13,12 @@ fn editor_runtime_folds_menu_capabilities_into_the_shared_command_descriptor() {
     let capability = "editor.extension.weather_authoring";
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_command(EditorCommandDescriptor::operation(
-            operation_path.clone(),
-            "Refresh Cloud Layers",
-        ))
+        .register_command(EditorCommandDescriptor::operation(operation_path.clone()))
         .unwrap();
     extension
         .register_menu_item(
-            EditorMenuItemDescriptor::new(
-                "Tools/Weather/Refresh Cloud Layers",
-                operation_path.clone(),
-            )
-            .with_required_capabilities([capability]),
+            EditorMenuItemDescriptor::for_operation(operation_path.clone())
+                .with_required_capabilities([capability]),
         )
         .unwrap();
 
@@ -65,8 +59,12 @@ fn editor_runtime_consumes_plugin_command_descriptors_into_the_shared_registry()
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Weather Reset Layout")
-                .with_menu_path("Tools/Weather/Reset Layout")
+            EditorCommandDescriptor::operation(operation_path.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &operation_path,
+                    "tools",
+                    &["weather"],
+                ))
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
@@ -115,8 +113,12 @@ fn explicit_plugin_operation_keeps_its_identity_without_synthetic_history() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Plugin Reset Layout")
-                .with_menu_path("Tools/Zzz/Reset Layout")
+            EditorCommandDescriptor::operation(operation_path.clone())
+                .with_menu_path(EditorCommandMenuPath::builtin(
+                    &operation_path,
+                    "tools",
+                    &["zzz"],
+                ))
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
@@ -152,15 +154,13 @@ fn editor_runtime_projects_plugin_menu_operations_into_remote_callable_reflectio
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
+            EditorCommandDescriptor::operation(operation_path.clone())
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
     extension
         .register_menu_item(
-            EditorMenuItemDescriptor::new("Tools/Weather/Refresh Cloud Layers", operation_path)
-                .with_priority(10)
-                .with_shortcut("Ctrl+Alt+R"),
+            EditorMenuItemDescriptor::for_operation(operation_path).with_priority(10),
         )
         .unwrap();
 
@@ -183,7 +183,6 @@ fn editor_runtime_projects_plugin_menu_operations_into_remote_callable_reflectio
                 && node.actions["workbench.menu.item.click"].callable_from_remote
                 && node.properties["operation_path"].reflected_value
                     == json!("weather.cloud_layer.refresh")
-                && node.properties["shortcut"].reflected_value == json!("Ctrl+Alt+R")
     ));
 
     let invoked = runtime
@@ -223,15 +222,12 @@ fn editor_operation_ui_binding_arguments_are_preserved_in_journal() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
+            EditorCommandDescriptor::operation(operation_path.clone())
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
     extension
-        .register_menu_item(EditorMenuItemDescriptor::new(
-            "Tools/Weather/Refresh Cloud Layers",
-            operation_path,
-        ))
+        .register_menu_item(EditorMenuItemDescriptor::for_operation(operation_path))
         .unwrap();
 
     runtime

@@ -1,15 +1,80 @@
-use zircon_runtime_interface::math::UVec2;
+use zircon_runtime_interface::{
+    math::UVec2,
+    ui::{event_ui::UiNodeId, tree::UiTreeError},
+};
 
 use super::support;
 use crate::core::editing::intent::EditorIntent;
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, ProjectionMode, TransformHandleKind, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, SceneViewportControllerError,
+    TransformHandleKind, TransformSpace, ViewOrientation, ViewportOverlayProviderError,
 };
 use crate::ui::binding::{
     EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, ViewportCommand,
 };
-use crate::ui::binding_dispatch::apply_viewport_binding;
+use crate::ui::binding_dispatch::{apply_viewport_binding, EditorBindingDispatchError};
+use crate::ui::workbench::state::EditorViewportStateError;
+
+#[test]
+fn viewport_binding_error_keeps_the_pointer_route_cause_typed() {
+    let expected = UiTreeError::MissingNode(UiNodeId::new(901));
+    let error = EditorBindingDispatchError::from(EditorViewportStateError::from(expected.clone()));
+
+    assert!(matches!(
+        error,
+        EditorBindingDispatchError::ViewportState(EditorViewportStateError::PointerRoute(actual))
+            if actual == expected
+    ));
+}
+
+#[test]
+fn viewport_binding_keeps_invalid_snap_value_typed() {
+    let mut state = support::test_state();
+    let binding = EditorUiBinding::new(
+        "SceneView",
+        "ViewportToolbar",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::viewport_command(ViewportCommand::SetTranslateSnap(f32::NAN)),
+    );
+
+    let error = apply_viewport_binding(&mut state, &binding).unwrap_err();
+
+    assert!(matches!(
+        error,
+        EditorBindingDispatchError::ViewportState(
+            EditorViewportStateError::ViewportController(
+                SceneViewportControllerError::InvalidSnapStep { value }
+            )
+        ) if value.is_nan()
+    ));
+}
+
+#[test]
+fn viewport_binding_keeps_unknown_overlay_provider_typed() {
+    let mut state = support::test_state();
+    let binding = EditorUiBinding::new(
+        "SceneView",
+        "ViewportToolbar",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::viewport_command(ViewportCommand::ToggleOverlayProvider {
+            provider_id: "missing.viewport.overlay".to_string(),
+        }),
+    );
+
+    let error = apply_viewport_binding(&mut state, &binding).unwrap_err();
+
+    assert!(matches!(
+        error,
+        EditorBindingDispatchError::ViewportState(
+            EditorViewportStateError::ViewportController(
+                SceneViewportControllerError::ViewportOverlayProvider(
+                    ViewportOverlayProviderError::UnknownProvider { provider_id }
+                )
+            )
+        ) if provider_id == "missing.viewport.overlay"
+    ));
+}
 
 #[test]
 fn viewport_binding_applies_resize_command_to_editor_state() {
@@ -39,6 +104,7 @@ fn viewport_binding_applies_toolbar_commands_to_scene_viewport_state() {
             TransformHandleKind::Rotate,
         )),
         ViewportCommand::SetTransformSpace(TransformSpace::Global),
+        ViewportCommand::SetPivotMode(PivotMode::Primary),
         ViewportCommand::SetProjectionMode(ProjectionMode::Orthographic),
         ViewportCommand::AlignView(ViewOrientation::NegZ),
         ViewportCommand::SetDisplayMode(DisplayMode::WireOnly),
@@ -67,6 +133,7 @@ fn viewport_binding_applies_toolbar_commands_to_scene_viewport_state() {
         SceneModeActivation::Transform(TransformHandleKind::Rotate)
     );
     assert_eq!(settings.transform_space, TransformSpace::Global);
+    assert_eq!(settings.pivot_mode, PivotMode::Primary);
     assert_eq!(settings.projection_mode, ProjectionMode::Orthographic);
     assert_eq!(settings.view_orientation, ViewOrientation::NegZ);
     assert_eq!(settings.display_mode, DisplayMode::WireOnly);
@@ -84,7 +151,7 @@ fn viewport_toggle_bindings_flow_into_render_packet() {
     let mut state = support::test_state();
     let camera = state
         .world
-        .with_world(|scene: &zircon_runtime::scene::Scene| scene.active_camera());
+        .expect_with_world(|scene: &zircon_runtime::scene::Scene| scene.active_camera());
 
     state
         .apply_intent(EditorIntent::SelectNode(camera))
@@ -123,7 +190,7 @@ fn gizmos_toggle_keeps_transform_handles_for_selected_camera() {
     let mut state = support::test_state();
     let camera = state
         .world
-        .with_world(|scene: &zircon_runtime::scene::Scene| scene.active_camera());
+        .expect_with_world(|scene: &zircon_runtime::scene::Scene| scene.active_camera());
     state
         .apply_intent(EditorIntent::SelectNode(camera))
         .unwrap();

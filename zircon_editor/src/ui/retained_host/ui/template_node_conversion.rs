@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host as host_contract;
@@ -26,8 +28,18 @@ fn to_host_contract_template_frame(
 pub(crate) fn to_host_contract_template_node(
     data: &ViewTemplateNodeData,
 ) -> host_contract::TemplatePaneNodeData {
+    to_host_contract_template_node_with_options_text(data, options_text(&data.options).into())
+}
+
+fn to_host_contract_template_node_with_options_text(
+    data: &ViewTemplateNodeData,
+    options_text: Rc<String>,
+) -> host_contract::TemplatePaneNodeData {
     host_contract::TemplatePaneNodeData {
         node_id: data.node_id.clone(),
+        surface_node_id: data.surface_node_id,
+        surface_render_command_ref: data.surface_render_command_ref,
+        has_workbench_icon_tooltip: false,
         parent_node_id: SharedString::default(),
         control_id: data.control_id.clone(),
         role: data.role.clone(),
@@ -40,6 +52,11 @@ pub(crate) fn to_host_contract_template_node(
         layout_icon_size: 0.0,
         layout_content_offset_x: 0.0,
         layout_content_offset_y: 0.0,
+        layout_padding_left: 0.0,
+        layout_padding_right: 0.0,
+        layout_padding_top: 0.0,
+        layout_padding_bottom: 0.0,
+        layout_spacing: 0.0,
         layout_first_cell_offset_x: 0.0,
         layout_second_cell_offset_x: 0.0,
         layout_third_cell_offset_x: 0.0,
@@ -82,7 +99,7 @@ pub(crate) fn to_host_contract_template_node(
         selected: data.selected,
         tree_depth: 0,
         tree_indent_px: 0.0,
-        options_text: options_text(&data.options).into(),
+        options_text,
         options: data.options.clone(),
         structured_options: ModelRc::default(),
         notification_generation: 0,
@@ -207,9 +224,62 @@ fn options_text(options: &ModelRc<SharedString>) -> String {
 }
 
 pub(crate) fn to_host_contract_template_node_owned(
-    data: ViewTemplateNodeData,
+    mut data: ViewTemplateNodeData,
 ) -> host_contract::TemplatePaneNodeData {
-    to_host_contract_template_node(&data)
+    let options_text = options_text(&data.options).into();
+    let node_id = std::mem::take(&mut data.node_id);
+    let control_id = std::mem::take(&mut data.control_id);
+    let role = std::mem::take(&mut data.role);
+    let text = std::mem::take(&mut data.text);
+    let component_role = std::mem::take(&mut data.component_role);
+    let component_variant = std::mem::take(&mut data.component_variant);
+    let value_text = std::mem::take(&mut data.value_text);
+    let options = std::mem::take(&mut data.options);
+    let dispatch_kind = std::mem::take(&mut data.dispatch_kind);
+    let action_id = std::mem::take(&mut data.action_id);
+    let binding_id = std::mem::take(&mut data.binding_id);
+    let edit_action_id = std::mem::take(&mut data.edit_action_id);
+    let commit_action_id = std::mem::take(&mut data.commit_action_id);
+    let surface_variant = std::mem::take(&mut data.surface_variant);
+    let text_tone = std::mem::take(&mut data.text_tone);
+    let button_variant = std::mem::take(&mut data.button_variant);
+    let button_style = std::mem::take(&mut data.button_style);
+    let text_align = std::mem::take(&mut data.text_align);
+    let overflow = std::mem::take(&mut data.overflow);
+    let transition_kind = std::mem::take(&mut data.transition_kind);
+    let transition_easing = std::mem::take(&mut data.transition_easing);
+    let transition_direction = std::mem::take(&mut data.transition_direction);
+    let media_source = std::mem::take(&mut data.media_source);
+    let icon_name = std::mem::take(&mut data.icon_name);
+    let preview_image = std::mem::take(&mut data.preview_image);
+
+    let mut node = to_host_contract_template_node_with_options_text(&data, options_text);
+    node.node_id = node_id;
+    node.control_id = control_id;
+    node.role = role;
+    node.text = text;
+    node.component_role = component_role;
+    node.component_variant = component_variant;
+    node.value_text = value_text;
+    node.options = options;
+    node.dispatch_kind = dispatch_kind;
+    node.action_id = action_id;
+    node.binding_id = binding_id;
+    node.edit_action_id = edit_action_id;
+    node.commit_action_id = commit_action_id;
+    node.surface_variant = surface_variant;
+    node.text_tone = text_tone;
+    node.button_variant = button_variant;
+    node.button_style = button_style;
+    node.text_align = text_align;
+    node.overflow = overflow;
+    node.transition_kind = transition_kind;
+    node.transition_easing = transition_easing;
+    node.transition_direction = transition_direction;
+    node.media_source = media_source;
+    node.icon_name = icon_name;
+    node.preview_image = preview_image;
+    node
 }
 
 pub(crate) fn to_host_contract_template_nodes(
@@ -308,5 +378,74 @@ mod tests {
             node.commit_action_id.as_str(),
             "workbench.asset.search.commit"
         );
+    }
+
+    #[test]
+    fn owned_view_template_node_conversion_matches_the_borrowed_projection() {
+        let data = ViewTemplateNodeData {
+            node_id: "asset/owned".into(),
+            surface_node_id: Some(zircon_runtime_interface::ui::event_ui::UiNodeId::new(27)),
+            surface_render_command_ref: Some(
+                zircon_runtime_interface::ui::surface::UiRenderFrameCommandRef::new(
+                    zircon_runtime_interface::ui::event_ui::UiNodeId::new(27),
+                    3,
+                ),
+            ),
+            control_id: "OwnedEdited".into(),
+            role: "InputField".into(),
+            text: "Owned".into(),
+            component_role: "input-field".into(),
+            component_variant: "outlined".into(),
+            value_text: "value".into(),
+            options: model_rc(vec!["First".into(), "Second".into()]),
+            transition_kind: "fade".into(),
+            transition_easing: "linear".into(),
+            transition_direction: "in".into(),
+            dispatch_kind: "asset".into(),
+            action_id: "asset.action".into(),
+            binding_id: "AssetSurface/OwnedEdited".into(),
+            media_source: "asset://preview".into(),
+            icon_name: "search".into(),
+            value_number: 7.0,
+            selected: true,
+            focused: true,
+            frame: ViewTemplateFrameData {
+                x: 1.0,
+                y: 2.0,
+                width: 300.0,
+                height: 40.0,
+            },
+            ..ViewTemplateNodeData::default()
+        };
+        let borrowed = to_host_contract_template_node(&data);
+        let surface_node_id = data.surface_node_id;
+        let surface_render_command_ref = data.surface_render_command_ref;
+
+        let owned = to_host_contract_template_node_owned(data);
+
+        assert_eq!(owned.node_id, borrowed.node_id);
+        assert_eq!(owned.surface_node_id, borrowed.surface_node_id);
+        assert_eq!(owned.surface_node_id, surface_node_id);
+        assert_eq!(
+            owned.surface_render_command_ref,
+            borrowed.surface_render_command_ref
+        );
+        assert_eq!(owned.surface_render_command_ref, surface_render_command_ref);
+        assert_eq!(owned.control_id, borrowed.control_id);
+        assert_eq!(owned.text, borrowed.text);
+        assert_eq!(owned.value_text, borrowed.value_text);
+        assert_eq!(owned.options_text, borrowed.options_text);
+        assert_eq!(owned.options.row_count(), borrowed.options.row_count());
+        assert_eq!(owned.transition_kind, borrowed.transition_kind);
+        assert_eq!(owned.dispatch_kind, borrowed.dispatch_kind);
+        assert_eq!(owned.media_source, borrowed.media_source);
+        assert_eq!(owned.icon_name, borrowed.icon_name);
+        assert_eq!(owned.value_number, borrowed.value_number);
+        assert_eq!(owned.selected, borrowed.selected);
+        assert_eq!(owned.focused, borrowed.focused);
+        assert_eq!(owned.frame.x, borrowed.frame.x);
+        assert_eq!(owned.frame.y, borrowed.frame.y);
+        assert_eq!(owned.frame.width, borrowed.frame.width);
+        assert_eq!(owned.frame.height, borrowed.frame.height);
     }
 }

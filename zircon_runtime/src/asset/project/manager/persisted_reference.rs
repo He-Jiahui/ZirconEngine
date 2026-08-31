@@ -42,7 +42,8 @@ impl ProjectManager {
                 ),
             });
         }
-        let mut candidates = Vec::new();
+        let mut unique_candidate = None;
+        let mut ambiguous = false;
         for candidate @ (_, root) in self
             .manifest
             .asset_roots
@@ -57,21 +58,18 @@ impl ProjectManager {
                     }
                 })?;
             if let Some(path) = path {
-                candidates.push((candidate, path));
+                ambiguous |= store_unique_candidate(&mut unique_candidate, (candidate, path));
             }
         }
-        let ((root_rel, root), source_path) = match candidates.as_slice() {
-            [(candidate, path)] => (*candidate, path),
-            [] => {
-                return Err(ReferenceResolutionError::MissingPath {
-                    path: reference.locator.to_string(),
-                });
-            }
-            _ => {
-                return Err(ReferenceResolutionError::AmbiguousPath {
-                    path: reference.locator.to_string(),
-                });
-            }
+        if ambiguous {
+            return Err(ReferenceResolutionError::AmbiguousPath {
+                path: reference.locator.to_string(),
+            });
+        }
+        let Some(((root_rel, root), source_path)) = unique_candidate else {
+            return Err(ReferenceResolutionError::MissingPath {
+                path: reference.locator.to_string(),
+            });
         };
         let relative =
             source_path
@@ -99,6 +97,15 @@ impl ProjectManager {
         )
         .map_err(|source| ReferenceResolutionError::AssetRef { source })?;
         Ok(PersistedAssetReference::project(asset_ref))
+    }
+}
+
+fn store_unique_candidate<T>(unique: &mut Option<T>, candidate: T) -> bool {
+    if unique.is_some() {
+        true
+    } else {
+        *unique = Some(candidate);
+        false
     }
 }
 
@@ -180,3 +187,7 @@ mod tests {
         std::os::windows::fs::symlink_file(target, link)
     }
 }
+
+#[cfg(test)]
+#[path = "persisted_reference/unique_candidate_tests.rs"]
+mod unique_candidate_tests;

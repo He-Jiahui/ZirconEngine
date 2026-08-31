@@ -1,6 +1,8 @@
 mod builtin_engine_entry;
 mod entry_config_storage;
 mod export_bootstrap;
+mod product_composition;
+mod product_host_config;
 mod profile_bootstrap;
 mod runtime_entry_device_guards;
 mod runtime_entry_input_guards;

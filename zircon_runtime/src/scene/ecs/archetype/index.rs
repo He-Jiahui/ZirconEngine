@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::scene::ecs::{
-    component::TableColumnLayout, storage::StoredComponent, ChangeTick, ComponentId, ComponentTicks,
-};
 use crate::scene::EntityId;
+use crate::scene::ecs::{
+    ChangeTick, ComponentId, ComponentTicks, component::TableColumnLayout, storage::StoredComponent,
+};
 
 use super::id::ArchetypeId;
 use super::record::ArchetypeRecord;
@@ -70,6 +70,31 @@ pub struct ArchetypeIndex {
     performance_counters: ArchetypeIndexPerformanceCounters,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct ArchetypeTopologySnapshot<'a> {
+    index: &'a ArchetypeIndex,
+}
+
+impl PartialEq for ArchetypeTopologySnapshot<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.index.by_signature == other.index.by_signature
+            && self.index.by_component == other.index.by_component
+            && self.index.records.len() == other.index.records.len()
+            && self
+                .index
+                .records
+                .iter()
+                .zip(&other.index.records)
+                .all(|(left, right)| {
+                    left.id() == right.id()
+                        && left.signature() == right.signature()
+                        && left.entities() == right.entities()
+                })
+    }
+}
+
+impl Eq for ArchetypeTopologySnapshot<'_> {}
+
 impl ArchetypeIndex {
     pub fn new() -> Self {
         let empty = ArchetypeSignature::empty();
@@ -89,6 +114,10 @@ impl ArchetypeIndex {
 
     pub fn len(&self) -> usize {
         self.records.len()
+    }
+
+    fn topology_snapshot(&self) -> ArchetypeTopologySnapshot<'_> {
+        ArchetypeTopologySnapshot { index: self }
     }
 
     pub(crate) fn estimated_heap_bytes(&self) -> usize {
@@ -543,9 +572,13 @@ impl Default for ArchetypeIndex {
 }
 
 impl PartialEq for ArchetypeIndex {
-    fn eq(&self, _other: &Self) -> bool {
-        true
+    fn eq(&self, other: &Self) -> bool {
+        self.topology_snapshot() == other.topology_snapshot()
     }
 }
 
 impl Eq for ArchetypeIndex {}
+
+#[cfg(test)]
+#[path = "index/tests.rs"]
+mod tests;

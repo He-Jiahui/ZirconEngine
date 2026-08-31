@@ -7,22 +7,30 @@ use crate::ui::text::UiTextMeasureCache;
 
 use super::arrange::arrange_node;
 use super::engine::UiLayoutPassEngineContext;
+use super::inline_widgets::arrange_inline_widget_children;
 use super::measure::measure_node;
-use super::pipeline::{assert_layout_pass_stage, UiLayoutPassStage};
+use super::pipeline::{UiLayoutPassStage, assert_layout_pass_stage};
 use super::responsive_mui::apply_mui_responsive_layout;
 use super::slot::UiLayoutSlotIndex;
 
+/// Runs a standalone layout pass with one process-default compatibility text cache.
+/// Retained product surfaces call the owner-aware layout pass with their existing cache.
 pub fn compute_layout_tree(
     tree: &mut UiTree,
     root_size: UiSize,
 ) -> Result<UiLayoutEngineSelectionReport, UiTreeError> {
-    compute_layout_tree_with_text_measure_cache(tree, root_size, None)
+    let mut text_measure_cache = UiTextMeasureCache::default();
+    text_measure_cache.begin_frame();
+    let result =
+        compute_layout_tree_with_text_measure_cache(tree, root_size, &mut text_measure_cache);
+    text_measure_cache.finish_frame();
+    result
 }
 
-pub(crate) fn compute_layout_tree_with_text_measure_cache(
+fn compute_layout_tree_with_text_measure_cache(
     tree: &mut UiTree,
     root_size: UiSize,
-    text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
 ) -> Result<UiLayoutEngineSelectionReport, UiTreeError> {
     let slot_index = UiLayoutSlotIndex::default();
     compute_layout_tree_with_text_measure_cache_and_slot_index(
@@ -36,7 +44,7 @@ pub(crate) fn compute_layout_tree_with_text_measure_cache(
 pub(crate) fn compute_layout_tree_with_text_measure_cache_and_slot_index(
     tree: &mut UiTree,
     root_size: UiSize,
-    mut text_measure_cache: Option<&mut UiTextMeasureCache>,
+    text_measure_cache: &mut UiTextMeasureCache,
     slot_index: &UiLayoutSlotIndex,
 ) -> Result<UiLayoutEngineSelectionReport, UiTreeError> {
     let profile_layout = std::env::var_os("ZR_UI_LAYOUT_PROFILE").is_some();
@@ -55,12 +63,7 @@ pub(crate) fn compute_layout_tree_with_text_measure_cache_and_slot_index(
             "measure-start",
             Some(*root_id),
         );
-        let _ = measure_node(
-            tree,
-            *root_id,
-            text_measure_cache.as_deref_mut(),
-            slot_index,
-        )?;
+        let _ = measure_node(tree, *root_id, &mut *text_measure_cache, slot_index)?;
         emit_layout_profile(
             profile_layout,
             profile_started,
@@ -74,7 +77,7 @@ pub(crate) fn compute_layout_tree_with_text_measure_cache_and_slot_index(
     assert_layout_pass_stage(UiLayoutPassStage::TaffyBridgeArrangement, 3);
     assert_layout_pass_stage(UiLayoutPassStage::ZirconFallbackArrangement, 4);
     assert_layout_pass_stage(UiLayoutPassStage::ClipAndVirtualWindowPropagation, 5);
-    for root_id in roots {
+    for root_id in roots.iter().copied() {
         emit_layout_profile(
             profile_layout,
             profile_started,
@@ -101,6 +104,14 @@ pub(crate) fn compute_layout_tree_with_text_measure_cache_and_slot_index(
             Some(root_id),
         );
     }
+
+    arrange_inline_widget_children(
+        tree,
+        &roots,
+        text_measure_cache,
+        slot_index,
+        &mut engine_context,
+    )?;
 
     assert_layout_pass_stage(UiLayoutPassStage::SelectionReport, 6);
     emit_layout_profile(profile_layout, profile_started, "selection-report", None);

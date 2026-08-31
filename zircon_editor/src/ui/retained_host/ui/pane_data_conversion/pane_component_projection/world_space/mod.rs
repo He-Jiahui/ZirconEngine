@@ -12,12 +12,17 @@ pub(super) fn projected_world_space(
     component: &str,
     attributes: &BTreeMap<String, toml::Value>,
 ) -> ProjectedWorldSpace {
+    let enabled = activation::projected_world_space_enabled(component, attributes);
+    if !enabled {
+        return ProjectedWorldSpace::default();
+    }
+
     let transform = transform::projected_world_transform(attributes);
     let surface = surface::projected_world_surface(attributes);
     let rendering = rendering::projected_world_rendering(attributes);
 
     ProjectedWorldSpace {
-        enabled: activation::projected_world_space_enabled(component, attributes),
+        enabled,
         position_x: transform.position_x,
         position_y: transform.position_y,
         position_z: transform.position_z,

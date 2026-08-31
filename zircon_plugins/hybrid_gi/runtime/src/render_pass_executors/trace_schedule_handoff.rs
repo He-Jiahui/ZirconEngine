@@ -1,4 +1,6 @@
-use zircon_runtime::graphics::{RenderPassExecutionContext, RenderPassGpuExecutionContext};
+use zircon_runtime::graphics::{
+    RenderPassExecutionContext, RenderPassGpuNativeContext, RenderPassGpuResourceFactory,
+};
 use zircon_runtime::render_graph::RenderGraphResourceAccessKind;
 
 use crate::{
@@ -14,28 +16,26 @@ pub(super) fn record_trace_schedule_handoff(
     let pass_name = context.pass_name.clone();
     let executor_id = context.executor_id.as_str().to_string();
     let gpu = context.require_gpu()?;
-    let hybrid_gi_scene_buffer = gpu
-        .require_buffer(
-            HYBRID_GI_SCENE_RESOURCE,
-            RenderGraphResourceAccessKind::Read,
-        )?
-        .clone();
-    let hybrid_gi_trace_buffer = gpu
-        .require_buffer(
-            HYBRID_GI_TRACE_RESOURCE,
-            RenderGraphResourceAccessKind::Write,
-        )?
-        .clone();
+    let hybrid_gi_scene_buffer = gpu.require_buffer_binding(
+        HYBRID_GI_SCENE_RESOURCE,
+        RenderGraphResourceAccessKind::Read,
+    )?;
+    let hybrid_gi_trace_buffer = gpu.require_buffer_binding(
+        HYBRID_GI_TRACE_RESOURCE,
+        RenderGraphResourceAccessKind::Write,
+    )?;
     let scene_hzb_view = gpu.require_owned_texture_full_mip_view(
         SCENE_HZB_RESOURCE,
         RenderGraphResourceAccessKind::Read,
     )?;
+    let mut native = gpu.native_context();
     encode_trace_schedule_handoff(
-        gpu,
-        &hybrid_gi_scene_buffer,
-        &hybrid_gi_trace_buffer,
+        &mut native,
+        hybrid_gi_scene_buffer,
+        hybrid_gi_trace_buffer,
         &scene_hzb_view,
     );
+    drop(native);
     gpu.record_compute_dispatch(
         pass_name,
         executor_id,
@@ -48,21 +48,21 @@ pub(super) fn record_trace_schedule_handoff(
 }
 
 fn encode_trace_schedule_handoff(
-    gpu: &mut RenderPassGpuExecutionContext<'_>,
-    hybrid_gi_scene_buffer: &wgpu::Buffer,
-    hybrid_gi_trace_buffer: &wgpu::Buffer,
+    native: &mut RenderPassGpuNativeContext<'_, '_>,
+    hybrid_gi_scene_buffer: wgpu::BufferBinding<'_>,
+    hybrid_gi_trace_buffer: wgpu::BufferBinding<'_>,
     scene_hzb_view: &wgpu::TextureView,
 ) {
-    let bind_group_layout = create_trace_schedule_handoff_bind_group_layout(gpu.device);
-    let pipeline = create_trace_schedule_handoff_pipeline(gpu.device, &bind_group_layout);
+    let bind_group_layout = create_trace_schedule_handoff_bind_group_layout(native);
+    let pipeline = create_trace_schedule_handoff_pipeline(native, &bind_group_layout);
     let bind_group = create_trace_schedule_handoff_bind_group(
-        gpu.device,
+        native,
         &bind_group_layout,
         hybrid_gi_scene_buffer,
         hybrid_gi_trace_buffer,
         scene_hzb_view,
     );
-    let mut pass = gpu
+    let mut pass = native
         .encoder
         .begin_compute_pass(&wgpu::ComputePassDescriptor {
             label: Some("HybridGiTraceScheduleHandoffPass"),
@@ -77,8 +77,10 @@ fn encode_trace_schedule_handoff(
     );
 }
 
-fn create_trace_schedule_handoff_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+fn create_trace_schedule_handoff_bind_group_layout(
+    factory: &impl RenderPassGpuResourceFactory,
+) -> wgpu::BindGroupLayout {
+    factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-hybrid-gi-trace-schedule-handoff-bind-group-layout"),
         entries: &[
             wgpu::BindGroupLayoutEntry {
@@ -116,21 +118,21 @@ fn create_trace_schedule_handoff_bind_group_layout(device: &wgpu::Device) -> wgp
 }
 
 fn create_trace_schedule_handoff_pipeline(
-    device: &wgpu::Device,
+    factory: &impl RenderPassGpuResourceFactory,
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::ComputePipeline {
-    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+    let shader_module = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("zircon-hybrid-gi-trace-schedule-handoff-shader"),
         source: wgpu::ShaderSource::Wgsl(
             include_str!("../hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl").into(),
         ),
     });
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+    let pipeline_layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("zircon-hybrid-gi-trace-schedule-handoff-pipeline-layout"),
         bind_group_layouts: &[Some(bind_group_layout)],
         immediate_size: 0,
     });
-    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+    factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
         label: Some(HYBRID_GI_TRACE_SCHEDULE_PIPELINE_LABEL),
         layout: Some(&pipeline_layout),
         module: &shader_module,
@@ -141,23 +143,23 @@ fn create_trace_schedule_handoff_pipeline(
 }
 
 fn create_trace_schedule_handoff_bind_group(
-    device: &wgpu::Device,
+    factory: &impl RenderPassGpuResourceFactory,
     bind_group_layout: &wgpu::BindGroupLayout,
-    hybrid_gi_scene_buffer: &wgpu::Buffer,
-    hybrid_gi_trace_buffer: &wgpu::Buffer,
+    hybrid_gi_scene_buffer: wgpu::BufferBinding<'_>,
+    hybrid_gi_trace_buffer: wgpu::BufferBinding<'_>,
     scene_hzb_view: &wgpu::TextureView,
 ) -> wgpu::BindGroup {
-    device.create_bind_group(&wgpu::BindGroupDescriptor {
+    factory.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-hybrid-gi-trace-schedule-handoff-bind-group"),
         layout: bind_group_layout,
         entries: &[
             wgpu::BindGroupEntry {
                 binding: 0,
-                resource: hybrid_gi_scene_buffer.as_entire_binding(),
+                resource: wgpu::BindingResource::Buffer(hybrid_gi_scene_buffer),
             },
             wgpu::BindGroupEntry {
                 binding: 1,
-                resource: hybrid_gi_trace_buffer.as_entire_binding(),
+                resource: wgpu::BindingResource::Buffer(hybrid_gi_trace_buffer),
             },
             wgpu::BindGroupEntry {
                 binding: 2,
@@ -432,8 +434,8 @@ mod tests {
         let bind_group = create_trace_schedule_handoff_bind_group(
             device,
             &bind_group_layout,
-            &scene,
-            &trace,
+            scene.as_entire_buffer_binding(),
+            trace.as_entire_buffer_binding(),
             hzb_view,
         );
         {

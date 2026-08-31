@@ -107,16 +107,18 @@ fn render_pipeline_compile_report_groups_diagnostics_by_feature_material_and_sha
             .len(),
         1
     );
-    assert!(!diagnostics_by_source
-        .values()
-        .flatten()
-        .any(|diagnostic| matches!(
-            diagnostic,
-            RendererFeatureContractDiagnostic::MaterialValidation {
-                error: RenderMaterialValidationError::InvalidMaskCutoff { .. },
-                ..
-            }
-        )));
+    assert!(
+        !diagnostics_by_source
+            .values()
+            .flatten()
+            .any(|diagnostic| matches!(
+                diagnostic,
+                RendererFeatureContractDiagnostic::MaterialValidation {
+                    error: RenderMaterialValidationError::InvalidMaskCutoff { .. },
+                    ..
+                }
+            ))
+    );
 
     let diagnostics_by_shader = report.diagnostics_by_shader();
     let feature_shader_rows = diagnostics_by_shader.get(&feature_shader).unwrap();
@@ -150,6 +152,40 @@ fn render_pipeline_compile_report_groups_diagnostics_by_feature_material_and_sha
             ..
         } if reference == &material_shader
     )));
+}
+
+#[test]
+fn optimization_batch_20260830cq_runtime504_material_group_reserves_diagnostic_capacity() {
+    const DIAGNOSTIC_COUNT: usize = 128;
+    let report = report_with_unique_material_diagnostics(DIAGNOSTIC_COUNT);
+
+    let diagnostics_by_material = report.diagnostics_by_material();
+
+    assert_eq!(diagnostics_by_material.len(), DIAGNOSTIC_COUNT);
+    assert!(diagnostics_by_material.capacity() >= DIAGNOSTIC_COUNT);
+}
+
+#[test]
+#[ignore = "release-only performance evidence"]
+fn optimization_batch_20260830cq_runtime504_material_group_capacity_evidence() {
+    const DIAGNOSTIC_COUNT: usize = 32_768;
+    const MARKER: &str = "RUNTIME504_RENDER_DIAGNOSTIC_GROUP_CAPACITY_BENCH_V1";
+    let legacy_growth_events = unique_hash_map_growth_events(DIAGNOSTIC_COUNT, false);
+    let optimized_growth_events = unique_hash_map_growth_events(DIAGNOSTIC_COUNT, true);
+    let report = report_with_unique_material_diagnostics(DIAGNOSTIC_COUNT);
+
+    let started = std::time::Instant::now();
+    let diagnostics_by_material = report.diagnostics_by_material();
+    let elapsed = started.elapsed();
+
+    assert_eq!(diagnostics_by_material.len(), DIAGNOSTIC_COUNT);
+    assert!(diagnostics_by_material.capacity() >= DIAGNOSTIC_COUNT);
+    assert!(legacy_growth_events > 0);
+    assert_eq!(optimized_growth_events, 0);
+    println!(
+        "{MARKER} diagnostics={DIAGNOSTIC_COUNT} legacy_growth_events={legacy_growth_events} optimized_growth_events={optimized_growth_events} reduction_pct=100 elapsed_micros={}",
+        elapsed.as_micros()
+    );
 }
 
 #[test]
@@ -327,6 +363,35 @@ fn renderer_feature_contract_diagnostic_exposes_canonical_sources() {
 
 fn asset_reference(locator: &str) -> AssetReference {
     AssetReference::from_locator(AssetUri::parse(locator).unwrap())
+}
+
+fn report_with_unique_material_diagnostics(count: usize) -> RenderPipelineCompileReport {
+    RenderPipelineCompileReport {
+        pipeline: empty_compiled_pipeline(),
+        diagnostics: (0..count)
+            .map(|index| RendererFeatureContractDiagnostic::MaterialMissing {
+                feature: "mesh".to_string(),
+                reference: asset_reference(&format!(
+                    "res://materials/runtime504-material-{index}.zmaterial"
+                )),
+            })
+            .collect(),
+    }
+}
+
+fn unique_hash_map_growth_events(count: usize, reserve: bool) -> usize {
+    let mut groups = if reserve {
+        std::collections::HashMap::with_capacity(count)
+    } else {
+        std::collections::HashMap::new()
+    };
+    let mut growth_events = 0;
+    for index in 0..count {
+        let previous_capacity = groups.capacity();
+        groups.insert(index, index);
+        growth_events += usize::from(groups.capacity() != previous_capacity);
+    }
+    growth_events
 }
 
 fn empty_compiled_pipeline() -> crate::graphics::CompiledRenderPipeline {

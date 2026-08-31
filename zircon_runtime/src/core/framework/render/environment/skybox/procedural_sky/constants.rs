@@ -1,0 +1,7 @@
+use crate::core::math::Real;
+
+pub(super) const PROCEDURAL_SKY_DEFAULT_SUN_ANGULAR_RADIUS_RADIANS: Real = 0.004_65;
+pub(super) const PROCEDURAL_SKY_MIN_SUN_ANGULAR_RADIUS_RADIANS: Real = 0.001;
+pub(super) const PROCEDURAL_SKY_MAX_SUN_ANGULAR_RADIUS_RADIANS: Real = std::f32::consts::FRAC_PI_2;
+pub(super) const PROCEDURAL_SKY_SUN_INNER_RADIUS_SCALE: Real = 0.72;
+pub(super) const PROCEDURAL_SKY_MIN_SUN_DIRECTION_LENGTH_SQUARED: Real = 1.0e-12;

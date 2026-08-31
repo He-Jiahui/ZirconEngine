@@ -1,4 +1,5 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
+use std::hash::Hash;
 
 use zircon_runtime_interface::resource::ResourceId;
 use zircon_runtime_interface::world_sync::{
@@ -10,6 +11,10 @@ use crate::scene::{EntityId, World};
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "subscription/hash_index_tests.rs"]
+mod hash_index_tests;
 
 const DEFAULT_MAX_PENDING_FACTS: usize = 4_096;
 const DEFAULT_MAX_PENDING_ESTIMATED_BYTES: usize = 512 * 1_024;
@@ -126,10 +131,11 @@ impl SubscriptionTableDiagnostics {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 enum PendingFactKey {
     Entity(EntityId),
     Scene(ResourceId),
+    WorldReplacement,
     AssetReload,
 }
 
@@ -141,6 +147,7 @@ impl PendingFactKey {
             WorldFact::SceneLoaded { scene } | WorldFact::SceneUnloaded { scene } => {
                 Self::Scene(*scene)
             }
+            WorldFact::WorldReplaced { .. } => Self::WorldReplacement,
             WorldFact::AssetReloadApplied(_) => Self::AssetReload,
         }
     }
@@ -150,13 +157,13 @@ impl PendingFactKey {
 #[derive(Clone, Debug)]
 pub struct SubscriptionTable {
     next_token: u64,
-    by_token: BTreeMap<WatchToken, WatchKey>,
+    by_token: HashMap<WatchToken, WatchKey>,
     world_tokens: BTreeSet<WatchToken>,
-    subtree_tokens: BTreeMap<EntityId, BTreeSet<WatchToken>>,
-    component_tokens: BTreeMap<String, BTreeSet<WatchToken>>,
-    asset_tokens: BTreeMap<ResourceId, BTreeSet<WatchToken>>,
+    subtree_tokens: HashMap<EntityId, BTreeSet<WatchToken>>,
+    component_tokens: HashMap<String, BTreeSet<WatchToken>>,
+    asset_tokens: HashMap<ResourceId, BTreeSet<WatchToken>>,
     pending_facts: Vec<WorldFact>,
-    pending_fact_index: BTreeMap<PendingFactKey, usize>,
+    pending_fact_index: HashMap<PendingFactKey, usize>,
     pending_estimated_bytes: usize,
     pending_oldest_generation: Option<u64>,
     pending_age_overflowed: bool,
@@ -177,13 +184,13 @@ impl SubscriptionTable {
     pub fn with_limits(limits: SubscriptionTableLimits) -> Self {
         Self {
             next_token: 0,
-            by_token: BTreeMap::new(),
+            by_token: HashMap::new(),
             world_tokens: BTreeSet::new(),
-            subtree_tokens: BTreeMap::new(),
-            component_tokens: BTreeMap::new(),
-            asset_tokens: BTreeMap::new(),
+            subtree_tokens: HashMap::new(),
+            component_tokens: HashMap::new(),
+            asset_tokens: HashMap::new(),
             pending_facts: Vec::new(),
-            pending_fact_index: BTreeMap::new(),
+            pending_fact_index: HashMap::new(),
             pending_estimated_bytes: 0,
             pending_oldest_generation: None,
             pending_age_overflowed: false,
@@ -225,6 +232,7 @@ impl SubscriptionTable {
                 self.invalidate_world_structure();
                 self.invalidate_asset(*scene);
             }
+            WorldFact::WorldReplaced { .. } => self.invalidate_all_watches(),
             WorldFact::AssetReloadApplied(_) => self.invalidate_all_assets(),
         }
         self.enqueue_fact(world.world_generation(), fact);
@@ -272,7 +280,7 @@ impl SubscriptionTable {
         }
     }
 
-    /// BTreeMap's borrowed lookup avoids allocating a String on the mutation throat.
+    /// Borrowed HashMap lookup avoids allocating a String on the mutation throat.
     pub fn invalidate_component_type(&mut self, type_name: &str) {
         self.diagnostics.direct_key_probes = self.diagnostics.direct_key_probes.saturating_add(1);
         if let Some(tokens) = self.component_tokens.get(type_name) {
@@ -293,6 +301,15 @@ impl SubscriptionTable {
                 .saturating_add(tokens.len() as u64);
             self.pending_dirty.extend(tokens.iter().copied());
         }
+    }
+
+    fn invalidate_all_watches(&mut self) {
+        self.diagnostics.direct_key_probes = self.diagnostics.direct_key_probes.saturating_add(1);
+        self.diagnostics.matched_tokens = self
+            .diagnostics
+            .matched_tokens
+            .saturating_add(self.by_token.len() as u64);
+        self.pending_dirty.extend(self.by_token.keys().copied());
     }
 
     pub fn flush(&mut self, generation: u64) -> Option<InvalidationBatch> {
@@ -423,8 +440,12 @@ impl SubscriptionTable {
 
         let fact_bytes = estimated_fact_bytes();
         let next_bytes = self.pending_estimated_bytes.saturating_add(fact_bytes);
-        if self.pending_facts.len() >= self.limits.max_pending_facts
-            || next_bytes > self.limits.max_pending_estimated_bytes
+        // World replacement is the reserved control slot: dropping it would strand editor state
+        // derived from the retired World. Ordinary data facts continue to obey the configured cap.
+        let reserved_lifecycle_fact = matches!(key, PendingFactKey::WorldReplacement);
+        if !reserved_lifecycle_fact
+            && (self.pending_facts.len() >= self.limits.max_pending_facts
+                || next_bytes > self.limits.max_pending_estimated_bytes)
         {
             self.diagnostics.overflowed_facts = self.diagnostics.overflowed_facts.saturating_add(1);
             self.diagnostics.overflowed = true;
@@ -458,13 +479,18 @@ impl SubscriptionTable {
             self.diagnostics.age_budget_exceeded =
                 self.diagnostics.age_budget_exceeded.saturating_add(1);
             self.diagnostics.overflowed = true;
-            self.invalidate_world_structure();
+            if !self
+                .pending_fact_index
+                .contains_key(&PendingFactKey::WorldReplacement)
+            {
+                self.invalidate_world_structure();
+            }
         }
     }
 }
 
-fn remove_indexed_token<K: Ord>(
-    index: &mut BTreeMap<K, BTreeSet<WatchToken>>,
+fn remove_indexed_token<K: Eq + Hash>(
+    index: &mut HashMap<K, BTreeSet<WatchToken>>,
     key: &K,
     token: WatchToken,
 ) {
@@ -499,6 +525,14 @@ fn ancestor_chain_contains(
 
 fn merge_fact(existing: &mut WorldFact, incoming: WorldFact) {
     match (existing, incoming) {
+        (
+            WorldFact::WorldReplaced {
+                replacement_epoch: existing,
+            },
+            WorldFact::WorldReplaced {
+                replacement_epoch: incoming,
+            },
+        ) => *existing = (*existing).max(incoming),
         (WorldFact::AssetReloadApplied(existing), WorldFact::AssetReloadApplied(incoming)) => {
             merge_asset_reload_report(existing, incoming)
         }

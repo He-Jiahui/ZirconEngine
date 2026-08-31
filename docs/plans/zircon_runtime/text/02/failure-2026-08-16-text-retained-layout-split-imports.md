@@ -55,4 +55,11 @@ Text layout 的新 folder-backed split 改变了 `runtime_lines.rs` 的模块深
 
 ## 修复结果与回传
 
-Open state: `待 Text02 owner 修复`; UI12 不宣称 Editor 产品构建或视觉验收通过。
+Open state: `implementation_complete_static_checked / managed_editor_build_pending`; UI12 不宣称 Editor 产品构建或视觉验收通过。
+
+2026-08-26 current-source 复核确认该 split-owned 导入已在原 owner 前向闭合：
+`runtime_lines.rs` 从四层祖先导入 `FrameRect`/font owner，将
+`runtime_text_layout_frame` 与 layout-local `empty_runtime_line_frame_x` 分别从真实 owner 导入；
+`layout.rs` 也显式持有其七处签名所需的 `zircon_runtime::text::ShapedGlyph`。没有新增 facade、
+类型复制或旧布局恢复。两个 production owner 的 scoped Rustfmt 已通过；声明的 managed
+`zircon_editor` 产品构建尚未执行，因此 failure 保持 `open`，只把“待代码修复”收窄为动态上行验收。

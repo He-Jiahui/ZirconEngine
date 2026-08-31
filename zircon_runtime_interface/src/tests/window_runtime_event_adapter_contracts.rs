@@ -18,6 +18,7 @@ use crate::{
             runtime_event_to_window_input_pump_event, runtime_events_to_window_input_pump_batch,
             UiRuntimeEventAdapterContext, UiRuntimeEventAdapterError, UiWindowEventKind,
             UiWindowInputPumpEvent, UiWindowMetrics, UiWindowPixelPosition, UiWindowPixelSize,
+            UiWindowRedrawReason,
         },
     },
     ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportMetricsV1,
@@ -92,6 +93,10 @@ fn runtime_event_adapter_maps_viewport_and_window_events_to_window_pump_facts() 
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         viewport(),
     ));
+    let surface_recreated = adapt(ZrRuntimeEventV1::window_surface_recreated(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        viewport(),
+    ));
 
     assert!(matches!(
         resized,
@@ -143,6 +148,16 @@ fn runtime_event_adapter_maps_viewport_and_window_events_to_window_pump_facts() 
         destroyed,
         UiWindowInputPumpEvent::Window(window)
             if matches!(window.kind, UiWindowEventKind::Destroyed)
+    ));
+    assert!(matches!(
+        surface_recreated,
+        UiWindowInputPumpEvent::Window(window)
+            if matches!(
+                window.kind,
+                UiWindowEventKind::RequestRedraw {
+                    reason: UiWindowRedrawReason::Host
+                }
+            )
     ));
 }
 

@@ -57,4 +57,4 @@ job 于 `2026-07-22T19:24:42.482382+00:00` 自然结束并 release，exit `101`�
 
 ## 修复结果与回传
 
-Open state: `resolving_failure`。2026-08-14 current-source 前向修复已删除 `ui_text.rs` 中四个 archive、module doc 与 UI doc 的六个未使用读取及多余 exact helper import；`ui/text/mod.rs` dead-code suppression、`edit_state.rs` 状态机和四条生产消费链断言全部保留。精确 review 与 managed current-source 1/1 尚未完成，因此本记录继续保持 `open`，不声明 fixed/accepted。
+Open state: `resolving_failure`。2026-08-14 current-source 前向修复已删除 `ui_text.rs` 中四个 archive、module doc 与 UI doc 的六个未使用读取及多余 exact helper import；`ui/text/mod.rs` dead-code suppression、`edit_state.rs` 状态机和四条生产消费链断言全部保留。2026-08-28 Windows managed validator 已越过 workspace closure 并开始编译 `zircon_runtime`，但目标 test 尚未执行即被既有 Render17 下层 handoff `docs/plans/zircon_runtime/render/17/failure-2026-08-28-rhi-diagnostic-readback-layout-width-drift.md` 的三处 `u32`/`u64` E0308 挡住；无 Cargo/rustc 残留。精确 managed current-source 1/1 尚未完成，因此本记录继续保持 `open`，不声明 fixed/accepted。

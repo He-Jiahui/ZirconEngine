@@ -9,24 +9,27 @@ use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 use super::{
-    FrameRect, HostMenuStateData, HostPageOverflowMenuStateData, HostPaneInteractionStateData,
-    HostTextInputFocusData, HostViewportImageData, HostWindowPresentationData,
-    TemplatePaneNodeData,
+    FrameRect, HostDockOverflowMenuStateData, HostMenuStateData, HostPageOverflowMenuStateData,
+    HostPaneInteractionStateData, HostTextInputFocusData, HostViewportImageSet,
+    HostWindowPresentationData, TemplatePaneNodeData,
 };
 
 /// Immutable handles for one coherent host presentation read.
 #[derive(Clone)]
 pub(crate) struct HostPresentationGeneration {
+    semantic_structure: Arc<HostWindowPresentationData>,
     structure: Arc<HostWindowPresentationData>,
     menu_state: Arc<HostMenuStateData>,
     page_overflow_menu_state: Arc<HostPageOverflowMenuStateData>,
+    dock_overflow_menu_state: Arc<HostDockOverflowMenuStateData>,
     pane_interaction_state: Arc<HostPaneInteractionStateData>,
     text_input_focus: Arc<HostTextInputFocusData>,
-    viewport_image: Option<Arc<HostViewportImageData>>,
+    viewport_images: HostViewportImageSet,
     workbench_hit_index: Arc<HostWorkbenchHitIndex>,
     theme: Arc<HostPaintThemeSnapshot>,
     diagnostics_overlay_text: Arc<SharedString>,
     structure_generation: u64,
+    geometry_generation: u64,
     interaction_generation: u64,
     viewport_generation: u64,
     hit_test_generation: u64,
@@ -36,6 +39,7 @@ pub(crate) struct HostPresentationGeneration {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct HostPresentationGenerationCursor {
     structure: u64,
+    geometry: u64,
     interaction: u64,
     viewport: u64,
     hit_test: u64,
@@ -52,8 +56,29 @@ impl HostPresentationGenerationCursor {
         theme: u64,
         diagnostics: u64,
     ) -> Self {
+        Self::new_with_geometry(
+            structure,
+            structure,
+            interaction,
+            viewport,
+            hit_test,
+            theme,
+            diagnostics,
+        )
+    }
+
+    pub(crate) const fn new_with_geometry(
+        structure: u64,
+        geometry: u64,
+        interaction: u64,
+        viewport: u64,
+        hit_test: u64,
+        theme: u64,
+        diagnostics: u64,
+    ) -> Self {
         Self {
             structure,
+            geometry,
             interaction,
             viewport,
             hit_test,
@@ -67,9 +92,10 @@ impl HostPresentationGenerationCursor {
 struct HostPresentationPaintOverrides {
     menu_state: Arc<HostMenuStateData>,
     page_overflow_menu_state: Arc<HostPageOverflowMenuStateData>,
+    dock_overflow_menu_state: Arc<HostDockOverflowMenuStateData>,
     pane_interaction_state: Arc<HostPaneInteractionStateData>,
     text_input_focus: Arc<HostTextInputFocusData>,
-    viewport_image: Option<Arc<HostViewportImageData>>,
+    viewport_images: HostViewportImageSet,
     workbench_hit_index: Arc<HostWorkbenchHitIndex>,
     diagnostics_overlay_text: Arc<SharedString>,
 }
@@ -97,9 +123,10 @@ impl HostPresentationGeneration {
         structure: Arc<HostWindowPresentationData>,
         menu_state: Arc<HostMenuStateData>,
         page_overflow_menu_state: Arc<HostPageOverflowMenuStateData>,
+        dock_overflow_menu_state: Arc<HostDockOverflowMenuStateData>,
         pane_interaction_state: Arc<HostPaneInteractionStateData>,
         text_input_focus: Arc<HostTextInputFocusData>,
-        viewport_image: Option<Arc<HostViewportImageData>>,
+        viewport_images: HostViewportImageSet,
         workbench_hit_index: Arc<HostWorkbenchHitIndex>,
         theme: Arc<HostPaintThemeSnapshot>,
         diagnostics_overlay_text: Arc<SharedString>,
@@ -109,17 +136,61 @@ impl HostPresentationGeneration {
         hit_test_generation: u64,
         diagnostics_generation: u64,
     ) -> Self {
-        Self {
+        Self::new_with_geometry(
+            Arc::clone(&structure),
             structure,
             menu_state,
             page_overflow_menu_state,
+            dock_overflow_menu_state,
             pane_interaction_state,
             text_input_focus,
-            viewport_image,
+            viewport_images,
             workbench_hit_index,
             theme,
             diagnostics_overlay_text,
             structure_generation,
+            structure_generation,
+            interaction_generation,
+            viewport_generation,
+            hit_test_generation,
+            diagnostics_generation,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new_with_geometry(
+        semantic_structure: Arc<HostWindowPresentationData>,
+        structure: Arc<HostWindowPresentationData>,
+        menu_state: Arc<HostMenuStateData>,
+        page_overflow_menu_state: Arc<HostPageOverflowMenuStateData>,
+        dock_overflow_menu_state: Arc<HostDockOverflowMenuStateData>,
+        pane_interaction_state: Arc<HostPaneInteractionStateData>,
+        text_input_focus: Arc<HostTextInputFocusData>,
+        viewport_images: HostViewportImageSet,
+        workbench_hit_index: Arc<HostWorkbenchHitIndex>,
+        theme: Arc<HostPaintThemeSnapshot>,
+        diagnostics_overlay_text: Arc<SharedString>,
+        structure_generation: u64,
+        geometry_generation: u64,
+        interaction_generation: u64,
+        viewport_generation: u64,
+        hit_test_generation: u64,
+        diagnostics_generation: u64,
+    ) -> Self {
+        Self {
+            semantic_structure,
+            structure,
+            menu_state,
+            page_overflow_menu_state,
+            dock_overflow_menu_state,
+            pane_interaction_state,
+            text_input_focus,
+            viewport_images,
+            workbench_hit_index,
+            theme,
+            diagnostics_overlay_text,
+            structure_generation,
+            geometry_generation,
             interaction_generation,
             viewport_generation,
             hit_test_generation,
@@ -139,6 +210,10 @@ impl HostPresentationGeneration {
         &self.page_overflow_menu_state
     }
 
+    pub(crate) fn dock_overflow_menu_state(&self) -> &HostDockOverflowMenuStateData {
+        &self.dock_overflow_menu_state
+    }
+
     pub(crate) fn pane_interaction_state(&self) -> &HostPaneInteractionStateData {
         &self.pane_interaction_state
     }
@@ -147,8 +222,8 @@ impl HostPresentationGeneration {
         &self.text_input_focus
     }
 
-    pub(crate) fn viewport_image(&self) -> Option<&HostViewportImageData> {
-        self.viewport_image.as_deref()
+    pub(crate) fn viewport_images(&self) -> &HostViewportImageSet {
+        &self.viewport_images
     }
 
     pub(crate) fn workbench_hit_index(&self) -> &HostWorkbenchHitIndex {
@@ -157,6 +232,10 @@ impl HostPresentationGeneration {
 
     pub(crate) fn structure_generation(&self) -> u64 {
         self.structure_generation
+    }
+
+    pub(crate) fn geometry_generation(&self) -> u64 {
+        self.geometry_generation
     }
 
     pub(crate) fn interaction_generation(&self) -> u64 {
@@ -180,8 +259,9 @@ impl HostPresentationGeneration {
     }
 
     pub(crate) fn cursor(&self) -> HostPresentationGenerationCursor {
-        HostPresentationGenerationCursor::new(
+        HostPresentationGenerationCursor::new_with_geometry(
             self.structure_generation(),
+            self.geometry_generation(),
             self.interaction_generation(),
             self.viewport_generation(),
             self.hit_test_generation(),
@@ -191,7 +271,7 @@ impl HostPresentationGeneration {
     }
 
     pub(crate) fn shares_structure_with(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.structure, &other.structure)
+        Arc::ptr_eq(&self.semantic_structure, &other.semantic_structure)
     }
 
     pub(crate) fn shares_theme_with(&self, other: &Self) -> bool {
@@ -203,12 +283,10 @@ impl HostPresentationGeneration {
         let mut presentation = self.structure.as_ref().clone();
         presentation.menu_state = self.menu_state.as_ref().clone();
         presentation.host_page_overflow_menu_state = self.page_overflow_menu_state.as_ref().clone();
+        presentation.host_dock_overflow_menu_state = self.dock_overflow_menu_state.as_ref().clone();
         presentation.pane_interaction_state = self.pane_interaction_state.as_ref().clone();
         presentation.text_input_focus = self.text_input_focus.as_ref().clone();
-        presentation.viewport_image = self
-            .viewport_image
-            .as_ref()
-            .map(|image| image.as_ref().clone());
+        presentation.viewport_images = self.viewport_images.clone();
         presentation.host_shell.debug_refresh_rate = self.diagnostics_overlay_text.as_ref().clone();
         presentation
     }
@@ -218,9 +296,10 @@ impl HostPresentationGeneration {
         let overrides = HostPresentationPaintOverrides {
             menu_state: Arc::clone(&self.menu_state),
             page_overflow_menu_state: Arc::clone(&self.page_overflow_menu_state),
+            dock_overflow_menu_state: Arc::clone(&self.dock_overflow_menu_state),
             pane_interaction_state: Arc::clone(&self.pane_interaction_state),
             text_input_focus: Arc::clone(&self.text_input_focus),
-            viewport_image: self.viewport_image.as_ref().map(Arc::clone),
+            viewport_images: self.viewport_images.clone(),
             workbench_hit_index: Arc::clone(&self.workbench_hit_index),
             diagnostics_overlay_text: Arc::clone(&self.diagnostics_overlay_text),
         };
@@ -258,6 +337,19 @@ pub(crate) fn paint_page_overflow_menu_state(
         .unwrap_or_else(|| Arc::new(presentation.host_page_overflow_menu_state.clone()))
 }
 
+pub(crate) fn paint_dock_overflow_menu_state(
+    presentation: &HostWindowPresentationData,
+) -> Arc<HostDockOverflowMenuStateData> {
+    ACTIVE_PAINT_OVERRIDES
+        .with(|active| {
+            active
+                .borrow()
+                .as_ref()
+                .map(|state| Arc::clone(&state.dock_overflow_menu_state))
+        })
+        .unwrap_or_else(|| Arc::new(presentation.host_dock_overflow_menu_state.clone()))
+}
+
 pub(crate) fn paint_pane_interaction_state(
     presentation: &HostWindowPresentationData,
 ) -> Arc<HostPaneInteractionStateData> {
@@ -284,17 +376,17 @@ pub(crate) fn paint_text_input_focus(
         .unwrap_or_else(|| Arc::new(presentation.text_input_focus.clone()))
 }
 
-pub(crate) fn paint_viewport_image(
+pub(crate) fn paint_viewport_images(
     presentation: &HostWindowPresentationData,
-) -> Option<Arc<HostViewportImageData>> {
+) -> HostViewportImageSet {
     ACTIVE_PAINT_OVERRIDES
         .with(|active| {
             active
                 .borrow()
                 .as_ref()
-                .map(|state| state.viewport_image.as_ref().map(Arc::clone))
+                .map(|state| state.viewport_images.clone())
         })
-        .unwrap_or_else(|| presentation.viewport_image.clone().map(Arc::new))
+        .unwrap_or_else(|| presentation.viewport_images.clone())
 }
 
 pub(crate) fn paint_debug_refresh_rate(
@@ -323,19 +415,22 @@ pub(crate) fn paint_workbench_hit_index(
     })
 }
 
-pub(crate) fn paint_workbench_row_indices(
+pub(crate) fn visit_paint_workbench_rows(
     nodes: &ModelRc<TemplatePaneNodeData>,
     origin: &FrameRect,
     clip: &FrameRect,
-) -> Option<Vec<usize>> {
+    visit: &mut dyn FnMut(usize),
+) -> bool {
     let local_clip = FrameRect {
         x: clip.x - origin.x,
         y: clip.y - origin.y,
         width: clip.width,
         height: clip.height,
     };
-    paint_workbench_hit_index(nodes)
-        .and_then(|index| index.paint_rows_for_nodes(nodes, &local_clip))
+    let Some(index) = paint_workbench_hit_index(nodes) else {
+        return false;
+    };
+    index.visit_paint_rows_for_nodes(nodes, &local_clip, visit)
 }
 
 #[cfg(test)]
@@ -353,9 +448,10 @@ mod tests {
             Arc::clone(&structure),
             menu_state,
             Arc::new(HostPageOverflowMenuStateData::default()),
+            Arc::new(HostDockOverflowMenuStateData::default()),
             Arc::new(HostPaneInteractionStateData::default()),
             Arc::new(HostTextInputFocusData::default()),
-            None,
+            HostViewportImageSet::default(),
             Arc::new(HostWorkbenchHitIndex::from_presentation(&structure)),
             crate::ui::retained_host::host_contract::paint_theme::capture_host_paint_theme_snapshot(
             ),
@@ -402,9 +498,10 @@ mod tests {
             Arc::clone(&structure),
             Arc::new(HostMenuStateData::default()),
             Arc::new(HostPageOverflowMenuStateData::default()),
+            Arc::new(HostDockOverflowMenuStateData::default()),
             Arc::new(HostPaneInteractionStateData::default()),
             Arc::new(HostTextInputFocusData::default()),
-            None,
+            HostViewportImageSet::default(),
             Arc::new(HostWorkbenchHitIndex::from_presentation(&structure)),
             crate::ui::retained_host::host_contract::paint_theme::capture_host_paint_theme_snapshot(
             ),
@@ -417,7 +514,8 @@ mod tests {
         );
 
         let _scope = generation.enter_paint_scope();
-        let rows = paint_workbench_row_indices(
+        let mut rows = Vec::new();
+        let used_index = visit_paint_workbench_rows(
             &nodes,
             &FrameRect {
                 x: 100.0,
@@ -431,8 +529,10 @@ mod tests {
                 width: 30.0,
                 height: 40.0,
             },
+            &mut |row| rows.push(row),
         );
 
-        assert_eq!(rows, Some(vec![0]));
+        assert!(used_index);
+        assert_eq!(rows, vec![0]);
     }
 }

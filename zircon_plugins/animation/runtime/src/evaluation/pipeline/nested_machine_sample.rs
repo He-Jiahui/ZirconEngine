@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
 use zircon_runtime::asset::ProjectAssetManager;
-use zircon_runtime::core::framework::animation::{
-    AnimationParameterMap, AnimationPoseOutput, AnimationPoseSource,
-};
+use zircon_runtime::core::framework::animation::{AnimationPoseOutput, AnimationPoseSource};
 use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId};
 
 use super::machine_instance_key::MachineInstanceKey;
 use super::pose_blend::blend_weighted_poses;
-use super::requests::PendingClipEventSample;
+use super::requests::{PendingClipEventSample, StateMachineParameterProjection};
 use super::state_graph_sample::{normalized_state_time, sample_state_events, sample_state_pose};
 use super::state_machine_cache::resolve_sub_machine_id;
 use super::AnimationEvaluationPipeline;
@@ -24,7 +22,7 @@ pub(super) fn normalized_machine_state_time(
     instance: &MachineInstanceKey,
     machine: &CompiledAnimationStateMachine,
     state_name: &str,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     skeleton_id: zircon_runtime::asset::AssetId,
     time_seconds: Real,
 ) -> Real {
@@ -39,6 +37,7 @@ pub(super) fn normalized_machine_state_time(
         return normalized_state_time(
             pipeline,
             asset_manager,
+            instance,
             machine,
             state_name,
             parameters,
@@ -64,7 +63,7 @@ pub(super) fn sample_machine_state_pose(
     instance: &MachineInstanceKey,
     machine: &CompiledAnimationStateMachine,
     state_name: &str,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     entity: EntityId,
     skeleton_id: zircon_runtime::asset::AssetId,
     time_seconds: Real,
@@ -80,6 +79,7 @@ pub(super) fn sample_machine_state_pose(
         return sample_state_pose(
             pipeline,
             asset_manager,
+            instance,
             machine,
             state_name,
             parameters,
@@ -123,7 +123,7 @@ pub(super) fn sample_machine_transition_pose(
     asset_manager: &ProjectAssetManager,
     instance: &MachineInstanceKey,
     machine: &CompiledAnimationStateMachine,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     entity: EntityId,
     skeleton_id: zircon_runtime::asset::AssetId,
     transition: &AnimationStateTransitionRuntime,
@@ -173,7 +173,7 @@ pub(super) fn sample_machine_state_events(
     instance: &MachineInstanceKey,
     machine: &CompiledAnimationStateMachine,
     state_name: &str,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
     entity: EntityId,
     skeleton_id: zircon_runtime::asset::AssetId,
     from_time_seconds: Real,
@@ -190,6 +190,7 @@ pub(super) fn sample_machine_state_events(
         return sample_state_events(
             pipeline,
             asset_manager,
+            instance,
             machine,
             state_name,
             parameters,
@@ -250,7 +251,7 @@ fn resolve_child_state(
     instance: &MachineInstanceKey,
     machine: &CompiledAnimationStateMachine,
     state_name: &str,
-    parameters: &AnimationParameterMap,
+    parameters: StateMachineParameterProjection<'_>,
 ) -> Option<(
     MachineInstanceKey,
     Arc<CompiledAnimationStateMachine>,
@@ -262,11 +263,12 @@ fn resolve_child_state(
     let active_state = pipeline.nested_machine_states.get(&child_instance).cloned();
     let (child, evaluation, _) = pipeline.evaluate_state_machine(
         asset_manager,
+        &child_instance,
         nested_id,
         active_state.as_deref(),
         parameters,
     )?;
-    Some((child_instance, child, evaluation.active_state?))
+    Some((child_instance, child, evaluation.active_state))
 }
 
 fn transition_progress(transition: &AnimationStateTransitionRuntime) -> Real {

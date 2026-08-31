@@ -23,16 +23,7 @@ impl AutosaveSourcePath {
         if !is_project_relative {
             return Err(AutosaveError::InvalidRecoverySourcePath { path });
         }
-        let normalized = path
-            .components()
-            .map(|component| {
-                component
-                    .as_os_str()
-                    .to_str()
-                    .expect("validated autosave source components are UTF-8")
-            })
-            .collect::<Vec<_>>()
-            .join("/");
+        let normalized = normalize_project_relative_path(&path);
         Ok(Self(PathBuf::from(normalized)))
     }
 
@@ -40,6 +31,26 @@ impl AutosaveSourcePath {
         &self.0
     }
 }
+
+fn normalize_project_relative_path(path: &Path) -> String {
+    let mut normalized = String::with_capacity(path.as_os_str().len());
+    for (index, component) in path.components().enumerate() {
+        if index != 0 {
+            normalized.push('/');
+        }
+        normalized.push_str(
+            component
+                .as_os_str()
+                .to_str()
+                .expect("validated autosave source components are UTF-8"),
+        );
+    }
+    normalized
+}
+
+#[cfg(test)]
+#[path = "source_path/direct_join_tests.rs"]
+mod direct_join_tests;
 
 #[cfg(test)]
 mod tests {

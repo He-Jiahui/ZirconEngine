@@ -6,6 +6,9 @@ use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiPropSchema, UiValue, UiValueKind,
 };
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiNodeDefinition};
+use zircon_runtime_interface::ui::widget::{
+    UI_WIDGET_COMPONENT_ROLE_ATTRIBUTE, UiWidgetBehavior, UiWidgetContract,
+};
 
 use super::value_normalizer::{build_attribute_map, merge_value_maps};
 
@@ -25,7 +28,35 @@ pub(super) fn build_component_attribute_map(
     let mut attributes = descriptor_default_attributes(descriptor);
     merge_value_maps(&mut attributes, &authored);
     validate_component_attributes(document, component_id, &attributes, descriptor)?;
+    if !descriptor.role.is_empty() {
+        attributes.insert(
+            UI_WIDGET_COMPONENT_ROLE_ATTRIBUTE.to_string(),
+            Value::String(descriptor.role.clone()),
+        );
+    }
     Ok(attributes)
+}
+
+pub(super) fn resolve_component_widget_contract(
+    mut widget: UiWidgetContract,
+    descriptor: Option<&UiComponentDescriptor>,
+) -> UiWidgetContract {
+    if widget.behavior == UiWidgetBehavior::Auto {
+        widget.behavior = descriptor
+            .map(|descriptor| UiWidgetBehavior::infer_from_component_role(&descriptor.role))
+            .unwrap_or(UiWidgetBehavior::Passive);
+    }
+    if widget.behavior == UiWidgetBehavior::TextInput && widget.value_property.is_none() {
+        widget.value_property = descriptor.and_then(infer_text_input_value_property);
+    }
+    widget
+}
+
+fn infer_text_input_value_property(descriptor: &UiComponentDescriptor) -> Option<String> {
+    ["query", "value", "value_text", "text"]
+        .into_iter()
+        .find(|property| descriptor.prop(property).is_some())
+        .map(str::to_string)
 }
 
 fn descriptor_default_attributes(descriptor: &UiComponentDescriptor) -> BTreeMap<String, Value> {
@@ -131,4 +162,62 @@ fn is_localized_text_ref(value: &Value) -> bool {
         .get("text_key")
         .and_then(Value::as_str)
         .is_some_and(|key| !key.trim().is_empty())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zircon_runtime_interface::ui::component::{UiComponentCategory, UiPropSchema, UiValueKind};
+
+    #[test]
+    fn text_input_widget_contract_infers_canonical_descriptor_value_property() {
+        for (id, role, properties, expected) in [
+            ("SearchField", "search-field", vec!["query"], "query"),
+            (
+                "InputBase",
+                "input-base",
+                vec!["value", "value_text"],
+                "value",
+            ),
+            (
+                "FieldEditor",
+                "field-editor",
+                vec!["text", "value_text"],
+                "value_text",
+            ),
+            ("SourceEditor", "source-editor", vec!["text"], "text"),
+        ] {
+            let descriptor = properties.into_iter().fold(
+                UiComponentDescriptor::new(id, id, UiComponentCategory::Input, role),
+                |descriptor, property| {
+                    descriptor.with_prop(UiPropSchema::new(property, UiValueKind::String))
+                },
+            );
+
+            let widget =
+                resolve_component_widget_contract(UiWidgetContract::default(), Some(&descriptor));
+
+            assert_eq!(widget.behavior, UiWidgetBehavior::TextInput);
+            assert_eq!(widget.value_property.as_deref(), Some(expected));
+        }
+    }
+
+    #[test]
+    fn authored_text_input_value_property_is_not_replaced() {
+        let descriptor = UiComponentDescriptor::new(
+            "TextField",
+            "TextField",
+            UiComponentCategory::Input,
+            "text-field",
+        )
+        .with_prop(UiPropSchema::new("value_text", UiValueKind::String));
+        let widget = UiWidgetContract {
+            value_property: Some("document_text".to_string()),
+            ..UiWidgetContract::default()
+        };
+
+        let widget = resolve_component_widget_contract(widget, Some(&descriptor));
+
+        assert_eq!(widget.value_property.as_deref(), Some("document_text"));
+    }
 }

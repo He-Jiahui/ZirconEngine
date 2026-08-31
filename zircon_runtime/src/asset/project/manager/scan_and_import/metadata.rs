@@ -41,7 +41,7 @@ pub(super) fn validate_import_entries(
         )));
     }
 
-    let mut labels = HashSet::new();
+    let mut labels = HashSet::with_capacity(outcome.entries.len());
     let mut root_count = 0;
     for entry in &outcome.entries {
         if entry.locator.scheme() != source_uri.scheme()
@@ -54,7 +54,7 @@ pub(super) fn validate_import_entries(
         }
         match entry.locator.label() {
             Some(label) => {
-                if !labels.insert(label.to_string()) {
+                if !labels.insert(label) {
                     return Err(AssetImportError::DuplicateAssetLabel {
                         source_uri: source_uri.clone(),
                         label: label.to_string(),
@@ -178,6 +178,10 @@ pub(super) fn importer_contract_matches(
         })
         .unwrap_or_else(|| !meta.importer_id.is_empty())
 }
+
+#[cfg(test)]
+#[path = "metadata/allocation_tests.rs"]
+mod allocation_tests;
 
 pub(super) fn config_hash_for_settings(settings: &toml::Table) -> String {
     toml::to_string(settings)

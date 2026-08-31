@@ -46,15 +46,25 @@ pub enum RenderVirtualGeometryPayloadSource {
 pub struct RenderViewportDescriptor {
     pub size: UVec2,
     pub label: Option<String>,
+    pub requires_hit_proxies: bool,
 }
 
 impl RenderViewportDescriptor {
     pub fn new(size: UVec2) -> Self {
-        Self { size, label: None }
+        Self {
+            size,
+            label: None,
+            requires_hit_proxies: false,
+        }
     }
 
     pub fn with_label(mut self, label: impl Into<String>) -> Self {
         self.label = Some(label.into());
+        self
+    }
+
+    pub fn with_hit_proxies(mut self) -> Self {
+        self.requires_hit_proxies = true;
         self
     }
 }

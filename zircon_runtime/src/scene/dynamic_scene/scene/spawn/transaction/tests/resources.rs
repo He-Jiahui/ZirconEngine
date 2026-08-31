@@ -1,11 +1,12 @@
 use std::cell::Cell;
 
 use zircon_runtime_interface::reflect::{
-    ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue,
+    ReflectEditorHint, ReflectError, ReflectFieldId, ReflectFieldInfo, ReflectFieldValue,
     ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration,
     ReflectedValue,
 };
 
+use crate::scene::dynamic_scene::{DynamicSceneError, EntityRemap};
 use crate::scene::{ReflectResource, Resource, World};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -45,7 +46,9 @@ pub(super) fn register_slot_resource(world: &mut World) {
                 ReflectTypePath::new(SLOT_RESOURCE_TYPE_PATH, "SlotResource")
                     .expect("slot resource type path should be valid"),
                 "Slot Resource",
-                ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+                ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::from_stable_keys(
+                    SLOT_RESOURCE_TYPE_PATH,
+                    "value",
                     "value",
                     "Unsigned",
                     ReflectEditorHint::Unsigned,
@@ -61,12 +64,45 @@ pub(super) fn register_slot_resource(world: &mut World) {
                 ensure: None,
                 contains: slot_resource_contains,
                 read_field: slot_resource_read_field,
-                read_fields: slot_resource_read_fields,
+                read_field_by_slot: slot_resource_read_field_by_slot,
                 write_field_by_slot: slot_resource_write_field_by_slot,
                 write_fields_by_slot: slot_resource_write_fields_by_slot,
             },
         )
         .expect("slot resource registration should be accepted");
+}
+
+#[test]
+fn compiled_reflected_writes_reject_duplicate_stable_field_ids() {
+    let mut world = World::empty();
+    register_slot_resource(&mut world);
+    let field_id = ReflectFieldId::from_stable_keys(SLOT_RESOURCE_TYPE_PATH, "value");
+    let fields = vec![
+        ReflectFieldValue::new(field_id, "value", ReflectedValue::Unsigned(1)),
+        ReflectFieldValue::new(field_id, "stale_value", ReflectedValue::Unsigned(2)),
+    ];
+    let schema_fields = &world
+        .type_registry()
+        .runtime_registration(SLOT_RESOURCE_TYPE_PATH)
+        .expect("slot resource registration should resolve")
+        .registration
+        .type_info
+        .fields;
+
+    let error = super::super::super::resource::compile_reflected_writes(
+        &world,
+        SLOT_RESOURCE_TYPE_PATH,
+        schema_fields,
+        &fields,
+        &EntityRemap::new(),
+    )
+    .expect_err("duplicate stable field identities must fail scene admission");
+
+    assert!(matches!(
+        error,
+        DynamicSceneError::Reflect(ReflectError::InvalidValue { reason, .. })
+            if reason == "duplicate stable field identity in dynamic scene payload"
+    ));
 }
 
 fn slot_resource_stage_clone_bytes(source: &World) -> Result<usize, ReflectError> {
@@ -102,11 +138,14 @@ fn slot_resource_read_field(
     }
 }
 
-fn slot_resource_read_fields(world: &World) -> Result<Vec<ReflectFieldValue>, ReflectError> {
-    Ok(vec![ReflectFieldValue::new(
-        "value",
-        slot_resource_read_field(world, "value")?,
-    )])
+fn slot_resource_read_field_by_slot(
+    world: &World,
+    field_slot: u32,
+) -> Result<ReflectedValue, ReflectError> {
+    match field_slot {
+        0 => Ok(ReflectedValue::Unsigned(slot_resource(world)?.value as u64)),
+        _ => Err(slot_resource_unknown_field(&format!("#{field_slot}"))),
+    }
 }
 
 fn slot_resource_write_fields_by_slot(
@@ -218,7 +257,9 @@ pub(super) fn register_rejecting_resource(world: &mut World) {
                 ReflectTypePath::new(REJECTING_RESOURCE_TYPE_PATH, "RejectingResource")
                     .expect("test resource type path should be valid"),
                 "Rejecting Resource",
-                ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+                ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::from_stable_keys(
+                    REJECTING_RESOURCE_TYPE_PATH,
+                    "value",
                     "value",
                     "Unsigned",
                     ReflectEditorHint::Unsigned,
@@ -234,7 +275,7 @@ pub(super) fn register_rejecting_resource(world: &mut World) {
                 ensure: None,
                 contains: rejecting_resource_contains,
                 read_field: rejecting_resource_read_field,
-                read_fields: rejecting_resource_read_fields,
+                read_field_by_slot: rejecting_resource_read_field_by_slot,
                 write_field_by_slot: rejecting_resource_write_field_by_slot,
                 write_fields_by_slot: rejecting_resource_write_fields_by_slot,
             },
@@ -278,11 +319,19 @@ fn rejecting_resource_read_field(
     }
 }
 
-fn rejecting_resource_read_fields(world: &World) -> Result<Vec<ReflectFieldValue>, ReflectError> {
-    Ok(vec![ReflectFieldValue::new(
-        "value",
-        rejecting_resource_read_field(world, "value")?,
-    )])
+fn rejecting_resource_read_field_by_slot(
+    world: &World,
+    field_slot: u32,
+) -> Result<ReflectedValue, ReflectError> {
+    match field_slot {
+        0 => Ok(ReflectedValue::Unsigned(
+            rejecting_resource(world)?.0 as u64,
+        )),
+        _ => Err(ReflectError::UnknownField {
+            type_path: REJECTING_RESOURCE_TYPE_PATH.to_string(),
+            field_name: format!("#{field_slot}"),
+        }),
+    }
 }
 
 fn rejecting_resource_write_fields_by_slot(

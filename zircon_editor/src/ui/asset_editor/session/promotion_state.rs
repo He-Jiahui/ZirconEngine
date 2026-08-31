@@ -527,7 +527,7 @@ pub(super) fn normalized_promote_document_id(document_id: &str) -> Option<String
         return None;
     }
 
-    let mut normalized = String::new();
+    let mut normalized = String::with_capacity(trimmed.len());
     let mut previous_was_separator = true;
     for ch in trimmed.chars() {
         if ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_' {
@@ -547,9 +547,15 @@ pub(super) fn normalized_promote_document_id(document_id: &str) -> Option<String
         }
     }
 
-    let normalized = normalized.trim_matches('.').to_string();
+    if normalized.ends_with('.') {
+        normalized.pop();
+    }
     (!normalized.is_empty()).then_some(normalized)
 }
+
+#[cfg(test)]
+#[path = "promotion_state/document_id_trim_tests.rs"]
+mod document_id_trim_tests;
 
 pub(super) fn normalized_promote_display_name(display_name: &str) -> Option<String> {
     let trimmed = display_name.trim();

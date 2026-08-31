@@ -14,6 +14,10 @@ use crate::manager::parameters::{
 
 use super::CompiledBehaviorNode;
 
+#[cfg(test)]
+#[path = "condition/allocation_tests.rs"]
+mod allocation_tests;
+
 pub(super) fn decorator_condition_passes(
     node: &CompiledBehaviorNode,
     blackboard: &[AiBlackboardEntry],
@@ -69,7 +73,8 @@ fn raw_perception_condition_passes(
     node: &CompiledBehaviorNode,
     perception: Option<&AiPerceptionSnapshot>,
 ) -> bool {
-    if !has_perception_condition(node) {
+    let condition = PerceptionCondition::from_node(node);
+    if !condition.configured {
         return true;
     }
     let exists = perception
@@ -77,55 +82,104 @@ fn raw_perception_condition_passes(
             snapshot
                 .stimuli
                 .iter()
-                .any(|stimulus| perception_stimulus_matches(node, stimulus))
+                .any(|stimulus| condition.matches(stimulus))
         })
         .unwrap_or(false);
-    let expected = parameter(node, PERCEPTION_EXISTS_PARAMETER_KEY)
-        .and_then(AiBehaviorNodeParameterValue::as_bool)
-        .unwrap_or(true);
-    exists == expected
+    exists == condition.expected_exists
 }
 
-fn has_perception_condition(node: &CompiledBehaviorNode) -> bool {
-    node.parameters()
-        .iter()
-        .any(|parameter| PERCEPTION_CONDITION_PARAMETER_KEYS.contains(&parameter.key.as_str()))
+struct PerceptionCondition {
+    configured: bool,
+    sense: Option<zircon_runtime::core::framework::ai::AiPerceptionSense>,
+    source: Option<u64>,
+    minimum_strength: Option<f32>,
+    maximum_age_seconds: Option<f32>,
+    expected_exists: bool,
 }
 
-fn perception_stimulus_matches(
-    node: &CompiledBehaviorNode,
-    stimulus: &AiPerceptionStimulus,
-) -> bool {
-    if let Some(expected) = parameter(node, PERCEPTION_SENSE_PARAMETER_KEY)
-        .and_then(AiBehaviorNodeParameterValue::as_string)
-        .and_then(parse_perception_sense)
-    {
-        if stimulus.sense != expected {
+impl PerceptionCondition {
+    fn from_node(node: &CompiledBehaviorNode) -> Self {
+        let mut condition = Self {
+            configured: false,
+            sense: None,
+            source: None,
+            minimum_strength: None,
+            maximum_age_seconds: None,
+            expected_exists: true,
+        };
+        let mut saw_sense = false;
+        let mut saw_source = false;
+        let mut saw_minimum_strength = false;
+        let mut saw_maximum_age = false;
+        let mut saw_expected_exists = false;
+        for parameter in node.parameters() {
+            let key = parameter.key.as_str();
+            if !PERCEPTION_CONDITION_PARAMETER_KEYS.contains(&key) {
+                continue;
+            }
+            condition.configured = true;
+            match key {
+                PERCEPTION_SENSE_PARAMETER_KEY if !saw_sense => {
+                    saw_sense = true;
+                    condition.sense = parameter.value.as_string().and_then(parse_perception_sense);
+                }
+                PERCEPTION_SOURCE_PARAMETER_KEY if !saw_source => {
+                    saw_source = true;
+                    if let AiBehaviorNodeParameterValue::Entity(source) = &parameter.value {
+                        condition.source = Some(*source);
+                    }
+                }
+                PERCEPTION_MIN_STRENGTH_PARAMETER_KEY if !saw_minimum_strength => {
+                    saw_minimum_strength = true;
+                    if let AiBehaviorNodeParameterValue::Scalar(minimum) = &parameter.value {
+                        condition.minimum_strength = Some(*minimum);
+                    }
+                }
+                PERCEPTION_MAX_AGE_SECONDS_PARAMETER_KEY if !saw_maximum_age => {
+                    saw_maximum_age = true;
+                    if let AiBehaviorNodeParameterValue::Scalar(maximum) = &parameter.value {
+                        condition.maximum_age_seconds = Some(*maximum);
+                    }
+                }
+                PERCEPTION_EXISTS_PARAMETER_KEY if !saw_expected_exists => {
+                    saw_expected_exists = true;
+                    if let AiBehaviorNodeParameterValue::Bool(expected) = &parameter.value {
+                        condition.expected_exists = *expected;
+                    }
+                }
+                _ => {}
+            }
+        }
+        condition
+    }
+
+    fn matches(&self, stimulus: &AiPerceptionStimulus) -> bool {
+        if self
+            .sense
+            .is_some_and(|expected| stimulus.sense != expected)
+        {
             return false;
         }
-    }
-    if let Some(AiBehaviorNodeParameterValue::Entity(expected)) =
-        parameter(node, PERCEPTION_SOURCE_PARAMETER_KEY)
-    {
-        if stimulus.source != *expected {
+        if self
+            .source
+            .is_some_and(|expected| stimulus.source != expected)
+        {
             return false;
         }
-    }
-    if let Some(AiBehaviorNodeParameterValue::Scalar(minimum)) =
-        parameter(node, PERCEPTION_MIN_STRENGTH_PARAMETER_KEY)
-    {
-        if stimulus.strength < *minimum {
+        if self
+            .minimum_strength
+            .is_some_and(|minimum| stimulus.strength < minimum)
+        {
             return false;
         }
-    }
-    if let Some(AiBehaviorNodeParameterValue::Scalar(maximum)) =
-        parameter(node, PERCEPTION_MAX_AGE_SECONDS_PARAMETER_KEY)
-    {
-        if stimulus.age_seconds > *maximum {
+        if self
+            .maximum_age_seconds
+            .is_some_and(|maximum| stimulus.age_seconds > maximum)
+        {
             return false;
         }
+        true
     }
-    true
 }
 
 fn has_value_comparison(node: &CompiledBehaviorNode) -> bool {

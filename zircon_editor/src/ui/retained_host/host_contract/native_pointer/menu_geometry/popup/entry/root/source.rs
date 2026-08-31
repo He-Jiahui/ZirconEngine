@@ -23,12 +23,12 @@ pub(super) fn opened_root_menu_popup_source_with_state(
         .host_scene_data
         .menu_chrome
         .menu_frames
-        .row_data(menu_index)?;
+        .get(menu_index)?;
     let menu = presentation
         .host_scene_data
         .menu_chrome
         .menus
-        .row_data(menu_index)?;
+        .get(menu_index)?;
     Some(RootMenuPopupSource {
         menu_frame: menu_frame.frame.clone(),
         popup_width_px: menu.popup_width_px,

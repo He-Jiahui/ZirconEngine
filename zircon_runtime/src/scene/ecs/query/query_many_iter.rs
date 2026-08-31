@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ptr::NonNull};
 
-use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
+use super::query_state::{CachedArchetypePlan, find_cached_archetype_plan};
 use crate::scene::ecs::{
     ChangeDetectionScanStats, ChangeTickWindow, ComponentStorageLocation, QueryData, QueryFilter,
     QueryState,

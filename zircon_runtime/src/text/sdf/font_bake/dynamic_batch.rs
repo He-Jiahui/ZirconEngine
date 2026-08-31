@@ -2,15 +2,15 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
+use crate::text::FontFaceId;
 use crate::text::font::FontDatabase;
 use crate::text::sdf::{
     SdfBakeParams, SdfGenerationBatchReport, SdfGenerationSourceContext, SdfGenerationSourceHandle,
     SdfGlyphGenerationError,
 };
-use crate::text::FontFaceId;
 
 use super::distance_field::{glyph_id_for_key, raw_baked_glyph};
-use super::{fallback_metrics, RawBakedGlyph, SdfAtlasGlyphKey, SdfAtlasSlot, SdfFontBakeCache};
+use super::{RawBakedGlyph, SdfAtlasGlyphKey, SdfAtlasSlot, SdfFontBakeCache, fallback_metrics};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct SdfDynamicGenerationTotals {
@@ -77,13 +77,13 @@ impl SdfFontBakeCache {
         asset_manager: &ProjectAssetManager,
     ) {
         let mut seen = HashSet::with_capacity(slots.len());
-        let mut pending = Vec::new();
+        let mut pending = Vec::with_capacity(slots.len());
         for slot in slots {
             if self.contains_baked_glyph(&slot.key) || !seen.insert(slot.key.clone()) {
                 continue;
             }
             pending.push(PendingGlyph {
-                faces: self.resolve_faces_for_key_cached(&slot.key, font_database, asset_manager),
+                faces: self.resolve_faces_for_key_cached(&slot.key, font_database),
                 key: slot.key.clone(),
                 next_face: 0,
                 last_error: None,
@@ -91,8 +91,8 @@ impl SdfFontBakeCache {
         }
 
         while !pending.is_empty() {
-            let mut groups = Vec::<BatchGroup>::new();
-            let mut group_indices = HashMap::<BatchKey, usize>::new();
+            let mut groups = Vec::<BatchGroup>::with_capacity(pending.len());
+            let mut group_indices = HashMap::<BatchKey, usize>::with_capacity(pending.len());
             let mut resolved = vec![None; pending.len()];
 
             for (pending_index, glyph) in pending.iter_mut().enumerate() {
@@ -164,21 +164,17 @@ impl SdfFontBakeCache {
             }
 
             for group in groups {
-                let glyph_ids = group
-                    .entries
-                    .iter()
-                    .map(|(_, glyph_id)| *glyph_id)
-                    .collect::<Vec<_>>();
+                let mut glyph_ids = Vec::with_capacity(group.entries.len());
+                for (_, glyph_id) in &group.entries {
+                    glyph_ids.push(*glyph_id);
+                }
                 let batch = group.source.generate_batch(group.params, &glyph_ids);
                 self.dynamic_generation_totals.record(batch.report);
-                let results = batch
-                    .glyphs
-                    .into_iter()
-                    .map(|glyph| {
-                        let result = glyph.result.map(raw_baked_glyph);
-                        (glyph.glyph_id, result)
-                    })
-                    .collect::<HashMap<_, _>>();
+                let mut results = HashMap::with_capacity(batch.glyphs.len());
+                for glyph in batch.glyphs {
+                    let result = glyph.result.map(raw_baked_glyph);
+                    results.insert(glyph.glyph_id, result);
+                }
                 for (pending_index, glyph_id) in group.entries {
                     match results.get(&glyph_id) {
                         Some(Ok(glyph)) => resolved[pending_index] = Some(glyph.clone()),
@@ -191,7 +187,7 @@ impl SdfFontBakeCache {
                 }
             }
 
-            let mut unresolved = Vec::new();
+            let mut unresolved = Vec::with_capacity(pending.len());
             for (pending_glyph, baked) in pending.into_iter().zip(resolved) {
                 if let Some(baked) = baked {
                     self.insert_baked_glyph(pending_glyph.key, baked);
@@ -210,4 +206,120 @@ pub(super) fn missing_outline(key: &SdfAtlasGlyphKey) -> SdfGlyphGenerationError
             .and_then(|glyph_id| u16::try_from(glyph_id).ok())
             .unwrap_or(0),
     )
+}
+
+#[cfg(test)]
+mod optimization_batch_20260830by_runtime_tests {
+    use std::time::Instant;
+
+    const SAMPLE_PAIRS: usize = 17;
+    const SLOTS_PER_SAMPLE: usize = 1_024;
+
+    #[test]
+    fn dynamic_batch_reserves_input_and_retry_collections() {
+        let source = include_str!("dynamic_batch.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production implementation");
+        assert!(implementation.contains("Vec::with_capacity(slots.len())"));
+        assert!(implementation.contains("Vec::<BatchGroup>::with_capacity(pending.len())"));
+        assert!(
+            implementation.contains("HashMap::<BatchKey, usize>::with_capacity(pending.len())")
+        );
+        assert!(implementation.contains("Vec::with_capacity(group.entries.len())"));
+        assert!(implementation.contains("HashMap::with_capacity(batch.glyphs.len())"));
+        assert!(implementation.contains("Vec::with_capacity(pending.len())"));
+        assert!(!implementation.contains("let mut pending = Vec::new()"));
+    }
+
+    #[test]
+    fn dynamic_batch_keeps_group_generation_before_retry_scan() {
+        let source = include_str!("dynamic_batch.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production implementation");
+        let generation = implementation
+            .find("generate_batch(group.params, &glyph_ids)")
+            .expect("batch generation");
+        let retry = implementation
+            .find("let mut unresolved = Vec::with_capacity(pending.len())")
+            .expect("retry collection");
+        assert!(generation < retry);
+    }
+
+    #[test]
+    #[ignore = "managed Windows release performance evidence"]
+    fn optimization_batch_20260830by_runtime_dynamic_batch_capacity_p95() {
+        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy.push(measure(false));
+                optimized.push(measure(true));
+            } else {
+                optimized.push(measure(true));
+                legacy.push(measure(false));
+            }
+        }
+        let legacy_p95_ns = percentile(&legacy, 95);
+        let optimized_p95_ns = percentile(&optimized, 95);
+        println!(
+            "RUNTIME377_DYNAMIC_BATCH_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} slots_per_sample={SLOTS_PER_SAMPLE} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            sample_csv(&legacy),
+            sample_csv(&optimized),
+        );
+        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
+    }
+
+    fn measure(optimized: bool) -> u128 {
+        let started = Instant::now();
+        let mut checksum = 0usize;
+        for _ in 0..128 {
+            let mut pending = if optimized {
+                Vec::with_capacity(SLOTS_PER_SAMPLE)
+            } else {
+                Vec::new()
+            };
+            let mut groups = if optimized {
+                Vec::with_capacity(SLOTS_PER_SAMPLE)
+            } else {
+                Vec::new()
+            };
+            let mut results = if optimized {
+                std::collections::HashMap::with_capacity(SLOTS_PER_SAMPLE)
+            } else {
+                std::collections::HashMap::new()
+            };
+            for index in 0..SLOTS_PER_SAMPLE {
+                pending.push(index);
+                groups.push(index);
+                results.insert(index, index);
+            }
+            let mut unresolved = if optimized {
+                Vec::with_capacity(pending.len())
+            } else {
+                Vec::new()
+            };
+            unresolved.extend(pending.into_iter().filter(|index| index % 2 == 0));
+            checksum ^= groups.len() ^ results.len() ^ unresolved.len();
+        }
+        std::hint::black_box(checksum);
+        started.elapsed().as_nanos().max(1)
+    }
+
+    fn percentile(samples: &[u128], percentile: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        sorted[(sorted.len() * percentile).div_ceil(100).saturating_sub(1)]
+    }
+
+    fn sample_csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    }
 }

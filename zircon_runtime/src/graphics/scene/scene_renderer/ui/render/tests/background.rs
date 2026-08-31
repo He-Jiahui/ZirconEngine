@@ -1,13 +1,76 @@
 use super::*;
 
 #[test]
-fn screen_space_ui_background_lookup_scans_blockers_once() {
+fn screen_space_ui_background_lookup_uses_one_reverse_effect_scan() {
     let source = include_str!("../background.rs");
-    let indexed_blocker = ["latest_blocker", "_order"].concat();
-    let nested_blocker_scan = ["!self.blockers.iter()", ".any"].concat();
 
-    assert!(source.contains(&indexed_blocker));
-    assert!(!source.contains(&nested_blocker_scan));
+    assert!(source.contains("for effect in self.effects.iter().rev()"));
+    assert!(!source.contains("candidates: Vec<"));
+    assert!(!source.contains("blockers: Vec<"));
+}
+
+#[test]
+fn screen_space_ui_background_lookup_stops_at_newest_relevant_effect() {
+    let viewport = UiFrame::new(0.0, 0.0, 200.0, 100.0);
+    let query = UiFrame::new(10.0, 10.0, 40.0, 20.0);
+    let mut tracker = ScreenSpaceUiBackgroundTracker::with_framebuffer_background(
+        viewport,
+        Some([0.1, 0.2, 0.3, 1.0]),
+    );
+    tracker.observe_command(
+        &background_test_command(UiRenderCommandKind::Quad, query, Some("#224466"), None),
+        viewport,
+    );
+    tracker.observe_command(
+        &background_test_command(UiRenderCommandKind::Text, query, None, Some("blocked")),
+        viewport,
+    );
+
+    let (blocked, blocker_visits) = tracker.color_for_frame_with_visit_count(query, None, viewport);
+
+    assert_eq!(blocked, None);
+    assert_eq!(blocker_visits, 1);
+
+    tracker.observe_command(
+        &background_test_command(UiRenderCommandKind::Quad, query, Some("#6688aa"), None),
+        viewport,
+    );
+    let (covered, candidate_visits) =
+        tracker.color_for_frame_with_visit_count(query, None, viewport);
+
+    assert_eq!(
+        covered,
+        Some([
+            0x66 as f32 / 255.0,
+            0x88 as f32 / 255.0,
+            0xaa as f32 / 255.0,
+            1.0
+        ])
+    );
+    assert_eq!(candidate_visits, 1);
+}
+
+fn background_test_command(
+    kind: UiRenderCommandKind,
+    frame: UiFrame,
+    background_color: Option<&str>,
+    text: Option<&str>,
+) -> UiRenderCommand {
+    UiRenderCommand {
+        node_id: UiNodeId::new(1),
+        kind,
+        frame,
+        clip_frame: None,
+        z_index: 0,
+        style: UiResolvedStyle {
+            background_color: background_color.map(str::to_string),
+            ..UiResolvedStyle::default()
+        },
+        text_layout: None,
+        text: text.map(str::to_string),
+        image: None,
+        opacity: 1.0,
+    }
 }
 
 #[test]

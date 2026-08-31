@@ -3,8 +3,8 @@ use super::state::{construct_startup_host, StartupHostConstruction};
 use super::template_bridges::create_startup_template_bridges;
 use super::*;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
-use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime_interface::hub_protocol::HubSessionToken;
+use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 
 mod finalize;
 mod runtime_backend;
@@ -23,7 +23,7 @@ impl RetainedEditorHost {
         ui: UiHostWindow,
         viewport: RetainedViewportController,
         startup_request: Option<EditorGuiStartupRequest>,
-        prepared_project: Option<ProjectManager>,
+        project_runtime_build_set: Option<ZrRuntimeBuildSetId>,
         hub_launch_session: Option<HubSessionToken>,
     ) -> Result<Self, Box<dyn Error>> {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_with_viewport");
@@ -32,19 +32,22 @@ impl RetainedEditorHost {
 
         ui.set_runtime_presenter_factory(viewport.runtime_presenter_factory());
 
-        let startup_managers = resolve_startup_managers(
-            runtime_lease.bootstrap_core(),
-            ui.background_event_wake_callback(),
-        )?;
+        let startup_access = runtime_lease.startup_access();
+        let startup_managers =
+            resolve_startup_managers(&startup_access, ui.background_event_wake_callback())?;
         startup_managers
             .editor_manager
             .configure_hub_launch_session(hub_launch_session);
-        ui.bind_profile_artifact_jobs(startup_managers.editor_manager.context().jobs().clone());
+        startup_managers
+            .editor_manager
+            .configure_project_runtime_build_set(project_runtime_build_set);
+        let editor_jobs = startup_managers.editor_manager.context().jobs().clone();
+        ui.bind_profile_artifact_jobs(editor_jobs.clone());
+        ui.bind_visual_asset_jobs(editor_jobs, ui.background_visual_asset_wake_callback());
         let viewport_size = UVec2::new(1280, 720);
         let startup_session_state = resolve_startup_session_state(
             startup_managers.editor_manager.clone(),
             startup_request,
-            prepared_project,
             viewport_size,
         );
         let startup_session_state = startup_session_state?;
@@ -53,9 +56,6 @@ impl RetainedEditorHost {
         let shell_scale_factor = resolve_startup_shell_scale_factor(&ui);
         let template_bridges = create_startup_template_bridges(shell_size)?;
         let runtime_backend = create_startup_runtime_backend(runtime);
-        runtime_backend
-            .runtime
-            .attach_play_gateway(runtime_gateway.clone())?;
 
         let mut host = construct_startup_host(StartupHostConstruction {
             ui,

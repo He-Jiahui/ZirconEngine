@@ -1,6 +1,6 @@
 use super::*;
-use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::retained_host::PaneSurfaceHostContext;
+use crate::ui::retained_host::primitives::SharedString;
 
 pub(super) fn wire_asset_content_callbacks(
     pane_surface_host: &PaneSurfaceHostContext,
@@ -20,7 +20,7 @@ pub(super) fn wire_asset_content_callbacks(
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
     pane_surface_host.on_asset_content_pointer_event(
-        move |surface_mode: SharedString, kind, button, x, y, width, height| {
+        move |surface_mode: SharedString, kind, button, x, y, width, height, origin_x, origin_y| {
             dispatch_with_callback_source(&weak, &source_ui, |host| {
                 host.asset_content_pointer_event(
                     surface_mode.as_str(),
@@ -30,6 +30,8 @@ pub(super) fn wire_asset_content_callbacks(
                     y,
                     width,
                     height,
+                    origin_x,
+                    origin_y,
                 );
             });
         },

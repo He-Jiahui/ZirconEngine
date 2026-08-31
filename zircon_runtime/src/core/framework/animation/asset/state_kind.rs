@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::error::AnimationAssetError;
-use super::reference::{push_unique_reference, AnimationAssetReferenceBinary};
+use super::reference::{AnimationAssetReferenceBinary, DirectReferenceCollector};
 use crate::core::math::{Real, Vec2};
 use crate::core::resource::AssetReference;
 
@@ -47,23 +47,26 @@ impl AnimationStateKindAsset {
         }
     }
 
-    pub(crate) fn push_direct_references(&self, references: &mut Vec<AssetReference>) {
+    pub(super) fn push_direct_references<'a>(
+        &'a self,
+        references: &mut DirectReferenceCollector<'a>,
+    ) {
         match self {
-            Self::Clip { clip } => push_unique_reference(references, clip.clone()),
+            Self::Clip { clip } => references.push(clip),
             Self::BlendSpace1D(blend) => {
                 for sample in &blend.samples {
-                    push_unique_reference(references, sample.graph.clone());
+                    references.push(&sample.graph);
                 }
             }
             Self::BlendSpace2D(blend) => {
                 for sample in &blend.samples {
-                    push_unique_reference(references, sample.graph.clone());
+                    references.push(&sample.graph);
                 }
             }
             Self::SubMachine { state_machine } => {
-                push_unique_reference(references, state_machine.clone());
+                references.push(state_machine);
             }
-            Self::GraphRef { graph } => push_unique_reference(references, graph.clone()),
+            Self::GraphRef { graph } => references.push(graph),
         }
     }
 }

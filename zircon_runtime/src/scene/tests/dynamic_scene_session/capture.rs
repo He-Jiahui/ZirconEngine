@@ -10,7 +10,9 @@ use super::{tagged_slot, temporary_archive_leftovers, unique_temp_root};
 #[test]
 fn runtime_session_archive_capture_world_slot_to_missing_path_creates_archive_atomically() {
     let mut source = World::empty();
-    source.spawn_node(crate::scene::NodeKind::Mesh);
+    source
+        .spawn_node(crate::scene::NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let root = unique_temp_root("runtime_session_capture_world_missing_path");
     let path = root.join("sessions").join("archive.zrsession.json");
 
@@ -56,7 +58,9 @@ fn runtime_session_archive_capture_world_slot_to_missing_path_creates_archive_at
 fn runtime_session_archive_previews_world_capture_without_mutating_archive() {
     let empty = World::empty();
     let mut source = World::empty();
-    source.spawn_node(crate::scene::NodeKind::Mesh);
+    source
+        .spawn_node(crate::scene::NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let archive =
         RuntimeSessionArchive::from_slots(vec![tagged_slot(&empty, "autosave", "autosave", 20)])
             .expect("existing archive should validate");
@@ -104,8 +108,12 @@ fn runtime_session_archive_previews_world_capture_without_mutating_archive() {
 fn runtime_session_archive_world_capture_commit_matches_preview_generated_slot() {
     let empty = World::empty();
     let mut source = World::empty();
-    source.spawn_node(NodeKind::Mesh);
-    source.spawn_node(NodeKind::Camera);
+    source
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    source
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     let archive =
         RuntimeSessionArchive::from_slots(vec![tagged_slot(&empty, "manual", "manual", 20)])
             .expect("existing archive should validate");
@@ -151,8 +159,12 @@ fn runtime_session_archive_level_capture_preview_preserves_from_level_semantics(
     let manager = crate::scene::DefaultLevelManager::default();
     let level = manager.create_level(World::empty(), LevelMetadata::default());
     level.with_world_mut(|world| {
-        world.spawn_node(NodeKind::Camera);
-        world.spawn_node(NodeKind::Mesh);
+        world
+            .spawn_node(NodeKind::Camera)
+            .expect("test scene spawn should succeed");
+        world
+            .spawn_node(NodeKind::Mesh)
+            .expect("test scene spawn should succeed");
     });
     level.set_metadata(LevelMetadata {
         project_root: Some("project".to_string()),
@@ -181,8 +193,12 @@ fn runtime_session_archive_level_capture_preview_preserves_from_level_semantics(
 fn runtime_session_archive_capture_retention_reuses_shared_preview_report_projection() {
     let empty = World::empty();
     let mut captured_world = World::empty();
-    captured_world.spawn_node(NodeKind::Mesh);
-    captured_world.spawn_node(NodeKind::PointLight);
+    captured_world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    captured_world
+        .spawn_node(NodeKind::PointLight)
+        .expect("test scene spawn should succeed");
     let archive = RuntimeSessionArchive::from_slots(vec![
         tagged_slot(&empty, "manual-new", "manual", 50),
         tagged_slot(&empty, "manual-mid", "manual", 20),
@@ -251,7 +267,9 @@ fn runtime_session_archive_capture_level_slot_to_existing_path_upserts_and_prese
     let manager = crate::scene::DefaultLevelManager::default();
     let level = manager.create_level(World::empty(), LevelMetadata::default());
     level.with_world_mut(|world| {
-        world.spawn_node(crate::scene::NodeKind::Camera);
+        world
+            .spawn_node(crate::scene::NodeKind::Camera)
+            .expect("test scene spawn should succeed");
     });
     level.set_metadata(crate::scene::LevelMetadata {
         project_root: Some("project".to_string()),
@@ -302,7 +320,9 @@ fn runtime_session_archive_previews_capture_to_path_without_writing_archive() {
     let manager = crate::scene::DefaultLevelManager::default();
     let level = manager.create_level(World::empty(), LevelMetadata::default());
     level.with_world_mut(|world| {
-        world.spawn_node(crate::scene::NodeKind::Camera);
+        world
+            .spawn_node(crate::scene::NodeKind::Camera)
+            .expect("test scene spawn should succeed");
     });
     level.set_metadata(crate::scene::LevelMetadata {
         project_root: Some("project".to_string()),
@@ -339,7 +359,9 @@ fn runtime_session_archive_previews_capture_to_path_without_writing_archive() {
     );
 
     let mut missing_source = World::empty();
-    missing_source.spawn_node(crate::scene::NodeKind::PointLight);
+    missing_source
+        .spawn_node(crate::scene::NodeKind::PointLight)
+        .expect("test scene spawn should succeed");
     let missing_path = root.join("new").join("archive.zrsession.json");
     let missing_report = RuntimeSessionArchive::preview_capture_world_slot_to_path(
         &missing_path,
@@ -389,9 +411,13 @@ fn runtime_session_archive_capture_to_path_rejects_invalid_existing_archive_with
 fn runtime_session_archive_selected_capture_targets_resolved_slot_and_preserves_metadata() {
     let empty = World::empty();
     let mut replacement = World::empty();
-    replacement.spawn_node(NodeKind::Mesh);
+    replacement
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let mut preserved_replacement = World::empty();
-    preserved_replacement.spawn_node(NodeKind::Camera);
+    preserved_replacement
+        .spawn_node(NodeKind::Camera)
+        .expect("test scene spawn should succeed");
     let mut archive = RuntimeSessionArchive::from_slots(vec![
         metadata_slot(&empty, "manual-old", "Old Manual", "manual", 10),
         metadata_slot(&empty, "manual-new", "Latest Manual", "manual", 50),
@@ -474,7 +500,9 @@ fn runtime_session_archive_selected_capture_targets_resolved_slot_and_preserves_
 fn runtime_session_archive_selected_capture_to_path_previews_and_prunes_atomically() {
     let source = World::empty();
     let mut captured_world = World::empty();
-    captured_world.spawn_node(NodeKind::Mesh);
+    captured_world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
     let archive = RuntimeSessionArchive::from_slots(vec![
         tagged_slot(&source, "manual-new", "manual", 50),
         tagged_slot(&source, "manual-mid", "manual", 20),

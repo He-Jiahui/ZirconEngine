@@ -1,24 +1,5 @@
 use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
-const SAVE_DATA_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchExtensionSaveDataSlotsTab",
-    "WorkbenchExtensionSaveDataMigrationTab",
-    "WorkbenchExtensionSaveDataValidationTab",
-];
-const SAVE_DATA_TAB_ACTIONS: &[ActionControl] = &[
-    action(
-        "workbench.extension.save_data.slots_tab.select",
-        "WorkbenchExtensionSaveDataSlotsTab",
-    ),
-    action(
-        "workbench.extension.save_data.migration_tab.select",
-        "WorkbenchExtensionSaveDataMigrationTab",
-    ),
-    action(
-        "workbench.extension.save_data.validation_tab.select",
-        "WorkbenchExtensionSaveDataValidationTab",
-    ),
-];
 const SAVE_DATA_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionSaveDataAutoSaveRow",
     "WorkbenchExtensionSaveDataManualRow",
@@ -27,7 +8,6 @@ const SAVE_DATA_ROW_CONTROLS: &[&str] = &[
     "WorkbenchExtensionSaveDataInventoryRow",
     "WorkbenchExtensionSaveDataQuestLogRow",
     "WorkbenchExtensionSaveDataDebugSlotRow",
-    "WorkbenchExtensionSaveDataOutputRow",
 ];
 const SAVE_DATA_ROW_ACTIONS: &[ActionControl] = &[
     action(
@@ -58,20 +38,16 @@ const SAVE_DATA_ROW_ACTIONS: &[ActionControl] = &[
         "workbench.extension.save_data.debug_slot_row.select",
         "WorkbenchExtensionSaveDataDebugSlotRow",
     ),
-    action(
-        "workbench.extension.save_data.output.select",
-        "WorkbenchExtensionSaveDataOutputRow",
-    ),
 ];
 const SAVE_DATA_COMMAND_CONTROLS: &[&str] = &[
-    "WorkbenchAssetsSaveDataButton",
+    "WorkbenchAssetsProductionToolsMenu",
     "WorkbenchExtensionSaveDataSaveSlotButton",
     "WorkbenchExtensionSaveDataLoadSlotButton",
 ];
 const SAVE_DATA_COMMAND_ACTIONS: &[ActionControl] = &[
     action(
         "workbench.extension.save_data.open",
-        "WorkbenchAssetsSaveDataButton",
+        "WorkbenchAssetsProductionToolsMenu",
     ),
     action(
         "workbench.extension.save_data.save_slot.invoke",
@@ -94,8 +70,6 @@ const SAVE_DATA_FIELD_ACTIONS: &[&str] = &[
 pub(super) const SAVE_DATA_NAVIGATION_SPEC: ExtensionNavigationSpec = spec(
     "workbench.extension.save_data.open",
     "WorkbenchExtensionSaveDataWorkspace",
-    SAVE_DATA_TAB_CONTROLS,
-    SAVE_DATA_TAB_ACTIONS,
     SAVE_DATA_ROW_CONTROLS,
     SAVE_DATA_ROW_ACTIONS,
     SAVE_DATA_COMMAND_CONTROLS,

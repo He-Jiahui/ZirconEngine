@@ -160,6 +160,36 @@ fn artifact_store_regenerates_shader_material_artifact_from_cache_schema() {
     assert_binary_artifact_payload(&paths, &artifact_uri);
     assert_eq!(loaded, ImportedAsset::Shader(shader));
 
+    let mut stale_cached_module = shader.clone();
+    stale_cached_module.uri = AssetUri::parse("res://shaders/raw-module.wgsl").unwrap();
+    stale_cached_module.kind = ShaderAssetKind::Module;
+    stale_cached_module.shading_model = None;
+    let mut expected_module = stale_cached_module.clone();
+    expected_module.regenerate_material_artifact();
+    let module_metadata = ResourceRecord::new(
+        AssetId::new(),
+        AssetKind::Shader,
+        stale_cached_module.uri.clone(),
+    );
+
+    let module_artifact_uri = store
+        .write(
+            &paths,
+            &module_metadata,
+            &ImportedAsset::Shader(stale_cached_module),
+        )
+        .unwrap();
+    let loaded_module = store.read(&paths, &module_artifact_uri).unwrap();
+
+    assert_eq!(
+        loaded_module,
+        ImportedAsset::Shader(expected_module.clone())
+    );
+    assert_eq!(expected_module.kind, ShaderAssetKind::Module);
+    assert_eq!(expected_module.material_property_layout, Default::default());
+    assert_eq!(expected_module.material_option_table, Default::default());
+    assert!(expected_module.generated_material_wgsl.is_empty());
+
     let _ = fs::remove_dir_all(root);
 }
 

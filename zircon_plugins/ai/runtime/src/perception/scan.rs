@@ -7,13 +7,13 @@ use zircon_runtime::core::framework::physics::{
 use zircon_runtime::core::framework::scene::{EntityId, WorldHandle};
 use zircon_runtime::core::math::{Real, Vec3};
 use zircon_runtime::plugin::BridgeImport;
-use zircon_runtime::scene::World;
 use zircon_runtime::scene::ecs::Resource;
+use zircon_runtime::scene::World;
 
 use super::adapter::HearingStimulusAdapter;
 use super::components::{
-    AiPerceptionChannels, AiPerceptionReceiver, AiPerceptionSource, perception_receiver,
-    perception_source,
+    perception_receiver, perception_source, AiPerceptionChannels, AiPerceptionReceiver,
+    AiPerceptionSource,
 };
 use super::stimuli::PerceivedStimuli;
 
@@ -373,8 +373,8 @@ mod sampling_tests {
     use zircon_runtime::scene::{NodeKind, World};
 
     use super::{
-        AiPerceptionReceiver, AiPerceptionSource, ReceiverSample, SourceSample,
-        collect_perception_samples, perception_receiver, perception_source,
+        collect_perception_samples, perception_receiver, perception_source, AiPerceptionReceiver,
+        AiPerceptionSource, ReceiverSample, SourceSample,
     };
 
     const BENCHMARK_NODE_COUNT: usize = 4_096;

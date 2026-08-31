@@ -1,10 +1,8 @@
-use super::super::data::{
-    FrameRect, HostPaneInteractionStateData, HostWindowPresentationData, TemplatePaneNodeData,
-};
+use super::super::data::{FrameRect, HostPaneInteractionStateData, TemplatePaneNodeData};
 use super::super::frame_geometry::{contains_point, union_frame};
 use super::super::template_geometry::frame_from_template_node;
 use super::super::template_popup_layout::template_option_popup_frame_within;
-use crate::ui::retained_host::primitives::SharedString;
+use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 
 /// Keeps hit containment separate from repaint damage: dropdowns contain both
 /// their trigger and popup rows, while repaint needs the union of both regions.
@@ -26,16 +24,16 @@ impl PopupDismissTarget {
 }
 
 pub(in crate::ui::retained_host::host_contract) fn active_popup_dismiss_target(
-    presentation: &HostWindowPresentationData,
+    nodes: &ModelRc<TemplatePaneNodeData>,
     interaction: &HostPaneInteractionStateData,
     bounds: &FrameRect,
+    popup_rows: &[usize],
 ) -> Option<PopupDismissTarget> {
-    let nodes = &presentation.workbench_window_nodes;
-    for row in (0..nodes.row_count()).rev() {
-        let Some(node) = nodes.row_data(row) else {
+    for row in popup_rows.iter().rev().copied() {
+        let Some(node) = nodes.get(row) else {
             continue;
         };
-        let Some(target) = popup_dismiss_target_for_node(&node, bounds) else {
+        let Some(target) = popup_dismiss_target_for_node(node, bounds) else {
             continue;
         };
         let is_hovered_popup =

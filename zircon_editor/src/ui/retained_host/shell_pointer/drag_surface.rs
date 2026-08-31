@@ -346,6 +346,12 @@ pub(super) fn patch_drag_surface(
     componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
     floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
 ) -> Option<bool> {
+    zircon_runtime::profile_counter!("editor", "ui.shell_drag.geometry_resolve_count", 1);
+    zircon_runtime::profile_counter!(
+        "editor",
+        "ui.shell_drag.floating_frame_candidate_count",
+        floating_windows.len()
+    );
     let (root_frame, next_geometry) = resolve_drag_hit_geometry(
         root_size,
         drawers_visible,
@@ -364,6 +370,13 @@ pub(super) fn patch_drag_surface(
         DOCUMENT_EDGE_TOP_NODE_ID,
         DOCUMENT_EDGE_BOTTOM_NODE_ID,
     ];
+    zircon_runtime::profile_counter!(
+        "editor",
+        "ui.shell_drag.node_candidate_count",
+        base_node_ids
+            .len()
+            .saturating_add(floating_windows.len().saturating_mul(5))
+    );
     let base_nodes_missing = base_node_ids
         .iter()
         .any(|node_id| surface.tree.node(*node_id).is_none());
@@ -379,6 +392,7 @@ pub(super) fn patch_drag_surface(
         .any(|node_id| surface.tree.node(node_id).is_none())
     });
     if base_nodes_missing || floating_nodes_missing {
+        zircon_runtime::profile_counter!("editor", "ui.shell_drag.topology_miss_count", 1);
         return None;
     }
 
@@ -420,6 +434,9 @@ pub(super) fn patch_drag_surface(
         }
     }
     let changed = node_patch_count > 0;
+    if !changed {
+        zircon_runtime::profile_counter!("editor", "ui.shell_drag.geometry_reuse_count", 1);
+    }
     if changed {
         surface.rebuild();
         hit_geometry.store(Arc::new(next_geometry));

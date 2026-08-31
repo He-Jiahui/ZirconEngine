@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::super::{VirtualGeometryRuntimeState, normalized_page_table_entries};
+use super::super::{normalized_page_table_entries, VirtualGeometryRuntimeState};
 
 impl VirtualGeometryRuntimeState {
     pub(crate) fn apply_gpu_page_table_entries(&mut self, page_table_entries: &[(u32, u32)]) {

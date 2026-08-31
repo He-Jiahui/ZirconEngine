@@ -1,7 +1,11 @@
+use std::sync::Arc;
+
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
 
 use crate::core::framework::render::{IrradianceVolumeData, RenderImageDimension};
+use crate::graphics::backend::SystemTextureGenerationLease;
 use crate::graphics::scene::resources::IrradianceVolumeTextureBinding;
 
 pub(crate) const IRRADIANCE_VOLUME_TEXTURE_BINDING: u32 = 35;
@@ -70,45 +74,13 @@ pub(crate) struct IrradianceVolumeResources {
 }
 
 impl IrradianceVolumeResources {
-    pub(crate) fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
-        let fallback_texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-irradiance-volume-fallback"),
-            size: wgpu::Extent3d {
-                width: 1,
-                height: 2,
-                depth_or_array_layers: 3,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D3,
-            format: wgpu::TextureFormat::Rgba8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-        queue.write_texture(
-            fallback_texture.as_image_copy(),
-            &[0; 24],
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(4),
-                rows_per_image: Some(2),
-            },
-            wgpu::Extent3d {
-                width: 1,
-                height: 2,
-                depth_or_array_layers: 3,
-            },
-        );
-        let fallback_view = fallback_texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("zircon-irradiance-volume-sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            ..wgpu::SamplerDescriptor::default()
-        });
+    pub(crate) fn new(
+        device: &wgpu::Device,
+        system_textures: &SystemTextureGenerationLease,
+    ) -> Self {
+        let fallback_texture = system_textures.irradiance_volume_black_texture().clone();
+        let fallback_view = system_textures.irradiance_volume_black_view().clone();
+        let sampler = system_textures.linear_clamp_sampler().clone();
         let params_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("zircon-irradiance-volume-params"),
             contents: bytemuck::bytes_of(&GpuIrradianceVolumeParams::disabled()),
@@ -125,9 +97,9 @@ impl IrradianceVolumeResources {
 
     pub(crate) fn prepare(
         &mut self,
-        queue: &wgpu::Queue,
         selected: Option<(IrradianceVolumeData, IrradianceVolumeTextureBinding)>,
-    ) {
+        frame_batch: &mut WgpuBufferUploadBatch,
+    ) -> Result<(), String> {
         let selected = selected.filter(|(_, texture)| {
             let descriptor = texture.descriptor();
             descriptor.dimension == RenderImageDimension::D3
@@ -140,8 +112,19 @@ impl IrradianceVolumeResources {
             .as_ref()
             .map(|(volume, _)| GpuIrradianceVolumeParams::from_volume(volume))
             .unwrap_or_else(GpuIrradianceVolumeParams::disabled);
-        queue.write_buffer(&self.params_buffer, 0, bytemuck::bytes_of(&params));
+        let payload: Arc<[u8]> = Arc::from(bytemuck::bytes_of(&params));
+        let payload_byte_len = payload.len();
+        let Some(upload) =
+            WgpuBufferUpload::new(self.params_buffer.clone(), 0, payload, 0..payload_byte_len)
+        else {
+            return Err(
+                "irradiance volume params upload does not match its packed payload range"
+                    .to_string(),
+            );
+        };
+        frame_batch.push(upload);
         self.selected_texture = selected.map(|(_, texture)| texture);
+        Ok(())
     }
 
     pub(crate) fn bind_group_entries(&self) -> [wgpu::BindGroupEntry<'_>; 3] {
@@ -244,5 +227,20 @@ mod tests {
 
         assert!((actual - expected).length() <= 1.0e-5);
         assert_eq!(std::mem::size_of::<GpuIrradianceVolumeParams>(), 144);
+    }
+
+    #[test]
+    fn irradiance_volume_params_append_to_the_frame_upload_batch() {
+        let production = include_str!("resources.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("irradiance volume resource test boundary");
+
+        assert!(production.contains("frame_batch.push("));
+        assert!(production.contains("WgpuBufferUpload::new("));
+        assert!(!production.contains("queue.write_buffer"));
+        assert!(!production.contains(".expect("));
+        assert!(!production.contains(".unwrap("));
+        assert!(!production.contains("panic!("));
     }
 }

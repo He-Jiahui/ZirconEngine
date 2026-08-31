@@ -1,14 +1,20 @@
+#[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+use std::cell::Cell;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::hash::Hash;
 use std::mem::size_of;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+#[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+use std::time::{Duration, Instant};
 
+use crate::text::language::TextLanguageFallbackKey;
 use crate::text::{CompositeFontDescriptor, FontFaceId, FontQuery, FontScript, SubFontRange};
 
 use super::composite_resolve::CompositeFontIndex;
 use super::fallback::FallbackResolution;
+use super::line_metrics::FontChainLineMetricEnvelope;
 use super::matching::FontFamilyIdentity;
 
 const FALLBACK_CACHE_HASH_DOMAIN: &[u8] = b"zircon-font-fallback-cache-v1";
@@ -16,6 +22,7 @@ const FAMILY_CACHE_CAPACITY: usize = 256;
 const COMPOSITE_CACHE_CAPACITY: usize = 64;
 const CANDIDATE_CACHE_CAPACITY: usize = 1_024;
 const RESOLUTION_CACHE_CAPACITY: usize = 1_024;
+const LINE_METRIC_ENVELOPE_CACHE_CAPACITY: usize = 64;
 const FALLBACK_CACHE_MAX_BYTES: usize = 2 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -33,6 +40,9 @@ pub(super) struct FallbackCandidateCacheKey([u8; 16]);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(super) struct FallbackResolutionCacheKey([u8; 16]);
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(super) struct LineMetricEnvelopeCacheKey([u8; 16]);
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct FallbackCacheReport {
     pub(crate) normalization_allocation_count: u64,
@@ -45,16 +55,36 @@ pub(crate) struct FallbackCacheReport {
     pub(crate) composite_hits: u64,
     pub(crate) composite_misses: u64,
     pub(crate) composite_compile_count: u64,
+    pub(crate) line_metric_envelope_hits: u64,
+    pub(crate) line_metric_envelope_misses: u64,
     pub(crate) family_sort_count: u64,
     pub(crate) family_visit_count: u64,
     pub(crate) face_visit_count: u64,
     pub(crate) coverage_probe_count: u64,
+    pub(crate) state_lock_acquire_count: u64,
+    pub(crate) state_lock_wait_nanos: u64,
+    pub(crate) state_lock_hold_nanos: u64,
     pub(crate) eviction_count: u64,
     pub(crate) family_entry_count: usize,
     pub(crate) candidate_entry_count: usize,
     pub(crate) resolution_entry_count: usize,
     pub(crate) composite_entry_count: usize,
+    pub(crate) line_metric_envelope_entry_count: usize,
     pub(crate) approximate_bytes: usize,
+}
+
+#[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct FallbackCacheRequestProfile {
+    pub(crate) state_lock_acquire_count: u64,
+    pub(crate) state_lock_wait_nanos: u64,
+    pub(crate) state_lock_hold_nanos: u64,
+}
+
+#[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+thread_local! {
+    static FALLBACK_CACHE_REQUEST_PROFILE: Cell<Option<FallbackCacheRequestProfile>> =
+        const { Cell::new(None) };
 }
 
 #[derive(Clone)]
@@ -168,6 +198,8 @@ struct FallbackCacheState {
     composites: BoundedCache<CompositeFontIdentity, Arc<CompositeFontIndex>>,
     candidates: BoundedCache<FallbackCandidateCacheKey, Arc<[FontFaceId]>>,
     resolutions: BoundedCache<FallbackResolutionCacheKey, FallbackResolution>,
+    line_metric_envelopes:
+        BoundedCache<LineMetricEnvelopeCacheKey, Option<FontChainLineMetricEnvelope>>,
 }
 
 impl Default for FallbackCacheState {
@@ -176,7 +208,14 @@ impl Default for FallbackCacheState {
             families: BoundedCache::new(FAMILY_CACHE_CAPACITY, FALLBACK_CACHE_MAX_BYTES / 8),
             composites: BoundedCache::new(COMPOSITE_CACHE_CAPACITY, FALLBACK_CACHE_MAX_BYTES / 8),
             candidates: BoundedCache::new(CANDIDATE_CACHE_CAPACITY, FALLBACK_CACHE_MAX_BYTES / 2),
-            resolutions: BoundedCache::new(RESOLUTION_CACHE_CAPACITY, FALLBACK_CACHE_MAX_BYTES / 4),
+            resolutions: BoundedCache::new(
+                RESOLUTION_CACHE_CAPACITY,
+                FALLBACK_CACHE_MAX_BYTES * 15 / 64,
+            ),
+            line_metric_envelopes: BoundedCache::new(
+                LINE_METRIC_ENVELOPE_CACHE_CAPACITY,
+                FALLBACK_CACHE_MAX_BYTES / 64,
+            ),
         }
     }
 }
@@ -193,10 +232,15 @@ struct FallbackCacheStats {
     composite_hits: AtomicU64,
     composite_misses: AtomicU64,
     composite_compile_count: AtomicU64,
+    line_metric_envelope_hits: AtomicU64,
+    line_metric_envelope_misses: AtomicU64,
     family_sort_count: AtomicU64,
     family_visit_count: AtomicU64,
     face_visit_count: AtomicU64,
     coverage_probe_count: AtomicU64,
+    state_lock_acquire_count: AtomicU64,
+    state_lock_wait_nanos: AtomicU64,
+    state_lock_hold_nanos: AtomicU64,
 }
 
 #[derive(Clone, Default)]
@@ -215,39 +259,45 @@ impl fmt::Debug for FallbackCaches {
 }
 
 impl FallbackCaches {
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    pub(super) fn begin_profile_request(&self) {
+        FALLBACK_CACHE_REQUEST_PROFILE.with(|profile| {
+            profile.set(Some(FallbackCacheRequestProfile::default()));
+        });
+    }
+
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    pub(super) fn take_profile_request(&self) -> Option<FallbackCacheRequestProfile> {
+        FALLBACK_CACHE_REQUEST_PROFILE.with(|profile| profile.replace(None))
+    }
+
     pub(super) fn composite_index(
         &self,
         descriptor: &CompositeFontDescriptor,
     ) -> (CompositeFontIdentity, Arc<CompositeFontIndex>) {
         let identity = composite_font_identity(descriptor);
-        let mut state = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(index) = state.composites.get(identity) {
-            self.stats.composite_hits.fetch_add(1, Ordering::Relaxed);
-            return (identity, index);
-        }
-        self.stats.composite_misses.fetch_add(1, Ordering::Relaxed);
-        let index = Arc::new(CompositeFontIndex::compile(descriptor));
-        let bytes = size_of::<CompositeFontIdentity>().saturating_add(index.approximate_bytes());
-        state.composites.insert(identity, Arc::clone(&index), bytes);
-        self.stats
-            .composite_compile_count
-            .fetch_add(1, Ordering::Relaxed);
-        (identity, index)
+        self.with_state(|state| {
+            if let Some(index) = state.composites.get(identity) {
+                self.stats.composite_hits.fetch_add(1, Ordering::Relaxed);
+                return (identity, index);
+            }
+            self.stats.composite_misses.fetch_add(1, Ordering::Relaxed);
+            let index = Arc::new(CompositeFontIndex::compile(descriptor));
+            let bytes =
+                size_of::<CompositeFontIdentity>().saturating_add(index.approximate_bytes());
+            state.composites.insert(identity, Arc::clone(&index), bytes);
+            self.stats
+                .composite_compile_count
+                .fetch_add(1, Ordering::Relaxed);
+            (identity, index)
+        })
     }
 
     pub(super) fn family_candidates(
         &self,
         key: FamilyCandidateCacheKey,
     ) -> Option<Arc<[FontFaceId]>> {
-        let value = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .families
-            .get(key);
+        let value = self.with_state(|state| state.families.get(key));
         self.record_hit(
             value.is_some(),
             &self.stats.family_hits,
@@ -263,21 +313,12 @@ impl FallbackCaches {
     ) {
         let bytes = size_of::<FamilyCandidateCacheKey>()
             .saturating_add(candidates.len().saturating_mul(size_of::<FontFaceId>()));
-        self.state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .families
-            .insert(key, candidates, bytes);
+        self.with_state(|state| state.families.insert(key, candidates, bytes));
         self.stats.family_sort_count.fetch_add(1, Ordering::Relaxed);
     }
 
     pub(super) fn candidates(&self, key: FallbackCandidateCacheKey) -> Option<Arc<[FontFaceId]>> {
-        let value = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .candidates
-            .get(key);
+        let value = self.with_state(|state| state.candidates.get(key));
         self.record_hit(
             value.is_some(),
             &self.stats.candidate_hits,
@@ -293,20 +334,11 @@ impl FallbackCaches {
     ) {
         let bytes = size_of::<FallbackCandidateCacheKey>()
             .saturating_add(candidates.len().saturating_mul(size_of::<FontFaceId>()));
-        self.state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .candidates
-            .insert(key, candidates, bytes);
+        self.with_state(|state| state.candidates.insert(key, candidates, bytes));
     }
 
     pub(super) fn resolution(&self, key: FallbackResolutionCacheKey) -> Option<FallbackResolution> {
-        let value = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .resolutions
-            .get(key);
+        let value = self.with_state(|state| state.resolutions.get(key));
         self.record_hit(
             value.is_some(),
             &self.stats.resolution_hits,
@@ -320,15 +352,41 @@ impl FallbackCaches {
         key: FallbackResolutionCacheKey,
         resolution: FallbackResolution,
     ) {
-        self.state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .resolutions
-            .insert(
+        self.with_state(|state| {
+            state.resolutions.insert(
                 key,
                 resolution,
                 size_of::<FallbackResolutionCacheKey>() + size_of::<FallbackResolution>(),
-            );
+            )
+        });
+    }
+
+    pub(super) fn line_metric_envelope(
+        &self,
+        key: LineMetricEnvelopeCacheKey,
+    ) -> Option<Option<FontChainLineMetricEnvelope>> {
+        let value = self.with_state(|state| state.line_metric_envelopes.get(key));
+        self.record_hit(
+            value.is_some(),
+            &self.stats.line_metric_envelope_hits,
+            &self.stats.line_metric_envelope_misses,
+        );
+        value
+    }
+
+    pub(super) fn insert_line_metric_envelope(
+        &self,
+        key: LineMetricEnvelopeCacheKey,
+        envelope: Option<FontChainLineMetricEnvelope>,
+    ) {
+        self.with_state(|state| {
+            state.line_metric_envelopes.insert(
+                key,
+                envelope,
+                size_of::<LineMetricEnvelopeCacheKey>()
+                    .saturating_add(size_of::<Option<FontChainLineMetricEnvelope>>()),
+            )
+        });
     }
 
     pub(super) fn record_family_visits(&self, count: usize) {
@@ -368,26 +426,37 @@ impl FallbackCaches {
             composite_hits: self.stats.composite_hits.load(Ordering::Relaxed),
             composite_misses: self.stats.composite_misses.load(Ordering::Relaxed),
             composite_compile_count: self.stats.composite_compile_count.load(Ordering::Relaxed),
+            line_metric_envelope_hits: self.stats.line_metric_envelope_hits.load(Ordering::Relaxed),
+            line_metric_envelope_misses: self
+                .stats
+                .line_metric_envelope_misses
+                .load(Ordering::Relaxed),
             family_sort_count: self.stats.family_sort_count.load(Ordering::Relaxed),
             family_visit_count: self.stats.family_visit_count.load(Ordering::Relaxed),
             face_visit_count: self.stats.face_visit_count.load(Ordering::Relaxed),
             coverage_probe_count: self.stats.coverage_probe_count.load(Ordering::Relaxed),
+            state_lock_acquire_count: self.stats.state_lock_acquire_count.load(Ordering::Relaxed),
+            state_lock_wait_nanos: self.stats.state_lock_wait_nanos.load(Ordering::Relaxed),
+            state_lock_hold_nanos: self.stats.state_lock_hold_nanos.load(Ordering::Relaxed),
             eviction_count: state
                 .families
                 .eviction_count
                 .saturating_add(state.composites.eviction_count)
                 .saturating_add(state.candidates.eviction_count)
-                .saturating_add(state.resolutions.eviction_count),
+                .saturating_add(state.resolutions.eviction_count)
+                .saturating_add(state.line_metric_envelopes.eviction_count),
             family_entry_count: state.families.entries.len(),
             candidate_entry_count: state.candidates.entries.len(),
             resolution_entry_count: state.resolutions.entries.len(),
             composite_entry_count: state.composites.entries.len(),
+            line_metric_envelope_entry_count: state.line_metric_envelopes.entries.len(),
             approximate_bytes: state
                 .families
                 .approximate_bytes
                 .saturating_add(state.composites.approximate_bytes)
                 .saturating_add(state.candidates.approximate_bytes)
-                .saturating_add(state.resolutions.approximate_bytes),
+                .saturating_add(state.resolutions.approximate_bytes)
+                .saturating_add(state.line_metric_envelopes.approximate_bytes),
         }
     }
 
@@ -398,6 +467,60 @@ impl FallbackCaches {
             misses.fetch_add(1, Ordering::Relaxed);
         }
     }
+
+    fn with_state<R>(&self, access: impl FnOnce(&mut FallbackCacheState) -> R) -> R {
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        {
+            let wait_started = Instant::now();
+            let mut state = self
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let wait_nanos = duration_to_nanos(wait_started.elapsed());
+            let hold_started = Instant::now();
+            let value = access(&mut state);
+            let hold_nanos = duration_to_nanos(hold_started.elapsed());
+            drop(state);
+            self.stats
+                .state_lock_acquire_count
+                .fetch_add(1, Ordering::Relaxed);
+            self.stats
+                .state_lock_wait_nanos
+                .fetch_add(wait_nanos, Ordering::Relaxed);
+            self.stats
+                .state_lock_hold_nanos
+                .fetch_add(hold_nanos, Ordering::Relaxed);
+            record_profile_request_lock(wait_nanos, hold_nanos);
+            return value;
+        }
+
+        #[cfg(not(any(test, feature = "profiling", feature = "profiling-tracy")))]
+        {
+            let mut state = self
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            access(&mut state)
+        }
+    }
+}
+
+#[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+fn duration_to_nanos(duration: Duration) -> u64 {
+    u64::try_from(duration.as_nanos()).unwrap_or(u64::MAX)
+}
+
+#[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+fn record_profile_request_lock(wait_nanos: u64, hold_nanos: u64) {
+    FALLBACK_CACHE_REQUEST_PROFILE.with(|profile| {
+        let Some(mut current) = profile.get() else {
+            return;
+        };
+        current.state_lock_acquire_count = current.state_lock_acquire_count.saturating_add(1);
+        current.state_lock_wait_nanos = current.state_lock_wait_nanos.saturating_add(wait_nanos);
+        current.state_lock_hold_nanos = current.state_lock_hold_nanos.saturating_add(hold_nanos);
+        profile.set(Some(current));
+    });
 }
 
 pub(super) fn family_candidate_cache_key(
@@ -425,7 +548,25 @@ pub(super) fn fallback_candidate_cache_key(
 pub(super) fn fallback_query_identity(
     query: &FontQuery,
     composite: Option<CompositeFontIdentity>,
-    language: Option<&str>,
+    language: Option<TextLanguageFallbackKey>,
+) -> FallbackQueryIdentity {
+    fallback_query_identity_with_asset(query, composite, language, None)
+}
+
+pub(super) fn fallback_query_identity_for_asset(
+    query: &FontQuery,
+    composite: Option<CompositeFontIdentity>,
+    language: Option<TextLanguageFallbackKey>,
+    font_asset_owner: &str,
+) -> FallbackQueryIdentity {
+    fallback_query_identity_with_asset(query, composite, language, Some(font_asset_owner))
+}
+
+fn fallback_query_identity_with_asset(
+    query: &FontQuery,
+    composite: Option<CompositeFontIdentity>,
+    language: Option<TextLanguageFallbackKey>,
+    font_asset_owner: Option<&str>,
 ) -> FallbackQueryIdentity {
     let mut hasher = cache_hasher(b"query");
     update_query(&mut hasher, query);
@@ -438,8 +579,27 @@ pub(super) fn fallback_query_identity(
             hasher.update(&[0]);
         }
     };
-    update_normalized_text(&mut hasher, language.unwrap_or_default());
+    match font_asset_owner {
+        Some(owner) => {
+            hasher.update(&[1]);
+            update_exact_text(&mut hasher, owner);
+        }
+        None => {
+            hasher.update(&[0]);
+        }
+    };
+    update_language_fallback_key(&mut hasher, language);
     FallbackQueryIdentity(finish_key(hasher))
+}
+
+pub(super) fn line_metric_envelope_cache_key(
+    query: FallbackQueryIdentity,
+    font_size: f32,
+) -> LineMetricEnvelopeCacheKey {
+    let mut hasher = cache_hasher(b"line-metric-envelope");
+    hasher.update(&query.0);
+    hasher.update(&font_size.to_bits().to_le_bytes());
+    LineMetricEnvelopeCacheKey(finish_key(hasher))
 }
 
 fn composite_font_identity(composite: &CompositeFontDescriptor) -> CompositeFontIdentity {
@@ -527,7 +687,8 @@ fn update_script(hasher: &mut blake3::Hasher, script: FontScript) {
         FontScript::Arabic => (7, 0),
         FontScript::Hebrew => (8, 0),
         FontScript::Devanagari => (9, 0),
-        FontScript::Other(detail) => (10, detail),
+        FontScript::Unknown => (10, 0),
+        FontScript::Other(detail) => (11, detail.packed()),
     };
     hasher.update(&[kind]);
     hasher.update(&detail.to_le_bytes());
@@ -546,6 +707,41 @@ fn update_normalized_text(hasher: &mut blake3::Hasher, value: &str) {
     for byte in value.bytes() {
         hasher.update(&[byte.to_ascii_lowercase()]);
     }
+}
+
+fn update_language_fallback_key(
+    hasher: &mut blake3::Hasher,
+    language: Option<TextLanguageFallbackKey>,
+) {
+    let Some(language) = language else {
+        hasher.update(&[0]);
+        return;
+    };
+    hasher.update(&[1]);
+    update_exact_text(hasher, language.language().as_str());
+    match language.script() {
+        Some(script) => {
+            hasher.update(&[1]);
+            update_exact_text(hasher, script.as_str());
+        }
+        None => {
+            hasher.update(&[0]);
+        }
+    }
+    match language.region() {
+        Some(region) => {
+            hasher.update(&[1]);
+            update_exact_text(hasher, region.as_str());
+        }
+        None => {
+            hasher.update(&[0]);
+        }
+    }
+}
+
+fn update_exact_text(hasher: &mut blake3::Hasher, value: &str) {
+    hasher.update(&(value.len() as u64).to_le_bytes());
+    hasher.update(value.as_bytes());
 }
 
 #[cfg(test)]

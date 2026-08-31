@@ -1,7 +1,8 @@
 use crate::asset::{ShaderAsset, ShaderMaterialPropertyAsset};
 use crate::core::framework::render::{
     MaterialPropertyKind, RenderMaterialAlphaMode, RenderMaterialDiagnosticSource,
-    RenderMaterialValidationError, RenderQueueValue,
+    RenderMaterialValidationError, RenderQueueValue, StandardMaterialDescriptor,
+    STANDARD_MATERIAL_TEXTURE_UV_CHANNEL_COUNT,
 };
 
 use super::{is_standard_texture_slot_alias, AlphaMode, MaterialAsset, ZMaterialQueueOverride};
@@ -47,11 +48,37 @@ pub fn validate_render_queue_alpha_mode(
     }
 }
 
+pub fn validate_standard_material_texture_uv_channels(
+    descriptor: &StandardMaterialDescriptor,
+) -> Vec<RenderMaterialValidationError> {
+    descriptor
+        .unsupported_texture_uv_channels()
+        .into_iter()
+        .map(
+            |(slot, channel)| RenderMaterialValidationError::UnsupportedTextureUvChannel {
+                slot: slot.to_string(),
+                channel,
+                supported_channel_count: STANDARD_MATERIAL_TEXTURE_UV_CHANNEL_COUNT,
+            },
+        )
+        .collect()
+}
+
 pub fn validate_shader_contract(
     material: &MaterialAsset,
     shader: &ShaderAsset,
 ) -> Vec<RenderMaterialValidationError> {
     let mut errors = Vec::new();
+    if !shader.kind.participates_in_material_variants() {
+        errors.push(RenderMaterialValidationError::ShaderReadinessDiagnostic {
+            source: RenderMaterialDiagnosticSource::ShaderReadiness,
+            path: "shader.kind".to_string(),
+            diagnostic: format!(
+                "material requires a surface shader, found {}",
+                shader.kind.token()
+            ),
+        });
+    }
     for (name, value) in material.shader_property_overrides() {
         match shader
             .material_property_layout

@@ -4,12 +4,12 @@ use std::path::{Path, PathBuf};
 
 use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
 
+use super::NativePluginCandidate;
 use super::discovery_refresh::{
     NativePluginDiscoveryRefreshError, NativePluginDiscoveryRefreshRequest,
     NativePluginDiscoveryRefreshSink,
 };
 use super::dynamic_library_name::dynamic_library_file_name;
-use super::NativePluginCandidate;
 
 pub(super) type NativePluginManifestCandidateResult<T> =
     std::result::Result<T, NativePluginManifestCandidateError>;
@@ -245,7 +245,7 @@ pub(super) fn native_library_paths_for_candidate(
     let Some(package_root) = candidate.manifest_path.parent() else {
         return Vec::new();
     };
-    let mut paths = Vec::<(PathBuf, Vec<PluginModuleKind>)>::new();
+    let mut paths = Vec::<(PathBuf, Vec<PluginModuleKind>)>::with_capacity(module_kinds.len());
     for module_kind in module_kinds {
         let Some(crate_name) = native_library_crate_name(
             &candidate.package_manifest,
@@ -340,7 +340,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn native_library_path_prefers_distribution_dist_crate_for_runtime_modules() {
+    fn native_library_path_projection_preallocates_module_kind_bound() {
         let package_manifest = PluginPackageManifest::new("solari", "Solari")
             .with_runtime_module(PluginModuleManifest::runtime(
                 "solari.runtime",
@@ -362,10 +362,12 @@ mod tests {
             library_path: PathBuf::new(),
         };
 
-        let paths = native_library_paths_for_candidate(&candidate, &[PluginModuleKind::Runtime]);
+        let module_kinds = [PluginModuleKind::Runtime, PluginModuleKind::Editor];
+        let paths = native_library_paths_for_candidate(&candidate, &module_kinds);
 
         assert_eq!(paths.len(), 1);
-        assert_eq!(paths[0].1, vec![PluginModuleKind::Runtime]);
+        assert_eq!(paths.capacity(), module_kinds.len());
+        assert_eq!(paths[0].1, module_kinds);
         assert_eq!(
             paths[0].0,
             PathBuf::from("plugins/solari/native")
@@ -402,15 +404,10 @@ mod tests {
     fn production_bounded_read_stability_check_rejects_short_or_changed_handle_reads() {
         let manifest_path = PathBuf::from("plugins/weather/plugin.toml");
 
-        assert!(ensure_bounded_read_is_stable(
-            "native plugin manifest",
-            &manifest_path,
-            12,
-            12,
-            12,
-            12
-        )
-        .is_ok());
+        assert!(
+            ensure_bounded_read_is_stable("native plugin manifest", &manifest_path, 12, 12, 12, 12)
+                .is_ok()
+        );
         for (filled, current_bytes) in [(11, 12), (12, 13), (11, 13)] {
             let error = ensure_bounded_read_is_stable(
                 "native plugin manifest",
@@ -421,9 +418,11 @@ mod tests {
                 current_bytes,
             )
             .expect_err("changed handle length must be rejected");
-            assert!(error
-                .to_string()
-                .contains("native plugin manifest changed while it was read"));
+            assert!(
+                error
+                    .to_string()
+                    .contains("native plugin manifest changed while it was read")
+            );
         }
     }
 

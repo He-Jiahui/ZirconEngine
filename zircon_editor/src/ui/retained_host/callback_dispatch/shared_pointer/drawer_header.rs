@@ -1,5 +1,3 @@
-use zircon_runtime_interface::ui::layout::UiPoint;
-
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     drawer_header_pointer::{
@@ -9,7 +7,7 @@ use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects,
 };
 
-use super::super::{dispatch_builtin_host_drawer_toggle, BuiltinHostWindowTemplateBridge};
+use super::super::dispatch_builtin_host_drawer_toggle;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedDrawerHeaderPointerClickDispatch {
@@ -19,20 +17,22 @@ pub(crate) struct SharedDrawerHeaderPointerClickDispatch {
 
 pub(crate) fn dispatch_shared_drawer_header_pointer_click(
     runtime: &EditorHostEventController,
-    template_bridge: &BuiltinHostWindowTemplateBridge,
-    pointer_bridge: &mut HostDrawerHeaderPointerBridge,
+    pointer_bridge: &HostDrawerHeaderPointerBridge,
     surface_key: &str,
     item_index: usize,
-    tab_x: f32,
-    tab_width: f32,
-    point: UiPoint,
 ) -> Result<SharedDrawerHeaderPointerClickDispatch, String> {
-    let pointer = pointer_bridge.handle_click(surface_key, item_index, tab_x, tab_width, point)?;
-    let effects = match pointer.route.as_ref() {
-        Some(HostDrawerHeaderPointerRoute::Tab {
-            slot, instance_id, ..
-        }) => dispatch_builtin_host_drawer_toggle(runtime, template_bridge, slot, instance_id)
-            .transpose()?,
+    let pointer = pointer_bridge.handle_click(surface_key, item_index)?;
+    let effects = match pointer.route {
+        Some(route @ HostDrawerHeaderPointerRoute::Tab { .. }) => {
+            let (slot, instance_id) = pointer_bridge
+                .target_for_route(route)
+                .ok_or_else(|| "Drawer header receipt target is stale".to_string())?;
+            Some(dispatch_builtin_host_drawer_toggle(
+                runtime,
+                slot,
+                instance_id,
+            )?)
+        }
         _ => None,
     };
     Ok(SharedDrawerHeaderPointerClickDispatch { pointer, effects })

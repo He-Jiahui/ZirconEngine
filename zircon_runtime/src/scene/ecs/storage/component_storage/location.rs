@@ -1,17 +1,31 @@
 use std::any::TypeId;
+use std::fmt;
 
 use crate::scene::ecs::{ArchetypeId, ComponentId, InternalEntity, StorageType};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct ComponentStorageLocation {
-    pub component_id: ComponentId,
-    pub storage_type: StorageType,
-    pub entity: InternalEntity,
-    pub table_row: Option<usize>,
-    pub table_archetype: Option<ArchetypeId>,
-    pub table_column_slot: Option<usize>,
+    pub(crate) component_id: ComponentId,
+    pub(crate) storage_type: StorageType,
+    pub(crate) entity: InternalEntity,
+    pub(crate) table_row: Option<usize>,
+    pub(crate) table_archetype: Option<ArchetypeId>,
+    pub(crate) table_column_slot: Option<usize>,
     /// Set by a compiled query binding so typed fetches never re-probe the registry.
-    pub rust_type_id: Option<TypeId>,
+    pub(crate) rust_type_id: Option<TypeId>,
+}
+
+impl fmt::Debug for ComponentStorageLocation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ComponentStorageLocation")
+            .field("component_id", &self.component_id)
+            .field("storage_type", &self.storage_type)
+            .field("table_row", &self.table_row)
+            .field("table_archetype", &self.table_archetype)
+            .field("table_column_slot", &self.table_column_slot)
+            .finish()
+    }
 }
 
 impl ComponentStorageLocation {

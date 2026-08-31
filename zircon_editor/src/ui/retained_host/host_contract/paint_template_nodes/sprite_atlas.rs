@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
@@ -14,7 +14,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use discov
 
 const MAX_ATLAS_RESOLUTION_CACHE_ENTRIES: usize = 128;
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct AtlasResolutionCacheKey {
     source_key: String,
     source_path: PathBuf,
@@ -73,7 +73,7 @@ fn resolve_atlas(source_key: &str, source_path: &Path) -> Option<AtlasResolution
         source_key: source_key.to_string(),
         source_path: source_path.to_path_buf(),
     };
-    let cache = ATLAS_RESOLUTION_CACHE.get_or_init(|| Mutex::new(BTreeMap::new()));
+    let cache = ATLAS_RESOLUTION_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     if let Some(cached) = cache
         .lock()
         .unwrap_or_else(|poison| poison.into_inner())
@@ -84,13 +84,21 @@ fn resolve_atlas(source_key: &str, source_path: &Path) -> Option<AtlasResolution
     let entry_name = keys::entry_name_for_source_key(source_key)?;
     let resolved = resolve_atlas_uncached(&entry_name, source_path);
     let mut cache = cache.lock().unwrap_or_else(|poison| poison.into_inner());
+    insert_cached_resolution(&mut cache, key, resolved.clone());
+    resolved
+}
+
+fn insert_cached_resolution(
+    cache: &mut HashMap<AtlasResolutionCacheKey, Option<AtlasResolution>>,
+    key: AtlasResolutionCacheKey,
+    resolved: Option<AtlasResolution>,
+) {
     if !cache.contains_key(&key) && cache.len() >= MAX_ATLAS_RESOLUTION_CACHE_ENTRIES {
-        if let Some(evicted_key) = cache.keys().next().cloned() {
+        if let Some(evicted_key) = cache.keys().min().cloned() {
             cache.remove(&evicted_key);
         }
     }
-    cache.insert(key, resolved.clone());
-    resolved
+    cache.insert(key, resolved);
 }
 
 fn resolve_atlas_uncached(entry_name: &str, source_path: &Path) -> Option<AtlasResolution> {
@@ -112,7 +120,7 @@ fn resolve_atlas_uncached(entry_name: &str, source_path: &Path) -> Option<AtlasR
 }
 
 static ATLAS_RESOLUTION_CACHE: OnceLock<
-    Mutex<BTreeMap<AtlasResolutionCacheKey, Option<AtlasResolution>>>,
+    Mutex<HashMap<AtlasResolutionCacheKey, Option<AtlasResolution>>>,
 > = OnceLock::new();
 
 #[cfg(test)]

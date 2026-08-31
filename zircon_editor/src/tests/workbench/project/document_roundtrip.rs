@@ -3,7 +3,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
+use zircon_runtime::asset::{
+    project::{ProjectManager, ProjectPaths},
+    AssetUri,
+};
 use zircon_runtime::core::resource::ResourceState;
 use zircon_runtime::scene::world::SceneProjectError;
 use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata};
@@ -14,7 +17,9 @@ use crate::core::editing::engine::{
     EditorTransactionEngine, HistoryContextId, HistorySaveMarkOutcome,
 };
 use crate::core::editing::selection::SceneSelection;
-use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
+use crate::core::project::{
+    NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest,
+};
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
@@ -76,19 +81,22 @@ fn editor_project_document_roundtrips_world_and_workspace() {
         .expect("renderable project must retain the template Sun")
         .clone();
     let workspace = ProjectEditorWorkspace {
-        layout_version: 1,
-        workbench: WorkbenchLayout {
-            active_main_page: MainPageId::new("main"),
-            main_pages: vec![MainHostPageLayout::WorkbenchPage {
+        workbench: {
+            let mut layout = WorkbenchLayout::default();
+            layout.active_main_page = MainPageId::new("main");
+            layout.main_pages = vec![MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::new("main"),
                 title: "Workbench".to_string(),
                 activity_window: ActivityWindowId::workbench(),
-                document_workspace: DocumentNode::Tabs(TabStackLayout {
-                    tabs: vec![ViewInstanceId::new("scene#1")],
-                    active_tab: Some(ViewInstanceId::new("scene#1")),
-                }),
-            }],
-            drawers: BTreeMap::from([(
+            }];
+            let default_window = layout
+                .default_activity_window_mut()
+                .expect("default workbench window");
+            default_window.content_workspace = DocumentNode::Tabs(TabStackLayout {
+                tabs: vec![ViewInstanceId::new("scene#1")],
+                active_tab: Some(ViewInstanceId::new("scene#1")),
+            });
+            default_window.activity_drawers = BTreeMap::from([(
                 ActivityDrawerSlot::LeftTop,
                 ActivityDrawerLayout {
                     slot: ActivityDrawerSlot::LeftTop,
@@ -101,9 +109,8 @@ fn editor_project_document_roundtrips_world_and_workspace() {
                     extent: 240.0,
                     visible: true,
                 },
-            )]),
-            activity_windows: Default::default(),
-            floating_windows: vec![FloatingWindowLayout {
+            )]);
+            layout.floating_windows = vec![FloatingWindowLayout {
                 window_id: MainPageId::new("float#1"),
                 title: "Scene".to_string(),
                 workspace: DocumentNode::Tabs(TabStackLayout {
@@ -112,9 +119,8 @@ fn editor_project_document_roundtrips_world_and_workspace() {
                 }),
                 focused_view: Some(ViewInstanceId::new("scene#1")),
                 frame: ShellFrame::default(),
-            }],
-            region_overrides: BTreeMap::new(),
-            view_overrides: BTreeMap::new(),
+            }];
+            layout
         },
         open_view_instances: Vec::new(),
         focused_view: Some(ViewInstanceId::new("scene#1")),
@@ -149,7 +155,13 @@ fn editor_project_document_roundtrips_world_and_workspace() {
     let save_token = transactions
         .capture_save_token(HistoryContextId::Global)
         .unwrap();
-    EditorProjectDocument::save_to_project(&project, &level.snapshot(), Some(&workspace)).unwrap();
+    EditorProjectDocument::save_scene_to_project(
+        &project,
+        &project.manifest().default_scene,
+        &level.snapshot(),
+        Some(&workspace),
+    )
+    .unwrap();
     assert_eq!(
         transactions
             .mark_saved_if_unchanged(HistoryContextId::Global, save_token)
@@ -262,6 +274,42 @@ fn editor_project_document_roundtrips_world_and_workspace() {
 }
 
 #[test]
+fn saving_an_explicit_scene_target_never_overwrites_the_manifest_default_scene() {
+    let root = unique_mvp_project_root("explicit-scene-save-target");
+    create_renderable_project(&root);
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+
+    let default_scene_uri = project.manifest().default_scene.clone();
+    let default_scene_path = project.source_path_for_uri(&default_scene_uri).unwrap();
+    let default_before = fs::read(&default_scene_path).unwrap();
+    let selected_scene_uri = AssetUri::parse("res://scenes/level_b.scene.toml").unwrap();
+    ProjectAuthority::default()
+        .create_scene(
+            &mut project,
+            SceneCreateRequest::new(selected_scene_uri.clone()),
+        )
+        .unwrap();
+
+    let selected_world = DefaultLevelManager::default()
+        .create_default_level()
+        .snapshot();
+    EditorProjectDocument::save_scene_to_project(
+        &project,
+        &selected_scene_uri,
+        &selected_world,
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(fs::read(default_scene_path).unwrap(), default_before);
+    assert!(project
+        .source_path_for_uri(&selected_scene_uri)
+        .unwrap()
+        .is_file());
+}
+
+#[test]
 fn editor_project_document_current_scene_save_is_byte_stable() {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -274,16 +322,18 @@ fn editor_project_document_current_scene_save_is_byte_stable() {
     let document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     let scene_path = root.join("assets").join("scenes").join("main.scene.toml");
 
-    EditorProjectDocument::save_to_project(
+    EditorProjectDocument::save_scene_to_project(
         &project,
+        &project.manifest().default_scene,
         &document.world,
         document.editor_workspace.as_ref(),
     )
     .unwrap();
     let first_save = fs::read(&scene_path).unwrap();
 
-    EditorProjectDocument::save_to_project(
+    EditorProjectDocument::save_scene_to_project(
         &project,
+        &project.manifest().default_scene,
         &document.world,
         document.editor_workspace.as_ref(),
     )
@@ -356,8 +406,9 @@ fn editor_project_document_failed_scene_save_preserves_dirty_baseline_and_last_v
     fs::rename(&scene_directory, &displaced_scene_directory).unwrap();
     fs::write(&scene_directory, "not a directory").unwrap();
 
-    let error = EditorProjectDocument::save_to_project(
+    let error = EditorProjectDocument::save_scene_to_project(
         &project,
+        &project.manifest().default_scene,
         &level.snapshot(),
         document.editor_workspace.as_ref(),
     )
@@ -392,16 +443,19 @@ fn editor_project_document_failed_scene_save_restores_the_previous_workspace() {
     project.scan_and_import().unwrap();
     let document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     let previous_workspace = ProjectEditorWorkspace {
-        layout_version: 1,
         workbench: WorkbenchLayout::default(),
         open_view_instances: Vec::new(),
         focused_view: Some(ViewInstanceId::new("scene#before-failed-save")),
         active_drawers: Vec::new(),
     };
-    EditorProjectDocument::save_to_project(&project, &document.world, Some(&previous_workspace))
-        .unwrap();
+    EditorProjectDocument::save_scene_to_project(
+        &project,
+        &project.manifest().default_scene,
+        &document.world,
+        Some(&previous_workspace),
+    )
+    .unwrap();
     let changed_workspace = ProjectEditorWorkspace {
-        layout_version: 1,
         workbench: WorkbenchLayout::default(),
         open_view_instances: Vec::new(),
         focused_view: Some(ViewInstanceId::new("scene#after-failed-save")),
@@ -417,9 +471,13 @@ fn editor_project_document_failed_scene_save_restores_the_previous_workspace() {
     fs::rename(&scene_directory, &displaced_scene_directory).unwrap();
     fs::write(&scene_directory, "not a directory").unwrap();
 
-    let error =
-        EditorProjectDocument::save_to_project(&project, &document.world, Some(&changed_workspace))
-            .unwrap_err();
+    let error = EditorProjectDocument::save_scene_to_project(
+        &project,
+        &project.manifest().default_scene,
+        &document.world,
+        Some(&changed_workspace),
+    )
+    .unwrap_err();
     assert!(matches!(error, SceneProjectError::Io(_)));
 
     fs::remove_file(&scene_directory).unwrap();
@@ -462,7 +520,6 @@ fn editor_project_document_workspace_write_failure_keeps_last_valid_scene() {
         .unwrap());
 
     let workspace = ProjectEditorWorkspace {
-        layout_version: 1,
         workbench: WorkbenchLayout::default(),
         open_view_instances: Vec::new(),
         focused_view: None,
@@ -476,8 +533,13 @@ fn editor_project_document_workspace_write_failure_keeps_last_valid_scene() {
     fs::rename(&workspace_directory, &displaced_workspace_directory).unwrap();
     fs::write(&workspace_directory, "not a directory").unwrap();
 
-    let error = EditorProjectDocument::save_to_project(&project, &changed_world, Some(&workspace))
-        .unwrap_err();
+    let error = EditorProjectDocument::save_scene_to_project(
+        &project,
+        &project.manifest().default_scene,
+        &changed_world,
+        Some(&workspace),
+    )
+    .unwrap_err();
     assert!(matches!(error, SceneProjectError::Io(_)));
 
     fs::remove_file(&workspace_directory).unwrap();
@@ -558,7 +620,6 @@ fn editor_project_document_ignores_unknown_workspace_format_with_diagnostic() {
     let root = unique_mvp_project_root(format!("future-workspace-{unique}"));
     create_renderable_project(&root);
     let workspace = ProjectEditorWorkspace {
-        layout_version: 1,
         workbench: WorkbenchLayout::default(),
         open_view_instances: Vec::new(),
         focused_view: None,
@@ -567,11 +628,17 @@ fn editor_project_document_ignores_unknown_workspace_format_with_diagnostic() {
 
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
-    EditorProjectDocument::save_to_project(&project, &world, Some(&workspace)).unwrap();
+    EditorProjectDocument::save_scene_to_project(
+        &project,
+        &project.manifest().default_scene,
+        &world,
+        Some(&workspace),
+    )
+    .unwrap();
     let workspace_path = root.join(".zircon").join("editor-workspace.json");
     let source = fs::read_to_string(&workspace_path)
         .unwrap()
-        .replace("\"format_version\": 1", "\"format_version\": 999");
+        .replace("\"schema_version\": 1", "\"schema_version\": 999");
     fs::write(&workspace_path, source).unwrap();
 
     let loaded = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
@@ -580,7 +647,7 @@ fn editor_project_document_ignores_unknown_workspace_format_with_diagnostic() {
     assert_eq!(loaded.workspace_restore_diagnostics.len(), 1);
     assert!(loaded.workspace_restore_diagnostics[0]
         .message
-        .contains("unsupported editor workspace format version 999"));
+        .contains("version 999 is newer than supported version 1"));
 
     let _ = fs::remove_dir_all(&root);
 }
@@ -597,7 +664,13 @@ fn editor_project_document_loads_from_the_active_generation_without_reopening_ma
     create_renderable_project(&root);
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
-    EditorProjectDocument::save_to_project(&project, &world, None).unwrap();
+    EditorProjectDocument::save_scene_to_project(
+        &project,
+        &project.manifest().default_scene,
+        &world,
+        None,
+    )
+    .unwrap();
     fs::remove_file(root.join("zircon-project.toml")).unwrap();
 
     let loaded = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();

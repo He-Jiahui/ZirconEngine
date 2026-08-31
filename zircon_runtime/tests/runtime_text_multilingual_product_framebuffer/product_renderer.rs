@@ -5,7 +5,7 @@ use zircon_runtime::core::framework::render::{
     EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
     RenderFrameExtract, RenderFramework, RenderOverlayExtract, RenderQualityProfile,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor,
-    RenderViewportHandle, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderViewportHandle, RenderWorldSnapshotHandle, UiRenderSubmission, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec4};
 use zircon_runtime::graphics::WgpuRenderFramework;
@@ -32,7 +32,8 @@ impl ProductUiFrameRenderer {
     pub(super) fn new(viewport_size: UVec2, asset_manager: Arc<ProjectAssetManager>) -> Self {
         let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
         let framework =
-            WgpuRenderFramework::new(asset_runtime.access()).expect("headless WGPU renderer");
+            WgpuRenderFramework::new(asset_runtime.access(), asset_runtime.worker_pool())
+                .expect("headless WGPU renderer");
         let server = support::TestWgpuRenderFramework::new(asset_runtime, framework);
         let viewport = server
             .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -87,6 +88,7 @@ impl ProductUiFrameRenderer {
         let mut raster_was_settled = false;
         let mut capture_is_stable = false;
         let mut source_cache_miss_count = 0usize;
+        let submission = UiRenderSubmission::single(Arc::new(ui));
         for frame_index in 0..settle_frame_limit {
             let snapshot_id = self.next_snapshot_id;
             self.next_snapshot_id = self.next_snapshot_id.saturating_add(1);
@@ -94,7 +96,7 @@ impl ProductUiFrameRenderer {
                 .submit_frame_extract_with_ui(
                     self.viewport,
                     empty_extract(self.viewport_size, snapshot_id),
-                    Some(ui.clone()),
+                    Some(Arc::clone(&submission)),
                 )
                 .expect("submit multilingual text settle frame");
             let stats = self.server.query_stats().expect("text proof render stats");

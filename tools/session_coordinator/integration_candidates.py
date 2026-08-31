@@ -373,17 +373,16 @@ class IntegrationCandidateService:
                 """,
                 (session_id,),
             ).fetchall()
+        rows_by_key = {str(row["path_key"]): row for row in rows}
         evidence: list[dict[str, str | None]] = []
         for path in normalized:
-            matching = next(
-                (
-                    row
-                    for row in rows
-                    if path.key == str(row["path_key"])
-                    or path.key.startswith(str(row["path_key"]) + "/")
-                ),
-                None,
-            )
+            matching = None
+            path_parts = path.key.split("/")
+            for part_count in range(1, len(path_parts) + 1):
+                ancestor_key = "/".join(path_parts[:part_count])
+                matching = rows_by_key.get(ancestor_key)
+                if matching is not None:
+                    break
             if matching is None:
                 raise CoordinatorError(
                     "integration_candidate_lease_missing",
@@ -414,18 +413,32 @@ class IntegrationCandidateService:
         environment = {**os.environ, "GIT_INDEX_FILE": str(index_path)}
         try:
             self._git("read-tree", current_head, environment=environment)
-            for item in paths:
-                self._git(
-                    "update-index",
-                    "--add",
-                    "--cacheinfo",
-                    f"100644,{item.blob_oid},{item.path}",
-                    environment=environment,
-                )
+            self._update_index_entries(paths, environment=environment)
             return self._git("write-tree", environment=environment)
         finally:
             index_path.unlink(missing_ok=True)
             index_path.with_name(index_path.name + ".lock").unlink(missing_ok=True)
+
+    def _update_index_entries(
+        self,
+        paths: tuple[CandidatePath, ...],
+        *,
+        environment: dict[str, str] | None = None,
+    ) -> None:
+        payload = b"".join(
+            f"100644 blob {item.blob_oid}\t".encode("ascii")
+            + os.fsencode(item.path)
+            + b"\0"
+            for item in paths
+        )
+        subprocess.run(
+            ["git", "update-index", "-z", "--index-info"],
+            cwd=self.repo_root,
+            check=True,
+            capture_output=True,
+            input=payload,
+            env=environment,
+        )
 
     def _is_ancestor(self, base_head: str, current_head: str) -> bool:
         result = subprocess.run(
@@ -484,13 +497,7 @@ class IntegrationCandidateService:
     def _align_shared_index(self, candidate: IntegrationCandidate) -> None:
         """Advance only committed candidate entries in the shared index."""
         self._recover_index_lock(candidate)
-        for item in candidate.paths:
-            self._git(
-                "update-index",
-                "--add",
-                "--cacheinfo",
-                f"100644,{item.blob_oid},{item.path}",
-            )
+        self._update_index_entries(candidate.paths)
 
     def _recover_index_lock(self, candidate: IntegrationCandidate) -> None:
         index_path = Path(self._git("rev-parse", "--git-path", "index"))

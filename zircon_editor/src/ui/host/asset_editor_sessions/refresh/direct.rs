@@ -7,7 +7,7 @@ use crate::ui::host::editor_ui_host::EditorUiHost;
 use crate::ui::host::project_access::normalize_ui_asset_asset_id;
 use crate::ui::workbench::view::ViewInstanceId;
 
-use super::super::{ui_asset_source_hash, UiAssetExternalConflict};
+use super::super::{ui_asset_source_digest, UiAssetExternalConflict};
 use super::normalize::rebuild_ui_asset_session_from_source;
 
 impl EditorUiHost {
@@ -44,7 +44,7 @@ impl EditorUiHost {
                     entry.conflict = Some(UiAssetExternalConflict::new(
                         asset_id,
                         source_path,
-                        entry.disk_source_hash,
+                        entry.disk_source_digest,
                         local_source,
                         String::new(),
                     ));
@@ -54,13 +54,13 @@ impl EditorUiHost {
                 }
                 Err(error) => return Err(EditorError::UiAsset(error.to_string())),
             };
-            let external_hash = ui_asset_source_hash(&external_source);
+            let external_digest = ui_asset_source_digest(&external_source);
             let route = {
                 let mut sessions = self.lock_ui_asset_sessions();
                 let entry = sessions.get_mut(&instance_id).ok_or_else(|| {
                     EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
                 })?;
-                if external_hash == entry.disk_source_hash {
+                if external_digest == entry.disk_source_digest {
                     if entry.conflict.is_some() || entry.diff_snapshot.is_some() {
                         entry.conflict = None;
                         entry.diff_snapshot = None;
@@ -73,7 +73,7 @@ impl EditorUiHost {
                     entry.conflict = Some(UiAssetExternalConflict::new(
                         asset_id,
                         source_path,
-                        entry.disk_source_hash,
+                        entry.disk_source_digest,
                         local_source,
                         external_source,
                     ));

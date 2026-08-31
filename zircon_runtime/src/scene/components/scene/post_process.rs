@@ -1,11 +1,12 @@
 use crate::core::framework::render::{
-    RenderBloomSettings, RenderColorGradingSettings, RenderPostProcessEffectStackSettings,
-    RenderPostProcessVolumeProfile,
+    AoSourceSettings, RenderBloomSettings, RenderColorGradingSettings,
+    RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile,
 };
 use crate::core::math::Real;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PostProcessSettingsComponent {
+    pub ambient_occlusion: AoSourceSettings,
     pub bloom: RenderBloomSettings,
     pub color_grading: RenderColorGradingSettings,
     pub effect_stack: RenderPostProcessEffectStackSettings,
@@ -14,6 +15,7 @@ pub struct PostProcessSettingsComponent {
 impl Default for PostProcessSettingsComponent {
     fn default() -> Self {
         Self {
+            ambient_occlusion: AoSourceSettings::default(),
             bloom: RenderBloomSettings::default(),
             color_grading: RenderColorGradingSettings::default(),
             effect_stack: RenderPostProcessEffectStackSettings::default(),
@@ -28,10 +30,16 @@ impl PostProcessSettingsComponent {
         effect_stack: RenderPostProcessEffectStackSettings,
     ) -> Self {
         Self {
+            ambient_occlusion: AoSourceSettings::default(),
             bloom,
             color_grading,
             effect_stack,
         }
+    }
+
+    pub const fn with_ambient_occlusion(mut self, ambient_occlusion: AoSourceSettings) -> Self {
+        self.ambient_occlusion = ambient_occlusion;
+        self
     }
 }
 

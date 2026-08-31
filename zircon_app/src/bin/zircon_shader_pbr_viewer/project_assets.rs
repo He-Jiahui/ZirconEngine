@@ -17,6 +17,8 @@ use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPa
 use zircon_runtime_interface::resource::ResourceScheme;
 
 use crate::camera::{CAMERA_FOV_Y_RADIANS, DEFAULT_CAMERA_RADIUS, SPHERE_CENTER, SPHERE_SCALE};
+use crate::material_fixture::ViewerMaterialFixture;
+use crate::project_asset_fixture_validation::viewer_material_matches_fixture;
 
 // The viewer verifies shading, not subpixel geometric detail. This keeps the generated
 // temporary asset compact while retaining a smooth silhouette at the default viewport size.
@@ -85,33 +87,45 @@ struct ViewerProjectAssetReferences {
 }
 
 impl ViewerProjectAssetReferences {
-    fn versioned() -> Result<Self, Box<dyn Error>> {
+    fn versioned(material_fixture: ViewerMaterialFixture) -> Result<Self, Box<dyn Error>> {
+        let identity_prefix = material_fixture.project_asset_identity_prefix();
         Ok(Self {
-            model: viewer_asset_reference(VIEWER_MODEL_URI, "viewer-project-v4/model")?,
-            material: viewer_asset_reference(VIEWER_MATERIAL_URI, "viewer-project-v4/material")?,
-            scene: viewer_asset_reference(VIEWER_SCENE_URI, "viewer-project-v4/scene")?,
+            model: viewer_asset_reference(VIEWER_MODEL_URI, &format!("{identity_prefix}/model"))?,
+            material: viewer_asset_reference(
+                VIEWER_MATERIAL_URI,
+                &format!("{identity_prefix}/material"),
+            )?,
+            scene: viewer_asset_reference(VIEWER_SCENE_URI, &format!("{identity_prefix}/scene"))?,
         })
     }
 }
 
-pub(crate) fn viewer_project_assets_are_ready(asset_root: &std::path::Path) -> bool {
+pub(crate) fn viewer_project_assets_are_ready_for_fixture(
+    asset_root: &std::path::Path,
+    material_fixture: ViewerMaterialFixture,
+) -> bool {
     asset_root.is_dir()
         && VIEWER_PROJECT_ASSET_PATHS
             .iter()
             .all(|relative_path| asset_root.join(relative_path).is_file())
+        && viewer_material_matches_fixture(
+            &asset_root.join("materials/single_metal_sphere.zmaterial"),
+            material_fixture,
+        )
 }
 
-pub(crate) fn write_viewer_project_assets(
+pub(crate) fn write_viewer_project_assets_for_fixture(
     asset_root: &std::path::Path,
+    material_fixture: ViewerMaterialFixture,
 ) -> Result<ViewerProjectAssetGenerationReport, Box<dyn Error>> {
-    if viewer_project_assets_are_ready(asset_root) {
+    if viewer_project_assets_are_ready_for_fixture(asset_root, material_fixture) {
         return Ok(ViewerProjectAssetGenerationReport::reused());
     }
     let staging_asset_root = viewer_asset_staging_root(asset_root)?;
     let _ = fs::remove_dir_all(&staging_asset_root);
     fs::create_dir_all(&staging_asset_root)?;
 
-    let references = ViewerProjectAssetReferences::versioned()?;
+    let references = ViewerProjectAssetReferences::versioned(material_fixture)?;
     write_uv_sphere_model(
         staging_asset_root
             .join("models")
@@ -127,10 +141,11 @@ pub(crate) fn write_viewer_project_assets(
         &references.model,
         AssetKind::Model,
     )?;
-    write_perfect_mirror_material(
+    write_viewer_material(
         staging_asset_root
             .join("materials")
             .join("single_metal_sphere.zmaterial"),
+        material_fixture,
     )?;
     write_viewer_asset_meta(
         &staging_asset_root
@@ -157,6 +172,7 @@ pub(crate) fn write_viewer_project_assets(
     finish_viewer_project_asset_generation(
         staging_asset_root.as_path(),
         asset_root,
+        material_fixture,
         serialized_source_bytes,
     )
 }
@@ -164,11 +180,13 @@ pub(crate) fn write_viewer_project_assets(
 fn finish_viewer_project_asset_generation(
     staging_asset_root: &std::path::Path,
     asset_root: &std::path::Path,
+    material_fixture: ViewerMaterialFixture,
     serialized_source_bytes: u64,
 ) -> Result<ViewerProjectAssetGenerationReport, Box<dyn Error>> {
     // A competing process may win publication after this caller generated the full tree. Preserve
     // the caller's cold-start work in the report even when its private staging tree loses.
-    let _published = publish_viewer_project_assets(&staging_asset_root, asset_root)?;
+    let _published =
+        publish_viewer_project_assets(&staging_asset_root, asset_root, material_fixture)?;
     Ok(ViewerProjectAssetGenerationReport::generated(
         serialized_source_bytes,
     ))
@@ -199,32 +217,33 @@ fn viewer_project_staging_root(asset_root: &std::path::Path) -> Result<PathBuf, 
 fn publish_viewer_project_assets(
     staging_asset_root: &std::path::Path,
     asset_root: &std::path::Path,
+    material_fixture: ViewerMaterialFixture,
 ) -> Result<bool, Box<dyn Error>> {
-    let mut displaced_incomplete_root = None;
+    let mut displaced_stale_root = None;
     let mut retried_after_destination_change = false;
 
     loop {
         match fs::rename(staging_asset_root, asset_root) {
             Ok(()) => {
-                if let Some(displaced_root) = displaced_incomplete_root {
+                if let Some(displaced_root) = displaced_stale_root {
                     let _ = fs::remove_dir_all(displaced_root);
                 }
                 return Ok(true);
             }
-            Err(_) if viewer_project_assets_are_ready(asset_root) => {
+            Err(_) if viewer_project_assets_are_ready_for_fixture(asset_root, material_fixture) => {
                 let _ = fs::remove_dir_all(staging_asset_root);
-                if let Some(displaced_root) = displaced_incomplete_root {
+                if let Some(displaced_root) = displaced_stale_root {
                     let _ = fs::remove_dir_all(displaced_root);
                 }
                 return Ok(false);
             }
-            Err(error) if asset_root.exists() && displaced_incomplete_root.is_none() => {
-                let displaced_root = viewer_project_incomplete_root(asset_root)?;
+            Err(error) if asset_root.exists() && displaced_stale_root.is_none() => {
+                let displaced_root = viewer_project_replaced_root(asset_root)?;
                 if fs::rename(asset_root, &displaced_root).is_ok() {
-                    displaced_incomplete_root = Some(displaced_root);
+                    displaced_stale_root = Some(displaced_root);
                     continue;
                 }
-                if viewer_project_assets_are_ready(asset_root) {
+                if viewer_project_assets_are_ready_for_fixture(asset_root, material_fixture) {
                     let _ = fs::remove_dir_all(staging_asset_root);
                     return Ok(false);
                 }
@@ -239,7 +258,7 @@ fn publish_viewer_project_assets(
                 continue;
             }
             Err(error) => {
-                if let Some(displaced_root) = displaced_incomplete_root {
+                if let Some(displaced_root) = displaced_stale_root {
                     if !asset_root.exists() {
                         let _ = fs::rename(displaced_root, asset_root);
                     }
@@ -250,12 +269,12 @@ fn publish_viewer_project_assets(
     }
 }
 
-fn viewer_project_incomplete_root(asset_root: &std::path::Path) -> Result<PathBuf, Box<dyn Error>> {
+fn viewer_project_replaced_root(asset_root: &std::path::Path) -> Result<PathBuf, Box<dyn Error>> {
     let project_root = asset_root
         .parent()
         .ok_or("viewer asset root has no project parent")?;
     let sequence = VIEWER_PROJECT_STAGING_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-    Ok(project_root.join(format!(".zpv4-i-{}-{}", std::process::id(), sequence,)))
+    Ok(project_root.join(format!(".zpv4-r-{}-{}", std::process::id(), sequence,)))
 }
 
 fn write_viewer_asset_meta(
@@ -339,21 +358,24 @@ fn write_uv_sphere_model(
     Ok(())
 }
 
-fn write_perfect_mirror_material(path: PathBuf) -> Result<(), Box<dyn Error>> {
+fn write_viewer_material(
+    path: PathBuf,
+    material_fixture: ViewerMaterialFixture,
+) -> Result<(), Box<dyn Error>> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
     let mut material = MaterialAsset {
-        name: Some("Interactive Perfect Mirror Sphere".to_string()),
+        name: Some(material_fixture.material_name().to_string()),
         shader: asset_reference("builtin://shader/pbr.wgsl")?,
         parent: None,
         options: Default::default(),
         queue: None,
-        base_color: [1.0, 1.0, 1.0, 1.0],
+        base_color: material_fixture.base_color(),
         base_color_texture: None,
         normal_texture: None,
-        metallic: 1.0,
-        roughness: 0.0,
+        metallic: material_fixture.metallic(),
+        roughness: material_fixture.roughness(),
         metallic_roughness_texture: None,
         occlusion_texture: None,
         emissive: [0.0, 0.0, 0.0],
@@ -371,6 +393,11 @@ fn write_perfect_mirror_material(path: PathBuf) -> Result<(), Box<dyn Error>> {
     material
         .property_values
         .insert("receive_shadows".to_string(), toml::Value::Boolean(false));
+    if let Some(ior) = material_fixture.dielectric_ior() {
+        material
+            .property_values
+            .insert("ior".to_string(), toml::Value::Float(ior));
+    }
     fs::write(
         path,
         material
@@ -596,13 +623,14 @@ fn invalid_data(error: String) -> std::io::Error {
 #[cfg(test)]
 mod tests {
     use super::{
-        viewer_project_assets_are_ready, write_perfect_mirror_material,
-        write_viewer_project_assets, AssetMetaDocument, AssetReference, MaterialAsset,
+        viewer_project_assets_are_ready_for_fixture, write_viewer_material,
+        write_viewer_project_assets_for_fixture, AssetMetaDocument, AssetReference, MaterialAsset,
         ReferenceResolutionError, SceneAsset, SPHERE_RINGS, SPHERE_SEGMENTS,
         VIEWER_PROJECT_ASSET_PATHS, VIEWER_PROJECT_ASSET_ROOT, VIEWER_PROJECT_SOURCE_PATHS,
     };
     use zircon_runtime::asset::assets::ZMaterialDocument;
 
+    use crate::material_fixture::ViewerMaterialFixture;
     use crate::work_paths::viewer_test_artifact_root;
 
     #[test]
@@ -616,20 +644,83 @@ mod tests {
         let asset_root = root.join(VIEWER_PROJECT_ASSET_ROOT);
         std::fs::create_dir_all(&root).expect("test cache root should be created");
 
-        assert!(!viewer_project_assets_are_ready(&asset_root));
+        assert!(!viewer_project_assets_are_ready_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        ));
         for relative_path in VIEWER_PROJECT_ASSET_PATHS {
             let path = asset_root.join(relative_path);
             std::fs::create_dir_all(path.parent().expect("asset path should have a parent"))
                 .expect("test asset parent should be created");
             std::fs::write(path, "fixture\n").expect("test asset should be written");
         }
-        assert!(viewer_project_assets_are_ready(&asset_root));
+        assert!(
+            !viewer_project_assets_are_ready_for_fixture(
+                &asset_root,
+                ViewerMaterialFixture::MetalMirror,
+            ),
+            "file presence alone must not reuse a stale material fixture"
+        );
+
+        write_viewer_project_assets_for_fixture(&asset_root, ViewerMaterialFixture::MetalMirror)
+            .expect("a stale project tree should be replaced");
+        assert!(viewer_project_assets_are_ready_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        ));
 
         std::fs::remove_file(asset_root.join(VIEWER_PROJECT_ASSET_PATHS[1]))
             .expect("test asset should be removable");
         assert!(
-            !viewer_project_assets_are_ready(&asset_root),
+            !viewer_project_assets_are_ready_for_fixture(
+                &asset_root,
+                ViewerMaterialFixture::MetalMirror,
+            ),
             "a partial cache must regenerate the viewer project assets"
+        );
+
+        std::fs::remove_dir_all(&root).expect("test cache root should be removed");
+    }
+
+    #[test]
+    fn viewer_project_replaces_a_complete_tree_when_its_material_fixture_changes() {
+        let root = viewer_test_artifact_root("fixture-bound-project-assets");
+        let asset_root = root.join(VIEWER_PROJECT_ASSET_ROOT);
+
+        let mirror_report = write_viewer_project_assets_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        )
+        .expect("mirror fixture should publish a complete project tree");
+        assert_eq!(mirror_report.mesh_generation_samples(), 1);
+        assert!(super::viewer_project_assets_are_ready_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        ));
+        assert!(
+            !super::viewer_project_assets_are_ready_for_fixture(
+                &asset_root,
+                ViewerMaterialFixture::DielectricIor,
+            ),
+            "a complete mirror tree must not satisfy the dielectric IOR fixture"
+        );
+
+        let ior_report = write_viewer_project_assets_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::DielectricIor,
+        )
+        .expect("a stale complete mirror tree should be replaced by the IOR fixture");
+        assert_eq!(ior_report.mesh_generation_samples(), 1);
+        assert!(super::viewer_project_assets_are_ready_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::DielectricIor,
+        ));
+        assert!(
+            !super::viewer_project_assets_are_ready_for_fixture(
+                &asset_root,
+                ViewerMaterialFixture::MetalMirror,
+            ),
+            "the replacement tree must no longer satisfy the mirror fixture"
         );
 
         std::fs::remove_dir_all(&root).expect("test cache root should be removed");
@@ -641,15 +732,22 @@ mod tests {
         let asset_root = root.join(VIEWER_PROJECT_ASSET_ROOT);
         std::fs::create_dir_all(&root).expect("test cache root should be created");
 
-        let cold_report = write_viewer_project_assets(&asset_root)
-            .expect("viewer project assets should publish without opening a project manager");
-        assert!(viewer_project_assets_are_ready(&asset_root));
+        let cold_report = write_viewer_project_assets_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        )
+        .expect("viewer project assets should publish without opening a project manager");
+        assert!(viewer_project_assets_are_ready_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        ));
         assert_eq!(cold_report.mesh_generation_samples(), 1);
         assert_eq!(cold_report.filesystem_writes(), 6);
         assert!(cold_report.serialized_source_bytes() > 0);
 
-        let references = super::ViewerProjectAssetReferences::versioned()
-            .expect("viewer references should be well-formed");
+        let references =
+            super::ViewerProjectAssetReferences::versioned(ViewerMaterialFixture::MetalMirror)
+                .expect("viewer references should be well-formed");
         let model_meta =
             AssetMetaDocument::load(asset_root.join("models/single_pbr_sphere.model.toml.zmeta"))
                 .expect("model sidecar should be readable");
@@ -688,8 +786,11 @@ mod tests {
         .expect("viewer scene should deserialize against its generated sidecars");
         assert_eq!(scene.direct_references(), expected_references.to_vec());
 
-        let warm_report = write_viewer_project_assets(&asset_root)
-            .expect("ready viewer project assets should be reused without writes");
+        let warm_report = write_viewer_project_assets_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        )
+        .expect("ready viewer project assets should be reused without writes");
         assert_eq!(
             warm_report,
             super::ViewerProjectAssetGenerationReport::reused()
@@ -706,23 +807,29 @@ mod tests {
         std::fs::write(asset_root.join("stale.partial"), "incomplete\n")
             .expect("incomplete asset marker should be written");
 
-        let report = write_viewer_project_assets(&asset_root)
-            .expect("an incomplete versioned tree should be replaced by a complete tree");
-        assert!(viewer_project_assets_are_ready(&asset_root));
+        let report = write_viewer_project_assets_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        )
+        .expect("an incomplete versioned tree should be replaced by a complete tree");
+        assert!(viewer_project_assets_are_ready_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        ));
         assert_eq!(report.mesh_generation_samples(), 1);
         assert_eq!(report.filesystem_writes(), 6);
         assert!(
             !asset_root.join("stale.partial").exists(),
             "the published tree must contain only the current generated artifacts"
         );
-        let incomplete_roots = std::fs::read_dir(&root)
+        let replaced_roots = std::fs::read_dir(&root)
             .expect("project root should be readable")
             .filter_map(Result::ok)
-            .filter(|entry| entry.file_name().to_string_lossy().starts_with(".zpv4-i-"))
+            .filter(|entry| entry.file_name().to_string_lossy().starts_with(".zpv4-r-"))
             .count();
         assert_eq!(
-            incomplete_roots, 0,
-            "the displaced incomplete tree should be removed after publication"
+            replaced_roots, 0,
+            "the displaced stale tree should be removed after publication"
         );
 
         std::fs::remove_dir_all(&root).expect("test cache root should be removed");
@@ -755,23 +862,26 @@ mod tests {
     fn competing_viewer_project_publish_reuses_the_completed_immutable_asset_tree() {
         let root = viewer_test_artifact_root("project-publish-contention");
         let asset_root = root.join(VIEWER_PROJECT_ASSET_ROOT);
-        for relative_path in VIEWER_PROJECT_ASSET_PATHS {
-            let path = asset_root.join(relative_path);
-            std::fs::create_dir_all(path.parent().expect("asset path should have a parent"))
-                .expect("completed asset parent should be created");
-            std::fs::write(path, "completed\n").expect("completed asset should be written");
-        }
+        write_viewer_project_assets_for_fixture(&asset_root, ViewerMaterialFixture::MetalMirror)
+            .expect("completed asset root should be published");
         let staging_root = root.join("competing-staging-root");
         std::fs::create_dir_all(&staging_root).expect("competing staging root should be created");
         std::fs::write(staging_root.join("partial.asset"), "partial\n")
             .expect("competing staging payload should be written");
 
         assert!(
-            !super::publish_viewer_project_assets(&staging_root, &asset_root)
-                .expect("a completed immutable asset root should win publication"),
+            !super::publish_viewer_project_assets(
+                &staging_root,
+                &asset_root,
+                ViewerMaterialFixture::MetalMirror,
+            )
+            .expect("a completed immutable asset root should win publication"),
             "a competing publisher must reuse the already-complete versioned tree"
         );
-        assert!(viewer_project_assets_are_ready(&asset_root));
+        assert!(viewer_project_assets_are_ready_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        ));
         assert!(
             !staging_root.exists(),
             "a losing publisher must discard only its private staging tree"
@@ -784,19 +894,20 @@ mod tests {
     fn losing_cold_publication_keeps_its_completed_generation_report() {
         let root = viewer_test_artifact_root("project-generation-report");
         let asset_root = root.join(VIEWER_PROJECT_ASSET_ROOT);
-        for relative_path in VIEWER_PROJECT_ASSET_PATHS {
-            let path = asset_root.join(relative_path);
-            std::fs::create_dir_all(path.parent().expect("asset path should have a parent"))
-                .expect("completed asset parent should be created");
-            std::fs::write(path, "completed\n").expect("completed asset should be written");
-        }
+        write_viewer_project_assets_for_fixture(&asset_root, ViewerMaterialFixture::MetalMirror)
+            .expect("completed asset root should be published");
         let staging_root = root.join("losing-staging-root");
         std::fs::create_dir_all(&staging_root).expect("losing staging root should be created");
         std::fs::write(staging_root.join("generated.asset"), "generated\n")
             .expect("generated staging payload should be written");
 
-        let report = super::finish_viewer_project_asset_generation(&staging_root, &asset_root, 123)
-            .expect("a losing cold publication should retain its completed work report");
+        let report = super::finish_viewer_project_asset_generation(
+            &staging_root,
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+            123,
+        )
+        .expect("a losing cold publication should retain its completed work report");
         assert_eq!(report.mesh_generation_samples(), 1);
         assert_eq!(report.filesystem_writes(), 6);
         assert_eq!(report.serialized_source_bytes(), 123);
@@ -804,7 +915,10 @@ mod tests {
             !staging_root.exists(),
             "a losing publication should discard only its private staging tree"
         );
-        assert!(viewer_project_assets_are_ready(&asset_root));
+        assert!(viewer_project_assets_are_ready_for_fixture(
+            &asset_root,
+            ViewerMaterialFixture::MetalMirror,
+        ));
 
         std::fs::remove_dir_all(&root).expect("test cache root should be removed");
     }
@@ -814,7 +928,7 @@ mod tests {
         let root = viewer_test_artifact_root("mirror-material");
         let material_path = root.join("single_metal_sphere.zmaterial");
 
-        write_perfect_mirror_material(material_path.clone())
+        write_viewer_material(material_path.clone(), ViewerMaterialFixture::MetalMirror)
             .expect("viewer mirror material should be generated");
         let source = std::fs::read_to_string(&material_path)
             .expect("viewer mirror material should be readable");
@@ -881,6 +995,65 @@ mod tests {
                 && descriptor.occlusion_texture.is_none()
                 && descriptor.emissive_texture.is_none(),
             "the runtime material descriptor must retain the prewarm's static no-texture key"
+        );
+
+        std::fs::remove_dir_all(&root).expect("test cache root should be removed");
+    }
+
+    #[test]
+    fn dielectric_ior_fixture_serializes_the_routed_standard_material_input() {
+        let root = viewer_test_artifact_root("dielectric-ior-material");
+        let material_path = root.join("single_dielectric_sphere.zmaterial");
+
+        write_viewer_material(material_path.clone(), ViewerMaterialFixture::DielectricIor)
+            .expect("viewer dielectric material should be generated");
+        let source = std::fs::read_to_string(&material_path)
+            .expect("viewer dielectric material should be readable");
+        let document: toml::Value =
+            toml::from_str(&source).expect("viewer dielectric material should remain valid TOML");
+        let overrides = document
+            .get("overrides")
+            .and_then(toml::Value::as_table)
+            .expect("viewer dielectric material should keep its PBR overrides");
+
+        assert_eq!(
+            overrides.get("ior").and_then(toml::Value::as_float),
+            Some(2.0)
+        );
+        assert_eq!(
+            overrides.get("metallic").and_then(toml::Value::as_float),
+            Some(0.0)
+        );
+        assert_eq!(
+            overrides.get("roughness").and_then(toml::Value::as_float),
+            Some(0.08)
+        );
+
+        let material = ZMaterialDocument::from_project_toml_str(&source, |reference| {
+            reference
+                .builtin_locator()
+                .cloned()
+                .map(AssetReference::from_locator)
+                .ok_or_else(|| ReferenceResolutionError::Registry {
+                    message: "viewer material test expects a builtin shader reference".to_string(),
+                })
+        })
+        .map(MaterialAsset::from_zmaterial_document)
+        .expect("viewer dielectric material should deserialize into its runtime asset");
+        let features = material.advanced_pbr_features();
+        assert_eq!(features.ior, 2.0);
+        assert!(
+            (features.dielectric_f0() - (1.0 / 9.0)).abs() <= f32::EPSILON,
+            "the fixed IOR fixture must derive its F0 before shader routing"
+        );
+        assert!(features.uses_dielectric_f0_override());
+        assert!(
+            features.requires_forward_path(),
+            "the fixed IOR fixture must exercise PipelineKey::pbr_ior_override"
+        );
+        assert!(
+            viewer_material_matches_fixture(&material_path, ViewerMaterialFixture::DielectricIor),
+            "the reusable viewer-project guard must verify the same derived IOR contract"
         );
 
         std::fs::remove_dir_all(&root).expect("test cache root should be removed");

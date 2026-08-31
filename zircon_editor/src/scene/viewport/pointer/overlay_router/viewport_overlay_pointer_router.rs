@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::render::RenderVisibleSpatialQuerySnapshot;
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 use crate::scene::viewport::pointer::{
     precision::SharedResolutionState, viewport_pointer_layout::ViewportPointerLayout,
@@ -18,4 +19,5 @@ pub(crate) struct ViewportOverlayPointerRouter {
     pub(super) renderable_candidates: Arc<[ViewportRenderablePickCandidate]>,
     pub(super) scene_world_generation: Option<u64>,
     pub(super) renderer_visible_spatial_snapshot: Option<RenderVisibleSpatialQuerySnapshot>,
+    pub(super) retained_candidate_ids: Arc<[UiNodeId]>,
 }

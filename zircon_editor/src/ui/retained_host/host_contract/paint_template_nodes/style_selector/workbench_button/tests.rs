@@ -44,6 +44,8 @@ fn workbench_button_state_palette_projects_from_host_palette() {
     assert_eq!(button_palette.transparent_surface, [0, 0, 0, 0]);
     assert_eq!(button_palette.border, host_palette.border);
     assert_eq!(button_palette.focus_border, host_palette.focus_ring);
+    assert_eq!(button_palette.primary_text, host_palette.shell_background);
+    assert_eq!(button_palette.primary_pressed_text, host_palette.text);
     assert_eq!(button_palette.text, host_palette.text);
     assert_eq!(button_palette.text_muted, host_palette.text_muted);
     assert_eq!(button_palette.danger_text, host_palette.error);
@@ -173,8 +175,8 @@ fn primary_button_uses_the_starship_primary_surface_role() {
 
     assert_eq!(style.surface, button_palette.surface_primary_rest);
     assert_eq!(style.border, button_palette.border);
-    assert_eq!(style.text, button_palette.text);
-    assert_eq!(style.glyph, button_palette.text);
+    assert_eq!(style.text, button_palette.primary_text);
+    assert_eq!(style.glyph, button_palette.primary_text);
 }
 
 #[test]
@@ -192,7 +194,25 @@ fn primary_button_hover_uses_the_brighter_primary_surface_role() {
     assert_eq!(style.interaction, ButtonInteractionState::Hover);
     assert_eq!(style.surface, button_palette.surface_primary_hover);
     assert_eq!(style.border, button_palette.border);
-    assert_eq!(style.text, button_palette.text);
+    assert_eq!(style.text, button_palette.primary_text);
+}
+
+#[test]
+fn primary_button_press_uses_light_text_on_the_dark_selected_surface() {
+    let node = TemplatePaneNodeData {
+        control_id: "WorkbenchPrimaryButton".into(),
+        button_variant: "filled".into(),
+        pressed: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_button_style(&node, WorkbenchButtonKind::Primary, false);
+    let button_palette = expected_button_palette();
+
+    assert_eq!(style.interaction, ButtonInteractionState::Pressed);
+    assert_eq!(style.surface, button_palette.surface_primary_pressed);
+    assert_eq!(style.text, button_palette.primary_pressed_text);
+    assert_eq!(style.glyph, button_palette.primary_pressed_text);
 }
 
 #[test]

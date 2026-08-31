@@ -5,9 +5,9 @@ use crate::asset::project::ProjectManager;
 use crate::asset::watch::{AssetChange, AssetWatchError};
 use crate::asset::{
     AssetImportError, AssetImporterCapabilityReport, AssetImporterHandler, AssetPipelineInfo,
-    AssetStatusRecord, AssetUri, ProjectInfo,
+    AssetStatusRecord, AssetUri, AssetUuid, ProjectImportReceipt, ProjectInfo,
 };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 pub trait AssetManager: Send + Sync {
@@ -46,6 +46,13 @@ pub trait AssetManager: Send + Sync {
         self.subscribe_asset_changes()
     }
     fn subscribe_asset_watch_errors(&self) -> ChannelReceiver<AssetWatchError>;
+    fn relocate_project_source(
+        &self,
+        source_uuid: AssetUuid,
+        target: AssetUri,
+    ) -> Result<Vec<AssetStatusRecord>, CoreError>;
+    /// Imports one model source through the Runtime-owned compound project transaction.
+    fn import_model_source(&self, source_path: &Path) -> Result<ProjectImportReceipt, CoreError>;
     fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError>;
     fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError>;
 }

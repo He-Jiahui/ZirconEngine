@@ -555,3 +555,67 @@ accepted validation.
   Runtime Core compile failure is closed, then run the same managed product WGPU test, inspect its
   newly generated framebuffer image, and run the declared scale harness before considering any
   additional artifact caching or other structural optimization.
+
+### Artifact absence versus invariant failure correction (2026-08-26)
+
+- Current-source tracing confirmed that a normal Plain line without an artifact still uses only the
+  narrow source-isomorphic fallback recorded above, while a valid visual-only line retains its
+  resolved visual DTO. The remaining defect was earlier: artifact construction returned the same
+  `Ready(None)` for valid visual-only absence and for broken source/range ownership, allowing an
+  internal invariant failure to reach render planning as an untyped blank result.
+- `ResolvedTextGlyphArtifact` construction now returns `Failed(LayoutFailed)` when the supplied
+  source cannot own the layout range, when a line/run escapes its layout owner, or when its byte
+  slice splits UTF-8. Four focused regressions distinguish those cases from the valid visual-only
+  `Ready(None)` path. The implementation remains in the runtime Text artifact lifecycle/projection
+  owners and adds no editor, interface, or renderer-local shape policy.
+- Status is `non_validation_implementation_complete / managed_validation_pending`. Static formatter,
+  whitespace, call-path, and file-budget checks pass. The failure record remains open until the
+  renderer-wide typed completeness/fallback receipt, managed Cargo, profiling/power samples,
+  current WGPU framebuffer under `docs/tests/runtime/text`, image inspection, milestone commit, and
+  WeCom receipt are complete.
+
+### Plain resolved-glyph renderer route receipt (2026-08-26)
+
+- The Plain MVP renderer now consumes the artifact decision as a typed command-level receipt.
+  Artifact-backed and valid visual-only layouts are accepted; a missing, stale, or incomplete
+  artifact may use only the existing exact source-isomorphic fallback, otherwise the command is
+  rejected. Graphics does not create a replacement glyph truth.
+- Rejection-only plans retain their diagnostic state through `PreparedScreenSpaceUi` and
+  `ScreenSpaceUiTextPrepareReport`. Seven low-cardinality
+  `ui_text.resolved_glyph_artifact_route.*` counters expose artifact/visual/fallback routes,
+  missing/stale/incomplete reasons, and rejected commands for the managed M0 trace.
+- This is `non_validation_implementation_complete / managed_validation_pending`. Focused route,
+  aggregation, prepare-report, and profiler tests plus scoped static checks are complete. The
+  report is deliberately scoped to `ResolvedTextGlyphArtifact`; compiled-rich parity, managed
+  Cargo, performance/power samples, current WGPU framebuffer and image inspection, milestone
+  commit, and WeCom receipt keep this failure record open.
+
+### Font-generation recovery owner hard cut (2026-08-26)
+
+- Current-source re-review found that the graphics font-load phase could advance the shared font
+  generation after UI layout/extract, then call `rebuild_resolved_text_glyph_artifact_line` with a
+  newly constructed session and retain the result in `refreshed_line`. This contradicted the
+  record's prohibition on a renderer-local re-shaping pass even though the payload type itself had
+  already moved to Runtime Text.
+- `UiSurface` now observes the shared generation before its clean `rebuild_dirty` return. A change
+  invalidates the retained text owner and performs one full layout/render-extract rebuild with the
+  surface's existing session. Graphics performs a final generation fence after font loading,
+  drops stale artifact batches for that frame, and reports
+  `ui_text.prepare.post_layout_stale_artifact_batch_rejections`; it never reinterprets retired glyph
+  IDs. The standalone artifact/presentation rebuild APIs and refreshed-line DTO field are deleted.
+- This is `non_validation_implementation_complete / static_checks_complete /
+  managed_validation_pending`. The focused contracts require zero new layout sessions during both
+  surface recovery and stale-batch rejection. A Windows managed `font_generation` test attempt did
+  not start Cargo because `cargo.acquire` returned `command_post_timeout` after accepting the
+  submission, and it was not polled or retried. Profiling/allocation/power, current WGPU rendering,
+  a validated PNG under `docs/tests/runtime/text`, milestone commit, and WeCom synchronization keep
+  the failure record open.
+
+- Static closeout removed the last stale test dependency on the deleted line rebuild. The
+  ellipsis/virtual-glyph test now advances the shared font generation and requires the Text owner
+  to publish a new complete artifact; the render structure guard follows the immutable
+  source-isomorphic/native routing names and forbids the retired renderer refresh helper. The
+  prepare-report equality contract also requires a zero stale-artifact rejection count for its
+  unchanged fixture. The deleted rebuild/refresh/overlay literal scan is `0`, but this record stays
+  open until managed compilation, execution, WGPU/PNG inspection, profiling/power evidence,
+  milestone commit, and WeCom receipt are complete.

@@ -1,3 +1,5 @@
+use std::num::NonZeroU64;
+
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
 use crate::render_graph::{RenderGraphResourceAccessKind, RenderGraphResourceKind};
 use crate::rhi::TextureDesc;
@@ -19,7 +21,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &self,
         resource_name: &str,
         access: RenderGraphResourceAccessKind,
-    ) -> Result<&wgpu::TextureView, String> {
+    ) -> Result<&'a wgpu::TextureView, String> {
         Self::require_texture_view_by_name(
             self.resources,
             self.resource_resolver,
@@ -32,7 +34,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &self,
         resource_name: &str,
         access: RenderGraphResourceAccessKind,
-    ) -> Result<Option<&wgpu::TextureView>, String> {
+    ) -> Result<Option<&'a wgpu::TextureView>, String> {
         Self::optional_texture_view_by_name(
             self.resources,
             self.resource_resolver,
@@ -45,13 +47,91 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &self,
         resource_name: &str,
         access: RenderGraphResourceAccessKind,
-    ) -> Result<&wgpu::Buffer, String> {
+    ) -> Result<&'a wgpu::Buffer, String> {
         Self::require_buffer_by_name(
             self.resources,
             self.resource_resolver,
             resource_name,
             access,
         )
+    }
+
+    pub fn require_buffer_binding(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<wgpu::BufferBinding<'a>, String> {
+        Self::require_buffer_binding_by_name(
+            self.resources,
+            self.resource_resolver,
+            resource_name,
+            access,
+        )
+    }
+
+    /// Resolves a graph buffer into the compiler-proven WGPU binding window.
+    ///
+    /// Transient and typed external accesses retain their exact byte range;
+    /// persistent and unknown report-only declarations use the full native
+    /// buffer as an explicit compatibility path.
+    pub(in crate::graphics::scene::scene_renderer::graph_execution::render_pass_execution_context::gpu) fn require_buffer_binding_by_name<
+        'resources,
+    >(
+        resources: &'resources RenderGraphExecutionResources,
+        resource_resolver: Option<RgResourceResolver<'resources>>,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<wgpu::BufferBinding<'resources>, String> {
+        if let Some(resolver) = resource_resolver {
+            if let Some(access_id) =
+                resolver.exact_transient_access_by_name(resource_name, access)?
+            {
+                let (buffer, range) = resources.transient_buffer_binding_for_access(access_id)?;
+                let size = range.end.checked_sub(range.start).ok_or_else(|| {
+                    format!("render graph buffer `{resource_name}` exact binding range is inverted")
+                })?;
+                let size = NonZeroU64::new(size).ok_or_else(|| {
+                    format!(
+                        "render graph buffer `{resource_name}` exact binding range must not be empty"
+                    )
+                })?;
+                return Ok(wgpu::BufferBinding {
+                    buffer,
+                    offset: range.start,
+                    size: Some(size),
+                });
+            }
+            if let Some(access_id) =
+                resolver.exact_external_access_by_name(resource_name, access)?
+            {
+                let (buffer, range) = resources.external_buffer_binding_for_access(access_id)?;
+                let size = range.end.checked_sub(range.start).ok_or_else(|| {
+                    format!("render graph external buffer `{resource_name}` exact binding range is inverted")
+                })?;
+                let size = NonZeroU64::new(size).ok_or_else(|| {
+                    format!(
+                        "render graph external buffer `{resource_name}` exact binding range must not be empty"
+                    )
+                })?;
+                return Ok(wgpu::BufferBinding {
+                    buffer,
+                    offset: range.start,
+                    size: Some(size),
+                });
+            }
+            let buffer = resolver.buffer_by_name(resource_name, access)?;
+            return Ok(wgpu::BufferBinding {
+                buffer,
+                offset: 0,
+                size: None,
+            });
+        }
+        let buffer = resources.require_buffer(resource_name)?;
+        Ok(wgpu::BufferBinding {
+            buffer,
+            offset: 0,
+            size: None,
+        })
     }
 
     pub fn require_texture_desc(
@@ -79,6 +159,16 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 return Err(format!(
                     "render graph resource `{resource_name}` must be a transient texture before a full-mip view can be requested"
                 ));
+            }
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(resource_name, access)?
+            {
+                // Validate the compiler-selected access before exposing the
+                // explicit full-mip compatibility view below. The access view
+                // may cover only one mip and cannot satisfy this API's
+                // full-chain contract.
+                self.resources
+                    .graph_owned_texture_view_for_access(access_id)?;
             }
             self.resources
                 .require_texture_view_for_declaration(declaration)?;
@@ -116,8 +206,15 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     "render graph resource `{resource_name}` must be a transient texture before a mip view can be requested"
                 ));
             }
-            self.resources
-                .require_texture_view_for_declaration(declaration)?;
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(resource_name, access)?
+            {
+                self.resources
+                    .graph_owned_texture_view_for_access(access_id)?;
+            } else {
+                self.resources
+                    .require_texture_view_for_declaration(declaration)?;
+            }
         }
         self.resources
             .owned_texture_mip_view(resource_name, mip_level)
@@ -130,6 +227,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         access: RenderGraphResourceAccessKind,
     ) -> Result<&'a wgpu::TextureView, String> {
         if let Some(resolver) = resource_resolver {
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(resource_name, access)?
+            {
+                return resources.graph_owned_texture_view_for_access(access_id);
+            }
             return resolver.texture_view_by_name(resource_name, access);
         } else {
             resources.require_texture_view(resource_name)
@@ -143,6 +245,15 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         access: RenderGraphResourceAccessKind,
     ) -> Result<&'a wgpu::Buffer, String> {
         if let Some(resolver) = resource_resolver {
+            if let Some(access_id) =
+                resolver.exact_transient_access_by_name(resource_name, access)?
+            {
+                // The returned buffer remains the native WGPU object for API
+                // compatibility; the exact compiler-proven byte window is
+                // still required before exposing it to an executor.
+                let (buffer, _) = resources.transient_buffer_binding_for_access(access_id)?;
+                return Ok(buffer);
+            }
             return resolver.buffer_by_name(resource_name, access);
         } else {
             resources.require_buffer(resource_name)
@@ -160,6 +271,16 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if let Some(resolver) = resource_resolver {
             let declaration =
                 resolver.require_pass_resource_declaration_by_name(resource_name, access)?;
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(resource_name, access)?
+            {
+                resources.graph_owned_texture_view_for_access(access_id)?;
+            }
+            if let Some(access_id) =
+                resolver.exact_external_access_by_name(resource_name, access)?
+            {
+                return resources.external_texture_desc_for_access(access_id);
+            }
             resources.require_texture_desc_for_declaration(declaration)
         } else {
             resources.require_owned_texture_desc(resource_name).cloned()
@@ -185,6 +306,18 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     "render graph resource `{resource_name}` is a buffer but a texture view was requested"
                 ));
             }
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(resource_name, access)?
+            {
+                return resources
+                    .graph_owned_texture_view_for_access(access_id)
+                    .map(Some);
+            }
+            if let Some(access_id) =
+                resolver.exact_external_access_by_name(resource_name, access)?
+            {
+                return resources.optional_external_texture_view_for_access(access_id);
+            }
             return Ok(resources.texture_view(&declaration.name));
         }
         Ok(resources.texture_view(resource_name))
@@ -205,6 +338,18 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 return Err(format!(
                     "render graph resource `{resource_name}` is a buffer but a texture view was requested"
                 ));
+            }
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(resource_name, access)?
+            {
+                return resources
+                    .graph_owned_texture_view_for_access(access_id)
+                    .map(Some);
+            }
+            if let Some(access_id) =
+                resolver.exact_external_access_by_name(resource_name, access)?
+            {
+                return resources.optional_external_texture_view_for_access(access_id);
             }
             return Ok(resources.texture_view(&declaration.name));
         }
@@ -230,9 +375,92 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     "render graph resource `{resource_name}` is a texture but a buffer was requested"
                 ));
             }
+            if let Some(access_id) =
+                resolver.exact_external_access_by_name(resource_name, access)?
+            {
+                return resources
+                    .optional_external_buffer_binding_for_access(access_id)
+                    .map(|binding| binding.map(|(buffer, _)| buffer));
+            }
             return Ok(resources.buffer(&declaration.name));
         }
         Ok(resources.buffer(resource_name))
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::graph_execution::render_pass_execution_context::gpu) fn optional_buffer_binding_by_name<
+        'resources,
+    >(
+        resources: &'resources RenderGraphExecutionResources,
+        resource_resolver: Option<RgResourceResolver<'resources>>,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<Option<wgpu::BufferBinding<'resources>>, String> {
+        if let Some(resolver) = resource_resolver {
+            let Some(declaration) =
+                resolver.pass_resource_declaration_by_name(resource_name, access)
+            else {
+                return Ok(None);
+            };
+            if declaration.kind == RenderGraphResourceKind::TransientTexture {
+                return Err(format!(
+                    "render graph resource `{resource_name}` is a texture but a buffer binding was requested"
+                ));
+            }
+            if let Some(access_id) =
+                resolver.exact_transient_access_by_name(resource_name, access)?
+            {
+                let (buffer, range) = resources.transient_buffer_binding_for_access(access_id)?;
+                let size = range.end.checked_sub(range.start).ok_or_else(|| {
+                    format!("render graph buffer `{resource_name}` exact binding range is inverted")
+                })?;
+                let size = NonZeroU64::new(size).ok_or_else(|| {
+                    format!(
+                        "render graph buffer `{resource_name}` exact binding range must not be empty"
+                    )
+                })?;
+                return Ok(Some(wgpu::BufferBinding {
+                    buffer,
+                    offset: range.start,
+                    size: Some(size),
+                }));
+            }
+            if let Some(access_id) =
+                resolver.exact_external_access_by_name(resource_name, access)?
+            {
+                let Some((buffer, range)) =
+                    resources.optional_external_buffer_binding_for_access(access_id)?
+                else {
+                    return Ok(None);
+                };
+                let size = range.end.checked_sub(range.start).ok_or_else(|| {
+                    format!("render graph external buffer `{resource_name}` exact binding range is inverted")
+                })?;
+                let size = NonZeroU64::new(size).ok_or_else(|| {
+                    format!(
+                        "render graph external buffer `{resource_name}` exact binding range must not be empty"
+                    )
+                })?;
+                return Ok(Some(wgpu::BufferBinding {
+                    buffer,
+                    offset: range.start,
+                    size: Some(size),
+                }));
+            }
+            return Ok(resources
+                .buffer(&declaration.name)
+                .map(|buffer| wgpu::BufferBinding {
+                    buffer,
+                    offset: 0,
+                    size: None,
+                }));
+        }
+        Ok(resources
+            .buffer(resource_name)
+            .map(|buffer| wgpu::BufferBinding {
+                buffer,
+                offset: 0,
+                size: None,
+            }))
     }
 
     pub(in crate::graphics::scene::scene_renderer::graph_execution::render_pass_execution_context::gpu) fn require_owned_texture_by_name<
@@ -246,7 +474,13 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if let Some(resolver) = resource_resolver {
             let declaration =
                 resolver.require_pass_resource_declaration_by_name(resource_name, access)?;
-            resources.require_texture_view_for_declaration(declaration)?;
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(resource_name, access)?
+            {
+                return resources.graph_owned_texture_for_access(access_id);
+            } else {
+                resources.require_texture_view_for_declaration(declaration)?;
+            }
         }
         resources.owned_texture(resource_name).ok_or_else(|| {
             format!("render graph execution owned texture resource `{resource_name}` is not bound")
@@ -264,7 +498,13 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if let Some(resolver) = resource_resolver {
             let declaration =
                 resolver.require_pass_resource_declaration_by_name(resource_name, access)?;
-            resources.require_texture_view_for_declaration(declaration)?;
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(resource_name, access)?
+            {
+                return resources.graph_owned_texture_for_access(access_id);
+            } else {
+                resources.require_texture_view_for_declaration(declaration)?;
+            }
         }
         resources.physical_texture(resource_name).ok_or_else(|| {
             format!(
@@ -290,6 +530,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     "render graph resource `{resource_name}` is a buffer but an owned texture view was requested"
                 ));
             }
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(resource_name, access)?
+            {
+                resources.graph_owned_texture_view_for_access(access_id)?;
+            }
             if resources.texture_view(&declaration.name).is_none() {
                 return Ok(None);
             }
@@ -308,7 +553,13 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if let Some(resolver) = resource_resolver {
             let declaration = resolver
                 .require_pass_resource_declaration_by_name(declared_resource_name, access)?;
-            resources.require_texture_view_for_declaration(declaration)?;
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(declared_resource_name, access)?
+            {
+                resources.graph_owned_texture_view_for_access(access_id)?;
+            } else {
+                resources.require_texture_view_for_declaration(declaration)?;
+            }
         }
         resources.owned_texture_mip_view(physical_texture_name, mip_level)
     }
@@ -322,7 +573,13 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if let Some(resolver) = resource_resolver {
             let declaration =
                 resolver.require_pass_resource_declaration_by_name(resource_name, access)?;
-            resources.require_texture_view_for_declaration(declaration)?;
+            if let Some(access_id) =
+                resolver.exact_graph_owned_texture_access_by_name(resource_name, access)?
+            {
+                resources.graph_owned_texture_view_for_access(access_id)?;
+            } else {
+                resources.require_texture_view_for_declaration(declaration)?;
+            }
         }
         Ok(resources
             .owned_texture_mip_level_count(resource_name)
@@ -339,13 +596,13 @@ mod tests {
         RenderFrameExtract, RenderPluginRendererOutputs, RenderWorldSnapshotHandle,
     };
     use crate::core::math::UVec2;
+    use crate::graphics::ViewportRenderFrame;
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::scene::scene_renderer::graph_execution::{
         RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutorId,
         TransientResourcePool,
     };
     use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
-    use crate::graphics::ViewportRenderFrame;
     use crate::render_graph::{QueueLane, RenderGraphBuilder, RenderGraphResourceAccessKind};
     use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
     use crate::scene::world::World;
@@ -392,7 +649,7 @@ mod tests {
         builder.read_texture(pass, scene_depth).unwrap();
         builder.read_texture(pass, hzb).unwrap();
         builder.write_buffer(pass, hybrid_gi_scene).unwrap();
-        let output = builder.import_external_resource("viewport-output");
+        let output = builder.import_present_external_resource("viewport-output");
         let present = builder.add_pass("present", QueueLane::Graphics);
         builder.read_buffer(present, hybrid_gi_scene).unwrap();
         builder.write_external(present, output).unwrap();
@@ -404,9 +661,14 @@ mod tests {
             .unwrap();
         let mut resources = RenderGraphExecutionResources::new();
         let mut transient_pool = TransientResourcePool::default();
-        transient_pool.begin_frame();
+        transient_pool.begin_frame(backend.device_profile());
         resources
-            .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
+            .materialize_transient_resources_with_pool(
+                &backend.device,
+                backend.device_profile(),
+                &graph,
+                &mut transient_pool,
+            )
             .unwrap();
         let mut encoder = backend
             .device
@@ -461,13 +723,17 @@ mod tests {
             .with_resource_resolver(&graph, pass.id)
             .with_gpu(gpu);
 
-        assert!(context
-            .resource_resolver()
-            .is_some_and(|resolver| resolver.has_physical_resources()));
-        assert!(context
-            .gpu()
-            .and_then(RenderPassGpuExecutionContext::resource_resolver)
-            .is_some_and(|resolver| resolver.has_physical_resources()));
+        assert!(
+            context
+                .resource_resolver()
+                .is_some_and(|resolver| resolver.has_physical_resources())
+        );
+        assert!(
+            context
+                .gpu()
+                .and_then(RenderPassGpuExecutionContext::resource_resolver)
+                .is_some_and(|resolver| resolver.has_physical_resources())
+        );
         context
             .gpu()
             .unwrap()
@@ -506,3 +772,4 @@ mod tests {
         )
     }
 }
+use std::num::NonZeroU64;

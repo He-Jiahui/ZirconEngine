@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 use crate::core::framework::navigation::{
     NavMeshAgentDescriptor, NavPathQuery, NavPathStatus, DEFAULT_AGENT_TYPE, DEFAULT_AREA_MASK,
     NAV_MESH_AGENT_COMPONENT_TYPE,
@@ -84,9 +86,7 @@ pub(super) fn move_entity_with_navigation(
             }
             let mut agent = world
                 .dynamic_component(entity, NAV_MESH_AGENT_COMPONENT_TYPE)
-                .and_then(|value| {
-                    serde_json::from_value::<NavMeshAgentDescriptor>(value.clone()).ok()
-                })
+                .and_then(|value| NavMeshAgentDescriptor::deserialize(value).ok())
                 .unwrap_or_else(NavMeshAgentDescriptor::default);
             agent.agent_type = DEFAULT_AGENT_TYPE.to_string();
             agent.speed = speed.max(0.0);
@@ -134,4 +134,21 @@ pub(super) fn navigation_next_point(
         .get(1)
         .or_else(|| result.points.first())
         .map(|point| Vec3::new(point.position[0], point.position[1], point.position[2]))
+}
+
+#[cfg(test)]
+mod performance_contract_tests {
+    use serde::Deserialize;
+
+    use super::NavMeshAgentDescriptor;
+
+    #[test]
+    fn borrowed_navigation_agent_deserialization_preserves_descriptor() {
+        let expected = NavMeshAgentDescriptor::default();
+        let value = serde_json::to_value(&expected).unwrap();
+
+        let actual = NavMeshAgentDescriptor::deserialize(&value).unwrap();
+
+        assert_eq!(serde_json::to_value(actual).unwrap(), value);
+    }
 }

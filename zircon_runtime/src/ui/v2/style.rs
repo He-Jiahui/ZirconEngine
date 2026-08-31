@@ -235,11 +235,13 @@ impl UiV2RuntimeStyleIndex {
             .nodes
             .get(&node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        let selector_node = SelectorPathNode::from_tree_node(node, None, node.parent.is_none());
+        if self.ancestor_pseudo_segments.is_empty() {
+            return Ok(false);
+        }
         Ok(self
             .ancestor_pseudo_segments
             .iter()
-            .any(|segment| matches_segment_ignoring_state(segment, &selector_node)))
+            .any(|segment| matches_tree_node_segment_ignoring_state(segment, node)))
     }
 
     pub(crate) fn capture_baseline_from_tree(&mut self, tree: &UiTree) {
@@ -711,6 +713,27 @@ fn matches_segment(segment: &UiSelectorSegment, node: &SelectorPathNode) -> bool
         UiSelectorToken::State(state) => node.states.iter().any(|value| value == state),
         UiSelectorToken::Part(_) => false,
         UiSelectorToken::Host => node.is_host,
+    })
+}
+
+fn matches_tree_node_segment_ignoring_state(
+    segment: &UiSelectorSegment,
+    node: &UiTreeNode,
+) -> bool {
+    let metadata = node.template_metadata.as_ref();
+    segment.tokens.iter().all(|token| match token {
+        UiSelectorToken::State(_) => true,
+        UiSelectorToken::Type(component) => metadata.map_or(component.is_empty(), |metadata| {
+            metadata.component.as_str() == component.as_str()
+        }),
+        UiSelectorToken::Class(class_name) => metadata
+            .is_some_and(|metadata| metadata.classes.iter().any(|class| class == class_name)),
+        UiSelectorToken::Id(control_id) => {
+            metadata.and_then(|metadata| metadata.control_id.as_deref())
+                == Some(control_id.as_str())
+        }
+        UiSelectorToken::Part(_) => false,
+        UiSelectorToken::Host => node.parent.is_none(),
     })
 }
 

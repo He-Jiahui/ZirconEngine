@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::ParticleSystemAsset;
+use zircon_runtime::graphics::RenderPassBufferUploadSink;
 
 use super::planner::ParticleGpuFrameParams;
 use super::program::{
@@ -69,6 +70,18 @@ pub struct ParticleGpuBuffers<'a> {
     pub indirect_draw_args: &'a wgpu::Buffer,
     pub counters: &'a wgpu::Buffer,
     pub debug_readback: &'a wgpu::Buffer,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ParticleGpuBackendFrameCommit {
+    input_buffer_index: usize,
+    output_buffer_index: usize,
+}
+
+impl ParticleGpuBackendFrameCommit {
+    pub(crate) fn output_buffer_index(self) -> usize {
+        self.output_buffer_index
+    }
 }
 
 pub struct ParticleGpuBackend {
@@ -280,9 +293,23 @@ impl ParticleGpuBackend {
         &self.program
     }
 
-    /// Returns graph-facing aliases for the last executed frame's ping-pong buffers.
+    /// Returns graph-facing aliases for the last committed frame's ping-pong buffers.
     pub fn active_buffers(&self) -> ParticleGpuBuffers<'_> {
-        let output_buffer_index = self.active_buffer_index;
+        self.buffers_for_output_index(self.active_buffer_index)
+    }
+
+    pub(crate) fn active_buffer_index(&self) -> usize {
+        self.active_buffer_index
+    }
+
+    pub(crate) fn prepared_buffers(
+        &self,
+        prepared: ParticleGpuBackendFrameCommit,
+    ) -> ParticleGpuBuffers<'_> {
+        self.buffers_for_output_index(prepared.output_buffer_index)
+    }
+
+    fn buffers_for_output_index(&self, output_buffer_index: usize) -> ParticleGpuBuffers<'_> {
         let input_buffer_index = 1 - output_buffer_index;
         ParticleGpuBuffers {
             particles_a: &self.particle_buffers[input_buffer_index],
@@ -311,11 +338,11 @@ impl ParticleGpuBackend {
 
     pub fn execute_frame(
         &mut self,
-        queue: &wgpu::Queue,
+        buffer_uploads: &mut dyn RenderPassBufferUploadSink,
         encoder: &mut wgpu::CommandEncoder,
         frame: &ParticleGpuFrameParams,
         readback: ParticleGpuReadbackRequest,
-    ) -> Result<(), ParticleGpuBackendError> {
+    ) -> Result<ParticleGpuBackendFrameCommit, ParticleGpuBackendError> {
         let expected = self.program.layout.emitter_count;
         if frame.emitters.len() != expected as usize {
             return Err(ParticleGpuBackendError::FrameEmitterCountMismatch {
@@ -325,9 +352,10 @@ impl ParticleGpuBackend {
         }
 
         let emitter_bytes = frame.encode_emitters(&self.program.layout);
-        queue.write_buffer(&self.emitter_params_buffer, 0, &emitter_bytes);
-        queue.write_buffer(&self.counters_buffer, 0, &zeroed_counters(expected));
+        buffer_uploads.write_buffer(&self.emitter_params_buffer, 0, &emitter_bytes);
+        buffer_uploads.write_buffer(&self.counters_buffer, 0, &zeroed_counters(expected));
 
+        let output_buffer_index = 1 - self.active_buffer_index;
         let workgroups = self
             .program
             .layout
@@ -341,14 +369,13 @@ impl ParticleGpuBackend {
             pass.set_bind_group(0, &self.update_bind_groups[self.active_buffer_index], &[]);
             pass.dispatch_workgroups(workgroups, 1, 1);
         }
-        self.active_buffer_index = 1 - self.active_buffer_index;
         {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("ParticleGpuCompactAndIndirectPass"),
                 timestamp_writes: None,
             });
             pass.set_pipeline(&self.compact_alive_pipeline);
-            pass.set_bind_group(0, &self.compact_bind_groups[self.active_buffer_index], &[]);
+            pass.set_bind_group(0, &self.compact_bind_groups[output_buffer_index], &[]);
             pass.dispatch_workgroups(workgroups, 1, 1);
             pass.set_pipeline(&self.indirect_args_pipeline);
             pass.dispatch_workgroups(1, 1, 1);
@@ -373,31 +400,46 @@ impl ParticleGpuBackend {
         }
         #[cfg(not(test))]
         let _ = readback;
-        Ok(())
+        Ok(ParticleGpuBackendFrameCommit {
+            input_buffer_index: self.active_buffer_index,
+            output_buffer_index,
+        })
+    }
+
+    pub(crate) fn commit_prepared_frame(
+        &mut self,
+        prepared: ParticleGpuBackendFrameCommit,
+    ) -> bool {
+        if self.active_buffer_index != prepared.input_buffer_index {
+            return false;
+        }
+        self.active_buffer_index = prepared.output_buffer_index;
+        true
     }
 
     #[allow(clippy::too_many_arguments)]
     pub fn record_transparent_render(
         &self,
-        queue: &wgpu::Queue,
+        buffer_uploads: &mut dyn RenderPassBufferUploadSink,
         encoder: &mut wgpu::CommandEncoder,
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         params: ParticleGpuTransparentRenderParams,
         render_region: zircon_runtime::graphics::ViewportRenderRegion,
+        output_buffer_index: usize,
     ) -> Result<(), ParticleGpuBackendError> {
         let renderer = self
             .transparent_renderer
             .as_ref()
             .ok_or(ParticleGpuBackendError::TransparentRendererUnavailable)?;
         renderer.record(
-            queue,
+            buffer_uploads,
             encoder,
             color_view,
             depth_view,
             scene_bind_group,
-            self.active_buffer_index,
+            output_buffer_index,
             &self.indirect_draw_args_buffer,
             params,
             render_region,

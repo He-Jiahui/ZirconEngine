@@ -37,7 +37,6 @@ impl RuntimeEntryApp {
         &mut self,
         request: ZrRuntimeGamepadRumbleRequestV1,
     ) -> Result<(), &'static str> {
-        clear_finished_rumble_effects(self.gamepad_rumble_effects.as_mut());
         let Some(gamepads) = self.gamepads.as_mut() else {
             return Err("runtime_gamepad_rumble_gilrs_unavailable");
         };
@@ -276,9 +275,6 @@ mod tests {
             .filter(|character| !character.is_whitespace())
             .collect::<String>();
 
-        let clear = source
-            .find("clear_finished_rumble_effects(self.gamepad_rumble_effects.as_mut());")
-            .expect("rumble Add clears expired effects before admission");
         let admission = source
             .find("admit_rumble_effect(active_effect_count)?;")
             .expect("rumble Add checks the per-gamepad hard limit");
@@ -292,7 +288,7 @@ mod tests {
             .find(".push(RunningRumbleEffect{")
             .expect("rumble Add publishes the running effect after play succeeds");
 
-        assert!(clear < admission && admission < finish && finish < play && play < publish);
+        assert!(admission < finish && finish < play && play < publish);
         assert!(source
             .contains("ZrRuntimeGamepadRumbleRequestKindV1::Stop=>{stop_gamepad_rumble_effects("));
         assert!(source.contains("effects.retain(|effect|effect.deadline>now);"));

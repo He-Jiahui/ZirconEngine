@@ -10,9 +10,9 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::{
-    family_for_slot_kind, CssLikeConstraint, CssLikeConstraintError, CssLikeConstraintProperty,
-    CssLikeDimension, CssLikeEdges, CssLikeGap, CssLikeGridTrack, CssLikeGridTrackBreadth,
-    CssLikeOverflow, CssLikeSize,
+    family_for_slot_kind, unsupported_viewport_unit, CssLikeConstraint, CssLikeConstraintError,
+    CssLikeConstraintProperty, CssLikeDimension, CssLikeEdges, CssLikeGap, CssLikeGridTrack,
+    CssLikeGridTrackBreadth, CssLikeOverflow, CssLikeSize,
 };
 
 #[test]
@@ -495,4 +495,68 @@ fn non_finite_and_negative_pixel_dimensions_are_rejected_during_parsing() {
         CssLikeOverflow::Scroll
     );
     assert_eq!(CssLikeOverflow::Scroll.resolve(), UiOverflow::Scroll);
+}
+
+#[test]
+fn optimization_batch_gq_editor429_viewport_unit_dispatch_preserves_rules() {
+    for (value, unit) in [
+        ("10vw", "vw"),
+        ("10vh", "vh"),
+        ("10vmin", "vmin"),
+        ("10vmax", "vmax"),
+    ] {
+        assert_eq!(unsupported_viewport_unit(value), Some(unit));
+        assert_eq!(
+            CssLikeDimension::from_str(value),
+            Err(CssLikeConstraintError::KnownUnsupportedUnit { unit })
+        );
+    }
+
+    for value in ["", "10px", "preview", "10vmaxx"] {
+        assert_eq!(unsupported_viewport_unit(value), None);
+    }
+}
+
+#[test]
+#[ignore = "release benchmark submitted to the validation coordinator"]
+fn optimization_batch_gq_editor429_viewport_unit_suffix_dispatch_benchmark() {
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    const MARKER: &str = "EDITOR429_VIEWPORT_UNIT_SUFFIX_DISPATCH_BENCH_V1";
+    const SAMPLES: usize = 31;
+    const ITERATIONS: usize = 100_000;
+    let value = "123456789vmax";
+    let mut optimized_samples = Vec::with_capacity(SAMPLES);
+    let mut legacy_samples = Vec::with_capacity(SAMPLES);
+
+    for _ in 0..SAMPLES {
+        let started_at = Instant::now();
+        for _ in 0..ITERATIONS {
+            assert_eq!(unsupported_viewport_unit(black_box(value)), Some("vmax"));
+        }
+        optimized_samples.push(started_at.elapsed().as_nanos() / ITERATIONS as u128);
+
+        let started_at = Instant::now();
+        for _ in 0..ITERATIONS {
+            let value = black_box(value);
+            let unit = ["vw", "vh", "vmin", "vmax"]
+                .into_iter()
+                .find(|unit| value.ends_with(unit));
+            assert_eq!(unit, Some("vmax"));
+        }
+        legacy_samples.push(started_at.elapsed().as_nanos() / ITERATIONS as u128);
+    }
+
+    let optimized_p95_ns = p95(&mut optimized_samples);
+    let legacy_p95_ns = p95(&mut legacy_samples);
+    eprintln!(
+        "{MARKER} optimized_p95_ns={optimized_p95_ns} legacy_p95_ns={legacy_p95_ns} gate=optimized_p95_ns<=legacy_p95_ns*0.90"
+    );
+    assert!(optimized_p95_ns <= legacy_p95_ns * 90 / 100);
+}
+
+fn p95(samples: &mut [u128]) -> u128 {
+    samples.sort_unstable();
+    samples[samples.len().saturating_mul(95).div_ceil(100) - 1]
 }

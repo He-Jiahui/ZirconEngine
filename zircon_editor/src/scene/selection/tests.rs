@@ -1,4 +1,5 @@
 use super::{SelectionModel, SelectionMutation, WorldDomain};
+use crate::core::play::PlayInstanceId;
 use crate::scene::viewport::SceneViewportController;
 use zircon_runtime_interface::math::UVec2;
 
@@ -18,19 +19,42 @@ fn selection_preserves_order_primary_and_generation() {
 #[test]
 fn edit_and_play_selection_are_isolated() {
     let mut selection = SelectionModel::default();
+    let play = play_domain(1);
     selection.select_only(WorldDomain::Edit, 11);
-    selection.select_only(WorldDomain::Play, 42);
 
     assert_eq!(selection.active_domain(), WorldDomain::Edit);
     assert_eq!(active_items(&selection), [11]);
     let revision_before_switch = selection.revision();
 
-    assert!(selection.set_active_domain(WorldDomain::Play));
+    assert!(selection.activate_play_domain(play_instance(1)));
+    selection.select_only(play, 42);
     assert_eq!(active_items(&selection), [42]);
     assert_eq!(selection.active_primary(), Some(42));
     assert_eq!(ordered_items(&selection, WorldDomain::Edit), [11]);
-    assert_eq!(selection.revision(), revision_before_switch + 1);
-    assert!(!selection.set_active_domain(WorldDomain::Play));
+    assert_eq!(selection.revision(), revision_before_switch + 2);
+    assert!(!selection.set_active_domain(play));
+}
+
+#[test]
+fn play_instances_have_independent_selection_and_retirement() {
+    let mut selection = SelectionModel::default();
+    let first = play_domain(1);
+    let second = play_domain(2);
+    selection.select_only(WorldDomain::Edit, 7);
+
+    assert!(selection.activate_play_domain(play_instance(1)));
+    assert!(selection.select_only(first, 11));
+    assert!(selection.activate_play_domain(play_instance(2)));
+    assert_eq!(active_items(&selection), [7]);
+    assert!(selection.select_only(second, 22));
+    assert_eq!(ordered_items(&selection, first), [11]);
+    assert_eq!(ordered_items(&selection, second), [22]);
+
+    assert!(selection.retire_play_domain(play_instance(2)));
+    assert_eq!(selection.active_domain(), WorldDomain::Edit);
+    assert_eq!(active_items(&selection), [7]);
+    assert!(selection.items(second).is_empty());
+    assert_eq!(ordered_items(&selection, first), [11]);
 }
 
 #[test]
@@ -70,8 +94,22 @@ fn active_selection_mutation_applies_replace_extend_and_toggle_semantics() {
 }
 
 #[test]
+fn toggle_mutation_canonicalizes_duplicate_targets() {
+    let mut selection = SelectionModel::default();
+    assert!(selection.select_only_active(10));
+    let revision_before_toggle = selection.revision();
+
+    assert!(selection.apply_active([20, 20], SelectionMutation::Toggle));
+
+    assert_eq!(active_items(&selection), [10, 20]);
+    assert_eq!(selection.active_primary(), Some(20));
+    assert_eq!(selection.revision(), revision_before_toggle + 1);
+}
+
+#[test]
 fn viewport_selection_uses_the_active_world_domain_model() {
     let mut viewport = SceneViewportController::new(UVec2::new(1280, 720));
+    let play = play_domain(1);
 
     assert!(viewport.selection_mut().select_only_active(11));
     assert_eq!(viewport.selection().active_primary(), Some(11));
@@ -79,10 +117,11 @@ fn viewport_selection_uses_the_active_world_domain_model() {
 
     assert!(viewport
         .selection_mut()
-        .set_active_domain(WorldDomain::Play));
-    assert_eq!(viewport.selection().active_primary(), None);
+        .activate_play_domain(play_instance(1)));
+    assert_eq!(viewport.selection().active_primary(), Some(11));
+    assert!(viewport.selection_mut().clear_active());
     assert!(viewport.selection_mut().select_only_active(42));
-    assert_eq!(ordered_items(viewport.selection(), WorldDomain::Play), [42]);
+    assert_eq!(ordered_items(viewport.selection(), play), [42]);
     assert_eq!(ordered_items(viewport.selection(), WorldDomain::Edit), [11]);
 }
 
@@ -99,4 +138,12 @@ fn ordered_items(selection: &SelectionModel, domain: WorldDomain) -> Vec<u64> {
 
 fn active_items(selection: &SelectionModel) -> Vec<u64> {
     selection.active_items().iter().copied().collect()
+}
+
+fn play_instance(raw: u64) -> PlayInstanceId {
+    PlayInstanceId::for_test(raw)
+}
+
+fn play_domain(raw: u64) -> WorldDomain {
+    WorldDomain::Play(play_instance(raw))
 }

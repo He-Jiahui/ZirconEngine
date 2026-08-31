@@ -9,6 +9,11 @@ use super::{ProjectManifest, ProjectManifestError};
 impl ProjectManifest {
     pub fn from_toml_str(document: &str) -> Result<Loaded<Self>, ProjectManifestError> {
         let loaded = load_project_manifest_value_from_toml_str(document)?;
+        if let Some(source_format_version) = loaded.migrated_from {
+            return Err(ProjectManifestError::MigrationRequired {
+                source_format_version,
+            });
+        }
         let manifest: ProjectManifest = serde_json::from_value(loaded.value)
             .map_err(|source| ProjectManifestError::Decode { source })?;
         let result = Loaded {

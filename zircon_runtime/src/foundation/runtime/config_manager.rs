@@ -13,7 +13,9 @@ use std::time::Duration;
 
 use serde_json::Value;
 
-use crate::core::framework::foundation::{ConfigManager, ConfigPersistenceReport};
+use crate::core::framework::foundation::{
+    ConfigManager, ConfigManagerError, ConfigPersistenceReport,
+};
 use crate::core::{CoreError, CoreHandle, CoreWeak};
 
 use super::config_path::config_file_path;
@@ -69,8 +71,10 @@ impl DefaultConfigManager {
         })
     }
 
-    fn runtime_core(&self) -> Result<CoreHandle, CoreError> {
-        self.core.upgrade().ok_or(CoreError::RuntimeUnavailable)
+    fn runtime_core(&self) -> Result<CoreHandle, ConfigManagerError> {
+        self.core
+            .upgrade()
+            .ok_or(ConfigManagerError::RuntimeUnavailable)
     }
 }
 
@@ -85,7 +89,7 @@ impl fmt::Debug for DefaultConfigManager {
 }
 
 impl ConfigManager for DefaultConfigManager {
-    fn set_value(&self, key: &str, value: Value) -> Result<(), CoreError> {
+    fn set_value(&self, key: &str, value: Value) -> Result<(), ConfigManagerError> {
         let core = self.runtime_core()?;
         let changed = store_config_value_if_changed(&core, key, value);
         self.persistence.request_persistence(changed);
@@ -98,7 +102,7 @@ impl ConfigManager for DefaultConfigManager {
             .and_then(|core| core.load_config_value(key))
     }
 
-    fn flush(&self, timeout: Duration) -> Result<(), CoreError> {
+    fn flush(&self, timeout: Duration) -> Result<(), ConfigManagerError> {
         self.persistence.flush(timeout)
     }
 

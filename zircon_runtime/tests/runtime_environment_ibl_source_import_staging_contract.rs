@@ -15,8 +15,9 @@ use zircon_runtime::asset::{
     AssetUri, EnvironmentIblSourceStagingStatus,
 };
 use zircon_runtime::core::framework::render::IblBakeArtifactContents;
-use zircon_runtime::core::framework::tasks::{ParallelSliceExecutor, TaskPoolDescriptor};
+use zircon_runtime::core::framework::tasks::ParallelSliceExecutor;
 use zircon_runtime::core::runtime::tasks::TaskPool;
+use zircon_runtime::core::TaskPoolDescriptor;
 
 #[test]
 fn hdr_decode_preserves_linear_radiance_above_one() {

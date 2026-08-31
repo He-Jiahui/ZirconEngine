@@ -5,8 +5,8 @@ use super::PostProcessEffectKind;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PostProcessChainSlot {
-    TaaResolve,
     DepthOfField,
+    TaaResolve,
     MotionBlur,
     Bloom,
     ExposureHistogram,
@@ -16,14 +16,15 @@ pub enum PostProcessChainSlot {
     ColorLutBake,
     Uber,
     TerminalAntiAlias,
-    Upscale,
+    PrimaryUpscale,
+    SecondaryUpscale,
     OutputTransfer,
 }
 
 impl PostProcessChainSlot {
-    pub const BACKBONE: [Self; 13] = [
-        Self::TaaResolve,
+    pub const BACKBONE: [Self; 14] = [
         Self::DepthOfField,
+        Self::TaaResolve,
         Self::MotionBlur,
         Self::Bloom,
         Self::ExposureHistogram,
@@ -33,7 +34,8 @@ impl PostProcessChainSlot {
         Self::ColorLutBake,
         Self::Uber,
         Self::TerminalAntiAlias,
-        Self::Upscale,
+        Self::PrimaryUpscale,
+        Self::SecondaryUpscale,
         Self::OutputTransfer,
     ];
 
@@ -54,7 +56,8 @@ impl PostProcessChainSlot {
             Self::ColorLutBake => "color-lut-bake",
             Self::Uber => "uber",
             Self::TerminalAntiAlias => "terminal-anti-alias",
-            Self::Upscale => "upscale",
+            Self::PrimaryUpscale => "primary-upscale",
+            Self::SecondaryUpscale => "secondary-upscale",
             Self::OutputTransfer => "output-transfer",
         }
     }
@@ -72,7 +75,8 @@ impl PostProcessChainSlot {
             Self::ColorLutBake => "post.color-lut-bake",
             Self::Uber => "post.uber",
             Self::TerminalAntiAlias => "post.terminal-aa",
-            Self::Upscale => "post.upscale",
+            Self::PrimaryUpscale => "post.primary-upscale",
+            Self::SecondaryUpscale => "post.secondary-upscale",
             Self::OutputTransfer => "post.output-transfer",
         }
     }
@@ -84,17 +88,18 @@ impl PostProcessChainSlot {
     /// order from neighbouring list entries.
     pub const fn pipeline_phase(self) -> RenderPipelinePhase {
         match self {
+            Self::DepthOfField => RenderPipelinePhase::PreReconstructionScenePostProcess,
             Self::TaaResolve => RenderPipelinePhase::TemporalReconstruction,
-            Self::DepthOfField
-            | Self::MotionBlur
+            Self::MotionBlur
             | Self::Bloom
             | Self::ExposureHistogram
             | Self::ExposureResolve
             | Self::SceneComposite
-            | Self::Blur => RenderPipelinePhase::SceneLinearPostProcess,
+            | Self::Blur => RenderPipelinePhase::PostReconstructionScenePostProcess,
             Self::ColorLutBake | Self::Uber => RenderPipelinePhase::DisplayMapping,
             Self::TerminalAntiAlias => RenderPipelinePhase::DisplayPostProcess,
-            Self::Upscale => RenderPipelinePhase::SpatialUpscale,
+            Self::PrimaryUpscale => RenderPipelinePhase::PrimarySpatialUpscale,
+            Self::SecondaryUpscale => RenderPipelinePhase::SecondarySpatialUpscale,
             Self::OutputTransfer => RenderPipelinePhase::OutputTransform,
         }
     }
@@ -115,7 +120,8 @@ impl PostProcessChainSlot {
             | PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse
             | PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion
             | PostProcessEffectKind::ScreenSpaceReflectionResolve => Self::SceneComposite,
-            PostProcessEffectKind::Upscale => Self::Upscale,
+            PostProcessEffectKind::PrimaryUpscale => Self::PrimaryUpscale,
+            PostProcessEffectKind::SecondaryUpscale => Self::SecondaryUpscale,
             PostProcessEffectKind::OutputTransfer => Self::OutputTransfer,
             PostProcessEffectKind::Fxaa | PostProcessEffectKind::Smaa => Self::TerminalAntiAlias,
         }
@@ -142,8 +148,8 @@ mod tests {
         assert_eq!(
             labels,
             vec![
-                "taa-resolve",
                 "depth-of-field",
+                "taa-resolve",
                 "motion-blur",
                 "bloom",
                 "exposure-histogram",
@@ -153,7 +159,8 @@ mod tests {
                 "color-lut-bake",
                 "uber",
                 "terminal-anti-alias",
-                "upscale",
+                "primary-upscale",
+                "secondary-upscale",
                 "output-transfer",
             ]
         );
@@ -210,8 +217,12 @@ mod tests {
                 PostProcessChainSlot::SceneComposite,
             ),
             (
-                PostProcessEffectKind::Upscale,
-                PostProcessChainSlot::Upscale,
+                PostProcessEffectKind::PrimaryUpscale,
+                PostProcessChainSlot::PrimaryUpscale,
+            ),
+            (
+                PostProcessEffectKind::SecondaryUpscale,
+                PostProcessChainSlot::SecondaryUpscale,
             ),
             (
                 PostProcessEffectKind::OutputTransfer,
@@ -246,8 +257,8 @@ mod tests {
         assert_eq!(
             executor_ids,
             vec![
-                "temporal.taa-resolve",
                 "post.depth-of-field",
+                "temporal.taa-resolve",
                 "post.motion-blur",
                 "post.bloom",
                 "post.exposure.histogram",
@@ -257,7 +268,8 @@ mod tests {
                 "post.color-lut-bake",
                 "post.uber",
                 "post.terminal-aa",
-                "post.upscale",
+                "post.primary-upscale",
+                "post.secondary-upscale",
                 "post.output-transfer",
             ]
         );
@@ -267,36 +279,36 @@ mod tests {
     fn render_post_chain_slots_map_to_view_family_phases() {
         let mappings = [
             (
+                PostProcessChainSlot::DepthOfField,
+                RenderPipelinePhase::PreReconstructionScenePostProcess,
+            ),
+            (
                 PostProcessChainSlot::TaaResolve,
                 RenderPipelinePhase::TemporalReconstruction,
             ),
             (
-                PostProcessChainSlot::DepthOfField,
-                RenderPipelinePhase::SceneLinearPostProcess,
-            ),
-            (
                 PostProcessChainSlot::MotionBlur,
-                RenderPipelinePhase::SceneLinearPostProcess,
+                RenderPipelinePhase::PostReconstructionScenePostProcess,
             ),
             (
                 PostProcessChainSlot::Bloom,
-                RenderPipelinePhase::SceneLinearPostProcess,
+                RenderPipelinePhase::PostReconstructionScenePostProcess,
             ),
             (
                 PostProcessChainSlot::ExposureHistogram,
-                RenderPipelinePhase::SceneLinearPostProcess,
+                RenderPipelinePhase::PostReconstructionScenePostProcess,
             ),
             (
                 PostProcessChainSlot::ExposureResolve,
-                RenderPipelinePhase::SceneLinearPostProcess,
+                RenderPipelinePhase::PostReconstructionScenePostProcess,
             ),
             (
                 PostProcessChainSlot::SceneComposite,
-                RenderPipelinePhase::SceneLinearPostProcess,
+                RenderPipelinePhase::PostReconstructionScenePostProcess,
             ),
             (
                 PostProcessChainSlot::Blur,
-                RenderPipelinePhase::SceneLinearPostProcess,
+                RenderPipelinePhase::PostReconstructionScenePostProcess,
             ),
             (
                 PostProcessChainSlot::ColorLutBake,
@@ -311,8 +323,12 @@ mod tests {
                 RenderPipelinePhase::DisplayPostProcess,
             ),
             (
-                PostProcessChainSlot::Upscale,
-                RenderPipelinePhase::SpatialUpscale,
+                PostProcessChainSlot::PrimaryUpscale,
+                RenderPipelinePhase::PrimarySpatialUpscale,
+            ),
+            (
+                PostProcessChainSlot::SecondaryUpscale,
+                RenderPipelinePhase::SecondarySpatialUpscale,
             ),
             (
                 PostProcessChainSlot::OutputTransfer,

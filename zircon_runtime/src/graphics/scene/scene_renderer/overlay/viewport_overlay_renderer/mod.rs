@@ -1,3 +1,4 @@
+mod commit_pending_icon_uploads;
 mod construct;
 mod pass_order;
 mod prepare_buffers;

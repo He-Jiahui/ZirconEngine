@@ -15,6 +15,7 @@ use crate::core::editor_extension::{
 };
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::extension::{FieldEditorDefinition, InspectorCustomization};
+use crate::core::i18n::EditorLocalizationBundle;
 use crate::core::settings::SettingsPageDescriptor;
 use crate::scene::modes::SceneModeRegistration;
 
@@ -65,6 +66,7 @@ pub struct ContributionSnapshot {
         IndexedMap<String, Arc<dyn EditorUiTemplatePaneDataSource>>,
     pub(super) asset_importers: IndexedMap<String, AssetImporterDescriptor>,
     pub(super) asset_type_contributions: IndexedMap<AssetTypeId, AssetTypeContribution>,
+    pub(super) localization_bundles: IndexedMap<String, EditorLocalizationBundle>,
     pub(super) settings_pages: IndexedMap<String, SettingsPageDescriptor>,
     pub(super) scene_modes: IndexedMap<String, SceneModeRegistration>,
     pub(super) viewport_overlay_providers: IndexedMap<String, ViewportOverlayProviderRegistration>,
@@ -115,6 +117,11 @@ impl ContributionSnapshot {
         asset_type_contributions,
         asset_type_contributions,
         AssetTypeContribution
+    );
+    snapshot_iter!(
+        localization_bundles,
+        localization_bundles,
+        EditorLocalizationBundle
     );
     snapshot_iter!(settings_pages, settings_pages, SettingsPageDescriptor);
     snapshot_iter!(

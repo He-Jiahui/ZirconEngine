@@ -1005,6 +1005,59 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue(any(item.code == "untracked_target" for item in applied.denied))
         self.assertTrue(untracked.exists())
 
+    def test_persisted_plan_records_duplicate_target_attempts_independently(self) -> None:
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
+        self.jobs.release(job.job_id, session_id="session-a")
+        cleanup_time = datetime.now(UTC) + timedelta(days=2)
+        plan_id = "duplicate-target-plan"
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cleanup_plans(
+                    plan_id, generated_at, older_than_hours, candidates_json, status
+                ) VALUES (?, ?, 1, ?, 'planned')
+                """,
+                (
+                    plan_id,
+                    cleanup_time.isoformat(),
+                    json.dumps([job.target_dir, job.target_dir]),
+                ),
+            )
+
+        applied = self.cleanup.apply(self.cleanup.get_plan(plan_id), now=cleanup_time)
+
+        self.assertEqual((job.target_dir,), applied.deleted)
+        self.assertEqual(("target_missing",), tuple(item.code for item in applied.denied))
+        completed = self.cleanup_events("cleanup.target_deletion_completed")
+        self.assertEqual(["deleted", "retained"], [item["result"] for item in completed])
+        self.assertTrue(completed[0]["before"]["target_exists"])
+        self.assertFalse(completed[1]["before"]["target_exists"])
+        with self.database.connect() as connection:
+            lane_events = connection.execute(
+                """SELECT event_type FROM events
+                   WHERE event_type IN (
+                       'cleanup.cargo_lane_deleted', 'cleanup.cargo_lane_retained'
+                   )
+                   ORDER BY event_id"""
+            ).fetchall()
+            self.assertEqual(
+                ["cleanup.cargo_lane_deleted", "cleanup.cargo_lane_retained"],
+                [row["event_type"] for row in lane_events],
+            )
+            self.assertEqual(
+                0,
+                connection.execute(
+                    "SELECT COUNT(*) FROM cleanup_reservations WHERE reservation_kind='cargo'"
+                ).fetchone()[0],
+            )
+            self.assertEqual(
+                "applied",
+                connection.execute(
+                    "SELECT status FROM cleanup_plans WHERE plan_id=?", (plan_id,)
+                ).fetchone()[0],
+            )
+        self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
+
     def test_cleanup_refuses_active_legacy_descendant(self) -> None:
         parent = self.acquire_reusable(CargoLaneKind.CHECK)
         self.jobs.release(parent.job_id, session_id="session-a")

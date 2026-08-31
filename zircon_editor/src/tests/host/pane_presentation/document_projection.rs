@@ -73,19 +73,22 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
             dirty: false,
             host: ViewHost::Document(MainPageId::workbench(), vec![]),
         };
-        let layout = WorkbenchLayout {
+        let mut layout = WorkbenchLayout {
             active_main_page: MainPageId::workbench(),
             main_pages: vec![MainHostPageLayout::WorkbenchPage {
                 id: MainPageId::workbench(),
                 title: "Workbench".to_string(),
                 activity_window: ActivityWindowId::workbench(),
-                document_workspace: DocumentNode::Tabs(TabStackLayout {
-                    tabs: vec![instance_id.clone()],
-                    active_tab: Some(instance_id.clone()),
-                }),
             }],
             ..WorkbenchLayout::default()
         };
+        *layout
+            .content_workspace_for_page_mut(&MainPageId::workbench())
+            .expect("workbench page should resolve its activity-window content workspace") =
+            DocumentNode::Tabs(TabStackLayout {
+                tabs: vec![instance_id.clone()],
+                active_tab: Some(instance_id.clone()),
+            });
         let chrome = EditorChromeSnapshot::build(
             editor_data_fixture(),
             &layout,

@@ -1,8 +1,11 @@
 #![cfg(windows)]
 
 use std::fs;
+use std::time::{Duration, Instant};
 
 use zircon_runtime::asset::AssetUri;
+
+use crate::core::jobs::test_job_system;
 
 use super::super::{
     NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest, SceneOpenRequest,
@@ -39,6 +42,37 @@ fn project_authority_opens_a_project_owned_scene_by_canonical_uri() {
         .any(|node| node.name == "Cube"));
 
     drop(project);
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
+fn project_authority_scene_open_job_returns_the_typed_document() {
+    let location = temp_root("scene-open-job");
+    let draft = NewProjectDraft {
+        project_name: "Scene Open Job".to_string(),
+        location: location.to_string_lossy().into_owned(),
+        template: NewProjectTemplate::RenderableEmpty,
+    };
+    let created = ProjectAuthority::default().create_project(&draft).unwrap();
+    let mut project = created.into_project();
+    project.scan_and_import().unwrap();
+    let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
+    let jobs = test_job_system();
+
+    let ticket = ProjectAuthority::default()
+        .submit_scene_open(&jobs, project, SceneOpenRequest::new(scene_uri.clone()))
+        .unwrap();
+    let document = ticket
+        .wait_until(Instant::now() + Duration::from_secs(5))
+        .expect("scene load job must finish before the test deadline")
+        .unwrap();
+
+    assert_eq!(document.scene_uri(), &scene_uri);
+    assert!(document
+        .world()
+        .nodes()
+        .iter()
+        .any(|node| node.name == "Cube"));
     fs::remove_dir_all(location).unwrap();
 }
 

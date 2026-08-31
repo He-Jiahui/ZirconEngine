@@ -38,7 +38,6 @@ impl zircon_editor::EditorPlugin for TextureEditorPlugin {
                     TEXTURE_AUTHORING_VIEW_ID,
                     "Texture",
                     "Assets",
-                    "Plugins/Texture",
                 )],
             },
         )

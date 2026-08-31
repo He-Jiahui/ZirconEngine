@@ -69,19 +69,25 @@ impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
             .inbound
             .lock()
             .expect("net WebSocket inbound mutex poisoned");
-        let mut frames = Vec::new();
+        let drain_count = max_frames.min(inbound.len());
+        let mut frames = Vec::with_capacity(drain_count);
+        let mut received_close = false;
         while frames.len() < max_frames {
             match inbound.pop_front() {
                 Some(NetWebSocketFrame::Close(reason)) => {
-                    *self
-                        .state
-                        .lock()
-                        .expect("net WebSocket state mutex poisoned") = NetConnectionState::Closed;
+                    received_close = true;
                     frames.push(NetWebSocketFrame::Close(reason));
                 }
                 Some(frame) => frames.push(frame),
                 None => break,
             }
+        }
+        drop(inbound);
+        if received_close {
+            *self
+                .state
+                .lock()
+                .expect("net WebSocket state mutex poisoned") = NetConnectionState::Closed;
         }
         frames
     }

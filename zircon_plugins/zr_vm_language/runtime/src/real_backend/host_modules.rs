@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime::core::framework::script::{
     ScriptHostArguments, ScriptHostFunctionDescriptor, ScriptHostPrototypeKind,
 };
@@ -29,6 +31,7 @@ pub(super) fn register_host_modules(
         registrations.push(register_extension_host_module(runtime, host)?);
     }
     let call_table = host.host_exports.script_call_table();
+    let capabilities = Arc::new(host.capabilities.clone());
     for module in host.host_exports.modules() {
         let mut builder = zrvm::ModuleBuilder::new(&module.descriptor.name)
             .module_version(&module.descriptor.version);
@@ -70,7 +73,7 @@ pub(super) fn register_host_modules(
                 &module.descriptor.name,
                 function,
                 call_site,
-                host.capabilities.clone(),
+                Arc::clone(&capabilities),
             )?);
         }
 
@@ -95,20 +98,28 @@ pub(super) fn validate_native_function_arity(
     module_name: &str,
     function: &ScriptHostFunctionDescriptor,
 ) -> Result<(u16, u16), VmError> {
-    let label = native_function_label(module_name, &function.name);
-    let min = u16::try_from(function.min_argument_count)
-        .map_err(|_| VmError::Operation(format!("zr_vm function {label} min arity exceeds u16")))?;
-    let max = u16::try_from(function.max_argument_count)
-        .map_err(|_| VmError::Operation(format!("zr_vm function {label} max arity exceeds u16")))?;
+    let min = u16::try_from(function.min_argument_count).map_err(|_| {
+        VmError::Operation(format!(
+            "zr_vm function {module_name}.{} min arity exceeds u16",
+            function.name
+        ))
+    })?;
+    let max = u16::try_from(function.max_argument_count).map_err(|_| {
+        VmError::Operation(format!(
+            "zr_vm function {module_name}.{} max arity exceeds u16",
+            function.name
+        ))
+    })?;
     if function.min_argument_count > function.max_argument_count {
         return Err(VmError::Operation(format!(
-            "zr_vm function {label} min arity {} exceeds max arity {}",
-            function.min_argument_count, function.max_argument_count
+            "zr_vm function {module_name}.{} min arity {} exceeds max arity {}",
+            function.name, function.min_argument_count, function.max_argument_count
         )));
     }
     if function.parameters.len() > function.max_argument_count {
         return Err(VmError::Operation(format!(
-            "zr_vm function {label} declares {} parameters but max arity is {}",
+            "zr_vm function {module_name}.{} declares {} parameters but max arity is {}",
+            function.name,
             function.parameters.len(),
             function.max_argument_count
         )));
@@ -120,16 +131,17 @@ fn build_native_function(
     module_name: &str,
     function: &ScriptHostFunctionDescriptor,
     call_site: ScriptCallSite,
-    capabilities: CapabilitySet,
+    capabilities: Arc<CapabilitySet>,
 ) -> Result<zrvm::FunctionBuilder, VmError> {
-    let function_name = function.name.clone();
-    let label = native_function_label(module_name, &function_name);
     let (min, max) = validate_native_function_arity(module_name, function)?;
-    let callback_label = label.clone();
+    let callback_label = native_function_label(module_name, &function.name);
     let mut builder = zrvm::FunctionBuilder::new(&function.name, min, max, move |context| {
         let argument_source = ZrVmScriptHostArgumentSource::new(context, &callback_label)?;
         let value = call_site
-            .call(ScriptHostArguments::new(&argument_source), &capabilities)
+            .call(
+                ScriptHostArguments::new(&argument_source),
+                capabilities.as_ref(),
+            )
             .map_err(|error| {
                 zr_error(format!(
                     "zr_vm host callback {callback_label} failed: {error}"

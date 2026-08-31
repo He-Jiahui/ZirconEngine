@@ -13,7 +13,14 @@ pub(super) fn push_svg_variants(candidates: &mut Vec<PathBuf>, path: PathBuf) {
 }
 
 pub(super) fn push_candidate(candidates: &mut Vec<PathBuf>, path: PathBuf) {
+    if candidates.last() == Some(&path) {
+        return;
+    }
     if !candidates.iter().any(|candidate| candidate == &path) {
         candidates.push(path);
     }
 }
+
+#[cfg(test)]
+#[path = "variants/last_candidate_tests.rs"]
+mod last_candidate_tests;

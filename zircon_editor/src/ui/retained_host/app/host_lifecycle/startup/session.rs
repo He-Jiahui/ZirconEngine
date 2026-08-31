@@ -5,7 +5,7 @@ use super::super::super::*;
 #[cfg(not(test))]
 pub(super) fn resolve_startup_state(
     editor_manager: &EditorManager,
-    session: &EditorStartupSessionDocument,
+    session: &mut EditorStartupSessionDocument,
     viewport_size: UVec2,
 ) -> Result<EditorState, Box<dyn Error>> {
     build_startup_state(editor_manager, session, viewport_size)
@@ -14,7 +14,7 @@ pub(super) fn resolve_startup_state(
 #[cfg(test)]
 pub(super) fn resolve_startup_state(
     editor_manager: &EditorManager,
-    session: &EditorStartupSessionDocument,
+    session: &mut EditorStartupSessionDocument,
     viewport_size: UVec2,
 ) -> Result<EditorState, Box<dyn Error>> {
     build_startup_state(editor_manager, session, viewport_size).or_else(|error| {

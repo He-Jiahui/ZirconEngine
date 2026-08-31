@@ -36,7 +36,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_qu
 }
 
 fn quad_border_color_from_host(border_width: f32, palette: HostMaterialPalette) -> Option<[u8; 4]> {
-    (border_width > 0.0).then_some(palette.focus_ring)
+    // A geometry border is neutral chrome; focus-visible is painted by the
+    // state-aware selectors and must not leak into every bordered demo.
+    (border_width > 0.0).then_some(palette.border)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn node_radius(
@@ -68,9 +70,10 @@ mod tests {
     use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 
     #[test]
-    fn mui_x_shared_quad_border_projects_from_host_palette() {
+    fn mui_x_shared_quad_border_projects_from_host_border_palette() {
         let mut palette = PALETTE;
-        palette.focus_ring = [10, 11, 12, 255];
+        palette.border = [10, 11, 12, 255];
+        palette.focus_ring = [90, 91, 92, 255];
 
         assert_eq!(
             quad_border_color_from_host(1.0, palette),

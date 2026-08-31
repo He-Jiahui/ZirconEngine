@@ -9,10 +9,11 @@ use crate::core::framework::render::{
 };
 
 use super::{
-    dependency, generate_material_artifact, language::default_shader_language,
-    ShaderDependencyAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset,
-    ShaderMaterialPropertyAsset, ShaderOptionAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
-    ShaderTextureSlotAsset,
+    classify_surface_source_contract, dependency, generate_material_artifact,
+    language::default_shader_language, ShaderDependencyAsset, ShaderEntryPointAsset,
+    ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderOptionAsset,
+    ShaderSourceFileAsset, ShaderSourceLanguage, ShaderSurfaceSourceContract,
+    ShaderSurfaceSourceContractError, ShaderTextureSlotAsset,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -106,7 +107,27 @@ impl ShaderAsset {
         self.pipeline_layout.clone()
     }
 
+    pub fn surface_source_contract(
+        &self,
+    ) -> Result<Option<ShaderSurfaceSourceContract>, ShaderSurfaceSourceContractError> {
+        if self.kind != ShaderAssetKind::Surface {
+            return Ok(None);
+        }
+        classify_surface_source_contract(
+            self.runtime_wgsl_source().unwrap_or_default(),
+            &self.entry_points,
+        )
+        .map(Some)
+    }
+
     pub fn regenerate_material_artifact(&mut self) {
+        if !self.kind.participates_in_material_variants() {
+            self.material_property_layout = Default::default();
+            self.material_option_table = Default::default();
+            self.generated_material_wgsl.clear();
+            return;
+        }
+
         let generated =
             generate_material_artifact(&self.property_schema, &self.options, &self.texture_slots);
         self.material_property_layout = generated.property_layout;

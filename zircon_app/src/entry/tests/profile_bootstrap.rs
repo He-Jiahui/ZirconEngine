@@ -43,27 +43,26 @@ use zircon_runtime::{
     core::framework::project::RuntimeProfileId, plugin::PluginModuleKind,
     plugin::RuntimePluginBridgeLifecycleEvent,
 };
-#[cfg(feature = "target-editor-host")]
-use zircon_runtime::{plugin::CapabilityStatus, plugin::PluginMaturity};
 use zircon_runtime::{
     plugin::RuntimeExtensionRegistry, plugin::RuntimePlugin,
     plugin::RuntimePluginAvailabilityCategory, plugin::RuntimePluginDescriptor,
     plugin::RuntimePluginRegistrationReport,
 };
 
-#[cfg(any(
-    all(feature = "first-party-runtime-plugins", feature = "ui"),
-    feature = "first-party-advanced-render-runtime-plugins"
-))]
-use super::super::first_party_runtime_plugin_registrations_for_config;
-use super::super::{BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, EntryRunner};
+use super::super::{
+    BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, EntryRunner,
+    ProductCompositionRequest,
+};
+
+mod first_party_runtime_plugins;
 
 const EDITOR_MODULE_NAME: &str = "EditorModule";
 
 #[cfg(feature = "target-editor-host")]
 #[test]
 fn editor_bootstrap_registers_editor_and_primary_managers() {
-    let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Editor)).unwrap();
+    let composition = EntryRunner::compose(EntryConfig::new(EntryProfile::Editor)).unwrap();
+    let core = composition.core().clone();
     let resolver = ManagerResolver::new(core.clone());
     let asset_manager = resolver
         .resolve(asset_manager_handle(&core).unwrap())
@@ -107,7 +106,8 @@ fn runtime_bootstrap_excludes_editor_module() {
         .iter()
         .all(|descriptor| descriptor.name != EDITOR_MODULE_NAME));
 
-    let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Runtime)).unwrap();
+    let composition = EntryRunner::compose(EntryConfig::new(EntryProfile::Runtime)).unwrap();
+    let core = composition.core().clone();
     #[cfg(feature = "target-editor-host")]
     assert!(core
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
@@ -124,7 +124,10 @@ fn bootstrap_fails_fast_when_required_runtime_plugin_is_unavailable() {
     let config = EntryConfig::new(EntryProfile::Runtime)
         .with_required_runtime_plugins([RuntimePluginId::VirtualGeometry]);
 
-    let error = EntryRunner::bootstrap(config).unwrap_err();
+    let error = ProductCompositionRequest::new(config)
+        .with_runtime_plugin_registrations(std::iter::empty::<RuntimePluginRegistrationReport>())
+        .compose()
+        .unwrap_err();
 
     assert!(error
         .to_string()
@@ -133,14 +136,16 @@ fn bootstrap_fails_fast_when_required_runtime_plugin_is_unavailable() {
 
 #[test]
 fn entry_config_projects_runtime_profile_to_entry_target_and_manifest() {
-    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Server);
+    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Server)
+        .resolve()
+        .expect("server runtime profile should resolve");
     let manifest = config
         .project_plugin_manifest()
         .expect("runtime profile should project a project plugin manifest");
 
-    assert_eq!(config.profile, EntryProfile::Headless);
+    assert_eq!(config.profile(), EntryProfile::Headless);
     assert_eq!(config.runtime_profile(), Some(RuntimeProfileId::Server));
-    assert_eq!(config.target_mode, RuntimeTargetMode::ServerRuntime);
+    assert_eq!(config.target_mode(), RuntimeTargetMode::ServerRuntime);
     assert!(manifest
         .selections
         .iter()
@@ -149,377 +154,6 @@ fn entry_config_projects_runtime_profile_to_entry_target_and_manifest() {
         .selections
         .iter()
         .all(|selection| selection.id != RuntimePluginId::Ui.key()));
-}
-
-#[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
-#[test]
-fn runtime_profile_bootstrap_uses_linked_first_party_provider_registrations() {
-    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client2d);
-    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
-    let ids = registrations
-        .iter()
-        .map(|registration| registration.package_manifest.id.as_str())
-        .collect::<Vec<_>>();
-
-    assert_eq!(config.runtime_profile(), Some(RuntimeProfileId::Client2d));
-    assert_eq!(ids, vec!["sound", "rendering", "texture"]);
-    assert!(registrations
-        .iter()
-        .all(RuntimePluginRegistrationReport::is_success));
-
-    let entry = BuiltinEngineEntry::for_runtime_profile(RuntimeProfileId::Client2d)
-        .expect("client_2d profile should be satisfied by linked first-party registrations");
-    let descriptors = entry.module_descriptors();
-
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "sound.runtime"));
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "rendering.runtime"));
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "texture.runtime"));
-}
-
-#[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
-#[test]
-fn first_party_sound_provider_preserves_manifest_maturity_and_capability_status() {
-    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client2d);
-    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
-    let sound = registrations
-        .iter()
-        .find(|registration| registration.package_manifest.id == "sound")
-        .expect("client_2d linked providers should include sound");
-
-    assert_eq!(sound.package_manifest.maturity, PluginMaturity::Beta);
-    assert!(sound
-        .package_manifest
-        .capability_statuses
-        .iter()
-        .any(|status| {
-            status.capability == "runtime.plugin.sound"
-                && status.status == CapabilityStatus::Partial
-        }));
-    assert!(sound
-        .extensions
-        .modules()
-        .iter()
-        .any(|module| { module.name == "sound.runtime" }));
-    assert!(sound
-        .extensions
-        .plugin_options()
-        .iter()
-        .any(|option| option.key == "sound.global_volume_gain"));
-    assert!(sound
-        .extensions
-        .plugin_event_catalogs()
-        .iter()
-        .any(|catalog| catalog.namespace == "sound.dynamic_events"));
-}
-
-#[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
-#[test]
-fn runtime_profile_feature_bootstrap_uses_profile_level_provider_availability() {
-    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client2d);
-    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
-
-    let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
-        &config,
-        registrations,
-        std::iter::empty::<zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport>(),
-    )
-    .expect("client_2d profile should use linked providers during feature-aware bootstrap");
-
-    let descriptors = entry.module_descriptors();
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "sound.runtime"));
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "rendering.runtime"));
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "texture.runtime"));
-}
-
-#[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
-#[test]
-fn runtime_profile_bootstrap_can_link_optional_first_party_runtime_plugins() {
-    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client3d)
-        .with_optional_runtime_plugins([
-            RuntimePluginId::Animation,
-            RuntimePluginId::Net,
-            RuntimePluginId::Particles,
-        ]);
-    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
-    let ids = registrations
-        .iter()
-        .map(|registration| registration.package_manifest.id.as_str())
-        .collect::<Vec<_>>();
-
-    for expected in [
-        "sound",
-        "rendering",
-        "texture",
-        "animation",
-        "net",
-        "particles",
-    ] {
-        assert!(
-            ids.contains(&expected),
-            "missing first-party registration {expected}"
-        );
-    }
-
-    let entry =
-        BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations(&config)
-            .expect("optional first-party runtime plugin registrations should satisfy bootstrap");
-    let descriptors = entry.module_descriptors();
-
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "animation.runtime"));
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "net.runtime"));
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "particles.runtime"));
-
-    let feature_aware_entry =
-        BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
-            &config,
-            registrations,
-            std::iter::empty::<zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport>(),
-        )
-        .expect("feature-aware bootstrap should preserve profile manifest optional providers");
-    let feature_aware_descriptors = feature_aware_entry.module_descriptors();
-    let feature_aware_report = feature_aware_entry.module_selection_report();
-
-    assert!(feature_aware_descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "animation.runtime"));
-    assert!(feature_aware_descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "net.runtime"));
-    assert!(feature_aware_descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == "particles.runtime"));
-    for expected in [
-        RuntimePluginId::Animation,
-        RuntimePluginId::Net,
-        RuntimePluginId::Particles,
-    ] {
-        assert!(
-            feature_aware_report
-                .runtime_plugin_availability
-                .linked
-                .iter()
-                .any(|entry| entry.runtime_id == expected),
-            "feature-aware report should surface linked {expected:?}"
-        );
-    }
-}
-
-#[cfg(feature = "first-party-advanced-render-runtime-plugins")]
-#[test]
-fn render_profile_runtime_plugins_do_not_link_advanced_providers_for_default_render() {
-    let config = EntryConfig::new(EntryProfile::Runtime);
-    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
-
-    assert!(registrations
-        .iter()
-        .all(|registration| registration.package_manifest.id != "virtual_geometry"));
-    assert!(registrations
-        .iter()
-        .all(|registration| registration.package_manifest.id != "hybrid_gi"));
-}
-
-#[test]
-fn entry_defaults_enable_hybrid_gi_only_for_editor_rendering() {
-    let editor = EntryConfig::new(EntryProfile::Editor);
-    let runtime = EntryConfig::new(EntryProfile::Runtime);
-
-    assert!(
-        editor
-            .render_profile
-            .has_feature(RenderProductFeature::HybridGlobalIllumination),
-        "editor rendering should request Hybrid GI by default"
-    );
-    assert!(
-        !editor
-            .render_profile
-            .has_feature(RenderProductFeature::VirtualGeometry),
-        "editor Hybrid GI defaults should not implicitly opt into virtual geometry"
-    );
-    assert!(
-        !runtime
-            .render_profile
-            .has_feature(RenderProductFeature::HybridGlobalIllumination),
-        "client runtime rendering must keep Hybrid GI project opt-in"
-    );
-}
-
-#[cfg(feature = "first-party-advanced-render-runtime-plugins")]
-#[test]
-fn editor_default_render_profile_links_hybrid_gi_without_virtual_geometry() {
-    let registrations = first_party_runtime_plugin_registrations_for_config(&EntryConfig::new(
-        EntryProfile::Editor,
-    ));
-    let ids = registrations
-        .iter()
-        .map(|registration| registration.package_manifest.id.as_str())
-        .collect::<Vec<_>>();
-
-    assert!(ids.contains(&"hybrid_gi"));
-    assert!(!ids.contains(&"virtual_geometry"));
-}
-
-#[cfg(feature = "first-party-advanced-render-runtime-plugins")]
-#[test]
-fn render_profile_runtime_plugins_link_advanced_providers_when_advanced_render_is_selected() {
-    let config = EntryConfig::new(EntryProfile::Runtime)
-        .with_render_profile(RenderProfileBundle::advanced_render());
-    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
-    let ids = registrations
-        .iter()
-        .map(|registration| registration.package_manifest.id.as_str())
-        .collect::<Vec<_>>();
-
-    assert_eq!(ids, vec!["virtual_geometry", "hybrid_gi"]);
-    assert!(registrations
-        .iter()
-        .all(RuntimePluginRegistrationReport::is_success));
-    assert_eq!(
-        registrations[0]
-            .extensions
-            .virtual_geometry_runtime_providers()
-            .len(),
-        1
-    );
-    assert_eq!(
-        registrations[1]
-            .extensions
-            .hybrid_gi_runtime_providers()
-            .len(),
-        1
-    );
-
-    let diagnostics =
-        EntryRunner::module_selection_diagnostics_with_first_party_runtime_plugin_registrations(
-            config,
-        )
-        .expect("advanced render provider registrations should satisfy diagnostics");
-
-    assert!(diagnostics.contains("module=virtual_geometry.runtime"));
-    assert!(diagnostics.contains("module=hybrid_gi.runtime"));
-}
-
-#[cfg(feature = "first-party-advanced-render-runtime-plugins")]
-#[test]
-fn render_profile_runtime_plugins_link_solari_provider_when_solari_experimental_is_selected() {
-    let config = EntryConfig::new(EntryProfile::Runtime)
-        .with_render_profile(RenderProfileBundle::solari_experimental());
-    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
-    let ids = registrations
-        .iter()
-        .map(|registration| registration.package_manifest.id.as_str())
-        .collect::<Vec<_>>();
-
-    assert_eq!(ids, vec!["virtual_geometry", "hybrid_gi", "solari"]);
-    assert!(registrations
-        .iter()
-        .all(RuntimePluginRegistrationReport::is_success));
-    assert_eq!(
-        registrations[2].extensions.solari_runtime_providers().len(),
-        1
-    );
-
-    let diagnostics =
-        EntryRunner::module_selection_diagnostics_with_first_party_runtime_plugin_registrations(
-            config,
-        )
-        .expect("solari experimental provider registrations should satisfy diagnostics");
-
-    assert!(diagnostics.contains("module=virtual_geometry.runtime"));
-    assert!(diagnostics.contains("module=hybrid_gi.runtime"));
-    assert!(diagnostics.contains("module=solari.runtime"));
-}
-
-#[cfg(all(
-    feature = "first-party-runtime-plugins",
-    feature = "first-party-advanced-render-runtime-plugins",
-    feature = "ui"
-))]
-#[test]
-fn render_profile_runtime_plugins_merge_runtime_profile_baseline_with_advanced_providers() {
-    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client3d)
-        .with_render_profile(RenderProfileBundle::advanced_render());
-    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
-    let ids = registrations
-        .iter()
-        .map(|registration| registration.package_manifest.id.as_str())
-        .collect::<Vec<_>>();
-
-    for expected in [
-        "sound",
-        "rendering",
-        "texture",
-        "virtual_geometry",
-        "hybrid_gi",
-    ] {
-        assert!(
-            ids.contains(&expected),
-            "missing first-party registration {expected}"
-        );
-    }
-}
-
-#[cfg(all(
-    feature = "first-party-runtime-plugins",
-    feature = "first-party-navigation-runtime-plugin",
-    feature = "ui"
-))]
-#[test]
-fn runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled() {
-    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client3d)
-        .with_optional_runtime_plugins([RuntimePluginId::Navigation]);
-    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
-
-    assert!(registrations
-        .iter()
-        .any(|registration| registration.package_manifest.id == "navigation"));
-
-    let entry =
-        BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations(&config)
-            .expect("navigation provider feature should contribute the first-party runtime module");
-
-    assert!(entry
-        .module_descriptors()
-        .iter()
-        .any(|descriptor| descriptor.name == "navigation.runtime"));
-}
-
-#[cfg(all(feature = "first-party-zr-vm-language-runtime-plugin", feature = "ui"))]
-#[test]
-fn runtime_profile_bootstrap_can_link_zr_vm_language_when_provider_feature_is_enabled() {
-    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client3d)
-        .with_optional_runtime_plugins([RuntimePluginId::ZrVmLanguage]);
-    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
-
-    assert!(registrations
-        .iter()
-        .any(|registration| registration.package_manifest.id == "zr_vm_language"));
-
-    let entry =
-        BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations(&config)
-            .expect("ZrVM provider feature should contribute the first-party runtime module");
-
-    assert!(entry
-        .module_descriptors()
-        .iter()
-        .any(|descriptor| descriptor.name == "zr_vm_language.runtime"));
 }
 
 #[test]
@@ -570,6 +204,17 @@ fn runtime_plugin_bootstrap_installs_neutral_module_lifecycle_observer() {
         .runtime_plugin_bridge_lifecycle_state()
         .cloned()
         .expect("entry should retain its plugin-owned bridge lifecycle state");
+    let plan = entry
+        .compiled_project_plugin_plan()
+        .expect("entry should retain the compiled plugin plan used for bootstrap");
+    assert!(std::ptr::eq(
+        plan.runtime_extensions(),
+        state.extension_report()
+    ));
+    assert_eq!(
+        state.catalog().project_plan_metrics().project_plan_builds,
+        1
+    );
     let _core = entry
         .bootstrap()
         .expect("linked bridge provider should bootstrap");
@@ -608,7 +253,9 @@ fn runtime_bootstrap_ignores_linked_plugin_registration_for_other_target_modes()
         .build(),
     });
 
-    let error = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
+    let error = ProductCompositionRequest::new(config)
+        .with_runtime_plugin_registrations([report])
+        .compose()
         .expect_err("EditorHost-only plugin registration must not satisfy ClientRuntime startup");
 
     assert!(error
@@ -618,7 +265,8 @@ fn runtime_bootstrap_ignores_linked_plugin_registration_for_other_target_modes()
 
 #[test]
 fn runtime_bootstrap_without_linked_virtual_geometry_keeps_base_pipeline_lightweight() {
-    let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Runtime)).unwrap();
+    let composition = EntryRunner::compose(EntryConfig::new(EntryProfile::Runtime)).unwrap();
+    let core = composition.core().clone();
     let resolver = ManagerResolver::new(core.clone());
     let render_framework = resolver
         .render_framework_handle()
@@ -664,7 +312,8 @@ fn runtime_bootstrap_without_linked_virtual_geometry_keeps_base_pipeline_lightwe
 
 #[test]
 fn runtime_bootstrap_stores_default_render_profile_bundle() {
-    let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Runtime)).unwrap();
+    let composition = EntryRunner::compose(EntryConfig::new(EntryProfile::Runtime)).unwrap();
+    let core = composition.core();
     let bundle = core
         .load_config::<RenderProfileBundle>(RENDER_PROFILE_CONFIG_KEY)
         .expect("runtime bootstrap should store the selected render profile bundle");
@@ -682,7 +331,8 @@ fn runtime_bootstrap_stores_default_render_profile_bundle() {
 fn entry_config_can_select_headless_render_profile_bundle() {
     let config = EntryConfig::new(EntryProfile::Headless)
         .with_render_profile(RenderProfileBundle::headless());
-    let core = EntryRunner::bootstrap(config).unwrap();
+    let composition = EntryRunner::compose(config).unwrap();
+    let core = composition.core();
     let bundle = core
         .load_config::<RenderProfileBundle>(RENDER_PROFILE_CONFIG_KEY)
         .expect("headless bootstrap should store the selected render profile bundle");
@@ -698,10 +348,11 @@ fn runtime_bootstrap_stores_primary_window_descriptor() {
     let descriptor = WindowDescriptor::default()
         .with_title("Runtime Config Window")
         .with_resolution(WindowResolution::new(1600, 900));
-    let core = EntryRunner::bootstrap(
+    let composition = EntryRunner::compose(
         EntryConfig::new(EntryProfile::Runtime).with_window_descriptor(descriptor.clone()),
     )
     .unwrap();
+    let core = composition.core();
     let stored = core
         .load_config::<WindowDescriptor>(PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY)
         .expect("runtime bootstrap should store the selected primary window descriptor");
@@ -713,7 +364,8 @@ fn runtime_bootstrap_stores_primary_window_descriptor() {
 
 #[test]
 fn headless_bootstrap_stores_absent_primary_window_descriptor() {
-    let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Headless)).unwrap();
+    let composition = EntryRunner::compose(EntryConfig::new(EntryProfile::Headless)).unwrap();
+    let core = composition.core();
     let descriptor = core
         .load_config::<WindowDescriptor>(PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY)
         .expect("headless bootstrap should store a diagnostic window descriptor");
@@ -727,7 +379,8 @@ fn headless_bootstrap_stores_absent_primary_window_descriptor() {
 
 #[test]
 fn headless_bootstrap_stores_headless_platform_config() {
-    let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Headless)).unwrap();
+    let composition = EntryRunner::compose(EntryConfig::new(EntryProfile::Headless)).unwrap();
+    let core = composition.core();
     let platform_config = core
         .load_config::<PlatformConfig>(PLATFORM_CONFIG_KEY)
         .expect("headless bootstrap should store the selected platform config");
@@ -775,8 +428,11 @@ fn linked_runtime_render_feature_descriptors_rebuild_default_pipelines() {
         .with_capability("runtime.render.advanced.virtual_geometry")
         .build(),
     });
-    let core = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
+    let composition = ProductCompositionRequest::new(config)
+        .with_runtime_plugin_registrations([report])
+        .compose()
         .expect("linked render feature plugin should bootstrap");
+    let core = composition.core().clone();
     let resolver = ManagerResolver::new(core.clone());
     let render_framework = resolver
         .render_framework_handle()
@@ -856,8 +512,10 @@ target_modes = ["client_runtime"]
 
     let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(
         &config,
-        zircon_runtime::plugin::native::load_native_runtime_from_load_manifest(&export_root)
-            .runtime_plugin_registration_reports(),
+        zircon_runtime::plugin::native::discovery::load_native_runtime_from_load_manifest(
+            &export_root,
+        )
+        .runtime_plugin_registration_reports(),
     )
     .expect("native dynamic load manifest should satisfy required plugin availability");
     assert!(entry
@@ -865,11 +523,12 @@ target_modes = ["client_runtime"]
         .iter()
         .any(|descriptor| descriptor.name == "virtual_geometry.runtime"));
 
-    let bootstrap =
-        EntryRunner::bootstrap_with_native_plugins_from_export_root(config, &export_root)
-            .expect("native dynamic load manifest should satisfy required plugin availability");
+    let bootstrap = ProductCompositionRequest::new(config)
+        .with_native_plugins_from_export_root(&export_root)
+        .compose()
+        .expect("native dynamic load manifest should satisfy required plugin availability");
 
-    let resolver = ManagerResolver::new(bootstrap.clone_core());
+    let resolver = ManagerResolver::new(bootstrap.core().clone());
     assert!(resolver
         .rendering_handle()
         .and_then(|handle| resolver.resolve(handle))
@@ -891,6 +550,7 @@ target_modes = ["client_runtime"]
         .contains(&"virtual_geometry.runtime"));
     assert!(bootstrap
         .native_plugin_host()
+        .expect("native composition should retain its host owner")
         .loaded_plugin_ids(PluginModuleKind::Runtime)
         .expect("bootstrap host should expose loaded native runtime ids")
         .is_empty());

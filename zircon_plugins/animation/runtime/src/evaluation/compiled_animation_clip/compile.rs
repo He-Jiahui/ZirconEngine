@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::animation::AnimationClipBoneTrackAsset;
@@ -8,17 +7,23 @@ use zircon_runtime::core::framework::scene::EntityPath;
 use super::super::{AnimationClipCompileError, CompiledClipTrack, SkeletonTargetTable, TargetSlot};
 use super::CompiledAnimationClip;
 
+#[cfg(test)]
+#[path = "compile/performance_tests.rs"]
+mod optimization_batch_20260830cr_tests;
+
 impl CompiledAnimationClip {
     pub fn compile(
         target_table: Arc<SkeletonTargetTable>,
         source_tracks: &[AnimationClipBoneTrackAsset],
     ) -> Result<Self, AnimationClipCompileError> {
-        let mut first_track_by_slot = BTreeMap::<TargetSlot, usize>::new();
+        let mut first_track_by_slot = vec![None; target_table.len()];
         let mut tracks = Vec::with_capacity(source_tracks.len());
 
         for (track_index, track) in source_tracks.iter().enumerate() {
             let target = resolve_track_target(track_index, track, &target_table)?;
-            if let Some(first_track_index) = first_track_by_slot.insert(target, track_index) {
+            if let Some(first_track_index) =
+                record_first_track_slot(&mut first_track_by_slot, target, track_index)
+            {
                 let target_id = target_table
                     .target_id_for_slot(target)
                     .ok_or(AnimationClipCompileError::MissingResolvedTarget { track_index })?;
@@ -41,6 +46,14 @@ impl CompiledAnimationClip {
             tracks,
         })
     }
+}
+
+fn record_first_track_slot(
+    first_tracks: &mut [Option<usize>],
+    target: TargetSlot,
+    track_index: usize,
+) -> Option<usize> {
+    first_tracks[target.index() as usize].replace(track_index)
 }
 
 fn resolve_track_target(

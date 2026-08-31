@@ -97,9 +97,12 @@ fn command_list_records_raster_draws_and_submit_validates_bound_buffers() {
             zr_rhi::CommandListCommand::EndRenderPass,
         ]
     );
-    assert!(device
-        .is_fence_complete(device.submit(draw).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(draw).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 }
 
 #[test]
@@ -134,9 +137,12 @@ fn command_list_allows_generated_vertex_draws_without_vertex_buffers() {
     draw.draw(0, 3, 0, 1);
     draw.end_render_pass();
 
-    assert!(device
-        .is_fence_complete(device.submit(draw).unwrap())
-        .unwrap());
+    assert_eq!(
+        device
+            .submission_status(device.submit(draw).unwrap())
+            .unwrap(),
+        zr_rhi::SubmissionStatus::Completed
+    );
 }
 
 #[test]
@@ -189,7 +195,7 @@ fn command_list_raster_draw_submit_validates_pipeline_queue_and_counts() {
     assert_eq!(
         device.submit(wrong_pipeline).unwrap_err(),
         RhiError::InvalidPipelineUsage {
-            pipeline: compute_pipeline.raw(),
+            pipeline: compute_pipeline.diagnostic_id(),
             required: PipelineKind::Raster,
             actual: PipelineKind::Compute,
         }

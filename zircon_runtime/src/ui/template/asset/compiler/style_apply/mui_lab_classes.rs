@@ -89,10 +89,10 @@ fn timeline_position_class(position: &str) -> String {
 }
 
 fn has_mismatched_tab_value(node: &UiTemplateNode) -> bool {
-    let Some(value) = string_attribute_any(node, &["value", "value_text"]) else {
+    let Some(value) = borrowed_lab_attribute(node, &["value", "value_text"]) else {
         return false;
     };
-    string_attribute_any(
+    borrowed_lab_attribute(
         node,
         &[
             "context_value",
@@ -102,6 +102,16 @@ fn has_mismatched_tab_value(node: &UiTemplateNode) -> bool {
         ],
     )
     .is_some_and(|selected| selected != value)
+}
+
+fn borrowed_lab_attribute<'a>(node: &'a UiTemplateNode, names: &[&str]) -> Option<&'a str> {
+    names.iter().find_map(|name| {
+        node.attributes
+            .get(*name)
+            .and_then(toml::Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+    })
 }
 
 fn has_opposite_content(node: &UiTemplateNode) -> bool {
@@ -122,3 +132,7 @@ fn has_opposite_content(node: &UiTemplateNode) -> bool {
                 || mui_slot_name(child).as_deref() == Some("oppositeContent")
         })
 }
+
+#[cfg(test)]
+#[path = "mui_lab_classes/borrowed_tab_value_tests.rs"]
+mod borrowed_tab_value_tests;

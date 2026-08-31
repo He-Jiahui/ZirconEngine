@@ -8,16 +8,16 @@ from runtime_structure_audits.native_plugin_public_surface import (
 )
 
 
-EXPECTED_SOURCE_FILE_COUNT = 17
+EXPECTED_SOURCE_FILE_COUNT = 20
 EXPECTED_DOC_FILE_COUNT = 5
 EXPECTED_ROOT_REEXPORT_COUNT = 0
-EXPECTED_NATIVE_NAMESPACE_REEXPORT_COUNT = 74
+EXPECTED_NATIVE_NAMESPACE_REEXPORT_COUNT = 68
 EXPECTED_NATIVE_PUBLIC_SURFACE_DEBT_GROUPS = 0
 EXPECTED_NATIVE_NAMESPACE_SYMBOL_GROUPS = 6
 EXPECTED_UNCLASSIFIED_NATIVE_SYMBOLS = 0
 EXPECTED_ROOT_PUBLIC_NATIVE_REEXPORT_LOCATIONS = 0
 EXPECTED_PUBLIC_NATIVE_REEXPORT_LOCATIONS = 1
-EXPECTED_APP_NATIVE_PLUGIN_FILE_COUNT = 8
+EXPECTED_APP_NATIVE_PLUGIN_FILE_COUNT = 7
 EXPECTED_NATIVE_LOADER_V1_V2_FILE_COUNT = 0
 EXPECTED_PLUGIN_V1_V2_USAGE_FILES: tuple[str, ...] = ()
 EXPECTED_NATIVE_V3_ALIAS_FILES: tuple[str, ...] = ()
@@ -29,7 +29,7 @@ EXPECTED_NATIVE_TEST_NAMESPACE_IMPORT_FILE_COUNT = 3
 EXPECTED_NATIVE_TEST_ROOT_IMPORT_LEAK_COUNT = 0
 EXPECTED_LIFECYCLE_FALLBACK_TEST_COUNT = 4
 EXPECTED_RUNTIME_06_STATUS = "in_progress"
-EXPECTED_RUNTIME_06_LAST_REFINED = "2026-07-31"
+EXPECTED_RUNTIME_06_LAST_REFINED = "2026-08-24"
 EXPECTED_M4_GATE_STATUS = "classified-and-clear"
 MIRROR_DOCS_GUARD = "runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts"
 NATIVE_TEST_NAMESPACE_GUARD = "runtime_06_native_loader_tests_use_isolated_plugin_native_namespace"
@@ -38,7 +38,11 @@ LIFECYCLE_FALLBACK_TEST_GUARD = "runtime_06_vm_lifecycle_fallback_failure_tests_
 RUNTIME_06_SOURCE_FILES = (
     "zircon_runtime/src/plugin/mod.rs",
     "zircon_runtime/src/plugin/native.rs",
+    "zircon_runtime/src/plugin/native/discovery.rs",
+    "zircon_runtime/src/plugin/native/host.rs",
     "zircon_runtime/src/plugin/native_plugin_loader/mod.rs",
+    "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_discovery.rs",
+    "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_host_handle.rs",
     "zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs",
     "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs",
     "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs",
@@ -89,16 +93,16 @@ DOC_ANCHORS = (
     "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
     "native_plugin_public_surface",
     "root_reexport_count = 0",
-    "native_namespace_reexport_count = 74",
+    "native_namespace_reexport_count = 68",
     "classified-and-clear",
     "script::vm/vampire_project_session/plugin/native_plugin/app/plugins",
     "runtime real-backend",
     "fallback lifecycle failure tests 4/4",
-    "app NativePlugin current call-site files: 8",
+    "app NativePlugin current call-site files: 7",
     "native loader V1/V2 implementation files 0/0",
     "`zircon_plugins` V1/V2 usage files 0/0",
     "unknown ABI rejection",
-    "expected_source_file_count = 17",
+    "expected_source_file_count = 20",
     "hot reload failure injection",
     "expected_doc_file_count = 5",
     "mirror_docs_guard_present = true",

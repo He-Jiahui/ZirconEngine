@@ -170,31 +170,36 @@ class OwnershipMatrixService:
         return {str(row["path_key"]): row for row in rows}
 
     @staticmethod
-    def _leases(connection, current_time: datetime) -> tuple[Row, ...]:
+    def _leases(connection, current_time: datetime) -> dict[str, Row]:
         rows = connection.execute(
             """
             SELECT path_key, session_id, expires_at
             FROM leases ORDER BY path_key
             """
         ).fetchall()
-        return tuple(row for row in rows if current_time <= parse_utc(str(row["expires_at"])))
+        return {
+            str(row["path_key"]): row
+            for row in rows
+            if current_time <= parse_utc(str(row["expires_at"]))
+        }
 
     @staticmethod
     def _entry(
         change: WorkspaceChange,
         baseline_epoch: int,
         attribution: Row | None,
-        leases: tuple[Row, ...],
+        leases: dict[str, Row],
     ) -> OwnershipMatrixEntry:
         path_key = change.path.casefold()
         owner = str(attribution["session_id"]) if attribution is not None else None
         owner_status = str(attribution["owner_status"]) if attribution is not None else None
-        matching_leases = tuple(
-            row
-            for row in leases
-            if path_key == str(row["path_key"])
-            or path_key.startswith(str(row["path_key"]) + "/")
-        )
+        matching_leases: list[Row] = []
+        path_parts = path_key.split("/")
+        for part_count in range(1, len(path_parts) + 1):
+            ancestor_key = "/".join(path_parts[:part_count])
+            lease = leases.get(ancestor_key)
+            if lease is not None:
+                matching_leases.append(lease)
         lease_owner = str(matching_leases[0]["session_id"]) if matching_leases else None
         reasons: list[str] = []
         if change.kind == "deleted":

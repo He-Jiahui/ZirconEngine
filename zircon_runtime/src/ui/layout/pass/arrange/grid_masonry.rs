@@ -11,9 +11,8 @@ use super::{arrange_node, hide_subtree_layout};
 use crate::ui::layout::pass::{
     child_frame::free_child_frame,
     engine::UiLayoutPassEngineContext,
-    slot::{
-        ordered_children_for_container, slot_for_container_child, slot_padding, UiLayoutSlotIndex,
-    },
+    slot::{slot_for_container_child, slot_padding, UiLayoutSlotIndex},
+    workspace::UiMasonryArrangeScratch,
 };
 
 pub(super) fn arrange_grid_children(
@@ -27,8 +26,7 @@ pub(super) fn arrange_grid_children(
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     let container = UiContainerKind::GridBox(config);
-    let children = ordered_children_for_container(tree, slot_index, parent_id, children, container);
-    let (columns, rows) = grid_dimensions(tree, slot_index, parent_id, &children, config);
+    let (columns, rows) = grid_dimensions(tree, slot_index, parent_id, children, config);
 
     for (index, child_id) in children.iter().copied().enumerate() {
         let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
@@ -59,31 +57,35 @@ pub(super) fn arrange_masonry_children(
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
     config: UiMasonryBoxConfig,
+    scratch: &mut UiMasonryArrangeScratch,
     slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<UiSize, UiTreeError> {
     let container = UiContainerKind::MasonryBox(config);
-    let children = ordered_children_for_container(tree, slot_index, parent_id, children, container);
     let columns = config.columns.max(1);
     let gap = config.gap.max(0.0);
     let column_width =
         ((frame.width - gap * columns.saturating_sub(1) as f32) / columns as f32).max(0.0);
-    let mut column_heights = vec![0.0_f32; columns];
-    let mut column_counts = vec![0usize; columns];
+    scratch.column_heights.clear();
+    scratch.column_heights.resize(columns, 0.0);
+    scratch.column_counts.clear();
+    scratch.column_counts.resize(columns, 0);
+    let column_heights = &mut scratch.column_heights;
+    let column_counts = &mut scratch.column_counts;
     let mut visible_index = 0usize;
 
-    for child_id in children {
+    for child_id in children.iter().copied() {
         let Some(node) = tree.node(child_id) else {
             return Err(UiTreeError::MissingNode(child_id));
         };
         if !node.effective_visibility().occupies_layout() {
-            hide_subtree_layout(tree, child_id)?;
+            hide_subtree_layout(tree, child_id, slot_index, engine_context)?;
             continue;
         }
 
         let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
         let outer_height = masonry_child_outer_height(tree, child_id, slot)?;
-        let column = masonry_target_column(visible_index, config.sequential, &column_heights);
+        let column = masonry_target_column(visible_index, config.sequential, column_heights);
         if column_counts[column] > 0 {
             column_heights[column] += gap;
         }

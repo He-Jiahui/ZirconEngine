@@ -1,15 +1,24 @@
 use super::*;
 
 #[test]
-fn rhi_handles_are_stable_raw_identifiers() {
-    assert_eq!(BufferHandle::new(11).raw(), 11);
-    assert_eq!(TextureHandle::new(12).raw(), 12);
-    assert_eq!(SamplerHandle::new(13).raw(), 13);
-    assert_eq!(BindGroupLayoutHandle::new(14).raw(), 14);
-    assert_eq!(BindGroupHandle::new(15).raw(), 15);
-    assert_eq!(ShaderModuleHandle::new(16).raw(), 16);
-    assert_eq!(PipelineLayoutHandle::new(17).raw(), 17);
-    assert_eq!(PipelineHandle::new(18).raw(), 18);
+fn rhi_handles_are_opaque_device_owned_identifiers() {
+    let device = DeterministicRhiContractDevice::new_headless();
+    let buffer = device
+        .create_buffer(&BufferDesc::new("handle-buffer", 4, BufferUsage::COPY_DST))
+        .unwrap();
+    let texture = device
+        .create_texture(&TextureDesc::new(
+            "handle-texture",
+            1,
+            1,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::COPY_DST,
+        ))
+        .unwrap();
+
+    assert_eq!(buffer.device_id(), texture.device_id());
+    assert_eq!(buffer.device_generation(), texture.device_generation());
+    assert_ne!(buffer.diagnostic_id(), texture.diagnostic_id());
 }
 
 #[test]
@@ -29,7 +38,7 @@ fn buffer_and_texture_usage_flags_are_composable() {
 }
 
 #[test]
-fn deterministic_rhi_contract_device_allocates_stable_resource_handles_and_fences() {
+fn deterministic_rhi_contract_device_allocates_stable_resource_handles_and_submissions() {
     let device = DeterministicRhiContractDevice::new_headless();
 
     let buffer = device
@@ -68,9 +77,9 @@ fn deterministic_rhi_contract_device_allocates_stable_resource_handles_and_fence
         )
         .unwrap();
 
-    assert_ne!(buffer.raw(), texture.raw());
-    assert_ne!(sampler.raw(), shader.raw());
-    assert_ne!(pipeline.raw(), 0);
+    assert_ne!(buffer.diagnostic_id(), texture.diagnostic_id());
+    assert_ne!(sampler.diagnostic_id(), shader.diagnostic_id());
+    assert_ne!(pipeline.diagnostic_id(), 0);
 
     let command_list = device
         .create_command_list(RenderQueueClass::Copy, "copy-upload")
@@ -85,9 +94,15 @@ fn deterministic_rhi_contract_device_allocates_stable_resource_handles_and_fence
         RenderQueueClass::Compute
     );
 
-    let fence = device.submit(command_list).unwrap();
-    assert_eq!(fence, FenceValue(1));
-    assert!(device.is_fence_complete(fence).unwrap());
+    let ticket = device.submit(command_list).unwrap();
+    assert_eq!(ticket.device_id(), buffer.device_id());
+    assert_eq!(ticket.generation(), buffer.device_generation());
+    assert_eq!(ticket.queue_class(), RenderQueueClass::Copy);
+    assert_eq!(ticket.sequence(), 1);
+    assert_eq!(
+        device.submission_status(ticket).unwrap(),
+        SubmissionStatus::Completed
+    );
 
     let bytes = device.read_buffer(buffer, 0, 16).unwrap();
     assert_eq!(bytes.len(), 16);

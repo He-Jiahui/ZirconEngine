@@ -28,19 +28,22 @@ pub(super) fn validated_materialized_relative_path(
         ));
     }
 
-    let mut normalized = Vec::new();
+    let mut normalized = String::with_capacity(relative_path.len());
     let mut saw_component = false;
     for component in Path::new(relative_path).components() {
         match component {
             Component::Normal(component) => {
-                saw_component = true;
                 let Some(component) = component.to_str() else {
                     return Err(invalid_materialized_path(
                         relative_path,
                         "path components must be UTF-8",
                     ));
                 };
-                normalized.push(component);
+                if saw_component {
+                    normalized.push('/');
+                }
+                normalized.push_str(component);
+                saw_component = true;
             }
             Component::CurDir => {
                 return Err(invalid_materialized_path(
@@ -70,7 +73,7 @@ pub(super) fn validated_materialized_relative_path(
         ));
     }
 
-    Ok(normalized.join("/"))
+    Ok(normalized)
 }
 
 fn invalid_materialized_path(relative_path: &str, reason: &str) -> std::io::Error {
@@ -78,4 +81,39 @@ fn invalid_materialized_path(relative_path: &str, reason: &str) -> std::io::Erro
         ErrorKind::InvalidInput,
         format!("generated export file path {relative_path:?} is invalid: {reason}"),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validated_materialized_relative_path;
+
+    #[test]
+    fn streaming_normalization_preserves_portable_paths() {
+        assert_eq!(
+            validated_materialized_relative_path("plugins/rendering/plugin.toml")
+                .expect("portable path should remain valid"),
+            "plugins/rendering/plugin.toml"
+        );
+        assert_eq!(
+            validated_materialized_relative_path("plugins//rendering///plugin.toml")
+                .expect("repeated separators should normalize"),
+            "plugins/rendering/plugin.toml"
+        );
+    }
+
+    #[test]
+    fn streaming_normalization_preserves_path_rejections() {
+        for path in [
+            "",
+            "./plugin.toml",
+            "../plugin.toml",
+            "plugins\\plugin.toml",
+            "plugins/",
+        ] {
+            assert!(
+                validated_materialized_relative_path(path).is_err(),
+                "path {path:?} should remain invalid"
+            );
+        }
+    }
 }

@@ -1,26 +1,51 @@
 $script:ProfileCaptureScript = Join-Path $PSScriptRoot "..\ui-profile-capture.ps1"
 $script:ProfileCapturePaths = Join-Path $PSScriptRoot "..\profile-capture-paths.ps1"
+$script:ProfileProductDirectory = Join-Path $PSScriptRoot "..\ui-profile-product-directory.ps1"
 $script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profile-capture-manifest.ps1"
 $script:ProfileCaptureScenarios = Join-Path $PSScriptRoot "..\ui-profile-scenarios.ps1"
 $script:ProfileNativeInteraction = Join-Path $PSScriptRoot "..\ui-profile-native-resize.ps1"
+$script:ProfileHierarchyFilterInput = Join-Path $PSScriptRoot "..\ui-profile-hierarchy-filter-input.ps1"
+$script:ProfileHierarchyFilterMetrics = Join-Path $PSScriptRoot "..\ui-profile-hierarchy-filter-metrics.ps1"
 $script:ProfileLatencyEvidence = Join-Path $PSScriptRoot "..\ui-profile-latency-evidence.ps1"
 $script:ProfileProcessEvidence = Join-Path $PSScriptRoot "..\ui-profile-process-evidence.ps1"
+$script:ProfileCounterEvidence = Join-Path $PSScriptRoot "..\ui-profile-counter-evidence.ps1"
+$script:ProfileWorkbenchPointerEvidence = Join-Path $PSScriptRoot "..\ui-profile-workbench-pointer-evidence.ps1"
 $script:ProfileScaleFixture = Join-Path $PSScriptRoot "..\ui-profile-scale-fixture.ps1"
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$script:ProfileCounterEvidenceSource = @(
+    if (Test-Path -LiteralPath $script:ProfileCounterEvidence) {
+        Get-Content -LiteralPath $script:ProfileCounterEvidence -Raw
+    }
+    if (Test-Path -LiteralPath $script:ProfileWorkbenchPointerEvidence) {
+        Get-Content -LiteralPath $script:ProfileWorkbenchPointerEvidence -Raw
+    }
+) -join "`n"
+$script:ProfileScenarioSource = Get-Content -LiteralPath $script:ProfileCaptureScenarios -Raw
 $script:ProfileCaptureSource = @(
     Get-Content -LiteralPath $script:ProfileCaptureScript -Raw
+    Get-Content -LiteralPath $script:ProfileProductDirectory -Raw
     Get-Content -LiteralPath $script:ProfileLatencyEvidence -Raw
     Get-Content -LiteralPath $script:ProfileProcessEvidence -Raw
+    $script:ProfileCounterEvidenceSource
+    Get-Content -LiteralPath $script:ProfileHierarchyFilterMetrics -Raw
 ) -join "`n"
 $script:ProfileNativeInteractionSource = Get-Content -LiteralPath $script:ProfileNativeInteraction -Raw
-$script:HierarchyPointerRebuildSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/hierarchy_pointer/rebuild_surface.rs') -Raw
+$script:ProfileHierarchyFilterInputSource = Get-Content -LiteralPath $script:ProfileHierarchyFilterInput -Raw
+$script:ProfileHierarchyFilterMetricsSource = Get-Content -LiteralPath $script:ProfileHierarchyFilterMetrics -Raw
+$script:HierarchyPointerBridgeSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_bridge.rs') -Raw
+$script:HierarchyPointerLayoutSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_layout.rs') -Raw
+$script:HierarchyPointerRouteSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/hierarchy_pointer/route_at_point.rs') -Raw
 $script:NativeScrollDispatchSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/entry.rs') -Raw
 $script:HierarchyScrollDispatchSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/pane/native/hierarchy.rs') -Raw
 $script:WelcomeScrollDispatchSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/pane/native/welcome.rs') -Raw
-$script:WelcomePointerRebuildSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_rebuild_surface.rs') -Raw
+$script:WelcomePointerBridgeSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge.rs') -Raw
+$script:WelcomePointerRouteSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_project_route.rs') -Raw
 $script:UiPerfSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/ui_perf.rs') -Raw
 if (Test-Path -LiteralPath $script:ProfileCapturePaths) {
     . $script:ProfileCapturePaths
+}
+if (Test-Path -LiteralPath $script:ProfileProductDirectory) {
+    . $script:ProfileProductDirectory
 }
 if (Test-Path -LiteralPath $script:ProfileCaptureManifest) {
     . $script:ProfileCaptureManifest
@@ -33,6 +58,21 @@ if (Test-Path -LiteralPath $script:ProfileLatencyEvidence) {
 }
 if (Test-Path -LiteralPath $script:ProfileProcessEvidence) {
     . $script:ProfileProcessEvidence
+}
+if (Test-Path -LiteralPath $script:ProfileCounterEvidence) {
+    . $script:ProfileCounterEvidence
+}
+if (Test-Path -LiteralPath $script:ProfileWorkbenchPointerEvidence) {
+    . $script:ProfileWorkbenchPointerEvidence
+}
+if (Test-Path -LiteralPath $script:ProfileNativeInteraction) {
+    . $script:ProfileNativeInteraction
+}
+if (Test-Path -LiteralPath $script:ProfileHierarchyFilterInput) {
+    . $script:ProfileHierarchyFilterInput
+}
+if (Test-Path -LiteralPath $script:ProfileHierarchyFilterMetrics) {
+    . $script:ProfileHierarchyFilterMetrics
 }
 
 function New-ProfileManifestTestRepository {
@@ -63,9 +103,18 @@ function New-ProfileManifestTestRepository {
         'tools/ui-profile-scenarios.ps1',
         'tools/ui-profile-latency-evidence.ps1',
         'tools/ui-profile-process-evidence.ps1',
+        'tools/ui-profile-counter-evidence.ps1',
+        'tools/ui-profile-workbench-pointer-evidence.ps1',
         'tools/ui-profile-native-resize.ps1',
+        'tools/ui-profile-hierarchy-filter-input.ps1',
+        'tools/ui-profile-hierarchy-filter-metrics.ps1',
         'tools/ui-profile-scale-fixture.ps1',
+        'tools/ui-profile-surface-pipeline-metrics.ps1',
+        'tools/ui-profile-chrome-paint-metrics.ps1',
+        'tools/ui-profile-machine-manifest.ps1',
+        'tools/performance-machine-manifest.ps1',
         'tools/profile-capture-paths.ps1',
+        'tools/ui-profile-product-directory.ps1',
         'tools/profile-capture-manifest.ps1'
     )) {
         if ($relativePath -eq $OmitCaptureTool) {
@@ -93,7 +142,7 @@ Describe "ui-profile-capture output contract" {
         (@(Resolve-ZirconUiProfileCaptureScenarios -Scenario 'manual') -join ',') |
             Should Be 'manual'
         (@(Resolve-ZirconUiProfileCaptureScenarios -AllUiScenarios) -join ',') |
-            Should Be 'startup,material_lab_startup,material_lab_hover,material_lab_click,idle_hover,click,viewport_toolbar_click,viewport_pointer,drag,drawer_resize,window_resize,hierarchy_scroll,welcome_recent_scroll,asset_refresh,viewport_image'
+            Should Be 'startup,material_lab_startup,material_lab_hover,material_lab_click,idle_hover,click,viewport_toolbar_click,viewport_pointer,drag,drawer_resize,window_resize,hierarchy_scroll,hierarchy_filter,welcome_recent_scroll,runtime_diagnostics,asset_refresh,viewport_image'
 
         $scenarioResolutionIndex = $script:ProfileCaptureSource.IndexOf('$captureScenarios = @(Resolve-ZirconUiProfileCaptureScenarios')
         $outputRootIndex = $script:ProfileCaptureSource.IndexOf('$OutputPath = Resolve-ZirconProfileOutputRoot')
@@ -152,8 +201,9 @@ Describe "ui-profile-capture output contract" {
             Should BeLessThan 97
     }
 
-    It "requires a coordinator-managed external profiling target" {
-        $script:ProfileCaptureSource | Should Match "CARGO_TARGET_DIR must be set"
+    It "requires an approved managed profiling product" {
+        $script:ProfileCaptureSource | Should Match '\[string\]\$ProductDirectory'
+        $script:ProfileCaptureSource | Should Match 'Resolve-ZirconUiProfileProductDirectory'
         $script:ProfileCaptureSource | Should Not Match [regex]::Escape('Join-Path $RepoRoot "target\\profiling"')
     }
 
@@ -163,11 +213,35 @@ Describe "ui-profile-capture output contract" {
         $script:ProfileCaptureSource | Should Not Match "cargo build -p zircon_app"
     }
 
+    It "loads scenario counter gates from the semantic evidence module" {
+        $captureSource = Get-Content -LiteralPath $script:ProfileCaptureScript -Raw
+        $captureSource | Should Match 'ui-profile-counter-evidence\.ps1'
+        $script:ProfileCounterEvidenceSource | Should Not BeNullOrEmpty
+        foreach ($gate in @(
+                'AssetRefresh',
+                'WindowResize',
+                'StableVisualAssetCache',
+                'SurfaceFramePublication',
+                'WorkbenchPointerTransaction',
+                'ViewportToolbarCache',
+                'HierarchyScroll',
+                'WelcomeRecentScroll',
+                'RuntimeDiagnosticsRefresh'
+            )) {
+            $captureSource | Should Match ("function Test-{0}CounterGate" -f $gate)
+            $captureSource | Should Match ("Test-Zircon{0}CounterGate" -f $gate)
+            $script:ProfileCounterEvidenceSource |
+                Should Match ("function Test-Zircon{0}CounterGate" -f $gate)
+        }
+        (Get-Content -LiteralPath $script:ProfileCaptureScript).Count | Should BeLessThan 3000
+    }
+
     It "records CPU evidence and source-binds configurable interaction volumes" {
         $script:ProfileCaptureSource | Should Match '\[int\]\$AutoClickCount = 0'
         $script:ProfileCaptureSource | Should Match '\[int\]\$AutoClickDelayMs = 4'
         $script:ProfileCaptureSource | Should Match '\[int\]\$AutoWheelCount = 0'
         $script:ProfileCaptureSource | Should Match '\[int\]\$AutoWheelDelayMs = 2'
+        $script:ProfileCaptureSource | Should Match '\[string\]\$HierarchyFilterQuery = "Scene"'
         $script:ProfileCaptureSource | Should Match '\[int\]\$AutoResizeStepCount = 24'
         $script:ProfileCaptureSource | Should Match '\[int\]\$AutoResizeDelayMs = 40'
         $script:ProfileCaptureSource | Should Match 'Invoke-PointerClickStorm'
@@ -192,18 +266,45 @@ Describe "ui-profile-capture output contract" {
         $script:ProfileCaptureSource | Should Match '\$completedMoves -ne \$requestedMoves'
         $script:ProfileCaptureSource | Should Match '\$completedWheelEvents -ne \$requestedWheelEvents'
         $script:ProfileCaptureSource | Should Match 'function Test-HierarchyScrollCounterGate'
+        $script:ProfileCaptureSource | Should Match 'function Test-AssetBrowserScrollCounterGate'
         $script:ProfileCaptureSource | Should Match 'function Test-WelcomeRecentScrollCounterGate'
+        $script:ProfileCaptureSource | Should Match 'function Test-RuntimeDiagnosticsRefreshCounterGate'
+        $script:ProfileCaptureSource | Should Match 'function Test-ViewportToolbarCacheCounterGate'
+        $script:ProfileCaptureSource | Should Match '\$viewportToolbarCacheOk = Test-ViewportToolbarCacheCounterGate'
+        $script:ProfileCaptureSource | Should Match 'function Get-RuntimeDiagnosticsDrawerEntry'
         $script:ProfileCaptureSource | Should Match 'function Get-WelcomeRecentScrollTargets'
         $script:ProfileCaptureSource | Should Match 'viewport_toolbar_click'
         $script:ProfileCaptureSource | Should Match '\$viewportToolbarControlsOnly = \$normalizedScenario -eq "viewport_toolbar_click"'
         $script:ProfileCaptureSource | Should Match 'target_kind -ne "viewport_toolbar_control"'
-        $script:ProfileCaptureSource | Should Match '\$interactionKind = if \(\$normalizedScenario -in @\("hierarchy_scroll", "welcome_recent_scroll"\)\)'
+        $script:ProfileCaptureSource | Should Match '\$interactionKind = if \(\$normalizedScenario -in @\("hierarchy_scroll", "hierarchy_filter", "welcome_recent_scroll", "asset_browser_scroll"\)\)'
         $script:ProfileCaptureSource | Should Match 'switch \(\$interactionKind\)'
+        $script:ProfileCaptureSource | Should Match '"hierarchy_filter" \{'
+        $script:ProfileCaptureSource | Should Match 'Find-ZirconHierarchyFilterProfileTarget -Geometry \$geometry'
+        $script:ProfileCaptureSource | Should Match 'Send-ZirconProfileUnicodeText -Text \$HierarchyFilterQuery'
+        $script:ProfileCaptureSource | Should Match 'requested_utf16_code_units = \$requestedCodeUnitCount'
+        $script:ProfileCaptureSource | Should Match 'sent_utf16_code_units = \$sentCodeUnitCount'
+        $script:ProfileCaptureSource | Should Match 'hierarchy_filter_query = \$HierarchyFilterQuery'
+        $script:ProfileHierarchyFilterInputSource | Should Match 'template\.left\.HierarchySearchQuery'
+        $script:ProfileHierarchyFilterInputSource | Should Match 'SendUnicodeText'
+        $script:ProfileHierarchyFilterInputSource | Should Match 'KeyEventUnicode'
+        $script:ProfileCaptureSource | Should Match 'editor\.runtime_diagnostics#1'
+        $script:ProfileCaptureSource | Should Match 'ui\.runtime_diagnostics\.shell_content_refresh_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.runtime_diagnostics\.full_presentation_fallback_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.click\.host_invalidation_full_target_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.viewport_image\.host_invalidation_full_target_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.shell_content\.host_invalidation_full_target_count'
         $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.hierarchy_scroll_dispatch_count'
         $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.hierarchy_surface_rebuild_count'
         $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.hierarchy_row_insert_count'
         $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.hierarchy_dispatcher_rebuild_count'
         $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.hierarchy_route_map_rebuild_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.asset_browser_logical_item_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.asset_browser_logical_paint_chunk_build_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.asset_browser_logical_paint_chunk_reuse_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.asset_browser_logical_paint_item_projection_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.asset_browser_materialized_item_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.idle_hover\.asset_browser_visible_item_count'
+        $script:ProfileCaptureSource | Should Match '\$assetBrowserScrollOk = Test-AssetBrowserScrollCounterGate'
         foreach ($counterName in @(
                 'welcome_recent_scroll_dispatch_count',
                 'welcome_recent_surface_rebuild_count',
@@ -217,10 +318,10 @@ Describe "ui-profile-capture output contract" {
         }
         $script:NativeScrollDispatchSource | Should Not Match 'UiPerfCounter::HierarchyScrollDispatchCount'
         $script:HierarchyScrollDispatchSource | Should Match 'UiPerfCounter::HierarchyScrollDispatchCount'
-        $script:HierarchyPointerRebuildSource | Should Match 'UiPerfCounter::HierarchySurfaceRebuildCount'
-        $script:HierarchyPointerRebuildSource | Should Match 'UiPerfCounter::HierarchyRowInsertCount'
-        $script:HierarchyPointerRebuildSource | Should Match 'UiPerfCounter::HierarchyDispatcherRebuildCount'
-        $script:HierarchyPointerRebuildSource | Should Match 'UiPerfCounter::HierarchyRouteMapRebuildCount'
+        $script:HierarchyPointerBridgeSource | Should Not Match 'UiSurface|UiPointerDispatcher|EditorRouteIntentMap'
+        $script:HierarchyPointerLayoutSource | Should Match 'item_count: usize'
+        $script:HierarchyPointerLayoutSource | Should Not Match 'node_ids|Vec<String>'
+        $script:HierarchyPointerRouteSource | Should Match '\.floor\(\) as usize'
         foreach ($counter in @(
                 'HierarchyScrollDispatchCount',
                 'HierarchySurfaceRebuildCount',
@@ -231,15 +332,18 @@ Describe "ui-profile-capture output contract" {
             $script:UiPerfSource | Should Match "UiPerfCounter::$counter"
         }
         $script:WelcomeScrollDispatchSource | Should Match 'UiPerfCounter::WelcomeRecentScrollDispatchCount'
-        foreach ($counter in @(
+        $script:WelcomePointerBridgeSource | Should Not Match 'UiSurface|UiPointerDispatcher|EditorRouteIntentMap'
+        $script:WelcomePointerRouteSource | Should Match '\.floor\(\) as usize'
+        $script:WelcomePointerRouteSource | Should Match 'action_target_for_route'
+        foreach ($retiredCounter in @(
                 'WelcomeRecentSurfaceRebuildCount',
                 'WelcomeRecentAuthorityRebuildCount',
-                'WelcomeRecentRowInsertCount',
                 'WelcomeRecentGeometryPatchCount',
                 'WelcomeRecentDispatcherRebuildCount',
                 'WelcomeRecentRouteMapRebuildCount'
             )) {
-            $script:WelcomePointerRebuildSource | Should Match "UiPerfCounter::$counter"
+            $script:WelcomePointerBridgeSource | Should Not Match "UiPerfCounter::$retiredCounter"
+            $script:WelcomePointerRouteSource | Should Not Match "UiPerfCounter::$retiredCounter"
         }
         foreach ($counter in @(
                 'WelcomeRecentScrollDispatchCount',
@@ -405,6 +509,108 @@ Describe "ui-profile-capture output contract" {
             Should Be $false
     }
 
+    It "rejects stable hover evidence that rebuilds retained authority" {
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:ProfileCaptureScript,
+            [ref]$tokens,
+            [ref]$errors)
+        $errors.Count | Should Be 0
+
+        foreach ($functionName in @('Resolve-InteractionScenarioName', 'Show-UiScenarioEvidence')) {
+            $functionAst = $ast.Find({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                        $node.Name -eq $functionName
+                }, $true)
+            $functionAst | Should Not BeNullOrEmpty
+            Invoke-Expression $functionAst.Extent.Text
+        }
+
+        $profileDir = Join-Path $TestDrive 'stable-hover-retained-authority'
+        New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        $scenario = [ordered]@{
+            scenario = 'idle_hover'
+            frame_count = 8
+            dirty_paint_only_count = 2
+            dirty_layout_count = 0
+            redraw_region_count = 2
+            redraw_full_frame_count = 0
+            host_invalidation_transaction_count = 2
+            host_invalidation_scope_count = 2
+            host_invalidation_legacy_dirty_transaction_count = 0
+            host_invalidation_full_target_count = 0
+            host_invalidation_shell_content_target_count = 0
+            host_invalidation_workbench_projection_target_count = 0
+            host_invalidation_view_presentation_target_count = 0
+            host_invalidation_window_metrics_target_count = 0
+            host_invalidation_paint_only_target_count = 2
+            slow_path_rebuild_count = 0
+            presentation_rebuild_count = 0
+            chrome_snapshot_count = 0
+            workbench_model_build_count = 0
+            workbench_hit_index_build_count = 0
+            workbench_hit_index_query_count = 1000
+            chrome_command_full_rebuild_count = 0
+            chrome_command_patch_count = 2
+            painted_pixels = 100
+            presented_surface_pixels = 1000
+            gpu_draw_calls = 1
+            gpu_visible_commands = 2
+            gpu_visible_draw_items = 2
+            gpu_timestamp_supported_present_count = 1
+            gpu_time_sample_count = 1
+            gpu_time_p50_us = 120
+            gpu_time_p95_us = 120
+            gpu_time_max_us = 120
+            gpu_profile_latency_max_frames = 2
+            software_fallback_present_count = 0
+        }
+        $writeReport = {
+            [ordered]@{ scenarios = @([pscustomobject]$scenario); alerts = @() } |
+                ConvertTo-Json -Depth 5 |
+                Set-Content -LiteralPath (Join-Path $profileDir 'ui_hotspots.json') -Encoding UTF8
+        }
+
+        & $writeReport
+        (Show-UiScenarioEvidence -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+            Should Be $true
+
+        foreach ($counterName in @(
+                'host_invalidation_full_target_count',
+                'host_invalidation_legacy_dirty_transaction_count',
+                'slow_path_rebuild_count',
+                'dirty_layout_count',
+                'presentation_rebuild_count',
+                'chrome_snapshot_count',
+                'workbench_model_build_count',
+                'workbench_hit_index_build_count',
+                'chrome_command_full_rebuild_count'
+            )) {
+            $scenario[$counterName] = 1
+            if ($counterName -eq 'host_invalidation_full_target_count') {
+                $scenario.host_invalidation_paint_only_target_count = 1
+            }
+            & $writeReport
+            (Show-UiScenarioEvidence -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+                Should Be $false
+            $scenario[$counterName] = 0
+            $scenario.host_invalidation_paint_only_target_count = 2
+        }
+
+        $scenario.workbench_hit_index_query_count = 0
+        & $writeReport
+        (Show-UiScenarioEvidence -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+            Should Be $false
+
+        $scenario.workbench_hit_index_query_count = 1000
+        $scenario.chrome_command_patch_count = 0
+        & $writeReport
+        (Show-UiScenarioEvidence -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+            Should Be $false
+    }
+
     It "rejects incomplete click storms and accepts a complete source-bound run" {
         $tokens = $null
         $errors = $null
@@ -556,8 +762,10 @@ Describe "ui-profile-capture output contract" {
         $artifactPath = Join-Path $profileDir 'ui_interaction_evidence.json'
         $AutoClickCount = 0
         $AutoPointerMoveCount = 1000
+        $AutoHoverTargetMode = 'cross_target'
         $interaction = [ordered]@{
             scenario = 'pointer_move_storm'
+            target_mode = 'cross_target'
             requested_moves = 1000
             completed_moves = 1000
             processor_time_delta_ms = 180
@@ -576,12 +784,16 @@ Describe "ui-profile-capture output contract" {
                 target_kind = 'template_control'
                 target_surface = 'document'
                 source = 'ui_profile_geometry.json'
+                x = 320
+                y = 240
             },
             [ordered]@{
                 target_id = 'template.document.MaterialLabCheckboxes'
                 target_kind = 'template_control'
                 target_surface = 'document'
                 source = 'ui_profile_geometry.json'
+                x = 480
+                y = 240
             }
         )
         [ordered]@{ interaction = $interaction } |
@@ -717,6 +929,15 @@ Describe "ui-profile-capture output contract" {
         (Test-UiInteractionEvidenceGate -ProfileDir $profileDir -ScenarioName 'welcome_recent_scroll') |
             Should Be $false
 
+        $interaction.targets[0].target_id = 'asset_browser.content_viewport'
+        $interaction.targets[0].target_kind = 'asset_browser_content_viewport'
+        $interaction.targets[0].target_surface = 'document'
+        [ordered]@{ interaction = $interaction } |
+            ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath $artifactPath -Encoding UTF8
+        (Test-UiInteractionEvidenceGate -ProfileDir $profileDir -ScenarioName 'asset_browser_scroll') |
+            Should Be $true
+
         $interaction.targets[0].target_id = 'layout.left_region'
         $interaction.targets[0].target_kind = 'pane_region'
         $interaction.targets[0].target_surface = 'left'
@@ -735,6 +956,76 @@ Describe "ui-profile-capture output contract" {
             Set-Content -LiteralPath $artifactPath -Encoding UTF8
 
         (Test-UiInteractionEvidenceGate -ProfileDir $profileDir -ScenarioName 'hierarchy_scroll') |
+            Should Be $false
+    }
+
+    It "requires refreshed, geometry-bound Unicode hierarchy filter evidence" {
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:ProfileCaptureScript,
+            [ref]$tokens,
+            [ref]$errors)
+        $errors.Count | Should Be 0
+
+        foreach ($functionName in @(
+                'Resolve-InteractionScenarioName',
+                'Test-UiInteractionEvidenceGate'
+            )) {
+            $functionAst = $ast.Find({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                        $node.Name -eq $functionName
+                }, $true)
+            $functionAst | Should Not BeNullOrEmpty
+            Invoke-Expression $functionAst.Extent.Text
+        }
+
+        $profileDir = Join-Path $TestDrive 'hierarchy-filter-evidence'
+        New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        $artifactPath = Join-Path $profileDir 'ui_interaction_evidence.json'
+        $HierarchyFilterQuery = 'Scene ' + [char]0x4E2D + [char]0xD83D + [char]0xDE00
+        $codeUnitCount = @(Get-ZirconProfileUtf16CodeUnits -Text $HierarchyFilterQuery).Count
+        $artifact = [ordered]@{
+            geometry_refreshed_after_interaction = $false
+            interaction = [ordered]@{
+                scenario = 'hierarchy_filter_text_input'
+                used_geometry = $true
+                targets = @([ordered]@{
+                        target_id = 'template.left.HierarchySearchQuery'
+                        target_kind = 'template_control'
+                        target_surface = 'left'
+                        source = 'ui_profile_geometry.json'
+                    })
+                query = $HierarchyFilterQuery
+                reset_input_events = (Get-ZirconProfileTextResetInputCount)
+                requested_utf16_code_units = $codeUnitCount
+                sent_utf16_code_units = $codeUnitCount
+            }
+        }
+        $artifact | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath $artifactPath -Encoding UTF8
+
+        (Test-UiInteractionEvidenceGate -ProfileDir $profileDir -ScenarioName 'hierarchy_filter') |
+            Should Be $false
+
+        $artifact.geometry_refreshed_after_interaction = $true
+        $artifact | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath $artifactPath -Encoding UTF8
+        (Test-UiInteractionEvidenceGate -ProfileDir $profileDir -ScenarioName 'hierarchy_filter') |
+            Should Be $true
+
+        $artifact.interaction.sent_utf16_code_units = $codeUnitCount - 1
+        $artifact | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath $artifactPath -Encoding UTF8
+        (Test-UiInteractionEvidenceGate -ProfileDir $profileDir -ScenarioName 'hierarchy_filter') |
+            Should Be $false
+
+        $artifact.interaction.sent_utf16_code_units = $codeUnitCount
+        $artifact.interaction.targets[0].target_id = 'template.left.Hierarchy/AddEntity'
+        $artifact | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath $artifactPath -Encoding UTF8
+        (Test-UiInteractionEvidenceGate -ProfileDir $profileDir -ScenarioName 'hierarchy_filter') |
             Should Be $false
     }
 
@@ -840,6 +1131,113 @@ Describe "ui-profile-capture output contract" {
             Should Be $false
     }
 
+    It "binds Asset Browser scroll counters to the source catalog scale" {
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:ProfileCaptureScript,
+            [ref]$tokens,
+            [ref]$errors)
+        $errors.Count | Should Be 0
+
+        foreach ($functionName in @(
+                'Test-InteractionProcessEvidence',
+                'Get-UiCounterTotal',
+                'Test-AssetBrowserScrollCounterGate'
+            )) {
+            $functionAst = $ast.Find({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                        $node.Name -eq $functionName
+                }, $true)
+            $functionAst | Should Not BeNullOrEmpty
+            Invoke-Expression $functionAst.Extent.Text
+        }
+
+        $profileDir = Join-Path $TestDrive 'asset-browser-scroll-counters'
+        New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        [ordered]@{
+            interaction = [ordered]@{
+                scenario = 'pointer_wheel_storm'
+                process_id = 4242
+                requested_wheel_events = 1000
+                completed_wheel_events = 1000
+                elapsed_ms = 2000
+                processor_time_delta_ms = 180
+                cpu_core_utilization_percent = 9
+                cpu_system_utilization_percent = 1.125
+                logical_processor_count = 8
+                start_working_set_bytes = 1000000
+                end_working_set_bytes = 1050000
+                peak_working_set_bytes = 1100000
+                start_private_bytes = 800000
+                end_private_bytes = 825000
+                peak_private_bytes = 850000
+                quiescence_process_id = 4242
+                quiescence_requested_ms = 2000
+                quiescence_elapsed_ms = 2050
+                quiescence_working_set_bytes = 1050000
+                quiescence_private_bytes = 825000
+                quiescence_sampled = $true
+            }
+        } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'ui_interaction_evidence.json') -Encoding UTF8
+        [ordered]@{
+            input_fixture = [ordered]@{
+                kind = 'asset_catalog_json'
+                asset_item_count = 10000
+            }
+            capture = [ordered]@{
+                options = [ordered]@{ asset_catalog_item_count = 10000 }
+            }
+        } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'source_manifest.json') -Encoding UTF8
+
+        $counters = @(
+            [ordered]@{ name = 'ui.idle_hover.asset_browser_scroll_dispatch_count'; value = 1000 },
+            [ordered]@{ name = 'ui.idle_hover.asset_browser_logical_item_count'; value = 10000 },
+            [ordered]@{ name = 'ui.idle_hover.asset_browser_materialized_item_count'; value = 10000 },
+            [ordered]@{ name = 'ui.idle_hover.asset_browser_materialized_node_count'; value = 80000 },
+            [ordered]@{ name = 'ui.idle_hover.asset_browser_visible_item_count'; value = 48 },
+            [ordered]@{ name = 'ui.idle_hover.asset_browser_visible_node_count'; value = 430 },
+            [ordered]@{ name = 'ui.idle_hover.asset_browser_projection_build_count'; value = 0 },
+            [ordered]@{ name = 'ui.idle_hover.asset_content_descriptor_lookup_count'; value = 48 },
+            [ordered]@{ name = 'ui.idle_hover.template_node_visit_count'; value = 486 }
+        )
+        [ordered]@{ counters = $counters } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+
+        (Test-AssetBrowserScrollCounterGate -ProfileDir $profileDir -ScenarioName 'asset_browser_scroll') |
+            Should Be $false
+
+        $counters[2].value = 54
+        $counters[3].value = 486
+        [ordered]@{ counters = $counters } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        (Test-AssetBrowserScrollCounterGate -ProfileDir $profileDir -ScenarioName 'asset_browser_scroll') |
+            Should Be $true
+
+        $counters[7].value = 487
+        [ordered]@{ counters = $counters } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        (Test-AssetBrowserScrollCounterGate -ProfileDir $profileDir -ScenarioName 'asset_browser_scroll') |
+            Should Be $false
+
+        $counters[7].value = 48
+        $counters[1].value = 9999
+        [ordered]@{ counters = $counters } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        (Test-AssetBrowserScrollCounterGate -ProfileDir $profileDir -ScenarioName 'asset_browser_scroll') |
+            Should Be $false
+
+        $counters[1].value = 10000
+        $counters[6].value = 1
+        [ordered]@{ counters = $counters } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        (Test-AssetBrowserScrollCounterGate -ProfileDir $profileDir -ScenarioName 'asset_browser_scroll') |
+            Should Be $false
+    }
+
     It "requires routed welcome recent counters with zero retained-authority rebuild work" {
         $tokens = $null
         $errors = $null
@@ -923,6 +1321,122 @@ Describe "ui-profile-capture output contract" {
             Should Be $false
     }
 
+    It "requires a unique source-bound Runtime Diagnostics drawer target and incremental refresh counters" {
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:ProfileCaptureScript,
+            [ref]$tokens,
+            [ref]$errors)
+        $errors.Count | Should Be 0
+
+        foreach ($functionName in @(
+                'Get-RuntimeDiagnosticsDrawerEntry',
+                'Get-UiCounterTotal',
+                'Test-RuntimeDiagnosticsRefreshCounterGate'
+            )) {
+            $functionAst = $ast.Find({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                        $node.Name -eq $functionName
+                }, $true)
+            $functionAst | Should Not BeNullOrEmpty
+            Invoke-Expression $functionAst.Extent.Text
+        }
+
+        $expected = [pscustomobject]@{
+            id = 'editor.runtime_diagnostics#1'
+            kind = 'drawer_tab'
+            surface = 'bottom'
+            frame = [pscustomobject]@{ x = 12; y = 420; width = 180; height = 28 }
+        }
+        $other = [pscustomobject]@{
+            id = 'editor.console#1'
+            kind = 'drawer_tab'
+            surface = 'bottom'
+            frame = [pscustomobject]@{ x = 192; y = 420; width = 120; height = 28 }
+        }
+        $geometry = [pscustomobject]@{ drawer_tabs = @($other, $expected) }
+        (Get-RuntimeDiagnosticsDrawerEntry -Geometry $geometry).id |
+            Should Be 'editor.runtime_diagnostics#1'
+
+        $duplicateGeometry = [pscustomobject]@{ drawer_tabs = @($expected, $expected) }
+        (Get-RuntimeDiagnosticsDrawerEntry -Geometry $duplicateGeometry) |
+            Should BeNullOrEmpty
+        $wrongSurface = $expected.PSObject.Copy()
+        $wrongSurface.surface = 'right'
+        (Get-RuntimeDiagnosticsDrawerEntry -Geometry ([pscustomobject]@{ drawer_tabs = @($wrongSurface) })) |
+            Should BeNullOrEmpty
+        $hidden = [pscustomobject]@{
+            id = 'editor.runtime_diagnostics#1'
+            kind = 'drawer_tab'
+            surface = 'bottom'
+            frame = [pscustomobject]@{ x = 12; y = 420; width = 0; height = 28 }
+        }
+        (Get-RuntimeDiagnosticsDrawerEntry -Geometry ([pscustomobject]@{ drawer_tabs = @($hidden) })) |
+            Should BeNullOrEmpty
+
+        $profileDir = Join-Path $TestDrive 'runtime-diagnostics-refresh'
+        New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        [ordered]@{
+            geometry_refreshed_after_interaction = $true
+            interaction = [ordered]@{
+                scenario = 'runtime_diagnostics_tab_click'
+                used_geometry = $true
+                targets = @([ordered]@{
+                        target_id = 'editor.runtime_diagnostics#1'
+                        target_kind = 'drawer_tab'
+                        target_surface = 'bottom'
+                        source = 'ui_profile_geometry.json'
+                    })
+            }
+        } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'ui_interaction_evidence.json') -Encoding UTF8
+        [ordered]@{ counters = @() } |
+            ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+
+        (Test-RuntimeDiagnosticsRefreshCounterGate -ProfileDir $profileDir -ScenarioName 'runtime_diagnostics') |
+            Should Be $false
+
+        $counters = @(
+            [ordered]@{ name = 'ui.runtime_diagnostics.shell_content_refresh_count'; value = 3 },
+            [ordered]@{ name = 'ui.runtime_diagnostics.full_presentation_fallback_count'; value = 0 },
+            [ordered]@{ name = 'ui.click.host_invalidation_full_target_count'; value = 0 },
+            [ordered]@{ name = 'ui.viewport_image.host_invalidation_full_target_count'; value = 0 },
+            [ordered]@{ name = 'ui.shell_content.host_invalidation_full_target_count'; value = 0 }
+        )
+        [ordered]@{ counters = $counters } |
+            ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+
+        (Test-RuntimeDiagnosticsRefreshCounterGate -ProfileDir $profileDir -ScenarioName 'runtime_diagnostics') |
+            Should Be $true
+
+        $counters[1].value = 1
+        [ordered]@{ counters = $counters } |
+            ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        (Test-RuntimeDiagnosticsRefreshCounterGate -ProfileDir $profileDir -ScenarioName 'runtime_diagnostics') |
+            Should Be $false
+
+        $counters[1].value = 0
+        $counters[3].value = 1
+        [ordered]@{ counters = $counters } |
+            ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        (Test-RuntimeDiagnosticsRefreshCounterGate -ProfileDir $profileDir -ScenarioName 'runtime_diagnostics') |
+            Should Be $false
+
+        $counters[3].value = 0
+        $counters[2].value = 1
+        [ordered]@{ counters = $counters } |
+            ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        (Test-RuntimeDiagnosticsRefreshCounterGate -ProfileDir $profileDir -ScenarioName 'runtime_diagnostics') |
+            Should Be $false
+    }
+
     It "fails resize evidence when visual assets or GPU images churn" {
         $script:ProfileCaptureSource | Should Match 'ui\.window_resize\.gpu_image_upload_writes'
         $script:ProfileCaptureSource | Should Match 'ui\.window_resize\.gpu_image_cache_admission_rejects'
@@ -933,6 +1447,320 @@ Describe "ui-profile-capture output contract" {
         $script:ProfileCaptureSource | Should Match '\$imageUploadCount -le 1'
         $script:ProfileCaptureSource | Should Match '\$visualMissCount -eq 0'
         $script:ProfileCaptureSource | Should Match '\$svgMissCount -eq 0'
+    }
+
+    It "rejects stable hover evidence when SVG or GPU image caches churn" {
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:ProfileCaptureScript,
+            [ref]$tokens,
+            [ref]$errors)
+        $errors.Count | Should Be 0
+
+        foreach ($functionName in @(
+                'Get-UiCounterTotal',
+                'Test-StableVisualAssetCacheCounterGate'
+            )) {
+            $functionAst = $ast.Find({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                        $node.Name -eq $functionName
+                }, $true)
+            $functionAst | Should Not BeNullOrEmpty
+            Invoke-Expression $functionAst.Extent.Text
+        }
+
+        $profileDir = Join-Path $TestDrive 'stable-hover-visual-cache-evidence'
+        New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        $counters = @(
+            [pscustomobject]@{ name = 'ui.idle_hover.visual_asset_cache_hit_count'; value = 8 },
+            [pscustomobject]@{ name = 'ui.idle_hover.visual_asset_cache_miss_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.idle_hover.visual_asset_cache_candidate_build_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.idle_hover.svg_tree_cache_memory_hit_count'; value = 4 },
+            [pscustomobject]@{ name = 'ui.idle_hover.svg_tree_cache_miss_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.idle_hover.gpu_image_prepare_cache_hits'; value = 8 },
+            [pscustomobject]@{ name = 'ui.idle_hover.gpu_image_prepare_command_visits'; value = 0 },
+            [pscustomobject]@{ name = 'ui.idle_hover.gpu_image_upload_writes'; value = 0 },
+            [pscustomobject]@{ name = 'ui.idle_hover.gpu_image_shared_upload_writes'; value = 0 },
+            [pscustomobject]@{ name = 'ui.idle_hover.gpu_image_cache_key_allocations'; value = 0 }
+        )
+        $writeTimeline = {
+            [ordered]@{ counters = @($counters) } |
+                ConvertTo-Json -Depth 4 |
+                Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        }
+
+        & $writeTimeline
+        (Test-StableVisualAssetCacheCounterGate -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+            Should Be $true
+
+        foreach ($churnCounter in @(
+                'ui.idle_hover.visual_asset_cache_miss_count',
+                'ui.idle_hover.visual_asset_cache_candidate_build_count',
+                'ui.idle_hover.svg_tree_cache_miss_count',
+                'ui.idle_hover.gpu_image_prepare_command_visits',
+                'ui.idle_hover.gpu_image_upload_writes',
+                'ui.idle_hover.gpu_image_shared_upload_writes',
+                'ui.idle_hover.gpu_image_cache_key_allocations'
+            )) {
+            ($counters | Where-Object { $_.name -eq $churnCounter }).value = 1
+            & $writeTimeline
+            (Test-StableVisualAssetCacheCounterGate -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+                Should Be $false
+            ($counters | Where-Object { $_.name -eq $churnCounter }).value = 0
+        }
+
+        (Test-StableVisualAssetCacheCounterGate -ProfileDir $profileDir -ScenarioName 'click') |
+            Should Be $true
+    }
+
+    It "rejects stable hover evidence when a surface frame republishes or deep-clones products" {
+        $surfaceFramePublicationSource = Get-Content -LiteralPath (
+            Join-Path $script:RepoRoot 'zircon_runtime/src/ui/surface/surface/frame_publication.rs') -Raw
+        foreach ($counterName in @(
+                'ui.surface_frame.publication_build_count',
+                'ui.surface_frame.arranged_node_clone_count',
+                'ui.surface_frame.render_command_clone_count',
+                'ui.surface_frame.render_segment_clone_count',
+                'ui.surface_frame.render_directory_node_clone_count',
+                'ui.surface_frame.render_full_snapshot_build_count',
+                'ui.surface_frame.hit_entry_clone_count',
+                'ui.surface_frame.hit_cell_entry_clone_count',
+                'ui.surface_frame.focus_state_build_count',
+                'ui.surface_frame.focus_path_build_count',
+                'ui.surface_frame.focus_path_validation_node_count_upper_bound',
+                'ui.surface_frame.pipeline_stage_build_count'
+            )) {
+            $surfaceFramePublicationSource | Should Match ([regex]::Escape($counterName))
+            $script:ProfileCounterEvidenceSource | Should Match ([regex]::Escape($counterName))
+        }
+        $script:ProfileCaptureSource |
+            Should Match '\$surfaceFramePublicationOk = Test-SurfaceFramePublicationCounterGate'
+        $script:ProfileCaptureSource |
+            Should Match '\$stableVisualAssetCacheOk -and \$idleHoverPaintSubmissionOk -and \$surfaceFramePublicationOk -and \$workbenchPointerTransactionOk -and \$viewportToolbarCacheOk'
+
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:ProfileCaptureScript,
+            [ref]$tokens,
+            [ref]$errors)
+        $errors.Count | Should Be 0
+
+        foreach ($functionName in @(
+                'Get-UiCounterTotal',
+                'Test-SurfaceFramePublicationCounterGate'
+            )) {
+            $functionAst = $ast.Find({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                        $node.Name -eq $functionName
+                }, $true)
+            $functionAst | Should Not BeNullOrEmpty
+            Invoke-Expression $functionAst.Extent.Text
+        }
+
+        $profileDir = Join-Path $TestDrive 'surface-frame-publication-evidence'
+        New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        $counters = @(
+            [pscustomobject]@{ name = 'ui.surface_frame.publication_build_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.arranged_node_clone_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.render_command_clone_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.render_segment_clone_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.render_directory_node_clone_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.render_full_snapshot_build_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.hit_entry_clone_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.hit_cell_entry_clone_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.focus_state_build_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.focus_path_build_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.focus_path_validation_node_count_upper_bound'; value = 0 },
+            [pscustomobject]@{ name = 'ui.surface_frame.pipeline_stage_build_count'; value = 0 }
+        )
+        $writeTimeline = {
+            [ordered]@{ counters = @($counters) } |
+                ConvertTo-Json -Depth 4 |
+                Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        }
+
+        & $writeTimeline
+        (Test-SurfaceFramePublicationCounterGate -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+            Should Be $true
+
+        foreach ($publicationCounter in @($counters.name)) {
+            ($counters | Where-Object { $_.name -eq $publicationCounter }).value = 1
+            & $writeTimeline
+            (Test-SurfaceFramePublicationCounterGate -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+                Should Be $false
+            ($counters | Where-Object { $_.name -eq $publicationCounter }).value = 0
+        }
+
+        (Test-SurfaceFramePublicationCounterGate -ProfileDir $profileDir -ScenarioName 'click') |
+            Should Be $true
+    }
+
+    It "bounds workbench pointer feedback publication to one commit per transaction" {
+        $pointerSource = Get-Content -LiteralPath (
+            Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs') -Raw
+        $feedbackSource = Get-Content -LiteralPath (
+            Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/pointer_feedback.rs') -Raw
+        foreach ($counterName in @(
+                'ui.workbench.pointer.transaction_count',
+                'ui.workbench.pointer.activation_coalesced_refresh_count',
+                'ui.workbench.pointer.feedback_deferred_count'
+            )) {
+            ($pointerSource + $feedbackSource) | Should Match ([regex]::Escape($counterName))
+            $script:ProfileCounterEvidenceSource | Should Match ([regex]::Escape($counterName))
+        }
+        $script:ProfileCaptureSource |
+            Should Match '\$workbenchPointerTransactionOk = Test-WorkbenchPointerTransactionCounterGate'
+
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:ProfileCaptureScript,
+            [ref]$tokens,
+            [ref]$errors)
+        $errors.Count | Should Be 0
+
+        foreach ($functionName in @(
+                'Get-UiCounterTotal',
+                'Test-WorkbenchPointerTransactionCounterGate'
+            )) {
+            $functionAst = $ast.Find({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                        $node.Name -eq $functionName
+                }, $true)
+            $functionAst | Should Not BeNullOrEmpty
+            Invoke-Expression $functionAst.Extent.Text
+        }
+
+        $profileDir = Join-Path $TestDrive 'workbench-pointer-transaction-evidence'
+        New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        $counters = @(
+            [pscustomobject]@{ name = 'ui.workbench.pointer.transaction_count'; value = 8 },
+            [pscustomobject]@{ name = 'ui.workbench.pointer.activation_coalesced_refresh_count'; value = 2 },
+            [pscustomobject]@{ name = 'ui.workbench.pointer.feedback_deferred_count'; value = 6 }
+        )
+        $writeTimeline = {
+            [ordered]@{ counters = @($counters) } |
+                ConvertTo-Json -Depth 4 |
+                Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        }
+
+        & $writeTimeline
+        (Test-WorkbenchPointerTransactionCounterGate -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+            Should Be $true
+
+        ($counters | Where-Object { $_.name -eq 'ui.workbench.pointer.feedback_deferred_count' }).value = 7
+        & $writeTimeline
+        (Test-WorkbenchPointerTransactionCounterGate -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+            Should Be $false
+
+        ($counters | Where-Object { $_.name -eq 'ui.workbench.pointer.feedback_deferred_count' }).value = 0
+        ($counters | Where-Object { $_.name -eq 'ui.workbench.pointer.transaction_count' }).value = 0
+        & $writeTimeline
+        (Test-WorkbenchPointerTransactionCounterGate -ProfileDir $profileDir -ScenarioName 'idle_hover') |
+            Should Be $false
+
+        (Test-WorkbenchPointerTransactionCounterGate -ProfileDir $profileDir -ScenarioName 'click') |
+            Should Be $true
+    }
+
+    It "requires warm viewport toolbar surface-frame cache decisions without layout fallback" {
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:ProfileCaptureScript,
+            [ref]$tokens,
+            [ref]$errors)
+        $errors.Count | Should Be 0
+
+        foreach ($functionName in @(
+                'Get-UiCounterTotal',
+                'Test-ViewportToolbarCacheCounterGate'
+            )) {
+            $functionAst = $ast.Find({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                        $node.Name -eq $functionName
+                }, $true)
+            $functionAst | Should Not BeNullOrEmpty
+            Invoke-Expression $functionAst.Extent.Text
+        }
+
+        $profileDir = Join-Path $TestDrive 'viewport-toolbar-cache-evidence'
+        New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        $counters = @(
+            [pscustomobject]@{ name = 'ui.viewport_toolbar.prelayout_surface_frame_cache_hit_count'; value = 8 },
+            [pscustomobject]@{ name = 'ui.viewport_toolbar.prelayout_surface_frame_cache_reproject_count'; value = 2 },
+            [pscustomobject]@{ name = 'ui.viewport_toolbar.prelayout_surface_frame_cache_shared_layout_count'; value = 1 },
+            [pscustomobject]@{ name = 'ui.viewport_toolbar.prelayout_surface_frame_cache_route_key_update_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.viewport_toolbar.prelayout_surface_frame_cache_miss_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.viewport_toolbar.surface_frame_cache_hit_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.viewport_toolbar.surface_frame_cache_miss_count'; value = 0 },
+            [pscustomobject]@{ name = 'ui.viewport_toolbar.hit_control_projection_batch_count'; value = 3 },
+            [pscustomobject]@{ name = 'ui.viewport_toolbar.hit_control_projection_visit_count'; value = 48 }
+        )
+        $writeTimeline = {
+            [ordered]@{ counters = @($counters) } |
+                ConvertTo-Json -Depth 4 |
+                Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+        }
+
+        & $writeTimeline
+        (Test-ViewportToolbarCacheCounterGate -ProfileDir $profileDir -ScenarioName 'viewport_toolbar_click') |
+            Should Be $true
+
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.prelayout_surface_frame_cache_hit_count' }).value = 0
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.prelayout_surface_frame_cache_reproject_count' }).value = 0
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.prelayout_surface_frame_cache_shared_layout_count' }).value = 0
+        & $writeTimeline
+        (Test-ViewportToolbarCacheCounterGate -ProfileDir $profileDir -ScenarioName 'viewport_toolbar_click') |
+            Should Be $false
+
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.prelayout_surface_frame_cache_hit_count' }).value = 1
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.prelayout_surface_frame_cache_miss_count' }).value = 1
+        & $writeTimeline
+        (Test-ViewportToolbarCacheCounterGate -ProfileDir $profileDir -ScenarioName 'viewport_toolbar_click') |
+            Should Be $false
+
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.prelayout_surface_frame_cache_miss_count' }).value = 0
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.surface_frame_cache_miss_count' }).value = 1
+        & $writeTimeline
+        (Test-ViewportToolbarCacheCounterGate -ProfileDir $profileDir -ScenarioName 'viewport_toolbar_click') |
+            Should Be $false
+
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.surface_frame_cache_miss_count' }).value = 0
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.prelayout_surface_frame_cache_hit_count' }).value = 8
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.prelayout_surface_frame_cache_reproject_count' }).value = 2
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.prelayout_surface_frame_cache_shared_layout_count' }).value = 1
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.hit_control_projection_batch_count' }).value = 4
+        & $writeTimeline
+        (Test-ViewportToolbarCacheCounterGate -ProfileDir $profileDir -ScenarioName 'viewport_toolbar_click') |
+            Should Be $false
+
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.hit_control_projection_batch_count' }).value = 3
+        ($counters | Where-Object { $_.name -eq 'ui.viewport_toolbar.hit_control_projection_visit_count' }).value = 2
+        & $writeTimeline
+        (Test-ViewportToolbarCacheCounterGate -ProfileDir $profileDir -ScenarioName 'viewport_toolbar_click') |
+            Should Be $false
+
+        $surfaceFrameCacheSource = Get-Content -LiteralPath (
+            Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/surface_frame_cache.rs'
+        ) -Raw
+        foreach ($counterName in @(
+                'ui.viewport_toolbar.prelayout_surface_frame_cache_route_key_update_count',
+                'ui.viewport_toolbar.hit_control_projection_batch_count',
+                'ui.viewport_toolbar.hit_control_projection_visit_count'
+            )) {
+            $surfaceFrameCacheSource | Should Match ([regex]::Escape($counterName))
+            $script:ProfileCounterEvidenceSource | Should Match ([regex]::Escape($counterName))
+        }
+
+        (Test-ViewportToolbarCacheCounterGate -ProfileDir $profileDir -ScenarioName 'click') |
+            Should Be $true
     }
 
     It "requires positive GPU image cache evidence during native resize" {
@@ -1035,10 +1863,23 @@ Describe "ui-profile-capture output contract" {
             name = 'ui.window_resize.shell_drag_node_patch_count'
             value = 144
         }
+        $counters += [pscustomobject]@{
+            name = 'ui.window_resize.template_projection_layout_arrange_probe_node_count'
+            value = 192
+        }
         & $writeTimeline
         (Test-WindowResizeCounterGate -ProfileDir $profileDir -ScenarioName 'window_resize') |
             Should Be $true
 
+        $counters += [pscustomobject]@{
+            name = 'ui.window_resize.gpu_image_prepare_command_visits'
+            value = 1
+        }
+        & $writeTimeline
+        (Test-WindowResizeCounterGate -ProfileDir $profileDir -ScenarioName 'window_resize') |
+            Should Be $false
+
+        $counters[-1].value = 0
         $counters += [pscustomobject]@{
             name = 'ui.window_resize.shell_drag_authority_rebuild_count'
             value = 1
@@ -1057,8 +1898,45 @@ Describe "ui-profile-capture output contract" {
     It "rejects full visual cache invalidation for the non-visual asset refresh fixture" {
         $script:ProfileCaptureSource | Should Match 'ui\.asset_refresh\.visual_asset_targeted_invalidation_count'
         $script:ProfileCaptureSource | Should Match 'ui\.asset_refresh\.svg_tree_targeted_invalidation_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.asset_refresh\.asset_browser_logical_paint_chunk_build_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.asset_refresh\.asset_browser_logical_paint_chunk_reuse_count'
+        $script:ProfileCaptureSource | Should Match 'ui\.asset_refresh\.asset_browser_logical_paint_item_projection_count'
         $script:ProfileCaptureSource | Should Match '\$fullInvalidationCount -gt 0'
+        $script:ProfileCaptureSource | Should Match '64 \* \$paintChunkBuildCount'
         $script:ProfileCaptureSource | Should Not Match 'return \$targetedInvalidationCount -gt 0'
+    }
+
+    It "rejects logical paint item projection beyond the 64-row chunk budget" {
+        function Get-UiCounterTotal {
+            param(
+                [object[]]$Counters,
+                [string[]]$Names
+            )
+
+            return [double](($Counters |
+                    Where-Object { $_.name -in $Names } |
+                    Measure-Object -Property value -Sum).Sum)
+        }
+
+        $profileDir = Join-Path $TestDrive 'asset-refresh-logical-paint-chunks'
+        New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        $timelinePath = Join-Path $profileDir 'timeline.zrtrace.json'
+        $counters = @(
+            [ordered]@{ name = 'ui.asset_refresh.asset_change_count'; value = 1 },
+            [ordered]@{ name = 'ui.asset_refresh.asset_browser_logical_paint_chunk_build_count'; value = 1 },
+            [ordered]@{ name = 'ui.asset_refresh.asset_browser_logical_paint_item_projection_count'; value = 65 }
+        )
+        [ordered]@{ counters = $counters } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath $timelinePath -Encoding UTF8
+
+        (Test-ZirconAssetRefreshCounterGate -ProfileDir $profileDir -ScenarioName 'asset_refresh') |
+            Should Be $false
+
+        $counters[-1].value = 64
+        [ordered]@{ counters = $counters } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath $timelinePath -Encoding UTF8
+        (Test-ZirconAssetRefreshCounterGate -ProfileDir $profileDir -ScenarioName 'asset_refresh') |
+            Should Be $true
     }
 
     It "exports watcher lag reconciliation work instead of hiding cache scans" {
@@ -1086,6 +1964,8 @@ Describe "ui-profile-capture output contract" {
         $script:ProfileCaptureSource | Should Match 'input_to_damage_p95_us'
         $script:ProfileCaptureSource | Should Match 'damage_to_submit_sample_count'
         $script:ProfileCaptureSource | Should Match 'damage_to_submit_p95_us'
+        $script:ProfileCaptureSource | Should Match 'input_to_present_sample_count'
+        $script:ProfileCaptureSource | Should Match 'input_to_present_p95_us'
         $script:ProfileCaptureSource | Should Match 'retry_backoff_sample_count'
     }
 
@@ -1146,7 +2026,7 @@ Describe "ui-profile-capture output contract" {
 
         $artifact = Get-Content -LiteralPath (Join-Path $profileDir 'ui_surface_present_outcomes.json') -Raw |
             ConvertFrom-Json
-        $artifact.schema_version | Should Be 5
+        $artifact.schema_version | Should Be 6
         $artifact.retention_complete | Should Be $true
         $artifact.counter_overwritten | Should Be 0
         $artifact.submitted_count | Should Be 2
@@ -1161,6 +2041,11 @@ Describe "ui-profile-capture output contract" {
         $artifact.damage_to_submit_p95_us | Should Be 180
         $artifact.damage_to_submit_p99_us | Should Be 180
         $artifact.damage_to_submit_max_us | Should Be 180
+        $artifact.input_to_present_sample_count | Should Be 2
+        $artifact.input_to_present_p50_us | Should Be 90
+        $artifact.input_to_present_p95_us | Should Be 148
+        $artifact.input_to_present_p99_us | Should Be 148
+        $artifact.input_to_present_max_us | Should Be 148
         $artifact.retry_backoff_sample_count | Should Be 2
         $artifact.retry_backoff_min_ms | Should Be 8
         $artifact.retry_backoff_max_ms | Should Be 16
@@ -1171,7 +2056,7 @@ Describe "ui-profile-capture output contract" {
         $artifact.typed_input_outcome_complete | Should Be $true
     }
 
-    It "requires both monotonic input and submit latency stages for interaction storms" {
+    It "requires all monotonic input damage submit and present latency stages for interaction storms" {
         $tokens = $null
         $errors = $null
         $ast = [System.Management.Automation.Language.Parser]::ParseFile(
@@ -1194,7 +2079,7 @@ Describe "ui-profile-capture output contract" {
         $script:AutoClickCount = 1000
         $script:AutoPointerMoveCount = 0
         $artifact = [ordered]@{
-            schema_version = 5
+            schema_version = 6
             retention_source_count = 1
             retention_complete = $true
             frame_overwritten = 0
@@ -1217,6 +2102,11 @@ Describe "ui-profile-capture output contract" {
             damage_to_submit_p95_us = 180
             damage_to_submit_p99_us = 200
             damage_to_submit_max_us = 220
+            input_to_present_sample_count = 4
+            input_to_present_p50_us = 240
+            input_to_present_p95_us = 300
+            input_to_present_p99_us = 320
+            input_to_present_max_us = 340
         }
         $writeArtifact = {
             $artifact | ConvertTo-Json -Depth 4 |
@@ -1288,7 +2178,11 @@ Describe "ui-profile-capture output contract" {
                 [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_query_visited_node_count'; value = 7 },
                 [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_query_candidate_count'; value = 3 },
                 [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_query_hit_count'; value = 1 },
-                [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_query_projected_candidate_count'; value = 1 }
+                [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_query_projected_candidate_count'; value = 1 },
+                [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_owner_map_entry_count'; value = 3 },
+                [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_owner_map_candidate_copy_payload_bytes'; value = 72 },
+                [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_projection_context_build_count'; value = 1 },
+                [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_source_reuse_count'; value = 1 }
             )
         } | ConvertTo-Json -Depth 6 |
             Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
@@ -1297,12 +2191,12 @@ Describe "ui-profile-capture output contract" {
         $metrics.query_duration_us.sample_count | Should Be 2
         $metrics.query_duration_us.p50 | Should Be 10
         $metrics.query_duration_us.p95 | Should Be 30
-        $metrics.counters.Count | Should Be 4
+        $metrics.counters.Count | Should Be 8
         (Test-ViewportPointerMetricsGate -ProfileDir $profileDir -ScenarioName 'viewport_pointer') |
             Should Be $true
 
         $metrics.counters = @($metrics.counters | Where-Object {
-                $_.name -ne 'viewport.pointer.visible_spatial_query_hit_count'
+                $_.name -ne 'viewport.pointer.visible_spatial_owner_map_candidate_copy_payload_bytes'
             })
         $metrics | ConvertTo-Json -Depth 6 |
             Set-Content -LiteralPath (Join-Path $profileDir 'viewport_pointer_metrics.json') -Encoding UTF8
@@ -1348,10 +2242,14 @@ Describe "ui-profile-capture output contract" {
         $script:ProfileCaptureSource | Should Match '\[int\]\$AssetCatalogItemCount = 0'
         $script:ProfileCaptureSource | Should Match 'New-ZirconUiAssetCatalogScaleFixture'
         $script:ProfileCaptureSource | Should Match 'asset_catalog_item_count = \$AssetCatalogItemCount'
-        $script:ProfileCaptureSource | Should Match 'Asset catalog scale inputs are valid only for the asset_refresh scenario'
-        $script:ProfileCaptureSource | Should Match '\$normalizedScenario -eq "asset_refresh" -and \$AssetCatalogItemCount -gt 0'
+        $script:ProfileCaptureSource | Should Match 'Asset catalog scale inputs are valid only for asset_refresh or asset_browser_scroll'
+        $script:ProfileCaptureSource | Should Match '\$normalizedScenario -in @\("asset_refresh", "asset_browser_scroll"\) -and \$AssetCatalogItemCount -gt 0'
         $script:ProfileCaptureSource | Should Match 'return @\("--project", \$projectRoot\)'
         $script:ProfileCaptureSource | Should Match 'profile_catalog_asset_000001\.json'
+        $script:ProfileCaptureSource | Should Match 'Get-AssetBrowserScrollTargets'
+        $script:ProfileCaptureSource | Should Match 'asset_browser\.content_viewport'
+        $script:ProfileCaptureSource | Should Match 'asset_browser_content_viewport'
+        $script:ProfileScenarioSource | Should Match "id = 'asset_browser_scroll'"
 
         $materializeIndex = $script:ProfileCaptureSource.LastIndexOf('$inputFixture = New-ZirconUiAssetCatalogScaleFixture')
         $enableCaptureIndex = $script:ProfileCaptureSource.LastIndexOf('$env:ZIRCON_PROFILE_CAPTURE = "1"')
@@ -1364,6 +2262,16 @@ Describe "ui-profile-capture output contract" {
     It "exports verification screenshots beneath docs tests editor" {
         $script:ProfileCaptureSource | Should Match "profile-captures"
         $script:ProfileCaptureSource | Should Match "Export-VerificationScreenshots"
+    }
+
+    It "binds only current repository source paths" {
+        $criticalSourcePaths = @(Get-ZirconProfileCriticalSourcePaths)
+        @($criticalSourcePaths | Sort-Object -Unique).Count |
+            Should Be $criticalSourcePaths.Count
+        foreach ($relativePath in $criticalSourcePaths) {
+            Test-Path -LiteralPath (Join-Path $script:RepoRoot $relativePath) -PathType Leaf |
+                Should Be $true
+        }
     }
 
     It "writes a source and binary bound manifest before capture" {
@@ -1395,31 +2303,148 @@ Describe "ui-profile-capture output contract" {
         $manifest.scenario | Should Be 'click'
         $manifest.capture.output_root | Should Be 'E:\zircon-profiles'
         $manifest.input_fixture | Should BeNullOrEmpty
-        $manifest.capture.tool_files.Count | Should Be 8
+        $manifest.capture.tool_files.Count | Should Be 17
         $captureToolPaths = @($manifest.capture.tool_files.relative_path)
         ($captureToolPaths -contains 'tools/ui-profile-capture.ps1') | Should Be $true
         ($captureToolPaths -contains 'tools/ui-profile-scenarios.ps1') | Should Be $true
         ($captureToolPaths -contains 'tools/ui-profile-latency-evidence.ps1') | Should Be $true
         ($captureToolPaths -contains 'tools/ui-profile-process-evidence.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/ui-profile-counter-evidence.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/ui-profile-workbench-pointer-evidence.ps1') | Should Be $true
         ($captureToolPaths -contains 'tools/ui-profile-native-resize.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/ui-profile-hierarchy-filter-input.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/ui-profile-hierarchy-filter-metrics.ps1') | Should Be $true
         ($captureToolPaths -contains 'tools/ui-profile-scale-fixture.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/ui-profile-surface-pipeline-metrics.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/ui-profile-chrome-paint-metrics.ps1') | Should Be $true
         ($captureToolPaths -contains 'tools/profile-capture-paths.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/ui-profile-product-directory.ps1') | Should Be $true
         ($captureToolPaths -contains 'tools/profile-capture-manifest.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/ui-profile-machine-manifest.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/performance-machine-manifest.ps1') | Should Be $true
         $nativeInteractionTool = $manifest.capture.tool_files |
             Where-Object { $_.relative_path -eq 'tools/ui-profile-native-resize.ps1' } |
             Select-Object -First 1
         $nativeInteractionTool.sha256 |
             Should Be ((Get-FileHash -LiteralPath $nativeInteractionToolPath -Algorithm SHA256).Hash.ToLowerInvariant())
-        $manifest.repository.critical_source_files.Count | Should Be 108
+        $manifest.repository.critical_source_files.Count | Should Be 276
         $manifest.repository.critical_source_files[0].relative_path |
             Should Be 'zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs'
         $criticalSourcePaths = @($manifest.repository.critical_source_files.relative_path)
+        foreach ($currentUiOptimizationSource in @(
+            'zircon_editor/src/ui/retained_host/app.rs',
+            'zircon_editor/src/ui/retained_host/app/committed_shell_state.rs',
+            'zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge/dirty_marking.rs',
+            'zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs',
+            'zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs',
+            'zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs',
+            'zircon_editor/src/ui/retained_host/ui/scoped_presentation.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events.rs',
+            'zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs',
+            'zircon_editor/src/ui/asset_editor/binding/binding_inspector/payload_editing.rs',
+            'zircon_editor/src/ui/asset_editor/binding/schema_projection.rs',
+            'zircon_editor/src/ui/asset_editor/session/binding_state.rs',
+            'zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs',
+            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/pointer_feedback.rs',
+            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/search_clear_action.rs',
+            'zircon_editor/src/ui/retained_host/app/pane_surface_actions/click.rs',
+            'zircon_editor/src/ui/retained_host/primitives.rs',
+            'zircon_editor/src/ui/retained_host/persistent_row_patch_map.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/draw.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/transform.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/model.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_recording/record.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/entry.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/console_output.rs',
+            'zircon_editor/src/ui/retained_host/console_output.rs',
+            'zircon_runtime/src/ui/surface/surface/frame_publication.rs',
+            'zircon_runtime_interface/src/ui/surface/render/frame_extract.rs',
+            'zircon_runtime/src/ui/surface/surface.rs',
+            'zircon_runtime/src/ui/surface/diagnostics.rs',
+            'zircon_runtime/src/ui/surface/ecs_projection.rs',
+            'zircon_runtime/src/ui/surface/frame_hit_test.rs',
+            'zircon_runtime/src/ui/surface/binding_targets.rs',
+            'zircon_runtime/src/ui/surface/navigation_index.rs',
+            'zircon_runtime/src/ui/surface/navigation_index/profile.rs',
+            'zircon_runtime/src/ui/surface/focus.rs',
+            'zircon_runtime/src/ui/tree/node/focus.rs',
+            'zircon_runtime_interface/src/ui/surface/mod.rs',
+            'zircon_runtime_interface/src/ui/surface/frame.rs',
+            'zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs',
+            'zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads.rs',
+            'zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads/workbench_panes.rs',
+            'zircon_editor/src/ui/layouts/views/asset_browser.rs',
+            'zircon_editor/src/ui/layouts/views/asset_browser/logical_paint_source.rs',
+            'zircon_editor/src/ui/workbench/asset_content_layout/browser_virtualization.rs',
+            'zircon_editor/src/ui/workbench/project/asset_workspace_state.rs',
+            'zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_item_generation.rs',
+            'zircon_editor/src/ui/host/editor_event_runtime_access/asset_access.rs',
+            'zircon_editor/src/ui/workbench/shell_state.rs',
+            'zircon_editor/src/ui/retained_host/app/assets/refresh/apply.rs',
+            'zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs',
+            'zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/motion.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/pane/asset/content.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs',
+            'zircon_editor/src/ui/workbench/asset_content_layout/paint_metadata.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/binding/entry/lifecycle.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/binding/payload.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/binding/suggestions/action.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/binding/suggestions/payload.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/binding/suggestions/route.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/collection.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/component_adapter.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/palette.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/preview/nested.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/preview/suggestions.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/preview/value.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/source.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/structure/layout/semantic.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/structure/slot/semantic.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style/class.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style/rules/declaration.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style/rules/rule.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style/theme_source.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style/tokens.rs',
+            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/widget/promote.rs',
+            'zircon_editor/src/ui/layouts/views/view_projection/projection_cache.rs',
+            'zircon_editor/src/ui/layouts/views/view_projection/projection_cache/render_command_index.rs',
+            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_fragment.rs',
+            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_projection.rs',
+            'zircon_editor/src/ui/retained_host/app/host_lifecycle/scene_hierarchy_refresh.rs',
+            'zircon_editor/src/ui/retained_host/app/host_lifecycle/scene_hierarchy_refresh/hierarchy_row_patch.rs',
+            'zircon_editor/src/ui/workbench/snapshot/data/scene_entry/entries.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/hierarchy.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/hierarchy/viewport.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/assets/frame.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/diagnostics.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/bar.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup/submenus.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/recent_projects/rows.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/rail.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/page_overflow.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/menu/entry.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/options/entry.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns/text.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls/options.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls/commands.rs',
+            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls/segments/body.rs'
+        )) {
+            ($criticalSourcePaths -contains $currentUiOptimizationSource) | Should Be $true
+        }
         foreach ($path in @(
                 'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/input_outcome.rs',
+                'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/input.rs',
+                'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/pointer_move_mailbox.rs',
                 'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs',
                 'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/profile_capture.rs',
+                'zircon_editor/src/ui/retained_host/host_contract/window/metadata.rs',
                 'zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs',
-                'zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment.rs'
+                'zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment.rs',
+                'zircon_runtime_interface/src/ui/dispatch/input/metadata.rs'
             )) {
             ($criticalSourcePaths -contains $path) | Should Be $true
         }
@@ -1433,15 +2458,49 @@ Describe "ui-profile-capture output contract" {
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_visible_spatial_query.rs') |
             Should Be $true
+        ($criticalSourcePaths -contains 'zircon_editor/src/scene/modes/scene_mode_stack.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_editor/src/scene/modes/scene_mode_ctx.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_editor/src/scene/selection/selection_model.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_editor/src/scene/selection/domain_selection.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/viewport/submit_extract.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/core/framework/render/framework.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/core/framework/render/ui_submission.rs') |
+            Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/core/framework/render/visible_spatial_query.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/dynamic_api/session/runtime_ui.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/runtime/render_framework/query_visible_spatial_snapshot/query_visible_spatial_snapshot.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visible_spatial_query.rs') |
             Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/resources/ui_texture.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/render/background.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/types/viewport_render_frame.rs') |
+            Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/entry.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_index.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/loading/async_loader.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/loading/pixels.rs') |
             Should Be $true
@@ -1481,9 +2540,9 @@ Describe "ui-profile-capture output contract" {
             'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_handle_move.rs',
             'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_handle_scroll.rs',
             'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_project_route.rs',
-            'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_rebuild_surface.rs',
             'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_sync.rs',
-            'zircon_editor/src/ui/retained_host/welcome_recent_pointer/register_handled_pointer_node.rs'
+            'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_layout.rs',
+            'zircon_editor/src/ui/retained_host/app/pointer_layout/welcome_recent.rs'
         )) {
             ($criticalSourcePaths -contains $welcomePointerSource) | Should Be $true
         }
@@ -1497,8 +2556,10 @@ Describe "ui-profile-capture output contract" {
         }
         foreach ($viewportToolbarSource in @(
             'zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/click.rs',
+            'zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/pane_frame.rs',
             'zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/viewport_toolbar.rs',
             'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs',
+            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/surface_frame_cache.rs',
             'zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/handle_click.rs',
             'zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/new.rs',
             'zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs',
@@ -1510,17 +2571,19 @@ Describe "ui-profile-capture output contract" {
         }
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/handle_scroll.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/rebuild_surface.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_bridge.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/handle_click.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/handle_move.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/register_handled_pointer_node.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_layout.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/route_at_point.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/sync.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/app/pointer_layout/hierarchy.rs') |
             Should Be $true
         foreach ($shellDragSource in @(
             'zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs',
@@ -1536,6 +2599,42 @@ Describe "ui-profile-capture output contract" {
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/ui/layout/pass/incremental.rs') |
             Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/ui/layout/pass/slot.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/ui/layout/pass/measure.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/ui/layout/pass/measure/traversal.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/ui/layout/pass/arrange.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime_interface/src/ui/tree/node/layout_cache.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime_interface/src/ui/tree/node/ui_tree.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/ui/surface/arranged_visibility.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/ui/surface/arranged.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime_interface/src/ui/surface/render/frame_extract.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/ui/surface/render/extract.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/ui/tree/hit_test.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/ui/tree/hit_test/route_index.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime_interface/src/ui/surface/hit.rs') |
+            Should Be $true
+        foreach ($rhiDamageSource in @(
+            'zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/bounds_index.rs',
+            'zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/dependency_depths.rs',
+            'zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs',
+            'zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/pipeline.rs',
+            'zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs',
+            'zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shaders/ui_material.wgsl'
+        )) {
+            ($criticalSourcePaths -contains $rhiDamageSource) | Should Be $true
+        }
         ($criticalSourcePaths -contains 'zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs') |

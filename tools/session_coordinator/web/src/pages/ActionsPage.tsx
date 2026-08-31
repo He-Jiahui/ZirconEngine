@@ -62,7 +62,7 @@ export function ActionsPage({ service, sessions, workflows, auth, onAuthChange }
     return () => controller.abort();
   }, [trackAction, upsertHistory]);
   useEffect(() => {
-    if (!auth) return;
+    if (!auth || auth.actor === "loopback-viewer") return;
     const controller = new AbortController();
     actionClient.activity(50, controller.signal).then((activity) => {
       setHistory(activity.actions);

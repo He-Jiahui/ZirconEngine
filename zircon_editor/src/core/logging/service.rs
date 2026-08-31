@@ -233,6 +233,10 @@ impl EditorLogService {
         self.store.snapshot(filter)
     }
 
+    pub fn snapshot_tail(&self, filter: &LogFilter, max_records: usize) -> Vec<LogRecord> {
+        self.store.snapshot_tail(filter, max_records)
+    }
+
     pub fn record(&self, sequence: u64) -> Option<LogRecord> {
         self.store.record(sequence)
     }

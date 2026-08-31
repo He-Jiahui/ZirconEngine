@@ -1,8 +1,13 @@
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::mem::size_of;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use crate::text::{InlineObjectRef, LinkRef, StyleOverride};
+use crate::text::{InlineObjectRef, LinkRef, OpenTypeFeature, StyleOverride};
 
+use super::RichTextParseError;
 use super::bbcode::{apply_builtin_style, is_parser_reserved_tag, normalized_tag};
 use super::inline_decorators::{IconTextDecorator, WidgetTextDecorator};
 
@@ -37,6 +42,8 @@ pub trait RichTextDecorator: Send + Sync {
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Failure returned while extending a configurable rich-text parser.
 pub enum RichTextDecoratorRegistrationError {
+    /// This parser can no longer publish a unique decorator generation.
+    GenerationExhausted,
     /// The normalized tag is empty or contains unsupported characters.
     InvalidTag(String),
     /// The tag belongs to a built-in/parser owner or another registration.
@@ -46,6 +53,9 @@ pub enum RichTextDecoratorRegistrationError {
 impl Display for RichTextDecoratorRegistrationError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::GenerationExhausted => {
+                write!(formatter, "rich-text decorator generation is exhausted")
+            }
             Self::InvalidTag(tag) => write!(formatter, "invalid rich-text decorator tag `{tag}`"),
             Self::DuplicateTag(tag) => {
                 write!(
@@ -73,19 +83,14 @@ impl RichTextDecorator for BuiltinTextDecorator {
     }
 }
 
-struct RegisteredDecorator {
-    tag: String,
-    decorator: Box<dyn RichTextDecorator>,
-}
-
 pub(super) struct DecoratorRegistry {
-    decorators: Vec<RegisteredDecorator>,
+    decorators: HashMap<String, Box<dyn RichTextDecorator>>,
 }
 
 impl DecoratorRegistry {
     pub(super) fn with_builtins() -> Self {
         let mut registry = Self {
-            decorators: Vec::new(),
+            decorators: HashMap::with_capacity(11),
         };
         for tag in [
             "b", "i", "u", "s", "color", "bgcolor", "size", "font", "code",
@@ -107,19 +112,18 @@ impl DecoratorRegistry {
                 raw_tag.to_string(),
             ));
         };
-        if is_parser_reserved_tag(&tag)
-            || self
-                .decorators
-                .iter()
-                .any(|registered| registered.tag == tag)
-        {
+        if is_parser_reserved_tag(&tag) {
             return Err(RichTextDecoratorRegistrationError::DuplicateTag(tag));
         }
-        self.decorators.push(RegisteredDecorator {
-            tag,
-            decorator: Box::new(decorator),
-        });
-        Ok(())
+        match self.decorators.entry(tag) {
+            Entry::Vacant(entry) => {
+                entry.insert(Box::new(decorator));
+                Ok(())
+            }
+            Entry::Occupied(entry) => Err(RichTextDecoratorRegistrationError::DuplicateTag(
+                entry.key().clone(),
+            )),
+        }
     }
 
     pub(super) fn apply(
@@ -127,22 +131,70 @@ impl DecoratorRegistry {
         tag: &str,
         value: Option<&str>,
         decoration: &mut RichTextDecoration,
-    ) -> bool {
-        self.decorators
-            .iter()
-            .find(|registered| registered.tag == tag)
-            .is_some_and(|registered| registered.decorator.decorate(value, decoration))
+        max_decorator_metadata_bytes_per_call: usize,
+    ) -> Result<bool, RichTextParseError> {
+        let Some(decorator) = self.decorators.get(tag) else {
+            return Ok(false);
+        };
+        let accepted = catch_unwind(AssertUnwindSafe(|| decorator.decorate(value, decoration)))
+            .map_err(|_| RichTextParseError::DecoratorPanicked {
+                tag: tag.to_string(),
+            })?;
+        if accepted {
+            let attempted_bytes = retained_metadata_bytes(
+                &decoration.style,
+                decoration.inline.as_ref(),
+                decoration.link.as_ref(),
+            );
+            if attempted_bytes > max_decorator_metadata_bytes_per_call {
+                return Err(RichTextParseError::DecoratorMetadataBudgetExceeded {
+                    tag: tag.to_string(),
+                    attempted_bytes,
+                    max_bytes: max_decorator_metadata_bytes_per_call,
+                });
+            }
+        }
+        Ok(accepted)
     }
 
     fn insert_builtin(&mut self, decorator: impl RichTextDecorator + 'static) {
         let tag = decorator.tag().to_string();
-        debug_assert!(self
-            .decorators
-            .iter()
-            .all(|registered| registered.tag != tag));
-        self.decorators.push(RegisteredDecorator {
-            tag,
-            decorator: Box::new(decorator),
-        });
+        match self.decorators.entry(tag) {
+            Entry::Vacant(entry) => {
+                entry.insert(Box::new(decorator));
+            }
+            Entry::Occupied(entry) => {
+                panic!("duplicate built-in decorator tag `{}`", entry.key());
+            }
+        }
     }
+}
+
+pub(super) fn retained_metadata_bytes(
+    style: &StyleOverride,
+    inline: Option<&InlineObjectRef>,
+    link: Option<&LinkRef>,
+) -> usize {
+    style
+        .family
+        .as_ref()
+        .map_or(0, |family| family.0.len())
+        .saturating_add(style.features.as_ref().map_or(0, |features| {
+            features.len().saturating_mul(size_of::<OpenTypeFeature>())
+        }))
+        .saturating_add(link.map_or(0, |link| link.retained_heap_bytes()))
+        .saturating_add(match inline {
+            Some(InlineObjectRef::Image {
+                alternative_text,
+                tooltip,
+                ..
+            }) => alternative_text
+                .as_ref()
+                .map_or(0, String::len)
+                .saturating_add(tooltip.as_ref().map_or(0, String::len)),
+            Some(InlineObjectRef::Icon {
+                alternative_text, ..
+            }) => alternative_text.as_ref().map_or(0, String::len),
+            Some(InlineObjectRef::Widget { .. }) | None => 0,
+        })
 }

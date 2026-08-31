@@ -21,7 +21,6 @@ from runtime_structure_audits.performance_hotpath_anchor_inventory import (
 from runtime_structure_audits.performance_hotpath_source_inventory import (
     EXPECTED_LARGE_FILE_OWNER_CLASSES,
     EXPECTED_SOURCE_FILE_COUNT,
-    EXPECTED_TEST_FILE_COUNT,
     LARGE_FILE_HOTSPOT_THRESHOLD,
     RUNTIME_07_SOURCE_FILES,
     RUNTIME_07_TEST_FILES,
@@ -321,7 +320,7 @@ def performance_hotpath_boundary_audit(
         "expected_source_file_count": EXPECTED_SOURCE_FILE_COUNT,
         "missing_source_files": missing_source_files,
         "test_files": test_files,
-        "expected_test_file_count": EXPECTED_TEST_FILE_COUNT,
+        "expected_test_file_count": len(RUNTIME_07_TEST_FILES),
         "missing_test_files": missing_test_files,
         "frame_span_anchor_count": len(FRAME_SPAN_ANCHORS),
         "missing_frame_span_anchors": missing_frame_span_anchors,

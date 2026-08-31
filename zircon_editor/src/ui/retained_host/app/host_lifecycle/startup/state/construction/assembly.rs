@@ -33,25 +33,41 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
     } = startup_managers;
     let interaction = StartupInteractionState::new(viewport_size);
     let editor_jobs = editor_manager.context().jobs().clone();
+    let editor_tools = editor_manager.context().tools().clone();
     viewport.bind_jobs(editor_jobs.clone());
+    let hub_focus_request_attention: Arc<dyn Fn() + Send + Sync> = {
+        let attention = ui.window().window_attention();
+        Arc::new(move || attention.request())
+    };
+    let native_plugin_watch_wake = ui.background_event_wake_callback();
 
     let mut host = RetainedEditorHost {
         ui,
         self_handle: None,
         runtime_lease,
         runtime,
+        runtime_shutdown_receipt: None,
         editor_manager,
+        hub_focus_binding: HubFocusBinding::default(),
+        hub_focus_request_attention,
         module_plugin_projection_cache: Default::default(),
         #[cfg(feature = "profiling")]
         runtime_gateway,
         module_plugin_live_host_backend: Box::new(
-            module_plugin_actions::NativePluginDevelopmentLiveHostBackend::new(native_plugin_host),
+            module_plugin_actions::NativePluginDevelopmentLiveHostBackend::new(
+                native_plugin_host,
+                editor_jobs.clone(),
+                native_plugin_watch_wake,
+            ),
         ),
         desktop_export_reports: BTreeMap::new(),
         desktop_export_jobs: build_export_actions::DesktopExportJobQueue::new(editor_jobs.clone()),
         desktop_export_output_overrides: BTreeMap::new(),
         desktop_export_wizard_sessions:
-            build_export_wizard_session::DesktopExportWizardSessions::new(editor_jobs),
+            build_export_wizard_session::DesktopExportWizardSessions::new_with_tools(
+                editor_jobs,
+                editor_tools,
+            ),
         viewport,
         asset_runtime_access,
         asset_change_events,
@@ -59,16 +75,29 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         resource_change_events,
         asset_refresh_queue_age: Default::default(),
         asset_refresh_accumulator: Default::default(),
+        pending_active_scene_reload: None,
+        active_scene_reload_admission: None,
+        active_scene_reload_conflict: None,
+        active_scene_reload_decision_sequence: 0,
+        pending_model_import: None,
+        pending_asset_deletion: None,
+        pending_asset_relocation: None,
         startup_session,
         welcome_project_probe: welcome_session::WelcomeProjectProbeState::default(),
         viewport_size,
         viewport_pointer_bridge: interaction.viewport_pointer_bridge,
+        play_preview_input_focus_active: false,
+        play_preview_view_focus_active: false,
+        play_viewport_pick: Default::default(),
+        last_simulate_camera: None,
         builtin_template_runtime: template_bridges.builtin_template_runtime,
         plugin_template_generation: 0,
         plugin_template_capabilities: Vec::new(),
         template_bridge: template_bridges.template_bridge,
         workbench_window_bridge: template_bridges.workbench_window_bridge,
         host_chrome_projection_cache: Default::default(),
+        console_pane_projection_cache: Default::default(),
+        module_plugins_pane_projection_cache: Default::default(),
         floating_window_source_bridge: template_bridges.floating_window_source_bridge,
         viewport_toolbar_bridge: template_bridges.viewport_toolbar_bridge,
         viewport_toolbar_pointer_bridge: interaction.viewport_toolbar_pointer_bridge,
@@ -87,7 +116,6 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         menu_pointer_state: interaction.menu_pointer_state,
         menu_pointer_layout: interaction.menu_pointer_layout,
         welcome_recent_pointer_bridge: interaction.welcome_recent_pointer_bridge,
-        welcome_recent_pointer_state: interaction.welcome_recent_pointer_state,
         welcome_recent_pointer_size: interaction.welcome_recent_pointer_size,
         hierarchy_pointer_bridge: interaction.hierarchy_pointer_bridge,
         hierarchy_pointer_state: interaction.hierarchy_pointer_state,
@@ -119,12 +147,15 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         shell_token_region_defaults: None,
         transient_region_preferred: BTreeMap::new(),
         active_drawer_resize: None,
+        project_close_coordinator: ProjectCloseCoordinator::default(),
         pending_close_prompt: None,
+        pending_document_save_all: false,
+        queued_document_save_all: false,
         scene_picker_session: None,
         invalidation: HostInvalidationRoot::with_initial_full_rebuild(),
         pending_ui_perf_scenario: None,
         pending_activity_projection_refresh: false,
-        runtime_diagnostics_visible: false,
+        runtime_diagnostics_refresh_target: RuntimeDiagnosticsRefreshTarget::None,
         presentation_dirty: true,
         layout_dirty: true,
         window_metrics_dirty: true,
@@ -133,7 +164,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
     if host.startup_session.mode == EditorSessionMode::Welcome {
         host.schedule_welcome_project_probe();
     }
-    if let Err(error) = host.ensure_hierarchy_world_watch() {
+    let hierarchy_domain = host.runtime.active_hierarchy_world_domain();
+    if let Err(error) = host.ensure_hierarchy_world_watch(hierarchy_domain) {
         host.set_status_line(error);
     }
     host

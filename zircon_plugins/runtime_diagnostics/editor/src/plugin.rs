@@ -53,7 +53,6 @@ impl zircon_editor::EditorPlugin for RuntimeDiagnosticsEditorPlugin {
                     RUNTIME_DIAGNOSTICS_VIEW_ID,
                     "Runtime Diagnostics",
                     "Diagnostics",
-                    "Plugins/Runtime Diagnostics",
                 )],
             },
         )

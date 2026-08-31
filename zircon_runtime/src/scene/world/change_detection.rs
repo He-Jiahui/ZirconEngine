@@ -1,5 +1,6 @@
 use crate::scene::ecs::{
-    ChangeTick, Component, ComponentTicks, RemovedComponentEvents, Resource, StorageType,
+    ChangeTick, Component, ComponentMutationRecorder, ComponentTicks, RemovedComponentEvents,
+    RemovedComponentRetention, RemovedComponentRetentionMetrics, Resource, StorageType,
 };
 use crate::scene::{EntityId, World};
 
@@ -13,6 +14,7 @@ impl World {
     }
 
     pub fn clear_trackers(&mut self) {
+        self.advance_removed_component_events();
         self.last_change_tick = self.change_tick;
     }
 
@@ -100,13 +102,21 @@ impl World {
     pub(crate) fn component_mut_with_ticks<T>(
         &mut self,
         entity: EntityId,
-    ) -> Option<(&mut T, &mut ComponentTicks, ChangeTick)>
+    ) -> Option<(
+        &mut T,
+        &mut ComponentTicks,
+        ChangeTick,
+        ComponentMutationRecorder<'_>,
+    )>
     where
         T: Component,
     {
         let component_id = self.registered_component_id::<T>()?;
         let internal = self.internal_entity(entity)?;
         let tick = self.mutation_change_tick();
+        let mutation_recorder = self
+            .derived_state_dirty
+            .component_mutation_recorder::<T>(entity);
         let (value, ticks) = match T::STORAGE_TYPE {
             StorageType::Table => {
                 let location = self
@@ -124,7 +134,7 @@ impl World {
                 .component_storage
                 .get_mut_with_ticks(component_id, internal)?,
         };
-        Some((value, ticks, tick))
+        Some((value, ticks, tick, mutation_recorder))
     }
 
     pub(crate) fn resource_mut_with_ticks<T>(
@@ -143,6 +153,46 @@ impl World {
         T: Component,
     {
         self.removed_component_events.push::<T>(entity);
+    }
+
+    pub fn configure_removed_component_retention<T>(&mut self, retention: RemovedComponentRetention)
+    where
+        T: Component,
+    {
+        self.removed_component_events
+            .configure_retention::<T>(retention);
+    }
+
+    pub fn removed_component_retention<T>(&self) -> Option<RemovedComponentRetention>
+    where
+        T: Component,
+    {
+        self.removed_component_events.retention::<T>()
+    }
+
+    pub fn removed_component_retention_metrics<T>(&self) -> Option<RemovedComponentRetentionMetrics>
+    where
+        T: Component,
+    {
+        self.removed_component_events.retention_metrics::<T>()
+    }
+
+    pub fn clear_removed_component_events<T>(&mut self)
+    where
+        T: Component,
+    {
+        self.removed_component_events.clear::<T>();
+        if super::render_component_changes::is_render_component_change_source::<T>() {
+            self.derived_state_dirty.mark_render_dirty();
+        }
+    }
+
+    pub fn last_removed_component_advance_channel_visits(&self) -> usize {
+        self.removed_component_events.last_advance_channel_visits()
+    }
+
+    pub(crate) fn advance_removed_component_events(&mut self) {
+        self.removed_component_events.advance_frame();
     }
 
     pub(crate) fn removed_component_events(&self) -> &RemovedComponentEvents {

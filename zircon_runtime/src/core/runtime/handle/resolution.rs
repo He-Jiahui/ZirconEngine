@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::ops::Deref;
+use std::panic::{self, AssertUnwindSafe};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -74,6 +75,51 @@ enum NamedServiceResolution {
 enum RegisteredServiceResolution {
     Resolved(ServiceObject),
     Pending,
+}
+
+struct ServiceInitializationClaim<'a> {
+    core: &'a CoreHandle,
+    service_key: &'a RegistryName,
+    index: u32,
+    generation: u32,
+    owner: thread::ThreadId,
+    armed: bool,
+}
+
+impl<'a> ServiceInitializationClaim<'a> {
+    fn new(
+        core: &'a CoreHandle,
+        service_key: &'a RegistryName,
+        index: u32,
+        generation: u32,
+        owner: thread::ThreadId,
+    ) -> Self {
+        Self {
+            core,
+            service_key,
+            index,
+            generation,
+            owner,
+            armed: true,
+        }
+    }
+
+    fn disarm(&mut self) {
+        self.armed = false;
+    }
+}
+
+impl Drop for ServiceInitializationClaim<'_> {
+    fn drop(&mut self) {
+        if self.armed {
+            self.core.reset_initializing_service(
+                self.service_key,
+                self.index,
+                self.generation,
+                self.owner,
+            );
+        }
+    }
 }
 
 impl CoreHandle {
@@ -397,7 +443,6 @@ impl CoreHandle {
         }
         stack.push(service_key.clone());
         let current_thread = thread::current().id();
-        let mut claimed_initialization = false;
 
         let result = (|| {
             let owner_module = service_key.module_name();
@@ -415,7 +460,6 @@ impl CoreHandle {
                     if entry.lifecycle != LifecycleState::Initializing {
                         entry.lifecycle = LifecycleState::Initializing;
                         entry.initialization_owner = Some(current_thread);
-                        claimed_initialization = true;
                         break (
                             entry.dependencies.clone(),
                             entry.factory.clone(),
@@ -429,7 +473,6 @@ impl CoreHandle {
                     if initialization_owner == current_thread
                         && self.take_service_activation_reentry(current_thread, service_key)
                     {
-                        claimed_initialization = true;
                         break (
                             entry.dependencies.clone(),
                             entry.factory.clone(),
@@ -446,6 +489,13 @@ impl CoreHandle {
                     self.clear_service_resolution_wait(current_thread);
                 }
             };
+            let mut initialization_claim = ServiceInitializationClaim::new(
+                self,
+                service_key,
+                resolution_index,
+                resolution_generation,
+                current_thread,
+            );
 
             #[cfg(test)]
             self.wait_on_service_resolution_claim_barrier();
@@ -463,6 +513,7 @@ impl CoreHandle {
                 self.clear_service_activation_reentry(current_thread, service_key);
                 activation_result?;
                 if let Some(instance) = self.resolved_service_instance(service_key) {
+                    initialization_claim.disarm();
                     return Ok(instance);
                 }
             }
@@ -471,28 +522,7 @@ impl CoreHandle {
                 self.resolve_dependency_services(dependency_names.as_ref(), stack)?;
             }
 
-            let factory_result = match factory {
-                ServiceEntryFactory::Service(factory) => factory(&self.downgrade()),
-                ServiceEntryFactory::Plugin(factory) => {
-                    let context = PluginContext {
-                        plugin_name: canonical_service_name.to_owned(),
-                        core: self.downgrade(),
-                        package_root: None,
-                        source_root: None,
-                        data_root: None,
-                    };
-                    factory(&context)
-                }
-            };
-            let instance = match factory_result {
-                Ok(instance) => instance,
-                Err(error) => {
-                    return Err(CoreError::Initialization(
-                        canonical_service_name.to_owned(),
-                        error.to_string(),
-                    ));
-                }
-            };
+            let instance = self.invoke_service_factory(canonical_service_name, factory)?;
 
             let committed = (|| {
                 let mut services = self.lock_services();
@@ -524,15 +554,45 @@ impl CoreHandle {
                 Ok(instance)
             })();
             self.notify_service_resolution_changed();
+            if committed.is_ok() {
+                initialization_claim.disarm();
+            }
             committed
         })();
 
-        if result.is_err() && claimed_initialization {
-            self.reset_initializing_service(service_key, current_thread);
-        }
-
         stack.pop();
         result
+    }
+
+    fn invoke_service_factory(
+        &self,
+        service_name: &str,
+        factory: ServiceEntryFactory,
+    ) -> Result<ServiceObject, CoreError> {
+        let result = panic::catch_unwind(AssertUnwindSafe(|| match factory {
+            ServiceEntryFactory::Service(factory) => factory(&self.downgrade()),
+            ServiceEntryFactory::Plugin(factory) => {
+                let context = PluginContext {
+                    plugin_name: service_name.to_owned(),
+                    core: self.downgrade(),
+                    package_root: None,
+                    source_root: None,
+                    data_root: None,
+                };
+                factory(&context)
+            }
+        }));
+
+        match result {
+            Ok(Ok(instance)) => Ok(instance),
+            Ok(Err(error)) => Err(CoreError::Initialization(
+                service_name.to_owned(),
+                error.to_string(),
+            )),
+            Err(_) => Err(CoreError::ServiceFactoryPanicked {
+                service: service_name.to_owned(),
+            }),
+        }
     }
 
     fn resolve_dependency_services(
@@ -588,12 +648,16 @@ impl CoreHandle {
     fn reset_initializing_service(
         &self,
         service_key: &RegistryName,
+        expected_index: u32,
+        expected_generation: u32,
         initialization_owner: thread::ThreadId,
     ) {
         let mut services = self.lock_services();
         let mut reset = false;
         if let Some(entry) = services.get_mut(service_key) {
-            if entry.lifecycle == LifecycleState::Initializing
+            if entry.index == expected_index
+                && entry.generation == expected_generation
+                && entry.lifecycle == LifecycleState::Initializing
                 && entry.initialization_owner == Some(initialization_owner)
                 && entry.instance.is_none()
             {

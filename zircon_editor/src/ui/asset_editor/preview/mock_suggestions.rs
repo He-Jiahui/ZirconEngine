@@ -2,8 +2,7 @@ use toml::Value;
 use zircon_runtime_interface::ui::template::UiNodeDefinition;
 
 use super::{
-    preview_mock_inline_literal, preview_mock_kind_for_nested_value, preview_mock_nested_entries,
-    UiAssetPreviewMockEntry, UiAssetPreviewMockNestedEntry,
+    preview_mock_inline_literal, preview_mock_kind_for_nested_value, UiAssetPreviewMockEntry,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -52,40 +51,103 @@ pub(super) fn preview_mock_suggestions(
     let Some((root_prefix, root_value)) = suggestion_root(entry, selected_nested_key) else {
         return Vec::new();
     };
-    immediate_preview_mock_suggestions(root_prefix.as_deref(), &root_value)
+    immediate_preview_mock_suggestions(root_prefix.as_deref(), root_value)
 }
 
-fn suggestion_root(
-    entry: &UiAssetPreviewMockEntry,
+fn suggestion_root<'a>(
+    entry: &'a UiAssetPreviewMockEntry,
     selected_nested_key: Option<&str>,
-) -> Option<(Option<String>, Value)> {
-    let nested_entries = preview_mock_nested_entries(&entry.effective_value);
-    if let Some(selected_nested_key) = selected_nested_key.and_then(|key| {
-        matching_nested_container(key, &nested_entries).map(|entry| entry.key.clone())
-    }) {
-        let nested_entry = nested_entries
-            .iter()
-            .find(|entry| entry.key == selected_nested_key)?;
-        return Some((Some(nested_entry.key.clone()), nested_entry.value.clone()));
+) -> Option<(Option<String>, &'a Value)> {
+    if let Some((key, value)) =
+        selected_nested_key.and_then(|key| matching_nested_container(key, &entry.effective_value))
+    {
+        return Some((Some(key), value));
     }
 
     entry
         .kind
         .supports_nested_entries()
-        .then_some((None, entry.effective_value.clone()))
+        .then_some((None, &entry.effective_value))
 }
 
 fn matching_nested_container<'a>(
     selected_nested_key: &str,
-    nested_entries: &'a [UiAssetPreviewMockNestedEntry],
-) -> Option<&'a UiAssetPreviewMockNestedEntry> {
-    nested_entries
-        .iter()
-        .filter(|entry| {
-            entry.kind.supports_nested_entries()
-                && selected_or_descendant_path(selected_nested_key, &entry.key)
-        })
-        .max_by_key(|entry| entry.key.len())
+    value: &'a Value,
+) -> Option<(String, &'a Value)> {
+    matching_nested_container_from(selected_nested_key, value, None)
+}
+
+fn matching_nested_container_from<'a>(
+    selected_nested_key: &str,
+    value: &'a Value,
+    prefix: Option<&str>,
+) -> Option<(String, &'a Value)> {
+    let mut best = None;
+    match value {
+        Value::Array(entries) => {
+            for (index, entry) in entries.iter().enumerate() {
+                let path = match prefix {
+                    Some(prefix) => format!("{prefix}[{index}]"),
+                    None => index.to_string(),
+                };
+                let Some(candidate) = nested_container_candidate(selected_nested_key, entry, path)
+                else {
+                    continue;
+                };
+                if candidate.0 == selected_nested_key {
+                    return Some(candidate);
+                }
+                prefer_deeper_container(&mut best, candidate);
+            }
+        }
+        Value::Table(entries) => {
+            for (key, entry) in entries {
+                let path = match prefix {
+                    Some(prefix) => format!("{prefix}.{key}"),
+                    None => key.clone(),
+                };
+                let Some(candidate) = nested_container_candidate(selected_nested_key, entry, path)
+                else {
+                    continue;
+                };
+                if candidate.0 == selected_nested_key {
+                    return Some(candidate);
+                }
+                prefer_deeper_container(&mut best, candidate);
+            }
+        }
+        _ => {}
+    }
+    best
+}
+
+fn nested_container_candidate<'a>(
+    selected_nested_key: &str,
+    value: &'a Value,
+    path: String,
+) -> Option<(String, &'a Value)> {
+    let is_container = preview_mock_kind_for_nested_value(value)
+        .is_some_and(|kind| kind.supports_nested_entries());
+    if !is_container || !selected_or_descendant_path(selected_nested_key, &path) {
+        return None;
+    }
+
+    Some(
+        matching_nested_container_from(selected_nested_key, value, Some(&path))
+            .unwrap_or((path, value)),
+    )
+}
+
+fn prefer_deeper_container<'a>(
+    best: &mut Option<(String, &'a Value)>,
+    candidate: (String, &'a Value),
+) {
+    if best
+        .as_ref()
+        .is_none_or(|(best_path, _)| candidate.0.len() > best_path.len())
+    {
+        *best = Some(candidate);
+    }
 }
 
 fn selected_or_descendant_path(selected: &str, candidate: &str) -> bool {
@@ -189,3 +251,7 @@ fn collect_preview_mock_schema_items(value: &Value, base: &str, items: &mut Vec<
         _ => {}
     }
 }
+
+#[cfg(test)]
+#[path = "mock_suggestions/borrowed_root_tests.rs"]
+mod borrowed_root_tests;

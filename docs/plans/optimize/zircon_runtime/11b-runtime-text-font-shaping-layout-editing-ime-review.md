@@ -41,7 +41,7 @@ Zircon 的文本系统不是临时拼出的单一 `draw_text`。当前源码已�
 
 规模和生命周期也未达到 Unreal/Slate 级别。字体数据库是 process-global `OnceLock<RwLock<...>>`，启动时默认发现系统字体并静默尝试源码树 manifest；每次 mutation clone 整库，generation 变化后使多个缓存整域失效，thread-local Cosmic `FontSystem` 又按线程复制数据库。文本布局虽然有 retained session 和 bounded cache，但大文档 viewport fast path 只覆盖 plain、horizontal、nowrap、clip、non-editable；wrapped editor、rich text、vertical text、preedit 和绝大多数编辑场景仍全量 layout。编辑状态没有 undo/redo transaction，公开 selection/composition action 只保证 UTF-8 char boundary，不保证 grapheme；上下键按源 hard line 导航，RTL 左右键按逻辑顺序移动。
 
-超长文本的 64 KiB shaping cap 目前还改变语义：一个逻辑 hard line 被切成多个 `HardLine`，每段被计入行高；跨分块的 Arabic/Indic context、ligature 和 grapheme 也可能被切断。富文本 cache 驻留是有界的，但 parser 入口没有 input/token/node/depth/time budget；HTML/BBCode/Markdown 子集会从每个未闭合标记重新扫描剩余字符串，构造近似 O(n²) 的拒绝服务输入。解析结果没有 structured diagnostics，“Markdown”实际只实现 `**`、`*` 和反引号三个极小语法。
+历史审查中的 64 KiB shaping cap 曾把一个逻辑 hard line 切成多个 `HardLine`，每段被计入行高；跨分块的 Arabic/Indic context、ligature 和 grapheme 也可能被切断。该 source-line 语义问题已由后续 P1-9 current-source re-audit 更正：64 KiB 现只是不接入生产决策的分类阈值，不能再被用作布局边界。富文本 cache 驻留是有界的，但 parser 入口没有 input/token/node/depth/time budget；HTML/BBCode/Markdown 子集会从每个未闭合标记重新扫描剩余字符串，构造近似 O(n²) 的拒绝服务输入。解析结果没有 structured diagnostics，“Markdown”实际只实现 `**`、`*` 和反引号三个极小语法。
 
 本轮登记 3 项 P0、29 项 P1、8 项 P2。重构顺序必须先关闭字体 cook 和 secure input，再把 shaping 失败变为 typed outcome；随后建立 session-owned font/text service、语义保持的长文本分块、paragraph/document 增量模型、编辑事务和视觉导航，最后完善富文本预算、真实平台 IME 与性能门禁。11C 将单独审查 glyph upload、atlas、SDF、UI GPU batch、clip 与 submit，不在本文用 CPU 结构测试替代 GPU 结论。
 
@@ -108,6 +108,10 @@ Rich parse cache 有 256 项/8 MiB 驻留预算，plain document measure cache �
 
 必须定义 cooked font artifact：至少包含经过授权/子集化策略处理的原始字体 bytes、face/table index、content hash、license/provenance、variation/color capability、schema version 与 dependency generation。runtime 只从 content-addressed blob/lease 建 face；source path 仅供 Editor reimport。验收必须在复制出的 package 中删除项目源码并禁用系统字体后运行多语言 shaping/raster。
 
+2026-08-29 current-source 修正：上述“artifact payload 没有 binary font blob、project runtime 重开原始 source”的实现事实已经过期。Importer 当前生成 versioned `FontBlobArtifact`，以 BLAKE3 content hash 校验并由 artifact cache payload 持有；project `load_text_font_source` 要求 cooked payload，只产生 `cooked-font/<asset-uri>` 逻辑 source key，UI/SDF 注册走 `replace_font_asset_blob`。共享 runtime 默认字体也从编译入 binary 的 manifest + TTC blob 启动，不依赖 checkout source 或系统字体。此次进一步补齐 engine-owned default composite：runtime baseline 与 project override 是两个独立 owner，fallback 固定按 explicit > project > runtime 选择，项目 default 删除后恢复内置 Fira Mono/zh-Hans CJK，而不是宿主 generic family；SDF 在没有项目 default owner 时直接消费同 generation 的 runtime primary face，不重开 loose manifest/source。这关闭 P0-1 的核心字节断链和默认复合字体所有权的静态实现缺口，但 clean package、shipping direct-path policy、license/provenance/subset/toolchain receipt、跨平台真实 shaping/raster 与受管 Cargo/WGPU 尚未验收；P0-1 状态为 `implementation_complete_static_checked / product_qualification_pending`，不得据此关闭第 14 节门禁 1。
+
+2026-08-29 clean-process default-face 补充：默认 neutral request 不声明 family，旧 primary match 又没有读取 engine default，导致系统字体 Disabled 时 CompositeFont 尚未参与就失败。当前 primary admission 固定为 explicit -> project default -> runtime primary -> runtime family -> platform/asset fallback；default state mutation 同时失效 face-match/fallback cache。fresh embedded database 的 `A界` source regression要求 Latin/CJK rasterizable glyph handle均可解析到真实 face。该项是 P0-1/P0-2 之间的 MVP 接缝修正，状态 `static_implemented / managed_shape_raster_validation_pending`。
+
 ### P0-2：真实 shaping 全失败时仍发布不可 rasterize 的“成功”glyph
 
 `text/shaping/cosmic.rs` 的 canonical `shape_text` 返回 `ShapedGlyphRun` 而不是 `Result`。direct/cosmic 路径都失败后，`fallback.rs` 为每个 grapheme 生成 FNV 风格 synthetic glyph ID，并以 0.33/0.56/0.85/1.0 em 等猜测 advance 排版；这些 glyph 的 `font_id` 和 `font_instance_id` 均为 `None`。
@@ -116,11 +120,15 @@ Rich parse cache 有 256 项/8 MiB 驻留预算，plain document measure cache �
 
 canonical shaping 必须返回 typed outcome：ready glyph run、pending font dependency、missing glyph with tofu policy、invalid font/data、unsupported feature、budget exceeded。缺字可映射到真实 fallback face 或可 rasterize 的 engine-owned tofu glyph，绝不能伪造“像 glyph ID 的数”。所有 layout/artifact/render publication 必须携带 font generation 与 completeness；错误路径要可观测且可在测试中强制触发。
 
+2026-08-26 current-source修正：上述“FNV synthetic glyph仍作为成功发布”的源码结论已经过期。当前`text/shaping/cosmic.rs::shape_text`返回typed `TextShapingOutcome`；无可用字体返回`FontUnavailable`，backend产出非空白/非virtual glyph却无法映射实际face时返回`FallbackExhausted`。`service.rs::project_glyph`只有在实际font face存在且glyph不是空白/tab/virtual时才置`requires_rasterization`。回归`service_reports_font_unavailable_instead_of_publishing_synthetic_glyphs`与`projection_never_requests_rasterization_without_a_font_face`已锁定该合同。P0-2实现状态改为`implementation_complete_static_checked / managed_validation_pending`；engine-owned tofu作为产品降级能力仍可后续增加，但不得恢复伪glyph成功路径，也不得把静态检查冒充WGPU验收。
+
 ### P0-3：`secure` 字段明文渲染和复制，同时禁用 IME
 
 `ui/surface/input/text_state.rs` 只从 metadata 识别 `secure`。focus 路径对 secure field 禁用 IME，直接 Enable 还会报错；但 `surface/render/resolve.rs::resolve_visible_value_text` 返回原始 editable value，`render/text_fields.rs` 又把该字符串写入 `UiRenderCommand.text` 和 layout。`keyboard_clipboard.rs` 的 copy/cut 也会把 selection 原文写入 clipboard，没有 secure policy 检查。
 
 因此当前 password field 既不保密，又无法用组合输入法输入国际字符。安全边界必须从“关掉 IME”改为端到端 policy：render/layout 使用可配置 secret character 与 grapheme-count-preserving mask；clipboard copy/cut 默认拒绝；surrounding text、accessibility value、diagnostics、capture、serialization、crash/log 与 plugin event 不得泄漏；IME 仍可在平台允许的 secure input scope 内提交文本。原文只存在于最小 owner 的受控 state，公开 render command 不携带 secret。
+
+2026-08-27 current-source修正：mask/glyph artifact、accessibility value/selection/action redaction与clipboard copy/cut deny已存在，本轮又为TextField catalog声明typed `input_kind` enum，并让WOC `input_kind=password`、`type=password`和secure aliases进入唯一internal `UiSecureTextPolicy`；冲突、畸形secure alias与未知input kind均fail-closed。render不再维护第二套classifier。P0-3仍开放：通用Change/Commit component event与binding report携带原文，secure focus仍禁用IME，Runtime Interface没有versioned secure policy/host session，真实WOC/Cargo/IME/capture未验证。状态为`classifier_bypass_closed / render_a11y_clipboard_frontend_converged / secure_event_projection_open / secure_ime_session_open / managed_validation_pending`，不得把前置收敛表述为端到端安全输入完成。
 
 ## 5. P1：字体资源、所有权与确定性
 
@@ -129,6 +137,19 @@ canonical shaping 必须返回 typed outcome：ready glyph run、pending font de
 `text/font/shared.rs` 使用 `OnceLock<SharedFontDatabase>` 和 `RwLock<FontDatabase>`。一个 renderer、Editor project 或 test 对 global database 的 mutation 会影响同进程其他 session/world/window。它没有 project mount、Play-in-Editor isolation、plugin lease、session teardown 或 deterministic snapshot owner。
 
 应由 `TextRuntimeService` 按 engine/device 共享 immutable byte blobs，按 project/session 拥有 font collection generation；view/layout 持短期 snapshot/lease。跨 session 只共享内容寻址的只读数据和 GPU-safe cache，不共享可变 fallback 顺序与注册表。
+
+2026-08-29 non-validation implementation：`TextModule` 现由 Core Services 注册 `FontCollectionService`，
+动态 Runtime UI、Graphics renderer 与 layout surface 通过同一 collection handle 注入；跨 runtime 仍保持
+collection identity 隔离。动态 UI 首次布局前先汇总并 admission 默认/显式 font assets，渲染器 fallback
+shape 只在 prepare 阶段消费该 collection。window/PIE、project hot-reload 的完整 asset lifecycle
+仍待接入，managed Cargo/WGPU/PNG/profile/RSS/power 未执行，因此 P1-1 状态更新为
+`core_service_and_first_layout_admission_static_implemented / managed_validation_pending`。
+
+2026-08-29 owner-lifecycle re-review：renderer 字体缓存当前不会按 project/session scope 释放不再引用的
+asset owner；旧 owner 可能跨 project switch 驻留并参与全局 fallback。不能以动态 surface 的依赖集合
+直接清库，因为 HUD、菜单与其他 consumer 可能共享同一 collection。P1-1 的剩余结构项明确为
+`FontCollectionService` owner-scope claim/release transaction、单次 generation publish 与 bounded residency；
+在 project switch/hot reload/fallback isolation/profile 门禁通过前保持 open。
 
 ### P1-2：默认启动混合系统字体与源码树 fallback，错误全部静默
 
@@ -154,11 +175,13 @@ global mutation 在 write lock 下 clone before/after database，比对 render i
 
 应使用 generational face handle 与 content-addressed blob，registry slot 可在 lease 归零后安全复用或 compact；所有 cache key 必须包含 generation/content identity。调试 API 应区分 active、retired-pinned 和 reclaimable bytes。
 
-### P1-6：字体 source load 把具体错误压成 `Option`
+### P1-6：字体 source load 把具体错误压成 `Option`（实现推进，受管验收待定）
 
 `load_text_font_source`/project helper 对 URI、artifact、manifest、canonicalize、越界 source、文件不存在和权限失败都返回 `None`。上层无法区分“未配置字体”和“配置损坏/安全校验拒绝”，fallback 会继续掩盖内容错误。
 
-改为 typed `FontLoadError`，保留 asset UUID、URI、artifact generation、source/cook phase 和可安全显示的 cause。Editor 可给 reimport action，runtime 可选择 fail asset、last-good 或 tofu；禁止无诊断地变成系统字体。
+2026-08-24 已先硬切 manifest/source 边界：`load_text_font_source`、UI manifest adapter 与 `TextRenderState` 分别返回 `FontLoadError` 或数据库 `Result`，不再将失败压为 `Option`。`FontLoadError` 区分 project URI/asset、manifest parse、空或绝对 source、allowed-root/source canonicalize 和越界；IO cause 以 `NotFound`/`PermissionDenied`/`Other` 的低基数分类保存。直接字体字节读取和解码失败分别映射为稳定原因，避免混入通用 registration failure。UI `Ready / Missing / Error` cache 在 resource-backed error entry 中保留该分类，SDF face cache 与 offline manifest cache 也保存 `Result` 负记录，而不是以 `None` 覆盖；`ScreenSpaceUiTextPrepareReport` 以一帧一次的聚合 cache snapshot 提供 source contract/IO/decode/registration 诊断。回归覆盖越界、绝对 source、TOML parse、missing source、直接读取错误映射，以及 Error -> Ready 清理同一失败分类。
+
+仍需补齐 artifact generation/source-cook phase 的跨进程 receipt、Editor reimport action、明确的 runtime fail/last-good/tofu policy与shipping direct-path禁用策略；project cooked artifact-only loader及asset UUID投影已进入当前源码。因此 P1-6 仍是 `implementation_in_progress / managed_validation_pending`，不得把静态实现当作 Cargo 或产品资格完成。
 
 ### P1-7：字体 ingest 未建立 engine-level byte/table/decompression budget
 
@@ -166,11 +189,19 @@ global mutation 在 write lock 下 clone before/after database，比对 render i
 
 import/cook 必须在进入 parser 前检查源大小，并对 collection face、table directory、解压字节、glyph/color layer、variation axis 与 CPU time设预算。超限返回稳定 diagnostic；fuzzer/corpus 覆盖截断、重叠、循环 offset、超大 WOFF/彩色表和 collection。
 
-### P1-8：`UiFontRegistry` 是第二套未接产品的字体真值
+2026-08-24 P1-7A admission budget 已实现，状态为 `implementation_in_progress / managed_validation_pending`。`asset/assets/font_source/budget.rs` 是唯一策略 owner：64 MiB source、128 MiB decoded、64 TTC faces、每 face 256 tables、64 MiB per-table、128 MiB materialized standalone face、64 variation axes 和 256 named instances 都以具名 crate policy 定义；这些值尚无项目字体语料的 p50/p95 校准，因为当前 shared worktree 不含非 `dev/` 的字体二进制。Importer 在 `fs::read` 前检查 source 长度；统一 decoder 在 WOFF2 decode 前检查 header 声明长度、decode 后检查实际长度；metadata 和 standalone TTC extraction 在枚举前检查目录和 `fvar` 基数，并在任何 extraction `Vec` 扩容前限制 table copy 总量；`FontDatabase` 同样执行 pre-read 与 post-decode guard。UI/SDF cache 保留 budget failure 的 typed category，prepare report 只聚合其次数，不保留路径或原始 payload。现有静态边界回归覆盖 WOFF2 声明展开、TTC face、table directory、`fvar` axes、TTC duplicate-table materialization 和 UI mapping。
 
-`ui/text/font_registry.rs` 定义独立 record/ID/fallback family registry，但生产 consumer 没有使用它；它创建 fresh `FontDatabase` 只为复制 fallback 名称，也没有 unregister/update/dedup。`next_id.saturating_add(1).max(1)` 到上限会重复 ID，family normalization 仅 ASCII lowercase。
+2026-08-24 P1-7B 结构审查：`parse_sfnt::cmap_coverage` 仍用 `BTreeSet<u32>` 对每个 Unicode subtable 的每个命中码点去重，再转 ranges。该选择与 Text01 的 cmap bitset 目标不一致；满覆盖 face 会使导入边界持有百万级树节点，且多个 subtable 的重复码点重复比较。Unreal Slate 把 character map 消费封装在 face/font-cache owner，不向 layout 传播临时逐码点集合；Zircon 应在 importer owner 以固定 0x110000-bit Unicode-scalar bitmap 去重，随后只按已置位 bit 流式压缩到既有 `FontAssetCodepointRange`，不改 artifact schema、fallback API 或 layout owner。该设计将临时 coverage storage 固定为 136 KiB/face，并把集合维护从 `O(C log C)` 降为 `O(C)`；但交替码点仍能产生大量 serialized ranges，因此同一 budget owner 还必须限制每 face 的 range fan-out，并以 face-indexed typed error 拒绝超限输入。这些是数据结构与内存上界结论，不是未经执行的 p50/p95 或功耗结果。实际导入 corpus timing、peak allocation、third-party fuzz corpus 与 managed Cargo 仍待后续验证。
 
-应硬切移除该 registry 或把 UI API 变成 `TextRuntimeService` 的薄 typed handle。禁止保留两套 fallback/identity 真值，以免未来组件一部分走 global DB、一部分走 UI registry。
+2026-08-24 P1-7B implementation update：`BTreeSet` 已从 `parse_sfnt` 移除，`UnicodeScalarCoverage` 以固定 Unicode-scalar bitmap 去重并仅遍历 set bits 压缩为原有 ranges/count artifact；`FontSourceBudget` 以 65,536 ranges/face 限制序列化 fan-out，在第 `limit + 1` 个 range 返回 `CmapRangeCount { face_index, observed_at_least }`，上层保留为 `FontMetadataParseError` 而非静默截断。跨 word range、重复码点和 range 超限的回归已写入。当前状态仍是 `implementation_in_progress / managed_validation_pending`：尚未获得真实 corpus 的 timing/peak-allocation 数据，glyph semantic cardinality、color-layer、parse CPU budget、fuzzer、cook receipt 和所有产品验收仍 open。
+
+仍未实现的 P1-7 项必须保持 open：cmap/glyph 与 color-layer cardinality、wall-clock parse budget、第三方损坏 corpus/fuzzer、阈值实测校准、cook receipt，以及 managed Cargo/WGPU 产品验收。本切片不声称性能、功耗或截图结论。
+
+### P1-8：`UiFontRegistry` 第二真值（实现完成，受管验收待定）
+
+原 `ui/text/font_registry.rs` 曾定义独立 record/ID/fallback family registry，生产 consumer 未使用它且会复制 `FontDatabase` fallback 名称。2026-08-24 已将该 source/test owner 物理删除：FontAsset 生命周期、default family、fallback identity 与 backend lineage 只由 `text/font::FontDatabase` 管理，没有 UI facade、compat re-export 或第二套 ID。
+
+静态 retired-path 扫描、格式与 diff 检查已经覆盖该硬切；Cargo、产品帧与 M2 session-owned collection 的其余资格仍待受管验证。禁止重新引入 UI registry 作为后续工作绕过。
 
 ## 6. P1：Shaping、Unicode 与长文本语义
 
@@ -180,11 +211,15 @@ import/cook 必须在进入 parser 前检查源大小，并对 collection face�
 
 预算分块必须与逻辑 paragraph/line identity 分离。使用 context overlap 或 backend streaming shaping，并以 source/cluster map 去重边界 glyph；layout 仍只有真实 newline 才产生 line。超出硬预算时返回 typed partial/budget result，不能偷偷改变文档语义。
 
+2026-08-24 current-source re-audit：上述“64 KiB cap 产生 `HardLine`”的前提已经不成立。`text/hard_line.rs` 只将实际 source separator 投影为 `HardLine`，一条超过 64 KiB 的无换行输入仍保持单一 source line；`TextShapingWorkBudget` 仅表达调度分类阈值，当前没有生产调用据此切分、排队或降级请求，调用点仅位于边界回归。故 P1-9 的逻辑行/cluster 语义缺陷为 `implementation_complete / managed_validation_pending`，不得按这段历史描述重新引入 budget chunking。它不等同于 typed deferred work-unit scheduler：该调度合同、长行的实测 profiling、31-sample p50/p95、功耗结论与 WGPU 产品验证仍为 open，当前没有性能数据或优化收益结论。
+
 ### P1-10：Normalization/source mapping 明确关闭
 
-`text/shaping/normalize.rs` 当前使用 `ShapingTextView::v1_disabled`，没有 normalization buffer 与 normalized-to-source mapping。组合/分解序列、font expectation、caret/selection 和 shaping cache key 的合同没有明确版本。
+初始审查时 `text/shaping/normalize.rs` 使用含混的 `ShapingTextView::v1_disabled`，没有 normalization buffer 与 normalized-to-source mapping。组合/分解序列、font expectation、caret/selection 和 shaping cache key 的合同当时没有明确版本。
 
 需要决策并记录 normalization policy，而不是默认“原样通常可用”。若保持不规范化，要建立 canonical-equivalence 测试与 backend 一致性；若规范化，必须保存双向 byte/grapheme/cluster mapping，使 hit-test、IME、selection 和 accessibility 仍引用原始 source。
+
+2026-08-24 current-source policy closure：V1 已明确采用 `source-preserving`，不执行 NFC/NFD，也不以 canonical equivalence 合并输入；`ShapingTextView::source_preserving`、direct RustyBuzz 与 Cosmic fallback 都消费同一原始 UTF-8，published glyph/source range 仍是原文 byte offset。Shaped-cache key 对原始文本 hash，组合与分解形式不会 alias；回归同时锁定 identity range 和 cache separation。该选择对齐 Unreal Slate 直接将原始 UTF 序列交给 HarfBuzz、并持久 `SourceIndex`/source range 的模式。故 V1 policy 为 `implementation_complete / managed_validation_pending`；启用 NFC/NFD 仍是 V2，前置条件是版本化双向 byte/grapheme/cluster map、backend parity golden 与 CPU/memory budget，不能在缺少这些合同的情况下局部打开。
 
 ### P1-11：direct 与 Cosmic fallback 的错误合同不对称
 
@@ -192,17 +227,33 @@ horizontal direct Rustybuzz validation 失败可转 Cosmic；vertical path 没�
 
 建立统一 `ShapeOutcome` 与 backend diagnostics，明确 retry/fallback 顺序、vertical capability、font generation 和 completeness。fallback 只可选择真实 backend/face 或 tofu，不得切换到猜测布局。测试要强制让各 backend 独立失败并验证相同上层语义。
 
+2026-08-24 current-source re-audit：旧的 synthetic-run 结果已被硬切。`shape_text(...)` 返回 `Result<ShapedGlyphRun, TextLayoutError>`；horizontal direct 失败只可尝试真实 Cosmic 后端，vertical direct 失败返回 `ShapingFailed`，而最终 projection 会以 `FontUnavailable`、`FallbackExhausted` 或 `ShapingFailed` 拒绝没有实际 raster face 的非虚拟 glyph。该 fail-closed 边界为 `implementation_complete / managed_validation_pending`。剩余 contract work 不能误报完成：horizontal/vertical direct helper 仍以 `Option` 合并具体 failure，`TextLayoutError` 尚无 backend/face/range/cause/retryability diagnostic，且内部 convenience provider 仍会把失败转成空 run；这些应在统一 `ShapeOutcome` 设计中一次收敛，而不是再次引入猜测 glyph 或不兼容 facade。
+
 ### P1-12：BiDi invariant 失败时静默回退逻辑顺序
 
 BiDi 主路径使用真实 Unicode BiDi 算法，但当 range 不属于 paragraph 或内部映射不一致时，会返回 logical-order/fallback level，而非传播 invariant error。这会在 RTL isolate、嵌套 embedding 或错误 chunk range 时生成看似合理却错误的视觉顺序。
 
 内部 range/paragraph mismatch 应是 typed invariant failure 并附 paragraph/run identity；内容导致的 unsupported case才可选择可见 fallback。debug/CI 必须 fail fast，release 可发布 tofu/diagnostic，但不能伪装为正确 BiDi。
 
+2026-08-24 current-source re-audit 已完成结构改造，状态为 `implementation_complete / managed_validation_pending`。`BidiParagraph::level_for_range` 不再截断越界 offset；`line_order` 不再构造 logical-order fallback，而是以 `BidiInvariantError` 表达 source/line/glyph range、paragraph、resolved level、visual projection 与 advance-cardinality 违例。direct horizontal/vertical 把该错误传给 canonical `TextLayoutError::BidiInvariant`，Cosmic glyph/hard-line projection 同样 fail closed；UI visual-order 与 rich horizontal/VerticalRl adapter 统一返回 `Result`，顶层只发布 overflow-clipped 空安全 layout，并在 `TextLayoutFallbackReport` 记录低基数计数，不存原文或 raw range。回归锁定 level/line/glyph invalid input、投影原子性与计数分类；限定 `rustfmt`/`git diff --check` 通过。
+
+本轮不是性能优化：静态复核确认新增工作仅为每个 cluster/line 的 O(1) range/UTF-8 boundary check，不分配集合、不增加 BiDi analysis、二次 shape 或 backend call。性能报告计划已固定为 coordinator 在同 font/fallback/cache 状态下，以 `text_direct_shape_*`、`text.shape_batch.*`、`text.layout` scope 和 `ZR_UI_LAYOUT_PROFILE` 采集 cold/warm 的 1/100/1k/10k grapheme LTR/RTL/isolate/rich/VerticalRl p50/p95/p99、RSS、backend-call 与 power trace；在没有受管数据前不得声称瓶颈消失、功耗接近 Unreal 或算法最优。Cargo、focused test、真实 WGPU framebuffer 和新的真实 PNG 都尚未执行；产品 fallback/tofu、paragraph/run identity receipt、official BidiTest corpus 和唯一 canonical visual-cluster artifact 仍为 open。
+
 ### P1-13：缺字、fallback face 与 script coverage 没有端到端 completeness receipt
 
 Font metadata 有 coverage，shaping run 有 script/language，然而 layout publication 没有稳定表达每个 cluster 是 primary、fallback、tofu、pending 或 synthetic。日志/telemetry 也无法按 asset/locale 聚合缺字，内容团队只能从截图发现方框或空白。
 
 每个 resolved run/artifact 应携带 chosen face/content generation 与 missing-cluster summary；高频细节用 bounded counters/hashed sample，Editor 提供 font coverage audit。cook 可对声明 locale 做静态 coverage gate，runtime 仍保留动态 fallback。
+
+2026-08-24 P1-13 architecture checkpoint：owner 固定为 `zircon_runtime::text::shaping`，以 folder-owned internal `TextShapingOutcome` 的 `Ready(Arc<ShapedGlyphRun>)`、`Deferred(TextLayoutError)`、`Failed(TextLayoutError)` 区分可消费 artifact、generation retry 和不可发布的失败。MVP 不扩大 public DTO：`core::framework::text::TextLayoutError` 继续只是稳定低基数 code；第二阶段才在 framework contract 引入不含 raw text 的 phase/backend/face/range/retryability receipt，供 service、renderer 和 Editor 一致消费。
+
+2026-08-24 P1-13 M1 Ready-only cache admission：状态为 `m1_implementation_complete / managed_validation_pending`。`SharedTextLayoutSession` 与 parallel pool 现均消费 `TextShapingOutcome`；仅 `Ready` 能调用 `ShapedRunCache::insert_ready`，并复用同一个 `Arc<ShapedGlyphRun>`，不复制 glyph storage。`Deferred`/`Failed` 只在本次请求返回显式 empty fallback：session 不分配 owned cache key，parallel report 分离 `generation_deferred_count` 与 `failed_count`，profiling 记录 `text.shape_batch.failed`。回归直接锁定 session 和 parallel finish path 的 failed outcome 不增加 cache insert，并锁定 generation change 的 deferred 分类。该 M1 不将空 `ShapedGlyphRun` 伪装为 cached Ready，但不误报完整管线完成：`TextShapeRunProvider`/direct convenience helper、layout/UI safe publication、backend/face/coverage receipt、tofu policy 与 public framework contract 仍未迁移，必须按后续 M2--M4 完成。
+
+2026-08-24 P1-13 M2 provider-boundary audit：`TextShapeRunProvider` 有三处生产 consumer（`measure.rs`、`line_break/mod.rs`、`boundary_correction.rs`），但它们将结果立即压缩为 width、chunk 或边界修正；七个测试 provider 也直接实现旧 `Arc<ShapedGlyphRun>` 签名。仅把 trait 改为 outcome 而不同时提升这三条 layout contract，会在算法中重新把 `Failed` 变成零宽/空 chunk，属于错误的包装式重构。M2 因此保持 `design_review_complete / implementation_deferred`：下一次实现必须以“layout analysis outcome + safe publication”同一切片同时迁移 provider、measure、line-break、boundary correction 与 UI owner，不建立第二个 `Arc`-return compatibility trait。该决定没有形成性能或 Cargo/WGPU 结论。
+
+架构证据：Unreal Slate 的 `Engine/Source/Runtime/SlateCore/Public/Fonts/FontCache.h` 将 `FShapedGlyphSequence` 的 source range、glyph sequence、测量/枚举失败和 loading faces 留在同一 font/shaping owner；Slint `internal/core/textlayout.rs` 先构建一次 `ShapeBuffer`，再让 line layout 消费含 byte offset 的 glyph clusters，并以 `FixedTestFont` 覆盖 line/ellipsis/cursor source offset。Zircon 故意不复制 Unreal 的非空 sequence facade：现有 generation retry/cache 是 Rust runtime 的独立约束，必须用 typed outcome 防止 Ready cache 混入失败。
+
+实施顺序和测试矩阵：M1 已完成 outcome owner、session/parallel Ready-only cache admission；M2 迁 direct/provider，M3 迁 layout/UI safe publication，M4 扩展 framework receipt 和 screen-space renderer。回归覆盖 direct/Cosmic/vertical failure、font generation defer/retry、BiDi invariant、invalid font/language、cache miss/hit/repeated failure、parallel duplicate、empty input、LTR/RTL/rich/VerticalRl 和 source range；31-sample cold/warm 1/100/1k/10k corpus记录 p50/p95/p99、RSS、backend calls、cache churn与power。当前 `text_direct_shape_*`、`text.shape_batch.*`、`text.layout` scope 与 `ZR_UI_LAYOUT_PROFILE` 已能提供采样骨架；没有 coordinator receipt 前不声称性能、功耗、Unreal 对比或 WGPU 截图通过。
 
 ## 7. P1：Layout、Viewport 与文档规模
 
@@ -211,6 +262,15 @@ Font metadata 有 coverage，shaping run 有 script/language，然而 layout pub
 retained `SharedTextLayoutSession` 与 bounded cache真实存在，但若调用 convenience `layout_text`/measure API，仍会新建 session，无法跨帧复用 paragraph、font snapshot、shape run 和 line break。调用方很容易绕过真正的 retained fast path。
 
 产品 surface、Editor document、world-space label 和 accessibility 应显式持有 text session/document handle；one-shot API 仅用于工具/小字符串并标注成本。telemetry 要区分 cache owner 和 bypass caller。
+
+2026-08-30 current-source audit：该 finding 的“产品频繁构造”未在当前仓内复现。`UiSurface` 与
+dynamic HUD/menu fallback 已持有 Core collection-bound `UiTextMeasureCache`/session；HUD/menu 的
+default cache 构造仅在测试 helper。`compute_layout_tree`、standalone extract、`layout_text`、measure
+wrapper 与 `shape_text_line` 保持显式 one-shot compatibility 边界，仓内没有 retained product-frame
+调用点。对齐 Unreal `FSlateFontServices -> FSlateFontMeasure -> per-font cache` 的关键是产品 owner
+retained lifetime，而不是把工具入口改成 TLS/global cache。因此当前状态为
+`current_source_product_hot_path_not_reproduced / optimization_profile_gated`；只有出现真实产品 callsite
+并取得 construction/cold-warm/allocation/RSS/backend/power profile 后才迁 explicit owner。
 
 ### P1-15：Viewport virtualization 只覆盖极窄的 plain-text 情形
 
@@ -224,11 +284,26 @@ retained `SharedTextLayoutSession` 与 bounded cache真实存在，但若调用 
 
 intrinsic measure 应按 paragraph/chunk 有界累积，受最大 glyph/line/extent/CPU budget约束；超预算返回 partial/intrinsic-lower-bound 或 explicit overflow，不得通过天文 frame 诱导算法完成。
 
+2026-08-24 P1-16 pre-implementation audit：现实现把 `parsed.text().len() * em` 作为 rich/VerticalRl intrinsic 的正方形 `UiFrame`，将 UTF-8 byte length 当成 glyph advance 上界，并把大坐标传给 clipping、alignment 和 vertical column placement。Text03 已确定 `available_wrap_extent(f32::INFINITY)` 是无界主轴的正式合同，故不新增臆测上限：horizontal rich intrinsic 使用无界 width/height 且测量强制 logical start alignment；VerticalRl 使用无界 height，交叉轴 width 仅由 canonical hard-line count 与既有 column advance 推导为有限值，因为 `vertical_layout.rs` 对无穷 width 的 finite sanitization 会得到零。该修复是布局语义/数值安全收敛，不将其包装为性能优化；复杂 block/table 实际列数仍应由后续 retained paragraph artifact 给出。
+
+性能测量计划先固定而不填结果：coordinator 在 Windows managed matrix 中以 1/100/1k/10k Latin、CJK、RTL、rich inline/block、VerticalRl hard-line corpus 比较变更前后 `text.layout`、`text.shape_batch.*`、`ZR_UI_LAYOUT_PROFILE` 的 p50/p95/p99、backend calls、allocated bytes/RSS、cache churn、WGPU timestamp 与同场景 power trace。任何内部分析确认的热点才允许单独选择优化；在受管 capture 前不得声称该语义修复消除了 CPU/GPU/功耗瓶颈或达到 Unreal 经验值。P1-16 当前为 `correctness_implementation_complete / static_review_complete / managed_validation_pending`：`intrinsic_measurement_frame` 及其 horizontal/VerticalRl contract regression 已落地，限定 Rust 2024 formatting、diff whitespace 和 retired byte-extent scan 已通过；Cargo、profiling、power、WGPU 和 PNG 仍未执行。
+
 ### P1-17：编辑器没有持久 paragraph/document model，修改复制整串状态
 
 editable value、caret、selection、composition 以完整 `String` 和 metadata/component state重写。插入/删除需要分配和移动后缀，max-length 又会扫描 grapheme；没有 rope/piece table、paragraph generation、incremental shape invalidation或 saved-version identity。
 
 建立 session-owned text document：chunked UTF-8 storage、paragraph/line index、grapheme cache、edit generation、selection/composition anchor、dirty span和layout dependency。UI component只保存 document handle与presentation state，序列化/提交通过受控 snapshot/transaction。
+
+2026-08-28 current-source 前向状态：manager-owned retained document、exact range transaction 与 delta
+history 已落地，但 Surface metadata/component/binding 仍复制完整正文，因此 P1-17 只完成 document 侧、
+不能关闭。`editable_text/profile.rs` 已在正文 state 物化、proposed property clone、成功 projection、
+committed/state-only/composition 分类和可选 component payload 处加入固定名、无正文 counter，并为
+property prepare/commit 加固定 span；未开启 profiling feature 时为 no-op。E盘 current-source profile
+harness `5/5`，Rustfmt/whitespace/隐私静态检查通过。managed 1 KiB/64 KiB/1 MiB/10 MiB
+allocation/RSS/p50/p95/p99/power 与 matched Unreal baseline 尚未执行，故 document-handle/model-edit
+硬切尚未开始；状态为 `retained_document_side_implemented_unvalidated /
+surface_full_source_projection_open / content_free_profile_instrumentation_implemented_unvalidated /
+direct_profile_path_5_of_5 / managed_baseline_pending`。
 
 ## 8. P1：Editing、Clipboard 与 IME
 
@@ -386,7 +461,7 @@ Editor source manifest -> importer validation/subset/license policy -> cooked fo
 
 ### M2：Session-owned font/text service
 
-替换process-global可变DB，使用immutable generation/lease与granular delta；收敛/删除`UiFontRegistry`，把Cosmic worker/cache纳入service lifecycle。支持双session隔离与deterministic fallback。
+替换process-global可变DB，使用immutable generation/lease与granular delta；`UiFontRegistry` 硬切已完成，继续把Cosmic worker/cache纳入service lifecycle。支持双session隔离与deterministic fallback。
 
 ### M3：Typed shaping 与真实缺字策略
 
@@ -451,4 +526,284 @@ Editor source manifest -> importer validation/subset/license policy -> cooked fo
 
 ## 16. 本轮产出边界
 
-本文是current-source静态review和分层重构计划，不包含生产代码修改，也不把任何finding标记为implemented。下一轮11C会从`UiRenderCommand`/resolved glyph artifact继续追踪GPU upload、atlas/SDF、batch、clip、bind group、render graph和submission；11B的P0-2只有在11C确认renderer拒绝不完整glyph并有真实tofu后才算端到端关闭。
+本文以 current-source 静态 review 和分层重构计划为主；后续状态仅在对应 finding 中记录已完成的结构硬切，不能替代 Cargo 或产品验收。下一轮11C会从`UiRenderCommand`/resolved glyph artifact继续追踪GPU upload、atlas/SDF、batch、clip、bind group、render graph和submission；11B的P0-2只有在11C确认renderer拒绝不完整glyph并有真实tofu后才算端到端关闭。
+
+2026-08-29 lifecycle follow-up：Text Core 已实现 `RuntimeFontAssetClaimScope` 聚合认领账本，动态 UI 在首个
+layout 前认领完整字体依赖，renderer 在 collection refresh 前 reconciliation；最后一个 scope 释放批量
+退休 unclaimed owners，并裁剪 renderer 本地 ready/missing/error cache。此项仅关闭旧的 renderer-only
+residency 设计缺陷；session/project switch、hot reload、fallback isolation、Cargo/WGPU、31-sample
+allocation/RSS/power 与 11C 真实 glyph/tofu 产品门仍开放。`implementation_status` 继续保持
+`pending`。release + changed/new asset admission 已收敛为单一 collection transaction；不得将源码复杂度
+描述扩大为性能或产品完成结论。该 transaction 的 managed residency、fallback isolation、Cargo/WGPU 与
+profile 证据仍开放。
+
+## 2026-08-29 Publication clone-boundary follow-up
+
+The review now separates three database-copy boundaries: the outer immutable-generation clone,
+the owner-local registration staging clone, and an owned database clone returned only to legacy
+mutable renderer consumers. The first is the snapshot lifetime contract; the second is a candidate
+structural hotspot; the third is avoidable for claim/admission and receipt-only callers. A managed
+Windows profile must record fixed spans/counters for all three boundaries across 0/1/8/64 dependency
+admission, equivalent refresh, replacement, last-owner release, and release-plus-admission. Include
+31 cold/warm samples, p50/p95/p99 CPU, allocations, RSS, generation publications, and package power,
+then compare the same workload with the Unreal font-cache update/flush ownership model. The profile
+is required before changing owner registration error-atomicity or claiming an optimization.
+
+The non-validation slice may add a collection-owned published `Arc<FontDatabase>` result and migrate
+receipt-only callers, eliminating their post-publication full clone while preserving exact snapshot
+lineage. Owner staging remains profile-gated until an in-place transactional API can prove rollback,
+cache invalidation, and owner/source deduplication equivalence.
+
+Status: `clone_boundary_profile_plan_written / receipt_arc_migration_static_implemented /
+owner_staging_api_profile_gated / managed_validation_pending`.
+
+## 2026-08-29 Renderer/SDF font-loader convergence follow-up
+
+The single-asset renderer load/resolve path and standalone admit/retire wrappers have been removed;
+production and focused cache regressions now converge on the batch admission transaction and a real
+collection claim scope. A second structural defect was found in SDF raster preparation: cache miss
+could parse a runtime font manifest and mutate only the renderer-owned database after shaping had
+already selected its collection snapshot. This was not an offline-bake requirement; offline `.zsdf`
+artifact lookup has a separate manifest/bitmap cache and does not require runtime face registration.
+
+The production SDF face cache is therefore lookup-only and reports an unadmitted mapping instead of
+performing source I/O or registration. This removes duplicate loader work and prevents a raster-only
+font face from diverging from shaping/layout. Seven now-unreachable SDF source/decode/budget/registration
+metrics were deleted rather than published as permanent zeroes; their detailed diagnostics remain at the
+batch admission owner. No claim is made about CPU, allocation, RSS, package power,
+or Unreal parity: the managed Windows lane returned `cargo_reuse_pool_busy` before Cargo execution.
+Static contract tests are 9/9 and scoped format/diff checks pass. `implementation_status` remains
+`pending` until managed Cargo, fault injection, real Native/SDF WGPU evidence, and the prescribed
+31-sample performance/power matrix complete.
+
+## 2026-08-29 Cosmic snapshot-bound locale cache
+
+The Cosmic thread-local locale cache now starts lazily from the caller's exact
+`FontCollectionSnapshot`. Its previous zero-argument initialization read the process-shared font
+database before refreshing to the renderer/session collection, adding an avoidable full-database
+copy and making isolation depend on a post-initialization repair. The cache remains the single owner
+of locale entries, eviction, and generation refresh; no second font registry or shaping path was
+introduced. Parallel paragraph prewarm likewise has no process-default production entry: the default
+wrapper is test-only, production callers carry their session collection, and the unused default finish
+wrapper is deleted. Rustfmt, the static ownership guard, and scoped diff checks pass. Cargo, multilingual
+shape/raster, WGPU/PNG, and the required 31-sample CPU/allocation/RSS/power comparison remain
+pending; `implementation_status` remains `pending`.
+
+## 2026-08-30 Range-invariant fail-closed follow-up
+
+The M2 layout data path now treats source-range projection as an invariant rather than a best-effort
+filter. Cosmic line/glyph projection rejects invalid checked ranges before alternate hard-line
+normalization; `line_break` rejects invalid hard-line/glyph ranges with typed `LayoutFailed` or
+`BidiInvariant`; UI glyph-wrap and corrected-range materialization reject metrics that cannot be sliced
+from the canonical source. Legal zero-width virtual anchors remain supported. This prevents a malformed
+backend result from becoming a partial but publishable line and keeps the existing owner-level
+`Deferred`/`Failed` policy intact. Static suite 18/18, Python compile and scoped diff checks pass.
+Managed Cargo remains pending; two direct Cargo attempts failed during E-drive dependency target writes
+before `zircon_runtime` source compilation. Real multilingual shaping/raster, WGPU/PNG and the prescribed
+CPU/allocation/RSS/power matrix remain pending; `implementation_status` remains `pending`.
+
+## 2026-08-30 Dynamic fallback UI collection owner follow-up
+
+Current-source review found a second collection identity in the dynamic runtime: project surfaces
+received the Core-owned collection, while the no-project HUD/menu fallback extract cache used the
+process-default `UiTextMeasureCache` and global generation probe. The session now resolves the Core
+font service once and injects the same `Arc` into both owners. Fallback extract reuse is invalidated by
+the generation of its own layout session; production has no default cache constructor or global key.
+
+This is a correctness and ownership repair, not a measured optimization. Static suite 18/18, rustfmt
+and scoped diff checks pass; an independent-collection generation/rebuild Rust regression is written
+but not run. Multi-Core isolation, font-publication rebuild behavior, Cargo, real
+project/no-project WGPU pixels, 31-sample latency/allocation/RSS and package power remain pending;
+`implementation_status` remains `pending`.
+
+## 2026-08-30 Rich representation and projection final static slice
+
+The Runtime Text rich owner now bounds runs, paragraphs, tables, cells, retained projection indices,
+and BBCode block/table nesting before the corresponding vectors grow. Default representation limits
+are 131,072/16,384/4,096/65,536/262,144 and default block/table depths are 32/8. Depth overflow is a
+typed failure; silent suppression and saturated `u16` table-depth identities are removed. Grapheme
+alignment moved to a 100-line parser child, leaving parser root/builder at 715/162 lines.
+
+The request-local table interval owner has also completed its isolated post profile. At 4,096
+runs/paragraphs/tables/cells, the old 50,331,648-comparison path measured p50/p95/p99
+60,544/85,779/123,556 us; the final canonical-order interval path entered 215,046 nodes and measured
+3,337/4,467/5,611 us over the same 31-sample E-drive lane. The p50 improvement is 18.14x and the
+256-to-4,096 p50 growth is 22.70x instead of 260.97x. First-sample working-set delta increased from
+208,896 to 360,448 bytes, so only the isolated quadratic rescan is considered removed.
+
+Exact-tag decorator dispatch now uses one parser-local HashMap instead of scanning all unrelated
+providers per token. The 4,096-dispatch, 31-sample lanes measured old/new p50
+517/140, 7,381/142, and 116,314/139 us at 16/256/4,096 decorators; the largest lane improves
+836.79x. This follows Zircon's unique normalized-tag contract while preserving the parser/widget-owned
+decorator lifetime seen in Unreal. Callback panic/deadline/cancel and provider lease/revoke are not
+part of the lookup correction. A following static admission slice catches callback unwind as a tagged
+parse error, limits accepted decorator metadata to 64 KiB per call by default, and limits cumulative
+retained run metadata to 32 MiB before publication. Its Rust behavior regressions are written but
+unrun; deadline/cancel/private temporary allocation and provider lease/revoke remain open.
+
+Static Runtime Text contracts pass 38/38 with targeted Rust 2024 formatting and source checks. Two
+E-drive Cargo attempts produced no result within 90/120 seconds and their owned processes were
+stopped. Real table layout, Cargo, allocation/RSS, package power, WGPU framebuffer, a new PNG under
+`docs/tests/runtime/text`, and matched Unreal-load evidence remain pending;
+`implementation_status` remains `pending`.
+
+## 2026-08-30 Rich table projection interval owner
+
+Compiled rich-table projection previously rescanned all runs, paragraphs, and tables for each cell.
+The isolated 31-sample E-drive release baseline reached 50,331,648 comparisons and p50/p95/p99
+60,544/85,779/123,556 us at 4,096 objects, with only 8,192 output indices. A request-local balanced
+interval index now prunes by subtree `max_end`, applies table depth/containment after candidate
+collection, and is dropped after construction. The UI boundary consumes its checked source-order
+indices without another sort/dedup pass. This follows the same explicit range ownership used by the
+rest of Runtime Text and is not a measured end-to-end performance claim. Static Runtime Text tests
+pass 35/35; managed Cargo, real table layout/WGPU/PNG, allocation/RSS/power, and Unreal matched-load
+validation remain pending; `implementation_status` remains `pending`.
+
+## 2026-08-30 Rich source representation admission follow-up
+
+P2-4 is now closed at the production source boundary. `RichParseBudget` separately limits source and
+visible output, caps both effective limits to the indexed `u32` representation, and rejects source
+before the process cache copies it. Parser output append and emoji expansion share the output budget;
+public parser APIs return `RichTextParseError` with actual/effective byte counts. The default 32 MiB
+limit follows the existing retained text-document scale rather than the 8 MiB compiled-cache policy,
+so cache bypass and parser admission remain distinct owners.
+
+`CompiledRichText` construction is fallible and all byte/count/projection conversions use one checked
+index owner. Failed single-flight compilation is delivered as one terminal result to current waiters
+and removed from cache residency. UI layout maps capacity rejection to stable diagnostic
+`ZR-TEXT-LAYOUT-012` and the existing failure-layout path. Static contracts pass 29/29; the current
+Cargo fingerprint has no owned text-side errors but the workspace is not clean. Performance, power,
+WGPU and Unreal-matched product claims remain prohibited until the managed matrix runs.
+
+The next admission slice bounds the shared HTML/BBCode active-tag stack at a request-configurable
+depth (default 128) and returns `ActiveTagDepthBudgetExceeded` before vector growth. The prior
+10,000-depth default-success corpus now verifies typed rejection; the 5,000-depth close-index release
+benchmark opts into a larger request budget so it remains algorithm evidence rather than product
+authorization. Paragraph list-prefix projection also propagates unrepresentable compact indices as
+typed layout failure. Tokenizer admission now also caps recognized tokens (default 65,536), encoded
+bytes per token (64 KiB), and per-token attribute count/bytes (64/16 KiB). HTML and BBCode check
+token size before tag-name allocation and check cumulative attribute work before key/value string
+materialization; BBCode `tag=value` is covered by the same value budget. Markdown paired delimiters
+consume two token units before style dispatch. Static contracts pass 35/35. Delta-style
+clone/allocation work remains explicitly profile-gated; node/span/general block and table depth,
+time/deadline/cancellation, consumed-budget receipts, and decorator isolation remain open. The latest
+Cargo check stopped at an unrelated interface session export before Runtime Text.
+
+## 2026-08-30 One-shot compatibility provider snapshot boundary
+
+Current-source review found that the remaining `DirectTextShapeRunProvider` compatibility object
+was zero-sized and reacquired the process font collection inside every shape request. A single
+standalone measurement could therefore observe different font generations if publication occurred
+between its line/metric requests, unlike Unreal `FSlateFontMeasure`, which retains one concrete
+`FSlateFontCache` for measurement and character-offset queries.
+
+The provider now captures one immutable `FontCollectionSnapshot` at construction, reports that
+snapshot revision, and routes both horizontal and vertical requests through the canonical
+`shape_text_with_diagnostics_in_font_collection` entrypoint. Retained Runtime paths continue to use
+`SharedTextLayoutSession` or an explicit collection-bound provider; this only hardens the declared
+Editor/standalone compatibility boundary. A regression publishes a new generation after provider
+construction and verifies that all returned glyph face handles still belong to the original
+collection.
+
+This is an ownership/correctness repair, not a shaping or performance optimization. Static source
+contracts and Python tests are updated to 20/20; the Rust behavior regression is written but remains
+unrun because managed Cargo is unavailable. WGPU/PNG, IME/pointer product input, profile/RSS/power
+and matched Unreal validation remain pending; `implementation_status` remains `pending`.
+
+## 2026-08-30 Surface input font-measure owner follow-up
+
+Current-source tracing found that Core collection injection stopped one layer too early for input
+geometry. A retained Surface laid out text with its injected collection, while missing-artifact caret,
+selection, IME-rectangle, and pointer hit-test recovery instantiated the process-default direct shape
+provider. This is a correctness split, not evidence that the shaping algorithm itself is slow.
+
+The correction adds an immutable collection-bound direct provider and carries the Surface measure
+cache snapshot through those recovery calls. Because the neutral layout DTO has no collection revision,
+source reshaping is gated by the Surface's observed generation; a mismatch consumes published
+artifact/glyph advances until normal layout recomputation. The design is grounded in Unreal
+`SlateCore/Private/Fonts/FontMeasure.cpp:48-54` and `Public/Fonts/FontMeasure.h:201,239`, where
+`FSlateFontMeasure` is created with and retains the exact `FSlateFontCache` used for measurement and
+offset queries. Editor/standalone compatibility remains process-owned; Runtime input does not recover
+global font state after its owner is selected.
+
+No algorithmic or performance claim is made. Static ownership tests pass 19/19 and the injected
+collection face-identity Rust regression is written but unrun. Managed Cargo, real IME/pointer input,
+WGPU pixels, and the 31-sample latency/allocation/RSS/power matrix remain pending;
+`implementation_status` remains `pending`.
+
+## 2026-08-30 Rich table projection interval owner
+
+Compiled rich-table projection previously rescanned all runs, paragraphs, and tables for each cell.
+The isolated 31-sample E-drive release baseline reached 50,331,648 comparisons and p50/p95/p99
+60,544/85,779/123,556 us at 4,096 objects, with only 8,192 output indices. A request-local balanced
+interval index now prunes by subtree `max_end`, applies table depth/containment after candidate
+collection, and is dropped after construction. The UI boundary consumes its checked source-order
+indices without another sort/dedup pass. Representation count caps now bound run, paragraph, table,
+cell and retained projection-index growth before their owning vectors expand. This follows the same
+explicit range ownership used by the rest of Runtime Text and is not a measured end-to-end performance
+claim. Static Runtime Text tests pass 35/35; managed Cargo, real table layout/WGPU/PNG,
+allocation/RSS/power, and Unreal matched-load validation remain pending; `implementation_status`
+remains `pending`.
+
+## 2026-08-30 Rich compiled cluster-owner correction
+
+The rich compiler retained a document-sized `(u32, u32)` grapheme vector with no production
+consumer, duplicating cluster ownership already held by shaping/layout. Local Unreal source confirms
+that rich markup parsing publishes stripped text and line/run ranges rather than a parser-owned
+grapheme index. Before code changes, an E-drive 31-sample release microprofile measured the exact old
+expression: 1/8/32 MiB ASCII produced 8/64/256 MiB vector payload and p50
+65,236/736,093/3,074,179 us; the 32 MiB first working-set delta was 269,508,608 bytes.
+
+The field, segmentation pass, identity/accounting work, and accessor are now removed as a hard
+cutover. The isolated owner has exact post-cutover payload zero and no replacement stage. Static
+Runtime Text contracts pass 34/34, with targeted format/source/diff guards also passing. This is not
+end-to-end shaping/layout/render or power acceptance: managed Cargo is still blocked before Runtime
+Text, and WGPU/PNG, allocation/RSS, package power, and matched Unreal-load validation remain pending;
+`implementation_status` remains `pending`.
+
+## 2026-08-30 Rich immutable artifact owner convergence
+
+Current-source consumer tracing found no production caller of public `RichTextParser::parse()`:
+Runtime UI/layout already retains `Arc<CompiledRichText>`. The obsolete entry cloned the complete
+parsed payload after canonical compile/cache lookup, separating runs/paragraphs/tables and dynamic
+metadata from the source and parser generation owned by the compiled artifact. Local Unreal's parser
+and rich marshaller hand parsed output directly into layout-run construction rather than publishing a
+second partial deep-copy owner.
+
+An E-drive release baseline measured the exact clone before removal over 31 samples. The
+4,096/32,768/131,072-run lanes performed 12,355/98,819/395,267 allocations, requested
+1,014,784/8,118,272/32,473,088 bytes, and measured p50 2,454/22,059/111,366 us. Production now has one
+materialization API, `compile() -> Arc<CompiledRichText>`; parsed consumers borrow from the retained
+parent and owned clone helpers are test-only. The removed production stage has exact post cost zero.
+The current reproducible Runtime Text static suite passes 34/34, but managed Cargo, external downstream compatibility,
+end-to-end layout/render, WGPU/PNG, allocation/RSS/power, and matched Unreal-load evidence remain
+pending; `implementation_status` remains `pending`.
+
+## 2026-08-30 Rich parser cache-identity exhaustion correction
+
+Parser identity and decorator/emoji generations previously wrapped and could alias an older
+compiled-rich cache key. Registration also mutated provider state before its generation advance.
+The owner now uses a nonzero optional parser identity allocated by atomic
+`fetch_update + checked_add`; exhausted parsers fail typed before cache work. Provider and emoji
+generations are checked before registry mutation and fail without publication after `u64::MAX`.
+
+This follows the ownership property of Unreal's widget-retained parser/decorator marshaller rather
+than copying pointer identity into Zircon's still-global cache. It is a correctness fix, not measured
+shaping/layout optimization. The current reproducible Runtime Text static suite passes 35/35 and
+format/source guards pass; Rust boundary tests are written but managed Cargo remains pending.
+RuntimeRichTextService, provider leases/revoke, targeted retirement, WGPU/PNG, RSS/power, and matched
+Unreal validation remain open; `implementation_status` remains `pending`.
+
+## 2026-08-30 Rich compile owner convergence
+
+Production rich parsing no longer crosses a process-global parser/cache/report boundary. Each
+`RichTextParser` owns its bounded compiled cache, and the retained Surface text session explicitly
+supplies that owner to layout, measurement, prewarm, retained-document, render preparation, and
+profiling. Independent sessions no longer share rich artifact residency or clear lifecycle; the
+static parser survives only in cfg-gated corpus helpers. This matches Unreal's retained
+widget/marshaller ownership direction without inventing an app singleton.
+
+The combined Runtime Text static suite passes 36/36. Owner-local Rust behavior coverage is written
+but unrun because managed Cargo was bypassed; no product latency/RSS/contention/power claim is made.
+RRT-P1-010/014/016, WGPU/PNG, multi-Surface profiling, and matched Unreal validation remain open, so
+`implementation_status` remains `pending`.

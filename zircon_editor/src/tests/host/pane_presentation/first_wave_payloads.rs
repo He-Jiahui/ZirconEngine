@@ -89,7 +89,7 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
 
         match (descriptor_id, body.payload) {
             ("editor.console", PanePayload::ConsoleV1(payload)) => {
-                assert_eq!(payload.status_text.as_ref(), "Console ready");
+                assert_eq!(payload.output.as_ref(), "Console ready");
             }
             ("editor.inspector", PanePayload::InspectorV1(payload)) => {
                 assert_eq!(payload.node_id, 7);

@@ -1,17 +1,17 @@
-use crate::text::{BackendShapeRequest, HardLine, ShapedTextLine, TextRange};
+use crate::text::{BackendShapeRequest, HardLine, ShapedHardLine, TextRange};
 
 use super::resolved_line_height;
 use crate::text::shaping::bidi::BidiParagraph;
-use crate::text::shaping::itemize::virtual_hard_break_glyph;
-use crate::text::shaping::script_segment::ScriptSegment;
+use crate::text::shaping::itemize::{ItemizationError, virtual_hard_break_glyph};
+use crate::text::shaping::script_segment::ParagraphTextAnalysis;
 
 pub(super) fn normalize_cosmic_hard_lines(
     request: BackendShapeRequest<'_>,
     bidi: &BidiParagraph<'_>,
-    scripts: &[ScriptSegment],
+    analysis: &ParagraphTextAnalysis,
     hard_lines: &[HardLine],
-    raw_lines: Vec<ShapedTextLine>,
-) -> Vec<ShapedTextLine> {
+    raw_lines: Vec<ShapedHardLine>,
+) -> Result<Vec<ShapedHardLine>, ItemizationError> {
     let fallback_line_height = resolved_line_height(request);
     let fallback_baseline = request.style.font_size.max(1.0) * 0.8;
     let mut has_backend_metrics = vec![false; hard_lines.len()];
@@ -20,7 +20,7 @@ pub(super) fn normalize_cosmic_hard_lines(
         .enumerate()
         .map(|(line_index, hard_line)| {
             let source_range = hard_line.source_range();
-            ShapedTextLine {
+            ShapedHardLine {
                 line_index,
                 source_range: TextRange {
                     start: request.source_range.start + source_range.start,
@@ -47,24 +47,50 @@ pub(super) fn normalize_cosmic_hard_lines(
                 .start
                 .checked_sub(request.source_range.start)
             else {
-                continue;
+                return Err(ItemizationError::InvalidSourceRange {
+                    range: glyph.source_range,
+                });
             };
             let Some(local_end) = glyph
                 .source_range
                 .end
                 .checked_sub(request.source_range.start)
             else {
-                continue;
+                return Err(ItemizationError::InvalidSourceRange {
+                    range: glyph.source_range,
+                });
             };
-            let line_index = hard_lines.partition_point(|line| line.content.end <= local_start);
-            let Some(hard_line) = hard_lines.get(line_index) else {
-                continue;
-            };
-            if local_start < hard_line.content.start
-                || local_end > hard_line.content.end
-                || local_start >= local_end
+            if local_start >= local_end
+                || local_end > request.text.len()
+                || !request.text.is_char_boundary(local_start)
+                || !request.text.is_char_boundary(local_end)
             {
+                return Err(ItemizationError::InvalidSourceRange {
+                    range: glyph.source_range,
+                });
+            }
+            let line_index = hard_lines.partition_point(|line| line.content.end <= local_start);
+            let is_canonical_separator = line_index
+                .checked_sub(1)
+                .and_then(|previous| hard_lines.get(previous))
+                .is_some_and(|line| {
+                    !line.separator.is_empty()
+                        && local_start >= line.separator.start
+                        && local_end <= line.separator.end
+                });
+            if is_canonical_separator {
+                // The canonical virtual hard-break owner below publishes one separator glyph.
                 continue;
+            }
+            let Some(hard_line) = hard_lines.get(line_index) else {
+                return Err(ItemizationError::InvalidSourceRange {
+                    range: glyph.source_range,
+                });
+            };
+            if local_start < hard_line.content.start || local_end > hard_line.content.end {
+                return Err(ItemizationError::InvalidSourceRange {
+                    range: glyph.source_range,
+                });
             }
             let line = &mut lines[line_index];
             if has_backend_metrics[line_index] {
@@ -80,7 +106,7 @@ pub(super) fn normalize_cosmic_hard_lines(
     }
 
     for (hard_line, line) in hard_lines.iter().zip(&mut lines) {
-        if let Some(separator) = virtual_hard_break_glyph(request, hard_line, bidi, scripts) {
+        if let Some(separator) = virtual_hard_break_glyph(request, hard_line, bidi, analysis)? {
             line.glyphs.push(separator);
         }
         line.glyphs
@@ -92,5 +118,5 @@ pub(super) fn normalize_cosmic_hard_lines(
         }
         line.measured_width = cursor;
     }
-    lines
+    Ok(lines)
 }

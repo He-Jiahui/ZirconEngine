@@ -29,7 +29,9 @@ fn text_justify_distributes_word_and_cjk_gaps() {
     assert!((layout.lines[0].measured_width - target_width).abs() < 0.1);
     assert!((layout.lines[0].glyph_advances.iter().sum::<f32>() - target_width).abs() < 0.1);
 
-    let natural_advances = measured_grapheme_widths(first_line, &text_style(&style));
+    let natural_advances = measured_grapheme_widths(first_line, &text_style(&style))
+        .into_result()
+        .expect("measure natural advances");
     assert_eq!(layout.lines[0].glyph_advances.len(), natural_advances.len());
     assert!(layout.lines[0].glyph_advances[1] > natural_advances[1]);
     assert!(layout.lines[0].glyph_advances[3] > natural_advances[3]);
@@ -59,7 +61,9 @@ fn text_justify_trims_edge_spaces_before_distributing_gaps() {
     assert_eq!(layout.lines[0].text, first_line);
     assert!((layout.lines[0].measured_width - target_width).abs() < 0.1);
 
-    let natural_advances = measured_grapheme_widths(first_line, &text_style(&style));
+    let natural_advances = measured_grapheme_widths(first_line, &text_style(&style))
+        .into_result()
+        .expect("measure natural advances");
     assert_eq!(layout.lines[0].glyph_advances.len(), natural_advances.len());
     assert!(
         (layout.lines[0].glyph_advances[0] - natural_advances[0]).abs() < 0.1,
@@ -95,7 +99,9 @@ fn text_justify_distributes_arabic_kashida_advances() {
     assert!((layout.lines[0].measured_width - target_width).abs() < 0.1);
     assert!((layout.lines[0].glyph_advances.iter().sum::<f32>() - target_width).abs() < 0.1);
 
-    let natural_advances = measured_grapheme_widths(first_line, &text_style(&style));
+    let natural_advances = measured_grapheme_widths(first_line, &text_style(&style))
+        .into_result()
+        .expect("measure natural advances");
     assert!(layout.lines[0].text.contains('\u{0640}'));
     assert!(layout.lines[0].glyph_advances.len() > natural_advances.len());
 
@@ -121,10 +127,11 @@ fn text_justify_materializes_arabic_tatweel_without_source_range_drift() {
     let line = &layout.lines[0];
     assert!(line.text.contains('\u{0640}'));
     assert_eq!(line.source_range.end, source.len());
-    assert!(line
-        .runs
-        .iter()
-        .any(|run| run.text == "ـ" && run.source_range.start == run.source_range.end));
+    assert!(
+        line.runs
+            .iter()
+            .any(|run| run.text == "ـ" && run.source_range.start == run.source_range.end)
+    );
     assert!(line.glyph_advances.len() > source.chars().count());
     assert!((line.glyph_advances.iter().sum::<f32>() - target_width).abs() < 0.1);
 }

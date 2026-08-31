@@ -10,6 +10,7 @@ pub(super) struct RegistrationStructureSources {
     pub(super) runtime_state: &'static str,
     pub(super) service_entry: &'static str,
     pub(super) registration_mod: &'static str,
+    pub(super) commit: &'static str,
     pub(super) register_module: &'static str,
     pub(super) descriptor_entries: &'static str,
     pub(super) descriptor_entries_five: &'static str,
@@ -27,6 +28,7 @@ pub(super) fn registration_sources() -> RegistrationStructureSources {
     let runtime_state = include_str!("../../../state/core_runtime_state.rs");
     let service_entry = include_str!("../../../state/service_entry.rs");
     let registration_mod = include_str!("../../../handle/registration/mod.rs");
+    let commit = include_str!("../../../handle/registration/commit.rs");
     let register_module = include_str!("../../../handle/registration/register_module.rs");
     let descriptor_entries = include_str!("../../../handle/registration/descriptor_entries.rs");
     let descriptor_entries_five =
@@ -39,6 +41,7 @@ pub(super) fn registration_sources() -> RegistrationStructureSources {
     let entry = include_str!("../../../handle/registration/entry.rs");
     let service_lists = [
         include_str!("../../../handle/registration/service_lists/mod.rs"),
+        include_str!("../../../handle/registration/service_lists/selection.rs"),
         include_str!("../../../handle/registration/service_lists/multi.rs"),
         include_str!("../../../handle/registration/service_lists/shutdown.rs"),
         include_str!("../../../handle/registration/service_lists/specialized.rs"),
@@ -48,6 +51,7 @@ pub(super) fn registration_sources() -> RegistrationStructureSources {
     let validation = include_str!("../../../handle/registration/validation.rs");
     let registration = [
         registration_mod,
+        commit,
         register_module,
         descriptor_entries,
         descriptor_entries_five,
@@ -64,6 +68,7 @@ pub(super) fn registration_sources() -> RegistrationStructureSources {
         include_str!("../behavior/cache_lists.rs"),
         include_str!("../behavior/commit.rs"),
         include_str!("../behavior/canonical_keys.rs"),
+        include_str!("../behavior/batch_duplicates.rs"),
     ]
     .join("\n");
 
@@ -71,6 +76,7 @@ pub(super) fn registration_sources() -> RegistrationStructureSources {
         runtime_state,
         service_entry,
         registration_mod,
+        commit,
         register_module,
         descriptor_entries,
         descriptor_entries_five,

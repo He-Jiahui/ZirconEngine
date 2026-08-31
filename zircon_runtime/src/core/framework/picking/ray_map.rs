@@ -86,6 +86,9 @@ impl RayMap {
 
     pub fn rebuild(&mut self, pointers: &[PointerLocation], cameras: &[CameraRaySource]) {
         self.map.clear();
+        let active_camera_count = cameras.iter().filter(|camera| camera.active).count();
+        self.map
+            .reserve(pointers.len().saturating_mul(active_camera_count));
         for camera in cameras {
             if !camera.active {
                 continue;
@@ -110,3 +113,7 @@ impl RayMap {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "ray_map/rebuild_capacity_tests.rs"]
+mod rebuild_capacity_tests;

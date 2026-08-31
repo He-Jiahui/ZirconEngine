@@ -190,7 +190,7 @@ def _is_allowed_server_token(
     ):
         return True
     if normalized.endswith(
-        "zircon_runtime/src/platform/capability/matrix/mod.rs"
+        "zircon_runtime/src/platform/capability/matrix/build_report.rs"
     ) and _token_is_inside_pattern(token_match, line, SERVER_HEADLESS_POLICY_RE):
         return True
     return False

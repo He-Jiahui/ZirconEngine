@@ -38,9 +38,12 @@ impl AssetCreationTemplateDescriptor {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
+        let capabilities = capabilities.into_iter();
+        let (lower_bound, _) = capabilities.size_hint();
+        self.required_capabilities.reserve(lower_bound);
         self.required_capabilities
-            .extend(capabilities.into_iter().map(Into::into));
-        self.required_capabilities.sort();
+            .extend(capabilities.map(Into::into));
+        self.required_capabilities.sort_unstable();
         self.required_capabilities.dedup();
         self
     }
@@ -65,3 +68,7 @@ impl AssetCreationTemplateDescriptor {
         &self.required_capabilities
     }
 }
+
+#[cfg(test)]
+#[path = "creation_template/optimization_tests.rs"]
+mod optimization_tests;

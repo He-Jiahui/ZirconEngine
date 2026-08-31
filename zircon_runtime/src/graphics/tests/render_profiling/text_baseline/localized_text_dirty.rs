@@ -1,8 +1,8 @@
 use crate::ui::surface::{UiInvalidationReason, UiSurface, UiSurfaceRebuildReport};
-use zircon_runtime_interface::{ui::event_ui::UiNodeId, ProfileSnapshot};
+use zircon_runtime_interface::{ProfileSnapshot, ui::event_ui::UiNodeId};
 
-use super::support::assert_counter_frame_count;
 use super::MEASURED_FRAMES;
+use super::support::assert_counter_frame_count;
 
 pub(super) fn mutate(surface: &mut UiSurface, frame_index: usize) {
     let node_id = UiNodeId::new(2);

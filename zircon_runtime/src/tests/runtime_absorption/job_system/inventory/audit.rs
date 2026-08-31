@@ -27,16 +27,11 @@ pub(crate) const FORBIDDEN_SCHEDULE_EXECUTOR_RAYON_ANCHORS: &[&str] = &[
 
 pub(crate) const MIRROR_DOC_ANCHORS: &[&str] = &[
     "job_system_boundary",
-    "expected_module_count = 10",
-    "direct_rayon_paths = 2",
-    "schedule_parallel_executor_direct_rayon = []",
-    "diagnostic_anchor_count = 11",
-    "behavior_test_anchor_count = 27",
-    "missing_behavior_test_anchors = []",
-    "expected_guard_file_count = 2",
-    "missing_guard_files = []",
-    "oversized_modules = []",
-    "mirror_docs_guard_present = true",
-    "risks = []",
+    "expected_module_count = 22",
+    "behavior_test_anchor_count = 73",
+    "tasks/task_graph/",
+    "tasks/bounded_stream_io/",
+    "tasks/retained_byte_budget.rs",
+    "TaskGraphWorkerInventory",
     "runtime_11_job_system_mirror_docs_match_structure_audit_counts",
 ];

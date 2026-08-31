@@ -19,6 +19,10 @@ struct StandardMaterialPropertyUniform {
     data9: vec4<f32>,
     data10: vec4<f32>,
     data11: vec4<f32>,
+    data12: vec4<f32>,
+    data13: vec4<f32>,
+    data14: vec4<f32>,
+    data15: vec4<f32>,
 };
 
 @group(2) @binding(0) var<uniform> standard_material_properties: StandardMaterialPropertyUniform;
@@ -35,26 +39,43 @@ __ZR_CLEARCOAT_NORMAL_BINDINGS__
 
 const ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS: f32 = 0.001;
 
-fn standard_material_select_uv(uv0: vec2<f32>, uv1: vec2<f32>, channel: f32) -> vec2<f32> {
-    if (channel >= 0.5) {
+fn standard_material_select_uv(
+    uv0: vec2<f32>,
+    uv1: vec2<f32>,
+    uv_mask: u32,
+    slot: u32,
+) -> vec2<f32> {
+    if ((uv_mask & (1u << slot)) != 0u) {
         return uv1;
     }
     return uv0;
 }
 
-fn standard_material_transform_uv(uv: vec2<f32>, transform: vec4<f32>) -> vec2<f32> {
-    return uv * transform.xy + transform.zw;
+fn standard_material_transform_uv(
+    uv: vec2<f32>,
+    transform: vec4<f32>,
+    rotation_sin_cos: vec2<f32>,
+) -> vec2<f32> {
+    let scaled = uv * transform.xy;
+    let rotated = vec2<f32>(
+        scaled.x * rotation_sin_cos.x - scaled.y * rotation_sin_cos.y,
+        scaled.x * rotation_sin_cos.y + scaled.y * rotation_sin_cos.x,
+    );
+    return rotated + transform.zw;
 }
 
 fn standard_material_transform_uv_channel(
     uv0: vec2<f32>,
     uv1: vec2<f32>,
     transform: vec4<f32>,
-    channel: f32,
+    rotation_sin_cos: vec2<f32>,
+    uv_mask: u32,
+    slot: u32,
 ) -> vec2<f32> {
     return standard_material_transform_uv(
-        standard_material_select_uv(uv0, uv1, channel),
+        standard_material_select_uv(uv0, uv1, uv_mask, slot),
         transform,
+        rotation_sin_cos,
     );
 }
 
@@ -67,7 +88,9 @@ fn standard_material_normalize_or_fallback(value: vec3<f32>, fallback: vec3<f32>
 
 __ZR_TANGENT_FRAME_TYPE__
 
-__ZR_TANGENT_FRAME_HELPER__
+__ZR_MIKKTSPACE_FRAME_HELPER__
+
+__ZR_ANISOTROPY_FRAME_HELPER__
 
 __ZR_TANGENT_NORMAL_HELPER__
 
@@ -96,30 +119,39 @@ fn standard_material_shading_model_id() -> u32 {
 }
 
 fn standard_material_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
+    let standard_material_uv_mask = u32(round(clamp(standard_material_properties.data7.x, 0.0, 63.0)));
     let base_color_uv = standard_material_transform_uv_channel(
         input.uv0,
         input.uv1,
         standard_material_properties.data2,
-        standard_material_properties.data7.x,
+        standard_material_properties.data13.xy,
+        standard_material_uv_mask,
+        0u,
     );
 __ZR_NORMAL_UV__
     let metallic_roughness_uv = standard_material_transform_uv_channel(
         input.uv0,
         input.uv1,
         standard_material_properties.data4,
-        standard_material_properties.data7.z,
+        standard_material_properties.data14.xy,
+        standard_material_uv_mask,
+        2u,
     );
     let occlusion_uv = standard_material_transform_uv_channel(
         input.uv0,
         input.uv1,
         standard_material_properties.data5,
-        standard_material_properties.data7.w,
+        standard_material_properties.data14.zw,
+        standard_material_uv_mask,
+        3u,
     );
     let emissive_uv = standard_material_transform_uv_channel(
         input.uv0,
         input.uv1,
         standard_material_properties.data6,
-        standard_material_properties.data1.w,
+        standard_material_properties.data15.xy,
+        standard_material_uv_mask,
+        4u,
     );
 
     let sampled_base = textureSampleBias(
@@ -171,8 +203,9 @@ __ZR_CLEARCOAT_NORMAL_ASSIGNMENT__
     surface.diffuse_transmission = select(0.0, clamp(standard_material_properties.data10.y, 0.0, 1.0), ZR_FEATURE_PBR_TRANSMISSION);
     surface.thickness = select(0.0, max(standard_material_properties.data10.z, 0.0), ZR_FEATURE_PBR_TRANSMISSION);
     surface.ior = select(1.5, max(standard_material_properties.data10.w, 1.0), ZR_FEATURE_PBR_TRANSMISSION);
+    surface.dielectric_f0 = vec3<f32>(clamp(standard_material_properties.data12.y, 0.0, 1.0));
     surface.attenuation_color = select(vec3<f32>(1.0), clamp(standard_material_properties.data11.rgb, vec3<f32>(0.0), vec3<f32>(1.0)), ZR_FEATURE_PBR_TRANSMISSION);
-    surface.attenuation_distance = select(1.0e30, max(standard_material_properties.data11.w, 0.000001), ZR_FEATURE_PBR_TRANSMISSION);
+    surface.attenuation_distance = select(ZR_PBR_NO_ATTENUATION_DISTANCE, max(standard_material_properties.data11.w, 0.000001), ZR_FEATURE_PBR_TRANSMISSION);
     surface.custom0 = vec4<f32>(
         standard_material_properties.data8.x,
         standard_material_properties.data8.y,
@@ -196,8 +229,17 @@ struct StandardMaterialTangentFrame {
 };
 "#;
 
-const STANDARD_MATERIAL_TANGENT_FRAME_HELPER: &str = r#"
-fn standard_material_tangent_frame(
+const STANDARD_MATERIAL_MIKKTSPACE_FRAME_HELPER: &str = r#"
+fn standard_material_mikktspace_frame(input: ZrVertexOutput) -> StandardMaterialTangentFrame {
+    let normal = input.normal_ws;
+    let tangent = input.tangent_ws;
+    let bitangent = cross(normal, tangent) * input.tangent_handedness;
+    return StandardMaterialTangentFrame(tangent, bitangent, normal);
+}
+"#;
+
+const STANDARD_MATERIAL_ANISOTROPY_FRAME_HELPER: &str = r#"
+fn standard_material_anisotropy_frame(
     input: ZrVertexOutput,
     normal_ws: vec3<f32>,
 ) -> StandardMaterialTangentFrame {
@@ -242,13 +284,15 @@ const STANDARD_MATERIAL_NORMAL_UV: &str = r#"
         input.uv0,
         input.uv1,
         standard_material_properties.data3,
-        standard_material_properties.data7.y,
+        standard_material_properties.data13.zw,
+        standard_material_uv_mask,
+        1u,
     );
 "#;
 
 const STANDARD_MATERIAL_NORMAL_TEXTURE_HELPER: &str = r#"
 fn standard_material_sampled_normal(input: ZrVertexOutput, normal_uv: vec2<f32>) -> vec3<f32> {
-    let frame = standard_material_tangent_frame(input, input.normal_ws);
+    let frame = standard_material_mikktspace_frame(input);
     let sampled_normal = zr_reconstruct_bc5_normal(
         textureSampleBias(
             standard_material_normal_tex,
@@ -256,9 +300,14 @@ fn standard_material_sampled_normal(input: ZrVertexOutput, normal_uv: vec2<f32>)
             normal_uv,
             scene.camera_world_position.w,
         ).xy,
-        ZR_NORMAL_CONVENTION_DX,
     );
-    return standard_material_tangent_normal(sampled_normal, frame);
+    return standard_material_tangent_normal(
+        vec3<f32>(
+            sampled_normal.xy * standard_material_properties.data12.x,
+            sampled_normal.z,
+        ),
+        frame,
+    );
 }
 "#;
 
@@ -285,7 +334,7 @@ const STANDARD_MATERIAL_SURFACE_TANGENT_ASSIGNMENT: &str = r#"
 const STANDARD_MATERIAL_SURFACE_ANISOTROPIC_TANGENT_ASSIGNMENT: &str = r#"
     surface.tangent_ws = vec3<f32>(1.0, 0.0, 0.0);
     surface.bitangent_ws = vec3<f32>(0.0, 1.0, 0.0);
-    let surface_frame = standard_material_tangent_frame(input, surface.normal_ws);
+    let surface_frame = standard_material_anisotropy_frame(input, surface.normal_ws);
     surface.tangent_ws = surface_frame.tangent;
     surface.bitangent_ws = surface_frame.bitangent;
 "#;
@@ -300,7 +349,7 @@ fn standard_material_sampled_clearcoat_normal(
     input: ZrVertexOutput,
     normal_uv: vec2<f32>,
 ) -> vec3<f32> {
-    let frame = standard_material_tangent_frame(input, input.normal_ws);
+    let frame = standard_material_mikktspace_frame(input);
     let sampled_normal = zr_reconstruct_bc5_normal(
         textureSampleBias(
             standard_material_clearcoat_normal_tex,
@@ -308,16 +357,36 @@ fn standard_material_sampled_clearcoat_normal(
             normal_uv,
             scene.camera_world_position.w,
         ).xy,
-        ZR_NORMAL_CONVENTION_DX,
     );
-    return standard_material_tangent_normal(sampled_normal, frame);
+    return standard_material_tangent_normal(
+        vec3<f32>(
+            sampled_normal.xy * standard_material_properties.data12.z,
+            sampled_normal.z,
+        ),
+        frame,
+    );
 }
 "#;
 
 const STANDARD_MATERIAL_CLEARCOAT_NORMAL_ASSIGNMENT: &str = r#"
     surface.clearcoat_normal_ws = surface.normal_ws;
     if (ZR_FEATURE_PBR_CLEARCOAT) {
-        surface.clearcoat_normal_ws = standard_material_sampled_clearcoat_normal(input, normal_uv);
+        let clearcoat_normal_uv = standard_material_transform_uv_channel(
+            input.uv0,
+            input.uv1,
+            vec4<f32>(
+                standard_material_properties.data7.yz,
+                standard_material_properties.data7.w,
+                standard_material_properties.data1.w,
+            ),
+            vec2<f32>(
+                standard_material_properties.data12.w,
+                standard_material_properties.data15.z,
+            ),
+            standard_material_uv_mask,
+            5u,
+        );
+        surface.clearcoat_normal_ws = standard_material_sampled_clearcoat_normal(input, clearcoat_normal_uv);
     }
 "#;
 
@@ -347,9 +416,10 @@ pub(crate) fn standard_material_surface_source_for_features(
     let has_normal_texture = features.contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE);
     let has_clearcoat = features.contains(ShaderFeatureBits::PBR_CLEARCOAT);
     let has_anisotropy = features.contains(ShaderFeatureBits::PBR_ANISOTROPY);
-    let needs_normal_uv = has_normal_texture || has_clearcoat;
+    let needs_normal_uv = has_normal_texture;
     let needs_tangent_frame = has_normal_texture || has_clearcoat || has_anisotropy;
     let needs_tangent_normal = has_normal_texture || has_clearcoat;
+    let needs_mikktspace_frame = needs_tangent_normal;
     let clearcoat_source = if has_clearcoat {
         (
             STANDARD_MATERIAL_CLEARCOAT_NORMAL_BINDINGS,
@@ -377,9 +447,17 @@ pub(crate) fn standard_material_surface_source_for_features(
             },
         )
         .replace(
-            "__ZR_TANGENT_FRAME_HELPER__",
-            if needs_tangent_frame {
-                STANDARD_MATERIAL_TANGENT_FRAME_HELPER
+            "__ZR_MIKKTSPACE_FRAME_HELPER__",
+            if needs_mikktspace_frame {
+                STANDARD_MATERIAL_MIKKTSPACE_FRAME_HELPER
+            } else {
+                ""
+            },
+        )
+        .replace(
+            "__ZR_ANISOTROPY_FRAME_HELPER__",
+            if has_anisotropy {
+                STANDARD_MATERIAL_ANISOTROPY_FRAME_HELPER
             } else {
                 ""
             },

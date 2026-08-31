@@ -44,6 +44,37 @@ pub struct PlatformCapabilityReport {
 }
 
 impl PlatformCapabilityReport {
+    pub(in crate::platform) fn disabled_by_platform(mut self) -> Self {
+        self.window_backend = CapabilityStatus::platform_disabled();
+        self.monitor_inventory = CapabilityStatus::platform_disabled();
+        self.window_events = CapabilityStatus::platform_disabled();
+        self.window_lifecycle = CapabilityStatus::platform_disabled();
+        self.window_metrics = CapabilityStatus::platform_disabled();
+        self.ime = CapabilityStatus::platform_disabled();
+        self.keyboard_events = CapabilityStatus::platform_disabled();
+        self.cursor_boundary = CapabilityStatus::platform_disabled();
+        self.cursor_options = CapabilityStatus::platform_disabled();
+        self.mouse_buttons = CapabilityStatus::platform_disabled();
+        self.mouse_wheel = CapabilityStatus::platform_disabled();
+        self.touch_events = CapabilityStatus::platform_disabled();
+        self.gesture_events = CapabilityStatus::platform_disabled();
+        self.pointer_position = CapabilityStatus::platform_disabled();
+        self.raw_mouse_motion = CapabilityStatus::platform_disabled();
+        self.event_loop_policy = EventLoopPolicy::Headless;
+        self.mouse_input = CapabilityStatus::platform_disabled();
+        self.keyboard_input = CapabilityStatus::platform_disabled();
+        self.touch_input = CapabilityStatus::platform_disabled();
+        self.gesture_input = CapabilityStatus::platform_disabled();
+        self.gamepad_input = CapabilityStatus::platform_disabled();
+        self.gamepad_events = CapabilityStatus::platform_disabled();
+        self.gamepad_rumble = CapabilityStatus::platform_disabled();
+        self.file_drag_drop = CapabilityStatus::platform_disabled();
+        self.persistent_preferences = CapabilityStatus::platform_disabled();
+        self.linux_x11 = CapabilityStatus::platform_disabled();
+        self.linux_wayland = CapabilityStatus::platform_disabled();
+        self
+    }
+
     pub fn with_preference_storage_backend(
         mut self,
         backend: PreferenceStorageBackendKind,

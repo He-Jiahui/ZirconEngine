@@ -11,17 +11,18 @@ pub struct VmReflectionSchema {
     registrations: Vec<ReflectTypeRegistration>,
 }
 
+fn is_public_component_registration(registration: &ReflectTypeRegistration) -> bool {
+    registration.script_visibility == ReflectScriptVisibility::Public && registration.is_component()
+}
+
 impl VmReflectionSchema {
     /// Projects the public component subset and validates it through the shared registry path.
     pub fn from_state_schema(schema: &VmStateSchema) -> Result<Self, VmReflectionError> {
         let mut registry = TypeRegistry::default();
-        let mut registrations = Vec::new();
+        let mut registrations = Vec::with_capacity(schema.types.len());
         for type_schema in &schema.types {
             let registration = &type_schema.registration;
-            if registration.script_visibility != ReflectScriptVisibility::Public
-                || !registration.is_component
-                || registration.is_resource
-            {
+            if !is_public_component_registration(registration) {
                 continue;
             }
             registry.register_vm_type(registration.clone(), VmTypeBacking::DynamicComponent)?;

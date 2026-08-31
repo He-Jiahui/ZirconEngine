@@ -10,7 +10,7 @@ pub(super) fn update_temporal_camera_history_after_success(
 ) {
     let mut camera = frame.effective_camera();
     camera.temporal_jitter = Default::default();
-    record.replace_motion_vector_camera(camera_history_key.clone(), camera);
+    record.replace_motion_vector_camera(camera_history_key, camera);
     if advance_temporal_frame_index {
         record.advance_temporal_frame_index();
     }

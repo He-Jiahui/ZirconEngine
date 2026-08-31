@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use super::query_state::{project_entity_from_plans, CachedArchetypePlan};
+use super::query_state::{CachedArchetypePlan, project_entity_from_plans};
 use crate::scene::ecs::{
     ChangeTickWindow, ComponentStorageLocation, QueryEntityItem, QueryFilter, QueryMutData,
 };

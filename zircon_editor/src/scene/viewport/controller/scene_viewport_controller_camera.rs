@@ -1,7 +1,5 @@
-use crate::scene::viewport::{
-    ProjectionMode, ViewOrientation, ViewportCameraSnapshot, ViewportTransformPreview,
-};
-use zircon_runtime::scene::Scene;
+use crate::scene::viewport::{ProjectionMode, ViewOrientation, ViewportCameraSnapshot};
+use zircon_runtime::scene::{NodeId, Scene};
 use zircon_runtime_interface::math::{Transform, UVec2, Vec3};
 
 use super::{constants::MIN_CAMERA_DISTANCE, SceneViewportController};
@@ -10,10 +8,7 @@ const DEFAULT_CAMERA_DISTANCE: f32 = 8.0;
 const DEFAULT_ORTHO_SIZE: f32 = 5.0;
 
 impl SceneViewportController {
-    pub(in crate::scene::viewport::controller) fn current_camera(
-        &self,
-        scene: &Scene,
-    ) -> ViewportCameraSnapshot {
+    pub(crate) fn current_camera(&self, scene: &Scene) -> ViewportCameraSnapshot {
         self.state.camera.clone().unwrap_or_else(|| {
             build_scene_camera_snapshot(
                 scene,
@@ -98,15 +93,38 @@ impl SceneViewportController {
             .max(MIN_CAMERA_DISTANCE)
     }
 
-    pub(crate) fn accept_transform_preview(
+    pub(crate) fn resync_after_interactive_transform(
         &mut self,
         scene: &Scene,
-        preview: ViewportTransformPreview,
+        primary_root: NodeId,
+        active_camera_before: NodeId,
+        active_camera_transform_before: Option<Transform>,
     ) {
-        if preview.node_id == scene.active_camera() {
-            if let Some(camera) = self.state.camera.as_mut() {
-                camera.transform = preview.transform;
-            }
+        self.resync_active_camera_after_scene_mutation(
+            scene,
+            active_camera_before,
+            active_camera_transform_before,
+        );
+        if let Some(transform) = scene.world_transform(primary_root) {
+            self.state.orbit_target = transform.translation;
+            self.state
+                .orbit_controller
+                .set_target(transform.translation);
+        }
+    }
+
+    pub(crate) fn resync_active_camera_after_scene_mutation(
+        &mut self,
+        scene: &Scene,
+        active_camera_before: NodeId,
+        active_camera_transform_before: Option<Transform>,
+    ) {
+        let active_camera = scene.active_camera();
+        let active_camera_transform = scene.world_transform(active_camera);
+        if active_camera != active_camera_before
+            || active_camera_transform != active_camera_transform_before
+        {
+            self.reset_camera_from_scene(Some(scene));
         }
     }
 }
@@ -154,4 +172,63 @@ fn orientation_basis(orientation: ViewOrientation) -> (Vec3, Vec3) {
 
 fn default_camera_transform() -> Transform {
     Transform::looking_at(Vec3::new(0.0, 2.5, 8.0), Vec3::ZERO, Vec3::Y)
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime::scene::components::NodeKind;
+
+    use super::*;
+
+    #[test]
+    fn accepted_parent_transform_resynchronizes_the_active_camera_world_transform() {
+        let mut scene = Scene::new();
+        let active_camera = scene.active_camera();
+        let parent = scene.spawn_node(NodeKind::Empty).unwrap();
+        scene
+            .set_parent_checked(active_camera, Some(parent))
+            .unwrap();
+        let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
+        controller.reset_camera_from_scene(Some(&scene));
+        let before = controller.current_camera(&scene).transform;
+        let active_camera_transform_before = scene.world_transform(active_camera);
+        let target_world = Transform::from_translation(Vec3::new(3.0, 0.0, 0.0));
+
+        scene.update_transform(parent, target_world).unwrap();
+        controller.resync_after_interactive_transform(
+            &scene,
+            parent,
+            active_camera,
+            active_camera_transform_before,
+        );
+
+        let expected = scene.world_transform(active_camera).unwrap();
+        assert_ne!(expected, before);
+        assert_eq!(controller.current_camera(&scene).transform, expected);
+        assert_eq!(controller.orbit_target(), target_world.translation);
+    }
+
+    #[test]
+    fn unrelated_transform_preserves_the_navigated_editor_camera() {
+        let mut scene = Scene::new();
+        let target = scene.spawn_node(NodeKind::Empty).unwrap();
+        let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
+        controller.reset_camera_from_scene(Some(&scene));
+        let navigated = Transform::from_translation(Vec3::new(11.0, 7.0, 3.0));
+        controller.state.camera.as_mut().unwrap().transform = navigated;
+        let active_camera = scene.active_camera();
+        let active_camera_transform_before = scene.world_transform(active_camera);
+        let target_world = Transform::from_translation(Vec3::new(2.0, 4.0, 6.0));
+
+        scene.update_transform(target, target_world).unwrap();
+        controller.resync_after_interactive_transform(
+            &scene,
+            target,
+            active_camera,
+            active_camera_transform_before,
+        );
+
+        assert_eq!(controller.current_camera(&scene).transform, navigated);
+        assert_eq!(controller.orbit_target(), target_world.translation);
+    }
 }

@@ -1,7 +1,6 @@
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 use crate::ui::workbench::layout::{LayoutCommand, MainPageId};
-use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::super::dispatch_layout_command;
 use super::resolution::resolve_floating_window_focus_instance;
@@ -12,9 +11,7 @@ pub(crate) fn dispatch_builtin_floating_window_focus(
 ) -> Option<Result<UiHostEventEffects, String>> {
     let chrome = runtime.chrome_snapshot();
     let context = runtime.project_command_eval_snapshot(&chrome);
-    let commands = runtime.commands().lock();
-    let model = WorkbenchViewModel::build_with_context(&commands, &chrome, &context);
-    drop(commands);
+    let model = runtime.build_workbench_view_model(&chrome, &context);
     let window = model
         .floating_windows
         .iter()

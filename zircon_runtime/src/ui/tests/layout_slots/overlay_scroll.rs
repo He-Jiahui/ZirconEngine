@@ -19,7 +19,7 @@ fn overlay_layout_consumes_slot_padding_alignment() {
             ),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(2), UiSlotKind::Overlay)
             .with_padding(UiMargin::new(8.0, 6.0, 12.0, 10.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Fill, UiAlignment::End)),
@@ -79,13 +79,13 @@ fn overlay_slot_geometry_feeds_arranged_render_hit_and_z_order_from_one_surface_
             ),
         )
         .unwrap();
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(2), UiSlotKind::Overlay)
             .with_padding(UiMargin::new(4.0, 4.0, 4.0, 4.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::Start, UiAlignment::Start))
             .with_z_order(20),
     );
-    surface.tree.slots.push(
+    surface.tree.push_layout_slot(
         UiSlot::new(UiNodeId::new(1), UiNodeId::new(3), UiSlotKind::Overlay)
             .with_padding(UiMargin::new(10.0, 8.0, 10.0, 8.0))
             .with_alignment(UiAlignment2D::new(UiAlignment::End, UiAlignment::End))
@@ -124,7 +124,7 @@ fn overlay_slot_geometry_feeds_arranged_render_hit_and_z_order_from_one_surface_
     assert_eq!(hit.top_hit, Some(UiNodeId::new(2)));
     assert_eq!(hit.stacked, vec![UiNodeId::new(2), UiNodeId::new(3)]);
     assert_eq!(
-        hit.path.bubble_route,
+        hit.path.bubble_route().collect::<Vec<_>>(),
         vec![UiNodeId::new(2), UiNodeId::new(1)]
     );
 }

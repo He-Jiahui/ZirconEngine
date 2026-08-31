@@ -1,12 +1,15 @@
 use thiserror::Error;
 
-use crate::project::{ProjectManifestSummaryError, RelPathError};
+use crate::project::{ProjectManifestSummaryError, ProjectNameError, RelPathError};
 
 /// Typed failure while validating and rendering an embedded project template pack.
 #[derive(Debug, Error)]
 pub enum ProjectTemplatePackError {
-    #[error("project name cannot be empty")]
-    EmptyProjectName,
+    #[error("project template project name is invalid: {source}")]
+    InvalidProjectName {
+        #[source]
+        source: ProjectNameError,
+    },
     #[error("template entry path is invalid: {source}")]
     InvalidEntryPath {
         #[from]

@@ -179,6 +179,7 @@ pub(super) fn populate(scene: &mut host_window::HostWindowSceneData) {
                 ..Default::default()
             },
         ]),
+        ..host_window::AssetsActivityPaneViewData::default()
     };
     scene.left_dock.pane.native_body.hierarchy = host_window::HierarchyPaneViewData {
         nodes: model_rc(vec![crate::ui::layouts::views::ViewTemplateNodeData {
@@ -425,6 +426,6 @@ pub(super) fn populate(scene: &mut host_window::HostWindowSceneData) {
             },
             ..Default::default()
         }]),
-        status_text: "Build finished".into(),
+        output: "Build finished".into(),
     };
 }

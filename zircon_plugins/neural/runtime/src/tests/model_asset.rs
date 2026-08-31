@@ -1,6 +1,6 @@
 use crate::{
-    NN_WEIGHT_ALIGNMENT, NnDataType, NnGemmAttrs, NnModelAsset, NnModelFormatError, NnOp,
-    NnOpAttrs, NnOpCode, NnTensorDesc, NnTensorKind,
+    NnDataType, NnGemmAttrs, NnModelAsset, NnModelFormatError, NnOp, NnOpAttrs, NnOpCode,
+    NnTensorDesc, NnTensorKind, NN_WEIGHT_ALIGNMENT,
 };
 
 fn sample_model() -> NnModelAsset {

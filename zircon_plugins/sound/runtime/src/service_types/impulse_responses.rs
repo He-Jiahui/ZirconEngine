@@ -32,8 +32,7 @@ impl DefaultSoundManager {
             .map(|_| ())
             .ok_or(SoundError::UnknownImpulseResponse { impulse_response })?;
         state.ray_traced_impulse_responses.remove(&impulse_response);
-        let descriptors = state.ray_traced_impulse_responses.clone();
-        refresh_ray_tracing_status(&mut state.ray_tracing, &descriptors);
+        refresh_ray_tracing_status(&mut state.ray_tracing, &state.ray_traced_impulse_responses);
         Ok(())
     }
 }

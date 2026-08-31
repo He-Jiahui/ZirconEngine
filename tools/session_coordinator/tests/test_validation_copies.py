@@ -17,6 +17,7 @@ from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.validation_copies import (
     CargoInputClosurePlanner,
     ExternalGitSource,
+    _package_root_for_relative_source,
 )
 from tools.session_coordinator.workspace_copy import WorkspaceCopyService
 
@@ -83,8 +84,36 @@ class ValidationCopySourceTests(unittest.TestCase):
             "includeRoots": ["binding"],
         }
 
+    def test_package_root_selection_is_lexical_and_prefers_most_specific_root(
+        self,
+    ) -> None:
+        roots = (".", "zircon_runtime", "zircon_runtime/crates/zr_rhi")
+
+        self.assertEqual(
+            "zircon_runtime/crates/zr_rhi",
+            _package_root_for_relative_source(
+                "zircon_runtime/crates/zr_rhi/src/lib.rs", roots
+            ),
+        )
+        self.assertEqual(
+            "zircon_runtime",
+            _package_root_for_relative_source("zircon_runtime/src/lib.rs", roots),
+        )
+        self.assertEqual(
+            ".",
+            _package_root_for_relative_source("Cargo.toml", roots),
+        )
+
     def test_external_git_source_uses_pinned_commit_and_survives_restart(self) -> None:
-        (self.external / "binding/Cargo.toml").write_text("foreign dirty\n")
+        (self.external / "binding/Cargo.toml").write_text(
+            "[package]\nname='binding-new'\nversion='0.2.0'\n"
+        )
+        subprocess.run(["git", "add", "--all"], cwd=self.external, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: advance external head"],
+            cwd=self.external,
+            check=True,
+        )
 
         record = self.service.materialize(
             "session-a",
@@ -94,7 +123,7 @@ class ValidationCopySourceTests(unittest.TestCase):
 
         mounted = record.job_root / "zr_vm/binding/Cargo.toml"
         self.assertIn("name='binding'", mounted.read_text(encoding="utf-8"))
-        self.assertNotIn("foreign dirty", mounted.read_text(encoding="utf-8"))
+        self.assertNotIn("binding-new", mounted.read_text(encoding="utf-8"))
         self.assertEqual(self.external_commit, record.external_sources[0]["commit"])
         with mock.patch(
             "tools.session_coordinator.workspace_copy._is_managed_validation_root",
@@ -105,6 +134,21 @@ class ValidationCopySourceTests(unittest.TestCase):
             ).status("session-a", record.job_id)
         self.assertEqual(record.external_sources, restarted.external_sources)
         self.assertEqual(record.input_manifest_hash, restarted.input_manifest_hash)
+
+    def test_external_git_source_rejects_mutable_ref(self) -> None:
+        mutable = self._external_descriptor()
+        mutable["commit"] = "HEAD"
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.plan(
+                "session-a",
+                include_paths=("README.md",),
+                external_sources=(mutable,),
+            )
+
+        self.assertEqual(
+            "validation_copy_external_commit_invalid", rejected.exception.code
+        )
 
     def test_external_mount_escape_and_missing_commit_fail_closed(self) -> None:
         escaped = self._external_descriptor()
@@ -596,6 +640,179 @@ class ValidationCopySourceTests(unittest.TestCase):
 
         self.assertIn("app/src/schema.txt", closure.repository_paths)
 
+    def test_compile_time_scan_uses_pinned_baseline_instead_of_unrelated_live_edit(
+        self,
+    ) -> None:
+        files = {
+            "Cargo.toml": "[workspace]\nmembers=['app']\n",
+            "Cargo.lock": "# lock\n",
+            "app/Cargo.toml": "[package]\nname='app'\nversion='0.1.0'\n",
+            "app/src/lib.rs": "pub fn baseline() {}\n",
+        }
+        for relative, content in files.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *files], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add pinned baseline fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        baseline_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        (self.repo / "app/src/lib.rs").write_text(
+            'const _: &str = include_str!("foreign.rs");\n', encoding="utf-8"
+        )
+        metadata = {
+            "packages": [
+                {
+                    "id": "app-id",
+                    "name": "app",
+                    "manifest_path": str(self.repo / "app/Cargo.toml"),
+                }
+            ],
+            "workspace_members": ["app-id"],
+            "resolve": {"nodes": [{"id": "app-id", "deps": []}]},
+        }
+
+        closure = CargoInputClosurePlanner(
+            self.repo,
+            metadata_runner=lambda _command: metadata,
+        ).plan(
+            ("cargo", "test", "-p", "app", "--lib"),
+            baseline_commit=baseline_commit,
+        )
+
+        self.assertIn("app/src/lib.rs", closure.repository_paths)
+        self.assertNotIn("app/src/foreign.rs", closure.repository_paths)
+
+    def test_pinned_baseline_prefilters_compile_time_source_blobs(self) -> None:
+        files = {
+            "app/src/plain.rs": "pub fn plain() {}\n",
+            "app/src/included.rs": 'const _: &str = include_str!("schema.txt");\n',
+            "app/src/schema.txt": "schema\n",
+        }
+        for relative, content in files.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *files], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add source prefilter fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        baseline_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        planner = CargoInputClosurePlanner(
+            self.repo, metadata_runner=lambda _command: {}
+        )
+
+        candidates = planner._baseline_compile_time_source_paths(
+            baseline_commit,
+            {"app/src/plain.rs", "app/src/included.rs"},
+        )
+
+        self.assertEqual({"app/src/included.rs"}, candidates)
+
+    def test_pinned_baseline_analysis_is_shared_across_planners(self) -> None:
+        files = {
+            "app/src/lib.rs": 'const _: &str = include_str!("schema.txt");\n',
+            "app/src/schema.txt": "schema\n",
+        }
+        for relative, content in files.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *files], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add shared baseline fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        baseline_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        sources = {"app/src/lib.rs"}
+        first = CargoInputClosurePlanner(self.repo, metadata_runner=lambda _command: {})
+        second = CargoInputClosurePlanner(self.repo, metadata_runner=lambda _command: {})
+
+        first_result = first._baseline_compile_time_resources_by_source(
+            baseline_commit, sources, {"app"}, {"app"}
+        )
+        with mock.patch.object(
+            second,
+            "_baseline_compile_time_source_paths",
+            side_effect=AssertionError("baseline cache was not shared"),
+        ):
+            second_result = second._baseline_compile_time_resources_by_source(
+                baseline_commit, sources, {"app"}, {"app"}
+            )
+
+        self.assertEqual(first_result, second_result)
+        self.assertEqual(("app/src/schema.txt",), first_result["app/src/lib.rs"])
+
+    def test_pinned_baseline_cache_still_layers_ticket_overlay_sources(self) -> None:
+        files = {
+            "app/src/lib.rs": 'const _: &str = include_str!("baseline.txt");\n',
+            "app/src/baseline.txt": "baseline\n",
+        }
+        for relative, content in files.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *files], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add overlay cache fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        baseline_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        planner = CargoInputClosurePlanner(
+            self.repo, metadata_runner=lambda _command: {}
+        )
+        planner._baseline_compile_time_resources_by_source(
+            baseline_commit, {"app/src/lib.rs"}, {"app"}, {"app"}
+        )
+        (self.repo / "app/src/lib.rs").write_text(
+            'const _: &str = include_str!("overlay.txt");\n', encoding="utf-8"
+        )
+        (self.repo / "app/src/overlay.txt").write_text("overlay\n", encoding="utf-8")
+
+        resources = CargoInputClosurePlanner(
+            self.repo, metadata_runner=lambda _command: {}
+        )._compile_time_resource_paths(
+            {"app/src/lib.rs", "app/src/overlay.txt"},
+            {"app"},
+            {"app"},
+            overlay_paths={"app/src/lib.rs", "app/src/overlay.txt"},
+            baseline_commit=baseline_commit,
+            baseline_paths={"app/src/lib.rs"},
+        )
+
+        self.assertIn("app/src/overlay.txt", resources)
+
     def test_compile_time_resource_rejects_live_untracked_file(self) -> None:
         tracked = {
             "Cargo.toml": "[workspace]\nmembers=['app']\n",
@@ -906,6 +1123,119 @@ class ValidationCopySourceTests(unittest.TestCase):
 
         self.assertIn("app/Cargo.toml", closure.repository_paths)
         self.assertEqual((), closure.external_sources)
+
+    def test_plain_command_uses_workspace_default_members_instead_of_every_member(
+        self,
+    ) -> None:
+        for package in ("default_app", "unrelated_app"):
+            package_root = self.repo / package
+            (package_root / "src").mkdir(parents=True)
+            (package_root / "Cargo.toml").write_text(
+                f"[package]\nname='{package}'\nversion='0.1.0'\n",
+                encoding="utf-8",
+            )
+            (package_root / "src/lib.rs").write_text(
+                f"pub fn {package}() {{}}\n", encoding="utf-8"
+            )
+        (self.repo / "Cargo.toml").write_text(
+            "[workspace]\nmembers=['default_app','unrelated_app']\n"
+            "default-members=['default_app']\nresolver='2'\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "--all"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add default member fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        default_manifest = self.repo / "default_app/Cargo.toml"
+        unrelated_manifest = self.repo / "unrelated_app/Cargo.toml"
+        metadata = {
+            "packages": [
+                {
+                    "id": "default-id",
+                    "name": "default_app",
+                    "manifest_path": str(default_manifest),
+                    "source": None,
+                    "targets": [
+                        {"src_path": str(self.repo / "default_app/src/lib.rs")}
+                    ],
+                },
+                {
+                    "id": "unrelated-id",
+                    "name": "unrelated_app",
+                    "manifest_path": str(unrelated_manifest),
+                    "source": None,
+                    "targets": [
+                        {"src_path": str(self.repo / "unrelated_app/src/lib.rs")}
+                    ],
+                },
+            ],
+            "workspace_members": ["default-id", "unrelated-id"],
+            "workspace_default_members": ["default-id"],
+            "resolve": {
+                "nodes": [
+                    {"id": "default-id", "deps": []},
+                    {"id": "unrelated-id", "deps": []},
+                ]
+            },
+        }
+
+        closure = CargoInputClosurePlanner(
+            self.repo, metadata_runner=lambda _command: metadata
+        ).plan(("cargo", "test", "--lib"))
+
+        self.assertIn("default_app/src/lib.rs", closure.repository_paths)
+        self.assertNotIn("unrelated_app/src/lib.rs", closure.repository_paths)
+
+    def test_selected_test_package_includes_declared_runtime_dependency_roots(self) -> None:
+        files = {
+            "Cargo.toml": "[workspace]\nmembers=['app']\n",
+            "Cargo.lock": "# lock\n",
+            "app/Cargo.toml": "[package]\nname='app'\nversion='0.1.0'\n",
+            "app/src/lib.rs": "#[cfg(test)] mod tests {}\n",
+            "docs/contracts/runtime.md": "runtime fixture\n",
+            "docs/unrelated.md": "unrelated\n",
+        }
+        for relative, content in files.items():
+            destination = self.repo / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--all"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add declared validation input"],
+            cwd=self.repo,
+            check=True,
+        )
+        metadata = {
+            "packages": [
+                {
+                    "id": "app-id",
+                    "name": "app",
+                    "manifest_path": str(self.repo / "app/Cargo.toml"),
+                    "source": None,
+                    "targets": [{"src_path": str(self.repo / "app/src/lib.rs")}],
+                    "metadata": {
+                        "zircon": {
+                            "validation": {"dependency-roots": ["../docs/contracts"]}
+                        }
+                    },
+                }
+            ],
+            "workspace_members": ["app-id"],
+            "workspace_default_members": ["app-id"],
+            "resolve": {"nodes": [{"id": "app-id", "deps": []}]},
+        }
+        planner = CargoInputClosurePlanner(
+            self.repo, metadata_runner=lambda _command: metadata
+        )
+
+        test_closure = planner.plan(("cargo", "test", "-p", "app", "--lib"))
+        check_closure = planner.plan(("cargo", "check", "-p", "app"))
+
+        self.assertIn("docs/contracts/runtime.md", test_closure.repository_paths)
+        self.assertNotIn("docs/unrelated.md", test_closure.repository_paths)
+        self.assertNotIn("docs/contracts/runtime.md", check_closure.repository_paths)
 
 
 if __name__ == "__main__":

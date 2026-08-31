@@ -11,13 +11,16 @@ use crate::ui::retained_host::host_contract::surface_hit_test::HostWorkbenchHitI
 use crate::ui::retained_host::primitives::{
     CloseRequestResponse, ModelRc, PhysicalPosition, PhysicalSize, SharedString,
 };
-use crate::ui::retained_host::ui_perf::UiPerfScenario;
+use crate::ui::retained_host::ui_perf::{
+    record_current_ui_perf_counter, UiPerfCounter, UiPerfScenario,
+};
 
 use super::super::data::{
-    HostDockPresentationPatch, HostDragStateData, HostMenuStateData, HostPageOverflowMenuStateData,
-    HostPaneInteractionStateData, HostPresentationGeneration, HostResizeStateData,
-    HostTextInputFocusData, HostViewportImageData, HostWindowLayoutData,
-    HostWindowPresentationData, HostWindowShellData, TemplatePaneNodeData, WelcomePaneData,
+    HostDockOverflowMenuStateData, HostDockPresentationPatch, HostDragStateData, HostMenuStateData,
+    HostPageOverflowMenuStateData, HostPaneInteractionStateData, HostPresentationGeneration,
+    HostResizeStateData, HostTextInputFocusData, HostViewportImageData, HostViewportImageSet,
+    HostWindowGeometryPresentationData, HostWindowLayoutData, HostWindowPresentationData,
+    HostWindowShellData, TemplatePaneNodeData, WelcomePaneData,
 };
 use super::super::diagnostics::{HostInvalidationDiagnostics, HostWindowDiagnosticQueue};
 use super::super::redraw::HostRedrawRequest;
@@ -42,7 +45,9 @@ pub(crate) struct HostContractState {
     pub(crate) window_maximized: bool,
     pub(crate) close_requested: Option<Rc<dyn Fn() -> CloseRequestResponse>>,
     pub(crate) host_presentation: Arc<HostWindowPresentationData>,
+    host_structure: Arc<HostWindowPresentationData>,
     presentation_structure_generation: u64,
+    presentation_geometry_generation: u64,
     presentation_interaction_generation: u64,
     presentation_viewport_generation: u64,
     presentation_hit_test_generation: u64,
@@ -58,11 +63,13 @@ pub(crate) struct HostContractState {
     pub(crate) external_redraw_coalesced_count: u64,
     pub(crate) runtime_frame_wake_deadline: Option<Instant>,
     pub(crate) maintenance_frame_wake_deadline: Option<Instant>,
-    pub(crate) native_resize_reflow_pending: bool,
+    pub(crate) input_timer_frame_wake_deadline: Option<Instant>,
+    pub(crate) lifecycle_frame_wake_deadline: Option<Instant>,
     pub(crate) completed_frame_update_scenario: Option<UiPerfScenario>,
-    pub(crate) viewport_image: Option<Arc<HostViewportImageData>>,
+    pub(crate) viewport_images: HostViewportImageSet,
     pub(crate) menu_state: Arc<HostMenuStateData>,
     pub(crate) host_page_overflow_menu_state: Arc<HostPageOverflowMenuStateData>,
+    pub(crate) host_dock_overflow_menu_state: Arc<HostDockOverflowMenuStateData>,
     pub(crate) pane_interaction_state: Arc<HostPaneInteractionStateData>,
     pub(crate) drag_state: HostDragStateData,
     pub(crate) resize_state: HostResizeStateData,
@@ -77,6 +84,7 @@ impl HostContractState {
 
     pub(crate) fn new(window_size: PhysicalSize) -> Self {
         let host_presentation = Arc::new(HostWindowPresentationData::default());
+        let host_structure = Arc::clone(&host_presentation);
         let diagnostics_overlay_text =
             Arc::new(host_presentation.host_shell.debug_refresh_rate.clone());
         let workbench_hit_index =
@@ -95,7 +103,9 @@ impl HostContractState {
             window_maximized: false,
             close_requested: None,
             host_presentation,
+            host_structure,
             presentation_structure_generation: 0,
+            presentation_geometry_generation: 0,
             presentation_interaction_generation: 0,
             presentation_viewport_generation: 0,
             presentation_hit_test_generation: 0,
@@ -111,11 +121,13 @@ impl HostContractState {
             external_redraw_coalesced_count: 0,
             runtime_frame_wake_deadline: None,
             maintenance_frame_wake_deadline: None,
-            native_resize_reflow_pending: false,
+            input_timer_frame_wake_deadline: None,
+            lifecycle_frame_wake_deadline: None,
             completed_frame_update_scenario: None,
-            viewport_image: None,
+            viewport_images: HostViewportImageSet::default(),
             menu_state: Arc::new(HostMenuStateData::default()),
             host_page_overflow_menu_state: Arc::new(HostPageOverflowMenuStateData::default()),
+            host_dock_overflow_menu_state: Arc::new(HostDockOverflowMenuStateData::default()),
             pane_interaction_state: Arc::new(HostPaneInteractionStateData::default()),
             drag_state: HostDragStateData::default(),
             resize_state: HostResizeStateData::default(),
@@ -131,22 +143,43 @@ impl HostContractState {
     }
 
     pub(crate) fn presentation_generation(&self) -> HostPresentationGeneration {
-        HostPresentationGeneration::new(
+        HostPresentationGeneration::new_with_geometry(
+            Arc::clone(&self.host_structure),
             Arc::clone(&self.host_presentation),
             Arc::clone(&self.menu_state),
             Arc::clone(&self.host_page_overflow_menu_state),
+            Arc::clone(&self.host_dock_overflow_menu_state),
             Arc::clone(&self.pane_interaction_state),
             Arc::clone(&self.text_input_focus),
-            self.viewport_image.as_ref().map(Arc::clone),
+            self.viewport_images.clone(),
             Arc::clone(&self.workbench_hit_index),
             Arc::clone(&self.host_paint_theme),
             Arc::clone(&self.diagnostics_overlay_text),
             self.presentation_structure_generation,
+            self.presentation_geometry_generation,
             self.presentation_interaction_generation,
             self.presentation_viewport_generation,
             self.presentation_hit_test_generation,
             self.presentation_diagnostics_generation,
         )
+    }
+
+    pub(crate) const fn interaction_generation(&self) -> u64 {
+        self.presentation_interaction_generation
+    }
+
+    fn advance_structure_generation(&mut self) {
+        self.presentation_structure_generation =
+            self.presentation_structure_generation.saturating_add(1);
+        record_current_ui_perf_counter(
+            UiPerfCounter::PresentationStructureGenerationChangeCount,
+            1.0,
+        );
+    }
+
+    fn advance_geometry_generation(&mut self) {
+        self.presentation_geometry_generation =
+            self.presentation_geometry_generation.saturating_add(1);
     }
 
     pub(crate) fn replace_host_presentation(
@@ -161,13 +194,42 @@ impl HostContractState {
         }
         presentation.menu_state = HostMenuStateData::default();
         presentation.host_page_overflow_menu_state = HostPageOverflowMenuStateData::default();
+        presentation.host_dock_overflow_menu_state = HostDockOverflowMenuStateData::default();
         presentation.pane_interaction_state = HostPaneInteractionStateData::default();
         presentation.text_input_focus = HostTextInputFocusData::default();
-        presentation.viewport_image = None;
+        presentation.viewport_images = HostViewportImageSet::default();
         self.replace_diagnostics_overlay_text(presentation.host_shell.debug_refresh_rate.clone());
+        let presentation = Arc::new(presentation);
+        self.host_structure = Arc::clone(&presentation);
+        self.host_presentation = presentation;
+        self.advance_structure_generation();
+        self.advance_geometry_generation();
+    }
+
+    pub(crate) fn replace_host_geometry_presentation(
+        &mut self,
+        geometry: HostWindowGeometryPresentationData,
+        workbench_changed_rows: &[usize],
+    ) -> bool {
+        let presentation = geometry.apply_to(&self.host_presentation);
+        let Some(next_hit_index) = self.workbench_hit_index.patch_geometry_presentation(
+            &self.host_presentation,
+            &presentation,
+            workbench_changed_rows,
+        ) else {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.window_resize.hit_index_geometry_patch_fallback_count",
+                1_u8
+            );
+            return false;
+        };
+        self.workbench_hit_index = Arc::new(next_hit_index);
+        self.presentation_hit_test_generation =
+            self.presentation_hit_test_generation.saturating_add(1);
         self.host_presentation = Arc::new(presentation);
-        self.presentation_structure_generation =
-            self.presentation_structure_generation.saturating_add(1);
+        self.advance_geometry_generation();
+        true
     }
 
     pub(crate) fn update_host_presentation<R>(
@@ -185,8 +247,9 @@ impl HostContractState {
             self.presentation_hit_test_generation =
                 self.presentation_hit_test_generation.saturating_add(1);
         }
-        self.presentation_structure_generation =
-            self.presentation_structure_generation.saturating_add(1);
+        self.host_structure = Arc::clone(&self.host_presentation);
+        self.advance_structure_generation();
+        self.advance_geometry_generation();
         result
     }
 
@@ -204,9 +267,10 @@ impl HostContractState {
             return false;
         };
         Arc::make_mut(&mut self.host_presentation).workbench_window_nodes = next_nodes;
+        self.host_structure = Arc::clone(&self.host_presentation);
         self.workbench_hit_index = Arc::new(next_hit_index);
-        self.presentation_structure_generation =
-            self.presentation_structure_generation.saturating_add(1);
+        self.advance_structure_generation();
+        self.advance_geometry_generation();
         true
     }
 
@@ -254,9 +318,10 @@ impl HostContractState {
                 presentation.host_scene_data.bottom_dock = next;
             }
         }
+        self.host_structure = Arc::clone(&self.host_presentation);
         self.workbench_hit_index = Arc::new(next_hit_index);
-        self.presentation_structure_generation =
-            self.presentation_structure_generation.saturating_add(1);
+        self.advance_structure_generation();
+        self.advance_geometry_generation();
         self.presentation_hit_test_generation =
             self.presentation_hit_test_generation.saturating_add(1);
         true
@@ -279,6 +344,18 @@ impl HostContractState {
             return false;
         }
         self.host_page_overflow_menu_state = Arc::new(value);
+        self.advance_interaction_generation();
+        true
+    }
+
+    pub(crate) fn replace_dock_overflow_menu_state(
+        &mut self,
+        value: HostDockOverflowMenuStateData,
+    ) -> bool {
+        if self.host_dock_overflow_menu_state.as_ref() == &value {
+            return false;
+        }
+        self.host_dock_overflow_menu_state = Arc::new(value);
         self.advance_interaction_generation();
         true
     }
@@ -306,18 +383,41 @@ impl HostContractState {
         true
     }
 
-    pub(crate) fn replace_viewport_image(&mut self, value: HostViewportImageData) -> bool {
-        if self
-            .viewport_image
-            .as_ref()
-            .is_some_and(|current| current.resource_key == value.resource_key)
-        {
-            return false;
+    pub(crate) fn replace_scene_viewport_image(&mut self, value: HostViewportImageData) -> bool {
+        let changed = self.viewport_images.replace_scene(value);
+        self.advance_viewport_generation_when(changed);
+        changed
+    }
+
+    pub(crate) fn replace_game_viewport_image(&mut self, value: HostViewportImageData) -> bool {
+        let changed = self.viewport_images.replace_game(value);
+        self.advance_viewport_generation_when(changed);
+        changed
+    }
+
+    pub(crate) fn replace_simulate_viewport_image(&mut self, value: HostViewportImageData) -> bool {
+        let changed = self.viewport_images.replace_simulate(value);
+        self.advance_viewport_generation_when(changed);
+        changed
+    }
+
+    pub(crate) fn clear_game_viewport_image(&mut self) -> bool {
+        let changed = self.viewport_images.clear_game();
+        self.advance_viewport_generation_when(changed);
+        changed
+    }
+
+    pub(crate) fn clear_simulate_viewport_image(&mut self) -> bool {
+        let changed = self.viewport_images.clear_simulate();
+        self.advance_viewport_generation_when(changed);
+        changed
+    }
+
+    fn advance_viewport_generation_when(&mut self, changed: bool) {
+        if changed {
+            self.presentation_viewport_generation =
+                self.presentation_viewport_generation.saturating_add(1);
         }
-        self.viewport_image = Some(Arc::new(value));
-        self.presentation_viewport_generation =
-            self.presentation_viewport_generation.saturating_add(1);
-        true
     }
 
     pub(crate) fn replace_diagnostics_overlay_text(&mut self, value: SharedString) -> bool {

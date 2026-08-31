@@ -1,24 +1,66 @@
-use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
-use zircon_runtime_interface::ui::layout::UiFrame;
-
 use super::host_document_tab_pointer_layout::HostDocumentTabPointerLayout;
-use crate::ui::retained_host::route_intent::EditorRouteIntentMap;
+use super::host_document_tab_pointer_route::HostDocumentTabPointerRoute;
+use crate::ui::workbench::view::ViewInstanceId;
 
 #[derive(Default)]
 pub(crate) struct HostDocumentTabPointerBridge {
     pub(in crate::ui::retained_host::document_tab_pointer) layout: HostDocumentTabPointerLayout,
-    pub(in crate::ui::retained_host::document_tab_pointer) measured_frames:
-        std::collections::BTreeMap<String, Vec<Option<UiFrame>>>,
-    pub(in crate::ui::retained_host::document_tab_pointer) surface: UiSurface,
-    pub(in crate::ui::retained_host::document_tab_pointer) dispatcher: UiPointerDispatcher,
-    pub(in crate::ui::retained_host::document_tab_pointer) route_intents: EditorRouteIntentMap,
-    #[cfg(test)]
-    pub(in crate::ui::retained_host::document_tab_pointer) surface_authority_generation: u64,
 }
 
 impl HostDocumentTabPointerBridge {
-    #[cfg(test)]
-    pub(crate) const fn debug_surface_authority_generation(&self) -> u64 {
-        self.surface_authority_generation
+    pub(in crate::ui::retained_host::document_tab_pointer) fn route_for_receipt(
+        &self,
+        surface_key: &str,
+        item_index: usize,
+        close: bool,
+    ) -> Result<HostDocumentTabPointerRoute, String> {
+        let (surface_index, surface) = self
+            .layout
+            .surfaces
+            .iter()
+            .enumerate()
+            .find(|(_, surface)| surface.key == surface_key)
+            .ok_or_else(|| format!("Unknown document tab surface {surface_key}"))?;
+        let item = surface.items.get(item_index).ok_or_else(|| {
+            format!("Document tab index {item_index} is outside surface {surface_key}")
+        })?;
+        if close && !item.closeable {
+            return Err(format!(
+                "Document tab index {item_index} on surface {surface_key} is not closeable"
+            ));
+        }
+        Ok(if close {
+            HostDocumentTabPointerRoute::CloseTab {
+                surface_index,
+                item_index,
+            }
+        } else {
+            HostDocumentTabPointerRoute::ActivateTab {
+                surface_index,
+                item_index,
+            }
+        })
+    }
+
+    pub(crate) fn target_for_route(
+        &self,
+        route: HostDocumentTabPointerRoute,
+    ) -> Option<&ViewInstanceId> {
+        let (surface_index, item_index) = match route {
+            HostDocumentTabPointerRoute::ActivateTab {
+                surface_index,
+                item_index,
+            }
+            | HostDocumentTabPointerRoute::CloseTab {
+                surface_index,
+                item_index,
+            } => (surface_index, item_index),
+        };
+        self.layout
+            .surfaces
+            .get(surface_index)?
+            .items
+            .get(item_index)
+            .map(|item| &item.instance_id)
     }
 }

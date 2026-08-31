@@ -1,3 +1,7 @@
+use std::collections::HashSet;
+
+const HASH_DEDUP_CODEPOINT_THRESHOLD: usize = 128;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum FontCoverage {
     Known(Vec<(u32, u32)>),
@@ -5,10 +9,8 @@ pub(super) enum FontCoverage {
 }
 
 impl FontCoverage {
-    pub(super) fn from_codepoint_values(mut codepoints: Vec<u32>) -> Self {
-        codepoints.sort_unstable();
-        codepoints.dedup();
-        Self::from_sorted_unique_codepoints(codepoints)
+    pub(super) fn from_codepoint_values(codepoints: Vec<u32>) -> Self {
+        Self::from_sorted_unique_codepoints(normalize_codepoint_values(codepoints))
     }
 
     /// Compacts a canonical codepoint stream without copying or re-sorting it.
@@ -66,6 +68,22 @@ impl FontCoverage {
     }
 }
 
+fn normalize_codepoint_values(mut codepoints: Vec<u32>) -> Vec<u32> {
+    if codepoints.len() < HASH_DEDUP_CODEPOINT_THRESHOLD {
+        codepoints.sort_unstable();
+        codepoints.dedup();
+        return codepoints;
+    }
+
+    let mut unique = HashSet::with_capacity(codepoints.len());
+    for codepoint in codepoints {
+        unique.insert(codepoint);
+    }
+    let mut codepoints = unique.into_iter().collect::<Vec<_>>();
+    codepoints.sort_unstable();
+    codepoints
+}
+
 #[cfg(test)]
 mod tests {
     use super::FontCoverage;
@@ -75,7 +93,11 @@ mod tests {
         let coverage = FontCoverage::Known(vec![(0x0020, 0x007E), (0x0400, 0x04FF)]);
 
         assert!(coverage.contains('A'));
-        assert!(coverage.contains('Ж'));
-        assert!(!coverage.contains('中'));
+        assert!(coverage.contains('\u{416}'));
+        assert!(!coverage.contains('\u{4e2d}'));
     }
 }
+
+#[cfg(test)]
+#[path = "coverage/hash_dedup_tests.rs"]
+mod hash_dedup_tests;

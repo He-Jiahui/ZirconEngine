@@ -15,7 +15,7 @@ fn platform_preference_storage_completed_small_reads_release_maximum_overlay_quo
         .lock()
         .unwrap()
         .insert(second_key.clone(), Arc::from(&b"b"[..]));
-    let adapter = PreferencePersistenceAdapter::new(
+    let adapter = test_adapter(
         backend,
         PreferencePersistenceLimits {
             max_value_bytes: 1024,
@@ -24,8 +24,7 @@ fn platform_preference_storage_completed_small_reads_release_maximum_overlay_quo
             max_lane_entries: 2,
             max_lane_retained_bytes: 64 * 1024,
         },
-    )
-    .unwrap();
+    );
 
     assert_eq!(
         wait_snapshot_terminal(&adapter, &first_key),

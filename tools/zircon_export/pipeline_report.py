@@ -47,7 +47,7 @@ from .pipeline_report_compile_host import (
     compile_host_host_executable_diagnostics,
     compile_host_link_plan_diagnostics,
 )
-from .report_io import write_report_targets
+from .report_io import write_rendered_report_targets
 from .stage_handoff import (
     dedupe,
     stage_report_diagnostics_diagnostic,
@@ -106,17 +106,19 @@ def run_report(args: argparse.Namespace) -> int:
         diagnostics.append(
             f"Report stage directory {stage_dir} could not be created: {error}"
         )
-        write_report_targets([("pipeline report", pipeline_report_path)], report)
-        print(json.dumps(report, indent=2))
+        _report_written, rendered_report = write_rendered_report_targets(
+            [("pipeline report", pipeline_report_path)], report
+        )
+        print(rendered_report)
         return 2
-    report_written = write_report_targets(
+    report_written, rendered_report = write_rendered_report_targets(
         [
             ("Report stage report", report_path),
             ("pipeline report", pipeline_report_path),
         ],
         report,
     )
-    print(json.dumps(report, indent=2))
+    print(rendered_report)
     return 2 if report["fatal"] or not report_written else 0
 
 

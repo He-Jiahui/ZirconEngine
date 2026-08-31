@@ -206,6 +206,8 @@ fn render_product_diagnostics_record_mesh_command_cache_counts() {
     let stats = RenderStats {
         submitted_frames: 12,
         last_mesh_command_count: 9,
+        last_mesh_opaque_command_count: 8,
+        last_mesh_advanced_pbr_opaque_command_count: 1,
         last_mesh_cached_command_hit_count: 4,
         last_mesh_command_rebuild_count: 5,
         last_mesh_dynamic_command_count: 2,
@@ -235,6 +237,18 @@ fn render_product_diagnostics_record_mesh_command_cache_counts() {
     record(&mut store, &stats);
 
     assert_series(&store, "render.mesh.queue.command_count", 9.0, "count");
+    assert_series(
+        &store,
+        "render.mesh.queue.opaque_command_count",
+        8.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.mesh.queue.advanced_pbr_opaque_command_count",
+        1.0,
+        "count",
+    );
     assert_series(
         &store,
         "render.mesh.queue.cached_command_hit_count",

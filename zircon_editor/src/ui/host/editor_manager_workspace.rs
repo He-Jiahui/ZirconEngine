@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use crate::ui::workbench::layout::{MainPageId, RestorePolicy, WorkbenchLayout};
 use crate::ui::workbench::project::ProjectEditorWorkspace;
-use crate::ui::workbench::view::{ViewDescriptor, ViewInstance, ViewInstanceId};
+use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
 
 use super::editor_error::EditorError;
 use super::editor_manager::EditorManager;
@@ -18,6 +18,10 @@ impl EditorManager {
 
     pub fn current_focused_view(&self) -> Option<ViewInstanceId> {
         self.host.current_focused_view()
+    }
+
+    pub fn current_focused_view_matches(&self, descriptor_id: &ViewDescriptorId) -> bool {
+        self.host.current_focused_view_matches(descriptor_id)
     }
 
     pub fn update_view_instance_metadata(
@@ -42,6 +46,13 @@ impl EditorManager {
 
     pub fn descriptors(&self) -> Vec<ViewDescriptor> {
         self.host.descriptors()
+    }
+
+    pub(crate) fn retire_extension_views(
+        &self,
+        descriptor_ids: &[ViewDescriptorId],
+    ) -> Result<(), EditorError> {
+        self.host.retire_extension_views(descriptor_ids)
     }
 
     pub fn restore_workspace(&self, policy: RestorePolicy) -> Result<WorkbenchLayout, EditorError> {

@@ -2,10 +2,12 @@ use crate::ui::asset_editor;
 
 use super::row_model::{push_detail_row, semantic_label, UiAssetDetailFieldRow};
 
+const LAYOUT_DETAIL_ROW_MAX_COUNT: usize = 10;
+
 pub(super) fn layout_detail_rows(
     data: &asset_editor::UiAssetEditorPanePresentation,
 ) -> Vec<UiAssetDetailFieldRow> {
-    let mut rows = Vec::new();
+    let mut rows = Vec::with_capacity(layout_detail_row_capacity(data));
     push_detail_row(
         &mut rows,
         "Width preferred",
@@ -98,3 +100,27 @@ pub(super) fn layout_detail_rows(
     );
     rows
 }
+
+fn layout_detail_row_capacity(data: &asset_editor::UiAssetEditorPanePresentation) -> usize {
+    let capacity = [
+        &data.inspector_layout_width_preferred,
+        &data.inspector_layout_height_preferred,
+        &data.inspector_layout_semantic_value,
+        &data.inspector_layout_box_gap,
+        &data.inspector_layout_scroll_axis,
+        &data.inspector_layout_scroll_gap,
+        &data.inspector_layout_scrollbar_visibility,
+        &data.inspector_layout_virtualization_item_extent,
+        &data.inspector_layout_virtualization_overscan,
+        &data.inspector_layout_clip,
+    ]
+    .into_iter()
+    .filter(|value| !value.is_empty())
+    .count();
+    debug_assert!(capacity <= LAYOUT_DETAIL_ROW_MAX_COUNT);
+    capacity
+}
+
+#[cfg(test)]
+#[path = "layout/capacity_tests.rs"]
+mod capacity_tests;

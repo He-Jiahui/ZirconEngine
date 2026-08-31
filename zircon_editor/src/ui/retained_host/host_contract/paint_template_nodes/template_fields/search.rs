@@ -42,9 +42,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_
         return rect;
     }
 
-    let height = max_height.round().max(0.0);
+    let height = max_height.max(0.0);
     FrameRect {
-        y: (rect.y + ((rect.height - height) * 0.5)).round(),
+        y: rect.y + ((rect.height - height) * 0.5),
         height,
         ..rect
     }
@@ -83,5 +83,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_
 }
 
 fn search_identity_text(value: &str) -> bool {
-    value.to_ascii_lowercase().contains("search")
+    contains_ignore_ascii_case(value, "search")
+}
+
+fn contains_ignore_ascii_case(value: &str, needle: &str) -> bool {
+    value
+        .as_bytes()
+        .windows(needle.len())
+        .any(|window| window.eq_ignore_ascii_case(needle.as_bytes()))
 }

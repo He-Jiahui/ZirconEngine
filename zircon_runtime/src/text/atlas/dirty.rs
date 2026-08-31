@@ -67,7 +67,11 @@ impl GlyphAtlasDirtyPage {
         // Compact staging contains only this frame's source copies, so a partial
         // target may never grow into pixels retained by another persistent slot.
         self.regions.push(rect);
-        self.merge_safe_regions();
+        if self.can_replay_retained_pixels {
+            self.merge_safe_regions();
+        } else {
+            self.merge_safe_frontier();
+        }
         self.enforce_write_limit_with_shadow();
     }
 
@@ -105,6 +109,52 @@ impl GlyphAtlasDirtyPage {
 
     pub(crate) fn merged_rect(&self) -> Option<GlyphAtlasRect> {
         self.merged_rect
+    }
+
+    fn merge_safe_frontier(&mut self) {
+        let Some(mut frontier_index) = self.regions.len().checked_sub(1) else {
+            return;
+        };
+        loop {
+            let Some((left_index, right_index, merged)) = self.safe_frontier_merge(frontier_index)
+            else {
+                return;
+            };
+
+            self.regions[left_index] = merged;
+            self.regions.remove(right_index);
+            frontier_index = left_index;
+        }
+    }
+
+    fn safe_frontier_merge(&self, frontier_index: usize) -> Option<(usize, usize, GlyphAtlasRect)> {
+        let mut best = None;
+        for candidate_index in 0..self.regions.len() {
+            if candidate_index == frontier_index {
+                continue;
+            }
+            let (left_index, right_index) = if candidate_index < frontier_index {
+                (candidate_index, frontier_index)
+            } else {
+                (frontier_index, candidate_index)
+            };
+            let left = self.regions[left_index];
+            let right = self.regions[right_index];
+            let merged = left.union(right);
+            if self.intersects_retained_region(merged) && !self.can_replay_retained_pixels {
+                continue;
+            }
+            let extra_byte_cost = self.merge_extra_byte_cost(left, right, merged);
+            if self.has_exact_coverage(left, right, merged)
+                || ((self.can_clear_unretained_pixels || self.can_replay_retained_pixels)
+                    && extra_byte_cost <= GLYPH_ATLAS_DIRTY_MAX_MERGE_EXTRA_BYTES)
+            {
+                if best.is_none_or(|(_, _, _, best_cost)| extra_byte_cost < best_cost) {
+                    best = Some((left_index, right_index, merged, extra_byte_cost));
+                }
+            }
+        }
+        best.map(|(left_index, right_index, merged, _)| (left_index, right_index, merged))
     }
 
     fn merge_safe_regions(&mut self) {
@@ -260,5 +310,7 @@ fn rect_intersection_area(left: GlyphAtlasRect, right: GlyphAtlasRect) -> u64 {
     ))
 }
 
+#[cfg(test)]
+mod single_frontier_merge_tests;
 #[cfg(test)]
 mod tests;

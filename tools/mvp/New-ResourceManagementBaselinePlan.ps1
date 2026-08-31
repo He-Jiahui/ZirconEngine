@@ -2,8 +2,9 @@
 param(
     [string[]]$BaselineProjectRoot,
     [string[]]$ChangedProjectRoot,
-    [string]$OutputDirectory = (Join-Path 'E:\ZirconBuilds\mvp-resource-management-baselines' ([guid]::NewGuid().ToString('N'))),
-    [ValidateRange(3, 20)][int]$RepeatCount = 3
+    [string]$OutputDirectory,
+    [ValidateRange(20, 50)][int]$RepeatCount = 20,
+    [ValidateRange(1, 10)][int]$WarmupCount = 3
 )
 
 Set-StrictMode -Version Latest
@@ -11,48 +12,88 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $PSScriptRoot 'ResourceManagementScaleInventory.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'ResourceManagementWorkloadRegistry.psm1') -ErrorAction Stop
 Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
+    $OutputDirectory = New-MvpArtifactStoragePath -NamespaceId 'resource-management-baselines'
+}
+
+$script:ResourceManagementBaselineMaximumMetadataBytes = 4MB
+$script:ResourceManagementBaselineMaximumSourceBytes = 64KB
+$script:ResourceManagementBaselineJsonReadBufferBytes = 81920
 
 function Get-ResourceManagementBaselineFileSha256 {
     param([Parameter(Mandatory)][string]$Path)
 
-    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant()
+    return Get-ResourceManagementFileSha256 -Path $Path
 }
 
 function Assert-ResourceManagementBaselineProjectDirectory {
     param([Parameter(Mandatory)][string]$Path)
 
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    if ($resolution.DisplayPath -notmatch '^E:\\ZirconBuilds\\mvp-resource-management-projects\\(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
-        throw "Resource-management baseline project must resolve under E:\ZirconBuilds\mvp-resource-management-projects\<session>: $($resolution.DisplayPath)"
+    $storage = Resolve-MvpArtifactStoragePath -Path $Path -NamespaceId 'resource-management-projects'
+    if (-not [IO.Directory]::Exists($storage.operation_path)) {
+        throw "Resource-management baseline project does not exist: $($storage.display_path)"
     }
-    if (-not [IO.Directory]::Exists($resolution.OperationalPath)) {
-        throw "Resource-management baseline project does not exist: $($resolution.DisplayPath)"
+    return [pscustomobject]@{
+        OperationalPath = $storage.operation_path
+        DisplayPath = $storage.display_path
+        StoragePolicy = $storage
     }
-    return $resolution
 }
 
 function Assert-ResourceManagementBaselineOutputDirectory {
     param([Parameter(Mandatory)][string]$Path)
 
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    if ($resolution.DisplayPath -notmatch '^E:\\ZirconBuilds\\mvp-resource-management-baselines\\(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
-        throw "Resource-management baseline plan output must resolve under E:\ZirconBuilds\mvp-resource-management-baselines\<session>: $($resolution.DisplayPath)"
+    $storage = Resolve-MvpArtifactStoragePath -Path $Path -NamespaceId 'resource-management-baselines'
+    if ([IO.Directory]::Exists($storage.operation_path) -or [IO.File]::Exists($storage.operation_path)) {
+        throw "Resource-management baseline plan output must not already exist: $($storage.display_path)"
     }
-    if ([IO.Directory]::Exists($resolution.OperationalPath) -or [IO.File]::Exists($resolution.OperationalPath)) {
-        throw "Resource-management baseline plan output must not already exist: $($resolution.DisplayPath)"
+    return [pscustomobject]@{
+        OperationalPath = $storage.operation_path
+        DisplayPath = $storage.display_path
+        StoragePolicy = $storage
     }
-    return $resolution
 }
 
 function Read-ResourceManagementBaselineJson {
     param(
         [Parameter(Mandatory)][string]$Path,
-        [Parameter(Mandatory)][string]$Label
+        [Parameter(Mandatory)][string]$Label,
+        [ValidateRange(1, [Int32]::MaxValue)][int]$MaximumBytes = $script:ResourceManagementBaselineMaximumMetadataBytes
     )
 
     try {
-        return [IO.File]::ReadAllText($Path) | ConvertFrom-Json -ErrorAction Stop
+        $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+        try {
+            if ($stream.Length -eq 0) {
+                throw "$Label is empty: $Path"
+            }
+            if ($stream.Length -gt $MaximumBytes) {
+                throw "$Label exceeds its byte budget of $MaximumBytes bytes: $Path"
+            }
+            [byte[]]$bytes = [byte[]]::new([int]$stream.Length)
+            $offset = 0
+            while ($offset -lt $bytes.Length) {
+                $read = $stream.Read(
+                    $bytes,
+                    $offset,
+                    [Math]::Min($script:ResourceManagementBaselineJsonReadBufferBytes, $bytes.Length - $offset))
+                if ($read -eq 0) {
+                    throw "$Label changed while it was being read: $Path"
+                }
+                $offset += $read
+            }
+            if ($stream.ReadByte() -ne -1) {
+                throw "$Label exceeds its byte budget of $MaximumBytes bytes: $Path"
+            }
+        }
+        finally {
+            $stream.Dispose()
+        }
+        $text = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+        return $text | ConvertFrom-Json -ErrorAction Stop
     }
     catch {
         throw "$Label is not valid JSON: ${Path}: $($_.Exception.Message)"
@@ -107,11 +148,15 @@ function Read-ResourceManagementBaselineChangeSet {
     $changeSet = Read-ResourceManagementBaselineJson `
         -Path $manifestPath `
         -Label 'Resource-management scale change-set metadata'
-    if ($null -eq $changeSet -or [int]$changeSet.schema_version -ne 1) {
+    if ($null -eq $changeSet -or [int]$changeSet.schema_version -ne 2) {
         throw "Resource-management scale change-set metadata has an unsupported schema_version: $manifestPath"
     }
     $sourceFingerprint = [string]$ProjectMetadata.source_fingerprint
-    if (-not ([string]$changeSet.source_fingerprint).Equals($sourceFingerprint, [StringComparison]::Ordinal)) {
+    if (-not ([string]$changeSet.source_fingerprint).Equals($sourceFingerprint, [StringComparison]::Ordinal) -or
+        -not ([string]$changeSet.build_set_id).Equals([string]$ProjectMetadata.build_set_id, [StringComparison]::Ordinal) -or
+        -not ([string]$changeSet.product_input_manifest_sha256).Equals(
+            [string]$ProjectMetadata.product_input_manifest_sha256,
+            [StringComparison]::Ordinal)) {
         throw 'Resource-management scale change set belongs to a different source snapshot.'
     }
     $dataAssetCount = [int]$ProjectMetadata.data_asset_count
@@ -150,7 +195,8 @@ function Read-ResourceManagementBaselineChangeSet {
             -ChildPath ('catalog_{0:D6}.json' -f $index)
         $source = Read-ResourceManagementBaselineJson `
             -Path $sourcePath `
-            -Label 'Resource-management changed source'
+            -Label 'Resource-management changed source' `
+            -MaximumBytes $script:ResourceManagementBaselineMaximumSourceBytes
         if ([int]$source.index -ne $index -or
             [string]$source.payload -ne 'resource-management-scale' -or
             [int]$source.workload_revision -ne 1) {
@@ -183,12 +229,14 @@ function Read-ResourceManagementBaselineProject {
     $metadata = Read-ResourceManagementBaselineJson `
         -Path $metadataPath `
         -Label 'Resource-management scale project metadata'
-    if ($null -eq $metadata -or [int]$metadata.schema_version -ne 1) {
+    if ($null -eq $metadata -or [int]$metadata.schema_version -ne 2) {
         throw "Resource-management scale project metadata has an unsupported schema_version: $metadataPath"
     }
     $sourceFingerprint = [string]$metadata.source_fingerprint
-    if ($sourceFingerprint -notmatch '^[0-9A-F]{64}$') {
-        throw "Resource-management scale project metadata has an invalid source fingerprint: $metadataPath"
+    if ($sourceFingerprint -notmatch '^[0-9A-F]{64}$' -or
+        -not $sourceFingerprint.Equals([string]$metadata.build_set_id, [StringComparison]::Ordinal) -or
+        [string]$metadata.product_input_manifest_sha256 -notmatch '^[0-9A-F]{64}$') {
+        throw "Resource-management scale project metadata has an invalid ProductInput BuildSet identity: $metadataPath"
     }
     $dataAssetCount = [int]$metadata.data_asset_count
     if ($dataAssetCount -lt 1 -or $dataAssetCount -gt 100000 -or
@@ -229,6 +277,8 @@ function Read-ResourceManagementBaselineProject {
         project_id = ('data-{0:D6}-{1}' -f $dataAssetCount, $Role)
         project_role = $Role
         source_fingerprint = $sourceFingerprint
+        build_set_id = [string]$metadata.build_set_id
+        product_input_manifest_sha256 = [string]$metadata.product_input_manifest_sha256
         project_manifest_sha256 = Get-ResourceManagementBaselineFileSha256 -Path $metadataPath
         data_inventory_sha256 = $actualDataInventorySha256
         data_asset_count = $dataAssetCount
@@ -307,7 +357,8 @@ function New-ResourceManagementBaselineScenarioMatrix {
     param(
         [Parameter(Mandatory)]$BaselineProject,
         [Parameter(Mandatory)]$ChangedProject,
-        [Parameter(Mandatory)][ValidateRange(3, 20)][int]$RepeatCount
+        [Parameter(Mandatory)][ValidateRange(20, 50)][int]$RepeatCount,
+        [Parameter(Mandatory)][ValidateRange(1, 10)][int]$WarmupCount
     )
 
     if ([string]$BaselineProject.project_role -ne 'baseline' -or
@@ -378,7 +429,7 @@ function New-ResourceManagementBaselineScenarioMatrix {
         resource_kind = 'Data'
         data_virtual_prefix = 'res://data/'
         data_source_pattern = 'res://data/catalog_*.json'
-        required_repetitions = $RepeatCount
+        required_repetitions = $WarmupCount + $RepeatCount
         queries = $queries.ToArray()
     }
     return @(
@@ -444,7 +495,8 @@ function New-ResourceManagementBaselinePlanDocument {
     param(
         [Parameter(Mandatory)][object[]]$BaselineProjects,
         [Parameter(Mandatory)][object[]]$ChangedProjects,
-        [Parameter(Mandatory)][ValidateRange(3, 20)][int]$RepeatCount
+        [Parameter(Mandatory)][ValidateRange(20, 50)][int]$RepeatCount,
+        [Parameter(Mandatory)][ValidateRange(1, 10)][int]$WarmupCount
     )
 
     if ($BaselineProjects.Count -ne $ChangedProjects.Count) {
@@ -458,6 +510,8 @@ function New-ResourceManagementBaselinePlanDocument {
         }
         $changedByCount[$count] = $changed
     }
+    $workloadSnapshot = Get-ResourceManagementWorkloadRegistrySnapshot
+    $workloadProfile = Get-ResourceManagementWorkloadProfile -ProfileId 'json-data-flat-v1'
     $scenarios = [Collections.Generic.List[object]]::new()
     foreach ($baseline in @($BaselineProjects | Sort-Object { [int]$_.data_asset_count })) {
         $count = [int]$baseline.data_asset_count
@@ -467,7 +521,8 @@ function New-ResourceManagementBaselinePlanDocument {
         foreach ($scenario in @(New-ResourceManagementBaselineScenarioMatrix `
                 -BaselineProject $baseline `
                 -ChangedProject $changedByCount[$count] `
-                -RepeatCount $RepeatCount)) {
+                -RepeatCount $RepeatCount `
+                -WarmupCount $WarmupCount)) {
             $scenarios.Add($scenario) | Out-Null
         }
     }
@@ -476,10 +531,20 @@ function New-ResourceManagementBaselinePlanDocument {
         throw 'Resource-management baseline plan projects do not share one source fingerprint.'
     }
     return [ordered]@{
-        schema_version = 1
+        schema_version = 3
         workload_family = 'resource-management-query'
+        workload_profile_id = $workloadProfile.profile_id
+        workload_registry_receipt = $workloadSnapshot.receipt
         source_fingerprint = $sourceFingerprints[0]
-        resource_kind = 'Data'
+        resource_kind = $workloadProfile.asset_kinds[0]
+        statistical_policy = [ordered]@{
+            warmup_repetitions = $WarmupCount
+            measurement_repetitions = $RepeatCount
+            minimum_sample_count = 20
+            confidence_level = 0.95
+            maximum_coefficient_of_variation = 0.10
+            maximum_relative_margin_of_error = 0.10
+        }
         scenarios = $scenarios.ToArray()
     }
 }
@@ -528,7 +593,8 @@ function New-ResourceManagementBaselinePlan {
         [Parameter(Mandatory)][string[]]$BaselineProjectRoot,
         [Parameter(Mandatory)][string[]]$ChangedProjectRoot,
         [Parameter(Mandatory)][string]$OutputDirectory,
-        [Parameter(Mandatory)][ValidateRange(3, 20)][int]$RepeatCount
+        [Parameter(Mandatory)][ValidateRange(20, 50)][int]$RepeatCount,
+        [Parameter(Mandatory)][ValidateRange(1, 10)][int]$WarmupCount
     )
 
     $baselineProjects = @($BaselineProjectRoot | ForEach-Object {
@@ -542,7 +608,8 @@ function New-ResourceManagementBaselinePlan {
     $document = New-ResourceManagementBaselinePlanDocument `
         -BaselineProjects $baselineProjects `
         -ChangedProjects $changedProjects `
-        -RepeatCount $RepeatCount
+        -RepeatCount $RepeatCount `
+        -WarmupCount $WarmupCount
     $manifestPath = Write-ResourceManagementBaselinePlan `
         -OutputDirectory $OutputDirectory `
         -Document $document
@@ -564,5 +631,6 @@ if ($env:RESOURCE_MANAGEMENT_BASELINE_PLAN_TEST_MODE -ne '1') {
         -BaselineProjectRoot $BaselineProjectRoot `
         -ChangedProjectRoot $ChangedProjectRoot `
         -OutputDirectory $OutputDirectory `
-        -RepeatCount $RepeatCount
+        -RepeatCount $RepeatCount `
+        -WarmupCount $WarmupCount
 }

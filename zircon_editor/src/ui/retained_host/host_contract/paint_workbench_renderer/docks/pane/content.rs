@@ -1,6 +1,5 @@
 use super::super::super::super::data::{
-    FrameRect, HostPaneInteractionStateData, HostTextInputFocusData, HostViewportImageData,
-    PaneData,
+    FrameRect, HostPaneInteractionStateData, HostTextInputFocusData, HostViewportImageSet, PaneData,
 };
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::native_panes;
@@ -14,15 +13,15 @@ pub(super) fn draw_pane_content_layers(
     body: &FrameRect,
     clip: &FrameRect,
     interaction: &HostPaneInteractionStateData,
-    viewport_image: Option<&HostViewportImageData>,
+    viewport_images: &HostViewportImageSet,
     text_input_focus: Option<&HostTextInputFocusData>,
 ) {
-    let painted_viewport = {
+    let has_viewport_content = {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_viewport_image");
-        native_panes::draw_viewport_image(frame, pane, body, clip, viewport_image)
+        native_panes::draw_viewport_image(frame, pane, body, clip, viewport_images)
     };
     let native_before_template = native_content_precedes_template_nodes(pane.kind.as_str());
-    let painted_native_before = if native_before_template {
+    let has_native_content_before = if native_before_template {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_native_content");
         native_panes::draw_native_pane_content(
             frame,
@@ -35,11 +34,11 @@ pub(super) fn draw_pane_content_layers(
     } else {
         false
     };
-    let painted_nodes = {
+    let has_template_content = {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_template_nodes");
         draw_pane_template_nodes(frame, pane, body, clip, interaction, text_input_focus)
     };
-    let painted_native_after = if native_before_template {
+    let has_native_content_after = if native_before_template {
         false
     } else {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_native_content");
@@ -52,12 +51,16 @@ pub(super) fn draw_pane_content_layers(
             text_input_focus,
         )
     };
-    let painted_native = painted_native_before || painted_native_after;
-    let painted_debug_overlay = {
+    let has_native_content = has_native_content_before || has_native_content_after;
+    let has_debug_overlay_content = {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_debug_overlay");
         native_panes::draw_pane_debug_overlay(frame, pane, body, clip)
     };
-    if !painted_viewport && !painted_nodes && !painted_native && !painted_debug_overlay {
+    if !has_viewport_content
+        && !has_template_content
+        && !has_native_content
+        && !has_debug_overlay_content
+    {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_fallback");
         draw_pane_fallback(frame, pane, body, clip);
     }

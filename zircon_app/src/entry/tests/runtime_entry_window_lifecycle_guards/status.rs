@@ -60,3 +60,24 @@ fn runtime_entry_delegates_window_status_forwarding_to_lifecycle_module() {
         "occlusion must update the cadence owner before the runtime status event is dispatched",
     );
 }
+
+#[test]
+fn runtime_entry_releases_primary_surface_before_notifying_window_destruction() {
+    let runtime_window_lifecycle_source = runtime_window_lifecycle_source();
+
+    assert_source_order(
+        runtime_window_lifecycle_source.as_str(),
+        &[
+            "fn handle_window_destroyed",
+            "let surface_release = self.application_lifecycle.destroy_surfaces();",
+            "let teardown_failed = !self.finish_surface_release(surface_release);",
+            "ZrRuntimeEventV1::window_destroyed",
+            "let event_dispatched = self.dispatch_runtime_event(event_loop, event);",
+            "if teardown_failed",
+            "|| !event_dispatched",
+            ".should_exit_after_primary_close()",
+            "event_loop.exit();",
+        ],
+        "native window destruction must invalidate the surface owner before runtime notification and terminate on release failure",
+    );
+}

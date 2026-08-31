@@ -27,6 +27,7 @@ from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.processes import process_is_alive
 from tools.session_coordinator.sessions import SessionService
+from tools.session_coordinator.snapshots import ObjectStore
 from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.validation_copies import CargoInputClosure
 from tools.session_coordinator.validation_copy_cargo import ValidationCopyCargoExecution
@@ -35,7 +36,10 @@ from tools.session_coordinator.validation_tickets import ValidationTicketService
 from tools.session_coordinator.windows_job_process import (
     create_atomic_kill_on_close_process,
 )
-from tools.session_coordinator.workspace_copy import WorkspaceCopyService
+from tools.session_coordinator.workspace_copy import (
+    WorkspaceCopyService,
+    _archive_member_destination,
+)
 
 
 class ValidationCopyCargoExecutionTests(unittest.TestCase):
@@ -141,6 +145,147 @@ class ValidationCopyCargoExecutionTests(unittest.TestCase):
 
 
 class WorkspaceCopyTests(unittest.TestCase):
+    def test_archive_member_destination_rejects_lexical_escape_without_resolve(self) -> None:
+        source_root = self.target_root / "verify" / "job" / "source"
+
+        with mock.patch.object(
+            Path,
+            "resolve",
+            side_effect=AssertionError("archive members must not resolve per file"),
+        ):
+            destination = _archive_member_destination(
+                source_root,
+                "crates/runtime/src/lib.rs",
+                error_code="validation_copy_dependency_archive_escape",
+            )
+            self.assertEqual(
+                source_root / "crates" / "runtime" / "src" / "lib.rs",
+                destination,
+            )
+            for unsafe in (
+                "../outside.rs",
+                "crates/../../outside.rs",
+                "/absolute.rs",
+                r"..\outside.rs",
+                "C:/outside.rs",
+                r"\\server\share\outside.rs",
+                "crates/runtime/src/lib.rs:stream",
+            ):
+                with self.subTest(unsafe=unsafe), self.assertRaises(CoordinatorError):
+                    _archive_member_destination(
+                        source_root,
+                        unsafe,
+                        error_code="validation_copy_dependency_archive_escape",
+                    )
+
+    def test_input_manifest_hash_resolves_only_managed_roots(self) -> None:
+        job_root = self.target_root / "verify" / "job"
+        source_root = job_root / "source"
+        target_root = job_root / "target"
+        (source_root / "nested").mkdir(parents=True)
+        target_root.mkdir()
+        (source_root / "lib.rs").write_text("pub fn root() {}\n", encoding="utf-8")
+        (source_root / "nested" / "mod.rs").write_text(
+            "pub fn nested() {}\n", encoding="utf-8"
+        )
+        (target_root / "ignored.bin").write_bytes(b"ignored")
+        original_resolve = Path.resolve
+        resolved_paths: list[Path] = []
+
+        def recording_resolve(path: Path, *args, **kwargs) -> Path:
+            resolved_paths.append(path)
+            return original_resolve(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "resolve", recording_resolve):
+            digest = WorkspaceCopyService._input_manifest_hash_for_roots(
+                job_root, target_root
+            )
+
+        self.assertEqual(64, len(digest))
+        self.assertEqual([job_root, target_root], resolved_paths)
+
+    def test_materialize_hashes_files_while_writing_without_a_second_scan(self) -> None:
+        with mock.patch.object(
+            WorkspaceCopyService,
+            "_input_manifest_hash_for_roots",
+            side_effect=AssertionError("initial materialization must not reread its copy"),
+        ):
+            result = self.service.materialize("session-a", include_paths=("README.md",))
+
+        rescanned = WorkspaceCopyService._input_manifest_hash_for_roots(
+            result.job_root, result.target_root
+        )
+        self.assertEqual(rescanned, result.input_manifest_hash)
+
+    def test_cargo_materialization_rechecks_transient_unmanaged_artifacts(self) -> None:
+        preflight = mock.Mock(
+            side_effect=(
+                CoordinatorError(
+                    "unmanaged_artifacts_detected",
+                    "A short-lived unmanaged test fixture was observed",
+                ),
+                None,
+            )
+        )
+        self.service.set_cargo_materialization_preflight(preflight)
+
+        self.service._run_cargo_materialization_preflight()
+
+        self.assertEqual(2, preflight.call_count)
+
+    def test_cargo_materialization_runs_clean_preflight_once(self) -> None:
+        preflight = mock.Mock()
+        self.service.set_cargo_materialization_preflight(preflight)
+
+        self.service._run_cargo_materialization_preflight()
+
+        preflight.assert_called_once_with()
+
+    def test_cargo_materialization_stops_after_bounded_unmanaged_artifact_recheck(
+        self,
+    ) -> None:
+        failure = CoordinatorError(
+            "unmanaged_artifacts_detected",
+            "A persistent unmanaged artifact was observed",
+        )
+        preflight = mock.Mock(side_effect=failure)
+        self.service.set_cargo_materialization_preflight(preflight)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service._run_cargo_materialization_preflight()
+
+        self.assertIs(failure, rejected.exception)
+        self.assertEqual(2, preflight.call_count)
+
+    def test_cargo_materialization_does_not_retry_other_governance_failures(self) -> None:
+        failure = CoordinatorError(
+            "artifact_governance_root_unavailable",
+            "The managed artifact root is unavailable",
+        )
+        preflight = mock.Mock(side_effect=failure)
+        self.service.set_cargo_materialization_preflight(preflight)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service._run_cargo_materialization_preflight()
+
+        self.assertIs(failure, rejected.exception)
+        preflight.assert_called_once_with()
+
+    def test_overlay_ownership_admission_reuses_normalized_attribution_contract(self) -> None:
+        self.baselines.attribute("session-a", ["README.md"])
+
+        normalized = self.service.require_overlay_ownership(
+            "session-a", (r".\README.md",)
+        )
+
+        self.assertEqual(("README.md",), normalized)
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.require_overlay_ownership(
+                "session-a", (r".\unowned.rs",)
+            )
+        self.assertEqual("validation_copy_overlay_not_owned", rejected.exception.code)
+        self.assertEqual(["unowned.rs"], rejected.exception.details["paths"])
+
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()
         root = Path(self.temporary_directory.name)
@@ -150,6 +295,7 @@ class WorkspaceCopyTests(unittest.TestCase):
         config = CoordinatorConfig.for_repo(self.repo, state_root=root / "state")
         self.database = Database(config.database_path)
         migrate(self.database)
+        self.objects = ObjectStore(self.database, config.object_root)
         sessions = SessionService(self.database, self.repo)
         for session_id in ("session-a", "session-b"):
             sessions.register(
@@ -163,7 +309,10 @@ class WorkspaceCopyTests(unittest.TestCase):
             return_value=True,
         ):
             self.service = WorkspaceCopyService(
-                self.database, self.repo, (self.target_root,)
+                self.database,
+                self.repo,
+                (self.target_root,),
+                object_store=self.objects,
             )
 
     def tearDown(self) -> None:
@@ -231,6 +380,117 @@ class WorkspaceCopyTests(unittest.TestCase):
         self.assertEqual(
             "materialized", self.service.status("session-a", result.job_id).status
         )
+
+    def test_cargo_copy_rewrites_absolute_source_arguments_into_copy(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET materialization_kind='cargo', "
+                "materialization_phase='materialized' WHERE job_id=?",
+                (result.job_id,),
+            )
+        command = (
+            "cargo",
+            "test",
+            "--manifest-path",
+            str(self.repo / "Cargo.toml"),
+            "--config",
+            str(self.repo / ".cargo/config.toml"),
+        )
+        run_id = self._link_validation_ticket(job_id=result.job_id, command=command)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_tickets SET command_json=? WHERE ticket_id=?",
+                (json.dumps(command), run_id),
+            )
+        cargo_execution = mock.Mock()
+        cargo_execution.advance.return_value = {
+            "status": "waiting",
+            "cargoJobId": None,
+            "cargoRunId": None,
+        }
+        self.service.set_cargo_execution(cargo_execution)
+
+        started = self.service.start(
+            "session-a", result.job_id, command=command, run_id=run_id
+        )
+
+        self.assertEqual("waiting", started["status"])
+        rewritten = cargo_execution.advance.call_args.kwargs["command"]
+        self.assertEqual(str(result.source_root / "Cargo.toml"), rewritten[3])
+        self.assertEqual(
+            str(result.source_root / ".cargo/config.toml"), rewritten[5]
+        )
+
+    def test_cargo_copy_rewrites_equals_source_argument_into_copy(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET materialization_kind='cargo', "
+                "materialization_phase='materialized' WHERE job_id=?",
+                (result.job_id,),
+            )
+        command = (
+            "cargo",
+            "test",
+            f"--manifest-path={self.repo / 'Cargo.toml'}",
+        )
+        run_id = self._link_validation_ticket(job_id=result.job_id, command=command)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_tickets SET command_json=? WHERE ticket_id=?",
+                (json.dumps(command), run_id),
+            )
+        cargo_execution = mock.Mock()
+        cargo_execution.advance.return_value = {
+            "status": "waiting",
+            "cargoJobId": None,
+            "cargoRunId": None,
+        }
+        self.service.set_cargo_execution(cargo_execution)
+
+        self.service.start(
+            "session-a", result.job_id, command=command, run_id=run_id
+        )
+
+        rewritten = cargo_execution.advance.call_args.kwargs["command"]
+        self.assertEqual(
+            f"--manifest-path={result.source_root / 'Cargo.toml'}",
+            rewritten[2],
+        )
+
+    def test_cargo_copy_rejects_source_argument_outside_pinned_roots(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET materialization_kind='cargo', "
+                "materialization_phase='materialized' WHERE job_id=?",
+                (result.job_id,),
+            )
+        command = (
+            "cargo",
+            "test",
+            "--manifest-path",
+            str(self.repo.parent / "unsealed/Cargo.toml"),
+        )
+        run_id = self._link_validation_ticket(job_id=result.job_id, command=command)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_tickets SET command_json=? WHERE ticket_id=?",
+                (json.dumps(command), run_id),
+            )
+        cargo_execution = mock.Mock()
+        self.service.set_cargo_execution(cargo_execution)
+
+        with self.assertRaises(CoordinatorError) as raised:
+            self.service.start(
+                "session-a", result.job_id, command=command, run_id=run_id
+            )
+
+        self.assertEqual(
+            "validation_copy_cargo_source_path_unpinned", raised.exception.code
+        )
+        cargo_execution.advance.assert_not_called()
 
     def test_cargo_copy_terminal_receipt_is_projected_to_validation_run(self) -> None:
         result = self.service.materialize("session-a", include_paths=("README.md",))
@@ -734,20 +994,24 @@ class WorkspaceCopyTests(unittest.TestCase):
         self.assertIn("runtime14 focused test reached", evidence.stdout)
 
     def test_cargo_materialization_passes_overlays_to_planner(self) -> None:
+        owned = self.repo / "owned.txt"
+        owned.write_text("owned\n", encoding="utf-8")
+        self.baselines.attribute("session-a", ["owned.txt"])
         with (
             mock.patch(
                 "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
                 return_value=CargoInputClosure(("README.md",), ()),
             ) as planned,
-            mock.patch.object(self.service, "materialize"),
         ):
-            self.service.materialize_cargo(
+            record = self.service.materialize_cargo(
                 "session-a",
                 command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
                 overlay_paths=("owned.txt",),
             )
 
         self.assertEqual(("owned.txt",), planned.call_args.kwargs["overlay_paths"])
+        self.assertEqual("materialized", record.status)
+        self.assertTrue((record.source_root / "owned.txt").is_file())
 
     def test_async_materialize_returns_before_copy_finishes_and_exposes_status(self) -> None:
         started = threading.Event()
@@ -952,13 +1216,19 @@ class WorkspaceCopyTests(unittest.TestCase):
         with mock.patch(
             "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
             side_effect=plan_after_baseline,
-        ):
+        ) as planned:
             self.service._materialize_cargo_async_worker(
                 accepted.job_id,
                 metadata_runner=None,
             )
 
         status = self.service.status("session-a", accepted.job_id)
+        with self.database.connect() as connection:
+            pinned_head = connection.execute(
+                "SELECT head_commit FROM validation_copies WHERE job_id=?",
+                (accepted.job_id,),
+            ).fetchone()["head_commit"]
+        self.assertEqual(pinned_head, planned.call_args.kwargs["baseline_commit"])
         self.assertEqual("failed", status.status)
         self.assertEqual("failed", status.materialization_phase)
         self.assertEqual("validation_copy_baseline_drift", status.error_code)
@@ -1041,6 +1311,36 @@ class WorkspaceCopyTests(unittest.TestCase):
         self.assertEqual("owned.txt", persisted["error_path"])
         self.assertEqual({"path": "owned.txt"}, json.loads(persisted["error_details_json"]))
 
+    def test_cargo_worker_materializes_a_sealed_overlay_without_live_attribution(
+        self,
+    ) -> None:
+        owned = self.repo / "owned.txt"
+        original = b"submitted cargo overlay\n"
+        digest = self.objects.put(original)
+        owned.write_bytes(b"new live worktree bytes\n")
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+                overlay_paths=("owned.txt",),
+                sealed_overlay_manifest={"owned.txt": digest},
+            )
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            return_value=CargoInputClosure(("README.md", "owned.txt"), ()),
+        ) as planned:
+            self.service._materialize_cargo_async_worker(
+                accepted.job_id,
+                metadata_runner=None,
+            )
+
+        planned.assert_called_once()
+        self.assertEqual(("owned.txt",), planned.call_args.kwargs["overlay_paths"])
+        status = self.service.status("session-a", accepted.job_id)
+        self.assertEqual("materialized", status.status)
+        self.assertEqual(original, (status.source_root / "owned.txt").read_bytes())
+
     def test_removed_failed_cargo_copy_projects_materialization_kind(self) -> None:
         with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
             accepted = self.service.materialize_cargo_async(
@@ -1074,6 +1374,7 @@ class WorkspaceCopyTests(unittest.TestCase):
     def test_ticket_worker_terminalizes_removed_failed_cargo_copy_without_retry(self) -> None:
         tickets = ValidationTicketService(self.database)
         source = self.repo / "README.md"
+        self.baselines.attribute("session-a", ["README.md"])
         receipt = tickets.submit(
             session_id="session-a",
             request_id="removed-failed-cargo-copy",
@@ -1393,6 +1694,111 @@ class WorkspaceCopyTests(unittest.TestCase):
         self.assertTrue(
             (completed.source_root / "tools/session_coordinator/probe.py").is_file()
         )
+
+    def test_sealed_validation_overlay_uses_object_bytes_after_live_source_changes(
+        self,
+    ) -> None:
+        overlay = self.repo / "owned.txt"
+        original = b"submitted validation bytes\n"
+        overlay.write_bytes(b"new live worktree bytes\n")
+        digest = self.objects.put(original)
+
+        result = self.service.materialize_validation(
+            "session-a",
+            dependency_roots=("README.md",),
+            overlay_paths=("owned.txt",),
+            sealed_overlay_manifest={"owned.txt": digest},
+        )
+
+        self.assertEqual(original, (result.source_root / "owned.txt").read_bytes())
+
+    def test_sealed_validation_tombstone_removes_a_pinned_baseline_file(self) -> None:
+        result = self.service.materialize_validation(
+            "session-a",
+            dependency_roots=("README.md",),
+            overlay_paths=("README.md",),
+            sealed_overlay_manifest={"README.md": None},
+        )
+
+        self.assertFalse((result.source_root / "README.md").exists())
+
+    def test_validation_dependencies_use_the_requested_baseline_after_head_advances(
+        self,
+    ) -> None:
+        baseline_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        (self.repo / "README.md").write_text("new head\n", encoding="utf-8")
+        subprocess.run(["git", "add", "README.md"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "test: advance validation dependency"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        )
+
+        result = self.service.materialize_validation(
+            "session-a",
+            dependency_roots=("README.md",),
+            overlay_paths=(),
+            sealed_overlay_manifest={},
+            baseline_commit=baseline_commit,
+        )
+
+        with self.database.connect() as connection:
+            pinned_head = connection.execute(
+                "SELECT head_commit FROM validation_copies WHERE job_id=?",
+                (result.job_id,),
+            ).fetchone()["head_commit"]
+        self.assertEqual(baseline_commit, pinned_head)
+        self.assertEqual("baseline\n", (result.source_root / "README.md").read_text())
+
+    def test_async_cargo_request_persists_the_requested_baseline(self) -> None:
+        baseline_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "check", "-p", "zircon_runtime"),
+                baseline_commit=baseline_commit,
+            )
+        (self.repo / "README.md").write_text("new head\n", encoding="utf-8")
+        subprocess.run(["git", "add", "README.md"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "test: advance cargo baseline"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        )
+        closure = CargoInputClosure(("README.md",), ())
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            return_value=closure,
+        ) as planned:
+            self.service._materialize_cargo_async_worker(
+                accepted.job_id, metadata_runner=None
+            )
+
+        status = self.service.status("session-a", accepted.job_id)
+        self.assertEqual("materialized", status.status)
+        with self.database.connect() as connection:
+            pinned_head = connection.execute(
+                "SELECT head_commit FROM validation_copies WHERE job_id=?",
+                (accepted.job_id,),
+            ).fetchone()["head_commit"]
+        self.assertEqual(baseline_commit, pinned_head)
+        self.assertEqual(baseline_commit, planned.call_args.kwargs["baseline_commit"])
+        self.assertEqual("baseline\n", (status.source_root / "README.md").read_text())
 
     def test_copy_pins_head_even_if_repository_head_changes_during_materialize(self) -> None:
         original = self.service._head_content
@@ -2741,6 +3147,428 @@ class WorkspaceCopyTests(unittest.TestCase):
                 (result.job_id,),
             ).fetchone()["status"]
         self.assertEqual("removed", status)
+
+    def _link_cargo_copy_to_ticket(
+        self,
+        result,
+        *,
+        ticket_status: str = "failed",
+        job_status: str = "released",
+        live_pids_json: str = "[]",
+        run_status: str = "completed",
+        reservation_status: str = "released",
+    ) -> tuple[str, str, str, Path]:
+        ticket_id = f"ticket-{result.job_id}"
+        cargo_job_id = f"cargo-{result.job_id}"
+        cargo_run_id = f"run-{result.job_id}"
+        reservation_id = f"reservation-{result.job_id}"
+        warm_target = self.target_root / "warm-pool" / cargo_job_id
+        warm_target.mkdir(parents=True)
+        (warm_target / "retained.bin").write_bytes(b"warm")
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO validation_tickets(
+                       ticket_id, session_id, plan_path, status, dedupe_key,
+                       source_manifest_hash, source_manifest_json, command_json,
+                       toolchain_json, coverage_json, created_at, updated_at
+                   ) VALUES (?, 'session-a', 'docs/plans/test.md', ?, ?, 'hash',
+                             '{}', '[\"cargo\"]', '{}', '{}', 'created', 'updated')""",
+                (ticket_id, ticket_status, f"dedupe-{result.job_id}"),
+            )
+            connection.execute(
+                """INSERT INTO validation_ticket_events(
+                       ticket_id, event_type, payload_json, created_at
+                   ) VALUES (?, 'validation.ticket_copy_linked', ?, 'linked')""",
+                (ticket_id, json.dumps({"jobId": result.job_id}, sort_keys=True)),
+            )
+            connection.execute(
+                """INSERT INTO cargo_jobs(
+                       job_id, session_id, lane_kind, target_dir, target_key,
+                       status, created_at, last_heartbeat_at, finished_at,
+                       released_at, cleanup_status, process_tree_live_pids_json,
+                       source_copy_job_id
+                   ) VALUES (?, 'session-a', 'workspace', ?, ?, ?, 'created',
+                             'heartbeat', 'finished', 'released', 'retained', ?, ?)""",
+                (
+                    cargo_job_id,
+                    str(warm_target),
+                    cargo_job_id,
+                    job_status,
+                    live_pids_json,
+                    result.job_id,
+                ),
+            )
+            connection.execute(
+                """INSERT INTO cargo_job_runs(
+                       run_id, job_id, session_id, command_json, status,
+                       exit_code, stdout_path, stderr_path, started_at, completed_at
+                   ) VALUES (?, ?, 'session-a', '[\"cargo\"]', ?, 0,
+                             'stdout.log', 'stderr.log', 'started', 'completed')""",
+                (cargo_run_id, cargo_job_id, run_status),
+            )
+            connection.execute(
+                """INSERT INTO cargo_lane_reservations(
+                       reservation_id, session_id, lane_scope, compatibility_key,
+                       command_fingerprint, job_id, status, created_at, expires_at,
+                       completed_at, source_copy_job_id
+                   ) VALUES (?, 'session-a', 'cpu', 'compatibility', 'command', ?, ?,
+                             'created', 'expired', 'completed', ?)""",
+                (
+                    reservation_id,
+                    cargo_job_id,
+                    reservation_status,
+                    result.job_id,
+                ),
+            )
+        return ticket_id, cargo_job_id, cargo_run_id, warm_target
+
+    def test_terminal_ticket_cleanup_preserves_retained_cargo_target_and_audit(
+        self,
+    ) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        ticket_id, cargo_job_id, _cargo_run_id, warm_target = (
+            self._link_cargo_copy_to_ticket(result)
+        )
+
+        cleaned = self.service.cleanup_terminal_ticket_copy(ticket_id, result.job_id)
+
+        self.assertTrue(cleaned)
+        self.assertFalse(result.job_root.exists())
+        self.assertTrue((warm_target / "retained.bin").is_file())
+        with self.database.connect() as connection:
+            copy_status = connection.execute(
+                "SELECT status FROM validation_copies WHERE job_id=?", (result.job_id,)
+            ).fetchone()["status"]
+            evidence_count = connection.execute(
+                """SELECT
+                       (SELECT COUNT(*) FROM validation_tickets WHERE ticket_id=?) +
+                       (SELECT COUNT(*) FROM validation_ticket_events WHERE ticket_id=?) +
+                       (SELECT COUNT(*) FROM cargo_jobs WHERE job_id=?) +
+                       (SELECT COUNT(*) FROM cargo_job_runs WHERE job_id=?) +
+                       (SELECT COUNT(*) FROM cargo_lane_reservations
+                        WHERE source_copy_job_id=?)""",
+                (
+                    ticket_id,
+                    ticket_id,
+                    cargo_job_id,
+                    cargo_job_id,
+                    result.job_id,
+                ),
+            ).fetchone()[0]
+        self.assertEqual("removed", copy_status)
+        self.assertEqual(5, evidence_count)
+
+    def test_periodic_recovery_retries_linked_terminal_copy_after_cargo_release(
+        self,
+    ) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        _ticket_id, cargo_job_id, cargo_run_id, warm_target = (
+            self._link_cargo_copy_to_ticket(
+                result,
+                job_status="leased",
+                live_pids_json="[4242]",
+                run_status="running",
+                reservation_status="pending",
+            )
+        )
+
+        blocked = self.service.recover_interrupted_jobs(startup=False)
+
+        self.assertEqual((0, 0), blocked)
+        self.assertTrue(result.job_root.exists())
+        with self.database.transaction() as connection:
+            connection.execute(
+                """UPDATE cargo_jobs
+                   SET status='released', process_tree_live_pids_json='[]'
+                   WHERE job_id=?""",
+                (cargo_job_id,),
+            )
+            connection.execute(
+                "UPDATE cargo_job_runs SET status='completed' WHERE run_id=?",
+                (cargo_run_id,),
+            )
+            connection.execute(
+                """UPDATE cargo_lane_reservations SET status='released'
+                   WHERE source_copy_job_id=?""",
+                (result.job_id,),
+            )
+
+        recovered = self.service.recover_interrupted_jobs(startup=False)
+
+        self.assertEqual((0, 1), recovered)
+        self.assertFalse(result.job_root.exists())
+        self.assertTrue((warm_target / "retained.bin").is_file())
+
+    def test_terminal_ticket_cleanup_requires_released_job_and_empty_process_tree(
+        self,
+    ) -> None:
+        cases = (
+            ("leased", "[]"),
+            ("running", "[]"),
+            ("orphaned", "[]"),
+            ("released", "[4242]"),
+            ("released", "null"),
+            ("released", "not-json"),
+        )
+        for index, (job_status, live_pids_json) in enumerate(cases):
+            with self.subTest(job_status=job_status, live_pids_json=live_pids_json):
+                result = self.service.materialize(
+                    "session-a", include_paths=("README.md",)
+                )
+                ticket_id, _cargo_job_id, _cargo_run_id, warm_target = (
+                    self._link_cargo_copy_to_ticket(
+                        result,
+                        job_status=job_status,
+                        live_pids_json=live_pids_json,
+                    )
+                )
+
+                cleaned = self.service.cleanup_terminal_ticket_copy(
+                    ticket_id, result.job_id
+                )
+
+                self.assertFalse(cleaned)
+                self.assertTrue(result.job_root.exists())
+                self.assertTrue((warm_target / "retained.bin").is_file())
+
+    def test_terminal_ticket_cleanup_accepts_launch_failed_run_and_expired_reservation(
+        self,
+    ) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        ticket_id, _cargo_job_id, _cargo_run_id, warm_target = (
+            self._link_cargo_copy_to_ticket(
+                result,
+                run_status="launch_failed",
+                reservation_status="expired",
+            )
+        )
+
+        cleaned = self.service.cleanup_terminal_ticket_copy(ticket_id, result.job_id)
+
+        self.assertTrue(cleaned)
+        self.assertFalse(result.job_root.exists())
+        self.assertTrue((warm_target / "retained.bin").is_file())
+
+    def test_periodic_recovery_does_not_remove_unlinked_manual_copy(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+
+        recovered = self.service.recover_interrupted_jobs(startup=False)
+
+        self.assertEqual((0, 0), recovered)
+        self.assertTrue(result.job_root.exists())
+
+    def test_periodic_recovery_bounds_terminal_ticket_cleanup_per_tick(self) -> None:
+        results = []
+        for _ in range(5):
+            result = self.service.materialize(
+                "session-a", include_paths=("README.md",)
+            )
+            self._link_cargo_copy_to_ticket(result)
+            results.append(result)
+
+        first = self.service.recover_interrupted_jobs(startup=False)
+
+        self.assertEqual((0, 4), first)
+        self.assertEqual(4, sum(not result.job_root.exists() for result in results))
+        second = self.service.recover_interrupted_jobs(startup=False)
+        self.assertEqual((0, 1), second)
+        self.assertTrue(all(not result.job_root.exists() for result in results))
+
+    def test_periodic_recovery_skips_blocked_copy_before_batch_limit(self) -> None:
+        blocked = self.service.materialize(
+            "session-a", include_paths=("README.md",)
+        )
+        self._link_cargo_copy_to_ticket(blocked, job_status="orphaned")
+        eligible = self.service.materialize(
+            "session-a", include_paths=("README.md",)
+        )
+        self._link_cargo_copy_to_ticket(eligible)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET created_at='0001' WHERE job_id=?",
+                (blocked.job_id,),
+            )
+            connection.execute(
+                "UPDATE validation_copies SET created_at='0002' WHERE job_id=?",
+                (eligible.job_id,),
+            )
+
+        recovered = self.service._recover_terminal_ticket_copies(batch_size=1)
+
+        self.assertEqual(1, recovered)
+        self.assertTrue(blocked.job_root.exists())
+        self.assertFalse(eligible.job_root.exists())
+
+    def test_terminal_ticket_recovery_rejects_nonpositive_batch_size(self) -> None:
+        with self.assertRaises(ValueError):
+            self.service._recover_terminal_ticket_copies(batch_size=0)
+
+    def test_terminal_ticket_cleanup_rejects_foreign_session_link(self) -> None:
+        SessionService(self.database, self.repo).register(session_id="session-b")
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        ticket_id, _cargo_job_id, _cargo_run_id, warm_target = (
+            self._link_cargo_copy_to_ticket(result)
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_tickets SET session_id='session-b' WHERE ticket_id=?",
+                (ticket_id,),
+            )
+
+        cleaned = self.service.cleanup_terminal_ticket_copy(ticket_id, result.job_id)
+
+        self.assertFalse(cleaned)
+        self.assertTrue(result.job_root.exists())
+        self.assertTrue((warm_target / "retained.bin").is_file())
+
+    def test_cleanup_preserves_terminal_evidence_after_cargo_target_was_deleted(
+        self,
+    ) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        ticket_id = "terminal-ticket"
+        cargo_job_id = "terminal-cargo-job"
+        reservation_id = "terminal-reservation"
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO validation_tickets(
+                       ticket_id, session_id, plan_path, status, dedupe_key,
+                       source_manifest_hash, source_manifest_json, command_json,
+                       toolchain_json, coverage_json, created_at, updated_at
+                   ) VALUES (?, 'session-a', 'docs/plans/test.md', 'failed',
+                             'terminal-dedupe', 'hash', '{}', '[\"cargo\"]',
+                             '{}', '{}', 'created', 'updated')""",
+                (ticket_id,),
+            )
+            connection.execute(
+                """INSERT INTO validation_copy_runs(
+                       run_id, job_id, session_id, command_json, exit_code,
+                       stdout_text, stderr_text, started_at, completed_at
+                   ) VALUES (?, ?, 'session-a', '[\"cargo\"]', 101,
+                             '', 'failed', 'started', 'completed')""",
+                (ticket_id, result.job_id),
+            )
+            connection.execute(
+                """INSERT INTO cargo_jobs(
+                       job_id, session_id, lane_kind, target_dir, target_key,
+                       status, created_at, last_heartbeat_at, finished_at,
+                       released_at, cleanup_status, process_tree_live_pids_json,
+                       source_copy_job_id
+                   ) VALUES (?, 'session-a', 'workspace', ?, ?, 'released',
+                             'created', 'heartbeat', 'finished', 'released',
+                             'deleted', '[]', ?)""",
+                (
+                    cargo_job_id,
+                    str(self.target_root / cargo_job_id),
+                    cargo_job_id,
+                    result.job_id,
+                ),
+            )
+            connection.execute(
+                """INSERT INTO cargo_job_runs(
+                       run_id, job_id, session_id, command_json, status,
+                       exit_code, stdout_path, stderr_path, started_at, completed_at
+                   ) VALUES ('terminal-cargo-run', ?, 'session-a', '[\"cargo\"]',
+                             'completed', 101, 'stdout.log', 'stderr.log',
+                             'started', 'completed')""",
+                (cargo_job_id,),
+            )
+            connection.execute(
+                """INSERT INTO cargo_lane_reservations(
+                       reservation_id, session_id, lane_scope, compatibility_key,
+                       command_fingerprint, job_id, status, created_at, expires_at,
+                       completed_at, source_copy_job_id
+                   ) VALUES (?, 'session-a', 'cpu', 'compatibility', 'command', ?,
+                             'released', 'created', 'expired', 'completed', ?)""",
+                (reservation_id, cargo_job_id, result.job_id),
+            )
+
+        removed = self.service.cleanup("session-a", result.job_root)
+
+        self.assertEqual(result.job_root, removed)
+        self.assertFalse(result.job_root.exists())
+        with self.database.connect() as connection:
+            copy_status = connection.execute(
+                "SELECT status FROM validation_copies WHERE job_id=?",
+                (result.job_id,),
+            ).fetchone()["status"]
+            evidence_count = connection.execute(
+                """SELECT
+                       (SELECT COUNT(*) FROM validation_copy_runs WHERE job_id=?) +
+                       (SELECT COUNT(*) FROM cargo_jobs WHERE source_copy_job_id=?) +
+                       (SELECT COUNT(*) FROM cargo_job_runs WHERE job_id=?) +
+                       (SELECT COUNT(*) FROM cargo_lane_reservations
+                        WHERE source_copy_job_id=?)""",
+                (result.job_id, result.job_id, cargo_job_id, result.job_id),
+            ).fetchone()[0]
+        self.assertEqual("removed", copy_status)
+        self.assertEqual(4, evidence_count)
+
+    def test_cleanup_rejects_finish_blocked_cargo_run(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        cargo_job_id = "finish-blocked-cargo-job"
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO cargo_jobs(
+                       job_id, session_id, lane_kind, target_dir, target_key,
+                       status, created_at, last_heartbeat_at, finished_at,
+                       released_at, cleanup_status, process_tree_live_pids_json,
+                       source_copy_job_id
+                   ) VALUES (?, 'session-a', 'workspace', ?, ?, 'released',
+                             'created', 'heartbeat', 'finished', 'released',
+                             'deleted', '[]', ?)""",
+                (
+                    cargo_job_id,
+                    str(self.target_root / cargo_job_id),
+                    cargo_job_id,
+                    result.job_id,
+                ),
+            )
+            connection.execute(
+                """INSERT INTO cargo_job_runs(
+                       run_id, job_id, session_id, command_json, status,
+                       stdout_path, stderr_path, error_code, started_at, completed_at
+                   ) VALUES ('blocked-cargo-run', ?, 'session-a', '[\"cargo\"]',
+                             'finish_blocked', 'stdout.log', 'stderr.log',
+                             'cargo_run_log_reader_timeout', 'started', 'completed')""",
+                (cargo_job_id,),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.cleanup("session-a", result.job_root)
+
+        self.assertEqual("validation_copy_referenced", rejected.exception.code)
+        self.assertEqual("cargo_run", rejected.exception.details["referenceKind"])
+        self.assertTrue(result.job_root.exists())
+
+    def test_cleanup_rejects_ticket_until_result_transition_is_terminal(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        ticket_id = "still-running-ticket"
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO validation_tickets(
+                       ticket_id, session_id, plan_path, status, dedupe_key,
+                       source_manifest_hash, source_manifest_json, command_json,
+                       toolchain_json, coverage_json, created_at, updated_at
+                   ) VALUES (?, 'session-a', 'docs/plans/test.md', 'running',
+                             'running-dedupe', 'hash', '{}', '[\"cargo\"]',
+                             '{}', '{}', 'created', 'updated')""",
+                (ticket_id,),
+            )
+            connection.execute(
+                """INSERT INTO validation_copy_runs(
+                       run_id, job_id, session_id, command_json, exit_code,
+                       stdout_text, stderr_text, started_at, completed_at
+                   ) VALUES (?, ?, 'session-a', '[\"cargo\"]', 0,
+                             'passed', '', 'started', 'completed')""",
+                (ticket_id, result.job_id),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.cleanup("session-a", result.job_root)
+
+        self.assertEqual("validation_copy_referenced", rejected.exception.code)
+        self.assertEqual("ticket", rejected.exception.details["referenceKind"])
+        self.assertTrue(result.job_root.exists())
 
     def test_periodic_recovery_reconciles_missing_terminal_copy_roots(self) -> None:
         failed = self.service.materialize("session-a", include_paths=("README.md",))

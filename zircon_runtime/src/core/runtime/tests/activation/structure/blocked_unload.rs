@@ -58,12 +58,21 @@ fn blocked_unload_fallback_keeps_indexed_six_or_more_scan() {
     assert!(blocked_unload_source.contains("unload_indices.get(dependency).copied()"));
     assert!(blocked_unload_source.contains("record_blocked_dependent("));
     assert!(blocked_unload_source.contains("match (blocked_index, blocked_dependents)"));
-    assert!(blocked_unload_source.contains("Some((unload_order[index].to_string(), dependents))"));
+    assert!(blocked_unload_source
+        .contains("Some(owned_blocked_result(&unload_order[index], dependents))"));
     assert!(blocked_unload_source
         .contains("get_or_insert_with(|| Vec::with_capacity(BLOCKED_DEPENDENT_INITIAL_CAPACITY))"));
     assert!(blocked_unload_source.contains("let Some(dependents) = blocked_dependents else"));
-    assert!(blocked_unload_source.contains("Some((service_name.to_string(), dependents))"));
+    assert!(blocked_unload_source.contains("Some(owned_blocked_result(service_name, dependents))"));
     assert!(blocked_unload_source.contains("dependents.clear()"));
+    assert!(blocked_unload_source.contains("fn owned_blocked_result("));
+    assert!(blocked_unload_source.contains(".push(dependent_name);"));
+    assert!(blocked_unload_source.contains(".map(|dependent| dependent.as_str().to_owned())"));
+    let production = blocked_unload_source
+        .split("#[cfg(test)]")
+        .next()
+        .expect("blocked unload production source");
+    assert!(!production.contains(".push(dependent_name.as_str().to_owned())"));
 
     assert!(!blocked_unload_source.contains("HashSet<RegistryName>"));
     assert!(!blocked_unload_source.contains("HashSet<String>"));

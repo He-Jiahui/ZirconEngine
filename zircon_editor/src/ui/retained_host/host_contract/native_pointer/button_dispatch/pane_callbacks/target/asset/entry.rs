@@ -15,7 +15,7 @@ pub(in super::super) fn dispatch_asset_pane_target_button(
     host_kind: i32,
     button_id: i32,
 ) -> bool {
-    dispatch_asset_tree_target(pane_host, pointer, state, button)
+    dispatch_asset_tree_target(pane_host, pointer, state, button, host_kind, button_id)
         || dispatch_asset_content_target(pane_host, pointer, state, button, host_kind, button_id)
         || dispatch_asset_reference_target(pane_host, pointer, state, button, host_kind, button_id)
 }

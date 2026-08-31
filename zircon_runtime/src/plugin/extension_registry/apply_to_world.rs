@@ -1,5 +1,8 @@
 mod component;
 
+#[cfg(test)]
+mod capacity_tests;
+
 use crate::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
 use crate::scene::{
     World, WorldRuntimeExtensionError, WorldRuntimeExtensionPlan, WorldRuntimeExtensionRegistration,
@@ -19,7 +22,8 @@ impl RuntimeExtensionRegistry {
     pub fn world_runtime_extension_plan(
         &self,
     ) -> Result<WorldRuntimeExtensionPlan, RuntimeExtensionRegistryError> {
-        let mut registrations = Vec::new();
+        let mut registrations =
+            Vec::with_capacity(world_runtime_extension_registration_capacity(self));
         for component in self.components().iter().cloned() {
             let key = format!("component:{}", component.type_id);
             let apply_key = key.clone();
@@ -34,9 +38,11 @@ impl RuntimeExtensionRegistry {
         for (_, resource) in self.plugin_resources() {
             let resource = resource.clone();
             let key = format!("resource:{}", resource.type_name());
+            let apply_key = key.clone();
             registrations.push(WorldRuntimeExtensionRegistration::new(key, move |world| {
-                resource.apply(world);
-                Ok(())
+                resource.apply(world).map_err(|error| {
+                    WorldRuntimeExtensionError::registration_failed(&apply_key, error)
+                })
             }));
         }
         for (_, event) in self.plugin_events() {
@@ -77,4 +83,14 @@ impl RuntimeExtensionRegistry {
         WorldRuntimeExtensionPlan::from_registrations(registrations)
             .map_err(|error| RuntimeExtensionRegistryError::WorldRegistration(error.to_string()))
     }
+}
+
+fn world_runtime_extension_registration_capacity(registry: &RuntimeExtensionRegistry) -> usize {
+    registry
+        .components()
+        .len()
+        .saturating_add(registry.plugin_resources().count())
+        .saturating_add(registry.plugin_events().count())
+        .saturating_add(registry.plugin_systems().count())
+        .saturating_add(registry.plugin_runtime_systems().count())
 }

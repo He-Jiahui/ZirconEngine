@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiDispatchEffect, UiImeInputEventKind, UiInputEvent, UiInputMethodRequest,
-        UiInputMethodRequestKind, UiInputMethodSurroundingText, UiTextByteRange,
-        UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT,
+        UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT, UiDispatchEffect, UiImeInputEventKind,
+        UiInputEvent, UiInputMethodRequest, UiInputMethodRequestKind, UiInputMethodSurroundingText,
+        UiTextByteRange,
     },
     event_ui::UiNodeId,
     layout::UiFrame,
@@ -16,11 +16,12 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::super::surface::UiSurface;
-use super::super::text_state::clamp_text_boundary;
 use super::state_transition::map_visible_offset_to_committed_offset;
+use crate::text::font::FontCollectionSnapshot;
 use crate::ui::text::{
-    caret_frame_for_text_layout_with_source_metrics,
-    text_range_frames_for_text_layout_with_source_metrics,
+    caret_frame_for_text_layout, caret_frame_for_text_layout_with_font_collection,
+    clamp_grapheme_boundary, text_range_frames_for_text_layout,
+    text_range_frames_for_text_layout_with_font_collection,
 };
 
 const DEFAULT_PADDING_X: f32 = 10.0;
@@ -46,17 +47,28 @@ pub(super) fn input_method_update_for_text_state(
     }
 
     surface.refresh_render_extract_for_current_tree();
+    let font_collection = surface.text_measure_cache.font_collection_snapshot();
+    let source_metrics_font_collection = (surface.observed_text_font_generation
+        == font_collection.generation())
+    .then_some(&font_collection);
     let text_layout = resolved_text_layout_for_state(surface, target, state);
     Some(UiDispatchEffect::RequestInputMethod {
         request: UiInputMethodRequest {
             kind: UiInputMethodRequestKind::UpdateCursor,
             owner: target,
-            cursor_rect: cursor_rect_for_state(surface, target, state, text_layout.as_ref()),
+            cursor_rect: cursor_rect_for_state(
+                surface,
+                target,
+                state,
+                text_layout.as_ref(),
+                source_metrics_font_collection,
+            ),
             composition_rects: composition_rects_for_state(
                 surface,
                 target,
                 state,
                 text_layout.as_ref(),
+                source_metrics_font_collection,
             ),
             surrounding_text: surrounding_text_for_state(state),
         },
@@ -73,6 +85,7 @@ fn input_event_refreshes_context(event: &UiInputEvent) -> bool {
                 | UiImeInputEventKind::DeleteSurrounding
         ),
         UiInputEvent::Pointer(_)
+        | UiInputEvent::Clipboard(_)
         | UiInputEvent::Navigation(_)
         | UiInputEvent::Analog(_)
         | UiInputEvent::MouseMotion(_)
@@ -91,13 +104,20 @@ fn cursor_rect_for_state(
     target: UiNodeId,
     state: &UiEditableTextState,
     text_layout: Option<&InputMethodTextLayout<'_>>,
+    font_collection: Option<&FontCollectionSnapshot>,
 ) -> Option<UiFrame> {
     if let Some(frame) = text_layout.and_then(|text_layout| {
-        caret_frame_for_text_layout_with_source_metrics(
-            text_layout.layout,
-            &state.caret,
-            state.text.as_str(),
-            text_layout.style,
+        font_collection.map_or_else(
+            || caret_frame_for_text_layout(text_layout.layout, &state.caret),
+            |font_collection| {
+                caret_frame_for_text_layout_with_font_collection(
+                    text_layout.layout,
+                    &state.caret,
+                    state.text.as_str(),
+                    text_layout.style,
+                    font_collection,
+                )
+            },
         )
     }) {
         return Some(frame);
@@ -124,16 +144,23 @@ fn composition_rects_for_state(
     target: UiNodeId,
     state: &UiEditableTextState,
     text_layout: Option<&InputMethodTextLayout<'_>>,
+    font_collection: Option<&FontCollectionSnapshot>,
 ) -> Vec<UiFrame> {
     let Some(composition) = state.composition.as_ref() else {
         return Vec::new();
     };
     if let Some(text_layout) = text_layout {
-        return text_range_frames_for_text_layout_with_source_metrics(
-            text_layout.layout,
-            composition.range,
-            state.text.as_str(),
-            text_layout.style,
+        return font_collection.map_or_else(
+            || text_range_frames_for_text_layout(text_layout.layout, composition.range),
+            |font_collection| {
+                text_range_frames_for_text_layout_with_font_collection(
+                    text_layout.layout,
+                    composition.range,
+                    state.text.as_str(),
+                    text_layout.style,
+                    font_collection,
+                )
+            },
         );
     }
 
@@ -249,8 +276,8 @@ fn surrounding_text_window(
     anchor_byte: usize,
     composition_range: Option<UiTextRange>,
 ) -> Option<(&str, usize, usize, Option<UiTextRange>)> {
-    let cursor_byte = clamp_text_boundary(text, cursor_byte);
-    let anchor_byte = clamp_text_boundary(text, anchor_byte);
+    let cursor_byte = clamp_grapheme_boundary(text, cursor_byte);
+    let anchor_byte = clamp_grapheme_boundary(text, anchor_byte);
     let cursor_grapheme_start = grapheme_start_for_offset(text, cursor_byte);
     if grapheme_adjacent_to_caret_exceeds_byte_limit(text, cursor_byte, cursor_grapheme_start) {
         return None;
@@ -326,7 +353,7 @@ fn grapheme_adjacent_to_caret_exceeds_byte_limit(
 }
 
 fn grapheme_start_for_offset(text: &str, offset: usize) -> usize {
-    let offset = clamp_text_boundary(text, offset);
+    let offset = clamp_utf8_boundary(text, offset);
     for (start, grapheme) in UnicodeSegmentation::grapheme_indices(text, true) {
         if offset <= start || offset < start.saturating_add(grapheme.len()) {
             return start;
@@ -336,7 +363,7 @@ fn grapheme_start_for_offset(text: &str, offset: usize) -> usize {
 }
 
 fn grapheme_end_for_offset(text: &str, offset: usize) -> usize {
-    let offset = clamp_text_boundary(text, offset);
+    let offset = clamp_utf8_boundary(text, offset);
     for (start, grapheme) in UnicodeSegmentation::grapheme_indices(text, true) {
         let end = start.saturating_add(grapheme.len());
         if offset <= start {
@@ -347,6 +374,14 @@ fn grapheme_end_for_offset(text: &str, offset: usize) -> usize {
         }
     }
     text.len()
+}
+
+fn clamp_utf8_boundary(text: &str, offset: usize) -> usize {
+    let mut offset = offset.min(text.len());
+    while offset > 0 && !text.is_char_boundary(offset) {
+        offset -= 1;
+    }
+    offset
 }
 
 #[cfg(test)]
@@ -363,8 +398,8 @@ fn committed_text_for_input_method(
             0,
         );
     };
-    let start = clamp_text_boundary(&state.text, composition.range.start);
-    let end = clamp_text_boundary(&state.text, composition.range.end).max(start);
+    let start = clamp_grapheme_boundary(&state.text, composition.range.start);
+    let end = clamp_grapheme_boundary(&state.text, composition.range.end).max(start);
     let Some(restore_text) = composition.restore_text.as_deref() else {
         return (
             Cow::Borrowed(state.text.as_str()),
@@ -431,8 +466,8 @@ fn range_rects_for_text(
     font_metrics: FontMetrics,
     wrap_columns: Option<usize>,
 ) -> Vec<UiFrame> {
-    let range_start = clamp_text_boundary(text, range.start);
-    let range_end = clamp_text_boundary(text, range.end).max(range_start);
+    let range_start = clamp_grapheme_boundary(text, range.start);
+    let range_end = clamp_grapheme_boundary(text, range.end).max(range_start);
     let collapsed = range_start == range_end;
     let start = grapheme_start_for_offset(text, range_start);
     let end = if collapsed {

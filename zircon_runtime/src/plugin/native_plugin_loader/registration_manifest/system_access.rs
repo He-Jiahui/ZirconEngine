@@ -1,9 +1,18 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use serde::Deserialize;
 
 use crate::scene::ecs::{QueryAccess, SceneSystemThreadAffinity, SystemParamAccess};
 use crate::scene::World;
+
+mod authority;
+mod error;
+
+pub(in crate::plugin::native_plugin_loader) use authority::NativeSystemAccessAuthority;
+pub(in crate::plugin::native_plugin_loader) use error::{
+    NativeSystemAccessAuthorityError, NativeSystemAccessContractError,
+    NativeSystemAccessResolveError,
+};
 
 pub(in crate::plugin::native_plugin_loader) const NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY: &str =
     "runtime.native.system.worker_safe";
@@ -178,209 +187,6 @@ impl NativeSystemAccessPlan {
         Ok(access)
     }
 }
-
-pub(in crate::plugin::native_plugin_loader) struct NativeSystemAccessAuthority {
-    plugin_id: String,
-    known_component_ids: BTreeSet<String>,
-    known_resource_ids: BTreeSet<String>,
-    granted_capabilities: BTreeSet<String>,
-}
-
-impl NativeSystemAccessAuthority {
-    pub(in crate::plugin::native_plugin_loader) fn new(
-        plugin_id: impl Into<String>,
-        known_component_ids: impl IntoIterator<Item = String>,
-        known_resource_ids: impl IntoIterator<Item = String>,
-        granted_capabilities: impl IntoIterator<Item = String>,
-    ) -> Self {
-        Self {
-            plugin_id: plugin_id.into(),
-            known_component_ids: known_component_ids.into_iter().collect(),
-            known_resource_ids: known_resource_ids.into_iter().collect(),
-            granted_capabilities: granted_capabilities.into_iter().collect(),
-        }
-    }
-
-    pub(in crate::plugin::native_plugin_loader) fn authorize(
-        &self,
-        plan: &NativeSystemAccessPlan,
-    ) -> Result<(), NativeSystemAccessAuthorityError> {
-        if plan.affinity == SceneSystemThreadAffinity::WorkerSafe
-            && !self
-                .granted_capabilities
-                .contains(NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY)
-        {
-            return Err(NativeSystemAccessAuthorityError::WorkerSafeCapabilityNotGranted);
-        }
-        for declaration in &plan.declarations {
-            let known = match declaration.domain {
-                NativeSystemAccessDomain::Component => {
-                    self.known_component_ids.contains(&declaration.stable_id)
-                }
-                NativeSystemAccessDomain::Resource => {
-                    self.known_resource_ids.contains(&declaration.stable_id)
-                }
-            };
-            if !known {
-                return Err(NativeSystemAccessAuthorityError::UnknownStableId {
-                    domain: declaration.domain,
-                    stable_id: declaration.stable_id.clone(),
-                });
-            }
-            if self.owns(&declaration.stable_id) {
-                continue;
-            }
-            let required_capability = declaration.required_capability();
-            if !self.granted_capabilities.contains(&required_capability) {
-                return Err(NativeSystemAccessAuthorityError::CapabilityNotGranted {
-                    stable_id: declaration.stable_id.clone(),
-                    required_capability,
-                });
-            }
-        }
-        Ok(())
-    }
-
-    fn owns(&self, stable_id: &str) -> bool {
-        stable_id == self.plugin_id
-            || stable_id
-                .strip_prefix(&self.plugin_id)
-                .is_some_and(|suffix| suffix.starts_with('.'))
-    }
-}
-
-impl NativeSystemAccessDeclaration {
-    fn required_capability(&self) -> String {
-        format!(
-            "runtime.native.ecs.{}.{}.{}",
-            self.domain.label(),
-            self.mode.label(),
-            self.stable_id
-        )
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(in crate::plugin::native_plugin_loader) enum NativeSystemAccessContractError {
-    InvalidDeclaration {
-        declaration: String,
-    },
-    InvalidStableId {
-        stable_id: String,
-    },
-    DuplicateAccess {
-        declaration: String,
-    },
-    ConflictingAccess {
-        domain: NativeSystemAccessDomain,
-        stable_id: String,
-    },
-    WorldAccessMustBeExclusive,
-    WorkerSafeRequiresExplicitAccess,
-    MissingWorkerSafeCapability,
-}
-
-impl std::fmt::Display for NativeSystemAccessContractError {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidDeclaration { declaration } => write!(
-                formatter,
-                "access `{declaration}` must use read|write:component|resource:<stable-id>"
-            ),
-            Self::InvalidStableId { stable_id } => {
-                write!(formatter, "access stable id `{stable_id}` is invalid")
-            }
-            Self::DuplicateAccess { declaration } => {
-                write!(
-                    formatter,
-                    "access `{declaration}` is declared more than once"
-                )
-            }
-            Self::ConflictingAccess { domain, stable_id } => write!(
-                formatter,
-                "access declares both read and write for {} `{stable_id}`",
-                domain.label()
-            ),
-            Self::WorldAccessMustBeExclusive => {
-                formatter.write_str("wildcard `write:world` access must be the only declaration")
-            }
-            Self::WorkerSafeRequiresExplicitAccess => formatter.write_str(
-                "worker-safe systems require explicit component/resource access declarations",
-            ),
-            Self::MissingWorkerSafeCapability => write!(
-                formatter,
-                "worker-safe systems require capability `{NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY}`"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for NativeSystemAccessContractError {}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(in crate::plugin::native_plugin_loader) enum NativeSystemAccessAuthorityError {
-    WorkerSafeCapabilityNotGranted,
-    UnknownStableId {
-        domain: NativeSystemAccessDomain,
-        stable_id: String,
-    },
-    CapabilityNotGranted {
-        stable_id: String,
-        required_capability: String,
-    },
-}
-
-impl std::fmt::Display for NativeSystemAccessAuthorityError {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::WorkerSafeCapabilityNotGranted => write!(
-                formatter,
-                "host did not grant `{NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY}`"
-            ),
-            Self::UnknownStableId { domain, stable_id } => write!(
-                formatter,
-                "unknown {} access id `{stable_id}`",
-                domain.label()
-            ),
-            Self::CapabilityNotGranted {
-                stable_id,
-                required_capability,
-            } => write!(
-                formatter,
-                "access to `{stable_id}` requires granted capability `{required_capability}`"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for NativeSystemAccessAuthorityError {}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(in crate::plugin::native_plugin_loader) enum NativeSystemAccessResolveError {
-    UnknownComponent { stable_id: String },
-    ConflictingAccess { stable_id: String, message: String },
-}
-
-impl std::fmt::Display for NativeSystemAccessResolveError {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::UnknownComponent { stable_id } => {
-                write!(
-                    formatter,
-                    "component access id `{stable_id}` is not installed"
-                )
-            }
-            Self::ConflictingAccess { stable_id, message } => {
-                write!(
-                    formatter,
-                    "access `{stable_id}` conflicts while resolving: {message}"
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for NativeSystemAccessResolveError {}
 
 impl NativeSystemAccessDomain {
     const fn label(self) -> &'static str {

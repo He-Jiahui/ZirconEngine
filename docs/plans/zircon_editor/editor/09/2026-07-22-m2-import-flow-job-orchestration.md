@@ -2,7 +2,7 @@
 owner_plan: docs/plans/zircon_editor/editor/09-editor-asset-management.md
 milestone: M2
 slice: import-flow-job-orchestration
-status: source_complete_static_green_review_clean_cargo_blocked
+status: source_updated_static_green_cargo_pending
 related_code:
   - zircon_editor/src/core/asset/mod.rs
   - zircon_editor/src/core/asset/index.rs
@@ -25,7 +25,7 @@ Plan: `docs/plans/zircon_editor/editor/09-editor-asset-management.md`
 
 Milestone: M2
 
-Status: `source_complete_static_green_review_clean_cargo_blocked`
+Status: `source_updated_static_green_cargo_pending`
 
 ## 范围
 
@@ -148,3 +148,17 @@ Status: `source_complete_static_green_review_clean_cargo_blocked`
   skeleton/clips和default material；禁止为每个派生URI提交独立job或在UI callback等待ticket。Runtime04负责一次
   candidate transaction，Runtime11负责stage/parse/derive/write。当前A个animation至少A+3次full import；managed
   product trace、Cargo与独立复审前本记录继续pending。
+- 2026-08-23：状态 `source_updated_static_green_cargo_pending`。复审提交路径发现 shared flight admission
+  与 UUID `Starting/Clearing` 曾通过 Condvar 等待；现已硬切为 `AdmissionPending` 与
+  `UuidLifecycleTransitionPending` typed 返回，并将持续 Runtime generation 变更限制为一次内联复验后返回
+  `RegistryGenerationSuperseded`。新增并发合同覆盖两类 pending 与重复 generation 变更时 backend/job submit=0；
+  index 锁恢复集中至私有 helper。`test_editor09_import_flow_contract` 为 8/8、精确 rustfmt 与 diff-check 通过。
+  本条仅记录 current-source 与静态合同，Rust 行为用例、受管 Cargo、产品 trace、独立复审、failure fixed return 和
+  milestone commit 仍未完成，父 M2 继续 `pending`。
+- 2026-08-23：状态保持 `source_updated_static_green_cargo_pending`。Runtime
+  `AssetManager::import_asset` 返回 `None` 不再被 `EditorAssetImportResult` 表示为成功；结果的 status
+  现为必备 `AssetStatusRecord`，缺失 committed status 统一返回 typed
+  `EditorAssetImportExecutionError::RuntimeDidNotCommit`，且 lease 仍清理 importing 生命周期。公开 ticket 的无界
+  `wait()` 也硬切为 `wait_until(Instant)`，超时显式保持 pending；新增行为合同并将 façade allowlist 同步为 8/8 GREEN，
+  精确 rustfmt 与 diff-check 通过。未运行 Rust/Cargo，不构成产品接入、性能数据、failure fixed return 或里程碑验收，
+  父 M2 继续 `pending`。

@@ -40,8 +40,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             return Ok(Some(false));
         }
         if !self.has_control(target_control_id)
-            || !control_bool(self, target_control_id, PROPERTY_EDITABLE)
-            || control_string(self, target_control_id, PROPERTY_FIELD_ID)
+            || !self.control_bool(target_control_id, PROPERTY_EDITABLE)
+            || self
+                .control_string(target_control_id, PROPERTY_FIELD_ID)
                 .map_or(true, |field_id| field_id.trim().is_empty())
         {
             return Ok(Some(false));
@@ -101,8 +102,9 @@ fn edit_raw_value(
     control_id: &str,
     value: &str,
 ) -> String {
-    let Some(label) = control_string(bridge, control_id, PROPERTY_LABEL)
-        .or_else(|| control_string(bridge, control_id, PROPERTY_NAME))
+    let Some(label) = bridge
+        .control_string(control_id, PROPERTY_LABEL)
+        .or_else(|| bridge.control_string(control_id, PROPERTY_NAME))
         .map(|label| non_empty_label(&label, ""))
         .filter(|label| !label.is_empty())
     else {
@@ -113,41 +115,6 @@ fn edit_raw_value(
         .map(str::trim_start)
         .unwrap_or(value)
         .to_string()
-}
-
-fn control_bool(
-    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
-    control_id: &str,
-    property: &str,
-) -> bool {
-    bridge
-        .surface()
-        .tree
-        .nodes
-        .values()
-        .find_map(|node| {
-            node.template_metadata
-                .as_ref()
-                .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
-                .and_then(|metadata| metadata.attributes.get(property))
-                .and_then(toml::Value::as_bool)
-        })
-        .unwrap_or(false)
-}
-
-fn control_string(
-    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
-    control_id: &str,
-    property: &str,
-) -> Option<String> {
-    bridge.surface().tree.nodes.values().find_map(|node| {
-        node.template_metadata
-            .as_ref()
-            .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
-            .and_then(|metadata| metadata.attributes.get(property))
-            .and_then(toml::Value::as_str)
-            .map(str::to_string)
-    })
 }
 
 fn non_empty_label(value: &str, fallback: &str) -> String {

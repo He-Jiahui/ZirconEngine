@@ -25,13 +25,17 @@ mod tests {
         let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
         let mut scene = Scene::new();
 
-        controller.handle_input(&mut scene, ViewportInput::RightPressed(Vec2::ZERO));
+        controller
+            .handle_input(&mut scene, ViewportInput::RightPressed(Vec2::ZERO))
+            .unwrap();
 
         assert!(controller.cancel_interaction());
-        let feedback = controller.handle_input(
-            &mut scene,
-            ViewportInput::PointerMoved(Vec2::new(120.0, 48.0)),
-        );
+        let feedback = controller
+            .handle_input(
+                &mut scene,
+                ViewportInput::PointerMoved(Vec2::new(120.0, 48.0)),
+            )
+            .unwrap();
         assert!(!feedback.camera_updated);
     }
 }

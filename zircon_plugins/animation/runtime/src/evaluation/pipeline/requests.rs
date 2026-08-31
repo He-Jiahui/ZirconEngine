@@ -1,7 +1,9 @@
 use std::collections::BTreeSet;
 
 use zircon_runtime::asset::AssetId;
-use zircon_runtime::core::framework::animation::{AnimationParameterMap, AnimationPoseSource};
+use zircon_runtime::core::framework::animation::{
+    AnimationParameterMap, AnimationParameterRevision, AnimationParameterSet, AnimationPoseSource,
+};
 use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId};
 
@@ -53,7 +55,7 @@ pub(super) struct PendingGraphPoseSample {
     pub(super) entity: EntityId,
     pub(super) skeleton_id: AssetId,
     pub(super) graph_id: AssetId,
-    pub(super) parameters: AnimationParameterMap,
+    pub(super) parameters: AnimationParameterSet,
     pub(super) from_time_seconds: Real,
     pub(super) to_time_seconds: Real,
 }
@@ -63,10 +65,25 @@ pub(super) struct PendingStateMachinePoseSample {
     pub(super) entity: EntityId,
     pub(super) skeleton_id: AssetId,
     pub(super) state_machine_id: AssetId,
-    pub(super) parameters: AnimationParameterMap,
+    pub(super) parameters: AnimationParameterSet,
     pub(super) active_state: Option<String>,
     pub(super) from_time_seconds: Real,
     pub(super) to_time_seconds: Real,
     pub(super) delta_seconds: Real,
     pub(super) transition: Option<AnimationStateTransitionRuntime>,
+}
+
+impl PendingStateMachinePoseSample {
+    pub(super) fn parameter_projection(&self) -> StateMachineParameterProjection<'_> {
+        StateMachineParameterProjection {
+            revision: self.parameters.revision(),
+            values: self.parameters.as_map(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(super) struct StateMachineParameterProjection<'a> {
+    pub(super) revision: AnimationParameterRevision,
+    pub(super) values: &'a AnimationParameterMap,
 }

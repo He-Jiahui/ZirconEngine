@@ -1,5 +1,5 @@
 use crate::asset::assets::ZShaderDocumentV2;
-use crate::core::framework::render::{wgsl_include_paths, GENERATED_MATERIAL_MODULE_IMPORT_PATH};
+use crate::core::framework::render::{GENERATED_MATERIAL_MODULE_IMPORT_PATH, wgsl_include_paths};
 use crate::core::resource::{ResourceDiagnostic, ResourceDiagnosticSeverity};
 
 pub(super) fn append_generated_material_anchor_hint(
@@ -7,14 +7,8 @@ pub(super) fn append_generated_material_anchor_hint(
     document: &ZShaderDocumentV2,
     wgsl_source: &str,
 ) {
-    if !document.kind().participates_in_material_variants() {
-        return;
-    }
-    let authored_source = wgsl_source_without_comments(wgsl_source);
-    if wgsl_include_paths(&authored_source)
-        .iter()
-        .any(|path| path == GENERATED_MATERIAL_MODULE_IMPORT_PATH)
-        || !wgsl_uses_generated_material_symbol(&authored_source)
+    if !document.kind().participates_in_material_variants()
+        || !wgsl_needs_generated_material_anchor_hint(wgsl_source)
     {
         return;
     }
@@ -23,6 +17,22 @@ pub(super) fn append_generated_material_anchor_hint(
         severity: ResourceDiagnosticSeverity::Info,
         message: "surface WGSL uses generated `zr_mat_*` symbols without `#include <self::material>`; add the include as an IDE navigation anchor (runtime assembly is unchanged)".to_string(),
     });
+}
+
+fn wgsl_needs_generated_material_anchor_hint(wgsl_source: &str) -> bool {
+    if !wgsl_source.contains("zr_mat_") {
+        return false;
+    }
+
+    let authored_source = wgsl_source_without_comments(wgsl_source);
+    if wgsl_include_paths(&authored_source)
+        .iter()
+        .any(|path| path == GENERATED_MATERIAL_MODULE_IMPORT_PATH)
+        || !wgsl_uses_generated_material_symbol(&authored_source)
+    {
+        return false;
+    }
+    true
 }
 
 fn wgsl_source_without_comments(source: &str) -> String {
@@ -73,6 +83,10 @@ fn wgsl_uses_generated_material_symbol(source: &str) -> bool {
         .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
         .any(|identifier| identifier.starts_with("zr_mat_"))
 }
+
+#[cfg(test)]
+#[path = "generated_material_anchor_hint/symbol_prefilter_tests.rs"]
+mod symbol_prefilter_tests;
 
 #[cfg(test)]
 mod tests {
